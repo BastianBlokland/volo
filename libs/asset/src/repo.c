@@ -68,3 +68,26 @@ AssetRepoQueryResult asset_repo_query(
   }
   return AssetRepoQueryResult_ErrorNotSupported;
 }
+
+void asset_repo_cache(
+    AssetRepo*          repo,
+    const String        id,
+    const DataMeta      blobMeta,
+    const TimeReal      blobModTime,
+    const Mem           blob,
+    const AssetRepoDep* deps,
+    const usize         depCount) {
+  if (repo->cache) {
+    repo->cache(repo, id, blobMeta, blobModTime, blob, deps, depCount);
+  }
+}
+
+usize asset_repo_cache_deps(
+    AssetRepo*   repo,
+    const String id,
+    AssetRepoDep out[PARAM_ARRAY_SIZE(asset_repo_cache_deps_max)]) {
+  if (repo->cacheDeps) {
+    return repo->cacheDeps(repo, id, out);
+  }
+  return 0;
+}

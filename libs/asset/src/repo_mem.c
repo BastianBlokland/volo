@@ -36,11 +36,14 @@ static AssetSource* asset_source_mem_open(AssetRepo* repo, const String id) {
   }
 
   AssetSource* src = alloc_alloc_t(g_allocHeap, AssetSource);
-  *src             = (AssetSource){
+
+  *src = (AssetSource){
       .data    = entry->data,
       .format  = fmt,
+      .flags   = AssetSourceFlags_None,
       .modTime = repoMem->createTime,
   };
+
   return src;
 }
 

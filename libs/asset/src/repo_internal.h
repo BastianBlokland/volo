@@ -1,13 +1,21 @@
 #pragma once
 #include "asset_manager.h"
+#include "data_registry.h"
 
 #include "format_internal.h"
 
 // Forward declare from 'core_time.h'.
 typedef i64 TimeReal;
 
+#define asset_repo_cache_deps_max 256
+
 typedef struct sAssetRepo   AssetRepo;
 typedef struct sAssetSource AssetSource;
+
+typedef struct {
+  String   id;
+  TimeReal modTime;
+} AssetRepoDep;
 
 typedef void (*AssetRepoQueryHandler)(void* ctx, String assetId);
 
@@ -32,12 +40,28 @@ struct sAssetRepo {
   void (*changesWatch)(AssetRepo*, String id, u64 userData);
   bool (*changesPoll)(AssetRepo*, u64* outUserData);
   AssetRepoQueryResult (*query)(AssetRepo*, String pattern, void* ctx, AssetRepoQueryHandler);
+  void (*cache)(
+      AssetRepo*,
+      String              id,
+      DataMeta            blobMeta,
+      TimeReal            blobModTime,
+      Mem                 blob,
+      const AssetRepoDep* deps,
+      usize               depCount);
+  usize (*cacheDeps)(
+      AssetRepo*, String id, AssetRepoDep out[PARAM_ARRAY_SIZE(asset_repo_cache_deps_max)]);
 };
 
+typedef enum {
+  AssetSourceFlags_None   = 0,
+  AssetSourceFlags_Cached = 1 << 0,
+} AssetSourceFlags;
+
 struct sAssetSource {
-  String      data;
-  AssetFormat format;
-  TimeReal    modTime;
+  String           data;
+  AssetFormat      format;
+  AssetSourceFlags flags;
+  TimeReal         modTime;
 
   void (*close)(AssetSource*);
 };
@@ -56,3 +80,15 @@ void         asset_repo_source_close(AssetSource*);
 void                 asset_repo_changes_watch(AssetRepo*, String id, u64 userData);
 bool                 asset_repo_changes_poll(AssetRepo*, u64* outUserData);
 AssetRepoQueryResult asset_repo_query(AssetRepo*, String pattern, void* ctx, AssetRepoQueryHandler);
+
+void asset_repo_cache(
+    AssetRepo*,
+    String              id,
+    DataMeta            blobMeta,
+    TimeReal            blobModTime,
+    Mem                 blob,
+    const AssetRepoDep* deps,
+    usize               depCount);
+
+usize asset_repo_cache_deps(
+    AssetRepo*, String id, AssetRepoDep out[PARAM_ARRAY_SIZE(asset_repo_cache_deps_max)]);

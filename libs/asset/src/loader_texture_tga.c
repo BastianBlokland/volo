@@ -6,6 +6,7 @@
 #include "log_logger.h"
 
 #include "loader_texture_internal.h"
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 /**
@@ -426,7 +427,8 @@ void asset_load_tex_tga(
     goto Ret;
   }
 
-  *ecs_world_add_t(world, entity, AssetTextureComp) = asset_texture_create(
+  AssetTextureComp* texComp = ecs_world_add_t(world, entity, AssetTextureComp);
+  *texComp                  = asset_texture_create(
       pixels,
       width,
       height,
@@ -436,7 +438,9 @@ void asset_load_tex_tga(
       0 /* mipsMax */,
       AssetTextureType_u8,
       tga_texture_flags(channels, isNormalmap));
+
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_cache(world, entity, g_assetTexDataDef, mem_create(texComp, sizeof(AssetTextureComp)));
 
 Ret:
   if (mem_valid(pixels)) {

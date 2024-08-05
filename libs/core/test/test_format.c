@@ -180,6 +180,15 @@ spec(format) {
         {1e255, format_opts_float(), string_lit("1e255")},
         {1e-255, format_opts_float(), string_lit("1e-255")},
         {f64_epsilon, format_opts_float(), string_lit("1e-16")},
+        {1.7050897056e15,
+         format_opts_float(.maxDecDigits = 25),
+         string_lit("1.705089705600000512e15")},
+        {42.12345678987654321,
+         format_opts_float(.maxDecDigits = 0, .expThresholdPos = 1e20, .expThresholdNeg = 1e-5),
+         string_lit("42")},
+        {18446744073709551615.0,
+         format_opts_float(.maxDecDigits = 10, .expThresholdPos = 1e20, .expThresholdNeg = 1e-5),
+         string_lit("18446744073709551615")},
     };
 
     DynString string = dynstring_create_over(mem_stack(128));

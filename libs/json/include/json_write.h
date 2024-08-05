@@ -20,6 +20,8 @@ typedef struct {
   JsonWriteMode  mode : 8;
   JsonWriteFlags flags : 8;
   u8             numberMaxDecDigits;
+  f64            numberExpThresholdPos;
+  f64            numberExpThresholdNeg;
   String         indent;
   String         newline;
 } JsonWriteOpts;
@@ -29,11 +31,13 @@ typedef struct {
  */
 #define json_write_opts(...)                                                                       \
   ((JsonWriteOpts){                                                                                \
-      .mode               = JsonWriteMode_Minimal,                                                 \
-      .flags              = JsonWriteFlags_None,                                                   \
-      .numberMaxDecDigits = 10,                                                                    \
-      .indent             = string_lit("  "),                                                      \
-      .newline            = string_lit("\n"),                                                      \
+      .mode                  = JsonWriteMode_Minimal,                                              \
+      .flags                 = JsonWriteFlags_None,                                                \
+      .numberMaxDecDigits    = 10,                                                                 \
+      .numberExpThresholdPos = 1e20,                                                               \
+      .numberExpThresholdNeg = 1e-5,                                                               \
+      .indent                = string_lit("  "),                                                   \
+      .newline               = string_lit("\n"),                                                   \
       __VA_ARGS__})
 
 /**

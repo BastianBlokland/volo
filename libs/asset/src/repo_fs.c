@@ -5,12 +5,14 @@
 #include "core_path.h"
 #include "log_logger.h"
 
+#include "cache_internal.h"
 #include "repo_internal.h"
 
 typedef struct {
   AssetRepo    api;
   String       rootPath;
   FileMonitor* monitor;
+  AssetCache*  cache;
   Allocator*   sourceAlloc; // Allocator for AssetSourceFs objects.
 } AssetRepoFs;
 
@@ -20,27 +22,56 @@ typedef struct {
   File*        file;
 } AssetSourceFs;
 
-static void asset_source_fs_close(AssetSource* src) {
-  AssetSourceFs* srcFs = (AssetSourceFs*)src;
-  file_destroy(srcFs->file);
-  alloc_free_t(srcFs->repo->sourceAlloc, srcFs);
-}
-
-static bool asset_source_path(AssetRepo* repo, const String id, DynString* out) {
+static bool asset_source_fs_path(AssetRepo* repo, const String id, DynString* out) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
   path_build(out, repoFs->rootPath, id);
   return true;
 }
 
-static AssetSource* asset_source_fs_open(AssetRepo* repo, const String id) {
-  AssetRepoFs* repoFs = (AssetRepoFs*)repo;
+static void asset_source_fs_close(AssetSource* src) {
+  AssetSourceFs* srcFs = (AssetSourceFs*)src;
+  file_destroy(srcFs->file);
+  alloc_free_t(srcFs->repo->sourceAlloc, srcFs);
+}
 
-  const AssetFormat fmt  = asset_format_from_ext(path_extension(id));
-  const String      path = path_build_scratch(repoFs->rootPath, id);
-  String            data;
-  File*             file;
-  FileResult        result;
+static AssetSource* asset_source_fs_open_cached(AssetRepoFs* repoFs, const AssetCacheRecord* rec) {
+  const AssetFormat format = asset_format_from_data_meta(rec->meta);
+  if (format == AssetFormat_Raw) {
+    log_w("No asset-format found for cached data");
+    return null;
+  }
+  String     data;
+  FileResult result;
+  if ((result = file_map(rec->blobFile, &data))) {
+    log_w("Failed to map cache file", log_param("result", fmt_text(file_result_str(result))));
+    file_destroy(rec->blobFile);
+    return null;
+  }
+
+  AssetSourceFs* src = alloc_alloc_t(repoFs->sourceAlloc, AssetSourceFs);
+
+  *src = (AssetSourceFs){
+      .api =
+          {
+              .data    = data,
+              .format  = format,
+              .flags   = AssetSourceFlags_Cached,
+              .modTime = rec->modTime,
+              .close   = asset_source_fs_close,
+          },
+      .repo = repoFs,
+      .file = rec->blobFile,
+  };
+
+  return (AssetSource*)src;
+}
+
+static AssetSource* asset_source_fs_open_normal(AssetRepoFs* repoFs, const String id) {
+  const String path = path_build_scratch(repoFs->rootPath, id);
+  String       data;
+  File*        file;
+  FileResult   result;
   if ((result = file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &file))) {
     log_w(
         "Failed to open file",
@@ -69,7 +100,8 @@ static AssetSource* asset_source_fs_open(AssetRepo* repo, const String id) {
       .api =
           {
               .data    = data,
-              .format  = fmt,
+              .format  = asset_format_from_ext(path_extension(id)),
+              .flags   = AssetSourceFlags_None,
               .modTime = fileInfo.modTime,
               .close   = asset_source_fs_close,
           },
@@ -78,6 +110,16 @@ static AssetSource* asset_source_fs_open(AssetRepo* repo, const String id) {
   };
 
   return (AssetSource*)src;
+}
+
+static AssetSource* asset_source_fs_open(AssetRepo* repo, const String id) {
+  AssetRepoFs* repoFs = (AssetRepoFs*)repo;
+
+  AssetCacheRecord cacheRecord;
+  if (asset_cache_get(repoFs->cache, id, &cacheRecord)) {
+    return asset_source_fs_open_cached(repoFs, &cacheRecord);
+  }
+  return asset_source_fs_open_normal(repoFs, id);
 }
 
 static bool asset_repo_fs_save(AssetRepo* repo, const String id, const String data) {
@@ -215,33 +257,60 @@ static AssetRepoQueryResult asset_repo_fs_query(
   return asset_repo_fs_query_iteration(repoFs, directory, pattern, flags, context, handler);
 }
 
+static void asset_repo_fs_cache(
+    AssetRepo*          repo,
+    const String        id,
+    const DataMeta      blobMeta,
+    const TimeReal      blobModTime,
+    const Mem           blob,
+    const AssetRepoDep* deps,
+    const usize         depCount) {
+  AssetRepoFs* repoFs = (AssetRepoFs*)repo;
+
+  asset_cache_set(repoFs->cache, id, blobMeta, blobModTime, blob, deps, depCount);
+  asset_cache_flush(repoFs->cache); // NOTE: We could batch flushes to be more efficient.
+}
+
+static usize asset_repo_fs_cache_deps(
+    AssetRepo*   repo,
+    const String id,
+    AssetRepoDep out[PARAM_ARRAY_SIZE(asset_repo_cache_deps_max)]) {
+  AssetRepoFs* repoFs = (AssetRepoFs*)repo;
+
+  return asset_cache_deps(repoFs->cache, id, out);
+}
+
 static void asset_repo_fs_destroy(AssetRepo* repo) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
   string_free(g_allocHeap, repoFs->rootPath);
   file_monitor_destroy(repoFs->monitor);
+  asset_cache_destroy(repoFs->cache);
   alloc_block_destroy(repoFs->sourceAlloc);
 
   alloc_free_t(g_allocHeap, repoFs);
 }
 
-AssetRepo* asset_repo_create_fs(String rootPath) {
+AssetRepo* asset_repo_create_fs(const String rootPath) {
   AssetRepoFs* repo = alloc_alloc_t(g_allocHeap, AssetRepoFs);
 
   *repo = (AssetRepoFs){
       .api =
           {
-              .path         = asset_source_path,
+              .path         = asset_source_fs_path,
               .open         = asset_source_fs_open,
               .save         = asset_repo_fs_save,
               .destroy      = asset_repo_fs_destroy,
               .changesWatch = asset_repo_fs_changes_watch,
               .changesPoll  = asset_repo_fs_changes_poll,
               .query        = asset_repo_fs_query,
+              .cache        = asset_repo_fs_cache,
+              .cacheDeps    = asset_repo_fs_cache_deps,
           },
       .sourceAlloc = alloc_block_create(g_allocHeap, sizeof(AssetSourceFs), alignof(AssetSourceFs)),
       .rootPath    = string_dup(g_allocHeap, rootPath),
       .monitor     = file_monitor_create(g_allocHeap, rootPath, FileMonitorFlags_None),
+      .cache       = asset_cache_create(g_allocHeap, rootPath),
   };
 
   return (AssetRepo*)repo;

@@ -3,6 +3,7 @@
 
 void asset_data_init_arraytex(void);
 void asset_data_init_atlas(void);
+void asset_data_init_cache(void);
 void asset_data_init_cursor(void);
 void asset_data_init_decal(void);
 void asset_data_init_fonttex(void);

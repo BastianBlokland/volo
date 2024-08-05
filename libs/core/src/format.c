@@ -249,7 +249,7 @@ String format_write_arg_scratch(const FormatArg* arg) {
 void format_write_u64(DynString* str, u64 val, const FormatOptsInt* opts) {
   diag_assert(opts->base > 1 && opts->base <= 16);
 
-  Mem buffer = mem_stack(64);
+  Mem buffer = mem_stack(256);
   u8* ptr    = mem_end(buffer);
 
   const char* chars         = "0123456789ABCDEF";
@@ -274,15 +274,15 @@ void format_write_i64(DynString* str, const i64 val, const FormatOptsInt* opts) 
   format_write_u64(str, valAbs, opts);
 }
 
-struct FormatF64Exp {
+typedef struct {
   i16 exp;
   f64 remaining;
-};
+} FormatF64Exp;
 
 /**
  * Calculate the exponent (for scientific notation) for the given float.
  */
-static struct FormatF64Exp format_f64_decompose_exp(const f64 val, const FormatOptsFloat* opts) {
+static FormatF64Exp format_f64_decompose_exp(const f64 val, const FormatOptsFloat* opts) {
 
   /**
    * Uses binary jumps in the exponentiation, this is a reasonable compromise between the highly
@@ -295,9 +295,7 @@ static struct FormatF64Exp format_f64_decompose_exp(const f64 val, const FormatO
   static f64 g_negBinPow10[]        = {1e-1, 1e-2, 1e-4, 1e-8, 1e-16, 1e-32, 1e-64, 1e-128, 1e-256};
   static f64 g_negBinPow10PlusOne[] = {1e0, 1e-1, 1e-3, 1e-7, 1e-15, 1e-31, 1e-63, 1e-127, 1e-255};
 
-  struct FormatF64Exp res;
-  res.exp       = 0;
-  res.remaining = val;
+  FormatF64Exp res = {.exp = 0, .remaining = val};
 
   i32 i   = array_elems(g_binPow10) - 1;
   i32 bit = 1 << i;
@@ -325,25 +323,25 @@ static struct FormatF64Exp format_f64_decompose_exp(const f64 val, const FormatO
   return res;
 }
 
-struct FormatF64Parts {
+typedef struct {
   u64 intPart;
   u64 decPart;
   u8  decDigits;
   i16 expPart;
-};
+} FormatF64Parts;
 
-static struct FormatF64Parts format_f64_decompose(const f64 val, const FormatOptsFloat* opts) {
+static FormatF64Parts format_f64_decompose(const f64 val, const FormatOptsFloat* opts) {
   diag_assert(val >= 0.0); // Negative values should be handled earlier.
   diag_assert(opts->minDecDigits <= opts->maxDecDigits);
 
-  const struct FormatF64Exp exp = format_f64_decompose_exp(val, opts);
+  const FormatF64Exp exp = format_f64_decompose_exp(val, opts);
 
-  struct FormatF64Parts res;
+  FormatF64Parts res;
   res.expPart   = exp.exp;
-  res.decDigits = opts->maxDecDigits;
-  res.intPart   = (u64)exp.remaining;
+  res.decDigits = math_min(opts->maxDecDigits, 19);
+  res.intPart   = exp.remaining < u64_max ? (u64)exp.remaining : u64_max;
 
-  const u64 maxDecPart = math_pow10_u64(math_min(res.decDigits, 19));
+  const u64 maxDecPart = math_pow10_u64(res.decDigits);
   f64       remainder  = (exp.remaining - (f64)res.intPart) * (f64)maxDecPart;
   res.decPart          = (u64)remainder;
 
@@ -355,7 +353,7 @@ static struct FormatF64Parts format_f64_decompose(const f64 val, const FormatOpt
       res.decPart = 0;
       ++res.intPart;
       if (res.expPart && res.intPart >= 10) {
-        res.expPart++;
+        ++res.expPart;
         res.intPart = 1;
       }
     }
@@ -391,7 +389,7 @@ void format_write_f64(DynString* str, f64 val, const FormatOptsFloat* opts) {
     return;
   }
 
-  const struct FormatF64Parts parts = format_f64_decompose(val, opts);
+  const FormatF64Parts parts = format_f64_decompose(val, opts);
 
   format_write_int(str, parts.intPart, .minDigits = opts->minIntDigits);
   if (parts.decDigits) {

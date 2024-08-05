@@ -1,5 +1,6 @@
 #pragma once
 #include "core_string.h"
+#include "data_registry.h"
 
 typedef enum {
   AssetFormat_Cursor,
@@ -38,3 +39,4 @@ typedef enum {
 
 String      asset_format_str(AssetFormat);
 AssetFormat asset_format_from_ext(String ext);
+AssetFormat asset_format_from_data_meta(DataMeta);

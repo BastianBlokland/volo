@@ -47,11 +47,17 @@ static i32 blob2j_run(File* inputFile, File* outputFile) {
   const usize dataAlign = data_meta_align(g_dataReg, dataMeta);
   data                  = alloc_alloc(g_allocHeap, dataSize, dataAlign);
 
-  data_read_bin(g_dataReg, input, g_allocHeap, dataMeta, data, &readRes);
+  const String inputRem = data_read_bin(g_dataReg, input, g_allocHeap, dataMeta, data, &readRes);
   if (readRes.error) {
     file_write_sync(
         g_fileStdErr,
         fmt_write_scratch("ERROR: Failed to read input: {}.\n", fmt_text(readRes.errorMsg)));
+    exitCode = 1;
+    goto Ret;
+  }
+  if (!string_is_empty(inputRem)) {
+    file_write_sync(g_fileStdErr, fmt_write_scratch("ERROR: Unexpected input data after blob.\n"));
+    data_destroy(g_dataReg, g_allocHeap, dataMeta, data);
     exitCode = 1;
     goto Ret;
   }
@@ -103,6 +109,10 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   const String inputPath = cli_read_string(invoc, g_optPath, string_empty);
   if (string_is_empty(inputPath)) {
+    if (tty_isatty(g_fileStdIn)) {
+      file_write_sync(g_fileStdErr, string_lit("ERROR: Input blob expected (path or stdin).\n"));
+      return 1;
+    }
     inputFile = g_fileStdIn;
   } else {
     if (file_create(g_allocHeap, inputPath, FileMode_Open, FileAccess_Read, &inputFile)) {
