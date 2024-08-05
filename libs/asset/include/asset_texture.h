@@ -32,8 +32,8 @@ ecs_comp_extern_public(AssetTextureComp) {
 };
 
 extern DataMeta g_assetTexMeta;
-extern DataMeta g_assetTexArrayMeta;
-extern DataMeta g_assetTexProcMeta;
+extern DataMeta g_assetTexArrayDefMeta;
+extern DataMeta g_assetTexProcDefMeta;
 
 String asset_texture_format_str(AssetTextureFormat);
 usize  asset_texture_format_channels(AssetTextureFormat);

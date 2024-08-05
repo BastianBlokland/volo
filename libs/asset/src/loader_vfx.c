@@ -15,7 +15,7 @@
 
 #define vfx_max_time time_days(9999)
 
-DataMeta g_assetVfxMeta;
+DataMeta g_assetVfxDefMeta;
 
 typedef struct {
   f32 x, y;
@@ -363,14 +363,14 @@ void asset_data_init_vfx(void) {
   data_reg_field_t(g_dataReg, VfxDef, emitters, t_VfxEmitterDef, .container = DataContainer_DataArray);
   // clang-format on
 
-  g_assetVfxMeta = data_meta_t(t_VfxDef);
+  g_assetVfxDefMeta = data_meta_t(t_VfxDef);
 }
 
 void asset_load_vfx(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   VfxDef         vfxDef;
   String         errMsg;
   DataReadResult readRes;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetVfxMeta, mem_var(vfxDef), &readRes);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetVfxDefMeta, mem_var(vfxDef), &readRes);
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
     goto Error;
@@ -391,6 +391,6 @@ Error:
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:
-  data_destroy(g_dataReg, g_allocHeap, g_assetVfxMeta, mem_var(vfxDef));
+  data_destroy(g_dataReg, g_allocHeap, g_assetVfxDefMeta, mem_var(vfxDef));
   asset_repo_source_close(src);
 }

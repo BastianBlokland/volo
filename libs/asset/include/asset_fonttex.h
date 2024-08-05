@@ -32,7 +32,7 @@ ecs_comp_extern_public(AssetFontTexComp) {
   usize             characterCount;
 };
 
-extern DataMeta g_assetFontTexMeta;
+extern DataMeta g_assetFontTexDefMeta;
 
 /**
  * Get a character based on a unicode codepoint.

@@ -20,7 +20,7 @@ ecs_comp_extern_public(AssetAtlasComp) {
   } entries;
 };
 
-extern DataMeta g_assetAtlasMeta;
+extern DataMeta g_assetAtlasDefMeta;
 
 /**
  * Get an atlas entry by name.

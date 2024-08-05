@@ -21,4 +21,4 @@ ecs_comp_extern_public(AssetTerrainComp) {
   AssetTerrainColor minimapColorLow, minimapColorHigh;
 };
 
-extern DataMeta g_assetTerrainMeta;
+extern DataMeta g_assetTerrainDefMeta;

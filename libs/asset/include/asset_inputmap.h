@@ -34,7 +34,7 @@ ecs_comp_extern_public(AssetInputMapComp) {
   usize              bindingCount;
 };
 
-extern DataMeta g_assetInputMapMeta;
+extern DataMeta g_assetInputDefMeta;
 
 /**
  * Lookup an input action by the hash of its name.

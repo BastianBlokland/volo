@@ -272,7 +272,7 @@ ecs_comp_extern_public(AssetPrefabMapComp) {
   usize             valueCount;
 };
 
-extern DataMeta g_assetPrefabMapMeta;
+extern DataMeta g_assetPrefabDefMeta;
 
 const AssetPrefab* asset_prefab_get(const AssetPrefabMapComp*, StringHash nameHash);
 u16                asset_prefab_get_index(const AssetPrefabMapComp*, StringHash nameHash);

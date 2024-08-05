@@ -12,7 +12,7 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-DataMeta g_assetCursorMeta;
+DataMeta g_assetCursorDefMeta;
 
 typedef struct {
   String    texture;
@@ -53,7 +53,7 @@ static void ecs_destruct_cursor_comp(void* data) {
 
 static void ecs_destruct_cursor_load_comp(void* data) {
   AssetCursorLoadComp* comp = data;
-  data_destroy(g_dataReg, g_allocHeap, g_assetCursorMeta, mem_var(comp->def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetCursorDefMeta, mem_var(comp->def));
 }
 
 static AssetCursorPixel asset_cursor_pixel(const GeoColor color) {
@@ -227,7 +227,7 @@ void asset_data_init_cursor(void) {
   data_reg_field_t(g_dataReg, CursorDef, color, g_assetGeoColorType, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
   // clang-format on
 
-  g_assetCursorMeta = data_meta_t(t_CursorDef);
+  g_assetCursorDefMeta = data_meta_t(t_CursorDef);
 }
 
 void asset_load_cursor(
@@ -236,7 +236,7 @@ void asset_load_cursor(
   String         errMsg;
   DataReadResult readRes;
   data_read_json(
-      g_dataReg, src->data, g_allocHeap, g_assetCursorMeta, mem_var(cursorDef), &readRes);
+      g_dataReg, src->data, g_allocHeap, g_assetCursorDefMeta, mem_var(cursorDef), &readRes);
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
     goto Error;
@@ -248,7 +248,7 @@ void asset_load_cursor(
 Error:
   log_e(
       "Failed to load cursor", log_param("id", fmt_text(id)), log_param("error", fmt_text(errMsg)));
-  data_destroy(g_dataReg, g_allocHeap, g_assetCursorMeta, mem_var(cursorDef));
+  data_destroy(g_dataReg, g_allocHeap, g_assetCursorDefMeta, mem_var(cursorDef));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:

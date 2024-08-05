@@ -93,4 +93,4 @@ ecs_comp_extern_public(AssetVfxComp) {
   AssetVfxEmitter* emitters;
 };
 
-extern DataMeta g_assetVfxMeta;
+extern DataMeta g_assetVfxDefMeta;

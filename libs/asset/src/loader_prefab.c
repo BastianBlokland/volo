@@ -17,7 +17,7 @@
 
 #define trait_movement_weight_min 0.1f
 
-DataMeta g_assetPrefabMapMeta;
+DataMeta g_assetPrefabDefMeta;
 
 static struct {
   String           setName;
@@ -684,7 +684,7 @@ ecs_system_define(LoadPrefabAssetSys) {
     AssetPrefabMapDef def;
     String            errMsg;
     DataReadResult    readRes;
-    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetPrefabMapMeta, mem_var(def), &readRes);
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetPrefabDefMeta, mem_var(def), &readRes);
     if (UNLIKELY(readRes.error)) {
       errMsg = readRes.errorMsg;
       goto Error;
@@ -733,7 +733,7 @@ ecs_system_define(LoadPrefabAssetSys) {
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
   Cleanup:
-    data_destroy(g_dataReg, g_allocHeap, g_assetPrefabMapMeta, mem_var(def));
+    data_destroy(g_dataReg, g_allocHeap, g_assetPrefabDefMeta, mem_var(def));
     dynarray_destroy(&prefabs);
     dynarray_destroy(&traits);
     dynarray_destroy(&values);
@@ -953,7 +953,7 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabMapDef, prefabs, t_AssetPrefabDef, .container = DataContainer_DataArray);
   // clang-format on
 
-  g_assetPrefabMapMeta = data_meta_t(t_AssetPrefabMapDef);
+  g_assetPrefabDefMeta = data_meta_t(t_AssetPrefabMapDef);
 }
 
 void asset_load_prefabs(

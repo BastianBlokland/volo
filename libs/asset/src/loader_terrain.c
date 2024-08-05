@@ -11,7 +11,7 @@
 #define terrain_max_size 1500
 #define terrain_max_height 50.0f
 
-DataMeta g_assetTerrainMeta;
+DataMeta g_assetTerrainDefMeta;
 
 ecs_comp_define_public(AssetTerrainComp);
 ecs_comp_define(AssetTerrainLoadComp) { AssetSource* src; };
@@ -19,7 +19,7 @@ ecs_comp_define(AssetTerrainLoadComp) { AssetSource* src; };
 static void ecs_destruct_terrain_comp(void* data) {
   AssetTerrainComp* comp = data;
   data_destroy(
-      g_dataReg, g_allocHeap, g_assetTerrainMeta, mem_create(comp, sizeof(AssetTerrainComp)));
+      g_dataReg, g_allocHeap, g_assetTerrainDefMeta, mem_create(comp, sizeof(AssetTerrainComp)));
 }
 
 static void ecs_destruct_terrain_load_comp(void* data) {
@@ -79,7 +79,7 @@ ecs_system_define(LoadTerrainAssetSys) {
         g_dataReg,
         src->data,
         g_allocHeap,
-        g_assetTerrainMeta,
+        g_assetTerrainDefMeta,
         mem_create(terrainComp, sizeof(AssetTerrainComp)),
         &result);
     if (result.error) {
@@ -168,7 +168,7 @@ void asset_data_init_terrain(void) {
   data_reg_field_t(g_dataReg, AssetTerrainComp, minimapColorHigh, t_AssetTerrainColor, .flags = DataFlags_Opt);
   // clang-format on
 
-  g_assetTerrainMeta = data_meta_t(t_AssetTerrainComp);
+  g_assetTerrainDefMeta = data_meta_t(t_AssetTerrainComp);
 }
 
 void asset_load_terrain(

@@ -67,4 +67,4 @@ ecs_comp_extern_public(AssetMeshSkeletonComp) {
   Mem                  animData; // 16 bit aligned and the size is always a multiple of 16.
 };
 
-extern DataMeta g_assetProcMeshMeta;
+extern DataMeta g_assetProcMeshDefMeta;

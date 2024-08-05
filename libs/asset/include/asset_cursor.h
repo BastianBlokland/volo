@@ -12,4 +12,4 @@ ecs_comp_extern_public(AssetCursorComp) {
   const AssetCursorPixel* pixels;
 };
 
-extern DataMeta g_assetCursorMeta;
+extern DataMeta g_assetCursorDefMeta;

@@ -18,7 +18,7 @@
 
 #define procmesh_max_subdivisions 400
 
-DataMeta g_assetProcMeshMeta;
+DataMeta g_assetProcMeshDefMeta;
 
 typedef enum {
   ProcMeshAxis_Up,
@@ -554,7 +554,7 @@ void asset_data_init_procmesh(void) {
   data_reg_field_t(g_dataReg, ProcMeshDef, bounds, t_ProcMeshBounds, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
   // clang-format on
 
-  g_assetProcMeshMeta = data_meta_t(t_ProcMeshDef);
+  g_assetProcMeshDefMeta = data_meta_t(t_ProcMeshDef);
 }
 
 void asset_load_mesh_proc(
@@ -563,7 +563,7 @@ void asset_load_mesh_proc(
   AssetMeshBuilder* builder = null;
   ProcMeshDef       def;
   DataReadResult    result;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetProcMeshMeta, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetProcMeshDefMeta, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -605,6 +605,6 @@ Done:
   if (builder) {
     asset_mesh_builder_destroy(builder);
   }
-  data_destroy(g_dataReg, g_allocHeap, g_assetProcMeshMeta, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetProcMeshDefMeta, mem_var(def));
   asset_repo_source_close(src);
 }
