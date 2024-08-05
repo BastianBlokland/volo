@@ -1,4 +1,5 @@
 #pragma once
+#include "data_registry.h"
 #include "ecs_module.h"
 
 /**
@@ -18,6 +19,8 @@ ecs_comp_extern_public(AssetAtlasComp) {
     usize            count;
   } entries;
 };
+
+extern DataMeta g_assetAtlasDataDef;
 
 /**
  * Get an atlas entry by name.
