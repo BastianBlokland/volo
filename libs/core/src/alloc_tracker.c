@@ -104,8 +104,10 @@ void alloc_tracker_add(AllocTracker* tracker, const Mem mem, const SymbolStack s
       }
     } else {
       diag_crash_msg(
-          "Duplicate allocation (addr: {}) in AllocationTracker",
-          fmt_int((uptr)mem.ptr, .base = 16, .minDigits = 16));
+          "Duplicate allocation (addr: {}, prev-size: {}, new-size: {}) in AllocationTracker",
+          fmt_int((uptr)mem.ptr, .base = 16, .minDigits = 16),
+          fmt_int(slot->mem.size),
+          fmt_int(mem.size));
     }
   }
   thread_spinlock_unlock(&tracker->slotsLock);
@@ -117,8 +119,9 @@ void alloc_tracker_remove(AllocTracker* tracker, const Mem mem) {
     AllocTrackerSlot* slot = tracker_slot(tracker->slots, tracker->slotCount, mem, false);
     if (UNLIKELY(!slot)) {
       diag_crash_msg(
-          "Allocation (addr: {}) not found in AllocationTracker",
-          fmt_int((uptr)mem.ptr, .base = 16, .minDigits = 16));
+          "Allocation (addr: {}, size: {}) not found in AllocationTracker",
+          fmt_int((uptr)mem.ptr, .base = 16, .minDigits = 16),
+          fmt_int(mem.size));
     }
     if (UNLIKELY(slot->mem.size != mem.size)) {
       diag_crash_msg(
