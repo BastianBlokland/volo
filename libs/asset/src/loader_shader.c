@@ -1,7 +1,8 @@
 #include "core_alloc.h"
-#include "data_utils.h"
+#include "data.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
+#include "log_logger.h"
 
 #include "loader_shader_internal.h"
 
@@ -18,7 +19,7 @@ static void ecs_destruct_shader_comp(void* data) {
 
 static void ecs_destruct_shader_source_comp(void* data) {
   AssetShaderSourceComp* comp = data;
-  asset_repo_source_close(comp->srcRepo);
+  asset_repo_source_close(comp->src);
 }
 
 ecs_view_define(UnloadView) {
@@ -85,4 +86,28 @@ void asset_data_init_shader(void) {
   // clang-format on
 
   g_assetShaderDataDef = data_meta_t(t_AssetShaderComp);
+}
+
+void asset_load_shader_bin(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+
+  AssetShaderComp shader;
+  DataReadResult  result;
+  data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetShaderDataDef, mem_var(shader), &result);
+
+  if (UNLIKELY(result.error)) {
+    log_e(
+        "Failed to load binary shader",
+        log_param("id", fmt_text(id)),
+        log_param("error-code", fmt_int(result.error)),
+        log_param("error", fmt_text(result.errorMsg)));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_repo_source_close(src);
+    return;
+  }
+
+  *ecs_world_add_t(world, entity, AssetShaderComp) = shader;
+  ecs_world_add_t(world, entity, AssetShaderSourceComp, .src = src);
+
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 }

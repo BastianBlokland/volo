@@ -3,7 +3,7 @@
 
 #include "repo_internal.h"
 
-ecs_comp_extern_public(AssetShaderSourceComp) { AssetSource* srcRepo; };
+ecs_comp_extern_public(AssetShaderSourceComp) { AssetSource* src; };
 
 typedef enum {
   SpvError_None = 0,

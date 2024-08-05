@@ -901,7 +901,7 @@ void asset_load_shader_spv(
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
     asset_repo_source_close(src);
   } else {
-    ecs_world_add_t(world, entity, AssetShaderSourceComp, .srcRepo = src);
+    ecs_world_add_t(world, entity, AssetShaderSourceComp, .src = src);
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   }
 }
