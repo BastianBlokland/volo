@@ -776,8 +776,8 @@ spv_asset_shader_create(SpvProgram* program, const Mem data, AssetShaderComp* ou
       }
       usedSpecSlots |= 1 << id->binding;
       out->specs.values[out->specs.count++] = (AssetShaderSpec){
-          .type    = type,
-          .defVal  = spv_specialization_default(id),
+          .type    = (u8)type,
+          .defVal  = (u8)spv_specialization_default(id),
           .binding = (u8)id->binding,
       };
     } else if (spv_is_input(id)) {

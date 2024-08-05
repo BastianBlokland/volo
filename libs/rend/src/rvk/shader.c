@@ -61,7 +61,7 @@ static RvkDescKind rvk_shader_desc_kind(const AssetShaderResKind resKind) {
 static bool rvk_shader_spec_type(const RvkShader* shader, const u8 binding, AssetShaderType* out) {
   array_ptr_for_t(shader->specs, AssetShaderSpec, spec) {
     if (spec->binding == binding) {
-      *out = spec->type;
+      *out = (AssetShaderType)spec->type;
       return true;
     }
   }
@@ -71,7 +71,7 @@ static bool rvk_shader_spec_type(const RvkShader* shader, const u8 binding, Asse
 static AssetShaderSpecDef rvk_shader_spec_default(const RvkShader* shader, const u8 binding) {
   array_ptr_for_t(shader->specs, AssetShaderSpec, spec) {
     if (spec->binding == binding) {
-      return spec->defVal;
+      return (AssetShaderSpecDef)spec->defVal;
     }
   }
   return AssetShaderSpecDef_Other;
