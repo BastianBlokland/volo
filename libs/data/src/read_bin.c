@@ -555,6 +555,14 @@ String data_read_bin(
     *res = result_fail(DataReadError_Incompatible, "Input mismatched type name");
     goto Ret;
   }
+  if (UNLIKELY(header.metaContainer != meta.container)) {
+    *res = result_fail(DataReadError_Incompatible, "Input mismatched meta container");
+    goto Ret;
+  }
+  if (UNLIKELY(header.metaFlags != meta.flags)) {
+    *res = result_fail(DataReadError_Incompatible, "Input mismatched meta flags");
+    goto Ret;
+  }
   if (UNLIKELY(header.metaFormatHash != data_hash(reg, meta, DataHashFlags_ExcludeIds))) {
     *res = result_fail(DataReadError_Incompatible, "Input mismatched format hash");
     goto Ret;
