@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "data_utils.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 
@@ -11,12 +12,8 @@ DataMeta g_assetShaderDataDef;
 
 static void ecs_destruct_shader_comp(void* data) {
   AssetShaderComp* comp = data;
-  if (comp->resources.values) {
-    alloc_free_array_t(g_allocHeap, comp->resources.values, comp->resources.count);
-  }
-  if (comp->specs.values) {
-    alloc_free_array_t(g_allocHeap, comp->specs.values, comp->specs.count);
-  }
+  data_destroy(
+      g_dataReg, g_allocHeap, g_assetShaderDataDef, mem_create(comp, sizeof(AssetShaderComp)));
 }
 
 static void ecs_destruct_shader_source_comp(void* data) {

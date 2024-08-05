@@ -711,7 +711,7 @@ spv_asset_shader_create(SpvProgram* program, const Mem data, AssetShaderComp* ou
 
   *out = (AssetShaderComp){
       .kind       = spv_shader_kind(program->execModel),
-      .entryPoint = program->entryPoint,
+      .entryPoint = string_maybe_dup(g_allocHeap, program->entryPoint),
       .data       = data_mem_create_ext(data),
   };
 
