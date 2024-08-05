@@ -18,14 +18,7 @@ static void ecs_destruct_shader_comp(void* data) {
 
 static void ecs_destruct_shader_source_comp(void* data) {
   AssetShaderSourceComp* comp = data;
-  switch (comp->type) {
-  case AssetShaderSource_Repository:
-    asset_repo_source_close(comp->srcRepo);
-    break;
-  case AssetShaderSource_Memory:
-    alloc_free(g_allocHeap, comp->srcMem);
-    break;
-  }
+  asset_repo_source_close(comp->srcRepo);
 }
 
 ecs_view_define(UnloadView) {

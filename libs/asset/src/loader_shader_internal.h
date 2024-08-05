@@ -3,18 +3,7 @@
 
 #include "repo_internal.h"
 
-typedef enum {
-  AssetShaderSource_Repository,
-  AssetShaderSource_Memory,
-} AssetShaderSourceType;
-
-ecs_comp_extern_public(AssetShaderSourceComp) {
-  AssetShaderSourceType type;
-  union {
-    AssetSource* srcRepo;
-    Mem          srcMem;
-  };
-};
+ecs_comp_extern_public(AssetShaderSourceComp) { AssetSource* srcRepo; };
 
 typedef enum {
   SpvError_None = 0,
@@ -40,4 +29,4 @@ typedef enum {
 } SpvError;
 
 String   spv_err_str(SpvError);
-SpvError spv_init(EcsWorld*, EcsEntityId, Mem input);
+SpvError spv_init(EcsWorld*, EcsEntityId, DataMem input);

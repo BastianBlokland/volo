@@ -450,7 +450,7 @@ ecs_system_define(LoadGlslAssetSys) {
 
     glslEnv->result_release(res);
 
-    const SpvError spvErr = spv_init(world, entity, spvData);
+    const SpvError spvErr = spv_init(world, entity, data_mem_create(spvData));
     if (spvErr) {
       const String msg = spv_err_str(spvErr);
       glsl_load_fail_msg(world, entity, id, GlslError_InvalidSpv, msg);
@@ -458,8 +458,6 @@ ecs_system_define(LoadGlslAssetSys) {
       goto Done;
     }
 
-    ecs_world_add_t(
-        world, entity, AssetShaderSourceComp, .type = AssetShaderSource_Memory, .srcMem = spvData);
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 
   Done:

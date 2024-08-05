@@ -706,13 +706,13 @@ static u16 spv_instruction_spec_mask(SpvProgram* program, const SpvInstructionId
   return mask;
 }
 
-static void
-spv_asset_shader_create(SpvProgram* program, const Mem data, AssetShaderComp* out, SpvError* err) {
+static void spv_asset_shader_create(
+    SpvProgram* program, const DataMem input, AssetShaderComp* out, SpvError* err) {
 
   *out = (AssetShaderComp){
       .kind       = spv_shader_kind(program->execModel),
       .entryPoint = string_maybe_dup(g_allocHeap, program->entryPoint),
-      .data       = data_mem_create_ext(data),
+      .data       = input,
   };
 
   if (!sentinel_check(program->killInstruction)) {
@@ -842,7 +842,7 @@ String spv_err_str(const SpvError res) {
   return g_msgs[res];
 }
 
-SpvError spv_init(EcsWorld* world, const EcsEntityId entity, const Mem input) {
+SpvError spv_init(EcsWorld* world, const EcsEntityId entity, const DataMem input) {
   /**
    * SpirV consists of 32 bit words so we interpret the file as a set of 32 bit words.
    * TODO: Convert to big-endian in case we're running on a big-endian system.
@@ -891,7 +891,7 @@ SpvError spv_init(EcsWorld* world, const EcsEntityId entity, const Mem input) {
 void asset_load_shader_spv(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
 
-  const SpvError err = spv_init(world, entity, src->data);
+  const SpvError err = spv_init(world, entity, data_mem_create_ext(src->data));
   if (err) {
     log_e(
         "Failed to load SpirV shader",
@@ -901,8 +901,7 @@ void asset_load_shader_spv(
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
     asset_repo_source_close(src);
   } else {
-    ecs_world_add_t(
-        world, entity, AssetShaderSourceComp, .type = AssetShaderSource_Repository, .srcRepo = src);
+    ecs_world_add_t(world, entity, AssetShaderSourceComp, .srcRepo = src);
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   }
 }
