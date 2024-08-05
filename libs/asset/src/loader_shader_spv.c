@@ -710,10 +710,9 @@ static void
 spv_asset_shader_create(SpvProgram* program, const Mem data, AssetShaderComp* out, SpvError* err) {
 
   *out = (AssetShaderComp){
-      .kind             = spv_shader_kind(program->execModel),
-      .entryPoint       = program->entryPoint,
-      .resources.values = alloc_array_t(g_allocHeap, AssetShaderRes, asset_shader_max_resources),
-      .data             = data_mem_create_ext(data),
+      .kind       = spv_shader_kind(program->execModel),
+      .entryPoint = program->entryPoint,
+      .data       = data_mem_create_ext(data),
   };
 
   if (!sentinel_check(program->killInstruction)) {
@@ -724,8 +723,11 @@ spv_asset_shader_create(SpvProgram* program, const Mem data, AssetShaderComp* ou
   ASSERT(sizeof(u32) >= asset_shader_max_bindings / 8, "Unsupported max shader bindings");
   ASSERT(asset_shader_max_specs <= u8_max, "Spec bindings have to be addressable using 8 bit");
 
+  AssetShaderRes resources[asset_shader_max_resources];
+  u32            resourceCount = 0;
+
   AssetShaderSpec specs[asset_shader_max_bindings];
-  u8              specCount = 0;
+  usize           specCount = 0;
 
   u32 usedResSlots[asset_shader_max_bindings] = {0};
   u32 usedSpecSlots                           = 0;
@@ -754,7 +756,7 @@ spv_asset_shader_create(SpvProgram* program, const Mem data, AssetShaderComp* ou
         return;
       }
       usedResSlots[id->set] |= 1 << id->binding;
-      out->resources.values[out->resources.count++] = (AssetShaderRes){
+      resources[resourceCount++] = (AssetShaderRes){
           .kind    = kind,
           .set     = id->set,
           .binding = id->binding,
@@ -797,6 +799,13 @@ spv_asset_shader_create(SpvProgram* program, const Mem data, AssetShaderComp* ou
     }
   }
 
+  if (resourceCount) {
+    out->resources.values = alloc_array_t(g_allocHeap, AssetShaderRes, resourceCount);
+    out->resources.count  = resourceCount;
+    mem_cpy(
+        mem_from_to(out->resources.values, out->resources.values + resourceCount),
+        mem_from_to(resources, resources + resourceCount));
+  }
   if (specCount) {
     out->specs.values = alloc_array_t(g_allocHeap, AssetShaderSpec, specCount);
     out->specs.count  = specCount;

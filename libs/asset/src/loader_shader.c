@@ -12,7 +12,7 @@ DataMeta g_assetShaderDataDef;
 static void ecs_destruct_shader_comp(void* data) {
   AssetShaderComp* comp = data;
   if (comp->resources.values) {
-    alloc_free_array_t(g_allocHeap, comp->resources.values, asset_shader_max_resources);
+    alloc_free_array_t(g_allocHeap, comp->resources.values, comp->resources.count);
   }
   if (comp->specs.values) {
     alloc_free_array_t(g_allocHeap, comp->specs.values, comp->specs.count);
