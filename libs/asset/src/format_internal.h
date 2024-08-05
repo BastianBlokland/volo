@@ -17,6 +17,7 @@ typedef enum {
   AssetFormat_Products,
   AssetFormat_Raw,
   AssetFormat_Script,
+  AssetFormat_ShaderBin,
   AssetFormat_ShaderGlsl,
   AssetFormat_ShaderGlslFrag,
   AssetFormat_ShaderGlslVert,

@@ -19,6 +19,7 @@
   _X_(AssetFormat_Products,         products           )                                           \
   _X_(AssetFormat_Raw,              raw                )                                           \
   _X_(AssetFormat_Script,           script             )                                           \
+  _X_(AssetFormat_ShaderBin,        shader_bin         )                                           \
   _X_(AssetFormat_ShaderGlslFrag,   shader_glsl_frag   )                                           \
   _X_(AssetFormat_ShaderGlslVert,   shader_glsl_vert   )                                           \
   _X_(AssetFormat_ShaderSpv,        shader_spv         )                                           \

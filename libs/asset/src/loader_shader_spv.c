@@ -2,10 +2,12 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "data.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
 #include "loader_shader_internal.h"
+#include "manager_internal.h"
 
 /**
  * Spir-V (Standard Portable Intermediate Representation 5)
@@ -706,15 +708,13 @@ static u16 spv_instruction_spec_mask(SpvProgram* program, const SpvInstructionId
   return mask;
 }
 
-static void
-spv_asset_shader_create(SpvProgram* program, const Mem data, AssetShaderComp* out, SpvError* err) {
+static void spv_asset_shader_create(
+    SpvProgram* program, const DataMem input, AssetShaderComp* out, SpvError* err) {
 
   *out = (AssetShaderComp){
-      .kind             = spv_shader_kind(program->execModel),
-      .entryPoint       = program->entryPoint,
-      .resources.values = alloc_array_t(g_allocHeap, AssetShaderRes, asset_shader_max_resources),
-      .specs.values     = alloc_array_t(g_allocHeap, AssetShaderSpec, asset_shader_max_specs),
-      .data             = data,
+      .kind       = spv_shader_kind(program->execModel),
+      .entryPoint = string_maybe_dup(g_allocHeap, program->entryPoint),
+      .data       = input,
   };
 
   if (!sentinel_check(program->killInstruction)) {
@@ -724,6 +724,12 @@ spv_asset_shader_create(SpvProgram* program, const Mem data, AssetShaderComp* ou
 
   ASSERT(sizeof(u32) >= asset_shader_max_bindings / 8, "Unsupported max shader bindings");
   ASSERT(asset_shader_max_specs <= u8_max, "Spec bindings have to be addressable using 8 bit");
+
+  AssetShaderRes resources[asset_shader_max_resources];
+  u32            resourceCount = 0;
+
+  AssetShaderSpec specs[asset_shader_max_bindings];
+  usize           specCount = 0;
 
   u32 usedResSlots[asset_shader_max_bindings] = {0};
   u32 usedSpecSlots                           = 0;
@@ -752,7 +758,7 @@ spv_asset_shader_create(SpvProgram* program, const Mem data, AssetShaderComp* ou
         return;
       }
       usedResSlots[id->set] |= 1 << id->binding;
-      out->resources.values[out->resources.count++] = (AssetShaderRes){
+      resources[resourceCount++] = (AssetShaderRes){
           .kind    = kind,
           .set     = id->set,
           .binding = id->binding,
@@ -775,9 +781,9 @@ spv_asset_shader_create(SpvProgram* program, const Mem data, AssetShaderComp* ou
         return;
       }
       usedSpecSlots |= 1 << id->binding;
-      out->specs.values[out->specs.count++] = (AssetShaderSpec){
-          .type    = type,
-          .defVal  = spv_specialization_default(id),
+      specs[specCount++] = (AssetShaderSpec){
+          .type    = (u8)type,
+          .defVal  = (u8)spv_specialization_default(id),
           .binding = (u8)id->binding,
       };
     } else if (spv_is_input(id)) {
@@ -794,6 +800,22 @@ spv_asset_shader_create(SpvProgram* program, const Mem data, AssetShaderComp* ou
       out->outputMask |= 1 << id->binding;
     }
   }
+
+  if (resourceCount) {
+    out->resources.values = alloc_array_t(g_allocHeap, AssetShaderRes, resourceCount);
+    out->resources.count  = resourceCount;
+    mem_cpy(
+        mem_from_to(out->resources.values, out->resources.values + resourceCount),
+        mem_from_to(resources, resources + resourceCount));
+  }
+  if (specCount) {
+    out->specs.values = alloc_array_t(g_allocHeap, AssetShaderSpec, specCount);
+    out->specs.count  = specCount;
+    mem_cpy(
+        mem_from_to(out->specs.values, out->specs.values + specCount),
+        mem_from_to(specs, specs + specCount));
+  }
+
   *err = SpvError_None;
 }
 
@@ -822,7 +844,7 @@ String spv_err_str(const SpvError res) {
   return g_msgs[res];
 }
 
-SpvError spv_init(EcsWorld* world, const EcsEntityId entity, const Mem input) {
+SpvError spv_init(EcsWorld* world, const EcsEntityId entity, const DataMem input) {
   /**
    * SpirV consists of 32 bit words so we interpret the file as a set of 32 bit words.
    * TODO: Convert to big-endian in case we're running on a big-endian system.
@@ -865,13 +887,15 @@ SpvError spv_init(EcsWorld* world, const EcsEntityId entity, const Mem input) {
     return err;
   }
 
+  asset_cache(world, entity, g_assetShaderDataDef, mem_create(asset, sizeof(AssetShaderComp)));
+
   return SpvError_None;
 }
 
 void asset_load_shader_spv(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
 
-  const SpvError err = spv_init(world, entity, src->data);
+  const SpvError err = spv_init(world, entity, data_mem_create_ext(src->data));
   if (err) {
     log_e(
         "Failed to load SpirV shader",
@@ -881,8 +905,7 @@ void asset_load_shader_spv(
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
     asset_repo_source_close(src);
   } else {
-    ecs_world_add_t(
-        world, entity, AssetShaderSourceComp, .type = AssetShaderSource_Repository, .srcRepo = src);
+    ecs_world_add_t(world, entity, AssetShaderSourceComp, .src = src);
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   }
 }

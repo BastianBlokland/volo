@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_math.h"
 #include "core_path.h"
 #include "core_search.h"
 #include "core_time.h"
@@ -89,6 +90,12 @@ ecs_comp_define(AssetCacheRequestComp) {
   Mem      blobMem;
 };
 
+ecs_comp_define(AssetExtLoadComp) {
+  u32         count;
+  AssetFormat format;
+  TimeReal    modTime;
+};
+
 static AssetDepStorage asset_dep_create(const EcsEntityId asset) {
   return (AssetDepStorage){.type = AssetDepStorageType_Single, .single = asset};
 }
@@ -172,6 +179,14 @@ static void ecs_combine_asset_dependency(void* dataA, void* dataB) {
 
   asset_dep_combine(&compA->dependencies, &compB->dependencies);
   asset_dep_combine(&compA->dependents, &compB->dependents);
+}
+
+static void ecs_combine_asset_ext_load(void* dataA, void* dataB) {
+  AssetExtLoadComp* compA = dataA;
+  AssetExtLoadComp* compB = dataB;
+  compA->count += compB->count;
+  compA->modTime = math_max(compA->modTime, compB->modTime);
+  diag_assert(compA->format == compB->format);
 }
 
 static void ecs_destruct_cache_request_comp(void* data) {
@@ -437,6 +452,25 @@ ecs_system_define(AssetPollChangedSys) {
   }
 }
 
+ecs_view_define(AssetLoadExtView) {
+  ecs_access_write(AssetComp);
+  ecs_access_read(AssetExtLoadComp);
+}
+
+ecs_system_define(AssetLoadExtSys) {
+  EcsView* extView = ecs_world_view_t(world, AssetLoadExtView);
+  for (EcsIterator* itr = ecs_view_itr(extView); ecs_view_walk(itr);) {
+    AssetComp*              assetComp   = ecs_view_write_t(itr, AssetComp);
+    const AssetExtLoadComp* extLoadComp = ecs_view_read_t(itr, AssetExtLoadComp);
+
+    assetComp->loadCount += extLoadComp->count;
+    assetComp->loadFormat  = extLoadComp->format;
+    assetComp->loadModTime = extLoadComp->modTime;
+
+    ecs_world_remove_t(world, ecs_view_entity(itr), AssetExtLoadComp);
+  }
+}
+
 ecs_view_define(AssetCacheRequestView) {
   ecs_access_read(AssetComp);
   ecs_access_read(AssetCacheRequestComp);
@@ -545,6 +579,7 @@ ecs_module_init(asset_manager_module) {
       .destructor = ecs_destruct_asset_dependency,
       .combinator = ecs_combine_asset_dependency);
   ecs_register_comp(AssetCacheRequestComp, .destructor = ecs_destruct_cache_request_comp);
+  ecs_register_comp(AssetExtLoadComp, .combinator = ecs_combine_asset_ext_load);
 
   ecs_register_view(DirtyAssetView);
   ecs_register_view(AssetDependencyView);
@@ -558,6 +593,9 @@ ecs_module_init(asset_manager_module) {
 
   ecs_register_system(
       AssetPollChangedSys, ecs_view_id(AssetDependencyView), ecs_view_id(GlobalReadView));
+
+  ecs_register_system(AssetLoadExtSys, ecs_register_view(AssetLoadExtView));
+  ecs_order(AssetLoadExtSys, AssetOrder_Update);
 
   ecs_register_system(
       AssetCacheSys,
@@ -687,6 +725,12 @@ EcsEntityId asset_watch(EcsWorld* world, AssetManagerComp* manager, const String
   }
 
   return assetEntity;
+}
+
+void asset_mark_external_load(
+    EcsWorld* world, const EcsEntityId asset, const AssetFormat format, const TimeReal modTime) {
+
+  ecs_world_add_t(world, asset, AssetExtLoadComp, .count = 1, .format = format, .modTime = modTime);
 }
 
 void asset_cache(

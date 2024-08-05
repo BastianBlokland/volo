@@ -1,3 +1,4 @@
+#include "asset_shader.h"
 #include "asset_texture.h"
 #include "core_array.h"
 #include "core_diag.h"
@@ -50,6 +51,7 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_Products]       = string_static("Products"),
     [AssetFormat_Raw]            = string_static("Raw"),
     [AssetFormat_Script]         = string_static("Script"),
+    [AssetFormat_ShaderBin]      = string_static("ShaderBin"),
     [AssetFormat_ShaderGlsl]     = string_static("ShaderGlsl"),
     [AssetFormat_ShaderGlslFrag] = string_static("ShaderGlslFrag"),
     [AssetFormat_ShaderGlslVert] = string_static("ShaderGlslVert"),
@@ -85,6 +87,9 @@ AssetFormat asset_format_from_ext(const String ext) {
 AssetFormat asset_format_from_data_meta(const DataMeta meta) {
   if (data_meta_eq(meta, g_assetTexDataDef)) {
     return AssetFormat_TexBin;
+  }
+  if (data_meta_eq(meta, g_assetShaderDataDef)) {
+    return AssetFormat_ShaderBin;
   }
   return AssetFormat_Raw;
 }

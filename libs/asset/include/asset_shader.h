@@ -1,4 +1,5 @@
 #pragma once
+#include "data_registry.h"
 #include "ecs_module.h"
 
 #define asset_shader_max_sets 5
@@ -57,24 +58,26 @@ typedef enum {
 } AssetShaderSpecDef;
 
 typedef struct {
-  AssetShaderType    type : 8;
-  AssetShaderSpecDef defVal : 8;
-  u8                 binding;
+  u8 type;   // AssetShaderType.
+  u8 defVal; // AssetShaderSpecDef.
+  u8 binding;
 } AssetShaderSpec;
 
 ecs_comp_extern_public(AssetShaderComp) {
-  AssetShaderKind  kind : 16;
-  AssetShaderFlags flags : 16;
+  AssetShaderKind  kind;
+  AssetShaderFlags flags;
   u16              killSpecConstMask; // Mask of spec constants that need to be true for kill inst.
   u16              inputMask, outputMask;
   String           entryPoint;
   struct {
     AssetShaderRes* values;
-    u32             count;
+    usize           count;
   } resources;
   struct {
     AssetShaderSpec* values;
-    u32              count;
+    usize            count;
   } specs;
-  String data;
+  DataMem data;
 };
+
+extern DataMeta g_assetShaderDataDef;

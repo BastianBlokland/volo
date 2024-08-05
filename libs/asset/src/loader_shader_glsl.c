@@ -19,7 +19,7 @@
 #define glsl_optimize true
 #define glsl_shaderc_names_max 4
 #define glsl_id_chunk_size (4 * usize_kibibyte)
-#define glsl_include_watch_dependencies true
+#define glsl_track_dependencies true
 
 typedef enum {
   ShadercOptimization_None        = 0,
@@ -272,9 +272,10 @@ static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
   res->contentLength    = src->data.size;
   res->userData         = src;
 
-#if glsl_include_watch_dependencies
+#if glsl_track_dependencies
   {
     const EcsEntityId depEntity = asset_watch(ctx->invoc->world, ctx->invoc->assetManager, id);
+    asset_mark_external_load(ctx->invoc->world, depEntity, AssetFormat_ShaderGlsl, src->modTime);
     asset_register_dep(ctx->invoc->world, ctx->invoc->assetEntity, depEntity);
   }
 #endif
@@ -404,12 +405,16 @@ ecs_system_define(LoadGlslAssetSys) {
   }
   AssetManagerComp* manager = ecs_view_write_t(globalItr, AssetManagerComp);
   AssetGlslEnvComp* glslEnv = ecs_view_write_t(globalItr, AssetGlslEnvComp);
-  if (!glslEnv) {
-    glslEnv = glsl_env_init(world, ecs_world_global(world));
-  }
 
   EcsView* loadView = ecs_world_view_t(world, LoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
+    if (!glslEnv) {
+      /**
+       * Lazily construct the GLSL compilation environment.
+       * Reason is often its not needed due to only loading (cached) binary shader blobs.
+       */
+      glslEnv = glsl_env_init(world, ecs_world_global(world));
+    }
     const AssetGlslLoadComp* load   = ecs_view_read_t(itr, AssetGlslLoadComp);
     const EcsEntityId        entity = ecs_view_entity(itr);
     const String             id     = asset_id(ecs_view_read_t(itr, AssetComp));
@@ -450,7 +455,7 @@ ecs_system_define(LoadGlslAssetSys) {
 
     glslEnv->result_release(res);
 
-    const SpvError spvErr = spv_init(world, entity, spvData);
+    const SpvError spvErr = spv_init(world, entity, data_mem_create(spvData));
     if (spvErr) {
       const String msg = spv_err_str(spvErr);
       glsl_load_fail_msg(world, entity, id, GlslError_InvalidSpv, msg);
@@ -458,8 +463,6 @@ ecs_system_define(LoadGlslAssetSys) {
       goto Done;
     }
 
-    ecs_world_add_t(
-        world, entity, AssetShaderSourceComp, .type = AssetShaderSource_Memory, .srcMem = spvData);
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 
   Done:
