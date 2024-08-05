@@ -1,6 +1,11 @@
 #include "asset_manager.h"
 #include "data_registry.h"
 
+#include "format_internal.h"
+
+// Forward declare from 'core_time.h'.
+typedef i64 TimeReal;
+
 // Forward declare from 'repo_internal.h'.
 typedef struct sAssetSource AssetSource;
 
@@ -22,6 +27,12 @@ AssetSource* asset_source_open(const AssetManagerComp*, String id);
  * Pre-condition: !string_is_empty(id).
  */
 EcsEntityId asset_watch(EcsWorld*, AssetManagerComp*, String id);
+
+/**
+ * Register an external load for the given asset.
+ * Useful when loading files outside of the normal loaders.
+ */
+void asset_mark_external_load(EcsWorld*, EcsEntityId asset, AssetFormat format, TimeReal modTime);
 
 /**
  * Queue data to be cached for the given asset.
