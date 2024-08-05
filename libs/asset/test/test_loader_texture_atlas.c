@@ -89,7 +89,7 @@ spec(loader_texture_atlas) {
     const AssetAtlasComp*   atlas = ecs_utils_read_t(world, AssetView, asset, AssetAtlasComp);
     const AssetTextureComp* tex   = ecs_utils_read_t(world, AssetView, asset, AssetTextureComp);
 
-    check_require(atlas->entryCount == 2);
+    check_require(atlas->entries.count == 2);
     check_eq_int(asset_atlas_lookup(atlas, string_hash_lit("a"))->atlasIndex, 0);
     check_eq_int(asset_atlas_lookup(atlas, string_hash_lit("b"))->atlasIndex, 1);
     check(!asset_atlas_lookup(atlas, string_hash_lit("c")));

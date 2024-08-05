@@ -44,7 +44,7 @@ ecs_comp_define(AssetAtlasLoadComp) {
 
 static void ecs_destruct_atlas_comp(void* data) {
   AssetAtlasComp* comp = data;
-  alloc_free_array_t(g_allocHeap, comp->entries, comp->entryCount);
+  alloc_free_array_t(g_allocHeap, comp->entries.values, comp->entries.count);
 }
 
 static void ecs_destruct_atlas_load_comp(void* data) {
@@ -199,8 +199,7 @@ static void atlas_generate(
   *outAtlas = (AssetAtlasComp){
       .entriesPerDim = def->size / def->entrySize,
       .entryPadding  = def->entryPadding / (f32)def->size,
-      .entries       = entries,
-      .entryCount    = entryCount,
+      .entries       = {.values = entries, .count = entryCount},
   };
   *outTexture = asset_texture_create(
       pixelMem,
@@ -423,8 +422,8 @@ Error:
 const AssetAtlasEntry* asset_atlas_lookup(const AssetAtlasComp* atlas, const StringHash name) {
   const AssetAtlasEntry target = {.name = name};
   return search_binary_t(
-      atlas->entries,
-      atlas->entries + atlas->entryCount,
+      atlas->entries.values,
+      atlas->entries.values + atlas->entries.count,
       AssetAtlasEntry,
       atlas_compare_entry,
       &target);
