@@ -1,4 +1,5 @@
 #pragma once
+#include "data_registry.h"
 #include "ecs_module.h"
 
 #define asset_shader_max_sets 5
@@ -76,5 +77,5 @@ ecs_comp_extern_public(AssetShaderComp) {
     AssetShaderSpec* values;
     usize            count;
   } specs;
-  String data;
+  DataMem data;
 };

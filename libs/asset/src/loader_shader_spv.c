@@ -714,7 +714,7 @@ spv_asset_shader_create(SpvProgram* program, const Mem data, AssetShaderComp* ou
       .entryPoint       = program->entryPoint,
       .resources.values = alloc_array_t(g_allocHeap, AssetShaderRes, asset_shader_max_resources),
       .specs.values     = alloc_array_t(g_allocHeap, AssetShaderSpec, asset_shader_max_specs),
-      .data             = data,
+      .data             = data_mem_create_ext(data),
   };
 
   if (!sentinel_check(program->killInstruction)) {
