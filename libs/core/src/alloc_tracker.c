@@ -47,9 +47,7 @@ static AllocTrackerSlot* tracker_slot(
     // Hash collision, jump to a new bucket (quadratic probing).
     bucket = (bucket + i + 1) & (slotCount - 1);
   }
-  diag_crash_msg(
-      "Allocation (addr: {}) not found in AllocTracker",
-      fmt_int((uptr)mem.ptr, .base = 16, .minDigits = 16));
+  return null;
 }
 
 NO_INLINE_HINT static void tracker_grow(AllocTracker* table) {
@@ -106,8 +104,10 @@ void alloc_tracker_add(AllocTracker* tracker, const Mem mem, const SymbolStack s
       }
     } else {
       diag_crash_msg(
-          "Duplicate allocation (addr: {}) in AllocationTracker",
-          fmt_int((uptr)mem.ptr, .base = 16, .minDigits = 16));
+          "Duplicate allocation (addr: {}, prev-size: {}, new-size: {}) in AllocationTracker",
+          fmt_int((uptr)mem.ptr, .base = 16, .minDigits = 16),
+          fmt_int(slot->mem.size),
+          fmt_int(mem.size));
     }
   }
   thread_spinlock_unlock(&tracker->slotsLock);
@@ -117,6 +117,12 @@ void alloc_tracker_remove(AllocTracker* tracker, const Mem mem) {
   thread_spinlock_lock(&tracker->slotsLock);
   {
     AllocTrackerSlot* slot = tracker_slot(tracker->slots, tracker->slotCount, mem, false);
+    if (UNLIKELY(!slot)) {
+      diag_crash_msg(
+          "Allocation (addr: {}, size: {}) not found in AllocationTracker",
+          fmt_int((uptr)mem.ptr, .base = 16, .minDigits = 16),
+          fmt_int(mem.size));
+    }
     if (UNLIKELY(slot->mem.size != mem.size)) {
       diag_crash_msg(
           "Allocation (addr: {}) known with a different size ({} vs {}) in AllocationTracker",
