@@ -320,7 +320,7 @@ ecs_system_define(AtlasUnloadAssetSys) {
   }
 }
 
-ecs_module_init(asset_atlas_module) {
+ecs_module_init(asset_texture_atlas_module) {
   ecs_register_comp(AssetAtlasComp, .destructor = ecs_destruct_atlas_comp);
   ecs_register_comp(AssetAtlasLoadComp, .destructor = ecs_destruct_atlas_load_comp);
 

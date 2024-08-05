@@ -576,7 +576,7 @@ ecs_system_define(ArrayTexLoadUpdateSys) {
   }
 }
 
-ecs_module_init(asset_arraytex_module) {
+ecs_module_init(asset_texture_array_module) {
   ecs_register_comp(AssetArrayLoadComp, .destructor = ecs_destruct_arraytex_load_comp);
 
   ecs_register_view(ManagerView);
