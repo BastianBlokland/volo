@@ -405,12 +405,16 @@ ecs_system_define(LoadGlslAssetSys) {
   }
   AssetManagerComp* manager = ecs_view_write_t(globalItr, AssetManagerComp);
   AssetGlslEnvComp* glslEnv = ecs_view_write_t(globalItr, AssetGlslEnvComp);
-  if (!glslEnv) {
-    glslEnv = glsl_env_init(world, ecs_world_global(world));
-  }
 
   EcsView* loadView = ecs_world_view_t(world, LoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
+    if (!glslEnv) {
+      /**
+       * Lazily construct the GLSL compilation environment.
+       * Reason is often its not needed due to only loading (cached) binary shader blobs.
+       */
+      glslEnv = glsl_env_init(world, ecs_world_global(world));
+    }
     const AssetGlslLoadComp* load   = ecs_view_read_t(itr, AssetGlslLoadComp);
     const EcsEntityId        entity = ecs_view_entity(itr);
     const String             id     = asset_id(ecs_view_read_t(itr, AssetComp));
