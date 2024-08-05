@@ -2,10 +2,12 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "data.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
 #include "loader_shader_internal.h"
+#include "manager_internal.h"
 
 /**
  * Spir-V (Standard Portable Intermediate Representation 5)
@@ -884,6 +886,8 @@ SpvError spv_init(EcsWorld* world, const EcsEntityId entity, const DataMem input
     // NOTE: 'AssetShaderComp' will be cleaned up by 'UnloadShaderAssetSys'.
     return err;
   }
+
+  asset_cache(world, entity, g_assetShaderDataDef, mem_create(asset, sizeof(AssetShaderComp)));
 
   return SpvError_None;
 }
