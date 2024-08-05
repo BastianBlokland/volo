@@ -58,7 +58,7 @@ ecs_comp_extern_public(AssetProductMapComp) {
   usize            productCount;
 };
 
-extern DataMeta g_assetProductDataDef;
+extern DataMeta g_assetProductMeta;
 
 /**
  * Lookup a product-set by the hash of its name.

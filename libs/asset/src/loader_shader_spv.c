@@ -887,7 +887,7 @@ SpvError spv_init(EcsWorld* world, const EcsEntityId entity, const DataMem input
     return err;
   }
 
-  asset_cache(world, entity, g_assetShaderDataDef, mem_create(asset, sizeof(AssetShaderComp)));
+  asset_cache(world, entity, g_assetShaderMeta, mem_create(asset, sizeof(AssetShaderComp)));
 
   return SpvError_None;
 }

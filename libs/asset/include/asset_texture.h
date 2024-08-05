@@ -31,9 +31,9 @@ ecs_comp_extern_public(AssetTextureComp) {
   DataMem            pixelData;
 };
 
-extern DataMeta g_assetTexDataDef;
-extern DataMeta g_assetArrayTexDataDef;
-extern DataMeta g_assetProcTexDataDef;
+extern DataMeta g_assetTexMeta;
+extern DataMeta g_assetArrayTexMeta;
+extern DataMeta g_assetProcTexMeta;
 
 String asset_texture_format_str(AssetTextureFormat);
 usize  asset_texture_format_channels(AssetTextureFormat);

@@ -9,12 +9,12 @@
 ecs_comp_define_public(AssetShaderComp);
 ecs_comp_define_public(AssetShaderSourceComp);
 
-DataMeta g_assetShaderDataDef;
+DataMeta g_assetShaderMeta;
 
 static void ecs_destruct_shader_comp(void* data) {
   AssetShaderComp* comp = data;
   data_destroy(
-      g_dataReg, g_allocHeap, g_assetShaderDataDef, mem_create(comp, sizeof(AssetShaderComp)));
+      g_dataReg, g_allocHeap, g_assetShaderMeta, mem_create(comp, sizeof(AssetShaderComp)));
 }
 
 static void ecs_destruct_shader_source_comp(void* data) {
@@ -85,7 +85,7 @@ void asset_data_init_shader(void) {
   data_reg_field_t(g_dataReg, AssetShaderComp, data, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
   // clang-format on
 
-  g_assetShaderDataDef = data_meta_t(t_AssetShaderComp);
+  g_assetShaderMeta = data_meta_t(t_AssetShaderComp);
 }
 
 void asset_load_shader_bin(
@@ -93,7 +93,7 @@ void asset_load_shader_bin(
 
   AssetShaderComp shader;
   DataReadResult  result;
-  data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetShaderDataDef, mem_var(shader), &result);
+  data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetShaderMeta, mem_var(shader), &result);
 
   if (UNLIKELY(result.error)) {
     log_e(

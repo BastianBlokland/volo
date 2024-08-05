@@ -80,4 +80,4 @@ ecs_comp_extern_public(AssetShaderComp) {
   DataMem data;
 };
 
-extern DataMeta g_assetShaderDataDef;
+extern DataMeta g_assetShaderMeta;

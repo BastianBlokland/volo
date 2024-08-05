@@ -20,7 +20,7 @@
 
 #define proctex_max_size (1024 * 16)
 
-DataMeta g_assetProcTexDataDef;
+DataMeta g_assetProcTexMeta;
 
 typedef enum {
   ProcTexChannels_One   = 1,
@@ -337,7 +337,7 @@ void asset_data_init_proctex(void) {
   data_reg_field_t(g_dataReg, ProcTexDef, seed, data_prim_t(u32), .flags = DataFlags_NotEmpty);
   // clang-format on
 
-  g_assetProcTexDataDef = data_meta_t(t_ProcTexDef);
+  g_assetProcTexMeta = data_meta_t(t_ProcTexDef);
 }
 
 void asset_load_tex_proc(
@@ -345,7 +345,7 @@ void asset_load_tex_proc(
   String         errMsg;
   ProcTexDef     def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetProcTexDataDef, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetProcTexMeta, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -369,7 +369,7 @@ void asset_load_tex_proc(
 
   *ecs_world_add_t(world, entity, AssetTextureComp) = texture;
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
-  asset_cache(world, entity, g_assetTexDataDef, mem_var(texture));
+  asset_cache(world, entity, g_assetTexMeta, mem_var(texture));
 
   asset_repo_source_close(src);
   return;
@@ -380,6 +380,6 @@ Error:
       log_param("id", fmt_text(id)),
       log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
-  data_destroy(g_dataReg, g_allocHeap, g_assetProcTexDataDef, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetProcTexMeta, mem_var(def));
   asset_repo_source_close(src);
 }

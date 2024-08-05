@@ -85,10 +85,10 @@ AssetFormat asset_format_from_ext(const String ext) {
 }
 
 AssetFormat asset_format_from_data_meta(const DataMeta meta) {
-  if (data_meta_eq(meta, g_assetTexDataDef)) {
+  if (data_meta_eq(meta, g_assetTexMeta)) {
     return AssetFormat_TexBin;
   }
-  if (data_meta_eq(meta, g_assetShaderDataDef)) {
+  if (data_meta_eq(meta, g_assetShaderMeta)) {
     return AssetFormat_ShaderBin;
   }
   return AssetFormat_Raw;

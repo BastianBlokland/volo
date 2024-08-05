@@ -440,7 +440,7 @@ void asset_load_tex_tga(
       tga_texture_flags(channels, isNormalmap));
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
-  asset_cache(world, entity, g_assetTexDataDef, mem_create(texComp, sizeof(AssetTextureComp)));
+  asset_cache(world, entity, g_assetTexMeta, mem_create(texComp, sizeof(AssetTextureComp)));
 
 Ret:
   if (mem_valid(pixels)) {

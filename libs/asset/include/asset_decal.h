@@ -45,4 +45,4 @@ ecs_comp_extern_public(AssetDecalComp) {
   f32              fadeInTimeInv, fadeOutTimeInv; // 1.0f / timeInSeconds.
 };
 
-extern DataMeta g_assetDecalDataDef;
+extern DataMeta g_assetDecalMeta;

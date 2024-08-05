@@ -38,6 +38,6 @@ typedef struct {
 
 ecs_comp_extern_public(AssetLevelComp) { AssetLevel level; };
 
-extern DataMeta g_assetLevelDataDef;
+extern DataMeta g_assetLevelMeta;
 
 bool asset_level_save(AssetManagerComp*, String id, const AssetLevel*);

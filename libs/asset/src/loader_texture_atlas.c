@@ -18,7 +18,7 @@
 
 #define atlas_max_size (1024 * 16)
 
-DataMeta g_assetAtlasDataDef;
+DataMeta g_assetAtlasMeta;
 
 typedef struct {
   String name;
@@ -49,7 +49,7 @@ static void ecs_destruct_atlas_comp(void* data) {
 
 static void ecs_destruct_atlas_load_comp(void* data) {
   AssetAtlasLoadComp* comp = data;
-  data_destroy(g_dataReg, g_allocHeap, g_assetAtlasDataDef, mem_var(comp->def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetAtlasMeta, mem_var(comp->def));
   dynarray_destroy(&comp->textures);
 }
 
@@ -352,7 +352,7 @@ void asset_data_init_atlas(void) {
   data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_DataArray);
   // clang-format on
 
-  g_assetAtlasDataDef = data_meta_t(t_AtlasDef);
+  g_assetAtlasMeta = data_meta_t(t_AtlasDef);
 }
 
 void asset_load_tex_atlas(
@@ -360,7 +360,7 @@ void asset_load_tex_atlas(
   String         errMsg;
   AtlasDef       def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetAtlasDataDef, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetAtlasMeta, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -415,7 +415,7 @@ Error:
       log_param("id", fmt_text(id)),
       log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
-  data_destroy(g_dataReg, g_allocHeap, g_assetAtlasDataDef, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetAtlasMeta, mem_var(def));
   asset_repo_source_close(src);
 }
 

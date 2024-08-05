@@ -39,22 +39,22 @@ static void schema_writer_script(DynString* str, const void* context) {
 
 // clang-format off
 static const SchemaConfig g_schemaConfigs[] = {
-    {.pattern = string_static("arraytex.schema.json"), .context = &g_assetArrayTexDataDef,  .writer = schema_writer_data   },
-    {.pattern = string_static("atlas.schema.json"),    .context = &g_assetAtlasDataDef,     .writer = schema_writer_data   },
-    {.pattern = string_static("cursor.schema.json"),   .context = &g_assetCursorDataDef,    .writer = schema_writer_data   },
-    {.pattern = string_static("decal.schema.json"),    .context = &g_assetDecalDataDef,     .writer = schema_writer_data   },
-    {.pattern = string_static("fonttex.schema.json"),  .context = &g_assetFontTexDataDef,   .writer = schema_writer_data   },
-    {.pattern = string_static("graphic.schema.json"),  .context = &g_assetGraphicDataDef,   .writer = schema_writer_data   },
-    {.pattern = string_static("inputs.schema.json"),   .context = &g_assetInputMapDataDef,  .writer = schema_writer_data   },
-    {.pattern = string_static("level.schema.json"),    .context = &g_assetLevelDataDef,     .writer = schema_writer_data   },
-    {.pattern = string_static("prefabs.schema.json"),  .context = &g_assetPrefabMapDataDef, .writer = schema_writer_data   },
-    {.pattern = string_static("procmesh.schema.json"), .context = &g_assetProcMeshDataDef,  .writer = schema_writer_data   },
-    {.pattern = string_static("proctex.schema.json"),  .context = &g_assetProcTexDataDef,   .writer = schema_writer_data   },
-    {.pattern = string_static("products.schema.json"), .context = &g_assetProductDataDef,   .writer = schema_writer_data   },
-    {.pattern = string_static("terrain.schema.json"),  .context = &g_assetTerrainDataDef,   .writer = schema_writer_data   },
-    {.pattern = string_static("vfx.schema.json"),      .context = &g_assetVfxDataDef,       .writer = schema_writer_data   },
-    {.pattern = string_static("weapons.schema.json"),  .context = &g_assetWeaponDataDef,    .writer = schema_writer_data   },
-    {.pattern = string_static("script_binder.json"),   .context = &g_assetScriptBinder,     .writer = schema_writer_script },
+    {.pattern = string_static("arraytex.schema.json"), .context = &g_assetArrayTexMeta,  .writer = schema_writer_data   },
+    {.pattern = string_static("atlas.schema.json"),    .context = &g_assetAtlasMeta,     .writer = schema_writer_data   },
+    {.pattern = string_static("cursor.schema.json"),   .context = &g_assetCursorMeta,    .writer = schema_writer_data   },
+    {.pattern = string_static("decal.schema.json"),    .context = &g_assetDecalMeta,     .writer = schema_writer_data   },
+    {.pattern = string_static("fonttex.schema.json"),  .context = &g_assetFontTexMeta,   .writer = schema_writer_data   },
+    {.pattern = string_static("graphic.schema.json"),  .context = &g_assetGraphicMeta,   .writer = schema_writer_data   },
+    {.pattern = string_static("inputs.schema.json"),   .context = &g_assetInputMapMeta,  .writer = schema_writer_data   },
+    {.pattern = string_static("level.schema.json"),    .context = &g_assetLevelMeta,     .writer = schema_writer_data   },
+    {.pattern = string_static("prefabs.schema.json"),  .context = &g_assetPrefabMapMeta, .writer = schema_writer_data   },
+    {.pattern = string_static("procmesh.schema.json"), .context = &g_assetProcMeshMeta,  .writer = schema_writer_data   },
+    {.pattern = string_static("proctex.schema.json"),  .context = &g_assetProcTexMeta,   .writer = schema_writer_data   },
+    {.pattern = string_static("products.schema.json"), .context = &g_assetProductMeta,   .writer = schema_writer_data   },
+    {.pattern = string_static("terrain.schema.json"),  .context = &g_assetTerrainMeta,   .writer = schema_writer_data   },
+    {.pattern = string_static("vfx.schema.json"),      .context = &g_assetVfxMeta,       .writer = schema_writer_data   },
+    {.pattern = string_static("weapons.schema.json"),  .context = &g_assetWeaponMeta,    .writer = schema_writer_data   },
+    {.pattern = string_static("script_binder.json"),   .context = &g_assetScriptBinder,  .writer = schema_writer_script },
 };
 // clang-format on
 
