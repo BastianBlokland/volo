@@ -45,6 +45,8 @@ ecs_comp_define(AssetCursorLoadComp) {
   EcsEntityId textureAsset;
 };
 
+ecs_comp_define(AssetCursorSourceComp) { AssetSource* src; };
+
 static void ecs_destruct_cursor_comp(void* data) {
   AssetCursorComp* comp = data;
   data_destroy(
@@ -54,6 +56,11 @@ static void ecs_destruct_cursor_comp(void* data) {
 static void ecs_destruct_cursor_load_comp(void* data) {
   AssetCursorLoadComp* comp = data;
   data_destroy(g_dataReg, g_allocHeap, g_assetCursorDefMeta, mem_var(comp->def));
+}
+
+static void ecs_destruct_cursor_source_comp(void* data) {
+  AssetCursorSourceComp* comp = data;
+  asset_repo_source_close(comp->src);
 }
 
 static AssetCursorPixel asset_cursor_pixel(const GeoColor color) {
@@ -203,6 +210,7 @@ ecs_system_define(UnloadCursorAssetSys) {
 ecs_module_init(asset_cursor_module) {
   ecs_register_comp(AssetCursorComp, .destructor = ecs_destruct_cursor_comp);
   ecs_register_comp(AssetCursorLoadComp, .destructor = ecs_destruct_cursor_load_comp);
+  ecs_register_comp(AssetCursorSourceComp, .destructor = ecs_destruct_cursor_source_comp);
 
   ecs_register_view(ManagerView);
   ecs_register_view(LoadView);
