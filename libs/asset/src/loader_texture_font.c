@@ -57,7 +57,7 @@ ecs_comp_define(AssetFontTexLoadComp) { FontTexDef def; };
 
 static void ecs_destruct_fonttex_comp(void* data) {
   AssetFontTexComp* comp = data;
-  alloc_free_array_t(g_allocHeap, comp->characters, comp->characterCount);
+  alloc_free_array_t(g_allocHeap, comp->characters.values, comp->characters.count);
 }
 
 static void ecs_destruct_fonttex_load_comp(void* data) {
@@ -264,11 +264,11 @@ static void fonttex_generate(
   dynarray_sort(&chars, fonttex_compare_char_cp);
 
   *outFontTex = (AssetFontTexComp){
-      .glyphsPerDim   = glyphsPerDim,
-      .lineSpacing    = def->lineSpacing,
-      .baseline       = def->baseline,
-      .characters     = dynarray_copy_as_new(&chars, g_allocHeap),
-      .characterCount = chars.size,
+      .glyphsPerDim      = glyphsPerDim,
+      .lineSpacing       = def->lineSpacing,
+      .baseline          = def->baseline,
+      .characters.values = dynarray_copy_as_new(&chars, g_allocHeap),
+      .characters.count  = chars.size,
   };
   *outTexture = asset_texture_create(
       pixelMem,
@@ -476,8 +476,8 @@ asset_fonttex_lookup(const AssetFontTexComp* comp, const Unicode cp, const u8 va
    * Binary scan to find a character with a matching code-point.
    * Looks for a character with the same variation otherwise variation 0 is returned.
    */
-  const AssetFontTexChar* begin      = comp->characters;
-  const AssetFontTexChar* end        = comp->characters + comp->characterCount;
+  const AssetFontTexChar* begin      = comp->characters.values;
+  const AssetFontTexChar* end        = comp->characters.values + comp->characters.count;
   const AssetFontTexChar* matchingCp = null;
   while (begin < end) {
     const usize             elems  = end - begin;
@@ -503,5 +503,5 @@ asset_fonttex_lookup(const AssetFontTexComp* comp, const Unicode cp, const u8 va
     return matchingCp;
   }
   // Return the 'missing' character, is guaranteed to exist.
-  return &comp->characters[0];
+  return &comp->characters.values[0];
 }

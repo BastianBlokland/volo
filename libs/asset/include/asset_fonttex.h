@@ -25,11 +25,13 @@ typedef struct {
 } AssetFontTexChar;
 
 ecs_comp_extern_public(AssetFontTexComp) {
-  u32               glyphsPerDim;
-  f32               lineSpacing;
-  f32               baseline;   // How far glyphs can extend below the rectangle.
-  AssetFontTexChar* characters; // Sorted on the unicode codepoint.
-  usize             characterCount;
+  u32 glyphsPerDim;
+  f32 lineSpacing;
+  f32 baseline; // How far glyphs can extend below the rectangle.
+  struct {
+    AssetFontTexChar* values; // Sorted on the unicode codepoint.
+    usize             count;
+  } characters;
 };
 
 extern DataMeta g_assetFontTexDefMeta;
