@@ -39,6 +39,7 @@ static AssetSource* asset_source_fs_open_cached(AssetRepoFs* repoFs, const Asset
   const AssetFormat format = asset_format_from_data_meta(rec->meta);
   if (format == AssetFormat_Raw) {
     log_w("No asset-format found for cached data");
+    file_destroy(rec->blobFile);
     return null;
   }
   String     data;
