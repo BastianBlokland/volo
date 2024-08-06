@@ -51,7 +51,7 @@ ecs_comp_define(AssetAtlasLoadComp) {
 
 static void ecs_destruct_atlas_comp(void* data) {
   AssetAtlasComp* comp = data;
-  alloc_free_array_t(g_allocHeap, comp->entries.values, comp->entries.count);
+  data_destroy(g_dataReg, g_allocHeap, g_assetAtlasMeta, mem_create(comp, sizeof(AssetAtlasComp)));
 }
 
 static void ecs_destruct_atlas_load_comp(void* data) {
