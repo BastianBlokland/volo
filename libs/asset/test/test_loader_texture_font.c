@@ -106,12 +106,12 @@ ecs_view_define(AssetView) {
   ecs_access_read(AssetTextureComp);
 }
 
-ecs_module_init(loader_fonttex_test_module) {
+ecs_module_init(loader_texture_font_test_module) {
   ecs_register_view(ManagerView);
   ecs_register_view(AssetView);
 }
 
-spec(loader_fonttex) {
+spec(loader_texture_font) {
   EcsDef*    def          = null;
   EcsWorld*  world        = null;
   EcsRunner* runner       = null;
@@ -120,7 +120,7 @@ spec(loader_fonttex) {
   setup() {
     def = ecs_def_create(g_allocHeap);
     asset_register(def);
-    ecs_register_module(def, loader_fonttex_test_module);
+    ecs_register_module(def, loader_texture_font_test_module);
 
     world  = ecs_world_create(g_allocHeap, def);
     runner = ecs_runner_create(g_allocHeap, world, EcsRunnerFlags_None);
@@ -151,12 +151,12 @@ spec(loader_fonttex) {
     const AssetFontTexComp* ftx = ecs_utils_read_t(world, AssetView, asset, AssetFontTexComp);
     const AssetTextureComp* tex = ecs_utils_read_t(world, AssetView, asset, AssetTextureComp);
 
-    check_require(ftx->characterCount == 2);
-    check_eq_int(ftx->characters[0].cp, 0); // The 'missing' character.
-    check_eq_int(ftx->characters[0].glyphIndex, 0);
+    check_require(ftx->characters.count == 2);
+    check_eq_int(ftx->characters.values[0].cp, 0); // The 'missing' character.
+    check_eq_int(ftx->characters.values[0].glyphIndex, 0);
 
-    check_eq_int(ftx->characters[1].cp, 0x31); // The 'digit one' character.
-    check_eq_int(ftx->characters[1].glyphIndex, 1);
+    check_eq_int(ftx->characters.values[1].cp, 0x31); // The 'digit one' character.
+    check_eq_int(ftx->characters.values[1].glyphIndex, 1);
 
     check_eq_int(tex->format, AssetTextureFormat_u8_r);
     check_eq_int(tex->width, 64);

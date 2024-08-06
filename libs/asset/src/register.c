@@ -10,7 +10,6 @@ void asset_register(EcsDef* def) {
   ecs_register_module(def, asset_cursor_module);
   ecs_register_module(def, asset_decal_module);
   ecs_register_module(def, asset_font_module);
-  ecs_register_module(def, asset_fonttex_module);
   ecs_register_module(def, asset_graphic_module);
   ecs_register_module(def, asset_inputmap_module);
   ecs_register_module(def, asset_level_module);
@@ -27,6 +26,7 @@ void asset_register(EcsDef* def) {
   ecs_register_module(def, asset_terrain_module);
   ecs_register_module(def, asset_texture_array_module);
   ecs_register_module(def, asset_texture_atlas_module);
+  ecs_register_module(def, asset_texture_font_module);
   ecs_register_module(def, asset_texture_module);
   ecs_register_module(def, asset_vfx_module);
   ecs_register_module(def, asset_weapon_module);

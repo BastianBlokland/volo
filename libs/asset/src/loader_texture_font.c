@@ -25,8 +25,6 @@
 #define fonttex_max_size (1024 * 16)
 #define fonttex_max_fonts 100
 
-DataMeta g_assetFontTexDefMeta;
-
 typedef enum {
   FontTexGenFlags_IncludeGlyph0 = 1 << 0, // Aka the '.notdef' glyph or the 'missing glyph'.
 } FontTexGenFlags;
@@ -51,13 +49,23 @@ typedef struct {
   } fonts;
 } FontTexDef;
 
+typedef struct {
+  AssetFontTexComp fonttex;
+  AssetTextureComp texture;
+} FontTexBundle;
+
+DataMeta g_assetFontTexBundleMeta;
+DataMeta g_assetFontTexDefMeta;
+DataMeta g_assetFontTexMeta;
+
 ecs_comp_define_public(AssetFontTexComp);
 
 ecs_comp_define(AssetFontTexLoadComp) { FontTexDef def; };
 
 static void ecs_destruct_fonttex_comp(void* data) {
   AssetFontTexComp* comp = data;
-  alloc_free_array_t(g_allocHeap, comp->characters, comp->characterCount);
+  data_destroy(
+      g_dataReg, g_allocHeap, g_assetFontTexMeta, mem_create(comp, sizeof(AssetFontTexComp)));
 }
 
 static void ecs_destruct_fonttex_load_comp(void* data) {
@@ -264,11 +272,11 @@ static void fonttex_generate(
   dynarray_sort(&chars, fonttex_compare_char_cp);
 
   *outFontTex = (AssetFontTexComp){
-      .glyphsPerDim   = glyphsPerDim,
-      .lineSpacing    = def->lineSpacing,
-      .baseline       = def->baseline,
-      .characters     = dynarray_copy_as_new(&chars, g_allocHeap),
-      .characterCount = chars.size,
+      .glyphsPerDim      = glyphsPerDim,
+      .lineSpacing       = def->lineSpacing,
+      .baseline          = def->baseline,
+      .characters.values = dynarray_copy_as_new(&chars, g_allocHeap),
+      .characters.count  = chars.size,
   };
   *outTexture = asset_texture_create(
       pixelMem,
@@ -343,16 +351,18 @@ ecs_system_define(FontTexLoadAssetSys) {
       };
     }
 
-    AssetFontTexComp ftx;
-    AssetTextureComp texture;
-    fonttex_generate(&load->def, fonts, fontCount, &ftx, &texture, &err);
+    FontTexBundle bundle;
+    fonttex_generate(&load->def, fonts, fontCount, &bundle.fonttex, &bundle.texture, &err);
     if (UNLIKELY(err)) {
       goto Error;
     }
 
-    *ecs_world_add_t(world, entity, AssetFontTexComp) = ftx;
-    *ecs_world_add_t(world, entity, AssetTextureComp) = texture;
+    *ecs_world_add_t(world, entity, AssetFontTexComp) = bundle.fonttex;
+    *ecs_world_add_t(world, entity, AssetTextureComp) = bundle.texture;
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+
+    asset_cache(world, entity, g_assetFontTexBundleMeta, mem_var(bundle));
+
     goto Cleanup;
 
   Error:
@@ -391,7 +401,7 @@ ecs_system_define(FontTexUnloadAssetSys) {
   }
 }
 
-ecs_module_init(asset_fonttex_module) {
+ecs_module_init(asset_texture_font_module) {
   ecs_register_comp(AssetFontTexComp, .destructor = ecs_destruct_fonttex_comp);
   ecs_register_comp(AssetFontTexLoadComp, .destructor = ecs_destruct_fonttex_load_comp);
 
@@ -422,12 +432,34 @@ void asset_data_init_fonttex(void) {
   data_reg_field_t(g_dataReg, FontTexDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, FontTexDef, baseline, data_prim_t(f32));
   data_reg_field_t(g_dataReg, FontTexDef, fonts, t_FontTexDefFont, .container = DataContainer_DataArray, .flags = DataFlags_NotEmpty);
+
+  data_reg_struct_t(g_dataReg, AssetFontTexChar);
+  data_reg_field_t(g_dataReg, AssetFontTexChar, cp, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetFontTexChar, variation, data_prim_t(u8));
+  data_reg_field_t(g_dataReg, AssetFontTexChar, glyphIndex, data_prim_t(u16));
+  data_reg_field_t(g_dataReg, AssetFontTexChar, size, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetFontTexChar, offsetX, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetFontTexChar, offsetY, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetFontTexChar, advance, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetFontTexChar, border, data_prim_t(f32));
+
+  data_reg_struct_t(g_dataReg, AssetFontTexComp);
+  data_reg_field_t(g_dataReg, AssetFontTexComp, glyphsPerDim, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetFontTexComp, lineSpacing, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetFontTexComp, baseline, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetFontTexComp, characters, t_AssetFontTexChar, .container = DataContainer_DataArray);
+
+  data_reg_struct_t(g_dataReg, FontTexBundle);
+  data_reg_field_t(g_dataReg, FontTexBundle, fonttex, t_AssetFontTexComp);
+  data_reg_field_t(g_dataReg, FontTexBundle, texture, g_assetTexMeta.type);
   // clang-format on
 
-  g_assetFontTexDefMeta = data_meta_t(t_FontTexDef);
+  g_assetFontTexBundleMeta = data_meta_t(t_FontTexBundle);
+  g_assetFontTexDefMeta    = data_meta_t(t_FontTexDef);
+  g_assetFontTexMeta       = data_meta_t(t_AssetFontTexComp);
 }
 
-void asset_load_fonttex(
+void asset_load_tex_font(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   String         errMsg;
   FontTexDef     def;
@@ -469,6 +501,32 @@ Error:
   asset_repo_source_close(src);
 }
 
+void asset_load_tex_font_bin(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+
+  FontTexBundle  bundle;
+  DataReadResult result;
+  data_read_bin(
+      g_dataReg, src->data, g_allocHeap, g_assetFontTexBundleMeta, mem_var(bundle), &result);
+
+  if (UNLIKELY(result.error)) {
+    log_e(
+        "Failed to load binary fonttex",
+        log_param("id", fmt_text(id)),
+        log_param("error-code", fmt_int(result.error)),
+        log_param("error", fmt_text(result.errorMsg)));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_repo_source_close(src);
+    return;
+  }
+
+  *ecs_world_add_t(world, entity, AssetFontTexComp) = bundle.fonttex;
+  *ecs_world_add_t(world, entity, AssetTextureComp) = bundle.texture;
+  ecs_world_add_t(world, entity, AssetTextureSourceComp, .src = src);
+
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+}
+
 const AssetFontTexChar*
 asset_fonttex_lookup(const AssetFontTexComp* comp, const Unicode cp, const u8 variation) {
 
@@ -476,8 +534,8 @@ asset_fonttex_lookup(const AssetFontTexComp* comp, const Unicode cp, const u8 va
    * Binary scan to find a character with a matching code-point.
    * Looks for a character with the same variation otherwise variation 0 is returned.
    */
-  const AssetFontTexChar* begin      = comp->characters;
-  const AssetFontTexChar* end        = comp->characters + comp->characterCount;
+  const AssetFontTexChar* begin      = comp->characters.values;
+  const AssetFontTexChar* end        = comp->characters.values + comp->characters.count;
   const AssetFontTexChar* matchingCp = null;
   while (begin < end) {
     const usize             elems  = end - begin;
@@ -503,5 +561,5 @@ asset_fonttex_lookup(const AssetFontTexComp* comp, const Unicode cp, const u8 va
     return matchingCp;
   }
   // Return the 'missing' character, is guaranteed to exist.
-  return &comp->characters[0];
+  return &comp->characters.values[0];
 }

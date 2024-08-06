@@ -1,4 +1,5 @@
 #include "asset_atlas.h"
+#include "asset_fonttex.h"
 #include "asset_shader.h"
 #include "asset_texture.h"
 #include "core_array.h"
@@ -9,7 +10,6 @@
 static const String g_assetFormatExtensions[AssetFormat_Count] = {
     [AssetFormat_Cursor]         = string_static("cursor"),
     [AssetFormat_Decal]          = string_static("decal"),
-    [AssetFormat_FontTex]        = string_static("fonttex"),
     [AssetFormat_FontTtf]        = string_static("ttf"),
     [AssetFormat_Graphic]        = string_static("graphic"),
     [AssetFormat_Inputs]         = string_static("inputs"),
@@ -28,6 +28,7 @@ static const String g_assetFormatExtensions[AssetFormat_Count] = {
     [AssetFormat_Terrain]        = string_static("terrain"),
     [AssetFormat_TexArray]       = string_static("arraytex"),
     [AssetFormat_TexAtlas]       = string_static("atlas"),
+    [AssetFormat_TexFont]        = string_static("fonttex"),
     [AssetFormat_TexHeight16]    = string_static("r16"),
     [AssetFormat_TexHeight32]    = string_static("r32"),
     [AssetFormat_TexPpm]         = string_static("ppm"),
@@ -40,7 +41,6 @@ static const String g_assetFormatExtensions[AssetFormat_Count] = {
 static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_Cursor]         = string_static("Cursor"),
     [AssetFormat_Decal]          = string_static("Decal"),
-    [AssetFormat_FontTex]        = string_static("FontTex"),
     [AssetFormat_FontTtf]        = string_static("FontTtf"),
     [AssetFormat_Graphic]        = string_static("Graphic"),
     [AssetFormat_Inputs]         = string_static("Inputs"),
@@ -63,6 +63,8 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_TexAtlas]       = string_static("TexAtlas"),
     [AssetFormat_TexAtlasBin]    = string_static("TexAtlasBin"),
     [AssetFormat_TexBin]         = string_static("TexBin"),
+    [AssetFormat_TexFont]        = string_static("TexFont"),
+    [AssetFormat_TexFontBin]     = string_static("TexFontBin"),
     [AssetFormat_TexHeight16]    = string_static("TexHeight16"),
     [AssetFormat_TexHeight32]    = string_static("TexHeight32"),
     [AssetFormat_TexPpm]         = string_static("TexPpm"),
@@ -70,6 +72,13 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_TexTga]         = string_static("TexTga"),
     [AssetFormat_Vfx]            = string_static("Vfx"),
     [AssetFormat_Weapons]        = string_static("Weapons"),
+};
+
+static const DataMeta* g_assetFormatMeta[AssetFormat_Count] = {
+    [AssetFormat_ShaderBin]   = &g_assetShaderMeta,
+    [AssetFormat_TexAtlasBin] = &g_assetAtlasBundleMeta,
+    [AssetFormat_TexBin]      = &g_assetTexMeta,
+    [AssetFormat_TexFontBin]  = &g_assetFontTexBundleMeta,
 };
 
 String asset_format_str(const AssetFormat fmt) {
@@ -87,14 +96,10 @@ AssetFormat asset_format_from_ext(const String ext) {
 }
 
 AssetFormat asset_format_from_data_meta(const DataMeta meta) {
-  if (data_meta_eq(meta, g_assetTexMeta)) {
-    return AssetFormat_TexBin;
-  }
-  if (data_meta_eq(meta, g_assetShaderMeta)) {
-    return AssetFormat_ShaderBin;
-  }
-  if (data_meta_eq(meta, g_assetAtlasBundleMeta)) {
-    return AssetFormat_TexAtlasBin;
+  for (AssetFormat fmt = 0; fmt != AssetFormat_Count; ++fmt) {
+    if (g_assetFormatMeta[fmt] && data_meta_eq(meta, *g_assetFormatMeta[fmt])) {
+      return fmt;
+    }
   }
   return AssetFormat_Raw;
 }

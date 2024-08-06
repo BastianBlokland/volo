@@ -7,7 +7,6 @@
 #define ASSET_FOREACH_LOADER(_X_)                                                                  \
   _X_(AssetFormat_Cursor,           cursor             )                                           \
   _X_(AssetFormat_Decal,            decal              )                                           \
-  _X_(AssetFormat_FontTex,          fonttex            )                                           \
   _X_(AssetFormat_FontTtf,          font_ttf           )                                           \
   _X_(AssetFormat_Graphic,          graphic            )                                           \
   _X_(AssetFormat_Inputs,           inputs             )                                           \
@@ -29,6 +28,8 @@
   _X_(AssetFormat_TexAtlas,         tex_atlas          )                                           \
   _X_(AssetFormat_TexAtlasBin,      tex_atlas_bin      )                                           \
   _X_(AssetFormat_TexBin,           tex_bin            )                                           \
+  _X_(AssetFormat_TexFont,          tex_font           )                                           \
+  _X_(AssetFormat_TexFontBin,       tex_font_bin       )                                           \
   _X_(AssetFormat_TexHeight16,      tex_height16       )                                           \
   _X_(AssetFormat_TexHeight32,      tex_height32       )                                           \
   _X_(AssetFormat_TexPpm,           tex_ppm            )                                           \
