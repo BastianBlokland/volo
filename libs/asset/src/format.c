@@ -1,4 +1,5 @@
 #include "asset_atlas.h"
+#include "asset_fonttex.h"
 #include "asset_shader.h"
 #include "asset_texture.h"
 #include "core_array.h"
@@ -62,7 +63,8 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_TexAtlas]       = string_static("TexAtlas"),
     [AssetFormat_TexAtlasBin]    = string_static("TexAtlasBin"),
     [AssetFormat_TexBin]         = string_static("TexBin"),
-    [AssetFormat_TexFont]        = string_static("FontTex"),
+    [AssetFormat_TexFont]        = string_static("TexFont"),
+    [AssetFormat_TexFontBin]     = string_static("TexFontBin"),
     [AssetFormat_TexHeight16]    = string_static("TexHeight16"),
     [AssetFormat_TexHeight32]    = string_static("TexHeight32"),
     [AssetFormat_TexPpm]         = string_static("TexPpm"),
@@ -95,6 +97,9 @@ AssetFormat asset_format_from_data_meta(const DataMeta meta) {
   }
   if (data_meta_eq(meta, g_assetAtlasBundleMeta)) {
     return AssetFormat_TexAtlasBin;
+  }
+  if (data_meta_eq(meta, g_assetFontTexBundleMeta)) {
+    return AssetFormat_TexFontBin;
   }
   return AssetFormat_Raw;
 }

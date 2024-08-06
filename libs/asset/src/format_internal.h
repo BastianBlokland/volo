@@ -28,6 +28,7 @@ typedef enum {
   AssetFormat_TexAtlasBin,
   AssetFormat_TexBin,
   AssetFormat_TexFont,
+  AssetFormat_TexFontBin,
   AssetFormat_TexHeight16,
   AssetFormat_TexHeight32,
   AssetFormat_TexPpm,
