@@ -12,7 +12,6 @@ add_library(lib_asset STATIC
   src/loader_decal.c
   src/loader_font_ttf.c
   src/loader_font.c
-  src/loader_fonttex.c
   src/loader_graphic.c
   src/loader_inputmap.c
   src/loader_level.c
@@ -32,6 +31,7 @@ add_library(lib_asset STATIC
   src/loader_terrain.c
   src/loader_texture_array.c
   src/loader_texture_atlas.c
+  src/loader_texture_font.c
   src/loader_texture_height.c
   src/loader_texture_ppm.c
   src/loader_texture_proc.c
@@ -54,7 +54,6 @@ target_link_libraries(lib_asset PRIVATE lib_json lib_log lib_trace)
 add_executable(test_lib_asset
   test/config.c
   test/test_loader_font_ttf.c
-  test/test_loader_fonttex.c
   test/test_loader_graphic.c
   test/test_loader_inputmap.c
   test/test_loader_level.c
@@ -67,6 +66,7 @@ add_executable(test_lib_asset
   test/test_loader_shader_spv.c
   test/test_loader_terrain.c
   test/test_loader_texture_atlas.c
+  test/test_loader_texture_font.c
   test/test_loader_texture_ppm.c
   test/test_loader_texture_tga.c
   test/test_loader_weapon.c

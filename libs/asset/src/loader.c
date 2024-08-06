@@ -7,7 +7,7 @@
 #define ASSET_FOREACH_LOADER(_X_)                                                                  \
   _X_(AssetFormat_Cursor,           cursor             )                                           \
   _X_(AssetFormat_Decal,            decal              )                                           \
-  _X_(AssetFormat_FontTex,          fonttex            )                                           \
+  _X_(AssetFormat_FontTex,          tex_font           )                                           \
   _X_(AssetFormat_FontTtf,          font_ttf           )                                           \
   _X_(AssetFormat_Graphic,          graphic            )                                           \
   _X_(AssetFormat_Inputs,           inputs             )                                           \

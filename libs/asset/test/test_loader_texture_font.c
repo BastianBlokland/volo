@@ -106,12 +106,12 @@ ecs_view_define(AssetView) {
   ecs_access_read(AssetTextureComp);
 }
 
-ecs_module_init(loader_fonttex_test_module) {
+ecs_module_init(loader_texture_font_test_module) {
   ecs_register_view(ManagerView);
   ecs_register_view(AssetView);
 }
 
-spec(loader_fonttex) {
+spec(loader_texture_font) {
   EcsDef*    def          = null;
   EcsWorld*  world        = null;
   EcsRunner* runner       = null;
@@ -120,7 +120,7 @@ spec(loader_fonttex) {
   setup() {
     def = ecs_def_create(g_allocHeap);
     asset_register(def);
-    ecs_register_module(def, loader_fonttex_test_module);
+    ecs_register_module(def, loader_texture_font_test_module);
 
     world  = ecs_world_create(g_allocHeap, def);
     runner = ecs_runner_create(g_allocHeap, world, EcsRunnerFlags_None);

@@ -391,7 +391,7 @@ ecs_system_define(FontTexUnloadAssetSys) {
   }
 }
 
-ecs_module_init(asset_fonttex_module) {
+ecs_module_init(asset_texture_font_module) {
   ecs_register_comp(AssetFontTexComp, .destructor = ecs_destruct_fonttex_comp);
   ecs_register_comp(AssetFontTexLoadComp, .destructor = ecs_destruct_fonttex_load_comp);
 
@@ -427,7 +427,7 @@ void asset_data_init_fonttex(void) {
   g_assetFontTexDefMeta = data_meta_t(t_FontTexDef);
 }
 
-void asset_load_fonttex(
+void asset_load_tex_font(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   String         errMsg;
   FontTexDef     def;
