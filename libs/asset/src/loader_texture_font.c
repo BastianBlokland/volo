@@ -26,6 +26,7 @@
 #define fonttex_max_fonts 100
 
 DataMeta g_assetFontTexDefMeta;
+DataMeta g_assetFontTexMeta;
 
 typedef enum {
   FontTexGenFlags_IncludeGlyph0 = 1 << 0, // Aka the '.notdef' glyph or the 'missing glyph'.
@@ -57,7 +58,8 @@ ecs_comp_define(AssetFontTexLoadComp) { FontTexDef def; };
 
 static void ecs_destruct_fonttex_comp(void* data) {
   AssetFontTexComp* comp = data;
-  alloc_free_array_t(g_allocHeap, comp->characters.values, comp->characters.count);
+  data_destroy(
+      g_dataReg, g_allocHeap, g_assetFontTexMeta, mem_create(comp, sizeof(AssetFontTexComp)));
 }
 
 static void ecs_destruct_fonttex_load_comp(void* data) {
@@ -422,9 +424,26 @@ void asset_data_init_fonttex(void) {
   data_reg_field_t(g_dataReg, FontTexDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, FontTexDef, baseline, data_prim_t(f32));
   data_reg_field_t(g_dataReg, FontTexDef, fonts, t_FontTexDefFont, .container = DataContainer_DataArray, .flags = DataFlags_NotEmpty);
+
+  data_reg_struct_t(g_dataReg, AssetFontTexChar);
+  data_reg_field_t(g_dataReg, AssetFontTexChar, cp, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetFontTexChar, variation, data_prim_t(u8));
+  data_reg_field_t(g_dataReg, AssetFontTexChar, glyphIndex, data_prim_t(u16));
+  data_reg_field_t(g_dataReg, AssetFontTexChar, size, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetFontTexChar, offsetX, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetFontTexChar, offsetY, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetFontTexChar, advance, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetFontTexChar, border, data_prim_t(u32));
+
+  data_reg_struct_t(g_dataReg, AssetFontTexComp);
+  data_reg_field_t(g_dataReg, AssetFontTexComp, glyphsPerDim, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetFontTexComp, lineSpacing, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetFontTexComp, baseline, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetFontTexComp, characters, t_AssetFontTexChar, .container = DataContainer_DataArray);
   // clang-format on
 
   g_assetFontTexDefMeta = data_meta_t(t_FontTexDef);
+  g_assetFontTexMeta    = data_meta_t(t_AssetFontTexComp);
 }
 
 void asset_load_tex_font(

@@ -35,6 +35,7 @@ ecs_comp_extern_public(AssetFontTexComp) {
 };
 
 extern DataMeta g_assetFontTexDefMeta;
+extern DataMeta g_assetFontTexMeta;
 
 /**
  * Get a character based on a unicode codepoint.
