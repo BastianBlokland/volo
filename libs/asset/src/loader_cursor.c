@@ -13,6 +13,7 @@
 #include "repo_internal.h"
 
 DataMeta g_assetCursorDefMeta;
+DataMeta g_assetCursorMeta;
 
 typedef struct {
   String    texture;
@@ -46,9 +47,8 @@ ecs_comp_define(AssetCursorLoadComp) {
 
 static void ecs_destruct_cursor_comp(void* data) {
   AssetCursorComp* comp = data;
-  if (comp->pixels) {
-    alloc_free_array_t(g_allocHeap, comp->pixels, comp->width * comp->height);
-  }
+  data_destroy(
+      g_dataReg, g_allocHeap, g_assetCursorMeta, mem_create(comp, sizeof(AssetCursorComp)));
 }
 
 static void ecs_destruct_cursor_load_comp(void* data) {
@@ -104,7 +104,7 @@ static void asset_cursor_generate(
   outCursor->height   = outHeight;
   outCursor->hotspotX = math_min((u32)math_round_nearest_f32(def->hotspotX * scale), outWidth - 1);
   outCursor->hotspotY = math_min((u32)math_round_nearest_f32(def->hotspotY * scale), outHeight - 1);
-  outCursor->pixels   = pixelMem.ptr;
+  outCursor->pixelData = data_mem_create(pixelMem);
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -225,9 +225,17 @@ void asset_data_init_cursor(void) {
   data_reg_field_t(g_dataReg, CursorDef, hotspotY, data_prim_t(u32));
   data_reg_field_t(g_dataReg, CursorDef, scale, data_prim_t(f32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
   data_reg_field_t(g_dataReg, CursorDef, color, g_assetGeoColorType, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
+
+  data_reg_struct_t(g_dataReg, AssetCursorComp);
+  data_reg_field_t(g_dataReg, AssetCursorComp, width, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCursorComp, height, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCursorComp, hotspotX, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCursorComp, hotspotY, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCursorComp, pixelData, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
   // clang-format on
 
   g_assetCursorDefMeta = data_meta_t(t_CursorDef);
+  g_assetCursorMeta    = data_meta_t(t_AssetCursorComp);
 }
 
 void asset_load_cursor(

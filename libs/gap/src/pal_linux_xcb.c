@@ -1234,7 +1234,7 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
 
   // Flip the y axis of the image and convert to argb.
   const Mem               buffer = alloc_alloc(g_allocScratch, asset->height * asset->width * 4, 4);
-  const AssetCursorPixel* inPixel = asset->pixels;
+  const AssetCursorPixel* inPixel = asset->pixelData.ptr;
   for (u32 y = asset->height; y-- != 0;) {
     for (u32 x = 0; x != asset->width; ++x) {
       u8* outData = bits_ptr_offset(buffer.ptr, (y * asset->width + x) * sizeof(AssetCursorPixel));

@@ -772,7 +772,7 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
   HBITMAP bitmap = CreateDIBSection(deviceCtx, (BITMAPINFO*)&header, DIB_RGB_COLORS, &bits, 0, 0);
   ReleaseDC(null, deviceCtx);
 
-  const AssetCursorPixel* inPixel = asset->pixels;
+  const AssetCursorPixel* inPixel = asset->pixelData.ptr;
   for (u32 y = 0; y != asset->height; ++y) {
     for (u32 x = 0; x != asset->width; ++x) {
       u8* outData = bits_ptr_offset(bits, (y * asset->width + x) * sizeof(AssetCursorPixel));

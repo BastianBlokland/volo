@@ -7,9 +7,9 @@ typedef struct {
 } AssetCursorPixel;
 
 ecs_comp_extern_public(AssetCursorComp) {
-  u32                     width, height;
-  u32                     hotspotX, hotspotY;
-  const AssetCursorPixel* pixels;
+  u32     width, height;
+  u32     hotspotX, hotspotY;
+  DataMem pixelData; // AssetCursorPixel[width * height]
 };
 
 extern DataMeta g_assetCursorDefMeta;
