@@ -20,6 +20,7 @@ ecs_comp_extern_public(AssetAtlasComp) {
   } entries;
 };
 
+extern DataMeta g_assetAtlasBundleMeta;
 extern DataMeta g_assetAtlasDefMeta;
 extern DataMeta g_assetAtlasMeta;
 

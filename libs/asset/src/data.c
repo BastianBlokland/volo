@@ -44,8 +44,13 @@ void asset_data_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_init) {
+    // Generic types.
     asset_data_init_types();
 
+    // Shared types (need to be first as other types can depend on these).
+    asset_data_init_tex();
+
+    // Other types (order does not matter).
     asset_data_init_arraytex();
     asset_data_init_atlas();
     asset_data_init_cache();
@@ -62,7 +67,6 @@ void asset_data_init(void) {
     asset_data_init_script();
     asset_data_init_shader();
     asset_data_init_terrain();
-    asset_data_init_tex();
     asset_data_init_vfx();
     asset_data_init_weapon();
 

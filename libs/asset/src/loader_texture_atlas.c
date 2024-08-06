@@ -18,9 +18,6 @@
 
 #define atlas_max_size (1024 * 16)
 
-DataMeta g_assetAtlasDefMeta;
-DataMeta g_assetAtlasMeta;
-
 typedef struct {
   String name;
   String texture;
@@ -34,6 +31,15 @@ typedef struct {
     usize          count;
   } entries;
 } AtlasDef;
+
+typedef struct {
+  AssetAtlasComp   atlas;
+  AssetTextureComp tex;
+} AtlasBundle;
+
+DataMeta g_assetAtlasBundleMeta;
+DataMeta g_assetAtlasDefMeta;
+DataMeta g_assetAtlasMeta;
 
 ecs_comp_define_public(AssetAtlasComp);
 
@@ -360,10 +366,15 @@ void asset_data_init_atlas(void) {
   data_reg_field_t(g_dataReg, AssetAtlasComp, entriesPerDim, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetAtlasComp, entryPadding, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetAtlasComp, entries, t_AssetAtlasEntry, .container = DataContainer_DataArray);
+
+  data_reg_struct_t(g_dataReg, AtlasBundle);
+  data_reg_field_t(g_dataReg, AtlasBundle, atlas, t_AssetAtlasComp);
+  data_reg_field_t(g_dataReg, AtlasBundle, tex, g_assetTexMeta.type);
   // clang-format on
 
-  g_assetAtlasDefMeta = data_meta_t(t_AtlasDef);
-  g_assetAtlasMeta    = data_meta_t(t_AssetAtlasComp);
+  g_assetAtlasBundleMeta = data_meta_t(t_AtlasBundle);
+  g_assetAtlasDefMeta    = data_meta_t(t_AtlasDef);
+  g_assetAtlasMeta       = data_meta_t(t_AssetAtlasComp);
 }
 
 void asset_load_tex_atlas(
