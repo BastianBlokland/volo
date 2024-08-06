@@ -29,6 +29,7 @@
   _X_(AssetFormat_TexAtlasBin,      tex_atlas_bin      )                                           \
   _X_(AssetFormat_TexBin,           tex_bin            )                                           \
   _X_(AssetFormat_TexFont,          tex_font           )                                           \
+  _X_(AssetFormat_TexFontBin,       tex_font_bin       )                                           \
   _X_(AssetFormat_TexHeight16,      tex_height16       )                                           \
   _X_(AssetFormat_TexHeight32,      tex_height32       )                                           \
   _X_(AssetFormat_TexPpm,           tex_ppm            )                                           \

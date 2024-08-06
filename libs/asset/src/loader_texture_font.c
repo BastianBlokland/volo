@@ -499,6 +499,32 @@ Error:
   asset_repo_source_close(src);
 }
 
+void asset_load_tex_font_bin(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+
+  FontTexBundle  bundle;
+  DataReadResult result;
+  data_read_bin(
+      g_dataReg, src->data, g_allocHeap, g_assetFontTexBundleMeta, mem_var(bundle), &result);
+
+  if (UNLIKELY(result.error)) {
+    log_e(
+        "Failed to load binary fonttex",
+        log_param("id", fmt_text(id)),
+        log_param("error-code", fmt_int(result.error)),
+        log_param("error", fmt_text(result.errorMsg)));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_repo_source_close(src);
+    return;
+  }
+
+  *ecs_world_add_t(world, entity, AssetFontTexComp) = bundle.fonttex;
+  *ecs_world_add_t(world, entity, AssetTextureComp) = bundle.texture;
+  ecs_world_add_t(world, entity, AssetTextureSourceComp, .src = src);
+
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+}
+
 const AssetFontTexChar*
 asset_fonttex_lookup(const AssetFontTexComp* comp, const Unicode cp, const u8 variation) {
 
