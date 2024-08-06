@@ -74,6 +74,13 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_Weapons]        = string_static("Weapons"),
 };
 
+static const DataMeta* g_assetFormatMeta[AssetFormat_Count] = {
+    [AssetFormat_ShaderBin]   = &g_assetShaderMeta,
+    [AssetFormat_TexAtlasBin] = &g_assetAtlasBundleMeta,
+    [AssetFormat_TexBin]      = &g_assetTexMeta,
+    [AssetFormat_TexFontBin]  = &g_assetFontTexBundleMeta,
+};
+
 String asset_format_str(const AssetFormat fmt) {
   diag_assert(fmt < AssetFormat_Count);
   return g_assetFormatNames[fmt];
@@ -89,17 +96,10 @@ AssetFormat asset_format_from_ext(const String ext) {
 }
 
 AssetFormat asset_format_from_data_meta(const DataMeta meta) {
-  if (data_meta_eq(meta, g_assetTexMeta)) {
-    return AssetFormat_TexBin;
-  }
-  if (data_meta_eq(meta, g_assetShaderMeta)) {
-    return AssetFormat_ShaderBin;
-  }
-  if (data_meta_eq(meta, g_assetAtlasBundleMeta)) {
-    return AssetFormat_TexAtlasBin;
-  }
-  if (data_meta_eq(meta, g_assetFontTexBundleMeta)) {
-    return AssetFormat_TexFontBin;
+  for (AssetFormat fmt = 0; fmt != AssetFormat_Count; ++fmt) {
+    if (g_assetFormatMeta[fmt] && data_meta_eq(meta, *g_assetFormatMeta[fmt])) {
+      return fmt;
+    }
   }
   return AssetFormat_Raw;
 }
