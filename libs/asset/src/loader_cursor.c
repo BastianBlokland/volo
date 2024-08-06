@@ -270,3 +270,27 @@ Error:
 Cleanup:
   asset_repo_source_close(src);
 }
+
+void asset_load_cursor_bin(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+
+  AssetCursorComp cursor;
+  DataReadResult  result;
+  data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetCursorMeta, mem_var(cursor), &result);
+
+  if (UNLIKELY(result.error)) {
+    log_e(
+        "Failed to load binary cursor",
+        log_param("id", fmt_text(id)),
+        log_param("error-code", fmt_int(result.error)),
+        log_param("error", fmt_text(result.errorMsg)));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_repo_source_close(src);
+    return;
+  }
+
+  *ecs_world_add_t(world, entity, AssetCursorComp) = cursor;
+  ecs_world_add_t(world, entity, AssetCursorSourceComp, .src = src);
+
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+}
