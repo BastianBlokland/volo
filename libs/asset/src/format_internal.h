@@ -5,7 +5,6 @@
 typedef enum {
   AssetFormat_Cursor,
   AssetFormat_Decal,
-  AssetFormat_FontTex,
   AssetFormat_FontTtf,
   AssetFormat_Graphic,
   AssetFormat_Inputs,
@@ -28,6 +27,7 @@ typedef enum {
   AssetFormat_TexAtlas,
   AssetFormat_TexAtlasBin,
   AssetFormat_TexBin,
+  AssetFormat_TexFont,
   AssetFormat_TexHeight16,
   AssetFormat_TexHeight32,
   AssetFormat_TexPpm,
