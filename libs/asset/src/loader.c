@@ -6,6 +6,7 @@
 
 #define ASSET_FOREACH_LOADER(_X_)                                                                  \
   _X_(AssetFormat_Cursor,           cursor             )                                           \
+  _X_(AssetFormat_CursorBin,        cursor_bin         )                                           \
   _X_(AssetFormat_Decal,            decal              )                                           \
   _X_(AssetFormat_FontTtf,          font_ttf           )                                           \
   _X_(AssetFormat_Graphic,          graphic            )                                           \

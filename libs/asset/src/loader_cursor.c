@@ -13,6 +13,7 @@
 #include "repo_internal.h"
 
 DataMeta g_assetCursorDefMeta;
+DataMeta g_assetCursorMeta;
 
 typedef struct {
   String    texture;
@@ -44,16 +45,22 @@ ecs_comp_define(AssetCursorLoadComp) {
   EcsEntityId textureAsset;
 };
 
+ecs_comp_define(AssetCursorSourceComp) { AssetSource* src; };
+
 static void ecs_destruct_cursor_comp(void* data) {
   AssetCursorComp* comp = data;
-  if (comp->pixels) {
-    alloc_free_array_t(g_allocHeap, comp->pixels, comp->width * comp->height);
-  }
+  data_destroy(
+      g_dataReg, g_allocHeap, g_assetCursorMeta, mem_create(comp, sizeof(AssetCursorComp)));
 }
 
 static void ecs_destruct_cursor_load_comp(void* data) {
   AssetCursorLoadComp* comp = data;
   data_destroy(g_dataReg, g_allocHeap, g_assetCursorDefMeta, mem_var(comp->def));
+}
+
+static void ecs_destruct_cursor_source_comp(void* data) {
+  AssetCursorSourceComp* comp = data;
+  asset_repo_source_close(comp->src);
 }
 
 static AssetCursorPixel asset_cursor_pixel(const GeoColor color) {
@@ -104,7 +111,7 @@ static void asset_cursor_generate(
   outCursor->height   = outHeight;
   outCursor->hotspotX = math_min((u32)math_round_nearest_f32(def->hotspotX * scale), outWidth - 1);
   outCursor->hotspotY = math_min((u32)math_round_nearest_f32(def->hotspotY * scale), outHeight - 1);
-  outCursor->pixels   = pixelMem.ptr;
+  outCursor->pixelData = data_mem_create(pixelMem);
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -171,6 +178,9 @@ ecs_system_define(LoadCursorAssetSys) {
     asset_cursor_generate(&load->def, texture, cursor);
 
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+
+    asset_cache(world, entity, g_assetCursorMeta, mem_create(cursor, sizeof(AssetCursorComp)));
+
     goto Cleanup;
 
   Error:
@@ -203,6 +213,7 @@ ecs_system_define(UnloadCursorAssetSys) {
 ecs_module_init(asset_cursor_module) {
   ecs_register_comp(AssetCursorComp, .destructor = ecs_destruct_cursor_comp);
   ecs_register_comp(AssetCursorLoadComp, .destructor = ecs_destruct_cursor_load_comp);
+  ecs_register_comp(AssetCursorSourceComp, .destructor = ecs_destruct_cursor_source_comp);
 
   ecs_register_view(ManagerView);
   ecs_register_view(LoadView);
@@ -225,9 +236,17 @@ void asset_data_init_cursor(void) {
   data_reg_field_t(g_dataReg, CursorDef, hotspotY, data_prim_t(u32));
   data_reg_field_t(g_dataReg, CursorDef, scale, data_prim_t(f32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
   data_reg_field_t(g_dataReg, CursorDef, color, g_assetGeoColorType, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
+
+  data_reg_struct_t(g_dataReg, AssetCursorComp);
+  data_reg_field_t(g_dataReg, AssetCursorComp, width, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCursorComp, height, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCursorComp, hotspotX, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCursorComp, hotspotY, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCursorComp, pixelData, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
   // clang-format on
 
   g_assetCursorDefMeta = data_meta_t(t_CursorDef);
+  g_assetCursorMeta    = data_meta_t(t_AssetCursorComp);
 }
 
 void asset_load_cursor(
@@ -253,4 +272,28 @@ Error:
 
 Cleanup:
   asset_repo_source_close(src);
+}
+
+void asset_load_cursor_bin(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+
+  AssetCursorComp cursor;
+  DataReadResult  result;
+  data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetCursorMeta, mem_var(cursor), &result);
+
+  if (UNLIKELY(result.error)) {
+    log_e(
+        "Failed to load binary cursor",
+        log_param("id", fmt_text(id)),
+        log_param("error-code", fmt_int(result.error)),
+        log_param("error", fmt_text(result.errorMsg)));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_repo_source_close(src);
+    return;
+  }
+
+  *ecs_world_add_t(world, entity, AssetCursorComp) = cursor;
+  ecs_world_add_t(world, entity, AssetCursorSourceComp, .src = src);
+
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 }
