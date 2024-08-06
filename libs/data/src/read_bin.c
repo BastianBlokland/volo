@@ -67,8 +67,7 @@ static bool bin_pop_f32(ReadCtx* ctx, f32* out) {
   if (UNLIKELY(ctx->input.size < sizeof(f32))) {
     return false;
   }
-  mem_cpy(mem_create(out, sizeof(f32)), ctx->input);
-  ctx->input = mem_consume(ctx->input, sizeof(f32));
+  ctx->input = mem_consume_le_u32(ctx->input, (u32*)out);
   return true;
 }
 
@@ -76,8 +75,7 @@ static bool bin_pop_f64(ReadCtx* ctx, f64* out) {
   if (UNLIKELY(ctx->input.size < sizeof(f64))) {
     return false;
   }
-  mem_cpy(mem_create(out, sizeof(f64)), ctx->input);
-  ctx->input = mem_consume(ctx->input, sizeof(f64));
+  ctx->input = mem_consume_le_u64(ctx->input, (u64*)out);
   return true;
 }
 
