@@ -19,6 +19,7 @@
 #define atlas_max_size (1024 * 16)
 
 DataMeta g_assetAtlasDefMeta;
+DataMeta g_assetAtlasMeta;
 
 typedef struct {
   String name;
@@ -350,9 +351,19 @@ void asset_data_init_atlas(void) {
   data_reg_field_t(g_dataReg, AtlasDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AtlasDef, nearest, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_DataArray);
+
+  data_reg_struct_t(g_dataReg, AssetAtlasEntry);
+  data_reg_field_t(g_dataReg, AssetAtlasEntry, name, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetAtlasEntry, atlasIndex, data_prim_t(u32));
+
+  data_reg_struct_t(g_dataReg, AssetAtlasComp);
+  data_reg_field_t(g_dataReg, AssetAtlasComp, entriesPerDim, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetAtlasComp, entryPadding, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetAtlasComp, entries, t_AssetAtlasEntry, .container = DataContainer_DataArray);
   // clang-format on
 
   g_assetAtlasDefMeta = data_meta_t(t_AtlasDef);
+  g_assetAtlasMeta    = data_meta_t(t_AssetAtlasComp);
 }
 
 void asset_load_tex_atlas(
