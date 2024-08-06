@@ -4,6 +4,7 @@
 
 typedef enum {
   AssetFormat_Cursor,
+  AssetFormat_CursorBin,
   AssetFormat_Decal,
   AssetFormat_FontTtf,
   AssetFormat_Graphic,

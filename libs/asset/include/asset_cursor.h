@@ -13,3 +13,4 @@ ecs_comp_extern_public(AssetCursorComp) {
 };
 
 extern DataMeta g_assetCursorDefMeta;
+extern DataMeta g_assetCursorMeta;
