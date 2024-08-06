@@ -18,10 +18,10 @@ const String g_gameQualityLabels[] = {
 };
 ASSERT(array_elems(g_gameQualityLabels) == GameQuality_Count, "Incorrect number of quality labels");
 
-static DataMeta g_gamePrefsDataDef;
+static DataMeta g_gamePrefsMeta;
 
 static void prefs_data_init(void) {
-  if (!g_gamePrefsDataDef.type) {
+  if (!g_gamePrefsMeta.type) {
     data_reg_enum_t(g_dataReg, GameQuality);
     data_reg_const_t(g_dataReg, GameQuality, VeryLow);
     data_reg_const_t(g_dataReg, GameQuality, Low);
@@ -36,7 +36,7 @@ static void prefs_data_init(void) {
     data_reg_field_t(g_dataReg, GamePrefsComp, windowHeight, data_prim_t(u16));
     data_reg_field_t(g_dataReg, GamePrefsComp, quality, t_GameQuality);
 
-    g_gamePrefsDataDef = data_meta_t(t_GamePrefsComp);
+    g_gamePrefsMeta = data_meta_t(t_GamePrefsComp);
   }
 }
 
@@ -44,7 +44,7 @@ ecs_comp_define_public(GamePrefsComp);
 
 static void ecs_destruct_prefs_comp(void* data) {
   GamePrefsComp* comp = data;
-  data_destroy(g_dataReg, g_allocHeap, g_gamePrefsDataDef, mem_create(comp, sizeof(GamePrefsComp)));
+  data_destroy(g_dataReg, g_allocHeap, g_gamePrefsMeta, mem_create(comp, sizeof(GamePrefsComp)));
 }
 
 static String prefs_path_scratch(void) {
@@ -66,7 +66,7 @@ static void prefs_save(const GamePrefsComp* prefs) {
 
   // Serialize the preferences to json.
   const DataWriteJsonOpts writeOpts = data_write_json_opts();
-  data_write_json(g_dataReg, &dataBuffer, g_gamePrefsDataDef, mem_var(*prefs), &writeOpts);
+  data_write_json(g_dataReg, &dataBuffer, g_gamePrefsMeta, mem_var(*prefs), &writeOpts);
 
   // Save the data to disk.
   const String     filePath = prefs_path_scratch();
@@ -123,7 +123,7 @@ GamePrefsComp* prefs_init(EcsWorld* world) {
   // Parse the json.
   DataReadResult result;
   const Mem      outMem = mem_create(prefs, sizeof(GamePrefsComp));
-  data_read_json(g_dataReg, fileData, g_allocHeap, g_gamePrefsDataDef, outMem, &result);
+  data_read_json(g_dataReg, fileData, g_allocHeap, g_gamePrefsMeta, outMem, &result);
   if (UNLIKELY(result.error)) {
     log_e("Failed to parse preference file", log_param("err", fmt_text(result.errorMsg)));
     goto RetDefault;

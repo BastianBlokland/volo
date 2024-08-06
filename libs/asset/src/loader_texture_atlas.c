@@ -18,8 +18,6 @@
 
 #define atlas_max_size (1024 * 16)
 
-DataMeta g_assetAtlasDataDef;
-
 typedef struct {
   String name;
   String texture;
@@ -34,6 +32,15 @@ typedef struct {
   } entries;
 } AtlasDef;
 
+typedef struct {
+  AssetAtlasComp   atlas;
+  AssetTextureComp texture;
+} AtlasBundle;
+
+DataMeta g_assetAtlasBundleMeta;
+DataMeta g_assetAtlasDefMeta;
+DataMeta g_assetAtlasMeta;
+
 ecs_comp_define_public(AssetAtlasComp);
 
 ecs_comp_define(AssetAtlasLoadComp) {
@@ -44,12 +51,12 @@ ecs_comp_define(AssetAtlasLoadComp) {
 
 static void ecs_destruct_atlas_comp(void* data) {
   AssetAtlasComp* comp = data;
-  alloc_free_array_t(g_allocHeap, comp->entries, comp->entryCount);
+  data_destroy(g_dataReg, g_allocHeap, g_assetAtlasMeta, mem_create(comp, sizeof(AssetAtlasComp)));
 }
 
 static void ecs_destruct_atlas_load_comp(void* data) {
   AssetAtlasLoadComp* comp = data;
-  data_destroy(g_dataReg, g_allocHeap, g_assetAtlasDataDef, mem_var(comp->def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetAtlasDefMeta, mem_var(comp->def));
   dynarray_destroy(&comp->textures);
 }
 
@@ -199,8 +206,7 @@ static void atlas_generate(
   *outAtlas = (AssetAtlasComp){
       .entriesPerDim = def->size / def->entrySize,
       .entryPadding  = def->entryPadding / (f32)def->size,
-      .entries       = entries,
-      .entryCount    = entryCount,
+      .entries       = {.values = entries, .count = entryCount},
   };
   *outTexture = asset_texture_create(
       pixelMem,
@@ -276,16 +282,18 @@ ecs_system_define(AtlasLoadAssetSys) {
       textures[i] = ecs_view_read_t(textureItr, AssetTextureComp);
     }
 
-    AssetAtlasComp   atlas;
-    AssetTextureComp texture;
-    atlas_generate(&load->def, textures, &atlas, &texture, &err);
+    AtlasBundle bundle;
+    atlas_generate(&load->def, textures, &bundle.atlas, &bundle.texture, &err);
     if (UNLIKELY(err)) {
       goto Error;
     }
 
-    *ecs_world_add_t(world, entity, AssetAtlasComp)   = atlas;
-    *ecs_world_add_t(world, entity, AssetTextureComp) = texture;
+    *ecs_world_add_t(world, entity, AssetAtlasComp)   = bundle.atlas;
+    *ecs_world_add_t(world, entity, AssetTextureComp) = bundle.texture;
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+
+    asset_cache(world, entity, g_assetAtlasBundleMeta, mem_var(bundle));
+
     goto Cleanup;
 
   Error:
@@ -320,7 +328,7 @@ ecs_system_define(AtlasUnloadAssetSys) {
   }
 }
 
-ecs_module_init(asset_atlas_module) {
+ecs_module_init(asset_texture_atlas_module) {
   ecs_register_comp(AssetAtlasComp, .destructor = ecs_destruct_atlas_comp);
   ecs_register_comp(AssetAtlasLoadComp, .destructor = ecs_destruct_atlas_load_comp);
 
@@ -351,9 +359,24 @@ void asset_data_init_atlas(void) {
   data_reg_field_t(g_dataReg, AtlasDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AtlasDef, nearest, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_DataArray);
+
+  data_reg_struct_t(g_dataReg, AssetAtlasEntry);
+  data_reg_field_t(g_dataReg, AssetAtlasEntry, name, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetAtlasEntry, atlasIndex, data_prim_t(u32));
+
+  data_reg_struct_t(g_dataReg, AssetAtlasComp);
+  data_reg_field_t(g_dataReg, AssetAtlasComp, entriesPerDim, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetAtlasComp, entryPadding, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetAtlasComp, entries, t_AssetAtlasEntry, .container = DataContainer_DataArray);
+
+  data_reg_struct_t(g_dataReg, AtlasBundle);
+  data_reg_field_t(g_dataReg, AtlasBundle, atlas, t_AssetAtlasComp);
+  data_reg_field_t(g_dataReg, AtlasBundle, texture, g_assetTexMeta.type);
   // clang-format on
 
-  g_assetAtlasDataDef = data_meta_t(t_AtlasDef);
+  g_assetAtlasBundleMeta = data_meta_t(t_AtlasBundle);
+  g_assetAtlasDefMeta    = data_meta_t(t_AtlasDef);
+  g_assetAtlasMeta       = data_meta_t(t_AssetAtlasComp);
 }
 
 void asset_load_tex_atlas(
@@ -361,7 +384,7 @@ void asset_load_tex_atlas(
   String         errMsg;
   AtlasDef       def;
   DataReadResult result;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetAtlasDataDef, mem_var(def), &result);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetAtlasDefMeta, mem_var(def), &result);
 
   if (UNLIKELY(result.error)) {
     errMsg = result.errorMsg;
@@ -416,15 +439,41 @@ Error:
       log_param("id", fmt_text(id)),
       log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
-  data_destroy(g_dataReg, g_allocHeap, g_assetAtlasDataDef, mem_var(def));
+  data_destroy(g_dataReg, g_allocHeap, g_assetAtlasDefMeta, mem_var(def));
   asset_repo_source_close(src);
+}
+
+void asset_load_tex_atlas_bin(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+
+  AtlasBundle    bundle;
+  DataReadResult result;
+  data_read_bin(
+      g_dataReg, src->data, g_allocHeap, g_assetAtlasBundleMeta, mem_var(bundle), &result);
+
+  if (UNLIKELY(result.error)) {
+    log_e(
+        "Failed to load binary atlas",
+        log_param("id", fmt_text(id)),
+        log_param("error-code", fmt_int(result.error)),
+        log_param("error", fmt_text(result.errorMsg)));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_repo_source_close(src);
+    return;
+  }
+
+  *ecs_world_add_t(world, entity, AssetAtlasComp)   = bundle.atlas;
+  *ecs_world_add_t(world, entity, AssetTextureComp) = bundle.texture;
+  ecs_world_add_t(world, entity, AssetTextureSourceComp, .src = src);
+
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 }
 
 const AssetAtlasEntry* asset_atlas_lookup(const AssetAtlasComp* atlas, const StringHash name) {
   const AssetAtlasEntry target = {.name = name};
   return search_binary_t(
-      atlas->entries,
-      atlas->entries + atlas->entryCount,
+      atlas->entries.values,
+      atlas->entries.values + atlas->entries.count,
       AssetAtlasEntry,
       atlas_compare_entry,
       &target);

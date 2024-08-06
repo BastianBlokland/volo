@@ -50,7 +50,7 @@ struct sAssetCache {
   File*              regFile;
 };
 
-DataMeta g_assetCacheDataDef;
+DataMeta g_assetCacheMeta;
 
 static i8 cache_compare_entry(const void* a, const void* b) {
   const AssetCacheEntry* entryA = a;
@@ -80,7 +80,7 @@ static bool cache_reg_save(AssetCache* c) {
   bool result = true;
 
   DynString blobBuffer = dynstring_create(c->alloc, 256);
-  data_write_bin(g_dataReg, &blobBuffer, g_assetCacheDataDef, mem_var(c->reg));
+  data_write_bin(g_dataReg, &blobBuffer, g_assetCacheMeta, mem_var(c->reg));
 
   FileResult fileRes;
   if ((fileRes = file_seek_sync(c->regFile, 0))) {
@@ -132,7 +132,7 @@ static bool cache_reg_open(AssetCache* c) {
   }
 
   DataReadResult readRes;
-  data_read_bin(g_dataReg, data, c->alloc, g_assetCacheDataDef, mem_var(c->reg), &readRes);
+  data_read_bin(g_dataReg, data, c->alloc, g_assetCacheMeta, mem_var(c->reg), &readRes);
   if (UNLIKELY(readRes.error)) {
     log_w(
         "Failed to read asset cache registry",
@@ -286,7 +286,7 @@ void asset_data_init_cache(void) {
   data_reg_field_t(g_dataReg, AssetCacheRegistry, entries, t_AssetCacheEntry, .container = DataContainer_DynArray);
   // clang-format on
 
-  g_assetCacheDataDef = data_meta_t(t_AssetCacheRegistry);
+  g_assetCacheMeta = data_meta_t(t_AssetCacheRegistry);
 }
 
 AssetCache* asset_cache_create(Allocator* alloc, const String rootPath) {
@@ -320,7 +320,7 @@ void asset_cache_destroy(AssetCache* c) {
   if (c->regFile) {
     file_destroy(c->regFile);
   }
-  data_destroy(g_dataReg, c->alloc, g_assetCacheDataDef, mem_var(c->reg));
+  data_destroy(g_dataReg, c->alloc, g_assetCacheMeta, mem_var(c->reg));
   thread_mutex_destroy(c->regMutex);
 
   string_free(c->alloc, c->rootPath);

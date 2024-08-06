@@ -291,10 +291,11 @@ static void vfx_system_spawn(
           log_param("entry-hash", fmt_int(spriteAtlasEntryName)));
       return;
     }
-    if (UNLIKELY(atlasEntry->atlasIndex + emitterAsset->sprite.flipbookCount > atlas->entryCount)) {
+    const usize atlasEntryCount = atlas->entries.count;
+    if (UNLIKELY(atlasEntry->atlasIndex + emitterAsset->sprite.flipbookCount > atlasEntryCount)) {
       log_e(
           "Vfx particle atlas has not enough entries for flipbook",
-          log_param("atlas-entry-count", fmt_int(atlas->entryCount)),
+          log_param("atlas-entry-count", fmt_int(atlasEntryCount)),
           log_param("flipbook-count", fmt_int(emitterAsset->sprite.flipbookCount)));
       return;
     }

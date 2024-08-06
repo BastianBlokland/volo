@@ -13,7 +13,7 @@
 #define decal_default_thickness 0.25f
 #define decal_default_spacing 1.0f
 
-DataMeta g_assetDecalDataDef;
+DataMeta g_assetDecalDefMeta;
 
 typedef struct {
   AssetDecalMask* values;
@@ -143,7 +143,7 @@ void asset_data_init_decal(void) {
   data_reg_field_t(g_dataReg, DecalDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
   // clang-format on
 
-  g_assetDecalDataDef = data_meta_t(t_DecalDef);
+  g_assetDecalDefMeta = data_meta_t(t_DecalDef);
 }
 
 void asset_load_decal(
@@ -154,7 +154,7 @@ void asset_load_decal(
   String         errMsg;
   DataReadResult readRes;
   data_read_json(
-      g_dataReg, src->data, g_allocHeap, g_assetDecalDataDef, mem_var(decalDef), &readRes);
+      g_dataReg, src->data, g_allocHeap, g_assetDecalDefMeta, mem_var(decalDef), &readRes);
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
     goto Error;
@@ -177,6 +177,6 @@ Error:
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:
-  data_destroy(g_dataReg, g_allocHeap, g_assetDecalDataDef, mem_var(decalDef));
+  data_destroy(g_dataReg, g_allocHeap, g_assetDecalDefMeta, mem_var(decalDef));
   asset_repo_source_close(src);
 }

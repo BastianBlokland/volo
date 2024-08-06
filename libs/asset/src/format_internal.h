@@ -26,6 +26,7 @@ typedef enum {
   AssetFormat_Terrain,
   AssetFormat_TexArray,
   AssetFormat_TexAtlas,
+  AssetFormat_TexAtlasBin,
   AssetFormat_TexBin,
   AssetFormat_TexHeight16,
   AssetFormat_TexHeight32,

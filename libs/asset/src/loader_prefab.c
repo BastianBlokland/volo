@@ -17,7 +17,7 @@
 
 #define trait_movement_weight_min 0.1f
 
-DataMeta g_assetPrefabMapDataDef;
+DataMeta g_assetPrefabDefMeta;
 
 static struct {
   String           setName;
@@ -568,12 +568,12 @@ static void prefab_build(
       const String rallySoundId   = traitDef->data_production.rallySoundId;
       const f32    rallySoundGain = traitDef->data_production.rallySoundGain;
       outTrait->data_production   = (AssetPrefabTraitProduction){
-          .spawnPos        = traitDef->data_production.spawnPos,
-          .rallyPos        = traitDef->data_production.rallyPos,
-          .productSetId    = string_hash(traitDef->data_production.productSetId),
-          .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
-          .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
-          .placementRadius = traitDef->data_production.placementRadius,
+            .spawnPos        = traitDef->data_production.spawnPos,
+            .rallyPos        = traitDef->data_production.rallyPos,
+            .productSetId    = string_hash(traitDef->data_production.productSetId),
+            .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
+            .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
+            .placementRadius = traitDef->data_production.placementRadius,
       };
     } break;
     case AssetPrefabTrait_Scalable:
@@ -684,8 +684,7 @@ ecs_system_define(LoadPrefabAssetSys) {
     AssetPrefabMapDef def;
     String            errMsg;
     DataReadResult    readRes;
-    data_read_json(
-        g_dataReg, src->data, g_allocHeap, g_assetPrefabMapDataDef, mem_var(def), &readRes);
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetPrefabDefMeta, mem_var(def), &readRes);
     if (UNLIKELY(readRes.error)) {
       errMsg = readRes.errorMsg;
       goto Error;
@@ -734,7 +733,7 @@ ecs_system_define(LoadPrefabAssetSys) {
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
   Cleanup:
-    data_destroy(g_dataReg, g_allocHeap, g_assetPrefabMapDataDef, mem_var(def));
+    data_destroy(g_dataReg, g_allocHeap, g_assetPrefabDefMeta, mem_var(def));
     dynarray_destroy(&prefabs);
     dynarray_destroy(&traits);
     dynarray_destroy(&values);
@@ -954,7 +953,7 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabMapDef, prefabs, t_AssetPrefabDef, .container = DataContainer_DataArray);
   // clang-format on
 
-  g_assetPrefabMapDataDef = data_meta_t(t_AssetPrefabMapDef);
+  g_assetPrefabDefMeta = data_meta_t(t_AssetPrefabMapDef);
 }
 
 void asset_load_prefabs(

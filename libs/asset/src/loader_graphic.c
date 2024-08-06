@@ -10,7 +10,7 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-DataMeta g_assetGraphicDataDef;
+DataMeta g_assetGraphicDefMeta;
 
 ecs_comp_define_public(AssetGraphicComp);
 ecs_comp_define(AssetGraphicLoadComp) { AssetSource* src; };
@@ -18,7 +18,7 @@ ecs_comp_define(AssetGraphicLoadComp) { AssetSource* src; };
 static void ecs_destruct_graphic_comp(void* data) {
   AssetGraphicComp* comp = data;
   data_destroy(
-      g_dataReg, g_allocHeap, g_assetGraphicDataDef, mem_create(comp, sizeof(AssetGraphicComp)));
+      g_dataReg, g_allocHeap, g_assetGraphicDefMeta, mem_create(comp, sizeof(AssetGraphicComp)));
 }
 
 static void ecs_destruct_graphic_load_comp(void* data) {
@@ -67,7 +67,7 @@ ecs_system_define(LoadGraphicAssetSys) {
         g_dataReg,
         src->data,
         g_allocHeap,
-        g_assetGraphicDataDef,
+        g_assetGraphicDefMeta,
         mem_create(graphicComp, sizeof(AssetGraphicComp)),
         &result);
     if (result.error) {
@@ -220,7 +220,7 @@ void asset_data_init_graphic(void) {
   data_reg_field_t(g_dataReg, AssetGraphicComp, cull, t_AssetGraphicCull, .flags = DataFlags_Opt);
   // clang-format on
 
-  g_assetGraphicDataDef = data_meta_t(t_AssetGraphicComp);
+  g_assetGraphicDefMeta = data_meta_t(t_AssetGraphicComp);
 }
 
 void asset_load_graphic(

@@ -1,6 +1,10 @@
 #pragma once
 #include "asset_texture.h"
 
+#include "repo_internal.h"
+
+ecs_comp_extern_public(AssetTextureSourceComp) { AssetSource* src; };
+
 /**
  * Check if the given asset-id is a normalmap.
  * NOTE: This uses a naming convention based detection (ending with nrm or normal).

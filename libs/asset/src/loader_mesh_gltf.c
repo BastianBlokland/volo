@@ -1510,7 +1510,7 @@ ecs_system_define(GltfLoadAssetSys) {
   }
 }
 
-ecs_module_init(asset_gltf_module) {
+ecs_module_init(asset_mesh_gltf_module) {
   ecs_register_comp(AssetGltfLoadComp, .destructor = ecs_destruct_gltf_load_comp);
 
   ecs_register_view(ManagerView);

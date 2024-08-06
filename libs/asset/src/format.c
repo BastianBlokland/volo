@@ -1,3 +1,4 @@
+#include "asset_atlas.h"
 #include "asset_shader.h"
 #include "asset_texture.h"
 #include "core_array.h"
@@ -60,6 +61,7 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_Terrain]        = string_static("Terrain"),
     [AssetFormat_TexArray]       = string_static("TexArray"),
     [AssetFormat_TexAtlas]       = string_static("TexAtlas"),
+    [AssetFormat_TexAtlasBin]    = string_static("TexAtlasBin"),
     [AssetFormat_TexBin]         = string_static("TexBin"),
     [AssetFormat_TexHeight16]    = string_static("TexHeight16"),
     [AssetFormat_TexHeight32]    = string_static("TexHeight32"),
@@ -85,11 +87,14 @@ AssetFormat asset_format_from_ext(const String ext) {
 }
 
 AssetFormat asset_format_from_data_meta(const DataMeta meta) {
-  if (data_meta_eq(meta, g_assetTexDataDef)) {
+  if (data_meta_eq(meta, g_assetTexMeta)) {
     return AssetFormat_TexBin;
   }
-  if (data_meta_eq(meta, g_assetShaderDataDef)) {
+  if (data_meta_eq(meta, g_assetShaderMeta)) {
     return AssetFormat_ShaderBin;
+  }
+  if (data_meta_eq(meta, g_assetAtlasBundleMeta)) {
+    return AssetFormat_TexAtlasBin;
   }
   return AssetFormat_Raw;
 }

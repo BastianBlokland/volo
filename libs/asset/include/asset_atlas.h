@@ -1,4 +1,5 @@
 #pragma once
+#include "data_registry.h"
 #include "ecs_module.h"
 
 /**
@@ -11,11 +12,17 @@ typedef struct {
 } AssetAtlasEntry;
 
 ecs_comp_extern_public(AssetAtlasComp) {
-  u32              entriesPerDim;
-  f32              entryPadding; // Entry padding in fractions of the atlas size.
-  AssetAtlasEntry* entries;      // Sorted on the name hash.
-  usize            entryCount;
+  u32 entriesPerDim;
+  f32 entryPadding; // Entry padding in fractions of the atlas size.
+  struct {
+    AssetAtlasEntry* values; // Sorted on the name hash.
+    usize            count;
+  } entries;
 };
+
+extern DataMeta g_assetAtlasBundleMeta;
+extern DataMeta g_assetAtlasDefMeta;
+extern DataMeta g_assetAtlasMeta;
 
 /**
  * Get an atlas entry by name.

@@ -15,7 +15,7 @@ typedef i64 TimeReal;
 
 typedef struct sAssetCache AssetCache;
 
-extern DataMeta g_assetCacheDataDef;
+extern DataMeta g_assetCacheMeta;
 
 AssetCache* asset_cache_create(Allocator*, String rootPath);
 void        asset_cache_destroy(AssetCache*);

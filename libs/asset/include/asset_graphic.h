@@ -133,4 +133,4 @@ ecs_comp_extern_public(AssetGraphicComp) {
   f32 blendConstant;
 };
 
-extern DataMeta g_assetGraphicDataDef;
+extern DataMeta g_assetGraphicDefMeta;

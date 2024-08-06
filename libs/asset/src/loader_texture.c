@@ -61,16 +61,14 @@ static const f32 g_textureSrgbToFloat[] = {
 };
 ASSERT(array_elems(g_textureSrgbToFloat) == 256, "Incorrect srgb lut size");
 
-DataMeta g_assetTexDataDef;
+DataMeta g_assetTexMeta;
 
 ecs_comp_define_public(AssetTextureComp);
-
-ecs_comp_define(AssetTextureSourceComp) { AssetSource* src; };
+ecs_comp_define_public(AssetTextureSourceComp);
 
 static void ecs_destruct_texture_comp(void* data) {
   AssetTextureComp* comp = data;
-  data_destroy(
-      g_dataReg, g_allocHeap, g_assetTexDataDef, mem_create(comp, sizeof(AssetTextureComp)));
+  data_destroy(g_dataReg, g_allocHeap, g_assetTexMeta, mem_create(comp, sizeof(AssetTextureComp)));
 }
 
 static void ecs_destruct_texture_source_comp(void* data) {
@@ -382,7 +380,7 @@ void asset_data_init_tex(void) {
   data_reg_field_t(g_dataReg, AssetTextureComp, pixelData, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
   // clang-format on
 
-  g_assetTexDataDef = data_meta_t(t_AssetTextureComp);
+  g_assetTexMeta = data_meta_t(t_AssetTextureComp);
 }
 
 void asset_load_tex_bin(
@@ -390,7 +388,7 @@ void asset_load_tex_bin(
 
   AssetTextureComp tex;
   DataReadResult   result;
-  data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetTexDataDef, mem_var(tex), &result);
+  data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetTexMeta, mem_var(tex), &result);
 
   if (UNLIKELY(result.error)) {
     log_e(

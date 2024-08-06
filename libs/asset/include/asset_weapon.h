@@ -97,7 +97,7 @@ ecs_comp_extern_public(AssetWeaponMapComp) {
   usize              effectCount;
 };
 
-extern DataMeta g_assetWeaponDataDef;
+extern DataMeta g_assetWeaponDefMeta;
 
 /**
  * Lookup weapon statistics.
