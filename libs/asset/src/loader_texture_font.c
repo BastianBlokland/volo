@@ -351,16 +351,18 @@ ecs_system_define(FontTexLoadAssetSys) {
       };
     }
 
-    AssetFontTexComp ftx;
-    AssetTextureComp texture;
-    fonttex_generate(&load->def, fonts, fontCount, &ftx, &texture, &err);
+    FontTexBundle bundle;
+    fonttex_generate(&load->def, fonts, fontCount, &bundle.fonttex, &bundle.texture, &err);
     if (UNLIKELY(err)) {
       goto Error;
     }
 
-    *ecs_world_add_t(world, entity, AssetFontTexComp) = ftx;
-    *ecs_world_add_t(world, entity, AssetTextureComp) = texture;
+    *ecs_world_add_t(world, entity, AssetFontTexComp) = bundle.fonttex;
+    *ecs_world_add_t(world, entity, AssetTextureComp) = bundle.texture;
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+
+    asset_cache(world, entity, g_assetFontTexBundleMeta, mem_var(bundle));
+
     goto Cleanup;
 
   Error:
@@ -438,8 +440,8 @@ void asset_data_init_fonttex(void) {
   data_reg_field_t(g_dataReg, AssetFontTexChar, size, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetFontTexChar, offsetX, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetFontTexChar, offsetY, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, AssetFontTexChar, advance, data_prim_t(u32));
-  data_reg_field_t(g_dataReg, AssetFontTexChar, border, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetFontTexChar, advance, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetFontTexChar, border, data_prim_t(f32));
 
   data_reg_struct_t(g_dataReg, AssetFontTexComp);
   data_reg_field_t(g_dataReg, AssetFontTexComp, glyphsPerDim, data_prim_t(u32));
