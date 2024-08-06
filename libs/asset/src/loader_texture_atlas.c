@@ -34,7 +34,7 @@ typedef struct {
 
 typedef struct {
   AssetAtlasComp   atlas;
-  AssetTextureComp tex;
+  AssetTextureComp texture;
 } AtlasBundle;
 
 DataMeta g_assetAtlasBundleMeta;
@@ -282,16 +282,18 @@ ecs_system_define(AtlasLoadAssetSys) {
       textures[i] = ecs_view_read_t(textureItr, AssetTextureComp);
     }
 
-    AssetAtlasComp   atlas;
-    AssetTextureComp texture;
-    atlas_generate(&load->def, textures, &atlas, &texture, &err);
+    AtlasBundle bundle;
+    atlas_generate(&load->def, textures, &bundle.atlas, &bundle.texture, &err);
     if (UNLIKELY(err)) {
       goto Error;
     }
 
-    *ecs_world_add_t(world, entity, AssetAtlasComp)   = atlas;
-    *ecs_world_add_t(world, entity, AssetTextureComp) = texture;
+    *ecs_world_add_t(world, entity, AssetAtlasComp)   = bundle.atlas;
+    *ecs_world_add_t(world, entity, AssetTextureComp) = bundle.texture;
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+
+    asset_cache(world, entity, g_assetAtlasBundleMeta, mem_var(bundle));
+
     goto Cleanup;
 
   Error:
@@ -364,12 +366,12 @@ void asset_data_init_atlas(void) {
 
   data_reg_struct_t(g_dataReg, AssetAtlasComp);
   data_reg_field_t(g_dataReg, AssetAtlasComp, entriesPerDim, data_prim_t(u32));
-  data_reg_field_t(g_dataReg, AssetAtlasComp, entryPadding, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetAtlasComp, entryPadding, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetAtlasComp, entries, t_AssetAtlasEntry, .container = DataContainer_DataArray);
 
   data_reg_struct_t(g_dataReg, AtlasBundle);
   data_reg_field_t(g_dataReg, AtlasBundle, atlas, t_AssetAtlasComp);
-  data_reg_field_t(g_dataReg, AtlasBundle, tex, g_assetTexMeta.type);
+  data_reg_field_t(g_dataReg, AtlasBundle, texture, g_assetTexMeta.type);
   // clang-format on
 
   g_assetAtlasBundleMeta = data_meta_t(t_AtlasBundle);
@@ -461,7 +463,8 @@ void asset_load_tex_atlas_bin(
   }
 
   *ecs_world_add_t(world, entity, AssetAtlasComp)   = bundle.atlas;
-  *ecs_world_add_t(world, entity, AssetTextureComp) = bundle.tex;
+  *ecs_world_add_t(world, entity, AssetTextureComp) = bundle.texture;
+  ecs_world_add_t(world, entity, AssetTextureSourceComp, .src = src);
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 }
