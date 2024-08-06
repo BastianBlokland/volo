@@ -493,6 +493,10 @@ GeoColor asset_texture_at(const AssetTextureComp* t, const u32 layer, const usiz
     res.b = ((const f32*)pixelsMip0)[index * 4 + 2];
     res.a = ((const f32*)pixelsMip0)[index * 4 + 3];
     return res;
+  case AssetTextureFormat_Bc1:
+  case AssetTextureFormat_Bc3:
+  case AssetTextureFormat_Bc4:
+    diag_crash_msg("Unimplemented texture format");
   case AssetTextureFormat_Count:
     break;
   }

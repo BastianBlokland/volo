@@ -10,6 +10,9 @@ typedef enum {
   AssetTextureFormat_u16_rgba,
   AssetTextureFormat_f32_r,
   AssetTextureFormat_f32_rgba,
+  AssetTextureFormat_Bc1, // RGB  4x4 block compression.
+  AssetTextureFormat_Bc3, // RGBA 4x4 block compression.
+  AssetTextureFormat_Bc4, // R    4x4 block compression.
 
   AssetTextureFormat_Count,
 } AssetTextureFormat;

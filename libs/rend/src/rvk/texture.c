@@ -102,6 +102,12 @@ static VkFormat rvk_texture_format(const AssetTextureComp* asset, const RvkTextu
     diag_assert_msg(!srgb, "F32 srgb is not supported");
     diag_assert_msg(c == RvkTextureCompress_None, "F32 compression is not supported");
     return VK_FORMAT_R32G32B32A32_SFLOAT;
+  case AssetTextureFormat_Bc1:
+    return srgb ? VK_FORMAT_BC1_RGB_SRGB_BLOCK : VK_FORMAT_BC1_RGB_UNORM_BLOCK;
+  case AssetTextureFormat_Bc3:
+    return srgb ? VK_FORMAT_BC3_SRGB_BLOCK : VK_FORMAT_BC3_UNORM_BLOCK;
+  case AssetTextureFormat_Bc4:
+    return VK_FORMAT_BC4_UNORM_BLOCK;
   case AssetTextureFormat_Count:
     UNREACHABLE
   }
