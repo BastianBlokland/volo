@@ -27,6 +27,7 @@
   _X_(AssetFormat_Terrain,          terrain            )                                           \
   _X_(AssetFormat_TexArray,         tex_array          )                                           \
   _X_(AssetFormat_TexAtlas,         tex_atlas          )                                           \
+  _X_(AssetFormat_TexAtlasBin,      tex_atlas_bin      )                                           \
   _X_(AssetFormat_TexBin,           tex_bin            )                                           \
   _X_(AssetFormat_TexHeight16,      tex_height16       )                                           \
   _X_(AssetFormat_TexHeight32,      tex_height32       )                                           \

@@ -441,6 +441,31 @@ Error:
   asset_repo_source_close(src);
 }
 
+void asset_load_tex_atlas_bin(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+
+  AtlasBundle    bundle;
+  DataReadResult result;
+  data_read_bin(
+      g_dataReg, src->data, g_allocHeap, g_assetAtlasBundleMeta, mem_var(bundle), &result);
+
+  if (UNLIKELY(result.error)) {
+    log_e(
+        "Failed to load binary atlas",
+        log_param("id", fmt_text(id)),
+        log_param("error-code", fmt_int(result.error)),
+        log_param("error", fmt_text(result.errorMsg)));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_repo_source_close(src);
+    return;
+  }
+
+  *ecs_world_add_t(world, entity, AssetAtlasComp)   = bundle.atlas;
+  *ecs_world_add_t(world, entity, AssetTextureComp) = bundle.tex;
+
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+}
+
 const AssetAtlasEntry* asset_atlas_lookup(const AssetAtlasComp* atlas, const StringHash name) {
   const AssetAtlasEntry target = {.name = name};
   return search_binary_t(
