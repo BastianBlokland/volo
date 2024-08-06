@@ -34,6 +34,7 @@ ecs_comp_extern_public(AssetFontTexComp) {
   } characters;
 };
 
+extern DataMeta g_assetFontTexBundleMeta;
 extern DataMeta g_assetFontTexDefMeta;
 extern DataMeta g_assetFontTexMeta;
 

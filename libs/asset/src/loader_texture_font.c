@@ -25,9 +25,6 @@
 #define fonttex_max_size (1024 * 16)
 #define fonttex_max_fonts 100
 
-DataMeta g_assetFontTexDefMeta;
-DataMeta g_assetFontTexMeta;
-
 typedef enum {
   FontTexGenFlags_IncludeGlyph0 = 1 << 0, // Aka the '.notdef' glyph or the 'missing glyph'.
 } FontTexGenFlags;
@@ -51,6 +48,15 @@ typedef struct {
     usize           count;
   } fonts;
 } FontTexDef;
+
+typedef struct {
+  AssetFontTexComp fonttex;
+  AssetTextureComp texture;
+} FontTexBundle;
+
+DataMeta g_assetFontTexBundleMeta;
+DataMeta g_assetFontTexDefMeta;
+DataMeta g_assetFontTexMeta;
 
 ecs_comp_define_public(AssetFontTexComp);
 
@@ -440,10 +446,15 @@ void asset_data_init_fonttex(void) {
   data_reg_field_t(g_dataReg, AssetFontTexComp, lineSpacing, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetFontTexComp, baseline, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetFontTexComp, characters, t_AssetFontTexChar, .container = DataContainer_DataArray);
+
+  data_reg_struct_t(g_dataReg, FontTexBundle);
+  data_reg_field_t(g_dataReg, FontTexBundle, fonttex, t_AssetFontTexComp);
+  data_reg_field_t(g_dataReg, FontTexBundle, texture, g_assetTexMeta.type);
   // clang-format on
 
-  g_assetFontTexDefMeta = data_meta_t(t_FontTexDef);
-  g_assetFontTexMeta    = data_meta_t(t_AssetFontTexComp);
+  g_assetFontTexBundleMeta = data_meta_t(t_FontTexBundle);
+  g_assetFontTexDefMeta    = data_meta_t(t_FontTexDef);
+  g_assetFontTexMeta       = data_meta_t(t_AssetFontTexComp);
 }
 
 void asset_load_tex_font(
