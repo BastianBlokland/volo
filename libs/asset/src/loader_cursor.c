@@ -178,6 +178,9 @@ ecs_system_define(LoadCursorAssetSys) {
     asset_cursor_generate(&load->def, texture, cursor);
 
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+
+    asset_cache(world, entity, g_assetCursorMeta, mem_create(cursor, sizeof(AssetCursorComp)));
+
     goto Cleanup;
 
   Error:
