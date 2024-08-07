@@ -593,9 +593,11 @@ AssetTextureComp asset_texture_create(
   }
 
   const AssetTextureFormat format     = tex_format_pick(type, channels);
-  const usize              dataStride = tex_format_stride(format);
-  const usize              dataSize = tex_pixel_count(width, height, layers, mipsSrc) * dataStride;
-  const Mem                data     = alloc_alloc(g_allocHeap, dataSize, dataStride);
+  const usize              pixelCount = tex_pixel_count(width, height, layers, mipsSrc);
+
+  const usize dataStride = tex_format_stride(format);
+  const usize dataSize   = pixelCount * dataStride;
+  const Mem   data       = alloc_alloc(g_allocHeap, dataSize, dataStride);
 
   AssetTextureComp tex = {
       .format       = format,
