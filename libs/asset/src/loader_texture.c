@@ -679,13 +679,16 @@ AssetTextureComp asset_texture_create(
 
   const AssetTextureFormat format = tex_format_pick(type, width, height, channels, alpha, lossless);
 
-  /**
-   * Generate mip-maps on the cpu side for compressed textures; for uncompressed texture the
-   * renderer can generate them on the gpu.
-   */
-  const bool generateMips = tex_format_block4x4(format) && mipsSrc != mipsMax;
+  bool cpuGenMips = false;
+  if (flags & AssetTextureFlags_GenerateMipMaps) {
+    /**
+     * Generate mip-maps on the cpu side for compressed textures; for uncompressed texture the
+     * renderer can generate them on the gpu.
+     */
+    cpuGenMips = tex_format_block4x4(format) && mipsSrc == 1;
+  }
 
-  const u32   dataMips  = generateMips ? mipsMax : 1;
+  const u32   dataMips  = cpuGenMips ? mipsMax : 1;
   const usize dataSize  = tex_format_size(format, width, height, layers, dataMips);
   const usize dataAlign = tex_format_stride(format);
   const Mem   data      = alloc_alloc(g_allocHeap, dataSize, dataAlign);
@@ -697,7 +700,7 @@ AssetTextureComp asset_texture_create(
       .height       = height,
       .pixelData    = data_mem_create(data),
       .layers       = layers,
-      .srcMipLevels = mipsSrc,
+      .srcMipLevels = dataMips,
       .maxMipLevels = mipsMax,
   };
 
