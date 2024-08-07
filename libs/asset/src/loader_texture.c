@@ -676,6 +676,12 @@ AssetTextureComp asset_texture_create(
   if (alpha) {
     flags |= AssetTextureFlags_Alpha;
   }
+  if (mipsSrc) {
+    /**
+     * Cannot both generate mips and have source mips.
+     */
+    flags &= ~AssetTextureFlags_GenerateMipMaps;
+  }
 
   const AssetTextureFormat format = tex_format_pick(type, width, height, channels, alpha, lossless);
 
@@ -688,7 +694,7 @@ AssetTextureComp asset_texture_create(
     cpuGenMips = tex_format_block4x4(format) && mipsSrc == 1;
   }
 
-  const u32   dataMips  = cpuGenMips ? mipsMax : 1;
+  const u32   dataMips  = cpuGenMips ? mipsMax : mipsSrc;
   const usize dataSize  = tex_format_size(format, width, height, layers, dataMips);
   const usize dataAlign = tex_format_stride(format);
   const Mem   data      = alloc_alloc(g_allocHeap, dataSize, dataAlign);
