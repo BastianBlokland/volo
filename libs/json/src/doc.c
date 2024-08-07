@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "json_doc.h"
@@ -66,7 +67,7 @@ static JsonVal json_add_data(JsonDoc* doc, JsonValData data) {
 static String json_bigstring_add(JsonDoc* doc, const String data) {
   diag_assert(data.size >= json_str_big_threshold);
 
-  const usize allocSize = data.size + sizeof(JsonBigStr);
+  const usize allocSize = bits_align(data.size + sizeof(JsonBigStr), alignof(JsonBigStr));
   const Mem   allocMem  = alloc_alloc(doc->alloc, allocSize, alignof(JsonBigStr));
   if (UNLIKELY(!mem_valid(allocMem))) {
     diag_crash_msg("Json doc failed to allocate big string ({})", fmt_size(data.size));
@@ -92,8 +93,9 @@ static String json_bigstring_add(JsonDoc* doc, const String data) {
 
 static void json_bigstring_free_all(JsonDoc* doc) {
   for (JsonBigStr* node = doc->bigStrs; node;) {
-    JsonBigStr* next = node->next;
-    alloc_free(doc->alloc, mem_create(node, sizeof(JsonBigStr) + node->size));
+    JsonBigStr* next     = node->next;
+    const usize nodeSize = bits_align(sizeof(JsonBigStr) + node->size, alignof(JsonBigStr));
+    alloc_free(doc->alloc, mem_create(node, nodeSize));
     node = next;
   }
   doc->bigStrs = null;
