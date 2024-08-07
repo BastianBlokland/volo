@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bc.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
@@ -111,6 +112,17 @@ static u32 tex_pixel_count(const u32 width, const u32 height, const u32 layers, 
   return pixels;
 }
 
+static bool tex_format_block4x4(const AssetTextureFormat format) {
+  switch (format) {
+  case AssetTextureFormat_Bc1:
+  case AssetTextureFormat_Bc3:
+  case AssetTextureFormat_Bc4:
+    return true;
+  default:
+    return false;
+  }
+}
+
 static u32 tex_format_channels(const AssetTextureFormat format) {
   static const u32 g_channels[AssetTextureFormat_Count] = {
       [AssetTextureFormat_u8_r]     = 1,
@@ -134,8 +146,39 @@ static usize tex_format_stride(const AssetTextureFormat format) {
       [AssetTextureFormat_u16_rgba] = sizeof(u16) * 4,
       [AssetTextureFormat_f32_r]    = sizeof(f32) * 1,
       [AssetTextureFormat_f32_rgba] = sizeof(f32) * 4,
+      [AssetTextureFormat_Bc1]      = sizeof(Bc1Block),
+      [AssetTextureFormat_Bc3]      = sizeof(Bc3Block),
+      [AssetTextureFormat_Bc4]      = sizeof(Bc4Block),
   };
   return g_stride[format];
+}
+
+static usize tex_format_mip_size(
+    const AssetTextureFormat format,
+    const u32                width,
+    const u32                height,
+    const u32                layers,
+    const u32                mip) {
+  const u32 mipWidth  = math_max(width >> mip, 1);
+  const u32 mipHeight = math_max(height >> mip, 1);
+  if (tex_format_block4x4(format)) {
+    const u32 blocks = math_max(mipWidth / 4, 1) * math_max(mipHeight / 4, 1);
+    return blocks * tex_format_stride(format) * layers;
+  }
+  return mipWidth * mipHeight * tex_format_stride(format) * layers;
+}
+
+static usize tex_format_size(
+    const AssetTextureFormat format,
+    const u32                width,
+    const u32                height,
+    const u32                layers,
+    const u32                mips) {
+  usize res = 0;
+  for (u32 mip = 0; mip != mips; ++mip) {
+    res += tex_format_mip_size(format, width, height, layers, mip);
+  }
+  return res;
 }
 
 static bool tex_can_compress_u8(const u32 width, const u32 height) {
@@ -154,7 +197,7 @@ static bool tex_can_compress_u8(const u32 width, const u32 height) {
      */
     return false;
   }
-  return true;
+  return false; // TODO: Return true once asset side compression is working.
 }
 
 static AssetTextureFormat tex_format_pick(
@@ -471,9 +514,8 @@ usize asset_texture_format_channels(const AssetTextureFormat format) {
 Mem asset_texture_data(const AssetTextureComp* t) { return data_mem(t->pixelData); }
 
 GeoColor asset_texture_at(const AssetTextureComp* t, const u32 layer, const usize index) {
-  const usize pixelCount    = t->width * t->height;
-  const usize layerDataSize = pixelCount * tex_format_stride(t->format);
-  const void* pixelsMip0    = bits_ptr_offset(t->pixelData.ptr, layerDataSize * layer);
+  const usize offsetMip0 = tex_format_mip_size(t->format, t->width, t->height, layer, 0);
+  const void* pixelsMip0 = bits_ptr_offset(t->pixelData.ptr, offsetMip0);
 
   static const f32 g_u8MaxInv  = 1.0f / u8_max;
   static const f32 g_u16MaxInv = 1.0f / u16_max;
@@ -608,15 +650,15 @@ usize asset_texture_type_size(
 }
 
 AssetTextureComp asset_texture_create(
-    const Mem               in,
-    const u32               width,
-    const u32               height,
-    const u32               channels,
-    const u32               layers,
-    const u32               mipsSrc,
-    u32                     mipsMax,
-    const AssetTextureType  type,
-    const AssetTextureFlags flags) {
+    const Mem              in,
+    const u32              width,
+    const u32              height,
+    const u32              channels,
+    const u32              layers,
+    const u32              mipsSrc,
+    u32                    mipsMax,
+    const AssetTextureType type,
+    AssetTextureFlags      flags) {
   diag_assert(width && height && channels && layers && mipsSrc);
 
   if (UNLIKELY(flags & AssetTextureFlags_Srgb && channels < 3)) {
@@ -631,12 +673,22 @@ AssetTextureComp asset_texture_create(
   const bool alpha    = tex_has_alpha(in, width, height, channels, layers, mipsSrc, type);
   const bool lossless = (flags & AssetTextureFlags_Lossless) != 0;
 
-  const AssetTextureFormat format = tex_format_pick(type, width, height, channels, alpha, lossless);
-  const usize              pixelCount = tex_pixel_count(width, height, layers, mipsSrc);
+  if (alpha) {
+    flags |= AssetTextureFlags_Alpha;
+  }
 
-  const usize dataStride = tex_format_stride(format);
-  const usize dataSize   = pixelCount * dataStride;
-  const Mem   data       = alloc_alloc(g_allocHeap, dataSize, dataStride);
+  const AssetTextureFormat format = tex_format_pick(type, width, height, channels, alpha, lossless);
+
+  /**
+   * Generate mip-maps on the cpu side for compressed textures; for uncompressed texture the
+   * renderer can generate them on the gpu.
+   */
+  const bool generateMips = tex_format_block4x4(format) && mipsSrc != mipsMax;
+
+  const u32   dataMips  = generateMips ? mipsMax : 1;
+  const usize dataSize  = tex_format_size(format, width, height, layers, dataMips);
+  const usize dataAlign = tex_format_stride(format);
+  const Mem   data      = alloc_alloc(g_allocHeap, dataSize, dataAlign);
 
   AssetTextureComp tex = {
       .format       = format,
