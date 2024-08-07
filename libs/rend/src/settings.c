@@ -72,7 +72,7 @@ void rend_settings_to_default(RendSettingsComp* s) {
 }
 
 void rend_settings_global_to_default(RendSettingsGlobalComp* s) {
-  s->flags       = RendGlobalFlags_TextureCompression;
+  s->flags       = 0;
   s->limiterFreq = 0;
 
 #if VOLO_REND_GPU_DEBUG
