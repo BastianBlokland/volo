@@ -112,7 +112,7 @@ static u32 tex_pixel_count(const u32 width, const u32 height, const u32 layers, 
   return pixels;
 }
 
-static bool tex_format_block4x4(const AssetTextureFormat format) {
+static bool tex_format_bc4x4(const AssetTextureFormat format) {
   switch (format) {
   case AssetTextureFormat_Bc1:
   case AssetTextureFormat_Bc3:
@@ -161,7 +161,7 @@ static usize tex_format_mip_size(
     const u32                mip) {
   const u32 mipWidth  = math_max(width >> mip, 1);
   const u32 mipHeight = math_max(height >> mip, 1);
-  if (tex_format_block4x4(format)) {
+  if (tex_format_bc4x4(format)) {
     const u32 blocks = math_max(mipWidth / 4, 1) * math_max(mipHeight / 4, 1);
     return blocks * tex_format_stride(format) * layers;
   }
@@ -675,6 +675,11 @@ AssetTextureComp asset_texture_create(
 
   if (alpha) {
     flags |= AssetTextureFlags_Alpha;
+  } else {
+    flags &= ~AssetTextureFlags_Alpha;
+  }
+  if (channels < 3) {
+    flags &= ~AssetTextureFlags_Srgb;
   }
   if (mipsSrc) {
     /**
@@ -684,6 +689,9 @@ AssetTextureComp asset_texture_create(
   }
 
   const AssetTextureFormat format = tex_format_pick(type, width, height, channels, alpha, lossless);
+  if (!tex_format_bc4x4(format)) {
+    flags |= AssetTextureFlags_Lossless;
+  }
 
   bool cpuGenMips = false;
   if (flags & AssetTextureFlags_GenerateMipMaps) {
@@ -691,7 +699,7 @@ AssetTextureComp asset_texture_create(
      * Generate mip-maps on the cpu side for compressed textures; for uncompressed texture the
      * renderer can generate them on the gpu.
      */
-    cpuGenMips = tex_format_block4x4(format) && mipsSrc == 1;
+    cpuGenMips = tex_format_bc4x4(format) && mipsSrc == 1;
   }
 
   const u32   dataMips  = cpuGenMips ? mipsMax : mipsSrc;
