@@ -189,7 +189,7 @@ static u32 tga_index(const u32 x, const u32 y, const u32 width, const u32 height
 }
 
 static AssetTextureFlags tga_texture_flags(const TgaChannels ch, const bool nrm) {
-  AssetTextureFlags flags = AssetTextureFlags_GenerateMipMaps;
+  AssetTextureFlags flags = AssetTextureFlags_GenerateMips;
   if (nrm) {
     // Normal maps are in linear space (and thus not sRGB).
     flags |= AssetTextureFlags_NormalMap;

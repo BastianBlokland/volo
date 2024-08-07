@@ -98,7 +98,7 @@ static i8 atlas_compare_entry(const void* a, const void* b) {
 static AssetTextureFlags atlas_texture_flags(const AtlasDef* def) {
   AssetTextureFlags flags = 0;
   if (def->mipmaps) {
-    flags |= AssetTextureFlags_GenerateMipMaps;
+    flags |= AssetTextureFlags_GenerateMips;
   }
   if (def->lossless) {
     flags |= AssetTextureFlags_Lossless;

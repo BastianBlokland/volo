@@ -283,7 +283,7 @@ static void proctex_generate(const ProcTexDef* def, AssetTextureComp* outTexture
 
   AssetTextureFlags flags = 0;
   if (def->mipmaps) {
-    flags |= AssetTextureFlags_GenerateMipMaps;
+    flags |= AssetTextureFlags_GenerateMips;
   }
   if (def->lossless) {
     flags |= AssetTextureFlags_Lossless;

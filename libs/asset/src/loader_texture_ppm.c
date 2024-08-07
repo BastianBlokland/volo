@@ -184,7 +184,7 @@ ppm_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
 }
 
 static AssetTextureFlags ppm_texture_flags(const bool isNormalmap) {
-  AssetTextureFlags flags = AssetTextureFlags_GenerateMipMaps;
+  AssetTextureFlags flags = AssetTextureFlags_GenerateMips;
   if (isNormalmap) {
     flags |= AssetTextureFlags_NormalMap;
   } else {

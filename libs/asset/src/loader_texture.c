@@ -451,7 +451,7 @@ void asset_data_init_tex(void) {
 
   data_reg_enum_multi_t(g_dataReg, AssetTextureFlags);
   data_reg_const_t(g_dataReg, AssetTextureFlags, Srgb);
-  data_reg_const_t(g_dataReg, AssetTextureFlags, GenerateMipMaps);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, GenerateMips);
   data_reg_const_t(g_dataReg, AssetTextureFlags, CubeMap);
   data_reg_const_t(g_dataReg, AssetTextureFlags, NormalMap);
   data_reg_const_t(g_dataReg, AssetTextureFlags, Alpha);
@@ -685,7 +685,7 @@ AssetTextureComp asset_texture_create(
     /**
      * Cannot both generate mips and have source mips.
      */
-    flags &= ~AssetTextureFlags_GenerateMipMaps;
+    flags &= ~AssetTextureFlags_GenerateMips;
   }
 
   const AssetTextureFormat format = tex_format_pick(type, width, height, channels, alpha, lossless);
@@ -694,7 +694,7 @@ AssetTextureComp asset_texture_create(
   }
 
   bool cpuGenMips = false;
-  if (flags & AssetTextureFlags_GenerateMipMaps) {
+  if (flags & AssetTextureFlags_GenerateMips) {
     /**
      * Generate mip-maps on the cpu side for compressed textures; for uncompressed texture the
      * renderer can generate them on the gpu.

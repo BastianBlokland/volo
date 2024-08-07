@@ -289,7 +289,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
     MipGen_Gpu,
   } mipGen = MipGen_None;
 
-  if (asset->flags & AssetTextureFlags_GenerateMipMaps) {
+  if (asset->flags & AssetTextureFlags_GenerateMips) {
     diag_assert(asset->mipsData <= 1);
     mipLevels = rvk_texture_mip_count(asset);
     mipGen    = compress == RvkTextureCompress_None ? MipGen_Gpu : MipGen_Cpu;

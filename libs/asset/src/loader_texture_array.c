@@ -131,7 +131,7 @@ static AssetTextureFlags arraytex_output_flags(const ArrayTexDef* def) {
     flags |= AssetTextureFlags_CubeMap;
   }
   if (def->mipmaps) {
-    flags |= AssetTextureFlags_GenerateMipMaps;
+    flags |= AssetTextureFlags_GenerateMips;
   }
   if (def->lossless) {
     flags |= AssetTextureFlags_Lossless;
