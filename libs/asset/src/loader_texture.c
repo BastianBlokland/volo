@@ -88,6 +88,15 @@ static u32 tex_type_size(const AssetTextureType type) {
   diag_crash();
 }
 
+/**
+ * Compute how many times we can cut the image in half before both sides hit 1 pixel.
+ */
+static u16 tex_mips_max(const u32 width, const u32 height) {
+  const u16 biggestSide = math_max(width, height);
+  const u16 mipCount    = (u16)(32 - bits_clz_32(biggestSide));
+  return mipCount;
+}
+
 static u32 tex_pixel_count_mip(const u32 width, const u32 height, const u32 layers, const u32 mip) {
   const u32 mipWidth  = math_max(width >> mip, 1);
   const u32 mipHeight = math_max(height >> mip, 1);
@@ -613,7 +622,7 @@ AssetTextureComp asset_texture_create(
     const u32               channels,
     const u32               layers,
     const u32               mipsSrc,
-    const u32               mipsMax,
+    u32                     mipsMax,
     const AssetTextureType  type,
     const AssetTextureFlags flags) {
   diag_assert(width && height && channels && layers && mipsSrc);
@@ -621,6 +630,12 @@ AssetTextureComp asset_texture_create(
   if (UNLIKELY(flags & AssetTextureFlags_Srgb && channels < 3)) {
     diag_crash_msg("Srgb requires at least 3 channels");
   }
+  if (mipsMax) {
+    diag_assert(mipsMax <= tex_mips_max(width, height));
+  } else {
+    mipsMax = tex_mips_max(width, height);
+  }
+
   const bool alpha    = tex_has_alpha(in, width, height, channels, layers, mipsSrc, type);
   const bool lossless = (flags & AssetTextureFlags_Lossless) != 0;
 
