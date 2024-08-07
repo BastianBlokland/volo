@@ -284,7 +284,7 @@ static void tex_load_u8(
     const u32         inChannels,
     const u32         inLayers,
     const u32         inMips) {
-  diag_assert(inLayers <= tex->layers && inMips <= tex->srcMipLevels);
+  diag_assert(inLayers <= tex->layers && inMips <= tex->mipsData);
 
   const u8* restrict inPtr = in.ptr;
   diag_assert(in.size == tex_pixel_count(tex->width, tex->height, inLayers, inMips) * inChannels);
@@ -327,7 +327,7 @@ static void tex_load_u16(
     const u32         inChannels,
     const u32         inLayers,
     const u32         inMips) {
-  diag_assert(inLayers <= tex->layers && inMips <= tex->srcMipLevels);
+  diag_assert(inLayers <= tex->layers && inMips <= tex->mipsData);
 
   const usize pixelCount = tex_pixel_count(tex->width, tex->height, inLayers, inMips);
   (void)pixelCount;
@@ -373,7 +373,7 @@ static void tex_load_f32(
     const u32         inChannels,
     const u32         inLayers,
     const u32         inMips) {
-  diag_assert(inLayers <= tex->layers && inMips <= tex->srcMipLevels);
+  diag_assert(inLayers <= tex->layers && inMips <= tex->mipsData);
 
   const usize pixelCount = tex_pixel_count(tex->width, tex->height, inLayers, inMips);
   (void)pixelCount;
@@ -463,8 +463,8 @@ void asset_data_init_tex(void) {
   data_reg_field_t(g_dataReg, AssetTextureComp, width, data_prim_t(u32), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetTextureComp, height, data_prim_t(u32), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetTextureComp, layers, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetTextureComp, srcMipLevels, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetTextureComp, maxMipLevels, data_prim_t(u32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetTextureComp, mipsData, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetTextureComp, mipsMax, data_prim_t(u32), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetTextureComp, pixelData, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
   // clang-format on
 
@@ -694,14 +694,14 @@ AssetTextureComp asset_texture_create(
   const Mem   data      = alloc_alloc(g_allocHeap, dataSize, dataAlign);
 
   AssetTextureComp tex = {
-      .format       = format,
-      .flags        = flags,
-      .width        = width,
-      .height       = height,
-      .pixelData    = data_mem_create(data),
-      .layers       = layers,
-      .srcMipLevels = dataMips,
-      .maxMipLevels = mipsMax,
+      .format    = format,
+      .flags     = flags,
+      .width     = width,
+      .height    = height,
+      .pixelData = data_mem_create(data),
+      .layers    = layers,
+      .mipsData  = dataMips,
+      .mipsMax   = mipsMax,
   };
 
   switch (type) {

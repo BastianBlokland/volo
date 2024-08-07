@@ -28,7 +28,7 @@ typedef enum {
 static u16 rvk_texture_mip_count(const AssetTextureComp* asset) {
   const u16 biggestSide = math_max(asset->width, asset->height);
   const u16 mipCount    = (u16)(32 - bits_clz_32(biggestSide));
-  return asset->maxMipLevels ? math_min(mipCount, asset->maxMipLevels) : mipCount;
+  return asset->mipsMax ? math_min(mipCount, asset->mipsMax) : mipCount;
 }
 
 static RvkTextureCompress rvk_texture_compression(const AssetTextureComp* asset) {
@@ -174,7 +174,7 @@ static void rvk_texture_encode(
   u8*       outPtr = out.ptr;
 
   Bc0Block block;
-  for (u32 mip = 0; mip != math_max(asset->srcMipLevels, 1); ++mip) {
+  for (u32 mip = 0; mip != math_max(asset->mipsData, 1); ++mip) {
     const u32 mipWidth  = math_max(asset->width >> mip, 1);
     const u32 mipHeight = math_max(asset->height >> mip, 1);
     for (u32 l = 0; l != math_max(asset->layers, 1); ++l) {
@@ -200,7 +200,7 @@ static void rvk_texture_encode_gen_mips(
     const Mem                out) {
   const AssetTextureFormat format   = asset->format;
   const usize              channels = asset_texture_format_channels(format);
-  diag_assert(asset->srcMipLevels <= 1); // Cannot both generate mips and have source mips.
+  diag_assert(asset->mipsData <= 1); // Cannot both generate mips and have source mips.
   diag_assert(format == AssetTextureFormat_u8_r || format == AssetTextureFormat_u8_rgba);
   diag_assert(comp != RvkTextureCompress_None);
   diag_assert(bits_aligned(asset->width, 4) && bits_ispow2(asset->width));
@@ -282,7 +282,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   const VkFormat           vkFormat = rvk_texture_format(asset, compress);
   const u8                 layers   = math_max(asset->layers, 1);
 
-  u8 mipLevels = math_max(asset->srcMipLevels, 1);
+  u8 mipLevels = math_max(asset->mipsData, 1);
   enum {
     MipGen_None,
     MipGen_Cpu,
@@ -290,11 +290,11 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   } mipGen = MipGen_None;
 
   if (asset->flags & AssetTextureFlags_GenerateMipMaps) {
-    diag_assert(asset->srcMipLevels <= 1);
+    diag_assert(asset->mipsData <= 1);
     mipLevels = rvk_texture_mip_count(asset);
     mipGen    = compress == RvkTextureCompress_None ? MipGen_Gpu : MipGen_Cpu;
   } else {
-    diag_assert(asset->srcMipLevels <= rvk_texture_mip_count(asset));
+    diag_assert(asset->mipsData <= rvk_texture_mip_count(asset));
   }
 
   if (mipGen == MipGen_Gpu) {
@@ -331,7 +331,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   } else {
     data = asset_texture_data(asset);
   }
-  const u32 transferMips = mipGen == MipGen_Cpu ? mipLevels : math_max(asset->srcMipLevels, 1);
+  const u32 transferMips = mipGen == MipGen_Cpu ? mipLevels : math_max(asset->mipsData, 1);
   tex->pixelTransfer     = rvk_transfer_image(dev->transferer, &tex->image, data, transferMips);
 
   if (encodeNeeded) {
