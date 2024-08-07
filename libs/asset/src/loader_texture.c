@@ -119,6 +119,9 @@ static u32 tex_format_channels(const AssetTextureFormat format) {
       [AssetTextureFormat_u16_rgba] = 4,
       [AssetTextureFormat_f32_r]    = 1,
       [AssetTextureFormat_f32_rgba] = 4,
+      [AssetTextureFormat_Bc1]      = 3,
+      [AssetTextureFormat_Bc3]      = 4,
+      [AssetTextureFormat_Bc4]      = 1,
   };
   return g_channels[format];
 }
