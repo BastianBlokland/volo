@@ -180,11 +180,7 @@ static void rvk_texture_encode(
     for (u32 l = 0; l != math_max(asset->layers, 1); ++l) {
       for (u32 y = 0; y < mipHeight; y += 4, inPtr += mipWidth * 4 * channels) {
         for (u32 x = 0; x < mipWidth; x += 4) {
-          if (channels == 1) {
-            bc0_extract1(inPtr + x, mipWidth, &block);
-          } else {
-            bc0_extract4((const BcColor8888*)inPtr + x, mipWidth, &block);
-          }
+          bc0_extract(inPtr + x * channels, (u32)channels, mipWidth, &block);
           outPtr += rvk_texture_encode_block(&block, compress, outPtr);
         }
       }
@@ -219,11 +215,7 @@ static void rvk_texture_encode_gen_mips(
   for (u32 l = 0; l != layerCount; ++l) {
     for (u32 y = 0; y < asset->height; y += 4, inPtr += asset->width * 4 * channels) {
       for (u32 x = 0; x < asset->width; x += 4, ++blockPtr) {
-        if (channels == 1) {
-          bc0_extract1(inPtr + x, asset->width, blockPtr);
-        } else {
-          bc0_extract4((const BcColor8888*)inPtr + x, asset->width, blockPtr);
-        }
+        bc0_extract(inPtr + x * channels, (u32)channels, asset->width, blockPtr);
         outPtr += rvk_texture_encode_block(blockPtr, comp, outPtr);
       }
     }
