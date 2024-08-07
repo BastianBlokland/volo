@@ -400,7 +400,7 @@ void asset_data_init_tex(void) {
   data_reg_const_t(g_dataReg, AssetTextureFlags, CubeMap);
   data_reg_const_t(g_dataReg, AssetTextureFlags, NormalMap);
   data_reg_const_t(g_dataReg, AssetTextureFlags, Alpha);
-  data_reg_const_t(g_dataReg, AssetTextureFlags, Uncompressed);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, Lossless);
 
   data_reg_struct_t(g_dataReg, AssetTextureComp);
   data_reg_field_t(g_dataReg, AssetTextureComp, format, t_AssetTextureFormat);
@@ -622,7 +622,7 @@ AssetTextureComp asset_texture_create(
     diag_crash_msg("Srgb requires at least 3 channels");
   }
   const bool alpha    = tex_has_alpha(in, width, height, channels, layers, mipsSrc, type);
-  const bool lossless = (flags & AssetTextureFlags_Uncompressed) != 0;
+  const bool lossless = (flags & AssetTextureFlags_Lossless) != 0;
 
   const AssetTextureFormat format = tex_format_pick(type, width, height, channels, alpha, lossless);
   const usize              pixelCount = tex_pixel_count(width, height, layers, mipsSrc);

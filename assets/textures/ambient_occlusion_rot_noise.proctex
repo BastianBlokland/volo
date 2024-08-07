@@ -2,7 +2,7 @@
   "type": "NoiseWhite",
   "channels": "Four",
   "mipmaps": false,
-  "uncompressed": true,
+  "lossless": true,
   "size": 4,
   "frequency": 1,
   "power": 1,

@@ -25,7 +25,7 @@ typedef struct {
 
 typedef struct {
   u32  size, entrySize, entryPadding, maxMipMaps;
-  bool mipmaps, srgb, uncompressed, nearest;
+  bool mipmaps, srgb, lossless, nearest;
   struct {
     AtlasEntryDef* values;
     usize          count;
@@ -100,8 +100,8 @@ static AssetTextureFlags atlas_texture_flags(const AtlasDef* def) {
   if (def->mipmaps) {
     flags |= AssetTextureFlags_GenerateMipMaps;
   }
-  if (def->uncompressed) {
-    flags |= AssetTextureFlags_Uncompressed;
+  if (def->lossless) {
+    flags |= AssetTextureFlags_Lossless;
   }
   if (def->srgb) {
     flags |= AssetTextureFlags_Srgb;
@@ -356,7 +356,7 @@ void asset_data_init_atlas(void) {
   data_reg_field_t(g_dataReg, AtlasDef, maxMipMaps, data_prim_t(u32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AtlasDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AtlasDef, srgb, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AtlasDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AtlasDef, lossless, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AtlasDef, nearest, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_DataArray);
 

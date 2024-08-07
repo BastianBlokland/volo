@@ -10,7 +10,7 @@
         "format": { "title": "ProcTexFormat", "$ref": "#/$defs/ProcTexFormat" },
         "channels": { "title": "ProcTexChannels", "$ref": "#/$defs/ProcTexChannels" },
         "mipmaps": { "title": "bool", "type": "boolean" },
-        "uncompressed": { "title": "bool", "type": "boolean" },
+        "lossless": { "title": "bool", "type": "boolean" },
         "size": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
         "frequency": { "title": "f32", "type": "number" },
         "power": { "title": "f32", "type": "number" },

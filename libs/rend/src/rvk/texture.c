@@ -32,7 +32,7 @@ static u16 rvk_texture_mip_count(const AssetTextureComp* asset) {
 }
 
 static RvkTextureCompress rvk_texture_compression(const AssetTextureComp* asset) {
-  if (asset->flags & AssetTextureFlags_Uncompressed) {
+  if (asset->flags & AssetTextureFlags_Lossless) {
     return RvkTextureCompress_None;
   }
   if (!bits_ispow2(asset->width) || !bits_ispow2(asset->height)) {

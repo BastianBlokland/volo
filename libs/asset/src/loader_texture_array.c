@@ -48,7 +48,7 @@ typedef enum {
 typedef struct {
   ArrayTexType     type;
   ArrayTexChannels channels;
-  bool             mipmaps, srgb, uncompressed, nearest;
+  bool             mipmaps, srgb, lossless, nearest;
   u32              sizeX, sizeY;
   struct {
     String* values;
@@ -133,8 +133,8 @@ static AssetTextureFlags arraytex_output_flags(const ArrayTexDef* def) {
   if (def->mipmaps) {
     flags |= AssetTextureFlags_GenerateMipMaps;
   }
-  if (def->uncompressed) {
-    flags |= AssetTextureFlags_Uncompressed;
+  if (def->lossless) {
+    flags |= AssetTextureFlags_Lossless;
   }
   if (def->srgb) {
     flags |= AssetTextureFlags_Srgb;
@@ -606,7 +606,7 @@ void asset_data_init_arraytex(void) {
   data_reg_field_t(g_dataReg, ArrayTexDef, channels, t_ArrayTexChannels);
   data_reg_field_t(g_dataReg, ArrayTexDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ArrayTexDef, srgb, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, ArrayTexDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ArrayTexDef, lossless, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ArrayTexDef, nearest, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ArrayTexDef, sizeX, data_prim_t(u32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ArrayTexDef, sizeY, data_prim_t(u32), .flags = DataFlags_Opt);
