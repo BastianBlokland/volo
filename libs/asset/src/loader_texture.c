@@ -126,10 +126,43 @@ static usize tex_format_stride(const AssetTextureFormat format) {
   return g_stride[format];
 }
 
-static AssetTextureFormat tex_format_pick(const AssetTextureType type, const u32 channels) {
+static bool tex_can_compress_u8(const u32 width, const u32 height) {
+  if (!bits_ispow2(width) || !bits_ispow2(height)) {
+    /**
+     * Requiring both sides to be powers of two makes mip-map generation easier as all levels are
+     * neatly divisible by four, and then the only needed exceptions are the last levels that are
+     * smaller then 4 pixels.
+     */
+    return false;
+  }
+  if (width < 4 || height < 4) {
+    /**
+     * At least 4x4 pixels are needed for block compression, in theory we could add padding but for
+     * these tiny sizes its probably not worth it.
+     */
+    return false;
+  }
+  return true;
+}
+
+static AssetTextureFormat tex_format_pick(
+    const AssetTextureType type,
+    const u32              width,
+    const u32              height,
+    const u32              channels,
+    const bool             hasAlpha,
+    const bool             lossless) {
   switch (type) {
-  case AssetTextureType_u8:
-    return channels <= 1 ? AssetTextureFormat_u8_r : AssetTextureFormat_u8_rgba;
+  case AssetTextureType_u8: {
+    const bool compress = !lossless && tex_can_compress_u8(width, height);
+    if (channels <= 1) {
+      return compress ? AssetTextureFormat_Bc4 : AssetTextureFormat_u8_r;
+    }
+    if (channels <= 3 || !hasAlpha) {
+      return compress ? AssetTextureFormat_Bc1 : AssetTextureFormat_u8_rgba;
+    }
+    return compress ? AssetTextureFormat_Bc1 : AssetTextureFormat_u8_rgba;
+  }
   case AssetTextureType_u16:
     return channels <= 1 ? AssetTextureFormat_u16_r : AssetTextureFormat_u16_rgba;
   case AssetTextureType_f32:
@@ -574,25 +607,24 @@ usize asset_texture_type_size(
 }
 
 AssetTextureComp asset_texture_create(
-    const Mem              in,
-    const u32              width,
-    const u32              height,
-    const u32              channels,
-    const u32              layers,
-    const u32              mipsSrc,
-    const u32              mipsMax,
-    const AssetTextureType type,
-    AssetTextureFlags      flags) {
+    const Mem               in,
+    const u32               width,
+    const u32               height,
+    const u32               channels,
+    const u32               layers,
+    const u32               mipsSrc,
+    const u32               mipsMax,
+    const AssetTextureType  type,
+    const AssetTextureFlags flags) {
   diag_assert(width && height && channels && layers && mipsSrc);
 
   if (UNLIKELY(flags & AssetTextureFlags_Srgb && channels < 3)) {
     diag_crash_msg("Srgb requires at least 3 channels");
   }
-  if (tex_has_alpha(in, width, height, channels, layers, mipsSrc, type)) {
-    flags |= AssetTextureFlags_Alpha;
-  }
+  const bool alpha    = tex_has_alpha(in, width, height, channels, layers, mipsSrc, type);
+  const bool lossless = (flags & AssetTextureFlags_Uncompressed) != 0;
 
-  const AssetTextureFormat format     = tex_format_pick(type, channels);
+  const AssetTextureFormat format = tex_format_pick(type, width, height, channels, alpha, lossless);
   const usize              pixelCount = tex_pixel_count(width, height, layers, mipsSrc);
 
   const usize dataStride = tex_format_stride(format);
