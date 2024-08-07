@@ -468,12 +468,6 @@ usize asset_texture_format_channels(const AssetTextureFormat format) {
   return tex_format_channels(format);
 }
 
-usize asset_texture_mip_size(const AssetTextureComp* t, const u32 mipLevel) {
-  diag_assert(mipLevel < t->srcMipLevels);
-  const u32 count = tex_pixel_count_mip(t->width, t->height, t->layers, mipLevel);
-  return count * tex_format_stride(t->format);
-}
-
 Mem asset_texture_data(const AssetTextureComp* t) { return data_mem(t->pixelData); }
 
 GeoColor asset_texture_at(const AssetTextureComp* t, const u32 layer, const usize index) {

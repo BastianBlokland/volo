@@ -41,8 +41,7 @@ extern DataMeta g_assetTexProcDefMeta;
 String asset_texture_format_str(AssetTextureFormat);
 usize  asset_texture_format_channels(AssetTextureFormat);
 
-usize asset_texture_mip_size(const AssetTextureComp*, u32 mipLevel);
-Mem   asset_texture_data(const AssetTextureComp*);
+Mem asset_texture_data(const AssetTextureComp*);
 
 /**
  * Lookup the color of a specific pixel specified by the given index.
