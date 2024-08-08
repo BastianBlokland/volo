@@ -708,8 +708,39 @@ GeoColor asset_texture_at(const AssetTextureComp* t, const u32 layer, const usiz
     return res;
   case AssetTextureFormat_Bc1:
   case AssetTextureFormat_Bc3:
-  case AssetTextureFormat_Bc4:
-    return geo_color_white; // TODO: Implement compressed format sampling.
+  case AssetTextureFormat_Bc4: {
+    const usize pixelX = index % t->width, pixelY = index / t->width;
+    const usize blockX = pixelX / 4, blockY = pixelY / 4;
+    const usize blockIndex   = blockY * (t->width / 4) + blockX;
+    const usize indexInBlock = (pixelY % 4) * 4 + (pixelX % 4);
+
+    Bc0Block blockBc0;
+    switch (t->format) {
+    case AssetTextureFormat_Bc1:
+      bc1_decode((const Bc1Block*)pixelsMip0 + blockIndex, &blockBc0);
+      break;
+    case AssetTextureFormat_Bc3:
+      bc3_decode((const Bc3Block*)pixelsMip0 + blockIndex, &blockBc0);
+      break;
+    case AssetTextureFormat_Bc4:
+    default:
+      bc4_decode((const Bc4Block*)pixelsMip0 + blockIndex, &blockBc0);
+      break;
+    }
+
+    if (t->flags & AssetTextureFlags_Srgb) {
+      res.r = g_textureSrgbToFloat[blockBc0.colors[indexInBlock].r];
+      res.g = g_textureSrgbToFloat[blockBc0.colors[indexInBlock].g];
+      res.b = g_textureSrgbToFloat[blockBc0.colors[indexInBlock].b];
+      res.a = blockBc0.colors[indexInBlock].a * g_u8MaxInv;
+    } else {
+      res.r = blockBc0.colors[indexInBlock].r * g_u8MaxInv;
+      res.g = blockBc0.colors[indexInBlock].g * g_u8MaxInv;
+      res.b = blockBc0.colors[indexInBlock].b * g_u8MaxInv;
+      res.a = blockBc0.colors[indexInBlock].a * g_u8MaxInv;
+    }
+    return res;
+  }
   case AssetTextureFormat_Count:
     break;
   }
