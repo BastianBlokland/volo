@@ -832,6 +832,9 @@ AssetTextureComp asset_texture_create(
   if (UNLIKELY(flags & AssetTextureFlags_Srgb && channels < 3)) {
     diag_crash_msg("Srgb requires at least 3 channels");
   }
+  if (UNLIKELY(flags & AssetTextureFlags_NormalMap && channels < 3)) {
+    diag_crash_msg("NormalMap requires at least 3 channels");
+  }
   if (UNLIKELY(flags & AssetTextureFlags_CubeMap && layers != 6)) {
     diag_crash_msg("CubeMap requires 6 layers");
   }
