@@ -357,9 +357,22 @@ tga_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
+static bool tga_is_normalmap(const String id) {
+  static const String g_patterns[] = {
+      string_static("*_nrm_*"),
+      string_static("*_normal_*"),
+  };
+  array_for_t(g_patterns, String, pattern) {
+    if (string_match_glob(id, *pattern, StringMatchFlags_IgnoreCase)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void asset_load_tex_tga(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  const bool isNormalmap = asset_texture_is_normalmap(id);
+  const bool isNormalmap = tga_is_normalmap(id);
 
   Mem      data   = src->data;
   TgaError res    = TgaError_None;

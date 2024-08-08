@@ -193,9 +193,22 @@ static AssetTextureFlags ppm_texture_flags(const bool isNormalmap) {
   return flags;
 }
 
+static bool ppm_is_normalmap(const String id) {
+  static const String g_patterns[] = {
+      string_static("*_nrm_*"),
+      string_static("*_normal_*"),
+  };
+  array_for_t(g_patterns, String, pattern) {
+    if (string_match_glob(id, *pattern, StringMatchFlags_IgnoreCase)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void asset_load_tex_ppm(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  const bool isNormalmap = asset_texture_is_normalmap(id);
+  const bool isNormalmap = ppm_is_normalmap(id);
 
   String      input = src->data;
   PixmapError res   = PixmapError_None;
