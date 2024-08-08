@@ -216,7 +216,7 @@ static AssetTextureFormat tex_format_pick(
     if (channels <= 3 || !hasAlpha) {
       return compress ? AssetTextureFormat_Bc1 : AssetTextureFormat_u8_rgba;
     }
-    return compress ? AssetTextureFormat_Bc1 : AssetTextureFormat_u8_rgba;
+    return compress ? AssetTextureFormat_Bc3 : AssetTextureFormat_u8_rgba;
   }
   case AssetTextureType_u16:
     return channels <= 1 ? AssetTextureFormat_u16_r : AssetTextureFormat_u16_rgba;
