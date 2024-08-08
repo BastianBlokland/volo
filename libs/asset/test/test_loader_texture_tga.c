@@ -18,7 +18,7 @@ static const struct {
   usize    pixelCount;
 } g_testData[] = {
     {
-        .id         = string_static("2x2_upper-left_uncompressed.tga"),
+        .id         = string_static("2x2_upper-left_lossless.tga"),
         .base64Data = string_static(
             "AAACAAAAAAAAAAIAAgACABggAAD/AP8A/wAA////AAAAAAAAAABUUlVFVklTSU9OLVhGSUxFLgA="),
         .pixels =
@@ -31,7 +31,7 @@ static const struct {
         .pixelCount = 4,
     },
     {
-        .id         = string_static("2x2_bottom-left_uncompressed.tga"),
+        .id         = string_static("2x2_bottom-left_lossless.tga"),
         .base64Data = string_static(
             "AAACAAAAAAAAAAAAAgACABgA/wAA////AAD/AP8AAAAAAAAAAABUUlVFVklTSU9OLVhGSUxFLgA="),
         .pixels =
@@ -44,7 +44,7 @@ static const struct {
         .pixelCount = 4,
     },
     {
-        .id         = string_static("2x2_upper-left_uncompressed_alpha.tga"),
+        .id         = string_static("2x2_upper-left_alpha_lossless.tga"),
         .base64Data = string_static(
             "AAACAAAAAAAAAAIAAgACACAoAAD//wD/AJP/AACT/////wAAAAAAAAAAVFJVRVZJU0lPTi1YRklMRS4A"),
         .pixels =
@@ -57,7 +57,7 @@ static const struct {
         .pixelCount = 4,
     },
     {
-        .id         = string_static("2x2_bottom-left_uncompressed_alpha.tga"),
+        .id         = string_static("2x2_bottom-left_alpha_lossless.tga"),
         .base64Data = string_static(
             "AAACAAAAAAAAAAAAAgACACAI/wAAk/////8AAP//AP8AkwAAAAAAAAAAVFJVRVZJU0lPTi1YRklMRS4A"),
         .pixels =
@@ -70,7 +70,7 @@ static const struct {
         .pixelCount = 4,
     },
     {
-        .id         = string_static("4x4_upper-left_rle-compressed.tga"),
+        .id         = string_static("4x4_upper-left_rle_lossless.tga"),
         .base64Data = string_static("AAAKAAAAAAAAAAQABAAEABggggAA/wAA/wCDAP8AAwD/AP8AAAAA/wD/AIH///"
                                     "+BAAAAAAAAAAAAAABUUlVFVklTSU9OLVhGSUxFLgA="),
         .pixels =
@@ -98,7 +98,7 @@ static const struct {
         .pixelCount = 16,
     },
     {
-        .id         = string_static("4x4_bottom-left_rle-compressed.tga"),
+        .id         = string_static("4x4_bottom-left_rle_lossless.tga"),
         .base64Data = string_static("AAAKAAAAAAAAAAAABAAEABgAgf///4EAAAADAP8A/wAAAAD/AP8AgwD/"
                                     "AIIAAP8AAP8AAAAAAAAAAABUUlVFVklTSU9OLVhGSUxFLgA="),
         .pixels =
@@ -126,7 +126,7 @@ static const struct {
         .pixelCount = 16,
     },
     {
-        .id         = string_static("4x4_upper-left_rle-compressed_alpha.tga"),
+        .id         = string_static("4x4_upper-left_rle_alpha_lossless.tga"),
         .base64Data = string_static(
             "AAAKAAAAAAAAAAAABAAEACAIA/////////+oAAAA/wAAAJMDAP8Ak/8AAP8AAP+TAP8A/wMA/wD/AP8AkwD/"
             "AP8A/wCTAwAA/5MAAP//AAD/kwD/AP8AAAAAAAAAAFRSVUVWSVNJT04tWEZJTEUuAA=="),
