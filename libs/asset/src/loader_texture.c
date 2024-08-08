@@ -644,10 +644,6 @@ String asset_texture_format_str(const AssetTextureFormat format) {
   return g_names[format];
 }
 
-usize asset_texture_format_channels(const AssetTextureFormat format) {
-  return tex_format_channels(format);
-}
-
 Mem asset_texture_data(const AssetTextureComp* t) { return data_mem(t->pixelData); }
 
 GeoColor asset_texture_at(const AssetTextureComp* t, const u32 layer, const usize index) {
