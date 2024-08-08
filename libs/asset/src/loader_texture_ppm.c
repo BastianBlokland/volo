@@ -183,20 +183,23 @@ ppm_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-static AssetTextureFlags ppm_texture_flags(const bool isNormalmap) {
+static AssetTextureFlags ppm_texture_flags(const bool isNormalmap, const bool isLossless) {
   AssetTextureFlags flags = AssetTextureFlags_GenerateMips;
   if (isNormalmap) {
     flags |= AssetTextureFlags_NormalMap;
   } else {
     flags |= AssetTextureFlags_Srgb;
   }
+  if (isLossless) {
+    flags |= AssetTextureFlags_Lossless;
+  }
   return flags;
 }
 
 static bool ppm_is_normalmap(const String id) {
   static const String g_patterns[] = {
-      string_static("*_nrm_*"),
-      string_static("*_normal_*"),
+      string_static("*_nrm*"),
+      string_static("*_normal*"),
   };
   array_for_t(g_patterns, String, pattern) {
     if (string_match_glob(id, *pattern, StringMatchFlags_IgnoreCase)) {
@@ -206,9 +209,14 @@ static bool ppm_is_normalmap(const String id) {
   return false;
 }
 
+static bool ppm_is_lossless(const String id) {
+  return string_match_glob(id, string_lit("*_lossless*"), StringMatchFlags_IgnoreCase);
+}
+
 void asset_load_tex_ppm(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   const bool isNormalmap = ppm_is_normalmap(id);
+  const bool isLossless  = ppm_is_lossless(id);
 
   String      input = src->data;
   PixmapError res   = PixmapError_None;
@@ -255,7 +263,7 @@ void asset_load_tex_ppm(
       1 /* mips */,
       0 /* mipsMax */,
       AssetTextureType_u8,
-      ppm_texture_flags(isNormalmap));
+      ppm_texture_flags(isNormalmap, isLossless));
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   asset_cache(world, entity, g_assetTexMeta, mem_create(texComp, sizeof(AssetTextureComp)));

@@ -188,14 +188,18 @@ static u32 tga_index(const u32 x, const u32 y, const u32 width, const u32 height
   return ((flags & TgaFlags_YFlip) ? (height - 1 - y) * width : y * width) + x;
 }
 
-static AssetTextureFlags tga_texture_flags(const TgaChannels ch, const bool nrm) {
+static AssetTextureFlags
+tga_texture_flags(const TgaChannels ch, const bool isNormalMap, const bool isLossless) {
   AssetTextureFlags flags = AssetTextureFlags_GenerateMips;
-  if (nrm) {
+  if (isNormalMap) {
     // Normal maps are in linear space (and thus not sRGB).
     flags |= AssetTextureFlags_NormalMap;
   } else if (ch == TgaChannels_RGB || ch == TgaChannels_RGBA) {
     // All other (3 or 4 channel) textures are assumed to be sRGB encoded.
     flags |= AssetTextureFlags_Srgb;
+  }
+  if (isLossless) {
+    flags |= AssetTextureFlags_Lossless;
   }
   return flags;
 }
@@ -359,8 +363,8 @@ tga_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
 
 static bool tga_is_normalmap(const String id) {
   static const String g_patterns[] = {
-      string_static("*_nrm_*"),
-      string_static("*_normal_*"),
+      string_static("*_nrm*"),
+      string_static("*_normal*"),
   };
   array_for_t(g_patterns, String, pattern) {
     if (string_match_glob(id, *pattern, StringMatchFlags_IgnoreCase)) {
@@ -370,9 +374,14 @@ static bool tga_is_normalmap(const String id) {
   return false;
 }
 
+static bool tga_is_lossless(const String id) {
+  return string_match_glob(id, string_lit("*_lossless*"), StringMatchFlags_IgnoreCase);
+}
+
 void asset_load_tex_tga(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   const bool isNormalmap = tga_is_normalmap(id);
+  const bool isLossless  = tga_is_lossless(id);
 
   Mem      data   = src->data;
   TgaError res    = TgaError_None;
@@ -450,7 +459,7 @@ void asset_load_tex_tga(
       1 /* mipsSrc */,
       0 /* mipsMax */,
       AssetTextureType_u8,
-      tga_texture_flags(channels, isNormalmap));
+      tga_texture_flags(channels, isNormalmap, isLossless));
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   asset_cache(world, entity, g_assetTexMeta, mem_create(texComp, sizeof(AssetTextureComp)));
