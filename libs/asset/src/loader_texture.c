@@ -354,6 +354,7 @@ static void tex_load_u8_compress(
     const u32         inLayers,
     const u32         inMips) {
 
+  diag_assert(inLayers == tex->layers);
   diag_assert(tex_format_bc4x4(tex->format));
   diag_assert(!(tex->flags & AssetTextureFlags_Lossless));
   diag_assert(bits_aligned(tex->width, 4));
@@ -386,8 +387,10 @@ static void tex_load_u8_compress_gen_mips(
     const u32         inChannels,
     const u32         inLayers,
     const u32         inMips) {
+  (void)inMips;
 
   diag_assert(inMips <= 1); // Cannot both generate mips and have source mips.
+  diag_assert(inLayers == tex->layers);
   diag_assert(tex_format_bc4x4(tex->format));
   diag_assert(!(tex->flags & AssetTextureFlags_Lossless));
   diag_assert(bits_aligned(tex->width, 4) && bits_ispow2(tex->width));
@@ -398,15 +401,14 @@ static void tex_load_u8_compress_gen_mips(
 
   u8* restrict outPtr = tex->pixelData.ptr;
 
-  const u32   layerCount      = tex->layers;
   const u32   layerBlockCount = (tex->width / 4) * (tex->height / 4);
-  const usize blockBufferSize = layerCount * layerBlockCount * sizeof(Bc0Block);
+  const usize blockBufferSize = inLayers * layerBlockCount * sizeof(Bc0Block);
   const Mem   blockBuffer     = alloc_alloc(g_allocHeap, blockBufferSize, alignof(Bc0Block));
 
   Bc0Block* blockPtr = blockBuffer.ptr;
 
   // Extract 4x4 blocks from the source data and encode mip0.
-  for (u32 l = 0; l != layerCount; ++l) {
+  for (u32 l = 0; l != inLayers; ++l) {
     for (u32 y = 0; y < tex->height; y += 4, inPtr += tex->width * 4 * inChannels) {
       for (u32 x = 0; x < tex->width; x += 4, ++blockPtr) {
         bc0_extract(inPtr + x * inChannels, inChannels, tex->width, blockPtr);
@@ -420,7 +422,7 @@ static void tex_load_u8_compress_gen_mips(
     blockPtr              = blockBuffer.ptr; // Reset the block pointer to the beginning.
     const u32 blockCountX = math_max((tex->width >> mip) / 4, 1);
     const u32 blockCountY = math_max((tex->height >> mip) / 4, 1);
-    for (u32 l = 0; l != layerCount; ++l) {
+    for (u32 l = 0; l != inLayers; ++l) {
       for (u32 blockY = 0; blockY != blockCountY; ++blockY) {
         for (u32 blockX = 0; blockX != blockCountX; ++blockX) {
           Bc0Block block;
