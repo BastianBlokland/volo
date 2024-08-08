@@ -48,6 +48,7 @@ spec(float) {
     check_eq_float(float_f16_to_f32(float_f32_to_f16(0.0f)), 0.0f, 1e-6f);
     check_eq_float(float_f16_to_f32(float_f32_to_f16(1.0f)), 1.0f, 1e-6f);
     check_eq_float(float_f16_to_f32(float_f32_to_f16(65504.0f)), 65504.0f, 1e-6f);
+    check_eq_float(float_f16_to_f32(float_f32_to_f16(-65504.0f)), -65504.0f, 1e-6f);
     check_eq_float(float_f16_to_f32(float_f32_to_f16(6e-5f)), 6e-5f, 1e-6f);
     check_eq_float(float_f16_to_f32(float_f32_to_f16(.42f)), .42f, 1e-3f);
     check_eq_float(float_f16_to_f32(float_f32_to_f16(.1337f)), .1337f, 1e-3f);
