@@ -39,10 +39,11 @@ typedef struct {
 } FontTexDefFont;
 
 typedef struct {
-  u32 size, glyphSize;
-  u32 border;
-  f32 lineSpacing;
-  f32 baseline;
+  u32  size, glyphSize;
+  u32  border;
+  f32  lineSpacing;
+  f32  baseline;
+  bool lossless;
   struct {
     FontTexDefFont* values;
     usize           count;
@@ -237,6 +238,14 @@ static void fonttex_generate_font(
   }
 }
 
+static AssetTextureFlags fonttex_output_flags(const FontTexDef* def) {
+  AssetTextureFlags flags = 0;
+  if (def->lossless) {
+    flags |= AssetTextureFlags_Lossless;
+  }
+  return flags;
+}
+
 static void fonttex_generate(
     const FontTexDef*             def,
     const FontTexDefResolvedFont* fonts,
@@ -287,7 +296,7 @@ static void fonttex_generate(
       1 /* mipsSrc */,
       0 /* mipsMax */,
       AssetTextureType_u8,
-      AssetTextureFlags_None);
+      fonttex_output_flags(def));
 
   *err = FontTexError_None;
 
@@ -431,6 +440,7 @@ void asset_data_init_fonttex(void) {
   data_reg_field_t(g_dataReg, FontTexDef, border, data_prim_t(u32));
   data_reg_field_t(g_dataReg, FontTexDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, FontTexDef, baseline, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, FontTexDef, lossless, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, FontTexDef, fonts, t_FontTexDefFont, .container = DataContainer_DataArray, .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetFontTexChar);

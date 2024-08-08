@@ -347,12 +347,18 @@ INLINE_HINT static void bc_value_decode(
   }
 }
 
-void bc0_extract1(const u8* restrict in, const u32 width, Bc0Block* restrict out) {
+void bc0_extract(
+    const u8* restrict in, const u32 channels, const u32 width, Bc0Block* restrict out) {
+  diag_assert(channels);
   diag_assert_msg(bits_aligned(width, 4), "Width has to be a multiple of 4");
 
-  for (u32 y = 0; y != 4; ++y, in += width) {
+  for (u32 y = 0; y != 4; ++y, in += width * channels) {
     for (u32 x = 0; x != 4; ++x) {
-      out->colors[y * 4 + x] = (BcColor8888){in[x], 0, 0, 255};
+      BcColor8888* outColor = &out->colors[y * 4 + x];
+      outColor->r           = in[x * channels + 0];
+      outColor->g           = channels >= 2 ? in[x * channels + 1] : 0;
+      outColor->b           = channels >= 3 ? in[x * channels + 2] : 0;
+      outColor->a           = channels >= 4 ? in[x * channels + 3] : u8_max;
     }
   }
 }

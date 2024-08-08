@@ -13,7 +13,7 @@ static const struct {
   usize    pixelCount;
 } g_testData[] = {
     {
-        .id   = string_static("p3_formatted.ppm"),
+        .id   = string_static("p3_formatted_lossless.ppm"),
         .text = string_static("P3\n"
                               "2 2 255\n"
                               "255 0 0\n"
@@ -30,7 +30,7 @@ static const struct {
         .pixelCount = 4,
     },
     {
-        .id   = string_static("p3_color_per_line.ppm"),
+        .id   = string_static("p3_color_per_line_lossless.ppm"),
         .text = string_static("P3\n"
                               "2\n2\n255\n"
                               "255\n0\n0\n"
@@ -47,7 +47,7 @@ static const struct {
         .pixelCount = 4,
     },
     {
-        .id   = string_static("p3_single_line.ppm"),
+        .id   = string_static("p3_single_line_lossless.ppm"),
         .text = string_static("P3 2 2 255 255 0 0 0 255 0 0 0 255 128 128 128"),
         .pixels =
             {
@@ -59,7 +59,7 @@ static const struct {
         .pixelCount = 4,
     },
     {
-        .id   = string_static("p3_commented.ppm"),
+        .id   = string_static("p3_commented_lossless.ppm"),
         .text = string_static("# Hello\nP3\n"
                               "# Comments\n2# Are\n2#Supported\n255#Everywhere\n"
                               "# In\n255# The\n0   # Format\n0 # Will\n"
@@ -76,7 +76,7 @@ static const struct {
         .pixelCount = 4,
     },
     {
-        .id   = string_static("p3_windows_line-endings.ppm"),
+        .id   = string_static("p3_windows_line-endings_lossless.ppm"),
         .text = string_static("P3\r\n"
                               "2 2 255\r\n"
                               "# Comments with windows line-endings\r\n"
@@ -94,7 +94,7 @@ static const struct {
         .pixelCount = 4,
     },
     {
-        .id   = string_static("p3_unspecified_colors.ppm"),
+        .id   = string_static("p3_unspecified_colors_lossless.ppm"),
         .text = string_static("P3 2 2 255\n"
                               "255 0 0\n"
                               "0 255 0"),
@@ -108,7 +108,7 @@ static const struct {
         .pixelCount = 4,
     },
     {
-        .id   = string_static("p3_extra_colors.ppm"),
+        .id   = string_static("p3_extra_colors_lossless.ppm"),
         .text = string_static("P3 1 1 255\n"
                               "255 0 0\n"
                               "0 255 0\n"
@@ -120,7 +120,7 @@ static const struct {
         .pixelCount = 1,
     },
     {
-        .id   = string_static("p6.ppm"),
+        .id   = string_static("p6_lossless.ppm"),
         .text = string_static("P6 2 2 255\n"
                               "\xFF\x0\x0"
                               "\x0\xFF\x0"
@@ -136,7 +136,7 @@ static const struct {
         .pixelCount = 4,
     },
     {
-        .id   = string_static("p6_unspecified_colors.ppm"),
+        .id   = string_static("p6_unspecified_colors_lossless.ppm"),
         .text = string_static("P6 2 2 255\n"
                               "\xFF\x1\x1"
                               "\x1\xFF\x1"
@@ -152,7 +152,7 @@ static const struct {
         .pixelCount = 4,
     },
     {
-        .id   = string_static("p6_extra_colors.ppm"),
+        .id   = string_static("p6_extra_colors_lossless.ppm"),
         .text = string_static("P6 1 1 255\n"
                               "\xFF\x1\x1"
                               "\x1\xFF\x1"

@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bc.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
@@ -88,6 +89,15 @@ static u32 tex_type_size(const AssetTextureType type) {
   diag_crash();
 }
 
+/**
+ * Compute how many times we can cut the image in half before both sides hit 1 pixel.
+ */
+static u16 tex_mips_max(const u32 width, const u32 height) {
+  const u16 biggestSide = math_max(width, height);
+  const u16 mipCount    = (u16)(32 - bits_clz_32(biggestSide));
+  return mipCount;
+}
+
 static u32 tex_pixel_count_mip(const u32 width, const u32 height, const u32 layers, const u32 mip) {
   const u32 mipWidth  = math_max(width >> mip, 1);
   const u32 mipHeight = math_max(height >> mip, 1);
@@ -102,6 +112,17 @@ static u32 tex_pixel_count(const u32 width, const u32 height, const u32 layers, 
   return pixels;
 }
 
+static bool tex_format_bc4x4(const AssetTextureFormat format) {
+  switch (format) {
+  case AssetTextureFormat_Bc1:
+  case AssetTextureFormat_Bc3:
+  case AssetTextureFormat_Bc4:
+    return true;
+  default:
+    return false;
+  }
+}
+
 static u32 tex_format_channels(const AssetTextureFormat format) {
   static const u32 g_channels[AssetTextureFormat_Count] = {
       [AssetTextureFormat_u8_r]     = 1,
@@ -110,6 +131,9 @@ static u32 tex_format_channels(const AssetTextureFormat format) {
       [AssetTextureFormat_u16_rgba] = 4,
       [AssetTextureFormat_f32_r]    = 1,
       [AssetTextureFormat_f32_rgba] = 4,
+      [AssetTextureFormat_Bc1]      = 3,
+      [AssetTextureFormat_Bc3]      = 4,
+      [AssetTextureFormat_Bc4]      = 1,
   };
   return g_channels[format];
 }
@@ -122,14 +146,78 @@ static usize tex_format_stride(const AssetTextureFormat format) {
       [AssetTextureFormat_u16_rgba] = sizeof(u16) * 4,
       [AssetTextureFormat_f32_r]    = sizeof(f32) * 1,
       [AssetTextureFormat_f32_rgba] = sizeof(f32) * 4,
+      [AssetTextureFormat_Bc1]      = sizeof(Bc1Block),
+      [AssetTextureFormat_Bc3]      = sizeof(Bc3Block),
+      [AssetTextureFormat_Bc4]      = sizeof(Bc4Block),
   };
   return g_stride[format];
 }
 
-static AssetTextureFormat tex_format_pick(const AssetTextureType type, const u32 channels) {
+static usize tex_format_mip_size(
+    const AssetTextureFormat format,
+    const u32                width,
+    const u32                height,
+    const u32                layers,
+    const u32                mip) {
+  const u32 mipWidth  = math_max(width >> mip, 1);
+  const u32 mipHeight = math_max(height >> mip, 1);
+  if (tex_format_bc4x4(format)) {
+    const u32 blocks = math_max(mipWidth / 4, 1) * math_max(mipHeight / 4, 1);
+    return blocks * tex_format_stride(format) * layers;
+  }
+  return mipWidth * mipHeight * tex_format_stride(format) * layers;
+}
+
+static usize tex_format_size(
+    const AssetTextureFormat format,
+    const u32                width,
+    const u32                height,
+    const u32                layers,
+    const u32                mips) {
+  usize res = 0;
+  for (u32 mip = 0; mip != mips; ++mip) {
+    res += tex_format_mip_size(format, width, height, layers, mip);
+  }
+  return res;
+}
+
+static bool tex_can_compress_u8(const u32 width, const u32 height) {
+  if (!bits_ispow2(width) || !bits_ispow2(height)) {
+    /**
+     * Requiring both sides to be powers of two makes mip-map generation easier as all levels are
+     * neatly divisible by four, and then the only needed exceptions are the last levels that are
+     * smaller then 4 pixels.
+     */
+    return false;
+  }
+  if (width < 4 || height < 4) {
+    /**
+     * At least 4x4 pixels are needed for block compression, in theory we could add padding but for
+     * these tiny sizes its probably not worth it.
+     */
+    return false;
+  }
+  return true;
+}
+
+static AssetTextureFormat tex_format_pick(
+    const AssetTextureType type,
+    const u32              width,
+    const u32              height,
+    const u32              channels,
+    const bool             hasAlpha,
+    const bool             lossless) {
   switch (type) {
-  case AssetTextureType_u8:
-    return channels <= 1 ? AssetTextureFormat_u8_r : AssetTextureFormat_u8_rgba;
+  case AssetTextureType_u8: {
+    const bool compress = !lossless && tex_can_compress_u8(width, height);
+    if (channels <= 1) {
+      return compress ? AssetTextureFormat_Bc4 : AssetTextureFormat_u8_r;
+    }
+    if (channels <= 3 || !hasAlpha) {
+      return compress ? AssetTextureFormat_Bc1 : AssetTextureFormat_u8_rgba;
+    }
+    return compress ? AssetTextureFormat_Bc3 : AssetTextureFormat_u8_rgba;
+  }
   case AssetTextureType_u16:
     return channels <= 1 ? AssetTextureFormat_u16_r : AssetTextureFormat_u16_rgba;
   case AssetTextureType_f32:
@@ -185,6 +273,32 @@ static bool tex_has_alpha(
   return false;
 }
 
+static BcColor8888 tex_bc0_color_avg(
+    const BcColor8888 a, const BcColor8888 b, const BcColor8888 c, const BcColor8888 d) {
+  return (BcColor8888){
+      (a.r + b.r + c.r + d.r) / 4,
+      (a.g + b.g + c.g + d.g) / 4,
+      (a.b + b.b + c.b + d.b) / 4,
+      (a.a + b.a + c.a + d.a) / 4,
+  };
+}
+
+static usize tex_bc_encode_block(const Bc0Block* b, const AssetTextureFormat fmt, u8* outPtr) {
+  switch (fmt) {
+  case AssetTextureFormat_Bc1:
+    bc1_encode(b, (Bc1Block*)outPtr);
+    return sizeof(Bc1Block);
+  case AssetTextureFormat_Bc3:
+    bc3_encode(b, (Bc3Block*)outPtr);
+    return sizeof(Bc3Block);
+  case AssetTextureFormat_Bc4:
+    bc4_encode(b, (Bc4Block*)outPtr);
+    return sizeof(Bc4Block);
+  default:
+    diag_crash();
+  }
+}
+
 /**
  * The following load utils use the same to RGBA conversion rules as the Vulkan spec:
  * https://registry.khronos.org/vulkan/specs/1.0/html/chap16.html#textures-conversion-to-rgba
@@ -196,7 +310,7 @@ static void tex_load_u8(
     const u32         inChannels,
     const u32         inLayers,
     const u32         inMips) {
-  diag_assert(inLayers <= tex->layers && inMips <= tex->srcMipLevels);
+  diag_assert(inLayers <= tex->layers && inMips <= tex->mipsData);
 
   const u8* restrict inPtr = in.ptr;
   diag_assert(in.size == tex_pixel_count(tex->width, tex->height, inLayers, inMips) * inChannels);
@@ -233,13 +347,123 @@ static void tex_load_u8(
   diag_assert(mem_from_to(in.ptr, inPtr).size == in.size);
 }
 
+static void tex_load_u8_compress(
+    AssetTextureComp* tex,
+    const Mem         in,
+    const u32         inChannels,
+    const u32         inLayers,
+    const u32         inMips) {
+
+  diag_assert(inLayers == tex->layers);
+  diag_assert(tex_format_bc4x4(tex->format));
+  diag_assert(!(tex->flags & AssetTextureFlags_Lossless));
+  diag_assert(bits_aligned(tex->width, 4));
+  diag_assert(bits_aligned(tex->height, 4));
+
+  const u8* restrict inPtr = in.ptr;
+  diag_assert(in.size == tex_pixel_count(tex->width, tex->height, inLayers, inMips) * inChannels);
+
+  u8* restrict outPtr = tex->pixelData.ptr;
+
+  Bc0Block block;
+  for (u32 mip = 0; mip != inMips; ++mip) {
+    const u32 mipWidth  = math_max(tex->width >> mip, 1);
+    const u32 mipHeight = math_max(tex->height >> mip, 1);
+    for (u32 l = 0; l != inLayers; ++l) {
+      for (u32 y = 0; y < mipHeight; y += 4, inPtr += mipWidth * 4 * inChannels) {
+        for (u32 x = 0; x < mipWidth; x += 4) {
+          bc0_extract(inPtr + x * inChannels, inChannels, mipWidth, &block);
+          outPtr += tex_bc_encode_block(&block, tex->format, outPtr);
+        }
+      }
+    }
+  }
+  diag_assert(mem_from_to(in.ptr, inPtr).size == in.size);
+}
+
+static void tex_load_u8_compress_gen_mips(
+    AssetTextureComp* tex,
+    const Mem         in,
+    const u32         inChannels,
+    const u32         inLayers,
+    const u32         inMips) {
+  (void)inMips;
+
+  diag_assert(inMips <= 1); // Cannot both generate mips and have source mips.
+  diag_assert(inLayers == tex->layers);
+  diag_assert(tex_format_bc4x4(tex->format));
+  diag_assert(!(tex->flags & AssetTextureFlags_Lossless));
+  diag_assert(bits_aligned(tex->width, 4) && bits_ispow2(tex->width));
+  diag_assert(bits_aligned(tex->height, 4) && bits_ispow2(tex->height));
+
+  const u8* restrict inPtr = in.ptr;
+  diag_assert(in.size == tex_pixel_count(tex->width, tex->height, inLayers, inMips) * inChannels);
+
+  u8* restrict outPtr = tex->pixelData.ptr;
+
+  const u32   layerBlockCount = (tex->width / 4) * (tex->height / 4);
+  const usize blockBufferSize = inLayers * layerBlockCount * sizeof(Bc0Block);
+  const Mem   blockBuffer     = alloc_alloc(g_allocHeap, blockBufferSize, alignof(Bc0Block));
+
+  Bc0Block* blockPtr = blockBuffer.ptr;
+
+  // Extract 4x4 blocks from the source data and encode mip0.
+  for (u32 l = 0; l != inLayers; ++l) {
+    for (u32 y = 0; y < tex->height; y += 4, inPtr += tex->width * 4 * inChannels) {
+      for (u32 x = 0; x < tex->width; x += 4, ++blockPtr) {
+        bc0_extract(inPtr + x * inChannels, inChannels, tex->width, blockPtr);
+        outPtr += tex_bc_encode_block(blockPtr, tex->format, outPtr);
+      }
+    }
+  }
+
+  // Down-sample and encode the other mips.
+  for (u32 mip = 1; mip < tex->mipsMax; ++mip) {
+    blockPtr              = blockBuffer.ptr; // Reset the block pointer to the beginning.
+    const u32 blockCountX = math_max((tex->width >> mip) / 4, 1);
+    const u32 blockCountY = math_max((tex->height >> mip) / 4, 1);
+    for (u32 l = 0; l != inLayers; ++l) {
+      for (u32 blockY = 0; blockY != blockCountY; ++blockY) {
+        for (u32 blockX = 0; blockX != blockCountX; ++blockX) {
+          Bc0Block block;
+          // Fill the 4x4 block by down-sampling from 4 blocks of the previous mip.
+          for (u32 y = 0; y != 4; ++y) {
+            for (u32 x = 0; x != 4; ++x) {
+              const u32       srcBlockY = blockY * 2 + (y >= 2);
+              const u32       srcBlockX = blockX * 2 + (x >= 2);
+              const Bc0Block* src       = &blockPtr[srcBlockY * blockCountX * 2 + srcBlockX];
+              const u32       srcX      = (x % 2) * 2;
+              const u32       srcY      = (y % 2) * 2;
+
+              const BcColor8888 c0 = src->colors[srcY * 4 + srcX];
+              const BcColor8888 c1 = src->colors[srcY * 4 + srcX + 1];
+              const BcColor8888 c2 = src->colors[(srcY + 1) * 4 + srcX];
+              const BcColor8888 c3 = src->colors[(srcY + 1) * 4 + srcX + 1];
+
+              block.colors[y * 4 + x] = tex_bc0_color_avg(c0, c1, c2, c3);
+            }
+          }
+          // Save the down-sampled block for use in the next mip.
+          blockPtr[blockY * blockCountX + blockX] = block;
+          // Encode and output this block.
+          outPtr += tex_bc_encode_block(&block, tex->format, outPtr);
+        }
+      }
+      blockPtr += layerBlockCount;
+    }
+  }
+
+  alloc_free(g_allocHeap, blockBuffer);
+  diag_assert(mem_from_to(in.ptr, inPtr).size == in.size);
+}
+
 static void tex_load_u16(
     AssetTextureComp* tex,
     const Mem         in,
     const u32         inChannels,
     const u32         inLayers,
     const u32         inMips) {
-  diag_assert(inLayers <= tex->layers && inMips <= tex->srcMipLevels);
+  diag_assert(inLayers <= tex->layers && inMips <= tex->mipsData);
 
   const usize pixelCount = tex_pixel_count(tex->width, tex->height, inLayers, inMips);
   (void)pixelCount;
@@ -285,7 +509,7 @@ static void tex_load_f32(
     const u32         inChannels,
     const u32         inLayers,
     const u32         inMips) {
-  diag_assert(inLayers <= tex->layers && inMips <= tex->srcMipLevels);
+  diag_assert(inLayers <= tex->layers && inMips <= tex->mipsData);
 
   const usize pixelCount = tex_pixel_count(tex->width, tex->height, inLayers, inMips);
   (void)pixelCount;
@@ -360,14 +584,17 @@ void asset_data_init_tex(void) {
   data_reg_const_t(g_dataReg, AssetTextureFormat, u16_rgba);
   data_reg_const_t(g_dataReg, AssetTextureFormat, f32_r);
   data_reg_const_t(g_dataReg, AssetTextureFormat, f32_rgba);
+  data_reg_const_t(g_dataReg, AssetTextureFormat, Bc1);
+  data_reg_const_t(g_dataReg, AssetTextureFormat, Bc3);
+  data_reg_const_t(g_dataReg, AssetTextureFormat, Bc4);
 
   data_reg_enum_multi_t(g_dataReg, AssetTextureFlags);
   data_reg_const_t(g_dataReg, AssetTextureFlags, Srgb);
-  data_reg_const_t(g_dataReg, AssetTextureFlags, GenerateMipMaps);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, GenerateMips);
   data_reg_const_t(g_dataReg, AssetTextureFlags, CubeMap);
   data_reg_const_t(g_dataReg, AssetTextureFlags, NormalMap);
   data_reg_const_t(g_dataReg, AssetTextureFlags, Alpha);
-  data_reg_const_t(g_dataReg, AssetTextureFlags, Uncompressed);
+  data_reg_const_t(g_dataReg, AssetTextureFlags, Lossless);
 
   data_reg_struct_t(g_dataReg, AssetTextureComp);
   data_reg_field_t(g_dataReg, AssetTextureComp, format, t_AssetTextureFormat);
@@ -375,8 +602,8 @@ void asset_data_init_tex(void) {
   data_reg_field_t(g_dataReg, AssetTextureComp, width, data_prim_t(u32), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetTextureComp, height, data_prim_t(u32), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetTextureComp, layers, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetTextureComp, srcMipLevels, data_prim_t(u32), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetTextureComp, maxMipLevels, data_prim_t(u32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetTextureComp, mipsData, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetTextureComp, mipsMax, data_prim_t(u32), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetTextureComp, pixelData, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
   // clang-format on
 
@@ -419,27 +646,11 @@ String asset_texture_format_str(const AssetTextureFormat format) {
   return g_names[format];
 }
 
-usize asset_texture_format_channels(const AssetTextureFormat format) {
-  return tex_format_channels(format);
-}
-
-usize asset_texture_mip_size(const AssetTextureComp* t, const u32 mipLevel) {
-  diag_assert(mipLevel < t->srcMipLevels);
-  const u32 count = tex_pixel_count_mip(t->width, t->height, t->layers, mipLevel);
-  return count * tex_format_stride(t->format);
-}
-
-usize asset_texture_data_size(const AssetTextureComp* t) {
-  const u32 count = tex_pixel_count(t->width, t->height, t->layers, t->srcMipLevels);
-  return count * tex_format_stride(t->format);
-}
-
 Mem asset_texture_data(const AssetTextureComp* t) { return data_mem(t->pixelData); }
 
 GeoColor asset_texture_at(const AssetTextureComp* t, const u32 layer, const usize index) {
-  const usize pixelCount    = t->width * t->height;
-  const usize layerDataSize = pixelCount * tex_format_stride(t->format);
-  const void* pixelsMip0    = bits_ptr_offset(t->pixelData.ptr, layerDataSize * layer);
+  const usize offsetMip0 = tex_format_mip_size(t->format, t->width, t->height, layer, 0);
+  const void* pixelsMip0 = bits_ptr_offset(t->pixelData.ptr, offsetMip0);
 
   static const f32 g_u8MaxInv  = 1.0f / u8_max;
   static const f32 g_u16MaxInv = 1.0f / u16_max;
@@ -493,6 +704,41 @@ GeoColor asset_texture_at(const AssetTextureComp* t, const u32 layer, const usiz
     res.b = ((const f32*)pixelsMip0)[index * 4 + 2];
     res.a = ((const f32*)pixelsMip0)[index * 4 + 3];
     return res;
+  case AssetTextureFormat_Bc1:
+  case AssetTextureFormat_Bc3:
+  case AssetTextureFormat_Bc4: {
+    const usize pixelX = index % t->width, pixelY = index / t->width;
+    const usize blockX = pixelX / 4, blockY = pixelY / 4;
+    const usize blockIndex   = blockY * (t->width / 4) + blockX;
+    const usize indexInBlock = (pixelY % 4) * 4 + (pixelX % 4);
+
+    Bc0Block blockBc0;
+    switch (t->format) {
+    case AssetTextureFormat_Bc1:
+      bc1_decode((const Bc1Block*)pixelsMip0 + blockIndex, &blockBc0);
+      break;
+    case AssetTextureFormat_Bc3:
+      bc3_decode((const Bc3Block*)pixelsMip0 + blockIndex, &blockBc0);
+      break;
+    case AssetTextureFormat_Bc4:
+    default:
+      bc4_decode((const Bc4Block*)pixelsMip0 + blockIndex, &blockBc0);
+      break;
+    }
+
+    if (t->flags & AssetTextureFlags_Srgb) {
+      res.r = g_textureSrgbToFloat[blockBc0.colors[indexInBlock].r];
+      res.g = g_textureSrgbToFloat[blockBc0.colors[indexInBlock].g];
+      res.b = g_textureSrgbToFloat[blockBc0.colors[indexInBlock].b];
+      res.a = blockBc0.colors[indexInBlock].a * g_u8MaxInv;
+    } else {
+      res.r = blockBc0.colors[indexInBlock].r * g_u8MaxInv;
+      res.g = blockBc0.colors[indexInBlock].g * g_u8MaxInv;
+      res.b = blockBc0.colors[indexInBlock].b * g_u8MaxInv;
+      res.a = blockBc0.colors[indexInBlock].a * g_u8MaxInv;
+    }
+    return res;
+  }
   case AssetTextureFormat_Count:
     break;
   }
@@ -530,21 +776,6 @@ GeoColor asset_texture_sample_nearest(
   return asset_texture_at(t, layer, y * t->width + x);
 }
 
-bool asset_texture_is_normalmap(const String id) {
-  static const String g_patterns[] = {
-      string_static("*_nrm.*"),
-      string_static("*_normal.*"),
-      string_static("*_nrm_*.*"),
-      string_static("*_normal_*.*"),
-  };
-  array_for_t(g_patterns, String, pattern) {
-    if (string_match_glob(id, *pattern, StringMatchFlags_IgnoreCase)) {
-      return true;
-    }
-  }
-  return false;
-}
-
 usize asset_texture_type_stride(const AssetTextureType type, const u32 channels) {
   return channels * tex_type_size(type);
 }
@@ -576,7 +807,7 @@ AssetTextureComp asset_texture_create(
     const u32              channels,
     const u32              layers,
     const u32              mipsSrc,
-    const u32              mipsMax,
+    u32                    mipsMax,
     const AssetTextureType type,
     AssetTextureFlags      flags) {
   diag_assert(width && height && channels && layers && mipsSrc);
@@ -584,29 +815,79 @@ AssetTextureComp asset_texture_create(
   if (UNLIKELY(flags & AssetTextureFlags_Srgb && channels < 3)) {
     diag_crash_msg("Srgb requires at least 3 channels");
   }
-  if (tex_has_alpha(in, width, height, channels, layers, mipsSrc, type)) {
-    flags |= AssetTextureFlags_Alpha;
+  if (UNLIKELY(flags & AssetTextureFlags_NormalMap && channels < 3)) {
+    diag_crash_msg("NormalMap requires at least 3 channels");
+  }
+  if (UNLIKELY(flags & AssetTextureFlags_CubeMap && layers != 6)) {
+    diag_crash_msg("CubeMap requires 6 layers");
   }
 
-  const AssetTextureFormat format     = tex_format_pick(type, channels);
-  const usize              dataStride = tex_format_stride(format);
-  const usize              dataSize = tex_pixel_count(width, height, layers, mipsSrc) * dataStride;
-  const Mem                data     = alloc_alloc(g_allocHeap, dataSize, dataStride);
+  const bool alpha    = tex_has_alpha(in, width, height, channels, layers, mipsSrc, type);
+  const bool lossless = (flags & AssetTextureFlags_Lossless) != 0;
+
+  if (alpha) {
+    flags |= AssetTextureFlags_Alpha;
+  } else {
+    flags &= ~AssetTextureFlags_Alpha;
+  }
+  if (channels < 3) {
+    flags &= ~AssetTextureFlags_Srgb;
+  }
+  if (mipsSrc > 1) {
+    /**
+     * Cannot both generate mips and have source mips.
+     */
+    flags &= ~AssetTextureFlags_GenerateMips;
+  }
+
+  const AssetTextureFormat format = tex_format_pick(type, width, height, channels, alpha, lossless);
+  const bool               compress = tex_format_bc4x4(format);
+  if (!compress) {
+    flags |= AssetTextureFlags_Lossless;
+  }
+
+  bool cpuGenMips = false;
+  if (flags & AssetTextureFlags_GenerateMips) {
+    if (mipsMax) {
+      diag_assert(mipsMax <= tex_mips_max(width, height));
+    } else {
+      mipsMax = tex_mips_max(width, height);
+    }
+
+    /**
+     * Generate mip-maps on the cpu side for compressed textures; for uncompressed texture the
+     * renderer can generate them on the gpu.
+     */
+    cpuGenMips = compress && mipsSrc == 1;
+  } else {
+    mipsMax = mipsSrc;
+  }
+
+  const u32   dataMips  = cpuGenMips ? mipsMax : mipsSrc;
+  const usize dataSize  = tex_format_size(format, width, height, layers, dataMips);
+  const usize dataAlign = tex_format_stride(format);
+  const Mem   data      = alloc_alloc(g_allocHeap, dataSize, dataAlign);
 
   AssetTextureComp tex = {
-      .format       = format,
-      .flags        = flags,
-      .width        = width,
-      .height       = height,
-      .pixelData    = data_mem_create(data),
-      .layers       = layers,
-      .srcMipLevels = mipsSrc,
-      .maxMipLevels = mipsMax,
+      .format    = format,
+      .flags     = flags,
+      .width     = width,
+      .height    = height,
+      .pixelData = data_mem_create(data),
+      .layers    = layers,
+      .mipsData  = dataMips,
+      .mipsMax   = mipsMax,
   };
 
   switch (type) {
   case AssetTextureType_u8:
-    tex_load_u8(&tex, in, channels, layers, mipsSrc);
+    if (compress && cpuGenMips) {
+      tex_load_u8_compress_gen_mips(&tex, in, channels, layers, mipsSrc);
+    } else if (compress) {
+      tex_load_u8_compress(&tex, in, channels, layers, mipsSrc);
+    } else {
+      tex_load_u8(&tex, in, channels, layers, mipsSrc);
+    }
     break;
   case AssetTextureType_u16:
     tex_load_u16(&tex, in, channels, layers, mipsSrc);

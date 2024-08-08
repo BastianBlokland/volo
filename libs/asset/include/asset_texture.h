@@ -10,24 +10,27 @@ typedef enum {
   AssetTextureFormat_u16_rgba,
   AssetTextureFormat_f32_r,
   AssetTextureFormat_f32_rgba,
+  AssetTextureFormat_Bc1, // RGB  4x4 block compression.
+  AssetTextureFormat_Bc3, // RGBA 4x4 block compression.
+  AssetTextureFormat_Bc4, // R    4x4 block compression.
 
   AssetTextureFormat_Count,
 } AssetTextureFormat;
 
 typedef enum {
-  AssetTextureFlags_None            = 0,
-  AssetTextureFlags_Srgb            = 1 << 0,
-  AssetTextureFlags_GenerateMipMaps = 1 << 1,
-  AssetTextureFlags_CubeMap         = 1 << 2,
-  AssetTextureFlags_NormalMap       = 1 << 3,
-  AssetTextureFlags_Alpha           = 1 << 4, // Alpha channel is in use.
-  AssetTextureFlags_Uncompressed    = 1 << 5, // Texture should not be compressed.
+  AssetTextureFlags_None         = 0,
+  AssetTextureFlags_Srgb         = 1 << 0,
+  AssetTextureFlags_GenerateMips = 1 << 1,
+  AssetTextureFlags_CubeMap      = 1 << 2,
+  AssetTextureFlags_NormalMap    = 1 << 3,
+  AssetTextureFlags_Alpha        = 1 << 4, // Alpha channel is in use.
+  AssetTextureFlags_Lossless     = 1 << 5, // Texture should not be compressed.
 } AssetTextureFlags;
 
 ecs_comp_extern_public(AssetTextureComp) {
   AssetTextureFormat format;
   AssetTextureFlags  flags;
-  u32                width, height, layers, srcMipLevels, maxMipLevels;
+  u32                width, height, layers, mipsData, mipsMax;
   DataMem            pixelData;
 };
 
@@ -36,11 +39,7 @@ extern DataMeta g_assetTexArrayDefMeta;
 extern DataMeta g_assetTexProcDefMeta;
 
 String asset_texture_format_str(AssetTextureFormat);
-usize  asset_texture_format_channels(AssetTextureFormat);
-
-usize asset_texture_mip_size(const AssetTextureComp*, u32 mipLevel);
-usize asset_texture_data_size(const AssetTextureComp*);
-Mem   asset_texture_data(const AssetTextureComp*);
+Mem    asset_texture_data(const AssetTextureComp*);
 
 /**
  * Lookup the color of a specific pixel specified by the given index.

@@ -5,12 +5,6 @@
 
 ecs_comp_extern_public(AssetTextureSourceComp) { AssetSource* src; };
 
-/**
- * Check if the given asset-id is a normalmap.
- * NOTE: This uses a naming convention based detection (ending with nrm or normal).
- */
-bool asset_texture_is_normalmap(String id);
-
 typedef enum {
   AssetTextureType_u8,
   AssetTextureType_u16,

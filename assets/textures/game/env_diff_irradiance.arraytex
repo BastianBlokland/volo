@@ -2,7 +2,7 @@
   "type": "CubeDiffIrradiance",
   "channels": "Three",
   "mipmaps": false,
-  "uncompressed": true,
+  "lossless": true,
   "sizeX": 16, "sizeY": 16,
   "textures": [
     "external/skybox/teide_small_right.tga",

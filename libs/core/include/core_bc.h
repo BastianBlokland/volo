@@ -49,7 +49,7 @@ ASSERT(sizeof(Bc4Block) == 8, "Unexpected bc4 block size");
  * Extract / scanout a single 4x4 BC0 (aka raw pixels) block.
  * Pre-condition: Width (and also height) input pixels have to be multiples of 4.
  */
-void bc0_extract1(const u8* restrict in, u32 width, Bc0Block* restrict out);
+void bc0_extract(const u8* restrict in, u32 channels, u32 width, Bc0Block* restrict out);
 void bc0_extract4(const BcColor8888* restrict in, u32 width, Bc0Block* restrict out);
 void bc0_scanout4(const Bc0Block* restrict in, u32 width, BcColor8888* restrict out);
 

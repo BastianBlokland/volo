@@ -51,7 +51,7 @@ typedef struct {
   ProcTexFormat   format;
   ProcTexChannels channels;
   bool            mipmaps;
-  bool            uncompressed;
+  bool            lossless;
   u32             size;
   f32             frequency, power;
   u32             seed;
@@ -283,10 +283,10 @@ static void proctex_generate(const ProcTexDef* def, AssetTextureComp* outTexture
 
   AssetTextureFlags flags = 0;
   if (def->mipmaps) {
-    flags |= AssetTextureFlags_GenerateMipMaps;
+    flags |= AssetTextureFlags_GenerateMips;
   }
-  if (def->uncompressed) {
-    flags |= AssetTextureFlags_Uncompressed;
+  if (def->lossless) {
+    flags |= AssetTextureFlags_Lossless;
   }
   *outTexture = asset_texture_create(
       pixelMem,
@@ -330,7 +330,7 @@ void asset_data_init_proctex(void) {
   data_reg_field_t(g_dataReg, ProcTexDef, format, t_ProcTexFormat, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ProcTexDef, channels, t_ProcTexChannels);
   data_reg_field_t(g_dataReg, ProcTexDef, mipmaps, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, ProcTexDef, uncompressed, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, ProcTexDef, lossless, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ProcTexDef, size, data_prim_t(u32), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, ProcTexDef, frequency, data_prim_t(f32), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, ProcTexDef, power, data_prim_t(f32), .flags = DataFlags_NotEmpty);

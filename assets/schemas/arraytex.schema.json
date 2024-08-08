@@ -10,7 +10,7 @@
         "channels": { "title": "ArrayTexChannels", "$ref": "#/$defs/ArrayTexChannels" },
         "mipmaps": { "title": "bool", "type": "boolean" },
         "srgb": { "title": "bool", "type": "boolean" },
-        "uncompressed": { "title": "bool", "type": "boolean" },
+        "lossless": { "title": "bool", "type": "boolean" },
         "nearest": { "title": "bool", "type": "boolean" },
         "sizeX": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 },
         "sizeY": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 },
