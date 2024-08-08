@@ -69,6 +69,7 @@ static f64 data_number_min(const DataKind kind) {
       [DataKind_i16] = i16_min,
       [DataKind_i32] = i32_min,
       [DataKind_i64] = i64_min,
+      [DataKind_f16] = -65504.0,
       [DataKind_f32] = f32_min,
       [DataKind_f64] = f64_min,
   };
@@ -88,6 +89,7 @@ static f64 data_number_max(const DataKind kind) {
       [DataKind_i16] = i16_max,
       [DataKind_i32] = i32_max,
       [DataKind_i64] = (f64)i64_max,
+      [DataKind_f16] = 65504.0,
       [DataKind_f32] = f32_max,
       [DataKind_f64] = f64_max,
   };
@@ -135,6 +137,9 @@ static void data_read_json_number(const ReadCtx* ctx, DataReadResult* res) {
     READ_PRIM_NUM(u64); break;
     READ_PRIM_NUM(f32); break;
     READ_PRIM_NUM(f64); break;
+    case DataKind_f16:
+      *mem_as_t(ctx->data, f16) = float_f32_to_f16((f32)number);
+      break;
   default:
     diag_crash();
   }
@@ -547,6 +552,7 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
   case DataKind_u16:
   case DataKind_u32:
   case DataKind_u64:
+  case DataKind_f16:
   case DataKind_f32:
   case DataKind_f64:
     data_read_json_number(ctx, res);

@@ -2,6 +2,7 @@
 #include "core_base64.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_float.h"
 #include "data_write.h"
 #include "json_write.h"
 
@@ -46,6 +47,10 @@ static JsonVal data_write_json_number(const WriteCtx* ctx) {
     RET_ADD_NUM(u64);
     RET_ADD_NUM(f32);
     RET_ADD_NUM(f64);
+  case DataKind_f16: {
+    const f32 val = float_f16_to_f32(*mem_as_t(ctx->data, f16));
+    return json_add_number(ctx->doc, (f64)val);
+  }
   default:
     diag_crash();
   }
@@ -196,6 +201,7 @@ static JsonVal data_write_json_val_single(const WriteCtx* ctx) {
   case DataKind_u16:
   case DataKind_u32:
   case DataKind_u64:
+  case DataKind_f16:
   case DataKind_f32:
   case DataKind_f64:
     return data_write_json_number(ctx);
