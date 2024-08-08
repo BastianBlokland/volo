@@ -197,7 +197,7 @@ static bool tex_can_compress_u8(const u32 width, const u32 height) {
      */
     return false;
   }
-  return false; // TODO: Return true once asset side compression is working.
+  return true;
 }
 
 static AssetTextureFormat tex_format_pick(
@@ -273,6 +273,32 @@ static bool tex_has_alpha(
   return false;
 }
 
+static BcColor8888 tex_bc0_color_avg(
+    const BcColor8888 a, const BcColor8888 b, const BcColor8888 c, const BcColor8888 d) {
+  return (BcColor8888){
+      (a.r + b.r + c.r + d.r) / 4,
+      (a.g + b.g + c.g + d.g) / 4,
+      (a.b + b.b + c.b + d.b) / 4,
+      (a.a + b.a + c.a + d.a) / 4,
+  };
+}
+
+static usize tex_bc_encode_block(const Bc0Block* b, const AssetTextureFormat fmt, u8* outPtr) {
+  switch (fmt) {
+  case AssetTextureFormat_Bc1:
+    bc1_encode(b, (Bc1Block*)outPtr);
+    return sizeof(Bc1Block);
+  case AssetTextureFormat_Bc3:
+    bc3_encode(b, (Bc3Block*)outPtr);
+    return sizeof(Bc3Block);
+  case AssetTextureFormat_Bc4:
+    bc4_encode(b, (Bc4Block*)outPtr);
+    return sizeof(Bc4Block);
+  default:
+    diag_crash();
+  }
+}
+
 /**
  * The following load utils use the same to RGBA conversion rules as the Vulkan spec:
  * https://registry.khronos.org/vulkan/specs/1.0/html/chap16.html#textures-conversion-to-rgba
@@ -318,6 +344,114 @@ static void tex_load_u8(
       }
     }
   }
+  diag_assert(mem_from_to(in.ptr, inPtr).size == in.size);
+}
+
+static void tex_load_u8_compress(
+    AssetTextureComp* tex,
+    const Mem         in,
+    const u32         inChannels,
+    const u32         inLayers,
+    const u32         inMips) {
+
+  diag_assert(tex_format_bc4x4(tex->format));
+  diag_assert(!(tex->flags & AssetTextureFlags_Lossless));
+  diag_assert(bits_aligned(tex->width, 4));
+  diag_assert(bits_aligned(tex->height, 4));
+
+  const u8* restrict inPtr = in.ptr;
+  diag_assert(in.size == tex_pixel_count(tex->width, tex->height, inLayers, inMips) * inChannels);
+
+  u8* restrict outPtr = tex->pixelData.ptr;
+
+  Bc0Block block;
+  for (u32 mip = 0; mip != inMips; ++mip) {
+    const u32 mipWidth  = math_max(tex->width >> mip, 1);
+    const u32 mipHeight = math_max(tex->height >> mip, 1);
+    for (u32 l = 0; l != inLayers; ++l) {
+      for (u32 y = 0; y < mipHeight; y += 4, inPtr += mipWidth * 4 * inChannels) {
+        for (u32 x = 0; x < mipWidth; x += 4) {
+          bc0_extract(inPtr + x * inChannels, inChannels, mipWidth, &block);
+          outPtr += tex_bc_encode_block(&block, tex->format, outPtr);
+        }
+      }
+    }
+  }
+  diag_assert(mem_from_to(in.ptr, inPtr).size == in.size);
+}
+
+static void tex_load_u8_compress_gen_mips(
+    AssetTextureComp* tex,
+    const Mem         in,
+    const u32         inChannels,
+    const u32         inLayers,
+    const u32         inMips) {
+
+  diag_assert(inMips <= 1); // Cannot both generate mips and have source mips.
+  diag_assert(tex_format_bc4x4(tex->format));
+  diag_assert(!(tex->flags & AssetTextureFlags_Lossless));
+  diag_assert(bits_aligned(tex->width, 4) && bits_ispow2(tex->width));
+  diag_assert(bits_aligned(tex->height, 4) && bits_ispow2(tex->height));
+
+  const u8* restrict inPtr = in.ptr;
+  diag_assert(in.size == tex_pixel_count(tex->width, tex->height, inLayers, inMips) * inChannels);
+
+  u8* restrict outPtr = tex->pixelData.ptr;
+
+  const u32   layerCount      = tex->layers;
+  const u32   layerBlockCount = (tex->width / 4) * (tex->height / 4);
+  const usize blockBufferSize = layerCount * layerBlockCount * sizeof(Bc0Block);
+  const Mem   blockBuffer     = alloc_alloc(g_allocHeap, blockBufferSize, alignof(Bc0Block));
+
+  Bc0Block* blockPtr = blockBuffer.ptr;
+
+  // Extract 4x4 blocks from the source data and encode mip0.
+  for (u32 l = 0; l != layerCount; ++l) {
+    for (u32 y = 0; y < tex->height; y += 4, inPtr += tex->width * 4 * inChannels) {
+      for (u32 x = 0; x < tex->width; x += 4, ++blockPtr) {
+        bc0_extract(inPtr + x * inChannels, inChannels, tex->width, blockPtr);
+        outPtr += tex_bc_encode_block(blockPtr, tex->format, outPtr);
+      }
+    }
+  }
+
+  // Down-sample and encode the other mips.
+  for (u32 mip = 1; mip < tex->mipsMax; ++mip) {
+    blockPtr              = blockBuffer.ptr; // Reset the block pointer to the beginning.
+    const u32 blockCountX = math_max((tex->width >> mip) / 4, 1);
+    const u32 blockCountY = math_max((tex->height >> mip) / 4, 1);
+    for (u32 l = 0; l != layerCount; ++l) {
+      for (u32 blockY = 0; blockY != blockCountY; ++blockY) {
+        for (u32 blockX = 0; blockX != blockCountX; ++blockX) {
+          Bc0Block block;
+          // Fill the 4x4 block by down-sampling from 4 blocks of the previous mip.
+          for (u32 y = 0; y != 4; ++y) {
+            for (u32 x = 0; x != 4; ++x) {
+              const u32       srcBlockY = blockY * 2 + (y >= 2);
+              const u32       srcBlockX = blockX * 2 + (x >= 2);
+              const Bc0Block* src       = &blockPtr[srcBlockY * blockCountX * 2 + srcBlockX];
+              const u32       srcX      = (x % 2) * 2;
+              const u32       srcY      = (y % 2) * 2;
+
+              const BcColor8888 c0 = src->colors[srcY * 4 + srcX];
+              const BcColor8888 c1 = src->colors[srcY * 4 + srcX + 1];
+              const BcColor8888 c2 = src->colors[(srcY + 1) * 4 + srcX];
+              const BcColor8888 c3 = src->colors[(srcY + 1) * 4 + srcX + 1];
+
+              block.colors[y * 4 + x] = tex_bc0_color_avg(c0, c1, c2, c3);
+            }
+          }
+          // Save the down-sampled block for use in the next mip.
+          blockPtr[blockY * blockCountX + blockX] = block;
+          // Encode and output this block.
+          outPtr += tex_bc_encode_block(&block, tex->format, outPtr);
+        }
+      }
+      blockPtr += layerBlockCount;
+    }
+  }
+
+  alloc_free(g_allocHeap, blockBuffer);
   diag_assert(mem_from_to(in.ptr, inPtr).size == in.size);
 }
 
@@ -448,6 +582,9 @@ void asset_data_init_tex(void) {
   data_reg_const_t(g_dataReg, AssetTextureFormat, u16_rgba);
   data_reg_const_t(g_dataReg, AssetTextureFormat, f32_r);
   data_reg_const_t(g_dataReg, AssetTextureFormat, f32_rgba);
+  data_reg_const_t(g_dataReg, AssetTextureFormat, Bc1);
+  data_reg_const_t(g_dataReg, AssetTextureFormat, Bc3);
+  data_reg_const_t(g_dataReg, AssetTextureFormat, Bc4);
 
   data_reg_enum_multi_t(g_dataReg, AssetTextureFlags);
   data_reg_const_t(g_dataReg, AssetTextureFlags, Srgb);
@@ -572,7 +709,7 @@ GeoColor asset_texture_at(const AssetTextureComp* t, const u32 layer, const usiz
   case AssetTextureFormat_Bc1:
   case AssetTextureFormat_Bc3:
   case AssetTextureFormat_Bc4:
-    diag_crash_msg("Unimplemented texture format");
+    return geo_color_white; // TODO: Implement compressed format sampling.
   case AssetTextureFormat_Count:
     break;
   }
@@ -664,10 +801,8 @@ AssetTextureComp asset_texture_create(
   if (UNLIKELY(flags & AssetTextureFlags_Srgb && channels < 3)) {
     diag_crash_msg("Srgb requires at least 3 channels");
   }
-  if (mipsMax) {
-    diag_assert(mipsMax <= tex_mips_max(width, height));
-  } else {
-    mipsMax = tex_mips_max(width, height);
+  if (UNLIKELY(flags & AssetTextureFlags_CubeMap && layers != 6)) {
+    diag_crash_msg("CubeMap requires 6 layers");
   }
 
   const bool alpha    = tex_has_alpha(in, width, height, channels, layers, mipsSrc, type);
@@ -681,7 +816,7 @@ AssetTextureComp asset_texture_create(
   if (channels < 3) {
     flags &= ~AssetTextureFlags_Srgb;
   }
-  if (mipsSrc) {
+  if (mipsSrc > 1) {
     /**
      * Cannot both generate mips and have source mips.
      */
@@ -689,17 +824,26 @@ AssetTextureComp asset_texture_create(
   }
 
   const AssetTextureFormat format = tex_format_pick(type, width, height, channels, alpha, lossless);
-  if (!tex_format_bc4x4(format)) {
+  const bool               compress = tex_format_bc4x4(format);
+  if (!compress) {
     flags |= AssetTextureFlags_Lossless;
   }
 
   bool cpuGenMips = false;
   if (flags & AssetTextureFlags_GenerateMips) {
+    if (mipsMax) {
+      diag_assert(mipsMax <= tex_mips_max(width, height));
+    } else {
+      mipsMax = tex_mips_max(width, height);
+    }
+
     /**
      * Generate mip-maps on the cpu side for compressed textures; for uncompressed texture the
      * renderer can generate them on the gpu.
      */
-    cpuGenMips = tex_format_bc4x4(format) && mipsSrc == 1;
+    cpuGenMips = compress && mipsSrc == 1;
+  } else {
+    mipsMax = mipsSrc;
   }
 
   const u32   dataMips  = cpuGenMips ? mipsMax : mipsSrc;
@@ -720,7 +864,13 @@ AssetTextureComp asset_texture_create(
 
   switch (type) {
   case AssetTextureType_u8:
-    tex_load_u8(&tex, in, channels, layers, mipsSrc);
+    if (compress && cpuGenMips) {
+      tex_load_u8_compress_gen_mips(&tex, in, channels, layers, mipsSrc);
+    } else if (compress) {
+      tex_load_u8_compress(&tex, in, channels, layers, mipsSrc);
+    } else {
+      tex_load_u8(&tex, in, channels, layers, mipsSrc);
+    }
     break;
   case AssetTextureType_u16:
     tex_load_u16(&tex, in, channels, layers, mipsSrc);

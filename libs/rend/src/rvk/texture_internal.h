@@ -13,7 +13,6 @@ typedef struct sRvkPass   RvkPass;
 typedef enum {
   RvkTextureFlags_Ready     = 1 << 0,
   RvkTextureFlags_MipGenGpu = 1 << 1, // Generate mip-maps on the gpu instead of loading from cpu.
-  RvkTextureFlags_Alpha     = 1 << 2, // Alpha channel is in use.
 } RvkTextureFlags;
 
 typedef struct sRvkTexture {
