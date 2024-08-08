@@ -33,6 +33,10 @@ static void bin_push_u64(const WriteCtx* ctx, const u64 val) {
   mem_write_le_u64(dynstring_push(ctx->out, sizeof(u64)), val);
 }
 
+static void bin_push_f16(const WriteCtx* ctx, const f16 val) {
+  mem_cpy(dynstring_push(ctx->out, sizeof(f16)), mem_var(val));
+}
+
 static void bin_push_f32(const WriteCtx* ctx, const f32 val) {
   mem_cpy(dynstring_push(ctx->out, sizeof(f32)), mem_var(val));
 }
@@ -146,6 +150,9 @@ static void data_write_bin_val_single(const WriteCtx* ctx) {
   case DataKind_u64:
     bin_push_u64(ctx, *mem_as_t(ctx->data, u64));
     return;
+  case DataKind_f16:
+    bin_push_f16(ctx, *mem_as_t(ctx->data, f16));
+    return;
   case DataKind_f32:
     bin_push_f32(ctx, *mem_as_t(ctx->data, f32));
     return;
@@ -189,10 +196,10 @@ static void data_write_bin_val_pointer(const WriteCtx* ctx) {
   if (ptr) {
     const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
     const WriteCtx  subCtx = {
-        .reg  = ctx->reg,
-        .out  = ctx->out,
-        .meta = data_meta_base(ctx->meta),
-        .data = mem_create(ptr, decl->size),
+         .reg  = ctx->reg,
+         .out  = ctx->out,
+         .meta = data_meta_base(ctx->meta),
+         .data = mem_create(ptr, decl->size),
     };
     data_write_bin_val_single(&subCtx);
   }

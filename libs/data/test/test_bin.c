@@ -1,6 +1,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_float.h"
 #include "data.h"
 
 static void test_bin_roundtrip(
@@ -57,6 +58,10 @@ spec(bin) {
     X(f32)
     X(f64)
 #undef X
+
+    const DataMeta metaF16 = data_meta_t(data_prim_t(f16));
+    f16            valF16  = float_f32_to_f16(42.0f);
+    test_bin_roundtrip(_testCtx, reg, metaF16, mem_var(valF16));
   }
 
   it("can serialize a string") {

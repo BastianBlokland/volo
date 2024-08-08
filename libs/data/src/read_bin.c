@@ -63,6 +63,14 @@ static bool bin_pop_u64(ReadCtx* ctx, u64* out) {
   return true;
 }
 
+static bool bin_pop_f16(ReadCtx* ctx, f16* out) {
+  if (UNLIKELY(ctx->input.size < sizeof(f16))) {
+    return false;
+  }
+  ctx->input = mem_consume_le_u16(ctx->input, (u16*)out);
+  return true;
+}
+
 static bool bin_pop_f32(ReadCtx* ctx, f32* out) {
   if (UNLIKELY(ctx->input.size < sizeof(f32))) {
     return false;
@@ -174,6 +182,8 @@ static void data_read_bin_number(ReadCtx* ctx, DataReadResult* res) {
   case DataKind_i64:
   case DataKind_u64:
     if (LIKELY(bin_pop_u64(ctx, mem_as_t(ctx->data, u64)))) { goto Success; } else { goto Trunc; }
+  case DataKind_f16:
+    if (LIKELY(bin_pop_f16(ctx, mem_as_t(ctx->data, f16)))) { goto Success; } else { goto Trunc; }
   case DataKind_f32:
     if (LIKELY(bin_pop_f32(ctx, mem_as_t(ctx->data, f32)))) { goto Success; } else { goto Trunc; }
   case DataKind_f64:
@@ -386,6 +396,7 @@ static void data_read_bin_val_single(ReadCtx* ctx, DataReadResult* res) {
   case DataKind_u16:
   case DataKind_u32:
   case DataKind_u64:
+  case DataKind_f16:
   case DataKind_f32:
   case DataKind_f64:
     data_read_bin_number(ctx, res);

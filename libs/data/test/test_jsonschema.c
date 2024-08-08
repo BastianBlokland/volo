@@ -69,6 +69,7 @@ spec(jsonschema) {
                  "  \"type\": \"number\"\n"                                                        \
                  "}"));
 
+    X(f16)
     X(f32)
     X(f64)
 #undef X

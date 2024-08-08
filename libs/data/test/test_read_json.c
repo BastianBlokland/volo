@@ -1,6 +1,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_float.h"
 #include "core_stringtable.h"
 #include "data.h"
 
@@ -75,6 +76,14 @@ spec(read_json) {
     X(f32)
     X(f64)
 #undef X
+
+    const DataMeta metaF16 = data_meta_t(data_prim_t(f16));
+    f16            valF16;
+    test_read_success(_testCtx, reg, string_lit("0"), metaF16, mem_var(valF16));
+    check_eq_int(float_f16_to_f32(valF16), 0);
+    test_read_success(_testCtx, reg, string_lit("42"), metaF16, mem_var(valF16));
+    check_eq_int(float_f16_to_f32(valF16), 42);
+    test_read_fail(_testCtx, reg, string_lit("null"), metaF16, DataReadError_MismatchedType);
   }
 
   it("fails when a number is out of bounds") {
