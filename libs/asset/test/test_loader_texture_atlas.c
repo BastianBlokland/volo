@@ -15,7 +15,8 @@ static const AssetMemRecord g_testData[] = {
                               "  \"size\": 1,"
                               "  \"frequency\": 1,"
                               "  \"power\": 1,"
-                              "  \"seed\": 1"
+                              "  \"seed\": 1,"
+                              "  \"lossless\": true"
                               "}"),
     },
     {
@@ -26,6 +27,7 @@ static const AssetMemRecord g_testData[] = {
                               "  \"entryPadding\": 1,"
                               "  \"mipmaps\": true,"
                               "  \"srgb\": true,"
+                              "  \"lossless\": true,"
                               "  \"entries\": ["
                               "    { \"name\": \"a\", \"texture\": \"one.proctex\"},"
                               "    { \"name\": \"b\", \"texture\": \"one.proctex\"}"
@@ -42,6 +44,7 @@ static const AssetMemRecord g_errorTestData[] = {
                               "  \"entrySize\": 32,"
                               "  \"mipmaps\": true,"
                               "  \"srgb\": true,"
+                              "  \"lossless\": true,"
                               "  \"entries\": []"
                               "}"),
     },
