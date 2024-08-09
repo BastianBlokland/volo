@@ -22,6 +22,7 @@ typedef enum {
   AssetFormat_ShaderGlslFrag,
   AssetFormat_ShaderGlslVert,
   AssetFormat_ShaderSpv,
+  AssetFormat_SoundBin,
   AssetFormat_SoundWav,
   AssetFormat_Terrain,
   AssetFormat_TexArray,
