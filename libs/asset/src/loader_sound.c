@@ -8,7 +8,7 @@ ecs_comp_define_public(AssetSoundComp);
 
 static void ecs_destruct_sound_comp(void* data) {
   AssetSoundComp* comp = data;
-  alloc_free_array_t(g_allocHeap, comp->samples, comp->frameCount * comp->frameChannels);
+  alloc_free(g_allocHeap, mem_create(comp->sampleData.ptr, comp->sampleData.size));
 }
 
 ecs_view_define(UnloadView) {

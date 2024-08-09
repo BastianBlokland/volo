@@ -270,7 +270,7 @@ ecs_system_define(SndMixerUpdateSys) {
         obj->frameChannels               = soundAsset->frameChannels;
         obj->frameCount                  = soundAsset->frameCount;
         obj->frameRate                   = soundAsset->frameRate;
-        obj->samples                     = soundAsset->samples;
+        obj->samples                     = soundAsset->sampleData.ptr;
         obj->phase                       = SndObjectPhase_Playing;
 
         if (obj->flags & SndObjectFlags_RandomCursor) {

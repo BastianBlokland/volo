@@ -201,7 +201,7 @@ static void wav_load_succeed(
     const EcsEntityId entity,
     const WavFormat   format,
     const u32         frameCount,
-    const f32*        samples) {
+    const Mem         sampleMem) {
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   ecs_world_add_t(
       world,
@@ -210,7 +210,7 @@ static void wav_load_succeed(
       .frameChannels = (u8)format.channels,
       .frameCount    = frameCount,
       .frameRate     = format.frameRate,
-      .samples       = samples);
+      .sampleData    = data_mem_create(sampleMem));
 }
 
 static void
@@ -226,7 +226,7 @@ void asset_load_sound_wav(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   WavError err        = WavError_None;
   DynArray chunks     = dynarray_create_t(g_allocHeap, WavChunk, 8);
-  f32*     samples    = null;
+  Mem      sampleMem  = mem_empty;
   u32      frameCount = 0;
   WavChunk rootChunk;
   wav_consume_chunk(src->data, &rootChunk, &err);
@@ -266,20 +266,20 @@ void asset_load_sound_wav(
     wav_load_fail(world, entity, id, WavError_FrameCountUnsupported);
     goto End;
   }
-  samples = alloc_array_t(g_allocHeap, f32, frameCount * format.channels);
-  wav_read_samples(format, &chunks, frameCount, samples, &err);
+  sampleMem = alloc_alloc(g_allocHeap, sizeof(f32) * frameCount * format.channels, alignof(f32));
+  wav_read_samples(format, &chunks, frameCount, sampleMem.ptr, &err);
   if (err) {
     wav_load_fail(world, entity, id, err);
     goto End;
   }
 
-  wav_load_succeed(world, entity, format, frameCount, samples);
-  samples = null; // Moved into the result component, which will take ownership.
+  wav_load_succeed(world, entity, format, frameCount, sampleMem);
+  sampleMem = mem_empty; // Moved into the result component, which will take ownership.
 
 End:
   dynarray_destroy(&chunks);
-  if (samples) {
-    alloc_free_array_t(g_allocHeap, samples, frameCount * format.channels);
+  if (mem_valid(sampleMem)) {
+    alloc_free(g_allocHeap, sampleMem);
   }
   asset_repo_source_close(src);
 }
