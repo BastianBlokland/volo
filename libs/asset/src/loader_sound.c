@@ -1,6 +1,7 @@
 #include "asset_sound.h"
 #include "core_alloc.h"
 #include "data.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
@@ -35,6 +36,7 @@ ecs_system_define(UnloadSoundAssetSys) {
   for (EcsIterator* itr = ecs_view_itr(unloadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
     ecs_world_remove_t(world, entity, AssetSoundComp);
+    ecs_utils_maybe_remove_t(world, entity, AssetSoundSourceComp);
   }
 }
 
