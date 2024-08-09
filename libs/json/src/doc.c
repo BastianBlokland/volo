@@ -76,7 +76,7 @@ static String json_bigstring_add(JsonDoc* doc, const String data) {
   JsonBigStr* node = mem_as_t(allocMem, JsonBigStr);
   *node            = (JsonBigStr){.size = data.size};
 
-  const Mem nodeData = mem_from_to(node->data, mem_end(allocMem));
+  const Mem nodeData = mem_create(node->data, data.size);
   mem_cpy(nodeData, data);
 
   if (doc->bigStrs) {
