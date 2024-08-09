@@ -6,6 +6,7 @@
 #include "log_logger.h"
 
 #include "data_internal.h"
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 DataMeta g_assetLevelDefMeta;
@@ -87,6 +88,11 @@ void asset_load_level(
 
   ecs_world_add_t(world, entity, AssetLevelComp, .level = lvl);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+
+  if (src->format != AssetFormat_LevelBin) {
+    asset_cache(world, entity, g_assetLevelDefMeta, mem_var(lvl));
+  }
+
   goto Cleanup;
 
 Error:
