@@ -27,8 +27,8 @@ typedef enum {
  */
 typedef struct {
   DataType      type;
-  DataFlags     flags;
-  DataContainer container;
+  DataFlags     flags : 8;
+  DataContainer container : 8;
 } DataMeta;
 
 #define data_meta_t(_DATA_TYPE_, ...) ((DataMeta){.type = _DATA_TYPE_, ##__VA_ARGS__})
