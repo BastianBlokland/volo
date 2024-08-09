@@ -5,11 +5,13 @@
 
 #include "repo_internal.h"
 
+DataMeta g_assetSoundMeta;
+
 ecs_comp_define_public(AssetSoundComp);
 
 static void ecs_destruct_sound_comp(void* data) {
   AssetSoundComp* comp = data;
-  alloc_free(g_allocHeap, mem_create(comp->sampleData.ptr, comp->sampleData.size));
+  data_destroy(g_dataReg, g_allocHeap, g_assetSoundMeta, mem_create(comp, sizeof(AssetSoundComp)));
 }
 
 ecs_view_define(UnloadView) {
