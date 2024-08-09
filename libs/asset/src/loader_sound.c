@@ -9,9 +9,16 @@ DataMeta g_assetSoundMeta;
 
 ecs_comp_define_public(AssetSoundComp);
 
+ecs_comp_define(AssetSoundSourceComp) { AssetSource* src; };
+
 static void ecs_destruct_sound_comp(void* data) {
   AssetSoundComp* comp = data;
   data_destroy(g_dataReg, g_allocHeap, g_assetSoundMeta, mem_create(comp, sizeof(AssetSoundComp)));
+}
+
+static void ecs_destruct_sound_source_comp(void* data) {
+  AssetSoundSourceComp* comp = data;
+  asset_repo_source_close(comp->src);
 }
 
 ecs_view_define(UnloadView) {
@@ -32,6 +39,7 @@ ecs_system_define(UnloadSoundAssetSys) {
 
 ecs_module_init(asset_sound_module) {
   ecs_register_comp(AssetSoundComp, .destructor = ecs_destruct_sound_comp);
+  ecs_register_comp(AssetSoundSourceComp, .destructor = ecs_destruct_sound_source_comp);
 
   ecs_register_view(UnloadView);
 
