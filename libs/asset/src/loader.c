@@ -23,6 +23,7 @@
   _X_(AssetFormat_ShaderGlslFrag,   shader_glsl_frag   )                                           \
   _X_(AssetFormat_ShaderGlslVert,   shader_glsl_vert   )                                           \
   _X_(AssetFormat_ShaderSpv,        shader_spv         )                                           \
+  _X_(AssetFormat_SoundBin,         sound_bin          )                                           \
   _X_(AssetFormat_SoundWav,         sound_wav          )                                           \
   _X_(AssetFormat_Terrain,          terrain            )                                           \
   _X_(AssetFormat_TexArray,         tex_array          )                                           \

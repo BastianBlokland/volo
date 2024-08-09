@@ -16,6 +16,7 @@ void asset_data_init_proctex(void);
 void asset_data_init_product(void);
 void asset_data_init_script(void);
 void asset_data_init_shader(void);
+void asset_data_init_sound(void);
 void asset_data_init_terrain(void);
 void asset_data_init_tex(void);
 void asset_data_init_vfx(void);

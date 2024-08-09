@@ -2,6 +2,7 @@
 #include "asset_cursor.h"
 #include "asset_fonttex.h"
 #include "asset_shader.h"
+#include "asset_sound.h"
 #include "asset_texture.h"
 #include "core_array.h"
 #include "core_diag.h"
@@ -59,6 +60,7 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_ShaderGlslFrag] = string_static("ShaderGlslFrag"),
     [AssetFormat_ShaderGlslVert] = string_static("ShaderGlslVert"),
     [AssetFormat_ShaderSpv]      = string_static("ShaderSpv"),
+    [AssetFormat_SoundBin]       = string_static("SoundBin"),
     [AssetFormat_SoundWav]       = string_static("SoundWav"),
     [AssetFormat_Terrain]        = string_static("Terrain"),
     [AssetFormat_TexArray]       = string_static("TexArray"),
@@ -79,6 +81,7 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
 static const DataMeta* g_assetFormatMeta[AssetFormat_Count] = {
     [AssetFormat_CursorBin]   = &g_assetCursorMeta,
     [AssetFormat_ShaderBin]   = &g_assetShaderMeta,
+    [AssetFormat_SoundBin]    = &g_assetSoundMeta,
     [AssetFormat_TexAtlasBin] = &g_assetAtlasBundleMeta,
     [AssetFormat_TexBin]      = &g_assetTexMeta,
     [AssetFormat_TexFontBin]  = &g_assetFontTexBundleMeta,
