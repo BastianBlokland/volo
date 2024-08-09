@@ -66,6 +66,7 @@ void asset_data_init(void) {
     asset_data_init_product();
     asset_data_init_script();
     asset_data_init_shader();
+    asset_data_init_sound();
     asset_data_init_terrain();
     asset_data_init_vfx();
     asset_data_init_weapon();

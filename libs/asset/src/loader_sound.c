@@ -1,5 +1,6 @@
 #include "asset_sound.h"
 #include "core_alloc.h"
+#include "data.h"
 #include "ecs_world.h"
 
 #include "repo_internal.h"
@@ -33,4 +34,16 @@ ecs_module_init(asset_sound_module) {
   ecs_register_view(UnloadView);
 
   ecs_register_system(UnloadSoundAssetSys, ecs_view_id(UnloadView));
+}
+
+void asset_data_init_sound(void) {
+  // clang-format off
+  data_reg_struct_t(g_dataReg, AssetSoundComp);
+  data_reg_field_t(g_dataReg, AssetSoundComp, frameChannels, data_prim_t(u8), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetSoundComp, frameCount, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetSoundComp, frameRate, data_prim_t(u32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetSoundComp, sampleData, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
+  // clang-format on
+
+  g_assetSoundMeta = data_meta_t(t_AssetSoundComp);
 }
