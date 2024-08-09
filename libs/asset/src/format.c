@@ -1,6 +1,7 @@
 #include "asset_atlas.h"
 #include "asset_cursor.h"
 #include "asset_fonttex.h"
+#include "asset_level.h"
 #include "asset_shader.h"
 #include "asset_sound.h"
 #include "asset_texture.h"
@@ -48,6 +49,7 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_Graphic]        = string_static("Graphic"),
     [AssetFormat_Inputs]         = string_static("Inputs"),
     [AssetFormat_Level]          = string_static("Level"),
+    [AssetFormat_LevelBin]       = string_static("LevelBin"),
     [AssetFormat_MeshGltf]       = string_static("MeshGltf"),
     [AssetFormat_MeshObj]        = string_static("MeshObj"),
     [AssetFormat_MeshProc]       = string_static("MeshProc"),
@@ -78,8 +80,9 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_Weapons]        = string_static("Weapons"),
 };
 
-static const DataMeta* g_assetFormatMeta[AssetFormat_Count] = {
+static const DataMeta* g_assetFormatBinMeta[AssetFormat_Count] = {
     [AssetFormat_CursorBin]   = &g_assetCursorMeta,
+    [AssetFormat_LevelBin]    = &g_assetLevelDefMeta,
     [AssetFormat_ShaderBin]   = &g_assetShaderMeta,
     [AssetFormat_SoundBin]    = &g_assetSoundMeta,
     [AssetFormat_TexAtlasBin] = &g_assetAtlasBundleMeta,
@@ -101,9 +104,9 @@ AssetFormat asset_format_from_ext(const String ext) {
   return AssetFormat_Raw;
 }
 
-AssetFormat asset_format_from_data_meta(const DataMeta meta) {
+AssetFormat asset_format_from_bin_meta(const DataMeta meta) {
   for (AssetFormat fmt = 0; fmt != AssetFormat_Count; ++fmt) {
-    if (g_assetFormatMeta[fmt] && data_meta_eq(meta, *g_assetFormatMeta[fmt])) {
+    if (g_assetFormatBinMeta[fmt] && data_meta_eq(meta, *g_assetFormatBinMeta[fmt])) {
       return fmt;
     }
   }

@@ -36,7 +36,7 @@ static void asset_source_fs_close(AssetSource* src) {
 }
 
 static AssetSource* asset_source_fs_open_cached(AssetRepoFs* repoFs, const AssetCacheRecord* rec) {
-  const AssetFormat format = asset_format_from_data_meta(rec->meta);
+  const AssetFormat format = asset_format_from_bin_meta(rec->meta);
   if (format == AssetFormat_Raw) {
     log_w("No asset-format found for cached data");
     file_destroy(rec->blobFile);

@@ -10,6 +10,7 @@ typedef enum {
   AssetFormat_Graphic,
   AssetFormat_Inputs,
   AssetFormat_Level,
+  AssetFormat_LevelBin,
   AssetFormat_MeshGltf,
   AssetFormat_MeshObj,
   AssetFormat_MeshProc,
@@ -44,4 +45,4 @@ typedef enum {
 
 String      asset_format_str(AssetFormat);
 AssetFormat asset_format_from_ext(String ext);
-AssetFormat asset_format_from_data_meta(DataMeta);
+AssetFormat asset_format_from_bin_meta(DataMeta);
