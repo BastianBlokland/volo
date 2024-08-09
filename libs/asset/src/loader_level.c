@@ -72,16 +72,20 @@ void asset_data_init_level(void) {
 void asset_load_level(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
 
-  AssetLevel     level;
+  AssetLevel     lvl;
   String         errMsg;
   DataReadResult readRes;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetLevelDefMeta, mem_var(level), &readRes);
+  if (src->format == AssetFormat_LevelBin) {
+    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetLevelDefMeta, mem_var(lvl), &readRes);
+  } else {
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetLevelDefMeta, mem_var(lvl), &readRes);
+  }
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
     goto Error;
   }
 
-  ecs_world_add_t(world, entity, AssetLevelComp, .level = level);
+  ecs_world_add_t(world, entity, AssetLevelComp, .level = lvl);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   goto Cleanup;
 

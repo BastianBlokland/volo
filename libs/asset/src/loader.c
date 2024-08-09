@@ -12,6 +12,7 @@
   _X_(AssetFormat_Graphic,          graphic            )                                           \
   _X_(AssetFormat_Inputs,           inputs             )                                           \
   _X_(AssetFormat_Level,            level              )                                           \
+  _X_(AssetFormat_LevelBin,         level              )                                           \
   _X_(AssetFormat_MeshGltf,         mesh_gltf          )                                           \
   _X_(AssetFormat_MeshObj,          mesh_obj           )                                           \
   _X_(AssetFormat_MeshProc,         mesh_proc          )                                           \
