@@ -207,6 +207,7 @@ ecs_system_define(UnloadCursorAssetSys) {
   for (EcsIterator* itr = ecs_view_itr(unloadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
     ecs_world_remove_t(world, entity, AssetCursorComp);
+    ecs_utils_maybe_remove_t(world, entity, AssetCursorSourceComp);
   }
 }
 
