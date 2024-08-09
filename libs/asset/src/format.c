@@ -48,6 +48,7 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_Graphic]        = string_static("Graphic"),
     [AssetFormat_Inputs]         = string_static("Inputs"),
     [AssetFormat_Level]          = string_static("Level"),
+    [AssetFormat_LevelBin]       = string_static("LevelBin"),
     [AssetFormat_MeshGltf]       = string_static("MeshGltf"),
     [AssetFormat_MeshObj]        = string_static("MeshObj"),
     [AssetFormat_MeshProc]       = string_static("MeshProc"),
