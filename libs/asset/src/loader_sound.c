@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "data.h"
 #include "ecs_world.h"
+#include "log_logger.h"
 
 #include "repo_internal.h"
 
@@ -56,4 +57,28 @@ void asset_data_init_sound(void) {
   // clang-format on
 
   g_assetSoundMeta = data_meta_t(t_AssetSoundComp);
+}
+
+void asset_load_sound_bin(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+
+  AssetSoundComp sound;
+  DataReadResult result;
+  data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetSoundMeta, mem_var(sound), &result);
+
+  if (UNLIKELY(result.error)) {
+    log_e(
+        "Failed to load binary sound",
+        log_param("id", fmt_text(id)),
+        log_param("error-code", fmt_int(result.error)),
+        log_param("error", fmt_text(result.errorMsg)));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_repo_source_close(src);
+    return;
+  }
+
+  *ecs_world_add_t(world, entity, AssetSoundComp) = sound;
+  ecs_world_add_t(world, entity, AssetSoundSourceComp, .src = src);
+
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 }
