@@ -5,6 +5,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 /**
@@ -203,7 +204,7 @@ static void wav_load_succeed(
     const u32         frameCount,
     const Mem         sampleMem) {
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
-  ecs_world_add_t(
+  AssetSoundComp* soundComp = ecs_world_add_t(
       world,
       entity,
       AssetSoundComp,
@@ -211,6 +212,8 @@ static void wav_load_succeed(
       .frameCount    = frameCount,
       .frameRate     = format.frameRate,
       .sampleData    = data_mem_create(sampleMem));
+
+  asset_cache(world, entity, g_assetSoundMeta, mem_create(soundComp, sizeof(AssetSoundComp)));
 }
 
 static void
