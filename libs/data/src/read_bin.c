@@ -545,7 +545,7 @@ String data_read_bin(
     Mem             data,
     DataReadResult* res) {
 
-  DynArray allocations = dynarray_create_t(g_allocHeap, Mem, 64);
+  DynArray allocations = dynarray_create_t(g_allocHeap, Mem, 0);
 
   ReadCtx ctx = {
       .reg         = reg,
