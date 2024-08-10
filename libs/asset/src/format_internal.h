@@ -11,6 +11,7 @@ typedef enum {
   AssetFormat_Inputs,
   AssetFormat_Level,
   AssetFormat_LevelBin,
+  AssetFormat_MeshBin,
   AssetFormat_MeshGltf,
   AssetFormat_MeshObj,
   AssetFormat_MeshProc,
