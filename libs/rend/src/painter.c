@@ -601,9 +601,7 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
 
 static void painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspect, RvkMesh* mesh) {
   RvkRepository*        repo      = rvk_canvas_repository(ctx->painter->canvas);
-  const RvkRepositoryId graphicId = mesh->flags & RvkMeshFlags_Skinned
-                                        ? RvkRepositoryId_DebugMeshViewerSkinnedGraphic
-                                        : RvkRepositoryId_DebugMeshViewerGraphic;
+  const RvkRepositoryId graphicId = RvkRepositoryId_DebugMeshViewerGraphic;
   RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
   if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
     typedef struct {
