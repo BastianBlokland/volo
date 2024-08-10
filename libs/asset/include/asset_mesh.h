@@ -54,7 +54,7 @@ typedef struct {
 } AssetMeshAnimChannel;
 
 typedef struct {
-  StringHash           name;
+  String               name;
   f32                  duration;
   AssetMeshAnimChannel joints[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
 } AssetMeshAnim;

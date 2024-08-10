@@ -117,12 +117,12 @@ typedef struct {
   u32           nodeIndex;
   u32           parentIndex;
   u32           skinCount; // Amount of vertices skinned to this joint.
-  StringHash    nameHash;
+  String        name;      // Interned in the global string-table.
   GltfTransform trans;
 } GltfJoint;
 
 typedef struct {
-  StringHash      nameHash;
+  String          name; // Interned in the global string-table.
   GltfAnimChannel channels[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
 } GltfAnim;
 
@@ -344,9 +344,9 @@ static bool gltf_json_field_quat(GltfLoad* ld, const JsonVal v, const String nam
   return success;
 }
 
-static void gltf_json_name(GltfLoad* ld, const JsonVal v, StringHash* out) {
+static void gltf_json_name(GltfLoad* ld, const JsonVal v, String* out) {
   String str;
-  *out = stringtable_add(
+  *out = stringtable_intern(
       g_stringtable, gltf_json_field_str(ld, v, string_lit("name"), &str) ? str : string_empty);
 }
 
@@ -780,7 +780,7 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
     }
     GltfJoint* out = &ld->joints[jointIndex];
 
-    gltf_json_name(ld, node, &out->nameHash);
+    gltf_json_name(ld, node, &out->name);
     gltf_json_transform(ld, node, &out->trans);
 
     const JsonVal children = json_field_lit(ld->jDoc, node, "children");
@@ -849,7 +849,7 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
     if (json_type(ld->jDoc, anim) != JsonType_Object) {
       goto Error;
     }
-    gltf_json_name(ld, anim, &outAnim->nameHash);
+    gltf_json_name(ld, anim, &outAnim->name);
 
     const JsonVal samplers = json_field_lit(ld->jDoc, anim, "samplers");
     if (!gltf_json_check(ld, samplers, JsonType_Array)) {
@@ -1312,14 +1312,14 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
   // Output the joint name-hashes.
   AssetMeshAnimPtr resNames = gltf_anim_data_begin(ld, alignof(StringHash));
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
-    gltf_anim_data_push_u32(ld, ld->joints[jointIndex].nameHash);
+    gltf_anim_data_push_u32(ld, string_hash(ld->joints[jointIndex].name));
   }
 
   // Create the animation output structures.
   AssetMeshAnim* resAnims =
       ld->animCount ? alloc_array_t(g_allocHeap, AssetMeshAnim, ld->animCount) : null;
   for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
-    resAnims[animIndex].name = ld->anims[animIndex].nameHash;
+    resAnims[animIndex].name = ld->anims[animIndex].name;
     f32 duration             = 0;
 
     for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
