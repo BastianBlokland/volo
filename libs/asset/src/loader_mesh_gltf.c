@@ -344,10 +344,19 @@ static bool gltf_json_field_quat(GltfLoad* ld, const JsonVal v, const String nam
   return success;
 }
 
+/**
+ * NOTE: Returned strings are interned in the global string-table.
+ */
 static void gltf_json_name(GltfLoad* ld, const JsonVal v, String* out) {
-  String str;
-  *out = stringtable_intern(
-      g_stringtable, gltf_json_field_str(ld, v, string_lit("name"), &str) ? str : string_empty);
+  String str = string_empty;
+  gltf_json_field_str(ld, v, string_lit("name"), &str);
+
+  if (string_is_empty(str)) {
+    *out = string_empty;
+    return;
+  }
+
+  *out = stringtable_intern(g_stringtable, string_slice(str, 0, math_min(str.size, u8_max)));
 }
 
 static void gltf_json_transform(GltfLoad* ld, const JsonVal v, GltfTransform* out) {
