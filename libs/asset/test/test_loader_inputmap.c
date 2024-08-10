@@ -1,7 +1,6 @@
 #include "asset.h"
 #include "check_spec.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "ecs.h"
 
 #include "utils_internal.h"
@@ -253,16 +252,17 @@ spec(loader_inputmap) {
 
       check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
       const AssetInputMapComp* map = ecs_utils_read_t(world, AssetView, asset, AssetInputMapComp);
-      check_require(map->actionCount == g_testData[i].actionCount);
+      check_require(map->actions.count == g_testData[i].actionCount);
       for (usize a = 0; a != g_testData[i].actionCount; ++a) {
-        const AssetInputAction* actualAction   = &map->actions[a];
+        const AssetInputAction* actualAction   = &map->actions.values[a];
         const TestActionData*   expectedAction = &g_testData[i].actions[a];
 
         check_eq_int(actualAction->nameHash, string_hash(expectedAction->name));
         check_eq_int(actualAction->blockerBits, expectedAction->blockerBits);
         check_require(actualAction->bindingCount == expectedAction->bindingCount);
         for (usize b = 0; b != expectedAction->bindingCount; ++b) {
-          const AssetInputBinding* actualBinding   = &map->bindings[actualAction->bindingIndex + b];
+          const AssetInputBinding* actualBinding =
+              &map->bindings.values[actualAction->bindingIndex + b];
           const AssetInputBinding* expectedBinding = &expectedAction->bindings[b];
 
           check_eq_int(actualBinding->type, expectedBinding->type);

@@ -17,19 +17,16 @@ spec(array) {
     check_eq_int(foundCount, array_elems(array));
   }
 
-  it("can iterate over an array defined by a pointer and a count") {
+  it("can iterate over a heap-array") {
     String storage[8];
     for (usize i = 0; i != array_elems(storage); ++i) {
       storage[i] = string_lit("Hello World");
     }
 
-    struct {
-      String* values;
-      usize   count;
-    } array = {.values = storage, .count = array_elems(storage)};
+    HeapArray_t(String) array = {.values = storage, .count = array_elems(storage)};
 
     usize foundCount = 0;
-    array_ptr_for_t(array, String, str) {
+    heap_array_for_t(array, String, str) {
       check_eq_string(*str, string_lit("Hello World"));
       ++foundCount;
     }

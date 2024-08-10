@@ -1,6 +1,5 @@
 #include "core_alloc.h"
 #include "core_annotation.h"
-#include "core_array.h"
 #include "core_bits.h"
 #include "core_dynarray.h"
 #include "core_float.h"
@@ -1045,20 +1044,20 @@ static void ttf_load_succeed(
   AssetFontComp* result = ecs_world_add_t(world, entity, AssetFontComp);
 
   // Copy the characters to the component.
-  result->characters     = dynarray_copy_as_new(characters, g_allocHeap);
-  result->characterCount = characters->size;
+  result->characters.values = dynarray_copy_as_new(characters, g_allocHeap);
+  result->characters.count  = characters->size;
 
   // Copy the points to the component.
-  result->points     = dynarray_copy_as_new(points, g_allocHeap);
-  result->pointCount = points->size;
+  result->points.values = dynarray_copy_as_new(points, g_allocHeap);
+  result->points.count  = points->size;
 
   // Copy the segments to the component.
-  result->segments     = dynarray_copy_as_new(segments, g_allocHeap);
-  result->segmentCount = segments->size;
+  result->segments.values = dynarray_copy_as_new(segments, g_allocHeap);
+  result->segments.count  = segments->size;
 
   // Move the glyphs to the component.
-  result->glyphs     = glyphs;
-  result->glyphCount = glyphCount;
+  result->glyphs.values = glyphs;
+  result->glyphs.count  = glyphCount;
 }
 
 static void

@@ -88,7 +88,7 @@ static void rvk_vk_exts_free(RendVkExts exts) {
  * Check if the given extension is contained in the list of available device extensions.
  */
 static bool rvk_device_has_ext(RendVkExts availableExts, String ext) {
-  array_ptr_for_t(availableExts, VkExtensionProperties, props) {
+  heap_array_for_t(availableExts, VkExtensionProperties, props) {
     if (string_eq(ext, string_from_null_term(props->extensionName))) {
       return true;
     }
@@ -309,10 +309,10 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
   VkDeviceQueueCreateInfo queueCreateInfos[2];
   u32                     queueCreateInfoCount = 0;
   queueCreateInfos[queueCreateInfoCount++]     = (VkDeviceQueueCreateInfo){
-      .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-      .queueFamilyIndex = dev->graphicsQueueIndex,
-      .queueCount       = 1,
-      .pQueuePriorities = &queuePriorities[0],
+          .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+          .queueFamilyIndex = dev->graphicsQueueIndex,
+          .queueCount       = 1,
+          .pQueuePriorities = &queuePriorities[0],
   };
   if (dev->transferQueueIndex != dev->graphicsQueueIndex) {
     queueCreateInfos[queueCreateInfoCount++] = (VkDeviceQueueCreateInfo){
@@ -415,8 +415,8 @@ static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
 RvkDevice* rvk_device_create(const RendSettingsGlobalComp* settingsGlobal) {
   RvkDevice* dev = alloc_alloc_t(g_allocHeap, RvkDevice);
   *dev           = (RvkDevice){
-      .vkAlloc          = rvk_mem_allocator(g_allocHeap),
-      .queueSubmitMutex = thread_mutex_create(g_allocHeap),
+                .vkAlloc          = rvk_mem_allocator(g_allocHeap),
+                .queueSubmitMutex = thread_mutex_create(g_allocHeap),
   };
 
   const bool validationDesired = (settingsGlobal->flags & RendGlobalFlags_Validation) != 0;

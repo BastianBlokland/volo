@@ -1,4 +1,5 @@
 #pragma once
+#include "core_array.h"
 #include "core_time.h"
 #include "data_registry.h"
 #include "ecs_module.h"
@@ -88,9 +89,8 @@ typedef enum {
 } AssetVfxFlags;
 
 ecs_comp_extern_public(AssetVfxComp) {
-  AssetVfxFlags    flags;
-  u32              emitterCount;
-  AssetVfxEmitter* emitters;
+  AssetVfxFlags flags;
+  HeapArray_t(AssetVfxEmitter) emitters;
 };
 
 extern DataMeta g_assetVfxDefMeta;

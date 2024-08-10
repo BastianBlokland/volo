@@ -1,5 +1,4 @@
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_dynlib.h"
 #include "core_env.h"
 #include "core_path.h"

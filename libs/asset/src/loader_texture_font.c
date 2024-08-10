@@ -1,7 +1,6 @@
 #include "asset_font.h"
 #include "asset_fonttex.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
@@ -383,7 +382,7 @@ ecs_system_define(FontTexLoadAssetSys) {
 
   Cleanup:
     ecs_world_remove_t(world, entity, AssetFontTexLoadComp);
-    array_ptr_for_t(load->def.fonts, FontTexDefFont, font) {
+    heap_array_for_t(load->def.fonts, FontTexDefFont, font) {
       if (font->asset) {
         asset_release(world, font->asset);
       }

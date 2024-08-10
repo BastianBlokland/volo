@@ -319,7 +319,7 @@ static bool rend_res_dependencies_acquire(EcsWorld* world, EcsIterator* resource
   if (maybeAssetGraphic) {
     const RendResFlags depFlags = resComp->flags; // Transfer the flags down to the dependencies.
 
-    array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
+    heap_array_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
       rend_res_request_internal(world, ptr->shader, depFlags);
       rend_res_add_dependency(resComp, ptr->shader);
     }
@@ -329,7 +329,7 @@ static bool rend_res_dependencies_acquire(EcsWorld* world, EcsIterator* resource
       rend_res_add_dependency(resComp, maybeAssetGraphic->mesh);
     }
 
-    array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
+    heap_array_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
       rend_res_request_internal(world, ptr->texture, depFlags);
       rend_res_add_dependency(resComp, ptr->texture);
     }
@@ -387,7 +387,7 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
 
     // Add shaders.
     EcsView* shaderView = ecs_world_view_t(world, ShaderWriteView);
-    array_ptr_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
+    heap_array_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
       if (!ecs_view_contains(shaderView, ptr->shader)) {
         log_e("Invalid shader reference", log_param("graphic", fmt_text(id)));
         resComp->state = RendResLoadState_FinishedFailure;
@@ -414,7 +414,7 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
 
     // Add samplers.
     EcsView* textureView = ecs_world_view_t(world, TextureWriteView);
-    array_ptr_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
+    heap_array_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
       if (!ecs_view_contains(textureView, ptr->texture)) {
         log_e("Invalid texture reference", log_param("graphic", fmt_text(id)));
         resComp->state = RendResLoadState_FinishedFailure;

@@ -1,4 +1,5 @@
 #pragma once
+#include "core_array.h"
 #include "data_registry.h"
 #include "ecs_module.h"
 
@@ -27,11 +28,9 @@ typedef struct {
 } AssetInputAction;
 
 ecs_comp_extern_public(AssetInputMapComp) {
-  StringHash         layer;
-  AssetInputAction*  actions; // Sorted on the nameHash.
-  usize              actionCount;
-  AssetInputBinding* bindings;
-  usize              bindingCount;
+  StringHash layer;
+  HeapArray_t(AssetInputAction) actions; // Sorted on the nameHash.
+  HeapArray_t(AssetInputBinding) bindings;
 };
 
 extern DataMeta g_assetInputDefMeta;

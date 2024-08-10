@@ -1,6 +1,5 @@
 #include "asset_graphic.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_diag.h"
 #include "data.h"
 #include "ecs_utils.h"
@@ -76,12 +75,12 @@ ecs_system_define(LoadGraphicAssetSys) {
     }
 
     // Resolve shader references.
-    array_ptr_for_t(graphicComp->shaders, AssetGraphicShader, ptr) {
+    heap_array_for_t(graphicComp->shaders, AssetGraphicShader, ptr) {
       ptr->shader = asset_lookup(world, manager, ptr->shaderId);
     }
 
     // Resolve texture references.
-    array_ptr_for_t(graphicComp->samplers, AssetGraphicSampler, ptr) {
+    heap_array_for_t(graphicComp->samplers, AssetGraphicSampler, ptr) {
       ptr->texture = asset_lookup(world, manager, ptr->textureId);
     }
 

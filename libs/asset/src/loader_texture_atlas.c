@@ -1,6 +1,5 @@
 #include "asset_atlas.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
@@ -26,10 +25,7 @@ typedef struct {
 typedef struct {
   u32  size, entrySize, entryPadding, maxMipMaps;
   bool mipmaps, srgb, lossless, nearest;
-  struct {
-    AtlasEntryDef* values;
-    usize          count;
-  } entries;
+  HeapArray_t(AtlasEntryDef) entries;
 } AtlasDef;
 
 typedef struct {
@@ -254,7 +250,7 @@ ecs_system_define(AtlasLoadAssetSys) {
      * Start loading all entry textures.
      */
     if (!load->textures.size) {
-      array_ptr_for_t(load->def.entries, AtlasEntryDef, entryDef) {
+      heap_array_for_t(load->def.entries, AtlasEntryDef, entryDef) {
         const EcsEntityId texAsset = asset_lookup(world, manager, entryDef->texture);
         *dynarray_push_t(&load->textures, EcsEntityId) = texAsset;
         asset_acquire(world, texAsset);
@@ -416,7 +412,7 @@ void asset_load_tex_atlas(
     errMsg = atlas_error_str(AtlasError_TooManyEntries);
     goto Error;
   }
-  array_ptr_for_t(def.entries, String, texName) {
+  heap_array_for_t(def.entries, String, texName) {
     if (UNLIKELY(string_is_empty(*texName))) {
       errMsg = atlas_error_str(AtlasError_InvalidTexture);
       goto Error;

@@ -5,7 +5,6 @@
 #include "asset_shader.h"
 #include "asset_sound.h"
 #include "asset_texture.h"
-#include "core_array.h"
 #include "core_diag.h"
 
 #include "format_internal.h"

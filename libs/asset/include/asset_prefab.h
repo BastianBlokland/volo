@@ -1,4 +1,5 @@
 #pragma once
+#include "core_array.h"
 #include "core_time.h"
 #include "data_registry.h"
 #include "ecs_entity.h"
@@ -263,13 +264,11 @@ typedef struct {
 } AssetPrefabValue;
 
 ecs_comp_extern_public(AssetPrefabMapComp) {
-  AssetPrefab*      prefabs;         // AssetPrefab[prefabCount]. Sorted on the nameHash.
-  u16*              userIndexLookup; // u16[prefabCount], lookup from user-index to prefab-index.
-  usize             prefabCount;
-  AssetPrefabTrait* traits; // AssetPrefabTrait[traitCount];
-  usize             traitCount;
-  AssetPrefabValue* values;
-  usize             valueCount;
+  AssetPrefab* prefabs;         // AssetPrefab[prefabCount]. Sorted on the nameHash.
+  u16*         userIndexLookup; // u16[prefabCount], lookup from user-index to prefab-index.
+  usize        prefabCount;
+  HeapArray_t(AssetPrefabTrait) traits;
+  HeapArray_t(AssetPrefabValue) values;
 };
 
 extern DataMeta g_assetPrefabDefMeta;

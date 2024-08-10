@@ -1,6 +1,5 @@
 #include "asset_prefab.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
@@ -92,10 +91,7 @@ typedef struct {
 } AssetPrefabTraitNameDef;
 
 typedef struct {
-  struct {
-    String* values;
-    usize   count;
-  } sets;
+  HeapArray_t(String) sets;
 } AssetPrefabTraitSetMemberDef;
 
 typedef struct {
@@ -111,10 +107,7 @@ typedef struct {
 } AssetPrefabTraitDecalDef;
 
 typedef struct {
-  struct {
-    String* values;
-    usize   count;
-  } assetIds;
+  HeapArray_t(String) assetIds;
   f32  gainMin, gainMax;
   f32  pitchMin, pitchMax;
   bool looping;
@@ -175,14 +168,8 @@ typedef struct {
 } AssetPrefabTraitCollisionDef;
 
 typedef struct {
-  struct {
-    String* values;
-    usize   count;
-  } scriptIds;
-  struct {
-    AssetPrefabValue* values;
-    usize             count;
-  } knowledge;
+  HeapArray_t(String) scriptIds;
+  HeapArray_t(AssetPrefabValue) knowledge;
 } AssetPrefabTraitScriptDef;
 
 typedef struct {
@@ -243,17 +230,11 @@ typedef struct {
 typedef struct {
   String name;
   bool   isVolatile;
-  struct {
-    AssetPrefabTraitDef* values;
-    usize                count;
-  } traits;
+  HeapArray_t(AssetPrefabTraitDef) traits;
 } AssetPrefabDef;
 
 typedef struct {
-  struct {
-    AssetPrefabDef* values;
-    usize           count;
-  } prefabs;
+  HeapArray_t(AssetPrefabDef) prefabs;
 } AssetPrefabMapDef;
 
 static i8 prefab_compare(const void* a, const void* b) {
@@ -386,7 +367,7 @@ static void prefab_build(
   const BitSet addedTraits = bitset_from_array(addedTraitsBits);
 
   AssetManagerComp* manager = ctx->assetManager;
-  array_ptr_for_t(def->traits, AssetPrefabTraitDef, traitDef) {
+  heap_array_for_t(def->traits, AssetPrefabTraitDef, traitDef) {
     if (bitset_test(addedTraits, traitDef->type)) {
       *err = PrefabError_DuplicateTrait;
       return;
@@ -535,7 +516,7 @@ static void prefab_build(
         const String assetId                  = scriptDef->scriptIds.values[i];
         outTrait->data_script.scriptAssets[i] = asset_lookup(ctx->world, manager, assetId);
       }
-      array_ptr_for_t(scriptDef->knowledge, AssetPrefabValueDef, valDef) {
+      heap_array_for_t(scriptDef->knowledge, AssetPrefabValueDef, valDef) {
         *dynarray_push_t(outValues, AssetPrefabValue) = prefab_build_value(ctx, valDef);
       }
     } break;
@@ -594,7 +575,7 @@ static void prefabmap_build(
     DynArray*                outValues,  // AssetPrefabValue[], needs to be already initialized.
     PrefabError*             err) {
 
-  array_ptr_for_t(def->prefabs, AssetPrefabDef, prefabDef) {
+  heap_array_for_t(def->prefabs, AssetPrefabDef, prefabDef) {
     AssetPrefab prefab;
     prefab_build(ctx, prefabDef, outTraits, outValues, &prefab, err);
     if (*err) {
@@ -637,11 +618,11 @@ static void ecs_destruct_prefabmap_comp(void* data) {
     alloc_free_array_t(g_allocHeap, comp->prefabs, comp->prefabCount);
     alloc_free_array_t(g_allocHeap, comp->userIndexLookup, comp->prefabCount);
   }
-  if (comp->traits) {
-    alloc_free_array_t(g_allocHeap, comp->traits, comp->traitCount);
+  if (comp->traits.values) {
+    alloc_free_array_t(g_allocHeap, comp->traits.values, comp->traits.count);
   }
-  if (comp->values) {
-    alloc_free_array_t(g_allocHeap, comp->values, comp->valueCount);
+  if (comp->values.values) {
+    alloc_free_array_t(g_allocHeap, comp->values.values, comp->values.count);
   }
 }
 
@@ -717,10 +698,10 @@ ecs_system_define(LoadPrefabAssetSys) {
         .prefabs         = dynarray_copy_as_new(&prefabs, g_allocHeap),
         .userIndexLookup = userIndexLookup,
         .prefabCount     = prefabs.size,
-        .traits          = dynarray_copy_as_new(&traits, g_allocHeap),
-        .traitCount      = traits.size,
-        .values          = dynarray_copy_as_new(&values, g_allocHeap),
-        .valueCount      = values.size);
+        .traits.values   = dynarray_copy_as_new(&traits, g_allocHeap),
+        .traits.count    = traits.size,
+        .values.values   = dynarray_copy_as_new(&values, g_allocHeap),
+        .values.count    = values.size);
 
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
     goto Cleanup;
@@ -987,7 +968,7 @@ u16 asset_prefab_get_index_from_user(const AssetPrefabMapComp* map, const u16 us
 const AssetPrefabTrait* asset_prefab_trait_get(
     const AssetPrefabMapComp* map, const AssetPrefab* prefab, const AssetPrefabTraitType type) {
   for (u16 i = 0; i != prefab->traitCount; ++i) {
-    const AssetPrefabTrait* trait = &map->traits[prefab->traitIndex + i];
+    const AssetPrefabTrait* trait = &map->traits.values[prefab->traitIndex + i];
     if (trait->type == type) {
       return trait;
     }

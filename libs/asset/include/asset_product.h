@@ -1,4 +1,5 @@
 #pragma once
+#include "core_array.h"
 #include "core_unicode.h"
 #include "data_registry.h"
 #include "ecs_entity.h"
@@ -52,10 +53,8 @@ typedef struct {
 } AssetProductSet;
 
 ecs_comp_extern_public(AssetProductMapComp) {
-  AssetProductSet* sets; // Sorted on the nameHash.
-  usize            setCount;
-  AssetProduct*    products;
-  usize            productCount;
+  HeapArray_t(AssetProductSet) sets; // Sorted on the nameHash.
+  HeapArray_t(AssetProduct) products;
 };
 
 extern DataMeta g_assetProductDefMeta;

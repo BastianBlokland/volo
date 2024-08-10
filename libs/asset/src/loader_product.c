@@ -1,7 +1,6 @@
 #include "asset_product.h"
 #include "core_alloc.h"
 #include "core_annotation.h"
-#include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_search.h"
@@ -53,17 +52,11 @@ typedef struct {
 
 typedef struct {
   String name;
-  struct {
-    AssetProductDef* values;
-    usize            count;
-  } products;
+  HeapArray_t(AssetProductDef) products;
 } AssetProductSetDef;
 
 typedef struct {
-  struct {
-    AssetProductSetDef* values;
-    usize               count;
-  } sets;
+  HeapArray_t(AssetProductSetDef) sets;
 } AssetProductMapDef;
 
 static i8 asset_productset_compare(const void* a, const void* b) {
@@ -135,7 +128,7 @@ static void productset_build(
       .productCount = (u16)def->products.count,
   };
 
-  array_ptr_for_t(def->products, AssetProductDef, productDef) {
+  heap_array_for_t(def->products, AssetProductDef, productDef) {
     AssetProduct* outProduct = dynarray_push_t(outProducts, AssetProduct);
     outProduct->type         = productDef->type;
 
@@ -169,7 +162,7 @@ static void productmap_build(
     DynArray*                 outProducts, // AssetProduct[], needs to be already initialized.
     ProductError*             err) {
 
-  array_ptr_for_t(def->sets, AssetProductSetDef, setDef) {
+  heap_array_for_t(def->sets, AssetProductSetDef, setDef) {
     AssetProductSet set;
     productset_build(ctx, setDef, outProducts, &set, err);
     if (*err) {
@@ -189,14 +182,14 @@ ecs_comp_define(AssetProductLoadComp) { AssetSource* src; };
 
 static void ecs_destruct_productmap_comp(void* data) {
   AssetProductMapComp* comp = data;
-  if (comp->sets) {
-    alloc_free_array_t(g_allocHeap, comp->sets, comp->setCount);
+  if (comp->sets.values) {
+    alloc_free_array_t(g_allocHeap, comp->sets.values, comp->sets.count);
   }
-  if (comp->products) {
-    for (u32 i = 0; i != comp->productCount; ++i) {
-      string_maybe_free(g_allocHeap, comp->products[i].name);
+  if (comp->products.values) {
+    for (u32 i = 0; i != comp->products.count; ++i) {
+      string_maybe_free(g_allocHeap, comp->products.values[i].name);
     }
-    alloc_free_array_t(g_allocHeap, comp->products, comp->productCount);
+    alloc_free_array_t(g_allocHeap, comp->products.values, comp->products.count);
   }
 }
 
@@ -262,10 +255,10 @@ ecs_system_define(LoadProductAssetSys) {
         world,
         entity,
         AssetProductMapComp,
-        .sets         = dynarray_copy_as_new(&sets, g_allocHeap),
-        .setCount     = sets.size,
-        .products     = dynarray_copy_as_new(&products, g_allocHeap),
-        .productCount = products.size);
+        .sets.values     = dynarray_copy_as_new(&sets, g_allocHeap),
+        .sets.count      = sets.size,
+        .products.values = dynarray_copy_as_new(&products, g_allocHeap),
+        .products.count  = products.size);
 
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
     goto Cleanup;
@@ -360,8 +353,8 @@ void asset_load_products(
 const AssetProductSet*
 asset_productset_get(const AssetProductMapComp* map, const StringHash nameHash) {
   return search_binary_t(
-      map->sets,
-      map->sets + map->setCount,
+      map->sets.values,
+      map->sets.values + map->sets.count,
       AssetProductSet,
       asset_productset_compare,
       mem_struct(AssetProductSet, .nameHash = nameHash).ptr);

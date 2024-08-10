@@ -31,10 +31,7 @@ typedef struct {
   StringHash     idHash;
   AssetCacheMeta meta;
   TimeReal       modTime;
-  struct {
-    const AssetCacheDependency* values;
-    usize                       count;
-  } dependencies;
+  HeapArray_t(AssetCacheDependency) dependencies;
 } AssetCacheEntry;
 
 typedef struct {
@@ -230,7 +227,7 @@ static bool cache_reg_validate(const AssetCache* c, const AssetCacheEntry* entry
   if (!cache_reg_validate_file(c, entry->id, entry->modTime)) {
     return false;
   }
-  array_ptr_for_t(entry->dependencies, AssetCacheDependency, dep) {
+  heap_array_for_t(entry->dependencies, AssetCacheDependency, dep) {
     if (!cache_reg_validate_file(c, dep->id, dep->modTime)) {
       return false;
     }
@@ -389,7 +386,7 @@ void asset_cache_set(
     entry->modTime         = blobModTime;
     if (entry->dependencies.count) {
       // Cleanup the old dependencies.
-      array_ptr_for_t(entry->dependencies, AssetCacheDependency, dep) {
+      heap_array_for_t(entry->dependencies, AssetCacheDependency, dep) {
         string_free(c->alloc, dep->id);
       }
       alloc_free_array_t(c->alloc, entry->dependencies.values, entry->dependencies.count);

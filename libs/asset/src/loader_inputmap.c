@@ -1,6 +1,5 @@
 #include "asset_inputmap.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_search.h"
 #include "core_stringtable.h"
 #include "data.h"
@@ -22,18 +21,12 @@ typedef struct {
 typedef struct {
   String name;
   u32    blockers;
-  struct {
-    AssetInputBindingDef* values;
-    usize                 count;
-  } bindings;
+  HeapArray_t(AssetInputBindingDef) bindings;
 } AssetInputActionDef;
 
 typedef struct {
   String layer;
-  struct {
-    AssetInputActionDef* values;
-    usize                count;
-  } actions;
+  HeapArray_t(AssetInputActionDef) actions;
 } AssetInputMapDef;
 
 static i8 asset_inputmap_compare_action(const void* a, const void* b) {
@@ -63,7 +56,7 @@ static void asset_inputmap_build(
     DynArray*               outBindings, // AssetInputBinding[], needs to be already initialized.
     InputMapError*          err) {
 
-  array_ptr_for_t(def->actions, AssetInputActionDef, actionDef) {
+  heap_array_for_t(def->actions, AssetInputActionDef, actionDef) {
     const usize            bindingCount = actionDef->bindings.count;
     const AssetInputAction action       = {
               .nameHash     = stringtable_add(g_stringtable, actionDef->name),
@@ -78,7 +71,7 @@ static void asset_inputmap_build(
     *dynarray_insert_sorted_t(
         outActions, AssetInputAction, asset_inputmap_compare_action, &action) = action;
 
-    array_ptr_for_t(actionDef->bindings, AssetInputBindingDef, bindingDef) {
+    heap_array_for_t(actionDef->bindings, AssetInputBindingDef, bindingDef) {
       *dynarray_push_t(outBindings, AssetInputBinding) = (AssetInputBinding){
           .type                 = bindingDef->type,
           .key                  = bindingDef->key,
@@ -94,11 +87,11 @@ ecs_comp_define_public(AssetInputMapComp);
 
 static void ecs_destruct_inputmap_comp(void* data) {
   AssetInputMapComp* comp = data;
-  if (comp->actions) {
-    alloc_free_array_t(g_allocHeap, comp->actions, comp->actionCount);
+  if (comp->actions.values) {
+    alloc_free_array_t(g_allocHeap, comp->actions.values, comp->actions.count);
   }
-  if (comp->bindings) {
-    alloc_free_array_t(g_allocHeap, comp->bindings, comp->bindingCount);
+  if (comp->bindings.values) {
+    alloc_free_array_t(g_allocHeap, comp->bindings.values, comp->bindings.count);
   }
 }
 
@@ -287,11 +280,11 @@ void asset_load_inputs(
       world,
       entity,
       AssetInputMapComp,
-      .layer        = layer,
-      .actions      = dynarray_copy_as_new(&actions, g_allocHeap),
-      .actionCount  = actions.size,
-      .bindings     = dynarray_copy_as_new(&bindings, g_allocHeap),
-      .bindingCount = bindings.size);
+      .layer           = layer,
+      .actions.values  = dynarray_copy_as_new(&actions, g_allocHeap),
+      .actions.count   = actions.size,
+      .bindings.values = dynarray_copy_as_new(&bindings, g_allocHeap),
+      .bindings.count  = bindings.size);
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   goto Cleanup;
@@ -312,8 +305,8 @@ Cleanup:
 const AssetInputAction*
 asset_inputmap_get(const AssetInputMapComp* inputMap, const StringHash nameHash) {
   return search_binary_t(
-      inputMap->actions,
-      inputMap->actions + inputMap->actionCount,
+      inputMap->actions.values,
+      inputMap->actions.values + inputMap->actions.count,
       AssetInputAction,
       asset_inputmap_compare_action,
       mem_struct(AssetInputAction, .nameHash = nameHash).ptr);

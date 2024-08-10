@@ -33,10 +33,7 @@ typedef enum {
 
 typedef struct {
   RvkShader* shader;
-  struct {
-    RvkShaderOverride* values;
-    usize              count;
-  } overrides;
+  HeapArray_t(RvkShaderOverride) overrides;
 } RvkGraphicShader;
 
 typedef struct sRvkGraphic {

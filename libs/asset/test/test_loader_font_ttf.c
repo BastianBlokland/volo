@@ -1,7 +1,6 @@
 #include "asset.h"
 #include "check_spec.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_base64.h"
 #include "ecs.h"
 
@@ -109,21 +108,21 @@ spec(loader_font_ttf) {
 
       check_require(glyph->segmentCount == 4);
 
-      check(font->segments[glyph->segmentIndex + 0].type == AssetFontSegment_Line);
-      const u32 seg1P1 = font->segments[glyph->segmentIndex + 0].pointIndex + 0;
-      const u32 seg1P2 = font->segments[glyph->segmentIndex + 0].pointIndex + 1;
+      check(font->segments.values[glyph->segmentIndex + 0].type == AssetFontSegment_Line);
+      const u32 seg1P1 = font->segments.values[glyph->segmentIndex + 0].pointIndex + 0;
+      const u32 seg1P2 = font->segments.values[glyph->segmentIndex + 0].pointIndex + 1;
 
-      check(font->segments[glyph->segmentIndex + 1].type == AssetFontSegment_Line);
-      const u32 seg2P1 = font->segments[glyph->segmentIndex + 1].pointIndex + 0;
-      const u32 seg2P2 = font->segments[glyph->segmentIndex + 1].pointIndex + 1;
+      check(font->segments.values[glyph->segmentIndex + 1].type == AssetFontSegment_Line);
+      const u32 seg2P1 = font->segments.values[glyph->segmentIndex + 1].pointIndex + 0;
+      const u32 seg2P2 = font->segments.values[glyph->segmentIndex + 1].pointIndex + 1;
 
-      check(font->segments[glyph->segmentIndex + 2].type == AssetFontSegment_Line);
-      const u32 seg3P1 = font->segments[glyph->segmentIndex + 2].pointIndex + 0;
-      const u32 seg3P2 = font->segments[glyph->segmentIndex + 2].pointIndex + 1;
+      check(font->segments.values[glyph->segmentIndex + 2].type == AssetFontSegment_Line);
+      const u32 seg3P1 = font->segments.values[glyph->segmentIndex + 2].pointIndex + 0;
+      const u32 seg3P2 = font->segments.values[glyph->segmentIndex + 2].pointIndex + 1;
 
-      check(font->segments[glyph->segmentIndex + 3].type == AssetFontSegment_Line);
-      const u32 seg4P1 = font->segments[glyph->segmentIndex + 3].pointIndex + 0;
-      const u32 seg4P2 = font->segments[glyph->segmentIndex + 3].pointIndex + 1;
+      check(font->segments.values[glyph->segmentIndex + 3].type == AssetFontSegment_Line);
+      const u32 seg4P1 = font->segments.values[glyph->segmentIndex + 3].pointIndex + 0;
+      const u32 seg4P2 = font->segments.values[glyph->segmentIndex + 3].pointIndex + 1;
 
       check_eq_int(seg1P1, seg1P2 - 1);
       check_eq_int(seg1P2, seg2P1);
@@ -131,17 +130,17 @@ spec(loader_font_ttf) {
       check_eq_int(seg3P2, seg4P1);
       check_eq_int(seg4P2, seg4P1 + 1);
 
-      check_eq_float(font->points[seg1P1].x, 0.4765625f, 1e-6);
-      check_eq_float(font->points[seg1P1].y, 0, 1e-6);
+      check_eq_float(font->points.values[seg1P1].x, 0.4765625f, 1e-6);
+      check_eq_float(font->points.values[seg1P1].y, 0, 1e-6);
 
-      check_eq_float(font->points[seg2P1].x, 0.4765625f, 1e-6);
-      check_eq_float(font->points[seg2P1].y, 1, 1e-6);
+      check_eq_float(font->points.values[seg2P1].x, 0.4765625f, 1e-6);
+      check_eq_float(font->points.values[seg2P1].y, 1, 1e-6);
 
-      check_eq_float(font->points[seg3P1].x, 0.5234375f, 1e-6);
-      check_eq_float(font->points[seg3P1].y, 1, 1e-6);
+      check_eq_float(font->points.values[seg3P1].x, 0.5234375f, 1e-6);
+      check_eq_float(font->points.values[seg3P1].y, 1, 1e-6);
 
-      check_eq_float(font->points[seg4P1].x, 0.5234375f, 1e-6);
-      check_eq_float(font->points[seg4P1].y, 0, 1e-6);
+      check_eq_float(font->points.values[seg4P1].x, 0.5234375f, 1e-6);
+      check_eq_float(font->points.values[seg4P1].y, 0, 1e-6);
     }
 
     array_for_t(records, AssetMemRecord, rec) { string_free(g_allocHeap, rec->data); }

@@ -2,7 +2,6 @@
 #include "asset_manager.h"
 #include "asset_vfx.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -278,8 +277,8 @@ static void vfx_system_spawn(
     const SceneVfxSystemComp* sysCfg,
     const VfxTrans*           sysTrans) {
 
-  diag_assert(emitter < asset->emitterCount);
-  const AssetVfxEmitter* emitterAsset = &asset->emitters[emitter];
+  diag_assert(emitter < asset->emitters.count);
+  const AssetVfxEmitter* emitterAsset = &asset->emitters.values[emitter];
 
   const StringHash spriteAtlasEntryName  = emitterAsset->sprite.atlasEntry;
   u16              spriteAtlasEntryIndex = sentinel_u16;
@@ -377,9 +376,9 @@ static void vfx_system_simulate(
   }
 
   // Update emitters.
-  for (u32 emitter = 0; emitter != asset->emitterCount; ++emitter) {
+  for (u32 emitter = 0; emitter != asset->emitters.count; ++emitter) {
     VfxEmitterState*       emitterState = &state->emitters[emitter];
-    const AssetVfxEmitter* emitterAsset = &asset->emitters[emitter];
+    const AssetVfxEmitter* emitterAsset = &asset->emitters.values[emitter];
 
     const u64 count = vfx_emitter_count(emitterAsset, state->emitAge);
     for (; emitterState->spawnCount < count; ++emitterState->spawnCount) {
@@ -391,7 +390,7 @@ static void vfx_system_simulate(
   VfxSystemInstance* instances = dynarray_begin_t(&state->instances, VfxSystemInstance);
   for (u32 i = (u32)state->instances.size; i-- != 0;) {
     VfxSystemInstance*     inst         = instances + i;
-    const AssetVfxEmitter* emitterAsset = &asset->emitters[inst->emitter];
+    const AssetVfxEmitter* emitterAsset = &asset->emitters.values[inst->emitter];
 
     // Apply force.
     inst->velo = geo_vector_add(inst->velo, geo_vector_mul(emitterAsset->force, deltaSec));
@@ -499,8 +498,8 @@ static void vfx_instance_output_sprite(
   if (sentinel_check(instance->spriteAtlasBaseIndex)) {
     return; // Sprites are optional.
   }
-  const AssetVfxSpace   space  = asset->emitters[instance->emitter].space;
-  const AssetVfxSprite* sprite = &asset->emitters[instance->emitter].sprite;
+  const AssetVfxSpace   space  = asset->emitters.values[instance->emitter].space;
+  const AssetVfxSprite* sprite = &asset->emitters.values[instance->emitter].sprite;
   const f32 timeRemSec         = math_min(instance->lifetimeSec - instance->ageSec, sysTimeRemSec);
 
   f32 scale = instance->scale;
@@ -566,14 +565,14 @@ static void vfx_instance_output_light(
     const f32                 sysTimeRemSec) {
 
   const u32            seed     = ecs_entity_id_index(entity);
-  const AssetVfxLight* light    = &asset->emitters[instance->emitter].light;
+  const AssetVfxLight* light    = &asset->emitters.values[instance->emitter].light;
   GeoColor             radiance = light->radiance;
   radiance.a *= vfx_instance_alpha(instance);
   if (radiance.a <= f32_epsilon) {
     return;
   }
   const f32 timeRemSec      = math_min(instance->lifetimeSec - instance->ageSec, sysTimeRemSec);
-  const AssetVfxSpace space = asset->emitters[instance->emitter].space;
+  const AssetVfxSpace space = asset->emitters.values[instance->emitter].space;
 
   GeoVector pos   = instance->pos;
   f32       scale = instance->scale;

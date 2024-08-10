@@ -1,4 +1,5 @@
 #pragma once
+#include "core_array.h"
 #include "core_time.h"
 #include "data_registry.h"
 #include "ecs_entity.h"
@@ -91,10 +92,8 @@ typedef struct {
 } AssetWeapon;
 
 ecs_comp_extern_public(AssetWeaponMapComp) {
-  AssetWeapon*       weapons; // Sorted on the nameHash.
-  usize              weaponCount;
-  AssetWeaponEffect* effects;
-  usize              effectCount;
+  HeapArray_t(AssetWeapon) weapons; // Sorted on the nameHash.
+  HeapArray_t(AssetWeaponEffect) effects;
 };
 
 extern DataMeta g_assetWeaponDefMeta;

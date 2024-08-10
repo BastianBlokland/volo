@@ -1,4 +1,5 @@
 #pragma once
+#include "core_array.h"
 #include "data_registry.h"
 #include "ecs_module.h"
 
@@ -69,14 +70,8 @@ ecs_comp_extern_public(AssetShaderComp) {
   u16              killSpecConstMask; // Mask of spec constants that need to be true for kill inst.
   u16              inputMask, outputMask;
   String           entryPoint;
-  struct {
-    AssetShaderRes* values;
-    usize           count;
-  } resources;
-  struct {
-    AssetShaderSpec* values;
-    usize            count;
-  } specs;
+  HeapArray_t(AssetShaderRes) resources;
+  HeapArray_t(AssetShaderSpec) specs;
   DataMem data;
 };
 
