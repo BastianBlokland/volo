@@ -25,10 +25,13 @@ typedef enum {
  * Meta information for a data value.
  * Combination of a type and properties of a specific instance (for example if its a pointer).
  */
-typedef struct {
-  DataType      type;
-  DataFlags     flags : 8;
-  DataContainer container : 8;
+typedef union {
+  struct {
+    DataType      type;
+    DataFlags     flags : 8;
+    DataContainer container : 8;
+  };
+  u64 data;
 } DataMeta;
 
 #define data_meta_t(_DATA_TYPE_, ...) ((DataMeta){.type = _DATA_TYPE_, ##__VA_ARGS__})
@@ -49,11 +52,6 @@ DataReg* data_reg_create(Allocator*);
  * Destroy a data registry.
  */
 void data_reg_destroy(DataReg*);
-
-/**
- * Check if the given meta's are equal.
- */
-bool data_meta_eq(DataMeta a, DataMeta b);
 
 /**
  * Retrieve the total number of registered types.

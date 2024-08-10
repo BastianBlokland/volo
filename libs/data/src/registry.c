@@ -50,8 +50,8 @@ void data_reg_global_teardown(void) {
 DataReg* data_reg_create(Allocator* alloc) {
   DataReg* reg = alloc_alloc_t(alloc, DataReg);
   *reg         = (DataReg){
-              .types = dynarray_create_t(alloc, DataDecl, 64),
-              .alloc = alloc,
+      .types = dynarray_create_t(alloc, DataDecl, 64),
+      .alloc = alloc,
   };
 
 #define X(_T_)                                                                                     \
@@ -97,10 +97,6 @@ void data_reg_destroy(DataReg* reg) {
   dynarray_destroy(&reg->types);
 
   alloc_free_t(reg->alloc, reg);
-}
-
-bool data_meta_eq(const DataMeta a, const DataMeta b) {
-  return a.type == b.type && a.container == b.container && a.flags == b.flags;
 }
 
 u32 data_type_count(const DataReg* reg) { return (u32)reg->types.size; }
