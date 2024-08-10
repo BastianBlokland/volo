@@ -279,8 +279,8 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Production" },
-            "spawnPos": { "title": "GeoVector", "description": "3D Vector", "$ref": "#/$defs/GeoVector" },
-            "rallyPos": { "title": "GeoVector", "description": "3D Vector", "$ref": "#/$defs/GeoVector" },
+            "spawnPos": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
+            "rallyPos": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
             "rallySoundId": { "title": "String", "type": "string" },
             "rallySoundGain": { "title": "f32", "type": "number" },
             "productSetId": { "title": "String", "type": "string", "minLength": 1 },
@@ -346,7 +346,7 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabShape_Sphere" },
-            "offset": { "title": "GeoVector", "description": "3D Vector", "$ref": "#/$defs/GeoVector" },
+            "offset": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
             "radius": { "title": "f32", "type": "number" }
           },
           "required": [ "$type", "radius" ]
@@ -356,7 +356,7 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabShape_Capsule" },
-            "offset": { "title": "GeoVector", "description": "3D Vector", "$ref": "#/$defs/GeoVector" },
+            "offset": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
             "radius": { "title": "f32", "type": "number" },
             "height": { "title": "f32", "type": "number" }
           },
@@ -367,8 +367,8 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabShape_Box" },
-            "min": { "title": "GeoVector", "description": "3D Vector", "$ref": "#/$defs/GeoVector" },
-            "max": { "title": "GeoVector", "description": "3D Vector", "$ref": "#/$defs/GeoVector" }
+            "min": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
+            "max": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" }
           },
           "required": [ "$type", "min", "max" ]
         }
@@ -379,7 +379,7 @@
         { "label": "New AssetPrefabShape_Box", "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Box\",\n  \"min\": {},\n  \"max\": {}\n}" }
       ]
     },
-    "GeoVector": {
+    "GeoVector3": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -485,8 +485,8 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "min": { "title": "GeoVector", "description": "3D Vector", "$ref": "#/$defs/GeoVector" },
-        "max": { "title": "GeoVector", "description": "3D Vector", "$ref": "#/$defs/GeoVector" }
+        "min": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
+        "max": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" }
       },
       "required": [ "min", "max" ],
       "defaultSnippets": [
