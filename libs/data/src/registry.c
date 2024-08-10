@@ -50,8 +50,8 @@ void data_reg_global_teardown(void) {
 DataReg* data_reg_create(Allocator* alloc) {
   DataReg* reg = alloc_alloc_t(alloc, DataReg);
   *reg         = (DataReg){
-              .types = dynarray_create_t(alloc, DataDecl, 64),
-              .alloc = alloc,
+      .types = dynarray_create_t(alloc, DataDecl, 64),
+      .alloc = alloc,
   };
 
 #define X(_T_)                                                                                     \
@@ -188,14 +188,18 @@ void data_reg_field(
     DataReg*       reg,
     const DataType parent,
     const String   name,
+    const usize    size,
     const usize    offset,
     const DataMeta meta) {
   DataDecl* parentDecl = data_decl_mutable(reg, parent);
 
+  (void)size;
+
   diag_assert_msg(name.size, "Field name cannot be empty");
   diag_assert_msg(parentDecl->kind == DataKind_Struct, "Field parent has to be a Struct");
+  diag_assert_msg(size == data_meta_size(reg, meta), "Mismatched field size");
   diag_assert_msg(
-      offset + data_meta_size(reg, meta) <= data_decl(reg, parent)->size,
+      offset + size <= data_decl(reg, parent)->size,
       "Offset '{}' is out of bounds for the Struct type",
       fmt_int(offset));
 
@@ -245,17 +249,21 @@ void data_reg_choice(
     const DataType parent,
     const String   name,
     const i32      tag,
+    const usize    size,
     const usize    offset,
     const DataMeta meta) {
   DataDecl* parentDecl = data_decl_mutable(reg, parent);
+
+  (void)size;
 
   diag_assert_msg(name.size, "Choice name cannot be empty");
   diag_assert_msg(parentDecl->kind == DataKind_Union, "Choice parent has to be a Union");
   diag_assert_msg(!data_choice_from_tag(&parentDecl->val_union, tag), "Duplicate choice");
 
   MAYBE_UNUSED const bool emptyChoice = meta.type == 0;
+  diag_assert_msg(emptyChoice || size == data_meta_size(reg, meta), "Mismatched field size");
   diag_assert_msg(
-      emptyChoice || (offset + data_meta_size(reg, meta) <= data_decl(reg, parent)->size),
+      emptyChoice || (offset + size <= data_decl(reg, parent)->size),
       "Offset '{}' is out of bounds for the Union type",
       fmt_int(offset));
 
