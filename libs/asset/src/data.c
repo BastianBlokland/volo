@@ -5,6 +5,7 @@
 #include "geo_color.h"
 #include "geo_line.h"
 #include "geo_matrix.h"
+#include "geo_plane.h"
 #include "geo_quat.h"
 #include "geo_vector.h"
 
@@ -38,6 +39,7 @@ DataType g_assetGeoBoxType, g_assetGeoBoxRotatedType;
 DataType g_assetGeoLineType;
 DataType g_assetGeoCapsuleType;
 DataType g_assetGeoMatrixType;
+DataType g_assetGeoPlaneType;
 
 static void asset_data_init_types(void) {
   // clang-format off
@@ -96,6 +98,12 @@ static void asset_data_init_types(void) {
   data_reg_struct_t(g_dataReg, GeoMatrix);
   data_reg_field_t(g_dataReg, GeoMatrix, columns, t_GeoVector4, .container = DataContainer_InlineArray, .fixedCount = 4);
   data_reg_comment_t(g_dataReg, GeoMatrix, "3D Matrix");
+
+  data_reg_struct_t(g_dataReg, GeoPlane);
+  data_reg_field_t(g_dataReg, GeoPlane, normal, t_GeoVector3);
+  data_reg_field_t(g_dataReg, GeoPlane, distance, data_prim_t(f32));
+  data_reg_comment_t(g_dataReg, GeoPlane, "3D Plane");
+
   // clang-format on
 
   g_assetGeoColorType      = t_GeoColor;
@@ -108,6 +116,7 @@ static void asset_data_init_types(void) {
   g_assetGeoLineType       = t_GeoLine;
   g_assetGeoCapsuleType    = t_GeoCapsule;
   g_assetGeoMatrixType     = t_GeoMatrix;
+  g_assetGeoPlaneType      = t_GeoPlane;
 }
 
 void asset_data_init(void) {
