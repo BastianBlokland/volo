@@ -3,7 +3,6 @@
 #include "data_registry.h"
 #include "ecs_module.h"
 #include "geo_box.h"
-#include "geo_matrix.h"
 
 #define asset_mesh_vertices_max u16_max
 #define asset_mesh_joints_max 75
@@ -12,17 +11,20 @@ ASSERT(asset_mesh_joints_max <= u8_max, "Joint indices should be representable b
 typedef u16 AssetMeshIndex;
 typedef u32 AssetMeshAnimPtr;
 
+/**
+ * Packed vertex.
+ * Compatible with the structure defined in 'vertex.glsl' using the std140 glsl layout.
+ */
 typedef struct {
-  GeoVector position; // x, y, z position
-  GeoVector normal;   // x, y, z normal
-  GeoVector tangent;  // z, y, z tangent, w tangent handedness
-  GeoVector texcoord; // x, y texcoord0
-} AssetMeshVertex;
+  ALIGNAS(16)
+  f16 data1[4]; // x, y, z position, w texcoord x
+  f16 data2[4]; // x, y, z normal , w texcoord y
+  f16 data3[4]; // x, y, z tangent, w tangent handedness
+  u16 data4[4]; // x jntIndexWeight0, y jntIndexWeight1, z jntIndexWeight2, w jntIndexWeight3,
+} AssetMeshVertexPacked;
 
-typedef struct {
-  u8        joints[4]; // joint indices.
-  GeoVector weights;   // joint weights.
-} AssetMeshSkin;
+ASSERT(sizeof(AssetMeshVertexPacked) == 32, "Unexpected vertex size");
+ASSERT(alignof(AssetMeshVertexPacked) == 16, "Unexpected vertex alignment");
 
 typedef enum {
   AssetMeshFlags_Skinned = 1 << 0,
@@ -30,8 +32,7 @@ typedef enum {
 
 ecs_comp_extern_public(AssetMeshComp) {
   AssetMeshFlags flags;
-  HeapArray_t(AssetMeshVertex) vertices;
-  HeapArray_t(AssetMeshSkin) skins; // NOTE: Empty if the mesh has no skinning.
+  HeapArray_t(AssetMeshVertexPacked) vertices;
   HeapArray_t(AssetMeshIndex) indices;
   GeoBox positionBounds;
   GeoBox positionRawBounds; // Unscaled (does not take skinning into account).
