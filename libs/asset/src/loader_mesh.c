@@ -11,11 +11,11 @@ ecs_comp_define_public(AssetMeshSkeletonComp);
 
 static void ecs_destruct_mesh_comp(void* data) {
   AssetMeshComp* comp = data;
-  alloc_free_array_t(g_allocHeap, comp->vertexData, comp->vertexCount);
-  if (comp->skinData) {
-    alloc_free_array_t(g_allocHeap, comp->skinData, comp->vertexCount);
+  alloc_free_array_t(g_allocHeap, comp->vertices.values, comp->vertices.count);
+  if (comp->skins.values) {
+    alloc_free_array_t(g_allocHeap, comp->skins.values, comp->skins.count);
   }
-  alloc_free_array_t(g_allocHeap, comp->indexData, comp->indexCount);
+  alloc_free_array_t(g_allocHeap, comp->indices.values, comp->indices.count);
 }
 
 static void ecs_destruct_mesh_skeleton_comp(void* data) {

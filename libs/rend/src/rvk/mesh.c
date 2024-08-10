@@ -41,45 +41,45 @@ ASSERT(alignof(RvkVertexSkinnedPacked) == rvk_mesh_vertex_align, "Unexpected ver
 
 #define rvk_mesh_max_scratch_size (64 * usize_kibibyte)
 
-static bool rvk_mesh_skinned(const AssetMeshComp* asset) { return asset->skinData != null; }
+static bool rvk_mesh_skinned(const AssetMeshComp* asset) { return asset->skins.count != 0; }
 
 static u32 rvk_mesh_vertex_size(const AssetMeshComp* asset) {
   return rvk_mesh_skinned(asset) ? sizeof(RvkVertexSkinnedPacked) : sizeof(RvkVertexPacked);
 }
 
 static Mem rvk_mesh_to_device_vertices(Allocator* alloc, const AssetMeshComp* asset) {
-  diag_assert_msg(asset->vertexCount, "Mesh asset does not contain any vertices");
+  diag_assert_msg(asset->vertices.count, "Mesh asset does not contain any vertices");
 
-  const usize bufferSize = rvk_mesh_vertex_size(asset) * asset->vertexCount;
+  const usize bufferSize = rvk_mesh_vertex_size(asset) * asset->vertices.count;
   Mem         buffer     = alloc_alloc(alloc, bufferSize, rvk_mesh_vertex_align);
 
   if (rvk_mesh_skinned(asset)) {
     RvkVertexSkinnedPacked* output = mem_as_t(buffer, RvkVertexSkinnedPacked);
-    for (usize i = 0; i != asset->vertexCount; ++i) {
-      geo_vector_pack_f16(asset->vertexData[i].position, output[i].data1);
-      geo_vector_pack_f16(asset->vertexData[i].normal, output[i].data2);
-      output[i].data1[3] = float_f32_to_f16(asset->vertexData[i].texcoord.x);
-      output[i].data2[3] = float_f32_to_f16(asset->vertexData[i].texcoord.y);
+    for (usize i = 0; i != asset->vertices.count; ++i) {
+      geo_vector_pack_f16(asset->vertices.values[i].position, output[i].data1);
+      geo_vector_pack_f16(asset->vertices.values[i].normal, output[i].data2);
+      output[i].data1[3] = float_f32_to_f16(asset->vertices.values[i].texcoord.x);
+      output[i].data2[3] = float_f32_to_f16(asset->vertices.values[i].texcoord.y);
 
-      geo_vector_pack_f16(asset->vertexData[i].tangent, output[i].data3);
+      geo_vector_pack_f16(asset->vertices.values[i].tangent, output[i].data3);
 
-      const u16 w0 = (u8)(asset->skinData[i].weights.x * 255.999f);
-      const u16 w1 = (u8)(asset->skinData[i].weights.y * 255.999f);
-      const u16 w2 = (u8)(asset->skinData[i].weights.z * 255.999f);
-      const u16 w3 = (u8)(asset->skinData[i].weights.w * 255.999f);
+      const u16 w0 = (u8)(asset->skins.values[i].weights.x * 255.999f);
+      const u16 w1 = (u8)(asset->skins.values[i].weights.y * 255.999f);
+      const u16 w2 = (u8)(asset->skins.values[i].weights.z * 255.999f);
+      const u16 w3 = (u8)(asset->skins.values[i].weights.w * 255.999f);
 
-      output[i].data4[0] = (u16)asset->skinData[i].joints[0] | (w0 << 8);
-      output[i].data4[1] = (u16)asset->skinData[i].joints[1] | (w1 << 8);
-      output[i].data4[2] = (u16)asset->skinData[i].joints[2] | (w2 << 8);
-      output[i].data4[3] = (u16)asset->skinData[i].joints[3] | (w3 << 8);
+      output[i].data4[0] = (u16)asset->skins.values[i].joints[0] | (w0 << 8);
+      output[i].data4[1] = (u16)asset->skins.values[i].joints[1] | (w1 << 8);
+      output[i].data4[2] = (u16)asset->skins.values[i].joints[2] | (w2 << 8);
+      output[i].data4[3] = (u16)asset->skins.values[i].joints[3] | (w3 << 8);
     }
   } else {
     RvkVertexPacked* output = mem_as_t(buffer, RvkVertexPacked);
-    for (usize i = 0; i != asset->vertexCount; ++i) {
-      geo_vector_pack_f16(asset->vertexData[i].position, output[i].data1);
-      geo_vector_pack_f16(asset->vertexData[i].texcoord, output[i].data2);
-      geo_vector_pack_f16(asset->vertexData[i].normal, output[i].data3);
-      geo_vector_pack_f16(asset->vertexData[i].tangent, output[i].data4);
+    for (usize i = 0; i != asset->vertices.count; ++i) {
+      geo_vector_pack_f16(asset->vertices.values[i].position, output[i].data1);
+      geo_vector_pack_f16(asset->vertices.values[i].texcoord, output[i].data2);
+      geo_vector_pack_f16(asset->vertices.values[i].normal, output[i].data3);
+      geo_vector_pack_f16(asset->vertices.values[i].tangent, output[i].data4);
     }
   }
   return buffer;
@@ -88,12 +88,12 @@ static Mem rvk_mesh_to_device_vertices(Allocator* alloc, const AssetMeshComp* as
 RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const String dbgName) {
   RvkMesh* mesh = alloc_alloc_t(g_allocHeap, RvkMesh);
   *mesh         = (RvkMesh){
-              .device            = dev,
-              .dbgName           = string_dup(g_allocHeap, dbgName),
-              .vertexCount       = (u32)asset->vertexCount,
-              .indexCount        = (u32)asset->indexCount,
-              .positionBounds    = asset->positionBounds,
-              .positionRawBounds = asset->positionRawBounds,
+      .device            = dev,
+      .dbgName           = string_dup(g_allocHeap, dbgName),
+      .vertexCount       = (u32)asset->vertices.count,
+      .indexCount        = (u32)asset->indices.count,
+      .positionBounds    = asset->positionBounds,
+      .positionRawBounds = asset->positionRawBounds,
   };
 
   if (rvk_mesh_skinned(asset)) {
@@ -101,11 +101,11 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
   }
 
   const u32  vertexSize    = rvk_mesh_vertex_size(asset);
-  const bool useScratch    = vertexSize * asset->vertexCount < rvk_mesh_max_scratch_size;
+  const bool useScratch    = vertexSize * asset->vertices.count < rvk_mesh_max_scratch_size;
   Allocator* verticesAlloc = useScratch ? g_allocScratch : g_allocHeap;
   const Mem  verticesMem   = rvk_mesh_to_device_vertices(verticesAlloc, asset);
 
-  const usize indexSize = sizeof(AssetMeshIndex) * asset->indexCount;
+  const usize indexSize = sizeof(AssetMeshIndex) * asset->indices.count;
   mesh->vertexBuffer    = rvk_buffer_create(dev, verticesMem.size, RvkBufferType_DeviceStorage);
   mesh->indexBuffer     = rvk_buffer_create(dev, indexSize, RvkBufferType_DeviceIndex);
 
@@ -114,7 +114,7 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
 
   mesh->vertexTransfer = rvk_transfer_buffer(dev->transferer, &mesh->vertexBuffer, verticesMem);
   mesh->indexTransfer  = rvk_transfer_buffer(
-      dev->transferer, &mesh->indexBuffer, mem_create(asset->indexData, indexSize));
+      dev->transferer, &mesh->indexBuffer, mem_create(asset->indices.values, indexSize));
 
   alloc_free(verticesAlloc, verticesMem);
 

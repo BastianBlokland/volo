@@ -157,9 +157,9 @@ spec(loader_mesh_gltf) {
       const AssetMeshComp* mesh = ecs_utils_read_t(world, AssetView, asset, AssetMeshComp);
 
       // Verify the vertices.
-      check_require(mesh->vertexCount == g_testData[i].vertexCount);
+      check_require(mesh->vertices.count == g_testData[i].vertexCount);
       for (usize j = 0; j != g_testData[i].vertexCount; ++j) {
-        const AssetMeshVertex* vert         = &mesh->vertexData[j];
+        const AssetMeshVertex* vert         = &mesh->vertices.values[j];
         const AssetMeshVertex* vertExpected = &g_testData[i].vertices[j];
         check(geo_vector_equal(vert->position, vertExpected->position, 1e-6f));
         check(geo_vector_equal(vert->normal, vertExpected->normal, 1e-6f));
@@ -167,9 +167,9 @@ spec(loader_mesh_gltf) {
         check(geo_vector_equal(vert->texcoord, vertExpected->texcoord, 1e-6f));
       }
       // Verify the indices.
-      check_require(mesh->indexCount == g_testData[i].indexCount);
+      check_require(mesh->indices.count == g_testData[i].indexCount);
       for (usize j = 0; j != g_testData[i].indexCount; ++j) {
-        check_eq_int(mesh->indexData[j], g_testData[i].indices[j]);
+        check_eq_int(mesh->indices.values[j], g_testData[i].indices[j]);
       }
     };
 
