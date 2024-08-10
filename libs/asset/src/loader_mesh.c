@@ -4,6 +4,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "geo_matrix.h"
+#include "log_logger.h"
 
 #include "data_internal.h"
 #include "loader_mesh_internal.h"
@@ -129,4 +130,35 @@ void asset_data_init_mesh(void) {
   g_assetMeshBundleMeta   = data_meta_t(t_AssetMeshBundle);
   g_assetMeshMeta         = data_meta_t(t_AssetMeshComp);
   g_assetMeshSkeletonMeta = data_meta_t(t_AssetMeshSkeletonComp);
+}
+
+void asset_load_mesh_bin(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+
+  AssetMeshBundle bundle;
+  DataReadResult  result;
+  data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetMeshBundleMeta, mem_var(bundle), &result);
+
+  if (UNLIKELY(result.error)) {
+    log_e(
+        "Failed to load binary mesh",
+        log_param("id", fmt_text(id)),
+        log_param("error-code", fmt_int(result.error)),
+        log_param("error", fmt_text(result.errorMsg)));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_repo_source_close(src);
+    return;
+  }
+
+  *ecs_world_add_t(world, entity, AssetMeshComp) = bundle.mesh;
+  if (bundle.skeleton) {
+    *ecs_world_add_t(world, entity, AssetMeshSkeletonComp) = *bundle.skeleton;
+    alloc_free_t(g_allocHeap, bundle.skeleton);
+
+    // NOTE: The skeleton uses external memory so we need to keep the source open while loaded.
+    ecs_world_add_t(world, entity, AssetMeshSourceComp, .src = src);
+  } else {
+    asset_repo_source_close(src);
+  }
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 }
