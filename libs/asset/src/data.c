@@ -4,6 +4,7 @@
 #include "geo_capsule.h"
 #include "geo_color.h"
 #include "geo_line.h"
+#include "geo_matrix.h"
 #include "geo_quat.h"
 #include "geo_vector.h"
 
@@ -36,8 +37,10 @@ DataType g_assetGeoQuatType;
 DataType g_assetGeoBoxType, g_assetGeoBoxRotatedType;
 DataType g_assetGeoLineType;
 DataType g_assetGeoCapsuleType;
+DataType g_assetGeoMatrixType;
 
 static void asset_data_init_types(void) {
+  // clang-format off
   data_reg_struct_t(g_dataReg, GeoColor);
   data_reg_field_t(g_dataReg, GeoColor, r, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, GeoColor, g, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -90,6 +93,11 @@ static void asset_data_init_types(void) {
   data_reg_field_t(g_dataReg, GeoCapsule, radius, data_prim_t(f32));
   data_reg_comment_t(g_dataReg, GeoCapsule, "3D Capsule");
 
+  data_reg_struct_t(g_dataReg, GeoMatrix);
+  data_reg_field_t(g_dataReg, GeoMatrix, columns, t_GeoVector4, .container = DataContainer_InlineArray, .fixedCount = 4);
+  data_reg_comment_t(g_dataReg, GeoMatrix, "3D Matrix");
+  // clang-format on
+
   g_assetGeoColorType      = t_GeoColor;
   g_assetGeoVec2Type       = t_GeoVector2;
   g_assetGeoVec3Type       = t_GeoVector3;
@@ -99,6 +107,7 @@ static void asset_data_init_types(void) {
   g_assetGeoBoxRotatedType = t_GeoBoxRotated;
   g_assetGeoLineType       = t_GeoLine;
   g_assetGeoCapsuleType    = t_GeoCapsule;
+  g_assetGeoMatrixType     = t_GeoMatrix;
 }
 
 void asset_data_init(void) {
