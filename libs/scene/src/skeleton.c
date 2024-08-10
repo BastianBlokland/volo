@@ -198,7 +198,7 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
   diag_assert(asset->jointCount <= scene_skeleton_joints_max);
 
   tl->jointCount = asset->jointCount;
-  tl->animData   = alloc_dup(g_allocHeap, asset->animData, 1);
+  tl->animData   = alloc_dup(g_allocHeap, data_mem(asset->data), 16);
 
   tl->anims     = alloc_array_t(g_allocHeap, SceneSkeletonAnim, asset->anims.count);
   tl->animCount = (u32)asset->anims.count;

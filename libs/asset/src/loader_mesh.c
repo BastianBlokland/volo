@@ -23,7 +23,7 @@ static void ecs_destruct_mesh_skeleton_comp(void* data) {
   if (comp->anims.values) {
     alloc_free_array_t(g_allocHeap, comp->anims.values, comp->anims.count);
   }
-  alloc_free(g_allocHeap, comp->animData);
+  alloc_free(g_allocHeap, data_mem(comp->data));
 }
 
 ecs_view_define(UnloadView) {

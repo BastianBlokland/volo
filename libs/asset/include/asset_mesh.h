@@ -62,7 +62,7 @@ ecs_comp_extern_public(AssetMeshSkeletonComp) {
   AssetMeshAnimPtr skinCounts;      // u32[jointCount]. Amount of verts skinned to each joint.
   AssetMeshAnimPtr jointNames;      // StringHash[jointCount].
   u8               jointCount;
-  Mem              animData; // 16 bit aligned and the size is always a multiple of 16.
+  DataMem          data; // 16 bit aligned and the size is always a multiple of 16.
 };
 
 extern DataMeta g_assetProcMeshDefMeta;
