@@ -168,7 +168,8 @@ GeoVector geo_vector_quantize3(GeoVector, u8 maxMantissaBits);
 /**
  * Pack a vector to 16 bit floats.
  */
-void geo_vector_pack_f16(GeoVector, f16 out[PARAM_ARRAY_SIZE(4)]);
+void      geo_vector_pack_f16(GeoVector, f16 out[PARAM_ARRAY_SIZE(4)]);
+GeoVector geo_vector_unpack_f16(const f16[PARAM_ARRAY_SIZE(4)]);
 
 /**
  * Generate a uniformly distributed random point on the surface of a 3d unit sphere.
