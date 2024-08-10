@@ -150,13 +150,15 @@ void data_reg_union_name(DataReg*, DataType, usize nameOffset);
       t_##_PARENT_,                                                                                \
       string_lit(#_TAG_),                                                                          \
       (_TAG_),                                                                                     \
+      sizeof(((_PARENT_*)0)->_FIELD_),                                                             \
       offsetof(_PARENT_, _FIELD_),                                                                 \
       data_meta_t(_DATA_TYPE_, __VA_ARGS__))
 
 #define data_reg_choice_empty(_REG_, _PARENT_, _TAG_)                                              \
-  data_reg_choice((_REG_), t_##_PARENT_, string_lit(#_TAG_), (_TAG_), 0, (DataMeta){0})
+  data_reg_choice((_REG_), t_##_PARENT_, string_lit(#_TAG_), (_TAG_), 0, 0, (DataMeta){0})
 
-void data_reg_choice(DataReg*, DataType parent, String name, i32 tag, usize offset, DataMeta);
+void data_reg_choice(
+    DataReg*, DataType parent, String name, i32 tag, usize size, usize offset, DataMeta);
 
 /**
  * Register a new Enum type (optionally supporting multiple values, aka flags).
