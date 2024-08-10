@@ -176,18 +176,18 @@ static void data_clone_inline_array(const CloneCtx* ctx) {
   }
 }
 
-static void data_clone_array(const CloneCtx* ctx) {
+static void data_clone_heap_array(const CloneCtx* ctx) {
   const DataDecl*  decl          = data_decl(ctx->reg, ctx->meta.type);
-  const DataArray* originalArray = mem_as_t(ctx->original, DataArray);
+  const HeapArray* originalArray = mem_as_t(ctx->original, HeapArray);
   const usize      count         = originalArray->count;
   if (!count) {
-    *mem_as_t(ctx->clone, DataArray) = (DataArray){0};
+    *mem_as_t(ctx->clone, HeapArray) = (HeapArray){0};
     return;
   }
 
   const Mem  newArrayMem = alloc_alloc(ctx->alloc, decl->size * count, decl->align);
-  DataArray* newArray    = mem_as_t(ctx->clone, DataArray);
-  *newArray              = (DataArray){.values = newArrayMem.ptr, .count = count};
+  HeapArray* newArray    = mem_as_t(ctx->clone, HeapArray);
+  *newArray              = (HeapArray){.values = newArrayMem.ptr, .count = count};
 
   for (usize i = 0; i != count; ++i) {
     const CloneCtx elemCtx = {
@@ -233,8 +233,8 @@ static void data_clone_internal(const CloneCtx* ctx) {
   case DataContainer_InlineArray:
     data_clone_inline_array(ctx);
     return;
-  case DataContainer_DataArray:
-    data_clone_array(ctx);
+  case DataContainer_HeapArray:
+    data_clone_heap_array(ctx);
     return;
   case DataContainer_DynArray:
     data_clone_dynarray(ctx);

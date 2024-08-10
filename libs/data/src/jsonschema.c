@@ -175,7 +175,7 @@ static JsonVal schema_default_type(const JsonSchemaCtx* ctx, const DataMeta meta
       diag_crash_msg("Inline-arrays need at least 1 entry");
     }
     // Fallthrough.
-  case DataContainer_DataArray:
+  case DataContainer_HeapArray:
   case DataContainer_DynArray:
     return schema_default_array(ctx, meta);
   }
@@ -543,7 +543,7 @@ static void schema_add_type(const JsonSchemaCtx* ctx, const JsonVal obj, const D
       diag_crash_msg("Inline-arrays need at least 1 entry");
     }
   // Fallthrough.
-  case DataContainer_DataArray:
+  case DataContainer_HeapArray:
   case DataContainer_DynArray:
     schema_add_array(ctx, obj, meta);
     break;

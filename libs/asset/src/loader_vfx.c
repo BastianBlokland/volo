@@ -85,10 +85,7 @@ typedef struct {
 
 typedef struct {
   bool ignoreTransformRotation;
-  struct {
-    VfxEmitterDef* values;
-    usize          count;
-  } emitters;
+  HeapArray_t(VfxEmitterDef) emitters;
 } VfxDef;
 
 typedef enum {
@@ -359,7 +356,7 @@ void asset_data_init_vfx(void) {
 
   data_reg_struct_t(g_dataReg, VfxDef);
   data_reg_field_t(g_dataReg, VfxDef, ignoreTransformRotation, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxDef, emitters, t_VfxEmitterDef, .container = DataContainer_DataArray);
+  data_reg_field_t(g_dataReg, VfxDef, emitters, t_VfxEmitterDef, .container = DataContainer_HeapArray);
   // clang-format on
 
   g_assetVfxDefMeta = data_meta_t(t_VfxDef);

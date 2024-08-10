@@ -278,10 +278,10 @@ static JsonVal data_write_json_val_inline_array(const WriteCtx* ctx) {
   return jsonArray;
 }
 
-static JsonVal data_write_json_val_array(const WriteCtx* ctx) {
+static JsonVal data_write_json_val_heap_array(const WriteCtx* ctx) {
   const JsonVal    jsonArray = json_add_array(ctx->doc);
   const DataDecl*  decl      = data_decl(ctx->reg, ctx->meta.type);
-  const DataArray* array     = mem_as_t(ctx->data, DataArray);
+  const HeapArray* array     = mem_as_t(ctx->data, HeapArray);
 
   for (usize i = 0; i != array->count; ++i) {
     const WriteCtx elemCtx = {
@@ -321,8 +321,8 @@ static JsonVal data_write_json_val(const WriteCtx* ctx) {
     return data_write_json_val_pointer(ctx);
   case DataContainer_InlineArray:
     return data_write_json_val_inline_array(ctx);
-  case DataContainer_DataArray:
-    return data_write_json_val_array(ctx);
+  case DataContainer_HeapArray:
+    return data_write_json_val_heap_array(ctx);
   case DataContainer_DynArray:
     return data_write_json_val_dynarray(ctx);
   }

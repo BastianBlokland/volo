@@ -607,7 +607,7 @@ void asset_data_init_arraytex(void) {
   data_reg_field_t(g_dataReg, ArrayTexDef, nearest, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ArrayTexDef, sizeX, data_prim_t(u32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ArrayTexDef, sizeY, data_prim_t(u32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, ArrayTexDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_DataArray);
+  data_reg_field_t(g_dataReg, ArrayTexDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_HeapArray);
   // clang-format on
 
   g_assetTexArrayDefMeta = data_meta_t(t_ArrayTexDef);

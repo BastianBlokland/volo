@@ -695,7 +695,7 @@ static void data_read_json_val_inline_array(const ReadCtx* ctx, DataReadResult* 
   data_read_json_val_elems(ctx, ctx->data.ptr, res);
 }
 
-static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
+static void data_read_json_val_heap_array(const ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!data_check_type(ctx, JsonType_Array, res))) {
     return;
   }
@@ -705,7 +705,7 @@ static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
     if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty)) {
       *res = result_fail(DataReadError_EmptyArrayIsInvalid, "Value cannot be an empty array");
     } else {
-      *mem_as_t(ctx->data, DataArray) = (DataArray){0};
+      *mem_as_t(ctx->data, HeapArray) = (HeapArray){0};
       *res                            = result_success();
     }
     return;
@@ -715,7 +715,7 @@ static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
   data_register_alloc(ctx, arrayMem);
 
   void* ptr                       = arrayMem.ptr;
-  *mem_as_t(ctx->data, DataArray) = (DataArray){.values = arrayMem.ptr, .count = count};
+  *mem_as_t(ctx->data, HeapArray) = (HeapArray){.values = arrayMem.ptr, .count = count};
 
   data_read_json_val_elems(ctx, ptr, res);
 }
@@ -756,8 +756,8 @@ static void data_read_json_val(const ReadCtx* ctx, DataReadResult* res) {
   case DataContainer_InlineArray:
     data_read_json_val_inline_array(ctx, res);
     return;
-  case DataContainer_DataArray:
-    data_read_json_val_array(ctx, res);
+  case DataContainer_HeapArray:
+    data_read_json_val_heap_array(ctx, res);
     return;
   case DataContainer_DynArray:
     data_read_json_val_dynarray(ctx, res);

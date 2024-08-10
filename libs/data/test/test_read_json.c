@@ -240,35 +240,32 @@ spec(read_json) {
     test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
   }
 
-  it("can read an array") {
-    const DataMeta meta = data_meta_t(data_prim_t(u32), .container = DataContainer_DataArray);
+  it("can read a heap-array") {
+    const DataMeta meta = data_meta_t(data_prim_t(u32), .container = DataContainer_HeapArray);
 
-    struct {
-      u32*  ptr;
-      usize count;
-    } val;
+    HeapArray_t(u32) val;
     test_read_success(_testCtx, reg, string_lit("[]"), meta, mem_var(val));
     check_eq_int(val.count, 0);
 
     test_read_success(_testCtx, reg, string_lit("[42]"), meta, mem_var(val));
     check_eq_int(val.count, 1);
-    check_eq_int(val.ptr[0], 42);
-    alloc_free_array_t(g_allocHeap, val.ptr, val.count);
+    check_eq_int(val.values[0], 42);
+    alloc_free_array_t(g_allocHeap, val.values, val.count);
 
     test_read_success(_testCtx, reg, string_lit("[1, 2, 3]"), meta, mem_var(val));
     check_eq_int(val.count, 3);
-    check_eq_int(val.ptr[0], 1);
-    check_eq_int(val.ptr[1], 2);
-    check_eq_int(val.ptr[2], 3);
-    alloc_free_array_t(g_allocHeap, val.ptr, val.count);
+    check_eq_int(val.values[0], 1);
+    check_eq_int(val.values[1], 2);
+    check_eq_int(val.values[2], 3);
+    alloc_free_array_t(g_allocHeap, val.values, val.count);
 
     test_read_fail(_testCtx, reg, string_lit("42"), meta, DataReadError_MismatchedType);
     test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
   }
 
-  it("fails when an array value cannot be empty") {
+  it("fails when an heap-array value cannot be empty") {
     const DataMeta meta = data_meta_t(
-        data_prim_t(u32), .container = DataContainer_DataArray, .flags = DataFlags_NotEmpty);
+        data_prim_t(u32), .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
 
     test_read_fail(_testCtx, reg, string_lit("[]"), meta, DataReadError_EmptyArrayIsInvalid);
   }

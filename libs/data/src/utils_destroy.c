@@ -142,9 +142,9 @@ static void data_destroy_inline_array(const DestroyCtx* ctx) {
   }
 }
 
-static void data_destroy_array(const DestroyCtx* ctx) {
+static void data_destroy_heap_array(const DestroyCtx* ctx) {
   const DataDecl*  decl  = data_decl(ctx->reg, ctx->meta.type);
-  const DataArray* array = mem_as_t(ctx->data, DataArray);
+  const HeapArray* array = mem_as_t(ctx->data, HeapArray);
   if (!array->count) {
     return;
   }
@@ -189,8 +189,8 @@ static void data_destroy_internal(const DestroyCtx* ctx) {
   case DataContainer_InlineArray:
     data_destroy_inline_array(ctx);
     return;
-  case DataContainer_DataArray:
-    data_destroy_array(ctx);
+  case DataContainer_HeapArray:
+    data_destroy_heap_array(ctx);
     return;
   case DataContainer_DynArray:
     data_destroy_dynarray(ctx);

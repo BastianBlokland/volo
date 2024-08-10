@@ -123,14 +123,14 @@ spec(bin) {
     test_bin_roundtrip(_testCtx, reg, meta, mem_var(values));
   }
 
-  it("can serialize an array") {
-    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
+  it("can serialize a heap-array") {
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_HeapArray);
 
-    i32             values[] = {1, 2, 3, 4, 5, 6, 7};
-    const DataArray array1   = {.values = values, .count = array_elems(values)};
+    i32 values[]            = {1, 2, 3, 4, 5, 6, 7};
+    HeapArray_t(i32) array1 = {.values = values, .count = array_elems(values)};
     test_bin_roundtrip(_testCtx, reg, meta, mem_var(array1));
 
-    const DataArray array2 = {0};
+    HeapArray_t(i32) array2 = {0};
     test_bin_roundtrip(_testCtx, reg, meta, mem_var(array2));
   }
 

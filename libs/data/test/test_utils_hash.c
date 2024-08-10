@@ -46,7 +46,7 @@ spec(utils_hash) {
     data_reg_struct_t(reg, HashStructC);
     data_reg_field_t(reg, HashStructC, value, t_HashStructB);
     data_reg_field_t(reg, HashStructC, ptr, t_HashStructB, .container = DataContainer_Pointer);
-    data_reg_field_t(reg, HashStructC, array, t_HashStructB, .container = DataContainer_DataArray);
+    data_reg_field_t(reg, HashStructC, array, t_HashStructB, .container = DataContainer_HeapArray);
 
     const u32 hash = data_hash(reg, data_meta_t(t_HashStructC), DataHashFlags_None);
     check(hash != 0);

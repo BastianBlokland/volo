@@ -80,8 +80,8 @@ void asset_data_init_shader(void) {
   data_reg_field_t(g_dataReg, AssetShaderComp, inputMask, data_prim_t(u16));
   data_reg_field_t(g_dataReg, AssetShaderComp, outputMask, data_prim_t(u16));
   data_reg_field_t(g_dataReg, AssetShaderComp, entryPoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetShaderComp, resources, t_AssetShaderRes, .container = DataContainer_DataArray);
-  data_reg_field_t(g_dataReg, AssetShaderComp, specs, t_AssetShaderSpec, .container = DataContainer_DataArray);
+  data_reg_field_t(g_dataReg, AssetShaderComp, resources, t_AssetShaderRes, .container = DataContainer_HeapArray);
+  data_reg_field_t(g_dataReg, AssetShaderComp, specs, t_AssetShaderSpec, .container = DataContainer_HeapArray);
   data_reg_field_t(g_dataReg, AssetShaderComp, data, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
   // clang-format on
 

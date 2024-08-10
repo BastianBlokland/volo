@@ -804,7 +804,7 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitNameDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitSetMemberDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitSetMemberDef, sets, data_prim_t(String), .container = DataContainer_DataArray, .flags = DataFlags_NotEmpty | DataFlags_Intern);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitSetMemberDef, sets, data_prim_t(String), .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty | DataFlags_Intern);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitRenderableDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitRenderableDef, graphicId, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -816,7 +816,7 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitDecalDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitSoundDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitSoundDef, assetIds, data_prim_t(String), .container = DataContainer_DataArray, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitSoundDef, assetIds, data_prim_t(String), .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabTraitSoundDef, gainMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabTraitSoundDef, gainMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabTraitSoundDef, pitchMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
@@ -874,8 +874,8 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, shape, t_AssetPrefabShapeDef);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitScriptDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, scriptIds, data_prim_t(String),  .container = DataContainer_DataArray, .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, knowledge, t_AssetPrefabValueDef, .container = DataContainer_DataArray, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, scriptIds, data_prim_t(String),  .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, knowledge, t_AssetPrefabValueDef, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitBarkDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitBarkDef, priority, data_prim_t(i32), .flags = DataFlags_Opt);
@@ -928,10 +928,10 @@ void asset_data_init_prefab(void) {
   data_reg_struct_t(g_dataReg, AssetPrefabDef);
   data_reg_field_t(g_dataReg, AssetPrefabDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
   data_reg_field_t(g_dataReg, AssetPrefabDef, isVolatile, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabDef, traits, t_AssetPrefabTraitDef, .container = DataContainer_DataArray);
+  data_reg_field_t(g_dataReg, AssetPrefabDef, traits, t_AssetPrefabTraitDef, .container = DataContainer_HeapArray);
 
   data_reg_struct_t(g_dataReg, AssetPrefabMapDef);
-  data_reg_field_t(g_dataReg, AssetPrefabMapDef, prefabs, t_AssetPrefabDef, .container = DataContainer_DataArray);
+  data_reg_field_t(g_dataReg, AssetPrefabMapDef, prefabs, t_AssetPrefabDef, .container = DataContainer_HeapArray);
   // clang-format on
 
   g_assetPrefabDefMeta = data_meta_t(t_AssetPrefabMapDef);

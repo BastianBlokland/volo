@@ -191,7 +191,7 @@ void asset_data_init_graphic(void) {
 
   data_reg_struct_t(g_dataReg, AssetGraphicShader);
   data_reg_field_t(g_dataReg, AssetGraphicShader, shaderId, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetGraphicShader, overrides, t_AssetGraphicOverride, .container = DataContainer_DataArray, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetGraphicShader, overrides, t_AssetGraphicOverride, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetGraphicSampler);
   data_reg_field_t(g_dataReg, AssetGraphicSampler, textureId, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -201,8 +201,8 @@ void asset_data_init_graphic(void) {
   data_reg_field_t(g_dataReg, AssetGraphicSampler, mipBlending, data_prim_t(bool), .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetGraphicComp);
-  data_reg_field_t(g_dataReg, AssetGraphicComp, shaders, t_AssetGraphicShader, .container = DataContainer_DataArray, .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetGraphicComp, samplers, t_AssetGraphicSampler, .container = DataContainer_DataArray, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, shaders, t_AssetGraphicShader, .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, samplers, t_AssetGraphicSampler, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicComp, meshId, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetGraphicComp, vertexCount, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetGraphicComp, renderOrder, data_prim_t(i32), .flags = DataFlags_Opt);

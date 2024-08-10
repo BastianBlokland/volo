@@ -170,8 +170,8 @@ spec(jsonschema) {
                    "}"));
   }
 
-  it("supports arrays") {
-    const DataMeta meta = data_meta_t(data_prim_t(String), .container = DataContainer_DataArray);
+  it("supports heap-arrays") {
+    const DataMeta meta = data_meta_t(data_prim_t(String), .container = DataContainer_HeapArray);
 
     test_jsonschema_write(
         _testCtx,
@@ -186,9 +186,9 @@ spec(jsonschema) {
                    "}"));
   }
 
-  it("supports non-empty arrays") {
+  it("supports non-empty heap-arrays") {
     const DataMeta meta = data_meta_t(
-        data_prim_t(String), .container = DataContainer_DataArray, .flags = DataFlags_NotEmpty);
+        data_prim_t(String), .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
 
     test_jsonschema_write(
         _testCtx,

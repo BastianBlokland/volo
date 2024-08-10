@@ -1,4 +1,5 @@
 #pragma once
+#include "core_array.h"
 #include "core_dynarray.h"
 #include "data_registry.h"
 
@@ -95,7 +96,7 @@ Mem data_choice_mem(const DataReg*, const DataDeclChoice*, Mem unionMem);
 /**
  * Create a memory view over an element in the given array.
  */
-Mem data_elem_mem(const DataDecl*, const DataArray*, usize index);
+Mem data_elem_mem(const DataDecl*, const HeapArray*, usize index);
 
 /**
  * Find a constant in the enum with the given id/value.

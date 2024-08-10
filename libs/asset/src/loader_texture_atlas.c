@@ -354,7 +354,7 @@ void asset_data_init_atlas(void) {
   data_reg_field_t(g_dataReg, AtlasDef, srgb, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AtlasDef, lossless, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AtlasDef, nearest, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_DataArray);
+  data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_HeapArray);
 
   data_reg_struct_t(g_dataReg, AssetAtlasEntry);
   data_reg_field_t(g_dataReg, AssetAtlasEntry, name, data_prim_t(StringHash));
@@ -363,7 +363,7 @@ void asset_data_init_atlas(void) {
   data_reg_struct_t(g_dataReg, AssetAtlasComp);
   data_reg_field_t(g_dataReg, AssetAtlasComp, entriesPerDim, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetAtlasComp, entryPadding, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, AssetAtlasComp, entries, t_AssetAtlasEntry, .container = DataContainer_DataArray);
+  data_reg_field_t(g_dataReg, AssetAtlasComp, entries, t_AssetAtlasEntry, .container = DataContainer_HeapArray);
 
   data_reg_struct_t(g_dataReg, AtlasBundle);
   data_reg_field_t(g_dataReg, AtlasBundle, atlas, t_AssetAtlasComp);

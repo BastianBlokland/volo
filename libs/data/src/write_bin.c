@@ -228,9 +228,9 @@ static void data_write_bin_val_inline_array(const WriteCtx* ctx) {
   }
 }
 
-static void data_write_bin_val_array(const WriteCtx* ctx) {
+static void data_write_bin_val_heap_array(const WriteCtx* ctx) {
   const DataDecl*  decl  = data_decl(ctx->reg, ctx->meta.type);
-  const DataArray* array = mem_as_t(ctx->data, DataArray);
+  const HeapArray* array = mem_as_t(ctx->data, HeapArray);
 
   bin_push_u64(ctx, array->count);
 
@@ -272,8 +272,8 @@ static void data_write_bin_val(const WriteCtx* ctx) {
   case DataContainer_InlineArray:
     data_write_bin_val_inline_array(ctx);
     return;
-  case DataContainer_DataArray:
-    data_write_bin_val_array(ctx);
+  case DataContainer_HeapArray:
+    data_write_bin_val_heap_array(ctx);
     return;
   case DataContainer_DynArray:
     data_write_bin_val_dynarray(ctx);

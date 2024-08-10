@@ -280,7 +280,7 @@ void asset_data_init_cache(void) {
   data_reg_field_t(g_dataReg, AssetCacheEntry, idHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetCacheEntry, meta, t_AssetCacheMeta);
   data_reg_field_t(g_dataReg, AssetCacheEntry, modTime, data_prim_t(i64));
-  data_reg_field_t(g_dataReg, AssetCacheEntry, dependencies, t_AssetCacheDependency, .container = DataContainer_DataArray);
+  data_reg_field_t(g_dataReg, AssetCacheEntry, dependencies, t_AssetCacheDependency, .container = DataContainer_HeapArray);
 
   data_reg_struct_t(g_dataReg, AssetCacheRegistry);
   data_reg_field_t(g_dataReg, AssetCacheRegistry, entries, t_AssetCacheEntry, .container = DataContainer_DynArray);

@@ -157,10 +157,10 @@ static bool data_equal_inline_array(const EqualCtx* ctx) {
   return true;
 }
 
-static bool data_equal_array(const EqualCtx* ctx) {
+static bool data_equal_heap_array(const EqualCtx* ctx) {
   const DataDecl*  decl   = data_decl(ctx->reg, ctx->meta.type);
-  const DataArray* arrayA = mem_as_t(ctx->a, DataArray);
-  const DataArray* arrayB = mem_as_t(ctx->b, DataArray);
+  const HeapArray* arrayA = mem_as_t(ctx->a, HeapArray);
+  const HeapArray* arrayB = mem_as_t(ctx->b, HeapArray);
   if (arrayA->count != arrayB->count) {
     return false;
   }
@@ -208,8 +208,8 @@ static bool data_equal_internal(const EqualCtx* ctx) {
     return data_equal_pointer(ctx);
   case DataContainer_InlineArray:
     return data_equal_inline_array(ctx);
-  case DataContainer_DataArray:
-    return data_equal_array(ctx);
+  case DataContainer_HeapArray:
+    return data_equal_heap_array(ctx);
   case DataContainer_DynArray:
     return data_equal_dynarray(ctx);
   }

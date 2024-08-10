@@ -136,8 +136,8 @@ usize data_meta_size(const DataReg* reg, const DataMeta meta) {
     return sizeof(void*);
   case DataContainer_InlineArray:
     return data_decl(reg, meta.type)->size * meta.fixedCount;
-  case DataContainer_DataArray:
-    return sizeof(DataArray);
+  case DataContainer_HeapArray:
+    return sizeof(HeapArray);
   case DataContainer_DynArray:
     return sizeof(DynArray);
   }
@@ -152,8 +152,8 @@ usize data_meta_align(const DataReg* reg, const DataMeta meta) {
     return alignof(void*);
   case DataContainer_InlineArray:
     return data_decl(reg, meta.type)->align;
-  case DataContainer_DataArray:
-    return alignof(DataArray);
+  case DataContainer_HeapArray:
+    return alignof(HeapArray);
   case DataContainer_DynArray:
     return alignof(DynArray);
   }
@@ -344,7 +344,7 @@ Mem data_choice_mem(const DataReg* reg, const DataDeclChoice* choice, const Mem 
       bits_ptr_offset(unionMem.ptr, choice->offset), data_meta_size(reg, choice->meta));
 }
 
-Mem data_elem_mem(const DataDecl* decl, const DataArray* array, const usize index) {
+Mem data_elem_mem(const DataDecl* decl, const HeapArray* array, const usize index) {
   return mem_create(bits_ptr_offset(array->values, decl->size * index), decl->size);
 }
 

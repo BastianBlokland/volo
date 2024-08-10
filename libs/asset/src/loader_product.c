@@ -335,10 +335,10 @@ void asset_data_init_product(void) {
 
   data_reg_struct_t(g_dataReg, AssetProductSetDef);
   data_reg_field_t(g_dataReg, AssetProductSetDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetProductSetDef, products, t_AssetProductDef, .container = DataContainer_DataArray, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetProductSetDef, products, t_AssetProductDef, .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetProductMapDef);
-  data_reg_field_t(g_dataReg, AssetProductMapDef, sets, t_AssetProductSetDef, .container = DataContainer_DataArray);
+  data_reg_field_t(g_dataReg, AssetProductMapDef, sets, t_AssetProductSetDef, .container = DataContainer_HeapArray);
   // clang-format on
 
   g_assetProductDefMeta = data_meta_t(t_AssetProductMapDef);
