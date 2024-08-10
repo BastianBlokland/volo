@@ -10,6 +10,7 @@ void asset_data_init_fonttex(void);
 void asset_data_init_graphic(void);
 void asset_data_init_inputmap(void);
 void asset_data_init_level(void);
+void asset_data_init_mesh(void);
 void asset_data_init_prefab(void);
 void asset_data_init_procmesh(void);
 void asset_data_init_proctex(void);

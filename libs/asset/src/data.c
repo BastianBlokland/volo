@@ -160,6 +160,7 @@ void asset_data_init(void) {
     asset_data_init_graphic();
     asset_data_init_inputmap();
     asset_data_init_level();
+    asset_data_init_mesh();
     asset_data_init_prefab();
     asset_data_init_procmesh();
     asset_data_init_proctex();
