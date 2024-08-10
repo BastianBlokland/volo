@@ -223,6 +223,23 @@ spec(read_json) {
     test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_NullIsInvalid);
   }
 
+  it("can read an inline-array") {
+    const DataMeta meta =
+        data_meta_t(data_prim_t(u32), .container = DataContainer_InlineArray, .fixedCount = 4);
+
+    u32 val[4];
+
+    test_read_success(_testCtx, reg, string_lit("[1, 2, 3, 4]"), meta, mem_var(val));
+    check_eq_int(val[0], 1);
+    check_eq_int(val[1], 2);
+    check_eq_int(val[2], 3);
+    check_eq_int(val[3], 4);
+
+    test_read_fail(_testCtx, reg, string_lit("[]"), meta, DataReadError_MismatchedInlineArrayCount);
+    test_read_fail(_testCtx, reg, string_lit("42"), meta, DataReadError_MismatchedType);
+    test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
+  }
+
   it("can read an array") {
     const DataMeta meta = data_meta_t(data_prim_t(u32), .container = DataContainer_DataArray);
 

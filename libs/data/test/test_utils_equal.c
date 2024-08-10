@@ -54,6 +54,16 @@ spec(utils_equal) {
     check(!data_equal(reg, meta, mem_var(aPtr), mem_var(bPtr)));
   }
 
+  it("can compare inline-arrays of primitives") {
+    i32 valA[] = {0, 1, 2, 3, 4, 5, 6, 7};
+    i32 valB[] = {0, 1, 3, 2, 4, 5, 6, 7};
+
+    const DataMeta meta =
+        data_meta_t(data_prim_t(i32), .container = DataContainer_InlineArray, .fixedCount = 8);
+    check(data_equal(reg, meta, mem_var(valA), mem_var(valA)));
+    check(!data_equal(reg, meta, mem_var(valA), mem_var(valB)));
+  }
+
   it("can compare arrays of primitives") {
     typedef struct {
       i32*  values;

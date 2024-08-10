@@ -58,6 +58,16 @@ spec(utils_destroy) {
     data_destroy(reg, g_allocHeap, meta, mem_var(val));
   }
 
+  it("can destroy an inline-array") {
+    String val[2];
+    val[0] = string_dup(g_allocHeap, string_lit("Hello"));
+    val[1] = string_dup(g_allocHeap, string_lit("World"));
+
+    const DataMeta meta =
+        data_meta_t(data_prim_t(String), .container = DataContainer_InlineArray, .fixedCount = 2);
+    data_destroy(reg, g_allocHeap, meta, mem_var(val));
+  }
+
   it("can destroy an array of primitives") {
     const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
 

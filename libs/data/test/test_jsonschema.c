@@ -151,6 +151,25 @@ spec(jsonschema) {
                    "}"));
   }
 
+  it("supports inline arrays") {
+    const DataMeta meta =
+        data_meta_t(data_prim_t(String), .container = DataContainer_InlineArray, .fixedCount = 42);
+
+    test_jsonschema_write(
+        _testCtx,
+        reg,
+        meta,
+        string_lit("{\n"
+                   "  \"type\": \"array\",\n"
+                   "  \"minItems\": 42,\n"
+                   "  \"maxItems\": 42,\n"
+                   "  \"items\": {\n"
+                   "    \"title\": \"String\",\n"
+                   "    \"type\": \"string\"\n"
+                   "  }\n"
+                   "}"));
+  }
+
   it("supports arrays") {
     const DataMeta meta = data_meta_t(data_prim_t(String), .container = DataContainer_DataArray);
 

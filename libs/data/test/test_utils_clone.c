@@ -92,6 +92,19 @@ spec(utils_clone) {
     data_destroy(reg, g_allocHeap, meta, mem_var(clone));
   }
 
+  it("can clone an inline-array of primitives") {
+    i32 original[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+    i32 clone[8];
+
+    const DataMeta meta =
+        data_meta_t(data_prim_t(i32), .container = DataContainer_InlineArray, .fixedCount = 8);
+    data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
+
+    for (usize i = 0; i != 8; ++i) {
+      check_eq_int(clone[i], original[i]);
+    }
+  }
+
   it("can clone an array of primitives") {
     typedef struct {
       i32*  values;

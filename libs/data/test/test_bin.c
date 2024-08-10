@@ -115,6 +115,14 @@ spec(bin) {
     test_bin_roundtrip(_testCtx, reg, meta, mem_var(val2));
   }
 
+  it("can serialize an inline-array") {
+    const DataMeta meta =
+        data_meta_t(data_prim_t(i32), .container = DataContainer_InlineArray, .fixedCount = 8);
+
+    i32 values[] = {1, 2, 3, 4, 5, 6, 7, 8};
+    test_bin_roundtrip(_testCtx, reg, meta, mem_var(values));
+  }
+
   it("can serialize an array") {
     const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
 

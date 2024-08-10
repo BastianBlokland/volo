@@ -173,5 +173,37 @@ spec(utils_hash) {
     check(hashA != hashB);
   }
 
+  it("includes the fixedCount in the hash") {
+    typedef struct {
+      u32 val[2];
+    } HashStructA;
+
+    data_reg_struct_t(reg, HashStructA);
+    data_reg_field_t(
+        reg,
+        HashStructA,
+        val,
+        data_prim_t(u32),
+        .container  = DataContainer_InlineArray,
+        .fixedCount = 2);
+
+    typedef struct {
+      u32 val[3];
+    } HashStructB;
+
+    data_reg_struct_t(reg, HashStructB);
+    data_reg_field_t(
+        reg,
+        HashStructB,
+        val,
+        data_prim_t(u32),
+        .container  = DataContainer_InlineArray,
+        .fixedCount = 3);
+
+    const u32 hashA = data_hash(reg, data_meta_t(t_HashStructA), DataHashFlags_None);
+    const u32 hashB = data_hash(reg, data_meta_t(t_HashStructB), DataHashFlags_None);
+    check(hashA != hashB);
+  }
+
   teardown() { data_reg_destroy(reg); }
 }

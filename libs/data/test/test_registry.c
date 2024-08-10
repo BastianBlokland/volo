@@ -36,6 +36,18 @@ spec(registry) {
     check_eq_int(data_meta_size(reg, meta), sizeof(i32*));
   }
 
+  it("can lookup the size of an inline_array value") {
+    const DataMeta meta =
+        data_meta_t(data_prim_t(i32), .container = DataContainer_InlineArray, .fixedCount = 42);
+    check_eq_int(data_meta_size(reg, meta), sizeof(i32) * 42);
+  }
+
+  it("can lookup the alignment of an inline_array value") {
+    const DataMeta meta =
+        data_meta_t(data_prim_t(i32), .container = DataContainer_InlineArray, .fixedCount = 42);
+    check_eq_int(data_meta_align(reg, meta), alignof(i32));
+  }
+
   it("can lookup the size of an array value") {
     const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
     check_eq_int(data_meta_size(reg, meta), sizeof(i32*) + sizeof(usize));
