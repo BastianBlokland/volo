@@ -54,7 +54,7 @@ typedef struct {
 } AssetMeshAnimChannel;
 
 typedef struct {
-  StringHash           name;
+  String               name;
   f32                  duration;
   AssetMeshAnimChannel joints[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
 } AssetMeshAnim;
@@ -66,7 +66,8 @@ ecs_comp_extern_public(AssetMeshSkeletonComp) {
   AssetMeshAnimPtr rootTransform;   // (GeoVector | GeoQuat)[3]. // TRS.
   AssetMeshAnimPtr parentIndices;   // u32[jointCount].
   AssetMeshAnimPtr skinCounts;      // u32[jointCount]. Amount of verts skinned to each joint.
-  AssetMeshAnimPtr jointNames;      // StringHash[jointCount].
+  AssetMeshAnimPtr jointNameHashes; // StringHash[jointCount].
+  AssetMeshAnimPtr jointNames;      // struct { u8 size; u8 data[size]; }[jointCount].
   u8               jointCount;
   DataMem          data; // 16 bit aligned and the size is always a multiple of 16.
 };

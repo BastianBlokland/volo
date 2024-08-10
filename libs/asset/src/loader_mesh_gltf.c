@@ -117,12 +117,12 @@ typedef struct {
   u32           nodeIndex;
   u32           parentIndex;
   u32           skinCount; // Amount of vertices skinned to this joint.
-  StringHash    nameHash;
+  String        name;      // Interned in the global string-table.
   GltfTransform trans;
 } GltfJoint;
 
 typedef struct {
-  StringHash      nameHash;
+  String          name; // Interned in the global string-table.
   GltfAnimChannel channels[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
 } GltfAnim;
 
@@ -344,10 +344,19 @@ static bool gltf_json_field_quat(GltfLoad* ld, const JsonVal v, const String nam
   return success;
 }
 
-static void gltf_json_name(GltfLoad* ld, const JsonVal v, StringHash* out) {
-  String str;
-  *out = stringtable_add(
-      g_stringtable, gltf_json_field_str(ld, v, string_lit("name"), &str) ? str : string_empty);
+/**
+ * NOTE: Returned strings are interned in the global string-table.
+ */
+static void gltf_json_name(GltfLoad* ld, const JsonVal v, String* out) {
+  String str = string_empty;
+  gltf_json_field_str(ld, v, string_lit("name"), &str);
+
+  if (string_is_empty(str)) {
+    *out = string_empty;
+    return;
+  }
+
+  *out = stringtable_intern(g_stringtable, string_slice(str, 0, math_min(str.size, u8_max)));
 }
 
 static void gltf_json_transform(GltfLoad* ld, const JsonVal v, GltfTransform* out) {
@@ -421,6 +430,14 @@ static AssetMeshAnimPtr gltf_anim_data_push_trans(GltfLoad* ld, const GltfTransf
   *((GeoVector*)dynarray_push(&ld->animData, sizeof(GeoVector)).ptr) = val.t;
   *((GeoQuat*)dynarray_push(&ld->animData, sizeof(GeoQuat)).ptr)     = val.r;
   *((GeoVector*)dynarray_push(&ld->animData, sizeof(GeoVector)).ptr) = val.s;
+  return res;
+}
+
+static AssetMeshAnimPtr gltf_anim_data_push_string(GltfLoad* ld, const String val) {
+  diag_assert(val.size <= u8_max);
+  const AssetMeshAnimPtr res                           = gltf_anim_data_begin(ld, alignof(u8));
+  *((u8*)dynarray_push(&ld->animData, sizeof(u8)).ptr) = (u8)val.size;
+  mem_cpy(dynarray_push(&ld->animData, val.size), val);
   return res;
 }
 
@@ -780,7 +797,7 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
     }
     GltfJoint* out = &ld->joints[jointIndex];
 
-    gltf_json_name(ld, node, &out->nameHash);
+    gltf_json_name(ld, node, &out->name);
     gltf_json_transform(ld, node, &out->trans);
 
     const JsonVal children = json_field_lit(ld->jDoc, node, "children");
@@ -849,7 +866,7 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
     if (json_type(ld->jDoc, anim) != JsonType_Object) {
       goto Error;
     }
-    gltf_json_name(ld, anim, &outAnim->nameHash);
+    gltf_json_name(ld, anim, &outAnim->name);
 
     const JsonVal samplers = json_field_lit(ld->jDoc, anim, "samplers");
     if (!gltf_json_check(ld, samplers, JsonType_Array)) {
@@ -1310,16 +1327,22 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
   }
 
   // Output the joint name-hashes.
-  AssetMeshAnimPtr resNames = gltf_anim_data_begin(ld, alignof(StringHash));
+  AssetMeshAnimPtr resNameHashes = gltf_anim_data_begin(ld, alignof(StringHash));
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
-    gltf_anim_data_push_u32(ld, ld->joints[jointIndex].nameHash);
+    gltf_anim_data_push_u32(ld, string_hash(ld->joints[jointIndex].name));
+  }
+
+  // Output the joint names.
+  AssetMeshAnimPtr resNames = gltf_anim_data_begin(ld, alignof(u8));
+  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+    gltf_anim_data_push_string(ld, ld->joints[jointIndex].name);
   }
 
   // Create the animation output structures.
   AssetMeshAnim* resAnims =
       ld->animCount ? alloc_array_t(g_allocHeap, AssetMeshAnim, ld->animCount) : null;
   for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
-    resAnims[animIndex].name = ld->anims[animIndex].nameHash;
+    resAnims[animIndex].name = ld->anims[animIndex].name;
     f32 duration             = 0;
 
     for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
@@ -1364,11 +1387,11 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
     gltf_anim_data_push_trans(ld, joint->trans);
   }
 
-  // Pad animData so the size is always a multiple of 16.
-  mem_set(dynarray_push(&ld->animData, bits_padding(ld->animData.size, 16)), 0);
-
   AssetMeshAnimPtr bindPoseInvMats = gltf_anim_data_push_access_mat(ld, ld->accBindPoseInvMats);
   AssetMeshAnimPtr rootTransform   = gltf_anim_data_push_trans(ld, ld->sceneTrans);
+
+  // Pad animData so the size is always a multiple of 16.
+  mem_set(dynarray_push(&ld->animData, bits_padding(ld->animData.size, 16)), 0);
 
   *out = (AssetMeshSkeletonComp){
       .anims.values    = resAnims,
@@ -1378,6 +1401,7 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
       .rootTransform   = rootTransform,
       .parentIndices   = resParents,
       .skinCounts      = resSkinCounts,
+      .jointNameHashes = resNameHashes,
       .jointNames      = resNames,
       .jointCount      = ld->jointCount,
       .data            = data_mem_create(
