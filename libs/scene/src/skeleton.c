@@ -200,10 +200,10 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
   tl->jointCount = asset->jointCount;
   tl->animData   = alloc_dup(g_allocHeap, asset->animData, 1);
 
-  tl->anims     = alloc_array_t(g_allocHeap, SceneSkeletonAnim, asset->animCount);
-  tl->animCount = asset->animCount;
-  for (u32 animIndex = 0; animIndex != asset->animCount; ++animIndex) {
-    const AssetMeshAnim* assetAnim = &asset->anims[animIndex];
+  tl->anims     = alloc_array_t(g_allocHeap, SceneSkeletonAnim, asset->anims.count);
+  tl->animCount = (u32)asset->anims.count;
+  for (u32 animIndex = 0; animIndex != asset->anims.count; ++animIndex) {
+    const AssetMeshAnim* assetAnim = &asset->anims.values[animIndex];
     tl->anims[animIndex].nameHash  = assetAnim->nameHash;
     tl->anims[animIndex].duration  = assetAnim->duration;
 

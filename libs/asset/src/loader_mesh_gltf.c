@@ -1367,7 +1367,8 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
   mem_set(dynarray_push(&ld->animData, bits_padding(ld->animData.size, 16)), 0);
 
   *out = (AssetMeshSkeletonComp){
-      .anims           = resAnims,
+      .anims.values    = resAnims,
+      .anims.count     = ld->animCount,
       .bindPoseInvMats = gltf_anim_data_push_access_mat(ld, ld->accBindPoseInvMats),
       .defaultPose     = resDefaultPose,
       .rootTransform   = gltf_anim_data_push_trans(ld, ld->sceneTrans),
@@ -1375,7 +1376,6 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
       .skinCounts      = resSkinCounts,
       .jointNames      = resNames,
       .jointCount      = ld->jointCount,
-      .animCount       = ld->animCount,
       .animData = alloc_dup(g_allocHeap, dynarray_at(&ld->animData, 0, ld->animData.size), 16),
   };
   *err = GltfError_None;
