@@ -1,5 +1,6 @@
 #include "core_thread.h"
 #include "core_types.h"
+#include "geo_box_rotated.h"
 #include "geo_color.h"
 #include "geo_quat.h"
 #include "geo_vector.h"
@@ -30,6 +31,7 @@ ASSERT(alignof(GeoVector4) == alignof(GeoVector), "Invalid vector alignment")
 DataType g_assetGeoColorType;
 DataType g_assetGeoVec2Type, g_assetGeoVec3Type, g_assetGeoVec4Type;
 DataType g_assetGeoQuatType;
+DataType g_assetGeoBoxType, g_assetGeoBoxRotatedType;
 
 static void asset_data_init_types(void) {
   data_reg_struct_t(g_dataReg, GeoColor);
@@ -64,11 +66,23 @@ static void asset_data_init_types(void) {
   data_reg_field_t(g_dataReg, GeoQuat, w, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_comment_t(g_dataReg, GeoQuat, "Quaternion");
 
-  g_assetGeoColorType = t_GeoColor;
-  g_assetGeoVec2Type  = t_GeoVector2;
-  g_assetGeoVec3Type  = t_GeoVector3;
-  g_assetGeoVec4Type  = t_GeoVector4;
-  g_assetGeoQuatType  = t_GeoQuat;
+  data_reg_struct_t(g_dataReg, GeoBox);
+  data_reg_field_t(g_dataReg, GeoBox, min, t_GeoVector3);
+  data_reg_field_t(g_dataReg, GeoBox, max, t_GeoVector3);
+  data_reg_comment_t(g_dataReg, GeoBox, "3D Axis-Aligned Box");
+
+  data_reg_struct_t(g_dataReg, GeoBoxRotated);
+  data_reg_field_t(g_dataReg, GeoBoxRotated, box, t_GeoBox);
+  data_reg_field_t(g_dataReg, GeoBoxRotated, rotation, t_GeoQuat);
+  data_reg_comment_t(g_dataReg, GeoBoxRotated, "3D Rotated Box");
+
+  g_assetGeoColorType      = t_GeoColor;
+  g_assetGeoVec2Type       = t_GeoVector2;
+  g_assetGeoVec3Type       = t_GeoVector3;
+  g_assetGeoVec4Type       = t_GeoVector4;
+  g_assetGeoQuatType       = t_GeoQuat;
+  g_assetGeoBoxType        = t_GeoBox;
+  g_assetGeoBoxRotatedType = t_GeoBoxRotated;
 }
 
 void asset_data_init(void) {
