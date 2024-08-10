@@ -65,6 +65,7 @@ ecs_comp_extern_public(AssetMeshSkeletonComp) {
   DataMem          data; // 16 bit aligned and the size is always a multiple of 16.
 };
 
+extern DataMeta g_assetMeshBundleMeta;
 extern DataMeta g_assetMeshMeta;
 extern DataMeta g_assetMeshSkeletonMeta;
 extern DataMeta g_assetProcMeshDefMeta;

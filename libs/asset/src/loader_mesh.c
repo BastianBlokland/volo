@@ -9,6 +9,7 @@
 #include "loader_mesh_internal.h"
 #include "repo_internal.h"
 
+DataMeta g_assetMeshBundleMeta;
 DataMeta g_assetMeshMeta;
 DataMeta g_assetMeshSkeletonMeta;
 
@@ -119,8 +120,13 @@ void asset_data_init_mesh(void) {
   data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, jointNames, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, jointCount, data_prim_t(u8));
   data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, data, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
+
+  data_reg_struct_t(g_dataReg, AssetMeshBundle);
+  data_reg_field_t(g_dataReg, AssetMeshBundle, mesh, t_AssetMeshComp);
+  data_reg_field_t(g_dataReg, AssetMeshBundle, skeleton, t_AssetMeshSkeletonComp, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
   // clang-format on
 
+  g_assetMeshBundleMeta   = data_meta_t(t_AssetMeshBundle);
   g_assetMeshMeta         = data_meta_t(t_AssetMeshComp);
   g_assetMeshSkeletonMeta = data_meta_t(t_AssetMeshSkeletonComp);
 }
