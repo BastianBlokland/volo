@@ -54,7 +54,7 @@ void asset_data_init_level(void) {
 
   data_reg_struct_t(g_dataReg, AssetLevelObject);
   data_reg_field_t(g_dataReg, AssetLevelObject, id, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetLevelObject, prefab, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
+  data_reg_field_t(g_dataReg, AssetLevelObject, prefab, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetLevelObject, faction, t_AssetLevelFaction, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetLevelObject, position, g_assetGeoVec3Type);
   data_reg_field_t(g_dataReg, AssetLevelObject, rotation, g_assetGeoQuatType);

@@ -17,7 +17,7 @@ typedef enum {
 
 typedef struct {
   u32               id; // Optional unique persistent object id.
-  String            prefab;
+  StringHash        prefab;
   AssetLevelFaction faction;
   f32               scale;
   GeoVector         position;

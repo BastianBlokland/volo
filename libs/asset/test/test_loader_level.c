@@ -30,7 +30,7 @@ static const struct {
         .objects =
             {
                 {
-                    .prefab   = string_static("Unit"),
+                    .prefab   = 1470434201,
                     .faction  = AssetLevelFaction_A,
                     .position = {.x = 42},
                     .rotation = {0},
@@ -102,7 +102,7 @@ spec(loader_level) {
         const AssetLevelObject* actualObject   = &lvl->objects.values[a];
         const AssetLevelObject* expectedObject = &g_testData[i].objects[a];
 
-        check_eq_string(actualObject->prefab, expectedObject->prefab);
+        check_eq_int(actualObject->prefab, expectedObject->prefab);
         check_eq_int(actualObject->faction, expectedObject->faction);
         check_eq_float(actualObject->position.x, expectedObject->position.x, 1e-4f);
         check_eq_float(actualObject->position.y, expectedObject->position.y, 1e-4f);
