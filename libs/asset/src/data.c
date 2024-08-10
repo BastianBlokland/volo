@@ -13,21 +13,30 @@
 #include "data_internal.h"
 
 typedef union {
-  ALIGNAS(16) f32 x, y;
+  struct {
+    f32 x, y;
+  };
+  ALIGNAS(16) f32 comps[4];
 } GeoVector2;
 
 ASSERT(sizeof(GeoVector2) == sizeof(GeoVector), "Invalid vector size")
 ASSERT(alignof(GeoVector2) == alignof(GeoVector), "Invalid vector alignment")
 
 typedef union {
-  ALIGNAS(16) f32 x, y, z;
+  struct {
+    f32 x, y, z;
+  };
+  ALIGNAS(16) f32 comps[4];
 } GeoVector3;
 
 ASSERT(sizeof(GeoVector3) == sizeof(GeoVector), "Invalid vector size")
 ASSERT(alignof(GeoVector3) == alignof(GeoVector), "Invalid vector alignment")
 
 typedef union {
-  ALIGNAS(16) f32 x, y, z, w;
+  struct {
+    f32 x, y, z, w;
+  };
+  ALIGNAS(16) f32 comps[4];
 } GeoVector4;
 
 ASSERT(sizeof(GeoVector4) == sizeof(GeoVector), "Invalid vector size")
