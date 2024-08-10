@@ -1,3 +1,4 @@
+#include "core_bits.h"
 #include "core_diag.h"
 #include "data_utils.h"
 
@@ -133,6 +134,25 @@ static bool data_equal_pointer(const EqualCtx* ctx) {
   return data_equal_single(&subCtx);
 }
 
+static bool data_equal_inline_array(const EqualCtx* ctx) {
+  if (UNLIKELY(!ctx->meta.fixedCount)) {
+    diag_crash_msg("Inline-arrays need at least 1 entry");
+  }
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  for (u16 i = 0; i != ctx->meta.fixedCount; ++i) {
+    const EqualCtx elemCtx = {
+        .reg  = ctx->reg,
+        .meta = data_meta_base(ctx->meta),
+        .a    = mem_create(bits_ptr_offset(ctx->a.ptr, decl->size * i), decl->size),
+        .b    = mem_create(bits_ptr_offset(ctx->b.ptr, decl->size * i), decl->size),
+    };
+    if (!data_equal_single(&elemCtx)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 static bool data_equal_array(const EqualCtx* ctx) {
   const DataDecl*  decl   = data_decl(ctx->reg, ctx->meta.type);
   const DataArray* arrayA = mem_as_t(ctx->a, DataArray);
@@ -182,6 +202,8 @@ static bool data_equal_internal(const EqualCtx* ctx) {
     return data_equal_single(ctx);
   case DataContainer_Pointer:
     return data_equal_pointer(ctx);
+  case DataContainer_InlineArray:
+    return data_equal_inline_array(ctx);
   case DataContainer_DataArray:
     return data_equal_array(ctx);
   case DataContainer_DynArray:

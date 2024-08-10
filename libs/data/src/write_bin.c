@@ -209,6 +209,22 @@ static void data_write_bin_val_pointer(const WriteCtx* ctx) {
   }
 }
 
+static void data_write_bin_val_inline_array(const WriteCtx* ctx) {
+  if (UNLIKELY(!ctx->meta.fixedCount)) {
+    diag_crash_msg("Inline-arrays need at least 1 entry");
+  }
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  for (u16 i = 0; i != ctx->meta.fixedCount; ++i) {
+    const WriteCtx elemCtx = {
+        .reg  = ctx->reg,
+        .out  = ctx->out,
+        .meta = data_meta_base(ctx->meta),
+        .data = mem_create(bits_ptr_offset(ctx->data.ptr, decl->size * i), decl->size),
+    };
+    data_write_bin_val_single(&elemCtx);
+  }
+}
+
 static void data_write_bin_val_array(const WriteCtx* ctx) {
   const DataDecl*  decl  = data_decl(ctx->reg, ctx->meta.type);
   const DataArray* array = mem_as_t(ctx->data, DataArray);
@@ -249,6 +265,9 @@ static void data_write_bin_val(const WriteCtx* ctx) {
     return;
   case DataContainer_Pointer:
     data_write_bin_val_pointer(ctx);
+    return;
+  case DataContainer_InlineArray:
+    data_write_bin_val_inline_array(ctx);
     return;
   case DataContainer_DataArray:
     data_write_bin_val_array(ctx);

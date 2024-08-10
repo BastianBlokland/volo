@@ -155,6 +155,23 @@ static void data_clone_pointer(const CloneCtx* ctx) {
   data_clone_single(&subCtx);
 }
 
+static void data_clone_inline_array(const CloneCtx* ctx) {
+  if (UNLIKELY(!ctx->meta.fixedCount)) {
+    diag_crash_msg("Inline-arrays need at least 1 entry");
+  }
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  for (u16 i = 0; i != ctx->meta.fixedCount; ++i) {
+    const CloneCtx elemCtx = {
+        .reg      = ctx->reg,
+        .alloc    = ctx->alloc,
+        .meta     = data_meta_base(ctx->meta),
+        .original = mem_create(bits_ptr_offset(ctx->original.ptr, decl->size * i), decl->size),
+        .clone    = mem_create(bits_ptr_offset(ctx->clone.ptr, decl->size * i), decl->size),
+    };
+    data_clone_single(&elemCtx);
+  }
+}
+
 static void data_clone_array(const CloneCtx* ctx) {
   const DataDecl*  decl          = data_decl(ctx->reg, ctx->meta.type);
   const DataArray* originalArray = mem_as_t(ctx->original, DataArray);
@@ -208,6 +225,9 @@ static void data_clone_internal(const CloneCtx* ctx) {
     return;
   case DataContainer_Pointer:
     data_clone_pointer(ctx);
+    return;
+  case DataContainer_InlineArray:
+    data_clone_inline_array(ctx);
     return;
   case DataContainer_DataArray:
     data_clone_array(ctx);

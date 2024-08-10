@@ -123,6 +123,22 @@ static void data_destroy_pointer(const DestroyCtx* ctx) {
   alloc_free(ctx->alloc, targetMem);
 }
 
+static void data_destroy_inline_array(const DestroyCtx* ctx) {
+  if (UNLIKELY(!ctx->meta.fixedCount)) {
+    diag_crash_msg("Inline-arrays need at least 1 entry");
+  }
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  for (u16 i = 0; i != ctx->meta.fixedCount; ++i) {
+    const DestroyCtx elemCtx = {
+        .reg   = ctx->reg,
+        .alloc = ctx->alloc,
+        .meta  = data_meta_base(ctx->meta),
+        .data  = mem_create(bits_ptr_offset(ctx->data.ptr, decl->size * i), decl->size),
+    };
+    data_destroy_single(&elemCtx);
+  }
+}
+
 static void data_destroy_array(const DestroyCtx* ctx) {
   const DataDecl*  decl  = data_decl(ctx->reg, ctx->meta.type);
   const DataArray* array = mem_as_t(ctx->data, DataArray);
@@ -166,6 +182,9 @@ static void data_destroy_internal(const DestroyCtx* ctx) {
     return;
   case DataContainer_Pointer:
     data_destroy_pointer(ctx);
+    return;
+  case DataContainer_InlineArray:
+    data_destroy_inline_array(ctx);
     return;
   case DataContainer_DataArray:
     data_destroy_array(ctx);

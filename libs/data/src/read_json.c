@@ -673,6 +673,25 @@ static void data_read_json_val_elems(const ReadCtx* ctx, void* out, DataReadResu
   *res = result_success();
 }
 
+static void data_read_json_val_inline_array(const ReadCtx* ctx, DataReadResult* res) {
+  if (UNLIKELY(!ctx->meta.fixedCount)) {
+    diag_crash_msg("Inline-arrays need at least 1 entry");
+  }
+  if (UNLIKELY(!data_check_type(ctx, JsonType_Array, res))) {
+    return;
+  }
+  const usize count = json_elem_count(ctx->doc, ctx->val);
+  if (UNLIKELY(count != ctx->meta.fixedCount)) {
+    *res = result_fail(
+        DataReadError_MismatchedInlineArrayCount,
+        "Inline-array expects {} entries, got: {}",
+        fmt_int(ctx->meta.fixedCount),
+        fmt_int(count));
+    return;
+  }
+  data_read_json_val_elems(ctx, ctx->data.ptr, res);
+}
+
 static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!data_check_type(ctx, JsonType_Array, res))) {
     return;
@@ -730,6 +749,9 @@ static void data_read_json_val(const ReadCtx* ctx, DataReadResult* res) {
     return;
   case DataContainer_Pointer:
     data_read_json_val_pointer(ctx, res);
+    return;
+  case DataContainer_InlineArray:
+    data_read_json_val_inline_array(ctx, res);
     return;
   case DataContainer_DataArray:
     data_read_json_val_array(ctx, res);

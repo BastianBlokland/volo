@@ -127,12 +127,14 @@ static u32 data_hash_flags(const DataFlags flags) {
 }
 
 static u32 data_hash_internal(const HashCtx* ctx) {
-  const u32 containerHash = bits_hash_32_val(ctx->meta.container);
-  const u32 flagsHash     = data_hash_flags(ctx->meta.flags);
+  const u32 containerHash  = bits_hash_32_val(ctx->meta.container);
+  const u32 flagsHash      = data_hash_flags(ctx->meta.flags);
+  const u32 fixedCountHash = bits_hash_32_val(ctx->meta.fixedCount);
 
   u32 res = data_hash_single(ctx);
   res     = bits_hash_32_combine(res, containerHash);
   res     = bits_hash_32_combine(res, flagsHash);
+  res     = bits_hash_32_combine(res, fixedCountHash);
   return res;
 }
 

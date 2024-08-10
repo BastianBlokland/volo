@@ -492,6 +492,13 @@ static void data_read_bin_elems(ReadCtx* ctx, const usize count, void* out, Data
   *res = result_success();
 }
 
+static void data_read_bin_val_inline_array(ReadCtx* ctx, DataReadResult* res) {
+  if (UNLIKELY(!ctx->meta.fixedCount)) {
+    diag_crash_msg("Inline-arrays need at least 1 entry");
+  }
+  data_read_bin_elems(ctx, ctx->meta.fixedCount, ctx->data.ptr, res);
+}
+
 static void data_read_bin_val_array(ReadCtx* ctx, DataReadResult* res) {
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
 
@@ -544,6 +551,9 @@ static void data_read_bin_val(ReadCtx* ctx, DataReadResult* res) {
     return;
   case DataContainer_Pointer:
     data_read_bin_val_pointer(ctx, res);
+    return;
+  case DataContainer_InlineArray:
+    data_read_bin_val_inline_array(ctx, res);
     return;
   case DataContainer_DataArray:
     data_read_bin_val_array(ctx, res);

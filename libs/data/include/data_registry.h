@@ -7,10 +7,11 @@
 typedef struct sDataReg DataReg;
 
 typedef enum {
-  DataContainer_None,
-  DataContainer_Pointer,
-  DataContainer_DataArray,
-  DataContainer_DynArray,
+  DataContainer_None,        // eg. 'f32 value;'.
+  DataContainer_Pointer,     // eg. 'f32* value;'.
+  DataContainer_InlineArray, // eg. 'f32 values[123];', NOTE: The count is stored in 'fixedCount'.
+  DataContainer_DataArray,   // eg. 'DataArray valueData;'.
+  DataContainer_DynArray,    // eg. 'DynArray values;'.
 } DataContainer;
 
 typedef enum {
