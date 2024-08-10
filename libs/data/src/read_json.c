@@ -677,6 +677,9 @@ static void data_read_json_val_inline_array(const ReadCtx* ctx, DataReadResult* 
   if (UNLIKELY(!ctx->meta.fixedCount)) {
     diag_crash_msg("Inline-arrays need at least 1 entry");
   }
+  if (UNLIKELY(ctx->data.size != data_meta_size(ctx->reg, ctx->meta))) {
+    diag_crash_msg("Unexpected data-size for inline array");
+  }
   if (UNLIKELY(!data_check_type(ctx, JsonType_Array, res))) {
     return;
   }

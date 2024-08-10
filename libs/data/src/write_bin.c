@@ -213,6 +213,9 @@ static void data_write_bin_val_inline_array(const WriteCtx* ctx) {
   if (UNLIKELY(!ctx->meta.fixedCount)) {
     diag_crash_msg("Inline-arrays need at least 1 entry");
   }
+  if (UNLIKELY(ctx->data.size != data_meta_size(ctx->reg, ctx->meta))) {
+    diag_crash_msg("Unexpected data-size for inline array");
+  }
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
   for (u16 i = 0; i != ctx->meta.fixedCount; ++i) {
     const WriteCtx elemCtx = {

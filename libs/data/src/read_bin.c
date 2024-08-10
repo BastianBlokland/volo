@@ -496,6 +496,9 @@ static void data_read_bin_val_inline_array(ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!ctx->meta.fixedCount)) {
     diag_crash_msg("Inline-arrays need at least 1 entry");
   }
+  if (UNLIKELY(ctx->data.size != data_meta_size(ctx->reg, ctx->meta))) {
+    diag_crash_msg("Unexpected data-size for inline array");
+  }
   data_read_bin_elems(ctx, ctx->meta.fixedCount, ctx->data.ptr, res);
 }
 

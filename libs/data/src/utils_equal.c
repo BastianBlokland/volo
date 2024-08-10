@@ -138,6 +138,10 @@ static bool data_equal_inline_array(const EqualCtx* ctx) {
   if (UNLIKELY(!ctx->meta.fixedCount)) {
     diag_crash_msg("Inline-arrays need at least 1 entry");
   }
+  const usize expectedSize = data_meta_size(ctx->reg, ctx->meta);
+  if (UNLIKELY(ctx->a.size != expectedSize || ctx->b.size != expectedSize)) {
+    diag_crash_msg("Unexpected data-size for inline array");
+  }
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
   for (u16 i = 0; i != ctx->meta.fixedCount; ++i) {
     const EqualCtx elemCtx = {
