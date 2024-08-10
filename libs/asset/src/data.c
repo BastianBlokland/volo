@@ -6,8 +6,29 @@
 
 #include "data_internal.h"
 
+typedef union {
+  ALIGNAS(16) f32 x, y;
+} GeoVector2;
+
+ASSERT(sizeof(GeoVector2) == sizeof(GeoVector), "Invalid vector size")
+ASSERT(alignof(GeoVector2) == alignof(GeoVector), "Invalid vector alignment")
+
+typedef union {
+  ALIGNAS(16) f32 x, y, z;
+} GeoVector3;
+
+ASSERT(sizeof(GeoVector3) == sizeof(GeoVector), "Invalid vector size")
+ASSERT(alignof(GeoVector3) == alignof(GeoVector), "Invalid vector alignment")
+
+typedef union {
+  ALIGNAS(16) f32 x, y, z, w;
+} GeoVector4;
+
+ASSERT(sizeof(GeoVector4) == sizeof(GeoVector), "Invalid vector size")
+ASSERT(alignof(GeoVector4) == alignof(GeoVector), "Invalid vector alignment")
+
 DataType g_assetGeoColorType;
-DataType g_assetGeoVec3Type;
+DataType g_assetGeoVec2Type, g_assetGeoVec3Type, g_assetGeoVec4Type;
 DataType g_assetGeoQuatType;
 
 static void asset_data_init_types(void) {
@@ -18,11 +39,23 @@ static void asset_data_init_types(void) {
   data_reg_field_t(g_dataReg, GeoColor, a, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_comment_t(g_dataReg, GeoColor, "HDR Color");
 
-  data_reg_struct_t(g_dataReg, GeoVector);
-  data_reg_field_t(g_dataReg, GeoVector, x, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, GeoVector, y, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, GeoVector, z, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_comment_t(g_dataReg, GeoVector, "3D Vector");
+  data_reg_struct_t(g_dataReg, GeoVector2);
+  data_reg_field_t(g_dataReg, GeoVector2, x, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoVector2, y, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_comment_t(g_dataReg, GeoVector2, "2D Vector");
+
+  data_reg_struct_t(g_dataReg, GeoVector3);
+  data_reg_field_t(g_dataReg, GeoVector3, x, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoVector3, y, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoVector3, z, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_comment_t(g_dataReg, GeoVector3, "3D Vector");
+
+  data_reg_struct_t(g_dataReg, GeoVector4);
+  data_reg_field_t(g_dataReg, GeoVector4, x, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoVector4, y, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoVector4, z, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoVector4, w, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_comment_t(g_dataReg, GeoVector4, "4D Vector");
 
   data_reg_struct_t(g_dataReg, GeoQuat);
   data_reg_field_t(g_dataReg, GeoQuat, x, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -32,7 +65,9 @@ static void asset_data_init_types(void) {
   data_reg_comment_t(g_dataReg, GeoQuat, "Quaternion");
 
   g_assetGeoColorType = t_GeoColor;
-  g_assetGeoVec3Type  = t_GeoVector;
+  g_assetGeoVec2Type  = t_GeoVector2;
+  g_assetGeoVec3Type  = t_GeoVector3;
+  g_assetGeoVec4Type  = t_GeoVector4;
   g_assetGeoQuatType  = t_GeoQuat;
 }
 
