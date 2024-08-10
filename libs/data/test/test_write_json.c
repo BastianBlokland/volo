@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_float.h"
+#include "core_stringtable.h"
 #include "data.h"
 
 static void test_write(
@@ -97,6 +98,19 @@ spec(write_json) {
 
     const String val2 = string_empty;
     test_write(_testCtx, reg, meta, mem_var(val2), string_lit("\"\""));
+  }
+
+  it("can write a string-hash") {
+    const DataMeta meta = data_meta_t(data_prim_t(StringHash));
+
+    const StringHash val1 = stringtable_add(g_stringtable, string_lit("Hello World"));
+    test_write(_testCtx, reg, meta, mem_var(val1), string_lit("\"Hello World\""));
+
+    const StringHash val2 = string_hash_lit("Unknown test string 42");
+    test_write(_testCtx, reg, meta, mem_var(val2), fmt_write_scratch("{}", fmt_int(val2)));
+
+    const StringHash val3 = 0;
+    test_write(_testCtx, reg, meta, mem_var(val3), string_lit("\"\""));
   }
 
   it("can write memory as base64") {

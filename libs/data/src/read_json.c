@@ -186,6 +186,44 @@ static void data_read_json_string(const ReadCtx* ctx, DataReadResult* res) {
   *res = result_success();
 }
 
+static void data_read_json_string_hash(const ReadCtx* ctx, DataReadResult* res) {
+  const JsonType valType = json_type(ctx->doc, ctx->val);
+  switch (valType) {
+  case JsonType_String: {
+    const String jsonStr = json_string(ctx->doc, ctx->val);
+
+    if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty && string_is_empty(jsonStr))) {
+      *res = result_fail(DataReadError_EmptyStringIsInvalid, "Value cannot be an empty string");
+      return;
+    }
+
+    if (string_is_empty(jsonStr)) {
+      *mem_as_t(ctx->data, StringHash) = 0;
+    } else {
+      *mem_as_t(ctx->data, StringHash) = stringtable_add(g_stringtable, jsonStr);
+    }
+    *res = result_success();
+  } break;
+  case JsonType_Number: {
+    const u32 jsonNum = (u32)json_number(ctx->doc, ctx->val);
+
+    if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty && !jsonNum)) {
+      *res = result_fail(DataReadError_ZeroIsInvalid, "Value cannot be zero");
+      return;
+    }
+
+    *mem_as_t(ctx->data, StringHash) = jsonNum;
+    *res                             = result_success();
+  } break;
+  default:
+    *res = result_fail(
+        DataReadError_MismatchedType,
+        "Expected json string or number got {}",
+        fmt_text(json_type_str(valType)));
+    break;
+  }
+}
+
 static usize data_read_json_mem_align(const usize size) {
   const usize biggestPow2 = u64_lit(1) << bits_ctz(size);
   return math_min(biggestPow2, data_type_mem_align_max);
@@ -559,6 +597,9 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
     return;
   case DataKind_String:
     data_read_json_string(ctx, res);
+    return;
+  case DataKind_StringHash:
+    data_read_json_string_hash(ctx, res);
     return;
   case DataKind_DataMem:
     data_read_json_mem(ctx, res);

@@ -74,6 +74,16 @@ spec(bin) {
     test_bin_roundtrip(_testCtx, reg, meta, mem_var(val2));
   }
 
+  it("can serialize a string-hash") {
+    const DataMeta meta = data_meta_t(data_prim_t(StringHash));
+
+    const StringHash val1 = string_hash_lit("Hello World");
+    test_bin_roundtrip(_testCtx, reg, meta, mem_var(val1));
+
+    const StringHash val2 = 0;
+    test_bin_roundtrip(_testCtx, reg, meta, mem_var(val2));
+  }
+
   it("can serialize memory") {
     const DataMeta meta = data_meta_t(data_prim_t(DataMem));
 

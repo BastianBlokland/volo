@@ -230,6 +230,16 @@ static void data_read_bin_string(ReadCtx* ctx, DataReadResult* res) {
   *res = result_success();
 }
 
+static void data_read_bin_string_hash(ReadCtx* ctx, DataReadResult* res) {
+  u32 val;
+  if (UNLIKELY(!bin_pop_u32(ctx, &val))) {
+    *res = result_fail_truncated();
+    return;
+  }
+  *mem_as_t(ctx->data, StringHash) = val;
+  *res                             = result_success();
+}
+
 static usize data_read_bin_mem_align(const usize size) {
   const usize biggestPow2 = u64_lit(1) << bits_ctz(size);
   return math_min(biggestPow2, data_type_mem_align_max);
@@ -403,6 +413,9 @@ static void data_read_bin_val_single(ReadCtx* ctx, DataReadResult* res) {
     return;
   case DataKind_String:
     data_read_bin_string(ctx, res);
+    return;
+  case DataKind_StringHash:
+    data_read_bin_string_hash(ctx, res);
     return;
   case DataKind_DataMem:
     data_read_bin_mem(ctx, res);

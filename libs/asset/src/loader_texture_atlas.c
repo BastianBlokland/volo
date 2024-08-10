@@ -361,7 +361,7 @@ void asset_data_init_atlas(void) {
   data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_DataArray);
 
   data_reg_struct_t(g_dataReg, AssetAtlasEntry);
-  data_reg_field_t(g_dataReg, AssetAtlasEntry, name, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetAtlasEntry, name, data_prim_t(StringHash));
   data_reg_field_t(g_dataReg, AssetAtlasEntry, atlasIndex, data_prim_t(u32));
 
   data_reg_struct_t(g_dataReg, AssetAtlasComp);

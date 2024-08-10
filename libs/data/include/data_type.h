@@ -21,6 +21,7 @@
   X(f32)                                                                                           \
   X(f64)                                                                                           \
   X(String)                                                                                        \
+  X(StringHash)                                                                                    \
   X(DataMem)
 
 typedef u32 DataType;

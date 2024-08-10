@@ -160,6 +160,31 @@ spec(read_json) {
     test_read_fail(_testCtx, reg, string_lit("\"\""), meta, DataReadError_EmptyStringIsInvalid);
   }
 
+  it("can read a string-hash") {
+    const DataMeta meta = data_meta_t(data_prim_t(StringHash));
+
+    StringHash val;
+    test_read_success(_testCtx, reg, string_lit("\"Hello World\""), meta, mem_var(val));
+    check_eq_int(val, string_hash_lit("Hello World"));
+
+    test_read_success(_testCtx, reg, string_lit("\"\""), meta, mem_var(val));
+    check_eq_int(val, 0);
+
+    test_read_success(_testCtx, reg, string_lit("1337"), meta, mem_var(val));
+    check_eq_int(val, 1337);
+
+    test_read_success(_testCtx, reg, string_lit("0"), meta, mem_var(val));
+    check_eq_int(val, 0);
+
+    test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
+  }
+
+  it("fails when a string-hash value cannot be zero") {
+    const DataMeta meta = data_meta_t(data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
+
+    test_read_fail(_testCtx, reg, string_lit("\"\""), meta, DataReadError_EmptyStringIsInvalid);
+  }
+
   it("can read raw memory as base64") {
     const DataMeta meta = data_meta_t(data_prim_t(DataMem));
 

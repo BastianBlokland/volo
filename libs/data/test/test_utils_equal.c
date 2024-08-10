@@ -20,6 +20,17 @@ spec(utils_equal) {
     check(!data_equal(reg, meta, mem_var(a), mem_var(b)));
   }
 
+  it("can compare string hashes") {
+    const StringHash a = string_hash_lit("Hello World");
+    const StringHash b = string_hash_lit("Hello World2");
+    const StringHash c = 0;
+
+    const DataMeta meta = data_meta_t(data_prim_t(StringHash));
+    check(data_equal(reg, meta, mem_var(a), mem_var(a)));
+    check(data_equal(reg, meta, mem_var(c), mem_var(c)));
+    check(!data_equal(reg, meta, mem_var(a), mem_var(b)));
+  }
+
   it("can compare raw memory") {
     const DataMem a = data_mem_create(string_lit("Hello World"));
     const DataMem b = data_mem_create(string_lit("Hello World2"));

@@ -127,12 +127,11 @@ static void scene_level_process_load(
   trace_begin("level_load", TraceColor_White);
 
   array_ptr_for_t(level->objects, AssetLevelObject, obj) {
-    const StringHash prefabId = string_hash(obj->prefab);
     scene_prefab_spawn(
         world,
         &(ScenePrefabSpec){
             .id       = obj->id,
-            .prefabId = prefabId,
+            .prefabId = obj->prefab,
             .position = obj->position,
             .rotation = geo_quat_norm_or_ident(obj->rotation),
             .scale    = obj->scale,
@@ -288,17 +287,11 @@ static void scene_level_object_push(
   const SceneTransformComp* maybeTrans   = ecs_view_read_t(instanceItr, SceneTransformComp);
   const SceneScaleComp*     maybeScale   = ecs_view_read_t(instanceItr, SceneScaleComp);
   const SceneFactionComp*   maybeFaction = ecs_view_read_t(instanceItr, SceneFactionComp);
-
-  const String prefabName = stringtable_lookup(g_stringtable, prefabInst->prefabId);
-  if (string_is_empty(prefabName)) {
-    log_w("Prefab name not found", log_param("prefab-id", fmt_int(prefabInst->prefabId)));
-    return;
-  }
-  const f32 scaleVal = maybeScale ? maybeScale->scale : 1.0f;
+  const f32                 scaleVal     = maybeScale ? maybeScale->scale : 1.0f;
 
   AssetLevelObject obj = {
       .id       = prefabInst->id ? prefabInst->id : rng_sample_u32(g_rng),
-      .prefab   = prefabName,
+      .prefab   = prefabInst->prefabId,
       .position = maybeTrans ? maybeTrans->position : geo_vector(0),
       .rotation = maybeTrans ? geo_quat_norm(maybeTrans->rotation) : geo_quat_ident,
       .scale    = scaleVal == 1.0f ? 0.0 : scaleVal, // Scale 0 is treated as unscaled (eg 1.0).

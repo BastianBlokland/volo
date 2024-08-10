@@ -84,6 +84,7 @@ static void data_destroy_single(const DestroyCtx* ctx) {
   case DataKind_f32:
   case DataKind_f64:
   case DataKind_Enum:
+  case DataKind_StringHash:
     return;
   case DataKind_String:
     data_destroy_string(ctx);
