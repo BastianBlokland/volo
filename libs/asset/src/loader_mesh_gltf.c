@@ -1387,11 +1387,11 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
     gltf_anim_data_push_trans(ld, joint->trans);
   }
 
-  // Pad animData so the size is always a multiple of 16.
-  mem_set(dynarray_push(&ld->animData, bits_padding(ld->animData.size, 16)), 0);
-
   AssetMeshAnimPtr bindPoseInvMats = gltf_anim_data_push_access_mat(ld, ld->accBindPoseInvMats);
   AssetMeshAnimPtr rootTransform   = gltf_anim_data_push_trans(ld, ld->sceneTrans);
+
+  // Pad animData so the size is always a multiple of 16.
+  mem_set(dynarray_push(&ld->animData, bits_padding(ld->animData.size, 16)), 0);
 
   *out = (AssetMeshSkeletonComp){
       .anims.values    = resAnims,
