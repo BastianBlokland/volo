@@ -4,6 +4,18 @@
 
 typedef struct sAssetMeshBuilder AssetMeshBuilder;
 
+typedef struct {
+  GeoVector position; // x, y, z position
+  GeoVector normal;   // x, y, z normal
+  GeoVector tangent;  // z, y, z tangent, w tangent handedness
+  GeoVector texcoord; // x, y texcoord0
+} AssetMeshVertex;
+
+typedef struct {
+  u8        joints[4]; // joint indices.
+  GeoVector weights;   // joint weights.
+} AssetMeshSkin;
+
 AssetMeshBuilder* asset_mesh_builder_create(Allocator*, u32 maxVertexCount);
 void              asset_mesh_builder_destroy(AssetMeshBuilder*);
 void              asset_mesh_builder_clear(AssetMeshBuilder*);

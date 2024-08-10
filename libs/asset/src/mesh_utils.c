@@ -162,18 +162,60 @@ void asset_mesh_builder_grow_bounds(AssetMeshBuilder* builder, const f32 multipl
 
 AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
   diag_assert_msg(builder->indexData.size, "Empty mesh is invalid");
-  diag_assert(!builder->skinData.size || builder->skinData.size == builder->vertexData.size);
+
+  const usize vertCount = builder->vertexData.size;
+  const bool  isSkinned = builder->skinData.size != 0;
+  diag_assert(!isSkinned || builder->skinData.size == vertCount);
 
   GeoBox positionBounds = builder->positionBounds;
   if (geo_box_is_inverted3(&positionBounds)) {
     positionBounds = builder->positionRawBounds;
   }
 
+  AssetMeshVertex*       vertsIn  = dynarray_begin_t(&builder->vertexData, AssetMeshVertex);
+  AssetMeshSkin*         skinsIn  = dynarray_begin_t(&builder->skinData, AssetMeshSkin);
+  AssetMeshVertexPacked* vertsOut = alloc_array_t(builder->alloc, AssetMeshVertexPacked, vertCount);
+  if (isSkinned) {
+    for (usize i = 0; i != vertCount; ++i) {
+      geo_vector_pack_f16(vertsIn[i].position, vertsOut[i].data1);
+      geo_vector_pack_f16(vertsIn[i].normal, vertsOut[i].data2);
+      vertsOut[i].data1[3] = float_f32_to_f16(vertsIn[i].texcoord.x);
+      vertsOut[i].data2[3] = float_f32_to_f16(vertsIn[i].texcoord.y);
+
+      geo_vector_pack_f16(vertsIn[i].tangent, vertsOut[i].data3);
+
+      const u16 w0 = (u8)(skinsIn[i].weights.x * 255.999f);
+      const u16 w1 = (u8)(skinsIn[i].weights.y * 255.999f);
+      const u16 w2 = (u8)(skinsIn[i].weights.z * 255.999f);
+      const u16 w3 = (u8)(skinsIn[i].weights.w * 255.999f);
+
+      vertsOut[i].data4[0] = (u16)skinsIn[i].joints[0] | (w0 << 8);
+      vertsOut[i].data4[1] = (u16)skinsIn[i].joints[1] | (w1 << 8);
+      vertsOut[i].data4[2] = (u16)skinsIn[i].joints[2] | (w2 << 8);
+      vertsOut[i].data4[3] = (u16)skinsIn[i].joints[3] | (w3 << 8);
+    }
+  } else {
+    for (usize i = 0; i != vertCount; ++i) {
+      geo_vector_pack_f16(vertsIn[i].position, vertsOut[i].data1);
+      geo_vector_pack_f16(vertsIn[i].normal, vertsOut[i].data2);
+      vertsOut[i].data1[3] = float_f32_to_f16(vertsIn[i].texcoord.x);
+      vertsOut[i].data2[3] = float_f32_to_f16(vertsIn[i].texcoord.y);
+
+      geo_vector_pack_f16(vertsIn[i].tangent, vertsOut[i].data3);
+
+      mem_set(mem_var(vertsOut[i].data4), 0);
+    }
+  }
+
+  AssetMeshFlags flags = 0;
+  if (isSkinned) {
+    flags |= AssetMeshFlags_Skinned;
+  }
+
   return (AssetMeshComp){
-      .vertices.values   = dynarray_copy_as_new(&builder->vertexData, g_allocHeap),
-      .vertices.count    = builder->vertexData.size,
-      .skins.values      = dynarray_copy_as_new(&builder->skinData, g_allocHeap),
-      .skins.count       = builder->skinData.size,
+      .flags             = flags,
+      .vertices.values   = vertsOut,
+      .vertices.count    = vertCount,
       .indices.values    = dynarray_copy_as_new(&builder->indexData, g_allocHeap),
       .indices.count     = builder->indexData.size,
       .positionBounds    = positionBounds,

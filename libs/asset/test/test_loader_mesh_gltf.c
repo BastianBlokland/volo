@@ -6,13 +6,17 @@
 
 #include "utils_internal.h"
 
+typedef struct {
+  GeoVector position, normal, tangent, texcoord;
+} TestVertex;
+
 static const struct {
-  String          id, bufferId;
-  String          text, bufferBase64;
-  AssetMeshVertex vertices[16];
-  usize           vertexCount;
-  AssetMeshIndex  indices[16];
-  usize           indexCount;
+  String         id, bufferId;
+  String         text, bufferBase64;
+  TestVertex     vertices[16];
+  usize          vertexCount;
+  AssetMeshIndex indices[16];
+  usize          indexCount;
 } g_testData[] = {
     {
         .id           = string_static("triangle.gltf"),
@@ -159,12 +163,21 @@ spec(loader_mesh_gltf) {
       // Verify the vertices.
       check_require(mesh->vertices.count == g_testData[i].vertexCount);
       for (usize j = 0; j != g_testData[i].vertexCount; ++j) {
-        const AssetMeshVertex* vert         = &mesh->vertices.values[j];
-        const AssetMeshVertex* vertExpected = &g_testData[i].vertices[j];
-        check(geo_vector_equal(vert->position, vertExpected->position, 1e-6f));
-        check(geo_vector_equal(vert->normal, vertExpected->normal, 1e-6f));
-        check(geo_vector_equal(vert->tangent, vertExpected->tangent, 1e-6f));
-        check(geo_vector_equal(vert->texcoord, vertExpected->texcoord, 1e-6f));
+        const AssetMeshVertexPacked* vertActual   = &mesh->vertices.values[j];
+        const TestVertex*            vertExpected = &g_testData[i].vertices[j];
+
+        GeoVector actualPos      = geo_vector_unpack_f16(vertActual->data1);
+        GeoVector actualNorm     = geo_vector_unpack_f16(vertActual->data2);
+        GeoVector actualTan      = geo_vector_unpack_f16(vertActual->data3);
+        GeoVector actualTexCoord = geo_vector(actualPos.w, actualNorm.w);
+
+        actualPos.w  = 0;
+        actualNorm.w = 0;
+
+        check(geo_vector_equal(actualPos, vertExpected->position, 1e-6f));
+        check(geo_vector_equal(actualNorm, vertExpected->normal, 1e-6f));
+        check(geo_vector_equal(actualTan, vertExpected->tangent, 1e-6f));
+        check(geo_vector_equal(actualTexCoord, vertExpected->texcoord, 1e-6f));
       }
       // Verify the indices.
       check_require(mesh->indices.count == g_testData[i].indexCount);

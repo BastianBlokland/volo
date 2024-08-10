@@ -291,6 +291,20 @@ spec(vector) {
     check_eq_float(float_f16_to_f32(packed[3]), v.w, 1e-2f);
   }
 
+  it("can be unpacked from 16 bits") {
+    const GeoVector v1 = geo_vector(0.1337f, 13.37f, 0.42f, 4.2f);
+
+    f16 packed[4];
+    geo_vector_pack_f16(v1, packed);
+
+    const GeoVector v2 = geo_vector_unpack_f16(packed);
+
+    check_eq_float(v2.x, v1.x, 1e-2f);
+    check_eq_float(v2.y, v1.y, 1e-2f);
+    check_eq_float(v2.z, v1.z, 1e-2f);
+    check_eq_float(v2.w, v1.w, 1e-2f);
+  }
+
   it("can generate points on the surface of a 3d unit sphere") {
     Allocator* alloc = alloc_bump_create_stack(256);
 

@@ -26,7 +26,6 @@ typedef enum {
   RvkRepositoryId_DebugImageViewerGraphic,
   RvkRepositoryId_DebugImageViewerCubeGraphic,
   RvkRepositoryId_DebugMeshViewerGraphic,
-  RvkRepositoryId_DebugMeshViewerSkinnedGraphic,
   RvkRepositoryId_DebugWireframeGraphic,
   RvkRepositoryId_DebugWireframeSkinnedGraphic,
   RvkRepositoryId_DebugWireframeTerrainGraphic,

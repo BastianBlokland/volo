@@ -384,6 +384,15 @@ void geo_vector_pack_f16(const GeoVector v, f16 out[PARAM_ARRAY_SIZE(4)]) {
 #endif
 }
 
+GeoVector geo_vector_unpack_f16(const f16 in[PARAM_ARRAY_SIZE(4)]) {
+  GeoVector res;
+  res.x = float_f16_to_f32(in[0]);
+  res.y = float_f16_to_f32(in[1]);
+  res.z = float_f16_to_f32(in[2]);
+  res.w = float_f16_to_f32(in[3]);
+  return res;
+}
+
 GeoVector geo_vector_rand_on_sphere3(Rng* rng) {
 Retry:;
   const RngGaussPairF32 gauss1 = rng_sample_gauss_f32(rng);
