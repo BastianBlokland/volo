@@ -1,4 +1,3 @@
-#include "asset_mesh.h"
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "data.h"
@@ -7,6 +6,7 @@
 #include "geo_matrix.h"
 
 #include "data_internal.h"
+#include "loader_mesh_internal.h"
 #include "repo_internal.h"
 
 DataMeta g_assetMeshMeta;
@@ -14,6 +14,7 @@ DataMeta g_assetMeshSkeletonMeta;
 
 ecs_comp_define_public(AssetMeshComp);
 ecs_comp_define_public(AssetMeshSkeletonComp);
+ecs_comp_define_public(AssetMeshSourceComp);
 
 static void ecs_destruct_mesh_comp(void* data) {
   AssetMeshComp* comp = data;
@@ -27,6 +28,11 @@ static void ecs_destruct_mesh_skeleton_comp(void* data) {
       g_allocHeap,
       g_assetMeshSkeletonMeta,
       mem_create(comp, sizeof(AssetMeshSkeletonComp)));
+}
+
+static void ecs_destruct_mesh_source_comp(void* data) {
+  AssetMeshSourceComp* comp = data;
+  asset_repo_source_close(comp->src);
 }
 
 ecs_view_define(UnloadView) {
@@ -43,12 +49,14 @@ ecs_system_define(UnloadMeshAssetSys) {
     const EcsEntityId entity = ecs_view_entity(itr);
     ecs_world_remove_t(world, entity, AssetMeshComp);
     ecs_utils_maybe_remove_t(world, entity, AssetMeshSkeletonComp);
+    ecs_utils_maybe_remove_t(world, entity, AssetMeshSourceComp);
   }
 }
 
 ecs_module_init(asset_mesh_module) {
   ecs_register_comp(AssetMeshComp, .destructor = ecs_destruct_mesh_comp);
   ecs_register_comp(AssetMeshSkeletonComp, .destructor = ecs_destruct_mesh_skeleton_comp);
+  ecs_register_comp(AssetMeshSourceComp, .destructor = ecs_destruct_mesh_source_comp);
 
   ecs_register_view(UnloadView);
 
