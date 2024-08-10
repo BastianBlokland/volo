@@ -185,7 +185,7 @@ static TimeDuration weapon_estimate_impact_time(
     const AssetWeaponMapComp* weaponMap, const AssetWeapon* weapon, const f32 estimatedDistance) {
   TimeDuration result = 0;
   for (u16 i = 0; i != weapon->effectCount; ++i) {
-    const AssetWeaponEffect* effect = &weaponMap->effects[weapon->effectIndex + i];
+    const AssetWeaponEffect* effect = &weaponMap->effects.values[weapon->effectIndex + i];
     switch (effect->type) {
     case AssetWeaponEffect_Projectile: {
       const f32          flightTimeSeconds = estimatedDistance / effect->data_proj.speed;
@@ -581,7 +581,7 @@ effect_update(const AttackCtx* ctx, const TimeDuration effectTime, const bool in
 
   EffectResult result = EffectResult_Done;
   for (u16 i = 0; i != ctx->weapon->effectCount; ++i) {
-    const AssetWeaponEffect* effect = &ctx->weaponMap->effects[ctx->weapon->effectIndex + i];
+    const AssetWeaponEffect* effect = &ctx->weaponMap->effects.values[ctx->weapon->effectIndex + i];
     switch (effect->type) {
     case AssetWeaponEffect_Projectile:
       result |= effect_update_proj(ctx, effectTime, i, &effect->data_proj);

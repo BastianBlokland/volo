@@ -155,18 +155,39 @@ static void data_clone_pointer(const CloneCtx* ctx) {
   data_clone_single(&subCtx);
 }
 
-static void data_clone_array(const CloneCtx* ctx) {
+static void data_clone_inline_array(const CloneCtx* ctx) {
+  if (UNLIKELY(!ctx->meta.fixedCount)) {
+    diag_crash_msg("Inline-arrays need at least 1 entry");
+  }
+  const usize expectedSize = data_meta_size(ctx->reg, ctx->meta);
+  if (UNLIKELY(ctx->original.size != expectedSize || ctx->clone.size != expectedSize)) {
+    diag_crash_msg("Unexpected data-size for inline array");
+  }
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  for (u16 i = 0; i != ctx->meta.fixedCount; ++i) {
+    const CloneCtx elemCtx = {
+        .reg      = ctx->reg,
+        .alloc    = ctx->alloc,
+        .meta     = data_meta_base(ctx->meta),
+        .original = mem_create(bits_ptr_offset(ctx->original.ptr, decl->size * i), decl->size),
+        .clone    = mem_create(bits_ptr_offset(ctx->clone.ptr, decl->size * i), decl->size),
+    };
+    data_clone_single(&elemCtx);
+  }
+}
+
+static void data_clone_heap_array(const CloneCtx* ctx) {
   const DataDecl*  decl          = data_decl(ctx->reg, ctx->meta.type);
-  const DataArray* originalArray = mem_as_t(ctx->original, DataArray);
+  const HeapArray* originalArray = mem_as_t(ctx->original, HeapArray);
   const usize      count         = originalArray->count;
   if (!count) {
-    *mem_as_t(ctx->clone, DataArray) = (DataArray){0};
+    *mem_as_t(ctx->clone, HeapArray) = (HeapArray){0};
     return;
   }
 
   const Mem  newArrayMem = alloc_alloc(ctx->alloc, decl->size * count, decl->align);
-  DataArray* newArray    = mem_as_t(ctx->clone, DataArray);
-  *newArray              = (DataArray){.values = newArrayMem.ptr, .count = count};
+  HeapArray* newArray    = mem_as_t(ctx->clone, HeapArray);
+  *newArray              = (HeapArray){.values = newArrayMem.ptr, .count = count};
 
   for (usize i = 0; i != count; ++i) {
     const CloneCtx elemCtx = {
@@ -209,8 +230,11 @@ static void data_clone_internal(const CloneCtx* ctx) {
   case DataContainer_Pointer:
     data_clone_pointer(ctx);
     return;
-  case DataContainer_DataArray:
-    data_clone_array(ctx);
+  case DataContainer_InlineArray:
+    data_clone_inline_array(ctx);
+    return;
+  case DataContainer_HeapArray:
+    data_clone_heap_array(ctx);
     return;
   case DataContainer_DynArray:
     data_clone_dynarray(ctx);

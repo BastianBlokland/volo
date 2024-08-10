@@ -50,10 +50,7 @@ typedef struct {
   ArrayTexChannels channels;
   bool             mipmaps, srgb, lossless, nearest;
   u32              sizeX, sizeY;
-  struct {
-    String* values;
-    usize   count;
-  } textures;
+  HeapArray_t(String) textures;
 } ArrayTexDef;
 
 ecs_comp_define(AssetArrayLoadComp) {
@@ -498,7 +495,7 @@ ecs_system_define(ArrayTexLoadAcquireSys) {
     /**
      * Acquire all textures.
      */
-    array_ptr_for_t(load->def.textures, String, texName) {
+    heap_array_for_t(load->def.textures, String, texName) {
       const EcsEntityId texAsset                     = asset_lookup(world, manager, *texName);
       *dynarray_push_t(&load->textures, EcsEntityId) = texAsset;
       asset_acquire(world, texAsset);
@@ -610,7 +607,7 @@ void asset_data_init_arraytex(void) {
   data_reg_field_t(g_dataReg, ArrayTexDef, nearest, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ArrayTexDef, sizeX, data_prim_t(u32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ArrayTexDef, sizeY, data_prim_t(u32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, ArrayTexDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_DataArray);
+  data_reg_field_t(g_dataReg, ArrayTexDef, textures, data_prim_t(String), .flags = DataFlags_NotEmpty, .container = DataContainer_HeapArray);
   // clang-format on
 
   g_assetTexArrayDefMeta = data_meta_t(t_ArrayTexDef);
@@ -646,7 +643,7 @@ void asset_load_tex_array(
     goto Error;
   }
 
-  array_ptr_for_t(def.textures, String, texName) {
+  heap_array_for_t(def.textures, String, texName) {
     if (UNLIKELY(string_is_empty(*texName))) {
       errMsg = arraytex_error_str(ArrayTexError_InvalidTexture);
       goto Error;

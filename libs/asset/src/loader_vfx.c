@@ -1,6 +1,5 @@
 #include "asset_vfx.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -86,10 +85,7 @@ typedef struct {
 
 typedef struct {
   bool ignoreTransformRotation;
-  struct {
-    VfxEmitterDef* values;
-    usize          count;
-  } emitters;
+  HeapArray_t(VfxEmitterDef) emitters;
 } VfxDef;
 
 typedef enum {
@@ -112,7 +108,7 @@ ecs_comp_define_public(AssetVfxComp);
 
 static void ecs_destruct_vfx_comp(void* data) {
   AssetVfxComp* comp = data;
-  alloc_free_array_t(g_allocHeap, comp->emitters, comp->emitterCount);
+  alloc_free_array_t(g_allocHeap, comp->emitters.values, comp->emitters.count);
 }
 
 ecs_view_define(VfxUnloadView) {
@@ -239,12 +235,12 @@ static void vfx_build_def(const VfxDef* def, AssetVfxComp* out) {
   if (def->ignoreTransformRotation) {
     flags |= AssetVfx_IgnoreTransformRotation;
   }
-  out->flags        = flags;
-  out->emitters     = alloc_array_t(g_allocHeap, AssetVfxEmitter, def->emitters.count);
-  out->emitterCount = (u32)def->emitters.count;
+  out->flags           = flags;
+  out->emitters.values = alloc_array_t(g_allocHeap, AssetVfxEmitter, def->emitters.count);
+  out->emitters.count  = (u32)def->emitters.count;
 
-  for (u32 i = 0; i != out->emitterCount; ++i) {
-    vfx_build_emitter(&def->emitters.values[i], &out->emitters[i]);
+  for (u32 i = 0; i != out->emitters.count; ++i) {
+    vfx_build_emitter(&def->emitters.values[i], &out->emitters.values[i]);
   }
 }
 
@@ -360,7 +356,7 @@ void asset_data_init_vfx(void) {
 
   data_reg_struct_t(g_dataReg, VfxDef);
   data_reg_field_t(g_dataReg, VfxDef, ignoreTransformRotation, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxDef, emitters, t_VfxEmitterDef, .container = DataContainer_DataArray);
+  data_reg_field_t(g_dataReg, VfxDef, emitters, t_VfxEmitterDef, .container = DataContainer_HeapArray);
   // clang-format on
 
   g_assetVfxDefMeta = data_meta_t(t_VfxDef);

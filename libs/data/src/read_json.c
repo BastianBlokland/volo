@@ -673,7 +673,29 @@ static void data_read_json_val_elems(const ReadCtx* ctx, void* out, DataReadResu
   *res = result_success();
 }
 
-static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
+static void data_read_json_val_inline_array(const ReadCtx* ctx, DataReadResult* res) {
+  if (UNLIKELY(!ctx->meta.fixedCount)) {
+    diag_crash_msg("Inline-arrays need at least 1 entry");
+  }
+  if (UNLIKELY(ctx->data.size != data_meta_size(ctx->reg, ctx->meta))) {
+    diag_crash_msg("Unexpected data-size for inline array");
+  }
+  if (UNLIKELY(!data_check_type(ctx, JsonType_Array, res))) {
+    return;
+  }
+  const usize count = json_elem_count(ctx->doc, ctx->val);
+  if (UNLIKELY(count != ctx->meta.fixedCount)) {
+    *res = result_fail(
+        DataReadError_MismatchedInlineArrayCount,
+        "Inline-array expects {} entries, got: {}",
+        fmt_int(ctx->meta.fixedCount),
+        fmt_int(count));
+    return;
+  }
+  data_read_json_val_elems(ctx, ctx->data.ptr, res);
+}
+
+static void data_read_json_val_heap_array(const ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!data_check_type(ctx, JsonType_Array, res))) {
     return;
   }
@@ -683,7 +705,7 @@ static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
     if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty)) {
       *res = result_fail(DataReadError_EmptyArrayIsInvalid, "Value cannot be an empty array");
     } else {
-      *mem_as_t(ctx->data, DataArray) = (DataArray){0};
+      *mem_as_t(ctx->data, HeapArray) = (HeapArray){0};
       *res                            = result_success();
     }
     return;
@@ -693,7 +715,7 @@ static void data_read_json_val_array(const ReadCtx* ctx, DataReadResult* res) {
   data_register_alloc(ctx, arrayMem);
 
   void* ptr                       = arrayMem.ptr;
-  *mem_as_t(ctx->data, DataArray) = (DataArray){.values = arrayMem.ptr, .count = count};
+  *mem_as_t(ctx->data, HeapArray) = (HeapArray){.values = arrayMem.ptr, .count = count};
 
   data_read_json_val_elems(ctx, ptr, res);
 }
@@ -731,8 +753,11 @@ static void data_read_json_val(const ReadCtx* ctx, DataReadResult* res) {
   case DataContainer_Pointer:
     data_read_json_val_pointer(ctx, res);
     return;
-  case DataContainer_DataArray:
-    data_read_json_val_array(ctx, res);
+  case DataContainer_InlineArray:
+    data_read_json_val_inline_array(ctx, res);
+    return;
+  case DataContainer_HeapArray:
+    data_read_json_val_heap_array(ctx, res);
     return;
   case DataContainer_DynArray:
     data_read_json_val_dynarray(ctx, res);

@@ -5,7 +5,6 @@
 #include "asset_shader.h"
 #include "asset_sound.h"
 #include "asset_texture.h"
-#include "core_array.h"
 #include "core_diag.h"
 
 #include "format_internal.h"
@@ -106,7 +105,7 @@ AssetFormat asset_format_from_ext(const String ext) {
 
 AssetFormat asset_format_from_bin_meta(const DataMeta meta) {
   for (AssetFormat fmt = 0; fmt != AssetFormat_Count; ++fmt) {
-    if (g_assetFormatBinMeta[fmt] && data_meta_eq(meta, *g_assetFormatBinMeta[fmt])) {
+    if (g_assetFormatBinMeta[fmt] && meta.data == g_assetFormatBinMeta[fmt]->data) {
       return fmt;
     }
   }

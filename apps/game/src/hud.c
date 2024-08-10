@@ -2,7 +2,6 @@
 #include "asset_product.h"
 #include "asset_weapon.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_bitset.h"
 #include "core_diag.h"
 #include "core_float.h"

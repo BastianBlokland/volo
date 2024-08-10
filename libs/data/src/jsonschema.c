@@ -124,7 +124,11 @@ static JsonVal schema_default_enum(const JsonSchemaCtx* ctx, const DataMeta meta
 
 static JsonVal schema_default_array(const JsonSchemaCtx* ctx, const DataMeta meta) {
   const JsonVal arr = json_add_array(ctx->doc);
-  if (meta.flags & DataFlags_NotEmpty) {
+  if (meta.fixedCount) {
+    for (u16 i = 0; i != meta.fixedCount; ++i) {
+      json_add_elem(ctx->doc, arr, schema_default_type(ctx, data_meta_base(meta)));
+    }
+  } else if (meta.flags & DataFlags_NotEmpty) {
     json_add_elem(ctx->doc, arr, schema_default_type(ctx, data_meta_base(meta)));
   }
   return arr;
@@ -166,7 +170,12 @@ static JsonVal schema_default_type(const JsonSchemaCtx* ctx, const DataMeta meta
       UNREACHABLE
     }
   } break;
-  case DataContainer_DataArray:
+  case DataContainer_InlineArray:
+    if (UNLIKELY(!meta.fixedCount)) {
+      diag_crash_msg("Inline-arrays need at least 1 entry");
+    }
+    // Fallthrough.
+  case DataContainer_HeapArray:
   case DataContainer_DynArray:
     return schema_default_array(ctx, meta);
   }
@@ -439,7 +448,10 @@ static void schema_add_pointer(const JsonSchemaCtx* ctx, const JsonVal obj, cons
 static void schema_add_array(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
   json_add_field_lit(ctx->doc, obj, "type", json_add_string_lit(ctx->doc, "array"));
 
-  if (meta.flags & DataFlags_NotEmpty) {
+  if (meta.fixedCount) {
+    json_add_field_lit(ctx->doc, obj, "minItems", json_add_number(ctx->doc, meta.fixedCount));
+    json_add_field_lit(ctx->doc, obj, "maxItems", json_add_number(ctx->doc, meta.fixedCount));
+  } else if (meta.flags & DataFlags_NotEmpty) {
     json_add_field_lit(ctx->doc, obj, "minItems", json_add_number(ctx->doc, 1));
   }
 
@@ -526,7 +538,12 @@ static void schema_add_type(const JsonSchemaCtx* ctx, const JsonVal obj, const D
   case DataContainer_Pointer:
     schema_add_pointer(ctx, obj, meta);
     break;
-  case DataContainer_DataArray:
+  case DataContainer_InlineArray:
+    if (UNLIKELY(!meta.fixedCount)) {
+      diag_crash_msg("Inline-arrays need at least 1 entry");
+    }
+  // Fallthrough.
+  case DataContainer_HeapArray:
   case DataContainer_DynArray:
     schema_add_array(ctx, obj, meta);
     break;

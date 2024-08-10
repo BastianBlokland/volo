@@ -1,5 +1,4 @@
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "log_logger.h"
@@ -59,7 +58,7 @@ static RvkDescKind rvk_shader_desc_kind(const AssetShaderResKind resKind) {
 }
 
 static bool rvk_shader_spec_type(const RvkShader* shader, const u8 binding, AssetShaderType* out) {
-  array_ptr_for_t(shader->specs, AssetShaderSpec, spec) {
+  heap_array_for_t(shader->specs, AssetShaderSpec, spec) {
     if (spec->binding == binding) {
       *out = (AssetShaderType)spec->type;
       return true;
@@ -69,7 +68,7 @@ static bool rvk_shader_spec_type(const RvkShader* shader, const u8 binding, Asse
 }
 
 static AssetShaderSpecDef rvk_shader_spec_default(const RvkShader* shader, const u8 binding) {
-  array_ptr_for_t(shader->specs, AssetShaderSpec, spec) {
+  heap_array_for_t(shader->specs, AssetShaderSpec, spec) {
     if (spec->binding == binding) {
       return (AssetShaderSpecDef)spec->defVal;
     }

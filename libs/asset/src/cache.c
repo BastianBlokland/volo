@@ -14,10 +14,11 @@ static const String g_assetCachePath    = string_static(".cache");
 static const String g_assetCacheRegName = string_static("registry.blob");
 
 typedef struct {
-  u32 typeNameHash;
-  u32 formatHash;
-  u8  container;
-  u8  flags;
+  u32 typeNameHash; // Hash of the type's name.
+  u32 formatHash;   // Deep hash of the type's format ('data_hash()').
+  u8  container;    // DataContainer
+  u8  flags;        // DataFlags
+  u16 fixedCount;   // Size of fixed size containers (for example inline-array).
 } AssetCacheMeta;
 
 typedef struct {
@@ -30,10 +31,7 @@ typedef struct {
   StringHash     idHash;
   AssetCacheMeta meta;
   TimeReal       modTime;
-  struct {
-    const AssetCacheDependency* values;
-    usize                       count;
-  } dependencies;
+  HeapArray_t(AssetCacheDependency) dependencies;
 } AssetCacheEntry;
 
 typedef struct {
@@ -229,7 +227,7 @@ static bool cache_reg_validate(const AssetCache* c, const AssetCacheEntry* entry
   if (!cache_reg_validate_file(c, entry->id, entry->modTime)) {
     return false;
   }
-  array_ptr_for_t(entry->dependencies, AssetCacheDependency, dep) {
+  heap_array_for_t(entry->dependencies, AssetCacheDependency, dep) {
     if (!cache_reg_validate_file(c, dep->id, dep->modTime)) {
       return false;
     }
@@ -252,9 +250,10 @@ static bool cache_meta_resolve(const DataReg* reg, const AssetCacheMeta* cacheMe
     return false; // Type no longer exists with the same name.
   }
   const DataMeta dataMeta = {
-      .type      = type,
-      .container = (DataContainer)cacheMeta->container,
-      .flags     = (DataFlags)cacheMeta->flags,
+      .type       = type,
+      .container  = (DataContainer)cacheMeta->container,
+      .flags      = (DataFlags)cacheMeta->flags,
+      .fixedCount = cacheMeta->fixedCount,
   };
   if (UNLIKELY(cacheMeta->formatHash != data_hash(reg, dataMeta, DataHashFlags_ExcludeIds))) {
     return false; // Format has changed and is no longer compatible.
@@ -270,6 +269,7 @@ void asset_data_init_cache(void) {
   data_reg_field_t(g_dataReg, AssetCacheMeta, formatHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetCacheMeta, container, data_prim_t(u8));
   data_reg_field_t(g_dataReg, AssetCacheMeta, flags, data_prim_t(u8));
+  data_reg_field_t(g_dataReg, AssetCacheMeta, fixedCount, data_prim_t(u16));
 
   data_reg_struct_t(g_dataReg, AssetCacheDependency);
   data_reg_field_t(g_dataReg, AssetCacheDependency, id, data_prim_t(String));
@@ -280,7 +280,7 @@ void asset_data_init_cache(void) {
   data_reg_field_t(g_dataReg, AssetCacheEntry, idHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetCacheEntry, meta, t_AssetCacheMeta);
   data_reg_field_t(g_dataReg, AssetCacheEntry, modTime, data_prim_t(i64));
-  data_reg_field_t(g_dataReg, AssetCacheEntry, dependencies, t_AssetCacheDependency, .container = DataContainer_DataArray);
+  data_reg_field_t(g_dataReg, AssetCacheEntry, dependencies, t_AssetCacheDependency, .container = DataContainer_HeapArray);
 
   data_reg_struct_t(g_dataReg, AssetCacheRegistry);
   data_reg_field_t(g_dataReg, AssetCacheRegistry, entries, t_AssetCacheEntry, .container = DataContainer_DynArray);
@@ -386,7 +386,7 @@ void asset_cache_set(
     entry->modTime         = blobModTime;
     if (entry->dependencies.count) {
       // Cleanup the old dependencies.
-      array_ptr_for_t(entry->dependencies, AssetCacheDependency, dep) {
+      heap_array_for_t(entry->dependencies, AssetCacheDependency, dep) {
         string_free(c->alloc, dep->id);
       }
       alloc_free_array_t(c->alloc, entry->dependencies.values, entry->dependencies.count);

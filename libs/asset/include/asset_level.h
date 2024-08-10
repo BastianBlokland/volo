@@ -1,4 +1,5 @@
 #pragma once
+#include "core_array.h"
 #include "core_sentinel.h"
 #include "data_registry.h"
 #include "ecs_module.h"
@@ -25,15 +26,10 @@ typedef struct {
 } AssetLevelObject;
 
 typedef struct {
-  const AssetLevelObject* values;
-  usize                   count;
-} AssetLevelObjectArray;
-
-typedef struct {
-  String                name;
-  String                terrainId;
-  GeoVector             startpoint;
-  AssetLevelObjectArray objects;
+  String    name;
+  String    terrainId;
+  GeoVector startpoint;
+  HeapArray_t(AssetLevelObject) objects;
 } AssetLevel;
 
 ecs_comp_extern_public(AssetLevelComp) { AssetLevel level; };

@@ -1,6 +1,5 @@
 #include "asset_decal.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_float.h"
 #include "core_math.h"
 #include "data.h"
@@ -16,11 +15,6 @@
 DataMeta g_assetDecalDefMeta;
 
 typedef struct {
-  AssetDecalMask* values;
-  usize           count;
-} DecalMaskDef;
-
-typedef struct {
   bool             trail;
   f32              spacing;
   AssetDecalAxis   projectionAxis;
@@ -31,7 +25,7 @@ typedef struct {
   bool             noColorOutput;
   bool             randomRotation;
   bool             snapToTerrain;
-  DecalMaskDef     excludeMask;
+  AssetDecalMask   excludeMask;
   f32              roughness;
   f32              alphaMin, alphaMax;
   f32              width, height;
@@ -58,12 +52,6 @@ ecs_system_define(DecalUnloadAssetSys) {
   }
 }
 
-static AssetDecalMask decal_build_mask(const DecalMaskDef* def) {
-  AssetDecalMask mask = 0;
-  array_ptr_for_t(*def, AssetDecalMask, val) { mask |= *val; }
-  return mask;
-}
-
 static AssetDecalFlags decal_build_flags(const DecalDef* def) {
   AssetDecalFlags flags = 0;
   flags |= def->trail ? AssetDecalFlags_Trail : 0;
@@ -81,7 +69,7 @@ static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
   out->atlasNormalEntry = string_maybe_hash(def->normalAtlasEntry);
   out->baseNormal       = def->baseNormal;
   out->flags            = decal_build_flags(def);
-  out->excludeMask      = decal_build_mask(&def->excludeMask);
+  out->excludeMask      = def->excludeMask;
   out->roughness        = def->roughness;
   out->alphaMin         = def->alphaMin < f32_epsilon ? 1.0f : def->alphaMin;
   out->alphaMax         = math_max(out->alphaMin, def->alphaMax);
@@ -114,7 +102,7 @@ void asset_data_init_decal(void) {
   data_reg_const_t(g_dataReg, AssetDecalNormal, DepthBuffer);
   data_reg_const_t(g_dataReg, AssetDecalNormal, DecalTransform);
 
-  data_reg_enum_t(g_dataReg, AssetDecalMask);
+  data_reg_enum_multi_t(g_dataReg, AssetDecalMask);
   data_reg_const_t(g_dataReg, AssetDecalMask, Geometry);
   data_reg_const_t(g_dataReg, AssetDecalMask, Terrain);
   data_reg_const_t(g_dataReg, AssetDecalMask, Unit);
@@ -130,7 +118,7 @@ void asset_data_init_decal(void) {
   data_reg_field_t(g_dataReg, DecalDef, noColorOutput, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, DecalDef, randomRotation, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, DecalDef, snapToTerrain, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, DecalDef, excludeMask, t_AssetDecalMask, .container = DataContainer_DataArray, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, DecalDef, excludeMask, t_AssetDecalMask, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, DecalDef, roughness, data_prim_t(f32));
   data_reg_field_t(g_dataReg, DecalDef, alphaMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, DecalDef, alphaMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);

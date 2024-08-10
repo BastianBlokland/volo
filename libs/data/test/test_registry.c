@@ -1,5 +1,6 @@
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "data.h"
 
 spec(registry) {
@@ -36,8 +37,20 @@ spec(registry) {
     check_eq_int(data_meta_size(reg, meta), sizeof(i32*));
   }
 
-  it("can lookup the size of an array value") {
-    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
+  it("can lookup the size of an inline-array value") {
+    const DataMeta meta =
+        data_meta_t(data_prim_t(i32), .container = DataContainer_InlineArray, .fixedCount = 42);
+    check_eq_int(data_meta_size(reg, meta), sizeof(i32) * 42);
+  }
+
+  it("can lookup the alignment of an inline-array value") {
+    const DataMeta meta =
+        data_meta_t(data_prim_t(i32), .container = DataContainer_InlineArray, .fixedCount = 42);
+    check_eq_int(data_meta_align(reg, meta), alignof(i32));
+  }
+
+  it("can lookup the size of an heap-array value") {
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_HeapArray);
     check_eq_int(data_meta_size(reg, meta), sizeof(i32*) + sizeof(usize));
   }
 
@@ -69,7 +82,7 @@ spec(registry) {
       i32                 valA;
       String              valB;
       f32                 valC;
-      DataArray           values;
+      HeapArray           values;
       DynArray            valuesDyn;
       struct sRegStructA* next;
     } RegStructA;
@@ -78,7 +91,7 @@ spec(registry) {
     data_reg_field_t(reg, RegStructA, valA, data_prim_t(i32));
     data_reg_field_t(reg, RegStructA, valB, data_prim_t(String));
     data_reg_field_t(reg, RegStructA, valC, data_prim_t(f32));
-    data_reg_field_t(reg, RegStructA, values, t_RegStructA, .container = DataContainer_DataArray);
+    data_reg_field_t(reg, RegStructA, values, t_RegStructA, .container = DataContainer_HeapArray);
     data_reg_field_t(reg, RegStructA, valuesDyn, t_RegStructA, .container = DataContainer_DynArray);
     data_reg_field_t(reg, RegStructA, next, t_RegStructA, .container = DataContainer_Pointer);
 
@@ -112,7 +125,7 @@ spec(registry) {
 
     data_reg_struct_t(reg, RegStructB);
     data_reg_field_t(reg, RegStructB, valA, t_NestedStruct);
-    data_reg_field_t(reg, RegStructB, valB, t_NestedStruct, .container = DataContainer_DataArray);
+    data_reg_field_t(reg, RegStructB, valB, t_NestedStruct, .container = DataContainer_HeapArray);
     data_reg_field_t(reg, RegStructB, valC, t_NestedStruct, .container = DataContainer_Pointer);
 
     check_eq_string(data_name(reg, t_RegStructB), string_lit("RegStructB"));

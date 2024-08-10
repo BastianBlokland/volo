@@ -25,6 +25,7 @@ typedef enum {
   DataReadError_Base64DataInvalid,
   DataReadError_NullIsInvalid,
   DataReadError_EmptyArrayIsInvalid,
+  DataReadError_MismatchedInlineArrayCount,
 } DataReadError;
 
 /**
@@ -70,8 +71,9 @@ String data_read_bin(const DataReg*, String, Allocator*, DataMeta, Mem data, Dat
 typedef struct {
   u32           metaTypeNameHash; // Hash of the type's name.
   u32           metaFormatHash;   // Deep hash of the type's format ('data_hash()').
-  DataContainer metaContainer;
-  DataFlags     metaFlags;
+  DataContainer metaContainer : 8;
+  DataFlags     metaFlags : 8;
+  u16           metaFixedCount; // Size of fixed size containers (for example inline-array).
 } DataBinHeader;
 
 /**

@@ -54,33 +54,33 @@ spec(utils_equal) {
     check(!data_equal(reg, meta, mem_var(aPtr), mem_var(bPtr)));
   }
 
-  it("can compare arrays of primitives") {
-    typedef struct {
-      i32*  values;
-      usize count;
-    } PrimArray;
+  it("can compare inline-arrays of primitives") {
+    i32 valA[] = {0, 1, 2, 3, 4, 5, 6, 7};
+    i32 valB[] = {0, 1, 3, 2, 4, 5, 6, 7};
 
+    const DataMeta meta =
+        data_meta_t(data_prim_t(i32), .container = DataContainer_InlineArray, .fixedCount = 8);
+    check(data_equal(reg, meta, mem_var(valA), mem_var(valA)));
+    check(!data_equal(reg, meta, mem_var(valA), mem_var(valB)));
+  }
+
+  it("can compare heap-arrays of primitives") {
     i32 valuesA[] = {0, 1, 2, 3, 4, 5, 6, 7};
     i32 valuesB[] = {0, 1, 3, 2, 4, 5, 6, 7};
 
-    const PrimArray arrayA = {.values = valuesA, .count = array_elems(valuesA)};
-    const PrimArray arrayB = {.values = valuesB, .count = array_elems(valuesB)};
+    const HeapArray_t(i32) arrayA = {.values = valuesA, .count = array_elems(valuesA)};
+    const HeapArray_t(i32) arrayB = {.values = valuesB, .count = array_elems(valuesB)};
 
-    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_HeapArray);
     check(data_equal(reg, meta, mem_var(arrayA), mem_var(arrayA)));
     check(!data_equal(reg, meta, mem_var(arrayA), mem_var(arrayB)));
   }
 
-  it("can compare empty arrays") {
-    typedef struct {
-      i32*  values;
-      usize count;
-    } PrimArray;
+  it("can compare empty heap-arrays") {
+    const HeapArray_t(i32) arrayA = {0};
+    const HeapArray_t(i32) arrayB = {0};
 
-    const PrimArray arrayA = {0};
-    const PrimArray arrayB = {0};
-
-    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_HeapArray);
     check(data_equal(reg, meta, mem_var(arrayA), mem_var(arrayB)));
   }
 
@@ -151,7 +151,7 @@ spec(utils_equal) {
     data_reg_field_t(reg, CloneStructC, value, t_CloneStructB);
     data_reg_field_t(reg, CloneStructC, ptr, t_CloneStructB, .container = DataContainer_Pointer);
     data_reg_field_t(
-        reg, CloneStructC, array, t_CloneStructB, .container = DataContainer_DataArray);
+        reg, CloneStructC, array, t_CloneStructB, .container = DataContainer_HeapArray);
 
     CloneStructB ptrValueA = {
         .a = string_lit("Some"),

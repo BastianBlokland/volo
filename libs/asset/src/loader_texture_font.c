@@ -1,7 +1,6 @@
 #include "asset_font.h"
 #include "asset_fonttex.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
@@ -44,10 +43,7 @@ typedef struct {
   f32  lineSpacing;
   f32  baseline;
   bool lossless;
-  struct {
-    FontTexDefFont* values;
-    usize           count;
-  } fonts;
+  HeapArray_t(FontTexDefFont) fonts;
 } FontTexDef;
 
 typedef struct {
@@ -383,7 +379,7 @@ ecs_system_define(FontTexLoadAssetSys) {
 
   Cleanup:
     ecs_world_remove_t(world, entity, AssetFontTexLoadComp);
-    array_ptr_for_t(load->def.fonts, FontTexDefFont, font) {
+    heap_array_for_t(load->def.fonts, FontTexDefFont, font) {
       if (font->asset) {
         asset_release(world, font->asset);
       }
@@ -441,7 +437,7 @@ void asset_data_init_fonttex(void) {
   data_reg_field_t(g_dataReg, FontTexDef, lineSpacing, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, FontTexDef, baseline, data_prim_t(f32));
   data_reg_field_t(g_dataReg, FontTexDef, lossless, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, FontTexDef, fonts, t_FontTexDefFont, .container = DataContainer_DataArray, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, FontTexDef, fonts, t_FontTexDefFont, .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetFontTexChar);
   data_reg_field_t(g_dataReg, AssetFontTexChar, cp, data_prim_t(u32));
@@ -457,7 +453,7 @@ void asset_data_init_fonttex(void) {
   data_reg_field_t(g_dataReg, AssetFontTexComp, glyphsPerDim, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetFontTexComp, lineSpacing, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetFontTexComp, baseline, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, AssetFontTexComp, characters, t_AssetFontTexChar, .container = DataContainer_DataArray);
+  data_reg_field_t(g_dataReg, AssetFontTexComp, characters, t_AssetFontTexChar, .container = DataContainer_HeapArray);
 
   data_reg_struct_t(g_dataReg, FontTexBundle);
   data_reg_field_t(g_dataReg, FontTexBundle, fonttex, t_AssetFontTexComp);

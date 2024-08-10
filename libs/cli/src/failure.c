@@ -19,7 +19,7 @@ static FormatArg arg_style_reset(const CliFailureFlags flags) {
 
 void cli_failure_write(DynString* dynStr, CliInvocation* invoc, const CliFailureFlags flags) {
   CliParseErrors errors = cli_parse_errors(invoc);
-  array_ptr_for_t(errors, String, err) {
+  heap_array_for_t(errors, String, err) {
     fmt_write(dynStr, "{}{}{}\n", arg_style_red_bg(flags), fmt_text(*err), arg_style_reset(flags));
   }
 }

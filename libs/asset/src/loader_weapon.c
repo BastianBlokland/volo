@@ -1,7 +1,5 @@
 #include "asset_weapon.h"
 #include "core_alloc.h"
-#include "core_annotation.h"
-#include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -84,17 +82,11 @@ typedef struct {
   f32    readyMinTime;
   String readyAnim;
   bool   predictiveAim;
-  struct {
-    AssetWeaponEffectDef* values;
-    usize                 count;
-  } effects;
+  HeapArray_t(AssetWeaponEffectDef) effects;
 } AssetWeaponDef;
 
 typedef struct {
-  struct {
-    AssetWeaponDef* values;
-    usize           count;
-  } weapons;
+  HeapArray_t(AssetWeaponDef) weapons;
 } AssetWeaponMapDef;
 
 static i8 asset_weapon_compare(const void* a, const void* b) {
@@ -255,7 +247,7 @@ static void weapon_build(
       .effectCount      = (u16)def->effects.count,
   };
 
-  array_ptr_for_t(def->effects, AssetWeaponEffectDef, effectDef) {
+  heap_array_for_t(def->effects, AssetWeaponEffectDef, effectDef) {
     AssetWeaponEffect* outEffect = dynarray_push_t(outEffects, AssetWeaponEffect);
     outEffect->type              = effectDef->type;
 
@@ -289,7 +281,7 @@ static void weaponmap_build(
     DynArray*                outEffects, // AssetWeaponEffect[], needs to be already initialized.
     WeaponError*             err) {
 
-  array_ptr_for_t(def->weapons, AssetWeaponDef, weaponDef) {
+  heap_array_for_t(def->weapons, AssetWeaponDef, weaponDef) {
     AssetWeapon weapon;
     weapon_build(ctx, weaponDef, outEffects, &weapon, err);
     if (*err) {
@@ -309,11 +301,11 @@ ecs_comp_define(AssetWeaponLoadComp) { AssetSource* src; };
 
 static void ecs_destruct_weaponmap_comp(void* data) {
   AssetWeaponMapComp* comp = data;
-  if (comp->weapons) {
-    alloc_free_array_t(g_allocHeap, comp->weapons, comp->weaponCount);
+  if (comp->weapons.values) {
+    alloc_free_array_t(g_allocHeap, comp->weapons.values, comp->weapons.count);
   }
-  if (comp->effects) {
-    alloc_free_array_t(g_allocHeap, comp->effects, comp->effectCount);
+  if (comp->effects.values) {
+    alloc_free_array_t(g_allocHeap, comp->effects.values, comp->effects.count);
   }
 }
 
@@ -378,10 +370,10 @@ ecs_system_define(LoadWeaponAssetSys) {
         world,
         entity,
         AssetWeaponMapComp,
-        .weapons     = dynarray_copy_as_new(&weapons, g_allocHeap),
-        .weaponCount = weapons.size,
-        .effects     = dynarray_copy_as_new(&effects, g_allocHeap),
-        .effectCount = effects.size);
+        .weapons.values = dynarray_copy_as_new(&weapons, g_allocHeap),
+        .weapons.count  = weapons.size,
+        .effects.values = dynarray_copy_as_new(&effects, g_allocHeap),
+        .effects.count  = effects.size);
 
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
     goto Cleanup;
@@ -505,10 +497,10 @@ void asset_data_init_weapon(void) {
   data_reg_field_t(g_dataReg, AssetWeaponDef, readyMinTime, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetWeaponDef, readyAnim, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponDef, predictiveAim, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetWeaponDef, effects, t_AssetWeaponEffectDef, .container = DataContainer_DataArray);
+  data_reg_field_t(g_dataReg, AssetWeaponDef, effects, t_AssetWeaponEffectDef, .container = DataContainer_HeapArray);
 
   data_reg_struct_t(g_dataReg, AssetWeaponMapDef);
-  data_reg_field_t(g_dataReg, AssetWeaponMapDef, weapons, t_AssetWeaponDef, .container = DataContainer_DataArray);
+  data_reg_field_t(g_dataReg, AssetWeaponMapDef, weapons, t_AssetWeaponDef, .container = DataContainer_HeapArray);
   // clang-format on
 
   g_assetWeaponDefMeta = data_meta_t(t_AssetWeaponMapDef);
@@ -523,7 +515,7 @@ void asset_load_weapons(
 f32 asset_weapon_damage(const AssetWeaponMapComp* map, const AssetWeapon* weapon) {
   f32 damage = 0;
   for (u16 i = 0; i != weapon->effectCount; ++i) {
-    const AssetWeaponEffect* effect = &map->effects[weapon->effectIndex + i];
+    const AssetWeaponEffect* effect = &map->effects.values[weapon->effectIndex + i];
     switch (effect->type) {
     case AssetWeaponEffect_Projectile:
       damage += effect->data_proj.damage;
@@ -543,7 +535,7 @@ f32 asset_weapon_damage(const AssetWeaponMapComp* map, const AssetWeapon* weapon
 u8 asset_weapon_applies_status(const AssetWeaponMapComp* map, const AssetWeapon* weapon) {
   u8 result = 0;
   for (u16 i = 0; i != weapon->effectCount; ++i) {
-    const AssetWeaponEffect* effect = &map->effects[weapon->effectIndex + i];
+    const AssetWeaponEffect* effect = &map->effects.values[weapon->effectIndex + i];
     switch (effect->type) {
     case AssetWeaponEffect_Damage:
       result |= effect->data_dmg.applyStatusMask;
@@ -562,8 +554,8 @@ u8 asset_weapon_applies_status(const AssetWeaponMapComp* map, const AssetWeapon*
 
 const AssetWeapon* asset_weapon_get(const AssetWeaponMapComp* map, const StringHash nameHash) {
   return search_binary_t(
-      map->weapons,
-      map->weapons + map->weaponCount,
+      map->weapons.values,
+      map->weapons.values + map->weapons.count,
       AssetWeapon,
       asset_weapon_compare,
       mem_struct(AssetWeapon, .nameHash = nameHash).ptr);

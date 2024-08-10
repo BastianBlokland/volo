@@ -1,4 +1,5 @@
 #pragma once
+#include "core_array.h"
 #include "data_registry.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
@@ -85,10 +86,7 @@ typedef struct {
 typedef struct {
   String      shaderId;
   EcsEntityId shader;
-  struct {
-    AssetGraphicOverride* values;
-    usize                 count;
-  } overrides;
+  HeapArray_t(AssetGraphicOverride) overrides;
 } AssetGraphicShader;
 
 typedef struct {
@@ -101,14 +99,8 @@ typedef struct {
 } AssetGraphicSampler;
 
 ecs_comp_extern_public(AssetGraphicComp) {
-  struct {
-    AssetGraphicShader* values;
-    usize               count;
-  } shaders;
-  struct {
-    AssetGraphicSampler* values;
-    usize                count;
-  } samplers;
+  HeapArray_t(AssetGraphicShader) shaders;
+  HeapArray_t(AssetGraphicSampler) samplers;
   String                 meshId; // Mutually exclusive with 'vertexCount'.
   EcsEntityId            mesh;
   u32                    vertexCount; // Mutually exclusive with 'mesh'.

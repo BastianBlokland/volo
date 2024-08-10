@@ -28,10 +28,7 @@ typedef struct sRvkShader {
   u16                   killSpecConstMask; // Mask of spec-consts that need to be true for kill.
   RvkDescMeta           descriptors[rvk_shader_desc_max];
   u16                   inputMask, outputMask;
-  struct {
-    AssetShaderSpec* values;
-    usize            count;
-  } specs;
+  HeapArray_t(AssetShaderSpec) specs;
 } RvkShader;
 
 RvkShader* rvk_shader_create(RvkDevice*, const AssetShaderComp*, String dbgName);

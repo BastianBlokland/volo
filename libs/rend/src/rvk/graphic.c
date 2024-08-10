@@ -1,6 +1,5 @@
 #include "asset_graphic.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
@@ -683,7 +682,7 @@ void rvk_graphic_destroy(RvkGraphic* graphic) {
   }
   array_for_t(graphic->shaders, RvkGraphicShader, itr) {
     if (itr->overrides.count) {
-      array_ptr_for_t(itr->overrides, RvkShaderOverride, override) {
+      heap_array_for_t(itr->overrides, RvkShaderOverride, override) {
         string_free(g_allocHeap, override->name);
       }
       alloc_free_array_t(g_allocHeap, itr->overrides.values, itr->overrides.count);

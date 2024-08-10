@@ -1,4 +1,5 @@
 #pragma once
+#include "core_array.h"
 #include "core_unicode.h"
 #include "data_registry.h"
 #include "ecs_module.h"
@@ -27,11 +28,8 @@ typedef struct {
 ecs_comp_extern_public(AssetFontTexComp) {
   u32 glyphsPerDim;
   f32 lineSpacing;
-  f32 baseline; // How far glyphs can extend below the rectangle.
-  struct {
-    AssetFontTexChar* values; // Sorted on the unicode codepoint.
-    usize             count;
-  } characters;
+  f32 baseline;                             // How far glyphs can extend below the rectangle.
+  HeapArray_t(AssetFontTexChar) characters; // Sorted on the unicode codepoint.
 };
 
 extern DataMeta g_assetFontTexBundleMeta;

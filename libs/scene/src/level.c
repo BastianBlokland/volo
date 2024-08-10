@@ -126,7 +126,7 @@ static void scene_level_process_load(
 
   trace_begin("level_load", TraceColor_White);
 
-  array_ptr_for_t(level->objects, AssetLevelObject, obj) {
+  heap_array_for_t(level->objects, AssetLevelObject, obj) {
     scene_prefab_spawn(
         world,
         &(ScenePrefabSpec){

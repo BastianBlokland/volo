@@ -99,7 +99,7 @@ static bool input_action_satisfied(
     const GapWindowComp*     win) {
 
   for (usize i = 0; i != action->bindingCount; ++i) {
-    const AssetInputBinding* binding = &map->bindings[action->bindingIndex + i];
+    const AssetInputBinding* binding = &map->bindings.values[action->bindingIndex + i];
     if (input_binding_satisfied(manager, binding, win)) {
       return true;
     }
@@ -186,8 +186,8 @@ static void input_update_cursor(InputManagerComp* manager, GapWindowComp* win) {
 static void input_update_triggered(
     InputManagerComp* manager, const AssetInputMapComp* map, GapWindowComp* win) {
 
-  for (usize i = 0; i != map->actionCount; ++i) {
-    const AssetInputAction* action = &map->actions[i];
+  for (usize i = 0; i != map->actions.count; ++i) {
+    const AssetInputAction* action = &map->actions.values[i];
     if (manager->blockers & action->blockerBits) {
       continue;
     }
@@ -198,12 +198,12 @@ static void input_update_triggered(
 }
 
 static void input_update_key_info(InputManagerComp* manager, const AssetInputMapComp* map) {
-  for (usize i = 0; i != map->actionCount; ++i) {
-    const AssetInputAction* action = &map->actions[i];
+  for (usize i = 0; i != map->actions.count; ++i) {
+    const AssetInputAction* action = &map->actions.values[i];
     if (UNLIKELY(!action->bindingCount)) {
       continue;
     }
-    const AssetInputBinding* primaryBinding = &map->bindings[action->bindingIndex];
+    const AssetInputBinding* primaryBinding = &map->bindings.values[action->bindingIndex];
     const InputActionInfo info = {.nameHash = action->nameHash, .primarykey = primaryBinding->key};
     *dynarray_insert_sorted_t(
         &manager->actionInfos, InputActionInfo, input_compare_action_info, &info) = info;

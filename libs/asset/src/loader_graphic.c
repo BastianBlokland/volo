@@ -1,6 +1,5 @@
 #include "asset_graphic.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_diag.h"
 #include "data.h"
 #include "ecs_utils.h"
@@ -76,12 +75,12 @@ ecs_system_define(LoadGraphicAssetSys) {
     }
 
     // Resolve shader references.
-    array_ptr_for_t(graphicComp->shaders, AssetGraphicShader, ptr) {
+    heap_array_for_t(graphicComp->shaders, AssetGraphicShader, ptr) {
       ptr->shader = asset_lookup(world, manager, ptr->shaderId);
     }
 
     // Resolve texture references.
-    array_ptr_for_t(graphicComp->samplers, AssetGraphicSampler, ptr) {
+    heap_array_for_t(graphicComp->samplers, AssetGraphicSampler, ptr) {
       ptr->texture = asset_lookup(world, manager, ptr->textureId);
     }
 
@@ -192,7 +191,7 @@ void asset_data_init_graphic(void) {
 
   data_reg_struct_t(g_dataReg, AssetGraphicShader);
   data_reg_field_t(g_dataReg, AssetGraphicShader, shaderId, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetGraphicShader, overrides, t_AssetGraphicOverride, .container = DataContainer_DataArray, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetGraphicShader, overrides, t_AssetGraphicOverride, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetGraphicSampler);
   data_reg_field_t(g_dataReg, AssetGraphicSampler, textureId, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -202,8 +201,8 @@ void asset_data_init_graphic(void) {
   data_reg_field_t(g_dataReg, AssetGraphicSampler, mipBlending, data_prim_t(bool), .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetGraphicComp);
-  data_reg_field_t(g_dataReg, AssetGraphicComp, shaders, t_AssetGraphicShader, .container = DataContainer_DataArray, .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetGraphicComp, samplers, t_AssetGraphicSampler, .container = DataContainer_DataArray, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, shaders, t_AssetGraphicShader, .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, samplers, t_AssetGraphicSampler, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicComp, meshId, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetGraphicComp, vertexCount, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetGraphicComp, renderOrder, data_prim_t(i32), .flags = DataFlags_Opt);

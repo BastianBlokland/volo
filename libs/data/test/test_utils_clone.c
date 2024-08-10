@@ -92,18 +92,27 @@ spec(utils_clone) {
     data_destroy(reg, g_allocHeap, meta, mem_var(clone));
   }
 
-  it("can clone an array of primitives") {
-    typedef struct {
-      i32*  values;
-      usize count;
-    } PrimArray;
+  it("can clone an inline-array of primitives") {
+    i32 original[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+    i32 clone[8];
 
-    i32 originalValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
+    const DataMeta meta =
+        data_meta_t(data_prim_t(i32), .container = DataContainer_InlineArray, .fixedCount = 8);
+    data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
 
-    const PrimArray original = {.values = originalValues, .count = array_elems(originalValues)};
-    const PrimArray clone    = {0};
+    for (usize i = 0; i != 8; ++i) {
+      check_eq_int(clone[i], original[i]);
+    }
+  }
 
-    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
+  it("can clone a heap-array of primitives") {
+
+    i32 orgValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
+
+    HeapArray_t(i32) original = {.values = orgValues, .count = array_elems(orgValues)};
+    HeapArray_t(i32) clone    = {0};
+
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_HeapArray);
     data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
 
     for (usize i = 0; i != original.count; ++i) {
@@ -113,16 +122,11 @@ spec(utils_clone) {
     data_destroy(reg, g_allocHeap, meta, mem_var(clone));
   }
 
-  it("can clone an empty array") {
-    typedef struct {
-      i32*  values;
-      usize count;
-    } PrimArray;
+  it("can clone an empty heap-array") {
+    HeapArray_t(i32) original = {0};
+    HeapArray_t(i32) clone    = {0};
 
-    const PrimArray original = {0};
-    const PrimArray clone    = {0};
-
-    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_HeapArray);
     data_clone(reg, g_allocHeap, meta, mem_var(original), mem_var(clone));
   }
 
@@ -195,7 +199,7 @@ spec(utils_clone) {
     data_reg_field_t(reg, CloneStructC, value, t_CloneStructB);
     data_reg_field_t(reg, CloneStructC, ptr, t_CloneStructB, .container = DataContainer_Pointer);
     data_reg_field_t(
-        reg, CloneStructC, array, t_CloneStructB, .container = DataContainer_DataArray);
+        reg, CloneStructC, array, t_CloneStructB, .container = DataContainer_HeapArray);
 
     CloneStructB originalPtrValue = {
         .a = string_lit("Some"),

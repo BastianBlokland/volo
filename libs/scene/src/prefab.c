@@ -1,7 +1,6 @@
 #include "asset_manager.h"
 #include "asset_prefab.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_rng.h"
@@ -364,7 +363,7 @@ static void setup_script(
 
   SceneKnowledgeComp* knowledge = scene_knowledge_add(w, e);
   for (u16 i = 0; i != t->knowledgeCount; ++i) {
-    const AssetPrefabValue* val = &m->values[t->knowledgeIndex + i];
+    const AssetPrefabValue* val = &m->values.values[t->knowledgeIndex + i];
     switch (val->type) {
     case AssetPrefabValue_Number:
       scene_knowledge_store(knowledge, val->name, script_num(val->data_number));
@@ -574,7 +573,7 @@ static bool setup_prefab(
   }
 
   for (u16 i = 0; i != prefab->traitCount; ++i) {
-    const AssetPrefabTrait* trait = &map->traits[prefab->traitIndex + i];
+    const AssetPrefabTrait* trait = &map->traits.values[prefab->traitIndex + i];
     setup_trait(w, navEnv, e, spec, map, prefab, trait);
   }
 

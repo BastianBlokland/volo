@@ -1,6 +1,5 @@
 #include "asset_atlas.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
@@ -26,10 +25,7 @@ typedef struct {
 typedef struct {
   u32  size, entrySize, entryPadding, maxMipMaps;
   bool mipmaps, srgb, lossless, nearest;
-  struct {
-    AtlasEntryDef* values;
-    usize          count;
-  } entries;
+  HeapArray_t(AtlasEntryDef) entries;
 } AtlasDef;
 
 typedef struct {
@@ -254,7 +250,7 @@ ecs_system_define(AtlasLoadAssetSys) {
      * Start loading all entry textures.
      */
     if (!load->textures.size) {
-      array_ptr_for_t(load->def.entries, AtlasEntryDef, entryDef) {
+      heap_array_for_t(load->def.entries, AtlasEntryDef, entryDef) {
         const EcsEntityId texAsset = asset_lookup(world, manager, entryDef->texture);
         *dynarray_push_t(&load->textures, EcsEntityId) = texAsset;
         asset_acquire(world, texAsset);
@@ -358,7 +354,7 @@ void asset_data_init_atlas(void) {
   data_reg_field_t(g_dataReg, AtlasDef, srgb, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AtlasDef, lossless, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AtlasDef, nearest, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_DataArray);
+  data_reg_field_t(g_dataReg, AtlasDef, entries, t_AtlasEntryDef, .flags = DataFlags_NotEmpty, .container = DataContainer_HeapArray);
 
   data_reg_struct_t(g_dataReg, AssetAtlasEntry);
   data_reg_field_t(g_dataReg, AssetAtlasEntry, name, data_prim_t(StringHash));
@@ -367,7 +363,7 @@ void asset_data_init_atlas(void) {
   data_reg_struct_t(g_dataReg, AssetAtlasComp);
   data_reg_field_t(g_dataReg, AssetAtlasComp, entriesPerDim, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetAtlasComp, entryPadding, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, AssetAtlasComp, entries, t_AssetAtlasEntry, .container = DataContainer_DataArray);
+  data_reg_field_t(g_dataReg, AssetAtlasComp, entries, t_AssetAtlasEntry, .container = DataContainer_HeapArray);
 
   data_reg_struct_t(g_dataReg, AtlasBundle);
   data_reg_field_t(g_dataReg, AtlasBundle, atlas, t_AssetAtlasComp);
@@ -416,7 +412,7 @@ void asset_load_tex_atlas(
     errMsg = atlas_error_str(AtlasError_TooManyEntries);
     goto Error;
   }
-  array_ptr_for_t(def.entries, String, texName) {
+  heap_array_for_t(def.entries, String, texName) {
     if (UNLIKELY(string_is_empty(*texName))) {
       errMsg = atlas_error_str(AtlasError_InvalidTexture);
       goto Error;

@@ -27,11 +27,6 @@
 typedef u32 DataType;
 
 typedef struct {
-  void* values;
-  usize count;
-} DataArray;
-
-typedef struct {
   bool  external; // Allocation is not managed by the data library.
   void* ptr;
   usize size;

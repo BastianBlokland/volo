@@ -1,7 +1,6 @@
 #include "asset.h"
 #include "check_spec.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "ecs.h"
 
 #include "utils_internal.h"
@@ -179,9 +178,9 @@ spec(loader_weapon) {
           fmt_text(g_testData[i].id));
 
       const AssetWeaponMapComp* map = ecs_utils_read_t(world, AssetView, asset, AssetWeaponMapComp);
-      check_require(map->weaponCount == g_testData[i].weaponCount);
+      check_require(map->weapons.count == g_testData[i].weaponCount);
       for (usize a = 0; a != g_testData[i].weaponCount; ++a) {
-        const AssetWeapon*    actualWeapon   = &map->weapons[a];
+        const AssetWeapon*    actualWeapon   = &map->weapons.values[a];
         const TestWeaponData* expectedWeapon = &g_testData[i].weapons[a];
 
         check_eq_int(actualWeapon->nameHash, string_hash(expectedWeapon->name));

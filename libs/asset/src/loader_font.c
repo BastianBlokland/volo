@@ -24,10 +24,10 @@ ecs_comp_define_public(AssetFontComp);
 
 static void ecs_destruct_font_comp(void* data) {
   AssetFontComp* comp = data;
-  alloc_free_array_t(g_allocHeap, comp->characters, comp->characterCount);
-  alloc_free_array_t(g_allocHeap, comp->points, comp->pointCount);
-  alloc_free_array_t(g_allocHeap, comp->segments, comp->segmentCount);
-  alloc_free_array_t(g_allocHeap, comp->glyphs, comp->glyphCount);
+  alloc_free_array_t(g_allocHeap, comp->characters.values, comp->characters.count);
+  alloc_free_array_t(g_allocHeap, comp->points.values, comp->points.count);
+  alloc_free_array_t(g_allocHeap, comp->segments.values, comp->segments.count);
+  alloc_free_array_t(g_allocHeap, comp->glyphs.values, comp->glyphs.count);
 }
 
 ecs_view_define(UnloadView) {
@@ -59,13 +59,13 @@ i8 asset_font_compare_char(const void* a, const void* b) {
 }
 
 const AssetFontGlyph* asset_font_missing(const AssetFontComp* font) {
-  return &font->glyphs[0]; // The 'missing' glyph, is guaranteed to exist.
+  return &font->glyphs.values[0]; // The 'missing' glyph, is guaranteed to exist.
 }
 
 const AssetFontGlyph* asset_font_lookup(const AssetFontComp* font, const Unicode cp) {
   const AssetFontChar* ch = search_binary_t(
-      font->characters,
-      font->characters + font->characterCount,
+      font->characters.values,
+      font->characters.values + font->characters.count,
       AssetFontChar,
       asset_font_compare_char,
       mem_struct(AssetFontChar, .cp = cp).ptr);
@@ -73,8 +73,8 @@ const AssetFontGlyph* asset_font_lookup(const AssetFontComp* font, const Unicode
   if (UNLIKELY(!ch)) {
     return asset_font_missing(font);
   }
-  diag_assert(ch->glyphIndex < font->glyphCount);
-  return &font->glyphs[ch->glyphIndex];
+  diag_assert(ch->glyphIndex < font->glyphs.count);
+  return &font->glyphs.values[ch->glyphIndex];
 }
 
 usize asset_font_lookup_utf8(
@@ -173,17 +173,17 @@ static bool font_math_line_inside(
 }
 
 AssetFontPoint asset_font_seg_sample(const AssetFontComp* font, const usize index, const f32 t) {
-  const AssetFontSegment* seg = &font->segments[index];
+  const AssetFontSegment* seg = &font->segments.values[index];
   switch (seg->type) {
   case AssetFontSegment_Line: {
-    const AssetFontPoint start = font->points[seg->pointIndex + 0];
-    const AssetFontPoint end   = font->points[seg->pointIndex + 1];
+    const AssetFontPoint start = font->points.values[seg->pointIndex + 0];
+    const AssetFontPoint end   = font->points.values[seg->pointIndex + 1];
     return font_math_line_sample(start, end, t);
   }
   case AssetFontSegment_QuadraticBezier: {
-    const AssetFontPoint start = font->points[seg->pointIndex + 0];
-    const AssetFontPoint ctrl  = font->points[seg->pointIndex + 1];
-    const AssetFontPoint end   = font->points[seg->pointIndex + 2];
+    const AssetFontPoint start = font->points.values[seg->pointIndex + 0];
+    const AssetFontPoint ctrl  = font->points.values[seg->pointIndex + 1];
+    const AssetFontPoint end   = font->points.values[seg->pointIndex + 2];
     return font_math_quad_bezier_sample(start, ctrl, end, t);
   }
   }
@@ -191,17 +191,17 @@ AssetFontPoint asset_font_seg_sample(const AssetFontComp* font, const usize inde
 }
 
 f32 asset_font_seg_length(const AssetFontComp* font, const usize index) {
-  const AssetFontSegment* seg = &font->segments[index];
+  const AssetFontSegment* seg = &font->segments.values[index];
   switch (seg->type) {
   case AssetFontSegment_Line: {
-    const AssetFontPoint start = font->points[seg->pointIndex + 0];
-    const AssetFontPoint end   = font->points[seg->pointIndex + 1];
+    const AssetFontPoint start = font->points.values[seg->pointIndex + 0];
+    const AssetFontPoint end   = font->points.values[seg->pointIndex + 1];
     return font_math_dist(start, end);
   }
   case AssetFontSegment_QuadraticBezier: {
-    const AssetFontPoint start = font->points[seg->pointIndex + 0];
-    const AssetFontPoint ctrl  = font->points[seg->pointIndex + 1];
-    const AssetFontPoint end   = font->points[seg->pointIndex + 2];
+    const AssetFontPoint start = font->points.values[seg->pointIndex + 0];
+    const AssetFontPoint ctrl  = font->points.values[seg->pointIndex + 1];
+    const AssetFontPoint end   = font->points.values[seg->pointIndex + 2];
 
     /**
      * Closed form analytical solutions for the arc-length of a quadratic bezier exist but are
@@ -240,19 +240,19 @@ f32 asset_font_glyph_dist(
   f32  minDistSqr = f32_max;
   bool inside     = false;
   for (usize seg = glyph->segmentIndex; seg != glyph->segmentIndex + glyph->segmentCount; ++seg) {
-    switch (font->segments[seg].type) {
+    switch (font->segments.values[seg].type) {
     case AssetFontSegment_Line: {
-      const AssetFontPoint start   = font->points[font->segments[seg].pointIndex + 0];
-      const AssetFontPoint end     = font->points[font->segments[seg].pointIndex + 1];
+      const AssetFontPoint start   = font->points.values[font->segments.values[seg].pointIndex + 0];
+      const AssetFontPoint end     = font->points.values[font->segments.values[seg].pointIndex + 1];
       const f32            distSqr = font_math_line_dist_sqr(start, end, point);
       minDistSqr                   = math_min(minDistSqr, distSqr);
       inside ^= font_math_line_inside(start, end, point);
       break;
     }
     case AssetFontSegment_QuadraticBezier: {
-      const AssetFontPoint start = font->points[font->segments[seg].pointIndex + 0];
-      const AssetFontPoint ctrl  = font->points[font->segments[seg].pointIndex + 1];
-      const AssetFontPoint end   = font->points[font->segments[seg].pointIndex + 2];
+      const AssetFontPoint start = font->points.values[font->segments.values[seg].pointIndex + 0];
+      const AssetFontPoint ctrl  = font->points.values[font->segments.values[seg].pointIndex + 1];
+      const AssetFontPoint end   = font->points.values[font->segments.values[seg].pointIndex + 2];
 
       /**
        * Naive implementation that splits the quadratic bezier into a series of line segments.

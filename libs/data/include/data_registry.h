@@ -7,10 +7,11 @@
 typedef struct sDataReg DataReg;
 
 typedef enum {
-  DataContainer_None,
-  DataContainer_Pointer,
-  DataContainer_DataArray,
-  DataContainer_DynArray,
+  DataContainer_None,        // eg. 'f32 value;'.
+  DataContainer_Pointer,     // eg. 'f32* value;'.
+  DataContainer_InlineArray, // eg. 'f32 values[123];', NOTE: The count is stored in 'fixedCount'.
+  DataContainer_HeapArray,   // eg. 'HeapArray_t(f32) values;'.
+  DataContainer_DynArray,    // eg. 'DynArray values;'.
 } DataContainer;
 
 typedef enum {
@@ -25,11 +26,17 @@ typedef enum {
  * Meta information for a data value.
  * Combination of a type and properties of a specific instance (for example if its a pointer).
  */
-typedef struct {
-  DataType      type;
-  DataFlags     flags;
-  DataContainer container;
+typedef union {
+  struct {
+    DataType      type;
+    DataFlags     flags : 8;
+    DataContainer container : 8;
+    u32           fixedCount : 16; // Size of fixed size containers (for example inline-array).
+  };
+  u64 data;
 } DataMeta;
+
+ASSERT(sizeof(DataMeta) == 8, "Unexpected DataMeta size");
 
 #define data_meta_t(_DATA_TYPE_, ...) ((DataMeta){.type = _DATA_TYPE_, ##__VA_ARGS__})
 #define data_prim_t(_PRIM_) ((DataType)DataKind_##_PRIM_)
@@ -49,11 +56,6 @@ DataReg* data_reg_create(Allocator*);
  * Destroy a data registry.
  */
 void data_reg_destroy(DataReg*);
-
-/**
- * Check if the given meta's are equal.
- */
-bool data_meta_eq(DataMeta a, DataMeta b);
 
 /**
  * Retrieve the total number of registered types.

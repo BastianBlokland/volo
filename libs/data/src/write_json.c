@@ -247,18 +247,41 @@ static JsonVal data_write_json_val_pointer(const WriteCtx* ctx) {
   }
   const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
   const WriteCtx  subCtx = {
-      .reg  = ctx->reg,
-      .doc  = ctx->doc,
-      .meta = data_meta_base(ctx->meta),
-      .data = mem_create(ptr, decl->size),
+       .reg  = ctx->reg,
+       .doc  = ctx->doc,
+       .meta = data_meta_base(ctx->meta),
+       .data = mem_create(ptr, decl->size),
   };
   return data_write_json_val_single(&subCtx);
 }
 
-static JsonVal data_write_json_val_array(const WriteCtx* ctx) {
+static JsonVal data_write_json_val_inline_array(const WriteCtx* ctx) {
+  if (UNLIKELY(!ctx->meta.fixedCount)) {
+    diag_crash_msg("Inline-arrays need at least 1 entry");
+  }
+  if (UNLIKELY(ctx->data.size != data_meta_size(ctx->reg, ctx->meta))) {
+    diag_crash_msg("Unexpected data-size for inline array");
+  }
+  const JsonVal   jsonArray = json_add_array(ctx->doc);
+  const DataDecl* decl      = data_decl(ctx->reg, ctx->meta.type);
+
+  for (u16 i = 0; i != ctx->meta.fixedCount; ++i) {
+    const WriteCtx elemCtx = {
+        .reg  = ctx->reg,
+        .doc  = ctx->doc,
+        .meta = data_meta_base(ctx->meta),
+        .data = mem_create(bits_ptr_offset(ctx->data.ptr, decl->size * i), decl->size),
+    };
+    const JsonVal elemVal = data_write_json_val_single(&elemCtx);
+    json_add_elem(ctx->doc, jsonArray, elemVal);
+  }
+  return jsonArray;
+}
+
+static JsonVal data_write_json_val_heap_array(const WriteCtx* ctx) {
   const JsonVal    jsonArray = json_add_array(ctx->doc);
   const DataDecl*  decl      = data_decl(ctx->reg, ctx->meta.type);
-  const DataArray* array     = mem_as_t(ctx->data, DataArray);
+  const HeapArray* array     = mem_as_t(ctx->data, HeapArray);
 
   for (usize i = 0; i != array->count; ++i) {
     const WriteCtx elemCtx = {
@@ -296,8 +319,10 @@ static JsonVal data_write_json_val(const WriteCtx* ctx) {
     return data_write_json_val_single(ctx);
   case DataContainer_Pointer:
     return data_write_json_val_pointer(ctx);
-  case DataContainer_DataArray:
-    return data_write_json_val_array(ctx);
+  case DataContainer_InlineArray:
+    return data_write_json_val_inline_array(ctx);
+  case DataContainer_HeapArray:
+    return data_write_json_val_heap_array(ctx);
   case DataContainer_DynArray:
     return data_write_json_val_dynarray(ctx);
   }

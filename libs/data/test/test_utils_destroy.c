@@ -1,5 +1,6 @@
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "data.h"
 
 spec(utils_destroy) {
@@ -58,19 +59,23 @@ spec(utils_destroy) {
     data_destroy(reg, g_allocHeap, meta, mem_var(val));
   }
 
-  it("can destroy an array of primitives") {
-    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
+  it("can destroy an inline-array") {
+    String val[2];
+    val[0] = string_dup(g_allocHeap, string_lit("Hello"));
+    val[1] = string_dup(g_allocHeap, string_lit("World"));
 
-    const struct {
-      i32*  values;
-      usize count;
-    } array1 = {.values = alloc_array_t(g_allocHeap, i32, 8), .count = 8};
+    const DataMeta meta =
+        data_meta_t(data_prim_t(String), .container = DataContainer_InlineArray, .fixedCount = 2);
+    data_destroy(reg, g_allocHeap, meta, mem_var(val));
+  }
+
+  it("can destroy a heap-array of primitives") {
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_HeapArray);
+
+    HeapArray_t(i32) array1 = {.values = alloc_array_t(g_allocHeap, i32, 8), .count = 8};
     data_destroy(reg, g_allocHeap, meta, mem_var(array1));
 
-    const struct {
-      i32*  values;
-      usize count;
-    } array2 = {0};
+    HeapArray_t(i32) array2 = {0};
     data_destroy(reg, g_allocHeap, meta, mem_var(array2));
   }
 
@@ -127,7 +132,7 @@ spec(utils_destroy) {
     data_reg_field_t(
         reg, DestroyStructC, ptr, t_DestroyStructB, .container = DataContainer_Pointer);
     data_reg_field_t(
-        reg, DestroyStructC, array, t_DestroyStructB, .container = DataContainer_DataArray);
+        reg, DestroyStructC, array, t_DestroyStructB, .container = DataContainer_HeapArray);
 
     DestroyStructB* ptr = alloc_alloc_t(g_allocHeap, DestroyStructB);
     *ptr                = (DestroyStructB){

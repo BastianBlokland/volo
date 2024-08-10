@@ -2,7 +2,6 @@
 #include "asset_prefab.h"
 #include "asset_product.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -119,7 +118,7 @@ static bool product_queues_init(SceneProductionComp* production, const AssetProd
 
   for (u16 i = 0; i != production->queueCount; ++i) {
     production->queues[i] = (SceneProductQueue){
-        .product = &map->products[productSet->productIndex + i],
+        .product = &map->products.values[productSet->productIndex + i],
     };
   }
 

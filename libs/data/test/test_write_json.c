@@ -134,11 +134,24 @@ spec(write_json) {
     test_write(_testCtx, reg, meta, mem_var(val2), string_lit("null"));
   }
 
-  it("can write an array") {
-    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_DataArray);
+  it("can write an inline-array") {
+    const DataMeta meta =
+        data_meta_t(data_prim_t(i32), .container = DataContainer_InlineArray, .fixedCount = 8);
 
-    i32             values[] = {1, 2, 3, 4, 5, 6, 7};
-    const DataArray array1   = {.values = values, .count = array_elems(values)};
+    i32 val[] = {1, 2, 3, 4, 5, 6, 7, 8};
+    test_write(
+        _testCtx,
+        reg,
+        meta,
+        mem_var(val),
+        string_lit("[\n  1,\n  2,\n  3,\n  4,\n  5,\n  6,\n  7,\n  8\n]"));
+  }
+
+  it("can write a heap-array") {
+    const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_HeapArray);
+
+    i32 values[]                  = {1, 2, 3, 4, 5, 6, 7};
+    const HeapArray_t(i32) array1 = {.values = values, .count = array_elems(values)};
     test_write(
         _testCtx,
         reg,
@@ -146,7 +159,7 @@ spec(write_json) {
         mem_var(array1),
         string_lit("[\n  1,\n  2,\n  3,\n  4,\n  5,\n  6,\n  7\n]"));
 
-    const DataArray array2 = {0};
+    const HeapArray_t(i32) array2 = {0};
     test_write(_testCtx, reg, meta, mem_var(array2), string_lit("[]"));
   }
 

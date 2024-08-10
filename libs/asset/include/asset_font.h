@@ -1,4 +1,5 @@
 #pragma once
+#include "core_array.h"
 #include "core_unicode.h"
 #include "ecs_module.h"
 
@@ -33,14 +34,10 @@ typedef struct {
 } AssetFontGlyph;
 
 ecs_comp_extern_public(AssetFontComp) {
-  AssetFontChar*    characters; // Sorted on the unicode codepoint.
-  usize             characterCount;
-  AssetFontPoint*   points;
-  usize             pointCount;
-  AssetFontSegment* segments;
-  usize             segmentCount;
-  AssetFontGlyph*   glyphs;
-  usize             glyphCount;
+  HeapArray_t(AssetFontChar) characters; // Sorted on the unicode codepoint.
+  HeapArray_t(AssetFontPoint) points;
+  HeapArray_t(AssetFontSegment) segments;
+  HeapArray_t(AssetFontGlyph) glyphs;
 };
 
 /**
