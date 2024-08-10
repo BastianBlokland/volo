@@ -30,9 +30,12 @@ typedef union {
     DataType      type;
     DataFlags     flags : 8;
     DataContainer container : 8;
+    u16           fixedCount; // Size of fixed size containers (for example inline-array).
   };
   u64 data;
 } DataMeta;
+
+ASSERT(sizeof(DataMeta) == sizeof(u64), "Unexpected DataMeta size");
 
 #define data_meta_t(_DATA_TYPE_, ...) ((DataMeta){.type = _DATA_TYPE_, ##__VA_ARGS__})
 #define data_prim_t(_PRIM_) ((DataType)DataKind_##_PRIM_)

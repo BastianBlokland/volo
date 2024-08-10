@@ -72,6 +72,7 @@ static void data_write_bin_header(const WriteCtx* ctx) {
   bin_push_u32(ctx, data_hash(ctx->reg, ctx->meta, DataHashFlags_ExcludeIds));
   bin_push_u8(ctx, (u8)ctx->meta.container);
   bin_push_u8(ctx, (u8)ctx->meta.flags);
+  bin_push_u16(ctx, ctx->meta.fixedCount);
 }
 
 static void data_write_bin_val(const WriteCtx*);
@@ -199,10 +200,10 @@ static void data_write_bin_val_pointer(const WriteCtx* ctx) {
   if (ptr) {
     const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
     const WriteCtx  subCtx = {
-        .reg  = ctx->reg,
-        .out  = ctx->out,
-        .meta = data_meta_base(ctx->meta),
-        .data = mem_create(ptr, decl->size),
+         .reg  = ctx->reg,
+         .out  = ctx->out,
+         .meta = data_meta_base(ctx->meta),
+         .data = mem_create(ptr, decl->size),
     };
     data_write_bin_val_single(&subCtx);
   }

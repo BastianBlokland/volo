@@ -149,6 +149,11 @@ static void data_read_bin_header_internal(ReadCtx* ctx, DataBinHeader* out, Data
   out->metaContainer = (DataContainer)metaContainerVal;
   out->metaFlags     = (DataFlags)metaFlagsVal;
 
+  if (!bin_pop_u16(ctx, &out->metaFixedCount)) {
+    *res = result_fail_truncated();
+    return;
+  }
+
   *res = result_success();
   return;
 }
