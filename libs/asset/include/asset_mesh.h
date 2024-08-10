@@ -48,7 +48,7 @@ typedef struct {
 } AssetMeshAnimChannel;
 
 typedef struct {
-  StringHash           nameHash;
+  StringHash           name;
   f32                  duration;
   AssetMeshAnimChannel joints[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
 } AssetMeshAnim;
@@ -66,4 +66,5 @@ ecs_comp_extern_public(AssetMeshSkeletonComp) {
 };
 
 extern DataMeta g_assetMeshMeta;
+extern DataMeta g_assetMeshSkeletonMeta;
 extern DataMeta g_assetProcMeshDefMeta;

@@ -204,7 +204,7 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
   tl->animCount = (u32)asset->anims.count;
   for (u32 animIndex = 0; animIndex != asset->anims.count; ++animIndex) {
     const AssetMeshAnim* assetAnim = &asset->anims.values[animIndex];
-    tl->anims[animIndex].nameHash  = assetAnim->nameHash;
+    tl->anims[animIndex].nameHash  = assetAnim->name;
     tl->anims[animIndex].duration  = assetAnim->duration;
 
     for (u32 joint = 0; joint != asset->jointCount; ++joint) {

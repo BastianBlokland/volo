@@ -10,6 +10,7 @@
 #include "repo_internal.h"
 
 DataMeta g_assetMeshMeta;
+DataMeta g_assetMeshSkeletonMeta;
 
 ecs_comp_define_public(AssetMeshComp);
 ecs_comp_define_public(AssetMeshSkeletonComp);
@@ -21,10 +22,11 @@ static void ecs_destruct_mesh_comp(void* data) {
 
 static void ecs_destruct_mesh_skeleton_comp(void* data) {
   AssetMeshSkeletonComp* comp = data;
-  if (comp->anims.values) {
-    alloc_free_array_t(g_allocHeap, comp->anims.values, comp->anims.count);
-  }
-  alloc_free(g_allocHeap, data_mem(comp->data));
+  data_destroy(
+      g_dataReg,
+      g_allocHeap,
+      g_assetMeshSkeletonMeta,
+      mem_create(comp, sizeof(AssetMeshSkeletonComp)));
 }
 
 ecs_view_define(UnloadView) {
@@ -83,7 +85,34 @@ void asset_data_init_mesh(void) {
   data_reg_field_t(g_dataReg, AssetMeshComp, positionBounds, g_assetGeoBoxType);
   data_reg_field_t(g_dataReg, AssetMeshComp, positionRawBounds, g_assetGeoBoxType);
   data_reg_field_t(g_dataReg, AssetMeshComp, texcoordBounds, g_assetGeoBoxType);
+
+  data_reg_enum_t(g_dataReg, AssetMeshAnimTarget);
+  data_reg_const_t(g_dataReg, AssetMeshAnimTarget, Translation);
+  data_reg_const_t(g_dataReg, AssetMeshAnimTarget, Rotation);
+  data_reg_const_t(g_dataReg, AssetMeshAnimTarget, Scale);
+
+  data_reg_struct_t(g_dataReg, AssetMeshAnimChannel);
+  data_reg_field_t(g_dataReg, AssetMeshAnimChannel, frameCount, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetMeshAnimChannel, timeData, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetMeshAnimChannel, valueData, data_prim_t(u32));
+
+  data_reg_struct_t(g_dataReg, AssetMeshAnim);
+  data_reg_field_t(g_dataReg, AssetMeshAnim, name, data_prim_t(StringHash));
+  data_reg_field_t(g_dataReg, AssetMeshAnim, duration, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetMeshAnim, joints, t_AssetMeshAnimChannel, .container = DataContainer_InlineArray, .fixedCount = asset_mesh_joints_max * AssetMeshAnimTarget_Count);
+
+  data_reg_struct_t(g_dataReg, AssetMeshSkeletonComp);
+  data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, anims, t_AssetMeshAnim, .container = DataContainer_HeapArray);
+  data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, bindPoseInvMats, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, defaultPose, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, rootTransform, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, parentIndices, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, skinCounts, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, jointNames, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, jointCount, data_prim_t(u8));
+  data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, data, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
   // clang-format on
 
-  g_assetMeshMeta = data_meta_t(t_AssetMeshComp);
+  g_assetMeshMeta         = data_meta_t(t_AssetMeshComp);
+  g_assetMeshSkeletonMeta = data_meta_t(t_AssetMeshSkeletonComp);
 }
