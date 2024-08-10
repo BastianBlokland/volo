@@ -169,7 +169,13 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
     positionBounds = builder->positionRawBounds;
   }
 
+  AssetMeshFlags flags = 0;
+  if (builder->skinData.size) {
+    flags |= AssetMeshFlags_Skinned;
+  }
+
   return (AssetMeshComp){
+      .flags             = flags,
       .vertices.values   = dynarray_copy_as_new(&builder->vertexData, g_allocHeap),
       .vertices.count    = builder->vertexData.size,
       .skins.values      = dynarray_copy_as_new(&builder->skinData, g_allocHeap),

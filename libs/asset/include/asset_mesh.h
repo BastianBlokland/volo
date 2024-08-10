@@ -24,7 +24,12 @@ typedef struct {
   GeoVector weights;   // joint weights.
 } AssetMeshSkin;
 
+typedef enum {
+  AssetMeshFlags_Skinned = 1 << 0,
+} AssetMeshFlags;
+
 ecs_comp_extern_public(AssetMeshComp) {
+  AssetMeshFlags flags;
   HeapArray_t(AssetMeshVertex) vertices;
   HeapArray_t(AssetMeshSkin) skins; // NOTE: Empty if the mesh has no skinning.
   HeapArray_t(AssetMeshIndex) indices;

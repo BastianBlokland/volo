@@ -88,7 +88,11 @@ void asset_data_init_mesh(void) {
   data_reg_field_t(g_dataReg, AssetMeshSkin, joints, data_prim_t(u8), .container = DataContainer_InlineArray, .fixedCount = 4);
   data_reg_field_t(g_dataReg, AssetMeshSkin, weights, g_assetGeoVec4Type);
 
+  data_reg_enum_multi_t(g_dataReg, AssetMeshFlags);
+  data_reg_const_t(g_dataReg, AssetMeshFlags, Skinned);
+
   data_reg_struct_t(g_dataReg, AssetMeshComp);
+  data_reg_field_t(g_dataReg, AssetMeshComp, flags, t_AssetMeshFlags);
   data_reg_field_t(g_dataReg, AssetMeshComp, vertices, t_AssetMeshVertex, .container = DataContainer_HeapArray);
   data_reg_field_t(g_dataReg, AssetMeshComp, skins, t_AssetMeshSkin, .container = DataContainer_HeapArray);
   data_reg_field_t(g_dataReg, AssetMeshComp, indices, asset_mesh_index_type(), .container = DataContainer_HeapArray);
