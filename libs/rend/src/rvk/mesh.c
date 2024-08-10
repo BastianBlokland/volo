@@ -13,48 +13,35 @@
 
 #define rvk_mesh_vertex_align 16
 
-typedef struct {
-  ALIGNAS(16)
-  f16 data1[4]; // x, y, z position
-  f16 data2[4]; // x, y texcoord
-  f16 data3[4]; // x, y, z normal
-  f16 data4[4]; // x, y, z tangent, w tangent handedness
-} RvkVertexPacked;
-
-ASSERT(sizeof(RvkVertexPacked) == 32, "Unexpected vertex size");
-ASSERT(alignof(RvkVertexPacked) == rvk_mesh_vertex_align, "Unexpected vertex alignment");
-
+/**
+ * Packed vertex.
+ * Compatible with the structure defined in 'vertex.glsl' using the std140 glsl layout.
+ */
 typedef struct {
   ALIGNAS(16)
   f16 data1[4]; // x, y, z position, w texcoord x
   f16 data2[4]; // x, y, z normal , w texcoord y
   f16 data3[4]; // x, y, z tangent, w tangent handedness
   u16 data4[4]; // x jntIndexWeight0, y jntIndexWeight1, z jntIndexWeight2, w jntIndexWeight3,
-} RvkVertexSkinnedPacked;
+} RvkVertexPacked;
 
-ASSERT(sizeof(RvkVertexSkinnedPacked) == 32, "Unexpected vertex size");
-ASSERT(alignof(RvkVertexSkinnedPacked) == rvk_mesh_vertex_align, "Unexpected vertex alignment");
-
-/**
- * Compatible with the structures defined in 'vertex.glsl' using the std140 glsl layout.
- */
+ASSERT(sizeof(RvkVertexPacked) == 32, "Unexpected vertex size");
+ASSERT(alignof(RvkVertexPacked) == rvk_mesh_vertex_align, "Unexpected vertex alignment");
 
 #define rvk_mesh_max_scratch_size (64 * usize_kibibyte)
 
-static bool rvk_mesh_skinned(const AssetMeshComp* asset) { return asset->skins.count != 0; }
-
-static u32 rvk_mesh_vertex_size(const AssetMeshComp* asset) {
-  return rvk_mesh_skinned(asset) ? sizeof(RvkVertexSkinnedPacked) : sizeof(RvkVertexPacked);
+static bool rvk_mesh_skinned(const AssetMeshComp* asset) {
+  return (asset->flags & AssetMeshFlags_Skinned) != 0;
 }
 
 static Mem rvk_mesh_to_device_vertices(Allocator* alloc, const AssetMeshComp* asset) {
   diag_assert_msg(asset->vertices.count, "Mesh asset does not contain any vertices");
 
-  const usize bufferSize = rvk_mesh_vertex_size(asset) * asset->vertices.count;
+  const usize bufferSize = asset->vertices.count * sizeof(RvkVertexPacked);
   Mem         buffer     = alloc_alloc(alloc, bufferSize, rvk_mesh_vertex_align);
 
+  RvkVertexPacked* output = mem_as_t(buffer, RvkVertexPacked);
   if (rvk_mesh_skinned(asset)) {
-    RvkVertexSkinnedPacked* output = mem_as_t(buffer, RvkVertexSkinnedPacked);
     for (usize i = 0; i != asset->vertices.count; ++i) {
       geo_vector_pack_f16(asset->vertices.values[i].position, output[i].data1);
       geo_vector_pack_f16(asset->vertices.values[i].normal, output[i].data2);
@@ -74,12 +61,13 @@ static Mem rvk_mesh_to_device_vertices(Allocator* alloc, const AssetMeshComp* as
       output[i].data4[3] = (u16)asset->skins.values[i].joints[3] | (w3 << 8);
     }
   } else {
-    RvkVertexPacked* output = mem_as_t(buffer, RvkVertexPacked);
     for (usize i = 0; i != asset->vertices.count; ++i) {
       geo_vector_pack_f16(asset->vertices.values[i].position, output[i].data1);
-      geo_vector_pack_f16(asset->vertices.values[i].texcoord, output[i].data2);
-      geo_vector_pack_f16(asset->vertices.values[i].normal, output[i].data3);
-      geo_vector_pack_f16(asset->vertices.values[i].tangent, output[i].data4);
+      geo_vector_pack_f16(asset->vertices.values[i].normal, output[i].data2);
+      output[i].data1[3] = float_f32_to_f16(asset->vertices.values[i].texcoord.x);
+      output[i].data2[3] = float_f32_to_f16(asset->vertices.values[i].texcoord.y);
+
+      geo_vector_pack_f16(asset->vertices.values[i].tangent, output[i].data3);
     }
   }
   return buffer;
@@ -100,7 +88,7 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
     mesh->flags |= RvkMeshFlags_Skinned;
   }
 
-  const u32  vertexSize    = rvk_mesh_vertex_size(asset);
+  const u32  vertexSize    = sizeof(RvkVertexPacked);
   const bool useScratch    = vertexSize * asset->vertices.count < rvk_mesh_max_scratch_size;
   Allocator* verticesAlloc = useScratch ? g_allocScratch : g_allocHeap;
   const Mem  verticesMem   = rvk_mesh_to_device_vertices(verticesAlloc, asset);
