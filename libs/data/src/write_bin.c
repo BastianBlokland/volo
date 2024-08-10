@@ -162,6 +162,9 @@ static void data_write_bin_val_single(const WriteCtx* ctx) {
   case DataKind_String:
     bin_push_mem(ctx, *mem_as_t(ctx->data, Mem));
     return;
+  case DataKind_StringHash:
+    bin_push_u32(ctx, *mem_as_t(ctx->data, StringHash));
+    return;
   case DataKind_DataMem: {
     const DataMem dataMem = *mem_as_t(ctx->data, DataMem);
     if (ctx->meta.flags & DataFlags_ExternalMemory) {
@@ -196,10 +199,10 @@ static void data_write_bin_val_pointer(const WriteCtx* ctx) {
   if (ptr) {
     const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
     const WriteCtx  subCtx = {
-         .reg  = ctx->reg,
-         .out  = ctx->out,
-         .meta = data_meta_base(ctx->meta),
-         .data = mem_create(ptr, decl->size),
+        .reg  = ctx->reg,
+        .out  = ctx->out,
+        .meta = data_meta_base(ctx->meta),
+        .data = mem_create(ptr, decl->size),
     };
     data_write_bin_val_single(&subCtx);
   }

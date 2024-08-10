@@ -3,6 +3,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_stringtable.h"
 #include "data_write.h"
 #include "json_write.h"
 
@@ -64,6 +65,21 @@ static JsonVal data_write_json_string(const WriteCtx* ctx) {
     return sentinel_u32;
   }
   return json_add_string(ctx->doc, val);
+}
+
+static JsonVal data_write_json_string_hash(const WriteCtx* ctx) {
+  const StringHash val = *mem_as_t(ctx->data, StringHash);
+  if (ctx->skipOptional && ctx->meta.flags & DataFlags_Opt && !val) {
+    return sentinel_u32;
+  }
+  if (!val) {
+    return json_add_string(ctx->doc, string_empty);
+  }
+  const String valStr = stringtable_lookup(g_stringtable, val);
+  if (!string_is_empty(valStr)) {
+    return json_add_string(ctx->doc, valStr);
+  }
+  return json_add_number(ctx->doc, (f64)val);
 }
 
 static JsonVal data_write_json_mem(const WriteCtx* ctx) {
@@ -207,6 +223,8 @@ static JsonVal data_write_json_val_single(const WriteCtx* ctx) {
     return data_write_json_number(ctx);
   case DataKind_String:
     return data_write_json_string(ctx);
+  case DataKind_StringHash:
+    return data_write_json_string_hash(ctx);
   case DataKind_DataMem:
     return data_write_json_mem(ctx);
   case DataKind_Struct:
@@ -229,10 +247,10 @@ static JsonVal data_write_json_val_pointer(const WriteCtx* ctx) {
   }
   const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
   const WriteCtx  subCtx = {
-       .reg  = ctx->reg,
-       .doc  = ctx->doc,
-       .meta = data_meta_base(ctx->meta),
-       .data = mem_create(ptr, decl->size),
+      .reg  = ctx->reg,
+      .doc  = ctx->doc,
+      .meta = data_meta_base(ctx->meta),
+      .data = mem_create(ptr, decl->size),
   };
   return data_write_json_val_single(&subCtx);
 }

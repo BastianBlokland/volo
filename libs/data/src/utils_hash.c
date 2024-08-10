@@ -105,6 +105,7 @@ static u32 data_hash_single(const HashCtx* ctx) {
   case DataKind_f32:
   case DataKind_f64:
   case DataKind_String:
+  case DataKind_StringHash:
   case DataKind_DataMem:
     return bits_hash_32_val(kind);
   case DataKind_Struct:
