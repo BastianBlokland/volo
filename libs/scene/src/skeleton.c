@@ -6,6 +6,7 @@
 #include "core_bitset.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_stringtable.h"
 #include "ecs_world.h"
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
@@ -224,9 +225,17 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
   tl->defaultPose     = (const SceneJointPose*)mem_at_u8(tl->animData, asset->defaultPose);
   tl->parentIndices   = (const u32*)mem_at_u8(tl->animData, asset->parentIndices);
   tl->skinCounts      = (const u32*)mem_at_u8(tl->animData, asset->skinCounts);
-  tl->jointNames      = (const StringHash*)mem_at_u8(tl->animData, asset->jointNames);
+  tl->jointNames      = (const StringHash*)mem_at_u8(tl->animData, asset->jointNameHashes);
   tl->rootPose        = (const SceneJointPose*)mem_at_u8(tl->animData, asset->rootTransform);
   tl->rootTransform   = geo_matrix_trs(tl->rootPose->t, tl->rootPose->r, tl->rootPose->s);
+
+  // Add the joint names to the string-table for debug purposes.
+  const u8* jointNamesItr = mem_at_u8(tl->animData, asset->jointNames);
+  for (u32 joint = 0; joint != asset->jointCount; ++joint) {
+    const u8 size = *jointNamesItr++;
+    stringtable_add(g_stringtable, mem_create(jointNamesItr, size));
+    jointNamesItr += size;
+  }
 }
 
 static void scene_skeleton_templ_load_done(EcsWorld* world, EcsIterator* itr, const bool failure) {
