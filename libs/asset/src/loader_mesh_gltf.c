@@ -434,7 +434,7 @@ static AssetMeshAnimPtr gltf_anim_data_push_trans(GltfLoad* ld, const GltfTransf
 }
 
 static AssetMeshAnimPtr gltf_anim_data_push_string(GltfLoad* ld, const String val) {
-  diag_assert(val.size < u8_max);
+  diag_assert(val.size <= u8_max);
   const AssetMeshAnimPtr res                           = gltf_anim_data_begin(ld, alignof(u8));
   *((u8*)dynarray_push(&ld->animData, sizeof(u8)).ptr) = (u8)val.size;
   mem_cpy(dynarray_push(&ld->animData, val.size), val);
