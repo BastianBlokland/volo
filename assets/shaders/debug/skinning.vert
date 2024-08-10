@@ -9,7 +9,7 @@
 const f32 c_alpha = 0.5;
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_draw_data(1) readonly buffer MeshSkinned { VertexSkinnedPacked[] u_vertices; };
+bind_draw_data(1) readonly buffer Mesh { VertexPacked[] u_vertices; };
 bind_instance_data(0) readonly uniform InstanceSkinned {
   InstanceSkinnedData[c_maxInstances] u_instances;
 };
@@ -28,7 +28,7 @@ f32v4 vertex_color(const u32v4 jointIndices, const f32v4 jointWeights) {
 bind_internal(0) out f32v4 out_color;
 
 void main() {
-  const VertexSkinned vert = vert_skinned_unpack(u_vertices[in_vertexIndex]);
+  const Vertex vert = vert_unpack(u_vertices[in_vertexIndex]);
 
   const f32v3   instancePos   = u_instances[in_instanceIndex].posAndScale.xyz;
   const f32     instanceScale = u_instances[in_instanceIndex].posAndScale.w;

@@ -5,7 +5,7 @@
 #include "vertex.glsl"
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
-bind_graphic_data(0) readonly buffer MeshSkinned { VertexSkinnedPacked[] u_vertices; };
+bind_graphic_data(0) readonly buffer Mesh { VertexPacked[] u_vertices; };
 bind_instance_data(0) readonly uniform InstanceSkinned {
   InstanceSkinnedData[c_maxInstances] u_instances;
 };
@@ -16,7 +16,7 @@ bind_internal(2) out f32v2 out_texcoord;
 bind_internal(3) out flat f32v4 out_data;
 
 void main() {
-  const VertexSkinned vert = vert_skinned_unpack(u_vertices[in_vertexIndex]);
+  const Vertex vert = vert_unpack(u_vertices[in_vertexIndex]);
 
   const f32v3   instancePos   = u_instances[in_instanceIndex].posAndScale.xyz;
   const f32     instanceScale = u_instances[in_instanceIndex].posAndScale.w;
