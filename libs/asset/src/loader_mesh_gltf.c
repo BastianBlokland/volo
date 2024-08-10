@@ -14,6 +14,7 @@
 #include "log_logger.h"
 #include "trace_tracer.h"
 
+#include "loader_mesh_internal.h"
 #include "manager_internal.h"
 #include "mesh_utils_internal.h"
 #include "repo_internal.h"
@@ -1477,23 +1478,29 @@ ecs_system_define(GltfLoadAssetSys) {
 #endif
       trace_begin_msg("asset_gltf_build", TraceColor_Blue, "{}", fmt_text(traceMsg));
 
-      AssetMeshComp resultMesh;
-      gltf_build_mesh(ld, &resultMesh, &err);
+      AssetMeshBundle result;
+      gltf_build_mesh(ld, &result.mesh, &err);
 
       trace_end();
       if (err) {
         goto Error;
       }
-      *ecs_world_add_t(world, entity, AssetMeshComp) = resultMesh;
+      *ecs_world_add_t(world, entity, AssetMeshComp) = result.mesh;
       if (ld->jointCount) {
         AssetMeshSkeletonComp resultSkeleton;
         gltf_build_skeleton(ld, &resultSkeleton, &err);
         if (err) {
           goto Error;
         }
-        *ecs_world_add_t(world, entity, AssetMeshSkeletonComp) = resultSkeleton;
+        result.skeleton  = ecs_world_add_t(world, entity, AssetMeshSkeletonComp);
+        *result.skeleton = resultSkeleton;
+      } else {
+        result.skeleton = null;
       }
+
       ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+
+      asset_cache(world, entity, g_assetMeshBundleMeta, mem_var(result));
       goto Cleanup;
     }
     }
