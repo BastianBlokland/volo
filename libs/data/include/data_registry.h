@@ -118,10 +118,11 @@ DataType data_reg_struct(DataReg*, String name, usize size, usize align);
       (_REG_),                                                                                     \
       t_##_PARENT_,                                                                                \
       string_lit(#_FIELD_),                                                                        \
+      sizeof(((_PARENT_*)0)->_FIELD_),                                                             \
       offsetof(_PARENT_, _FIELD_),                                                                 \
       data_meta_t(_DATA_TYPE_, __VA_ARGS__))
 
-void data_reg_field(DataReg*, DataType parent, String name, usize offset, DataMeta);
+void data_reg_field(DataReg*, DataType parent, String name, usize size, usize offset, DataMeta);
 
 /**
  * Register a new Union type.
