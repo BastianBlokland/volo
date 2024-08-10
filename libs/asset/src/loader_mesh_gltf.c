@@ -1,4 +1,3 @@
-#include "asset_mesh.h"
 #include "asset_raw.h"
 #include "core_alloc.h"
 #include "core_array.h"
@@ -1478,29 +1477,29 @@ ecs_system_define(GltfLoadAssetSys) {
 #endif
       trace_begin_msg("asset_gltf_build", TraceColor_Blue, "{}", fmt_text(traceMsg));
 
-      AssetMeshBundle result;
-      gltf_build_mesh(ld, &result.mesh, &err);
+      AssetMeshBundle meshBundle;
+      gltf_build_mesh(ld, &meshBundle.mesh, &err);
 
       trace_end();
       if (err) {
         goto Error;
       }
-      *ecs_world_add_t(world, entity, AssetMeshComp) = result.mesh;
+      *ecs_world_add_t(world, entity, AssetMeshComp) = meshBundle.mesh;
       if (ld->jointCount) {
         AssetMeshSkeletonComp resultSkeleton;
         gltf_build_skeleton(ld, &resultSkeleton, &err);
         if (err) {
           goto Error;
         }
-        result.skeleton  = ecs_world_add_t(world, entity, AssetMeshSkeletonComp);
-        *result.skeleton = resultSkeleton;
+        meshBundle.skeleton  = ecs_world_add_t(world, entity, AssetMeshSkeletonComp);
+        *meshBundle.skeleton = resultSkeleton;
       } else {
-        result.skeleton = null;
+        meshBundle.skeleton = null;
       }
 
       ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 
-      asset_cache(world, entity, g_assetMeshBundleMeta, mem_var(result));
+      asset_cache(world, entity, g_assetMeshBundleMeta, mem_var(meshBundle));
       goto Cleanup;
     }
     }
