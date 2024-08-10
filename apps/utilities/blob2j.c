@@ -63,7 +63,7 @@ static i32 blob2j_run(File* inputFile, File* outputFile) {
   }
 
   dynstring_clear(&buffer);
-  data_write_json(g_dataReg, &buffer, dataMeta, data, &data_write_json_opts());
+  data_write_json(g_dataReg, &buffer, dataMeta, data, &data_write_json_opts(.compact = true));
   dynstring_append_char(&buffer, '\n');
 
   data_destroy(g_dataReg, g_allocHeap, dataMeta, data);

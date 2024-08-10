@@ -2,6 +2,7 @@
 #include "asset_cursor.h"
 #include "asset_fonttex.h"
 #include "asset_level.h"
+#include "asset_mesh.h"
 #include "asset_shader.h"
 #include "asset_sound.h"
 #include "asset_texture.h"
@@ -49,6 +50,7 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_Inputs]         = string_static("Inputs"),
     [AssetFormat_Level]          = string_static("Level"),
     [AssetFormat_LevelBin]       = string_static("LevelBin"),
+    [AssetFormat_MeshBin]        = string_static("MeshBin"),
     [AssetFormat_MeshGltf]       = string_static("MeshGltf"),
     [AssetFormat_MeshObj]        = string_static("MeshObj"),
     [AssetFormat_MeshProc]       = string_static("MeshProc"),
@@ -82,6 +84,7 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
 static const DataMeta* g_assetFormatBinMeta[AssetFormat_Count] = {
     [AssetFormat_CursorBin]   = &g_assetCursorMeta,
     [AssetFormat_LevelBin]    = &g_assetLevelDefMeta,
+    [AssetFormat_MeshBin]     = &g_assetMeshBundleMeta,
     [AssetFormat_ShaderBin]   = &g_assetShaderMeta,
     [AssetFormat_SoundBin]    = &g_assetSoundMeta,
     [AssetFormat_TexAtlasBin] = &g_assetAtlasBundleMeta,

@@ -16,10 +16,7 @@
         "noColorOutput": { "title": "bool", "type": "boolean" },
         "randomRotation": { "title": "bool", "type": "boolean" },
         "snapToTerrain": { "title": "bool", "type": "boolean" },
-        "excludeMask": {
-          "type": "array",
-          "items": { "title": "AssetDecalMask", "$ref": "#/$defs/AssetDecalMask" }
-        },
+        "excludeMask": { "title": "AssetDecalMask", "$ref": "#/$defs/AssetDecalMask" },
         "roughness": { "title": "f32", "type": "number" },
         "alphaMin": { "title": "f32", "type": "number" },
         "alphaMax": { "title": "f32", "type": "number" },
@@ -43,7 +40,11 @@
       "enum": [ "GBuffer", "DepthBuffer", "DecalTransform" ]
     },
     "AssetDecalMask": {
-      "enum": [ "Geometry", "Terrain", "Unit" ]
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [ "Geometry", "Terrain", "Unit" ]
+      }
     }
   }
 }

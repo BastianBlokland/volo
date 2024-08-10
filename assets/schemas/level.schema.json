@@ -8,7 +8,7 @@
       "properties": {
         "name": { "title": "String", "type": "string" },
         "terrainId": { "title": "String", "type": "string" },
-        "startpoint": { "title": "GeoVector", "description": "3D Vector", "$ref": "#/$defs/GeoVector" },
+        "startpoint": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
         "objects": {
           "type": "array",
           "items": { "title": "AssetLevelObject", "$ref": "#/$defs/AssetLevelObject" }
@@ -19,7 +19,7 @@
         { "label": "New", "body": "^{\n  \"objects\": []\n}" }
       ]
     },
-    "GeoVector": {
+    "GeoVector3": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -37,9 +37,9 @@
       "additionalProperties": false,
       "properties": {
         "id": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
-        "prefab": { "title": "String", "type": "string", "minLength": 1 },
+        "prefab": { "title": "StringHash", "type": "string", "minLength": 1 },
         "faction": { "title": "AssetLevelFaction", "$ref": "#/$defs/AssetLevelFaction" },
-        "position": { "title": "GeoVector", "description": "3D Vector", "$ref": "#/$defs/GeoVector" },
+        "position": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
         "rotation": { "title": "GeoQuat", "description": "Quaternion", "$ref": "#/$defs/GeoQuat" },
         "scale": { "title": "f32", "type": "number" }
       },

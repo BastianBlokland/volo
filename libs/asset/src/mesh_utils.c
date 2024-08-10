@@ -164,20 +164,18 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
   diag_assert_msg(builder->indexData.size, "Empty mesh is invalid");
   diag_assert(!builder->skinData.size || builder->skinData.size == builder->vertexData.size);
 
-  const u32 vertCount = (u32)builder->vertexData.size;
-  const u32 idxCount  = (u32)builder->indexData.size;
-
   GeoBox positionBounds = builder->positionBounds;
   if (geo_box_is_inverted3(&positionBounds)) {
     positionBounds = builder->positionRawBounds;
   }
 
   return (AssetMeshComp){
-      .vertexData        = dynarray_copy_as_new(&builder->vertexData, g_allocHeap),
-      .skinData          = dynarray_copy_as_new(&builder->skinData, g_allocHeap),
-      .vertexCount       = vertCount,
-      .indexData         = dynarray_copy_as_new(&builder->indexData, g_allocHeap),
-      .indexCount        = idxCount,
+      .vertices.values   = dynarray_copy_as_new(&builder->vertexData, g_allocHeap),
+      .vertices.count    = builder->vertexData.size,
+      .skins.values      = dynarray_copy_as_new(&builder->skinData, g_allocHeap),
+      .skins.count       = builder->skinData.size,
+      .indices.values    = dynarray_copy_as_new(&builder->indexData, g_allocHeap),
+      .indices.count     = builder->indexData.size,
       .positionBounds    = positionBounds,
       .positionRawBounds = builder->positionRawBounds,
       .texcoordBounds    = builder->texcoordBounds,

@@ -5,7 +5,7 @@
 #include "core_dynarray.h"
 #include "json_doc.h"
 
-#define json_str_small_chunk_size (4 * usize_kibibyte)
+#define json_str_small_chunk_size (16 * usize_kibibyte)
 #define json_str_big_threshold (1 * usize_kibibyte)
 
 typedef struct {

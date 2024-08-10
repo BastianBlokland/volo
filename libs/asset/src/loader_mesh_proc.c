@@ -1,4 +1,3 @@
-#include "asset_mesh.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
@@ -9,6 +8,8 @@
 #include "geo_matrix.h"
 #include "log_logger.h"
 
+#include "loader_mesh_internal.h"
+#include "manager_internal.h"
 #include "mesh_utils_internal.h"
 #include "repo_internal.h"
 
@@ -590,8 +591,14 @@ void asset_load_mesh_proc(
     asset_mesh_builder_override_bounds(builder, box);
   }
 
-  *ecs_world_add_t(world, entity, AssetMeshComp) = asset_mesh_create(builder);
+  AssetMeshBundle meshBundle = {0};
+  meshBundle.mesh            = asset_mesh_create(builder);
+
+  *ecs_world_add_t(world, entity, AssetMeshComp) = meshBundle.mesh;
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+
+  asset_cache(world, entity, g_assetMeshBundleMeta, mem_var(meshBundle));
+
   goto Done;
 
 Error:

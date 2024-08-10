@@ -1,4 +1,3 @@
-#include "asset_mesh.h"
 #include "asset_raw.h"
 #include "core_alloc.h"
 #include "core_array.h"
@@ -14,6 +13,7 @@
 #include "log_logger.h"
 #include "trace_tracer.h"
 
+#include "loader_mesh_internal.h"
 #include "manager_internal.h"
 #include "mesh_utils_internal.h"
 #include "repo_internal.h"
@@ -1318,8 +1318,8 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
   AssetMeshAnim* resAnims =
       ld->animCount ? alloc_array_t(g_allocHeap, AssetMeshAnim, ld->animCount) : null;
   for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
-    resAnims[animIndex].nameHash = ld->anims[animIndex].nameHash;
-    f32 duration                 = 0;
+    resAnims[animIndex].name = ld->anims[animIndex].nameHash;
+    f32 duration             = 0;
 
     for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
       for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
@@ -1366,17 +1366,21 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
   // Pad animData so the size is always a multiple of 16.
   mem_set(dynarray_push(&ld->animData, bits_padding(ld->animData.size, 16)), 0);
 
+  AssetMeshAnimPtr bindPoseInvMats = gltf_anim_data_push_access_mat(ld, ld->accBindPoseInvMats);
+  AssetMeshAnimPtr rootTransform   = gltf_anim_data_push_trans(ld, ld->sceneTrans);
+
   *out = (AssetMeshSkeletonComp){
-      .anims           = resAnims,
-      .bindPoseInvMats = gltf_anim_data_push_access_mat(ld, ld->accBindPoseInvMats),
+      .anims.values    = resAnims,
+      .anims.count     = ld->animCount,
+      .bindPoseInvMats = bindPoseInvMats,
       .defaultPose     = resDefaultPose,
-      .rootTransform   = gltf_anim_data_push_trans(ld, ld->sceneTrans),
+      .rootTransform   = rootTransform,
       .parentIndices   = resParents,
       .skinCounts      = resSkinCounts,
       .jointNames      = resNames,
       .jointCount      = ld->jointCount,
-      .animCount       = ld->animCount,
-      .animData = alloc_dup(g_allocHeap, dynarray_at(&ld->animData, 0, ld->animData.size), 16),
+      .data            = data_mem_create(
+          alloc_dup(g_allocHeap, dynarray_at(&ld->animData, 0, ld->animData.size), 16)),
   };
   *err = GltfError_None;
   return;
@@ -1473,23 +1477,29 @@ ecs_system_define(GltfLoadAssetSys) {
 #endif
       trace_begin_msg("asset_gltf_build", TraceColor_Blue, "{}", fmt_text(traceMsg));
 
-      AssetMeshComp resultMesh;
-      gltf_build_mesh(ld, &resultMesh, &err);
+      AssetMeshBundle meshBundle;
+      gltf_build_mesh(ld, &meshBundle.mesh, &err);
 
       trace_end();
       if (err) {
         goto Error;
       }
-      *ecs_world_add_t(world, entity, AssetMeshComp) = resultMesh;
+      *ecs_world_add_t(world, entity, AssetMeshComp) = meshBundle.mesh;
       if (ld->jointCount) {
         AssetMeshSkeletonComp resultSkeleton;
         gltf_build_skeleton(ld, &resultSkeleton, &err);
         if (err) {
           goto Error;
         }
-        *ecs_world_add_t(world, entity, AssetMeshSkeletonComp) = resultSkeleton;
+        meshBundle.skeleton  = ecs_world_add_t(world, entity, AssetMeshSkeletonComp);
+        *meshBundle.skeleton = resultSkeleton;
+      } else {
+        meshBundle.skeleton = null;
       }
+
       ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+
+      asset_cache(world, entity, g_assetMeshBundleMeta, mem_var(meshBundle));
       goto Cleanup;
     }
     }
