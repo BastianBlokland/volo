@@ -27,6 +27,7 @@ extern DataType g_assetGeoVec2Type, g_assetGeoVec3Type, g_assetGeoVec4Type;
 extern DataType g_assetGeoQuatType;
 extern DataType g_assetGeoBoxType, g_assetGeoBoxRotatedType;
 extern DataType g_assetGeoLineType;
+extern DataType g_assetGeoSphereType;
 extern DataType g_assetGeoCapsuleType;
 extern DataType g_assetGeoMatrixType;
 extern DataType g_assetGeoPlaneType;
