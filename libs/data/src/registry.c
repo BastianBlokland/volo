@@ -1,14 +1,10 @@
 #include "core_alloc.h"
 #include "core_bits.h"
+#include "core_bitset.h"
 #include "core_diag.h"
 #include "data_registry.h"
 
 #include "registry_internal.h"
-
-struct sDataReg {
-  DynArray   types; // DataDecl[]
-  Allocator* alloc;
-};
 
 static DataId data_id_create(Allocator* alloc, const String name) {
   return (DataId){.name = string_dup(alloc, name), .hash = string_hash(name)};
@@ -38,6 +34,23 @@ static DataType data_type_declare(DataReg* reg, const String name) {
   return data_type_alloc(reg, name);
 }
 
+static bool data_struct_has_hole(const DataReg* reg, DataDecl* decl) {
+  diag_assert(decl->kind == DataKind_Struct);
+  BitSet filledSet = mem_stack(bits_to_bytes(decl->size) + 1);
+  bitset_clear_all(filledSet);
+
+  dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
+    const usize fieldSize = data_meta_size(reg, fieldDecl->meta);
+    for (usize i = 0; i != fieldSize; ++i) {
+      const usize index = fieldDecl->offset + i;
+      diag_assert_msg(!bitset_test(filledSet, index), "Struct has overlapping fields");
+      bitset_set(filledSet, index);
+    }
+  }
+
+  return bitset_count(filledSet) != decl->size;
+}
+
 DataReg* g_dataReg;
 
 void data_reg_global_init(void) { g_dataReg = data_reg_create(g_allocHeap); }
@@ -50,8 +63,8 @@ void data_reg_global_teardown(void) {
 DataReg* data_reg_create(Allocator* alloc) {
   DataReg* reg = alloc_alloc_t(alloc, DataReg);
   *reg         = (DataReg){
-      .types = dynarray_create_t(alloc, DataDecl, 64),
-      .alloc = alloc,
+              .types = dynarray_create_t(alloc, DataDecl, 64),
+              .alloc = alloc,
   };
 
 #define X(_T_)                                                                                     \
@@ -180,7 +193,10 @@ DataType data_reg_struct(DataReg* reg, const String name, const usize size, cons
   decl->kind       = DataKind_Struct;
   decl->size       = size;
   decl->align      = align;
-  decl->val_struct = (DataDeclStruct){.fields = dynarray_create_t(reg->alloc, DataDeclField, 8)};
+  decl->val_struct = (DataDeclStruct){
+      .hasHole = true,
+      .fields  = dynarray_create_t(reg->alloc, DataDeclField, 8),
+  };
   return type;
 }
 
@@ -208,6 +224,12 @@ void data_reg_field(
       .offset = offset,
       .meta   = meta,
   };
+
+  /**
+   * Test if this field has filled the last hole in the struct.
+   * For structs without holes we can skip the mem-set during binary data reading.
+   */
+  parentDecl->val_struct.hasHole = data_struct_has_hole(reg, parentDecl);
 }
 
 DataType data_reg_union(

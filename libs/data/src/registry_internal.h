@@ -15,7 +15,8 @@ typedef struct {
 } DataDeclField;
 
 typedef struct {
-  DynArray fields; // DataDeclField[]
+  bool     hasHole; // Fields do not cover all bytes of the struct.
+  DynArray fields;  // DataDeclField[]
 } DataDeclStruct;
 
 typedef struct {
@@ -53,6 +54,11 @@ typedef struct {
   };
 } DataDecl;
 
+struct sDataReg {
+  DynArray   types; // DataDecl[]
+  Allocator* alloc;
+};
+
 void data_reg_global_init(void);
 void data_reg_global_teardown(void);
 
@@ -65,6 +71,10 @@ DataMeta data_meta_base(DataMeta);
  * Lookup a declaration for a type.
  */
 const DataDecl* data_decl(const DataReg*, DataType);
+
+MAYBE_UNUSED static const DataDecl* data_decl_unchecked(const DataReg* reg, const DataType type) {
+  return dynarray_begin_t(&reg->types, DataDecl) + (type - 1);
+}
 
 /**
  * Create a memory view over a field in a structure.

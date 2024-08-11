@@ -31,59 +31,97 @@ typedef struct {
   Mem            data;
 } ReadCtx;
 
-static bool bin_pop_u8(ReadCtx* ctx, u8* out) {
+static usize data_meta_size_unchecked(const DataReg* reg, const DataMeta meta) {
+  switch (meta.container) {
+  case DataContainer_None:
+    return data_decl_unchecked(reg, meta.type)->size;
+  case DataContainer_Pointer:
+    return sizeof(void*);
+  case DataContainer_InlineArray:
+    return data_decl_unchecked(reg, meta.type)->size * meta.fixedCount;
+  case DataContainer_HeapArray:
+    return sizeof(HeapArray);
+  case DataContainer_DynArray:
+    return sizeof(DynArray);
+  }
+  diag_crash();
+}
+
+INLINE_HINT static void bin_mem_consume_inplace(Mem* mem, const usize amount) {
+  mem->ptr = bits_ptr_offset(mem->ptr, amount);
+  mem->size -= amount;
+}
+
+INLINE_HINT static bool bin_pop_u8(ReadCtx* ctx, u8* out) {
   if (UNLIKELY(ctx->input.size < sizeof(u8))) {
     return false;
   }
-  ctx->input = mem_consume_u8(ctx->input, out);
+  *out = *mem_begin(ctx->input);
+  bin_mem_consume_inplace(&ctx->input, 1);
   return true;
 }
 
-static bool bin_pop_u16(ReadCtx* ctx, u16* out) {
+INLINE_HINT static bool bin_pop_u16(ReadCtx* ctx, u16* out) {
   if (UNLIKELY(ctx->input.size < sizeof(u16))) {
     return false;
   }
-  ctx->input = mem_consume_le_u16(ctx->input, out);
+  u8* data = mem_begin(ctx->input);
+  *out     = (u16)data[0] | (u16)data[1] << 8;
+  bin_mem_consume_inplace(&ctx->input, 2);
   return true;
 }
 
-static bool bin_pop_u32(ReadCtx* ctx, u32* out) {
+INLINE_HINT static bool bin_pop_u32(ReadCtx* ctx, u32* out) {
   if (UNLIKELY(ctx->input.size < sizeof(u32))) {
     return false;
   }
-  ctx->input = mem_consume_le_u32(ctx->input, out);
+  u8* data = mem_begin(ctx->input);
+  *out     = (u32)data[0] | (u32)data[1] << 8 | (u32)data[2] << 16 | (u32)data[3] << 24;
+  bin_mem_consume_inplace(&ctx->input, 4);
   return true;
 }
 
-static bool bin_pop_u64(ReadCtx* ctx, u64* out) {
+INLINE_HINT static bool bin_pop_u64(ReadCtx* ctx, u64* out) {
   if (UNLIKELY(ctx->input.size < sizeof(u64))) {
     return false;
   }
-  ctx->input = mem_consume_le_u64(ctx->input, out);
+  u8* data = mem_begin(ctx->input);
+  *out =
+      ((u64)data[0] | (u64)data[1] << 8 | (u64)data[2] << 16 | (u64)data[3] << 24 |
+       (u64)data[4] << 32 | (u64)data[5] << 40 | (u64)data[6] << 48 | (u64)data[7] << 56);
+  bin_mem_consume_inplace(&ctx->input, 8);
   return true;
 }
 
-static bool bin_pop_f16(ReadCtx* ctx, f16* out) {
+INLINE_HINT static bool bin_pop_f16(ReadCtx* ctx, f16* out) {
   if (UNLIKELY(ctx->input.size < sizeof(f16))) {
     return false;
   }
-  ctx->input = mem_consume_le_u16(ctx->input, (u16*)out);
+  u8* data   = mem_begin(ctx->input);
+  *(u16*)out = (u16)data[0] | (u16)data[1] << 8;
+  bin_mem_consume_inplace(&ctx->input, 2);
   return true;
 }
 
-static bool bin_pop_f32(ReadCtx* ctx, f32* out) {
+INLINE_HINT static bool bin_pop_f32(ReadCtx* ctx, f32* out) {
   if (UNLIKELY(ctx->input.size < sizeof(f32))) {
     return false;
   }
-  ctx->input = mem_consume_le_u32(ctx->input, (u32*)out);
+  u8* data   = mem_begin(ctx->input);
+  *(u32*)out = (u32)data[0] | (u32)data[1] << 8 | (u32)data[2] << 16 | (u32)data[3] << 24;
+  bin_mem_consume_inplace(&ctx->input, 4);
   return true;
 }
 
-static bool bin_pop_f64(ReadCtx* ctx, f64* out) {
+INLINE_HINT static bool bin_pop_f64(ReadCtx* ctx, f64* out) {
   if (UNLIKELY(ctx->input.size < sizeof(f64))) {
     return false;
   }
-  ctx->input = mem_consume_le_u64(ctx->input, (u64*)out);
+  u8* data = mem_begin(ctx->input);
+  *(u64*)out =
+      ((u64)data[0] | (u64)data[1] << 8 | (u64)data[2] << 16 | (u64)data[3] << 24 |
+       (u64)data[4] << 32 | (u64)data[5] << 40 | (u64)data[6] << 48 | (u64)data[7] << 56);
+  bin_mem_consume_inplace(&ctx->input, 8);
   return true;
 }
 
@@ -167,32 +205,32 @@ static void data_register_alloc(ReadCtx* ctx, const Mem allocation) {
   *dynarray_push_t(ctx->allocations, Mem) = allocation;
 }
 
-static void data_read_bin_number(ReadCtx* ctx, DataReadResult* res) {
+NO_INLINE_HINT static void data_read_bin_number(ReadCtx* ctx, DataReadResult* res) {
   /**
    * NOTE: For signed values we assume the host system is using 2's complement integers.
    */
-  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  const DataDecl* decl = data_decl_unchecked(ctx->reg, ctx->meta.type);
 
   // clang-format off
   switch (decl->kind) {
   case DataKind_i8:
   case DataKind_u8:
-    if (LIKELY(bin_pop_u8(ctx, mem_as_t(ctx->data, u8))))   { goto Success; } else { goto Trunc; }
+    if (LIKELY(bin_pop_u8(ctx, ctx->data.ptr)))  { goto Success; } else { goto Trunc; }
   case DataKind_i16:
   case DataKind_u16:
-    if (LIKELY(bin_pop_u16(ctx, mem_as_t(ctx->data, u16)))) { goto Success; } else { goto Trunc; }
+    if (LIKELY(bin_pop_u16(ctx, ctx->data.ptr))) { goto Success; } else { goto Trunc; }
   case DataKind_i32:
   case DataKind_u32:
-    if (LIKELY(bin_pop_u32(ctx, mem_as_t(ctx->data, u32)))) { goto Success; } else { goto Trunc; }
+    if (LIKELY(bin_pop_u32(ctx, ctx->data.ptr))) { goto Success; } else { goto Trunc; }
   case DataKind_i64:
   case DataKind_u64:
-    if (LIKELY(bin_pop_u64(ctx, mem_as_t(ctx->data, u64)))) { goto Success; } else { goto Trunc; }
+    if (LIKELY(bin_pop_u64(ctx, ctx->data.ptr))) { goto Success; } else { goto Trunc; }
   case DataKind_f16:
-    if (LIKELY(bin_pop_f16(ctx, mem_as_t(ctx->data, f16)))) { goto Success; } else { goto Trunc; }
+    if (LIKELY(bin_pop_f16(ctx, ctx->data.ptr))) { goto Success; } else { goto Trunc; }
   case DataKind_f32:
-    if (LIKELY(bin_pop_f32(ctx, mem_as_t(ctx->data, f32)))) { goto Success; } else { goto Trunc; }
+    if (LIKELY(bin_pop_f32(ctx, ctx->data.ptr))) { goto Success; } else { goto Trunc; }
   case DataKind_f64:
-    if (LIKELY(bin_pop_f64(ctx, mem_as_t(ctx->data, f64)))) { goto Success; } else { goto Trunc; }
+    if (LIKELY(bin_pop_f64(ctx, ctx->data.ptr))) { goto Success; } else { goto Trunc; }
   default:
     UNREACHABLE
   }
@@ -205,7 +243,7 @@ Trunc:
   *res = result_fail_truncated();
 }
 
-static void data_read_bin_bool(ReadCtx* ctx, DataReadResult* res) {
+NO_INLINE_HINT static void data_read_bin_bool(ReadCtx* ctx, DataReadResult* res) {
   u8 val;
   if (UNLIKELY(!bin_pop_u8(ctx, &val))) {
     *res = result_fail_truncated();
@@ -215,7 +253,7 @@ static void data_read_bin_bool(ReadCtx* ctx, DataReadResult* res) {
   *res                       = result_success();
 }
 
-static void data_read_bin_string(ReadCtx* ctx, DataReadResult* res) {
+NO_INLINE_HINT static void data_read_bin_string(ReadCtx* ctx, DataReadResult* res) {
   Mem val;
   if (UNLIKELY(!bin_pop_mem(ctx, &val))) {
     *res = result_fail_truncated();
@@ -235,14 +273,14 @@ static void data_read_bin_string(ReadCtx* ctx, DataReadResult* res) {
   *res = result_success();
 }
 
-static void data_read_bin_string_hash(ReadCtx* ctx, DataReadResult* res) {
+NO_INLINE_HINT static void data_read_bin_string_hash(ReadCtx* ctx, DataReadResult* res) {
   u32 val;
   if (UNLIKELY(!bin_pop_u32(ctx, &val))) {
     *res = result_fail_truncated();
     return;
   }
-  *mem_as_t(ctx->data, StringHash) = val;
-  *res                             = result_success();
+  *(StringHash*)ctx->data.ptr = val;
+  *res                        = result_success();
 }
 
 static usize data_read_bin_mem_align(const usize size) {
@@ -250,7 +288,7 @@ static usize data_read_bin_mem_align(const usize size) {
   return math_min(biggestPow2, data_type_mem_align_max);
 }
 
-static void data_read_bin_mem(ReadCtx* ctx, DataReadResult* res) {
+NO_INLINE_HINT static void data_read_bin_mem(ReadCtx* ctx, DataReadResult* res) {
   if (ctx->meta.flags & DataFlags_ExternalMemory && UNLIKELY(!bin_pop_padding(ctx))) {
     *res = result_fail_truncated();
     return;
@@ -285,20 +323,25 @@ static void data_read_bin_mem(ReadCtx* ctx, DataReadResult* res) {
   *res = result_success();
 }
 
-static void data_read_bin_struct(ReadCtx* ctx, DataReadResult* res) {
-  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+NO_INLINE_HINT static void data_read_bin_struct(ReadCtx* ctx, DataReadResult* res) {
+  const DataDecl* decl = data_decl_unchecked(ctx->reg, ctx->meta.type);
 
-  mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
+  if (decl->val_struct.hasHole) {
+    mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
+  }
+
+  ReadCtx fieldCtx = {
+      .reg         = ctx->reg,
+      .alloc       = ctx->alloc,
+      .allocations = ctx->allocations,
+      .input       = ctx->input,
+  };
 
   dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
-    ReadCtx fieldCtx = {
-        .reg         = ctx->reg,
-        .alloc       = ctx->alloc,
-        .allocations = ctx->allocations,
-        .input       = ctx->input,
-        .meta        = fieldDecl->meta,
-        .data        = data_field_mem(ctx->reg, fieldDecl, ctx->data),
-    };
+    fieldCtx.meta      = fieldDecl->meta;
+    fieldCtx.data.ptr  = bits_ptr_offset(ctx->data.ptr, fieldDecl->offset);
+    fieldCtx.data.size = data_meta_size_unchecked(ctx->reg, fieldDecl->meta);
+
     data_read_bin_val(&fieldCtx, res);
     if (UNLIKELY(res->error)) {
       *res = result_fail(
@@ -308,13 +351,13 @@ static void data_read_bin_struct(ReadCtx* ctx, DataReadResult* res) {
           fmt_text(res->errorMsg));
       return;
     }
-    ctx->input = fieldCtx.input; // Consume data that was taken up by the field.
   }
-  *res = result_success();
+  ctx->input = fieldCtx.input; // Consume data that was taken up by the field.
+  *res       = result_success();
 }
 
 static const DataDeclChoice* data_read_bin_union_choice(ReadCtx* ctx, DataReadResult* res) {
-  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  const DataDecl* decl = data_decl_unchecked(ctx->reg, ctx->meta.type);
 
   u32 tag;
   if (UNLIKELY(!bin_pop_u32(ctx, &tag))) {
@@ -337,8 +380,8 @@ static const DataDeclChoice* data_read_bin_union_choice(ReadCtx* ctx, DataReadRe
   return null;
 }
 
-static void data_read_bin_union(ReadCtx* ctx, DataReadResult* res) {
-  const DataDecl*       decl   = data_decl(ctx->reg, ctx->meta.type);
+NO_INLINE_HINT static void data_read_bin_union(ReadCtx* ctx, DataReadResult* res) {
+  const DataDecl*       decl   = data_decl_unchecked(ctx->reg, ctx->meta.type);
   const DataDeclChoice* choice = data_read_bin_union_choice(ctx, res);
   if (UNLIKELY(res->error)) {
     return;
@@ -387,19 +430,18 @@ static void data_read_bin_union(ReadCtx* ctx, DataReadResult* res) {
   *res = result_success();
 }
 
-static void data_read_bin_enum(ReadCtx* ctx, DataReadResult* res) {
+NO_INLINE_HINT static void data_read_bin_enum(ReadCtx* ctx, DataReadResult* res) {
   u32 val;
   if (UNLIKELY(!bin_pop_u32(ctx, &val))) {
     *res = result_fail_truncated();
     return;
   }
-  *mem_as_t(ctx->data, i32) = (i32)val;
-
-  *res = result_success();
+  *(i32*)ctx->data.ptr = (i32)val;
+  *res                 = result_success();
 }
 
-static void data_read_bin_val_single(ReadCtx* ctx, DataReadResult* res) {
-  switch (data_decl(ctx->reg, ctx->meta.type)->kind) {
+INLINE_HINT static void data_read_bin_val_single(ReadCtx* ctx, DataReadResult* res) {
+  switch (data_decl_unchecked(ctx->reg, ctx->meta.type)->kind) {
   case DataKind_bool:
     data_read_bin_bool(ctx, res);
     return;
@@ -453,7 +495,7 @@ static void data_read_bin_val_pointer(ReadCtx* ctx, DataReadResult* res) {
     return;
   }
 
-  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  const DataDecl* decl = data_decl_unchecked(ctx->reg, ctx->meta.type);
   const Mem       mem  = alloc_alloc(ctx->alloc, decl->size, decl->align);
   data_register_alloc(ctx, mem);
 
@@ -471,7 +513,7 @@ static void data_read_bin_val_pointer(ReadCtx* ctx, DataReadResult* res) {
 }
 
 static void data_read_bin_elems(ReadCtx* ctx, const usize count, void* out, DataReadResult* res) {
-  const DataDecl* decl    = data_decl(ctx->reg, ctx->meta.type);
+  const DataDecl* decl    = data_decl_unchecked(ctx->reg, ctx->meta.type);
   const void*     dataEnd = bits_ptr_offset(out, decl->size * count);
 
   ReadCtx elemCtx = {
@@ -498,14 +540,14 @@ static void data_read_bin_val_inline_array(ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!ctx->meta.fixedCount)) {
     diag_crash_msg("Inline-arrays need at least 1 entry");
   }
-  if (UNLIKELY(ctx->data.size != data_meta_size(ctx->reg, ctx->meta))) {
+  if (UNLIKELY(ctx->data.size != data_meta_size_unchecked(ctx->reg, ctx->meta))) {
     diag_crash_msg("Unexpected data-size for inline array");
   }
   data_read_bin_elems(ctx, ctx->meta.fixedCount, ctx->data.ptr, res);
 }
 
 static void data_read_bin_val_heap_array(ReadCtx* ctx, DataReadResult* res) {
-  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  const DataDecl* decl = data_decl_unchecked(ctx->reg, ctx->meta.type);
 
   u64 count;
   if (UNLIKELY(!bin_pop_u64(ctx, &count))) {
@@ -528,7 +570,7 @@ static void data_read_bin_val_heap_array(ReadCtx* ctx, DataReadResult* res) {
 }
 
 static void data_read_bin_val_dynarray(ReadCtx* ctx, DataReadResult* res) {
-  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  const DataDecl* decl = data_decl_unchecked(ctx->reg, ctx->meta.type);
 
   u64 count;
   if (UNLIKELY(!bin_pop_u64(ctx, &count))) {

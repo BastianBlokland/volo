@@ -267,7 +267,11 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res, u32 f
   }
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
 
-  mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
+  /**
+   * Initialize non-specified memory to zero.
+   * NOTE: We cannot skip this even for structs without holes as fields can be optional.
+   */
+  mem_set(ctx->data, 0);
 
   dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
     const JsonVal fieldVal = json_field(ctx->doc, ctx->val, fieldDecl->id.hash);
