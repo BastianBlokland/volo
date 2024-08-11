@@ -7,7 +7,7 @@
 
 #define stringtable_chunk_size (32 * usize_kibibyte)
 #define stringtable_string_size_max 512
-#define stringtable_slots_initial 128
+#define stringtable_slots_initial 1024
 #define stringtable_slots_loadfactor 0.75f
 
 /**
