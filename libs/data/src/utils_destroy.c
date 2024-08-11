@@ -12,6 +12,72 @@ typedef struct {
   const Mem      data;
 } DestroyCtx;
 
+static bool data_destroy_needed(const DataReg*, DataMeta);
+
+static bool data_destroy_needed_single(const DataReg* reg, const DataMeta meta) {
+  const DataDecl* decl = data_decl(reg, meta.type);
+  switch (decl->kind) {
+  case DataKind_bool:
+  case DataKind_i8:
+  case DataKind_i16:
+  case DataKind_i32:
+  case DataKind_i64:
+  case DataKind_u8:
+  case DataKind_u16:
+  case DataKind_u32:
+  case DataKind_u64:
+  case DataKind_f16:
+  case DataKind_f32:
+  case DataKind_f64:
+  case DataKind_Enum:
+  case DataKind_StringHash:
+    return false;
+  case DataKind_String:
+    return (meta.flags & DataFlags_Intern) == 0;
+  case DataKind_DataMem:
+    return true;
+  case DataKind_Struct: {
+    dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
+      if (data_destroy_needed(reg, fieldDecl->meta)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  case DataKind_Union: {
+    if (decl->val_union.nameOffset) {
+      return true;
+    }
+    dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choice) {
+      const bool emptyChoice = choice->meta.type == 0;
+      if (emptyChoice) {
+        continue;
+      }
+      if (data_destroy_needed(reg, choice->meta)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  case DataKind_Invalid:
+  case DataKind_Count:
+    break;
+  }
+  diag_crash();
+}
+
+static bool data_destroy_needed(const DataReg* reg, const DataMeta meta) {
+  switch (meta.container) {
+  case DataContainer_None:
+  case DataContainer_InlineArray:
+    return data_destroy_needed_single(reg, meta);
+  case DataContainer_Pointer:
+  case DataContainer_HeapArray:
+  case DataContainer_DynArray:
+    return true;
+  }
+}
+
 static void data_destroy_internal(const DestroyCtx*);
 
 static void data_destroy_string(const DestroyCtx* ctx) {
@@ -130,12 +196,16 @@ static void data_destroy_inline_array(const DestroyCtx* ctx) {
   if (UNLIKELY(ctx->data.size != data_meta_size(ctx->reg, ctx->meta))) {
     diag_crash_msg("Unexpected data-size for inline array");
   }
+  const DataMeta baseMeta = data_meta_base(ctx->meta);
+  if (!data_destroy_needed(ctx->reg, baseMeta)) {
+    return;
+  }
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
   for (u16 i = 0; i != ctx->meta.fixedCount; ++i) {
     const DestroyCtx elemCtx = {
         .reg   = ctx->reg,
         .alloc = ctx->alloc,
-        .meta  = data_meta_base(ctx->meta),
+        .meta  = baseMeta,
         .data  = mem_create(bits_ptr_offset(ctx->data.ptr, decl->size * i), decl->size),
     };
     data_destroy_single(&elemCtx);
@@ -148,31 +218,35 @@ static void data_destroy_heap_array(const DestroyCtx* ctx) {
   if (!array->count) {
     return;
   }
-
-  for (usize i = 0; i != array->count; ++i) {
-    const DestroyCtx elemCtx = {
-        .reg   = ctx->reg,
-        .alloc = ctx->alloc,
-        .meta  = data_meta_base(ctx->meta),
-        .data  = data_elem_mem(decl, array, i),
-    };
-    data_destroy_single(&elemCtx);
+  const DataMeta baseMeta = data_meta_base(ctx->meta);
+  if (data_destroy_needed(ctx->reg, baseMeta)) {
+    for (usize i = 0; i != array->count; ++i) {
+      const DestroyCtx elemCtx = {
+          .reg   = ctx->reg,
+          .alloc = ctx->alloc,
+          .meta  = baseMeta,
+          .data  = data_elem_mem(decl, array, i),
+      };
+      data_destroy_single(&elemCtx);
+    }
   }
-
   alloc_free(ctx->alloc, mem_create(array->values, decl->size * array->count));
 }
 
 static void data_destroy_dynarray(const DestroyCtx* ctx) {
   DynArray* array = mem_as_t(ctx->data, DynArray);
 
-  for (usize i = 0; i != array->size; ++i) {
-    const DestroyCtx elemCtx = {
-        .reg   = ctx->reg,
-        .alloc = ctx->alloc,
-        .meta  = data_meta_base(ctx->meta),
-        .data  = dynarray_at(array, i, 1),
-    };
-    data_destroy_single(&elemCtx);
+  const DataMeta baseMeta = data_meta_base(ctx->meta);
+  if (data_destroy_needed(ctx->reg, baseMeta)) {
+    for (usize i = 0; i != array->size; ++i) {
+      const DestroyCtx elemCtx = {
+          .reg   = ctx->reg,
+          .alloc = ctx->alloc,
+          .meta  = baseMeta,
+          .data  = dynarray_at(array, i, 1),
+      };
+      data_destroy_single(&elemCtx);
+    }
   }
 
   dynarray_destroy(array);
