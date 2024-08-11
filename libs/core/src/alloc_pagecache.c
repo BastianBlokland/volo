@@ -42,9 +42,19 @@ typedef struct {
   Allocator      api;
   ThreadSpinLock spinLock;
   usize          pageSize;
+  Mem            warmupMem;
   PageCacheNode* freeNodes[pagecache_pages_max];
   u32            freeNodesCount[pagecache_pages_max];
 } AllocatorPageCache;
+
+static bool pagecache_is_warmup(AllocatorPageCache* cache, const Mem mem) {
+  if (!mem_valid(cache->warmupMem)) {
+    return false;
+  }
+  const void* warmupBegin = mem_begin(cache->warmupMem);
+  const void* warmupEnd   = mem_end(cache->warmupMem);
+  return mem.ptr >= warmupBegin && mem.ptr < warmupEnd;
+}
 
 static u32 pagecache_num_pages(AllocatorPageCache* cache, const usize size) {
   return (u32)((size + cache->pageSize - 1) / cache->pageSize);
@@ -105,7 +115,8 @@ static void pagecache_free(Allocator* allocator, const Mem mem) {
   if (numPages > pagecache_pages_max) {
     goto FreeAllocation;
   }
-  if (cache->freeNodesCount[numPages - 1] >= g_pageCacheCountMax[numPages - 1]) {
+  const bool isWarmup = pagecache_is_warmup(cache, mem);
+  if (!isWarmup && cache->freeNodesCount[numPages - 1] >= g_pageCacheCountMax[numPages - 1]) {
     goto FreeAllocation; // Already have enough cached of this size.
   }
 
@@ -143,35 +154,58 @@ static void pagecache_reset(Allocator* allocator) {
         alloc_unpoison(nodeMem);
 
         cacheNode = cacheNode->next;
-        alloc_free(g_allocPage, nodeMem);
+        if (!pagecache_is_warmup(cache, nodeMem)) {
+          alloc_free(g_allocPage, nodeMem);
+        }
       }
       cache->freeNodes[i]      = null;
       cache->freeNodesCount[i] = 0;
+    }
+
+    if (mem_valid(cache->warmupMem)) {
+      alloc_free(g_allocPage, cache->warmupMem);
+      cache->warmupMem = mem_empty;
     }
   }
   thread_spinlock_unlock(&cache->spinLock);
 }
 
+static usize pagecache_warmup_size(AllocatorPageCache* cache) {
+  usize result = 0;
+  for (u32 sizeIdx = 0; sizeIdx != array_elems(cache->freeNodes); ++sizeIdx) {
+    const usize numPages = sizeIdx + 1;
+    result += numPages * cache->pageSize * g_pageCacheCountInitial[sizeIdx];
+  }
+  return result;
+}
+
 static void pagecache_warmup(AllocatorPageCache* cache) {
-  thread_spinlock_lock(&cache->spinLock);
-  {
-    for (u32 sizeIdx = 0; sizeIdx != array_elems(cache->freeNodes); ++sizeIdx) {
-      const usize numPages = sizeIdx + 1;
-      const usize size     = numPages * cache->pageSize;
-      for (u32 i = 0; i != g_pageCacheCountInitial[sizeIdx]; ++i) {
-        const Mem mem = alloc_alloc(g_allocPage, size, cache->pageSize);
+  diag_assert(!mem_valid(cache->warmupMem));
 
-        PageCacheNode* cacheNode = mem.ptr;
-        *cacheNode               = (PageCacheNode){.next = cache->freeNodes[sizeIdx]};
+  const usize warmupSize = pagecache_warmup_size(cache);
+  cache->warmupMem       = alloc_alloc(g_allocPage, warmupSize, cache->pageSize);
+  if (!mem_valid(cache->warmupMem)) {
+    alloc_crash_with_msg("pagecache_warmup: Failed to allocate warmup memory");
+  }
 
-        cache->freeNodes[sizeIdx] = cacheNode;
-        cache->freeNodesCount[sizeIdx]++;
+  void* warmupPtr = cache->warmupMem.ptr;
 
-        alloc_poison(mem);
-      }
+  for (u32 sizeIdx = 0; sizeIdx != array_elems(cache->freeNodes); ++sizeIdx) {
+    const usize numPages = sizeIdx + 1;
+    for (u32 i = 0; i != g_pageCacheCountInitial[sizeIdx]; ++i) {
+      PageCacheNode* cacheNode = warmupPtr;
+      *cacheNode               = (PageCacheNode){.next = cache->freeNodes[sizeIdx]};
+
+      cache->freeNodes[sizeIdx] = cacheNode;
+      cache->freeNodesCount[sizeIdx]++;
+
+      warmupPtr = bits_ptr_offset(warmupPtr, numPages * cache->pageSize);
     }
   }
-  thread_spinlock_unlock(&cache->spinLock);
+
+  diag_assert(warmupPtr == mem_end(cache->warmupMem));
+
+  alloc_poison(cache->warmupMem);
 }
 
 static AllocatorPageCache g_allocatorIntern;
