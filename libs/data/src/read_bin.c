@@ -205,7 +205,7 @@ static void data_register_alloc(ReadCtx* ctx, const Mem allocation) {
   *dynarray_push_t(ctx->allocations, Mem) = allocation;
 }
 
-static void data_read_bin_number(ReadCtx* ctx, DataReadResult* res) {
+NO_INLINE_HINT static void data_read_bin_number(ReadCtx* ctx, DataReadResult* res) {
   /**
    * NOTE: For signed values we assume the host system is using 2's complement integers.
    */
@@ -243,7 +243,7 @@ Trunc:
   *res = result_fail_truncated();
 }
 
-static void data_read_bin_bool(ReadCtx* ctx, DataReadResult* res) {
+NO_INLINE_HINT static void data_read_bin_bool(ReadCtx* ctx, DataReadResult* res) {
   u8 val;
   if (UNLIKELY(!bin_pop_u8(ctx, &val))) {
     *res = result_fail_truncated();
@@ -253,7 +253,7 @@ static void data_read_bin_bool(ReadCtx* ctx, DataReadResult* res) {
   *res                       = result_success();
 }
 
-static void data_read_bin_string(ReadCtx* ctx, DataReadResult* res) {
+NO_INLINE_HINT static void data_read_bin_string(ReadCtx* ctx, DataReadResult* res) {
   Mem val;
   if (UNLIKELY(!bin_pop_mem(ctx, &val))) {
     *res = result_fail_truncated();
@@ -273,7 +273,7 @@ static void data_read_bin_string(ReadCtx* ctx, DataReadResult* res) {
   *res = result_success();
 }
 
-static void data_read_bin_string_hash(ReadCtx* ctx, DataReadResult* res) {
+NO_INLINE_HINT static void data_read_bin_string_hash(ReadCtx* ctx, DataReadResult* res) {
   u32 val;
   if (UNLIKELY(!bin_pop_u32(ctx, &val))) {
     *res = result_fail_truncated();
@@ -288,7 +288,7 @@ static usize data_read_bin_mem_align(const usize size) {
   return math_min(biggestPow2, data_type_mem_align_max);
 }
 
-static void data_read_bin_mem(ReadCtx* ctx, DataReadResult* res) {
+NO_INLINE_HINT static void data_read_bin_mem(ReadCtx* ctx, DataReadResult* res) {
   if (ctx->meta.flags & DataFlags_ExternalMemory && UNLIKELY(!bin_pop_padding(ctx))) {
     *res = result_fail_truncated();
     return;
@@ -323,7 +323,7 @@ static void data_read_bin_mem(ReadCtx* ctx, DataReadResult* res) {
   *res = result_success();
 }
 
-static void data_read_bin_struct(ReadCtx* ctx, DataReadResult* res) {
+NO_INLINE_HINT static void data_read_bin_struct(ReadCtx* ctx, DataReadResult* res) {
   const DataDecl* decl = data_decl_unchecked(ctx->reg, ctx->meta.type);
 
   mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
@@ -378,7 +378,7 @@ static const DataDeclChoice* data_read_bin_union_choice(ReadCtx* ctx, DataReadRe
   return null;
 }
 
-static void data_read_bin_union(ReadCtx* ctx, DataReadResult* res) {
+NO_INLINE_HINT static void data_read_bin_union(ReadCtx* ctx, DataReadResult* res) {
   const DataDecl*       decl   = data_decl_unchecked(ctx->reg, ctx->meta.type);
   const DataDeclChoice* choice = data_read_bin_union_choice(ctx, res);
   if (UNLIKELY(res->error)) {
@@ -428,7 +428,7 @@ static void data_read_bin_union(ReadCtx* ctx, DataReadResult* res) {
   *res = result_success();
 }
 
-static void data_read_bin_enum(ReadCtx* ctx, DataReadResult* res) {
+NO_INLINE_HINT static void data_read_bin_enum(ReadCtx* ctx, DataReadResult* res) {
   u32 val;
   if (UNLIKELY(!bin_pop_u32(ctx, &val))) {
     *res = result_fail_truncated();
@@ -439,7 +439,7 @@ static void data_read_bin_enum(ReadCtx* ctx, DataReadResult* res) {
   *res = result_success();
 }
 
-static void data_read_bin_val_single(ReadCtx* ctx, DataReadResult* res) {
+INLINE_HINT static void data_read_bin_val_single(ReadCtx* ctx, DataReadResult* res) {
   switch (data_decl_unchecked(ctx->reg, ctx->meta.type)->kind) {
   case DataKind_bool:
     data_read_bin_bool(ctx, res);
