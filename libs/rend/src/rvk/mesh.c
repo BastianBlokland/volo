@@ -14,8 +14,8 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
   *mesh = (RvkMesh){
       .device            = dev,
       .dbgName           = string_dup(g_allocHeap, dbgName),
-      .vertexCount       = (u32)asset->vertices.count,
-      .indexCount        = (u32)asset->indices.count,
+      .vertexCount       = asset->vertexCount,
+      .indexCount        = asset->indexCount,
       .positionBounds    = asset->positionBounds,
       .positionRawBounds = asset->positionRawBounds,
   };
@@ -24,11 +24,8 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
     mesh->flags |= RvkMeshFlags_Skinned;
   }
 
-  const usize vertexMemSize = sizeof(AssetMeshVertexPacked) * asset->vertices.count;
-  const usize indexMemSize  = sizeof(AssetMeshIndex) * asset->indices.count;
-
-  const Mem vertexMem = mem_create(asset->vertices.values, vertexMemSize);
-  const Mem indexMem  = mem_create(asset->indices.values, indexMemSize);
+  const Mem vertexMem = data_mem(asset->vertexData);
+  const Mem indexMem  = data_mem(asset->indexData);
 
   mesh->vertexBuffer = rvk_buffer_create(dev, vertexMem.size, RvkBufferType_DeviceStorage);
   mesh->indexBuffer  = rvk_buffer_create(dev, indexMem.size, RvkBufferType_DeviceIndex);

@@ -270,9 +270,10 @@ spec(loader_mesh_obj) {
       const AssetMeshComp* mesh = ecs_utils_read_t(world, AssetView, asset, AssetMeshComp);
 
       // Verify the vertices.
-      check_require(mesh->vertices.count == g_testData[i].vertexCount);
+      check_require(mesh->vertexCount == g_testData[i].vertexCount);
+      const AssetMeshVertexPacked* vertices = mesh->vertexData.ptr;
       for (usize j = 0; j != g_testData[i].vertexCount; ++j) {
-        const AssetMeshVertexPacked* vertActual   = &mesh->vertices.values[j];
+        const AssetMeshVertexPacked* vertActual   = &vertices[j];
         const TestVertex*            vertExpected = &g_testData[i].vertices[j];
 
         GeoVector actualPos      = geo_vector_unpack_f16(vertActual->data1);
@@ -289,9 +290,10 @@ spec(loader_mesh_obj) {
         check(geo_vector_equal(actualTexCoord, vertExpected->texcoord, 1e-4f));
       }
       // Verify the indices.
-      check_require(mesh->indices.count == g_testData[i].indexCount);
+      check_require(mesh->indexCount == g_testData[i].indexCount);
+      const AssetMeshIndex* indices = mesh->indexData.ptr;
       for (usize j = 0; j != g_testData[i].indexCount; ++j) {
-        check_eq_int(mesh->indices.values[j], g_testData[i].indices[j]);
+        check_eq_int(indices[j], g_testData[i].indices[j]);
       }
     };
   }

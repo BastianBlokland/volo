@@ -32,11 +32,12 @@ typedef enum {
 
 ecs_comp_extern_public(AssetMeshComp) {
   AssetMeshFlags flags;
-  HeapArray_t(AssetMeshVertexPacked) vertices;
-  HeapArray_t(AssetMeshIndex) indices;
-  GeoBox positionBounds;
-  GeoBox positionRawBounds; // Unscaled (does not take skinning into account).
-  GeoBox texcoordBounds;
+  u32            vertexCount, indexCount;
+  DataMem        vertexData; // AssetMeshVertexPacked[]
+  DataMem        indexData;  // AssetMeshIndex[]
+  GeoBox         positionBounds;
+  GeoBox         positionRawBounds; // Unscaled (does not take skinning into account).
+  GeoBox         texcoordBounds;
 };
 
 typedef enum {
