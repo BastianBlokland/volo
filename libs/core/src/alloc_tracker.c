@@ -5,7 +5,7 @@
 
 #include "alloc_internal.h"
 
-#define tracker_slots_initial 1024
+#define tracker_slots_initial (16 * 1024)
 #define tracker_slots_loadfactor 0.75f
 
 typedef struct {
