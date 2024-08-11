@@ -47,11 +47,17 @@ static usize data_meta_size_unchecked(const DataReg* reg, const DataMeta meta) {
   diag_crash();
 }
 
+INLINE_HINT static void bin_mem_consume_inplace(Mem* mem, const usize amount) {
+  mem->ptr = bits_ptr_offset(mem->ptr, amount);
+  mem->size -= amount;
+}
+
 INLINE_HINT static bool bin_pop_u8(ReadCtx* ctx, u8* out) {
   if (UNLIKELY(ctx->input.size < sizeof(u8))) {
     return false;
   }
-  ctx->input = mem_consume_u8(ctx->input, out);
+  *out = *mem_begin(ctx->input);
+  bin_mem_consume_inplace(&ctx->input, 1);
   return true;
 }
 
@@ -59,7 +65,9 @@ INLINE_HINT static bool bin_pop_u16(ReadCtx* ctx, u16* out) {
   if (UNLIKELY(ctx->input.size < sizeof(u16))) {
     return false;
   }
-  ctx->input = mem_consume_le_u16(ctx->input, out);
+  u8* data = mem_begin(ctx->input);
+  *out     = (u16)data[0] | (u16)data[1] << 8;
+  bin_mem_consume_inplace(&ctx->input, 2);
   return true;
 }
 
@@ -67,7 +75,9 @@ INLINE_HINT static bool bin_pop_u32(ReadCtx* ctx, u32* out) {
   if (UNLIKELY(ctx->input.size < sizeof(u32))) {
     return false;
   }
-  ctx->input = mem_consume_le_u32(ctx->input, out);
+  u8* data = mem_begin(ctx->input);
+  *out     = (u32)data[0] | (u32)data[1] << 8 | (u32)data[2] << 16 | (u32)data[3] << 24;
+  bin_mem_consume_inplace(&ctx->input, 4);
   return true;
 }
 
@@ -75,7 +85,11 @@ INLINE_HINT static bool bin_pop_u64(ReadCtx* ctx, u64* out) {
   if (UNLIKELY(ctx->input.size < sizeof(u64))) {
     return false;
   }
-  ctx->input = mem_consume_le_u64(ctx->input, out);
+  u8* data = mem_begin(ctx->input);
+  *out =
+      ((u64)data[0] | (u64)data[1] << 8 | (u64)data[2] << 16 | (u64)data[3] << 24 |
+       (u64)data[4] << 32 | (u64)data[5] << 40 | (u64)data[6] << 48 | (u64)data[7] << 56);
+  bin_mem_consume_inplace(&ctx->input, 8);
   return true;
 }
 
@@ -83,7 +97,9 @@ INLINE_HINT static bool bin_pop_f16(ReadCtx* ctx, f16* out) {
   if (UNLIKELY(ctx->input.size < sizeof(f16))) {
     return false;
   }
-  ctx->input = mem_consume_le_u16(ctx->input, (u16*)out);
+  u8* data   = mem_begin(ctx->input);
+  *(u16*)out = (u16)data[0] | (u16)data[1] << 8;
+  bin_mem_consume_inplace(&ctx->input, 2);
   return true;
 }
 
@@ -91,7 +107,9 @@ INLINE_HINT static bool bin_pop_f32(ReadCtx* ctx, f32* out) {
   if (UNLIKELY(ctx->input.size < sizeof(f32))) {
     return false;
   }
-  ctx->input = mem_consume_le_u32(ctx->input, (u32*)out);
+  u8* data   = mem_begin(ctx->input);
+  *(u32*)out = (u32)data[0] | (u32)data[1] << 8 | (u32)data[2] << 16 | (u32)data[3] << 24;
+  bin_mem_consume_inplace(&ctx->input, 4);
   return true;
 }
 
@@ -99,7 +117,11 @@ INLINE_HINT static bool bin_pop_f64(ReadCtx* ctx, f64* out) {
   if (UNLIKELY(ctx->input.size < sizeof(f64))) {
     return false;
   }
-  ctx->input = mem_consume_le_u64(ctx->input, (u64*)out);
+  u8* data = mem_begin(ctx->input);
+  *(u64*)out =
+      ((u64)data[0] | (u64)data[1] << 8 | (u64)data[2] << 16 | (u64)data[3] << 24 |
+       (u64)data[4] << 32 | (u64)data[5] << 40 | (u64)data[6] << 48 | (u64)data[7] << 56);
+  bin_mem_consume_inplace(&ctx->input, 8);
   return true;
 }
 
