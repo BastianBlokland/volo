@@ -279,8 +279,8 @@ NO_INLINE_HINT static void data_read_bin_string_hash(ReadCtx* ctx, DataReadResul
     *res = result_fail_truncated();
     return;
   }
-  *mem_as_t(ctx->data, StringHash) = val;
-  *res                             = result_success();
+  *(StringHash*)ctx->data.ptr = val;
+  *res                        = result_success();
 }
 
 static usize data_read_bin_mem_align(const usize size) {
