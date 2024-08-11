@@ -215,22 +215,22 @@ static void data_read_bin_number(ReadCtx* ctx, DataReadResult* res) {
   switch (decl->kind) {
   case DataKind_i8:
   case DataKind_u8:
-    if (LIKELY(bin_pop_u8(ctx, mem_as_t(ctx->data, u8))))   { goto Success; } else { goto Trunc; }
+    if (LIKELY(bin_pop_u8(ctx, ctx->data.ptr)))  { goto Success; } else { goto Trunc; }
   case DataKind_i16:
   case DataKind_u16:
-    if (LIKELY(bin_pop_u16(ctx, mem_as_t(ctx->data, u16)))) { goto Success; } else { goto Trunc; }
+    if (LIKELY(bin_pop_u16(ctx, ctx->data.ptr))) { goto Success; } else { goto Trunc; }
   case DataKind_i32:
   case DataKind_u32:
-    if (LIKELY(bin_pop_u32(ctx, mem_as_t(ctx->data, u32)))) { goto Success; } else { goto Trunc; }
+    if (LIKELY(bin_pop_u32(ctx, ctx->data.ptr))) { goto Success; } else { goto Trunc; }
   case DataKind_i64:
   case DataKind_u64:
-    if (LIKELY(bin_pop_u64(ctx, mem_as_t(ctx->data, u64)))) { goto Success; } else { goto Trunc; }
+    if (LIKELY(bin_pop_u64(ctx, ctx->data.ptr))) { goto Success; } else { goto Trunc; }
   case DataKind_f16:
-    if (LIKELY(bin_pop_f16(ctx, mem_as_t(ctx->data, f16)))) { goto Success; } else { goto Trunc; }
+    if (LIKELY(bin_pop_f16(ctx, ctx->data.ptr))) { goto Success; } else { goto Trunc; }
   case DataKind_f32:
-    if (LIKELY(bin_pop_f32(ctx, mem_as_t(ctx->data, f32)))) { goto Success; } else { goto Trunc; }
+    if (LIKELY(bin_pop_f32(ctx, ctx->data.ptr))) { goto Success; } else { goto Trunc; }
   case DataKind_f64:
-    if (LIKELY(bin_pop_f64(ctx, mem_as_t(ctx->data, f64)))) { goto Success; } else { goto Trunc; }
+    if (LIKELY(bin_pop_f64(ctx, ctx->data.ptr))) { goto Success; } else { goto Trunc; }
   default:
     UNREACHABLE
   }
