@@ -11,6 +11,7 @@
  */
 
 #define pagecache_pages_max 4
+#define pagecache_count_initial 64
 #define pagecache_count_max 1024
 
 typedef struct sPageCacheNode {
@@ -92,7 +93,6 @@ static void pagecache_free(Allocator* allocator, const Mem mem) {
 
   thread_spinlock_lock(&cache->spinLock);
   {
-
     PageCacheNode* cacheNode = mem.ptr;
     *cacheNode               = (PageCacheNode){.next = cache->freeNodes[numPages - 1]};
 
@@ -132,6 +132,28 @@ static void pagecache_reset(Allocator* allocator) {
   thread_spinlock_unlock(&cache->spinLock);
 }
 
+static void pagecache_warmup(AllocatorPageCache* cache, const usize amount) {
+  thread_spinlock_lock(&cache->spinLock);
+  {
+    for (u32 sizeIdx = 0; sizeIdx != array_elems(cache->freeNodes); ++sizeIdx) {
+      const usize numPages = sizeIdx + 1;
+      const usize size     = numPages * cache->pageSize;
+      for (u32 i = 0; i != amount; ++i) {
+        const Mem mem = alloc_alloc(g_allocPage, size, cache->pageSize);
+
+        PageCacheNode* cacheNode = mem.ptr;
+        *cacheNode               = (PageCacheNode){.next = cache->freeNodes[sizeIdx]};
+
+        cache->freeNodes[sizeIdx] = cacheNode;
+        cache->freeNodesCount[sizeIdx]++;
+
+        alloc_poison(mem);
+      }
+    }
+  }
+  thread_spinlock_unlock(&cache->spinLock);
+}
+
 static AllocatorPageCache g_allocatorIntern;
 
 Allocator* alloc_pagecache_init(void) {
@@ -148,6 +170,9 @@ Allocator* alloc_pagecache_init(void) {
   if (UNLIKELY(!g_allocatorIntern.pageSize)) {
     alloc_crash_with_msg("Invalid page-size");
   }
+
+  pagecache_warmup(&g_allocatorIntern, pagecache_count_initial);
+
   return (Allocator*)&g_allocatorIntern;
 }
 
