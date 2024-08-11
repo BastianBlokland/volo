@@ -10,8 +10,29 @@
  * allot of sys-call traffic when relatively small allocations are freed and reallocated.
  */
 
-#define pagecache_pages_max 4
-#define pagecache_count_max 1024
+#define pagecache_pages_max 8
+
+static const u32 g_pageCacheCountMax[pagecache_pages_max] = {
+    [0] /* 1 * pageSize (4 KiB) */  = 1024,
+    [1] /* 2 * pageSize (8 KiB) */  = 1024,
+    [2] /* 3 * pageSize (12 KiB) */ = 1024,
+    [3] /* 4 * pageSize (16 KiB) */ = 1024,
+    [4] /* 5 * pageSize (20 KiB) */ = 512,
+    [5] /* 6 * pageSize (24 KiB) */ = 512,
+    [6] /* 7 * pageSize (28 KiB) */ = 512,
+    [7] /* 8 * pageSize (32 KiB) */ = 512,
+};
+
+static const u32 g_pageCacheCountInitial[pagecache_pages_max] = {
+    [0] /* 1 * pageSize (4 KiB) */  = 512,
+    [1] /* 2 * pageSize (8 KiB) */  = 256,
+    [2] /* 3 * pageSize (12 KiB) */ = 32,
+    [3] /* 4 * pageSize (16 KiB) */ = 512,
+    [4] /* 5 * pageSize (20 KiB) */ = 8,
+    [5] /* 6 * pageSize (24 KiB) */ = 8,
+    [6] /* 7 * pageSize (28 KiB) */ = 8,
+    [7] /* 8 * pageSize (32 KiB) */ = 64,
+};
 
 typedef struct sPageCacheNode {
   struct sPageCacheNode* next;
@@ -84,7 +105,7 @@ static void pagecache_free(Allocator* allocator, const Mem mem) {
   if (numPages > pagecache_pages_max) {
     goto FreeAllocation;
   }
-  if (cache->freeNodesCount[numPages - 1] >= pagecache_count_max) {
+  if (cache->freeNodesCount[numPages - 1] >= g_pageCacheCountMax[numPages - 1]) {
     goto FreeAllocation; // Already have enough cached of this size.
   }
 
@@ -92,7 +113,6 @@ static void pagecache_free(Allocator* allocator, const Mem mem) {
 
   thread_spinlock_lock(&cache->spinLock);
   {
-
     PageCacheNode* cacheNode = mem.ptr;
     *cacheNode               = (PageCacheNode){.next = cache->freeNodes[numPages - 1]};
 
@@ -132,6 +152,28 @@ static void pagecache_reset(Allocator* allocator) {
   thread_spinlock_unlock(&cache->spinLock);
 }
 
+static void pagecache_warmup(AllocatorPageCache* cache) {
+  thread_spinlock_lock(&cache->spinLock);
+  {
+    for (u32 sizeIdx = 0; sizeIdx != array_elems(cache->freeNodes); ++sizeIdx) {
+      const usize numPages = sizeIdx + 1;
+      const usize size     = numPages * cache->pageSize;
+      for (u32 i = 0; i != g_pageCacheCountInitial[sizeIdx]; ++i) {
+        const Mem mem = alloc_alloc(g_allocPage, size, cache->pageSize);
+
+        PageCacheNode* cacheNode = mem.ptr;
+        *cacheNode               = (PageCacheNode){.next = cache->freeNodes[sizeIdx]};
+
+        cache->freeNodes[sizeIdx] = cacheNode;
+        cache->freeNodesCount[sizeIdx]++;
+
+        alloc_poison(mem);
+      }
+    }
+  }
+  thread_spinlock_unlock(&cache->spinLock);
+}
+
 static AllocatorPageCache g_allocatorIntern;
 
 Allocator* alloc_pagecache_init(void) {
@@ -148,6 +190,9 @@ Allocator* alloc_pagecache_init(void) {
   if (UNLIKELY(!g_allocatorIntern.pageSize)) {
     alloc_crash_with_msg("Invalid page-size");
   }
+
+  pagecache_warmup(&g_allocatorIntern);
+
   return (Allocator*)&g_allocatorIntern;
 }
 

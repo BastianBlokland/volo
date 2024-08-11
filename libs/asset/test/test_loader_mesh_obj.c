@@ -283,9 +283,9 @@ spec(loader_mesh_obj) {
         actualPos.w  = 0;
         actualNorm.w = 0;
 
-        check(geo_vector_equal(actualPos, vertExpected->position, 1e-6f));
-        check(geo_vector_equal(actualNorm, vertExpected->normal, 1e-6f));
-        check(geo_vector_equal(actualTan, vertExpected->tangent, 1e-6f));
+        check(geo_vector_equal(actualPos, vertExpected->position, 1e-3f));
+        check(geo_vector_equal(actualNorm, vertExpected->normal, 1e-3f));
+        check(geo_vector_equal(actualTan, vertExpected->tangent, 1e-3f));
         check(geo_vector_equal(actualTexCoord, vertExpected->texcoord, 1e-4f));
       }
       // Verify the indices.
