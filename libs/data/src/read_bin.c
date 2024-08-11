@@ -27,7 +27,7 @@ typedef struct {
   Allocator*     alloc;
   DynArray*      allocations;
   String         input;
-  const DataMeta meta;
+  DataMeta       meta;
   Mem            data;
 } ReadCtx;
 
@@ -471,25 +471,27 @@ static void data_read_bin_val_pointer(ReadCtx* ctx, DataReadResult* res) {
 }
 
 static void data_read_bin_elems(ReadCtx* ctx, const usize count, void* out, DataReadResult* res) {
-  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  const DataDecl* decl    = data_decl(ctx->reg, ctx->meta.type);
+  const void*     dataEnd = bits_ptr_offset(out, decl->size * count);
 
-  for (u64 i = 0; i != count; ++i) {
-    ReadCtx elemCtx = {
-        .reg         = ctx->reg,
-        .alloc       = ctx->alloc,
-        .allocations = ctx->allocations,
-        .input       = ctx->input,
-        .meta        = data_meta_base(ctx->meta),
-        .data        = mem_create(out, decl->size),
-    };
+  ReadCtx elemCtx = {
+      .reg         = ctx->reg,
+      .alloc       = ctx->alloc,
+      .allocations = ctx->allocations,
+      .input       = ctx->input,
+      .meta        = data_meta_base(ctx->meta),
+      .data        = mem_create(out, decl->size),
+  };
+
+  while (elemCtx.data.ptr < dataEnd) {
     data_read_bin_val_single(&elemCtx, res);
     if (UNLIKELY(res->error)) {
       return;
     }
-    out        = bits_ptr_offset(out, decl->size);
-    ctx->input = elemCtx.input; // Consume data that was taken up by the element.
+    elemCtx.data.ptr = bits_ptr_offset(elemCtx.data.ptr, decl->size);
   }
-  *res = result_success();
+  ctx->input = elemCtx.input; // Consume data that was taken up by the element.
+  *res       = result_success();
 }
 
 static void data_read_bin_val_inline_array(ReadCtx* ctx, DataReadResult* res) {
