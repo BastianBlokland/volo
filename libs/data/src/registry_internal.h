@@ -15,7 +15,8 @@ typedef struct {
 } DataDeclField;
 
 typedef struct {
-  DynArray fields; // DataDeclField[]
+  bool     hasHole; // Fields do not cover all bytes of the struct.
+  DynArray fields;  // DataDeclField[]
 } DataDeclStruct;
 
 typedef struct {

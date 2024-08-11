@@ -326,7 +326,9 @@ NO_INLINE_HINT static void data_read_bin_mem(ReadCtx* ctx, DataReadResult* res) 
 NO_INLINE_HINT static void data_read_bin_struct(ReadCtx* ctx, DataReadResult* res) {
   const DataDecl* decl = data_decl_unchecked(ctx->reg, ctx->meta.type);
 
-  mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
+  if (decl->val_struct.hasHole) {
+    mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
+  }
 
   ReadCtx fieldCtx = {
       .reg         = ctx->reg,
