@@ -72,6 +72,8 @@ void asset_data_init_mesh(void) {
 
   data_reg_struct_t(g_dataReg, AssetMeshComp);
   data_reg_field_t(g_dataReg, AssetMeshComp, flags, t_AssetMeshFlags);
+  data_reg_field_t(g_dataReg, AssetMeshComp, vertexCount, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetMeshComp, indexCount, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetMeshComp, vertexData, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
   data_reg_field_t(g_dataReg, AssetMeshComp, indexData, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
   data_reg_field_t(g_dataReg, AssetMeshComp, positionBounds, g_assetGeoBoxType);
