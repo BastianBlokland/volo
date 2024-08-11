@@ -25,12 +25,12 @@ static const u32 g_pageCacheCountMax[pagecache_pages_max] = {
 
 static const u32 g_pageCacheCountInitial[pagecache_pages_max] = {
     [0] /* 1 * pageSize (4 KiB) */  = 512,
-    [1] /* 2 * pageSize (8 KiB) */  = 256,
-    [2] /* 3 * pageSize (12 KiB) */ = 32,
+    [1] /* 2 * pageSize (8 KiB) */  = 512,
+    [2] /* 3 * pageSize (12 KiB) */ = 64,
     [3] /* 4 * pageSize (16 KiB) */ = 512,
-    [4] /* 5 * pageSize (20 KiB) */ = 8,
-    [5] /* 6 * pageSize (24 KiB) */ = 8,
-    [6] /* 7 * pageSize (28 KiB) */ = 8,
+    [4] /* 5 * pageSize (20 KiB) */ = 24,
+    [5] /* 6 * pageSize (24 KiB) */ = 24,
+    [6] /* 7 * pageSize (28 KiB) */ = 24,
     [7] /* 8 * pageSize (32 KiB) */ = 64,
 };
 
