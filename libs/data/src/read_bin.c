@@ -31,6 +31,22 @@ typedef struct {
   Mem            data;
 } ReadCtx;
 
+static usize data_meta_size_unchecked(const DataReg* reg, const DataMeta meta) {
+  switch (meta.container) {
+  case DataContainer_None:
+    return data_decl_unchecked(reg, meta.type)->size;
+  case DataContainer_Pointer:
+    return sizeof(void*);
+  case DataContainer_InlineArray:
+    return data_decl_unchecked(reg, meta.type)->size * meta.fixedCount;
+  case DataContainer_HeapArray:
+    return sizeof(HeapArray);
+  case DataContainer_DynArray:
+    return sizeof(DynArray);
+  }
+  diag_crash();
+}
+
 static bool bin_pop_u8(ReadCtx* ctx, u8* out) {
   if (UNLIKELY(ctx->input.size < sizeof(u8))) {
     return false;
@@ -298,8 +314,10 @@ static void data_read_bin_struct(ReadCtx* ctx, DataReadResult* res) {
   };
 
   dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
-    fieldCtx.meta = fieldDecl->meta;
-    fieldCtx.data = data_field_mem(ctx->reg, fieldDecl, ctx->data);
+    fieldCtx.meta      = fieldDecl->meta;
+    fieldCtx.data.ptr  = bits_ptr_offset(ctx->data.ptr, fieldDecl->offset);
+    fieldCtx.data.size = data_meta_size_unchecked(ctx->reg, fieldDecl->meta);
+
     data_read_bin_val(&fieldCtx, res);
     if (UNLIKELY(res->error)) {
       *res = result_fail(
@@ -499,7 +517,7 @@ static void data_read_bin_val_inline_array(ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!ctx->meta.fixedCount)) {
     diag_crash_msg("Inline-arrays need at least 1 entry");
   }
-  if (UNLIKELY(ctx->data.size != data_meta_size(ctx->reg, ctx->meta))) {
+  if (UNLIKELY(ctx->data.size != data_meta_size_unchecked(ctx->reg, ctx->meta))) {
     diag_crash_msg("Unexpected data-size for inline array");
   }
   data_read_bin_elems(ctx, ctx->meta.fixedCount, ctx->data.ptr, res);
