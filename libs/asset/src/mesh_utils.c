@@ -163,8 +163,9 @@ void asset_mesh_builder_grow_bounds(AssetMeshBuilder* builder, const f32 multipl
 AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
   diag_assert_msg(builder->indexData.size, "Empty mesh is invalid");
 
-  const usize vertCount = builder->vertexData.size;
-  const bool  isSkinned = builder->skinData.size != 0;
+  const u32  vertCount  = (u32)builder->vertexData.size;
+  const u32  indexCount = (u32)builder->indexData.size;
+  const bool isSkinned  = builder->skinData.size != 0;
   diag_assert(!isSkinned || builder->skinData.size == vertCount);
 
   GeoBox positionBounds = builder->positionBounds;
@@ -172,9 +173,12 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
     positionBounds = builder->positionRawBounds;
   }
 
+  const usize vertexDataSize = sizeof(AssetMeshVertexPacked) * vertCount;
+  const Mem   vertexData = alloc_alloc(g_allocHeap, vertexDataSize, alignof(AssetMeshVertexPacked));
+
   AssetMeshVertex*       vertsIn  = dynarray_begin_t(&builder->vertexData, AssetMeshVertex);
   AssetMeshSkin*         skinsIn  = dynarray_begin_t(&builder->skinData, AssetMeshSkin);
-  AssetMeshVertexPacked* vertsOut = alloc_array_t(builder->alloc, AssetMeshVertexPacked, vertCount);
+  AssetMeshVertexPacked* vertsOut = vertexData.ptr;
   if (isSkinned) {
     for (usize i = 0; i != vertCount; ++i) {
       geo_vector_pack_f16(vertsIn[i].position, vertsOut[i].data1);
@@ -207,6 +211,10 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
     }
   }
 
+  const usize indexDataSize = sizeof(AssetMeshIndex) * indexCount;
+  const Mem   indexData     = alloc_alloc(g_allocHeap, indexDataSize, sizeof(AssetMeshIndex));
+  mem_cpy(indexData, dynarray_at(&builder->indexData, 0, indexCount));
+
   AssetMeshFlags flags = 0;
   if (isSkinned) {
     flags |= AssetMeshFlags_Skinned;
@@ -214,10 +222,10 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
 
   return (AssetMeshComp){
       .flags             = flags,
-      .vertices.values   = vertsOut,
-      .vertices.count    = vertCount,
-      .indices.values    = dynarray_copy_as_new(&builder->indexData, g_allocHeap),
-      .indices.count     = builder->indexData.size,
+      .vertexCount       = vertCount,
+      .indexCount        = indexCount,
+      .vertexData        = data_mem_create(vertexData),
+      .indexData         = data_mem_create(indexData),
       .positionBounds    = positionBounds,
       .positionRawBounds = builder->positionRawBounds,
       .texcoordBounds    = builder->texcoordBounds,

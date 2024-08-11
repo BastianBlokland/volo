@@ -65,32 +65,15 @@ ecs_module_init(asset_mesh_module) {
   ecs_register_system(UnloadMeshAssetSys, ecs_view_id(UnloadView));
 }
 
-static DataType asset_mesh_index_type(void) {
-  switch (sizeof(AssetMeshIndex)) {
-  case sizeof(u16):
-    return data_prim_t(u16);
-  case sizeof(u32):
-    return data_prim_t(u32);
-  default:
-    diag_crash();
-  }
-}
-
 void asset_data_init_mesh(void) {
   // clang-format off
-  data_reg_struct_t(g_dataReg, AssetMeshVertexPacked);
-  data_reg_field_t(g_dataReg, AssetMeshVertexPacked, data1, data_prim_t(f16), .container = DataContainer_InlineArray, .fixedCount = 4);
-  data_reg_field_t(g_dataReg, AssetMeshVertexPacked, data2, data_prim_t(f16), .container = DataContainer_InlineArray, .fixedCount = 4);
-  data_reg_field_t(g_dataReg, AssetMeshVertexPacked, data3, data_prim_t(f16), .container = DataContainer_InlineArray, .fixedCount = 4);
-  data_reg_field_t(g_dataReg, AssetMeshVertexPacked, data4, data_prim_t(u16), .container = DataContainer_InlineArray, .fixedCount = 4);
-
   data_reg_enum_multi_t(g_dataReg, AssetMeshFlags);
   data_reg_const_t(g_dataReg, AssetMeshFlags, Skinned);
 
   data_reg_struct_t(g_dataReg, AssetMeshComp);
   data_reg_field_t(g_dataReg, AssetMeshComp, flags, t_AssetMeshFlags);
-  data_reg_field_t(g_dataReg, AssetMeshComp, vertices, t_AssetMeshVertexPacked, .container = DataContainer_HeapArray);
-  data_reg_field_t(g_dataReg, AssetMeshComp, indices, asset_mesh_index_type(), .container = DataContainer_HeapArray);
+  data_reg_field_t(g_dataReg, AssetMeshComp, vertexData, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
+  data_reg_field_t(g_dataReg, AssetMeshComp, indexData, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
   data_reg_field_t(g_dataReg, AssetMeshComp, positionBounds, g_assetGeoBoxType);
   data_reg_field_t(g_dataReg, AssetMeshComp, positionRawBounds, g_assetGeoBoxType);
   data_reg_field_t(g_dataReg, AssetMeshComp, texcoordBounds, g_assetGeoBoxType);
@@ -154,11 +137,8 @@ void asset_load_mesh_bin(
   if (bundle.skeleton) {
     *ecs_world_add_t(world, entity, AssetMeshSkeletonComp) = *bundle.skeleton;
     alloc_free_t(g_allocHeap, bundle.skeleton);
-
-    // NOTE: The skeleton uses external memory so we need to keep the source open while loaded.
-    ecs_world_add_t(world, entity, AssetMeshSourceComp, .src = src);
-  } else {
-    asset_repo_source_close(src);
   }
+
+  ecs_world_add_t(world, entity, AssetMeshSourceComp, .src = src);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 }
