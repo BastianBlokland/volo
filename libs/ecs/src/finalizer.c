@@ -1,7 +1,10 @@
 #include "core_diag.h"
+#include "trace_tracer.h"
 
 #include "def_internal.h"
 #include "finalizer_internal.h"
+
+// #define VOLO_ECS_TRACE_DESTRUCTORS
 
 static i8 ecs_destruct_compare_entry(const void* a, const void* b) {
   return compare_i32(
@@ -40,7 +43,16 @@ void ecs_finalizer_flush(EcsFinalizer* finalizer) {
 
   // Execute the destructs.
   dynarray_for_t(&finalizer->entries, EcsFinalizerEntry, entry) {
+#ifdef VOLO_ECS_TRACE_DESTRUCTORS
+    MAYBE_UNUSED const String compName = ecs_def_comp_name(finalizer->def, entry->compId);
+    trace_begin_msg("ecs_comp_destruct", TraceColor_Red, "destruct_{}", fmt_text(compName));
+#endif
+
     entry->destructor(entry->compData);
+
+#ifdef VOLO_ECS_TRACE_DESTRUCTORS
+    trace_end();
+#endif
   }
 
   // Clear the finalizer.
