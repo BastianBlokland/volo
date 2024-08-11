@@ -47,7 +47,7 @@ static usize data_meta_size_unchecked(const DataReg* reg, const DataMeta meta) {
   diag_crash();
 }
 
-static bool bin_pop_u8(ReadCtx* ctx, u8* out) {
+INLINE_HINT static bool bin_pop_u8(ReadCtx* ctx, u8* out) {
   if (UNLIKELY(ctx->input.size < sizeof(u8))) {
     return false;
   }
@@ -55,7 +55,7 @@ static bool bin_pop_u8(ReadCtx* ctx, u8* out) {
   return true;
 }
 
-static bool bin_pop_u16(ReadCtx* ctx, u16* out) {
+INLINE_HINT static bool bin_pop_u16(ReadCtx* ctx, u16* out) {
   if (UNLIKELY(ctx->input.size < sizeof(u16))) {
     return false;
   }
@@ -63,7 +63,7 @@ static bool bin_pop_u16(ReadCtx* ctx, u16* out) {
   return true;
 }
 
-static bool bin_pop_u32(ReadCtx* ctx, u32* out) {
+INLINE_HINT static bool bin_pop_u32(ReadCtx* ctx, u32* out) {
   if (UNLIKELY(ctx->input.size < sizeof(u32))) {
     return false;
   }
@@ -71,7 +71,7 @@ static bool bin_pop_u32(ReadCtx* ctx, u32* out) {
   return true;
 }
 
-static bool bin_pop_u64(ReadCtx* ctx, u64* out) {
+INLINE_HINT static bool bin_pop_u64(ReadCtx* ctx, u64* out) {
   if (UNLIKELY(ctx->input.size < sizeof(u64))) {
     return false;
   }
@@ -79,7 +79,7 @@ static bool bin_pop_u64(ReadCtx* ctx, u64* out) {
   return true;
 }
 
-static bool bin_pop_f16(ReadCtx* ctx, f16* out) {
+INLINE_HINT static bool bin_pop_f16(ReadCtx* ctx, f16* out) {
   if (UNLIKELY(ctx->input.size < sizeof(f16))) {
     return false;
   }
@@ -87,7 +87,7 @@ static bool bin_pop_f16(ReadCtx* ctx, f16* out) {
   return true;
 }
 
-static bool bin_pop_f32(ReadCtx* ctx, f32* out) {
+INLINE_HINT static bool bin_pop_f32(ReadCtx* ctx, f32* out) {
   if (UNLIKELY(ctx->input.size < sizeof(f32))) {
     return false;
   }
@@ -95,7 +95,7 @@ static bool bin_pop_f32(ReadCtx* ctx, f32* out) {
   return true;
 }
 
-static bool bin_pop_f64(ReadCtx* ctx, f64* out) {
+INLINE_HINT static bool bin_pop_f64(ReadCtx* ctx, f64* out) {
   if (UNLIKELY(ctx->input.size < sizeof(f64))) {
     return false;
   }
