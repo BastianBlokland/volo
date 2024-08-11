@@ -20,7 +20,7 @@
 #include "rvk/shader_internal.h"
 #include "rvk/texture_internal.h"
 
-#define rend_res_max_load_time time_milliseconds(2)
+#define rend_res_max_load_time time_millisecond
 
 /**
  * Amount of frames to delay unloading of resources.

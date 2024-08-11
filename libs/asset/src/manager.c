@@ -17,7 +17,7 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-#define asset_max_load_time_per_task time_milliseconds(2)
+#define asset_max_load_time_per_task time_millisecond
 #define asset_num_load_tasks 2
 #define asset_id_chunk_size (16 * usize_kibibyte)
 
