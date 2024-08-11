@@ -171,7 +171,7 @@ static void data_read_bin_number(ReadCtx* ctx, DataReadResult* res) {
   /**
    * NOTE: For signed values we assume the host system is using 2's complement integers.
    */
-  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  const DataDecl* decl = data_decl_unchecked(ctx->reg, ctx->meta.type);
 
   // clang-format off
   switch (decl->kind) {
@@ -286,7 +286,7 @@ static void data_read_bin_mem(ReadCtx* ctx, DataReadResult* res) {
 }
 
 static void data_read_bin_struct(ReadCtx* ctx, DataReadResult* res) {
-  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  const DataDecl* decl = data_decl_unchecked(ctx->reg, ctx->meta.type);
 
   mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
 
@@ -314,7 +314,7 @@ static void data_read_bin_struct(ReadCtx* ctx, DataReadResult* res) {
 }
 
 static const DataDeclChoice* data_read_bin_union_choice(ReadCtx* ctx, DataReadResult* res) {
-  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  const DataDecl* decl = data_decl_unchecked(ctx->reg, ctx->meta.type);
 
   u32 tag;
   if (UNLIKELY(!bin_pop_u32(ctx, &tag))) {
@@ -338,7 +338,7 @@ static const DataDeclChoice* data_read_bin_union_choice(ReadCtx* ctx, DataReadRe
 }
 
 static void data_read_bin_union(ReadCtx* ctx, DataReadResult* res) {
-  const DataDecl*       decl   = data_decl(ctx->reg, ctx->meta.type);
+  const DataDecl*       decl   = data_decl_unchecked(ctx->reg, ctx->meta.type);
   const DataDeclChoice* choice = data_read_bin_union_choice(ctx, res);
   if (UNLIKELY(res->error)) {
     return;
@@ -399,7 +399,7 @@ static void data_read_bin_enum(ReadCtx* ctx, DataReadResult* res) {
 }
 
 static void data_read_bin_val_single(ReadCtx* ctx, DataReadResult* res) {
-  switch (data_decl(ctx->reg, ctx->meta.type)->kind) {
+  switch (data_decl_unchecked(ctx->reg, ctx->meta.type)->kind) {
   case DataKind_bool:
     data_read_bin_bool(ctx, res);
     return;
@@ -453,7 +453,7 @@ static void data_read_bin_val_pointer(ReadCtx* ctx, DataReadResult* res) {
     return;
   }
 
-  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  const DataDecl* decl = data_decl_unchecked(ctx->reg, ctx->meta.type);
   const Mem       mem  = alloc_alloc(ctx->alloc, decl->size, decl->align);
   data_register_alloc(ctx, mem);
 
@@ -471,7 +471,7 @@ static void data_read_bin_val_pointer(ReadCtx* ctx, DataReadResult* res) {
 }
 
 static void data_read_bin_elems(ReadCtx* ctx, const usize count, void* out, DataReadResult* res) {
-  const DataDecl* decl    = data_decl(ctx->reg, ctx->meta.type);
+  const DataDecl* decl    = data_decl_unchecked(ctx->reg, ctx->meta.type);
   const void*     dataEnd = bits_ptr_offset(out, decl->size * count);
 
   ReadCtx elemCtx = {
@@ -505,7 +505,7 @@ static void data_read_bin_val_inline_array(ReadCtx* ctx, DataReadResult* res) {
 }
 
 static void data_read_bin_val_heap_array(ReadCtx* ctx, DataReadResult* res) {
-  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  const DataDecl* decl = data_decl_unchecked(ctx->reg, ctx->meta.type);
 
   u64 count;
   if (UNLIKELY(!bin_pop_u64(ctx, &count))) {
@@ -528,7 +528,7 @@ static void data_read_bin_val_heap_array(ReadCtx* ctx, DataReadResult* res) {
 }
 
 static void data_read_bin_val_dynarray(ReadCtx* ctx, DataReadResult* res) {
-  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  const DataDecl* decl = data_decl_unchecked(ctx->reg, ctx->meta.type);
 
   u64 count;
   if (UNLIKELY(!bin_pop_u64(ctx, &count))) {

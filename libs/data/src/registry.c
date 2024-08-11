@@ -5,11 +5,6 @@
 
 #include "registry_internal.h"
 
-struct sDataReg {
-  DynArray   types; // DataDecl[]
-  Allocator* alloc;
-};
-
 static DataId data_id_create(Allocator* alloc, const String name) {
   return (DataId){.name = string_dup(alloc, name), .hash = string_hash(name)};
 }
@@ -50,8 +45,8 @@ void data_reg_global_teardown(void) {
 DataReg* data_reg_create(Allocator* alloc) {
   DataReg* reg = alloc_alloc_t(alloc, DataReg);
   *reg         = (DataReg){
-      .types = dynarray_create_t(alloc, DataDecl, 64),
-      .alloc = alloc,
+              .types = dynarray_create_t(alloc, DataDecl, 64),
+              .alloc = alloc,
   };
 
 #define X(_T_)                                                                                     \
