@@ -10,6 +10,7 @@
 
 typedef struct {
   i32               destructOrder;
+  EcsCompId         compId;
   EcsCompDestructor destructor;
   void*             compData;
 } EcsFinalizerEntry;
