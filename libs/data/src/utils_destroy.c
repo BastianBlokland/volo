@@ -76,6 +76,7 @@ static bool data_destroy_needed(const DataReg* reg, const DataMeta meta) {
   case DataContainer_DynArray:
     return true;
   }
+  diag_crash();
 }
 
 static void data_destroy_internal(const DestroyCtx*);
