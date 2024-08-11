@@ -10,20 +10,28 @@
  * allot of sys-call traffic when relatively small allocations are freed and reallocated.
  */
 
-#define pagecache_pages_max 4
+#define pagecache_pages_max 8
 
 static const u32 g_pageCacheCountMax[pagecache_pages_max] = {
-    [0] /* 1 * pageSize (4 KiB) */  = 2048,
+    [0] /* 1 * pageSize (4 KiB) */  = 1024,
     [1] /* 2 * pageSize (8 KiB) */  = 1024,
     [2] /* 3 * pageSize (12 KiB) */ = 1024,
     [3] /* 4 * pageSize (16 KiB) */ = 1024,
+    [4] /* 5 * pageSize (20 KiB) */ = 512,
+    [5] /* 6 * pageSize (24 KiB) */ = 512,
+    [6] /* 7 * pageSize (28 KiB) */ = 512,
+    [7] /* 8 * pageSize (32 KiB) */ = 512,
 };
 
 static const u32 g_pageCacheCountInitial[pagecache_pages_max] = {
-    [0] /* 1 * pageSize (4 KiB) */  = 256,
-    [1] /* 2 * pageSize (8 KiB) */  = 128,
-    [2] /* 3 * pageSize (12 KiB) */ = 16,
-    [3] /* 4 * pageSize (16 KiB) */ = 64,
+    [0] /* 1 * pageSize (4 KiB) */  = 512,
+    [1] /* 2 * pageSize (8 KiB) */  = 256,
+    [2] /* 3 * pageSize (12 KiB) */ = 32,
+    [3] /* 4 * pageSize (16 KiB) */ = 512,
+    [4] /* 5 * pageSize (20 KiB) */ = 8,
+    [5] /* 6 * pageSize (24 KiB) */ = 8,
+    [6] /* 7 * pageSize (28 KiB) */ = 8,
+    [7] /* 8 * pageSize (32 KiB) */ = 64,
 };
 
 typedef struct sPageCacheNode {
