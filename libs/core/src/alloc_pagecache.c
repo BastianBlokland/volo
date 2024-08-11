@@ -12,7 +12,13 @@
 
 #define pagecache_pages_max 4
 #define pagecache_count_initial 64
-#define pagecache_count_max 1024
+
+static const u32 g_pageCacheCountMax[pagecache_pages_max] = {
+    [0] /* 1 * pageSize (4 KiB) */  = 2048,
+    [1] /* 2 * pageSize (8 KiB) */  = 1024,
+    [2] /* 3 * pageSize (12 KiB) */ = 1024,
+    [3] /* 4 * pageSize (16 KiB) */ = 1024,
+};
 
 typedef struct sPageCacheNode {
   struct sPageCacheNode* next;
@@ -85,7 +91,7 @@ static void pagecache_free(Allocator* allocator, const Mem mem) {
   if (numPages > pagecache_pages_max) {
     goto FreeAllocation;
   }
-  if (cache->freeNodesCount[numPages - 1] >= pagecache_count_max) {
+  if (cache->freeNodesCount[numPages - 1] >= g_pageCacheCountMax[numPages - 1]) {
     goto FreeAllocation; // Already have enough cached of this size.
   }
 
