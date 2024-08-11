@@ -434,9 +434,8 @@ NO_INLINE_HINT static void data_read_bin_enum(ReadCtx* ctx, DataReadResult* res)
     *res = result_fail_truncated();
     return;
   }
-  *mem_as_t(ctx->data, i32) = (i32)val;
-
-  *res = result_success();
+  *(i32*)ctx->data.ptr = (i32)val;
+  *res                 = result_success();
 }
 
 INLINE_HINT static void data_read_bin_val_single(ReadCtx* ctx, DataReadResult* res) {
