@@ -290,15 +290,16 @@ static void data_read_bin_struct(ReadCtx* ctx, DataReadResult* res) {
 
   mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
 
+  ReadCtx fieldCtx = {
+      .reg         = ctx->reg,
+      .alloc       = ctx->alloc,
+      .allocations = ctx->allocations,
+      .input       = ctx->input,
+  };
+
   dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
-    ReadCtx fieldCtx = {
-        .reg         = ctx->reg,
-        .alloc       = ctx->alloc,
-        .allocations = ctx->allocations,
-        .input       = ctx->input,
-        .meta        = fieldDecl->meta,
-        .data        = data_field_mem(ctx->reg, fieldDecl, ctx->data),
-    };
+    fieldCtx.meta = fieldDecl->meta;
+    fieldCtx.data = data_field_mem(ctx->reg, fieldDecl, ctx->data);
     data_read_bin_val(&fieldCtx, res);
     if (UNLIKELY(res->error)) {
       *res = result_fail(
@@ -308,9 +309,9 @@ static void data_read_bin_struct(ReadCtx* ctx, DataReadResult* res) {
           fmt_text(res->errorMsg));
       return;
     }
-    ctx->input = fieldCtx.input; // Consume data that was taken up by the field.
   }
-  *res = result_success();
+  ctx->input = fieldCtx.input; // Consume data that was taken up by the field.
+  *res       = result_success();
 }
 
 static const DataDeclChoice* data_read_bin_union_choice(ReadCtx* ctx, DataReadResult* res) {
