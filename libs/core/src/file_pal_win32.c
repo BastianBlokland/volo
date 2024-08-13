@@ -313,7 +313,7 @@ FileResult file_pal_unmap(File* file, FileMapping* mapping) {
   (void)file;
   diag_assert_msg(mapping->ptr, "Invalid mapping");
 
-  const bool success = UnmapViewOfFile(mapping->addr) && CloseHandle((HANDLE)mapping->mappingObj);
+  const bool success = UnmapViewOfFile(mapping->ptr) && CloseHandle((HANDLE)mapping->handle);
   if (UNLIKELY(!success)) {
     diag_crash_msg("UnmapViewOfFile() or CloseHandle() failed");
   }
