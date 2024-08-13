@@ -263,15 +263,15 @@ FileResult file_pal_map(File* file, FileMapping* out) {
   return FileResult_Success;
 }
 
-FileResult file_unmap(File* file) {
-  diag_assert_msg(file->mapping.ptr, "File not mapped");
+FileResult file_pal_unmap(File* file, FileMapping* mapping) {
+  (void)file;
+  diag_assert_msg(mapping->ptr, "Invalid mapping");
 
-  const int res = munmap(file->mapping.ptr, file->mapping.size);
+  const int res = munmap(mapping->ptr, mapping->size);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("munmap() failed: {} (errno: {})", fmt_int(res), fmt_int(errno));
   }
 
-  file->mapping = (FileMapping){0};
   return FileResult_Success;
 }
 

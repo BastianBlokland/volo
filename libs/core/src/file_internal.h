@@ -30,6 +30,7 @@ FileResult file_pal_temp(Allocator*, File** file);
 void       file_pal_destroy(File*);
 
 FileResult file_pal_map(File*, FileMapping* out);
+FileResult file_pal_unmap(File*, FileMapping* mapping);
 
 /**
  * Synchonously create a single directory.

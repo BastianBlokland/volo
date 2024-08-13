@@ -81,6 +81,16 @@ FileResult file_map(File* file, String* output) {
   return res;
 }
 
+FileResult file_unmap(File* file) {
+  diag_assert_msg(file->mapping.ptr, "File not mapped");
+
+  const FileResult res = file_pal_unmap(file, &file->mapping);
+  if (res == FileResult_Success) {
+    file->mapping = (FileMapping){0};
+  }
+  return res;
+}
+
 FileResult file_write_to_path_sync(const String path, const String data) {
   File*      file = null;
   FileResult res;
