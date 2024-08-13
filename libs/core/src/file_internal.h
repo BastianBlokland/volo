@@ -12,7 +12,7 @@ typedef struct {
 #if defined(VOLO_LINUX)
 typedef int FileHandle;
 #elif defined(VOLO_WIN32)
-typedef uptr FileHandle;
+typedef void* FileHandle;
 #else
 #error Unsupported platform
 #endif
