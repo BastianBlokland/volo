@@ -1,10 +1,18 @@
 #pragma once
 #include "core_file.h"
 
+typedef struct {
+#if defined(VOLO_WIN32)
+  uptr handle;
+#endif
+  void* ptr;
+  usize size;
+} FileMapping;
+
 #if defined(VOLO_LINUX)
 typedef int FileHandle;
 #elif defined(VOLO_WIN32)
-typedef void* FileHandle;
+typedef uptr FileHandle;
 #else
 #error Unsupported platform
 #endif
@@ -12,7 +20,7 @@ typedef void* FileHandle;
 struct sFile {
   FileHandle      handle;
   FileAccessFlags access;
-  void*           mapping;
+  FileMapping     mapping;
   Allocator*      alloc;
 };
 

@@ -13,11 +13,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-typedef struct {
-  void* addr;
-  usize size;
-} FileMapping;
-
 File* g_fileStdIn  = &(File){.handle = 0, .access = FileAccess_Read};
 File* g_fileStdOut = &(File){.handle = 1, .access = FileAccess_Write};
 File* g_fileStdErr = &(File){.handle = 2, .access = FileAccess_Write};
@@ -127,13 +122,11 @@ FileResult file_pal_temp(Allocator* alloc, File** file) {
 void file_pal_destroy(File* file) {
   diag_assert_msg(file->alloc, "Invalid file");
 
-  if (file->mapping) {
-    FileMapping* mapping = file->mapping;
-    const int    res     = munmap(mapping->addr, mapping->size);
+  if (file->mapping.ptr) {
+    const int res = munmap(file->mapping.ptr, file->mapping.size);
     if (UNLIKELY(res != 0)) {
       diag_crash_msg("munmap() failed: {} (errno: {})", fmt_int(res), fmt_int(errno));
     }
-    alloc_free_t(file->alloc, mapping);
   }
 
   close(file->handle);
@@ -267,31 +260,21 @@ FileResult file_map(File* file, String* output) {
     return fileresult_from_errno();
   }
 
-  file->mapping = alloc_alloc_t(file->alloc, FileMapping);
-  if (UNLIKELY(!file->mapping)) {
-    const int res = munmap(addr, size);
-    if (UNLIKELY(res != 0)) {
-      diag_crash_msg("munmap() failed: {} (errno: {})", fmt_int(res), fmt_int(errno));
-    }
-    return FileResult_AllocationFailed;
-  }
+  file->mapping = (FileMapping){.ptr = addr, .size = size};
 
-  *(FileMapping*)file->mapping = (FileMapping){.addr = addr, .size = size};
-  *output                      = mem_create(addr, size);
+  *output = mem_create(addr, size);
   return FileResult_Success;
 }
 
 FileResult file_unmap(File* file) {
-  diag_assert_msg(file->mapping, "File not mapped");
+  diag_assert_msg(file->mapping.ptr, "File not mapped");
 
-  FileMapping* mapping = file->mapping;
-  const int    res     = munmap(mapping->addr, mapping->size);
+  const int res = munmap(file->mapping.ptr, file->mapping.size);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("munmap() failed: {} (errno: {})", fmt_int(res), fmt_int(errno));
   }
 
-  alloc_free(file->alloc, mem_create(file->mapping, sizeof(FileMapping)));
-  file->mapping = null;
+  file->mapping = (FileMapping){0};
   return FileResult_Success;
 }
 

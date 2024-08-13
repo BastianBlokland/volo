@@ -10,11 +10,6 @@
 
 #include <Windows.h>
 
-typedef struct {
-  HANDLE mappingObj;
-  void*  addr;
-} FileMapping;
-
 File* g_fileStdIn;
 File* g_fileStdOut;
 File* g_fileStdErr;
@@ -183,13 +178,12 @@ FileResult file_pal_temp(Allocator* alloc, File** file) {
 void file_pal_destroy(File* file) {
   diag_assert_msg(file->alloc, "Invalid file");
 
-  if (file->mapping) {
-    FileMapping* mapping = file->mapping;
-    const bool   success = UnmapViewOfFile(mapping->addr) && CloseHandle(mapping->mappingObj);
+  if (file->mapping.ptr) {
+    FileMapping* mapping = &file->mapping;
+    const bool   success = UnmapViewOfFile(mapping->addr) && CloseHandle((HANDLE)mapping->handle);
     if (UNLIKELY(!success)) {
       diag_crash_msg("UnmapViewOfFile() or CloseHandle() failed");
     }
-    alloc_free_t(file->alloc, mapping);
   }
 
   CloseHandle(file->handle);
@@ -320,31 +314,22 @@ FileResult file_map(File* file, String* output) {
     return fileresult_from_lasterror();
   }
 
-  file->mapping = alloc_alloc_t(file->alloc, FileMapping);
-  if (UNLIKELY(!file->mapping)) {
-    const bool success = UnmapViewOfFile(addr) && CloseHandle(mappingObj);
-    if (UNLIKELY(!success)) {
-      diag_crash_msg("UnmapViewOfFile() or CloseHandle() failed");
-    }
-    return FileResult_AllocationFailed;
-  }
+  file->mapping = (FileMapping){.handle = (uptr)mappingObj, .ptr = addr, .size = size};
 
-  *(FileMapping*)file->mapping = (FileMapping){.mappingObj = mappingObj, .addr = addr};
-  *output                      = mem_create(addr, (usize)size.QuadPart);
+  *output = mem_create(addr, (usize)size.QuadPart);
   return FileResult_Success;
 }
 
 FileResult file_unmap(File* file) {
-  diag_assert_msg(file->mapping, "File not mapped");
+  diag_assert_msg(file->mapping.ptr, "File not mapped");
 
   FileMapping* mapping = file->mapping;
-  const bool   success = UnmapViewOfFile(mapping->addr) && CloseHandle(mapping->mappingObj);
+  const bool   success = UnmapViewOfFile(mapping->addr) && CloseHandle((HANDLE)mapping->mappingObj);
   if (UNLIKELY(!success)) {
     diag_crash_msg("UnmapViewOfFile() or CloseHandle() failed");
   }
 
-  alloc_free(file->alloc, mem_create(file->mapping, sizeof(FileMapping)));
-  file->mapping = null;
+  file->mapping = (FileMapping){0};
   return FileResult_Success;
 }
 
