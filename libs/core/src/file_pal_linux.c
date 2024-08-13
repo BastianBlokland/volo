@@ -122,13 +122,6 @@ FileResult file_pal_temp(Allocator* alloc, File** file) {
 void file_pal_destroy(File* file) {
   diag_assert_msg(file->alloc, "Invalid file");
 
-  if (file->mapping.ptr) {
-    const int res = munmap(file->mapping.ptr, file->mapping.size);
-    if (UNLIKELY(res != 0)) {
-      diag_crash_msg("munmap() failed: {} (errno: {})", fmt_int(res), fmt_int(errno));
-    }
-  }
-
   close(file->handle);
   alloc_free_t(file->alloc, file);
 }

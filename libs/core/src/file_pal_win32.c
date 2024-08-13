@@ -178,14 +178,6 @@ FileResult file_pal_temp(Allocator* alloc, File** file) {
 void file_pal_destroy(File* file) {
   diag_assert_msg(file->alloc, "Invalid file");
 
-  if (file->mapping.ptr) {
-    FileMapping* mapping = &file->mapping;
-    const bool   success = UnmapViewOfFile(mapping->addr) && CloseHandle((HANDLE)mapping->handle);
-    if (UNLIKELY(!success)) {
-      diag_crash_msg("UnmapViewOfFile() or CloseHandle() failed");
-    }
-  }
-
   CloseHandle(file->handle);
   alloc_free_t(file->alloc, file);
 }

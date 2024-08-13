@@ -65,6 +65,10 @@ FileResult file_temp(Allocator* alloc, File** file) {
 }
 
 void file_destroy(File* file) {
+  if (file->mapping.ptr) {
+    file_pal_unmap(file, &file->mapping);
+  }
+
   file_pal_destroy(file);
   if (UNLIKELY(thread_atomic_sub_i64(&g_fileCount, 1) <= 0)) {
     diag_crash_msg("file: Double destroy of File");
