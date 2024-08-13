@@ -174,6 +174,7 @@ FileResult file_unmap(File*);
 FileResult file_create_dir_sync(String path);
 
 /**
- * Returns the amount of currently loaded files.
+ * Global file statistics.
  */
-u32 file_count();
+u32   file_count(void);
+usize file_mapping_size(void);

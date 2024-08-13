@@ -8,7 +8,7 @@
 #include "file_internal.h"
 #include "init_internal.h"
 
-static i64 g_fileCount;
+static i64 g_fileCount, g_fileMappingSize;
 
 static const String g_fileResultStrs[] = {
     string_static("FileSuccess"),
@@ -41,6 +41,9 @@ void file_leak_detect(void) {
   if (UNLIKELY(thread_atomic_load_i64(&g_fileCount) != 0)) {
     diag_crash_msg("file: {} handle(s) leaked", fmt_int(g_fileCount));
   }
+  if (UNLIKELY(thread_atomic_load_i64(&g_fileMappingSize) != 0)) {
+    diag_crash_msg("file: mappings leaked (size: {})", fmt_size(g_fileMappingSize));
+  }
 }
 
 FileResult file_create(
@@ -65,10 +68,37 @@ FileResult file_temp(Allocator* alloc, File** file) {
 }
 
 void file_destroy(File* file) {
+  if (file->mapping.ptr) {
+    file_pal_unmap(file, &file->mapping);
+    thread_atomic_sub_i64(&g_fileMappingSize, (i64)file->mapping.size);
+  }
+
   file_pal_destroy(file);
   if (UNLIKELY(thread_atomic_sub_i64(&g_fileCount, 1) <= 0)) {
     diag_crash_msg("file: Double destroy of File");
   }
+}
+
+FileResult file_map(File* file, String* output) {
+  diag_assert_msg(!file->mapping.ptr, "File is already mapped");
+
+  const FileResult res = file_pal_map(file, &file->mapping);
+  if (res == FileResult_Success) {
+    thread_atomic_add_i64(&g_fileMappingSize, (i64)file->mapping.size);
+    *output = mem_create(file->mapping.ptr, file->mapping.size);
+  }
+  return res;
+}
+
+FileResult file_unmap(File* file) {
+  diag_assert_msg(file->mapping.ptr, "File not mapped");
+
+  const FileResult res = file_pal_unmap(file, &file->mapping);
+  if (res == FileResult_Success) {
+    thread_atomic_sub_i64(&g_fileMappingSize, (i64)file->mapping.size);
+    file->mapping = (FileMapping){0};
+  }
+  return res;
 }
 
 FileResult file_write_to_path_sync(const String path, const String data) {
@@ -125,4 +155,5 @@ FileResult file_create_dir_sync(String path) {
   return file_pal_create_dir_single_sync(path);
 }
 
-u32 file_count(void) { return (u32)thread_atomic_load_i64(&g_fileCount); }
+u32   file_count(void) { return (u32)thread_atomic_load_i64(&g_fileCount); }
+usize file_mapping_size(void) { return (usize)thread_atomic_load_i64(&g_fileMappingSize); }

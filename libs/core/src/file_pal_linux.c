@@ -13,11 +13,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-typedef struct {
-  void* addr;
-  usize size;
-} FileMapping;
-
 File* g_fileStdIn  = &(File){.handle = 0, .access = FileAccess_Read};
 File* g_fileStdOut = &(File){.handle = 1, .access = FileAccess_Write};
 File* g_fileStdErr = &(File){.handle = 2, .access = FileAccess_Write};
@@ -126,15 +121,6 @@ FileResult file_pal_temp(Allocator* alloc, File** file) {
 
 void file_pal_destroy(File* file) {
   diag_assert_msg(file->alloc, "Invalid file");
-
-  if (file->mapping) {
-    FileMapping* mapping = file->mapping;
-    const int    res     = munmap(mapping->addr, mapping->size);
-    if (UNLIKELY(res != 0)) {
-      diag_crash_msg("munmap() failed: {} (errno: {})", fmt_int(res), fmt_int(errno));
-    }
-    alloc_free_t(file->alloc, mapping);
-  }
 
   close(file->handle);
   alloc_free_t(file->alloc, file);
@@ -246,8 +232,7 @@ FileResult file_delete_dir_sync(String path) {
   return FileResult_Success;
 }
 
-FileResult file_map(File* file, String* output) {
-  diag_assert_msg(!file->mapping, "File is already mapped");
+FileResult file_pal_map(File* file, FileMapping* out) {
   diag_assert_msg(file->access != 0, "File handle does not have read or write access");
 
   const usize size = file_stat_sync(file).size;
@@ -267,31 +252,19 @@ FileResult file_map(File* file, String* output) {
     return fileresult_from_errno();
   }
 
-  file->mapping = alloc_alloc_t(file->alloc, FileMapping);
-  if (UNLIKELY(!file->mapping)) {
-    const int res = munmap(addr, size);
-    if (UNLIKELY(res != 0)) {
-      diag_crash_msg("munmap() failed: {} (errno: {})", fmt_int(res), fmt_int(errno));
-    }
-    return FileResult_AllocationFailed;
-  }
-
-  *(FileMapping*)file->mapping = (FileMapping){.addr = addr, .size = size};
-  *output                      = mem_create(addr, size);
+  *out = (FileMapping){.ptr = addr, .size = size};
   return FileResult_Success;
 }
 
-FileResult file_unmap(File* file) {
-  diag_assert_msg(file->mapping, "File not mapped");
+FileResult file_pal_unmap(File* file, FileMapping* mapping) {
+  (void)file;
+  diag_assert_msg(mapping->ptr, "Invalid mapping");
 
-  FileMapping* mapping = file->mapping;
-  const int    res     = munmap(mapping->addr, mapping->size);
+  const int res = munmap(mapping->ptr, mapping->size);
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("munmap() failed: {} (errno: {})", fmt_int(res), fmt_int(errno));
   }
 
-  alloc_free(file->alloc, mem_create(file->mapping, sizeof(FileMapping)));
-  file->mapping = null;
   return FileResult_Success;
 }
 

@@ -1,6 +1,14 @@
 #pragma once
 #include "core_file.h"
 
+typedef struct {
+#if defined(VOLO_WIN32)
+  uptr handle;
+#endif
+  void* ptr;
+  usize size;
+} FileMapping;
+
 #if defined(VOLO_LINUX)
 typedef int FileHandle;
 #elif defined(VOLO_WIN32)
@@ -12,7 +20,7 @@ typedef void* FileHandle;
 struct sFile {
   FileHandle      handle;
   FileAccessFlags access;
-  void*           mapping;
+  FileMapping     mapping;
   Allocator*      alloc;
 };
 
@@ -20,6 +28,9 @@ void       file_pal_init(void);
 FileResult file_pal_create(Allocator*, String path, FileMode, FileAccessFlags, File** file);
 FileResult file_pal_temp(Allocator*, File** file);
 void       file_pal_destroy(File*);
+
+FileResult file_pal_map(File*, FileMapping* out);
+FileResult file_pal_unmap(File*, FileMapping* mapping);
 
 /**
  * Synchonously create a single directory.

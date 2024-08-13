@@ -10,11 +10,6 @@
 
 #include <Windows.h>
 
-typedef struct {
-  HANDLE mappingObj;
-  void*  addr;
-} FileMapping;
-
 File* g_fileStdIn;
 File* g_fileStdOut;
 File* g_fileStdErr;
@@ -183,15 +178,6 @@ FileResult file_pal_temp(Allocator* alloc, File** file) {
 void file_pal_destroy(File* file) {
   diag_assert_msg(file->alloc, "Invalid file");
 
-  if (file->mapping) {
-    FileMapping* mapping = file->mapping;
-    const bool   success = UnmapViewOfFile(mapping->addr) && CloseHandle(mapping->mappingObj);
-    if (UNLIKELY(!success)) {
-      diag_crash_msg("UnmapViewOfFile() or CloseHandle() failed");
-    }
-    alloc_free_t(file->alloc, mapping);
-  }
-
   CloseHandle(file->handle);
   alloc_free_t(file->alloc, file);
 }
@@ -293,8 +279,7 @@ FileResult file_delete_dir_sync(String path) {
   return success ? FileResult_Success : fileresult_from_lasterror();
 }
 
-FileResult file_map(File* file, String* output) {
-  diag_assert_msg(!file->mapping, "File is already mapped");
+FileResult file_pal_map(File* file, FileMapping* out) {
   diag_assert_msg(file->access != 0, "File handle does not have read or write access");
 
   LARGE_INTEGER size;
@@ -320,31 +305,19 @@ FileResult file_map(File* file, String* output) {
     return fileresult_from_lasterror();
   }
 
-  file->mapping = alloc_alloc_t(file->alloc, FileMapping);
-  if (UNLIKELY(!file->mapping)) {
-    const bool success = UnmapViewOfFile(addr) && CloseHandle(mappingObj);
-    if (UNLIKELY(!success)) {
-      diag_crash_msg("UnmapViewOfFile() or CloseHandle() failed");
-    }
-    return FileResult_AllocationFailed;
-  }
-
-  *(FileMapping*)file->mapping = (FileMapping){.mappingObj = mappingObj, .addr = addr};
-  *output                      = mem_create(addr, (usize)size.QuadPart);
+  *out = (FileMapping){.handle = (uptr)mappingObj, .ptr = addr, .size = (usize)size.QuadPart};
   return FileResult_Success;
 }
 
-FileResult file_unmap(File* file) {
-  diag_assert_msg(file->mapping, "File not mapped");
+FileResult file_pal_unmap(File* file, FileMapping* mapping) {
+  (void)file;
+  diag_assert_msg(mapping->ptr, "Invalid mapping");
 
-  FileMapping* mapping = file->mapping;
-  const bool   success = UnmapViewOfFile(mapping->addr) && CloseHandle(mapping->mappingObj);
+  const bool success = UnmapViewOfFile(mapping->ptr) && CloseHandle((HANDLE)mapping->handle);
   if (UNLIKELY(!success)) {
     diag_crash_msg("UnmapViewOfFile() or CloseHandle() failed");
   }
 
-  alloc_free(file->alloc, mem_create(file->mapping, sizeof(FileMapping)));
-  file->mapping = null;
   return FileResult_Success;
 }
 
