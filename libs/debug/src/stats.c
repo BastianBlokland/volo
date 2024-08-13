@@ -72,9 +72,10 @@ ecs_comp_define(DebugStatsComp) {
 ecs_comp_define(DebugStatsGlobalComp) {
   DynArray notifications; // DebugStatsNotification[].
 
-  u64 allocPrevPageCounter, allocPrevHeapCounter, allocPrevPersistCounter;
-  u32 fileCount, dynlibCount;
-  u32 globalStringCount;
+  u64   allocPrevPageCounter, allocPrevHeapCounter, allocPrevPersistCounter;
+  u32   fileCount, dynlibCount;
+  usize fileMappingSize;
+  u32   globalStringCount;
 
   DebugStatPlot ecsFlushDurUs; // In microseconds.
 };
@@ -514,7 +515,8 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Renderer chunks"), fmt_write_scratch("{}", fmt_int(rendStats->memChunks)));
     stats_draw_val_entry(canvas, string_lit("Renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
     stats_draw_val_entry(canvas, string_lit("GPU (on device)"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
-    stats_draw_val_entry(canvas, string_lit("Handles"), fmt_write_scratch("file: {<2} dynlib: {}", fmt_int(statsGlobal->fileCount), fmt_int(statsGlobal->dynlibCount)));
+    stats_draw_val_entry(canvas, string_lit("File"), fmt_write_scratch("handles: {<3} map: {}", fmt_int(statsGlobal->fileCount), fmt_size(statsGlobal->fileMappingSize)));
+    stats_draw_val_entry(canvas, string_lit("DynLib"), fmt_write_scratch("handles: {<3}", fmt_int(statsGlobal->dynlibCount)));
     stats_draw_val_entry(canvas, string_lit("StringTable"), fmt_write_scratch("global: {}", fmt_int(statsGlobal->globalStringCount)));
     stats_draw_val_entry(canvas, string_lit("Data"), fmt_write_scratch("types: {}", fmt_int(data_type_count(g_dataReg))));
   }
@@ -606,6 +608,7 @@ debug_stats_global_update(DebugStatsGlobalComp* statsGlobal, const EcsRunnerStat
   debug_notify_prune_older(statsGlobal, oldestNotifToKeep);
 
   statsGlobal->fileCount         = file_count();
+  statsGlobal->fileMappingSize   = file_mapping_size();
   statsGlobal->dynlibCount       = dynlib_count();
   statsGlobal->globalStringCount = stringtable_count(g_stringtable);
 
