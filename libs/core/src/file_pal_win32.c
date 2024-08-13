@@ -287,8 +287,7 @@ FileResult file_delete_dir_sync(String path) {
   return success ? FileResult_Success : fileresult_from_lasterror();
 }
 
-FileResult file_map(File* file, String* output) {
-  diag_assert_msg(!file->mapping, "File is already mapped");
+FileResult file_pal_map(File* file, FileMapping* out) {
   diag_assert_msg(file->access != 0, "File handle does not have read or write access");
 
   LARGE_INTEGER size;
@@ -314,9 +313,7 @@ FileResult file_map(File* file, String* output) {
     return fileresult_from_lasterror();
   }
 
-  file->mapping = (FileMapping){.handle = (uptr)mappingObj, .ptr = addr, .size = size};
-
-  *output = mem_create(addr, (usize)size.QuadPart);
+  *out = (FileMapping){.handle = (uptr)mappingObj, .ptr = addr, .size = (usize)size.QuadPart};
   return FileResult_Success;
 }
 

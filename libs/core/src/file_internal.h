@@ -29,6 +29,8 @@ FileResult file_pal_create(Allocator*, String path, FileMode, FileAccessFlags, F
 FileResult file_pal_temp(Allocator*, File** file);
 void       file_pal_destroy(File*);
 
+FileResult file_pal_map(File*, FileMapping* out);
+
 /**
  * Synchonously create a single directory.
  * Pre-condition: Parent directory must exist.

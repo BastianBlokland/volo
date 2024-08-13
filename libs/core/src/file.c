@@ -71,6 +71,16 @@ void file_destroy(File* file) {
   }
 }
 
+FileResult file_map(File* file, String* output) {
+  diag_assert_msg(!file->mapping.ptr, "File is already mapped");
+
+  const FileResult res = file_pal_map(file, &file->mapping);
+  if (res == FileResult_Success) {
+    *output = mem_create(file->mapping.ptr, file->mapping.size);
+  }
+  return res;
+}
+
 FileResult file_write_to_path_sync(const String path, const String data) {
   File*      file = null;
   FileResult res;
