@@ -41,6 +41,9 @@ void file_leak_detect(void) {
   if (UNLIKELY(thread_atomic_load_i64(&g_fileCount) != 0)) {
     diag_crash_msg("file: {} handle(s) leaked", fmt_int(g_fileCount));
   }
+  if (UNLIKELY(thread_atomic_load_i64(&g_fileMappingSize) != 0)) {
+    diag_crash_msg("file: mappings leaked (size: {})", fmt_size(g_fileMappingSize));
+  }
 }
 
 FileResult file_create(
