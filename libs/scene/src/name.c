@@ -4,6 +4,7 @@
 #include "ecs_world.h"
 #include "scene_level.h"
 #include "scene_name.h"
+#include "scene_prefab.h"
 #include "scene_renderable.h"
 #include "scene_vfx.h"
 
@@ -12,6 +13,7 @@ ecs_comp_define_public(SceneNameComp);
 ecs_view_define(InitDebugView) {
   ecs_access_with(SceneLevelInstanceComp);
   ecs_access_without(SceneNameComp);
+  ecs_access_maybe_read(ScenePrefabInstanceComp);
   ecs_access_maybe_read(SceneRenderableComp);
   ecs_access_maybe_read(SceneVfxDecalComp);
   ecs_access_maybe_read(SceneVfxSystemComp);
@@ -19,11 +21,16 @@ ecs_view_define(InitDebugView) {
 
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 
-static String scene_debug_name_from_asset(const AssetComp* assetComp) {
-  return path_stem(asset_id(assetComp));
+static StringHash scene_debug_name_from_asset(const AssetComp* assetComp) {
+  const String nameStr = path_stem(asset_id(assetComp));
+  return stringtable_add(g_stringtable, nameStr);
 }
 
-static String scene_debug_name_find(EcsIterator* entityItr, EcsIterator* assetItr) {
+static StringHash scene_debug_name_find(EcsIterator* entityItr, EcsIterator* assetItr) {
+  const ScenePrefabInstanceComp* prefabInst = ecs_view_read_t(entityItr, ScenePrefabInstanceComp);
+  if (prefabInst) {
+    return prefabInst->prefabId;
+  }
   const SceneRenderableComp* renderable = ecs_view_read_t(entityItr, SceneRenderableComp);
   if (renderable && ecs_view_maybe_jump(assetItr, renderable->graphic)) {
     const AssetComp* assetComp = ecs_view_read_t(assetItr, AssetComp);
@@ -39,7 +46,7 @@ static String scene_debug_name_find(EcsIterator* entityItr, EcsIterator* assetIt
     const AssetComp* assetComp = ecs_view_read_t(assetItr, AssetComp);
     return scene_debug_name_from_asset(assetComp);
   }
-  return string_lit("unnamed");
+  return stringtable_add(g_stringtable, string_lit("unnamed"));
 }
 
 ecs_system_define(SceneNameInitSys) {
@@ -50,9 +57,8 @@ ecs_system_define(SceneNameInitSys) {
    */
   EcsView* initView = ecs_world_view_t(world, InitDebugView);
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
-    const String     debugName     = scene_debug_name_find(itr, assetItr);
-    const StringHash debugNameHash = stringtable_add(g_stringtable, debugName);
-    ecs_world_add_t(world, ecs_view_entity(itr), SceneNameComp, .name = debugNameHash);
+    const StringHash debugName = scene_debug_name_find(itr, assetItr);
+    ecs_world_add_t(world, ecs_view_entity(itr), SceneNameComp, .name = debugName);
   }
 }
 
