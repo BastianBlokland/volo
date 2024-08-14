@@ -6,6 +6,7 @@
 #include "scene_name.h"
 #include "scene_prefab.h"
 #include "scene_renderable.h"
+#include "scene_sound.h"
 #include "scene_vfx.h"
 
 ecs_comp_define_public(SceneNameComp);
@@ -15,6 +16,7 @@ ecs_view_define(InitDebugView) {
   ecs_access_without(SceneNameComp);
   ecs_access_maybe_read(ScenePrefabInstanceComp);
   ecs_access_maybe_read(SceneRenderableComp);
+  ecs_access_maybe_read(SceneSoundComp);
   ecs_access_maybe_read(SceneVfxDecalComp);
   ecs_access_maybe_read(SceneVfxSystemComp);
 }
@@ -33,18 +35,19 @@ static StringHash scene_debug_name_find(EcsIterator* entityItr, EcsIterator* ass
   }
   const SceneRenderableComp* renderable = ecs_view_read_t(entityItr, SceneRenderableComp);
   if (renderable && ecs_view_maybe_jump(assetItr, renderable->graphic)) {
-    const AssetComp* assetComp = ecs_view_read_t(assetItr, AssetComp);
-    return scene_debug_name_from_asset(assetComp);
+    return scene_debug_name_from_asset(ecs_view_read_t(assetItr, AssetComp));
   }
   const SceneVfxDecalComp* vfxDecal = ecs_view_read_t(entityItr, SceneVfxDecalComp);
   if (vfxDecal && ecs_view_maybe_jump(assetItr, vfxDecal->asset)) {
-    const AssetComp* assetComp = ecs_view_read_t(assetItr, AssetComp);
-    return scene_debug_name_from_asset(assetComp);
+    return scene_debug_name_from_asset(ecs_view_read_t(assetItr, AssetComp));
   }
   const SceneVfxSystemComp* vfxSystem = ecs_view_read_t(entityItr, SceneVfxSystemComp);
   if (vfxSystem && ecs_view_maybe_jump(assetItr, vfxSystem->asset)) {
-    const AssetComp* assetComp = ecs_view_read_t(assetItr, AssetComp);
-    return scene_debug_name_from_asset(assetComp);
+    return scene_debug_name_from_asset(ecs_view_read_t(assetItr, AssetComp));
+  }
+  const SceneSoundComp* soundComp = ecs_view_read_t(entityItr, SceneSoundComp);
+  if (soundComp && ecs_view_maybe_jump(assetItr, soundComp->asset)) {
+    return scene_debug_name_from_asset(ecs_view_read_t(assetItr, AssetComp));
   }
   return stringtable_add(g_stringtable, string_lit("unnamed"));
 }
