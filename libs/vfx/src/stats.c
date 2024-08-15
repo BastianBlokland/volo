@@ -52,3 +52,13 @@ ecs_module_init(vfx_stats_module) {
 
   ecs_register_system(VfxStatsUpdateSys, ecs_view_id(GlobalStatsView), ecs_view_id(StatsView));
 }
+
+String vfx_stat_name(const VfxStat stat) {
+  static const String g_names[VfxStat_Count] = {
+      [VfxStat_SpriteCount]   = string_static("Sprites"),
+      [VfxStat_ParticleCount] = string_static("Particles"),
+      [VfxStat_LightCount]    = string_static("Lights"),
+      [VfxStat_StampCount]    = string_static("Stamps"),
+  };
+  return g_names[stat];
+}

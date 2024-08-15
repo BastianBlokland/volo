@@ -4,8 +4,8 @@
 typedef enum {
   VfxStat_SpriteCount,
   VfxStat_ParticleCount,
-  VfxStat_StampCount,
   VfxStat_LightCount,
+  VfxStat_StampCount,
 
   VfxStat_Count,
 } VfxStat;
@@ -16,3 +16,5 @@ ecs_comp_extern_public(VfxStatsComp) {
 };
 
 ecs_comp_extern_public(VfxStatsGlobalComp) { i32 values[VfxStat_Count]; };
+
+String vfx_stat_name(VfxStat);
