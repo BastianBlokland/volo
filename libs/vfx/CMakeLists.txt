@@ -10,6 +10,7 @@ add_library(lib_vfx STATIC
   src/draw.c
   src/register.c
   src/sprite.c
+  src/stamp.c
   src/system.c
   src/warp.c
   )
