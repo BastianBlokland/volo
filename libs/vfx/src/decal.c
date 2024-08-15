@@ -276,8 +276,8 @@ ecs_system_define(VfxDecalInitSys) {
   }
   const SceneTimeComp*       timeComp     = ecs_view_read_t(globalItr, SceneTimeComp);
   const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
-  const AssetAtlasComp*      atlasColor   = vfx_atlas(world, atlasManager, VfxAtlasType_DecalColor);
-  const AssetAtlasComp*      atlasNormal = vfx_atlas(world, atlasManager, VfxAtlasType_DecalNormal);
+  const AssetAtlasComp*      atlasColor   = vfx_atlas(world, atlasManager, VfxAtlasType_StampColor);
+  const AssetAtlasComp*      atlasNormal = vfx_atlas(world, atlasManager, VfxAtlasType_StampNormal);
   if (!atlasColor || !atlasNormal) {
     return; // Atlas hasn't loaded yet.
   }
@@ -463,8 +463,8 @@ ecs_system_define(VfxDecalSingleUpdateSys) {
   const SceneTimeComp*       timeComp     = ecs_view_read_t(globalItr, SceneTimeComp);
   const SceneTerrainComp*    terrainComp  = ecs_view_read_t(globalItr, SceneTerrainComp);
   const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
-  const AssetAtlasComp*      atlasColor   = vfx_atlas(world, atlasManager, VfxAtlasType_DecalColor);
-  const AssetAtlasComp*      atlasNormal = vfx_atlas(world, atlasManager, VfxAtlasType_DecalNormal);
+  const AssetAtlasComp*      atlasColor   = vfx_atlas(world, atlasManager, VfxAtlasType_StampColor);
+  const AssetAtlasComp*      atlasNormal = vfx_atlas(world, atlasManager, VfxAtlasType_StampNormal);
   if (!atlasColor || !atlasNormal) {
     return; // Atlas hasn't loaded yet.
   }
@@ -811,8 +811,8 @@ ecs_system_define(VfxDecalTrailUpdateSys) {
   const SceneTimeComp*       timeComp     = ecs_view_read_t(globalItr, SceneTimeComp);
   const SceneTerrainComp*    terrainComp  = ecs_view_read_t(globalItr, SceneTerrainComp);
   const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
-  const AssetAtlasComp*      atlasColor   = vfx_atlas(world, atlasManager, VfxAtlasType_DecalColor);
-  const AssetAtlasComp*      atlasNormal = vfx_atlas(world, atlasManager, VfxAtlasType_DecalNormal);
+  const AssetAtlasComp*      atlasColor   = vfx_atlas(world, atlasManager, VfxAtlasType_StampColor);
+  const AssetAtlasComp*      atlasNormal = vfx_atlas(world, atlasManager, VfxAtlasType_StampNormal);
   if (!atlasColor || !atlasNormal) {
     return; // Atlas hasn't loaded yet.
   }

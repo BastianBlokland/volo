@@ -9,14 +9,14 @@
 
 static const String g_vfxAtlasAssets[VfxAtlasType_Count] = {
     [VfxAtlasType_Sprite]      = string_static("textures/vfx/sprite.atlas"),
-    [VfxAtlasType_DecalColor]  = string_static("textures/vfx/stamp_color.atlas"),
-    [VfxAtlasType_DecalNormal] = string_static("textures/vfx/stamp_normal.atlas"),
+    [VfxAtlasType_StampColor]  = string_static("textures/vfx/stamp_color.atlas"),
+    [VfxAtlasType_StampNormal] = string_static("textures/vfx/stamp_normal.atlas"),
 };
 
 static const String g_vfxAtlasTypeNames[] = {
     string_static("sprite"),
-    string_static("decal-color"),
-    string_static("decal-normal"),
+    string_static("stamp-color"),
+    string_static("stamp-normal"),
 };
 ASSERT(array_elems(g_vfxAtlasTypeNames) == VfxAtlasType_Count, "Incorrect number of names");
 
