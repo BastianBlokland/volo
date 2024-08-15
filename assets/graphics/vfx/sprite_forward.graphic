@@ -4,7 +4,7 @@
     { "shaderId": "shaders/vfx/sprite_forward.frag" }
   ],
   "samplers": [
-    { "textureId": "textures/vfx/particle.atlas" }
+    { "textureId": "textures/vfx/sprite.atlas" }
   ],
   "vertexCount": 6,
   "renderOrder": 100,

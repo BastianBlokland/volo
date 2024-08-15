@@ -107,8 +107,8 @@ static f32 vfx_time_to_seconds(const TimeDuration dur) {
   return (f32)((f64)dur * g_toSecMul);
 }
 
-static const AssetAtlasComp* vfx_atlas_particle(EcsWorld* world, const VfxAtlasManagerComp* man) {
-  const EcsEntityId atlasEntity = vfx_atlas_entity(man, VfxAtlasType_Particle);
+static const AssetAtlasComp* vfx_atlas_sprite(EcsWorld* world, const VfxAtlasManagerComp* man) {
+  const EcsEntityId atlasEntity = vfx_atlas_entity(man, VfxAtlasType_Sprite);
   EcsIterator*      itr = ecs_view_maybe_at(ecs_world_view_t(world, AtlasView), atlasEntity);
   return LIKELY(itr) ? ecs_view_read_t(itr, AssetAtlasComp) : null;
 }
@@ -438,8 +438,8 @@ ecs_system_define(VfxSystemSimulateSys) {
   const SceneTimeComp*       time         = ecs_view_read_t(globalItr, SceneTimeComp);
   const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
 
-  const AssetAtlasComp* particleAtlas = vfx_atlas_particle(world, atlasManager);
-  if (!particleAtlas) {
+  const AssetAtlasComp* spriteAtlas = vfx_atlas_sprite(world, atlasManager);
+  if (!spriteAtlas) {
     return; // Atlas hasn't loaded yet.
   }
 
@@ -484,7 +484,7 @@ ecs_system_define(VfxSystemSimulateSys) {
     }
 
     const VfxTrans sysTrans = vfx_trans_init(trans, scale, asset);
-    vfx_system_simulate(state, asset, particleAtlas, time, sysTags, sysCfg, &sysTrans);
+    vfx_system_simulate(state, asset, spriteAtlas, time, sysTags, sysCfg, &sysTrans);
   }
 }
 
@@ -620,8 +620,8 @@ ecs_system_define(VfxSystemRenderSys) {
   const SceneVisibilityEnvComp* visEnv       = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
   RendLightComp*                light        = ecs_view_write_t(globalItr, RendLightComp);
 
-  const AssetAtlasComp* particleAtlas = vfx_atlas_particle(world, atlasManager);
-  if (!particleAtlas) {
+  const AssetAtlasComp* spriteAtlas = vfx_atlas_sprite(world, atlasManager);
+  if (!spriteAtlas) {
     return; // Atlas hasn't loaded yet.
   }
   // Initialize the particle draws.
@@ -630,7 +630,7 @@ ecs_system_define(VfxSystemRenderSys) {
     if (type == VfxDrawType_ParticleSpriteForward || type == VfxDrawType_ParticleSpriteDistortion) {
       const EcsEntityId drawEntity = vfx_draw_entity(drawManager, type);
       draws[type] = ecs_utils_write_t(world, ParticleDrawView, drawEntity, RendDrawComp);
-      vfx_particle_init(draws[type], particleAtlas);
+      vfx_particle_init(draws[type], spriteAtlas);
     }
   }
 
