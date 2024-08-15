@@ -2,8 +2,8 @@
 #include "ecs_module.h"
 
 typedef enum {
-  VfxStat_SpriteCount,
   VfxStat_ParticleCount,
+  VfxStat_SpriteCount,
   VfxStat_LightCount,
   VfxStat_StampCount,
 

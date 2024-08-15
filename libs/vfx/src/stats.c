@@ -55,8 +55,8 @@ ecs_module_init(vfx_stats_module) {
 
 String vfx_stat_name(const VfxStat stat) {
   static const String g_names[VfxStat_Count] = {
-      [VfxStat_SpriteCount]   = string_static("Sprites"),
       [VfxStat_ParticleCount] = string_static("Particles"),
+      [VfxStat_SpriteCount]   = string_static("Sprites"),
       [VfxStat_LightCount]    = string_static("Lights"),
       [VfxStat_StampCount]    = string_static("Stamps"),
   };
