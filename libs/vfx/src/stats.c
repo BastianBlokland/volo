@@ -14,4 +14,5 @@ static void ecs_combine_vfx_stats(void* dataA, void* dataB) {
 
 ecs_module_init(vfx_stats_module) {
   ecs_register_comp(VfxStatsComp, .combinator = ecs_combine_vfx_stats);
+  ecs_register_comp(VfxStatsGlobalComp);
 }
