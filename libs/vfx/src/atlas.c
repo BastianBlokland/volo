@@ -14,7 +14,7 @@ static const String g_vfxAtlasAssets[VfxAtlasType_Count] = {
 };
 
 static const String g_vfxAtlasTypeNames[] = {
-    string_static("particle"),
+    string_static("sprite"),
     string_static("decal-color"),
     string_static("decal-normal"),
 };

@@ -21,7 +21,7 @@
 
 #include "atlas_internal.h"
 #include "draw_internal.h"
-#include "particle_internal.h"
+#include "sprite_internal.h"
 
 #define vfx_system_max_asset_requests 4
 
@@ -70,7 +70,7 @@ static void ecs_combine_system_asset(void* dataA, void* dataB) {
   compA->loadFlags |= compB->loadFlags;
 }
 
-ecs_view_define(ParticleDrawView) {
+ecs_view_define(ParticleSpriteDrawView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // This is the only module accessing particle draws.
   ecs_access_write(RendDrawComp);
 }
@@ -226,19 +226,19 @@ static void vfx_blend_mode_apply(
   UNREACHABLE
 }
 
-static VfxParticleFlags vfx_facing_particle_flags(const AssetVfxFacing facing) {
+static VfxSpriteFlags vfx_facing_sprite_flags(const AssetVfxFacing facing) {
   switch (facing) {
   case AssetVfxFacing_Local:
     return 0;
   case AssetVfxFacing_BillboardSphere:
-    return VfxParticle_BillboardSphere;
+    return VfxSprite_BillboardSphere;
   case AssetVfxFacing_BillboardCylinder:
-    return VfxParticle_BillboardCylinder;
+    return VfxSprite_BillboardCylinder;
   }
   UNREACHABLE
 }
 
-static VfxDrawType vfx_sprite_draw_type(const AssetVfxSprite* sprite) {
+static VfxDrawType vfx_particle_sprite_draw_type(const AssetVfxSprite* sprite) {
   return sprite->distortion ? VfxDrawType_ParticleSpriteDistortion
                             : VfxDrawType_ParticleSpriteForward;
 }
@@ -287,14 +287,13 @@ static void vfx_system_spawn(
     const AssetAtlasEntry* atlasEntry = asset_atlas_lookup(atlas, spriteAtlasEntryName);
     if (UNLIKELY(!atlasEntry)) {
       log_e(
-          "Vfx particle atlas entry missing",
-          log_param("entry-hash", fmt_int(spriteAtlasEntryName)));
+          "Vfx sprite atlas entry missing", log_param("entry-hash", fmt_int(spriteAtlasEntryName)));
       return;
     }
     const usize atlasEntryCount = atlas->entries.count;
     if (UNLIKELY(atlasEntry->atlasIndex + emitterAsset->sprite.flipbookCount > atlasEntryCount)) {
       log_e(
-          "Vfx particle atlas has not enough entries for flipbook",
+          "Vfx sprite atlas has not enough entries for flipbook",
           log_param("atlas-entry-count", fmt_int(atlasEntryCount)),
           log_param("flipbook-count", fmt_int(emitterAsset->sprite.flipbookCount)));
       return;
@@ -531,20 +530,20 @@ static void vfx_instance_output_sprite(
     return; // NOTE: This can happen momentarily when hot-loading vfx.
   }
 
-  VfxParticleFlags flags = vfx_facing_particle_flags(sprite->facing);
+  VfxSpriteFlags flags = vfx_facing_sprite_flags(sprite->facing);
   if (sprite->geometryFade) {
-    flags |= VfxParticle_GeometryFade;
+    flags |= VfxSprite_GeometryFade;
   }
   if (sprite->shadowCaster) {
-    flags |= VfxParticle_ShadowCaster;
+    flags |= VfxSprite_ShadowCaster;
   }
   f32 opacity = 1.0f;
   if (!sprite->distortion) {
     vfx_blend_mode_apply(color, sprite->blend, &color, &opacity);
   }
-  vfx_particle_output(
-      draws[vfx_sprite_draw_type(sprite)],
-      &(VfxParticle){
+  vfx_sprite_output(
+      draws[vfx_particle_sprite_draw_type(sprite)],
+      &(VfxSprite){
           .position   = pos,
           .rotation   = rot,
           .flags      = flags,
@@ -624,13 +623,13 @@ ecs_system_define(VfxSystemRenderSys) {
   if (!spriteAtlas) {
     return; // Atlas hasn't loaded yet.
   }
-  // Initialize the particle draws.
+  // Initialize the particle sprite draws.
   RendDrawComp* draws[VfxDrawType_Count] = {null};
   for (VfxDrawType type = 0; type != VfxDrawType_Count; ++type) {
     if (type == VfxDrawType_ParticleSpriteForward || type == VfxDrawType_ParticleSpriteDistortion) {
       const EcsEntityId drawEntity = vfx_draw_entity(drawManager, type);
-      draws[type] = ecs_utils_write_t(world, ParticleDrawView, drawEntity, RendDrawComp);
-      vfx_particle_init(draws[type], spriteAtlas);
+      draws[type] = ecs_utils_write_t(world, ParticleSpriteDrawView, drawEntity, RendDrawComp);
+      vfx_sprite_init(draws[type], spriteAtlas);
     }
   }
 
@@ -668,7 +667,7 @@ ecs_module_init(vfx_system_module) {
   ecs_register_comp(VfxSystemStateComp, .destructor = ecs_destruct_system_state_comp);
   ecs_register_comp(VfxSystemAssetComp, .combinator = ecs_combine_system_asset);
 
-  ecs_register_view(ParticleDrawView);
+  ecs_register_view(ParticleSpriteDrawView);
   ecs_register_view(AssetView);
   ecs_register_view(AtlasView);
 
@@ -690,7 +689,7 @@ ecs_module_init(vfx_system_module) {
       VfxSystemRenderSys,
       ecs_register_view(RenderGlobalView),
       ecs_register_view(RenderView),
-      ecs_view_id(ParticleDrawView),
+      ecs_view_id(ParticleSpriteDrawView),
       ecs_view_id(AssetView),
       ecs_view_id(AtlasView));
 
