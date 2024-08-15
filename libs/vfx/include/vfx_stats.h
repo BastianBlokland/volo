@@ -3,6 +3,7 @@
 
 typedef enum {
   VfxStat_SpriteCount,
+  VfxStat_ParticleCount,
   VfxStat_StampCount,
   VfxStat_LightCount,
 

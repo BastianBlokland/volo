@@ -25,6 +25,7 @@
 #include "sprite_internal.h"
 
 #define vfx_system_max_asset_requests 4
+#define vfx_system_track_stats 1
 
 typedef enum {
   VfxLoad_Acquired  = 1 << 0,
@@ -141,7 +142,9 @@ ecs_system_define(VfxSystemStateInitSys) {
         VfxSystemStateComp,
         .instances = dynarray_create_t(g_allocHeap, VfxSystemInstance, 4));
 
+#if vfx_system_track_stats
     ecs_utils_maybe_add_t(world, e, VfxStatsComp);
+#endif
   }
 }
 
@@ -363,6 +366,7 @@ static void vfx_system_reset(VfxSystemStateComp* state) {
 }
 
 static void vfx_system_simulate(
+    VfxStatsComp*             stats,
     VfxSystemStateComp*       state,
     const AssetVfxComp*       asset,
     const AssetAtlasComp*     atlas,
@@ -408,6 +412,10 @@ static void vfx_system_simulate(
     // Apply movement.
     inst->pos = geo_vector_add(inst->pos, geo_vector_mul(inst->velo, deltaSec));
 
+    if (stats) {
+      ++stats->valuesNew[VfxStat_ParticleCount];
+    }
+
     // Update age and destruct if too old.
     if ((inst->ageSec += deltaSec) > inst->lifetimeSec) {
       goto Destruct;
@@ -428,6 +436,7 @@ ecs_view_define(SimulateView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_maybe_write(VfxStatsComp);
   ecs_access_read(SceneVfxSystemComp);
   ecs_access_write(VfxSystemStateComp);
 }
@@ -456,6 +465,7 @@ ecs_system_define(VfxSystemSimulateSys) {
     const SceneVfxSystemComp* sysCfg  = ecs_view_read_t(itr, SceneVfxSystemComp);
     const SceneTagComp*       tagComp = ecs_view_read_t(itr, SceneTagComp);
     VfxSystemStateComp*       state   = ecs_view_write_t(itr, VfxSystemStateComp);
+    VfxStatsComp*             stats   = ecs_view_write_t(itr, VfxStatsComp);
 
     const SceneTags sysTags = tagComp ? tagComp->tags : SceneTags_Default;
 
@@ -487,7 +497,7 @@ ecs_system_define(VfxSystemSimulateSys) {
     }
 
     const VfxTrans sysTrans = vfx_trans_init(trans, scale, asset);
-    vfx_system_simulate(state, asset, spriteAtlas, time, sysTags, sysCfg, &sysTrans);
+    vfx_system_simulate(stats, state, asset, spriteAtlas, time, sysTags, sysCfg, &sysTrans);
   }
 }
 
