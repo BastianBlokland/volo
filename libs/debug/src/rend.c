@@ -914,9 +914,9 @@ static void rend_light_tab_draw(
       canvas, &settingsGlobal->shadowFilterSize, .max = 0.5f, .tooltip = g_tooltipShadowFilterSize);
 
   ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Particle shadows"));
+  ui_label(canvas, string_lit("Vfx sprite shadows"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_ParticleShadows);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_VfxSpriteShadows);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Ambient occlusion"));
