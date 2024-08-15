@@ -18,6 +18,7 @@
 #include "scene_vfx.h"
 #include "scene_visibility.h"
 #include "vfx_register.h"
+#include "vfx_stats.h"
 
 #include "atlas_internal.h"
 #include "draw_internal.h"
@@ -329,6 +330,8 @@ ecs_system_define(VfxDecalInitSys) {
       vfx_decal_create_single(world, e, atlasColorIndex, atlasNormalIndex, asset, timeComp);
     }
 
+    ecs_utils_maybe_add_t(world, e, VfxStatsComp);
+
     if (++numDecalCreate == vfx_decal_max_create_per_tick) {
       break; // Throttle the maximum amount of decals to create per tick.
     }
@@ -378,6 +381,7 @@ ecs_view_define(SingleUpdateView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneSetMemberComp);
   ecs_access_maybe_read(SceneVisibilityComp);
+  ecs_access_maybe_write(VfxStatsComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_read(SceneVfxDecalComp);
   ecs_access_read(VfxDecalSingleComp);
@@ -396,6 +400,7 @@ static void vfx_decal_single_update(
   const SceneSetMemberComp*        setMember = ecs_view_read_t(itr, SceneSetMemberComp);
   const SceneVfxDecalComp*         decal     = ecs_view_read_t(itr, SceneVfxDecalComp);
   const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
+  VfxStatsComp*                    stats     = ecs_view_write_t(itr, VfxStatsComp);
 
   const SceneVisibilityComp* visComp = ecs_view_read_t(itr, SceneVisibilityComp);
   if (visComp && !scene_visible_for_render(visEnv, visComp)) {
@@ -418,27 +423,31 @@ static void vfx_decal_single_update(
   const f32      fadeOut = math_min(timeRemSec * inst->fadeOutTimeInv, 1.0f);
   const f32      alpha   = decal->alpha * inst->alpha * fadeIn * fadeOut;
   const VfxStamp stamp   = {
-      .pos              = pos,
-      .rot              = rot,
-      .width            = inst->width * scale,
-      .height           = inst->height * scale,
-      .thickness        = inst->thickness,
-      .flags            = inst->stampFlags,
-      .excludeTags      = inst->excludeTags,
-      .atlasColorIndex  = inst->atlasColorIndex,
-      .atlasNormalIndex = inst->atlasNormalIndex,
-      .alphaBegin       = alpha,
-      .alphaEnd         = alpha,
-      .roughness        = inst->roughness,
-      .texOffsetY       = 0.0f,
-      .texScaleY        = 1.0f,
-      .warpScale        = {1.0f, 1.0f},
-      .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
+        .pos              = pos,
+        .rot              = rot,
+        .width            = inst->width * scale,
+        .height           = inst->height * scale,
+        .thickness        = inst->thickness,
+        .flags            = inst->stampFlags,
+        .excludeTags      = inst->excludeTags,
+        .atlasColorIndex  = inst->atlasColorIndex,
+        .atlasNormalIndex = inst->atlasNormalIndex,
+        .alphaBegin       = alpha,
+        .alphaEnd         = alpha,
+        .roughness        = inst->roughness,
+        .texOffsetY       = 0.0f,
+        .texScaleY        = 1.0f,
+        .warpScale        = {1.0f, 1.0f},
+        .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
   };
 
   vfx_stamp_output(drawNormal, &stamp);
   if (UNLIKELY(debug)) {
     vfx_stamp_output(drawDebug, &stamp);
+  }
+
+  if (stats) {
+    ++stats->valuesNew[VfxStat_StampCount];
   }
 }
 
@@ -484,6 +493,7 @@ ecs_view_define(TrailUpdateView) {
   ecs_access_maybe_read(SceneSetMemberComp);
   ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneVisibilityComp);
+  ecs_access_maybe_write(VfxStatsComp);
   ecs_access_read(SceneTransformComp);
   ecs_access_read(SceneVfxDecalComp);
   ecs_access_write(VfxDecalTrailComp);
@@ -631,6 +641,7 @@ static void vfx_decal_trail_update(
   const SceneTagComp*              tagComp   = ecs_view_read_t(itr, SceneTagComp);
   const SceneLifetimeDurationComp* lifetime  = ecs_view_read_t(itr, SceneLifetimeDurationComp);
   const SceneVisibilityComp*       visComp   = ecs_view_read_t(itr, SceneVisibilityComp);
+  VfxStatsComp*                    stats     = ecs_view_write_t(itr, VfxStatsComp);
 
   bool shouldEmit = true;
   if (tagComp && !(tagComp->tags & SceneTags_Emit)) {
@@ -781,6 +792,10 @@ static void vfx_decal_trail_update(
       vfx_stamp_output(drawDebug, &stamp);
     }
     texOffset += segTexScale;
+
+    if (stats) {
+      ++stats->valuesNew[VfxStat_StampCount];
+    }
   }
 }
 
