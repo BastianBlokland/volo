@@ -544,7 +544,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Query ray"), fmt_write_scratch("normal: {<5} fat: {}", fmt_int(colStats->queryStats[GeoQueryStat_QueryRayCount]), fmt_int(colStats->queryStats[GeoQueryStat_QueryRayFatCount])));
     stats_draw_val_entry(canvas, string_lit("Query all"), fmt_write_scratch("sphere: {<5} box: {}", fmt_int(colStats->queryStats[GeoQueryStat_QuerySphereAllCount]), fmt_int(colStats->queryStats[GeoQueryStat_QueryBoxAllCount])));
   }
-  if(stats_draw_section(canvas, string_lit("Vfx"))) {
+  if(stats_draw_section(canvas, string_lit("VFX"))) {
     for (VfxStat vfxStat = 0; vfxStat != VfxStat_Count; ++vfxStat) {
       const i32 val = vfxStats->values[vfxStat];
       stats_draw_val_entry(canvas, vfx_stat_name(vfxStat), fmt_write_scratch("{}", fmt_int(val)));
