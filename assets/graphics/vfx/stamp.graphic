@@ -7,7 +7,7 @@
     { "textureId": "textures/vfx/decal_color.atlas", "anisotropy": "x4", "mipBlending": true },
     { "textureId": "textures/vfx/decal_normal.atlas", "anisotropy": "x4", "mipBlending": true }
   ],
-  "meshId": "meshes/vfx/decal_box.procmesh",
+  "meshId": "meshes/vfx/stamp_box.procmesh",
   "blend": "AlphaConstant",
   "blendConstant": 0,
   "blendAux": "Alpha",

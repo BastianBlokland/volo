@@ -12,10 +12,10 @@ ecs_comp_define(VfxDrawManagerComp) { EcsEntityId drawEntities[VfxDrawType_Count
 
 // NOTE: Single and Trail decals are split so both can be filled in parallel.
 static const String g_vfxDrawGraphics[VfxDrawType_Count] = {
-    [VfxDrawType_DecalSingle]              = string_static("graphics/vfx/decal.graphic"),
-    [VfxDrawType_DecalSingleDebug]         = string_static("graphics/vfx/decal_debug.graphic"),
-    [VfxDrawType_DecalTrail]               = string_static("graphics/vfx/decal.graphic"),
-    [VfxDrawType_DecalTrailDebug]          = string_static("graphics/vfx/decal_debug.graphic"),
+    [VfxDrawType_DecalSingle]              = string_static("graphics/vfx/stamp.graphic"),
+    [VfxDrawType_DecalSingleDebug]         = string_static("graphics/vfx/stamp_debug.graphic"),
+    [VfxDrawType_DecalTrail]               = string_static("graphics/vfx/stamp.graphic"),
+    [VfxDrawType_DecalTrailDebug]          = string_static("graphics/vfx/stamp_debug.graphic"),
     [VfxDrawType_ParticleSpriteForward]    = string_static("graphics/vfx/sprite_forward.graphic"),
     [VfxDrawType_ParticleSpriteDistortion] = string_static("graphics/vfx/sprite_distortion.graphic"),
 };
