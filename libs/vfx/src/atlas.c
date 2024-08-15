@@ -9,8 +9,8 @@
 
 static const String g_vfxAtlasAssets[VfxAtlasType_Count] = {
     [VfxAtlasType_Sprite]      = string_static("textures/vfx/sprite.atlas"),
-    [VfxAtlasType_DecalColor]  = string_static("textures/vfx/decal_color.atlas"),
-    [VfxAtlasType_DecalNormal] = string_static("textures/vfx/decal_normal.atlas"),
+    [VfxAtlasType_DecalColor]  = string_static("textures/vfx/stamp_color.atlas"),
+    [VfxAtlasType_DecalNormal] = string_static("textures/vfx/stamp_normal.atlas"),
 };
 
 static const String g_vfxAtlasTypeNames[] = {

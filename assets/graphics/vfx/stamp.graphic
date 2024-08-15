@@ -4,8 +4,8 @@
     { "shaderId": "shaders/vfx/stamp.frag" }
   ],
   "samplers": [
-    { "textureId": "textures/vfx/decal_color.atlas", "anisotropy": "x4", "mipBlending": true },
-    { "textureId": "textures/vfx/decal_normal.atlas", "anisotropy": "x4", "mipBlending": true }
+    { "textureId": "textures/vfx/stamp_color.atlas", "anisotropy": "x4", "mipBlending": true },
+    { "textureId": "textures/vfx/stamp_normal.atlas", "anisotropy": "x4", "mipBlending": true }
   ],
   "meshId": "meshes/vfx/stamp_box.procmesh",
   "blend": "AlphaConstant",
