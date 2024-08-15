@@ -12,19 +12,19 @@ ecs_comp_define(VfxDrawManagerComp) { EcsEntityId drawEntities[VfxDrawType_Count
 
 // NOTE: Single and Trail decals are split so both can be filled in parallel.
 static const String g_vfxDrawGraphics[VfxDrawType_Count] = {
-    [VfxDrawType_DecalSingle]              = string_static("graphics/vfx/stamp.graphic"),
-    [VfxDrawType_DecalSingleDebug]         = string_static("graphics/vfx/stamp_debug.graphic"),
-    [VfxDrawType_DecalTrail]               = string_static("graphics/vfx/stamp.graphic"),
-    [VfxDrawType_DecalTrailDebug]          = string_static("graphics/vfx/stamp_debug.graphic"),
+    [VfxDrawType_DecalStampSingle]         = string_static("graphics/vfx/stamp.graphic"),
+    [VfxDrawType_DecalStampSingleDebug]    = string_static("graphics/vfx/stamp_debug.graphic"),
+    [VfxDrawType_DecalStampTrail]          = string_static("graphics/vfx/stamp.graphic"),
+    [VfxDrawType_DecalStampTrailDebug]     = string_static("graphics/vfx/stamp_debug.graphic"),
     [VfxDrawType_ParticleSpriteForward]    = string_static("graphics/vfx/sprite_forward.graphic"),
     [VfxDrawType_ParticleSpriteDistortion] = string_static("graphics/vfx/sprite_distortion.graphic"),
 };
 
 static const RendDrawFlags g_vfxDrawFlags[VfxDrawType_Count] = {
-    [VfxDrawType_DecalSingle]              = RendDrawFlags_Decal | RendDrawFlags_Preload,
-    [VfxDrawType_DecalSingleDebug]         = RendDrawFlags_SortBackToFront,
-    [VfxDrawType_DecalTrail]               = RendDrawFlags_Decal | RendDrawFlags_Preload,
-    [VfxDrawType_DecalTrailDebug]          = RendDrawFlags_SortBackToFront,
+    [VfxDrawType_DecalStampSingle]         = RendDrawFlags_Decal | RendDrawFlags_Preload,
+    [VfxDrawType_DecalStampSingleDebug]    = RendDrawFlags_SortBackToFront,
+    [VfxDrawType_DecalStampTrail]          = RendDrawFlags_Decal | RendDrawFlags_Preload,
+    [VfxDrawType_DecalStampTrailDebug]     = RendDrawFlags_SortBackToFront,
     [VfxDrawType_ParticleSpriteForward]    = RendDrawFlags_VfxSprite | RendDrawFlags_Preload | RendDrawFlags_SortBackToFront,
     [VfxDrawType_ParticleSpriteDistortion] = RendDrawFlags_VfxSprite | RendDrawFlags_Preload | RendDrawFlags_Distortion,
 };

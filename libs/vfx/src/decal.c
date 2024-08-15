@@ -473,8 +473,8 @@ ecs_system_define(VfxDecalSingleUpdateSys) {
   const VfxDrawManagerComp*     drawManager = ecs_view_read_t(globalItr, VfxDrawManagerComp);
 
   EcsView*      drawView   = ecs_world_view_t(world, SingleDrawView);
-  RendDrawComp* drawNormal = vfx_draw_get(drawView, drawManager, VfxDrawType_DecalSingle);
-  RendDrawComp* drawDebug  = vfx_draw_get(drawView, drawManager, VfxDrawType_DecalSingleDebug);
+  RendDrawComp* drawNormal = vfx_draw_get(drawView, drawManager, VfxDrawType_DecalStampSingle);
+  RendDrawComp* drawDebug  = vfx_draw_get(drawView, drawManager, VfxDrawType_DecalStampSingleDebug);
 
   vfx_stamp_init(drawNormal, atlasColor, atlasNormal);
   vfx_stamp_init(drawDebug, atlasColor, atlasNormal);
@@ -821,8 +821,8 @@ ecs_system_define(VfxDecalTrailUpdateSys) {
   const VfxDrawManagerComp*     drawManager = ecs_view_read_t(globalItr, VfxDrawManagerComp);
 
   EcsView*      drawView   = ecs_world_view_t(world, TrailDrawView);
-  RendDrawComp* drawNormal = vfx_draw_get(drawView, drawManager, VfxDrawType_DecalTrail);
-  RendDrawComp* drawDebug  = vfx_draw_get(drawView, drawManager, VfxDrawType_DecalTrailDebug);
+  RendDrawComp* drawNormal = vfx_draw_get(drawView, drawManager, VfxDrawType_DecalStampTrail);
+  RendDrawComp* drawDebug  = vfx_draw_get(drawView, drawManager, VfxDrawType_DecalStampTrailDebug);
 
   vfx_stamp_init(drawNormal, atlasColor, atlasNormal);
   vfx_stamp_init(drawDebug, atlasColor, atlasNormal);
