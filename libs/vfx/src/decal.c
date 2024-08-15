@@ -450,7 +450,7 @@ static void vfx_decal_single_update(
   }
 
   if (stats) {
-    ++stats->valuesNew[VfxStat_StampCount];
+    ++stats->valuesAccum[VfxStat_StampCount];
   }
 }
 
@@ -797,7 +797,7 @@ static void vfx_decal_trail_update(
     texOffset += segTexScale;
 
     if (stats) {
-      ++stats->valuesNew[VfxStat_StampCount];
+      ++stats->valuesAccum[VfxStat_StampCount];
     }
   }
 }
