@@ -239,7 +239,8 @@ static VfxParticleFlags vfx_facing_particle_flags(const AssetVfxFacing facing) {
 }
 
 static VfxDrawType vfx_sprite_draw_type(const AssetVfxSprite* sprite) {
-  return sprite->distortion ? VfxDrawType_ParticleDistortion : VfxDrawType_ParticleForward;
+  return sprite->distortion ? VfxDrawType_ParticleSpriteDistortion
+                            : VfxDrawType_ParticleSpriteForward;
 }
 
 typedef struct {
@@ -626,7 +627,7 @@ ecs_system_define(VfxSystemRenderSys) {
   // Initialize the particle draws.
   RendDrawComp* draws[VfxDrawType_Count] = {null};
   for (VfxDrawType type = 0; type != VfxDrawType_Count; ++type) {
-    if (type == VfxDrawType_ParticleForward || type == VfxDrawType_ParticleDistortion) {
+    if (type == VfxDrawType_ParticleSpriteForward || type == VfxDrawType_ParticleSpriteDistortion) {
       const EcsEntityId drawEntity = vfx_draw_entity(drawManager, type);
       draws[type] = ecs_utils_write_t(world, ParticleDrawView, drawEntity, RendDrawComp);
       vfx_particle_init(draws[type], particleAtlas);

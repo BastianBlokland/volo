@@ -7,8 +7,8 @@ typedef enum {
   VfxDrawType_DecalSingleDebug,
   VfxDrawType_DecalTrail,
   VfxDrawType_DecalTrailDebug,
-  VfxDrawType_ParticleForward,
-  VfxDrawType_ParticleDistortion,
+  VfxDrawType_ParticleSpriteForward,
+  VfxDrawType_ParticleSpriteDistortion,
 
   VfxDrawType_Count,
 } VfxDrawType;

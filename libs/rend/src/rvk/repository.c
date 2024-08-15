@@ -29,7 +29,7 @@ String rvk_repository_id_str(const RvkRepositoryId id) {
       string_static("ShadowGraphic"),
       string_static("ShadowSkinnedGraphic"),
       string_static("ShadowClipGraphic"),
-      string_static("ShadowParticleGraphic"),
+      string_static("ShadowVfxSpriteGraphic"),
       string_static("TonemapperGraphic"),
       string_static("FogGraphic"),
       string_static("OutlineGraphic"),
