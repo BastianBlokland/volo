@@ -31,6 +31,7 @@
 #define vfx_decal_trail_seg_min_length 0.1f
 #define vfx_decal_trail_seg_count_max 52
 #define vfx_decal_trail_step 0.25f
+#define vfx_decal_track_stats 1
 
 typedef enum {
   VfxLoad_Acquired  = 1 << 0,
@@ -330,7 +331,9 @@ ecs_system_define(VfxDecalInitSys) {
       vfx_decal_create_single(world, e, atlasColorIndex, atlasNormalIndex, asset, timeComp);
     }
 
+#if vfx_decal_track_stats
     ecs_utils_maybe_add_t(world, e, VfxStatsComp);
+#endif
 
     if (++numDecalCreate == vfx_decal_max_create_per_tick) {
       break; // Throttle the maximum amount of decals to create per tick.
