@@ -6,9 +6,9 @@
 ecs_comp_extern(AssetAtlasComp);
 
 typedef enum {
-  VfxAtlasType_Particle,
-  VfxAtlasType_DecalColor,
-  VfxAtlasType_DecalNormal,
+  VfxAtlasType_Sprite,
+  VfxAtlasType_StampColor,
+  VfxAtlasType_StampNormal,
 
   VfxAtlasType_Count,
 } VfxAtlasType;

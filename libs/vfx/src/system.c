@@ -18,12 +18,14 @@
 #include "scene_vfx.h"
 #include "scene_visibility.h"
 #include "vfx_register.h"
+#include "vfx_stats.h"
 
 #include "atlas_internal.h"
 #include "draw_internal.h"
-#include "particle_internal.h"
+#include "sprite_internal.h"
 
 #define vfx_system_max_asset_requests 4
+#define vfx_system_track_stats 1
 
 typedef enum {
   VfxLoad_Acquired  = 1 << 0,
@@ -70,7 +72,7 @@ static void ecs_combine_system_asset(void* dataA, void* dataB) {
   compA->loadFlags |= compB->loadFlags;
 }
 
-ecs_view_define(ParticleDrawView) {
+ecs_view_define(ParticleSpriteDrawView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // This is the only module accessing particle draws.
   ecs_access_write(RendDrawComp);
 }
@@ -107,8 +109,8 @@ static f32 vfx_time_to_seconds(const TimeDuration dur) {
   return (f32)((f64)dur * g_toSecMul);
 }
 
-static const AssetAtlasComp* vfx_atlas_particle(EcsWorld* world, const VfxAtlasManagerComp* man) {
-  const EcsEntityId atlasEntity = vfx_atlas_entity(man, VfxAtlasType_Particle);
+static const AssetAtlasComp* vfx_atlas_sprite(EcsWorld* world, const VfxAtlasManagerComp* man) {
+  const EcsEntityId atlasEntity = vfx_atlas_entity(man, VfxAtlasType_Sprite);
   EcsIterator*      itr = ecs_view_maybe_at(ecs_world_view_t(world, AtlasView), atlasEntity);
   return LIKELY(itr) ? ecs_view_read_t(itr, AssetAtlasComp) : null;
 }
@@ -133,11 +135,16 @@ ecs_view_define(InitView) {
 ecs_system_define(VfxSystemStateInitSys) {
   EcsView* initView = ecs_world_view_t(world, InitView);
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
+    const EcsEntityId e = ecs_view_entity(itr);
     ecs_world_add_t(
         world,
-        ecs_view_entity(itr),
+        e,
         VfxSystemStateComp,
         .instances = dynarray_create_t(g_allocHeap, VfxSystemInstance, 4));
+
+#if vfx_system_track_stats
+    ecs_utils_maybe_add_t(world, e, VfxStatsComp);
+#endif
   }
 }
 
@@ -226,20 +233,21 @@ static void vfx_blend_mode_apply(
   UNREACHABLE
 }
 
-static VfxParticleFlags vfx_facing_particle_flags(const AssetVfxFacing facing) {
+static VfxSpriteFlags vfx_facing_sprite_flags(const AssetVfxFacing facing) {
   switch (facing) {
   case AssetVfxFacing_Local:
     return 0;
   case AssetVfxFacing_BillboardSphere:
-    return VfxParticle_BillboardSphere;
+    return VfxSprite_BillboardSphere;
   case AssetVfxFacing_BillboardCylinder:
-    return VfxParticle_BillboardCylinder;
+    return VfxSprite_BillboardCylinder;
   }
   UNREACHABLE
 }
 
-static VfxDrawType vfx_sprite_draw_type(const AssetVfxSprite* sprite) {
-  return sprite->distortion ? VfxDrawType_ParticleDistortion : VfxDrawType_ParticleForward;
+static VfxDrawType vfx_particle_sprite_draw_type(const AssetVfxSprite* sprite) {
+  return sprite->distortion ? VfxDrawType_ParticleSpriteDistortion
+                            : VfxDrawType_ParticleSpriteForward;
 }
 
 typedef struct {
@@ -286,14 +294,13 @@ static void vfx_system_spawn(
     const AssetAtlasEntry* atlasEntry = asset_atlas_lookup(atlas, spriteAtlasEntryName);
     if (UNLIKELY(!atlasEntry)) {
       log_e(
-          "Vfx particle atlas entry missing",
-          log_param("entry-hash", fmt_int(spriteAtlasEntryName)));
+          "Vfx sprite atlas entry missing", log_param("entry-hash", fmt_int(spriteAtlasEntryName)));
       return;
     }
     const usize atlasEntryCount = atlas->entries.count;
     if (UNLIKELY(atlasEntry->atlasIndex + emitterAsset->sprite.flipbookCount > atlasEntryCount)) {
       log_e(
-          "Vfx particle atlas has not enough entries for flipbook",
+          "Vfx sprite atlas has not enough entries for flipbook",
           log_param("atlas-entry-count", fmt_int(atlasEntryCount)),
           log_param("flipbook-count", fmt_int(emitterAsset->sprite.flipbookCount)));
       return;
@@ -359,6 +366,7 @@ static void vfx_system_reset(VfxSystemStateComp* state) {
 }
 
 static void vfx_system_simulate(
+    VfxStatsComp*             stats,
     VfxSystemStateComp*       state,
     const AssetVfxComp*       asset,
     const AssetAtlasComp*     atlas,
@@ -404,6 +412,10 @@ static void vfx_system_simulate(
     // Apply movement.
     inst->pos = geo_vector_add(inst->pos, geo_vector_mul(inst->velo, deltaSec));
 
+    if (stats) {
+      ++stats->valuesNew[VfxStat_ParticleCount];
+    }
+
     // Update age and destruct if too old.
     if ((inst->ageSec += deltaSec) > inst->lifetimeSec) {
       goto Destruct;
@@ -424,6 +436,7 @@ ecs_view_define(SimulateView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_maybe_write(VfxStatsComp);
   ecs_access_read(SceneVfxSystemComp);
   ecs_access_write(VfxSystemStateComp);
 }
@@ -437,8 +450,8 @@ ecs_system_define(VfxSystemSimulateSys) {
   const SceneTimeComp*       time         = ecs_view_read_t(globalItr, SceneTimeComp);
   const VfxAtlasManagerComp* atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
 
-  const AssetAtlasComp* particleAtlas = vfx_atlas_particle(world, atlasManager);
-  if (!particleAtlas) {
+  const AssetAtlasComp* spriteAtlas = vfx_atlas_sprite(world, atlasManager);
+  if (!spriteAtlas) {
     return; // Atlas hasn't loaded yet.
   }
 
@@ -452,6 +465,7 @@ ecs_system_define(VfxSystemSimulateSys) {
     const SceneVfxSystemComp* sysCfg  = ecs_view_read_t(itr, SceneVfxSystemComp);
     const SceneTagComp*       tagComp = ecs_view_read_t(itr, SceneTagComp);
     VfxSystemStateComp*       state   = ecs_view_write_t(itr, VfxSystemStateComp);
+    VfxStatsComp*             stats   = ecs_view_write_t(itr, VfxStatsComp);
 
     const SceneTags sysTags = tagComp ? tagComp->tags : SceneTags_Default;
 
@@ -483,11 +497,12 @@ ecs_system_define(VfxSystemSimulateSys) {
     }
 
     const VfxTrans sysTrans = vfx_trans_init(trans, scale, asset);
-    vfx_system_simulate(state, asset, particleAtlas, time, sysTags, sysCfg, &sysTrans);
+    vfx_system_simulate(stats, state, asset, spriteAtlas, time, sysTags, sysCfg, &sysTrans);
   }
 }
 
 static void vfx_instance_output_sprite(
+    VfxStatsComp*             stats,
     const VfxSystemInstance*  instance,
     RendDrawComp*             draws[VfxDrawType_Count],
     const AssetVfxComp*       asset,
@@ -530,20 +545,20 @@ static void vfx_instance_output_sprite(
     return; // NOTE: This can happen momentarily when hot-loading vfx.
   }
 
-  VfxParticleFlags flags = vfx_facing_particle_flags(sprite->facing);
+  VfxSpriteFlags flags = vfx_facing_sprite_flags(sprite->facing);
   if (sprite->geometryFade) {
-    flags |= VfxParticle_GeometryFade;
+    flags |= VfxSprite_GeometryFade;
   }
   if (sprite->shadowCaster) {
-    flags |= VfxParticle_ShadowCaster;
+    flags |= VfxSprite_ShadowCaster;
   }
   f32 opacity = 1.0f;
   if (!sprite->distortion) {
     vfx_blend_mode_apply(color, sprite->blend, &color, &opacity);
   }
-  vfx_particle_output(
-      draws[vfx_sprite_draw_type(sprite)],
-      &(VfxParticle){
+  vfx_sprite_output(
+      draws[vfx_particle_sprite_draw_type(sprite)],
+      &(VfxSprite){
           .position   = pos,
           .rotation   = rot,
           .flags      = flags,
@@ -553,9 +568,13 @@ static void vfx_instance_output_sprite(
           .color      = color,
           .opacity    = opacity,
       });
+  if (stats) {
+    ++stats->valuesNew[VfxStat_SpriteCount];
+  }
 }
 
 static void vfx_instance_output_light(
+    VfxStatsComp*             stats,
     const EcsEntityId         entity,
     const VfxSystemInstance*  instance,
     RendLightComp*            lightOutput,
@@ -590,6 +609,9 @@ static void vfx_instance_output_light(
     radiance.a *= 1.0f - noise_perlin3(instance->ageSec * light->turbulenceFrequency, seed, 0);
   }
   rend_light_point(lightOutput, pos, radiance, light->radius * scale, RendLightFlags_None);
+  if (stats) {
+    ++stats->valuesNew[VfxStat_LightCount];
+  }
 }
 
 ecs_view_define(RenderGlobalView) {
@@ -604,6 +626,7 @@ ecs_view_define(RenderView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_read(SceneVisibilityComp);
+  ecs_access_maybe_write(VfxStatsComp);
   ecs_access_read(SceneVfxSystemComp);
   ecs_access_read(VfxSystemStateComp);
 }
@@ -619,17 +642,17 @@ ecs_system_define(VfxSystemRenderSys) {
   const SceneVisibilityEnvComp* visEnv       = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
   RendLightComp*                light        = ecs_view_write_t(globalItr, RendLightComp);
 
-  const AssetAtlasComp* particleAtlas = vfx_atlas_particle(world, atlasManager);
-  if (!particleAtlas) {
+  const AssetAtlasComp* spriteAtlas = vfx_atlas_sprite(world, atlasManager);
+  if (!spriteAtlas) {
     return; // Atlas hasn't loaded yet.
   }
-  // Initialize the particle draws.
+  // Initialize the particle sprite draws.
   RendDrawComp* draws[VfxDrawType_Count] = {null};
   for (VfxDrawType type = 0; type != VfxDrawType_Count; ++type) {
-    if (type == VfxDrawType_ParticleForward || type == VfxDrawType_ParticleDistortion) {
+    if (type == VfxDrawType_ParticleSpriteForward || type == VfxDrawType_ParticleSpriteDistortion) {
       const EcsEntityId drawEntity = vfx_draw_entity(drawManager, type);
-      draws[type] = ecs_utils_write_t(world, ParticleDrawView, drawEntity, RendDrawComp);
-      vfx_particle_init(draws[type], particleAtlas);
+      draws[type] = ecs_utils_write_t(world, ParticleSpriteDrawView, drawEntity, RendDrawComp);
+      vfx_sprite_init(draws[type], spriteAtlas);
     }
   }
 
@@ -637,13 +660,14 @@ ecs_system_define(VfxSystemRenderSys) {
 
   EcsView* renderView = ecs_world_view_t(world, RenderView);
   for (EcsIterator* itr = ecs_view_itr(renderView); ecs_view_walk(itr);) {
-    const EcsEntityId                entity   = ecs_view_entity(itr);
+    const EcsEntityId                e        = ecs_view_entity(itr);
     const SceneScaleComp*            scale    = ecs_view_read_t(itr, SceneScaleComp);
     const SceneTransformComp*        trans    = ecs_view_read_t(itr, SceneTransformComp);
     const SceneLifetimeDurationComp* lifetime = ecs_view_read_t(itr, SceneLifetimeDurationComp);
     const SceneVfxSystemComp*        sysCfg   = ecs_view_read_t(itr, SceneVfxSystemComp);
     const SceneVisibilityComp*       sysVis   = ecs_view_read_t(itr, SceneVisibilityComp);
     const VfxSystemStateComp*        state    = ecs_view_read_t(itr, VfxSystemStateComp);
+    VfxStatsComp*                    stats    = ecs_view_write_t(itr, VfxStatsComp);
 
     if (sysVis && !scene_visible_for_render(visEnv, sysVis)) {
       continue; // Not visible.
@@ -656,9 +680,9 @@ ecs_system_define(VfxSystemRenderSys) {
     const VfxTrans sysTrans      = vfx_trans_init(trans, scale, asset);
     const f32      sysTimeRemSec = lifetime ? vfx_time_to_seconds(lifetime->duration) : f32_max;
 
-    dynarray_for_t(&state->instances, VfxSystemInstance, instance) {
-      vfx_instance_output_sprite(instance, draws, asset, sysCfg, &sysTrans, sysTimeRemSec);
-      vfx_instance_output_light(entity, instance, light, asset, sysCfg, &sysTrans, sysTimeRemSec);
+    dynarray_for_t(&state->instances, VfxSystemInstance, inst) {
+      vfx_instance_output_sprite(stats, inst, draws, asset, sysCfg, &sysTrans, sysTimeRemSec);
+      vfx_instance_output_light(stats, e, inst, light, asset, sysCfg, &sysTrans, sysTimeRemSec);
     }
   }
 }
@@ -667,7 +691,7 @@ ecs_module_init(vfx_system_module) {
   ecs_register_comp(VfxSystemStateComp, .destructor = ecs_destruct_system_state_comp);
   ecs_register_comp(VfxSystemAssetComp, .combinator = ecs_combine_system_asset);
 
-  ecs_register_view(ParticleDrawView);
+  ecs_register_view(ParticleSpriteDrawView);
   ecs_register_view(AssetView);
   ecs_register_view(AtlasView);
 
@@ -689,7 +713,7 @@ ecs_module_init(vfx_system_module) {
       VfxSystemRenderSys,
       ecs_register_view(RenderGlobalView),
       ecs_register_view(RenderView),
-      ecs_view_id(ParticleDrawView),
+      ecs_view_id(ParticleSpriteDrawView),
       ecs_view_id(AssetView),
       ecs_view_id(AtlasView));
 

@@ -3,12 +3,12 @@
 #include "ecs_module.h"
 
 typedef enum {
-  VfxDrawType_DecalSingle,
-  VfxDrawType_DecalSingleDebug,
-  VfxDrawType_DecalTrail,
-  VfxDrawType_DecalTrailDebug,
-  VfxDrawType_ParticleForward,
-  VfxDrawType_ParticleDistortion,
+  VfxDrawType_DecalStampSingle,
+  VfxDrawType_DecalStampSingleDebug,
+  VfxDrawType_DecalStampTrail,
+  VfxDrawType_DecalStampTrailDebug,
+  VfxDrawType_ParticleSpriteForward,
+  VfxDrawType_ParticleSpriteDistortion,
 
   VfxDrawType_Count,
 } VfxDrawType;

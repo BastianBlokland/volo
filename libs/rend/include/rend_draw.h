@@ -11,7 +11,7 @@ typedef enum {
   RendDrawFlags_StandardGeometry    = 1 << 2, // Uses the standard instance data format.
   RendDrawFlags_Skinned             = 1 << 3,
   RendDrawFlags_Terrain             = 1 << 4,
-  RendDrawFlags_Particle            = 1 << 5,
+  RendDrawFlags_VfxSprite           = 1 << 5,
   RendDrawFlags_Light               = 1 << 6,
   RendDrawFlags_FogVision           = 1 << 7,
   RendDrawFlags_Distortion          = 1 << 8,

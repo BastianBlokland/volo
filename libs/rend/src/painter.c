@@ -369,8 +369,8 @@ static SceneTags painter_push_draws_simple(
 static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsView* resourceView) {
   RendDrawFlags requiredAny = 0;
   requiredAny |= RendDrawFlags_StandardGeometry; // Include geometry.
-  if (ctx->settings->flags & RendFlags_ParticleShadows) {
-    requiredAny |= RendDrawFlags_Particle; // Include particles.
+  if (ctx->settings->flags & RendFlags_VfxSpriteShadows) {
+    requiredAny |= RendDrawFlags_VfxSprite; // Include vfx sprites.
   }
 
   RvkRepository* repo        = rvk_canvas_repository(ctx->painter->canvas);
@@ -389,10 +389,10 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
     if (!graphicOriginal) {
       continue; // Graphic not loaded.
     }
-    const bool isParticle = (rend_draw_flags(draw) & RendDrawFlags_Particle) != 0;
-    RvkMesh*   drawMesh   = graphicOriginal->mesh;
-    if (!isParticle && (!drawMesh || !rvk_pass_prepare_mesh(ctx->pass, drawMesh))) {
-      continue; // Graphic is not a particle and does not have a mesh to draw a shadow for.
+    const bool isVfxSprite = (rend_draw_flags(draw) & RendDrawFlags_VfxSprite) != 0;
+    RvkMesh*   drawMesh    = graphicOriginal->mesh;
+    if (!isVfxSprite && (!drawMesh || !rvk_pass_prepare_mesh(ctx->pass, drawMesh))) {
+      continue; // Graphic is not a vfx sprite and does not have a mesh to draw a shadow for.
     }
     RvkImage* drawAlphaImg = null;
     enum { AlphaTextureIndex = 2 }; // TODO: Make this configurable from content.
@@ -405,8 +405,8 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
       drawAlphaImg = &alphaTexture->image;
     }
     RvkRepositoryId graphicId;
-    if (isParticle) {
-      graphicId = RvkRepositoryId_ShadowParticleGraphic;
+    if (isVfxSprite) {
+      graphicId = RvkRepositoryId_ShadowVfxSpriteGraphic;
     } else if (rend_draw_flags(draw) & RendDrawFlags_Skinned) {
       graphicId = RvkRepositoryId_ShadowSkinnedGraphic;
     } else {

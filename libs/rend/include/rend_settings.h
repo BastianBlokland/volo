@@ -15,7 +15,7 @@ typedef enum {
   RendFlags_Fog                  = 1 << 5,
   RendFlags_Distortion           = 1 << 6,
   RendFlags_Decals               = 1 << 7,
-  RendFlags_ParticleShadows      = 1 << 8,
+  RendFlags_VfxSpriteShadows     = 1 << 8,
   RendFlags_DebugWireframe       = 1 << 9,
   RendFlags_DebugCamera          = 1 << 10,
   RendFlags_DebugSkinning        = 1 << 11,

@@ -8,8 +8,10 @@ add_library(lib_vfx STATIC
   src/atlas.c
   src/decal.c
   src/draw.c
-  src/particle.c
   src/register.c
+  src/sprite.c
+  src/stamp.c
+  src/stats.c
   src/system.c
   src/warp.c
   )

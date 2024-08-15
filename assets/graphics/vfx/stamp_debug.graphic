@@ -1,0 +1,10 @@
+{
+  "shaders": [
+    { "shaderId": "shaders/vfx/stamp.vert" },
+    { "shaderId": "shaders/vfx/stamp_debug.frag" }
+  ],
+  "meshId": "meshes/vfx/stamp_box.procmesh",
+  "renderOrder": 100,
+  "blend": "Alpha",
+  "depth": "LessNoWrite"
+}
