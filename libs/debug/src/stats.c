@@ -20,6 +20,7 @@
 #include "scene_time.h"
 #include "ui.h"
 #include "ui_stats.h"
+#include "vfx_stats.h"
 
 static const f32 g_statsLabelWidth       = 210;
 static const u8  g_statsBgAlpha          = 150;
@@ -377,7 +378,7 @@ stats_draw_gpu_chart(UiCanvasComp* canvas, const DebugStatsComp* st, const RendS
       fmt_duration(rendSt->passes[RendPass_Bloom].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->passes[RendPass_Post].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1));
-  // clang-format off
+  // clang-format on
 
   stats_draw_chart(canvas, entries, array_elems(entries), tooltip);
 
@@ -453,6 +454,7 @@ static void debug_stats_draw_interface(
     const EcsWorldStats*           ecsWorldStats,
     const EcsRunnerStats*          ecsRunnerStats,
     const SceneCollisionStatsComp* colStats,
+    const VfxStatsGlobalComp*      vfxStats,
     const SceneNavEnvComp*         navEnv,
     const UiStatsComp*             uiStats) {
 
@@ -542,6 +544,12 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Query ray"), fmt_write_scratch("normal: {<5} fat: {}", fmt_int(colStats->queryStats[GeoQueryStat_QueryRayCount]), fmt_int(colStats->queryStats[GeoQueryStat_QueryRayFatCount])));
     stats_draw_val_entry(canvas, string_lit("Query all"), fmt_write_scratch("sphere: {<5} box: {}", fmt_int(colStats->queryStats[GeoQueryStat_QuerySphereAllCount]), fmt_int(colStats->queryStats[GeoQueryStat_QueryBoxAllCount])));
   }
+  if(stats_draw_section(canvas, string_lit("Vfx"))) {
+    for (VfxStat vfxStat = 0; vfxStat != VfxStat_Count; ++vfxStat) {
+      const i32 val = vfxStats->values[vfxStat];
+      stats_draw_val_entry(canvas, vfx_stat_name(vfxStat), fmt_write_scratch("{}", fmt_int(val)));
+    }
+  }
   if(stats_draw_section(canvas, string_lit("Navigation"))) {
     stats_draw_nav_layer_dropdown(canvas, stats);
     const u32* navStats = scene_nav_grid_stats(navEnv, stats->navLayerInspect);
@@ -621,6 +629,7 @@ ecs_view_define(GlobalView) {
   ecs_access_read(SceneCollisionStatsComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneTimeComp);
+  ecs_access_read(VfxStatsGlobalComp);
   ecs_access_write(DebugStatsGlobalComp);
 }
 
@@ -667,6 +676,7 @@ ecs_system_define(DebugStatsUpdateSys) {
   DebugStatsGlobalComp*          statsGlobal = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
   const SceneTimeComp*           time        = ecs_view_read_t(globalItr, SceneTimeComp);
   const SceneCollisionStatsComp* colStats    = ecs_view_read_t(globalItr, SceneCollisionStatsComp);
+  const VfxStatsGlobalComp*      vfxStats    = ecs_view_read_t(globalItr, VfxStatsGlobalComp);
   const SceneNavEnvComp*         navEnv      = ecs_view_read_t(globalItr, SceneNavEnvComp);
   const RendSettingsGlobalComp*  rendGlobalSet = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
 
@@ -709,6 +719,7 @@ ecs_system_define(DebugStatsUpdateSys) {
           &ecsWorldStats,
           &ecsRunnerStats,
           colStats,
+          vfxStats,
           navEnv,
           uiStats);
     }
