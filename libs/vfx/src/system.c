@@ -18,6 +18,7 @@
 #include "scene_vfx.h"
 #include "scene_visibility.h"
 #include "vfx_register.h"
+#include "vfx_stats.h"
 
 #include "atlas_internal.h"
 #include "draw_internal.h"
@@ -133,11 +134,14 @@ ecs_view_define(InitView) {
 ecs_system_define(VfxSystemStateInitSys) {
   EcsView* initView = ecs_world_view_t(world, InitView);
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
+    const EcsEntityId e = ecs_view_entity(itr);
     ecs_world_add_t(
         world,
-        ecs_view_entity(itr),
+        e,
         VfxSystemStateComp,
         .instances = dynarray_create_t(g_allocHeap, VfxSystemInstance, 4));
+
+    ecs_utils_maybe_add_t(world, e, VfxStatsComp);
   }
 }
 
@@ -488,6 +492,7 @@ ecs_system_define(VfxSystemSimulateSys) {
 }
 
 static void vfx_instance_output_sprite(
+    VfxStatsComp*             stats,
     const VfxSystemInstance*  instance,
     RendDrawComp*             draws[VfxDrawType_Count],
     const AssetVfxComp*       asset,
@@ -553,9 +558,13 @@ static void vfx_instance_output_sprite(
           .color      = color,
           .opacity    = opacity,
       });
+  if (stats) {
+    ++stats->valuesNew[VfxStat_SpriteCount];
+  }
 }
 
 static void vfx_instance_output_light(
+    VfxStatsComp*             stats,
     const EcsEntityId         entity,
     const VfxSystemInstance*  instance,
     RendLightComp*            lightOutput,
@@ -590,6 +599,9 @@ static void vfx_instance_output_light(
     radiance.a *= 1.0f - noise_perlin3(instance->ageSec * light->turbulenceFrequency, seed, 0);
   }
   rend_light_point(lightOutput, pos, radiance, light->radius * scale, RendLightFlags_None);
+  if (stats) {
+    ++stats->valuesNew[VfxStat_LightCount];
+  }
 }
 
 ecs_view_define(RenderGlobalView) {
@@ -604,6 +616,7 @@ ecs_view_define(RenderView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_read(SceneVisibilityComp);
+  ecs_access_maybe_write(VfxStatsComp);
   ecs_access_read(SceneVfxSystemComp);
   ecs_access_read(VfxSystemStateComp);
 }
@@ -637,13 +650,14 @@ ecs_system_define(VfxSystemRenderSys) {
 
   EcsView* renderView = ecs_world_view_t(world, RenderView);
   for (EcsIterator* itr = ecs_view_itr(renderView); ecs_view_walk(itr);) {
-    const EcsEntityId                entity   = ecs_view_entity(itr);
+    const EcsEntityId                e        = ecs_view_entity(itr);
     const SceneScaleComp*            scale    = ecs_view_read_t(itr, SceneScaleComp);
     const SceneTransformComp*        trans    = ecs_view_read_t(itr, SceneTransformComp);
     const SceneLifetimeDurationComp* lifetime = ecs_view_read_t(itr, SceneLifetimeDurationComp);
     const SceneVfxSystemComp*        sysCfg   = ecs_view_read_t(itr, SceneVfxSystemComp);
     const SceneVisibilityComp*       sysVis   = ecs_view_read_t(itr, SceneVisibilityComp);
     const VfxSystemStateComp*        state    = ecs_view_read_t(itr, VfxSystemStateComp);
+    VfxStatsComp*                    stats    = ecs_view_write_t(itr, VfxStatsComp);
 
     if (sysVis && !scene_visible_for_render(visEnv, sysVis)) {
       continue; // Not visible.
@@ -656,9 +670,9 @@ ecs_system_define(VfxSystemRenderSys) {
     const VfxTrans sysTrans      = vfx_trans_init(trans, scale, asset);
     const f32      sysTimeRemSec = lifetime ? vfx_time_to_seconds(lifetime->duration) : f32_max;
 
-    dynarray_for_t(&state->instances, VfxSystemInstance, instance) {
-      vfx_instance_output_sprite(instance, draws, asset, sysCfg, &sysTrans, sysTimeRemSec);
-      vfx_instance_output_light(entity, instance, light, asset, sysCfg, &sysTrans, sysTimeRemSec);
+    dynarray_for_t(&state->instances, VfxSystemInstance, inst) {
+      vfx_instance_output_sprite(stats, inst, draws, asset, sysCfg, &sysTrans, sysTimeRemSec);
+      vfx_instance_output_light(stats, e, inst, light, asset, sysCfg, &sysTrans, sysTimeRemSec);
     }
   }
 }
