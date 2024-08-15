@@ -4,8 +4,8 @@
 #include "instance.glsl"
 #include "quat.glsl"
 
-const u32   c_verticesPerParticle                  = 6;
-const f32v2 c_unitPositions[c_verticesPerParticle] = {
+const u32   c_verticesPerSprite                  = 6;
+const f32v2 c_unitPositions[c_verticesPerSprite] = {
     f32v2(-0.5, +0.5),
     f32v2(+0.5, +0.5),
     f32v2(-0.5, -0.5),
@@ -13,7 +13,7 @@ const f32v2 c_unitPositions[c_verticesPerParticle] = {
     f32v2(+0.5, -0.5),
     f32v2(-0.5, -0.5),
 };
-const f32v2 c_unitTexCoords[c_verticesPerParticle] = {
+const f32v2 c_unitTexCoords[c_verticesPerSprite] = {
     f32v2(0, 1),
     f32v2(1, 1),
     f32v2(0, 0),
@@ -32,7 +32,7 @@ struct MetaData {
   AtlasMeta atlas;
 };
 
-struct ParticleData {
+struct SpriteData {
   f32v4 data1; // x, y, z: position, w: atlasIndex
   f16v4 data2; // x, y, z, w: rotation quaternion
   f16v4 data3; // x, y: scale, z: opacity, w: flags
@@ -41,7 +41,7 @@ struct ParticleData {
 
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_draw_data(0) readonly uniform Draw { MetaData u_meta; };
-bind_instance_data(0) readonly uniform Instance { ParticleData[c_maxInstances] u_instances; };
+bind_instance_data(0) readonly uniform Instance { SpriteData[c_maxInstances] u_instances; };
 
 bind_internal(0) out flat f32v4 out_color;
 bind_internal(1) out flat f32 out_opacity;
