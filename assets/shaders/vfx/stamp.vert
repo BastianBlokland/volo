@@ -9,10 +9,10 @@ struct MetaData {
   AtlasMeta atlasColor, atlasNormal;
 };
 
-struct DecalData {
+struct StampData {
   f32v4 data1; // x, y, z: position, w: 16b flags, 16b excludeTags.
   f16v4 data2; // x, y, z, w: rotation quaternion.
-  f16v4 data3; // x, y, z: decalScale, w: roughness.
+  f16v4 data3; // x, y, z: stampScale, w: roughness.
   f16v4 data4; // x: atlasColorIndex, y: atlasNormalIndex, z: alphaBegin, w: alphaEnd.
   f16v4 data5; // x, y: warpScale, z: texOffsetY, w: texScaleY.
   f16v4 data6; // x, y: warpP0 (bottom left), z, w: warpP1 (bottom right).
@@ -22,7 +22,7 @@ struct DecalData {
 bind_global_data(0) readonly uniform Global { GlobalData u_global; };
 bind_graphic_data(0) readonly buffer Mesh { VertexPacked[] u_vertices; };
 bind_draw_data(0) readonly uniform Draw { MetaData u_meta; };
-bind_instance_data(0) readonly uniform Instance { DecalData[c_maxInstances] u_instances; };
+bind_instance_data(0) readonly uniform Instance { StampData[c_maxInstances] u_instances; };
 
 bind_internal(0) out flat f32v3 out_position;        // World-space.
 bind_internal(1) out flat f32v4 out_rotation;        // World-space.

@@ -69,12 +69,12 @@ f32v3 flat_normal_from_position(const f32v3 pos) {
  */
 f32 wedge2(const f32v2 v, const f32v2 w) { return v.x * w.y - v.y * w.x; }
 
-f32v3 project_warp(const f32v3 decalPos) {
+f32v3 project_warp(const f32v3 stampPos) {
   /**
-   * Inverse bilinear interpolation to warp the corners of the decal quad.
+   * Inverse bilinear interpolation to warp the corners of the stamp quad.
    * Reference: https://www.reedbeta.com/blog/quadrilateral-interpolation-part-2/
    */
-  const f32v2 q  = decalPos.xy - in_warpP01.xy;
+  const f32v2 q  = stampPos.xy - in_warpP01.xy;
   const f32v2 b1 = in_warpP01.zw - in_warpP01.xy;
   const f32v2 b2 = in_warpP23.zw - in_warpP01.xy;
   const f32v2 b3 = in_warpP01.xy - in_warpP01.zw - in_warpP23.zw + in_warpP23.xy;
@@ -99,7 +99,7 @@ f32v3 project_warp(const f32v3 decalPos) {
   } else {
     texcoordX = (q.y - b2.y * texcoordY) / denom.y;
   }
-  return f32v3(texcoordX, texcoordY, decalPos.z);
+  return f32v3(texcoordX, texcoordY, stampPos.z);
 }
 
 f32v3 project_box(const f32v3 worldPos) {
@@ -107,20 +107,20 @@ f32v3 project_box(const f32v3 worldPos) {
   return project_warp(boxPos + 0.5 /* Move the center from (0, 0, 0) to (0.5, 0.5, 0.5) */);
 }
 
-f32v2 decal_texcoord(const f32v3 decalPos) {
+f32v2 stamp_texcoord(const f32v3 stampPos) {
   const f32v2 texOffset = in_texTransform.xy;
   const f32v2 texScale  = in_texTransform.zw;
-  return mod(texOffset + decalPos.xy * texScale, 1.0);
+  return mod(texOffset + stampPos.xy * texScale, 1.0);
 }
 
-f32v3 base_normal(const f32v3 geoNormal, const f32v3 decalNormal, const f32v3 depthNormal) {
+f32v3 base_normal(const f32v3 geoNormal, const f32v3 stampNormal, const f32v3 depthNormal) {
   if ((in_flags & c_flagGBufferBaseNormal) != 0) {
     return geoNormal;
   }
   if ((in_flags & c_flagDepthBufferBaseNormal) != 0) {
     return depthNormal;
   }
-  return decalNormal;
+  return stampNormal;
 }
 
 f32v3 fade_normal(const f32v3 geoNormal, const f32v3 depthNormal) {
@@ -139,39 +139,39 @@ void main() {
   const f32v3 clipPos  = f32v3(texcoord * 2.0 - 1.0, depth);
   const f32v3 worldPos = clip_to_world_pos(u_global, clipPos);
 
-  // Project the coordinates to the decal box.
-  const f32v3 decalPos = project_box(worldPos);
+  // Project the coordinates to the stamp box.
+  const f32v3 stampPos = project_box(worldPos);
 
-  // Discard pixels on invalid surface or outside of the decal space.
+  // Discard pixels on invalid surface or outside of the stamp space.
   const bool valid = (tags & in_excludeTags) == 0;
-  if (!valid || any(lessThan(decalPos, f32v3(0))) || any(greaterThan(decalPos, f32v3(1, 1, 1)))) {
+  if (!valid || any(lessThan(stampPos, f32v3(0))) || any(greaterThan(stampPos, f32v3(1, 1, 1)))) {
     discard;
   }
-  const f32v2 decalCoord = decal_texcoord(decalPos);
+  const f32v2 stampCoord = stamp_texcoord(stampPos);
 
   const f32v3 geoNormal   = geometry_decode_normal(geoData1);
-  const f32v3 decalNormal = quat_rotate(in_rotation, f32v3(0, 0, 1));
+  const f32v3 stampNormal = quat_rotate(in_rotation, f32v3(0, 0, 1));
   const f32v3 depthNormal = flat_normal_from_position(worldPos);
 
-  const f32v3 baseNormal = base_normal(geoNormal, decalNormal, depthNormal);
+  const f32v3 baseNormal = base_normal(geoNormal, stampNormal, depthNormal);
   const f32v3 fadeNormal = fade_normal(geoNormal, depthNormal);
 
-  // Compute a fade-factor based on the difference in angle between the decal and the geometry.
-  const f32 fade = smoothstep(c_fadeAngleMax, c_fadeAngleMin, 1 - dot(fadeNormal, decalNormal));
+  // Compute a fade-factor based on the difference in angle between the stamp and the geometry.
+  const f32 fade = smoothstep(c_fadeAngleMax, c_fadeAngleMin, 1 - dot(fadeNormal, stampNormal));
 
   // Sample the color atlas.
-  const f32v4 color = atlas_sample(u_atlasColor, in_atlasColorMeta, decalCoord);
+  const f32v4 color = atlas_sample(u_atlasColor, in_atlasColorMeta, stampCoord);
 
   // Sample the normal atlas.
   f32v3 normal;
   if ((in_flags & c_flagOutputNormal) != 0) {
-    const f32v3 tangentNormal = atlas_sample_normal(u_atlasNormal, in_atlasNormalMeta, decalCoord);
+    const f32v3 tangentNormal = atlas_sample_normal(u_atlasNormal, in_atlasNormalMeta, stampCoord);
     normal                    = math_perturb_normal(tangentNormal, baseNormal, worldPos, texcoord);
   } else {
     normal = baseNormal;
   }
 
-  const f32 alpha = color.a * fade * mix(in_alpha.x, in_alpha.y, decalPos.y);
+  const f32 alpha = color.a * fade * mix(in_alpha.x, in_alpha.y, stampPos.y);
 
   // Output the result into the gbuffer.
   if ((in_flags & c_flagOutputColor) != 0) {

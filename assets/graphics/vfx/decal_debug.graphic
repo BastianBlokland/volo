@@ -1,7 +1,7 @@
 {
   "shaders": [
-    { "shaderId": "shaders/vfx/decal.vert" },
-    { "shaderId": "shaders/vfx/decal_debug.frag" }
+    { "shaderId": "shaders/vfx/stamp.vert" },
+    { "shaderId": "shaders/vfx/stamp_debug.frag" }
   ],
   "meshId": "meshes/vfx/decal_box.procmesh",
   "renderOrder": 100,
