@@ -1,5 +1,6 @@
 #include "ecs_view.h"
 #include "ecs_world.h"
+#include "vfx_register.h"
 #include "vfx_stats.h"
 
 ecs_comp_define_public(VfxStatsComp);
@@ -10,7 +11,7 @@ static void ecs_combine_vfx_stats(void* dataA, void* dataB) {
   VfxStatsComp* compB = dataB;
 
   for (VfxStat stat = 0; stat != VfxStat_Count; ++stat) {
-    compA->valuesNew[stat] += compB->valuesNew[stat];
+    compA->valuesAccum[stat] += compB->valuesAccum[stat];
     compA->valuesLast[stat] += compB->valuesLast[stat];
   }
 }
@@ -35,10 +36,10 @@ ecs_system_define(VfxStatsUpdateSys) {
     VfxStatsComp* stats = ecs_view_write_t(itr, VfxStatsComp);
 
     for (VfxStat stat = 0; stat != VfxStat_Count; ++stat) {
-      globalStats->values[stat] += stats->valuesNew[stat];
+      globalStats->values[stat] += stats->valuesAccum[stat];
 
-      stats->valuesLast[stat] = stats->valuesNew[stat];
-      stats->valuesNew[stat]  = 0;
+      stats->valuesLast[stat]  = stats->valuesAccum[stat];
+      stats->valuesAccum[stat] = 0;
     }
   }
 }
@@ -51,6 +52,8 @@ ecs_module_init(vfx_stats_module) {
   ecs_register_view(StatsView);
 
   ecs_register_system(VfxStatsUpdateSys, ecs_view_id(GlobalStatsView), ecs_view_id(StatsView));
+
+  ecs_order(VfxStatsUpdateSys, VfxOrder_StatCollect);
 }
 
 String vfx_stat_name(const VfxStat stat) {

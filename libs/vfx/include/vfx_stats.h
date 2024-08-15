@@ -11,7 +11,7 @@ typedef enum {
 } VfxStat;
 
 ecs_comp_extern_public(VfxStatsComp) {
-  i32 valuesNew[VfxStat_Count];
+  i32 valuesAccum[VfxStat_Count];
   i32 valuesLast[VfxStat_Count];
 };
 
