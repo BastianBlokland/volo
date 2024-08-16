@@ -150,6 +150,7 @@ static void vfx_options_draw(UiCanvasComp* canvas, DebugVfxPanelComp* panelComp)
   ui_table_add_column(&table, UiTableColumn_Fixed, 40);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Filter:"));
@@ -164,6 +165,13 @@ static void vfx_options_draw(UiCanvasComp* canvas, DebugVfxPanelComp* panelComp)
   ui_label(canvas, string_lit("Sort:"));
   ui_table_next_column(canvas, &table);
   ui_select(canvas, (i32*)&panelComp->sortMode, g_vfxSortModeNames, VfxSortMode_Count);
+
+  const String stats =
+      fmt_write_scratch("Count: {}", fmt_int(panelComp->objects.size, .minDigits = 4));
+
+  ui_table_next_column(canvas, &table);
+  ui_style_variation(canvas, UiVariation_Monospace);
+  ui_label(canvas, stats, .selectable = true);
 
   ui_style_pop(canvas);
   ui_layout_pop(canvas);
