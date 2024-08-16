@@ -547,7 +547,7 @@ static bool setup_prefab(
 
   const AssetPrefab* prefab = asset_prefab_get(map, spec->prefabId);
   if (UNLIKELY(!prefab)) {
-    log_e("Prefab not found", log_param("entity", fmt_int(e, .base = 16)));
+    log_e("Prefab not found", log_param("entity", ecs_entity_fmt(e)));
     return true; // No point in retrying; mark the prefab as done.
   }
   instanceComp->assetFlags = prefab->flags;

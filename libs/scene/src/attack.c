@@ -280,7 +280,7 @@ static EffectResult effect_update_proj(
 
   const u32 orgIdx = scene_skeleton_joint_by_name(ctx->skelTempl, def->originJoint);
   if (sentinel_check(orgIdx)) {
-    log_e("Weapon joint not found", log_param("entity", fmt_int(ctx->instigator, .base = 16)));
+    log_e("Weapon joint not found", log_param("entity", ecs_entity_fmt(ctx->instigator)));
     return EffectResult_Done;
   }
   const GeoMatrix orgMat = scene_skeleton_joint_world(ctx->trans, ctx->scale, ctx->skel, orgIdx);
@@ -358,7 +358,7 @@ static EffectResult effect_update_dmg(
 
   const u32 orgIdx = scene_skeleton_joint_by_name(ctx->skelTempl, def->originJoint);
   if (sentinel_check(orgIdx)) {
-    log_e("Weapon joint not found", log_param("entity", fmt_int(ctx->instigator, .base = 16)));
+    log_e("Weapon joint not found", log_param("entity", ecs_entity_fmt(ctx->instigator)));
     return EffectResult_Done;
   }
   const GeoMatrix orgMat = scene_skeleton_joint_world(ctx->trans, ctx->scale, ctx->skel, orgIdx);
@@ -469,7 +469,7 @@ static EffectResult effect_update_anim(
 
   SceneAnimLayer* animLayer = scene_animation_layer_mut(ctx->anim, def->layer);
   if (UNLIKELY(!animLayer)) {
-    log_e("Weapon animation not found", log_param("entity", fmt_int(ctx->instigator, .base = 16)));
+    log_e("Weapon animation not found", log_param("entity", ecs_entity_fmt(ctx->instigator)));
     return EffectResult_Done;
   }
 
@@ -522,7 +522,7 @@ static EffectResult effect_update_vfx(
   const EcsEntityId inst           = ctx->instigator;
   const u32         jointOriginIdx = scene_skeleton_joint_by_name(ctx->skelTempl, def->originJoint);
   if (UNLIKELY(sentinel_check(jointOriginIdx))) {
-    log_e("Weapon joint not found", log_param("entity", fmt_int(inst, .base = 16)));
+    log_e("Weapon joint not found", log_param("entity", ecs_entity_fmt(inst)));
     return EffectResult_Done;
   }
 
@@ -557,7 +557,7 @@ static EffectResult effect_update_sound(
   const EcsEntityId inst     = ctx->instigator;
   const u32         jointIdx = scene_skeleton_joint_by_name(ctx->skelTempl, def->originJoint);
   if (UNLIKELY(sentinel_check(jointIdx))) {
-    log_e("Weapon joint not found", log_param("entity", fmt_int(inst, .base = 16)));
+    log_e("Weapon joint not found", log_param("entity", ecs_entity_fmt(inst)));
     return EffectResult_Done;
   }
   const GeoMatrix mat   = scene_skeleton_joint_world(ctx->trans, ctx->scale, ctx->skel, jointIdx);
@@ -682,7 +682,7 @@ ecs_system_define(SceneAttackSys) {
     }
     const AssetWeapon* weapon = asset_weapon_get(weaponMap, attack->weaponName);
     if (UNLIKELY(!weapon)) {
-      log_e("Weapon not found", log_param("entity", fmt_int(entity, .base = 16)));
+      log_e("Weapon not found", log_param("entity", ecs_entity_fmt(entity)));
       continue;
     }
 

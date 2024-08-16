@@ -214,7 +214,7 @@ void script_val_write(const ScriptVal value, DynString* str) {
     return;
   }
   case ScriptType_Entity:
-    format_write_u64(str, val_as_entity(value), &format_opts_int(.base = 16));
+    format_write_u64(str, val_as_entity(value), &format_opts_int(.base = 16, .minDigits = 16));
     return;
   case ScriptType_Str: {
     const String valueString = stringtable_lookup(g_stringtable, val_as_str(value));

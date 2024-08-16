@@ -90,7 +90,7 @@ void ui_label_entity(UiCanvasComp* canvas, const EcsEntityId entity) {
   ui_style_variation(canvas, UiVariation_Monospace);
   ui_label(
       canvas,
-      fmt_write_scratch("{}", fmt_int(entity, .base = 16, .minDigits = 16)),
+      fmt_write_scratch("{}", ecs_entity_fmt(entity)),
       .selectable = true,
       .tooltip    = fmt_write_scratch("Index: {}\nSerial: {}", fmt_int(index), fmt_int(serial)));
   ui_style_pop(canvas);

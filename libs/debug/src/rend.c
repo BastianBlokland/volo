@@ -344,7 +344,7 @@ static void debug_overlay_bool(UiCanvasComp* c, UiTable* t, const String label, 
 
 static void
 debug_overlay_entity(UiCanvasComp* c, UiTable* t, const String label, const EcsEntityId v) {
-  debug_overlay_str(c, t, label, fmt_write_scratch("{}", fmt_int(v, .base = 16)));
+  debug_overlay_str(c, t, label, fmt_write_scratch("{}", ecs_entity_fmt(v)));
 }
 
 static void debug_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsView* resView) {
