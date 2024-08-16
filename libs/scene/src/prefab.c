@@ -541,7 +541,7 @@ static bool setup_prefab(
     return false; // Wait until the terrain is loaded.
   }
 
-  diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", fmt_int(spec->prefabId, .base = 16));
+  diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", string_hash_fmt(spec->prefabId));
   ScenePrefabInstanceComp* instanceComp =
       ecs_world_add_t(w, e, ScenePrefabInstanceComp, .id = spec->id, .prefabId = spec->prefabId);
 
@@ -656,7 +656,7 @@ EcsEntityId scene_prefab_map(const ScenePrefabEnvComp* env) { return env->mapEnt
 u32 scene_prefab_map_version(const ScenePrefabEnvComp* env) { return env->mapVersion; }
 
 EcsEntityId scene_prefab_spawn(EcsWorld* world, const ScenePrefabSpec* spec) {
-  diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", fmt_int(spec->prefabId, .base = 16));
+  diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", string_hash_fmt(spec->prefabId));
 
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, ScenePrefabRequestComp, .spec = *spec);
@@ -665,7 +665,7 @@ EcsEntityId scene_prefab_spawn(EcsWorld* world, const ScenePrefabSpec* spec) {
 
 void scene_prefab_spawn_onto(
     ScenePrefabEnvComp* env, const ScenePrefabSpec* spec, const EcsEntityId e) {
-  diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", fmt_int(spec->prefabId, .base = 16));
+  diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", string_hash_fmt(spec->prefabId));
 
   *dynarray_push_t(&env->requests, ScenePrefabRequest) = (ScenePrefabRequest){
       .spec   = *spec,

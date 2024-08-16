@@ -420,7 +420,7 @@ static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelCont
     ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
 
     const String nameTooltip = fmt_write_scratch(
-        "Index: {}\nId (hash): {}", fmt_int(prefabIdx), fmt_int(string_hash(name), .base = 16));
+        "Index: {}\nId (hash): {}", fmt_int(prefabIdx), string_hash_fmt(string_hash(name)));
 
     ui_label(canvas, name, .selectable = true, .tooltip = nameTooltip);
     ui_table_next_column(canvas, &table);

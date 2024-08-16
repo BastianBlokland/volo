@@ -219,7 +219,7 @@ void script_val_write(const ScriptVal value, DynString* str) {
   case ScriptType_Str: {
     const String valueString = stringtable_lookup(g_stringtable, val_as_str(value));
     if (string_is_empty(valueString)) {
-      fmt_write(str, "#{}", fmt_int(val_as_str(value), .base = 16));
+      fmt_write(str, "#{}", string_hash_fmt(val_as_str(value)));
     } else {
       dynstring_append(str, valueString);
     }

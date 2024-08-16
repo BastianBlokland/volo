@@ -146,7 +146,7 @@ FLATTEN_HINT EcsIterator* ecs_view_jump(EcsIterator* itr, const EcsEntityId enti
       ecs_view_contains(view, entity),
       "View {} does not contain entity {}",
       fmt_text(view->viewDef->name),
-      fmt_int(entity, .base = 16));
+      ecs_entity_fmt(entity));
 
   ecs_storage_itr_jump(view->storage, itr, entity);
   return itr;

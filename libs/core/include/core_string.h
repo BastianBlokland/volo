@@ -202,3 +202,8 @@ String string_trim(String, String chars);
  * Trim any whitespace from the beginning and ending of the string.
  */
 String string_trim_whitespace(String);
+
+/**
+ * Create a formatting argument for a string hash.
+ */
+#define string_hash_fmt(_HASH_) fmt_int((_HASH_), .base = 16, .minDigits = 8)
