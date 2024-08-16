@@ -237,8 +237,8 @@ asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelComp, EcsWorld*
   ui_layout_container_push(canvas, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
-  ui_table_add_column(&table, UiTableColumn_Fixed, 375);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 120);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 320);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 180);
   ui_table_add_column(&table, UiTableColumn_Fixed, 90);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);

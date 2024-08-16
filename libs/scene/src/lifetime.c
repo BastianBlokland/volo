@@ -46,7 +46,7 @@ static void ecs_combine_lifetime_owner(void* dataA, void* dataB) {
       log_e(
           "SceneLifetimeOwner's cannot be combined",
           log_param("reason", fmt_text_lit("Total owner count exceeds maximum")),
-          log_param("entity-to-add", fmt_int(ownerToAdd, .base = 16)));
+          log_param("entity-to-add", ecs_entity_fmt(ownerToAdd)));
     }
   }
 }

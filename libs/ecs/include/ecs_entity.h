@@ -35,3 +35,8 @@ typedef u64 EcsEntityId;
  * Signature is compatible with the 'CompareFunc' from 'core_compare.h'.
  */
 i8 ecs_compare_entity(const void* a, const void* b);
+
+/**
+ * Create a formatting argument for an entity identifier.
+ */
+#define ecs_entity_fmt(_ENT_) fmt_int((_ENT_), .base = 16, .minDigits = 16)

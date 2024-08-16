@@ -214,12 +214,12 @@ void script_val_write(const ScriptVal value, DynString* str) {
     return;
   }
   case ScriptType_Entity:
-    format_write_u64(str, val_as_entity(value), &format_opts_int(.base = 16));
+    format_write_u64(str, val_as_entity(value), &format_opts_int(.base = 16, .minDigits = 16));
     return;
   case ScriptType_Str: {
     const String valueString = stringtable_lookup(g_stringtable, val_as_str(value));
     if (string_is_empty(valueString)) {
-      fmt_write(str, "#{}", fmt_int(val_as_str(value), .base = 16));
+      fmt_write(str, "#{}", string_hash_fmt(val_as_str(value)));
     } else {
       dynstring_append(str, valueString);
     }

@@ -964,9 +964,9 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity, .tgtEntity = tgtEntity};
   const SceneQueryFilter         filter    = {
-                 .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
-                 .callback  = eval_line_of_sight_filter,
-                 .context   = &filterCtx,
+      .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
+      .callback  = eval_line_of_sight_filter,
+      .context   = &filterCtx,
   };
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
@@ -1838,7 +1838,7 @@ static ScriptVal eval_debug_log(EvalContext* ctx, const ScriptArgs args, ScriptE
   log_i(
       "script: {}",
       log_param("text", fmt_text(dynstring_view(&buffer))),
-      log_param("entity", fmt_int(ctx->instigator, .base = 16)),
+      log_param("entity", ecs_entity_fmt(ctx->instigator)),
       log_param("script", fmt_text(ctx->scriptId)));
 
   return script_null();
@@ -2283,7 +2283,7 @@ static void scene_script_eval(EvalContext* ctx) {
         "Script panic",
         log_param("panic", fmt_text(msg)),
         log_param("script", fmt_text(ctx->scriptId)),
-        log_param("entity", fmt_int(ctx->instigator, .base = 16)));
+        log_param("entity", ecs_entity_fmt(ctx->instigator)));
 
     ctx->scriptInstance->flags |= SceneScriptFlags_DidPanic;
     data->panic = evalRes.panic;

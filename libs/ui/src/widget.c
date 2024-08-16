@@ -86,11 +86,14 @@ void ui_label_with_opts(UiCanvasComp* canvas, const String text, const UiLabelOp
 void ui_label_entity(UiCanvasComp* canvas, const EcsEntityId entity) {
   const u32 index  = ecs_entity_id_index(entity);
   const u32 serial = ecs_entity_id_serial(entity);
+  ui_style_push(canvas);
+  ui_style_variation(canvas, UiVariation_Monospace);
   ui_label(
       canvas,
-      fmt_write_scratch("{}", fmt_int(entity, .base = 16)),
+      fmt_write_scratch("{}", ecs_entity_fmt(entity)),
       .selectable = true,
       .tooltip    = fmt_write_scratch("Index: {}\nSerial: {}", fmt_int(index), fmt_int(serial)));
+  ui_style_pop(canvas);
 }
 
 bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {

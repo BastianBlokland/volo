@@ -19,6 +19,7 @@
 #include "debug_stats.h"
 #include "debug_time.h"
 #include "debug_trace.h"
+#include "debug_vfx.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "gap_window.h"
@@ -137,6 +138,12 @@ static const struct {
         .detachedSize = {.x = 800, .y = 520},
         .openFunc     = debug_rend_panel_open,
         .hotkeyName   = string_static("DebugPanelRenderer"),
+    },
+    {
+        .name         = string_static("Vfx"),
+        .iconShape    = UiShape_Diamond,
+        .detachedSize = {.x = 850, .y = 500},
+        .openFunc     = debug_vfx_panel_open,
     },
     {
         .name         = string_static("Interface"),
