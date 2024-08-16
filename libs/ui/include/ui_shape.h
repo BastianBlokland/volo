@@ -56,6 +56,7 @@
   X(0xEA3C, Construction)                                                                          \
   X(0xEA4A, Psychology)                                                                            \
   X(0xEA5F, Calculate)                                                                             \
+  X(0xEAD5, Diamond)                                                                               \
   X(0xEF42, Article)                                                                               \
   X(0xEF5B, Monitor)                                                                               \
   X(0xF000, Square)                                                                                \
