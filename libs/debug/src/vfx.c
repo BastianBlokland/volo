@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_stringtable.h"
 #include "debug_vfx.h"
@@ -16,6 +17,21 @@ static const String g_tooltipSelectEntity = string_static("Select the entity.");
 
 // clang-format on
 
+typedef enum {
+  VfxSortMode_Entity,
+  VfxSortMode_Sprites,
+  VfxSortMode_Stamps,
+
+  VfxSortMode_Count,
+} VfxSortMode;
+
+static const String g_vfxSortModeNames[] = {
+    string_static("Entity"),
+    string_static("Sprites"),
+    string_static("Stamps"),
+};
+ASSERT(array_elems(g_vfxSortModeNames) == VfxSortMode_Count, "Incorrect number of names");
+
 typedef struct {
   StringHash  nameHash;
   EcsEntityId entity;
@@ -26,6 +42,7 @@ ecs_comp_define(DebugVfxPanelComp) {
   UiPanel      panel;
   UiScrollview scrollview;
   bool         freeze;
+  VfxSortMode  sortMode;
   DynString    nameFilter;
   DynArray     objects; // DebugVfxInfo[]
 };
@@ -49,6 +66,27 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugVfxPanelComp);
   ecs_access_write(UiCanvasComp);
+}
+
+static i8 vfx_compare_info_entity(const void* a, const void* b) {
+  const u32 serialA = ecs_entity_id_serial(((const DebugVfxInfo*)a)->entity);
+  const u32 serialB = ecs_entity_id_serial(((const DebugVfxInfo*)b)->entity);
+  return compare_u32(&serialA, &serialB);
+}
+
+static i8 comp_compare_info_stat(const void* a, const void* b, const VfxStat stat) {
+  const u32 statValA = ((const DebugVfxInfo*)a)->stats[stat];
+  const u32 statValB = ((const DebugVfxInfo*)b)->stats[stat];
+  const i8  res      = compare_u32_reverse(&statValA, &statValB);
+  return res ? res : vfx_compare_info_entity(a, b);
+}
+
+static i8 comp_compare_info_sprites(const void* a, const void* b) {
+  return comp_compare_info_stat(a, b, VfxStat_SpriteCount);
+}
+
+static i8 comp_compare_info_stamps(const void* a, const void* b) {
+  return comp_compare_info_stat(a, b, VfxStat_StampCount);
 }
 
 static bool vfx_panel_filter(DebugVfxPanelComp* panelComp, const String name) {
@@ -85,6 +123,20 @@ static void vfx_info_query(DebugVfxPanelComp* panelComp, EcsWorld* world) {
       mem_cpy(mem_var(info->stats), mem_var(statsComp->valuesLast));
     }
   }
+
+  switch (panelComp->sortMode) {
+  case VfxSortMode_Entity:
+    dynarray_sort(&panelComp->objects, vfx_compare_info_entity);
+    break;
+  case VfxSortMode_Sprites:
+    dynarray_sort(&panelComp->objects, comp_compare_info_sprites);
+    break;
+  case VfxSortMode_Stamps:
+    dynarray_sort(&panelComp->objects, comp_compare_info_stamps);
+    break;
+  case VfxSortMode_Count:
+    break;
+  }
 }
 
 static void vfx_options_draw(UiCanvasComp* canvas, DebugVfxPanelComp* panelComp) {
@@ -95,7 +147,9 @@ static void vfx_options_draw(UiCanvasComp* canvas, DebugVfxPanelComp* panelComp)
   ui_table_add_column(&table, UiTableColumn_Fixed, 60);
   ui_table_add_column(&table, UiTableColumn_Fixed, 250);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 40);
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Filter:"));
@@ -106,6 +160,10 @@ static void vfx_options_draw(UiCanvasComp* canvas, DebugVfxPanelComp* panelComp)
   ui_label(canvas, string_lit("Freeze:"));
   ui_table_next_column(canvas, &table);
   ui_toggle(canvas, &panelComp->freeze, .tooltip = g_tooltipFreeze);
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, string_lit("Sort:"));
+  ui_table_next_column(canvas, &table);
+  ui_select(canvas, (i32*)&panelComp->sortMode, g_vfxSortModeNames, VfxSortMode_Count);
 
   ui_style_pop(canvas);
   ui_layout_pop(canvas);
