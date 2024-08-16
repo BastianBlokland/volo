@@ -573,8 +573,8 @@ static void output_panel_tab_draw(
   ui_layout_container_push(canvas, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
-  ui_table_add_column(&table, UiTableColumn_Fixed, 160);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 275);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 215);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 300);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -631,8 +631,17 @@ static void output_panel_tab_draw(
         fmt_int(entry->range.end.line + 1),
         fmt_int(entry->range.end.column + 1));
 
+    const String locTooltip = fmt_write_scratch(
+        "{}\n\n\a.bScript\ar:\a>10{}\n\a.bLine\ar:\a>10{} - {}\n\a.bColumn\ar:\a>10{} - {}",
+        fmt_text(g_tooltipOpenScript),
+        fmt_text(entry->scriptId),
+        fmt_int(entry->range.start.line + 1),
+        fmt_int(entry->range.end.line + 1),
+        fmt_int(entry->range.start.column + 1),
+        fmt_int(entry->range.end.column + 1));
+
     ui_table_next_column(canvas, &table);
-    if (ui_button(canvas, .label = locText, .noFrame = true, .tooltip = g_tooltipOpenScript)) {
+    if (ui_button(canvas, .label = locText, .noFrame = true, .tooltip = locTooltip)) {
       panelComp->editorReq =
           (DebugEditorRequest){.scriptId = entry->scriptId, .pos = entry->range.start};
     }
