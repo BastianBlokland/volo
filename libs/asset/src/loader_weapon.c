@@ -382,6 +382,7 @@ ecs_system_define(LoadWeaponAssetSys) {
     log_e(
         "Failed to load WeaponMap",
         log_param("id", fmt_text(id)),
+        log_param("entity", ecs_entity_fmt(entity)),
         log_param("error", fmt_text(errMsg)));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 

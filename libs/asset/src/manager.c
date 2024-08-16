@@ -244,6 +244,7 @@ static bool asset_manager_load(
   log_d(
       "Asset load started",
       log_param("id", fmt_path(asset->id)),
+      log_param("entity", ecs_entity_fmt(assetEntity)),
       log_param("format", fmt_text(asset_format_str(source->format))),
       log_param("size", fmt_size(source->data.size)));
 
@@ -256,6 +257,7 @@ static bool asset_manager_load(
     log_e(
         "Asset format cannot be loaded directly",
         log_param("id", fmt_path(asset->id)),
+        log_param("entity", ecs_entity_fmt(assetEntity)),
         log_param("format", fmt_text(asset_format_str(source->format))));
     success = false;
   }

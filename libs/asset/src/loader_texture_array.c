@@ -558,6 +558,7 @@ ecs_system_define(ArrayTexLoadUpdateSys) {
     log_e(
         "Failed to load array-texture",
         log_param("id", fmt_text(id)),
+        log_param("entity", ecs_entity_fmt(entity)),
         log_param("error", fmt_text(arraytex_error_str(err))));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
@@ -663,6 +664,7 @@ Error:
   log_e(
       "Failed to load array texture",
       log_param("id", fmt_text(id)),
+      log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
   data_destroy(g_dataReg, g_allocHeap, g_assetTexArrayDefMeta, mem_var(def));

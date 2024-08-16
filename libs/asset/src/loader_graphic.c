@@ -30,6 +30,7 @@ static void graphic_load_fail(
   log_e(
       "Failed to parse graphic",
       log_param("id", fmt_text(id)),
+      log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(message)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }

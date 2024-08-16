@@ -187,6 +187,7 @@ ecs_system_define(LoadCursorAssetSys) {
     log_e(
         "Failed to load cursor",
         log_param("id", fmt_text(id)),
+        log_param("entity", ecs_entity_fmt(entity)),
         log_param("error", fmt_text(cursor_error_str(err))));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
@@ -267,7 +268,10 @@ void asset_load_cursor(
 
 Error:
   log_e(
-      "Failed to load cursor", log_param("id", fmt_text(id)), log_param("error", fmt_text(errMsg)));
+      "Failed to load cursor",
+      log_param("id", fmt_text(id)),
+      log_param("entity", ecs_entity_fmt(entity)),
+      log_param("error", fmt_text(errMsg)));
   data_destroy(g_dataReg, g_allocHeap, g_assetCursorDefMeta, mem_var(cursorDef));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
@@ -286,6 +290,7 @@ void asset_load_cursor_bin(
     log_e(
         "Failed to load binary cursor",
         log_param("id", fmt_text(id)),
+        log_param("entity", ecs_entity_fmt(entity)),
         log_param("error-code", fmt_int(result.error)),
         log_param("error", fmt_text(result.errorMsg)));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);

@@ -899,6 +899,7 @@ void asset_load_shader_spv(
     log_e(
         "Failed to load SpirV shader",
         log_param("id", fmt_text(id)),
+        log_param("entity", ecs_entity_fmt(entity)),
         log_param("error", fmt_text(spv_err_str(err))));
 
     ecs_world_add_empty_t(world, entity, AssetFailedComp);

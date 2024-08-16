@@ -404,6 +404,7 @@ obj_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
   log_e(
       "Failed to parse WaveFront Obj Mesh",
       log_param("id", fmt_text(id)),
+      log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(obj_error_str(err))));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }

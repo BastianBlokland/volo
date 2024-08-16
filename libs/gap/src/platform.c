@@ -53,7 +53,10 @@ static void gap_platform_update_cursors(EcsWorld* world, GapPlatformComp* platfo
       goto Wait;
     }
     if (UNLIKELY(!ecs_view_maybe_jump(cursorItr, platform->cursors[c].asset))) {
-      log_e("Cursor invalid", log_param("id", fmt_text(g_gapCursorAssets[c])));
+      log_e(
+          "Cursor invalid",
+          log_param("id", fmt_text(g_gapCursorAssets[c])),
+          log_param("entity", ecs_entity_fmt(platform->cursors[c].asset)));
       goto Done;
     }
     gap_pal_cursor_load(platform->pal, c, ecs_view_read_t(cursorItr, AssetCursorComp));
