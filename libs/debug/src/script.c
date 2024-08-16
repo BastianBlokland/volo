@@ -608,7 +608,7 @@ static void output_panel_tab_draw(
     ui_layout_push(canvas);
     ui_layout_inner(
         canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 25), UiBase_Absolute);
-    const bool selected = scene_set_main(setEnv, g_sceneSetSelected) == entry->entity;
+    const bool selected = scene_set_contains(setEnv, g_sceneSetSelected, entry->entity);
     if (ui_button(
             canvas,
             .label      = ui_shape_scratch(UiShape_SelectAll),

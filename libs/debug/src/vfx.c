@@ -4,13 +4,15 @@
 #include "debug_vfx.h"
 #include "ecs_world.h"
 #include "scene_name.h"
+#include "scene_set.h"
 #include "ui.h"
 #include "vfx_stats.h"
 
 // clang-format off
 
-static const String g_tooltipFilter = string_static("Filter entries by name.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
-static const String g_tooltipFreeze = string_static("Freeze the data set (halts data collection).");
+static const String g_tooltipFilter       = string_static("Filter entries by name.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
+static const String g_tooltipFreeze       = string_static("Freeze the data set (halts data collection).");
+static const String g_tooltipSelectEntity = string_static("Select the entity.");
 
 // clang-format on
 
@@ -38,6 +40,8 @@ ecs_view_define(VfxObjView) {
   ecs_access_read(SceneNameComp);
   ecs_access_read(VfxStatsComp);
 }
+
+ecs_view_define(PanelUpdateGlobalView) { ecs_access_write(SceneSetEnvComp); }
 
 ecs_view_define(PanelUpdateView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // DebugVfxPanelComp's are exclusively managed here.
@@ -107,7 +111,8 @@ static void vfx_options_draw(UiCanvasComp* canvas, DebugVfxPanelComp* panelComp)
   ui_layout_pop(canvas);
 }
 
-static void vfx_panel_draw(UiCanvasComp* canvas, DebugVfxPanelComp* panelComp) {
+static void
+vfx_panel_draw(UiCanvasComp* canvas, DebugVfxPanelComp* panelComp, SceneSetEnvComp* setEnv) {
   const String title = fmt_write_scratch("{} Vfx Panel", fmt_ui_shape(Diamond));
   ui_panel_begin(
       canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
@@ -150,6 +155,22 @@ static void vfx_panel_draw(UiCanvasComp* canvas, DebugVfxPanelComp* panelComp) {
     ui_label(canvas, vfx_entity_name(info->nameHash), .selectable = true);
     ui_table_next_column(canvas, &table);
     ui_label_entity(canvas, info->entity);
+
+    ui_layout_push(canvas);
+    ui_layout_inner(
+        canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 25), UiBase_Absolute);
+    const bool selected = scene_set_contains(setEnv, g_sceneSetSelected, info->entity);
+    if (ui_button(
+            canvas,
+            .label      = ui_shape_scratch(UiShape_SelectAll),
+            .frameColor = selected ? ui_color(8, 128, 8, 192) : ui_color(32, 32, 32, 192),
+            .fontSize   = 18,
+            .tooltip    = g_tooltipSelectEntity)) {
+      scene_set_clear(setEnv, g_sceneSetSelected);
+      scene_set_add(setEnv, g_sceneSetSelected, info->entity);
+    }
+
+    ui_layout_pop(canvas);
     for (VfxStat stat = 0; stat != VfxStat_Count; ++stat) {
       ui_table_next_column(canvas, &table);
       ui_label(canvas, fmt_write_scratch("{}", fmt_int(info->stats[stat])));
@@ -163,6 +184,13 @@ static void vfx_panel_draw(UiCanvasComp* canvas, DebugVfxPanelComp* panelComp) {
 }
 
 ecs_system_define(DebugVfxUpdatePanelSys) {
+  EcsView*     globalView = ecs_world_view_t(world, PanelUpdateGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return;
+  }
+  SceneSetEnvComp* setEnv = ecs_view_write_t(globalItr, SceneSetEnvComp);
+
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     const EcsEntityId  entity    = ecs_view_entity(itr);
@@ -175,7 +203,7 @@ ecs_system_define(DebugVfxUpdatePanelSys) {
       continue;
     }
     vfx_info_query(panelComp, world);
-    vfx_panel_draw(canvas, panelComp);
+    vfx_panel_draw(canvas, panelComp, setEnv);
 
     if (ui_panel_closed(&panelComp->panel)) {
       ecs_world_entity_destroy(world, entity);
@@ -189,11 +217,15 @@ ecs_system_define(DebugVfxUpdatePanelSys) {
 ecs_module_init(debug_vfx_module) {
   ecs_register_comp(DebugVfxPanelComp, .destructor = ecs_destruct_vfx_panel);
 
-  ecs_register_view(PanelUpdateView);
   ecs_register_view(VfxObjView);
+  ecs_register_view(PanelUpdateGlobalView);
+  ecs_register_view(PanelUpdateView);
 
   ecs_register_system(
-      DebugVfxUpdatePanelSys, ecs_view_id(PanelUpdateView), ecs_view_id(VfxObjView));
+      DebugVfxUpdatePanelSys,
+      ecs_view_id(VfxObjView),
+      ecs_view_id(PanelUpdateGlobalView),
+      ecs_view_id(PanelUpdateView));
 }
 
 EcsEntityId
