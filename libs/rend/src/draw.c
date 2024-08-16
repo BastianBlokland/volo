@@ -164,7 +164,7 @@ static void rend_draw_resource_request(
     if (LIKELY(rend_resource_asset_valid(world, entity))) {
       rend_res_request(world, entity);
     } else {
-      log_e("Invalid draw resource asset entity");
+      log_e("Invalid draw resource asset entity", log_param("entity", ecs_entity_fmt(entity)));
     }
   }
 }

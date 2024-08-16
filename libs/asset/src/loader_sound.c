@@ -72,6 +72,7 @@ void asset_load_sound_bin(
     log_e(
         "Failed to load binary sound",
         log_param("id", fmt_text(id)),
+        log_param("entity", ecs_entity_fmt(entity)),
         log_param("error-code", fmt_int(result.error)),
         log_param("error", fmt_text(result.errorMsg)));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);

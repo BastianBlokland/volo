@@ -383,7 +383,11 @@ void asset_load_vfx(EcsWorld* world, const String id, const EcsEntityId entity, 
   goto Cleanup;
 
 Error:
-  log_e("Failed to load Vfx", log_param("id", fmt_text(id)), log_param("error", fmt_text(errMsg)));
+  log_e(
+      "Failed to load Vfx",
+      log_param("id", fmt_text(id)),
+      log_param("entity", ecs_entity_fmt(entity)),
+      log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:

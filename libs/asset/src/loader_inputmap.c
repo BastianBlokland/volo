@@ -59,10 +59,10 @@ static void asset_inputmap_build(
   heap_array_for_t(def->actions, AssetInputActionDef, actionDef) {
     const usize            bindingCount = actionDef->bindings.count;
     const AssetInputAction action       = {
-              .nameHash     = stringtable_add(g_stringtable, actionDef->name),
-              .blockerBits  = actionDef->blockers,
-              .bindingIndex = (u16)outBindings->size,
-              .bindingCount = (u16)bindingCount,
+        .nameHash     = stringtable_add(g_stringtable, actionDef->name),
+        .blockerBits  = actionDef->blockers,
+        .bindingIndex = (u16)outBindings->size,
+        .bindingCount = (u16)bindingCount,
     };
     if (dynarray_search_binary(outActions, asset_inputmap_compare_action, &action)) {
       *err = InputMapError_DuplicateAction;
@@ -293,6 +293,7 @@ Error:
   log_e(
       "Failed to load InputMap",
       log_param("id", fmt_text(id)),
+      log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 

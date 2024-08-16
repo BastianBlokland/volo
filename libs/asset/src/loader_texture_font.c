@@ -374,6 +374,7 @@ ecs_system_define(FontTexLoadAssetSys) {
     log_e(
         "Failed to load font-texture",
         log_param("id", fmt_text(id)),
+        log_param("entity", ecs_entity_fmt(entity)),
         log_param("error", fmt_text(fonttex_error_str(err))));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
@@ -501,6 +502,7 @@ Error:
   log_e(
       "Failed to load font-texture",
       log_param("id", fmt_text(id)),
+      log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(errMsg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
   data_destroy(g_dataReg, g_allocHeap, g_assetFontTexDefMeta, mem_var(def));
@@ -519,6 +521,7 @@ void asset_load_tex_font_bin(
     log_e(
         "Failed to load binary fonttex",
         log_param("id", fmt_text(id)),
+        log_param("entity", ecs_entity_fmt(entity)),
         log_param("error-code", fmt_int(result.error)),
         log_param("error", fmt_text(result.errorMsg)));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);

@@ -30,7 +30,10 @@ static void ecs_destruct_terrain_load_comp(void* data) {
 static void
 terrain_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const String msg) {
   log_e(
-      "Failed to parse terrain", log_param("id", fmt_text(id)), log_param("error", fmt_text(msg)));
+      "Failed to parse terrain",
+      log_param("id", fmt_text(id)),
+      log_param("entity", ecs_entity_fmt(entity)),
+      log_param("error", fmt_text(msg)));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
