@@ -194,6 +194,11 @@ void rvk_job_destroy(RvkJob* job) {
   alloc_free_t(g_allocHeap, job);
 }
 
+bool rvk_job_is_done(const RvkJob* job) {
+  const VkResult fenceStatus = vkGetFenceStatus(job->dev->vkDev, job->fenceJobDone);
+  return fenceStatus == VK_SUCCESS;
+}
+
 void rvk_job_wait_for_done(const RvkJob* job) {
   const TimeSteady waitStart = time_steady_clock();
 
