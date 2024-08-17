@@ -270,8 +270,12 @@ void rvk_canvas_end(RvkCanvas* canvas) {
 void rvk_canvas_wait_for_prev_present(const RvkCanvas* canvas) {
   trace_begin("rend_present_wait", TraceColor_White);
   {
+    /**
+     * Wait for the previous frame to be rendered and presented.
+     */
     const u32 numBehind = 1;
-    rvk_swapchain_wait_for_present(canvas->swapchain, numBehind);
+    rvk_job_wait_for_done(canvas->jobs[canvas->jobIdx]);          // Wait for rendering.
+    rvk_swapchain_wait_for_present(canvas->swapchain, numBehind); // Wait for presenting.
   }
   trace_end();
 }
