@@ -858,7 +858,7 @@ static bool rend_canvas_paint_3d(
     painter_flush(&ctx);
     trace_end();
   } else {
-    rvk_canvas_img_clear_color(painter->canvas, fogBuffer, geo_color_clear);
+    rvk_canvas_img_clear_color(painter->canvas, fogBuffer, geo_color_white);
   }
 
   // Fog-blur pass.
