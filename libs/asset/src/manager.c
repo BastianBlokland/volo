@@ -228,7 +228,6 @@ static bool asset_manager_load(
   if (!source) {
     return false;
   }
-  trace_begin_msg("asset_manager_load", TraceColor_Blue, "{}", fmt_text(path_filename(asset->id)));
 
   if (manager->flags & AssetManagerFlags_TrackChanges) {
     asset_repo_changes_watch(manager->repo, asset->id, (u64)assetEntity);
@@ -261,8 +260,6 @@ static bool asset_manager_load(
         log_param("format", fmt_text(asset_format_str(source->format))));
     success = false;
   }
-
-  trace_end();
 
   if (!success) {
     asset_repo_source_close(source);
@@ -359,12 +356,18 @@ ecs_system_define(AssetUpdateDirtySys) {
       if (canLoad) {
         assetComp->flags |= AssetFlags_Loading;
         const TimeSteady loadStart = time_steady_clock();
-        if (asset_manager_load(world, manager, assetComp, entity)) {
-          loadTime += time_steady_duration(loadStart, time_steady_clock());
-        } else {
-          ecs_world_add_empty_t(world, entity, AssetFailedComp);
+
+        MAYBE_UNUSED const String assetFileName = path_filename(assetComp->id);
+        trace_begin_msg("asset_manager_load", TraceColor_Blue, "{}", fmt_text(assetFileName));
+        {
+          if (asset_manager_load(world, manager, assetComp, entity)) {
+            loadTime += time_steady_duration(loadStart, time_steady_clock());
+          } else {
+            ecs_world_add_empty_t(world, entity, AssetFailedComp);
+          }
+          ecs_utils_maybe_remove_t(world, entity, AssetChangedComp);
         }
-        ecs_utils_maybe_remove_t(world, entity, AssetChangedComp);
+        trace_end();
       }
       goto AssetUpdateDone;
     }
@@ -525,8 +528,8 @@ ecs_system_define(AssetCacheSys) {
         ecs_view_jump(depItr, depComp->dependencies.single);
         const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
         deps[depCount++]              = (AssetRepoDep){
-            .id      = depAssetComp->id,
-            .modTime = depAssetComp->loadModTime,
+                         .id      = depAssetComp->id,
+                         .modTime = depAssetComp->loadModTime,
         };
       } break;
       case AssetDepStorageType_Many:
@@ -537,8 +540,8 @@ ecs_system_define(AssetCacheSys) {
           ecs_view_jump(depItr, *asset);
           const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
           deps[depCount++]              = (AssetRepoDep){
-              .id      = depAssetComp->id,
-              .modTime = depAssetComp->loadModTime,
+                           .id      = depAssetComp->id,
+                           .modTime = depAssetComp->loadModTime,
           };
         }
         break;
