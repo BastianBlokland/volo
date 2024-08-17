@@ -1,6 +1,7 @@
 {
   "name": "Playground",
   "terrainId": "terrains/desert_big.terrain",
+  "fogMode": "VisibilityBased",
   "startpoint": { "x": -8.3416, "z": -6.6783 },
   "objects": [
     {

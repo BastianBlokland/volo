@@ -1,6 +1,7 @@
 {
   "name": "Gate",
   "terrainId": "terrains/desert_small.terrain",
+  "fogMode": "VisibilityBased",
   "startpoint": { "x": 25.1386, "z": -39.5714 },
   "objects": [
     {
@@ -2823,7 +2824,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": 0.5005, "y": 0.7869, "z": -27.5821 },
-      "rotation": { "x": 0, "y": 0.7667, "w": -0.642 }
+      "rotation": { "y": 0.7667, "w": -0.642 }
     },
     {
       "id": 1866022090,
@@ -6173,7 +6174,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": 4.4292, "y": 0.8683, "z": -25.8576 },
-      "rotation": { "y": -0.7429, "z": 0, "w": -0.6694 }
+      "rotation": { "y": -0.7429, "w": -0.6694 }
     },
     {
       "id": 3859848443,
@@ -6652,7 +6653,7 @@
       "prefab": "InfantryMonster",
       "faction": "B",
       "position": { "x": 16.4022, "y": 0.7066, "z": -27.613 },
-      "rotation": { "x": 0, "y": 0.0836, "w": -0.9965 }
+      "rotation": { "y": 0.0836, "w": -0.9965 }
     },
     {
       "id": 4165956772,
