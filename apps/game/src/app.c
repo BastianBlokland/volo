@@ -517,7 +517,6 @@ ecs_system_define(AppUpdateSys) {
       app_debug_hide(world, true);
       input_layer_disable(input, string_hash_lit("Debug"));
       input_layer_enable(input, string_hash_lit("Game"));
-      rendSetWin->flags |= RendFlags_Fog;
       scene_visibility_flags_clear(visibilityEnv, SceneVisibilityFlags_ForceVisibleForRender);
       break;
     case AppMode_Debug:
@@ -527,7 +526,6 @@ ecs_system_define(AppUpdateSys) {
       app_debug_hide(world, false);
       input_layer_enable(input, string_hash_lit("Debug"));
       input_layer_disable(input, string_hash_lit("Game"));
-      rendSetWin->flags &= ~RendFlags_Fog;
       scene_visibility_flags_set(visibilityEnv, SceneVisibilityFlags_ForceVisibleForRender);
       break;
     }
