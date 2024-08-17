@@ -16,6 +16,11 @@ typedef enum {
   AssetLevelFaction_D
 } AssetLevelFaction;
 
+typedef enum {
+  AssetLevelFog_Disabled,
+  AssetLevelFog_VisiblityBased,
+} AssetLevelFog;
+
 typedef struct {
   u32               id; // Optional unique persistent object id.
   StringHash        prefab;
@@ -26,9 +31,10 @@ typedef struct {
 } AssetLevelObject;
 
 typedef struct {
-  String    name;
-  String    terrainId;
-  GeoVector startpoint;
+  String        name;
+  String        terrainId;
+  AssetLevelFog fogMode;
+  GeoVector     startpoint;
   HeapArray_t(AssetLevelObject) objects;
 } AssetLevel;
 

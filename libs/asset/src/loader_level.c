@@ -52,6 +52,10 @@ void asset_data_init_level(void) {
   data_reg_const_t(g_dataReg, AssetLevelFaction, C);
   data_reg_const_t(g_dataReg, AssetLevelFaction, D);
 
+  data_reg_enum_t(g_dataReg, AssetLevelFog);
+  data_reg_const_t(g_dataReg, AssetLevelFog, Disabled);
+  data_reg_const_t(g_dataReg, AssetLevelFog, VisiblityBased);
+
   data_reg_struct_t(g_dataReg, AssetLevelObject);
   data_reg_field_t(g_dataReg, AssetLevelObject, id, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetLevelObject, prefab, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
@@ -63,6 +67,7 @@ void asset_data_init_level(void) {
   data_reg_struct_t(g_dataReg, AssetLevel);
   data_reg_field_t(g_dataReg, AssetLevel, name, data_prim_t(String), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetLevel, terrainId, data_prim_t(String), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetLevel, fogMode, t_AssetLevelFog, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetLevel, startpoint, g_assetGeoVec3Type, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetLevel, objects, t_AssetLevelObject, .container = DataContainer_HeapArray);
   // clang-format on
