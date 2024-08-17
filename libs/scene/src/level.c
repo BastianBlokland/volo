@@ -1,4 +1,3 @@
-#include "asset_level.h"
 #include "asset_manager.h"
 #include "core_alloc.h"
 #include "core_array.h"
@@ -9,6 +8,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_faction.h"
+#include "scene_level.h"
 #include "scene_prefab.h"
 #include "scene_transform.h"
 #include "trace_tracer.h"
@@ -22,12 +22,13 @@ typedef enum {
 } LevelLoadState;
 
 ecs_comp_define(SceneLevelManagerComp) {
-  bool        isLoading;
-  u32         loadCounter;
-  EcsEntityId levelAsset;
-  String      levelName;
-  EcsEntityId levelTerrain;
-  GeoVector   levelStartpoint;
+  bool          isLoading;
+  u32           loadCounter;
+  EcsEntityId   levelAsset;
+  String        levelName;
+  EcsEntityId   levelTerrain;
+  AssetLevelFog levelFog;
+  GeoVector     levelStartpoint;
 };
 
 ecs_comp_define_public(SceneLevelInstanceComp);
@@ -107,6 +108,7 @@ scene_level_process_unload(EcsWorld* world, SceneLevelManagerComp* manager, EcsV
   manager->levelAsset      = 0;
   manager->levelName       = string_empty;
   manager->levelTerrain    = 0;
+  manager->levelFog        = AssetLevelFog_Disabled;
   manager->levelStartpoint = geo_vector(0);
 
   trace_end();
@@ -142,6 +144,7 @@ static void scene_level_process_load(
   manager->levelAsset      = levelAsset;
   manager->levelName       = string_maybe_dup(g_allocHeap, level->name);
   manager->levelStartpoint = level->startpoint;
+  manager->levelFog        = level->fogMode;
   if (!string_is_empty(level->terrainId)) {
     manager->levelTerrain = asset_lookup(world, assets, level->terrainId);
   }
@@ -327,6 +330,7 @@ static void scene_level_process_save(
       .name           = manager->levelName,
       .terrainId      = scene_asset_id(assetView, manager->levelTerrain),
       .startpoint     = manager->levelStartpoint,
+      .fogMode        = manager->levelFog,
       .objects.values = dynarray_begin_t(&objects, AssetLevelObject),
       .objects.count  = objects.size,
   };
@@ -437,6 +441,13 @@ GeoVector scene_level_startpoint(const SceneLevelManagerComp* manager) {
 void scene_level_startpoint_update(SceneLevelManagerComp* manager, const GeoVector startpoint) {
   diag_assert_msg(manager->levelAsset, "Unable to update startpoint: No level loaded");
   manager->levelStartpoint = startpoint;
+}
+
+AssetLevelFog scene_level_fog(const SceneLevelManagerComp* manager) { return manager->levelFog; }
+
+void scene_level_fog_update(SceneLevelManagerComp* manager, const AssetLevelFog fog) {
+  diag_assert_msg(manager->levelAsset, "Unable to update fog: No level loaded");
+  manager->levelFog = fog;
 }
 
 void scene_level_load(EcsWorld* world, const EcsEntityId levelAsset) {

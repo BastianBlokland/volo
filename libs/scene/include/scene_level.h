@@ -1,7 +1,7 @@
 #pragma once
+#include "asset_level.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
-#include "geo_vector.h"
 
 ecs_comp_extern(SceneLevelManagerComp);
 
@@ -23,6 +23,9 @@ void        scene_level_terrain_update(SceneLevelManagerComp*, EcsEntityId terra
 
 GeoVector scene_level_startpoint(const SceneLevelManagerComp*);
 void      scene_level_startpoint_update(SceneLevelManagerComp*, GeoVector startpoint);
+
+AssetLevelFog scene_level_fog(const SceneLevelManagerComp*);
+void          scene_level_fog_update(SceneLevelManagerComp*, AssetLevelFog);
 
 void scene_level_load(EcsWorld*, EcsEntityId levelAsset);
 void scene_level_reload(EcsWorld*);
