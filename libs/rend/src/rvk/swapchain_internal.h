@@ -16,6 +16,7 @@ typedef struct sRvkSwapchain RvkSwapchain;
 typedef struct sRvkSwapchainStats {
   TimeDuration acquireDur;
   TimeDuration presentEnqueueDur, presentWaitDur;
+  u64          presentId;
   u16          imageCount;
 } RvkSwapchainStats;
 

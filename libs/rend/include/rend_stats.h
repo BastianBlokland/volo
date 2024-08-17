@@ -32,6 +32,7 @@ ecs_comp_extern_public(RendStatsComp) {
 
   RendStatPass passes[RendPass_Count];
 
+  u64 swapchainPresentId;
   u16 swapchainImageCount;
   u16 memChunks;
   u64 ramOccupied, ramReserved;

@@ -324,6 +324,7 @@ RvkSwapchainStats rvk_swapchain_stats(const RvkSwapchain* swapchain) {
       .acquireDur        = swapchain->lastAcquireDur,
       .presentEnqueueDur = swapchain->lastPresentEnqueueDur,
       .presentWaitDur    = swapchain->lastPresentWaitDur,
+      .presentId         = swapchain->curPresentId,
       .imageCount        = (u16)swapchain->imageCount,
   };
 }
