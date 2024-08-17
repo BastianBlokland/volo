@@ -1046,7 +1046,10 @@ static void rend_post_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Fog"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Fog);
+  ui_toggle_flag(canvas, (u32*)&settingsGlobal->flags, RendGlobalFlags_Fog);
+
+  const bool    fogActive      = (settingsGlobal->flags & RendGlobalFlags_Fog) != 0;
+  UiWidgetFlags fogWidgetFlags = fogActive ? UiWidget_Default : UiWidget_Disabled;
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Fog blur steps"));
@@ -1069,7 +1072,7 @@ static void rend_post_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Fog debug"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugFog);
+  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_DebugFog, .flags = fogWidgetFlags);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Fog resolution"));

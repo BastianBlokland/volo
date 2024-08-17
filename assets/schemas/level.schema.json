@@ -8,6 +8,7 @@
       "properties": {
         "name": { "title": "String", "type": "string" },
         "terrainId": { "title": "String", "type": "string" },
+        "fogMode": { "title": "AssetLevelFog", "$ref": "#/$defs/AssetLevelFog" },
         "startpoint": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
         "objects": {
           "type": "array",
@@ -18,6 +19,9 @@
       "defaultSnippets": [
         { "label": "New", "body": "^{\n  \"objects\": []\n}" }
       ]
+    },
+    "AssetLevelFog": {
+      "enum": [ "Disabled", "VisibilityBased" ]
     },
     "GeoVector3": {
       "type": "object",

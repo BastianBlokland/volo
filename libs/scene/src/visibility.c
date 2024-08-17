@@ -3,6 +3,7 @@
 #include "geo_vector.h"
 #include "log_logger.h"
 #include "scene_faction.h"
+#include "scene_level.h"
 #include "scene_transform.h"
 #include "scene_visibility.h"
 
@@ -59,6 +60,9 @@ visibility_env_insert(SceneVisibilityEnvComp* env, const GeoVector pos, const f3
 }
 
 static bool visiblity_env_visible(const SceneVisibilityEnvComp* env, const GeoVector pos) {
+  if (env->flags & SceneVisibilityFlags_FogDisabled) {
+    return true; // Without fog everything is visible.
+  }
   /**
    * Check if the given position is within any of the registered vision areas.
    * TODO: This could use an acceleration structure.
@@ -93,7 +97,10 @@ static bool visiblity_env_visible(const SceneVisibilityEnvComp* env, const GeoVe
   return false;
 }
 
-ecs_view_define(VisionUpdateGlobalView) { ecs_access_write(SceneVisibilityEnvComp); }
+ecs_view_define(VisionUpdateGlobalView) {
+  ecs_access_read(SceneLevelManagerComp);
+  ecs_access_write(SceneVisibilityEnvComp);
+}
 
 ecs_view_define(VisionEntityView) {
   ecs_access_read(SceneFactionComp);
@@ -112,22 +119,34 @@ ecs_system_define(SceneVisionUpdateSys) {
   if (!globalItr) {
     return;
   }
+  const SceneLevelManagerComp* levelManager = ecs_view_read_t(globalItr, SceneLevelManagerComp);
+  SceneVisibilityEnvComp*      env          = ecs_view_write_t(globalItr, SceneVisibilityEnvComp);
 
-  SceneVisibilityEnvComp* env = ecs_view_write_t(globalItr, SceneVisibilityEnvComp);
   visibility_env_clear(env);
 
-  EcsView* visionEntities = ecs_world_view_t(world, VisionEntityView);
-  for (EcsIterator* itr = ecs_view_itr(visionEntities); ecs_view_walk(itr);) {
-    const SceneVisionComp*    vision  = ecs_view_read_t(itr, SceneVisionComp);
-    const SceneTransformComp* trans   = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneFactionComp*   faction = ecs_view_read_t(itr, SceneFactionComp);
+  const AssetLevelFog fogMode = scene_level_fog(levelManager);
+  switch (fogMode) {
+  case AssetLevelFog_Disabled:
+    env->flags |= SceneVisibilityFlags_FogDisabled;
+    break;
+  case AssetLevelFog_VisibilityBased: {
+    env->flags &= ~SceneVisibilityFlags_FogDisabled;
+    EcsView* visionEntities = ecs_world_view_t(world, VisionEntityView);
+    for (EcsIterator* itr = ecs_view_itr(visionEntities); ecs_view_walk(itr);) {
+      const SceneVisionComp*    vision  = ecs_view_read_t(itr, SceneVisionComp);
+      const SceneTransformComp* trans   = ecs_view_read_t(itr, SceneTransformComp);
+      const SceneFactionComp*   faction = ecs_view_read_t(itr, SceneFactionComp);
 
-    if (faction->id != SceneFaction_A) {
-      // TODO: Track visiblity for other factions.
-      continue;
+      if (faction->id != SceneFaction_A) {
+        // TODO: Track visiblity for other factions.
+        continue;
+      }
+
+      visibility_env_insert(env, trans->position, vision->radius);
     }
-
-    visibility_env_insert(env, trans->position, vision->radius);
+  } break;
+  case AssetLevelFog_Count:
+    break;
   }
 }
 
@@ -199,7 +218,7 @@ bool scene_visible(const SceneVisibilityComp* visibility, const SceneFaction fac
 
 bool scene_visible_for_render(
     const SceneVisibilityEnvComp* env, const SceneVisibilityComp* visibility) {
-  if (env->flags & SceneVisibilityFlags_ForceVisibleForRender) {
+  if (env->flags & SceneVisibilityFlags_AllVisibleForRender) {
     return true;
   }
   // TODO: Make the render-faction configurable instead of hardcoding 'A'.

@@ -435,7 +435,7 @@
       "id": 312540724,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": 17.2357, "y": 0.4525, "z": 17.8278 },
+      "position": { "x": 17.2357, "y": 0.4869, "z": 17.8278 },
       "rotation": { "y": -0.9872, "w": -0.1593 }
     },
     {
@@ -712,14 +712,14 @@
       "id": 491823368,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": 4.5046, "y": 0.5499, "z": -8.93 },
+      "position": { "x": 4.5046, "y": 0.5091, "z": -8.93 },
       "rotation": { "w": 1 }
     },
     {
       "id": 492534784,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": -0.9792, "y": 0.879, "z": 8.3821 },
+      "position": { "x": -0.9792, "y": 0.9115, "z": 8.3821 },
       "rotation": { "w": 1 }
     },
     {
@@ -2120,7 +2120,7 @@
       "id": 1513109344,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": -23.6243, "y": 0.7256, "z": -6.7714 },
+      "position": { "x": -23.6243, "y": 0.7691, "z": -6.7714 },
       "rotation": { "w": 1 }
     },
     {
@@ -2307,7 +2307,7 @@
       "id": 1632395651,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": -18.5491, "y": 0.1693, "z": 33.2838 },
+      "position": { "x": -18.5491, "y": 0.1997, "z": 33.2838 },
       "rotation": { "y": 0.7982, "w": 0.6024 }
     },
     {
@@ -2386,7 +2386,7 @@
       "id": 1696524923,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": -10.3585, "y": 0.5469, "z": -31.518 },
+      "position": { "x": -10.3585, "y": 0.5173, "z": -31.518 },
       "rotation": { "y": -0.7185, "w": 0.6956 }
     },
     {
@@ -2489,7 +2489,7 @@
       "id": 1807191661,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": -7.7372, "y": 0.9591, "z": -19.916 },
+      "position": { "x": -7.7372, "y": 0.9698, "z": -19.916 },
       "rotation": { "w": 1 }
     },
     {
@@ -3006,7 +3006,7 @@
       "id": 2153731674,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": 6.5052, "y": 0.4447, "z": 2.5437 },
+      "position": { "x": 6.5052, "y": 0.4419, "z": 2.5437 },
       "rotation": { "y": 0.7408, "w": 0.6718 }
     },
     {
@@ -4148,7 +4148,7 @@
       "id": 2926961042,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": 32.9969, "y": 0.5583, "z": 14.8859 },
+      "position": { "x": 32.9969, "y": 0.5405, "z": 14.8859 },
       "rotation": { "w": 1 }
     },
     {
@@ -5729,7 +5729,7 @@
       "id": 4016378464,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": -1.2216, "y": 0.7155, "z": -23.4634 },
+      "position": { "x": -1.2216, "y": 0.7136, "z": -23.4634 },
       "rotation": { "y": 0.7049, "w": 0.7093 }
     },
     {
@@ -5814,7 +5814,7 @@
       "id": 4078035971,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": 22.0546, "y": 0.8225, "z": -31.5339 },
+      "position": { "x": 22.0546, "y": 0.8246, "z": -31.5339 },
       "rotation": { "y": 0.6354, "w": 0.7722 }
     },
     {
@@ -5977,7 +5977,7 @@
       "id": 4177316761,
       "prefab": "InfantryRifle",
       "faction": "A",
-      "position": { "x": -0.4302, "y": 0.3968, "z": 44.5585 },
+      "position": { "x": -0.4302, "y": 0.4155, "z": 44.5585 },
       "rotation": { "y": 0.7214, "w": 0.6926 }
     },
     {
