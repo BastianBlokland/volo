@@ -1080,7 +1080,7 @@ static bool rend_canvas_paint_3d(
     painter_push_tonemapping(&ctx);
     painter_push_draws_simple(&ctx, drawView, resourceView, RendDrawFlags_Post, RendDrawFlags_None);
 
-    if (fogActive && set->flags & RendFlags_DebugFog) {
+    if (set->flags & RendFlags_DebugFog) {
       const f32 exposure = 1.0f;
       painter_push_debug_image_viewer(&ctx, fogBuffer, exposure);
     } else if (set->flags & RendFlags_DebugShadow) {
