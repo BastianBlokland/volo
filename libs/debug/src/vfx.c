@@ -11,7 +11,7 @@
 
 // clang-format off
 
-static const String g_tooltipFilter       = string_static("Filter entries by name.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
+static const String g_tooltipFilter       = string_static("Filter entries by name or entity.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
 static const String g_tooltipFreeze       = string_static("Freeze the data set (halts data collection).");
 static const String g_tooltipSelectEntity = string_static("Select the entity.");
 
@@ -43,13 +43,13 @@ ecs_comp_define(DebugVfxPanelComp) {
   UiScrollview scrollview;
   bool         freeze;
   VfxSortMode  sortMode;
-  DynString    nameFilter;
+  DynString    filter;
   DynArray     objects; // DebugVfxInfo[]
 };
 
 static void ecs_destruct_vfx_panel(void* data) {
   DebugVfxPanelComp* comp = data;
-  dynstring_destroy(&comp->nameFilter);
+  dynstring_destroy(&comp->filter);
   dynarray_destroy(&comp->objects);
 }
 
@@ -89,13 +89,17 @@ static i8 comp_compare_info_stamps(const void* a, const void* b) {
   return comp_compare_info_stat(a, b, VfxStat_StampCount);
 }
 
-static bool vfx_panel_filter(DebugVfxPanelComp* panelComp, const String name) {
-  if (string_is_empty(panelComp->nameFilter)) {
+static bool vfx_panel_filter(DebugVfxPanelComp* panelComp, const String name, const EcsEntityId e) {
+  if (string_is_empty(panelComp->filter)) {
     return true;
   }
-  const String rawFilter = dynstring_view(&panelComp->nameFilter);
-  const String filter    = fmt_write_scratch("*{}*", fmt_text(rawFilter));
-  return string_match_glob(name, filter, StringMatchFlags_IgnoreCase);
+  const String           rawFilter = dynstring_view(&panelComp->filter);
+  const String           filter    = fmt_write_scratch("*{}*", fmt_text(rawFilter));
+  const StringMatchFlags flags     = StringMatchFlags_IgnoreCase;
+  if (string_match_glob(name, filter, flags)) {
+    return true;
+  }
+  return string_match_glob(fmt_write_scratch("{}", ecs_entity_fmt(e)), filter, flags);
 }
 
 static String vfx_entity_name(const StringHash nameHash) {
@@ -113,7 +117,7 @@ static void vfx_info_query(DebugVfxPanelComp* panelComp, EcsWorld* world) {
       const VfxStatsComp*  statsComp = ecs_view_read_t(itr, VfxStatsComp);
       const SceneNameComp* nameComp  = ecs_view_read_t(itr, SceneNameComp);
 
-      if (!vfx_panel_filter(panelComp, vfx_entity_name(nameComp->name))) {
+      if (!vfx_panel_filter(panelComp, vfx_entity_name(nameComp->name), entity)) {
         continue;
       }
 
@@ -156,7 +160,7 @@ static void vfx_options_draw(UiCanvasComp* canvas, DebugVfxPanelComp* panelComp)
   ui_label(canvas, string_lit("Filter:"));
   ui_table_next_column(canvas, &table);
   ui_textbox(
-      canvas, &panelComp->nameFilter, .placeholder = string_lit("*"), .tooltip = g_tooltipFilter);
+      canvas, &panelComp->filter, .placeholder = string_lit("*"), .tooltip = g_tooltipFilter);
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Freeze:"));
   ui_table_next_column(canvas, &table);
@@ -303,7 +307,7 @@ debug_vfx_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanel
       DebugVfxPanelComp,
       .panel      = ui_panel(.size = ui_vector(850, 500)),
       .scrollview = ui_scrollview(),
-      .nameFilter = dynstring_create(g_allocHeap, 32),
+      .filter     = dynstring_create(g_allocHeap, 32),
       .objects    = dynarray_create_t(g_allocHeap, DebugVfxInfo, 128));
 
   if (type == DebugPanelType_Detached) {

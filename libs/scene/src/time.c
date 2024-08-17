@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_time.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -41,8 +42,13 @@ ecs_system_define(SceneTimeUpdateSys) {
 
   diag_assert_msg(timeSettings->scale >= 0.0f, "Time cannot flow backwards");
 
-  const TimeSteady   newSteadyTime = time_steady_clock();
-  const TimeDuration realDelta     = time_steady_duration(timePrivate->lastTime, newSteadyTime);
+  const TimeSteady newSteadyTime = time_steady_clock();
+  TimeDuration     realDelta     = time_steady_duration(timePrivate->lastTime, newSteadyTime);
+
+  /**
+   * Limit the maximum frame delta-time to avoid a huge delta when the game's process was paused.
+   */
+  realDelta = math_min(realDelta, time_second);
 
   TimeDuration delta;
   if (timeSettings->flags & SceneTimeFlags_Step) {

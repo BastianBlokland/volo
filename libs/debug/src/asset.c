@@ -8,7 +8,7 @@
 
 // clang-format off
 
-static const String g_tooltipFilter = string_static("Filter assets by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
+static const String g_tooltipFilter = string_static("Filter assets by identifier or entity.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
 static const String g_tooltipReload = string_static("Request the asset to be reloaded.\nReload is delayed until all systems release the asset and reacquire it.");
 
 // clang-format on
@@ -98,14 +98,18 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
-static bool asset_filter(DebugAssetPanelComp* panelComp, const AssetComp* assetComp) {
-  if (!panelComp->idFilter.size) {
+static bool asset_filter(DebugAssetPanelComp* panel, const AssetComp* asset, const EcsEntityId e) {
+  if (!panel->idFilter.size) {
     return true;
   }
-  const String assetId   = asset_id(assetComp);
-  const String rawFilter = dynstring_view(&panelComp->idFilter);
-  const String filter    = fmt_write_scratch("*{}*", fmt_text(rawFilter));
-  return string_match_glob(assetId, filter, StringMatchFlags_IgnoreCase);
+  const String           assetId   = asset_id(asset);
+  const String           rawFilter = dynstring_view(&panel->idFilter);
+  const String           filter    = fmt_write_scratch("*{}*", fmt_text(rawFilter));
+  const StringMatchFlags flags     = StringMatchFlags_IgnoreCase;
+  if (string_match_glob(assetId, filter, flags)) {
+    return true;
+  }
+  return string_match_glob(fmt_write_scratch("{}", ecs_entity_fmt(e)), filter, flags);
 }
 
 static void asset_info_query(DebugAssetPanelComp* panelComp, EcsWorld* world) {
@@ -117,7 +121,7 @@ static void asset_info_query(DebugAssetPanelComp* panelComp, EcsWorld* world) {
     const EcsEntityId entity    = ecs_view_entity(itr);
     const AssetComp*  assetComp = ecs_view_read_t(itr, AssetComp);
 
-    if (!asset_filter(panelComp, assetComp)) {
+    if (!asset_filter(panelComp, assetComp, entity)) {
       continue;
     }
 

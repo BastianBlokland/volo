@@ -26,6 +26,7 @@
 
 #define vfx_system_max_asset_requests 4
 #define vfx_system_track_stats 1
+#define vfx_system_warn_inst_count 512
 
 typedef enum {
   VfxLoad_Acquired  = 1 << 0,
@@ -373,8 +374,9 @@ static void vfx_system_simulate(
     const SceneTimeComp*      time,
     const SceneTags           tags,
     const SceneVfxSystemComp* sysCfg,
-    const VfxTrans*           sysTrans) {
-
+    const VfxTrans*           sysTrans,
+    const EcsEntityId         sysEntity) {
+  (void)sysEntity;
   const f32 deltaSec = vfx_time_to_seconds(time->delta);
 
   // Update shared state.
@@ -390,8 +392,21 @@ static void vfx_system_simulate(
 
     const u64 count = vfx_emitter_count(emitterAsset, state->emitAge);
     for (; emitterState->spawnCount < count; ++emitterState->spawnCount) {
-      vfx_system_spawn(state, asset, atlas, emitter, sysCfg, sysTrans);
+      /**
+       * NOTE: Avoid spawning instances if they would be destroyed in this same frame, addresses the
+       * issue of spawning a large amount of instances when there was a frame-time spike.
+       */
+      if (time->delta < emitterAsset->lifetime.max) {
+        vfx_system_spawn(state, asset, atlas, emitter, sysCfg, sysTrans);
+      }
     }
+  }
+
+  if (UNLIKELY(state->instances.size > vfx_system_warn_inst_count)) {
+    log_w(
+        "Vfx system particle count very high",
+        log_param("count", fmt_int(state->instances.size)),
+        log_param("entity", ecs_entity_fmt(sysEntity)));
   }
 
   // Update instances.
@@ -460,6 +475,7 @@ ecs_system_define(VfxSystemSimulateSys) {
 
   EcsView* simView = ecs_world_view_t(world, SimulateView);
   for (EcsIterator* itr = ecs_view_itr_step(simView, parCount, parIndex); ecs_view_walk(itr);) {
+    const EcsEntityId         e       = ecs_view_entity(itr);
     const SceneScaleComp*     scale   = ecs_view_read_t(itr, SceneScaleComp);
     const SceneTransformComp* trans   = ecs_view_read_t(itr, SceneTransformComp);
     const SceneVfxSystemComp* sysCfg  = ecs_view_read_t(itr, SceneVfxSystemComp);
@@ -497,7 +513,7 @@ ecs_system_define(VfxSystemSimulateSys) {
     }
 
     const VfxTrans sysTrans = vfx_trans_init(trans, scale, asset);
-    vfx_system_simulate(stats, state, asset, spriteAtlas, time, sysTags, sysCfg, &sysTrans);
+    vfx_system_simulate(stats, state, asset, spriteAtlas, time, sysTags, sysCfg, &sysTrans, e);
   }
 }
 

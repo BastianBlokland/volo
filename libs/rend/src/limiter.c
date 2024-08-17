@@ -63,9 +63,12 @@ ecs_system_define(RendFrameLimiterSys) {
     /**
      * Keep a moving average of the additional time a 'thread_sleep()' takes to avoid always waking
      * up late.
+     * NOTE: Skip very large delta's as the process was most likely paused.
      */
     const TimeDuration sinceStart = time_steady_duration(start, time_steady_clock());
-    limiter->sleepOverhead = (sinceStart - limiter->sleepDur + limiter->sleepOverhead * 99) / 100;
+    if (LIKELY(sinceStart < time_second)) {
+      limiter->sleepOverhead = (sinceStart - limiter->sleepDur + limiter->sleepOverhead * 99) / 100;
+    }
   }
   limiter->previousTime = time_steady_clock();
 }
