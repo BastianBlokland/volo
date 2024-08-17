@@ -392,7 +392,13 @@ static void vfx_system_simulate(
 
     const u64 count = vfx_emitter_count(emitterAsset, state->emitAge);
     for (; emitterState->spawnCount < count; ++emitterState->spawnCount) {
-      vfx_system_spawn(state, asset, atlas, emitter, sysCfg, sysTrans);
+      /**
+       * NOTE: Avoid spawning instances if they would be destroyed in this same frame, addresses the
+       * issue of spawning a large amount of instances when there was a frame-time spike.
+       */
+      if (time->delta < emitterAsset->lifetime.max) {
+        vfx_system_spawn(state, asset, atlas, emitter, sysCfg, sysTrans);
+      }
     }
   }
 
