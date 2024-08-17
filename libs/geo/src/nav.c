@@ -99,7 +99,7 @@ struct sGeoNavGrid {
   u32 stats[GeoNavStat_Count];
 };
 
-NO_INLINE_HINT static GeoNavWorkerState* nav_worker_state_create(const GeoNavGrid* grid) {
+static GeoNavWorkerState* nav_worker_state_create(const GeoNavGrid* grid) {
   GeoNavWorkerState* state = alloc_alloc_t(grid->alloc, GeoNavWorkerState);
 
   *state = (GeoNavWorkerState){
@@ -112,9 +112,6 @@ NO_INLINE_HINT static GeoNavWorkerState* nav_worker_state_create(const GeoNavGri
 
 INLINE_HINT static GeoNavWorkerState* nav_worker_state(const GeoNavGrid* grid) {
   diag_assert(g_jobsWorkerId < geo_nav_workers_max);
-  if (UNLIKELY(!grid->workerStates[g_jobsWorkerId])) {
-    ((GeoNavGrid*)grid)->workerStates[g_jobsWorkerId] = nav_worker_state_create(grid);
-  }
   return grid->workerStates[g_jobsWorkerId];
 }
 
@@ -1125,6 +1122,13 @@ GeoNavGrid* geo_nav_grid_create(
   mem_set(mem_create(grid->cellIslands, sizeof(GeoNavIsland) * grid->cellCountTotal), 0);
 
   nav_blocker_release_all(grid);
+
+  // Initialize worker state.
+  diag_assert(g_jobsWorkerCount <= geo_nav_workers_max);
+  for (u16 workerId = 0; workerId != g_jobsWorkerCount; ++workerId) {
+    grid->workerStates[workerId] = nav_worker_state_create(grid);
+  }
+
   return grid;
 }
 

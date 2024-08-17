@@ -512,6 +512,7 @@
           "productSetId": "Factory",
           "spawnPos": { "x": 5 },
           "rallyPos": { "x": 12 },
+          "rallySoundId": "external/sound/announcer-rallypos-updated-01.wav", "rallySoundGain": 0.5,
           "placementRadius": 30
         },
         {
