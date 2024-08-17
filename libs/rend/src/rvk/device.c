@@ -37,20 +37,8 @@ static const String g_debugExts[] = {
     string_static("VK_EXT_debug_utils"),
 };
 
-#ifdef VOLO_LINUX
-/**
- * On linux disable present-id (VK_KHR_present_id) and present-wait (VK_KHR_present_wait) even if
- * the device supports it.
- * Unfortunately at least the 510 NVidia driver on x11 claims to support these but then fails to
- * create a swapchain when either is enabled.
- * TODO: Test support on other vendors running on Linux (and on the x11 window system).
- */
-MAYBE_UNUSED static const bool g_rend_enable_vk_present_id   = false;
-MAYBE_UNUSED static const bool g_rend_enable_vk_present_wait = false;
-#else
 MAYBE_UNUSED static const bool g_rend_enable_vk_present_id   = true;
 MAYBE_UNUSED static const bool g_rend_enable_vk_present_wait = true;
-#endif
 
 static VkApplicationInfo rvk_instance_app_info(void) {
   return (VkApplicationInfo){
