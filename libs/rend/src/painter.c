@@ -838,12 +838,12 @@ static bool rend_canvas_paint_3d(
   }
 
   // Fog pass.
+  const bool    fogActive = rend_fog_active(fog);
   RvkPass*      fogPass   = rvk_canvas_pass(painter->canvas, RendPass_Fog);
-  const RvkSize fogSize   = set->flags & (RendFlags_Fog | RendFlags_DebugFog)
-                                ? (RvkSize){set->fogResolution, set->fogResolution}
-                                : (RvkSize){1, 1};
+  const u16     fogRes    = set->fogResolution;
+  const RvkSize fogSize   = fogActive ? (RvkSize){fogRes, fogRes} : (RvkSize){1, 1};
   RvkImage*     fogBuffer = rvk_canvas_attach_acquire_color(painter->canvas, fogPass, 0, fogSize);
-  if (set->flags & (RendFlags_Fog | RendFlags_DebugFog)) {
+  if (fogActive) {
     trace_begin("rend_paint_fog", TraceColor_White);
     const GeoMatrix*     fogTrans  = rend_fog_trans(fog);
     const GeoMatrix*     fogProj   = rend_fog_proj(fog);
@@ -863,7 +863,7 @@ static bool rend_canvas_paint_3d(
 
   // Fog-blur pass.
   RvkPass* fogBlurPass = rvk_canvas_pass(painter->canvas, RendPass_FogBlur);
-  if (set->flags & (RendFlags_Fog | RendFlags_DebugFog) && set->fogBlurSteps) {
+  if (fogActive && set->fogBlurSteps) {
     trace_begin("rend_paint_fog_blur", TraceColor_White);
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, fogBlurPass, mainView);
 
@@ -966,7 +966,7 @@ static bool rend_canvas_paint_3d(
       painter_push_simple(&ctx, RvkRepositoryId_OutlineGraphic, mem_empty);
     }
     painter_push_forward(&ctx, drawView, resourceView);
-    if (set->flags & RendFlags_Fog) {
+    if (fogActive) {
       painter_push_fog(&ctx, fog, fogBuffer);
     }
     if (set->flags & RendFlags_DebugWireframe) {
@@ -1080,7 +1080,7 @@ static bool rend_canvas_paint_3d(
     painter_push_tonemapping(&ctx);
     painter_push_draws_simple(&ctx, drawView, resourceView, RendDrawFlags_Post, RendDrawFlags_None);
 
-    if (set->flags & RendFlags_DebugFog) {
+    if (fogActive && set->flags & RendFlags_DebugFog) {
       const f32 exposure = 1.0f;
       painter_push_debug_image_viewer(&ctx, fogBuffer, exposure);
     } else if (set->flags & RendFlags_DebugShadow) {

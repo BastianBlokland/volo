@@ -16,6 +16,7 @@ static const String g_fogVisionGraphic = string_static("graphics/fog_vision.grap
 static const f32    g_worldHeight      = 100.0f;
 
 ecs_comp_define(RendFogComp) {
+  bool        active;
   EcsEntityId drawEntity;
   GeoMatrix   transMatrix, projMatrix;
 };
@@ -24,6 +25,7 @@ ecs_view_define(GlobalView) {
   ecs_access_maybe_write(RendFogComp);
   ecs_access_read(RendSettingsGlobalComp);
   ecs_access_read(SceneTerrainComp);
+  ecs_access_read(SceneVisibilityEnvComp);
   ecs_access_write(AssetManagerComp);
 }
 
@@ -78,14 +80,26 @@ ecs_system_define(RendFogRenderSys) {
   }
 
   const RendSettingsGlobalComp* settingsGlobal = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
+  const SceneVisibilityEnvComp* visibilityEnv  = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
   AssetManagerComp*             assets         = ecs_view_write_t(globalItr, AssetManagerComp);
   RendFogComp*                  fog            = ecs_view_write_t(globalItr, RendFogComp);
   const SceneTerrainComp*       terrain        = ecs_view_read_t(globalItr, SceneTerrainComp);
+
   if (!fog) {
     rend_fog_create(world, assets);
     return;
   }
 
+  if (!(settingsGlobal->flags & RendGlobalFlags_Fog)) {
+    fog->active = false; // Fog is disabled.
+    return;
+  }
+  if (scene_visibility_flags(visibilityEnv) & SceneVisibilityFlags_ForceVisibleForRender) {
+    fog->active = false; // Everything is visible.
+    return;
+  }
+
+  fog->active = true;
   rend_fog_update_proj(fog, terrain);
 
   EcsView*      drawView = ecs_world_view_t(world, DrawView);
@@ -134,5 +148,6 @@ ecs_module_init(rend_fog_module) {
   ecs_order(RendFogRenderSys, RendOrder_DrawCollect);
 }
 
+bool             rend_fog_active(const RendFogComp* fog) { return fog->active; }
 const GeoMatrix* rend_fog_trans(const RendFogComp* fog) { return &fog->transMatrix; }
 const GeoMatrix* rend_fog_proj(const RendFogComp* fog) { return &fog->projMatrix; }

@@ -40,7 +40,6 @@ void rend_settings_to_default(RendSettingsComp* s) {
              RendFlags_AmbientOcclusionBlur |
              RendFlags_Shadows              |
              RendFlags_Bloom                |
-             RendFlags_Fog                  |
              RendFlags_Distortion           |
              RendFlags_Decals               |
              RendFlags_VfxSpriteShadows;
@@ -72,7 +71,7 @@ void rend_settings_to_default(RendSettingsComp* s) {
 }
 
 void rend_settings_global_to_default(RendSettingsGlobalComp* s) {
-  s->flags       = 0;
+  s->flags       = RendGlobalFlags_Fog;
   s->limiterFreq = 0;
 
 #if VOLO_REND_GPU_DEBUG

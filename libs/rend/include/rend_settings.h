@@ -12,16 +12,15 @@ typedef enum {
   RendFlags_AmbientOcclusionBlur = 1 << 2,
   RendFlags_Shadows              = 1 << 3,
   RendFlags_Bloom                = 1 << 4,
-  RendFlags_Fog                  = 1 << 5,
-  RendFlags_Distortion           = 1 << 6,
-  RendFlags_Decals               = 1 << 7,
-  RendFlags_VfxSpriteShadows     = 1 << 8,
-  RendFlags_DebugWireframe       = 1 << 9,
-  RendFlags_DebugCamera          = 1 << 10,
-  RendFlags_DebugSkinning        = 1 << 11,
-  RendFlags_DebugFog             = 1 << 12,
-  RendFlags_DebugShadow          = 1 << 13,
-  RendFlags_DebugDistortion      = 1 << 14,
+  RendFlags_Distortion           = 1 << 5,
+  RendFlags_Decals               = 1 << 6,
+  RendFlags_VfxSpriteShadows     = 1 << 7,
+  RendFlags_DebugWireframe       = 1 << 8,
+  RendFlags_DebugCamera          = 1 << 9,
+  RendFlags_DebugSkinning        = 1 << 10,
+  RendFlags_DebugFog             = 1 << 11,
+  RendFlags_DebugShadow          = 1 << 12,
+  RendFlags_DebugDistortion      = 1 << 13,
 
   RendFlags_DebugOverlay = RendFlags_DebugFog | RendFlags_DebugShadow | RendFlags_DebugDistortion,
 } RendFlags;
@@ -120,6 +119,7 @@ typedef enum {
   RendGlobalFlags_Verbose    = 1 << 1,
   RendGlobalFlags_DebugGpu   = 1 << 2,
   RendGlobalFlags_DebugLight = 1 << 3,
+  RendGlobalFlags_Fog        = 1 << 4,
 } RendGlobalFlags;
 
 ecs_comp_extern_public(RendSettingsGlobalComp) {

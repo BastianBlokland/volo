@@ -1046,7 +1046,7 @@ static void rend_post_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Fog"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(canvas, (u32*)&settings->flags, RendFlags_Fog);
+  ui_toggle_flag(canvas, (u32*)&settingsGlobal->flags, RendGlobalFlags_Fog);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Fog blur steps"));
