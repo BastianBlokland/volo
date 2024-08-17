@@ -240,7 +240,7 @@ ecs_system_define(SndMixerUpdateSys) {
         asset_acquire(world, m->objectAssets[i]);
         obj->phase = SndObjectPhase_Acquired;
       } else {
-        log_e("Invalid sound asset entity");
+        log_e("Invalid sound asset", log_param("entity", ecs_entity_fmt(m->objectAssets[i])));
         obj->phase = SndObjectPhase_Cleanup;
         continue;
       }
