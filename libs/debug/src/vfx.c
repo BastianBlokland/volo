@@ -11,7 +11,7 @@
 
 // clang-format off
 
-static const String g_tooltipFilter       = string_static("Filter entries by name or entity-id.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
+static const String g_tooltipFilter       = string_static("Filter entries by name or entity.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
 static const String g_tooltipFreeze       = string_static("Freeze the data set (halts data collection).");
 static const String g_tooltipSelectEntity = string_static("Select the entity.");
 
