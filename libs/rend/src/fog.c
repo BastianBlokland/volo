@@ -94,7 +94,7 @@ ecs_system_define(RendFogRenderSys) {
     fog->active = false; // Fog is disabled.
     return;
   }
-  if (scene_visibility_flags(visibilityEnv) & SceneVisibilityFlags_ForceVisibleForRender) {
+  if (scene_visibility_flags(visibilityEnv) & SceneVisibilityFlags_AllVisibleForRender) {
     fog->active = false; // Everything is visible.
     return;
   }

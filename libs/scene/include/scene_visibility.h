@@ -4,7 +4,11 @@
 #include "scene_faction.h"
 
 typedef enum {
-  SceneVisibilityFlags_ForceVisibleForRender = 1 << 0, // Disable visibility checks for rendering.
+  SceneVisibilityFlags_ForceRender = 1 << 0,
+  SceneVisibilityFlags_FogDisabled = 1 << 1,
+
+  SceneVisibilityFlags_AllVisibleForRender =
+      SceneVisibilityFlags_ForceRender | SceneVisibilityFlags_FogDisabled,
 } SceneVisibilityFlags;
 
 typedef enum {

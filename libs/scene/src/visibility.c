@@ -199,7 +199,7 @@ bool scene_visible(const SceneVisibilityComp* visibility, const SceneFaction fac
 
 bool scene_visible_for_render(
     const SceneVisibilityEnvComp* env, const SceneVisibilityComp* visibility) {
-  if (env->flags & SceneVisibilityFlags_ForceVisibleForRender) {
+  if (env->flags & SceneVisibilityFlags_AllVisibleForRender) {
     return true;
   }
   // TODO: Make the render-faction configurable instead of hardcoding 'A'.
