@@ -1,17 +1,18 @@
 {
-  "startpoint": { },
+  "terrainId": "terrains/desert_small.terrain",
+  "startpoint": {},
   "objects": [
     {
       "id": 1289832977,
       "prefab": "TestPacing",
       "faction": "A",
-      "position": { },
+      "position": {},
       "rotation": { "w": 1 }
     },
     {
       "id": 1998597524,
       "prefab": "Sun",
-      "position": { },
+      "position": {},
       "rotation": { "x": 0.2529, "y": 0.2314, "z": -0.0498, "w": 0.9381 }
     }
   ]
