@@ -54,7 +54,7 @@ void asset_data_init_level(void) {
 
   data_reg_enum_t(g_dataReg, AssetLevelFog);
   data_reg_const_t(g_dataReg, AssetLevelFog, Disabled);
-  data_reg_const_t(g_dataReg, AssetLevelFog, VisiblityBased);
+  data_reg_const_t(g_dataReg, AssetLevelFog, VisibilityBased);
 
   data_reg_struct_t(g_dataReg, AssetLevelObject);
   data_reg_field_t(g_dataReg, AssetLevelObject, id, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);

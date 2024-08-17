@@ -47,6 +47,12 @@ static const String g_levelTabNames[] = {
 };
 ASSERT(array_elems(g_levelTabNames) == DebugLevelTab_Count, "Incorrect number of names");
 
+static const String g_levelFogNames[] = {
+    string_static("Disabled"),
+    string_static("VisibilityBased"),
+};
+ASSERT(array_elems(g_levelFogNames) == AssetLevelFog_Count, "Incorrect number of names");
+
 ecs_comp_define(DebugLevelPanelComp) {
   DebugLevelFlags flags;
   EcsEntityId     window;
@@ -261,6 +267,14 @@ static void settings_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   EcsEntityId terrain = scene_level_terrain(ctx->levelManager);
   if (level_asset_select(c, ctx, &terrain, &ctx->panelComp->assetsTerrain)) {
     scene_level_terrain_update(ctx->levelManager, terrain);
+  }
+
+  ui_table_next_row(c, &table);
+  ui_label(c, string_lit("Fog"));
+  ui_table_next_column(c, &table);
+  AssetLevelFog fog = scene_level_fog(ctx->levelManager);
+  if (ui_select(c, (i32*)&fog, g_levelFogNames, array_elems(g_levelFogNames))) {
+    scene_level_fog_update(ctx->levelManager, fog);
   }
 
   ui_table_next_row(c, &table);

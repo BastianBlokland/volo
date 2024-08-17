@@ -18,7 +18,9 @@ typedef enum {
 
 typedef enum {
   AssetLevelFog_Disabled,
-  AssetLevelFog_VisiblityBased,
+  AssetLevelFog_VisibilityBased,
+
+  AssetLevelFog_Count,
 } AssetLevelFog;
 
 typedef struct {
