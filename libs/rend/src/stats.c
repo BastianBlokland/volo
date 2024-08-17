@@ -97,12 +97,13 @@ ecs_system_define(RendUpdateCamStatsSys) {
 
     rend_stats_update_str(&stats->gpuName, rvk_device_name(plat->device));
 
-    stats->waitForGpuDur     = canvasStats.waitForGpuDur;
-    stats->gpuExecDur        = canvasStats.gpuExecDur;
-    stats->presentAcquireDur = swapchainStats.acquireDur;
-    stats->presentEnqueueDur = swapchainStats.presentEnqueueDur;
-    stats->presentWaitDur    = swapchainStats.presentWaitDur;
-    stats->limiterDur        = limiter->sleepDur;
+    stats->swapchainImageCount = swapchainStats.imageCount;
+    stats->waitForGpuDur       = canvasStats.waitForGpuDur;
+    stats->gpuExecDur          = canvasStats.gpuExecDur;
+    stats->presentAcquireDur   = swapchainStats.acquireDur;
+    stats->presentEnqueueDur   = swapchainStats.presentEnqueueDur;
+    stats->presentWaitDur      = swapchainStats.presentWaitDur;
+    stats->limiterDur          = limiter->sleepDur;
 
     mem_cpy(array_mem(stats->passes), array_mem(canvasStats.passes));
 
