@@ -208,7 +208,7 @@ void rvk_job_wait_for_done(const RvkJob* job) {
 }
 
 RvkCanvasStats rvk_job_stats(const RvkJob* job) {
-  rvk_job_wait_for_done(job);
+  diag_assert(rvk_job_is_done(job));
 
   const TimeSteady timestampBegin = rvk_stopwatch_query(job->stopwatch, job->timeRecBegin);
   const TimeSteady timestampEnd   = rvk_stopwatch_query(job->stopwatch, job->timeRecEnd);
@@ -238,12 +238,12 @@ RvkCanvasStats rvk_job_stats(const RvkJob* job) {
 }
 
 void rvk_job_begin(RvkJob* job) {
+  diag_assert(rvk_job_is_done(job));
   diag_assert_msg(!(job->flags & RvkJob_Active), "job already active");
 
   job->flags |= RvkJob_Active;
   job->waitForGpuDur = 0;
 
-  rvk_job_wait_for_done(job);
   rvk_uniform_reset(job->uniformPool);
   rvk_commandpool_reset(job->dev, job->vkCmdPool);
 

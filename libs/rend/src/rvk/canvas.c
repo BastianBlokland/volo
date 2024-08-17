@@ -96,11 +96,7 @@ RvkRepository* rvk_canvas_repository(RvkCanvas* canvas) { return canvas->dev->re
 
 RvkCanvasStats rvk_canvas_stats(const RvkCanvas* canvas) {
   RvkJob* job = canvas->jobs[canvas->jobIdx];
-
-  trace_begin("rend_stats_wait", TraceColor_White);
-  rvk_job_wait_for_done(job);
-  trace_end();
-
+  diag_assert(rvk_job_is_done(job));
   return rvk_job_stats(job);
 }
 
@@ -120,6 +116,7 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
   diag_assert_msg(!(canvas->flags & RvkCanvasFlags_Active), "Canvas already active");
 
   RvkJob* job = canvas->jobs[canvas->jobIdx];
+  diag_assert(rvk_job_is_done(job));
 
   trace_begin("rend_present_acquire", TraceColor_White);
   {
@@ -133,11 +130,6 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
   }
 
   canvas->flags |= RvkCanvasFlags_Active;
-
-  trace_begin("rend_begin_wait", TraceColor_White);
-  rvk_job_wait_for_done(job);
-  trace_end();
-
   rvk_job_begin(job);
   return true;
 }
