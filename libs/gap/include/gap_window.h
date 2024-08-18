@@ -12,17 +12,18 @@ typedef i64 TimeDuration;
  * Notification flags for events that occurred this tick.
  */
 typedef enum {
-  GapWindowEvents_Initializing   = 1 << 0,
-  GapWindowEvents_Resized        = 1 << 1,
-  GapWindowEvents_KeyPressed     = 1 << 2,
-  GapWindowEvents_KeyReleased    = 1 << 3,
-  GapWindowEvents_TitleUpdated   = 1 << 4,
-  GapWindowEvents_CloseRequested = 1 << 5,
-  GapWindowEvents_FocusGained    = 1 << 6, // Did the window gain focus this tick.
-  GapWindowEvents_FocusLost      = 1 << 7, // Did the window lose focus this tick.
-  GapWindowEvents_Focussed       = 1 << 8, // Does the window have focus this tick.
-  GapWindowEvents_ClipPaste      = 1 << 9, // Was a value pasted from the clipboard this tick.
-  GapWindowEvents_DpiChanged     = 1 << 10,
+  GapWindowEvents_Initializing       = 1 << 0,
+  GapWindowEvents_Resized            = 1 << 1,
+  GapWindowEvents_KeyPressed         = 1 << 2,
+  GapWindowEvents_KeyReleased        = 1 << 3,
+  GapWindowEvents_TitleUpdated       = 1 << 4,
+  GapWindowEvents_CloseRequested     = 1 << 5,
+  GapWindowEvents_FocusGained        = 1 << 6, // Did the window gain focus this tick.
+  GapWindowEvents_FocusLost          = 1 << 7, // Did the window lose focus this tick.
+  GapWindowEvents_Focussed           = 1 << 8, // Does the window have focus this tick.
+  GapWindowEvents_ClipPaste          = 1 << 9, // Was a value pasted from the clipboard this tick.
+  GapWindowEvents_RefreshRateChanged = 1 << 10,
+  GapWindowEvents_DpiChanged         = 1 << 11,
 } GapWindowEvents;
 
 /**
@@ -139,6 +140,16 @@ void gap_window_clip_copy(GapWindowComp*, String value);
  */
 void   gap_window_clip_paste(GapWindowComp*);
 String gap_window_clip_paste_result(const GapWindowComp*);
+
+/**
+ * Retrieve the name of the display that is currently showing the given window.
+ */
+String gap_window_display_name(const GapWindowComp*);
+
+/**
+ * Retrieve the window's current display refresh-rate.
+ */
+f32 gap_window_refresh_rate(const GapWindowComp*);
 
 /**
  * Retrieve the window's current display density in 'Dots Per Inch'.

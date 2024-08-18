@@ -23,6 +23,7 @@
 
 #define pal_window_min_width 128
 #define pal_window_min_height 128
+#define pal_window_default_refresh_rate 60.0f
 #define pal_window_default_dpi 96
 
 /**
@@ -48,17 +49,22 @@ typedef enum {
 typedef struct {
   GapWindowId       id;
   GapVector         params[GapParam_Count];
+  GapVector         centerPos;
   GapPalWindowFlags flags : 16;
   GapCursor         cursor : 16;
   GapKeySet         keysPressed, keysPressedWithRepeat, keysReleased, keysDown;
   DynString         inputText;
   String            clipCopy, clipPaste;
+  String            displayName;
+  f32               refreshRate;
   u16               dpi;
 } GapPalWindow;
 
 typedef struct {
+  String    name;
   GapVector position;
   GapVector size;
+  f32       refreshRate;
   u16       dpi;
 } GapPalDisplay;
 
@@ -71,6 +77,7 @@ struct sGapPal {
   xcb_screen_t*     xcbScreen;
   GapPalXcbExtFlags extensions;
   usize             maxRequestLength;
+  u8                randrFirstEvent;
   GapPalFlags       flags;
 
   struct xkb_context* xkbContext;
@@ -512,7 +519,7 @@ static bool pal_xfixes_init(GapPal* pal) {
  * Initialize the RandR extension.
  * More info: https://xcb.freedesktop.org/manual/group__XCB__RandR__API.html
  */
-static bool pal_randr_init(GapPal* pal) {
+static bool pal_randr_init(GapPal* pal, u8* firstEventOut) {
   const xcb_query_extension_reply_t* data = xcb_get_extension_data(pal->xcbCon, &xcb_randr_id);
   if (UNLIKELY(!data->present)) {
     log_w("Xcb RandR extension not present");
@@ -537,6 +544,7 @@ static bool pal_randr_init(GapPal* pal) {
       "Xcb initialized the RandR extension",
       log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))));
 
+  *firstEventOut = data->first_event;
   return true;
 }
 
@@ -621,7 +629,7 @@ static void pal_init_extensions(GapPal* pal) {
   if (pal_xfixes_init(pal)) {
     pal->extensions |= GapPalXcbExtFlags_XFixes;
   }
-  if (pal_randr_init(pal)) {
+  if (pal_randr_init(pal, &pal->randrFirstEvent)) {
     pal->extensions |= GapPalXcbExtFlags_Randr;
   }
   if (pal_render_init(pal)) {
@@ -629,8 +637,33 @@ static void pal_init_extensions(GapPal* pal) {
   }
 }
 
+static f32 pal_randr_refresh_rate(
+    xcb_randr_get_screen_resources_current_reply_t* screen, const xcb_randr_mode_t mode) {
+  xcb_randr_mode_info_iterator_t i = xcb_randr_get_screen_resources_current_modes_iterator(screen);
+  for (; i.rem; xcb_randr_mode_info_next(&i)) {
+    if (i.data->id != mode) {
+      continue;
+    }
+    f64 verticalLines = i.data->vtotal;
+    if (i.data->mode_flags & XCB_RANDR_MODE_FLAG_DOUBLE_SCAN) {
+      verticalLines *= 2; // Double the number of lines.
+    }
+    if (i.data->mode_flags & XCB_RANDR_MODE_FLAG_INTERLACE) {
+      verticalLines /= 2; // Interlace halves the number of lines.
+    }
+    if (i.data->htotal && verticalLines != 0.0) {
+      return (f32)(((100 * (i64)i.data->dot_clock) / (i.data->htotal * verticalLines)) / 100.0);
+    }
+    return pal_window_default_refresh_rate;
+  }
+  return pal_window_default_refresh_rate;
+}
+
 static void pal_randr_query_displays(GapPal* pal) {
   diag_assert(pal->extensions & GapPalXcbExtFlags_Randr);
+
+  // Clear any previous queried displays.
+  dynarray_for_t(&pal->displays, GapPalDisplay, d) { string_maybe_free(g_allocHeap, d->name); }
   dynarray_clear(&pal->displays);
 
   xcb_generic_error_t*                            err = null;
@@ -662,9 +695,11 @@ static void pal_randr_query_displays(GapPal* pal) {
       const GapVector position       = gap_vector(crtc->x, crtc->y);
       const GapVector size           = gap_vector(crtc->width, crtc->height);
       const GapVector physicalSizeMm = gap_vector(output->mm_width, output->mm_height);
-      const u16       dpi            = output->mm_width
-                                           ? (u16)math_round_nearest_f32(crtc->width * 25.4f / physicalSizeMm.width)
-                                           : pal_window_default_dpi;
+      const f32       refreshRate    = pal_randr_refresh_rate(screen, crtc->mode);
+      u16             dpi            = pal_window_default_dpi;
+      if (output->mm_width) {
+        dpi = (u16)math_round_nearest_f32(crtc->width * 25.4f / physicalSizeMm.width);
+      }
 
       log_i(
           "Xcb display found",
@@ -672,10 +707,16 @@ static void pal_randr_query_displays(GapPal* pal) {
           log_param("position", gap_vector_fmt(position)),
           log_param("size", gap_vector_fmt(size)),
           log_param("physical-size-mm", gap_vector_fmt(physicalSizeMm)),
+          log_param("refresh-rate", fmt_float(refreshRate)),
           log_param("dpi", fmt_int(dpi)));
 
-      *dynarray_push_t(&pal->displays, GapPalDisplay) =
-          (GapPalDisplay){.position = position, .size = size, .dpi = dpi};
+      *dynarray_push_t(&pal->displays, GapPalDisplay) = (GapPalDisplay){
+          .name        = string_maybe_dup(g_allocHeap, name),
+          .position    = position,
+          .size        = size,
+          .refreshRate = refreshRate,
+          .dpi         = dpi,
+      };
       free(crtc);
     }
     free(output);
@@ -786,9 +827,14 @@ static void pal_event_focus_lost(GapPal* pal, const GapWindowId windowId) {
   log_d("Window focus lost", log_param("id", fmt_int(windowId)));
 }
 
-static void pal_event_resize(GapPal* pal, const GapWindowId windowId, const GapVector newSize) {
+static void pal_event_resize(
+    GapPal* pal, const GapWindowId windowId, const GapVector newSize, const GapVector newCenter) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
-  if (!window || gap_vector_equal(window->params[GapParam_WindowSize], newSize)) {
+  if (!window) {
+    return;
+  }
+  window->centerPos = newCenter;
+  if (gap_vector_equal(window->params[GapParam_WindowSize], newSize)) {
     return;
   }
   window->params[GapParam_WindowSize] = newSize;
@@ -798,6 +844,38 @@ static void pal_event_resize(GapPal* pal, const GapWindowId windowId, const GapV
       "Window resized",
       log_param("id", fmt_int(windowId)),
       log_param("size", gap_vector_fmt(newSize)));
+}
+
+static void pal_event_display_name_changed(
+    GapPal* pal, const GapWindowId windowId, const String newDisplayName) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  if (!window || string_eq(window->displayName, newDisplayName)) {
+    return;
+  }
+
+  string_maybe_free(g_allocHeap, window->displayName);
+  window->displayName = string_maybe_dup(g_allocHeap, newDisplayName);
+  window->flags |= GapPalWindowFlags_DisplayNameChanged;
+
+  log_d(
+      "Window display-name changed",
+      log_param("id", fmt_int(windowId)),
+      log_param("display-name", fmt_text(newDisplayName)));
+}
+
+static void
+pal_event_refresh_rate_changed(GapPal* pal, const GapWindowId windowId, const f32 newRefreshRate) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  if (!window || window->refreshRate == newRefreshRate) {
+    return;
+  }
+  window->refreshRate = newRefreshRate;
+  window->flags |= GapPalWindowFlags_RefreshRateChanged;
+
+  log_d(
+      "Window refresh-rate changed",
+      log_param("id", fmt_int(windowId)),
+      log_param("refresh-rate", fmt_float(newRefreshRate)));
 }
 
 static void pal_event_dpi_changed(GapPal* pal, const GapWindowId windowId, const u16 newDpi) {
@@ -978,7 +1056,8 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
 
 GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
-  *pal        = (GapPal){
+
+  *pal = (GapPal){
       .alloc    = alloc,
       .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
       .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
@@ -1007,6 +1086,7 @@ void gap_pal_destroy(GapPal* pal) {
   while (pal->windows.size) {
     gap_pal_window_destroy(pal, dynarray_at_t(&pal->windows, 0, GapPalWindow)->id);
   }
+  dynarray_for_t(&pal->displays, GapPalDisplay, d) { string_maybe_free(g_allocHeap, d->name); }
 
   if (pal->xkbContext) {
     xkb_context_unref(pal->xkbContext);
@@ -1071,15 +1151,18 @@ void gap_pal_update(GapPal* pal) {
 
     case XCB_CONFIGURE_NOTIFY: {
       const xcb_configure_notify_event_t* configureMsg = (const void*)evt;
-      const GapVector newSize = gap_vector(configureMsg->width, configureMsg->height);
-      pal_event_resize(pal, configureMsg->window, newSize);
-
-      const GapVector newPos = {configureMsg->x, configureMsg->y};
-      const GapVector newCenter =
-          gap_vector(newPos.x + newSize.width / 2, newPos.y + newSize.height / 2);
+      const GapVector newSize   = gap_vector(configureMsg->width, configureMsg->height);
+      const GapVector newPos    = {configureMsg->x, configureMsg->y};
+      const GapVector newCenter = {
+          .x = newPos.x + newSize.width / 2,
+          .y = newPos.y + newSize.height / 2,
+      };
+      pal_event_resize(pal, configureMsg->window, newSize, newCenter);
 
       const GapPalDisplay* display = pal_maybe_display(pal, newCenter);
       if (display) {
+        pal_event_display_name_changed(pal, configureMsg->window, display->name);
+        pal_event_refresh_rate_changed(pal, configureMsg->window, display->refreshRate);
         pal_event_dpi_changed(pal, configureMsg->window, display->dpi);
       }
 
@@ -1204,6 +1287,28 @@ void gap_pal_update(GapPal* pal) {
         pal_event_clip_paste_notify(pal, selectionNotifyMsg->requestor);
       }
     } break;
+    default:
+      if (pal->extensions & GapPalXcbExtFlags_Randr) {
+        switch (evt->response_type - pal->randrFirstEvent) {
+        case XCB_RANDR_SCREEN_CHANGE_NOTIFY: {
+          const xcb_randr_screen_change_notify_event_t* screenChangeMsg = (const void*)evt;
+
+          log_d("Display change detected");
+          pal_randr_query_displays(pal);
+
+          const GapWindowId windowId = screenChangeMsg->request_window;
+          GapPalWindow*     window   = pal_maybe_window(pal, windowId);
+          if (window) {
+            const GapPalDisplay* display = pal_maybe_display(pal, window->centerPos);
+            if (display) {
+              pal_event_display_name_changed(pal, windowId, display->name);
+              pal_event_refresh_rate_changed(pal, windowId, display->refreshRate);
+              pal_event_dpi_changed(pal, windowId, display->dpi);
+            }
+          }
+        } break;
+        }
+      }
     }
   }
 }
@@ -1298,7 +1403,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   }
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-  const u32      values[2]  = {
+
+  const u32 values[2] = {
       pal->xcbScreen->black_pixel,
       g_xcbWindowEventMask,
   };
@@ -1337,8 +1443,13 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .params[GapParam_WindowSize] = size,
       .flags                       = GapPalWindowFlags_Focussed | GapPalWindowFlags_FocusGained,
       .inputText                   = dynstring_create(g_allocHeap, 64),
+      .refreshRate                 = pal_window_default_refresh_rate,
       .dpi                         = pal_window_default_dpi,
   };
+
+  if (pal->extensions & GapPalXcbExtFlags_Randr) {
+    xcb_randr_select_input(pal->xcbCon, (xcb_window_t)id, XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE);
+  }
 
   log_i("Window created", log_param("id", fmt_int(id)), log_param("size", gap_vector_fmt(size)));
 
@@ -1355,6 +1466,7 @@ void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
       dynstring_destroy(&window->inputText);
       string_maybe_free(g_allocHeap, window->clipCopy);
       string_maybe_free(g_allocHeap, window->clipPaste);
+      string_maybe_free(g_allocHeap, window->displayName);
       dynarray_remove_unordered(&pal->windows, i, 1);
       break;
     }
@@ -1559,6 +1671,14 @@ void gap_pal_window_clip_paste(GapPal* pal, const GapWindowId windowId) {
 
 String gap_pal_window_clip_paste_result(GapPal* pal, const GapWindowId windowId) {
   return pal_maybe_window(pal, windowId)->clipPaste;
+}
+
+String gap_pal_window_display_name(GapPal* pal, const GapWindowId windowId) {
+  return pal_maybe_window(pal, windowId)->displayName;
+}
+
+f32 gap_pal_window_refresh_rate(GapPal* pal, const GapWindowId windowId) {
+  return pal_maybe_window(pal, windowId)->refreshRate;
 }
 
 u16 gap_pal_window_dpi(GapPal* pal, const GapWindowId windowId) {

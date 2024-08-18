@@ -446,6 +446,7 @@ stats_draw_notifications(UiCanvasComp* canvas, const DebugStatsGlobalComp* stats
 
 static void debug_stats_draw_interface(
     UiCanvasComp*                  canvas,
+    const GapWindowComp*           window,
     const DebugStatsGlobalComp*    statsGlobal,
     const DebugStatsComp*          stats,
     const RendStatsComp*           rendStats,
@@ -471,6 +472,13 @@ static void debug_stats_draw_interface(
     return;
   }
 
+  if(stats_draw_section(canvas, string_lit("Window"))) {
+    const GapVector windowSize = gap_window_param(window, GapParam_WindowSize);
+    stats_draw_val_entry(canvas, string_lit("Size"), fmt_write_scratch("{}", gap_vector_fmt(windowSize)));
+    stats_draw_val_entry(canvas, string_lit("Display"), gap_window_display_name(window));
+    stats_draw_val_entry(canvas, string_lit("Refresh rate"), fmt_write_scratch("{}hz", fmt_float(gap_window_refresh_rate(window))));
+    stats_draw_val_entry(canvas, string_lit("Dpi"), fmt_write_scratch("{}", fmt_int(gap_window_dpi(window))));
+  }
   if(stats_draw_section(canvas, string_lit("Renderer"))) {
     stats_draw_val_entry(canvas, string_lit("Gpu"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
     stats_draw_val_entry(canvas, string_lit("Gpu exec duration"), fmt_write_scratch("{<9} frac: {}", fmt_duration(rendStats->gpuExecDur), fmt_float(stats->gpuExecFrac, .minDecDigits = 2, .maxDecDigits = 2)));
@@ -583,6 +591,7 @@ static void debug_stats_draw_interface(
 
 static void debug_stats_update(
     DebugStatsComp*               stats,
+    const GapWindowComp*          window,
     const RendStatsComp*          rendStats,
     const RendSettingsGlobalComp* rendGlobalSettings,
     const SceneTimeComp*          time) {
@@ -594,9 +603,11 @@ static void debug_stats_update(
   const TimeDuration frameDurVariance = math_abs(stats->frameDur - prevFrameDur);
   debug_plot_add(&stats->frameDurVarianceUs, (f32)(frameDurVariance / (f64)time_microsecond));
 
-  stats->frameDurDesired = rendGlobalSettings->limiterFreq
-                               ? time_second / rendGlobalSettings->limiterFreq
-                               : time_second / 60; // TODO: This assumes a 60 hz display.
+  if (rendGlobalSettings->limiterFreq) {
+    stats->frameDurDesired = time_second / rendGlobalSettings->limiterFreq;
+  } else {
+    stats->frameDurDesired = (TimeDuration)((f64)time_second / gap_window_refresh_rate(window));
+  }
 
   debug_avg_f32(&stats->rendWaitForGpuFrac, debug_frame_frac(stats, rendStats->waitForGpuDur));
   debug_avg_f32(&stats->rendPresAcqFrac, debug_frame_frac(stats, rendStats->presentAcquireDur));
@@ -641,9 +652,10 @@ ecs_view_define(StatsCreateView) {
 }
 
 ecs_view_define(StatsUpdateView) {
-  ecs_access_write(DebugStatsComp);
+  ecs_access_read(GapWindowComp);
   ecs_access_read(RendStatsComp);
   ecs_access_read(UiStatsComp);
+  ecs_access_write(DebugStatsComp);
 }
 
 ecs_view_define(CanvasWriteView) {
@@ -691,12 +703,13 @@ ecs_system_define(DebugStatsUpdateSys) {
   EcsView* statsView = ecs_world_view_t(world, StatsUpdateView);
   for (EcsIterator* itr = ecs_view_itr(statsView); ecs_view_walk(itr);) {
     DebugStatsComp*      stats     = ecs_view_write_t(itr, DebugStatsComp);
+    const GapWindowComp* window    = ecs_view_read_t(itr, GapWindowComp);
     const RendStatsComp* rendStats = ecs_view_read_t(itr, RendStatsComp);
     const UiStatsComp*   uiStats   = ecs_view_read_t(itr, UiStatsComp);
     const EcsDef*        ecsDef    = ecs_world_def(world);
 
     // Update statistics.
-    debug_stats_update(stats, rendStats, rendGlobalSet, time);
+    debug_stats_update(stats, window, rendStats, rendGlobalSet, time);
 
     // Create or destroy the interface canvas as needed.
     if (stats->show != DebugStatShow_None && !stats->canvas) {
@@ -712,6 +725,7 @@ ecs_system_define(DebugStatsUpdateSys) {
       ui_canvas_reset(canvas);
       debug_stats_draw_interface(
           canvas,
+          window,
           statsGlobal,
           stats,
           rendStats,

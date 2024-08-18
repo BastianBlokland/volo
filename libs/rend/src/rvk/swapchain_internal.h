@@ -25,6 +25,7 @@ void              rvk_swapchain_destroy(RvkSwapchain*);
 VkFormat          rvk_swapchain_format(const RvkSwapchain*);
 RvkSwapchainStats rvk_swapchain_stats(const RvkSwapchain*);
 RvkSize           rvk_swapchain_size(const RvkSwapchain*);
+void              rvk_swapchain_invalidate(RvkSwapchain*);
 RvkImage*         rvk_swapchain_image(RvkSwapchain*, RvkSwapchainIdx);
 
 /**

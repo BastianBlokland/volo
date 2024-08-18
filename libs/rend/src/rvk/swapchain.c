@@ -27,7 +27,7 @@
 #define swapchain_images_max 5
 
 typedef enum {
-  RvkSwapchainFlags_OutOfDate,
+  RvkSwapchainFlags_OutOfDate = 1 << 0,
 } RvkSwapchainFlags;
 
 struct sRvkSwapchain {
@@ -327,6 +327,10 @@ RvkSwapchainStats rvk_swapchain_stats(const RvkSwapchain* swapchain) {
       .presentId         = swapchain->curPresentId,
       .imageCount        = (u16)swapchain->imageCount,
   };
+}
+
+void rvk_swapchain_invalidate(RvkSwapchain* swapchain) {
+  swapchain->flags |= RvkSwapchainFlags_OutOfDate;
 }
 
 RvkImage* rvk_swapchain_image(RvkSwapchain* swapchain, const RvkSwapchainIdx idx) {
