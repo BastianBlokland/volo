@@ -586,6 +586,8 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     if (!(window->flags & GapPalWindowFlags_Fullscreen)) {
       window->lastWindowedPosition = newPos;
     }
+    const GapPalDisplayInfo newDisplayInfo = pal_query_display_info(pal, window->id);
+    pal_event_refresh_rate_changed(window, newDisplayInfo.refreshRate);
     return true;
   }
   case WM_SETFOCUS: {
