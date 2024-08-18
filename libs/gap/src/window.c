@@ -37,6 +37,7 @@ ecs_comp_define(GapWindowComp) {
   DynString         inputText;
   String            clipCopy, clipPaste;
   GapCursor         cursor;
+  f32               refreshRate;
   u16               dpi;
 };
 
@@ -99,8 +100,9 @@ static void window_update(
   win->events = 0;
 
   if (win->requests & GapWindowRequests_Create) {
-    win->id  = gap_pal_window_create(pal, win->params[GapParam_WindowSize]);
-    win->dpi = gap_pal_window_dpi(pal, win->id);
+    win->id          = gap_pal_window_create(pal, win->params[GapParam_WindowSize]);
+    win->refreshRate = gap_pal_window_refresh_rate(pal, win->id);
+    win->dpi         = gap_pal_window_dpi(pal, win->id);
 
     // Set the window-size to match the created window as additional constraints are applied.
     const GapVector createdWinSize   = gap_pal_window_param(pal, win->id, GapParam_WindowSize);
@@ -204,6 +206,10 @@ static void window_update(
     win->events |= GapWindowEvents_KeyReleased;
   } else {
     gap_keyset_clear(&win->keysReleased);
+  }
+  if (palFlags & GapPalWindowFlags_RefreshRateChanged) {
+    win->refreshRate = gap_pal_window_refresh_rate(pal, win->id);
+    win->events |= GapWindowEvents_RefreshRateChanged;
   }
   if (palFlags & GapPalWindowFlags_DpiChanged) {
     win->dpi = gap_pal_window_dpi(pal, win->id);
@@ -402,6 +408,8 @@ void gap_window_clip_copy(GapWindowComp* comp, const String value) {
 void gap_window_clip_paste(GapWindowComp* comp) { comp->requests |= GapWindowRequests_ClipPaste; }
 
 String gap_window_clip_paste_result(const GapWindowComp* comp) { return comp->clipPaste; }
+
+f32 gap_window_refresh_rate(const GapWindowComp* comp) { return comp->refreshRate; }
 
 u16 gap_window_dpi(const GapWindowComp* comp) { return comp->dpi; }
 
