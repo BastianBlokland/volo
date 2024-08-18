@@ -53,10 +53,7 @@ ecs_comp_define(DebugStatsComp) {
   DebugStatShow show;
   EcsEntityId   canvas;
 
-  TimeDuration  frameDur;
-  TimeDuration  frameDurAvg;
-  DebugStatPlot frameDurVarianceUs; // In microseconds.
-  f32           frameFreqAvg;
+  DebugStatPlot frameDurPlot; // In microseconds.
   TimeDuration  frameDurDesired;
 
   RendPass      passInspect;     // Pass to show stats for.
@@ -78,7 +75,7 @@ ecs_comp_define(DebugStatsGlobalComp) {
   usize fileMappingSize;
   u32   globalStringCount;
 
-  DebugStatPlot ecsFlushDurUs; // In microseconds.
+  DebugStatPlot ecsFlushDurPlot; // In microseconds.
 };
 
 static void ecs_destruct_stats_global(void* data) {
@@ -119,6 +116,16 @@ static void debug_plot_add_dur(DebugStatPlot* plot, const TimeDuration value) {
   debug_plot_add(plot, (f32)(value / (f64)time_microsecond));
 }
 
+static f32 debug_plot_min(const DebugStatPlot* plot) {
+  f32 min = plot->values[0];
+  for (u32 i = 1; i != stats_plot_size; ++i) {
+    if (plot->values[i] < min) {
+      min = plot->values[i];
+    }
+  }
+  return min;
+}
+
 static f32 debug_plot_max(const DebugStatPlot* plot) {
   f32 max = plot->values[0];
   for (u32 i = 1; i != stats_plot_size; ++i) {
@@ -129,26 +136,40 @@ static f32 debug_plot_max(const DebugStatPlot* plot) {
   return max;
 }
 
+static f32 debug_plot_var(const DebugStatPlot* plot) {
+  return debug_plot_max(plot) - debug_plot_min(plot);
+}
+
+static f32 debug_plot_sum(const DebugStatPlot* plot) {
+  f32 sum = plot->values[0];
+  for (u32 i = 1; i != stats_plot_size; ++i) {
+    sum += plot->values[i];
+  }
+  return sum;
+}
+
+static f32 debug_plot_avg(const DebugStatPlot* plot) {
+  return debug_plot_sum(plot) / (f32)stats_plot_size;
+}
+
 static TimeDuration debug_plot_max_dur(const DebugStatPlot* plot) {
   return (TimeDuration)(debug_plot_max(plot) * (f64)time_microsecond);
+}
+
+static TimeDuration debug_plot_var_dur(const DebugStatPlot* plot) {
+  return (TimeDuration)(debug_plot_var(plot) * (f64)time_microsecond);
+}
+
+static TimeDuration debug_plot_avg_dur(const DebugStatPlot* plot) {
+  return (TimeDuration)(debug_plot_avg(plot) * (f64)time_microsecond);
 }
 
 static void debug_avg_f32(f32* value, const f32 new) {
   *value += (new - *value) * g_statsInvAverageWindow;
 }
 
-static void debug_avg_f64(f64* value, const f64 new) {
-  *value += (new - *value) * g_statsInvAverageWindow;
-}
-
-static void debug_avg_dur(TimeDuration* value, const TimeDuration new) {
-  f64 floatVal = (f64)*value;
-  debug_avg_f64(&floatVal, (f64) new);
-  *value = (TimeDuration)floatVal;
-}
-
-static f32 debug_frame_frac(const DebugStatsComp* stats, const TimeDuration dur) {
-  return math_clamp_f32(dur / (f32)stats->frameDurAvg, 0, 1);
+static f32 debug_frame_frac(const TimeDuration whole, const TimeDuration part) {
+  return math_clamp_f32(part / (f32)whole, 0, 1);
 }
 
 static void stats_draw_bg(UiCanvasComp* canvas, const DebugBgFlags flags) {
@@ -226,15 +247,19 @@ static void stats_draw_frametime(UiCanvasComp* canvas, const DebugStatsComp* sta
   const f64 g_errorThreshold = 1.25;
   const f64 g_warnThreshold  = 1.05;
 
+  const TimeDuration durAvg      = debug_plot_avg_dur(&stats->frameDurPlot);
+  const TimeDuration durVariance = debug_plot_var_dur(&stats->frameDurPlot);
+
   String colorText = string_empty;
-  if (stats->frameDur > stats->frameDurDesired * g_errorThreshold) {
+  if (durAvg > stats->frameDurDesired * g_errorThreshold) {
     colorText = ui_escape_color_scratch(ui_color_red);
-  } else if (stats->frameDur > stats->frameDurDesired * g_warnThreshold) {
+  } else if (durAvg > stats->frameDurDesired * g_warnThreshold) {
     colorText = ui_escape_color_scratch(ui_color_yellow);
   }
-  const TimeDuration variance = debug_plot_max_dur(&stats->frameDurVarianceUs);
-  const String       freqText = fmt_write_scratch(
-      "{}hz", fmt_float(stats->frameFreqAvg, .minDecDigits = 1, .maxDecDigits = 1));
+
+  const f32    freq = 1.0f / (durAvg / (f32)time_second);
+  const String freqText =
+      fmt_write_scratch("{}hz", fmt_float(freq, .minDecDigits = 1, .maxDecDigits = 1));
 
   stats_draw_val_entry(
       canvas,
@@ -242,9 +267,9 @@ static void stats_draw_frametime(UiCanvasComp* canvas, const DebugStatsComp* sta
       fmt_write_scratch(
           "{}{<8}{<8}{>7} var",
           fmt_text(colorText),
-          fmt_duration(stats->frameDurAvg, .minDecDigits = 1),
+          fmt_duration(durAvg, .minDecDigits = 1),
           fmt_text(freqText),
-          fmt_duration(variance, .maxDecDigits = 0)));
+          fmt_duration(durVariance, .maxDecDigits = 0)));
 }
 
 typedef struct {
@@ -501,7 +526,8 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Texture resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Texture])));
 
     stats_draw_renderer_pass_dropdown(canvas, stats);
-    const f32 passDurFrac = debug_frame_frac(stats, rendStats->passes[stats->passInspect].gpuExecDur);
+    const TimeDuration frameDurAvg = debug_plot_avg_dur(&stats->frameDurPlot);
+    const f32          passDurFrac = debug_frame_frac(frameDurAvg, rendStats->passes[stats->passInspect].gpuExecDur);
     stats_draw_val_entry(canvas, string_lit("Pass resolution max"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passes[stats->passInspect].sizeMax[0]), fmt_int(rendStats->passes[stats->passInspect].sizeMax[1])));
     stats_draw_val_entry(canvas, string_lit("Pass exec duration"), fmt_write_scratch("{<10} frac: {}", fmt_duration(rendStats->passes[stats->passInspect].gpuExecDur), fmt_float(passDurFrac, .minDecDigits = 2, .maxDecDigits = 2)));
     stats_draw_val_entry(canvas, string_lit("Pass invocations"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].invocations)));
@@ -540,7 +566,8 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Data"), fmt_write_scratch("types: {}", fmt_int(data_type_count(g_dataReg))));
   }
   if(stats_draw_section(canvas, string_lit("ECS"))) {
-    const TimeDuration maxFlushTime = debug_plot_max_dur(&statsGlobal->ecsFlushDurUs);
+    const TimeDuration flushDurAvg = debug_plot_avg_dur(&statsGlobal->ecsFlushDurPlot);
+    const TimeDuration flushDurMax = debug_plot_max_dur(&statsGlobal->ecsFlushDurPlot);
 
     stats_draw_val_entry(canvas, string_lit("Components"), fmt_write_scratch("{}", fmt_int(ecs_def_comp_count(ecsDef))));
     stats_draw_val_entry(canvas, string_lit("Views"), fmt_write_scratch("{}", fmt_int(ecs_def_view_count(ecsDef))));
@@ -550,7 +577,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(canvas, string_lit("Archetypes"), fmt_write_scratch("{<8} empty:  {}", fmt_int(ecsWorldStats->archetypeCount), fmt_int(ecsWorldStats->archetypeEmptyCount)));
     stats_draw_val_entry(canvas, string_lit("Archetype data"), fmt_write_scratch("{<8} chunks: {}", fmt_size(ecsWorldStats->archetypeTotalSize), fmt_int(ecsWorldStats->archetypeTotalChunks)));
     stats_draw_val_entry(canvas, string_lit("Plan"), fmt_write_scratch("{<8} est:    {}", fmt_int(ecsRunnerStats->planCounter), fmt_duration(ecsRunnerStats->planEstSpan)));
-    stats_draw_val_entry(canvas, string_lit("Flush duration"), fmt_write_scratch("{<8} max:    {}", fmt_duration(ecsRunnerStats->flushDurLast), fmt_duration(maxFlushTime)));
+    stats_draw_val_entry(canvas, string_lit("Flush duration"), fmt_write_scratch("{<8} max:    {}", fmt_duration(flushDurAvg), fmt_duration(flushDurMax)));
     stats_draw_val_entry(canvas, string_lit("Flush entities"), fmt_write_scratch("{}", fmt_int(ecsWorldStats->lastFlushEntities)));
   }
   if(stats_draw_section(canvas, string_lit("Collision"))) {
@@ -604,12 +631,8 @@ static void debug_stats_update(
     const RendSettingsGlobalComp* rendGlobalSettings,
     const SceneTimeComp*          time) {
 
-  const TimeDuration prevFrameDur = stats->frameDur;
-  stats->frameDur                 = time->realDelta;
-  debug_avg_dur(&stats->frameDurAvg, stats->frameDur);
-  stats->frameFreqAvg                 = 1.0f / (stats->frameDurAvg / (f32)time_second);
-  const TimeDuration frameDurVariance = math_abs(stats->frameDur - prevFrameDur);
-  debug_plot_add_dur(&stats->frameDurVarianceUs, frameDurVariance);
+  const TimeDuration frameDur = time->realDelta;
+  debug_plot_add_dur(&stats->frameDurPlot, frameDur);
 
   if (rendGlobalSettings->limiterFreq) {
     stats->frameDurDesired = time_second / rendGlobalSettings->limiterFreq;
@@ -617,15 +640,15 @@ static void debug_stats_update(
     stats->frameDurDesired = (TimeDuration)((f64)time_second / gap_window_refresh_rate(window));
   }
 
-  debug_avg_f32(&stats->rendWaitForGpuFrac, debug_frame_frac(stats, rendStats->waitForGpuDur));
-  debug_avg_f32(&stats->rendPresAcqFrac, debug_frame_frac(stats, rendStats->presentAcquireDur));
-  debug_avg_f32(&stats->rendPresEnqFrac, debug_frame_frac(stats, rendStats->presentEnqueueDur));
-  debug_avg_f32(&stats->rendPresWaitFrac, debug_frame_frac(stats, rendStats->presentWaitDur));
-  debug_avg_f32(&stats->rendLimiterFrac, debug_frame_frac(stats, rendStats->limiterDur));
-  debug_avg_f32(&stats->gpuExecFrac, debug_frame_frac(stats, rendStats->gpuExecDur));
+  debug_avg_f32(&stats->rendWaitForGpuFrac, debug_frame_frac(frameDur, rendStats->waitForGpuDur));
+  debug_avg_f32(&stats->rendPresAcqFrac, debug_frame_frac(frameDur, rendStats->presentAcquireDur));
+  debug_avg_f32(&stats->rendPresEnqFrac, debug_frame_frac(frameDur, rendStats->presentEnqueueDur));
+  debug_avg_f32(&stats->rendPresWaitFrac, debug_frame_frac(frameDur, rendStats->presentWaitDur));
+  debug_avg_f32(&stats->rendLimiterFrac, debug_frame_frac(frameDur, rendStats->limiterDur));
+  debug_avg_f32(&stats->gpuExecFrac, debug_frame_frac(frameDur, rendStats->gpuExecDur));
   for (RendPass pass = 0; pass != RendPass_Count; ++pass) {
-    debug_avg_f32(
-        &stats->gpuPassFrac[pass], debug_frame_frac(stats, rendStats->passes[pass].gpuExecDur));
+    const f32 passFrac = debug_frame_frac(frameDur, rendStats->passes[pass].gpuExecDur);
+    debug_avg_f32(&stats->gpuPassFrac[pass], passFrac);
   }
 }
 
@@ -641,7 +664,7 @@ debug_stats_global_update(DebugStatsGlobalComp* statsGlobal, const EcsRunnerStat
   statsGlobal->globalStringCount = stringtable_count(g_stringtable);
 
   debug_plot_add(
-      &statsGlobal->ecsFlushDurUs, (f32)(ecsRunnerStats->flushDurLast / (f64)time_microsecond));
+      &statsGlobal->ecsFlushDurPlot, (f32)(ecsRunnerStats->flushDurLast / (f64)time_microsecond));
 }
 
 ecs_view_define(GlobalView) {
