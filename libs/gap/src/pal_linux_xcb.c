@@ -54,6 +54,7 @@ typedef struct {
   GapKeySet         keysPressed, keysPressedWithRepeat, keysReleased, keysDown;
   DynString         inputText;
   String            clipCopy, clipPaste;
+  String            displayName;
   f32               refreshRate;
   u16               dpi;
 } GapPalWindow;
@@ -839,6 +840,23 @@ static void pal_event_resize(GapPal* pal, const GapWindowId windowId, const GapV
       log_param("size", gap_vector_fmt(newSize)));
 }
 
+static void pal_event_display_name_changed(
+    GapPal* pal, const GapWindowId windowId, const String newDisplayName) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  if (!window || string_eq(window->displayName, newDisplayName)) {
+    return;
+  }
+
+  string_maybe_free(g_allocHeap, window->displayName);
+  window->displayName = string_maybe_dup(g_allocHeap, newDisplayName);
+  window->flags |= GapPalWindowFlags_DisplayNameChanged;
+
+  log_d(
+      "Window display-name changed",
+      log_param("id", fmt_int(windowId)),
+      log_param("display-name", fmt_text(newDisplayName)));
+}
+
 static void
 pal_event_refresh_rate_changed(GapPal* pal, const GapWindowId windowId, const f32 newRefreshRate) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
@@ -1136,6 +1154,7 @@ void gap_pal_update(GapPal* pal) {
 
       const GapPalDisplay* display = pal_maybe_display(pal, newCenter);
       if (display) {
+        pal_event_display_name_changed(pal, configureMsg->window, display->name);
         pal_event_refresh_rate_changed(pal, configureMsg->window, display->refreshRate);
         pal_event_dpi_changed(pal, configureMsg->window, display->dpi);
       }
@@ -1427,6 +1446,7 @@ void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
       dynstring_destroy(&window->inputText);
       string_maybe_free(g_allocHeap, window->clipCopy);
       string_maybe_free(g_allocHeap, window->clipPaste);
+      string_maybe_free(g_allocHeap, window->displayName);
       dynarray_remove_unordered(&pal->windows, i, 1);
       break;
     }
@@ -1631,6 +1651,10 @@ void gap_pal_window_clip_paste(GapPal* pal, const GapWindowId windowId) {
 
 String gap_pal_window_clip_paste_result(GapPal* pal, const GapWindowId windowId) {
   return pal_maybe_window(pal, windowId)->clipPaste;
+}
+
+String gap_pal_window_display_name(GapPal* pal, const GapWindowId windowId) {
+  return pal_maybe_window(pal, windowId)->displayName;
 }
 
 f32 gap_pal_window_refresh_rate(GapPal* pal, const GapWindowId windowId) {
