@@ -213,7 +213,7 @@ static GapPalDisplayInfo pal_query_display_info(GapPal* pal, const GapWindowId w
     mem_cpy(mem_var(result.nameData), string_slice(name, 0, result.nameSize));
   }
 
-  // Retieve the display's refresh-rate.
+  // Retrieve the display's refresh-rate.
   DEVMODEW disSettings = {.dmSize = sizeof(DEVMODEW)};
   if (EnumDisplaySettingsW(monitorInfo.szDevice, ENUM_CURRENT_SETTINGS, &disSettings)) {
     if (LIKELY(disSettings.dmDisplayFrequency != 0 && disSettings.dmDisplayFrequency != 1)) {
