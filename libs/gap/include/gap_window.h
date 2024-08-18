@@ -142,6 +142,11 @@ void   gap_window_clip_paste(GapWindowComp*);
 String gap_window_clip_paste_result(const GapWindowComp*);
 
 /**
+ * Retrieve the name of the display that is currently showing the given window.
+ */
+String gap_window_display_name(const GapWindowComp*);
+
+/**
  * Retrieve the window's current display refresh-rate.
  */
 f32 gap_window_refresh_rate(const GapWindowComp*);

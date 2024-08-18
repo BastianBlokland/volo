@@ -25,6 +25,7 @@ typedef enum {
 ecs_comp_define(GapWindowComp) {
   GapPal* pal;
   String  title;
+  String  displayName;
   uptr    nativeAppHandle;
 
   GapWindowId       id;
@@ -49,6 +50,7 @@ static void ecs_destruct_window_comp(void* data) {
     gap_pal_window_destroy(comp->pal, comp->id);
   }
   string_maybe_free(g_allocHeap, comp->title);
+  string_maybe_free(g_allocHeap, comp->displayName);
   dynstring_destroy(&comp->inputText);
   string_maybe_free(g_allocHeap, comp->clipCopy);
   string_maybe_free(g_allocHeap, comp->clipPaste);
@@ -101,6 +103,7 @@ static void window_update(
 
   if (win->requests & GapWindowRequests_Create) {
     win->id          = gap_pal_window_create(pal, win->params[GapParam_WindowSize]);
+    win->displayName = string_maybe_dup(g_allocHeap, gap_pal_window_display_name(pal, win->id));
     win->refreshRate = gap_pal_window_refresh_rate(pal, win->id);
     win->dpi         = gap_pal_window_dpi(pal, win->id);
 
@@ -206,6 +209,10 @@ static void window_update(
     win->events |= GapWindowEvents_KeyReleased;
   } else {
     gap_keyset_clear(&win->keysReleased);
+  }
+  if (palFlags & GapPalWindowFlags_DisplayNameChanged) {
+    string_maybe_free(g_allocHeap, win->displayName);
+    win->displayName = string_maybe_dup(g_allocHeap, gap_pal_window_display_name(pal, win->id));
   }
   if (palFlags & GapPalWindowFlags_RefreshRateChanged) {
     win->refreshRate = gap_pal_window_refresh_rate(pal, win->id);
@@ -408,6 +415,8 @@ void gap_window_clip_copy(GapWindowComp* comp, const String value) {
 void gap_window_clip_paste(GapWindowComp* comp) { comp->requests |= GapWindowRequests_ClipPaste; }
 
 String gap_window_clip_paste_result(const GapWindowComp* comp) { return comp->clipPaste; }
+
+String gap_window_display_name(const GapWindowComp* comp) { return comp->displayName; }
 
 f32 gap_window_refresh_rate(const GapWindowComp* comp) { return comp->refreshRate; }
 
