@@ -603,9 +603,11 @@ static void debug_stats_update(
   const TimeDuration frameDurVariance = math_abs(stats->frameDur - prevFrameDur);
   debug_plot_add(&stats->frameDurVarianceUs, (f32)(frameDurVariance / (f64)time_microsecond));
 
-  stats->frameDurDesired = rendGlobalSettings->limiterFreq
-                               ? time_second / rendGlobalSettings->limiterFreq
-                               : time_second / gap_window_refresh_rate(window);
+  if (rendGlobalSettings->limiterFreq) {
+    stats->frameDurDesired = time_second / rendGlobalSettings->limiterFreq;
+  } else {
+    stats->frameDurDesired = (TimeDuration)((f64)time_second / gap_window_refresh_rate(window));
+  }
 
   debug_avg_f32(&stats->rendWaitForGpuFrac, debug_frame_frac(stats, rendStats->waitForGpuDur));
   debug_avg_f32(&stats->rendPresAcqFrac, debug_frame_frac(stats, rendStats->presentAcquireDur));
