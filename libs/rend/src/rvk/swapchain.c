@@ -329,6 +329,10 @@ RvkSwapchainStats rvk_swapchain_stats(const RvkSwapchain* swapchain) {
   };
 }
 
+void rvk_swapchain_invalidate(RvkSwapchain* swapchain) {
+  swapchain->flags |= RvkSwapchainFlags_OutOfDate;
+}
+
 RvkImage* rvk_swapchain_image(RvkSwapchain* swapchain, const RvkSwapchainIdx idx) {
   diag_assert_msg(idx < swapchain->imageCount, "Swapchain index {} is out of bounds", fmt_int(idx));
   return &swapchain->images[idx];
