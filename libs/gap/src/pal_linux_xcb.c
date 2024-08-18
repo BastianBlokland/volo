@@ -59,6 +59,7 @@ typedef struct {
 typedef struct {
   GapVector position;
   GapVector size;
+  f32       refreshRate;
   u16       dpi;
 } GapPalDisplay;
 
@@ -629,6 +630,29 @@ static void pal_init_extensions(GapPal* pal) {
   }
 }
 
+static f32 pal_randr_refresh_rate(
+    xcb_randr_get_screen_resources_current_reply_t* screen, const xcb_randr_mode_t mode) {
+  xcb_randr_mode_info_iterator_t i = xcb_randr_get_screen_resources_current_modes_iterator(screen);
+  for (; i.rem; xcb_randr_mode_info_next(&i)) {
+    if (i.data->id != mode) {
+      continue;
+    }
+    f64 verticalLines = i.data->vtotal;
+    if (i.data->mode_flags & XCB_RANDR_MODE_FLAG_DOUBLE_SCAN) {
+      verticalLines *= 2; // Double the number of lines.
+    }
+    if (i.data->mode_flags & XCB_RANDR_MODE_FLAG_INTERLACE) {
+      verticalLines /= 2; // Interlace halves the number of lines.
+    }
+    if (i.data->htotal && verticalLines != 0.0) {
+      return (f32)(((100 * (i64)i.data->dot_clock) / (i.data->htotal * verticalLines)) / 100.0);
+    }
+    goto Default;
+  }
+Default:
+  return 60.0f;
+}
+
 static void pal_randr_query_displays(GapPal* pal) {
   diag_assert(pal->extensions & GapPalXcbExtFlags_Randr);
   dynarray_clear(&pal->displays);
@@ -662,9 +686,11 @@ static void pal_randr_query_displays(GapPal* pal) {
       const GapVector position       = gap_vector(crtc->x, crtc->y);
       const GapVector size           = gap_vector(crtc->width, crtc->height);
       const GapVector physicalSizeMm = gap_vector(output->mm_width, output->mm_height);
-      const u16       dpi            = output->mm_width
-                                           ? (u16)math_round_nearest_f32(crtc->width * 25.4f / physicalSizeMm.width)
-                                           : pal_window_default_dpi;
+      const f32       refreshRate    = pal_randr_refresh_rate(screen, crtc->mode);
+      u16             dpi            = pal_window_default_dpi;
+      if (output->mm_width) {
+        dpi = (u16)math_round_nearest_f32(crtc->width * 25.4f / physicalSizeMm.width);
+      }
 
       log_i(
           "Xcb display found",
@@ -672,10 +698,15 @@ static void pal_randr_query_displays(GapPal* pal) {
           log_param("position", gap_vector_fmt(position)),
           log_param("size", gap_vector_fmt(size)),
           log_param("physical-size-mm", gap_vector_fmt(physicalSizeMm)),
+          log_param("refresh-rate", fmt_float(refreshRate)),
           log_param("dpi", fmt_int(dpi)));
 
-      *dynarray_push_t(&pal->displays, GapPalDisplay) =
-          (GapPalDisplay){.position = position, .size = size, .dpi = dpi};
+      *dynarray_push_t(&pal->displays, GapPalDisplay) = (GapPalDisplay){
+          .position    = position,
+          .size        = size,
+          .refreshRate = refreshRate,
+          .dpi         = dpi,
+      };
       free(crtc);
     }
     free(output);
@@ -978,7 +1009,8 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
 
 GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
-  *pal        = (GapPal){
+
+  *pal = (GapPal){
       .alloc    = alloc,
       .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
       .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
@@ -1298,7 +1330,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   }
 
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-  const u32      values[2]  = {
+
+  const u32 values[2] = {
       pal->xcbScreen->black_pixel,
       g_xcbWindowEventMask,
   };
