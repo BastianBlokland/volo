@@ -8,6 +8,7 @@
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "ecs_world.h"
+#include "log_logger.h"
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
 #include "scene_time.h"
@@ -269,6 +270,7 @@ ecs_system_define(SceneSkeletonTemplLoadSys) {
         break; // Graphic has not loaded yet; wait.
       }
       if (!graphic) {
+        log_e("Invalid graphic asset", log_param("entity", ecs_entity_fmt(entity)));
         scene_skeleton_templ_load_done(world, itr, false);
         break; // Graphic failed to load, or was of unexpected type.
       }

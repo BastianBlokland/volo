@@ -38,8 +38,8 @@ struct sRvkSwapchain {
   RendPresentMode    presentModeSetting;
   RvkSwapchainFlags  flags;
   RvkSize            size;
-  RvkImage           images[swapchain_images_max];
   u32                imageCount;
+  RvkImage           images[swapchain_images_max];
 
   TimeDuration lastAcquireDur, lastPresentEnqueueDur, lastPresentWaitDur;
   u64          curPresentId; // NOTE: Present-id zero is unused.
@@ -324,6 +324,8 @@ RvkSwapchainStats rvk_swapchain_stats(const RvkSwapchain* swapchain) {
       .acquireDur        = swapchain->lastAcquireDur,
       .presentEnqueueDur = swapchain->lastPresentEnqueueDur,
       .presentWaitDur    = swapchain->lastPresentWaitDur,
+      .presentId         = swapchain->curPresentId,
+      .imageCount        = (u16)swapchain->imageCount,
   };
 }
 
@@ -361,7 +363,7 @@ RvkSwapchainIdx rvk_swapchain_acquire(
 
   const TimeSteady acquireStart = time_steady_clock();
   u32              index;
-  VkResult         result = vkAcquireNextImageKHR(
+  const VkResult   result = vkAcquireNextImageKHR(
       swapchain->dev->vkDev, swapchain->vkSwapchain, u64_max, available, null, &index);
   swapchain->lastAcquireDur = time_steady_duration(acquireStart, time_steady_clock());
 

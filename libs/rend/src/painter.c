@@ -4,7 +4,6 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
-#include "core_thread.h"
 #include "ecs_utils.h"
 #include "gap_window.h"
 #include "rend_register.h"
@@ -1189,7 +1188,6 @@ ecs_system_define(RendPainterDrawSys) {
   EcsView* drawView     = ecs_world_view_t(world, DrawView);
   EcsView* resourceView = ecs_world_view_t(world, ResourceView);
 
-  bool anyPainterDrawn = false;
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
     const EcsEntityId         entity   = ecs_view_entity(itr);
     const GapWindowComp*      win      = ecs_view_read_t(itr, GapWindowComp);
@@ -1198,8 +1196,9 @@ ecs_system_define(RendPainterDrawSys) {
     const SceneCameraComp*    cam      = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* camTrans = ecs_view_read_t(itr, SceneTransformComp);
 
+    painter->paintedPrevFrame = painter->paintedCurFrame;
     if (cam) {
-      anyPainterDrawn |= rend_canvas_paint_3d(
+      painter->paintedCurFrame = rend_canvas_paint_3d(
           painter,
           settings,
           settingsGlobal,
@@ -1213,17 +1212,9 @@ ecs_system_define(RendPainterDrawSys) {
           drawView,
           resourceView);
     } else {
-      anyPainterDrawn |= rend_canvas_paint_2d(
+      painter->paintedCurFrame = rend_canvas_paint_2d(
           painter, settings, settingsGlobal, time, win, entity, drawView, resourceView);
     }
-  }
-
-  if (!anyPainterDrawn) {
-    /**
-     * If no painter was drawn this frame (for example because they are all minimized) we sleep
-     * the thread to avoid wasting cpu cycles.
-     */
-    thread_sleep(time_second / 60);
   }
 }
 

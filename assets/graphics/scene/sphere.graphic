@@ -1,0 +1,10 @@
+{
+  "shaders": [
+    { "shaderId": "shaders/standard.vert" },
+    { "shaderId": "shaders/standard.frag" }
+  ],
+  "samplers": [
+    { "textureId": "textures/white.proctex" }
+  ],
+  "meshId": "meshes/sphere.procmesh"
+}

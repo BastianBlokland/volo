@@ -1,0 +1,26 @@
+
+/**
+ * Graphic that steadily moves back and forth based on time-delta to test frame pacing.
+ *
+ * Supports the following input knowledge:
+ * - "assetGraphic": Graphic to use.
+ */
+
+if ($instance) {
+  var timeDelta = time("Delta")
+  var pos       = position($instance)
+  var speed     = 10.0
+  var maxDist   = 30.0
+  if (vec_x($dir) > 0 && vec_x(pos) > maxDist) {
+    $dir = left
+  }
+  if (vec_x($dir) < 0 && vec_x(pos) < -maxDist) {
+    $dir = right
+  }
+  teleport($instance, pos + $dir * speed * timeDelta)
+} else {
+  var pos   = vec3(0, 0, 0)
+  var scale = 5.0
+  $dir      = right
+  $instance = renderable_spawn($assetGraphic, pos, quat_ident, scale)
+}

@@ -16,6 +16,8 @@ typedef struct sRvkSwapchain RvkSwapchain;
 typedef struct sRvkSwapchainStats {
   TimeDuration acquireDur;
   TimeDuration presentEnqueueDur, presentWaitDur;
+  u64          presentId;
+  u16          imageCount;
 } RvkSwapchainStats;
 
 RvkSwapchain*     rvk_swapchain_create(RvkDevice*, const GapWindowComp*);

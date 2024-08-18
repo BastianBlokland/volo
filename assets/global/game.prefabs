@@ -1285,6 +1285,17 @@
           ]
         }
       ]
+    },
+    {
+      "name": "TestPacing",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/logic/test_pacing.script" ],
+          "knowledge": [
+            { "$name": "assetGraphic", "$type": "AssetPrefabValue_Asset", "$data": "graphics/scene/sphere.graphic" }
+          ]
+        }
+      ]
     }
   ]
 }

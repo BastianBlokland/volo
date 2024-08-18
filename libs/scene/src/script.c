@@ -1170,7 +1170,7 @@ static ScriptVal eval_destroy_after(EvalContext* ctx, const ScriptArgs args, Scr
 static ScriptVal eval_teleport(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   if (LIKELY(entity)) {
-    if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Animation))) {
+    if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Teleport))) {
       *err = script_error_arg(ScriptError_MissingCapability, 0);
     }
     *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){

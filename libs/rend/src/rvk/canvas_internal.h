@@ -74,7 +74,6 @@ void rvk_canvas_barrier_full(const RvkCanvas*);
 void rvk_canvas_end(RvkCanvas*);
 
 /**
- * Wait for the previously rendered image to be presented to the user.
- * NOTE: Is a no-op if the device and/or driver does not support tracking presentations.
+ * Wait for the previous frame to be rendered.
  */
 void rvk_canvas_wait_for_prev_present(const RvkCanvas*);

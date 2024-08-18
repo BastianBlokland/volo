@@ -9,6 +9,7 @@ typedef struct sRvkCanvas RvkCanvas;
 ecs_comp_extern_public(RendPainterComp) {
   DynArray   drawBuffer; // RvkPassDraw[]
   RvkCanvas* canvas;
+  bool       paintedPrevFrame, paintedCurFrame;
 };
 
 void rend_painter_teardown(EcsWorld* world, EcsEntityId entity);

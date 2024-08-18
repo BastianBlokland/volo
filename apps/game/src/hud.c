@@ -654,12 +654,11 @@ static void hud_minimap_draw(
   const UiVector canvasRes    = ui_canvas_resolution(c);
   const f32      canvasAspect = (f32)canvasRes.width / (f32)canvasRes.height;
 
-  GeoVector areaSize;
-  if (scene_terrain_loaded(terrain)) {
-    areaSize = geo_vector(scene_terrain_play_size(terrain), 0, scene_terrain_play_size(terrain));
-  } else {
-    areaSize = geo_vector(250.0f, 0.0f, 250.0f);
+  if (!scene_terrain_loaded(terrain)) {
+    return;
   }
+  const f32       areaSizeAxis = scene_terrain_play_size(terrain);
+  const GeoVector areaSize     = geo_vector(areaSizeAxis, 0, areaSizeAxis);
 
   ui_layout_push(c);
   ui_layout_set(c, hud->minimapRect, UiBase_Absolute);
