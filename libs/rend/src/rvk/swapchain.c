@@ -363,7 +363,7 @@ RvkSwapchainIdx rvk_swapchain_acquire(
 
   const TimeSteady acquireStart = time_steady_clock();
   u32              index;
-  VkResult         result = vkAcquireNextImageKHR(
+  const VkResult   result = vkAcquireNextImageKHR(
       swapchain->dev->vkDev, swapchain->vkSwapchain, u64_max, available, null, &index);
   swapchain->lastAcquireDur = time_steady_duration(acquireStart, time_steady_clock());
 
