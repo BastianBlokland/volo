@@ -20,12 +20,18 @@ ecs_view_define(PainterView) { ecs_access_read(RendPainterComp); }
 /**
  * Wait for all painters to have presented their previous (last frame) image to the user.
  */
-static void rend_wait_for_present(EcsWorld* world) {
+static bool rend_wait_for_present(EcsWorld* world) {
   EcsView* painterView = ecs_world_view_t(world, PainterView);
+
+  bool anyWaited = false;
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
     const RendPainterComp* painter = ecs_view_read_t(itr, RendPainterComp);
-    rvk_canvas_wait_for_prev_present(painter->canvas);
+    if (painter->paintedPrevFrame) {
+      anyWaited = true;
+      rvk_canvas_wait_for_prev_present(painter->canvas);
+    }
   }
+  return anyWaited;
 }
 
 ecs_system_define(RendFrameLimiterSys) {
@@ -41,14 +47,23 @@ ecs_system_define(RendFrameLimiterSys) {
         world, ecs_world_global(world), RendLimiterComp, .previousTime = time_steady_clock());
   }
 
-  // Wait for the previous frame's image to be presented to the user.
-  rend_wait_for_present(world);
+  u16 limiterFreq = settingsGlobal->limiterFreq;
 
-  if (!settingsGlobal->limiterFreq) {
+  // Wait for the previous frame's image to be presented to the user.
+  const bool waitedForPresent = rend_wait_for_present(world);
+  if (!waitedForPresent && !limiterFreq) {
+    /**
+     * If we didn't wait for any present (for example because all windows are all minimized) we
+     * automatically set a limiter to avoid wasting cpu cycles.
+     */
+    limiterFreq = 60;
+  }
+
+  if (!limiterFreq) {
     limiter->sleepDur = 0;
     return; // Limiter not active.
   }
-  const TimeDuration targetDuration = time_second / settingsGlobal->limiterFreq;
+  const TimeDuration targetDuration = time_second / limiterFreq;
   const TimeSteady   start          = time_steady_clock();
   const TimeDuration elapsed        = time_steady_duration(limiter->previousTime, start);
 
@@ -63,7 +78,7 @@ ecs_system_define(RendFrameLimiterSys) {
     /**
      * Keep a moving average of the additional time a 'thread_sleep()' takes to avoid always waking
      * up late.
-     * NOTE: Skip very large delta's as the process was most likely paused.
+     * NOTE: Skip very large delta's as the game's process was most likely paused.
      */
     const TimeDuration sinceStart = time_steady_duration(start, time_steady_clock());
     if (LIKELY(sinceStart < time_second)) {
