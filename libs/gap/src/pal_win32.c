@@ -448,7 +448,7 @@ static void pal_event_refresh_rate_changed(GapPalWindow* window, const f32 newRe
 
   log_d(
       "Window refresh-rate changed",
-      log_param("id", fmt_int(windowId)),
+      log_param("id", fmt_int(window->id)),
       log_param("refresh-rate", fmt_float(newRefreshRate)));
 }
 
@@ -546,6 +546,17 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     const GapVector newPos = gap_vector((i32)(short)LOWORD(lParam), (i32)(short)HIWORD(lParam));
     if (!(window->flags & GapPalWindowFlags_Fullscreen)) {
       window->lastWindowedPosition = newPos;
+    }
+    DEVMODEW displayDev = {.dmSize = sizeof(DEVMODEW)};
+    if (EnumDisplaySettingsW(null, ENUM_CURRENT_SETTINGS, &displayDev)) {
+      const DWORD refreshRate = displayDev.dmDisplayFrequency;
+      if (refreshRate == 0 || refreshRate == 1) {
+        pal_event_refresh_rate_changed(window, pal_window_default_refresh_rate);
+      } else {
+        pal_event_refresh_rate_changed(window, (f32)refreshRate);
+      }
+    } else {
+      pal_event_refresh_rate_changed(window, pal_window_default_refresh_rate);
     }
     return true;
   }
