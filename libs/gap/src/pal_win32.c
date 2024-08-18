@@ -191,6 +191,8 @@ static GapVector pal_query_cursor_pos(const GapWindowId windowId) {
 }
 
 static GapPalDisplayInfo pal_query_display_info(GapPal* pal, const GapWindowId windowId) {
+  (void)pal;
+
   GapPalDisplayInfo result = {.refreshRate = pal_window_default_refresh_rate};
 
   HMONITOR monitor = MonitorFromWindow((HWND)windowId, MONITOR_DEFAULTTONEAREST);
@@ -779,10 +781,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-             .alloc          = alloc,
-             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-             .moduleInstance = instance,
-             .owningThreadId = g_threadTid,
+      .alloc          = alloc,
+      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+      .moduleInstance = instance,
+      .owningThreadId = g_threadTid,
   };
   pal_dpi_init(pal);
   pal_cursors_init(pal);
