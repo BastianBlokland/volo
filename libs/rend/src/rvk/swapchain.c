@@ -27,7 +27,7 @@
 #define swapchain_images_max 5
 
 typedef enum {
-  RvkSwapchainFlags_OutOfDate,
+  RvkSwapchainFlags_OutOfDate = 1 << 0,
 } RvkSwapchainFlags;
 
 struct sRvkSwapchain {
