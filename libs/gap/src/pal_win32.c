@@ -14,6 +14,7 @@
 
 #define pal_window_min_width 128
 #define pal_window_min_height 128
+#define pal_window_default_refresh_rate 60.0f
 #define pal_window_default_dpi 96
 
 ASSERT(sizeof(GapWindowId) >= sizeof(HWND), "GapWindowId should be able to represent a Win32 HWND")
@@ -32,6 +33,7 @@ typedef struct {
   DynString         inputText;
   String            clipPaste;
   GapCursor         cursor;
+  f32               refreshRate;
   u16               dpi;
 } GapPalWindow;
 
@@ -437,6 +439,19 @@ static void pal_event_resize(GapPalWindow* window, const GapVector newSize) {
   }
 }
 
+static void pal_event_refresh_rate_changed(GapPalWindow* window, const f32 newRefreshRate) {
+  if (window->refreshRate == newRefreshRate) {
+    return;
+  }
+  window->refreshRate = newRefreshRate;
+  window->flags |= GapPalWindowFlags_RefreshRateChanged;
+
+  log_d(
+      "Window refresh-rate changed",
+      log_param("id", fmt_int(windowId)),
+      log_param("refresh-rate", fmt_float(newRefreshRate)));
+}
+
 MAYBE_UNUSED static void pal_event_dpi_changed(GapPalWindow* window, const u16 newDpi) {
   if (window->dpi == newDpi) {
     return;
@@ -699,10 +714,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc          = alloc,
-      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-      .moduleInstance = instance,
-      .owningThreadId = g_threadTid,
+             .alloc          = alloc,
+             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+             .moduleInstance = instance,
+             .owningThreadId = g_threadTid,
   };
   pal_dpi_init(pal);
   pal_cursors_init(pal);
@@ -887,6 +902,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .flags                       = GapPalWindowFlags_Focussed | GapPalWindowFlags_FocusGained,
       .lastWindowedPosition        = position,
       .inputText                   = dynstring_create(g_allocHeap, 64),
+      .refreshRate                 = pal_window_default_refresh_rate,
       .dpi                         = dpi,
   };
 
@@ -1188,6 +1204,10 @@ Done:
 
 String gap_pal_window_clip_paste_result(GapPal* pal, const GapWindowId windowId) {
   return pal_maybe_window(pal, windowId)->clipPaste;
+}
+
+f32 gap_pal_window_refresh_rate(GapPal* pal, const GapWindowId windowId) {
+  return pal_maybe_window(pal, windowId)->refreshRate;
 }
 
 u16 gap_pal_window_dpi(GapPal* pal, const GapWindowId windowId) {
