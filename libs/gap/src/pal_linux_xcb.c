@@ -75,6 +75,7 @@ struct sGapPal {
   xcb_screen_t*     xcbScreen;
   GapPalXcbExtFlags extensions;
   usize             maxRequestLength;
+  u8                randrFirstEvent;
   GapPalFlags       flags;
 
   struct xkb_context* xkbContext;
@@ -516,7 +517,7 @@ static bool pal_xfixes_init(GapPal* pal) {
  * Initialize the RandR extension.
  * More info: https://xcb.freedesktop.org/manual/group__XCB__RandR__API.html
  */
-static bool pal_randr_init(GapPal* pal) {
+static bool pal_randr_init(GapPal* pal, u8* firstEventOut) {
   const xcb_query_extension_reply_t* data = xcb_get_extension_data(pal->xcbCon, &xcb_randr_id);
   if (UNLIKELY(!data->present)) {
     log_w("Xcb RandR extension not present");
@@ -541,6 +542,7 @@ static bool pal_randr_init(GapPal* pal) {
       "Xcb initialized the RandR extension",
       log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))));
 
+  *firstEventOut = data->first_event;
   return true;
 }
 
@@ -625,7 +627,7 @@ static void pal_init_extensions(GapPal* pal) {
   if (pal_xfixes_init(pal)) {
     pal->extensions |= GapPalXcbExtFlags_XFixes;
   }
-  if (pal_randr_init(pal)) {
+  if (pal_randr_init(pal, &pal->randrFirstEvent)) {
     pal->extensions |= GapPalXcbExtFlags_Randr;
   }
   if (pal_render_init(pal)) {
@@ -1259,6 +1261,15 @@ void gap_pal_update(GapPal* pal) {
         pal_event_clip_paste_notify(pal, selectionNotifyMsg->requestor);
       }
     } break;
+    default:
+      if (pal->extensions & GapPalXcbExtFlags_Randr) {
+        switch (evt->response_type - pal->randrFirstEvent) {
+        case XCB_RANDR_SCREEN_CHANGE_NOTIFY:
+          log_d("Display change detected");
+          pal_randr_query_displays(pal);
+          break;
+        }
+      }
     }
   }
 }
@@ -1396,6 +1407,10 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .refreshRate                 = pal_window_default_refresh_rate,
       .dpi                         = pal_window_default_dpi,
   };
+
+  if (pal->extensions & GapPalXcbExtFlags_Randr) {
+    xcb_randr_select_input(pal->xcbCon, (xcb_window_t)id, XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE);
+  }
 
   log_i("Window created", log_param("id", fmt_int(id)), log_param("size", gap_vector_fmt(size)));
 
