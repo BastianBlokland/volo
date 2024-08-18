@@ -49,6 +49,7 @@ typedef enum {
 typedef struct {
   GapWindowId       id;
   GapVector         params[GapParam_Count];
+  GapVector         centerPos;
   GapPalWindowFlags flags : 16;
   GapCursor         cursor : 16;
   GapKeySet         keysPressed, keysPressedWithRepeat, keysReleased, keysDown;
@@ -826,9 +827,14 @@ static void pal_event_focus_lost(GapPal* pal, const GapWindowId windowId) {
   log_d("Window focus lost", log_param("id", fmt_int(windowId)));
 }
 
-static void pal_event_resize(GapPal* pal, const GapWindowId windowId, const GapVector newSize) {
+static void pal_event_resize(
+    GapPal* pal, const GapWindowId windowId, const GapVector newSize, const GapVector newCenter) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
-  if (!window || gap_vector_equal(window->params[GapParam_WindowSize], newSize)) {
+  if (!window) {
+    return;
+  }
+  window->centerPos = newCenter;
+  if (gap_vector_equal(window->params[GapParam_WindowSize], newSize)) {
     return;
   }
   window->params[GapParam_WindowSize] = newSize;
@@ -1145,12 +1151,13 @@ void gap_pal_update(GapPal* pal) {
 
     case XCB_CONFIGURE_NOTIFY: {
       const xcb_configure_notify_event_t* configureMsg = (const void*)evt;
-      const GapVector newSize = gap_vector(configureMsg->width, configureMsg->height);
-      pal_event_resize(pal, configureMsg->window, newSize);
-
-      const GapVector newPos = {configureMsg->x, configureMsg->y};
-      const GapVector newCenter =
-          gap_vector(newPos.x + newSize.width / 2, newPos.y + newSize.height / 2);
+      const GapVector newSize   = gap_vector(configureMsg->width, configureMsg->height);
+      const GapVector newPos    = {configureMsg->x, configureMsg->y};
+      const GapVector newCenter = {
+          .x = newPos.x + newSize.width / 2,
+          .y = newPos.y + newSize.height / 2,
+      };
+      pal_event_resize(pal, configureMsg->window, newSize, newCenter);
 
       const GapPalDisplay* display = pal_maybe_display(pal, newCenter);
       if (display) {
@@ -1283,10 +1290,23 @@ void gap_pal_update(GapPal* pal) {
     default:
       if (pal->extensions & GapPalXcbExtFlags_Randr) {
         switch (evt->response_type - pal->randrFirstEvent) {
-        case XCB_RANDR_SCREEN_CHANGE_NOTIFY:
+        case XCB_RANDR_SCREEN_CHANGE_NOTIFY: {
+          const xcb_randr_screen_change_notify_event_t* screenChangeMsg = (const void*)evt;
+
           log_d("Display change detected");
           pal_randr_query_displays(pal);
-          break;
+
+          const GapWindowId windowId = screenChangeMsg->request_window;
+          GapPalWindow*     window   = pal_maybe_window(pal, windowId);
+          if (window) {
+            const GapPalDisplay* display = pal_maybe_display(pal, window->centerPos);
+            if (display) {
+              pal_event_display_name_changed(pal, windowId, display->name);
+              pal_event_refresh_rate_changed(pal, windowId, display->refreshRate);
+              pal_event_dpi_changed(pal, windowId, display->dpi);
+            }
+          }
+        } break;
         }
       }
     }
