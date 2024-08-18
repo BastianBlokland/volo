@@ -473,6 +473,8 @@ static void debug_stats_draw_interface(
   }
 
   if(stats_draw_section(canvas, string_lit("Window"))) {
+    const GapVector windowSize = gap_window_param(window, GapParam_WindowSize);
+    stats_draw_val_entry(canvas, string_lit("Size"), fmt_write_scratch("{}", gap_vector_fmt(windowSize)));
     stats_draw_val_entry(canvas, string_lit("Refresh rate"), fmt_write_scratch("{}hz", fmt_float(gap_window_refresh_rate(window))));
     stats_draw_val_entry(canvas, string_lit("Dpi"), fmt_write_scratch("{}", fmt_int(gap_window_dpi(window))));
   }
