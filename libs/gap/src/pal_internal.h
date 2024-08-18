@@ -26,18 +26,19 @@ typedef enum {
   GapPalWindowFlags_FocusLost          = 1 << 8,
   GapPalWindowFlags_FocusGained        = 1 << 9,
   GapPalWindowFlags_ClipPaste          = 1 << 10,
-  GapPalWindowFlags_RefreshRateChanged = 1 << 11,
-  GapPalWindowFlags_DpiChanged         = 1 << 12,
+  GapPalWindowFlags_DisplayNameChanged = 1 << 11,
+  GapPalWindowFlags_RefreshRateChanged = 1 << 12,
+  GapPalWindowFlags_DpiChanged         = 1 << 13,
 
   // clang-format off
 
   GapPalWindowFlags_Volatile = 0
-    | GapPalWindowFlags_CloseRequested   | GapPalWindowFlags_Resized
-    | GapPalWindowFlags_CursorMoved      | GapPalWindowFlags_Scrolled
-    | GapPalWindowFlags_KeyPressed       | GapPalWindowFlags_KeyReleased
-    | GapPalWindowFlags_FocusLost        | GapPalWindowFlags_FocusGained
-    | GapPalWindowFlags_ClipPaste        | GapPalWindowFlags_RefreshRateChanged
-    | GapPalWindowFlags_DpiChanged
+    | GapPalWindowFlags_CloseRequested     | GapPalWindowFlags_Resized
+    | GapPalWindowFlags_CursorMoved        | GapPalWindowFlags_Scrolled
+    | GapPalWindowFlags_KeyPressed         | GapPalWindowFlags_KeyReleased
+    | GapPalWindowFlags_FocusLost          | GapPalWindowFlags_FocusGained
+    | GapPalWindowFlags_ClipPaste          | GapPalWindowFlags_DisplayNameChanged
+    | GapPalWindowFlags_RefreshRateChanged | GapPalWindowFlags_DpiChanged
 
   // clang-format on
 
@@ -71,6 +72,7 @@ void              gap_pal_window_cursor_pos_set(GapPal*, GapWindowId, GapVector 
 void              gap_pal_window_clip_copy(GapPal*, GapWindowId, String value);
 void              gap_pal_window_clip_paste(GapPal*, GapWindowId);
 String            gap_pal_window_clip_paste_result(GapPal*, GapWindowId);
+String            gap_pal_window_display_name(GapPal*, GapWindowId);
 f32               gap_pal_window_refresh_rate(GapPal*, GapWindowId);
 u16               gap_pal_window_dpi(GapPal*, GapWindowId);
 

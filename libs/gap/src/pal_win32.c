@@ -33,6 +33,7 @@ typedef struct {
   bool              inModalLoop;
   DynString         inputText;
   String            clipPaste;
+  String            displayName;
   GapCursor         cursor;
   f32               refreshRate;
   u16               dpi;
@@ -478,6 +479,20 @@ static void pal_event_resize(GapPalWindow* window, const GapVector newSize) {
   }
 }
 
+static void pal_event_display_name_changed(GapPalWindow* window, const String newDisplayName) {
+  if (string_eq(window->displayName, newDisplayName)) {
+    return;
+  }
+  string_maybe_free(g_allocHeap, window->displayName);
+  window->displayName = string_maybe_dup(g_allocHeap, newDisplayName);
+  window->flags |= GapPalWindowFlags_DisplayNameChanged;
+
+  log_d(
+      "Window display-name changed",
+      log_param("id", fmt_int(window->id)),
+      log_param("display-name", fmt_text(newDisplayName)));
+}
+
 static void pal_event_refresh_rate_changed(GapPalWindow* window, const f32 newRefreshRate) {
   if (window->refreshRate == newRefreshRate) {
     return;
@@ -587,6 +602,8 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
       window->lastWindowedPosition = newPos;
     }
     const GapPalDisplayInfo newDisplayInfo = pal_query_display_info(pal, window->id);
+    const String newDisplayName = mem_create(newDisplayInfo.nameData, newDisplayInfo.nameSize);
+    pal_event_display_name_changed(window, newDisplayName);
     pal_event_refresh_rate_changed(window, newDisplayInfo.refreshRate);
     return true;
   }
@@ -630,6 +647,8 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
   }
   case WM_DISPLAYCHANGE: {
     const GapPalDisplayInfo newDisplayInfo = pal_query_display_info(pal, window->id);
+    const String newDisplayName = mem_create(newDisplayInfo.nameData, newDisplayInfo.nameSize);
+    pal_event_display_name_changed(window, newDisplayName);
     pal_event_refresh_rate_changed(window, newDisplayInfo.refreshRate);
     return true;
   }
@@ -940,6 +959,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   const GapVector   realClientSize = gap_vector(
       realClientRect.right - realClientRect.left, realClientRect.bottom - realClientRect.top);
   const GapPalDisplayInfo displayInfo = pal_query_display_info(pal, id);
+  const String            displayName = mem_create(displayInfo.nameData, displayInfo.nameSize);
   const u16               dpi         = pal_query_dpi(pal, id);
 
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
@@ -949,6 +969,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .flags                       = GapPalWindowFlags_Focussed | GapPalWindowFlags_FocusGained,
       .lastWindowedPosition        = position,
       .inputText                   = dynstring_create(g_allocHeap, 64),
+      .displayName                 = string_maybe_dup(g_allocHeap, displayName),
       .refreshRate                 = displayInfo.refreshRate,
       .dpi                         = dpi,
   };
@@ -957,7 +978,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       "Window created",
       log_param("id", fmt_int(id)),
       log_param("size", gap_vector_fmt(realClientSize)),
-      log_param("display-name", fmt_text(mem_create(displayInfo.nameData, displayInfo.nameSize))),
+      log_param("display-name", fmt_text(displayName)),
       log_param("refresh-rate", fmt_float(displayInfo.refreshRate)),
       log_param("dpi", fmt_int(dpi)));
 
@@ -989,6 +1010,7 @@ void gap_pal_window_destroy(GapPal* pal, const GapWindowId windowId) {
       alloc_free(pal->alloc, window->className);
       dynstring_destroy(&window->inputText);
       string_maybe_free(g_allocHeap, window->clipPaste);
+      string_maybe_free(g_allocHeap, window->displayName);
       dynarray_remove_unordered(&pal->windows, i, 1);
       break;
     }
@@ -1253,6 +1275,10 @@ Done:
 
 String gap_pal_window_clip_paste_result(GapPal* pal, const GapWindowId windowId) {
   return pal_maybe_window(pal, windowId)->clipPaste;
+}
+
+String gap_pal_window_display_name(GapPal* pal, const GapWindowId windowId) {
+  return pal_maybe_window(pal, windowId)->displayName;
 }
 
 f32 gap_pal_window_refresh_rate(GapPal* pal, const GapWindowId windowId) {
