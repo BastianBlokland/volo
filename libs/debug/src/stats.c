@@ -473,7 +473,7 @@ static void debug_stats_draw_interface(
   }
 
   if(stats_draw_section(canvas, string_lit("Window"))) {
-    stats_draw_val_entry(canvas, string_lit("Refresh rate"), fmt_write_scratch("{}", fmt_float(gap_window_refresh_rate(window))));
+    stats_draw_val_entry(canvas, string_lit("Refresh rate"), fmt_write_scratch("{}hz", fmt_float(gap_window_refresh_rate(window))));
     stats_draw_val_entry(canvas, string_lit("Dpi"), fmt_write_scratch("{}", fmt_int(gap_window_dpi(window))));
   }
   if(stats_draw_section(canvas, string_lit("Renderer"))) {
