@@ -41,7 +41,6 @@ typedef enum {
     | GapPalWindowFlags_RefreshRateChanged | GapPalWindowFlags_DpiChanged
 
   // clang-format on
-
 } GapPalWindowFlags;
 
 typedef struct sGapPal GapPal;
