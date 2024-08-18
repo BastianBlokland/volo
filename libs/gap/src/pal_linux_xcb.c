@@ -59,6 +59,7 @@ typedef struct {
 } GapPalWindow;
 
 typedef struct {
+  String    name;
   GapVector position;
   GapVector size;
   f32       refreshRate;
@@ -656,6 +657,9 @@ static f32 pal_randr_refresh_rate(
 
 static void pal_randr_query_displays(GapPal* pal) {
   diag_assert(pal->extensions & GapPalXcbExtFlags_Randr);
+
+  // Clear any previous queried displays.
+  dynarray_for_t(&pal->displays, GapPalDisplay, d) { string_maybe_free(g_allocHeap, d->name); }
   dynarray_clear(&pal->displays);
 
   xcb_generic_error_t*                            err = null;
@@ -703,6 +707,7 @@ static void pal_randr_query_displays(GapPal* pal) {
           log_param("dpi", fmt_int(dpi)));
 
       *dynarray_push_t(&pal->displays, GapPalDisplay) = (GapPalDisplay){
+          .name        = string_maybe_dup(g_allocHeap, name),
           .position    = position,
           .size        = size,
           .refreshRate = refreshRate,
@@ -1055,6 +1060,7 @@ void gap_pal_destroy(GapPal* pal) {
   while (pal->windows.size) {
     gap_pal_window_destroy(pal, dynarray_at_t(&pal->windows, 0, GapPalWindow)->id);
   }
+  dynarray_for_t(&pal->displays, GapPalDisplay, d) { string_maybe_free(g_allocHeap, d->name); }
 
   if (pal->xkbContext) {
     xkb_context_unref(pal->xkbContext);
