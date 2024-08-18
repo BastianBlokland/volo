@@ -182,6 +182,26 @@ static GapVector pal_query_cursor_pos(const GapWindowId windowId) {
   return gap_vector((i32)point.x, (i32)point.y);
 }
 
+static f32 pal_query_refresh_rate(GapPal* pal, const GapWindowId windowId) {
+  HMONITOR monitor = MonitorFromWindow((HWND)windowId, MONITOR_DEFAULTTONEAREST);
+  if (UNLIKELY(!monitor)) {
+    return pal_window_default_refresh_rate;
+  }
+  MONITORINFOEXW monitorInfo = {.cbSize = sizeof(MONITORINFOEXW)};
+  if (UNLIKELY(!GetMonitorInfoW(monitor, (MONITORINFO*)&monitorInfo))) {
+    return pal_window_default_refresh_rate;
+  }
+  DEVMODEW dev = {.dmSize = sizeof(DEVMODEW)};
+  if (LIKELY(EnumDisplaySettingsW(monitorInfo.szDevice, ENUM_CURRENT_SETTINGS, &dev))) {
+    const DWORD refreshRate = dev.dmDisplayFrequency;
+    if (UNLIKELY(refreshRate == 0 || refreshRate == 1)) {
+      return pal_window_default_refresh_rate;
+    }
+    return (f32)refreshRate;
+  }
+  return pal_window_default_refresh_rate;
+}
+
 static u16 pal_query_dpi(GapPal* pal, const GapWindowId windowId) {
   HMONITOR monitor = MonitorFromWindow((HWND)windowId, MONITOR_DEFAULTTONEAREST);
   if (UNLIKELY(!monitor)) {
@@ -598,6 +618,11 @@ pal_event(GapPal* pal, const HWND wnd, const UINT msg, const WPARAM wParam, cons
     minMaxInfo->ptMinTrackSize.y = pal_window_min_height;
     return true;
   }
+  case WM_DISPLAYCHANGE: {
+    const f32 newRefreshRate = pal_query_refresh_rate(pal, window->id);
+    pal_event_refresh_rate_changed(window, newRefreshRate);
+    return true;
+  }
   case 0x02E0 /* WM_DPICHANGED */: {
     const u16 newDpi = pal_query_dpi(pal, window->id);
     pal_event_dpi_changed(window, newDpi);
@@ -904,7 +929,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   const RECT        realClientRect = pal_client_rect(id);
   const GapVector   realClientSize = gap_vector(
       realClientRect.right - realClientRect.left, realClientRect.bottom - realClientRect.top);
-  const u16 dpi = pal_query_dpi(pal, id);
+  const f32 refreshRate = pal_query_refresh_rate(pal, id);
+  const u16 dpi         = pal_query_dpi(pal, id);
 
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
       .id                          = id,
@@ -913,7 +939,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .flags                       = GapPalWindowFlags_Focussed | GapPalWindowFlags_FocusGained,
       .lastWindowedPosition        = position,
       .inputText                   = dynstring_create(g_allocHeap, 64),
-      .refreshRate                 = pal_window_default_refresh_rate,
+      .refreshRate                 = refreshRate,
       .dpi                         = dpi,
   };
 
@@ -921,6 +947,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       "Window created",
       log_param("id", fmt_int(id)),
       log_param("size", gap_vector_fmt(realClientSize)),
+      log_param("refresh-rate", fmt_float(refreshRate)),
       log_param("dpi", fmt_int(dpi)));
 
   return id;
