@@ -172,78 +172,75 @@ static f32 debug_frame_frac(const TimeDuration whole, const TimeDuration part) {
   return math_clamp_f32(part / (f32)whole, 0, 1);
 }
 
-static void stats_draw_bg(UiCanvasComp* canvas, const DebugBgFlags flags) {
-  ui_style_push(canvas);
+static void stats_draw_bg(UiCanvasComp* c, const DebugBgFlags flags) {
+  ui_style_push(c);
   const u8 alpha = flags & DebugBgFlags_Section ? g_statsSectionBgAlpha : g_statsBgAlpha;
-  ui_style_color(canvas, ui_color(0, 0, 0, alpha));
-  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
-  ui_style_pop(canvas);
+  ui_style_color(c, ui_color(0, 0, 0, alpha));
+  ui_canvas_draw_glyph(c, UiShape_Square, 0, UiFlags_None);
+  ui_style_pop(c);
 }
 
-static void stats_draw_label(UiCanvasComp* canvas, const String label) {
-  ui_layout_push(canvas);
+static void stats_draw_label(UiCanvasComp* c, const String label) {
+  ui_layout_push(c);
 
-  ui_layout_resize(
-      canvas, UiAlign_BottomLeft, ui_vector(g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
-  ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
-  ui_label(canvas, label, .align = UiAlign_MiddleLeft);
+  ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
+  ui_layout_grow(c, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
+  ui_label(c, label, .align = UiAlign_MiddleLeft);
 
-  ui_layout_pop(canvas);
+  ui_layout_pop(c);
 }
 
-static void stats_draw_value(UiCanvasComp* canvas, const String value) {
-  ui_layout_push(canvas);
-  ui_style_push(canvas);
+static void stats_draw_value(UiCanvasComp* c, const String value) {
+  ui_layout_push(c);
+  ui_style_push(c);
 
-  ui_layout_grow(
-      canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
+  ui_layout_grow(c, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
 
-  ui_style_variation(canvas, UiVariation_Monospace);
-  ui_style_weight(canvas, UiWeight_Bold);
-  ui_label(canvas, value, .selectable = true);
+  ui_style_variation(c, UiVariation_Monospace);
+  ui_style_weight(c, UiWeight_Bold);
+  ui_label(c, value, .selectable = true);
 
-  ui_style_pop(canvas);
-  ui_layout_pop(canvas);
+  ui_style_pop(c);
+  ui_layout_pop(c);
 }
 
-static bool stats_draw_button(UiCanvasComp* canvas, const String value) {
-  ui_layout_push(canvas);
-  ui_style_push(canvas);
+static bool stats_draw_button(UiCanvasComp* c, const String value) {
+  ui_layout_push(c);
+  ui_style_push(c);
 
-  ui_layout_grow(
-      canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
+  ui_layout_grow(c, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
 
-  const bool pressed = ui_button(canvas, .label = value, .frameColor = ui_color(24, 24, 24, 128));
+  const bool pressed = ui_button(c, .label = value, .frameColor = ui_color(24, 24, 24, 128));
 
-  ui_style_pop(canvas);
-  ui_layout_pop(canvas);
+  ui_style_pop(c);
+  ui_layout_pop(c);
   return pressed;
 }
 
-static void stats_draw_val_entry(UiCanvasComp* canvas, const String label, const String value) {
-  stats_draw_bg(canvas, DebugBgFlags_None);
-  stats_draw_label(canvas, label);
-  stats_draw_value(canvas, value);
-  ui_layout_next(canvas, Ui_Down, 0);
+static void stats_draw_val_entry(UiCanvasComp* c, const String label, const String value) {
+  stats_draw_bg(c, DebugBgFlags_None);
+  stats_draw_label(c, label);
+  stats_draw_value(c, value);
+  ui_layout_next(c, Ui_Down, 0);
 }
 
-static bool stats_draw_button_entry(UiCanvasComp* canvas, const String label, const String value) {
-  stats_draw_bg(canvas, DebugBgFlags_None);
-  stats_draw_label(canvas, label);
-  const bool pressed = stats_draw_button(canvas, value);
-  ui_layout_next(canvas, Ui_Down, 0);
+static bool stats_draw_button_entry(UiCanvasComp* c, const String label, const String value) {
+  stats_draw_bg(c, DebugBgFlags_None);
+  stats_draw_label(c, label);
+  const bool pressed = stats_draw_button(c, value);
+  ui_layout_next(c, Ui_Down, 0);
   return pressed;
 }
 
-static bool stats_draw_section(UiCanvasComp* canvas, const String label) {
-  ui_canvas_id_block_next(canvas);
-  stats_draw_bg(canvas, DebugBgFlags_Section);
-  const bool isOpen = ui_section(canvas, .label = label);
-  ui_layout_next(canvas, Ui_Down, 0);
+static bool stats_draw_section(UiCanvasComp* c, const String label) {
+  ui_canvas_id_block_next(c);
+  stats_draw_bg(c, DebugBgFlags_Section);
+  const bool isOpen = ui_section(c, .label = label);
+  ui_layout_next(c, Ui_Down, 0);
   return isOpen;
 }
 
-static void stats_draw_frametime(UiCanvasComp* canvas, const DebugStatsComp* stats) {
+static void stats_draw_frametime(UiCanvasComp* c, const DebugStatsComp* stats) {
   const f64 g_errorThreshold = 1.25;
   const f64 g_warnThreshold  = 1.05;
 
@@ -262,7 +259,7 @@ static void stats_draw_frametime(UiCanvasComp* canvas, const DebugStatsComp* sta
       fmt_write_scratch("{}hz", fmt_float(freq, .minDecDigits = 1, .maxDecDigits = 1));
 
   stats_draw_val_entry(
-      canvas,
+      c,
       string_lit("Frame time"),
       fmt_write_scratch(
           "{}{<8}{<8}{>7} var",
@@ -278,12 +275,9 @@ typedef struct {
 } StatChartEntry;
 
 static void stats_draw_chart(
-    UiCanvasComp*         canvas,
-    const StatChartEntry* entries,
-    const u32             entryCount,
-    const String          tooltip) {
-  ui_style_push(canvas);
-  ui_style_outline(canvas, 0);
+    UiCanvasComp* c, const StatChartEntry* entries, const u32 entryCount, const String tooltip) {
+  ui_style_push(c);
+  ui_style_outline(c, 0);
 
   f32 t = 0;
   for (u32 i = 0; i != entryCount; ++i) {
@@ -291,35 +285,34 @@ static void stats_draw_chart(
     if (frac < f32_epsilon) {
       continue;
     }
-    ui_layout_push(canvas);
-    ui_layout_move(canvas, ui_vector(t, 0), UiBase_Current, Ui_X);
-    ui_layout_resize(canvas, UiAlign_BottomLeft, ui_vector(frac, 0), UiBase_Current, Ui_X);
-    ui_style_color(canvas, entries[i].color);
-    ui_canvas_draw_glyph(canvas, UiShape_Square, 5, UiFlags_None);
-    ui_layout_pop(canvas);
+    ui_layout_push(c);
+    ui_layout_move(c, ui_vector(t, 0), UiBase_Current, Ui_X);
+    ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(frac, 0), UiBase_Current, Ui_X);
+    ui_style_color(c, entries[i].color);
+    ui_canvas_draw_glyph(c, UiShape_Square, 5, UiFlags_None);
+    ui_layout_pop(c);
     t += frac;
   }
 
-  ui_canvas_id_block_next(canvas); // Compensate for the potentially fluctuating amount of entries.
+  ui_canvas_id_block_next(c); // Compensate for the potentially fluctuating amount of entries.
 
   if (!string_is_empty(tooltip)) {
-    const UiId id = ui_canvas_id_peek(canvas);
-    ui_canvas_draw_glyph(canvas, UiShape_Empty, 0, UiFlags_Interactable); // Invisible rect.
-    ui_tooltip(canvas, id, tooltip, .variation = UiVariation_Monospace);
+    const UiId id = ui_canvas_id_peek(c);
+    ui_canvas_draw_glyph(c, UiShape_Empty, 0, UiFlags_Interactable); // Invisible rect.
+    ui_tooltip(c, id, tooltip, .variation = UiVariation_Monospace);
   }
-  ui_style_pop(canvas);
+  ui_style_pop(c);
 }
 
 static void
-stats_draw_cpu_chart(UiCanvasComp* canvas, const DebugStatsComp* st, const RendStatsComp* rendSt) {
-  stats_draw_bg(canvas, DebugBgFlags_None);
-  stats_draw_label(canvas, string_lit("CPU"));
+stats_draw_cpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsComp* rendSt) {
+  stats_draw_bg(c, DebugBgFlags_None);
+  stats_draw_label(c, string_lit("CPU"));
 
-  ui_layout_push(canvas);
-  ui_style_push(canvas);
+  ui_layout_push(c);
+  ui_style_push(c);
 
-  ui_layout_grow(
-      canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
+  ui_layout_grow(c, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
 
   /**
    * We determine the cpu 'busy' time by subtracting the time we've spend blocking on the renderer.
@@ -351,23 +344,22 @@ stats_draw_cpu_chart(UiCanvasComp* canvas, const DebugStatsComp* st, const RendS
       fmt_duration(rendSt->presentWaitDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->limiterDur, .minDecDigits = 1, .maxDecDigits = 1));
 
-  stats_draw_chart(canvas, entries, array_elems(entries), tooltip);
+  stats_draw_chart(c, entries, array_elems(entries), tooltip);
 
-  ui_style_pop(canvas);
-  ui_layout_pop(canvas);
-  ui_layout_next(canvas, Ui_Down, 0);
+  ui_style_pop(c);
+  ui_layout_pop(c);
+  ui_layout_next(c, Ui_Down, 0);
 }
 
 static void
-stats_draw_gpu_chart(UiCanvasComp* canvas, const DebugStatsComp* st, const RendStatsComp* rendSt) {
-  stats_draw_bg(canvas, DebugBgFlags_None);
-  stats_draw_label(canvas, string_lit("GPU"));
+stats_draw_gpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsComp* rendSt) {
+  stats_draw_bg(c, DebugBgFlags_None);
+  stats_draw_label(c, string_lit("GPU"));
 
-  ui_layout_push(canvas);
-  ui_style_push(canvas);
+  ui_layout_push(c);
+  ui_style_push(c);
 
-  ui_layout_grow(
-      canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
+  ui_layout_grow(c, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
 
   f32 otherFrac = st->gpuExecFrac;
   for (RendPass pass = 0; pass != RendPass_Count; ++pass) {
@@ -413,72 +405,69 @@ stats_draw_gpu_chart(UiCanvasComp* canvas, const DebugStatsComp* st, const RendS
       fmt_duration(rendSt->gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1));
   // clang-format on
 
-  stats_draw_chart(canvas, entries, array_elems(entries), tooltip);
+  stats_draw_chart(c, entries, array_elems(entries), tooltip);
 
-  ui_style_pop(canvas);
-  ui_layout_pop(canvas);
-  ui_layout_next(canvas, Ui_Down, 0);
+  ui_style_pop(c);
+  ui_layout_pop(c);
+  ui_layout_next(c, Ui_Down, 0);
 }
 
-static void stats_draw_renderer_pass_dropdown(UiCanvasComp* canvas, const DebugStatsComp* stats) {
-  stats_draw_bg(canvas, DebugBgFlags_None);
-  stats_draw_label(canvas, string_lit("Pass select"));
+static void stats_draw_renderer_pass_dropdown(UiCanvasComp* c, const DebugStatsComp* stats) {
+  stats_draw_bg(c, DebugBgFlags_None);
+  stats_draw_label(c, string_lit("Pass select"));
   {
-    ui_layout_push(canvas);
-    ui_style_push(canvas);
+    ui_layout_push(c);
+    ui_style_push(c);
 
-    ui_layout_grow(
-        canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
+    ui_layout_grow(c, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
 
     ui_select(
-        canvas,
+        c,
         (i32*)&stats->passInspect,
         g_rendPassNames,
         RendPass_Count,
         .frameColor     = ui_color(24, 24, 24, 128),
         .dropFrameColor = ui_color(24, 24, 24, 225));
 
-    ui_style_pop(canvas);
-    ui_layout_pop(canvas);
+    ui_style_pop(c);
+    ui_layout_pop(c);
   }
-  ui_layout_next(canvas, Ui_Down, 0);
+  ui_layout_next(c, Ui_Down, 0);
 }
 
-static void stats_draw_nav_layer_dropdown(UiCanvasComp* canvas, const DebugStatsComp* stats) {
-  stats_draw_bg(canvas, DebugBgFlags_None);
-  stats_draw_label(canvas, string_lit("Layer"));
+static void stats_draw_nav_layer_dropdown(UiCanvasComp* c, const DebugStatsComp* stats) {
+  stats_draw_bg(c, DebugBgFlags_None);
+  stats_draw_label(c, string_lit("Layer"));
   {
-    ui_layout_push(canvas);
-    ui_style_push(canvas);
+    ui_layout_push(c);
+    ui_style_push(c);
 
-    ui_layout_grow(
-        canvas, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
+    ui_layout_grow(c, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
 
     ui_select(
-        canvas,
+        c,
         (i32*)&stats->navLayerInspect,
         g_sceneNavLayerNames,
         SceneNavLayer_Count,
         .frameColor     = ui_color(24, 24, 24, 128),
         .dropFrameColor = ui_color(24, 24, 24, 225));
 
-    ui_style_pop(canvas);
-    ui_layout_pop(canvas);
+    ui_style_pop(c);
+    ui_layout_pop(c);
   }
-  ui_layout_next(canvas, Ui_Down, 0);
+  ui_layout_next(c, Ui_Down, 0);
 }
 
-static void
-stats_draw_notifications(UiCanvasComp* canvas, const DebugStatsGlobalComp* statsGlobal) {
+static void stats_draw_notifications(UiCanvasComp* c, const DebugStatsGlobalComp* statsGlobal) {
   dynarray_for_t(&statsGlobal->notifications, DebugStatsNotification, notif) {
     const String key   = mem_create(notif->key, notif->keyLength);
     const String value = mem_create(notif->value, notif->valueLength);
-    stats_draw_val_entry(canvas, key, value);
+    stats_draw_val_entry(c, key, value);
   }
 }
 
 static void debug_stats_draw_interface(
-    UiCanvasComp*                  canvas,
+    UiCanvasComp*                  c,
     const GapWindowComp*           window,
     const DebugStatsGlobalComp*    statsGlobal,
     const DebugStatsComp*          stats,
@@ -492,53 +481,53 @@ static void debug_stats_draw_interface(
     const SceneNavEnvComp*         navEnv,
     const UiStatsComp*             uiStats) {
 
-  ui_layout_move_to(canvas, UiBase_Container, UiAlign_TopLeft, Ui_XY);
-  ui_layout_resize(canvas, UiAlign_TopLeft, ui_vector(500, 25), UiBase_Absolute, Ui_XY);
+  ui_layout_move_to(c, UiBase_Container, UiAlign_TopLeft, Ui_XY);
+  ui_layout_resize(c, UiAlign_TopLeft, ui_vector(500, 25), UiBase_Absolute, Ui_XY);
 
   // clang-format off
-  stats_draw_frametime(canvas, stats);
-  stats_draw_cpu_chart(canvas, stats, rendStats);
-  stats_draw_gpu_chart(canvas, stats, rendStats);
-  stats_draw_notifications(canvas, statsGlobal);
+  stats_draw_frametime(c, stats);
+  stats_draw_cpu_chart(c, stats, rendStats);
+  stats_draw_gpu_chart(c, stats, rendStats);
+  stats_draw_notifications(c, statsGlobal);
 
   if(stats->show != DebugStatShow_Full) {
     return;
   }
 
-  if(stats_draw_section(canvas, string_lit("Window"))) {
+  if(stats_draw_section(c, string_lit("Window"))) {
     const GapVector windowSize = gap_window_param(window, GapParam_WindowSize);
-    stats_draw_val_entry(canvas, string_lit("Size"), fmt_write_scratch("{}", gap_vector_fmt(windowSize)));
-    stats_draw_val_entry(canvas, string_lit("Display"), gap_window_display_name(window));
-    stats_draw_val_entry(canvas, string_lit("Refresh rate"), fmt_write_scratch("{}hz", fmt_float(gap_window_refresh_rate(window))));
-    stats_draw_val_entry(canvas, string_lit("Dpi"), fmt_write_scratch("{}", fmt_int(gap_window_dpi(window))));
+    stats_draw_val_entry(c, string_lit("Size"), fmt_write_scratch("{}", gap_vector_fmt(windowSize)));
+    stats_draw_val_entry(c, string_lit("Display"), gap_window_display_name(window));
+    stats_draw_val_entry(c, string_lit("Refresh rate"), fmt_write_scratch("{}hz", fmt_float(gap_window_refresh_rate(window))));
+    stats_draw_val_entry(c, string_lit("Dpi"), fmt_write_scratch("{}", fmt_int(gap_window_dpi(window))));
   }
-  if(stats_draw_section(canvas, string_lit("Renderer"))) {
-    stats_draw_val_entry(canvas, string_lit("Gpu"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
-    stats_draw_val_entry(canvas, string_lit("Gpu exec duration"), fmt_write_scratch("{<9} frac: {}", fmt_duration(rendStats->gpuExecDur), fmt_float(stats->gpuExecFrac, .minDecDigits = 2, .maxDecDigits = 2)));
-    stats_draw_val_entry(canvas, string_lit("Swapchain"), fmt_write_scratch("images: {} present: {}", fmt_int(rendStats->swapchainImageCount), fmt_int(rendStats->swapchainPresentId)));
-    stats_draw_val_entry(canvas, string_lit("Attachments"), fmt_write_scratch("{<3} ({})", fmt_int(rendStats->attachCount), fmt_size(rendStats->attachMemory)));
-    stats_draw_val_entry(canvas, string_lit("Samplers"), fmt_write_scratch("{}", fmt_int(rendStats->samplerCount)));
-    stats_draw_val_entry(canvas, string_lit("Descriptor sets"), fmt_write_scratch("{<3} reserved: {}", fmt_int(rendStats->descSetsOccupied), fmt_int(rendStats->descSetsReserved)));
-    stats_draw_val_entry(canvas, string_lit("Descriptor layouts"), fmt_write_scratch("{}", fmt_int(rendStats->descLayouts)));
-    stats_draw_val_entry(canvas, string_lit("Graphic resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Graphic])));
-    stats_draw_val_entry(canvas, string_lit("Shader resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Shader])));
-    stats_draw_val_entry(canvas, string_lit("Mesh resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Mesh])));
-    stats_draw_val_entry(canvas, string_lit("Texture resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Texture])));
+  if(stats_draw_section(c, string_lit("Renderer"))) {
+    stats_draw_val_entry(c, string_lit("Gpu"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
+    stats_draw_val_entry(c, string_lit("Gpu exec duration"), fmt_write_scratch("{<9} frac: {}", fmt_duration(rendStats->gpuExecDur), fmt_float(stats->gpuExecFrac, .minDecDigits = 2, .maxDecDigits = 2)));
+    stats_draw_val_entry(c, string_lit("Swapchain"), fmt_write_scratch("images: {} present: {}", fmt_int(rendStats->swapchainImageCount), fmt_int(rendStats->swapchainPresentId)));
+    stats_draw_val_entry(c, string_lit("Attachments"), fmt_write_scratch("{<3} ({})", fmt_int(rendStats->attachCount), fmt_size(rendStats->attachMemory)));
+    stats_draw_val_entry(c, string_lit("Samplers"), fmt_write_scratch("{}", fmt_int(rendStats->samplerCount)));
+    stats_draw_val_entry(c, string_lit("Descriptor sets"), fmt_write_scratch("{<3} reserved: {}", fmt_int(rendStats->descSetsOccupied), fmt_int(rendStats->descSetsReserved)));
+    stats_draw_val_entry(c, string_lit("Descriptor layouts"), fmt_write_scratch("{}", fmt_int(rendStats->descLayouts)));
+    stats_draw_val_entry(c, string_lit("Graphic resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Graphic])));
+    stats_draw_val_entry(c, string_lit("Shader resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Shader])));
+    stats_draw_val_entry(c, string_lit("Mesh resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Mesh])));
+    stats_draw_val_entry(c, string_lit("Texture resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Texture])));
 
-    stats_draw_renderer_pass_dropdown(canvas, stats);
+    stats_draw_renderer_pass_dropdown(c, stats);
     const TimeDuration frameDurAvg = debug_plot_avg_dur(&stats->frameDurPlot);
     const f32          passDurFrac = debug_frame_frac(frameDurAvg, rendStats->passes[stats->passInspect].gpuExecDur);
-    stats_draw_val_entry(canvas, string_lit("Pass resolution max"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passes[stats->passInspect].sizeMax[0]), fmt_int(rendStats->passes[stats->passInspect].sizeMax[1])));
-    stats_draw_val_entry(canvas, string_lit("Pass exec duration"), fmt_write_scratch("{<10} frac: {}", fmt_duration(rendStats->passes[stats->passInspect].gpuExecDur), fmt_float(passDurFrac, .minDecDigits = 2, .maxDecDigits = 2)));
-    stats_draw_val_entry(canvas, string_lit("Pass invocations"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].invocations)));
-    stats_draw_val_entry(canvas, string_lit("Pass draws"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].draws)));
-    stats_draw_val_entry(canvas, string_lit("Pass instances"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].instances)));
-    stats_draw_val_entry(canvas, string_lit("Pass vertices"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].vertices)));
-    stats_draw_val_entry(canvas, string_lit("Pass primitives"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].primitives)));
-    stats_draw_val_entry(canvas, string_lit("Pass vertex-shaders"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].shadersVert)));
-    stats_draw_val_entry(canvas, string_lit("Pass fragment-shaders"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].shadersFrag)));
+    stats_draw_val_entry(c, string_lit("Pass resolution max"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passes[stats->passInspect].sizeMax[0]), fmt_int(rendStats->passes[stats->passInspect].sizeMax[1])));
+    stats_draw_val_entry(c, string_lit("Pass exec duration"), fmt_write_scratch("{<10} frac: {}", fmt_duration(rendStats->passes[stats->passInspect].gpuExecDur), fmt_float(passDurFrac, .minDecDigits = 2, .maxDecDigits = 2)));
+    stats_draw_val_entry(c, string_lit("Pass invocations"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].invocations)));
+    stats_draw_val_entry(c, string_lit("Pass draws"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].draws)));
+    stats_draw_val_entry(c, string_lit("Pass instances"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].instances)));
+    stats_draw_val_entry(c, string_lit("Pass vertices"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].vertices)));
+    stats_draw_val_entry(c, string_lit("Pass primitives"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].primitives)));
+    stats_draw_val_entry(c, string_lit("Pass vertex-shaders"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].shadersVert)));
+    stats_draw_val_entry(c, string_lit("Pass fragment-shaders"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].shadersFrag)));
   }
-  if(stats_draw_section(canvas, string_lit("Memory"))) {
+  if(stats_draw_section(c, string_lit("Memory"))) {
     const i64       pageDelta         = allocStats->pageCounter - statsGlobal->allocPrevPageCounter;
     const FormatArg pageDeltaColor    = pageDelta > 0 ? fmt_ui_color(ui_color_red) : fmt_nop();
     const i64       heapDelta         = allocStats->heapCounter - statsGlobal->allocPrevHeapCounter;
@@ -546,80 +535,80 @@ static void debug_stats_draw_interface(
     const i64       persistDelta      = allocStats->persistCounter - statsGlobal->allocPrevPersistCounter;
     const FormatArg persistDeltaColor = persistDelta > 0 ? fmt_ui_color(ui_color_red) : fmt_nop();
 
-    stats_draw_val_entry(canvas, string_lit("Main"), fmt_write_scratch("{<11} pages: {}", fmt_size(allocStats->pageTotal), fmt_int(allocStats->pageCount)));
-    stats_draw_val_entry(canvas, string_lit("Page counter"), fmt_write_scratch("count:  {<7} {}delta: {}\ar", fmt_int(allocStats->pageCounter), pageDeltaColor, fmt_int(pageDelta)));
-    stats_draw_val_entry(canvas, string_lit("Heap"), fmt_write_scratch("active: {}", fmt_int(allocStats->heapActive)));
-    stats_draw_val_entry(canvas, string_lit("Heap counter"), fmt_write_scratch("count:  {<7} {}delta: {}\ar", fmt_int(allocStats->heapCounter), heapDeltaColor, fmt_int(heapDelta)));
-    if(stats_draw_button_entry(canvas, string_lit("Heap tracking"), string_lit("Dump"))) {
+    stats_draw_val_entry(c, string_lit("Main"), fmt_write_scratch("{<11} pages: {}", fmt_size(allocStats->pageTotal), fmt_int(allocStats->pageCount)));
+    stats_draw_val_entry(c, string_lit("Page counter"), fmt_write_scratch("count:  {<7} {}delta: {}\ar", fmt_int(allocStats->pageCounter), pageDeltaColor, fmt_int(pageDelta)));
+    stats_draw_val_entry(c, string_lit("Heap"), fmt_write_scratch("active: {}", fmt_int(allocStats->heapActive)));
+    stats_draw_val_entry(c, string_lit("Heap counter"), fmt_write_scratch("count:  {<7} {}delta: {}\ar", fmt_int(allocStats->heapCounter), heapDeltaColor, fmt_int(heapDelta)));
+    if(stats_draw_button_entry(c, string_lit("Heap tracking"), string_lit("Dump"))) {
       alloc_heap_dump();
     }
-    stats_draw_val_entry(canvas, string_lit("Persist counter"), fmt_write_scratch("count:  {<7} {}delta: {}\ar", fmt_int(allocStats->persistCounter), persistDeltaColor, fmt_int(persistDelta)));
-    if(stats_draw_button_entry(canvas, string_lit("Persist tracking"), string_lit("Dump"))) {
+    stats_draw_val_entry(c, string_lit("Persist counter"), fmt_write_scratch("count:  {<7} {}delta: {}\ar", fmt_int(allocStats->persistCounter), persistDeltaColor, fmt_int(persistDelta)));
+    if(stats_draw_button_entry(c, string_lit("Persist tracking"), string_lit("Dump"))) {
       alloc_persist_dump();
     }
-    stats_draw_val_entry(canvas, string_lit("Renderer chunks"), fmt_write_scratch("{}", fmt_int(rendStats->memChunks)));
-    stats_draw_val_entry(canvas, string_lit("Renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
-    stats_draw_val_entry(canvas, string_lit("GPU (on device)"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
-    stats_draw_val_entry(canvas, string_lit("File"), fmt_write_scratch("handles: {<3} map: {}", fmt_int(statsGlobal->fileCount), fmt_size(statsGlobal->fileMappingSize)));
-    stats_draw_val_entry(canvas, string_lit("DynLib"), fmt_write_scratch("handles: {<3}", fmt_int(statsGlobal->dynlibCount)));
-    stats_draw_val_entry(canvas, string_lit("StringTable"), fmt_write_scratch("global: {}", fmt_int(statsGlobal->globalStringCount)));
-    stats_draw_val_entry(canvas, string_lit("Data"), fmt_write_scratch("types: {}", fmt_int(data_type_count(g_dataReg))));
+    stats_draw_val_entry(c, string_lit("Renderer chunks"), fmt_write_scratch("{}", fmt_int(rendStats->memChunks)));
+    stats_draw_val_entry(c, string_lit("Renderer"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->ramOccupied), fmt_size(rendStats->ramReserved)));
+    stats_draw_val_entry(c, string_lit("GPU (on device)"), fmt_write_scratch("{<8} reserved: {}", fmt_size(rendStats->vramOccupied), fmt_size(rendStats->vramReserved)));
+    stats_draw_val_entry(c, string_lit("File"), fmt_write_scratch("handles: {<3} map: {}", fmt_int(statsGlobal->fileCount), fmt_size(statsGlobal->fileMappingSize)));
+    stats_draw_val_entry(c, string_lit("DynLib"), fmt_write_scratch("handles: {<3}", fmt_int(statsGlobal->dynlibCount)));
+    stats_draw_val_entry(c, string_lit("StringTable"), fmt_write_scratch("global: {}", fmt_int(statsGlobal->globalStringCount)));
+    stats_draw_val_entry(c, string_lit("Data"), fmt_write_scratch("types: {}", fmt_int(data_type_count(g_dataReg))));
   }
-  if(stats_draw_section(canvas, string_lit("ECS"))) {
+  if(stats_draw_section(c, string_lit("ECS"))) {
     const TimeDuration flushDurAvg = debug_plot_avg_dur(&statsGlobal->ecsFlushDurPlot);
     const TimeDuration flushDurMax = debug_plot_max_dur(&statsGlobal->ecsFlushDurPlot);
 
-    stats_draw_val_entry(canvas, string_lit("Components"), fmt_write_scratch("{}", fmt_int(ecs_def_comp_count(ecsDef))));
-    stats_draw_val_entry(canvas, string_lit("Views"), fmt_write_scratch("{}", fmt_int(ecs_def_view_count(ecsDef))));
-    stats_draw_val_entry(canvas, string_lit("Systems"), fmt_write_scratch("{}", fmt_int(ecs_def_system_count(ecsDef))));
-    stats_draw_val_entry(canvas, string_lit("Modules"), fmt_write_scratch("{}", fmt_int(ecs_def_module_count(ecsDef))));
-    stats_draw_val_entry(canvas, string_lit("Entities"), fmt_write_scratch("{}", fmt_int(ecsWorldStats->entityCount)));
-    stats_draw_val_entry(canvas, string_lit("Archetypes"), fmt_write_scratch("{<8} empty:  {}", fmt_int(ecsWorldStats->archetypeCount), fmt_int(ecsWorldStats->archetypeEmptyCount)));
-    stats_draw_val_entry(canvas, string_lit("Archetype data"), fmt_write_scratch("{<8} chunks: {}", fmt_size(ecsWorldStats->archetypeTotalSize), fmt_int(ecsWorldStats->archetypeTotalChunks)));
-    stats_draw_val_entry(canvas, string_lit("Plan"), fmt_write_scratch("{<8} est:    {}", fmt_int(ecsRunnerStats->planCounter), fmt_duration(ecsRunnerStats->planEstSpan)));
-    stats_draw_val_entry(canvas, string_lit("Flush duration"), fmt_write_scratch("{<8} max:    {}", fmt_duration(flushDurAvg), fmt_duration(flushDurMax)));
-    stats_draw_val_entry(canvas, string_lit("Flush entities"), fmt_write_scratch("{}", fmt_int(ecsWorldStats->lastFlushEntities)));
+    stats_draw_val_entry(c, string_lit("Components"), fmt_write_scratch("{}", fmt_int(ecs_def_comp_count(ecsDef))));
+    stats_draw_val_entry(c, string_lit("Views"), fmt_write_scratch("{}", fmt_int(ecs_def_view_count(ecsDef))));
+    stats_draw_val_entry(c, string_lit("Systems"), fmt_write_scratch("{}", fmt_int(ecs_def_system_count(ecsDef))));
+    stats_draw_val_entry(c, string_lit("Modules"), fmt_write_scratch("{}", fmt_int(ecs_def_module_count(ecsDef))));
+    stats_draw_val_entry(c, string_lit("Entities"), fmt_write_scratch("{}", fmt_int(ecsWorldStats->entityCount)));
+    stats_draw_val_entry(c, string_lit("Archetypes"), fmt_write_scratch("{<8} empty:  {}", fmt_int(ecsWorldStats->archetypeCount), fmt_int(ecsWorldStats->archetypeEmptyCount)));
+    stats_draw_val_entry(c, string_lit("Archetype data"), fmt_write_scratch("{<8} chunks: {}", fmt_size(ecsWorldStats->archetypeTotalSize), fmt_int(ecsWorldStats->archetypeTotalChunks)));
+    stats_draw_val_entry(c, string_lit("Plan"), fmt_write_scratch("{<8} est:    {}", fmt_int(ecsRunnerStats->planCounter), fmt_duration(ecsRunnerStats->planEstSpan)));
+    stats_draw_val_entry(c, string_lit("Flush duration"), fmt_write_scratch("{<8} max:    {}", fmt_duration(flushDurAvg), fmt_duration(flushDurMax)));
+    stats_draw_val_entry(c, string_lit("Flush entities"), fmt_write_scratch("{}", fmt_int(ecsWorldStats->lastFlushEntities)));
   }
-  if(stats_draw_section(canvas, string_lit("Collision"))) {
-    stats_draw_val_entry(canvas, string_lit("Prim spheres"), fmt_write_scratch("{}", fmt_int(colStats->queryStats[GeoQueryStat_PrimSphereCount])));
-    stats_draw_val_entry(canvas, string_lit("Prim capsules"), fmt_write_scratch("{}", fmt_int(colStats->queryStats[GeoQueryStat_PrimCapsuleCount])));
-    stats_draw_val_entry(canvas, string_lit("Prim box-rotated"), fmt_write_scratch("{}", fmt_int(colStats->queryStats[GeoQueryStat_PrimBoxRotatedCount])));
-    stats_draw_val_entry(canvas, string_lit("Bvh"), fmt_write_scratch("nodes:  {<5} depth: {}", fmt_int(colStats->queryStats[GeoQueryStat_BvhNodes]), fmt_int(colStats->queryStats[GeoQueryStat_BvhMaxDepth])));
-    stats_draw_val_entry(canvas, string_lit("Query ray"), fmt_write_scratch("normal: {<5} fat: {}", fmt_int(colStats->queryStats[GeoQueryStat_QueryRayCount]), fmt_int(colStats->queryStats[GeoQueryStat_QueryRayFatCount])));
-    stats_draw_val_entry(canvas, string_lit("Query all"), fmt_write_scratch("sphere: {<5} box: {}", fmt_int(colStats->queryStats[GeoQueryStat_QuerySphereAllCount]), fmt_int(colStats->queryStats[GeoQueryStat_QueryBoxAllCount])));
+  if(stats_draw_section(c, string_lit("Collision"))) {
+    stats_draw_val_entry(c, string_lit("Prim spheres"), fmt_write_scratch("{}", fmt_int(colStats->queryStats[GeoQueryStat_PrimSphereCount])));
+    stats_draw_val_entry(c, string_lit("Prim capsules"), fmt_write_scratch("{}", fmt_int(colStats->queryStats[GeoQueryStat_PrimCapsuleCount])));
+    stats_draw_val_entry(c, string_lit("Prim box-rotated"), fmt_write_scratch("{}", fmt_int(colStats->queryStats[GeoQueryStat_PrimBoxRotatedCount])));
+    stats_draw_val_entry(c, string_lit("Bvh"), fmt_write_scratch("nodes:  {<5} depth: {}", fmt_int(colStats->queryStats[GeoQueryStat_BvhNodes]), fmt_int(colStats->queryStats[GeoQueryStat_BvhMaxDepth])));
+    stats_draw_val_entry(c, string_lit("Query ray"), fmt_write_scratch("normal: {<5} fat: {}", fmt_int(colStats->queryStats[GeoQueryStat_QueryRayCount]), fmt_int(colStats->queryStats[GeoQueryStat_QueryRayFatCount])));
+    stats_draw_val_entry(c, string_lit("Query all"), fmt_write_scratch("sphere: {<5} box: {}", fmt_int(colStats->queryStats[GeoQueryStat_QuerySphereAllCount]), fmt_int(colStats->queryStats[GeoQueryStat_QueryBoxAllCount])));
   }
-  if(stats_draw_section(canvas, string_lit("VFX"))) {
+  if(stats_draw_section(c, string_lit("VFX"))) {
     for (VfxStat vfxStat = 0; vfxStat != VfxStat_Count; ++vfxStat) {
       const i32 val = vfxStats->values[vfxStat];
-      stats_draw_val_entry(canvas, vfx_stat_name(vfxStat), fmt_write_scratch("{}", fmt_int(val)));
+      stats_draw_val_entry(c, vfx_stat_name(vfxStat), fmt_write_scratch("{}", fmt_int(val)));
     }
   }
-  if(stats_draw_section(canvas, string_lit("Navigation"))) {
-    stats_draw_nav_layer_dropdown(canvas, stats);
+  if(stats_draw_section(c, string_lit("Navigation"))) {
+    stats_draw_nav_layer_dropdown(c, stats);
     const u32* navStats = scene_nav_grid_stats(navEnv, stats->navLayerInspect);
-    stats_draw_val_entry(canvas, string_lit("Cells"), fmt_write_scratch("total: {<6} axis: {}", fmt_int(navStats[GeoNavStat_CellCountTotal]), fmt_int(navStats[GeoNavStat_CellCountAxis])));
-    stats_draw_val_entry(canvas, string_lit("Grid data"), fmt_write_scratch("{}", fmt_size(navStats[GeoNavStat_GridDataSize])));
-    stats_draw_val_entry(canvas, string_lit("Worker data"), fmt_write_scratch("{}", fmt_size(navStats[GeoNavStat_WorkerDataSize])));
-    stats_draw_val_entry(canvas, string_lit("Blockers"), fmt_write_scratch("total: {<4} additions: {}", fmt_int(navStats[GeoNavStat_BlockerCount]), fmt_int(navStats[GeoNavStat_BlockerAddCount])));
-    stats_draw_val_entry(canvas, string_lit("Occupants"), fmt_write_scratch("{}", fmt_int(navStats[GeoNavStat_OccupantCount])));
-    stats_draw_val_entry(canvas, string_lit("Islands"), fmt_write_scratch("{<11} computes: {}", fmt_int(navStats[GeoNavStat_IslandCount]), fmt_int(navStats[GeoNavStat_IslandComputes])));
-    stats_draw_val_entry(canvas, string_lit("Path count"), fmt_write_scratch("{<11} limiter: {}", fmt_int(navStats[GeoNavStat_PathCount]), fmt_int(navStats[GeoNavStat_PathLimiterCount])));
-    stats_draw_val_entry(canvas, string_lit("Path output"), fmt_write_scratch("cells: {}", fmt_int(navStats[GeoNavStat_PathOutputCells])));
-    stats_draw_val_entry(canvas, string_lit("Path iterations"), fmt_write_scratch("cells: {<4} enqueues: {}", fmt_int(navStats[GeoNavStat_PathItrCells]), fmt_int(navStats[GeoNavStat_PathItrEnqueues])));
-    stats_draw_val_entry(canvas, string_lit("Find count"), fmt_write_scratch("{}", fmt_int(navStats[GeoNavStat_FindCount])));
-    stats_draw_val_entry(canvas, string_lit("Find iterations"), fmt_write_scratch("cells: {<4} enqueues: {}", fmt_int(navStats[GeoNavStat_FindItrCells]), fmt_int(navStats[GeoNavStat_FindItrEnqueues])));
-    stats_draw_val_entry(canvas, string_lit("Channel queries"), fmt_write_scratch("{}", fmt_int(navStats[GeoNavStat_ChannelQueries])));
-    stats_draw_val_entry(canvas, string_lit("Blocker reachable"), fmt_write_scratch("queries: {}", fmt_int(navStats[GeoNavStat_BlockerReachableQueries])));
-    stats_draw_val_entry(canvas, string_lit("Blocker closest"), fmt_write_scratch("queries: {}", fmt_int(navStats[GeoNavStat_BlockerClosestQueries])));
+    stats_draw_val_entry(c, string_lit("Cells"), fmt_write_scratch("total: {<6} axis: {}", fmt_int(navStats[GeoNavStat_CellCountTotal]), fmt_int(navStats[GeoNavStat_CellCountAxis])));
+    stats_draw_val_entry(c, string_lit("Grid data"), fmt_write_scratch("{}", fmt_size(navStats[GeoNavStat_GridDataSize])));
+    stats_draw_val_entry(c, string_lit("Worker data"), fmt_write_scratch("{}", fmt_size(navStats[GeoNavStat_WorkerDataSize])));
+    stats_draw_val_entry(c, string_lit("Blockers"), fmt_write_scratch("total: {<4} additions: {}", fmt_int(navStats[GeoNavStat_BlockerCount]), fmt_int(navStats[GeoNavStat_BlockerAddCount])));
+    stats_draw_val_entry(c, string_lit("Occupants"), fmt_write_scratch("{}", fmt_int(navStats[GeoNavStat_OccupantCount])));
+    stats_draw_val_entry(c, string_lit("Islands"), fmt_write_scratch("{<11} computes: {}", fmt_int(navStats[GeoNavStat_IslandCount]), fmt_int(navStats[GeoNavStat_IslandComputes])));
+    stats_draw_val_entry(c, string_lit("Path count"), fmt_write_scratch("{<11} limiter: {}", fmt_int(navStats[GeoNavStat_PathCount]), fmt_int(navStats[GeoNavStat_PathLimiterCount])));
+    stats_draw_val_entry(c, string_lit("Path output"), fmt_write_scratch("cells: {}", fmt_int(navStats[GeoNavStat_PathOutputCells])));
+    stats_draw_val_entry(c, string_lit("Path iterations"), fmt_write_scratch("cells: {<4} enqueues: {}", fmt_int(navStats[GeoNavStat_PathItrCells]), fmt_int(navStats[GeoNavStat_PathItrEnqueues])));
+    stats_draw_val_entry(c, string_lit("Find count"), fmt_write_scratch("{}", fmt_int(navStats[GeoNavStat_FindCount])));
+    stats_draw_val_entry(c, string_lit("Find iterations"), fmt_write_scratch("cells: {<4} enqueues: {}", fmt_int(navStats[GeoNavStat_FindItrCells]), fmt_int(navStats[GeoNavStat_FindItrEnqueues])));
+    stats_draw_val_entry(c, string_lit("Channel queries"), fmt_write_scratch("{}", fmt_int(navStats[GeoNavStat_ChannelQueries])));
+    stats_draw_val_entry(c, string_lit("Blocker reachable"), fmt_write_scratch("queries: {}", fmt_int(navStats[GeoNavStat_BlockerReachableQueries])));
+    stats_draw_val_entry(c, string_lit("Blocker closest"), fmt_write_scratch("queries: {}", fmt_int(navStats[GeoNavStat_BlockerClosestQueries])));
   }
-  if(stats_draw_section(canvas, string_lit("Interface"))) {
-    stats_draw_val_entry(canvas, string_lit("Canvas size"), fmt_write_scratch("{}x{}", fmt_float(uiStats->canvasSize.x, .maxDecDigits = 0), fmt_float(uiStats->canvasSize.y, .maxDecDigits = 0)));
-    stats_draw_val_entry(canvas, string_lit("Canvasses"), fmt_write_scratch("{}", fmt_int(uiStats->canvasCount)));
-    stats_draw_val_entry(canvas, string_lit("Tracked elements"), fmt_write_scratch("{}", fmt_int(uiStats->trackedElemCount)));
-    stats_draw_val_entry(canvas, string_lit("Persistent elements"), fmt_write_scratch("{}", fmt_int(uiStats->persistElemCount)));
-    stats_draw_val_entry(canvas, string_lit("Atoms"), fmt_write_scratch("{<8} overlay: {}", fmt_int(uiStats->atomCount), fmt_int(uiStats->atomOverlayCount)));
-    stats_draw_val_entry(canvas, string_lit("Clip-rects"), fmt_write_scratch("{}", fmt_int(uiStats->clipRectCount)));
-    stats_draw_val_entry(canvas, string_lit("Commands"), fmt_write_scratch("{}", fmt_int(uiStats->commandCount)));
+  if(stats_draw_section(c, string_lit("Interface"))) {
+    stats_draw_val_entry(c, string_lit("Canvas size"), fmt_write_scratch("{}x{}", fmt_float(uiStats->canvasSize.x, .maxDecDigits = 0), fmt_float(uiStats->canvasSize.y, .maxDecDigits = 0)));
+    stats_draw_val_entry(c, string_lit("Canvasses"), fmt_write_scratch("{}", fmt_int(uiStats->canvasCount)));
+    stats_draw_val_entry(c, string_lit("Tracked elements"), fmt_write_scratch("{}", fmt_int(uiStats->trackedElemCount)));
+    stats_draw_val_entry(c, string_lit("Persistent elements"), fmt_write_scratch("{}", fmt_int(uiStats->persistElemCount)));
+    stats_draw_val_entry(c, string_lit("Atoms"), fmt_write_scratch("{<8} overlay: {}", fmt_int(uiStats->atomCount), fmt_int(uiStats->atomOverlayCount)));
+    stats_draw_val_entry(c, string_lit("Clip-rects"), fmt_write_scratch("{}", fmt_int(uiStats->clipRectCount)));
+    stats_draw_val_entry(c, string_lit("Commands"), fmt_write_scratch("{}", fmt_int(uiStats->commandCount)));
   }
   // clang-format on
 }
@@ -752,10 +741,10 @@ ecs_system_define(DebugStatsUpdateSys) {
 
     // Draw the interface.
     if (stats->canvas && ecs_view_maybe_jump(canvasItr, stats->canvas)) {
-      UiCanvasComp* canvas = ecs_view_write_t(canvasItr, UiCanvasComp);
-      ui_canvas_reset(canvas);
+      UiCanvasComp* c = ecs_view_write_t(canvasItr, UiCanvasComp);
+      ui_canvas_reset(c);
       debug_stats_draw_interface(
-          canvas,
+          c,
           window,
           statsGlobal,
           stats,
