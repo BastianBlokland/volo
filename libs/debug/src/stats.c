@@ -446,6 +446,7 @@ stats_draw_notifications(UiCanvasComp* canvas, const DebugStatsGlobalComp* stats
 
 static void debug_stats_draw_interface(
     UiCanvasComp*                  canvas,
+    const GapWindowComp*           window,
     const DebugStatsGlobalComp*    statsGlobal,
     const DebugStatsComp*          stats,
     const RendStatsComp*           rendStats,
@@ -471,6 +472,10 @@ static void debug_stats_draw_interface(
     return;
   }
 
+  if(stats_draw_section(canvas, string_lit("Window"))) {
+    stats_draw_val_entry(canvas, string_lit("Refresh rate"), fmt_write_scratch("{}", fmt_float(gap_window_refresh_rate(window))));
+    stats_draw_val_entry(canvas, string_lit("Dpi"), fmt_write_scratch("{}", fmt_int(gap_window_dpi(window))));
+  }
   if(stats_draw_section(canvas, string_lit("Renderer"))) {
     stats_draw_val_entry(canvas, string_lit("Gpu"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
     stats_draw_val_entry(canvas, string_lit("Gpu exec duration"), fmt_write_scratch("{<9} frac: {}", fmt_duration(rendStats->gpuExecDur), fmt_float(stats->gpuExecFrac, .minDecDigits = 2, .maxDecDigits = 2)));
@@ -641,9 +646,10 @@ ecs_view_define(StatsCreateView) {
 }
 
 ecs_view_define(StatsUpdateView) {
-  ecs_access_write(DebugStatsComp);
+  ecs_access_read(GapWindowComp);
   ecs_access_read(RendStatsComp);
   ecs_access_read(UiStatsComp);
+  ecs_access_write(DebugStatsComp);
 }
 
 ecs_view_define(CanvasWriteView) {
@@ -691,6 +697,7 @@ ecs_system_define(DebugStatsUpdateSys) {
   EcsView* statsView = ecs_world_view_t(world, StatsUpdateView);
   for (EcsIterator* itr = ecs_view_itr(statsView); ecs_view_walk(itr);) {
     DebugStatsComp*      stats     = ecs_view_write_t(itr, DebugStatsComp);
+    const GapWindowComp* window    = ecs_view_read_t(itr, GapWindowComp);
     const RendStatsComp* rendStats = ecs_view_read_t(itr, RendStatsComp);
     const UiStatsComp*   uiStats   = ecs_view_read_t(itr, UiStatsComp);
     const EcsDef*        ecsDef    = ecs_world_def(world);
@@ -712,6 +719,7 @@ ecs_system_define(DebugStatsUpdateSys) {
       ui_canvas_reset(canvas);
       debug_stats_draw_interface(
           canvas,
+          window,
           statsGlobal,
           stats,
           rendStats,
