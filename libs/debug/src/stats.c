@@ -590,6 +590,7 @@ static void debug_stats_draw_interface(
 
 static void debug_stats_update(
     DebugStatsComp*               stats,
+    const GapWindowComp*          window,
     const RendStatsComp*          rendStats,
     const RendSettingsGlobalComp* rendGlobalSettings,
     const SceneTimeComp*          time) {
@@ -603,7 +604,7 @@ static void debug_stats_update(
 
   stats->frameDurDesired = rendGlobalSettings->limiterFreq
                                ? time_second / rendGlobalSettings->limiterFreq
-                               : time_second / 60; // TODO: This assumes a 60 hz display.
+                               : time_second / gap_window_refresh_rate(window);
 
   debug_avg_f32(&stats->rendWaitForGpuFrac, debug_frame_frac(stats, rendStats->waitForGpuDur));
   debug_avg_f32(&stats->rendPresAcqFrac, debug_frame_frac(stats, rendStats->presentAcquireDur));
@@ -705,7 +706,7 @@ ecs_system_define(DebugStatsUpdateSys) {
     const EcsDef*        ecsDef    = ecs_world_def(world);
 
     // Update statistics.
-    debug_stats_update(stats, rendStats, rendGlobalSet, time);
+    debug_stats_update(stats, window, rendStats, rendGlobalSet, time);
 
     // Create or destroy the interface canvas as needed.
     if (stats->show != DebugStatShow_None && !stats->canvas) {
