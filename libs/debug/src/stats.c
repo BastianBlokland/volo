@@ -55,6 +55,7 @@ ecs_comp_define(DebugStatsComp) {
 
   DebugStatPlot frameDurPlot; // In microseconds.
   TimeDuration  frameDurDesired;
+  DebugStatPlot gpuExecDurPlot; // In microseconds.
 
   RendPass      passInspect;     // Pass to show stats for.
   SceneNavLayer navLayerInspect; // Navigation layer to show stats for.
@@ -270,7 +271,7 @@ stats_draw_plot(UiCanvasComp* c, const DebugStatPlot* plot, const f32 minVal, co
     const f32 yCenter = math_clamp_f32(math_unlerp(minVal, maxVal, value), 0.0f, 1.0f);
 
     const bool    isNewest = i == newestIndex;
-    const UiColor color    = isNewest ? ui_color_blue : ui_color(255, 255, 255, 178);
+    const UiColor color    = isNewest ? ui_color_yellow : ui_color(255, 255, 255, 178);
     const f32     height   = isNewest ? 4.0f : 2.0f;
 
     ui_style_color(c, color);
@@ -558,8 +559,11 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("Dpi"), fmt_write_scratch("{}", fmt_int(gap_window_dpi(window))));
   }
   if(stats_draw_section(c, string_lit("Renderer"))) {
+    const TimeDuration gpuExecDurAvg = debug_plot_avg_dur(&stats->gpuExecDurPlot);
+
     stats_draw_val_entry(c, string_lit("Gpu"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
-    stats_draw_val_entry(c, string_lit("Gpu exec duration"), fmt_write_scratch("{<9} frac: {}", fmt_duration(rendStats->gpuExecDur), fmt_float(stats->gpuExecFrac, .minDecDigits = 2, .maxDecDigits = 2)));
+    stats_draw_val_entry(c, string_lit("Gpu exec duration"), fmt_write_scratch("{<9} frac: {}", fmt_duration(gpuExecDurAvg), fmt_float(stats->gpuExecFrac, .minDecDigits = 2, .maxDecDigits = 2)));
+    stats_draw_plot_dur(c, &stats->gpuExecDurPlot, 0, stats->frameDurDesired * 2);
     stats_draw_val_entry(c, string_lit("Swapchain"), fmt_write_scratch("images: {} present: {}", fmt_int(rendStats->swapchainImageCount), fmt_int(rendStats->swapchainPresentId)));
     stats_draw_val_entry(c, string_lit("Attachments"), fmt_write_scratch("{<3} ({})", fmt_int(rendStats->attachCount), fmt_size(rendStats->attachMemory)));
     stats_draw_val_entry(c, string_lit("Samplers"), fmt_write_scratch("{}", fmt_int(rendStats->samplerCount)));
@@ -684,6 +688,8 @@ static void debug_stats_update(
   } else {
     stats->frameDurDesired = (TimeDuration)((f64)time_second / gap_window_refresh_rate(window));
   }
+
+  debug_plot_add_dur(&stats->gpuExecDurPlot, rendStats->gpuExecDur);
 
   debug_avg_f32(&stats->rendWaitForGpuFrac, debug_frame_frac(frameDur, rendStats->waitForGpuDur));
   debug_avg_f32(&stats->rendPresAcqFrac, debug_frame_frac(frameDur, rendStats->presentAcquireDur));
