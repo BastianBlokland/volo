@@ -243,12 +243,12 @@ static bool stats_draw_section(UiCanvasComp* c, const String label) {
 static void
 stats_draw_plot(UiCanvasComp* c, const DebugStatPlot* plot, const f32 minVal, const f32 maxVal) {
   static const f32 g_stepX    = 1.0f / stats_plot_size;
-  static const f32 g_statRows = 3.0f; // Amount of rows the plot takes up.
+  static const f32 g_statRows = 2.0f; // Amount of rows the plot takes up.
 
   ui_layout_push(c);
   ui_layout_move_dir(c, Ui_Down, g_statRows - 1.0f, UiBase_Current);
   ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(0, g_statRows), UiBase_Current, Ui_Y);
-  ui_layout_container_push(c, UiClip_Rect);
+  ui_layout_container_push(c, UiClip_None);
 
   // Draw background.
   stats_draw_bg(c, DebugBgFlags_None);
@@ -257,6 +257,7 @@ stats_draw_plot(UiCanvasComp* c, const DebugStatPlot* plot, const f32 minVal, co
   ui_style_outline(c, 0);
 
   // Draw center line.
+  ui_style_color(c, ui_color(128, 128, 128, 128));
   ui_layout_move_to(c, UiBase_Container, UiAlign_MiddleCenter, Ui_Y);
   ui_layout_resize(c, UiAlign_MiddleCenter, ui_vector(0, 2), UiBase_Absolute, Ui_Y);
   ui_canvas_draw_glyph(c, UiShape_Square, 0, UiFlags_None);
@@ -269,14 +270,15 @@ stats_draw_plot(UiCanvasComp* c, const DebugStatPlot* plot, const f32 minVal, co
     const f32 yCenter = math_clamp_f32(math_unlerp(minVal, maxVal, value), 0.0f, 1.0f);
 
     const bool    isNewest = i == newestIndex;
-    const UiColor color    = isNewest ? ui_color_blue : ui_color_white;
+    const UiColor color    = isNewest ? ui_color_blue : ui_color(255, 255, 255, 178);
     const f32     height   = isNewest ? 4.0f : 2.0f;
+
+    ui_style_color(c, color);
 
     ui_layout_set_pos(c, UiBase_Container, ui_vector(x, yCenter), UiBase_Container);
     ui_layout_resize(c, UiAlign_MiddleLeft, ui_vector(g_stepX, 0), UiBase_Container, Ui_X);
     ui_layout_resize(c, UiAlign_MiddleCenter, ui_vector(0, height), UiBase_Absolute, Ui_Y);
 
-    ui_style_color(c, color);
     ui_canvas_draw_glyph(c, UiShape_Square, 0, UiFlags_None);
   }
 
