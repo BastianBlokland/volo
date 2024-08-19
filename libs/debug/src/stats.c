@@ -243,21 +243,27 @@ static bool stats_draw_section(UiCanvasComp* c, const String label) {
 static void
 stats_draw_plot(UiCanvasComp* c, const DebugStatPlot* plot, const f32 minVal, const f32 maxVal) {
   static const f32 g_stepX    = 1.0f / stats_plot_size;
-  static const f32 g_statRows = 4.0f; // Amount of rows the plot takes up.
+  static const f32 g_statRows = 3.0f; // Amount of rows the plot takes up.
 
   ui_layout_push(c);
   ui_layout_move_dir(c, Ui_Down, g_statRows - 1.0f, UiBase_Current);
   ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(0, g_statRows), UiBase_Current, Ui_Y);
   ui_layout_container_push(c, UiClip_Rect);
 
+  // Draw background.
   stats_draw_bg(c, DebugBgFlags_None);
 
   ui_style_push(c);
   ui_style_outline(c, 0);
 
-  const u32 newestIndex = (plot->cur + stats_plot_size - 1) % stats_plot_size;
+  // Draw center line.
+  ui_layout_move_to(c, UiBase_Container, UiAlign_MiddleCenter, Ui_Y);
+  ui_layout_resize(c, UiAlign_MiddleCenter, ui_vector(0, 2), UiBase_Absolute, Ui_Y);
+  ui_canvas_draw_glyph(c, UiShape_Square, 0, UiFlags_None);
 
-  f32 x = 0.0f;
+  // Draw values.
+  const u32 newestIndex = (plot->cur + stats_plot_size - 1) % stats_plot_size;
+  f32       x           = 0.0f;
   for (u32 i = 0; i != stats_plot_size; ++i, x += g_stepX) {
     const f32 value   = plot->values[i];
     const f32 yCenter = math_clamp_f32(math_unlerp(minVal, maxVal, value), 0.0f, 1.0f);
