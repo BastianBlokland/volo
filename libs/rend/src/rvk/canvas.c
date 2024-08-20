@@ -11,8 +11,6 @@
 #include "pass_internal.h"
 #include "swapchain_internal.h"
 
-typedef RvkJob* RvkJobPtr;
-
 /**
  * Use two jobs for double bufferring:
  * - One being recorded on the cpu.
@@ -31,11 +29,11 @@ struct sRvkCanvas {
   RvkAttachPool*  attachPool;
   RvkCanvasFlags  flags;
   RvkJob*         jobs[canvas_job_count];
+  RvkSwapchainIdx swapchainIndices[canvas_job_count];
   VkSemaphore     attachmentsReleased[canvas_job_count];
   VkSemaphore     swapchainAvailable[canvas_job_count];
   VkSemaphore     swapchainPresent[canvas_job_count];
   u32             jobIdx;
-  RvkSwapchainIdx swapchainIdx;
 };
 
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
@@ -65,6 +63,7 @@ RvkCanvas* rvk_canvas_create(
     canvas->attachmentsReleased[i] = rvk_semaphore_create(dev);
     canvas->swapchainAvailable[i]  = rvk_semaphore_create(dev);
     canvas->swapchainPresent[i]    = rvk_semaphore_create(dev);
+    canvas->swapchainIndices[i]    = sentinel_u32;
   }
 
   log_d(
@@ -115,17 +114,18 @@ RvkSwapchainStats rvk_canvas_swapchain_stats(const RvkCanvas* canvas) {
 bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const RvkSize size) {
   diag_assert_msg(!(canvas->flags & RvkCanvasFlags_Active), "Canvas already active");
 
-  RvkJob* job = canvas->jobs[canvas->jobIdx];
+  RvkJob*          job          = canvas->jobs[canvas->jobIdx];
+  RvkSwapchainIdx* swapchainIdx = &canvas->swapchainIndices[canvas->jobIdx];
   diag_assert(rvk_job_is_done(job));
 
   trace_begin("rend_present_acquire", TraceColor_White);
   {
     const VkSemaphore availableSema = canvas->swapchainAvailable[canvas->jobIdx];
-    canvas->swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, settings, availableSema, size);
+    *swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, settings, availableSema, size);
   }
   trace_end();
 
-  if (sentinel_check(canvas->swapchainIdx)) {
+  if (sentinel_check(*swapchainIdx)) {
     return false;
   }
 
@@ -142,7 +142,7 @@ RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const RendPass pass) {
 
 RvkImage* rvk_canvas_swapchain_image(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
-  return rvk_swapchain_image(canvas->swapchain, canvas->swapchainIdx);
+  return rvk_swapchain_image(canvas->swapchain, canvas->swapchainIndices[canvas->jobIdx]);
 }
 
 RvkImage*
@@ -218,10 +218,11 @@ void rvk_canvas_barrier_full(const RvkCanvas* canvas) {
 
 void rvk_canvas_end(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
-  RvkJob* job = canvas->jobs[canvas->jobIdx];
+  RvkJob*               job          = canvas->jobs[canvas->jobIdx];
+  const RvkSwapchainIdx swapchainIdx = canvas->swapchainIndices[canvas->jobIdx];
 
   // Transition the swapchain-image to the present phase.
-  RvkImage* swapchainImage = rvk_swapchain_image(canvas->swapchain, canvas->swapchainIdx);
+  RvkImage* swapchainImage = rvk_swapchain_image(canvas->swapchain, swapchainIdx);
   rvk_job_img_transition(job, swapchainImage, RvkImagePhase_Present);
 
   VkSemaphore attachmentsReady = null;
@@ -247,13 +248,12 @@ void rvk_canvas_end(RvkCanvas* canvas) {
   trace_begin("rend_present_enqueue", TraceColor_White);
   {
     rvk_swapchain_enqueue_present(
-        canvas->swapchain, canvas->swapchainPresent[canvas->jobIdx], canvas->swapchainIdx);
+        canvas->swapchain, canvas->swapchainPresent[canvas->jobIdx], swapchainIdx);
   }
   trace_end();
 
   rvk_attach_pool_flush(canvas->attachPool);
 
-  canvas->swapchainIdx = sentinel_u32;
   canvas->jobIdx ^= 1;
   canvas->flags |= RvkCanvasFlags_Submitted;
   canvas->flags &= ~RvkCanvasFlags_Active;
@@ -265,9 +265,8 @@ void rvk_canvas_wait_for_prev_present(const RvkCanvas* canvas) {
     /**
      * Wait for the previous frame to be rendered and presented.
      */
-    const u32 numBehind = 1;
-    rvk_job_wait_for_done(canvas->jobs[canvas->jobIdx]);          // Wait for rendering.
-    rvk_swapchain_wait_for_present(canvas->swapchain, numBehind); // Wait for presenting.
+    rvk_job_wait_for_done(canvas->jobs[canvas->jobIdx]);                  // Wait for rendering.
+    rvk_swapchain_wait_for_present(canvas->swapchain, 1 /* numBehind */); // Wait for presenting.
   }
   trace_end();
 }
