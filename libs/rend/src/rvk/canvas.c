@@ -259,7 +259,11 @@ void rvk_canvas_end(RvkCanvas* canvas) {
   canvas->flags &= ~RvkCanvasFlags_Active;
 }
 
-void rvk_canvas_wait_for_prev_present(const RvkCanvas* canvas) {
+bool rvk_canvas_wait_for_prev_present(const RvkCanvas* canvas) {
+  if (sentinel_check(canvas->swapchainIndices[canvas->jobIdx])) {
+    return false;
+  }
+
   trace_begin("rend_present_wait", TraceColor_White);
   {
     /**
@@ -269,4 +273,6 @@ void rvk_canvas_wait_for_prev_present(const RvkCanvas* canvas) {
     rvk_swapchain_wait_for_present(canvas->swapchain, 1 /* numBehind */); // Wait for presenting.
   }
   trace_end();
+
+  return true;
 }

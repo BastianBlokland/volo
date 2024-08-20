@@ -26,10 +26,7 @@ static bool rend_wait_for_present(EcsWorld* world) {
   bool anyWaited = false;
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
     const RendPainterComp* painter = ecs_view_read_t(itr, RendPainterComp);
-    if (painter->paintedPrevFrame) {
-      anyWaited = true;
-      rvk_canvas_wait_for_prev_present(painter->canvas);
-    }
+    anyWaited |= rvk_canvas_wait_for_prev_present(painter->canvas);
   }
   return anyWaited;
 }

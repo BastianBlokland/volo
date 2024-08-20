@@ -76,4 +76,4 @@ void rvk_canvas_end(RvkCanvas*);
 /**
  * Wait for the previous frame to be rendered.
  */
-void rvk_canvas_wait_for_prev_present(const RvkCanvas*);
+bool rvk_canvas_wait_for_prev_present(const RvkCanvas*);

@@ -769,11 +769,8 @@ static bool rend_canvas_paint_3d(
     const SceneTransformComp*     camTrans,
     EcsView*                      drawView,
     EcsView*                      resourceView) {
-  const RvkSize winSize = painter_win_size(win);
-  if (!winSize.width || !winSize.height) {
-    return false; // Window is zero sized; no need to render.
-  }
-  const f32 winAspect = (f32)winSize.width / (f32)winSize.height;
+  const RvkSize winSize   = painter_win_size(win);
+  const f32     winAspect = (f32)winSize.width / (f32)winSize.height;
 
   if (!rvk_canvas_begin(painter->canvas, set, winSize)) {
     return false; // Canvas not ready for rendering.
@@ -1117,9 +1114,6 @@ static bool rend_canvas_paint_2d(
     EcsView*                      drawView,
     EcsView*                      resourceView) {
   const RvkSize winSize = painter_win_size(win);
-  if (!winSize.width || !winSize.height) {
-    return false; // Window is zero sized; no need to render.
-  }
   if (!rvk_canvas_begin(painter->canvas, set, winSize)) {
     return false; // Canvas not ready for rendering.
   }
@@ -1196,9 +1190,8 @@ ecs_system_define(RendPainterDrawSys) {
     const SceneCameraComp*    cam      = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* camTrans = ecs_view_read_t(itr, SceneTransformComp);
 
-    painter->paintedPrevFrame = painter->paintedCurFrame;
     if (cam) {
-      painter->paintedCurFrame = rend_canvas_paint_3d(
+      rend_canvas_paint_3d(
           painter,
           settings,
           settingsGlobal,
@@ -1212,7 +1205,7 @@ ecs_system_define(RendPainterDrawSys) {
           drawView,
           resourceView);
     } else {
-      painter->paintedCurFrame = rend_canvas_paint_2d(
+      rend_canvas_paint_2d(
           painter, settings, settingsGlobal, time, win, entity, drawView, resourceView);
     }
   }
