@@ -46,7 +46,10 @@ static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
 RvkCanvas* rvk_canvas_create(
     RvkDevice*           dev,
     const GapWindowComp* window,
-    const RvkPassConfig* passConfig /* RvkPassConfig[RendPass_Count] */) {
+    const RvkPassConfig* passConfig,
+    const u32            passCount) {
+  diag_assert(passCount <= rvk_canvas_max_passes);
+
   RvkSwapchain*  swapchain       = rvk_swapchain_create(dev, window);
   const VkFormat swapchainFormat = rvk_swapchain_format(swapchain);
   RvkAttachPool* attachPool      = rvk_attach_pool_create(dev);
@@ -59,7 +62,7 @@ RvkCanvas* rvk_canvas_create(
   };
 
   for (u32 i = 0; i != canvas_job_count; ++i) {
-    canvas->jobs[i]                = rvk_job_create(dev, swapchainFormat, i, passConfig);
+    canvas->jobs[i]                = rvk_job_create(dev, swapchainFormat, i, passConfig, passCount);
     canvas->attachmentsReleased[i] = rvk_semaphore_create(dev);
     canvas->swapchainAvailable[i]  = rvk_semaphore_create(dev);
     canvas->swapchainPresent[i]    = rvk_semaphore_create(dev);
@@ -93,10 +96,10 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
 
 RvkRepository* rvk_canvas_repository(RvkCanvas* canvas) { return canvas->dev->repository; }
 
-RvkCanvasStats rvk_canvas_stats(const RvkCanvas* canvas) {
+void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
   RvkJob* job = canvas->jobs[canvas->jobIdx];
   diag_assert(rvk_job_is_done(job));
-  return rvk_job_stats(job);
+  rvk_job_stats(job, out);
 }
 
 u16 rvk_canvas_attach_count(const RvkCanvas* canvas) {
@@ -107,8 +110,8 @@ u64 rvk_canvas_attach_memory(const RvkCanvas* canvas) {
   return rvk_attach_pool_memory(canvas->attachPool);
 }
 
-RvkSwapchainStats rvk_canvas_swapchain_stats(const RvkCanvas* canvas) {
-  return rvk_swapchain_stats(canvas->swapchain);
+void rvk_canvas_swapchain_stats(const RvkCanvas* canvas, RvkSwapchainStats* out) {
+  rvk_swapchain_stats(canvas->swapchain, out);
 }
 
 bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const RvkSize size) {
@@ -134,10 +137,10 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
   return true;
 }
 
-RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const RendPass pass) {
+RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const u32 passIndex) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkJob* job = canvas->jobs[canvas->jobIdx];
-  return rvk_job_pass(job, pass);
+  return rvk_job_pass(job, passIndex);
 }
 
 RvkImage* rvk_canvas_swapchain_image(RvkCanvas* canvas) {

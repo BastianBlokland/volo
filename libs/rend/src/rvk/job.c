@@ -13,8 +13,6 @@
 #include "stopwatch_internal.h"
 #include "uniform_internal.h"
 
-typedef RvkPass* RvkPassPtr;
-
 typedef enum {
   RvkJob_Active = 1 << 0,
 } RvkJobFlags;
@@ -29,7 +27,8 @@ struct sRvkJob {
    * Passes are stored per-job as they contain state that needs to persist throughout the lifetime
    * of the submission.
    */
-  RvkPass* passes[RendPass_Count];
+  RvkPass* passes[rvk_canvas_max_passes];
+  u32      passCount;
 
   VkFence         fenceJobDone;
   VkCommandPool   vkCmdPool;
@@ -145,7 +144,10 @@ RvkJob* rvk_job_create(
     RvkDevice*           dev,
     const VkFormat       swapchainFormat,
     const u32            jobId,
-    const RvkPassConfig* passConfig /* RvkPassConfig[RendPass_Count] */) {
+    const RvkPassConfig* passConfig,
+    const u32            passCount) {
+  diag_assert(passCount <= rvk_canvas_max_passes);
+
   RvkJob* job = alloc_alloc_t(g_allocHeap, RvkJob);
 
   RvkUniformPool* uniformPool = rvk_uniform_pool_create(dev);
@@ -164,17 +166,12 @@ RvkJob* rvk_job_create(
       .fenceJobDone = rvk_fence_create(dev, true),
       .vkCmdPool    = vkCmdPool,
       .vkDrawBuffer = vkDrawBuffer,
+      .passCount    = passCount,
   };
 
-  for (RendPass pass = 0; pass != RendPass_Count; ++pass) {
-    job->passes[pass] = rvk_pass_create(
-        dev,
-        swapchainFormat,
-        vkDrawBuffer,
-        uniformPool,
-        stopwatch,
-        passConfig[pass],
-        rend_pass_name(pass));
+  for (u32 i = 0; i != passCount; ++i) {
+    job->passes[i] =
+        rvk_pass_create(dev, swapchainFormat, vkDrawBuffer, uniformPool, stopwatch, passConfig[i]);
   }
 
   return job;
@@ -183,7 +180,9 @@ RvkJob* rvk_job_create(
 void rvk_job_destroy(RvkJob* job) {
   rvk_job_wait_for_done(job);
 
-  array_for_t(job->passes, RvkPassPtr, itr) { rvk_pass_destroy(*itr); }
+  for (u32 passIdx = 0; passIdx != job->passCount; ++passIdx) {
+    rvk_pass_destroy(job->passes[passIdx]);
+  }
 
   rvk_uniform_pool_destroy(job->uniformPool);
   rvk_stopwatch_destroy(job->stopwatch);
@@ -207,20 +206,20 @@ void rvk_job_wait_for_done(const RvkJob* job) {
   ((RvkJob*)job)->waitForGpuDur += time_steady_duration(waitStart, time_steady_clock());
 }
 
-RvkCanvasStats rvk_job_stats(const RvkJob* job) {
+void rvk_job_stats(const RvkJob* job, RvkCanvasStats* out) {
   diag_assert(rvk_job_is_done(job));
 
   const TimeSteady timestampBegin = rvk_stopwatch_query(job->stopwatch, job->timeRecBegin);
   const TimeSteady timestampEnd   = rvk_stopwatch_query(job->stopwatch, job->timeRecEnd);
 
-  RvkCanvasStats result;
-  result.waitForGpuDur = job->waitForGpuDur;
-  result.gpuExecDur    = time_steady_duration(timestampBegin, timestampEnd);
+  out->waitForGpuDur = job->waitForGpuDur;
+  out->gpuExecDur    = time_steady_duration(timestampBegin, timestampEnd);
 
-  for (RendPass passIdx = 0; passIdx != RendPass_Count; ++passIdx) {
+  out->passCount = job->passCount;
+  for (u32 passIdx = 0; passIdx != job->passCount; ++passIdx) {
     const RvkPass* pass    = job->passes[passIdx];
     const RvkSize  sizeMax = rvk_pass_stat_size_max(pass);
-    result.passes[passIdx] = (RendStatPass){
+    out->passes[passIdx]   = (RendStatPass){
         .gpuExecDur  = rvk_pass_stat_duration(pass),
         .sizeMax[0]  = sizeMax.width,
         .sizeMax[1]  = sizeMax.height,
@@ -233,8 +232,6 @@ RvkCanvasStats rvk_job_stats(const RvkJob* job) {
         .shadersFrag = rvk_pass_stat_pipeline(pass, RvkStat_ShaderInvocationsFrag),
     };
   }
-
-  return result;
 }
 
 void rvk_job_begin(RvkJob* job) {
@@ -250,17 +247,19 @@ void rvk_job_begin(RvkJob* job) {
   rvk_commandbuffer_begin(job->vkDrawBuffer);
   rvk_stopwatch_reset(job->stopwatch, job->vkDrawBuffer);
 
-  array_for_t(job->passes, RvkPassPtr, itr) { rvk_pass_reset(*itr); }
+  for (u32 passIdx = 0; passIdx != job->passCount; ++passIdx) {
+    rvk_pass_reset(job->passes[passIdx]);
+  }
 
   job->timeRecBegin = rvk_stopwatch_mark(job->stopwatch, job->vkDrawBuffer);
   rvk_debug_label_begin(
       job->dev->debug, job->vkDrawBuffer, geo_color_teal, "job_{}", fmt_int(job->jobId));
 }
 
-RvkPass* rvk_job_pass(RvkJob* job, const RendPass pass) {
+RvkPass* rvk_job_pass(RvkJob* job, const u32 passIndex) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
-  diag_assert(pass < RendPass_Count);
-  return job->passes[pass];
+  diag_assert(passIndex < job->passCount);
+  return job->passes[passIndex];
 }
 
 void rvk_job_img_clear_color(RvkJob* job, RvkImage* img, const GeoColor color) {
@@ -344,9 +343,11 @@ void rvk_job_end(
     u32                signalCount) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 
-  array_for_t(job->passes, RvkPassPtr, itr) {
+  for (u32 passIdx = 0; passIdx != job->passCount; ++passIdx) {
     diag_assert_msg(
-        !rvk_pass_active(*itr), "Pass '{}' is still active", fmt_text(rvk_pass_name(*itr)));
+        !rvk_pass_active(job->passes[passIdx]),
+        "Pass '{}' is still active",
+        fmt_text(rvk_pass_name(job->passes[passIdx])));
   }
 
   job->timeRecEnd = rvk_stopwatch_mark(job->stopwatch, job->vkDrawBuffer);

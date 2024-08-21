@@ -28,101 +28,95 @@
 #include "rvk/repository_internal.h"
 #include "rvk/texture_internal.h"
 
+// clang-format off
+
 static const RvkPassConfig g_passConfig[RendPass_Count] = {
-    [RendPass_Geometry] =
-        {
-            // Attachment depth.
-            .attachDepth     = RvkPassDepth_Stored,
-            .attachDepthLoad = RvkPassLoad_Clear,
+    [RendPass_Geometry] = { .name = string_static("Geometry"),
+        // Attachment depth.
+        .attachDepth     = RvkPassDepth_Stored,
+        .attachDepthLoad = RvkPassLoad_Clear,
 
-            // Attachment color 0: color (rgb) and emissive (a).
-            .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
-            .attachColorLoad[0]   = RvkPassLoad_DontCare,
+        // Attachment color 0: color (rgb) and emissive (a).
+        .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
+        .attachColorLoad[0]   = RvkPassLoad_DontCare,
 
-            // Attachment color 1: normal (rg), roughness (b) and tags (a).
-            .attachColorFormat[1] = RvkPassFormat_Color4Linear,
-            .attachColorLoad[1]   = RvkPassLoad_DontCare,
-        },
+        // Attachment color 1: normal (rg), roughness (b) and tags (a).
+        .attachColorFormat[1] = RvkPassFormat_Color4Linear,
+        .attachColorLoad[1]   = RvkPassLoad_DontCare,
+    },
 
-    [RendPass_Decal] =
-        {
-            // Attachment depth.
-            .attachDepth     = RvkPassDepth_Stored,
-            .attachDepthLoad = RvkPassLoad_Preserve,
+    [RendPass_Decal] = { .name = string_static("Decal"),
+        // Attachment depth.
+        .attachDepth     = RvkPassDepth_Stored,
+        .attachDepthLoad = RvkPassLoad_Preserve,
 
-            // Attachment color 0: color (rgb) and emissive (a).
-            .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
-            .attachColorLoad[0]   = RvkPassLoad_Preserve,
+        // Attachment color 0: color (rgb) and emissive (a).
+        .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
+        .attachColorLoad[0]   = RvkPassLoad_Preserve,
 
-            // Attachment color 1: normal (rg), roughness (b) and tags (a).
-            .attachColorFormat[1] = RvkPassFormat_Color4Linear,
-            .attachColorLoad[1]   = RvkPassLoad_Preserve,
-        },
+        // Attachment color 1: normal (rg), roughness (b) and tags (a).
+        .attachColorFormat[1] = RvkPassFormat_Color4Linear,
+        .attachColorLoad[1]   = RvkPassLoad_Preserve,
+    },
 
-    [RendPass_Fog] =
-        {
-            // Attachment color 0: vision (r).
-            .attachColorFormat[0] = RvkPassFormat_Color1Linear,
-            .attachColorLoad[0]   = RvkPassLoad_Clear,
-        },
+    [RendPass_Fog] = { .name = string_static("Fog"),
+        // Attachment color 0: vision (r).
+        .attachColorFormat[0] = RvkPassFormat_Color1Linear,
+        .attachColorLoad[0]   = RvkPassLoad_Clear,
+    },
 
-    [RendPass_FogBlur] =
-        {
-            // Attachment color 0: vision (r).
-            .attachColorFormat[0] = RvkPassFormat_Color1Linear,
-            .attachColorLoad[0]   = RvkPassLoad_PreserveDontCheck,
-        },
+    [RendPass_FogBlur] = { .name = string_static("FogBlur"),
+        // Attachment color 0: vision (r).
+        .attachColorFormat[0] = RvkPassFormat_Color1Linear,
+        .attachColorLoad[0]   = RvkPassLoad_PreserveDontCheck,
+    },
 
-    [RendPass_Shadow] =
-        {
-            // Attachment depth.
-            .attachDepth     = RvkPassDepth_Stored,
-            .attachDepthLoad = RvkPassLoad_Clear,
-        },
+    [RendPass_Shadow] = { .name = string_static("Shadow"),
+        // Attachment depth.
+        .attachDepth     = RvkPassDepth_Stored,
+        .attachDepthLoad = RvkPassLoad_Clear,
+    },
 
-    [RendPass_AmbientOcclusion] =
-        {
-            // Attachment color 0: occlusion (r).
-            .attachColorFormat[0] = RvkPassFormat_Color1Linear,
-            .attachColorLoad[0]   = RvkPassLoad_DontCare,
-        },
+    [RendPass_AmbientOcclusion] = { .name = string_static("AmbientOcclusion"),
+        // Attachment color 0: occlusion (r).
+        .attachColorFormat[0] = RvkPassFormat_Color1Linear,
+        .attachColorLoad[0]   = RvkPassLoad_DontCare,
+    },
 
-    [RendPass_Forward] =
-        {
-            // Attachment depth.
-            .attachDepth     = RvkPassDepth_Stored, // Stored as Distortion still needs the depth.
-            .attachDepthLoad = RvkPassLoad_Preserve,
+    [RendPass_Forward] = { .name = string_static("Forward"),
+        // Attachment depth.
+        .attachDepth     = RvkPassDepth_Stored, // Stored as Distortion still needs the depth.
+        .attachDepthLoad = RvkPassLoad_Preserve,
 
-            // Attachment color 0: color (rgb).
-            .attachColorFormat[0] = RvkPassFormat_Color3Float,
-            .attachColorLoad[0]   = RvkPassLoad_DontCare,
-        },
+        // Attachment color 0: color (rgb).
+        .attachColorFormat[0] = RvkPassFormat_Color3Float,
+        .attachColorLoad[0]   = RvkPassLoad_DontCare,
+    },
 
-    [RendPass_Distortion] =
-        {
-            // Attachment depth.
-            .attachDepth     = RvkPassDepth_Transient,
-            .attachDepthLoad = RvkPassLoad_Preserve,
+    [RendPass_Distortion] = { .name = string_static("Distortion"),
+        // Attachment depth.
+        .attachDepth     = RvkPassDepth_Transient,
+        .attachDepthLoad = RvkPassLoad_Preserve,
 
-            // Attachment color 0: distortion-offset(rg).
-            .attachColorFormat[0] = RvkPassFormat_Color2SignedFloat,
-            .attachColorLoad[0]   = RvkPassLoad_Clear,
-        },
+        // Attachment color 0: distortion-offset(rg).
+        .attachColorFormat[0] = RvkPassFormat_Color2SignedFloat,
+        .attachColorLoad[0]   = RvkPassLoad_Clear,
+    },
 
-    [RendPass_Bloom] =
-        {
-            // Attachment color 0: bloom (rgb).
-            .attachColorFormat[0] = RvkPassFormat_Color3Float,
-            .attachColorLoad[0]   = RvkPassLoad_PreserveDontCheck,
-        },
+    [RendPass_Bloom] = { .name = string_static("Bloom"),
+        // Attachment color 0: bloom (rgb).
+        .attachColorFormat[0] = RvkPassFormat_Color3Float,
+        .attachColorLoad[0]   = RvkPassLoad_PreserveDontCheck,
+    },
 
-    [RendPass_Post] =
-        {
-            // Attachment color 0: color (rgba).
-            .attachColorFormat[0] = RvkPassFormat_Swapchain,
-            .attachColorLoad[0]   = RvkPassLoad_DontCare,
-        },
+    [RendPass_Post] = { .name = string_static("Post"),
+        // Attachment color 0: color (rgba).
+        .attachColorFormat[0] = RvkPassFormat_Swapchain,
+        .attachColorLoad[0]   = RvkPassLoad_DontCare,
+    },
 };
+
+// clang-format on
 
 ecs_comp_define_public(RendPainterComp);
 
@@ -1158,7 +1152,7 @@ ecs_system_define(RendPainterCreateSys) {
         entity,
         RendPainterComp,
         .drawBuffer = dynarray_create_t(g_allocHeap, RvkPassDraw, 1024),
-        .canvas     = rvk_canvas_create(plat->device, windowComp, g_passConfig));
+        .canvas     = rvk_canvas_create(plat->device, windowComp, g_passConfig, RendPass_Count));
 
     if (!ecs_world_has_t(world, entity, RendSettingsComp)) {
       RendSettingsComp* settings = ecs_world_add_t(world, entity, RendSettingsComp);

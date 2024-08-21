@@ -20,13 +20,13 @@ typedef struct sRvkSwapchainStats {
   u16          imageCount;
 } RvkSwapchainStats;
 
-RvkSwapchain*     rvk_swapchain_create(RvkDevice*, const GapWindowComp*);
-void              rvk_swapchain_destroy(RvkSwapchain*);
-VkFormat          rvk_swapchain_format(const RvkSwapchain*);
-RvkSwapchainStats rvk_swapchain_stats(const RvkSwapchain*);
-RvkSize           rvk_swapchain_size(const RvkSwapchain*);
-void              rvk_swapchain_invalidate(RvkSwapchain*);
-RvkImage*         rvk_swapchain_image(RvkSwapchain*, RvkSwapchainIdx);
+RvkSwapchain* rvk_swapchain_create(RvkDevice*, const GapWindowComp*);
+void          rvk_swapchain_destroy(RvkSwapchain*);
+VkFormat      rvk_swapchain_format(const RvkSwapchain*);
+void          rvk_swapchain_stats(const RvkSwapchain*, RvkSwapchainStats*);
+RvkSize       rvk_swapchain_size(const RvkSwapchain*);
+void          rvk_swapchain_invalidate(RvkSwapchain*);
+RvkImage*     rvk_swapchain_image(RvkSwapchain*, RvkSwapchainIdx);
 
 /**
  * Acquire a new image to render into.
