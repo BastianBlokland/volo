@@ -111,7 +111,7 @@ u64 rvk_canvas_attach_memory(const RvkCanvas* canvas) {
 }
 
 void rvk_canvas_swapchain_stats(const RvkCanvas* canvas, RvkSwapchainStats* out) {
-  return rvk_swapchain_stats(canvas->swapchain, out);
+  rvk_swapchain_stats(canvas->swapchain, out);
 }
 
 bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const RvkSize size) {
