@@ -137,10 +137,10 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
   return true;
 }
 
-RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const RendPass pass) {
+RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const u32 passIndex) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkJob* job = canvas->jobs[canvas->jobIdx];
-  return rvk_job_pass(job, pass);
+  return rvk_job_pass(job, passIndex);
 }
 
 RvkImage* rvk_canvas_swapchain_image(RvkCanvas* canvas) {
