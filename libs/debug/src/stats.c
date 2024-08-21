@@ -27,6 +27,19 @@ static const u8  g_statsBgAlpha          = 150;
 static const u8  g_statsSectionBgAlpha   = 200;
 static const f32 g_statsInvAverageWindow = 1.0f / 10.0f;
 
+static const UiColor g_statsChartColors[] = {
+    {0, 128, 128, 255},
+    {0, 0, 128, 255},
+    {128, 128, 0, 255},
+    {128, 0, 0, 255},
+    {128, 0, 128, 255},
+    {128, 128, 0, 255},
+    {0, 128, 0, 255},
+    {255, 0, 255, 255},
+    {0, 0, 255, 255},
+    {128, 0, 0, 255},
+};
+
 #define stats_plot_size 32
 #define stats_notify_max_key_size 32
 #define stats_notify_max_value_size 16
@@ -417,51 +430,41 @@ stats_draw_gpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsC
 
   ui_layout_grow(c, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
 
+  StatChartEntry entries[RendPass_Count + 1 /* +1 for the 'other' entry */];
+
+  Mem       tooltipBuffer = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
+  DynString tooltip       = dynstring_create_over(tooltipBuffer);
+
   f32 otherFrac = st->gpuExecFrac;
   for (RendPass pass = 0; pass != RendPass_Count; ++pass) {
-    otherFrac -= st->gpuPassFrac[pass];
+    const String       passName     = g_rendPassNames[pass];
+    const UiColor      passColor    = g_statsChartColors[pass % array_elems(g_statsChartColors)];
+    const f32          passFrac     = st->gpuPassFrac[pass];
+    const TimeDuration passDuration = rendSt->passes[pass].gpuExecDur;
+
+    entries[pass] = (StatChartEntry){
+        .frac  = passFrac,
+        .color = ui_color(passColor.r, passColor.g, passColor.b, 178),
+    };
+    otherFrac -= entries[pass].frac;
+
+    fmt_write(
+        &tooltip,
+        "{}\a.b{}\ar:\a>13{>7}\n",
+        fmt_ui_color(passColor),
+        fmt_text(passName),
+        fmt_duration(passDuration, .minDecDigits = 1, .maxDecDigits = 1));
   }
-
-  const StatChartEntry entries[] = {
-      {st->gpuPassFrac[RendPass_Geometry], ui_color(0, 128, 128, 178)},
-      {st->gpuPassFrac[RendPass_Decal], ui_color(0, 0, 128, 178)},
-      {st->gpuPassFrac[RendPass_Fog], ui_color(128, 128, 0, 178)},
-      {st->gpuPassFrac[RendPass_FogBlur], ui_color(128, 0, 0, 178)},
-      {st->gpuPassFrac[RendPass_Shadow], ui_color(128, 0, 128, 178)},
-      {st->gpuPassFrac[RendPass_AmbientOcclusion], ui_color(128, 128, 0, 178)},
-      {st->gpuPassFrac[RendPass_Forward], ui_color(0, 128, 0, 178)},
-      {st->gpuPassFrac[RendPass_Distortion], ui_color(255, 0, 255, 178)},
-      {st->gpuPassFrac[RendPass_Bloom], ui_color(0, 0, 255, 178)},
-      {st->gpuPassFrac[RendPass_Post], ui_color(128, 0, 0, 178)},
-      {otherFrac, ui_color(128, 128, 128, 178)},
+  entries[RendPass_Count] = (StatChartEntry){
+      .frac  = otherFrac,
+      .color = ui_color(128, 128, 128, 178),
   };
-  // clang-format off
-  const String tooltip = fmt_write_scratch(
-      "\a~teal\a.bGeometry\ar:\a>13{>7}\n"
-      "\a~navy\a.bDecal\ar:\a>13{>7}\n"
-      "\a~olive\a.bFog\ar:\a>13{>7}\n"
-      "\a~maroon\a.bFogBlur\ar:\a>13{>7}\n"
-      "\a~purple\a.bShadow\ar:\a>13{>7}\n"
-      "\a~orange\a.bAmbientOcclusion\ar:\a>13{>7}\n"
-      "\a~green\a.bForward\ar:\a>13{>7}\n"
-      "\a~fuchsia\a.bDistortion\ar:\a>13{>7}\n"
-      "\a~blue\a.bBloom\ar:\a>13{>7}\n"
-      "\a~maroon\a.bPost\ar:\a>13{>7}\n"
+  fmt_write(
+      &tooltip,
       "\a.bTotal\ar:\a>13{>7}",
-      fmt_duration(rendSt->passes[RendPass_Geometry].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(rendSt->passes[RendPass_Decal].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(rendSt->passes[RendPass_Fog].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(rendSt->passes[RendPass_FogBlur].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(rendSt->passes[RendPass_Shadow].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(rendSt->passes[RendPass_AmbientOcclusion].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(rendSt->passes[RendPass_Forward].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(rendSt->passes[RendPass_Distortion].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(rendSt->passes[RendPass_Bloom].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
-      fmt_duration(rendSt->passes[RendPass_Post].gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1));
-  // clang-format on
 
-  stats_draw_chart(c, entries, array_elems(entries), tooltip);
+  stats_draw_chart(c, entries, array_elems(entries), dynstring_view(&tooltip));
 
   ui_style_pop(c);
   ui_layout_pop(c);
