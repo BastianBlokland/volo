@@ -251,7 +251,9 @@ static bool asset_manager_load(
 
   bool success = true;
   if (LIKELY(loader)) {
+    trace_begin("asset_loader", TraceColor_Red);
     loader(world, asset->id, assetEntity, source);
+    trace_end();
   } else {
     log_e(
         "Asset format cannot be loaded directly",
@@ -528,8 +530,8 @@ ecs_system_define(AssetCacheSys) {
         ecs_view_jump(depItr, depComp->dependencies.single);
         const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
         deps[depCount++]              = (AssetRepoDep){
-                         .id      = depAssetComp->id,
-                         .modTime = depAssetComp->loadModTime,
+            .id      = depAssetComp->id,
+            .modTime = depAssetComp->loadModTime,
         };
       } break;
       case AssetDepStorageType_Many:
@@ -540,8 +542,8 @@ ecs_system_define(AssetCacheSys) {
           ecs_view_jump(depItr, *asset);
           const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
           deps[depCount++]              = (AssetRepoDep){
-                           .id      = depAssetComp->id,
-                           .modTime = depAssetComp->loadModTime,
+              .id      = depAssetComp->id,
+              .modTime = depAssetComp->loadModTime,
           };
         }
         break;
