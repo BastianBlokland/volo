@@ -319,14 +319,12 @@ VkFormat rvk_swapchain_format(const RvkSwapchain* swapchain) {
 
 RvkSize rvk_swapchain_size(const RvkSwapchain* swapchain) { return swapchain->size; }
 
-RvkSwapchainStats rvk_swapchain_stats(const RvkSwapchain* swapchain) {
-  return (RvkSwapchainStats){
-      .acquireDur        = swapchain->lastAcquireDur,
-      .presentEnqueueDur = swapchain->lastPresentEnqueueDur,
-      .presentWaitDur    = swapchain->lastPresentWaitDur,
-      .presentId         = swapchain->curPresentId,
-      .imageCount        = (u16)swapchain->imageCount,
-  };
+void rvk_swapchain_stats(const RvkSwapchain* swapchain, RvkSwapchainStats* out) {
+  out->acquireDur        = swapchain->lastAcquireDur;
+  out->presentEnqueueDur = swapchain->lastPresentEnqueueDur;
+  out->presentWaitDur    = swapchain->lastPresentWaitDur;
+  out->presentId         = swapchain->curPresentId;
+  out->imageCount        = (u16)swapchain->imageCount;
 }
 
 void rvk_swapchain_invalidate(RvkSwapchain* swapchain) {

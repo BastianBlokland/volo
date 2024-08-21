@@ -208,20 +208,19 @@ void rvk_job_wait_for_done(const RvkJob* job) {
   ((RvkJob*)job)->waitForGpuDur += time_steady_duration(waitStart, time_steady_clock());
 }
 
-RvkCanvasStats rvk_job_stats(const RvkJob* job) {
+void rvk_job_stats(const RvkJob* job, RvkCanvasStats* out) {
   diag_assert(rvk_job_is_done(job));
 
   const TimeSteady timestampBegin = rvk_stopwatch_query(job->stopwatch, job->timeRecBegin);
   const TimeSteady timestampEnd   = rvk_stopwatch_query(job->stopwatch, job->timeRecEnd);
 
-  RvkCanvasStats result;
-  result.waitForGpuDur = job->waitForGpuDur;
-  result.gpuExecDur    = time_steady_duration(timestampBegin, timestampEnd);
+  out->waitForGpuDur = job->waitForGpuDur;
+  out->gpuExecDur    = time_steady_duration(timestampBegin, timestampEnd);
 
   for (u32 passIdx = 0; passIdx != job->passCount; ++passIdx) {
     const RvkPass* pass    = job->passes[passIdx];
     const RvkSize  sizeMax = rvk_pass_stat_size_max(pass);
-    result.passes[passIdx] = (RendStatPass){
+    out->passes[passIdx]   = (RendStatPass){
         .gpuExecDur  = rvk_pass_stat_duration(pass),
         .sizeMax[0]  = sizeMax.width,
         .sizeMax[1]  = sizeMax.height,
@@ -234,8 +233,6 @@ RvkCanvasStats rvk_job_stats(const RvkJob* job) {
         .shadersFrag = rvk_pass_stat_pipeline(pass, RvkStat_ShaderInvocationsFrag),
     };
   }
-
-  return result;
 }
 
 void rvk_job_begin(RvkJob* job) {

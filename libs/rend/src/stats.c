@@ -91,8 +91,11 @@ ecs_system_define(RendUpdateCamStatsSys) {
       continue;
     }
 
-    const RvkCanvasStats    canvasStats    = rvk_canvas_stats(painter->canvas);
-    const RvkSwapchainStats swapchainStats = rvk_canvas_swapchain_stats(painter->canvas);
+    RvkCanvasStats canvasStats;
+    rvk_canvas_stats(painter->canvas, &canvasStats);
+
+    RvkSwapchainStats swapchainStats;
+    rvk_canvas_swapchain_stats(painter->canvas, &swapchainStats);
 
     rend_stats_update_str(&stats->gpuName, rvk_device_name(plat->device));
 

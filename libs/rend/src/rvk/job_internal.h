@@ -22,10 +22,10 @@ RvkJob* rvk_job_create(
     u32                  jobId,
     const RvkPassConfig* passConfig,
     u32                  passCount);
-void           rvk_job_destroy(RvkJob*);
-bool           rvk_job_is_done(const RvkJob*);
-void           rvk_job_wait_for_done(const RvkJob*);
-RvkCanvasStats rvk_job_stats(const RvkJob*);
+void rvk_job_destroy(RvkJob*);
+bool rvk_job_is_done(const RvkJob*);
+void rvk_job_wait_for_done(const RvkJob*);
+void rvk_job_stats(const RvkJob*, RvkCanvasStats* out);
 
 void rvk_job_begin(RvkJob*);
 

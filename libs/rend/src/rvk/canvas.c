@@ -94,10 +94,10 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
 
 RvkRepository* rvk_canvas_repository(RvkCanvas* canvas) { return canvas->dev->repository; }
 
-RvkCanvasStats rvk_canvas_stats(const RvkCanvas* canvas) {
+void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
   RvkJob* job = canvas->jobs[canvas->jobIdx];
   diag_assert(rvk_job_is_done(job));
-  return rvk_job_stats(job);
+  rvk_job_stats(job, out);
 }
 
 u16 rvk_canvas_attach_count(const RvkCanvas* canvas) {
@@ -108,8 +108,8 @@ u64 rvk_canvas_attach_memory(const RvkCanvas* canvas) {
   return rvk_attach_pool_memory(canvas->attachPool);
 }
 
-RvkSwapchainStats rvk_canvas_swapchain_stats(const RvkCanvas* canvas) {
-  return rvk_swapchain_stats(canvas->swapchain);
+void rvk_canvas_swapchain_stats(const RvkCanvas* canvas, RvkSwapchainStats* out) {
+  return rvk_swapchain_stats(canvas->swapchain, out);
 }
 
 bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const RvkSize size) {

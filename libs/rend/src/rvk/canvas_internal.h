@@ -38,16 +38,15 @@ RvkRepository* rvk_canvas_repository(RvkCanvas*);
 
 /**
  * Query statistics about the previous submitted draw.
- * NOTE: Will block until the previous draw has finished.
  */
-RvkCanvasStats rvk_canvas_stats(const RvkCanvas*);
-u16            rvk_canvas_attach_count(const RvkCanvas*);
-u64            rvk_canvas_attach_memory(const RvkCanvas*);
+void rvk_canvas_stats(const RvkCanvas*, RvkCanvasStats* out);
+u16  rvk_canvas_attach_count(const RvkCanvas*);
+u64  rvk_canvas_attach_memory(const RvkCanvas*);
 
 /**
  * Query swapchain statistics.
  */
-RvkSwapchainStats rvk_canvas_swapchain_stats(const RvkCanvas*);
+void rvk_canvas_swapchain_stats(const RvkCanvas*, RvkSwapchainStats* out);
 
 bool rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
 
