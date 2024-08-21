@@ -17,6 +17,8 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
+#define VOLO_ASSET_LOGGING 0
+
 #define asset_max_load_time_per_task time_millisecond
 #define asset_num_load_tasks 2
 #define asset_id_chunk_size (16 * usize_kibibyte)
@@ -240,18 +242,22 @@ static bool asset_manager_load(
   asset->loadFormat  = source->format;
   asset->loadModTime = source->modTime;
 
+#if VOLO_ASSET_LOGGING
   log_d(
       "Asset load started",
       log_param("id", fmt_path(asset->id)),
       log_param("entity", ecs_entity_fmt(assetEntity)),
       log_param("format", fmt_text(asset_format_str(source->format))),
       log_param("size", fmt_size(source->data.size)));
+#endif
 
   AssetLoader loader = asset_loader(source->format);
 
   bool success = true;
   if (LIKELY(loader)) {
+    trace_begin("asset_loader", TraceColor_Red);
     loader(world, asset->id, assetEntity, source);
+    trace_end();
   } else {
     log_e(
         "Asset format cannot be loaded directly",
@@ -412,6 +418,14 @@ ecs_system_define(AssetUpdateDirtySys) {
       ecs_utils_maybe_remove_t(world, entity, AssetInstantUnloadComp);
       assetComp->flags &= ~AssetFlags_Loaded;
       assetComp->flags |= AssetFlags_Cleanup;
+
+#if VOLO_ASSET_LOGGING
+      log_d(
+          "Asset unload",
+          log_param("id", fmt_path(assetComp->id)),
+          log_param("entity", ecs_entity_fmt(entity)));
+#endif
+
       goto AssetUpdateDone;
     }
 
@@ -528,8 +542,8 @@ ecs_system_define(AssetCacheSys) {
         ecs_view_jump(depItr, depComp->dependencies.single);
         const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
         deps[depCount++]              = (AssetRepoDep){
-                         .id      = depAssetComp->id,
-                         .modTime = depAssetComp->loadModTime,
+            .id      = depAssetComp->id,
+            .modTime = depAssetComp->loadModTime,
         };
       } break;
       case AssetDepStorageType_Many:
@@ -540,8 +554,8 @@ ecs_system_define(AssetCacheSys) {
           ecs_view_jump(depItr, *asset);
           const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
           deps[depCount++]              = (AssetRepoDep){
-                           .id      = depAssetComp->id,
-                           .modTime = depAssetComp->loadModTime,
+              .id      = depAssetComp->id,
+              .modTime = depAssetComp->loadModTime,
           };
         }
         break;

@@ -4,6 +4,7 @@
 #include "core_file_monitor.h"
 #include "core_path.h"
 #include "log_logger.h"
+#include "trace_tracer.h"
 
 #include "cache_internal.h"
 #include "repo_internal.h"
@@ -140,7 +141,12 @@ static bool asset_repo_fs_save(AssetRepo* repo, const String id, const String da
 static void asset_repo_fs_changes_watch(AssetRepo* repo, const String id, const u64 userData) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
+  trace_begin("asset_repo_fs_changes_watch", TraceColor_Green);
+
   const FileMonitorResult res = file_monitor_watch(repoFs->monitor, id, userData);
+
+  trace_end();
+
   if (UNLIKELY(res != FileMonitorResult_Success && res != FileMonitorResult_AlreadyWatching)) {
     log_w(
         "Failed to watch file for changes",

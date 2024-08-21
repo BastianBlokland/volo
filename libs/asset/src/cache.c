@@ -7,6 +7,7 @@
 #include "core_thread.h"
 #include "data.h"
 #include "log_logger.h"
+#include "trace_tracer.h"
 
 #include "cache_internal.h"
 
@@ -403,6 +404,8 @@ bool asset_cache_get(AssetCache* c, const String id, AssetCacheRecord* out) {
   if (UNLIKELY(c->error)) {
     return false;
   }
+  trace_begin("asset_cache_get", TraceColor_Green);
+
   const StringHash idHash = string_hash(id);
 
   // Lookup an entry in the registry.
@@ -437,6 +440,8 @@ bool asset_cache_get(AssetCache* c, const String id, AssetCacheRecord* out) {
       success = false;
     }
   }
+
+  trace_end();
 
   return success;
 }
