@@ -1152,7 +1152,7 @@ ecs_system_define(RendPainterCreateSys) {
         entity,
         RendPainterComp,
         .drawBuffer = dynarray_create_t(g_allocHeap, RvkPassDraw, 1024),
-        .canvas     = rvk_canvas_create(plat->device, windowComp, g_passConfig));
+        .canvas     = rvk_canvas_create(plat->device, windowComp, g_passConfig, RendPass_Count));
 
     if (!ecs_world_has_t(world, entity, RendSettingsComp)) {
       RendSettingsComp* settings = ecs_world_add_t(world, entity, RendSettingsComp);

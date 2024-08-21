@@ -1,6 +1,5 @@
 #pragma once
 #include "core_time.h"
-#include "rend_pass.h"
 
 #include "vulkan_internal.h"
 
@@ -21,7 +20,8 @@ RvkJob* rvk_job_create(
     RvkDevice*,
     VkFormat             swapchainFormat,
     u32                  jobId,
-    const RvkPassConfig* passConfig /* RvkPassConfig[RendPass_Count] */);
+    const RvkPassConfig* passConfig,
+    u32                  passCount);
 void           rvk_job_destroy(RvkJob*);
 bool           rvk_job_is_done(const RvkJob*);
 void           rvk_job_wait_for_done(const RvkJob*);
@@ -29,7 +29,7 @@ RvkCanvasStats rvk_job_stats(const RvkJob*);
 
 void rvk_job_begin(RvkJob*);
 
-RvkPass* rvk_job_pass(RvkJob*, RendPass);
+RvkPass* rvk_job_pass(RvkJob*, u32 passIndex);
 
 void rvk_job_img_clear_color(RvkJob*, RvkImage*, GeoColor);
 void rvk_job_img_clear_depth(RvkJob*, RvkImage*, f32 depth);

@@ -29,10 +29,9 @@ typedef struct sRvkCanvasStats {
  */
 typedef struct sRvkCanvas RvkCanvas;
 
-RvkCanvas* rvk_canvas_create(
-    RvkDevice*,
-    const GapWindowComp*,
-    const RvkPassConfig* passConfig /* RvkPassConfig[RendPass_Count] */);
+RvkCanvas*
+rvk_canvas_create(RvkDevice*, const GapWindowComp*, const RvkPassConfig* passConfig, u32 passCount);
+
 void rvk_canvas_destroy(RvkCanvas*);
 
 RvkRepository* rvk_canvas_repository(RvkCanvas*);
