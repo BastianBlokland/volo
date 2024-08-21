@@ -215,6 +215,7 @@ void rvk_job_stats(const RvkJob* job, RvkCanvasStats* out) {
   out->waitForGpuDur = job->waitForGpuDur;
   out->gpuExecDur    = time_steady_duration(timestampBegin, timestampEnd);
 
+  out->passCount = job->passCount;
   for (u32 passIdx = 0; passIdx != job->passCount; ++passIdx) {
     const RvkPass* pass    = job->passes[passIdx];
     const RvkSize  sizeMax = rvk_pass_stat_size_max(pass);

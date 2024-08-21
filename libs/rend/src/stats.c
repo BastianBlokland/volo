@@ -108,7 +108,9 @@ ecs_system_define(RendUpdateCamStatsSys) {
     stats->presentWaitDur      = swapchainStats.presentWaitDur;
     stats->limiterDur          = limiter->sleepDur;
 
-    mem_cpy(array_mem(stats->passes), array_mem(canvasStats.passes));
+    mem_cpy(
+        array_mem(stats->passes),
+        mem_create(canvasStats.passes, sizeof(RendStatPass) * canvasStats.passCount));
 
     stats->memChunks    = rvk_mem_chunks(plat->device->memPool);
     stats->ramOccupied  = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Host);
