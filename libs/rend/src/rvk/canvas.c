@@ -48,6 +48,8 @@ RvkCanvas* rvk_canvas_create(
     const GapWindowComp* window,
     const RvkPassConfig* passConfig,
     const u32            passCount) {
+  diag_assert(passCount <= rvk_canvas_max_passes);
+
   RvkSwapchain*  swapchain       = rvk_swapchain_create(dev, window);
   const VkFormat swapchainFormat = rvk_swapchain_format(swapchain);
   RvkAttachPool* attachPool      = rvk_attach_pool_create(dev);

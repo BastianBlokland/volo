@@ -82,6 +82,9 @@ ecs_system_define(RendUpdateCamStatsSys) {
   const RendPlatformComp* plat    = ecs_view_read_t(globalItr, RendPlatformComp);
   const RendLimiterComp*  limiter = ecs_view_read_t(globalItr, RendLimiterComp);
 
+  RvkCanvasStats    canvasStats;
+  RvkSwapchainStats swapchainStats;
+
   EcsView* updateView = ecs_world_view_t(world, UpdateStatsView);
   for (EcsIterator* itr = ecs_view_itr(updateView); ecs_view_walk(itr);) {
     const RendPainterComp* painter = ecs_view_read_t(itr, RendPainterComp);
@@ -91,10 +94,7 @@ ecs_system_define(RendUpdateCamStatsSys) {
       continue;
     }
 
-    RvkCanvasStats canvasStats;
     rvk_canvas_stats(painter->canvas, &canvasStats);
-
-    RvkSwapchainStats swapchainStats;
     rvk_canvas_swapchain_stats(painter->canvas, &swapchainStats);
 
     rend_stats_update_str(&stats->gpuName, rvk_device_name(plat->device));

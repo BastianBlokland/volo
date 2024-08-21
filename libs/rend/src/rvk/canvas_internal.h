@@ -1,10 +1,11 @@
 #pragma once
 #include "gap_window.h"
-#include "rend_pass.h"
 #include "rend_settings.h"
 #include "rend_stats.h"
 
 #include "types_internal.h"
+
+#define rvk_canvas_max_passes 16
 
 // Forward declare from 'geo_color.h'.
 typedef union uGeoColor GeoColor;
@@ -21,7 +22,8 @@ typedef struct sRvkSwapchainStats RvkSwapchainStats;
 typedef struct sRvkCanvasStats {
   TimeDuration waitForGpuDur; // Time the cpu was blocked waiting for the gpu.
   TimeDuration gpuExecDur;
-  RendStatPass passes[RendPass_Count];
+  u32          passCount;
+  RendStatPass passes[rvk_canvas_max_passes];
 } RvkCanvasStats;
 
 /**

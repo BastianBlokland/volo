@@ -13,8 +13,6 @@
 #include "stopwatch_internal.h"
 #include "uniform_internal.h"
 
-#define rvk_job_max_passes 16
-
 typedef enum {
   RvkJob_Active = 1 << 0,
 } RvkJobFlags;
@@ -29,7 +27,7 @@ struct sRvkJob {
    * Passes are stored per-job as they contain state that needs to persist throughout the lifetime
    * of the submission.
    */
-  RvkPass* passes[rvk_job_max_passes];
+  RvkPass* passes[rvk_canvas_max_passes];
   u32      passCount;
 
   VkFence         fenceJobDone;
@@ -148,7 +146,7 @@ RvkJob* rvk_job_create(
     const u32            jobId,
     const RvkPassConfig* passConfig,
     const u32            passCount) {
-  diag_assert(passCount <= rvk_job_max_passes);
+  diag_assert(passCount <= rvk_canvas_max_passes);
 
   RvkJob* job = alloc_alloc_t(g_allocHeap, RvkJob);
 
