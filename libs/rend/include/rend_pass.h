@@ -3,15 +3,15 @@
 
 typedef enum {
   RendPass_Geometry,
-  RendPass_Forward,
-  RendPass_Post,
-  RendPass_Shadow,
-  RendPass_AmbientOcclusion,
-  RendPass_Bloom,
-  RendPass_Distortion,
   RendPass_Decal,
   RendPass_Fog,
   RendPass_FogBlur,
+  RendPass_Shadow,
+  RendPass_AmbientOcclusion,
+  RendPass_Forward,
+  RendPass_Distortion,
+  RendPass_Bloom,
+  RendPass_Post,
 
   RendPass_Count,
 } RendPass;

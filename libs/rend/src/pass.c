@@ -3,16 +3,16 @@
 #include "rend_pass.h"
 
 const String g_rendPassNames[] = {
-    string_static("geometry"),
-    string_static("forward"),
-    string_static("post"),
-    string_static("shadow"),
-    string_static("ambient-occlusion"),
-    string_static("bloom"),
-    string_static("distortion"),
-    string_static("decal"),
-    string_static("fog"),
-    string_static("fog-blur"),
+    string_static("Geometry"),
+    string_static("Decal"),
+    string_static("Fog"),
+    string_static("FogBlur"),
+    string_static("Shadow"),
+    string_static("AmbientOcclusion"),
+    string_static("Forward"),
+    string_static("Distortion"),
+    string_static("Bloom"),
+    string_static("Post"),
 };
 ASSERT(array_elems(g_rendPassNames) == RendPass_Count, "Incorrect number of names");
 
