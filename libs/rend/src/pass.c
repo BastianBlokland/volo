@@ -15,5 +15,3 @@ const String g_rendPassNames[] = {
     string_static("Post"),
 };
 ASSERT(array_elems(g_rendPassNames) == RendPass_Count, "Incorrect number of names");
-
-String rend_pass_name(const RendPass pass) { return g_rendPassNames[pass]; }

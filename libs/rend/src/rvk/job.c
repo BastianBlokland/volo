@@ -168,13 +168,7 @@ RvkJob* rvk_job_create(
 
   for (RendPass pass = 0; pass != RendPass_Count; ++pass) {
     job->passes[pass] = rvk_pass_create(
-        dev,
-        swapchainFormat,
-        vkDrawBuffer,
-        uniformPool,
-        stopwatch,
-        passConfig[pass],
-        rend_pass_name(pass));
+        dev, swapchainFormat, vkDrawBuffer, uniformPool, stopwatch, passConfig[pass]);
   }
 
   return job;

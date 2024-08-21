@@ -48,6 +48,7 @@ typedef enum {
 } RvkPassFormat;
 
 typedef struct sRvkPassConfig {
+  String        name; // Needs to be persistently allocated.
   RvkPassDepth  attachDepth : 8;
   RvkPassLoad   attachDepthLoad : 8;
   RvkPassFormat attachColorFormat[rvk_pass_attach_color_max];
@@ -72,8 +73,7 @@ RvkPass* rvk_pass_create(
     VkCommandBuffer,
     RvkUniformPool*,
     RvkStopwatch*,
-    RvkPassConfig,
-    String name);
+    RvkPassConfig);
 void   rvk_pass_destroy(RvkPass*);
 bool   rvk_pass_active(const RvkPass*);
 String rvk_pass_name(const RvkPass*);

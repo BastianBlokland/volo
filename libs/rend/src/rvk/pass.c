@@ -80,7 +80,6 @@ struct sRvkPass {
   RvkStatRecorder* statrecorder;
   RvkStopwatch*    stopwatch;
   RvkPassConfig    config;
-  String           name;
   VkRenderPass     vkRendPass;
   VkCommandBuffer  vkCmdBuf;
   RvkUniformPool*  uniformPool;
@@ -133,23 +132,23 @@ static void rvk_pass_attach_assert_color(const RvkPass* pass, const u32 idx, con
     diag_assert_msg(
         img->type == RvkImageType_Swapchain,
         "Pass {} color attachment {} invalid: Expected a swapchain image",
-        fmt_text(pass->name),
+        fmt_text(pass->config.name),
         fmt_int(idx));
   }
   diag_assert_msg(
       img->caps & RvkImageCapability_AttachmentColor,
       "Pass {} color attachment {} invalid: Missing AttachmentColor capability",
-      fmt_text(pass->name),
+      fmt_text(pass->config.name),
       fmt_int(idx));
   diag_assert_msg(
       (img->caps & spec.capabilities) == spec.capabilities,
       "Pass {} color attachment {} invalid: Missing capabilities",
-      fmt_text(pass->name),
+      fmt_text(pass->config.name),
       fmt_int(idx));
   diag_assert_msg(
       img->vkFormat == spec.vkFormat,
       "Pass {} color attachment {} invalid: Invalid format (expected: {}, actual: {})",
-      fmt_text(pass->name),
+      fmt_text(pass->config.name),
       fmt_int(idx),
       fmt_text(rvk_format_info(spec.vkFormat).name),
       fmt_text(rvk_format_info(img->vkFormat).name));
@@ -160,15 +159,15 @@ static void rvk_pass_attach_assert_depth(const RvkPass* pass, const RvkImage* im
   diag_assert_msg(
       img->caps & RvkImageCapability_AttachmentDepth,
       "Pass {} depth attachment invalid: Missing AttachmentDepth capability",
-      fmt_text(pass->name));
+      fmt_text(pass->config.name));
   diag_assert_msg(
       (img->caps & spec.capabilities) == spec.capabilities,
       "Pass {} depth attachment invalid: Missing capabilities",
-      fmt_text(pass->name));
+      fmt_text(pass->config.name));
   diag_assert_msg(
       img->vkFormat == spec.vkFormat,
       "Pass {} depth attachment invalid: Invalid format (expected: {}, actual: {})",
-      fmt_text(pass->name),
+      fmt_text(pass->config.name),
       fmt_text(rvk_format_info(spec.vkFormat).name),
       fmt_text(rvk_format_info(img->vkFormat).name));
 }
@@ -180,7 +179,7 @@ static void rvk_pass_assert_image_contents(const RvkPass* pass, const RvkPassSta
       diag_assert_msg(
           stage->attachColors[i]->phase,
           "Pass {} preserved color attachment {} has undefined contents",
-          fmt_text(pass->name),
+          fmt_text(pass->config.name),
           fmt_int(i));
     }
   }
@@ -189,7 +188,7 @@ static void rvk_pass_assert_image_contents(const RvkPass* pass, const RvkPassSta
     diag_assert_msg(
         stage->attachDepth->phase,
         "Pass {} preserved depth attachment has undefined contents",
-        fmt_text(pass->name));
+        fmt_text(pass->config.name));
   }
   // Validate global image contents.
   for (u32 i = 0; i != pass_global_image_max; ++i) {
@@ -197,7 +196,7 @@ static void rvk_pass_assert_image_contents(const RvkPass* pass, const RvkPassSta
       diag_assert_msg(
           stage->globalImages[i]->phase,
           "Pass {} global image {} has undefined contents",
-          fmt_text(pass->name),
+          fmt_text(pass->config.name),
           fmt_int(i));
     }
   }
@@ -338,13 +337,13 @@ static VkFramebuffer rvk_framebuffer_create(RvkPass* pass, RvkPassStage* stage) 
     diag_assert_msg(
         stage->attachColors[i],
         "Pass {} is missing color attachment {}",
-        fmt_text(pass->name),
+        fmt_text(pass->config.name),
         fmt_int(i));
     attachments[attachCount++] = stage->attachColors[i]->vkImageView;
   }
   if (pass->config.attachDepth) {
     diag_assert_msg(
-        stage->attachDepth, "Pass {} is missing a depth attachment", fmt_text(pass->name));
+        stage->attachDepth, "Pass {} is missing a depth attachment", fmt_text(pass->config.name));
     attachments[attachCount++] = stage->attachDepth->vkImageView;
   }
 
@@ -518,16 +517,14 @@ RvkPass* rvk_pass_create(
     VkCommandBuffer     vkCmdBuf,
     RvkUniformPool*     uniformPool,
     RvkStopwatch*       stopwatch,
-    const RvkPassConfig config,
-    const String        name) {
-  diag_assert(!string_is_empty(name));
+    const RvkPassConfig config) {
+  diag_assert(!string_is_empty(config.name));
 
   RvkPass* pass = alloc_alloc_t(g_allocHeap, RvkPass);
 
   *pass = (RvkPass){
       .dev              = dev,
       .swapchainFormat  = swapchainFormat,
-      .name             = string_dup(g_allocHeap, name),
       .statrecorder     = rvk_statrecorder_create(dev),
       .stopwatch        = stopwatch,
       .vkCmdBuf         = vkCmdBuf,
@@ -538,7 +535,7 @@ RvkPass* rvk_pass_create(
   };
 
   pass->vkRendPass = rvk_renderpass_create(pass);
-  rvk_debug_name_pass(dev->debug, pass->vkRendPass, "{}", fmt_text(name));
+  rvk_debug_name_pass(dev->debug, pass->vkRendPass, "{}", fmt_text(config.name));
 
   pass->globalDescMeta       = rvk_global_desc_meta();
   pass->globalPipelineLayout = rvk_global_layout_create(dev, &pass->globalDescMeta);
@@ -557,7 +554,6 @@ RvkPass* rvk_pass_create(
 void rvk_pass_destroy(RvkPass* pass) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation still active");
 
-  string_free(g_allocHeap, pass->name);
   rvk_pass_free_desc_volatile(pass);
   rvk_pass_free_invocations(pass);
 
@@ -574,7 +570,7 @@ void rvk_pass_destroy(RvkPass* pass) {
 
 bool rvk_pass_active(const RvkPass* pass) { return rvk_pass_invoc_active((RvkPass*)pass) != null; }
 
-String rvk_pass_name(const RvkPass* pass) { return pass->name; }
+String rvk_pass_name(const RvkPass* pass) { return pass->config.name; }
 
 bool rvk_pass_has_depth(const RvkPass* pass) {
   return pass->config.attachDepth != RvkPassDepth_None;
@@ -704,7 +700,7 @@ void rvk_pass_stage_attach_color(MAYBE_UNUSED RvkPass* pass, RvkImage* img, cons
     diag_assert_msg(
         img->size.data == stage->size.data,
         "Pass {} color attachment {} invalid: Invalid size (expected: {}x{}, actual: {}x{})",
-        fmt_text(pass->name),
+        fmt_text(pass->config.name),
         fmt_int(idx),
         fmt_int(stage->size.width),
         fmt_int(stage->size.height),
@@ -732,7 +728,7 @@ void rvk_pass_stage_attach_depth(MAYBE_UNUSED RvkPass* pass, RvkImage* img) {
     diag_assert_msg(
         img->size.data == stage->size.data,
         "Pass {} depth attachment invalid: Invalid size (expected: {}x{}, actual: {}x{})",
-        fmt_text(pass->name),
+        fmt_text(pass->config.name),
         fmt_int(stage->size.width),
         fmt_int(stage->size.height),
         fmt_int(img->size.width),
@@ -841,7 +837,7 @@ void rvk_pass_begin(RvkPass* pass) {
 
   invoc->timeRecBegin = rvk_stopwatch_mark(pass->stopwatch, pass->vkCmdBuf);
   rvk_debug_label_begin(
-      pass->dev->debug, pass->vkCmdBuf, geo_color_blue, "pass_{}", fmt_text(pass->name));
+      pass->dev->debug, pass->vkCmdBuf, geo_color_blue, "pass_{}", fmt_text(pass->config.name));
 
   /**
    * Execute image transitions:
