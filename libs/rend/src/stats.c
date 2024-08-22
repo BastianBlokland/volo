@@ -17,10 +17,13 @@
 #include "rvk/sampler_internal.h"
 #include "rvk/swapchain_internal.h"
 
+ASSERT(rend_stats_max_passes == rvk_canvas_max_passes, "Unexpected pass count")
+
 ecs_comp_define_public(RendStatsComp);
 
 static void ecs_destruct_rend_stats_comp(void* data) {
   RendStatsComp* comp = data;
+  alloc_free_array_t(g_allocHeap, comp->passes, rend_stats_max_passes);
   string_maybe_free(g_allocHeap, comp->gpuName);
 }
 
@@ -73,6 +76,14 @@ static void rend_stat_update_resources(EcsWorld* world, u16 resources[RendStatRe
   }
 }
 
+static RendStatsComp* rend_stats_create(EcsWorld* world, const EcsEntityId entity) {
+  return ecs_world_add_t(
+      world,
+      entity,
+      RendStatsComp,
+      .passes = alloc_array_t(g_allocHeap, RendStatPass, rend_stats_max_passes));
+}
+
 ecs_system_define(RendUpdateCamStatsSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -90,7 +101,7 @@ ecs_system_define(RendUpdateCamStatsSys) {
     const RendPainterComp* painter = ecs_view_read_t(itr, RendPainterComp);
     RendStatsComp*         stats   = ecs_view_write_t(itr, RendStatsComp);
     if (!stats) {
-      ecs_world_add_t(world, ecs_view_entity(itr), RendStatsComp);
+      stats = rend_stats_create(world, ecs_view_entity(itr));
       continue;
     }
 
@@ -108,8 +119,9 @@ ecs_system_define(RendUpdateCamStatsSys) {
     stats->presentWaitDur      = swapchainStats.presentWaitDur;
     stats->limiterDur          = limiter->sleepDur;
 
+    stats->passCount = canvasStats.passCount;
     mem_cpy(
-        array_mem(stats->passes),
+        mem_create(stats->passes, sizeof(RendStatPass) * rend_stats_max_passes),
         mem_create(canvasStats.passes, sizeof(RendStatPass) * canvasStats.passCount));
 
     stats->memChunks    = rvk_mem_chunks(plat->device->memPool);

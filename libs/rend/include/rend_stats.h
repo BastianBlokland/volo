@@ -3,6 +3,8 @@
 #include "ecs_module.h"
 #include "rend_pass.h"
 
+#define rend_stats_max_passes 16
+
 typedef enum {
   RendStatRes_Graphic,
   RendStatRes_Shader,
@@ -31,7 +33,8 @@ ecs_comp_extern_public(RendStatsComp) {
   TimeDuration presentAcquireDur, presentEnqueueDur, presentWaitDur;
   TimeDuration limiterDur;
 
-  RendStatPass passes[RendPass_Count];
+  u32           passCount;
+  RendStatPass* passes; // RendStatPass[rend_stats_max_passes];
 
   u64 swapchainPresentId;
   u16 swapchainImageCount;
