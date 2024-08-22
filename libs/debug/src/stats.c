@@ -12,7 +12,6 @@
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "geo_query.h"
-#include "rend_pass.h"
 #include "rend_settings.h"
 #include "rend_stats.h"
 #include "scene_camera.h"
@@ -79,7 +78,7 @@ ecs_comp_define(DebugStatsComp) {
 
   // Gpu frame fractions.
   f32 gpuExecFrac;
-  f32 gpuPassFrac[RendPass_Count];
+  f32 gpuPassFrac[rend_stats_max_passes];
 };
 
 ecs_comp_define(DebugStatsGlobalComp) {
@@ -431,23 +430,23 @@ stats_draw_gpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsC
 
   ui_layout_grow(c, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
 
-  StatChartEntry entries[RendPass_Count + 1 /* +1 for the 'other' entry */];
+  StatChartEntry entries[rend_stats_max_passes + 1 /* +1 for the 'other' entry */];
 
   Mem       tooltipBuffer = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
   DynString tooltip       = dynstring_create_over(tooltipBuffer);
 
   f32 otherFrac = st->gpuExecFrac;
-  for (RendPass pass = 0; pass != RendPass_Count; ++pass) {
-    const String       passName     = rendSt->passes[pass].name;
-    const TimeDuration passDuration = rendSt->passes[pass].gpuExecDur;
-    const UiColor      passColor    = g_statsChartColors[pass % array_elems(g_statsChartColors)];
-    const f32          passFrac     = st->gpuPassFrac[pass];
+  for (u32 passIdx = 0; passIdx != rendSt->passCount; ++passIdx) {
+    const String       passName     = rendSt->passes[passIdx].name;
+    const TimeDuration passDuration = rendSt->passes[passIdx].gpuExecDur;
+    const UiColor      passColor    = g_statsChartColors[passIdx % array_elems(g_statsChartColors)];
+    const f32          passFrac     = st->gpuPassFrac[passIdx];
 
-    entries[pass] = (StatChartEntry){
+    entries[passIdx] = (StatChartEntry){
         .frac  = passFrac,
         .color = ui_color(passColor.r, passColor.g, passColor.b, 178),
     };
-    otherFrac -= entries[pass].frac;
+    otherFrac -= entries[passIdx].frac;
 
     fmt_write(
         &tooltip,
@@ -456,7 +455,7 @@ stats_draw_gpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsC
         fmt_text(passName),
         fmt_duration(passDuration, .minDecDigits = 1, .maxDecDigits = 1));
   }
-  entries[RendPass_Count] = (StatChartEntry){
+  entries[rendSt->passCount] = (StatChartEntry){
       .frac  = otherFrac,
       .color = ui_color(128, 128, 128, 178),
   };
@@ -465,7 +464,7 @@ stats_draw_gpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsC
       "\a.bTotal\ar:\a>13{>7}",
       fmt_duration(rendSt->gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1));
 
-  stats_draw_chart(c, entries, array_elems(entries), dynstring_view(&tooltip));
+  stats_draw_chart(c, entries, rendSt->passCount + 1, dynstring_view(&tooltip));
 
   ui_style_pop(c);
   ui_layout_pop(c);
@@ -708,7 +707,7 @@ static void debug_stats_update(
   debug_avg_f32(&stats->rendPresWaitFrac, debug_frame_frac(frameDur, rendStats->presentWaitDur));
   debug_avg_f32(&stats->rendLimiterFrac, debug_frame_frac(frameDur, rendStats->limiterDur));
   debug_avg_f32(&stats->gpuExecFrac, debug_frame_frac(frameDur, rendStats->gpuExecDur));
-  for (RendPass pass = 0; pass != RendPass_Count; ++pass) {
+  for (u32 pass = 0; pass != rendStats->passCount; ++pass) {
     const f32 passFrac = debug_frame_frac(frameDur, rendStats->passes[pass].gpuExecDur);
     debug_avg_f32(&stats->gpuPassFrac[pass], passFrac);
   }
