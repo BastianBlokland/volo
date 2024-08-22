@@ -20,10 +20,10 @@ typedef struct sRvkRepository     RvkRepository;
 typedef struct sRvkSwapchainStats RvkSwapchainStats;
 
 typedef struct sRvkCanvasStats {
-  TimeDuration waitForGpuDur; // Time the cpu was blocked waiting for the gpu.
-  TimeDuration gpuExecDur;
-  u32          passCount;
-  RendStatPass passes[rvk_canvas_max_passes];
+  TimeDuration  waitForGpuDur; // Time the cpu was blocked waiting for the gpu.
+  TimeDuration  gpuExecDur;
+  u32           passCount;
+  RendStatsPass passes[rvk_canvas_max_passes];
 } RvkCanvasStats;
 
 /**
@@ -52,6 +52,7 @@ void rvk_canvas_swapchain_stats(const RvkCanvas*, RvkSwapchainStats* out);
 
 bool rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
 
+u32       rvk_canvas_pass_count(const RvkCanvas*);
 RvkPass*  rvk_canvas_pass(RvkCanvas*, u32 passIndex);
 RvkImage* rvk_canvas_swapchain_image(RvkCanvas*);
 

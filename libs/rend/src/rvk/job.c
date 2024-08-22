@@ -219,7 +219,8 @@ void rvk_job_stats(const RvkJob* job, RvkCanvasStats* out) {
   for (u32 passIdx = 0; passIdx != job->passCount; ++passIdx) {
     const RvkPass* pass    = job->passes[passIdx];
     const RvkSize  sizeMax = rvk_pass_stat_size_max(pass);
-    out->passes[passIdx]   = (RendStatPass){
+    out->passes[passIdx]   = (RendStatsPass){
+        .name        = rvk_pass_name(pass), // Persistently allocated.
         .gpuExecDur  = rvk_pass_stat_duration(pass),
         .sizeMax[0]  = sizeMax.width,
         .sizeMax[1]  = sizeMax.height,

@@ -34,6 +34,7 @@ struct sRvkCanvas {
   VkSemaphore     swapchainAvailable[canvas_job_count];
   VkSemaphore     swapchainPresent[canvas_job_count];
   u32             jobIdx;
+  u32             passCount;
 };
 
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
@@ -59,6 +60,7 @@ RvkCanvas* rvk_canvas_create(
       .dev        = dev,
       .swapchain  = swapchain,
       .attachPool = attachPool,
+      .passCount  = passCount,
   };
 
   for (u32 i = 0; i != canvas_job_count; ++i) {
@@ -137,8 +139,11 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
   return true;
 }
 
+u32 rvk_canvas_pass_count(const RvkCanvas* canvas) { return canvas->passCount; }
+
 RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const u32 passIndex) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
+  diag_assert(passIndex < canvas->passCount);
   RvkJob* job = canvas->jobs[canvas->jobIdx];
   return rvk_job_pass(job, passIndex);
 }

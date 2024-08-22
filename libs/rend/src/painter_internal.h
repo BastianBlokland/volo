@@ -6,9 +6,15 @@
 // Internal forward declarations:
 typedef struct sRvkCanvas RvkCanvas;
 
+typedef enum {
+  RendPainterType_2D,
+  RendPainterType_3D,
+} RendPainterType;
+
 ecs_comp_extern_public(RendPainterComp) {
-  DynArray   drawBuffer; // RvkPassDraw[]
-  RvkCanvas* canvas;
+  RendPainterType type;
+  DynArray        drawBuffer; // RvkPassDraw[]
+  RvkCanvas*      canvas;
 };
 
 void rend_painter_teardown(EcsWorld* world, EcsEntityId entity);

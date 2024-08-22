@@ -17,10 +17,13 @@
 #include "rvk/sampler_internal.h"
 #include "rvk/swapchain_internal.h"
 
+ASSERT(rend_stats_max_passes == rvk_canvas_max_passes, "Unexpected pass count")
+
 ecs_comp_define_public(RendStatsComp);
 
 static void ecs_destruct_rend_stats_comp(void* data) {
   RendStatsComp* comp = data;
+  alloc_free_array_t(g_allocHeap, comp->passes, rend_stats_max_passes);
   string_maybe_free(g_allocHeap, comp->gpuName);
 }
 
@@ -52,25 +55,33 @@ ecs_view_define(LoadedResourceView) {
   ecs_access_with(RendResFinishedComp);
 }
 
-static void rend_stat_update_resources(EcsWorld* world, u16 resources[RendStatRes_Count]) {
-  mem_set(mem_create(resources, sizeof(u16) * RendStatRes_Count), 0);
+static void rend_stats_update_resources(EcsWorld* world, u16 resources[RendStatsRes_Count]) {
+  mem_set(mem_create(resources, sizeof(u16) * RendStatsRes_Count), 0);
 
   EcsView* loadedResView = ecs_world_view_t(world, LoadedResourceView);
   for (EcsIterator* itr = ecs_view_itr(loadedResView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
     if (ecs_world_has_t(world, entity, RendResGraphicComp)) {
-      ++resources[RendStatRes_Graphic];
+      ++resources[RendStatsRes_Graphic];
     }
     if (ecs_world_has_t(world, entity, RendResShaderComp)) {
-      ++resources[RendStatRes_Shader];
+      ++resources[RendStatsRes_Shader];
     }
     if (ecs_world_has_t(world, entity, RendResMeshComp)) {
-      ++resources[RendStatRes_Mesh];
+      ++resources[RendStatsRes_Mesh];
     }
     if (ecs_world_has_t(world, entity, RendResTextureComp)) {
-      ++resources[RendStatRes_Texture];
+      ++resources[RendStatsRes_Texture];
     }
   }
+}
+
+static RendStatsComp* rend_stats_create(EcsWorld* world, const EcsEntityId entity) {
+  return ecs_world_add_t(
+      world,
+      entity,
+      RendStatsComp,
+      .passes = alloc_array_t(g_allocHeap, RendStatsPass, rend_stats_max_passes));
 }
 
 ecs_system_define(RendUpdateCamStatsSys) {
@@ -90,7 +101,7 @@ ecs_system_define(RendUpdateCamStatsSys) {
     const RendPainterComp* painter = ecs_view_read_t(itr, RendPainterComp);
     RendStatsComp*         stats   = ecs_view_write_t(itr, RendStatsComp);
     if (!stats) {
-      ecs_world_add_t(world, ecs_view_entity(itr), RendStatsComp);
+      stats = rend_stats_create(world, ecs_view_entity(itr));
       continue;
     }
 
@@ -108,9 +119,10 @@ ecs_system_define(RendUpdateCamStatsSys) {
     stats->presentWaitDur      = swapchainStats.presentWaitDur;
     stats->limiterDur          = limiter->sleepDur;
 
+    stats->passCount = canvasStats.passCount;
     mem_cpy(
-        array_mem(stats->passes),
-        mem_create(canvasStats.passes, sizeof(RendStatPass) * canvasStats.passCount));
+        mem_create(stats->passes, sizeof(RendStatsPass) * rend_stats_max_passes),
+        mem_create(canvasStats.passes, sizeof(RendStatsPass) * canvasStats.passCount));
 
     stats->memChunks    = rvk_mem_chunks(plat->device->memPool);
     stats->ramOccupied  = rvk_mem_occupied(plat->device->memPool, RvkMemLoc_Host);
@@ -124,7 +136,7 @@ ecs_system_define(RendUpdateCamStatsSys) {
     stats->attachCount      = rvk_canvas_attach_count(painter->canvas);
     stats->attachMemory     = rvk_canvas_attach_memory(painter->canvas);
     stats->samplerCount     = rvk_sampler_pool_count(plat->device->samplerPool);
-    rend_stat_update_resources(world, stats->resources);
+    rend_stats_update_resources(world, stats->resources);
   }
 }
 

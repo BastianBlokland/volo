@@ -1,18 +1,20 @@
 #pragma once
 #include "core_time.h"
 #include "ecs_module.h"
-#include "rend_pass.h"
+
+#define rend_stats_max_passes 16
 
 typedef enum {
-  RendStatRes_Graphic,
-  RendStatRes_Shader,
-  RendStatRes_Mesh,
-  RendStatRes_Texture,
+  RendStatsRes_Graphic,
+  RendStatsRes_Shader,
+  RendStatsRes_Mesh,
+  RendStatsRes_Texture,
 
-  RendStatRes_Count,
-} RendStatRes;
+  RendStatsRes_Count,
+} RendStatsRes;
 
 typedef struct {
+  String       name; // Persistently allocated.
   TimeDuration gpuExecDur;
   u16          sizeMax[2];
   u16          invocations;
@@ -20,7 +22,7 @@ typedef struct {
   u32          instances;
   u64          vertices, primitives;
   u64          shadersVert, shadersFrag;
-} RendStatPass;
+} RendStatsPass;
 
 ecs_comp_extern_public(RendStatsComp) {
   String gpuName;
@@ -30,7 +32,8 @@ ecs_comp_extern_public(RendStatsComp) {
   TimeDuration presentAcquireDur, presentEnqueueDur, presentWaitDur;
   TimeDuration limiterDur;
 
-  RendStatPass passes[RendPass_Count];
+  u32            passCount;
+  RendStatsPass* passes; // RendStatsPass[rend_stats_max_passes];
 
   u64 swapchainPresentId;
   u16 swapchainImageCount;
@@ -41,5 +44,5 @@ ecs_comp_extern_public(RendStatsComp) {
   u16 attachCount;
   u64 attachMemory;
   u16 samplerCount;
-  u16 resources[RendStatRes_Count];
+  u16 resources[RendStatsRes_Count];
 };
