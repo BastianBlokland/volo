@@ -1157,15 +1157,19 @@ ecs_system_define(RendPainterCreateSys) {
 
   EcsView* painterView = ecs_world_view_t(world, PainterCreateView);
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
+    const EcsEntityId    entity     = ecs_view_entity(itr);
     const GapWindowComp* windowComp = ecs_view_read_t(itr, GapWindowComp);
     if (gap_window_events(windowComp) & GapWindowEvents_Initializing) {
       continue;
     }
-    const EcsEntityId entity = ecs_view_entity(itr);
+    const bool            hasCam = ecs_world_has_t(world, entity, SceneCameraComp);
+    const RendPainterType type   = hasCam ? RendPainterType_3D : RendPainterType_2D;
+
     ecs_world_add_t(
         world,
         entity,
         RendPainterComp,
+        .type       = type,
         .drawBuffer = dynarray_create_t(g_allocHeap, RvkPassDraw, 1024),
         .canvas = rvk_canvas_create(plat->device, windowComp, g_passConfig, RendPainterPass_Count));
 
@@ -1199,7 +1203,12 @@ ecs_system_define(RendPainterDrawSys) {
     const SceneCameraComp*    cam      = ecs_view_read_t(itr, SceneCameraComp);
     const SceneTransformComp* camTrans = ecs_view_read_t(itr, SceneTransformComp);
 
-    if (cam) {
+    switch (painter->type) {
+    case RendPainterType_2D:
+      rend_canvas_paint_2d(
+          painter, settings, settingsGlobal, time, win, entity, drawView, resourceView);
+      break;
+    case RendPainterType_3D:
       rend_canvas_paint_3d(
           painter,
           settings,
@@ -1213,9 +1222,7 @@ ecs_system_define(RendPainterDrawSys) {
           camTrans,
           drawView,
           resourceView);
-    } else {
-      rend_canvas_paint_2d(
-          painter, settings, settingsGlobal, time, win, entity, drawView, resourceView);
+      break;
     }
   }
 }
