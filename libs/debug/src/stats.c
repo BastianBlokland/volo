@@ -437,10 +437,10 @@ stats_draw_gpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsC
 
   f32 otherFrac = st->gpuExecFrac;
   for (RendPass pass = 0; pass != RendPass_Count; ++pass) {
-    const String       passName     = g_rendPassNames[pass];
+    const String       passName     = rendSt->passes[pass].name;
+    const TimeDuration passDuration = rendSt->passes[pass].gpuExecDur;
     const UiColor      passColor    = g_statsChartColors[pass % array_elems(g_statsChartColors)];
     const f32          passFrac     = st->gpuPassFrac[pass];
-    const TimeDuration passDuration = rendSt->passes[pass].gpuExecDur;
 
     entries[pass] = (StatChartEntry){
         .frac  = passFrac,

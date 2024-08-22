@@ -13,6 +13,7 @@ typedef enum {
 } RendStatRes;
 
 typedef struct {
+  String       name; // Persistently allocated.
   TimeDuration gpuExecDur;
   u16          sizeMax[2];
   u16          invocations;
