@@ -12,6 +12,7 @@
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "geo_query.h"
+#include "rend_pass.h"
 #include "rend_settings.h"
 #include "rend_stats.h"
 #include "scene_camera.h"
@@ -471,7 +472,8 @@ stats_draw_gpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsC
   ui_layout_next(c, Ui_Down, 0);
 }
 
-static void stats_draw_renderer_pass_dropdown(UiCanvasComp* c, const DebugStatsComp* stats) {
+static void stats_draw_renderer_pass_dropdown(
+    UiCanvasComp* c, DebugStatsComp* stats, const RendStatsComp* rendStats) {
   stats_draw_bg(c, DebugBgFlags_None);
   stats_draw_label(c, string_lit("Pass select"));
   {
@@ -480,11 +482,16 @@ static void stats_draw_renderer_pass_dropdown(UiCanvasComp* c, const DebugStatsC
 
     ui_layout_grow(c, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
 
+    String passNames[rend_stats_max_passes];
+    for (u32 i = 0; i != rendStats->passCount; ++i) {
+      passNames[i] = rendStats->passes[i].name;
+    }
+
     ui_select(
         c,
         (i32*)&stats->inspectPassIndex,
-        g_rendPassNames,
-        RendPass_Count,
+        passNames,
+        rendStats->passCount,
         .frameColor     = ui_color(24, 24, 24, 128),
         .dropFrameColor = ui_color(24, 24, 24, 225));
 
@@ -529,7 +536,7 @@ static void debug_stats_draw_interface(
     UiCanvasComp*                  c,
     const GapWindowComp*           window,
     const DebugStatsGlobalComp*    statsGlobal,
-    const DebugStatsComp*          stats,
+    DebugStatsComp*                stats,
     const RendStatsComp*           rendStats,
     const AllocStats*              allocStats,
     const EcsDef*                  ecsDef,
@@ -577,7 +584,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("Mesh resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Mesh])));
     stats_draw_val_entry(c, string_lit("Texture resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Texture])));
 
-    stats_draw_renderer_pass_dropdown(c, stats);
+    stats_draw_renderer_pass_dropdown(c, stats, rendStats);
     const TimeDuration  frameDurAvg = debug_plot_avg_dur(&stats->frameDurPlot);
     const RendStatPass* passStats   = &rendStats->passes[stats->inspectPassIndex];
     const f32           passDurFrac = debug_frame_frac(frameDurAvg, passStats->gpuExecDur);

@@ -1,7 +1,6 @@
 #pragma once
 #include "core_time.h"
 #include "ecs_module.h"
-#include "rend_pass.h"
 
 #define rend_stats_max_passes 16
 

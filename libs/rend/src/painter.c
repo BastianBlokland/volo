@@ -6,6 +6,7 @@
 #include "core_math.h"
 #include "ecs_utils.h"
 #include "gap_window.h"
+#include "rend_pass.h"
 #include "rend_register.h"
 #include "rend_settings.h"
 #include "scene_camera.h"
