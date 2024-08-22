@@ -52,6 +52,7 @@ void rvk_canvas_swapchain_stats(const RvkCanvas*, RvkSwapchainStats* out);
 
 bool rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
 
+u32       rvk_canvas_pass_count(const RvkCanvas*);
 RvkPass*  rvk_canvas_pass(RvkCanvas*, u32 passIndex);
 RvkImage* rvk_canvas_swapchain_image(RvkCanvas*);
 
