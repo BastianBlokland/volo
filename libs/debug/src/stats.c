@@ -579,15 +579,15 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("Samplers"), fmt_write_scratch("{}", fmt_int(rendStats->samplerCount)));
     stats_draw_val_entry(c, string_lit("Descriptor sets"), fmt_write_scratch("{<3} reserved: {}", fmt_int(rendStats->descSetsOccupied), fmt_int(rendStats->descSetsReserved)));
     stats_draw_val_entry(c, string_lit("Descriptor layouts"), fmt_write_scratch("{}", fmt_int(rendStats->descLayouts)));
-    stats_draw_val_entry(c, string_lit("Graphic resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Graphic])));
-    stats_draw_val_entry(c, string_lit("Shader resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Shader])));
-    stats_draw_val_entry(c, string_lit("Mesh resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Mesh])));
-    stats_draw_val_entry(c, string_lit("Texture resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Texture])));
+    stats_draw_val_entry(c, string_lit("Graphic resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatsRes_Graphic])));
+    stats_draw_val_entry(c, string_lit("Shader resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatsRes_Shader])));
+    stats_draw_val_entry(c, string_lit("Mesh resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatsRes_Mesh])));
+    stats_draw_val_entry(c, string_lit("Texture resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatsRes_Texture])));
 
     stats_draw_renderer_pass_dropdown(c, stats, rendStats);
-    const TimeDuration  frameDurAvg = debug_plot_avg_dur(&stats->frameDurPlot);
-    const RendStatPass* passStats   = &rendStats->passes[stats->inspectPassIndex];
-    const f32           passDurFrac = debug_frame_frac(frameDurAvg, passStats->gpuExecDur);
+    const TimeDuration   frameDurAvg = debug_plot_avg_dur(&stats->frameDurPlot);
+    const RendStatsPass* passStats   = &rendStats->passes[stats->inspectPassIndex];
+    const f32            passDurFrac = debug_frame_frac(frameDurAvg, passStats->gpuExecDur);
     stats_draw_val_entry(c, string_lit("Pass resolution max"), fmt_write_scratch("{}x{}", fmt_int(passStats->sizeMax[0]), fmt_int(passStats->sizeMax[1])));
     stats_draw_val_entry(c, string_lit("Pass exec duration"), fmt_write_scratch("{<10} frac: {}", fmt_duration(passStats->gpuExecDur), fmt_float(passDurFrac, .minDecDigits = 2, .maxDecDigits = 2)));
     stats_draw_val_entry(c, string_lit("Pass invocations"), fmt_write_scratch("{}", fmt_int(passStats->invocations)));
