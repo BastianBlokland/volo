@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "log_logger.h"
+#include "trace_tracer.h"
 
 #include "debug_internal.h"
 #include "desc_internal.h"
@@ -525,10 +526,16 @@ rvk_pipeline_create(RvkGraphic* graphic, const VkPipelineLayout layout, const Rv
       .layout              = layout,
       .renderPass          = rvk_pass_vkrenderpass(pass),
   };
-  RvkDevice*      dev  = graphic->device;
-  VkPipelineCache psoc = dev->vkPipelineCache;
-  VkPipeline      result;
-  rvk_call(vkCreateGraphicsPipelines, dev->vkDev, psoc, 1, &pipelineInfo, &dev->vkAlloc, &result);
+
+  VkPipeline result;
+  trace_begin("rend_pipeline_create", TraceColor_Blue);
+  {
+    RvkDevice*      dev  = graphic->device;
+    VkPipelineCache psoc = dev->vkPipelineCache;
+    rvk_call(vkCreateGraphicsPipelines, dev->vkDev, psoc, 1, &pipelineInfo, &dev->vkAlloc, &result);
+  }
+  trace_end();
+
   return result;
 }
 
