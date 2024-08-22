@@ -6,6 +6,7 @@
 #include "core_math.h"
 #include "ecs_utils.h"
 #include "gap_window.h"
+#include "log_logger.h"
 #include "rend_register.h"
 #include "rend_settings.h"
 #include "scene_camera.h"
@@ -200,6 +201,13 @@ static RvkSize painter_win_size(const GapWindowComp* win) {
   return rvk_size((u16)winSize.width, (u16)winSize.height);
 }
 
+static RendView painter_view_2d_create(const EcsEntityId sceneCameraEntity) {
+  const GeoVector      cameraPosition = geo_vector(0);
+  const GeoMatrix      viewProjMatrix = geo_matrix_ident();
+  const SceneTagFilter sceneFilter    = {0};
+  return rend_view_create(sceneCameraEntity, cameraPosition, &viewProjMatrix, sceneFilter);
+}
+
 static RendView painter_view_3d_create(
     const GeoMatrix*     cameraMatrix,
     const GeoMatrix*     projMatrix,
@@ -208,13 +216,6 @@ static RendView painter_view_3d_create(
   const GeoVector cameraPosition = geo_matrix_to_translation(cameraMatrix);
   const GeoMatrix viewMatrix     = geo_matrix_inverse(cameraMatrix);
   const GeoMatrix viewProjMatrix = geo_matrix_mul(projMatrix, &viewMatrix);
-  return rend_view_create(sceneCameraEntity, cameraPosition, &viewProjMatrix, sceneFilter);
-}
-
-static RendView painter_view_2d_create(const EcsEntityId sceneCameraEntity) {
-  const GeoVector      cameraPosition = geo_vector(0);
-  const GeoMatrix      viewProjMatrix = geo_matrix_ident();
-  const SceneTagFilter sceneFilter    = {0};
   return rend_view_create(sceneCameraEntity, cameraPosition, &viewProjMatrix, sceneFilter);
 }
 
@@ -319,7 +320,8 @@ static RvkGraphic* painter_get_graphic(EcsIterator* resourceItr, const EcsEntity
   }
   RendResGraphicComp* graphicResource = ecs_view_write_t(resourceItr, RendResGraphicComp);
   if (!graphicResource) {
-    return null; // Resource is not a graphic. TODO: Should we report an error here?
+    log_e("Invalid graphic asset", log_param("entity", ecs_entity_fmt(resource)));
+    return null;
   }
   return graphicResource->graphic;
 }
@@ -330,7 +332,8 @@ static RvkTexture* painter_get_texture(EcsIterator* resourceItr, const EcsEntity
   }
   RendResTextureComp* textureResource = ecs_view_write_t(resourceItr, RendResTextureComp);
   if (!textureResource) {
-    return null; // Resource is not a texture. TODO: Should we report an error here?
+    log_e("Invalid texture asset", log_param("entity", ecs_entity_fmt(resource)));
+    return null;
   }
   return textureResource->texture;
 }
@@ -779,6 +782,41 @@ static void painter_flush(RendPaintContext* ctx) {
   rvk_pass_end(ctx->pass);
 }
 
+static bool rend_canvas_paint_2d(
+    RendPainterComp*              painter,
+    const RendSettingsComp*       set,
+    const RendSettingsGlobalComp* setGlobal,
+    const SceneTimeComp*          time,
+    const GapWindowComp*          win,
+    const EcsEntityId             camEntity,
+    EcsView*                      drawView,
+    EcsView*                      resourceView) {
+  diag_assert(rvk_canvas_pass_count(painter->canvas) == RendPainter2DPass_Count);
+
+  if (!rvk_canvas_begin(painter->canvas, set, painter_win_size(win))) {
+    return false; // Canvas not ready for rendering.
+  }
+  trace_begin("rend_paint_2d", TraceColor_Red);
+
+  const RendView mainView = painter_view_2d_create(camEntity);
+
+  RvkImage* swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
+  rvk_canvas_img_clear_color(painter->canvas, swapchainImage, geo_color_black);
+
+  RvkPass* postPass = rvk_canvas_pass(painter->canvas, RendPainter2DPass_Post);
+  {
+    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, postPass, mainView);
+    rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
+    painter_push_draws_simple(&ctx, drawView, resourceView, RendDrawFlags_Post, RendDrawFlags_None);
+
+    painter_flush(&ctx);
+  }
+
+  trace_end();
+  rvk_canvas_end(painter->canvas);
+  return true;
+}
+
 static bool rend_canvas_paint_3d(
     RendPainterComp*              painter,
     const RendSettingsComp*       set,
@@ -1124,42 +1162,6 @@ static bool rend_canvas_paint_3d(
   rvk_canvas_attach_release(painter->canvas, distBuffer);
 
   // Finish the frame.
-  trace_end();
-  rvk_canvas_end(painter->canvas);
-  return true;
-}
-
-static bool rend_canvas_paint_2d(
-    RendPainterComp*              painter,
-    const RendSettingsComp*       set,
-    const RendSettingsGlobalComp* setGlobal,
-    const SceneTimeComp*          time,
-    const GapWindowComp*          win,
-    const EcsEntityId             camEntity,
-    EcsView*                      drawView,
-    EcsView*                      resourceView) {
-  diag_assert(rvk_canvas_pass_count(painter->canvas) == RendPainter2DPass_Count);
-
-  const RvkSize winSize = painter_win_size(win);
-  if (!rvk_canvas_begin(painter->canvas, set, winSize)) {
-    return false; // Canvas not ready for rendering.
-  }
-  trace_begin("rend_paint_2d", TraceColor_Red);
-
-  const RendView mainView = painter_view_2d_create(camEntity);
-
-  RvkImage* swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
-  rvk_canvas_img_clear_color(painter->canvas, swapchainImage, geo_color_black);
-
-  RvkPass* postPass = rvk_canvas_pass(painter->canvas, RendPainter2DPass_Post);
-  {
-    RendPaintContext ctx = painter_context(painter, set, setGlobal, time, postPass, mainView);
-    rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
-    painter_push_draws_simple(&ctx, drawView, resourceView, RendDrawFlags_Post, RendDrawFlags_None);
-
-    painter_flush(&ctx);
-  }
-
   trace_end();
   rvk_canvas_end(painter->canvas);
   return true;
