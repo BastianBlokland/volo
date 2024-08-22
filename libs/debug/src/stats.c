@@ -70,8 +70,8 @@ ecs_comp_define(DebugStatsComp) {
   TimeDuration  frameDurDesired;
   DebugStatPlot gpuExecDurPlot; // In microseconds.
 
-  RendPass      passInspect;     // Pass to show stats for.
-  SceneNavLayer navLayerInspect; // Navigation layer to show stats for.
+  u32           inspectPassIndex; // Pass to show stats for.
+  SceneNavLayer inspectNavLayer;  // Navigation layer to show stats for.
 
   // Cpu frame fractions.
   f32 rendWaitForGpuFrac, rendPresAcqFrac, rendPresEnqFrac, rendPresWaitFrac, rendLimiterFrac;
@@ -482,7 +482,7 @@ static void stats_draw_renderer_pass_dropdown(UiCanvasComp* c, const DebugStatsC
 
     ui_select(
         c,
-        (i32*)&stats->passInspect,
+        (i32*)&stats->inspectPassIndex,
         g_rendPassNames,
         RendPass_Count,
         .frameColor     = ui_color(24, 24, 24, 128),
@@ -505,7 +505,7 @@ static void stats_draw_nav_layer_dropdown(UiCanvasComp* c, const DebugStatsComp*
 
     ui_select(
         c,
-        (i32*)&stats->navLayerInspect,
+        (i32*)&stats->inspectNavLayer,
         g_sceneNavLayerNames,
         SceneNavLayer_Count,
         .frameColor     = ui_color(24, 24, 24, 128),
@@ -578,17 +578,18 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("Texture resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatRes_Texture])));
 
     stats_draw_renderer_pass_dropdown(c, stats);
-    const TimeDuration frameDurAvg = debug_plot_avg_dur(&stats->frameDurPlot);
-    const f32          passDurFrac = debug_frame_frac(frameDurAvg, rendStats->passes[stats->passInspect].gpuExecDur);
-    stats_draw_val_entry(c, string_lit("Pass resolution max"), fmt_write_scratch("{}x{}", fmt_int(rendStats->passes[stats->passInspect].sizeMax[0]), fmt_int(rendStats->passes[stats->passInspect].sizeMax[1])));
-    stats_draw_val_entry(c, string_lit("Pass exec duration"), fmt_write_scratch("{<10} frac: {}", fmt_duration(rendStats->passes[stats->passInspect].gpuExecDur), fmt_float(passDurFrac, .minDecDigits = 2, .maxDecDigits = 2)));
-    stats_draw_val_entry(c, string_lit("Pass invocations"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].invocations)));
-    stats_draw_val_entry(c, string_lit("Pass draws"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].draws)));
-    stats_draw_val_entry(c, string_lit("Pass instances"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].instances)));
-    stats_draw_val_entry(c, string_lit("Pass vertices"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].vertices)));
-    stats_draw_val_entry(c, string_lit("Pass primitives"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].primitives)));
-    stats_draw_val_entry(c, string_lit("Pass vertex-shaders"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].shadersVert)));
-    stats_draw_val_entry(c, string_lit("Pass fragment-shaders"), fmt_write_scratch("{}", fmt_int(rendStats->passes[stats->passInspect].shadersFrag)));
+    const TimeDuration  frameDurAvg = debug_plot_avg_dur(&stats->frameDurPlot);
+    const RendStatPass* passStats   = &rendStats->passes[stats->inspectPassIndex];
+    const f32           passDurFrac = debug_frame_frac(frameDurAvg, passStats->gpuExecDur);
+    stats_draw_val_entry(c, string_lit("Pass resolution max"), fmt_write_scratch("{}x{}", fmt_int(passStats->sizeMax[0]), fmt_int(passStats->sizeMax[1])));
+    stats_draw_val_entry(c, string_lit("Pass exec duration"), fmt_write_scratch("{<10} frac: {}", fmt_duration(passStats->gpuExecDur), fmt_float(passDurFrac, .minDecDigits = 2, .maxDecDigits = 2)));
+    stats_draw_val_entry(c, string_lit("Pass invocations"), fmt_write_scratch("{}", fmt_int(passStats->invocations)));
+    stats_draw_val_entry(c, string_lit("Pass draws"), fmt_write_scratch("{}", fmt_int(passStats->draws)));
+    stats_draw_val_entry(c, string_lit("Pass instances"), fmt_write_scratch("{}", fmt_int(passStats->instances)));
+    stats_draw_val_entry(c, string_lit("Pass vertices"), fmt_write_scratch("{}", fmt_int(passStats->vertices)));
+    stats_draw_val_entry(c, string_lit("Pass primitives"), fmt_write_scratch("{}", fmt_int(passStats->primitives)));
+    stats_draw_val_entry(c, string_lit("Pass vertex-shaders"), fmt_write_scratch("{}", fmt_int(passStats->shadersVert)));
+    stats_draw_val_entry(c, string_lit("Pass fragment-shaders"), fmt_write_scratch("{}", fmt_int(passStats->shadersFrag)));
   }
   if(stats_draw_section(c, string_lit("Memory"))) {
     const i64       pageDelta         = allocStats->pageCounter - statsGlobal->allocPrevPageCounter;
@@ -648,7 +649,7 @@ static void debug_stats_draw_interface(
   }
   if(stats_draw_section(c, string_lit("Navigation"))) {
     stats_draw_nav_layer_dropdown(c, stats);
-    const u32* navStats = scene_nav_grid_stats(navEnv, stats->navLayerInspect);
+    const u32* navStats = scene_nav_grid_stats(navEnv, stats->inspectNavLayer);
     stats_draw_val_entry(c, string_lit("Cells"), fmt_write_scratch("total: {<6} axis: {}", fmt_int(navStats[GeoNavStat_CellCountTotal]), fmt_int(navStats[GeoNavStat_CellCountAxis])));
     stats_draw_val_entry(c, string_lit("Grid data"), fmt_write_scratch("{}", fmt_size(navStats[GeoNavStat_GridDataSize])));
     stats_draw_val_entry(c, string_lit("Worker data"), fmt_write_scratch("{}", fmt_size(navStats[GeoNavStat_WorkerDataSize])));
