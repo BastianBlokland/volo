@@ -2,6 +2,7 @@
 #include "ecs_def.h"
 
 enum {
+  RendOrder_ResourceLoad = -1,
   RendOrder_DrawClear    = -100,
   RendOrder_DrawCollect  = 900,
   RendOrder_DrawExecute  = 1000,

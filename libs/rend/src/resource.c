@@ -750,6 +750,7 @@ ecs_module_init(rend_resource_module) {
       ecs_register_view(UnloadUpdateView),
       ecs_view_id(ResWriteView));
 
+  ecs_order(RendResLoadSys, RendOrder_ResourceLoad);
   ecs_order(RendResUnloadUnusedSys, RendOrder_DrawExecute + 1);
 }
 
