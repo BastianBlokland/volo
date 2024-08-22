@@ -1185,19 +1185,15 @@ ecs_system_define(RendPainterCreateSys) {
     const bool            hasCam = ecs_world_has_t(world, entity, SceneCameraComp);
     const RendPainterType type   = hasCam ? RendPainterType_3D : RendPainterType_2D;
 
-    RendPainterComp* p = ecs_world_add_t(
-        world,
-        entity,
-        RendPainterComp,
-        .type       = type,
-        .drawBuffer = dynarray_create_t(g_allocHeap, RvkPassDraw, 1024));
-
+    RendPainterComp* p = ecs_world_add_t(world, entity, RendPainterComp, .type = type);
     switch (type) {
     case RendPainterType_2D:
-      p->canvas = rvk_canvas_create(plat->device, win, g_passConfig2D, RendPainter2DPass_Count);
+      p->drawBuffer = dynarray_create_t(g_allocHeap, RvkPassDraw, 8);
+      p->canvas     = rvk_canvas_create(plat->device, win, g_passConfig2D, RendPainter2DPass_Count);
       break;
     case RendPainterType_3D:
-      p->canvas = rvk_canvas_create(plat->device, win, g_passConfig3D, RendPainter3DPass_Count);
+      p->drawBuffer = dynarray_create_t(g_allocHeap, RvkPassDraw, 128);
+      p->canvas     = rvk_canvas_create(plat->device, win, g_passConfig3D, RendPainter3DPass_Count);
       break;
     }
 
