@@ -6,7 +6,6 @@
 #include "core_math.h"
 #include "ecs_utils.h"
 #include "gap_window.h"
-#include "rend_pass.h"
 #include "rend_register.h"
 #include "rend_settings.h"
 #include "scene_camera.h"
@@ -29,10 +28,25 @@
 #include "rvk/repository_internal.h"
 #include "rvk/texture_internal.h"
 
+typedef enum {
+  RendPainterPass_Geometry,
+  RendPainterPass_Decal,
+  RendPainterPass_Fog,
+  RendPainterPass_FogBlur,
+  RendPainterPass_Shadow,
+  RendPainterPass_AmbientOcclusion,
+  RendPainterPass_Forward,
+  RendPainterPass_Distortion,
+  RendPainterPass_Bloom,
+  RendPainterPass_Post,
+
+  RendPainterPass_Count,
+} RendPainterPass;
+
 // clang-format off
 
-static const RvkPassConfig g_passConfig[RendPass_Count] = {
-    [RendPass_Geometry] = { .name = string_static("Geometry"),
+static const RvkPassConfig g_passConfig[RendPainterPass_Count] = {
+    [RendPainterPass_Geometry] = { .name = string_static("Geometry"),
         // Attachment depth.
         .attachDepth     = RvkPassDepth_Stored,
         .attachDepthLoad = RvkPassLoad_Clear,
@@ -46,7 +60,7 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
         .attachColorLoad[1]   = RvkPassLoad_DontCare,
     },
 
-    [RendPass_Decal] = { .name = string_static("Decal"),
+    [RendPainterPass_Decal] = { .name = string_static("Decal"),
         // Attachment depth.
         .attachDepth     = RvkPassDepth_Stored,
         .attachDepthLoad = RvkPassLoad_Preserve,
@@ -60,31 +74,31 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
         .attachColorLoad[1]   = RvkPassLoad_Preserve,
     },
 
-    [RendPass_Fog] = { .name = string_static("Fog"),
+    [RendPainterPass_Fog] = { .name = string_static("Fog"),
         // Attachment color 0: vision (r).
         .attachColorFormat[0] = RvkPassFormat_Color1Linear,
         .attachColorLoad[0]   = RvkPassLoad_Clear,
     },
 
-    [RendPass_FogBlur] = { .name = string_static("FogBlur"),
+    [RendPainterPass_FogBlur] = { .name = string_static("FogBlur"),
         // Attachment color 0: vision (r).
         .attachColorFormat[0] = RvkPassFormat_Color1Linear,
         .attachColorLoad[0]   = RvkPassLoad_PreserveDontCheck,
     },
 
-    [RendPass_Shadow] = { .name = string_static("Shadow"),
+    [RendPainterPass_Shadow] = { .name = string_static("Shadow"),
         // Attachment depth.
         .attachDepth     = RvkPassDepth_Stored,
         .attachDepthLoad = RvkPassLoad_Clear,
     },
 
-    [RendPass_AmbientOcclusion] = { .name = string_static("AmbientOcclusion"),
+    [RendPainterPass_AmbientOcclusion] = { .name = string_static("AmbientOcclusion"),
         // Attachment color 0: occlusion (r).
         .attachColorFormat[0] = RvkPassFormat_Color1Linear,
         .attachColorLoad[0]   = RvkPassLoad_DontCare,
     },
 
-    [RendPass_Forward] = { .name = string_static("Forward"),
+    [RendPainterPass_Forward] = { .name = string_static("Forward"),
         // Attachment depth.
         .attachDepth     = RvkPassDepth_Stored, // Stored as Distortion still needs the depth.
         .attachDepthLoad = RvkPassLoad_Preserve,
@@ -94,7 +108,7 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
         .attachColorLoad[0]   = RvkPassLoad_DontCare,
     },
 
-    [RendPass_Distortion] = { .name = string_static("Distortion"),
+    [RendPainterPass_Distortion] = { .name = string_static("Distortion"),
         // Attachment depth.
         .attachDepth     = RvkPassDepth_Transient,
         .attachDepthLoad = RvkPassLoad_Preserve,
@@ -104,13 +118,13 @@ static const RvkPassConfig g_passConfig[RendPass_Count] = {
         .attachColorLoad[0]   = RvkPassLoad_Clear,
     },
 
-    [RendPass_Bloom] = { .name = string_static("Bloom"),
+    [RendPainterPass_Bloom] = { .name = string_static("Bloom"),
         // Attachment color 0: bloom (rgb).
         .attachColorFormat[0] = RvkPassFormat_Color3Float,
         .attachColorLoad[0]   = RvkPassLoad_PreserveDontCheck,
     },
 
-    [RendPass_Post] = { .name = string_static("Post"),
+    [RendPainterPass_Post] = { .name = string_static("Post"),
         // Attachment color 0: color (rgba).
         .attachColorFormat[0] = RvkPassFormat_Swapchain,
         .attachColorLoad[0]   = RvkPassLoad_DontCare,
@@ -783,7 +797,7 @@ static bool rend_canvas_paint_3d(
 
   // Geometry pass.
   const RvkSize geoSize  = rvk_size_scale(swapchainSize, set->resolutionScale);
-  RvkPass*      geoPass  = rvk_canvas_pass(painter->canvas, RendPass_Geometry);
+  RvkPass*      geoPass  = rvk_canvas_pass(painter->canvas, RendPainterPass_Geometry);
   RvkImage*     geoData0 = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 0, geoSize);
   RvkImage*     geoData1 = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 1, geoSize);
   RvkImage*     geoDepth = rvk_canvas_attach_acquire_depth(painter->canvas, geoPass, geoSize);
@@ -806,7 +820,7 @@ static bool rend_canvas_paint_3d(
   RvkImage* geoDepthRead = rvk_canvas_attach_acquire_copy(painter->canvas, geoDepth);
 
   // Decal pass.
-  RvkPass* decalPass = rvk_canvas_pass(painter->canvas, RendPass_Decal);
+  RvkPass* decalPass = rvk_canvas_pass(painter->canvas, RendPainterPass_Decal);
   if (set->flags & RendFlags_Decals) {
     trace_begin("rend_paint_decals", TraceColor_White);
 
@@ -830,7 +844,7 @@ static bool rend_canvas_paint_3d(
 
   // Fog pass.
   const bool    fogActive = rend_fog_active(fog);
-  RvkPass*      fogPass   = rvk_canvas_pass(painter->canvas, RendPass_Fog);
+  RvkPass*      fogPass   = rvk_canvas_pass(painter->canvas, RendPainterPass_Fog);
   const u16     fogRes    = set->fogResolution;
   const RvkSize fogSize   = fogActive ? (RvkSize){fogRes, fogRes} : (RvkSize){1, 1};
   RvkImage*     fogBuffer = rvk_canvas_attach_acquire_color(painter->canvas, fogPass, 0, fogSize);
@@ -853,7 +867,7 @@ static bool rend_canvas_paint_3d(
   }
 
   // Fog-blur pass.
-  RvkPass* fogBlurPass = rvk_canvas_pass(painter->canvas, RendPass_FogBlur);
+  RvkPass* fogBlurPass = rvk_canvas_pass(painter->canvas, RendPainterPass_FogBlur);
   if (fogActive && set->fogBlurSteps) {
     trace_begin("rend_paint_fog_blur", TraceColor_White);
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, fogBlurPass, mainView);
@@ -885,7 +899,7 @@ static bool rend_canvas_paint_3d(
   const bool    shadowsActive = set->flags & RendFlags_Shadows && rend_light_has_shadow(light);
   const RvkSize shadowSize =
       shadowsActive ? (RvkSize){set->shadowResolution, set->shadowResolution} : (RvkSize){1, 1};
-  RvkPass*  shadowPass  = rvk_canvas_pass(painter->canvas, RendPass_Shadow);
+  RvkPass*  shadowPass  = rvk_canvas_pass(painter->canvas, RendPainterPass_Shadow);
   RvkImage* shadowDepth = rvk_canvas_attach_acquire_depth(painter->canvas, shadowPass, shadowSize);
   if (shadowsActive) {
     trace_begin("rend_paint_shadows", TraceColor_White);
@@ -910,7 +924,7 @@ static bool rend_canvas_paint_3d(
   const RvkSize aoSize   = set->flags & RendFlags_AmbientOcclusion
                                ? rvk_size_scale(geoSize, set->aoResolutionScale)
                                : (RvkSize){1, 1};
-  RvkPass*      aoPass   = rvk_canvas_pass(painter->canvas, RendPass_AmbientOcclusion);
+  RvkPass*      aoPass   = rvk_canvas_pass(painter->canvas, RendPainterPass_AmbientOcclusion);
   RvkImage*     aoBuffer = rvk_canvas_attach_acquire_color(painter->canvas, aoPass, 0, aoSize);
   if (set->flags & RendFlags_AmbientOcclusion) {
     trace_begin("rend_paint_ao", TraceColor_White);
@@ -927,7 +941,7 @@ static bool rend_canvas_paint_3d(
   }
 
   // Forward pass.
-  RvkPass*  fwdPass  = rvk_canvas_pass(painter->canvas, RendPass_Forward);
+  RvkPass*  fwdPass  = rvk_canvas_pass(painter->canvas, RendPainterPass_Forward);
   RvkImage* fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0, geoSize);
   {
     trace_begin("rend_paint_forward", TraceColor_White);
@@ -979,7 +993,7 @@ static bool rend_canvas_paint_3d(
   const RvkSize distSize = set->flags & RendFlags_Distortion
                                ? rvk_size_scale(geoSize, set->distortionResolutionScale)
                                : (RvkSize){1, 1};
-  RvkPass*      distPass = rvk_canvas_pass(painter->canvas, RendPass_Distortion);
+  RvkPass*      distPass = rvk_canvas_pass(painter->canvas, RendPainterPass_Distortion);
   RvkImage* distBuffer   = rvk_canvas_attach_acquire_color(painter->canvas, distPass, 0, distSize);
   if (set->flags & RendFlags_Distortion) {
     trace_begin("rend_paint_distortion", TraceColor_White);
@@ -1011,7 +1025,7 @@ static bool rend_canvas_paint_3d(
   rvk_canvas_attach_release(painter->canvas, geoDepth);
 
   // Bloom pass.
-  RvkPass*  bloomPass = rvk_canvas_pass(painter->canvas, RendPass_Bloom);
+  RvkPass*  bloomPass = rvk_canvas_pass(painter->canvas, RendPainterPass_Bloom);
   RvkImage* bloomOutput;
   if (set->flags & RendFlags_Bloom && set->bloomIntensity > f32_epsilon) {
     trace_begin("rend_paint_bloom", TraceColor_White);
@@ -1058,7 +1072,7 @@ static bool rend_canvas_paint_3d(
   }
 
   // Post pass.
-  RvkPass* postPass = rvk_canvas_pass(painter->canvas, RendPass_Post);
+  RvkPass* postPass = rvk_canvas_pass(painter->canvas, RendPainterPass_Post);
   {
     trace_begin("rend_paint_post", TraceColor_White);
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, postPass, mainView);
@@ -1119,7 +1133,7 @@ static bool rend_canvas_paint_2d(
   RvkImage* swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
   rvk_canvas_img_clear_color(painter->canvas, swapchainImage, geo_color_black);
 
-  RvkPass* postPass = rvk_canvas_pass(painter->canvas, RendPass_Post);
+  RvkPass* postPass = rvk_canvas_pass(painter->canvas, RendPainterPass_Post);
   {
     RendPaintContext ctx = painter_context(painter, set, setGlobal, time, postPass, mainView);
     rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
@@ -1153,7 +1167,7 @@ ecs_system_define(RendPainterCreateSys) {
         entity,
         RendPainterComp,
         .drawBuffer = dynarray_create_t(g_allocHeap, RvkPassDraw, 1024),
-        .canvas     = rvk_canvas_create(plat->device, windowComp, g_passConfig, RendPass_Count));
+        .canvas = rvk_canvas_create(plat->device, windowComp, g_passConfig, RendPainterPass_Count));
 
     if (!ecs_world_has_t(world, entity, RendSettingsComp)) {
       RendSettingsComp* settings = ecs_world_add_t(world, entity, RendSettingsComp);
