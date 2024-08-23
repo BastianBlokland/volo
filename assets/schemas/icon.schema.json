@@ -1,8 +1,8 @@
 {
-  "title": "CursorDef",
-  "$ref": "#/$defs/CursorDef",
+  "title": "IconDef",
+  "$ref": "#/$defs/IconDef",
   "$defs": {
-    "CursorDef": {
+    "IconDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {

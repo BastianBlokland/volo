@@ -154,10 +154,10 @@ void asset_data_init(void) {
     asset_data_init_arraytex();
     asset_data_init_atlas();
     asset_data_init_cache();
-    asset_data_init_cursor();
     asset_data_init_decal();
     asset_data_init_fonttex();
     asset_data_init_graphic();
+    asset_data_init_icon();
     asset_data_init_inputmap();
     asset_data_init_level();
     asset_data_init_mesh();

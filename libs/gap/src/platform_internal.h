@@ -5,7 +5,7 @@
 #include "pal_internal.h"
 
 typedef struct {
-  EcsEntityId asset;
+  EcsEntityId iconAsset;
   bool        loading;
 } GapPlatformCursor;
 

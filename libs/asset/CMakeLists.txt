@@ -8,11 +8,11 @@ add_library(lib_asset STATIC
   src/cache.c
   src/data.c
   src/format.c
-  src/loader_cursor.c
   src/loader_decal.c
   src/loader_font_ttf.c
   src/loader_font.c
   src/loader_graphic.c
+  src/loader_icon.c
   src/loader_inputmap.c
   src/loader_level.c
   src/loader_mesh_gltf.c

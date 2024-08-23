@@ -1,6 +1,6 @@
 #include "asset_atlas.h"
-#include "asset_cursor.h"
 #include "asset_fonttex.h"
+#include "asset_icon.h"
 #include "asset_level.h"
 #include "asset_mesh.h"
 #include "asset_shader.h"
@@ -11,10 +11,10 @@
 #include "format_internal.h"
 
 static const String g_assetFormatExtensions[AssetFormat_Count] = {
-    [AssetFormat_Cursor]         = string_static("cursor"),
     [AssetFormat_Decal]          = string_static("decal"),
     [AssetFormat_FontTtf]        = string_static("ttf"),
     [AssetFormat_Graphic]        = string_static("graphic"),
+    [AssetFormat_Icon]           = string_static("icon"),
     [AssetFormat_Inputs]         = string_static("inputs"),
     [AssetFormat_Level]          = string_static("level"),
     [AssetFormat_MeshGltf]       = string_static("gltf"),
@@ -42,11 +42,11 @@ static const String g_assetFormatExtensions[AssetFormat_Count] = {
 };
 
 static const String g_assetFormatNames[AssetFormat_Count] = {
-    [AssetFormat_Cursor]         = string_static("Cursor"),
-    [AssetFormat_CursorBin]      = string_static("CursorBin"),
     [AssetFormat_Decal]          = string_static("Decal"),
     [AssetFormat_FontTtf]        = string_static("FontTtf"),
     [AssetFormat_Graphic]        = string_static("Graphic"),
+    [AssetFormat_Icon]           = string_static("Icon"),
+    [AssetFormat_IconBin]        = string_static("IconBin"),
     [AssetFormat_Inputs]         = string_static("Inputs"),
     [AssetFormat_Level]          = string_static("Level"),
     [AssetFormat_LevelBin]       = string_static("LevelBin"),
@@ -82,7 +82,7 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
 };
 
 static const DataMeta* g_assetFormatBinMeta[AssetFormat_Count] = {
-    [AssetFormat_CursorBin]   = &g_assetCursorMeta,
+    [AssetFormat_IconBin]     = &g_assetIconMeta,
     [AssetFormat_LevelBin]    = &g_assetLevelDefMeta,
     [AssetFormat_MeshBin]     = &g_assetMeshBundleMeta,
     [AssetFormat_ShaderBin]   = &g_assetShaderMeta,

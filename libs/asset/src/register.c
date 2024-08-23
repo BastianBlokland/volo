@@ -7,10 +7,10 @@
 void asset_register(EcsDef* def) {
   asset_data_init();
 
-  ecs_register_module(def, asset_cursor_module);
   ecs_register_module(def, asset_decal_module);
   ecs_register_module(def, asset_font_module);
   ecs_register_module(def, asset_graphic_module);
+  ecs_register_module(def, asset_icon_module);
   ecs_register_module(def, asset_inputmap_module);
   ecs_register_module(def, asset_level_module);
   ecs_register_module(def, asset_manager_module);

@@ -6,14 +6,14 @@
 #include "platform_internal.h"
 
 static const String g_gapCursorAssets[GapCursor_Count] = {
-    [GapCursor_Normal]         = string_static("cursors/normal.cursor"),
-    [GapCursor_Text]           = string_static("cursors/text.cursor"),
-    [GapCursor_Click]          = string_static("cursors/click.cursor"),
-    [GapCursor_Select]         = string_static("cursors/select.cursor"),
-    [GapCursor_SelectAdd]      = string_static("cursors/select-add.cursor"),
-    [GapCursor_SelectSubtract] = string_static("cursors/select-subtract.cursor"),
-    [GapCursor_Target]         = string_static("cursors/target.cursor"),
-    [GapCursor_Resize]         = string_static("cursors/resize.cursor"),
+    [GapCursor_Normal]         = string_static("cursors/normal.icon"),
+    [GapCursor_Text]           = string_static("cursors/text.icon"),
+    [GapCursor_Click]          = string_static("cursors/click.icon"),
+    [GapCursor_Select]         = string_static("cursors/select.icon"),
+    [GapCursor_SelectAdd]      = string_static("cursors/select-add.icon"),
+    [GapCursor_SelectSubtract] = string_static("cursors/select-subtract.icon"),
+    [GapCursor_Target]         = string_static("cursors/target.icon"),
+    [GapCursor_Resize]         = string_static("cursors/resize.icon"),
 };
 
 ecs_comp_define_public(GapPlatformComp);
@@ -28,43 +28,43 @@ ecs_view_define(UpdateGlobalView) {
   ecs_access_write(AssetManagerComp);
 }
 
-ecs_view_define(CursorView) { ecs_access_read(AssetCursorComp); }
+ecs_view_define(IconView) { ecs_access_read(AssetIconComp); }
 
 static void gap_platform_update_cursors(EcsWorld* world, GapPlatformComp* platform) {
-  EcsView*     cursorView = ecs_world_view_t(world, CursorView);
-  EcsIterator* cursorItr  = ecs_view_itr(cursorView);
+  EcsView*     iconView = ecs_world_view_t(world, IconView);
+  EcsIterator* iconItr  = ecs_view_itr(iconView);
 
   for (GapCursor c = 0; c != GapCursor_Count; ++c) {
-    if (!platform->cursors[c].asset) {
+    if (!platform->cursors[c].iconAsset) {
       goto Wait;
     }
     if (!platform->cursors[c].loading) {
       // When the cursor source asset changes start loading it again.
-      if (ecs_world_has_t(world, platform->cursors[c].asset, AssetChangedComp)) {
+      if (ecs_world_has_t(world, platform->cursors[c].iconAsset, AssetChangedComp)) {
         platform->cursors[c].loading = true;
-        asset_acquire(world, platform->cursors[c].asset);
+        asset_acquire(world, platform->cursors[c].iconAsset);
       }
       goto Wait;
     }
-    if (ecs_world_has_t(world, platform->cursors[c].asset, AssetFailedComp)) {
+    if (ecs_world_has_t(world, platform->cursors[c].iconAsset, AssetFailedComp)) {
       goto Done;
     }
-    if (!ecs_world_has_t(world, platform->cursors[c].asset, AssetLoadedComp)) {
+    if (!ecs_world_has_t(world, platform->cursors[c].iconAsset, AssetLoadedComp)) {
       goto Wait;
     }
-    if (UNLIKELY(!ecs_view_maybe_jump(cursorItr, platform->cursors[c].asset))) {
+    if (UNLIKELY(!ecs_view_maybe_jump(iconItr, platform->cursors[c].iconAsset))) {
       log_e(
-          "Cursor invalid",
+          "Cursor icon invalid",
           log_param("id", fmt_text(g_gapCursorAssets[c])),
-          log_param("entity", ecs_entity_fmt(platform->cursors[c].asset)));
+          log_param("entity", ecs_entity_fmt(platform->cursors[c].iconAsset)));
       goto Done;
     }
-    gap_pal_cursor_load(platform->pal, c, ecs_view_read_t(cursorItr, AssetCursorComp));
-    log_d("Cursor loaded", log_param("id", fmt_text(g_gapCursorAssets[c])));
+    gap_pal_cursor_load(platform->pal, c, ecs_view_read_t(iconItr, AssetIconComp));
+    log_d("Cursor icon loaded", log_param("id", fmt_text(g_gapCursorAssets[c])));
 
   Done:
     platform->cursors[c].loading = false;
-    asset_release(world, platform->cursors[c].asset);
+    asset_release(world, platform->cursors[c].iconAsset);
 
   Wait:
     continue;
@@ -88,9 +88,9 @@ ecs_system_define(GapPlatformUpdateSys) {
       if (string_is_empty(g_gapCursorAssets[c])) {
         continue; // No custom cursor specified for this type.
       }
-      platform->cursors[c].asset   = asset_lookup(world, assetManager, g_gapCursorAssets[c]);
-      platform->cursors[c].loading = true;
-      asset_acquire(world, platform->cursors[c].asset);
+      platform->cursors[c].iconAsset = asset_lookup(world, assetManager, g_gapCursorAssets[c]);
+      platform->cursors[c].loading   = true;
+      asset_acquire(world, platform->cursors[c].iconAsset);
     }
   }
 
@@ -102,14 +102,14 @@ ecs_module_init(gap_platform_module) {
   ecs_register_comp(GapPlatformComp, .destructor = ecs_destruct_platform_comp, .destructOrder = 30);
 
   ecs_register_view(UpdateGlobalView);
-  ecs_register_view(CursorView);
+  ecs_register_view(IconView);
 
   EcsSystemFlags sysFlags = 0;
   if (gap_pal_require_thread_affinity()) {
     sysFlags |= EcsSystemFlags_ThreadAffinity;
   }
   ecs_register_system_with_flags(
-      GapPlatformUpdateSys, sysFlags, ecs_view_id(UpdateGlobalView), ecs_view_id(CursorView));
+      GapPlatformUpdateSys, sysFlags, ecs_view_id(UpdateGlobalView), ecs_view_id(IconView));
 
   ecs_order(GapPlatformUpdateSys, GapOrder_PlatformUpdate);
 }

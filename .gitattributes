@@ -17,10 +17,10 @@
 *.frag linguist-language=GLSL
 *.arraytex linguist-language=JSON
 *.atlas linguist-language=JSON
-*.cursor linguist-language=JSON
 *.decal linguist-language=JSON
 *.fonttex linguist-language=JSON
 *.graphic linguist-language=JSON
+*.icon linguist-language=JSON
 *.inputs linguist-language=JSON
 *.level linguist-language=JSON
 *.prefabs linguist-language=JSON

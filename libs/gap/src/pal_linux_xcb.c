@@ -1323,7 +1323,7 @@ void gap_pal_flush(GapPal* pal) {
   }
 }
 
-void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp* asset) {
+void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* asset) {
   if (!(pal->extensions & GapPalXcbExtFlags_Render)) {
     return; // The render extension is required for pix-map cursors.
   }
@@ -1338,11 +1338,11 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
   xcb_create_gc(pal->xcbCon, graphicsContext, pixmap, 0, null);
 
   // Flip the y axis of the image and convert to argb.
-  const Mem               buffer = alloc_alloc(g_allocScratch, asset->height * asset->width * 4, 4);
-  const AssetCursorPixel* inPixel = asset->pixelData.ptr;
+  const Mem             buffer  = alloc_alloc(g_allocScratch, asset->height * asset->width * 4, 4);
+  const AssetIconPixel* inPixel = asset->pixelData.ptr;
   for (u32 y = asset->height; y-- != 0;) {
     for (u32 x = 0; x != asset->width; ++x) {
-      u8* outData = bits_ptr_offset(buffer.ptr, (y * asset->width + x) * sizeof(AssetCursorPixel));
+      u8* outData = bits_ptr_offset(buffer.ptr, (y * asset->width + x) * sizeof(AssetIconPixel));
       outData[0]  = inPixel->a;
       outData[1]  = inPixel->r;
       outData[2]  = inPixel->g;

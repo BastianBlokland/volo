@@ -844,7 +844,7 @@ void gap_pal_update(GapPal* pal) {
 
 void gap_pal_flush(GapPal* pal) { (void)pal; }
 
-void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp* asset) {
+void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* asset) {
   BITMAPV5HEADER header = {
       .bV5Size        = sizeof(BITMAPV5HEADER),
       .bV5Width       = (LONG)asset->width,
@@ -859,10 +859,10 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
   HBITMAP bitmap = CreateDIBSection(deviceCtx, (BITMAPINFO*)&header, DIB_RGB_COLORS, &bits, 0, 0);
   ReleaseDC(null, deviceCtx);
 
-  const AssetCursorPixel* inPixel = asset->pixelData.ptr;
+  const AssetIconPixel* inPixel = asset->pixelData.ptr;
   for (u32 y = 0; y != asset->height; ++y) {
     for (u32 x = 0; x != asset->width; ++x) {
-      u8* outData = bits_ptr_offset(bits, (y * asset->width + x) * sizeof(AssetCursorPixel));
+      u8* outData = bits_ptr_offset(bits, (y * asset->width + x) * sizeof(AssetIconPixel));
       outData[0]  = inPixel->b;
       outData[1]  = inPixel->g;
       outData[2]  = inPixel->r;
