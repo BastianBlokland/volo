@@ -923,7 +923,6 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .lpfnWndProc   = pal_window_proc,
       .hInstance     = pal->moduleInstance,
       .hCursor       = pal->cursors[GapCursor_Normal],
-      .hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH),
       .lpszClassName = className.ptr,
   };
 
