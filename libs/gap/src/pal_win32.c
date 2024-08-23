@@ -781,10 +781,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc          = alloc,
-      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-      .moduleInstance = instance,
-      .owningThreadId = g_threadTid,
+             .alloc          = alloc,
+             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+             .moduleInstance = instance,
+             .owningThreadId = g_threadTid,
   };
   pal_dpi_init(pal);
   pal_cursors_init(pal);
@@ -922,11 +922,9 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .style         = CS_HREDRAW | CS_VREDRAW,
       .lpfnWndProc   = pal_window_proc,
       .hInstance     = pal->moduleInstance,
-      .hIcon         = LoadIcon(null, IDI_APPLICATION),
-      .hCursor       = LoadCursor(null, IDC_ARROW),
+      .hCursor       = pal->cursors[GapCursor_Normal],
       .hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH),
       .lpszClassName = className.ptr,
-      .hIconSm       = LoadIcon(null, IDI_WINLOGO),
   };
 
   if (!RegisterClassEx(&winClass)) {
