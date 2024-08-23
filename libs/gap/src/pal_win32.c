@@ -66,6 +66,8 @@ struct sGapPal {
   ThreadId    owningThreadId;
   GapPalFlags flags;
 
+  HICON windowIcon;
+
   HCURSOR cursors[GapCursor_Count];
   u32     cursorIcons; // bit[GapCursor_Count], mask of which cursors are custom icons.
 };
@@ -804,6 +806,9 @@ void gap_pal_destroy(GapPal* pal) {
   while (pal->windows.size) {
     gap_pal_window_destroy(pal, dynarray_at_t(&pal->windows, 0, GapPalWindow)->id);
   }
+  if (pal->windowIcon) {
+    DestroyIcon(pal->windowIcon);
+  }
   for (GapCursor cursor = 0; cursor != GapCursor_Count; ++cursor) {
     if (pal->cursorIcons & (1 << cursor)) {
       DestroyIcon(pal->cursors[cursor]);
@@ -924,6 +929,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .hInstance     = pal->moduleInstance,
       .hCursor       = pal->cursors[GapCursor_Normal],
       .lpszClassName = className.ptr,
+      .hIcon         = pal->windowIcon,
+      .hIconSm       = pal->windowIcon,
   };
 
   if (!RegisterClassEx(&winClass)) {
