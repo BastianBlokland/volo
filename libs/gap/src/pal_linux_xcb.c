@@ -51,7 +51,8 @@ typedef struct {
   GapVector         params[GapParam_Count];
   GapVector         centerPos;
   GapPalWindowFlags flags : 16;
-  GapCursor         cursor : 16;
+  GapIcon           icon : 8;
+  GapCursor         cursor : 8;
   GapKeySet         keysPressed, keysPressedWithRepeat, keysReleased, keysDown;
   DynString         inputText;
   String            clipCopy, clipPaste;
@@ -1056,22 +1057,6 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
   xcb_delete_property(pal->xcbCon, (xcb_window_t)windowId, pal->atomVoloClipboard);
 }
 
-static void gap_pal_window_icon_set(GapPal* pal, const GapIcon icon, const GapWindowId winId) {
-  if (mem_valid(pal->icons[GapIcon_Main])) {
-    xcb_change_property(
-        pal->xcbCon,
-        XCB_PROP_MODE_REPLACE,
-        (xcb_window_t)winId,
-        pal->atomWmIcon,
-        XCB_ATOM_CARDINAL,
-        sizeof(u32) * 8,
-        (u32)(pal->icons[icon].size / sizeof(u32)),
-        pal->icons[icon].ptr);
-  } else {
-    xcb_delete_property(pal->xcbCon, (xcb_window_t)winId, pal->atomWmIcon);
-  }
-}
-
 GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
 
@@ -1394,9 +1379,11 @@ void gap_pal_icon_load(GapPal* pal, const GapIcon icon, const AssetIconComp* ass
   dataRem          = mem_write_le_u32(dataRem, asset->height);
   gap_pal_icon_to_bgra_flipped(asset, dataRem);
 
-  // Update the icon for all existing windows.
+  // Update the icon for all existing windows that use this icon type.
   dynarray_for_t(&pal->windows, GapPalWindow, window) {
-    gap_pal_window_icon_set(pal, icon, window->id);
+    if (window->icon == icon) {
+      gap_pal_window_icon_set(pal, window->id, icon);
+    }
   }
 }
 
@@ -1501,11 +1488,6 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       1,
       &pal->atomDeleteMsg);
 
-  gap_pal_window_icon_set(pal, GapIcon_Main, id);
-
-  xcb_map_window(con, (xcb_window_t)id);
-  pal_set_window_min_size(pal, id, gap_vector(pal_window_min_width, pal_window_min_height));
-
   *dynarray_push_t(&pal->windows, GapPalWindow) = (GapPalWindow){
       .id                          = id,
       .params[GapParam_WindowSize] = size,
@@ -1518,6 +1500,10 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   if (pal->extensions & GapPalXcbExtFlags_Randr) {
     xcb_randr_select_input(pal->xcbCon, (xcb_window_t)id, XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE);
   }
+
+  gap_pal_window_icon_set(pal, id, GapIcon_Main);
+  pal_set_window_min_size(pal, id, gap_vector(pal_window_min_width, pal_window_min_height));
+  xcb_map_window(con, (xcb_window_t)id);
 
   log_i("Window created", log_param("id", fmt_int(id)), log_param("size", gap_vector_fmt(size)));
 
@@ -1676,6 +1662,27 @@ void gap_pal_window_cursor_confine(GapPal* pal, const GapWindowId windowId, cons
     pal->flags &= ~GapPalFlags_CursorConfined;
     return;
   }
+}
+
+void gap_pal_window_icon_set(GapPal* pal, const GapWindowId windowId, const GapIcon icon) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  diag_assert(window);
+
+  if (mem_valid(pal->icons[icon])) {
+    xcb_change_property(
+        pal->xcbCon,
+        XCB_PROP_MODE_REPLACE,
+        (xcb_window_t)windowId,
+        pal->atomWmIcon,
+        XCB_ATOM_CARDINAL,
+        sizeof(u32) * 8,
+        (u32)(pal->icons[icon].size / sizeof(u32)),
+        pal->icons[icon].ptr);
+  } else {
+    xcb_delete_property(pal->xcbCon, (xcb_window_t)windowId, pal->atomWmIcon);
+  }
+
+  window->icon = icon;
 }
 
 void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const GapCursor cursor) {

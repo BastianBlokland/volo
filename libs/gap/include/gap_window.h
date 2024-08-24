@@ -118,6 +118,11 @@ bool gap_window_key_released(const GapWindowComp*, GapKey);
 bool gap_window_key_down(const GapWindowComp*, GapKey);
 
 /**
+ * Update the window icon.
+ */
+void gap_window_icon_set(GapWindowComp*, GapIcon);
+
+/**
  * Update the window cursor.
  */
 void gap_window_cursor_set(GapWindowComp*, GapCursor);

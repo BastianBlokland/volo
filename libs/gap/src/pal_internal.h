@@ -64,6 +64,7 @@ const GapKeySet*  gap_pal_window_keys_down(const GapPal*, GapWindowId);
 String            gap_pal_window_input_text(const GapPal*, GapWindowId);
 void              gap_pal_window_title_set(GapPal*, GapWindowId, String);
 void              gap_pal_window_resize(GapPal*, GapWindowId, GapVector size, bool fullscreen);
+void              gap_pal_window_icon_set(GapPal*, GapWindowId, GapIcon);
 void              gap_pal_window_cursor_hide(GapPal*, GapWindowId, bool hidden);
 void              gap_pal_window_cursor_capture(GapPal*, GapWindowId, bool captured);
 void              gap_pal_window_cursor_confine(GapPal*, GapWindowId, bool confined);
