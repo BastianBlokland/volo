@@ -68,9 +68,16 @@ typedef struct {
   u16       dpi;
 } GapPalDisplay;
 
+/**
+ * X11 Icon.
+ *
+ * Data format:
+ * - u32 width.
+ * - u32 height.
+ * - u8 pixelData[width * height * 4].  ARGB vertically flipped (top = y0).
+ */
 typedef struct {
-  Mem pixels; // u8[width * height * 4]. ARGB and vertically flipped (top = y0).
-  u32 width, height;
+  Mem data;
 } GapPalIcon;
 
 struct sGapPal {
@@ -107,23 +114,29 @@ static const xcb_event_mask_t g_xcbWindowEventMask =
 
 static GapPalIcon gap_pal_icon_create(Allocator* alloc, const AssetIconComp* asset) {
   GapPalIcon result = {
-      .pixels = alloc_alloc(alloc, asset->height * asset->width * 4, 4),
-      .width  = asset->width,
-      .height = asset->height,
+      .data = alloc_alloc(alloc, 8 + asset->height * asset->width * 4, 4),
   };
+  Mem out = result.data;
+  out     = mem_write_le_u32(out, asset->width);
+  out     = mem_write_le_u32(out, asset->height);
+
   // Flip the y axis of the image and convert to argb.
   const AssetIconPixel* inPixel = asset->pixelData.ptr;
   for (u32 y = asset->height; y-- != 0;) {
     for (u32 x = 0; x != asset->width; ++x) {
-      u8* outData = bits_ptr_offset(result.pixels.ptr, (y * asset->width + x) * 4);
-      outData[0]  = inPixel->a;
-      outData[1]  = inPixel->r;
-      outData[2]  = inPixel->g;
-      outData[3]  = inPixel->b;
+      u8* outPixel = bits_ptr_offset(out.ptr, (y * asset->width + x) * 4);
+      outPixel[0]  = inPixel->a;
+      outPixel[1]  = inPixel->r;
+      outPixel[2]  = inPixel->g;
+      outPixel[3]  = inPixel->b;
       ++inPixel;
     }
   }
   return result;
+}
+
+static Mem gap_pal_icon_pixels(const GapPalIcon* icon) {
+  return mem_consume(icon->data, sizeof(u32) * 2);
 }
 
 static GapPalWindow* pal_maybe_window(GapPal* pal, const GapWindowId id) {
@@ -1124,8 +1137,8 @@ void gap_pal_destroy(GapPal* pal) {
   if (pal->xkbState) {
     xkb_state_unref(pal->xkbState);
   }
-  if (mem_valid(pal->icon.pixels)) {
-    alloc_free(pal->alloc, pal->icon.pixels);
+  if (mem_valid(pal->icon.data)) {
+    alloc_free(pal->alloc, pal->icon.data);
   }
   array_for_t(pal->cursors, xcb_cursor_t, cursor) {
     if (*cursor != XCB_NONE) {
@@ -1354,8 +1367,8 @@ void gap_pal_flush(GapPal* pal) {
 }
 
 void gap_pal_icon_load(GapPal* pal, const AssetIconComp* asset) {
-  if (mem_valid(pal->icon.pixels)) {
-    alloc_free(pal->alloc, pal->icon.pixels);
+  if (mem_valid(pal->icon.data)) {
+    alloc_free(pal->alloc, pal->icon.data);
   }
   pal->icon = gap_pal_icon_create(pal->alloc, asset);
 }
@@ -1374,7 +1387,8 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
   xcb_gcontext_t graphicsContext = xcb_generate_id(pal->xcbCon);
   xcb_create_gc(pal->xcbCon, graphicsContext, pixmap, 0, null);
 
-  const GapPalIcon iconScratch = gap_pal_icon_create(g_allocScratch, asset);
+  const GapPalIcon iconScratch       = gap_pal_icon_create(g_allocScratch, asset);
+  const Mem        iconPixelsScratch = gap_pal_icon_pixels(&iconScratch);
 
   xcb_put_image(
       pal->xcbCon,
@@ -1387,8 +1401,8 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
       0,
       0,
       32,
-      (u32)iconScratch.pixels.size,
-      iconScratch.pixels.ptr);
+      (u32)iconPixelsScratch.size,
+      iconPixelsScratch.ptr);
 
   xcb_free_gc(pal->xcbCon, graphicsContext);
 
