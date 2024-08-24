@@ -92,6 +92,7 @@ struct sGapPal {
 
   xcb_render_pictformat_t formatArgb32;
 
+  GapPalIcon   icon;
   xcb_cursor_t cursors[GapCursor_Count];
 
   xcb_atom_t atomProtoMsg, atomDeleteMsg, atomWmState, atomWmStateFullscreen,
@@ -1123,6 +1124,9 @@ void gap_pal_destroy(GapPal* pal) {
   if (pal->xkbState) {
     xkb_state_unref(pal->xkbState);
   }
+  if (mem_valid(pal->icon.pixels)) {
+    alloc_free(pal->alloc, pal->icon.pixels);
+  }
   array_for_t(pal->cursors, xcb_cursor_t, cursor) {
     if (*cursor != XCB_NONE) {
       xcb_free_cursor(pal->xcbCon, *cursor);
@@ -1350,8 +1354,10 @@ void gap_pal_flush(GapPal* pal) {
 }
 
 void gap_pal_icon_load(GapPal* pal, const AssetIconComp* asset) {
-  (void)pal;
-  (void)asset;
+  if (mem_valid(pal->icon.pixels)) {
+    alloc_free(pal->alloc, pal->icon.pixels);
+  }
+  pal->icon = gap_pal_icon_create(pal->alloc, asset);
 }
 
 void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* asset) {
