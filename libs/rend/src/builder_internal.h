@@ -34,4 +34,5 @@ void rend_builder_set_draw_mesh(RendBuilderBuffer*, RvkMesh*);
 void rend_builder_set_draw_image(RendBuilderBuffer*, RvkImage*);
 void rend_builder_set_draw_sampler(RendBuilderBuffer*, const RvkSamplerSpec*);
 void rend_builder_push(RendBuilderBuffer*);
+void rend_builder_discard(RendBuilderBuffer*);
 void rend_builder_flush(RendBuilderBuffer*);

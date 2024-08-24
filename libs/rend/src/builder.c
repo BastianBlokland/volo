@@ -104,6 +104,11 @@ void rend_builder_push(RendBuilderBuffer* buffer) {
   buffer->stage = (RvkPassDraw){0};
 }
 
+void rend_builder_discard(RendBuilderBuffer* buffer) {
+  diag_assert_msg(buffer->pass, "Pass not set");
+  buffer->stage = (RvkPassDraw){0};
+}
+
 void rend_builder_flush(RendBuilderBuffer* buffer) {
   rvk_pass_begin(buffer->pass);
   {
