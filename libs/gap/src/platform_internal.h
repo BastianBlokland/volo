@@ -11,6 +11,6 @@ typedef struct {
 
 ecs_comp_extern_public(GapPlatformComp) {
   GapPal*         pal;
-  GapPlatformIcon icon;
+  GapPlatformIcon icons[GapIcon_Count];
   GapPlatformIcon cursors[GapCursor_Count];
 };

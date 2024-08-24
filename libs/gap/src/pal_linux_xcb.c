@@ -1370,7 +1370,8 @@ static void gap_pal_icon_to_bgra_flipped(const AssetIconComp* asset, const Mem o
   }
 }
 
-void gap_pal_icon_load(GapPal* pal, const AssetIconComp* asset) {
+void gap_pal_icon_load(GapPal* pal, const GapIcon icon, const AssetIconComp* asset) {
+  (void)icon;
   if (mem_valid(pal->iconData)) {
     alloc_free(pal->alloc, pal->iconData);
   }
