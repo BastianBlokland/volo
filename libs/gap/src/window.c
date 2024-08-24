@@ -309,6 +309,7 @@ EcsEntityId gap_window_create(
     const GapWindowMode  mode,
     const GapWindowFlags flags,
     const GapVector      size,
+    const GapIcon        icon,
     const String         title) {
   const EcsEntityId windowEntity = ecs_world_entity_create(world);
   GapWindowComp*    comp         = ecs_world_add_t(
@@ -323,6 +324,7 @@ EcsEntityId gap_window_create(
       .inputText                   = dynstring_create(g_allocHeap, 64));
 
   gap_window_flags_set(comp, flags);
+  gap_window_icon_set(comp, icon);
   if (!string_is_empty(title)) {
     gap_window_title_set(comp, title);
   }

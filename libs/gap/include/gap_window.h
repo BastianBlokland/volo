@@ -57,7 +57,7 @@ ecs_comp_extern_public(GapWindowAspectComp) { f32 ratio; /* width / height */ };
  * Create a new window with the given size.
  */
 EcsEntityId
-gap_window_create(EcsWorld*, GapWindowMode, GapWindowFlags, GapVector size, String title);
+gap_window_create(EcsWorld*, GapWindowMode, GapWindowFlags, GapVector size, GapIcon, String title);
 
 /**
  * Close a currently open window.

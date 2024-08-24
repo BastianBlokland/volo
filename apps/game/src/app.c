@@ -60,8 +60,9 @@ static EcsEntityId app_main_window_create(
 
   const GapVector     size   = {.width = (i32)width, .height = (i32)height};
   const GapWindowMode mode   = fullscreen ? GapWindowMode_Fullscreen : GapWindowMode_Windowed;
+  const GapIcon       icon   = GapIcon_Main;
   const String        title  = string_empty; // Use default title.
-  const EcsEntityId   window = gap_window_create(world, mode, flags, size, title);
+  const EcsEntityId   window = gap_window_create(world, mode, flags, size, icon, title);
 
   const EcsEntityId uiCanvas       = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   const EcsEntityId debugLogViewer = debug_log_viewer_create(world, window, LogMask_None);
