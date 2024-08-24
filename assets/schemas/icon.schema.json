@@ -17,9 +17,9 @@
           ]
         }
       },
-      "required": [ "texture", "hotspotX", "hotspotY" ],
+      "required": [ "texture" ],
       "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"texture\": \"placeholder\",\n  \"hotspotX\": 0,\n  \"hotspotY\": 0\n}" }
+        { "label": "New", "body": "^{\n  \"texture\": \"placeholder\"\n}" }
       ]
     },
     "GeoColor": {

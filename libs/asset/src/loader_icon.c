@@ -229,8 +229,8 @@ void asset_data_init_icon(void) {
   // clang-format off
   data_reg_struct_t(g_dataReg, IconDef);
   data_reg_field_t(g_dataReg, IconDef, texture, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, IconDef, hotspotX, data_prim_t(u32));
-  data_reg_field_t(g_dataReg, IconDef, hotspotY, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, IconDef, hotspotX, data_prim_t(u32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, IconDef, hotspotY, data_prim_t(u32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, IconDef, scale, data_prim_t(f32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
   data_reg_field_t(g_dataReg, IconDef, color, g_assetGeoColorType, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
 
