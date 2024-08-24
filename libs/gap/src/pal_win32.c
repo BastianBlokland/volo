@@ -34,7 +34,8 @@ typedef struct {
   DynString         inputText;
   String            clipPaste;
   String            displayName;
-  GapCursor         cursor;
+  GapIcon           icon : 8;
+  GapCursor         cursor : 8;
   f32               refreshRate;
   u16               dpi;
 } GapPalWindow;
@@ -66,7 +67,7 @@ struct sGapPal {
   ThreadId    owningThreadId;
   GapPalFlags flags;
 
-  HICON windowIcon, windowIconOld;
+  HICON icons[GapIcon_Count], iconsOld[GapIcon_Count];
 
   HCURSOR cursors[GapCursor_Count];
   u32     cursorIcons; // bit[GapCursor_Count], mask of which cursors are custom icons.
@@ -806,11 +807,13 @@ void gap_pal_destroy(GapPal* pal) {
   while (pal->windows.size) {
     gap_pal_window_destroy(pal, dynarray_at_t(&pal->windows, 0, GapPalWindow)->id);
   }
-  if (pal->windowIcon) {
-    DestroyIcon(pal->windowIcon);
-  }
-  if (pal->windowIconOld) {
-    DestroyIcon(pal->windowIconOld);
+  for (GapIcon icon = 0; icon != GapIcon_Count; ++icon) {
+    if (pal->icons[icon]) {
+      DestroyIcon(pal->icons[icon]);
+    }
+    if (pal->iconsOld[icon]) {
+      DestroyIcon(pal->iconsOld[icon]);
+    }
   }
   for (GapCursor cursor = 0; cursor != GapCursor_Count; ++cursor) {
     if (pal->cursorIcons & (1 << cursor)) {
@@ -845,9 +848,11 @@ void gap_pal_update(GapPal* pal) {
   }
 
   // Delete any old resources.
-  if (pal->windowIconOld) {
-    DestroyIcon(pal->windowIconOld);
-    pal->windowIconOld = null;
+  for (GapIcon icon = 0; icon != GapIcon_Count; ++icon) {
+    if (pal->iconsOld[icon]) {
+      DestroyIcon(pal->iconsOld[icon]);
+      pal->iconsOld[icon] = null;
+    }
   }
 }
 
@@ -898,19 +903,20 @@ static HICON gap_pal_win32_icon_create(const AssetIconComp* asset) {
   return result;
 }
 
-void gap_pal_icon_load(GapPal* pal, const AssetIconComp* asset) {
-  if (pal->windowIconOld) {
+void gap_pal_icon_load(GapPal* pal, const GapIcon icon, const AssetIconComp* asset) {
+  if (pal->iconsOld[icon]) {
     log_e("Unable to load new icon until the next platform update");
     return;
   }
   // Delay the deletion of the old icon until we've processed the 'WM_SETICON' messages.
-  pal->windowIconOld = pal->windowIcon;
-  pal->windowIcon    = gap_pal_win32_icon_create(asset);
+  pal->iconsOld[icon] = pal->icons[icon];
+  pal->icons[icon]    = gap_pal_win32_icon_create(asset);
 
-  // Set this icon active on all windows.
+  // Set this icon active on all existing windows that use this icon type.
   dynarray_for_t(&pal->windows, GapPalWindow, window) {
-    PostMessage((HWND)window->id, WM_SETICON, ICON_SMALL, (LPARAM)pal->windowIcon);
-    PostMessage((HWND)window->id, WM_SETICON, ICON_BIG, (LPARAM)pal->windowIcon);
+    if (window->icon == icon) {
+      gap_pal_window_icon_set(pal, window->id, icon);
+    }
   }
 }
 
@@ -959,8 +965,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .hInstance     = pal->moduleInstance,
       .hCursor       = pal->cursors[GapCursor_Normal],
       .lpszClassName = className.ptr,
-      .hIcon         = pal->windowIcon,
-      .hIconSm       = pal->windowIcon,
+      .hIcon         = pal->icons[GapIcon_Main],
+      .hIconSm       = pal->icons[GapIcon_Main],
   };
 
   if (!RegisterClassEx(&winClass)) {
@@ -1201,6 +1207,16 @@ void gap_pal_window_cursor_confine(GapPal* pal, const GapWindowId windowId, cons
     pal->flags &= ~GapPalFlags_CursorConfined;
     return;
   }
+}
+
+void gap_pal_window_icon_set(GapPal* pal, const GapWindowId windowId, const GapIcon icon) {
+  GapPalWindow* window = pal_maybe_window(pal, windowId);
+  diag_assert(window);
+
+  PostMessage((HWND)window->id, WM_SETICON, ICON_SMALL, (LPARAM)pal->icons[icon]);
+  PostMessage((HWND)window->id, WM_SETICON, ICON_BIG, (LPARAM)pal->icons[icon]);
+
+  window->icon = icon;
 }
 
 void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const GapCursor cursor) {
