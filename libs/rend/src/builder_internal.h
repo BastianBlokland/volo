@@ -5,10 +5,11 @@
 typedef struct sAllocator Allocator;
 
 // Internal forward declarations:
-typedef struct sRvkGraphic RvkGraphic;
-typedef struct sRvkImage   RvkImage;
-typedef struct sRvkMesh    RvkMesh;
-typedef struct sRvkPass    RvkPass;
+typedef struct sRvkGraphic     RvkGraphic;
+typedef struct sRvkImage       RvkImage;
+typedef struct sRvkMesh        RvkMesh;
+typedef struct sRvkPass        RvkPass;
+typedef struct sRvkSamplerSpec RvkSamplerSpec;
 
 /**
  * Utility to submit draws.
@@ -27,8 +28,9 @@ RendBuilderBuffer* rend_builder_buffer(const RendBuilder*);
 
 void rend_builder_clear(RendBuilderBuffer*);
 void rend_builder_set_pass(RendBuilderBuffer*, RvkPass*);
-void rend_builder_set_draw_graphic(RendBuilderBuffer*, RvkGraphic*);
+void rend_builder_set_graphic(RendBuilderBuffer*, RvkGraphic*);
+void rend_builder_set_vertex_count(RendBuilderBuffer*, u32 vertexCount);
 void rend_builder_set_draw_mesh(RendBuilderBuffer*, RvkMesh*);
 void rend_builder_set_draw_image(RendBuilderBuffer*, RvkImage*);
-void rend_builder_set_draw_vertex_count(RendBuilderBuffer*, u32 vertexCount);
+void rend_builder_set_draw_sampler(RendBuilderBuffer*, const RvkSamplerSpec*);
 void rend_builder_flush(RendBuilderBuffer*);

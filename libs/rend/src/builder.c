@@ -10,12 +10,13 @@
 #define rend_builder_workers_max 8
 
 struct sRendBuilderBuffer {
-  RvkPass*    pass;
-  RvkGraphic* drawGraphic;
-  RvkMesh*    drawMesh;
-  RvkImage*   drawImage;
-  u32         drawVertexCount;
-  DynArray    draws; // RvkPassDraw[]
+  RvkPass*       pass;
+  RvkGraphic*    graphic;
+  RvkMesh*       drawMesh;
+  RvkImage*      drawImage;
+  RvkSamplerSpec drawSampler;
+  u32            vertexCountOverride;
+  DynArray       draws; // RvkPassDraw[]
 };
 
 struct sRendBuilder {
@@ -54,11 +55,11 @@ RendBuilderBuffer* rend_builder_buffer(const RendBuilder* builder) {
 }
 
 void rend_builder_clear(RendBuilderBuffer* buffer) {
-  buffer->pass            = null;
-  buffer->drawGraphic     = null;
-  buffer->drawMesh        = null;
-  buffer->drawImage       = null;
-  buffer->drawVertexCount = 0;
+  buffer->pass                = null;
+  buffer->graphic             = null;
+  buffer->drawMesh            = null;
+  buffer->drawImage           = null;
+  buffer->vertexCountOverride = 0;
   dynarray_clear(&buffer->draws);
 }
 
@@ -67,9 +68,13 @@ void rend_builder_set_pass(RendBuilderBuffer* buffer, RvkPass* pass) {
   buffer->pass = pass;
 }
 
-void rend_builder_set_draw_graphic(RendBuilderBuffer* buffer, RvkGraphic* graphic) {
-  diag_assert_msg(!buffer->drawGraphic, "Draw graphic already set");
-  buffer->drawGraphic = graphic;
+void rend_builder_set_graphic(RendBuilderBuffer* buffer, RvkGraphic* graphic) {
+  diag_assert_msg(!buffer->graphic, "Graphic already set");
+  buffer->graphic = graphic;
+}
+
+void rend_builder_set_vertex_count(RendBuilderBuffer* buffer, const u32 vertexCount) {
+  buffer->vertexCountOverride = vertexCount;
 }
 
 void rend_builder_set_draw_mesh(RendBuilderBuffer* buffer, RvkMesh* mesh) {
@@ -82,8 +87,8 @@ void rend_builder_set_draw_image(RendBuilderBuffer* buffer, RvkImage* image) {
   buffer->drawImage = image;
 }
 
-void rend_builder_set_draw_vertex_count(RendBuilderBuffer* buffer, const u32 vertexCount) {
-  buffer->drawVertexCount = vertexCount;
+void rend_builder_set_draw_sampler(RendBuilderBuffer* buffer, const RvkSamplerSpec* sampler) {
+  buffer->drawSampler = *sampler;
 }
 
 void rend_builder_flush(RendBuilderBuffer* buffer) {
