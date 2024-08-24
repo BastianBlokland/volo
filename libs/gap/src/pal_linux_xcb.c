@@ -623,7 +623,7 @@ static bool pal_render_find_formats(GapPal* pal) {
   }
 
   free(formats);
-  return false; // Rgba32 not found.
+  return false; // Argb32 not found.
 }
 
 static bool pal_render_init(GapPal* pal) {
@@ -1103,7 +1103,7 @@ static void gap_pal_window_icon_set(GapPal* pal, const GapWindowId winId, const 
       pal->atomWmIcon,
       XCB_ATOM_CARDINAL,
       32,
-      (u32)(icon->data.size / 4),
+      (u32)(icon->data.size / sizeof(u32)),
       icon->data.ptr);
 }
 
