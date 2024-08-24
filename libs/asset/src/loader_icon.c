@@ -247,16 +247,16 @@ void asset_data_init_icon(void) {
 }
 
 void asset_load_icon(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  IconDef        IconDef;
+  IconDef        iconDef;
   String         errMsg;
   DataReadResult readRes;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetIconDefMeta, mem_var(IconDef), &readRes);
+  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetIconDefMeta, mem_var(iconDef), &readRes);
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
     goto Error;
   }
 
-  ecs_world_add_t(world, entity, AssetIconLoadComp, .def = IconDef);
+  ecs_world_add_t(world, entity, AssetIconLoadComp, .def = iconDef);
   goto Cleanup;
 
 Error:
@@ -265,7 +265,7 @@ Error:
       log_param("id", fmt_text(id)),
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(errMsg)));
-  data_destroy(g_dataReg, g_allocHeap, g_assetIconDefMeta, mem_var(IconDef));
+  data_destroy(g_dataReg, g_allocHeap, g_assetIconDefMeta, mem_var(iconDef));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:
