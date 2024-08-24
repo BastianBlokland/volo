@@ -66,7 +66,7 @@ struct sGapPal {
   ThreadId    owningThreadId;
   GapPalFlags flags;
 
-  HICON windowIcon;
+  HICON windowIcon, windowIconOld;
 
   HCURSOR cursors[GapCursor_Count];
   u32     cursorIcons; // bit[GapCursor_Count], mask of which cursors are custom icons.
@@ -809,6 +809,9 @@ void gap_pal_destroy(GapPal* pal) {
   if (pal->windowIcon) {
     DestroyIcon(pal->windowIcon);
   }
+  if (pal->windowIconOld) {
+    DestroyIcon(pal->windowIconOld);
+  }
   for (GapCursor cursor = 0; cursor != GapCursor_Count; ++cursor) {
     if (pal->cursorIcons & (1 << cursor)) {
       DestroyIcon(pal->cursors[cursor]);
@@ -840,11 +843,17 @@ void gap_pal_update(GapPal* pal) {
       DispatchMessage(&msg);
     }
   }
+
+  // Delete any old resources.
+  if (pal->windowIconOld) {
+    DestroyIcon(pal->windowIconOld);
+    pal->windowIconOld = null;
+  }
 }
 
 void gap_pal_flush(GapPal* pal) { (void)pal; }
 
-void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* asset) {
+static HICON gap_pal_win32_icon_create(const AssetIconComp* asset) {
   BITMAPV5HEADER header = {
       .bV5Size        = sizeof(BITMAPV5HEADER),
       .bV5Width       = (LONG)asset->width,
@@ -879,13 +888,34 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
       .hbmColor = bitmap,
   };
 
-  HCURSOR cursor = CreateIconIndirect(&iconInfo);
+  HICON result = CreateIconIndirect(&iconInfo);
   if (!DeleteObject(iconInfo.hbmMask)) {
     pal_crash_with_win32_err(string_lit("DeleteObject"));
   }
   if (!DeleteObject(iconInfo.hbmColor)) {
     pal_crash_with_win32_err(string_lit("DeleteObject"));
   }
+  return result;
+}
+
+void gap_pal_icon_load(GapPal* pal, const AssetIconComp* asset) {
+  if (pal->windowIconOld) {
+    log_e("Unable to load new icon until the next platform update");
+    return;
+  }
+  // Delay the deletion of the old icon until we've processed the 'WM_SETICON' messages.
+  pal->windowIconOld = pal->windowIcon;
+  pal->windowIcon    = gap_pal_win32_icon_create(asset);
+
+  // Set this icon active on all windows.
+  dynarray_for_t(&pal->windows, GapPalWindow, window) {
+    PostMessage((HWND)window->id, WM_SETICON, ICON_SMALL, (LPARAM)pal->windowIcon);
+    PostMessage((HWND)window->id, WM_SETICON, ICON_BIG, (LPARAM)pal->windowIcon);
+  }
+}
+
+void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* asset) {
+  HICON cursor = gap_pal_win32_icon_create(asset);
   if (pal->cursorIcons & (1 << id)) {
     bool cursorInUse = false;
     dynarray_for_t(&pal->windows, GapPalWindow, window) { cursorInUse |= window->cursor == id; }
