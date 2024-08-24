@@ -4,7 +4,6 @@
 #include "core_annotation.h"
 #include "core_string.h"
 #include "core_time.h"
-#include "gap_cursor.h"
 #include "gap_icon.h"
 #include "gap_native.h"
 #include "gap_vector.h"
