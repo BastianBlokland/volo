@@ -3,11 +3,11 @@
 #include "data_registry.h"
 
 typedef enum {
-  AssetFormat_Cursor,
-  AssetFormat_CursorBin,
   AssetFormat_Decal,
   AssetFormat_FontTtf,
   AssetFormat_Graphic,
+  AssetFormat_Icon,
+  AssetFormat_IconBin,
   AssetFormat_Inputs,
   AssetFormat_Level,
   AssetFormat_LevelBin,

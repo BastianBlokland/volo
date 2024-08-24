@@ -66,6 +66,8 @@ struct sGapPal {
   ThreadId    owningThreadId;
   GapPalFlags flags;
 
+  HICON windowIcon, windowIconOld;
+
   HCURSOR cursors[GapCursor_Count];
   u32     cursorIcons; // bit[GapCursor_Count], mask of which cursors are custom icons.
 };
@@ -781,10 +783,10 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
   *pal        = (GapPal){
-      .alloc          = alloc,
-      .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
-      .moduleInstance = instance,
-      .owningThreadId = g_threadTid,
+             .alloc          = alloc,
+             .windows        = dynarray_create_t(alloc, GapPalWindow, 4),
+             .moduleInstance = instance,
+             .owningThreadId = g_threadTid,
   };
   pal_dpi_init(pal);
   pal_cursors_init(pal);
@@ -803,6 +805,12 @@ GapPal* gap_pal_create(Allocator* alloc) {
 void gap_pal_destroy(GapPal* pal) {
   while (pal->windows.size) {
     gap_pal_window_destroy(pal, dynarray_at_t(&pal->windows, 0, GapPalWindow)->id);
+  }
+  if (pal->windowIcon) {
+    DestroyIcon(pal->windowIcon);
+  }
+  if (pal->windowIconOld) {
+    DestroyIcon(pal->windowIconOld);
   }
   for (GapCursor cursor = 0; cursor != GapCursor_Count; ++cursor) {
     if (pal->cursorIcons & (1 << cursor)) {
@@ -835,11 +843,17 @@ void gap_pal_update(GapPal* pal) {
       DispatchMessage(&msg);
     }
   }
+
+  // Delete any old resources.
+  if (pal->windowIconOld) {
+    DestroyIcon(pal->windowIconOld);
+    pal->windowIconOld = null;
+  }
 }
 
 void gap_pal_flush(GapPal* pal) { (void)pal; }
 
-void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp* asset) {
+static HICON gap_pal_win32_icon_create(const AssetIconComp* asset) {
   BITMAPV5HEADER header = {
       .bV5Size        = sizeof(BITMAPV5HEADER),
       .bV5Width       = (LONG)asset->width,
@@ -854,10 +868,10 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
   HBITMAP bitmap = CreateDIBSection(deviceCtx, (BITMAPINFO*)&header, DIB_RGB_COLORS, &bits, 0, 0);
   ReleaseDC(null, deviceCtx);
 
-  const AssetCursorPixel* inPixel = asset->pixelData.ptr;
+  const AssetIconPixel* inPixel = asset->pixelData.ptr;
   for (u32 y = 0; y != asset->height; ++y) {
     for (u32 x = 0; x != asset->width; ++x) {
-      u8* outData = bits_ptr_offset(bits, (y * asset->width + x) * sizeof(AssetCursorPixel));
+      u8* outData = bits_ptr_offset(bits, (y * asset->width + x) * sizeof(AssetIconPixel));
       outData[0]  = inPixel->b;
       outData[1]  = inPixel->g;
       outData[2]  = inPixel->r;
@@ -874,13 +888,34 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
       .hbmColor = bitmap,
   };
 
-  HCURSOR cursor = CreateIconIndirect(&iconInfo);
+  HICON result = CreateIconIndirect(&iconInfo);
   if (!DeleteObject(iconInfo.hbmMask)) {
     pal_crash_with_win32_err(string_lit("DeleteObject"));
   }
   if (!DeleteObject(iconInfo.hbmColor)) {
     pal_crash_with_win32_err(string_lit("DeleteObject"));
   }
+  return result;
+}
+
+void gap_pal_icon_load(GapPal* pal, const AssetIconComp* asset) {
+  if (pal->windowIconOld) {
+    log_e("Unable to load new icon until the next platform update");
+    return;
+  }
+  // Delay the deletion of the old icon until we've processed the 'WM_SETICON' messages.
+  pal->windowIconOld = pal->windowIcon;
+  pal->windowIcon    = gap_pal_win32_icon_create(asset);
+
+  // Set this icon active on all windows.
+  dynarray_for_t(&pal->windows, GapPalWindow, window) {
+    PostMessage((HWND)window->id, WM_SETICON, ICON_SMALL, (LPARAM)pal->windowIcon);
+    PostMessage((HWND)window->id, WM_SETICON, ICON_BIG, (LPARAM)pal->windowIcon);
+  }
+}
+
+void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* asset) {
+  HICON cursor = gap_pal_win32_icon_create(asset);
   if (pal->cursorIcons & (1 << id)) {
     bool cursorInUse = false;
     dynarray_for_t(&pal->windows, GapPalWindow, window) { cursorInUse |= window->cursor == id; }
@@ -922,11 +957,10 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       .style         = CS_HREDRAW | CS_VREDRAW,
       .lpfnWndProc   = pal_window_proc,
       .hInstance     = pal->moduleInstance,
-      .hIcon         = LoadIcon(null, IDI_APPLICATION),
-      .hCursor       = LoadCursor(null, IDC_ARROW),
-      .hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH),
+      .hCursor       = pal->cursors[GapCursor_Normal],
       .lpszClassName = className.ptr,
-      .hIconSm       = LoadIcon(null, IDI_WINLOGO),
+      .hIcon         = pal->windowIcon,
+      .hIconSm       = pal->windowIcon,
   };
 
   if (!RegisterClassEx(&winClass)) {

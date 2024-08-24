@@ -5,11 +5,12 @@
 #include "pal_internal.h"
 
 typedef struct {
-  EcsEntityId asset;
+  EcsEntityId iconAsset;
   bool        loading;
-} GapPlatformCursor;
+} GapPlatformIcon;
 
 ecs_comp_extern_public(GapPlatformComp) {
-  GapPal*           pal;
-  GapPlatformCursor cursors[GapCursor_Count];
+  GapPal*         pal;
+  GapPlatformIcon icon;
+  GapPlatformIcon cursors[GapCursor_Count];
 };

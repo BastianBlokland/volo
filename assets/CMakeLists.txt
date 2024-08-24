@@ -112,6 +112,7 @@ if(${EXTERNAL_ASSETS})
       icon/icon_structure_turret_gun.tga
       icon/icon_structure_turret_missile.tga
       icon/icon_vehicle_tank.tga
+      icon/icon_volo_dark.tga
       maynard/maynard_3_color_rough.tga
       maynard/maynard_3_nrm.tga
       maynard/maynard_3.bin

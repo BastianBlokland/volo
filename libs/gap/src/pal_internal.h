@@ -1,5 +1,5 @@
 #pragma once
-#include "asset_cursor.h"
+#include "asset_icon.h"
 #include "core_alloc.h"
 #include "core_annotation.h"
 #include "core_string.h"
@@ -50,7 +50,8 @@ void    gap_pal_destroy(GapPal*);
 void    gap_pal_update(GapPal*);
 void    gap_pal_flush(GapPal*);
 
-void gap_pal_cursor_load(GapPal*, GapCursor, const AssetCursorComp*);
+void gap_pal_icon_load(GapPal*, const AssetIconComp*);
+void gap_pal_cursor_load(GapPal*, GapCursor, const AssetIconComp*);
 
 GapWindowId       gap_pal_window_create(GapPal*, GapVector size);
 void              gap_pal_window_destroy(GapPal*, GapWindowId);

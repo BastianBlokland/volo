@@ -87,9 +87,10 @@ struct sGapPal {
 
   xcb_render_pictformat_t formatArgb32;
 
+  Mem          iconData;
   xcb_cursor_t cursors[GapCursor_Count];
 
-  xcb_atom_t atomProtoMsg, atomDeleteMsg, atomWmState, atomWmStateFullscreen,
+  xcb_atom_t atomProtoMsg, atomDeleteMsg, atomWmIcon, atomWmState, atomWmStateFullscreen,
       atomWmStateBypassCompositor, atomClipboard, atomVoloClipboard, atomTargets, atomUtf8String,
       atomPlainUtf8;
 };
@@ -360,6 +361,7 @@ static void pal_xcb_connect(GapPal* pal) {
   // Retrieve atoms to use while communicating with the x-server.
   pal->atomProtoMsg                = pal_xcb_atom(pal, string_lit("WM_PROTOCOLS"));
   pal->atomDeleteMsg               = pal_xcb_atom(pal, string_lit("WM_DELETE_WINDOW"));
+  pal->atomWmIcon                  = pal_xcb_atom(pal, string_lit("_NET_WM_ICON"));
   pal->atomWmState                 = pal_xcb_atom(pal, string_lit("_NET_WM_STATE"));
   pal->atomWmStateFullscreen       = pal_xcb_atom(pal, string_lit("_NET_WM_STATE_FULLSCREEN"));
   pal->atomWmStateBypassCompositor = pal_xcb_atom(pal, string_lit("_NET_WM_BYPASS_COMPOSITOR"));
@@ -582,7 +584,7 @@ static bool pal_render_find_formats(GapPal* pal) {
   }
 
   free(formats);
-  return false; // Rgba32 not found.
+  return false; // Argb32 not found.
 }
 
 static bool pal_render_init(GapPal* pal) {
@@ -1054,6 +1056,18 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
   xcb_delete_property(pal->xcbCon, (xcb_window_t)windowId, pal->atomVoloClipboard);
 }
 
+static void gap_pal_window_icon_set(GapPal* pal, const GapWindowId winId) {
+  xcb_change_property(
+      pal->xcbCon,
+      XCB_PROP_MODE_REPLACE,
+      (xcb_window_t)winId,
+      pal->atomWmIcon,
+      XCB_ATOM_CARDINAL,
+      sizeof(u32) * 8,
+      (u32)(pal->iconData.size / sizeof(u32)),
+      pal->iconData.ptr);
+}
+
 GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
 
@@ -1096,6 +1110,9 @@ void gap_pal_destroy(GapPal* pal) {
   }
   if (pal->xkbState) {
     xkb_state_unref(pal->xkbState);
+  }
+  if (mem_valid(pal->iconData)) {
+    alloc_free(pal->alloc, pal->iconData);
   }
   array_for_t(pal->cursors, xcb_cursor_t, cursor) {
     if (*cursor != XCB_NONE) {
@@ -1323,7 +1340,59 @@ void gap_pal_flush(GapPal* pal) {
   }
 }
 
-void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp* asset) {
+static void gap_pal_icon_to_argb_flipped(const AssetIconComp* asset, const Mem out) {
+  diag_assert(out.size == asset->width * asset->height * 4);
+  const AssetIconPixel* inPixel = asset->pixelData.ptr;
+  for (u32 y = asset->height; y-- != 0;) {
+    for (u32 x = 0; x != asset->width; ++x) {
+      u8* outPixel = bits_ptr_offset(out.ptr, (y * asset->width + x) * 4);
+      outPixel[0]  = inPixel->a;
+      outPixel[1]  = inPixel->r;
+      outPixel[2]  = inPixel->g;
+      outPixel[3]  = inPixel->b;
+      ++inPixel;
+    }
+  }
+}
+
+static void gap_pal_icon_to_bgra_flipped(const AssetIconComp* asset, const Mem out) {
+  diag_assert(out.size == asset->width * asset->height * 4);
+  const AssetIconPixel* inPixel = asset->pixelData.ptr;
+  for (u32 y = asset->height; y-- != 0;) {
+    for (u32 x = 0; x != asset->width; ++x) {
+      u8* outPixel = bits_ptr_offset(out.ptr, (y * asset->width + x) * 4);
+      outPixel[0]  = inPixel->b;
+      outPixel[1]  = inPixel->g;
+      outPixel[2]  = inPixel->r;
+      outPixel[3]  = inPixel->a;
+      ++inPixel;
+    }
+  }
+}
+
+void gap_pal_icon_load(GapPal* pal, const AssetIconComp* asset) {
+  if (mem_valid(pal->iconData)) {
+    alloc_free(pal->alloc, pal->iconData);
+  }
+
+  /**
+   * X11 icon data format:
+   * - u32 width.
+   * - u32 height.
+   * - u8 pixelData[width * height * 4]. BGRA (ARGB little-endian) vertically flipped (top = y0).
+   */
+
+  pal->iconData = alloc_alloc(pal->alloc, (asset->width * asset->height + 2) * sizeof(u32), 4);
+  Mem dataRem   = pal->iconData;
+  dataRem       = mem_write_le_u32(dataRem, asset->width);
+  dataRem       = mem_write_le_u32(dataRem, asset->height);
+  gap_pal_icon_to_bgra_flipped(asset, dataRem);
+
+  // Update the icon for all existing windows.
+  dynarray_for_t(&pal->windows, GapPalWindow, window) { gap_pal_window_icon_set(pal, window->id); }
+}
+
+void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* asset) {
   if (!(pal->extensions & GapPalXcbExtFlags_Render)) {
     return; // The render extension is required for pix-map cursors.
   }
@@ -1337,19 +1406,8 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
   xcb_gcontext_t graphicsContext = xcb_generate_id(pal->xcbCon);
   xcb_create_gc(pal->xcbCon, graphicsContext, pixmap, 0, null);
 
-  // Flip the y axis of the image and convert to argb.
-  const Mem               buffer = alloc_alloc(g_allocScratch, asset->height * asset->width * 4, 4);
-  const AssetCursorPixel* inPixel = asset->pixelData.ptr;
-  for (u32 y = asset->height; y-- != 0;) {
-    for (u32 x = 0; x != asset->width; ++x) {
-      u8* outData = bits_ptr_offset(buffer.ptr, (y * asset->width + x) * sizeof(AssetCursorPixel));
-      outData[0]  = inPixel->a;
-      outData[1]  = inPixel->r;
-      outData[2]  = inPixel->g;
-      outData[3]  = inPixel->b;
-      ++inPixel;
-    }
-  }
+  Mem pixelBuffer = alloc_alloc(g_allocScratch, asset->width * asset->height * 4, 4);
+  gap_pal_icon_to_argb_flipped(asset, pixelBuffer);
 
   xcb_put_image(
       pal->xcbCon,
@@ -1362,8 +1420,8 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetCursorComp*
       0,
       0,
       32,
-      (u32)buffer.size,
-      buffer.ptr);
+      (u32)pixelBuffer.size,
+      pixelBuffer.ptr);
 
   xcb_free_gc(pal->xcbCon, graphicsContext);
 
@@ -1434,6 +1492,10 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       sizeof(xcb_atom_t) * 8,
       1,
       &pal->atomDeleteMsg);
+
+  if (mem_valid(pal->iconData)) {
+    gap_pal_window_icon_set(pal, id);
+  }
 
   xcb_map_window(con, (xcb_window_t)id);
   pal_set_window_min_size(pal, id, gap_vector(pal_window_min_width, pal_window_min_height));

@@ -41,10 +41,10 @@ static void schema_writer_script(DynString* str, const void* context) {
 static const SchemaConfig g_schemaConfigs[] = {
     {.pattern = string_static("arraytex.schema.json"), .context = &g_assetTexArrayDefMeta,  .writer = schema_writer_data   },
     {.pattern = string_static("atlas.schema.json"),    .context = &g_assetAtlasDefMeta,     .writer = schema_writer_data   },
-    {.pattern = string_static("cursor.schema.json"),   .context = &g_assetCursorDefMeta,    .writer = schema_writer_data   },
     {.pattern = string_static("decal.schema.json"),    .context = &g_assetDecalDefMeta,     .writer = schema_writer_data   },
     {.pattern = string_static("fonttex.schema.json"),  .context = &g_assetFontTexDefMeta,   .writer = schema_writer_data   },
     {.pattern = string_static("graphic.schema.json"),  .context = &g_assetGraphicDefMeta,   .writer = schema_writer_data   },
+    {.pattern = string_static("icon.schema.json"),     .context = &g_assetIconDefMeta,      .writer = schema_writer_data   },
     {.pattern = string_static("inputs.schema.json"),   .context = &g_assetInputDefMeta,     .writer = schema_writer_data   },
     {.pattern = string_static("level.schema.json"),    .context = &g_assetLevelDefMeta,     .writer = schema_writer_data   },
     {.pattern = string_static("prefabs.schema.json"),  .context = &g_assetPrefabDefMeta,    .writer = schema_writer_data   },

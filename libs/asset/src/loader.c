@@ -5,11 +5,11 @@
 // clang-format off
 
 #define ASSET_FOREACH_LOADER(_X_)                                                                  \
-  _X_(AssetFormat_Cursor,           cursor             )                                           \
-  _X_(AssetFormat_CursorBin,        cursor_bin         )                                           \
   _X_(AssetFormat_Decal,            decal              )                                           \
   _X_(AssetFormat_FontTtf,          font_ttf           )                                           \
   _X_(AssetFormat_Graphic,          graphic            )                                           \
+  _X_(AssetFormat_Icon,             icon               )                                           \
+  _X_(AssetFormat_IconBin,          icon_bin           )                                           \
   _X_(AssetFormat_Inputs,           inputs             )                                           \
   _X_(AssetFormat_Level,            level              )                                           \
   _X_(AssetFormat_LevelBin,         level              )                                           \

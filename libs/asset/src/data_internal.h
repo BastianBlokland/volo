@@ -4,10 +4,10 @@
 void asset_data_init_arraytex(void);
 void asset_data_init_atlas(void);
 void asset_data_init_cache(void);
-void asset_data_init_cursor(void);
 void asset_data_init_decal(void);
 void asset_data_init_fonttex(void);
 void asset_data_init_graphic(void);
+void asset_data_init_icon(void);
 void asset_data_init_inputmap(void);
 void asset_data_init_level(void);
 void asset_data_init_mesh(void);
