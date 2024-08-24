@@ -102,7 +102,7 @@ struct sGapPal {
   GapPalIcon   icon;
   xcb_cursor_t cursors[GapCursor_Count];
 
-  xcb_atom_t atomProtoMsg, atomDeleteMsg, atomWmState, atomWmStateFullscreen,
+  xcb_atom_t atomProtoMsg, atomDeleteMsg, atomWmIcon, atomWmState, atomWmStateFullscreen,
       atomWmStateBypassCompositor, atomClipboard, atomVoloClipboard, atomTargets, atomUtf8String,
       atomPlainUtf8;
 };
@@ -114,7 +114,7 @@ static const xcb_event_mask_t g_xcbWindowEventMask =
 
 static GapPalIcon gap_pal_icon_create(Allocator* alloc, const AssetIconComp* asset) {
   GapPalIcon result = {
-      .data = alloc_alloc(alloc, 8 + asset->height * asset->width * 4, 4),
+      .data = alloc_alloc(alloc, sizeof(u32) * 2 + asset->height * asset->width * 4, 4),
   };
   Mem out = result.data;
   out     = mem_write_le_u32(out, asset->width);
@@ -400,6 +400,7 @@ static void pal_xcb_connect(GapPal* pal) {
   // Retrieve atoms to use while communicating with the x-server.
   pal->atomProtoMsg                = pal_xcb_atom(pal, string_lit("WM_PROTOCOLS"));
   pal->atomDeleteMsg               = pal_xcb_atom(pal, string_lit("WM_DELETE_WINDOW"));
+  pal->atomWmIcon                  = pal_xcb_atom(pal, string_lit("_NET_WM_ICON"));
   pal->atomWmState                 = pal_xcb_atom(pal, string_lit("_NET_WM_STATE"));
   pal->atomWmStateFullscreen       = pal_xcb_atom(pal, string_lit("_NET_WM_STATE_FULLSCREEN"));
   pal->atomWmStateBypassCompositor = pal_xcb_atom(pal, string_lit("_NET_WM_BYPASS_COMPOSITOR"));
@@ -1094,6 +1095,18 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
   xcb_delete_property(pal->xcbCon, (xcb_window_t)windowId, pal->atomVoloClipboard);
 }
 
+static void gap_pal_window_icon_set(GapPal* pal, const GapWindowId winId, const GapPalIcon* icon) {
+  xcb_change_property(
+      pal->xcbCon,
+      XCB_PROP_MODE_REPLACE,
+      (xcb_window_t)winId,
+      pal->atomWmIcon,
+      XCB_ATOM_CARDINAL,
+      32,
+      (u32)(icon->data.size / 4),
+      icon->data.ptr);
+}
+
 GapPal* gap_pal_create(Allocator* alloc) {
   GapPal* pal = alloc_alloc_t(alloc, GapPal);
 
@@ -1371,6 +1384,11 @@ void gap_pal_icon_load(GapPal* pal, const AssetIconComp* asset) {
     alloc_free(pal->alloc, pal->icon.data);
   }
   pal->icon = gap_pal_icon_create(pal->alloc, asset);
+
+  // Update the icon for all existing windows.
+  dynarray_for_t(&pal->windows, GapPalWindow, window) {
+    gap_pal_window_icon_set(pal, window->id, &pal->icon);
+  }
 }
 
 void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* asset) {
@@ -1473,6 +1491,10 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       sizeof(xcb_atom_t) * 8,
       1,
       &pal->atomDeleteMsg);
+
+  if (mem_valid(pal->icon.data)) {
+    gap_pal_window_icon_set(pal, id, &pal->icon);
+  }
 
   xcb_map_window(con, (xcb_window_t)id);
   pal_set_window_min_size(pal, id, gap_vector(pal_window_min_width, pal_window_min_height));
