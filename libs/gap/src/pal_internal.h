@@ -50,6 +50,7 @@ void    gap_pal_destroy(GapPal*);
 void    gap_pal_update(GapPal*);
 void    gap_pal_flush(GapPal*);
 
+void gap_pal_icon_load(GapPal*, const AssetIconComp*);
 void gap_pal_cursor_load(GapPal*, GapCursor, const AssetIconComp*);
 
 GapWindowId       gap_pal_window_create(GapPal*, GapVector size);

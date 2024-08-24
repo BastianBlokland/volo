@@ -1323,6 +1323,11 @@ void gap_pal_flush(GapPal* pal) {
   }
 }
 
+void gap_pal_icon_load(GapPal* pal, const AssetIconComp* asset) {
+  (void)pal;
+  (void)asset;
+}
+
 void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* asset) {
   if (!(pal->extensions & GapPalXcbExtFlags_Render)) {
     return; // The render extension is required for pix-map cursors.
