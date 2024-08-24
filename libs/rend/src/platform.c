@@ -6,6 +6,7 @@
 #include "rend_register.h"
 #include "rend_settings.h"
 
+#include "builder_internal.h"
 #include "platform_internal.h"
 #include "reset_internal.h"
 #include "rvk/device_internal.h"
@@ -17,6 +18,7 @@ static void destruct_platform_comp(void* data) {
   RendPlatformComp* comp = data;
   log_d("Render platform teardown", log_param("phase", fmt_text_lit("Destroying device")));
   rvk_device_destroy(comp->device);
+  rend_builder_destroy(comp->builder);
 }
 
 static void destruct_platform_intern_comp(void* data) {
@@ -59,7 +61,8 @@ ecs_system_define(RendPlatformUpdateSys) {
 
     const RendSettingsGlobalComp* settings = rend_global_settings(world);
     RvkDevice*                    device   = rvk_device_create(settings);
-    ecs_world_add_t(world, global, RendPlatformComp, .device = device);
+    RendBuilder*                  builder  = rend_builder_create(g_allocHeap);
+    ecs_world_add_t(world, global, RendPlatformComp, .device = device, .builder = builder);
     ecs_world_add_t(world, global, RendPlatformInternComp, .device = device);
     return;
   }
