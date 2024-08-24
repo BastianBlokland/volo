@@ -23,3 +23,9 @@ void         rend_builder_destroy(RendBuilder*);
  * NOTE: Buffers should not be stored and/or shared between threads.
  */
 RendBuilderBuffer* rend_builder_buffer(const RendBuilder*);
+
+void rend_builder_clear(RendBuilderBuffer*);
+void rend_builder_set_pass(RendBuilderBuffer*, RvkPass*);
+void rend_builder_set_draw_graphic(RendBuilderBuffer*, RvkGraphic*);
+void rend_builder_set_draw_mesh(RendBuilderBuffer*, RvkMesh*);
+void rend_builder_set_draw_image(RendBuilderBuffer*, RvkImage*);

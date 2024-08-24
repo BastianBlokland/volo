@@ -9,7 +9,11 @@
 #define rend_builder_workers_max 8
 
 struct sRendBuilderBuffer {
-  DynArray draws; // RvkPassDraw[]
+  RvkPass*    pass;
+  RvkGraphic* drawGraphic;
+  RvkMesh*    drawMesh;
+  RvkImage*   drawImage;
+  DynArray    draws; // RvkPassDraw[]
 };
 
 struct sRendBuilder {
@@ -39,4 +43,32 @@ void rend_builder_destroy(RendBuilder* builder) {
 RendBuilderBuffer* rend_builder_buffer(const RendBuilder* builder) {
   diag_assert(g_jobsWorkerId < rend_builder_workers_max);
   return (RendBuilderBuffer*)&builder->buffers[g_jobsWorkerId];
+}
+
+void rend_builder_clear(RendBuilderBuffer* buffer) {
+  buffer->pass        = null;
+  buffer->drawGraphic = null;
+  buffer->drawMesh    = null;
+  buffer->drawImage   = null;
+  dynarray_clear(&buffer->draws);
+}
+
+void rend_builder_set_pass(RendBuilderBuffer* buffer, RvkPass* pass) {
+  diag_assert_msg(!buffer->pass, "Pass already set");
+  buffer->pass = pass;
+}
+
+void rend_builder_set_draw_graphic(RendBuilderBuffer* buffer, RvkGraphic* graphic) {
+  diag_assert_msg(!buffer->drawGraphic, "Draw graphic already set");
+  buffer->drawGraphic = graphic;
+}
+
+void rend_builder_set_draw_mesh(RendBuilderBuffer* buffer, RvkMesh* mesh) {
+  diag_assert_msg(!buffer->drawMesh, "Draw mesh already set");
+  buffer->drawMesh = mesh;
+}
+
+void rend_builder_set_draw_image(RendBuilderBuffer* buffer, RvkImage* image) {
+  diag_assert_msg(!buffer->drawImage, "Draw image already set");
+  buffer->drawImage = image;
 }
