@@ -6,14 +6,14 @@
 #include "platform_internal.h"
 
 static const String g_gapCursorAssets[GapCursor_Count] = {
-    [GapCursor_Normal]         = string_static("cursors/normal.icon"),
-    [GapCursor_Text]           = string_static("cursors/text.icon"),
-    [GapCursor_Click]          = string_static("cursors/click.icon"),
-    [GapCursor_Select]         = string_static("cursors/select.icon"),
-    [GapCursor_SelectAdd]      = string_static("cursors/select-add.icon"),
-    [GapCursor_SelectSubtract] = string_static("cursors/select-subtract.icon"),
-    [GapCursor_Target]         = string_static("cursors/target.icon"),
-    [GapCursor_Resize]         = string_static("cursors/resize.icon"),
+    [GapCursor_Normal]         = string_static("icons/cursor_normal.icon"),
+    [GapCursor_Text]           = string_static("icons/cursor_text.icon"),
+    [GapCursor_Click]          = string_static("icons/cursor_click.icon"),
+    [GapCursor_Select]         = string_static("icons/cursor_select.icon"),
+    [GapCursor_SelectAdd]      = string_static("icons/cursor_select-add.icon"),
+    [GapCursor_SelectSubtract] = string_static("icons/cursor_select-subtract.icon"),
+    [GapCursor_Target]         = string_static("icons/cursor_target.icon"),
+    [GapCursor_Resize]         = string_static("icons/cursor_resize.icon"),
 };
 
 ecs_comp_define_public(GapPlatformComp);
