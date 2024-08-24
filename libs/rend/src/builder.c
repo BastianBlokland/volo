@@ -4,6 +4,7 @@
 #include "jobs_executor.h"
 
 #include "builder_internal.h"
+#include "rvk/graphic_internal.h"
 #include "rvk/pass_internal.h"
 
 #define rend_builder_workers_max 8
@@ -20,6 +21,12 @@ struct sRendBuilder {
   Allocator*        allocator;
   RendBuilderBuffer buffers[rend_builder_workers_max];
 };
+
+static i8 builder_draw_compare(const void* a, const void* b) {
+  const RvkPassDraw* drawA = a;
+  const RvkPassDraw* drawB = b;
+  return compare_i32(&drawA->graphic->renderOrder, &drawB->graphic->renderOrder);
+}
 
 RendBuilder* rend_builder_create(Allocator* alloc) {
   RendBuilder* builder = alloc_alloc_t(alloc, RendBuilder);
@@ -71,4 +78,15 @@ void rend_builder_set_draw_mesh(RendBuilderBuffer* buffer, RvkMesh* mesh) {
 void rend_builder_set_draw_image(RendBuilderBuffer* buffer, RvkImage* image) {
   diag_assert_msg(!buffer->drawImage, "Draw image already set");
   buffer->drawImage = image;
+}
+
+void rend_builder_flush(RendBuilderBuffer* buffer) {
+  rvk_pass_begin(buffer->pass);
+  {
+    dynarray_sort(&buffer->draws, builder_draw_compare);
+    dynarray_for_t(&buffer->draws, RvkPassDraw, draw) { rvk_pass_draw(buffer->pass, draw); }
+  }
+  rvk_pass_end(buffer->pass);
+
+  rend_builder_clear(buffer);
 }
