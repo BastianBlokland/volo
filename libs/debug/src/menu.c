@@ -228,8 +228,9 @@ static void menu_child_open_detached(
 
   const GapWindowMode  mode           = GapWindowMode_Windowed;
   const GapWindowFlags flags          = GapWindowFlags_CloseOnRequest;
+  const GapIcon        icon           = GapIcon_Tool;
   const String         title          = g_menuChildConfig[childIndex].name;
-  const EcsEntityId    detachedWindow = gap_window_create(world, mode, flags, size, title);
+  const EcsEntityId    detachedWindow = gap_window_create(world, mode, flags, size, icon, title);
   RendSettingsComp*    rendSettings   = rend_settings_window_init(world, detachedWindow);
 
   // No vsync on the detached window to reduce impact on the rendering of the main window.

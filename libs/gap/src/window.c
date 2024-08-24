@@ -15,11 +15,12 @@ typedef enum {
   GapWindowRequests_Close               = 1 << 1,
   GapWindowRequests_Resize              = 1 << 2,
   GapWindowRequests_UpdateTitle         = 1 << 3,
-  GapWindowRequests_UpdateCursorHide    = 1 << 4,
-  GapWindowRequests_UpdateCursorLock    = 1 << 5,
-  GapWindowRequests_UpdateCursorConfine = 1 << 6,
-  GapWindowRequests_UpdateCursorType    = 1 << 7,
-  GapWindowRequests_ClipPaste           = 1 << 8,
+  GapWindowRequests_UpdateIconType      = 1 << 4,
+  GapWindowRequests_UpdateCursorHide    = 1 << 5,
+  GapWindowRequests_UpdateCursorLock    = 1 << 6,
+  GapWindowRequests_UpdateCursorConfine = 1 << 7,
+  GapWindowRequests_UpdateCursorType    = 1 << 8,
+  GapWindowRequests_ClipPaste           = 1 << 9,
 } GapWindowRequests;
 
 ecs_comp_define(GapWindowComp) {
@@ -37,9 +38,10 @@ ecs_comp_define(GapWindowComp) {
   GapVector         params[GapParam_Count];
   DynString         inputText;
   String            clipCopy, clipPaste;
-  GapCursor         cursor;
-  f32               refreshRate;
+  GapIcon           icon : 8;
+  GapCursor         cursor : 8;
   u16               dpi;
+  f32               refreshRate;
 };
 
 ecs_comp_define_public(GapWindowAspectComp);
@@ -128,6 +130,9 @@ static void window_update(
   if (win->requests & GapWindowRequests_Resize) {
     const bool fullscreen = win->mode == GapWindowMode_Fullscreen;
     gap_pal_window_resize(pal, win->id, win->params[GapParam_WindowSize], fullscreen);
+  }
+  if (win->requests & GapWindowRequests_UpdateIconType) {
+    gap_pal_window_icon_set(pal, win->id, win->icon);
   }
   if (win->requests & GapWindowRequests_UpdateCursorHide) {
     const bool hidden = (win->flags & GapWindowFlags_CursorHide) != 0;
@@ -304,6 +309,7 @@ EcsEntityId gap_window_create(
     const GapWindowMode  mode,
     const GapWindowFlags flags,
     const GapVector      size,
+    const GapIcon        icon,
     const String         title) {
   const EcsEntityId windowEntity = ecs_world_entity_create(world);
   GapWindowComp*    comp         = ecs_world_add_t(
@@ -318,6 +324,7 @@ EcsEntityId gap_window_create(
       .inputText                   = dynstring_create(g_allocHeap, 64));
 
   gap_window_flags_set(comp, flags);
+  gap_window_icon_set(comp, icon);
   if (!string_is_empty(title)) {
     gap_window_title_set(comp, title);
   }
@@ -396,6 +403,13 @@ bool gap_window_key_released(const GapWindowComp* comp, const GapKey key) {
 
 bool gap_window_key_down(const GapWindowComp* comp, const GapKey key) {
   return gap_keyset_test(&comp->keysDown, key);
+}
+
+void gap_window_icon_set(GapWindowComp* comp, const GapIcon icon) {
+  if (comp->icon != icon) {
+    comp->icon = icon;
+    comp->requests |= GapWindowRequests_UpdateIconType;
+  }
 }
 
 void gap_window_cursor_set(GapWindowComp* comp, const GapCursor cursor) {

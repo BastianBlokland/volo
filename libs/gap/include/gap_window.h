@@ -1,7 +1,7 @@
 #pragma once
 #include "ecs_entity.h"
 #include "ecs_module.h"
-#include "gap_cursor.h"
+#include "gap_icon.h"
 #include "gap_input.h"
 #include "gap_vector.h"
 
@@ -57,7 +57,7 @@ ecs_comp_extern_public(GapWindowAspectComp) { f32 ratio; /* width / height */ };
  * Create a new window with the given size.
  */
 EcsEntityId
-gap_window_create(EcsWorld*, GapWindowMode, GapWindowFlags, GapVector size, String title);
+gap_window_create(EcsWorld*, GapWindowMode, GapWindowFlags, GapVector size, GapIcon, String title);
 
 /**
  * Close a currently open window.
@@ -116,6 +116,11 @@ bool gap_window_key_released(const GapWindowComp*, GapKey);
  * Test if the given key is currently being held down.
  */
 bool gap_window_key_down(const GapWindowComp*, GapKey);
+
+/**
+ * Update the window icon.
+ */
+void gap_window_icon_set(GapWindowComp*, GapIcon);
 
 /**
  * Update the window cursor.

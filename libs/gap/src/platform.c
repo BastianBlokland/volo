@@ -5,7 +5,10 @@
 
 #include "platform_internal.h"
 
-static const String g_gapIconAsset = string_static("icons/platform.icon");
+static const String g_gapIconAssets[GapIcon_Count] = {
+    [GapIcon_Main] = string_static("icons/window_main.icon"),
+    [GapIcon_Tool] = string_static("icons/window_tool.icon"),
+};
 
 static const String g_gapCursorAssets[GapCursor_Count] = {
     [GapCursor_Normal]         = string_static("icons/cursor_normal.icon"),
@@ -84,8 +87,9 @@ ecs_system_define(GapPlatformUpdateSys) {
     platform      = ecs_world_add_t(world, ecs_world_global(world), GapPlatformComp);
     platform->pal = gap_pal_create(g_allocHeap);
 
-    gap_icon_load_begin(world, assetManager, &platform->icon, g_gapIconAsset);
-
+    for (GapIcon i = 0; i != GapIcon_Count; ++i) {
+      gap_icon_load_begin(world, assetManager, &platform->icons[i], g_gapIconAssets[i]);
+    }
     for (GapCursor c = 0; c != GapCursor_Count; ++c) {
       if (!string_is_empty(g_gapCursorAssets[c])) {
         gap_icon_load_begin(world, assetManager, &platform->cursors[c], g_gapCursorAssets[c]);
@@ -96,9 +100,11 @@ ecs_system_define(GapPlatformUpdateSys) {
   EcsView*     iconView = ecs_world_view_t(world, IconView);
   EcsIterator* iconItr  = ecs_view_itr(iconView);
 
-  if (gap_icon_load_update(world, &platform->icon, iconItr)) {
-    gap_pal_icon_load(platform->pal, ecs_view_read_t(iconItr, AssetIconComp));
-    log_d("Platform icon loaded", log_param("id", fmt_text(g_gapIconAsset)));
+  for (GapIcon i = 0; i != GapIcon_Count; ++i) {
+    if (gap_icon_load_update(world, &platform->icons[i], iconItr)) {
+      gap_pal_icon_load(platform->pal, i, ecs_view_read_t(iconItr, AssetIconComp));
+      log_d("Window icon loaded", log_param("id", fmt_text(g_gapIconAssets[i])));
+    }
   }
 
   for (GapCursor c = 0; c != GapCursor_Count; ++c) {

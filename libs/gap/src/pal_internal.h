@@ -4,7 +4,7 @@
 #include "core_annotation.h"
 #include "core_string.h"
 #include "core_time.h"
-#include "gap_cursor.h"
+#include "gap_icon.h"
 #include "gap_native.h"
 #include "gap_vector.h"
 
@@ -50,7 +50,7 @@ void    gap_pal_destroy(GapPal*);
 void    gap_pal_update(GapPal*);
 void    gap_pal_flush(GapPal*);
 
-void gap_pal_icon_load(GapPal*, const AssetIconComp*);
+void gap_pal_icon_load(GapPal*, GapIcon, const AssetIconComp*);
 void gap_pal_cursor_load(GapPal*, GapCursor, const AssetIconComp*);
 
 GapWindowId       gap_pal_window_create(GapPal*, GapVector size);
@@ -64,6 +64,7 @@ const GapKeySet*  gap_pal_window_keys_down(const GapPal*, GapWindowId);
 String            gap_pal_window_input_text(const GapPal*, GapWindowId);
 void              gap_pal_window_title_set(GapPal*, GapWindowId, String);
 void              gap_pal_window_resize(GapPal*, GapWindowId, GapVector size, bool fullscreen);
+void              gap_pal_window_icon_set(GapPal*, GapWindowId, GapIcon);
 void              gap_pal_window_cursor_hide(GapPal*, GapWindowId, bool hidden);
 void              gap_pal_window_cursor_capture(GapPal*, GapWindowId, bool captured);
 void              gap_pal_window_cursor_confine(GapPal*, GapWindowId, bool confined);
