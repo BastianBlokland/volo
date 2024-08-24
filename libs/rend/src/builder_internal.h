@@ -1,4 +1,5 @@
 #pragma once
+#include "core_types.h"
 
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
@@ -29,4 +30,5 @@ void rend_builder_set_pass(RendBuilderBuffer*, RvkPass*);
 void rend_builder_set_draw_graphic(RendBuilderBuffer*, RvkGraphic*);
 void rend_builder_set_draw_mesh(RendBuilderBuffer*, RvkMesh*);
 void rend_builder_set_draw_image(RendBuilderBuffer*, RvkImage*);
+void rend_builder_set_draw_vertex_count(RendBuilderBuffer*, u32 vertexCount);
 void rend_builder_flush(RendBuilderBuffer*);

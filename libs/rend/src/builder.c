@@ -14,6 +14,7 @@ struct sRendBuilderBuffer {
   RvkGraphic* drawGraphic;
   RvkMesh*    drawMesh;
   RvkImage*   drawImage;
+  u32         drawVertexCount;
   DynArray    draws; // RvkPassDraw[]
 };
 
@@ -53,10 +54,11 @@ RendBuilderBuffer* rend_builder_buffer(const RendBuilder* builder) {
 }
 
 void rend_builder_clear(RendBuilderBuffer* buffer) {
-  buffer->pass        = null;
-  buffer->drawGraphic = null;
-  buffer->drawMesh    = null;
-  buffer->drawImage   = null;
+  buffer->pass            = null;
+  buffer->drawGraphic     = null;
+  buffer->drawMesh        = null;
+  buffer->drawImage       = null;
+  buffer->drawVertexCount = 0;
   dynarray_clear(&buffer->draws);
 }
 
@@ -78,6 +80,10 @@ void rend_builder_set_draw_mesh(RendBuilderBuffer* buffer, RvkMesh* mesh) {
 void rend_builder_set_draw_image(RendBuilderBuffer* buffer, RvkImage* image) {
   diag_assert_msg(!buffer->drawImage, "Draw image already set");
   buffer->drawImage = image;
+}
+
+void rend_builder_set_draw_vertex_count(RendBuilderBuffer* buffer, const u32 vertexCount) {
+  buffer->drawVertexCount = vertexCount;
 }
 
 void rend_builder_flush(RendBuilderBuffer* buffer) {
