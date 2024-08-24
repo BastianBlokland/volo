@@ -2,6 +2,7 @@
 
 typedef enum {
   GapIcon_Main,
+  GapIcon_Tool,
 
   GapIcon_Count,
 } GapIcon;

@@ -6,7 +6,8 @@
 #include "platform_internal.h"
 
 static const String g_gapIconAssets[GapIcon_Count] = {
-    [GapIcon_Main] = string_static("icons/platform.icon"),
+    [GapIcon_Main] = string_static("icons/window_main.icon"),
+    [GapIcon_Tool] = string_static("icons/window_tool.icon"),
 };
 
 static const String g_gapCursorAssets[GapCursor_Count] = {
