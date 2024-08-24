@@ -87,7 +87,7 @@ struct sGapPal {
 
   xcb_render_pictformat_t formatArgb32;
 
-  Mem          iconData;
+  Mem          icons[GapIcon_Count];
   xcb_cursor_t cursors[GapCursor_Count];
 
   xcb_atom_t atomProtoMsg, atomDeleteMsg, atomWmIcon, atomWmState, atomWmStateFullscreen,
@@ -1056,16 +1056,20 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
   xcb_delete_property(pal->xcbCon, (xcb_window_t)windowId, pal->atomVoloClipboard);
 }
 
-static void gap_pal_window_icon_set(GapPal* pal, const GapWindowId winId) {
-  xcb_change_property(
-      pal->xcbCon,
-      XCB_PROP_MODE_REPLACE,
-      (xcb_window_t)winId,
-      pal->atomWmIcon,
-      XCB_ATOM_CARDINAL,
-      sizeof(u32) * 8,
-      (u32)(pal->iconData.size / sizeof(u32)),
-      pal->iconData.ptr);
+static void gap_pal_window_icon_set(GapPal* pal, const GapIcon icon, const GapWindowId winId) {
+  if (mem_valid(pal->icons[GapIcon_Main])) {
+    xcb_change_property(
+        pal->xcbCon,
+        XCB_PROP_MODE_REPLACE,
+        (xcb_window_t)winId,
+        pal->atomWmIcon,
+        XCB_ATOM_CARDINAL,
+        sizeof(u32) * 8,
+        (u32)(pal->icons[icon].size / sizeof(u32)),
+        pal->icons[icon].ptr);
+  } else {
+    xcb_delete_property(pal->xcbCon, (xcb_window_t)winId, pal->atomWmIcon);
+  }
 }
 
 GapPal* gap_pal_create(Allocator* alloc) {
@@ -1111,8 +1115,10 @@ void gap_pal_destroy(GapPal* pal) {
   if (pal->xkbState) {
     xkb_state_unref(pal->xkbState);
   }
-  if (mem_valid(pal->iconData)) {
-    alloc_free(pal->alloc, pal->iconData);
+  array_for_t(pal->icons, Mem, icon) {
+    if (mem_valid(*icon)) {
+      alloc_free(pal->alloc, *icon);
+    }
   }
   array_for_t(pal->cursors, xcb_cursor_t, cursor) {
     if (*cursor != XCB_NONE) {
@@ -1371,9 +1377,8 @@ static void gap_pal_icon_to_bgra_flipped(const AssetIconComp* asset, const Mem o
 }
 
 void gap_pal_icon_load(GapPal* pal, const GapIcon icon, const AssetIconComp* asset) {
-  (void)icon;
-  if (mem_valid(pal->iconData)) {
-    alloc_free(pal->alloc, pal->iconData);
+  if (mem_valid(pal->icons[icon])) {
+    alloc_free(pal->alloc, pal->icons[icon]);
   }
 
   /**
@@ -1383,14 +1388,16 @@ void gap_pal_icon_load(GapPal* pal, const GapIcon icon, const AssetIconComp* ass
    * - u8 pixelData[width * height * 4]. BGRA (ARGB little-endian) vertically flipped (top = y0).
    */
 
-  pal->iconData = alloc_alloc(pal->alloc, (asset->width * asset->height + 2) * sizeof(u32), 4);
-  Mem dataRem   = pal->iconData;
-  dataRem       = mem_write_le_u32(dataRem, asset->width);
-  dataRem       = mem_write_le_u32(dataRem, asset->height);
+  pal->icons[icon] = alloc_alloc(pal->alloc, (asset->width * asset->height + 2) * sizeof(u32), 4);
+  Mem dataRem      = pal->icons[icon];
+  dataRem          = mem_write_le_u32(dataRem, asset->width);
+  dataRem          = mem_write_le_u32(dataRem, asset->height);
   gap_pal_icon_to_bgra_flipped(asset, dataRem);
 
   // Update the icon for all existing windows.
-  dynarray_for_t(&pal->windows, GapPalWindow, window) { gap_pal_window_icon_set(pal, window->id); }
+  dynarray_for_t(&pal->windows, GapPalWindow, window) {
+    gap_pal_window_icon_set(pal, icon, window->id);
+  }
 }
 
 void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* asset) {
@@ -1494,9 +1501,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       1,
       &pal->atomDeleteMsg);
 
-  if (mem_valid(pal->iconData)) {
-    gap_pal_window_icon_set(pal, id);
-  }
+  gap_pal_window_icon_set(pal, GapIcon_Main, id);
 
   xcb_map_window(con, (xcb_window_t)id);
   pal_set_window_min_size(pal, id, gap_vector(pal_window_min_width, pal_window_min_height));
