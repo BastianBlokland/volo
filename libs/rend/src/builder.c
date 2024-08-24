@@ -10,13 +10,9 @@
 #define rend_builder_workers_max 8
 
 struct sRendBuilderBuffer {
-  RvkPass*       pass;
-  RvkGraphic*    graphic;
-  RvkMesh*       drawMesh;
-  RvkImage*      drawImage;
-  RvkSamplerSpec drawSampler;
-  u32            vertexCountOverride;
-  DynArray       draws; // RvkPassDraw[]
+  RvkPass*    pass;
+  RvkPassDraw stage;
+  DynArray    draws; // RvkPassDraw[]
 };
 
 struct sRendBuilder {
@@ -55,40 +51,57 @@ RendBuilderBuffer* rend_builder_buffer(const RendBuilder* builder) {
 }
 
 void rend_builder_clear(RendBuilderBuffer* buffer) {
-  buffer->pass                = null;
-  buffer->graphic             = null;
-  buffer->drawMesh            = null;
-  buffer->drawImage           = null;
-  buffer->vertexCountOverride = 0;
+  buffer->pass  = null;
+  buffer->stage = (RvkPassDraw){0};
   dynarray_clear(&buffer->draws);
 }
 
 void rend_builder_set_pass(RendBuilderBuffer* buffer, RvkPass* pass) {
   diag_assert_msg(!buffer->pass, "Pass already set");
+
   buffer->pass = pass;
 }
 
 void rend_builder_set_graphic(RendBuilderBuffer* buffer, RvkGraphic* graphic) {
-  diag_assert_msg(!buffer->graphic, "Graphic already set");
-  buffer->graphic = graphic;
+  diag_assert_msg(buffer->pass, "Pass not set");
+  diag_assert_msg(!buffer->stage.graphic, "Graphic already set");
+
+  buffer->stage.graphic = graphic;
 }
 
 void rend_builder_set_vertex_count(RendBuilderBuffer* buffer, const u32 vertexCount) {
-  buffer->vertexCountOverride = vertexCount;
+  diag_assert_msg(buffer->pass, "Pass not set");
+  diag_assert_msg(!buffer->stage.vertexCountOverride, "Vertex count override already set");
+
+  buffer->stage.vertexCountOverride = vertexCount;
 }
 
 void rend_builder_set_draw_mesh(RendBuilderBuffer* buffer, RvkMesh* mesh) {
-  diag_assert_msg(!buffer->drawMesh, "Draw mesh already set");
-  buffer->drawMesh = mesh;
+  diag_assert_msg(buffer->pass, "Pass not set");
+  diag_assert_msg(!buffer->stage.drawMesh, "Draw mesh already set");
+
+  buffer->stage.drawMesh = mesh;
 }
 
 void rend_builder_set_draw_image(RendBuilderBuffer* buffer, RvkImage* image) {
-  diag_assert_msg(!buffer->drawImage, "Draw image already set");
-  buffer->drawImage = image;
+  diag_assert_msg(buffer->pass, "Pass not set");
+  diag_assert_msg(!buffer->stage.drawImage, "Draw image already set");
+
+  rvk_pass_stage_draw_image(buffer->pass, image);
+  buffer->stage.drawImage = image;
 }
 
 void rend_builder_set_draw_sampler(RendBuilderBuffer* buffer, const RvkSamplerSpec* sampler) {
-  buffer->drawSampler = *sampler;
+  diag_assert_msg(buffer->pass, "Pass not set");
+  buffer->stage.drawSampler = *sampler;
+}
+
+void rend_builder_push(RendBuilderBuffer* buffer) {
+  diag_assert_msg(buffer->pass, "Pass not set");
+  if (buffer->stage.instCount) {
+    *dynarray_push_t(&buffer->draws, RvkPassDraw) = buffer->stage;
+  }
+  buffer->stage = (RvkPassDraw){0};
 }
 
 void rend_builder_flush(RendBuilderBuffer* buffer) {
