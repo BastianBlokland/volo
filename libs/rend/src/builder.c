@@ -53,16 +53,25 @@ RendBuilderBuffer* rend_builder_buffer(const RendBuilder* builder) {
   return (RendBuilderBuffer*)&builder->buffers[g_jobsWorkerId];
 }
 
-void rend_builder_clear(RendBuilderBuffer* buffer) {
-  buffer->pass  = null;
-  buffer->stage = (RvkPassDraw){0};
-  dynarray_clear(&buffer->draws);
+void rend_builder_pass_push(RendBuilderBuffer* buffer, RvkPass* pass) {
+  diag_assert_msg(!buffer->pass, "RendBuilder: Pass already active");
+  buffer->pass = pass;
 }
 
-void rend_builder_set_pass(RendBuilderBuffer* buffer, RvkPass* pass) {
-  diag_assert_msg(!buffer->pass, "Pass already set");
+void rend_builder_pass_flush(RendBuilderBuffer* buffer) {
+  diag_assert_msg(!buffer->pass, "RendBuilder: Pass not active");
 
-  buffer->pass = pass;
+  if (buffer->draws.size) {
+    rvk_pass_begin(buffer->pass);
+    {
+      dynarray_sort(&buffer->draws, builder_draw_compare);
+      dynarray_for_t(&buffer->draws, RvkPassDraw, draw) { rvk_pass_draw(buffer->pass, draw); }
+    }
+    rvk_pass_end(buffer->pass);
+    dynarray_clear(&buffer->draws);
+  }
+
+  buffer->pass = null;
 }
 
 void rend_builder_set_graphic(RendBuilderBuffer* buffer, RvkGraphic* graphic) {
@@ -110,15 +119,4 @@ void rend_builder_push(RendBuilderBuffer* buffer) {
 void rend_builder_discard(RendBuilderBuffer* buffer) {
   diag_assert_msg(buffer->pass, "Pass not set");
   buffer->stage = (RvkPassDraw){0};
-}
-
-void rend_builder_flush(RendBuilderBuffer* buffer) {
-  rvk_pass_begin(buffer->pass);
-  {
-    dynarray_sort(&buffer->draws, builder_draw_compare);
-    dynarray_for_t(&buffer->draws, RvkPassDraw, draw) { rvk_pass_draw(buffer->pass, draw); }
-  }
-  rvk_pass_end(buffer->pass);
-
-  rend_builder_clear(buffer);
 }

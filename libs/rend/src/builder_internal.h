@@ -26,7 +26,9 @@ void         rend_builder_destroy(RendBuilder*);
  */
 RendBuilderBuffer* rend_builder_buffer(const RendBuilder*);
 
-void rend_builder_clear(RendBuilderBuffer*);
+void rend_builder_pass_push(RendBuilderBuffer*, RvkPass*);
+void rend_builder_pass_flush(RendBuilderBuffer*);
+
 void rend_builder_set_pass(RendBuilderBuffer*, RvkPass*);
 void rend_builder_set_graphic(RendBuilderBuffer*, RvkGraphic*);
 void rend_builder_set_vertex_count(RendBuilderBuffer*, u32 vertexCount);
@@ -35,4 +37,3 @@ void rend_builder_set_draw_image(RendBuilderBuffer*, RvkImage*);
 void rend_builder_set_draw_sampler(RendBuilderBuffer*, const RvkSamplerSpec*);
 void rend_builder_push(RendBuilderBuffer*);
 void rend_builder_discard(RendBuilderBuffer*);
-void rend_builder_flush(RendBuilderBuffer*);
