@@ -124,16 +124,6 @@ FileResult file_read_to_end_sync(File* file, DynString* output) {
   return res == FileResult_NoDataAvailable ? FileResult_Success : res;
 }
 
-FileInfo file_stat_path_sync(const String path) {
-  File* file;
-  if (file_create(g_allocScratch, path, FileMode_Open, FileAccess_None, &file)) {
-    return (FileInfo){0};
-  }
-  const FileInfo res = file_stat_sync(file);
-  file_destroy(file);
-  return res;
-}
-
 FileResult file_create_dir_sync(String path) {
   File*      dirHandle;
   FileResult res;

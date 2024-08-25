@@ -248,6 +248,37 @@ FileInfo file_stat_sync(File* file) {
   };
 }
 
+FileInfo file_stat_path_sync(const String path) {
+  // Convert the path to a null-terminated wide-char string.
+  const usize pathBufferSize = winutils_to_widestr_size(path);
+  if (sentinel_check(pathBufferSize)) {
+    return (FileInfo){0};
+  }
+  if (pathBufferSize > path_pal_max_size) {
+    return (FileInfo){0};
+  }
+  Mem pathBufferMem = mem_stack(pathBufferSize);
+  winutils_to_widestr(pathBufferMem, path);
+
+  WIN32_FILE_ATTRIBUTE_DATA attributeData;
+  const BOOL                success =
+      GetFileAttributesEx((const wchar_t*)pathBufferMem.ptr, GetFileExInfoStandard, &attributeData);
+
+  if (UNLIKELY(!success)) {
+    return (FileInfo){0};
+  }
+
+  LARGE_INTEGER fileSize;
+  fileSize.LowPart  = attributeData.nFileSizeLow;
+  fileSize.HighPart = attributeData.nFileSizeHigh;
+  return (FileInfo){
+      .size       = (usize)fileSize.QuadPart,
+      .type       = file_type_from_attributes(attributeData.dwFileAttributes),
+      .accessTime = time_pal_native_to_real(&attributeData.ftLastAccessTime),
+      .modTime    = time_pal_native_to_real(&attributeData.ftLastWriteTime),
+  };
+}
+
 FileResult file_delete_sync(String path) {
   // Convert the path to a null-terminated wide-char string.
   const usize pathBufferSize = winutils_to_widestr_size(path);
