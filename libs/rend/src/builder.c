@@ -11,9 +11,9 @@
 
 struct sRendBuilderBuffer {
   ALIGNAS(64)
-  RvkPass*    pass;
-  RvkPassDraw stage;
-  DynArray    draws; // RvkPassDraw[]
+  RvkPass*     pass;
+  RvkPassDraw* draw;
+  DynArray     drawList; // RvkPassDraw[]
 };
 
 ASSERT(alignof(RendBuilderBuffer) == 64, "Unexpected buffer alignment")
@@ -35,7 +35,9 @@ RendBuilder* rend_builder_create(Allocator* alloc) {
   *builder = (RendBuilder){.allocator = alloc};
 
   for (u32 i = 0; i != rend_builder_workers_max; ++i) {
-    builder->buffers[i].draws = dynarray_create_t(alloc, RvkPassDraw, 8);
+    builder->buffers[i] = (RendBuilderBuffer){
+        .drawList = dynarray_create_t(alloc, RvkPassDraw, 8),
+    };
   }
 
   return builder;
@@ -43,7 +45,7 @@ RendBuilder* rend_builder_create(Allocator* alloc) {
 
 void rend_builder_destroy(RendBuilder* builder) {
   for (u32 i = 0; i != rend_builder_workers_max; ++i) {
-    dynarray_destroy(&builder->buffers[i].draws);
+    dynarray_destroy(&builder->buffers[i].drawList);
   }
   alloc_free_t(builder->allocator, builder);
 }
@@ -59,64 +61,54 @@ void rend_builder_pass_push(RendBuilderBuffer* buffer, RvkPass* pass) {
 }
 
 void rend_builder_pass_flush(RendBuilderBuffer* buffer) {
-  diag_assert_msg(!buffer->pass, "RendBuilder: Pass not active");
+  diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
+  diag_assert_msg(!buffer->draw, "RendBuilder: Draw still active");
 
-  if (buffer->draws.size) {
+  if (buffer->drawList.size) {
     rvk_pass_begin(buffer->pass);
     {
-      dynarray_sort(&buffer->draws, builder_draw_compare);
-      dynarray_for_t(&buffer->draws, RvkPassDraw, draw) { rvk_pass_draw(buffer->pass, draw); }
+      dynarray_sort(&buffer->drawList, builder_draw_compare);
+      dynarray_for_t(&buffer->drawList, RvkPassDraw, draw) { rvk_pass_draw(buffer->pass, draw); }
     }
     rvk_pass_end(buffer->pass);
-    dynarray_clear(&buffer->draws);
+    dynarray_clear(&buffer->drawList);
   }
 
   buffer->pass = null;
 }
 
-void rend_builder_set_graphic(RendBuilderBuffer* buffer, RvkGraphic* graphic) {
-  diag_assert_msg(buffer->pass, "Pass not set");
-  diag_assert_msg(!buffer->stage.graphic, "Graphic already set");
+void rend_builder_draw_push(RendBuilderBuffer* buffer, RvkGraphic* graphic) {
+  diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
+  diag_assert_msg(!buffer->draw, "RendBuilder: Draw already active");
 
-  buffer->stage.graphic = graphic;
+  buffer->draw  = dynarray_push_t(&buffer->drawList, RvkPassDraw);
+  *buffer->draw = (RvkPassDraw){.graphic = graphic};
 }
 
-void rend_builder_set_vertex_count(RendBuilderBuffer* buffer, const u32 vertexCount) {
-  diag_assert_msg(buffer->pass, "Pass not set");
-  diag_assert_msg(!buffer->stage.vertexCountOverride, "Vertex count override already set");
-
-  buffer->stage.vertexCountOverride = vertexCount;
+void rend_builder_draw_vertex_count(RendBuilderBuffer* buffer, const u32 vertexCount) {
+  buffer->draw->vertexCountOverride = vertexCount;
 }
 
-void rend_builder_set_draw_mesh(RendBuilderBuffer* buffer, RvkMesh* mesh) {
-  diag_assert_msg(buffer->pass, "Pass not set");
-  diag_assert_msg(!buffer->stage.drawMesh, "Draw mesh already set");
-
-  buffer->stage.drawMesh = mesh;
+void rend_builder_draw_mesh(RendBuilderBuffer* buffer, RvkMesh* mesh) {
+  buffer->draw->drawMesh = mesh;
 }
 
-void rend_builder_set_draw_image(RendBuilderBuffer* buffer, RvkImage* image) {
-  diag_assert_msg(buffer->pass, "Pass not set");
-  diag_assert_msg(!buffer->stage.drawImage, "Draw image already set");
-
+void rend_builder_draw_image(RendBuilderBuffer* buffer, RvkImage* image) {
   rvk_pass_stage_draw_image(buffer->pass, image);
-  buffer->stage.drawImage = image;
+  buffer->draw->drawImage = image;
 }
 
-void rend_builder_set_draw_sampler(RendBuilderBuffer* buffer, const RvkSamplerSpec* sampler) {
-  diag_assert_msg(buffer->pass, "Pass not set");
-  buffer->stage.drawSampler = *sampler;
+void rend_builder_draw_sampler(RendBuilderBuffer* buffer, const RvkSamplerSpec samplerSpec) {
+  buffer->draw->drawSampler = samplerSpec;
 }
 
-void rend_builder_push(RendBuilderBuffer* buffer) {
-  diag_assert_msg(buffer->pass, "Pass not set");
-  if (buffer->stage.instCount) {
-    *dynarray_push_t(&buffer->draws, RvkPassDraw) = buffer->stage;
-  }
-  buffer->stage = (RvkPassDraw){0};
+void rend_builder_draw_flush(RendBuilderBuffer* buffer) {
+  diag_assert_msg(!buffer->draw, "RendBuilder: Draw not active");
+  buffer->draw = null;
 }
 
-void rend_builder_discard(RendBuilderBuffer* buffer) {
-  diag_assert_msg(buffer->pass, "Pass not set");
-  buffer->stage = (RvkPassDraw){0};
+void rend_builder_draw_discard(RendBuilderBuffer* buffer) {
+  diag_assert_msg(!buffer->draw, "RendBuilder: Draw not active");
+  dynarray_remove(&buffer->drawList, buffer->drawList.size - 1, 1);
+  buffer->draw = null;
 }
