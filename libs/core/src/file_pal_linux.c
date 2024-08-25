@@ -254,7 +254,7 @@ FileResult file_pal_map(File* file, FileMapping* out, const FileHints hints) {
 
   if (hints & FileHints_Prefetch) {
     if (UNLIKELY(posix_fadvise(file->handle, 0, size, POSIX_FADV_WILLNEED) != 0)) {
-      return fileresult_from_errno();
+      diag_crash_msg("posix_fadvise() (errno: {})", fmt_int(errno));
     }
   }
 
