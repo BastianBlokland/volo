@@ -1206,21 +1206,23 @@ static void gltf_process_remove_frame(GltfLoad* ld, AssetMeshAnimChannel* ch, co
 }
 
 static void gltf_process_anim_channel(
-    GltfLoad* ld, AssetMeshAnimChannel* ch, const AssetMeshAnimTarget target) {
+    GltfLoad* ld, AssetMeshAnimChannel* ch, const AssetMeshAnimTarget target, const f32 duration) {
 
   typedef bool (*EqFunc)(GeoVector, GeoVector, f32);
   const EqFunc eq = target == AssetMeshAnimTarget_Rotation ? geo_vector_equal : geo_vector_equal3;
+
+  GeoVector* valueData = dynarray_at(&ld->animData, ch->valueData, sizeof(GeoVector)).ptr;
+  u16*       timeData  = dynarray_at(&ld->animData, ch->timeData, sizeof(u16)).ptr;
 
   /**
    * If a channel consists of all identical frames we can skip the interpolation.
    * TODO: Instead of just truncating the frame count we should avoid including data for the removed
    * frames at all.
    */
-  GeoVector* data = dynarray_at(&ld->animData, ch->valueData, sizeof(GeoVector)).ptr;
   if (ch->frameCount > 1) {
     bool allEq = true;
     for (u32 i = 1; i != ch->frameCount; ++i) {
-      if (!eq(data[0], data[i], gltf_eq_threshold)) {
+      if (!eq(valueData[0], valueData[i], gltf_eq_threshold)) {
         allEq = false;
         break;
       }
@@ -1231,13 +1233,23 @@ static void gltf_process_anim_channel(
   }
 
   /**
-   * Remove redundant frames (frames that are the same as the previous and the next).
+   * Remove redundant frames:
+   * - frames that have the same position/rotation/scale as the previous and the next.
+   * - frames that are too short (less then a 30hz frame).
    */
   if (ch->frameCount > 2) {
+    static const f32 g_minTimeSec = 1.0f / 30.0f; // A single frame at 30hz.
+    const u16        minTimeFrac  = (u16)(u16_max * math_min(g_minTimeSec / duration, 1.0f));
+
     for (u32 i = 1; i < (ch->frameCount - 1); ++i) {
-      if (eq(data[i], data[i - 1], gltf_eq_threshold) &&
-          eq(data[i], data[i + 1], gltf_eq_threshold)) {
+      if (eq(valueData[i], valueData[i - 1], gltf_eq_threshold) &&
+          eq(valueData[i], valueData[i + 1], gltf_eq_threshold)) {
         gltf_process_remove_frame(ld, ch, i);
+        continue;
+      }
+      if (timeData[i] - timeData[i - 1] < minTimeFrac) {
+        gltf_process_remove_frame(ld, ch, i);
+        continue;
       }
     }
   }
@@ -1363,7 +1375,7 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
           if (target == AssetMeshAnimTarget_Rotation) {
             gltf_process_anim_channel_rot(ld, resChannel);
           }
-          gltf_process_anim_channel(ld, resChannel, target);
+          gltf_process_anim_channel(ld, resChannel, target, duration);
         } else {
           *resChannel = (AssetMeshAnimChannel){0};
         }
