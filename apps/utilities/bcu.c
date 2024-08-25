@@ -94,7 +94,7 @@ static BcuResult bcu_image_load(const String path, BcuImage* out) {
     goto End;
   }
   Mem data;
-  if ((fileRes = file_map(fileHandle, &data))) {
+  if ((fileRes = file_map(fileHandle, &data, FileHints_Prefetch))) {
     result = BcuResult_FileOpenFailed;
     goto End;
   }

@@ -1028,9 +1028,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
   }
   const ScriptSym    callSym = script_sym_find(doc->scriptSyms, doc->scriptDoc, callExpr);
   const LspSignature sig     = {
-          .label     = script_sym_label(doc->scriptSyms, callSym),
-          .doc       = script_sym_doc(doc->scriptSyms, callSym),
-          .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
+      .label     = script_sym_label(doc->scriptSyms, callSym),
+      .doc       = script_sym_doc(doc->scriptSyms, callSym),
+      .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
@@ -1261,7 +1261,7 @@ static bool lsp_read_binder_file(ScriptBinder* binder, const String path) {
     goto Ret;
   }
   String fileData;
-  if ((fileRes = file_map(file, &fileData))) {
+  if ((fileRes = file_map(file, &fileData, FileHints_Prefetch))) {
     file_write_sync(g_fileStdErr, string_lit("lsp: Failed to map binder file.\n"));
     success = false;
     goto Ret;
