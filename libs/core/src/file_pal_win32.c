@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_file.h"
 #include "core_sentinel.h"
@@ -279,10 +280,8 @@ FileResult file_delete_dir_sync(String path) {
   return success ? FileResult_Success : fileresult_from_lasterror();
 }
 
-FileResult file_pal_map(File* file, FileMapping* out, , const FileHints hints) {
+FileResult file_pal_map(File* file, FileMapping* out, const FileHints hints) {
   diag_assert_msg(file->access != 0, "File handle does not have read or write access");
-
-  (void)hints;
 
   LARGE_INTEGER size;
   size.QuadPart = file_stat_sync(file).size;
@@ -291,23 +290,32 @@ FileResult file_pal_map(File* file, FileMapping* out, , const FileHints hints) {
   }
 
   const DWORD  protect = (file->access & FileAccess_Write) ? PAGE_READWRITE : PAGE_READONLY;
-  const HANDLE mappingObj =
-      CreateFileMapping(file->handle, null, protect, size.HighPart, size.LowPart, null);
-  if (UNLIKELY(!mappingObj)) {
+  const HANDLE mapObj = CreateFileMapping(file->handle, 0, protect, size.HighPart, size.LowPart, 0);
+  if (UNLIKELY(!mapObj)) {
     return fileresult_from_lasterror();
   }
 
   const DWORD access = (file->access & FileAccess_Write) ? FILE_MAP_WRITE : FILE_MAP_READ;
-  void*       addr   = MapViewOfFile(mappingObj, access, 0, 0, size.QuadPart);
+  void*       addr   = MapViewOfFile(mapObj, access, 0, 0, size.QuadPart);
   if (UNLIKELY(!addr)) {
-    const bool success = CloseHandle(mappingObj);
+    const bool success = CloseHandle(mapObj);
     if (UNLIKELY(!success)) {
       diag_crash_msg("CloseHandle() failed");
     }
     return fileresult_from_lasterror();
   }
 
-  *out = (FileMapping){.handle = (uptr)mappingObj, .ptr = addr, .size = (usize)size.QuadPart};
+  if (hints & FileHints_Prefetch) {
+    WIN32_MEMORY_RANGE_ENTRY entries[] = {
+        {.VirtualAddress = addr, .NumberOfBytes = size.QuadPart},
+    };
+    HANDLE process = GetCurrentProcess();
+    if (UNLIKELY(!PrefetchVirtualMemory(process, array_elems(entries), entries, 0))) {
+      diag_crash_msg("PrefetchVirtualMemory() failed");
+    }
+  }
+
+  *out = (FileMapping){.handle = (uptr)mapObj, .ptr = addr, .size = (usize)size.QuadPart};
   return FileResult_Success;
 }
 
