@@ -8,12 +8,15 @@
 #include "rvk/pass_internal.h"
 
 #define rend_builder_workers_max 8
+#define rend_builder_draw_data_align 16
+#define rend_builder_draw_data_chunk_size (32 * usize_kibibyte)
 
 struct sRendBuilderBuffer {
   ALIGNAS(64)
   RvkPass*     pass;
   RvkPassDraw* draw;
   DynArray     drawList; // RvkPassDraw[]
+  Allocator*   drawDataAlloc;
 };
 
 ASSERT(alignof(RendBuilderBuffer) == 64, "Unexpected buffer alignment")
@@ -37,6 +40,8 @@ RendBuilder* rend_builder_create(Allocator* alloc) {
   for (u32 i = 0; i != rend_builder_workers_max; ++i) {
     builder->buffers[i] = (RendBuilderBuffer){
         .drawList = dynarray_create_t(alloc, RvkPassDraw, 8),
+        .drawDataAlloc =
+            alloc_chunked_create(alloc, alloc_bump_create, rend_builder_draw_data_chunk_size),
     };
   }
 
@@ -46,6 +51,7 @@ RendBuilder* rend_builder_create(Allocator* alloc) {
 void rend_builder_destroy(RendBuilder* builder) {
   for (u32 i = 0; i != rend_builder_workers_max; ++i) {
     dynarray_destroy(&builder->buffers[i].drawList);
+    alloc_chunked_destroy(builder->buffers[i].drawDataAlloc);
   }
   alloc_free_t(builder->allocator, builder);
 }
@@ -74,6 +80,8 @@ void rend_builder_pass_flush(RendBuilderBuffer* buffer) {
     dynarray_clear(&buffer->drawList);
   }
 
+  alloc_reset(buffer->drawDataAlloc);
+
   buffer->pass = null;
 }
 
@@ -83,6 +91,13 @@ void rend_builder_draw_push(RendBuilderBuffer* buffer, RvkGraphic* graphic) {
 
   buffer->draw  = dynarray_push_t(&buffer->drawList, RvkPassDraw);
   *buffer->draw = (RvkPassDraw){.graphic = graphic};
+}
+
+Mem rend_builder_draw_data(RendBuilderBuffer* buffer, const usize size) {
+  const Mem result = alloc_alloc(buffer->drawDataAlloc, size, rend_builder_draw_data_align);
+  diag_assert_msg(mem_valid(result), "RendBuilder: Draw-data allocator ran out of space");
+  buffer->draw->drawData = result;
+  return result;
 }
 
 void rend_builder_draw_data_extern(RendBuilderBuffer* buffer, const Mem drawData) {
