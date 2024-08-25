@@ -279,8 +279,10 @@ FileResult file_delete_dir_sync(String path) {
   return success ? FileResult_Success : fileresult_from_lasterror();
 }
 
-FileResult file_pal_map(File* file, FileMapping* out) {
+FileResult file_pal_map(File* file, FileMapping* out, , const FileHints hints) {
   diag_assert_msg(file->access != 0, "File handle does not have read or write access");
+
+  (void)hints;
 
   LARGE_INTEGER size;
   size.QuadPart = file_stat_sync(file).size;

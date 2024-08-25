@@ -232,7 +232,7 @@ FileResult file_delete_dir_sync(String path) {
   return FileResult_Success;
 }
 
-FileResult file_pal_map(File* file, FileMapping* out) {
+FileResult file_pal_map(File* file, FileMapping* out, const FileHints hints) {
   diag_assert_msg(file->access != 0, "File handle does not have read or write access");
 
   const usize size = file_stat_sync(file).size;
@@ -250,6 +250,12 @@ FileResult file_pal_map(File* file, FileMapping* out) {
   void* addr = mmap(null, size, prot, MAP_SHARED, file->handle, 0);
   if (UNLIKELY(!addr)) {
     return fileresult_from_errno();
+  }
+
+  if (hints & FileHints_Prefetch) {
+    if (UNLIKELY(posix_fadvise(file->handle, 0, size, POSIX_FADV_WILLNEED) != 0)) {
+      return fileresult_from_errno();
+    }
   }
 
   *out = (FileMapping){.ptr = addr, .size = size};

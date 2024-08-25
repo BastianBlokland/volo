@@ -85,7 +85,15 @@ spec(file) {
     file_write_sync(tmpFile, string_lit("Hello World!"));
 
     String mapping;
-    check_eq_int(file_map(tmpFile, &mapping), FileResult_Success);
+    check_eq_int(file_map(tmpFile, &mapping, FileHints_None), FileResult_Success);
+    check_eq_string(mapping, string_lit("Hello World!"));
+  }
+
+  it("can initiate a pre-fetch of memory maps") {
+    file_write_sync(tmpFile, string_lit("Hello World!"));
+
+    String mapping;
+    check_eq_int(file_map(tmpFile, &mapping, FileHints_Prefetch), FileResult_Success);
     check_eq_string(mapping, string_lit("Hello World!"));
   }
 
@@ -93,7 +101,7 @@ spec(file) {
     file_write_sync(tmpFile, string_lit("            "));
 
     String mapping;
-    check_eq_int(file_map(tmpFile, &mapping), FileResult_Success);
+    check_eq_int(file_map(tmpFile, &mapping, FileHints_None), FileResult_Success);
     mem_cpy(mapping, string_lit("Hello World!"));
 
     check_eq_string(mapping, string_lit("Hello World!"));
@@ -103,13 +111,13 @@ spec(file) {
     file_write_sync(tmpFile, string_lit("Hello World!"));
 
     String mapping1;
-    check_eq_int(file_map(tmpFile, &mapping1), FileResult_Success);
+    check_eq_int(file_map(tmpFile, &mapping1, FileHints_None), FileResult_Success);
     check_eq_string(mapping1, string_lit("Hello World!"));
 
     check_eq_int(file_unmap(tmpFile), FileResult_Success);
 
     String mapping2;
-    check_eq_int(file_map(tmpFile, &mapping2), FileResult_Success);
+    check_eq_int(file_map(tmpFile, &mapping2, FileHints_None), FileResult_Success);
     check_eq_string(mapping2, string_lit("Hello World!"));
   }
 
