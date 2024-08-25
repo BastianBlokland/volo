@@ -85,6 +85,10 @@ void rend_builder_draw_push(RendBuilderBuffer* buffer, RvkGraphic* graphic) {
   *buffer->draw = (RvkPassDraw){.graphic = graphic};
 }
 
+void rend_builder_draw_data_extern(RendBuilderBuffer* buffer, const Mem drawData) {
+  buffer->draw->drawData = drawData;
+}
+
 void rend_builder_draw_vertex_count(RendBuilderBuffer* buffer, const u32 vertexCount) {
   buffer->draw->vertexCountOverride = vertexCount;
 }
