@@ -10,10 +10,13 @@
 #define rend_builder_workers_max 8
 
 struct sRendBuilderBuffer {
+  ALIGNAS(64)
   RvkPass*    pass;
   RvkPassDraw stage;
   DynArray    draws; // RvkPassDraw[]
 };
+
+ASSERT(alignof(RendBuilderBuffer) == 64, "Unexpected buffer alignment")
 
 struct sRendBuilder {
   Allocator*        allocator;
