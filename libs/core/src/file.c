@@ -79,10 +79,10 @@ void file_destroy(File* file) {
   }
 }
 
-FileResult file_map(File* file, String* output) {
+FileResult file_map(File* file, String* output, const FileHints hints) {
   diag_assert_msg(!file->mapping.ptr, "File is already mapped");
 
-  const FileResult res = file_pal_map(file, &file->mapping);
+  const FileResult res = file_pal_map(file, &file->mapping, hints);
   if (res == FileResult_Success) {
     thread_atomic_add_i64(&g_fileMappingSize, (i64)file->mapping.size);
     *output = mem_create(file->mapping.ptr, file->mapping.size);

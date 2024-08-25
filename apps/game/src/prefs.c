@@ -115,8 +115,12 @@ GamePrefsComp* prefs_init(EcsWorld* world) {
 
   // Map the file data.
   String fileData;
-  if (UNLIKELY((fileRes = file_map(file, &fileData)) || fileData.size > prefs_file_size_max)) {
+  if (UNLIKELY(fileRes = file_map(file, &fileData, FileHints_Prefetch))) {
     log_e("Failed to map preference file", log_param("err", fmt_text(file_result_str(fileRes))));
+    goto RetDefault;
+  }
+  if (UNLIKELY(fileData.size > prefs_file_size_max)) {
+    log_e("Preference file size exceeds maximum");
     goto RetDefault;
   }
 

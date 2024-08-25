@@ -74,11 +74,19 @@ typedef enum eFileType {
 /**
  * Output structure for 'file_stat_sync'.
  */
-typedef struct {
+typedef struct sFileInfo {
   usize    size;
   FileType type;
   TimeReal accessTime, modTime;
 } FileInfo;
+
+/**
+ * File mapping (performance) hints.
+ */
+typedef enum eFileHints {
+  FileHints_None     = 0,
+  FileHints_Prefetch = 1 << 0, // Start reading the file in the background.
+} FileHints;
 
 extern File* g_fileStdIn;
 extern File* g_fileStdOut;
@@ -158,7 +166,7 @@ FileResult file_delete_dir_sync(String path);
  *
  * Pre-condition: file has not been mapped yet.
  */
-FileResult file_map(File*, String* output);
+FileResult file_map(File*, String* output, FileHints);
 
 /**
  * Release the memory of the given file.

@@ -45,7 +45,7 @@ static AssetSource* asset_source_fs_open_cached(AssetRepoFs* repoFs, const Asset
   }
   String     data;
   FileResult result;
-  if ((result = file_map(rec->blobFile, &data))) {
+  if ((result = file_map(rec->blobFile, &data, FileHints_Prefetch))) {
     log_w("Failed to map cache file", log_param("result", fmt_text(file_result_str(result))));
     file_destroy(rec->blobFile);
     return null;
@@ -87,7 +87,7 @@ static AssetSource* asset_source_fs_open_normal(AssetRepoFs* repoFs, const Strin
     file_destroy(file);
     return null;
   }
-  if ((result = file_map(file, &data))) {
+  if ((result = file_map(file, &data, FileHints_Prefetch))) {
     log_w(
         "Failed to map file",
         log_param("path", fmt_path(path)),
