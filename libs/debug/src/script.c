@@ -130,7 +130,7 @@ ecs_view_define(WindowView) {
 
 static void info_panel_tab_script_draw(
     EcsWorld*             world,
-    UiCanvasComp*         canvas,
+    UiCanvasComp*         c,
     DebugScriptPanelComp* panelComp,
     UiTable*              table,
     EcsIterator*          assetItr,
@@ -144,28 +144,30 @@ static void info_panel_tab_script_draw(
   const bool       scriptAssetLoaded = ecs_world_has_t(world, scriptAssetEntity, AssetLoadedComp);
   const String     scriptId          = asset_id(scriptAsset);
 
-  ui_table_next_row(canvas, table);
-  ui_table_draw_row_bg(canvas, table, ui_color(48, 48, 48, 192));
-  const bool active = ui_section(canvas, .label = fmt_write_scratch("Script [{}]", fmt_int(slot)));
-  ui_table_next_column(canvas, table);
-  ui_label(canvas, fmt_write_scratch("{}", fmt_text(scriptId)), .selectable = true);
+  ui_canvas_id_block_next(c);
 
-  ui_layout_push(canvas);
-  ui_layout_inner(canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(100, 25), UiBase_Absolute);
-  if (ui_button(canvas, .label = string_lit("Open Script"), .tooltip = g_tooltipOpenScript)) {
+  ui_table_next_row(c, table);
+  ui_table_draw_row_bg(c, table, ui_color(48, 48, 48, 192));
+  const bool active = ui_section(c, .label = fmt_write_scratch("Script [{}]", fmt_int(slot)));
+  ui_table_next_column(c, table);
+  ui_label(c, fmt_write_scratch("{}", fmt_text(scriptId)), .selectable = true);
+
+  ui_layout_push(c);
+  ui_layout_inner(c, UiBase_Current, UiAlign_MiddleRight, ui_vector(100, 25), UiBase_Absolute);
+  if (ui_button(c, .label = string_lit("Open Script"), .tooltip = g_tooltipOpenScript)) {
     panelComp->editorReq = (DebugEditorRequest){.scriptId = scriptId};
   }
-  ui_layout_pop(canvas);
+  ui_layout_pop(c);
 
   if (active) {
-    ui_table_next_row(canvas, table);
-    ui_label(canvas, string_lit("Status"));
-    ui_table_next_column(canvas, table);
+    ui_table_next_row(c, table);
+    ui_label(c, string_lit("Status"));
+    ui_table_next_column(c, table);
     if (scriptAssetError) {
-      ui_style_push(canvas);
-      ui_style_color(canvas, ui_color_red);
-      ui_label(canvas, string_lit("Invalid script"));
-      ui_style_pop(canvas);
+      ui_style_push(c);
+      ui_style_color(c, ui_color_red);
+      ui_label(c, string_lit("Invalid script"));
+      ui_style_pop(c);
     } else {
       String label;
       if (scene_script_flags(scriptInstance) & SceneScriptFlags_PauseEvaluation) {
@@ -175,24 +177,26 @@ static void info_panel_tab_script_draw(
       } else {
         label = string_lit("Loading script");
       }
-      ui_label(canvas, label);
+      ui_label(c, label);
     }
 
-    ui_table_next_row(canvas, table);
-    ui_label(canvas, string_lit("Expressions"));
-    ui_table_next_column(canvas, table);
-    ui_label(canvas, fmt_write_scratch("{}", fmt_int(stats->executedExprs)));
+    ui_table_next_row(c, table);
+    ui_label(c, string_lit("Expressions"));
+    ui_table_next_column(c, table);
+    ui_label(c, fmt_write_scratch("{}", fmt_int(stats->executedExprs)));
 
-    ui_table_next_row(canvas, table);
-    ui_label(canvas, string_lit("Duration"));
-    ui_table_next_column(canvas, table);
-    ui_label(canvas, fmt_write_scratch("{}", fmt_duration(stats->executedDur)));
+    ui_table_next_row(c, table);
+    ui_label(c, string_lit("Duration"));
+    ui_table_next_column(c, table);
+    ui_label(c, fmt_write_scratch("{}", fmt_duration(stats->executedDur)));
   }
+
+  ui_canvas_id_block_next(c); // End on a stable id.
 }
 
 static void info_panel_tab_draw(
     EcsWorld*             world,
-    UiCanvasComp*         canvas,
+    UiCanvasComp*         c,
     DebugScriptPanelComp* panelComp,
     EcsIterator*          assetItr,
     EcsIterator*          subjectItr) {
@@ -200,7 +204,7 @@ static void info_panel_tab_draw(
 
   SceneScriptComp* scriptInstance = ecs_view_write_t(subjectItr, SceneScriptComp);
   if (!scriptInstance) {
-    ui_label(canvas, string_lit("No script statistics available."), .align = UiAlign_MiddleCenter);
+    ui_label(c, string_lit("No script statistics available."), .align = UiAlign_MiddleCenter);
     return;
   }
 
@@ -208,135 +212,135 @@ static void info_panel_tab_draw(
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  ui_table_next_row(canvas, &table);
+  ui_table_next_row(c, &table);
   bool pauseEval = (scene_script_flags(scriptInstance) & SceneScriptFlags_PauseEvaluation) != 0;
-  ui_label(canvas, string_lit("Pause"));
-  ui_table_next_column(canvas, &table);
-  if (ui_toggle(canvas, &pauseEval)) {
+  ui_label(c, string_lit("Pause"));
+  ui_table_next_column(c, &table);
+  if (ui_toggle(c, &pauseEval)) {
     scene_script_flags_toggle(scriptInstance, SceneScriptFlags_PauseEvaluation);
   }
 
   const u32 scriptCount = scene_script_count(scriptInstance);
   for (SceneScriptSlot slot = 0; slot != scriptCount; ++slot) {
-    info_panel_tab_script_draw(world, canvas, panelComp, &table, assetItr, scriptInstance, slot);
+    info_panel_tab_script_draw(world, c, panelComp, &table, assetItr, scriptInstance, slot);
   }
 }
 
-static bool memory_draw_bool(UiCanvasComp* canvas, ScriptVal* value) {
+static bool memory_draw_bool(UiCanvasComp* c, ScriptVal* value) {
   bool valBool = script_get_bool(*value, false);
-  if (ui_toggle(canvas, &valBool)) {
+  if (ui_toggle(c, &valBool)) {
     *value = script_bool(valBool);
     return true;
   }
   return false;
 }
 
-static bool memory_draw_num(UiCanvasComp* canvas, ScriptVal* value) {
+static bool memory_draw_num(UiCanvasComp* c, ScriptVal* value) {
   f64 valNumber = script_get_num(*value, 0);
-  if (ui_numbox(canvas, &valNumber, .min = f64_min, .max = f64_max)) {
+  if (ui_numbox(c, &valNumber, .min = f64_min, .max = f64_max)) {
     *value = script_num(valNumber);
     return true;
   }
   return false;
 }
 
-static bool memory_draw_f32_values(UiCanvasComp* canvas, f32* values, const u32 valueCount) {
+static bool memory_draw_f32_values(UiCanvasComp* c, f32* values, const u32 valueCount) {
   static const f32 g_spacing = 10.0f;
   const UiAlign    align     = UiAlign_MiddleLeft;
-  ui_layout_push(canvas);
-  ui_layout_resize(canvas, align, ui_vector(1.0f / valueCount, 0), UiBase_Current, Ui_X);
-  ui_layout_grow(canvas, align, ui_vector(2 * -g_spacing / valueCount, 0), UiBase_Absolute, Ui_X);
+  ui_layout_push(c);
+  ui_layout_resize(c, align, ui_vector(1.0f / valueCount, 0), UiBase_Current, Ui_X);
+  ui_layout_grow(c, align, ui_vector(2 * -g_spacing / valueCount, 0), UiBase_Absolute, Ui_X);
 
   bool dirty = false;
   for (u32 i = 0; i != valueCount; ++i) {
     f64 compVal = values[i];
-    if (ui_numbox(canvas, &compVal, .min = f32_min, .max = f32_max)) {
+    if (ui_numbox(c, &compVal, .min = f32_min, .max = f32_max)) {
       values[i] = (f32)compVal;
       dirty     = true;
     }
-    ui_layout_next(canvas, Ui_Right, g_spacing);
+    ui_layout_next(c, Ui_Right, g_spacing);
   }
-  ui_layout_pop(canvas);
+  ui_layout_pop(c);
 
   return dirty;
 }
 
-static bool memory_draw_vec3(UiCanvasComp* canvas, ScriptVal* value) {
+static bool memory_draw_vec3(UiCanvasComp* c, ScriptVal* value) {
   GeoVector vec3 = script_get_vec3(*value, geo_vector(0));
-  if (memory_draw_f32_values(canvas, vec3.comps, 3)) {
+  if (memory_draw_f32_values(c, vec3.comps, 3)) {
     *value = script_vec3(vec3);
     return true;
   }
   return false;
 }
 
-static bool memory_draw_quat(UiCanvasComp* canvas, ScriptVal* value) {
+static bool memory_draw_quat(UiCanvasComp* c, ScriptVal* value) {
   GeoQuat quat = script_get_quat(*value, geo_quat_ident);
-  if (memory_draw_f32_values(canvas, quat.comps, 4)) {
+  if (memory_draw_f32_values(c, quat.comps, 4)) {
     *value = script_quat(quat);
     return true;
   }
   return false;
 }
 
-static bool memory_draw_color(UiCanvasComp* canvas, ScriptVal* value) {
+static bool memory_draw_color(UiCanvasComp* c, ScriptVal* value) {
   GeoColor col = script_get_color(*value, geo_color_clear);
-  if (memory_draw_f32_values(canvas, col.data, 4)) {
+  if (memory_draw_f32_values(c, col.data, 4)) {
     *value = script_color(col);
     return true;
   }
   return false;
 }
 
-static bool memory_draw_entity(UiCanvasComp* canvas, ScriptVal* value) {
+static bool memory_draw_entity(UiCanvasComp* c, ScriptVal* value) {
   const EcsEntityId valEntity = script_get_entity(*value, ecs_entity_invalid);
-  ui_label_entity(canvas, valEntity);
+  ui_label_entity(c, valEntity);
   return false;
 }
 
-static bool memory_draw_str(UiCanvasComp* canvas, ScriptVal* value) {
-  ui_label(canvas, script_val_scratch(*value));
+static bool memory_draw_str(UiCanvasComp* c, ScriptVal* value) {
+  ui_label(c, script_val_scratch(*value));
   return false;
 }
 
-static bool memory_draw_val(UiCanvasComp* canvas, ScriptVal* value) {
+static bool memory_draw_val(UiCanvasComp* c, ScriptVal* value) {
   switch (script_type(*value)) {
   case ScriptType_Null:
-    ui_label(canvas, string_lit("< null >"));
+    ui_label(c, string_lit("< null >"));
     return false;
   case ScriptType_Num:
-    return memory_draw_num(canvas, value);
+    return memory_draw_num(c, value);
   case ScriptType_Bool:
-    return memory_draw_bool(canvas, value);
+    return memory_draw_bool(c, value);
   case ScriptType_Vec3:
-    return memory_draw_vec3(canvas, value);
+    return memory_draw_vec3(c, value);
   case ScriptType_Quat:
-    return memory_draw_quat(canvas, value);
+    return memory_draw_quat(c, value);
   case ScriptType_Color:
-    return memory_draw_color(canvas, value);
+    return memory_draw_color(c, value);
   case ScriptType_Entity:
-    return memory_draw_entity(canvas, value);
+    return memory_draw_entity(c, value);
   case ScriptType_Str:
-    return memory_draw_str(canvas, value);
+    return memory_draw_str(c, value);
   case ScriptType_Count:
     break;
   }
   return false;
 }
 
-static void memory_options_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp) {
-  ui_layout_push(canvas);
+static void memory_options_draw(UiCanvasComp* c, DebugScriptPanelComp* panelComp) {
+  ui_layout_push(c);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 105);
   ui_table_add_column(&table, UiTableColumn_Fixed, 25);
 
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Hide null:"));
-  ui_table_next_column(canvas, &table);
-  ui_toggle(canvas, &panelComp->hideNullMemory);
+  ui_table_next_row(c, &table);
+  ui_label(c, string_lit("Hide null:"));
+  ui_table_next_column(c, &table);
+  ui_toggle(c, &panelComp->hideNullMemory);
 
-  ui_layout_pop(canvas);
+  ui_layout_pop(c);
 }
 
 static i8 memory_compare_entry_name(const void* a, const void* b) {
@@ -344,15 +348,15 @@ static i8 memory_compare_entry_name(const void* a, const void* b) {
 }
 
 static void
-memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, EcsIterator* subject) {
+memory_panel_tab_draw(UiCanvasComp* c, DebugScriptPanelComp* panelComp, EcsIterator* subject) {
   diag_assert(subject);
 
   SceneKnowledgeComp* knowledge = ecs_view_write_t(subject, SceneKnowledgeComp);
   ScriptMem*          memory    = scene_knowledge_memory_mut(knowledge);
 
-  memory_options_draw(canvas, panelComp);
-  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(canvas, UiClip_None);
+  memory_options_draw(c, panelComp);
+  ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(c, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 200);
@@ -360,7 +364,7 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, Ecs
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
-      canvas,
+      c,
       &table,
       (const UiTableColumnName[]){
           {string_lit("Key"), string_lit("Memory key.")},
@@ -383,33 +387,33 @@ memory_panel_tab_draw(UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, Ecs
   dynarray_sort(&entries, memory_compare_entry_name);
 
   const f32 totalHeight = ui_table_height(&table, (u32)entries.size);
-  ui_scrollview_begin(canvas, &panelComp->scrollview, totalHeight);
+  ui_scrollview_begin(c, &panelComp->scrollview, totalHeight);
 
   if (entries.size) {
     dynarray_for_t(&entries, DebugMemoryEntry, entry) {
       ScriptVal value = script_mem_load(memory, entry->key);
 
-      ui_table_next_row(canvas, &table);
-      ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
+      ui_table_next_row(c, &table);
+      ui_table_draw_row_bg(c, &table, ui_color(48, 48, 48, 192));
 
-      ui_label(canvas, entry->name, .selectable = true);
-      ui_table_next_column(canvas, &table);
+      ui_label(c, entry->name, .selectable = true);
+      ui_table_next_column(c, &table);
 
-      ui_label(canvas, script_val_type_str(script_type(value)));
-      ui_table_next_column(canvas, &table);
+      ui_label(c, script_val_type_str(script_type(value)));
+      ui_table_next_column(c, &table);
 
-      if (memory_draw_val(canvas, &value)) {
+      if (memory_draw_val(c, &value)) {
         script_mem_store(memory, entry->key, value);
       }
     }
   } else {
-    ui_label(canvas, string_lit("Memory empty."), .align = UiAlign_MiddleCenter);
+    ui_label(c, string_lit("Memory empty."), .align = UiAlign_MiddleCenter);
   }
 
   dynarray_destroy(&entries);
 
-  ui_scrollview_end(canvas, &panelComp->scrollview);
-  ui_layout_container_pop(canvas);
+  ui_scrollview_end(c, &panelComp->scrollview);
+  ui_layout_container_pop(c);
 }
 
 static DebugScriptTrackerComp* output_tracker_create(EcsWorld* world) {
@@ -541,36 +545,36 @@ static UiColor output_entry_bg_color(const DebugScriptOutput* entry) {
 }
 
 static void output_options_draw(
-    UiCanvasComp* canvas, DebugScriptPanelComp* panelComp, DebugScriptTrackerComp* tracker) {
-  ui_layout_push(canvas);
+    UiCanvasComp* c, DebugScriptPanelComp* panelComp, DebugScriptTrackerComp* tracker) {
+  ui_layout_push(c);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Fixed, 150);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
 
-  ui_table_next_row(canvas, &table);
-  ui_label(canvas, string_lit("Mode:"));
-  ui_table_next_column(canvas, &table);
-  ui_select(canvas, (i32*)&panelComp->outputMode, g_outputModeNames, DebugScriptOutputMode_Count);
+  ui_table_next_row(c, &table);
+  ui_label(c, string_lit("Mode:"));
+  ui_table_next_column(c, &table);
+  ui_select(c, (i32*)&panelComp->outputMode, g_outputModeNames, DebugScriptOutputMode_Count);
 
-  ui_table_next_column(canvas, &table);
-  if (ui_button(canvas, .label = string_lit("Clear"))) {
+  ui_table_next_column(c, &table);
+  if (ui_button(c, .label = string_lit("Clear"))) {
     output_clear(tracker);
   }
 
-  ui_layout_pop(canvas);
+  ui_layout_pop(c);
 }
 
 static void output_panel_tab_draw(
-    UiCanvasComp*           canvas,
+    UiCanvasComp*           c,
     DebugScriptPanelComp*   panelComp,
     DebugScriptTrackerComp* tracker,
     SceneSetEnvComp*        setEnv,
     EcsIterator*            subjectItr) {
-  output_options_draw(canvas, panelComp, tracker);
-  ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(canvas, UiClip_None);
+  output_options_draw(c, panelComp, tracker);
+  ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(c, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 215);
@@ -578,7 +582,7 @@ static void output_panel_tab_draw(
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
-      canvas,
+      c,
       &table,
       (const UiTableColumnName[]){
           {string_lit("Entity"), string_lit("Script entity.")},
@@ -587,10 +591,10 @@ static void output_panel_tab_draw(
       });
 
   const u32 numEntries = panelComp->lastRowCount;
-  ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numEntries));
+  ui_scrollview_begin(c, &panelComp->scrollview, ui_table_height(&table, numEntries));
 
   if (!numEntries) {
-    ui_label(canvas, string_lit("No output entries."), .align = UiAlign_MiddleCenter);
+    ui_label(c, string_lit("No output entries."), .align = UiAlign_MiddleCenter);
   }
 
   panelComp->lastRowCount = 0;
@@ -601,16 +605,15 @@ static void output_panel_tab_draw(
       }
     }
 
-    ui_table_next_row(canvas, &table);
-    ui_table_draw_row_bg(canvas, &table, output_entry_bg_color(entry));
+    ui_table_next_row(c, &table);
+    ui_table_draw_row_bg(c, &table, output_entry_bg_color(entry));
 
-    ui_label_entity(canvas, entry->entity);
-    ui_layout_push(canvas);
-    ui_layout_inner(
-        canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 25), UiBase_Absolute);
+    ui_label_entity(c, entry->entity);
+    ui_layout_push(c);
+    ui_layout_inner(c, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 25), UiBase_Absolute);
     const bool selected = scene_set_contains(setEnv, g_sceneSetSelected, entry->entity);
     if (ui_button(
-            canvas,
+            c,
             .label      = ui_shape_scratch(UiShape_SelectAll),
             .frameColor = selected ? ui_color(8, 128, 8, 192) : ui_color(32, 32, 32, 192),
             .fontSize   = 18,
@@ -618,10 +621,10 @@ static void output_panel_tab_draw(
       scene_set_clear(setEnv, g_sceneSetSelected);
       scene_set_add(setEnv, g_sceneSetSelected, entry->entity);
     }
-    ui_layout_pop(canvas);
+    ui_layout_pop(c);
 
-    ui_table_next_column(canvas, &table);
-    ui_label(canvas, mem_create(entry->msgData, entry->msgLength), .selectable = true);
+    ui_table_next_column(c, &table);
+    ui_label(c, mem_create(entry->msgData, entry->msgLength), .selectable = true);
 
     const String locText = fmt_write_scratch(
         "{}:{}:{}-{}:{}",
@@ -640,22 +643,22 @@ static void output_panel_tab_draw(
         fmt_int(entry->range.start.column + 1),
         fmt_int(entry->range.end.column + 1));
 
-    ui_table_next_column(canvas, &table);
-    if (ui_button(canvas, .label = locText, .noFrame = true, .tooltip = locTooltip)) {
+    ui_table_next_column(c, &table);
+    if (ui_button(c, .label = locText, .noFrame = true, .tooltip = locTooltip)) {
       panelComp->editorReq =
           (DebugEditorRequest){.scriptId = entry->scriptId, .pos = entry->range.start};
     }
     ++panelComp->lastRowCount;
   }
-  ui_canvas_id_block_next(canvas);
+  ui_canvas_id_block_next(c);
 
-  ui_scrollview_end(canvas, &panelComp->scrollview);
-  ui_layout_container_pop(canvas);
+  ui_scrollview_end(c, &panelComp->scrollview);
+  ui_layout_container_pop(c);
 }
 
 static void script_panel_draw(
     EcsWorld*               world,
-    UiCanvasComp*           canvas,
+    UiCanvasComp*           c,
     DebugScriptPanelComp*   panelComp,
     DebugScriptTrackerComp* tracker,
     SceneSetEnvComp*        setEnv,
@@ -663,7 +666,7 @@ static void script_panel_draw(
     EcsIterator*            subjectItr) {
   const String title = fmt_write_scratch("{} Script Panel", fmt_ui_shape(Description));
   ui_panel_begin(
-      canvas,
+      c,
       &panelComp->panel,
       .title       = title,
       .tabNames    = g_scriptTabNames,
@@ -673,39 +676,38 @@ static void script_panel_draw(
   switch (panelComp->panel.activeTab) {
   case DebugScriptTab_Info:
     if (subjectItr) {
-      info_panel_tab_draw(world, canvas, panelComp, assetItr, subjectItr);
+      info_panel_tab_draw(world, c, panelComp, assetItr, subjectItr);
     } else {
-      ui_label(canvas, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
+      ui_label(c, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
     }
     break;
   case DebugScriptTab_Memory:
     if (subjectItr) {
-      memory_panel_tab_draw(canvas, panelComp, subjectItr);
+      memory_panel_tab_draw(c, panelComp, subjectItr);
     } else {
-      ui_label(canvas, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
+      ui_label(c, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
     }
     break;
   case DebugScriptTab_Output:
-    output_panel_tab_draw(canvas, panelComp, tracker, setEnv, subjectItr);
+    output_panel_tab_draw(c, panelComp, tracker, setEnv, subjectItr);
     break;
   }
 
-  ui_panel_end(canvas, &panelComp->panel);
+  ui_panel_end(c, &panelComp->panel);
 }
 
 static void script_panel_draw_output_only(
-    UiCanvasComp*           canvas,
+    UiCanvasComp*           c,
     DebugScriptPanelComp*   panelComp,
     DebugScriptTrackerComp* tracker,
     SceneSetEnvComp*        setEnv,
     EcsIterator*            subjectItr) {
   const String title = fmt_write_scratch("{} Script Output", fmt_ui_shape(Description));
-  ui_panel_begin(
-      canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
+  ui_panel_begin(c, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
-  output_panel_tab_draw(canvas, panelComp, tracker, setEnv, subjectItr);
+  output_panel_tab_draw(c, panelComp, tracker, setEnv, subjectItr);
 
-  ui_panel_end(canvas, &panelComp->panel);
+  ui_panel_end(c, &panelComp->panel);
 }
 
 ecs_view_define(PanelUpdateGlobalView) {

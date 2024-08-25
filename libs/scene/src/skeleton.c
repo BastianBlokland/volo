@@ -307,21 +307,26 @@ static void anim_set_weights_neg1(const SceneSkeletonTemplComp* tl, f32* weights
   }
 }
 
+/**
+ * Search for the first frame with a higher (or equal) time (and then return the frame before it).
+ * Pre-condition: ch->frameCount > 1.
+ * Pre-condition: tNorm16 > ch->times[0].
+ * Pre-condition: tNorm16 < ch->times[ch->frameCount - 1].
+ */
 INLINE_HINT static u32 anim_find_frame(const SceneSkeletonChannel* ch, const u16 tNorm16) {
-  /**
-   * Search for the first frame with a higher (or equal) time (and then return the frame before it).
-   */
 #ifdef VOLO_SIMD
   const SimdVec tVec = simd_vec_broadcast_u16(tNorm16);
-  for (u32 i = 0;;) {
+  for (u32 i = 0;; i += 8) {
+    /**
+     * NOTE: This can read past the end of the times array (as we always read 8 entries), but the
+     * times array starts at a 16-byte boundary and the whole animData is padded to 16 bytes so we
+     * can never read past the end of the data.
+     */
     const SimdVec timesVec    = simd_vec_load(&ch->times[i]);
     const u32     greaterMask = simd_vec_mask_u8(simd_vec_greater_eq_u16(timesVec, tVec));
     if (greaterMask) {
       const u32 greaterIndex = i + intrinsic_ctz_32(greaterMask) / 2;
       return greaterIndex ? greaterIndex - 1 : 0;
-    }
-    if ((i += 8) >= ch->frameCount) {
-      return ch->frameCount - 1;
     }
   }
 #else
@@ -337,13 +342,19 @@ INLINE_HINT static u32 anim_find_frame(const SceneSkeletonChannel* ch, const u16
       count = step;
     }
   }
-  return begin ? (begin - 1) : 0;
+  return begin - 1;
 #endif
 }
 
 static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const u16 tNorm16) {
   if (ch->frameCount == 1) {
     return ch->values_vec[0];
+  }
+  if (tNorm16 <= ch->times[0]) {
+    return ch->values_vec[0];
+  }
+  if (tNorm16 >= ch->times[ch->frameCount - 1]) {
+    return ch->values_vec[ch->frameCount - 1];
   }
   const u32 frame   = anim_find_frame(ch, tNorm16);
   const u16 fromT16 = ch->times[frame];
@@ -355,6 +366,12 @@ static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const u16 
 static GeoQuat anim_channel_get_quat(const SceneSkeletonChannel* ch, const u16 tNorm16) {
   if (ch->frameCount == 1) {
     return ch->values_quat[0];
+  }
+  if (tNorm16 <= ch->times[0]) {
+    return ch->values_quat[0];
+  }
+  if (tNorm16 >= ch->times[ch->frameCount - 1]) {
+    return ch->values_quat[ch->frameCount - 1];
   }
   const u32 frame   = anim_find_frame(ch, tNorm16);
   const u16 fromT16 = ch->times[frame];

@@ -742,7 +742,7 @@ static void
 painter_push_debug_skinning(RendPaintContext* ctx, EcsView* drawView, EcsView* resourceView) {
   RvkRepository*        repository     = rvk_canvas_repository(ctx->painter->canvas);
   const RvkRepositoryId debugGraphicId = RvkRepositoryId_DebugSkinningGraphic;
-  RvkGraphic*           debugGraphic   = rvk_repository_graphic_get(repository, debugGraphicId);
+  RvkGraphic*           debugGraphic = rvk_repository_graphic_get_maybe(repository, debugGraphicId);
   if (!debugGraphic || !rvk_pass_prepare(ctx->pass, debugGraphic)) {
     return; // Debug graphic not ready to be drawn.
   }

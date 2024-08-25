@@ -1238,8 +1238,9 @@ static void gltf_process_anim_channel(
    * - frames that are too short (less then a 30hz frame).
    */
   if (ch->frameCount > 2) {
-    static const f32 g_minTimeSec = 1.0f / 30.0f; // A single frame at 30hz.
-    const u16        minTimeFrac  = (u16)(u16_max * math_min(g_minTimeSec / duration, 1.0f));
+    static const f32 g_minTimeSec   = 1.0f / 30.0f; // A single frame at 30hz.
+    const f32        minTimeFrac    = math_min(g_minTimeSec / duration, 1.0f);
+    const u16        minTimeFracU16 = math_max((u16)(u16_max * minTimeFrac), 1);
 
     for (u32 i = 1; i < (ch->frameCount - 1); ++i) {
       if (eq(valueData[i], valueData[i - 1], gltf_eq_threshold) &&
@@ -1247,7 +1248,8 @@ static void gltf_process_anim_channel(
         gltf_process_remove_frame(ld, ch, i);
         continue;
       }
-      if ((timeData[i] - timeData[i - 1]) < minTimeFrac) {
+      if ((timeData[i] - timeData[i - 1]) < minTimeFracU16 ||
+          (timeData[i + 1] - timeData[i]) < minTimeFracU16) {
         gltf_process_remove_frame(ld, ch, i);
         continue;
       }

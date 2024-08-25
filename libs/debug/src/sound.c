@@ -93,7 +93,7 @@ static void sound_draw_table_header(UiCanvasComp* c, UiTable* table, const Strin
  */
 static f32 sound_magnitude_to_db(const f32 magnitude) {
   static const f32 g_dbMin = -50.0f;
-  if (magnitude < 1e-3f) {
+  if (magnitude < 0.00316f /* -50.0f db as magnitude */) {
     return g_dbMin;
   }
   return 20.0f * math_log10_f32(magnitude);
