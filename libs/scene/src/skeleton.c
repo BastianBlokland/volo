@@ -345,6 +345,12 @@ static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const u16 
   if (ch->frameCount == 1) {
     return ch->values_vec[0];
   }
+  if (tNorm16 <= ch->times[0]) {
+    return ch->values_vec[0];
+  }
+  if (tNorm16 >= ch->times[ch->frameCount - 1]) {
+    return ch->values_vec[ch->frameCount - 1];
+  }
   const u32 frame   = anim_find_frame(ch, tNorm16);
   const u16 fromT16 = ch->times[frame];
   const u16 toT16   = ch->times[frame + 1];
@@ -355,6 +361,12 @@ static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const u16 
 static GeoQuat anim_channel_get_quat(const SceneSkeletonChannel* ch, const u16 tNorm16) {
   if (ch->frameCount == 1) {
     return ch->values_quat[0];
+  }
+  if (tNorm16 <= ch->times[0]) {
+    return ch->values_quat[0];
+  }
+  if (tNorm16 >= ch->times[ch->frameCount - 1]) {
+    return ch->values_quat[ch->frameCount - 1];
   }
   const u32 frame   = anim_find_frame(ch, tNorm16);
   const u16 fromT16 = ch->times[frame];
