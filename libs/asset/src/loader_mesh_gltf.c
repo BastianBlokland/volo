@@ -1247,7 +1247,7 @@ static void gltf_process_anim_channel(
         gltf_process_remove_frame(ld, ch, i);
         continue;
       }
-      if (timeData[i] - timeData[i - 1] < minTimeFrac) {
+      if ((timeData[i] - timeData[i - 1]) < minTimeFrac) {
         gltf_process_remove_frame(ld, ch, i);
         continue;
       }
