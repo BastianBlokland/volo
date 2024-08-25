@@ -432,7 +432,8 @@ static bool snd_object_skip(SndObject* obj, const TimeDuration dur) {
   paramActual = snd_object_param_blend(paramActual, paramTarget, paramDeltaMin, paramDeltaMax);
   simd_vec_store(paramActual, obj->paramActual);
 
-  obj->cursor += durSeconds * obj->frameRate;
+  ASSERT(SndObjectParam_Pitch == 0, "Expected pitch to be the first parameter");
+  obj->cursor += durSeconds * (f64)obj->frameRate * (f64)simd_vec_x(paramActual);
 
   if (obj->cursor >= obj->frameCount) {
     if (obj->flags & SndObjectFlags_Looping) {
