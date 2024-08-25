@@ -40,7 +40,7 @@ static const UiColor g_statsChartColors[] = {
     {128, 0, 0, 255},
 };
 
-#define stats_plot_size 32
+#define stats_plot_size 64
 #define stats_notify_max_key_size 32
 #define stats_notify_max_value_size 16
 #define stats_notify_max_age time_seconds(3)
@@ -311,7 +311,7 @@ static void stats_draw_plot_dur(
 
 static void stats_draw_frametime(UiCanvasComp* c, const DebugStatsComp* stats) {
   const f64 g_errorThreshold = 1.25;
-  const f64 g_warnThreshold  = 1.05;
+  const f64 g_warnThreshold  = 1.025;
 
   const TimeDuration durAvg      = debug_plot_avg_dur(&stats->frameDurPlot);
   const TimeDuration durVariance = debug_plot_var_dur(&stats->frameDurPlot);
