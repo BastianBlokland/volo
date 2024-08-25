@@ -45,6 +45,21 @@ static FileResult fileresult_from_errno(void) {
   return FileResult_UnknownError;
 }
 
+static FileInfo fileinfo_from_stat(const struct stat* stat) {
+  FileType fileType = FileType_Unknown;
+  if (S_ISREG(stat->st_mode)) {
+    fileType = FileType_Regular;
+  } else if (S_ISDIR(stat->st_mode)) {
+    fileType = FileType_Directory;
+  }
+  return (FileInfo){
+      .size       = stat->st_size,
+      .type       = fileType,
+      .accessTime = time_pal_native_to_real(stat->st_atim),
+      .modTime    = time_pal_native_to_real(stat->st_mtim),
+  };
+}
+
 void file_pal_init(void) {}
 
 FileResult
@@ -186,20 +201,31 @@ FileInfo file_stat_sync(File* file) {
   if (UNLIKELY(res != 0)) {
     diag_crash_msg("fstat() failed: {}", fmt_int(res));
   }
+  return fileinfo_from_stat(&statOutput);
+}
 
-  FileType fileType = FileType_Unknown;
-  if (S_ISREG(statOutput.st_mode)) {
-    fileType = FileType_Regular;
-  } else if (S_ISDIR(statOutput.st_mode)) {
-    fileType = FileType_Directory;
+FileInfo file_stat_path_sync(const String path) {
+  // Copy the path on the stack and null-terminate it.
+  if (path.size >= PATH_MAX) {
+    return (FileInfo){0};
   }
+  Mem pathBuffer = mem_stack(PATH_MAX);
+  mem_cpy(pathBuffer, path);
+  *mem_at_u8(pathBuffer, path.size) = '\0';
 
-  return (FileInfo){
-      .size       = statOutput.st_size,
-      .type       = fileType,
-      .accessTime = time_pal_native_to_real(statOutput.st_atim),
-      .modTime    = time_pal_native_to_real(statOutput.st_mtim),
-  };
+  struct stat statOutput;
+  const int   res = stat(pathBuffer.ptr, &statOutput);
+  if (res != 0) {
+    switch (errno) {
+    case EACCES:
+    case ELOOP:
+    case ENOENT:
+      return (FileInfo){0};
+    default:
+      diag_crash_msg("stat() failed: {} (errno: {})", fmt_int(res), fmt_int(errno));
+    }
+  }
+  return fileinfo_from_stat(&statOutput);
 }
 
 FileResult file_delete_sync(String path) {
