@@ -102,6 +102,7 @@ ASSERT(array_elems(g_rendTabNames) == DebugRendTab_Count, "Incorrect number of n
 typedef enum {
   DebugRendDrawSort_Graphic,
   DebugRendDrawSort_RenderOrder,
+  DebugRendDrawSort_Instances,
 
   DebugRendDrawSort_Count,
 } DebugRendDrawSort;
@@ -109,6 +110,7 @@ typedef enum {
 static const String g_drawSortNames[] = {
     string_static("Graphic"),
     string_static("Order"),
+    string_static("Instances"),
 };
 ASSERT(array_elems(g_drawSortNames) == DebugRendDrawSort_Count, "Incorrect number of names");
 
@@ -253,6 +255,16 @@ static i8 rend_draw_compare_render_order(const void* a, const void* b) {
   const DebugDrawInfo* drawA = a;
   const DebugDrawInfo* drawB = b;
   i8                   order = compare_i32_reverse(&drawA->renderOrder, &drawB->renderOrder);
+  if (!order) {
+    order = compare_string(&drawA->graphicName, &drawB->graphicName);
+  }
+  return order;
+}
+
+static i8 rend_draw_compare_instances(const void* a, const void* b) {
+  const DebugDrawInfo* drawA = a;
+  const DebugDrawInfo* drawB = b;
+  i8                   order = compare_i32_reverse(&drawA->instanceCount, &drawB->instanceCount);
   if (!order) {
     order = compare_string(&drawA->graphicName, &drawB->graphicName);
   }
@@ -622,6 +634,9 @@ static void rend_draw_info_query(DebugRendPanelComp* panelComp, EcsWorld* world)
     break;
   case DebugRendDrawSort_RenderOrder:
     dynarray_sort(&panelComp->draws, rend_draw_compare_render_order);
+    break;
+  case DebugRendDrawSort_Instances:
+    dynarray_sort(&panelComp->draws, rend_draw_compare_instances);
     break;
   case DebugRendDrawSort_Count:
     break;
