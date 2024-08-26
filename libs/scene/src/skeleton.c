@@ -326,7 +326,7 @@ INLINE_HINT static u32 anim_find_frame(const SceneSkeletonChannel* ch, const u16
     const u32     greaterMask = simd_vec_mask_u8(simd_vec_greater_eq_u16(timesVec, tVec));
     if (greaterMask) {
       const u32 greaterIndex = i + intrinsic_ctz_32(greaterMask) / 2;
-      return greaterIndex ? greaterIndex - 1 : 0;
+      return greaterIndex - 1;
     }
   }
 #else
