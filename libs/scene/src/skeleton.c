@@ -347,9 +347,6 @@ INLINE_HINT static u32 anim_find_frame(const SceneSkeletonChannel* ch, const u16
 }
 
 static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const u16 tNorm16) {
-  if (ch->frameCount == 1) {
-    return ch->values_vec[0];
-  }
   if (tNorm16 <= ch->times[0]) {
     return ch->values_vec[0];
   }
@@ -364,9 +361,6 @@ static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const u16 
 }
 
 static GeoQuat anim_channel_get_quat(const SceneSkeletonChannel* ch, const u16 tNorm16) {
-  if (ch->frameCount == 1) {
-    return ch->values_quat[0];
-  }
   if (tNorm16 <= ch->times[0]) {
     return ch->values_quat[0];
   }
