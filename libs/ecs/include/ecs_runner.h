@@ -37,8 +37,8 @@ typedef enum {
 /**
  * True while the current thread is running an ecs system.
  */
-extern THREAD_LOCAL bool             g_ecsRunningSystem;
-extern THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId;
+extern THREAD_LOCAL bool        g_ecsRunningSystem;
+extern THREAD_LOCAL EcsSystemId g_ecsRunningSystemId;
 extern THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 /**
@@ -54,6 +54,8 @@ EcsRunner* ecs_runner_create(Allocator*, EcsWorld*, EcsRunnerFlags flags);
  * Pre-condition: !ecs_running().
  */
 void ecs_runner_destroy(EcsRunner*);
+
+void ecs_runner_replan_set(const EcsRunner*, bool);
 
 typedef struct {
   TimeDuration flushDurLast, flushDurAvg;
