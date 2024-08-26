@@ -789,6 +789,15 @@ void ecs_runner_destroy(EcsRunner* runner) {
   alloc_free_t(runner->alloc, runner);
 }
 
+void ecs_runner_replan_set(const EcsRunner* runner, const bool val) {
+  EcsRunner* runnerMut = (EcsRunner*)runner;
+  if (val) {
+    runnerMut->flags |= EcsRunnerFlags_Replan;
+  } else {
+    runnerMut->flags &= ~EcsRunnerFlags_Replan;
+  }
+}
+
 EcsRunnerStats ecs_runner_stats_query(const EcsRunner* runner) {
   return (EcsRunnerStats){
       .flushDurLast = runner->metaStats[EcsRunnerMetaTask_Flush].durLast,
