@@ -15,6 +15,11 @@ if (active(me, "Dead")) {
   return
 }
 
+if (!$colored) {
+  renderable_param(self(), "Color", faction(self()) == "FactionA" ? color(0.25, 0.25, 1, 1) : color(1, 0.25, 0.25, 1))
+  $colored = true
+}
+
 var target            = $cmdAttackTarget
 var isAutoTarget      = false
 var attackWhileMoving = $cfgAttackWhileMoving ?? false
@@ -60,7 +65,7 @@ if (!target || active(target, "Dead")) {
   return // No target to attack; early out.
 }
 
-if (requireLos) {
+if (true) {
   var los = line_of_sight(me, target, losRadius)
   if (los != null && los <= attackRange) {
     if (canMove && !attackWhileMoving) {

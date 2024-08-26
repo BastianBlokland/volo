@@ -31,8 +31,8 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "Rifle",
-          "targetRangeMax": 25,
-          "targetExcludeObscured": true
+          "targetRangeMax": 999,
+          "targetExcludeObscured": false
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -50,6 +50,10 @@
             "scripts/behavior/unit_move.script",
             "scripts/behavior/unit_attack.script",
             "scripts/behavior/unit_promotion.script"
+          ],
+          "knowledge": [
+            { "$type": "AssetPrefabValue_Number", "$name": "cfgAttackRange", "$data": 25 },
+            { "$type": "AssetPrefabValue_Bool", "$name": "cfgAllowAutoMove", "$data": true }
           ]
         },
         {
@@ -92,8 +96,8 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "RocketLauncher",
-          "targetRangeMax": 30,
-          "targetExcludeObscured": true
+          "targetRangeMax": 999,
+          "targetExcludeObscured": false
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -111,6 +115,10 @@
             "scripts/behavior/unit_move.script",
             "scripts/behavior/unit_attack.script",
             "scripts/behavior/unit_promotion.script"
+          ],
+          "knowledge": [
+            { "$type": "AssetPrefabValue_Number", "$name": "cfgAttackRange", "$data": 30 },
+            { "$type": "AssetPrefabValue_Bool", "$name": "cfgAllowAutoMove", "$data": true }
           ]
         },
         {
@@ -153,8 +161,8 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weaponId": "FlameThrower",
-          "targetRangeMax": 12.5,
-          "targetExcludeObscured": true
+          "targetRangeMax": 999,
+          "targetExcludeObscured": false
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -176,7 +184,9 @@
           ],
           "knowledge": [
             { "$name": "assetSndBurning", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/burning-02.wav" },
-            { "$name": "assetVfxFire", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/fire_force.vfx" }
+            { "$name": "assetVfxFire", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/fire_force.vfx" },
+            { "$type": "AssetPrefabValue_Number", "$name": "cfgAttackRange", "$data": 12.5 },
+            { "$type": "AssetPrefabValue_Bool", "$name": "cfgAllowAutoMove", "$data": true }
           ]
         },
         {
@@ -956,7 +966,6 @@
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [ "scripts/logic/spawner.script" ],
           "knowledge": [
-            { "$name": "cfgSpawnerPrefab", "$type": "AssetPrefabValue_String", "$data": "InfantryMonster" }
           ]
         }
       ]

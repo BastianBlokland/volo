@@ -649,11 +649,13 @@ static void sys_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp)
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 60);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 250);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 120);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 60);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Fixed, 70);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 50);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 30);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 70);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 30);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(canvas, &table);
@@ -661,14 +663,26 @@ static void sys_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp)
   ui_table_next_column(canvas, &table);
   ui_textbox(
       canvas, &panelComp->nameFilter, .placeholder = string_lit("*"), .tooltip = g_tooltipFilter);
+
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Sort:"));
   ui_table_next_column(canvas, &table);
   ui_select(canvas, (i32*)&panelComp->sysSortMode, g_sysSortModeNames, DebugSysSortMode_Count);
   ui_table_next_column(canvas, &table);
+
   ui_label(canvas, string_lit("Freeze:"));
   ui_table_next_column(canvas, &table);
   ui_toggle(canvas, &panelComp->freeze, .tooltip = g_tooltipFreeze);
+  ui_table_next_column(canvas, &table);
+
+  static bool replan;
+
+  ui_label(canvas, string_lit("Replan:"));
+  ui_table_next_column(canvas, &table);
+  if (ui_toggle(canvas, &replan)) {
+    ecs_runner_replan_set(g_ecsRunningRunner, replan);
+  }
+
   ui_table_next_column(canvas, &table);
   if (ui_button(canvas, .label = string_lit("Dump graph"), .tooltip = g_tooltipDumpGraph)) {
     const JobGraph* currentGraph = ecs_runner_graph(g_ecsRunningRunner);
