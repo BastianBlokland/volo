@@ -1210,9 +1210,14 @@ static void gltf_process_anim_channel(
 
   typedef bool (*EqFunc)(GeoVector, GeoVector, f32);
   const EqFunc eq = target == AssetMeshAnimTarget_Rotation ? geo_vector_equal : geo_vector_equal3;
+  const f32    eqThres = gltf_eq_threshold;
 
-  GeoVector* valueData = dynarray_at(&ld->animData, ch->valueData, sizeof(GeoVector)).ptr;
-  u16*       timeData  = dynarray_at(&ld->animData, ch->timeData, sizeof(u16)).ptr;
+  static const f32 g_minTimeSec   = 1.0f / 30.0f; // A single frame at 30hz.
+  const f32        minTimeFrac    = math_min(g_minTimeSec / duration, 1.0f);
+  const u16        minTimeFracU16 = math_max((u16)(u16_max * minTimeFrac), 1);
+
+  GeoVector* vData = dynarray_at(&ld->animData, ch->valueData, sizeof(GeoVector)).ptr;
+  u16*       tData = dynarray_at(&ld->animData, ch->timeData, sizeof(u16)).ptr;
 
   /**
    * If a channel consists of all identical frames we can skip the interpolation.
@@ -1222,7 +1227,7 @@ static void gltf_process_anim_channel(
   if (ch->frameCount > 1) {
     bool allEq = true;
     for (u32 i = 1; i != ch->frameCount; ++i) {
-      if (!eq(valueData[0], valueData[i], gltf_eq_threshold)) {
+      if (!eq(vData[0], vData[i], gltf_eq_threshold)) {
         allEq = false;
         break;
       }
@@ -1237,22 +1242,20 @@ static void gltf_process_anim_channel(
    * - frames that have the same position/rotation/scale as the previous and the next.
    * - frames that are too short (less then a 30hz frame).
    */
-  if (ch->frameCount > 2) {
-    static const f32 g_minTimeSec   = 1.0f / 30.0f; // A single frame at 30hz.
-    const f32        minTimeFrac    = math_min(g_minTimeSec / duration, 1.0f);
-    const u16        minTimeFracU16 = math_max((u16)(u16_max * minTimeFrac), 1);
-
-    for (u32 i = 1; i < (ch->frameCount - 1); ++i) {
-      if (eq(valueData[i], valueData[i - 1], gltf_eq_threshold) &&
-          eq(valueData[i], valueData[i + 1], gltf_eq_threshold)) {
-        gltf_process_remove_frame(ld, ch, i);
-        continue;
-      }
-      if ((timeData[i] - timeData[i - 1]) < minTimeFracU16 ||
-          (timeData[i + 1] - timeData[i]) < minTimeFracU16) {
-        gltf_process_remove_frame(ld, ch, i);
-        continue;
-      }
+  if (ch->frameCount >= 2 && eq(vData[0], vData[1], eqThres)) {
+    gltf_process_remove_frame(ld, ch, 0);
+  }
+  if (ch->frameCount >= 2 && eq(vData[ch->frameCount - 1], vData[ch->frameCount - 2], eqThres)) {
+    gltf_process_remove_frame(ld, ch, ch->frameCount - 1);
+  }
+  for (u32 i = 1; i < (ch->frameCount - 1); ++i) {
+    if (eq(vData[i], vData[i - 1], eqThres) && eq(vData[i], vData[i + 1], eqThres)) {
+      gltf_process_remove_frame(ld, ch, i);
+      continue;
+    }
+    if ((tData[i] - tData[i - 1]) < minTimeFracU16 || (tData[i + 1] - tData[i]) < minTimeFracU16) {
+      gltf_process_remove_frame(ld, ch, i);
+      continue;
     }
   }
 }
