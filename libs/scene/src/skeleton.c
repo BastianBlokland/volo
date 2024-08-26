@@ -326,7 +326,7 @@ INLINE_HINT static u32 anim_find_frame(const SceneSkeletonChannel* ch, const u16
     const u32     greaterMask = simd_vec_mask_u8(simd_vec_greater_eq_u16(timesVec, tVec));
     if (greaterMask) {
       const u32 greaterIndex = i + intrinsic_ctz_32(greaterMask) / 2;
-      return greaterIndex ? greaterIndex - 1 : 0;
+      return greaterIndex - 1;
     }
   }
 #else
@@ -347,9 +347,6 @@ INLINE_HINT static u32 anim_find_frame(const SceneSkeletonChannel* ch, const u16
 }
 
 static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const u16 tNorm16) {
-  if (ch->frameCount == 1) {
-    return ch->values_vec[0];
-  }
   if (tNorm16 <= ch->times[0]) {
     return ch->values_vec[0];
   }
@@ -364,9 +361,6 @@ static GeoVector anim_channel_get_vec(const SceneSkeletonChannel* ch, const u16 
 }
 
 static GeoQuat anim_channel_get_quat(const SceneSkeletonChannel* ch, const u16 tNorm16) {
-  if (ch->frameCount == 1) {
-    return ch->values_quat[0];
-  }
   if (tNorm16 <= ch->times[0]) {
     return ch->values_quat[0];
   }
