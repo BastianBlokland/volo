@@ -11,8 +11,6 @@
 #include "core_simd.h"
 #endif
 
-#define json_string_max_size (usize_kibibyte * 64)
-
 #define json_token_err(_ERR_)                                                                      \
   (JsonToken) { .type = JsonTokenType_Error, .val_error = (_ERR_) }
 
@@ -71,12 +69,13 @@ static String json_lex_string(String str, JsonToken* out) {
   }
 #endif
 
-  DynString result = dynstring_create_over(alloc_alloc(g_allocScratch, json_string_max_size, 1));
+  Mem       resultBuffer = alloc_alloc(g_allocScratch, alloc_max_size(g_allocScratch), 1);
+  DynString result       = dynstring_create_over(resultBuffer);
 
   bool escaped = false;
   while (true) {
 
-    if (UNLIKELY(result.size >= json_string_max_size)) {
+    if (UNLIKELY(result.size >= resultBuffer.size)) {
       *out = json_token_err(JsonError_TooLongString);
       goto Ret;
     }

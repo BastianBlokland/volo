@@ -8,8 +8,6 @@
 
 #include "prefs_internal.h"
 
-#define prefs_file_size_max (usize_kibibyte * 64)
-
 const String g_gameQualityLabels[] = {
     string_static("VeryLow"),
     string_static("Low"),
@@ -62,7 +60,7 @@ static void prefs_to_default(GamePrefsComp* prefs) {
 }
 
 static void prefs_save(const GamePrefsComp* prefs) {
-  DynString dataBuffer = dynstring_create(g_allocScratch, prefs_file_size_max);
+  DynString dataBuffer = dynstring_create(g_allocScratch, alloc_max_size(g_allocScratch));
 
   // Serialize the preferences to json.
   const DataWriteJsonOpts writeOpts = data_write_json_opts();
@@ -119,7 +117,7 @@ GamePrefsComp* prefs_init(EcsWorld* world) {
     log_e("Failed to map preference file", log_param("err", fmt_text(file_result_str(fileRes))));
     goto RetDefault;
   }
-  if (UNLIKELY(fileData.size > prefs_file_size_max)) {
+  if (UNLIKELY(fileData.size > alloc_max_size(g_allocScratch))) {
     log_e("Preference file size exceeds maximum");
     goto RetDefault;
   }

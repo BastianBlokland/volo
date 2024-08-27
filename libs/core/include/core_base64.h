@@ -34,13 +34,13 @@ bool base64_decode(DynString* str, String encoded);
 
 /**
  * Encode the given data in MIME Base64.
- * Pre-condition: base64_encoded_size(data) <= 64KiB.
+ * Pre-condition: base64_encoded_size(data) <= alloc_max_size(g_allocScratch).
  */
 String base64_encode_scratch(String data);
 
 /**
  * Decode MIME Base64 encoded input in scratch memory.
  * Pre-condition: 'encoded' is validly encoded and padded base64.
- * Pre-condition: base64_decoded_size(encoded) <= 64KiB.
+ * Pre-condition: base64_decoded_size(encoded) <= alloc_max_size(g_allocScratch).
  */
 String base64_decode_scratch(String encoded);
