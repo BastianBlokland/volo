@@ -34,8 +34,7 @@ u16 rend_view_sort_dist(const RendView* view, const GeoBox* objAabb) {
    * distances (as objects beyond this distance won't have a stable sorting anymore) and having more
    * precision for close objects.
    */
-  static const f32 g_maxDist       = 200.0f; // In meters.
-  static const f32 g_maxDistSqrInv = 1.0f / (g_maxDist * g_maxDist);
+  static const f32 g_maxDistSqrInv = 1.0f / (200.0f * 200.0f);
 
   const GeoVector objCenter = geo_box_center(objAabb);
   const GeoVector toObj     = geo_vector_sub(objCenter, view->origin);
