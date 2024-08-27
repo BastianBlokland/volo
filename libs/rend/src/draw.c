@@ -21,8 +21,8 @@
 #define rend_max_res_requests 16
 
 typedef struct {
-  u32 instIndex;
-  f32 distSqr;
+  u16 instIndex;
+  u16 viewDist; // Not linear.
 } RendDrawSortKey;
 
 ecs_comp_define(RendDrawComp) {
@@ -239,14 +239,14 @@ u32       rend_draw_data_inst_size(const RendDrawComp* draw) { return draw->inst
 SceneTags rend_draw_tag_mask(const RendDrawComp* draw) { return draw->tagMask; }
 
 static i8 rend_draw_compare_back_to_front(const void* a, const void* b) {
-  const f32 distA = *field_ptr(a, RendDrawSortKey, distSqr);
-  const f32 distB = *field_ptr(b, RendDrawSortKey, distSqr);
+  const u16 distA = *field_ptr(a, RendDrawSortKey, viewDist);
+  const u16 distB = *field_ptr(b, RendDrawSortKey, viewDist);
   return distA > distB ? -1 : distA < distB ? 1 : 0;
 }
 
 static i8 rend_draw_compare_front_to_back(const void* a, const void* b) {
-  const f32 distA = *field_ptr(a, RendDrawSortKey, distSqr);
-  const f32 distB = *field_ptr(b, RendDrawSortKey, distSqr);
+  const u16 distA = *field_ptr(a, RendDrawSortKey, viewDist);
+  const u16 distB = *field_ptr(b, RendDrawSortKey, viewDist);
   return distA < distB ? -1 : distA > distB ? 1 : 0;
 }
 
@@ -288,7 +288,7 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettin
   RendDrawSortKey* sortKeys = null;
   if (draw->flags & RendDrawFlags_Sorted) {
     const usize requiredSortMem = draw->instCount * sizeof(RendDrawSortKey);
-    if (UNLIKELY(requiredSortMem > alloc_max_size(g_allocScratch))) {
+    if (UNLIKELY(draw->instCount > u16_max || requiredSortMem > alloc_max_size(g_allocScratch))) {
       log_e(
           "Sorted draw instance count exceeds maximum",
           log_param("graphic", ecs_entity_fmt(draw->resources[RendDrawResource_Graphic])),
@@ -312,8 +312,8 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettin
        * separate pass sort the instances and copy them to the output.
        */
       sortKeys[outputIndex] = (RendDrawSortKey){
-          .instIndex = i,
-          .distSqr   = rend_view_dist_sqr(view, instAabb),
+          .instIndex = (u16)i,
+          .viewDist  = rend_view_sort_dist(view, instAabb),
       };
     } else {
       rend_draw_copy_to_output(draw, i, outputIndex);

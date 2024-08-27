@@ -1,4 +1,5 @@
 #include "core_annotation.h"
+#include "core_math.h"
 #include "rend_settings.h"
 
 #include "view_internal.h"
@@ -25,6 +26,22 @@ f32 rend_view_dist_sqr(const RendView* view, const GeoBox* objAabb) {
   const GeoVector objCenter = geo_box_center(objAabb);
   const GeoVector toObj     = geo_vector_sub(objCenter, view->origin);
   return geo_vector_mag_sqr(toObj);
+}
+
+u16 rend_view_sort_dist(const RendView* view, const GeoBox* objAabb) {
+  /**
+   * The maximum view distance here is a trade-off between supporting object sorting over longer
+   * distances (as objects beyond this distance won't have a stable sorting anymore) and having more
+   * precision for close objects.
+   */
+  static const f32 g_maxDist       = 200.0f; // In meters.
+  static const f32 g_maxDistSqrInv = 1.0f / (g_maxDist * g_maxDist);
+
+  const GeoVector objCenter = geo_box_center(objAabb);
+  const GeoVector toObj     = geo_vector_sub(objCenter, view->origin);
+  const f32       distSqr   = geo_vector_mag_sqr(toObj);
+  const f32       frac      = distSqr * g_maxDistSqrInv;
+  return (u16)((f32)u16_max * math_min(frac, 1.0f));
 }
 
 bool rend_view_visible(
