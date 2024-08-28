@@ -649,7 +649,7 @@ static void debug_stats_draw_interface(
   }
   if(stats_draw_section(c, string_lit("VFX"))) {
     for (VfxStat vfxStat = 0; vfxStat != VfxStat_Count; ++vfxStat) {
-      const i32 val = vfxStats->values[vfxStat];
+      const i32 val = vfx_stat_get(&vfxStats->set, vfxStat);
       stats_draw_val_entry(c, vfx_stat_name(vfxStat), fmt_write_scratch("{}", fmt_int(val)));
     }
   }

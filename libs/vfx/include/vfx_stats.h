@@ -15,15 +15,11 @@ typedef struct {
   i32 valuesLast[VfxStat_Count];
 } VfxStatSet;
 
-ecs_comp_extern_public(VfxStatsComp) {
-  i32 valuesAccum[VfxStat_Count];
-  i32 valuesLast[VfxStat_Count];
-};
-
 ecs_comp_extern_public(VfxStatsAnyComp); // On any entity with vfx stats.
-ecs_comp_extern_public(VfxStatsGlobalComp) { i32 values[VfxStat_Count]; };
+ecs_comp_extern_public(VfxStatsGlobalComp) { VfxStatSet set; };
 
 String vfx_stat_name(VfxStat);
 i32    vfx_stat_get(const VfxStatSet*, VfxStat);
 void   vfx_stat_report(VfxStatSet*, VfxStat);
+void   vfx_stat_clear(VfxStatSet*);
 void   vfx_stat_combine(VfxStatSet*, const VfxStatSet*);

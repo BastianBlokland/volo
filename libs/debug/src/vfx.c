@@ -7,7 +7,9 @@
 #include "scene_name.h"
 #include "scene_set.h"
 #include "ui.h"
+#include "vfx_decal.h"
 #include "vfx_stats.h"
+#include "vfx_system.h"
 
 // clang-format off
 
@@ -35,7 +37,7 @@ ASSERT(array_elems(g_vfxSortModeNames) == VfxSortMode_Count, "Incorrect number o
 typedef struct {
   StringHash  nameHash;
   EcsEntityId entity;
-  VfxStat     stats[VfxStat_Count];
+  i32         stats[VfxStat_Count];
 } DebugVfxInfo;
 
 ecs_comp_define(DebugVfxPanelComp) {
@@ -54,8 +56,11 @@ static void ecs_destruct_vfx_panel(void* data) {
 }
 
 ecs_view_define(VfxObjView) {
+  ecs_access_with(VfxStatsAnyComp);
   ecs_access_read(SceneNameComp);
-  ecs_access_read(VfxStatsComp);
+  ecs_access_maybe_read(VfxSystemStatsComp);
+  ecs_access_maybe_read(VfxDecalSingleStatsComp);
+  ecs_access_maybe_read(VfxDecalTrailStatsComp);
 }
 
 ecs_view_define(PanelUpdateGlobalView) { ecs_access_write(SceneSetEnvComp); }
@@ -107,24 +112,41 @@ static String vfx_entity_name(const StringHash nameHash) {
   return string_is_empty(name) ? string_lit("<unnamed>") : name;
 }
 
+static void vfx_info_stats_add(DebugVfxInfo* info, const VfxStatSet* set) {
+  for (VfxStat stat = 0; stat != VfxStat_Count; ++stat) {
+    info->stats[stat] += set->valuesLast[stat];
+  }
+}
+
 static void vfx_info_query(DebugVfxPanelComp* panelComp, EcsWorld* world) {
   if (!panelComp->freeze) {
     dynarray_clear(&panelComp->objects);
 
     EcsView* objView = ecs_world_view_t(world, VfxObjView);
     for (EcsIterator* itr = ecs_view_itr(objView); ecs_view_walk(itr);) {
-      const EcsEntityId    entity    = ecs_view_entity(itr);
-      const VfxStatsComp*  statsComp = ecs_view_read_t(itr, VfxStatsComp);
-      const SceneNameComp* nameComp  = ecs_view_read_t(itr, SceneNameComp);
+      const EcsEntityId    entity   = ecs_view_entity(itr);
+      const SceneNameComp* nameComp = ecs_view_read_t(itr, SceneNameComp);
 
       if (!vfx_panel_filter(panelComp, vfx_entity_name(nameComp->name), entity)) {
         continue;
       }
-
       DebugVfxInfo* info = dynarray_push_t(&panelComp->objects, DebugVfxInfo);
       info->entity       = entity;
       info->nameHash     = nameComp->name;
-      mem_cpy(mem_var(info->stats), mem_var(statsComp->valuesLast));
+      mem_set(mem_var(info->stats), 0);
+
+      const VfxSystemStatsComp* systemStats = ecs_view_read_t(itr, VfxSystemStatsComp);
+      if (systemStats) {
+        vfx_info_stats_add(info, &systemStats->set);
+      }
+      const VfxDecalSingleStatsComp* decalSglStats = ecs_view_read_t(itr, VfxDecalSingleStatsComp);
+      if (decalSglStats) {
+        vfx_info_stats_add(info, &decalSglStats->set);
+      }
+      const VfxDecalTrailStatsComp* decalTrailStats = ecs_view_read_t(itr, VfxDecalTrailStatsComp);
+      if (decalTrailStats) {
+        vfx_info_stats_add(info, &decalTrailStats->set);
+      }
     }
   }
 
