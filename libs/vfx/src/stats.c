@@ -65,3 +65,14 @@ String vfx_stat_name(const VfxStat stat) {
   };
   return g_names[stat];
 }
+
+i32 vfx_stat_get(const VfxStatSet* set, const VfxStat stat) { return set->valuesLast[stat]; }
+
+void vfx_stat_report(VfxStatSet* set, const VfxStat stat) { ++set->valuesAccum[stat]; }
+
+void vfx_stat_combine(VfxStatSet* a, const VfxStatSet* b) {
+  for (VfxStat stat = 0; stat != VfxStat_Count; ++stat) {
+    a->valuesAccum[stat] += b->valuesAccum[stat];
+    a->valuesLast[stat] += b->valuesLast[stat];
+  }
+}
