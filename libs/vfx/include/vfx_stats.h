@@ -10,11 +10,16 @@ typedef enum {
   VfxStat_Count,
 } VfxStat;
 
-ecs_comp_extern_public(VfxStatsComp) {
+typedef struct {
   i32 valuesAccum[VfxStat_Count];
   i32 valuesLast[VfxStat_Count];
-};
+} VfxStatSet;
 
-ecs_comp_extern_public(VfxStatsGlobalComp) { i32 values[VfxStat_Count]; };
+ecs_comp_extern_public(VfxStatsAnyComp); // On any entity with vfx stats.
+ecs_comp_extern_public(VfxStatsGlobalComp) { VfxStatSet set; };
 
-String vfx_stat_name(VfxStat);
+String vfx_stats_name(VfxStat);
+i32    vfx_stats_get(const VfxStatSet*, VfxStat);
+void   vfx_stats_report(VfxStatSet*, VfxStat);
+void   vfx_stats_clear(VfxStatSet*);
+void   vfx_stats_combine(VfxStatSet*, const VfxStatSet*);

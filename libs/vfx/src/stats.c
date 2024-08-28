@@ -1,23 +1,21 @@
 #include "ecs_view.h"
 #include "ecs_world.h"
+#include "vfx_decal.h"
 #include "vfx_register.h"
 #include "vfx_stats.h"
+#include "vfx_system.h"
 
-ecs_comp_define_public(VfxStatsComp);
+ecs_comp_define_public(VfxStatsAnyComp);
 ecs_comp_define_public(VfxStatsGlobalComp);
 
-static void ecs_combine_vfx_stats(void* dataA, void* dataB) {
-  VfxStatsComp* compA = dataA;
-  VfxStatsComp* compB = dataB;
-
-  for (VfxStat stat = 0; stat != VfxStat_Count; ++stat) {
-    compA->valuesAccum[stat] += compB->valuesAccum[stat];
-    compA->valuesLast[stat] += compB->valuesLast[stat];
-  }
-}
-
 ecs_view_define(GlobalStatsView) { ecs_access_write(VfxStatsGlobalComp); }
-ecs_view_define(StatsView) { ecs_access_write(VfxStatsComp); }
+
+ecs_view_define(StatsView) {
+  ecs_access_with(VfxStatsAnyComp);
+  ecs_access_maybe_write(VfxSystemStatsComp);
+  ecs_access_maybe_write(VfxDecalSingleStatsComp);
+  ecs_access_maybe_write(VfxDecalTrailStatsComp);
+}
 
 static VfxStatsGlobalComp* vfx_stats_global_get_or_create(EcsWorld* world) {
   EcsView*     view = ecs_world_view_t(world, GlobalStatsView);
@@ -26,26 +24,41 @@ static VfxStatsGlobalComp* vfx_stats_global_get_or_create(EcsWorld* world) {
              : ecs_world_add_t(world, ecs_world_global(world), VfxStatsGlobalComp);
 }
 
+static void vfx_stats_flush(VfxStatsGlobalComp* global, VfxStatSet* set) {
+  for (VfxStat stat = 0; stat != VfxStat_Count; ++stat) {
+    global->set.valuesLast[stat] += set->valuesAccum[stat];
+
+    set->valuesLast[stat]  = set->valuesAccum[stat];
+    set->valuesAccum[stat] = 0;
+  }
+}
+
 ecs_system_define(VfxStatsUpdateSys) {
   VfxStatsGlobalComp* globalStats = vfx_stats_global_get_or_create(world);
 
-  mem_set(mem_var(globalStats->values), 0);
+  vfx_stats_clear(&globalStats->set);
 
   EcsView* statsView = ecs_world_view_t(world, StatsView);
   for (EcsIterator* itr = ecs_view_itr(statsView); ecs_view_walk(itr);) {
-    VfxStatsComp* stats = ecs_view_write_t(itr, VfxStatsComp);
+    VfxSystemStatsComp* systemStats = ecs_view_write_t(itr, VfxSystemStatsComp);
+    if (systemStats) {
+      vfx_stats_flush(globalStats, &systemStats->set);
+    }
 
-    for (VfxStat stat = 0; stat != VfxStat_Count; ++stat) {
-      globalStats->values[stat] += stats->valuesAccum[stat];
+    VfxDecalSingleStatsComp* decalSingleStats = ecs_view_write_t(itr, VfxDecalSingleStatsComp);
+    if (decalSingleStats) {
+      vfx_stats_flush(globalStats, &decalSingleStats->set);
+    }
 
-      stats->valuesLast[stat]  = stats->valuesAccum[stat];
-      stats->valuesAccum[stat] = 0;
+    VfxDecalTrailStatsComp* decalTrailStats = ecs_view_write_t(itr, VfxDecalTrailStatsComp);
+    if (decalTrailStats) {
+      vfx_stats_flush(globalStats, &decalTrailStats->set);
     }
   }
 }
 
 ecs_module_init(vfx_stats_module) {
-  ecs_register_comp(VfxStatsComp, .combinator = ecs_combine_vfx_stats);
+  ecs_register_comp_empty(VfxStatsAnyComp);
   ecs_register_comp(VfxStatsGlobalComp);
 
   ecs_register_view(GlobalStatsView);
@@ -56,7 +69,7 @@ ecs_module_init(vfx_stats_module) {
   ecs_order(VfxStatsUpdateSys, VfxOrder_StatCollect);
 }
 
-String vfx_stat_name(const VfxStat stat) {
+String vfx_stats_name(const VfxStat stat) {
   static const String g_names[VfxStat_Count] = {
       [VfxStat_ParticleCount] = string_static("Particles"),
       [VfxStat_SpriteCount]   = string_static("Sprites"),
@@ -64,4 +77,20 @@ String vfx_stat_name(const VfxStat stat) {
       [VfxStat_StampCount]    = string_static("Stamps"),
   };
   return g_names[stat];
+}
+
+i32 vfx_stats_get(const VfxStatSet* set, const VfxStat stat) { return set->valuesLast[stat]; }
+
+void vfx_stats_report(VfxStatSet* set, const VfxStat stat) { ++set->valuesAccum[stat]; }
+
+void vfx_stats_clear(VfxStatSet* set) {
+  mem_set(mem_var(set->valuesAccum), 0);
+  mem_set(mem_var(set->valuesLast), 0);
+}
+
+void vfx_stats_combine(VfxStatSet* a, const VfxStatSet* b) {
+  for (VfxStat stat = 0; stat != VfxStat_Count; ++stat) {
+    a->valuesAccum[stat] += b->valuesAccum[stat];
+    a->valuesLast[stat] += b->valuesLast[stat];
+  }
 }

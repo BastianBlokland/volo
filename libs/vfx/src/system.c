@@ -18,7 +18,7 @@
 #include "scene_vfx.h"
 #include "scene_visibility.h"
 #include "vfx_register.h"
-#include "vfx_stats.h"
+#include "vfx_system.h"
 
 #include "atlas_internal.h"
 #include "draw_internal.h"
@@ -61,6 +61,8 @@ ecs_comp_define(VfxSystemAssetComp) {
   VfxLoadFlags loadFlags : 16;
   u16          version;
 };
+
+ecs_comp_define_public(VfxSystemStatsComp);
 
 static void ecs_destruct_system_state_comp(void* data) {
   VfxSystemStateComp* comp = data;
@@ -144,7 +146,8 @@ ecs_system_define(VfxSystemStateInitSys) {
         .instances = dynarray_create_t(g_allocHeap, VfxSystemInstance, 4));
 
 #if vfx_system_track_stats
-    ecs_utils_maybe_add_t(world, e, VfxStatsComp);
+    ecs_world_add_empty_t(world, e, VfxStatsAnyComp);
+    ecs_world_add_t(world, e, VfxSystemStatsComp);
 #endif
   }
 }
@@ -367,7 +370,7 @@ static void vfx_system_reset(VfxSystemStateComp* state) {
 }
 
 static void vfx_system_simulate(
-    VfxStatsComp*             stats,
+    VfxSystemStatsComp*       stats,
     VfxSystemStateComp*       state,
     const AssetVfxComp*       asset,
     const AssetAtlasComp*     atlas,
@@ -428,7 +431,7 @@ static void vfx_system_simulate(
     inst->pos = geo_vector_add(inst->pos, geo_vector_mul(inst->velo, deltaSec));
 
     if (stats) {
-      ++stats->valuesAccum[VfxStat_ParticleCount];
+      vfx_stats_report(&stats->set, VfxStat_ParticleCount);
     }
 
     // Update age and destruct if too old.
@@ -451,7 +454,7 @@ ecs_view_define(SimulateView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
-  ecs_access_maybe_write(VfxStatsComp);
+  ecs_access_maybe_write(VfxSystemStatsComp);
   ecs_access_read(SceneVfxSystemComp);
   ecs_access_write(VfxSystemStateComp);
 }
@@ -481,7 +484,7 @@ ecs_system_define(VfxSystemSimulateSys) {
     const SceneVfxSystemComp* sysCfg  = ecs_view_read_t(itr, SceneVfxSystemComp);
     const SceneTagComp*       tagComp = ecs_view_read_t(itr, SceneTagComp);
     VfxSystemStateComp*       state   = ecs_view_write_t(itr, VfxSystemStateComp);
-    VfxStatsComp*             stats   = ecs_view_write_t(itr, VfxStatsComp);
+    VfxSystemStatsComp*       stats   = ecs_view_write_t(itr, VfxSystemStatsComp);
 
     const SceneTags sysTags = tagComp ? tagComp->tags : SceneTags_Default;
 
@@ -518,7 +521,7 @@ ecs_system_define(VfxSystemSimulateSys) {
 }
 
 static void vfx_instance_output_sprite(
-    VfxStatsComp*             stats,
+    VfxSystemStatsComp*       stats,
     const VfxSystemInstance*  instance,
     RendDrawComp*             draws[VfxDrawType_Count],
     const AssetVfxComp*       asset,
@@ -585,12 +588,12 @@ static void vfx_instance_output_sprite(
           .opacity    = opacity,
       });
   if (stats) {
-    ++stats->valuesAccum[VfxStat_SpriteCount];
+    vfx_stats_report(&stats->set, VfxStat_SpriteCount);
   }
 }
 
 static void vfx_instance_output_light(
-    VfxStatsComp*             stats,
+    VfxSystemStatsComp*       stats,
     const EcsEntityId         entity,
     const VfxSystemInstance*  instance,
     RendLightComp*            lightOutput,
@@ -626,7 +629,7 @@ static void vfx_instance_output_light(
   }
   rend_light_point(lightOutput, pos, radiance, light->radius * scale, RendLightFlags_None);
   if (stats) {
-    ++stats->valuesAccum[VfxStat_LightCount];
+    vfx_stats_report(&stats->set, VfxStat_LightCount);
   }
 }
 
@@ -642,7 +645,7 @@ ecs_view_define(RenderView) {
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_read(SceneVisibilityComp);
-  ecs_access_maybe_write(VfxStatsComp);
+  ecs_access_maybe_write(VfxSystemStatsComp);
   ecs_access_read(SceneVfxSystemComp);
   ecs_access_read(VfxSystemStateComp);
 }
@@ -683,7 +686,7 @@ ecs_system_define(VfxSystemRenderSys) {
     const SceneVfxSystemComp*        sysCfg   = ecs_view_read_t(itr, SceneVfxSystemComp);
     const SceneVisibilityComp*       sysVis   = ecs_view_read_t(itr, SceneVisibilityComp);
     const VfxSystemStateComp*        state    = ecs_view_read_t(itr, VfxSystemStateComp);
-    VfxStatsComp*                    stats    = ecs_view_write_t(itr, VfxStatsComp);
+    VfxSystemStatsComp*              stats    = ecs_view_write_t(itr, VfxSystemStatsComp);
 
     if (sysVis && !scene_visible_for_render(visEnv, sysVis)) {
       continue; // Not visible.
@@ -706,6 +709,7 @@ ecs_system_define(VfxSystemRenderSys) {
 ecs_module_init(vfx_system_module) {
   ecs_register_comp(VfxSystemStateComp, .destructor = ecs_destruct_system_state_comp);
   ecs_register_comp(VfxSystemAssetComp, .combinator = ecs_combine_system_asset);
+  ecs_register_comp(VfxSystemStatsComp);
 
   ecs_register_view(ParticleSpriteDrawView);
   ecs_register_view(AssetView);
