@@ -4,6 +4,7 @@
 #include "vfx_stats.h"
 
 ecs_comp_define_public(VfxStatsComp);
+ecs_comp_define_public(VfxStatsAnyComp);
 ecs_comp_define_public(VfxStatsGlobalComp);
 
 static void ecs_combine_vfx_stats(void* dataA, void* dataB) {
@@ -46,6 +47,7 @@ ecs_system_define(VfxStatsUpdateSys) {
 
 ecs_module_init(vfx_stats_module) {
   ecs_register_comp(VfxStatsComp, .combinator = ecs_combine_vfx_stats);
+  ecs_register_comp_empty(VfxStatsAnyComp);
   ecs_register_comp(VfxStatsGlobalComp);
 
   ecs_register_view(GlobalStatsView);

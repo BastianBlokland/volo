@@ -146,6 +146,7 @@ ecs_system_define(VfxSystemStateInitSys) {
         .instances = dynarray_create_t(g_allocHeap, VfxSystemInstance, 4));
 
 #if vfx_system_track_stats
+    ecs_world_add_empty_t(world, e, VfxStatsAnyComp);
     ecs_world_add_t(world, e, VfxSystemStatsComp);
 #endif
   }

@@ -20,6 +20,7 @@ ecs_comp_extern_public(VfxStatsComp) {
   i32 valuesLast[VfxStat_Count];
 };
 
+ecs_comp_extern_public(VfxStatsAnyComp); // On any entity with vfx stats.
 ecs_comp_extern_public(VfxStatsGlobalComp) { i32 values[VfxStat_Count]; };
 
 String vfx_stat_name(VfxStat);

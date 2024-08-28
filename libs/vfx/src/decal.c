@@ -332,12 +332,14 @@ ecs_system_define(VfxDecalInitSys) {
       vfx_decal_create_trail(world, e, atlasColorIndex, atlasNormalIndex, asset, timeComp);
 
 #if vfx_decal_track_stats
+      ecs_world_add_empty_t(world, e, VfxStatsAnyComp);
       ecs_world_add_t(world, e, VfxDecalTrailStatsComp);
 #endif
     } else {
       vfx_decal_create_single(world, e, atlasColorIndex, atlasNormalIndex, asset, timeComp);
 
 #if vfx_decal_track_stats
+      ecs_world_add_empty_t(world, e, VfxStatsAnyComp);
       ecs_world_add_t(world, e, VfxDecalSingleStatsComp);
 #endif
     }
