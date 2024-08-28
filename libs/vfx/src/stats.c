@@ -36,7 +36,7 @@ static void vfx_stats_flush(VfxStatsGlobalComp* global, VfxStatSet* set) {
 ecs_system_define(VfxStatsUpdateSys) {
   VfxStatsGlobalComp* globalStats = vfx_stats_global_get_or_create(world);
 
-  vfx_stat_clear(&globalStats->set);
+  vfx_stats_clear(&globalStats->set);
 
   EcsView* statsView = ecs_world_view_t(world, StatsView);
   for (EcsIterator* itr = ecs_view_itr(statsView); ecs_view_walk(itr);) {
@@ -69,7 +69,7 @@ ecs_module_init(vfx_stats_module) {
   ecs_order(VfxStatsUpdateSys, VfxOrder_StatCollect);
 }
 
-String vfx_stat_name(const VfxStat stat) {
+String vfx_stats_name(const VfxStat stat) {
   static const String g_names[VfxStat_Count] = {
       [VfxStat_ParticleCount] = string_static("Particles"),
       [VfxStat_SpriteCount]   = string_static("Sprites"),
@@ -79,16 +79,16 @@ String vfx_stat_name(const VfxStat stat) {
   return g_names[stat];
 }
 
-i32 vfx_stat_get(const VfxStatSet* set, const VfxStat stat) { return set->valuesLast[stat]; }
+i32 vfx_stats_get(const VfxStatSet* set, const VfxStat stat) { return set->valuesLast[stat]; }
 
-void vfx_stat_report(VfxStatSet* set, const VfxStat stat) { ++set->valuesAccum[stat]; }
+void vfx_stats_report(VfxStatSet* set, const VfxStat stat) { ++set->valuesAccum[stat]; }
 
-void vfx_stat_clear(VfxStatSet* set) {
+void vfx_stats_clear(VfxStatSet* set) {
   mem_set(mem_var(set->valuesAccum), 0);
   mem_set(mem_var(set->valuesLast), 0);
 }
 
-void vfx_stat_combine(VfxStatSet* a, const VfxStatSet* b) {
+void vfx_stats_combine(VfxStatSet* a, const VfxStatSet* b) {
   for (VfxStat stat = 0; stat != VfxStat_Count; ++stat) {
     a->valuesAccum[stat] += b->valuesAccum[stat];
     a->valuesLast[stat] += b->valuesLast[stat];

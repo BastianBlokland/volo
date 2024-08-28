@@ -431,7 +431,7 @@ static void vfx_system_simulate(
     inst->pos = geo_vector_add(inst->pos, geo_vector_mul(inst->velo, deltaSec));
 
     if (stats) {
-      vfx_stat_report(&stats->set, VfxStat_ParticleCount);
+      vfx_stats_report(&stats->set, VfxStat_ParticleCount);
     }
 
     // Update age and destruct if too old.
@@ -588,7 +588,7 @@ static void vfx_instance_output_sprite(
           .opacity    = opacity,
       });
   if (stats) {
-    vfx_stat_report(&stats->set, VfxStat_SpriteCount);
+    vfx_stats_report(&stats->set, VfxStat_SpriteCount);
   }
 }
 
@@ -629,7 +629,7 @@ static void vfx_instance_output_light(
   }
   rend_light_point(lightOutput, pos, radiance, light->radius * scale, RendLightFlags_None);
   if (stats) {
-    vfx_stat_report(&stats->set, VfxStat_LightCount);
+    vfx_stats_report(&stats->set, VfxStat_LightCount);
   }
 }
 
