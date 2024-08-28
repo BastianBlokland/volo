@@ -567,7 +567,7 @@ Ret:
 
 static bool repl_read_binder_file(ScriptBinder* binder, const String path) {
   bool       success = true;
-  File*      file;
+  File*      file    = null;
   FileResult fileRes;
   if ((fileRes = file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &file))) {
     file_write_sync(g_fileStdErr, string_lit("ERROR: Failed to open binder file.\n"));
