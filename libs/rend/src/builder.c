@@ -94,6 +94,9 @@ void rend_builder_draw_push(RendBuilderBuffer* buffer, RvkGraphic* graphic) {
 }
 
 Mem rend_builder_draw_data(RendBuilderBuffer* buffer, const usize size) {
+  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
+  diag_assert_msg(!mem_valid(buffer->draw->drawData), "RendBuilder: Draw-data already set");
+
   const Mem result = alloc_alloc(buffer->drawDataAlloc, size, rend_builder_draw_data_align);
   diag_assert_msg(mem_valid(result), "RendBuilder: Draw-data allocator ran out of space");
   buffer->draw->drawData = result;
@@ -101,23 +104,36 @@ Mem rend_builder_draw_data(RendBuilderBuffer* buffer, const usize size) {
 }
 
 void rend_builder_draw_data_extern(RendBuilderBuffer* buffer, const Mem drawData) {
+  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
+  diag_assert_msg(!mem_valid(buffer->draw->drawData), "RendBuilder: Draw-data already set");
+
   buffer->draw->drawData = drawData;
 }
 
 void rend_builder_draw_vertex_count(RendBuilderBuffer* buffer, const u32 vertexCount) {
+  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
+  diag_assert_msg(!buffer->draw->vertexCountOverride, "RendBuilder: Vertex-count already set");
+
   buffer->draw->vertexCountOverride = vertexCount;
 }
 
 void rend_builder_draw_mesh(RendBuilderBuffer* buffer, RvkMesh* mesh) {
+  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
+  diag_assert_msg(!buffer->draw->drawMesh, "RendBuilder: Draw-mesh already set");
+
   buffer->draw->drawMesh = mesh;
 }
 
 void rend_builder_draw_image(RendBuilderBuffer* buffer, RvkImage* image) {
+  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
+  diag_assert_msg(!buffer->draw->drawImage, "RendBuilder: Draw-image already set");
+
   rvk_pass_stage_draw_image(buffer->pass, image);
   buffer->draw->drawImage = image;
 }
 
 void rend_builder_draw_sampler(RendBuilderBuffer* buffer, const RvkSamplerSpec samplerSpec) {
+  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
   buffer->draw->drawSampler = samplerSpec;
 }
 
