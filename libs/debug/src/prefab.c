@@ -155,7 +155,7 @@ static void prefab_select_all(const PrefabPanelContext* ctx, const StringHash pr
     const ScenePrefabInstanceComp* instComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
 
     if (instComp->prefabId == prefabId) {
-      scene_set_add(ctx->setEnv, g_sceneSetSelected, ecs_view_entity(itr));
+      scene_set_add(ctx->setEnv, g_sceneSetSelected, ecs_view_entity(itr), SceneSetFlags_None);
     }
   }
 }
@@ -262,7 +262,7 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
     if ((input_modifiers(ctx->input) & InputModifier_Shift) == 0) {
       scene_set_clear(ctx->setEnv, g_sceneSetSelected);
     }
-    scene_set_add(ctx->setEnv, g_sceneSetSelected, spawnedEntity);
+    scene_set_add(ctx->setEnv, g_sceneSetSelected, spawnedEntity, SceneSetFlags_None);
   }
 
   if (ctx->panelComp->createFlags & PrefabCreateFlags_Multiple) {

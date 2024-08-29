@@ -27,6 +27,7 @@ typedef enum {
 
 typedef struct {
   EcsEntityId object;
+  bool        mainObject;
 } CmdSelect;
 
 typedef struct {
@@ -205,14 +206,17 @@ static void cmd_execute(
   switch (cmd->type) {
   case Cmd_Select:
     if (ecs_world_exists(world, cmd->select.object)) {
-      scene_set_add(setEnv, g_sceneSetSelected, cmd->select.object);
+      SceneSetFlags setFlags = SceneSetFlags_None;
+      if (cmd->select.mainObject) {
+        setFlags |= SceneSetFlags_MakeMain;
+      }
+      scene_set_add(setEnv, g_sceneSetSelected, cmd->select.object, setFlags);
     }
     break;
   case Cmd_SelectGroup:
-
     scene_set_clear(setEnv, g_sceneSetSelected);
     dynarray_for_t(&controller->groups[cmd->selectGroup.groupIndex].entities, EcsEntityId, entity) {
-      scene_set_add(setEnv, g_sceneSetSelected, *entity);
+      scene_set_add(setEnv, g_sceneSetSelected, *entity, SceneSetFlags_None);
     }
     break;
   case Cmd_Deselect:
@@ -280,12 +284,12 @@ ecs_module_init(game_cmd_module) {
   ecs_order(CmdControllerUpdateSys, AppOrder_CommandUpdate);
 }
 
-void cmd_push_select(CmdControllerComp* controller, const EcsEntityId object) {
+void cmd_push_select(CmdControllerComp* controller, const EcsEntityId object, const bool mainObj) {
   diag_assert(ecs_entity_valid(object));
 
   *dynarray_push_t(&controller->commands, Cmd) = (Cmd){
       .type   = Cmd_Select,
-      .select = {.object = object},
+      .select = {.object = object, .mainObject = mainObj},
   };
 }
 

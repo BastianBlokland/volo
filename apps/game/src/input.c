@@ -389,13 +389,16 @@ static void select_end_click(InputStateComp* state, CmdControllerComp* cmdContro
   state->selectState = InputSelectState_None;
 
   if (state->hoveredEntity[InputQuery_Select]) {
-    if (state->selectMode == InputSelectMode_Replace) {
-      cmd_push_deselect_all(cmdController);
-    }
-    if (state->selectMode == InputSelectMode_Subtract) {
+    switch (state->selectMode) {
+    case InputSelectMode_Subtract:
       cmd_push_deselect(cmdController, state->hoveredEntity[InputQuery_Select]);
-    } else {
-      cmd_push_select(cmdController, state->hoveredEntity[InputQuery_Select]);
+      break;
+    case InputSelectMode_Replace:
+      cmd_push_deselect_all(cmdController);
+      // Fallthrough.
+    case InputSelectMode_Add:
+      cmd_push_select(cmdController, state->hoveredEntity[InputQuery_Select], false /* mainObj */);
+      break;
     }
   } else if (state->selectMode == InputSelectMode_Replace) {
     cmd_push_deselect_all(cmdController);
@@ -407,9 +410,11 @@ static void select_update_drag(
     InputManagerComp*            input,
     CmdControllerComp*           cmdController,
     const SceneCollisionEnvComp* collisionEnv,
+    const SceneSetEnvComp*       setEnv,
     const SceneCameraComp*       camera,
     const SceneTransformComp*    cameraTrans,
     const f32                    inputAspect) {
+  const EcsEntityId oldMainObj = scene_set_main(setEnv, g_sceneSetSelected);
   if (state->selectMode == InputSelectMode_Replace) {
     cmd_push_deselect_all(cmdController);
   }
@@ -431,7 +436,9 @@ static void select_update_drag(
     if (state->selectMode == InputSelectMode_Subtract) {
       cmd_push_deselect(cmdController, results[i]);
     } else {
-      cmd_push_select(cmdController, results[i]);
+      // Preserve the old main selected entity,
+      const bool mainObj = results[i] == oldMainObj;
+      cmd_push_select(cmdController, results[i], mainObj);
     }
   }
 }
@@ -637,7 +644,7 @@ static void update_camera_interact(
   case InputSelectState_Dragging:
     if (selectActive) {
       select_update_drag(
-          state, input, cmdController, collisionEnv, camera, cameraTrans, inputAspect);
+          state, input, cmdController, collisionEnv, setEnv, camera, cameraTrans, inputAspect);
     } else {
       select_end_drag(state);
     }

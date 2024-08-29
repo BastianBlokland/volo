@@ -88,7 +88,7 @@ spec(set) {
 
     const EcsEntityId e1 = ecs_world_entity_create(w);
     {
-      scene_set_add(set_env(w), set, e1);
+      scene_set_add(set_env(w), set, e1, SceneSetFlags_None);
       ecs_run_sync(runner);
 
       check_eq_int(scene_set_count(set_env(w), set), 1);
@@ -100,8 +100,8 @@ spec(set) {
     const EcsEntityId e2 = ecs_world_entity_create(w);
     const EcsEntityId e3 = ecs_world_entity_create(w);
     {
-      scene_set_add(set_env(w), set, e2);
-      scene_set_add(set_env(w), set, e3);
+      scene_set_add(set_env(w), set, e2, SceneSetFlags_None);
+      scene_set_add(set_env(w), set, e3, SceneSetFlags_None);
       ecs_run_sync(runner);
 
       check_eq_int(scene_set_count(set_env(w), set), 3);
@@ -112,19 +112,48 @@ spec(set) {
     }
   }
 
+  it("can set a new member as the the main member") {
+    EcsWorld*        w   = world;
+    const StringHash set = string_hash_lit("test");
+
+    check_eq_int(scene_set_count(set_env(w), set), 0);
+
+    const EcsEntityId e1 = ecs_world_entity_create(w);
+    {
+      scene_set_add(set_env(w), set, e1, SceneSetFlags_None);
+      ecs_run_sync(runner);
+
+      check_eq_int(scene_set_count(set_env(w), set), 1);
+      check_eq_int(scene_set_main(set_env(w), set), e1);
+      check_eq_int(*scene_set_begin(set_env(w), set), e1);
+      check(scene_set_contains(set_env(w), set, e1));
+    }
+
+    const EcsEntityId e2 = ecs_world_entity_create(w);
+    {
+      scene_set_add(set_env(w), set, e2, SceneSetFlags_MakeMain);
+      ecs_run_sync(runner);
+
+      check_eq_int(scene_set_count(set_env(w), set), 2);
+      check_eq_int(scene_set_main(set_env(w), set), e2);
+      check(scene_set_contains(set_env(w), set, e1));
+      check(scene_set_contains(set_env(w), set, e2));
+    }
+  }
+
   it("updates set-members when adding to a set") {
     EcsWorld*        w    = world;
     const StringHash setA = string_hash_lit("testA");
     const StringHash setB = string_hash_lit("testB");
 
     const EcsEntityId e1 = ecs_world_entity_create(w);
-    scene_set_add(set_env(w), setA, e1);
+    scene_set_add(set_env(w), setA, e1, SceneSetFlags_None);
     ecs_run_sync(runner);
 
     check(scene_set_member_contains(set_member(w, e1), setA));
     check(!scene_set_member_contains(set_member(w, e1), setB));
 
-    scene_set_add(set_env(w), setB, e1);
+    scene_set_add(set_env(w), setB, e1, SceneSetFlags_None);
     ecs_run_sync(runner);
 
     check(scene_set_member_contains(set_member(w, e1), setA));
@@ -138,7 +167,7 @@ spec(set) {
     const EcsEntityId e1 = ecs_world_entity_create(w);
     ecs_world_add_t(world, e1, SceneTagComp, .tags = SceneTags_Default);
     {
-      scene_set_add(set_env(w), set, e1);
+      scene_set_add(set_env(w), set, e1, SceneSetFlags_None);
       ecs_run_sync(runner); // 1 run to flush the components adds.
       ecs_run_sync(runner); // 1 run to update the sets.
 
@@ -154,9 +183,9 @@ spec(set) {
     const EcsEntityId e3  = ecs_world_entity_create(w);
 
     {
-      scene_set_add(set_env(w), set, e1);
-      scene_set_add(set_env(w), set, e2);
-      scene_set_add(set_env(w), set, e3);
+      scene_set_add(set_env(w), set, e1, SceneSetFlags_None);
+      scene_set_add(set_env(w), set, e2, SceneSetFlags_None);
+      scene_set_add(set_env(w), set, e3, SceneSetFlags_None);
       ecs_run_sync(runner);
 
       check_eq_int(scene_set_count(set_env(w), set), 3);
@@ -207,8 +236,8 @@ spec(set) {
 
     const EcsEntityId e1 = ecs_world_entity_create(w);
     {
-      scene_set_add(set_env(w), setA, e1);
-      scene_set_add(set_env(w), setB, e1);
+      scene_set_add(set_env(w), setA, e1, SceneSetFlags_None);
+      scene_set_add(set_env(w), setB, e1, SceneSetFlags_None);
       ecs_run_sync(runner);
 
       check(scene_set_member_contains(set_member(w, e1), setA));
@@ -237,7 +266,7 @@ spec(set) {
     const EcsEntityId e1 = ecs_world_entity_create(w);
     ecs_world_add_t(world, e1, SceneTagComp, .tags = SceneTags_Default);
     {
-      scene_set_add(set_env(w), set, e1);
+      scene_set_add(set_env(w), set, e1, SceneSetFlags_None);
       ecs_run_sync(runner); // 1 run to flush the components adds.
       ecs_run_sync(runner); // 1 run to update the sets.
 
@@ -259,9 +288,9 @@ spec(set) {
     const EcsEntityId e3  = ecs_world_entity_create(w);
 
     {
-      scene_set_add(set_env(w), set, e1);
-      scene_set_add(set_env(w), set, e2);
-      scene_set_add(set_env(w), set, e3);
+      scene_set_add(set_env(w), set, e1, SceneSetFlags_None);
+      scene_set_add(set_env(w), set, e2, SceneSetFlags_None);
+      scene_set_add(set_env(w), set, e3, SceneSetFlags_None);
       ecs_run_sync(runner);
 
       check_eq_int(scene_set_count(set_env(w), set), 3);
@@ -289,7 +318,7 @@ spec(set) {
 
     const EcsEntityId e1 = ecs_world_entity_create(w);
     {
-      scene_set_add(set_env(w), set, e1);
+      scene_set_add(set_env(w), set, e1, SceneSetFlags_None);
       ecs_run_sync(runner);
 
       check(scene_set_member_contains(set_member(w, e1), set));
@@ -309,7 +338,7 @@ spec(set) {
     const EcsEntityId e1 = ecs_world_entity_create(w);
     ecs_world_add_t(world, e1, SceneTagComp, .tags = SceneTags_Default);
     {
-      scene_set_add(set_env(w), set, e1);
+      scene_set_add(set_env(w), set, e1, SceneSetFlags_None);
       ecs_run_sync(runner); // 1 run to flush the components adds.
       ecs_run_sync(runner); // 1 run to update the sets.
 
@@ -333,7 +362,9 @@ spec(set) {
 
     const EcsEntityId e1 = ecs_world_entity_create(w);
 
-    array_for_t(sets, StringHash, setPtr) { scene_set_add(set_env(w), *setPtr, e1); }
+    array_for_t(sets, StringHash, setPtr) {
+      scene_set_add(set_env(w), *setPtr, e1, SceneSetFlags_None);
+    }
     ecs_run_sync(runner);
 
     array_for_t(sets, StringHash, setPtr) {
@@ -350,7 +381,7 @@ spec(set) {
 
     const EcsEntityId e1 = ecs_world_entity_create(w);
     {
-      scene_set_add(set_env(w), set, e1);
+      scene_set_add(set_env(w), set, e1, SceneSetFlags_None);
 
       ecs_run_sync(runner);
       check_eq_int(scene_set_count(set_env(w), set), 1);
@@ -374,7 +405,7 @@ spec(set) {
 
     const EcsEntityId e1 = ecs_world_entity_create(w);
     {
-      scene_set_add(set_env(w), set, e1);
+      scene_set_add(set_env(w), set, e1, SceneSetFlags_None);
 
       ecs_run_sync(runner);
       check_eq_int(scene_set_count(set_env(w), set), 1);
@@ -403,7 +434,7 @@ spec(set) {
 
     const EcsEntityId e1 = ecs_world_entity_create(w);
 
-    scene_set_add(set_env(w), set, e1);
+    scene_set_add(set_env(w), set, e1, SceneSetFlags_None);
     scene_set_remove(set_env(w), set, e1);
 
     for (u32 i = 0; i != 3; ++i) {
@@ -424,7 +455,7 @@ spec(set) {
     const EcsEntityId e1 = ecs_world_entity_create(w);
 
     scene_set_remove(set_env(w), set, e1);
-    scene_set_add(set_env(w), set, e1);
+    scene_set_add(set_env(w), set, e1, SceneSetFlags_None);
 
     for (u32 i = 0; i != 3; ++i) {
       ecs_run_sync(runner);

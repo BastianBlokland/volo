@@ -96,12 +96,16 @@ static void set_storage_clear(SetStorage* s, const StringHash set) {
   }
 }
 
-static bool set_storage_add(SetStorage* s, const StringHash set, const EcsEntityId e) {
+static bool set_storage_add(
+    SetStorage* s, const StringHash set, const EcsEntityId e, const SceneSetFlags flags) {
   // Attempt to add it to an existing set.
   const u32 setIdx = set_storage_index(s, set);
   if (!sentinel_check(setIdx)) {
     DynArray* members = &s->members[setIdx];
     *(EcsEntityId*)dynarray_find_or_insert_sorted(members, ecs_compare_entity, &e) = e;
+    if (flags & SceneSetFlags_MakeMain) {
+      s->mainMembers[setIdx] = e;
+    }
     return true;
   }
   // Attempt to add a new set.
@@ -253,7 +257,8 @@ typedef enum {
 } SetRequestType;
 
 typedef struct {
-  SetRequestType type;
+  SetRequestType type : 8;
+  SceneSetFlags  flags : 8;
   StringHash     set;
   EcsEntityId    target;
 } SetRequest;
@@ -435,7 +440,7 @@ ecs_system_define(SceneSetInitSys) {
       if (!member->sets[i]) {
         continue; // Unused slot.
       }
-      if (UNLIKELY(!set_storage_add(env->storage, member->sets[i], entity))) {
+      if (UNLIKELY(!set_storage_add(env->storage, member->sets[i], entity, SceneSetFlags_None))) {
         log_e("Set limit reached during init", log_param("limit", fmt_int(scene_set_max)));
         set_member_remove(member, member->sets[i]);
         break;
@@ -504,7 +509,8 @@ ecs_system_define(SceneSetUpdateSys) {
             .set    = req->set,
         };
       }
-      if (LIKELY(success) && UNLIKELY(!set_storage_add(env->storage, req->set, req->target))) {
+      SetStorage* store = env->storage;
+      if (LIKELY(success) && UNLIKELY(!set_storage_add(store, req->set, req->target, req->flags))) {
         log_e("Set limit reached", log_param("limit", fmt_int(scene_set_max)));
         if (member) {
           set_member_remove(member, req->set); // Fixup the member to stay consistent.
@@ -607,11 +613,16 @@ const EcsEntityId* scene_set_end(const SceneSetEnvComp* env, const StringHash se
   return set_storage_end(env->storage, set);
 }
 
-void scene_set_add(SceneSetEnvComp* env, const StringHash set, const EcsEntityId entity) {
+void scene_set_add(
+    SceneSetEnvComp*    env,
+    const StringHash    set,
+    const EcsEntityId   entity,
+    const SceneSetFlags flags) {
   diag_assert(set);
 
   *dynarray_push_t(&env->requests, SetRequest) = (SetRequest){
       .type   = SetRequestType_Add,
+      .flags  = flags,
       .set    = set,
       .target = entity,
   };
