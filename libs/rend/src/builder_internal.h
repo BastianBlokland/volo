@@ -32,6 +32,7 @@ void rend_builder_pass_flush(RendBuilderBuffer*);
 void rend_builder_draw_push(RendBuilderBuffer*, RvkGraphic*);
 Mem  rend_builder_draw_data(RendBuilderBuffer*, usize size);
 void rend_builder_draw_data_extern(RendBuilderBuffer*, Mem drawData);
+void rend_builder_draw_instances_extern(RendBuilderBuffer*, u32 count, Mem data, u32 stride);
 void rend_builder_draw_vertex_count(RendBuilderBuffer*, u32 vertexCount);
 void rend_builder_draw_mesh(RendBuilderBuffer*, RvkMesh*);
 void rend_builder_draw_image(RendBuilderBuffer*, RvkImage*);

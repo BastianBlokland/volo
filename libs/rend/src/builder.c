@@ -110,6 +110,19 @@ void rend_builder_draw_data_extern(RendBuilderBuffer* buffer, const Mem drawData
   buffer->draw->drawData = drawData;
 }
 
+void rend_builder_draw_instances_extern(
+    RendBuilderBuffer* buffer, const u32 count, const Mem data, const u32 stride) {
+  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
+  diag_assert_msg(!buffer->draw->instCount, "RendBuilder: Instances already set");
+  diag_assert_msg(!mem_valid(buffer->draw->instData), "RendBuilder: Instance data already set");
+
+  diag_assert(data.size == count * stride);
+
+  buffer->draw->instCount      = count;
+  buffer->draw->instDataStride = stride;
+  buffer->draw->instData       = data;
+}
+
 void rend_builder_draw_vertex_count(RendBuilderBuffer* buffer, const u32 vertexCount) {
   diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
   diag_assert_msg(!buffer->draw->vertexCountOverride, "RendBuilder: Vertex-count already set");
