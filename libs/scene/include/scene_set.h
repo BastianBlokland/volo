@@ -7,6 +7,11 @@
  */
 #define scene_set_member_max_sets 8
 
+typedef enum {
+  SceneSetFlags_None     = 0,
+  SceneSetFlags_MakeMain = 1 << 0,
+} SceneSetFlags;
+
 /**
  * Well-known sets.
  */
@@ -37,6 +42,6 @@ const EcsEntityId* scene_set_end(const SceneSetEnvComp*, StringHash set);
  * Modify a set.
  * NOTE: Deferred until the next 'SceneOrder_SetUpdate'.
  */
-void scene_set_add(SceneSetEnvComp*, StringHash set, EcsEntityId);
+void scene_set_add(SceneSetEnvComp*, StringHash set, EcsEntityId, SceneSetFlags);
 void scene_set_remove(SceneSetEnvComp*, StringHash set, EcsEntityId);
 void scene_set_clear(SceneSetEnvComp*, StringHash set);

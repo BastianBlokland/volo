@@ -2564,7 +2564,7 @@ static void action_update_faction(ActionContext* ctx, const ScriptActionUpdateFa
 static void action_update_set(ActionContext* ctx, const ScriptActionUpdateSet* a) {
   SceneSetEnvComp* setEnv = ecs_view_write_t(ctx->globalItr, SceneSetEnvComp);
   if (a->add) {
-    scene_set_add(setEnv, a->set, a->entity);
+    scene_set_add(setEnv, a->set, a->entity, SceneSetFlags_None);
   } else {
     scene_set_remove(setEnv, a->set, a->entity);
   }

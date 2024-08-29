@@ -205,14 +205,13 @@ static void cmd_execute(
   switch (cmd->type) {
   case Cmd_Select:
     if (ecs_world_exists(world, cmd->select.object)) {
-      scene_set_add(setEnv, g_sceneSetSelected, cmd->select.object);
+      scene_set_add(setEnv, g_sceneSetSelected, cmd->select.object, SceneSetFlags_None);
     }
     break;
   case Cmd_SelectGroup:
-
     scene_set_clear(setEnv, g_sceneSetSelected);
     dynarray_for_t(&controller->groups[cmd->selectGroup.groupIndex].entities, EcsEntityId, entity) {
-      scene_set_add(setEnv, g_sceneSetSelected, *entity);
+      scene_set_add(setEnv, g_sceneSetSelected, *entity, SceneSetFlags_None);
     }
     break;
   case Cmd_Deselect:

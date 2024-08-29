@@ -619,7 +619,7 @@ static void output_panel_tab_draw(
             .fontSize   = 18,
             .tooltip    = g_tooltipSelectEntity)) {
       scene_set_clear(setEnv, g_sceneSetSelected);
-      scene_set_add(setEnv, g_sceneSetSelected, entry->entity);
+      scene_set_add(setEnv, g_sceneSetSelected, entry->entity, SceneSetFlags_None);
     }
     ui_layout_pop(c);
 

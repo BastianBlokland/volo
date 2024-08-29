@@ -655,7 +655,7 @@ static void inspector_panel_draw_sets(
             .tooltip    = string_lit("Add this entity to the specified set."))) {
       const String     setName = dynstring_view(&panelComp->setNameBuffer);
       const StringHash set     = stringtable_add(g_stringtable, setName);
-      scene_set_add(setEnv, set, ecs_view_entity(subject));
+      scene_set_add(setEnv, set, ecs_view_entity(subject), SceneSetFlags_None);
       dynstring_clear(&panelComp->setNameBuffer);
     }
   }
@@ -1107,7 +1107,7 @@ static void debug_inspector_tool_duplicate(EcsWorld* world, SceneSetEnvComp* set
 
   // Select the newly created entities.
   scene_set_clear(setEnv, s);
-  dynarray_for_t(&newEntities, EcsEntityId, e) { scene_set_add(setEnv, s, *e); }
+  dynarray_for_t(&newEntities, EcsEntityId, e) { scene_set_add(setEnv, s, *e, SceneSetFlags_None); }
   dynarray_destroy(&newEntities);
 }
 
@@ -1128,7 +1128,7 @@ static void debug_inspector_tool_select_all(EcsWorld* world, SceneSetEnvComp* se
     if (bitset_any_of(ecs_world_component_mask(world, archetype), ignoredCompMask)) {
       continue;
     }
-    scene_set_add(setEnv, g_sceneSetSelected, e);
+    scene_set_add(setEnv, g_sceneSetSelected, e, SceneSetFlags_None);
   }
 }
 
