@@ -11,7 +11,7 @@ enum {
 
 ecs_comp_extern(CmdControllerComp);
 
-void cmd_push_select(CmdControllerComp*, EcsEntityId object);
+void cmd_push_select(CmdControllerComp*, EcsEntityId object, bool mainObject);
 void cmd_push_select_group(CmdControllerComp*, u8 groupIndex);
 void cmd_push_deselect(CmdControllerComp*, EcsEntityId object);
 void cmd_push_deselect_all(CmdControllerComp*);
