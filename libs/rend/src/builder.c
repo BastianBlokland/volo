@@ -110,6 +110,29 @@ void rend_builder_draw_data_extern(RendBuilderBuffer* buffer, const Mem drawData
   buffer->draw->drawData = drawData;
 }
 
+Mem rend_builder_draw_instances(RendBuilderBuffer* buffer, const u32 count, const u32 stride) {
+  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
+  diag_assert_msg(!buffer->draw->instCount, "RendBuilder: Instances already set");
+  diag_assert_msg(!mem_valid(buffer->draw->instData), "RendBuilder: Instance data already set");
+
+  const Mem data = alloc_alloc(buffer->drawDataAlloc, count * stride, rend_builder_draw_data_align);
+  diag_assert_msg(mem_valid(data), "RendBuilder: Draw-data allocator ran out of space");
+
+  buffer->draw->instCount      = count;
+  buffer->draw->instDataStride = stride;
+  buffer->draw->instData       = data;
+  return data;
+}
+
+void rend_builder_draw_instances_trim(RendBuilderBuffer* buffer, const u32 count) {
+  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
+  diag_assert_msg(buffer->draw->instCount, "RendBuilder: No instances set");
+
+  diag_assert(count <= buffer->draw->instCount);
+
+  buffer->draw->instCount = count;
+}
+
 void rend_builder_draw_instances_extern(
     RendBuilderBuffer* buffer, const u32 count, const Mem data, const u32 stride) {
   diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");

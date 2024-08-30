@@ -30,9 +30,11 @@ void rend_builder_pass_push(RendBuilderBuffer*, RvkPass*);
 void rend_builder_pass_flush(RendBuilderBuffer*);
 
 void rend_builder_draw_push(RendBuilderBuffer*, RvkGraphic*);
-Mem  rend_builder_draw_data(RendBuilderBuffer*, usize size);
+Mem  rend_builder_draw_data(RendBuilderBuffer*, usize size); // 16 byte aligned.
 void rend_builder_draw_data_extern(RendBuilderBuffer*, Mem drawData);
 void rend_builder_draw_instances_extern(RendBuilderBuffer*, u32 count, Mem data, u32 stride);
+Mem  rend_builder_draw_instances(RendBuilderBuffer*, u32 count, u32 stride); // 16 byte aligned.
+void rend_builder_draw_instances_trim(RendBuilderBuffer*, u32 count);
 void rend_builder_draw_vertex_count(RendBuilderBuffer*, u32 vertexCount);
 void rend_builder_draw_mesh(RendBuilderBuffer*, RvkMesh*);
 void rend_builder_draw_image(RendBuilderBuffer*, RvkImage*);
