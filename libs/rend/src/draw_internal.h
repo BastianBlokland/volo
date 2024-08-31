@@ -1,8 +1,12 @@
 #pragma once
+#include "ecs_module.h"
 #include "rend_draw.h"
 
-#include "rvk/pass_internal.h"
-#include "view_internal.h"
+// Internal forward declarations:
+typedef struct sRendBuilderBuffer RendBuilderBuffer;
+typedef struct sRendView          RendView;
 
-bool        rend_draw_gather(RendDrawComp*, const RendView*, const RendSettingsComp*);
-RvkPassDraw rend_draw_output(const RendDrawComp*, RvkGraphic*, RvkTexture*);
+ecs_comp_extern(RendSettingsComp);
+
+void rend_draw_push(
+    const RendDrawComp*, const RendView*, const RendSettingsComp*, RendBuilderBuffer*);
