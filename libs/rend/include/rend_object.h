@@ -28,11 +28,11 @@ typedef enum {
 } RendObjectFlags;
 
 typedef enum {
-  RendDrawResource_Graphic,
-  RendDrawResource_Texture,
+  RendObjectResource_Graphic,
+  RendObjectResource_Texture,
 
-  RendDrawResource_Count,
-} RendDrawResource;
+  RendObjectResource_Count,
+} RendObjectResource;
 
 /**
  * Render object, low level render api.
@@ -49,7 +49,7 @@ RendObjectComp* rend_draw_create(EcsWorld*, EcsEntityId entity, RendObjectFlags)
  * Query information about this draw.
  */
 RendObjectFlags rend_draw_flags(const RendObjectComp*);
-EcsEntityId     rend_draw_resource(const RendObjectComp*, RendDrawResource);
+EcsEntityId     rend_draw_resource(const RendObjectComp*, RendObjectResource);
 u32             rend_draw_instance_count(const RendObjectComp*);
 u32             rend_draw_data_size(const RendObjectComp*);
 u32             rend_draw_data_inst_size(const RendObjectComp*);
@@ -58,7 +58,7 @@ SceneTags       rend_draw_tag_mask(const RendObjectComp*);
 /**
  * Update a draw resource
  */
-void rend_draw_set_resource(RendObjectComp*, RendDrawResource, EcsEntityId asset);
+void rend_draw_set_resource(RendObjectComp*, RendObjectResource, EcsEntityId asset);
 
 /**
  * Set a camera filter so only that specific camera will render this draw.

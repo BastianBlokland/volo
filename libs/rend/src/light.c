@@ -152,7 +152,7 @@ static EcsEntityId rend_light_obj_create(
   const EcsEntityId entity        = ecs_world_entity_create(world);
   RendObjectComp*   obj           = rend_draw_create(world, entity, RendObjectFlags_Light);
   const EcsEntityId graphicEntity = asset_lookup(world, assets, g_lightGraphics[objIndex]);
-  rend_draw_set_resource(obj, RendDrawResource_Graphic, graphicEntity);
+  rend_draw_set_resource(obj, RendObjectResource_Graphic, graphicEntity);
   return entity;
 }
 

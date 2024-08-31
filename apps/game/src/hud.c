@@ -151,7 +151,7 @@ static EcsEntityId hud_rend_obj_create(
   }
 
   RendObjectComp* obj = rend_draw_create(world, e, flags);
-  rend_draw_set_resource(obj, RendDrawResource_Graphic, asset_lookup(world, assets, graphic));
+  rend_draw_set_resource(obj, RendObjectResource_Graphic, asset_lookup(world, assets, graphic));
   rend_draw_set_camera_filter(obj, window);
   return e;
 }
@@ -555,7 +555,7 @@ static void hud_minimap_update(
   const EcsEntityId heightmap = scene_terrain_resource_heightmap(terrain);
   diag_assert(heightmap);
 
-  rend_draw_set_resource(obj, RendDrawResource_Texture, heightmap);
+  rend_draw_set_resource(obj, RendObjectResource_Texture, heightmap);
 
   *rend_draw_add_instance_t(obj, MinimapData, SceneTags_None, geo_box_inverted3()) = (MinimapData){
       .rect[0]     = (hud->minimapRect.x - 0.5f) / res.width,

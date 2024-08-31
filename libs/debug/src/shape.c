@@ -181,7 +181,7 @@ debug_shape_rend_obj_create(EcsWorld* world, AssetManagerComp* assets, const Deb
   const RendObjectFlags objFlags      = RendObjectFlags_SortBackToFront;
   RendObjectComp*       obj           = rend_draw_create(world, entity, objFlags);
   const EcsEntityId     graphicEntity = asset_lookup(world, assets, g_debugGraphics[shape]);
-  rend_draw_set_resource(obj, RendDrawResource_Graphic, graphicEntity);
+  rend_draw_set_resource(obj, RendObjectResource_Graphic, graphicEntity);
   return entity;
 }
 

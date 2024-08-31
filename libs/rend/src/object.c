@@ -28,7 +28,7 @@ typedef struct {
 } RendDrawSortKey;
 
 ecs_comp_define(RendObjectComp) {
-  EcsEntityId resources[RendDrawResource_Count];
+  EcsEntityId resources[RendObjectResource_Count];
   EcsEntityId cameraFilter;
 
   RendObjectFlags flags;
@@ -172,7 +172,7 @@ ecs_system_define(RendClearDrawsSys) {
   }
 }
 
-ecs_system_define(RendDrawResourceRequestSys) {
+ecs_system_define(RendObjectResourceRequestSys) {
   if (rend_will_reset(world)) {
     return;
   }
@@ -188,7 +188,7 @@ ecs_system_define(RendDrawResourceRequestSys) {
     if (!comp->instCount && !(comp->flags & RendObjectFlags_Preload)) {
       continue; // Draw unused and not required to be pre-loaded.
     }
-    for (u32 i = 0; i != RendDrawResource_Count; ++i) {
+    for (u32 i = 0; i != RendObjectResource_Count; ++i) {
       if (comp->resources[i]) {
         rend_draw_resource_request(world, comp->resources[i], resItr, &numRequests);
       }
@@ -206,10 +206,10 @@ ecs_module_init(rend_draw_module) {
 
   ecs_register_system(RendClearDrawsSys, ecs_view_id(DrawWriteView));
   ecs_register_system(
-      RendDrawResourceRequestSys, ecs_view_id(DrawReadView), ecs_view_id(ResourceView));
+      RendObjectResourceRequestSys, ecs_view_id(DrawReadView), ecs_view_id(ResourceView));
 
   ecs_order(RendClearDrawsSys, RendOrder_ObjectClear);
-  ecs_order(RendDrawResourceRequestSys, RendOrder_ObjectUpdate + 10);
+  ecs_order(RendObjectResourceRequestSys, RendOrder_ObjectUpdate + 10);
 }
 
 RendObjectComp*
@@ -223,7 +223,7 @@ rend_draw_create(EcsWorld* world, const EcsEntityId entity, const RendObjectFlag
 
 RendObjectFlags rend_draw_flags(const RendObjectComp* draw) { return draw->flags; }
 
-EcsEntityId rend_draw_resource(const RendObjectComp* draw, const RendDrawResource id) {
+EcsEntityId rend_draw_resource(const RendObjectComp* draw, const RendObjectResource id) {
   return draw->resources[id];
 }
 
@@ -292,7 +292,7 @@ void rend_draw_push(
     if (UNLIKELY(draw->instCount > u16_max || requiredSortMem > alloc_max_size(g_allocScratch))) {
       log_e(
           "Sorted draw instance count exceeds maximum",
-          log_param("graphic", ecs_entity_fmt(draw->resources[RendDrawResource_Graphic])),
+          log_param("graphic", ecs_entity_fmt(draw->resources[RendObjectResource_Graphic])),
           log_param("count", fmt_int(draw->instCount)));
       return;
     }
@@ -347,7 +347,7 @@ void rend_draw_push(
 }
 
 void rend_draw_set_resource(
-    RendObjectComp* comp, const RendDrawResource id, const EcsEntityId asset) {
+    RendObjectComp* comp, const RendObjectResource id, const EcsEntityId asset) {
   comp->resources[id] = asset;
 }
 

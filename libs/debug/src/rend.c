@@ -603,14 +603,14 @@ static void rend_obj_info_query(DebugRendPanelComp* panelComp, EcsWorld* world) 
     EcsIterator* graphicItr  = ecs_view_itr(graphicView);
     EcsView*     objView     = ecs_world_view_t(world, RendObjView);
     for (EcsIterator* itr = ecs_view_itr(objView); ecs_view_walk(itr);) {
-      const RendObjectComp* objComp = ecs_view_read_t(itr, RendObjectComp);
-      if (panelComp->hideEmptyObjects && !rend_draw_instance_count(objComp)) {
+      const RendObjectComp* obj = ecs_view_read_t(itr, RendObjectComp);
+      if (panelComp->hideEmptyObjects && !rend_draw_instance_count(obj)) {
         continue;
       }
 
       String graphicName = string_lit("< unknown >");
       i32    renderOrder = 0;
-      if (ecs_view_maybe_jump(graphicItr, rend_draw_resource(objComp, RendDrawResource_Graphic))) {
+      if (ecs_view_maybe_jump(graphicItr, rend_draw_resource(obj, RendObjectResource_Graphic))) {
         const AssetComp*          graphicAssetComp = ecs_view_read_t(graphicItr, AssetComp);
         const RendResGraphicComp* graphicComp = ecs_view_read_t(graphicItr, RendResGraphicComp);
         graphicName                           = asset_id(graphicAssetComp);
@@ -620,9 +620,9 @@ static void rend_obj_info_query(DebugRendPanelComp* panelComp, EcsWorld* world) 
       }
       *dynarray_push_t(&panelComp->objects, DebugObjInfo) = (DebugObjInfo){
           .graphicName   = graphicName,
-          .instanceCount = rend_draw_instance_count(objComp),
-          .dataSize      = rend_draw_data_size(objComp),
-          .dataInstSize  = rend_draw_data_inst_size(objComp),
+          .instanceCount = rend_draw_instance_count(obj),
+          .dataSize      = rend_draw_data_size(obj),
+          .dataInstSize  = rend_draw_data_inst_size(obj),
           .renderOrder   = renderOrder,
       };
     }

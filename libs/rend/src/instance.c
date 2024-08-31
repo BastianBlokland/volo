@@ -84,7 +84,7 @@ static SceneTags rend_tags(const SceneTagComp* tagComp, const SceneRenderableCom
 
 static void rend_obj_init(EcsWorld* w, const SceneRenderableComp* r, const RendObjectFlags flags) {
   RendObjectComp* obj = rend_draw_create(w, r->graphic, flags);
-  rend_draw_set_resource(obj, RendDrawResource_Graphic, r->graphic);
+  rend_draw_set_resource(obj, RendObjectResource_Graphic, r->graphic);
 }
 
 ecs_view_define(RenderableView) {

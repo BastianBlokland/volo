@@ -104,8 +104,10 @@ static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetMa
   ecs_world_add_t(world, rendObjEntity, SceneLifetimeOwnerComp, .owners[0] = entity);
 
   RendObjectComp* rendObj = rend_draw_create(world, rendObjEntity, RendObjectFlags_None);
-  rend_draw_set_resource(rendObj, RendDrawResource_Graphic, asset_lookup(world, assets, g_graphic));
   rend_draw_set_camera_filter(rendObj, entity);
+
+  const EcsEntityId gridGraphicAsset = asset_lookup(world, assets, g_graphic);
+  rend_draw_set_resource(rendObj, RendObjectResource_Graphic, gridGraphicAsset);
 
   ecs_world_add_t(
       world,

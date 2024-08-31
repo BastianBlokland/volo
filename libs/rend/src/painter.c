@@ -361,14 +361,14 @@ static SceneTags painter_push_draws_simple(
     }
 
     // Retrieve and prepare the object's graphic.
-    const EcsEntityId graphicResource = rend_draw_resource(obj, RendDrawResource_Graphic);
+    const EcsEntityId graphicResource = rend_draw_resource(obj, RendObjectResource_Graphic);
     RvkGraphic*       graphic         = painter_get_graphic(resourceItr, graphicResource);
     if (!graphic || !rvk_pass_prepare(ctx->pass, graphic)) {
       continue; // Graphic not ready to be drawn.
     }
 
     // If the object uses a 'per draw' texture then retrieve and prepare it.
-    const EcsEntityId textureResource = rend_draw_resource(obj, RendDrawResource_Texture);
+    const EcsEntityId textureResource = rend_draw_resource(obj, RendObjectResource_Texture);
     RvkTexture*       texture         = null;
     if (textureResource) {
       texture = painter_get_texture(resourceItr, textureResource);
@@ -405,7 +405,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
     if (!(rend_draw_flags(obj) & requiredAny)) {
       continue; // Object shouldn't be included in the shadow pass.
     }
-    const EcsEntityId graphicOriginalResource = rend_draw_resource(obj, RendDrawResource_Graphic);
+    const EcsEntityId graphicOriginalResource = rend_draw_resource(obj, RendObjectResource_Graphic);
     RvkGraphic*       graphicOriginal = painter_get_graphic(resourceItr, graphicOriginalResource);
     if (!graphicOriginal) {
       continue; // Graphic not loaded.
@@ -681,7 +681,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
     if (!(rend_draw_flags(obj) & RendObjectFlags_Geometry)) {
       continue; // Not a object we can render a wireframe for.
     }
-    const EcsEntityId graphicOriginalResource = rend_draw_resource(obj, RendDrawResource_Graphic);
+    const EcsEntityId graphicOriginalResource = rend_draw_resource(obj, RendObjectResource_Graphic);
     RvkGraphic*       graphicOriginal = painter_get_graphic(resourceItr, graphicOriginalResource);
     if (!graphicOriginal) {
       continue; // Graphic not loaded.
@@ -706,7 +706,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
 
     // If the object uses a 'per draw' texture then retrieve and prepare it.
     // NOTE: This is needed for the terrain wireframe as it contains the heightmap.
-    const EcsEntityId textureResource = rend_draw_resource(obj, RendDrawResource_Texture);
+    const EcsEntityId textureResource = rend_draw_resource(obj, RendObjectResource_Texture);
     RvkTexture*       texture         = null;
     if (textureResource) {
       texture = painter_get_texture(resourceItr, textureResource);
@@ -740,7 +740,7 @@ painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView, EcsView* re
     if (!(rend_draw_flags(obj) & RendObjectFlags_Skinned)) {
       continue; // Not a skinned object.
     }
-    const EcsEntityId graphicOriginalResource = rend_draw_resource(obj, RendDrawResource_Graphic);
+    const EcsEntityId graphicOriginalResource = rend_draw_resource(obj, RendObjectResource_Graphic);
     RvkGraphic*       graphicOriginal = painter_get_graphic(resourceItr, graphicOriginalResource);
     if (!graphicOriginal) {
       continue; // Graphic not loaded.

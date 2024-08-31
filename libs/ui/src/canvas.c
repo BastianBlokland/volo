@@ -517,7 +517,7 @@ ecs_system_define(UiRenderSys) {
     } else {
       graphic = ui_resource_graphic(globalRes, UiGraphicRes_Normal);
     }
-    rend_draw_set_resource(rendObj, RendDrawResource_Graphic, graphic);
+    rend_draw_set_resource(rendObj, RendObjectResource_Graphic, graphic);
 
     const f32      scale       = ui_window_scale(window, settings);
     const UiVector canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);

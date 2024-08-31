@@ -57,8 +57,8 @@ static void rend_terrain_obj_update(const SceneTerrainComp* sceneTerrain, RendOb
   const f32 heightScale    = scene_terrain_height_max(sceneTerrain);
 
   // Set global terrain meta.
-  rend_draw_set_resource(obj, RendDrawResource_Graphic, graphic);
-  rend_draw_set_resource(obj, RendDrawResource_Texture, heightmap);
+  rend_draw_set_resource(obj, RendObjectResource_Graphic, graphic);
+  rend_draw_set_resource(obj, RendObjectResource_Texture, heightmap);
   *rend_draw_set_data_t(obj, RendTerrainData) = (RendTerrainData){
       .size        = size,
       .heightScale = heightScale,
