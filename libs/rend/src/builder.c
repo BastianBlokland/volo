@@ -9,7 +9,7 @@
 
 #define rend_builder_workers_max 8
 #define rend_builder_draw_data_align 16
-#define rend_builder_draw_data_chunk_size (32 * usize_kibibyte)
+#define rend_builder_draw_data_chunk_size (256 * usize_kibibyte)
 
 struct sRendBuilderBuffer {
   ALIGNAS(64)
@@ -70,16 +70,12 @@ void rend_builder_pass_flush(RendBuilderBuffer* buffer) {
   diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
   diag_assert_msg(!buffer->draw, "RendBuilder: Draw still active");
 
-  if (buffer->drawList.size) {
-    rvk_pass_begin(buffer->pass);
-    {
-      dynarray_sort(&buffer->drawList, builder_draw_compare);
-      dynarray_for_t(&buffer->drawList, RvkPassDraw, draw) { rvk_pass_draw(buffer->pass, draw); }
-    }
-    rvk_pass_end(buffer->pass);
-    dynarray_clear(&buffer->drawList);
-  }
+  rvk_pass_begin(buffer->pass);
+  dynarray_sort(&buffer->drawList, builder_draw_compare);
+  dynarray_for_t(&buffer->drawList, RvkPassDraw, draw) { rvk_pass_draw(buffer->pass, draw); }
+  rvk_pass_end(buffer->pass);
 
+  dynarray_clear(&buffer->drawList);
   alloc_reset(buffer->drawDataAlloc);
 
   buffer->pass = null;
@@ -115,8 +111,13 @@ Mem rend_builder_draw_instances(RendBuilderBuffer* buffer, const u32 count, cons
   diag_assert_msg(!buffer->draw->instCount, "RendBuilder: Instances already set");
   diag_assert_msg(!mem_valid(buffer->draw->instData), "RendBuilder: Instance data already set");
 
-  const Mem data = alloc_alloc(buffer->drawDataAlloc, count * stride, rend_builder_draw_data_align);
-  diag_assert_msg(mem_valid(data), "RendBuilder: Draw-data allocator ran out of space");
+  Mem data;
+  if (stride) {
+    data = alloc_alloc(buffer->drawDataAlloc, count * stride, rend_builder_draw_data_align);
+    diag_assert_msg(mem_valid(data), "RendBuilder: Draw-data allocator ran out of space");
+  } else {
+    data = mem_empty;
+  }
 
   buffer->draw->instCount      = count;
   buffer->draw->instDataStride = stride;
@@ -130,7 +131,10 @@ void rend_builder_draw_instances_trim(RendBuilderBuffer* buffer, const u32 count
 
   diag_assert(count <= buffer->draw->instCount);
 
+  const u32 dataStride = buffer->draw->instDataStride;
+
   buffer->draw->instCount = count;
+  buffer->draw->instData  = mem_slice(buffer->draw->instData, 0, count * dataStride);
 }
 
 void rend_builder_draw_instances_extern(
@@ -174,7 +178,7 @@ void rend_builder_draw_sampler(RendBuilderBuffer* buffer, const RvkSamplerSpec s
 }
 
 void rend_builder_draw_flush(RendBuilderBuffer* buffer) {
-  diag_assert_msg(!buffer->draw, "RendBuilder: Draw not active");
+  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
   if (!buffer->draw->instCount) {
     dynarray_remove(&buffer->drawList, buffer->drawList.size - 1, 1);
   }
