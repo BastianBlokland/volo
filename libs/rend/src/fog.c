@@ -6,6 +6,7 @@
 #include "rend_register.h"
 #include "rend_settings.h"
 #include "scene_faction.h"
+#include "scene_tag.h"
 #include "scene_terrain.h"
 #include "scene_transform.h"
 #include "scene_visibility.h"

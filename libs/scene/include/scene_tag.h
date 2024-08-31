@@ -2,7 +2,7 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
-typedef enum {
+typedef enum eSceneTags {
   SceneTags_None         = 0,
   SceneTags_Unit         = 1 << 0,
   SceneTags_Selected     = 1 << 1,
