@@ -108,3 +108,4 @@ void rvk_pass_stage_draw_image(RvkPass*, RvkImage*);
 void rvk_pass_begin(RvkPass*);
 void rvk_pass_draw(RvkPass*, const RvkPassDraw*);
 void rvk_pass_end(RvkPass*);
+void rvk_pass_discard(RvkPass*); // Discard any staged values.

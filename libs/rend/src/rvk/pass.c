@@ -1010,3 +1010,12 @@ void rvk_pass_end(RvkPass* pass) {
 
   *stage = (RvkPassStage){0}; // Reset the stage.
 }
+
+void rvk_pass_discard(RvkPass* pass) {
+  RvkPassStage* stage = rvk_pass_stage();
+  RvkPassInvoc* invoc = rvk_pass_invoc_active(pass);
+  diag_assert_msg(!invoc, "Pass cannot be active while discarding");
+  (void)invoc;
+
+  *stage = (RvkPassStage){0}; // Reset the stage.
+}
