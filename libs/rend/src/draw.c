@@ -283,6 +283,8 @@ void rend_draw_push(
     return;
   }
 
+  Mem outputMem;
+
   RendDrawSortKey* sortKeys = null;
   if (draw->flags & RendDrawFlags_Sorted) {
     const usize requiredSortMem = draw->instCount * sizeof(RendDrawSortKey);
@@ -294,9 +296,10 @@ void rend_draw_push(
       return;
     }
     sortKeys = alloc_array_t(g_allocScratch, RendDrawSortKey, draw->instCount);
+  } else {
+    // Not sorted; output in a single pass by allocating the max amount and then trimming.
+    outputMem = rend_builder_draw_instances(builder, draw->instCount, draw->instDataSize);
   }
-
-  const Mem outputMem = rend_builder_draw_instances(builder, draw->instCount, draw->instDataSize);
 
   u32 filteredInstCount = 0;
   for (u32 i = 0; i != draw->instCount; ++i) {
@@ -306,7 +309,7 @@ void rend_draw_push(
       continue;
     }
     const u32 outputIndex = filteredInstCount++;
-    if (draw->flags & RendDrawFlags_Sorted) {
+    if (sortKeys) {
       /**
        * Instead of outputting the instance directly, first create a sort key for it. Then in a
        * separate pass sort the instances and copy them to the output.
@@ -320,12 +323,17 @@ void rend_draw_push(
     }
   }
 
-  if (draw->flags & RendDrawFlags_Sorted) {
+  if (!sortKeys) {
+    rend_builder_draw_instances_trim(builder, filteredInstCount);
+  }
+
+  if (sortKeys && filteredInstCount) {
     // clang-format off
 #ifdef VOLO_TRACE
     const bool trace = filteredInstCount > 1000;
     if (trace) { trace_begin("rend_draw_sort", TraceColor_Blue); }
 #endif
+    outputMem = rend_builder_draw_instances(builder, filteredInstCount, draw->instDataSize);
     rend_draw_sort(draw, sortKeys, filteredInstCount);
     for (u32 i = 0; i != filteredInstCount; ++i) {
       rend_draw_copy_to_output(draw, sortKeys[i].instIndex, i, outputMem);
@@ -335,8 +343,6 @@ void rend_draw_push(
 #endif
     // clang-format on
   }
-
-  rend_builder_draw_instances_trim(builder, filteredInstCount);
 }
 
 void rend_draw_set_resource(
