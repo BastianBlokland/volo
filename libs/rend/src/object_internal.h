@@ -1,6 +1,6 @@
 #pragma once
 #include "ecs_module.h"
-#include "rend_draw.h"
+#include "rend_object.h"
 
 // Internal forward declarations:
 typedef struct sRendBuilderBuffer RendBuilderBuffer;

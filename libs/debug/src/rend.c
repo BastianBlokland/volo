@@ -8,7 +8,7 @@
 #include "debug_rend.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
-#include "rend_draw.h"
+#include "rend_object.h"
 #include "rend_register.h"
 #include "rend_reset.h"
 #include "rend_resource.h"

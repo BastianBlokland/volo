@@ -2,7 +2,7 @@
 #include "core_math.h"
 #include "ecs_world.h"
 #include "geo_matrix.h"
-#include "rend_draw.h"
+#include "rend_object.h"
 #include "rend_register.h"
 #include "rend_settings.h"
 #include "scene_faction.h"

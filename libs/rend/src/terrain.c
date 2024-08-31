@@ -2,7 +2,7 @@
 #include "core_math.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
-#include "rend_draw.h"
+#include "rend_object.h"
 #include "scene_tag.h"
 #include "scene_terrain.h"
 

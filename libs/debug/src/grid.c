@@ -7,7 +7,7 @@
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "input_manager.h"
-#include "rend_draw.h"
+#include "rend_object.h"
 #include "scene_camera.h"
 #include "scene_lifetime.h"
 #include "scene_set.h"

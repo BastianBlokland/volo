@@ -2,7 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "ecs_world.h"
-#include "rend_draw.h"
+#include "rend_object.h"
 
 #include "draw_internal.h"
 

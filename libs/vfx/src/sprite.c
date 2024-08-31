@@ -3,7 +3,7 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "ecs_world.h"
-#include "rend_draw.h"
+#include "rend_object.h"
 #include "scene_tag.h"
 
 #include "atlas_internal.h"

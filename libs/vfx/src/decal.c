@@ -9,7 +9,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
-#include "rend_draw.h"
+#include "rend_object.h"
 #include "scene_lifetime.h"
 #include "scene_set.h"
 #include "scene_tag.h"

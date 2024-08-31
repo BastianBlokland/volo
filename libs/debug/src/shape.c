@@ -8,7 +8,7 @@
 #include "debug_register.h"
 #include "debug_shape.h"
 #include "ecs_world.h"
-#include "rend_draw.h"
+#include "rend_object.h"
 #include "scene_tag.h"
 
 typedef enum {

@@ -11,7 +11,7 @@
 #include "ecs_world.h"
 #include "gap_input.h"
 #include "input_manager.h"
-#include "rend_draw.h"
+#include "rend_object.h"
 #include "scene_attack.h"
 #include "scene_camera.h"
 #include "scene_collision.h"

@@ -15,9 +15,9 @@
 #include "trace_tracer.h"
 
 #include "builder_internal.h"
-#include "draw_internal.h"
 #include "fog_internal.h"
 #include "light_internal.h"
+#include "object_internal.h"
 #include "painter_internal.h"
 #include "platform_internal.h"
 #include "reset_internal.h"

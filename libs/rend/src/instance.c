@@ -1,7 +1,7 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "ecs_world.h"
-#include "rend_draw.h"
+#include "rend_object.h"
 #include "rend_register.h"
 #include "scene_bounds.h"
 #include "scene_renderable.h"
