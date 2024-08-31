@@ -4,7 +4,7 @@
 #include "rend_settings.h"
 #include "scene_tag.h"
 
-typedef struct {
+typedef struct sRendView {
   EcsEntityId    camera;
   GeoVector      origin;
   SceneTagFilter filter;
