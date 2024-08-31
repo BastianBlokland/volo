@@ -381,7 +381,7 @@ static SceneTags painter_push_draws_simple(
     if (texture) {
       rend_builder_draw_image(ctx->builder, &texture->image);
     }
-    rend_object_push(obj, &ctx->view, ctx->settings, ctx->builder);
+    rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
     rend_builder_draw_flush(ctx->builder);
 
     tagMask |= rend_object_tag_mask(obj);
@@ -445,7 +445,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
         rend_builder_draw_image(ctx->builder, objAlphaImg);
         rend_builder_draw_sampler(ctx->builder, (RvkSamplerSpec){.aniso = RvkSamplerAniso_x8});
       }
-      rend_object_push(obj, &ctx->view, ctx->settings, ctx->builder);
+      rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
       rend_builder_draw_flush(ctx->builder);
     }
   }
@@ -720,7 +720,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
     if (texture) {
       rend_builder_draw_image(ctx->builder, &texture->image);
     }
-    rend_object_push(obj, &ctx->view, ctx->settings, ctx->builder);
+    rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
     rend_builder_draw_flush(ctx->builder);
   }
 }
@@ -751,7 +751,7 @@ painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView, EcsView* re
     if (rvk_pass_prepare_mesh(ctx->pass, mesh)) {
       rend_builder_draw_push(ctx->builder, debugGraphic);
       rend_builder_draw_mesh(ctx->builder, mesh);
-      rend_object_push(obj, &ctx->view, ctx->settings, ctx->builder);
+      rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
       rend_builder_draw_flush(ctx->builder);
     }
   }

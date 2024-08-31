@@ -257,7 +257,7 @@ rend_object_sort(const RendObjectComp* draw, RendDrawSortKey* sortKeys, const u3
   sort_quicksort_t(sortKeys, sortKeys + count, RendDrawSortKey, compareFunc);
 }
 
-void rend_object_push(
+void rend_object_draw(
     const RendObjectComp*   draw,
     const RendView*         view,
     const RendSettingsComp* settings,
