@@ -34,7 +34,6 @@ ecs_comp_define(RendDrawComp) {
   RendDrawFlags flags;
   u32           vertexCountOverride;
   u32           instCount;
-  u32           outputInstCount;
 
   SceneTags tagMask;
 
@@ -244,7 +243,7 @@ static i8 rend_draw_compare_front_to_back(const void* a, const void* b) {
   return distA < distB ? -1 : distA > distB ? 1 : 0;
 }
 
-static void rend_draw_sort(const RendDrawComp* draw, RendDrawSortKey* sortKeys) {
+static void rend_draw_sort(const RendDrawComp* draw, RendDrawSortKey* sortKeys, const u32 count) {
   CompareFunc compareFunc;
   if (draw->flags & RendDrawFlags_SortBackToFront) {
     compareFunc = rend_draw_compare_back_to_front;
@@ -253,7 +252,7 @@ static void rend_draw_sort(const RendDrawComp* draw, RendDrawSortKey* sortKeys) 
   } else {
     diag_crash_msg("Unsupported sort mode");
   }
-  sort_quicksort_t(sortKeys, sortKeys + draw->outputInstCount, RendDrawSortKey, compareFunc);
+  sort_quicksort_t(sortKeys, sortKeys + count, RendDrawSortKey, compareFunc);
 }
 
 void rend_draw_push(
@@ -324,11 +323,11 @@ void rend_draw_push(
   if (draw->flags & RendDrawFlags_Sorted) {
     // clang-format off
 #ifdef VOLO_TRACE
-    const bool trace = draw->outputInstCount > 1000;
+    const bool trace = filteredInstCount > 1000;
     if (trace) { trace_begin("rend_draw_sort", TraceColor_Blue); }
 #endif
-    rend_draw_sort(draw, sortKeys);
-    for (u32 i = 0; i != draw->outputInstCount; ++i) {
+    rend_draw_sort(draw, sortKeys, filteredInstCount);
+    for (u32 i = 0; i != filteredInstCount; ++i) {
       rend_draw_copy_to_output(draw, sortKeys[i].instIndex, i, outputMem);
     }
 #ifdef VOLO_TRACE
