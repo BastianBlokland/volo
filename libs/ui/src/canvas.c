@@ -9,6 +9,7 @@
 #include "input.h"
 #include "rend_draw.h"
 #include "scene_lifetime.h"
+#include "scene_tag.h"
 #include "snd_mixer.h"
 #include "ui_register.h"
 #include "ui_settings.h"

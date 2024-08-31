@@ -18,6 +18,13 @@ static f32 trans_time_to_seconds(const TimeDuration dur) {
   return (f32)((f64)dur * g_toSecMul);
 }
 
+static void trans_validate_pos(MAYBE_UNUSED const GeoVector vec) {
+  diag_assert_msg(
+      geo_vector_mag_sqr(vec) <= (1e5f * 1e5f),
+      "Position ({}) is out of bounds",
+      geo_vector_fmt(vec));
+}
+
 ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(VelocityUpdateView) {
@@ -49,6 +56,8 @@ ecs_system_define(SceneVelocityUpdateSys) {
 
     const GeoVector pos      = ecs_view_read_t(itr, SceneTransformComp)->position;
     const GeoVector posDelta = geo_vector_sub(pos, veloComp->lastPosition);
+
+    trans_validate_pos(pos);
 
     veloComp->lastPosition = pos;
 

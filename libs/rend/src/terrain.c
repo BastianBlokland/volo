@@ -3,6 +3,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "rend_draw.h"
+#include "scene_tag.h"
 #include "scene_terrain.h"
 
 static const f32 g_terrainPatchTargetSize = 25.0f;

@@ -9,6 +9,7 @@
 #include "debug_shape.h"
 #include "ecs_world.h"
 #include "rend_draw.h"
+#include "scene_tag.h"
 
 typedef enum {
   DebugShapeType_Box,

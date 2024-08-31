@@ -12,6 +12,7 @@
 #include "rend_draw.h"
 #include "scene_lifetime.h"
 #include "scene_set.h"
+#include "scene_tag.h"
 #include "scene_terrain.h"
 #include "scene_time.h"
 #include "scene_transform.h"

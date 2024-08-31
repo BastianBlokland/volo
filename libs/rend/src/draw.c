@@ -8,10 +8,12 @@
 #include "rend_register.h"
 #include "trace_tracer.h"
 
+#include "builder_internal.h"
 #include "draw_internal.h"
 #include "reset_internal.h"
 #include "resource_internal.h"
 #include "rvk/texture_internal.h"
+#include "view_internal.h"
 
 #ifdef VOLO_SIMD
 #include "core_simd.h"
@@ -32,7 +34,6 @@ ecs_comp_define(RendDrawComp) {
   RendDrawFlags flags;
   u32           vertexCountOverride;
   u32           instCount;
-  u32           outputInstCount;
 
   SceneTags tagMask;
 
@@ -41,7 +42,6 @@ ecs_comp_define(RendDrawComp) {
 
   Mem dataMem;
   Mem instDataMem, instTagsMem, instAabbMem;
-  Mem instDataOutput;
 };
 
 /**
@@ -71,9 +71,6 @@ static void ecs_destruct_draw(void* data) {
   }
   if (mem_valid(comp->instAabbMem)) {
     alloc_free(g_allocHeap, comp->instAabbMem);
-  }
-  if (mem_valid(comp->instDataOutput)) {
-    alloc_free(g_allocHeap, comp->instDataOutput);
   }
 }
 
@@ -126,16 +123,12 @@ static Mem rend_draw_inst_data(const RendDrawComp* draw, const u32 instance) {
   return mem_create(bits_ptr_offset(draw->instDataMem.ptr, offset), draw->instDataSize);
 }
 
-static Mem rend_draw_inst_output_data(const RendDrawComp* draw, const u32 instance) {
-  const usize offset = instance * draw->instDataSize;
-  return mem_create(bits_ptr_offset(draw->instDataOutput.ptr, offset), draw->instDataSize);
-}
-
-static void
-rend_draw_copy_to_output(const RendDrawComp* draw, const u32 instIndex, const u32 outputIndex) {
-  const Mem outputMem   = rend_draw_inst_output_data(draw, outputIndex);
-  const Mem instDataMem = rend_draw_inst_data(draw, instIndex);
-  rend_draw_memcpy(outputMem.ptr, instDataMem.ptr, instDataMem.size);
+static void rend_draw_copy_to_output(
+    const RendDrawComp* draw, const u32 instIndex, const u32 outIndex, const Mem outMem) {
+  const usize outOffset  = outIndex * draw->instDataSize;
+  const Mem   outInstMem = mem_create(bits_ptr_offset(outMem.ptr, outOffset), draw->instDataSize);
+  const Mem   inInstMem  = rend_draw_inst_data(draw, instIndex);
+  rend_draw_memcpy(outInstMem.ptr, inInstMem.ptr, inInstMem.size);
 }
 
 static bool rend_resource_asset_valid(EcsWorld* world, const EcsEntityId assetEntity) {
@@ -250,7 +243,7 @@ static i8 rend_draw_compare_front_to_back(const void* a, const void* b) {
   return distA < distB ? -1 : distA > distB ? 1 : 0;
 }
 
-static void rend_draw_sort(RendDrawComp* draw, RendDrawSortKey* sortKeys) {
+static void rend_draw_sort(const RendDrawComp* draw, RendDrawSortKey* sortKeys, const u32 count) {
   CompareFunc compareFunc;
   if (draw->flags & RendDrawFlags_SortBackToFront) {
     compareFunc = rend_draw_compare_back_to_front;
@@ -259,31 +252,38 @@ static void rend_draw_sort(RendDrawComp* draw, RendDrawSortKey* sortKeys) {
   } else {
     diag_crash_msg("Unsupported sort mode");
   }
-  sort_quicksort_t(sortKeys, sortKeys + draw->outputInstCount, RendDrawSortKey, compareFunc);
+  sort_quicksort_t(sortKeys, sortKeys + count, RendDrawSortKey, compareFunc);
 }
 
-bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettingsComp* settings) {
+void rend_draw_push(
+    const RendDrawComp*     draw,
+    const RendView*         view,
+    const RendSettingsComp* settings,
+    RendBuilderBuffer*      builder) {
   if (!draw->instCount) {
-    return false;
+    return;
   }
   if (draw->cameraFilter && view->camera != draw->cameraFilter) {
-    return false;
+    return;
+  }
+  if (draw->dataSize) {
+    const Mem drawMem = mem_slice(draw->dataMem, 0, draw->dataSize);
+    rend_builder_draw_data_extern(builder, drawMem);
+  }
+  if (draw->vertexCountOverride) {
+    rend_builder_draw_vertex_count(builder, draw->vertexCountOverride);
   }
   if (draw->flags & RendDrawFlags_NoInstanceFiltering) {
     /**
-     * If we can skip the instance filtering, we can also skip the memory copy that is needed to
-     * keep the instances contiguous in memory.
+     * Without instance filtering we can skip the memory copy that is needed to keep the instances
+     * contiguous in memory.
      */
-    return true;
+    const Mem instMem = mem_slice(draw->instDataMem, 0, draw->instCount * draw->instDataSize);
+    rend_builder_draw_instances_extern(builder, draw->instCount, instMem, draw->instDataSize);
+    return;
   }
 
-  /**
-   * Gather the actual draws after filtering.
-   * Because we need the output data to be contiguous in memory we have to copy the instances that
-   * pass the filter to separate output memory.
-   */
-
-  buf_ensure(&draw->instDataOutput, draw->instCount * draw->instDataSize, rend_min_align);
+  Mem outputMem;
 
   RendDrawSortKey* sortKeys = null;
   if (draw->flags & RendDrawFlags_Sorted) {
@@ -293,20 +293,23 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettin
           "Sorted draw instance count exceeds maximum",
           log_param("graphic", ecs_entity_fmt(draw->resources[RendDrawResource_Graphic])),
           log_param("count", fmt_int(draw->instCount)));
-      return false;
+      return;
     }
     sortKeys = alloc_array_t(g_allocScratch, RendDrawSortKey, draw->instCount);
+  } else {
+    // Not sorted; output in a single pass by allocating the max amount and then trimming.
+    outputMem = rend_builder_draw_instances(builder, draw->instCount, draw->instDataSize);
   }
 
-  draw->outputInstCount = 0;
+  u32 filteredInstCount = 0;
   for (u32 i = 0; i != draw->instCount; ++i) {
     const SceneTags instTags = ((SceneTags*)draw->instTagsMem.ptr)[i];
     const GeoBox*   instAabb = &((GeoBox*)draw->instAabbMem.ptr)[i];
     if (!rend_view_visible(view, instTags, instAabb, settings)) {
       continue;
     }
-    const u32 outputIndex = draw->outputInstCount++;
-    if (draw->flags & RendDrawFlags_Sorted) {
+    const u32 outputIndex = filteredInstCount++;
+    if (sortKeys) {
       /**
        * Instead of outputting the instance directly, first create a sort key for it. Then in a
        * separate pass sort the instances and copy them to the output.
@@ -316,48 +319,30 @@ bool rend_draw_gather(RendDrawComp* draw, const RendView* view, const RendSettin
           .viewDist  = rend_view_sort_dist(view, instAabb),
       };
     } else {
-      rend_draw_copy_to_output(draw, i, outputIndex);
+      rend_draw_copy_to_output(draw, i, outputIndex, outputMem);
     }
   }
 
-  if (draw->flags & RendDrawFlags_Sorted) {
+  if (!sortKeys) {
+    rend_builder_draw_instances_trim(builder, filteredInstCount);
+  }
+
+  if (sortKeys && filteredInstCount) {
     // clang-format off
 #ifdef VOLO_TRACE
-    const bool trace = draw->outputInstCount > 1000;
+    const bool trace = filteredInstCount > 1000;
     if (trace) { trace_begin("rend_draw_sort", TraceColor_Blue); }
 #endif
-    rend_draw_sort(draw, sortKeys);
-    for (u32 i = 0; i != draw->outputInstCount; ++i) {
-      rend_draw_copy_to_output(draw, sortKeys[i].instIndex, i);
+    outputMem = rend_builder_draw_instances(builder, filteredInstCount, draw->instDataSize);
+    rend_draw_sort(draw, sortKeys, filteredInstCount);
+    for (u32 i = 0; i != filteredInstCount; ++i) {
+      rend_draw_copy_to_output(draw, sortKeys[i].instIndex, i, outputMem);
     }
 #ifdef VOLO_TRACE
     if (trace) { trace_end(); }
 #endif
     // clang-format on
   }
-  return draw->outputInstCount != 0;
-}
-
-RvkPassDraw rend_draw_output(const RendDrawComp* draw, RvkGraphic* graphic, RvkTexture* texture) {
-  u32 instCount;
-  Mem instData;
-  if (draw->flags & RendDrawFlags_NoInstanceFiltering) {
-    instCount = draw->instCount;
-    instData  = mem_slice(draw->instDataMem, 0, instCount * draw->instDataSize);
-  } else {
-    instCount = draw->outputInstCount;
-    instData  = mem_slice(draw->instDataOutput, 0, instCount * draw->instDataSize);
-  }
-  return (RvkPassDraw){
-      .graphic             = graphic,
-      .vertexCountOverride = draw->vertexCountOverride,
-      .drawData            = mem_slice(draw->dataMem, 0, draw->dataSize),
-      .drawImage           = texture ? &texture->image : null,
-      .drawSampler         = {0}, // TODO: Support customizing per-draw texture sampling.
-      .instCount           = instCount,
-      .instData            = instData,
-      .instDataStride      = draw->instDataSize,
-  };
 }
 
 void rend_draw_set_resource(

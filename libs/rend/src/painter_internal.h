@@ -1,5 +1,4 @@
 #pragma once
-#include "core_dynarray.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
@@ -13,7 +12,6 @@ typedef enum {
 
 ecs_comp_extern_public(RendPainterComp) {
   RendPainterType type;
-  DynArray        drawBuffer; // RvkPassDraw[]
   RvkCanvas*      canvas;
 };
 
