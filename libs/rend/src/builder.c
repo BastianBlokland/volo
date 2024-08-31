@@ -9,7 +9,7 @@
 
 #define rend_builder_workers_max 8
 #define rend_builder_draw_data_align 16
-#define rend_builder_draw_data_chunk_size (256 * usize_kibibyte)
+#define rend_builder_draw_data_chunk_size (16 * usize_mebibyte)
 
 struct sRendBuilderBuffer {
   ALIGNAS(64)
