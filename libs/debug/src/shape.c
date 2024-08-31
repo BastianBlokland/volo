@@ -178,9 +178,9 @@ debug_shape_draw_create(EcsWorld* world, AssetManagerComp* assets, const DebugSh
    * either be sorted front-to-back or not at all.
    * NOTE: Only instances of the same shape are sorted, order between different shapes is undefined.
    */
-  const RendDrawFlags drawFlags     = RendDrawFlags_SortBackToFront;
-  RendDrawComp*       draw          = rend_draw_create(world, entity, drawFlags);
-  const EcsEntityId   graphicEntity = asset_lookup(world, assets, g_debugGraphics[shape]);
+  const RendObjectFlags objFlags      = RendObjectFlags_SortBackToFront;
+  RendDrawComp*         draw          = rend_draw_create(world, entity, objFlags);
+  const EcsEntityId     graphicEntity = asset_lookup(world, assets, g_debugGraphics[shape]);
   rend_draw_set_resource(draw, RendDrawResource_Graphic, graphicEntity);
   return entity;
 }

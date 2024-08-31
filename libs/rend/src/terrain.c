@@ -33,8 +33,8 @@ ecs_comp_define(RendTerrainComp) {
 };
 
 static EcsEntityId rend_terrain_draw_create(EcsWorld* world) {
-  EcsEntityId         e     = ecs_world_entity_create(world);
-  const RendDrawFlags flags = RendDrawFlags_Terrain | RendDrawFlags_NoAutoClear;
+  EcsEntityId           e     = ecs_world_entity_create(world);
+  const RendObjectFlags flags = RendObjectFlags_Terrain | RendObjectFlags_NoAutoClear;
   rend_draw_create(world, e, flags);
   return e;
 }
@@ -80,8 +80,8 @@ static void rend_terrain_draw_init(const SceneTerrainComp* sceneTerrain, RendDra
       };
       const GeoVector patchCenter = {.x = patchData.posX, .y = 0, .z = patchData.posZ};
       const GeoBox    patchBounds = {
-          .min = geo_vector_sub(patchCenter, geo_vector(patchHalfSize, 0, patchHalfSize)),
-          .max = geo_vector_add(patchCenter, geo_vector(patchHalfSize, heightScale, patchHalfSize)),
+             .min = geo_vector_sub(patchCenter, geo_vector(patchHalfSize, 0, patchHalfSize)),
+             .max = geo_vector_add(patchCenter, geo_vector(patchHalfSize, heightScale, patchHalfSize)),
       };
       *rend_draw_add_instance_t(draw, RendTerrainPatchData, patchTags, patchBounds) = patchData;
     }

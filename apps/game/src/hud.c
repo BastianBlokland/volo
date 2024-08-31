@@ -145,9 +145,9 @@ static EcsEntityId hud_draw_create(
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owners[0] = window);
 
-  RendDrawFlags flags = RendDrawFlags_Preload;
+  RendObjectFlags flags = RendObjectFlags_Preload;
   if (post) {
-    flags |= RendDrawFlags_Post;
+    flags |= RendObjectFlags_Post;
   }
 
   RendDrawComp* draw = rend_draw_create(world, e, flags);

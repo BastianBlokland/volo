@@ -421,8 +421,8 @@ static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId drawEntity = ecs_world_entity_create(world);
   ecs_world_add_t(world, drawEntity, SceneLifetimeOwnerComp, .owners[0] = window);
 
-  const RendDrawFlags drawFlags = RendDrawFlags_Post | RendDrawFlags_NoInstanceFiltering;
-  RendDrawComp*       draw      = rend_draw_create(world, drawEntity, drawFlags);
+  const RendObjectFlags objFlags = RendObjectFlags_Post | RendObjectFlags_NoInstanceFiltering;
+  RendDrawComp*         draw     = rend_draw_create(world, drawEntity, objFlags);
   rend_draw_set_camera_filter(draw, window);
 
   ecs_world_add_t(
@@ -520,13 +520,13 @@ ecs_system_define(UiRenderSys) {
     const f32      scale       = ui_window_scale(window, settings);
     const UiVector canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState  renderState = {
-        .settings      = settings,
-        .atlasFont     = atlasFont,
-        .atlasImage    = atlasImage,
-        .renderer      = renderer,
-        .draw          = draw,
-        .clipRects[0]  = {.size = canvasSize},
-        .clipRectCount = 1,
+         .settings      = settings,
+         .atlasFont     = atlasFont,
+         .atlasImage    = atlasImage,
+         .renderer      = renderer,
+         .draw          = draw,
+         .clipRects[0]  = {.size = canvasSize},
+         .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
@@ -795,7 +795,7 @@ bool ui_canvas_group_block_inactive(const UiCanvasComp* comp) {
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 bool     ui_canvas_input_any(const UiCanvasComp* comp) {
-  return (comp->flags & UiCanvasFlags_InputAny) != 0;
+      return (comp->flags & UiCanvasFlags_InputAny) != 0;
 }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }

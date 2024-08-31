@@ -7,25 +7,25 @@
 typedef enum eSceneTags SceneTags;
 
 typedef enum {
-  RendDrawFlags_None                = 0,
-  RendDrawFlags_Preload             = 1 << 0, // Load resources even if not drawn.
-  RendDrawFlags_Post                = 1 << 1, // Draw in the post pass.
-  RendDrawFlags_StandardGeometry    = 1 << 2, // Uses the standard instance data format.
-  RendDrawFlags_Skinned             = 1 << 3,
-  RendDrawFlags_Terrain             = 1 << 4,
-  RendDrawFlags_VfxSprite           = 1 << 5,
-  RendDrawFlags_Light               = 1 << 6,
-  RendDrawFlags_FogVision           = 1 << 7,
-  RendDrawFlags_Distortion          = 1 << 8,
-  RendDrawFlags_Decal               = 1 << 9,
-  RendDrawFlags_NoAutoClear         = 1 << 10,
-  RendDrawFlags_NoInstanceFiltering = 1 << 11, // NOTE: Does not support sorting.
-  RendDrawFlags_SortBackToFront     = 1 << 12,
-  RendDrawFlags_SortFrontToBack     = 1 << 13,
+  RendObjectFlags_None                = 0,
+  RendObjectFlags_Preload             = 1 << 0, // Load resources even if not drawn.
+  RendObjectFlags_Post                = 1 << 1, // Draw in the post pass.
+  RendObjectFlags_StandardGeometry    = 1 << 2, // Uses the standard instance data format.
+  RendObjectFlags_Skinned             = 1 << 3,
+  RendObjectFlags_Terrain             = 1 << 4,
+  RendObjectFlags_VfxSprite           = 1 << 5,
+  RendObjectFlags_Light               = 1 << 6,
+  RendObjectFlags_FogVision           = 1 << 7,
+  RendObjectFlags_Distortion          = 1 << 8,
+  RendObjectFlags_Decal               = 1 << 9,
+  RendObjectFlags_NoAutoClear         = 1 << 10,
+  RendObjectFlags_NoInstanceFiltering = 1 << 11, // NOTE: Does not support sorting.
+  RendObjectFlags_SortBackToFront     = 1 << 12,
+  RendObjectFlags_SortFrontToBack     = 1 << 13,
 
-  RendDrawFlags_Geometry = RendDrawFlags_StandardGeometry | RendDrawFlags_Terrain,
-  RendDrawFlags_Sorted   = RendDrawFlags_SortBackToFront | RendDrawFlags_SortFrontToBack,
-} RendDrawFlags;
+  RendObjectFlags_Geometry = RendObjectFlags_StandardGeometry | RendObjectFlags_Terrain,
+  RendObjectFlags_Sorted   = RendObjectFlags_SortBackToFront | RendObjectFlags_SortFrontToBack,
+} RendObjectFlags;
 
 typedef enum {
   RendDrawResource_Graphic,
@@ -43,17 +43,17 @@ ecs_comp_extern(RendDrawComp);
 /**
  * Add a new draw component to the given entity.
  */
-RendDrawComp* rend_draw_create(EcsWorld*, EcsEntityId entity, RendDrawFlags);
+RendDrawComp* rend_draw_create(EcsWorld*, EcsEntityId entity, RendObjectFlags);
 
 /**
  * Query information about this draw.
  */
-RendDrawFlags rend_draw_flags(const RendDrawComp*);
-EcsEntityId   rend_draw_resource(const RendDrawComp*, RendDrawResource);
-u32           rend_draw_instance_count(const RendDrawComp*);
-u32           rend_draw_data_size(const RendDrawComp*);
-u32           rend_draw_data_inst_size(const RendDrawComp*);
-SceneTags     rend_draw_tag_mask(const RendDrawComp*);
+RendObjectFlags rend_draw_flags(const RendDrawComp*);
+EcsEntityId     rend_draw_resource(const RendDrawComp*, RendDrawResource);
+u32             rend_draw_instance_count(const RendDrawComp*);
+u32             rend_draw_data_size(const RendDrawComp*);
+u32             rend_draw_data_inst_size(const RendDrawComp*);
+SceneTags       rend_draw_tag_mask(const RendDrawComp*);
 
 /**
  * Update a draw resource

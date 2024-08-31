@@ -20,13 +20,13 @@ static const String g_vfxDrawGraphics[VfxDrawType_Count] = {
     [VfxDrawType_ParticleSpriteDistortion] = string_static("graphics/vfx/sprite_distortion.graphic"),
 };
 
-static const RendDrawFlags g_vfxDrawFlags[VfxDrawType_Count] = {
-    [VfxDrawType_DecalStampSingle]         = RendDrawFlags_Decal | RendDrawFlags_Preload,
-    [VfxDrawType_DecalStampSingleDebug]    = RendDrawFlags_SortBackToFront,
-    [VfxDrawType_DecalStampTrail]          = RendDrawFlags_Decal | RendDrawFlags_Preload,
-    [VfxDrawType_DecalStampTrailDebug]     = RendDrawFlags_SortBackToFront,
-    [VfxDrawType_ParticleSpriteForward]    = RendDrawFlags_VfxSprite | RendDrawFlags_Preload | RendDrawFlags_SortBackToFront,
-    [VfxDrawType_ParticleSpriteDistortion] = RendDrawFlags_VfxSprite | RendDrawFlags_Preload | RendDrawFlags_Distortion,
+static const RendObjectFlags g_vfxDrawFlags[VfxDrawType_Count] = {
+    [VfxDrawType_DecalStampSingle]         = RendObjectFlags_Decal | RendObjectFlags_Preload,
+    [VfxDrawType_DecalStampSingleDebug]    = RendObjectFlags_SortBackToFront,
+    [VfxDrawType_DecalStampTrail]          = RendObjectFlags_Decal | RendObjectFlags_Preload,
+    [VfxDrawType_DecalStampTrailDebug]     = RendObjectFlags_SortBackToFront,
+    [VfxDrawType_ParticleSpriteForward]    = RendObjectFlags_VfxSprite | RendObjectFlags_Preload | RendObjectFlags_SortBackToFront,
+    [VfxDrawType_ParticleSpriteDistortion] = RendObjectFlags_VfxSprite | RendObjectFlags_Preload | RendObjectFlags_Distortion,
 };
 // clang-format on
 

@@ -82,7 +82,7 @@ static SceneTags rend_tags(const SceneTagComp* tagComp, const SceneRenderableCom
   return tags;
 }
 
-static void rend_draw_init(EcsWorld* w, const SceneRenderableComp* r, const RendDrawFlags flags) {
+static void rend_draw_init(EcsWorld* w, const SceneRenderableComp* r, const RendObjectFlags flags) {
   RendDrawComp* draw = rend_draw_create(w, r->graphic, flags);
   rend_draw_set_resource(draw, RendDrawResource_Graphic, r->graphic);
 }
@@ -136,7 +136,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
 
     if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendDrawComp))) {
       if (++createdDraws <= rend_instance_max_draw_create_per_task) { // Limit new draws per frame.
-        rend_draw_init(world, renderable, RendDrawFlags_StandardGeometry);
+        rend_draw_init(world, renderable, RendObjectFlags_StandardGeometry);
       }
       continue;
     }
@@ -210,7 +210,8 @@ ecs_system_define(RendInstanceSkinnedFillDrawsSys) {
 
     if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendDrawComp))) {
       if (++createdDraws <= rend_instance_max_draw_create_per_task) { // Limit new draws per frame.
-        rend_draw_init(world, renderable, RendDrawFlags_StandardGeometry | RendDrawFlags_Skinned);
+        rend_draw_init(
+            world, renderable, RendObjectFlags_StandardGeometry | RendObjectFlags_Skinned);
       }
       continue;
     }

@@ -31,9 +31,9 @@ ecs_comp_define(RendDrawComp) {
   EcsEntityId resources[RendDrawResource_Count];
   EcsEntityId cameraFilter;
 
-  RendDrawFlags flags;
-  u32           vertexCountOverride;
-  u32           instCount;
+  RendObjectFlags flags;
+  u32             vertexCountOverride;
+  u32             instCount;
 
   SceneTags tagMask;
 
@@ -87,7 +87,7 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
 
     SceneTags tags;
     GeoBox    aabb;
-    if (drawB->flags & RendDrawFlags_NoInstanceFiltering) {
+    if (drawB->flags & RendObjectFlags_NoInstanceFiltering) {
       tags = 0;
       aabb = geo_box_inverted3();
     } else {
@@ -166,7 +166,7 @@ ecs_system_define(RendClearDrawsSys) {
   EcsView* drawView = ecs_world_view_t(world, DrawWriteView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
     RendDrawComp* drawComp = ecs_view_write_t(itr, RendDrawComp);
-    if (!(drawComp->flags & RendDrawFlags_NoAutoClear)) {
+    if (!(drawComp->flags & RendObjectFlags_NoAutoClear)) {
       rend_draw_clear(drawComp);
     }
   }
@@ -185,7 +185,7 @@ ecs_system_define(RendDrawResourceRequestSys) {
   EcsView* drawView = ecs_world_view_t(world, DrawReadView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
     const RendDrawComp* comp = ecs_view_read_t(itr, RendDrawComp);
-    if (!comp->instCount && !(comp->flags & RendDrawFlags_Preload)) {
+    if (!comp->instCount && !(comp->flags & RendObjectFlags_Preload)) {
       continue; // Draw unused and not required to be pre-loaded.
     }
     for (u32 i = 0; i != RendDrawResource_Count; ++i) {
@@ -212,15 +212,15 @@ ecs_module_init(rend_draw_module) {
 }
 
 RendDrawComp*
-rend_draw_create(EcsWorld* world, const EcsEntityId entity, const RendDrawFlags flags) {
-  MAYBE_UNUSED const bool noFiltering = (flags & RendDrawFlags_NoInstanceFiltering) != 0;
-  MAYBE_UNUSED const bool isSorted    = (flags & RendDrawFlags_Sorted) != 0;
+rend_draw_create(EcsWorld* world, const EcsEntityId entity, const RendObjectFlags flags) {
+  MAYBE_UNUSED const bool noFiltering = (flags & RendObjectFlags_NoInstanceFiltering) != 0;
+  MAYBE_UNUSED const bool isSorted    = (flags & RendObjectFlags_Sorted) != 0;
   diag_assert_msg(noFiltering ? !isSorted : true, "NoInstanceFiltering incompatible with sorting");
 
   return ecs_world_add_t(world, entity, RendDrawComp, .flags = flags);
 }
 
-RendDrawFlags rend_draw_flags(const RendDrawComp* draw) { return draw->flags; }
+RendObjectFlags rend_draw_flags(const RendDrawComp* draw) { return draw->flags; }
 
 EcsEntityId rend_draw_resource(const RendDrawComp* draw, const RendDrawResource id) {
   return draw->resources[id];
@@ -245,9 +245,9 @@ static i8 rend_draw_compare_front_to_back(const void* a, const void* b) {
 
 static void rend_draw_sort(const RendDrawComp* draw, RendDrawSortKey* sortKeys, const u32 count) {
   CompareFunc compareFunc;
-  if (draw->flags & RendDrawFlags_SortBackToFront) {
+  if (draw->flags & RendObjectFlags_SortBackToFront) {
     compareFunc = rend_draw_compare_back_to_front;
-  } else if (draw->flags & RendDrawFlags_SortFrontToBack) {
+  } else if (draw->flags & RendObjectFlags_SortFrontToBack) {
     compareFunc = rend_draw_compare_front_to_back;
   } else {
     diag_crash_msg("Unsupported sort mode");
@@ -273,7 +273,7 @@ void rend_draw_push(
   if (draw->vertexCountOverride) {
     rend_builder_draw_vertex_count(builder, draw->vertexCountOverride);
   }
-  if (draw->flags & RendDrawFlags_NoInstanceFiltering) {
+  if (draw->flags & RendObjectFlags_NoInstanceFiltering) {
     /**
      * Without instance filtering we can skip the memory copy that is needed to keep the instances
      * contiguous in memory.
@@ -286,7 +286,7 @@ void rend_draw_push(
   Mem outputMem;
 
   RendDrawSortKey* sortKeys = null;
-  if (draw->flags & RendDrawFlags_Sorted) {
+  if (draw->flags & RendObjectFlags_Sorted) {
     const usize requiredSortMem = draw->instCount * sizeof(RendDrawSortKey);
     if (UNLIKELY(draw->instCount > u16_max || requiredSortMem > alloc_max_size(g_allocScratch))) {
       log_e(
@@ -387,7 +387,7 @@ Mem rend_draw_add_instance(
 
   draw->tagMask |= tags;
 
-  if (!(draw->flags & RendDrawFlags_NoInstanceFiltering)) {
+  if (!(draw->flags & RendObjectFlags_NoInstanceFiltering)) {
     buf_ensure(&draw->instTagsMem, draw->instCount * sizeof(SceneTags), 1);
     buf_ensure(&draw->instAabbMem, draw->instCount * sizeof(GeoBox), alignof(GeoBox));
 
