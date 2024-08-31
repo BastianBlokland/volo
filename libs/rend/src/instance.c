@@ -1,7 +1,7 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "ecs_world.h"
-#include "rend_draw.h"
+#include "rend_object.h"
 #include "rend_register.h"
 #include "scene_bounds.h"
 #include "scene_renderable.h"
@@ -10,7 +10,7 @@
 #include "scene_transform.h"
 #include "scene_visibility.h"
 
-#define rend_instance_max_draw_create_per_task 4
+#define rend_instance_max_obj_create_per_task 4
 
 typedef struct {
   ALIGNAS(16)
@@ -47,7 +47,7 @@ typedef struct {
 ASSERT(sizeof(RendInstanceSkinnedData) == 3648, "Size needs to match the size defined in glsl");
 ASSERT(alignof(RendInstanceSkinnedData) == 16, "Alignment needs to match the glsl alignment");
 
-ecs_comp_define(RendInstanceDrawComp);
+ecs_comp_define(RendInstanceObjComp);
 
 ecs_view_define(GlobalView) { ecs_access_read(SceneVisibilityEnvComp); }
 
@@ -82,9 +82,9 @@ static SceneTags rend_tags(const SceneTagComp* tagComp, const SceneRenderableCom
   return tags;
 }
 
-static void rend_draw_init(EcsWorld* w, const SceneRenderableComp* r, const RendDrawFlags flags) {
-  RendDrawComp* draw = rend_draw_create(w, r->graphic, flags);
-  rend_draw_set_resource(draw, RendDrawResource_Graphic, r->graphic);
+static void rend_obj_init(EcsWorld* w, const SceneRenderableComp* r, const RendObjectFlags flags) {
+  RendObjectComp* obj = rend_object_create(w, r->graphic, flags);
+  rend_object_set_resource(obj, RendObjectResource_Graphic, r->graphic);
 }
 
 ecs_view_define(RenderableView) {
@@ -99,13 +99,13 @@ ecs_view_define(RenderableView) {
   ecs_access_maybe_read(SceneVisibilityComp);
 }
 
-ecs_view_define(DrawView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.
+ecs_view_define(ObjView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the render objects we create.
 
-  ecs_access_write(RendDrawComp);
+  ecs_access_write(RendObjectComp);
 }
 
-ecs_system_define(RendInstanceFillDrawsSys) {
+ecs_system_define(RendInstanceFillObjSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -114,11 +114,11 @@ ecs_system_define(RendInstanceFillDrawsSys) {
   const SceneVisibilityEnvComp* visEnv = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
 
   EcsView* renderables = ecs_world_view_t(world, RenderableView);
-  EcsView* drawView    = ecs_world_view_t(world, DrawView);
+  EcsView* ObjView     = ecs_world_view_t(world, ObjView);
 
-  u32 createdDraws = 0;
+  u32 createdObjects = 0;
 
-  EcsIterator* drawItr = ecs_view_itr(drawView);
+  EcsIterator* objItr = ecs_view_itr(ObjView);
   for (EcsIterator* itr = ecs_view_itr(renderables); ecs_view_walk(itr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     if (renderable->color.a <= f32_epsilon) {
@@ -134,15 +134,15 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const SceneScaleComp*     scaleComp     = ecs_view_read_t(itr, SceneScaleComp);
     const SceneBoundsComp*    boundsComp    = ecs_view_read_t(itr, SceneBoundsComp);
 
-    if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendDrawComp))) {
-      if (++createdDraws <= rend_instance_max_draw_create_per_task) { // Limit new draws per frame.
-        rend_draw_init(world, renderable, RendDrawFlags_StandardGeometry);
+    if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendObjectComp))) {
+      if (++createdObjects <= rend_instance_max_obj_create_per_task) { // Limit new objs per frame.
+        rend_obj_init(world, renderable, RendObjectFlags_StandardGeometry);
       }
       continue;
     }
 
-    ecs_view_jump(drawItr, renderable->graphic);
-    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+    ecs_view_jump(objItr, renderable->graphic);
+    RendObjectComp* obj = ecs_view_write_t(objItr, RendObjectComp);
 
     const SceneTags tags     = rend_tags(tagComp, renderable);
     const GeoVector position = transformComp ? transformComp->position : geo_vector(0);
@@ -150,7 +150,7 @@ ecs_system_define(RendInstanceFillDrawsSys) {
     const f32       scale    = scaleComp ? scaleComp->scale : 1.0f;
     const GeoBox    aabb     = scene_bounds_world(boundsComp, transformComp, scaleComp);
 
-    RendInstanceData* data = rend_draw_add_instance_t(draw, RendInstanceData, tags, aabb);
+    RendInstanceData* data = rend_object_add_instance_t(obj, RendInstanceData, tags, aabb);
     data->posAndScale      = geo_vector(position.x, position.y, position.z, scale);
     data->rot              = rotation;
     data->tags             = (u32)tags;
@@ -171,14 +171,14 @@ ecs_view_define(RenderableSkinnedView) {
   ecs_access_maybe_read(SceneVisibilityComp);
 }
 
-ecs_view_define(DrawSkinnedView) {
+ecs_view_define(ObjSkinnedView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.
 
-  ecs_access_write(RendDrawComp);
+  ecs_access_write(RendObjectComp);
   ecs_access_maybe_read(SceneSkeletonTemplComp);
 }
 
-ecs_system_define(RendInstanceSkinnedFillDrawsSys) {
+ecs_system_define(RendInstanceSkinnedFillObjSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -187,11 +187,11 @@ ecs_system_define(RendInstanceSkinnedFillDrawsSys) {
   const SceneVisibilityEnvComp* visEnv = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
 
   EcsView* renderables = ecs_world_view_t(world, RenderableSkinnedView);
-  EcsView* drawView    = ecs_world_view_t(world, DrawSkinnedView);
+  EcsView* objView     = ecs_world_view_t(world, ObjSkinnedView);
 
-  u32 createdDraws = 0;
+  u32 createdObjects = 0;
 
-  EcsIterator* drawItr = ecs_view_itr(drawView);
+  EcsIterator* objItr = ecs_view_itr(objView);
   for (EcsIterator* itr = ecs_view_itr(renderables); ecs_view_walk(itr);) {
     const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
     if (renderable->color.a <= f32_epsilon) {
@@ -208,15 +208,16 @@ ecs_system_define(RendInstanceSkinnedFillDrawsSys) {
     const SceneBoundsComp*    boundsComp    = ecs_view_read_t(itr, SceneBoundsComp);
     const SceneSkeletonComp*  skeletonComp  = ecs_view_read_t(itr, SceneSkeletonComp);
 
-    if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendDrawComp))) {
-      if (++createdDraws <= rend_instance_max_draw_create_per_task) { // Limit new draws per frame.
-        rend_draw_init(world, renderable, RendDrawFlags_StandardGeometry | RendDrawFlags_Skinned);
+    if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendObjectComp))) {
+      if (++createdObjects <= rend_instance_max_obj_create_per_task) { // Limit new objs per frame.
+        rend_obj_init(
+            world, renderable, RendObjectFlags_StandardGeometry | RendObjectFlags_Skinned);
       }
       continue;
     }
 
-    ecs_view_jump(drawItr, renderable->graphic);
-    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+    ecs_view_jump(objItr, renderable->graphic);
+    RendObjectComp* obj = ecs_view_write_t(objItr, RendObjectComp);
 
     const SceneTags tags     = rend_tags(tagComp, renderable);
     const GeoVector position = transformComp ? transformComp->position : geo_vector(0);
@@ -224,7 +225,7 @@ ecs_system_define(RendInstanceSkinnedFillDrawsSys) {
     const f32       scale    = scaleComp ? scaleComp->scale : 1.0f;
     const GeoBox    aabb     = scene_bounds_world(boundsComp, transformComp, scaleComp);
 
-    const SceneSkeletonTemplComp* templ = ecs_view_read_t(drawItr, SceneSkeletonTemplComp);
+    const SceneSkeletonTemplComp* templ = ecs_view_read_t(objItr, SceneSkeletonTemplComp);
     if (UNLIKELY(!templ)) {
       continue; // Template no longer available; possible when hot-loading the graphic.
     }
@@ -233,7 +234,7 @@ ecs_system_define(RendInstanceSkinnedFillDrawsSys) {
     scene_skeleton_delta(skeletonComp, templ, jointDeltas);
 
     RendInstanceSkinnedData* data =
-        rend_draw_add_instance_t(draw, RendInstanceSkinnedData, tags, aabb);
+        rend_object_add_instance_t(obj, RendInstanceSkinnedData, tags, aabb);
     data->posAndScale = geo_vector(position.x, position.y, position.z, scale);
     data->rot         = rotation;
     data->tags        = (u32)tags;
@@ -249,17 +250,17 @@ ecs_module_init(rend_instance_module) {
   ecs_register_view(GlobalView);
 
   ecs_register_system(
-      RendInstanceFillDrawsSys,
+      RendInstanceFillObjSys,
       ecs_view_id(GlobalView),
       ecs_register_view(RenderableView),
-      ecs_register_view(DrawView));
+      ecs_register_view(ObjView));
 
   ecs_register_system(
-      RendInstanceSkinnedFillDrawsSys,
+      RendInstanceSkinnedFillObjSys,
       ecs_view_id(GlobalView),
       ecs_register_view(RenderableSkinnedView),
-      ecs_register_view(DrawSkinnedView));
+      ecs_register_view(ObjSkinnedView));
 
-  ecs_order(RendInstanceFillDrawsSys, RendOrder_DrawCollect);
-  ecs_order(RendInstanceSkinnedFillDrawsSys, RendOrder_DrawCollect);
+  ecs_order(RendInstanceFillObjSys, RendOrder_ObjectUpdate);
+  ecs_order(RendInstanceSkinnedFillObjSys, RendOrder_ObjectUpdate);
 }

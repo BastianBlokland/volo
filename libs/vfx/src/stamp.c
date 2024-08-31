@@ -3,7 +3,7 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "ecs_world.h"
-#include "rend_draw.h"
+#include "rend_object.h"
 #include "scene_tag.h"
 
 #include "atlas_internal.h"
@@ -35,21 +35,21 @@ typedef struct {
 ASSERT(sizeof(VfxStampData) == 64, "Size needs to match the size defined in glsl");
 
 void vfx_stamp_init(
-    RendDrawComp* draw, const AssetAtlasComp* atlasColor, const AssetAtlasComp* atlasNormal) {
-  *rend_draw_set_data_t(draw, VfxStampMetaData) = (VfxStampMetaData){
+    RendObjectComp* obj, const AssetAtlasComp* atlasColor, const AssetAtlasComp* atlasNormal) {
+  *rend_object_set_data_t(obj, VfxStampMetaData) = (VfxStampMetaData){
       .atlasColor  = vfx_atlas_draw_data(atlasColor),
       .atlasNormal = vfx_atlas_draw_data(atlasNormal),
   };
 }
 
-void vfx_stamp_output(RendDrawComp* draw, const VfxStamp* params) {
+void vfx_stamp_output(RendObjectComp* obj, const VfxStamp* params) {
   const GeoVector stampSize = geo_vector(params->width, params->height, params->thickness);
   const GeoVector warpScale = geo_vector(params->warpScale.x, params->warpScale.y, 1);
 
   const GeoBox box = geo_box_from_center(params->pos, geo_vector_mul_comps(stampSize, warpScale));
   const GeoBox bounds = geo_box_from_rotated(&box, params->rot);
 
-  VfxStampData* out = rend_draw_add_instance_t(draw, VfxStampData, SceneTags_Vfx, bounds);
+  VfxStampData* out = rend_object_add_instance_t(obj, VfxStampData, SceneTags_Vfx, bounds);
   out->data1[0]     = params->pos.x;
   out->data1[1]     = params->pos.y;
   out->data1[2]     = params->pos.z;

@@ -7,7 +7,7 @@
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "input_manager.h"
-#include "rend_draw.h"
+#include "rend_object.h"
 #include "scene_camera.h"
 #include "scene_lifetime.h"
 #include "scene_set.h"
@@ -50,7 +50,7 @@ ASSERT(sizeof(DebugGridData) == 16, "Size needs to match the size defined in gls
 ASSERT(alignof(DebugGridData) == 16, "Alignment needs to match the glsl alignment");
 
 ecs_comp_define(DebugGridComp) {
-  EcsEntityId    drawEntity;
+  EcsEntityId    rendObjEntity;
   DebugGridFlags flags;
   f32            cellSize;
   f32            height;
@@ -73,9 +73,9 @@ ecs_view_define(GridCreateView) {
 ecs_view_define(GridReadView) { ecs_access_read(DebugGridComp); }
 ecs_view_define(GridWriteView) { ecs_access_write(DebugGridComp); }
 ecs_view_define(DrawGlobalView) { ecs_access_read(SceneTerrainComp); }
-ecs_view_define(DrawWriteView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.
-  ecs_access_write(RendDrawComp);
+ecs_view_define(DrawRendObjView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the render objects we create.
+  ecs_access_write(RendObjectComp);
 }
 ecs_view_define(TransformReadView) { ecs_access_read(SceneTransformComp); }
 
@@ -100,19 +100,21 @@ static AssetManagerComp* debug_grid_asset_manager(EcsWorld* world) {
 static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetManagerComp* assets) {
   static const String g_graphic = string_static("graphics/debug/grid.graphic");
 
-  const EcsEntityId drawEntity = ecs_world_entity_create(world);
-  ecs_world_add_t(world, drawEntity, SceneLifetimeOwnerComp, .owners[0] = entity);
+  const EcsEntityId rendObjEntity = ecs_world_entity_create(world);
+  ecs_world_add_t(world, rendObjEntity, SceneLifetimeOwnerComp, .owners[0] = entity);
 
-  RendDrawComp* draw = rend_draw_create(world, drawEntity, RendDrawFlags_None);
-  rend_draw_set_resource(draw, RendDrawResource_Graphic, asset_lookup(world, assets, g_graphic));
-  rend_draw_set_camera_filter(draw, entity);
+  RendObjectComp* rendObj = rend_object_create(world, rendObjEntity, RendObjectFlags_None);
+  rend_object_set_camera_filter(rendObj, entity);
+
+  const EcsEntityId gridGraphicAsset = asset_lookup(world, assets, g_graphic);
+  rend_object_set_resource(rendObj, RendObjectResource_Graphic, gridGraphicAsset);
 
   ecs_world_add_t(
       world,
       entity,
       DebugGridComp,
       .flags             = DebugGridFlags_Default,
-      .drawEntity        = drawEntity,
+      .rendObjEntity     = rendObjEntity,
       .height            = g_gridDefaultHeight,
       .cellSize          = 0.5f,
       .highlightInterval = 5);
@@ -139,7 +141,7 @@ ecs_system_define(DebugGridDrawSys) {
   const SceneTerrainComp* terrain = ecs_view_read_t(globalItr, SceneTerrainComp);
   const f32 size = scene_terrain_loaded(terrain) ? scene_terrain_play_size(terrain) : 500.0f;
 
-  EcsIterator* drawItr = ecs_view_itr(ecs_world_view_t(world, DrawWriteView));
+  EcsIterator* rendObjItr = ecs_view_itr(ecs_world_view_t(world, DrawRendObjView));
 
   EcsView* gridView = ecs_world_view_t(world, GridReadView);
   for (EcsIterator* itr = ecs_view_itr(gridView); ecs_view_walk(itr);) {
@@ -148,15 +150,15 @@ ecs_system_define(DebugGridDrawSys) {
       continue;
     }
 
-    ecs_view_jump(drawItr, grid->drawEntity);
-    RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+    ecs_view_jump(rendObjItr, grid->rendObjEntity);
+    RendObjectComp* obj = ecs_view_write_t(rendObjItr, RendObjectComp);
 
     u32 cellCount = (u32)math_round_nearest_f32(size / grid->cellSize);
     cellCount += cellCount % 2; // Align to be divisible by two (makes the grid even on both sides).
     const u32 segmentCount = cellCount + 1; // +1 for the lines to 'close' the last row and column.
 
-    rend_draw_set_vertex_count(draw, segmentCount * 4);
-    *rend_draw_add_instance_t(draw, DebugGridData, SceneTags_Debug, geo_box_inverted3()) =
+    rend_object_set_vertex_count(obj, segmentCount * 4);
+    *rend_object_add_instance_t(obj, DebugGridData, SceneTags_Debug, geo_box_inverted3()) =
         (DebugGridData){
             .cellSize          = float_f32_to_f16(grid->cellSize),
             .height            = float_f32_to_f16(grid->height),
@@ -345,7 +347,7 @@ ecs_module_init(debug_grid_module) {
   ecs_register_view(GridReadView);
   ecs_register_view(GridWriteView);
   ecs_register_view(DrawGlobalView);
-  ecs_register_view(DrawWriteView);
+  ecs_register_view(DrawRendObjView);
   ecs_register_view(TransformReadView);
   ecs_register_view(UpdateGlobalView);
   ecs_register_view(UpdateView);
@@ -357,7 +359,7 @@ ecs_module_init(debug_grid_module) {
       DebugGridDrawSys,
       ecs_view_id(DrawGlobalView),
       ecs_view_id(GridReadView),
-      ecs_view_id(DrawWriteView));
+      ecs_view_id(DrawRendObjView));
 
   ecs_register_system(
       DebugGridUpdateSys,
