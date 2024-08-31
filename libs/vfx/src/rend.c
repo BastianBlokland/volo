@@ -35,7 +35,7 @@ vfx_rend_obj_create(EcsWorld* world, AssetManagerComp* assets, const VfxRendObj 
   const EcsEntityId objEntity   = ecs_world_entity_create(world);
   const EcsEntityId assetEntity = asset_lookup(world, assets, g_vfxObjGraphics[type]);
 
-  RendObjectComp* rendObj = rend_draw_create(world, objEntity, g_vfxObjFlags[type]);
+  RendObjectComp* rendObj = rend_object_create(world, objEntity, g_vfxObjFlags[type]);
   rend_draw_set_resource(rendObj, RendObjectResource_Graphic, assetEntity);
   return objEntity;
 }

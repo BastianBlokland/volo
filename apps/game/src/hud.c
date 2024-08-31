@@ -150,7 +150,7 @@ static EcsEntityId hud_rend_obj_create(
     flags |= RendObjectFlags_Post;
   }
 
-  RendObjectComp* obj = rend_draw_create(world, e, flags);
+  RendObjectComp* obj = rend_object_create(world, e, flags);
   rend_draw_set_resource(obj, RendObjectResource_Graphic, asset_lookup(world, assets, graphic));
   rend_draw_set_camera_filter(obj, window);
   return e;

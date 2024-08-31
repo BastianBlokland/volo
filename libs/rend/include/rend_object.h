@@ -41,9 +41,9 @@ typedef enum {
 ecs_comp_extern(RendObjectComp);
 
 /**
- * Add a new draw component to the given entity.
+ * Add a render-object to the given entity.
  */
-RendObjectComp* rend_draw_create(EcsWorld*, EcsEntityId entity, RendObjectFlags);
+RendObjectComp* rend_object_create(EcsWorld*, EcsEntityId entity, RendObjectFlags);
 
 /**
  * Query information about this draw.

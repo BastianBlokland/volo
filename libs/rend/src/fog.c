@@ -43,7 +43,7 @@ ecs_view_define(VisionEntityView) {
 
 static EcsEntityId rend_fog_rend_obj_create(EcsWorld* world, AssetManagerComp* assets) {
   const EcsEntityId entity        = ecs_world_entity_create(world);
-  RendObjectComp*   obj           = rend_draw_create(world, entity, RendObjectFlags_FogVision);
+  RendObjectComp*   obj           = rend_object_create(world, entity, RendObjectFlags_FogVision);
   const EcsEntityId graphicEntity = asset_lookup(world, assets, g_fogVisionGraphic);
   rend_draw_set_resource(obj, RendObjectResource_Graphic, graphicEntity);
   return entity;

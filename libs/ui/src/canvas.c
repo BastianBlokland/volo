@@ -423,8 +423,8 @@ static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
   ecs_world_add_t(world, rendObjEntity, SceneLifetimeOwnerComp, .owners[0] = window);
 
   const RendObjectFlags objFlags = RendObjectFlags_Post | RendObjectFlags_NoInstanceFiltering;
-  RendObjectComp*       obj      = rend_draw_create(world, rendObjEntity, objFlags);
-  rend_draw_set_camera_filter(obj, window);
+  RendObjectComp*       rendObj  = rend_object_create(world, rendObjEntity, objFlags);
+  rend_draw_set_camera_filter(rendObj, window);
 
   ecs_world_add_t(
       world,

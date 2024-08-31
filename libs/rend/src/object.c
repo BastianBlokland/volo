@@ -213,7 +213,7 @@ ecs_module_init(rend_draw_module) {
 }
 
 RendObjectComp*
-rend_draw_create(EcsWorld* world, const EcsEntityId entity, const RendObjectFlags flags) {
+rend_object_create(EcsWorld* world, const EcsEntityId entity, const RendObjectFlags flags) {
   MAYBE_UNUSED const bool noFiltering = (flags & RendObjectFlags_NoInstanceFiltering) != 0;
   MAYBE_UNUSED const bool isSorted    = (flags & RendObjectFlags_Sorted) != 0;
   diag_assert_msg(noFiltering ? !isSorted : true, "NoInstanceFiltering incompatible with sorting");
