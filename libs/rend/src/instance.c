@@ -261,6 +261,6 @@ ecs_module_init(rend_instance_module) {
       ecs_register_view(RenderableSkinnedView),
       ecs_register_view(ObjSkinnedView));
 
-  ecs_order(RendInstanceFillObjSys, RendOrder_DrawCollect);
-  ecs_order(RendInstanceSkinnedFillObjSys, RendOrder_DrawCollect);
+  ecs_order(RendInstanceFillObjSys, RendOrder_ObjectUpdate);
+  ecs_order(RendInstanceSkinnedFillObjSys, RendOrder_ObjectUpdate);
 }

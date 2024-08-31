@@ -751,7 +751,7 @@ ecs_module_init(rend_resource_module) {
       ecs_view_id(ResWriteView));
 
   ecs_order(RendResLoadSys, RendOrder_ResourceLoad);
-  ecs_order(RendResUnloadUnusedSys, RendOrder_DrawExecute + 1);
+  ecs_order(RendResUnloadUnusedSys, RendOrder_Draw + 1);
 }
 
 bool rend_res_is_loading(const RendResComp* comp) {

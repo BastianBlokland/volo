@@ -3,9 +3,9 @@
 
 enum {
   RendOrder_ResourceLoad = -1,
-  RendOrder_DrawClear    = -100,
-  RendOrder_DrawCollect  = 900,
-  RendOrder_DrawExecute  = 1000,
+  RendOrder_ObjectClear  = -100,
+  RendOrder_ObjectUpdate = 900,
+  RendOrder_Draw         = 1000,
   RendOrder_FrameLimiter = 2000,
   RendOrder_Reset        = 3000,
 };

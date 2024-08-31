@@ -146,7 +146,7 @@ ecs_module_init(rend_fog_module) {
       ecs_view_id(RendObjView),
       ecs_view_id(VisionEntityView));
 
-  ecs_order(RendFogRenderSys, RendOrder_DrawCollect);
+  ecs_order(RendFogRenderSys, RendOrder_ObjectUpdate);
 }
 
 bool             rend_fog_active(const RendFogComp* fog) { return fog->active; }

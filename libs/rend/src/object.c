@@ -208,8 +208,8 @@ ecs_module_init(rend_draw_module) {
   ecs_register_system(
       RendDrawResourceRequestSys, ecs_view_id(DrawReadView), ecs_view_id(ResourceView));
 
-  ecs_order(RendClearDrawsSys, RendOrder_DrawClear);
-  ecs_order(RendDrawResourceRequestSys, RendOrder_DrawCollect + 10);
+  ecs_order(RendClearDrawsSys, RendOrder_ObjectClear);
+  ecs_order(RendDrawResourceRequestSys, RendOrder_ObjectUpdate + 10);
 }
 
 RendObjectComp*

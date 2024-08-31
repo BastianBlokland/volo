@@ -1294,7 +1294,7 @@ ecs_module_init(rend_painter_module) {
       ecs_view_id(ObjView),
       ecs_view_id(ResourceView));
 
-  ecs_order(RendPainterDrawSys, RendOrder_DrawExecute);
+  ecs_order(RendPainterDrawSys, RendOrder_Draw);
 }
 
 void rend_painter_teardown(EcsWorld* world, const EcsEntityId entity) {
