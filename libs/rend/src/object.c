@@ -27,7 +27,7 @@ typedef struct {
   u16 viewDist; // Not linear.
 } RendDrawSortKey;
 
-ecs_comp_define(RendDrawComp) {
+ecs_comp_define(RendObjectComp) {
   EcsEntityId resources[RendDrawResource_Count];
   EcsEntityId cameraFilter;
 
@@ -59,7 +59,7 @@ INLINE_HINT static void rend_draw_memcpy(u8* dst, const u8* src, const usize siz
 }
 
 static void ecs_destruct_draw(void* data) {
-  RendDrawComp* comp = data;
+  RendObjectComp* comp = data;
   if (mem_valid(comp->dataMem)) {
     alloc_free(g_allocHeap, comp->dataMem);
   }
@@ -75,8 +75,8 @@ static void ecs_destruct_draw(void* data) {
 }
 
 static void ecs_combine_draw(void* dataA, void* dataB) {
-  RendDrawComp* drawA = dataA;
-  RendDrawComp* drawB = dataB;
+  RendObjectComp* drawA = dataA;
+  RendObjectComp* drawB = dataB;
   diag_assert_msg(drawA->flags == drawB->flags, "Only draws with the same flags can be combined");
   diag_assert_msg(
       drawA->instDataSize == drawB->instDataSize,
@@ -118,13 +118,13 @@ INLINE_HINT static u32 rend_draw_align(const u32 val, const u32 align) {
   return val + (rem ? align - rem : 0);
 }
 
-static Mem rend_draw_inst_data(const RendDrawComp* draw, const u32 instance) {
+static Mem rend_draw_inst_data(const RendObjectComp* draw, const u32 instance) {
   const usize offset = instance * draw->instDataSize;
   return mem_create(bits_ptr_offset(draw->instDataMem.ptr, offset), draw->instDataSize);
 }
 
 static void rend_draw_copy_to_output(
-    const RendDrawComp* draw, const u32 instIndex, const u32 outIndex, const Mem outMem) {
+    const RendObjectComp* draw, const u32 instIndex, const u32 outIndex, const Mem outMem) {
   const usize outOffset  = outIndex * draw->instDataSize;
   const Mem   outInstMem = mem_create(bits_ptr_offset(outMem.ptr, outOffset), draw->instDataSize);
   const Mem   inInstMem  = rend_draw_inst_data(draw, instIndex);
@@ -159,13 +159,13 @@ static void rend_draw_resource_request(
 }
 
 ecs_view_define(ResourceView) { ecs_access_write(RendResComp); }
-ecs_view_define(DrawReadView) { ecs_access_read(RendDrawComp); }
-ecs_view_define(DrawWriteView) { ecs_access_write(RendDrawComp); }
+ecs_view_define(DrawReadView) { ecs_access_read(RendObjectComp); }
+ecs_view_define(DrawWriteView) { ecs_access_write(RendObjectComp); }
 
 ecs_system_define(RendClearDrawsSys) {
   EcsView* drawView = ecs_world_view_t(world, DrawWriteView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
-    RendDrawComp* drawComp = ecs_view_write_t(itr, RendDrawComp);
+    RendObjectComp* drawComp = ecs_view_write_t(itr, RendObjectComp);
     if (!(drawComp->flags & RendObjectFlags_NoAutoClear)) {
       rend_draw_clear(drawComp);
     }
@@ -184,7 +184,7 @@ ecs_system_define(RendDrawResourceRequestSys) {
   // Request the resources for all draw's to be loaded.
   EcsView* drawView = ecs_world_view_t(world, DrawReadView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
-    const RendDrawComp* comp = ecs_view_read_t(itr, RendDrawComp);
+    const RendObjectComp* comp = ecs_view_read_t(itr, RendObjectComp);
     if (!comp->instCount && !(comp->flags & RendObjectFlags_Preload)) {
       continue; // Draw unused and not required to be pre-loaded.
     }
@@ -197,7 +197,8 @@ ecs_system_define(RendDrawResourceRequestSys) {
 }
 
 ecs_module_init(rend_draw_module) {
-  ecs_register_comp(RendDrawComp, .destructor = ecs_destruct_draw, .combinator = ecs_combine_draw);
+  ecs_register_comp(
+      RendObjectComp, .destructor = ecs_destruct_draw, .combinator = ecs_combine_draw);
 
   ecs_register_view(ResourceView);
   ecs_register_view(DrawReadView);
@@ -211,25 +212,25 @@ ecs_module_init(rend_draw_module) {
   ecs_order(RendDrawResourceRequestSys, RendOrder_DrawCollect + 10);
 }
 
-RendDrawComp*
+RendObjectComp*
 rend_draw_create(EcsWorld* world, const EcsEntityId entity, const RendObjectFlags flags) {
   MAYBE_UNUSED const bool noFiltering = (flags & RendObjectFlags_NoInstanceFiltering) != 0;
   MAYBE_UNUSED const bool isSorted    = (flags & RendObjectFlags_Sorted) != 0;
   diag_assert_msg(noFiltering ? !isSorted : true, "NoInstanceFiltering incompatible with sorting");
 
-  return ecs_world_add_t(world, entity, RendDrawComp, .flags = flags);
+  return ecs_world_add_t(world, entity, RendObjectComp, .flags = flags);
 }
 
-RendObjectFlags rend_draw_flags(const RendDrawComp* draw) { return draw->flags; }
+RendObjectFlags rend_draw_flags(const RendObjectComp* draw) { return draw->flags; }
 
-EcsEntityId rend_draw_resource(const RendDrawComp* draw, const RendDrawResource id) {
+EcsEntityId rend_draw_resource(const RendObjectComp* draw, const RendDrawResource id) {
   return draw->resources[id];
 }
 
-u32       rend_draw_instance_count(const RendDrawComp* draw) { return draw->instCount; }
-u32       rend_draw_data_size(const RendDrawComp* draw) { return draw->dataSize; }
-u32       rend_draw_data_inst_size(const RendDrawComp* draw) { return draw->instDataSize; }
-SceneTags rend_draw_tag_mask(const RendDrawComp* draw) { return draw->tagMask; }
+u32       rend_draw_instance_count(const RendObjectComp* draw) { return draw->instCount; }
+u32       rend_draw_data_size(const RendObjectComp* draw) { return draw->dataSize; }
+u32       rend_draw_data_inst_size(const RendObjectComp* draw) { return draw->instDataSize; }
+SceneTags rend_draw_tag_mask(const RendObjectComp* draw) { return draw->tagMask; }
 
 static i8 rend_draw_compare_back_to_front(const void* a, const void* b) {
   const u16 distA = *field_ptr(a, RendDrawSortKey, viewDist);
@@ -243,7 +244,7 @@ static i8 rend_draw_compare_front_to_back(const void* a, const void* b) {
   return distA < distB ? -1 : distA > distB ? 1 : 0;
 }
 
-static void rend_draw_sort(const RendDrawComp* draw, RendDrawSortKey* sortKeys, const u32 count) {
+static void rend_draw_sort(const RendObjectComp* draw, RendDrawSortKey* sortKeys, const u32 count) {
   CompareFunc compareFunc;
   if (draw->flags & RendObjectFlags_SortBackToFront) {
     compareFunc = rend_draw_compare_back_to_front;
@@ -256,7 +257,7 @@ static void rend_draw_sort(const RendDrawComp* draw, RendDrawSortKey* sortKeys, 
 }
 
 void rend_draw_push(
-    const RendDrawComp*     draw,
+    const RendObjectComp*   draw,
     const RendView*         view,
     const RendSettingsComp* settings,
     RendBuilderBuffer*      builder) {
@@ -346,32 +347,32 @@ void rend_draw_push(
 }
 
 void rend_draw_set_resource(
-    RendDrawComp* comp, const RendDrawResource id, const EcsEntityId asset) {
+    RendObjectComp* comp, const RendDrawResource id, const EcsEntityId asset) {
   comp->resources[id] = asset;
 }
 
-void rend_draw_set_camera_filter(RendDrawComp* comp, const EcsEntityId camera) {
+void rend_draw_set_camera_filter(RendObjectComp* comp, const EcsEntityId camera) {
   comp->cameraFilter = camera;
 }
 
-void rend_draw_set_vertex_count(RendDrawComp* comp, const u32 vertexCount) {
+void rend_draw_set_vertex_count(RendObjectComp* comp, const u32 vertexCount) {
   comp->vertexCountOverride = vertexCount;
 }
 
-void rend_draw_clear(RendDrawComp* draw) {
+void rend_draw_clear(RendObjectComp* draw) {
   draw->instCount    = 0;
   draw->instDataSize = 0;
   draw->tagMask      = 0;
 }
 
-Mem rend_draw_set_data(RendDrawComp* draw, const usize size) {
+Mem rend_draw_set_data(RendObjectComp* draw, const usize size) {
   buf_ensure(&draw->dataMem, size, rend_min_align);
   draw->dataSize = (u32)size;
   return draw->dataMem;
 }
 
 Mem rend_draw_add_instance(
-    RendDrawComp* draw, const usize size, const SceneTags tags, const GeoBox aabb) {
+    RendObjectComp* draw, const usize size, const SceneTags tags, const GeoBox aabb) {
 
   if (UNLIKELY(!draw->instDataSize)) {
     draw->instDataSize = rend_draw_align((u32)size, rend_min_align);

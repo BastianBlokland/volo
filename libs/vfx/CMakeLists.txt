@@ -7,8 +7,8 @@ message(STATUS "> library: vfx")
 add_library(lib_vfx STATIC
   src/atlas.c
   src/decal.c
-  src/draw.c
   src/register.c
+  src/rend.c
   src/sprite.c
   src/stamp.c
   src/stats.c

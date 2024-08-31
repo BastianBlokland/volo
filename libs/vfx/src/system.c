@@ -21,7 +21,7 @@
 #include "vfx_system.h"
 
 #include "atlas_internal.h"
-#include "draw_internal.h"
+#include "rend_internal.h"
 #include "sprite_internal.h"
 
 #define vfx_system_max_asset_requests 4
@@ -75,9 +75,9 @@ static void ecs_combine_system_asset(void* dataA, void* dataB) {
   compA->loadFlags |= compB->loadFlags;
 }
 
-ecs_view_define(ParticleSpriteDrawView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // This is the only module accessing particle draws.
-  ecs_access_write(RendDrawComp);
+ecs_view_define(ParticleSpriteRendObjView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // This is the only module accessing particle rend objs.
+  ecs_access_write(RendObjectComp);
 }
 
 ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
@@ -249,9 +249,9 @@ static VfxSpriteFlags vfx_facing_sprite_flags(const AssetVfxFacing facing) {
   UNREACHABLE
 }
 
-static VfxDrawType vfx_particle_sprite_draw_type(const AssetVfxSprite* sprite) {
-  return sprite->distortion ? VfxDrawType_ParticleSpriteDistortion
-                            : VfxDrawType_ParticleSpriteForward;
+static VfxRendObj vfx_particle_sprite_obj_type(const AssetVfxSprite* sprite) {
+  return sprite->distortion ? VfxRendObj_ParticleSpriteDistortion
+                            : VfxRendObj_ParticleSpriteForward;
 }
 
 typedef struct {
@@ -523,7 +523,7 @@ ecs_system_define(VfxSystemSimulateSys) {
 static void vfx_instance_output_sprite(
     VfxSystemStatsComp*       stats,
     const VfxSystemInstance*  instance,
-    RendDrawComp*             draws[VfxDrawType_Count],
+    RendObjectComp*           rendObjects[VfxRendObj_Count],
     const AssetVfxComp*       asset,
     const SceneVfxSystemComp* sysCfg,
     const VfxTrans*           sysTrans,
@@ -576,7 +576,7 @@ static void vfx_instance_output_sprite(
     vfx_blend_mode_apply(color, sprite->blend, &color, &opacity);
   }
   vfx_sprite_output(
-      draws[vfx_particle_sprite_draw_type(sprite)],
+      rendObjects[vfx_particle_sprite_obj_type(sprite)],
       &(VfxSprite){
           .position   = pos,
           .rotation   = rot,
@@ -636,7 +636,7 @@ static void vfx_instance_output_light(
 ecs_view_define(RenderGlobalView) {
   ecs_access_read(SceneVisibilityEnvComp);
   ecs_access_read(VfxAtlasManagerComp);
-  ecs_access_read(VfxDrawManagerComp);
+  ecs_access_read(VfxRendComp);
   ecs_access_write(RendLightComp);
 }
 
@@ -656,7 +656,7 @@ ecs_system_define(VfxSystemRenderSys) {
   if (!globalItr) {
     return;
   }
-  const VfxDrawManagerComp*     drawManager  = ecs_view_read_t(globalItr, VfxDrawManagerComp);
+  const VfxRendComp*            vfxRend      = ecs_view_read_t(globalItr, VfxRendComp);
   const VfxAtlasManagerComp*    atlasManager = ecs_view_read_t(globalItr, VfxAtlasManagerComp);
   const SceneVisibilityEnvComp* visEnv       = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
   RendLightComp*                light        = ecs_view_write_t(globalItr, RendLightComp);
@@ -665,13 +665,13 @@ ecs_system_define(VfxSystemRenderSys) {
   if (!spriteAtlas) {
     return; // Atlas hasn't loaded yet.
   }
-  // Initialize the particle sprite draws.
-  RendDrawComp* draws[VfxDrawType_Count] = {null};
-  for (VfxDrawType type = 0; type != VfxDrawType_Count; ++type) {
-    if (type == VfxDrawType_ParticleSpriteForward || type == VfxDrawType_ParticleSpriteDistortion) {
-      const EcsEntityId drawEntity = vfx_draw_entity(drawManager, type);
-      draws[type] = ecs_utils_write_t(world, ParticleSpriteDrawView, drawEntity, RendDrawComp);
-      vfx_sprite_init(draws[type], spriteAtlas);
+  // Initialize the particle sprite render objects.
+  RendObjectComp* rendObjects[VfxRendObj_Count] = {null};
+  for (VfxRendObj type = 0; type != VfxRendObj_Count; ++type) {
+    if (type == VfxRendObj_ParticleSpriteForward || type == VfxRendObj_ParticleSpriteDistortion) {
+      const EcsEntityId obj = vfx_rend_obj(vfxRend, type);
+      rendObjects[type] = ecs_utils_write_t(world, ParticleSpriteRendObjView, obj, RendObjectComp);
+      vfx_sprite_init(rendObjects[type], spriteAtlas);
     }
   }
 
@@ -700,7 +700,7 @@ ecs_system_define(VfxSystemRenderSys) {
     const f32      sysTimeRemSec = lifetime ? vfx_time_to_seconds(lifetime->duration) : f32_max;
 
     dynarray_for_t(&state->instances, VfxSystemInstance, inst) {
-      vfx_instance_output_sprite(stats, inst, draws, asset, sysCfg, &sysTrans, sysTimeRemSec);
+      vfx_instance_output_sprite(stats, inst, rendObjects, asset, sysCfg, &sysTrans, sysTimeRemSec);
       vfx_instance_output_light(stats, e, inst, light, asset, sysCfg, &sysTrans, sysTimeRemSec);
     }
   }
@@ -711,7 +711,7 @@ ecs_module_init(vfx_system_module) {
   ecs_register_comp(VfxSystemAssetComp, .combinator = ecs_combine_system_asset);
   ecs_register_comp(VfxSystemStatsComp);
 
-  ecs_register_view(ParticleSpriteDrawView);
+  ecs_register_view(ParticleSpriteRendObjView);
   ecs_register_view(AssetView);
   ecs_register_view(AtlasView);
 
@@ -733,7 +733,7 @@ ecs_module_init(vfx_system_module) {
       VfxSystemRenderSys,
       ecs_register_view(RenderGlobalView),
       ecs_register_view(RenderView),
-      ecs_view_id(ParticleSpriteDrawView),
+      ecs_view_id(ParticleSpriteRendObjView),
       ecs_view_id(AssetView),
       ecs_view_id(AtlasView));
 

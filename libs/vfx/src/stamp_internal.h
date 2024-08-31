@@ -5,8 +5,8 @@
 #include "geo_vector.h"
 #include "vfx_warp.h"
 
-// Forward declare from 'rend_draw.h'.
-ecs_comp_extern(RendDrawComp);
+// Forward declare from 'rend_object.h'.
+ecs_comp_extern(RendObjectComp);
 
 // Forward declare from 'asset_atlas.h'.
 ecs_comp_extern(AssetAtlasComp);
@@ -36,13 +36,13 @@ typedef struct {
 } VfxStamp;
 
 /**
- * Initialize a stamp draw.
+ * Initialize a stamp render object.
  * NOTE: NOT thread-safe, should be called only once per frame.
  */
 void vfx_stamp_init(
-    RendDrawComp*, const AssetAtlasComp* atlasColor, const AssetAtlasComp* atlasNormal);
+    RendObjectComp*, const AssetAtlasComp* atlasColor, const AssetAtlasComp* atlasNormal);
 
 /**
- * Output a stamp to the given draw.
+ * Output a stamp to the given render object.
  */
-void vfx_stamp_output(RendDrawComp*, const VfxStamp*);
+void vfx_stamp_output(RendObjectComp*, const VfxStamp*);

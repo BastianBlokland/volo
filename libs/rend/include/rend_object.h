@@ -35,46 +35,46 @@ typedef enum {
 } RendDrawResource;
 
 /**
- * Low level api for submitting draws.
+ * Render object, low level render api.
  * In most cases the scene apis should be preferred (SceneRenderableComp).
  */
-ecs_comp_extern(RendDrawComp);
+ecs_comp_extern(RendObjectComp);
 
 /**
  * Add a new draw component to the given entity.
  */
-RendDrawComp* rend_draw_create(EcsWorld*, EcsEntityId entity, RendObjectFlags);
+RendObjectComp* rend_draw_create(EcsWorld*, EcsEntityId entity, RendObjectFlags);
 
 /**
  * Query information about this draw.
  */
-RendObjectFlags rend_draw_flags(const RendDrawComp*);
-EcsEntityId     rend_draw_resource(const RendDrawComp*, RendDrawResource);
-u32             rend_draw_instance_count(const RendDrawComp*);
-u32             rend_draw_data_size(const RendDrawComp*);
-u32             rend_draw_data_inst_size(const RendDrawComp*);
-SceneTags       rend_draw_tag_mask(const RendDrawComp*);
+RendObjectFlags rend_draw_flags(const RendObjectComp*);
+EcsEntityId     rend_draw_resource(const RendObjectComp*, RendDrawResource);
+u32             rend_draw_instance_count(const RendObjectComp*);
+u32             rend_draw_data_size(const RendObjectComp*);
+u32             rend_draw_data_inst_size(const RendObjectComp*);
+SceneTags       rend_draw_tag_mask(const RendObjectComp*);
 
 /**
  * Update a draw resource
  */
-void rend_draw_set_resource(RendDrawComp*, RendDrawResource, EcsEntityId asset);
+void rend_draw_set_resource(RendObjectComp*, RendDrawResource, EcsEntityId asset);
 
 /**
  * Set a camera filter so only that specific camera will render this draw.
  */
-void rend_draw_set_camera_filter(RendDrawComp*, EcsEntityId camera);
+void rend_draw_set_camera_filter(RendObjectComp*, EcsEntityId camera);
 
 /**
  * Override the vertex count for the draw.
  * NOTE: Pass 0 to use the vertex-count as specified by the graphic.
  */
-void rend_draw_set_vertex_count(RendDrawComp*, u32 vertexCount);
+void rend_draw_set_vertex_count(RendObjectComp*, u32 vertexCount);
 
 /**
  * Clear any previously added instances.
  */
-void rend_draw_clear(RendDrawComp*);
+void rend_draw_clear(RendObjectComp*);
 
 /**
  * Set the 'per draw' data.
@@ -82,7 +82,7 @@ void rend_draw_clear(RendDrawComp*);
 #define rend_draw_set_data_t(_DRAW_, _TYPE_)                                                       \
   ((_TYPE_*)rend_draw_set_data((_DRAW_), sizeof(_TYPE_)).ptr)
 
-Mem rend_draw_set_data(RendDrawComp*, usize size);
+Mem rend_draw_set_data(RendObjectComp*, usize size);
 
 /**
  * Add a new instance to the given draw.
@@ -95,4 +95,4 @@ Mem rend_draw_set_data(RendDrawComp*, usize size);
 #define rend_draw_add_instance_t(_DRAW_, _TYPE_, _TAGS_, _AABB_)                                   \
   ((_TYPE_*)rend_draw_add_instance((_DRAW_), sizeof(_TYPE_), (_TAGS_), (_AABB_)).ptr)
 
-Mem rend_draw_add_instance(RendDrawComp*, usize size, SceneTags, GeoBox aabb);
+Mem rend_draw_add_instance(RendObjectComp*, usize size, SceneTags, GeoBox aabb);

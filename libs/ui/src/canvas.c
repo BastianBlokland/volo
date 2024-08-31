@@ -55,7 +55,7 @@ typedef enum {
 } UiCanvasFlags;
 
 ecs_comp_define(UiRendererComp) {
-  EcsEntityId draw;
+  EcsEntityId rendObj;
   DynArray    overlayAtoms; // UiAtomData[]
 };
 
@@ -131,7 +131,7 @@ typedef struct {
   const AssetFontTexComp*     atlasFont;
   const AssetAtlasComp*       atlasImage;
   UiRendererComp*             renderer;
-  RendDrawComp*               draw;
+  RendObjectComp*             rendObj;
   UiCanvasComp*               canvas;
   UiRect                      clipRects[ui_canvas_clip_rects_max];
   u32                         clipRectCount;
@@ -211,9 +211,10 @@ static u8 ui_canvas_output_clip_rect(void* userCtx, const UiRect rect) {
 static void ui_canvas_output_atom(void* userCtx, const UiAtomData data, const UiLayer layer) {
   UiRenderState* state = userCtx;
   switch (layer) {
-  case UiLayer_Normal:
-    *rend_draw_add_instance_t(state->draw, UiAtomData, SceneTags_None, geo_box_inverted3()) = data;
-    break;
+  case UiLayer_Normal: {
+    const GeoBox bounds = geo_box_inverted3();
+    *rend_draw_add_instance_t(state->rendObj, UiAtomData, SceneTags_None, bounds) = data;
+  } break;
   case UiLayer_Invisible:
   case UiLayer_OverlayInvisible:
     break;
@@ -336,9 +337,9 @@ ecs_view_define(WindowView) {
 }
 ecs_view_define(CanvasView) { ecs_access_write(UiCanvasComp); }
 
-ecs_view_define(DrawView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.
-  ecs_access_write(RendDrawComp);
+ecs_view_define(RendObjView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the render objects we create.
+  ecs_access_write(RendObjectComp);
 }
 
 static const AssetFontTexComp*
@@ -418,18 +419,18 @@ static void ui_canvas_cursor_update(GapWindowComp* window, const UiInteractType 
 }
 
 static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId drawEntity = ecs_world_entity_create(world);
-  ecs_world_add_t(world, drawEntity, SceneLifetimeOwnerComp, .owners[0] = window);
+  const EcsEntityId rendObjEntity = ecs_world_entity_create(world);
+  ecs_world_add_t(world, rendObjEntity, SceneLifetimeOwnerComp, .owners[0] = window);
 
   const RendObjectFlags objFlags = RendObjectFlags_Post | RendObjectFlags_NoInstanceFiltering;
-  RendDrawComp*         draw     = rend_draw_create(world, drawEntity, objFlags);
-  rend_draw_set_camera_filter(draw, window);
+  RendObjectComp*       obj      = rend_draw_create(world, rendObjEntity, objFlags);
+  rend_draw_set_camera_filter(obj, window);
 
   ecs_world_add_t(
       world,
       window,
       UiRendererComp,
-      .draw         = drawEntity,
+      .rendObj      = rendObjEntity,
       .overlayAtoms = dynarray_create_t(g_allocHeap, UiAtomData, 32));
 
   ecs_world_add_t(world, window, UiStatsComp);
@@ -507,7 +508,8 @@ ecs_system_define(UiRenderSys) {
       continue; // Window is zero sized; No need to render the Ui.
     }
 
-    RendDrawComp* draw = ecs_utils_write_t(world, DrawView, renderer->draw, RendDrawComp);
+    RendObjectComp* rendObj =
+        ecs_utils_write_t(world, RendObjView, renderer->rendObj, RendObjectComp);
 
     EcsEntityId graphic;
     if (settings->flags & UiSettingGlobal_DebugShading) {
@@ -515,7 +517,7 @@ ecs_system_define(UiRenderSys) {
     } else {
       graphic = ui_resource_graphic(globalRes, UiGraphicRes_Normal);
     }
-    rend_draw_set_resource(draw, RendDrawResource_Graphic, graphic);
+    rend_draw_set_resource(rendObj, RendDrawResource_Graphic, graphic);
 
     const f32      scale       = ui_window_scale(window, settings);
     const UiVector canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
@@ -524,7 +526,7 @@ ecs_system_define(UiRenderSys) {
          .atlasFont     = atlasFont,
          .atlasImage    = atlasImage,
          .renderer      = renderer,
-         .draw          = draw,
+         .rendObj       = rendObj,
          .clipRects[0]  = {.size = canvasSize},
          .clipRectCount = 1,
     };
@@ -591,23 +593,23 @@ ecs_system_define(UiRenderSys) {
 
     stats->canvasSize       = canvasSize;
     stats->canvasCount      = canvasCount;
-    stats->atomCount        = rend_draw_instance_count(draw);
+    stats->atomCount        = rend_draw_instance_count(rendObj);
     stats->atomOverlayCount = (u32)renderer->overlayAtoms.size;
     stats->clipRectCount    = renderState.clipRectCount;
 
     if (!canvasCount) {
-      diag_assert(!rend_draw_instance_count(draw));
+      diag_assert(!rend_draw_instance_count(rendObj));
       continue;
     }
 
     // Add the overlay atoms, at this stage all the normal atoms have already been added.
     dynarray_for_t(&renderer->overlayAtoms, UiAtomData, atom) {
-      *rend_draw_add_instance_t(draw, UiAtomData, SceneTags_None, geo_box_inverted3()) = *atom;
+      *rend_draw_add_instance_t(rendObj, UiAtomData, SceneTags_None, geo_box_inverted3()) = *atom;
     }
     dynarray_clear(&renderer->overlayAtoms);
 
     // Set the metadata.
-    UiDrawMetaData* drawMeta = rend_draw_set_data_t(draw, UiDrawMetaData);
+    UiDrawMetaData* drawMeta = rend_draw_set_data_t(rendObj, UiDrawMetaData);
     *drawMeta                = ui_draw_metadata(&renderState, atlasFont, atlasImage);
   }
 }
@@ -657,7 +659,7 @@ ecs_module_init(ui_canvas_module) {
   ecs_register_comp(UiRendererComp, .destructor = ecs_destruct_renderer);
 
   ecs_register_view(CanvasView);
-  ecs_register_view(DrawView);
+  ecs_register_view(RendObjView);
   ecs_register_view(InputGlobalView);
   ecs_register_view(RenderGlobalView);
   ecs_register_view(SoundGlobalView);
@@ -678,7 +680,7 @@ ecs_module_init(ui_canvas_module) {
       ecs_view_id(AtlasView),
       ecs_view_id(WindowView),
       ecs_view_id(CanvasView),
-      ecs_view_id(DrawView));
+      ecs_view_id(RendObjView));
 
   ecs_register_system(UiSoundSys, ecs_view_id(SoundGlobalView), ecs_view_id(CanvasView));
 

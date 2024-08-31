@@ -41,7 +41,7 @@ typedef enum {
   RendLightVariation_Count,
 } RendLightVariation;
 
-enum { RendLightDraw_Count = RendLightType_Count * RendLightVariation_Count };
+enum { RendLightObj_Count = RendLightType_Count * RendLightVariation_Count };
 
 typedef struct {
   GeoQuat        rotation;
@@ -70,7 +70,7 @@ typedef struct {
 } RendLight;
 
 // clang-format off
-static const String g_lightGraphics[RendLightDraw_Count] = {
+static const String g_lightGraphics[RendLightObj_Count] = {
     [RendLightType_Directional + RendLightVariation_Normal] = string_static("graphics/light/light_directional.graphic"),
     [RendLightType_Point       + RendLightVariation_Normal] = string_static("graphics/light/light_point.graphic"),
     [RendLightType_Point       + RendLightVariation_Debug]  = string_static("graphics/light/light_point_debug.graphic"),
@@ -78,7 +78,7 @@ static const String g_lightGraphics[RendLightDraw_Count] = {
 // clang-format on
 
 ecs_comp_define(RendLightRendererComp) {
-  EcsEntityId drawEntities[RendLightDraw_Count];
+  EcsEntityId objEntities[RendLightObj_Count];
   f32         ambientIntensity;
   bool        hasShadow;
   GeoMatrix   shadowTransMatrix, shadowProjMatrix;
@@ -107,9 +107,9 @@ ecs_view_define(GlobalView) {
 
 ecs_view_define(LightView) { ecs_access_write(RendLightComp); }
 
-ecs_view_define(DrawView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.
-  ecs_access_write(RendDrawComp);
+ecs_view_define(ObjView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the render objects we create.
+  ecs_access_write(RendObjectComp);
 }
 
 ecs_view_define(CameraView) {
@@ -135,24 +135,24 @@ ecs_view_define(LightAmbientInstView) {
   ecs_access_maybe_read(SceneScaleComp);
 }
 
-static u32 rend_draw_index(const RendLightType type, const RendLightVariation variation) {
+static u32 rend_obj_index(const RendLightType type, const RendLightVariation variation) {
   return (u32)type + (u32)variation;
 }
 
-static EcsEntityId rend_light_draw_create(
+static EcsEntityId rend_light_obj_create(
     EcsWorld*                world,
     AssetManagerComp*        assets,
     const RendLightType      type,
     const RendLightVariation var) {
-  const u32 drawIndex = rend_draw_index(type, var);
-  if (string_is_empty(g_lightGraphics[drawIndex])) {
+  const u32 objIndex = rend_obj_index(type, var);
+  if (string_is_empty(g_lightGraphics[objIndex])) {
     return 0;
   }
 
   const EcsEntityId entity        = ecs_world_entity_create(world);
-  RendDrawComp*     draw          = rend_draw_create(world, entity, RendObjectFlags_Light);
-  const EcsEntityId graphicEntity = asset_lookup(world, assets, g_lightGraphics[drawIndex]);
-  rend_draw_set_resource(draw, RendDrawResource_Graphic, graphicEntity);
+  RendObjectComp*   obj           = rend_draw_create(world, entity, RendObjectFlags_Light);
+  const EcsEntityId graphicEntity = asset_lookup(world, assets, g_lightGraphics[objIndex]);
+  rend_draw_set_resource(obj, RendDrawResource_Graphic, graphicEntity);
   return entity;
 }
 
@@ -162,8 +162,8 @@ static void rend_light_renderer_create(EcsWorld* world, AssetManagerComp* assets
 
   for (RendLightType type = 0; type != RendLightType_Count; ++type) {
     for (RendLightVariation var = 0; var != RendLightVariation_Count; ++var) {
-      const u32 drawIndex               = rend_draw_index(type, var);
-      renderer->drawEntities[drawIndex] = rend_light_draw_create(world, assets, type, var);
+      const u32 objIndex              = rend_obj_index(type, var);
+      renderer->objEntities[objIndex] = rend_light_obj_create(world, assets, type, var);
     }
   }
 }
@@ -358,14 +358,14 @@ ecs_system_define(RendLightRenderSys) {
     return; // No Camera found.
   }
   /**
-   * TODO: Support multiple camera's (requires multiple draws for directional lights with shadows).
+   * TODO: Support multiple camera's (requires multiple objs for directional lights with shadows).
    */
   const GapWindowAspectComp* winAspect = ecs_view_read_t(camItr, GapWindowAspectComp);
   const SceneCameraComp*     cam       = ecs_view_read_t(camItr, SceneCameraComp);
   const SceneTransformComp*  camTrans  = ecs_view_read_t(camItr, SceneTransformComp);
 
-  EcsView*     drawView = ecs_world_view_t(world, DrawView);
-  EcsIterator* drawItr  = ecs_view_itr(drawView);
+  EcsView*     objView = ecs_world_view_t(world, ObjView);
+  EcsIterator* objItr  = ecs_view_itr(objView);
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, LightView)); ecs_view_walk(itr);) {
     RendLightComp* light = ecs_view_write_t(itr, RendLightComp);
@@ -374,12 +374,12 @@ ecs_system_define(RendLightRenderSys) {
         renderer->ambientIntensity += entry->data_ambient.intensity;
         continue;
       }
-      const u32 drawIndex = rend_draw_index(entry->type, var);
-      if (!renderer->drawEntities[drawIndex]) {
+      const u32 objIndex = rend_obj_index(entry->type, var);
+      if (!renderer->objEntities[objIndex]) {
         continue;
       }
-      ecs_view_jump(drawItr, renderer->drawEntities[drawIndex]);
-      RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+      ecs_view_jump(objItr, renderer->objEntities[objIndex]);
+      RendObjectComp* obj = ecs_view_write_t(objItr, RendObjectComp);
 
       typedef struct {
         ALIGNAS(16)
@@ -424,7 +424,7 @@ ecs_system_define(RendLightRenderSys) {
         }
         const GeoVector direction = geo_quat_rotate(entry->data_directional.rotation, geo_forward);
         const GeoBox    bounds    = geo_box_inverted3(); // Cannot be culled.
-        *rend_draw_add_instance_t(draw, LightDirData, tags, bounds) = (LightDirData){
+        *rend_draw_add_instance_t(obj, LightDirData, tags, bounds) = (LightDirData){
             .direction       = direction,
             .radianceFlags.x = radiance.r,
             .radianceFlags.y = radiance.g,
@@ -446,7 +446,7 @@ ecs_system_define(RendLightRenderSys) {
           continue;
         }
         const GeoBox bounds = geo_box_from_sphere(pos, radius);
-        *rend_draw_add_instance_t(draw, LightPointData, tags, bounds) = (LightPointData){
+        *rend_draw_add_instance_t(obj, LightPointData, tags, bounds) = (LightPointData){
             .posScale.x             = pos.x,
             .posScale.y             = pos.y,
             .posScale.z             = pos.z,
@@ -473,7 +473,7 @@ ecs_module_init(rend_light_module) {
   ecs_register_view(GlobalView);
   ecs_register_view(GlobalInitView);
   ecs_register_view(LightView);
-  ecs_register_view(DrawView);
+  ecs_register_view(ObjView);
   ecs_register_view(CameraView);
   ecs_register_view(LightPointInstView);
   ecs_register_view(LightDirInstView);
@@ -492,11 +492,11 @@ ecs_module_init(rend_light_module) {
       RendLightRenderSys,
       ecs_view_id(GlobalView),
       ecs_view_id(LightView),
-      ecs_view_id(DrawView),
+      ecs_view_id(ObjView),
       ecs_view_id(CameraView));
 
   // NOTE: +1 is added to allow the vfx system (which also adds lights) to run in parallel with
-  // instance draw filling without the created lights rendering a frame too late.
+  // instance object filling without the created lights rendering a frame too late.
   ecs_order(RendLightRenderSys, RendOrder_DrawCollect + 1);
 }
 

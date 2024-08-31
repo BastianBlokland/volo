@@ -166,7 +166,7 @@ ecs_view_define(GlobalView) {
   ecs_access_write(RendPlatformComp);
 }
 
-ecs_view_define(DrawView) { ecs_access_read(RendDrawComp); }
+ecs_view_define(ObjView) { ecs_access_read(RendObjectComp); }
 
 ecs_view_define(ResourceView) {
   ecs_access_maybe_write(RendResGraphicComp);
@@ -344,36 +344,36 @@ static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id,
 
 static SceneTags painter_push_draws_simple(
     RendPaintContext*     ctx,
-    EcsView*              drawView,
+    EcsView*              objView,
     EcsView*              resourceView,
     const RendObjectFlags includeFlags /* included if the draw has any of these flags */,
     const RendObjectFlags ignoreFlags) {
   SceneTags tagMask = 0;
 
   EcsIterator* resourceItr = ecs_view_itr(resourceView);
-  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
-    const RendDrawComp* draw = ecs_view_read_t(drawItr, RendDrawComp);
-    if (includeFlags && !(rend_draw_flags(draw) & includeFlags)) {
-      continue; // Draw misses a include flag.
+  for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
+    const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
+    if (includeFlags && !(rend_draw_flags(obj) & includeFlags)) {
+      continue; // Object misses a include flag.
     }
-    if (rend_draw_flags(draw) & ignoreFlags) {
-      continue; // Draw has an ignore flag.
+    if (rend_draw_flags(obj) & ignoreFlags) {
+      continue; // Object has an ignore flag.
     }
 
-    // Retrieve and prepare the draw's graphic.
-    const EcsEntityId graphicResource = rend_draw_resource(draw, RendDrawResource_Graphic);
+    // Retrieve and prepare the object's graphic.
+    const EcsEntityId graphicResource = rend_draw_resource(obj, RendDrawResource_Graphic);
     RvkGraphic*       graphic         = painter_get_graphic(resourceItr, graphicResource);
     if (!graphic || !rvk_pass_prepare(ctx->pass, graphic)) {
       continue; // Graphic not ready to be drawn.
     }
 
-    // If the draw uses a 'per draw' texture then retrieve and prepare it.
-    const EcsEntityId textureResource = rend_draw_resource(draw, RendDrawResource_Texture);
+    // If the object uses a 'per draw' texture then retrieve and prepare it.
+    const EcsEntityId textureResource = rend_draw_resource(obj, RendDrawResource_Texture);
     RvkTexture*       texture         = null;
     if (textureResource) {
       texture = painter_get_texture(resourceItr, textureResource);
       if (!texture || !rvk_pass_prepare_texture(ctx->pass, texture)) {
-        continue; // Draw uses a 'per draw' texture which is not ready.
+        continue; // Object uses a 'per draw' texture which is not ready.
       }
     }
 
@@ -381,16 +381,16 @@ static SceneTags painter_push_draws_simple(
     if (texture) {
       rend_builder_draw_image(ctx->builder, &texture->image);
     }
-    rend_draw_push(draw, &ctx->view, ctx->settings, ctx->builder);
+    rend_draw_push(obj, &ctx->view, ctx->settings, ctx->builder);
     rend_builder_draw_flush(ctx->builder);
 
-    tagMask |= rend_draw_tag_mask(draw);
+    tagMask |= rend_draw_tag_mask(obj);
   }
 
   return tagMask;
 }
 
-static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsView* resourceView) {
+static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView* resourceView) {
   RendObjectFlags requiredAny = 0;
   requiredAny |= RendObjectFlags_StandardGeometry; // Include geometry.
   if (ctx->settings->flags & RendFlags_VfxSpriteShadows) {
@@ -400,22 +400,22 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
   RvkRepository* repo        = rvk_canvas_repository(ctx->canvas);
   EcsIterator*   resourceItr = ecs_view_itr(resourceView);
 
-  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
-    const RendDrawComp* draw = ecs_view_read_t(drawItr, RendDrawComp);
-    if (!(rend_draw_flags(draw) & requiredAny)) {
-      continue; // Shouldn't be included in the shadow pass.
+  for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
+    const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
+    if (!(rend_draw_flags(obj) & requiredAny)) {
+      continue; // Object shouldn't be included in the shadow pass.
     }
-    const EcsEntityId graphicOriginalResource = rend_draw_resource(draw, RendDrawResource_Graphic);
+    const EcsEntityId graphicOriginalResource = rend_draw_resource(obj, RendDrawResource_Graphic);
     RvkGraphic*       graphicOriginal = painter_get_graphic(resourceItr, graphicOriginalResource);
     if (!graphicOriginal) {
       continue; // Graphic not loaded.
     }
-    const bool isVfxSprite = (rend_draw_flags(draw) & RendObjectFlags_VfxSprite) != 0;
-    RvkMesh*   drawMesh    = graphicOriginal->mesh;
-    if (!isVfxSprite && (!drawMesh || !rvk_pass_prepare_mesh(ctx->pass, drawMesh))) {
+    const bool isVfxSprite = (rend_draw_flags(obj) & RendObjectFlags_VfxSprite) != 0;
+    RvkMesh*   objMesh     = graphicOriginal->mesh;
+    if (!isVfxSprite && (!objMesh || !rvk_pass_prepare_mesh(ctx->pass, objMesh))) {
       continue; // Graphic is not a vfx sprite and does not have a mesh to draw a shadow for.
     }
-    RvkImage* drawAlphaImg = null;
+    RvkImage* objAlphaImg = null;
     enum { AlphaTextureIndex = 2 }; // TODO: Make this configurable from content.
     const bool hasAlphaTexture = (graphicOriginal->samplerMask & (1 << AlphaTextureIndex)) != 0;
     if (graphicOriginal->flags & RvkGraphicFlags_MayDiscard && hasAlphaTexture) {
@@ -423,15 +423,15 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
       if (!alphaTexture || !rvk_pass_prepare_texture(ctx->pass, alphaTexture)) {
         continue; // Graphic uses discard but has no alpha texture.
       }
-      drawAlphaImg = &alphaTexture->image;
+      objAlphaImg = &alphaTexture->image;
     }
     RvkRepositoryId graphicId;
     if (isVfxSprite) {
       graphicId = RvkRepositoryId_ShadowVfxSpriteGraphic;
-    } else if (rend_draw_flags(draw) & RendObjectFlags_Skinned) {
+    } else if (rend_draw_flags(obj) & RendObjectFlags_Skinned) {
       graphicId = RvkRepositoryId_ShadowSkinnedGraphic;
     } else {
-      graphicId = drawAlphaImg ? RvkRepositoryId_ShadowClipGraphic : RvkRepositoryId_ShadowGraphic;
+      graphicId = objAlphaImg ? RvkRepositoryId_ShadowClipGraphic : RvkRepositoryId_ShadowGraphic;
     }
     RvkGraphic* shadowGraphic = rvk_repository_graphic_get_maybe(repo, graphicId);
     if (!shadowGraphic) {
@@ -440,12 +440,12 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* drawView, EcsVie
 
     if (rvk_pass_prepare(ctx->pass, shadowGraphic)) {
       rend_builder_draw_push(ctx->builder, shadowGraphic);
-      rend_builder_draw_mesh(ctx->builder, drawMesh);
-      if (drawAlphaImg) {
-        rend_builder_draw_image(ctx->builder, drawAlphaImg);
+      rend_builder_draw_mesh(ctx->builder, objMesh);
+      if (objAlphaImg) {
+        rend_builder_draw_image(ctx->builder, objAlphaImg);
         rend_builder_draw_sampler(ctx->builder, (RvkSamplerSpec){.aniso = RvkSamplerAniso_x8});
       }
-      rend_draw_push(draw, &ctx->view, ctx->settings, ctx->builder);
+      rend_draw_push(obj, &ctx->view, ctx->settings, ctx->builder);
       rend_builder_draw_flush(ctx->builder);
     }
   }
@@ -520,7 +520,7 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
   painter_push_simple(ctx, RvkRepositoryId_AmbientOcclusionGraphic, mem_var(data));
 }
 
-static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsView* resourceView) {
+static void painter_push_forward(RendPaintContext* ctx, EcsView* objView, EcsView* resourceView) {
   RendObjectFlags ignoreFlags = 0;
   ignoreFlags |= RendObjectFlags_Geometry;   // Ignore geometry (drawn in a separate pass).
   ignoreFlags |= RendObjectFlags_Decal;      // Ignore decals (drawn in a separate pass).
@@ -533,7 +533,7 @@ static void painter_push_forward(RendPaintContext* ctx, EcsView* drawView, EcsVi
     ignoreFlags |= RendObjectFlags_Light;
   }
 
-  painter_push_draws_simple(ctx, drawView, resourceView, RendObjectFlags_None, ignoreFlags);
+  painter_push_draws_simple(ctx, objView, resourceView, RendObjectFlags_None, ignoreFlags);
 }
 
 static void painter_push_tonemapping(RendPaintContext* ctx) {
@@ -672,16 +672,16 @@ static void painter_push_debug_resource_viewer(
 }
 
 static void
-painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* drawView, EcsView* resourceView) {
+painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* resourceView) {
   RvkRepository* repo        = rvk_canvas_repository(ctx->canvas);
   EcsIterator*   resourceItr = ecs_view_itr(resourceView);
 
-  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
-    const RendDrawComp* draw = ecs_view_read_t(drawItr, RendDrawComp);
-    if (!(rend_draw_flags(draw) & RendObjectFlags_Geometry)) {
-      continue; // Not a draw we can render a wireframe for.
+  for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
+    const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
+    if (!(rend_draw_flags(obj) & RendObjectFlags_Geometry)) {
+      continue; // Not a object we can render a wireframe for.
     }
-    const EcsEntityId graphicOriginalResource = rend_draw_resource(draw, RendDrawResource_Graphic);
+    const EcsEntityId graphicOriginalResource = rend_draw_resource(obj, RendDrawResource_Graphic);
     RvkGraphic*       graphicOriginal = painter_get_graphic(resourceItr, graphicOriginalResource);
     if (!graphicOriginal) {
       continue; // Graphic not loaded.
@@ -692,9 +692,9 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* drawView, EcsView* 
     }
 
     RvkRepositoryId graphicId;
-    if (rend_draw_flags(draw) & RendObjectFlags_Terrain) {
+    if (rend_draw_flags(obj) & RendObjectFlags_Terrain) {
       graphicId = RvkRepositoryId_DebugWireframeTerrainGraphic;
-    } else if (rend_draw_flags(draw) & RendObjectFlags_Skinned) {
+    } else if (rend_draw_flags(obj) & RendObjectFlags_Skinned) {
       graphicId = RvkRepositoryId_DebugWireframeSkinnedGraphic;
     } else {
       graphicId = RvkRepositoryId_DebugWireframeGraphic;
@@ -704,14 +704,14 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* drawView, EcsView* 
       continue; // Wireframe graphic not loaded.
     }
 
-    // If the draw uses a 'per draw' texture then retrieve and prepare it.
+    // If the object uses a 'per draw' texture then retrieve and prepare it.
     // NOTE: This is needed for the terrain wireframe as it contains the heightmap.
-    const EcsEntityId textureResource = rend_draw_resource(draw, RendDrawResource_Texture);
+    const EcsEntityId textureResource = rend_draw_resource(obj, RendDrawResource_Texture);
     RvkTexture*       texture         = null;
     if (textureResource) {
       texture = painter_get_texture(resourceItr, textureResource);
       if (!texture || !rvk_pass_prepare_texture(ctx->pass, texture)) {
-        continue; // Draw uses a 'per draw' texture which is not ready.
+        continue; // Object uses a 'per draw' texture which is not ready.
       }
     }
 
@@ -720,13 +720,13 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* drawView, EcsView* 
     if (texture) {
       rend_builder_draw_image(ctx->builder, &texture->image);
     }
-    rend_draw_push(draw, &ctx->view, ctx->settings, ctx->builder);
+    rend_draw_push(obj, &ctx->view, ctx->settings, ctx->builder);
     rend_builder_draw_flush(ctx->builder);
   }
 }
 
 static void
-painter_push_debug_skinning(RendPaintContext* ctx, EcsView* drawView, EcsView* resourceView) {
+painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView, EcsView* resourceView) {
   RvkRepository*        repository     = rvk_canvas_repository(ctx->canvas);
   const RvkRepositoryId debugGraphicId = RvkRepositoryId_DebugSkinningGraphic;
   RvkGraphic*           debugGraphic = rvk_repository_graphic_get_maybe(repository, debugGraphicId);
@@ -735,12 +735,12 @@ painter_push_debug_skinning(RendPaintContext* ctx, EcsView* drawView, EcsView* r
   }
 
   EcsIterator* resourceItr = ecs_view_itr(resourceView);
-  for (EcsIterator* drawItr = ecs_view_itr(drawView); ecs_view_walk(drawItr);) {
-    const RendDrawComp* draw = ecs_view_read_t(drawItr, RendDrawComp);
-    if (!(rend_draw_flags(draw) & RendObjectFlags_Skinned)) {
-      continue; // Not a skinned draw.
+  for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
+    const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
+    if (!(rend_draw_flags(obj) & RendObjectFlags_Skinned)) {
+      continue; // Not a skinned object.
     }
-    const EcsEntityId graphicOriginalResource = rend_draw_resource(draw, RendDrawResource_Graphic);
+    const EcsEntityId graphicOriginalResource = rend_draw_resource(obj, RendDrawResource_Graphic);
     RvkGraphic*       graphicOriginal = painter_get_graphic(resourceItr, graphicOriginalResource);
     if (!graphicOriginal) {
       continue; // Graphic not loaded.
@@ -751,7 +751,7 @@ painter_push_debug_skinning(RendPaintContext* ctx, EcsView* drawView, EcsView* r
     if (rvk_pass_prepare_mesh(ctx->pass, mesh)) {
       rend_builder_draw_push(ctx->builder, debugGraphic);
       rend_builder_draw_mesh(ctx->builder, mesh);
-      rend_draw_push(draw, &ctx->view, ctx->settings, ctx->builder);
+      rend_draw_push(obj, &ctx->view, ctx->settings, ctx->builder);
       rend_builder_draw_flush(ctx->builder);
     }
   }
@@ -765,7 +765,7 @@ static bool rend_canvas_paint_2d(
     const SceneTimeComp*          time,
     const GapWindowComp*          win,
     const EcsEntityId             camEntity,
-    EcsView*                      drawView,
+    EcsView*                      objView,
     EcsView*                      resourceView) {
   diag_assert(rvk_canvas_pass_count(painter->canvas) == RendPainter2DPass_Count);
 
@@ -787,7 +787,7 @@ static bool rend_canvas_paint_2d(
         painter_context(painter->canvas, builder, set, setGlobal, time, postPass, mainView);
     rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
     painter_push_draws_simple(
-        &ctx, drawView, resourceView, RendObjectFlags_Post, RendObjectFlags_None);
+        &ctx, objView, resourceView, RendObjectFlags_Post, RendObjectFlags_None);
 
     rend_builder_pass_flush(builder);
   }
@@ -809,7 +809,7 @@ static bool rend_canvas_paint_3d(
     const EcsEntityId             camEntity,
     const SceneCameraComp*        cam,
     const SceneTransformComp*     camTrans,
-    EcsView*                      drawView,
+    EcsView*                      objView,
     EcsView*                      resourceView) {
   diag_assert(rvk_canvas_pass_count(painter->canvas) == RendPainter3DPass_Count);
 
@@ -848,7 +848,7 @@ static bool rend_canvas_paint_3d(
     rvk_pass_stage_attach_depth(geoPass, geoDepth);
     painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
     geoTagMask = painter_push_draws_simple(
-        &ctx, drawView, resourceView, RendObjectFlags_Geometry, RendObjectFlags_None);
+        &ctx, objView, resourceView, RendObjectFlags_Geometry, RendObjectFlags_None);
 
     rend_builder_pass_flush(builder);
     trace_end();
@@ -877,7 +877,7 @@ static bool rend_canvas_paint_3d(
     rvk_pass_stage_attach_depth(decalPass, geoDepth);
     painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
     painter_push_draws_simple(
-        &ctx, drawView, resourceView, RendObjectFlags_Decal, RendObjectFlags_None);
+        &ctx, objView, resourceView, RendObjectFlags_Decal, RendObjectFlags_None);
 
     rend_builder_pass_flush(builder);
     trace_end();
@@ -905,7 +905,7 @@ static bool rend_canvas_paint_3d(
     rvk_pass_stage_attach_color(fogPass, fogBuffer, 0);
     painter_stage_global_data(&ctx, fogTrans, fogProj, fogSize, time, RendViewType_Fog);
     painter_push_draws_simple(
-        &ctx, drawView, resourceView, RendObjectFlags_FogVision, RendObjectFlags_None);
+        &ctx, objView, resourceView, RendObjectFlags_FogVision, RendObjectFlags_None);
 
     rend_builder_pass_flush(builder);
     trace_end();
@@ -967,7 +967,7 @@ static bool rend_canvas_paint_3d(
         painter_context(painter->canvas, builder, set, setGlobal, time, shadowPass, shadView);
     rvk_pass_stage_attach_depth(shadowPass, shadowDepth);
     painter_stage_global_data(&ctx, shadTrans, shadProj, shadowSize, time, RendViewType_Shadow);
-    painter_push_shadow(&ctx, drawView, resourceView);
+    painter_push_shadow(&ctx, objView, resourceView);
 
     rend_builder_pass_flush(builder);
     trace_end();
@@ -1032,15 +1032,15 @@ static bool rend_canvas_paint_3d(
     if (geoTagMask & SceneTags_Selected) {
       painter_push_simple(&ctx, RvkRepositoryId_OutlineGraphic, mem_empty);
     }
-    painter_push_forward(&ctx, drawView, resourceView);
+    painter_push_forward(&ctx, objView, resourceView);
     if (fogActive) {
       painter_push_fog(&ctx, fog, fogBuffer);
     }
     if (set->flags & RendFlags_DebugWireframe) {
-      painter_push_debug_wireframe(&ctx, drawView, resourceView);
+      painter_push_debug_wireframe(&ctx, objView, resourceView);
     }
     if (set->flags & RendFlags_DebugSkinning) {
-      painter_push_debug_skinning(&ctx, drawView, resourceView);
+      painter_push_debug_skinning(&ctx, objView, resourceView);
     }
 
     rend_builder_pass_flush(builder);
@@ -1077,7 +1077,7 @@ static bool rend_canvas_paint_3d(
 
     painter_stage_global_data(&ctx, &camMat, &projMat, distSize, time, RendViewType_Main);
     painter_push_draws_simple(
-        &ctx, drawView, resourceView, RendObjectFlags_Distortion, RendObjectFlags_None);
+        &ctx, objView, resourceView, RendObjectFlags_Distortion, RendObjectFlags_None);
 
     rend_builder_pass_flush(builder);
     trace_end();
@@ -1158,7 +1158,7 @@ static bool rend_canvas_paint_3d(
     painter_stage_global_data(&ctx, &camMat, &projMat, swapchainSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
     painter_push_draws_simple(
-        &ctx, drawView, resourceView, RendObjectFlags_Post, RendObjectFlags_None);
+        &ctx, objView, resourceView, RendObjectFlags_Post, RendObjectFlags_None);
 
     if (set->flags & RendFlags_DebugFog) {
       const f32 exposure = 1.0f;
@@ -1237,7 +1237,7 @@ ecs_system_define(RendPainterDrawSys) {
   const RendFogComp*            fog            = ecs_view_read_t(globalItr, RendFogComp);
 
   EcsView* painterView  = ecs_world_view_t(world, PainterUpdateView);
-  EcsView* drawView     = ecs_world_view_t(world, DrawView);
+  EcsView* objView      = ecs_world_view_t(world, ObjView);
   EcsView* resourceView = ecs_world_view_t(world, ResourceView);
 
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
@@ -1253,7 +1253,7 @@ ecs_system_define(RendPainterDrawSys) {
     switch (painter->type) {
     case RendPainterType_2D:
       rend_canvas_paint_2d(
-          painter, builder, settings, settingsGlobal, time, win, entity, drawView, resourceView);
+          painter, builder, settings, settingsGlobal, time, win, entity, objView, resourceView);
       break;
     case RendPainterType_3D:
       rend_canvas_paint_3d(
@@ -1268,7 +1268,7 @@ ecs_system_define(RendPainterDrawSys) {
           entity,
           cam,
           camTrans,
-          drawView,
+          objView,
           resourceView);
       break;
     }
@@ -1279,7 +1279,7 @@ ecs_module_init(rend_painter_module) {
   ecs_register_comp(RendPainterComp, .destructor = ecs_destruct_painter);
 
   ecs_register_view(GlobalView);
-  ecs_register_view(DrawView);
+  ecs_register_view(ObjView);
   ecs_register_view(ResourceView);
   ecs_register_view(PainterCreateView);
   ecs_register_view(PainterUpdateView);
@@ -1291,7 +1291,7 @@ ecs_module_init(rend_painter_module) {
       RendPainterDrawSys,
       ecs_view_id(GlobalView),
       ecs_view_id(PainterUpdateView),
-      ecs_view_id(DrawView),
+      ecs_view_id(ObjView),
       ecs_view_id(ResourceView));
 
   ecs_order(RendPainterDrawSys, RendOrder_DrawExecute);

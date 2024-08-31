@@ -22,7 +22,7 @@
 #include "vfx_register.h"
 
 #include "atlas_internal.h"
-#include "draw_internal.h"
+#include "rend_internal.h"
 #include "stamp_internal.h"
 
 #define vfx_decal_max_create_per_tick 100
@@ -91,7 +91,7 @@ ecs_view_define(GlobalView) {
   ecs_access_read(SceneTimeComp);
   ecs_access_read(SceneVisibilityEnvComp);
   ecs_access_read(VfxAtlasManagerComp);
-  ecs_access_read(VfxDrawManagerComp);
+  ecs_access_read(VfxRendComp);
 }
 
 ecs_view_define(AtlasView) { ecs_access_read(AssetAtlasComp); }
@@ -366,10 +366,10 @@ ecs_system_define(VfxDecalDeinitSys) {
   }
 }
 
-static RendDrawComp*
-vfx_draw_get(EcsView* view, const VfxDrawManagerComp* drawManager, const VfxDrawType type) {
-  const EcsEntityId drawEntity = vfx_draw_entity(drawManager, type);
-  return ecs_view_write_t(ecs_view_at(view, drawEntity), RendDrawComp);
+static RendObjectComp*
+vfx_rend_obj_get(EcsView* view, const VfxRendComp* rend, const VfxRendObj type) {
+  const EcsEntityId rendObjEntity = vfx_rend_obj(rend, type);
+  return ecs_view_write_t(ecs_view_at(view, rendObjEntity), RendObjectComp);
 }
 
 static GeoQuat vfx_decal_rotation(const GeoQuat rot, const AssetDecalAxis axis) {
@@ -384,9 +384,9 @@ static GeoQuat vfx_decal_rotation(const GeoQuat rot, const AssetDecalAxis axis) 
   UNREACHABLE
 }
 
-ecs_view_define(SingleDrawView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // Only accesses the single-decal draw entities.
-  ecs_access_write(RendDrawComp);
+ecs_view_define(SingleRendObjView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only accesses the single-decal rend objects.
+  ecs_access_write(RendObjectComp);
 }
 
 ecs_view_define(SingleUpdateView) {
@@ -404,8 +404,8 @@ static void vfx_decal_single_update(
     const SceneTimeComp*          timeComp,
     const SceneTerrainComp*       terrainComp,
     const SceneVisibilityEnvComp* visEnv,
-    RendDrawComp*                 drawNormal,
-    RendDrawComp*                 drawDebug,
+    RendObjectComp*               rendObjNormal,
+    RendObjectComp*               rendObjDebug,
     EcsIterator*                  itr) {
   const VfxDecalSingleComp*        inst      = ecs_view_read_t(itr, VfxDecalSingleComp);
   const SceneTransformComp*        trans     = ecs_view_read_t(itr, SceneTransformComp);
@@ -436,27 +436,27 @@ static void vfx_decal_single_update(
   const f32      fadeOut = math_min(timeRemSec * inst->fadeOutTimeInv, 1.0f);
   const f32      alpha   = decal->alpha * inst->alpha * fadeIn * fadeOut;
   const VfxStamp stamp   = {
-      .pos              = pos,
-      .rot              = rot,
-      .width            = inst->width * scale,
-      .height           = inst->height * scale,
-      .thickness        = inst->thickness,
-      .flags            = inst->stampFlags,
-      .excludeTags      = inst->excludeTags,
-      .atlasColorIndex  = inst->atlasColorIndex,
-      .atlasNormalIndex = inst->atlasNormalIndex,
-      .alphaBegin       = alpha,
-      .alphaEnd         = alpha,
-      .roughness        = inst->roughness,
-      .texOffsetY       = 0.0f,
-      .texScaleY        = 1.0f,
-      .warpScale        = {1.0f, 1.0f},
-      .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
+        .pos              = pos,
+        .rot              = rot,
+        .width            = inst->width * scale,
+        .height           = inst->height * scale,
+        .thickness        = inst->thickness,
+        .flags            = inst->stampFlags,
+        .excludeTags      = inst->excludeTags,
+        .atlasColorIndex  = inst->atlasColorIndex,
+        .atlasNormalIndex = inst->atlasNormalIndex,
+        .alphaBegin       = alpha,
+        .alphaEnd         = alpha,
+        .roughness        = inst->roughness,
+        .texOffsetY       = 0.0f,
+        .texScaleY        = 1.0f,
+        .warpScale        = {1.0f, 1.0f},
+        .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
   };
 
-  vfx_stamp_output(drawNormal, &stamp);
+  vfx_stamp_output(rendObjNormal, &stamp);
   if (UNLIKELY(debug)) {
-    vfx_stamp_output(drawDebug, &stamp);
+    vfx_stamp_output(rendObjDebug, &stamp);
   }
 
   if (stats) {
@@ -479,25 +479,25 @@ ecs_system_define(VfxDecalSingleUpdateSys) {
     return; // Atlas hasn't loaded yet.
   }
 
-  const SceneVisibilityEnvComp* visEnv      = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
-  const VfxDrawManagerComp*     drawManager = ecs_view_read_t(globalItr, VfxDrawManagerComp);
+  const SceneVisibilityEnvComp* visEnv  = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
+  const VfxRendComp*            vfxRend = ecs_view_read_t(globalItr, VfxRendComp);
 
-  EcsView*      drawView   = ecs_world_view_t(world, SingleDrawView);
-  RendDrawComp* drawNormal = vfx_draw_get(drawView, drawManager, VfxDrawType_DecalStampSingle);
-  RendDrawComp* drawDebug  = vfx_draw_get(drawView, drawManager, VfxDrawType_DecalStampSingleDebug);
+  EcsView*        rendObjView = ecs_world_view_t(world, SingleRendObjView);
+  RendObjectComp* objNormal   = vfx_rend_obj_get(rendObjView, vfxRend, VfxRendObj_DecalStampSingle);
+  RendObjectComp* objDbg = vfx_rend_obj_get(rendObjView, vfxRend, VfxRendObj_DecalStampSingleDebug);
 
-  vfx_stamp_init(drawNormal, atlasColor, atlasNormal);
-  vfx_stamp_init(drawDebug, atlasColor, atlasNormal);
+  vfx_stamp_init(objNormal, atlasColor, atlasNormal);
+  vfx_stamp_init(objDbg, atlasColor, atlasNormal);
 
   EcsView* singleView = ecs_world_view_t(world, SingleUpdateView);
   for (EcsIterator* itr = ecs_view_itr(singleView); ecs_view_walk(itr);) {
-    vfx_decal_single_update(timeComp, terrainComp, visEnv, drawNormal, drawDebug, itr);
+    vfx_decal_single_update(timeComp, terrainComp, visEnv, objNormal, objDbg, itr);
   }
 }
 
-ecs_view_define(TrailDrawView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // Only accesses the trail-decal draw entities.
-  ecs_access_write(RendDrawComp);
+ecs_view_define(TrailRendObjView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only accesses the trail-decal render object entities.
+  ecs_access_write(RendObjectComp);
 }
 
 ecs_view_define(TrailUpdateView) {
@@ -643,8 +643,8 @@ static void vfx_decal_trail_update(
     const SceneTimeComp*          timeComp,
     const SceneTerrainComp*       terrainComp,
     const SceneVisibilityEnvComp* visEnv,
-    RendDrawComp*                 drawNormal,
-    RendDrawComp*                 drawDebug,
+    RendObjectComp*               rendObjNormal,
+    RendObjectComp*               rendObjDebug,
     EcsIterator*                  itr) {
   VfxDecalTrailComp*               inst      = ecs_view_write_t(itr, VfxDecalTrailComp);
   const SceneTransformComp*        trans     = ecs_view_read_t(itr, SceneTransformComp);
@@ -800,9 +800,9 @@ static void vfx_decal_trail_update(
         .warpPoints = {corners[0], corners[1], corners[2], corners[3]},
     };
 
-    vfx_stamp_output(drawNormal, &stamp);
+    vfx_stamp_output(rendObjNormal, &stamp);
     if (UNLIKELY(debug)) {
-      vfx_stamp_output(drawDebug, &stamp);
+      vfx_stamp_output(rendObjDebug, &stamp);
     }
     texOffset += segTexScale;
 
@@ -827,19 +827,19 @@ ecs_system_define(VfxDecalTrailUpdateSys) {
     return; // Atlas hasn't loaded yet.
   }
 
-  const SceneVisibilityEnvComp* visEnv      = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
-  const VfxDrawManagerComp*     drawManager = ecs_view_read_t(globalItr, VfxDrawManagerComp);
+  const SceneVisibilityEnvComp* visEnv  = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
+  const VfxRendComp*            vfxRend = ecs_view_read_t(globalItr, VfxRendComp);
 
-  EcsView*      drawView   = ecs_world_view_t(world, TrailDrawView);
-  RendDrawComp* drawNormal = vfx_draw_get(drawView, drawManager, VfxDrawType_DecalStampTrail);
-  RendDrawComp* drawDebug  = vfx_draw_get(drawView, drawManager, VfxDrawType_DecalStampTrailDebug);
+  EcsView*        rendObjView = ecs_world_view_t(world, TrailRendObjView);
+  RendObjectComp* objNormal   = vfx_rend_obj_get(rendObjView, vfxRend, VfxRendObj_DecalStampTrail);
+  RendObjectComp* objDbg = vfx_rend_obj_get(rendObjView, vfxRend, VfxRendObj_DecalStampTrailDebug);
 
-  vfx_stamp_init(drawNormal, atlasColor, atlasNormal);
-  vfx_stamp_init(drawDebug, atlasColor, atlasNormal);
+  vfx_stamp_init(objNormal, atlasColor, atlasNormal);
+  vfx_stamp_init(objDbg, atlasColor, atlasNormal);
 
   EcsView* trailView = ecs_world_view_t(world, TrailUpdateView);
   for (EcsIterator* itr = ecs_view_itr(trailView); ecs_view_walk(itr);) {
-    vfx_decal_trail_update(timeComp, terrainComp, visEnv, drawNormal, drawDebug, itr);
+    vfx_decal_trail_update(timeComp, terrainComp, visEnv, objNormal, objDbg, itr);
   }
 }
 
@@ -869,14 +869,14 @@ ecs_module_init(vfx_decal_module) {
   ecs_register_system(
       VfxDecalSingleUpdateSys,
       ecs_register_view(SingleUpdateView),
-      ecs_register_view(SingleDrawView),
+      ecs_register_view(SingleRendObjView),
       ecs_view_id(AtlasView),
       ecs_view_id(GlobalView));
 
   ecs_register_system(
       VfxDecalTrailUpdateSys,
       ecs_register_view(TrailUpdateView),
-      ecs_register_view(TrailDrawView),
+      ecs_register_view(TrailRendObjView),
       ecs_view_id(AtlasView),
       ecs_view_id(GlobalView));
 

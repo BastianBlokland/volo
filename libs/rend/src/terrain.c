@@ -29,20 +29,20 @@ ASSERT(sizeof(RendTerrainPatchData) == 16, "Size needs to match the size defined
 
 ecs_comp_define(RendTerrainComp) {
   u32         terrainVersion;
-  EcsEntityId drawEntity;
+  EcsEntityId objEntity;
 };
 
-static EcsEntityId rend_terrain_draw_create(EcsWorld* world) {
+static EcsEntityId rend_terrain_obj_create(EcsWorld* world) {
   EcsEntityId           e     = ecs_world_entity_create(world);
   const RendObjectFlags flags = RendObjectFlags_Terrain | RendObjectFlags_NoAutoClear;
   rend_draw_create(world, e, flags);
   return e;
 }
 
-static void rend_terrain_draw_init(const SceneTerrainComp* sceneTerrain, RendDrawComp* draw) {
+static void rend_terrain_obj_update(const SceneTerrainComp* sceneTerrain, RendObjectComp* obj) {
   const EcsEntityId graphic = scene_terrain_resource_graphic(sceneTerrain);
   if (!graphic) {
-    rend_draw_clear(draw);
+    rend_draw_clear(obj);
     return;
   }
   const EcsEntityId heightmap = scene_terrain_resource_heightmap(sceneTerrain);
@@ -57,16 +57,16 @@ static void rend_terrain_draw_init(const SceneTerrainComp* sceneTerrain, RendDra
   const f32 heightScale    = scene_terrain_height_max(sceneTerrain);
 
   // Set global terrain meta.
-  rend_draw_set_resource(draw, RendDrawResource_Graphic, graphic);
-  rend_draw_set_resource(draw, RendDrawResource_Texture, heightmap);
-  *rend_draw_set_data_t(draw, RendTerrainData) = (RendTerrainData){
+  rend_draw_set_resource(obj, RendDrawResource_Graphic, graphic);
+  rend_draw_set_resource(obj, RendDrawResource_Texture, heightmap);
+  *rend_draw_set_data_t(obj, RendTerrainData) = (RendTerrainData){
       .size        = size,
       .heightScale = heightScale,
       .patchScale  = patchScale,
   };
 
   // Clear previously added instances.
-  rend_draw_clear(draw);
+  rend_draw_clear(obj);
 
   // Add patch instances.
   const SceneTags patchTags = SceneTags_Terrain;
@@ -83,7 +83,7 @@ static void rend_terrain_draw_init(const SceneTerrainComp* sceneTerrain, RendDra
              .min = geo_vector_sub(patchCenter, geo_vector(patchHalfSize, 0, patchHalfSize)),
              .max = geo_vector_add(patchCenter, geo_vector(patchHalfSize, heightScale, patchHalfSize)),
       };
-      *rend_draw_add_instance_t(draw, RendTerrainPatchData, patchTags, patchBounds) = patchData;
+      *rend_draw_add_instance_t(obj, RendTerrainPatchData, patchTags, patchBounds) = patchData;
     }
   }
 }
@@ -93,9 +93,9 @@ ecs_view_define(GlobalView) {
   ecs_access_read(SceneTerrainComp);
 }
 
-ecs_view_define(DrawView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.
-  ecs_access_write(RendDrawComp);
+ecs_view_define(ObjView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the objects we create.
+  ecs_access_write(RendObjectComp);
 }
 
 ecs_system_define(RendTerrainCreateDrawSys) {
@@ -108,16 +108,16 @@ ecs_system_define(RendTerrainCreateDrawSys) {
   if (UNLIKELY(!rendTerrain)) {
     rendTerrain = ecs_world_add_t(world, ecs_world_global(world), RendTerrainComp);
   }
-  if (UNLIKELY(!rendTerrain->drawEntity)) {
-    rendTerrain->drawEntity = rend_terrain_draw_create(world);
+  if (UNLIKELY(!rendTerrain->objEntity)) {
+    rendTerrain->objEntity = rend_terrain_obj_create(world);
     return;
   }
 
-  RendDrawComp* draw = ecs_utils_write_t(world, DrawView, rendTerrain->drawEntity, RendDrawComp);
+  RendObjectComp* obj = ecs_utils_write_t(world, ObjView, rendTerrain->objEntity, RendObjectComp);
 
   const SceneTerrainComp* sceneTerrain = ecs_view_read_t(globalItr, SceneTerrainComp);
   if (rendTerrain->terrainVersion != scene_terrain_version(sceneTerrain)) {
-    rend_terrain_draw_init(sceneTerrain, draw);
+    rend_terrain_obj_update(sceneTerrain, obj);
     rendTerrain->terrainVersion = scene_terrain_version(sceneTerrain);
   }
 }
@@ -126,7 +126,7 @@ ecs_module_init(rend_terrain_module) {
   ecs_register_comp(RendTerrainComp);
 
   ecs_register_view(GlobalView);
-  ecs_register_view(DrawView);
+  ecs_register_view(ObjView);
 
-  ecs_register_system(RendTerrainCreateDrawSys, ecs_view_id(GlobalView), ecs_view_id(DrawView));
+  ecs_register_system(RendTerrainCreateDrawSys, ecs_view_id(GlobalView), ecs_view_id(ObjView));
 }

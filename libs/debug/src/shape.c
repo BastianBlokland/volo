@@ -134,7 +134,7 @@ static const String g_debugGraphics[DebugShapeType_Count] = {
 #undef shape_graphic
 // clang-format on
 
-ecs_comp_define(DebugShapeRendererComp) { EcsEntityId drawEntities[DebugShapeType_Count]; };
+ecs_comp_define(DebugShapeRendererComp) { EcsEntityId rendObjEntities[DebugShapeType_Count]; };
 
 ecs_comp_define(DebugShapeComp) {
   DynArray entries; // DebugShape[]
@@ -149,9 +149,9 @@ ecs_view_define(AssetManagerView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(ShapeRendererView) { ecs_access_write(DebugShapeRendererComp); }
 ecs_view_define(ShapeView) { ecs_access_write(DebugShapeComp); }
 
-ecs_view_define(DrawView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the draw's we create.
-  ecs_access_write(RendDrawComp);
+ecs_view_define(RendObjView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // Only access the render objects we create.
+  ecs_access_write(RendObjectComp);
 }
 
 static AssetManagerComp* debug_asset_manager(EcsWorld* world) {
@@ -167,7 +167,7 @@ static DebugShapeRendererComp* debug_shape_renderer(EcsWorld* world) {
 }
 
 static EcsEntityId
-debug_shape_draw_create(EcsWorld* world, AssetManagerComp* assets, const DebugShapeType shape) {
+debug_shape_rend_obj_create(EcsWorld* world, AssetManagerComp* assets, const DebugShapeType shape) {
   if (string_is_empty(g_debugGraphics[shape])) {
     return 0;
   }
@@ -179,9 +179,9 @@ debug_shape_draw_create(EcsWorld* world, AssetManagerComp* assets, const DebugSh
    * NOTE: Only instances of the same shape are sorted, order between different shapes is undefined.
    */
   const RendObjectFlags objFlags      = RendObjectFlags_SortBackToFront;
-  RendDrawComp*         draw          = rend_draw_create(world, entity, objFlags);
+  RendObjectComp*       obj           = rend_draw_create(world, entity, objFlags);
   const EcsEntityId     graphicEntity = asset_lookup(world, assets, g_debugGraphics[shape]);
-  rend_draw_set_resource(draw, RendDrawResource_Graphic, graphicEntity);
+  rend_draw_set_resource(obj, RendDrawResource_Graphic, graphicEntity);
   return entity;
 }
 
@@ -190,7 +190,7 @@ static void debug_shape_renderer_create(EcsWorld* world, AssetManagerComp* asset
       ecs_world_add_t(world, ecs_world_global(world), DebugShapeRendererComp);
 
   for (DebugShapeType shape = 0; shape != DebugShapeType_Count; ++shape) {
-    renderer->drawEntities[shape] = debug_shape_draw_create(world, assets, shape);
+    renderer->rendObjEntities[shape] = debug_shape_rend_obj_create(world, assets, shape);
   }
 }
 
@@ -217,14 +217,14 @@ ecs_system_define(DebugShapeRenderSys) {
     return; // Renderer not yet initialized.
   }
 
-  EcsView*     drawView = ecs_world_view_t(world, DrawView);
-  EcsIterator* drawItr  = ecs_view_itr(drawView);
+  EcsView*     rendObjView = ecs_world_view_t(world, RendObjView);
+  EcsIterator* rendObjItr  = ecs_view_itr(rendObjView);
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ShapeView)); ecs_view_walk(itr);) {
     DebugShapeComp* shape = ecs_view_write_t(itr, DebugShapeComp);
     dynarray_for_t(&shape->entries, DebugShape, entry) {
-      ecs_view_jump(drawItr, renderer->drawEntities[entry->type]);
-      RendDrawComp* draw = ecs_view_write_t(drawItr, RendDrawComp);
+      ecs_view_jump(rendObjItr, renderer->rendObjEntities[entry->type]);
+      RendObjectComp* rendObj = ecs_view_write_t(rendObjItr, RendObjectComp);
 
       typedef struct {
         ALIGNAS(16)
@@ -254,7 +254,7 @@ ecs_system_define(DebugShapeRenderSys) {
         };
         const GeoBox bounds =
             geo_box_transform3(&boundsLocal, entry->data_box.pos, entry->data_box.rot, 1);
-        *rend_draw_add_instance_t(draw, DrawMeshData, SceneTags_Debug, bounds) = (DrawMeshData){
+        *rend_draw_add_instance_t(rendObj, DrawMeshData, SceneTags_Debug, bounds) = (DrawMeshData){
             .pos   = entry->data_box.pos,
             .rot   = entry->data_box.rot,
             .scale = entry->data_box.size,
@@ -270,7 +270,7 @@ ecs_system_define(DebugShapeRenderSys) {
             entry->data_quad.sizeX,
             entry->data_quad.sizeY,
             entry->data_quad.rot);
-        *rend_draw_add_instance_t(draw, DrawMeshData, SceneTags_Debug, bounds) = (DrawMeshData){
+        *rend_draw_add_instance_t(rendObj, DrawMeshData, SceneTags_Debug, bounds) = (DrawMeshData){
             .pos   = entry->data_quad.pos,
             .rot   = entry->data_quad.rot,
             .scale = geo_vector(entry->data_quad.sizeX, entry->data_quad.sizeY, 1),
@@ -290,7 +290,7 @@ ecs_system_define(DebugShapeRenderSys) {
           continue;
         }
         const GeoBox bounds = geo_box_from_sphere(pos, radius);
-        *rend_draw_add_instance_t(draw, DrawMeshData, SceneTags_Debug, bounds) = (DrawMeshData){
+        *rend_draw_add_instance_t(rendObj, DrawMeshData, SceneTags_Debug, bounds) = (DrawMeshData){
             .pos   = pos,
             .rot   = entry->data_sphere.rot,
             .scale = geo_vector(radius, radius, radius),
@@ -312,7 +312,7 @@ ecs_system_define(DebugShapeRenderSys) {
           continue;
         }
         const GeoBox bounds = geo_box_from_cylinder(bottom, top, entry->data_cylinder.radius);
-        *rend_draw_add_instance_t(draw, DrawMeshData, SceneTags_Debug, bounds) = (DrawMeshData){
+        *rend_draw_add_instance_t(rendObj, DrawMeshData, SceneTags_Debug, bounds) = (DrawMeshData){
             .pos   = bottom,
             .rot   = geo_quat_look(geo_vector_div(toTop, dist), geo_up),
             .scale = {entry->data_cylinder.radius, entry->data_cylinder.radius, dist},
@@ -331,7 +331,7 @@ ecs_system_define(DebugShapeRenderSys) {
           continue;
         }
         const GeoBox bounds = geo_box_from_cone(bottom, top, entry->data_cone.radius);
-        *rend_draw_add_instance_t(draw, DrawMeshData, SceneTags_Debug, bounds) = (DrawMeshData){
+        *rend_draw_add_instance_t(rendObj, DrawMeshData, SceneTags_Debug, bounds) = (DrawMeshData){
             .pos   = bottom,
             .rot   = geo_quat_look(geo_vector_div(toTop, dist), geo_up),
             .scale = {entry->data_cone.radius, entry->data_cone.radius, dist},
@@ -342,7 +342,7 @@ ecs_system_define(DebugShapeRenderSys) {
       case DebugShapeType_Line:
       case DebugShapeType_LineOverlay: {
         const GeoBox bounds = geo_box_from_line(entry->data_line.start, entry->data_line.end);
-        *rend_draw_add_instance_t(draw, DrawLineData, SceneTags_Debug, bounds) = (DrawLineData){
+        *rend_draw_add_instance_t(rendObj, DrawLineData, SceneTags_Debug, bounds) = (DrawLineData){
             .positions[0] = entry->data_line.start,
             .positions[1] = entry->data_line.end,
             .color        = entry->data_line.color,
@@ -365,7 +365,7 @@ ecs_module_init(debug_shape_module) {
   ecs_register_view(AssetManagerView);
   ecs_register_view(ShapeRendererView);
   ecs_register_view(ShapeView);
-  ecs_register_view(DrawView);
+  ecs_register_view(RendObjView);
 
   ecs_register_system(
       DebugShapeInitSys, ecs_view_id(AssetManagerView), ecs_view_id(ShapeRendererView));
@@ -374,7 +374,7 @@ ecs_module_init(debug_shape_module) {
       DebugShapeRenderSys,
       ecs_view_id(ShapeRendererView),
       ecs_view_id(ShapeView),
-      ecs_view_id(DrawView));
+      ecs_view_id(RendObjView));
 
   ecs_order(DebugShapeRenderSys, DebugOrder_ShapeRender);
 }

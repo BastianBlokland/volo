@@ -5,8 +5,8 @@
 #include "geo_quat.h"
 #include "geo_vector.h"
 
-// Forward declare from 'rend_draw.h'.
-ecs_comp_extern(RendDrawComp);
+// Forward declare from 'rend_object.h'.
+ecs_comp_extern(RendObjectComp);
 
 // Forward declare from 'asset_atlas.h'.
 ecs_comp_extern(AssetAtlasComp);
@@ -33,12 +33,12 @@ typedef struct {
 } VfxSprite;
 
 /**
- * Initialize a sprite draw.
+ * Initialize a sprite render object.
  * NOTE: NOT thread-safe, should be called only once per frame.
  */
-void vfx_sprite_init(RendDrawComp*, const AssetAtlasComp*);
+void vfx_sprite_init(RendObjectComp*, const AssetAtlasComp*);
 
 /**
- * Output a sprite to the given draw.
+ * Output a sprite to the given render object.
  */
-void vfx_sprite_output(RendDrawComp*, const VfxSprite*);
+void vfx_sprite_output(RendObjectComp*, const VfxSprite*);
