@@ -36,7 +36,7 @@ ASSERT(sizeof(VfxStampData) == 64, "Size needs to match the size defined in glsl
 
 void vfx_stamp_init(
     RendObjectComp* obj, const AssetAtlasComp* atlasColor, const AssetAtlasComp* atlasNormal) {
-  *rend_draw_set_data_t(obj, VfxStampMetaData) = (VfxStampMetaData){
+  *rend_object_set_data_t(obj, VfxStampMetaData) = (VfxStampMetaData){
       .atlasColor  = vfx_atlas_draw_data(atlasColor),
       .atlasNormal = vfx_atlas_draw_data(atlasNormal),
   };
@@ -49,7 +49,7 @@ void vfx_stamp_output(RendObjectComp* obj, const VfxStamp* params) {
   const GeoBox box = geo_box_from_center(params->pos, geo_vector_mul_comps(stampSize, warpScale));
   const GeoBox bounds = geo_box_from_rotated(&box, params->rot);
 
-  VfxStampData* out = rend_draw_add_instance_t(obj, VfxStampData, SceneTags_Vfx, bounds);
+  VfxStampData* out = rend_object_add_instance_t(obj, VfxStampData, SceneTags_Vfx, bounds);
   out->data1[0]     = params->pos.x;
   out->data1[1]     = params->pos.y;
   out->data1[2]     = params->pos.z;

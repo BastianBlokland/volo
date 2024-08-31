@@ -46,53 +46,53 @@ ecs_comp_extern(RendObjectComp);
 RendObjectComp* rend_object_create(EcsWorld*, EcsEntityId entity, RendObjectFlags);
 
 /**
- * Query information about this draw.
+ * Query information about this object.
  */
-RendObjectFlags rend_draw_flags(const RendObjectComp*);
-EcsEntityId     rend_draw_resource(const RendObjectComp*, RendObjectResource);
-u32             rend_draw_instance_count(const RendObjectComp*);
-u32             rend_draw_data_size(const RendObjectComp*);
-u32             rend_draw_data_inst_size(const RendObjectComp*);
-SceneTags       rend_draw_tag_mask(const RendObjectComp*);
+RendObjectFlags rend_object_flags(const RendObjectComp*);
+EcsEntityId     rend_object_resource(const RendObjectComp*, RendObjectResource);
+u32             rend_object_instance_count(const RendObjectComp*);
+u32             rend_object_data_size(const RendObjectComp*);
+u32             rend_object_data_inst_size(const RendObjectComp*);
+SceneTags       rend_object_tag_mask(const RendObjectComp*);
 
 /**
- * Update a draw resource
+ * Update a object resource
  */
-void rend_draw_set_resource(RendObjectComp*, RendObjectResource, EcsEntityId asset);
+void rend_object_set_resource(RendObjectComp*, RendObjectResource, EcsEntityId asset);
 
 /**
- * Set a camera filter so only that specific camera will render this draw.
+ * Set a camera filter so only that specific camera will render this object.
  */
-void rend_draw_set_camera_filter(RendObjectComp*, EcsEntityId camera);
+void rend_object_set_camera_filter(RendObjectComp*, EcsEntityId camera);
 
 /**
- * Override the vertex count for the draw.
+ * Override the vertex count for the object.
  * NOTE: Pass 0 to use the vertex-count as specified by the graphic.
  */
-void rend_draw_set_vertex_count(RendObjectComp*, u32 vertexCount);
+void rend_object_set_vertex_count(RendObjectComp*, u32 vertexCount);
 
 /**
  * Clear any previously added instances.
  */
-void rend_draw_clear(RendObjectComp*);
+void rend_object_clear(RendObjectComp*);
 
 /**
  * Set the 'per draw' data.
  */
-#define rend_draw_set_data_t(_DRAW_, _TYPE_)                                                       \
-  ((_TYPE_*)rend_draw_set_data((_DRAW_), sizeof(_TYPE_)).ptr)
+#define rend_object_set_data_t(_OBJ_, _TYPE_)                                                      \
+  ((_TYPE_*)rend_object_set_data((_OBJ_), sizeof(_TYPE_)).ptr)
 
-Mem rend_draw_set_data(RendObjectComp*, usize size);
+Mem rend_object_set_data(RendObjectComp*, usize size);
 
 /**
- * Add a new instance to the given draw.
+ * Add a new instance to the given object.
  * NOTE: Invalidates pointers from previous calls to this api.
  * NOTE: All instances need to use the same data-size.
- * NOTE: Tags and bounds are used to filter the draws per camera.
+ * NOTE: Tags and bounds are used to filter the object per camera.
  * NOTE: Data size has to be consistent between all instances and across frames.
  * NOTE: Returned pointer is always at least 16bit aligned, stronger alignment cannot be guaranteed.
  */
-#define rend_draw_add_instance_t(_DRAW_, _TYPE_, _TAGS_, _AABB_)                                   \
-  ((_TYPE_*)rend_draw_add_instance((_DRAW_), sizeof(_TYPE_), (_TAGS_), (_AABB_)).ptr)
+#define rend_object_add_instance_t(_OBJ_, _TYPE_, _TAGS_, _AABB_)                                  \
+  ((_TYPE_*)rend_object_add_instance((_OBJ_), sizeof(_TYPE_), (_TAGS_), (_AABB_)).ptr)
 
-Mem rend_draw_add_instance(RendObjectComp*, usize size, SceneTags, GeoBox aabb);
+Mem rend_object_add_instance(RendObjectComp*, usize size, SceneTags, GeoBox aabb);

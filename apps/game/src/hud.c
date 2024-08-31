@@ -151,8 +151,8 @@ static EcsEntityId hud_rend_obj_create(
   }
 
   RendObjectComp* obj = rend_object_create(world, e, flags);
-  rend_draw_set_resource(obj, RendObjectResource_Graphic, asset_lookup(world, assets, graphic));
-  rend_draw_set_camera_filter(obj, window);
+  rend_object_set_resource(obj, RendObjectResource_Graphic, asset_lookup(world, assets, graphic));
+  rend_object_set_camera_filter(obj, window);
   return e;
 }
 
@@ -175,15 +175,15 @@ static void hud_indicator_ring_draw(
   } RingData;
 
   // NOTE: Vertex count can unfortunately not be dynamic as the renderer only supports specifying a
-  // custom vertex count per draw, and not per instance.
+  // custom vertex count per object, and not per instance.
   const u32 vertexCount = 200;
-  rend_draw_set_vertex_count(obj, vertexCount);
+  rend_object_set_vertex_count(obj, vertexCount);
 
   const f32    maxThickness = 0.5f; // Should be bigger or equal to the thickness in the shader.
   const GeoBox bounds       = geo_box_from_center(
       center, geo_vector((radius + maxThickness) * 2.0f, 1.0f, (radius + maxThickness) * 2.0f));
 
-  *rend_draw_add_instance_t(obj, RingData, SceneTags_Vfx, bounds) = (RingData){
+  *rend_object_add_instance_t(obj, RingData, SceneTags_Vfx, bounds) = (RingData){
       .center[0]   = center.x,
       .center[1]   = center.y,
       .center[2]   = center.z,
@@ -213,7 +213,7 @@ static void hud_indicator_box_draw(
   const GeoVector size         = geo_box_size(box);
   const GeoBox    bounds       = geo_box_dilate(box, geo_vector(maxThickness, 1.0f, maxThickness));
 
-  *rend_draw_add_instance_t(obj, BoxData, SceneTags_Vfx, bounds) = (BoxData){
+  *rend_object_add_instance_t(obj, BoxData, SceneTags_Vfx, bounds) = (BoxData){
       .center[0] = center.x,
       .center[1] = center.y,
       .center[2] = center.z,
@@ -555,9 +555,10 @@ static void hud_minimap_update(
   const EcsEntityId heightmap = scene_terrain_resource_heightmap(terrain);
   diag_assert(heightmap);
 
-  rend_draw_set_resource(obj, RendObjectResource_Texture, heightmap);
+  rend_object_set_resource(obj, RendObjectResource_Texture, heightmap);
 
-  *rend_draw_add_instance_t(obj, MinimapData, SceneTags_None, geo_box_inverted3()) = (MinimapData){
+  const GeoBox bounds                                                   = geo_box_inverted3();
+  *rend_object_add_instance_t(obj, MinimapData, SceneTags_None, bounds) = (MinimapData){
       .rect[0]     = (hud->minimapRect.x - 0.5f) / res.width,
       .rect[1]     = (hud->minimapRect.y - 0.5f) / res.height,
       .rect[2]     = (hud->minimapRect.width + 0.5f) / res.width,

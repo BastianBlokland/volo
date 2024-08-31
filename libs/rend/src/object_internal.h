@@ -8,5 +8,5 @@ typedef struct sRendView          RendView;
 
 ecs_comp_extern(RendSettingsComp);
 
-void rend_draw_push(
+void rend_object_push(
     const RendObjectComp*, const RendView*, const RendSettingsComp*, RendBuilderBuffer*);

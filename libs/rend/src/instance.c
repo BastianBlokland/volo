@@ -84,7 +84,7 @@ static SceneTags rend_tags(const SceneTagComp* tagComp, const SceneRenderableCom
 
 static void rend_obj_init(EcsWorld* w, const SceneRenderableComp* r, const RendObjectFlags flags) {
   RendObjectComp* obj = rend_object_create(w, r->graphic, flags);
-  rend_draw_set_resource(obj, RendObjectResource_Graphic, r->graphic);
+  rend_object_set_resource(obj, RendObjectResource_Graphic, r->graphic);
 }
 
 ecs_view_define(RenderableView) {
@@ -150,7 +150,7 @@ ecs_system_define(RendInstanceFillObjSys) {
     const f32       scale    = scaleComp ? scaleComp->scale : 1.0f;
     const GeoBox    aabb     = scene_bounds_world(boundsComp, transformComp, scaleComp);
 
-    RendInstanceData* data = rend_draw_add_instance_t(obj, RendInstanceData, tags, aabb);
+    RendInstanceData* data = rend_object_add_instance_t(obj, RendInstanceData, tags, aabb);
     data->posAndScale      = geo_vector(position.x, position.y, position.z, scale);
     data->rot              = rotation;
     data->tags             = (u32)tags;
@@ -234,7 +234,7 @@ ecs_system_define(RendInstanceSkinnedFillObjSys) {
     scene_skeleton_delta(skeletonComp, templ, jointDeltas);
 
     RendInstanceSkinnedData* data =
-        rend_draw_add_instance_t(obj, RendInstanceSkinnedData, tags, aabb);
+        rend_object_add_instance_t(obj, RendInstanceSkinnedData, tags, aabb);
     data->posAndScale = geo_vector(position.x, position.y, position.z, scale);
     data->rot         = rotation;
     data->tags        = (u32)tags;

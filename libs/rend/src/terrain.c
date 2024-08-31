@@ -42,7 +42,7 @@ static EcsEntityId rend_terrain_obj_create(EcsWorld* world) {
 static void rend_terrain_obj_update(const SceneTerrainComp* sceneTerrain, RendObjectComp* obj) {
   const EcsEntityId graphic = scene_terrain_resource_graphic(sceneTerrain);
   if (!graphic) {
-    rend_draw_clear(obj);
+    rend_object_clear(obj);
     return;
   }
   const EcsEntityId heightmap = scene_terrain_resource_heightmap(sceneTerrain);
@@ -57,16 +57,16 @@ static void rend_terrain_obj_update(const SceneTerrainComp* sceneTerrain, RendOb
   const f32 heightScale    = scene_terrain_height_max(sceneTerrain);
 
   // Set global terrain meta.
-  rend_draw_set_resource(obj, RendObjectResource_Graphic, graphic);
-  rend_draw_set_resource(obj, RendObjectResource_Texture, heightmap);
-  *rend_draw_set_data_t(obj, RendTerrainData) = (RendTerrainData){
+  rend_object_set_resource(obj, RendObjectResource_Graphic, graphic);
+  rend_object_set_resource(obj, RendObjectResource_Texture, heightmap);
+  *rend_object_set_data_t(obj, RendTerrainData) = (RendTerrainData){
       .size        = size,
       .heightScale = heightScale,
       .patchScale  = patchScale,
   };
 
   // Clear previously added instances.
-  rend_draw_clear(obj);
+  rend_object_clear(obj);
 
   // Add patch instances.
   const SceneTags patchTags = SceneTags_Terrain;
@@ -83,7 +83,7 @@ static void rend_terrain_obj_update(const SceneTerrainComp* sceneTerrain, RendOb
              .min = geo_vector_sub(patchCenter, geo_vector(patchHalfSize, 0, patchHalfSize)),
              .max = geo_vector_add(patchCenter, geo_vector(patchHalfSize, heightScale, patchHalfSize)),
       };
-      *rend_draw_add_instance_t(obj, RendTerrainPatchData, patchTags, patchBounds) = patchData;
+      *rend_object_add_instance_t(obj, RendTerrainPatchData, patchTags, patchBounds) = patchData;
     }
   }
 }

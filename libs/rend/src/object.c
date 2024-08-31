@@ -47,7 +47,7 @@ ecs_comp_define(RendObjectComp) {
 /**
  * Pre-condition: bits_is_aligned(size, 16)
  */
-INLINE_HINT static void rend_draw_memcpy(u8* dst, const u8* src, const usize size) {
+INLINE_HINT static void rend_object_memcpy(u8* dst, const u8* src, const usize size) {
 #ifdef VOLO_SIMD
   const void* end = bits_ptr_offset(src, size);
   for (; src != end; src += 16, dst += 16) {
@@ -95,8 +95,8 @@ static void ecs_combine_draw(void* dataA, void* dataB) {
       aabb = mem_as_t(drawB->instAabbMem, GeoBox)[i];
     }
 
-    const Mem newData = rend_draw_add_instance(drawA, data.size, tags, aabb);
-    rend_draw_memcpy(newData.ptr, data.ptr, data.size);
+    const Mem newData = rend_object_add_instance(drawA, data.size, tags, aabb);
+    rend_object_memcpy(newData.ptr, data.ptr, data.size);
   }
 
   ecs_destruct_draw(drawB);
@@ -113,22 +113,22 @@ INLINE_HINT static void buf_ensure(Mem* mem, const usize size, const usize align
   }
 }
 
-INLINE_HINT static u32 rend_draw_align(const u32 val, const u32 align) {
+INLINE_HINT static u32 rend_object_align(const u32 val, const u32 align) {
   const u32 rem = val & (align - 1);
   return val + (rem ? align - rem : 0);
 }
 
-static Mem rend_draw_inst_data(const RendObjectComp* draw, const u32 instance) {
+static Mem rend_object_inst_data(const RendObjectComp* draw, const u32 instance) {
   const usize offset = instance * draw->instDataSize;
   return mem_create(bits_ptr_offset(draw->instDataMem.ptr, offset), draw->instDataSize);
 }
 
-static void rend_draw_copy_to_output(
+static void rend_object_copy_to_output(
     const RendObjectComp* draw, const u32 instIndex, const u32 outIndex, const Mem outMem) {
   const usize outOffset  = outIndex * draw->instDataSize;
   const Mem   outInstMem = mem_create(bits_ptr_offset(outMem.ptr, outOffset), draw->instDataSize);
-  const Mem   inInstMem  = rend_draw_inst_data(draw, instIndex);
-  rend_draw_memcpy(outInstMem.ptr, inInstMem.ptr, inInstMem.size);
+  const Mem   inInstMem  = rend_object_inst_data(draw, instIndex);
+  rend_object_memcpy(outInstMem.ptr, inInstMem.ptr, inInstMem.size);
 }
 
 static bool rend_resource_asset_valid(EcsWorld* world, const EcsEntityId assetEntity) {
@@ -138,7 +138,7 @@ static bool rend_resource_asset_valid(EcsWorld* world, const EcsEntityId assetEn
 /**
  * Request the given resource to be loaded.
  */
-static void rend_draw_resource_request(
+static void rend_object_resource_request(
     EcsWorld* world, const EcsEntityId entity, EcsIterator* resItr, u32* numRequests) {
   /**
    * If the resource is already loaded then tell the resource system we're still using it (so it
@@ -167,7 +167,7 @@ ecs_system_define(RendClearDrawsSys) {
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
     RendObjectComp* drawComp = ecs_view_write_t(itr, RendObjectComp);
     if (!(drawComp->flags & RendObjectFlags_NoAutoClear)) {
-      rend_draw_clear(drawComp);
+      rend_object_clear(drawComp);
     }
   }
 }
@@ -190,13 +190,13 @@ ecs_system_define(RendObjectResourceRequestSys) {
     }
     for (u32 i = 0; i != RendObjectResource_Count; ++i) {
       if (comp->resources[i]) {
-        rend_draw_resource_request(world, comp->resources[i], resItr, &numRequests);
+        rend_object_resource_request(world, comp->resources[i], resItr, &numRequests);
       }
     }
   }
 }
 
-ecs_module_init(rend_draw_module) {
+ecs_module_init(rend_object_module) {
   ecs_register_comp(
       RendObjectComp, .destructor = ecs_destruct_draw, .combinator = ecs_combine_draw);
 
@@ -221,42 +221,43 @@ rend_object_create(EcsWorld* world, const EcsEntityId entity, const RendObjectFl
   return ecs_world_add_t(world, entity, RendObjectComp, .flags = flags);
 }
 
-RendObjectFlags rend_draw_flags(const RendObjectComp* draw) { return draw->flags; }
+RendObjectFlags rend_object_flags(const RendObjectComp* draw) { return draw->flags; }
 
-EcsEntityId rend_draw_resource(const RendObjectComp* draw, const RendObjectResource id) {
+EcsEntityId rend_object_resource(const RendObjectComp* draw, const RendObjectResource id) {
   return draw->resources[id];
 }
 
-u32       rend_draw_instance_count(const RendObjectComp* draw) { return draw->instCount; }
-u32       rend_draw_data_size(const RendObjectComp* draw) { return draw->dataSize; }
-u32       rend_draw_data_inst_size(const RendObjectComp* draw) { return draw->instDataSize; }
-SceneTags rend_draw_tag_mask(const RendObjectComp* draw) { return draw->tagMask; }
+u32       rend_object_instance_count(const RendObjectComp* draw) { return draw->instCount; }
+u32       rend_object_data_size(const RendObjectComp* draw) { return draw->dataSize; }
+u32       rend_object_data_inst_size(const RendObjectComp* draw) { return draw->instDataSize; }
+SceneTags rend_object_tag_mask(const RendObjectComp* draw) { return draw->tagMask; }
 
-static i8 rend_draw_compare_back_to_front(const void* a, const void* b) {
+static i8 rend_object_compare_back_to_front(const void* a, const void* b) {
   const u16 distA = *field_ptr(a, RendDrawSortKey, viewDist);
   const u16 distB = *field_ptr(b, RendDrawSortKey, viewDist);
   return distA > distB ? -1 : distA < distB ? 1 : 0;
 }
 
-static i8 rend_draw_compare_front_to_back(const void* a, const void* b) {
+static i8 rend_object_compare_front_to_back(const void* a, const void* b) {
   const u16 distA = *field_ptr(a, RendDrawSortKey, viewDist);
   const u16 distB = *field_ptr(b, RendDrawSortKey, viewDist);
   return distA < distB ? -1 : distA > distB ? 1 : 0;
 }
 
-static void rend_draw_sort(const RendObjectComp* draw, RendDrawSortKey* sortKeys, const u32 count) {
+static void
+rend_object_sort(const RendObjectComp* draw, RendDrawSortKey* sortKeys, const u32 count) {
   CompareFunc compareFunc;
   if (draw->flags & RendObjectFlags_SortBackToFront) {
-    compareFunc = rend_draw_compare_back_to_front;
+    compareFunc = rend_object_compare_back_to_front;
   } else if (draw->flags & RendObjectFlags_SortFrontToBack) {
-    compareFunc = rend_draw_compare_front_to_back;
+    compareFunc = rend_object_compare_front_to_back;
   } else {
     diag_crash_msg("Unsupported sort mode");
   }
   sort_quicksort_t(sortKeys, sortKeys + count, RendDrawSortKey, compareFunc);
 }
 
-void rend_draw_push(
+void rend_object_push(
     const RendObjectComp*   draw,
     const RendView*         view,
     const RendSettingsComp* settings,
@@ -320,7 +321,7 @@ void rend_draw_push(
           .viewDist  = rend_view_sort_dist(view, instAabb),
       };
     } else {
-      rend_draw_copy_to_output(draw, i, outputIndex, outputMem);
+      rend_object_copy_to_output(draw, i, outputIndex, outputMem);
     }
   }
 
@@ -332,12 +333,12 @@ void rend_draw_push(
     // clang-format off
 #ifdef VOLO_TRACE
     const bool trace = filteredInstCount > 1000;
-    if (trace) { trace_begin("rend_draw_sort", TraceColor_Blue); }
+    if (trace) { trace_begin("rend_object_sort", TraceColor_Blue); }
 #endif
     outputMem = rend_builder_draw_instances(builder, filteredInstCount, draw->instDataSize);
-    rend_draw_sort(draw, sortKeys, filteredInstCount);
+    rend_object_sort(draw, sortKeys, filteredInstCount);
     for (u32 i = 0; i != filteredInstCount; ++i) {
-      rend_draw_copy_to_output(draw, sortKeys[i].instIndex, i, outputMem);
+      rend_object_copy_to_output(draw, sortKeys[i].instIndex, i, outputMem);
     }
 #ifdef VOLO_TRACE
     if (trace) { trace_end(); }
@@ -346,36 +347,36 @@ void rend_draw_push(
   }
 }
 
-void rend_draw_set_resource(
+void rend_object_set_resource(
     RendObjectComp* comp, const RendObjectResource id, const EcsEntityId asset) {
   comp->resources[id] = asset;
 }
 
-void rend_draw_set_camera_filter(RendObjectComp* comp, const EcsEntityId camera) {
+void rend_object_set_camera_filter(RendObjectComp* comp, const EcsEntityId camera) {
   comp->cameraFilter = camera;
 }
 
-void rend_draw_set_vertex_count(RendObjectComp* comp, const u32 vertexCount) {
+void rend_object_set_vertex_count(RendObjectComp* comp, const u32 vertexCount) {
   comp->vertexCountOverride = vertexCount;
 }
 
-void rend_draw_clear(RendObjectComp* draw) {
+void rend_object_clear(RendObjectComp* draw) {
   draw->instCount    = 0;
   draw->instDataSize = 0;
   draw->tagMask      = 0;
 }
 
-Mem rend_draw_set_data(RendObjectComp* draw, const usize size) {
+Mem rend_object_set_data(RendObjectComp* draw, const usize size) {
   buf_ensure(&draw->dataMem, size, rend_min_align);
   draw->dataSize = (u32)size;
   return draw->dataMem;
 }
 
-Mem rend_draw_add_instance(
+Mem rend_object_add_instance(
     RendObjectComp* draw, const usize size, const SceneTags tags, const GeoBox aabb) {
 
   if (UNLIKELY(!draw->instDataSize)) {
-    draw->instDataSize = rend_draw_align((u32)size, rend_min_align);
+    draw->instDataSize = rend_object_align((u32)size, rend_min_align);
   }
   diag_assert_msg(size <= draw->instDataSize, "Draw instance-data size mismatch");
 
@@ -396,5 +397,5 @@ Mem rend_draw_add_instance(
     ((GeoBox*)draw->instAabbMem.ptr)[drawIndex]    = aabb;
   }
 
-  return rend_draw_inst_data(draw, drawIndex);
+  return rend_object_inst_data(draw, drawIndex);
 }

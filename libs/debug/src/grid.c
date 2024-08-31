@@ -104,10 +104,10 @@ static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetMa
   ecs_world_add_t(world, rendObjEntity, SceneLifetimeOwnerComp, .owners[0] = entity);
 
   RendObjectComp* rendObj = rend_object_create(world, rendObjEntity, RendObjectFlags_None);
-  rend_draw_set_camera_filter(rendObj, entity);
+  rend_object_set_camera_filter(rendObj, entity);
 
   const EcsEntityId gridGraphicAsset = asset_lookup(world, assets, g_graphic);
-  rend_draw_set_resource(rendObj, RendObjectResource_Graphic, gridGraphicAsset);
+  rend_object_set_resource(rendObj, RendObjectResource_Graphic, gridGraphicAsset);
 
   ecs_world_add_t(
       world,
@@ -157,8 +157,8 @@ ecs_system_define(DebugGridDrawSys) {
     cellCount += cellCount % 2; // Align to be divisible by two (makes the grid even on both sides).
     const u32 segmentCount = cellCount + 1; // +1 for the lines to 'close' the last row and column.
 
-    rend_draw_set_vertex_count(obj, segmentCount * 4);
-    *rend_draw_add_instance_t(obj, DebugGridData, SceneTags_Debug, geo_box_inverted3()) =
+    rend_object_set_vertex_count(obj, segmentCount * 4);
+    *rend_object_add_instance_t(obj, DebugGridData, SceneTags_Debug, geo_box_inverted3()) =
         (DebugGridData){
             .cellSize          = float_f32_to_f16(grid->cellSize),
             .height            = float_f32_to_f16(grid->height),

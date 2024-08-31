@@ -4,11 +4,11 @@
 #include "rend_register.h"
 
 void rend_register(EcsDef* def) {
-  ecs_register_module(def, rend_draw_module);
   ecs_register_module(def, rend_fog_module);
   ecs_register_module(def, rend_instance_module);
   ecs_register_module(def, rend_light_module);
   ecs_register_module(def, rend_limiter_module);
+  ecs_register_module(def, rend_object_module);
   ecs_register_module(def, rend_painter_module);
   ecs_register_module(def, rend_platform_module);
   ecs_register_module(def, rend_reset_module);

@@ -152,7 +152,7 @@ static EcsEntityId rend_light_obj_create(
   const EcsEntityId entity        = ecs_world_entity_create(world);
   RendObjectComp*   obj           = rend_object_create(world, entity, RendObjectFlags_Light);
   const EcsEntityId graphicEntity = asset_lookup(world, assets, g_lightGraphics[objIndex]);
-  rend_draw_set_resource(obj, RendObjectResource_Graphic, graphicEntity);
+  rend_object_set_resource(obj, RendObjectResource_Graphic, graphicEntity);
   return entity;
 }
 
@@ -424,7 +424,7 @@ ecs_system_define(RendLightRenderSys) {
         }
         const GeoVector direction = geo_quat_rotate(entry->data_directional.rotation, geo_forward);
         const GeoBox    bounds    = geo_box_inverted3(); // Cannot be culled.
-        *rend_draw_add_instance_t(obj, LightDirData, tags, bounds) = (LightDirData){
+        *rend_object_add_instance_t(obj, LightDirData, tags, bounds) = (LightDirData){
             .direction       = direction,
             .radianceFlags.x = radiance.r,
             .radianceFlags.y = radiance.g,
@@ -446,7 +446,7 @@ ecs_system_define(RendLightRenderSys) {
           continue;
         }
         const GeoBox bounds = geo_box_from_sphere(pos, radius);
-        *rend_draw_add_instance_t(obj, LightPointData, tags, bounds) = (LightPointData){
+        *rend_object_add_instance_t(obj, LightPointData, tags, bounds) = (LightPointData){
             .posScale.x             = pos.x,
             .posScale.y             = pos.y,
             .posScale.z             = pos.z,

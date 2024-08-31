@@ -353,22 +353,22 @@ static SceneTags painter_push_draws_simple(
   EcsIterator* resourceItr = ecs_view_itr(resourceView);
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
-    if (includeFlags && !(rend_draw_flags(obj) & includeFlags)) {
+    if (includeFlags && !(rend_object_flags(obj) & includeFlags)) {
       continue; // Object misses a include flag.
     }
-    if (rend_draw_flags(obj) & ignoreFlags) {
+    if (rend_object_flags(obj) & ignoreFlags) {
       continue; // Object has an ignore flag.
     }
 
     // Retrieve and prepare the object's graphic.
-    const EcsEntityId graphicResource = rend_draw_resource(obj, RendObjectResource_Graphic);
+    const EcsEntityId graphicResource = rend_object_resource(obj, RendObjectResource_Graphic);
     RvkGraphic*       graphic         = painter_get_graphic(resourceItr, graphicResource);
     if (!graphic || !rvk_pass_prepare(ctx->pass, graphic)) {
       continue; // Graphic not ready to be drawn.
     }
 
     // If the object uses a 'per draw' texture then retrieve and prepare it.
-    const EcsEntityId textureResource = rend_draw_resource(obj, RendObjectResource_Texture);
+    const EcsEntityId textureResource = rend_object_resource(obj, RendObjectResource_Texture);
     RvkTexture*       texture         = null;
     if (textureResource) {
       texture = painter_get_texture(resourceItr, textureResource);
@@ -381,10 +381,10 @@ static SceneTags painter_push_draws_simple(
     if (texture) {
       rend_builder_draw_image(ctx->builder, &texture->image);
     }
-    rend_draw_push(obj, &ctx->view, ctx->settings, ctx->builder);
+    rend_object_push(obj, &ctx->view, ctx->settings, ctx->builder);
     rend_builder_draw_flush(ctx->builder);
 
-    tagMask |= rend_draw_tag_mask(obj);
+    tagMask |= rend_object_tag_mask(obj);
   }
 
   return tagMask;
@@ -402,15 +402,15 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
 
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
-    if (!(rend_draw_flags(obj) & requiredAny)) {
+    if (!(rend_object_flags(obj) & requiredAny)) {
       continue; // Object shouldn't be included in the shadow pass.
     }
-    const EcsEntityId graphicOriginalResource = rend_draw_resource(obj, RendObjectResource_Graphic);
-    RvkGraphic*       graphicOriginal = painter_get_graphic(resourceItr, graphicOriginalResource);
+    const EcsEntityId graphicOriginalRes = rend_object_resource(obj, RendObjectResource_Graphic);
+    RvkGraphic*       graphicOriginal    = painter_get_graphic(resourceItr, graphicOriginalRes);
     if (!graphicOriginal) {
       continue; // Graphic not loaded.
     }
-    const bool isVfxSprite = (rend_draw_flags(obj) & RendObjectFlags_VfxSprite) != 0;
+    const bool isVfxSprite = (rend_object_flags(obj) & RendObjectFlags_VfxSprite) != 0;
     RvkMesh*   objMesh     = graphicOriginal->mesh;
     if (!isVfxSprite && (!objMesh || !rvk_pass_prepare_mesh(ctx->pass, objMesh))) {
       continue; // Graphic is not a vfx sprite and does not have a mesh to draw a shadow for.
@@ -428,7 +428,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
     RvkRepositoryId graphicId;
     if (isVfxSprite) {
       graphicId = RvkRepositoryId_ShadowVfxSpriteGraphic;
-    } else if (rend_draw_flags(obj) & RendObjectFlags_Skinned) {
+    } else if (rend_object_flags(obj) & RendObjectFlags_Skinned) {
       graphicId = RvkRepositoryId_ShadowSkinnedGraphic;
     } else {
       graphicId = objAlphaImg ? RvkRepositoryId_ShadowClipGraphic : RvkRepositoryId_ShadowGraphic;
@@ -445,7 +445,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
         rend_builder_draw_image(ctx->builder, objAlphaImg);
         rend_builder_draw_sampler(ctx->builder, (RvkSamplerSpec){.aniso = RvkSamplerAniso_x8});
       }
-      rend_draw_push(obj, &ctx->view, ctx->settings, ctx->builder);
+      rend_object_push(obj, &ctx->view, ctx->settings, ctx->builder);
       rend_builder_draw_flush(ctx->builder);
     }
   }
@@ -678,11 +678,11 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
 
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
-    if (!(rend_draw_flags(obj) & RendObjectFlags_Geometry)) {
+    if (!(rend_object_flags(obj) & RendObjectFlags_Geometry)) {
       continue; // Not a object we can render a wireframe for.
     }
-    const EcsEntityId graphicOriginalResource = rend_draw_resource(obj, RendObjectResource_Graphic);
-    RvkGraphic*       graphicOriginal = painter_get_graphic(resourceItr, graphicOriginalResource);
+    const EcsEntityId graphicOriginalRes = rend_object_resource(obj, RendObjectResource_Graphic);
+    RvkGraphic*       graphicOriginal    = painter_get_graphic(resourceItr, graphicOriginalRes);
     if (!graphicOriginal) {
       continue; // Graphic not loaded.
     }
@@ -692,9 +692,9 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
     }
 
     RvkRepositoryId graphicId;
-    if (rend_draw_flags(obj) & RendObjectFlags_Terrain) {
+    if (rend_object_flags(obj) & RendObjectFlags_Terrain) {
       graphicId = RvkRepositoryId_DebugWireframeTerrainGraphic;
-    } else if (rend_draw_flags(obj) & RendObjectFlags_Skinned) {
+    } else if (rend_object_flags(obj) & RendObjectFlags_Skinned) {
       graphicId = RvkRepositoryId_DebugWireframeSkinnedGraphic;
     } else {
       graphicId = RvkRepositoryId_DebugWireframeGraphic;
@@ -706,7 +706,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
 
     // If the object uses a 'per draw' texture then retrieve and prepare it.
     // NOTE: This is needed for the terrain wireframe as it contains the heightmap.
-    const EcsEntityId textureResource = rend_draw_resource(obj, RendObjectResource_Texture);
+    const EcsEntityId textureResource = rend_object_resource(obj, RendObjectResource_Texture);
     RvkTexture*       texture         = null;
     if (textureResource) {
       texture = painter_get_texture(resourceItr, textureResource);
@@ -720,7 +720,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
     if (texture) {
       rend_builder_draw_image(ctx->builder, &texture->image);
     }
-    rend_draw_push(obj, &ctx->view, ctx->settings, ctx->builder);
+    rend_object_push(obj, &ctx->view, ctx->settings, ctx->builder);
     rend_builder_draw_flush(ctx->builder);
   }
 }
@@ -737,11 +737,11 @@ painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView, EcsView* re
   EcsIterator* resourceItr = ecs_view_itr(resourceView);
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
-    if (!(rend_draw_flags(obj) & RendObjectFlags_Skinned)) {
+    if (!(rend_object_flags(obj) & RendObjectFlags_Skinned)) {
       continue; // Not a skinned object.
     }
-    const EcsEntityId graphicOriginalResource = rend_draw_resource(obj, RendObjectResource_Graphic);
-    RvkGraphic*       graphicOriginal = painter_get_graphic(resourceItr, graphicOriginalResource);
+    const EcsEntityId graphicOriginalRes = rend_object_resource(obj, RendObjectResource_Graphic);
+    RvkGraphic*       graphicOriginal    = painter_get_graphic(resourceItr, graphicOriginalRes);
     if (!graphicOriginal) {
       continue; // Graphic not loaded.
     }
@@ -751,7 +751,7 @@ painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView, EcsView* re
     if (rvk_pass_prepare_mesh(ctx->pass, mesh)) {
       rend_builder_draw_push(ctx->builder, debugGraphic);
       rend_builder_draw_mesh(ctx->builder, mesh);
-      rend_draw_push(obj, &ctx->view, ctx->settings, ctx->builder);
+      rend_object_push(obj, &ctx->view, ctx->settings, ctx->builder);
       rend_builder_draw_flush(ctx->builder);
     }
   }

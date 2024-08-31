@@ -213,7 +213,7 @@ static void ui_canvas_output_atom(void* userCtx, const UiAtomData data, const Ui
   switch (layer) {
   case UiLayer_Normal: {
     const GeoBox bounds = geo_box_inverted3();
-    *rend_draw_add_instance_t(state->rendObj, UiAtomData, SceneTags_None, bounds) = data;
+    *rend_object_add_instance_t(state->rendObj, UiAtomData, SceneTags_None, bounds) = data;
   } break;
   case UiLayer_Invisible:
   case UiLayer_OverlayInvisible:
@@ -424,7 +424,7 @@ static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
 
   const RendObjectFlags objFlags = RendObjectFlags_Post | RendObjectFlags_NoInstanceFiltering;
   RendObjectComp*       rendObj  = rend_object_create(world, rendObjEntity, objFlags);
-  rend_draw_set_camera_filter(rendObj, window);
+  rend_object_set_camera_filter(rendObj, window);
 
   ecs_world_add_t(
       world,
@@ -517,7 +517,7 @@ ecs_system_define(UiRenderSys) {
     } else {
       graphic = ui_resource_graphic(globalRes, UiGraphicRes_Normal);
     }
-    rend_draw_set_resource(rendObj, RendObjectResource_Graphic, graphic);
+    rend_object_set_resource(rendObj, RendObjectResource_Graphic, graphic);
 
     const f32      scale       = ui_window_scale(window, settings);
     const UiVector canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
@@ -593,23 +593,23 @@ ecs_system_define(UiRenderSys) {
 
     stats->canvasSize       = canvasSize;
     stats->canvasCount      = canvasCount;
-    stats->atomCount        = rend_draw_instance_count(rendObj);
+    stats->atomCount        = rend_object_instance_count(rendObj);
     stats->atomOverlayCount = (u32)renderer->overlayAtoms.size;
     stats->clipRectCount    = renderState.clipRectCount;
 
     if (!canvasCount) {
-      diag_assert(!rend_draw_instance_count(rendObj));
+      diag_assert(!rend_object_instance_count(rendObj));
       continue;
     }
 
     // Add the overlay atoms, at this stage all the normal atoms have already been added.
     dynarray_for_t(&renderer->overlayAtoms, UiAtomData, atom) {
-      *rend_draw_add_instance_t(rendObj, UiAtomData, SceneTags_None, geo_box_inverted3()) = *atom;
+      *rend_object_add_instance_t(rendObj, UiAtomData, SceneTags_None, geo_box_inverted3()) = *atom;
     }
     dynarray_clear(&renderer->overlayAtoms);
 
     // Set the metadata.
-    UiDrawMetaData* drawMeta = rend_draw_set_data_t(rendObj, UiDrawMetaData);
+    UiDrawMetaData* drawMeta = rend_object_set_data_t(rendObj, UiDrawMetaData);
     *drawMeta                = ui_draw_metadata(&renderState, atlasFont, atlasImage);
   }
 }

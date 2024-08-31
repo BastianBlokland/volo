@@ -26,7 +26,7 @@ typedef struct {
 ASSERT(sizeof(VfxSpriteData) == 48, "Size needs to match the size defined in glsl");
 
 void vfx_sprite_init(RendObjectComp* obj, const AssetAtlasComp* atlas) {
-  *rend_draw_set_data_t(obj, VfxSpriteMetaData) = (VfxSpriteMetaData){
+  *rend_object_set_data_t(obj, VfxSpriteMetaData) = (VfxSpriteMetaData){
       .atlas = vfx_atlas_draw_data(atlas),
   };
 }
@@ -43,7 +43,7 @@ void vfx_sprite_output(RendObjectComp* obj, const VfxSprite* p) {
   if (p->flags & VfxSprite_ShadowCaster) {
     tags |= SceneTags_ShadowCaster;
   }
-  VfxSpriteData* data = rend_draw_add_instance_t(obj, VfxSpriteData, tags, bounds);
+  VfxSpriteData* data = rend_object_add_instance_t(obj, VfxSpriteData, tags, bounds);
   data->data1[0]      = p->position.x;
   data->data1[1]      = p->position.y;
   data->data1[2]      = p->position.z;

@@ -45,7 +45,7 @@ static EcsEntityId rend_fog_rend_obj_create(EcsWorld* world, AssetManagerComp* a
   const EcsEntityId entity        = ecs_world_entity_create(world);
   RendObjectComp*   obj           = rend_object_create(world, entity, RendObjectFlags_FogVision);
   const EcsEntityId graphicEntity = asset_lookup(world, assets, g_fogVisionGraphic);
-  rend_draw_set_resource(obj, RendObjectResource_Graphic, graphicEntity);
+  rend_object_set_resource(obj, RendObjectResource_Graphic, graphicEntity);
   return entity;
 }
 
@@ -123,8 +123,9 @@ ecs_system_define(RendFogRenderSys) {
     } FogVisionData;
     ASSERT(sizeof(FogVisionData) == 16, "Size needs to match the size defined in glsl");
 
-    const GeoBox visBounds = geo_box_from_sphere(trans->position, vision->radius);
-    *rend_draw_add_instance_t(rendObj, FogVisionData, SceneTags_None, visBounds) = (FogVisionData){
+    const SceneTags tags      = SceneTags_None;
+    const GeoBox    visBounds = geo_box_from_sphere(trans->position, vision->radius);
+    *rend_object_add_instance_t(rendObj, FogVisionData, tags, visBounds) = (FogVisionData){
         .data1.x = trans->position.x,
         .data1.y = trans->position.y,
         .data1.z = trans->position.z,
