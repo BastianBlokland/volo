@@ -175,11 +175,8 @@ void rend_builder_draw_sampler(RendBuilderBuffer* buffer, const RvkSamplerSpec s
 
 void rend_builder_draw_flush(RendBuilderBuffer* buffer) {
   diag_assert_msg(!buffer->draw, "RendBuilder: Draw not active");
-  buffer->draw = null;
-}
-
-void rend_builder_draw_discard(RendBuilderBuffer* buffer) {
-  diag_assert_msg(!buffer->draw, "RendBuilder: Draw not active");
-  dynarray_remove(&buffer->drawList, buffer->drawList.size - 1, 1);
+  if (!buffer->draw->instCount) {
+    dynarray_remove(&buffer->drawList, buffer->drawList.size - 1, 1);
+  }
   buffer->draw = null;
 }

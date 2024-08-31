@@ -40,4 +40,3 @@ void rend_builder_draw_mesh(RendBuilderBuffer*, RvkMesh*);
 void rend_builder_draw_image(RendBuilderBuffer*, RvkImage*);
 void rend_builder_draw_sampler(RendBuilderBuffer*, RvkSamplerSpec);
 void rend_builder_draw_flush(RendBuilderBuffer*);
-void rend_builder_draw_discard(RendBuilderBuffer*);
