@@ -342,11 +342,11 @@ static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id,
   }
 }
 
-static SceneTags painter_push_draws_simple(
+static SceneTags painter_push_objects_simple(
     RendPaintContext*     ctx,
     EcsView*              objView,
     EcsView*              resourceView,
-    const RendObjectFlags includeFlags /* included if the draw has any of these flags */,
+    const RendObjectFlags includeFlags /* included if the object has any of these flags */,
     const RendObjectFlags ignoreFlags) {
   SceneTags tagMask = 0;
 
@@ -533,7 +533,7 @@ static void painter_push_forward(RendPaintContext* ctx, EcsView* objView, EcsVie
     ignoreFlags |= RendObjectFlags_Light;
   }
 
-  painter_push_draws_simple(ctx, objView, resourceView, RendObjectFlags_None, ignoreFlags);
+  painter_push_objects_simple(ctx, objView, resourceView, RendObjectFlags_None, ignoreFlags);
 }
 
 static void painter_push_tonemapping(RendPaintContext* ctx) {
@@ -786,7 +786,7 @@ static bool rend_canvas_paint_2d(
     RendPaintContext ctx =
         painter_context(painter->canvas, builder, set, setGlobal, time, postPass, mainView);
     rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
-    painter_push_draws_simple(
+    painter_push_objects_simple(
         &ctx, objView, resourceView, RendObjectFlags_Post, RendObjectFlags_None);
 
     rend_builder_pass_flush(builder);
@@ -847,7 +847,7 @@ static bool rend_canvas_paint_3d(
     rvk_pass_stage_attach_color(geoPass, geoData1, 1);
     rvk_pass_stage_attach_depth(geoPass, geoDepth);
     painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
-    geoTagMask = painter_push_draws_simple(
+    geoTagMask = painter_push_objects_simple(
         &ctx, objView, resourceView, RendObjectFlags_Geometry, RendObjectFlags_None);
 
     rend_builder_pass_flush(builder);
@@ -876,7 +876,7 @@ static bool rend_canvas_paint_3d(
     rvk_pass_stage_attach_color(decalPass, geoData1, 1);
     rvk_pass_stage_attach_depth(decalPass, geoDepth);
     painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
-    painter_push_draws_simple(
+    painter_push_objects_simple(
         &ctx, objView, resourceView, RendObjectFlags_Decal, RendObjectFlags_None);
 
     rend_builder_pass_flush(builder);
@@ -904,7 +904,7 @@ static bool rend_canvas_paint_3d(
         painter_context(painter->canvas, builder, set, setGlobal, time, fogPass, fogView);
     rvk_pass_stage_attach_color(fogPass, fogBuffer, 0);
     painter_stage_global_data(&ctx, fogTrans, fogProj, fogSize, time, RendViewType_Fog);
-    painter_push_draws_simple(
+    painter_push_objects_simple(
         &ctx, objView, resourceView, RendObjectFlags_FogVision, RendObjectFlags_None);
 
     rend_builder_pass_flush(builder);
@@ -1076,7 +1076,7 @@ static bool rend_canvas_paint_3d(
     rvk_pass_stage_attach_depth(distPass, distDepth);
 
     painter_stage_global_data(&ctx, &camMat, &projMat, distSize, time, RendViewType_Main);
-    painter_push_draws_simple(
+    painter_push_objects_simple(
         &ctx, objView, resourceView, RendObjectFlags_Distortion, RendObjectFlags_None);
 
     rend_builder_pass_flush(builder);
@@ -1157,7 +1157,7 @@ static bool rend_canvas_paint_3d(
     rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
     painter_stage_global_data(&ctx, &camMat, &projMat, swapchainSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
-    painter_push_draws_simple(
+    painter_push_objects_simple(
         &ctx, objView, resourceView, RendObjectFlags_Post, RendObjectFlags_None);
 
     if (set->flags & RendFlags_DebugFog) {
