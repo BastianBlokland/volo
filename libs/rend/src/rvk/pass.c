@@ -511,7 +511,6 @@ RvkPass* rvk_pass_create(
     RvkDevice*           dev,
     const VkFormat       swapchainFormat,
     RvkUniformPool*      uniformPool,
-    RvkStopwatch*        stopwatch,
     const RvkPassConfig* config) {
   diag_assert(!string_is_empty(config->name));
 
@@ -521,7 +520,6 @@ RvkPass* rvk_pass_create(
       .dev              = dev,
       .swapchainFormat  = swapchainFormat,
       .statrecorder     = rvk_statrecorder_create(dev),
-      .stopwatch        = stopwatch,
       .uniformPool      = uniformPool,
       .config           = config,
       .descSetsVolatile = dynarray_create_t(g_allocHeap, RvkDescSet, 8),
@@ -631,11 +629,11 @@ RvkSize rvk_pass_stat_size_max(const RvkPass* pass) {
   return size;
 }
 
-TimeDuration rvk_pass_stat_duration(const RvkPass* pass) {
+TimeDuration rvk_pass_stat_duration(const RvkPass* pass, const RvkStopwatch* stopwatch) {
   TimeDuration dur = 0;
   dynarray_for_t(&pass->invocations, RvkPassInvoc, invoc) {
-    const TimeSteady timestampBegin = rvk_stopwatch_query(pass->stopwatch, invoc->timeRecBegin);
-    const TimeSteady timestampEnd   = rvk_stopwatch_query(pass->stopwatch, invoc->timeRecEnd);
+    const TimeSteady timestampBegin = rvk_stopwatch_query(stopwatch, invoc->timeRecBegin);
+    const TimeSteady timestampEnd   = rvk_stopwatch_query(stopwatch, invoc->timeRecEnd);
     dur += time_steady_duration(timestampBegin, timestampEnd);
   }
   return dur;
@@ -649,8 +647,9 @@ u64 rvk_pass_stat_pipeline(const RvkPass* pass, const RvkStat stat) {
   return res;
 }
 
-void rvk_pass_init(RvkPass* pass, VkCommandBuffer vkCmdBuf) {
-  pass->vkCmdBuf = vkCmdBuf;
+void rvk_pass_init(RvkPass* pass, RvkStopwatch* stopwatch, VkCommandBuffer vkCmdBuf) {
+  pass->stopwatch = stopwatch;
+  pass->vkCmdBuf  = vkCmdBuf;
 
   rvk_statrecorder_reset(pass->statrecorder, vkCmdBuf);
   rvk_pass_free_desc_volatile(pass);

@@ -71,7 +71,6 @@ RvkPass* rvk_pass_create(
     RvkDevice*,
     VkFormat swapchainFormat,
     RvkUniformPool*,
-    RvkStopwatch*,
     const RvkPassConfig* /*  Needs to be persistently allocated */);
 void   rvk_pass_destroy(RvkPass*);
 bool   rvk_pass_active(const RvkPass*);
@@ -88,10 +87,10 @@ u16          rvk_pass_stat_invocations(const RvkPass*);
 u16          rvk_pass_stat_draws(const RvkPass*);
 u32          rvk_pass_stat_instances(const RvkPass*);
 RvkSize      rvk_pass_stat_size_max(const RvkPass*);
-TimeDuration rvk_pass_stat_duration(const RvkPass*);
+TimeDuration rvk_pass_stat_duration(const RvkPass*, const RvkStopwatch*);
 u64          rvk_pass_stat_pipeline(const RvkPass*, RvkStat);
 
-void rvk_pass_init(RvkPass*, VkCommandBuffer);
+void rvk_pass_init(RvkPass*, RvkStopwatch*, VkCommandBuffer);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
 bool rvk_pass_prepare_mesh(RvkPass*, const RvkMesh*);
 bool rvk_pass_prepare_texture(RvkPass*, const RvkTexture*);

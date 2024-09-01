@@ -170,8 +170,7 @@ RvkJob* rvk_job_create(
   };
 
   for (u32 i = 0; i != passCount; ++i) {
-    const RvkPassConfig* config = &passConfig[i];
-    job->passes[i] = rvk_pass_create(dev, swapchainFormat, uniformPool, stopwatch, config);
+    job->passes[i] = rvk_pass_create(dev, swapchainFormat, uniformPool, &passConfig[i]);
   }
 
   return job;
@@ -221,7 +220,7 @@ void rvk_job_stats(const RvkJob* job, RvkCanvasStats* out) {
     const RvkSize  sizeMax = rvk_pass_stat_size_max(pass);
     out->passes[passIdx]   = (RendStatsPass){
         .name        = rvk_pass_name(pass), // Persistently allocated.
-        .gpuExecDur  = rvk_pass_stat_duration(pass),
+        .gpuExecDur  = rvk_pass_stat_duration(pass, job->stopwatch),
         .sizeMax[0]  = sizeMax.width,
         .sizeMax[1]  = sizeMax.height,
         .invocations = rvk_pass_stat_invocations(pass),
@@ -249,7 +248,7 @@ void rvk_job_begin(RvkJob* job) {
   rvk_stopwatch_reset(job->stopwatch, job->vkDrawBuffer);
 
   for (u32 passIdx = 0; passIdx != job->passCount; ++passIdx) {
-    rvk_pass_init(job->passes[passIdx], job->vkDrawBuffer);
+    rvk_pass_init(job->passes[passIdx], job->stopwatch, job->vkDrawBuffer);
   }
 
   job->timeRecBegin = rvk_stopwatch_mark(job->stopwatch, job->vkDrawBuffer);
