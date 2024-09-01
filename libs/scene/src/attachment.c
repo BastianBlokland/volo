@@ -23,6 +23,13 @@ ecs_view_define(TargetView) {
 
 ecs_view_define(TargetGraphicView) { ecs_access_read(SceneSkeletonTemplComp); }
 
+static void attachment_validate_pos(MAYBE_UNUSED const GeoVector vec) {
+  diag_assert_msg(
+      geo_vector_mag_sqr(vec) <= (1e5f * 1e5f),
+      "Position ({}) is out of bounds",
+      geo_vector_fmt(vec));
+}
+
 ecs_system_define(SceneAttachmentSys) {
   EcsIterator* targetItr  = ecs_view_itr(ecs_world_view_t(world, TargetView));
   EcsIterator* graphicItr = ecs_view_itr(ecs_world_view_t(world, TargetGraphicView));
@@ -42,6 +49,8 @@ ecs_system_define(SceneAttachmentSys) {
     if ((sentinel_check(attach->jointIndex) && !attach->jointName) || !tgtSkel) {
       trans->position = scene_transform_to_world(tgtTrans, tgtScale, attach->offset);
       trans->rotation = tgtTrans->rotation;
+
+      attachment_validate_pos(trans->position);
       continue;
     }
 
@@ -73,6 +82,8 @@ ecs_system_define(SceneAttachmentSys) {
 
     trans->position = pos;
     trans->rotation = geo_quat_look(fwd, up);
+
+    attachment_validate_pos(pos);
   }
 }
 
