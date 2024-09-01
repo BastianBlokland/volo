@@ -12,7 +12,6 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
   RvkMesh* mesh = alloc_alloc_t(g_allocHeap, RvkMesh);
 
   *mesh = (RvkMesh){
-      .device            = dev,
       .vertexCount       = asset->vertexCount,
       .indexCount        = asset->indexCount,
       .positionBounds    = asset->positionBounds,
@@ -49,8 +48,7 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
   return mesh;
 }
 
-void rvk_mesh_destroy(RvkMesh* mesh) {
-  RvkDevice* dev = mesh->device;
+void rvk_mesh_destroy(RvkMesh* mesh, RvkDevice* dev) {
   rvk_buffer_destroy(&mesh->vertexBuffer, dev);
   rvk_buffer_destroy(&mesh->indexBuffer, dev);
 
