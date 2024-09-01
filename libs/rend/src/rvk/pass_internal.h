@@ -66,12 +66,11 @@ typedef struct sRvkPassDraw {
   u32            instDataStride;
 } RvkPassDraw;
 
-RvkPass* rvk_pass_create(
-    RvkDevice*, RvkUniformPool*, const RvkPassConfig* /*  Needs to be persistently allocated */);
-void   rvk_pass_destroy(RvkPass*);
-bool   rvk_pass_active(const RvkPass*);
-String rvk_pass_name(const RvkPass*); // Persistently allocated.
-bool   rvk_pass_has_depth(const RvkPass*);
+RvkPass* rvk_pass_create(RvkDevice*, const RvkPassConfig* /* Needs to be persistently allocated */);
+void     rvk_pass_destroy(RvkPass*);
+bool     rvk_pass_active(const RvkPass*);
+String   rvk_pass_name(const RvkPass*); // Persistently allocated.
+bool     rvk_pass_has_depth(const RvkPass*);
 
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass*, u16 colorAttachIndex);
 RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass*);
@@ -86,7 +85,7 @@ RvkSize      rvk_pass_stat_size_max(const RvkPass*);
 TimeDuration rvk_pass_stat_duration(const RvkPass*, const RvkStopwatch*);
 u64          rvk_pass_stat_pipeline(const RvkPass*, RvkStat);
 
-void rvk_pass_init(RvkPass*, RvkStopwatch*, VkCommandBuffer);
+void rvk_pass_init(RvkPass*, RvkUniformPool*, RvkStopwatch*, VkCommandBuffer);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
 bool rvk_pass_prepare_mesh(RvkPass*, const RvkMesh*);
 bool rvk_pass_prepare_texture(RvkPass*, const RvkTexture*);

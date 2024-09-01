@@ -497,7 +497,7 @@ static RvkPassInvoc* rvk_pass_invoc_active(RvkPass* pass) {
   return dynarray_at_t(&pass->invocations, pass->invocations.size - 1, RvkPassInvoc);
 }
 
-RvkPass* rvk_pass_create(RvkDevice* dev, RvkUniformPool* uniformPool, const RvkPassConfig* config) {
+RvkPass* rvk_pass_create(RvkDevice* dev, const RvkPassConfig* config) {
   diag_assert(!string_is_empty(config->name));
 
   RvkPass* pass = alloc_alloc_t(g_allocHeap, RvkPass);
@@ -505,7 +505,6 @@ RvkPass* rvk_pass_create(RvkDevice* dev, RvkUniformPool* uniformPool, const RvkP
   *pass = (RvkPass){
       .dev              = dev,
       .statrecorder     = rvk_statrecorder_create(dev),
-      .uniformPool      = uniformPool,
       .config           = config,
       .descSetsVolatile = dynarray_create_t(g_allocHeap, RvkDescSet, 8),
       .invocations      = dynarray_create_t(g_allocHeap, RvkPassInvoc, 1),
@@ -632,9 +631,11 @@ u64 rvk_pass_stat_pipeline(const RvkPass* pass, const RvkStat stat) {
   return res;
 }
 
-void rvk_pass_init(RvkPass* pass, RvkStopwatch* stopwatch, VkCommandBuffer vkCmdBuf) {
-  pass->stopwatch = stopwatch;
-  pass->vkCmdBuf  = vkCmdBuf;
+void rvk_pass_init(
+    RvkPass* pass, RvkUniformPool* uniformPool, RvkStopwatch* stopwatch, VkCommandBuffer vkCmdBuf) {
+  pass->uniformPool = uniformPool;
+  pass->stopwatch   = stopwatch;
+  pass->vkCmdBuf    = vkCmdBuf;
 
   rvk_statrecorder_reset(pass->statrecorder, vkCmdBuf);
   rvk_pass_free_desc_volatile(pass);
