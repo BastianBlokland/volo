@@ -443,7 +443,7 @@ static void rvk_pass_bind_draw(
     RvkMesh*                         mesh,
     RvkImage*                        img,
     const RvkSamplerSpec             sampler) {
-  diag_assert_msg(!mesh || rvk_mesh_is_ready(mesh), "Mesh is not ready for binding");
+  diag_assert_msg(!mesh || rvk_mesh_is_ready(mesh, pass->dev), "Mesh is not ready for binding");
   diag_assert_msg(!img || img->phase != RvkImagePhase_Undefined, "Image has no content");
 
   const RvkDescSet descSet = rvk_pass_alloc_desc_volatile(pass, &gra->drawDescMeta);
@@ -671,13 +671,13 @@ bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
 bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
-  return rvk_mesh_is_ready(mesh);
+  return rvk_mesh_is_ready(mesh, pass->dev);
 }
 
 bool rvk_pass_prepare_texture(MAYBE_UNUSED RvkPass* pass, RvkTexture* texture) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
-  return rvk_texture_is_ready(texture);
+  return rvk_texture_is_ready(texture, pass->dev);
 }
 
 void rvk_pass_stage_clear_color(MAYBE_UNUSED RvkPass* pass, const GeoColor clearColor) {

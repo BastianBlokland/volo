@@ -112,8 +112,8 @@ RvkDescKind rvk_texture_sampler_kind(const RvkTexture* texture) {
   }
 }
 
-bool rvk_texture_is_ready(const RvkTexture* texture) {
-  if (!rvk_transfer_poll(texture->device->transferer, texture->pixelTransfer)) {
+bool rvk_texture_is_ready(const RvkTexture* texture, const RvkDevice* dev) {
+  if (!rvk_transfer_poll(dev->transferer, texture->pixelTransfer)) {
     return false;
   }
   return true;
