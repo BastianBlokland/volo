@@ -11,8 +11,7 @@ typedef struct sRvkDevice RvkDevice;
 typedef struct sRvkPass   RvkPass;
 
 typedef enum {
-  RvkTextureFlags_Ready     = 1 << 0,
-  RvkTextureFlags_MipGenGpu = 1 << 1, // Generate mip-maps on the gpu instead of loading from cpu.
+  RvkTextureFlags_Ready = 1 << 0,
 } RvkTextureFlags;
 
 typedef struct sRvkTexture {

@@ -335,10 +335,10 @@ MAYBE_UNUSED static u32 rvk_transfer_image_src_size(const RvkImage* img, const u
   return size;
 }
 
-RvkTransferId
-rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem data, const u32 mipLevels) {
-  diag_assert(mipLevels >= 1);
-  diag_assert(data.size == rvk_transfer_image_src_size(dest, mipLevels));
+RvkTransferId rvk_transfer_image(
+    RvkTransferer* trans, RvkImage* dest, const Mem data, const u32 mips, const bool genMips) {
+  diag_assert(mips >= 1);
+  diag_assert(data.size == rvk_transfer_image_src_size(dest, mips));
 
   thread_mutex_lock(trans->mutex);
 
@@ -360,9 +360,9 @@ rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem data, const u
   }
 
   VkBufferImageCopy regions[16];
-  diag_assert(array_elems(regions) >= mipLevels);
+  diag_assert(array_elems(regions) >= mips);
   u64 srcBufferOffset = buffer->offset;
-  for (u32 mipLevel = 0; mipLevel != mipLevels; ++mipLevel) {
+  for (u32 mipLevel = 0; mipLevel != mips; ++mipLevel) {
     regions[mipLevel] = (VkBufferImageCopy){
         .bufferOffset                = srcBufferOffset,
         .imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -381,7 +381,7 @@ rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem data, const u
       buffer->hostBuffer.vkBuffer,
       dest->vkImage,
       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-      mipLevels,
+      mips,
       regions);
 
   if (buffer->vkCmdBufferTransfer) {
@@ -391,6 +391,18 @@ rvk_transfer_image(RvkTransferer* trans, RvkImage* dest, const Mem data, const u
         buffer->vkCmdBufferGraphics,
         trans->dev->transferQueueIndex,
         trans->dev->graphicsQueueIndex);
+  }
+
+  if (genMips) {
+    diag_assert(!(rvk_format_info(dest->vkFormat).flags & RvkFormat_Block4x4));
+    diag_assert(mips == 1);
+
+    rvk_debug_label_begin(
+        trans->dev->debug, buffer->vkCmdBufferGraphics, geo_color_silver, "generate_mipmaps");
+
+    rvk_image_generate_mipmaps(dest, buffer->vkCmdBufferGraphics);
+
+    rvk_debug_label_end(trans->dev->debug, buffer->vkCmdBufferGraphics);
   }
 
   buffer->offset += data.size;
