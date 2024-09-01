@@ -73,7 +73,7 @@ RvkPass* rvk_pass_create(
     VkCommandBuffer,
     RvkUniformPool*,
     RvkStopwatch*,
-    RvkPassConfig);
+    const RvkPassConfig* /*  Needs to be persistently allocated */);
 void   rvk_pass_destroy(RvkPass*);
 bool   rvk_pass_active(const RvkPass*);
 String rvk_pass_name(const RvkPass*); // Persistently allocated.

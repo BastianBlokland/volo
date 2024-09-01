@@ -170,8 +170,9 @@ RvkJob* rvk_job_create(
   };
 
   for (u32 i = 0; i != passCount; ++i) {
+    const RvkPassConfig* config = &passConfig[i];
     job->passes[i] =
-        rvk_pass_create(dev, swapchainFormat, vkDrawBuffer, uniformPool, stopwatch, passConfig[i]);
+        rvk_pass_create(dev, swapchainFormat, vkDrawBuffer, uniformPool, stopwatch, config);
   }
 
   return job;
