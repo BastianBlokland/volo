@@ -1173,14 +1173,17 @@ static ScriptVal eval_teleport(EvalContext* ctx, const ScriptArgs args, ScriptEr
     if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Teleport))) {
       *err = script_error_arg(ScriptError_MissingCapability, 0);
     }
+    const GeoVector pos = script_arg_opt_vec3(args, 1, geo_vector(0), err);
+    const GeoQuat   rot = script_arg_opt_quat(args, 2, geo_quat_ident, err);
+
+    const bool posValid = geo_vector_mag_sqr(pos) <= (1e5f * 1e5f);
+    if (UNLIKELY(!posValid)) {
+      *err = script_error_arg(ScriptError_ArgumentInvalid, 1);
+    }
+
     *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type = ScriptActionType_Teleport,
-        .data_teleport =
-            {
-                .entity   = entity,
-                .position = script_arg_opt_vec3(args, 1, geo_vector(0), err),
-                .rotation = script_arg_opt_quat(args, 2, geo_quat_ident, err),
-            },
+        .type          = ScriptActionType_Teleport,
+        .data_teleport = {.entity = entity, .position = pos, .rotation = rot},
     };
   }
   return script_null();
