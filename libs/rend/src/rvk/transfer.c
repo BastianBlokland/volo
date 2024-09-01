@@ -418,7 +418,7 @@ RvkTransferId rvk_transfer_image(
   return id;
 }
 
-RvkTransferStatus rvk_transfer_poll(RvkTransferer* trans, const RvkTransferId id) {
+RvkTransferStatus rvk_transfer_poll(const RvkTransferer* trans, const RvkTransferId id) {
   thread_mutex_lock(trans->mutex);
 
   const u32                idx    = rvk_transfer_index(id);
