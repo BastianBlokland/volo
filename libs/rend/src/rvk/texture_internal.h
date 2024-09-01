@@ -17,5 +17,5 @@ typedef struct sRvkTexture {
 
 RvkTexture* rvk_texture_create(RvkDevice*, const AssetTextureComp*, String dbgName);
 void        rvk_texture_destroy(RvkTexture*);
-RvkDescKind rvk_texture_sampler_kind(RvkTexture*);
+RvkDescKind rvk_texture_sampler_kind(const RvkTexture*);
 bool        rvk_texture_is_ready(const RvkTexture*);

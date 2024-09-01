@@ -103,7 +103,7 @@ void rvk_texture_destroy(RvkTexture* texture) {
   alloc_free_t(g_allocHeap, texture);
 }
 
-RvkDescKind rvk_texture_sampler_kind(RvkTexture* texture) {
+RvkDescKind rvk_texture_sampler_kind(const RvkTexture* texture) {
   switch (texture->image.type) {
   case RvkImageType_ColorSourceCube:
     return RvkDescKind_CombinedImageSamplerCube;
