@@ -743,7 +743,7 @@ void rvk_graphic_mesh_add(RvkGraphic* graphic, const RvkMesh* mesh) {
 }
 
 void rvk_graphic_sampler_add(
-    RvkGraphic* graphic, RvkTexture* tex, const AssetGraphicSampler* sampler) {
+    RvkGraphic* graphic, const RvkTexture* tex, const AssetGraphicSampler* sampler) {
 
   for (u8 samplerIndex = 0; samplerIndex != rvk_graphic_samplers_max; ++samplerIndex) {
     if (!graphic->samplerTextures[samplerIndex]) {
@@ -883,7 +883,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, RvkDevice* dev, const RvkPass* pas
     return false;
   }
   for (u32 samplerIndex = 0; samplerIndex != rvk_graphic_samplers_max; ++samplerIndex) {
-    RvkTexture* tex = graphic->samplerTextures[samplerIndex];
+    const RvkTexture* tex = graphic->samplerTextures[samplerIndex];
     if (tex && !rvk_texture_is_ready(tex, dev)) {
       return false;
     }

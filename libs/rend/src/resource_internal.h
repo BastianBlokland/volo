@@ -26,8 +26,8 @@ ecs_comp_extern_public(RendResMeshComp) {
 };
 
 ecs_comp_extern_public(RendResTextureComp) {
-  RvkDevice*  device;
-  RvkTexture* texture;
+  RvkDevice*        device;
+  const RvkTexture* texture;
 };
 
 /**

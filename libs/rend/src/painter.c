@@ -170,8 +170,8 @@ ecs_view_define(ObjView) { ecs_access_read(RendObjectComp); }
 
 ecs_view_define(ResourceView) {
   ecs_access_maybe_write(RendResGraphicComp);
-  ecs_access_maybe_write(RendResMeshComp);
-  ecs_access_maybe_write(RendResTextureComp);
+  ecs_access_maybe_read(RendResMeshComp);
+  ecs_access_maybe_read(RendResTextureComp);
   ecs_access_with(RendResFinishedComp);
   ecs_access_without(RendResUnloadComp);
   ecs_access_write(RendResComp);
@@ -317,11 +317,11 @@ static RvkGraphic* painter_get_graphic(EcsIterator* resourceItr, const EcsEntity
   return graphicResource->graphic;
 }
 
-static RvkTexture* painter_get_texture(EcsIterator* resourceItr, const EcsEntityId resource) {
+static const RvkTexture* painter_get_texture(EcsIterator* resourceItr, const EcsEntityId resource) {
   if (!ecs_view_maybe_jump(resourceItr, resource)) {
     return null; // Resource not loaded.
   }
-  RendResTextureComp* textureResource = ecs_view_write_t(resourceItr, RendResTextureComp);
+  const RendResTextureComp* textureResource = ecs_view_read_t(resourceItr, RendResTextureComp);
   if (!textureResource) {
     log_e("Invalid texture asset", log_param("entity", ecs_entity_fmt(resource)));
     return null;
@@ -369,7 +369,7 @@ static SceneTags painter_push_objects_simple(
 
     // If the object uses a 'per draw' texture then retrieve and prepare it.
     const EcsEntityId textureResource = rend_object_resource(obj, RendObjectResource_Texture);
-    RvkTexture*       texture         = null;
+    const RvkTexture* texture         = null;
     if (textureResource) {
       texture = painter_get_texture(resourceItr, textureResource);
       if (!texture || !rvk_pass_prepare_texture(ctx->pass, texture)) {
@@ -379,7 +379,8 @@ static SceneTags painter_push_objects_simple(
 
     rend_builder_draw_push(ctx->builder, graphic);
     if (texture) {
-      rend_builder_draw_image(ctx->builder, &texture->image);
+      // TODO: This cast violates const-correctness.
+      rend_builder_draw_image(ctx->builder, (RvkImage*)&texture->image);
     }
     rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
     rend_builder_draw_flush(ctx->builder);
@@ -419,11 +420,12 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
     enum { AlphaTextureIndex = 2 }; // TODO: Make this configurable from content.
     const bool hasAlphaTexture = (graphicOriginal->samplerMask & (1 << AlphaTextureIndex)) != 0;
     if (graphicOriginal->flags & RvkGraphicFlags_MayDiscard && hasAlphaTexture) {
-      RvkTexture* alphaTexture = graphicOriginal->samplerTextures[AlphaTextureIndex];
+      const RvkTexture* alphaTexture = graphicOriginal->samplerTextures[AlphaTextureIndex];
       if (!alphaTexture || !rvk_pass_prepare_texture(ctx->pass, alphaTexture)) {
         continue; // Graphic uses discard but has no alpha texture.
       }
-      objAlphaImg = &alphaTexture->image;
+      // TODO: This cast violates const-correctness.
+      objAlphaImg = (RvkImage*)&alphaTexture->image;
     }
     RvkRepositoryId graphicId;
     if (isVfxSprite) {
@@ -658,14 +660,15 @@ static void painter_push_debug_resource_viewer(
   if (itr) {
     rend_res_mark_used(ecs_view_write_t(itr, RendResComp));
 
-    RendResTextureComp* textureComp = ecs_view_write_t(itr, RendResTextureComp);
+    const RendResTextureComp* textureComp = ecs_view_read_t(itr, RendResTextureComp);
     if (textureComp) {
       if (rvk_pass_prepare_texture(ctx->pass, textureComp->texture)) {
         const f32 exposure = 1.0f;
-        painter_push_debug_image_viewer(ctx, &textureComp->texture->image, exposure);
+        // TODO: This cast violates const-correctness.
+        painter_push_debug_image_viewer(ctx, (RvkImage*)&textureComp->texture->image, exposure);
       }
     }
-    RendResMeshComp* meshComp = ecs_view_write_t(itr, RendResMeshComp);
+    const RendResMeshComp* meshComp = ecs_view_read_t(itr, RendResMeshComp);
     if (meshComp && rvk_pass_prepare_mesh(ctx->pass, meshComp->mesh)) {
       painter_push_debug_mesh_viewer(ctx, aspect, meshComp->mesh);
     }
@@ -708,7 +711,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
     // If the object uses a 'per draw' texture then retrieve and prepare it.
     // NOTE: This is needed for the terrain wireframe as it contains the heightmap.
     const EcsEntityId textureResource = rend_object_resource(obj, RendObjectResource_Texture);
-    RvkTexture*       texture         = null;
+    const RvkTexture* texture         = null;
     if (textureResource) {
       texture = painter_get_texture(resourceItr, textureResource);
       if (!texture || !rvk_pass_prepare_texture(ctx->pass, texture)) {
@@ -719,7 +722,8 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
     rend_builder_draw_push(ctx->builder, graphicWireframe);
     rend_builder_draw_mesh(ctx->builder, mesh);
     if (texture) {
-      rend_builder_draw_image(ctx->builder, &texture->image);
+      // TODO: This cast violates const-correctness.
+      rend_builder_draw_image(ctx->builder, (RvkImage*)&texture->image);
     }
     rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
     rend_builder_draw_flush(ctx->builder);

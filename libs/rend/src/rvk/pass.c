@@ -436,7 +436,7 @@ static RvkDescSet rvk_pass_alloc_desc_volatile(RvkPass* pass, const RvkDescMeta*
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*                         pass,
+    RvkPass*           pass,
     MAYBE_UNUSED const RvkPassStage* stage,
     RvkGraphic*                      gra,
     const Mem                        data,
@@ -674,7 +674,7 @@ bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, const RvkMesh* mesh) {
   return rvk_mesh_is_ready(mesh, pass->dev);
 }
 
-bool rvk_pass_prepare_texture(MAYBE_UNUSED RvkPass* pass, RvkTexture* texture) {
+bool rvk_pass_prepare_texture(MAYBE_UNUSED RvkPass* pass, const RvkTexture* texture) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   return rvk_texture_is_ready(texture, pass->dev);

@@ -126,7 +126,7 @@ static void ecs_destruct_mesh_comp(void* data) {
 
 static void ecs_destruct_texture_comp(void* data) {
   RendResTextureComp* comp = data;
-  rvk_texture_destroy(comp->texture, comp->device);
+  rvk_texture_destroy((RvkTexture*)comp->texture, comp->device);
 }
 
 static void ecs_destruct_res_comp(void* data) {
@@ -194,14 +194,14 @@ ecs_view_define(ShaderReadView) {
   ecs_access_read(RendResShaderComp);
 }
 
-ecs_view_define(MeshWriteView) {
+ecs_view_define(MeshReadView) {
   ecs_access_with(RendResComp);
-  ecs_access_write(RendResMeshComp);
+  ecs_access_read(RendResMeshComp);
 }
 
-ecs_view_define(TextureWriteView) {
+ecs_view_define(TextureReadView) {
   ecs_access_with(RendResComp);
-  ecs_access_write(RendResTextureComp);
+  ecs_access_read(RendResTextureComp);
 }
 
 static const RendResGlobalDef* rend_res_global_lookup(const String assetId) {
@@ -400,27 +400,27 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
 
     // Add mesh.
     if (maybeAssetGraphic->mesh) {
-      EcsView* meshView = ecs_world_view_t(world, MeshWriteView);
+      EcsView* meshView = ecs_world_view_t(world, MeshReadView);
       if (!ecs_view_contains(meshView, maybeAssetGraphic->mesh)) {
         log_e("Invalid mesh reference", log_param("graphic", fmt_text(id)));
         resComp->state = RendResLoadState_FinishedFailure;
         return false;
       }
-      EcsIterator*     meshItr  = ecs_view_at(meshView, maybeAssetGraphic->mesh);
-      RendResMeshComp* meshComp = ecs_view_write_t(meshItr, RendResMeshComp);
+      EcsIterator*           meshItr  = ecs_view_at(meshView, maybeAssetGraphic->mesh);
+      const RendResMeshComp* meshComp = ecs_view_read_t(meshItr, RendResMeshComp);
       rvk_graphic_mesh_add(graphic, meshComp->mesh);
     }
 
     // Add samplers.
-    EcsView* textureView = ecs_world_view_t(world, TextureWriteView);
+    EcsView* textureView = ecs_world_view_t(world, TextureReadView);
     heap_array_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
       if (!ecs_view_contains(textureView, ptr->texture)) {
         log_e("Invalid texture reference", log_param("graphic", fmt_text(id)));
         resComp->state = RendResLoadState_FinishedFailure;
         return false;
       }
-      EcsIterator*        textureItr  = ecs_view_at(textureView, ptr->texture);
-      RendResTextureComp* textureComp = ecs_view_write_t(textureItr, RendResTextureComp);
+      EcsIterator*              textureItr  = ecs_view_at(textureView, ptr->texture);
+      const RendResTextureComp* textureComp = ecs_view_read_t(textureItr, RendResTextureComp);
       rvk_graphic_sampler_add(graphic, textureComp->texture, ptr);
     }
 
@@ -724,8 +724,8 @@ ecs_module_init(rend_resource_module) {
   ecs_register_view(PlatReadView);
   ecs_register_view(ResWriteView);
   ecs_register_view(ShaderReadView);
-  ecs_register_view(MeshWriteView);
-  ecs_register_view(TextureWriteView);
+  ecs_register_view(MeshReadView);
+  ecs_register_view(TextureReadView);
 
   ecs_register_system(
       RendGlobalResourceUpdateSys,
@@ -738,8 +738,8 @@ ecs_module_init(rend_resource_module) {
       ecs_register_view(ResLoadView),
       ecs_register_view(ResLoadDependencyView),
       ecs_view_id(ShaderReadView),
-      ecs_view_id(MeshWriteView),
-      ecs_view_id(TextureWriteView));
+      ecs_view_id(MeshReadView),
+      ecs_view_id(TextureReadView));
 
   ecs_register_system(RendResUnloadUnusedSys, ecs_register_view(ResUnloadUnusedView));
   ecs_register_system(RendResUnloadChangedSys, ecs_register_view(UnloadChangedView));
