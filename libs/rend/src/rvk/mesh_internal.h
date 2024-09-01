@@ -23,3 +23,4 @@ typedef struct sRvkMesh {
 RvkMesh* rvk_mesh_create(RvkDevice*, const AssetMeshComp*, String dbgName);
 void     rvk_mesh_destroy(RvkMesh*);
 bool     rvk_mesh_is_ready(const RvkMesh*);
+void     rvk_mesh_bind(const RvkMesh*, VkCommandBuffer);

@@ -71,3 +71,16 @@ bool rvk_mesh_is_ready(const RvkMesh* mesh) {
   }
   return true;
 }
+
+void rvk_mesh_bind(const RvkMesh* mesh, VkCommandBuffer vkCmdBuf) {
+  diag_assert(rvk_mesh_is_ready(mesh));
+
+  VkIndexType indexType;
+  if (sizeof(AssetMeshIndex) == 2) {
+    indexType = VK_INDEX_TYPE_UINT16;
+  } else {
+    indexType = VK_INDEX_TYPE_UINT32;
+  }
+
+  vkCmdBindIndexBuffer(vkCmdBuf, mesh->indexBuffer.vkBuffer, 0, indexType);
+}
