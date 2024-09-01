@@ -884,7 +884,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkPass* pass) {
   }
   for (u32 samplerIndex = 0; samplerIndex != rvk_graphic_samplers_max; ++samplerIndex) {
     RvkTexture* tex = graphic->samplerTextures[samplerIndex];
-    if (tex && !rvk_texture_prepare(tex)) {
+    if (tex && !rvk_texture_is_ready(tex)) {
       return false;
     }
   }
