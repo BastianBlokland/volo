@@ -8,11 +8,9 @@
 // Internal forward declarations:
 typedef enum eRvkDescKind RvkDescKind;
 typedef struct sRvkDevice RvkDevice;
-typedef struct sRvkPass   RvkPass;
 
 typedef struct sRvkTexture {
   RvkDevice*    device;
-  String        dbgName;
   RvkImage      image;
   RvkTransferId pixelTransfer;
 } RvkTexture;

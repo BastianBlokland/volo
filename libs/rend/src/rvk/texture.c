@@ -48,10 +48,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 
   RvkTexture* tex = alloc_alloc_t(g_allocHeap, RvkTexture);
 
-  *tex = (RvkTexture){
-      .device  = dev,
-      .dbgName = string_dup(g_allocHeap, dbgName),
-  };
+  *tex = (RvkTexture){.device = dev};
 
   const RvkSize  size       = rvk_size(asset->width, asset->height);
   const u8       layers     = (u8)asset->layers;
@@ -103,7 +100,6 @@ void rvk_texture_destroy(RvkTexture* texture) {
   log_d("Vulkan texture destroyed", log_param("name", fmt_text(texture->dbgName)));
 #endif
 
-  string_free(g_allocHeap, texture->dbgName);
   alloc_free_t(g_allocHeap, texture);
 }
 
