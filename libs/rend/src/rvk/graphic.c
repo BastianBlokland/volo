@@ -767,7 +767,7 @@ void rvk_graphic_sampler_add(
       log_param("limit", fmt_int(rvk_graphic_samplers_max)));
 }
 
-bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const RvkPass* pass) {
+bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkPass* pass) {
   diag_assert_msg(!rvk_pass_active(pass), "Pass already active");
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_Invalid)) {
     return false;
@@ -884,7 +884,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, VkCommandBuffer vkCmdBuf, const Rv
   }
   for (u32 samplerIndex = 0; samplerIndex != rvk_graphic_samplers_max; ++samplerIndex) {
     RvkTexture* tex = graphic->samplerTextures[samplerIndex];
-    if (tex && !rvk_texture_prepare(tex, vkCmdBuf)) {
+    if (tex && !rvk_texture_prepare(tex)) {
       return false;
     }
   }

@@ -397,13 +397,10 @@ RvkTransferId rvk_transfer_image(
     diag_assert(!(rvk_format_info(dest->vkFormat).flags & RvkFormat_Block4x4));
     diag_assert(mips == 1);
 
-    rvk_debug_label_begin(
-        trans->dev->debug, buffer->vkCmdBufferGraphics, geo_color_silver, "generate_mipmaps");
-
     rvk_image_generate_mipmaps(dest, buffer->vkCmdBufferGraphics);
-
-    rvk_debug_label_end(trans->dev->debug, buffer->vkCmdBufferGraphics);
   }
+
+  rvk_image_transition(dest, RvkImagePhase_ShaderRead, buffer->vkCmdBufferGraphics);
 
   buffer->offset += data.size;
   const RvkTransferId id = rvk_transfer_id(trans, buffer);

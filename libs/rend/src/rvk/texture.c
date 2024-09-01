@@ -116,17 +116,13 @@ RvkDescKind rvk_texture_sampler_kind(RvkTexture* texture) {
   }
 }
 
-bool rvk_texture_prepare(RvkTexture* texture, VkCommandBuffer vkCmdBuf) {
+bool rvk_texture_prepare(RvkTexture* texture) {
   if (texture->flags & RvkTextureFlags_Ready) {
     return true;
   }
-
   if (!rvk_transfer_poll(texture->device->transferer, texture->pixelTransfer)) {
     return false;
   }
-
-  rvk_image_transition(&texture->image, RvkImagePhase_ShaderRead, vkCmdBuf);
-
   texture->flags |= RvkTextureFlags_Ready;
   return true;
 }

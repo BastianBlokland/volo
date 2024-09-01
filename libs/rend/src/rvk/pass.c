@@ -665,7 +665,7 @@ void rvk_pass_reset(RvkPass* pass) {
 bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
-  return rvk_graphic_prepare(graphic, pass->vkCmdBuf, pass);
+  return rvk_graphic_prepare(graphic, pass);
 }
 
 bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
@@ -677,7 +677,7 @@ bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
 bool rvk_pass_prepare_texture(MAYBE_UNUSED RvkPass* pass, RvkTexture* texture) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
-  return rvk_texture_prepare(texture, pass->vkCmdBuf);
+  return rvk_texture_prepare(texture);
 }
 
 void rvk_pass_stage_clear_color(MAYBE_UNUSED RvkPass* pass, const GeoColor clearColor) {
