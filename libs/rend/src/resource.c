@@ -121,7 +121,7 @@ static void ecs_destruct_shader_comp(void* data) {
 
 static void ecs_destruct_mesh_comp(void* data) {
   RendResMeshComp* comp = data;
-  rvk_mesh_destroy(comp->mesh, comp->device);
+  rvk_mesh_destroy((RvkMesh*)comp->mesh, comp->device);
 }
 
 static void ecs_destruct_texture_comp(void* data) {

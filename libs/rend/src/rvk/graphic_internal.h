@@ -54,7 +54,7 @@ typedef struct sRvkGraphic {
   u32                    vertexCount;
   f32                    blendConstant;
   RvkGraphicShader       shaders[rvk_graphic_shaders_max];
-  RvkMesh*               mesh;
+  const RvkMesh*         mesh;
   RvkTexture*            samplerTextures[rvk_graphic_samplers_max];
   RvkSamplerSpec         samplerSpecs[rvk_graphic_samplers_max];
   RvkDescSet             graphicDescSet;
@@ -68,7 +68,7 @@ void        rvk_graphic_destroy(RvkGraphic*, RvkDevice*);
 
 void rvk_graphic_shader_add(
     RvkGraphic*, const RvkShader*, AssetGraphicOverride* overrides, usize overrideCount);
-void rvk_graphic_mesh_add(RvkGraphic*, RvkMesh*);
+void rvk_graphic_mesh_add(RvkGraphic*, const RvkMesh*);
 void rvk_graphic_sampler_add(RvkGraphic*, RvkTexture*, const AssetGraphicSampler*);
 
 bool rvk_graphic_prepare(RvkGraphic*, RvkDevice*, const RvkPass*);

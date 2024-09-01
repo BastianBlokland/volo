@@ -440,7 +440,7 @@ static void rvk_pass_bind_draw(
     MAYBE_UNUSED const RvkPassStage* stage,
     RvkGraphic*                      gra,
     const Mem                        data,
-    RvkMesh*                         mesh,
+    const RvkMesh*                   mesh,
     RvkImage*                        img,
     const RvkSamplerSpec             sampler) {
   diag_assert_msg(!mesh || rvk_mesh_is_ready(mesh, pass->dev), "Mesh is not ready for binding");
@@ -668,7 +668,7 @@ bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
   return rvk_graphic_prepare(graphic, pass->dev, pass);
 }
 
-bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
+bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, const RvkMesh* mesh) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   return rvk_mesh_is_ready(mesh, pass->dev);

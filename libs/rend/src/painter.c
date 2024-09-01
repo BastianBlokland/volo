@@ -410,8 +410,8 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
     if (!graphicOriginal) {
       continue; // Graphic not loaded.
     }
-    const bool isVfxSprite = (rend_object_flags(obj) & RendObjectFlags_VfxSprite) != 0;
-    RvkMesh*   objMesh     = graphicOriginal->mesh;
+    const bool     isVfxSprite = (rend_object_flags(obj) & RendObjectFlags_VfxSprite) != 0;
+    const RvkMesh* objMesh     = graphicOriginal->mesh;
     if (!isVfxSprite && (!objMesh || !rvk_pass_prepare_mesh(ctx->pass, objMesh))) {
       continue; // Graphic is not a vfx sprite and does not have a mesh to draw a shadow for.
     }
@@ -612,7 +612,8 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
   }
 }
 
-static void painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspect, RvkMesh* mesh) {
+static void
+painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspect, const RvkMesh* mesh) {
   RvkRepository*        repo      = rvk_canvas_repository(ctx->canvas);
   const RvkRepositoryId graphicId = RvkRepositoryId_DebugMeshViewerGraphic;
   RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
@@ -686,7 +687,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
     if (!graphicOriginal) {
       continue; // Graphic not loaded.
     }
-    RvkMesh* mesh = graphicOriginal->mesh;
+    const RvkMesh* mesh = graphicOriginal->mesh;
     if (!mesh || !rvk_pass_prepare_mesh(ctx->pass, mesh)) {
       continue; // Graphic does not have a mesh to draw a wireframe for (or its not ready).
     }
@@ -745,7 +746,7 @@ painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView, EcsView* re
     if (!graphicOriginal) {
       continue; // Graphic not loaded.
     }
-    RvkMesh* mesh = graphicOriginal->mesh;
+    const RvkMesh* mesh = graphicOriginal->mesh;
     diag_assert(mesh);
 
     if (rvk_pass_prepare_mesh(ctx->pass, mesh)) {

@@ -549,8 +549,8 @@ static void rvk_graphic_set_missing_sampler(
 
   graphic->samplerTextures[samplerIndex] = rvk_repository_texture_get(repo, repoId);
   graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
-         .wrap   = RvkSamplerWrap_Repeat,
-         .filter = RvkSamplerFilter_Nearest,
+      .wrap   = RvkSamplerWrap_Repeat,
+      .filter = RvkSamplerFilter_Nearest,
   };
 }
 
@@ -737,7 +737,7 @@ void rvk_graphic_shader_add(
       log_param("limit", fmt_int(rvk_graphic_shaders_max)));
 }
 
-void rvk_graphic_mesh_add(RvkGraphic* graphic, RvkMesh* mesh) {
+void rvk_graphic_mesh_add(RvkGraphic* graphic, const RvkMesh* mesh) {
   diag_assert_msg(!graphic->mesh, "Only a single mesh per graphic supported");
   graphic->mesh = mesh;
 }
@@ -754,10 +754,10 @@ void rvk_graphic_sampler_add(
       graphic->samplerMask |= 1 << samplerIndex;
       graphic->samplerTextures[samplerIndex] = tex;
       graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
-             .flags  = samplerFlags,
-             .wrap   = rvk_graphic_wrap(sampler->wrap),
-             .filter = rvk_graphic_filter(sampler->filter),
-             .aniso  = rvk_graphic_aniso(sampler->anisotropy),
+          .flags  = samplerFlags,
+          .wrap   = rvk_graphic_wrap(sampler->wrap),
+          .filter = rvk_graphic_filter(sampler->filter),
+          .aniso  = rvk_graphic_aniso(sampler->anisotropy),
       };
       return;
     }

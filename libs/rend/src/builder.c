@@ -157,7 +157,7 @@ void rend_builder_draw_vertex_count(RendBuilderBuffer* buffer, const u32 vertexC
   buffer->draw->vertexCountOverride = vertexCount;
 }
 
-void rend_builder_draw_mesh(RendBuilderBuffer* buffer, RvkMesh* mesh) {
+void rend_builder_draw_mesh(RendBuilderBuffer* buffer, const RvkMesh* mesh) {
   diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
   diag_assert_msg(!buffer->draw->drawMesh, "RendBuilder: Draw-mesh already set");
 

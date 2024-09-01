@@ -21,8 +21,8 @@ ecs_comp_extern_public(RendResShaderComp) {
 };
 
 ecs_comp_extern_public(RendResMeshComp) {
-  RvkDevice* device;
-  RvkMesh*   mesh;
+  RvkDevice*     device;
+  const RvkMesh* mesh;
 };
 
 ecs_comp_extern_public(RendResTextureComp) {

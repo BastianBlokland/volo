@@ -59,7 +59,7 @@ typedef struct sRvkPassDraw {
   RvkGraphic*    graphic;
   Mem            instData;
   Mem            drawData;    // Per-draw data to use.
-  RvkMesh*       drawMesh;    // Per-draw mesh to use.
+  const RvkMesh* drawMesh;    // Per-draw mesh to use.
   RvkImage*      drawImage;   // Per-draw image to use.
   RvkSamplerSpec drawSampler; // Sampler specification for a per-draw image.
   u32            vertexCountOverride;
@@ -94,7 +94,7 @@ u64          rvk_pass_stat_pipeline(const RvkPass*, RvkStat);
 
 void rvk_pass_reset(RvkPass*);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
-bool rvk_pass_prepare_mesh(RvkPass*, RvkMesh*);
+bool rvk_pass_prepare_mesh(RvkPass*, const RvkMesh*);
 bool rvk_pass_prepare_texture(RvkPass*, RvkTexture*);
 
 void rvk_pass_stage_clear_color(RvkPass*, GeoColor clearColor);
