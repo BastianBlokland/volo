@@ -70,7 +70,6 @@ typedef struct sRvkPassDraw {
 RvkPass* rvk_pass_create(
     RvkDevice*,
     VkFormat swapchainFormat,
-    VkCommandBuffer,
     RvkUniformPool*,
     RvkStopwatch*,
     const RvkPassConfig* /*  Needs to be persistently allocated */);
@@ -92,7 +91,7 @@ RvkSize      rvk_pass_stat_size_max(const RvkPass*);
 TimeDuration rvk_pass_stat_duration(const RvkPass*);
 u64          rvk_pass_stat_pipeline(const RvkPass*, RvkStat);
 
-void rvk_pass_reset(RvkPass*);
+void rvk_pass_init(RvkPass*, VkCommandBuffer);
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
 bool rvk_pass_prepare_mesh(RvkPass*, const RvkMesh*);
 bool rvk_pass_prepare_texture(RvkPass*, const RvkTexture*);

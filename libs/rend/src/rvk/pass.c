@@ -510,7 +510,6 @@ static RvkPassInvoc* rvk_pass_invoc_active(RvkPass* pass) {
 RvkPass* rvk_pass_create(
     RvkDevice*           dev,
     const VkFormat       swapchainFormat,
-    VkCommandBuffer      vkCmdBuf,
     RvkUniformPool*      uniformPool,
     RvkStopwatch*        stopwatch,
     const RvkPassConfig* config) {
@@ -523,7 +522,6 @@ RvkPass* rvk_pass_create(
       .swapchainFormat  = swapchainFormat,
       .statrecorder     = rvk_statrecorder_create(dev),
       .stopwatch        = stopwatch,
-      .vkCmdBuf         = vkCmdBuf,
       .uniformPool      = uniformPool,
       .config           = config,
       .descSetsVolatile = dynarray_create_t(g_allocHeap, RvkDescSet, 8),
@@ -651,8 +649,10 @@ u64 rvk_pass_stat_pipeline(const RvkPass* pass, const RvkStat stat) {
   return res;
 }
 
-void rvk_pass_reset(RvkPass* pass) {
-  rvk_statrecorder_reset(pass->statrecorder, pass->vkCmdBuf);
+void rvk_pass_init(RvkPass* pass, VkCommandBuffer vkCmdBuf) {
+  pass->vkCmdBuf = vkCmdBuf;
+
+  rvk_statrecorder_reset(pass->statrecorder, vkCmdBuf);
   rvk_pass_free_desc_volatile(pass);
   rvk_pass_free_invocations(pass);
   *rvk_pass_stage() = (RvkPassStage){0}; // Reset the stage.

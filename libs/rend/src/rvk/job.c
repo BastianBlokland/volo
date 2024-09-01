@@ -171,8 +171,7 @@ RvkJob* rvk_job_create(
 
   for (u32 i = 0; i != passCount; ++i) {
     const RvkPassConfig* config = &passConfig[i];
-    job->passes[i] =
-        rvk_pass_create(dev, swapchainFormat, vkDrawBuffer, uniformPool, stopwatch, config);
+    job->passes[i] = rvk_pass_create(dev, swapchainFormat, uniformPool, stopwatch, config);
   }
 
   return job;
@@ -250,7 +249,7 @@ void rvk_job_begin(RvkJob* job) {
   rvk_stopwatch_reset(job->stopwatch, job->vkDrawBuffer);
 
   for (u32 passIdx = 0; passIdx != job->passCount; ++passIdx) {
-    rvk_pass_reset(job->passes[passIdx]);
+    rvk_pass_init(job->passes[passIdx], job->vkDrawBuffer);
   }
 
   job->timeRecBegin = rvk_stopwatch_mark(job->stopwatch, job->vkDrawBuffer);
