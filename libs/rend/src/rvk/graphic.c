@@ -204,21 +204,21 @@ static RvkDescMeta rvk_graphic_desc_meta(RvkGraphic* graphic, const usize set) {
   return meta;
 }
 
-static VkPipelineLayout rvk_pipeline_layout_create(const RvkGraphic* graphic, const RvkPass* pass) {
+static VkPipelineLayout
+rvk_pipeline_layout_create(const RvkGraphic* graphic, RvkDevice* dev, const RvkPass* pass) {
   const RvkDescMeta           globalDescMeta      = rvk_pass_meta_global(pass);
   const RvkDescMeta           instanceDescMeta    = rvk_pass_meta_instance(pass);
   const VkDescriptorSetLayout descriptorLayouts[] = {
-      rvk_desc_vklayout(graphic->device->descPool, &globalDescMeta),
+      rvk_desc_vklayout(dev->descPool, &globalDescMeta),
       rvk_desc_set_vklayout(graphic->graphicDescSet),
-      rvk_desc_vklayout(graphic->device->descPool, &graphic->drawDescMeta),
-      rvk_desc_vklayout(graphic->device->descPool, &instanceDescMeta),
+      rvk_desc_vklayout(dev->descPool, &graphic->drawDescMeta),
+      rvk_desc_vklayout(dev->descPool, &instanceDescMeta),
   };
   const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
       .sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       .setLayoutCount = array_elems(descriptorLayouts),
       .pSetLayouts    = descriptorLayouts,
   };
-  RvkDevice*       dev = graphic->device;
   VkPipelineLayout result;
   rvk_call(vkCreatePipelineLayout, dev->vkDev, &pipelineLayoutInfo, &dev->vkAlloc, &result);
   return result;
@@ -259,8 +259,8 @@ static VkPrimitiveTopology rvk_pipeline_input_topology(const RvkGraphic* graphic
   diag_crash();
 }
 
-static VkPolygonMode rvk_pipeline_polygonmode(RvkGraphic* graphic) {
-  if (!(graphic->device->flags & RvkDeviceFlags_SupportFillNonSolid)) {
+static VkPolygonMode rvk_pipeline_polygonmode(RvkGraphic* graphic, const RvkDevice* dev) {
+  if (!(dev->flags & RvkDeviceFlags_SupportFillNonSolid)) {
     return VK_POLYGON_MODE_FILL;
   }
   switch (graphic->rasterizer) {
@@ -276,8 +276,7 @@ static VkPolygonMode rvk_pipeline_polygonmode(RvkGraphic* graphic) {
   diag_crash();
 }
 
-static f32 rvk_pipeline_linewidth(RvkGraphic* graphic) {
-  RvkDevice* dev = graphic->device;
+static f32 rvk_pipeline_linewidth(RvkGraphic* graphic, const RvkDevice* dev) {
   if (!(dev->flags & RvkDeviceFlags_SupportWideLines)) {
     return 1.0f;
   }
@@ -362,8 +361,7 @@ static bool rvk_pipeline_depth_test(RvkGraphic* graphic) {
   }
 }
 
-static bool rvk_pipeline_depth_clamp(RvkGraphic* graphic) {
-  RvkDevice* dev = graphic->device;
+static bool rvk_pipeline_depth_clamp(RvkGraphic* graphic, const RvkDevice* dev) {
   if (!(dev->flags & RvkDeviceFlags_SupportDepthClamp)) {
     log_w("Device does not support depth-clamping");
     return false;
@@ -429,8 +427,8 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend(const AssetGr
   diag_crash();
 }
 
-static VkPipeline
-rvk_pipeline_create(RvkGraphic* graphic, const VkPipelineLayout layout, const RvkPass* pass) {
+static VkPipeline rvk_pipeline_create(
+    RvkGraphic* graphic, RvkDevice* dev, const VkPipelineLayout layout, const RvkPass* pass) {
 
   VkPipelineShaderStageCreateInfo shaderStages[rvk_graphic_shaders_max];
   u32                             shaderStageCount = 0;
@@ -462,11 +460,11 @@ rvk_pipeline_create(RvkGraphic* graphic, const VkPipelineLayout layout, const Rv
       math_abs(graphic->depthBiasConstant) > 1e-4f || math_abs(graphic->depthBiasSlope) > 1e-4f;
   const VkPipelineRasterizationStateCreateInfo rasterizer = {
       .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-      .polygonMode             = rvk_pipeline_polygonmode(graphic),
-      .lineWidth               = rvk_pipeline_linewidth(graphic),
+      .polygonMode             = rvk_pipeline_polygonmode(graphic, dev),
+      .lineWidth               = rvk_pipeline_linewidth(graphic, dev),
       .cullMode                = rvk_pipeline_cullmode(graphic),
       .frontFace               = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-      .depthClampEnable        = rvk_pipeline_depth_clamp(graphic),
+      .depthClampEnable        = rvk_pipeline_depth_clamp(graphic, dev),
       .depthBiasEnable         = depthBiasEnabled,
       .depthBiasConstantFactor = depthBiasEnabled ? graphic->depthBiasConstant : 0,
       .depthBiasSlopeFactor    = depthBiasEnabled ? graphic->depthBiasSlope : 0,
@@ -530,7 +528,6 @@ rvk_pipeline_create(RvkGraphic* graphic, const VkPipelineLayout layout, const Rv
   VkPipeline result;
   trace_begin("rend_pipeline_create", TraceColor_Blue);
   {
-    RvkDevice*      dev  = graphic->device;
     VkPipelineCache psoc = dev->vkPipelineCache;
     rvk_call(vkCreateGraphicsPipelines, dev->vkDev, psoc, 1, &pipelineInfo, &dev->vkAlloc, &result);
   }
@@ -540,10 +537,12 @@ rvk_pipeline_create(RvkGraphic* graphic, const VkPipelineLayout layout, const Rv
 }
 
 static void rvk_graphic_set_missing_sampler(
-    RvkGraphic* graphic, const u32 samplerIndex, const RvkDescKind kind) {
+    RvkGraphic*          graphic,
+    const RvkRepository* repo,
+    const u32            samplerIndex,
+    const RvkDescKind    kind) {
   diag_assert(!graphic->samplerTextures[samplerIndex]);
 
-  RvkRepository*        repo   = graphic->device->repository;
   const RvkRepositoryId repoId = kind == RvkDescKind_CombinedImageSamplerCube
                                      ? RvkRepositoryId_MissingTextureCube
                                      : RvkRepositoryId_MissingTexture;
@@ -646,6 +645,7 @@ static bool rend_graphic_validate_set(
 
 RvkGraphic*
 rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String dbgName) {
+  (void)dev;
   RvkGraphic* graphic = alloc_alloc_t(g_allocHeap, RvkGraphic);
 
   RvkGraphicFlags flags = 0;
@@ -654,7 +654,6 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
   }
 
   *graphic = (RvkGraphic){
-      .device            = dev,
       .dbgName           = string_dup(g_allocHeap, dbgName),
       .flags             = flags,
       .topology          = asset->topology,
@@ -676,8 +675,7 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
   return graphic;
 }
 
-void rvk_graphic_destroy(RvkGraphic* graphic) {
-  RvkDevice* dev = graphic->device;
+void rvk_graphic_destroy(RvkGraphic* graphic, RvkDevice* dev) {
   if (graphic->vkPipeline) {
     vkDestroyPipeline(dev->vkDev, graphic->vkPipeline, &dev->vkAlloc);
   }
@@ -767,7 +765,7 @@ void rvk_graphic_sampler_add(
       log_param("limit", fmt_int(rvk_graphic_samplers_max)));
 }
 
-bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkPass* pass) {
+bool rvk_graphic_prepare(RvkGraphic* graphic, RvkDevice* dev, const RvkPass* pass) {
   diag_assert_msg(!rvk_pass_active(pass), "Pass already active");
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_Invalid)) {
     return false;
@@ -817,7 +815,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkPass* pass) {
             graphic, RvkGraphicSet_Graphic, &graphicDescMeta, g_rendSupportedGraphicBindings))) {
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
-    graphic->graphicDescSet = rvk_desc_alloc(graphic->device->descPool, &graphicDescMeta);
+    graphic->graphicDescSet = rvk_desc_alloc(dev->descPool, &graphicDescMeta);
 
     // Attach mesh.
     if (graphicDescMeta.bindings[0] == RvkDescKind_StorageBuffer) {
@@ -849,7 +847,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkPass* pass) {
           break;
         }
         if (!graphic->samplerTextures[samplerIndex]) {
-          rvk_graphic_set_missing_sampler(graphic, samplerIndex, kind);
+          rvk_graphic_set_missing_sampler(graphic, dev->repository, samplerIndex, kind);
         }
         if (kind != rvk_texture_sampler_kind(graphic->samplerTextures[samplerIndex])) {
           log_e(
@@ -871,20 +869,19 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkPass* pass) {
       return false;
     }
 
-    graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic, pass);
-    graphic->vkPipeline       = rvk_pipeline_create(graphic, graphic->vkPipelineLayout, pass);
+    graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic, dev, pass);
+    graphic->vkPipeline       = rvk_pipeline_create(graphic, dev, graphic->vkPipelineLayout, pass);
 
     rvk_debug_name_pipeline_layout(
-        graphic->device->debug, graphic->vkPipelineLayout, "{}", fmt_text(graphic->dbgName));
-    rvk_debug_name_pipeline(
-        graphic->device->debug, graphic->vkPipeline, "{}", fmt_text(graphic->dbgName));
+        dev->debug, graphic->vkPipelineLayout, "{}", fmt_text(graphic->dbgName));
+    rvk_debug_name_pipeline(dev->debug, graphic->vkPipeline, "{}", fmt_text(graphic->dbgName));
   }
-  if (graphic->mesh && !rvk_mesh_is_ready(graphic->mesh, graphic->device)) {
+  if (graphic->mesh && !rvk_mesh_is_ready(graphic->mesh, dev)) {
     return false;
   }
   for (u32 samplerIndex = 0; samplerIndex != rvk_graphic_samplers_max; ++samplerIndex) {
     RvkTexture* tex = graphic->samplerTextures[samplerIndex];
-    if (tex && !rvk_texture_is_ready(tex, graphic->device)) {
+    if (tex && !rvk_texture_is_ready(tex, dev)) {
       return false;
     }
   }
@@ -892,7 +889,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkPass* pass) {
   return true;
 }
 
-void rvk_graphic_bind(const RvkGraphic* graphic, VkCommandBuffer vkCmdBuf) {
+void rvk_graphic_bind(const RvkGraphic* graphic, const RvkDevice* dev, VkCommandBuffer vkCmdBuf) {
   diag_assert_msg(graphic->flags & RvkGraphicFlags_Ready, "Graphic is not ready");
 
   vkCmdBindPipeline(vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
@@ -909,6 +906,6 @@ void rvk_graphic_bind(const RvkGraphic* graphic, VkCommandBuffer vkCmdBuf) {
       null);
 
   if (graphic->mesh) {
-    rvk_mesh_bind(graphic->mesh, graphic->device, vkCmdBuf);
+    rvk_mesh_bind(graphic->mesh, dev, vkCmdBuf);
   }
 }

@@ -665,7 +665,7 @@ void rvk_pass_reset(RvkPass* pass) {
 bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
-  return rvk_graphic_prepare(graphic, pass);
+  return rvk_graphic_prepare(graphic, pass->dev, pass);
 }
 
 bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
@@ -946,7 +946,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
   rvk_debug_label_begin(
       pass->dev->debug, pass->vkCmdBuf, geo_color_green, "draw_{}", fmt_text(graphic->dbgName));
 
-  rvk_graphic_bind(graphic, pass->vkCmdBuf);
+  rvk_graphic_bind(graphic, pass->dev, pass->vkCmdBuf);
 
   if (graphic->flags & RvkGraphicFlags_RequireDrawSet) {
     rvk_pass_bind_draw(

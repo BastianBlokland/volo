@@ -37,7 +37,6 @@ typedef struct {
 } RvkGraphicShader;
 
 typedef struct sRvkGraphic {
-  RvkDevice*             device;
   String                 dbgName;
   RvkGraphicFlags        flags : 16;
   AssetGraphicTopology   topology : 8;
@@ -65,12 +64,12 @@ typedef struct sRvkGraphic {
 } RvkGraphic;
 
 RvkGraphic* rvk_graphic_create(RvkDevice*, const AssetGraphicComp*, String dbgName);
-void        rvk_graphic_destroy(RvkGraphic*);
+void        rvk_graphic_destroy(RvkGraphic*, RvkDevice*);
 
 void rvk_graphic_shader_add(
     RvkGraphic*, RvkShader*, AssetGraphicOverride* overrides, usize overrideCount);
 void rvk_graphic_mesh_add(RvkGraphic*, RvkMesh*);
 void rvk_graphic_sampler_add(RvkGraphic*, RvkTexture*, const AssetGraphicSampler*);
 
-bool rvk_graphic_prepare(RvkGraphic*, const RvkPass*);
-void rvk_graphic_bind(const RvkGraphic*, VkCommandBuffer);
+bool rvk_graphic_prepare(RvkGraphic*, RvkDevice*, const RvkPass*);
+void rvk_graphic_bind(const RvkGraphic*, const RvkDevice*, VkCommandBuffer);
