@@ -29,6 +29,13 @@ static StringHash g_sceneLocoAnimIdle;
 ecs_comp_define_public(SceneLocomotionComp);
 ecs_comp_define_public(SceneLocomotionWheeledComp);
 
+static void loco_validate_pos(MAYBE_UNUSED const GeoVector vec) {
+  diag_assert_msg(
+      geo_vector_mag_sqr(vec) <= (1e5f * 1e5f),
+      "Position ({}) is out of bounds",
+      geo_vector_fmt(vec));
+}
+
 static void loco_anim_init(SceneLocomotionComp* loco, SceneAnimationComp* anim) {
   SceneAnimLayer* layerIdle = scene_animation_layer_mut(anim, g_sceneLocoAnimIdle);
   if (layerIdle) {
@@ -185,6 +192,7 @@ ecs_system_define(SceneLocomotionMoveSys) {
     if (posDeltaMag > 1e-4f || scene_terrain_updated(terrain)) {
       trans->position = geo_vector_add(trans->position, posDelta);
       scene_terrain_snap(terrain, &trans->position);
+      loco_validate_pos(trans->position);
       if (wheeled) {
         wheeled->terrainNormal = scene_terrain_normal(terrain, trans->position);
       }
