@@ -97,7 +97,7 @@ void rvk_texture_destroy(RvkTexture* texture) {
   rvk_image_destroy(&texture->image, dev);
 
 #if VOLO_RVK_TEXTURE_LOGGING
-  log_d("Vulkan texture destroyed", log_param("name", fmt_text(texture->dbgName)));
+  log_d("Vulkan texture destroyed");
 #endif
 
   alloc_free_t(g_allocHeap, texture);
