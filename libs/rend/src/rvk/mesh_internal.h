@@ -9,8 +9,7 @@ typedef struct sRvkDevice RvkDevice;
 typedef struct sRvkPass   RvkPass;
 
 typedef enum {
-  RvkMeshFlags_Ready   = 1 << 0,
-  RvkMeshFlags_Skinned = 1 << 1,
+  RvkMeshFlags_Skinned = 1 << 0,
 } RvkMeshFlags;
 
 typedef struct sRvkMesh {
@@ -25,4 +24,4 @@ typedef struct sRvkMesh {
 
 RvkMesh* rvk_mesh_create(RvkDevice*, const AssetMeshComp*, String dbgName);
 void     rvk_mesh_destroy(RvkMesh*);
-bool     rvk_mesh_prepare(RvkMesh*);
+bool     rvk_mesh_is_ready(const RvkMesh*);

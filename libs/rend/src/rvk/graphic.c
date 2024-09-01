@@ -879,7 +879,7 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, const RvkPass* pass) {
     rvk_debug_name_pipeline(
         graphic->device->debug, graphic->vkPipeline, "{}", fmt_text(graphic->dbgName));
   }
-  if (graphic->mesh && !rvk_mesh_prepare(graphic->mesh)) {
+  if (graphic->mesh && !rvk_mesh_is_ready(graphic->mesh)) {
     return false;
   }
   for (u32 samplerIndex = 0; samplerIndex != rvk_graphic_samplers_max; ++samplerIndex) {

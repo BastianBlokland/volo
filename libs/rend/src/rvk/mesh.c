@@ -63,10 +63,7 @@ void rvk_mesh_destroy(RvkMesh* mesh) {
   alloc_free_t(g_allocHeap, mesh);
 }
 
-bool rvk_mesh_prepare(RvkMesh* mesh) {
-  if (mesh->flags & RvkMeshFlags_Ready) {
-    return true;
-  }
+bool rvk_mesh_is_ready(const RvkMesh* mesh) {
   RvkDevice* dev = mesh->device;
   if (!rvk_transfer_poll(dev->transferer, mesh->vertexTransfer)) {
     return false;
@@ -74,7 +71,5 @@ bool rvk_mesh_prepare(RvkMesh* mesh) {
   if (!rvk_transfer_poll(dev->transferer, mesh->indexTransfer)) {
     return false;
   }
-  // All resources have been transferred to the device.
-  mesh->flags |= RvkMeshFlags_Ready;
   return true;
 }
