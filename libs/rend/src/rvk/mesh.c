@@ -13,7 +13,6 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
 
   *mesh = (RvkMesh){
       .device            = dev,
-      .dbgName           = string_dup(g_allocHeap, dbgName),
       .vertexCount       = asset->vertexCount,
       .indexCount        = asset->indexCount,
       .positionBounds    = asset->positionBounds,
@@ -56,17 +55,13 @@ void rvk_mesh_destroy(RvkMesh* mesh) {
   rvk_buffer_destroy(&mesh->indexBuffer, dev);
 
 #if VOLO_RVK_MESH_LOGGING
-  log_d("Vulkan mesh destroyed", log_param("name", fmt_text(mesh->dbgName)));
+  log_d("Vulkan mesh destroyed");
 #endif
 
-  string_free(g_allocHeap, mesh->dbgName);
   alloc_free_t(g_allocHeap, mesh);
 }
 
-bool rvk_mesh_prepare(RvkMesh* mesh) {
-  if (mesh->flags & RvkMeshFlags_Ready) {
-    return true;
-  }
+bool rvk_mesh_is_ready(const RvkMesh* mesh) {
   RvkDevice* dev = mesh->device;
   if (!rvk_transfer_poll(dev->transferer, mesh->vertexTransfer)) {
     return false;
@@ -74,7 +69,5 @@ bool rvk_mesh_prepare(RvkMesh* mesh) {
   if (!rvk_transfer_poll(dev->transferer, mesh->indexTransfer)) {
     return false;
   }
-  // All resources have been transferred to the device.
-  mesh->flags |= RvkMeshFlags_Ready;
   return true;
 }

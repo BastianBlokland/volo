@@ -754,7 +754,6 @@ void rvk_image_transfer_ownership(
   if (srcQueueFamIdx == dstQueueFamIdx) {
     return;
   }
-
   const VkPipelineStageFlags stageFlags = rvk_image_vkpipelinestage(img->phase);
 
   // Release the image on the source queue.

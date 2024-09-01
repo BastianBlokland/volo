@@ -47,23 +47,20 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   diag_assert_msg(asset->mipsMax < u8_max, "Only {} texture mips are supported", fmt_int(u8_max));
 
   RvkTexture* tex = alloc_alloc_t(g_allocHeap, RvkTexture);
-  *tex            = (RvkTexture){
-      .device  = dev,
-      .dbgName = string_dup(g_allocHeap, dbgName),
-  };
+
+  *tex = (RvkTexture){.device = dev};
 
   const RvkSize  size       = rvk_size(asset->width, asset->height);
   const u8       layers     = (u8)asset->layers;
   const u8       mipLevels  = (u8)asset->mipsMax;
   const VkFormat vkFormat   = rvk_texture_format(asset);
-  const bool     compressed = (rvk_format_info(vkFormat).flags & RvkFormat_Block4x4) == 0;
+  const bool     compressed = (rvk_format_info(vkFormat).flags & RvkFormat_Block4x4) != 0;
   (void)compressed;
 
   bool mipGenGpu = false;
   if (asset->mipsData != asset->mipsMax) {
     diag_assert(asset->mipsData == 1); // Cannot both have source mips and generate mips.
     diag_assert(!compressed);          // Cannot generate mips for compressed textures on the gpu.
-    tex->flags |= RvkTextureFlags_MipGenGpu;
     mipGenGpu = true;
   }
 
@@ -76,7 +73,8 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 
   const Mem transferData = asset_texture_data(asset);
   const u32 transferMips = asset->mipsData;
-  tex->pixelTransfer = rvk_transfer_image(dev->transferer, &tex->image, transferData, transferMips);
+  tex->pixelTransfer =
+      rvk_transfer_image(dev->transferer, &tex->image, transferData, transferMips, mipGenGpu);
 
   rvk_debug_name_img(dev->debug, tex->image.vkImage, "{}", fmt_text(dbgName));
   rvk_debug_name_img_view(dev->debug, tex->image.vkImageView, "{}", fmt_text(dbgName));
@@ -99,14 +97,13 @@ void rvk_texture_destroy(RvkTexture* texture) {
   rvk_image_destroy(&texture->image, dev);
 
 #if VOLO_RVK_TEXTURE_LOGGING
-  log_d("Vulkan texture destroyed", log_param("name", fmt_text(texture->dbgName)));
+  log_d("Vulkan texture destroyed");
 #endif
 
-  string_free(g_allocHeap, texture->dbgName);
   alloc_free_t(g_allocHeap, texture);
 }
 
-RvkDescKind rvk_texture_sampler_kind(RvkTexture* texture) {
+RvkDescKind rvk_texture_sampler_kind(const RvkTexture* texture) {
   switch (texture->image.type) {
   case RvkImageType_ColorSourceCube:
     return RvkDescKind_CombinedImageSamplerCube;
@@ -115,30 +112,9 @@ RvkDescKind rvk_texture_sampler_kind(RvkTexture* texture) {
   }
 }
 
-bool rvk_texture_prepare(RvkTexture* texture, VkCommandBuffer vkCmdBuf) {
-  if (texture->flags & RvkTextureFlags_Ready) {
-    return true;
-  }
-
+bool rvk_texture_is_ready(const RvkTexture* texture) {
   if (!rvk_transfer_poll(texture->device->transferer, texture->pixelTransfer)) {
     return false;
   }
-
-  if (texture->flags & RvkTextureFlags_MipGenGpu) {
-    rvk_debug_label_begin(
-        texture->device->debug,
-        vkCmdBuf,
-        geo_color_silver,
-        "generate_mipmaps_{}",
-        fmt_text(texture->dbgName));
-
-    rvk_image_generate_mipmaps(&texture->image, vkCmdBuf);
-
-    rvk_debug_label_end(texture->device->debug, vkCmdBuf);
-  }
-
-  rvk_image_transition(&texture->image, RvkImagePhase_ShaderRead, vkCmdBuf);
-
-  texture->flags |= RvkTextureFlags_Ready;
   return true;
 }

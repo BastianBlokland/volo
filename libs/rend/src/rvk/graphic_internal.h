@@ -72,5 +72,5 @@ void rvk_graphic_shader_add(
 void rvk_graphic_mesh_add(RvkGraphic*, RvkMesh*);
 void rvk_graphic_sampler_add(RvkGraphic*, RvkTexture*, const AssetGraphicSampler*);
 
-bool rvk_graphic_prepare(RvkGraphic*, VkCommandBuffer, const RvkPass*);
+bool rvk_graphic_prepare(RvkGraphic*, const RvkPass*);
 void rvk_graphic_bind(const RvkGraphic*, VkCommandBuffer);
