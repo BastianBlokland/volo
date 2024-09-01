@@ -382,7 +382,7 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
 
   if (maybeAssetGraphic) {
     RvkGraphic* graphic = rvk_graphic_create(dev, maybeAssetGraphic, id);
-    ecs_world_add_t(world, entity, RendResGraphicComp, .graphic = graphic);
+    ecs_world_add_t(world, entity, RendResGraphicComp, .device = dev, .graphic = graphic);
 
     // Add shaders.
     EcsView* shaderView = ecs_world_view_t(world, ShaderWriteView);
@@ -432,20 +432,20 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
   }
 
   if (maybeAssetShader) {
-    ecs_world_add_t(
-        world, entity, RendResShaderComp, .shader = rvk_shader_create(dev, maybeAssetShader, id));
+    RvkShader* shader = rvk_shader_create(dev, maybeAssetShader, id);
+    ecs_world_add_t(world, entity, RendResShaderComp, .device = dev, .shader = shader);
     return true;
   }
 
   if (maybeAssetMesh) {
     RvkMesh* mesh = rvk_mesh_create(dev, maybeAssetMesh, id);
-    ecs_world_add_t(world, entity, RendResMeshComp, .mesh = mesh);
+    ecs_world_add_t(world, entity, RendResMeshComp, .device = dev, .mesh = mesh);
     return true;
   }
 
   if (maybeAssetTexture) {
     RvkTexture* tex = rvk_texture_create(dev, maybeAssetTexture, id);
-    ecs_world_add_t(world, entity, RendResTextureComp, .texture = tex);
+    ecs_world_add_t(world, entity, RendResTextureComp, .device = dev, .texture = tex);
 
     const RendResGlobalDef* globalDef = rend_res_global_lookup(id);
     if (globalDef) {
