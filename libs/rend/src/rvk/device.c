@@ -198,18 +198,18 @@ static u32 rvk_device_pick_transfer_queue(VkPhysicalDevice vkPhysDev) {
   vkGetPhysicalDeviceQueueFamilyProperties(vkPhysDev, &familyCount, families);
 
   for (u32 i = 0; i != familyCount; ++i) {
+    /**
+     * Graphics queues also support transfer operations, so we try to find a queue that exclusively
+     * does transferring otherwise fall back to using the graphics queue for transfer.
+     */
+    const bool hasTransfer = (families[i].queueFlags & VK_QUEUE_TRANSFER_BIT) != 0;
     const bool hasGraphics = (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0;
     const bool hasCompute  = (families[i].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0;
-    if (families[i].queueFlags & VK_QUEUE_TRANSFER_BIT && !hasGraphics && !hasCompute) {
+    if (hasTransfer && !hasGraphics && !hasCompute) {
       return i;
     }
   }
-  for (u32 i = 0; i != familyCount; ++i) {
-    if (families[i].queueFlags & VK_QUEUE_TRANSFER_BIT) {
-      return i;
-    }
-  }
-  diag_crash_msg("No transfer queue found");
+  return sentinel_u32;
 }
 
 static VkPhysicalDevice rvk_device_pick_physical_device(VkInstance vkInst) {
@@ -302,7 +302,7 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
           .queueCount       = 1,
           .pQueuePriorities = &queuePriorities[0],
   };
-  if (dev->transferQueueIndex != dev->graphicsQueueIndex) {
+  if (!sentinel_check(dev->transferQueueIndex)) {
     queueCreateInfos[queueCreateInfoCount++] = (VkDeviceQueueCreateInfo){
         .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
         .queueFamilyIndex = dev->transferQueueIndex,
@@ -402,9 +402,10 @@ static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
 
 RvkDevice* rvk_device_create(const RendSettingsGlobalComp* settingsGlobal) {
   RvkDevice* dev = alloc_alloc_t(g_allocHeap, RvkDevice);
-  *dev           = (RvkDevice){
-                .vkAlloc          = rvk_mem_allocator(g_allocHeap),
-                .queueSubmitMutex = thread_mutex_create(g_allocHeap),
+
+  *dev = (RvkDevice){
+      .vkAlloc          = rvk_mem_allocator(g_allocHeap),
+      .queueSubmitMutex = thread_mutex_create(g_allocHeap),
   };
 
   const bool validationDesired = (settingsGlobal->flags & RendGlobalFlags_Validation) != 0;
@@ -430,7 +431,9 @@ RvkDevice* rvk_device_create(const RendSettingsGlobalComp* settingsGlobal) {
 
   dev->vkDev = rvk_device_create_internal(dev);
   vkGetDeviceQueue(dev->vkDev, dev->graphicsQueueIndex, 0, &dev->vkGraphicsQueue);
-  vkGetDeviceQueue(dev->vkDev, dev->transferQueueIndex, 0, &dev->vkTransferQueue);
+  if (!sentinel_check(dev->transferQueueIndex)) {
+    vkGetDeviceQueue(dev->vkDev, dev->transferQueueIndex, 0, &dev->vkTransferQueue);
+  }
 
   dev->vkDepthFormat = rvk_device_pick_depthformat(dev);
 
@@ -438,11 +441,11 @@ RvkDevice* rvk_device_create(const RendSettingsGlobalComp* settingsGlobal) {
     const bool          verbose    = (settingsGlobal->flags & RendGlobalFlags_Verbose) != 0;
     const RvkDebugFlags debugFlags = verbose ? RvkDebugFlags_Verbose : 0;
     dev->debug = rvk_debug_create(dev->vkInst, dev->vkDev, &dev->vkAlloc, debugFlags);
-    if (dev->transferQueueIndex == dev->graphicsQueueIndex) {
-      rvk_debug_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics_and_transfer");
-    } else {
+    if (dev->vkTransferQueue) {
       rvk_debug_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics");
       rvk_debug_name_queue(dev->debug, dev->vkTransferQueue, "transfer");
+    } else {
+      rvk_debug_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics_and_transfer");
     }
   }
 

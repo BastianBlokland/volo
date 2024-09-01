@@ -35,7 +35,8 @@ typedef struct sRvkDevice {
   VkDevice                         vkDev;
   VkFormat                         vkDepthFormat;
   ThreadMutex                      queueSubmitMutex;
-  u32                              graphicsQueueIndex, transferQueueIndex;
+  u32                              graphicsQueueIndex;
+  u32                              transferQueueIndex; // sentinel_u32 if unavailable.
   VkQueue                          vkGraphicsQueue, vkTransferQueue;
   VkPipelineCache                  vkPipelineCache;
   RvkMemPool*                      memPool;
