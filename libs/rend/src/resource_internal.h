@@ -4,15 +4,31 @@
 #include "rend_resource.h"
 
 // Internal forward declarations:
+typedef struct sRvkDevice  RvkDevice;
 typedef struct sRvkGraphic RvkGraphic;
-typedef struct sRvkShader  RvkShader;
 typedef struct sRvkMesh    RvkMesh;
+typedef struct sRvkShader  RvkShader;
 typedef struct sRvkTexture RvkTexture;
 
-ecs_comp_extern_public(RendResGraphicComp) { RvkGraphic* graphic; };
-ecs_comp_extern_public(RendResShaderComp) { RvkShader* shader; };
-ecs_comp_extern_public(RendResMeshComp) { RvkMesh* mesh; };
-ecs_comp_extern_public(RendResTextureComp) { RvkTexture* texture; };
+ecs_comp_extern_public(RendResGraphicComp) {
+  RvkDevice*  device;
+  RvkGraphic* graphic;
+};
+
+ecs_comp_extern_public(RendResShaderComp) {
+  RvkDevice*       device;
+  const RvkShader* shader;
+};
+
+ecs_comp_extern_public(RendResMeshComp) {
+  RvkDevice*     device;
+  const RvkMesh* mesh;
+};
+
+ecs_comp_extern_public(RendResTextureComp) {
+  RvkDevice*        device;
+  const RvkTexture* texture;
+};
 
 /**
  * Component that indicates that this resource has finished loading and can be used.

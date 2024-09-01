@@ -436,14 +436,14 @@ static RvkDescSet rvk_pass_alloc_desc_volatile(RvkPass* pass, const RvkDescMeta*
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*                         pass,
+    RvkPass*           pass,
     MAYBE_UNUSED const RvkPassStage* stage,
     RvkGraphic*                      gra,
     const Mem                        data,
-    RvkMesh*                         mesh,
+    const RvkMesh*                   mesh,
     RvkImage*                        img,
     const RvkSamplerSpec             sampler) {
-  diag_assert_msg(!mesh || rvk_mesh_is_ready(mesh), "Mesh is not ready for binding");
+  diag_assert_msg(!mesh || rvk_mesh_is_ready(mesh, pass->dev), "Mesh is not ready for binding");
   diag_assert_msg(!img || img->phase != RvkImagePhase_Undefined, "Image has no content");
 
   const RvkDescSet descSet = rvk_pass_alloc_desc_volatile(pass, &gra->drawDescMeta);
@@ -482,11 +482,7 @@ static void rvk_pass_bind_draw(
       null);
 
   if (mesh) {
-    vkCmdBindIndexBuffer(
-        pass->vkCmdBuf,
-        mesh->indexBuffer.vkBuffer,
-        0,
-        sizeof(AssetMeshIndex) == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
+    rvk_mesh_bind(mesh, pass->dev, pass->vkCmdBuf);
   }
 }
 
@@ -665,19 +661,19 @@ void rvk_pass_reset(RvkPass* pass) {
 bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
-  return rvk_graphic_prepare(graphic, pass);
+  return rvk_graphic_prepare(graphic, pass->dev, pass);
 }
 
-bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, RvkMesh* mesh) {
+bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, const RvkMesh* mesh) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
-  return rvk_mesh_is_ready(mesh);
+  return rvk_mesh_is_ready(mesh, pass->dev);
 }
 
-bool rvk_pass_prepare_texture(MAYBE_UNUSED RvkPass* pass, RvkTexture* texture) {
+bool rvk_pass_prepare_texture(MAYBE_UNUSED RvkPass* pass, const RvkTexture* texture) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
-  return rvk_texture_is_ready(texture);
+  return rvk_texture_is_ready(texture, pass->dev);
 }
 
 void rvk_pass_stage_clear_color(MAYBE_UNUSED RvkPass* pass, const GeoColor clearColor) {
@@ -946,7 +942,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
   rvk_debug_label_begin(
       pass->dev->debug, pass->vkCmdBuf, geo_color_green, "draw_{}", fmt_text(graphic->dbgName));
 
-  rvk_graphic_bind(graphic, pass->vkCmdBuf);
+  rvk_graphic_bind(graphic, pass->dev, pass->vkCmdBuf);
 
   if (graphic->flags & RvkGraphicFlags_RequireDrawSet) {
     rvk_pass_bind_draw(

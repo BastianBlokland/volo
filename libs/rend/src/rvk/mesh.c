@@ -12,7 +12,6 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
   RvkMesh* mesh = alloc_alloc_t(g_allocHeap, RvkMesh);
 
   *mesh = (RvkMesh){
-      .device            = dev,
       .vertexCount       = asset->vertexCount,
       .indexCount        = asset->indexCount,
       .positionBounds    = asset->positionBounds,
@@ -49,8 +48,7 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
   return mesh;
 }
 
-void rvk_mesh_destroy(RvkMesh* mesh) {
-  RvkDevice* dev = mesh->device;
+void rvk_mesh_destroy(RvkMesh* mesh, RvkDevice* dev) {
   rvk_buffer_destroy(&mesh->vertexBuffer, dev);
   rvk_buffer_destroy(&mesh->indexBuffer, dev);
 
@@ -61,8 +59,7 @@ void rvk_mesh_destroy(RvkMesh* mesh) {
   alloc_free_t(g_allocHeap, mesh);
 }
 
-bool rvk_mesh_is_ready(const RvkMesh* mesh) {
-  RvkDevice* dev = mesh->device;
+bool rvk_mesh_is_ready(const RvkMesh* mesh, const RvkDevice* dev) {
   if (!rvk_transfer_poll(dev->transferer, mesh->vertexTransfer)) {
     return false;
   }
@@ -70,4 +67,18 @@ bool rvk_mesh_is_ready(const RvkMesh* mesh) {
     return false;
   }
   return true;
+}
+
+void rvk_mesh_bind(const RvkMesh* mesh, const RvkDevice* dev, VkCommandBuffer vkCmdBuf) {
+  (void)dev;
+  diag_assert(rvk_mesh_is_ready(mesh, dev));
+
+  VkIndexType indexType;
+  if (sizeof(AssetMeshIndex) == 2) {
+    indexType = VK_INDEX_TYPE_UINT16;
+  } else {
+    indexType = VK_INDEX_TYPE_UINT32;
+  }
+
+  vkCmdBindIndexBuffer(vkCmdBuf, mesh->indexBuffer.vkBuffer, 0, indexType);
 }

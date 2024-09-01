@@ -32,12 +32,11 @@ typedef enum {
 } RvkGraphicFlags;
 
 typedef struct {
-  RvkShader* shader;
+  const RvkShader* shader;
   HeapArray_t(RvkShaderOverride) overrides;
 } RvkGraphicShader;
 
 typedef struct sRvkGraphic {
-  RvkDevice*             device;
   String                 dbgName;
   RvkGraphicFlags        flags : 16;
   AssetGraphicTopology   topology : 8;
@@ -55,8 +54,8 @@ typedef struct sRvkGraphic {
   u32                    vertexCount;
   f32                    blendConstant;
   RvkGraphicShader       shaders[rvk_graphic_shaders_max];
-  RvkMesh*               mesh;
-  RvkTexture*            samplerTextures[rvk_graphic_samplers_max];
+  const RvkMesh*         mesh;
+  const RvkTexture*      samplerTextures[rvk_graphic_samplers_max];
   RvkSamplerSpec         samplerSpecs[rvk_graphic_samplers_max];
   RvkDescSet             graphicDescSet;
   RvkDescMeta            drawDescMeta;
@@ -65,12 +64,12 @@ typedef struct sRvkGraphic {
 } RvkGraphic;
 
 RvkGraphic* rvk_graphic_create(RvkDevice*, const AssetGraphicComp*, String dbgName);
-void        rvk_graphic_destroy(RvkGraphic*);
+void        rvk_graphic_destroy(RvkGraphic*, RvkDevice*);
 
 void rvk_graphic_shader_add(
-    RvkGraphic*, RvkShader*, AssetGraphicOverride* overrides, usize overrideCount);
-void rvk_graphic_mesh_add(RvkGraphic*, RvkMesh*);
-void rvk_graphic_sampler_add(RvkGraphic*, RvkTexture*, const AssetGraphicSampler*);
+    RvkGraphic*, const RvkShader*, AssetGraphicOverride* overrides, usize overrideCount);
+void rvk_graphic_mesh_add(RvkGraphic*, const RvkMesh*);
+void rvk_graphic_sampler_add(RvkGraphic*, const RvkTexture*, const AssetGraphicSampler*);
 
-bool rvk_graphic_prepare(RvkGraphic*, const RvkPass*);
-void rvk_graphic_bind(const RvkGraphic*, VkCommandBuffer);
+bool rvk_graphic_prepare(RvkGraphic*, RvkDevice*, const RvkPass*);
+void rvk_graphic_bind(const RvkGraphic*, const RvkDevice*, VkCommandBuffer);

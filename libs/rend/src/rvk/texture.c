@@ -48,8 +48,6 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
 
   RvkTexture* tex = alloc_alloc_t(g_allocHeap, RvkTexture);
 
-  *tex = (RvkTexture){.device = dev};
-
   const RvkSize  size       = rvk_size(asset->width, asset->height);
   const u8       layers     = (u8)asset->layers;
   const u8       mipLevels  = (u8)asset->mipsMax;
@@ -92,8 +90,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   return tex;
 }
 
-void rvk_texture_destroy(RvkTexture* texture) {
-  RvkDevice* dev = texture->device;
+void rvk_texture_destroy(RvkTexture* texture, RvkDevice* dev) {
   rvk_image_destroy(&texture->image, dev);
 
 #if VOLO_RVK_TEXTURE_LOGGING
@@ -112,8 +109,8 @@ RvkDescKind rvk_texture_sampler_kind(const RvkTexture* texture) {
   }
 }
 
-bool rvk_texture_is_ready(const RvkTexture* texture) {
-  if (!rvk_transfer_poll(texture->device->transferer, texture->pixelTransfer)) {
+bool rvk_texture_is_ready(const RvkTexture* texture, const RvkDevice* dev) {
+  if (!rvk_transfer_poll(dev->transferer, texture->pixelTransfer)) {
     return false;
   }
   return true;

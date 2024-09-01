@@ -19,8 +19,6 @@ typedef struct sRvkShaderOverride {
 } RvkShaderOverride;
 
 typedef struct sRvkShader {
-  RvkDevice*            device;
-  String                dbgName;
   VkShaderStageFlagBits vkStage;
   VkShaderModule        vkModule;
   String                entryPoint;
@@ -32,7 +30,7 @@ typedef struct sRvkShader {
 } RvkShader;
 
 RvkShader* rvk_shader_create(RvkDevice*, const AssetShaderComp*, String dbgName);
-void       rvk_shader_destroy(RvkShader*);
+void       rvk_shader_destroy(RvkShader*, RvkDevice*);
 
 bool rvk_shader_set_used(const RvkShader*, u32 set);
 bool rvk_shader_may_kill(const RvkShader*, const RvkShaderOverride* overrides, usize overrideCount);
@@ -42,5 +40,5 @@ bool rvk_shader_may_kill(const RvkShader*, const RvkShaderOverride* overrides, u
  * NOTE: Specialization constants are written to scratch memory; meaning this specialization should
  * be used immediately and not be stored.
  */
-VkSpecializationInfo
-rvk_shader_specialize_scratch(RvkShader*, const RvkShaderOverride* overrides, usize overrideCount);
+VkSpecializationInfo rvk_shader_specialize_scratch(
+    const RvkShader*, const RvkShaderOverride* overrides, usize overrideCount);

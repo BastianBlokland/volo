@@ -111,22 +111,22 @@ ecs_comp_define(RendResUnloadComp) {
 
 static void ecs_destruct_graphic_comp(void* data) {
   RendResGraphicComp* comp = data;
-  rvk_graphic_destroy(comp->graphic);
+  rvk_graphic_destroy(comp->graphic, comp->device);
 }
 
 static void ecs_destruct_shader_comp(void* data) {
   RendResShaderComp* comp = data;
-  rvk_shader_destroy(comp->shader);
+  rvk_shader_destroy((RvkShader*)comp->shader, comp->device);
 }
 
 static void ecs_destruct_mesh_comp(void* data) {
   RendResMeshComp* comp = data;
-  rvk_mesh_destroy(comp->mesh);
+  rvk_mesh_destroy((RvkMesh*)comp->mesh, comp->device);
 }
 
 static void ecs_destruct_texture_comp(void* data) {
   RendResTextureComp* comp = data;
-  rvk_texture_destroy(comp->texture);
+  rvk_texture_destroy((RvkTexture*)comp->texture, comp->device);
 }
 
 static void ecs_destruct_res_comp(void* data) {
@@ -189,19 +189,19 @@ ecs_view_define(PlatReadView) {
 
 ecs_view_define(ResWriteView) { ecs_access_write(RendResComp); }
 
-ecs_view_define(ShaderWriteView) {
+ecs_view_define(ShaderReadView) {
   ecs_access_with(RendResComp);
-  ecs_access_write(RendResShaderComp);
+  ecs_access_read(RendResShaderComp);
 }
 
-ecs_view_define(MeshWriteView) {
+ecs_view_define(MeshReadView) {
   ecs_access_with(RendResComp);
-  ecs_access_write(RendResMeshComp);
+  ecs_access_read(RendResMeshComp);
 }
 
-ecs_view_define(TextureWriteView) {
+ecs_view_define(TextureReadView) {
   ecs_access_with(RendResComp);
-  ecs_access_write(RendResTextureComp);
+  ecs_access_read(RendResTextureComp);
 }
 
 static const RendResGlobalDef* rend_res_global_lookup(const String assetId) {
@@ -382,45 +382,45 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
 
   if (maybeAssetGraphic) {
     RvkGraphic* graphic = rvk_graphic_create(dev, maybeAssetGraphic, id);
-    ecs_world_add_t(world, entity, RendResGraphicComp, .graphic = graphic);
+    ecs_world_add_t(world, entity, RendResGraphicComp, .device = dev, .graphic = graphic);
 
     // Add shaders.
-    EcsView* shaderView = ecs_world_view_t(world, ShaderWriteView);
+    EcsView* shaderView = ecs_world_view_t(world, ShaderReadView);
     heap_array_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
       if (!ecs_view_contains(shaderView, ptr->shader)) {
         log_e("Invalid shader reference", log_param("graphic", fmt_text(id)));
         resComp->state = RendResLoadState_FinishedFailure;
         return false;
       }
-      EcsIterator*       shaderItr  = ecs_view_at(shaderView, ptr->shader);
-      RendResShaderComp* shaderComp = ecs_view_write_t(shaderItr, RendResShaderComp);
+      EcsIterator*             shaderItr  = ecs_view_at(shaderView, ptr->shader);
+      const RendResShaderComp* shaderComp = ecs_view_read_t(shaderItr, RendResShaderComp);
       rvk_graphic_shader_add(
           graphic, shaderComp->shader, ptr->overrides.values, ptr->overrides.count);
     }
 
     // Add mesh.
     if (maybeAssetGraphic->mesh) {
-      EcsView* meshView = ecs_world_view_t(world, MeshWriteView);
+      EcsView* meshView = ecs_world_view_t(world, MeshReadView);
       if (!ecs_view_contains(meshView, maybeAssetGraphic->mesh)) {
         log_e("Invalid mesh reference", log_param("graphic", fmt_text(id)));
         resComp->state = RendResLoadState_FinishedFailure;
         return false;
       }
-      EcsIterator*     meshItr  = ecs_view_at(meshView, maybeAssetGraphic->mesh);
-      RendResMeshComp* meshComp = ecs_view_write_t(meshItr, RendResMeshComp);
+      EcsIterator*           meshItr  = ecs_view_at(meshView, maybeAssetGraphic->mesh);
+      const RendResMeshComp* meshComp = ecs_view_read_t(meshItr, RendResMeshComp);
       rvk_graphic_mesh_add(graphic, meshComp->mesh);
     }
 
     // Add samplers.
-    EcsView* textureView = ecs_world_view_t(world, TextureWriteView);
+    EcsView* textureView = ecs_world_view_t(world, TextureReadView);
     heap_array_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
       if (!ecs_view_contains(textureView, ptr->texture)) {
         log_e("Invalid texture reference", log_param("graphic", fmt_text(id)));
         resComp->state = RendResLoadState_FinishedFailure;
         return false;
       }
-      EcsIterator*        textureItr  = ecs_view_at(textureView, ptr->texture);
-      RendResTextureComp* textureComp = ecs_view_write_t(textureItr, RendResTextureComp);
+      EcsIterator*              textureItr  = ecs_view_at(textureView, ptr->texture);
+      const RendResTextureComp* textureComp = ecs_view_read_t(textureItr, RendResTextureComp);
       rvk_graphic_sampler_add(graphic, textureComp->texture, ptr);
     }
 
@@ -432,20 +432,20 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
   }
 
   if (maybeAssetShader) {
-    ecs_world_add_t(
-        world, entity, RendResShaderComp, .shader = rvk_shader_create(dev, maybeAssetShader, id));
+    RvkShader* shader = rvk_shader_create(dev, maybeAssetShader, id);
+    ecs_world_add_t(world, entity, RendResShaderComp, .device = dev, .shader = shader);
     return true;
   }
 
   if (maybeAssetMesh) {
     RvkMesh* mesh = rvk_mesh_create(dev, maybeAssetMesh, id);
-    ecs_world_add_t(world, entity, RendResMeshComp, .mesh = mesh);
+    ecs_world_add_t(world, entity, RendResMeshComp, .device = dev, .mesh = mesh);
     return true;
   }
 
   if (maybeAssetTexture) {
     RvkTexture* tex = rvk_texture_create(dev, maybeAssetTexture, id);
-    ecs_world_add_t(world, entity, RendResTextureComp, .texture = tex);
+    ecs_world_add_t(world, entity, RendResTextureComp, .device = dev, .texture = tex);
 
     const RendResGlobalDef* globalDef = rend_res_global_lookup(id);
     if (globalDef) {
@@ -723,9 +723,9 @@ ecs_module_init(rend_resource_module) {
 
   ecs_register_view(PlatReadView);
   ecs_register_view(ResWriteView);
-  ecs_register_view(ShaderWriteView);
-  ecs_register_view(MeshWriteView);
-  ecs_register_view(TextureWriteView);
+  ecs_register_view(ShaderReadView);
+  ecs_register_view(MeshReadView);
+  ecs_register_view(TextureReadView);
 
   ecs_register_system(
       RendGlobalResourceUpdateSys,
@@ -737,9 +737,9 @@ ecs_module_init(rend_resource_module) {
       ecs_view_id(PlatReadView),
       ecs_register_view(ResLoadView),
       ecs_register_view(ResLoadDependencyView),
-      ecs_view_id(ShaderWriteView),
-      ecs_view_id(MeshWriteView),
-      ecs_view_id(TextureWriteView));
+      ecs_view_id(ShaderReadView),
+      ecs_view_id(MeshReadView),
+      ecs_view_id(TextureReadView));
 
   ecs_register_system(RendResUnloadUnusedSys, ecs_register_view(ResUnloadUnusedView));
   ecs_register_system(RendResUnloadChangedSys, ecs_register_view(UnloadChangedView));
