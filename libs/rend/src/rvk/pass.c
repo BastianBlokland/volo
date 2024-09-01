@@ -482,11 +482,7 @@ static void rvk_pass_bind_draw(
       null);
 
   if (mesh) {
-    vkCmdBindIndexBuffer(
-        pass->vkCmdBuf,
-        mesh->indexBuffer.vkBuffer,
-        0,
-        sizeof(AssetMeshIndex) == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
+    rvk_mesh_bind(mesh, pass->dev, pass->vkCmdBuf);
   }
 }
 
