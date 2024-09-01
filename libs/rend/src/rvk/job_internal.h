@@ -16,16 +16,11 @@ typedef struct sRvkPassConfig  RvkPassConfig;
 
 typedef struct sRvkJob RvkJob;
 
-RvkJob* rvk_job_create(
-    RvkDevice*,
-    VkFormat             swapchainFormat,
-    u32                  jobId,
-    const RvkPassConfig* passConfig,
-    u32                  passCount);
-void rvk_job_destroy(RvkJob*);
-bool rvk_job_is_done(const RvkJob*);
-void rvk_job_wait_for_done(const RvkJob*);
-void rvk_job_stats(const RvkJob*, RvkCanvasStats* out);
+RvkJob* rvk_job_create(RvkDevice*, u32 jobId, const RvkPassConfig* passConfig, u32 passCount);
+void    rvk_job_destroy(RvkJob*);
+bool    rvk_job_is_done(const RvkJob*);
+void    rvk_job_wait_for_done(const RvkJob*);
+void    rvk_job_stats(const RvkJob*, RvkCanvasStats* out);
 
 void rvk_job_begin(RvkJob*);
 

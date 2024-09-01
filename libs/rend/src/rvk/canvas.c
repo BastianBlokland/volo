@@ -51,10 +51,9 @@ RvkCanvas* rvk_canvas_create(
     const u32            passCount) {
   diag_assert(passCount <= rvk_canvas_max_passes);
 
-  RvkSwapchain*  swapchain       = rvk_swapchain_create(dev, window);
-  const VkFormat swapchainFormat = rvk_swapchain_format(swapchain);
-  RvkAttachPool* attachPool      = rvk_attach_pool_create(dev);
-  RvkCanvas*     canvas          = alloc_alloc_t(g_allocHeap, RvkCanvas);
+  RvkSwapchain*  swapchain  = rvk_swapchain_create(dev, window);
+  RvkAttachPool* attachPool = rvk_attach_pool_create(dev);
+  RvkCanvas*     canvas     = alloc_alloc_t(g_allocHeap, RvkCanvas);
 
   *canvas = (RvkCanvas){
       .dev        = dev,
@@ -64,7 +63,7 @@ RvkCanvas* rvk_canvas_create(
   };
 
   for (u32 i = 0; i != canvas_job_count; ++i) {
-    canvas->jobs[i]                = rvk_job_create(dev, swapchainFormat, i, passConfig, passCount);
+    canvas->jobs[i]                = rvk_job_create(dev, i, passConfig, passCount);
     canvas->attachmentsReleased[i] = rvk_semaphore_create(dev);
     canvas->swapchainAvailable[i]  = rvk_semaphore_create(dev);
     canvas->swapchainPresent[i]    = rvk_semaphore_create(dev);

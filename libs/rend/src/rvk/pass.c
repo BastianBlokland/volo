@@ -76,7 +76,6 @@ static VkClearColorValue rvk_rend_clear_color(const GeoColor color) {
 
 struct sRvkPass {
   RvkDevice*           dev;
-  VkFormat             swapchainFormat;
   RvkStatRecorder*     statrecorder;
   RvkStopwatch*        stopwatch;
   const RvkPassConfig* config; // Persistently allocated.
@@ -111,8 +110,6 @@ static VkFormat rvk_attach_color_format(const RvkPass* pass, const u32 index) {
     return VK_FORMAT_R16G16_SFLOAT;
   case RvkPassFormat_Color3Float:
     return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
-  case RvkPassFormat_Swapchain:
-    return pass->swapchainFormat;
   }
   diag_crash_msg("Unsupported pass color attachment format");
 }
@@ -128,13 +125,6 @@ static u32 rvk_pass_attach_color_count(const RvkPassConfig* config) {
 #ifndef VOLO_FAST
 static void rvk_pass_attach_assert_color(const RvkPass* pass, const u32 idx, const RvkImage* img) {
   const RvkAttachSpec spec = rvk_pass_spec_attach_color(pass, idx);
-  if (pass->config->attachColorFormat[idx] == RvkPassFormat_Swapchain) {
-    diag_assert_msg(
-        img->type == RvkImageType_Swapchain,
-        "Pass {} color attachment {} invalid: Expected a swapchain image",
-        fmt_text(pass->config->name),
-        fmt_int(idx));
-  }
   diag_assert_msg(
       img->caps & RvkImageCapability_AttachmentColor,
       "Pass {} color attachment {} invalid: Missing AttachmentColor capability",
@@ -507,18 +497,13 @@ static RvkPassInvoc* rvk_pass_invoc_active(RvkPass* pass) {
   return dynarray_at_t(&pass->invocations, pass->invocations.size - 1, RvkPassInvoc);
 }
 
-RvkPass* rvk_pass_create(
-    RvkDevice*           dev,
-    const VkFormat       swapchainFormat,
-    RvkUniformPool*      uniformPool,
-    const RvkPassConfig* config) {
+RvkPass* rvk_pass_create(RvkDevice* dev, RvkUniformPool* uniformPool, const RvkPassConfig* config) {
   diag_assert(!string_is_empty(config->name));
 
   RvkPass* pass = alloc_alloc_t(g_allocHeap, RvkPass);
 
   *pass = (RvkPass){
       .dev              = dev,
-      .swapchainFormat  = swapchainFormat,
       .statrecorder     = rvk_statrecorder_create(dev),
       .uniformPool      = uniformPool,
       .config           = config,
@@ -570,10 +555,10 @@ bool rvk_pass_has_depth(const RvkPass* pass) {
 
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass* pass, const u16 colorAttachIndex) {
   RvkImageCapability capabilities = 0;
-  if (pass->config->attachColorFormat[colorAttachIndex] != RvkPassFormat_Swapchain) {
-    // TODO: Specifying these capabilities should not be responsibilty of the pass.
-    capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
-  }
+
+  // TODO: Specifying these capabilities should not be the responsibilty of the pass.
+  capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
+
   return (RvkAttachSpec){
       .vkFormat     = rvk_attach_color_format(pass, colorAttachIndex),
       .capabilities = capabilities,

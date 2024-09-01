@@ -141,11 +141,7 @@ static void rvk_job_submit(
 }
 
 RvkJob* rvk_job_create(
-    RvkDevice*           dev,
-    const VkFormat       swapchainFormat,
-    const u32            jobId,
-    const RvkPassConfig* passConfig,
-    const u32            passCount) {
+    RvkDevice* dev, const u32 jobId, const RvkPassConfig* passConfig, const u32 passCount) {
   diag_assert(passCount <= rvk_canvas_max_passes);
 
   RvkJob* job = alloc_alloc_t(g_allocHeap, RvkJob);
@@ -170,7 +166,7 @@ RvkJob* rvk_job_create(
   };
 
   for (u32 i = 0; i != passCount; ++i) {
-    job->passes[i] = rvk_pass_create(dev, swapchainFormat, uniformPool, &passConfig[i]);
+    job->passes[i] = rvk_pass_create(dev, uniformPool, &passConfig[i]);
   }
 
   return job;

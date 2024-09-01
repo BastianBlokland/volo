@@ -44,7 +44,6 @@ typedef enum {
   RvkPassFormat_Color4Srgb,        // RGBA (unorm)  sdr srgb.
   RvkPassFormat_Color2SignedFloat, // RG   (sfloat) hdr.
   RvkPassFormat_Color3Float,       // RGB  (ufloat) hdr.
-  RvkPassFormat_Swapchain,         // Format matching the window's swapchain.
 } RvkPassFormat;
 
 typedef struct sRvkPassConfig {
@@ -68,10 +67,7 @@ typedef struct sRvkPassDraw {
 } RvkPassDraw;
 
 RvkPass* rvk_pass_create(
-    RvkDevice*,
-    VkFormat swapchainFormat,
-    RvkUniformPool*,
-    const RvkPassConfig* /*  Needs to be persistently allocated */);
+    RvkDevice*, RvkUniformPool*, const RvkPassConfig* /*  Needs to be persistently allocated */);
 void   rvk_pass_destroy(RvkPass*);
 bool   rvk_pass_active(const RvkPass*);
 String rvk_pass_name(const RvkPass*); // Persistently allocated.
