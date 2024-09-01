@@ -86,6 +86,13 @@ ecs_view_define(InstanceLayerUpdateView) {
 ecs_view_define(PrefabMapAssetView) { ecs_access_read(AssetPrefabMapComp); }
 ecs_view_define(PrefabSpawnView) { ecs_access_read(ScenePrefabRequestComp); }
 
+static void prefab_validate_pos(MAYBE_UNUSED const GeoVector vec) {
+  diag_assert_msg(
+      geo_vector_mag_sqr(vec) <= (1e5f * 1e5f),
+      "Position ({}) is out of bounds",
+      geo_vector_fmt(vec));
+}
+
 static SceneLayer prefab_instance_layer(const SceneFaction faction, const AssetPrefabFlags flags) {
   if (flags & AssetPrefabFlags_Infantry) {
     return SceneLayer_Infantry & scene_faction_layers(faction);
@@ -558,6 +565,7 @@ static bool setup_prefab(
   if (spec->flags & ScenePrefabFlags_SnapToTerrain) {
     scene_terrain_snap(terrain, &spawnPos);
   }
+  prefab_validate_pos(spawnPos);
   ecs_world_add_empty_t(w, e, SceneLevelInstanceComp);
   ecs_world_add_t(w, e, SceneTransformComp, .position = spawnPos, .rotation = spec->rotation);
   ecs_world_add_t(w, e, SceneVelocityComp);
