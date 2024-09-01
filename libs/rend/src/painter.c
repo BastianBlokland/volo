@@ -57,8 +57,8 @@ typedef enum {
 static const RvkPassConfig g_passConfig2D[RendPainter2DPass_Count] = {
     [RendPainter2DPass_Post] = { .name = string_static("Post"),
         // Attachment color 0: color (rgba).
-        .attachColorFormat[0] = RvkPassFormat_Swapchain,
-        .attachColorLoad[0]   = RvkPassLoad_DontCare,
+        .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
+        .attachColorLoad[0]   = RvkPassLoad_Clear,
     },
 };
 
@@ -143,7 +143,7 @@ static const RvkPassConfig g_passConfig3D[RendPainter3DPass_Count] = {
 
     [RendPainter3DPass_Post] = { .name = string_static("Post"),
         // Attachment color 0: color (rgba).
-        .attachColorFormat[0] = RvkPassFormat_Swapchain,
+        .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
         .attachColorLoad[0]   = RvkPassLoad_DontCare,
     },
 };
@@ -781,20 +781,25 @@ static bool rend_canvas_paint_2d(
 
   const RendView mainView = painter_view_2d_create(camEntity);
 
-  RvkImage* swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
-  rvk_canvas_img_clear_color(painter->canvas, swapchainImage, geo_color_black);
+  RvkImage*     swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
+  const RvkSize swapchainSize  = swapchainImage->size;
 
-  RvkPass* postPass = rvk_canvas_pass(painter->canvas, RendPainter2DPass_Post);
+  RvkPass*  postPass = rvk_canvas_pass(painter->canvas, RendPainter2DPass_Post);
+  RvkImage* postRes  = rvk_canvas_attach_acquire_color(painter->canvas, postPass, 0, swapchainSize);
   {
     rend_builder_pass_push(builder, postPass);
 
     RendPaintContext ctx =
         painter_context(painter->canvas, builder, set, setGlobal, time, postPass, mainView);
-    rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
+    rvk_pass_stage_attach_color(postPass, postRes, 0);
     painter_push_objects_simple(
         &ctx, objView, resourceView, RendObjectFlags_Post, RendObjectFlags_None);
 
     rend_builder_pass_flush(builder);
+
+    // TODO: Render into the swapchain directly if the swapchain format matches the pass format.
+    rvk_canvas_img_blit(painter->canvas, postRes, swapchainImage);
+    rvk_canvas_attach_release(painter->canvas, postRes);
   }
 
   trace_end();
@@ -1148,7 +1153,8 @@ static bool rend_canvas_paint_3d(
   }
 
   // Post pass.
-  RvkPass* postPass = rvk_canvas_pass(painter->canvas, RendPainter3DPass_Post);
+  RvkPass*  postPass = rvk_canvas_pass(painter->canvas, RendPainter3DPass_Post);
+  RvkImage* postRes  = rvk_canvas_attach_acquire_color(painter->canvas, postPass, 0, swapchainSize);
   {
     trace_begin("rend_paint_post", TraceColor_White);
     rend_builder_pass_push(builder, postPass);
@@ -1159,7 +1165,7 @@ static bool rend_canvas_paint_3d(
     rvk_pass_stage_global_image(postPass, bloomOutput, 1);
     rvk_pass_stage_global_image(postPass, distBuffer, 2);
     rvk_pass_stage_global_image(postPass, fogBuffer, 3);
-    rvk_pass_stage_attach_color(postPass, swapchainImage, 0);
+    rvk_pass_stage_attach_color(postPass, postRes, 0);
     painter_stage_global_data(&ctx, &camMat, &projMat, swapchainSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
     painter_push_objects_simple(
@@ -1180,6 +1186,10 @@ static bool rend_canvas_paint_3d(
 
     rend_builder_pass_flush(builder);
     trace_end();
+
+    // TODO: Render into the swapchain directly if the swapchain format matches the pass format.
+    rvk_canvas_img_blit(painter->canvas, postRes, swapchainImage);
+    rvk_canvas_attach_release(painter->canvas, postRes);
   }
 
   rvk_canvas_attach_release(painter->canvas, fogBuffer);
