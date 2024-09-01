@@ -20,7 +20,6 @@ typedef struct sRvkShaderOverride {
 
 typedef struct sRvkShader {
   RvkDevice*            device;
-  String                dbgName;
   VkShaderStageFlagBits vkStage;
   VkShaderModule        vkModule;
   String                entryPoint;
