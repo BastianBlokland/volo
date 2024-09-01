@@ -701,7 +701,10 @@ void rvk_graphic_destroy(RvkGraphic* graphic, RvkDevice* dev) {
 }
 
 void rvk_graphic_shader_add(
-    RvkGraphic* graphic, RvkShader* shader, AssetGraphicOverride* overrides, usize overrideCount) {
+    RvkGraphic*           graphic,
+    const RvkShader*      shader,
+    AssetGraphicOverride* overrides,
+    usize                 overrideCount) {
 
   array_for_t(graphic->shaders, RvkGraphicShader, itr) {
     if (!itr->shader) {

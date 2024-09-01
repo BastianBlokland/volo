@@ -116,7 +116,7 @@ static void ecs_destruct_graphic_comp(void* data) {
 
 static void ecs_destruct_shader_comp(void* data) {
   RendResShaderComp* comp = data;
-  rvk_shader_destroy(comp->shader, comp->device);
+  rvk_shader_destroy((RvkShader*)comp->shader, comp->device);
 }
 
 static void ecs_destruct_mesh_comp(void* data) {
@@ -189,9 +189,9 @@ ecs_view_define(PlatReadView) {
 
 ecs_view_define(ResWriteView) { ecs_access_write(RendResComp); }
 
-ecs_view_define(ShaderWriteView) {
+ecs_view_define(ShaderReadView) {
   ecs_access_with(RendResComp);
-  ecs_access_write(RendResShaderComp);
+  ecs_access_read(RendResShaderComp);
 }
 
 ecs_view_define(MeshWriteView) {
@@ -385,15 +385,15 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
     ecs_world_add_t(world, entity, RendResGraphicComp, .device = dev, .graphic = graphic);
 
     // Add shaders.
-    EcsView* shaderView = ecs_world_view_t(world, ShaderWriteView);
+    EcsView* shaderView = ecs_world_view_t(world, ShaderReadView);
     heap_array_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
       if (!ecs_view_contains(shaderView, ptr->shader)) {
         log_e("Invalid shader reference", log_param("graphic", fmt_text(id)));
         resComp->state = RendResLoadState_FinishedFailure;
         return false;
       }
-      EcsIterator*       shaderItr  = ecs_view_at(shaderView, ptr->shader);
-      RendResShaderComp* shaderComp = ecs_view_write_t(shaderItr, RendResShaderComp);
+      EcsIterator*             shaderItr  = ecs_view_at(shaderView, ptr->shader);
+      const RendResShaderComp* shaderComp = ecs_view_read_t(shaderItr, RendResShaderComp);
       rvk_graphic_shader_add(
           graphic, shaderComp->shader, ptr->overrides.values, ptr->overrides.count);
     }
@@ -723,7 +723,7 @@ ecs_module_init(rend_resource_module) {
 
   ecs_register_view(PlatReadView);
   ecs_register_view(ResWriteView);
-  ecs_register_view(ShaderWriteView);
+  ecs_register_view(ShaderReadView);
   ecs_register_view(MeshWriteView);
   ecs_register_view(TextureWriteView);
 
@@ -737,7 +737,7 @@ ecs_module_init(rend_resource_module) {
       ecs_view_id(PlatReadView),
       ecs_register_view(ResLoadView),
       ecs_register_view(ResLoadDependencyView),
-      ecs_view_id(ShaderWriteView),
+      ecs_view_id(ShaderReadView),
       ecs_view_id(MeshWriteView),
       ecs_view_id(TextureWriteView));
 

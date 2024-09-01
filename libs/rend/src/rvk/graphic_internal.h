@@ -32,7 +32,7 @@ typedef enum {
 } RvkGraphicFlags;
 
 typedef struct {
-  RvkShader* shader;
+  const RvkShader* shader;
   HeapArray_t(RvkShaderOverride) overrides;
 } RvkGraphicShader;
 
@@ -67,7 +67,7 @@ RvkGraphic* rvk_graphic_create(RvkDevice*, const AssetGraphicComp*, String dbgNa
 void        rvk_graphic_destroy(RvkGraphic*, RvkDevice*);
 
 void rvk_graphic_shader_add(
-    RvkGraphic*, RvkShader*, AssetGraphicOverride* overrides, usize overrideCount);
+    RvkGraphic*, const RvkShader*, AssetGraphicOverride* overrides, usize overrideCount);
 void rvk_graphic_mesh_add(RvkGraphic*, RvkMesh*);
 void rvk_graphic_sampler_add(RvkGraphic*, RvkTexture*, const AssetGraphicSampler*);
 
