@@ -88,7 +88,7 @@ struct sRvkPass {
   RvkDescMeta      globalDescMeta;
   VkPipelineLayout globalPipelineLayout;
 
-  DynArray descSetsVolatile; // RvkDescSet[], allocated on-demand and automatically freed at reset.
+  DynArray descSetsVolatile; // RvkDescSet[], allocated on-demand and automatically freed next init.
   DynArray invocations;      // RvkPassInvoc[]
 };
 
@@ -426,7 +426,7 @@ static RvkDescSet rvk_pass_alloc_desc_volatile(RvkPass* pass, const RvkDescMeta*
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*           pass,
+    RvkPass*                         pass,
     MAYBE_UNUSED const RvkPassStage* stage,
     RvkGraphic*                      gra,
     const Mem                        data,
