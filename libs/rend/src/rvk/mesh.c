@@ -70,6 +70,7 @@ bool rvk_mesh_is_ready(const RvkMesh* mesh, const RvkDevice* dev) {
 }
 
 void rvk_mesh_bind(const RvkMesh* mesh, const RvkDevice* dev, VkCommandBuffer vkCmdBuf) {
+  (void)dev;
   diag_assert(rvk_mesh_is_ready(mesh, dev));
 
   VkIndexType indexType;
