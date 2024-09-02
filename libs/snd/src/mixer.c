@@ -39,6 +39,7 @@ ASSERT(
 #define snd_mixer_limiter_release_per_frame 0.000025f
 #define snd_mimer_limiter_closed_frames 1024
 #define snd_mixer_limiter_max 0.75f
+#define snd_mixer_warmup_ticks 16
 
 typedef enum {
   SndObjectPhase_Idle,
@@ -81,6 +82,7 @@ ecs_comp_define(SndMixerComp) {
   SndDevice* device;
   f32        gainActual, gainSetting;
   f32        limiterMult;
+  u16        warmupTicks; // Amount of ticks to wait before enabling the mixer output.
   u16        limiterClosedFrames;
 
   u16          deviceRequestedFrames; // How many frames to render this tick.
@@ -536,6 +538,14 @@ ecs_system_define(SndMixerRenderBeginSys) {
   if (!m) {
     return;
   }
+  if (m->warmupTicks) {
+    /**
+     * Delay mixer sound output until a certain number of ticks after startup, reason is the first
+     * ticks are usually expensive and unpredictable and would likely cause an underrun.
+     */
+    --m->warmupTicks;
+    return;
+  }
   if (!snd_device_begin(m->device)) {
     m->deviceRequestedFrames = 0;
     return;
@@ -550,7 +560,6 @@ ecs_system_define(SndMixerRenderBeginSys) {
    */
   if (m->deviceTimeHead && devicePeriod.timeBegin > m->deviceTimeHead) {
     const TimeDuration skipDur = devicePeriod.timeBegin - m->deviceTimeHead;
-    log_d("Sound-mixer skip", log_param("duration", fmt_duration(skipDur)));
     for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
       SndObject* obj = &m->objects[i];
       if (obj->phase == SndObjectPhase_Playing && !snd_object_skip(obj, skipDur)) {
@@ -663,6 +672,7 @@ ecs_module_init(snd_mixer_module) {
 SndMixerComp* snd_mixer_init(EcsWorld* world) {
   SndMixerComp* m = ecs_world_add_t(world, ecs_world_global(world), SndMixerComp);
 
+  m->warmupTicks = snd_mixer_warmup_ticks;
   m->device      = snd_device_create(g_allocHeap);
   m->gainSetting = 1.0f;
   m->limiterMult = 1.0f;

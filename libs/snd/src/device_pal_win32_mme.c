@@ -262,7 +262,7 @@ static void snd_device_report_underrun(SndDevice* device) {
 
   const TimeSteady timeNow = time_steady_clock();
   if ((timeNow - device->underrunLastReportTime) > time_second) {
-    log_d("Sound-device buffer underrun", log_param("counter", fmt_int(device->underrunCounter)));
+    log_w("Sound-device buffer underrun", log_param("counter", fmt_int(device->underrunCounter)));
     device->underrunLastReportTime = timeNow;
   }
 }
@@ -324,7 +324,7 @@ bool snd_device_begin(SndDevice* dev) {
     if (dev->periodHeaders[period].flags & mme_header_flag_done) {
       // Start playback if we're not playing yet.
       if (UNLIKELY(dev->state == SndDeviceState_Idle)) {
-        dev->nextPeriodBeginTime = time_steady_clock();
+        dev->nextPeriodBeginTime = time_steady_clock() + snd_mme_period_time;
         dev->state               = SndDeviceState_Playing;
       }
       dev->activePeriod = period;
