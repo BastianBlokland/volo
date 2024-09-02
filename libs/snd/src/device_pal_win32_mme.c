@@ -324,7 +324,7 @@ bool snd_device_begin(SndDevice* dev) {
     if (dev->periodHeaders[period].flags & mme_header_flag_done) {
       // Start playback if we're not playing yet.
       if (UNLIKELY(dev->state == SndDeviceState_Idle)) {
-        dev->nextPeriodBeginTime = time_steady_clock() + snd_alsa_period_time;
+        dev->nextPeriodBeginTime = time_steady_clock() + snd_mme_period_time;
         dev->state               = SndDeviceState_Playing;
       }
       dev->activePeriod = period;
