@@ -643,6 +643,9 @@ void rvk_pass_frame_end(RvkPass* pass) {
   diag_assert_msg(pass->frameActive, "Pass frame not active");
   diag_assert_msg(!rvk_pass_invoc_active((RvkPass*)pass), "Pass invocation still active");
 
+  pass->frameActive->vkCmdBuf    = null; // No more commands should be submitted to this frame.
+  pass->frameActive->uniformPool = null; // NO more data should be allocated as part of this frame.
+
   pass->frameActive = null;
 }
 
