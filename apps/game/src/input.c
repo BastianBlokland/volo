@@ -267,7 +267,7 @@ static void update_camera_movement(
     state->camRotYTgt  = math_mod_f32(state->camRotYTgt + rotDelta, math_pi_f32 * 2.0f);
     lockCursor         = true;
   }
-  const f32 camRotEaseDelta = deltaSeconds * g_inputCamRotYEaseSpeed;
+  const f32 camRotEaseDelta = math_min(1.0f, deltaSeconds * g_inputCamRotYEaseSpeed);
   state->camRotY = math_lerp_angle_f32(state->camRotY, state->camRotYTgt, camRotEaseDelta);
 
   // Update zoom.
