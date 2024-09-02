@@ -277,7 +277,7 @@ static void update_camera_movement(
       const f32 zoomDelta = input_scroll_y(input) * g_inputCamZoomMult;
       state->camZoomTgt   = math_clamp_f32(state->camZoomTgt + zoomDelta, 0.0f, 1.0f);
     }
-    const f32 camZoomEaseDelta = deltaSeconds * g_inputCamZoomEaseSpeed;
+    const f32 camZoomEaseDelta = math_min(1.0f, deltaSeconds * g_inputCamZoomEaseSpeed);
     state->camZoom             = math_lerp(state->camZoom, state->camZoomTgt, camZoomEaseDelta);
   }
 
