@@ -30,7 +30,7 @@ struct sRvkJob {
    * of the submission.
    */
   RvkPass*      passes[rvk_canvas_max_passes];
-  RvkPassFrame* passFrames[rvk_canvas_max_passes];
+  RvkPassHandle passFrames[rvk_canvas_max_passes];
   u32           passCount;
 
   VkFence         fenceJobDone;
@@ -169,7 +169,8 @@ RvkJob* rvk_job_create(
   };
 
   for (u32 i = 0; i != passCount; ++i) {
-    job->passes[i] = rvk_pass_create(dev, &passConfig[i]);
+    job->passes[i]     = rvk_pass_create(dev, &passConfig[i]);
+    job->passFrames[i] = sentinel_u32;
   }
 
   return job;
@@ -216,8 +217,8 @@ void rvk_job_stats(const RvkJob* job, RvkCanvasStats* out) {
   out->passCount = 0;
   for (u32 i = 0; i != job->passCount; ++i) {
     const RvkPass*      pass      = job->passes[i];
-    const RvkPassFrame* passFrame = job->passFrames[i];
-    if (!passFrame) {
+    const RvkPassHandle passFrame = job->passFrames[i];
+    if (sentinel_check(passFrame)) {
       continue;
     }
 

@@ -72,7 +72,7 @@ static VkClearColorValue rvk_rend_clear_color(const GeoColor color) {
   return result;
 }
 
-struct sRvkPassFrame {
+typedef struct {
   RvkStatRecorder* statrecorder;
   RvkStopwatch*    stopwatch;
   RvkUniformPool*  uniformPool;
@@ -80,7 +80,7 @@ struct sRvkPassFrame {
 
   DynArray descSetsVolatile; // RvkDescSet[], allocated on-demand and automatically freed next init.
   DynArray invocations;      // RvkPassInvoc[]
-};
+} RvkPassFrame;
 
 struct sRvkPass {
   RvkDevice*           dev;
@@ -426,8 +426,8 @@ rvk_pass_alloc_desc_volatile(RvkPass* pass, RvkPassFrame* frame, const RvkDescMe
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*           pass,
-    RvkPassFrame*      frame,
+    RvkPass*                         pass,
+    RvkPassFrame*                    frame,
     MAYBE_UNUSED const RvkPassStage* stage,
     RvkGraphic*                      gra,
     const Mem                        data,
@@ -475,6 +475,13 @@ static void rvk_pass_bind_draw(
   if (mesh) {
     rvk_mesh_bind(mesh, pass->dev, frame->vkCmdBuf);
   }
+}
+
+static const RvkPassFrame* rvk_pass_frame_get(const RvkPass* pass, const RvkPassHandle handle) {
+  // TODO: Support multiple frames in-flight.
+  diag_assert(pass->frameHead);
+  (void)handle;
+  return pass->frameHead;
 }
 
 static RvkPassFrame* rvk_pass_frame_create(RvkPass* pass) {
@@ -617,7 +624,7 @@ RvkDescMeta rvk_pass_meta_instance(const RvkPass* pass) {
 
 VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
 
-RvkPassFrame* rvk_pass_frame_begin(
+RvkPassHandle rvk_pass_frame_begin(
     RvkPass* pass, RvkUniformPool* uniformPool, RvkStopwatch* stopwatch, VkCommandBuffer vkCmdBuf) {
 
   diag_assert_msg(!pass->frameActive, "Pass frame already active");
@@ -636,7 +643,7 @@ RvkPassFrame* rvk_pass_frame_begin(
   *rvk_pass_stage() = (RvkPassStage){0}; // Reset the stage.
 
   pass->frameActive = frame;
-  return frame;
+  return 0;
 }
 
 void rvk_pass_frame_end(RvkPass* pass) {
@@ -649,27 +656,31 @@ void rvk_pass_frame_end(RvkPass* pass) {
   pass->frameActive = null;
 }
 
-u16 rvk_pass_stat_invocations(const RvkPass* pass, const RvkPassFrame* frame) {
-  (void)pass;
+u16 rvk_pass_stat_invocations(const RvkPass* pass, const RvkPassHandle frameHandle) {
+  const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
+
   return (u16)dynarray_size(&frame->invocations);
 }
 
-u16 rvk_pass_stat_draws(const RvkPass* pass, const RvkPassFrame* frame) {
-  (void)pass;
+u16 rvk_pass_stat_draws(const RvkPass* pass, const RvkPassHandle frameHandle) {
+  const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
+
   u16 draws = 0;
   dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) { draws += invoc->drawCount; }
   return draws;
 }
 
-u32 rvk_pass_stat_instances(const RvkPass* pass, const RvkPassFrame* frame) {
-  (void)pass;
+u32 rvk_pass_stat_instances(const RvkPass* pass, const RvkPassHandle frameHandle) {
+  const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
+
   u32 draws = 0;
   dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) { draws += invoc->instanceCount; }
   return draws;
 }
 
-RvkSize rvk_pass_stat_size_max(const RvkPass* pass, const RvkPassFrame* frame) {
-  (void)pass;
+RvkSize rvk_pass_stat_size_max(const RvkPass* pass, const RvkPassHandle frameHandle) {
+  const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
+
   RvkSize size = {0};
   dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
     size.width  = math_max(size.width, invoc->size.width);
@@ -678,8 +689,9 @@ RvkSize rvk_pass_stat_size_max(const RvkPass* pass, const RvkPassFrame* frame) {
   return size;
 }
 
-TimeDuration rvk_pass_stat_duration(const RvkPass* pass, const RvkPassFrame* frame) {
-  (void)pass;
+TimeDuration rvk_pass_stat_duration(const RvkPass* pass, const RvkPassHandle frameHandle) {
+  const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
+
   TimeDuration dur = 0;
   dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
     const TimeSteady timestampBegin = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecBegin);
@@ -689,8 +701,10 @@ TimeDuration rvk_pass_stat_duration(const RvkPass* pass, const RvkPassFrame* fra
   return dur;
 }
 
-u64 rvk_pass_stat_pipeline(const RvkPass* pass, const RvkPassFrame* frame, const RvkStat stat) {
-  (void)pass;
+u64 rvk_pass_stat_pipeline(
+    const RvkPass* pass, const RvkPassHandle frameHandle, const RvkStat stat) {
+  const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
+
   u64 res = 0;
   dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
     res += rvk_statrecorder_query(frame->statrecorder, invoc->statsRecord, stat);
