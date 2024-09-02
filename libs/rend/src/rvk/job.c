@@ -27,8 +27,9 @@ struct sRvkJob {
    * Passes are stored per-job as they contain state that needs to persist throughout the lifetime
    * of the submission.
    */
-  RvkPass* passes[rvk_canvas_max_passes];
-  u32      passCount;
+  RvkPass*      passes[rvk_canvas_max_passes];
+  RvkPassFrame* passFrames[rvk_canvas_max_passes];
+  u32           passCount;
 
   VkFence         fenceJobDone;
   VkCommandPool   vkCmdPool;
@@ -210,22 +211,27 @@ void rvk_job_stats(const RvkJob* job, RvkCanvasStats* out) {
   out->waitForGpuDur = job->waitForGpuDur;
   out->gpuExecDur    = time_steady_duration(timestampBegin, timestampEnd);
 
-  out->passCount = job->passCount;
-  for (u32 passIdx = 0; passIdx != job->passCount; ++passIdx) {
-    const RvkPass* pass    = job->passes[passIdx];
-    const RvkSize  sizeMax = rvk_pass_stat_size_max(pass);
-    out->passes[passIdx]   = (RendStatsPass){
+  out->passCount = 0;
+  for (u32 i = 0; i != job->passCount; ++i) {
+    const RvkPass*      pass      = job->passes[i];
+    const RvkPassFrame* passFrame = job->passFrames[i];
+    if (!passFrame) {
+      continue;
+    }
+
+    const RvkSize sizeMax         = rvk_pass_stat_size_max(pass, passFrame);
+    out->passes[out->passCount++] = (RendStatsPass){
         .name        = rvk_pass_name(pass), // Persistently allocated.
-        .gpuExecDur  = rvk_pass_stat_duration(pass, job->stopwatch),
+        .gpuExecDur  = rvk_pass_stat_duration(pass, passFrame),
         .sizeMax[0]  = sizeMax.width,
         .sizeMax[1]  = sizeMax.height,
-        .invocations = rvk_pass_stat_invocations(pass),
-        .draws       = rvk_pass_stat_draws(pass),
-        .instances   = rvk_pass_stat_instances(pass),
-        .vertices    = rvk_pass_stat_pipeline(pass, RvkStat_InputAssemblyVertices),
-        .primitives  = rvk_pass_stat_pipeline(pass, RvkStat_InputAssemblyPrimitives),
-        .shadersVert = rvk_pass_stat_pipeline(pass, RvkStat_ShaderInvocationsVert),
-        .shadersFrag = rvk_pass_stat_pipeline(pass, RvkStat_ShaderInvocationsFrag),
+        .invocations = rvk_pass_stat_invocations(pass, passFrame),
+        .draws       = rvk_pass_stat_draws(pass, passFrame),
+        .instances   = rvk_pass_stat_instances(pass, passFrame),
+        .vertices    = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_InputAssemblyVertices),
+        .primitives  = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_InputAssemblyPrimitives),
+        .shadersVert = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_ShaderInvocationsVert),
+        .shadersFrag = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_ShaderInvocationsFrag),
     };
   }
 }
@@ -243,8 +249,9 @@ void rvk_job_begin(RvkJob* job) {
   rvk_commandbuffer_begin(job->vkDrawBuffer);
   rvk_stopwatch_reset(job->stopwatch, job->vkDrawBuffer);
 
-  for (u32 passIdx = 0; passIdx != job->passCount; ++passIdx) {
-    rvk_pass_init(job->passes[passIdx], job->uniformPool, job->stopwatch, job->vkDrawBuffer);
+  for (u32 i = 0; i != job->passCount; ++i) {
+    RvkPass* pass      = job->passes[i];
+    job->passFrames[i] = rvk_pass_init(pass, job->uniformPool, job->stopwatch, job->vkDrawBuffer);
   }
 
   job->timeRecBegin = rvk_stopwatch_mark(job->stopwatch, job->vkDrawBuffer);

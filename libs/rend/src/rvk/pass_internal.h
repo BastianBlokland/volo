@@ -21,7 +21,8 @@ typedef struct sRvkStopwatch   RvkStopwatch;
 typedef struct sRvkTexture     RvkTexture;
 typedef struct sRvkUniformPool RvkUniformPool;
 
-typedef struct sRvkPass RvkPass;
+typedef struct sRvkPass      RvkPass;
+typedef struct sRvkPassFrame RvkPassFrame;
 
 typedef enum {
   RvkPassLoad_DontCare = 0,
@@ -78,14 +79,15 @@ RvkDescMeta   rvk_pass_meta_global(const RvkPass*);
 RvkDescMeta   rvk_pass_meta_instance(const RvkPass*);
 VkRenderPass  rvk_pass_vkrenderpass(const RvkPass*);
 
-u16          rvk_pass_stat_invocations(const RvkPass*);
-u16          rvk_pass_stat_draws(const RvkPass*);
-u32          rvk_pass_stat_instances(const RvkPass*);
-RvkSize      rvk_pass_stat_size_max(const RvkPass*);
-TimeDuration rvk_pass_stat_duration(const RvkPass*, const RvkStopwatch*);
-u64          rvk_pass_stat_pipeline(const RvkPass*, RvkStat);
+u16          rvk_pass_stat_invocations(const RvkPass*, const RvkPassFrame*);
+u16          rvk_pass_stat_draws(const RvkPass*, const RvkPassFrame*);
+u32          rvk_pass_stat_instances(const RvkPass*, const RvkPassFrame*);
+RvkSize      rvk_pass_stat_size_max(const RvkPass*, const RvkPassFrame*);
+TimeDuration rvk_pass_stat_duration(const RvkPass*, const RvkPassFrame*);
+u64          rvk_pass_stat_pipeline(const RvkPass*, const RvkPassFrame*, RvkStat);
 
-void rvk_pass_init(RvkPass*, RvkUniformPool*, RvkStopwatch*, VkCommandBuffer);
+RvkPassFrame* rvk_pass_init(RvkPass*, RvkUniformPool*, RvkStopwatch*, VkCommandBuffer);
+
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
 bool rvk_pass_prepare_mesh(RvkPass*, const RvkMesh*);
 bool rvk_pass_prepare_texture(RvkPass*, const RvkTexture*);

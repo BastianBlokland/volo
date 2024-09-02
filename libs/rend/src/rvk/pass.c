@@ -24,8 +24,6 @@
 #define pass_global_image_max 5
 #define pass_draw_image_max 5
 
-typedef RvkGraphic* RvkGraphicPtr;
-
 typedef enum {
   RvkPassFlags_Active     = 1 << 0,
   RvkPassFlags_NeedsClear = 1 << 1,
@@ -74,22 +72,25 @@ static VkClearColorValue rvk_rend_clear_color(const GeoColor color) {
   return result;
 }
 
-struct sRvkPass {
-  RvkDevice*           dev;
-  RvkStatRecorder*     statrecorder;
-  RvkStopwatch*        stopwatch;
-  const RvkPassConfig* config; // Persistently allocated.
-  VkRenderPass         vkRendPass;
-  VkCommandBuffer      vkCmdBuf;
-  RvkUniformPool*      uniformPool;
-
-  RvkPassFlags flags;
-
-  RvkDescMeta      globalDescMeta;
-  VkPipelineLayout globalPipelineLayout;
+struct sRvkPassFrame {
+  RvkStatRecorder* statrecorder;
+  RvkStopwatch*    stopwatch;
+  RvkUniformPool*  uniformPool;
+  VkCommandBuffer  vkCmdBuf;
 
   DynArray descSetsVolatile; // RvkDescSet[], allocated on-demand and automatically freed next init.
   DynArray invocations;      // RvkPassInvoc[]
+};
+
+struct sRvkPass {
+  RvkDevice*           dev;
+  const RvkPassConfig* config; // Persistently allocated.
+  VkRenderPass         vkRendPass;
+  RvkPassFlags         flags;
+  RvkDescMeta          globalDescMeta;
+  VkPipelineLayout     globalPipelineLayout;
+
+  RvkPassFrame* frameActive;
 };
 
 static VkFormat rvk_attach_color_format(const RvkPass* pass, const u32 index) {
@@ -372,12 +373,12 @@ static void rvk_pass_scissor_set(VkCommandBuffer vkCmdBuf, const RvkSize size) {
   vkCmdSetScissor(vkCmdBuf, 0, 1, &scissor);
 }
 
-static void rvk_pass_bind_global(RvkPass* pass, RvkPassStage* stage) {
+static void rvk_pass_bind_global(RvkPass* pass, RvkPassFrame* frame, RvkPassStage* stage) {
   diag_assert(stage->globalBoundMask != 0);
 
   const VkDescriptorSet vkDescSets[] = {rvk_desc_set_vkset(stage->globalDescSet)};
   vkCmdBindDescriptorSets(
-      pass->vkCmdBuf,
+      frame->vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
       pass->globalPipelineLayout,
       RvkGraphicSet_Global,
@@ -387,7 +388,9 @@ static void rvk_pass_bind_global(RvkPass* pass, RvkPassStage* stage) {
       null);
 }
 
-static void rvk_pass_vkrenderpass_begin(RvkPass* pass, RvkPassInvoc* invoc, RvkPassStage* stage) {
+static void rvk_pass_vkrenderpass_begin(
+    RvkPass* pass, RvkPassFrame* frame, RvkPassInvoc* invoc, RvkPassStage* stage) {
+
   VkClearValue clearValues[pass_attachment_max];
   u32          clearValueCount = 0;
 
@@ -411,22 +414,19 @@ static void rvk_pass_vkrenderpass_begin(RvkPass* pass, RvkPassInvoc* invoc, RvkP
       .clearValueCount          = clearValueCount,
       .pClearValues             = clearValues,
   };
-  vkCmdBeginRenderPass(pass->vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+  vkCmdBeginRenderPass(frame->vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-static void rvk_pass_free_desc_volatile(RvkPass* pass) {
-  dynarray_for_t(&pass->descSetsVolatile, RvkDescSet, set) { rvk_desc_free(*set); }
-  dynarray_clear(&pass->descSetsVolatile);
-}
-
-static RvkDescSet rvk_pass_alloc_desc_volatile(RvkPass* pass, const RvkDescMeta* meta) {
-  const RvkDescSet res                                  = rvk_desc_alloc(pass->dev->descPool, meta);
-  *dynarray_push_t(&pass->descSetsVolatile, RvkDescSet) = res;
+static RvkDescSet
+rvk_pass_alloc_desc_volatile(RvkPass* pass, RvkPassFrame* frame, const RvkDescMeta* meta) {
+  const RvkDescSet res = rvk_desc_alloc(pass->dev->descPool, meta);
+  *dynarray_push_t(&frame->descSetsVolatile, RvkDescSet) = res;
   return res;
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*                         pass,
+    RvkPass*           pass,
+    RvkPassFrame*      frame,
     MAYBE_UNUSED const RvkPassStage* stage,
     RvkGraphic*                      gra,
     const Mem                        data,
@@ -436,10 +436,10 @@ static void rvk_pass_bind_draw(
   diag_assert_msg(!mesh || rvk_mesh_is_ready(mesh, pass->dev), "Mesh is not ready for binding");
   diag_assert_msg(!img || img->phase != RvkImagePhase_Undefined, "Image has no content");
 
-  const RvkDescSet descSet = rvk_pass_alloc_desc_volatile(pass, &gra->drawDescMeta);
+  const RvkDescSet descSet = rvk_pass_alloc_desc_volatile(pass, frame, &gra->drawDescMeta);
   if (data.size && gra->drawDescMeta.bindings[0]) {
-    const RvkUniformHandle dataHandle = rvk_uniform_upload(pass->uniformPool, data);
-    const RvkBuffer*       dataBuffer = rvk_uniform_buffer(pass->uniformPool, dataHandle);
+    const RvkUniformHandle dataHandle = rvk_uniform_upload(frame->uniformPool, data);
+    const RvkBuffer*       dataBuffer = rvk_uniform_buffer(frame->uniformPool, dataHandle);
     rvk_desc_set_attach_buffer(descSet, 0, dataBuffer, dataHandle.offset, (u32)data.size);
   }
   if (mesh && gra->drawDescMeta.bindings[1]) {
@@ -462,7 +462,7 @@ static void rvk_pass_bind_draw(
 
   const VkDescriptorSet vkDescSets[] = {rvk_desc_set_vkset(descSet)};
   vkCmdBindDescriptorSets(
-      pass->vkCmdBuf,
+      frame->vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
       gra->vkPipelineLayout,
       RvkGraphicSet_Draw,
@@ -472,29 +472,61 @@ static void rvk_pass_bind_draw(
       null);
 
   if (mesh) {
-    rvk_mesh_bind(mesh, pass->dev, pass->vkCmdBuf);
+    rvk_mesh_bind(mesh, pass->dev, frame->vkCmdBuf);
   }
 }
 
-static void rvk_pass_free_invocations(RvkPass* pass) {
-  dynarray_for_t(&pass->invocations, RvkPassInvoc, invoc) {
+static RvkPassFrame* rvk_pass_frame_create(RvkPass* pass) {
+  RvkPassFrame* frame = alloc_alloc_t(g_allocHeap, RvkPassFrame);
+
+  *frame = (RvkPassFrame){
+      .statrecorder     = rvk_statrecorder_create(pass->dev),
+      .descSetsVolatile = dynarray_create_t(g_allocHeap, RvkDescSet, 8),
+      .invocations      = dynarray_create_t(g_allocHeap, RvkPassInvoc, 1),
+  };
+
+  return frame;
+}
+
+static void rvk_pass_frame_reset(RvkPass* pass, RvkPassFrame* frame) {
+  // Reset stats.
+  rvk_statrecorder_reset(frame->statrecorder, frame->vkCmdBuf);
+
+  // Cleanup invocations.
+  dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
     vkDestroyFramebuffer(pass->dev->vkDev, invoc->vkFrameBuffer, &pass->dev->vkAlloc);
   }
-  dynarray_clear(&pass->invocations);
+  dynarray_clear(&frame->invocations);
+
+  // Cleanup volatile descriptor sets.
+  dynarray_for_t(&frame->descSetsVolatile, RvkDescSet, set) { rvk_desc_free(*set); }
+  dynarray_clear(&frame->descSetsVolatile);
 }
 
-static RvkPassInvoc* rvk_pass_invoc_begin(RvkPass* pass) {
+static void rvk_pass_frame_destroy(RvkPass* pass, RvkPassFrame* frame) {
+  rvk_pass_frame_reset(pass, frame);
+
+  rvk_statrecorder_destroy(frame->statrecorder);
+
+  dynarray_destroy(&frame->descSetsVolatile);
+  dynarray_destroy(&frame->invocations);
+
+  alloc_free_t(g_allocHeap, frame);
+}
+
+static RvkPassInvoc* rvk_pass_invoc_begin(RvkPass* pass, RvkPassFrame* frame) {
   pass->flags |= RvkPassFlags_Active;
-  RvkPassInvoc* res = dynarray_push_t(&pass->invocations, RvkPassInvoc);
+  RvkPassInvoc* res = dynarray_push_t(&frame->invocations, RvkPassInvoc);
   *res              = (RvkPassInvoc){0};
   return res;
 }
 
 static RvkPassInvoc* rvk_pass_invoc_active(RvkPass* pass) {
-  if (!(pass->flags & RvkPassFlags_Active)) {
+  if (!pass->frameActive || !(pass->flags & RvkPassFlags_Active)) {
     return null;
   }
-  return dynarray_at_t(&pass->invocations, pass->invocations.size - 1, RvkPassInvoc);
+  const usize lastInvocIndex = pass->frameActive->invocations.size - 1;
+  return dynarray_at_t(&pass->frameActive->invocations, lastInvocIndex, RvkPassInvoc);
 }
 
 RvkPass* rvk_pass_create(RvkDevice* dev, const RvkPassConfig* config) {
@@ -502,13 +534,7 @@ RvkPass* rvk_pass_create(RvkDevice* dev, const RvkPassConfig* config) {
 
   RvkPass* pass = alloc_alloc_t(g_allocHeap, RvkPass);
 
-  *pass = (RvkPass){
-      .dev              = dev,
-      .statrecorder     = rvk_statrecorder_create(dev),
-      .config           = config,
-      .descSetsVolatile = dynarray_create_t(g_allocHeap, RvkDescSet, 8),
-      .invocations      = dynarray_create_t(g_allocHeap, RvkPassInvoc, 1),
-  };
+  *pass = (RvkPass){.dev = dev, .config = config};
 
   pass->vkRendPass = rvk_renderpass_create(pass);
   rvk_debug_name_pass(dev->debug, pass->vkRendPass, "{}", fmt_text(config->name));
@@ -530,16 +556,12 @@ RvkPass* rvk_pass_create(RvkDevice* dev, const RvkPassConfig* config) {
 void rvk_pass_destroy(RvkPass* pass) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation still active");
 
-  rvk_pass_free_desc_volatile(pass);
-  rvk_pass_free_invocations(pass);
-
-  rvk_statrecorder_destroy(pass->statrecorder);
+  if (pass->frameActive) {
+    rvk_pass_frame_destroy(pass, pass->frameActive);
+  }
 
   vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
   vkDestroyPipelineLayout(pass->dev->vkDev, pass->globalPipelineLayout, &pass->dev->vkAlloc);
-
-  dynarray_destroy(&pass->descSetsVolatile);
-  dynarray_destroy(&pass->invocations);
 
   alloc_free_t(g_allocHeap, pass);
 }
@@ -588,59 +610,71 @@ RvkDescMeta rvk_pass_meta_instance(const RvkPass* pass) {
 
 VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
 
-u16 rvk_pass_stat_invocations(const RvkPass* pass) {
-  return (u16)dynarray_size(&pass->invocations);
+u16 rvk_pass_stat_invocations(const RvkPass* pass, const RvkPassFrame* frame) {
+  (void)pass;
+  return (u16)dynarray_size(&frame->invocations);
 }
 
-u16 rvk_pass_stat_draws(const RvkPass* pass) {
+u16 rvk_pass_stat_draws(const RvkPass* pass, const RvkPassFrame* frame) {
+  (void)pass;
   u16 draws = 0;
-  dynarray_for_t(&pass->invocations, RvkPassInvoc, invoc) { draws += invoc->drawCount; }
+  dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) { draws += invoc->drawCount; }
   return draws;
 }
 
-u32 rvk_pass_stat_instances(const RvkPass* pass) {
+u32 rvk_pass_stat_instances(const RvkPass* pass, const RvkPassFrame* frame) {
+  (void)pass;
   u32 draws = 0;
-  dynarray_for_t(&pass->invocations, RvkPassInvoc, invoc) { draws += invoc->instanceCount; }
+  dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) { draws += invoc->instanceCount; }
   return draws;
 }
 
-RvkSize rvk_pass_stat_size_max(const RvkPass* pass) {
+RvkSize rvk_pass_stat_size_max(const RvkPass* pass, const RvkPassFrame* frame) {
+  (void)pass;
   RvkSize size = {0};
-  dynarray_for_t(&pass->invocations, RvkPassInvoc, invoc) {
+  dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
     size.width  = math_max(size.width, invoc->size.width);
     size.height = math_max(size.height, invoc->size.height);
   }
   return size;
 }
 
-TimeDuration rvk_pass_stat_duration(const RvkPass* pass, const RvkStopwatch* stopwatch) {
+TimeDuration rvk_pass_stat_duration(const RvkPass* pass, const RvkPassFrame* frame) {
+  (void)pass;
   TimeDuration dur = 0;
-  dynarray_for_t(&pass->invocations, RvkPassInvoc, invoc) {
-    const TimeSteady timestampBegin = rvk_stopwatch_query(stopwatch, invoc->timeRecBegin);
-    const TimeSteady timestampEnd   = rvk_stopwatch_query(stopwatch, invoc->timeRecEnd);
+  dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
+    const TimeSteady timestampBegin = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecBegin);
+    const TimeSteady timestampEnd   = rvk_stopwatch_query(frame->stopwatch, invoc->timeRecEnd);
     dur += time_steady_duration(timestampBegin, timestampEnd);
   }
   return dur;
 }
 
-u64 rvk_pass_stat_pipeline(const RvkPass* pass, const RvkStat stat) {
+u64 rvk_pass_stat_pipeline(const RvkPass* pass, const RvkPassFrame* frame, const RvkStat stat) {
+  (void)pass;
   u64 res = 0;
-  dynarray_for_t(&pass->invocations, RvkPassInvoc, invoc) {
-    res += rvk_statrecorder_query(pass->statrecorder, invoc->statsRecord, stat);
+  dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
+    res += rvk_statrecorder_query(frame->statrecorder, invoc->statsRecord, stat);
   }
   return res;
 }
 
-void rvk_pass_init(
+RvkPassFrame* rvk_pass_init(
     RvkPass* pass, RvkUniformPool* uniformPool, RvkStopwatch* stopwatch, VkCommandBuffer vkCmdBuf) {
-  pass->uniformPool = uniformPool;
-  pass->stopwatch   = stopwatch;
-  pass->vkCmdBuf    = vkCmdBuf;
 
-  rvk_statrecorder_reset(pass->statrecorder, vkCmdBuf);
-  rvk_pass_free_desc_volatile(pass);
-  rvk_pass_free_invocations(pass);
+  if (!pass->frameActive) {
+    pass->frameActive = rvk_pass_frame_create(pass);
+  }
+
+  pass->frameActive->uniformPool = uniformPool;
+  pass->frameActive->stopwatch   = stopwatch;
+  pass->frameActive->vkCmdBuf    = vkCmdBuf;
+
+  rvk_pass_frame_reset(pass, pass->frameActive);
+
   *rvk_pass_stage() = (RvkPassStage){0}; // Reset the stage.
+
+  return pass->frameActive;
 }
 
 bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
@@ -726,17 +760,20 @@ void rvk_pass_stage_attach_depth(MAYBE_UNUSED RvkPass* pass, RvkImage* img) {
 void rvk_pass_stage_global_data(RvkPass* pass, const Mem data, const u16 dataIndex) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
+  RvkPassFrame* frame = pass->frameActive;
+  diag_assert_msg(frame, "Pass frame not active");
+
   RvkPassStage* stage = rvk_pass_stage();
 
   const u32 globalDataBinding = dataIndex;
   diag_assert_msg(dataIndex < pass_global_image_max, "Global data index out of bounds");
   diag_assert_msg(!(stage->globalBoundMask & (1 << globalDataBinding)), "Data already staged");
 
-  const RvkUniformHandle dataHandle = rvk_uniform_upload(pass->uniformPool, data);
-  const RvkBuffer*       dataBuffer = rvk_uniform_buffer(pass->uniformPool, dataHandle);
+  const RvkUniformHandle dataHandle = rvk_uniform_upload(frame->uniformPool, data);
+  const RvkBuffer*       dataBuffer = rvk_uniform_buffer(frame->uniformPool, dataHandle);
 
   if (!rvk_desc_valid(stage->globalDescSet)) {
-    stage->globalDescSet = rvk_pass_alloc_desc_volatile(pass, &pass->globalDescMeta);
+    stage->globalDescSet = rvk_pass_alloc_desc_volatile(pass, frame, &pass->globalDescMeta);
   }
   stage->globalBoundMask |= 1 << globalDataBinding;
   rvk_desc_set_attach_buffer(
@@ -748,6 +785,9 @@ static void rvk_pass_stage_global_image_internal(
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   RvkPassStage* stage = rvk_pass_stage();
+
+  RvkPassFrame* frame = pass->frameActive;
+  diag_assert_msg(frame, "Pass frame not active");
 
   if (UNLIKELY(image->type == RvkImageType_ColorSourceCube)) {
     log_e("Cube images cannot be bound globally");
@@ -761,7 +801,7 @@ static void rvk_pass_stage_global_image_internal(
   diag_assert_msg(image->caps & RvkImageCapability_Sampled, "Image does not support sampling");
 
   if (!rvk_desc_valid(stage->globalDescSet)) {
-    stage->globalDescSet = rvk_pass_alloc_desc_volatile(pass, &pass->globalDescMeta);
+    stage->globalDescSet = rvk_pass_alloc_desc_volatile(pass, frame, &pass->globalDescMeta);
   }
   rvk_desc_set_attach_sampler(stage->globalDescSet, bindIndex, image, samplerSpec);
 
@@ -804,8 +844,12 @@ void rvk_pass_stage_draw_image(MAYBE_UNUSED RvkPass* pass, RvkImage* image) {
 void rvk_pass_begin(RvkPass* pass) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
-  RvkPassStage* stage  = rvk_pass_stage();
-  RvkPassInvoc* invoc  = rvk_pass_invoc_begin(pass);
+  RvkPassStage* stage = rvk_pass_stage();
+
+  RvkPassFrame* frame = pass->frameActive;
+  diag_assert_msg(frame, "Pass frame not active");
+
+  RvkPassInvoc* invoc  = rvk_pass_invoc_begin(pass, frame);
   invoc->size          = stage->size;
   invoc->vkFrameBuffer = rvk_framebuffer_create(pass, stage);
 
@@ -814,11 +858,11 @@ void rvk_pass_begin(RvkPass* pass) {
   rvk_pass_assert_image_contents(pass, stage);
 #endif
 
-  invoc->statsRecord = rvk_statrecorder_start(pass->statrecorder, pass->vkCmdBuf);
+  invoc->statsRecord = rvk_statrecorder_start(frame->statrecorder, frame->vkCmdBuf);
 
-  invoc->timeRecBegin = rvk_stopwatch_mark(pass->stopwatch, pass->vkCmdBuf);
+  invoc->timeRecBegin = rvk_stopwatch_mark(frame->stopwatch, frame->vkCmdBuf);
   rvk_debug_label_begin(
-      pass->dev->debug, pass->vkCmdBuf, geo_color_blue, "pass_{}", fmt_text(pass->config->name));
+      pass->dev->debug, frame->vkCmdBuf, geo_color_blue, "pass_{}", fmt_text(pass->config->name));
 
   /**
    * Execute image transitions:
@@ -857,28 +901,31 @@ void rvk_pass_begin(RvkPass* pass) {
         };
       }
     }
-    rvk_image_transition_batch(transitions, transitionCount, pass->vkCmdBuf);
+    rvk_image_transition_batch(transitions, transitionCount, frame->vkCmdBuf);
   }
 
-  rvk_pass_vkrenderpass_begin(pass, invoc, stage);
+  rvk_pass_vkrenderpass_begin(pass, frame, invoc, stage);
 
-  rvk_pass_viewport_set(pass->vkCmdBuf, invoc->size);
-  rvk_pass_scissor_set(pass->vkCmdBuf, invoc->size);
+  rvk_pass_viewport_set(frame->vkCmdBuf, invoc->size);
+  rvk_pass_scissor_set(frame->vkCmdBuf, invoc->size);
 
   if (stage->globalBoundMask != 0) {
-    rvk_pass_bind_global(pass, stage);
+    rvk_pass_bind_global(pass, frame, stage);
   }
 }
 
-static u32 rvk_pass_instances_per_draw(RvkPass* pass, const u32 remaining, const u32 dataStride) {
+static u32 rvk_pass_instances_per_draw(RvkPassFrame* f, const u32 remaining, const u32 dataStride) {
   if (!dataStride) {
     return math_min(remaining, pass_instance_count_max);
   }
-  const u32 instances = math_min(remaining, rvk_uniform_size_max(pass->uniformPool) / dataStride);
+  const u32 instances = math_min(remaining, rvk_uniform_size_max(f->uniformPool) / dataStride);
   return math_min(instances, pass_instance_count_max);
 }
 
 void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
+  RvkPassFrame* frame = pass->frameActive;
+  diag_assert_msg(frame, "Pass frame not active");
+
   RvkPassInvoc* invoc = rvk_pass_invoc_active(pass);
   diag_assert_msg(invoc, "Pass invocation not active");
 
@@ -914,24 +961,31 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
     log_e("Graphic requires instance data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
-  if (UNLIKELY(draw->instDataStride > rvk_uniform_size_max(pass->uniformPool))) {
+  if (UNLIKELY(draw->instDataStride > rvk_uniform_size_max(frame->uniformPool))) {
     log_e(
         "Draw instance data exceeds maximum",
         log_param("graphic", fmt_text(graphic->dbgName)),
         log_param("size", fmt_size(draw->instDataStride)),
-        log_param("size-max", fmt_size(rvk_uniform_size_max(pass->uniformPool))));
+        log_param("size-max", fmt_size(rvk_uniform_size_max(frame->uniformPool))));
     return;
   }
 
   ++invoc->drawCount;
   rvk_debug_label_begin(
-      pass->dev->debug, pass->vkCmdBuf, geo_color_green, "draw_{}", fmt_text(graphic->dbgName));
+      pass->dev->debug, frame->vkCmdBuf, geo_color_green, "draw_{}", fmt_text(graphic->dbgName));
 
-  rvk_graphic_bind(graphic, pass->dev, pass->vkCmdBuf);
+  rvk_graphic_bind(graphic, pass->dev, frame->vkCmdBuf);
 
   if (graphic->flags & RvkGraphicFlags_RequireDrawSet) {
     rvk_pass_bind_draw(
-        pass, stage, graphic, draw->drawData, draw->drawMesh, draw->drawImage, draw->drawSampler);
+        pass,
+        frame,
+        stage,
+        graphic,
+        draw->drawData,
+        draw->drawMesh,
+        draw->drawImage,
+        draw->drawSampler);
   }
 
   diag_assert(draw->instDataStride * draw->instCount == draw->instData.size);
@@ -939,17 +993,17 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
       graphic->flags & RvkGraphicFlags_RequireInstanceSet ? draw->instDataStride : 0;
 
   for (u32 remInstCount = draw->instCount, dataOffset = 0; remInstCount != 0;) {
-    const u32 instCount = rvk_pass_instances_per_draw(pass, remInstCount, dataStride);
+    const u32 instCount = rvk_pass_instances_per_draw(frame, remInstCount, dataStride);
     invoc->instanceCount += instCount;
 
     if (dataStride) {
       const u32              dataSize   = instCount * dataStride;
       const Mem              data       = mem_slice(draw->instData, dataOffset, dataSize);
-      const RvkUniformHandle dataHandle = rvk_uniform_upload(pass->uniformPool, data);
+      const RvkUniformHandle dataHandle = rvk_uniform_upload(frame->uniformPool, data);
       rvk_uniform_dynamic_bind(
-          pass->uniformPool,
+          frame->uniformPool,
           dataHandle,
-          pass->vkCmdBuf,
+          frame->vkCmdBuf,
           graphic->vkPipelineLayout,
           RvkGraphicSet_Instance);
       dataOffset += dataSize;
@@ -957,32 +1011,36 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
 
     if (draw->drawMesh || graphic->mesh) {
       const u32 idxCount = draw->drawMesh ? draw->drawMesh->indexCount : graphic->mesh->indexCount;
-      vkCmdDrawIndexed(pass->vkCmdBuf, idxCount, instCount, 0, 0, 0);
+      vkCmdDrawIndexed(frame->vkCmdBuf, idxCount, instCount, 0, 0, 0);
     } else {
       const u32 vertexCount =
           draw->vertexCountOverride ? draw->vertexCountOverride : graphic->vertexCount;
       if (LIKELY(vertexCount)) {
-        vkCmdDraw(pass->vkCmdBuf, vertexCount, instCount, 0, 0);
+        vkCmdDraw(frame->vkCmdBuf, vertexCount, instCount, 0, 0);
       }
     }
     remInstCount -= instCount;
   }
 
-  rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);
+  rvk_debug_label_end(pass->dev->debug, frame->vkCmdBuf);
 }
 
 void rvk_pass_end(RvkPass* pass) {
   RvkPassStage* stage = rvk_pass_stage();
+
+  RvkPassFrame* frame = pass->frameActive;
+  diag_assert_msg(frame, "Pass frame not active");
+
   RvkPassInvoc* invoc = rvk_pass_invoc_active(pass);
   diag_assert_msg(invoc, "Pass not active");
 
   pass->flags &= ~RvkPassFlags_Active;
 
-  rvk_statrecorder_stop(pass->statrecorder, invoc->statsRecord, pass->vkCmdBuf);
-  vkCmdEndRenderPass(pass->vkCmdBuf);
+  rvk_statrecorder_stop(frame->statrecorder, invoc->statsRecord, frame->vkCmdBuf);
+  vkCmdEndRenderPass(frame->vkCmdBuf);
 
-  rvk_debug_label_end(pass->dev->debug, pass->vkCmdBuf);
-  invoc->timeRecEnd = rvk_stopwatch_mark(pass->stopwatch, pass->vkCmdBuf);
+  rvk_debug_label_end(pass->dev->debug, frame->vkCmdBuf);
+  invoc->timeRecEnd = rvk_stopwatch_mark(frame->stopwatch, frame->vkCmdBuf);
 
   if (stage->attachDepth && pass->config->attachDepth != RvkPassDepth_Stored) {
     // When we're not storing the depth, the image's contents become undefined.
