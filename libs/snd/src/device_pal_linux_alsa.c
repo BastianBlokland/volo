@@ -470,7 +470,7 @@ bool snd_device_begin(SndDevice* dev) {
 StartPlayingIfIdle:
   if (dev->state == SndDeviceState_Idle) {
     if (alsa_pcm_prepare(dev)) {
-      dev->nextPeriodBeginTime = time_steady_clock();
+      dev->nextPeriodBeginTime = time_steady_clock() + snd_alsa_period_time;
       dev->state               = SndDeviceState_Playing;
     } else {
       dev->state = SndDeviceState_Error;
