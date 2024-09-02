@@ -550,7 +550,6 @@ ecs_system_define(SndMixerRenderBeginSys) {
    */
   if (m->deviceTimeHead && devicePeriod.timeBegin > m->deviceTimeHead) {
     const TimeDuration skipDur = devicePeriod.timeBegin - m->deviceTimeHead;
-    log_d("Sound-mixer skip", log_param("duration", fmt_duration(skipDur)));
     for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
       SndObject* obj = &m->objects[i];
       if (obj->phase == SndObjectPhase_Playing && !snd_object_skip(obj, skipDur)) {
