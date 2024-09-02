@@ -505,7 +505,13 @@ static void rvk_pass_frame_reset(RvkPass* pass, RvkPassFrame* frame) {
 }
 
 static void rvk_pass_frame_destroy(RvkPass* pass, RvkPassFrame* frame) {
-  rvk_pass_frame_reset(pass, frame);
+  // Cleanup invocations.
+  dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
+    vkDestroyFramebuffer(pass->dev->vkDev, invoc->vkFrameBuffer, &pass->dev->vkAlloc);
+  }
+
+  // Cleanup volatile descriptor sets.
+  dynarray_for_t(&frame->descSetsVolatile, RvkDescSet, set) { rvk_desc_free(*set); }
 
   rvk_statrecorder_destroy(frame->statrecorder);
 
