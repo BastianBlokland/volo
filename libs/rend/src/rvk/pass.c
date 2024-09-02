@@ -90,6 +90,7 @@ struct sRvkPass {
   RvkDescMeta          globalDescMeta;
   VkPipelineLayout     globalPipelineLayout;
 
+  RvkPassFrame* frameHead;
   RvkPassFrame* frameActive;
 };
 
@@ -556,8 +557,8 @@ RvkPass* rvk_pass_create(RvkDevice* dev, const RvkPassConfig* config) {
 void rvk_pass_destroy(RvkPass* pass) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation still active");
 
-  if (pass->frameActive) {
-    rvk_pass_frame_destroy(pass, pass->frameActive);
+  if (pass->frameHead) {
+    rvk_pass_frame_destroy(pass, pass->frameHead);
   }
 
   vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
@@ -610,6 +611,35 @@ RvkDescMeta rvk_pass_meta_instance(const RvkPass* pass) {
 
 VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
 
+RvkPassFrame* rvk_pass_frame_begin(
+    RvkPass* pass, RvkUniformPool* uniformPool, RvkStopwatch* stopwatch, VkCommandBuffer vkCmdBuf) {
+
+  diag_assert_msg(!pass->frameActive, "Pass frame already active");
+
+  if (!pass->frameHead) {
+    pass->frameHead = rvk_pass_frame_create(pass);
+  }
+
+  RvkPassFrame* frame = pass->frameHead;
+  frame->uniformPool  = uniformPool;
+  frame->stopwatch    = stopwatch;
+  frame->vkCmdBuf     = vkCmdBuf;
+
+  rvk_pass_frame_reset(pass, frame);
+
+  *rvk_pass_stage() = (RvkPassStage){0}; // Reset the stage.
+
+  pass->frameActive = frame;
+  return frame;
+}
+
+void rvk_pass_frame_end(RvkPass* pass) {
+  diag_assert_msg(pass->frameActive, "Pass frame not active");
+  diag_assert_msg(!rvk_pass_invoc_active((RvkPass*)pass), "Pass invocation still active");
+
+  pass->frameActive = null;
+}
+
 u16 rvk_pass_stat_invocations(const RvkPass* pass, const RvkPassFrame* frame) {
   (void)pass;
   return (u16)dynarray_size(&frame->invocations);
@@ -657,24 +687,6 @@ u64 rvk_pass_stat_pipeline(const RvkPass* pass, const RvkPassFrame* frame, const
     res += rvk_statrecorder_query(frame->statrecorder, invoc->statsRecord, stat);
   }
   return res;
-}
-
-RvkPassFrame* rvk_pass_init(
-    RvkPass* pass, RvkUniformPool* uniformPool, RvkStopwatch* stopwatch, VkCommandBuffer vkCmdBuf) {
-
-  if (!pass->frameActive) {
-    pass->frameActive = rvk_pass_frame_create(pass);
-  }
-
-  pass->frameActive->uniformPool = uniformPool;
-  pass->frameActive->stopwatch   = stopwatch;
-  pass->frameActive->vkCmdBuf    = vkCmdBuf;
-
-  rvk_pass_frame_reset(pass, pass->frameActive);
-
-  *rvk_pass_stage() = (RvkPassStage){0}; // Reset the stage.
-
-  return pass->frameActive;
 }
 
 bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {

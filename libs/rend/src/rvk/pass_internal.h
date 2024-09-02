@@ -79,14 +79,15 @@ RvkDescMeta   rvk_pass_meta_global(const RvkPass*);
 RvkDescMeta   rvk_pass_meta_instance(const RvkPass*);
 VkRenderPass  rvk_pass_vkrenderpass(const RvkPass*);
 
+RvkPassFrame* rvk_pass_frame_begin(RvkPass*, RvkUniformPool*, RvkStopwatch*, VkCommandBuffer);
+void          rvk_pass_frame_end(RvkPass*);
+
 u16          rvk_pass_stat_invocations(const RvkPass*, const RvkPassFrame*);
 u16          rvk_pass_stat_draws(const RvkPass*, const RvkPassFrame*);
 u32          rvk_pass_stat_instances(const RvkPass*, const RvkPassFrame*);
 RvkSize      rvk_pass_stat_size_max(const RvkPass*, const RvkPassFrame*);
 TimeDuration rvk_pass_stat_duration(const RvkPass*, const RvkPassFrame*);
 u64          rvk_pass_stat_pipeline(const RvkPass*, const RvkPassFrame*, RvkStat);
-
-RvkPassFrame* rvk_pass_init(RvkPass*, RvkUniformPool*, RvkStopwatch*, VkCommandBuffer);
 
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
 bool rvk_pass_prepare_mesh(RvkPass*, const RvkMesh*);

@@ -13,6 +13,8 @@
 #include "stopwatch_internal.h"
 #include "uniform_internal.h"
 
+#include <vulkan/vulkan_core.h>
+
 typedef enum {
   RvkJob_Active = 1 << 0,
 } RvkJobFlags;
@@ -250,8 +252,9 @@ void rvk_job_begin(RvkJob* job) {
   rvk_stopwatch_reset(job->stopwatch, job->vkDrawBuffer);
 
   for (u32 i = 0; i != job->passCount; ++i) {
-    RvkPass* pass      = job->passes[i];
-    job->passFrames[i] = rvk_pass_init(pass, job->uniformPool, job->stopwatch, job->vkDrawBuffer);
+    RvkPass*        pass     = job->passes[i];
+    VkCommandBuffer vkCmdBuf = job->vkDrawBuffer;
+    job->passFrames[i] = rvk_pass_frame_begin(pass, job->uniformPool, job->stopwatch, vkCmdBuf);
   }
 
   job->timeRecBegin = rvk_stopwatch_mark(job->stopwatch, job->vkDrawBuffer);
@@ -346,11 +349,8 @@ void rvk_job_end(
     u32                signalCount) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 
-  for (u32 passIdx = 0; passIdx != job->passCount; ++passIdx) {
-    diag_assert_msg(
-        !rvk_pass_active(job->passes[passIdx]),
-        "Pass '{}' is still active",
-        fmt_text(rvk_pass_name(job->passes[passIdx])));
+  for (u32 i = 0; i != job->passCount; ++i) {
+    rvk_pass_frame_end(job->passes[i]);
   }
 
   job->timeRecEnd = rvk_stopwatch_mark(job->stopwatch, job->vkDrawBuffer);
