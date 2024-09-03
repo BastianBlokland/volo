@@ -354,7 +354,7 @@ void rvk_job_end(
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 
   for (u32 i = 0; i != job->passCount; ++i) {
-    rvk_pass_frame_end(job->passes[i]);
+    rvk_pass_frame_end(job->passes[i], job->passFrames[i]);
   }
 
   job->timeRecEnd = rvk_stopwatch_mark(job->stopwatch, job->vkDrawBuffer);

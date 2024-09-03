@@ -81,7 +81,7 @@ RvkDescMeta   rvk_pass_meta_instance(const RvkPass*);
 VkRenderPass  rvk_pass_vkrenderpass(const RvkPass*);
 
 RvkPassHandle rvk_pass_frame_begin(RvkPass*, RvkUniformPool*, RvkStopwatch*, VkCommandBuffer);
-void          rvk_pass_frame_end(RvkPass*);
+void          rvk_pass_frame_end(RvkPass*, RvkPassHandle);
 void          rvk_pass_frame_release(RvkPass*, RvkPassHandle);
 
 u16          rvk_pass_stat_invocations(const RvkPass*, RvkPassHandle);
