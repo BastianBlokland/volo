@@ -253,7 +253,10 @@ void rvk_job_begin(RvkJob* job) {
   rvk_stopwatch_reset(job->stopwatch, job->vkDrawBuffer);
 
   for (u32 i = 0; i != job->passCount; ++i) {
-    RvkPass*        pass     = job->passes[i];
+    RvkPass* pass = job->passes[i];
+    if (!sentinel_check(job->passFrames[i])) {
+      rvk_pass_frame_release(pass, job->passFrames[i]);
+    }
     VkCommandBuffer vkCmdBuf = job->vkDrawBuffer;
     job->passFrames[i] = rvk_pass_frame_begin(pass, job->uniformPool, job->stopwatch, vkCmdBuf);
   }

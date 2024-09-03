@@ -73,6 +73,8 @@ static VkClearColorValue rvk_rend_clear_color(const GeoColor color) {
 }
 
 typedef struct {
+  bool available;
+
   RvkStatRecorder* statrecorder;
   RvkStopwatch*    stopwatch;
   RvkUniformPool*  uniformPool;
@@ -90,7 +92,7 @@ struct sRvkPass {
   RvkDescMeta          globalDescMeta;
   VkPipelineLayout     globalPipelineLayout;
 
-  RvkPassFrame* frameHead;
+  DynArray      frames; // RvkPassFrame[]
   RvkPassFrame* frameActive;
 };
 
@@ -426,8 +428,8 @@ rvk_pass_alloc_desc_volatile(RvkPass* pass, RvkPassFrame* frame, const RvkDescMe
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*                         pass,
-    RvkPassFrame*                    frame,
+    RvkPass*           pass,
+    RvkPassFrame*      frame,
     MAYBE_UNUSED const RvkPassStage* stage,
     RvkGraphic*                      gra,
     const Mem                        data,
@@ -478,27 +480,40 @@ static void rvk_pass_bind_draw(
 }
 
 static const RvkPassFrame* rvk_pass_frame_get(const RvkPass* pass, const RvkPassHandle handle) {
-  // TODO: Support multiple frames in-flight.
-  diag_assert(pass->frameHead);
-  (void)handle;
-  return pass->frameHead;
+  diag_assert(handle < pass->frames.size);
+  return dynarray_begin_t(&pass->frames, RvkPassFrame);
 }
 
-static RvkPassFrame* rvk_pass_frame_create(RvkPass* pass) {
-  RvkPassFrame* frame = alloc_alloc_t(g_allocHeap, RvkPassFrame);
+static RvkPassFrame* rvk_pass_frame_get_mut(RvkPass* pass, const RvkPassHandle handle) {
+  diag_assert(handle < pass->frames.size);
+  return dynarray_begin_t(&pass->frames, RvkPassFrame);
+}
+
+static RvkPassHandle rvk_pass_frame_find_available(RvkPass* pass) {
+  for (RvkPassHandle handle = 0; handle != pass->frames.size; ++handle) {
+    if (rvk_pass_frame_get(pass, handle)->available) {
+      return handle;
+    }
+  }
+  return sentinel_u32;
+}
+
+static RvkPassHandle rvk_pass_frame_create(RvkPass* pass) {
+  const RvkPassHandle frameHandle = (RvkPassHandle)pass->frames.size;
+  RvkPassFrame*       frame       = dynarray_push_t(&pass->frames, RvkPassFrame);
 
   *frame = (RvkPassFrame){
+      .available        = true,
       .statrecorder     = rvk_statrecorder_create(pass->dev),
       .descSetsVolatile = dynarray_create_t(g_allocHeap, RvkDescSet, 8),
       .invocations      = dynarray_create_t(g_allocHeap, RvkPassInvoc, 1),
   };
 
-  return frame;
+  return frameHandle;
 }
 
 static void rvk_pass_frame_reset(RvkPass* pass, RvkPassFrame* frame) {
-  // Reset stats.
-  rvk_statrecorder_reset(frame->statrecorder, frame->vkCmdBuf);
+  diag_assert(!frame->available);
 
   // Cleanup invocations.
   dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
@@ -509,6 +524,8 @@ static void rvk_pass_frame_reset(RvkPass* pass, RvkPassFrame* frame) {
   // Cleanup volatile descriptor sets.
   dynarray_for_t(&frame->descSetsVolatile, RvkDescSet, set) { rvk_desc_free(*set); }
   dynarray_clear(&frame->descSetsVolatile);
+
+  frame->available = true;
 }
 
 static void rvk_pass_frame_destroy(RvkPass* pass, RvkPassFrame* frame) {
@@ -524,8 +541,6 @@ static void rvk_pass_frame_destroy(RvkPass* pass, RvkPassFrame* frame) {
 
   dynarray_destroy(&frame->descSetsVolatile);
   dynarray_destroy(&frame->invocations);
-
-  alloc_free_t(g_allocHeap, frame);
 }
 
 static RvkPassInvoc* rvk_pass_invoc_begin(RvkPass* pass, RvkPassFrame* frame) {
@@ -548,7 +563,11 @@ RvkPass* rvk_pass_create(RvkDevice* dev, const RvkPassConfig* config) {
 
   RvkPass* pass = alloc_alloc_t(g_allocHeap, RvkPass);
 
-  *pass = (RvkPass){.dev = dev, .config = config};
+  *pass = (RvkPass){
+      .dev    = dev,
+      .config = config,
+      .frames = dynarray_create_t(g_allocHeap, RvkPassFrame, 2),
+  };
 
   pass->vkRendPass = rvk_renderpass_create(pass);
   rvk_debug_name_pass(dev->debug, pass->vkRendPass, "{}", fmt_text(config->name));
@@ -570,9 +589,8 @@ RvkPass* rvk_pass_create(RvkDevice* dev, const RvkPassConfig* config) {
 void rvk_pass_destroy(RvkPass* pass) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation still active");
 
-  if (pass->frameHead) {
-    rvk_pass_frame_destroy(pass, pass->frameHead);
-  }
+  dynarray_for_t(&pass->frames, RvkPassFrame, frame) { rvk_pass_frame_destroy(pass, frame); }
+  dynarray_destroy(&pass->frames);
 
   vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
   vkDestroyPipelineLayout(pass->dev->vkDev, pass->globalPipelineLayout, &pass->dev->vkAlloc);
@@ -628,22 +646,25 @@ RvkPassHandle rvk_pass_frame_begin(
     RvkPass* pass, RvkUniformPool* uniformPool, RvkStopwatch* stopwatch, VkCommandBuffer vkCmdBuf) {
 
   diag_assert_msg(!pass->frameActive, "Pass frame already active");
+  diag_assert_msg(pass->frames.size < 100, "Pass frame limit exceeded");
 
-  if (!pass->frameHead) {
-    pass->frameHead = rvk_pass_frame_create(pass);
+  RvkPassHandle frameHandle = rvk_pass_frame_find_available(pass);
+  if (sentinel_check(frameHandle)) {
+    frameHandle = rvk_pass_frame_create(pass);
   }
 
-  RvkPassFrame* frame = pass->frameHead;
+  RvkPassFrame* frame = rvk_pass_frame_get_mut(pass, frameHandle);
+  frame->available    = false;
   frame->uniformPool  = uniformPool;
   frame->stopwatch    = stopwatch;
   frame->vkCmdBuf     = vkCmdBuf;
 
-  rvk_pass_frame_reset(pass, frame);
+  rvk_statrecorder_reset(frame->statrecorder, vkCmdBuf);
 
   *rvk_pass_stage() = (RvkPassStage){0}; // Reset the stage.
 
   pass->frameActive = frame;
-  return 0;
+  return frameHandle;
 }
 
 void rvk_pass_frame_end(RvkPass* pass) {
@@ -654,6 +675,13 @@ void rvk_pass_frame_end(RvkPass* pass) {
   pass->frameActive->uniformPool = null; // NO more data should be allocated as part of this frame.
 
   pass->frameActive = null;
+}
+
+void rvk_pass_frame_release(RvkPass* pass, const RvkPassHandle frameHandle) {
+  RvkPassFrame* frame = rvk_pass_frame_get_mut(pass, frameHandle);
+  diag_assert_msg(frame != pass->frameActive, "Pass frame still active");
+
+  rvk_pass_frame_reset(pass, frame);
 }
 
 u16 rvk_pass_stat_invocations(const RvkPass* pass, const RvkPassHandle frameHandle) {
