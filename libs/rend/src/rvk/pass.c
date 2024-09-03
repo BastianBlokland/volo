@@ -30,11 +30,11 @@ typedef enum {
 } RvkPassFlags;
 
 typedef struct {
-  RvkSize       size;
   VkFramebuffer vkFrameBuffer;
 
-  u16 drawCount;
-  u32 instanceCount;
+  RvkSize size;
+  u16     drawCount;
+  u32     instanceCount;
 
   RvkStatRecord      statsRecord;
   RvkStopwatchRecord timeRecBegin, timeRecEnd;
@@ -696,12 +696,14 @@ void rvk_pass_frame_release(RvkPass* pass, const RvkPassHandle frameHandle) {
 
 u16 rvk_pass_stat_invocations(const RvkPass* pass, const RvkPassHandle frameHandle) {
   const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
+  diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
 
   return (u16)dynarray_size(&frame->invocations);
 }
 
 u16 rvk_pass_stat_draws(const RvkPass* pass, const RvkPassHandle frameHandle) {
   const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
+  diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
 
   u16 draws = 0;
   dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) { draws += invoc->drawCount; }
@@ -710,6 +712,7 @@ u16 rvk_pass_stat_draws(const RvkPass* pass, const RvkPassHandle frameHandle) {
 
 u32 rvk_pass_stat_instances(const RvkPass* pass, const RvkPassHandle frameHandle) {
   const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
+  diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
 
   u32 draws = 0;
   dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) { draws += invoc->instanceCount; }
@@ -718,6 +721,7 @@ u32 rvk_pass_stat_instances(const RvkPass* pass, const RvkPassHandle frameHandle
 
 RvkSize rvk_pass_stat_size_max(const RvkPass* pass, const RvkPassHandle frameHandle) {
   const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
+  diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
 
   RvkSize size = {0};
   dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
@@ -729,6 +733,7 @@ RvkSize rvk_pass_stat_size_max(const RvkPass* pass, const RvkPassHandle frameHan
 
 TimeDuration rvk_pass_stat_duration(const RvkPass* pass, const RvkPassHandle frameHandle) {
   const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
+  diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
 
   TimeDuration dur = 0;
   dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
@@ -742,6 +747,7 @@ TimeDuration rvk_pass_stat_duration(const RvkPass* pass, const RvkPassHandle fra
 u64 rvk_pass_stat_pipeline(
     const RvkPass* pass, const RvkPassHandle frameHandle, const RvkStat stat) {
   const RvkPassFrame* frame = rvk_pass_frame_get(pass, frameHandle);
+  diag_assert_msg(frame->state == RvkPassFrameState_Reserved, "Pass frame already released");
 
   u64 res = 0;
   dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
