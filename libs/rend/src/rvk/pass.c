@@ -612,9 +612,9 @@ void rvk_pass_destroy(RvkPass* pass) {
   alloc_free_t(g_allocHeap, pass);
 }
 
-bool rvk_pass_active(const RvkPass* pass) { return rvk_pass_invoc_active((RvkPass*)pass) != null; }
+const RvkPassConfig* rvk_pass_config(const RvkPass* pass) { return pass->config; }
 
-String rvk_pass_name(const RvkPass* pass) { return pass->config->name; }
+bool rvk_pass_active(const RvkPass* pass) { return rvk_pass_invoc_active((RvkPass*)pass) != null; }
 
 bool rvk_pass_has_depth(const RvkPass* pass) {
   return pass->config->attachDepth != RvkPassDepth_None;

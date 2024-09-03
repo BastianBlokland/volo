@@ -70,9 +70,10 @@ typedef struct sRvkPassDraw {
 
 RvkPass* rvk_pass_create(RvkDevice*, const RvkPassConfig* /* Needs to be persistently allocated */);
 void     rvk_pass_destroy(RvkPass*);
-bool     rvk_pass_active(const RvkPass*);
-String   rvk_pass_name(const RvkPass*); // Persistently allocated.
-bool     rvk_pass_has_depth(const RvkPass*);
+
+const RvkPassConfig* rvk_pass_config(const RvkPass*);
+bool                 rvk_pass_active(const RvkPass*);
+bool                 rvk_pass_has_depth(const RvkPass*);
 
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass*, u16 colorAttachIndex);
 RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass*);
