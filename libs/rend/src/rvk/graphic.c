@@ -475,7 +475,7 @@ static VkPipeline rvk_pipeline_create(
       .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
   };
 
-  const bool                                  passHasDepth = rvk_pass_has_depth(pass);
+  const bool passHasDepth = rvk_pass_config(pass)->attachDepth != RvkPassDepth_None;
   const VkPipelineDepthStencilStateCreateInfo depthStencil = {
       .sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
       .depthWriteEnable = passHasDepth && rvk_pipeline_depth_write(graphic),

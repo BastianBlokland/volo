@@ -616,10 +616,6 @@ const RvkPassConfig* rvk_pass_config(const RvkPass* pass) { return pass->config;
 
 bool rvk_pass_active(const RvkPass* pass) { return rvk_pass_invoc_active((RvkPass*)pass) != null; }
 
-bool rvk_pass_has_depth(const RvkPass* pass) {
-  return pass->config->attachDepth != RvkPassDepth_None;
-}
-
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass* pass, const u16 colorAttachIndex) {
   RvkImageCapability capabilities = 0;
 
