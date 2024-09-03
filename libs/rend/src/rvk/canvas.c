@@ -37,6 +37,7 @@ struct sRvkCanvas {
   RvkCanvasFlags flags;
   u32            jobIdx;
   u32            passCount;
+  RvkPass*       passes[rvk_canvas_max_passes];
 };
 
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
@@ -74,6 +75,10 @@ RvkCanvas* rvk_canvas_create(
     };
   }
 
+  for (u32 passIdx = 0; passIdx != passCount; ++passIdx) {
+    canvas->passes[passIdx] = rvk_pass_create(dev, &passConfig[passIdx]);
+  }
+
   log_d(
       "Vulkan canvas created",
       log_param("size", gap_vector_fmt(gap_window_param(window, GapParam_WindowSize))));
@@ -89,6 +94,10 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
     vkDestroySemaphore(canvas->dev->vkDev, frame->attachmentsReleased, &canvas->dev->vkAlloc);
     vkDestroySemaphore(canvas->dev->vkDev, frame->swapchainAvailable, &canvas->dev->vkAlloc);
     vkDestroySemaphore(canvas->dev->vkDev, frame->swapchainPresent, &canvas->dev->vkAlloc);
+  }
+
+  for (u32 passIdx = 0; passIdx != canvas->passCount; ++passIdx) {
+    rvk_pass_destroy(canvas->passes[passIdx]);
   }
 
   rvk_swapchain_destroy(canvas->swapchain);
