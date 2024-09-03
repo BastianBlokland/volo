@@ -433,8 +433,8 @@ rvk_pass_alloc_desc_volatile(RvkPass* pass, RvkPassFrame* frame, const RvkDescMe
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*           pass,
-    RvkPassFrame*      frame,
+    RvkPass*                         pass,
+    RvkPassFrame*                    frame,
     MAYBE_UNUSED const RvkPassStage* stage,
     RvkGraphic*                      gra,
     const Mem                        data,
@@ -509,7 +509,7 @@ static RvkPassHandle rvk_pass_frame_find_available(RvkPass* pass) {
       return handle;
     }
   }
-  return sentinel_u32;
+  return sentinel_u8;
 }
 
 static RvkPassHandle rvk_pass_frame_create(RvkPass* pass) {
@@ -656,7 +656,7 @@ RvkPassHandle rvk_pass_frame_begin(
     RvkPass* pass, RvkUniformPool* uniformPool, RvkStopwatch* stopwatch, VkCommandBuffer vkCmdBuf) {
 
   diag_assert_msg(!rvk_pass_frame_get_active(pass), "Pass frame already active");
-  diag_assert_msg(pass->frames.size < 100, "Pass frame limit exceeded");
+  diag_assert_msg(pass->frames.size <= u8_max, "Pass frame limit exceeded");
 
   RvkPassHandle frameHandle = rvk_pass_frame_find_available(pass);
   if (sentinel_check(frameHandle)) {

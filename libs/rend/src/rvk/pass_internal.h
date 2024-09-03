@@ -21,7 +21,7 @@ typedef struct sRvkStopwatch   RvkStopwatch;
 typedef struct sRvkTexture     RvkTexture;
 typedef struct sRvkUniformPool RvkUniformPool;
 
-typedef u32 RvkPassHandle;
+typedef u8 RvkPassHandle;
 
 typedef struct sRvkPass RvkPass;
 

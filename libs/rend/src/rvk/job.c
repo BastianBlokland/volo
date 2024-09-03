@@ -170,7 +170,7 @@ RvkJob* rvk_job_create(
 
   for (u32 i = 0; i != passCount; ++i) {
     job->passes[i]     = rvk_pass_create(dev, &passConfig[i]);
-    job->passFrames[i] = sentinel_u32;
+    job->passFrames[i] = sentinel_u8;
   }
 
   return job;
