@@ -22,6 +22,10 @@
 #include "ui_stats.h"
 #include "vfx_stats.h"
 
+#ifdef VOLO_SIMD
+#include "core_simd.h"
+#endif
+
 static const f32 g_statsLabelWidth       = 210;
 static const u8  g_statsBgAlpha          = 150;
 static const u8  g_statsSectionBgAlpha   = 200;
@@ -168,11 +172,22 @@ static f32 debug_plot_var(const DebugStatPlot* plot) {
 }
 
 static f32 debug_plot_sum(const DebugStatPlot* plot) {
+#ifdef VOLO_SIMD
+  ASSERT((stats_plot_size % 4) == 0, "Only multiple of 4 plot sizes are supported");
+
+  SimdVec accum = simd_vec_zero();
+  for (u32 i = 0; i != stats_plot_size; i += 4) {
+    const SimdVec v = simd_vec_load(plot->values + i);
+    accum           = simd_vec_add(accum, simd_vec_add_comp(v));
+  }
+  return simd_vec_x(accum);
+#else
   f32 sum = plot->values[0];
   for (u32 i = 1; i != stats_plot_size; ++i) {
     sum += plot->values[i];
   }
   return sum;
+#endif
 }
 
 static f32 debug_plot_avg(const DebugStatPlot* plot) {
