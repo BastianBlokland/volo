@@ -7,7 +7,7 @@
 /**
  * Maximum supported component size.
  */
-#define ecs_comp_max_size 1024
+#define ecs_comp_max_size 512
 
 /**
  * Required alignment for a component mask.

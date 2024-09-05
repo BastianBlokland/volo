@@ -48,13 +48,18 @@ ecs_comp_define(DebugTracePanelComp) {
   TimeSteady        timeHead;
   TimeDuration      timeWindow;
   DebugTraceTrigger trigger;
-  DebugTraceData    threads[debug_trace_max_threads];
+  DebugTraceData*   threads; // DebugTraceData[debug_trace_max_threads];
 };
 
 static void ecs_destruct_trace_panel(void* data) {
   DebugTracePanelComp* comp = data;
   dynstring_destroy(&comp->trigger.msgFilter);
-  array_for_t(comp->threads, DebugTraceData, thread) { dynarray_destroy(&thread->events); }
+
+  for (u32 threadIdx = 0; threadIdx != debug_trace_max_threads; ++threadIdx) {
+    DebugTraceData* threadData = &comp->threads[threadIdx];
+    dynarray_destroy(&threadData->events);
+  }
+  alloc_free_array_t(g_allocHeap, comp->threads, debug_trace_max_threads);
 }
 
 static void trace_trigger_set(DebugTraceTrigger* t, const u8 eventId) {
@@ -98,10 +103,11 @@ static UiColor trace_event_color(const TraceColor col) {
 }
 
 static void trace_data_clear(DebugTracePanelComp* panel) {
-  array_for_t(panel->threads, DebugTraceData, thread) {
-    thread->tid        = 0;
-    thread->nameLength = 0;
-    dynarray_clear(&thread->events);
+  for (u32 threadIdx = 0; threadIdx != debug_trace_max_threads; ++threadIdx) {
+    DebugTraceData* threadData = &panel->threads[threadIdx];
+    threadData->tid            = 0;
+    threadData->nameLength     = 0;
+    dynarray_clear(&threadData->events);
   }
 }
 
@@ -496,7 +502,8 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* s
 
     const UiId threadsBeginId = ui_canvas_id_peek(c);
 
-    array_for_t(panel->threads, DebugTraceData, data) {
+    for (u32 threadIdx = 0; threadIdx != debug_trace_max_threads; ++threadIdx) {
+      DebugTraceData* data = &panel->threads[threadIdx];
       if (!data->tid) {
         continue; // Unused thread slot.
       }
@@ -627,8 +634,10 @@ debug_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPan
       .trigger.msgFilter = dynstring_create(g_allocHeap, 0),
       .trigger.threshold = time_milliseconds(20));
 
-  array_for_t(tracePanel->threads, DebugTraceData, thread) {
-    thread->events = dynarray_create_t(g_allocHeap, TraceStoreEvent, 0);
+  tracePanel->threads = alloc_array_t(g_allocHeap, DebugTraceData, debug_trace_max_threads);
+  for (u32 threadIdx = 0; threadIdx != debug_trace_max_threads; ++threadIdx) {
+    DebugTraceData* threadData = &tracePanel->threads[threadIdx];
+    threadData->events         = dynarray_create_t(g_allocHeap, TraceStoreEvent, 0);
   }
 
   if (type == DebugPanelType_Detached) {

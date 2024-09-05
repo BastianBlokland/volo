@@ -76,14 +76,18 @@ static void cmd_group_init(CmdGroup* group) {
 static void cmd_group_destroy(CmdGroup* group) { dynarray_destroy(&group->entities); }
 
 ecs_comp_define(CmdControllerComp) {
-  DynArray commands; // Cmd[];
-  CmdGroup groups[cmd_group_count];
+  DynArray  commands; // Cmd[];
+  CmdGroup* groups;   // CmdGroup[cmd_group_count];
 };
 
 static void ecs_destruct_controller(void* data) {
   CmdControllerComp* comp = data;
   dynarray_destroy(&comp->commands);
-  array_for_t(comp->groups, CmdGroup, group) { cmd_group_destroy(group); }
+
+  for (u32 groupIdx = 0; groupIdx != cmd_group_count; ++groupIdx) {
+    cmd_group_destroy(&comp->groups[groupIdx]);
+  }
+  alloc_free_array_t(g_allocHeap, comp->groups, cmd_group_count);
 }
 
 ecs_view_define(GlobalUpdateView) {
@@ -248,13 +252,16 @@ ecs_system_define(CmdControllerUpdateSys) {
   if (!controller) {
     controller           = ecs_world_add_t(world, ecs_world_global(world), CmdControllerComp);
     controller->commands = dynarray_create_t(g_allocHeap, Cmd, 512);
-    array_for_t(controller->groups, CmdGroup, group) { cmd_group_init(group); }
+    controller->groups   = alloc_array_t(g_allocHeap, CmdGroup, cmd_group_count);
+    for (u32 groupIdx = 0; groupIdx != cmd_group_count; ++groupIdx) {
+      cmd_group_init(&controller->groups[groupIdx]);
+    }
   }
 
   // Update all groups.
-  array_for_t(controller->groups, CmdGroup, group) {
-    cmd_group_prune_destroyed_entities(group, world);
-    cmd_group_update_position(group, world);
+  for (u32 groupIdx = 0; groupIdx != cmd_group_count; ++groupIdx) {
+    cmd_group_prune_destroyed_entities(&controller->groups[groupIdx], world);
+    cmd_group_update_position(&controller->groups[groupIdx], world);
   }
 
   // Execute all commands.
