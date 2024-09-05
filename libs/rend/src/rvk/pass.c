@@ -81,9 +81,9 @@ typedef enum {
 typedef struct {
   RvkPassFrameState state;
 
-  RvkStatRecorder* statrecorder;
-  RvkStopwatch*    stopwatch;
   RvkUniformPool*  uniformPool;
+  RvkStopwatch*    stopwatch;
+  RvkStatRecorder* statrecorder;
   VkCommandBuffer  vkCmdBuf;
 
   DynArray descSetsVolatile; // RvkDescSet[], allocated on-demand and automatically freed next init.
@@ -518,7 +518,6 @@ static RvkPassHandle rvk_pass_frame_create(RvkPass* pass) {
 
   *frame = (RvkPassFrame){
       .state            = RvkPassFrameState_Available,
-      .statrecorder     = rvk_statrecorder_create(pass->dev),
       .descSetsVolatile = dynarray_create_t(g_allocHeap, RvkDescSet, 8),
       .invocations      = dynarray_create_t(g_allocHeap, RvkPassInvoc, 1),
   };
@@ -547,14 +546,11 @@ static void rvk_pass_frame_destroy(RvkPass* pass, RvkPassFrame* frame) {
   dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
     vkDestroyFramebuffer(pass->dev->vkDev, invoc->vkFrameBuffer, &pass->dev->vkAlloc);
   }
+  dynarray_destroy(&frame->invocations);
 
   // Cleanup volatile descriptor sets.
   dynarray_for_t(&frame->descSetsVolatile, RvkDescSet, set) { rvk_desc_free(*set); }
-
-  rvk_statrecorder_destroy(frame->statrecorder);
-
   dynarray_destroy(&frame->descSetsVolatile);
-  dynarray_destroy(&frame->invocations);
 }
 
 static RvkPassInvoc* rvk_pass_invoc_begin(RvkPass* pass, RvkPassFrame* frame) {
@@ -653,7 +649,11 @@ RvkDescMeta rvk_pass_meta_instance(const RvkPass* pass) {
 VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
 
 RvkPassHandle rvk_pass_frame_begin(
-    RvkPass* pass, RvkUniformPool* uniformPool, RvkStopwatch* stopwatch, VkCommandBuffer vkCmdBuf) {
+    RvkPass*         pass,
+    RvkUniformPool*  uniformPool,
+    RvkStopwatch*    stopwatch,
+    RvkStatRecorder* statrecorder,
+    VkCommandBuffer  vkCmdBuf) {
 
   diag_assert_msg(!rvk_pass_frame_get_active(pass), "Pass frame already active");
   diag_assert_msg(pass->frames.size <= u8_max, "Pass frame limit exceeded");
@@ -667,9 +667,8 @@ RvkPassHandle rvk_pass_frame_begin(
   frame->state        = RvkPassFrameState_Active;
   frame->uniformPool  = uniformPool;
   frame->stopwatch    = stopwatch;
+  frame->statrecorder = statrecorder;
   frame->vkCmdBuf     = vkCmdBuf;
-
-  rvk_statrecorder_reset(frame->statrecorder, vkCmdBuf);
 
   *rvk_pass_stage() = (RvkPassStage){0}; // Reset the stage.
 
