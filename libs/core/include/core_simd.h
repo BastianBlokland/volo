@@ -213,6 +213,13 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_reciprocal(const SimdVec vec) {
   return _mm_rcp_ps(vec);
 }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_add_comp(const SimdVec vec) {
+  SimdVec tmp   = _mm_movehdup_ps(vec);
+  SimdVec accum = simd_vec_add(vec, tmp);
+  tmp           = _mm_movehl_ps(tmp, accum);
+  return _mm_add_ss(accum, tmp);
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_min_comp(SimdVec vec) {
   SimdVec tmp = simd_vec_permute(vec, 2, 3, 2, 3);
   tmp         = simd_vec_min(vec, tmp);

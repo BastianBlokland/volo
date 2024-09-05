@@ -7,6 +7,11 @@
 
 spec(simd) {
 
+  it("can sum components") {
+    check_eq_float(simd_vec_x(simd_vec_add_comp(simd_vec_zero())), 0, 1e-8f);
+    check_eq_float(simd_vec_x(simd_vec_add_comp(simd_vec_set(-1, 4, 6, 42))), 51, 1e-8f);
+  }
+
   it("can find the min component") {
     check_eq_float(simd_vec_x(simd_vec_min_comp(simd_vec_set(-1, 4, 6, -42))), -42, 1e-8f);
     check_eq_float(simd_vec_x(simd_vec_min_comp(simd_vec_set(-1, 4, -42, 6))), -42, 1e-8f);
