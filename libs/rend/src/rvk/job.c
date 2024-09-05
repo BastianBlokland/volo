@@ -18,10 +18,11 @@ typedef enum {
 } RvkJobFlags;
 
 struct sRvkJob {
-  RvkDevice*      dev;
-  u32             jobId;
-  RvkUniformPool* uniformPool;
-  RvkStopwatch*   stopwatch;
+  RvkDevice*       dev;
+  u32              jobId;
+  RvkUniformPool*  uniformPool;
+  RvkStopwatch*    stopwatch;
+  RvkStatRecorder* statrecorder;
 
   VkFence         fenceJobDone;
   VkCommandPool   vkCmdPool;
@@ -136,9 +137,6 @@ static void rvk_job_submit(
 RvkJob* rvk_job_create(RvkDevice* dev, const u32 jobId) {
   RvkJob* job = alloc_alloc_t(g_allocHeap, RvkJob);
 
-  RvkUniformPool* uniformPool = rvk_uniform_pool_create(dev);
-  RvkStopwatch*   stopwatch   = rvk_stopwatch_create(dev);
-
   VkCommandPool vkCmdPool = rvk_commandpool_create(dev, dev->graphicsQueueIndex);
   rvk_debug_name_cmdpool(dev->debug, vkCmdPool, "job_{}", fmt_int(jobId));
 
@@ -146,8 +144,9 @@ RvkJob* rvk_job_create(RvkDevice* dev, const u32 jobId) {
 
   *job = (RvkJob){
       .dev          = dev,
-      .uniformPool  = uniformPool,
-      .stopwatch    = stopwatch,
+      .uniformPool  = rvk_uniform_pool_create(dev),
+      .stopwatch    = rvk_stopwatch_create(dev),
+      .statrecorder = rvk_statrecorder_create(dev),
       .jobId        = jobId,
       .fenceJobDone = rvk_fence_create(dev, true),
       .vkCmdPool    = vkCmdPool,
@@ -162,6 +161,7 @@ void rvk_job_destroy(RvkJob* job) {
 
   rvk_uniform_pool_destroy(job->uniformPool);
   rvk_stopwatch_destroy(job->stopwatch);
+  rvk_statrecorder_destroy(job->statrecorder);
 
   vkDestroyCommandPool(job->dev->vkDev, job->vkCmdPool, &job->dev->vkAlloc);
   vkDestroyFence(job->dev->vkDev, job->fenceJobDone, &job->dev->vkAlloc);
@@ -204,6 +204,7 @@ void rvk_job_begin(RvkJob* job) {
 
   rvk_commandbuffer_begin(job->vkDrawBuffer);
   rvk_stopwatch_reset(job->stopwatch, job->vkDrawBuffer);
+  rvk_statrecorder_reset(job->statrecorder, job->vkDrawBuffer);
 
   job->timeRecBegin = rvk_stopwatch_mark(job->stopwatch, job->vkDrawBuffer);
   rvk_debug_label_begin(
@@ -218,6 +219,11 @@ RvkUniformPool* rvk_job_uniform_pool(RvkJob* job) {
 RvkStopwatch* rvk_job_stopwatch(RvkJob* job) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
   return job->stopwatch;
+}
+
+RvkStatRecorder* rvk_job_statrecorder(RvkJob* job) {
+  diag_assert_msg(job->flags & RvkJob_Active, "job not active");
+  return job->statrecorder;
 }
 
 VkCommandBuffer rvk_job_drawbuffer(RvkJob* job) {
