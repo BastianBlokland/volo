@@ -171,8 +171,7 @@ RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const u32 passIndex) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   diag_assert(passIndex < canvas->passCount);
 
-  RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
-  return rvk_job_pass(frame->job, passIndex);
+  return canvas->passes[passIndex];
 }
 
 RvkImage* rvk_canvas_swapchain_image(RvkCanvas* canvas) {
