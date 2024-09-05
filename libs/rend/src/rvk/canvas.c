@@ -27,6 +27,7 @@ typedef struct {
   RvkJob*         job;
   VkSemaphore     attachmentsReleased, swapchainAvailable, swapchainPresent;
   RvkSwapchainIdx swapchainIdx;
+  RvkPassHandle   passHandles[rvk_canvas_max_passes];
 } RvkCanvasFrame;
 
 struct sRvkCanvas {
@@ -73,6 +74,7 @@ RvkCanvas* rvk_canvas_create(
         .swapchainPresent    = rvk_semaphore_create(dev),
         .swapchainIdx        = sentinel_u32,
     };
+    mem_set(mem_var(canvas->frames[i].passHandles), 0xFF);
   }
 
   for (u32 passIdx = 0; passIdx != passCount; ++passIdx) {
@@ -147,6 +149,19 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
 
   canvas->flags |= RvkCanvasFlags_Active;
   rvk_job_begin(frame->job);
+
+  for (u32 passIdx = 0; passIdx != canvas->passCount; ++passIdx) {
+    RvkPass* pass = canvas->passes[passIdx];
+    if (!sentinel_check(frame->passHandles[passIdx])) {
+      rvk_pass_frame_release(pass, frame->passHandles[passIdx]);
+    }
+    RvkUniformPool* uniformPool = rvk_job_uniform_pool(frame->job);
+    RvkStopwatch*   stopwatch   = rvk_job_stopwatch(frame->job);
+    VkCommandBuffer drawbuffer  = rvk_job_drawbuffer(frame->job);
+
+    frame->passHandles[passIdx] = rvk_pass_frame_begin(pass, uniformPool, stopwatch, drawbuffer);
+  }
+
   return true;
 }
 
@@ -246,6 +261,10 @@ void rvk_canvas_barrier_full(const RvkCanvas* canvas) {
 void rvk_canvas_end(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   const RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
+
+  for (u32 passIdx = 0; passIdx != canvas->passCount; ++passIdx) {
+    rvk_pass_frame_end(canvas->passes[passIdx], frame->passHandles[passIdx]);
+  }
 
   // Transition the swapchain-image to the present phase.
   RvkImage* swapchainImage = rvk_swapchain_image(canvas->swapchain, frame->swapchainIdx);

@@ -13,6 +13,8 @@ typedef struct sRvkDevice      RvkDevice;
 typedef struct sRvkImage       RvkImage;
 typedef struct sRvkPass        RvkPass;
 typedef struct sRvkPassConfig  RvkPassConfig;
+typedef struct sRvkStopwatch   RvkStopwatch;
+typedef struct sRvkUniformPool RvkUniformPool;
 
 typedef struct sRvkJob RvkJob;
 
@@ -23,6 +25,10 @@ void    rvk_job_wait_for_done(const RvkJob*);
 void    rvk_job_stats(const RvkJob*, RvkCanvasStats* out);
 
 void rvk_job_begin(RvkJob*);
+
+RvkUniformPool* rvk_job_uniform_pool(RvkJob*);
+RvkStopwatch*   rvk_job_stopwatch(RvkJob*);
+VkCommandBuffer rvk_job_drawbuffer(RvkJob*);
 
 RvkPass* rvk_job_pass(RvkJob*, u32 passIndex);
 

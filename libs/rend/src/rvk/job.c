@@ -266,6 +266,21 @@ void rvk_job_begin(RvkJob* job) {
       job->dev->debug, job->vkDrawBuffer, geo_color_teal, "job_{}", fmt_int(job->jobId));
 }
 
+RvkUniformPool* rvk_job_uniform_pool(RvkJob* job) {
+  diag_assert_msg(job->flags & RvkJob_Active, "job not active");
+  return job->uniformPool;
+}
+
+RvkStopwatch* rvk_job_stopwatch(RvkJob* job) {
+  diag_assert_msg(job->flags & RvkJob_Active, "job not active");
+  return job->stopwatch;
+}
+
+VkCommandBuffer rvk_job_drawbuffer(RvkJob* job) {
+  diag_assert_msg(job->flags & RvkJob_Active, "job not active");
+  return job->vkDrawBuffer;
+}
+
 RvkPass* rvk_job_pass(RvkJob* job, const u32 passIndex) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
   diag_assert(passIndex < job->passCount);
