@@ -185,13 +185,7 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
     if (!sentinel_check(frame->passHandles[passIdx])) {
       rvk_pass_frame_release(pass, frame->passHandles[passIdx]);
     }
-    RvkUniformPool*  uniformPool  = rvk_job_uniform_pool(frame->job);
-    RvkStopwatch*    stopwatch    = rvk_job_stopwatch(frame->job);
-    RvkStatRecorder* statrecorder = rvk_job_statrecorder(frame->job);
-    VkCommandBuffer  drawbuffer   = rvk_job_drawbuffer(frame->job);
-
-    frame->passHandles[passIdx] =
-        rvk_pass_frame_begin(pass, uniformPool, stopwatch, statrecorder, drawbuffer);
+    frame->passHandles[passIdx] = rvk_pass_frame_begin(pass, frame->job);
   }
 
   return true;
