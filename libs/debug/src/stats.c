@@ -148,6 +148,16 @@ static void debug_plot_add_dur(DebugStatPlot* plot, const TimeDuration value) {
 }
 
 static f32 debug_plot_min(const DebugStatPlot* plot) {
+#ifdef VOLO_SIMD
+  ASSERT((stats_plot_size % 4) == 0, "Only multiple of 4 plot sizes are supported");
+
+  SimdVec min = simd_vec_broadcast(plot->values[0]);
+  for (u32 i = 0; i != stats_plot_size; i += 4) {
+    const SimdVec v = simd_vec_load(plot->values + i);
+    min             = simd_vec_min(min, simd_vec_min_comp(v));
+  }
+  return simd_vec_x(min);
+#else
   f32 min = plot->values[0];
   for (u32 i = 1; i != stats_plot_size; ++i) {
     if (plot->values[i] < min) {
@@ -155,6 +165,7 @@ static f32 debug_plot_min(const DebugStatPlot* plot) {
     }
   }
   return min;
+#endif
 }
 
 static f32 debug_plot_max(const DebugStatPlot* plot) {
