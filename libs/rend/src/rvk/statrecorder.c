@@ -9,7 +9,7 @@
 #include "device_internal.h"
 #include "statrecorder_internal.h"
 
-#define rvk_statrecorder_queries_max 16
+#define rvk_statrecorder_queries_max 64
 
 typedef enum {
   RvkStatRecorder_Supported   = 1 << 0,

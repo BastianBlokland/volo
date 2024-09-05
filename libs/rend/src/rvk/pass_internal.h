@@ -10,16 +10,19 @@
 typedef union uGeoColor GeoColor;
 
 // Internal forward declarations:
-typedef enum eRvkStat          RvkStat;
-typedef struct sRvkAttachSpec  RvkAttachSpec;
-typedef struct sRvkDescMeta    RvkDescMeta;
-typedef struct sRvkDevice      RvkDevice;
-typedef struct sRvkGraphic     RvkGraphic;
-typedef struct sRvkImage       RvkImage;
-typedef struct sRvkMesh        RvkMesh;
-typedef struct sRvkStopwatch   RvkStopwatch;
-typedef struct sRvkTexture     RvkTexture;
-typedef struct sRvkUniformPool RvkUniformPool;
+typedef enum eRvkStat           RvkStat;
+typedef struct sRvkAttachSpec   RvkAttachSpec;
+typedef struct sRvkDescMeta     RvkDescMeta;
+typedef struct sRvkDevice       RvkDevice;
+typedef struct sRvkGraphic      RvkGraphic;
+typedef struct sRvkImage        RvkImage;
+typedef struct sRvkMesh         RvkMesh;
+typedef struct sRvkStatRecorder RvkStatRecorder;
+typedef struct sRvkStopwatch    RvkStopwatch;
+typedef struct sRvkTexture      RvkTexture;
+typedef struct sRvkUniformPool  RvkUniformPool;
+
+typedef u8 RvkPassHandle;
 
 typedef struct sRvkPass RvkPass;
 
@@ -44,7 +47,6 @@ typedef enum {
   RvkPassFormat_Color4Srgb,        // RGBA (unorm)  sdr srgb.
   RvkPassFormat_Color2SignedFloat, // RG   (sfloat) hdr.
   RvkPassFormat_Color3Float,       // RGB  (ufloat) hdr.
-  RvkPassFormat_Swapchain,         // Format matching the window's swapchain.
 } RvkPassFormat;
 
 typedef struct sRvkPassConfig {
@@ -67,17 +69,11 @@ typedef struct sRvkPassDraw {
   u32            instDataStride;
 } RvkPassDraw;
 
-RvkPass* rvk_pass_create(
-    RvkDevice*,
-    VkFormat swapchainFormat,
-    VkCommandBuffer,
-    RvkUniformPool*,
-    RvkStopwatch*,
-    RvkPassConfig);
-void   rvk_pass_destroy(RvkPass*);
-bool   rvk_pass_active(const RvkPass*);
-String rvk_pass_name(const RvkPass*); // Persistently allocated.
-bool   rvk_pass_has_depth(const RvkPass*);
+RvkPass* rvk_pass_create(RvkDevice*, const RvkPassConfig* /* Needs to be persistently allocated */);
+void     rvk_pass_destroy(RvkPass*);
+
+const RvkPassConfig* rvk_pass_config(const RvkPass*);
+bool                 rvk_pass_active(const RvkPass*);
 
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass*, u16 colorAttachIndex);
 RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass*);
@@ -85,14 +81,19 @@ RvkDescMeta   rvk_pass_meta_global(const RvkPass*);
 RvkDescMeta   rvk_pass_meta_instance(const RvkPass*);
 VkRenderPass  rvk_pass_vkrenderpass(const RvkPass*);
 
-u16          rvk_pass_stat_invocations(const RvkPass*);
-u16          rvk_pass_stat_draws(const RvkPass*);
-u32          rvk_pass_stat_instances(const RvkPass*);
-RvkSize      rvk_pass_stat_size_max(const RvkPass*);
-TimeDuration rvk_pass_stat_duration(const RvkPass*);
-u64          rvk_pass_stat_pipeline(const RvkPass*, RvkStat);
+RvkPassHandle
+rvk_pass_frame_begin(RvkPass*, RvkUniformPool*, RvkStopwatch*, RvkStatRecorder*, VkCommandBuffer);
 
-void rvk_pass_reset(RvkPass*);
+void rvk_pass_frame_end(RvkPass*, RvkPassHandle);
+void rvk_pass_frame_release(RvkPass*, RvkPassHandle);
+
+u16          rvk_pass_stat_invocations(const RvkPass*, RvkPassHandle);
+u16          rvk_pass_stat_draws(const RvkPass*, RvkPassHandle);
+u32          rvk_pass_stat_instances(const RvkPass*, RvkPassHandle);
+RvkSize      rvk_pass_stat_size_max(const RvkPass*, RvkPassHandle);
+TimeDuration rvk_pass_stat_duration(const RvkPass*, RvkPassHandle);
+u64          rvk_pass_stat_pipeline(const RvkPass*, RvkPassHandle, RvkStat);
+
 bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
 bool rvk_pass_prepare_mesh(RvkPass*, const RvkMesh*);
 bool rvk_pass_prepare_texture(RvkPass*, const RvkTexture*);
@@ -108,4 +109,3 @@ void rvk_pass_stage_draw_image(RvkPass*, RvkImage*);
 void rvk_pass_begin(RvkPass*);
 void rvk_pass_draw(RvkPass*, const RvkPassDraw*);
 void rvk_pass_end(RvkPass*);
-void rvk_pass_discard(RvkPass*); // Discard any staged values.

@@ -7,29 +7,32 @@
 typedef union uGeoColor GeoColor;
 
 // Internal forward declarations:
-typedef enum eRvkImagePhase    RvkImagePhase;
-typedef struct sRvkCanvasStats RvkCanvasStats;
-typedef struct sRvkDevice      RvkDevice;
-typedef struct sRvkImage       RvkImage;
-typedef struct sRvkPass        RvkPass;
-typedef struct sRvkPassConfig  RvkPassConfig;
+typedef enum eRvkImagePhase     RvkImagePhase;
+typedef struct sRvkDevice       RvkDevice;
+typedef struct sRvkImage        RvkImage;
+typedef struct sRvkStatRecorder RvkStatRecorder;
+typedef struct sRvkStopwatch    RvkStopwatch;
+typedef struct sRvkUniformPool  RvkUniformPool;
+
+typedef struct {
+  TimeDuration waitForGpuDur; // Time the cpu was blocked waiting for the gpu.
+  TimeDuration gpuExecDur;
+} RvkJobStats;
 
 typedef struct sRvkJob RvkJob;
 
-RvkJob* rvk_job_create(
-    RvkDevice*,
-    VkFormat             swapchainFormat,
-    u32                  jobId,
-    const RvkPassConfig* passConfig,
-    u32                  passCount);
-void rvk_job_destroy(RvkJob*);
-bool rvk_job_is_done(const RvkJob*);
-void rvk_job_wait_for_done(const RvkJob*);
-void rvk_job_stats(const RvkJob*, RvkCanvasStats* out);
+RvkJob* rvk_job_create(RvkDevice*, u32 jobId);
+void    rvk_job_destroy(RvkJob*);
+bool    rvk_job_is_done(const RvkJob*);
+void    rvk_job_wait_for_done(const RvkJob*);
+void    rvk_job_stats(const RvkJob*, RvkJobStats* out);
 
 void rvk_job_begin(RvkJob*);
 
-RvkPass* rvk_job_pass(RvkJob*, u32 passIndex);
+RvkUniformPool*  rvk_job_uniform_pool(RvkJob*);
+RvkStopwatch*    rvk_job_stopwatch(RvkJob*);
+RvkStatRecorder* rvk_job_statrecorder(RvkJob*);
+VkCommandBuffer  rvk_job_drawbuffer(RvkJob*);
 
 void rvk_job_img_clear_color(RvkJob*, RvkImage*, GeoColor);
 void rvk_job_img_clear_depth(RvkJob*, RvkImage*, f32 depth);
