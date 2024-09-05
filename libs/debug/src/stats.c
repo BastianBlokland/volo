@@ -66,9 +66,9 @@ ecs_comp_define(DebugStatsComp) {
   DebugStatShow show;
   EcsEntityId   canvas;
 
-  DebugStatPlot frameDurPlot; // In microseconds.
-  TimeDuration  frameDurDesired;
-  DebugStatPlot gpuExecDurPlot; // In microseconds.
+  DebugStatPlot* frameDurPlot; // In microseconds.
+  TimeDuration   frameDurDesired;
+  DebugStatPlot* gpuExecDurPlot; // In microseconds.
 
   u32           inspectPassIndex; // Pass to show stats for.
   SceneNavLayer inspectNavLayer;  // Navigation layer to show stats for.
@@ -89,12 +89,19 @@ ecs_comp_define(DebugStatsGlobalComp) {
   usize fileMappingSize;
   u32   globalStringCount;
 
-  DebugStatPlot ecsFlushDurPlot; // In microseconds.
+  DebugStatPlot* ecsFlushDurPlot; // In microseconds.
 };
+
+static void ecs_destruct_stats(void* data) {
+  DebugStatsComp* comp = data;
+  alloc_free_t(g_allocHeap, comp->frameDurPlot);
+  alloc_free_t(g_allocHeap, comp->gpuExecDurPlot);
+}
 
 static void ecs_destruct_stats_global(void* data) {
   DebugStatsGlobalComp* comp = data;
   dynarray_destroy(&comp->notifications);
+  alloc_free_t(g_allocHeap, comp->ecsFlushDurPlot);
 }
 
 static DebugStatsNotification* debug_notify_get(DebugStatsGlobalComp* comp, const String key) {
@@ -119,6 +126,12 @@ static void debug_notify_prune_older(DebugStatsGlobalComp* comp, const TimeReal 
       dynarray_remove(&comp->notifications, i, 1);
     }
   }
+}
+
+static DebugStatPlot* debug_plot_alloc(Allocator* alloc) {
+  DebugStatPlot* plot = alloc_alloc_t(alloc, DebugStatPlot);
+  mem_set(mem_create(plot, sizeof(DebugStatPlot)), 0);
+  return plot;
 }
 
 static void debug_plot_add(DebugStatPlot* plot, const f32 value) {
@@ -313,8 +326,8 @@ static void stats_draw_frametime(UiCanvasComp* c, const DebugStatsComp* stats) {
   const f64 g_errorThreshold = 1.25;
   const f64 g_warnThreshold  = 1.025;
 
-  const TimeDuration durAvg      = debug_plot_avg_dur(&stats->frameDurPlot);
-  const TimeDuration durVariance = debug_plot_var_dur(&stats->frameDurPlot);
+  const TimeDuration durAvg      = debug_plot_avg_dur(stats->frameDurPlot);
+  const TimeDuration durVariance = debug_plot_var_dur(stats->frameDurPlot);
 
   String colorText = string_empty;
   if (durAvg > stats->frameDurDesired * g_errorThreshold) {
@@ -551,7 +564,7 @@ static void debug_stats_draw_interface(
 
   // clang-format off
   stats_draw_frametime(c, stats);
-  stats_draw_plot_dur(c, &stats->frameDurPlot, 0, stats->frameDurDesired * 2);
+  stats_draw_plot_dur(c, stats->frameDurPlot, 0, stats->frameDurDesired * 2);
   stats_draw_cpu_chart(c, stats, rendStats);
   stats_draw_gpu_chart(c, stats, rendStats);
   stats_draw_notifications(c, statsGlobal);
@@ -568,11 +581,11 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("Dpi"), fmt_write_scratch("{}", fmt_int(gap_window_dpi(window))));
   }
   if(stats_draw_section(c, string_lit("Renderer"))) {
-    const TimeDuration gpuExecDurAvg = debug_plot_avg_dur(&stats->gpuExecDurPlot);
+    const TimeDuration gpuExecDurAvg = debug_plot_avg_dur(stats->gpuExecDurPlot);
 
     stats_draw_val_entry(c, string_lit("Gpu"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
     stats_draw_val_entry(c, string_lit("Gpu exec duration"), fmt_write_scratch("{<9} frac: {}", fmt_duration(gpuExecDurAvg), fmt_float(stats->gpuExecFrac, .minDecDigits = 2, .maxDecDigits = 2)));
-    stats_draw_plot_dur(c, &stats->gpuExecDurPlot, 0, stats->frameDurDesired * 2);
+    stats_draw_plot_dur(c, stats->gpuExecDurPlot, 0, stats->frameDurDesired * 2);
     stats_draw_val_entry(c, string_lit("Swapchain"), fmt_write_scratch("images: {} present: {}", fmt_int(rendStats->swapchainImageCount), fmt_int(rendStats->swapchainPresentId)));
     stats_draw_val_entry(c, string_lit("Attachments"), fmt_write_scratch("{<3} ({})", fmt_int(rendStats->attachCount), fmt_size(rendStats->attachMemory)));
     stats_draw_val_entry(c, string_lit("Samplers"), fmt_write_scratch("{}", fmt_int(rendStats->samplerCount)));
@@ -584,7 +597,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("Texture resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatsRes_Texture])));
 
     stats_draw_renderer_pass_dropdown(c, stats, rendStats);
-    const TimeDuration   frameDurAvg = debug_plot_avg_dur(&stats->frameDurPlot);
+    const TimeDuration   frameDurAvg = debug_plot_avg_dur(stats->frameDurPlot);
     const RendStatsPass* passStats   = &rendStats->passes[stats->inspectPassIndex];
     const f32            passDurFrac = debug_frame_frac(frameDurAvg, passStats->gpuExecDur);
     stats_draw_val_entry(c, string_lit("Pass resolution max"), fmt_write_scratch("{}x{}", fmt_int(passStats->sizeMax[0]), fmt_int(passStats->sizeMax[1])));
@@ -625,8 +638,8 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("Data"), fmt_write_scratch("types: {}", fmt_int(data_type_count(g_dataReg))));
   }
   if(stats_draw_section(c, string_lit("ECS"))) {
-    const TimeDuration flushDurAvg = debug_plot_avg_dur(&statsGlobal->ecsFlushDurPlot);
-    const TimeDuration flushDurMax = debug_plot_max_dur(&statsGlobal->ecsFlushDurPlot);
+    const TimeDuration flushDurAvg = debug_plot_avg_dur(statsGlobal->ecsFlushDurPlot);
+    const TimeDuration flushDurMax = debug_plot_max_dur(statsGlobal->ecsFlushDurPlot);
 
     stats_draw_val_entry(c, string_lit("Components"), fmt_write_scratch("{}", fmt_int(ecs_def_comp_count(ecsDef))));
     stats_draw_val_entry(c, string_lit("Views"), fmt_write_scratch("{}", fmt_int(ecs_def_view_count(ecsDef))));
@@ -691,7 +704,7 @@ static void debug_stats_update(
     const SceneTimeComp*          time) {
 
   const TimeDuration frameDur = time->realDelta;
-  debug_plot_add_dur(&stats->frameDurPlot, frameDur);
+  debug_plot_add_dur(stats->frameDurPlot, frameDur);
 
   if (rendGlobalSettings->limiterFreq) {
     stats->frameDurDesired = time_second / rendGlobalSettings->limiterFreq;
@@ -699,7 +712,7 @@ static void debug_stats_update(
     stats->frameDurDesired = (TimeDuration)((f64)time_second / gap_window_refresh_rate(window));
   }
 
-  debug_plot_add_dur(&stats->gpuExecDurPlot, rendStats->gpuExecDur);
+  debug_plot_add_dur(stats->gpuExecDurPlot, rendStats->gpuExecDur);
 
   debug_avg_f32(&stats->rendWaitForGpuFrac, debug_frame_frac(frameDur, rendStats->waitForGpuDur));
   debug_avg_f32(&stats->rendPresAcqFrac, debug_frame_frac(frameDur, rendStats->presentAcquireDur));
@@ -725,7 +738,7 @@ debug_stats_global_update(DebugStatsGlobalComp* statsGlobal, const EcsRunnerStat
   statsGlobal->globalStringCount = stringtable_count(g_stringtable);
 
   debug_plot_add(
-      &statsGlobal->ecsFlushDurPlot, (f32)(ecsRunnerStats->flushDurLast / (f64)time_microsecond));
+      statsGlobal->ecsFlushDurPlot, (f32)(ecsRunnerStats->flushDurLast / (f64)time_microsecond));
 }
 
 ecs_view_define(GlobalView) {
@@ -762,13 +775,19 @@ ecs_system_define(DebugStatsCreateSys) {
         world,
         ecs_world_global(world),
         DebugStatsGlobalComp,
-        .notifications = dynarray_create_t(g_allocHeap, DebugStatsNotification, 8));
+        .notifications   = dynarray_create_t(g_allocHeap, DebugStatsNotification, 8),
+        .ecsFlushDurPlot = debug_plot_alloc(g_allocHeap));
   }
 
   // Create a stats component for each window with 3d content (so with a camera).
   EcsView* createView = ecs_world_view_t(world, StatsCreateView);
   for (EcsIterator* itr = ecs_view_itr(createView); ecs_view_walk(itr);) {
-    ecs_world_add_t(world, ecs_view_entity(itr), DebugStatsComp);
+    ecs_world_add_t(
+        world,
+        ecs_view_entity(itr),
+        DebugStatsComp,
+        .frameDurPlot   = debug_plot_alloc(g_allocHeap),
+        .gpuExecDurPlot = debug_plot_alloc(g_allocHeap));
   }
 }
 
@@ -838,7 +857,7 @@ ecs_system_define(DebugStatsUpdateSys) {
 }
 
 ecs_module_init(debug_stats_module) {
-  ecs_register_comp(DebugStatsComp);
+  ecs_register_comp(DebugStatsComp, .destructor = ecs_destruct_stats);
   ecs_register_comp(DebugStatsGlobalComp, .destructor = ecs_destruct_stats_global);
 
   ecs_register_view(GlobalView);
