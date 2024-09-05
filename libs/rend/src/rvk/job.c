@@ -3,12 +3,10 @@
 #include "core_diag.h"
 #include "core_thread.h"
 
-#include "canvas_internal.h"
 #include "debug_internal.h"
 #include "device_internal.h"
 #include "image_internal.h"
 #include "job_internal.h"
-#include "pass_internal.h"
 #include "statrecorder_internal.h"
 #include "stopwatch_internal.h"
 #include "uniform_internal.h"
@@ -24,14 +22,6 @@ struct sRvkJob {
   u32             jobId;
   RvkUniformPool* uniformPool;
   RvkStopwatch*   stopwatch;
-
-  /**
-   * Passes are stored per-job as they contain state that needs to persist throughout the lifetime
-   * of the submission.
-   */
-  RvkPass*      passes[rvk_canvas_max_passes];
-  RvkPassHandle passFrames[rvk_canvas_max_passes];
-  u32           passCount;
 
   VkFence         fenceJobDone;
   VkCommandPool   vkCmdPool;
@@ -143,10 +133,7 @@ static void rvk_job_submit(
   thread_mutex_unlock(job->dev->queueSubmitMutex);
 }
 
-RvkJob* rvk_job_create(
-    RvkDevice* dev, const u32 jobId, const RvkPassConfig* passConfig, const u32 passCount) {
-  diag_assert(passCount <= rvk_canvas_max_passes);
-
+RvkJob* rvk_job_create(RvkDevice* dev, const u32 jobId) {
   RvkJob* job = alloc_alloc_t(g_allocHeap, RvkJob);
 
   RvkUniformPool* uniformPool = rvk_uniform_pool_create(dev);
@@ -165,23 +152,13 @@ RvkJob* rvk_job_create(
       .fenceJobDone = rvk_fence_create(dev, true),
       .vkCmdPool    = vkCmdPool,
       .vkDrawBuffer = vkDrawBuffer,
-      .passCount    = passCount,
   };
-
-  for (u32 i = 0; i != passCount; ++i) {
-    job->passes[i]     = rvk_pass_create(dev, &passConfig[i]);
-    job->passFrames[i] = sentinel_u8;
-  }
 
   return job;
 }
 
 void rvk_job_destroy(RvkJob* job) {
   rvk_job_wait_for_done(job);
-
-  for (u32 passIdx = 0; passIdx != job->passCount; ++passIdx) {
-    rvk_pass_destroy(job->passes[passIdx]);
-  }
 
   rvk_uniform_pool_destroy(job->uniformPool);
   rvk_stopwatch_destroy(job->stopwatch);
@@ -228,15 +205,6 @@ void rvk_job_begin(RvkJob* job) {
   rvk_commandbuffer_begin(job->vkDrawBuffer);
   rvk_stopwatch_reset(job->stopwatch, job->vkDrawBuffer);
 
-  for (u32 i = 0; i != job->passCount; ++i) {
-    RvkPass* pass = job->passes[i];
-    if (!sentinel_check(job->passFrames[i])) {
-      rvk_pass_frame_release(pass, job->passFrames[i]);
-    }
-    VkCommandBuffer vkCmdBuf = job->vkDrawBuffer;
-    job->passFrames[i] = rvk_pass_frame_begin(pass, job->uniformPool, job->stopwatch, vkCmdBuf);
-  }
-
   job->timeRecBegin = rvk_stopwatch_mark(job->stopwatch, job->vkDrawBuffer);
   rvk_debug_label_begin(
       job->dev->debug, job->vkDrawBuffer, geo_color_teal, "job_{}", fmt_int(job->jobId));
@@ -255,12 +223,6 @@ RvkStopwatch* rvk_job_stopwatch(RvkJob* job) {
 VkCommandBuffer rvk_job_drawbuffer(RvkJob* job) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
   return job->vkDrawBuffer;
-}
-
-RvkPass* rvk_job_pass(RvkJob* job, const u32 passIndex) {
-  diag_assert_msg(job->flags & RvkJob_Active, "job not active");
-  diag_assert(passIndex < job->passCount);
-  return job->passes[passIndex];
 }
 
 void rvk_job_img_clear_color(RvkJob* job, RvkImage* img, const GeoColor color) {
@@ -343,10 +305,6 @@ void rvk_job_end(
     const VkSemaphore* signals,
     u32                signalCount) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
-
-  for (u32 i = 0; i != job->passCount; ++i) {
-    rvk_pass_frame_end(job->passes[i], job->passFrames[i]);
-  }
 
   job->timeRecEnd = rvk_stopwatch_mark(job->stopwatch, job->vkDrawBuffer);
   rvk_debug_label_end(job->dev->debug, job->vkDrawBuffer);

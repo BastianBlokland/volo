@@ -69,7 +69,7 @@ RvkCanvas* rvk_canvas_create(
 
   for (u32 i = 0; i != canvas_frame_count; ++i) {
     canvas->frames[i] = (RvkCanvasFrame){
-        .job                 = rvk_job_create(dev, i, passConfig, passCount),
+        .job                 = rvk_job_create(dev, i),
         .attachmentsReleased = rvk_semaphore_create(dev),
         .swapchainAvailable  = rvk_semaphore_create(dev),
         .swapchainPresent    = rvk_semaphore_create(dev),

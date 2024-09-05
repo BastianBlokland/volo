@@ -10,8 +10,6 @@ typedef union uGeoColor GeoColor;
 typedef enum eRvkImagePhase    RvkImagePhase;
 typedef struct sRvkDevice      RvkDevice;
 typedef struct sRvkImage       RvkImage;
-typedef struct sRvkPass        RvkPass;
-typedef struct sRvkPassConfig  RvkPassConfig;
 typedef struct sRvkStopwatch   RvkStopwatch;
 typedef struct sRvkUniformPool RvkUniformPool;
 
@@ -22,7 +20,7 @@ typedef struct {
 
 typedef struct sRvkJob RvkJob;
 
-RvkJob* rvk_job_create(RvkDevice*, u32 jobId, const RvkPassConfig* passConfig, u32 passCount);
+RvkJob* rvk_job_create(RvkDevice*, u32 jobId);
 void    rvk_job_destroy(RvkJob*);
 bool    rvk_job_is_done(const RvkJob*);
 void    rvk_job_wait_for_done(const RvkJob*);
@@ -33,8 +31,6 @@ void rvk_job_begin(RvkJob*);
 RvkUniformPool* rvk_job_uniform_pool(RvkJob*);
 RvkStopwatch*   rvk_job_stopwatch(RvkJob*);
 VkCommandBuffer rvk_job_drawbuffer(RvkJob*);
-
-RvkPass* rvk_job_pass(RvkJob*, u32 passIndex);
 
 void rvk_job_img_clear_color(RvkJob*, RvkImage*, GeoColor);
 void rvk_job_img_clear_depth(RvkJob*, RvkImage*, f32 depth);
