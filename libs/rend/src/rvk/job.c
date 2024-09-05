@@ -205,7 +205,7 @@ void rvk_job_wait_for_done(const RvkJob* job) {
   ((RvkJob*)job)->waitForGpuDur += time_steady_duration(waitStart, time_steady_clock());
 }
 
-void rvk_job_stats(const RvkJob* job, RvkCanvasStats* out) {
+void rvk_job_stats(const RvkJob* job, RvkJobStats* out) {
   diag_assert(rvk_job_is_done(job));
 
   const TimeSteady timestampBegin = rvk_stopwatch_query(job->stopwatch, job->timeRecBegin);
@@ -213,30 +213,6 @@ void rvk_job_stats(const RvkJob* job, RvkCanvasStats* out) {
 
   out->waitForGpuDur = job->waitForGpuDur;
   out->gpuExecDur    = time_steady_duration(timestampBegin, timestampEnd);
-
-  out->passCount = 0;
-  for (u32 i = 0; i != job->passCount; ++i) {
-    const RvkPass*      pass      = job->passes[i];
-    const RvkPassHandle passFrame = job->passFrames[i];
-    if (sentinel_check(passFrame)) {
-      continue;
-    }
-
-    const RvkSize sizeMax         = rvk_pass_stat_size_max(pass, passFrame);
-    out->passes[out->passCount++] = (RendStatsPass){
-        .name        = rvk_pass_config(pass)->name, // Persistently allocated.
-        .gpuExecDur  = rvk_pass_stat_duration(pass, passFrame),
-        .sizeMax[0]  = sizeMax.width,
-        .sizeMax[1]  = sizeMax.height,
-        .invocations = rvk_pass_stat_invocations(pass, passFrame),
-        .draws       = rvk_pass_stat_draws(pass, passFrame),
-        .instances   = rvk_pass_stat_instances(pass, passFrame),
-        .vertices    = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_InputAssemblyVertices),
-        .primitives  = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_InputAssemblyPrimitives),
-        .shadersVert = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_ShaderInvocationsVert),
-        .shadersFrag = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_ShaderInvocationsFrag),
-    };
-  }
 }
 
 void rvk_job_begin(RvkJob* job) {

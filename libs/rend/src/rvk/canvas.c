@@ -9,6 +9,7 @@
 #include "device_internal.h"
 #include "job_internal.h"
 #include "pass_internal.h"
+#include "statrecorder_internal.h"
 #include "swapchain_internal.h"
 
 /**
@@ -74,7 +75,7 @@ RvkCanvas* rvk_canvas_create(
         .swapchainPresent    = rvk_semaphore_create(dev),
         .swapchainIdx        = sentinel_u32,
     };
-    mem_set(mem_var(canvas->frames[i].passHandles), 0xFF);
+    mem_set(array_mem(canvas->frames[i].passHandles), 0xFF);
   }
 
   for (u32 passIdx = 0; passIdx != passCount; ++passIdx) {
@@ -115,7 +116,36 @@ RvkRepository* rvk_canvas_repository(RvkCanvas* canvas) { return canvas->dev->re
 void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
   const RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
   diag_assert(rvk_job_is_done(frame->job));
-  rvk_job_stats(frame->job, out);
+
+  RvkJobStats jobStats;
+  rvk_job_stats(frame->job, &jobStats);
+
+  out->waitForGpuDur = jobStats.waitForGpuDur;
+  out->gpuExecDur    = jobStats.gpuExecDur;
+
+  out->passCount = 0;
+  for (u32 passIdx = 0; passIdx != canvas->passCount; ++passIdx) {
+    const RvkPass*      pass      = canvas->passes[passIdx];
+    const RvkPassHandle passFrame = frame->passHandles[passIdx];
+    if (sentinel_check(passFrame)) {
+      continue;
+    }
+
+    const RvkSize sizeMax         = rvk_pass_stat_size_max(pass, passFrame);
+    out->passes[out->passCount++] = (RendStatsPass){
+        .name        = rvk_pass_config(pass)->name, // Persistently allocated.
+        .gpuExecDur  = rvk_pass_stat_duration(pass, passFrame),
+        .sizeMax[0]  = sizeMax.width,
+        .sizeMax[1]  = sizeMax.height,
+        .invocations = rvk_pass_stat_invocations(pass, passFrame),
+        .draws       = rvk_pass_stat_draws(pass, passFrame),
+        .instances   = rvk_pass_stat_instances(pass, passFrame),
+        .vertices    = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_InputAssemblyVertices),
+        .primitives  = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_InputAssemblyPrimitives),
+        .shadersVert = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_ShaderInvocationsVert),
+        .shadersFrag = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_ShaderInvocationsFrag),
+    };
+  }
 }
 
 u16 rvk_canvas_attach_count(const RvkCanvas* canvas) {
