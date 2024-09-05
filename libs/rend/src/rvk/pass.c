@@ -495,12 +495,12 @@ static RvkPassFrame* rvk_pass_frame_get_active(RvkPass* pass) {
 
 static const RvkPassFrame* rvk_pass_frame_get(const RvkPass* pass, const RvkPassHandle handle) {
   diag_assert(handle < pass->frames.size);
-  return dynarray_begin_t(&pass->frames, RvkPassFrame);
+  return &dynarray_begin_t(&pass->frames, RvkPassFrame)[handle];
 }
 
 static RvkPassFrame* rvk_pass_frame_get_mut(RvkPass* pass, const RvkPassHandle handle) {
   diag_assert(handle < pass->frames.size);
-  return dynarray_begin_t(&pass->frames, RvkPassFrame);
+  return &dynarray_begin_t(&pass->frames, RvkPassFrame)[handle];
 }
 
 static RvkPassHandle rvk_pass_frame_find_available(RvkPass* pass) {
