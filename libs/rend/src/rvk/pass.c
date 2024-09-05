@@ -10,6 +10,7 @@
 #include "device_internal.h"
 #include "graphic_internal.h"
 #include "image_internal.h"
+#include "job_internal.h"
 #include "mesh_internal.h"
 #include "pass_internal.h"
 #include "repository_internal.h"
@@ -648,12 +649,7 @@ RvkDescMeta rvk_pass_meta_instance(const RvkPass* pass) {
 
 VkRenderPass rvk_pass_vkrenderpass(const RvkPass* pass) { return pass->vkRendPass; }
 
-RvkPassHandle rvk_pass_frame_begin(
-    RvkPass*         pass,
-    RvkUniformPool*  uniformPool,
-    RvkStopwatch*    stopwatch,
-    RvkStatRecorder* statrecorder,
-    VkCommandBuffer  vkCmdBuf) {
+RvkPassHandle rvk_pass_frame_begin(RvkPass* pass, RvkJob* job) {
 
   diag_assert_msg(!rvk_pass_frame_get_active(pass), "Pass frame already active");
   diag_assert_msg(pass->frames.size <= u8_max, "Pass frame limit exceeded");
@@ -665,10 +661,10 @@ RvkPassHandle rvk_pass_frame_begin(
 
   RvkPassFrame* frame = rvk_pass_frame_get_mut(pass, frameHandle);
   frame->state        = RvkPassFrameState_Active;
-  frame->uniformPool  = uniformPool;
-  frame->stopwatch    = stopwatch;
-  frame->statrecorder = statrecorder;
-  frame->vkCmdBuf     = vkCmdBuf;
+  frame->uniformPool  = rvk_job_uniform_pool(job);
+  frame->stopwatch    = rvk_job_stopwatch(job);
+  frame->statrecorder = rvk_job_statrecorder(job);
+  frame->vkCmdBuf     = rvk_job_drawbuffer(job);
 
   *rvk_pass_stage() = (RvkPassStage){0}; // Reset the stage.
 

@@ -10,17 +10,15 @@
 typedef union uGeoColor GeoColor;
 
 // Internal forward declarations:
-typedef enum eRvkStat           RvkStat;
-typedef struct sRvkAttachSpec   RvkAttachSpec;
-typedef struct sRvkDescMeta     RvkDescMeta;
-typedef struct sRvkDevice       RvkDevice;
-typedef struct sRvkGraphic      RvkGraphic;
-typedef struct sRvkImage        RvkImage;
-typedef struct sRvkMesh         RvkMesh;
-typedef struct sRvkStatRecorder RvkStatRecorder;
-typedef struct sRvkStopwatch    RvkStopwatch;
-typedef struct sRvkTexture      RvkTexture;
-typedef struct sRvkUniformPool  RvkUniformPool;
+typedef enum eRvkStat         RvkStat;
+typedef struct sRvkAttachSpec RvkAttachSpec;
+typedef struct sRvkDescMeta   RvkDescMeta;
+typedef struct sRvkDevice     RvkDevice;
+typedef struct sRvkGraphic    RvkGraphic;
+typedef struct sRvkImage      RvkImage;
+typedef struct sRvkJob        RvkJob;
+typedef struct sRvkMesh       RvkMesh;
+typedef struct sRvkTexture    RvkTexture;
 
 typedef u8 RvkPassHandle;
 
@@ -81,11 +79,9 @@ RvkDescMeta   rvk_pass_meta_global(const RvkPass*);
 RvkDescMeta   rvk_pass_meta_instance(const RvkPass*);
 VkRenderPass  rvk_pass_vkrenderpass(const RvkPass*);
 
-RvkPassHandle
-rvk_pass_frame_begin(RvkPass*, RvkUniformPool*, RvkStopwatch*, RvkStatRecorder*, VkCommandBuffer);
-
-void rvk_pass_frame_end(RvkPass*, RvkPassHandle);
-void rvk_pass_frame_release(RvkPass*, RvkPassHandle);
+RvkPassHandle rvk_pass_frame_begin(RvkPass*, RvkJob*);
+void          rvk_pass_frame_end(RvkPass*, RvkPassHandle);
+void          rvk_pass_frame_release(RvkPass*, RvkPassHandle);
 
 u16          rvk_pass_stat_invocations(const RvkPass*, RvkPassHandle);
 u16          rvk_pass_stat_draws(const RvkPass*, RvkPassHandle);
