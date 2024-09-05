@@ -40,7 +40,7 @@ static const UiColor g_statsChartColors[] = {
     {128, 0, 0, 255},
 };
 
-#define stats_plot_size 64
+#define stats_plot_size 128
 #define stats_notify_max_key_size 32
 #define stats_notify_max_value_size 16
 #define stats_notify_max_age time_seconds(3)
