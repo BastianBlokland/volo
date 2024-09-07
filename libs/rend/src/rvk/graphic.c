@@ -661,7 +661,7 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
       .lineWidth         = asset->lineWidth,
       .depthBiasConstant = asset->depthBiasConstant,
       .depthBiasSlope    = asset->depthBiasSlope,
-      .renderOrder       = asset->renderOrder,
+      .renderOrder       = asset->passOrder,
       .blend             = asset->blend,
       .blendAux          = asset->blendAux,
       .depth             = asset->depth,

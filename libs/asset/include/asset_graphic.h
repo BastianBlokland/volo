@@ -5,6 +5,21 @@
 #include "ecs_module.h"
 
 typedef enum {
+  AssetGraphicPass_Geometry,
+  AssetGraphicPass_Decal,
+  AssetGraphicPass_Fog,
+  AssetGraphicPass_FogBlur,
+  AssetGraphicPass_Shadow,
+  AssetGraphicPass_AmbientOcclusion,
+  AssetGraphicPass_Forward,
+  AssetGraphicPass_Distortion,
+  AssetGraphicPass_Bloom,
+  AssetGraphicPass_Post,
+
+  AssetGraphicPass_Count,
+} AssetGraphicPass;
+
+typedef enum {
   AssetGraphicTopology_Triangles,     // Separate triangles with 3 vertices.
   AssetGraphicTopology_TriangleStrip, // Form a strip of triangles (triangle connected to the last.
   AssetGraphicTopology_TriangleFan,   // Form a fan of triangles (every triangle has a common vert).
@@ -99,12 +114,13 @@ typedef struct {
 } AssetGraphicSampler;
 
 ecs_comp_extern_public(AssetGraphicComp) {
+  AssetGraphicPass pass;
+  i32              passOrder;
   HeapArray_t(AssetGraphicShader) shaders;
   HeapArray_t(AssetGraphicSampler) samplers;
   String                 meshId; // Mutually exclusive with 'vertexCount'.
   EcsEntityId            mesh;
   u32                    vertexCount; // Mutually exclusive with 'mesh'.
-  i32                    renderOrder;
   AssetGraphicTopology   topology;
   AssetGraphicRasterizer rasterizer;
   u16                    lineWidth;  // Line width (in pixels) when the rasterizer mode is 'lines'.

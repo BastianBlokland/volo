@@ -130,6 +130,18 @@ ecs_module_init(asset_graphic_module) {
 
 void asset_data_init_graphic(void) {
   // clang-format off
+  data_reg_enum_t(g_dataReg, AssetGraphicPass);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, Geometry);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, Decal);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, Fog);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, FogBlur);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, Shadow);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, AmbientOcclusion);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, Forward);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, Distortion);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, Bloom);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, Post);
+
   data_reg_enum_t(g_dataReg, AssetGraphicTopology);
   data_reg_const_t(g_dataReg, AssetGraphicTopology, Triangles);
   data_reg_const_t(g_dataReg, AssetGraphicTopology, TriangleStrip);
@@ -202,11 +214,12 @@ void asset_data_init_graphic(void) {
   data_reg_field_t(g_dataReg, AssetGraphicSampler, mipBlending, data_prim_t(bool), .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetGraphicComp);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, pass, t_AssetGraphicPass);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, passOrder, data_prim_t(i32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicComp, shaders, t_AssetGraphicShader, .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetGraphicComp, samplers, t_AssetGraphicSampler, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicComp, meshId, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetGraphicComp, vertexCount, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetGraphicComp, renderOrder, data_prim_t(i32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicComp, topology, t_AssetGraphicTopology, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicComp, rasterizer, t_AssetGraphicRasterizer, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicComp, lineWidth, data_prim_t(u16), .flags = DataFlags_Opt | DataFlags_NotEmpty);
