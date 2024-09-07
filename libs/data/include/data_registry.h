@@ -74,6 +74,7 @@ DataType data_type_from_name_hash(const DataReg*, StringHash nameHash);
  */
 String     data_name(const DataReg*, DataType);
 StringHash data_name_hash(const DataReg*, DataType);
+String     data_const_name(const DataReg*, DataType enumType, i32 value);
 
 /**
  * Retrieve the size (in bytes) of a registered type.
