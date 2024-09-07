@@ -749,6 +749,9 @@ static void spv_asset_shader_create(
       .data       = input,
   };
 
+  mem_set(array_mem(out->inputs), 0xFF);
+  mem_set(array_mem(out->outputs), 0xFF);
+
   if (!sentinel_check(program->killInstruction)) {
     out->flags |= AssetShaderFlags_MayKill;
     out->killSpecConstMask = spv_instruction_spec_mask(program, program->killInstruction);
@@ -823,13 +826,13 @@ static void spv_asset_shader_create(
         *err = SpvError_UnsupportedInputExceedsMax;
         return;
       }
-      out->inputMask |= 1 << id->binding;
+      out->inputs[id->binding] = AssetShaderType_Unknown;
     } else if (spv_is_output(id)) {
       if (id->binding >= asset_shader_max_outputs) {
         *err = SpvError_UnsupportedOutputExceedsMax;
         return;
       }
-      out->outputMask |= 1 << id->binding;
+      out->outputs[id->binding] = AssetShaderType_Unknown;
     }
   }
 

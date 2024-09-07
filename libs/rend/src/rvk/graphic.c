@@ -504,8 +504,12 @@ static void rvk_graphic_set_missing_sampler(
 }
 
 static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
+  u8 vertexOutputs[asset_shader_max_outputs]; // AssetShaderType[]
+  u8 fragmentInputs[asset_shader_max_inputs]; // AssetShaderType[]
+
+  ASSERT(asset_shader_max_outputs >= asset_shader_max_inputs, "Not enough shader outputs");
+
   VkShaderStageFlagBits foundStages = 0;
-  u16                   vertexShaderOutputs, fragmentShaderInputs;
   for (u32 shaderIdx = 0; shaderIdx != array_elems(graphic->shaders); ++shaderIdx) {
     const RvkShader* shader = graphic->shaders[shaderIdx];
     if (!shader) {
@@ -518,10 +522,15 @@ static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
     }
     foundStages |= shader->vkStage;
 
-    if (shader->vkStage == VK_SHADER_STAGE_VERTEX_BIT) {
-      vertexShaderOutputs = shader->outputMask;
-    } else if (shader->vkStage == VK_SHADER_STAGE_FRAGMENT_BIT) {
-      fragmentShaderInputs = shader->inputMask;
+    switch (shader->vkStage) {
+    case VK_SHADER_STAGE_VERTEX_BIT:
+      mem_cpy(array_mem(vertexOutputs), array_mem(shader->outputs));
+      break;
+    case VK_SHADER_STAGE_FRAGMENT_BIT:
+      mem_cpy(array_mem(fragmentInputs), array_mem(shader->inputs));
+      break;
+    default:
+      UNREACHABLE
     }
 
     // Validate used sets.
@@ -536,6 +545,7 @@ static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
       }
     }
   }
+
   if (!(foundStages & VK_SHADER_STAGE_VERTEX_BIT)) {
     log_e("Vertex shader missing", log_param("graphic", fmt_text(graphic->dbgName)));
     return false;
@@ -544,22 +554,38 @@ static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
     log_e("Vertex shader missing", log_param("graphic", fmt_text(graphic->dbgName)));
     return false;
   }
-  if ((vertexShaderOutputs & fragmentShaderInputs) != fragmentShaderInputs) {
-    log_e(
-        "Fragment shader expects more data then the vertex shader provides",
-        log_param("graphic", fmt_text(graphic->dbgName)),
-        log_param("vertex-out", fmt_bitset(bitset_from_var(vertexShaderOutputs))),
-        log_param("fragment-in", fmt_bitset(bitset_from_var(fragmentShaderInputs))));
-    return false;
+  for (u32 binding = 0; binding != asset_shader_max_inputs; ++binding) {
+    if (fragmentInputs[binding] == AssetShaderType_None) {
+      continue; // Input unused.
+    }
+    if (vertexOutputs[binding] != fragmentInputs[binding]) {
+      log_e(
+          "Unsatisfied fragment shader input binding",
+          log_param("graphic", fmt_text(graphic->dbgName)),
+          log_param("binding", fmt_int(binding)),
+          log_param("fragment-input", fmt_text(asset_shader_type_name(fragmentInputs[binding]))),
+          log_param("vertex-output", fmt_text(asset_shader_type_name(vertexOutputs[binding]))));
+      return false;
+    }
   }
   return true;
+}
+
+static u16 rvk_graphic_shader_output_mask(const RvkShader* shader) {
+  u16 mask = 0;
+  for (u32 binding = 0; binding != array_elems(shader->outputs); ++binding) {
+    if (shader->outputs[binding] != AssetShaderType_None) {
+      mask |= 1 << binding;
+    }
+  }
+  return mask;
 }
 
 static u16 rvk_graphic_output_mask(const RvkGraphic* graphic) {
   for (u32 shaderIdx = 0; shaderIdx != array_elems(graphic->shaders); ++shaderIdx) {
     const RvkShader* shader = graphic->shaders[shaderIdx];
     if (shader && shader->vkStage == VK_SHADER_STAGE_FRAGMENT_BIT) {
-      return shader->outputMask;
+      return rvk_graphic_shader_output_mask(shader);
     }
   }
   return 0;

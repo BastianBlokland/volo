@@ -132,9 +132,10 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
       .flags             = rvk_shader_flags(asset),
       .killSpecConstMask = asset->killSpecConstMask,
       .entryPoint        = string_dup(g_allocHeap, asset->entryPoint),
-      .inputMask         = asset->inputMask,
-      .outputMask        = asset->outputMask,
   };
+
+  mem_cpy(array_mem(shader->inputs), array_mem(asset->inputs));
+  mem_cpy(array_mem(shader->outputs), array_mem(asset->outputs));
 
   if (shader->flags & RvkShaderFlags_MayKill && asset->kind != AssetShaderKind_SpvFragment) {
     log_e("Non-fragment shader uses kill", log_param("shader", fmt_text(dbgName)));

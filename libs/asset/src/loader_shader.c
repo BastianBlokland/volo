@@ -78,8 +78,8 @@ void asset_data_init_shader(void) {
   data_reg_field_t(g_dataReg, AssetShaderComp, kind, t_AssetShaderKind);
   data_reg_field_t(g_dataReg, AssetShaderComp, flags, t_AssetShaderFlags, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetShaderComp, killSpecConstMask, data_prim_t(u16));
-  data_reg_field_t(g_dataReg, AssetShaderComp, inputMask, data_prim_t(u16));
-  data_reg_field_t(g_dataReg, AssetShaderComp, outputMask, data_prim_t(u16));
+  data_reg_field_t(g_dataReg, AssetShaderComp, inputs, data_prim_t(u8), .container = DataContainer_InlineArray, .fixedCount = asset_shader_max_inputs);
+  data_reg_field_t(g_dataReg, AssetShaderComp, outputs, data_prim_t(u8), .container = DataContainer_InlineArray, .fixedCount = asset_shader_max_outputs);
   data_reg_field_t(g_dataReg, AssetShaderComp, entryPoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetShaderComp, resources, t_AssetShaderRes, .container = DataContainer_HeapArray);
   data_reg_field_t(g_dataReg, AssetShaderComp, specs, t_AssetShaderSpec, .container = DataContainer_HeapArray);
