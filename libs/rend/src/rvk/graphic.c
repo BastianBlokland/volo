@@ -893,6 +893,19 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, RvkDevice* dev, const RvkPass* pas
   return true;
 }
 
+bool rvk_graphic_is_ready(const RvkGraphic* graphic, const RvkDevice* dev) {
+  if (graphic->mesh && !rvk_mesh_is_ready(graphic->mesh, dev)) {
+    return false;
+  }
+  for (u32 samplerIndex = 0; samplerIndex != rvk_graphic_samplers_max; ++samplerIndex) {
+    const RvkTexture* tex = graphic->samplerTextures[samplerIndex];
+    if (tex && !rvk_texture_is_ready(tex, dev)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void rvk_graphic_bind(const RvkGraphic* graphic, const RvkDevice* dev, VkCommandBuffer vkCmdBuf) {
   diag_assert_msg(graphic->flags & RvkGraphicFlags_Ready, "Graphic is not ready");
 

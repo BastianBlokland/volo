@@ -73,4 +73,5 @@ void rvk_graphic_mesh_add(RvkGraphic*, const RvkMesh*);
 void rvk_graphic_sampler_add(RvkGraphic*, const RvkTexture*, const AssetGraphicSampler*);
 
 bool rvk_graphic_prepare(RvkGraphic*, RvkDevice*, const RvkPass*);
+bool rvk_graphic_is_ready(const RvkGraphic*, const RvkDevice*);
 void rvk_graphic_bind(const RvkGraphic*, const RvkDevice*, VkCommandBuffer);
