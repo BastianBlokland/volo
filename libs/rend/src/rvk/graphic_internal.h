@@ -38,6 +38,7 @@ typedef struct {
 
 typedef struct sRvkGraphic {
   String                 dbgName;
+  AssetGraphicPass       pass;
   RvkGraphicFlags        flags : 16;
   AssetGraphicTopology   topology : 8;
   AssetGraphicRasterizer rasterizer : 8;

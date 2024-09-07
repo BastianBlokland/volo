@@ -549,8 +549,8 @@ static void rvk_graphic_set_missing_sampler(
 
   graphic->samplerTextures[samplerIndex] = rvk_repository_texture_get(repo, repoId);
   graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
-      .wrap   = RvkSamplerWrap_Repeat,
-      .filter = RvkSamplerFilter_Nearest,
+         .wrap   = RvkSamplerWrap_Repeat,
+         .filter = RvkSamplerFilter_Nearest,
   };
 }
 
@@ -655,6 +655,7 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
 
   *graphic = (RvkGraphic){
       .dbgName           = string_dup(g_allocHeap, dbgName),
+      .pass              = asset->pass,
       .flags             = flags,
       .topology          = asset->topology,
       .rasterizer        = asset->rasterizer,
@@ -754,10 +755,10 @@ void rvk_graphic_sampler_add(
       graphic->samplerMask |= 1 << samplerIndex;
       graphic->samplerTextures[samplerIndex] = tex;
       graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
-          .flags  = samplerFlags,
-          .wrap   = rvk_graphic_wrap(sampler->wrap),
-          .filter = rvk_graphic_filter(sampler->filter),
-          .aniso  = rvk_graphic_aniso(sampler->anisotropy),
+             .flags  = samplerFlags,
+             .wrap   = rvk_graphic_wrap(sampler->wrap),
+             .filter = rvk_graphic_filter(sampler->filter),
+             .aniso  = rvk_graphic_aniso(sampler->anisotropy),
       };
       return;
     }
