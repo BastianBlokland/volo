@@ -159,9 +159,9 @@ rvk_pipeline_layout_create(const RvkGraphic* graphic, RvkDevice* dev, const RvkP
 }
 
 static VkPipelineShaderStageCreateInfo rvk_pipeline_shader(const RvkGraphicShader* graphicShader) {
-
   VkSpecializationInfo* specialization = alloc_alloc_t(g_allocScratch, VkSpecializationInfo);
-  *specialization                      = rvk_shader_specialize_scratch(
+
+  *specialization = rvk_shader_specialize_scratch(
       graphicShader->shader, graphicShader->overrides.values, graphicShader->overrides.count);
 
   return (VkPipelineShaderStageCreateInfo){
@@ -588,7 +588,7 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
 
   *graphic = (RvkGraphic){
       .dbgName     = string_dup(g_allocHeap, dbgName),
-      .pass        = asset->pass,
+      .pass        = asset->passId,
       .passOrder   = asset->passOrder,
       .vertexCount = asset->vertexCount,
   };
@@ -703,18 +703,12 @@ bool rvk_graphic_finalize(
     RvkGraphic* graphic, const AssetGraphicComp* asset, RvkDevice* dev, const RvkPass* pass) {
   diag_assert_msg(!graphic->vkPipeline, "Graphic already finalized");
 
-  (void)asset;
-
-  diag_assert_msg(!rvk_pass_active(pass), "Pass already active");
-  if (UNLIKELY(graphic->flags & RvkGraphicFlags_Invalid)) {
-    return false;
-  }
   if (UNLIKELY(!rvk_graphic_validate_shaders(graphic))) {
     graphic->flags |= RvkGraphicFlags_Invalid;
   }
   graphic->outputMask = rvk_graphic_output_mask(graphic);
 
-  // Prepare global set bindings.
+  // Finalize global set bindings.
   const RvkDescMeta globalDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Global);
   if (UNLIKELY(!rend_graphic_validate_set(
           graphic, RvkGraphicSet_Global, &globalDescMeta, g_rendSupportedGlobalBindings))) {
@@ -726,7 +720,7 @@ bool rvk_graphic_finalize(
     }
   }
 
-  // Prepare draw bindings.
+  // Finalize draw bindings.
   const RvkDescMeta drawDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Draw);
   if (UNLIKELY(!rend_graphic_validate_set(
           graphic, RvkGraphicSet_Draw, &drawDescMeta, g_rendSupportedDrawBindings))) {
@@ -737,7 +731,7 @@ bool rvk_graphic_finalize(
   }
   graphic->drawDescMeta = drawDescMeta;
 
-  // Prepare instance set bindings.
+  // Finalize instance set bindings.
   const RvkDescMeta instanceDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Instance);
   if (UNLIKELY(!rend_graphic_validate_set(
           graphic, RvkGraphicSet_Instance, &instanceDescMeta, g_rendSupportedInstanceBindings))) {
@@ -747,7 +741,7 @@ bool rvk_graphic_finalize(
     graphic->flags |= RvkGraphicFlags_RequireInstanceSet;
   }
 
-  // Prepare graphic set bindings.
+  // Finalize graphic set bindings.
   const RvkDescMeta graphicDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Graphic);
   if (UNLIKELY(!rend_graphic_validate_set(
           graphic, RvkGraphicSet_Graphic, &graphicDescMeta, g_rendSupportedGraphicBindings))) {

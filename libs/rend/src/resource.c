@@ -434,7 +434,7 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
       rvk_graphic_add_sampler(graphic, maybeAssetGraphic, textureComp->texture, ptr);
     }
 
-    RvkPass* pass = plat->passes[maybeAssetGraphic->pass];
+    RvkPass* pass = plat->passes[maybeAssetGraphic->passId];
     if (UNLIKELY(!rvk_graphic_finalize(graphic, maybeAssetGraphic, dev, pass))) {
       log_e("Invalid graphic", log_param("graphic", fmt_text(id)));
       resComp->state = RendResLoadState_FinishedFailure;
