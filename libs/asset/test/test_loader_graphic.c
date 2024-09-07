@@ -9,6 +9,7 @@ static const AssetMemRecord g_testData[] = {
     {
         .id   = string_static("test.graphic"),
         .data = string_static("{"
+                              "  \"pass\": \"Forward\","
                               "  \"shaders\": [{ "
                               "    \"shaderId\": \"test.glsl\","
                               "    \"overrides\": [{ "
@@ -46,6 +47,7 @@ static const AssetMemRecord g_errorTestData[] = {
     {
         .id   = string_static("mesh_and_vertex_count.graphic"),
         .data = string_static("{"
+                              "  \"pass\": \"Forward\","
                               "  \"shaders\": [],"
                               "  \"samplers\": [],"
                               "  \"meshId\": \"a.obj\","
@@ -61,6 +63,7 @@ static const AssetMemRecord g_errorTestData[] = {
     {
         .id   = string_static("empty_mesh.graphic"),
         .data = string_static("{"
+                              "  \"pass\": \"Forward\","
                               "  \"shaders\": [],"
                               "  \"samplers\": [],"
                               "  \"meshId\": \"\","
