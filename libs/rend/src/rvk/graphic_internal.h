@@ -25,10 +25,9 @@ enum {
 typedef enum {
   RvkGraphicFlags_MayDiscard         = 1 << 0, // Graphic might discard a fragment.
   RvkGraphicFlags_DepthClamp         = 1 << 1,
-  RvkGraphicFlags_Ready              = 1 << 2,
-  RvkGraphicFlags_RequireDrawSet     = 1 << 3,
-  RvkGraphicFlags_RequireInstanceSet = 1 << 4,
-  RvkGraphicFlags_Invalid            = 1 << 5,
+  RvkGraphicFlags_RequireDrawSet     = 1 << 2,
+  RvkGraphicFlags_RequireInstanceSet = 1 << 3,
+  RvkGraphicFlags_Invalid            = 1 << 4,
 } RvkGraphicFlags;
 
 typedef struct {
