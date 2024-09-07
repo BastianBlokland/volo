@@ -671,6 +671,8 @@ static bool rend_canvas_paint_2d(
   {
     rend_builder_pass_push(builder, postPass);
 
+    rvk_canvas_img_clear_color(painter->canvas, postRes, geo_color_black);
+
     RendPaintContext ctx =
         painter_context(painter->canvas, builder, set, setGlobal, time, postPass, mainView);
     rvk_pass_stage_attach_color(postPass, postRes, 0);
