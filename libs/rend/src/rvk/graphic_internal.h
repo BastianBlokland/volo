@@ -31,10 +31,10 @@ typedef enum {
 
 typedef struct sRvkGraphic {
   String            dbgName;
-  AssetGraphicPass  passId;
   i32               passOrder;
-  RvkGraphicFlags   flags : 16;
+  AssetGraphicPass  passId : 8;
   u8                samplerMask;
+  RvkGraphicFlags   flags : 16;
   u16               globalBindings;
   u16               outputMask;
   u32               vertexCount;
