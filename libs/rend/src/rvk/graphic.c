@@ -239,8 +239,8 @@ static VkPipelineShaderStageCreateInfo rvk_pipeline_shader(const RvkGraphicShade
   };
 }
 
-static VkPrimitiveTopology rvk_pipeline_input_topology(const RvkGraphic* graphic) {
-  switch (graphic->topology) {
+static VkPrimitiveTopology rvk_pipeline_input_topology(const AssetGraphicComp* asset) {
+  switch (asset->topology) {
   case AssetGraphicTopology_Triangles:
     return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
   case AssetGraphicTopology_TriangleStrip:
@@ -259,11 +259,11 @@ static VkPrimitiveTopology rvk_pipeline_input_topology(const RvkGraphic* graphic
   diag_crash();
 }
 
-static VkPolygonMode rvk_pipeline_polygonmode(RvkGraphic* graphic, const RvkDevice* dev) {
+static VkPolygonMode rvk_pipeline_polygonmode(const AssetGraphicComp* asset, const RvkDevice* dev) {
   if (!(dev->flags & RvkDeviceFlags_SupportFillNonSolid)) {
     return VK_POLYGON_MODE_FILL;
   }
-  switch (graphic->rasterizer) {
+  switch (asset->rasterizer) {
   case AssetGraphicRasterizer_Fill:
     return VK_POLYGON_MODE_FILL;
   case AssetGraphicRasterizer_Lines:
@@ -276,18 +276,18 @@ static VkPolygonMode rvk_pipeline_polygonmode(RvkGraphic* graphic, const RvkDevi
   diag_crash();
 }
 
-static f32 rvk_pipeline_linewidth(RvkGraphic* graphic, const RvkDevice* dev) {
+static f32 rvk_pipeline_linewidth(const AssetGraphicComp* asset, const RvkDevice* dev) {
   if (!(dev->flags & RvkDeviceFlags_SupportWideLines)) {
     return 1.0f;
   }
   return math_clamp_f32(
-      graphic->lineWidth ? graphic->lineWidth : 1.0f,
+      asset->lineWidth ? asset->lineWidth : 1.0f,
       dev->vkProperties.limits.lineWidthRange[0],
       dev->vkProperties.limits.lineWidthRange[1]);
 }
 
-static VkCullModeFlags rvk_pipeline_cullmode(RvkGraphic* graphic) {
-  switch (graphic->cull) {
+static VkCullModeFlags rvk_pipeline_cullmode(const AssetGraphicComp* asset) {
+  switch (asset->cull) {
   case AssetGraphicCull_None:
     return VK_CULL_MODE_NONE;
   case AssetGraphicCull_Back:
@@ -300,8 +300,8 @@ static VkCullModeFlags rvk_pipeline_cullmode(RvkGraphic* graphic) {
   diag_crash();
 }
 
-static VkCompareOp rvk_pipeline_depth_compare(RvkGraphic* graphic) {
-  switch (graphic->depth) {
+static VkCompareOp rvk_pipeline_depth_compare(const AssetGraphicComp* asset) {
+  switch (asset->depth) {
   case AssetGraphicDepth_Less:
   case AssetGraphicDepth_LessNoWrite:
     // Use the 'greater' compare op, because we are using a reversed-z depthbuffer.
@@ -329,8 +329,8 @@ static VkCompareOp rvk_pipeline_depth_compare(RvkGraphic* graphic) {
   diag_crash();
 }
 
-static bool rvk_pipeline_depth_write(RvkGraphic* graphic) {
-  switch (graphic->depth) {
+static bool rvk_pipeline_depth_write(const AssetGraphicComp* asset) {
+  switch (asset->depth) {
   case AssetGraphicDepth_Less:
   case AssetGraphicDepth_LessOrEqual:
   case AssetGraphicDepth_Equal:
@@ -351,8 +351,8 @@ static bool rvk_pipeline_depth_write(RvkGraphic* graphic) {
   diag_crash();
 }
 
-static bool rvk_pipeline_depth_test(RvkGraphic* graphic) {
-  switch (graphic->depth) {
+static bool rvk_pipeline_depth_test(const AssetGraphicComp* asset) {
+  switch (asset->depth) {
   case AssetGraphicDepth_Always:
   case AssetGraphicDepth_AlwaysNoWrite:
     return false;
@@ -361,12 +361,12 @@ static bool rvk_pipeline_depth_test(RvkGraphic* graphic) {
   }
 }
 
-static bool rvk_pipeline_depth_clamp(RvkGraphic* graphic, const RvkDevice* dev) {
+static bool rvk_pipeline_depth_clamp(const AssetGraphicComp* asset, const RvkDevice* dev) {
   if (!(dev->flags & RvkDeviceFlags_SupportDepthClamp)) {
     log_w("Device does not support depth-clamping");
     return false;
   }
-  return (graphic->flags & RvkGraphicFlags_DepthClamp) != 0;
+  return asset->depthClamp;
 }
 
 static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend(const AssetGraphicBlend blend) {
@@ -428,7 +428,11 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend(const AssetGr
 }
 
 static VkPipeline rvk_pipeline_create(
-    RvkGraphic* graphic, RvkDevice* dev, const VkPipelineLayout layout, const RvkPass* pass) {
+    RvkGraphic*             graphic,
+    const AssetGraphicComp* asset,
+    RvkDevice*              dev,
+    const VkPipelineLayout  layout,
+    const RvkPass*          pass) {
 
   VkPipelineShaderStageCreateInfo shaderStages[rvk_graphic_shaders_max];
   u32                             shaderStageCount = 0;
@@ -443,7 +447,7 @@ static VkPipeline rvk_pipeline_create(
   };
   const VkPipelineInputAssemblyStateCreateInfo inputAssembly = {
       .sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-      .topology = rvk_pipeline_input_topology(graphic),
+      .topology = rvk_pipeline_input_topology(asset),
   };
 
   const VkViewport                        viewport      = {0};
@@ -457,17 +461,17 @@ static VkPipeline rvk_pipeline_create(
   };
 
   const bool depthBiasEnabled =
-      math_abs(graphic->depthBiasConstant) > 1e-4f || math_abs(graphic->depthBiasSlope) > 1e-4f;
+      math_abs(asset->depthBiasConstant) > 1e-4f || math_abs(asset->depthBiasSlope) > 1e-4f;
   const VkPipelineRasterizationStateCreateInfo rasterizer = {
       .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-      .polygonMode             = rvk_pipeline_polygonmode(graphic, dev),
-      .lineWidth               = rvk_pipeline_linewidth(graphic, dev),
-      .cullMode                = rvk_pipeline_cullmode(graphic),
+      .polygonMode             = rvk_pipeline_polygonmode(asset, dev),
+      .lineWidth               = rvk_pipeline_linewidth(asset, dev),
+      .cullMode                = rvk_pipeline_cullmode(asset),
       .frontFace               = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-      .depthClampEnable        = rvk_pipeline_depth_clamp(graphic, dev),
+      .depthClampEnable        = rvk_pipeline_depth_clamp(asset, dev),
       .depthBiasEnable         = depthBiasEnabled,
-      .depthBiasConstantFactor = depthBiasEnabled ? graphic->depthBiasConstant : 0,
-      .depthBiasSlopeFactor    = depthBiasEnabled ? graphic->depthBiasSlope : 0,
+      .depthBiasConstantFactor = depthBiasEnabled ? asset->depthBiasConstant : 0,
+      .depthBiasSlopeFactor    = depthBiasEnabled ? asset->depthBiasSlope : 0,
   };
 
   const VkPipelineMultisampleStateCreateInfo multisampling = {
@@ -478,25 +482,25 @@ static VkPipeline rvk_pipeline_create(
   const bool passHasDepth = rvk_pass_config(pass)->attachDepth != RvkPassDepth_None;
   const VkPipelineDepthStencilStateCreateInfo depthStencil = {
       .sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-      .depthWriteEnable = passHasDepth && rvk_pipeline_depth_write(graphic),
-      .depthTestEnable  = passHasDepth && rvk_pipeline_depth_test(graphic),
-      .depthCompareOp   = rvk_pipeline_depth_compare(graphic),
+      .depthWriteEnable = passHasDepth && rvk_pipeline_depth_write(asset),
+      .depthTestEnable  = passHasDepth && rvk_pipeline_depth_test(asset),
+      .depthCompareOp   = rvk_pipeline_depth_compare(asset),
   };
 
   const u32                           colorAttachmentCount = 32 - bits_clz_32(graphic->outputMask);
   VkPipelineColorBlendAttachmentState colorBlends[16];
-  colorBlends[0] = rvk_pipeline_colorblend(graphic->blend);
+  colorBlends[0] = rvk_pipeline_colorblend(asset->blend);
   for (u32 i = 1; i < colorAttachmentCount; ++i) {
-    colorBlends[i] = rvk_pipeline_colorblend(graphic->blendAux);
+    colorBlends[i] = rvk_pipeline_colorblend(asset->blendAux);
   }
   const VkPipelineColorBlendStateCreateInfo colorBlending = {
       .sType             = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
       .attachmentCount   = colorAttachmentCount,
       .pAttachments      = colorBlends,
-      .blendConstants[0] = graphic->blendConstant,
-      .blendConstants[1] = graphic->blendConstant,
-      .blendConstants[2] = graphic->blendConstant,
-      .blendConstants[3] = graphic->blendConstant,
+      .blendConstants[0] = asset->blendConstant,
+      .blendConstants[1] = asset->blendConstant,
+      .blendConstants[2] = asset->blendConstant,
+      .blendConstants[3] = asset->blendConstant,
   };
 
   const VkDynamicState dynamicStates[] = {
@@ -648,27 +652,11 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
   (void)dev;
   RvkGraphic* graphic = alloc_alloc_t(g_allocHeap, RvkGraphic);
 
-  RvkGraphicFlags flags = 0;
-  if (asset->depthClamp) {
-    flags |= RvkGraphicFlags_DepthClamp;
-  }
-
   *graphic = (RvkGraphic){
-      .dbgName           = string_dup(g_allocHeap, dbgName),
-      .pass              = asset->pass,
-      .passOrder         = asset->passOrder,
-      .flags             = flags,
-      .topology          = asset->topology,
-      .rasterizer        = asset->rasterizer,
-      .lineWidth         = asset->lineWidth,
-      .depthBiasConstant = asset->depthBiasConstant,
-      .depthBiasSlope    = asset->depthBiasSlope,
-      .blend             = asset->blend,
-      .blendAux          = asset->blendAux,
-      .depth             = asset->depth,
-      .cull              = asset->cull,
-      .vertexCount       = asset->vertexCount,
-      .blendConstant     = asset->blendConstant,
+      .dbgName     = string_dup(g_allocHeap, dbgName),
+      .pass        = asset->pass,
+      .passOrder   = asset->passOrder,
+      .vertexCount = asset->vertexCount,
   };
 
   log_d("Vulkan graphic created", log_param("name", fmt_text(dbgName)));
@@ -886,7 +874,7 @@ bool rvk_graphic_finalize(
   }
 
   graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic, dev, pass);
-  graphic->vkPipeline       = rvk_pipeline_create(graphic, dev, graphic->vkPipelineLayout, pass);
+  graphic->vkPipeline = rvk_pipeline_create(graphic, asset, dev, graphic->vkPipelineLayout, pass);
 
   rvk_debug_name_pipeline_layout(
       dev->debug, graphic->vkPipelineLayout, "{}", fmt_text(graphic->dbgName));

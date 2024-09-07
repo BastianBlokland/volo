@@ -24,10 +24,9 @@ enum {
 
 typedef enum {
   RvkGraphicFlags_MayDiscard         = 1 << 0, // Graphic might discard a fragment.
-  RvkGraphicFlags_DepthClamp         = 1 << 1,
-  RvkGraphicFlags_RequireDrawSet     = 1 << 2,
-  RvkGraphicFlags_RequireInstanceSet = 1 << 3,
-  RvkGraphicFlags_Invalid            = 1 << 4,
+  RvkGraphicFlags_RequireDrawSet     = 1 << 1,
+  RvkGraphicFlags_RequireInstanceSet = 1 << 2,
+  RvkGraphicFlags_Invalid            = 1 << 3,
 } RvkGraphicFlags;
 
 typedef struct {
@@ -36,31 +35,22 @@ typedef struct {
 } RvkGraphicShader;
 
 typedef struct sRvkGraphic {
-  String                 dbgName;
-  AssetGraphicPass       pass;
-  i32                    passOrder;
-  RvkGraphicFlags        flags : 16;
-  AssetGraphicTopology   topology : 8;
-  AssetGraphicRasterizer rasterizer : 8;
-  AssetGraphicBlend      blend : 8;    // Blend mode for the primary attachment.
-  AssetGraphicBlend      blendAux : 8; // Blend mode for the other attachments.
-  AssetGraphicDepth      depth : 8;
-  AssetGraphicCull       cull : 8;
-  u8                     samplerMask;
-  u16                    globalBindings;
-  u16                    outputMask;
-  u16                    lineWidth;
-  f32                    depthBiasConstant, depthBiasSlope;
-  u32                    vertexCount;
-  f32                    blendConstant;
-  RvkGraphicShader       shaders[rvk_graphic_shaders_max];
-  const RvkMesh*         mesh;
-  const RvkTexture*      samplerTextures[rvk_graphic_samplers_max];
-  RvkSamplerSpec         samplerSpecs[rvk_graphic_samplers_max];
-  RvkDescSet             graphicDescSet;
-  RvkDescMeta            drawDescMeta;
-  VkPipelineLayout       vkPipelineLayout;
-  VkPipeline             vkPipeline;
+  String            dbgName;
+  AssetGraphicPass  pass;
+  i32               passOrder;
+  RvkGraphicFlags   flags : 16;
+  u8                samplerMask;
+  u16               globalBindings;
+  u16               outputMask;
+  u32               vertexCount;
+  RvkGraphicShader  shaders[rvk_graphic_shaders_max];
+  const RvkMesh*    mesh;
+  const RvkTexture* samplerTextures[rvk_graphic_samplers_max];
+  RvkSamplerSpec    samplerSpecs[rvk_graphic_samplers_max];
+  RvkDescSet        graphicDescSet;
+  RvkDescMeta       drawDescMeta;
+  VkPipelineLayout  vkPipelineLayout;
+  VkPipeline        vkPipeline;
 } RvkGraphic;
 
 RvkGraphic* rvk_graphic_create(RvkDevice*, const AssetGraphicComp*, String dbgName);
