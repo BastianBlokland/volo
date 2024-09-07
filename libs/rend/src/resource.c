@@ -398,14 +398,8 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
         resComp->state = RendResLoadState_FinishedFailure;
         return false;
       }
-      EcsIterator*             shaderItr  = ecs_view_at(shaderView, ptr->shader);
-      const RendResShaderComp* shaderComp = ecs_view_read_t(shaderItr, RendResShaderComp);
-      rvk_graphic_add_shader(
-          graphic,
-          maybeAssetGraphic,
-          shaderComp->shader,
-          ptr->overrides.values,
-          ptr->overrides.count);
+      EcsIterator* shaderItr = ecs_view_at(shaderView, ptr->shader);
+      rvk_graphic_add_shader(graphic, ecs_view_read_t(shaderItr, RendResShaderComp)->shader);
     }
 
     // Add mesh.
@@ -416,9 +410,8 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
         resComp->state = RendResLoadState_FinishedFailure;
         return false;
       }
-      EcsIterator*           meshItr  = ecs_view_at(meshView, maybeAssetGraphic->mesh);
-      const RendResMeshComp* meshComp = ecs_view_read_t(meshItr, RendResMeshComp);
-      rvk_graphic_add_mesh(graphic, maybeAssetGraphic, meshComp->mesh);
+      EcsIterator* meshItr = ecs_view_at(meshView, maybeAssetGraphic->mesh);
+      rvk_graphic_add_mesh(graphic, ecs_view_read_t(meshItr, RendResMeshComp)->mesh);
     }
 
     // Add samplers.

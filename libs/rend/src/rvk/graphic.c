@@ -128,11 +128,13 @@ static bool rvk_graphic_desc_merge(RvkDescMeta* meta, const RvkDescMeta* other) 
 
 static RvkDescMeta rvk_graphic_desc_meta(RvkGraphic* graphic, const usize set) {
   RvkDescMeta meta = {0};
-  array_for_t(graphic->shaders, RvkGraphicShader, itr) {
-    if (itr->shader) {
-      if (UNLIKELY(!rvk_graphic_desc_merge(&meta, &itr->shader->descriptors[set]))) {
-        graphic->flags |= RvkGraphicFlags_Invalid;
-      }
+  for (u32 shaderIdx = 0; shaderIdx != array_elems(graphic->shaders); ++shaderIdx) {
+    const RvkShader* shader = graphic->shaders[shaderIdx];
+    if (!shader) {
+      break;
+    }
+    if (UNLIKELY(!rvk_graphic_desc_merge(&meta, &shader->descriptors[set]))) {
+      graphic->flags |= RvkGraphicFlags_Invalid;
     }
   }
   return meta;
@@ -158,17 +160,17 @@ rvk_pipeline_layout_create(const RvkGraphic* graphic, RvkDevice* dev, const RvkP
   return result;
 }
 
-static VkPipelineShaderStageCreateInfo rvk_pipeline_shader(const RvkGraphicShader* graphicShader) {
+static VkPipelineShaderStageCreateInfo rvk_pipeline_shader(
+    const RvkShader* shader, const AssetGraphicOverride* overrides, const usize overrideCount) {
   VkSpecializationInfo* specialization = alloc_alloc_t(g_allocScratch, VkSpecializationInfo);
 
-  *specialization = rvk_shader_specialize_scratch(
-      graphicShader->shader, graphicShader->overrides.values, graphicShader->overrides.count);
+  *specialization = rvk_shader_specialize_scratch(shader, overrides, overrideCount);
 
   return (VkPipelineShaderStageCreateInfo){
       .sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-      .stage               = graphicShader->shader->vkStage,
-      .module              = graphicShader->shader->vkModule,
-      .pName               = rvk_to_null_term_scratch(graphicShader->shader->entryPoint),
+      .stage               = shader->vkStage,
+      .module              = shader->vkModule,
+      .pName               = rvk_to_null_term_scratch(shader->entryPoint),
       .pSpecializationInfo = specialization,
   };
 }
@@ -370,10 +372,19 @@ static VkPipeline rvk_pipeline_create(
 
   VkPipelineShaderStageCreateInfo shaderStages[rvk_graphic_shaders_max];
   u32                             shaderStageCount = 0;
-  array_for_t(graphic->shaders, RvkGraphicShader, itr) {
-    if (itr->shader) {
-      shaderStages[shaderStageCount++] = rvk_pipeline_shader(itr);
+  for (u32 shaderIdx = 0; shaderIdx != array_elems(graphic->shaders); ++shaderIdx) {
+    const RvkShader* shader = graphic->shaders[shaderIdx];
+    if (!shader) {
+      break;
     }
+    const AssetGraphicOverride* overrides     = asset->shaders.values[shaderIdx].overrides.values;
+    const usize                 overrideCount = asset->shaders.values[shaderIdx].overrides.count;
+
+    if (rvk_shader_may_kill(shader, overrides, overrideCount)) {
+      graphic->flags |= RvkGraphicFlags_MayDiscard;
+    }
+
+    shaderStages[shaderStageCount++] = rvk_pipeline_shader(shader, overrides, overrideCount);
   }
 
   const VkPipelineVertexInputStateCreateInfo vertexInputInfo = {
@@ -495,31 +506,33 @@ static void rvk_graphic_set_missing_sampler(
 static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
   VkShaderStageFlagBits foundStages = 0;
   u16                   vertexShaderOutputs, fragmentShaderInputs;
-  array_for_t(graphic->shaders, RvkGraphicShader, itr) {
-    if (itr->shader) {
-      // Validate stage.
-      if (foundStages & itr->shader->vkStage) {
-        log_e("Duplicate shader stage", log_param("graphic", fmt_text(graphic->dbgName)));
+  for (u32 shaderIdx = 0; shaderIdx != array_elems(graphic->shaders); ++shaderIdx) {
+    const RvkShader* shader = graphic->shaders[shaderIdx];
+    if (!shader) {
+      break;
+    }
+    // Validate stage.
+    if (foundStages & shader->vkStage) {
+      log_e("Duplicate shader stage", log_param("graphic", fmt_text(graphic->dbgName)));
+      return false;
+    }
+    foundStages |= shader->vkStage;
+
+    if (shader->vkStage == VK_SHADER_STAGE_VERTEX_BIT) {
+      vertexShaderOutputs = shader->outputMask;
+    } else if (shader->vkStage == VK_SHADER_STAGE_FRAGMENT_BIT) {
+      fragmentShaderInputs = shader->inputMask;
+    }
+
+    // Validate used sets.
+    for (u32 set = 0; set != rvk_shader_desc_max; ++set) {
+      const bool supported = mem_contains(mem_var(g_rendSupportedShaderSets), set);
+      if (!supported && rvk_shader_set_used(shader, set)) {
+        log_e(
+            "Shader uses unsupported set",
+            log_param("graphic", fmt_text(graphic->dbgName)),
+            log_param("set", fmt_int(set)));
         return false;
-      }
-      foundStages |= itr->shader->vkStage;
-
-      if (itr->shader->vkStage == VK_SHADER_STAGE_VERTEX_BIT) {
-        vertexShaderOutputs = itr->shader->outputMask;
-      } else if (itr->shader->vkStage == VK_SHADER_STAGE_FRAGMENT_BIT) {
-        fragmentShaderInputs = itr->shader->inputMask;
-      }
-
-      // Validate used sets.
-      for (u32 set = 0; set != rvk_shader_desc_max; ++set) {
-        const bool supported = mem_contains(mem_var(g_rendSupportedShaderSets), set);
-        if (!supported && rvk_shader_set_used(itr->shader, set)) {
-          log_e(
-              "Shader uses unsupported set",
-              log_param("graphic", fmt_text(graphic->dbgName)),
-              log_param("set", fmt_int(set)));
-          return false;
-        }
       }
     }
   }
@@ -543,9 +556,10 @@ static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
 }
 
 static u16 rvk_graphic_output_mask(const RvkGraphic* graphic) {
-  array_for_t(graphic->shaders, RvkGraphicShader, itr) {
-    if (itr->shader && itr->shader->vkStage == VK_SHADER_STAGE_FRAGMENT_BIT) {
-      return itr->shader->outputMask;
+  for (u32 shaderIdx = 0; shaderIdx != array_elems(graphic->shaders); ++shaderIdx) {
+    const RvkShader* shader = graphic->shaders[shaderIdx];
+    if (shader && shader->vkStage == VK_SHADER_STAGE_FRAGMENT_BIT) {
+      return shader->outputMask;
     }
   }
   return 0;
@@ -608,14 +622,6 @@ void rvk_graphic_destroy(RvkGraphic* graphic, RvkDevice* dev) {
   if (rvk_desc_valid(graphic->graphicDescSet)) {
     rvk_desc_free(graphic->graphicDescSet);
   }
-  array_for_t(graphic->shaders, RvkGraphicShader, itr) {
-    if (itr->overrides.count) {
-      heap_array_for_t(itr->overrides, RvkShaderOverride, override) {
-        string_free(g_allocHeap, override->name);
-      }
-      alloc_free_array_t(g_allocHeap, itr->overrides.values, itr->overrides.count);
-    }
-  }
 
   log_d("Vulkan graphic destroyed", log_param("name", fmt_text(graphic->dbgName)));
 
@@ -623,48 +629,21 @@ void rvk_graphic_destroy(RvkGraphic* graphic, RvkDevice* dev) {
   alloc_free_t(g_allocHeap, graphic);
 }
 
-void rvk_graphic_add_shader(
-    RvkGraphic*             graphic,
-    const AssetGraphicComp* asset,
-    const RvkShader*        shader,
-    AssetGraphicOverride*   overrides,
-    usize                   overrideCount) {
-  (void)asset;
-
-  array_for_t(graphic->shaders, RvkGraphicShader, itr) {
-    if (!itr->shader) {
-      // Store shader.
-      itr->shader = shader;
-
-      // Store shader overrides.
-      if (overrideCount) {
-        itr->overrides.values = alloc_array_t(g_allocHeap, RvkShaderOverride, overrideCount);
-        itr->overrides.count  = overrideCount;
-        for (usize i = 0; i != overrideCount; ++i) {
-          itr->overrides.values[i] = (RvkShaderOverride){
-              .binding = overrides[i].binding,
-              .name    = string_dup(g_allocHeap, overrides[i].name),
-              .value   = overrides[i].value,
-          };
-        }
-      }
-
-      // Set graphic flags based on shader features.
-      if (rvk_shader_may_kill(shader, itr->overrides.values, itr->overrides.count)) {
-        graphic->flags |= RvkGraphicFlags_MayDiscard;
-      }
+void rvk_graphic_add_shader(RvkGraphic* graphic, const RvkShader* shader) {
+  for (u32 shaderIdx = 0; shaderIdx != array_elems(graphic->shaders); ++shaderIdx) {
+    if (!graphic->shaders[shaderIdx]) {
+      graphic->shaders[shaderIdx] = shader;
       return;
     }
   }
+
   log_e(
       "Shaders limit exceeded",
       log_param("graphic", fmt_text(graphic->dbgName)),
       log_param("limit", fmt_int(rvk_graphic_shaders_max)));
 }
 
-void rvk_graphic_add_mesh(RvkGraphic* graphic, const AssetGraphicComp* asset, const RvkMesh* mesh) {
-  (void)asset;
-
+void rvk_graphic_add_mesh(RvkGraphic* graphic, const RvkMesh* mesh) {
   diag_assert_msg(!graphic->mesh, "Only a single mesh per graphic supported");
   graphic->mesh = mesh;
 }

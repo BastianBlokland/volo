@@ -1,3 +1,4 @@
+#include "asset_graphic.h"
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_math.h"
@@ -214,7 +215,7 @@ bool rvk_shader_set_used(const RvkShader* shader, const u32 set) {
 }
 
 bool rvk_shader_may_kill(
-    const RvkShader* shader, const RvkShaderOverride* overrides, const usize overrideCount) {
+    const RvkShader* shader, const AssetGraphicOverride* overrides, const usize overrideCount) {
 
   if (!(shader->flags & RvkShaderFlags_MayKill)) {
     return false; // Shader has no kill instruction at all.
@@ -246,7 +247,7 @@ bool rvk_shader_may_kill(
 }
 
 VkSpecializationInfo rvk_shader_specialize_scratch(
-    const RvkShader* shader, const RvkShaderOverride* overrides, const usize overrideCount) {
+    const RvkShader* shader, const AssetGraphicOverride* overrides, const usize overrideCount) {
 
   enum {
     Limit_EntriesMax  = 64,
@@ -269,7 +270,7 @@ VkSpecializationInfo rvk_shader_specialize_scratch(
   Mem       remainingBuffer  = buffer;
 
   for (usize i = 0; i != math_min(overrideCount, Limit_EntriesMax); ++i) {
-    const RvkShaderOverride* override = &overrides[i];
+    const AssetGraphicOverride* override = &overrides[i];
 
     AssetShaderType type;
     if (UNLIKELY(!rvk_shader_spec_type(shader, override->binding, &type))) {

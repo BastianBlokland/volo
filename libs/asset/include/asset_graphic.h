@@ -93,7 +93,7 @@ typedef enum {
   AssetGraphicCull_Count,
 } AssetGraphicCull;
 
-typedef struct {
+typedef struct sAssetGraphicOverride {
   String name;
   u8     binding;
   f64    value;
