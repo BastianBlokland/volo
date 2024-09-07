@@ -67,11 +67,19 @@ typedef struct sRvkGraphic {
 RvkGraphic* rvk_graphic_create(RvkDevice*, const AssetGraphicComp*, String dbgName);
 void        rvk_graphic_destroy(RvkGraphic*, RvkDevice*);
 
-void rvk_graphic_shader_add(
-    RvkGraphic*, const RvkShader*, AssetGraphicOverride* overrides, usize overrideCount);
-void rvk_graphic_mesh_add(RvkGraphic*, const RvkMesh*);
-void rvk_graphic_sampler_add(RvkGraphic*, const RvkTexture*, const AssetGraphicSampler*);
+void rvk_graphic_add_shader(
+    RvkGraphic*,
+    const AssetGraphicComp*,
+    const RvkShader*,
+    AssetGraphicOverride* overrides,
+    usize                 overrideCount);
 
-bool rvk_graphic_prepare(RvkGraphic*, RvkDevice*, const RvkPass*);
+void rvk_graphic_add_mesh(RvkGraphic*, const AssetGraphicComp*, const RvkMesh*);
+
+void rvk_graphic_add_sampler(
+    RvkGraphic*, const AssetGraphicComp*, const RvkTexture*, const AssetGraphicSampler*);
+
+bool rvk_graphic_finalize(RvkGraphic*, const AssetGraphicComp*, RvkDevice*, const RvkPass*);
+
 bool rvk_graphic_is_ready(const RvkGraphic*, const RvkDevice*);
 void rvk_graphic_bind(const RvkGraphic*, const RvkDevice*, VkCommandBuffer);

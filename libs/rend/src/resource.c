@@ -400,8 +400,12 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
       }
       EcsIterator*             shaderItr  = ecs_view_at(shaderView, ptr->shader);
       const RendResShaderComp* shaderComp = ecs_view_read_t(shaderItr, RendResShaderComp);
-      rvk_graphic_shader_add(
-          graphic, shaderComp->shader, ptr->overrides.values, ptr->overrides.count);
+      rvk_graphic_add_shader(
+          graphic,
+          maybeAssetGraphic,
+          shaderComp->shader,
+          ptr->overrides.values,
+          ptr->overrides.count);
     }
 
     // Add mesh.
@@ -414,7 +418,7 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
       }
       EcsIterator*           meshItr  = ecs_view_at(meshView, maybeAssetGraphic->mesh);
       const RendResMeshComp* meshComp = ecs_view_read_t(meshItr, RendResMeshComp);
-      rvk_graphic_mesh_add(graphic, meshComp->mesh);
+      rvk_graphic_add_mesh(graphic, maybeAssetGraphic, meshComp->mesh);
     }
 
     // Add samplers.
@@ -427,11 +431,11 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
       }
       EcsIterator*              textureItr  = ecs_view_at(textureView, ptr->texture);
       const RendResTextureComp* textureComp = ecs_view_read_t(textureItr, RendResTextureComp);
-      rvk_graphic_sampler_add(graphic, textureComp->texture, ptr);
+      rvk_graphic_add_sampler(graphic, maybeAssetGraphic, textureComp->texture, ptr);
     }
 
     RvkPass* pass = plat->passes[maybeAssetGraphic->pass];
-    rvk_graphic_prepare(graphic, dev, pass);
+    rvk_graphic_finalize(graphic, maybeAssetGraphic, dev, pass);
 
     const RendResGlobalDef* globalDef = rend_res_global_lookup(id);
     if (globalDef) {

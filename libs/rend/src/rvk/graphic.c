@@ -701,11 +701,13 @@ void rvk_graphic_destroy(RvkGraphic* graphic, RvkDevice* dev) {
   alloc_free_t(g_allocHeap, graphic);
 }
 
-void rvk_graphic_shader_add(
-    RvkGraphic*           graphic,
-    const RvkShader*      shader,
-    AssetGraphicOverride* overrides,
-    usize                 overrideCount) {
+void rvk_graphic_add_shader(
+    RvkGraphic*             graphic,
+    const AssetGraphicComp* asset,
+    const RvkShader*        shader,
+    AssetGraphicOverride*   overrides,
+    usize                   overrideCount) {
+  (void)asset;
 
   array_for_t(graphic->shaders, RvkGraphicShader, itr) {
     if (!itr->shader) {
@@ -738,13 +740,19 @@ void rvk_graphic_shader_add(
       log_param("limit", fmt_int(rvk_graphic_shaders_max)));
 }
 
-void rvk_graphic_mesh_add(RvkGraphic* graphic, const RvkMesh* mesh) {
+void rvk_graphic_add_mesh(RvkGraphic* graphic, const AssetGraphicComp* asset, const RvkMesh* mesh) {
+  (void)asset;
+
   diag_assert_msg(!graphic->mesh, "Only a single mesh per graphic supported");
   graphic->mesh = mesh;
 }
 
-void rvk_graphic_sampler_add(
-    RvkGraphic* graphic, const RvkTexture* tex, const AssetGraphicSampler* sampler) {
+void rvk_graphic_add_sampler(
+    RvkGraphic*                graphic,
+    const AssetGraphicComp*    asset,
+    const RvkTexture*          tex,
+    const AssetGraphicSampler* sampler) {
+  (void)asset;
 
   for (u8 samplerIndex = 0; samplerIndex != rvk_graphic_samplers_max; ++samplerIndex) {
     if (!graphic->samplerTextures[samplerIndex]) {
@@ -769,7 +777,10 @@ void rvk_graphic_sampler_add(
       log_param("limit", fmt_int(rvk_graphic_samplers_max)));
 }
 
-bool rvk_graphic_prepare(RvkGraphic* graphic, RvkDevice* dev, const RvkPass* pass) {
+bool rvk_graphic_finalize(
+    RvkGraphic* graphic, const AssetGraphicComp* asset, RvkDevice* dev, const RvkPass* pass) {
+  (void)asset;
+
   diag_assert_msg(!rvk_pass_active(pass), "Pass already active");
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_Invalid)) {
     return false;
@@ -880,16 +891,6 @@ bool rvk_graphic_prepare(RvkGraphic* graphic, RvkDevice* dev, const RvkPass* pas
         dev->debug, graphic->vkPipelineLayout, "{}", fmt_text(graphic->dbgName));
     rvk_debug_name_pipeline(dev->debug, graphic->vkPipeline, "{}", fmt_text(graphic->dbgName));
   }
-  if (graphic->mesh && !rvk_mesh_is_ready(graphic->mesh, dev)) {
-    return false;
-  }
-  for (u32 samplerIndex = 0; samplerIndex != rvk_graphic_samplers_max; ++samplerIndex) {
-    const RvkTexture* tex = graphic->samplerTextures[samplerIndex];
-    if (tex && !rvk_texture_is_ready(tex, dev)) {
-      return false;
-    }
-  }
-  graphic->flags |= RvkGraphicFlags_Ready;
   return true;
 }
 
