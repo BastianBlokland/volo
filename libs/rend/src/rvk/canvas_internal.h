@@ -33,7 +33,7 @@ RvkCanvas* rvk_canvas_create(RvkDevice*, const GapWindowComp*, RvkPass* passes[]
 
 void rvk_canvas_destroy(RvkCanvas*);
 
-RvkRepository* rvk_canvas_repository(RvkCanvas*);
+const RvkRepository* rvk_canvas_repository(RvkCanvas*);
 
 /**
  * Query statistics about the previous submitted draw.

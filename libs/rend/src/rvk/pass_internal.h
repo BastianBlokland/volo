@@ -55,15 +55,15 @@ typedef struct sRvkPassConfig {
 } RvkPassConfig;
 
 typedef struct sRvkPassDraw {
-  RvkGraphic*    graphic;
-  Mem            instData;
-  Mem            drawData;    // Per-draw data to use.
-  const RvkMesh* drawMesh;    // Per-draw mesh to use.
-  RvkImage*      drawImage;   // Per-draw image to use.
-  RvkSamplerSpec drawSampler; // Sampler specification for a per-draw image.
-  u32            vertexCountOverride;
-  u32            instCount;
-  u32            instDataStride;
+  const RvkGraphic* graphic;
+  Mem               instData;
+  Mem               drawData;    // Per-draw data to use.
+  const RvkMesh*    drawMesh;    // Per-draw mesh to use.
+  RvkImage*         drawImage;   // Per-draw image to use.
+  RvkSamplerSpec    drawSampler; // Sampler specification for a per-draw image.
+  u32               vertexCountOverride;
+  u32               instCount;
+  u32               instDataStride;
 } RvkPassDraw;
 
 RvkPass* rvk_pass_create(RvkDevice*, const RvkPassConfig* /* Needs to be persistently allocated */);

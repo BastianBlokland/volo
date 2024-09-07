@@ -13,8 +13,8 @@ typedef enum {
 typedef struct {
   RvkRepositoryType type;
   union {
-    RvkTexture* texture;
-    RvkGraphic* graphic;
+    const RvkTexture* texture;
+    const RvkGraphic* graphic;
   };
 } RvkRepositoryEntry;
 
@@ -62,52 +62,53 @@ RvkRepository* rvk_repository_create(void) {
 
 void rvk_repository_destroy(RvkRepository* repo) { alloc_free_t(g_allocHeap, repo); }
 
-void rvk_repository_texture_set(RvkRepository* repo, const RvkRepositoryId id, RvkTexture* tex) {
-  diag_assert(!repo->entries[id].type || repo->entries[id].type == RvkRepositoryType_Texture);
-  repo->entries[id].type    = RvkRepositoryType_Texture;
-  repo->entries[id].texture = tex;
+void rvk_repository_texture_set(RvkRepository* r, const RvkRepositoryId id, const RvkTexture* tex) {
+  diag_assert(!r->entries[id].type || r->entries[id].type == RvkRepositoryType_Texture);
+  r->entries[id].type    = RvkRepositoryType_Texture;
+  r->entries[id].texture = tex;
 }
 
-void rvk_repository_graphic_set(RvkRepository* repo, const RvkRepositoryId id, RvkGraphic* gra) {
-  diag_assert(!repo->entries[id].type || repo->entries[id].type == RvkRepositoryType_Graphic);
-  repo->entries[id].type    = RvkRepositoryType_Graphic;
-  repo->entries[id].graphic = gra;
+void rvk_repository_graphic_set(RvkRepository* r, const RvkRepositoryId id, const RvkGraphic* gra) {
+  diag_assert(!r->entries[id].type || r->entries[id].type == RvkRepositoryType_Graphic);
+  r->entries[id].type    = RvkRepositoryType_Graphic;
+  r->entries[id].graphic = gra;
 }
 
-void rvk_repository_unset(RvkRepository* repo, const RvkRepositoryId id) {
-  switch (repo->entries[id].type) {
+void rvk_repository_unset(RvkRepository* r, const RvkRepositoryId id) {
+  switch (r->entries[id].type) {
   case RvkRepositoryType_Texture:
-    repo->entries[id].texture = null;
+    r->entries[id].texture = null;
     break;
   case RvkRepositoryType_Graphic:
-    repo->entries[id].graphic = null;
+    r->entries[id].graphic = null;
     break;
   case RvkRepositoryType_None:
     break;
   }
 }
 
-RvkTexture* rvk_repository_texture_get(const RvkRepository* repo, const RvkRepositoryId id) {
-  if (UNLIKELY(repo->entries[id].type != RvkRepositoryType_Texture)) {
+const RvkTexture* rvk_repository_texture_get(const RvkRepository* r, const RvkRepositoryId id) {
+  if (UNLIKELY(r->entries[id].type != RvkRepositoryType_Texture)) {
     diag_crash_msg(
         "Repository asset '{}' cannot be found or is of the wrong type",
         fmt_text(rvk_repository_id_str(id)));
   }
-  return repo->entries[id].texture;
+  return r->entries[id].texture;
 }
 
-RvkGraphic* rvk_repository_graphic_get(const RvkRepository* repo, const RvkRepositoryId id) {
-  if (UNLIKELY(repo->entries[id].type != RvkRepositoryType_Graphic)) {
+const RvkGraphic* rvk_repository_graphic_get(const RvkRepository* r, const RvkRepositoryId id) {
+  if (UNLIKELY(r->entries[id].type != RvkRepositoryType_Graphic)) {
     diag_crash_msg(
         "Repository asset '{}' cannot be found or is of the wrong type",
         fmt_text(rvk_repository_id_str(id)));
   }
-  return repo->entries[id].graphic;
+  return r->entries[id].graphic;
 }
 
-RvkGraphic* rvk_repository_graphic_get_maybe(const RvkRepository* repo, const RvkRepositoryId id) {
-  if (UNLIKELY(repo->entries[id].type != RvkRepositoryType_Graphic)) {
+const RvkGraphic*
+rvk_repository_graphic_get_maybe(const RvkRepository* r, const RvkRepositoryId id) {
+  if (UNLIKELY(r->entries[id].type != RvkRepositoryType_Graphic)) {
     return null;
   }
-  return repo->entries[id].graphic;
+  return r->entries[id].graphic;
 }

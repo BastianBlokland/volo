@@ -81,7 +81,7 @@ void rend_builder_pass_flush(RendBuilderBuffer* buffer) {
   buffer->pass = null;
 }
 
-void rend_builder_draw_push(RendBuilderBuffer* buffer, RvkGraphic* graphic) {
+void rend_builder_draw_push(RendBuilderBuffer* buffer, const RvkGraphic* graphic) {
   diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
   diag_assert_msg(!buffer->draw, "RendBuilder: Draw already active");
 

@@ -50,7 +50,7 @@ ecs_view_define(GlobalView) {
 ecs_view_define(ObjView) { ecs_access_read(RendObjectComp); }
 
 ecs_view_define(ResourceView) {
-  ecs_access_maybe_write(RendResGraphicComp);
+  ecs_access_maybe_read(RendResGraphicComp);
   ecs_access_maybe_read(RendResMeshComp);
   ecs_access_maybe_read(RendResTextureComp);
   ecs_access_with(RendResFinishedComp);
@@ -189,11 +189,11 @@ static void painter_stage_global_data(
   rvk_pass_stage_global_data(ctx->pass, mem_var(data), 0);
 }
 
-static RvkGraphic* painter_get_graphic(EcsIterator* resourceItr, const EcsEntityId resource) {
+static const RvkGraphic* painter_get_graphic(EcsIterator* resourceItr, const EcsEntityId resource) {
   if (!ecs_view_maybe_jump(resourceItr, resource)) {
     return null; // Resource not loaded.
   }
-  RendResGraphicComp* graphicResource = ecs_view_write_t(resourceItr, RendResGraphicComp);
+  const RendResGraphicComp* graphicResource = ecs_view_read_t(resourceItr, RendResGraphicComp);
   if (!graphicResource) {
     log_e("Invalid graphic asset", log_param("entity", ecs_entity_fmt(resource)));
     return null;
@@ -214,8 +214,8 @@ static const RvkTexture* painter_get_texture(EcsIterator* resourceItr, const Ecs
 }
 
 static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id, const Mem data) {
-  RvkRepository* repo    = rvk_canvas_repository(ctx->canvas);
-  RvkGraphic*    graphic = rvk_repository_graphic_get_maybe(repo, id);
+  const RvkRepository* repo    = rvk_canvas_repository(ctx->canvas);
+  const RvkGraphic*    graphic = rvk_repository_graphic_get_maybe(repo, id);
   if (graphic && rvk_graphic_is_ready(graphic, ctx->dev)) {
     rend_builder_draw_push(ctx->builder, graphic);
     if (data.size) {
@@ -246,7 +246,7 @@ static SceneTags painter_push_objects_simple(
 
     // Retrieve and prepare the object's graphic.
     const EcsEntityId graphicResource = rend_object_resource(obj, RendObjectResource_Graphic);
-    RvkGraphic*       graphic         = painter_get_graphic(resourceItr, graphicResource);
+    const RvkGraphic* graphic         = painter_get_graphic(resourceItr, graphicResource);
     if (!graphic || !rvk_graphic_is_ready(graphic, ctx->dev)) {
       continue; // Graphic not ready to be drawn.
     }
@@ -282,8 +282,8 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
     requiredAny |= RendObjectFlags_VfxSprite; // Include vfx sprites.
   }
 
-  RvkRepository* repo        = rvk_canvas_repository(ctx->canvas);
-  EcsIterator*   resourceItr = ecs_view_itr(resourceView);
+  const RvkRepository* repo        = rvk_canvas_repository(ctx->canvas);
+  EcsIterator*         resourceItr = ecs_view_itr(resourceView);
 
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
@@ -291,7 +291,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
       continue; // Object shouldn't be included in the shadow pass.
     }
     const EcsEntityId graphicOriginalRes = rend_object_resource(obj, RendObjectResource_Graphic);
-    RvkGraphic*       graphicOriginal    = painter_get_graphic(resourceItr, graphicOriginalRes);
+    const RvkGraphic* graphicOriginal    = painter_get_graphic(resourceItr, graphicOriginalRes);
     if (!graphicOriginal) {
       continue; // Graphic not loaded.
     }
@@ -319,7 +319,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
     } else {
       graphicId = objAlphaImg ? RvkRepositoryId_ShadowClipGraphic : RvkRepositoryId_ShadowGraphic;
     }
-    RvkGraphic* shadowGraphic = rvk_repository_graphic_get_maybe(repo, graphicId);
+    const RvkGraphic* shadowGraphic = rvk_repository_graphic_get_maybe(repo, graphicId);
     if (!shadowGraphic) {
       continue; // Shadow graphic not loaded.
     }
@@ -338,9 +338,9 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
 }
 
 static void painter_push_fog(RendPaintContext* ctx, const RendFogComp* fog, RvkImage* fogMap) {
-  RvkRepository*        repo      = rvk_canvas_repository(ctx->canvas);
+  const RvkRepository*  repo      = rvk_canvas_repository(ctx->canvas);
   const RvkRepositoryId graphicId = RvkRepositoryId_FogGraphic;
-  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
+  const RvkGraphic*     graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
   if (graphic && rvk_graphic_is_ready(graphic, ctx->dev)) {
     typedef struct {
       ALIGNAS(16)
@@ -439,8 +439,8 @@ static void painter_push_tonemapping(RendPaintContext* ctx) {
 
 static void
 painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f32 exposure) {
-  RvkRepository* repo = rvk_canvas_repository(ctx->canvas);
-  RvkGraphic*    graphic;
+  const RvkRepository* repo = rvk_canvas_repository(ctx->canvas);
+  const RvkGraphic*    graphic;
   if (image->type == RvkImageType_ColorSourceCube) {
     graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_DebugImageViewerCubeGraphic);
   } else {
@@ -500,9 +500,9 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
 
 static void
 painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspect, const RvkMesh* mesh) {
-  RvkRepository*        repo      = rvk_canvas_repository(ctx->canvas);
+  const RvkRepository*  repo      = rvk_canvas_repository(ctx->canvas);
   const RvkRepositoryId graphicId = RvkRepositoryId_DebugMeshViewerGraphic;
-  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
+  const RvkGraphic*     graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
   if (graphic && rvk_graphic_is_ready(graphic, ctx->dev)) {
     typedef struct {
       ALIGNAS(16)
@@ -561,8 +561,8 @@ static void painter_push_debug_resource_viewer(
 
 static void
 painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* resourceView) {
-  RvkRepository* repo        = rvk_canvas_repository(ctx->canvas);
-  EcsIterator*   resourceItr = ecs_view_itr(resourceView);
+  const RvkRepository* repo        = rvk_canvas_repository(ctx->canvas);
+  EcsIterator*         resourceItr = ecs_view_itr(resourceView);
 
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
@@ -570,7 +570,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
       continue; // Not a object we can render a wireframe for.
     }
     const EcsEntityId graphicOriginalRes = rend_object_resource(obj, RendObjectResource_Graphic);
-    RvkGraphic*       graphicOriginal    = painter_get_graphic(resourceItr, graphicOriginalRes);
+    const RvkGraphic* graphicOriginal    = painter_get_graphic(resourceItr, graphicOriginalRes);
     if (!graphicOriginal) {
       continue; // Graphic not loaded.
     }
@@ -587,7 +587,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
     } else {
       graphicId = RvkRepositoryId_DebugWireframeGraphic;
     }
-    RvkGraphic* graphicWireframe = rvk_repository_graphic_get_maybe(repo, graphicId);
+    const RvkGraphic* graphicWireframe = rvk_repository_graphic_get_maybe(repo, graphicId);
     if (!graphicWireframe || !rvk_graphic_is_ready(graphicWireframe, ctx->dev)) {
       continue; // Wireframe graphic not loaded.
     }
@@ -616,9 +616,9 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
 
 static void
 painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView, EcsView* resourceView) {
-  RvkRepository*        repository     = rvk_canvas_repository(ctx->canvas);
+  const RvkRepository*  repository     = rvk_canvas_repository(ctx->canvas);
   const RvkRepositoryId debugGraphicId = RvkRepositoryId_DebugSkinningGraphic;
-  RvkGraphic*           debugGraphic = rvk_repository_graphic_get_maybe(repository, debugGraphicId);
+  const RvkGraphic*     debugGraphic = rvk_repository_graphic_get_maybe(repository, debugGraphicId);
   if (!debugGraphic || !rvk_graphic_is_ready(debugGraphic, ctx->dev)) {
     return; // Debug graphic not ready to be drawn.
   }
@@ -630,7 +630,7 @@ painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView, EcsView* re
       continue; // Not a skinned object.
     }
     const EcsEntityId graphicOriginalRes = rend_object_resource(obj, RendObjectResource_Graphic);
-    RvkGraphic*       graphicOriginal    = painter_get_graphic(resourceItr, graphicOriginalRes);
+    const RvkGraphic* graphicOriginal    = painter_get_graphic(resourceItr, graphicOriginalRes);
     if (!graphicOriginal) {
       continue; // Graphic not loaded.
     }

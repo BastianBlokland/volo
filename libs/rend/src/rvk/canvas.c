@@ -104,7 +104,7 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
   alloc_free_t(g_allocHeap, canvas);
 }
 
-RvkRepository* rvk_canvas_repository(RvkCanvas* canvas) { return canvas->dev->repository; }
+const RvkRepository* rvk_canvas_repository(RvkCanvas* canvas) { return canvas->dev->repository; }
 
 void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
   const RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];

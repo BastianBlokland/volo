@@ -11,8 +11,8 @@ typedef struct sRvkShader  RvkShader;
 typedef struct sRvkTexture RvkTexture;
 
 ecs_comp_extern_public(RendResGraphicComp) {
-  RvkDevice*  device;
-  RvkGraphic* graphic;
+  RvkDevice*        device;
+  const RvkGraphic* graphic;
 };
 
 ecs_comp_extern_public(RendResShaderComp) {

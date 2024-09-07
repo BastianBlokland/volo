@@ -111,7 +111,7 @@ ecs_comp_define(RendResUnloadComp) {
 
 static void ecs_destruct_graphic_comp(void* data) {
   RendResGraphicComp* comp = data;
-  rvk_graphic_destroy(comp->graphic, comp->device);
+  rvk_graphic_destroy((RvkGraphic*)comp->graphic, comp->device);
 }
 
 static void ecs_destruct_shader_comp(void* data) {
