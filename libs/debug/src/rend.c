@@ -258,7 +258,7 @@ static i8 rend_obj_compare_order(const void* a, const void* b) {
   const DebugObjInfo* objB  = b;
   i8                  order = compare_u32(&objA->pass, &objB->pass);
   if (!order) {
-    order = compare_i32_reverse(&objA->passOrder, &objB->passOrder);
+    order = compare_i32(&objA->passOrder, &objB->passOrder);
   }
   if (!order) {
     order = compare_string(&objA->graphicName, &objB->graphicName);
