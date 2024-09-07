@@ -17,8 +17,6 @@
 #include "shader_internal.h"
 #include "texture_internal.h"
 
-typedef RvkShader* RvkShaderPtr;
-
 static const u8 g_rendSupportedShaderSets[] = {
     RvkGraphicSet_Global,
     RvkGraphicSet_Graphic,
@@ -65,75 +63,11 @@ static bool rvk_desc_is_sampler(const RvkDescKind kind) {
   return kind == RvkDescKind_CombinedImageSampler2D || kind == RvkDescKind_CombinedImageSamplerCube;
 }
 
-static const char* rvk_to_null_term_scratch(String str) {
+static const char* rvk_to_null_term_scratch(const String str) {
   const Mem scratchMem = alloc_alloc(g_allocScratch, str.size + 1, 1);
   mem_cpy(scratchMem, str);
   *mem_at_u8(scratchMem, str.size) = '\0';
   return scratchMem.ptr;
-}
-
-MAYBE_UNUSED static String rvk_graphic_topology_str(const AssetGraphicTopology topology) {
-  static const String g_names[] = {
-      string_static("Triangles"),
-      string_static("TriangleStrip"),
-      string_static("TriangleFan"),
-      string_static("Lines"),
-      string_static("LineStrip"),
-      string_static("Points"),
-  };
-  ASSERT(array_elems(g_names) == AssetGraphicTopology_Count, "Incorrect number of names");
-  return g_names[topology];
-}
-
-MAYBE_UNUSED static String rvk_graphic_rasterizer_str(const AssetGraphicRasterizer rasterizer) {
-  static const String g_names[] = {
-      string_static("Fill"),
-      string_static("Lines"),
-      string_static("Points"),
-  };
-  ASSERT(array_elems(g_names) == AssetGraphicRasterizer_Count, "Incorrect number of names");
-  return g_names[rasterizer];
-}
-
-MAYBE_UNUSED static String rvk_graphic_blend_str(const AssetGraphicBlend blend) {
-  static const String g_names[] = {
-      string_static("None"),
-      string_static("Alpha"),
-      string_static("AlphaConstant"),
-      string_static("Additive"),
-      string_static("PreMultiplied"),
-  };
-  ASSERT(array_elems(g_names) == AssetGraphicBlend_Count, "Incorrect number of names");
-  return g_names[blend];
-}
-
-MAYBE_UNUSED static String rvk_graphic_depth_str(const AssetGraphicDepth depth) {
-  static const String g_names[] = {
-      string_static("Less"),
-      string_static("LessOrEqual"),
-      string_static("Equal"),
-      string_static("Greater"),
-      string_static("GreaterOrEqual"),
-      string_static("Always"),
-      string_static("LessNoWrite"),
-      string_static("LessOrEqualNoWrite"),
-      string_static("EqualNoWrite"),
-      string_static("GreaterNoWrite"),
-      string_static("GreaterOrEqualNoWrite"),
-      string_static("AlwaysNoWrite"),
-  };
-  ASSERT(array_elems(g_names) == AssetGraphicDepth_Count, "Incorrect number of names");
-  return g_names[depth];
-}
-
-MAYBE_UNUSED static String rvk_graphic_cull_str(const AssetGraphicCull cull) {
-  static const String g_names[] = {
-      string_static("Back"),
-      string_static("Front"),
-      string_static("None"),
-  };
-  ASSERT(array_elems(g_names) == AssetGraphicCull_Count, "Incorrect number of names");
-  return g_names[cull];
 }
 
 static RvkSamplerWrap rvk_graphic_wrap(const AssetGraphicWrap assetWrap) {
