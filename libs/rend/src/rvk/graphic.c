@@ -503,9 +503,30 @@ static void rvk_graphic_set_missing_sampler(
   };
 }
 
-static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic, const AssetGraphicComp* asset) {
-  u8 vertexOutputs[asset_shader_max_outputs]; // AssetShaderType[]
-  u8 fragmentInputs[asset_shader_max_inputs]; // AssetShaderType[]
+static AssetShaderType rvk_graphic_pass_shader_output(const RvkPassFormat passFormat) {
+  switch (passFormat) {
+  case RvkPassFormat_None:
+    return AssetShaderType_None;
+  case RvkPassFormat_Color1Linear:
+    return AssetShaderType_f32;
+  case RvkPassFormat_Color2Linear:
+  case RvkPassFormat_Color2SignedFloat:
+    return AssetShaderType_f32v2;
+  case RvkPassFormat_Color3Float:
+    return AssetShaderType_f32v3;
+  case RvkPassFormat_Color4Linear:
+  case RvkPassFormat_Color4Srgb:
+    return AssetShaderType_f32v4;
+  }
+  diag_crash();
+}
+
+static bool rvk_graphic_validate_shaders(
+    const RvkGraphic* graphic, const AssetGraphicComp* asset, const RvkPass* pass) {
+
+  u8 vertexOutputs[asset_shader_max_outputs];   // AssetShaderType[]
+  u8 fragmentInputs[asset_shader_max_inputs];   // AssetShaderType[]
+  u8 fragmentOutputs[asset_shader_max_outputs]; // AssetShaderType[]
 
   ASSERT(asset_shader_max_outputs >= asset_shader_max_inputs, "Not enough shader outputs");
 
@@ -518,7 +539,7 @@ static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic, const AssetG
     MAYBE_UNUSED const String shaderId = asset->shaders.values[shaderIdx].shaderId;
 
     // Validate stage.
-    if (foundStages & shader->vkStage) {
+    if (UNLIKELY(foundStages & shader->vkStage)) {
       log_e("Duplicate shader stage", log_param("graphic", fmt_text(graphic->dbgName)));
       return false;
     }
@@ -530,6 +551,7 @@ static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic, const AssetG
       break;
     case VK_SHADER_STAGE_FRAGMENT_BIT:
       mem_cpy(array_mem(fragmentInputs), array_mem(shader->inputs));
+      mem_cpy(array_mem(fragmentOutputs), array_mem(shader->outputs));
       break;
     default:
       UNREACHABLE
@@ -538,7 +560,7 @@ static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic, const AssetG
     // Validate used sets.
     for (u32 set = 0; set != rvk_shader_desc_max; ++set) {
       const bool supported = mem_contains(mem_var(g_rendSupportedShaderSets), set);
-      if (!supported && rvk_shader_set_used(shader, set)) {
+      if (UNLIKELY(!supported && rvk_shader_set_used(shader, set))) {
         log_e(
             "Shader uses unsupported set",
             log_param("graphic", fmt_text(graphic->dbgName)),
@@ -549,19 +571,21 @@ static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic, const AssetG
     }
   }
 
-  if (!(foundStages & VK_SHADER_STAGE_VERTEX_BIT)) {
+  if (UNLIKELY(!(foundStages & VK_SHADER_STAGE_VERTEX_BIT))) {
     log_e("Vertex shader missing", log_param("graphic", fmt_text(graphic->dbgName)));
     return false;
   }
-  if (!(foundStages & VK_SHADER_STAGE_FRAGMENT_BIT)) {
+  if (UNLIKELY(!(foundStages & VK_SHADER_STAGE_FRAGMENT_BIT))) {
     log_e("Vertex shader missing", log_param("graphic", fmt_text(graphic->dbgName)));
     return false;
   }
+
+  // Validate fragment inputs.
   for (u32 binding = 0; binding != asset_shader_max_inputs; ++binding) {
     if (fragmentInputs[binding] == AssetShaderType_None) {
-      continue; // Input unused.
+      continue; // Binding unused.
     }
-    if (vertexOutputs[binding] != fragmentInputs[binding]) {
+    if (UNLIKELY(vertexOutputs[binding] != fragmentInputs[binding])) {
       log_e(
           "Unsatisfied fragment shader input binding",
           log_param("graphic", fmt_text(graphic->dbgName)),
@@ -571,6 +595,36 @@ static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic, const AssetG
       return false;
     }
   }
+
+  // Validate fragment outputs.
+  const RvkPassConfig* passConfig = rvk_pass_config(pass);
+  for (u32 binding = 0; binding != asset_shader_max_outputs; ++binding) {
+    if (fragmentOutputs[binding] == AssetShaderType_None) {
+      continue; // Binding unused.
+    }
+    if (UNLIKELY(binding >= rvk_pass_attach_color_max)) {
+      log_e(
+          "Fragment shader output binding not consumed by pass",
+          log_param("graphic", fmt_text(graphic->dbgName)),
+          log_param("pass", fmt_text(passConfig->name)),
+          log_param("binding", fmt_int(binding)),
+          log_param("type", fmt_text(asset_shader_type_name(fragmentOutputs[binding]))));
+      return false;
+    }
+    const RvkPassFormat   passOutputFormat = passConfig->attachColorFormat[binding];
+    const AssetShaderType passOutputType   = rvk_graphic_pass_shader_output(passOutputFormat);
+    if (UNLIKELY(fragmentOutputs[binding] != passOutputType)) {
+      log_e(
+          "Fragment shader output binding invalid",
+          log_param("graphic", fmt_text(graphic->dbgName)),
+          log_param("pass", fmt_text(passConfig->name)),
+          log_param("binding", fmt_int(binding)),
+          log_param("expected-type", fmt_text(asset_shader_type_name(passOutputType))),
+          log_param("actual-type", fmt_text(asset_shader_type_name(fragmentOutputs[binding]))));
+      return false;
+    }
+  }
+
   return true;
 }
 
@@ -712,7 +766,7 @@ bool rvk_graphic_finalize(
   diag_assert_msg(!graphic->vkPipeline, "Graphic already finalized");
   diag_assert(graphic->passId == rvk_pass_config(pass)->id);
 
-  if (UNLIKELY(!rvk_graphic_validate_shaders(graphic, asset))) {
+  if (UNLIKELY(!rvk_graphic_validate_shaders(graphic, asset, pass))) {
     graphic->flags |= RvkGraphicFlags_Invalid;
   }
   graphic->outputMask = rvk_graphic_output_mask(graphic);
