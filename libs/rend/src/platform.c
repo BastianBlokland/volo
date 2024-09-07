@@ -14,91 +14,97 @@
 
 // clang-format off
 
+#define REND_DEFINE_PASS(_NAME_) \
+    [AssetGraphicPass_##_NAME_] = { .id = AssetGraphicPass_##_NAME_, .name = string_static(#_NAME_),
+
 static const RvkPassConfig g_passConfig[AssetGraphicPass_Count] = {
-    [AssetGraphicPass_Geometry] = { .id = AssetGraphicPass_Geometry, .name = string_static("Geometry"),
-        // Attachment depth.
-        .attachDepth     = RvkPassDepth_Stored,
-        .attachDepthLoad = RvkPassLoad_Clear,
 
-        // Attachment color 0: color (rgb) and emissive (a).
-        .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
-        .attachColorLoad[0]   = RvkPassLoad_DontCare,
+  REND_DEFINE_PASS(Geometry)
+    // Attachment depth.
+    .attachDepth     = RvkPassDepth_Stored,
+    .attachDepthLoad = RvkPassLoad_Clear,
 
-        // Attachment color 1: normal (rg), roughness (b) and tags (a).
-        .attachColorFormat[1] = RvkPassFormat_Color4Linear,
-        .attachColorLoad[1]   = RvkPassLoad_DontCare,
-    },
+    // Attachment color 0: color (rgb) and emissive (a).
+    .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
+    .attachColorLoad[0]   = RvkPassLoad_DontCare,
 
-    [AssetGraphicPass_Decal] = { .id = AssetGraphicPass_Decal, .name = string_static("Decal"),
-        // Attachment depth.
-        .attachDepth     = RvkPassDepth_Stored,
-        .attachDepthLoad = RvkPassLoad_Preserve,
+    // Attachment color 1: normal (rg), roughness (b) and tags (a).
+    .attachColorFormat[1] = RvkPassFormat_Color4Linear,
+    .attachColorLoad[1]   = RvkPassLoad_DontCare,
+  },
 
-        // Attachment color 0: color (rgb) and emissive (a).
-        .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
-        .attachColorLoad[0]   = RvkPassLoad_Preserve,
+  REND_DEFINE_PASS(Decal)
+    // Attachment depth.
+    .attachDepth     = RvkPassDepth_Stored,
+    .attachDepthLoad = RvkPassLoad_Preserve,
 
-        // Attachment color 1: normal (rg), roughness (b) and tags (a).
-        .attachColorFormat[1] = RvkPassFormat_Color4Linear,
-        .attachColorLoad[1]   = RvkPassLoad_Preserve,
-    },
+    // Attachment color 0: color (rgb) and emissive (a).
+    .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
+    .attachColorLoad[0]   = RvkPassLoad_Preserve,
 
-    [AssetGraphicPass_Fog] = { .id = AssetGraphicPass_Fog, .name = string_static("Fog"),
-        // Attachment color 0: vision (r).
-        .attachColorFormat[0] = RvkPassFormat_Color1Linear,
-        .attachColorLoad[0]   = RvkPassLoad_Clear,
-    },
+    // Attachment color 1: normal (rg), roughness (b) and tags (a).
+    .attachColorFormat[1] = RvkPassFormat_Color4Linear,
+    .attachColorLoad[1]   = RvkPassLoad_Preserve,
+  },
 
-    [AssetGraphicPass_FogBlur] = { .id = AssetGraphicPass_FogBlur, .name = string_static("FogBlur"),
-        // Attachment color 0: vision (r).
-        .attachColorFormat[0] = RvkPassFormat_Color1Linear,
-        .attachColorLoad[0]   = RvkPassLoad_PreserveDontCheck,
-    },
+  REND_DEFINE_PASS(Fog)
+    // Attachment color 0: vision (r).
+    .attachColorFormat[0] = RvkPassFormat_Color1Linear,
+    .attachColorLoad[0]   = RvkPassLoad_Clear,
+  },
 
-    [AssetGraphicPass_Shadow] = { .id = AssetGraphicPass_Shadow, .name = string_static("Shadow"),
-        // Attachment depth.
-        .attachDepth     = RvkPassDepth_Stored,
-        .attachDepthLoad = RvkPassLoad_Clear,
-    },
+  REND_DEFINE_PASS(FogBlur)
+    // Attachment color 0: vision (r).
+    .attachColorFormat[0] = RvkPassFormat_Color1Linear,
+    .attachColorLoad[0]   = RvkPassLoad_PreserveDontCheck,
+  },
 
-    [AssetGraphicPass_AmbientOcclusion] = { .id = AssetGraphicPass_AmbientOcclusion, .name = string_static("AmbientOcclusion"),
-        // Attachment color 0: occlusion (r).
-        .attachColorFormat[0] = RvkPassFormat_Color1Linear,
-        .attachColorLoad[0]   = RvkPassLoad_DontCare,
-    },
+  REND_DEFINE_PASS(Shadow)
+    // Attachment depth.
+    .attachDepth     = RvkPassDepth_Stored,
+    .attachDepthLoad = RvkPassLoad_Clear,
+  },
 
-    [AssetGraphicPass_Forward] = { .id = AssetGraphicPass_Forward, .name = string_static("Forward"),
-        // Attachment depth.
-        .attachDepth     = RvkPassDepth_Stored, // Stored as Distortion still needs the depth.
-        .attachDepthLoad = RvkPassLoad_Preserve,
+  REND_DEFINE_PASS(AmbientOcclusion)
+    // Attachment color 0: occlusion (r).
+    .attachColorFormat[0] = RvkPassFormat_Color1Linear,
+    .attachColorLoad[0]   = RvkPassLoad_DontCare,
+  },
 
-        // Attachment color 0: color (rgb).
-        .attachColorFormat[0] = RvkPassFormat_Color3Float,
-        .attachColorLoad[0]   = RvkPassLoad_DontCare,
-    },
+  REND_DEFINE_PASS(Forward)
+    // Attachment depth.
+    .attachDepth     = RvkPassDepth_Stored, // Stored as Distortion still needs the depth.
+    .attachDepthLoad = RvkPassLoad_Preserve,
 
-    [AssetGraphicPass_Distortion] = { .id = AssetGraphicPass_Distortion, .name = string_static("Distortion"),
-        // Attachment depth.
-        .attachDepth     = RvkPassDepth_Transient,
-        .attachDepthLoad = RvkPassLoad_Preserve,
+    // Attachment color 0: color (rgb).
+    .attachColorFormat[0] = RvkPassFormat_Color3Float,
+    .attachColorLoad[0]   = RvkPassLoad_DontCare,
+  },
 
-        // Attachment color 0: distortion-offset(rg).
-        .attachColorFormat[0] = RvkPassFormat_Color2SignedFloat,
-        .attachColorLoad[0]   = RvkPassLoad_Clear,
-    },
+  REND_DEFINE_PASS(Distortion)
+    // Attachment depth.
+    .attachDepth     = RvkPassDepth_Transient,
+    .attachDepthLoad = RvkPassLoad_Preserve,
 
-    [AssetGraphicPass_Bloom] = { .id = AssetGraphicPass_Bloom, .name = string_static("Bloom"),
-        // Attachment color 0: bloom (rgb).
-        .attachColorFormat[0] = RvkPassFormat_Color3Float,
-        .attachColorLoad[0]   = RvkPassLoad_PreserveDontCheck,
-    },
+    // Attachment color 0: distortion-offset(rg).
+    .attachColorFormat[0] = RvkPassFormat_Color2SignedFloat,
+    .attachColorLoad[0]   = RvkPassLoad_Clear,
+  },
 
-    [AssetGraphicPass_Post] = { .id = AssetGraphicPass_Post, .name = string_static("Post"),
-        // Attachment color 0: color (rgba).
-        .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
-        .attachColorLoad[0]   = RvkPassLoad_DontCare,
-    },
+  REND_DEFINE_PASS(Bloom)
+    // Attachment color 0: bloom (rgb).
+    .attachColorFormat[0] = RvkPassFormat_Color3Float,
+    .attachColorLoad[0]   = RvkPassLoad_PreserveDontCheck,
+  },
+
+  REND_DEFINE_PASS(Post)
+    // Attachment color 0: color (rgba).
+    .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
+    .attachColorLoad[0]   = RvkPassLoad_DontCare,
+  },
 };
+
+#undef REND_DEFINE_PASS
 
 // clang-format on
 
