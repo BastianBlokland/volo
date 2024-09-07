@@ -460,7 +460,6 @@ ecs_system_define(LoadGlslAssetSys) {
     if (spvErr) {
       const String msg = spv_err_str(spvErr);
       glsl_load_fail_msg(world, entity, id, GlslError_InvalidSpv, msg);
-      alloc_free(g_allocHeap, spvData);
       goto Done;
     }
 
