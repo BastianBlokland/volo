@@ -503,7 +503,7 @@ static void rvk_graphic_set_missing_sampler(
   };
 }
 
-static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
+static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic, const AssetGraphicComp* asset) {
   u8 vertexOutputs[asset_shader_max_outputs]; // AssetShaderType[]
   u8 fragmentInputs[asset_shader_max_inputs]; // AssetShaderType[]
 
@@ -515,6 +515,8 @@ static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
     if (!shader) {
       break;
     }
+    MAYBE_UNUSED const String shaderId = asset->shaders.values[shaderIdx].shaderId;
+
     // Validate stage.
     if (foundStages & shader->vkStage) {
       log_e("Duplicate shader stage", log_param("graphic", fmt_text(graphic->dbgName)));
@@ -540,6 +542,7 @@ static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
         log_e(
             "Shader uses unsupported set",
             log_param("graphic", fmt_text(graphic->dbgName)),
+            log_param("shader", fmt_text(shaderId)),
             log_param("set", fmt_int(set)));
         return false;
       }
@@ -709,7 +712,7 @@ bool rvk_graphic_finalize(
   diag_assert_msg(!graphic->vkPipeline, "Graphic already finalized");
   diag_assert(graphic->passId == rvk_pass_config(pass)->id);
 
-  if (UNLIKELY(!rvk_graphic_validate_shaders(graphic))) {
+  if (UNLIKELY(!rvk_graphic_validate_shaders(graphic, asset))) {
     graphic->flags |= RvkGraphicFlags_Invalid;
   }
   graphic->outputMask = rvk_graphic_output_mask(graphic);
