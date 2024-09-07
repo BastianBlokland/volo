@@ -895,6 +895,9 @@ bool rvk_graphic_finalize(
 }
 
 bool rvk_graphic_is_ready(const RvkGraphic* graphic, const RvkDevice* dev) {
+  if (UNLIKELY(graphic->flags & RvkGraphicFlags_Invalid)) {
+    return false;
+  }
   if (graphic->mesh && !rvk_mesh_is_ready(graphic->mesh, dev)) {
     return false;
   }
