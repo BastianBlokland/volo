@@ -193,12 +193,16 @@ static const RvkGraphic* painter_get_graphic(EcsIterator* resourceItr, const Ecs
   if (!ecs_view_maybe_jump(resourceItr, resource)) {
     return null; // Resource not loaded.
   }
-  const RendResGraphicComp* graphicResource = ecs_view_read_t(resourceItr, RendResGraphicComp);
-  if (!graphicResource) {
+  const RendResComp* resComp = ecs_view_read_t(resourceItr, RendResComp);
+  if (rend_res_is_failed(resComp)) {
+    return null; // Failed to load.
+  }
+  const RendResGraphicComp* graphicRes = ecs_view_read_t(resourceItr, RendResGraphicComp);
+  if (!graphicRes) {
     log_e("Invalid graphic asset", log_param("entity", ecs_entity_fmt(resource)));
     return null;
   }
-  return graphicResource->graphic;
+  return graphicRes->graphic;
 }
 
 static const RvkTexture* painter_get_texture(EcsIterator* resourceItr, const EcsEntityId resource) {
