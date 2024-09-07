@@ -828,8 +828,16 @@ bool rvk_graphic_is_ready(const RvkGraphic* graphic, const RvkDevice* dev) {
   return true;
 }
 
-void rvk_graphic_bind(const RvkGraphic* graphic, const RvkDevice* dev, VkCommandBuffer vkCmdBuf) {
+void rvk_graphic_bind(
+    const RvkGraphic* graphic,
+    const RvkDevice*  dev,
+    const RvkPass*    pass,
+    VkCommandBuffer   vkCmdBuf) {
+  (void)pass;
   diag_assert_msg(rvk_graphic_is_ready(graphic, dev), "Graphic is not ready");
+
+  diag_assert_msg(rvk_pass_active(pass), "Pass not active");
+  diag_assert_msg(graphic->passId == rvk_pass_config(pass)->id, "Unsupported pass");
 
   vkCmdBindPipeline(vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
 

@@ -1025,7 +1025,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
   rvk_debug_label_begin(
       pass->dev->debug, frame->vkCmdBuf, geo_color_green, "draw_{}", fmt_text(graphic->dbgName));
 
-  rvk_graphic_bind(graphic, pass->dev, frame->vkCmdBuf);
+  rvk_graphic_bind(graphic, pass->dev, pass, frame->vkCmdBuf);
 
   if (graphic->flags & RvkGraphicFlags_RequireDrawSet) {
     rvk_pass_bind_draw(
