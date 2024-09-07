@@ -688,14 +688,21 @@ static AssetShaderResKind spv_resource_kind(
   }
 }
 
-static AssetShaderType spv_lookup_type(SpvProgram* program, const u32 typeId, SpvError* err) {
+static AssetShaderType spv_lookup_type(SpvProgram* program, const u32 typeId) {
+  diag_assert(typeId < program->idCount);
+
+  const SpvId* id = &program->ids[typeId];
+  if (id->kind == SpvIdKind_TypePointer) {
+    return spv_lookup_type(program, id->typeId);
+  }
+
   for (AssetShaderType type = 0; type != AssetShaderType_Count; ++type) {
     if (program->wellknownTypes[type] == typeId) {
       return type;
     }
   }
-  *err = SpvError_UnsupportedSpecConstantType;
-  return 0;
+
+  return AssetShaderType_Unknown;
 }
 
 static SpvInstructionId spv_label_instruction(SpvProgram* program, const u32 labelId) {
@@ -811,8 +818,9 @@ static void spv_asset_shader_create(
         *err = SpvError_MalformedDuplicateBinding;
         return;
       }
-      const AssetShaderType type = spv_lookup_type(program, id->typeId, err);
-      if (UNLIKELY(*err)) {
+      const AssetShaderType type = spv_lookup_type(program, id->typeId);
+      if (UNLIKELY(type == AssetShaderType_Unknown)) {
+        *err = SpvError_UnsupportedSpecConstantType;
         return;
       }
       usedSpecSlots |= 1 << id->binding;
@@ -822,17 +830,25 @@ static void spv_asset_shader_create(
           .binding = (u8)id->binding,
       };
     } else if (spv_is_input(id)) {
-      if (id->binding >= asset_shader_max_inputs) {
+      if (UNLIKELY(id->binding >= asset_shader_max_inputs)) {
         *err = SpvError_UnsupportedInputExceedsMax;
         return;
       }
-      out->inputs[id->binding] = AssetShaderType_Unknown;
+      if (UNLIKELY(out->inputs[id->binding] != AssetShaderType_None)) {
+        *err = SpvError_MalformedDuplicateInput;
+        return;
+      }
+      out->inputs[id->binding] = spv_lookup_type(program, id->typeId);
     } else if (spv_is_output(id)) {
       if (id->binding >= asset_shader_max_outputs) {
         *err = SpvError_UnsupportedOutputExceedsMax;
         return;
       }
-      out->outputs[id->binding] = AssetShaderType_Unknown;
+      if (UNLIKELY(out->outputs[id->binding] != AssetShaderType_None)) {
+        *err = SpvError_MalformedDuplicateOutput;
+        return;
+      }
+      out->outputs[id->binding] = spv_lookup_type(program, id->typeId);
     }
   }
 
@@ -862,6 +878,8 @@ String spv_err_str(const SpvError res) {
       string_static("Duplicate SpirV id"),
       string_static("SpirV shader resource without set and binding"),
       string_static("SpirV shader resource binding already used in this set"),
+      string_static("SpirV shader duplicate input binding"),
+      string_static("SpirV shader duplicate output binding"),
       string_static("SpirV shader specialization constant without a binding"),
       string_static("Unsupported SpirV version, atleast 1.3 is required"),
       string_static("Multiple SpirV entrypoints are not supported"),
