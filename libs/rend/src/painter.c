@@ -191,7 +191,7 @@ static void painter_stage_global_data(
 
 static const RvkGraphic* painter_get_graphic(EcsIterator* resourceItr, const EcsEntityId resource) {
   if (!ecs_view_maybe_jump(resourceItr, resource)) {
-    return null; // Resource not loaded.
+    return null; // Resource not loaded yet.
   }
   const RendResComp* resComp = ecs_view_read_t(resourceItr, RendResComp);
   if (rend_res_is_failed(resComp)) {
@@ -207,14 +207,18 @@ static const RvkGraphic* painter_get_graphic(EcsIterator* resourceItr, const Ecs
 
 static const RvkTexture* painter_get_texture(EcsIterator* resourceItr, const EcsEntityId resource) {
   if (!ecs_view_maybe_jump(resourceItr, resource)) {
-    return null; // Resource not loaded.
+    return null; // Resource not loaded yet.
   }
-  const RendResTextureComp* textureResource = ecs_view_read_t(resourceItr, RendResTextureComp);
-  if (!textureResource) {
+  const RendResComp* resComp = ecs_view_read_t(resourceItr, RendResComp);
+  if (rend_res_is_failed(resComp)) {
+    return null; // Failed to load.
+  }
+  const RendResTextureComp* textureRes = ecs_view_read_t(resourceItr, RendResTextureComp);
+  if (!textureRes) {
     log_e("Invalid texture asset", log_param("entity", ecs_entity_fmt(resource)));
     return null;
   }
-  return textureResource->texture;
+  return textureRes->texture;
 }
 
 static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id, const Mem data) {
