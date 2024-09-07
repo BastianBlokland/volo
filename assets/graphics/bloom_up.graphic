@@ -1,4 +1,5 @@
 {
+  "pass": "Bloom",
   "shaders": [
     { "shaderId": "shaders/fullscreen.vert" },
     { "shaderId": "shaders/bloom_up.frag" }

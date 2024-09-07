@@ -1,10 +1,11 @@
 {
+  "pass": "Forward",
+  "passOrder": 152,
   "shaders": [
     { "shaderId": "shaders/debug/shape_mesh.vert" },
     { "shaderId": "shaders/debug/shape.frag" }
   ],
   "meshId": "meshes/debug/shape_hemisphere_uncapped.procmesh",
-  "renderOrder": 152,
   "rasterizer": "Lines",
   "lineWidth": 1,
   "blend": "Alpha",

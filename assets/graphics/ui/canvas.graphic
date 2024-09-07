@@ -1,4 +1,5 @@
 {
+  "pass": "Post",
   "shaders": [
     { "shaderId": "shaders/ui/canvas.vert" },
     { "shaderId": "shaders/ui/canvas.frag" }

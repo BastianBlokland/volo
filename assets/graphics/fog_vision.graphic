@@ -1,4 +1,5 @@
 {
+  "pass": "Fog",
   "shaders": [
     { "shaderId": "shaders/fog_vision.vert" },
     { "shaderId": "shaders/fog_vision.frag" }

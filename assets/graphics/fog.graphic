@@ -1,10 +1,11 @@
 {
+  "pass": "Forward",
+  "passOrder": 1000,
   "shaders": [
     { "shaderId": "shaders/fullscreen.vert" },
     { "shaderId": "shaders/fog.frag" }
   ],
   "vertexCount": 3,
-  "renderOrder": 1000,
   "blend": "Alpha",
   "depth": "AlwaysNoWrite",
   "cull": "None"

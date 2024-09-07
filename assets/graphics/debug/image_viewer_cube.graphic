@@ -1,10 +1,11 @@
 {
+  "pass": "Post",
+  "passOrder": 1,
   "shaders": [
     { "shaderId": "shaders/debug/dyn_image_viewer.vert" },
     { "shaderId": "shaders/debug/dyn_image_viewer_cube.frag" }
   ],
   "vertexCount": 4,
-  "renderOrder": 1,
   "topology": "TriangleFan",
   "depth": "AlwaysNoWrite",
   "cull": "None"

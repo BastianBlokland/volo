@@ -1,4 +1,5 @@
 {
+  "pass": "FogBlur",
   "shaders": [
     { "shaderId": "shaders/fullscreen.vert" },
     {

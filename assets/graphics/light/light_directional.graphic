@@ -1,4 +1,6 @@
 {
+  "pass": "Forward",
+  "passOrder": -90,
   "shaders": [
     { "shaderId": "shaders/light/light_directional.vert" },
     {
@@ -14,7 +16,6 @@
     { "textureId": "external/tiling/clouds_2.tga", "wrap": "Repeat" }
   ],
   "vertexCount": 3,
-  "renderOrder": -90,
   "blend": "Additive",
   "depth": "GreaterNoWrite",
   "cull": "None"

@@ -1,9 +1,10 @@
 {
+  "pass": "Forward",
+  "passOrder": 50,
   "shaders": [
     { "shaderId": "shaders/debug/grid.vert" },
     { "shaderId": "shaders/debug/grid.frag" }
   ],
-  "renderOrder": 50,
   "topology": "Lines",
   "lineWidth": 2,
   "rasterizer": "Lines",

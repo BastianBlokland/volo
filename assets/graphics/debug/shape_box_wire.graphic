@@ -1,10 +1,11 @@
 {
+  "pass": "Forward",
+  "passOrder": 150,
   "shaders": [
     { "shaderId": "shaders/debug/shape_mesh.vert" },
     { "shaderId": "shaders/debug/shape.frag" }
   ],
   "meshId": "meshes/debug/shape_box.procmesh",
-  "renderOrder": 150,
   "rasterizer": "Lines",
   "lineWidth": 1,
   "blend": "Alpha",

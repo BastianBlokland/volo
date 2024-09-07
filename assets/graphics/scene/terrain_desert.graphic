@@ -1,4 +1,6 @@
 {
+  "pass": "Geometry",
+  "passOrder": 1,
   "shaders": [
     { "shaderId": "shaders/scene/terrain.vert" },
     {
@@ -16,6 +18,5 @@
     { "textureId": "external/tiling/dirt_2_color_rough.tga", "wrap": "Repeat" },
     { "textureId": "external/tiling/dirt_2_normal.tga", "wrap": "Repeat" }
   ],
-  "meshId": "meshes/scene/terrain_patch.procmesh",
-  "renderOrder": 1
+  "meshId": "meshes/scene/terrain_patch.procmesh"
 }

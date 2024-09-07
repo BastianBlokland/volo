@@ -1,10 +1,11 @@
 {
+  "pass": "Forward",
+  "passOrder": 1100,
   "shaders": [
     { "shaderId": "shaders/fullscreen.vert" },
     { "shaderId": "shaders/outline.frag" }
   ],
   "vertexCount": 3,
-  "renderOrder": 1100,
   "blend": "Additive",
   "depth": "AlwaysNoWrite",
   "cull": "None"

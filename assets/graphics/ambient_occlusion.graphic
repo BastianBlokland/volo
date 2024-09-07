@@ -1,4 +1,5 @@
 {
+  "pass": "AmbientOcclusion",
   "shaders": [
     { "shaderId": "shaders/fullscreen.vert" },
     { "shaderId": "shaders/ambient_occlusion.frag" }

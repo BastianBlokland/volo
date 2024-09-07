@@ -1,4 +1,6 @@
 {
+  "pass": "Forward",
+  "passOrder": -1,
   "shaders": [
     { "shaderId": "shaders/scene/sky.vert" },
     { "shaderId": "shaders/scene/sky_cubemap.frag" }
@@ -7,7 +9,6 @@
     { "textureId": "textures/game/skybox.arraytex" }
   ],
   "vertexCount": 3,
-  "renderOrder": -1,
   "depth": "EqualNoWrite",
   "cull": "None"
 }

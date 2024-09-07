@@ -1,10 +1,11 @@
 {
+  "pass": "Forward",
+  "passOrder": 163,
   "shaders": [
     { "shaderId": "shaders/debug/shape_line.vert" },
     { "shaderId": "shaders/debug/shape.frag" }
   ],
   "vertexCount": 2,
-  "renderOrder": 163,
   "lineWidth": 2,
   "topology": "Lines",
   "rasterizer": "Lines",

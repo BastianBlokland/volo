@@ -1,10 +1,11 @@
 {
+  "pass": "Forward",
+  "passOrder": -90,
   "shaders": [
     { "shaderId": "shaders/light/light_point.vert" },
     { "shaderId": "shaders/light/light_point_debug.frag" }
   ],
   "meshId": "meshes/light/light_point.procmesh",
-  "renderOrder": -90,
   "depth": "AlwaysNoWrite",
   "cull": "Front"
 }

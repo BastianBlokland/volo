@@ -1,9 +1,10 @@
 {
+  "pass": "Forward",
+  "passOrder": 10,
   "shaders": [
     { "shaderId": "shaders/dyn_depth_standard_skinned.vert" },
     { "shaderId": "shaders/solid_white.frag" }
   ],
-  "renderOrder": 10,
   "rasterizer": "Lines",
   "lineWidth": 1,
   "depth": "LessOrEqualNoWrite",

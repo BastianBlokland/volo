@@ -1,4 +1,5 @@
 {
+  "pass": "Geometry",
   "shaders": [
     { "shaderId": "shaders/standard.vert" },
     { "shaderId": "shaders/standard.frag" }
