@@ -145,3 +145,8 @@ ecs_comp_extern_public(AssetGraphicComp) {
 extern DataMeta g_assetGraphicDefMeta;
 
 String asset_graphic_pass_name(AssetGraphicPass);
+String asset_graphic_topology_name(AssetGraphicTopology);
+String asset_graphic_rasterizer_name(AssetGraphicRasterizer);
+String asset_graphic_blend_name(AssetGraphicBlend);
+String asset_graphic_depth_name(AssetGraphicDepth);
+String asset_graphic_cull_name(AssetGraphicCull);

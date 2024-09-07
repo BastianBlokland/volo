@@ -258,3 +258,67 @@ String asset_graphic_pass_name(const AssetGraphicPass pass) {
   ASSERT(array_elems(g_names) == AssetGraphicPass_Count, "Incorrect number of names");
   return g_names[pass];
 }
+
+String asset_graphic_topology_name(const AssetGraphicTopology topology) {
+  static const String g_names[] = {
+      string_static("Triangles"),
+      string_static("TriangleStrip"),
+      string_static("TriangleFan"),
+      string_static("Lines"),
+      string_static("LineStrip"),
+      string_static("Points"),
+  };
+  ASSERT(array_elems(g_names) == AssetGraphicTopology_Count, "Incorrect number of names");
+  return g_names[topology];
+}
+
+String asset_graphic_rasterizer_name(const AssetGraphicRasterizer rasterizer) {
+  static const String g_names[] = {
+      string_static("Fill"),
+      string_static("Lines"),
+      string_static("Points"),
+  };
+  ASSERT(array_elems(g_names) == AssetGraphicRasterizer_Count, "Incorrect number of names");
+  return g_names[rasterizer];
+}
+
+String asset_graphic_blend_name(const AssetGraphicBlend blend) {
+  static const String g_names[] = {
+      string_static("None"),
+      string_static("Alpha"),
+      string_static("AlphaConstant"),
+      string_static("Additive"),
+      string_static("PreMultiplied"),
+  };
+  ASSERT(array_elems(g_names) == AssetGraphicBlend_Count, "Incorrect number of names");
+  return g_names[blend];
+}
+
+String asset_graphic_depth_name(const AssetGraphicDepth depth) {
+  static const String g_names[] = {
+      string_static("Less"),
+      string_static("LessOrEqual"),
+      string_static("Equal"),
+      string_static("Greater"),
+      string_static("GreaterOrEqual"),
+      string_static("Always"),
+      string_static("LessNoWrite"),
+      string_static("LessOrEqualNoWrite"),
+      string_static("EqualNoWrite"),
+      string_static("GreaterNoWrite"),
+      string_static("GreaterOrEqualNoWrite"),
+      string_static("AlwaysNoWrite"),
+  };
+  ASSERT(array_elems(g_names) == AssetGraphicDepth_Count, "Incorrect number of names");
+  return g_names[depth];
+}
+
+String asset_graphic_cull_name(const AssetGraphicCull cull) {
+  static const String g_names[] = {
+      string_static("Back"),
+      string_static("Front"),
+      string_static("None"),
+  };
+  ASSERT(array_elems(g_names) == AssetGraphicCull_Count, "Incorrect number of names");
+  return g_names[cull];
+}
