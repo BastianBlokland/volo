@@ -104,6 +104,7 @@ typedef enum {
   DebugRendObjectSort_Graphic,
   DebugRendObjectSort_Order,
   DebugRendObjectSort_Instances,
+  DebugRendObjectSort_Size,
 
   DebugRendObjectSort_Count,
 } DebugRendObjectSort;
@@ -112,6 +113,7 @@ static const String g_objectSortNames[] = {
     string_static("Graphic"),
     string_static("Order"),
     string_static("Instances"),
+    string_static("Size"),
 };
 ASSERT(array_elems(g_objectSortNames) == DebugRendObjectSort_Count, "Incorrect number of names");
 
@@ -270,6 +272,19 @@ static i8 rend_obj_compare_instances(const void* a, const void* b) {
   const DebugObjInfo* objA  = a;
   const DebugObjInfo* objB  = b;
   i8                  order = compare_i32_reverse(&objA->instanceCount, &objB->instanceCount);
+  if (!order) {
+    order = compare_string(&objA->graphicName, &objB->graphicName);
+  }
+  return order;
+}
+
+static i8 rend_obj_compare_size(const void* a, const void* b) {
+  const DebugObjInfo* objA     = a;
+  const DebugObjInfo* objB     = b;
+  const usize         objASize = objA->dataSize + objA->dataInstSize * objA->instanceCount;
+  const usize         objBSize = objB->dataSize + objB->dataInstSize * objB->instanceCount;
+
+  i8 order = compare_usize_reverse(&objASize, &objBSize);
   if (!order) {
     order = compare_string(&objA->graphicName, &objB->graphicName);
   }
@@ -645,6 +660,9 @@ static void rend_obj_info_query(DebugRendPanelComp* panelComp, EcsWorld* world) 
     break;
   case DebugRendObjectSort_Instances:
     dynarray_sort(&panelComp->objects, rend_obj_compare_instances);
+    break;
+  case DebugRendObjectSort_Size:
+    dynarray_sort(&panelComp->objects, rend_obj_compare_size);
     break;
   case DebugRendObjectSort_Count:
     break;
