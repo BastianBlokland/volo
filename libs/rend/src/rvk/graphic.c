@@ -702,6 +702,7 @@ void rvk_graphic_add_sampler(
 bool rvk_graphic_finalize(
     RvkGraphic* graphic, const AssetGraphicComp* asset, RvkDevice* dev, const RvkPass* pass) {
   diag_assert_msg(!graphic->vkPipeline, "Graphic already finalized");
+  diag_assert(graphic->passId == rvk_pass_config(pass)->id);
 
   if (UNLIKELY(!rvk_graphic_validate_shaders(graphic))) {
     graphic->flags |= RvkGraphicFlags_Invalid;

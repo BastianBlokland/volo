@@ -48,6 +48,7 @@ typedef enum {
 
 typedef struct sRvkPassConfig {
   String        name; // Needs to be persistently allocated.
+  i32           id;
   RvkPassDepth  attachDepth : 8;
   RvkPassLoad   attachDepthLoad : 8;
   RvkPassFormat attachColorFormat[rvk_pass_attach_color_max];
