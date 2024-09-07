@@ -18,7 +18,6 @@ typedef struct sRvkGraphic    RvkGraphic;
 typedef struct sRvkImage      RvkImage;
 typedef struct sRvkJob        RvkJob;
 typedef struct sRvkMesh       RvkMesh;
-typedef struct sRvkTexture    RvkTexture;
 
 typedef u8 RvkPassHandle;
 
@@ -49,6 +48,7 @@ typedef enum {
 
 typedef struct sRvkPassConfig {
   String        name; // Needs to be persistently allocated.
+  i32           id;
   RvkPassDepth  attachDepth : 8;
   RvkPassLoad   attachDepthLoad : 8;
   RvkPassFormat attachColorFormat[rvk_pass_attach_color_max];
@@ -56,15 +56,15 @@ typedef struct sRvkPassConfig {
 } RvkPassConfig;
 
 typedef struct sRvkPassDraw {
-  RvkGraphic*    graphic;
-  Mem            instData;
-  Mem            drawData;    // Per-draw data to use.
-  const RvkMesh* drawMesh;    // Per-draw mesh to use.
-  RvkImage*      drawImage;   // Per-draw image to use.
-  RvkSamplerSpec drawSampler; // Sampler specification for a per-draw image.
-  u32            vertexCountOverride;
-  u32            instCount;
-  u32            instDataStride;
+  const RvkGraphic* graphic;
+  Mem               instData;
+  Mem               drawData;    // Per-draw data to use.
+  const RvkMesh*    drawMesh;    // Per-draw mesh to use.
+  RvkImage*         drawImage;   // Per-draw image to use.
+  RvkSamplerSpec    drawSampler; // Sampler specification for a per-draw image.
+  u32               vertexCountOverride;
+  u32               instCount;
+  u32               instDataStride;
 } RvkPassDraw;
 
 RvkPass* rvk_pass_create(RvkDevice*, const RvkPassConfig* /* Needs to be persistently allocated */);
@@ -89,10 +89,6 @@ u32          rvk_pass_stat_instances(const RvkPass*, RvkPassHandle);
 RvkSize      rvk_pass_stat_size_max(const RvkPass*, RvkPassHandle);
 TimeDuration rvk_pass_stat_duration(const RvkPass*, RvkPassHandle);
 u64          rvk_pass_stat_pipeline(const RvkPass*, RvkPassHandle, RvkStat);
-
-bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
-bool rvk_pass_prepare_mesh(RvkPass*, const RvkMesh*);
-bool rvk_pass_prepare_texture(RvkPass*, const RvkTexture*);
 
 void rvk_pass_stage_clear_color(RvkPass*, GeoColor clearColor);
 void rvk_pass_stage_attach_color(RvkPass*, RvkImage*, u16 colorAttachIndex);

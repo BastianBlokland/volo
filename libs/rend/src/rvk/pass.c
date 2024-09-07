@@ -437,7 +437,7 @@ static void rvk_pass_bind_draw(
     RvkPass*                         pass,
     RvkPassFrame*                    frame,
     MAYBE_UNUSED const RvkPassStage* stage,
-    RvkGraphic*                      gra,
+    const RvkGraphic*                gra,
     const Mem                        data,
     const RvkMesh*                   mesh,
     RvkImage*                        img,
@@ -464,7 +464,8 @@ static void rvk_pass_bind_draw(
 
       const RvkRepositoryId missing =
           reqCube ? RvkRepositoryId_MissingTextureCube : RvkRepositoryId_MissingTexture;
-      img = &rvk_repository_texture_get(pass->dev->repository, missing)->image;
+      // TODO: This cast violates const-correctness.
+      img = (RvkImage*)&rvk_repository_texture_get(pass->dev->repository, missing)->image;
     }
     rvk_desc_set_attach_sampler(descSet, 2, img, sampler);
   }
@@ -751,24 +752,6 @@ u64 rvk_pass_stat_pipeline(
   return res;
 }
 
-bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
-  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
-
-  return rvk_graphic_prepare(graphic, pass->dev, pass);
-}
-
-bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, const RvkMesh* mesh) {
-  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
-
-  return rvk_mesh_is_ready(mesh, pass->dev);
-}
-
-bool rvk_pass_prepare_texture(MAYBE_UNUSED RvkPass* pass, const RvkTexture* texture) {
-  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
-
-  return rvk_texture_is_ready(texture, pass->dev);
-}
-
 void rvk_pass_stage_clear_color(MAYBE_UNUSED RvkPass* pass, const GeoColor clearColor) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
@@ -862,7 +845,8 @@ static void rvk_pass_stage_global_image_internal(
   if (UNLIKELY(image->type == RvkImageType_ColorSourceCube)) {
     log_e("Cube images cannot be bound globally");
     const RvkRepositoryId missing = RvkRepositoryId_MissingTexture;
-    image = &rvk_repository_texture_get(pass->dev->repository, missing)->image;
+    // TODO: This cast violates const-correctness.
+    image = (RvkImage*)&rvk_repository_texture_get(pass->dev->repository, missing)->image;
   }
 
   const u32 bindIndex = pass_global_data_max + imageIndex;
@@ -997,8 +981,8 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
   RvkPassInvoc* invoc = rvk_pass_invoc_active(pass);
   diag_assert_msg(invoc, "Pass invocation not active");
 
-  RvkGraphic* graphic           = draw->graphic;
-  const u16   reqGlobalBindings = graphic->globalBindings;
+  const RvkGraphic* graphic           = draw->graphic;
+  const u16         reqGlobalBindings = graphic->globalBindings;
 
   if (UNLIKELY(graphic->outputMask != stage->attachColorMask)) {
     log_e(
@@ -1041,7 +1025,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
   rvk_debug_label_begin(
       pass->dev->debug, frame->vkCmdBuf, geo_color_green, "draw_{}", fmt_text(graphic->dbgName));
 
-  rvk_graphic_bind(graphic, pass->dev, frame->vkCmdBuf);
+  rvk_graphic_bind(graphic, pass->dev, pass, frame->vkCmdBuf);
 
   if (graphic->flags & RvkGraphicFlags_RequireDrawSet) {
     rvk_pass_bind_draw(

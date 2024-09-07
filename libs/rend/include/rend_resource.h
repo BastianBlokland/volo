@@ -1,6 +1,9 @@
 #pragma once
 #include "ecs_module.h"
 
+// Forward declare from 'asset_manager.h'.
+typedef enum eAssetGraphicPass AssetGraphicPass;
+
 /**
  * Renderer resource.
  */
@@ -32,6 +35,7 @@ String rend_res_texture_format_str(const RendResTextureComp*);
 usize  rend_res_texture_memory(const RendResTextureComp*);
 
 /**
- * Get the render-order for the given graphic.
+ * Get the render pass for the given graphic.
  */
-i32 rend_res_render_order(const RendResGraphicComp*);
+AssetGraphicPass rend_res_pass(const RendResGraphicComp*);
+i32              rend_res_pass_order(const RendResGraphicComp*);

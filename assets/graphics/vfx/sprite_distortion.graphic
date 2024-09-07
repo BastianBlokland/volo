@@ -1,4 +1,5 @@
 {
+  "pass": "Distortion",
   "shaders": [
     { "shaderId": "shaders/vfx/sprite.vert" },
     { "shaderId": "shaders/vfx/sprite_distortion.frag" }

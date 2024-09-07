@@ -1,10 +1,11 @@
 {
+  "pass": "Post",
+  "passOrder": -100,
   "shaders": [
     { "shaderId": "shaders/fullscreen.vert" },
     { "shaderId": "shaders/tonemapper.frag" }
   ],
   "vertexCount": 3,
-  "renderOrder": -100,
   "depth": "AlwaysNoWrite",
   "cull": "None"
 }

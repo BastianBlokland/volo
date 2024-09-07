@@ -29,7 +29,7 @@ RendBuilderBuffer* rend_builder_buffer(const RendBuilder*);
 void rend_builder_pass_push(RendBuilderBuffer*, RvkPass*);
 void rend_builder_pass_flush(RendBuilderBuffer*);
 
-void rend_builder_draw_push(RendBuilderBuffer*, RvkGraphic*);
+void rend_builder_draw_push(RendBuilderBuffer*, const RvkGraphic*);
 Mem  rend_builder_draw_data(RendBuilderBuffer*, usize size); // 16 byte aligned.
 void rend_builder_draw_data_extern(RendBuilderBuffer*, Mem drawData);
 void rend_builder_draw_instances_extern(RendBuilderBuffer*, u32 count, Mem data, u32 stride);

@@ -1,4 +1,6 @@
 {
+  "pass": "Forward",
+  "passOrder": -100,
   "shaders": [
     { "shaderId": "shaders/fullscreen.vert" },
     {
@@ -14,7 +16,6 @@
     { "textureId": "textures/game/env_brdf_integration.proctex" }
   ],
   "vertexCount": 3,
-  "renderOrder": -100,
   "depth": "GreaterNoWrite",
   "cull": "None"
 }

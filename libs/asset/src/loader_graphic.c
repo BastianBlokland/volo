@@ -130,6 +130,18 @@ ecs_module_init(asset_graphic_module) {
 
 void asset_data_init_graphic(void) {
   // clang-format off
+  data_reg_enum_t(g_dataReg, AssetGraphicPass);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, Geometry);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, Decal);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, Fog);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, FogBlur);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, Shadow);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, AmbientOcclusion);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, Forward);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, Distortion);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, Bloom);
+  data_reg_const_t(g_dataReg, AssetGraphicPass, Post);
+
   data_reg_enum_t(g_dataReg, AssetGraphicTopology);
   data_reg_const_t(g_dataReg, AssetGraphicTopology, Triangles);
   data_reg_const_t(g_dataReg, AssetGraphicTopology, TriangleStrip);
@@ -202,11 +214,12 @@ void asset_data_init_graphic(void) {
   data_reg_field_t(g_dataReg, AssetGraphicSampler, mipBlending, data_prim_t(bool), .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetGraphicComp);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, pass, t_AssetGraphicPass);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, passOrder, data_prim_t(i32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicComp, shaders, t_AssetGraphicShader, .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetGraphicComp, samplers, t_AssetGraphicSampler, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicComp, meshId, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetGraphicComp, vertexCount, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetGraphicComp, renderOrder, data_prim_t(i32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicComp, topology, t_AssetGraphicTopology, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicComp, rasterizer, t_AssetGraphicRasterizer, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicComp, lineWidth, data_prim_t(u16), .flags = DataFlags_Opt | DataFlags_NotEmpty);
@@ -227,4 +240,85 @@ void asset_load_graphic(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
   (void)id;
   ecs_world_add_t(world, entity, AssetGraphicLoadComp, .src = src);
+}
+
+String asset_graphic_pass_name(const AssetGraphicPass pass) {
+  static const String g_names[] = {
+      string_static("Geometry"),
+      string_static("Decal"),
+      string_static("Fog"),
+      string_static("FogBlur"),
+      string_static("Shadow"),
+      string_static("AmbientOcclusion"),
+      string_static("Forward"),
+      string_static("Distortion"),
+      string_static("Bloom"),
+      string_static("Post"),
+  };
+  ASSERT(array_elems(g_names) == AssetGraphicPass_Count, "Incorrect number of names");
+  return g_names[pass];
+}
+
+String asset_graphic_topology_name(const AssetGraphicTopology topology) {
+  static const String g_names[] = {
+      string_static("Triangles"),
+      string_static("TriangleStrip"),
+      string_static("TriangleFan"),
+      string_static("Lines"),
+      string_static("LineStrip"),
+      string_static("Points"),
+  };
+  ASSERT(array_elems(g_names) == AssetGraphicTopology_Count, "Incorrect number of names");
+  return g_names[topology];
+}
+
+String asset_graphic_rasterizer_name(const AssetGraphicRasterizer rasterizer) {
+  static const String g_names[] = {
+      string_static("Fill"),
+      string_static("Lines"),
+      string_static("Points"),
+  };
+  ASSERT(array_elems(g_names) == AssetGraphicRasterizer_Count, "Incorrect number of names");
+  return g_names[rasterizer];
+}
+
+String asset_graphic_blend_name(const AssetGraphicBlend blend) {
+  static const String g_names[] = {
+      string_static("None"),
+      string_static("Alpha"),
+      string_static("AlphaConstant"),
+      string_static("Additive"),
+      string_static("PreMultiplied"),
+  };
+  ASSERT(array_elems(g_names) == AssetGraphicBlend_Count, "Incorrect number of names");
+  return g_names[blend];
+}
+
+String asset_graphic_depth_name(const AssetGraphicDepth depth) {
+  static const String g_names[] = {
+      string_static("Less"),
+      string_static("LessOrEqual"),
+      string_static("Equal"),
+      string_static("Greater"),
+      string_static("GreaterOrEqual"),
+      string_static("Always"),
+      string_static("LessNoWrite"),
+      string_static("LessOrEqualNoWrite"),
+      string_static("EqualNoWrite"),
+      string_static("GreaterNoWrite"),
+      string_static("GreaterOrEqualNoWrite"),
+      string_static("AlwaysNoWrite"),
+  };
+  ASSERT(array_elems(g_names) == AssetGraphicDepth_Count, "Incorrect number of names");
+  return g_names[depth];
+}
+
+String asset_graphic_cull_name(const AssetGraphicCull cull) {
+  static const String g_names[] = {
+      string_static("Back"),
+      string_static("Front"),
+      string_static("None"),
+  };
+  ASSERT(array_elems(g_names) == AssetGraphicCull_Count, "Incorrect number of names");
+  return g_names[cull];
 }

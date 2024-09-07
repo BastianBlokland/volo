@@ -6,6 +6,8 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "pass": { "title": "AssetGraphicPass", "$ref": "#/$defs/AssetGraphicPass" },
+        "passOrder": { "title": "i32", "type": "integer", "minimum": -2147483648, "maximum": 2147483647 },
         "shaders": {
           "type": "array",
           "minItems": 1,
@@ -17,7 +19,6 @@
         },
         "meshId": { "title": "String", "type": "string", "minLength": 1 },
         "vertexCount": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
-        "renderOrder": { "title": "i32", "type": "integer", "minimum": -2147483648, "maximum": 2147483647 },
         "topology": { "title": "AssetGraphicTopology", "$ref": "#/$defs/AssetGraphicTopology" },
         "rasterizer": { "title": "AssetGraphicRasterizer", "$ref": "#/$defs/AssetGraphicRasterizer" },
         "lineWidth": { "title": "u16", "type": "integer", "exclusiveMinimum": 0, "maximum": 65535 },
@@ -30,9 +31,23 @@
         "depth": { "title": "AssetGraphicDepth", "$ref": "#/$defs/AssetGraphicDepth" },
         "cull": { "title": "AssetGraphicCull", "$ref": "#/$defs/AssetGraphicCull" }
       },
-      "required": [ "shaders" ],
+      "required": [ "pass", "shaders" ],
       "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"shaders\": [\n    {\n      \"shaderId\": \"placeholder\"\n    }\n  ]\n}" }
+        { "label": "New", "body": "^{\n  \"pass\": \"Geometry\",\n  \"shaders\": [\n    {\n      \"shaderId\": \"placeholder\"\n    }\n  ]\n}" }
+      ]
+    },
+    "AssetGraphicPass": {
+      "enum": [
+        "Geometry",
+        "Decal",
+        "Fog",
+        "FogBlur",
+        "Shadow",
+        "AmbientOcclusion",
+        "Forward",
+        "Distortion",
+        "Bloom",
+        "Post"
       ]
     },
     "AssetGraphicShader": {

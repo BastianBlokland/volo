@@ -133,6 +133,17 @@ StringHash data_name_hash(const DataReg* reg, const DataType type) {
   return data_decl(reg, type)->id.hash;
 }
 
+String data_const_name(const DataReg* reg, const DataType enumType, const i32 value) {
+  const DataDecl* decl = data_decl(reg, enumType);
+  diag_assert(decl->kind == DataKind_Enum);
+  dynarray_for_t(&decl->val_enum.consts, DataDeclConst, constDecl) {
+    if (constDecl->value == value) {
+      return constDecl->id.name;
+    }
+  }
+  return string_empty;
+}
+
 usize data_size(const DataReg* reg, const DataType type) { return data_decl(reg, type)->size; }
 
 usize data_align(const DataReg* reg, const DataType type) { return data_decl(reg, type)->align; }

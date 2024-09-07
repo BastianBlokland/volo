@@ -1,4 +1,5 @@
 {
+  "pass": "Shadow",
   "shaders": [
     { "shaderId": "shaders/dyn_depth_standard.vert" },
     { "shaderId": "shaders/dyn_depth.frag" }

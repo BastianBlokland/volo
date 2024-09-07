@@ -29,7 +29,7 @@ struct sRendBuilder {
 static i8 builder_draw_compare(const void* a, const void* b) {
   const RvkPassDraw* drawA = a;
   const RvkPassDraw* drawB = b;
-  return compare_i32(&drawA->graphic->renderOrder, &drawB->graphic->renderOrder);
+  return compare_i32(&drawA->graphic->passOrder, &drawB->graphic->passOrder);
 }
 
 RendBuilder* rend_builder_create(Allocator* alloc) {
@@ -81,7 +81,7 @@ void rend_builder_pass_flush(RendBuilderBuffer* buffer) {
   buffer->pass = null;
 }
 
-void rend_builder_draw_push(RendBuilderBuffer* buffer, RvkGraphic* graphic) {
+void rend_builder_draw_push(RendBuilderBuffer* buffer, const RvkGraphic* graphic) {
   diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
   diag_assert_msg(!buffer->draw, "RendBuilder: Draw already active");
 

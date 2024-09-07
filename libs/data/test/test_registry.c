@@ -205,6 +205,21 @@ spec(registry) {
     check_eq_int(data_align(reg, t_MyCustomEnum), alignof(MyCustomEnum));
   }
 
+  it("can retrieve the name of an enum constant") {
+    enum MyCustomEnum {
+      MyCustomEnum_A = -42,
+      MyCustomEnum_B = 42,
+    };
+
+    data_reg_enum_t(reg, MyCustomEnum);
+    data_reg_const_t(reg, MyCustomEnum, A);
+    data_reg_const_t(reg, MyCustomEnum, B);
+
+    check_eq_string(data_const_name(reg, t_MyCustomEnum, -42), string_lit("A"));
+    check_eq_string(data_const_name(reg, t_MyCustomEnum, 42), string_lit("B"));
+    check_eq_string(data_const_name(reg, t_MyCustomEnum, 0), string_empty);
+  }
+
   it("can register custom multi enums") {
     typedef enum {
       MyCustomFlags_A = 1 << 0,

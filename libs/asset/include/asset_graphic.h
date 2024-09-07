@@ -4,6 +4,22 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
+typedef enum eAssetGraphicPass {
+  AssetGraphicPass_None     = -1,
+  AssetGraphicPass_Geometry = 0,
+  AssetGraphicPass_Decal,
+  AssetGraphicPass_Fog,
+  AssetGraphicPass_FogBlur,
+  AssetGraphicPass_Shadow,
+  AssetGraphicPass_AmbientOcclusion,
+  AssetGraphicPass_Forward,
+  AssetGraphicPass_Distortion,
+  AssetGraphicPass_Bloom,
+  AssetGraphicPass_Post,
+
+  AssetGraphicPass_Count,
+} AssetGraphicPass;
+
 typedef enum {
   AssetGraphicTopology_Triangles,     // Separate triangles with 3 vertices.
   AssetGraphicTopology_TriangleStrip, // Form a strip of triangles (triangle connected to the last.
@@ -77,7 +93,7 @@ typedef enum {
   AssetGraphicCull_Count,
 } AssetGraphicCull;
 
-typedef struct {
+typedef struct sAssetGraphicOverride {
   String name;
   u8     binding;
   f64    value;
@@ -99,12 +115,13 @@ typedef struct {
 } AssetGraphicSampler;
 
 ecs_comp_extern_public(AssetGraphicComp) {
+  AssetGraphicPass pass;
+  i32              passOrder;
   HeapArray_t(AssetGraphicShader) shaders;
   HeapArray_t(AssetGraphicSampler) samplers;
   String                 meshId; // Mutually exclusive with 'vertexCount'.
   EcsEntityId            mesh;
   u32                    vertexCount; // Mutually exclusive with 'mesh'.
-  i32                    renderOrder;
   AssetGraphicTopology   topology;
   AssetGraphicRasterizer rasterizer;
   u16                    lineWidth;  // Line width (in pixels) when the rasterizer mode is 'lines'.
@@ -126,3 +143,10 @@ ecs_comp_extern_public(AssetGraphicComp) {
 };
 
 extern DataMeta g_assetGraphicDefMeta;
+
+String asset_graphic_pass_name(AssetGraphicPass);
+String asset_graphic_topology_name(AssetGraphicTopology);
+String asset_graphic_rasterizer_name(AssetGraphicRasterizer);
+String asset_graphic_blend_name(AssetGraphicBlend);
+String asset_graphic_depth_name(AssetGraphicDepth);
+String asset_graphic_cull_name(AssetGraphicCull);

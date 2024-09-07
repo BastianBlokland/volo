@@ -1,4 +1,5 @@
 {
+  "pass": "Decal",
   "shaders": [
     { "shaderId": "shaders/vfx/stamp.vert" },
     { "shaderId": "shaders/vfx/stamp.frag" }

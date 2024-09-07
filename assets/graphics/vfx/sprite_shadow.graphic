@@ -1,4 +1,6 @@
 {
+  "pass": "Shadow",
+  "passOrder": 1,
   "shaders": [
     { "shaderId": "shaders/vfx/sprite.vert" },
     { "shaderId": "shaders/vfx/sprite_depth.frag" }
@@ -7,7 +9,6 @@
     { "textureId": "textures/vfx/sprite.atlas" }
   ],
   "vertexCount": 6,
-  "renderOrder": 1,
   "depthClamp": true,
   "cull": "None"
 }

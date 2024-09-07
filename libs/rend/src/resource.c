@@ -111,7 +111,7 @@ ecs_comp_define(RendResUnloadComp) {
 
 static void ecs_destruct_graphic_comp(void* data) {
   RendResGraphicComp* comp = data;
-  rvk_graphic_destroy(comp->graphic, comp->device);
+  rvk_graphic_destroy((RvkGraphic*)comp->graphic, comp->device);
 }
 
 static void ecs_destruct_shader_comp(void* data) {
@@ -371,14 +371,20 @@ static bool rend_res_dependencies_wait(EcsWorld* world, EcsIterator* resourceItr
   return ready;
 }
 
-static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resourceItr) {
-  const EcsEntityId       entity            = ecs_view_entity(resourceItr);
-  const String            id                = asset_id(ecs_view_read_t(resourceItr, AssetComp));
-  RendResComp*            resComp           = ecs_view_write_t(resourceItr, RendResComp);
-  const AssetGraphicComp* maybeAssetGraphic = ecs_view_read_t(resourceItr, AssetGraphicComp);
-  const AssetShaderComp*  maybeAssetShader  = ecs_view_read_t(resourceItr, AssetShaderComp);
-  const AssetMeshComp*    maybeAssetMesh    = ecs_view_read_t(resourceItr, AssetMeshComp);
-  const AssetTextureComp* maybeAssetTexture = ecs_view_read_t(resourceItr, AssetTextureComp);
+static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIterator* resItr) {
+  /**
+   * NOTE: We're getting a mutable RvkDevice pointer from a read-access on RendPlatformComp. This
+   * means we have to make sure that all api's we use from RvkDevice are actually thread-safe.
+   */
+  RvkDevice* dev = plat->device;
+
+  const EcsEntityId       entity            = ecs_view_entity(resItr);
+  const String            id                = asset_id(ecs_view_read_t(resItr, AssetComp));
+  RendResComp*            resComp           = ecs_view_write_t(resItr, RendResComp);
+  const AssetGraphicComp* maybeAssetGraphic = ecs_view_read_t(resItr, AssetGraphicComp);
+  const AssetShaderComp*  maybeAssetShader  = ecs_view_read_t(resItr, AssetShaderComp);
+  const AssetMeshComp*    maybeAssetMesh    = ecs_view_read_t(resItr, AssetMeshComp);
+  const AssetTextureComp* maybeAssetTexture = ecs_view_read_t(resItr, AssetTextureComp);
 
   if (maybeAssetGraphic) {
     RvkGraphic* graphic = rvk_graphic_create(dev, maybeAssetGraphic, id);
@@ -392,10 +398,8 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
         resComp->state = RendResLoadState_FinishedFailure;
         return false;
       }
-      EcsIterator*             shaderItr  = ecs_view_at(shaderView, ptr->shader);
-      const RendResShaderComp* shaderComp = ecs_view_read_t(shaderItr, RendResShaderComp);
-      rvk_graphic_shader_add(
-          graphic, shaderComp->shader, ptr->overrides.values, ptr->overrides.count);
+      EcsIterator* shaderItr = ecs_view_at(shaderView, ptr->shader);
+      rvk_graphic_add_shader(graphic, ecs_view_read_t(shaderItr, RendResShaderComp)->shader);
     }
 
     // Add mesh.
@@ -406,9 +410,8 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
         resComp->state = RendResLoadState_FinishedFailure;
         return false;
       }
-      EcsIterator*           meshItr  = ecs_view_at(meshView, maybeAssetGraphic->mesh);
-      const RendResMeshComp* meshComp = ecs_view_read_t(meshItr, RendResMeshComp);
-      rvk_graphic_mesh_add(graphic, meshComp->mesh);
+      EcsIterator* meshItr = ecs_view_at(meshView, maybeAssetGraphic->mesh);
+      rvk_graphic_add_mesh(graphic, ecs_view_read_t(meshItr, RendResMeshComp)->mesh);
     }
 
     // Add samplers.
@@ -421,7 +424,14 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
       }
       EcsIterator*              textureItr  = ecs_view_at(textureView, ptr->texture);
       const RendResTextureComp* textureComp = ecs_view_read_t(textureItr, RendResTextureComp);
-      rvk_graphic_sampler_add(graphic, textureComp->texture, ptr);
+      rvk_graphic_add_sampler(graphic, maybeAssetGraphic, textureComp->texture, ptr);
+    }
+
+    RvkPass* pass = plat->passes[maybeAssetGraphic->pass];
+    if (UNLIKELY(!rvk_graphic_finalize(graphic, maybeAssetGraphic, dev, pass))) {
+      log_e("Invalid graphic", log_param("graphic", fmt_text(id)));
+      resComp->state = RendResLoadState_FinishedFailure;
+      return false;
     }
 
     const RendResGlobalDef* globalDef = rend_res_global_lookup(id);
@@ -495,11 +505,6 @@ ecs_system_define(RendResLoadSys) {
   if (!platform) {
     return;
   }
-  /**
-   * NOTE: We're getting a mutable RvkDevice pointer from a read-access on RendPlatformComp. This
-   * means we have to make sure that all api's we use from RvkDevice are actually thread-safe.
-   */
-  RvkDevice* device = platform->device;
 
   TimeDuration loadTime = 0;
 
@@ -546,7 +551,7 @@ ecs_system_define(RendResLoadSys) {
       trace_begin_msg("rend_res_create", TraceColor_Blue, "{}", fmt_text(traceMsg));
 
       const TimeSteady loadStart = time_steady_clock();
-      if (rend_res_create(device, world, itr)) {
+      if (rend_res_create(platform, world, itr)) {
         ++resComp->state;
       } else {
         diag_assert(resComp->state == RendResLoadState_FinishedFailure);
@@ -818,7 +823,8 @@ usize rend_res_texture_memory(const RendResTextureComp* comp) {
   return comp->texture->image.mem.size;
 }
 
-i32 rend_res_render_order(const RendResGraphicComp* comp) { return comp->graphic->renderOrder; }
+AssetGraphicPass rend_res_pass(const RendResGraphicComp* comp) { return comp->graphic->passId; }
+i32 rend_res_pass_order(const RendResGraphicComp* comp) { return comp->graphic->passOrder; }
 
 bool rend_res_request(EcsWorld* world, const EcsEntityId assetEntity) {
   return rend_res_request_internal(world, assetEntity, RendResFlags_None);

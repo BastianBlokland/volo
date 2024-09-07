@@ -39,11 +39,11 @@ typedef struct sRvkRepository RvkRepository;
 RvkRepository* rvk_repository_create(void);
 void           rvk_repository_destroy(RvkRepository*);
 
-void rvk_repository_texture_set(RvkRepository*, RvkRepositoryId, RvkTexture*);
-void rvk_repository_graphic_set(RvkRepository*, RvkRepositoryId, RvkGraphic*);
+void rvk_repository_texture_set(RvkRepository*, RvkRepositoryId, const RvkTexture*);
+void rvk_repository_graphic_set(RvkRepository*, RvkRepositoryId, const RvkGraphic*);
 
 void rvk_repository_unset(RvkRepository*, RvkRepositoryId);
 
-RvkTexture* rvk_repository_texture_get(const RvkRepository*, RvkRepositoryId);
-RvkGraphic* rvk_repository_graphic_get(const RvkRepository*, RvkRepositoryId);
-RvkGraphic* rvk_repository_graphic_get_maybe(const RvkRepository*, RvkRepositoryId);
+const RvkTexture* rvk_repository_texture_get(const RvkRepository*, RvkRepositoryId);
+const RvkGraphic* rvk_repository_graphic_get(const RvkRepository*, RvkRepositoryId);
+const RvkGraphic* rvk_repository_graphic_get_maybe(const RvkRepository*, RvkRepositoryId);

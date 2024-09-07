@@ -1,10 +1,11 @@
 {
+  "pass": "Post",
+  "passOrder": -10,
   "shaders": [
     { "shaderId": "shaders/hud/minimap.vert" },
     { "shaderId": "shaders/hud/minimap.frag" }
   ],
   "vertexCount": 6,
-  "renderOrder": -10,
   "blend": "Alpha",
   "depth": "AlwaysNoWrite",
   "cull": "None"

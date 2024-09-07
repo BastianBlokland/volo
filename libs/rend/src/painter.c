@@ -50,7 +50,7 @@ ecs_view_define(GlobalView) {
 ecs_view_define(ObjView) { ecs_access_read(RendObjectComp); }
 
 ecs_view_define(ResourceView) {
-  ecs_access_maybe_write(RendResGraphicComp);
+  ecs_access_maybe_read(RendResGraphicComp);
   ecs_access_maybe_read(RendResMeshComp);
   ecs_access_maybe_read(RendResTextureComp);
   ecs_access_with(RendResFinishedComp);
@@ -96,6 +96,7 @@ static RendView painter_view_3d_create(
 }
 
 typedef struct {
+  RvkDevice*                    dev;
   RvkCanvas*                    canvas;
   RendBuilderBuffer*            builder;
   const RendSettingsComp*       settings;
@@ -106,6 +107,7 @@ typedef struct {
 } RendPaintContext;
 
 static RendPaintContext painter_context(
+    RvkDevice*                    dev,
     RvkCanvas*                    canvas,
     RendBuilderBuffer*            builder,
     const RendSettingsComp*       settings,
@@ -115,6 +117,7 @@ static RendPaintContext painter_context(
     RendView                      view) {
 
   return (RendPaintContext){
+      .dev            = dev,
       .canvas         = canvas,
       .builder        = builder,
       .settings       = settings,
@@ -186,11 +189,11 @@ static void painter_stage_global_data(
   rvk_pass_stage_global_data(ctx->pass, mem_var(data), 0);
 }
 
-static RvkGraphic* painter_get_graphic(EcsIterator* resourceItr, const EcsEntityId resource) {
+static const RvkGraphic* painter_get_graphic(EcsIterator* resourceItr, const EcsEntityId resource) {
   if (!ecs_view_maybe_jump(resourceItr, resource)) {
     return null; // Resource not loaded.
   }
-  RendResGraphicComp* graphicResource = ecs_view_write_t(resourceItr, RendResGraphicComp);
+  const RendResGraphicComp* graphicResource = ecs_view_read_t(resourceItr, RendResGraphicComp);
   if (!graphicResource) {
     log_e("Invalid graphic asset", log_param("entity", ecs_entity_fmt(resource)));
     return null;
@@ -211,9 +214,9 @@ static const RvkTexture* painter_get_texture(EcsIterator* resourceItr, const Ecs
 }
 
 static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id, const Mem data) {
-  RvkRepository* repo    = rvk_canvas_repository(ctx->canvas);
-  RvkGraphic*    graphic = rvk_repository_graphic_get_maybe(repo, id);
-  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
+  const RvkRepository* repo    = rvk_canvas_repository(ctx->canvas);
+  const RvkGraphic*    graphic = rvk_repository_graphic_get_maybe(repo, id);
+  if (graphic && rvk_graphic_is_ready(graphic, ctx->dev)) {
     rend_builder_draw_push(ctx->builder, graphic);
     if (data.size) {
       mem_cpy(rend_builder_draw_data(ctx->builder, data.size), data);
@@ -243,8 +246,8 @@ static SceneTags painter_push_objects_simple(
 
     // Retrieve and prepare the object's graphic.
     const EcsEntityId graphicResource = rend_object_resource(obj, RendObjectResource_Graphic);
-    RvkGraphic*       graphic         = painter_get_graphic(resourceItr, graphicResource);
-    if (!graphic || !rvk_pass_prepare(ctx->pass, graphic)) {
+    const RvkGraphic* graphic         = painter_get_graphic(resourceItr, graphicResource);
+    if (!graphic || !rvk_graphic_is_ready(graphic, ctx->dev)) {
       continue; // Graphic not ready to be drawn.
     }
 
@@ -253,7 +256,7 @@ static SceneTags painter_push_objects_simple(
     const RvkTexture* texture         = null;
     if (textureResource) {
       texture = painter_get_texture(resourceItr, textureResource);
-      if (!texture || !rvk_pass_prepare_texture(ctx->pass, texture)) {
+      if (!texture || !rvk_texture_is_ready(texture, ctx->dev)) {
         continue; // Object uses a 'per draw' texture which is not ready.
       }
     }
@@ -279,8 +282,8 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
     requiredAny |= RendObjectFlags_VfxSprite; // Include vfx sprites.
   }
 
-  RvkRepository* repo        = rvk_canvas_repository(ctx->canvas);
-  EcsIterator*   resourceItr = ecs_view_itr(resourceView);
+  const RvkRepository* repo        = rvk_canvas_repository(ctx->canvas);
+  EcsIterator*         resourceItr = ecs_view_itr(resourceView);
 
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
@@ -288,13 +291,13 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
       continue; // Object shouldn't be included in the shadow pass.
     }
     const EcsEntityId graphicOriginalRes = rend_object_resource(obj, RendObjectResource_Graphic);
-    RvkGraphic*       graphicOriginal    = painter_get_graphic(resourceItr, graphicOriginalRes);
+    const RvkGraphic* graphicOriginal    = painter_get_graphic(resourceItr, graphicOriginalRes);
     if (!graphicOriginal) {
       continue; // Graphic not loaded.
     }
     const bool     isVfxSprite = (rend_object_flags(obj) & RendObjectFlags_VfxSprite) != 0;
     const RvkMesh* objMesh     = graphicOriginal->mesh;
-    if (!isVfxSprite && (!objMesh || !rvk_pass_prepare_mesh(ctx->pass, objMesh))) {
+    if (!isVfxSprite && (!objMesh || !rvk_mesh_is_ready(objMesh, ctx->dev))) {
       continue; // Graphic is not a vfx sprite and does not have a mesh to draw a shadow for.
     }
     RvkImage* objAlphaImg = null;
@@ -302,7 +305,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
     const bool hasAlphaTexture = (graphicOriginal->samplerMask & (1 << AlphaTextureIndex)) != 0;
     if (graphicOriginal->flags & RvkGraphicFlags_MayDiscard && hasAlphaTexture) {
       const RvkTexture* alphaTexture = graphicOriginal->samplerTextures[AlphaTextureIndex];
-      if (!alphaTexture || !rvk_pass_prepare_texture(ctx->pass, alphaTexture)) {
+      if (!alphaTexture || !rvk_texture_is_ready(alphaTexture, ctx->dev)) {
         continue; // Graphic uses discard but has no alpha texture.
       }
       // TODO: This cast violates const-correctness.
@@ -316,12 +319,12 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
     } else {
       graphicId = objAlphaImg ? RvkRepositoryId_ShadowClipGraphic : RvkRepositoryId_ShadowGraphic;
     }
-    RvkGraphic* shadowGraphic = rvk_repository_graphic_get_maybe(repo, graphicId);
+    const RvkGraphic* shadowGraphic = rvk_repository_graphic_get_maybe(repo, graphicId);
     if (!shadowGraphic) {
       continue; // Shadow graphic not loaded.
     }
 
-    if (rvk_pass_prepare(ctx->pass, shadowGraphic)) {
+    if (rvk_graphic_is_ready(shadowGraphic, ctx->dev)) {
       rend_builder_draw_push(ctx->builder, shadowGraphic);
       rend_builder_draw_mesh(ctx->builder, objMesh);
       if (objAlphaImg) {
@@ -335,10 +338,10 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
 }
 
 static void painter_push_fog(RendPaintContext* ctx, const RendFogComp* fog, RvkImage* fogMap) {
-  RvkRepository*        repo      = rvk_canvas_repository(ctx->canvas);
+  const RvkRepository*  repo      = rvk_canvas_repository(ctx->canvas);
   const RvkRepositoryId graphicId = RvkRepositoryId_FogGraphic;
-  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
-  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
+  const RvkGraphic*     graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
+  if (graphic && rvk_graphic_is_ready(graphic, ctx->dev)) {
     typedef struct {
       ALIGNAS(16)
       GeoMatrix fogViewProj;
@@ -436,14 +439,14 @@ static void painter_push_tonemapping(RendPaintContext* ctx) {
 
 static void
 painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f32 exposure) {
-  RvkRepository* repo = rvk_canvas_repository(ctx->canvas);
-  RvkGraphic*    graphic;
+  const RvkRepository* repo = rvk_canvas_repository(ctx->canvas);
+  const RvkGraphic*    graphic;
   if (image->type == RvkImageType_ColorSourceCube) {
     graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_DebugImageViewerCubeGraphic);
   } else {
     graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_DebugImageViewerGraphic);
   }
-  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
+  if (graphic && rvk_graphic_is_ready(graphic, ctx->dev)) {
     typedef struct {
       ALIGNAS(16)
       u16 imageChannels;
@@ -497,10 +500,10 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
 
 static void
 painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspect, const RvkMesh* mesh) {
-  RvkRepository*        repo      = rvk_canvas_repository(ctx->canvas);
+  const RvkRepository*  repo      = rvk_canvas_repository(ctx->canvas);
   const RvkRepositoryId graphicId = RvkRepositoryId_DebugMeshViewerGraphic;
-  RvkGraphic*           graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
-  if (graphic && rvk_pass_prepare(ctx->pass, graphic)) {
+  const RvkGraphic*     graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
+  if (graphic && rvk_graphic_is_ready(graphic, ctx->dev)) {
     typedef struct {
       ALIGNAS(16)
       GeoMatrix viewProj;
@@ -543,14 +546,14 @@ static void painter_push_debug_resource_viewer(
 
     const RendResTextureComp* textureComp = ecs_view_read_t(itr, RendResTextureComp);
     if (textureComp) {
-      if (rvk_pass_prepare_texture(ctx->pass, textureComp->texture)) {
+      if (rvk_texture_is_ready(textureComp->texture, ctx->dev)) {
         const f32 exposure = 1.0f;
         // TODO: This cast violates const-correctness.
         painter_push_debug_image_viewer(ctx, (RvkImage*)&textureComp->texture->image, exposure);
       }
     }
     const RendResMeshComp* meshComp = ecs_view_read_t(itr, RendResMeshComp);
-    if (meshComp && rvk_pass_prepare_mesh(ctx->pass, meshComp->mesh)) {
+    if (meshComp && rvk_mesh_is_ready(meshComp->mesh, ctx->dev)) {
       painter_push_debug_mesh_viewer(ctx, aspect, meshComp->mesh);
     }
   }
@@ -558,8 +561,8 @@ static void painter_push_debug_resource_viewer(
 
 static void
 painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* resourceView) {
-  RvkRepository* repo        = rvk_canvas_repository(ctx->canvas);
-  EcsIterator*   resourceItr = ecs_view_itr(resourceView);
+  const RvkRepository* repo        = rvk_canvas_repository(ctx->canvas);
+  EcsIterator*         resourceItr = ecs_view_itr(resourceView);
 
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
@@ -567,12 +570,12 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
       continue; // Not a object we can render a wireframe for.
     }
     const EcsEntityId graphicOriginalRes = rend_object_resource(obj, RendObjectResource_Graphic);
-    RvkGraphic*       graphicOriginal    = painter_get_graphic(resourceItr, graphicOriginalRes);
+    const RvkGraphic* graphicOriginal    = painter_get_graphic(resourceItr, graphicOriginalRes);
     if (!graphicOriginal) {
       continue; // Graphic not loaded.
     }
     const RvkMesh* mesh = graphicOriginal->mesh;
-    if (!mesh || !rvk_pass_prepare_mesh(ctx->pass, mesh)) {
+    if (!mesh || !rvk_mesh_is_ready(mesh, ctx->dev)) {
       continue; // Graphic does not have a mesh to draw a wireframe for (or its not ready).
     }
 
@@ -584,8 +587,8 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
     } else {
       graphicId = RvkRepositoryId_DebugWireframeGraphic;
     }
-    RvkGraphic* graphicWireframe = rvk_repository_graphic_get_maybe(repo, graphicId);
-    if (!graphicWireframe || !rvk_pass_prepare(ctx->pass, graphicWireframe)) {
+    const RvkGraphic* graphicWireframe = rvk_repository_graphic_get_maybe(repo, graphicId);
+    if (!graphicWireframe || !rvk_graphic_is_ready(graphicWireframe, ctx->dev)) {
       continue; // Wireframe graphic not loaded.
     }
 
@@ -595,7 +598,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
     const RvkTexture* texture         = null;
     if (textureResource) {
       texture = painter_get_texture(resourceItr, textureResource);
-      if (!texture || !rvk_pass_prepare_texture(ctx->pass, texture)) {
+      if (!texture || !rvk_texture_is_ready(texture, ctx->dev)) {
         continue; // Object uses a 'per draw' texture which is not ready.
       }
     }
@@ -613,10 +616,10 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
 
 static void
 painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView, EcsView* resourceView) {
-  RvkRepository*        repository     = rvk_canvas_repository(ctx->canvas);
+  const RvkRepository*  repository     = rvk_canvas_repository(ctx->canvas);
   const RvkRepositoryId debugGraphicId = RvkRepositoryId_DebugSkinningGraphic;
-  RvkGraphic*           debugGraphic = rvk_repository_graphic_get_maybe(repository, debugGraphicId);
-  if (!debugGraphic || !rvk_pass_prepare(ctx->pass, debugGraphic)) {
+  const RvkGraphic*     debugGraphic = rvk_repository_graphic_get_maybe(repository, debugGraphicId);
+  if (!debugGraphic || !rvk_graphic_is_ready(debugGraphic, ctx->dev)) {
     return; // Debug graphic not ready to be drawn.
   }
 
@@ -627,14 +630,14 @@ painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView, EcsView* re
       continue; // Not a skinned object.
     }
     const EcsEntityId graphicOriginalRes = rend_object_resource(obj, RendObjectResource_Graphic);
-    RvkGraphic*       graphicOriginal    = painter_get_graphic(resourceItr, graphicOriginalRes);
+    const RvkGraphic* graphicOriginal    = painter_get_graphic(resourceItr, graphicOriginalRes);
     if (!graphicOriginal) {
       continue; // Graphic not loaded.
     }
     const RvkMesh* mesh = graphicOriginal->mesh;
     diag_assert(mesh);
 
-    if (rvk_pass_prepare_mesh(ctx->pass, mesh)) {
+    if (rvk_mesh_is_ready(mesh, ctx->dev)) {
       rend_builder_draw_push(ctx->builder, debugGraphic);
       rend_builder_draw_mesh(ctx->builder, mesh);
       rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
@@ -666,15 +669,15 @@ static bool rend_canvas_paint_2d(
   RvkImage*     swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
   const RvkSize swapchainSize  = swapchainImage->size;
 
-  RvkPass*  postPass = platform->passes[RendPassId_Post];
+  RvkPass*  postPass = platform->passes[AssetGraphicPass_Post];
   RvkImage* postRes  = rvk_canvas_attach_acquire_color(painter->canvas, postPass, 0, swapchainSize);
   {
     rend_builder_pass_push(builder, postPass);
 
     rvk_canvas_img_clear_color(painter->canvas, postRes, geo_color_black);
 
-    RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, postPass, mainView);
+    RendPaintContext ctx = painter_context(
+        platform->device, painter->canvas, builder, set, setGlobal, time, postPass, mainView);
     rvk_pass_stage_attach_color(postPass, postRes, 0);
     painter_push_objects_simple(
         &ctx, objView, resourceView, RendObjectFlags_Post, RendObjectFlags_None);
@@ -727,7 +730,7 @@ static bool rend_canvas_paint_3d(
 
   // Geometry pass.
   const RvkSize geoSize  = rvk_size_scale(swapchainSize, set->resolutionScale);
-  RvkPass*      geoPass  = platform->passes[RendPassId_Geometry];
+  RvkPass*      geoPass  = platform->passes[AssetGraphicPass_Geometry];
   RvkImage*     geoData0 = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 0, geoSize);
   RvkImage*     geoData1 = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 1, geoSize);
   RvkImage*     geoDepth = rvk_canvas_attach_acquire_depth(painter->canvas, geoPass, geoSize);
@@ -736,8 +739,8 @@ static bool rend_canvas_paint_3d(
     trace_begin("rend_paint_geo", TraceColor_White);
     rend_builder_pass_push(builder, geoPass);
 
-    RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, geoPass, mainView);
+    RendPaintContext ctx = painter_context(
+        platform->device, painter->canvas, builder, set, setGlobal, time, geoPass, mainView);
     rvk_pass_stage_attach_color(geoPass, geoData0, 0);
     rvk_pass_stage_attach_color(geoPass, geoData1, 1);
     rvk_pass_stage_attach_depth(geoPass, geoDepth);
@@ -754,7 +757,7 @@ static bool rend_canvas_paint_3d(
   RvkImage* geoDepthRead = rvk_canvas_attach_acquire_copy(painter->canvas, geoDepth);
 
   // Decal pass.
-  RvkPass* decalPass = platform->passes[RendPassId_Decal];
+  RvkPass* decalPass = platform->passes[AssetGraphicPass_Decal];
   if (set->flags & RendFlags_Decals) {
 
     trace_begin("rend_paint_decals", TraceColor_White);
@@ -763,8 +766,8 @@ static bool rend_canvas_paint_3d(
     // Copy the gbufer data1 image to be able to read the gbuffer normal and tags.
     RvkImage* geoData1Cpy = rvk_canvas_attach_acquire_copy(painter->canvas, geoData1);
 
-    RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, decalPass, mainView);
+    RendPaintContext ctx = painter_context(
+        platform->device, painter->canvas, builder, set, setGlobal, time, decalPass, mainView);
     rvk_pass_stage_global_image(decalPass, geoData1Cpy, 0);
     rvk_pass_stage_global_image(decalPass, geoDepthRead, 1);
     rvk_pass_stage_attach_color(decalPass, geoData0, 0);
@@ -782,7 +785,7 @@ static bool rend_canvas_paint_3d(
 
   // Fog pass.
   const bool    fogActive = rend_fog_active(fog);
-  RvkPass*      fogPass   = platform->passes[RendPassId_Fog];
+  RvkPass*      fogPass   = platform->passes[AssetGraphicPass_Fog];
   const u16     fogRes    = set->fogResolution;
   const RvkSize fogSize   = fogActive ? (RvkSize){fogRes, fogRes} : (RvkSize){1, 1};
   RvkImage*     fogBuffer = rvk_canvas_attach_acquire_color(painter->canvas, fogPass, 0, fogSize);
@@ -795,8 +798,8 @@ static bool rend_canvas_paint_3d(
     const SceneTagFilter fogFilter = {0};
     const RendView       fogView = painter_view_3d_create(fogTrans, fogProj, camEntity, fogFilter);
 
-    RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, fogPass, fogView);
+    RendPaintContext ctx = painter_context(
+        platform->device, painter->canvas, builder, set, setGlobal, time, fogPass, fogView);
     rvk_pass_stage_attach_color(fogPass, fogBuffer, 0);
     painter_stage_global_data(&ctx, fogTrans, fogProj, fogSize, time, RendViewType_Fog);
     painter_push_objects_simple(
@@ -809,12 +812,12 @@ static bool rend_canvas_paint_3d(
   }
 
   // Fog-blur pass.
-  RvkPass* fogBlurPass = platform->passes[RendPassId_FogBlur];
+  RvkPass* fogBlurPass = platform->passes[AssetGraphicPass_FogBlur];
   if (fogActive && set->fogBlurSteps) {
     trace_begin("rend_paint_fog_blur", TraceColor_White);
 
-    RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, fogBlurPass, mainView);
+    RendPaintContext ctx = painter_context(
+        platform->device, painter->canvas, builder, set, setGlobal, time, fogBlurPass, mainView);
 
     struct {
       ALIGNAS(16)
@@ -845,7 +848,7 @@ static bool rend_canvas_paint_3d(
   const bool    shadowsActive = set->flags & RendFlags_Shadows && rend_light_has_shadow(light);
   const RvkSize shadowSize =
       shadowsActive ? (RvkSize){set->shadowResolution, set->shadowResolution} : (RvkSize){1, 1};
-  RvkPass*  shadowPass  = platform->passes[RendPassId_Shadow];
+  RvkPass*  shadowPass  = platform->passes[AssetGraphicPass_Shadow];
   RvkImage* shadowDepth = rvk_canvas_attach_acquire_depth(painter->canvas, shadowPass, shadowSize);
   if (shadowsActive) {
     trace_begin("rend_paint_shadows", TraceColor_White);
@@ -858,8 +861,8 @@ static bool rend_canvas_paint_3d(
         .illegal  = filter.illegal,
     };
     const RendView   shadView = painter_view_3d_create(shadTrans, shadProj, camEntity, shadFilter);
-    RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, shadowPass, shadView);
+    RendPaintContext ctx      = painter_context(
+        platform->device, painter->canvas, builder, set, setGlobal, time, shadowPass, shadView);
     rvk_pass_stage_attach_depth(shadowPass, shadowDepth);
     painter_stage_global_data(&ctx, shadTrans, shadProj, shadowSize, time, RendViewType_Shadow);
     painter_push_shadow(&ctx, objView, resourceView);
@@ -874,14 +877,14 @@ static bool rend_canvas_paint_3d(
   const RvkSize aoSize   = set->flags & RendFlags_AmbientOcclusion
                                ? rvk_size_scale(geoSize, set->aoResolutionScale)
                                : (RvkSize){1, 1};
-  RvkPass*      aoPass   = platform->passes[RendPassId_AmbientOcclusion];
+  RvkPass*      aoPass   = platform->passes[AssetGraphicPass_AmbientOcclusion];
   RvkImage*     aoBuffer = rvk_canvas_attach_acquire_color(painter->canvas, aoPass, 0, aoSize);
   if (set->flags & RendFlags_AmbientOcclusion) {
     trace_begin("rend_paint_ao", TraceColor_White);
     rend_builder_pass_push(builder, aoPass);
 
-    RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, aoPass, mainView);
+    RendPaintContext ctx = painter_context(
+        platform->device, painter->canvas, builder, set, setGlobal, time, aoPass, mainView);
     rvk_pass_stage_global_image(aoPass, geoData1, 0);
     rvk_pass_stage_global_image(aoPass, geoDepthRead, 1);
     rvk_pass_stage_attach_color(aoPass, aoBuffer, 0);
@@ -895,7 +898,7 @@ static bool rend_canvas_paint_3d(
   }
 
   // Forward pass.
-  RvkPass*  fwdPass  = platform->passes[RendPassId_Forward];
+  RvkPass*  fwdPass  = platform->passes[AssetGraphicPass_Forward];
   RvkImage* fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0, geoSize);
   {
     trace_begin("rend_paint_forward", TraceColor_White);
@@ -905,8 +908,8 @@ static bool rend_canvas_paint_3d(
       // NOTE: The debug camera-mode does not draw to the whole image; thus we need to clear it.
       rvk_canvas_img_clear_color(painter->canvas, fwdColor, geo_color_black);
     }
-    RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, fwdPass, mainView);
+    RendPaintContext ctx = painter_context(
+        platform->device, painter->canvas, builder, set, setGlobal, time, fwdPass, mainView);
     rvk_pass_stage_global_image(fwdPass, geoData0, 0);
     rvk_pass_stage_global_image(fwdPass, geoData1, 1);
     rvk_pass_stage_global_image(fwdPass, geoDepthRead, 2);
@@ -951,7 +954,7 @@ static bool rend_canvas_paint_3d(
   const RvkSize distSize = set->flags & RendFlags_Distortion
                                ? rvk_size_scale(geoSize, set->distortionResolutionScale)
                                : (RvkSize){1, 1};
-  RvkPass*      distPass = platform->passes[RendPassId_Distortion];
+  RvkPass*      distPass = platform->passes[AssetGraphicPass_Distortion];
   RvkImage* distBuffer   = rvk_canvas_attach_acquire_color(painter->canvas, distPass, 0, distSize);
   if (set->flags & RendFlags_Distortion) {
     trace_begin("rend_paint_distortion", TraceColor_White);
@@ -965,8 +968,8 @@ static bool rend_canvas_paint_3d(
       rvk_canvas_img_blit(painter->canvas, geoDepth, distDepth);
     }
 
-    RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, distPass, mainView);
+    RendPaintContext ctx = painter_context(
+        platform->device, painter->canvas, builder, set, setGlobal, time, distPass, mainView);
     rvk_pass_stage_attach_color(distPass, distBuffer, 0);
     rvk_pass_stage_attach_depth(distPass, distDepth);
 
@@ -987,13 +990,13 @@ static bool rend_canvas_paint_3d(
   rvk_canvas_attach_release(painter->canvas, geoDepth);
 
   // Bloom pass.
-  RvkPass*  bloomPass = platform->passes[RendPassId_Bloom];
+  RvkPass*  bloomPass = platform->passes[AssetGraphicPass_Bloom];
   RvkImage* bloomOutput;
   if (set->flags & RendFlags_Bloom && set->bloomIntensity > f32_epsilon) {
     trace_begin("rend_paint_bloom", TraceColor_White);
 
-    RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, bloomPass, mainView);
+    RendPaintContext ctx = painter_context(
+        platform->device, painter->canvas, builder, set, setGlobal, time, bloomPass, mainView);
     RvkSize   size = geoSize;
     RvkImage* images[6];
     diag_assert(set->bloomSteps <= array_elems(images));
@@ -1038,14 +1041,14 @@ static bool rend_canvas_paint_3d(
   }
 
   // Post pass.
-  RvkPass*  postPass = platform->passes[RendPassId_Post];
+  RvkPass*  postPass = platform->passes[AssetGraphicPass_Post];
   RvkImage* postRes  = rvk_canvas_attach_acquire_color(painter->canvas, postPass, 0, swapchainSize);
   {
     trace_begin("rend_paint_post", TraceColor_White);
     rend_builder_pass_push(builder, postPass);
 
-    RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, postPass, mainView);
+    RendPaintContext ctx = painter_context(
+        platform->device, painter->canvas, builder, set, setGlobal, time, postPass, mainView);
     rvk_pass_stage_global_image(postPass, fwdColor, 0);
     rvk_pass_stage_global_image(postPass, bloomOutput, 1);
     rvk_pass_stage_global_image(postPass, distBuffer, 2);
@@ -1110,10 +1113,10 @@ ecs_system_define(RendPainterCreateSys) {
     RendPainterComp* p = ecs_world_add_t(world, entity, RendPainterComp, .type = type);
     switch (type) {
     case RendPainterType_2D:
-      p->canvas = rvk_canvas_create(plat->device, win, &plat->passes[RendPassId_Post], 1);
+      p->canvas = rvk_canvas_create(plat->device, win, &plat->passes[AssetGraphicPass_Post], 1);
       break;
     case RendPainterType_3D:
-      p->canvas = rvk_canvas_create(plat->device, win, plat->passes, RendPassId_Count);
+      p->canvas = rvk_canvas_create(plat->device, win, plat->passes, AssetGraphicPass_Count);
       break;
     }
 

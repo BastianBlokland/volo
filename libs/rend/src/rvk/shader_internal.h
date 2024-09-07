@@ -3,6 +3,9 @@
 
 #include "desc_internal.h"
 
+// Forward declare from 'asset_graphic.h'.
+typedef struct sAssetGraphicOverride AssetGraphicOverride;
+
 // Internal forward declarations:
 typedef struct sRvkDevice RvkDevice;
 
@@ -11,12 +14,6 @@ typedef struct sRvkDevice RvkDevice;
 typedef enum {
   RvkShaderFlags_MayKill = 1 << 0, // Shader might kill (aka discard) the invocation.
 } RvkShaderFlags;
-
-typedef struct sRvkShaderOverride {
-  String name;
-  u8     binding;
-  f64    value;
-} RvkShaderOverride;
 
 typedef struct sRvkShader {
   VkShaderStageFlagBits vkStage;
@@ -33,7 +30,8 @@ RvkShader* rvk_shader_create(RvkDevice*, const AssetShaderComp*, String dbgName)
 void       rvk_shader_destroy(RvkShader*, RvkDevice*);
 
 bool rvk_shader_set_used(const RvkShader*, u32 set);
-bool rvk_shader_may_kill(const RvkShader*, const RvkShaderOverride* overrides, usize overrideCount);
+bool rvk_shader_may_kill(
+    const RvkShader*, const AssetGraphicOverride* overrides, usize overrideCount);
 
 /**
  * Create a 'VkSpecializationInfo' structure for specializing this shader with the given overrides.
@@ -41,4 +39,4 @@ bool rvk_shader_may_kill(const RvkShader*, const RvkShaderOverride* overrides, u
  * be used immediately and not be stored.
  */
 VkSpecializationInfo rvk_shader_specialize_scratch(
-    const RvkShader*, const RvkShaderOverride* overrides, usize overrideCount);
+    const RvkShader*, const AssetGraphicOverride* overrides, usize overrideCount);
