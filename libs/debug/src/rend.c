@@ -1,3 +1,4 @@
+#include "asset_graphic.h"
 #include "asset_manager.h"
 #include "core_alloc.h"
 #include "core_array.h"
@@ -101,7 +102,7 @@ ASSERT(array_elems(g_rendTabNames) == DebugRendTab_Count, "Incorrect number of n
 
 typedef enum {
   DebugRendObjectSort_Graphic,
-  DebugRendObjectSort_RenderOrder,
+  DebugRendObjectSort_Order,
   DebugRendObjectSort_Instances,
 
   DebugRendObjectSort_Count,
@@ -188,10 +189,11 @@ static const String g_tonemapperNames[] = {
 };
 
 typedef struct {
-  String graphicName;
-  i32    renderOrder;
-  u32    instanceCount;
-  u32    dataSize, dataInstSize;
+  String           graphicName;
+  AssetGraphicPass pass;
+  i32              passOrder;
+  u32              instanceCount;
+  u32              dataSize, dataInstSize;
 } DebugObjInfo;
 
 typedef enum {
@@ -251,10 +253,13 @@ static i8 rend_obj_compare_name(const void* a, const void* b) {
       field_ptr(a, DebugObjInfo, graphicName), field_ptr(b, DebugObjInfo, graphicName));
 }
 
-static i8 rend_obj_compare_render_order(const void* a, const void* b) {
+static i8 rend_obj_compare_order(const void* a, const void* b) {
   const DebugObjInfo* objA  = a;
   const DebugObjInfo* objB  = b;
-  i8                  order = compare_i32_reverse(&objA->renderOrder, &objB->renderOrder);
+  i8                  order = compare_u32(&objA->pass, &objB->pass);
+  if (!order) {
+    order = compare_i32_reverse(&objA->passOrder, &objB->passOrder);
+  }
   if (!order) {
     order = compare_string(&objA->graphicName, &objB->graphicName);
   }
@@ -608,14 +613,16 @@ static void rend_obj_info_query(DebugRendPanelComp* panelComp, EcsWorld* world) 
         continue;
       }
 
-      String graphicName = string_lit("< unknown >");
-      i32    renderOrder = 0;
+      String           graphicName = string_lit("< unknown >");
+      AssetGraphicPass pass        = 0;
+      i32              passOrder   = 0;
       if (ecs_view_maybe_jump(graphicItr, rend_object_resource(obj, RendObjectResource_Graphic))) {
         const AssetComp*          graphicAssetComp = ecs_view_read_t(graphicItr, AssetComp);
         const RendResGraphicComp* graphicComp = ecs_view_read_t(graphicItr, RendResGraphicComp);
         graphicName                           = asset_id(graphicAssetComp);
         if (graphicComp) {
-          renderOrder = rend_res_render_order(graphicComp);
+          pass      = rend_res_pass(graphicComp);
+          passOrder = rend_res_pass_order(graphicComp);
         }
       }
       *dynarray_push_t(&panelComp->objects, DebugObjInfo) = (DebugObjInfo){
@@ -623,7 +630,8 @@ static void rend_obj_info_query(DebugRendPanelComp* panelComp, EcsWorld* world) 
           .instanceCount = rend_object_instance_count(obj),
           .dataSize      = rend_object_data_size(obj),
           .dataInstSize  = rend_object_data_inst_size(obj),
-          .renderOrder   = renderOrder,
+          .pass          = pass,
+          .passOrder     = passOrder,
       };
     }
   }
@@ -632,8 +640,8 @@ static void rend_obj_info_query(DebugRendPanelComp* panelComp, EcsWorld* world) 
   case DebugRendObjectSort_Graphic:
     dynarray_sort(&panelComp->objects, rend_obj_compare_name);
     break;
-  case DebugRendObjectSort_RenderOrder:
-    dynarray_sort(&panelComp->objects, rend_obj_compare_render_order);
+  case DebugRendObjectSort_Order:
+    dynarray_sort(&panelComp->objects, rend_obj_compare_order);
     break;
   case DebugRendObjectSort_Instances:
     dynarray_sort(&panelComp->objects, rend_obj_compare_instances);
@@ -650,9 +658,9 @@ static void rend_obj_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelCom
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 300);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 70);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 85);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
@@ -660,10 +668,10 @@ static void rend_obj_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelCom
       canvas,
       &table,
       (const UiTableColumnName[]){
-          {string_lit("Graphic"), string_lit("Name of this draw's graphic asset.")},
-          {string_lit("Order"), string_lit("Render order for this draw's graphic.")},
-          {string_lit("Instances"), string_lit("Number of instances in this draw.")},
-          {string_lit("Draw Size"), string_lit("Per draw data-size.")},
+          {string_lit("Graphic"), string_lit("Name of this objects's graphic asset.")},
+          {string_lit("Pass"), string_lit("Pass that this object's graphic will be drawn in.")},
+          {string_lit("Order"), string_lit("Order in the pass.")},
+          {string_lit("Instances"), string_lit("Number of instances of this object.")},
           {string_lit("Inst Size"), string_lit("Per instance data-size.")},
           {string_lit("Total Size"), string_lit("Total data-size.")},
       });
@@ -680,11 +688,11 @@ static void rend_obj_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelCom
 
     ui_label(canvas, objInfo->graphicName, .selectable = true);
     ui_table_next_column(canvas, &table);
-    ui_label(canvas, fmt_write_scratch("{}", fmt_int(objInfo->renderOrder)));
+    ui_label(canvas, fmt_write_scratch("{}", fmt_text(asset_graphic_pass_name(objInfo->pass))));
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("{}", fmt_int(objInfo->passOrder)));
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(objInfo->instanceCount)));
-    ui_table_next_column(canvas, &table);
-    ui_label(canvas, fmt_write_scratch("{}", fmt_size(objInfo->dataSize)));
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_size(objInfo->dataInstSize)));
     ui_table_next_column(canvas, &table);
@@ -1255,7 +1263,7 @@ debug_rend_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPane
       .window           = window,
       .scrollview       = ui_scrollview(),
       .nameFilter       = dynstring_create(g_allocHeap, 32),
-      .objSortMode      = DebugRendObjectSort_RenderOrder,
+      .objSortMode      = DebugRendObjectSort_Order,
       .resSortMode      = DebugRendResSort_Size,
       .objects          = dynarray_create_t(g_allocHeap, DebugObjInfo, 256),
       .resources        = dynarray_create_t(g_allocHeap, DebugResourceInfo, 256),
