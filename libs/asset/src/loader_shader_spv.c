@@ -21,6 +21,7 @@ typedef enum {
   SpvOp_TypeBool          = 20,
   SpvOp_TypeInt           = 21,
   SpvOp_TypeFloat         = 22,
+  SpvOp_TypeVector        = 23,
   SpvOp_TypeImage         = 25,
   SpvOp_TypeSampledImage  = 27,
   SpvOp_TypeStruct        = 30,
@@ -279,6 +280,38 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       case 64:
         out->wellknownTypes[AssetShaderType_f64] = typeId;
         break;
+      }
+    } break;
+    case SpvOp_TypeVector: {
+      /**
+       * Vector type declaration.
+       * https://www.khronos.org/registry/SPIR-V/specs/unified1/SPIRV.html#OpTypeVector
+       */
+      if (data.size < 4) {
+        *err = SpvError_Malformed;
+        return data;
+      }
+      const u32 typeId = data.ptr[1];
+      if (!spv_validate_new_id(typeId, out, err)) {
+        return data;
+      }
+      const u32 componentTypeId = data.ptr[2];
+      if (!spv_validate_id(componentTypeId, out, err)) {
+        return data;
+      }
+      const u32 columnCount = data.ptr[3];
+      if (componentTypeId == out->wellknownTypes[AssetShaderType_f32]) {
+        switch (columnCount) {
+        case 2:
+          out->wellknownTypes[AssetShaderType_f32v2] = typeId;
+          break;
+        case 3:
+          out->wellknownTypes[AssetShaderType_f32v3] = typeId;
+          break;
+        case 4:
+          out->wellknownTypes[AssetShaderType_f32v4] = typeId;
+          break;
+        }
       }
     } break;
     case SpvOp_Decorate: {
