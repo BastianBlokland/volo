@@ -818,7 +818,8 @@ usize rend_res_texture_memory(const RendResTextureComp* comp) {
   return comp->texture->image.mem.size;
 }
 
-i32 rend_res_render_order(const RendResGraphicComp* comp) { return comp->graphic->renderOrder; }
+AssetGraphicPass rend_res_pass(const RendResGraphicComp* comp) { return comp->graphic->pass; }
+i32 rend_res_pass_order(const RendResGraphicComp* comp) { return comp->graphic->passOrder; }
 
 bool rend_res_request(EcsWorld* world, const EcsEntityId assetEntity) {
   return rend_res_request_internal(world, assetEntity, RendResFlags_None);

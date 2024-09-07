@@ -39,6 +39,7 @@ typedef struct {
 typedef struct sRvkGraphic {
   String                 dbgName;
   AssetGraphicPass       pass;
+  i32                    passOrder;
   RvkGraphicFlags        flags : 16;
   AssetGraphicTopology   topology : 8;
   AssetGraphicRasterizer rasterizer : 8;
@@ -51,7 +52,6 @@ typedef struct sRvkGraphic {
   u16                    outputMask;
   u16                    lineWidth;
   f32                    depthBiasConstant, depthBiasSlope;
-  i32                    renderOrder;
   u32                    vertexCount;
   f32                    blendConstant;
   RvkGraphicShader       shaders[rvk_graphic_shaders_max];

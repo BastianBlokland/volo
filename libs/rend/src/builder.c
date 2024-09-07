@@ -29,7 +29,7 @@ struct sRendBuilder {
 static i8 builder_draw_compare(const void* a, const void* b) {
   const RvkPassDraw* drawA = a;
   const RvkPassDraw* drawB = b;
-  return compare_i32(&drawA->graphic->renderOrder, &drawB->graphic->renderOrder);
+  return compare_i32(&drawA->graphic->passOrder, &drawB->graphic->passOrder);
 }
 
 RendBuilder* rend_builder_create(Allocator* alloc) {

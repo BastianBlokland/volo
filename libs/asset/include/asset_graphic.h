@@ -4,7 +4,7 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
-typedef enum {
+typedef enum eAssetGraphicPass {
   AssetGraphicPass_Geometry,
   AssetGraphicPass_Decal,
   AssetGraphicPass_Fog,
