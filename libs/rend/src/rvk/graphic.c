@@ -895,6 +895,7 @@ bool rvk_graphic_finalize(
 }
 
 bool rvk_graphic_is_ready(const RvkGraphic* graphic, const RvkDevice* dev) {
+  diag_assert_msg(graphic->vkPipeline, "Graphic not finalized");
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_Invalid)) {
     return false;
   }
