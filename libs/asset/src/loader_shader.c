@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "data.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -114,6 +115,7 @@ void asset_load_shader_bin(
 }
 
 u32 asset_shader_type_size(const AssetShaderType type) {
+  diag_assert(type < AssetShaderType_Count);
   static const u32 g_sizes[AssetShaderType_Count] = {
       [AssetShaderType_bool]  = sizeof(bool),
       [AssetShaderType_u8]    = sizeof(u8),

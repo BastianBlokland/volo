@@ -53,6 +53,8 @@ typedef enum {
   AssetShaderType_f64,
 
   AssetShaderType_Count,
+  AssetShaderType_None    = 254,
+  AssetShaderType_Unknown = 255,
 } AssetShaderType;
 
 typedef enum {

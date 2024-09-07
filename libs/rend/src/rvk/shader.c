@@ -61,6 +61,7 @@ static RvkDescKind rvk_shader_desc_kind(const AssetShaderResKind resKind) {
 static bool rvk_shader_spec_type(const RvkShader* shader, const u8 binding, AssetShaderType* out) {
   heap_array_for_t(shader->specs, AssetShaderSpec, spec) {
     if (spec->binding == binding) {
+      diag_assert(spec->type < AssetShaderType_Count);
       *out = (AssetShaderType)spec->type;
       return true;
     }
@@ -75,25 +76,6 @@ static AssetShaderSpecDef rvk_shader_spec_default(const RvkShader* shader, const
     }
   }
   return AssetShaderSpecDef_Other;
-}
-
-static usize rvk_shader_spec_size(const AssetShaderType type) {
-  static const usize g_sizes[] = {
-      [AssetShaderType_bool] = sizeof(VkBool32),
-      [AssetShaderType_u8]   = 1,
-      [AssetShaderType_i8]   = 1,
-      [AssetShaderType_u16]  = 2,
-      [AssetShaderType_i16]  = 2,
-      [AssetShaderType_u32]  = 4,
-      [AssetShaderType_i32]  = 4,
-      [AssetShaderType_u64]  = 8,
-      [AssetShaderType_i64]  = 8,
-      [AssetShaderType_f16]  = 2,
-      [AssetShaderType_f32]  = 4,
-      [AssetShaderType_f64]  = 8,
-  };
-  ASSERT(array_elems(g_sizes) == AssetShaderType_Count, "Incorrect number of shader-type sizes");
-  return g_sizes[type];
 }
 
 static Mem rvk_shader_spec_write(Mem output, const AssetShaderType type, const f64 value) {
@@ -126,10 +108,12 @@ static Mem rvk_shader_spec_write(Mem output, const AssetShaderType type, const f
     return mem_consume(output, typeSize);
   }
   case AssetShaderType_Count:
+  case AssetShaderType_None:
+  case AssetShaderType_Unknown:
     break;
   }
 #undef WRITE_TYPE
-  diag_crash();
+  diag_crash_msg("Unsupported shader type: {}", fmt_int(type));
 }
 
 static RvkShaderFlags rvk_shader_flags(const AssetShaderComp* asset) {
@@ -306,7 +290,7 @@ VkSpecializationInfo rvk_shader_specialize_scratch(
     entries[entryCount++] = (VkSpecializationMapEntry){
         .constantID = override->binding,
         .offset     = (u32)(buffer.size - remainingBuffer.size),
-        .size       = rvk_shader_spec_size(type),
+        .size       = asset_shader_type_size(type),
     };
     remainingBuffer = rvk_shader_spec_write(remainingBuffer, type, override->value);
   }
