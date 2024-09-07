@@ -1,5 +1,5 @@
 {
-  "pass": "Forward",
+  "pass": "Shadow",
   "passOrder": 1,
   "shaders": [
     { "shaderId": "shaders/vfx/sprite.vert" },
