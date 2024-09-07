@@ -435,7 +435,11 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
     }
 
     RvkPass* pass = plat->passes[maybeAssetGraphic->pass];
-    rvk_graphic_finalize(graphic, maybeAssetGraphic, dev, pass);
+    if (UNLIKELY(!rvk_graphic_finalize(graphic, maybeAssetGraphic, dev, pass))) {
+      log_e("Invalid graphic", log_param("graphic", fmt_text(id)));
+      resComp->state = RendResLoadState_FinishedFailure;
+      return false;
+    }
 
     const RendResGlobalDef* globalDef = rend_res_global_lookup(id);
     if (globalDef) {
