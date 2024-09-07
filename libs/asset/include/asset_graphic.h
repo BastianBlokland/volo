@@ -142,3 +142,5 @@ ecs_comp_extern_public(AssetGraphicComp) {
 };
 
 extern DataMeta g_assetGraphicDefMeta;
+
+String asset_graphic_pass_name(AssetGraphicPass);

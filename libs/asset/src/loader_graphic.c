@@ -241,3 +241,20 @@ void asset_load_graphic(
   (void)id;
   ecs_world_add_t(world, entity, AssetGraphicLoadComp, .src = src);
 }
+
+String asset_graphic_pass_name(const AssetGraphicPass pass) {
+  static const String g_names[] = {
+      string_static("Geometry"),
+      string_static("Decal"),
+      string_static("Fog"),
+      string_static("FogBlur"),
+      string_static("Shadow"),
+      string_static("AmbientOcclusion"),
+      string_static("Forward"),
+      string_static("Distortion"),
+      string_static("Bloom"),
+      string_static("Post"),
+  };
+  ASSERT(array_elems(g_names) == AssetGraphicPass_Count, "Incorrect number of names");
+  return g_names[pass];
+}
