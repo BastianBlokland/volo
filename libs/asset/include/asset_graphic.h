@@ -5,7 +5,8 @@
 #include "ecs_module.h"
 
 typedef enum eAssetGraphicPass {
-  AssetGraphicPass_Geometry,
+  AssetGraphicPass_None     = -1,
+  AssetGraphicPass_Geometry = 0,
   AssetGraphicPass_Decal,
   AssetGraphicPass_Fog,
   AssetGraphicPass_FogBlur,

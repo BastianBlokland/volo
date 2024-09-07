@@ -614,7 +614,7 @@ static void rend_obj_info_query(DebugRendPanelComp* panelComp, EcsWorld* world) 
       }
 
       String           graphicName = string_lit("< unknown >");
-      AssetGraphicPass pass        = 0;
+      AssetGraphicPass pass        = AssetGraphicPass_None;
       i32              passOrder   = 0;
       if (ecs_view_maybe_jump(graphicItr, rend_object_resource(obj, RendObjectResource_Graphic))) {
         const AssetComp*          graphicAssetComp = ecs_view_read_t(graphicItr, AssetComp);
@@ -688,9 +688,14 @@ static void rend_obj_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelCom
 
     ui_label(canvas, objInfo->graphicName, .selectable = true);
     ui_table_next_column(canvas, &table);
-    ui_label(canvas, fmt_write_scratch("{}", fmt_text(asset_graphic_pass_name(objInfo->pass))));
-    ui_table_next_column(canvas, &table);
-    ui_label(canvas, fmt_write_scratch("{}", fmt_int(objInfo->passOrder)));
+    if (objInfo->pass != AssetGraphicPass_None) {
+      ui_label(canvas, fmt_write_scratch("{}", fmt_text(asset_graphic_pass_name(objInfo->pass))));
+      ui_table_next_column(canvas, &table);
+      ui_label(canvas, fmt_write_scratch("{}", fmt_int(objInfo->passOrder)));
+    } else {
+      ui_table_next_column(canvas, &table);
+      ui_canvas_id_skip(canvas, 2);
+    }
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(objInfo->instanceCount)));
     ui_table_next_column(canvas, &table);
