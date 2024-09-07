@@ -599,17 +599,17 @@ static bool rvk_graphic_validate_shaders(
   const RvkPassConfig* passConfig = rvk_pass_config(pass);
   for (u32 binding = 0; binding != asset_shader_max_outputs; ++binding) {
     const AssetShaderType outputType = shaderFrag->outputs[binding];
-    if (outputType == AssetShaderType_None) {
-      continue; // Binding unused.
-    }
-    if (UNLIKELY(binding >= rvk_pass_attach_color_max)) {
-      log_e(
-          "Fragment shader output binding not consumed by pass",
-          log_param("graphic", fmt_text(graphic->dbgName)),
-          log_param("pass", fmt_text(passConfig->name)),
-          log_param("binding", fmt_int(binding)),
-          log_param("type", fmt_text(asset_shader_type_name(outputType))));
-      return false;
+    if (binding >= rvk_pass_attach_color_max) {
+      if (UNLIKELY(outputType != AssetShaderType_None)) {
+        log_e(
+            "Fragment shader output binding not consumed by pass",
+            log_param("graphic", fmt_text(graphic->dbgName)),
+            log_param("pass", fmt_text(passConfig->name)),
+            log_param("binding", fmt_int(binding)),
+            log_param("type", fmt_text(asset_shader_type_name(outputType))));
+        return false;
+      }
+      continue; // Output binding not used by pass.
     }
     const RvkPassFormat   passOutputFormat = passConfig->attachColorFormat[binding];
     const AssetShaderType passOutputType   = rvk_graphic_pass_shader_output(passOutputFormat);
