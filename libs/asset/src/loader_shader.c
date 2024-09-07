@@ -135,3 +135,29 @@ u32 asset_shader_type_size(const AssetShaderType type) {
   };
   return g_sizes[type];
 }
+
+String asset_shader_type_name(const AssetShaderType type) {
+  // clang-format off
+  switch (type) {
+  case AssetShaderType_bool:    return string_lit("bool");
+  case AssetShaderType_u8:      return string_lit("u8");
+  case AssetShaderType_i8:      return string_lit("i8");
+  case AssetShaderType_u16:     return string_lit("u16");
+  case AssetShaderType_i16:     return string_lit("i16");
+  case AssetShaderType_u32:     return string_lit("u32");
+  case AssetShaderType_i32:     return string_lit("i32");
+  case AssetShaderType_u64:     return string_lit("u64");
+  case AssetShaderType_i64:     return string_lit("i64");
+  case AssetShaderType_f16:     return string_lit("f16");
+  case AssetShaderType_f32:     return string_lit("f32");
+  case AssetShaderType_f32v2:   return string_lit("f32v2");
+  case AssetShaderType_f32v3:   return string_lit("f32v3");
+  case AssetShaderType_f32v4:   return string_lit("f32v4");
+  case AssetShaderType_f64:     return string_lit("f64");
+  case AssetShaderType_None:    return string_lit("none");
+  case AssetShaderType_Unknown: return string_lit("unknown");
+  case AssetShaderType_Count:   break;
+  }
+  // clang-format on
+  diag_crash_msg("Invalid shader type");
+}

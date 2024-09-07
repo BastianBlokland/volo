@@ -82,4 +82,5 @@ ecs_comp_extern_public(AssetShaderComp) {
 
 extern DataMeta g_assetShaderMeta;
 
-u32 asset_shader_type_size(AssetShaderType); // In bytes.
+u32    asset_shader_type_size(AssetShaderType); // In bytes.
+String asset_shader_type_name(AssetShaderType);
