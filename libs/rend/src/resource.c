@@ -371,14 +371,20 @@ static bool rend_res_dependencies_wait(EcsWorld* world, EcsIterator* resourceItr
   return ready;
 }
 
-static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resourceItr) {
-  const EcsEntityId       entity            = ecs_view_entity(resourceItr);
-  const String            id                = asset_id(ecs_view_read_t(resourceItr, AssetComp));
-  RendResComp*            resComp           = ecs_view_write_t(resourceItr, RendResComp);
-  const AssetGraphicComp* maybeAssetGraphic = ecs_view_read_t(resourceItr, AssetGraphicComp);
-  const AssetShaderComp*  maybeAssetShader  = ecs_view_read_t(resourceItr, AssetShaderComp);
-  const AssetMeshComp*    maybeAssetMesh    = ecs_view_read_t(resourceItr, AssetMeshComp);
-  const AssetTextureComp* maybeAssetTexture = ecs_view_read_t(resourceItr, AssetTextureComp);
+static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIterator* resItr) {
+  /**
+   * NOTE: We're getting a mutable RvkDevice pointer from a read-access on RendPlatformComp. This
+   * means we have to make sure that all api's we use from RvkDevice are actually thread-safe.
+   */
+  RvkDevice* dev = plat->device;
+
+  const EcsEntityId       entity            = ecs_view_entity(resItr);
+  const String            id                = asset_id(ecs_view_read_t(resItr, AssetComp));
+  RendResComp*            resComp           = ecs_view_write_t(resItr, RendResComp);
+  const AssetGraphicComp* maybeAssetGraphic = ecs_view_read_t(resItr, AssetGraphicComp);
+  const AssetShaderComp*  maybeAssetShader  = ecs_view_read_t(resItr, AssetShaderComp);
+  const AssetMeshComp*    maybeAssetMesh    = ecs_view_read_t(resItr, AssetMeshComp);
+  const AssetTextureComp* maybeAssetTexture = ecs_view_read_t(resItr, AssetTextureComp);
 
   if (maybeAssetGraphic) {
     RvkGraphic* graphic = rvk_graphic_create(dev, maybeAssetGraphic, id);
@@ -423,6 +429,9 @@ static bool rend_res_create(RvkDevice* dev, EcsWorld* world, EcsIterator* resour
       const RendResTextureComp* textureComp = ecs_view_read_t(textureItr, RendResTextureComp);
       rvk_graphic_sampler_add(graphic, textureComp->texture, ptr);
     }
+
+    RvkPass* pass = plat->passes[maybeAssetGraphic->pass];
+    rvk_graphic_prepare(graphic, dev, pass);
 
     const RendResGlobalDef* globalDef = rend_res_global_lookup(id);
     if (globalDef) {
@@ -495,11 +504,6 @@ ecs_system_define(RendResLoadSys) {
   if (!platform) {
     return;
   }
-  /**
-   * NOTE: We're getting a mutable RvkDevice pointer from a read-access on RendPlatformComp. This
-   * means we have to make sure that all api's we use from RvkDevice are actually thread-safe.
-   */
-  RvkDevice* device = platform->device;
 
   TimeDuration loadTime = 0;
 
@@ -546,7 +550,7 @@ ecs_system_define(RendResLoadSys) {
       trace_begin_msg("rend_res_create", TraceColor_Blue, "{}", fmt_text(traceMsg));
 
       const TimeSteady loadStart = time_steady_clock();
-      if (rend_res_create(device, world, itr)) {
+      if (rend_res_create(platform, world, itr)) {
         ++resComp->state;
       } else {
         diag_assert(resComp->state == RendResLoadState_FinishedFailure);
