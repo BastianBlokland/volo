@@ -47,6 +47,9 @@ typedef enum {
   AssetShaderType_i64,
   AssetShaderType_f16,
   AssetShaderType_f32,
+  AssetShaderType_f32v2,
+  AssetShaderType_f32v3,
+  AssetShaderType_f32v4,
   AssetShaderType_f64,
 
   AssetShaderType_Count,

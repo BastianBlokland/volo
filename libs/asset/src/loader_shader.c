@@ -115,18 +115,21 @@ void asset_load_shader_bin(
 
 u32 asset_shader_type_size(const AssetShaderType type) {
   static const u32 g_sizes[AssetShaderType_Count] = {
-      [AssetShaderType_bool] = sizeof(bool),
-      [AssetShaderType_u8]   = sizeof(u8),
-      [AssetShaderType_i8]   = sizeof(i8),
-      [AssetShaderType_u16]  = sizeof(u16),
-      [AssetShaderType_i16]  = sizeof(i16),
-      [AssetShaderType_u32]  = sizeof(u32),
-      [AssetShaderType_i32]  = sizeof(i32),
-      [AssetShaderType_u64]  = sizeof(u64),
-      [AssetShaderType_i64]  = sizeof(i64),
-      [AssetShaderType_f16]  = sizeof(f16),
-      [AssetShaderType_f32]  = sizeof(f32),
-      [AssetShaderType_f64]  = sizeof(f64),
+      [AssetShaderType_bool]  = sizeof(bool),
+      [AssetShaderType_u8]    = sizeof(u8),
+      [AssetShaderType_i8]    = sizeof(i8),
+      [AssetShaderType_u16]   = sizeof(u16),
+      [AssetShaderType_i16]   = sizeof(i16),
+      [AssetShaderType_u32]   = sizeof(u32),
+      [AssetShaderType_i32]   = sizeof(i32),
+      [AssetShaderType_u64]   = sizeof(u64),
+      [AssetShaderType_i64]   = sizeof(i64),
+      [AssetShaderType_f16]   = sizeof(f16),
+      [AssetShaderType_f32]   = sizeof(f32),
+      [AssetShaderType_f32v2] = sizeof(f32) * 2,
+      [AssetShaderType_f32v3] = sizeof(f32) * 3,
+      [AssetShaderType_f32v4] = sizeof(f32) * 4,
+      [AssetShaderType_f64]   = sizeof(f64),
   };
   return g_sizes[type];
 }

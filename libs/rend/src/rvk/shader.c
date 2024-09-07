@@ -117,6 +117,14 @@ static Mem rvk_shader_spec_write(Mem output, const AssetShaderType type, const f
   case AssetShaderType_bool:
     *mem_as_t(output, VkBool32) = value != 0;
     return mem_consume(output, sizeof(VkBool32));
+  case AssetShaderType_f32v2:
+  case AssetShaderType_f32v3:
+  case AssetShaderType_f32v4: {
+    log_e("Unsupported specialization type", log_param("type", fmt_int(type)));
+    const u32 typeSize = asset_shader_type_size(type);
+    mem_set(mem_slice(output, 0, typeSize), 0);
+    return mem_consume(output, typeSize);
+  }
   case AssetShaderType_Count:
     break;
   }
