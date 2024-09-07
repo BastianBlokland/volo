@@ -58,15 +58,14 @@ static RvkDescKind rvk_shader_desc_kind(const AssetShaderResKind resKind) {
   diag_crash();
 }
 
-static bool rvk_shader_spec_type(const RvkShader* shader, const u8 binding, AssetShaderType* out) {
+static AssetShaderType rvk_shader_spec_type(const RvkShader* shader, const u8 binding) {
   heap_array_for_t(shader->specs, AssetShaderSpec, spec) {
     if (spec->binding == binding) {
       diag_assert(spec->type < AssetShaderType_Count);
-      *out = (AssetShaderType)spec->type;
-      return true;
+      return (AssetShaderType)spec->type;
     }
   }
-  return false;
+  return AssetShaderType_None;
 }
 
 static AssetShaderSpecDef rvk_shader_spec_default(const RvkShader* shader, const u8 binding) {
@@ -264,8 +263,8 @@ VkSpecializationInfo rvk_shader_specialize_scratch(
   for (usize i = 0; i != math_min(overrideCount, Limit_EntriesMax); ++i) {
     const AssetGraphicOverride* override = &overrides[i];
 
-    AssetShaderType type;
-    if (UNLIKELY(!rvk_shader_spec_type(shader, override->binding, &type))) {
+    const AssetShaderType type = rvk_shader_spec_type(shader, override->binding);
+    if (UNLIKELY(type == AssetShaderType_None)) {
       log_e(
           "No specialization found for override '{}'",
           log_param("name", fmt_text(override->name)),
