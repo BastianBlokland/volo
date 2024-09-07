@@ -220,7 +220,7 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
         return data;
       }
       const u32 typeId = data.ptr[1];
-      if (!spv_validate_id(typeId, out, err)) {
+      if (!spv_validate_new_id(typeId, out, err)) {
         return data;
       }
       out->wellknownTypes[AssetShaderType_bool] = typeId;
@@ -235,7 +235,7 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
         return data;
       }
       const u32 typeId = data.ptr[1];
-      if (!spv_validate_id(typeId, out, err)) {
+      if (!spv_validate_new_id(typeId, out, err)) {
         return data;
       }
       const u32 width      = data.ptr[2];
@@ -265,7 +265,7 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
         return data;
       }
       const u32 typeId = data.ptr[1];
-      if (!spv_validate_id(typeId, out, err)) {
+      if (!spv_validate_new_id(typeId, out, err)) {
         return data;
       }
       const u32 width = data.ptr[2];
