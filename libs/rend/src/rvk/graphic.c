@@ -588,7 +588,7 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
 
   *graphic = (RvkGraphic){
       .dbgName     = string_dup(g_allocHeap, dbgName),
-      .pass        = asset->passId,
+      .passId      = asset->pass,
       .passOrder   = asset->passOrder,
       .vertexCount = asset->vertexCount,
   };

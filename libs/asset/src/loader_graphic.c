@@ -214,7 +214,7 @@ void asset_data_init_graphic(void) {
   data_reg_field_t(g_dataReg, AssetGraphicSampler, mipBlending, data_prim_t(bool), .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetGraphicComp);
-  data_reg_field_t(g_dataReg, AssetGraphicComp, passId, t_AssetGraphicPass);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, pass, t_AssetGraphicPass);
   data_reg_field_t(g_dataReg, AssetGraphicComp, passOrder, data_prim_t(i32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicComp, shaders, t_AssetGraphicShader, .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetGraphicComp, samplers, t_AssetGraphicSampler, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);

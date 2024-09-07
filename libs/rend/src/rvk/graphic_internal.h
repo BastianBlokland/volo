@@ -36,7 +36,7 @@ typedef struct {
 
 typedef struct sRvkGraphic {
   String            dbgName;
-  AssetGraphicPass  pass;
+  AssetGraphicPass  passId;
   i32               passOrder;
   RvkGraphicFlags   flags : 16;
   u8                samplerMask;

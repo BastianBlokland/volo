@@ -434,7 +434,7 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
       rvk_graphic_add_sampler(graphic, maybeAssetGraphic, textureComp->texture, ptr);
     }
 
-    RvkPass* pass = plat->passes[maybeAssetGraphic->passId];
+    RvkPass* pass = plat->passes[maybeAssetGraphic->pass];
     if (UNLIKELY(!rvk_graphic_finalize(graphic, maybeAssetGraphic, dev, pass))) {
       log_e("Invalid graphic", log_param("graphic", fmt_text(id)));
       resComp->state = RendResLoadState_FinishedFailure;
@@ -830,7 +830,7 @@ usize rend_res_texture_memory(const RendResTextureComp* comp) {
   return comp->texture->image.mem.size;
 }
 
-AssetGraphicPass rend_res_pass(const RendResGraphicComp* comp) { return comp->graphic->pass; }
+AssetGraphicPass rend_res_pass(const RendResGraphicComp* comp) { return comp->graphic->passId; }
 i32 rend_res_pass_order(const RendResGraphicComp* comp) { return comp->graphic->passOrder; }
 
 bool rend_res_request(EcsWorld* world, const EcsEntityId assetEntity) {

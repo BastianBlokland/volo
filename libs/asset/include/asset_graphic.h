@@ -115,7 +115,7 @@ typedef struct {
 } AssetGraphicSampler;
 
 ecs_comp_extern_public(AssetGraphicComp) {
-  AssetGraphicPass passId;
+  AssetGraphicPass pass;
   i32              passOrder;
   HeapArray_t(AssetGraphicShader) shaders;
   HeapArray_t(AssetGraphicSampler) samplers;
