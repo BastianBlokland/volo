@@ -50,10 +50,7 @@ static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
 }
 
 RvkCanvas* rvk_canvas_create(
-    RvkDevice*           dev,
-    const GapWindowComp* window,
-    const RvkPassConfig* passConfig,
-    const u32            passCount) {
+    RvkDevice* dev, const GapWindowComp* window, RvkPass* passes[], const u32 passCount) {
   diag_assert(passCount <= rvk_canvas_max_passes);
 
   RvkSwapchain*  swapchain  = rvk_swapchain_create(dev, window);
@@ -79,7 +76,7 @@ RvkCanvas* rvk_canvas_create(
   }
 
   for (u32 passIdx = 0; passIdx != passCount; ++passIdx) {
-    canvas->passes[passIdx] = rvk_pass_create(dev, &passConfig[passIdx]);
+    canvas->passes[passIdx] = passes[passIdx];
   }
 
   log_d(
@@ -97,10 +94,6 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
     vkDestroySemaphore(canvas->dev->vkDev, frame->attachmentsReleased, &canvas->dev->vkAlloc);
     vkDestroySemaphore(canvas->dev->vkDev, frame->swapchainAvailable, &canvas->dev->vkAlloc);
     vkDestroySemaphore(canvas->dev->vkDev, frame->swapchainPresent, &canvas->dev->vkAlloc);
-  }
-
-  for (u32 passIdx = 0; passIdx != canvas->passCount; ++passIdx) {
-    rvk_pass_destroy(canvas->passes[passIdx]);
   }
 
   rvk_swapchain_destroy(canvas->swapchain);
@@ -189,15 +182,6 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
   }
 
   return true;
-}
-
-u32 rvk_canvas_pass_count(const RvkCanvas* canvas) { return canvas->passCount; }
-
-RvkPass* rvk_canvas_pass(RvkCanvas* canvas, const u32 passIndex) {
-  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
-  diag_assert(passIndex < canvas->passCount);
-
-  return canvas->passes[passIndex];
 }
 
 RvkImage* rvk_canvas_swapchain_image(RvkCanvas* canvas) {
