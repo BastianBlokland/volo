@@ -666,7 +666,7 @@ static bool rend_canvas_paint_2d(
   RvkImage*     swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
   const RvkSize swapchainSize  = swapchainImage->size;
 
-  RvkPass*  postPass = platform->passes[RendPassId_Post];
+  RvkPass*  postPass = platform->passes[AssetGraphicPass_Post];
   RvkImage* postRes  = rvk_canvas_attach_acquire_color(painter->canvas, postPass, 0, swapchainSize);
   {
     rend_builder_pass_push(builder, postPass);
@@ -727,7 +727,7 @@ static bool rend_canvas_paint_3d(
 
   // Geometry pass.
   const RvkSize geoSize  = rvk_size_scale(swapchainSize, set->resolutionScale);
-  RvkPass*      geoPass  = platform->passes[RendPassId_Geometry];
+  RvkPass*      geoPass  = platform->passes[AssetGraphicPass_Geometry];
   RvkImage*     geoData0 = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 0, geoSize);
   RvkImage*     geoData1 = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 1, geoSize);
   RvkImage*     geoDepth = rvk_canvas_attach_acquire_depth(painter->canvas, geoPass, geoSize);
@@ -754,7 +754,7 @@ static bool rend_canvas_paint_3d(
   RvkImage* geoDepthRead = rvk_canvas_attach_acquire_copy(painter->canvas, geoDepth);
 
   // Decal pass.
-  RvkPass* decalPass = platform->passes[RendPassId_Decal];
+  RvkPass* decalPass = platform->passes[AssetGraphicPass_Decal];
   if (set->flags & RendFlags_Decals) {
 
     trace_begin("rend_paint_decals", TraceColor_White);
@@ -782,7 +782,7 @@ static bool rend_canvas_paint_3d(
 
   // Fog pass.
   const bool    fogActive = rend_fog_active(fog);
-  RvkPass*      fogPass   = platform->passes[RendPassId_Fog];
+  RvkPass*      fogPass   = platform->passes[AssetGraphicPass_Fog];
   const u16     fogRes    = set->fogResolution;
   const RvkSize fogSize   = fogActive ? (RvkSize){fogRes, fogRes} : (RvkSize){1, 1};
   RvkImage*     fogBuffer = rvk_canvas_attach_acquire_color(painter->canvas, fogPass, 0, fogSize);
@@ -809,7 +809,7 @@ static bool rend_canvas_paint_3d(
   }
 
   // Fog-blur pass.
-  RvkPass* fogBlurPass = platform->passes[RendPassId_FogBlur];
+  RvkPass* fogBlurPass = platform->passes[AssetGraphicPass_FogBlur];
   if (fogActive && set->fogBlurSteps) {
     trace_begin("rend_paint_fog_blur", TraceColor_White);
 
@@ -845,7 +845,7 @@ static bool rend_canvas_paint_3d(
   const bool    shadowsActive = set->flags & RendFlags_Shadows && rend_light_has_shadow(light);
   const RvkSize shadowSize =
       shadowsActive ? (RvkSize){set->shadowResolution, set->shadowResolution} : (RvkSize){1, 1};
-  RvkPass*  shadowPass  = platform->passes[RendPassId_Shadow];
+  RvkPass*  shadowPass  = platform->passes[AssetGraphicPass_Shadow];
   RvkImage* shadowDepth = rvk_canvas_attach_acquire_depth(painter->canvas, shadowPass, shadowSize);
   if (shadowsActive) {
     trace_begin("rend_paint_shadows", TraceColor_White);
@@ -874,7 +874,7 @@ static bool rend_canvas_paint_3d(
   const RvkSize aoSize   = set->flags & RendFlags_AmbientOcclusion
                                ? rvk_size_scale(geoSize, set->aoResolutionScale)
                                : (RvkSize){1, 1};
-  RvkPass*      aoPass   = platform->passes[RendPassId_AmbientOcclusion];
+  RvkPass*      aoPass   = platform->passes[AssetGraphicPass_AmbientOcclusion];
   RvkImage*     aoBuffer = rvk_canvas_attach_acquire_color(painter->canvas, aoPass, 0, aoSize);
   if (set->flags & RendFlags_AmbientOcclusion) {
     trace_begin("rend_paint_ao", TraceColor_White);
@@ -895,7 +895,7 @@ static bool rend_canvas_paint_3d(
   }
 
   // Forward pass.
-  RvkPass*  fwdPass  = platform->passes[RendPassId_Forward];
+  RvkPass*  fwdPass  = platform->passes[AssetGraphicPass_Forward];
   RvkImage* fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0, geoSize);
   {
     trace_begin("rend_paint_forward", TraceColor_White);
@@ -951,7 +951,7 @@ static bool rend_canvas_paint_3d(
   const RvkSize distSize = set->flags & RendFlags_Distortion
                                ? rvk_size_scale(geoSize, set->distortionResolutionScale)
                                : (RvkSize){1, 1};
-  RvkPass*      distPass = platform->passes[RendPassId_Distortion];
+  RvkPass*      distPass = platform->passes[AssetGraphicPass_Distortion];
   RvkImage* distBuffer   = rvk_canvas_attach_acquire_color(painter->canvas, distPass, 0, distSize);
   if (set->flags & RendFlags_Distortion) {
     trace_begin("rend_paint_distortion", TraceColor_White);
@@ -987,7 +987,7 @@ static bool rend_canvas_paint_3d(
   rvk_canvas_attach_release(painter->canvas, geoDepth);
 
   // Bloom pass.
-  RvkPass*  bloomPass = platform->passes[RendPassId_Bloom];
+  RvkPass*  bloomPass = platform->passes[AssetGraphicPass_Bloom];
   RvkImage* bloomOutput;
   if (set->flags & RendFlags_Bloom && set->bloomIntensity > f32_epsilon) {
     trace_begin("rend_paint_bloom", TraceColor_White);
@@ -1038,7 +1038,7 @@ static bool rend_canvas_paint_3d(
   }
 
   // Post pass.
-  RvkPass*  postPass = platform->passes[RendPassId_Post];
+  RvkPass*  postPass = platform->passes[AssetGraphicPass_Post];
   RvkImage* postRes  = rvk_canvas_attach_acquire_color(painter->canvas, postPass, 0, swapchainSize);
   {
     trace_begin("rend_paint_post", TraceColor_White);
@@ -1110,10 +1110,10 @@ ecs_system_define(RendPainterCreateSys) {
     RendPainterComp* p = ecs_world_add_t(world, entity, RendPainterComp, .type = type);
     switch (type) {
     case RendPainterType_2D:
-      p->canvas = rvk_canvas_create(plat->device, win, &plat->passes[RendPassId_Post], 1);
+      p->canvas = rvk_canvas_create(plat->device, win, &plat->passes[AssetGraphicPass_Post], 1);
       break;
     case RendPainterType_3D:
-      p->canvas = rvk_canvas_create(plat->device, win, plat->passes, RendPassId_Count);
+      p->canvas = rvk_canvas_create(plat->device, win, plat->passes, AssetGraphicPass_Count);
       break;
     }
 

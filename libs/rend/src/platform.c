@@ -14,8 +14,8 @@
 
 // clang-format off
 
-static const RvkPassConfig g_passConfig[RendPassId_Count] = {
-    [RendPassId_Geometry] = { .name = string_static("Geometry"),
+static const RvkPassConfig g_passConfig[AssetGraphicPass_Count] = {
+    [AssetGraphicPass_Geometry] = { .name = string_static("Geometry"),
         // Attachment depth.
         .attachDepth     = RvkPassDepth_Stored,
         .attachDepthLoad = RvkPassLoad_Clear,
@@ -29,7 +29,7 @@ static const RvkPassConfig g_passConfig[RendPassId_Count] = {
         .attachColorLoad[1]   = RvkPassLoad_DontCare,
     },
 
-    [RendPassId_Decal] = { .name = string_static("Decal"),
+    [AssetGraphicPass_Decal] = { .name = string_static("Decal"),
         // Attachment depth.
         .attachDepth     = RvkPassDepth_Stored,
         .attachDepthLoad = RvkPassLoad_Preserve,
@@ -43,31 +43,31 @@ static const RvkPassConfig g_passConfig[RendPassId_Count] = {
         .attachColorLoad[1]   = RvkPassLoad_Preserve,
     },
 
-    [RendPassId_Fog] = { .name = string_static("Fog"),
+    [AssetGraphicPass_Fog] = { .name = string_static("Fog"),
         // Attachment color 0: vision (r).
         .attachColorFormat[0] = RvkPassFormat_Color1Linear,
         .attachColorLoad[0]   = RvkPassLoad_Clear,
     },
 
-    [RendPassId_FogBlur] = { .name = string_static("FogBlur"),
+    [AssetGraphicPass_FogBlur] = { .name = string_static("FogBlur"),
         // Attachment color 0: vision (r).
         .attachColorFormat[0] = RvkPassFormat_Color1Linear,
         .attachColorLoad[0]   = RvkPassLoad_PreserveDontCheck,
     },
 
-    [RendPassId_Shadow] = { .name = string_static("Shadow"),
+    [AssetGraphicPass_Shadow] = { .name = string_static("Shadow"),
         // Attachment depth.
         .attachDepth     = RvkPassDepth_Stored,
         .attachDepthLoad = RvkPassLoad_Clear,
     },
 
-    [RendPassId_AmbientOcclusion] = { .name = string_static("AmbientOcclusion"),
+    [AssetGraphicPass_AmbientOcclusion] = { .name = string_static("AmbientOcclusion"),
         // Attachment color 0: occlusion (r).
         .attachColorFormat[0] = RvkPassFormat_Color1Linear,
         .attachColorLoad[0]   = RvkPassLoad_DontCare,
     },
 
-    [RendPassId_Forward] = { .name = string_static("Forward"),
+    [AssetGraphicPass_Forward] = { .name = string_static("Forward"),
         // Attachment depth.
         .attachDepth     = RvkPassDepth_Stored, // Stored as Distortion still needs the depth.
         .attachDepthLoad = RvkPassLoad_Preserve,
@@ -77,7 +77,7 @@ static const RvkPassConfig g_passConfig[RendPassId_Count] = {
         .attachColorLoad[0]   = RvkPassLoad_DontCare,
     },
 
-    [RendPassId_Distortion] = { .name = string_static("Distortion"),
+    [AssetGraphicPass_Distortion] = { .name = string_static("Distortion"),
         // Attachment depth.
         .attachDepth     = RvkPassDepth_Transient,
         .attachDepthLoad = RvkPassLoad_Preserve,
@@ -87,13 +87,13 @@ static const RvkPassConfig g_passConfig[RendPassId_Count] = {
         .attachColorLoad[0]   = RvkPassLoad_Clear,
     },
 
-    [RendPassId_Bloom] = { .name = string_static("Bloom"),
+    [AssetGraphicPass_Bloom] = { .name = string_static("Bloom"),
         // Attachment color 0: bloom (rgb).
         .attachColorFormat[0] = RvkPassFormat_Color3Float,
         .attachColorLoad[0]   = RvkPassLoad_PreserveDontCheck,
     },
 
-    [RendPassId_Post] = { .name = string_static("Post"),
+    [AssetGraphicPass_Post] = { .name = string_static("Post"),
         // Attachment color 0: color (rgba).
         .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
         .attachColorLoad[0]   = RvkPassLoad_DontCare,
@@ -109,7 +109,7 @@ static void destruct_platform_comp(void* data) {
   RendPlatformComp* comp = data;
   log_d("Render platform teardown", log_param("phase", fmt_text_lit("Cleanup")));
   rend_builder_destroy(comp->builder);
-  for (RendPassId i = 0; i != RendPassId_Count; ++i) {
+  for (AssetGraphicPass i = 0; i != AssetGraphicPass_Count; ++i) {
     rvk_pass_destroy(comp->passes[i]);
   }
   rvk_device_destroy(comp->device);
@@ -158,7 +158,7 @@ ecs_system_define(RendPlatformUpdateSys) {
     plat->device                           = rvk_device_create(settings);
     plat->builder                          = rend_builder_create(g_allocHeap);
 
-    for (RendPassId i = 0; i != RendPassId_Count; ++i) {
+    for (AssetGraphicPass i = 0; i != AssetGraphicPass_Count; ++i) {
       plat->passes[i] = rvk_pass_create(plat->device, &g_passConfig[i]);
     }
 
