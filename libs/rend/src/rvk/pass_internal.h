@@ -18,7 +18,6 @@ typedef struct sRvkGraphic    RvkGraphic;
 typedef struct sRvkImage      RvkImage;
 typedef struct sRvkJob        RvkJob;
 typedef struct sRvkMesh       RvkMesh;
-typedef struct sRvkTexture    RvkTexture;
 
 typedef u8 RvkPassHandle;
 
@@ -89,10 +88,6 @@ u32          rvk_pass_stat_instances(const RvkPass*, RvkPassHandle);
 RvkSize      rvk_pass_stat_size_max(const RvkPass*, RvkPassHandle);
 TimeDuration rvk_pass_stat_duration(const RvkPass*, RvkPassHandle);
 u64          rvk_pass_stat_pipeline(const RvkPass*, RvkPassHandle, RvkStat);
-
-bool rvk_pass_prepare(RvkPass*, RvkGraphic*);
-bool rvk_pass_prepare_mesh(RvkPass*, const RvkMesh*);
-bool rvk_pass_prepare_texture(RvkPass*, const RvkTexture*);
 
 void rvk_pass_stage_clear_color(RvkPass*, GeoColor clearColor);
 void rvk_pass_stage_attach_color(RvkPass*, RvkImage*, u16 colorAttachIndex);

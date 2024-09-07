@@ -907,7 +907,7 @@ bool rvk_graphic_is_ready(const RvkGraphic* graphic, const RvkDevice* dev) {
 }
 
 void rvk_graphic_bind(const RvkGraphic* graphic, const RvkDevice* dev, VkCommandBuffer vkCmdBuf) {
-  diag_assert_msg(graphic->flags & RvkGraphicFlags_Ready, "Graphic is not ready");
+  diag_assert_msg(rvk_graphic_is_ready(graphic, dev), "Graphic is not ready");
 
   vkCmdBindPipeline(vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
 

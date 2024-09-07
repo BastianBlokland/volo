@@ -751,24 +751,6 @@ u64 rvk_pass_stat_pipeline(
   return res;
 }
 
-bool rvk_pass_prepare(RvkPass* pass, RvkGraphic* graphic) {
-  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
-
-  return rvk_graphic_prepare(graphic, pass->dev, pass);
-}
-
-bool rvk_pass_prepare_mesh(MAYBE_UNUSED RvkPass* pass, const RvkMesh* mesh) {
-  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
-
-  return rvk_mesh_is_ready(mesh, pass->dev);
-}
-
-bool rvk_pass_prepare_texture(MAYBE_UNUSED RvkPass* pass, const RvkTexture* texture) {
-  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
-
-  return rvk_texture_is_ready(texture, pass->dev);
-}
-
 void rvk_pass_stage_clear_color(MAYBE_UNUSED RvkPass* pass, const GeoColor clearColor) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
