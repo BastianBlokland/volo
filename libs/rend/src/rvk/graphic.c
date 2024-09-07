@@ -779,126 +779,126 @@ void rvk_graphic_add_sampler(
 
 bool rvk_graphic_finalize(
     RvkGraphic* graphic, const AssetGraphicComp* asset, RvkDevice* dev, const RvkPass* pass) {
+  diag_assert_msg(!graphic->vkPipeline, "Graphic already finalized");
+
   (void)asset;
 
   diag_assert_msg(!rvk_pass_active(pass), "Pass already active");
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_Invalid)) {
     return false;
   }
-  if (!graphic->vkPipeline) {
-    if (UNLIKELY(!rvk_graphic_validate_shaders(graphic))) {
-      graphic->flags |= RvkGraphicFlags_Invalid;
-    }
-    graphic->outputMask = rvk_graphic_output_mask(graphic);
-
-    // Prepare global set bindings.
-    const RvkDescMeta globalDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Global);
-    if (UNLIKELY(!rend_graphic_validate_set(
-            graphic, RvkGraphicSet_Global, &globalDescMeta, g_rendSupportedGlobalBindings))) {
-      graphic->flags |= RvkGraphicFlags_Invalid;
-    }
-    for (u16 i = 0; i != rvk_desc_bindings_max; ++i) {
-      if (globalDescMeta.bindings[i]) {
-        graphic->globalBindings |= 1 << i;
-      }
-    }
-
-    // Prepare draw bindings.
-    const RvkDescMeta drawDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Draw);
-    if (UNLIKELY(!rend_graphic_validate_set(
-            graphic, RvkGraphicSet_Draw, &drawDescMeta, g_rendSupportedDrawBindings))) {
-      graphic->flags |= RvkGraphicFlags_Invalid;
-    }
-    if (!rvk_desc_empty(&drawDescMeta)) {
-      graphic->flags |= RvkGraphicFlags_RequireDrawSet;
-    }
-    graphic->drawDescMeta = drawDescMeta;
-
-    // Prepare instance set bindings.
-    const RvkDescMeta instanceDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Instance);
-    if (UNLIKELY(!rend_graphic_validate_set(
-            graphic, RvkGraphicSet_Instance, &instanceDescMeta, g_rendSupportedInstanceBindings))) {
-      graphic->flags |= RvkGraphicFlags_Invalid;
-    }
-    if (!rvk_desc_empty(&instanceDescMeta)) {
-      graphic->flags |= RvkGraphicFlags_RequireInstanceSet;
-    }
-
-    // Prepare graphic set bindings.
-    const RvkDescMeta graphicDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Graphic);
-    if (UNLIKELY(!rend_graphic_validate_set(
-            graphic, RvkGraphicSet_Graphic, &graphicDescMeta, g_rendSupportedGraphicBindings))) {
-      graphic->flags |= RvkGraphicFlags_Invalid;
-    }
-    graphic->graphicDescSet = rvk_desc_alloc(dev->descPool, &graphicDescMeta);
-
-    // Attach mesh.
-    if (graphicDescMeta.bindings[0] == RvkDescKind_StorageBuffer) {
-      if (LIKELY(graphic->mesh)) {
-        rvk_desc_set_attach_buffer(graphic->graphicDescSet, 0, &graphic->mesh->vertexBuffer, 0, 0);
-      } else {
-        log_e("Shader requires a mesh", log_param("graphic", fmt_text(graphic->dbgName)));
-        graphic->flags |= RvkGraphicFlags_Invalid;
-      }
-    }
-    if (UNLIKELY(graphic->mesh && graphic->drawDescMeta.bindings[1])) {
-      log_e(
-          "Graphic cannot use both a normal and a per-draw mesh ",
-          log_param("graphic", fmt_text(graphic->dbgName)));
-      graphic->flags |= RvkGraphicFlags_Invalid;
-    }
-
-    // Attach samplers.
-    u32 samplerIndex = 0;
-    for (u32 i = 0; i != rvk_desc_bindings_max; ++i) {
-      const RvkDescKind kind = graphicDescMeta.bindings[i];
-      if (rvk_desc_is_sampler(kind)) {
-        if (UNLIKELY(samplerIndex == rvk_graphic_samplers_max)) {
-          log_e(
-              "Shader exceeds texture limit",
-              log_param("graphic", fmt_text(graphic->dbgName)),
-              log_param("limit", fmt_int(rvk_graphic_samplers_max)));
-          graphic->flags |= RvkGraphicFlags_Invalid;
-          break;
-        }
-        if (!graphic->samplerTextures[samplerIndex]) {
-          rvk_graphic_set_missing_sampler(graphic, dev->repository, samplerIndex, kind);
-        }
-        if (kind != rvk_texture_sampler_kind(graphic->samplerTextures[samplerIndex])) {
-          log_e(
-              "Mismatched shader texture sampler kind",
-              log_param("graphic", fmt_text(graphic->dbgName)),
-              log_param("sampler", fmt_int(samplerIndex)),
-              log_param("expected", fmt_text(rvk_desc_kind_str(kind))));
-          graphic->flags |= RvkGraphicFlags_Invalid;
-          break;
-        }
-        const RvkImage*      image       = &graphic->samplerTextures[samplerIndex]->image;
-        const RvkSamplerSpec samplerSpec = graphic->samplerSpecs[samplerIndex];
-        rvk_desc_set_attach_sampler(graphic->graphicDescSet, i, image, samplerSpec);
-        ++samplerIndex;
-      }
-    }
-
-    if (graphic->flags & RvkGraphicFlags_Invalid) {
-      return false;
-    }
-
-    graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic, dev, pass);
-    graphic->vkPipeline       = rvk_pipeline_create(graphic, dev, graphic->vkPipelineLayout, pass);
-
-    rvk_debug_name_pipeline_layout(
-        dev->debug, graphic->vkPipelineLayout, "{}", fmt_text(graphic->dbgName));
-    rvk_debug_name_pipeline(dev->debug, graphic->vkPipeline, "{}", fmt_text(graphic->dbgName));
+  if (UNLIKELY(!rvk_graphic_validate_shaders(graphic))) {
+    graphic->flags |= RvkGraphicFlags_Invalid;
   }
+  graphic->outputMask = rvk_graphic_output_mask(graphic);
+
+  // Prepare global set bindings.
+  const RvkDescMeta globalDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Global);
+  if (UNLIKELY(!rend_graphic_validate_set(
+          graphic, RvkGraphicSet_Global, &globalDescMeta, g_rendSupportedGlobalBindings))) {
+    graphic->flags |= RvkGraphicFlags_Invalid;
+  }
+  for (u16 i = 0; i != rvk_desc_bindings_max; ++i) {
+    if (globalDescMeta.bindings[i]) {
+      graphic->globalBindings |= 1 << i;
+    }
+  }
+
+  // Prepare draw bindings.
+  const RvkDescMeta drawDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Draw);
+  if (UNLIKELY(!rend_graphic_validate_set(
+          graphic, RvkGraphicSet_Draw, &drawDescMeta, g_rendSupportedDrawBindings))) {
+    graphic->flags |= RvkGraphicFlags_Invalid;
+  }
+  if (!rvk_desc_empty(&drawDescMeta)) {
+    graphic->flags |= RvkGraphicFlags_RequireDrawSet;
+  }
+  graphic->drawDescMeta = drawDescMeta;
+
+  // Prepare instance set bindings.
+  const RvkDescMeta instanceDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Instance);
+  if (UNLIKELY(!rend_graphic_validate_set(
+          graphic, RvkGraphicSet_Instance, &instanceDescMeta, g_rendSupportedInstanceBindings))) {
+    graphic->flags |= RvkGraphicFlags_Invalid;
+  }
+  if (!rvk_desc_empty(&instanceDescMeta)) {
+    graphic->flags |= RvkGraphicFlags_RequireInstanceSet;
+  }
+
+  // Prepare graphic set bindings.
+  const RvkDescMeta graphicDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Graphic);
+  if (UNLIKELY(!rend_graphic_validate_set(
+          graphic, RvkGraphicSet_Graphic, &graphicDescMeta, g_rendSupportedGraphicBindings))) {
+    graphic->flags |= RvkGraphicFlags_Invalid;
+  }
+  graphic->graphicDescSet = rvk_desc_alloc(dev->descPool, &graphicDescMeta);
+
+  // Attach mesh.
+  if (graphicDescMeta.bindings[0] == RvkDescKind_StorageBuffer) {
+    if (LIKELY(graphic->mesh)) {
+      rvk_desc_set_attach_buffer(graphic->graphicDescSet, 0, &graphic->mesh->vertexBuffer, 0, 0);
+    } else {
+      log_e("Shader requires a mesh", log_param("graphic", fmt_text(graphic->dbgName)));
+      graphic->flags |= RvkGraphicFlags_Invalid;
+    }
+  }
+  if (UNLIKELY(graphic->mesh && graphic->drawDescMeta.bindings[1])) {
+    log_e(
+        "Graphic cannot use both a normal and a per-draw mesh ",
+        log_param("graphic", fmt_text(graphic->dbgName)));
+    graphic->flags |= RvkGraphicFlags_Invalid;
+  }
+
+  // Attach samplers.
+  u32 samplerIndex = 0;
+  for (u32 i = 0; i != rvk_desc_bindings_max; ++i) {
+    const RvkDescKind kind = graphicDescMeta.bindings[i];
+    if (rvk_desc_is_sampler(kind)) {
+      if (UNLIKELY(samplerIndex == rvk_graphic_samplers_max)) {
+        log_e(
+            "Shader exceeds texture limit",
+            log_param("graphic", fmt_text(graphic->dbgName)),
+            log_param("limit", fmt_int(rvk_graphic_samplers_max)));
+        graphic->flags |= RvkGraphicFlags_Invalid;
+        break;
+      }
+      if (!graphic->samplerTextures[samplerIndex]) {
+        rvk_graphic_set_missing_sampler(graphic, dev->repository, samplerIndex, kind);
+      }
+      if (kind != rvk_texture_sampler_kind(graphic->samplerTextures[samplerIndex])) {
+        log_e(
+            "Mismatched shader texture sampler kind",
+            log_param("graphic", fmt_text(graphic->dbgName)),
+            log_param("sampler", fmt_int(samplerIndex)),
+            log_param("expected", fmt_text(rvk_desc_kind_str(kind))));
+        graphic->flags |= RvkGraphicFlags_Invalid;
+        break;
+      }
+      const RvkImage*      image       = &graphic->samplerTextures[samplerIndex]->image;
+      const RvkSamplerSpec samplerSpec = graphic->samplerSpecs[samplerIndex];
+      rvk_desc_set_attach_sampler(graphic->graphicDescSet, i, image, samplerSpec);
+      ++samplerIndex;
+    }
+  }
+
+  if (graphic->flags & RvkGraphicFlags_Invalid) {
+    return false;
+  }
+
+  graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic, dev, pass);
+  graphic->vkPipeline       = rvk_pipeline_create(graphic, dev, graphic->vkPipelineLayout, pass);
+
+  rvk_debug_name_pipeline_layout(
+      dev->debug, graphic->vkPipelineLayout, "{}", fmt_text(graphic->dbgName));
+  rvk_debug_name_pipeline(dev->debug, graphic->vkPipeline, "{}", fmt_text(graphic->dbgName));
   return true;
 }
 
 bool rvk_graphic_is_ready(const RvkGraphic* graphic, const RvkDevice* dev) {
-  diag_assert_msg(graphic->vkPipeline, "Graphic not finalized");
   if (UNLIKELY(graphic->flags & RvkGraphicFlags_Invalid)) {
     return false;
   }
+  diag_assert_msg(graphic->vkPipeline, "Graphic not finalized");
   if (graphic->mesh && !rvk_mesh_is_ready(graphic->mesh, dev)) {
     return false;
   }
