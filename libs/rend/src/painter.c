@@ -406,17 +406,6 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
   painter_push_simple(ctx, RvkRepositoryId_AmbientOcclusionGraphic, mem_var(data));
 }
 
-static void painter_push_forward(RendPaintContext* ctx, EcsView* objView, EcsView* resourceView) {
-  RendObjectFlags ignoreFlags = 0;
-
-  if (ctx->settings->ambientMode >= RendAmbientMode_DebugStart) {
-    // Disable lighting when using any of the debug ambient modes.
-    ignoreFlags |= RendObjectFlags_Light;
-  }
-
-  painter_push_objects_simple(ctx, objView, resourceView, AssetGraphicPass_Forward, ignoreFlags);
-}
-
 static void painter_push_tonemapping(RendPaintContext* ctx) {
   struct {
     ALIGNAS(16)
@@ -898,6 +887,10 @@ static bool rend_canvas_paint_3d(
       rvk_canvas_img_clear_color(painter->canvas, fwdColor, geo_color_black);
     }
     RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, fwdPass, mainView);
+    if (ctx.settings->ambientMode >= RendAmbientMode_DebugStart) {
+      // Disable lighting when using any of the debug ambient modes.
+      ctx.view.filter.illegal |= SceneTags_Light;
+    }
     rvk_pass_stage_global_image(fwdPass, geoData0, 0);
     rvk_pass_stage_global_image(fwdPass, geoData1, 1);
     rvk_pass_stage_global_image(fwdPass, geoDepthRead, 2);
@@ -918,7 +911,7 @@ static bool rend_canvas_paint_3d(
     if (geoTagMask & SceneTags_Selected) {
       painter_push_simple(&ctx, RvkRepositoryId_OutlineGraphic, mem_empty);
     }
-    painter_push_forward(&ctx, objView, resourceView);
+    painter_push_objects_simple(&ctx, objView, resourceView, AssetGraphicPass_Forward, 0);
     if (fogActive) {
       painter_push_fog(&ctx, fog, fogBuffer);
     }
