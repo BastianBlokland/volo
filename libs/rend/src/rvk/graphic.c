@@ -140,6 +140,30 @@ static RvkDescMeta rvk_graphic_desc_meta(RvkGraphic* graphic, const usize set) {
   return meta;
 }
 
+static AssetGraphicBlend rvk_graphic_blend(const AssetGraphicComp* asset, const u32 outputBinding) {
+  switch (outputBinding) {
+  case 0:
+    return asset->blend;
+  default:
+    return asset->blendAux;
+  }
+}
+
+static bool rvk_graphic_blend_requires_alpha(const AssetGraphicBlend blend) {
+  switch (blend) {
+  case AssetGraphicBlend_Alpha:
+  case AssetGraphicBlend_AlphaConstant:
+  case AssetGraphicBlend_PreMultiplied:
+    return true;
+  case AssetGraphicBlend_Additive:
+  case AssetGraphicBlend_None:
+    return false;
+  case AssetGraphicBlend_Count:
+    break;
+  }
+  diag_crash();
+}
+
 static VkPipelineLayout
 rvk_pipeline_layout_create(const RvkGraphic* graphic, RvkDevice* dev, const RvkPass* pass) {
   const RvkDescMeta           globalDescMeta      = rvk_pass_meta_global(pass);
@@ -434,9 +458,8 @@ static VkPipeline rvk_pipeline_create(
 
   const u32                           colorAttachmentCount = 32 - bits_clz_32(graphic->outputMask);
   VkPipelineColorBlendAttachmentState colorBlends[16];
-  colorBlends[0] = rvk_pipeline_colorblend(asset->blend);
-  for (u32 i = 1; i < colorAttachmentCount; ++i) {
-    colorBlends[i] = rvk_pipeline_colorblend(asset->blendAux);
+  for (u32 binding = 0; binding != colorAttachmentCount; ++binding) {
+    colorBlends[binding] = rvk_pipeline_colorblend(rvk_graphic_blend(asset, binding));
   }
   const VkPipelineColorBlendStateCreateInfo colorBlending = {
       .sType             = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
@@ -498,8 +521,8 @@ static void rvk_graphic_set_missing_sampler(
 
   graphic->samplerTextures[samplerIndex] = rvk_repository_texture_get(repo, repoId);
   graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
-         .wrap   = RvkSamplerWrap_Repeat,
-         .filter = RvkSamplerFilter_Nearest,
+      .wrap   = RvkSamplerWrap_Repeat,
+      .filter = RvkSamplerFilter_Nearest,
   };
 }
 
@@ -598,7 +621,8 @@ static bool rvk_graphic_validate_shaders(
   // Validate fragment outputs.
   const RvkPassConfig* passConfig = rvk_pass_config(pass);
   for (u32 binding = 0; binding != asset_shader_max_outputs; ++binding) {
-    const AssetShaderType outputType = shaderFrag->outputs[binding];
+    const AssetShaderType   outputType  = shaderFrag->outputs[binding];
+    const AssetGraphicBlend outputBlend = rvk_graphic_blend(asset, binding);
     if (binding >= rvk_pass_attach_color_max) {
       if (UNLIKELY(outputType != AssetShaderType_None)) {
         log_e(
@@ -611,8 +635,12 @@ static bool rvk_graphic_validate_shaders(
       }
       continue; // Output binding not used by pass.
     }
-    const RvkPassFormat   passOutputFormat = passConfig->attachColorFormat[binding];
-    const AssetShaderType passOutputType   = rvk_graphic_pass_shader_output(passOutputFormat);
+    AssetShaderType passOutputType;
+    if (rvk_graphic_blend_requires_alpha(outputBlend)) {
+      passOutputType = AssetShaderType_f32v4;
+    } else {
+      passOutputType = rvk_graphic_pass_shader_output(passConfig->attachColorFormat[binding]);
+    }
     if (UNLIKELY(outputType != passOutputType)) {
       log_e(
           "Fragment shader output binding invalid",
@@ -747,10 +775,10 @@ void rvk_graphic_add_sampler(
       graphic->samplerMask |= 1 << samplerIndex;
       graphic->samplerTextures[samplerIndex] = tex;
       graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
-             .flags  = samplerFlags,
-             .wrap   = rvk_graphic_wrap(sampler->wrap),
-             .filter = rvk_graphic_filter(sampler->filter),
-             .aniso  = rvk_graphic_aniso(sampler->anisotropy),
+          .flags  = samplerFlags,
+          .wrap   = rvk_graphic_wrap(sampler->wrap),
+          .filter = rvk_graphic_filter(sampler->filter),
+          .aniso  = rvk_graphic_aniso(sampler->anisotropy),
       };
       return;
     }
