@@ -50,6 +50,7 @@ static const RendResGlobalDef g_rendResGlobal[] = {
   { .repoId = RvkRepositoryId_FogBlurHorGraphic,             .assetId = string_static("graphics/fog_blur_hor.graphic") },
   { .repoId = RvkRepositoryId_FogBlurVerGraphic,             .assetId = string_static("graphics/fog_blur_ver.graphic") },
   { .repoId = RvkRepositoryId_FogGraphic,                    .assetId = string_static("graphics/fog.graphic") },
+  { .repoId = RvkRepositoryId_MissingMesh,                   .assetId = string_static("meshes/missing.procmesh"), .ignoreAssetChanges = true },
   { .repoId = RvkRepositoryId_MissingTexture,                .assetId = string_static("textures/missing.proctex"), .ignoreAssetChanges = true },
   { .repoId = RvkRepositoryId_MissingTextureCube,            .assetId = string_static("textures/missing_cube.arraytex"), .ignoreAssetChanges = true },
   { .repoId = RvkRepositoryId_OutlineGraphic,                .assetId = string_static("graphics/outline.graphic") },
@@ -484,7 +485,11 @@ static bool rend_res_upload_wait(const RendPlatformComp* plat, EcsIterator* resI
   }
   const RendResMeshComp* maybeMesh = ecs_view_read_t(resItr, RendResMeshComp);
   if (maybeMesh) {
-    return rvk_mesh_is_ready(maybeMesh->mesh, dev);
+    const bool isReady = rvk_mesh_is_ready(maybeMesh->mesh, dev);
+    if (globalDef && isReady) {
+      rvk_repository_mesh_set(dev->repository, globalDef->repoId, maybeMesh->mesh);
+    }
+    return isReady;
   }
   const RendResTextureComp* maybeTexture = ecs_view_read_t(resItr, RendResTextureComp);
   if (maybeTexture) {
