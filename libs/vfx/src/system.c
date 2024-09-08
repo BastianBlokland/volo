@@ -147,7 +147,7 @@ ecs_system_define(VfxSystemStateInitSys) {
 
 #if vfx_system_track_stats
     ecs_world_add_empty_t(world, e, VfxStatsAnyComp);
-    ecs_world_add_t(world, e, VfxSystemStatsComp);
+    ecs_utils_maybe_add_t(world, e, VfxSystemStatsComp);
 #endif
   }
 }

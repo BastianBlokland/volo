@@ -9,7 +9,7 @@
   "excludeMask": [ "Geometry" ],
   "roughness": 0.9,
   "width": 0.75,
-  "height": 0.75,
+  "height": 1.0,
   "thickness": 0.5,
   "alphaMin": 0.9
 }
