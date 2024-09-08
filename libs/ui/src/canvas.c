@@ -422,7 +422,7 @@ static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId rendObjEntity = ecs_world_entity_create(world);
   ecs_world_add_t(world, rendObjEntity, SceneLifetimeOwnerComp, .owners[0] = window);
 
-  const RendObjectFlags objFlags = RendObjectFlags_Post | RendObjectFlags_NoInstanceFiltering;
+  const RendObjectFlags objFlags = RendObjectFlags_NoInstanceFiltering;
   RendObjectComp*       rendObj  = rend_object_create(world, rendObjEntity, objFlags);
   rend_object_set_camera_filter(rendObj, window);
 
@@ -522,13 +522,13 @@ ecs_system_define(UiRenderSys) {
     const f32      scale       = ui_window_scale(window, settings);
     const UiVector canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState  renderState = {
-         .settings      = settings,
-         .atlasFont     = atlasFont,
-         .atlasImage    = atlasImage,
-         .renderer      = renderer,
-         .rendObj       = rendObj,
-         .clipRects[0]  = {.size = canvasSize},
-         .clipRectCount = 1,
+        .settings      = settings,
+        .atlasFont     = atlasFont,
+        .atlasImage    = atlasImage,
+        .renderer      = renderer,
+        .rendObj       = rendObj,
+        .clipRects[0]  = {.size = canvasSize},
+        .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];
@@ -797,7 +797,7 @@ bool ui_canvas_group_block_inactive(const UiCanvasComp* comp) {
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 bool     ui_canvas_input_any(const UiCanvasComp* comp) {
-      return (comp->flags & UiCanvasFlags_InputAny) != 0;
+  return (comp->flags & UiCanvasFlags_InputAny) != 0;
 }
 UiVector ui_canvas_input_delta(const UiCanvasComp* comp) { return comp->inputDelta; }
 UiVector ui_canvas_input_pos(const UiCanvasComp* comp) { return comp->inputPos; }

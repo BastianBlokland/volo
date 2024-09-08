@@ -9,22 +9,16 @@ typedef enum eSceneTags SceneTags;
 typedef enum {
   RendObjectFlags_None                = 0,
   RendObjectFlags_Preload             = 1 << 0, // Load resources even if not drawn.
-  RendObjectFlags_Post                = 1 << 1, // Draw in the post pass.
-  RendObjectFlags_StandardGeometry    = 1 << 2, // Uses the standard instance data format.
-  RendObjectFlags_Skinned             = 1 << 3,
-  RendObjectFlags_Terrain             = 1 << 4,
-  RendObjectFlags_VfxSprite           = 1 << 5,
-  RendObjectFlags_Light               = 1 << 6,
-  RendObjectFlags_FogVision           = 1 << 7,
-  RendObjectFlags_Distortion          = 1 << 8,
-  RendObjectFlags_Decal               = 1 << 9,
-  RendObjectFlags_NoAutoClear         = 1 << 10,
-  RendObjectFlags_NoInstanceFiltering = 1 << 11, // NOTE: Does not support sorting.
-  RendObjectFlags_SortBackToFront     = 1 << 12,
-  RendObjectFlags_SortFrontToBack     = 1 << 13,
+  RendObjectFlags_StandardGeometry    = 1 << 1, // Uses the standard instance data format.
+  RendObjectFlags_Skinned             = 1 << 2,
+  RendObjectFlags_Terrain             = 1 << 3,
+  RendObjectFlags_VfxSprite           = 1 << 4,
+  RendObjectFlags_NoAutoClear         = 1 << 5,
+  RendObjectFlags_NoInstanceFiltering = 1 << 6, // NOTE: Does not support sorting.
+  RendObjectFlags_SortBackToFront     = 1 << 7,
+  RendObjectFlags_SortFrontToBack     = 1 << 8,
 
-  RendObjectFlags_Geometry = RendObjectFlags_StandardGeometry | RendObjectFlags_Terrain,
-  RendObjectFlags_Sorted   = RendObjectFlags_SortBackToFront | RendObjectFlags_SortFrontToBack,
+  RendObjectFlags_Sorted = RendObjectFlags_SortBackToFront | RendObjectFlags_SortFrontToBack,
 } RendObjectFlags;
 
 typedef enum {

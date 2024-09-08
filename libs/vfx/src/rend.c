@@ -21,12 +21,12 @@ static const String g_vfxObjGraphics[VfxRendObj_Count] = {
 };
 
 static const RendObjectFlags g_vfxObjFlags[VfxRendObj_Count] = {
-    [VfxRendObj_DecalStampSingle]         = RendObjectFlags_Decal | RendObjectFlags_Preload,
+    [VfxRendObj_DecalStampSingle]         = RendObjectFlags_Preload,
     [VfxRendObj_DecalStampSingleDebug]    = RendObjectFlags_SortBackToFront,
-    [VfxRendObj_DecalStampTrail]          = RendObjectFlags_Decal | RendObjectFlags_Preload,
+    [VfxRendObj_DecalStampTrail]          = RendObjectFlags_Preload,
     [VfxRendObj_DecalStampTrailDebug]     = RendObjectFlags_SortBackToFront,
     [VfxRendObj_ParticleSpriteForward]    = RendObjectFlags_VfxSprite | RendObjectFlags_Preload | RendObjectFlags_SortBackToFront,
-    [VfxRendObj_ParticleSpriteDistortion] = RendObjectFlags_VfxSprite | RendObjectFlags_Preload | RendObjectFlags_Distortion,
+    [VfxRendObj_ParticleSpriteDistortion] = RendObjectFlags_VfxSprite | RendObjectFlags_Preload,
 };
 // clang-format on
 
