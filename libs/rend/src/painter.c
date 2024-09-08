@@ -277,6 +277,9 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
 
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
+    if (!rend_object_instance_count(obj)) {
+      continue; // Object has no instances.
+    }
     if (!(rend_object_flags(obj) & requiredAny)) {
       continue; // Object shouldn't be included in the shadow pass.
     }
