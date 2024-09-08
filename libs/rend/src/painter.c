@@ -329,9 +329,8 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
 }
 
 static void painter_push_fog(RendPaintContext* ctx, const RendFogComp* fog, RvkImage* fogMap) {
-  const RvkRepository*  repo      = rvk_canvas_repository(ctx->canvas);
-  const RvkRepositoryId graphicId = RvkRepositoryId_FogGraphic;
-  const RvkGraphic*     graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
+  const RvkRepository* repo    = rvk_canvas_repository(ctx->canvas);
+  const RvkGraphic*    graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_FogGraphic);
   if (graphic) {
     typedef struct {
       ALIGNAS(16)
@@ -361,7 +360,6 @@ static void painter_push_ambient(RendPaintContext* ctx, const f32 intensity) {
     GeoVector packed; // x: ambientLight, y: mode, z: flags, w: unused.
   } data;
 
-  const u32    mode  = ctx->settings->ambientMode;
   AmbientFlags flags = 0;
   if (ctx->settings->flags & RendFlags_AmbientOcclusion) {
     flags |= AmbientFlags_AmbientOcclusion;
@@ -371,13 +369,15 @@ static void painter_push_ambient(RendPaintContext* ctx, const f32 intensity) {
   }
 
   data.packed.x = intensity;
-  data.packed.y = bits_u32_as_f32(mode);
+  data.packed.y = bits_u32_as_f32(ctx->settings->ambientMode);
   data.packed.z = bits_u32_as_f32(flags);
 
-  const RvkRepositoryId graphicId = ctx->settings->ambientMode >= RendAmbientMode_DebugStart
-                                        ? RvkRepositoryId_AmbientDebugGraphic
-                                        : RvkRepositoryId_AmbientGraphic;
-
+  RvkRepositoryId graphicId;
+  if (ctx->settings->ambientMode >= RendAmbientMode_DebugStart) {
+    graphicId = RvkRepositoryId_AmbientDebugGraphic;
+  } else {
+    graphicId = RvkRepositoryId_AmbientGraphic;
+  }
   painter_push_simple(ctx, graphicId, mem_var(data));
 }
 
@@ -389,8 +389,9 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
     GeoVector kernel[rend_ao_kernel_size];
   } data;
 
-  data.radius      = ctx->settings->aoRadius;
-  data.power       = ctx->settings->aoPower;
+  data.radius = ctx->settings->aoRadius;
+  data.power  = ctx->settings->aoPower;
+
   const Mem kernel = mem_create(ctx->settings->aoKernel, sizeof(GeoVector) * rend_ao_kernel_size);
   mem_cpy(array_mem(data.kernel), kernel);
 
@@ -542,6 +543,9 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
 
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
+    if (!rend_object_instance_count(obj)) {
+      continue; // Object has no instances.
+    }
     if (!(rend_object_flags(obj) & ignoreFlags)) {
       continue; // Not a object we can render a wireframe for.
     }
@@ -552,7 +556,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
     }
     const RvkMesh* mesh = graphicOriginal->mesh;
     if (!mesh) {
-      continue; // Graphic does not have a mesh to draw a wireframe for (or its not ready).
+      continue; // Graphic does not have a mesh to draw a wireframe for (or its not yet loaded).
     }
 
     RvkRepositoryId graphicId;
@@ -601,6 +605,9 @@ static void painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView,
   EcsIterator* resourceItr = ecs_view_itr(resView);
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
+    if (!rend_object_instance_count(obj)) {
+      continue; // Object has no instances.
+    }
     if (!(rend_object_flags(obj) & RendObjectFlags_Skinned)) {
       continue; // Not a skinned object.
     }
