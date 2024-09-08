@@ -17,6 +17,8 @@
 #include "shader_internal.h"
 #include "texture_internal.h"
 
+#define VOLO_RVK_GRAPHIC_VALIDATE_BIND 0
+
 static const u8 g_rendSupportedShaderSets[] = {
     RvkGraphicSet_Global,
     RvkGraphicSet_Graphic,
@@ -530,8 +532,8 @@ static void rvk_graphic_set_missing_sampler(
 
   graphic->samplerTextures[samplerIndex] = rvk_repository_texture_get(repo, repoId);
   graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
-      .wrap   = RvkSamplerWrap_Repeat,
-      .filter = RvkSamplerFilter_Nearest,
+         .wrap   = RvkSamplerWrap_Repeat,
+         .filter = RvkSamplerFilter_Nearest,
   };
 }
 
@@ -764,10 +766,10 @@ void rvk_graphic_add_sampler(
       graphic->samplerMask |= 1 << samplerIndex;
       graphic->samplerTextures[samplerIndex] = tex;
       graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
-          .flags  = samplerFlags,
-          .wrap   = rvk_graphic_wrap(sampler->wrap),
-          .filter = rvk_graphic_filter(sampler->filter),
-          .aniso  = rvk_graphic_aniso(sampler->anisotropy),
+             .flags  = samplerFlags,
+             .wrap   = rvk_graphic_wrap(sampler->wrap),
+             .filter = rvk_graphic_filter(sampler->filter),
+             .aniso  = rvk_graphic_aniso(sampler->anisotropy),
       };
       return;
     }
@@ -912,9 +914,10 @@ void rvk_graphic_bind(
     const RvkPass*    pass,
     VkCommandBuffer   vkCmdBuf) {
   (void)pass;
+#if VOLO_RVK_GRAPHIC_VALIDATE_BIND
   diag_assert_msg(rvk_graphic_is_ready(graphic, dev), "Graphic is not ready");
-
   diag_assert_msg(rvk_pass_active(pass), "Pass not active");
+#endif
   diag_assert_msg(graphic->passId == rvk_pass_config(pass)->id, "Unsupported pass");
 
   vkCmdBindPipeline(vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);

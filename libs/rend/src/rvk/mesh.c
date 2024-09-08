@@ -7,6 +7,7 @@
 #include "transfer_internal.h"
 
 #define VOLO_RVK_MESH_LOGGING 0
+#define VOLO_RVK_MESH_VALIDATE_BIND 0
 
 RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const String dbgName) {
   RvkMesh* mesh = alloc_alloc_t(g_allocHeap, RvkMesh);
@@ -71,7 +72,9 @@ bool rvk_mesh_is_ready(const RvkMesh* mesh, const RvkDevice* dev) {
 
 void rvk_mesh_bind(const RvkMesh* mesh, const RvkDevice* dev, VkCommandBuffer vkCmdBuf) {
   (void)dev;
+#if VOLO_RVK_MESH_VALIDATE_BIND
   diag_assert(rvk_mesh_is_ready(mesh, dev));
+#endif
 
   VkIndexType indexType;
   if (sizeof(AssetMeshIndex) == 2) {
