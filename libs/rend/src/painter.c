@@ -55,7 +55,7 @@ ecs_view_define(ResourceView) {
   ecs_access_maybe_read(RendResTextureComp);
   ecs_access_with(RendResFinishedComp);
   ecs_access_without(RendResUnloadComp);
-  ecs_access_write(RendResComp);
+  ecs_access_read(RendResComp);
 }
 
 ecs_view_define(PainterCreateView) {
@@ -541,15 +541,16 @@ painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspect, const Rv
 }
 
 static void painter_push_debug_resource_viewer(
+    EcsWorld*         world,
     RendPaintContext* ctx,
     const f32         aspect,
     EcsView*          resourceView,
     const EcsEntityId resourceEntity) {
 
+  rend_res_request(world, resourceEntity);
+
   EcsIterator* itr = ecs_view_maybe_at(resourceView, resourceEntity);
   if (itr) {
-    rend_res_mark_used(ecs_view_write_t(itr, RendResComp));
-
     const RendResTextureComp* textureComp = ecs_view_read_t(itr, RendResTextureComp);
     if (textureComp) {
       const f32 exposure = 1.0f;
@@ -697,6 +698,7 @@ static bool rend_canvas_paint_2d(
 }
 
 static bool rend_canvas_paint_3d(
+    EcsWorld*                     world,
     RendPainterComp*              painter,
     RendPlatformComp*             platform,
     const RendSettingsComp*       set,
@@ -1071,7 +1073,8 @@ static bool rend_canvas_paint_3d(
       const f32 exposure = 100.0f;
       painter_push_debug_image_viewer(&ctx, distBuffer, exposure);
     } else if (set->debugViewerResource) {
-      painter_push_debug_resource_viewer(&ctx, winAspect, resourceView, set->debugViewerResource);
+      painter_push_debug_resource_viewer(
+          world, &ctx, winAspect, resourceView, set->debugViewerResource);
     }
 
     rend_builder_pass_flush(builder);
@@ -1160,6 +1163,7 @@ ecs_system_define(RendPainterDrawSys) {
       break;
     case RendPainterType_3D:
       rend_canvas_paint_3d(
+          world,
           painter,
           platform,
           settings,
