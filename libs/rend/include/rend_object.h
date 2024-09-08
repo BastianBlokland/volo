@@ -13,11 +13,10 @@ typedef enum {
   RendObjectFlags_Skinned             = 1 << 2,
   RendObjectFlags_Terrain             = 1 << 3,
   RendObjectFlags_VfxSprite           = 1 << 4,
-  RendObjectFlags_Light               = 1 << 5,
-  RendObjectFlags_NoAutoClear         = 1 << 6,
-  RendObjectFlags_NoInstanceFiltering = 1 << 7, // NOTE: Does not support sorting.
-  RendObjectFlags_SortBackToFront     = 1 << 8,
-  RendObjectFlags_SortFrontToBack     = 1 << 9,
+  RendObjectFlags_NoAutoClear         = 1 << 5,
+  RendObjectFlags_NoInstanceFiltering = 1 << 6, // NOTE: Does not support sorting.
+  RendObjectFlags_SortBackToFront     = 1 << 7,
+  RendObjectFlags_SortFrontToBack     = 1 << 8,
 
   RendObjectFlags_Sorted = RendObjectFlags_SortBackToFront | RendObjectFlags_SortFrontToBack,
 } RendObjectFlags;
