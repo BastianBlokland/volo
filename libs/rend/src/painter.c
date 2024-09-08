@@ -228,9 +228,9 @@ static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id,
 }
 
 static SceneTags painter_push_objects_simple(
-    RendPaintContext* ctx, EcsView* objView, EcsView* resourceView, const AssetGraphicPass passId) {
+    RendPaintContext* ctx, EcsView* objView, EcsView* resView, const AssetGraphicPass passId) {
   SceneTags    tagMask     = 0;
-  EcsIterator* resourceItr = ecs_view_itr(resourceView);
+  EcsIterator* resourceItr = ecs_view_itr(resView);
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
     if (!rend_object_instance_count(obj)) {
@@ -265,7 +265,7 @@ static SceneTags painter_push_objects_simple(
   return tagMask;
 }
 
-static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView* resourceView) {
+static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView* resView) {
   RendObjectFlags requiredAny = 0;
   requiredAny |= RendObjectFlags_StandardGeometry; // Include geometry.
   if (ctx->settings->flags & RendFlags_VfxSpriteShadows) {
@@ -273,7 +273,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
   }
 
   const RvkRepository* repo        = rvk_canvas_repository(ctx->canvas);
-  EcsIterator*         resourceItr = ecs_view_itr(resourceView);
+  EcsIterator*         resourceItr = ecs_view_itr(resView);
 
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
@@ -510,12 +510,12 @@ static void painter_push_debug_resource_viewer(
     EcsWorld*         world,
     RendPaintContext* ctx,
     const f32         aspect,
-    EcsView*          resourceView,
-    const EcsEntityId resourceEntity) {
+    EcsView*          resView,
+    const EcsEntityId resEntity) {
 
-  rend_res_request(world, resourceEntity);
+  rend_res_request(world, resEntity);
 
-  EcsIterator* itr = ecs_view_maybe_at(resourceView, resourceEntity);
+  EcsIterator* itr = ecs_view_maybe_at(resView, resEntity);
   if (itr) {
     const RendResTextureComp* textureComp = ecs_view_read_t(itr, RendResTextureComp);
     if (textureComp) {
@@ -531,9 +531,9 @@ static void painter_push_debug_resource_viewer(
 }
 
 static void
-painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* resourceView) {
+painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* resView) {
   const RvkRepository* repo        = rvk_canvas_repository(ctx->canvas);
-  EcsIterator*         resourceItr = ecs_view_itr(resourceView);
+  EcsIterator*         resourceItr = ecs_view_itr(resView);
 
   const RendObjectFlags ignoreFlags = RendObjectFlags_StandardGeometry | RendObjectFlags_Terrain;
 
@@ -587,8 +587,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
   }
 }
 
-static void
-painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView, EcsView* resourceView) {
+static void painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView, EcsView* resView) {
   const RvkRepository*  repository     = rvk_canvas_repository(ctx->canvas);
   const RvkRepositoryId debugGraphicId = RvkRepositoryId_DebugSkinningGraphic;
   const RvkGraphic*     debugGraphic = rvk_repository_graphic_get_maybe(repository, debugGraphicId);
@@ -596,7 +595,7 @@ painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView, EcsView* re
     return; // Debug graphic not ready to be drawn.
   }
 
-  EcsIterator* resourceItr = ecs_view_itr(resourceView);
+  EcsIterator* resourceItr = ecs_view_itr(resView);
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
     if (!(rend_object_flags(obj) & RendObjectFlags_Skinned)) {
@@ -625,7 +624,7 @@ static bool rend_canvas_paint_2d(
     const GapWindowComp*    win,
     const EcsEntityId       camEntity,
     EcsView*                objView,
-    EcsView*                resourceView) {
+    EcsView*                resView) {
 
   if (!rvk_canvas_begin(painter->canvas, set, painter_win_size(win))) {
     return false; // Canvas not ready for rendering.
@@ -648,7 +647,7 @@ static bool rend_canvas_paint_2d(
 
     RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, postPass, mainView);
     rvk_pass_stage_attach_color(postPass, postRes, 0);
-    painter_push_objects_simple(&ctx, objView, resourceView, AssetGraphicPass_Post);
+    painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Post);
     rend_builder_pass_flush(builder);
 
     // TODO: Render into the swapchain directly if the swapchain format matches the pass format.
@@ -1098,9 +1097,9 @@ ecs_system_define(RendPainterDrawSys) {
   const RendLightRendererComp* light    = ecs_view_read_t(globalItr, RendLightRendererComp);
   const RendFogComp*           fog      = ecs_view_read_t(globalItr, RendFogComp);
 
-  EcsView* painterView  = ecs_world_view_t(world, PainterUpdateView);
-  EcsView* objView      = ecs_world_view_t(world, ObjView);
-  EcsView* resourceView = ecs_world_view_t(world, ResourceView);
+  EcsView* painterView = ecs_world_view_t(world, PainterUpdateView);
+  EcsView* objView     = ecs_world_view_t(world, ObjView);
+  EcsView* resView     = ecs_world_view_t(world, ResourceView);
 
   for (EcsIterator* itr = ecs_view_itr(painterView); ecs_view_walk(itr);) {
     const EcsEntityId         entity   = ecs_view_entity(itr);
@@ -1112,7 +1111,7 @@ ecs_system_define(RendPainterDrawSys) {
 
     switch (painter->type) {
     case RendPainterType_2D:
-      rend_canvas_paint_2d(painter, platform, settings, time, win, entity, objView, resourceView);
+      rend_canvas_paint_2d(painter, platform, settings, time, win, entity, objView, resView);
       break;
     case RendPainterType_3D:
       rend_canvas_paint_3d(
@@ -1128,7 +1127,7 @@ ecs_system_define(RendPainterDrawSys) {
           cam,
           camTrans,
           objView,
-          resourceView);
+          resView);
       break;
     }
   }
