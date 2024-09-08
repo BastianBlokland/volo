@@ -439,11 +439,6 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
       resComp->state = RendResLoadState_FinishedFailure;
       return false;
     }
-
-    const RendResGlobalDef* globalDef = rend_res_global_lookup(id);
-    if (globalDef) {
-      rvk_repository_graphic_set(dev->repository, globalDef->repoId, graphic);
-    }
     return true;
   }
 
@@ -462,11 +457,6 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
   if (maybeAssetTexture) {
     RvkTexture* tex = rvk_texture_create(dev, maybeAssetTexture, id);
     ecs_world_add_t(world, entity, RendResTextureComp, .device = dev, .texture = tex);
-
-    const RendResGlobalDef* globalDef = rend_res_global_lookup(id);
-    if (globalDef) {
-      rvk_repository_texture_set(dev->repository, globalDef->repoId, tex);
-    }
     return true;
   }
 
@@ -475,23 +465,34 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
   return false;
 }
 
-static bool rend_res_upload_is_ready(const RendPlatformComp* plat, EcsIterator* resItr) {
+static bool rend_res_upload_wait(const RendPlatformComp* plat, EcsIterator* resItr) {
+  const RvkDevice*        dev       = plat->device;
+  const String            id        = asset_id(ecs_view_read_t(resItr, AssetComp));
+  const RendResGlobalDef* globalDef = rend_res_global_lookup(id);
 
   const RendResGraphicComp* maybeGraphic = ecs_view_read_t(resItr, RendResGraphicComp);
   if (maybeGraphic) {
-    return rvk_graphic_is_ready(maybeGraphic->graphic, plat->device);
+    const bool isReady = rvk_graphic_is_ready(maybeGraphic->graphic, dev);
+    if (globalDef && isReady) {
+      rvk_repository_graphic_set(dev->repository, globalDef->repoId, maybeGraphic->graphic);
+    }
+    return isReady;
   }
   const RendResShaderComp* maybeShader = ecs_view_read_t(resItr, RendResShaderComp);
   if (maybeShader) {
-    return true;
+    return true; // Shaders do not require uploading.
   }
   const RendResMeshComp* maybeMesh = ecs_view_read_t(resItr, RendResMeshComp);
   if (maybeMesh) {
-    return rvk_mesh_is_ready(maybeMesh->mesh, plat->device);
+    return rvk_mesh_is_ready(maybeMesh->mesh, dev);
   }
   const RendResTextureComp* maybeTexture = ecs_view_read_t(resItr, RendResTextureComp);
   if (maybeTexture) {
-    return rvk_texture_is_ready(maybeTexture->texture, plat->device);
+    const bool isReady = rvk_texture_is_ready(maybeTexture->texture, dev);
+    if (globalDef && isReady) {
+      rvk_repository_texture_set(dev->repository, globalDef->repoId, maybeTexture->texture);
+    }
+    return isReady;
   }
 
   diag_crash_msg("Unsupported resource type");
@@ -589,7 +590,7 @@ ecs_system_define(RendResLoadSys) {
       trace_end();
     } break;
     case RendResLoadState_UploadWait:
-      if (rend_res_upload_is_ready(platform, itr)) {
+      if (rend_res_upload_wait(platform, itr)) {
         ++resComp->state;
       }
       break;
