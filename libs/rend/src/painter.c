@@ -242,6 +242,9 @@ static SceneTags painter_push_objects_simple(
     if (rend_object_flags(obj) & ignoreFlags) {
       continue; // Object has an ignore flag.
     }
+    if (!rend_object_instance_count(obj)) {
+      continue; // Object has no instances.
+    }
 
     // Retrieve and prepare the object's graphic.
     const EcsEntityId graphicResource = rend_object_resource(obj, RendObjectResource_Graphic);
