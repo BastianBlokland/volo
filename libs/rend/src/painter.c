@@ -191,26 +191,34 @@ static void painter_stage_global_data(
 
 static const RvkGraphic* painter_get_graphic(EcsIterator* resourceItr, const EcsEntityId resource) {
   if (!ecs_view_maybe_jump(resourceItr, resource)) {
-    return null; // Resource not loaded.
+    return null; // Resource not loaded yet.
   }
-  const RendResGraphicComp* graphicResource = ecs_view_read_t(resourceItr, RendResGraphicComp);
-  if (!graphicResource) {
+  const RendResComp* resComp = ecs_view_read_t(resourceItr, RendResComp);
+  if (rend_res_is_failed(resComp)) {
+    return null; // Failed to load.
+  }
+  const RendResGraphicComp* graphicRes = ecs_view_read_t(resourceItr, RendResGraphicComp);
+  if (!graphicRes) {
     log_e("Invalid graphic asset", log_param("entity", ecs_entity_fmt(resource)));
     return null;
   }
-  return graphicResource->graphic;
+  return graphicRes->graphic;
 }
 
 static const RvkTexture* painter_get_texture(EcsIterator* resourceItr, const EcsEntityId resource) {
   if (!ecs_view_maybe_jump(resourceItr, resource)) {
-    return null; // Resource not loaded.
+    return null; // Resource not loaded yet.
   }
-  const RendResTextureComp* textureResource = ecs_view_read_t(resourceItr, RendResTextureComp);
-  if (!textureResource) {
+  const RendResComp* resComp = ecs_view_read_t(resourceItr, RendResComp);
+  if (rend_res_is_failed(resComp)) {
+    return null; // Failed to load.
+  }
+  const RendResTextureComp* textureRes = ecs_view_read_t(resourceItr, RendResTextureComp);
+  if (!textureRes) {
     log_e("Invalid texture asset", log_param("entity", ecs_entity_fmt(resource)));
     return null;
   }
-  return textureResource->texture;
+  return textureRes->texture;
 }
 
 static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id, const Mem data) {
@@ -830,14 +838,14 @@ static bool rend_canvas_paint_3d(
       rend_builder_pass_push(builder, fogBlurPass);
       rvk_pass_stage_global_image(fogBlurPass, fogBuffer, 0);
       rvk_pass_stage_attach_color(fogBlurPass, tmp, 0);
-      painter_push_simple(&ctx, RvkRepositoryId_BlurHorGraphic, mem_var(blurData));
+      painter_push_simple(&ctx, RvkRepositoryId_FogBlurHorGraphic, mem_var(blurData));
       rend_builder_pass_flush(builder);
 
       // Vertical pass.
       rend_builder_pass_push(builder, fogBlurPass);
       rvk_pass_stage_global_image(fogBlurPass, tmp, 0);
       rvk_pass_stage_attach_color(fogBlurPass, fogBuffer, 0);
-      painter_push_simple(&ctx, RvkRepositoryId_BlurVerGraphic, mem_var(blurData));
+      painter_push_simple(&ctx, RvkRepositoryId_FogBlurVerGraphic, mem_var(blurData));
       rend_builder_pass_flush(builder);
     }
     rvk_canvas_attach_release(painter->canvas, tmp);

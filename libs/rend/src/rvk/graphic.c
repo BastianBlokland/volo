@@ -140,6 +140,30 @@ static RvkDescMeta rvk_graphic_desc_meta(RvkGraphic* graphic, const usize set) {
   return meta;
 }
 
+static AssetGraphicBlend rvk_graphic_blend(const AssetGraphicComp* asset, const u32 outputBinding) {
+  switch (outputBinding) {
+  case 0:
+    return asset->blend;
+  default:
+    return asset->blendAux;
+  }
+}
+
+static bool rvk_graphic_blend_requires_alpha(const AssetGraphicBlend blend) {
+  switch (blend) {
+  case AssetGraphicBlend_Alpha:
+  case AssetGraphicBlend_AlphaConstant:
+  case AssetGraphicBlend_PreMultiplied:
+    return true;
+  case AssetGraphicBlend_Additive:
+  case AssetGraphicBlend_None:
+    return false;
+  case AssetGraphicBlend_Count:
+    break;
+  }
+  diag_crash();
+}
+
 static VkPipelineLayout
 rvk_pipeline_layout_create(const RvkGraphic* graphic, RvkDevice* dev, const RvkPass* pass) {
   const RvkDescMeta           globalDescMeta      = rvk_pass_meta_global(pass);
@@ -363,12 +387,21 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend(const AssetGr
   diag_crash();
 }
 
+static u32 rvk_pipeline_pass_color_attachment_count(const RvkPassConfig* passConfig) {
+  u32 result = 0;
+  for (u32 binding = 0; binding != rvk_pass_attach_color_max; ++binding) {
+    result += passConfig->attachColorFormat[binding] != RvkPassFormat_None;
+  }
+  return result;
+}
+
 static VkPipeline rvk_pipeline_create(
     RvkGraphic*             graphic,
     const AssetGraphicComp* asset,
     RvkDevice*              dev,
     const VkPipelineLayout  layout,
     const RvkPass*          pass) {
+  const RvkPassConfig* passConfig = rvk_pass_config(pass);
 
   VkPipelineShaderStageCreateInfo shaderStages[rvk_graphic_shaders_max];
   u32                             shaderStageCount = 0;
@@ -424,7 +457,7 @@ static VkPipeline rvk_pipeline_create(
       .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
   };
 
-  const bool passHasDepth = rvk_pass_config(pass)->attachDepth != RvkPassDepth_None;
+  const bool passHasDepth = passConfig->attachDepth != RvkPassDepth_None;
   const VkPipelineDepthStencilStateCreateInfo depthStencil = {
       .sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
       .depthWriteEnable = passHasDepth && rvk_pipeline_depth_write(asset),
@@ -432,11 +465,10 @@ static VkPipeline rvk_pipeline_create(
       .depthCompareOp   = rvk_pipeline_depth_compare(asset),
   };
 
-  const u32                           colorAttachmentCount = 32 - bits_clz_32(graphic->outputMask);
-  VkPipelineColorBlendAttachmentState colorBlends[16];
-  colorBlends[0] = rvk_pipeline_colorblend(asset->blend);
-  for (u32 i = 1; i < colorAttachmentCount; ++i) {
-    colorBlends[i] = rvk_pipeline_colorblend(asset->blendAux);
+  const u32 colorAttachmentCount = rvk_pipeline_pass_color_attachment_count(passConfig);
+  VkPipelineColorBlendAttachmentState colorBlends[rvk_pass_attach_color_max];
+  for (u32 binding = 0; binding != colorAttachmentCount; ++binding) {
+    colorBlends[binding] = rvk_pipeline_colorblend(rvk_graphic_blend(asset, binding));
   }
   const VkPipelineColorBlendStateCreateInfo colorBlending = {
       .sType             = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
@@ -498,71 +530,139 @@ static void rvk_graphic_set_missing_sampler(
 
   graphic->samplerTextures[samplerIndex] = rvk_repository_texture_get(repo, repoId);
   graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
-         .wrap   = RvkSamplerWrap_Repeat,
-         .filter = RvkSamplerFilter_Nearest,
+      .wrap   = RvkSamplerWrap_Repeat,
+      .filter = RvkSamplerFilter_Nearest,
   };
 }
 
-static bool rvk_graphic_validate_shaders(const RvkGraphic* graphic) {
+static AssetShaderType rvk_graphic_pass_shader_output(const RvkPassFormat passFormat) {
+  switch (passFormat) {
+  case RvkPassFormat_None:
+    return AssetShaderType_None;
+  case RvkPassFormat_Color1Linear:
+    return AssetShaderType_f32;
+  case RvkPassFormat_Color2Linear:
+  case RvkPassFormat_Color2SignedFloat:
+    return AssetShaderType_f32v2;
+  case RvkPassFormat_Color3Float:
+    return AssetShaderType_f32v3;
+  case RvkPassFormat_Color4Linear:
+  case RvkPassFormat_Color4Srgb:
+    return AssetShaderType_f32v4;
+  }
+  diag_crash();
+}
+
+static bool rvk_graphic_validate_shaders(
+    const RvkGraphic* graphic, const AssetGraphicComp* asset, const RvkPass* pass) {
+
+  const RvkShader*      shaderVert  = null;
+  const RvkShader*      shaderFrag  = null;
   VkShaderStageFlagBits foundStages = 0;
-  u16                   vertexShaderOutputs, fragmentShaderInputs;
+
   for (u32 shaderIdx = 0; shaderIdx != array_elems(graphic->shaders); ++shaderIdx) {
     const RvkShader* shader = graphic->shaders[shaderIdx];
     if (!shader) {
       break;
     }
+    MAYBE_UNUSED const String shaderId = asset->shaders.values[shaderIdx].shaderId;
+
     // Validate stage.
-    if (foundStages & shader->vkStage) {
+    if (UNLIKELY(foundStages & shader->vkStage)) {
       log_e("Duplicate shader stage", log_param("graphic", fmt_text(graphic->dbgName)));
       return false;
     }
     foundStages |= shader->vkStage;
 
-    if (shader->vkStage == VK_SHADER_STAGE_VERTEX_BIT) {
-      vertexShaderOutputs = shader->outputMask;
-    } else if (shader->vkStage == VK_SHADER_STAGE_FRAGMENT_BIT) {
-      fragmentShaderInputs = shader->inputMask;
+    switch (shader->vkStage) {
+    case VK_SHADER_STAGE_VERTEX_BIT:
+      shaderVert = shader;
+      break;
+    case VK_SHADER_STAGE_FRAGMENT_BIT:
+      shaderFrag = shader;
+      break;
+    default:
+      UNREACHABLE
     }
 
     // Validate used sets.
     for (u32 set = 0; set != rvk_shader_desc_max; ++set) {
       const bool supported = mem_contains(mem_var(g_rendSupportedShaderSets), set);
-      if (!supported && rvk_shader_set_used(shader, set)) {
+      if (UNLIKELY(!supported && rvk_shader_set_used(shader, set))) {
         log_e(
             "Shader uses unsupported set",
             log_param("graphic", fmt_text(graphic->dbgName)),
+            log_param("shader", fmt_text(shaderId)),
             log_param("set", fmt_int(set)));
         return false;
       }
     }
   }
-  if (!(foundStages & VK_SHADER_STAGE_VERTEX_BIT)) {
-    log_e("Vertex shader missing", log_param("graphic", fmt_text(graphic->dbgName)));
-    return false;
-  }
-  if (!(foundStages & VK_SHADER_STAGE_FRAGMENT_BIT)) {
-    log_e("Vertex shader missing", log_param("graphic", fmt_text(graphic->dbgName)));
-    return false;
-  }
-  if ((vertexShaderOutputs & fragmentShaderInputs) != fragmentShaderInputs) {
-    log_e(
-        "Fragment shader expects more data then the vertex shader provides",
-        log_param("graphic", fmt_text(graphic->dbgName)),
-        log_param("vertex-out", fmt_bitset(bitset_from_var(vertexShaderOutputs))),
-        log_param("fragment-in", fmt_bitset(bitset_from_var(fragmentShaderInputs))));
-    return false;
-  }
-  return true;
-}
 
-static u16 rvk_graphic_output_mask(const RvkGraphic* graphic) {
-  for (u32 shaderIdx = 0; shaderIdx != array_elems(graphic->shaders); ++shaderIdx) {
-    const RvkShader* shader = graphic->shaders[shaderIdx];
-    if (shader && shader->vkStage == VK_SHADER_STAGE_FRAGMENT_BIT) {
-      return shader->outputMask;
+  if (UNLIKELY(!shaderVert)) {
+    log_e("Vertex shader missing", log_param("graphic", fmt_text(graphic->dbgName)));
+    return false;
+  }
+  if (UNLIKELY(!shaderFrag)) {
+    log_e("Vertex shader missing", log_param("graphic", fmt_text(graphic->dbgName)));
+    return false;
+  }
+
+  // Validate fragment inputs.
+  ASSERT(asset_shader_max_outputs >= asset_shader_max_inputs, "Not enough shader outputs");
+  for (u32 binding = 0; binding != asset_shader_max_inputs; ++binding) {
+    const AssetShaderType inputType  = shaderFrag->inputs[binding];
+    const AssetShaderType outputType = shaderVert->outputs[binding];
+    if (inputType == AssetShaderType_None) {
+      continue; // Binding unused.
+    }
+    if (UNLIKELY(outputType != inputType)) {
+      log_e(
+          "Unsatisfied fragment shader input binding",
+          log_param("graphic", fmt_text(graphic->dbgName)),
+          log_param("binding", fmt_int(binding)),
+          log_param("fragment-input", fmt_text(asset_shader_type_name(inputType))),
+          log_param("vertex-output", fmt_text(asset_shader_type_name(outputType))));
+      return false;
     }
   }
-  return 0;
+
+  // Validate fragment outputs.
+  const RvkPassConfig* passConfig = rvk_pass_config(pass);
+  for (u32 binding = 0; binding != asset_shader_max_outputs; ++binding) {
+    const AssetShaderType   outputType  = shaderFrag->outputs[binding];
+    const AssetGraphicBlend outputBlend = rvk_graphic_blend(asset, binding);
+    if (binding >= rvk_pass_attach_color_max) {
+      if (UNLIKELY(outputType != AssetShaderType_None)) {
+        log_e(
+            "Fragment shader output binding not consumed by pass",
+            log_param("graphic", fmt_text(graphic->dbgName)),
+            log_param("pass", fmt_text(passConfig->name)),
+            log_param("binding", fmt_int(binding)),
+            log_param("type", fmt_text(asset_shader_type_name(outputType))));
+        return false;
+      }
+      continue; // Output binding not used by pass.
+    }
+    AssetShaderType passOutputType;
+    if (rvk_graphic_blend_requires_alpha(outputBlend)) {
+      passOutputType = AssetShaderType_f32v4;
+    } else {
+      passOutputType = rvk_graphic_pass_shader_output(passConfig->attachColorFormat[binding]);
+    }
+    if (UNLIKELY(outputType != passOutputType)) {
+      log_e(
+          "Fragment shader output binding invalid",
+          log_param("graphic", fmt_text(graphic->dbgName)),
+          log_param("pass", fmt_text(passConfig->name)),
+          log_param("binding", fmt_int(binding)),
+          log_param("expected-type", fmt_text(asset_shader_type_name(passOutputType))),
+          log_param("actual-type", fmt_text(asset_shader_type_name(outputType))));
+      return false;
+    }
+  }
+
+  return true;
 }
 
 static bool rend_graphic_validate_set(
@@ -664,10 +764,10 @@ void rvk_graphic_add_sampler(
       graphic->samplerMask |= 1 << samplerIndex;
       graphic->samplerTextures[samplerIndex] = tex;
       graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
-             .flags  = samplerFlags,
-             .wrap   = rvk_graphic_wrap(sampler->wrap),
-             .filter = rvk_graphic_filter(sampler->filter),
-             .aniso  = rvk_graphic_aniso(sampler->anisotropy),
+          .flags  = samplerFlags,
+          .wrap   = rvk_graphic_wrap(sampler->wrap),
+          .filter = rvk_graphic_filter(sampler->filter),
+          .aniso  = rvk_graphic_aniso(sampler->anisotropy),
       };
       return;
     }
@@ -683,10 +783,9 @@ bool rvk_graphic_finalize(
   diag_assert_msg(!graphic->vkPipeline, "Graphic already finalized");
   diag_assert(graphic->passId == rvk_pass_config(pass)->id);
 
-  if (UNLIKELY(!rvk_graphic_validate_shaders(graphic))) {
+  if (UNLIKELY(!rvk_graphic_validate_shaders(graphic, asset, pass))) {
     graphic->flags |= RvkGraphicFlags_Invalid;
   }
-  graphic->outputMask = rvk_graphic_output_mask(graphic);
 
   // Finalize global set bindings.
   const RvkDescMeta globalDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Global);

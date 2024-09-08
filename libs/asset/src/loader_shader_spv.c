@@ -21,6 +21,7 @@ typedef enum {
   SpvOp_TypeBool          = 20,
   SpvOp_TypeInt           = 21,
   SpvOp_TypeFloat         = 22,
+  SpvOp_TypeVector        = 23,
   SpvOp_TypeImage         = 25,
   SpvOp_TypeSampledImage  = 27,
   SpvOp_TypeStruct        = 30,
@@ -220,7 +221,7 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
         return data;
       }
       const u32 typeId = data.ptr[1];
-      if (!spv_validate_id(typeId, out, err)) {
+      if (!spv_validate_new_id(typeId, out, err)) {
         return data;
       }
       out->wellknownTypes[AssetShaderType_bool] = typeId;
@@ -235,7 +236,7 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
         return data;
       }
       const u32 typeId = data.ptr[1];
-      if (!spv_validate_id(typeId, out, err)) {
+      if (!spv_validate_new_id(typeId, out, err)) {
         return data;
       }
       const u32 width      = data.ptr[2];
@@ -265,7 +266,7 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
         return data;
       }
       const u32 typeId = data.ptr[1];
-      if (!spv_validate_id(typeId, out, err)) {
+      if (!spv_validate_new_id(typeId, out, err)) {
         return data;
       }
       const u32 width = data.ptr[2];
@@ -279,6 +280,38 @@ static SpvData spv_read_program(SpvData data, const u32 maxId, SpvProgram* out, 
       case 64:
         out->wellknownTypes[AssetShaderType_f64] = typeId;
         break;
+      }
+    } break;
+    case SpvOp_TypeVector: {
+      /**
+       * Vector type declaration.
+       * https://www.khronos.org/registry/SPIR-V/specs/unified1/SPIRV.html#OpTypeVector
+       */
+      if (data.size < 4) {
+        *err = SpvError_Malformed;
+        return data;
+      }
+      const u32 typeId = data.ptr[1];
+      if (!spv_validate_new_id(typeId, out, err)) {
+        return data;
+      }
+      const u32 componentTypeId = data.ptr[2];
+      if (!spv_validate_id(componentTypeId, out, err)) {
+        return data;
+      }
+      const u32 columnCount = data.ptr[3];
+      if (componentTypeId == out->wellknownTypes[AssetShaderType_f32]) {
+        switch (columnCount) {
+        case 2:
+          out->wellknownTypes[AssetShaderType_f32v2] = typeId;
+          break;
+        case 3:
+          out->wellknownTypes[AssetShaderType_f32v3] = typeId;
+          break;
+        case 4:
+          out->wellknownTypes[AssetShaderType_f32v4] = typeId;
+          break;
+        }
       }
     } break;
     case SpvOp_Decorate: {
@@ -655,14 +688,21 @@ static AssetShaderResKind spv_resource_kind(
   }
 }
 
-static AssetShaderType spv_lookup_type(SpvProgram* program, const u32 typeId, SpvError* err) {
+static AssetShaderType spv_lookup_type(SpvProgram* program, const u32 typeId) {
+  diag_assert(typeId < program->idCount);
+
+  const SpvId* id = &program->ids[typeId];
+  if (id->kind == SpvIdKind_TypePointer) {
+    return spv_lookup_type(program, id->typeId);
+  }
+
   for (AssetShaderType type = 0; type != AssetShaderType_Count; ++type) {
     if (program->wellknownTypes[type] == typeId) {
       return type;
     }
   }
-  *err = SpvError_UnsupportedSpecConstantType;
-  return 0;
+
+  return AssetShaderType_Unknown;
 }
 
 static SpvInstructionId spv_label_instruction(SpvProgram* program, const u32 labelId) {
@@ -715,6 +755,9 @@ static void spv_asset_shader_create(
       .entryPoint = string_maybe_dup(g_allocHeap, program->entryPoint),
       .data       = input,
   };
+
+  mem_set(array_mem(out->inputs), 0xFF);
+  mem_set(array_mem(out->outputs), 0xFF);
 
   if (!sentinel_check(program->killInstruction)) {
     out->flags |= AssetShaderFlags_MayKill;
@@ -775,8 +818,9 @@ static void spv_asset_shader_create(
         *err = SpvError_MalformedDuplicateBinding;
         return;
       }
-      const AssetShaderType type = spv_lookup_type(program, id->typeId, err);
-      if (UNLIKELY(*err)) {
+      const AssetShaderType type = spv_lookup_type(program, id->typeId);
+      if (UNLIKELY(type == AssetShaderType_Unknown)) {
+        *err = SpvError_UnsupportedSpecConstantType;
         return;
       }
       usedSpecSlots |= 1 << id->binding;
@@ -786,17 +830,25 @@ static void spv_asset_shader_create(
           .binding = (u8)id->binding,
       };
     } else if (spv_is_input(id)) {
-      if (id->binding >= asset_shader_max_inputs) {
+      if (UNLIKELY(id->binding >= asset_shader_max_inputs)) {
         *err = SpvError_UnsupportedInputExceedsMax;
         return;
       }
-      out->inputMask |= 1 << id->binding;
+      if (UNLIKELY(out->inputs[id->binding] != AssetShaderType_None)) {
+        *err = SpvError_MalformedDuplicateInput;
+        return;
+      }
+      out->inputs[id->binding] = spv_lookup_type(program, id->typeId);
     } else if (spv_is_output(id)) {
       if (id->binding >= asset_shader_max_outputs) {
         *err = SpvError_UnsupportedOutputExceedsMax;
         return;
       }
-      out->outputMask |= 1 << id->binding;
+      if (UNLIKELY(out->outputs[id->binding] != AssetShaderType_None)) {
+        *err = SpvError_MalformedDuplicateOutput;
+        return;
+      }
+      out->outputs[id->binding] = spv_lookup_type(program, id->typeId);
     }
   }
 
@@ -826,6 +878,8 @@ String spv_err_str(const SpvError res) {
       string_static("Duplicate SpirV id"),
       string_static("SpirV shader resource without set and binding"),
       string_static("SpirV shader resource binding already used in this set"),
+      string_static("SpirV shader duplicate input binding"),
+      string_static("SpirV shader duplicate output binding"),
       string_static("SpirV shader specialization constant without a binding"),
       string_static("Unsupported SpirV version, atleast 1.3 is required"),
       string_static("Multiple SpirV entrypoints are not supported"),

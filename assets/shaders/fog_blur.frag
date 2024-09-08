@@ -21,19 +21,19 @@ bind_draw_data(0) readonly uniform Draw { BlurData u_draw; };
 
 bind_internal(0) in f32v2 in_texcoord;
 
-bind_internal(0) out f32v4 out_color;
+bind_internal(0) out f32 out_value;
 
 void main() {
   const f32v2 sampleSize = 1.0 / textureSize(u_texInput, 0) * u_draw.sampleScale;
-  f32v4       res        = texture(u_texInput, in_texcoord) * c_kernelWeights[0];
+  f32         res        = texture(u_texInput, in_texcoord).r * c_kernelWeights[0];
   for (i32 i = 1; i < c_sampleCount; ++i) {
     if (s_horizontal) {
-      res += texture(u_texInput, in_texcoord + f32v2(sampleSize.x * i, 0)) * c_kernelWeights[i];
-      res += texture(u_texInput, in_texcoord - f32v2(sampleSize.x * i, 0)) * c_kernelWeights[i];
+      res += texture(u_texInput, in_texcoord + f32v2(sampleSize.x * i, 0)).r * c_kernelWeights[i];
+      res += texture(u_texInput, in_texcoord - f32v2(sampleSize.x * i, 0)).r * c_kernelWeights[i];
     } else {
-      res += texture(u_texInput, in_texcoord + f32v2(0, sampleSize.y * i)) * c_kernelWeights[i];
-      res += texture(u_texInput, in_texcoord - f32v2(0, sampleSize.y * i)) * c_kernelWeights[i];
+      res += texture(u_texInput, in_texcoord + f32v2(0, sampleSize.y * i)).r * c_kernelWeights[i];
+      res += texture(u_texInput, in_texcoord - f32v2(0, sampleSize.y * i)).r * c_kernelWeights[i];
     }
   }
-  out_color = res;
+  out_value = res;
 }

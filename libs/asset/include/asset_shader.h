@@ -47,9 +47,14 @@ typedef enum {
   AssetShaderType_i64,
   AssetShaderType_f16,
   AssetShaderType_f32,
+  AssetShaderType_f32v2,
+  AssetShaderType_f32v3,
+  AssetShaderType_f32v4,
   AssetShaderType_f64,
 
   AssetShaderType_Count,
+  AssetShaderType_Unknown = 254,
+  AssetShaderType_None    = 255,
 } AssetShaderType;
 
 typedef enum {
@@ -68,7 +73,8 @@ ecs_comp_extern_public(AssetShaderComp) {
   AssetShaderKind  kind;
   AssetShaderFlags flags;
   u16              killSpecConstMask; // Mask of spec constants that need to be true for kill inst.
-  u16              inputMask, outputMask;
+  u8               inputs[asset_shader_max_inputs];  // AssetShaderType[]
+  u8               outputs[asset_shader_max_inputs]; // AssetShaderType[]
   String           entryPoint;
   HeapArray_t(AssetShaderRes) resources;
   HeapArray_t(AssetShaderSpec) specs;
@@ -76,3 +82,6 @@ ecs_comp_extern_public(AssetShaderComp) {
 };
 
 extern DataMeta g_assetShaderMeta;
+
+u32    asset_shader_type_size(AssetShaderType); // In bytes.
+String asset_shader_type_name(AssetShaderType);

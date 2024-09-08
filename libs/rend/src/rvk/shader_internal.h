@@ -19,10 +19,15 @@ typedef struct sRvkShader {
   VkShaderStageFlagBits vkStage;
   VkShaderModule        vkModule;
   String                entryPoint;
-  RvkShaderFlags        flags : 8;
-  u16                   killSpecConstMask; // Mask of spec-consts that need to be true for kill.
-  RvkDescMeta           descriptors[rvk_shader_desc_max];
-  u16                   inputMask, outputMask;
+
+  RvkShaderFlags flags : 8;
+  u16            killSpecConstMask; // Mask of spec-consts that need to be true for kill.
+
+  RvkDescMeta descriptors[rvk_shader_desc_max];
+
+  u8 inputs[asset_shader_max_inputs];  // AssetShaderType[]
+  u8 outputs[asset_shader_max_inputs]; // AssetShaderType[]
+
   HeapArray_t(AssetShaderSpec) specs;
 } RvkShader;
 

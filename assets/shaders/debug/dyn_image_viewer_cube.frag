@@ -22,7 +22,7 @@ bind_draw_img(0) uniform samplerCube u_tex;
 
 bind_internal(0) in f32v2 in_texcoord;
 
-bind_internal(0) out f32v3 out_color;
+bind_internal(0) out f32v4 out_color;
 
 f32v3 checker_pattern(const f32v2 texcoord) {
   const f32v2 scaled = floor(texcoord * 100);
@@ -49,21 +49,21 @@ void main() {
   const f32v4 imageColor = abs(texture_cube_lod(u_tex, dir, lod)) * exposure;
   switch (imageChannels) {
   case 1:
-    out_color = imageColor.rrr;
+    out_color = f32v4(imageColor.rrr, 1);
     break;
   case 2:
-    out_color = f32v3(imageColor.rg, 0);
+    out_color = f32v4(imageColor.rg, 0, 1);
     break;
   case 3:
-    out_color = imageColor.rgb;
+    out_color = f32v4(imageColor.rgb, 1);
     break;
   case 4:
     if ((u_draw.flags & c_flagsAlphaOnly) != 0) {
-      out_color = f32v3(imageColor.a, imageColor.a, imageColor.a);
+      out_color = f32v4(imageColor.a, imageColor.a, imageColor.a, 1);
     } else if ((u_draw.flags & c_flagsAlphaIgnore) != 0) {
-      out_color = imageColor.rgb;
+      out_color = f32v4(imageColor.rgb, 1);
     } else {
-      out_color = mix(checker_pattern(in_texcoord), imageColor.rgb, imageColor.a);
+      out_color = f32v4(mix(checker_pattern(in_texcoord), imageColor.rgb, imageColor.a), 1);
     }
     break;
   }

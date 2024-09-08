@@ -3,7 +3,7 @@
   "passOrder": 10,
   "shaders": [
     { "shaderId": "shaders/dyn_depth_standard_skinned.vert" },
-    { "shaderId": "shaders/solid_white.frag" }
+    { "shaderId": "shaders/solid_white3.frag" }
   ],
   "rasterizer": "Lines",
   "lineWidth": 1,

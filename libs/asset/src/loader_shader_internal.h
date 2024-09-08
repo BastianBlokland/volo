@@ -12,6 +12,8 @@ typedef enum {
   SpvError_MalformedDuplicateId,
   SpvError_MalformedResourceWithoutSetAndId,
   SpvError_MalformedDuplicateBinding,
+  SpvError_MalformedDuplicateInput,
+  SpvError_MalformedDuplicateOutput,
   SpvError_MalformedSpecWithoutBinding,
   SpvError_UnsupportedVersion,
   SpvError_UnsupportedMultipleEntryPoints,

@@ -3,7 +3,7 @@
   "passOrder": 1,
   "shaders": [
     { "shaderId": "shaders/debug/dyn_mesh_viewer.vert" },
-    { "shaderId": "shaders/solid_white.frag" }
+    { "shaderId": "shaders/solid_white4.frag" }
   ],
   "rasterizer": "Lines",
   "lineWidth": 1,
