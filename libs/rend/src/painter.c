@@ -409,7 +409,6 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
 
 static void painter_push_forward(RendPaintContext* ctx, EcsView* objView, EcsView* resourceView) {
   RendObjectFlags ignoreFlags = 0;
-  ignoreFlags |= RendObjectFlags_Geometry; // Ignore geometry (drawn in a separate pass).
 
   if (ctx->settings->ambientMode >= RendAmbientMode_DebugStart) {
     // Disable lighting when using any of the debug ambient modes.
@@ -561,9 +560,11 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
   const RvkRepository* repo        = rvk_canvas_repository(ctx->canvas);
   EcsIterator*         resourceItr = ecs_view_itr(resourceView);
 
+  const RendObjectFlags ignoreFlags = RendObjectFlags_StandardGeometry | RendObjectFlags_Terrain;
+
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
-    if (!(rend_object_flags(obj) & RendObjectFlags_Geometry)) {
+    if (!(rend_object_flags(obj) & ignoreFlags)) {
       continue; // Not a object we can render a wireframe for.
     }
     const EcsEntityId graphicOriginalRes = rend_object_resource(obj, RendObjectResource_Graphic);
@@ -747,7 +748,7 @@ static bool rend_canvas_paint_3d(
         objView,
         resourceView,
         AssetGraphicPass_Geometry,
-        RendObjectFlags_Geometry,
+        RendObjectFlags_None,
         RendObjectFlags_None);
 
     rend_builder_pass_flush(builder);
