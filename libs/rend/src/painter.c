@@ -41,7 +41,6 @@ static void ecs_destruct_painter(void* data) {
 ecs_view_define(GlobalView) {
   ecs_access_read(RendFogComp);
   ecs_access_read(RendLightRendererComp);
-  ecs_access_read(RendSettingsGlobalComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_without(RendResetComp);
   ecs_access_write(RendPlatformComp);
@@ -96,32 +95,29 @@ static RendView painter_view_3d_create(
 }
 
 typedef struct {
-  RvkCanvas*                    canvas;
-  RendBuilderBuffer*            builder;
-  const RendSettingsComp*       settings;
-  const RendSettingsGlobalComp* settingsGlobal;
-  const SceneTimeComp*          time;
-  RvkPass*                      pass;
-  RendView                      view;
+  RvkCanvas*              canvas;
+  RendBuilderBuffer*      builder;
+  const RendSettingsComp* settings;
+  const SceneTimeComp*    time;
+  RvkPass*                pass;
+  RendView                view;
 } RendPaintContext;
 
 static RendPaintContext painter_context(
-    RvkCanvas*                    canvas,
-    RendBuilderBuffer*            builder,
-    const RendSettingsComp*       settings,
-    const RendSettingsGlobalComp* settingsGlobal,
-    const SceneTimeComp*          time,
-    RvkPass*                      pass,
-    RendView                      view) {
+    RvkCanvas*              canvas,
+    RendBuilderBuffer*      builder,
+    const RendSettingsComp* settings,
+    const SceneTimeComp*    time,
+    RvkPass*                pass,
+    RendView                view) {
 
   return (RendPaintContext){
-      .canvas         = canvas,
-      .builder        = builder,
-      .settings       = settings,
-      .settingsGlobal = settingsGlobal,
-      .time           = time,
-      .pass           = pass,
-      .view           = view,
+      .canvas   = canvas,
+      .builder  = builder,
+      .settings = settings,
+      .time     = time,
+      .pass     = pass,
+      .view     = view,
   };
 }
 
@@ -647,15 +643,14 @@ painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView, EcsView* re
 }
 
 static bool rend_canvas_paint_2d(
-    RendPainterComp*              painter,
-    RendPlatformComp*             platform,
-    const RendSettingsComp*       set,
-    const RendSettingsGlobalComp* setGlobal,
-    const SceneTimeComp*          time,
-    const GapWindowComp*          win,
-    const EcsEntityId             camEntity,
-    EcsView*                      objView,
-    EcsView*                      resourceView) {
+    RendPainterComp*        painter,
+    RendPlatformComp*       platform,
+    const RendSettingsComp* set,
+    const SceneTimeComp*    time,
+    const GapWindowComp*    win,
+    const EcsEntityId       camEntity,
+    EcsView*                objView,
+    EcsView*                resourceView) {
 
   if (!rvk_canvas_begin(painter->canvas, set, painter_win_size(win))) {
     return false; // Canvas not ready for rendering.
@@ -676,8 +671,7 @@ static bool rend_canvas_paint_2d(
 
     rvk_canvas_img_clear_color(painter->canvas, postRes, geo_color_black);
 
-    RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, postPass, mainView);
+    RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, postPass, mainView);
     rvk_pass_stage_attach_color(postPass, postRes, 0);
     painter_push_objects_simple(
         &ctx, objView, resourceView, RendObjectFlags_Post, RendObjectFlags_None);
@@ -695,20 +689,19 @@ static bool rend_canvas_paint_2d(
 }
 
 static bool rend_canvas_paint_3d(
-    EcsWorld*                     world,
-    RendPainterComp*              painter,
-    RendPlatformComp*             platform,
-    const RendSettingsComp*       set,
-    const RendSettingsGlobalComp* setGlobal,
-    const SceneTimeComp*          time,
-    const RendLightRendererComp*  light,
-    const RendFogComp*            fog,
-    const GapWindowComp*          win,
-    const EcsEntityId             camEntity,
-    const SceneCameraComp*        cam,
-    const SceneTransformComp*     camTrans,
-    EcsView*                      objView,
-    EcsView*                      resourceView) {
+    EcsWorld*                    world,
+    RendPainterComp*             painter,
+    RendPlatformComp*            platform,
+    const RendSettingsComp*      set,
+    const SceneTimeComp*         time,
+    const RendLightRendererComp* light,
+    const RendFogComp*           fog,
+    const GapWindowComp*         win,
+    const EcsEntityId            camEntity,
+    const SceneCameraComp*       cam,
+    const SceneTransformComp*    camTrans,
+    EcsView*                     objView,
+    EcsView*                     resourceView) {
 
   const RvkSize winSize   = painter_win_size(win);
   const f32     winAspect = (f32)winSize.width / (f32)winSize.height;
@@ -740,8 +733,7 @@ static bool rend_canvas_paint_3d(
     trace_begin("rend_paint_geo", TraceColor_White);
     rend_builder_pass_push(builder, geoPass);
 
-    RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, geoPass, mainView);
+    RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, geoPass, mainView);
     rvk_pass_stage_attach_color(geoPass, geoData0, 0);
     rvk_pass_stage_attach_color(geoPass, geoData1, 1);
     rvk_pass_stage_attach_depth(geoPass, geoDepth);
@@ -768,7 +760,7 @@ static bool rend_canvas_paint_3d(
     RvkImage* geoData1Cpy = rvk_canvas_attach_acquire_copy(painter->canvas, geoData1);
 
     RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, decalPass, mainView);
+        painter_context(painter->canvas, builder, set, time, decalPass, mainView);
     rvk_pass_stage_global_image(decalPass, geoData1Cpy, 0);
     rvk_pass_stage_global_image(decalPass, geoDepthRead, 1);
     rvk_pass_stage_attach_color(decalPass, geoData0, 0);
@@ -799,8 +791,7 @@ static bool rend_canvas_paint_3d(
     const SceneTagFilter fogFilter = {0};
     const RendView       fogView = painter_view_3d_create(fogTrans, fogProj, camEntity, fogFilter);
 
-    RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, fogPass, fogView);
+    RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, fogPass, fogView);
     rvk_pass_stage_attach_color(fogPass, fogBuffer, 0);
     painter_stage_global_data(&ctx, fogTrans, fogProj, fogSize, time, RendViewType_Fog);
     painter_push_objects_simple(
@@ -818,7 +809,7 @@ static bool rend_canvas_paint_3d(
     trace_begin("rend_paint_fog_blur", TraceColor_White);
 
     RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, fogBlurPass, mainView);
+        painter_context(painter->canvas, builder, set, time, fogBlurPass, mainView);
 
     struct {
       ALIGNAS(16)
@@ -863,7 +854,7 @@ static bool rend_canvas_paint_3d(
     };
     const RendView   shadView = painter_view_3d_create(shadTrans, shadProj, camEntity, shadFilter);
     RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, shadowPass, shadView);
+        painter_context(painter->canvas, builder, set, time, shadowPass, shadView);
     rvk_pass_stage_attach_depth(shadowPass, shadowDepth);
     painter_stage_global_data(&ctx, shadTrans, shadProj, shadowSize, time, RendViewType_Shadow);
     painter_push_shadow(&ctx, objView, resourceView);
@@ -884,8 +875,7 @@ static bool rend_canvas_paint_3d(
     trace_begin("rend_paint_ao", TraceColor_White);
     rend_builder_pass_push(builder, aoPass);
 
-    RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, aoPass, mainView);
+    RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, aoPass, mainView);
     rvk_pass_stage_global_image(aoPass, geoData1, 0);
     rvk_pass_stage_global_image(aoPass, geoDepthRead, 1);
     rvk_pass_stage_attach_color(aoPass, aoBuffer, 0);
@@ -909,8 +899,7 @@ static bool rend_canvas_paint_3d(
       // NOTE: The debug camera-mode does not draw to the whole image; thus we need to clear it.
       rvk_canvas_img_clear_color(painter->canvas, fwdColor, geo_color_black);
     }
-    RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, fwdPass, mainView);
+    RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, fwdPass, mainView);
     rvk_pass_stage_global_image(fwdPass, geoData0, 0);
     rvk_pass_stage_global_image(fwdPass, geoData1, 1);
     rvk_pass_stage_global_image(fwdPass, geoDepthRead, 2);
@@ -969,8 +958,7 @@ static bool rend_canvas_paint_3d(
       rvk_canvas_img_blit(painter->canvas, geoDepth, distDepth);
     }
 
-    RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, distPass, mainView);
+    RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, distPass, mainView);
     rvk_pass_stage_attach_color(distPass, distBuffer, 0);
     rvk_pass_stage_attach_depth(distPass, distDepth);
 
@@ -997,7 +985,7 @@ static bool rend_canvas_paint_3d(
     trace_begin("rend_paint_bloom", TraceColor_White);
 
     RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, bloomPass, mainView);
+        painter_context(painter->canvas, builder, set, time, bloomPass, mainView);
     RvkSize   size = geoSize;
     RvkImage* images[6];
     diag_assert(set->bloomSteps <= array_elems(images));
@@ -1048,8 +1036,7 @@ static bool rend_canvas_paint_3d(
     trace_begin("rend_paint_post", TraceColor_White);
     rend_builder_pass_push(builder, postPass);
 
-    RendPaintContext ctx =
-        painter_context(painter->canvas, builder, set, setGlobal, time, postPass, mainView);
+    RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, postPass, mainView);
     rvk_pass_stage_global_image(postPass, fwdColor, 0);
     rvk_pass_stage_global_image(postPass, bloomOutput, 1);
     rvk_pass_stage_global_image(postPass, distBuffer, 2);
@@ -1135,11 +1122,10 @@ ecs_system_define(RendPainterDrawSys) {
   if (!globalItr) {
     return;
   }
-  RendPlatformComp*             platform       = ecs_view_write_t(globalItr, RendPlatformComp);
-  const RendSettingsGlobalComp* settingsGlobal = ecs_view_read_t(globalItr, RendSettingsGlobalComp);
-  const SceneTimeComp*          time           = ecs_view_read_t(globalItr, SceneTimeComp);
-  const RendLightRendererComp*  light          = ecs_view_read_t(globalItr, RendLightRendererComp);
-  const RendFogComp*            fog            = ecs_view_read_t(globalItr, RendFogComp);
+  RendPlatformComp*            platform = ecs_view_write_t(globalItr, RendPlatformComp);
+  const SceneTimeComp*         time     = ecs_view_read_t(globalItr, SceneTimeComp);
+  const RendLightRendererComp* light    = ecs_view_read_t(globalItr, RendLightRendererComp);
+  const RendFogComp*           fog      = ecs_view_read_t(globalItr, RendFogComp);
 
   EcsView* painterView  = ecs_world_view_t(world, PainterUpdateView);
   EcsView* objView      = ecs_world_view_t(world, ObjView);
@@ -1155,8 +1141,7 @@ ecs_system_define(RendPainterDrawSys) {
 
     switch (painter->type) {
     case RendPainterType_2D:
-      rend_canvas_paint_2d(
-          painter, platform, settings, settingsGlobal, time, win, entity, objView, resourceView);
+      rend_canvas_paint_2d(painter, platform, settings, time, win, entity, objView, resourceView);
       break;
     case RendPainterType_3D:
       rend_canvas_paint_3d(
@@ -1164,7 +1149,6 @@ ecs_system_define(RendPainterDrawSys) {
           painter,
           platform,
           settings,
-          settingsGlobal,
           time,
           light,
           fog,
