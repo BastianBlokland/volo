@@ -388,13 +388,11 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend(const AssetGr
 }
 
 static u32 rvk_pipeline_pass_color_attachment_count(const RvkPassConfig* passConfig) {
-  u32 count = 0;
+  u32 result = 0;
   for (u32 binding = 0; binding != rvk_pass_attach_color_max; ++binding) {
-    if (passConfig->attachColorFormat[count] != RvkPassFormat_None) {
-      ++count;
-    }
+    result += passConfig->attachColorFormat[binding] != RvkPassFormat_None;
   }
-  return count;
+  return result;
 }
 
 static VkPipeline rvk_pipeline_create(
@@ -667,26 +665,6 @@ static bool rvk_graphic_validate_shaders(
   return true;
 }
 
-static u16 rvk_graphic_shader_output_mask(const RvkShader* shader) {
-  u16 mask = 0;
-  for (u32 binding = 0; binding != array_elems(shader->outputs); ++binding) {
-    if (shader->outputs[binding] != AssetShaderType_None) {
-      mask |= 1 << binding;
-    }
-  }
-  return mask;
-}
-
-static u16 rvk_graphic_output_mask(const RvkGraphic* graphic) {
-  for (u32 shaderIdx = 0; shaderIdx != array_elems(graphic->shaders); ++shaderIdx) {
-    const RvkShader* shader = graphic->shaders[shaderIdx];
-    if (shader && shader->vkStage == VK_SHADER_STAGE_FRAGMENT_BIT) {
-      return rvk_graphic_shader_output_mask(shader);
-    }
-  }
-  return 0;
-}
-
 static bool rend_graphic_validate_set(
     const RvkGraphic*  graphic,
     const u32          set,
@@ -808,7 +786,6 @@ bool rvk_graphic_finalize(
   if (UNLIKELY(!rvk_graphic_validate_shaders(graphic, asset, pass))) {
     graphic->flags |= RvkGraphicFlags_Invalid;
   }
-  graphic->outputMask = rvk_graphic_output_mask(graphic);
 
   // Finalize global set bindings.
   const RvkDescMeta globalDescMeta = rvk_graphic_desc_meta(graphic, RvkGraphicSet_Global);

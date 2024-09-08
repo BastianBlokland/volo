@@ -984,12 +984,6 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
   const RvkGraphic* graphic           = draw->graphic;
   const u16         reqGlobalBindings = graphic->globalBindings;
 
-  if (UNLIKELY(graphic->outputMask != stage->attachColorMask)) {
-    log_e(
-        "Graphic output does not match bound color attachments",
-        log_param("graphic", fmt_text(graphic->dbgName)));
-    return;
-  }
   if (UNLIKELY((reqGlobalBindings & stage->globalBoundMask) != reqGlobalBindings)) {
     log_e(
         "Graphic requires additional global bindings",

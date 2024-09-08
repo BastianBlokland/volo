@@ -36,7 +36,6 @@ typedef struct sRvkGraphic {
   u8                samplerMask;
   RvkGraphicFlags   flags : 16;
   u16               globalBindings;
-  u16               outputMask;
   u32               vertexCount;
   const RvkShader*  shaders[rvk_graphic_shaders_max];
   const RvkMesh*    mesh;
