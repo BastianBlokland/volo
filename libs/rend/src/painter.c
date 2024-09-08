@@ -55,7 +55,7 @@ ecs_view_define(ResourceView) {
   ecs_access_maybe_read(RendResTextureComp);
   ecs_access_with(RendResFinishedComp);
   ecs_access_without(RendResUnloadComp);
-  ecs_access_write(RendResComp);
+  ecs_access_read(RendResComp);
 }
 
 ecs_view_define(PainterCreateView) {
@@ -224,7 +224,7 @@ static const RvkTexture* painter_get_texture(EcsIterator* resourceItr, const Ecs
 static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id, const Mem data) {
   const RvkRepository* repo    = rvk_canvas_repository(ctx->canvas);
   const RvkGraphic*    graphic = rvk_repository_graphic_get_maybe(repo, id);
-  if (graphic && rvk_graphic_is_ready(graphic, ctx->dev)) {
+  if (graphic) {
     rend_builder_draw_push(ctx->builder, graphic);
     if (data.size) {
       mem_cpy(rend_builder_draw_data(ctx->builder, data.size), data);
@@ -255,7 +255,7 @@ static SceneTags painter_push_objects_simple(
     // Retrieve and prepare the object's graphic.
     const EcsEntityId graphicResource = rend_object_resource(obj, RendObjectResource_Graphic);
     const RvkGraphic* graphic         = painter_get_graphic(resourceItr, graphicResource);
-    if (!graphic || !rvk_graphic_is_ready(graphic, ctx->dev)) {
+    if (!graphic) {
       continue; // Graphic not ready to be drawn.
     }
 
@@ -264,7 +264,7 @@ static SceneTags painter_push_objects_simple(
     const RvkTexture* texture         = null;
     if (textureResource) {
       texture = painter_get_texture(resourceItr, textureResource);
-      if (!texture || !rvk_texture_is_ready(texture, ctx->dev)) {
+      if (!texture) {
         continue; // Object uses a 'per draw' texture which is not ready.
       }
     }
@@ -305,7 +305,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
     }
     const bool     isVfxSprite = (rend_object_flags(obj) & RendObjectFlags_VfxSprite) != 0;
     const RvkMesh* objMesh     = graphicOriginal->mesh;
-    if (!isVfxSprite && (!objMesh || !rvk_mesh_is_ready(objMesh, ctx->dev))) {
+    if (!isVfxSprite && !objMesh) {
       continue; // Graphic is not a vfx sprite and does not have a mesh to draw a shadow for.
     }
     RvkImage* objAlphaImg = null;
@@ -313,7 +313,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
     const bool hasAlphaTexture = (graphicOriginal->samplerMask & (1 << AlphaTextureIndex)) != 0;
     if (graphicOriginal->flags & RvkGraphicFlags_MayDiscard && hasAlphaTexture) {
       const RvkTexture* alphaTexture = graphicOriginal->samplerTextures[AlphaTextureIndex];
-      if (!alphaTexture || !rvk_texture_is_ready(alphaTexture, ctx->dev)) {
+      if (!alphaTexture) {
         continue; // Graphic uses discard but has no alpha texture.
       }
       // TODO: This cast violates const-correctness.
@@ -332,16 +332,14 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
       continue; // Shadow graphic not loaded.
     }
 
-    if (rvk_graphic_is_ready(shadowGraphic, ctx->dev)) {
-      rend_builder_draw_push(ctx->builder, shadowGraphic);
-      rend_builder_draw_mesh(ctx->builder, objMesh);
-      if (objAlphaImg) {
-        rend_builder_draw_image(ctx->builder, objAlphaImg);
-        rend_builder_draw_sampler(ctx->builder, (RvkSamplerSpec){.aniso = RvkSamplerAniso_x8});
-      }
-      rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
-      rend_builder_draw_flush(ctx->builder);
+    rend_builder_draw_push(ctx->builder, shadowGraphic);
+    rend_builder_draw_mesh(ctx->builder, objMesh);
+    if (objAlphaImg) {
+      rend_builder_draw_image(ctx->builder, objAlphaImg);
+      rend_builder_draw_sampler(ctx->builder, (RvkSamplerSpec){.aniso = RvkSamplerAniso_x8});
     }
+    rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
+    rend_builder_draw_flush(ctx->builder);
   }
 }
 
@@ -349,7 +347,7 @@ static void painter_push_fog(RendPaintContext* ctx, const RendFogComp* fog, RvkI
   const RvkRepository*  repo      = rvk_canvas_repository(ctx->canvas);
   const RvkRepositoryId graphicId = RvkRepositoryId_FogGraphic;
   const RvkGraphic*     graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
-  if (graphic && rvk_graphic_is_ready(graphic, ctx->dev)) {
+  if (graphic) {
     typedef struct {
       ALIGNAS(16)
       GeoMatrix fogViewProj;
@@ -454,7 +452,7 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
   } else {
     graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_DebugImageViewerGraphic);
   }
-  if (graphic && rvk_graphic_is_ready(graphic, ctx->dev)) {
+  if (graphic) {
     typedef struct {
       ALIGNAS(16)
       u16 imageChannels;
@@ -511,7 +509,7 @@ painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspect, const Rv
   const RvkRepository*  repo      = rvk_canvas_repository(ctx->canvas);
   const RvkRepositoryId graphicId = RvkRepositoryId_DebugMeshViewerGraphic;
   const RvkGraphic*     graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
-  if (graphic && rvk_graphic_is_ready(graphic, ctx->dev)) {
+  if (graphic) {
     typedef struct {
       ALIGNAS(16)
       GeoMatrix viewProj;
@@ -543,25 +541,24 @@ painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspect, const Rv
 }
 
 static void painter_push_debug_resource_viewer(
+    EcsWorld*         world,
     RendPaintContext* ctx,
     const f32         aspect,
     EcsView*          resourceView,
     const EcsEntityId resourceEntity) {
 
+  rend_res_request(world, resourceEntity);
+
   EcsIterator* itr = ecs_view_maybe_at(resourceView, resourceEntity);
   if (itr) {
-    rend_res_mark_used(ecs_view_write_t(itr, RendResComp));
-
     const RendResTextureComp* textureComp = ecs_view_read_t(itr, RendResTextureComp);
     if (textureComp) {
-      if (rvk_texture_is_ready(textureComp->texture, ctx->dev)) {
-        const f32 exposure = 1.0f;
-        // TODO: This cast violates const-correctness.
-        painter_push_debug_image_viewer(ctx, (RvkImage*)&textureComp->texture->image, exposure);
-      }
+      const f32 exposure = 1.0f;
+      // TODO: This cast violates const-correctness.
+      painter_push_debug_image_viewer(ctx, (RvkImage*)&textureComp->texture->image, exposure);
     }
     const RendResMeshComp* meshComp = ecs_view_read_t(itr, RendResMeshComp);
-    if (meshComp && rvk_mesh_is_ready(meshComp->mesh, ctx->dev)) {
+    if (meshComp) {
       painter_push_debug_mesh_viewer(ctx, aspect, meshComp->mesh);
     }
   }
@@ -583,7 +580,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
       continue; // Graphic not loaded.
     }
     const RvkMesh* mesh = graphicOriginal->mesh;
-    if (!mesh || !rvk_mesh_is_ready(mesh, ctx->dev)) {
+    if (!mesh) {
       continue; // Graphic does not have a mesh to draw a wireframe for (or its not ready).
     }
 
@@ -596,7 +593,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
       graphicId = RvkRepositoryId_DebugWireframeGraphic;
     }
     const RvkGraphic* graphicWireframe = rvk_repository_graphic_get_maybe(repo, graphicId);
-    if (!graphicWireframe || !rvk_graphic_is_ready(graphicWireframe, ctx->dev)) {
+    if (!graphicWireframe) {
       continue; // Wireframe graphic not loaded.
     }
 
@@ -606,7 +603,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
     const RvkTexture* texture         = null;
     if (textureResource) {
       texture = painter_get_texture(resourceItr, textureResource);
-      if (!texture || !rvk_texture_is_ready(texture, ctx->dev)) {
+      if (!texture) {
         continue; // Object uses a 'per draw' texture which is not ready.
       }
     }
@@ -627,7 +624,7 @@ painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView, EcsView* re
   const RvkRepository*  repository     = rvk_canvas_repository(ctx->canvas);
   const RvkRepositoryId debugGraphicId = RvkRepositoryId_DebugSkinningGraphic;
   const RvkGraphic*     debugGraphic = rvk_repository_graphic_get_maybe(repository, debugGraphicId);
-  if (!debugGraphic || !rvk_graphic_is_ready(debugGraphic, ctx->dev)) {
+  if (!debugGraphic) {
     return; // Debug graphic not ready to be drawn.
   }
 
@@ -645,12 +642,10 @@ painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView, EcsView* re
     const RvkMesh* mesh = graphicOriginal->mesh;
     diag_assert(mesh);
 
-    if (rvk_mesh_is_ready(mesh, ctx->dev)) {
-      rend_builder_draw_push(ctx->builder, debugGraphic);
-      rend_builder_draw_mesh(ctx->builder, mesh);
-      rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
-      rend_builder_draw_flush(ctx->builder);
-    }
+    rend_builder_draw_push(ctx->builder, debugGraphic);
+    rend_builder_draw_mesh(ctx->builder, mesh);
+    rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
+    rend_builder_draw_flush(ctx->builder);
   }
 }
 
@@ -703,6 +698,7 @@ static bool rend_canvas_paint_2d(
 }
 
 static bool rend_canvas_paint_3d(
+    EcsWorld*                     world,
     RendPainterComp*              painter,
     RendPlatformComp*             platform,
     const RendSettingsComp*       set,
@@ -1077,7 +1073,8 @@ static bool rend_canvas_paint_3d(
       const f32 exposure = 100.0f;
       painter_push_debug_image_viewer(&ctx, distBuffer, exposure);
     } else if (set->debugViewerResource) {
-      painter_push_debug_resource_viewer(&ctx, winAspect, resourceView, set->debugViewerResource);
+      painter_push_debug_resource_viewer(
+          world, &ctx, winAspect, resourceView, set->debugViewerResource);
     }
 
     rend_builder_pass_flush(builder);
@@ -1166,6 +1163,7 @@ ecs_system_define(RendPainterDrawSys) {
       break;
     case RendPainterType_3D:
       rend_canvas_paint_3d(
+          world,
           painter,
           platform,
           settings,

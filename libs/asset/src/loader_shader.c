@@ -117,7 +117,7 @@ void asset_load_shader_bin(
 u32 asset_shader_type_size(const AssetShaderType type) {
   diag_assert(type < AssetShaderType_Count);
   static const u32 g_sizes[AssetShaderType_Count] = {
-      [AssetShaderType_bool]  = sizeof(bool),
+      [AssetShaderType_bool]  = sizeof(u32), // NOTE: (Vulkan) shader booleans take 4 bytes.
       [AssetShaderType_u8]    = sizeof(u8),
       [AssetShaderType_i8]    = sizeof(i8),
       [AssetShaderType_u16]   = sizeof(u16),
