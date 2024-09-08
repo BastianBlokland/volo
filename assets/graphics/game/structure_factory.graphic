@@ -13,4 +13,5 @@
     { "textureId": "external/factory/factory_2_color_rough.tga", "anisotropy": "x2" },
     { "textureId": "external/factory/factory_2_normal.tga", "anisotropy": "x2" }
   ],
-  "meshId": "external/factory/factory.gltf" }
+  "meshId": "external/factory/factory.gltf"
+}
