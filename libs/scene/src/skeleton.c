@@ -7,6 +7,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_stringtable.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_renderable.h"
@@ -271,11 +272,11 @@ ecs_system_define(SceneSkeletonTemplLoadSys) {
       }
       if (!graphic) {
         log_e("Invalid graphic asset", log_param("entity", ecs_entity_fmt(entity)));
-        scene_skeleton_templ_load_done(world, itr, false);
+        scene_skeleton_templ_load_done(world, itr, false /* failure */);
         break; // Graphic failed to load, or was of unexpected type.
       }
       if (!graphic->mesh) {
-        scene_skeleton_templ_load_done(world, itr, false);
+        scene_skeleton_templ_load_done(world, itr, false /* failure */);
         break; // Graphic did not have a mesh.
       }
       tl->mesh = graphic->mesh;
@@ -539,13 +540,6 @@ ecs_system_define(SceneSkeletonUpdateSys) {
     SceneSkeletonComp*         sk         = ecs_view_write_t(itr, SceneSkeletonComp);
     SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
 
-    if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, SceneSkeletonTemplLoadedComp))) {
-      // Template has been removed; reset the skeleton and animation.
-      ecs_world_remove_t(world, ecs_view_entity(itr), SceneSkeletonLoadedComp);
-      ecs_world_remove_t(world, ecs_view_entity(itr), SceneSkeletonComp);
-      ecs_world_remove_t(world, ecs_view_entity(itr), SceneAnimationComp);
-      continue;
-    }
     diag_assert(sk->jointCount); // Skeleton needs atleast one joint.
 
     ecs_view_jump(templItr, renderable->graphic);
@@ -590,14 +584,40 @@ ecs_view_define(DirtyTemplateView) {
   ecs_access_with(AssetChangedComp);
 }
 
+ecs_view_define(DirtyRenderableView) {
+  ecs_access_read(SceneRenderableComp);
+  ecs_access_with(SceneSkeletonLoadedComp);
+}
+
 ecs_system_define(SceneSkeletonClearDirtyTemplateSys) {
+  EcsView* dirtyTemplateView   = ecs_world_view_t(world, DirtyTemplateView);
+  EcsView* dirtyRenderableView = ecs_world_view_t(world, DirtyRenderableView);
+
   /**
    * Clear skeleton templates for changed graphic assets.
    */
-  EcsView* dirtyTemplateView = ecs_world_view_t(world, DirtyTemplateView);
+  DynArray clearedTemplates = dynarray_create_t(g_allocScratch, EcsEntityId, 0);
   for (EcsIterator* itr = ecs_view_itr(dirtyTemplateView); ecs_view_walk(itr);) {
-    ecs_world_remove_t(world, ecs_view_entity(itr), SceneSkeletonTemplComp);
-    ecs_world_remove_t(world, ecs_view_entity(itr), SceneSkeletonTemplLoadedComp);
+    const EcsEntityId entity = ecs_view_entity(itr);
+    ecs_world_remove_t(world, entity, SceneSkeletonTemplComp);
+    ecs_world_remove_t(world, entity, SceneSkeletonTemplLoadedComp);
+
+    *dynarray_insert_sorted_t(&clearedTemplates, EcsEntityId, ecs_compare_entity, &entity) = entity;
+  }
+
+  /**
+   * Remove skeletons for renderables where the template was cleared.
+   */
+  if (clearedTemplates.size) {
+    for (EcsIterator* itr = ecs_view_itr(dirtyRenderableView); ecs_view_walk(itr);) {
+      const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
+
+      if (dynarray_search_binary(&clearedTemplates, ecs_compare_entity, &renderable->graphic)) {
+        ecs_world_remove_t(world, ecs_view_entity(itr), SceneSkeletonLoadedComp);
+        ecs_utils_maybe_remove_t(world, ecs_view_entity(itr), SceneSkeletonComp);
+        ecs_utils_maybe_remove_t(world, ecs_view_entity(itr), SceneAnimationComp);
+      }
+    }
   }
 }
 
@@ -618,6 +638,7 @@ ecs_module_init(scene_skeleton_module) {
   ecs_register_view(SkeletonTemplView);
   ecs_register_view(UpdateView);
   ecs_register_view(DirtyTemplateView);
+  ecs_register_view(DirtyRenderableView);
 
   ecs_register_system(
       SceneSkeletonInitSys, ecs_view_id(SkeletonInitView), ecs_view_id(SkeletonTemplView));
@@ -632,7 +653,10 @@ ecs_module_init(scene_skeleton_module) {
 
   ecs_parallel(SceneSkeletonUpdateSys, g_jobsWorkerCount * 2);
 
-  ecs_register_system(SceneSkeletonClearDirtyTemplateSys, ecs_view_id(DirtyTemplateView));
+  ecs_register_system(
+      SceneSkeletonClearDirtyTemplateSys,
+      ecs_view_id(DirtyTemplateView),
+      ecs_view_id(DirtyRenderableView));
 }
 
 const SceneAnimLayer* scene_animation_layer(const SceneAnimationComp* a, const StringHash layer) {
