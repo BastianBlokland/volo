@@ -832,12 +832,16 @@ bool rvk_graphic_finalize(
 
   // Attach mesh.
   if (graphicDescMeta.bindings[0] == RvkDescKind_StorageBuffer) {
-    if (LIKELY(graphic->mesh)) {
-      rvk_desc_set_attach_buffer(graphic->graphicDescSet, 0, &graphic->mesh->vertexBuffer, 0, 0);
-    } else {
+    if (UNLIKELY(!graphic->mesh)) {
+      graphic->mesh = rvk_repository_mesh_get(dev->repository, RvkRepositoryId_MissingMesh);
+      /**
+       * NOTE: Treat a missing mesh as an error (as opposed to a missing texture), reason is for
+       * meshes (especially skinned meshes) the scale of a replacement mesh might be way off.
+       */
       log_e("Shader requires a mesh", log_param("graphic", fmt_text(graphic->dbgName)));
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
+    rvk_desc_set_attach_buffer(graphic->graphicDescSet, 0, &graphic->mesh->vertexBuffer, 0, 0);
   }
   if (UNLIKELY(graphic->mesh && graphic->drawDescMeta.bindings[1])) {
     log_e(

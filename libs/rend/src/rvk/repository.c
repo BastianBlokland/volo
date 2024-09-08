@@ -7,6 +7,7 @@
 typedef enum {
   RvkRepositoryType_None,
   RvkRepositoryType_Texture,
+  RvkRepositoryType_Mesh,
   RvkRepositoryType_Graphic,
 } RvkRepositoryType;
 
@@ -14,6 +15,7 @@ typedef struct {
   RvkRepositoryType type;
   union {
     const RvkTexture* texture;
+    const RvkMesh*    mesh;
     const RvkGraphic* graphic;
   };
 } RvkRepositoryEntry;
@@ -39,6 +41,7 @@ String rvk_repository_id_str(const RvkRepositoryId id) {
       string_static("FogBlurHorGraphic"),
       string_static("FogBlurVerGraphic"),
       string_static("FogGraphic"),
+      string_static("MissingMesh"),
       string_static("MissingTexture"),
       string_static("MissingTextureCube"),
       string_static("OutlineGraphic"),
@@ -68,6 +71,12 @@ void rvk_repository_texture_set(RvkRepository* r, const RvkRepositoryId id, cons
   r->entries[id].texture = tex;
 }
 
+void rvk_repository_mesh_set(RvkRepository* r, const RvkRepositoryId id, const RvkMesh* mesh) {
+  diag_assert(!r->entries[id].type || r->entries[id].type == RvkRepositoryType_Mesh);
+  r->entries[id].type = RvkRepositoryType_Mesh;
+  r->entries[id].mesh = mesh;
+}
+
 void rvk_repository_graphic_set(RvkRepository* r, const RvkRepositoryId id, const RvkGraphic* gra) {
   diag_assert(!r->entries[id].type || r->entries[id].type == RvkRepositoryType_Graphic);
   r->entries[id].type    = RvkRepositoryType_Graphic;
@@ -78,6 +87,9 @@ void rvk_repository_unset(RvkRepository* r, const RvkRepositoryId id) {
   switch (r->entries[id].type) {
   case RvkRepositoryType_Texture:
     r->entries[id].texture = null;
+    break;
+  case RvkRepositoryType_Mesh:
+    r->entries[id].mesh = null;
     break;
   case RvkRepositoryType_Graphic:
     r->entries[id].graphic = null;
@@ -94,6 +106,15 @@ const RvkTexture* rvk_repository_texture_get(const RvkRepository* r, const RvkRe
         fmt_text(rvk_repository_id_str(id)));
   }
   return r->entries[id].texture;
+}
+
+const RvkMesh* rvk_repository_mesh_get(const RvkRepository* r, const RvkRepositoryId id) {
+  if (UNLIKELY(r->entries[id].type != RvkRepositoryType_Mesh)) {
+    diag_crash_msg(
+        "Repository asset '{}' cannot be found or is of the wrong type",
+        fmt_text(rvk_repository_id_str(id)));
+  }
+  return r->entries[id].mesh;
 }
 
 const RvkGraphic* rvk_repository_graphic_get(const RvkRepository* r, const RvkRepositoryId id) {
