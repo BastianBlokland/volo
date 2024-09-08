@@ -387,12 +387,23 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend(const AssetGr
   diag_crash();
 }
 
+static u32 rvk_pipeline_pass_color_attachment_count(const RvkPassConfig* passConfig) {
+  u32 count = 0;
+  for (u32 binding = 0; binding != rvk_pass_attach_color_max; ++binding) {
+    if (passConfig->attachColorFormat[count] != RvkPassFormat_None) {
+      ++count;
+    }
+  }
+  return count;
+}
+
 static VkPipeline rvk_pipeline_create(
     RvkGraphic*             graphic,
     const AssetGraphicComp* asset,
     RvkDevice*              dev,
     const VkPipelineLayout  layout,
     const RvkPass*          pass) {
+  const RvkPassConfig* passConfig = rvk_pass_config(pass);
 
   VkPipelineShaderStageCreateInfo shaderStages[rvk_graphic_shaders_max];
   u32                             shaderStageCount = 0;
@@ -448,7 +459,7 @@ static VkPipeline rvk_pipeline_create(
       .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
   };
 
-  const bool passHasDepth = rvk_pass_config(pass)->attachDepth != RvkPassDepth_None;
+  const bool passHasDepth = passConfig->attachDepth != RvkPassDepth_None;
   const VkPipelineDepthStencilStateCreateInfo depthStencil = {
       .sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
       .depthWriteEnable = passHasDepth && rvk_pipeline_depth_write(asset),
@@ -456,8 +467,8 @@ static VkPipeline rvk_pipeline_create(
       .depthCompareOp   = rvk_pipeline_depth_compare(asset),
   };
 
-  const u32                           colorAttachmentCount = 32 - bits_clz_32(graphic->outputMask);
-  VkPipelineColorBlendAttachmentState colorBlends[16];
+  const u32 colorAttachmentCount = rvk_pipeline_pass_color_attachment_count(passConfig);
+  VkPipelineColorBlendAttachmentState colorBlends[rvk_pass_attach_color_max];
   for (u32 binding = 0; binding != colorAttachmentCount; ++binding) {
     colorBlends[binding] = rvk_pipeline_colorblend(rvk_graphic_blend(asset, binding));
   }
