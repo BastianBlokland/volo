@@ -247,11 +247,8 @@ static SceneTags painter_push_objects_simple(
     // If the object uses a 'per draw' texture then retrieve and prepare it.
     const EcsEntityId textureResource = rend_object_resource(obj, RendObjectResource_Texture);
     const RvkTexture* texture         = null;
-    if (textureResource) {
-      texture = painter_get_texture(resourceItr, textureResource);
-      if (!texture) {
-        continue; // Object uses a 'per draw' texture which is not ready.
-      }
+    if (textureResource && !(texture = painter_get_texture(resourceItr, textureResource))) {
+      continue; // Object uses a 'per draw' texture which is not loaded (yet).
     }
 
     rend_builder_draw_push(ctx->builder, graphic);
@@ -677,7 +674,7 @@ static bool rend_canvas_paint_3d(
     const SceneCameraComp*       cam,
     const SceneTransformComp*    camTrans,
     EcsView*                     objView,
-    EcsView*                     resourceView) {
+    EcsView*                     resView) {
 
   const RvkSize winSize   = painter_win_size(win);
   const f32     winAspect = (f32)winSize.width / (f32)winSize.height;
@@ -714,8 +711,7 @@ static bool rend_canvas_paint_3d(
     rvk_pass_stage_attach_color(geoPass, geoData1, 1);
     rvk_pass_stage_attach_depth(geoPass, geoDepth);
     painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
-    geoTagMask =
-        painter_push_objects_simple(&ctx, objView, resourceView, AssetGraphicPass_Geometry);
+    geoTagMask = painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Geometry);
 
     rend_builder_pass_flush(builder);
     trace_end();
@@ -743,7 +739,7 @@ static bool rend_canvas_paint_3d(
     rvk_pass_stage_attach_color(decalPass, geoData1, 1);
     rvk_pass_stage_attach_depth(decalPass, geoDepth);
     painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
-    painter_push_objects_simple(&ctx, objView, resourceView, AssetGraphicPass_Decal);
+    painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Decal);
 
     rend_builder_pass_flush(builder);
     trace_end();
@@ -769,7 +765,7 @@ static bool rend_canvas_paint_3d(
     RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, fogPass, fogView);
     rvk_pass_stage_attach_color(fogPass, fogBuffer, 0);
     painter_stage_global_data(&ctx, fogTrans, fogProj, fogSize, time, RendViewType_Fog);
-    painter_push_objects_simple(&ctx, objView, resourceView, AssetGraphicPass_Fog);
+    painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Fog);
 
     rend_builder_pass_flush(builder);
     trace_end();
@@ -831,7 +827,7 @@ static bool rend_canvas_paint_3d(
         painter_context(painter->canvas, builder, set, time, shadowPass, shadView);
     rvk_pass_stage_attach_depth(shadowPass, shadowDepth);
     painter_stage_global_data(&ctx, shadTrans, shadProj, shadowSize, time, RendViewType_Shadow);
-    painter_push_shadow(&ctx, objView, resourceView);
+    painter_push_shadow(&ctx, objView, resView);
 
     rend_builder_pass_flush(builder);
     trace_end();
@@ -898,15 +894,15 @@ static bool rend_canvas_paint_3d(
     if (geoTagMask & SceneTags_Selected) {
       painter_push_simple(&ctx, RvkRepositoryId_OutlineGraphic, mem_empty);
     }
-    painter_push_objects_simple(&ctx, objView, resourceView, AssetGraphicPass_Forward);
+    painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Forward);
     if (fogActive) {
       painter_push_fog(&ctx, fog, fogBuffer);
     }
     if (set->flags & RendFlags_DebugWireframe) {
-      painter_push_debug_wireframe(&ctx, objView, resourceView);
+      painter_push_debug_wireframe(&ctx, objView, resView);
     }
     if (set->flags & RendFlags_DebugSkinning) {
-      painter_push_debug_skinning(&ctx, objView, resourceView);
+      painter_push_debug_skinning(&ctx, objView, resView);
     }
 
     rend_builder_pass_flush(builder);
@@ -941,7 +937,7 @@ static bool rend_canvas_paint_3d(
     rvk_pass_stage_attach_depth(distPass, distDepth);
 
     painter_stage_global_data(&ctx, &camMat, &projMat, distSize, time, RendViewType_Main);
-    painter_push_objects_simple(&ctx, objView, resourceView, AssetGraphicPass_Distortion);
+    painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Distortion);
 
     rend_builder_pass_flush(builder);
     trace_end();
@@ -1021,7 +1017,7 @@ static bool rend_canvas_paint_3d(
     rvk_pass_stage_attach_color(postPass, postRes, 0);
     painter_stage_global_data(&ctx, &camMat, &projMat, swapchainSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
-    painter_push_objects_simple(&ctx, objView, resourceView, AssetGraphicPass_Post);
+    painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Post);
 
     if (set->flags & RendFlags_DebugFog) {
       const f32 exposure = 1.0f;
@@ -1033,8 +1029,7 @@ static bool rend_canvas_paint_3d(
       const f32 exposure = 100.0f;
       painter_push_debug_image_viewer(&ctx, distBuffer, exposure);
     } else if (set->debugViewerResource) {
-      painter_push_debug_resource_viewer(
-          world, &ctx, winAspect, resourceView, set->debugViewerResource);
+      painter_push_debug_resource_viewer(world, &ctx, winAspect, resView, set->debugViewerResource);
     }
 
     rend_builder_pass_flush(builder);
