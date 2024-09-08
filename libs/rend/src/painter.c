@@ -268,9 +268,7 @@ static SceneTags painter_push_objects_simple(
 static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView* resView) {
   RendObjectFlags requiredAny = 0;
   requiredAny |= RendObjectFlags_StandardGeometry; // Include geometry.
-  if (ctx->settings->flags & RendFlags_VfxSpriteShadows) {
-    requiredAny |= RendObjectFlags_VfxSprite; // Include vfx sprites.
-  }
+  requiredAny |= RendObjectFlags_VfxSprite;        // Include vfx sprites.
 
   const RvkRepository* repo        = rvk_canvas_repository(ctx->canvas);
   EcsIterator*         resourceItr = ecs_view_itr(resView);
@@ -825,12 +823,15 @@ static bool rend_canvas_paint_3d(
     trace_begin("rend_paint_shadows", TraceColor_White);
     rend_builder_pass_push(builder, shadowPass);
 
-    const GeoMatrix*     shadTrans  = rend_light_shadow_trans(light);
-    const GeoMatrix*     shadProj   = rend_light_shadow_proj(light);
-    const SceneTagFilter shadFilter = {
-        .required = filter.required | SceneTags_ShadowCaster,
-        .illegal  = filter.illegal,
+    const GeoMatrix* shadTrans  = rend_light_shadow_trans(light);
+    const GeoMatrix* shadProj   = rend_light_shadow_proj(light);
+    SceneTagFilter   shadFilter = {
+          .required = filter.required | SceneTags_ShadowCaster,
+          .illegal  = filter.illegal,
     };
+    if (!(set->flags & RendFlags_VfxShadows)) {
+      shadFilter.illegal |= SceneTags_Vfx;
+    }
     const RendView   shadView = painter_view_3d_create(shadTrans, shadProj, camEntity, shadFilter);
     RendPaintContext ctx =
         painter_context(painter->canvas, builder, set, time, shadowPass, shadView);

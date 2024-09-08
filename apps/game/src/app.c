@@ -109,9 +109,13 @@ static void app_quality_apply(
   } else {
     rendSetGlobal->limiterFreq = 0;
   }
+  // clang-format off
   static const RendFlags g_rendLowFeatures    = RendFlags_Shadows;
-  static const RendFlags g_rendMediumFeatures = RendFlags_AmbientOcclusion | RendFlags_Bloom |
-                                                RendFlags_Distortion | RendFlags_VfxSpriteShadows;
+  static const RendFlags g_rendMediumFeatures = RendFlags_AmbientOcclusion |
+                                                RendFlags_Bloom            |
+                                                RendFlags_Distortion       |
+                                                RendFlags_VfxShadows;
+  // clang-format on
   switch (prefs->quality) {
   case GameQuality_VeryLow:
     rendSetWin->flags &= ~(g_rendLowFeatures | g_rendMediumFeatures);
