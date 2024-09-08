@@ -3,9 +3,9 @@
   "shaders": [
     { "shaderId": "shaders/fullscreen.vert" },
     {
-      "shaderId": "shaders/blur.frag",
+      "shaderId": "shaders/fog_blur.frag",
       "overrides": [
-        { "name": "horizontal", "binding": 0, "value": 0 }
+        { "name": "horizontal", "binding": 0, "value": 1 }
       ]
     }
   ],

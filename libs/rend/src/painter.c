@@ -838,14 +838,14 @@ static bool rend_canvas_paint_3d(
       rend_builder_pass_push(builder, fogBlurPass);
       rvk_pass_stage_global_image(fogBlurPass, fogBuffer, 0);
       rvk_pass_stage_attach_color(fogBlurPass, tmp, 0);
-      painter_push_simple(&ctx, RvkRepositoryId_BlurHorGraphic, mem_var(blurData));
+      painter_push_simple(&ctx, RvkRepositoryId_FogBlurHorGraphic, mem_var(blurData));
       rend_builder_pass_flush(builder);
 
       // Vertical pass.
       rend_builder_pass_push(builder, fogBlurPass);
       rvk_pass_stage_global_image(fogBlurPass, tmp, 0);
       rvk_pass_stage_attach_color(fogBlurPass, fogBuffer, 0);
-      painter_push_simple(&ctx, RvkRepositoryId_BlurVerGraphic, mem_var(blurData));
+      painter_push_simple(&ctx, RvkRepositoryId_FogBlurVerGraphic, mem_var(blurData));
       rend_builder_pass_flush(builder);
     }
     rvk_canvas_attach_release(painter->canvas, tmp);
