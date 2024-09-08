@@ -20,7 +20,7 @@
 #include "rvk/shader_internal.h"
 #include "rvk/texture_internal.h"
 
-#define rend_res_max_load_time time_millisecond
+#define rend_res_max_create_time time_millisecond
 
 /**
  * Amount of frames to delay unloading of resources.
@@ -85,6 +85,7 @@ typedef enum {
   RendResLoadState_DependenciesAcquire,
   RendResLoadState_DependenciesWait,
   RendResLoadState_Create,
+  RendResLoadState_UploadWait,
   RendResLoadState_FinishedSuccess,
   RendResLoadState_FinishedFailure,
 } RendResLoadState;
@@ -280,6 +281,11 @@ ecs_view_define(ResLoadView) {
   ecs_access_maybe_read(AssetShaderComp);
   ecs_access_maybe_read(AssetMeshComp);
   ecs_access_maybe_read(AssetTextureComp);
+
+  ecs_access_maybe_read(RendResGraphicComp);
+  ecs_access_maybe_read(RendResShaderComp);
+  ecs_access_maybe_read(RendResMeshComp);
+  ecs_access_maybe_read(RendResTextureComp);
 }
 
 ecs_view_define(ResLoadDependencyView) {
@@ -469,6 +475,28 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
   return false;
 }
 
+static bool rend_res_upload_is_ready(const RendPlatformComp* plat, EcsIterator* resItr) {
+
+  const RendResGraphicComp* maybeGraphic = ecs_view_read_t(resItr, RendResGraphicComp);
+  if (maybeGraphic) {
+    return rvk_graphic_is_ready(maybeGraphic->graphic, plat->device);
+  }
+  const RendResShaderComp* maybeShader = ecs_view_read_t(resItr, RendResShaderComp);
+  if (maybeShader) {
+    return true;
+  }
+  const RendResMeshComp* maybeMesh = ecs_view_read_t(resItr, RendResMeshComp);
+  if (maybeMesh) {
+    return rvk_mesh_is_ready(maybeMesh->mesh, plat->device);
+  }
+  const RendResTextureComp* maybeTexture = ecs_view_read_t(resItr, RendResTextureComp);
+  if (maybeTexture) {
+    return rvk_texture_is_ready(maybeTexture->texture, plat->device);
+  }
+
+  diag_crash_msg("Unsupported resource type");
+}
+
 static void rend_res_finished_success(EcsWorld* world, EcsIterator* resourceItr) {
   const EcsEntityId entity = ecs_view_entity(resourceItr);
 
@@ -540,7 +568,7 @@ ecs_system_define(RendResLoadSys) {
       ++resComp->state;
       // Fallthrough.
     case RendResLoadState_Create: {
-      if (loadTime >= rend_res_max_load_time) {
+      if (loadTime >= rend_res_max_create_time) {
         // Already spend our load budget for this frame; retry next frame.
         resComp->state = RendResLoadState_DependenciesWait;
         break;
@@ -560,6 +588,11 @@ ecs_system_define(RendResLoadSys) {
 
       trace_end();
     } break;
+    case RendResLoadState_UploadWait:
+      if (rend_res_upload_is_ready(platform, itr)) {
+        ++resComp->state;
+      }
+      break;
     case RendResLoadState_FinishedSuccess:
     case RendResLoadState_FinishedFailure:
       UNREACHABLE
