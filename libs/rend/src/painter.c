@@ -409,11 +409,7 @@ static void painter_push_ambient_occlusion(RendPaintContext* ctx) {
 
 static void painter_push_forward(RendPaintContext* ctx, EcsView* objView, EcsView* resourceView) {
   RendObjectFlags ignoreFlags = 0;
-  ignoreFlags |= RendObjectFlags_Geometry;   // Ignore geometry (drawn in a separate pass).
-  ignoreFlags |= RendObjectFlags_Decal;      // Ignore decals (drawn in a separate pass).
-  ignoreFlags |= RendObjectFlags_FogVision;  // Ignore fog-vision (drawn in a separate pass).
-  ignoreFlags |= RendObjectFlags_Distortion; // Ignore distortion (drawn in a separate pass)
-  ignoreFlags |= RendObjectFlags_Post;       // Ignore post (drawn in a separate pass).
+  ignoreFlags |= RendObjectFlags_Geometry; // Ignore geometry (drawn in a separate pass).
 
   if (ctx->settings->ambientMode >= RendAmbientMode_DebugStart) {
     // Disable lighting when using any of the debug ambient modes.
@@ -681,7 +677,7 @@ static bool rend_canvas_paint_2d(
         objView,
         resourceView,
         AssetGraphicPass_Post,
-        RendObjectFlags_Post,
+        RendObjectFlags_None,
         RendObjectFlags_None);
 
     rend_builder_pass_flush(builder);
@@ -785,7 +781,7 @@ static bool rend_canvas_paint_3d(
         objView,
         resourceView,
         AssetGraphicPass_Decal,
-        RendObjectFlags_Decal,
+        RendObjectFlags_None,
         RendObjectFlags_None);
 
     rend_builder_pass_flush(builder);
@@ -817,7 +813,7 @@ static bool rend_canvas_paint_3d(
         objView,
         resourceView,
         AssetGraphicPass_Fog,
-        RendObjectFlags_FogVision,
+        RendObjectFlags_None,
         RendObjectFlags_None);
 
     rend_builder_pass_flush(builder);
@@ -991,7 +987,7 @@ static bool rend_canvas_paint_3d(
         objView,
         resourceView,
         AssetGraphicPass_Distortion,
-        RendObjectFlags_Distortion,
+        RendObjectFlags_None,
         RendObjectFlags_None);
 
     rend_builder_pass_flush(builder);
@@ -1077,7 +1073,7 @@ static bool rend_canvas_paint_3d(
         objView,
         resourceView,
         AssetGraphicPass_Post,
-        RendObjectFlags_Post,
+        RendObjectFlags_None,
         RendObjectFlags_None);
 
     if (set->flags & RendFlags_DebugFog) {

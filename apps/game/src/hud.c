@@ -137,20 +137,11 @@ ecs_view_define(VisionView) {
 ecs_view_define(WeaponMapView) { ecs_access_read(AssetWeaponMapComp); }
 
 static EcsEntityId hud_rend_obj_create(
-    EcsWorld*         world,
-    AssetManagerComp* assets,
-    const EcsEntityId window,
-    const String      graphic,
-    const bool        post /* To be drawn in the post pass */) {
+    EcsWorld* world, AssetManagerComp* assets, const EcsEntityId window, const String graphic) {
   const EcsEntityId e = ecs_world_entity_create(world);
   ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owners[0] = window);
 
-  RendObjectFlags flags = RendObjectFlags_Preload;
-  if (post) {
-    flags |= RendObjectFlags_Post;
-  }
-
-  RendObjectComp* obj = rend_object_create(world, e, flags);
+  RendObjectComp* obj = rend_object_create(world, e, RendObjectFlags_Preload);
   rend_object_set_resource(obj, RendObjectResource_Graphic, asset_lookup(world, assets, graphic));
   rend_object_set_camera_filter(obj, window);
   return e;
@@ -1133,14 +1124,14 @@ ecs_module_init(game_hud_module) {
 void hud_init(EcsWorld* world, AssetManagerComp* assets, const EcsEntityId cameraEntity) {
   diag_assert_msg(!ecs_world_has_t(world, cameraEntity, HudComp), "HUD already active");
 
-  const EcsEntityId rendObjMinimap = hud_rend_obj_create(
-      world, assets, cameraEntity, string_lit("graphics/hud/minimap.graphic"), true);
+  const EcsEntityId rendObjMinimap =
+      hud_rend_obj_create(world, assets, cameraEntity, string_lit("graphics/hud/minimap.graphic"));
 
   const EcsEntityId rendObjIndicatorRing = hud_rend_obj_create(
-      world, assets, cameraEntity, string_lit("graphics/hud/indicator_ring.graphic"), false);
+      world, assets, cameraEntity, string_lit("graphics/hud/indicator_ring.graphic"));
 
   const EcsEntityId rendObjIndicatorBox = hud_rend_obj_create(
-      world, assets, cameraEntity, string_lit("graphics/hud/indicator_box.graphic"), false);
+      world, assets, cameraEntity, string_lit("graphics/hud/indicator_box.graphic"));
 
   ecs_world_add_t(
       world,
