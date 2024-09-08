@@ -42,7 +42,7 @@ void rend_settings_to_default(RendSettingsComp* s) {
              RendFlags_Bloom                |
              RendFlags_Distortion           |
              RendFlags_Decals               |
-             RendFlags_VfxSpriteShadows;
+             RendFlags_VfxShadows;
   // clang-format on
   s->presentMode               = RendPresentMode_VSyncRelaxed;
   s->ambientMode               = RendAmbientMode_SpecularIrradiance;

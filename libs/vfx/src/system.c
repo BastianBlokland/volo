@@ -375,7 +375,7 @@ static void vfx_system_simulate(
     const AssetVfxComp*       asset,
     const AssetAtlasComp*     atlas,
     const SceneTimeComp*      time,
-    const SceneTags           tags,
+    const SceneTags           sysTags,
     const SceneVfxSystemComp* sysCfg,
     const VfxTrans*           sysTrans,
     const EcsEntityId         sysEntity) {
@@ -384,7 +384,7 @@ static void vfx_system_simulate(
 
   // Update shared state.
   state->age += time->delta;
-  if (tags & SceneTags_Emit) {
+  if (sysTags & SceneTags_Emit) {
     state->emitAge += (TimeDuration)(time->delta * sysCfg->emitMultiplier);
   }
 
@@ -525,6 +525,7 @@ static void vfx_instance_output_sprite(
     const VfxSystemInstance*  instance,
     RendObjectComp*           rendObjects[VfxRendObj_Count],
     const AssetVfxComp*       asset,
+    const SceneTags           sysTags,
     const SceneVfxSystemComp* sysCfg,
     const VfxTrans*           sysTrans,
     const f32                 sysTimeRemSec) {
@@ -568,7 +569,7 @@ static void vfx_instance_output_sprite(
   if (sprite->geometryFade) {
     flags |= VfxSprite_GeometryFade;
   }
-  if (sprite->shadowCaster) {
+  if (sysTags & SceneTags_ShadowCaster && sprite->shadowCaster) {
     flags |= VfxSprite_ShadowCaster;
   }
   f32 opacity = 1.0f;
@@ -643,6 +644,7 @@ ecs_view_define(RenderGlobalView) {
 ecs_view_define(RenderView) {
   ecs_access_maybe_read(SceneLifetimeDurationComp);
   ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneTagComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_read(SceneVisibilityComp);
   ecs_access_maybe_write(VfxSystemStatsComp);
@@ -685,6 +687,7 @@ ecs_system_define(VfxSystemRenderSys) {
     const SceneLifetimeDurationComp* lifetime = ecs_view_read_t(itr, SceneLifetimeDurationComp);
     const SceneVfxSystemComp*        sysCfg   = ecs_view_read_t(itr, SceneVfxSystemComp);
     const SceneVisibilityComp*       sysVis   = ecs_view_read_t(itr, SceneVisibilityComp);
+    const SceneTagComp*              tagComp  = ecs_view_read_t(itr, SceneTagComp);
     const VfxSystemStateComp*        state    = ecs_view_read_t(itr, VfxSystemStateComp);
     VfxSystemStatsComp*              stats    = ecs_view_write_t(itr, VfxSystemStatsComp);
 
@@ -696,11 +699,13 @@ ecs_system_define(VfxSystemRenderSys) {
     }
     const AssetVfxComp* asset = ecs_view_read_t(assetItr, AssetVfxComp);
 
-    const VfxTrans sysTrans      = vfx_trans_init(trans, scale, asset);
-    const f32      sysTimeRemSec = lifetime ? vfx_time_to_seconds(lifetime->duration) : f32_max;
+    const VfxTrans  sysTrans      = vfx_trans_init(trans, scale, asset);
+    const f32       sysTimeRemSec = lifetime ? vfx_time_to_seconds(lifetime->duration) : f32_max;
+    const SceneTags sysTags       = tagComp ? tagComp->tags : SceneTags_Default;
 
     dynarray_for_t(&state->instances, VfxSystemInstance, inst) {
-      vfx_instance_output_sprite(stats, inst, rendObjects, asset, sysCfg, &sysTrans, sysTimeRemSec);
+      vfx_instance_output_sprite(
+          stats, inst, rendObjects, asset, sysTags, sysCfg, &sysTrans, sysTimeRemSec);
       vfx_instance_output_light(stats, e, inst, light, asset, sysCfg, &sysTrans, sysTimeRemSec);
     }
   }
