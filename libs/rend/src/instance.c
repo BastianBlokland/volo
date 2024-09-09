@@ -1,3 +1,4 @@
+#include "asset_manager.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "ecs_world.h"
@@ -11,6 +12,8 @@
 #include "scene_visibility.h"
 
 #define rend_instance_max_obj_create_per_task 4
+
+static const String g_rendInstanceDebugSkinning = string_static("graphics/debug/skinning.graphic");
 
 typedef struct {
   ALIGNAS(16)
@@ -47,9 +50,12 @@ typedef struct {
 ASSERT(sizeof(RendInstanceSkinnedData) == 3648, "Size needs to match the size defined in glsl");
 ASSERT(alignof(RendInstanceSkinnedData) == 16, "Alignment needs to match the glsl alignment");
 
-ecs_comp_define(RendInstanceObjComp);
+ecs_comp_define(RendInstanceEnvComp) { EcsEntityId debugSkinningGraphic; };
 
-ecs_view_define(GlobalView) { ecs_access_read(SceneVisibilityEnvComp); }
+ecs_view_define(FillGlobalView) {
+  ecs_access_read(RendInstanceEnvComp);
+  ecs_access_read(SceneVisibilityEnvComp);
+}
 
 /**
  * Convert the given 4x4 matrix to a 4x3 matrix (dropping the last row) and then transpose to a 3x4.
@@ -82,9 +88,31 @@ static SceneTags rend_tags(const SceneTagComp* tagComp, const SceneRenderableCom
   return tags;
 }
 
-static void rend_obj_init(EcsWorld* w, const SceneRenderableComp* r, const RendObjectFlags flags) {
-  RendObjectComp* obj = rend_object_create(w, r->graphic, flags);
-  rend_object_set_resource(obj, RendObjectResource_Graphic, r->graphic);
+static void rend_obj_init(
+    EcsWorld*                  w,
+    const RendInstanceEnvComp* env,
+    const SceneRenderableComp* renderable,
+    const RendObjectFlags      flags) {
+  RendObjectComp* obj = rend_object_create(w, renderable->graphic, flags);
+  rend_object_set_resource(obj, RendObjectResource_Graphic, renderable->graphic);
+  rend_object_set_resource(obj, RendObjectResource_DebugSkinningGraphic, env->debugSkinningGraphic);
+}
+
+ecs_view_define(InitEnvView) {
+  ecs_access_write(AssetManagerComp);
+  ecs_access_without(RendInstanceEnvComp);
+}
+
+ecs_system_define(RendInstanceIntEnvSys) {
+  EcsView* initView = ecs_world_view_t(world, InitEnvView);
+  for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
+    AssetManagerComp* assets = ecs_view_write_t(itr, AssetManagerComp);
+    ecs_world_add_t(
+        world,
+        ecs_view_entity(itr),
+        RendInstanceEnvComp,
+        .debugSkinningGraphic = asset_lookup(world, assets, g_rendInstanceDebugSkinning));
+  }
 }
 
 ecs_view_define(RenderableView) {
@@ -106,12 +134,13 @@ ecs_view_define(ObjView) {
 }
 
 ecs_system_define(RendInstanceFillObjSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsView*     globalView = ecs_world_view_t(world, FillGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return; // Global dependencies not yet available.
   }
-  const SceneVisibilityEnvComp* visEnv = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
+  const RendInstanceEnvComp*    instanceEnv = ecs_view_read_t(globalItr, RendInstanceEnvComp);
+  const SceneVisibilityEnvComp* visEnv      = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
 
   EcsView* renderables = ecs_world_view_t(world, RenderableView);
   EcsView* ObjView     = ecs_world_view_t(world, ObjView);
@@ -136,7 +165,7 @@ ecs_system_define(RendInstanceFillObjSys) {
 
     if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendObjectComp))) {
       if (++createdObjects <= rend_instance_max_obj_create_per_task) { // Limit new objs per frame.
-        rend_obj_init(world, renderable, RendObjectFlags_StandardGeometry);
+        rend_obj_init(world, instanceEnv, renderable, RendObjectFlags_StandardGeometry);
       }
       continue;
     }
@@ -179,12 +208,13 @@ ecs_view_define(ObjSkinnedView) {
 }
 
 ecs_system_define(RendInstanceSkinnedFillObjSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalView);
+  EcsView*     globalView = ecs_world_view_t(world, FillGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return; // Global dependencies not yet available.
   }
-  const SceneVisibilityEnvComp* visEnv = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
+  const RendInstanceEnvComp*    instanceEnv = ecs_view_read_t(globalItr, RendInstanceEnvComp);
+  const SceneVisibilityEnvComp* visEnv      = ecs_view_read_t(globalItr, SceneVisibilityEnvComp);
 
   EcsView* renderables = ecs_world_view_t(world, RenderableSkinnedView);
   EcsView* objView     = ecs_world_view_t(world, ObjSkinnedView);
@@ -210,8 +240,8 @@ ecs_system_define(RendInstanceSkinnedFillObjSys) {
 
     if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendObjectComp))) {
       if (++createdObjects <= rend_instance_max_obj_create_per_task) { // Limit new objs per frame.
-        rend_obj_init(
-            world, renderable, RendObjectFlags_StandardGeometry | RendObjectFlags_Skinned);
+        const RendObjectFlags flags = RendObjectFlags_StandardGeometry | RendObjectFlags_Skinned;
+        rend_obj_init(world, instanceEnv, renderable, flags);
       }
       continue;
     }
@@ -247,17 +277,21 @@ ecs_system_define(RendInstanceSkinnedFillObjSys) {
 }
 
 ecs_module_init(rend_instance_module) {
-  ecs_register_view(GlobalView);
+  ecs_register_comp(RendInstanceEnvComp);
+
+  ecs_register_view(FillGlobalView);
+
+  ecs_register_system(RendInstanceIntEnvSys, ecs_register_view(InitEnvView));
 
   ecs_register_system(
       RendInstanceFillObjSys,
-      ecs_view_id(GlobalView),
+      ecs_view_id(FillGlobalView),
       ecs_register_view(RenderableView),
       ecs_register_view(ObjView));
 
   ecs_register_system(
       RendInstanceSkinnedFillObjSys,
-      ecs_view_id(GlobalView),
+      ecs_view_id(FillGlobalView),
       ecs_register_view(RenderableSkinnedView),
       ecs_register_view(ObjSkinnedView));
 
