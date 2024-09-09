@@ -548,6 +548,10 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
     if (!graphic) {
       continue; // Wireframe graphic is not loaded.
     }
+    if (UNLIKELY(graphic->passId != AssetGraphicPass_Forward)) {
+      log_e("Debug-wireframe can only be drawn from the forward pass");
+      continue;
+    }
 
     const EcsEntityId graphicOrgRes = rend_object_resource(obj, RendObjectRes_Graphic);
     const RvkGraphic* graphicOrg    = painter_get_graphic(resourceItr, graphicOrgRes);
@@ -587,6 +591,10 @@ static void painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView,
     const RvkGraphic* graphic = painter_get_graphic(resourceItr, graphicRes);
     if (!graphic) {
       continue; // Skinning graphic is not loaded.
+    }
+    if (UNLIKELY(graphic->passId != AssetGraphicPass_Forward)) {
+      log_e("Debug-skinning can only be drawn from the forward pass");
+      continue;
     }
 
     const EcsEntityId graphicOrgRes = rend_object_resource(obj, RendObjectRes_Graphic);
