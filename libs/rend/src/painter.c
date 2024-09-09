@@ -540,7 +540,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
     if (!rend_object_instance_count(obj)) {
       continue; // Object has no instances.
     }
-    const EcsEntityId graphicRes = rend_object_resource(obj, RendObjectRes_DebugWireframeGraphic);
+    const EcsEntityId graphicRes = rend_object_resource(obj, RendObjectRes_GraphicDebugWireframe);
     if (!graphicRes) {
       continue; // Object has no debug wireframe graphic.
     }
@@ -580,7 +580,7 @@ static void painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView,
     if (!rend_object_instance_count(obj)) {
       continue; // Object has no instances.
     }
-    const EcsEntityId graphicRes = rend_object_resource(obj, RendObjectRes_DebugSkinningGraphic);
+    const EcsEntityId graphicRes = rend_object_resource(obj, RendObjectRes_GraphicDebugSkinning);
     if (!graphicRes) {
       continue; // Object has no debug skinning graphic.
     }
@@ -804,8 +804,8 @@ static bool rend_canvas_paint_3d(
     const GeoMatrix* shadTrans  = rend_light_shadow_trans(light);
     const GeoMatrix* shadProj   = rend_light_shadow_proj(light);
     SceneTagFilter   shadFilter = {
-        .required = filter.required | SceneTags_ShadowCaster,
-        .illegal  = filter.illegal,
+          .required = filter.required | SceneTags_ShadowCaster,
+          .illegal  = filter.illegal,
     };
     if (!(set->flags & RendFlags_VfxShadows)) {
       shadFilter.illegal |= SceneTags_Vfx;

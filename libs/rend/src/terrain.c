@@ -43,7 +43,7 @@ static EcsEntityId rend_terrain_obj_create(EcsWorld* world, AssetManagerComp* as
   RendObjectComp* obj = rend_object_create(world, e, RendObjectFlags_NoAutoClear);
   rend_object_set_resource(
       obj,
-      RendObjectRes_DebugWireframeGraphic,
+      RendObjectRes_GraphicDebugWireframe,
       asset_lookup(world, assets, g_terrainDebugWireframe));
   return e;
 }
@@ -89,8 +89,8 @@ static void rend_terrain_obj_update(const SceneTerrainComp* sceneTerrain, RendOb
       };
       const GeoVector patchCenter = {.x = patchData.posX, .y = 0, .z = patchData.posZ};
       const GeoBox    patchBounds = {
-          .min = geo_vector_sub(patchCenter, geo_vector(patchHalfSize, 0, patchHalfSize)),
-          .max = geo_vector_add(patchCenter, geo_vector(patchHalfSize, heightScale, patchHalfSize)),
+             .min = geo_vector_sub(patchCenter, geo_vector(patchHalfSize, 0, patchHalfSize)),
+             .max = geo_vector_add(patchCenter, geo_vector(patchHalfSize, heightScale, patchHalfSize)),
       };
       *rend_object_add_instance_t(obj, RendTerrainPatchData, patchTags, patchBounds) = patchData;
     }

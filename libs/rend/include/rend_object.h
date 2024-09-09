@@ -22,9 +22,9 @@ typedef enum {
 
 typedef enum {
   RendObjectRes_Graphic,
+  RendObjectRes_GraphicDebugSkinning,
+  RendObjectRes_GraphicDebugWireframe,
   RendObjectRes_Texture,
-  RendObjectRes_DebugSkinningGraphic,
-  RendObjectRes_DebugWireframeGraphic,
 
   RendObjectRes_Count,
 } RendObjectRes;
