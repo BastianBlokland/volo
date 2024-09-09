@@ -39,9 +39,8 @@ ecs_comp_define(RendTerrainComp) {
 };
 
 static EcsEntityId rend_terrain_obj_create(EcsWorld* world, AssetManagerComp* assets) {
-  EcsEntityId           e     = ecs_world_entity_create(world);
-  const RendObjectFlags flags = RendObjectFlags_Terrain | RendObjectFlags_NoAutoClear;
-  RendObjectComp*       obj   = rend_object_create(world, e, flags);
+  EcsEntityId     e   = ecs_world_entity_create(world);
+  RendObjectComp* obj = rend_object_create(world, e, RendObjectFlags_NoAutoClear);
   rend_object_set_resource(
       obj,
       RendObjectRes_DebugWireframeGraphic,
