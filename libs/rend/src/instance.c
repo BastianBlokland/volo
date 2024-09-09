@@ -139,7 +139,7 @@ static void rend_obj_init(
   const RendObjectFlags flags = RendObjectFlags_StandardGeometry;
   RendObjectComp*       obj   = rend_object_create(w, renderable->graphic, flags);
   rend_object_set_resource(obj, RendObjectRes_Graphic, renderable->graphic);
-  rend_object_set_resource(obj, RendObjectRes_DebugWireframeGraphic, instanceEnv->debugWireframe);
+  rend_object_set_resource(obj, RendObjectRes_GraphicDebugWireframe, instanceEnv->debugWireframe);
 }
 
 ecs_system_define(RendInstanceFillObjSys) {
@@ -221,8 +221,8 @@ static void rend_obj_skinned_init(
   const RendObjectFlags flags = RendObjectFlags_StandardGeometry | RendObjectFlags_Skinned;
   RendObjectComp*       obj   = rend_object_create(w, renderable->graphic, flags);
   rend_object_set_resource(obj, RendObjectRes_Graphic, renderable->graphic);
-  rend_object_set_resource(obj, RendObjectRes_DebugSkinningGraphic, env->debugSkinning);
-  rend_object_set_resource(obj, RendObjectRes_DebugWireframeGraphic, env->debugWireframeSkinned);
+  rend_object_set_resource(obj, RendObjectRes_GraphicDebugSkinning, env->debugSkinning);
+  rend_object_set_resource(obj, RendObjectRes_GraphicDebugWireframe, env->debugWireframeSkinned);
 }
 
 ecs_system_define(RendInstanceSkinnedFillObjSys) {
