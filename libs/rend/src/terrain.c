@@ -1,3 +1,4 @@
+#include "asset_manager.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "ecs_utils.h"
@@ -6,7 +7,12 @@
 #include "scene_tag.h"
 #include "scene_terrain.h"
 
-static const f32 g_terrainPatchTargetSize = 25.0f;
+// clang-format off
+
+static const f32    g_terrainPatchTargetSize = 25.0f;
+static const String g_terrainDebugWireframe  = string_static("graphics/debug/wireframe_terrain.graphic");
+
+// clang-format on
 
 typedef struct {
   ALIGNAS(16)
@@ -32,10 +38,14 @@ ecs_comp_define(RendTerrainComp) {
   EcsEntityId objEntity;
 };
 
-static EcsEntityId rend_terrain_obj_create(EcsWorld* world) {
+static EcsEntityId rend_terrain_obj_create(EcsWorld* world, AssetManagerComp* assets) {
   EcsEntityId           e     = ecs_world_entity_create(world);
   const RendObjectFlags flags = RendObjectFlags_Terrain | RendObjectFlags_NoAutoClear;
-  rend_object_create(world, e, flags);
+  RendObjectComp*       obj   = rend_object_create(world, e, flags);
+  rend_object_set_resource(
+      obj,
+      RendObjectRes_DebugWireframeGraphic,
+      asset_lookup(world, assets, g_terrainDebugWireframe));
   return e;
 }
 
@@ -91,6 +101,7 @@ static void rend_terrain_obj_update(const SceneTerrainComp* sceneTerrain, RendOb
 ecs_view_define(GlobalView) {
   ecs_access_maybe_write(RendTerrainComp);
   ecs_access_read(SceneTerrainComp);
+  ecs_access_write(AssetManagerComp);
 }
 
 ecs_view_define(ObjView) {
@@ -104,12 +115,13 @@ ecs_system_define(RendTerrainCreateDrawSys) {
   if (UNLIKELY(!globalItr)) {
     return;
   }
-  RendTerrainComp* rendTerrain = ecs_view_write_t(globalItr, RendTerrainComp);
+  AssetManagerComp* assetManager = ecs_view_write_t(globalItr, AssetManagerComp);
+  RendTerrainComp*  rendTerrain  = ecs_view_write_t(globalItr, RendTerrainComp);
   if (UNLIKELY(!rendTerrain)) {
     rendTerrain = ecs_world_add_t(world, ecs_world_global(world), RendTerrainComp);
   }
   if (UNLIKELY(!rendTerrain->objEntity)) {
-    rendTerrain->objEntity = rend_terrain_obj_create(world);
+    rendTerrain->objEntity = rend_terrain_obj_create(world, assetManager);
     return;
   }
 
