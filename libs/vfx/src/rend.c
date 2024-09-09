@@ -36,8 +36,8 @@ static const RendObjectFlags g_vfxObjFlags[VfxRendObj_Count] = {
   [VfxRendObj_DecalStampSingleDebug]    = RendObjectFlags_SortBackToFront,
   [VfxRendObj_DecalStampTrail]          = RendObjectFlags_Preload,
   [VfxRendObj_DecalStampTrailDebug]     = RendObjectFlags_SortBackToFront,
-  [VfxRendObj_ParticleSpriteForward]    = RendObjectFlags_VfxSprite | RendObjectFlags_Preload | RendObjectFlags_SortBackToFront,
-  [VfxRendObj_ParticleSpriteDistortion] = RendObjectFlags_VfxSprite | RendObjectFlags_Preload,
+  [VfxRendObj_ParticleSpriteForward]    = RendObjectFlags_Preload | RendObjectFlags_SortBackToFront,
+  [VfxRendObj_ParticleSpriteDistortion] = RendObjectFlags_Preload,
 };
 // clang-format on
 

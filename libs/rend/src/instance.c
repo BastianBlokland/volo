@@ -146,17 +146,15 @@ ecs_view_define(ObjView) {
 
 static void rend_obj_init(
     EcsWorld* w, const RendInstanceEnvComp* instanceEnv, const SceneRenderableComp* renderable) {
-
-  ecs_world_add_empty_t(w, renderable->graphic, RendInstanceObjectComp);
-
-  const RendObjectFlags flags = RendObjectFlags_StandardGeometry;
-  RendObjectComp*       obj   = rend_object_create(w, renderable->graphic, flags);
+  RendObjectComp* obj = rend_object_create(w, renderable->graphic, RendObjectFlags_None);
 
   // clang-format off
   rend_object_set_resource(obj, RendObjectRes_Graphic, renderable->graphic);
   rend_object_set_resource(obj, RendObjectRes_GraphicShadow, instanceEnv->shadowGraphic);
   rend_object_set_resource(obj, RendObjectRes_GraphicDebugWireframe, instanceEnv->debugWireframeGraphic);
   // clang-format on
+
+  ecs_world_add_empty_t(w, renderable->graphic, RendInstanceObjectComp);
 }
 
 ecs_system_define(RendInstanceFillObjSys) {
@@ -235,11 +233,7 @@ ecs_view_define(ObjSkinnedView) {
 
 static void rend_obj_skinned_init(
     EcsWorld* w, const RendInstanceEnvComp* instanceEnv, const SceneRenderableComp* renderable) {
-
-  ecs_world_add_empty_t(w, renderable->graphic, RendInstanceObjectComp);
-
-  const RendObjectFlags flags = RendObjectFlags_StandardGeometry | RendObjectFlags_Skinned;
-  RendObjectComp*       obj   = rend_object_create(w, renderable->graphic, flags);
+  RendObjectComp* obj = rend_object_create(w, renderable->graphic, RendObjectFlags_None);
 
   // clang-format off
   rend_object_set_resource(obj, RendObjectRes_Graphic, renderable->graphic);
@@ -247,6 +241,8 @@ static void rend_obj_skinned_init(
   rend_object_set_resource(obj, RendObjectRes_GraphicDebugSkinning, instanceEnv->debugSkinningGraphic);
   rend_object_set_resource(obj, RendObjectRes_GraphicDebugWireframe, instanceEnv->debugWireframeSkinnedGraphic);
   // clang-format on
+
+  ecs_world_add_empty_t(w, renderable->graphic, RendInstanceObjectComp);
 }
 
 ecs_system_define(RendInstanceSkinnedFillObjSys) {

@@ -9,13 +9,10 @@ typedef enum eSceneTags SceneTags;
 typedef enum {
   RendObjectFlags_None                = 0,
   RendObjectFlags_Preload             = 1 << 0, // Load resources even if not drawn.
-  RendObjectFlags_StandardGeometry    = 1 << 1, // Uses the standard instance data format.
-  RendObjectFlags_Skinned             = 1 << 2,
-  RendObjectFlags_VfxSprite           = 1 << 3,
-  RendObjectFlags_NoAutoClear         = 1 << 4,
-  RendObjectFlags_NoInstanceFiltering = 1 << 5, // NOTE: Does not support sorting.
-  RendObjectFlags_SortBackToFront     = 1 << 6,
-  RendObjectFlags_SortFrontToBack     = 1 << 7,
+  RendObjectFlags_NoAutoClear         = 1 << 1,
+  RendObjectFlags_NoInstanceFiltering = 1 << 2, // NOTE: Does not support sorting.
+  RendObjectFlags_SortBackToFront     = 1 << 3,
+  RendObjectFlags_SortFrontToBack     = 1 << 4,
 
   RendObjectFlags_Sorted = RendObjectFlags_SortBackToFront | RendObjectFlags_SortFrontToBack,
 } RendObjectFlags;
