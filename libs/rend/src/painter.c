@@ -534,55 +534,36 @@ static void painter_push_debug_resource_viewer(
 
 static void
 painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* resView) {
-  const RvkRepository* repo        = rvk_canvas_repository(ctx->canvas);
-  EcsIterator*         resourceItr = ecs_view_itr(resView);
-
-  const RendObjectFlags ignoreFlags = RendObjectFlags_StandardGeometry | RendObjectFlags_Terrain;
-
+  EcsIterator* resourceItr = ecs_view_itr(resView);
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
     if (!rend_object_instance_count(obj)) {
       continue; // Object has no instances.
     }
-    if (!(rend_object_flags(obj) & ignoreFlags)) {
-      continue; // Not a object we can render a wireframe for.
+    const EcsEntityId graphicRes = rend_object_resource(obj, RendObjectRes_DebugWireframeGraphic);
+    if (!graphicRes) {
+      continue; // Object has no debug wireframe graphic.
     }
-    const EcsEntityId graphicOriginalRes = rend_object_resource(obj, RendObjectRes_Graphic);
-    const RvkGraphic* graphicOriginal    = painter_get_graphic(resourceItr, graphicOriginalRes);
-    if (!graphicOriginal) {
-      continue; // Graphic not loaded.
-    }
-    const RvkMesh* mesh = graphicOriginal->mesh;
-    if (!mesh) {
-      continue; // Graphic does not have a mesh to draw a wireframe for (or its not yet loaded).
+    const RvkGraphic* graphic = painter_get_graphic(resourceItr, graphicRes);
+    if (!graphic) {
+      continue; // Wireframe graphic is not loaded.
     }
 
-    RvkRepositoryId graphicId;
-    if (rend_object_flags(obj) & RendObjectFlags_Terrain) {
-      graphicId = RvkRepositoryId_DebugWireframeTerrainGraphic;
-    } else if (rend_object_flags(obj) & RendObjectFlags_Skinned) {
-      graphicId = RvkRepositoryId_DebugWireframeSkinnedGraphic;
-    } else {
-      graphicId = RvkRepositoryId_DebugWireframeGraphic;
-    }
-    const RvkGraphic* graphicWireframe = rvk_repository_graphic_get_maybe(repo, graphicId);
-    if (!graphicWireframe) {
-      continue; // Wireframe graphic not loaded.
+    const EcsEntityId graphicOrgRes = rend_object_resource(obj, RendObjectRes_Graphic);
+    const RvkGraphic* graphicOrg    = painter_get_graphic(resourceItr, graphicOrgRes);
+    if (!graphicOrg || !graphicOrg->mesh) {
+      continue; // Graphic is not loaded or has no mesh.
     }
 
     // If the object uses a 'per draw' texture then retrieve and prepare it.
-    // NOTE: This is needed for the terrain wireframe as it contains the heightmap.
-    const EcsEntityId textureResource = rend_object_resource(obj, RendObjectRes_Texture);
-    const RvkTexture* texture         = null;
-    if (textureResource) {
-      texture = painter_get_texture(resourceItr, textureResource);
-      if (!texture) {
-        continue; // Object uses a 'per draw' texture which is not ready.
-      }
+    const EcsEntityId textureRes = rend_object_resource(obj, RendObjectRes_Texture);
+    const RvkTexture* texture    = null;
+    if (textureRes && !(texture = painter_get_texture(resourceItr, textureRes))) {
+      continue; // Object uses a 'per draw' texture which is not loaded (yet).
     }
 
-    rend_builder_draw_push(ctx->builder, graphicWireframe);
-    rend_builder_draw_mesh(ctx->builder, mesh);
+    rend_builder_draw_push(ctx->builder, graphic);
+    rend_builder_draw_mesh(ctx->builder, graphicOrg->mesh);
     if (texture) {
       // TODO: This cast violates const-correctness.
       rend_builder_draw_image(ctx->builder, (RvkImage*)&texture->image);
@@ -599,21 +580,22 @@ static void painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView,
     if (!rend_object_instance_count(obj)) {
       continue; // Object has no instances.
     }
-    const EcsEntityId graphicDbgRes = rend_object_resource(obj, RendObjectRes_DebugSkinningGraphic);
-    if (!graphicDbgRes) {
+    const EcsEntityId graphicRes = rend_object_resource(obj, RendObjectRes_DebugSkinningGraphic);
+    if (!graphicRes) {
       continue; // Object has no debug skinning graphic.
     }
-    const RvkGraphic* graphicDbg = painter_get_graphic(resourceItr, graphicDbgRes);
-    if (!graphicDbg) {
+    const RvkGraphic* graphic = painter_get_graphic(resourceItr, graphicRes);
+    if (!graphic) {
       continue; // Skinning graphic is not loaded.
     }
+
     const EcsEntityId graphicOrgRes = rend_object_resource(obj, RendObjectRes_Graphic);
     const RvkGraphic* graphicOrg    = painter_get_graphic(resourceItr, graphicOrgRes);
     if (!graphicOrg || !graphicOrg->mesh) {
       continue; // Graphic is not loaded or has no mesh.
     }
 
-    rend_builder_draw_push(ctx->builder, graphicDbg);
+    rend_builder_draw_push(ctx->builder, graphic);
     rend_builder_draw_mesh(ctx->builder, graphicOrg->mesh);
     rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
     rend_builder_draw_flush(ctx->builder);
