@@ -60,8 +60,8 @@ ASSERT(alignof(RendInstanceSkinnedData) == 16, "Alignment needs to match the gls
 
 ecs_comp_define(RendInstanceEnvComp) {
   EcsEntityId shadowGraphic, shadowSkinnedGraphic;
-  EcsEntityId debugSkinning;
-  EcsEntityId debugWireframe, debugWireframeSkinned;
+  EcsEntityId debugSkinningGraphic;
+  EcsEntityId debugWireframeGraphic, debugWireframeSkinnedGraphic;
 };
 
 ecs_comp_define(RendInstanceObjectComp);
@@ -111,15 +111,18 @@ ecs_system_define(RendInstanceIntEnvSys) {
   EcsView* initView = ecs_world_view_t(world, InitEnvView);
   for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
     AssetManagerComp* assets = ecs_view_write_t(itr, AssetManagerComp);
+
+    // clang-format off
     ecs_world_add_t(
         world,
         ecs_view_entity(itr),
         RendInstanceEnvComp,
-        .shadowGraphic         = asset_lookup(world, assets, g_rendInstanceShadow),
-        .shadowSkinnedGraphic  = asset_lookup(world, assets, g_rendInstanceShadowSkinned),
-        .debugSkinning         = asset_lookup(world, assets, g_rendInstanceDebugSkinning),
-        .debugWireframe        = asset_lookup(world, assets, g_rendInstanceDebugWireframe),
-        .debugWireframeSkinned = asset_lookup(world, assets, g_rendInstanceDebugWireframeSkinned));
+        .shadowGraphic                = asset_lookup(world, assets, g_rendInstanceShadow),
+        .shadowSkinnedGraphic         = asset_lookup(world, assets, g_rendInstanceShadowSkinned),
+        .debugSkinningGraphic         = asset_lookup(world, assets, g_rendInstanceDebugSkinning),
+        .debugWireframeGraphic        = asset_lookup(world, assets, g_rendInstanceDebugWireframe),
+        .debugWireframeSkinnedGraphic = asset_lookup(world, assets, g_rendInstanceDebugWireframeSkinned));
+    // clang-format on
   }
 }
 
@@ -148,9 +151,12 @@ static void rend_obj_init(
 
   const RendObjectFlags flags = RendObjectFlags_StandardGeometry;
   RendObjectComp*       obj   = rend_object_create(w, renderable->graphic, flags);
+
+  // clang-format off
   rend_object_set_resource(obj, RendObjectRes_Graphic, renderable->graphic);
   rend_object_set_resource(obj, RendObjectRes_GraphicShadow, instanceEnv->shadowGraphic);
-  rend_object_set_resource(obj, RendObjectRes_GraphicDebugWireframe, instanceEnv->debugWireframe);
+  rend_object_set_resource(obj, RendObjectRes_GraphicDebugWireframe, instanceEnv->debugWireframeGraphic);
+  // clang-format on
 }
 
 ecs_system_define(RendInstanceFillObjSys) {
@@ -234,11 +240,13 @@ static void rend_obj_skinned_init(
 
   const RendObjectFlags flags = RendObjectFlags_StandardGeometry | RendObjectFlags_Skinned;
   RendObjectComp*       obj   = rend_object_create(w, renderable->graphic, flags);
+
+  // clang-format off
   rend_object_set_resource(obj, RendObjectRes_Graphic, renderable->graphic);
   rend_object_set_resource(obj, RendObjectRes_GraphicShadow, instanceEnv->shadowSkinnedGraphic);
-  rend_object_set_resource(obj, RendObjectRes_GraphicDebugSkinning, instanceEnv->debugSkinning);
-  rend_object_set_resource(
-      obj, RendObjectRes_GraphicDebugWireframe, instanceEnv->debugWireframeSkinned);
+  rend_object_set_resource(obj, RendObjectRes_GraphicDebugSkinning, instanceEnv->debugSkinningGraphic);
+  rend_object_set_resource(obj, RendObjectRes_GraphicDebugWireframe, instanceEnv->debugWireframeSkinnedGraphic);
+  // clang-format on
 }
 
 ecs_system_define(RendInstanceSkinnedFillObjSys) {
