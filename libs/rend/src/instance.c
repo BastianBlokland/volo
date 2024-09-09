@@ -217,13 +217,12 @@ ecs_view_define(ObjSkinnedView) {
 }
 
 static void rend_obj_skinned_init(
-    EcsWorld* w, const RendInstanceEnvComp* instanceEnv, const SceneRenderableComp* renderable) {
+    EcsWorld* w, const RendInstanceEnvComp* env, const SceneRenderableComp* renderable) {
   const RendObjectFlags flags = RendObjectFlags_StandardGeometry | RendObjectFlags_Skinned;
   RendObjectComp*       obj   = rend_object_create(w, renderable->graphic, flags);
   rend_object_set_resource(obj, RendObjectRes_Graphic, renderable->graphic);
-  rend_object_set_resource(obj, RendObjectRes_DebugSkinningGraphic, instanceEnv->debugSkinning);
-  rend_object_set_resource(
-      obj, RendObjectRes_DebugWireframeSkinnedGraphic, instanceEnv->debugWireframeSkinned);
+  rend_object_set_resource(obj, RendObjectRes_DebugSkinningGraphic, env->debugSkinning);
+  rend_object_set_resource(obj, RendObjectRes_DebugWireframeGraphic, env->debugWireframeSkinned);
 }
 
 ecs_system_define(RendInstanceSkinnedFillObjSys) {

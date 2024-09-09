@@ -26,7 +26,6 @@ typedef enum {
   RendObjectRes_Texture,
   RendObjectRes_DebugSkinningGraphic,
   RendObjectRes_DebugWireframeGraphic,
-  RendObjectRes_DebugWireframeSkinnedGraphic,
 
   RendObjectRes_Count,
 } RendObjectRes;
