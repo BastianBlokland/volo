@@ -12,31 +12,44 @@ ecs_comp_define(VfxRendComp) { EcsEntityId rendObjects[VfxRendObj_Count]; };
 
 // NOTE: Single and Trail decals are split so both can be filled in parallel.
 static const String g_vfxObjGraphics[VfxRendObj_Count] = {
-    [VfxRendObj_DecalStampSingle]         = string_static("graphics/vfx/stamp.graphic"),
-    [VfxRendObj_DecalStampSingleDebug]    = string_static("graphics/vfx/stamp_debug.graphic"),
-    [VfxRendObj_DecalStampTrail]          = string_static("graphics/vfx/stamp.graphic"),
-    [VfxRendObj_DecalStampTrailDebug]     = string_static("graphics/vfx/stamp_debug.graphic"),
-    [VfxRendObj_ParticleSpriteForward]    = string_static("graphics/vfx/sprite_forward.graphic"),
-    [VfxRendObj_ParticleSpriteDistortion] = string_static("graphics/vfx/sprite_distortion.graphic"),
+  [VfxRendObj_DecalStampSingle]         = string_static("graphics/vfx/stamp.graphic"),
+  [VfxRendObj_DecalStampSingleDebug]    = string_static("graphics/vfx/stamp_debug.graphic"),
+  [VfxRendObj_DecalStampTrail]          = string_static("graphics/vfx/stamp.graphic"),
+  [VfxRendObj_DecalStampTrailDebug]     = string_static("graphics/vfx/stamp_debug.graphic"),
+  [VfxRendObj_ParticleSpriteForward]    = string_static("graphics/vfx/sprite_forward.graphic"),
+  [VfxRendObj_ParticleSpriteDistortion] = string_static("graphics/vfx/sprite_distortion.graphic"),
+};
+
+static const String g_vfxObjGraphicsDebugWireframe[VfxRendObj_Count] = {
+  [VfxRendObj_ParticleSpriteForward]    = string_static("graphics/vfx/sprite_wireframe.graphic"),
+  [VfxRendObj_ParticleSpriteDistortion] = string_static("graphics/vfx/sprite_wireframe.graphic"),
 };
 
 static const RendObjectFlags g_vfxObjFlags[VfxRendObj_Count] = {
-    [VfxRendObj_DecalStampSingle]         = RendObjectFlags_Preload,
-    [VfxRendObj_DecalStampSingleDebug]    = RendObjectFlags_SortBackToFront,
-    [VfxRendObj_DecalStampTrail]          = RendObjectFlags_Preload,
-    [VfxRendObj_DecalStampTrailDebug]     = RendObjectFlags_SortBackToFront,
-    [VfxRendObj_ParticleSpriteForward]    = RendObjectFlags_VfxSprite | RendObjectFlags_Preload | RendObjectFlags_SortBackToFront,
-    [VfxRendObj_ParticleSpriteDistortion] = RendObjectFlags_VfxSprite | RendObjectFlags_Preload,
+  [VfxRendObj_DecalStampSingle]         = RendObjectFlags_Preload,
+  [VfxRendObj_DecalStampSingleDebug]    = RendObjectFlags_SortBackToFront,
+  [VfxRendObj_DecalStampTrail]          = RendObjectFlags_Preload,
+  [VfxRendObj_DecalStampTrailDebug]     = RendObjectFlags_SortBackToFront,
+  [VfxRendObj_ParticleSpriteForward]    = RendObjectFlags_VfxSprite | RendObjectFlags_Preload | RendObjectFlags_SortBackToFront,
+  [VfxRendObj_ParticleSpriteDistortion] = RendObjectFlags_VfxSprite | RendObjectFlags_Preload,
 };
 // clang-format on
 
 static EcsEntityId
 vfx_rend_obj_create(EcsWorld* world, AssetManagerComp* assets, const VfxRendObj type) {
-  const EcsEntityId objEntity   = ecs_world_entity_create(world);
-  const EcsEntityId assetEntity = asset_lookup(world, assets, g_vfxObjGraphics[type]);
+  const EcsEntityId objEntity = ecs_world_entity_create(world);
+  RendObjectComp*   rendObj   = rend_object_create(world, objEntity, g_vfxObjFlags[type]);
 
-  RendObjectComp* rendObj = rend_object_create(world, objEntity, g_vfxObjFlags[type]);
-  rend_object_set_resource(rendObj, RendObjectRes_Graphic, assetEntity);
+  rend_object_set_resource(
+      rendObj, RendObjectRes_Graphic, asset_lookup(world, assets, g_vfxObjGraphics[type]));
+
+  if (!string_is_empty(g_vfxObjGraphicsDebugWireframe[type])) {
+    rend_object_set_resource(
+        rendObj,
+        RendObjectRes_GraphicDebugWireframe,
+        asset_lookup(world, assets, g_vfxObjGraphicsDebugWireframe[type]));
+  }
+
   return objEntity;
 }
 

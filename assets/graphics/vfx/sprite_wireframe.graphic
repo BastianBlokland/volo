@@ -1,0 +1,13 @@
+{
+  "pass": "Forward",
+  "passOrder": 101,
+  "shaders": [
+    { "shaderId": "shaders/vfx/sprite.vert" },
+    { "shaderId": "shaders/solid_white3.frag" }
+  ],
+  "vertexCount": 6,
+  "rasterizer": "Lines",
+  "lineWidth": 1,
+  "depth": "LessOrEqualNoWrite",
+  "cull": "None"
+}
