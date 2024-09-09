@@ -57,8 +57,8 @@ static void rend_terrain_obj_update(const SceneTerrainComp* sceneTerrain, RendOb
   const f32 heightScale    = scene_terrain_height_max(sceneTerrain);
 
   // Set global terrain meta.
-  rend_object_set_resource(obj, RendObjectResource_Graphic, graphic);
-  rend_object_set_resource(obj, RendObjectResource_Texture, heightmap);
+  rend_object_set_resource(obj, RendObjectRes_Graphic, graphic);
+  rend_object_set_resource(obj, RendObjectRes_Texture, heightmap);
   *rend_object_set_data_t(obj, RendTerrainData) = (RendTerrainData){
       .size        = size,
       .heightScale = heightScale,
@@ -80,8 +80,8 @@ static void rend_terrain_obj_update(const SceneTerrainComp* sceneTerrain, RendOb
       };
       const GeoVector patchCenter = {.x = patchData.posX, .y = 0, .z = patchData.posZ};
       const GeoBox    patchBounds = {
-             .min = geo_vector_sub(patchCenter, geo_vector(patchHalfSize, 0, patchHalfSize)),
-             .max = geo_vector_add(patchCenter, geo_vector(patchHalfSize, heightScale, patchHalfSize)),
+          .min = geo_vector_sub(patchCenter, geo_vector(patchHalfSize, 0, patchHalfSize)),
+          .max = geo_vector_add(patchCenter, geo_vector(patchHalfSize, heightScale, patchHalfSize)),
       };
       *rend_object_add_instance_t(obj, RendTerrainPatchData, patchTags, patchBounds) = patchData;
     }

@@ -45,7 +45,7 @@ static EcsEntityId rend_fog_rend_obj_create(EcsWorld* world, AssetManagerComp* a
   const EcsEntityId entity        = ecs_world_entity_create(world);
   RendObjectComp*   obj           = rend_object_create(world, entity, RendObjectFlags_None);
   const EcsEntityId graphicEntity = asset_lookup(world, assets, g_fogVisionGraphic);
-  rend_object_set_resource(obj, RendObjectResource_Graphic, graphicEntity);
+  rend_object_set_resource(obj, RendObjectRes_Graphic, graphicEntity);
   return entity;
 }
 

@@ -631,7 +631,7 @@ static void rend_obj_info_query(DebugRendPanelComp* panelComp, EcsWorld* world) 
       String           graphicName = string_lit("< unknown >");
       AssetGraphicPass pass        = AssetGraphicPass_None;
       i32              passOrder   = 0;
-      if (ecs_view_maybe_jump(graphicItr, rend_object_resource(obj, RendObjectResource_Graphic))) {
+      if (ecs_view_maybe_jump(graphicItr, rend_object_resource(obj, RendObjectRes_Graphic))) {
         const AssetComp*          graphicAssetComp = ecs_view_read_t(graphicItr, AssetComp);
         const RendResGraphicComp* graphicComp = ecs_view_read_t(graphicItr, RendResGraphicComp);
         graphicName                           = asset_id(graphicAssetComp);

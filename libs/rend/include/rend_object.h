@@ -22,14 +22,14 @@ typedef enum {
 } RendObjectFlags;
 
 typedef enum {
-  RendObjectResource_Graphic,
-  RendObjectResource_Texture,
-  RendObjectResource_DebugSkinningGraphic,
-  RendObjectResource_DebugWireframeGraphic,
-  RendObjectResource_DebugWireframeSkinnedGraphic,
+  RendObjectRes_Graphic,
+  RendObjectRes_Texture,
+  RendObjectRes_DebugSkinningGraphic,
+  RendObjectRes_DebugWireframeGraphic,
+  RendObjectRes_DebugWireframeSkinnedGraphic,
 
-  RendObjectResource_Count,
-} RendObjectResource;
+  RendObjectRes_Count,
+} RendObjectRes;
 
 /**
  * Render object, low level render api.
@@ -46,7 +46,7 @@ RendObjectComp* rend_object_create(EcsWorld*, EcsEntityId entity, RendObjectFlag
  * Query information about this object.
  */
 RendObjectFlags rend_object_flags(const RendObjectComp*);
-EcsEntityId     rend_object_resource(const RendObjectComp*, RendObjectResource);
+EcsEntityId     rend_object_resource(const RendObjectComp*, RendObjectRes);
 u32             rend_object_instance_count(const RendObjectComp*);
 u32             rend_object_data_size(const RendObjectComp*);
 u32             rend_object_data_inst_size(const RendObjectComp*);
@@ -55,7 +55,7 @@ SceneTags       rend_object_tag_mask(const RendObjectComp*);
 /**
  * Update a object resource
  */
-void rend_object_set_resource(RendObjectComp*, RendObjectResource, EcsEntityId asset);
+void rend_object_set_resource(RendObjectComp*, RendObjectRes, EcsEntityId asset);
 
 /**
  * Set a camera filter so only that specific camera will render this object.
