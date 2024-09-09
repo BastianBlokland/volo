@@ -28,7 +28,7 @@ typedef struct {
 } RendObjectSortKey;
 
 ecs_comp_define(RendObjectComp) {
-  EcsEntityId resources[RendObjectResource_Count];
+  EcsEntityId resources[RendObjectRes_Count];
   EcsEntityId cameraFilter;
 
   RendObjectFlags flags;
@@ -188,7 +188,7 @@ ecs_system_define(RendObjectResourceRequestSys) {
     if (!comp->instCount && !(comp->flags & RendObjectFlags_Preload)) {
       continue; // Object unused and not required to be pre-loaded.
     }
-    for (u32 i = 0; i != RendObjectResource_Count; ++i) {
+    for (u32 i = 0; i != RendObjectRes_Count; ++i) {
       if (comp->resources[i]) {
         rend_object_resource_request(world, comp->resources[i], resItr, &numRequests);
       }
@@ -223,7 +223,7 @@ rend_object_create(EcsWorld* world, const EcsEntityId entity, const RendObjectFl
 
 RendObjectFlags rend_object_flags(const RendObjectComp* obj) { return obj->flags; }
 
-EcsEntityId rend_object_resource(const RendObjectComp* obj, const RendObjectResource id) {
+EcsEntityId rend_object_resource(const RendObjectComp* obj, const RendObjectRes id) {
   return obj->resources[id];
 }
 
@@ -293,7 +293,7 @@ void rend_object_draw(
     if (UNLIKELY(obj->instCount > u16_max || requiredSortMem > alloc_max_size(g_allocScratch))) {
       log_e(
           "Sorted object instance count exceeds maximum",
-          log_param("graphic", ecs_entity_fmt(obj->resources[RendObjectResource_Graphic])),
+          log_param("graphic", ecs_entity_fmt(obj->resources[RendObjectRes_Graphic])),
           log_param("count", fmt_int(obj->instCount)));
       return;
     }
@@ -348,7 +348,7 @@ void rend_object_draw(
 }
 
 void rend_object_set_resource(
-    RendObjectComp* obj, const RendObjectResource id, const EcsEntityId asset) {
+    RendObjectComp* obj, const RendObjectRes id, const EcsEntityId asset) {
   obj->resources[id] = asset;
 }
 

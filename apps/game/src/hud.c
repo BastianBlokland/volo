@@ -142,7 +142,7 @@ static EcsEntityId hud_rend_obj_create(
   ecs_world_add_t(world, e, SceneLifetimeOwnerComp, .owners[0] = window);
 
   RendObjectComp* obj = rend_object_create(world, e, RendObjectFlags_Preload);
-  rend_object_set_resource(obj, RendObjectResource_Graphic, asset_lookup(world, assets, graphic));
+  rend_object_set_resource(obj, RendObjectRes_Graphic, asset_lookup(world, assets, graphic));
   rend_object_set_camera_filter(obj, window);
   return e;
 }
@@ -546,7 +546,7 @@ static void hud_minimap_update(
   const EcsEntityId heightmap = scene_terrain_resource_heightmap(terrain);
   diag_assert(heightmap);
 
-  rend_object_set_resource(obj, RendObjectResource_Texture, heightmap);
+  rend_object_set_resource(obj, RendObjectRes_Texture, heightmap);
 
   const GeoBox bounds                                                   = geo_box_inverted3();
   *rend_object_add_instance_t(obj, MinimapData, SceneTags_None, bounds) = (MinimapData){

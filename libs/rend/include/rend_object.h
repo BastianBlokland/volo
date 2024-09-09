@@ -11,23 +11,23 @@ typedef enum {
   RendObjectFlags_Preload             = 1 << 0, // Load resources even if not drawn.
   RendObjectFlags_StandardGeometry    = 1 << 1, // Uses the standard instance data format.
   RendObjectFlags_Skinned             = 1 << 2,
-  RendObjectFlags_Terrain             = 1 << 3,
-  RendObjectFlags_VfxSprite           = 1 << 4,
-  RendObjectFlags_NoAutoClear         = 1 << 5,
-  RendObjectFlags_NoInstanceFiltering = 1 << 6, // NOTE: Does not support sorting.
-  RendObjectFlags_SortBackToFront     = 1 << 7,
-  RendObjectFlags_SortFrontToBack     = 1 << 8,
+  RendObjectFlags_VfxSprite           = 1 << 3,
+  RendObjectFlags_NoAutoClear         = 1 << 4,
+  RendObjectFlags_NoInstanceFiltering = 1 << 5, // NOTE: Does not support sorting.
+  RendObjectFlags_SortBackToFront     = 1 << 6,
+  RendObjectFlags_SortFrontToBack     = 1 << 7,
 
   RendObjectFlags_Sorted = RendObjectFlags_SortBackToFront | RendObjectFlags_SortFrontToBack,
 } RendObjectFlags;
 
 typedef enum {
-  RendObjectResource_Graphic,
-  RendObjectResource_Texture,
-  RendObjectResource_DebugSkinningGraphic,
+  RendObjectRes_Graphic,
+  RendObjectRes_Texture,
+  RendObjectRes_DebugSkinningGraphic,
+  RendObjectRes_DebugWireframeGraphic,
 
-  RendObjectResource_Count,
-} RendObjectResource;
+  RendObjectRes_Count,
+} RendObjectRes;
 
 /**
  * Render object, low level render api.
@@ -44,7 +44,7 @@ RendObjectComp* rend_object_create(EcsWorld*, EcsEntityId entity, RendObjectFlag
  * Query information about this object.
  */
 RendObjectFlags rend_object_flags(const RendObjectComp*);
-EcsEntityId     rend_object_resource(const RendObjectComp*, RendObjectResource);
+EcsEntityId     rend_object_resource(const RendObjectComp*, RendObjectRes);
 u32             rend_object_instance_count(const RendObjectComp*);
 u32             rend_object_data_size(const RendObjectComp*);
 u32             rend_object_data_inst_size(const RendObjectComp*);
@@ -53,7 +53,7 @@ SceneTags       rend_object_tag_mask(const RendObjectComp*);
 /**
  * Update a object resource
  */
-void rend_object_set_resource(RendObjectComp*, RendObjectResource, EcsEntityId asset);
+void rend_object_set_resource(RendObjectComp*, RendObjectRes, EcsEntityId asset);
 
 /**
  * Set a camera filter so only that specific camera will render this object.
