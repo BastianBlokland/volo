@@ -24,6 +24,7 @@ typedef enum {
 typedef enum {
   RendObjectResource_Graphic,
   RendObjectResource_Texture,
+  RendObjectResource_DebugSkinningGraphic,
 
   RendObjectResource_Count,
 } RendObjectResource;

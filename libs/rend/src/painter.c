@@ -593,32 +593,29 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
 }
 
 static void painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView, EcsView* resView) {
-  const RvkRepository*  repository     = rvk_canvas_repository(ctx->canvas);
-  const RvkRepositoryId debugGraphicId = RvkRepositoryId_DebugSkinningGraphic;
-  const RvkGraphic*     debugGraphic = rvk_repository_graphic_get_maybe(repository, debugGraphicId);
-  if (!debugGraphic) {
-    return; // Debug graphic not ready to be drawn.
-  }
-
   EcsIterator* resourceItr = ecs_view_itr(resView);
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
     if (!rend_object_instance_count(obj)) {
       continue; // Object has no instances.
     }
-    if (!(rend_object_flags(obj) & RendObjectFlags_Skinned)) {
-      continue; // Not a skinned object.
+    const RendObjectResource graphicDbgResType = RendObjectResource_DebugSkinningGraphic;
+    const EcsEntityId        graphicDbgRes     = rend_object_resource(obj, graphicDbgResType);
+    if (!graphicDbgRes) {
+      continue; // Object has no debug skinning graphic.
     }
-    const EcsEntityId graphicOriginalRes = rend_object_resource(obj, RendObjectResource_Graphic);
-    const RvkGraphic* graphicOriginal    = painter_get_graphic(resourceItr, graphicOriginalRes);
-    if (!graphicOriginal) {
-      continue; // Graphic not loaded.
+    const RvkGraphic* graphicDbg = painter_get_graphic(resourceItr, graphicDbgRes);
+    if (!graphicDbg) {
+      continue; // Skinning graphic is not loaded.
     }
-    const RvkMesh* mesh = graphicOriginal->mesh;
-    diag_assert(mesh);
+    const EcsEntityId graphicOrgRes = rend_object_resource(obj, RendObjectResource_Graphic);
+    const RvkGraphic* graphicOrg    = painter_get_graphic(resourceItr, graphicOrgRes);
+    if (!graphicOrg || !graphicOrg->mesh) {
+      continue; // Graphic is not loaded or has no mesh.
+    }
 
-    rend_builder_draw_push(ctx->builder, debugGraphic);
-    rend_builder_draw_mesh(ctx->builder, mesh);
+    rend_builder_draw_push(ctx->builder, graphicDbg);
+    rend_builder_draw_mesh(ctx->builder, graphicOrg->mesh);
     rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
     rend_builder_draw_flush(ctx->builder);
   }
@@ -826,8 +823,8 @@ static bool rend_canvas_paint_3d(
     const GeoMatrix* shadTrans  = rend_light_shadow_trans(light);
     const GeoMatrix* shadProj   = rend_light_shadow_proj(light);
     SceneTagFilter   shadFilter = {
-          .required = filter.required | SceneTags_ShadowCaster,
-          .illegal  = filter.illegal,
+        .required = filter.required | SceneTags_ShadowCaster,
+        .illegal  = filter.illegal,
     };
     if (!(set->flags & RendFlags_VfxShadows)) {
       shadFilter.illegal |= SceneTags_Vfx;
