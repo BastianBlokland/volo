@@ -88,16 +88,6 @@ static SceneTags rend_tags(const SceneTagComp* tagComp, const SceneRenderableCom
   return tags;
 }
 
-static void rend_obj_init(
-    EcsWorld*                  w,
-    const RendInstanceEnvComp* env,
-    const SceneRenderableComp* renderable,
-    const RendObjectFlags      flags) {
-  RendObjectComp* obj = rend_object_create(w, renderable->graphic, flags);
-  rend_object_set_resource(obj, RendObjectResource_Graphic, renderable->graphic);
-  rend_object_set_resource(obj, RendObjectResource_DebugSkinningGraphic, env->debugSkinningGraphic);
-}
-
 ecs_view_define(InitEnvView) {
   ecs_access_write(AssetManagerComp);
   ecs_access_without(RendInstanceEnvComp);
@@ -133,6 +123,14 @@ ecs_view_define(ObjView) {
   ecs_access_write(RendObjectComp);
 }
 
+static void rend_obj_init(
+    EcsWorld* w, const RendInstanceEnvComp* instanceEnv, const SceneRenderableComp* renderable) {
+  (void)instanceEnv;
+  const RendObjectFlags flags = RendObjectFlags_StandardGeometry;
+  RendObjectComp*       obj   = rend_object_create(w, renderable->graphic, flags);
+  rend_object_set_resource(obj, RendObjectResource_Graphic, renderable->graphic);
+}
+
 ecs_system_define(RendInstanceFillObjSys) {
   EcsView*     globalView = ecs_world_view_t(world, FillGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -165,7 +163,7 @@ ecs_system_define(RendInstanceFillObjSys) {
 
     if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendObjectComp))) {
       if (++createdObjects <= rend_instance_max_obj_create_per_task) { // Limit new objs per frame.
-        rend_obj_init(world, instanceEnv, renderable, RendObjectFlags_StandardGeometry);
+        rend_obj_init(world, instanceEnv, renderable);
       }
       continue;
     }
@@ -207,6 +205,15 @@ ecs_view_define(ObjSkinnedView) {
   ecs_access_maybe_read(SceneSkeletonTemplComp);
 }
 
+static void rend_obj_skinned_init(
+    EcsWorld* w, const RendInstanceEnvComp* instanceEnv, const SceneRenderableComp* renderable) {
+  const RendObjectFlags flags = RendObjectFlags_StandardGeometry | RendObjectFlags_Skinned;
+  RendObjectComp*       obj   = rend_object_create(w, renderable->graphic, flags);
+  rend_object_set_resource(obj, RendObjectResource_Graphic, renderable->graphic);
+  rend_object_set_resource(
+      obj, RendObjectResource_DebugSkinningGraphic, instanceEnv->debugSkinningGraphic);
+}
+
 ecs_system_define(RendInstanceSkinnedFillObjSys) {
   EcsView*     globalView = ecs_world_view_t(world, FillGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -240,8 +247,7 @@ ecs_system_define(RendInstanceSkinnedFillObjSys) {
 
     if (UNLIKELY(!ecs_world_has_t(world, renderable->graphic, RendObjectComp))) {
       if (++createdObjects <= rend_instance_max_obj_create_per_task) { // Limit new objs per frame.
-        const RendObjectFlags flags = RendObjectFlags_StandardGeometry | RendObjectFlags_Skinned;
-        rend_obj_init(world, instanceEnv, renderable, flags);
+        rend_obj_skinned_init(world, instanceEnv, renderable);
       }
       continue;
     }
