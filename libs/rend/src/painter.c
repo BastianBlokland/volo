@@ -266,61 +266,33 @@ static SceneTags painter_push_objects_simple(
 }
 
 static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView* resView) {
-  RendObjectFlags requiredAny = 0;
-  requiredAny |= RendObjectFlags_StandardGeometry; // Include geometry.
-  requiredAny |= RendObjectFlags_VfxSprite;        // Include vfx sprites.
-
-  const RvkRepository* repo        = rvk_canvas_repository(ctx->canvas);
-  EcsIterator*         resourceItr = ecs_view_itr(resView);
-
+  EcsIterator* resourceItr = ecs_view_itr(resView);
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
     if (!rend_object_instance_count(obj)) {
       continue; // Object has no instances.
     }
-    if (!(rend_object_flags(obj) & requiredAny)) {
-      continue; // Object shouldn't be included in the shadow pass.
+    const EcsEntityId graphicRes = rend_object_resource(obj, RendObjectRes_GraphicShadow);
+    if (!graphicRes) {
+      continue; // Object has no shadow graphic.
     }
-    const EcsEntityId graphicOriginalRes = rend_object_resource(obj, RendObjectRes_Graphic);
-    const RvkGraphic* graphicOriginal    = painter_get_graphic(resourceItr, graphicOriginalRes);
-    if (!graphicOriginal) {
-      continue; // Graphic not loaded.
+    const RvkGraphic* graphic = painter_get_graphic(resourceItr, graphicRes);
+    if (!graphic) {
+      continue; // Shadow graphic is not loaded.
     }
-    const bool     isVfxSprite = (rend_object_flags(obj) & RendObjectFlags_VfxSprite) != 0;
-    const RvkMesh* objMesh     = graphicOriginal->mesh;
-    if (!isVfxSprite && !objMesh) {
-      continue; // Graphic is not a vfx sprite and does not have a mesh to draw a shadow for.
-    }
-    RvkImage* objAlphaImg = null;
-    enum { AlphaTextureIndex = 2 }; // TODO: Make this configurable from content.
-    const bool hasAlphaTexture = (graphicOriginal->samplerMask & (1 << AlphaTextureIndex)) != 0;
-    if (graphicOriginal->flags & RvkGraphicFlags_MayDiscard && hasAlphaTexture) {
-      const RvkTexture* alphaTexture = graphicOriginal->samplerTextures[AlphaTextureIndex];
-      if (!alphaTexture) {
-        continue; // Graphic uses discard but has no alpha texture.
-      }
-      // TODO: This cast violates const-correctness.
-      objAlphaImg = (RvkImage*)&alphaTexture->image;
-    }
-    RvkRepositoryId graphicId;
-    if (isVfxSprite) {
-      graphicId = RvkRepositoryId_ShadowVfxSpriteGraphic;
-    } else if (rend_object_flags(obj) & RendObjectFlags_Skinned) {
-      graphicId = RvkRepositoryId_ShadowSkinnedGraphic;
-    } else {
-      graphicId = objAlphaImg ? RvkRepositoryId_ShadowClipGraphic : RvkRepositoryId_ShadowGraphic;
-    }
-    const RvkGraphic* shadowGraphic = rvk_repository_graphic_get(repo, graphicId);
-    if (!shadowGraphic) {
-      continue; // Shadow graphic not loaded.
+    if (UNLIKELY(graphic->passId != AssetGraphicPass_Shadow)) {
+      log_e("Shadow's can only be drawn from the shadow pass");
+      continue;
     }
 
-    rend_builder_draw_push(ctx->builder, shadowGraphic);
-    rend_builder_draw_mesh(ctx->builder, objMesh);
-    if (objAlphaImg) {
-      rend_builder_draw_image(ctx->builder, objAlphaImg);
-      rend_builder_draw_sampler(ctx->builder, (RvkSamplerSpec){.aniso = RvkSamplerAniso_x8});
+    const EcsEntityId graphicOrgRes = rend_object_resource(obj, RendObjectRes_Graphic);
+    const RvkGraphic* graphicOrg    = painter_get_graphic(resourceItr, graphicOrgRes);
+    if (!graphicOrg) {
+      continue; // Graphic is not loaded.
     }
+
+    rend_builder_draw_push(ctx->builder, graphic);
+    rend_builder_draw_mesh(ctx->builder, graphicOrg->mesh);
     rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
     rend_builder_draw_flush(ctx->builder);
   }
