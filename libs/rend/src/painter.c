@@ -551,8 +551,8 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
 
     const EcsEntityId graphicOrgRes = rend_object_resource(obj, RendObjectRes_Graphic);
     const RvkGraphic* graphicOrg    = painter_get_graphic(resourceItr, graphicOrgRes);
-    if (!graphicOrg || !graphicOrg->mesh) {
-      continue; // Graphic is not loaded or has no mesh.
+    if (!graphicOrg) {
+      continue; // Graphic is not loaded.
     }
 
     // If the object uses a 'per draw' texture then retrieve and prepare it.
@@ -591,8 +591,8 @@ static void painter_push_debug_skinning(RendPaintContext* ctx, EcsView* objView,
 
     const EcsEntityId graphicOrgRes = rend_object_resource(obj, RendObjectRes_Graphic);
     const RvkGraphic* graphicOrg    = painter_get_graphic(resourceItr, graphicOrgRes);
-    if (!graphicOrg || !graphicOrg->mesh) {
-      continue; // Graphic is not loaded or has no mesh.
+    if (!graphicOrg) {
+      continue; // Graphic is not loaded.
     }
 
     rend_builder_draw_push(ctx->builder, graphic);
