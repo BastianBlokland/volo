@@ -25,6 +25,7 @@ typedef enum {
   RvkRepositoryId_SkyCubeMapGraphic,
   RvkRepositoryId_SkyGradientGraphic,
   RvkRepositoryId_TonemapperGraphic,
+  RvkRepositoryId_WhiteTexture,
 
   RvkRepositoryId_Count,
 } RvkRepositoryId;

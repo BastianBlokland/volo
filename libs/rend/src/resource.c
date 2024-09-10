@@ -54,6 +54,7 @@ static const RendResGlobalDef g_rendResGlobal[] = {
   { .repoId = RvkRepositoryId_SkyCubeMapGraphic,           .assetId = string_static("graphics/scene/sky_cubemap.graphic") },
   { .repoId = RvkRepositoryId_SkyGradientGraphic,          .assetId = string_static("graphics/scene/sky_gradient.graphic") },
   { .repoId = RvkRepositoryId_TonemapperGraphic,           .assetId = string_static("graphics/tonemapper.graphic") },
+  { .repoId = RvkRepositoryId_WhiteTexture,                .assetId = string_static("textures/white.proctex"), .ignoreAssetChanges = true },
 };
 // clang-format on
 
