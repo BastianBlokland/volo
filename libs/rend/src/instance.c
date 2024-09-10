@@ -301,6 +301,23 @@ ecs_system_define(RendInstanceSkinnedFillObjSys) {
   }
 }
 
+ecs_view_define(DirtyObjectView) {
+  ecs_access_with(RendObjectComp);
+  ecs_access_with(RendInstanceObjectComp);
+  ecs_access_with(AssetChangedComp);
+}
+
+ecs_system_define(RendInstanceClearDirtyObjectSys) {
+  /**
+   * Remove a render-object when the graphic asset changes, this is needed to handle a graphic
+   * hotload changing from a skinned to a non-skinned mesh (or visa versa).
+   */
+  EcsView* dirtyObjView = ecs_world_view_t(world, DirtyObjectView);
+  for (EcsIterator* itr = ecs_view_itr(dirtyObjView); ecs_view_walk(itr);) {
+    ecs_world_remove_t(world, ecs_view_entity(itr), RendObjectComp);
+  }
+}
+
 ecs_module_init(rend_instance_module) {
   ecs_register_comp(RendInstanceEnvComp);
   ecs_register_comp_empty(RendInstanceObjectComp);
@@ -323,4 +340,6 @@ ecs_module_init(rend_instance_module) {
 
   ecs_order(RendInstanceFillObjSys, RendOrder_ObjectUpdate);
   ecs_order(RendInstanceSkinnedFillObjSys, RendOrder_ObjectUpdate);
+
+  ecs_register_system(RendInstanceClearDirtyObjectSys, ecs_register_view(DirtyObjectView));
 }
