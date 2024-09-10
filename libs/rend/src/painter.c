@@ -266,6 +266,11 @@ static SceneTags painter_push_objects_simple(
 }
 
 static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView* resView) {
+  const RvkRepository* repo     = rvk_canvas_repository(ctx->canvas);
+  const RvkTexture*    whiteTex = rvk_repository_texture_get(repo, RvkRepositoryId_WhiteTexture);
+  if (!whiteTex) {
+    return; // Texture not loaded (yet).
+  }
   EcsIterator* resourceItr = ecs_view_itr(resView);
   for (EcsIterator* objItr = ecs_view_itr(objView); ecs_view_walk(objItr);) {
     const RendObjectComp* obj = ecs_view_read_t(objItr, RendObjectComp);
@@ -293,6 +298,10 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
 
     rend_builder_draw_push(ctx->builder, graphic);
     rend_builder_draw_mesh(ctx->builder, graphicOrg->mesh);
+
+    // TODO: This cast violates const-correctness.
+    rend_builder_draw_image(ctx->builder, (RvkImage*)&whiteTex->image);
+
     rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
     rend_builder_draw_flush(ctx->builder);
   }
