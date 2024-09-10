@@ -31,6 +31,7 @@ typedef struct {
   RvkRepositoryId repoId;
   String          assetId;
   bool            ignoreAssetChanges;
+  bool            graphicRequirement; // Delay any graphic creation until this is loaded.
 } RendResGlobalDef;
 
 // clang-format off
@@ -46,9 +47,9 @@ static const RendResGlobalDef g_rendResGlobal[] = {
   { .repoId = RvkRepositoryId_FogBlurHorGraphic,           .assetId = string_static("graphics/fog_blur_hor.graphic") },
   { .repoId = RvkRepositoryId_FogBlurVerGraphic,           .assetId = string_static("graphics/fog_blur_ver.graphic") },
   { .repoId = RvkRepositoryId_FogGraphic,                  .assetId = string_static("graphics/fog.graphic") },
-  { .repoId = RvkRepositoryId_MissingMesh,                 .assetId = string_static("meshes/missing.procmesh"), .ignoreAssetChanges = true },
-  { .repoId = RvkRepositoryId_MissingTexture,              .assetId = string_static("textures/missing.proctex"), .ignoreAssetChanges = true },
-  { .repoId = RvkRepositoryId_MissingTextureCube,          .assetId = string_static("textures/missing_cube.arraytex"), .ignoreAssetChanges = true },
+  { .repoId = RvkRepositoryId_MissingMesh,                 .assetId = string_static("meshes/missing.procmesh"), .ignoreAssetChanges = true, .graphicRequirement = true },
+  { .repoId = RvkRepositoryId_MissingTexture,              .assetId = string_static("textures/missing.proctex"), .ignoreAssetChanges = true, .graphicRequirement = true  },
+  { .repoId = RvkRepositoryId_MissingTextureCube,          .assetId = string_static("textures/missing_cube.arraytex"), .ignoreAssetChanges = true, .graphicRequirement = true  },
   { .repoId = RvkRepositoryId_OutlineGraphic,              .assetId = string_static("graphics/outline.graphic") },
   { .repoId = RvkRepositoryId_ShadowClipGraphic,           .assetId = string_static("graphics/shadow_clip.graphic") },
   { .repoId = RvkRepositoryId_ShadowGraphic,               .assetId = string_static("graphics/shadow.graphic") },
@@ -339,7 +340,8 @@ static bool rend_res_dependencies_acquire(EcsWorld* world, EcsIterator* resource
   return true;
 }
 
-static bool rend_res_dependencies_wait(EcsWorld* world, EcsIterator* resourceItr) {
+static bool rend_res_dependencies_wait(
+    const RendPlatformComp* plat, EcsWorld* world, EcsIterator* resourceItr) {
   const EcsEntityId entity         = ecs_view_entity(resourceItr);
   RendResComp*      resComp        = ecs_view_write_t(resourceItr, RendResComp);
   EcsView*          dependencyView = ecs_world_view_t(world, ResLoadDependencyView);
@@ -371,6 +373,18 @@ static bool rend_res_dependencies_wait(EcsWorld* world, EcsIterator* resourceItr
       ready = false;
     }
   }
+
+  if (ecs_world_has_t(world, entity, AssetGraphicComp)) {
+    // Wait for global dependencies to be loaded (for example the 'Missing Texture' asset).
+    const RvkRepository* repo = plat->device->repository;
+    array_for_t(g_rendResGlobal, RendResGlobalDef, res) {
+      if (res->graphicRequirement && !rvk_repository_is_set(repo, res->repoId)) {
+        ready = false;
+        break;
+      }
+    }
+  }
+
   return ready;
 }
 
@@ -564,7 +578,7 @@ ecs_system_define(RendResLoadSys) {
       }
       // Fallthrough.
     case RendResLoadState_DependenciesWait:
-      if (!rend_res_dependencies_wait(world, itr)) {
+      if (!rend_res_dependencies_wait(platform, world, itr)) {
         break;
       }
       ++resComp->state;
