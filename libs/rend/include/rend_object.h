@@ -47,7 +47,7 @@ u32             rend_object_instance_count(const RendObjectComp*);
 u32             rend_object_data_size(const RendObjectComp*);
 u32             rend_object_data_inst_size(const RendObjectComp*);
 SceneTags       rend_object_tag_mask(const RendObjectComp*);
-u8              rend_object_alpha_tex_index(const RendObjectComp*);
+u8              rend_object_alpha_tex_index(const RendObjectComp*); // sentinel_u8 if unused.
 
 /**
  * Update a object resource
