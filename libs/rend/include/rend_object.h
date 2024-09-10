@@ -47,6 +47,7 @@ u32             rend_object_instance_count(const RendObjectComp*);
 u32             rend_object_data_size(const RendObjectComp*);
 u32             rend_object_data_inst_size(const RendObjectComp*);
 SceneTags       rend_object_tag_mask(const RendObjectComp*);
+u8              rend_object_alpha_tex_index(const RendObjectComp*);
 
 /**
  * Update a object resource
@@ -63,6 +64,12 @@ void rend_object_set_camera_filter(RendObjectComp*, EcsEntityId camera);
  * NOTE: Pass 0 to use the vertex-count as specified by the graphic.
  */
 void rend_object_set_vertex_count(RendObjectComp*, u32 vertexCount);
+
+/**
+ * Update the alpha texture index from the main graphic.
+ * The alpha texture is passed as a draw-image to the shadow graphic draw.
+ */
+void rend_object_set_alpha_tex_index(RendObjectComp*, u8 alphaTexIndex);
 
 /**
  * Clear any previously added instances.

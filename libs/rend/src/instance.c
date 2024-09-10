@@ -13,6 +13,16 @@
 
 #define rend_instance_max_obj_create_per_task 4
 
+/**
+ * Index of the alpha texture in the instance main graphic.
+ *
+ * This texture is passed to the shadow draw as a draw-image, this allows us to have generic shadow
+ * graphics that still support objects that use alpha clipping.
+ *
+ * TODO: Make this configurable from content.
+ */
+#define rend_instance_alpha_tex_index 2
+
 // clang-format off
 
 static const String g_rendInstanceShadow                = string_static("graphics/shadow.graphic");
@@ -147,6 +157,7 @@ ecs_view_define(ObjView) {
 static void rend_obj_init(
     EcsWorld* w, const RendInstanceEnvComp* instanceEnv, const SceneRenderableComp* renderable) {
   RendObjectComp* obj = rend_object_create(w, renderable->graphic, RendObjectFlags_None);
+  rend_object_set_alpha_tex_index(obj, rend_instance_alpha_tex_index);
 
   // clang-format off
   rend_object_set_resource(obj, RendObjectRes_Graphic, renderable->graphic);
@@ -234,6 +245,7 @@ ecs_view_define(ObjSkinnedView) {
 static void rend_obj_skinned_init(
     EcsWorld* w, const RendInstanceEnvComp* instanceEnv, const SceneRenderableComp* renderable) {
   RendObjectComp* obj = rend_object_create(w, renderable->graphic, RendObjectFlags_None);
+  rend_object_set_alpha_tex_index(obj, rend_instance_alpha_tex_index);
 
   // clang-format off
   rend_object_set_resource(obj, RendObjectRes_Graphic, renderable->graphic);
