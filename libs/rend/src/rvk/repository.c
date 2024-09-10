@@ -95,6 +95,10 @@ void rvk_repository_unset(RvkRepository* r, const RvkRepositoryId id) {
   }
 }
 
+bool rvk_repository_is_set(const RvkRepository* r, const RvkRepositoryId id) {
+  return r->entries[id].type != RvkRepositoryType_None;
+}
+
 const RvkTexture* rvk_repository_texture_get(const RvkRepository* r, const RvkRepositoryId id) {
   if (UNLIKELY(r->entries[id].type != RvkRepositoryType_Texture)) {
     diag_crash_msg(

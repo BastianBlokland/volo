@@ -1,4 +1,5 @@
 #pragma once
+#include "core_types.h"
 
 // Internal forward declarations:
 typedef struct sRvkGraphic RvkGraphic;
@@ -42,6 +43,8 @@ void rvk_repository_mesh_set(RvkRepository*, RvkRepositoryId, const RvkMesh*);
 void rvk_repository_graphic_set(RvkRepository*, RvkRepositoryId, const RvkGraphic*);
 
 void rvk_repository_unset(RvkRepository*, RvkRepositoryId);
+
+bool rvk_repository_is_set(const RvkRepository*, RvkRepositoryId);
 
 const RvkTexture* rvk_repository_texture_get(const RvkRepository*, RvkRepositoryId);
 const RvkTexture* rvk_repository_texture_get_maybe(const RvkRepository*, RvkRepositoryId);
