@@ -61,6 +61,8 @@ ecs_comp_define(RendInstanceEnvComp) {
   EcsEntityId debugWireframe, debugWireframeSkinned;
 };
 
+ecs_comp_define(RendInstanceObjectComp);
+
 ecs_view_define(FillGlobalView) {
   ecs_access_read(RendInstanceEnvComp);
   ecs_access_read(SceneVisibilityEnvComp);
@@ -136,6 +138,9 @@ ecs_view_define(ObjView) {
 
 static void rend_obj_init(
     EcsWorld* w, const RendInstanceEnvComp* instanceEnv, const SceneRenderableComp* renderable) {
+
+  ecs_world_add_empty_t(w, renderable->graphic, RendInstanceObjectComp);
+
   const RendObjectFlags flags = RendObjectFlags_StandardGeometry;
   RendObjectComp*       obj   = rend_object_create(w, renderable->graphic, flags);
   rend_object_set_resource(obj, RendObjectRes_Graphic, renderable->graphic);
@@ -218,6 +223,9 @@ ecs_view_define(ObjSkinnedView) {
 
 static void rend_obj_skinned_init(
     EcsWorld* w, const RendInstanceEnvComp* env, const SceneRenderableComp* renderable) {
+
+  ecs_world_add_empty_t(w, renderable->graphic, RendInstanceObjectComp);
+
   const RendObjectFlags flags = RendObjectFlags_StandardGeometry | RendObjectFlags_Skinned;
   RendObjectComp*       obj   = rend_object_create(w, renderable->graphic, flags);
   rend_object_set_resource(obj, RendObjectRes_Graphic, renderable->graphic);
@@ -295,6 +303,7 @@ ecs_system_define(RendInstanceSkinnedFillObjSys) {
 
 ecs_module_init(rend_instance_module) {
   ecs_register_comp(RendInstanceEnvComp);
+  ecs_register_comp_empty(RendInstanceObjectComp);
 
   ecs_register_view(FillGlobalView);
 
