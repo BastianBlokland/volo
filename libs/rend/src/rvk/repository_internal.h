@@ -47,10 +47,5 @@ void rvk_repository_unset(RvkRepository*, RvkRepositoryId);
 bool rvk_repository_is_set(const RvkRepository*, RvkRepositoryId);
 
 const RvkTexture* rvk_repository_texture_get(const RvkRepository*, RvkRepositoryId);
-const RvkTexture* rvk_repository_texture_get_maybe(const RvkRepository*, RvkRepositoryId);
-
-const RvkMesh* rvk_repository_mesh_get(const RvkRepository*, RvkRepositoryId);
-const RvkMesh* rvk_repository_mesh_get_maybe(const RvkRepository*, RvkRepositoryId);
-
+const RvkMesh*    rvk_repository_mesh_get(const RvkRepository*, RvkRepositoryId);
 const RvkGraphic* rvk_repository_graphic_get(const RvkRepository*, RvkRepositoryId);
-const RvkGraphic* rvk_repository_graphic_get_maybe(const RvkRepository*, RvkRepositoryId);

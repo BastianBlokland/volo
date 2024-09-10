@@ -101,16 +101,6 @@ bool rvk_repository_is_set(const RvkRepository* r, const RvkRepositoryId id) {
 
 const RvkTexture* rvk_repository_texture_get(const RvkRepository* r, const RvkRepositoryId id) {
   if (UNLIKELY(r->entries[id].type != RvkRepositoryType_Texture)) {
-    diag_crash_msg(
-        "Repository asset '{}' cannot be found or is of the wrong type",
-        fmt_text(rvk_repository_id_str(id)));
-  }
-  return r->entries[id].texture;
-}
-
-const RvkTexture*
-rvk_repository_texture_get_maybe(const RvkRepository* r, const RvkRepositoryId id) {
-  if (UNLIKELY(r->entries[id].type != RvkRepositoryType_Texture)) {
     return null;
   }
   return r->entries[id].texture;
@@ -118,31 +108,12 @@ rvk_repository_texture_get_maybe(const RvkRepository* r, const RvkRepositoryId i
 
 const RvkMesh* rvk_repository_mesh_get(const RvkRepository* r, const RvkRepositoryId id) {
   if (UNLIKELY(r->entries[id].type != RvkRepositoryType_Mesh)) {
-    diag_crash_msg(
-        "Repository asset '{}' cannot be found or is of the wrong type",
-        fmt_text(rvk_repository_id_str(id)));
-  }
-  return r->entries[id].mesh;
-}
-
-const RvkMesh* rvk_repository_mesh_get_maybe(const RvkRepository* r, const RvkRepositoryId id) {
-  if (UNLIKELY(r->entries[id].type != RvkRepositoryType_Mesh)) {
     return null;
   }
   return r->entries[id].mesh;
 }
 
 const RvkGraphic* rvk_repository_graphic_get(const RvkRepository* r, const RvkRepositoryId id) {
-  if (UNLIKELY(r->entries[id].type != RvkRepositoryType_Graphic)) {
-    diag_crash_msg(
-        "Repository asset '{}' cannot be found or is of the wrong type",
-        fmt_text(rvk_repository_id_str(id)));
-  }
-  return r->entries[id].graphic;
-}
-
-const RvkGraphic*
-rvk_repository_graphic_get_maybe(const RvkRepository* r, const RvkRepositoryId id) {
   if (UNLIKELY(r->entries[id].type != RvkRepositoryType_Graphic)) {
     return null;
   }

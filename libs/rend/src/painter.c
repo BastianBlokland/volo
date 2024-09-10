@@ -216,7 +216,7 @@ static const RvkTexture* painter_get_texture(EcsIterator* resourceItr, const Ecs
 
 static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id, const Mem data) {
   const RvkRepository* repo    = rvk_canvas_repository(ctx->canvas);
-  const RvkGraphic*    graphic = rvk_repository_graphic_get_maybe(repo, id);
+  const RvkGraphic*    graphic = rvk_repository_graphic_get(repo, id);
   if (graphic) {
     rend_builder_draw_push(ctx->builder, graphic);
     if (data.size) {
@@ -310,7 +310,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
     } else {
       graphicId = objAlphaImg ? RvkRepositoryId_ShadowClipGraphic : RvkRepositoryId_ShadowGraphic;
     }
-    const RvkGraphic* shadowGraphic = rvk_repository_graphic_get_maybe(repo, graphicId);
+    const RvkGraphic* shadowGraphic = rvk_repository_graphic_get(repo, graphicId);
     if (!shadowGraphic) {
       continue; // Shadow graphic not loaded.
     }
@@ -328,7 +328,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
 
 static void painter_push_fog(RendPaintContext* ctx, const RendFogComp* fog, RvkImage* fogMap) {
   const RvkRepository* repo    = rvk_canvas_repository(ctx->canvas);
-  const RvkGraphic*    graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_FogGraphic);
+  const RvkGraphic*    graphic = rvk_repository_graphic_get(repo, RvkRepositoryId_FogGraphic);
   if (graphic) {
     typedef struct {
       ALIGNAS(16)
@@ -416,9 +416,9 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
   const RvkRepository* repo = rvk_canvas_repository(ctx->canvas);
   const RvkGraphic*    graphic;
   if (image->type == RvkImageType_ColorSourceCube) {
-    graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_DebugImageViewerCubeGraphic);
+    graphic = rvk_repository_graphic_get(repo, RvkRepositoryId_DebugImageViewerCubeGraphic);
   } else {
-    graphic = rvk_repository_graphic_get_maybe(repo, RvkRepositoryId_DebugImageViewerGraphic);
+    graphic = rvk_repository_graphic_get(repo, RvkRepositoryId_DebugImageViewerGraphic);
   }
   if (graphic) {
     typedef struct {
@@ -476,7 +476,7 @@ static void
 painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspect, const RvkMesh* mesh) {
   const RvkRepository*  repo      = rvk_canvas_repository(ctx->canvas);
   const RvkRepositoryId graphicId = RvkRepositoryId_DebugMeshViewerGraphic;
-  const RvkGraphic*     graphic   = rvk_repository_graphic_get_maybe(repo, graphicId);
+  const RvkGraphic*     graphic   = rvk_repository_graphic_get(repo, graphicId);
   if (graphic) {
     typedef struct {
       ALIGNAS(16)
@@ -812,8 +812,8 @@ static bool rend_canvas_paint_3d(
     const GeoMatrix* shadTrans  = rend_light_shadow_trans(light);
     const GeoMatrix* shadProj   = rend_light_shadow_proj(light);
     SceneTagFilter   shadFilter = {
-          .required = filter.required | SceneTags_ShadowCaster,
-          .illegal  = filter.illegal,
+        .required = filter.required | SceneTags_ShadowCaster,
+        .illegal  = filter.illegal,
     };
     if (!(set->flags & RendFlags_VfxShadows)) {
       shadFilter.illegal |= SceneTags_Vfx;
