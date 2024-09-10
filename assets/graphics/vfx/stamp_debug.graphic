@@ -1,6 +1,6 @@
 {
   "pass": "Forward",
-  "passOrder": 100,
+  "passOrder": 75,
   "shaders": [
     { "shaderId": "shaders/vfx/stamp.vert" },
     { "shaderId": "shaders/vfx/stamp_debug.frag" }

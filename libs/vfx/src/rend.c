@@ -21,6 +21,8 @@ static const String g_vfxObjGraphics[VfxRendObj_Count] = {
 };
 
 static const String g_vfxObjGraphicsDebugWireframe[VfxRendObj_Count] = {
+  [VfxRendObj_DecalStampSingle]         = string_static("graphics/vfx/stamp_wireframe.graphic"),
+  [VfxRendObj_DecalStampTrail]          = string_static("graphics/vfx/stamp_wireframe.graphic"),
   [VfxRendObj_ParticleSpriteForward]    = string_static("graphics/vfx/sprite_wireframe.graphic"),
   [VfxRendObj_ParticleSpriteDistortion] = string_static("graphics/vfx/sprite_wireframe.graphic"),
 };
