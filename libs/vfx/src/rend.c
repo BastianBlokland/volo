@@ -20,11 +20,15 @@ static const String g_vfxObjGraphics[VfxRendObj_Count] = {
   [VfxRendObj_ParticleSpriteDistortion] = string_static("graphics/vfx/sprite_distortion.graphic"),
 };
 
-static const String g_vfxObjGraphicsDebugWireframe[VfxRendObj_Count] = {
+static const String g_vfxObjGraphicsWireframe[VfxRendObj_Count] = {
   [VfxRendObj_DecalStampSingle]         = string_static("graphics/vfx/stamp_wireframe.graphic"),
   [VfxRendObj_DecalStampTrail]          = string_static("graphics/vfx/stamp_wireframe.graphic"),
   [VfxRendObj_ParticleSpriteForward]    = string_static("graphics/vfx/sprite_wireframe.graphic"),
   [VfxRendObj_ParticleSpriteDistortion] = string_static("graphics/vfx/sprite_wireframe.graphic"),
+};
+
+static const String g_vfxObjGraphicsShadow[VfxRendObj_Count] = {
+  [VfxRendObj_ParticleSpriteForward]    = string_static("graphics/vfx/sprite_shadow.graphic"),
 };
 
 static const RendObjectFlags g_vfxObjFlags[VfxRendObj_Count] = {
@@ -32,8 +36,8 @@ static const RendObjectFlags g_vfxObjFlags[VfxRendObj_Count] = {
   [VfxRendObj_DecalStampSingleDebug]    = RendObjectFlags_SortBackToFront,
   [VfxRendObj_DecalStampTrail]          = RendObjectFlags_Preload,
   [VfxRendObj_DecalStampTrailDebug]     = RendObjectFlags_SortBackToFront,
-  [VfxRendObj_ParticleSpriteForward]    = RendObjectFlags_VfxSprite | RendObjectFlags_Preload | RendObjectFlags_SortBackToFront,
-  [VfxRendObj_ParticleSpriteDistortion] = RendObjectFlags_VfxSprite | RendObjectFlags_Preload,
+  [VfxRendObj_ParticleSpriteForward]    = RendObjectFlags_Preload | RendObjectFlags_SortBackToFront,
+  [VfxRendObj_ParticleSpriteDistortion] = RendObjectFlags_Preload,
 };
 // clang-format on
 
@@ -45,11 +49,18 @@ vfx_rend_obj_create(EcsWorld* world, AssetManagerComp* assets, const VfxRendObj 
   rend_object_set_resource(
       rendObj, RendObjectRes_Graphic, asset_lookup(world, assets, g_vfxObjGraphics[type]));
 
-  if (!string_is_empty(g_vfxObjGraphicsDebugWireframe[type])) {
+  if (!string_is_empty(g_vfxObjGraphicsShadow[type])) {
+    rend_object_set_resource(
+        rendObj,
+        RendObjectRes_GraphicShadow,
+        asset_lookup(world, assets, g_vfxObjGraphicsShadow[type]));
+  }
+
+  if (!string_is_empty(g_vfxObjGraphicsWireframe[type])) {
     rend_object_set_resource(
         rendObj,
         RendObjectRes_GraphicDebugWireframe,
-        asset_lookup(world, assets, g_vfxObjGraphicsDebugWireframe[type]));
+        asset_lookup(world, assets, g_vfxObjGraphicsWireframe[type]));
   }
 
   return objEntity;

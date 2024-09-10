@@ -31,7 +31,8 @@ ecs_comp_define(RendObjectComp) {
   EcsEntityId resources[RendObjectRes_Count];
   EcsEntityId cameraFilter;
 
-  RendObjectFlags flags;
+  RendObjectFlags flags : 16;
+  u8              alphaTexIndex; // sentinel_u8 if unused.
   u32             vertexCountOverride;
   u32             instCount;
 
@@ -218,7 +219,8 @@ rend_object_create(EcsWorld* world, const EcsEntityId entity, const RendObjectFl
   MAYBE_UNUSED const bool isSorted    = (flags & RendObjectFlags_Sorted) != 0;
   diag_assert_msg(noFiltering ? !isSorted : true, "NoInstanceFiltering incompatible with sorting");
 
-  return ecs_world_add_t(world, entity, RendObjectComp, .flags = flags);
+  return ecs_world_add_t(
+      world, entity, RendObjectComp, .flags = flags, .alphaTexIndex = sentinel_u8);
 }
 
 RendObjectFlags rend_object_flags(const RendObjectComp* obj) { return obj->flags; }
@@ -231,6 +233,7 @@ u32       rend_object_instance_count(const RendObjectComp* obj) { return obj->in
 u32       rend_object_data_size(const RendObjectComp* obj) { return obj->dataSize; }
 u32       rend_object_data_inst_size(const RendObjectComp* obj) { return obj->instDataSize; }
 SceneTags rend_object_tag_mask(const RendObjectComp* obj) { return obj->tagMask; }
+u8        rend_object_alpha_tex_index(const RendObjectComp* obj) { return obj->alphaTexIndex; }
 
 static i8 rend_object_compare_back_to_front(const void* a, const void* b) {
   const u16 distA = *field_ptr(a, RendObjectSortKey, viewDist);
@@ -358,6 +361,10 @@ void rend_object_set_camera_filter(RendObjectComp* obj, const EcsEntityId camera
 
 void rend_object_set_vertex_count(RendObjectComp* obj, const u32 vertexCount) {
   obj->vertexCountOverride = vertexCount;
+}
+
+void rend_object_set_alpha_tex_index(RendObjectComp* obj, const u8 alphaTexIndex) {
+  obj->alphaTexIndex = alphaTexIndex;
 }
 
 void rend_object_clear(RendObjectComp* obj) {

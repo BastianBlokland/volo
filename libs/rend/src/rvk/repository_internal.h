@@ -22,13 +22,10 @@ typedef enum {
   RvkRepositoryId_MissingTexture,
   RvkRepositoryId_MissingTextureCube,
   RvkRepositoryId_OutlineGraphic,
-  RvkRepositoryId_ShadowClipGraphic,
-  RvkRepositoryId_ShadowGraphic,
-  RvkRepositoryId_ShadowSkinnedGraphic,
-  RvkRepositoryId_ShadowVfxSpriteGraphic,
   RvkRepositoryId_SkyCubeMapGraphic,
   RvkRepositoryId_SkyGradientGraphic,
   RvkRepositoryId_TonemapperGraphic,
+  RvkRepositoryId_WhiteTexture,
 
   RvkRepositoryId_Count,
 } RvkRepositoryId;

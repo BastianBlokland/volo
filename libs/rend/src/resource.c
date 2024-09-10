@@ -51,13 +51,10 @@ static const RendResGlobalDef g_rendResGlobal[] = {
   { .repoId = RvkRepositoryId_MissingTexture,              .assetId = string_static("textures/missing.proctex"), .ignoreAssetChanges = true, .graphicRequirement = true  },
   { .repoId = RvkRepositoryId_MissingTextureCube,          .assetId = string_static("textures/missing_cube.arraytex"), .ignoreAssetChanges = true, .graphicRequirement = true  },
   { .repoId = RvkRepositoryId_OutlineGraphic,              .assetId = string_static("graphics/outline.graphic") },
-  { .repoId = RvkRepositoryId_ShadowClipGraphic,           .assetId = string_static("graphics/shadow_clip.graphic") },
-  { .repoId = RvkRepositoryId_ShadowGraphic,               .assetId = string_static("graphics/shadow.graphic") },
-  { .repoId = RvkRepositoryId_ShadowSkinnedGraphic,        .assetId = string_static("graphics/shadow_skinned.graphic") },
-  { .repoId = RvkRepositoryId_ShadowVfxSpriteGraphic,      .assetId = string_static("graphics/vfx/sprite_shadow.graphic") },
   { .repoId = RvkRepositoryId_SkyCubeMapGraphic,           .assetId = string_static("graphics/scene/sky_cubemap.graphic") },
   { .repoId = RvkRepositoryId_SkyGradientGraphic,          .assetId = string_static("graphics/scene/sky_gradient.graphic") },
   { .repoId = RvkRepositoryId_TonemapperGraphic,           .assetId = string_static("graphics/tonemapper.graphic") },
+  { .repoId = RvkRepositoryId_WhiteTexture,                .assetId = string_static("textures/white.proctex"), .ignoreAssetChanges = true },
 };
 // clang-format on
 

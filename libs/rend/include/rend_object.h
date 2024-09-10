@@ -9,19 +9,17 @@ typedef enum eSceneTags SceneTags;
 typedef enum {
   RendObjectFlags_None                = 0,
   RendObjectFlags_Preload             = 1 << 0, // Load resources even if not drawn.
-  RendObjectFlags_StandardGeometry    = 1 << 1, // Uses the standard instance data format.
-  RendObjectFlags_Skinned             = 1 << 2,
-  RendObjectFlags_VfxSprite           = 1 << 3,
-  RendObjectFlags_NoAutoClear         = 1 << 4,
-  RendObjectFlags_NoInstanceFiltering = 1 << 5, // NOTE: Does not support sorting.
-  RendObjectFlags_SortBackToFront     = 1 << 6,
-  RendObjectFlags_SortFrontToBack     = 1 << 7,
+  RendObjectFlags_NoAutoClear         = 1 << 1,
+  RendObjectFlags_NoInstanceFiltering = 1 << 2, // NOTE: Does not support sorting.
+  RendObjectFlags_SortBackToFront     = 1 << 3,
+  RendObjectFlags_SortFrontToBack     = 1 << 4,
 
   RendObjectFlags_Sorted = RendObjectFlags_SortBackToFront | RendObjectFlags_SortFrontToBack,
 } RendObjectFlags;
 
 typedef enum {
   RendObjectRes_Graphic,
+  RendObjectRes_GraphicShadow,
   RendObjectRes_GraphicDebugSkinning,
   RendObjectRes_GraphicDebugWireframe,
   RendObjectRes_Texture,
@@ -49,6 +47,7 @@ u32             rend_object_instance_count(const RendObjectComp*);
 u32             rend_object_data_size(const RendObjectComp*);
 u32             rend_object_data_inst_size(const RendObjectComp*);
 SceneTags       rend_object_tag_mask(const RendObjectComp*);
+u8              rend_object_alpha_tex_index(const RendObjectComp*); // sentinel_u8 if unused.
 
 /**
  * Update a object resource
@@ -65,6 +64,12 @@ void rend_object_set_camera_filter(RendObjectComp*, EcsEntityId camera);
  * NOTE: Pass 0 to use the vertex-count as specified by the graphic.
  */
 void rend_object_set_vertex_count(RendObjectComp*, u32 vertexCount);
+
+/**
+ * Update the alpha texture index from the main graphic.
+ * The alpha texture is passed as a draw-image to the shadow graphic draw.
+ */
+void rend_object_set_alpha_tex_index(RendObjectComp*, u8 alphaTexIndex);
 
 /**
  * Clear any previously added instances.
