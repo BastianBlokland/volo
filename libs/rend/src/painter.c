@@ -299,8 +299,16 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
     rend_builder_draw_push(ctx->builder, graphic);
     rend_builder_draw_mesh(ctx->builder, graphicOrg->mesh);
 
+    const RvkTexture* alphaTex;
+    const u8          alphaTexIndex = rend_object_alpha_tex_index(obj);
+    if (sentinel_check(alphaTexIndex) || !(graphicOrg->samplerMask & (1 << alphaTexIndex))) {
+      alphaTex = whiteTex;
+    } else {
+      alphaTex = graphicOrg->samplerTextures[alphaTexIndex];
+    }
     // TODO: This cast violates const-correctness.
-    rend_builder_draw_image(ctx->builder, (RvkImage*)&whiteTex->image);
+    rend_builder_draw_image(ctx->builder, (RvkImage*)&alphaTex->image);
+    rend_builder_draw_sampler(ctx->builder, (RvkSamplerSpec){.aniso = RvkSamplerAniso_x8});
 
     rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
     rend_builder_draw_flush(ctx->builder);
