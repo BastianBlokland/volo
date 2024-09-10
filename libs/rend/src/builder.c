@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "geo_color.h"
 #include "jobs_executor.h"
 
 #include "builder_internal.h"
@@ -79,6 +80,11 @@ void rend_builder_pass_flush(RendBuilderBuffer* buffer) {
   alloc_reset(buffer->drawDataAlloc);
 
   buffer->pass = null;
+}
+
+void rend_builder_clear_color(RendBuilderBuffer* buffer, const GeoColor clearColor) {
+  diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
+  rvk_pass_stage_clear_color(buffer->pass, clearColor);
 }
 
 void rend_builder_attach_color(
