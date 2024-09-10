@@ -29,6 +29,13 @@ RendBuilderBuffer* rend_builder_buffer(const RendBuilder*);
 void rend_builder_pass_push(RendBuilderBuffer*, RvkPass*);
 void rend_builder_pass_flush(RendBuilderBuffer*);
 
+void rend_builder_attach_color(RendBuilderBuffer*, RvkImage*, u16 colorAttachIndex);
+void rend_builder_attach_depth(RendBuilderBuffer*, RvkImage*);
+
+void rend_builder_global_data(RendBuilderBuffer*, Mem, u16 dataIndex);
+void rend_builder_global_image(RendBuilderBuffer*, RvkImage*, u16 imageIndex);
+void rend_builder_global_shadow(RendBuilderBuffer*, RvkImage*, u16 imageIndex);
+
 void rend_builder_draw_push(RendBuilderBuffer*, const RvkGraphic*);
 Mem  rend_builder_draw_data(RendBuilderBuffer*, usize size); // 16 byte aligned.
 void rend_builder_draw_data_extern(RendBuilderBuffer*, Mem drawData);

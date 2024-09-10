@@ -81,6 +81,32 @@ void rend_builder_pass_flush(RendBuilderBuffer* buffer) {
   buffer->pass = null;
 }
 
+void rend_builder_attach_color(
+    RendBuilderBuffer* buffer, RvkImage* img, const u16 colorAttachIndex) {
+  diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
+  rvk_pass_stage_attach_color(buffer->pass, img, colorAttachIndex);
+}
+
+void rend_builder_attach_depth(RendBuilderBuffer* buffer, RvkImage* img) {
+  diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
+  rvk_pass_stage_attach_depth(buffer->pass, img);
+}
+
+void rend_builder_global_data(RendBuilderBuffer* buffer, const Mem data, const u16 dataIndex) {
+  diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
+  rvk_pass_stage_global_data(buffer->pass, data, dataIndex);
+}
+
+void rend_builder_global_image(RendBuilderBuffer* buffer, RvkImage* img, const u16 imageIndex) {
+  diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
+  rvk_pass_stage_global_image(buffer->pass, img, imageIndex);
+}
+
+void rend_builder_global_shadow(RendBuilderBuffer* buffer, RvkImage* img, const u16 imageIndex) {
+  diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
+  rvk_pass_stage_global_shadow(buffer->pass, img, imageIndex);
+}
+
 void rend_builder_draw_push(RendBuilderBuffer* buffer, const RvkGraphic* graphic) {
   diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
   diag_assert_msg(!buffer->draw, "RendBuilder: Draw already active");
