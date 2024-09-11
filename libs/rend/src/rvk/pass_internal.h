@@ -1,13 +1,14 @@
 #pragma once
 #include "core_time.h"
+#include "geo_color.h"
 
 #include "sampler_internal.h"
 #include "types_internal.h"
 
 #define rvk_pass_attach_color_max 2
-
-// Forward declare from 'geo_color.h'.
-typedef union uGeoColor GeoColor;
+#define rvk_pass_global_data_max 1
+#define rvk_pass_global_image_max 5
+#define rvk_pass_draw_image_max 5
 
 // Internal forward declarations:
 typedef enum eRvkStat         RvkStat;
@@ -55,16 +56,32 @@ typedef struct sRvkPassConfig {
   RvkPassLoad   attachColorLoad[rvk_pass_attach_color_max];
 } RvkPassConfig;
 
+typedef struct sRvkPassSetup {
+  GeoColor clearColor;
+
+  // Attachments.
+  RvkImage* attachColors[rvk_pass_attach_color_max];
+  RvkImage* attachDepth;
+
+  // Global resources.
+  Mem            globalData[rvk_pass_global_data_max];
+  RvkImage*      globalImages[rvk_pass_global_image_max];
+  RvkSamplerSpec globalImageSamplers[rvk_pass_global_image_max];
+
+  // Per-draw resources.
+  RvkImage* drawImages[rvk_pass_draw_image_max];
+} RvkPassSetup;
+
 typedef struct sRvkPassDraw {
   const RvkGraphic* graphic;
   Mem               instData;
-  Mem               drawData;    // Per-draw data to use.
-  const RvkMesh*    drawMesh;    // Per-draw mesh to use.
-  RvkImage*         drawImage;   // Per-draw image to use.
-  RvkSamplerSpec    drawSampler; // Sampler specification for a per-draw image.
-  u32               vertexCountOverride;
+  Mem               drawData;       // Per-draw data to use.
+  const RvkMesh*    drawMesh;       // Per-draw mesh to use.
+  RvkSamplerSpec    drawSampler;    // Sampler specification for a per-draw image.
+  u16               drawImageIndex; // Per-draw image to use.
+  u16               instDataStride;
   u32               instCount;
-  u32               instDataStride;
+  u32               vertexCountOverride;
 } RvkPassDraw;
 
 RvkPass* rvk_pass_create(RvkDevice*, const RvkPassConfig* /* Needs to be persistently allocated */);
@@ -90,14 +107,9 @@ RvkSize      rvk_pass_stat_size_max(const RvkPass*, RvkPassHandle);
 TimeDuration rvk_pass_stat_duration(const RvkPass*, RvkPassHandle);
 u64          rvk_pass_stat_pipeline(const RvkPass*, RvkPassHandle, RvkStat);
 
-void rvk_pass_stage_clear_color(RvkPass*, GeoColor clearColor);
-void rvk_pass_stage_attach_color(RvkPass*, RvkImage*, u16 colorAttachIndex);
-void rvk_pass_stage_attach_depth(RvkPass*, RvkImage*);
-void rvk_pass_stage_global_data(RvkPass*, Mem, u16 dataIndex);
-void rvk_pass_stage_global_image(RvkPass*, RvkImage*, u16 imageIndex);
-void rvk_pass_stage_global_shadow(RvkPass*, RvkImage*, u16 imageIndex);
-void rvk_pass_stage_draw_image(RvkPass*, RvkImage*);
-
-void rvk_pass_begin(RvkPass*);
-void rvk_pass_draw(RvkPass*, const RvkPassDraw*);
-void rvk_pass_end(RvkPass*);
+/**
+ * NOTE: Pass-setup has to remain identical between begin and end.
+ */
+void rvk_pass_begin(RvkPass*, const RvkPassSetup*);
+void rvk_pass_draw(RvkPass*, const RvkPassSetup*, const RvkPassDraw*);
+void rvk_pass_end(RvkPass*, const RvkPassSetup*);
