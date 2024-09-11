@@ -1,13 +1,13 @@
 #pragma once
 #include "core_time.h"
+#include "geo_color.h"
 
 #include "sampler_internal.h"
 #include "types_internal.h"
 
 #define rvk_pass_attach_color_max 2
-
-// Forward declare from 'geo_color.h'.
-typedef union uGeoColor GeoColor;
+#define rvk_pass_global_image_max 5
+#define rvk_pass_draw_image_max 5
 
 // Internal forward declarations:
 typedef enum eRvkStat         RvkStat;
@@ -54,6 +54,21 @@ typedef struct sRvkPassConfig {
   RvkPassFormat attachColorFormat[rvk_pass_attach_color_max];
   RvkPassLoad   attachColorLoad[rvk_pass_attach_color_max];
 } RvkPassConfig;
+
+typedef struct sRvkPassSetup {
+  GeoColor clearColor;
+
+  // Attachments.
+  RvkImage* attachColors[rvk_pass_attach_color_max];
+  RvkImage* attachDepth;
+
+  // Global resources.
+  Mem       globalData;
+  RvkImage* globalImages[rvk_pass_global_image_max];
+
+  // Per-draw resources.
+  RvkImage* drawImages[rvk_pass_draw_image_max];
+} RvkPassSetup;
 
 typedef struct sRvkPassDraw {
   const RvkGraphic* graphic;
