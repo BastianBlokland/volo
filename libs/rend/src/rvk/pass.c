@@ -202,13 +202,13 @@ static void rvk_pass_assert_image_contents(const RvkPass* pass, const RvkPassSet
   }
 }
 
-static void rvk_pass_assert_draw_image_staged(const RvkPassStage* stage, const RvkImage* img) {
-  for (u32 i = 0; i != pass_draw_image_max; ++i) {
-    if (stage->drawImages[i] == img) {
+static void rvk_pass_assert_draw_image_setup(const RvkPassSetup* setup, const RvkImage* img) {
+  for (u32 i = 0; i != rvk_pass_draw_image_max; ++i) {
+    if (setup->drawImages[i] == img) {
       return; // Image was staged.
     }
   }
-  diag_assert_fail("Per-draw image was used but not staged");
+  diag_assert_fail("Draw uses a per-draw image that is not present in the setup");
 }
 #endif // !VOLO_FAST
 
@@ -443,7 +443,7 @@ rvk_pass_alloc_desc_volatile(RvkPass* pass, RvkPassFrame* frame, const RvkDescMe
 static void rvk_pass_bind_draw(
     RvkPass*           pass,
     RvkPassFrame*      frame,
-    MAYBE_UNUSED const RvkPassStage* stage,
+    MAYBE_UNUSED const RvkPassSetup* setup,
     const RvkGraphic*                gra,
     const Mem                        data,
     const RvkMesh*                   mesh,
@@ -463,7 +463,7 @@ static void rvk_pass_bind_draw(
   }
   if (img && gra->drawDescMeta.bindings[2]) {
 #ifndef VOLO_FAST
-    rvk_pass_assert_draw_image_staged(stage, img);
+    rvk_pass_assert_draw_image_setup(setup, img);
 #endif
     const bool reqCube = gra->drawDescMeta.bindings[2] == RvkDescKind_CombinedImageSamplerCube;
     if (UNLIKELY(reqCube != (img->type == RvkImageType_ColorSourceCube))) {
@@ -1010,7 +1010,7 @@ static u32 rvk_pass_instances_per_draw(RvkPassFrame* f, const u32 remaining, con
   return math_min(instances, pass_instance_count_max);
 }
 
-void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
+void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* draw) {
   RvkPassStage* stage = rvk_pass_stage();
   RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
 
@@ -1061,7 +1061,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
     rvk_pass_bind_draw(
         pass,
         frame,
-        stage,
+        setup,
         graphic,
         draw->drawData,
         draw->drawMesh,
@@ -1106,7 +1106,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassDraw* draw) {
   rvk_debug_label_end(pass->dev->debug, frame->vkCmdBuf);
 }
 
-void rvk_pass_end(RvkPass* pass) {
+void rvk_pass_end(RvkPass* pass, const RvkPassSetup* setup) {
   RvkPassStage* stage = rvk_pass_stage();
   RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
 
@@ -1121,9 +1121,9 @@ void rvk_pass_end(RvkPass* pass) {
   rvk_debug_label_end(pass->dev->debug, frame->vkCmdBuf);
   invoc->timeRecEnd = rvk_stopwatch_mark(frame->stopwatch, frame->vkCmdBuf);
 
-  if (stage->attachDepth && pass->config->attachDepth != RvkPassDepth_Stored) {
+  if (setup->attachDepth && pass->config->attachDepth != RvkPassDepth_Stored) {
     // When we're not storing the depth, the image's contents become undefined.
-    rvk_image_transition_external(stage->attachDepth, RvkImagePhase_Undefined);
+    rvk_image_transition_external(setup->attachDepth, RvkImagePhase_Undefined);
   }
 
   *stage = (RvkPassStage){0}; // Reset the stage.

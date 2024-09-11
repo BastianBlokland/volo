@@ -115,6 +115,9 @@ void rvk_pass_stage_global_image(RvkPass*, RvkImage*, u16 imageIndex);
 void rvk_pass_stage_global_shadow(RvkPass*, RvkImage*, u16 imageIndex);
 void rvk_pass_stage_draw_image(RvkPass*, RvkImage*);
 
+/**
+ * NOTE: Pass-setup has to remain identical between begin and end.
+ */
 void rvk_pass_begin(RvkPass*, const RvkPassSetup*);
-void rvk_pass_draw(RvkPass*, const RvkPassDraw*);
-void rvk_pass_end(RvkPass*);
+void rvk_pass_draw(RvkPass*, const RvkPassSetup*, const RvkPassDraw*);
+void rvk_pass_end(RvkPass*, const RvkPassSetup*);

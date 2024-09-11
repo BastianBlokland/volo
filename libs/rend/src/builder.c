@@ -75,8 +75,10 @@ void rend_builder_pass_flush(RendBuilderBuffer* buffer) {
 
   rvk_pass_begin(buffer->pass, &buffer->passSetup);
   dynarray_sort(&buffer->drawList, builder_draw_compare);
-  dynarray_for_t(&buffer->drawList, RvkPassDraw, draw) { rvk_pass_draw(buffer->pass, draw); }
-  rvk_pass_end(buffer->pass);
+  dynarray_for_t(&buffer->drawList, RvkPassDraw, draw) {
+    rvk_pass_draw(buffer->pass, &buffer->passSetup, draw);
+  }
+  rvk_pass_end(buffer->pass, &buffer->passSetup);
 
   dynarray_clear(&buffer->drawList);
   alloc_reset(buffer->drawDataAlloc);
@@ -242,7 +244,19 @@ void rend_builder_draw_image(RendBuilderBuffer* buffer, RvkImage* image) {
   diag_assert_msg(!buffer->draw->drawImage, "RendBuilder: Draw-image already set");
 
   rvk_pass_stage_draw_image(buffer->pass, image);
-  buffer->draw->drawImage = image;
+
+  for (u32 i = 0; i != rvk_pass_draw_image_max; ++i) {
+    if (buffer->passSetup.drawImages[i] == image) {
+      buffer->draw->drawImage = image;
+      return; // Image was already staged.
+    }
+    if (!buffer->passSetup.drawImages[i]) {
+      buffer->draw->drawImage         = image;
+      buffer->passSetup.drawImages[i] = image;
+      return; // Image is staged in a empty slot.
+    }
+  }
+  diag_assert_fail("Amount of staged per-draw images exceeds the maximum");
 }
 
 void rend_builder_draw_sampler(RendBuilderBuffer* buffer, const RvkSamplerSpec samplerSpec) {
