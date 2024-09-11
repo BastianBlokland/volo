@@ -893,6 +893,12 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* 
   RvkPassInvoc* invoc = rvk_pass_invoc_active(pass);
   diag_assert_msg(invoc, "Pass invocation not active");
 
+  RvkImage* drawImg = null;
+  if (!sentinel_check(draw->drawImageIndex)) {
+    diag_assert(draw->drawImageIndex < rvk_pass_draw_image_max);
+    drawImg = setup->drawImages[draw->drawImageIndex];
+  }
+
   const RvkGraphic* graphic = draw->graphic;
   if (UNLIKELY((graphic->globalBindings & invoc->globalBoundMask) != graphic->globalBindings)) {
     log_e(
@@ -908,7 +914,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* 
     log_e("Graphic requires a draw-mesh", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
-  if (UNLIKELY(graphic->drawDescMeta.bindings[2] && !draw->drawImage)) {
+  if (UNLIKELY(graphic->drawDescMeta.bindings[2] && !drawImg)) {
     log_e("Graphic requires a draw-image", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
@@ -933,14 +939,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* 
 
   if (graphic->flags & RvkGraphicFlags_RequireDrawSet) {
     rvk_pass_bind_draw(
-        pass,
-        frame,
-        setup,
-        graphic,
-        draw->drawData,
-        draw->drawMesh,
-        draw->drawImage,
-        draw->drawSampler);
+        pass, frame, setup, graphic, draw->drawData, draw->drawMesh, drawImg, draw->drawSampler);
   }
 
   diag_assert(draw->instDataStride * draw->instCount == draw->instData.size);

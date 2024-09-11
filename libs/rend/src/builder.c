@@ -153,7 +153,7 @@ void rend_builder_draw_push(RendBuilderBuffer* buffer, const RvkGraphic* graphic
   diag_assert_msg(!buffer->draw, "RendBuilder: Draw already active");
 
   buffer->draw  = dynarray_push_t(&buffer->drawList, RvkPassDraw);
-  *buffer->draw = (RvkPassDraw){.graphic = graphic};
+  *buffer->draw = (RvkPassDraw){.graphic = graphic, .drawImageIndex = sentinel_u16};
 }
 
 Mem rend_builder_draw_data(RendBuilderBuffer* buffer, const usize size) {
@@ -233,15 +233,16 @@ void rend_builder_draw_mesh(RendBuilderBuffer* buffer, const RvkMesh* mesh) {
 
 void rend_builder_draw_image(RendBuilderBuffer* buffer, RvkImage* image) {
   diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
-  diag_assert_msg(!buffer->draw->drawImage, "RendBuilder: Draw-image already set");
+  diag_assert_msg(
+      sentinel_check(buffer->draw->drawImageIndex), "RendBuilder: Draw-image already set");
 
   for (u32 i = 0; i != rvk_pass_draw_image_max; ++i) {
     if (buffer->passSetup.drawImages[i] == image) {
-      buffer->draw->drawImage = image;
+      buffer->draw->drawImageIndex = (u16)i;
       return; // Image was already staged.
     }
     if (!buffer->passSetup.drawImages[i]) {
-      buffer->draw->drawImage         = image;
+      buffer->draw->drawImageIndex    = (u16)i;
       buffer->passSetup.drawImages[i] = image;
       return; // Image is staged in a empty slot.
     }
