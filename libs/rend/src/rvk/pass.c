@@ -434,15 +434,19 @@ rvk_pass_alloc_desc_volatile(RvkPass* pass, RvkPassFrame* frame, const RvkDescMe
 
 static void rvk_pass_bind_global(
     RvkPass* pass, RvkPassFrame* frame, RvkPassInvoc* invoc, const RvkPassSetup* setup) {
+  diag_assert(!invoc->globalBoundMask);
 
-  const RvkDescSet globalDescSet = rvk_pass_alloc_desc_volatile(pass, frame, &pass->globalDescMeta);
-  u32              binding       = 0;
+  RvkDescSet globalDescSet;
+  u32        binding = 0;
 
   // Attach global data.
   for (; binding != rvk_pass_global_data_max; ++binding) {
     const Mem data = setup->globalData[binding];
     if (!mem_valid(data)) {
       continue; // Global data binding unused.
+    }
+    if (!invoc->globalBoundMask) {
+      globalDescSet = rvk_pass_alloc_desc_volatile(pass, frame, &pass->globalDescMeta);
     }
     const RvkUniformHandle dataHandle = rvk_uniform_upload(frame->uniformPool, data);
     const RvkBuffer*       dataBuffer = rvk_uniform_buffer(frame->uniformPool, dataHandle);
@@ -457,6 +461,9 @@ static void rvk_pass_bind_global(
     RvkImage* img = setup->globalImages[i];
     if (!img) {
       continue; // Global image binding unused.
+    }
+    if (!invoc->globalBoundMask) {
+      globalDescSet = rvk_pass_alloc_desc_volatile(pass, frame, &pass->globalDescMeta);
     }
 
     if (UNLIKELY(img->type == RvkImageType_ColorSourceCube)) {
