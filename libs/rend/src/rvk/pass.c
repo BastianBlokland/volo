@@ -590,7 +590,7 @@ static RvkPassInvoc* rvk_pass_invoc_active(RvkPass* pass) {
   return dynarray_at_t(&frame->invocations, frame->invocations.size - 1, RvkPassInvoc);
 }
 
-static RvkSize rvk_pass_size(const RvkPass* pass, const RvkPassSetup* setup) {
+static RvkSize rvk_pass_size(MAYBE_UNUSED const RvkPass* pass, const RvkPassSetup* setup) {
   RvkSize result = {0};
   if (setup->attachDepth) {
     result = setup->attachDepth->size;
