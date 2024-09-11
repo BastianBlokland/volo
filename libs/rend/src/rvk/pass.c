@@ -405,14 +405,14 @@ static void rvk_pass_bind_global(RvkPass* pass, RvkPassFrame* frame, RvkPassStag
 }
 
 static void rvk_pass_vkrenderpass_begin(
-    RvkPass* pass, RvkPassFrame* frame, RvkPassInvoc* invoc, RvkPassStage* stage) {
+    RvkPass* pass, RvkPassFrame* frame, RvkPassInvoc* invoc, const RvkPassSetup* setup) {
 
   VkClearValue clearValues[pass_attachment_max];
   u32          clearValueCount = 0;
 
   if (pass->flags & RvkPassFlags_NeedsClear) {
     for (u32 i = 0; i != rvk_pass_attach_color_count(pass->config); ++i) {
-      clearValues[clearValueCount++].color = rvk_rend_clear_color(stage->clearColor);
+      clearValues[clearValueCount++].color = rvk_rend_clear_color(setup->clearColor);
     }
     if (pass->config->attachDepth) {
       // Init depth to zero for a reversed-z depth-buffer.
@@ -992,7 +992,7 @@ void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
     rvk_image_transition_batch(transitions, transitionCount, frame->vkCmdBuf);
   }
 
-  rvk_pass_vkrenderpass_begin(pass, frame, invoc, stage);
+  rvk_pass_vkrenderpass_begin(pass, frame, invoc, setup);
 
   rvk_pass_viewport_set(frame->vkCmdBuf, invoc->size);
   rvk_pass_scissor_set(frame->vkCmdBuf, invoc->size);
