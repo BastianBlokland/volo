@@ -532,8 +532,8 @@ static void rvk_graphic_set_missing_sampler(
 
   graphic->samplerTextures[samplerIndex] = rvk_repository_texture_get(repo, repoId);
   graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
-         .wrap   = RvkSamplerWrap_Repeat,
-         .filter = RvkSamplerFilter_Nearest,
+      .wrap   = RvkSamplerWrap_Repeat,
+      .filter = RvkSamplerFilter_Nearest,
   };
 }
 
@@ -647,7 +647,7 @@ static bool rvk_graphic_validate_shaders(
       continue; // Output binding not used by pass.
     }
     AssetShaderType passOutputType;
-    if (rvk_graphic_blend_requires_alpha(outputBlend)) {
+    if (passConfig->attachColorFormat[binding] && rvk_graphic_blend_requires_alpha(outputBlend)) {
       passOutputType = AssetShaderType_f32v4;
     } else {
       passOutputType = rvk_graphic_pass_shader_output(passConfig->attachColorFormat[binding]);
@@ -766,10 +766,10 @@ void rvk_graphic_add_sampler(
       graphic->samplerMask |= 1 << samplerIndex;
       graphic->samplerTextures[samplerIndex] = tex;
       graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
-             .flags  = samplerFlags,
-             .wrap   = rvk_graphic_wrap(sampler->wrap),
-             .filter = rvk_graphic_filter(sampler->filter),
-             .aniso  = rvk_graphic_aniso(sampler->anisotropy),
+          .flags  = samplerFlags,
+          .wrap   = rvk_graphic_wrap(sampler->wrap),
+          .filter = rvk_graphic_filter(sampler->filter),
+          .aniso  = rvk_graphic_aniso(sampler->anisotropy),
       };
       return;
     }
