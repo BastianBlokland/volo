@@ -35,6 +35,7 @@ typedef struct {
 
   RvkSize size;
   u16     drawCount;
+  u16     globalBoundMask; // Bitset of the bound global resources.
   u32     instanceCount;
 
   RvkStatRecord      statsRecord;
@@ -395,21 +396,6 @@ static void rvk_pass_scissor_set(VkCommandBuffer vkCmdBuf, const RvkSize size) {
   vkCmdSetScissor(vkCmdBuf, 0, 1, &scissor);
 }
 
-static void rvk_pass_bind_global(RvkPass* pass, RvkPassFrame* frame, RvkPassStage* stage) {
-  diag_assert(stage->globalBoundMask != 0);
-
-  const VkDescriptorSet vkDescSets[] = {rvk_desc_set_vkset(stage->globalDescSet)};
-  vkCmdBindDescriptorSets(
-      frame->vkCmdBuf,
-      VK_PIPELINE_BIND_POINT_GRAPHICS,
-      pass->globalPipelineLayout,
-      RvkGraphicSet_Global,
-      array_elems(vkDescSets),
-      vkDescSets,
-      0,
-      null);
-}
-
 static void rvk_pass_vkrenderpass_begin(
     RvkPass* pass, RvkPassFrame* frame, RvkPassInvoc* invoc, const RvkPassSetup* setup) {
 
@@ -446,9 +432,63 @@ rvk_pass_alloc_desc_volatile(RvkPass* pass, RvkPassFrame* frame, const RvkDescMe
   return res;
 }
 
+static void rvk_pass_bind_global(
+    RvkPass* pass, RvkPassFrame* frame, RvkPassInvoc* invoc, const RvkPassSetup* setup) {
+
+  const RvkDescSet globalDescSet = rvk_pass_alloc_desc_volatile(pass, frame, &pass->globalDescMeta);
+  u32              binding       = 0;
+
+  // Attach global data.
+  for (; binding != rvk_pass_global_data_max; ++binding) {
+    const Mem data = setup->globalData[binding];
+    if (!mem_valid(data)) {
+      continue; // Global data binding unused.
+    }
+    const RvkUniformHandle dataHandle = rvk_uniform_upload(frame->uniformPool, data);
+    const RvkBuffer*       dataBuffer = rvk_uniform_buffer(frame->uniformPool, dataHandle);
+    rvk_desc_set_attach_buffer(
+        globalDescSet, binding, dataBuffer, dataHandle.offset, (u32)data.size);
+
+    invoc->globalBoundMask |= 1 << binding;
+  }
+
+  // Attach global images.
+  for (u32 i = 0; i != rvk_pass_global_image_max; ++i, ++binding) {
+    RvkImage* img = setup->globalImages[i];
+    if (!img) {
+      continue; // Global image binding unused.
+    }
+
+    if (UNLIKELY(img->type == RvkImageType_ColorSourceCube)) {
+      log_e("Cube images cannot be bound globally");
+      const RvkRepositoryId missing = RvkRepositoryId_MissingTexture;
+      // TODO: This cast violates const-correctness.
+      img = (RvkImage*)&rvk_repository_texture_get(pass->dev->repository, missing)->image;
+    }
+
+    diag_assert_msg(img->caps & RvkImageCapability_Sampled, "Image does not support sampling");
+    rvk_desc_set_attach_sampler(globalDescSet, binding, img, setup->globalImageSamplers[i]);
+
+    invoc->globalBoundMask |= 1 << binding;
+  }
+
+  if (invoc->globalBoundMask) {
+    const VkDescriptorSet vkDescSets[] = {rvk_desc_set_vkset(globalDescSet)};
+    vkCmdBindDescriptorSets(
+        frame->vkCmdBuf,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        pass->globalPipelineLayout,
+        RvkGraphicSet_Global,
+        array_elems(vkDescSets),
+        vkDescSets,
+        0,
+        null);
+  }
+}
+
 static void rvk_pass_bind_draw(
-    RvkPass*           pass,
-    RvkPassFrame*      frame,
+    RvkPass*                         pass,
+    RvkPassFrame*                    frame,
     MAYBE_UNUSED const RvkPassSetup* setup,
     const RvkGraphic*                gra,
     const Mem                        data,
@@ -938,7 +978,6 @@ void rvk_pass_stage_draw_image(MAYBE_UNUSED RvkPass* pass, RvkImage* image) {
 void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
-  RvkPassStage* stage = rvk_pass_stage();
   RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
 
   RvkPassInvoc* invoc  = rvk_pass_invoc_begin(pass, frame);
@@ -1004,9 +1043,7 @@ void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
   rvk_pass_viewport_set(frame->vkCmdBuf, invoc->size);
   rvk_pass_scissor_set(frame->vkCmdBuf, invoc->size);
 
-  if (stage->globalBoundMask != 0) {
-    rvk_pass_bind_global(pass, frame, stage);
-  }
+  rvk_pass_bind_global(pass, frame, invoc, setup);
 }
 
 static u32 rvk_pass_instances_per_draw(RvkPassFrame* f, const u32 remaining, const u32 dataStride) {
