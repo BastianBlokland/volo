@@ -174,7 +174,7 @@ static void rvk_pass_attach_assert_depth(const RvkPass* pass, const RvkImage* im
 
 static void rvk_pass_assert_image_contents(const RvkPass* pass, const RvkPassSetup* setup) {
   // Validate preserved color attachment contents.
-  for (u32 i = 0; i != rvk_pass_attach_color_count(pass->config); ++i) {
+  for (u32 i = 0; i != rvk_pass_attach_color_max; ++i) {
     if (pass->config->attachColorLoad[i] == RvkPassLoad_Preserve) {
       diag_assert_msg(
           setup->attachColors[i]->phase,
@@ -248,7 +248,10 @@ static VkRenderPass rvk_renderpass_create(const RvkPass* pass) {
   VkAttachmentReference   depthRef;
   bool                    hasDepthRef = false;
 
-  for (u32 i = 0; i != rvk_pass_attach_color_count(pass->config); ++i) {
+  for (u32 i = 0; i != rvk_pass_attach_color_max; ++i) {
+    if (pass->config->attachColorFormat[i] == RvkPassFormat_None) {
+      continue; // Attachment binding unused.
+    }
     attachments[attachmentCount++] = (VkAttachmentDescription){
         .format         = rvk_attach_color_format(pass, i),
         .samples        = VK_SAMPLE_COUNT_1_BIT,
@@ -334,7 +337,10 @@ static VkFramebuffer
 rvk_framebuffer_create(RvkPass* pass, const RvkPassSetup* setup, const RvkSize size) {
   VkImageView attachments[pass_attachment_max];
   u32         attachCount = 0;
-  for (u32 i = 0; i != rvk_pass_attach_color_count(pass->config); ++i) {
+  for (u32 i = 0; i != rvk_pass_attach_color_max; ++i) {
+    if (pass->config->attachColorFormat[i] == RvkPassFormat_None) {
+      continue; // Attachment binding unused.
+    }
     diag_assert_msg(
         setup->attachColors[i],
         "Pass {} is missing color attachment {}",
@@ -788,8 +794,7 @@ void rvk_pass_stage_clear_color(MAYBE_UNUSED RvkPass* pass, const GeoColor clear
 
 void rvk_pass_stage_attach_color(MAYBE_UNUSED RvkPass* pass, RvkImage* img, const u16 idx) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
-  diag_assert_msg(
-      idx < rvk_pass_attach_color_count(pass->config), "Invalid color attachment-index");
+  diag_assert_msg(idx < rvk_pass_attach_color_max, "Invalid color attachment-index");
 
   RvkPassStage* stage = rvk_pass_stage();
   diag_assert_msg(!stage->attachColors[idx], "Color attachment already bound");
@@ -953,7 +958,10 @@ void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
   {
     RvkImageTransition transitions[16];
     u32                transitionCount = 0;
-    for (u32 i = 0; i != rvk_pass_attach_color_count(pass->config); ++i) {
+    for (u32 i = 0; i != rvk_pass_attach_color_max; ++i) {
+      if (!stage->attachColors[i]) {
+        continue; // Color attachment binding unused.
+      }
       transitions[transitionCount++] = (RvkImageTransition){
           .img   = stage->attachColors[i],
           .phase = RvkImagePhase_ColorAttachment,
