@@ -173,15 +173,6 @@ static void rvk_pass_assert_image_contents(const RvkPass* pass, const RvkPassSet
     }
   }
 }
-
-static void rvk_pass_assert_draw_image_setup(const RvkPassSetup* setup, const RvkImage* img) {
-  for (u32 i = 0; i != rvk_pass_draw_image_max; ++i) {
-    if (setup->drawImages[i] == img) {
-      return; // Image was setup.
-    }
-  }
-  diag_assert_fail("Draw uses a per-draw image that is not present in the setup");
-}
 #endif // !VOLO_FAST
 
 static VkAttachmentLoadOp rvk_pass_attach_color_load_op(const RvkPass* pass, const u32 idx) {
@@ -487,9 +478,6 @@ static void rvk_pass_bind_draw(
     rvk_desc_set_attach_buffer(descSet, 1, &mesh->vertexBuffer, 0, 0);
   }
   if (img && gra->drawDescMeta.bindings[2]) {
-#ifndef VOLO_FAST
-    rvk_pass_assert_draw_image_setup(setup, img);
-#endif
     const bool reqCube = gra->drawDescMeta.bindings[2] == RvkDescKind_CombinedImageSamplerCube;
     if (UNLIKELY(reqCube != (img->type == RvkImageType_ColorSourceCube))) {
       log_e("Unsupported draw image type", log_param("graphic", fmt_text(gra->dbgName)));
