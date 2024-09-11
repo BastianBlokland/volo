@@ -703,7 +703,6 @@ static bool rend_canvas_paint_3d(
   // Decal pass.
   RvkPass* decalPass = platform->passes[AssetGraphicPass_Decal];
   if (set->flags & RendFlags_Decals) {
-
     trace_begin("rend_paint_decals", TraceColor_White);
     rend_builder_pass_push(builder, decalPass);
 
@@ -755,7 +754,6 @@ static bool rend_canvas_paint_3d(
   RvkPass* fogBlurPass = platform->passes[AssetGraphicPass_FogBlur];
   if (fogActive && set->fogBlurSteps) {
     trace_begin("rend_paint_fog_blur", TraceColor_White);
-
     RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, mainView);
 
     struct {
@@ -784,7 +782,7 @@ static bool rend_canvas_paint_3d(
   }
 
   // Shadow pass.
-  const bool    shadowsActive = set->flags & RendFlags_Shadows && rend_light_has_shadow(light);
+  const bool    shadowsActive = (set->flags & RendFlags_Shadows) && rend_light_has_shadow(light);
   const RvkSize shadowSize =
       shadowsActive ? (RvkSize){set->shadowResolution, set->shadowResolution} : (RvkSize){1, 1};
   RvkPass*  shadowPass  = platform->passes[AssetGraphicPass_Shadow];
@@ -796,8 +794,8 @@ static bool rend_canvas_paint_3d(
     const GeoMatrix* shadTrans  = rend_light_shadow_trans(light);
     const GeoMatrix* shadProj   = rend_light_shadow_proj(light);
     SceneTagFilter   shadFilter = {
-          .required = filter.required | SceneTags_ShadowCaster,
-          .illegal  = filter.illegal,
+        .required = filter.required | SceneTags_ShadowCaster,
+        .illegal  = filter.illegal,
     };
     if (!(set->flags & RendFlags_VfxShadows)) {
       shadFilter.illegal |= SceneTags_Vfx;
@@ -914,11 +912,10 @@ static bool rend_canvas_paint_3d(
     RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, mainView);
     rend_builder_attach_color(builder, distBuffer, 0);
     rend_builder_attach_depth(builder, distDepth);
-
     painter_stage_global_data(&ctx, &camMat, &projMat, distSize, time, RendViewType_Main);
     painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Distortion);
-
     rend_builder_pass_flush(builder);
+
     trace_end();
 
     if (distSize.data != geoSize.data) {
@@ -933,7 +930,7 @@ static bool rend_canvas_paint_3d(
   // Bloom pass.
   RvkPass*  bloomPass = platform->passes[AssetGraphicPass_Bloom];
   RvkImage* bloomOutput;
-  if (set->flags & RendFlags_Bloom && set->bloomIntensity > f32_epsilon) {
+  if ((set->flags & RendFlags_Bloom) && set->bloomIntensity > f32_epsilon) {
     trace_begin("rend_paint_bloom", TraceColor_White);
 
     RendPaintContext ctx  = painter_context(painter->canvas, builder, set, time, mainView);
@@ -996,7 +993,6 @@ static bool rend_canvas_paint_3d(
     painter_stage_global_data(&ctx, &camMat, &projMat, swapchainSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
     painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Post);
-
     if (set->flags & RendFlags_DebugFog) {
       const f32 exposure = 1.0f;
       painter_push_debug_image_viewer(&ctx, fogBuffer, exposure);
@@ -1009,7 +1005,6 @@ static bool rend_canvas_paint_3d(
     } else if (set->debugViewerResource) {
       painter_push_debug_resource_viewer(world, &ctx, winAspect, resView, set->debugViewerResource);
     }
-
     rend_builder_pass_flush(builder);
     trace_end();
 
