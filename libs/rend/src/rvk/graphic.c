@@ -389,14 +389,6 @@ static VkPipelineColorBlendAttachmentState rvk_pipeline_colorblend(const AssetGr
   diag_crash();
 }
 
-static u32 rvk_pipeline_pass_color_attachment_count(const RvkPassConfig* passConfig) {
-  u32 result = 0;
-  for (u32 binding = 0; binding != rvk_pass_attach_color_max; ++binding) {
-    result += passConfig->attachColorFormat[binding] != RvkPassFormat_None;
-  }
-  return result;
-}
-
 static VkPipeline rvk_pipeline_create(
     RvkGraphic*             graphic,
     const AssetGraphicComp* asset,
@@ -467,10 +459,13 @@ static VkPipeline rvk_pipeline_create(
       .depthCompareOp   = rvk_pipeline_depth_compare(asset),
   };
 
-  const u32 colorAttachmentCount = rvk_pipeline_pass_color_attachment_count(passConfig);
+  u32                                 colorAttachmentCount = 0;
   VkPipelineColorBlendAttachmentState colorBlends[rvk_pass_attach_color_max];
-  for (u32 binding = 0; binding != colorAttachmentCount; ++binding) {
-    colorBlends[binding] = rvk_pipeline_colorblend(rvk_graphic_blend(asset, binding));
+  for (u32 binding = 0; binding != rvk_pass_attach_color_max; ++binding) {
+    if (passConfig->attachColorFormat[binding]) {
+      const AssetGraphicBlend blend       = rvk_graphic_blend(asset, binding);
+      colorBlends[colorAttachmentCount++] = rvk_pipeline_colorblend(blend);
+    }
   }
   const VkPipelineColorBlendStateCreateInfo colorBlending = {
       .sType             = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
