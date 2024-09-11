@@ -346,11 +346,17 @@ rvk_framebuffer_create(RvkPass* pass, const RvkPassSetup* setup, const RvkSize s
         "Pass {} is missing color attachment {}",
         fmt_text(pass->config->name),
         fmt_int(i));
+#ifndef VOLO_FAST
+    rvk_pass_attach_assert_color(pass, i, setup->attachColors[i]);
+#endif
     attachments[attachCount++] = setup->attachColors[i]->vkImageView;
   }
   if (pass->config->attachDepth) {
     diag_assert_msg(
         setup->attachDepth, "Pass {} is missing a depth attachment", fmt_text(pass->config->name));
+#ifndef VOLO_FAST
+    rvk_pass_attach_assert_depth(pass, setup->attachDepth);
+#endif
     attachments[attachCount++] = setup->attachDepth->vkImageView;
   }
 
@@ -451,6 +457,7 @@ static void rvk_pass_bind_draw(
     const RvkSamplerSpec             sampler) {
   diag_assert_msg(!mesh || rvk_mesh_is_ready(mesh, pass->dev), "Mesh is not ready for binding");
   diag_assert_msg(!img || img->phase != RvkImagePhase_Undefined, "Image has no content");
+  diag_assert_msg(!img || img->caps & RvkImageCapability_Sampled, "Image doesn't support sampling");
 
   const RvkDescSet descSet = rvk_pass_alloc_desc_volatile(pass, frame, &gra->drawDescMeta);
   if (data.size && gra->drawDescMeta.bindings[0]) {
