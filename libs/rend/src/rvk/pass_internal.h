@@ -107,14 +107,6 @@ RvkSize      rvk_pass_stat_size_max(const RvkPass*, RvkPassHandle);
 TimeDuration rvk_pass_stat_duration(const RvkPass*, RvkPassHandle);
 u64          rvk_pass_stat_pipeline(const RvkPass*, RvkPassHandle, RvkStat);
 
-void rvk_pass_stage_clear_color(RvkPass*, GeoColor clearColor);
-void rvk_pass_stage_attach_color(RvkPass*, RvkImage*, u16 colorAttachIndex);
-void rvk_pass_stage_attach_depth(RvkPass*, RvkImage*);
-void rvk_pass_stage_global_data(RvkPass*, Mem, u16 dataIndex);
-void rvk_pass_stage_global_image(RvkPass*, RvkImage*, u16 imageIndex);
-void rvk_pass_stage_global_shadow(RvkPass*, RvkImage*, u16 imageIndex);
-void rvk_pass_stage_draw_image(RvkPass*, RvkImage*);
-
 /**
  * NOTE: Pass-setup has to remain identical between begin and end.
  */

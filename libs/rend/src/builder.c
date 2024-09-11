@@ -89,7 +89,6 @@ void rend_builder_pass_flush(RendBuilderBuffer* buffer) {
 void rend_builder_clear_color(RendBuilderBuffer* buffer, const GeoColor clearColor) {
   diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
 
-  rvk_pass_stage_clear_color(buffer->pass, clearColor);
   buffer->passSetup.clearColor = clearColor;
 }
 
@@ -101,7 +100,6 @@ void rend_builder_attach_color(
       "RendBuilder: Pass color attachment {} already staged",
       fmt_int(colorAttachIndex));
 
-  rvk_pass_stage_attach_color(buffer->pass, img, colorAttachIndex);
   buffer->passSetup.attachColors[colorAttachIndex] = img;
 }
 
@@ -110,7 +108,6 @@ void rend_builder_attach_depth(RendBuilderBuffer* buffer, RvkImage* img) {
   diag_assert_msg(
       !buffer->passSetup.attachDepth, "RendBuilder: Pass depth attachment already staged");
 
-  rvk_pass_stage_attach_depth(buffer->pass, img);
   buffer->passSetup.attachDepth = img;
 }
 
@@ -120,8 +117,6 @@ void rend_builder_global_data(RendBuilderBuffer* buffer, const Mem data, const u
       !mem_valid(buffer->passSetup.globalData[dataIndex]),
       "RendBuilder: Pass global data {} already staged",
       fmt_int(dataIndex));
-
-  rvk_pass_stage_global_data(buffer->pass, data, dataIndex);
 
   const Mem result = alloc_dup(buffer->drawDataAlloc, data, rend_builder_draw_data_align);
   diag_assert_msg(mem_valid(result), "RendBuilder: Draw-data allocator ran out of space");
@@ -135,7 +130,6 @@ void rend_builder_global_image(RendBuilderBuffer* buffer, RvkImage* img, const u
       "RendBuilder: Pass global image {} already staged",
       fmt_int(imageIndex));
 
-  rvk_pass_stage_global_image(buffer->pass, img, imageIndex);
   buffer->passSetup.globalImages[imageIndex]        = img;
   buffer->passSetup.globalImageSamplers[imageIndex] = (RvkSamplerSpec){0};
 }
@@ -146,8 +140,6 @@ void rend_builder_global_shadow(RendBuilderBuffer* buffer, RvkImage* img, const 
       !buffer->passSetup.globalImages[imageIndex],
       "RendBuilder: Pass global image {} already staged",
       fmt_int(imageIndex));
-
-  rvk_pass_stage_global_shadow(buffer->pass, img, imageIndex);
 
   buffer->passSetup.globalImages[imageIndex]        = img;
   buffer->passSetup.globalImageSamplers[imageIndex] = (RvkSamplerSpec){
@@ -242,8 +234,6 @@ void rend_builder_draw_mesh(RendBuilderBuffer* buffer, const RvkMesh* mesh) {
 void rend_builder_draw_image(RendBuilderBuffer* buffer, RvkImage* image) {
   diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
   diag_assert_msg(!buffer->draw->drawImage, "RendBuilder: Draw-image already set");
-
-  rvk_pass_stage_draw_image(buffer->pass, image);
 
   for (u32 i = 0; i != rvk_pass_draw_image_max; ++i) {
     if (buffer->passSetup.drawImages[i] == image) {
