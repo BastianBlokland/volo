@@ -959,32 +959,32 @@ void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
     RvkImageTransition transitions[16];
     u32                transitionCount = 0;
     for (u32 i = 0; i != rvk_pass_attach_color_max; ++i) {
-      if (!stage->attachColors[i]) {
+      if (!setup->attachColors[i]) {
         continue; // Color attachment binding unused.
       }
       transitions[transitionCount++] = (RvkImageTransition){
-          .img   = stage->attachColors[i],
+          .img   = setup->attachColors[i],
           .phase = RvkImagePhase_ColorAttachment,
       };
     }
     if (pass->config->attachDepth) {
       transitions[transitionCount++] = (RvkImageTransition){
-          .img   = stage->attachDepth,
+          .img   = setup->attachDepth,
           .phase = RvkImagePhase_DepthAttachment,
       };
     }
     for (u32 i = 0; i != pass_global_image_max; ++i) {
-      if (stage->globalImages[i]) {
+      if (setup->globalImages[i]) {
         transitions[transitionCount++] = (RvkImageTransition){
-            .img   = stage->globalImages[i],
+            .img   = setup->globalImages[i],
             .phase = RvkImagePhase_ShaderRead,
         };
       }
     }
     for (u32 i = 0; i != pass_draw_image_max; ++i) {
-      if (stage->drawImages[i]) {
+      if (setup->drawImages[i]) {
         transitions[transitionCount++] = (RvkImageTransition){
-            .img   = stage->drawImages[i],
+            .img   = setup->drawImages[i],
             .phase = RvkImagePhase_ShaderRead,
         };
       }
