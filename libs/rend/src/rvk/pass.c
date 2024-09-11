@@ -893,10 +893,8 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* 
   RvkPassInvoc* invoc = rvk_pass_invoc_active(pass);
   diag_assert_msg(invoc, "Pass invocation not active");
 
-  const RvkGraphic* graphic           = draw->graphic;
-  const u16         reqGlobalBindings = graphic->globalBindings;
-
-  if (UNLIKELY((reqGlobalBindings & invoc->globalBoundMask) != reqGlobalBindings)) {
+  const RvkGraphic* graphic = draw->graphic;
+  if (UNLIKELY((graphic->globalBindings & invoc->globalBoundMask) != graphic->globalBindings)) {
     log_e(
         "Graphic requires additional global bindings",
         log_param("graphic", fmt_text(graphic->dbgName)));
