@@ -73,7 +73,7 @@ void rend_builder_pass_flush(RendBuilderBuffer* buffer) {
   diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
   diag_assert_msg(!buffer->draw, "RendBuilder: Draw still active");
 
-  rvk_pass_begin(buffer->pass);
+  rvk_pass_begin(buffer->pass, &buffer->passSetup);
   dynarray_sort(&buffer->drawList, builder_draw_compare);
   dynarray_for_t(&buffer->drawList, RvkPassDraw, draw) { rvk_pass_draw(buffer->pass, draw); }
   rvk_pass_end(buffer->pass);

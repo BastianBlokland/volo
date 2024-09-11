@@ -172,12 +172,12 @@ static void rvk_pass_attach_assert_depth(const RvkPass* pass, const RvkImage* im
       fmt_text(rvk_format_info(img->vkFormat).name));
 }
 
-static void rvk_pass_assert_image_contents(const RvkPass* pass, const RvkPassStage* stage) {
+static void rvk_pass_assert_image_contents(const RvkPass* pass, const RvkPassSetup* setup) {
   // Validate preserved color attachment contents.
   for (u32 i = 0; i != rvk_pass_attach_color_count(pass->config); ++i) {
     if (pass->config->attachColorLoad[i] == RvkPassLoad_Preserve) {
       diag_assert_msg(
-          stage->attachColors[i]->phase,
+          setup->attachColors[i]->phase,
           "Pass {} preserved color attachment {} has undefined contents",
           fmt_text(pass->config->name),
           fmt_int(i));
@@ -186,15 +186,15 @@ static void rvk_pass_assert_image_contents(const RvkPass* pass, const RvkPassSta
   // Validate preserved depth attachment contents.
   if (pass->config->attachDepthLoad == RvkPassLoad_Preserve) {
     diag_assert_msg(
-        stage->attachDepth->phase,
+        setup->attachDepth->phase,
         "Pass {} preserved depth attachment has undefined contents",
         fmt_text(pass->config->name));
   }
   // Validate global image contents.
   for (u32 i = 0; i != pass_global_image_max; ++i) {
-    if (stage->globalImages[i]) {
+    if (setup->globalImages[i]) {
       diag_assert_msg(
-          stage->globalImages[i]->phase,
+          setup->globalImages[i]->phase,
           "Pass {} global image {} has undefined contents",
           fmt_text(pass->config->name),
           fmt_int(i));
@@ -330,21 +330,22 @@ static VkPipelineLayout rvk_global_layout_create(RvkDevice* dev, const RvkDescMe
   return result;
 }
 
-static VkFramebuffer rvk_framebuffer_create(RvkPass* pass, RvkPassStage* stage) {
+static VkFramebuffer
+rvk_framebuffer_create(RvkPass* pass, const RvkPassSetup* setup, const RvkSize size) {
   VkImageView attachments[pass_attachment_max];
   u32         attachCount = 0;
   for (u32 i = 0; i != rvk_pass_attach_color_count(pass->config); ++i) {
     diag_assert_msg(
-        stage->attachColors[i],
+        setup->attachColors[i],
         "Pass {} is missing color attachment {}",
         fmt_text(pass->config->name),
         fmt_int(i));
-    attachments[attachCount++] = stage->attachColors[i]->vkImageView;
+    attachments[attachCount++] = setup->attachColors[i]->vkImageView;
   }
   if (pass->config->attachDepth) {
     diag_assert_msg(
-        stage->attachDepth, "Pass {} is missing a depth attachment", fmt_text(pass->config->name));
-    attachments[attachCount++] = stage->attachDepth->vkImageView;
+        setup->attachDepth, "Pass {} is missing a depth attachment", fmt_text(pass->config->name));
+    attachments[attachCount++] = setup->attachDepth->vkImageView;
   }
 
   const VkFramebufferCreateInfo framebufferInfo = {
@@ -352,8 +353,8 @@ static VkFramebuffer rvk_framebuffer_create(RvkPass* pass, RvkPassStage* stage) 
       .renderPass      = pass->vkRendPass,
       .attachmentCount = attachCount,
       .pAttachments    = attachments,
-      .width           = stage->size.width,
-      .height          = stage->size.height,
+      .width           = size.width,
+      .height          = size.height,
       .layers          = 1,
   };
   VkFramebuffer result;
@@ -434,8 +435,8 @@ rvk_pass_alloc_desc_volatile(RvkPass* pass, RvkPassFrame* frame, const RvkDescMe
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*                         pass,
-    RvkPassFrame*                    frame,
+    RvkPass*           pass,
+    RvkPassFrame*      frame,
     MAYBE_UNUSED const RvkPassStage* stage,
     const RvkGraphic*                gra,
     const Mem                        data,
@@ -568,6 +569,33 @@ static RvkPassInvoc* rvk_pass_invoc_active(RvkPass* pass) {
     return null;
   }
   return dynarray_at_t(&frame->invocations, frame->invocations.size - 1, RvkPassInvoc);
+}
+
+static RvkSize rvk_pass_size(const RvkPass* pass, const RvkPassSetup* setup) {
+  RvkSize result = {0};
+  if (setup->attachDepth) {
+    result = setup->attachDepth->size;
+  }
+  for (u32 i = 0; i != rvk_pass_attach_color_max; ++i) {
+    const RvkImage* img = setup->attachColors[i];
+    if (!img) {
+      continue; // Attachment binding unused.
+    }
+    if (!result.data) {
+      result = img->size;
+    } else {
+      diag_assert_msg(
+          img->size.data == result.data,
+          "Pass {} color attachment {} invalid: Invalid size (expected: {}x{}, actual: {}x{})",
+          fmt_text(pass->config->name),
+          fmt_int(i),
+          fmt_int(result.width),
+          fmt_int(result.height),
+          fmt_int(img->size.width),
+          fmt_int(img->size.height));
+    }
+  }
+  return result;
 }
 
 RvkPass* rvk_pass_create(RvkDevice* dev, const RvkPassConfig* config) {
@@ -895,19 +923,19 @@ void rvk_pass_stage_draw_image(MAYBE_UNUSED RvkPass* pass, RvkImage* image) {
   diag_assert_fail("Amount of staged per-draw images exceeds the maximum");
 }
 
-void rvk_pass_begin(RvkPass* pass) {
+void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
   RvkPassStage* stage = rvk_pass_stage();
   RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
 
   RvkPassInvoc* invoc  = rvk_pass_invoc_begin(pass, frame);
-  invoc->size          = stage->size;
-  invoc->vkFrameBuffer = rvk_framebuffer_create(pass, stage);
+  invoc->size          = rvk_pass_size(pass, setup);
+  invoc->vkFrameBuffer = rvk_framebuffer_create(pass, setup, invoc->size);
 
 #ifndef VOLO_FAST
   // Validate that all images we load have content loaded in them.
-  rvk_pass_assert_image_contents(pass, stage);
+  rvk_pass_assert_image_contents(pass, setup);
 #endif
 
   invoc->statsRecord = rvk_statrecorder_start(frame->statrecorder, frame->vkCmdBuf);
