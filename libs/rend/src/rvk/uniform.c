@@ -40,10 +40,14 @@ struct sRvkUniformPool {
   DynArray   entries; // RvkUniformEntry[]
 };
 
-static const RvkUniformEntry*
-rvk_uniform_entry(const RvkUniformPool* uni, const RvkUniformHandle handle) {
-  diag_assert_msg(handle, "Invalid uniform handle");
-  return dynarray_at_t(&uni->entries, handle - 1, RvkUniformEntry);
+static const RvkUniformEntry* rvk_uniform_entry(const RvkUniformPool* u, const RvkUniformHandle h) {
+  diag_assert_msg(h, "Invalid uniform handle");
+  return dynarray_at_t(&u->entries, h - 1, RvkUniformEntry);
+}
+
+static RvkUniformEntry* rvk_uniform_entry_mut(RvkUniformPool* u, const RvkUniformHandle h) {
+  diag_assert_msg(h, "Invalid uniform handle");
+  return dynarray_at_t(&u->entries, h - 1, RvkUniformEntry);
 }
 
 static RvkUniformHandle rvk_uniform_entry_push(
@@ -144,6 +148,13 @@ RvkUniformHandle rvk_uniform_upload(RvkUniformPool* uni, const Mem data) {
       log_param("align-min", fmt_size(uni->alignMin)));
 
   return rvk_uniform_entry_push(uni, newChunkIdx, 0 /* offset */, (u32)data.size);
+}
+
+RvkUniformHandle
+rvk_uniform_upload_next(RvkUniformPool* uni, const RvkUniformHandle prev, const Mem data) {
+  const RvkUniformHandle res             = rvk_uniform_upload(uni, data);
+  rvk_uniform_entry_mut(uni, prev)->next = res;
+  return res;
 }
 
 void rvk_uniform_attach(

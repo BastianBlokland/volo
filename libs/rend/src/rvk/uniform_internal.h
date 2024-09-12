@@ -22,6 +22,7 @@ RvkUniformHandle rvk_uniform_next(const RvkUniformPool*, RvkUniformHandle);
 
 void             rvk_uniform_reset(RvkUniformPool*);
 RvkUniformHandle rvk_uniform_upload(RvkUniformPool*, Mem data);
+RvkUniformHandle rvk_uniform_upload_next(RvkUniformPool*, RvkUniformHandle prev, Mem data);
 
 void rvk_uniform_attach(RvkUniformPool*, RvkUniformHandle, RvkDescSet, const u32 binding);
 
