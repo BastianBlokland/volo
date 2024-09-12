@@ -114,7 +114,7 @@ void rend_builder_attach_depth(RendBuilderBuffer* buffer, RvkImage* img) {
 void rend_builder_global_data(RendBuilderBuffer* buffer, const Mem data, const u16 dataIndex) {
   diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
   diag_assert_msg(
-      !buffer->passSetup.globalData[dataIndex].size,
+      !buffer->passSetup.globalData[dataIndex],
       "RendBuilder: Pass global data {} already staged",
       fmt_int(dataIndex));
 
@@ -156,7 +156,7 @@ void rend_builder_draw_push(RendBuilderBuffer* buffer, const RvkGraphic* graphic
 
 void rend_builder_draw_data(RendBuilderBuffer* buffer, const Mem data) {
   diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
-  diag_assert_msg(!buffer->draw->drawData.size, "RendBuilder: Draw-data already set");
+  diag_assert_msg(!buffer->draw->drawData, "RendBuilder: Draw-data already set");
 
   buffer->draw->drawData = rvk_pass_uniform_upload(buffer->pass, data);
 }

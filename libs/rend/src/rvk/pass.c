@@ -404,7 +404,7 @@ static void rvk_pass_bind_global(
   // Attach global data.
   for (; binding != rvk_pass_global_data_max; ++binding) {
     const RvkUniformHandle data = setup->globalData[binding];
-    if (!data.size) {
+    if (!data) {
       continue; // Global data binding unused.
     }
     if (!invoc->globalBoundMask) {
@@ -452,8 +452,8 @@ static void rvk_pass_bind_global(
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*           pass,
-    RvkPassFrame*      frame,
+    RvkPass*                         pass,
+    RvkPassFrame*                    frame,
     MAYBE_UNUSED const RvkPassSetup* setup,
     const RvkGraphic*                gra,
     const RvkUniformHandle           data,
@@ -465,7 +465,7 @@ static void rvk_pass_bind_draw(
   diag_assert_msg(!img || img->caps & RvkImageCapability_Sampled, "Image doesn't support sampling");
 
   const RvkDescSet descSet = rvk_pass_alloc_desc_volatile(pass, frame, &gra->drawDescMeta);
-  if (data.size && gra->drawDescMeta.bindings[0]) {
+  if (data && gra->drawDescMeta.bindings[0]) {
     rvk_uniform_attach(frame->uniformPool, data, descSet, 0 /* binding */);
   }
   if (mesh && gra->drawDescMeta.bindings[1]) {
@@ -893,7 +893,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* 
         log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
-  if (UNLIKELY(graphic->drawDescMeta.bindings[0] && !draw->drawData.size)) {
+  if (UNLIKELY(graphic->drawDescMeta.bindings[0] && !draw->drawData)) {
     log_e("Graphic requires draw data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
