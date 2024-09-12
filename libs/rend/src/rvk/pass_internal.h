@@ -4,6 +4,7 @@
 
 #include "sampler_internal.h"
 #include "types_internal.h"
+#include "uniform_internal.h"
 
 #define rvk_pass_attach_color_max 2
 #define rvk_pass_global_data_max 1
@@ -64,9 +65,9 @@ typedef struct sRvkPassSetup {
   RvkImage* attachDepth;
 
   // Global resources.
-  Mem            globalData[rvk_pass_global_data_max];
-  RvkImage*      globalImages[rvk_pass_global_image_max];
-  RvkSamplerSpec globalImageSamplers[rvk_pass_global_image_max];
+  RvkUniformHandle globalData[rvk_pass_global_data_max];
+  RvkImage*        globalImages[rvk_pass_global_image_max];
+  RvkSamplerSpec   globalImageSamplers[rvk_pass_global_image_max];
 
   // Per-draw resources.
   RvkImage* drawImages[rvk_pass_draw_image_max];
@@ -75,8 +76,8 @@ typedef struct sRvkPassSetup {
 typedef struct sRvkPassDraw {
   const RvkGraphic* graphic;
   Mem               instData;
-  Mem               drawData;       // Per-draw data to use.
   const RvkMesh*    drawMesh;       // Per-draw mesh to use.
+  RvkUniformHandle  drawData;       // Per-draw data to use.
   RvkSamplerSpec    drawSampler;    // Sampler specification for a per-draw image.
   u16               drawImageIndex; // Per-draw image to use.
   u16               instDataStride;
@@ -106,6 +107,8 @@ u32          rvk_pass_stat_instances(const RvkPass*, RvkPassHandle);
 RvkSize      rvk_pass_stat_size_max(const RvkPass*, RvkPassHandle);
 TimeDuration rvk_pass_stat_duration(const RvkPass*, RvkPassHandle);
 u64          rvk_pass_stat_pipeline(const RvkPass*, RvkPassHandle, RvkStat);
+
+RvkUniformHandle rvk_pass_uniform_upload(RvkPass*, Mem data);
 
 /**
  * NOTE: Pass-setup has to remain identical between begin and end.

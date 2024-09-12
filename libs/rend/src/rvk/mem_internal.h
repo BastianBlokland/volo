@@ -33,6 +33,7 @@ void   rvk_mem_bind_buffer(RvkMem, VkBuffer);
 void   rvk_mem_bind_image(RvkMem, VkImage);
 Mem    rvk_mem_map(RvkMem);
 void   rvk_mem_flush(RvkMem);
+void   rvk_mem_flush_sub(RvkMem, u32 offset, u32 size);
 
 u64 rvk_mem_occupied(const RvkMemPool*, RvkMemLoc);
 u64 rvk_mem_reserved(const RvkMemPool*, RvkMemLoc);

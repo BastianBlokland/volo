@@ -217,7 +217,7 @@ static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id,
   if (graphic) {
     rend_builder_draw_push(ctx->builder, graphic);
     if (data.size) {
-      mem_cpy(rend_builder_draw_data(ctx->builder, data.size), data);
+      rend_builder_draw_data(ctx->builder, data);
     }
     rend_builder_draw_instances(ctx->builder, 1, 0);
     rend_builder_draw_flush(ctx->builder);
@@ -316,17 +316,16 @@ static void painter_push_fog(RendPaintContext* ctx, const RendFogComp* fog, RvkI
   const RvkRepository* repo    = rvk_canvas_repository(ctx->canvas);
   const RvkGraphic*    graphic = rvk_repository_graphic_get(repo, RvkRepositoryId_FogGraphic);
   if (graphic) {
-    typedef struct {
+    struct {
       ALIGNAS(16)
       GeoMatrix fogViewProj;
-    } FogData;
+    } data;
+
+    const GeoMatrix fogViewMat = geo_matrix_inverse(rend_fog_trans(fog));
+    data.fogViewProj           = geo_matrix_mul(rend_fog_proj(fog), &fogViewMat);
 
     rend_builder_draw_push(ctx->builder, graphic);
-
-    FogData*        data       = rend_builder_draw_data(ctx->builder, sizeof(FogData)).ptr;
-    const GeoMatrix fogViewMat = geo_matrix_inverse(rend_fog_trans(fog));
-    data->fogViewProj          = geo_matrix_mul(rend_fog_proj(fog), &fogViewMat);
-
+    rend_builder_draw_data(ctx->builder, mem_var(data));
     rend_builder_draw_image(ctx->builder, fogMap);
     rend_builder_draw_instances(ctx->builder, 1, 0);
     rend_builder_draw_flush(ctx->builder);
@@ -407,15 +406,6 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
     graphic = rvk_repository_graphic_get(repo, RvkRepositoryId_DebugImageViewerGraphic);
   }
   if (graphic) {
-    typedef struct {
-      ALIGNAS(16)
-      u16 imageChannels;
-      f16 lod;
-      u32 flags;
-      f32 exposure;
-      f32 aspect;
-    } ImageViewerData;
-
     enum {
       ImageViewerFlags_FlipY       = 1 << 0,
       ImageViewerFlags_AlphaIgnore = 1 << 1,
@@ -438,14 +428,23 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
       flags |= ImageViewerFlags_AlphaOnly;
     }
 
-    rend_builder_draw_push(ctx->builder, graphic);
+    struct {
+      ALIGNAS(16)
+      u16 imageChannels;
+      f16 lod;
+      u32 flags;
+      f32 exposure;
+      f32 aspect;
+    } data = {
+        .imageChannels = rvk_format_info(image->vkFormat).channels,
+        .lod           = float_f32_to_f16(ctx->settings->debugViewerLod),
+        .flags         = flags,
+        .exposure      = exposure,
+        .aspect        = (f32)image->size.width / (f32)image->size.height,
+    };
 
-    ImageViewerData* data = rend_builder_draw_data(ctx->builder, sizeof(ImageViewerData)).ptr;
-    data->imageChannels   = rvk_format_info(image->vkFormat).channels;
-    data->lod             = float_f32_to_f16(ctx->settings->debugViewerLod);
-    data->flags           = flags;
-    data->exposure        = exposure;
-    data->aspect          = (f32)image->size.width / (f32)image->size.height;
+    rend_builder_draw_push(ctx->builder, graphic);
+    rend_builder_draw_data(ctx->builder, mem_var(data));
 
     RvkSamplerSpec sampler = {.filter = RvkSamplerFilter_Nearest};
     if (ctx->settings->debugViewerFlags & RendDebugViewer_Interpolate) {
@@ -464,11 +463,6 @@ painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspect, const Rv
   const RvkRepositoryId graphicId = RvkRepositoryId_DebugMeshViewerGraphic;
   const RvkGraphic*     graphic   = rvk_repository_graphic_get(repo, graphicId);
   if (graphic) {
-    typedef struct {
-      ALIGNAS(16)
-      GeoMatrix viewProj;
-    } MeshViewerData;
-
     const GeoVector meshCenter = geo_box_center(&mesh->positionRawBounds);
     const f32       meshSize   = math_max(1.0f, geo_box_size(&mesh->positionRawBounds).y);
 
@@ -483,11 +477,13 @@ painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspect, const Rv
     const GeoMatrix posMat    = geo_matrix_translate(pos);
     const GeoMatrix viewMat   = geo_matrix_mul(&posMat, &rotMat);
 
+    struct {
+      ALIGNAS(16)
+      GeoMatrix viewProj;
+    } data = {.viewProj = geo_matrix_mul(&projMat, &viewMat)};
+
     rend_builder_draw_push(ctx->builder, graphic);
-
-    MeshViewerData* data = rend_builder_draw_data(ctx->builder, sizeof(MeshViewerData)).ptr;
-    data->viewProj       = geo_matrix_mul(&projMat, &viewMat);
-
+    rend_builder_draw_data(ctx->builder, mem_var(data));
     rend_builder_draw_mesh(ctx->builder, mesh);
     rend_builder_draw_instances(ctx->builder, 1, 0);
     rend_builder_draw_flush(ctx->builder);

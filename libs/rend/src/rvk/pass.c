@@ -403,18 +403,14 @@ static void rvk_pass_bind_global(
 
   // Attach global data.
   for (; binding != rvk_pass_global_data_max; ++binding) {
-    const Mem data = setup->globalData[binding];
-    if (!mem_valid(data)) {
+    const RvkUniformHandle data = setup->globalData[binding];
+    if (!data.size) {
       continue; // Global data binding unused.
     }
     if (!invoc->globalBoundMask) {
       globalDescSet = rvk_pass_alloc_desc_volatile(pass, frame, &pass->globalDescMeta);
     }
-    const RvkUniformHandle dataHandle = rvk_uniform_upload(frame->uniformPool, data);
-    const RvkBuffer*       dataBuffer = rvk_uniform_buffer(frame->uniformPool, dataHandle);
-    rvk_desc_set_attach_buffer(
-        globalDescSet, binding, dataBuffer, dataHandle.offset, (u32)data.size);
-
+    rvk_uniform_attach(frame->uniformPool, data, globalDescSet, binding);
     invoc->globalBoundMask |= 1 << binding;
   }
 
@@ -456,11 +452,11 @@ static void rvk_pass_bind_global(
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*                         pass,
-    RvkPassFrame*                    frame,
+    RvkPass*           pass,
+    RvkPassFrame*      frame,
     MAYBE_UNUSED const RvkPassSetup* setup,
     const RvkGraphic*                gra,
-    const Mem                        data,
+    const RvkUniformHandle           data,
     const RvkMesh*                   mesh,
     RvkImage*                        img,
     const RvkSamplerSpec             sampler) {
@@ -470,12 +466,10 @@ static void rvk_pass_bind_draw(
 
   const RvkDescSet descSet = rvk_pass_alloc_desc_volatile(pass, frame, &gra->drawDescMeta);
   if (data.size && gra->drawDescMeta.bindings[0]) {
-    const RvkUniformHandle dataHandle = rvk_uniform_upload(frame->uniformPool, data);
-    const RvkBuffer*       dataBuffer = rvk_uniform_buffer(frame->uniformPool, dataHandle);
-    rvk_desc_set_attach_buffer(descSet, 0, dataBuffer, dataHandle.offset, (u32)data.size);
+    rvk_uniform_attach(frame->uniformPool, data, descSet, 0 /* binding */);
   }
   if (mesh && gra->drawDescMeta.bindings[1]) {
-    rvk_desc_set_attach_buffer(descSet, 1, &mesh->vertexBuffer, 0, 0);
+    rvk_desc_set_attach_buffer(descSet, 1 /* binding */, &mesh->vertexBuffer, 0, 0);
   }
   if (img && gra->drawDescMeta.bindings[2]) {
     const bool reqCube = gra->drawDescMeta.bindings[2] == RvkDescKind_CombinedImageSamplerCube;
@@ -794,6 +788,11 @@ u64 rvk_pass_stat_pipeline(
     res += rvk_statrecorder_query(frame->statrecorder, invoc->statsRecord, stat);
   }
   return res;
+}
+
+RvkUniformHandle rvk_pass_uniform_upload(RvkPass* pass, const Mem data) {
+  RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
+  return rvk_uniform_upload(frame->uniformPool, data);
 }
 
 void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
