@@ -109,6 +109,7 @@ TimeDuration rvk_pass_stat_duration(const RvkPass*, RvkPassHandle);
 u64          rvk_pass_stat_pipeline(const RvkPass*, RvkPassHandle, RvkStat);
 
 RvkUniformHandle rvk_pass_uniform_upload(RvkPass*, Mem data);
+RvkUniformHandle rvk_pass_uniform_upload_next(RvkPass*, RvkUniformHandle prev, Mem data);
 
 /**
  * NOTE: Pass-setup has to remain identical between begin and end.

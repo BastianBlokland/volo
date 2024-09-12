@@ -410,6 +410,7 @@ static void rvk_pass_bind_global(
     if (!invoc->globalBoundMask) {
       globalDescSet = rvk_pass_alloc_desc_volatile(pass, frame, &pass->globalDescMeta);
     }
+    diag_assert(!rvk_uniform_next(frame->uniformPool, data));
     rvk_uniform_attach(frame->uniformPool, data, globalDescSet, binding);
     invoc->globalBoundMask |= 1 << binding;
   }
@@ -466,6 +467,7 @@ static void rvk_pass_bind_draw(
 
   const RvkDescSet descSet = rvk_pass_alloc_desc_volatile(pass, frame, &gra->drawDescMeta);
   if (data && gra->drawDescMeta.bindings[0]) {
+    diag_assert(!rvk_uniform_next(frame->uniformPool, data));
     rvk_uniform_attach(frame->uniformPool, data, descSet, 0 /* binding */);
   }
   if (mesh && gra->drawDescMeta.bindings[1]) {
@@ -793,6 +795,12 @@ u64 rvk_pass_stat_pipeline(
 RvkUniformHandle rvk_pass_uniform_upload(RvkPass* pass, const Mem data) {
   RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
   return rvk_uniform_upload(frame->uniformPool, data);
+}
+
+RvkUniformHandle
+rvk_pass_uniform_upload_next(RvkPass* pass, const RvkUniformHandle prev, const Mem data) {
+  RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
+  return rvk_uniform_upload_next(frame->uniformPool, prev, data);
 }
 
 void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
