@@ -457,7 +457,7 @@ static void rvk_pass_bind_draw(
     RvkPassFrame*      frame,
     MAYBE_UNUSED const RvkPassSetup* setup,
     const RvkGraphic*                gra,
-    const Mem                        data,
+    const RvkUniformHandle           data,
     const RvkMesh*                   mesh,
     RvkImage*                        img,
     const RvkSamplerSpec             sampler) {
@@ -467,9 +467,8 @@ static void rvk_pass_bind_draw(
 
   const RvkDescSet descSet = rvk_pass_alloc_desc_volatile(pass, frame, &gra->drawDescMeta);
   if (data.size && gra->drawDescMeta.bindings[0]) {
-    const RvkUniformHandle dataHandle = rvk_uniform_upload(frame->uniformPool, data);
-    const RvkBuffer*       dataBuffer = rvk_uniform_buffer(frame->uniformPool, dataHandle);
-    rvk_desc_set_attach_buffer(descSet, 0, dataBuffer, dataHandle.offset, (u32)data.size);
+    const RvkBuffer* dataBuffer = rvk_uniform_buffer(frame->uniformPool, data);
+    rvk_desc_set_attach_buffer(descSet, 0, dataBuffer, data.offset, (u32)data.size);
   }
   if (mesh && gra->drawDescMeta.bindings[1]) {
     rvk_desc_set_attach_buffer(descSet, 1, &mesh->vertexBuffer, 0, 0);

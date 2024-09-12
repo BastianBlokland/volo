@@ -154,21 +154,11 @@ void rend_builder_draw_push(RendBuilderBuffer* buffer, const RvkGraphic* graphic
   *buffer->draw = (RvkPassDraw){.graphic = graphic, .drawImageIndex = sentinel_u16};
 }
 
-Mem rend_builder_draw_data(RendBuilderBuffer* buffer, const usize size) {
+void rend_builder_draw_data(RendBuilderBuffer* buffer, const Mem data) {
   diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
-  diag_assert_msg(!mem_valid(buffer->draw->drawData), "RendBuilder: Draw-data already set");
+  diag_assert_msg(!buffer->draw->drawData.size, "RendBuilder: Draw-data already set");
 
-  const Mem result = alloc_alloc(buffer->drawDataAlloc, size, rend_builder_draw_data_align);
-  diag_assert_msg(mem_valid(result), "RendBuilder: Draw-data allocator ran out of space");
-  buffer->draw->drawData = result;
-  return result;
-}
-
-void rend_builder_draw_data_extern(RendBuilderBuffer* buffer, const Mem drawData) {
-  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
-  diag_assert_msg(!mem_valid(buffer->draw->drawData), "RendBuilder: Draw-data already set");
-
-  buffer->draw->drawData = drawData;
+  buffer->draw->drawData = rvk_pass_uniform_upload(buffer->pass, data);
 }
 
 Mem rend_builder_draw_instances(RendBuilderBuffer* buffer, const u32 count, const u32 stride) {

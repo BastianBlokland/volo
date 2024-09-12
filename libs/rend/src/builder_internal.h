@@ -42,8 +42,7 @@ void rend_builder_global_image(RendBuilderBuffer*, RvkImage*, u16 imageIndex);
 void rend_builder_global_shadow(RendBuilderBuffer*, RvkImage*, u16 imageIndex);
 
 void rend_builder_draw_push(RendBuilderBuffer*, const RvkGraphic*);
-Mem  rend_builder_draw_data(RendBuilderBuffer*, usize size); // 16 byte aligned.
-void rend_builder_draw_data_extern(RendBuilderBuffer*, Mem drawData);
+void rend_builder_draw_data(RendBuilderBuffer*, Mem drawData);
 void rend_builder_draw_instances_extern(RendBuilderBuffer*, u32 count, Mem data, u32 stride);
 Mem  rend_builder_draw_instances(RendBuilderBuffer*, u32 count, u32 stride); // 16 byte aligned.
 void rend_builder_draw_instances_trim(RendBuilderBuffer*, u32 count);
