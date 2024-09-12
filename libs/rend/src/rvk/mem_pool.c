@@ -168,14 +168,14 @@ static RvkMemChunk* rvk_mem_chunk_create(
 
   RvkMemChunk* chunk = alloc_alloc_t(g_allocHeap, RvkMemChunk);
   *chunk             = (RvkMemChunk){
-                  .id         = id,
-                  .pool       = pool,
-                  .loc        = loc,
-                  .access     = access,
-                  .size       = size,
-                  .memType    = memType,
-                  .freeBlocks = dynarray_create_t(g_allocHeap, RvkMem, 16),
-                  .vkMem      = rvk_mem_alloc_vk(pool, size, memType),
+      .id         = id,
+      .pool       = pool,
+      .loc        = loc,
+      .access     = access,
+      .size       = size,
+      .memType    = memType,
+      .freeBlocks = dynarray_create_t(g_allocHeap, RvkMem, 16),
+      .vkMem      = rvk_mem_alloc_vk(pool, size, memType),
   };
   if (loc == RvkMemLoc_Host) {
     rvk_call(vkMapMemory, pool->vkDev, chunk->vkMem, 0, VK_WHOLE_SIZE, 0, &chunk->map);
@@ -380,11 +380,11 @@ RvkMemPool* rvk_mem_pool_create(
     const VkPhysicalDeviceLimits           limits) {
   RvkMemPool* pool = alloc_alloc_t(g_allocHeap, RvkMemPool);
   *pool            = (RvkMemPool){
-                 .vkDev         = vkDev,
-                 .vkDevMemProps = props,
-                 .vkDevLimits   = limits,
-                 .vkAlloc       = rvk_mem_allocator(g_allocHeap),
-                 .lock          = thread_mutex_create(g_allocHeap),
+      .vkDev         = vkDev,
+      .vkDevMemProps = props,
+      .vkDevLimits   = limits,
+      .vkAlloc       = rvk_mem_allocator(g_allocHeap),
+      .lock          = thread_mutex_create(g_allocHeap),
   };
   return pool;
 }
@@ -502,6 +502,12 @@ Mem rvk_mem_map(const RvkMem mem) {
 void rvk_mem_flush(const RvkMem mem) {
   diag_assert(rvk_mem_valid(mem));
   rvk_mem_chunk_flush(mem.chunk, mem.offset, mem.size);
+}
+
+void rvk_mem_flush_sub(const RvkMem mem, const u32 offset, const u32 size) {
+  diag_assert(rvk_mem_valid(mem));
+  diag_assert(mem.offset + offset + size <= mem.offset + mem.size);
+  rvk_mem_chunk_flush(mem.chunk, mem.offset + offset, size);
 }
 
 u64 rvk_mem_occupied(const RvkMemPool* pool, const RvkMemLoc loc) {
