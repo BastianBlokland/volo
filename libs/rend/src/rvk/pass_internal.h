@@ -108,6 +108,7 @@ RvkSize      rvk_pass_stat_size_max(const RvkPass*, RvkPassHandle);
 TimeDuration rvk_pass_stat_duration(const RvkPass*, RvkPassHandle);
 u64          rvk_pass_stat_pipeline(const RvkPass*, RvkPassHandle, RvkStat);
 
+u32              rvk_pass_batch_size(RvkPass*, u32 instanceDataSize);
 RvkUniformHandle rvk_pass_uniform_upload(RvkPass*, Mem data);
 RvkUniformHandle rvk_pass_uniform_upload_next(RvkPass*, RvkUniformHandle prev, Mem data);
 

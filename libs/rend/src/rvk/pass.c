@@ -792,6 +792,15 @@ u64 rvk_pass_stat_pipeline(
   return res;
 }
 
+u32 rvk_pass_batch_size(RvkPass* pass, const u32 instanceDataSize) {
+  RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
+  if (!instanceDataSize) {
+    return pass_instance_count_max;
+  }
+  const u32 uniformMaxInstances = rvk_uniform_size_max(frame->uniformPool) / instanceDataSize;
+  return math_min(uniformMaxInstances, pass_instance_count_max);
+}
+
 RvkUniformHandle rvk_pass_uniform_upload(RvkPass* pass, const Mem data) {
   RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
   return rvk_uniform_upload(frame->uniformPool, data);
@@ -874,14 +883,6 @@ void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
   rvk_pass_bind_global(pass, frame, invoc, setup);
 }
 
-static u32 rvk_pass_instances_per_draw(RvkPassFrame* f, const u32 remaining, const u32 dataStride) {
-  if (!dataStride) {
-    return math_min(remaining, pass_instance_count_max);
-  }
-  const u32 instances = math_min(remaining, rvk_uniform_size_max(f->uniformPool) / dataStride);
-  return math_min(instances, pass_instance_count_max);
-}
-
 void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* draw) {
   RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
 
@@ -941,8 +942,9 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* 
   const u32 dataStride =
       graphic->flags & RvkGraphicFlags_RequireInstanceSet ? draw->instDataStride : 0;
 
+  const u32 instancesBatchSize = rvk_pass_batch_size(pass, dataStride);
   for (u32 remInstCount = draw->instCount, dataOffset = 0; remInstCount != 0;) {
-    const u32 instCount = rvk_pass_instances_per_draw(frame, remInstCount, dataStride);
+    const u32 instCount = math_min(remInstCount, instancesBatchSize);
     invoc->instanceCount += instCount;
 
     if (dataStride) {
