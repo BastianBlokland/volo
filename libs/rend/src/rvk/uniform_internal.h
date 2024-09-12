@@ -14,7 +14,7 @@ RvkUniformPool* rvk_uniform_pool_create(RvkDevice*);
 void            rvk_uniform_pool_destroy(RvkUniformPool*);
 u32             rvk_uniform_size_max(RvkUniformPool*);
 
-typedef struct {
+typedef struct sRvkUniformHandle {
   u32 chunkIdx, offset;
 } RvkUniformHandle;
 

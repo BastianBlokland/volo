@@ -11,14 +11,15 @@
 #define rvk_pass_draw_image_max 5
 
 // Internal forward declarations:
-typedef enum eRvkStat         RvkStat;
-typedef struct sRvkAttachSpec RvkAttachSpec;
-typedef struct sRvkDescMeta   RvkDescMeta;
-typedef struct sRvkDevice     RvkDevice;
-typedef struct sRvkGraphic    RvkGraphic;
-typedef struct sRvkImage      RvkImage;
-typedef struct sRvkJob        RvkJob;
-typedef struct sRvkMesh       RvkMesh;
+typedef enum eRvkStat            RvkStat;
+typedef struct sRvkAttachSpec    RvkAttachSpec;
+typedef struct sRvkDescMeta      RvkDescMeta;
+typedef struct sRvkDevice        RvkDevice;
+typedef struct sRvkGraphic       RvkGraphic;
+typedef struct sRvkImage         RvkImage;
+typedef struct sRvkJob           RvkJob;
+typedef struct sRvkMesh          RvkMesh;
+typedef struct sRvkUniformHandle RvkUniformHandle;
 
 typedef u8 RvkPassHandle;
 
@@ -106,6 +107,8 @@ u32          rvk_pass_stat_instances(const RvkPass*, RvkPassHandle);
 RvkSize      rvk_pass_stat_size_max(const RvkPass*, RvkPassHandle);
 TimeDuration rvk_pass_stat_duration(const RvkPass*, RvkPassHandle);
 u64          rvk_pass_stat_pipeline(const RvkPass*, RvkPassHandle, RvkStat);
+
+RvkUniformHandle rvk_pass_uniform_upload(RvkPass*, Mem data);
 
 /**
  * NOTE: Pass-setup has to remain identical between begin and end.

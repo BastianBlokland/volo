@@ -456,8 +456,8 @@ static void rvk_pass_bind_global(
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*                         pass,
-    RvkPassFrame*                    frame,
+    RvkPass*           pass,
+    RvkPassFrame*      frame,
     MAYBE_UNUSED const RvkPassSetup* setup,
     const RvkGraphic*                gra,
     const Mem                        data,
@@ -794,6 +794,11 @@ u64 rvk_pass_stat_pipeline(
     res += rvk_statrecorder_query(frame->statrecorder, invoc->statsRecord, stat);
   }
   return res;
+}
+
+RvkUniformHandle rvk_pass_uniform_upload(RvkPass* pass, const Mem data) {
+  RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
+  return rvk_uniform_upload(frame->uniformPool, data);
 }
 
 void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
