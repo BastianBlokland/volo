@@ -29,7 +29,8 @@ typedef struct {
 } RvkUniformChunk;
 
 typedef struct {
-  u32 chunkIdx, offset, size;
+  u32              chunkIdx, offset, size;
+  RvkUniformHandle next;
 } RvkUniformEntry;
 
 struct sRvkUniformPool {
@@ -39,7 +40,8 @@ struct sRvkUniformPool {
   DynArray   entries; // RvkUniformEntry[]
 };
 
-static RvkUniformEntry* rvk_uniform_entry(RvkUniformPool* uni, const RvkUniformHandle handle) {
+static const RvkUniformEntry*
+rvk_uniform_entry(const RvkUniformPool* uni, const RvkUniformHandle handle) {
   diag_assert_msg(handle, "Invalid uniform handle");
   return dynarray_at_t(&uni->entries, handle - 1, RvkUniformEntry);
 }
@@ -92,6 +94,10 @@ u32 rvk_uniform_size_max(RvkUniformPool* uni) { return uni->dataSizeMax; }
 
 bool rvk_uniform_valid(const RvkUniformHandle handle) { return handle != 0; }
 
+RvkUniformHandle rvk_uniform_next(const RvkUniformPool* uni, const RvkUniformHandle handle) {
+  return rvk_uniform_entry(uni, handle)->next;
+}
+
 void rvk_uniform_reset(RvkUniformPool* uni) {
   dynarray_for_t(&uni->chunks, RvkUniformChunk, chunk) { chunk->offset = 0; }
   dynarray_clear(&uni->entries);
@@ -143,8 +149,8 @@ RvkUniformHandle rvk_uniform_upload(RvkUniformPool* uni, const Mem data) {
 void rvk_uniform_attach(
     RvkUniformPool* uni, const RvkUniformHandle handle, const RvkDescSet set, const u32 binding) {
 
-  RvkUniformEntry* entry  = rvk_uniform_entry(uni, handle);
-  const RvkBuffer* buffer = &rvk_uniform_chunk(uni, entry->chunkIdx)->buffer;
+  const RvkUniformEntry* entry  = rvk_uniform_entry(uni, handle);
+  const RvkBuffer*       buffer = &rvk_uniform_chunk(uni, entry->chunkIdx)->buffer;
   rvk_desc_set_attach_buffer(set, binding, buffer, entry->offset, entry->size);
 }
 
@@ -155,8 +161,8 @@ void rvk_uniform_dynamic_bind(
     VkPipelineLayout vkPipelineLayout,
     const u32        set) {
 
-  RvkUniformEntry* entry = rvk_uniform_entry(uni, handle);
-  RvkUniformChunk* chunk = rvk_uniform_chunk(uni, entry->chunkIdx);
+  const RvkUniformEntry* entry = rvk_uniform_entry(uni, handle);
+  RvkUniformChunk*       chunk = rvk_uniform_chunk(uni, entry->chunkIdx);
   if (UNLIKELY(!rvk_desc_valid(chunk->dynamicSet))) {
     const RvkDescMeta meta = (RvkDescMeta){.bindings[0] = RvkDescKind_UniformBufferDynamic};
     chunk->dynamicSet      = rvk_desc_alloc(uni->device->descPool, &meta);

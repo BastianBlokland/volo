@@ -11,13 +11,15 @@ typedef struct sRvkDescSet  RvkDescSet;
 
 typedef struct sRvkUniformPool RvkUniformPool;
 
-typedef u32 RvkUniformHandle;
+typedef u32 RvkUniformHandle; // Zero is invalid.
 
 RvkUniformPool* rvk_uniform_pool_create(RvkDevice*);
 void            rvk_uniform_pool_destroy(RvkUniformPool*);
 u32             rvk_uniform_size_max(RvkUniformPool*);
 
 bool             rvk_uniform_valid(RvkUniformHandle);
+RvkUniformHandle rvk_uniform_next(const RvkUniformPool*, RvkUniformHandle);
+
 void             rvk_uniform_reset(RvkUniformPool*);
 RvkUniformHandle rvk_uniform_upload(RvkUniformPool*, Mem data);
 
