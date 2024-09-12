@@ -7,6 +7,7 @@
 typedef struct sRvkBuffer   RvkBuffer;
 typedef struct sRvkDescMeta RvkDescMeta;
 typedef struct sRvkDevice   RvkDevice;
+typedef struct sRvkDescSet  RvkDescSet;
 
 typedef struct sRvkUniformPool RvkUniformPool;
 
@@ -20,7 +21,8 @@ typedef struct sRvkUniformHandle {
 
 void             rvk_uniform_reset(RvkUniformPool*);
 RvkUniformHandle rvk_uniform_upload(RvkUniformPool*, Mem data);
-const RvkBuffer* rvk_uniform_buffer(RvkUniformPool*, RvkUniformHandle);
+
+void rvk_uniform_attach(RvkUniformPool*, RvkUniformHandle, RvkDescSet, const u32 binding);
 
 /**
  * Dynamic binding is a fast-path where we can allocate persistent descriptor-sets (that only

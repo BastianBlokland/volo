@@ -112,9 +112,12 @@ RvkUniformHandle rvk_uniform_upload(RvkUniformPool* uni, const Mem data) {
   return (RvkUniformHandle){.chunkIdx = newChunkIdx, .offset = 0, .size = (u32)data.size};
 }
 
-const RvkBuffer* rvk_uniform_buffer(RvkUniformPool* uni, const RvkUniformHandle handle) {
+void rvk_uniform_attach(
+    RvkUniformPool* uni, const RvkUniformHandle handle, const RvkDescSet set, const u32 binding) {
   diag_assert(handle.size);
-  return &rvk_uniform_chunk(uni, handle.chunkIdx)->buffer;
+
+  const RvkBuffer* buffer = &rvk_uniform_chunk(uni, handle.chunkIdx)->buffer;
+  rvk_desc_set_attach_buffer(set, binding, buffer, handle.offset, handle.size);
 }
 
 void rvk_uniform_dynamic_bind(
