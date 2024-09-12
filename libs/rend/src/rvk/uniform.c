@@ -87,7 +87,7 @@ RvkUniformHandle rvk_uniform_upload(RvkUniformPool* uni, const Mem data) {
       u32 offset = chunk->offset;
       rvk_buffer_upload(&chunk->buffer, data, offset);
       chunk->offset += paddedSize;
-      return (RvkUniformHandle){.chunkIdx = chunkIdx, .offset = offset};
+      return (RvkUniformHandle){.chunkIdx = chunkIdx, .offset = offset, .size = (u32)data.size};
     }
   }
 
@@ -109,10 +109,11 @@ RvkUniformHandle rvk_uniform_upload(RvkUniformPool* uni, const Mem data) {
       log_param("data-size-max", fmt_size(uni->dataSizeMax)),
       log_param("align-min", fmt_size(uni->alignMin)));
 
-  return (RvkUniformHandle){.chunkIdx = newChunkIdx, .offset = 0};
+  return (RvkUniformHandle){.chunkIdx = newChunkIdx, .offset = 0, .size = (u32)data.size};
 }
 
 const RvkBuffer* rvk_uniform_buffer(RvkUniformPool* uni, const RvkUniformHandle handle) {
+  diag_assert(handle.size);
   return &rvk_uniform_chunk(uni, handle.chunkIdx)->buffer;
 }
 
@@ -122,6 +123,8 @@ void rvk_uniform_dynamic_bind(
     VkCommandBuffer  vkCmdBuf,
     VkPipelineLayout vkPipelineLayout,
     const u32        set) {
+  diag_assert(handle.size);
+
   RvkUniformChunk* chunk = rvk_uniform_chunk(uni, handle.chunkIdx);
   if (UNLIKELY(!rvk_desc_valid(chunk->dynamicSet))) {
     const RvkDescMeta meta = (RvkDescMeta){.bindings[0] = RvkDescKind_UniformBufferDynamic};
