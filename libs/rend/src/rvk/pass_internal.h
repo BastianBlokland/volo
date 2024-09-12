@@ -4,6 +4,7 @@
 
 #include "sampler_internal.h"
 #include "types_internal.h"
+#include "uniform_internal.h"
 
 #define rvk_pass_attach_color_max 2
 #define rvk_pass_global_data_max 1
@@ -11,15 +12,14 @@
 #define rvk_pass_draw_image_max 5
 
 // Internal forward declarations:
-typedef enum eRvkStat            RvkStat;
-typedef struct sRvkAttachSpec    RvkAttachSpec;
-typedef struct sRvkDescMeta      RvkDescMeta;
-typedef struct sRvkDevice        RvkDevice;
-typedef struct sRvkGraphic       RvkGraphic;
-typedef struct sRvkImage         RvkImage;
-typedef struct sRvkJob           RvkJob;
-typedef struct sRvkMesh          RvkMesh;
-typedef struct sRvkUniformHandle RvkUniformHandle;
+typedef enum eRvkStat         RvkStat;
+typedef struct sRvkAttachSpec RvkAttachSpec;
+typedef struct sRvkDescMeta   RvkDescMeta;
+typedef struct sRvkDevice     RvkDevice;
+typedef struct sRvkGraphic    RvkGraphic;
+typedef struct sRvkImage      RvkImage;
+typedef struct sRvkJob        RvkJob;
+typedef struct sRvkMesh       RvkMesh;
 
 typedef u8 RvkPassHandle;
 
@@ -65,9 +65,9 @@ typedef struct sRvkPassSetup {
   RvkImage* attachDepth;
 
   // Global resources.
-  Mem            globalData[rvk_pass_global_data_max];
-  RvkImage*      globalImages[rvk_pass_global_image_max];
-  RvkSamplerSpec globalImageSamplers[rvk_pass_global_image_max];
+  RvkUniformHandle globalData[rvk_pass_global_data_max];
+  RvkImage*        globalImages[rvk_pass_global_image_max];
+  RvkSamplerSpec   globalImageSamplers[rvk_pass_global_image_max];
 
   // Per-draw resources.
   RvkImage* drawImages[rvk_pass_draw_image_max];

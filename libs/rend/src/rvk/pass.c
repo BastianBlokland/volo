@@ -403,18 +403,15 @@ static void rvk_pass_bind_global(
 
   // Attach global data.
   for (; binding != rvk_pass_global_data_max; ++binding) {
-    const Mem data = setup->globalData[binding];
-    if (!mem_valid(data)) {
+    const RvkUniformHandle data = setup->globalData[binding];
+    if (!data.size) {
       continue; // Global data binding unused.
     }
     if (!invoc->globalBoundMask) {
       globalDescSet = rvk_pass_alloc_desc_volatile(pass, frame, &pass->globalDescMeta);
     }
-    const RvkUniformHandle dataHandle = rvk_uniform_upload(frame->uniformPool, data);
-    const RvkBuffer*       dataBuffer = rvk_uniform_buffer(frame->uniformPool, dataHandle);
-    rvk_desc_set_attach_buffer(
-        globalDescSet, binding, dataBuffer, dataHandle.offset, (u32)data.size);
-
+    const RvkBuffer* dataBuffer = rvk_uniform_buffer(frame->uniformPool, data);
+    rvk_desc_set_attach_buffer(globalDescSet, binding, dataBuffer, data.offset, (u32)data.size);
     invoc->globalBoundMask |= 1 << binding;
   }
 

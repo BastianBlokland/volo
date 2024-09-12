@@ -114,13 +114,11 @@ void rend_builder_attach_depth(RendBuilderBuffer* buffer, RvkImage* img) {
 void rend_builder_global_data(RendBuilderBuffer* buffer, const Mem data, const u16 dataIndex) {
   diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
   diag_assert_msg(
-      !mem_valid(buffer->passSetup.globalData[dataIndex]),
+      !buffer->passSetup.globalData[dataIndex].size,
       "RendBuilder: Pass global data {} already staged",
       fmt_int(dataIndex));
 
-  const Mem result = alloc_dup(buffer->drawDataAlloc, data, rend_builder_draw_data_align);
-  diag_assert_msg(mem_valid(result), "RendBuilder: Draw-data allocator ran out of space");
-  buffer->passSetup.globalData[dataIndex] = result;
+  buffer->passSetup.globalData[dataIndex] = rvk_pass_uniform_upload(buffer->pass, data);
 }
 
 void rend_builder_global_image(RendBuilderBuffer* buffer, RvkImage* img, const u16 imageIndex) {
