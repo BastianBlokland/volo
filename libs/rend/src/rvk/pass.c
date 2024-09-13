@@ -453,8 +453,8 @@ static void rvk_pass_bind_global(
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*                         pass,
-    RvkPassFrame*                    frame,
+    RvkPass*           pass,
+    RvkPassFrame*      frame,
     MAYBE_UNUSED const RvkPassSetup* setup,
     const RvkGraphic*                gra,
     const RvkUniformHandle           data,
@@ -938,26 +938,23 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* 
         pass, frame, setup, graphic, draw->drawData, draw->drawMesh, drawImg, draw->drawSampler);
   }
 
-  diag_assert(draw->instDataStride * draw->instCount == draw->instData.size);
-  const u32 dataStride =
-      graphic->flags & RvkGraphicFlags_RequireInstanceSet ? draw->instDataStride : 0;
+  const bool instReqData   = (graphic->flags & RvkGraphicFlags_RequireInstanceSet) != 0;
+  const u32  instBatchSize = rvk_pass_batch_size(pass, instReqData ? draw->instDataStride : 0);
+  RvkUniformHandle instBatchData = draw->instData;
 
-  const u32 instancesBatchSize = rvk_pass_batch_size(pass, dataStride);
-  for (u32 remInstCount = draw->instCount, dataOffset = 0; remInstCount != 0;) {
-    const u32 instCount = math_min(remInstCount, instancesBatchSize);
-    invoc->instanceCount += instCount;
+  for (u32 remInstCount = draw->instCount; remInstCount != 0;) {
+    const u32 instCount = math_min(remInstCount, instBatchSize);
 
-    if (dataStride) {
-      const u32              dataSize   = instCount * dataStride;
-      const Mem              data       = mem_slice(draw->instData, dataOffset, dataSize);
-      const RvkUniformHandle dataHandle = rvk_uniform_upload(frame->uniformPool, data);
+    if (instReqData) {
+      diag_assert(
+          rvk_uniform_size(frame->uniformPool, instBatchData) == instCount * draw->instDataStride);
       rvk_uniform_dynamic_bind(
           frame->uniformPool,
-          dataHandle,
+          instBatchData,
           frame->vkCmdBuf,
           graphic->vkPipelineLayout,
           RvkGraphicSet_Instance);
-      dataOffset += dataSize;
+      instBatchData = rvk_uniform_next(frame->uniformPool, instBatchData);
     }
 
     if (draw->drawMesh || graphic->mesh) {
@@ -970,6 +967,8 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* 
         vkCmdDraw(frame->vkCmdBuf, vertexCount, instCount, 0, 0);
       }
     }
+
+    invoc->instanceCount += instCount;
     remInstCount -= instCount;
   }
 

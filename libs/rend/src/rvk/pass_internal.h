@@ -75,9 +75,9 @@ typedef struct sRvkPassSetup {
 
 typedef struct sRvkPassDraw {
   const RvkGraphic* graphic;
-  Mem               instData;
   const RvkMesh*    drawMesh;       // Per-draw mesh to use.
   RvkUniformHandle  drawData;       // Per-draw data to use.
+  RvkUniformHandle  instData;       // Chained uniform data for each batch.
   RvkSamplerSpec    drawSampler;    // Sampler specification for a per-draw image.
   u16               drawImageIndex; // Per-draw image to use.
   u16               instDataStride;
