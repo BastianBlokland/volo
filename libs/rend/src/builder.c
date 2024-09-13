@@ -159,7 +159,7 @@ u32 rend_builder_draw_instances_batch_size(RendBuilderBuffer* buffer, const u32 
   return rvk_pass_batch_size(buffer->pass, instDataStride);
 }
 
-void rend_builder_draw_instances_add(RendBuilderBuffer* buffer, const Mem data, const u32 count) {
+void rend_builder_draw_instances(RendBuilderBuffer* buffer, const Mem data, const u32 count) {
   diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
   diag_assert_msg(count, "RendBuilder: Needs at least 1 instance");
 

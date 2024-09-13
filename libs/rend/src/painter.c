@@ -219,7 +219,7 @@ static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id,
     if (data.size) {
       rend_builder_draw_data(ctx->builder, data);
     }
-    rend_builder_draw_instances(ctx->builder, 1, 0);
+    rend_builder_draw_instances(ctx->builder, mem_empty, 1);
     rend_builder_draw_flush(ctx->builder);
   }
 }
@@ -327,7 +327,7 @@ static void painter_push_fog(RendPaintContext* ctx, const RendFogComp* fog, RvkI
     rend_builder_draw_push(ctx->builder, graphic);
     rend_builder_draw_data(ctx->builder, mem_var(data));
     rend_builder_draw_image(ctx->builder, fogMap);
-    rend_builder_draw_instances(ctx->builder, 1, 0);
+    rend_builder_draw_instances(ctx->builder, mem_empty, 1);
     rend_builder_draw_flush(ctx->builder);
   }
 }
@@ -452,7 +452,7 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
     }
     rend_builder_draw_image(ctx->builder, image);
     rend_builder_draw_sampler(ctx->builder, sampler);
-    rend_builder_draw_instances(ctx->builder, 1, 0);
+    rend_builder_draw_instances(ctx->builder, mem_empty, 1);
     rend_builder_draw_flush(ctx->builder);
   }
 }
@@ -485,7 +485,7 @@ painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspect, const Rv
     rend_builder_draw_push(ctx->builder, graphic);
     rend_builder_draw_data(ctx->builder, mem_var(data));
     rend_builder_draw_mesh(ctx->builder, mesh);
-    rend_builder_draw_instances(ctx->builder, 1, 0);
+    rend_builder_draw_instances(ctx->builder, mem_empty, 1);
     rend_builder_draw_flush(ctx->builder);
   }
 }
