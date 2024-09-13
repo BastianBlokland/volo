@@ -18,6 +18,7 @@ void            rvk_uniform_pool_destroy(RvkUniformPool*);
 u32             rvk_uniform_size_max(RvkUniformPool*);
 
 bool             rvk_uniform_valid(RvkUniformHandle);
+u32              rvk_uniform_size(const RvkUniformPool*, RvkUniformHandle);
 RvkUniformHandle rvk_uniform_next(const RvkUniformPool*, RvkUniformHandle);
 
 void             rvk_uniform_reset(RvkUniformPool*);

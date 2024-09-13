@@ -98,6 +98,10 @@ u32 rvk_uniform_size_max(RvkUniformPool* uni) { return uni->dataSizeMax; }
 
 bool rvk_uniform_valid(const RvkUniformHandle handle) { return handle != 0; }
 
+u32 rvk_uniform_size(const RvkUniformPool* uni, const RvkUniformHandle handle) {
+  return rvk_uniform_entry(uni, handle)->size;
+}
+
 RvkUniformHandle rvk_uniform_next(const RvkUniformPool* uni, const RvkUniformHandle handle) {
   return rvk_uniform_entry(uni, handle)->next;
 }
