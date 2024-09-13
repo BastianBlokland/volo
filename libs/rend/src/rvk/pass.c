@@ -19,8 +19,6 @@
 #include "texture_internal.h"
 #include "uniform_internal.h"
 
-OPTIMIZE_OFF()
-
 #define pass_instance_count_max 2048
 #define pass_attachment_max (rvk_pass_attach_color_max + 1)
 
