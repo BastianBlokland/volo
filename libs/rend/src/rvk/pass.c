@@ -946,8 +946,18 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* 
     const u32 instCount = math_min(remInstCount, instBatchSize);
 
     if (instReqData) {
-      diag_assert(
-          rvk_uniform_size(frame->uniformPool, instBatchData) == instCount * draw->instDataStride);
+#ifndef VOLO_FAST
+      {
+        const u32 dataSizeActual   = rvk_uniform_size(frame->uniformPool, instBatchData);
+        const u32 dataSizeExpected = instCount * draw->instDataStride;
+        diag_assert_msg(
+            dataSizeActual == dataSizeExpected,
+            "Draw instance batch (count: {}) data-size invalid, expected: {} actual: {}",
+            fmt_int(instCount),
+            fmt_int(dataSizeExpected),
+            fmt_int(dataSizeActual));
+      }
+#endif
       rvk_uniform_dynamic_bind(
           frame->uniformPool,
           instBatchData,
