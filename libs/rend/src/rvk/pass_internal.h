@@ -75,9 +75,9 @@ typedef struct sRvkPassSetup {
 
 typedef struct sRvkPassDraw {
   const RvkGraphic* graphic;
-  Mem               instData;
   const RvkMesh*    drawMesh;       // Per-draw mesh to use.
   RvkUniformHandle  drawData;       // Per-draw data to use.
+  RvkUniformHandle  instData;       // Chained uniform data for each batch.
   RvkSamplerSpec    drawSampler;    // Sampler specification for a per-draw image.
   u16               drawImageIndex; // Per-draw image to use.
   u16               instDataStride;
@@ -108,7 +108,9 @@ RvkSize      rvk_pass_stat_size_max(const RvkPass*, RvkPassHandle);
 TimeDuration rvk_pass_stat_duration(const RvkPass*, RvkPassHandle);
 u64          rvk_pass_stat_pipeline(const RvkPass*, RvkPassHandle, RvkStat);
 
+u32              rvk_pass_batch_size(RvkPass*, u32 instanceDataSize);
 RvkUniformHandle rvk_pass_uniform_upload(RvkPass*, Mem data);
+void             rvk_pass_uniform_upload_next(RvkPass*, RvkUniformHandle head, Mem data);
 
 /**
  * NOTE: Pass-setup has to remain identical between begin and end.

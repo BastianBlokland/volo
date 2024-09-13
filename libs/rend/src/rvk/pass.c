@@ -404,12 +404,13 @@ static void rvk_pass_bind_global(
   // Attach global data.
   for (; binding != rvk_pass_global_data_max; ++binding) {
     const RvkUniformHandle data = setup->globalData[binding];
-    if (!data.size) {
+    if (!data) {
       continue; // Global data binding unused.
     }
     if (!invoc->globalBoundMask) {
       globalDescSet = rvk_pass_alloc_desc_volatile(pass, frame, &pass->globalDescMeta);
     }
+    diag_assert(!rvk_uniform_next(frame->uniformPool, data));
     rvk_uniform_attach(frame->uniformPool, data, globalDescSet, binding);
     invoc->globalBoundMask |= 1 << binding;
   }
@@ -465,7 +466,8 @@ static void rvk_pass_bind_draw(
   diag_assert_msg(!img || img->caps & RvkImageCapability_Sampled, "Image doesn't support sampling");
 
   const RvkDescSet descSet = rvk_pass_alloc_desc_volatile(pass, frame, &gra->drawDescMeta);
-  if (data.size && gra->drawDescMeta.bindings[0]) {
+  if (data && gra->drawDescMeta.bindings[0]) {
+    diag_assert(!rvk_uniform_next(frame->uniformPool, data));
     rvk_uniform_attach(frame->uniformPool, data, descSet, 0 /* binding */);
   }
   if (mesh && gra->drawDescMeta.bindings[1]) {
@@ -790,9 +792,23 @@ u64 rvk_pass_stat_pipeline(
   return res;
 }
 
+u32 rvk_pass_batch_size(RvkPass* pass, const u32 instanceDataSize) {
+  RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
+  if (!instanceDataSize) {
+    return pass_instance_count_max;
+  }
+  const u32 uniformMaxInstances = rvk_uniform_size_max(frame->uniformPool) / instanceDataSize;
+  return math_min(uniformMaxInstances, pass_instance_count_max);
+}
+
 RvkUniformHandle rvk_pass_uniform_upload(RvkPass* pass, const Mem data) {
   RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
   return rvk_uniform_upload(frame->uniformPool, data);
+}
+
+void rvk_pass_uniform_upload_next(RvkPass* pass, const RvkUniformHandle head, const Mem data) {
+  RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
+  rvk_uniform_upload_next(frame->uniformPool, head, data);
 }
 
 void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
@@ -866,14 +882,6 @@ void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
   rvk_pass_bind_global(pass, frame, invoc, setup);
 }
 
-static u32 rvk_pass_instances_per_draw(RvkPassFrame* f, const u32 remaining, const u32 dataStride) {
-  if (!dataStride) {
-    return math_min(remaining, pass_instance_count_max);
-  }
-  const u32 instances = math_min(remaining, rvk_uniform_size_max(f->uniformPool) / dataStride);
-  return math_min(instances, pass_instance_count_max);
-}
-
 void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* draw) {
   RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
 
@@ -893,7 +901,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* 
         log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
-  if (UNLIKELY(graphic->drawDescMeta.bindings[0] && !draw->drawData.size)) {
+  if (UNLIKELY(graphic->drawDescMeta.bindings[0] && !draw->drawData)) {
     log_e("Graphic requires draw data", log_param("graphic", fmt_text(graphic->dbgName)));
     return;
   }
@@ -929,25 +937,34 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* 
         pass, frame, setup, graphic, draw->drawData, draw->drawMesh, drawImg, draw->drawSampler);
   }
 
-  diag_assert(draw->instDataStride * draw->instCount == draw->instData.size);
-  const u32 dataStride =
-      graphic->flags & RvkGraphicFlags_RequireInstanceSet ? draw->instDataStride : 0;
+  const bool instReqData   = (graphic->flags & RvkGraphicFlags_RequireInstanceSet) != 0;
+  const u32  instBatchSize = rvk_pass_batch_size(pass, instReqData ? draw->instDataStride : 0);
+  RvkUniformHandle instBatchData = draw->instData;
 
-  for (u32 remInstCount = draw->instCount, dataOffset = 0; remInstCount != 0;) {
-    const u32 instCount = rvk_pass_instances_per_draw(frame, remInstCount, dataStride);
-    invoc->instanceCount += instCount;
+  for (u32 remInstCount = draw->instCount; remInstCount != 0;) {
+    const u32 instCount = math_min(remInstCount, instBatchSize);
 
-    if (dataStride) {
-      const u32              dataSize   = instCount * dataStride;
-      const Mem              data       = mem_slice(draw->instData, dataOffset, dataSize);
-      const RvkUniformHandle dataHandle = rvk_uniform_upload(frame->uniformPool, data);
+    if (instReqData) {
+#ifndef VOLO_FAST
+      {
+        const u32 dataSizeActual   = rvk_uniform_size(frame->uniformPool, instBatchData);
+        const u32 dataSizeExpected = instCount * draw->instDataStride;
+        diag_assert_msg(
+            dataSizeActual == dataSizeExpected,
+            "Draw batch (count: {}, stride: {}) data-size invalid, expected: {} actual: {}",
+            fmt_int(instCount),
+            fmt_int(draw->instDataStride),
+            fmt_int(dataSizeExpected),
+            fmt_int(dataSizeActual));
+      }
+#endif
       rvk_uniform_dynamic_bind(
           frame->uniformPool,
-          dataHandle,
+          instBatchData,
           frame->vkCmdBuf,
           graphic->vkPipelineLayout,
           RvkGraphicSet_Instance);
-      dataOffset += dataSize;
+      instBatchData = rvk_uniform_next(frame->uniformPool, instBatchData);
     }
 
     if (draw->drawMesh || graphic->mesh) {
@@ -960,6 +977,8 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* 
         vkCmdDraw(frame->vkCmdBuf, vertexCount, instCount, 0, 0);
       }
     }
+
+    invoc->instanceCount += instCount;
     remInstCount -= instCount;
   }
 

@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_sort.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -122,14 +123,6 @@ INLINE_HINT static u32 rend_object_align(const u32 val, const u32 align) {
 static Mem rend_object_inst_data(const RendObjectComp* obj, const u32 instance) {
   const usize offset = instance * obj->instDataSize;
   return mem_create(bits_ptr_offset(obj->instDataMem.ptr, offset), obj->instDataSize);
-}
-
-static void rend_object_copy_to_output(
-    const RendObjectComp* obj, const u32 instIndex, const u32 outIndex, const Mem outMem) {
-  const usize outOffset  = outIndex * obj->instDataSize;
-  const Mem   outInstMem = mem_create(bits_ptr_offset(outMem.ptr, outOffset), obj->instDataSize);
-  const Mem   inInstMem  = rend_object_inst_data(obj, instIndex);
-  rend_object_memcpy(outInstMem.ptr, inInstMem.ptr, inInstMem.size);
 }
 
 static bool rend_resource_asset_valid(EcsWorld* world, const EcsEntityId assetEntity) {
@@ -260,6 +253,39 @@ rend_object_sort(const RendObjectComp* obj, RendObjectSortKey* sortKeys, const u
   sort_quicksort_t(sortKeys, sortKeys + count, RendObjectSortKey, compareFunc);
 }
 
+typedef struct {
+  u32 countMax;
+  u32 countCur;
+  Mem buffer;
+} RendBatch;
+
+static RendBatch rend_batch_init(const RendObjectComp* obj, RendBuilderBuffer* builder) {
+  RendBatch b = {.countMax = rend_builder_draw_instances_batch_size(builder, obj->instDataSize)};
+  if (obj->instDataSize) {
+    b.buffer = alloc_alloc(g_allocScratch, obj->instDataSize * b.countMax, rend_min_align);
+  }
+  return b;
+}
+
+static void rend_batch_flush(const RendObjectComp* obj, RendBatch* b, RendBuilderBuffer* builder) {
+  if (b->countCur) {
+    const Mem data = mem_slice(b->buffer, 0, b->countCur * obj->instDataSize);
+    rend_builder_draw_instances(builder, data, b->countCur);
+    b->countCur = 0;
+  }
+}
+
+static void rend_batch_push(
+    const RendObjectComp* obj, RendBatch* b, RendBuilderBuffer* builder, const u32 instIndex) {
+  const Mem outInstMem = mem_consume(b->buffer, b->countCur * obj->instDataSize);
+  const Mem inInstMem  = rend_object_inst_data(obj, instIndex);
+  rend_object_memcpy(outInstMem.ptr, inInstMem.ptr, inInstMem.size);
+
+  if (++b->countCur == b->countMax) {
+    rend_batch_flush(obj, b, builder);
+  }
+}
+
 void rend_object_draw(
     const RendObjectComp*   obj,
     const RendView*         view,
@@ -278,18 +304,21 @@ void rend_object_draw(
     rend_builder_draw_vertex_count(builder, obj->vertexCountOverride);
   }
   if (obj->flags & RendObjectFlags_NoInstanceFiltering) {
-    /**
-     * Without instance filtering we can skip the memory copy that is needed to keep the instances
-     * contiguous in memory.
-     */
-    const Mem instMem = mem_slice(obj->instDataMem, 0, obj->instCount * obj->instDataSize);
-    rend_builder_draw_instances_extern(builder, obj->instCount, instMem, obj->instDataSize);
+    // Fast path for non-filtered objects.
+    const u32 batchCount = rend_builder_draw_instances_batch_size(builder, obj->instDataSize);
+    for (u32 i = 0; i != obj->instCount;) {
+      const u32   count      = math_min(obj->instCount - i, batchCount);
+      const usize dataOffset = i * obj->instDataSize;
+      const Mem   data       = mem_slice(obj->instDataMem, dataOffset, count * obj->instDataSize);
+      rend_builder_draw_instances(builder, data, count);
+      i += count;
+    }
     return;
   }
 
-  Mem outputMem;
-
+  RendBatch          batch    = rend_batch_init(obj, builder);
   RendObjectSortKey* sortKeys = null;
+
   if (obj->flags & RendObjectFlags_Sorted) {
     const usize requiredSortMem = obj->instCount * sizeof(RendObjectSortKey);
     if (UNLIKELY(obj->instCount > u16_max || requiredSortMem > alloc_max_size(g_allocScratch))) {
@@ -300,9 +329,6 @@ void rend_object_draw(
       return;
     }
     sortKeys = alloc_array_t(g_allocScratch, RendObjectSortKey, obj->instCount);
-  } else {
-    // Not sorted; output in a single pass by allocating the max amount and then trimming.
-    outputMem = rend_builder_draw_instances(builder, obj->instCount, obj->instDataSize);
   }
 
   u32 filteredInstCount = 0;
@@ -316,19 +342,15 @@ void rend_object_draw(
     if (sortKeys) {
       /**
        * Instead of outputting the instance directly, first create a sort key for it. Then in a
-       * separate pass sort the instances and copy them to the output.
+       * separate pass sort the instances and push them to the batch.
        */
       sortKeys[outputIndex] = (RendObjectSortKey){
           .instIndex = (u16)i,
           .viewDist  = rend_view_sort_dist(view, instAabb),
       };
     } else {
-      rend_object_copy_to_output(obj, i, outputIndex, outputMem);
+      rend_batch_push(obj, &batch, builder, i);
     }
-  }
-
-  if (!sortKeys) {
-    rend_builder_draw_instances_trim(builder, filteredInstCount);
   }
 
   if (sortKeys && filteredInstCount) {
@@ -337,16 +359,17 @@ void rend_object_draw(
     const bool trace = filteredInstCount > 1000;
     if (trace) { trace_begin("rend_object_sort", TraceColor_Blue); }
 #endif
-    outputMem = rend_builder_draw_instances(builder, filteredInstCount, obj->instDataSize);
     rend_object_sort(obj, sortKeys, filteredInstCount);
     for (u32 i = 0; i != filteredInstCount; ++i) {
-      rend_object_copy_to_output(obj, sortKeys[i].instIndex, i, outputMem);
+      rend_batch_push(obj, &batch, builder, sortKeys[i].instIndex);
     }
 #ifdef VOLO_TRACE
     if (trace) { trace_end(); }
 #endif
     // clang-format on
   }
+
+  rend_batch_flush(obj, &batch, builder);
 }
 
 void rend_object_set_resource(

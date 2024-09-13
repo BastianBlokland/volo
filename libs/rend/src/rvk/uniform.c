@@ -28,11 +28,37 @@ typedef struct {
   RvkDescSet dynamicSet; // Optional descriptor set for dynamic binding.
 } RvkUniformChunk;
 
+typedef struct {
+  u32              chunkIdx, offset, size;
+  RvkUniformHandle next;
+} RvkUniformEntry;
+
 struct sRvkUniformPool {
   RvkDevice* device;
   u32        alignMin, dataSizeMax;
-  DynArray   chunks; // RvkUniformChunk[]
+  DynArray   chunks;  // RvkUniformChunk[]
+  DynArray   entries; // RvkUniformEntry[]
 };
+
+static const RvkUniformEntry* rvk_uniform_entry(const RvkUniformPool* u, const RvkUniformHandle h) {
+  diag_assert_msg(h, "Invalid uniform handle");
+  return dynarray_at_t(&u->entries, h - 1, RvkUniformEntry);
+}
+
+static RvkUniformEntry* rvk_uniform_entry_mut(RvkUniformPool* u, const RvkUniformHandle h) {
+  diag_assert_msg(h, "Invalid uniform handle");
+  return dynarray_at_t(&u->entries, h - 1, RvkUniformEntry);
+}
+
+static RvkUniformHandle rvk_uniform_entry_push(
+    RvkUniformPool* uni, const u32 chunkIndex, const u32 offset, const u32 size) {
+  *dynarray_push_t(&uni->entries, RvkUniformEntry) = (RvkUniformEntry){
+      .chunkIdx = chunkIndex,
+      .offset   = offset,
+      .size     = size,
+  };
+  return (RvkUniformHandle)uni->entries.size;
+}
 
 static RvkUniformChunk* rvk_uniform_chunk(RvkUniformPool* uni, const u32 chunkIdx) {
   return dynarray_at_t(&uni->chunks, chunkIdx, RvkUniformChunk);
@@ -41,12 +67,16 @@ static RvkUniformChunk* rvk_uniform_chunk(RvkUniformPool* uni, const u32 chunkId
 RvkUniformPool* rvk_uniform_pool_create(RvkDevice* dev) {
   RvkUniformPool* pool = alloc_alloc_t(g_allocHeap, RvkUniformPool);
 
+  const u32 alignMin = (u32)dev->vkProperties.limits.minUniformBufferOffsetAlignment;
+  const u32 dataSizeMax =
+      (u32)math_min(dev->vkProperties.limits.maxUniformBufferRange, rvk_uniform_desired_size_max);
+
   *pool = (RvkUniformPool){
       .device      = dev,
-      .alignMin    = (u32)dev->vkProperties.limits.minUniformBufferOffsetAlignment,
-      .dataSizeMax = (u32)math_min(
-          dev->vkProperties.limits.maxUniformBufferRange, rvk_uniform_desired_size_max),
-      .chunks = dynarray_create_t(g_allocHeap, RvkUniformChunk, 16),
+      .alignMin    = alignMin,
+      .dataSizeMax = dataSizeMax,
+      .chunks      = dynarray_create_t(g_allocHeap, RvkUniformChunk, 16),
+      .entries     = dynarray_create_t(g_allocHeap, RvkUniformEntry, 128),
   };
 
   return pool;
@@ -60,16 +90,30 @@ void rvk_uniform_pool_destroy(RvkUniformPool* uni) {
     }
   }
   dynarray_destroy(&uni->chunks);
+  dynarray_destroy(&uni->entries);
   alloc_free_t(g_allocHeap, uni);
 }
 
 u32 rvk_uniform_size_max(RvkUniformPool* uni) { return uni->dataSizeMax; }
 
+bool rvk_uniform_valid(const RvkUniformHandle handle) { return handle != 0; }
+
+u32 rvk_uniform_size(const RvkUniformPool* uni, const RvkUniformHandle handle) {
+  return rvk_uniform_entry(uni, handle)->size;
+}
+
+RvkUniformHandle rvk_uniform_next(const RvkUniformPool* uni, const RvkUniformHandle handle) {
+  return rvk_uniform_entry(uni, handle)->next;
+}
+
 void rvk_uniform_reset(RvkUniformPool* uni) {
   dynarray_for_t(&uni->chunks, RvkUniformChunk, chunk) { chunk->offset = 0; }
+  dynarray_clear(&uni->entries);
 }
 
 RvkUniformHandle rvk_uniform_upload(RvkUniformPool* uni, const Mem data) {
+  diag_assert(data.size);
+
   const u32 padding    = bits_padding((u32)data.size, uni->alignMin);
   const u32 paddedSize = (u32)data.size + padding;
   diag_assert_msg(paddedSize <= uni->dataSizeMax, "Uniform data exceeds maximum");
@@ -87,7 +131,7 @@ RvkUniformHandle rvk_uniform_upload(RvkUniformPool* uni, const Mem data) {
       u32 offset = chunk->offset;
       rvk_buffer_upload(&chunk->buffer, data, offset);
       chunk->offset += paddedSize;
-      return (RvkUniformHandle){.chunkIdx = chunkIdx, .offset = offset, .size = (u32)data.size};
+      return rvk_uniform_entry_push(uni, chunkIdx, offset, (u32)data.size);
     }
   }
 
@@ -109,15 +153,24 @@ RvkUniformHandle rvk_uniform_upload(RvkUniformPool* uni, const Mem data) {
       log_param("data-size-max", fmt_size(uni->dataSizeMax)),
       log_param("align-min", fmt_size(uni->alignMin)));
 
-  return (RvkUniformHandle){.chunkIdx = newChunkIdx, .offset = 0, .size = (u32)data.size};
+  return rvk_uniform_entry_push(uni, newChunkIdx, 0 /* offset */, (u32)data.size);
+}
+
+void rvk_uniform_upload_next(RvkUniformPool* uni, const RvkUniformHandle head, const Mem data) {
+  const RvkUniformHandle dataHandle = rvk_uniform_upload(uni, data);
+
+  RvkUniformEntry* tail = rvk_uniform_entry_mut(uni, head);
+  for (; tail->next; tail = rvk_uniform_entry_mut(uni, tail->next))
+    ;
+  tail->next = dataHandle;
 }
 
 void rvk_uniform_attach(
     RvkUniformPool* uni, const RvkUniformHandle handle, const RvkDescSet set, const u32 binding) {
-  diag_assert(handle.size);
 
-  const RvkBuffer* buffer = &rvk_uniform_chunk(uni, handle.chunkIdx)->buffer;
-  rvk_desc_set_attach_buffer(set, binding, buffer, handle.offset, handle.size);
+  const RvkUniformEntry* entry  = rvk_uniform_entry(uni, handle);
+  const RvkBuffer*       buffer = &rvk_uniform_chunk(uni, entry->chunkIdx)->buffer;
+  rvk_desc_set_attach_buffer(set, binding, buffer, entry->offset, entry->size);
 }
 
 void rvk_uniform_dynamic_bind(
@@ -126,16 +179,16 @@ void rvk_uniform_dynamic_bind(
     VkCommandBuffer  vkCmdBuf,
     VkPipelineLayout vkPipelineLayout,
     const u32        set) {
-  diag_assert(handle.size);
 
-  RvkUniformChunk* chunk = rvk_uniform_chunk(uni, handle.chunkIdx);
+  const RvkUniformEntry* entry = rvk_uniform_entry(uni, handle);
+  RvkUniformChunk*       chunk = rvk_uniform_chunk(uni, entry->chunkIdx);
   if (UNLIKELY(!rvk_desc_valid(chunk->dynamicSet))) {
     const RvkDescMeta meta = (RvkDescMeta){.bindings[0] = RvkDescKind_UniformBufferDynamic};
     chunk->dynamicSet      = rvk_desc_alloc(uni->device->descPool, &meta);
     rvk_desc_set_attach_buffer(chunk->dynamicSet, 0, &chunk->buffer, 0, uni->dataSizeMax);
   }
   const VkDescriptorSet descSets[]       = {rvk_desc_set_vkset(chunk->dynamicSet)};
-  const u32             dynamicOffsets[] = {handle.offset};
+  const u32             dynamicOffsets[] = {entry->offset};
   vkCmdBindDescriptorSets(
       vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,

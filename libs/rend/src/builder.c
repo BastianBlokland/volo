@@ -9,8 +9,6 @@
 #include "rvk/pass_internal.h"
 
 #define rend_builder_workers_max 8
-#define rend_builder_draw_data_align 16
-#define rend_builder_draw_data_chunk_size (16 * usize_mebibyte)
 
 struct sRendBuilderBuffer {
   ALIGNAS(64)
@@ -18,7 +16,6 @@ struct sRendBuilderBuffer {
   RvkPassSetup passSetup;
   RvkPassDraw* draw;
   DynArray     drawList; // RvkPassDraw[]
-  Allocator*   drawDataAlloc;
 };
 
 ASSERT(alignof(RendBuilderBuffer) == 64, "Unexpected buffer alignment")
@@ -42,8 +39,6 @@ RendBuilder* rend_builder_create(Allocator* alloc) {
   for (u32 i = 0; i != rend_builder_workers_max; ++i) {
     builder->buffers[i] = (RendBuilderBuffer){
         .drawList = dynarray_create_t(alloc, RvkPassDraw, 8),
-        .drawDataAlloc =
-            alloc_chunked_create(alloc, alloc_bump_create, rend_builder_draw_data_chunk_size),
     };
   }
 
@@ -53,7 +48,6 @@ RendBuilder* rend_builder_create(Allocator* alloc) {
 void rend_builder_destroy(RendBuilder* builder) {
   for (u32 i = 0; i != rend_builder_workers_max; ++i) {
     dynarray_destroy(&builder->buffers[i].drawList);
-    alloc_chunked_destroy(builder->buffers[i].drawDataAlloc);
   }
   alloc_free_t(builder->allocator, builder);
 }
@@ -81,7 +75,6 @@ void rend_builder_pass_flush(RendBuilderBuffer* buffer) {
   rvk_pass_end(buffer->pass, &buffer->passSetup);
 
   dynarray_clear(&buffer->drawList);
-  alloc_reset(buffer->drawDataAlloc);
 
   buffer->pass = null;
 }
@@ -114,7 +107,7 @@ void rend_builder_attach_depth(RendBuilderBuffer* buffer, RvkImage* img) {
 void rend_builder_global_data(RendBuilderBuffer* buffer, const Mem data, const u16 dataIndex) {
   diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
   diag_assert_msg(
-      !buffer->passSetup.globalData[dataIndex].size,
+      !buffer->passSetup.globalData[dataIndex],
       "RendBuilder: Pass global data {} already staged",
       fmt_int(dataIndex));
 
@@ -156,53 +149,35 @@ void rend_builder_draw_push(RendBuilderBuffer* buffer, const RvkGraphic* graphic
 
 void rend_builder_draw_data(RendBuilderBuffer* buffer, const Mem data) {
   diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
-  diag_assert_msg(!buffer->draw->drawData.size, "RendBuilder: Draw-data already set");
+  diag_assert_msg(!buffer->draw->drawData, "RendBuilder: Draw-data already set");
 
   buffer->draw->drawData = rvk_pass_uniform_upload(buffer->pass, data);
 }
 
-Mem rend_builder_draw_instances(RendBuilderBuffer* buffer, const u32 count, const u32 stride) {
+u32 rend_builder_draw_instances_batch_size(RendBuilderBuffer* buffer, const u32 dataStride) {
   diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
-  diag_assert_msg(!buffer->draw->instCount, "RendBuilder: Instances already set");
-  diag_assert_msg(!mem_valid(buffer->draw->instData), "RendBuilder: Instance data already set");
+  return rvk_pass_batch_size(buffer->pass, dataStride);
+}
 
-  Mem data;
-  if (stride) {
-    data = alloc_alloc(buffer->drawDataAlloc, count * stride, rend_builder_draw_data_align);
-    diag_assert_msg(mem_valid(data), "RendBuilder: Draw-data allocator ran out of space");
+void rend_builder_draw_instances(RendBuilderBuffer* buffer, const Mem data, const u32 count) {
+  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
+  diag_assert_msg(count, "RendBuilder: Needs at least 1 instance");
+
+  const u32 dataStride = (u32)(data.size / count);
+  diag_assert(count <= rvk_pass_batch_size(buffer->pass, dataStride));
+
+  if (buffer->draw->instCount) {
+    diag_assert(buffer->draw->instDataStride == dataStride);
+    if (dataStride) {
+      rvk_pass_uniform_upload_next(buffer->pass, buffer->draw->instData, data);
+    }
   } else {
-    data = mem_empty;
+    buffer->draw->instDataStride = dataStride;
+    if (dataStride) {
+      buffer->draw->instData = rvk_pass_uniform_upload(buffer->pass, data);
+    }
   }
-
-  buffer->draw->instCount      = count;
-  buffer->draw->instDataStride = stride;
-  buffer->draw->instData       = data;
-  return data;
-}
-
-void rend_builder_draw_instances_trim(RendBuilderBuffer* buffer, const u32 count) {
-  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
-  diag_assert_msg(buffer->draw->instCount, "RendBuilder: No instances set");
-
-  diag_assert(count <= buffer->draw->instCount);
-
-  const u32 dataStride = buffer->draw->instDataStride;
-
-  buffer->draw->instCount = count;
-  buffer->draw->instData  = mem_slice(buffer->draw->instData, 0, count * dataStride);
-}
-
-void rend_builder_draw_instances_extern(
-    RendBuilderBuffer* buffer, const u32 count, const Mem data, const u32 stride) {
-  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
-  diag_assert_msg(!buffer->draw->instCount, "RendBuilder: Instances already set");
-  diag_assert_msg(!mem_valid(buffer->draw->instData), "RendBuilder: Instance data already set");
-
-  diag_assert(data.size == count * stride);
-
-  buffer->draw->instCount      = count;
-  buffer->draw->instDataStride = stride;
-  buffer->draw->instData       = data;
+  buffer->draw->instCount += count;
 }
 
 void rend_builder_draw_vertex_count(RendBuilderBuffer* buffer, const u32 vertexCount) {
