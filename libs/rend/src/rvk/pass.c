@@ -953,8 +953,9 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* 
         const u32 dataSizeExpected = instCount * draw->instDataStride;
         diag_assert_msg(
             dataSizeActual == dataSizeExpected,
-            "Draw instance batch (count: {}) data-size invalid, expected: {} actual: {}",
+            "Draw batch (count: {}, stride: {}) data-size invalid, expected: {} actual: {}",
             fmt_int(instCount),
+            fmt_int(draw->instDataStride),
             fmt_int(dataSizeExpected),
             fmt_int(dataSizeActual));
       }
