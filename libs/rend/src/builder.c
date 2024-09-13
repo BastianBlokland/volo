@@ -154,9 +154,9 @@ void rend_builder_draw_data(RendBuilderBuffer* buffer, const Mem data) {
   buffer->draw->drawData = rvk_pass_uniform_upload(buffer->pass, data);
 }
 
-u32 rend_builder_draw_instances_batch_size(RendBuilderBuffer* buffer, const u32 instDataStride) {
+u32 rend_builder_draw_instances_batch_size(RendBuilderBuffer* buffer, const u32 dataStride) {
   diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
-  return rvk_pass_batch_size(buffer->pass, instDataStride);
+  return rvk_pass_batch_size(buffer->pass, dataStride);
 }
 
 void rend_builder_draw_instances(RendBuilderBuffer* buffer, const Mem data, const u32 count) {
@@ -164,6 +164,8 @@ void rend_builder_draw_instances(RendBuilderBuffer* buffer, const Mem data, cons
   diag_assert_msg(count, "RendBuilder: Needs at least 1 instance");
 
   const u32 dataStride = (u32)(data.size / count);
+  diag_assert(count <= rvk_pass_batch_size(buffer->pass, dataStride));
+
   if (buffer->draw->instCount) {
     diag_assert(buffer->draw->instDataStride == dataStride);
     buffer->draw->instData =
