@@ -43,9 +43,8 @@ void rend_builder_global_shadow(RendBuilderBuffer*, RvkImage*, u16 imageIndex);
 
 void rend_builder_draw_push(RendBuilderBuffer*, const RvkGraphic*);
 void rend_builder_draw_data(RendBuilderBuffer*, Mem drawData);
-void rend_builder_draw_instances_extern(RendBuilderBuffer*, u32 count, Mem data, u32 stride);
-Mem  rend_builder_draw_instances(RendBuilderBuffer*, u32 count, u32 stride); // 16 byte aligned.
-void rend_builder_draw_instances_trim(RendBuilderBuffer*, u32 count);
+u32  rend_builder_draw_instances_batch_size(RendBuilderBuffer*, u32 instDataStride);
+void rend_builder_draw_instances_add(RendBuilderBuffer*, Mem data, u32 count);
 void rend_builder_draw_vertex_count(RendBuilderBuffer*, u32 vertexCount);
 void rend_builder_draw_mesh(RendBuilderBuffer*, const RvkMesh*);
 void rend_builder_draw_image(RendBuilderBuffer*, RvkImage*);
