@@ -168,8 +168,7 @@ void rend_builder_draw_instances(RendBuilderBuffer* buffer, const Mem data, cons
 
   if (buffer->draw->instCount) {
     diag_assert(buffer->draw->instDataStride == dataStride);
-    buffer->draw->instData =
-        rvk_pass_uniform_upload_next(buffer->pass, buffer->draw->instData, data);
+    rvk_pass_uniform_upload_next(buffer->pass, buffer->draw->instData, data);
   } else {
     buffer->draw->instDataStride = dataStride;
     buffer->draw->instData       = rvk_pass_uniform_upload(buffer->pass, data);

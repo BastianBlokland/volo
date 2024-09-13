@@ -154,11 +154,11 @@ RvkUniformHandle rvk_uniform_upload(RvkUniformPool* uni, const Mem data) {
   return rvk_uniform_entry_push(uni, newChunkIdx, 0 /* offset */, (u32)data.size);
 }
 
-RvkUniformHandle
-rvk_uniform_upload_next(RvkUniformPool* uni, const RvkUniformHandle prev, const Mem data) {
-  const RvkUniformHandle res             = rvk_uniform_upload(uni, data);
-  rvk_uniform_entry_mut(uni, prev)->next = res;
-  return res;
+void rvk_uniform_upload_next(RvkUniformPool* uni, const RvkUniformHandle head, const Mem data) {
+  RvkUniformEntry* tail = rvk_uniform_entry_mut(uni, head);
+  for (; tail->next; tail = rvk_uniform_entry_mut(uni, tail->next))
+    ;
+  tail->next = rvk_uniform_upload(uni, data);
 }
 
 void rvk_uniform_attach(

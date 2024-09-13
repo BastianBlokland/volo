@@ -19,6 +19,8 @@
 #include "texture_internal.h"
 #include "uniform_internal.h"
 
+OPTIMIZE_OFF()
+
 #define pass_instance_count_max 2048
 #define pass_attachment_max (rvk_pass_attach_color_max + 1)
 
@@ -806,10 +808,9 @@ RvkUniformHandle rvk_pass_uniform_upload(RvkPass* pass, const Mem data) {
   return rvk_uniform_upload(frame->uniformPool, data);
 }
 
-RvkUniformHandle
-rvk_pass_uniform_upload_next(RvkPass* pass, const RvkUniformHandle prev, const Mem data) {
+void rvk_pass_uniform_upload_next(RvkPass* pass, const RvkUniformHandle head, const Mem data) {
   RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
-  return rvk_uniform_upload_next(frame->uniformPool, prev, data);
+  rvk_uniform_upload_next(frame->uniformPool, head, data);
 }
 
 void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {

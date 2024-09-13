@@ -110,7 +110,7 @@ u64          rvk_pass_stat_pipeline(const RvkPass*, RvkPassHandle, RvkStat);
 
 u32              rvk_pass_batch_size(RvkPass*, u32 instanceDataSize);
 RvkUniformHandle rvk_pass_uniform_upload(RvkPass*, Mem data);
-RvkUniformHandle rvk_pass_uniform_upload_next(RvkPass*, RvkUniformHandle prev, Mem data);
+void             rvk_pass_uniform_upload_next(RvkPass*, RvkUniformHandle head, Mem data);
 
 /**
  * NOTE: Pass-setup has to remain identical between begin and end.
