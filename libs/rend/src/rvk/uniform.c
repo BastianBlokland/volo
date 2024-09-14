@@ -127,6 +127,7 @@ void rvk_uniform_flush(RvkUniformPool* uni) {
 
 void rvk_uniform_reset(RvkUniformPool* uni) {
   dynarray_for_t(&uni->chunks, RvkUniformChunk, chunk) {
+    diag_assert_msg(chunk->offset == chunk->offsetFlushed, "UniformPool was not flushed");
     chunk->offset        = 0;
     chunk->offsetFlushed = 0;
   }
