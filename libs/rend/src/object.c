@@ -260,11 +260,8 @@ typedef struct {
 } RendBatch;
 
 static RendBatch rend_batch_init(const RendObjectComp* obj, RendBuilderBuffer* builder) {
-  RendBatch b = {.countMax = rend_builder_draw_instances_batch_size(builder, obj->instDataSize)};
-  if (obj->instDataSize) {
-    b.buffer = alloc_alloc(g_allocScratch, obj->instDataSize * b.countMax, rend_min_align);
-  }
-  return b;
+  const u32 batchSize = rend_builder_draw_instances_batch_size(builder, obj->instDataSize);
+  return (RendBatch){.countMax = batchSize};
 }
 
 static void rend_batch_flush(const RendObjectComp* obj, RendBatch* b, RendBuilderBuffer* builder) {
@@ -277,6 +274,9 @@ static void rend_batch_flush(const RendObjectComp* obj, RendBatch* b, RendBuilde
 
 static void rend_batch_push(
     const RendObjectComp* obj, RendBatch* b, RendBuilderBuffer* builder, const u32 instIndex) {
+  if (UNLIKELY(!mem_valid(b->buffer) && obj->instDataSize)) {
+    b->buffer = alloc_alloc(g_allocScratch, obj->instDataSize * b->countMax, rend_min_align);
+  }
   const Mem outInstMem = mem_consume(b->buffer, b->countCur * obj->instDataSize);
   const Mem inInstMem  = rend_object_inst_data(obj, instIndex);
   rend_object_memcpy(outInstMem.ptr, inInstMem.ptr, inInstMem.size);
@@ -304,11 +304,14 @@ void rend_object_draw(
   if (obj->vertexCountOverride) {
     rend_builder_draw_vertex_count(builder, obj->vertexCountOverride);
   }
+
+  RendBatch          batch    = rend_batch_init(obj, builder);
+  RendObjectSortKey* sortKeys = null;
+
   if (obj->flags & RendObjectFlags_NoInstanceFiltering) {
     // Fast path for non-filtered objects.
-    const u32 batchCount = rend_builder_draw_instances_batch_size(builder, obj->instDataSize);
     for (u32 i = 0; i != obj->instCount;) {
-      const u32   count      = math_min(obj->instCount - i, batchCount);
+      const u32   count      = math_min(obj->instCount - i, batch.countMax);
       const usize dataOffset = i * obj->instDataSize;
       const Mem   data       = mem_slice(obj->instDataMem, dataOffset, count * obj->instDataSize);
       mem_cpy(rend_builder_draw_instances(builder, obj->instDataSize, count), data);
@@ -316,9 +319,6 @@ void rend_object_draw(
     }
     return;
   }
-
-  RendBatch          batch    = rend_batch_init(obj, builder);
-  RendObjectSortKey* sortKeys = null;
 
   if (obj->flags & RendObjectFlags_Sorted) {
     const usize requiredSortMem = obj->instCount * sizeof(RendObjectSortKey);
