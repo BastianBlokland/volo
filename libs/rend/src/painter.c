@@ -250,8 +250,7 @@ static SceneTags painter_push_objects_simple(
 
     rend_builder_draw_push(ctx->builder, graphic);
     if (texture) {
-      // TODO: This cast violates const-correctness.
-      rend_builder_draw_image(ctx->builder, (RvkImage*)&texture->image);
+      rend_builder_draw_image_frozen(ctx->builder, &texture->image);
     }
     rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
     rend_builder_draw_flush(ctx->builder);
@@ -303,8 +302,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
     } else {
       alphaTex = graphicOrg->samplerTextures[alphaTexIndex];
     }
-    // TODO: This cast violates const-correctness.
-    rend_builder_draw_image(ctx->builder, (RvkImage*)&alphaTex->image);
+    rend_builder_draw_image_frozen(ctx->builder, &alphaTex->image);
     rend_builder_draw_sampler(ctx->builder, (RvkSamplerSpec){.aniso = RvkSamplerAniso_x8});
 
     rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
@@ -551,8 +549,7 @@ painter_push_debug_wireframe(RendPaintContext* ctx, EcsView* objView, EcsView* r
     rend_builder_draw_push(ctx->builder, graphic);
     rend_builder_draw_mesh(ctx->builder, graphicOrg->mesh);
     if (texture) {
-      // TODO: This cast violates const-correctness.
-      rend_builder_draw_image(ctx->builder, (RvkImage*)&texture->image);
+      rend_builder_draw_image_frozen(ctx->builder, &texture->image);
     }
     rend_object_draw(obj, &ctx->view, ctx->settings, ctx->builder);
     rend_builder_draw_flush(ctx->builder);

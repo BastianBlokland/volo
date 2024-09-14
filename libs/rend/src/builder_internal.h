@@ -48,5 +48,6 @@ void rend_builder_draw_instances(RendBuilderBuffer*, Mem data, u32 count);
 void rend_builder_draw_vertex_count(RendBuilderBuffer*, u32 vertexCount);
 void rend_builder_draw_mesh(RendBuilderBuffer*, const RvkMesh*);
 void rend_builder_draw_image(RendBuilderBuffer*, RvkImage*);
+void rend_builder_draw_image_frozen(RendBuilderBuffer*, const RvkImage*);
 void rend_builder_draw_sampler(RendBuilderBuffer*, RvkSamplerSpec);
 void rend_builder_draw_flush(RendBuilderBuffer*);

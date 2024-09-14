@@ -6,6 +6,7 @@
 
 #include "builder_internal.h"
 #include "rvk/graphic_internal.h"
+#include "rvk/image_internal.h"
 #include "rvk/pass_internal.h"
 
 #define rend_builder_workers_max 8
@@ -211,6 +212,12 @@ void rend_builder_draw_image(RendBuilderBuffer* buffer, RvkImage* image) {
     }
   }
   diag_assert_fail("Amount of staged per-draw images exceeds the maximum");
+}
+
+void rend_builder_draw_image_frozen(RendBuilderBuffer* buffer, const RvkImage* image) {
+  diag_assert_msg(image->frozen, "Image is not frozen");
+  // Frozen images are immutable thus we can const-cast them without worry.
+  rend_builder_draw_image(buffer, (RvkImage*)image);
 }
 
 void rend_builder_draw_sampler(RendBuilderBuffer* buffer, const RvkSamplerSpec samplerSpec) {
