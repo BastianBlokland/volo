@@ -110,11 +110,6 @@ static u32 rvk_pass_attach_color_count(const RvkPassConfig* config) {
 static void rvk_pass_attach_assert_color(const RvkPass* pass, const u32 idx, const RvkImage* img) {
   const RvkAttachSpec spec = rvk_pass_spec_attach_color(pass, idx);
   diag_assert_msg(
-      img->caps & RvkImageCapability_AttachmentColor,
-      "Pass {} color attachment {} invalid: Missing AttachmentColor capability",
-      fmt_text(pass->config->name),
-      fmt_int(idx));
-  diag_assert_msg(
       (img->caps & spec.capabilities) == spec.capabilities,
       "Pass {} color attachment {} invalid: Missing capabilities",
       fmt_text(pass->config->name),
@@ -130,10 +125,6 @@ static void rvk_pass_attach_assert_color(const RvkPass* pass, const u32 idx, con
 
 static void rvk_pass_attach_assert_depth(const RvkPass* pass, const RvkImage* img) {
   const RvkAttachSpec spec = rvk_pass_spec_attach_depth(pass);
-  diag_assert_msg(
-      img->caps & RvkImageCapability_AttachmentDepth,
-      "Pass {} depth attachment invalid: Missing AttachmentDepth capability",
-      fmt_text(pass->config->name));
   diag_assert_msg(
       (img->caps & spec.capabilities) == spec.capabilities,
       "Pass {} depth attachment invalid: Missing capabilities",
@@ -660,7 +651,7 @@ const RvkPassConfig* rvk_pass_config(const RvkPass* pass) { return pass->config;
 bool rvk_pass_active(const RvkPass* pass) { return rvk_pass_invoc_active((RvkPass*)pass) != null; }
 
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass* pass, const u16 colorAttachIndex) {
-  RvkImageCapability capabilities = 0;
+  RvkImageCapability capabilities = RvkImageCapability_AttachmentColor;
 
   // TODO: Specifying these capabilities should not be the responsibilty of the pass.
   capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
@@ -672,7 +663,7 @@ RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass* pass, const u16 colorAtt
 }
 
 RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass* pass) {
-  RvkImageCapability capabilities = 0;
+  RvkImageCapability capabilities = RvkImageCapability_AttachmentDepth;
   if (pass->config->attachDepth == RvkPassDepth_Stored) {
     // TODO: Specifying these capabilities should not be responsibilty of the pass.
     capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
