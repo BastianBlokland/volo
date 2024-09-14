@@ -437,6 +437,10 @@ void rvk_swapchain_wait_for_present(const RvkSwapchain* swapchain, const u32 num
        * decided not to present this image.
        */
       break;
+    case VK_SUBOPTIMAL_KHR:
+      mutableSwapchain->flags |= RvkSwapchainFlags_OutOfDate;
+      // Presenting still succeeded.
+      break;
     case VK_ERROR_OUT_OF_DATE_KHR:
       mutableSwapchain->flags |= RvkSwapchainFlags_OutOfDate;
       log_d(
