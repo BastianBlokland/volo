@@ -660,11 +660,8 @@ static bool rend_canvas_paint_3d(
   const SceneTagFilter filter   = cam ? cam->filter : (SceneTagFilter){0};
   const RendView       mainView = painter_view_3d_create(&camMat, &projMat, camEntity, filter);
 
-  RvkImage*     swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
-  const RvkSize swapchainSize  = swapchainImage->size;
-
   // Geometry pass.
-  const RvkSize geoSize  = rvk_size_scale(swapchainSize, set->resolutionScale);
+  const RvkSize geoSize  = rvk_size_scale(winSize, set->resolutionScale);
   RvkPass*      geoPass  = platform->passes[AssetGraphicPass_Geometry];
   RvkImage*     geoData0 = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 0, geoSize);
   RvkImage*     geoData1 = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 1, geoSize);
@@ -972,13 +969,15 @@ static bool rend_canvas_paint_3d(
     trace_begin("rend_paint_post", TraceColor_White);
     rend_builder_pass_push(builder, postPass);
 
+    RvkImage* swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
+
     RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, mainView);
     rend_builder_global_image(builder, fwdColor, 0);
     rend_builder_global_image(builder, bloomOutput, 1);
     rend_builder_global_image(builder, distBuffer, 2);
     rend_builder_global_image(builder, fogBuffer, 3);
     rend_builder_attach_color(builder, swapchainImage, 0);
-    painter_stage_global_data(&ctx, &camMat, &projMat, swapchainSize, time, RendViewType_Main);
+    painter_stage_global_data(&ctx, &camMat, &projMat, winSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
     painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Post);
     if (set->flags & RendFlags_DebugFog) {
