@@ -126,7 +126,10 @@ void rvk_uniform_flush(RvkUniformPool* uni) {
 }
 
 void rvk_uniform_reset(RvkUniformPool* uni) {
-  dynarray_for_t(&uni->chunks, RvkUniformChunk, chunk) { chunk->offset = 0; }
+  dynarray_for_t(&uni->chunks, RvkUniformChunk, chunk) {
+    chunk->offset        = 0;
+    chunk->offsetFlushed = 0;
+  }
   dynarray_clear(&uni->entries);
 }
 
