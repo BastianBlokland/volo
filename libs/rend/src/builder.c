@@ -112,7 +112,8 @@ void rend_builder_global_data(RendBuilderBuffer* buffer, const Mem data, const u
       "RendBuilder: Pass global data {} already staged",
       fmt_int(dataIndex));
 
-  buffer->passSetup.globalData[dataIndex] = rvk_pass_uniform_upload(buffer->pass, data);
+  buffer->passSetup.globalData[dataIndex] = rvk_pass_uniform_push(buffer->pass, data.size);
+  mem_cpy(rvk_pass_uniform_map(buffer->pass, buffer->passSetup.globalData[dataIndex]), data);
 }
 
 void rend_builder_global_image(RendBuilderBuffer* buffer, RvkImage* img, const u16 imageIndex) {
@@ -159,7 +160,8 @@ void rend_builder_draw_data(RendBuilderBuffer* buffer, const Mem data) {
   diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
   diag_assert_msg(!buffer->draw->drawData, "RendBuilder: Draw-data already set");
 
-  buffer->draw->drawData = rvk_pass_uniform_upload(buffer->pass, data);
+  buffer->draw->drawData = rvk_pass_uniform_push(buffer->pass, data.size);
+  mem_cpy(rvk_pass_uniform_map(buffer->pass, buffer->draw->drawData), data);
 }
 
 u32 rend_builder_draw_instances_batch_size(RendBuilderBuffer* buffer, const u32 dataStride) {
@@ -177,12 +179,15 @@ void rend_builder_draw_instances(RendBuilderBuffer* buffer, const Mem data, cons
   if (buffer->draw->instCount) {
     diag_assert(buffer->draw->instDataStride == dataStride);
     if (dataStride) {
-      rvk_pass_uniform_upload_next(buffer->pass, buffer->draw->instData, data);
+      const RvkUniformHandle handle =
+          rvk_pass_uniform_push_next(buffer->pass, buffer->draw->instData, data.size);
+      mem_cpy(rvk_pass_uniform_map(buffer->pass, handle), data);
     }
   } else {
     buffer->draw->instDataStride = dataStride;
     if (dataStride) {
-      buffer->draw->instData = rvk_pass_uniform_upload(buffer->pass, data);
+      buffer->draw->instData = rvk_pass_uniform_push(buffer->pass, data.size);
+      mem_cpy(rvk_pass_uniform_map(buffer->pass, buffer->draw->instData), data);
     }
   }
   buffer->draw->instCount += count;

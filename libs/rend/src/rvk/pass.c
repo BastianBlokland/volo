@@ -790,17 +790,15 @@ Mem rvk_pass_uniform_map(RvkPass* pass, const RvkUniformHandle handle) {
   return rvk_uniform_map(frame->uniformPool, handle);
 }
 
-RvkUniformHandle rvk_pass_uniform_upload(RvkPass* pass, const Mem data) {
-  RvkPassFrame*          frame  = rvk_pass_frame_get_active(pass);
-  const RvkUniformHandle handle = rvk_uniform_push(frame->uniformPool, data.size);
-  mem_cpy(rvk_uniform_map(frame->uniformPool, handle), data);
-  return handle;
+RvkUniformHandle rvk_pass_uniform_push(RvkPass* pass, const usize size) {
+  RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
+  return rvk_uniform_push(frame->uniformPool, size);
 }
 
-void rvk_pass_uniform_upload_next(RvkPass* pass, const RvkUniformHandle head, const Mem data) {
-  RvkPassFrame*          frame  = rvk_pass_frame_get_active(pass);
-  const RvkUniformHandle handle = rvk_uniform_push_next(frame->uniformPool, head, data.size);
-  mem_cpy(rvk_uniform_map(frame->uniformPool, handle), data);
+RvkUniformHandle
+rvk_pass_uniform_push_next(RvkPass* pass, const RvkUniformHandle head, const usize size) {
+  RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
+  return rvk_uniform_push_next(frame->uniformPool, head, size);
 }
 
 void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
