@@ -786,13 +786,16 @@ u32 rvk_pass_batch_size(RvkPass* pass, const u32 instanceDataSize) {
 }
 
 RvkUniformHandle rvk_pass_uniform_upload(RvkPass* pass, const Mem data) {
-  RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
-  return rvk_uniform_upload(frame->uniformPool, data);
+  RvkPassFrame*          frame  = rvk_pass_frame_get_active(pass);
+  const RvkUniformHandle handle = rvk_uniform_push(frame->uniformPool, data.size);
+  mem_cpy(rvk_uniform_map(frame->uniformPool, handle), data);
+  return handle;
 }
 
 void rvk_pass_uniform_upload_next(RvkPass* pass, const RvkUniformHandle head, const Mem data) {
-  RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
-  rvk_uniform_upload_next(frame->uniformPool, head, data);
+  RvkPassFrame*          frame  = rvk_pass_frame_get_active(pass);
+  const RvkUniformHandle handle = rvk_uniform_push_next(frame->uniformPool, head, data.size);
+  mem_cpy(rvk_uniform_map(frame->uniformPool, handle), data);
 }
 
 void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {

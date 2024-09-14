@@ -23,8 +23,9 @@ RvkUniformHandle rvk_uniform_next(const RvkUniformPool*, RvkUniformHandle);
 
 void             rvk_uniform_flush(RvkUniformPool*);
 void             rvk_uniform_reset(RvkUniformPool*);
-RvkUniformHandle rvk_uniform_upload(RvkUniformPool*, Mem data);
-void             rvk_uniform_upload_next(RvkUniformPool*, RvkUniformHandle head, Mem data);
+Mem              rvk_uniform_map(RvkUniformPool*, RvkUniformHandle);
+RvkUniformHandle rvk_uniform_push(RvkUniformPool*, usize size);
+RvkUniformHandle rvk_uniform_push_next(RvkUniformPool*, RvkUniformHandle head, usize size);
 
 void rvk_uniform_attach(RvkUniformPool*, RvkUniformHandle, RvkDescSet, const u32 binding);
 

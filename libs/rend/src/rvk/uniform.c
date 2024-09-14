@@ -134,11 +134,17 @@ void rvk_uniform_reset(RvkUniformPool* uni) {
   dynarray_clear(&uni->entries);
 }
 
-RvkUniformHandle rvk_uniform_upload(RvkUniformPool* uni, const Mem data) {
-  diag_assert(data.size);
+Mem rvk_uniform_map(RvkUniformPool* uni, const RvkUniformHandle handle) {
+  const RvkUniformEntry* entry = rvk_uniform_entry(uni, handle);
+  RvkUniformChunk*       chunk = rvk_uniform_chunk(uni, entry->chunkIdx);
+  return mem_slice(rvk_buffer_map(&chunk->buffer, entry->offset), 0, entry->size);
+}
 
-  const u32 padding    = bits_padding((u32)data.size, uni->alignMin);
-  const u32 paddedSize = (u32)data.size + padding;
+RvkUniformHandle rvk_uniform_push(RvkUniformPool* uni, const usize size) {
+  diag_assert(size);
+
+  const u32 padding    = bits_padding((u32)size, uni->alignMin);
+  const u32 paddedSize = (u32)size + padding;
   diag_assert_msg(paddedSize <= uni->dataSizeMax, "Uniform data exceeds maximum");
 
   // Find space in an existing chunk.
@@ -151,10 +157,9 @@ RvkUniformHandle rvk_uniform_upload(RvkUniformPool* uni, const Mem data) {
      * to always bind up to 'dataSizeMax'. TODO: Investigate if there's a better way to do this.
      */
     if (chunk->buffer.mem.size - chunk->offset >= uni->dataSizeMax) {
-      u32 offset = chunk->offset;
-      mem_cpy(rvk_buffer_map(&chunk->buffer, offset), data);
+      const u32 offset = chunk->offset;
       chunk->offset += paddedSize;
-      return rvk_uniform_entry_push(uni, chunkIdx, offset, (u32)data.size);
+      return rvk_uniform_entry_push(uni, chunkIdx, offset, (u32)size);
     }
   }
 
@@ -168,7 +173,6 @@ RvkUniformHandle rvk_uniform_upload(RvkUniformPool* uni, const Mem data) {
   };
 
   rvk_debug_name_buffer(uni->device->debug, newChunk->buffer.vkBuffer, "uniform");
-  mem_cpy(rvk_buffer_map(&newChunk->buffer, 0), data);
 
   log_d(
       "Vulkan uniform chunk created",
@@ -176,16 +180,19 @@ RvkUniformHandle rvk_uniform_upload(RvkUniformPool* uni, const Mem data) {
       log_param("data-size-max", fmt_size(uni->dataSizeMax)),
       log_param("align-min", fmt_size(uni->alignMin)));
 
-  return rvk_uniform_entry_push(uni, newChunkIdx, 0 /* offset */, (u32)data.size);
+  return rvk_uniform_entry_push(uni, newChunkIdx, 0 /* offset */, (u32)size);
 }
 
-void rvk_uniform_upload_next(RvkUniformPool* uni, const RvkUniformHandle head, const Mem data) {
-  const RvkUniformHandle dataHandle = rvk_uniform_upload(uni, data);
+RvkUniformHandle
+rvk_uniform_push_next(RvkUniformPool* uni, const RvkUniformHandle head, const usize size) {
+  const RvkUniformHandle dataHandle = rvk_uniform_push(uni, size);
 
   RvkUniformEntry* tail = rvk_uniform_entry_mut(uni, head);
   for (; tail->next; tail = rvk_uniform_entry_mut(uni, tail->next))
     ;
   tail->next = dataHandle;
+
+  return dataHandle;
 }
 
 void rvk_uniform_attach(
