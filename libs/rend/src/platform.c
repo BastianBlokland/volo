@@ -99,7 +99,7 @@ static const RvkPassConfig g_passConfig[AssetGraphicPass_Count] = {
 
   REND_DEFINE_PASS(Post)
     // Attachment color 0: color (rgba).
-    .attachColorFormat[0] = RvkPassFormat_Color4Srgb,
+    .attachColorFormat[0] = RvkPassFormat_Swapchain,
     .attachColorLoad[0]   = RvkPassLoad_DontCare,
   },
 };

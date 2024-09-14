@@ -92,6 +92,8 @@ static VkFormat rvk_attach_color_format(const RvkPass* pass, const u32 index) {
     return VK_FORMAT_R16G16_SFLOAT;
   case RvkPassFormat_Color3Float:
     return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+  case RvkPassFormat_Swapchain:
+    return pass->dev->preferredSwapchainFormat;
   }
   diag_crash_msg("Unsupported pass color attachment format");
 }
@@ -108,11 +110,6 @@ static u32 rvk_pass_attach_color_count(const RvkPassConfig* config) {
 static void rvk_pass_attach_assert_color(const RvkPass* pass, const u32 idx, const RvkImage* img) {
   const RvkAttachSpec spec = rvk_pass_spec_attach_color(pass, idx);
   diag_assert_msg(
-      img->caps & RvkImageCapability_AttachmentColor,
-      "Pass {} color attachment {} invalid: Missing AttachmentColor capability",
-      fmt_text(pass->config->name),
-      fmt_int(idx));
-  diag_assert_msg(
       (img->caps & spec.capabilities) == spec.capabilities,
       "Pass {} color attachment {} invalid: Missing capabilities",
       fmt_text(pass->config->name),
@@ -128,10 +125,6 @@ static void rvk_pass_attach_assert_color(const RvkPass* pass, const u32 idx, con
 
 static void rvk_pass_attach_assert_depth(const RvkPass* pass, const RvkImage* img) {
   const RvkAttachSpec spec = rvk_pass_spec_attach_depth(pass);
-  diag_assert_msg(
-      img->caps & RvkImageCapability_AttachmentDepth,
-      "Pass {} depth attachment invalid: Missing AttachmentDepth capability",
-      fmt_text(pass->config->name));
   diag_assert_msg(
       (img->caps & spec.capabilities) == spec.capabilities,
       "Pass {} depth attachment invalid: Missing capabilities",
@@ -233,7 +226,7 @@ static VkRenderPass rvk_renderpass_create(const RvkPass* pass) {
 
   if (pass->config->attachDepth) {
     attachments[attachmentCount++] = (VkAttachmentDescription){
-        .format         = pass->dev->vkDepthFormat,
+        .format         = pass->dev->depthFormat,
         .samples        = VK_SAMPLE_COUNT_1_BIT,
         .loadOp         = rvk_pass_attach_depth_load_op(pass),
         .storeOp        = rvk_pass_attach_depth_store_op(pass),
@@ -453,8 +446,8 @@ static void rvk_pass_bind_global(
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*           pass,
-    RvkPassFrame*      frame,
+    RvkPass*                         pass,
+    RvkPassFrame*                    frame,
     MAYBE_UNUSED const RvkPassSetup* setup,
     const RvkGraphic*                gra,
     const RvkUniformHandle           data,
@@ -658,24 +651,17 @@ const RvkPassConfig* rvk_pass_config(const RvkPass* pass) { return pass->config;
 bool rvk_pass_active(const RvkPass* pass) { return rvk_pass_invoc_active((RvkPass*)pass) != null; }
 
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass* pass, const u16 colorAttachIndex) {
-  RvkImageCapability capabilities = 0;
-
-  // TODO: Specifying these capabilities should not be the responsibilty of the pass.
-  capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
-
   return (RvkAttachSpec){
       .vkFormat     = rvk_attach_color_format(pass, colorAttachIndex),
-      .capabilities = capabilities,
+      .capabilities = RvkImageCapability_AttachmentColor,
   };
 }
 
 RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass* pass) {
-  RvkImageCapability capabilities = 0;
-  if (pass->config->attachDepth == RvkPassDepth_Stored) {
-    // TODO: Specifying these capabilities should not be responsibilty of the pass.
-    capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
-  }
-  return (RvkAttachSpec){.vkFormat = pass->dev->vkDepthFormat, .capabilities = capabilities};
+  return (RvkAttachSpec){
+      .vkFormat     = pass->dev->depthFormat,
+      .capabilities = RvkImageCapability_AttachmentDepth,
+  };
 }
 
 RvkDescMeta rvk_pass_meta_global(const RvkPass* pass) { return pass->globalDescMeta; }

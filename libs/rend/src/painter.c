@@ -611,24 +611,17 @@ static bool rend_canvas_paint_2d(
 
   const RendView mainView = painter_view_2d_create(camEntity);
 
-  RvkImage*     swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
-  const RvkSize swapchainSize  = swapchainImage->size;
-
-  RvkPass*  postPass = platform->passes[AssetGraphicPass_Post];
-  RvkImage* postRes  = rvk_canvas_attach_acquire_color(painter->canvas, postPass, 0, swapchainSize);
+  RvkImage* swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
+  RvkPass*  postPass       = platform->passes[AssetGraphicPass_Post];
   {
     rend_builder_pass_push(builder, postPass);
 
-    rvk_canvas_img_clear_color(painter->canvas, postRes, geo_color_black);
+    rvk_canvas_img_clear_color(painter->canvas, swapchainImage, geo_color_black);
 
     RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, mainView);
-    rend_builder_attach_color(builder, postRes, 0);
+    rend_builder_attach_color(builder, swapchainImage, 0);
     painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Post);
     rend_builder_pass_flush(builder);
-
-    // TODO: Render into the swapchain directly if the swapchain format matches the pass format.
-    rvk_canvas_img_blit(painter->canvas, postRes, swapchainImage);
-    rvk_canvas_attach_release(painter->canvas, postRes);
   }
 
   trace_end();
@@ -667,11 +660,8 @@ static bool rend_canvas_paint_3d(
   const SceneTagFilter filter   = cam ? cam->filter : (SceneTagFilter){0};
   const RendView       mainView = painter_view_3d_create(&camMat, &projMat, camEntity, filter);
 
-  RvkImage*     swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
-  const RvkSize swapchainSize  = swapchainImage->size;
-
   // Geometry pass.
-  const RvkSize geoSize  = rvk_size_scale(swapchainSize, set->resolutionScale);
+  const RvkSize geoSize  = rvk_size_scale(winSize, set->resolutionScale);
   RvkPass*      geoPass  = platform->passes[AssetGraphicPass_Geometry];
   RvkImage*     geoData0 = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 0, geoSize);
   RvkImage*     geoData1 = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 1, geoSize);
@@ -790,8 +780,8 @@ static bool rend_canvas_paint_3d(
     const GeoMatrix* shadTrans  = rend_light_shadow_trans(light);
     const GeoMatrix* shadProj   = rend_light_shadow_proj(light);
     SceneTagFilter   shadFilter = {
-        .required = filter.required | SceneTags_ShadowCaster,
-        .illegal  = filter.illegal,
+          .required = filter.required | SceneTags_ShadowCaster,
+          .illegal  = filter.illegal,
     };
     if (!(set->flags & RendFlags_VfxShadows)) {
       shadFilter.illegal |= SceneTags_Vfx;
@@ -974,19 +964,20 @@ static bool rend_canvas_paint_3d(
   }
 
   // Post pass.
-  RvkPass*  postPass = platform->passes[AssetGraphicPass_Post];
-  RvkImage* postRes  = rvk_canvas_attach_acquire_color(painter->canvas, postPass, 0, swapchainSize);
+  RvkPass* postPass = platform->passes[AssetGraphicPass_Post];
   {
     trace_begin("rend_paint_post", TraceColor_White);
     rend_builder_pass_push(builder, postPass);
+
+    RvkImage* swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
 
     RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, mainView);
     rend_builder_global_image(builder, fwdColor, 0);
     rend_builder_global_image(builder, bloomOutput, 1);
     rend_builder_global_image(builder, distBuffer, 2);
     rend_builder_global_image(builder, fogBuffer, 3);
-    rend_builder_attach_color(builder, postRes, 0);
-    painter_stage_global_data(&ctx, &camMat, &projMat, swapchainSize, time, RendViewType_Main);
+    rend_builder_attach_color(builder, swapchainImage, 0);
+    painter_stage_global_data(&ctx, &camMat, &projMat, winSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
     painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Post);
     if (set->flags & RendFlags_DebugFog) {
@@ -1003,10 +994,6 @@ static bool rend_canvas_paint_3d(
     }
     rend_builder_pass_flush(builder);
     trace_end();
-
-    // TODO: Render into the swapchain directly if the swapchain format matches the pass format.
-    rvk_canvas_img_blit(painter->canvas, postRes, swapchainImage);
-    rvk_canvas_attach_release(painter->canvas, postRes);
   }
 
   rvk_canvas_attach_release(painter->canvas, fogBuffer);

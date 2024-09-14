@@ -94,42 +94,18 @@ static VkSurfaceFormatKHR rvk_pick_surface_format(RvkDevice* dev, VkSurfaceKHR v
   VkSurfaceFormatKHR* surfFormats = mem_stack(sizeof(VkSurfaceFormatKHR) * formatCount).ptr;
   rvk_call(vkGetPhysicalDeviceSurfaceFormatsKHR, dev->vkPhysDev, vkSurf, &formatCount, surfFormats);
 
-  VkSurfaceFormatKHR bestSurfFormat;
-  u32                bestScore = sentinel_u32;
-
+  // Check if the preferred swapchain format is available.
   for (u32 i = 0; i != formatCount; ++i) {
-    const RvkFormatInfo formatInfo = rvk_format_info(surfFormats[i].format);
-
-    u32 score = 0;
-    if (formatInfo.flags & RvkFormat_RGBA) {
-      // Prefer RGBA as it matches what the renderer uses for textures and temporary attachments,
-      // unfortunately BGRA is also quite common for window surfaces.
-      score += 2;
-    }
-    if (formatInfo.flags & RvkFormat_BGRA) {
-      score += 1;
-    }
-    if (formatInfo.flags & RvkFormat_Srgb) {
-      // Prefer an Srgb format so the gpu can perform the linear -> srgb conversion.
-      score += 10;
-    }
-
-    log_d(
-        "Found surface format",
-        log_param("format", fmt_text(formatInfo.name)),
-        log_param("color", fmt_text(rvk_colorspace_str(surfFormats[i].colorSpace))),
-        log_param("score", fmt_int(score)));
-
-    if (sentinel_check(bestScore) || score > bestScore) {
-      bestSurfFormat = surfFormats[i];
-      bestScore      = score;
+    if (surfFormats[i].format == dev->preferredSwapchainFormat) {
+      return surfFormats[i];
     }
   }
 
-  if (!(rvk_format_info(bestSurfFormat.format).flags & RvkFormat_Srgb)) {
-    log_w("No Srgb surface format available");
-  }
-  return bestSurfFormat;
+  log_w(
+      "Preferred swapchain format not available",
+      log_param("fallback", fmt_text(rvk_format_info(surfFormats[0].format).name)));
+
+  return surfFormats[0];
 }
 
 static u32
