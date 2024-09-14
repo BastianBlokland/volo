@@ -91,7 +91,7 @@ INLINE_HINT static u8* quicksort_pivot(
  * Hoare's partition scheme:
  * - https://en.wikipedia.org/wiki/Quicksort#Hoare_partition_scheme
  */
-static u8* quicksort_partition(
+INLINE_HINT static u8* quicksort_partition(
     u8* begin, u8* end, const u16 stride, CompareFunc compare, const SortSwapType type) {
   // Choose a pivot.
   u8* pivot = quicksort_pivot(begin, end, stride, compare, type);
