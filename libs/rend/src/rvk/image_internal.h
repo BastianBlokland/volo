@@ -46,10 +46,11 @@ typedef struct sRvkImage {
   RvkImageType       type : 8;
   RvkImagePhase      phase : 8;
   RvkImageCapability caps : 8;
-  VkFormat           vkFormat;
-  RvkSize            size;
   u8                 layers;
   u8                 mipLevels;
+  bool               frozen;
+  VkFormat           vkFormat;
+  RvkSize            size;
   VkImage            vkImage;
   VkImageView        vkImageView;
   RvkMem             mem;
@@ -70,6 +71,8 @@ String rvk_image_type_str(RvkImageType);
 String rvk_image_phase_str(RvkImagePhase);
 
 void rvk_image_assert_phase(const RvkImage*, RvkImagePhase);
+
+void rvk_image_freeze(RvkImage*);
 
 typedef struct {
   RvkImage*     img;

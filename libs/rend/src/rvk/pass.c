@@ -421,7 +421,6 @@ static void rvk_pass_bind_global(
     if (UNLIKELY(img->type == RvkImageType_ColorSourceCube)) {
       log_e("Cube images cannot be bound globally");
       const RvkRepositoryId missing = RvkRepositoryId_MissingTexture;
-      // TODO: This cast violates const-correctness.
       img = (RvkImage*)&rvk_repository_texture_get(pass->dev->repository, missing)->image;
     }
 
@@ -473,7 +472,6 @@ static void rvk_pass_bind_draw(
 
       const RvkRepositoryId missing =
           reqCube ? RvkRepositoryId_MissingTextureCube : RvkRepositoryId_MissingTexture;
-      // TODO: This cast violates const-correctness.
       img = (RvkImage*)&rvk_repository_texture_get(pass->dev->repository, missing)->image;
     }
     rvk_desc_set_attach_sampler(descSet, 2, img, sampler);
