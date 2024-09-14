@@ -93,7 +93,7 @@ static VkFormat rvk_attach_color_format(const RvkPass* pass, const u32 index) {
   case RvkPassFormat_Color3Float:
     return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
   case RvkPassFormat_Swapchain:
-    return VK_FORMAT_B8G8R8A8_UNORM;
+    return VK_FORMAT_B8G8R8A8_SRGB;
   }
   diag_crash_msg("Unsupported pass color attachment format");
 }
