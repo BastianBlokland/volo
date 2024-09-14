@@ -545,6 +545,7 @@ static AssetShaderType rvk_graphic_pass_shader_output(const RvkPassFormat passFo
     return AssetShaderType_f32v3;
   case RvkPassFormat_Color4Linear:
   case RvkPassFormat_Color4Srgb:
+  case RvkPassFormat_Swapchain:
     return AssetShaderType_f32v4;
   }
   diag_crash();

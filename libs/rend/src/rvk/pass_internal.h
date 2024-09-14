@@ -46,6 +46,7 @@ typedef enum {
   RvkPassFormat_Color4Srgb,        // RGBA (unorm)  sdr srgb.
   RvkPassFormat_Color2SignedFloat, // RG   (sfloat) hdr.
   RvkPassFormat_Color3Float,       // RGB  (ufloat) hdr.
+  RvkPassFormat_Swapchain,         // BGRA (unorm)  sdr linear.
 } RvkPassFormat;
 
 typedef struct sRvkPassConfig {
