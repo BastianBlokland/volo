@@ -261,7 +261,7 @@ static VkRenderPass rvk_renderpass_create(const RvkPass* pass) {
 }
 
 static RvkDescMeta rvk_global_desc_meta(void) {
-  RvkDescMeta meta;
+  RvkDescMeta meta               = {0};
   u16         globalBindingCount = 0;
   for (u16 globalDataIdx = 0; globalDataIdx != rvk_pass_global_data_max; ++globalDataIdx) {
     meta.bindings[globalBindingCount++] = RvkDescKind_UniformBuffer;
