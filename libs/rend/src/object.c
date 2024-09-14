@@ -360,17 +360,29 @@ void rend_object_draw(
     const bool trace = filteredInstCount > 1000;
     if (trace) { trace_begin("rend_object_sort", TraceColor_Blue); }
 #endif
+    // clang-format on
+    /**
+     * Because we know the amount of filtered instances for sorted draws we can immediately write
+     * into the memory of the builder instead of pushing to the batch and then copying.
+     */
     rend_object_sort(obj, sortKeys, filteredInstCount);
-    for (u32 i = 0; i != filteredInstCount; ++i) {
-      rend_batch_push(obj, &batch, builder, sortKeys[i].instIndex);
+    for (u32 i = 0; i != filteredInstCount;) {
+      const u32 count     = math_min(filteredInstCount - i, batch.countMax);
+      const u32 batchEnd  = i + count;
+      u8*       outputPtr = rend_builder_draw_instances(builder, obj->instDataSize, count).ptr;
+      for (; i != batchEnd; ++i, outputPtr += obj->instDataSize) {
+        const Mem inInstMem = rend_object_inst_data(obj, sortKeys[i].instIndex);
+        rend_object_memcpy(outputPtr, inInstMem.ptr, inInstMem.size);
+      }
     }
+    // clang-format off
 #ifdef VOLO_TRACE
     if (trace) { trace_end(); }
 #endif
     // clang-format on
+  } else {
+    rend_batch_flush(obj, &batch, builder);
   }
-
-  rend_batch_flush(obj, &batch, builder);
 }
 
 void rend_object_set_resource(
