@@ -498,7 +498,10 @@ void rvk_image_assert_phase(const RvkImage* img, const RvkImagePhase phase) {
       fmt_text(rvk_image_phase_str(img->phase)));
 }
 
+void rvk_image_freeze(RvkImage* img) { img->frozen = true; }
+
 void rvk_image_transition(RvkImage* img, const RvkImagePhase phase, VkCommandBuffer vkCmdBuf) {
+  diag_assert_msg(!img->frozen, "Image is frozen");
   diag_assert_msg(
       rvk_image_phase_supported(img->caps, phase),
       "Image does not support the '{}' phase",
@@ -526,6 +529,7 @@ void rvk_image_transition_batch(
     RvkImage*     img   = transitions[i].img;
     RvkImagePhase phase = transitions[i].phase;
 
+    diag_assert_msg(!img->frozen, "Image is frozen");
     diag_assert_msg(
         rvk_image_phase_supported(img->caps, phase),
         "Image does not support the '{}' phase",
@@ -543,6 +547,7 @@ void rvk_image_transition_batch(
 }
 
 void rvk_image_transition_external(RvkImage* img, const RvkImagePhase phase) {
+  diag_assert_msg(!img->frozen, "Image is frozen");
   diag_assert_msg(
       rvk_image_phase_supported(img->caps, phase),
       "Image does not support the '{}' phase",
@@ -555,6 +560,7 @@ void rvk_image_generate_mipmaps(RvkImage* img, VkCommandBuffer vkCmdBuf) {
   if (img->mipLevels <= 1) {
     return;
   }
+  diag_assert_msg(!img->frozen, "Image is frozen");
 
   MAYBE_UNUSED static const RvkImageCapability g_requiredCaps = RvkImageCapability_TransferSource |
                                                                 RvkImageCapability_TransferDest |
@@ -635,6 +641,7 @@ void rvk_image_generate_mipmaps(RvkImage* img, VkCommandBuffer vkCmdBuf) {
 }
 
 void rvk_image_clear_color(const RvkImage* img, const GeoColor color, VkCommandBuffer vkCmdBuf) {
+  diag_assert_msg(!img->frozen, "Image is frozen");
   rvk_image_assert_phase(img, RvkImagePhase_TransferDest);
   diag_assert(img->type != RvkImageType_DepthAttachment);
 
@@ -658,6 +665,7 @@ void rvk_image_clear_color(const RvkImage* img, const GeoColor color, VkCommandB
 }
 
 void rvk_image_clear_depth(const RvkImage* img, const f32 depth, VkCommandBuffer vkCmdBuf) {
+  diag_assert_msg(!img->frozen, "Image is frozen");
   rvk_image_assert_phase(img, RvkImagePhase_TransferDest);
   diag_assert(img->type == RvkImageType_DepthAttachment);
 
@@ -681,6 +689,7 @@ void rvk_image_clear_depth(const RvkImage* img, const f32 depth, VkCommandBuffer
 }
 
 void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBuf) {
+  diag_assert_msg(!dest->frozen, "Destination image is frozen");
   rvk_image_assert_phase(src, RvkImagePhase_TransferSource);
   rvk_image_assert_phase(dest, RvkImagePhase_TransferDest);
   diag_assert_msg(rvk_size_equal(src->size, dest->size), "Image copy requires matching sizes");
@@ -711,6 +720,7 @@ void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
 }
 
 void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBuf) {
+  diag_assert_msg(!dest->frozen, "Destination image is frozen");
   rvk_image_assert_phase(src, RvkImagePhase_TransferSource);
   rvk_image_assert_phase(dest, RvkImagePhase_TransferDest);
   diag_assert_msg(src->layers == dest->layers, "Image blit requires matching layer counts");
@@ -754,6 +764,7 @@ void rvk_image_transfer_ownership(
   if (srcQueueFamIdx == dstQueueFamIdx) {
     return;
   }
+  diag_assert_msg(!img->frozen, "Image is frozen");
   const VkPipelineStageFlags stageFlags = rvk_image_vkpipelinestage(img->phase);
 
   // Release the image on the source queue.
