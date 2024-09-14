@@ -145,7 +145,7 @@ static void painter_set_global_data(
   } RendPainterGlobalData;
   ASSERT(sizeof(RendPainterGlobalData) == 448, "Size needs to match the size defined in glsl");
 
-  const usize            dataSize = sizeof(RendPainterGlobalData);
+  const u32              dataSize = sizeof(RendPainterGlobalData);
   RendPainterGlobalData* data     = rend_builder_global_data(ctx->builder, dataSize, 0).ptr;
 
   *data = (RendPainterGlobalData){
@@ -780,8 +780,8 @@ static bool rend_canvas_paint_3d(
     const GeoMatrix* shadTrans  = rend_light_shadow_trans(light);
     const GeoMatrix* shadProj   = rend_light_shadow_proj(light);
     SceneTagFilter   shadFilter = {
-        .required = filter.required | SceneTags_ShadowCaster,
-        .illegal  = filter.illegal,
+          .required = filter.required | SceneTags_ShadowCaster,
+          .illegal  = filter.illegal,
     };
     if (!(set->flags & RendFlags_VfxShadows)) {
       shadFilter.illegal |= SceneTags_Vfx;
