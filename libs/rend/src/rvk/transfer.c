@@ -401,6 +401,7 @@ RvkTransferId rvk_transfer_image(
   }
 
   rvk_image_transition(dest, RvkImagePhase_ShaderRead, buffer->vkCmdBufferGraphics);
+  rvk_image_freeze(dest);
 
   buffer->offset += data.size;
   const RvkTransferId id = rvk_transfer_id(trans, buffer);
