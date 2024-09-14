@@ -28,6 +28,7 @@ typedef struct {
   RvkJob*         job;
   VkSemaphore     attachmentsReleased, swapchainAvailable, swapchainPresent;
   RvkSwapchainIdx swapchainIdx;
+  RvkImage*       swapchainFallback; // Only used when the preferred format is not available.
   RvkPassHandle   passHandles[rvk_canvas_max_passes];
 } RvkCanvasFrame;
 
@@ -188,7 +189,18 @@ RvkImage* rvk_canvas_swapchain_image(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
 
   RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
-  return rvk_swapchain_image(canvas->swapchain, frame->swapchainIdx);
+  if (rvk_swapchain_format(canvas->swapchain) == canvas->dev->preferredSwapchainFormat) {
+    return rvk_swapchain_image(canvas->swapchain, frame->swapchainIdx);
+  }
+  if (frame->swapchainFallback) {
+    return frame->swapchainFallback;
+  }
+  const RvkSize       size = rvk_swapchain_size(canvas->swapchain);
+  const RvkAttachSpec spec = {
+      .vkFormat     = canvas->dev->preferredSwapchainFormat,
+      .capabilities = RvkImageCapability_AttachmentColor | RvkImageCapability_TransferSource,
+  };
+  return frame->swapchainFallback = rvk_attach_acquire_color(canvas->attachPool, spec, size);
 }
 
 RvkImage*
@@ -269,14 +281,20 @@ void rvk_canvas_barrier_full(const RvkCanvas* canvas) {
 
 void rvk_canvas_end(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
-  const RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
+  RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
 
   for (u32 passIdx = 0; passIdx != canvas->passCount; ++passIdx) {
     rvk_pass_frame_end(canvas->passes[passIdx], frame->passHandles[passIdx]);
   }
 
-  // Transition the swapchain-image to the present phase.
   RvkImage* swapchainImage = rvk_swapchain_image(canvas->swapchain, frame->swapchainIdx);
+  // If using a swapchain-fallback copy the final content into the swapchain.
+  if (frame->swapchainFallback) {
+    rvk_job_img_blit(frame->job, frame->swapchainFallback, swapchainImage);
+    rvk_attach_release(canvas->attachPool, frame->swapchainFallback);
+    frame->swapchainFallback = null;
+  }
+  // Transition the swapchain-image to the present phase.
   rvk_job_img_transition(frame->job, swapchainImage, RvkImagePhase_Present);
 
   VkSemaphore attachmentsReady = null;
