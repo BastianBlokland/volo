@@ -21,6 +21,7 @@ bool             rvk_uniform_valid(RvkUniformHandle);
 u32              rvk_uniform_size(const RvkUniformPool*, RvkUniformHandle);
 RvkUniformHandle rvk_uniform_next(const RvkUniformPool*, RvkUniformHandle);
 
+void             rvk_uniform_flush(RvkUniformPool*);
 void             rvk_uniform_reset(RvkUniformPool*);
 RvkUniformHandle rvk_uniform_upload(RvkUniformPool*, Mem data);
 void             rvk_uniform_upload_next(RvkUniformPool*, RvkUniformHandle head, Mem data);

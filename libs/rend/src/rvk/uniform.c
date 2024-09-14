@@ -24,7 +24,7 @@
 
 typedef struct {
   RvkBuffer  buffer;
-  u32        offset;
+  u32        offset, offsetFlushed;
   RvkDescSet dynamicSet; // Optional descriptor set for dynamic binding.
 } RvkUniformChunk;
 
@@ -106,6 +106,15 @@ RvkUniformHandle rvk_uniform_next(const RvkUniformPool* uni, const RvkUniformHan
   return rvk_uniform_entry(uni, handle)->next;
 }
 
+void rvk_uniform_flush(RvkUniformPool* uni) {
+  dynarray_for_t(&uni->chunks, RvkUniformChunk, chunk) {
+    if (chunk->offset != chunk->offsetFlushed) {
+      rvk_buffer_flush_sub(&chunk->buffer, chunk->offsetFlushed, chunk->offset);
+    }
+    chunk->offsetFlushed = chunk->offset;
+  }
+}
+
 void rvk_uniform_reset(RvkUniformPool* uni) {
   dynarray_for_t(&uni->chunks, RvkUniformChunk, chunk) { chunk->offset = 0; }
   dynarray_clear(&uni->entries);
@@ -129,7 +138,7 @@ RvkUniformHandle rvk_uniform_upload(RvkUniformPool* uni, const Mem data) {
      */
     if (chunk->buffer.mem.size - chunk->offset >= uni->dataSizeMax) {
       u32 offset = chunk->offset;
-      rvk_buffer_upload(&chunk->buffer, data, offset);
+      mem_cpy(rvk_buffer_map(&chunk->buffer, offset), data);
       chunk->offset += paddedSize;
       return rvk_uniform_entry_push(uni, chunkIdx, offset, (u32)data.size);
     }
@@ -145,7 +154,7 @@ RvkUniformHandle rvk_uniform_upload(RvkUniformPool* uni, const Mem data) {
   };
 
   rvk_debug_name_buffer(uni->device->debug, newChunk->buffer.vkBuffer, "uniform");
-  rvk_buffer_upload(&newChunk->buffer, data, 0);
+  mem_cpy(rvk_buffer_map(&newChunk->buffer, 0), data);
 
   log_d(
       "Vulkan uniform chunk created",
