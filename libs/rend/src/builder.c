@@ -105,15 +105,16 @@ void rend_builder_attach_depth(RendBuilderBuffer* buffer, RvkImage* img) {
   buffer->passSetup.attachDepth = img;
 }
 
-void rend_builder_global_data(RendBuilderBuffer* buffer, const Mem data, const u16 dataIndex) {
+Mem rend_builder_global_data(RendBuilderBuffer* buffer, const usize size, const u16 dataIndex) {
   diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
   diag_assert_msg(
       !buffer->passSetup.globalData[dataIndex],
       "RendBuilder: Pass global data {} already staged",
       fmt_int(dataIndex));
 
-  buffer->passSetup.globalData[dataIndex] = rvk_pass_uniform_push(buffer->pass, data.size);
-  mem_cpy(rvk_pass_uniform_map(buffer->pass, buffer->passSetup.globalData[dataIndex]), data);
+  const RvkUniformHandle handle           = rvk_pass_uniform_push(buffer->pass, size);
+  buffer->passSetup.globalData[dataIndex] = handle;
+  return rvk_pass_uniform_map(buffer->pass, handle);
 }
 
 void rend_builder_global_image(RendBuilderBuffer* buffer, RvkImage* img, const u16 imageIndex) {
@@ -156,12 +157,13 @@ void rend_builder_draw_push(RendBuilderBuffer* buffer, const RvkGraphic* graphic
   *buffer->draw = (RvkPassDraw){.graphic = graphic, .drawImageIndex = sentinel_u16};
 }
 
-void rend_builder_draw_data(RendBuilderBuffer* buffer, const Mem data) {
+Mem rend_builder_draw_data(RendBuilderBuffer* buffer, const usize size) {
   diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
   diag_assert_msg(!buffer->draw->drawData, "RendBuilder: Draw-data already set");
 
-  buffer->draw->drawData = rvk_pass_uniform_push(buffer->pass, data.size);
-  mem_cpy(rvk_pass_uniform_map(buffer->pass, buffer->draw->drawData), data);
+  const RvkUniformHandle handle = rvk_pass_uniform_push(buffer->pass, size);
+  buffer->draw->drawData        = handle;
+  return rvk_pass_uniform_map(buffer->pass, handle);
 }
 
 u32 rend_builder_draw_instances_batch_size(RendBuilderBuffer* buffer, const u32 dataStride) {

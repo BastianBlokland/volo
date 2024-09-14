@@ -298,7 +298,8 @@ void rend_object_draw(
     return;
   }
   if (obj->dataSize) {
-    rend_builder_draw_data(builder, mem_slice(obj->dataMem, 0, obj->dataSize));
+    const Mem dataMem = mem_slice(obj->dataMem, 0, obj->dataSize);
+    mem_cpy(rend_builder_draw_data(builder, obj->dataSize), dataMem);
   }
   if (obj->vertexCountOverride) {
     rend_builder_draw_vertex_count(builder, obj->vertexCountOverride);
