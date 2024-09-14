@@ -265,39 +265,6 @@ static void rend_object_sort(const RendObjectComp* obj, RendObjectSortKey* keys,
 #endif
 }
 
-typedef struct {
-  u32 countMax;
-  u32 countCur;
-  Mem buffer;
-} RendBatch;
-
-static RendBatch rend_batch_init(const RendObjectComp* obj, RendBuilderBuffer* builder) {
-  const u32 batchSize = rend_builder_draw_instances_batch_size(builder, obj->instDataSize);
-  return (RendBatch){.countMax = batchSize};
-}
-
-static void rend_batch_flush(const RendObjectComp* obj, RendBatch* b, RendBuilderBuffer* builder) {
-  if (b->countCur) {
-    const Mem data = mem_slice(b->buffer, 0, b->countCur * obj->instDataSize);
-    mem_cpy(rend_builder_draw_instances(builder, obj->instDataSize, b->countCur), data);
-    b->countCur = 0;
-  }
-}
-
-static void rend_batch_push(
-    const RendObjectComp* obj, RendBatch* b, RendBuilderBuffer* builder, const u32 instIndex) {
-  if (UNLIKELY(!mem_valid(b->buffer) && obj->instDataSize)) {
-    b->buffer = alloc_alloc(g_allocScratch, obj->instDataSize * b->countMax, rend_min_align);
-  }
-  const Mem outInstMem = mem_consume(b->buffer, b->countCur * obj->instDataSize);
-  const Mem inInstMem  = rend_object_inst_data(obj, instIndex);
-  rend_object_memcpy(outInstMem.ptr, inInstMem.ptr, inInstMem.size);
-
-  if (++b->countCur == b->countMax) {
-    rend_batch_flush(obj, b, builder);
-  }
-}
-
 static void rend_instances_push_all(const RendObjectComp* obj, RendBuilderBuffer* builder) {
   const u32 batchSize = rend_builder_draw_instances_batch_size(builder, obj->instDataSize);
   for (u32 i = 0; i != obj->instCount;) {
@@ -307,6 +274,24 @@ static void rend_instances_push_all(const RendObjectComp* obj, RendBuilderBuffer
     mem_cpy(rend_builder_draw_instances(builder, obj->instDataSize, count), data);
     i += count;
   }
+}
+
+static void rend_instances_push_filtered(
+    const RendObjectComp* obj, RendBuilderBuffer* builder, const BitSet filter, const u32 count) {
+
+  const u32 batchMax  = rend_builder_draw_instances_batch_size(builder, obj->instDataSize);
+  usize     instIndex = bitset_next(filter, 0);
+  for (u32 i = 0; i != count;) {
+    const u32 batchSize = math_min(count - i, batchMax);
+    const u32 batchEnd  = i + batchSize;
+    u8*       outputPtr = rend_builder_draw_instances(builder, obj->instDataSize, batchSize).ptr;
+    for (; i != batchEnd; ++i, outputPtr += obj->instDataSize) {
+      const Mem inInstMem = rend_object_inst_data(obj, (u32)instIndex);
+      rend_object_memcpy(outputPtr, inInstMem.ptr, inInstMem.size);
+      instIndex = bitset_next(filter, instIndex + 1);
+    }
+  }
+  diag_assert(sentinel_check(instIndex));
 }
 
 static void rend_instances_push_sorted(
@@ -352,8 +337,8 @@ void rend_object_draw(
     return;
   }
 
-  RendBatch          batch    = rend_batch_init(obj, builder);
-  RendObjectSortKey* sortKeys = null;
+  RendObjectSortKey* sortKeys;
+  BitSet             filter;
 
   if (obj->flags & RendObjectFlags_Sorted) {
     const usize requiredSortMem = obj->instCount * sizeof(RendObjectSortKey);
@@ -365,6 +350,9 @@ void rend_object_draw(
       return;
     }
     sortKeys = alloc_array_t(g_allocScratch, RendObjectSortKey, obj->instCount);
+  } else {
+    filter = alloc_alloc(g_allocScratch, bits_to_bytes(obj->instCount) + 1, 1);
+    bitset_clear_all(filter);
   }
 
   u32 filteredInstCount = 0;
@@ -375,24 +363,22 @@ void rend_object_draw(
       continue;
     }
     const u32 outputIndex = filteredInstCount++;
-    if (sortKeys) {
-      /**
-       * Instead of outputting the instance directly, first create a sort key for it. Then in a
-       * separate pass sort the instances and push them to the batch.
-       */
+    if (obj->flags & RendObjectFlags_Sorted) {
       sortKeys[outputIndex] = (RendObjectSortKey){
           .instIndex = (u16)i,
           .viewDist  = rend_view_sort_dist(view, instAabb),
       };
     } else {
-      rend_batch_push(obj, &batch, builder, i);
+      bitset_set(filter, i);
     }
   }
 
-  if (sortKeys && filteredInstCount) {
-    rend_instances_push_sorted(obj, builder, sortKeys, filteredInstCount);
-  } else {
-    rend_batch_flush(obj, &batch, builder);
+  if (filteredInstCount) {
+    if (obj->flags & RendObjectFlags_Sorted) {
+      rend_instances_push_sorted(obj, builder, sortKeys, filteredInstCount);
+    } else {
+      rend_instances_push_filtered(obj, builder, filter, filteredInstCount);
+    }
   }
 }
 
