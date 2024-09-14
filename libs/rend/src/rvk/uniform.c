@@ -107,12 +107,22 @@ RvkUniformHandle rvk_uniform_next(const RvkUniformPool* uni, const RvkUniformHan
 }
 
 void rvk_uniform_flush(RvkUniformPool* uni) {
+  RvkBufferFlush flushes[128];
+  u32            flushCount = 0;
+
   dynarray_for_t(&uni->chunks, RvkUniformChunk, chunk) {
     if (chunk->offset != chunk->offsetFlushed) {
-      rvk_buffer_flush_sub(&chunk->buffer, chunk->offsetFlushed, chunk->offset);
+      diag_assert(flushCount != array_elems(flushes));
+      flushes[flushCount++] = (RvkBufferFlush){
+          .buffer = &chunk->buffer,
+          .offset = chunk->offsetFlushed,
+          .size   = chunk->offset,
+      };
     }
     chunk->offsetFlushed = chunk->offset;
   }
+
+  rvk_buffer_flush_batch(flushes, flushCount);
 }
 
 void rvk_uniform_reset(RvkUniformPool* uni) {
