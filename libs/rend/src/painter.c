@@ -502,7 +502,8 @@ static void painter_push_debug_resource_viewer(
     const RendResTextureComp* textureComp = ecs_view_read_t(itr, RendResTextureComp);
     if (textureComp) {
       const f32 exposure = 1.0f;
-      // TODO: This cast violates const-correctness.
+      diag_assert(textureComp->texture->image.frozen);
+      // NOTE: The following cast is questionable but safe as frozen images are fully immutable.
       painter_push_debug_image_viewer(ctx, (RvkImage*)&textureComp->texture->image, exposure);
     }
     const RendResMeshComp* meshComp = ecs_view_read_t(itr, RendResMeshComp);
