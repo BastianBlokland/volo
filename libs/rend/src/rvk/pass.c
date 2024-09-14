@@ -785,6 +785,11 @@ u32 rvk_pass_batch_size(RvkPass* pass, const u32 instanceDataSize) {
   return math_min(uniformMaxInstances, pass_instance_count_max);
 }
 
+Mem rvk_pass_uniform_map(RvkPass* pass, const RvkUniformHandle handle) {
+  RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
+  return rvk_uniform_map(frame->uniformPool, handle);
+}
+
 RvkUniformHandle rvk_pass_uniform_upload(RvkPass* pass, const Mem data) {
   RvkPassFrame*          frame  = rvk_pass_frame_get_active(pass);
   const RvkUniformHandle handle = rvk_uniform_push(frame->uniformPool, data.size);
