@@ -107,9 +107,27 @@ Mem rvk_buffer_map(RvkBuffer* buffer, const u64 offset) {
   return mem_consume(rvk_mem_map(buffer->mem), offset);
 }
 
-void rvk_buffer_flush(RvkBuffer* buffer) {
-  diag_assert(rvk_buffer_type_loc(buffer->type) == RvkMemLoc_Host);
-  rvk_mem_flush(buffer->mem);
+void rvk_buffer_flush(const RvkBuffer* buffer, const u64 offset, const u64 size) {
+  const RvkBufferFlush flushes[] = {
+      {.buffer = buffer, .offset = offset, .size = size},
+  };
+  rvk_buffer_flush_batch(flushes, array_elems(flushes));
+}
+
+void rvk_buffer_flush_batch(const RvkBufferFlush flushes[], const u32 count) {
+  RvkMemFlush* memFlushes = mem_stack(sizeof(RvkMemFlush) * count).ptr;
+  for (u32 i = 0; i != count; ++i) {
+    const RvkBuffer* buffer = flushes[i].buffer;
+    diag_assert(rvk_buffer_type_loc(buffer->type) == RvkMemLoc_Host);
+
+    // TODO: Refactor the underlying memory-pool to use 64 bit size and offsets.
+    memFlushes[i] = (RvkMemFlush){
+        .mem    = buffer->mem,
+        .offset = (u32)flushes[i].offset,
+        .size   = (u32)flushes[i].size,
+    };
+  }
+  rvk_mem_flush_batch(memFlushes, count);
 }
 
 void rvk_buffer_upload(RvkBuffer* buffer, const Mem data, const u64 offset) {
@@ -117,7 +135,9 @@ void rvk_buffer_upload(RvkBuffer* buffer, const Mem data, const u64 offset) {
   diag_assert(rvk_buffer_type_loc(buffer->type) == RvkMemLoc_Host);
 
   mem_cpy(rvk_buffer_map(buffer, offset), data);
-  rvk_mem_flush_sub(buffer->mem, (u32)offset, (u32)data.size);
+
+  // TODO: Refactor the underlying memory-pool to use 64 bit size and offsets.
+  rvk_mem_flush(buffer->mem, (u32)offset, (u32)data.size);
 }
 
 void rvk_buffer_transfer_ownership(

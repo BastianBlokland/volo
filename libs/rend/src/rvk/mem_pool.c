@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_thread.h"
@@ -167,7 +168,8 @@ static RvkMemChunk* rvk_mem_chunk_create(
     const u32          memType) {
 
   RvkMemChunk* chunk = alloc_alloc_t(g_allocHeap, RvkMemChunk);
-  *chunk             = (RvkMemChunk){
+
+  *chunk = (RvkMemChunk){
       .id         = id,
       .pool       = pool,
       .loc        = loc,
@@ -177,6 +179,7 @@ static RvkMemChunk* rvk_mem_chunk_create(
       .freeBlocks = dynarray_create_t(g_allocHeap, RvkMem, 16),
       .vkMem      = rvk_mem_alloc_vk(pool, size, memType),
   };
+
   if (loc == RvkMemLoc_Host) {
     rvk_call(vkMapMemory, pool->vkDev, chunk->vkMem, 0, VK_WHOLE_SIZE, 0, &chunk->map);
   }
@@ -341,30 +344,6 @@ static void rvk_mem_chunk_free(RvkMemChunk* chunk, const RvkMem mem) {
 #endif
 }
 
-static void rvk_mem_chunk_flush(RvkMemChunk* chunk, const u32 offset, const u32 size) {
-  diag_assert(chunk->map); // Only mapped memory can be flushed.
-
-  const u32 flushAlignment = (u32)chunk->pool->vkDevLimits.nonCoherentAtomSize;
-
-  // Align the offset to be a multiple of 'flushAlignment'.
-  const u32 alignedOffset = offset / flushAlignment * flushAlignment;
-  diag_assert(offset >= alignedOffset && offset - alignedOffset < flushAlignment);
-
-  // Pad the size to be aligned (or until the end of the chunk).
-  u32 paddedSize = bits_align(size, flushAlignment);
-  if (offset + paddedSize > chunk->size) {
-    paddedSize = chunk->size - offset;
-  }
-
-  const VkMappedMemoryRange mappedMemoryRange = {
-      .sType  = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
-      .memory = chunk->vkMem,
-      .offset = alignedOffset,
-      .size   = paddedSize,
-  };
-  rvk_call(vkFlushMappedMemoryRanges, chunk->pool->vkDev, 1, &mappedMemoryRange);
-}
-
 MAYBE_UNUSED static RvkMemChunk* rvk_mem_pool_chunk_prev(RvkMemPool* pool, RvkMemChunk* chunk) {
   for (RvkMemChunk* prev = pool->chunkHead; prev; prev = prev->next) {
     if (prev->next == chunk) {
@@ -379,13 +358,15 @@ RvkMemPool* rvk_mem_pool_create(
     const VkPhysicalDeviceMemoryProperties props,
     const VkPhysicalDeviceLimits           limits) {
   RvkMemPool* pool = alloc_alloc_t(g_allocHeap, RvkMemPool);
-  *pool            = (RvkMemPool){
+
+  *pool = (RvkMemPool){
       .vkDev         = vkDev,
       .vkDevMemProps = props,
       .vkDevLimits   = limits,
       .vkAlloc       = rvk_mem_allocator(g_allocHeap),
       .lock          = thread_mutex_create(g_allocHeap),
   };
+
   return pool;
 }
 
@@ -499,15 +480,50 @@ Mem rvk_mem_map(const RvkMem mem) {
   return mem_create(bits_ptr_offset(baseMapPtr, mem.offset), mem.size);
 }
 
-void rvk_mem_flush(const RvkMem mem) {
-  diag_assert(rvk_mem_valid(mem));
-  rvk_mem_chunk_flush(mem.chunk, mem.offset, mem.size);
+void rvk_mem_flush(const RvkMem mem, const u32 offset, const u32 size) {
+  const RvkMemFlush flushes[] = {
+      {.mem = mem, .offset = offset, .size = size},
+  };
+  rvk_mem_flush_batch(flushes, array_elems(flushes));
 }
 
-void rvk_mem_flush_sub(const RvkMem mem, const u32 offset, const u32 size) {
-  diag_assert(rvk_mem_valid(mem));
-  diag_assert(mem.offset + offset + size <= mem.offset + mem.size);
-  rvk_mem_chunk_flush(mem.chunk, mem.offset + offset, size);
+void rvk_mem_flush_batch(const RvkMemFlush flushes[], const u32 count) {
+  if (!count) {
+    return;
+  }
+  const RvkMemPool* pool           = flushes[0].mem.chunk->pool;
+  const u32         flushAlignment = (u32)pool->vkDevLimits.nonCoherentAtomSize;
+
+  VkMappedMemoryRange* ranges = mem_stack(sizeof(VkMappedMemoryRange) * count).ptr;
+  for (u32 i = 0; i != count; ++i) {
+    const RvkMemFlush* flush = &flushes[i];
+    diag_assert(rvk_mem_valid(flush->mem));
+
+    const RvkMemChunk* chunk = flush->mem.chunk;
+    diag_assert(chunk->map); // Only mapped memory can be flushed.
+    diag_assert(chunk->pool == pool);
+
+    const u32 chunkOffset = flush->mem.offset + flush->offset;
+    diag_assert(chunkOffset + flush->size <= flush->mem.offset + flush->mem.size);
+
+    // Align the offset to be a multiple of 'flushAlignment'.
+    const u32 alignedOffset = chunkOffset / flushAlignment * flushAlignment;
+    diag_assert(chunkOffset >= alignedOffset && chunkOffset - alignedOffset < flushAlignment);
+
+    // Pad the size to be aligned (or until the end of the chunk).
+    u32 paddedSize = bits_align(flush->size, flushAlignment);
+    if (chunkOffset + paddedSize > chunk->size) {
+      paddedSize = chunk->size - chunkOffset;
+    }
+
+    ranges[i] = (VkMappedMemoryRange){
+        .sType  = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+        .memory = chunk->vkMem,
+        .offset = alignedOffset,
+        .size   = paddedSize,
+    };
+  }
+  rvk_call(vkFlushMappedMemoryRanges, pool->vkDev, count, ranges);
 }
 
 u64 rvk_mem_occupied(const RvkMemPool* pool, const RvkMemLoc loc) {

@@ -316,6 +316,8 @@ void rvk_job_end(
   rvk_debug_label_end(job->dev->debug, job->vkDrawBuffer);
   rvk_commandbuffer_end(job->vkDrawBuffer);
 
+  rvk_uniform_flush(job->uniformPool);
+
   rvk_call(vkResetFences, job->dev->vkDev, 1, &job->fenceJobDone);
   rvk_job_submit(job, waitForDeps, waitForTarget, signals, signalCount);
 
