@@ -32,8 +32,14 @@ void   rvk_mem_free(RvkMem);
 void   rvk_mem_bind_buffer(RvkMem, VkBuffer);
 void   rvk_mem_bind_image(RvkMem, VkImage);
 Mem    rvk_mem_map(RvkMem);
-void   rvk_mem_flush(RvkMem);
-void   rvk_mem_flush_sub(RvkMem, u32 offset, u32 size);
+
+typedef struct {
+  RvkMem mem;
+  u32    offset, size;
+} RvkMemFlush;
+
+void rvk_mem_flush(RvkMem mem, u32 offset, u32 size);
+void rvk_mem_flush_batch(const RvkMemFlush[], u32 count); // NOTE: Have to be from the same pool.
 
 u64 rvk_mem_occupied(const RvkMemPool*, RvkMemLoc);
 u64 rvk_mem_reserved(const RvkMemPool*, RvkMemLoc);

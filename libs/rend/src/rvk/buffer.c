@@ -109,14 +109,14 @@ Mem rvk_buffer_map(RvkBuffer* buffer, const u64 offset) {
 
 void rvk_buffer_flush(RvkBuffer* buffer) {
   diag_assert(rvk_buffer_type_loc(buffer->type) == RvkMemLoc_Host);
-  rvk_mem_flush(buffer->mem);
+  rvk_mem_flush(buffer->mem, 0, buffer->mem.size);
 }
 
 void rvk_buffer_flush_sub(RvkBuffer* buffer, const u64 offset, const u64 size) {
   diag_assert(rvk_buffer_type_loc(buffer->type) == RvkMemLoc_Host);
 
   // TODO: Refactor the underlying memory-pool to use 64 bit size and offsets.
-  rvk_mem_flush_sub(buffer->mem, (u32)offset, (u32)size);
+  rvk_mem_flush(buffer->mem, (u32)offset, (u32)size);
 }
 
 void rvk_buffer_upload(RvkBuffer* buffer, const Mem data, const u64 offset) {
@@ -126,7 +126,7 @@ void rvk_buffer_upload(RvkBuffer* buffer, const Mem data, const u64 offset) {
   mem_cpy(rvk_buffer_map(buffer, offset), data);
 
   // TODO: Refactor the underlying memory-pool to use 64 bit size and offsets.
-  rvk_mem_flush_sub(buffer->mem, (u32)offset, (u32)data.size);
+  rvk_mem_flush(buffer->mem, (u32)offset, (u32)data.size);
 }
 
 void rvk_buffer_transfer_ownership(
