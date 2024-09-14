@@ -260,23 +260,23 @@ typedef struct {
 } RendBatch;
 
 static RendBatch rend_batch_init(const RendObjectComp* obj, RendBuilderBuffer* builder) {
-  RendBatch b = {.countMax = rend_builder_draw_instances_batch_size(builder, obj->instDataSize)};
-  if (obj->instDataSize) {
-    b.buffer = alloc_alloc(g_allocScratch, obj->instDataSize * b.countMax, rend_min_align);
-  }
-  return b;
+  const u32 batchSize = rend_builder_draw_instances_batch_size(builder, obj->instDataSize);
+  return (RendBatch){.countMax = batchSize};
 }
 
 static void rend_batch_flush(const RendObjectComp* obj, RendBatch* b, RendBuilderBuffer* builder) {
   if (b->countCur) {
     const Mem data = mem_slice(b->buffer, 0, b->countCur * obj->instDataSize);
-    rend_builder_draw_instances(builder, data, b->countCur);
+    mem_cpy(rend_builder_draw_instances(builder, obj->instDataSize, b->countCur), data);
     b->countCur = 0;
   }
 }
 
 static void rend_batch_push(
     const RendObjectComp* obj, RendBatch* b, RendBuilderBuffer* builder, const u32 instIndex) {
+  if (UNLIKELY(!mem_valid(b->buffer) && obj->instDataSize)) {
+    b->buffer = alloc_alloc(g_allocScratch, obj->instDataSize * b->countMax, rend_min_align);
+  }
   const Mem outInstMem = mem_consume(b->buffer, b->countCur * obj->instDataSize);
   const Mem inInstMem  = rend_object_inst_data(obj, instIndex);
   rend_object_memcpy(outInstMem.ptr, inInstMem.ptr, inInstMem.size);
@@ -298,26 +298,27 @@ void rend_object_draw(
     return;
   }
   if (obj->dataSize) {
-    rend_builder_draw_data(builder, mem_slice(obj->dataMem, 0, obj->dataSize));
+    const Mem dataMem = mem_slice(obj->dataMem, 0, obj->dataSize);
+    mem_cpy(rend_builder_draw_data(builder, obj->dataSize), dataMem);
   }
   if (obj->vertexCountOverride) {
     rend_builder_draw_vertex_count(builder, obj->vertexCountOverride);
   }
+
+  RendBatch          batch    = rend_batch_init(obj, builder);
+  RendObjectSortKey* sortKeys = null;
+
   if (obj->flags & RendObjectFlags_NoInstanceFiltering) {
     // Fast path for non-filtered objects.
-    const u32 batchCount = rend_builder_draw_instances_batch_size(builder, obj->instDataSize);
     for (u32 i = 0; i != obj->instCount;) {
-      const u32   count      = math_min(obj->instCount - i, batchCount);
+      const u32   count      = math_min(obj->instCount - i, batch.countMax);
       const usize dataOffset = i * obj->instDataSize;
       const Mem   data       = mem_slice(obj->instDataMem, dataOffset, count * obj->instDataSize);
-      rend_builder_draw_instances(builder, data, count);
+      mem_cpy(rend_builder_draw_instances(builder, obj->instDataSize, count), data);
       i += count;
     }
     return;
   }
-
-  RendBatch          batch    = rend_batch_init(obj, builder);
-  RendObjectSortKey* sortKeys = null;
 
   if (obj->flags & RendObjectFlags_Sorted) {
     const usize requiredSortMem = obj->instCount * sizeof(RendObjectSortKey);
@@ -359,17 +360,29 @@ void rend_object_draw(
     const bool trace = filteredInstCount > 1000;
     if (trace) { trace_begin("rend_object_sort", TraceColor_Blue); }
 #endif
+    // clang-format on
+    /**
+     * Because we know the amount of filtered instances for sorted draws we can immediately write
+     * into the memory of the builder instead of pushing to the batch and then copying.
+     */
     rend_object_sort(obj, sortKeys, filteredInstCount);
-    for (u32 i = 0; i != filteredInstCount; ++i) {
-      rend_batch_push(obj, &batch, builder, sortKeys[i].instIndex);
+    for (u32 i = 0; i != filteredInstCount;) {
+      const u32 count     = math_min(filteredInstCount - i, batch.countMax);
+      const u32 batchEnd  = i + count;
+      u8*       outputPtr = rend_builder_draw_instances(builder, obj->instDataSize, count).ptr;
+      for (; i != batchEnd; ++i, outputPtr += obj->instDataSize) {
+        const Mem inInstMem = rend_object_inst_data(obj, sortKeys[i].instIndex);
+        rend_object_memcpy(outputPtr, inInstMem.ptr, inInstMem.size);
+      }
     }
+    // clang-format off
 #ifdef VOLO_TRACE
     if (trace) { trace_end(); }
 #endif
     // clang-format on
+  } else {
+    rend_batch_flush(obj, &batch, builder);
   }
-
-  rend_batch_flush(obj, &batch, builder);
 }
 
 void rend_object_set_resource(

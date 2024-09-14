@@ -124,7 +124,7 @@ typedef enum {
   RendViewType_Fog,
 } RendViewType;
 
-static void painter_stage_global_data(
+static void painter_set_global_data(
     RendPaintContext*    ctx,
     const GeoMatrix*     cameraMatrix,
     const GeoMatrix*     projMatrix,
@@ -145,7 +145,10 @@ static void painter_stage_global_data(
   } RendPainterGlobalData;
   ASSERT(sizeof(RendPainterGlobalData) == 448, "Size needs to match the size defined in glsl");
 
-  RendPainterGlobalData data = {
+  const u32              dataSize = sizeof(RendPainterGlobalData);
+  RendPainterGlobalData* data     = rend_builder_global_data(ctx->builder, dataSize, 0).ptr;
+
+  *data = (RendPainterGlobalData){
       .resolution.x = size.width,
       .resolution.y = size.height,
       .resolution.z = aspect,
@@ -158,25 +161,24 @@ static void painter_stage_global_data(
     static const f32 g_depthMin = -200;
     static const f32 g_depthMax = 200;
 
-    data.viewInv     = geo_matrix_rotate_x(math_pi_f32 * 0.5f);
-    data.view        = geo_matrix_inverse(&data.viewInv);
-    data.proj        = geo_matrix_proj_ortho_hor(g_size, aspect, g_depthMin, g_depthMax);
-    data.projInv     = geo_matrix_inverse(&data.proj);
-    data.viewProj    = geo_matrix_mul(&data.proj, &data.view);
-    data.viewProjInv = geo_matrix_inverse(&data.viewProj);
-    data.camPosition = geo_vector(0, 0, 0);
-    data.camRotation = geo_quat_forward_to_down;
+    data->viewInv     = geo_matrix_rotate_x(math_pi_f32 * 0.5f);
+    data->view        = geo_matrix_inverse(&data->viewInv);
+    data->proj        = geo_matrix_proj_ortho_hor(g_size, aspect, g_depthMin, g_depthMax);
+    data->projInv     = geo_matrix_inverse(&data->proj);
+    data->viewProj    = geo_matrix_mul(&data->proj, &data->view);
+    data->viewProjInv = geo_matrix_inverse(&data->viewProj);
+    data->camPosition = geo_vector(0, 0, 0);
+    data->camRotation = geo_quat_forward_to_down;
   } else {
-    data.viewInv     = *cameraMatrix;
-    data.view        = geo_matrix_inverse(cameraMatrix);
-    data.proj        = *projMatrix;
-    data.projInv     = geo_matrix_inverse(projMatrix);
-    data.viewProj    = geo_matrix_mul(&data.proj, &data.view);
-    data.viewProjInv = geo_matrix_inverse(&data.viewProj);
-    data.camPosition = geo_matrix_to_translation(cameraMatrix);
-    data.camRotation = geo_matrix_to_quat(cameraMatrix);
+    data->viewInv     = *cameraMatrix;
+    data->view        = geo_matrix_inverse(cameraMatrix);
+    data->proj        = *projMatrix;
+    data->projInv     = geo_matrix_inverse(projMatrix);
+    data->viewProj    = geo_matrix_mul(&data->proj, &data->view);
+    data->viewProjInv = geo_matrix_inverse(&data->viewProj);
+    data->camPosition = geo_matrix_to_translation(cameraMatrix);
+    data->camRotation = geo_matrix_to_quat(cameraMatrix);
   }
-  rend_builder_global_data(ctx->builder, mem_var(data), 0);
 }
 
 static const RvkGraphic* painter_get_graphic(EcsIterator* resourceItr, const EcsEntityId resource) {
@@ -217,9 +219,9 @@ static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id,
   if (graphic) {
     rend_builder_draw_push(ctx->builder, graphic);
     if (data.size) {
-      rend_builder_draw_data(ctx->builder, data);
+      mem_cpy(rend_builder_draw_data(ctx->builder, (u32)data.size), data);
     }
-    rend_builder_draw_instances(ctx->builder, mem_empty, 1);
+    rend_builder_draw_instances(ctx->builder, 0 /* dataStride */, 1 /* count */);
     rend_builder_draw_flush(ctx->builder);
   }
 }
@@ -323,9 +325,9 @@ static void painter_push_fog(RendPaintContext* ctx, const RendFogComp* fog, RvkI
     data.fogViewProj           = geo_matrix_mul(rend_fog_proj(fog), &fogViewMat);
 
     rend_builder_draw_push(ctx->builder, graphic);
-    rend_builder_draw_data(ctx->builder, mem_var(data));
+    mem_cpy(rend_builder_draw_data(ctx->builder, sizeof(data)), mem_var(data));
     rend_builder_draw_image(ctx->builder, fogMap);
-    rend_builder_draw_instances(ctx->builder, mem_empty, 1);
+    rend_builder_draw_instances(ctx->builder, 0 /* dataStride */, 1 /* count */);
     rend_builder_draw_flush(ctx->builder);
   }
 }
@@ -442,7 +444,7 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
     };
 
     rend_builder_draw_push(ctx->builder, graphic);
-    rend_builder_draw_data(ctx->builder, mem_var(data));
+    mem_cpy(rend_builder_draw_data(ctx->builder, sizeof(data)), mem_var(data));
 
     RvkSamplerSpec sampler = {.filter = RvkSamplerFilter_Nearest};
     if (ctx->settings->debugViewerFlags & RendDebugViewer_Interpolate) {
@@ -450,7 +452,7 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
     }
     rend_builder_draw_image(ctx->builder, image);
     rend_builder_draw_sampler(ctx->builder, sampler);
-    rend_builder_draw_instances(ctx->builder, mem_empty, 1);
+    rend_builder_draw_instances(ctx->builder, 0 /* dataStride */, 1 /* count */);
     rend_builder_draw_flush(ctx->builder);
   }
 }
@@ -481,9 +483,9 @@ painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspect, const Rv
     } data = {.viewProj = geo_matrix_mul(&projMat, &viewMat)};
 
     rend_builder_draw_push(ctx->builder, graphic);
-    rend_builder_draw_data(ctx->builder, mem_var(data));
+    mem_cpy(rend_builder_draw_data(ctx->builder, sizeof(data)), mem_var(data));
     rend_builder_draw_mesh(ctx->builder, mesh);
-    rend_builder_draw_instances(ctx->builder, mem_empty, 1);
+    rend_builder_draw_instances(ctx->builder, 0 /* dataStride */, 1 /* count */);
     rend_builder_draw_flush(ctx->builder);
   }
 }
@@ -673,7 +675,7 @@ static bool rend_canvas_paint_3d(
     rend_builder_attach_color(builder, geoData0, 0);
     rend_builder_attach_color(builder, geoData1, 1);
     rend_builder_attach_depth(builder, geoDepth);
-    painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
+    painter_set_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
     geoTagMask = painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Geometry);
 
     rend_builder_pass_flush(builder);
@@ -699,7 +701,7 @@ static bool rend_canvas_paint_3d(
     rend_builder_attach_color(builder, geoData0, 0);
     rend_builder_attach_color(builder, geoData1, 1);
     rend_builder_attach_depth(builder, geoDepth);
-    painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
+    painter_set_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
     painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Decal);
 
     rend_builder_pass_flush(builder);
@@ -725,7 +727,7 @@ static bool rend_canvas_paint_3d(
 
     RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, fogView);
     rend_builder_attach_color(builder, fogBuffer, 0);
-    painter_stage_global_data(&ctx, fogTrans, fogProj, fogSize, time, RendViewType_Fog);
+    painter_set_global_data(&ctx, fogTrans, fogProj, fogSize, time, RendViewType_Fog);
     painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Fog);
 
     rend_builder_pass_flush(builder);
@@ -787,7 +789,7 @@ static bool rend_canvas_paint_3d(
     const RendView   shadView = painter_view_3d_create(shadTrans, shadProj, camEntity, shadFilter);
     RendPaintContext ctx      = painter_context(painter->canvas, builder, set, time, shadView);
     rend_builder_attach_depth(builder, shadowDepth);
-    painter_stage_global_data(&ctx, shadTrans, shadProj, shadowSize, time, RendViewType_Shadow);
+    painter_set_global_data(&ctx, shadTrans, shadProj, shadowSize, time, RendViewType_Shadow);
     painter_push_shadow(&ctx, objView, resView);
 
     rend_builder_pass_flush(builder);
@@ -810,7 +812,7 @@ static bool rend_canvas_paint_3d(
     rend_builder_global_image(builder, geoData1, 0);
     rend_builder_global_image(builder, geoDepthRead, 1);
     rend_builder_attach_color(builder, aoBuffer, 0);
-    painter_stage_global_data(&ctx, &camMat, &projMat, aoSize, time, RendViewType_Main);
+    painter_set_global_data(&ctx, &camMat, &projMat, aoSize, time, RendViewType_Main);
     painter_push_ambient_occlusion(&ctx);
 
     rend_builder_pass_flush(builder);
@@ -842,7 +844,7 @@ static bool rend_canvas_paint_3d(
     rend_builder_global_shadow(builder, shadowDepth, 4);
     rend_builder_attach_color(builder, fwdColor, 0);
     rend_builder_attach_depth(builder, geoDepth);
-    painter_stage_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
+    painter_set_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
     painter_push_ambient(&ctx, rend_light_ambient_intensity(light));
     switch ((u32)set->skyMode) {
     case RendSkyMode_Gradient:
@@ -896,7 +898,7 @@ static bool rend_canvas_paint_3d(
     RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, mainView);
     rend_builder_attach_color(builder, distBuffer, 0);
     rend_builder_attach_depth(builder, distDepth);
-    painter_stage_global_data(&ctx, &camMat, &projMat, distSize, time, RendViewType_Main);
+    painter_set_global_data(&ctx, &camMat, &projMat, distSize, time, RendViewType_Main);
     painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Distortion);
     rend_builder_pass_flush(builder);
 
@@ -975,7 +977,7 @@ static bool rend_canvas_paint_3d(
     rend_builder_global_image(builder, distBuffer, 2);
     rend_builder_global_image(builder, fogBuffer, 3);
     rend_builder_attach_color(builder, swapchainImage, 0);
-    painter_stage_global_data(&ctx, &camMat, &projMat, winSize, time, RendViewType_Main);
+    painter_set_global_data(&ctx, &camMat, &projMat, winSize, time, RendViewType_Main);
     painter_push_tonemapping(&ctx);
     painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Post);
     if (set->flags & RendFlags_DebugFog) {
