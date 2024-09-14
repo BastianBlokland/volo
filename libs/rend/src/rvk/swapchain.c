@@ -101,17 +101,13 @@ static VkSurfaceFormatKHR rvk_pick_surface_format(RvkDevice* dev, VkSurfaceKHR v
     const RvkFormatInfo formatInfo = rvk_format_info(surfFormats[i].format);
 
     u32 score = 0;
-    if (formatInfo.flags & RvkFormat_RGBA) {
-      // Prefer RGBA as it matches what the renderer uses for textures and temporary attachments,
-      // unfortunately BGRA is also quite common for window surfaces.
-      score += 2;
-    }
     if (formatInfo.flags & RvkFormat_BGRA) {
+      // Prefer BGRA as its commonly supported and its the 'Swapchain' format that RvkPass assumes.
       score += 1;
     }
     if (formatInfo.flags & RvkFormat_Srgb) {
       // Prefer an Srgb format so the gpu can perform the linear -> srgb conversion.
-      score += 10;
+      score += 1;
     }
 
     log_d(
