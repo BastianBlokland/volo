@@ -435,7 +435,8 @@ RvkDevice* rvk_device_create(const RendSettingsGlobalComp* settingsGlobal) {
     vkGetDeviceQueue(dev->vkDev, dev->transferQueueIndex, 0, &dev->vkTransferQueue);
   }
 
-  dev->vkDepthFormat = rvk_device_pick_depthformat(dev);
+  dev->depthFormat              = rvk_device_pick_depthformat(dev);
+  dev->preferredSwapchainFormat = VK_FORMAT_B8G8R8A8_SRGB;
 
   if (dev->flags & RvkDeviceFlags_Debug) {
     const bool          verbose    = (settingsGlobal->flags & RendGlobalFlags_Verbose) != 0;
@@ -461,7 +462,7 @@ RvkDevice* rvk_device_create(const RendSettingsGlobalComp* settingsGlobal) {
       log_param("device-name", fmt_text(string_from_null_term(dev->vkProperties.deviceName))),
       log_param("graphics-queue-idx", fmt_int(dev->graphicsQueueIndex)),
       log_param("transfer-queue-idx", fmt_int(dev->transferQueueIndex)),
-      log_param("depth-format", fmt_text(rvk_format_info(dev->vkDepthFormat).name)),
+      log_param("depth-format", fmt_text(rvk_format_info(dev->depthFormat).name)),
       log_param("validation-enabled", fmt_bool(dev->flags & RvkDeviceFlags_Validation)),
       log_param("present-id-enabled", fmt_bool(dev->flags & RvkDeviceFlags_SupportPresentId)),
       log_param("present-wait-enabled", fmt_bool(dev->flags & RvkDeviceFlags_SupportPresentWait)));

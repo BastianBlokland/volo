@@ -33,7 +33,7 @@ typedef struct sRvkDevice {
   VkPhysicalDeviceProperties       vkProperties;
   VkPhysicalDeviceMemoryProperties vkMemProperties;
   VkDevice                         vkDev;
-  VkFormat                         vkDepthFormat;
+  VkFormat                         depthFormat, preferredSwapchainFormat;
   ThreadMutex                      queueSubmitMutex;
   u32                              graphicsQueueIndex;
   u32                              transferQueueIndex; // sentinel_u32 if unavailable.

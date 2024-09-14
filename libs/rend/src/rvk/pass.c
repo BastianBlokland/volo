@@ -93,7 +93,7 @@ static VkFormat rvk_attach_color_format(const RvkPass* pass, const u32 index) {
   case RvkPassFormat_Color3Float:
     return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
   case RvkPassFormat_Swapchain:
-    return VK_FORMAT_B8G8R8A8_SRGB;
+    return pass->dev->preferredSwapchainFormat;
   }
   diag_crash_msg("Unsupported pass color attachment format");
 }
@@ -226,7 +226,7 @@ static VkRenderPass rvk_renderpass_create(const RvkPass* pass) {
 
   if (pass->config->attachDepth) {
     attachments[attachmentCount++] = (VkAttachmentDescription){
-        .format         = pass->dev->vkDepthFormat,
+        .format         = pass->dev->depthFormat,
         .samples        = VK_SAMPLE_COUNT_1_BIT,
         .loadOp         = rvk_pass_attach_depth_load_op(pass),
         .storeOp        = rvk_pass_attach_depth_store_op(pass),
@@ -446,8 +446,8 @@ static void rvk_pass_bind_global(
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*           pass,
-    RvkPassFrame*      frame,
+    RvkPass*                         pass,
+    RvkPassFrame*                    frame,
     MAYBE_UNUSED const RvkPassSetup* setup,
     const RvkGraphic*                gra,
     const RvkUniformHandle           data,
@@ -659,7 +659,7 @@ RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass* pass, const u16 colorAtt
 
 RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass* pass) {
   return (RvkAttachSpec){
-      .vkFormat     = pass->dev->vkDepthFormat,
+      .vkFormat     = pass->dev->depthFormat,
       .capabilities = RvkImageCapability_AttachmentDepth,
   };
 }
