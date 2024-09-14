@@ -286,6 +286,17 @@ static void rend_batch_push(
   }
 }
 
+static void rend_instances_push_unfiltered(const RendObjectComp* obj, RendBuilderBuffer* builder) {
+  const u32 batchSize = rend_builder_draw_instances_batch_size(builder, obj->instDataSize);
+  for (u32 i = 0; i != obj->instCount;) {
+    const u32   count      = math_min(obj->instCount - i, batchSize);
+    const usize dataOffset = i * obj->instDataSize;
+    const Mem   data       = mem_slice(obj->instDataMem, dataOffset, count * obj->instDataSize);
+    mem_cpy(rend_builder_draw_instances(builder, obj->instDataSize, count), data);
+    i += count;
+  }
+}
+
 void rend_object_draw(
     const RendObjectComp*   obj,
     const RendView*         view,
@@ -304,21 +315,13 @@ void rend_object_draw(
   if (obj->vertexCountOverride) {
     rend_builder_draw_vertex_count(builder, obj->vertexCountOverride);
   }
+  if (obj->flags & RendObjectFlags_NoInstanceFiltering) {
+    rend_instances_push_unfiltered(obj, builder);
+    return;
+  }
 
   RendBatch          batch    = rend_batch_init(obj, builder);
   RendObjectSortKey* sortKeys = null;
-
-  if (obj->flags & RendObjectFlags_NoInstanceFiltering) {
-    // Fast path for non-filtered objects.
-    for (u32 i = 0; i != obj->instCount;) {
-      const u32   count      = math_min(obj->instCount - i, batch.countMax);
-      const usize dataOffset = i * obj->instDataSize;
-      const Mem   data       = mem_slice(obj->instDataMem, dataOffset, count * obj->instDataSize);
-      mem_cpy(rend_builder_draw_instances(builder, obj->instDataSize, count), data);
-      i += count;
-    }
-    return;
-  }
 
   if (obj->flags & RendObjectFlags_Sorted) {
     const usize requiredSortMem = obj->instCount * sizeof(RendObjectSortKey);
