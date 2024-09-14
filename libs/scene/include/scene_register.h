@@ -11,7 +11,7 @@ enum {
   SceneOrder_AttachmentUpdate  = 25,
   SceneOrder_LocomotionUpdate  = 25,
   SceneOrder_VelocityUpdate    = 100,
-  SceneOrder_SetUpdate         = 100,
+  SceneOrder_SetUpdate         = 800,
 };
 
 /**
