@@ -126,6 +126,13 @@ void rend_builder_global_image(RendBuilderBuffer* buffer, RvkImage* img, const u
   buffer->passSetup.globalImageSamplers[imageIndex] = (RvkSamplerSpec){0};
 }
 
+void rend_builder_global_image_frozen(
+    RendBuilderBuffer* buffer, const RvkImage* img, const u16 imageIndex) {
+  diag_assert_msg(img->frozen, "Image is not frozen");
+  // Frozen images are immutable thus we can const-cast them without worry.
+  rend_builder_global_image(buffer, (RvkImage*)img, imageIndex);
+}
+
 void rend_builder_global_shadow(RendBuilderBuffer* buffer, RvkImage* img, const u16 imageIndex) {
   diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
   diag_assert_msg(
@@ -195,29 +202,29 @@ void rend_builder_draw_mesh(RendBuilderBuffer* buffer, const RvkMesh* mesh) {
   buffer->draw->drawMesh = mesh;
 }
 
-void rend_builder_draw_image(RendBuilderBuffer* buffer, RvkImage* image) {
+void rend_builder_draw_image(RendBuilderBuffer* buffer, RvkImage* img) {
   diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
   diag_assert_msg(
       sentinel_check(buffer->draw->drawImageIndex), "RendBuilder: Draw-image already set");
 
   for (u32 i = 0; i != rvk_pass_draw_image_max; ++i) {
-    if (buffer->passSetup.drawImages[i] == image) {
+    if (buffer->passSetup.drawImages[i] == img) {
       buffer->draw->drawImageIndex = (u16)i;
       return; // Image was already staged.
     }
     if (!buffer->passSetup.drawImages[i]) {
       buffer->draw->drawImageIndex    = (u16)i;
-      buffer->passSetup.drawImages[i] = image;
+      buffer->passSetup.drawImages[i] = img;
       return; // Image is staged in a empty slot.
     }
   }
   diag_assert_fail("Amount of staged per-draw images exceeds the maximum");
 }
 
-void rend_builder_draw_image_frozen(RendBuilderBuffer* buffer, const RvkImage* image) {
-  diag_assert_msg(image->frozen, "Image is not frozen");
+void rend_builder_draw_image_frozen(RendBuilderBuffer* buffer, const RvkImage* img) {
+  diag_assert_msg(img->frozen, "Image is not frozen");
   // Frozen images are immutable thus we can const-cast them without worry.
-  rend_builder_draw_image(buffer, (RvkImage*)image);
+  rend_builder_draw_image(buffer, (RvkImage*)img);
 }
 
 void rend_builder_draw_sampler(RendBuilderBuffer* buffer, const RvkSamplerSpec samplerSpec) {
