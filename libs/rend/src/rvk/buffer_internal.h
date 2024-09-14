@@ -31,9 +31,15 @@ String    rvk_buffer_type_str(RvkBufferType);
  * NOTE: Requires the buffer to be host-visible.
  * NOTE: Writes to the mapped memory require a flush to become visible to the driver.
  */
-Mem  rvk_buffer_map(RvkBuffer*, u64 offset);
-void rvk_buffer_flush(RvkBuffer*);
-void rvk_buffer_flush_sub(RvkBuffer*, u64 offset, u64 size);
+Mem rvk_buffer_map(RvkBuffer*, u64 offset);
+
+typedef struct {
+  const RvkBuffer* buffer;
+  u64              offset, size;
+} RvkBufferFlush;
+
+void rvk_buffer_flush(const RvkBuffer*, u64 offset, u64 size);
+void rvk_buffer_flush_batch(const RvkBufferFlush[], u32 count);
 
 /**
  * Copies the given data to the buffer.
