@@ -105,7 +105,7 @@ void rend_builder_attach_depth(RendBuilderBuffer* buffer, RvkImage* img) {
   buffer->passSetup.attachDepth = img;
 }
 
-Mem rend_builder_global_data(RendBuilderBuffer* buffer, const usize size, const u16 dataIndex) {
+Mem rend_builder_global_data(RendBuilderBuffer* buffer, const u32 size, const u16 dataIndex) {
   diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
   diag_assert_msg(
       !buffer->passSetup.globalData[dataIndex],
@@ -157,7 +157,7 @@ void rend_builder_draw_push(RendBuilderBuffer* buffer, const RvkGraphic* graphic
   *buffer->draw = (RvkPassDraw){.graphic = graphic, .drawImageIndex = sentinel_u16};
 }
 
-Mem rend_builder_draw_data(RendBuilderBuffer* buffer, const usize size) {
+Mem rend_builder_draw_data(RendBuilderBuffer* buffer, const u32 size) {
   diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
   diag_assert_msg(!buffer->draw->drawData, "RendBuilder: Draw-data already set");
 
@@ -168,31 +168,32 @@ Mem rend_builder_draw_data(RendBuilderBuffer* buffer, const usize size) {
 
 u32 rend_builder_draw_instances_batch_size(RendBuilderBuffer* buffer, const u32 dataStride) {
   diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
-  return rvk_pass_batch_size(buffer->pass, dataStride);
+  return rvk_pass_batch_size(buffer->pass, (u32)dataStride);
 }
 
-void rend_builder_draw_instances(RendBuilderBuffer* buffer, const Mem data, const u32 count) {
+Mem rend_builder_draw_instances(RendBuilderBuffer* buffer, const u32 dataStride, const u32 count) {
   diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
   diag_assert_msg(count, "RendBuilder: Needs at least 1 instance");
-
-  const u32 dataStride = (u32)(data.size / count);
   diag_assert(count <= rvk_pass_batch_size(buffer->pass, dataStride));
 
+  const u32 dataSize = dataStride * count;
+
+  RvkUniformHandle handle = 0;
   if (buffer->draw->instCount) {
     diag_assert(buffer->draw->instDataStride == dataStride);
     if (dataStride) {
-      const RvkUniformHandle handle =
-          rvk_pass_uniform_push_next(buffer->pass, buffer->draw->instData, data.size);
-      mem_cpy(rvk_pass_uniform_map(buffer->pass, handle), data);
+      handle = rvk_pass_uniform_push_next(buffer->pass, buffer->draw->instData, dataSize);
     }
   } else {
     buffer->draw->instDataStride = dataStride;
     if (dataStride) {
-      buffer->draw->instData = rvk_pass_uniform_push(buffer->pass, data.size);
-      mem_cpy(rvk_pass_uniform_map(buffer->pass, buffer->draw->instData), data);
+      handle                 = rvk_pass_uniform_push(buffer->pass, dataSize);
+      buffer->draw->instData = handle;
     }
   }
   buffer->draw->instCount += count;
+
+  return handle ? rvk_pass_uniform_map(buffer->pass, handle) : mem_empty;
 }
 
 void rend_builder_draw_vertex_count(RendBuilderBuffer* buffer, const u32 vertexCount) {

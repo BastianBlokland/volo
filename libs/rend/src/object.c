@@ -270,7 +270,7 @@ static RendBatch rend_batch_init(const RendObjectComp* obj, RendBuilderBuffer* b
 static void rend_batch_flush(const RendObjectComp* obj, RendBatch* b, RendBuilderBuffer* builder) {
   if (b->countCur) {
     const Mem data = mem_slice(b->buffer, 0, b->countCur * obj->instDataSize);
-    rend_builder_draw_instances(builder, data, b->countCur);
+    mem_cpy(rend_builder_draw_instances(builder, obj->instDataSize, b->countCur), data);
     b->countCur = 0;
   }
 }
@@ -311,7 +311,7 @@ void rend_object_draw(
       const u32   count      = math_min(obj->instCount - i, batchCount);
       const usize dataOffset = i * obj->instDataSize;
       const Mem   data       = mem_slice(obj->instDataMem, dataOffset, count * obj->instDataSize);
-      rend_builder_draw_instances(builder, data, count);
+      mem_cpy(rend_builder_draw_instances(builder, obj->instDataSize, count), data);
       i += count;
     }
     return;
