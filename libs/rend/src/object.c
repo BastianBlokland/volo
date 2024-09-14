@@ -265,7 +265,8 @@ static void rend_object_sort(const RendObjectComp* obj, RendObjectSortKey* keys,
 #endif
 }
 
-static void rend_instances_push_all(const RendObjectComp* obj, RendBuilderBuffer* builder) {
+NO_INLINE_HINT static void
+rend_instances_push_all(const RendObjectComp* obj, RendBuilderBuffer* builder) {
   const u32 batchSize = rend_builder_draw_instances_batch_size(builder, obj->instDataSize);
   for (u32 i = 0; i != obj->instCount;) {
     const u32   count      = math_min(obj->instCount - i, batchSize);
@@ -276,7 +277,7 @@ static void rend_instances_push_all(const RendObjectComp* obj, RendBuilderBuffer
   }
 }
 
-static void rend_instances_push_filtered(
+NO_INLINE_HINT static void rend_instances_push_filtered(
     const RendObjectComp* obj, RendBuilderBuffer* builder, const BitSet filter, const u32 count) {
 
   const u32 batchMax  = rend_builder_draw_instances_batch_size(builder, obj->instDataSize);
@@ -294,7 +295,7 @@ static void rend_instances_push_filtered(
   diag_assert(sentinel_check(instIndex));
 }
 
-static void rend_instances_push_sorted(
+NO_INLINE_HINT static void rend_instances_push_sorted(
     const RendObjectComp* obj,
     RendBuilderBuffer*    builder,
     RendObjectSortKey*    sortKeys,
