@@ -651,24 +651,17 @@ const RvkPassConfig* rvk_pass_config(const RvkPass* pass) { return pass->config;
 bool rvk_pass_active(const RvkPass* pass) { return rvk_pass_invoc_active((RvkPass*)pass) != null; }
 
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass* pass, const u16 colorAttachIndex) {
-  RvkImageCapability capabilities = RvkImageCapability_AttachmentColor;
-
-  // TODO: Specifying these capabilities should not be the responsibilty of the pass.
-  capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
-
   return (RvkAttachSpec){
       .vkFormat     = rvk_attach_color_format(pass, colorAttachIndex),
-      .capabilities = capabilities,
+      .capabilities = RvkImageCapability_AttachmentColor,
   };
 }
 
 RvkAttachSpec rvk_pass_spec_attach_depth(const RvkPass* pass) {
-  RvkImageCapability capabilities = RvkImageCapability_AttachmentDepth;
-  if (pass->config->attachDepth == RvkPassDepth_Stored) {
-    // TODO: Specifying these capabilities should not be responsibilty of the pass.
-    capabilities |= RvkImageCapability_TransferSource | RvkImageCapability_Sampled;
-  }
-  return (RvkAttachSpec){.vkFormat = pass->dev->vkDepthFormat, .capabilities = capabilities};
+  return (RvkAttachSpec){
+      .vkFormat     = pass->dev->vkDepthFormat,
+      .capabilities = RvkImageCapability_AttachmentDepth,
+  };
 }
 
 RvkDescMeta rvk_pass_meta_global(const RvkPass* pass) { return pass->globalDescMeta; }

@@ -14,12 +14,19 @@
 #define rvk_attach_max_images 64
 ASSERT((rvk_attach_max_images % 8) == 0, "Maximum images needs to be a multiple of 8");
 
+// clang-format off
+
 /**
  * Capabilities that all attachments will have.
  * TODO: Investigate if these have any (serious) performance impact.
  */
 static const RvkImageCapability g_attachDefaultCapabilities =
-    RvkImageCapability_TransferDest | RvkImageCapability_BlitDest;
+    RvkImageCapability_TransferSource |
+    RvkImageCapability_TransferDest   |
+    RvkImageCapability_BlitDest       |
+    RvkImageCapability_Sampled;
+
+// clang-format on
 
 typedef u32 RvkAttachIndex;
 
