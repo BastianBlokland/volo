@@ -42,13 +42,10 @@ void rvk_canvas_stats(const RvkCanvas*, RvkCanvasStats* out);
 u16  rvk_canvas_attach_count(const RvkCanvas*);
 u64  rvk_canvas_attach_memory(const RvkCanvas*);
 
-/**
- * Query swapchain statistics.
- */
-void rvk_canvas_swapchain_stats(const RvkCanvas*, RvkSwapchainStats* out);
-
 bool rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
 
+void      rvk_canvas_swapchain_stats(const RvkCanvas*, RvkSwapchainStats* out);
+RvkSize   rvk_canvas_swapchain_size(const RvkCanvas*);
 RvkImage* rvk_canvas_swapchain_image(RvkCanvas*);
 
 RvkImage* rvk_canvas_attach_acquire_color(RvkCanvas*, RvkPass*, const u32 i, RvkSize);
