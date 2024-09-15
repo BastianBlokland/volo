@@ -692,8 +692,7 @@ static bool rend_canvas_paint_3d(
   // Fog pass.
   const bool    fogActive = rend_fog_active(fog);
   RvkPass*      fogPass   = platform->passes[AssetGraphicPass_Fog];
-  const u16     fogRes    = set->fogResolution;
-  const RvkSize fogSize   = fogActive ? (RvkSize){fogRes, fogRes} : (RvkSize){1, 1};
+  const RvkSize fogSize   = fogActive ? rvk_size_square(set->fogResolution) : rvk_size_one();
   RvkImage*     fogBuffer = rend_builder_attach_acquire_color(b, fogPass, 0, fogSize);
   if (fogActive) {
     rend_builder_pass_push(b, fogPass);
@@ -744,7 +743,7 @@ static bool rend_canvas_paint_3d(
   // Shadow pass.
   const bool    shadowsActive = (set->flags & RendFlags_Shadows) && rend_light_has_shadow(light);
   const RvkSize shadowSize =
-      shadowsActive ? (RvkSize){set->shadowResolution, set->shadowResolution} : (RvkSize){1, 1};
+      shadowsActive ? rvk_size_square(set->shadowResolution) : rvk_size_one();
   RvkPass*  shadowPass  = platform->passes[AssetGraphicPass_Shadow];
   RvkImage* shadowDepth = rend_builder_attach_acquire_depth(b, shadowPass, shadowSize);
   if (shadowsActive) {
@@ -773,7 +772,7 @@ static bool rend_canvas_paint_3d(
   // Ambient occlusion.
   const RvkSize aoSize   = set->flags & RendFlags_AmbientOcclusion
                                ? rvk_size_scale(geoSize, set->aoResolutionScale)
-                               : (RvkSize){1, 1};
+                               : rvk_size_one();
   RvkPass*      aoPass   = platform->passes[AssetGraphicPass_AmbientOcclusion];
   RvkImage*     aoBuffer = rend_builder_attach_acquire_color(b, aoPass, 0, aoSize);
   if (set->flags & RendFlags_AmbientOcclusion) {
@@ -848,7 +847,7 @@ static bool rend_canvas_paint_3d(
   // Distortion.
   const RvkSize distSize   = set->flags & RendFlags_Distortion
                                  ? rvk_size_scale(geoSize, set->distortionResolutionScale)
-                                 : (RvkSize){1, 1};
+                                 : rvk_size_one();
   RvkPass*      distPass   = platform->passes[AssetGraphicPass_Distortion];
   RvkImage*     distBuffer = rend_builder_attach_acquire_color(b, distPass, 0, distSize);
   if (set->flags & RendFlags_Distortion) {
@@ -921,7 +920,7 @@ static bool rend_canvas_paint_3d(
       rend_builder_attach_release(b, images[i]);
     }
   } else {
-    bloomOutput = rend_builder_attach_acquire_color(b, bloomPass, 0, (RvkSize){1, 1});
+    bloomOutput = rend_builder_attach_acquire_color(b, bloomPass, 0, rvk_size_one());
     rend_builder_img_clear_color(b, bloomOutput, geo_color_white);
   }
 
