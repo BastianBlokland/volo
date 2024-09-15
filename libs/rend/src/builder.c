@@ -23,7 +23,7 @@ struct sRendBuilderBuffer {
 
 ASSERT(alignof(RendBuilderBuffer) == 64, "Unexpected buffer alignment")
 
-struct sRendBuilder {
+struct sRendBuilderContainer {
   Allocator*        allocator;
   RendBuilderBuffer buffers[rend_builder_workers_max];
 };
@@ -34,30 +34,30 @@ static i8 builder_draw_compare(const void* a, const void* b) {
   return compare_i32(&drawA->graphic->passOrder, &drawB->graphic->passOrder);
 }
 
-RendBuilder* rend_builder_create(Allocator* alloc) {
-  RendBuilder* builder = alloc_alloc_t(alloc, RendBuilder);
+RendBuilderContainer* rend_builder_container_create(Allocator* alloc) {
+  RendBuilderContainer* container = alloc_alloc_t(alloc, RendBuilderContainer);
 
-  *builder = (RendBuilder){.allocator = alloc};
+  *container = (RendBuilderContainer){.allocator = alloc};
 
   for (u32 i = 0; i != rend_builder_workers_max; ++i) {
-    builder->buffers[i] = (RendBuilderBuffer){
+    container->buffers[i] = (RendBuilderBuffer){
         .drawList = dynarray_create_t(alloc, RvkPassDraw, 8),
     };
   }
 
-  return builder;
+  return container;
 }
 
-void rend_builder_destroy(RendBuilder* builder) {
+void rend_builder_container_destroy(RendBuilderContainer* container) {
   for (u32 i = 0; i != rend_builder_workers_max; ++i) {
-    dynarray_destroy(&builder->buffers[i].drawList);
+    dynarray_destroy(&container->buffers[i].drawList);
   }
-  alloc_free_t(builder->allocator, builder);
+  alloc_free_t(container->allocator, container);
 }
 
-RendBuilderBuffer* rend_builder_buffer(const RendBuilder* builder) {
+RendBuilderBuffer* rend_builder_buffer(const RendBuilderContainer* container) {
   diag_assert(g_jobsWorkerId < rend_builder_workers_max);
-  return (RendBuilderBuffer*)&builder->buffers[g_jobsWorkerId];
+  return (RendBuilderBuffer*)&container->buffers[g_jobsWorkerId];
 }
 
 bool rend_builder_canvas_push(

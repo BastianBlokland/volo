@@ -599,7 +599,7 @@ static bool rend_canvas_paint_2d(
     EcsView*                objView,
     EcsView*                resView) {
 
-  RendBuilderBuffer* builder = rend_builder_buffer(platform->builder);
+  RendBuilderBuffer* builder = rend_builder_buffer(platform->builderContainer);
   if (!rend_builder_canvas_push(builder, painter->canvas, set, painter_win_size(win))) {
     return false; // Canvas not ready for rendering.
   }
@@ -643,7 +643,7 @@ static bool rend_canvas_paint_3d(
   const RvkSize winSize   = painter_win_size(win);
   const f32     winAspect = (f32)winSize.width / (f32)winSize.height;
 
-  RendBuilderBuffer* builder = rend_builder_buffer(platform->builder);
+  RendBuilderBuffer* builder = rend_builder_buffer(platform->builderContainer);
   if (!rend_builder_canvas_push(builder, painter->canvas, set, winSize)) {
     return false; // Canvas not ready for rendering.
   }

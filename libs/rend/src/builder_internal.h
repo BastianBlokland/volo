@@ -22,17 +22,17 @@ typedef struct sRvkSamplerSpec RvkSamplerSpec;
 /**
  * Utility to submit draws.
  */
-typedef struct sRendBuilder       RendBuilder;
-typedef struct sRendBuilderBuffer RendBuilderBuffer;
+typedef struct sRendBuilderContainer RendBuilderContainer;
+typedef struct sRendBuilderBuffer    RendBuilderBuffer;
 
-RendBuilder* rend_builder_create(Allocator*);
-void         rend_builder_destroy(RendBuilder*);
+RendBuilderContainer* rend_builder_container_create(Allocator*);
+void                  rend_builder_container_destroy(RendBuilderContainer*);
 
 /**
  * Retrieve a thread-local buffer for the calling thread.
  * NOTE: Buffers should not be stored and/or shared between threads.
  */
-RendBuilderBuffer* rend_builder_buffer(const RendBuilder*);
+RendBuilderBuffer* rend_builder_buffer(const RendBuilderContainer*);
 
 bool rend_builder_canvas_push(
     RendBuilderBuffer*, RvkCanvas*, const RendSettingsComp*, RvkSize windowSize);
