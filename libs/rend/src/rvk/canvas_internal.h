@@ -11,6 +11,7 @@
 typedef union uGeoColor GeoColor;
 
 // Internal forward declarations:
+typedef struct sRvkAttachPool     RvkAttachPool;
 typedef struct sRvkDevice         RvkDevice;
 typedef struct sRvkImage          RvkImage;
 typedef struct sRvkPass           RvkPass;
@@ -29,11 +30,12 @@ typedef struct sRvkCanvasStats {
  */
 typedef struct sRvkCanvas RvkCanvas;
 
-RvkCanvas* rvk_canvas_create(RvkDevice*, const GapWindowComp*, RvkPass* passes[], u32 passCount);
+RvkCanvas* rvk_canvas_create(RvkDevice*, const GapWindowComp*);
 
 void rvk_canvas_destroy(RvkCanvas*);
 
-const RvkRepository* rvk_canvas_repository(RvkCanvas*);
+const RvkRepository* rvk_canvas_repository(const RvkCanvas*);
+RvkAttachPool*       rvk_canvas_attach_pool(RvkCanvas*);
 
 /**
  * Query statistics about the previous submitted draw.
@@ -43,16 +45,11 @@ u16  rvk_canvas_attach_count(const RvkCanvas*);
 u64  rvk_canvas_attach_memory(const RvkCanvas*);
 
 bool rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
+void rvk_canvas_pass_push(RvkCanvas*, RvkPass* pass);
 
 void      rvk_canvas_swapchain_stats(const RvkCanvas*, RvkSwapchainStats* out);
 RvkSize   rvk_canvas_swapchain_size(const RvkCanvas*);
 RvkImage* rvk_canvas_swapchain_image(RvkCanvas*);
-
-RvkImage* rvk_canvas_attach_acquire_color(RvkCanvas*, RvkPass*, const u32 i, RvkSize);
-RvkImage* rvk_canvas_attach_acquire_depth(RvkCanvas*, RvkPass*, RvkSize);
-RvkImage* rvk_canvas_attach_acquire_copy(RvkCanvas*, RvkImage*);
-RvkImage* rvk_canvas_attach_acquire_copy_uninit(RvkCanvas*, RvkImage*);
-void      rvk_canvas_attach_release(RvkCanvas*, RvkImage*);
 
 void rvk_canvas_img_clear_color(RvkCanvas*, RvkImage*, GeoColor);
 void rvk_canvas_img_clear_depth(RvkCanvas*, RvkImage*, f32 depth);

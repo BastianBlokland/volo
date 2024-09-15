@@ -114,7 +114,7 @@ ecs_comp_define(RendPlatformInternComp) { RvkDevice* device; };
 static void destruct_platform_comp(void* data) {
   RendPlatformComp* comp = data;
   log_d("Render platform teardown", log_param("phase", fmt_text_lit("Cleanup")));
-  rend_builder_destroy(comp->builder);
+  rend_builder_container_destroy(comp->builderContainer);
   for (AssetGraphicPass i = 0; i != AssetGraphicPass_Count; ++i) {
     rvk_pass_destroy(comp->passes[i]);
   }
@@ -162,7 +162,7 @@ ecs_system_define(RendPlatformUpdateSys) {
     const RendSettingsGlobalComp* settings = rend_global_settings(world);
     RendPlatformComp*             plat     = ecs_world_add_t(world, global, RendPlatformComp);
     plat->device                           = rvk_device_create(settings);
-    plat->builder                          = rend_builder_create(g_allocHeap);
+    plat->builderContainer                 = rend_builder_container_create(g_allocHeap);
 
     for (AssetGraphicPass i = 0; i != AssetGraphicPass_Count; ++i) {
       plat->passes[i] = rvk_pass_create(plat->device, &g_passConfig[i]);
