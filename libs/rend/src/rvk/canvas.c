@@ -280,13 +280,6 @@ void rvk_canvas_img_clear_depth(RvkCanvas* canvas, RvkImage* img, const f32 dept
   rvk_job_img_clear_depth(frame->job, img, depth);
 }
 
-void rvk_canvas_img_copy(RvkCanvas* canvas, RvkImage* src, RvkImage* dst) {
-  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
-
-  RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
-  rvk_job_img_copy(frame->job, src, dst);
-}
-
 void rvk_canvas_img_blit(RvkCanvas* canvas, RvkImage* src, RvkImage* dst) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
 
