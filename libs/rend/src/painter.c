@@ -692,7 +692,7 @@ static bool rend_canvas_paint_3d(
   // Fog pass.
   const bool    fogActive = rend_fog_active(fog);
   RvkPass*      fogPass   = platform->passes[AssetGraphicPass_Fog];
-  const RvkSize fogSize   = fogActive ? rvk_size_square(set->fogResolution) : rvk_size_one();
+  const RvkSize fogSize   = fogActive ? rvk_size_square(set->fogResolution) : rvk_size_one;
   RvkImage*     fogBuffer = rend_builder_attach_acquire_color(b, fogPass, 0, fogSize);
   if (fogActive) {
     rend_builder_pass_push(b, fogPass);
@@ -741,13 +741,12 @@ static bool rend_canvas_paint_3d(
   }
 
   // Shadow pass.
-  const bool    shadowsActive = (set->flags & RendFlags_Shadows) && rend_light_has_shadow(light);
-  const RvkSize shadowSize =
-      shadowsActive ? rvk_size_square(set->shadowResolution) : rvk_size_one();
-  RvkPass*  shadowPass  = platform->passes[AssetGraphicPass_Shadow];
-  RvkImage* shadowDepth = rend_builder_attach_acquire_depth(b, shadowPass, shadowSize);
-  if (shadowsActive) {
-    rend_builder_pass_push(b, shadowPass);
+  const bool    shadActive = (set->flags & RendFlags_Shadows) && rend_light_has_shadow(light);
+  const RvkSize shadSize   = shadActive ? rvk_size_square(set->shadowResolution) : rvk_size_one;
+  RvkPass*      shadPass   = platform->passes[AssetGraphicPass_Shadow];
+  RvkImage*     shadDepth  = rend_builder_attach_acquire_depth(b, shadPass, shadSize);
+  if (shadActive) {
+    rend_builder_pass_push(b, shadPass);
 
     const GeoMatrix* shadTrans  = rend_light_shadow_trans(light);
     const GeoMatrix* shadProj   = rend_light_shadow_proj(light);
@@ -760,22 +759,21 @@ static bool rend_canvas_paint_3d(
     }
     const RendView   shadView = painter_view_3d_create(shadTrans, shadProj, camEntity, shadFilter);
     RendPaintContext ctx      = painter_context(b, set, time, shadView);
-    rend_builder_attach_depth(b, shadowDepth);
-    painter_set_global_data(&ctx, shadTrans, shadProj, shadowSize, time, RendViewType_Shadow);
+    rend_builder_attach_depth(b, shadDepth);
+    painter_set_global_data(&ctx, shadTrans, shadProj, shadSize, time, RendViewType_Shadow);
     painter_push_shadow(&ctx, objView, resView);
 
     rend_builder_pass_flush(b);
   } else {
-    rend_builder_img_clear_depth(b, shadowDepth, 0);
+    rend_builder_img_clear_depth(b, shadDepth, 0);
   }
 
   // Ambient occlusion.
-  const RvkSize aoSize   = set->flags & RendFlags_AmbientOcclusion
-                               ? rvk_size_scale(geoSize, set->aoResolutionScale)
-                               : rvk_size_one();
-  RvkPass*      aoPass   = platform->passes[AssetGraphicPass_AmbientOcclusion];
+  const bool    aoActive = (set->flags & RendFlags_AmbientOcclusion) != 0;
+  const RvkSize aoSize = aoActive ? rvk_size_scale(geoSize, set->aoResolutionScale) : rvk_size_one;
+  RvkPass*      aoPass = platform->passes[AssetGraphicPass_AmbientOcclusion];
   RvkImage*     aoBuffer = rend_builder_attach_acquire_color(b, aoPass, 0, aoSize);
-  if (set->flags & RendFlags_AmbientOcclusion) {
+  if (aoActive) {
     rend_builder_pass_push(b, aoPass);
 
     RendPaintContext ctx = painter_context(b, set, time, mainView);
@@ -809,7 +807,7 @@ static bool rend_canvas_paint_3d(
     rend_builder_global_image(b, geoData1, 1);
     rend_builder_global_image(b, geoDepthRead, 2);
     rend_builder_global_image(b, aoBuffer, 3);
-    rend_builder_global_shadow(b, shadowDepth, 4);
+    rend_builder_global_shadow(b, shadDepth, 4);
     rend_builder_attach_color(b, fwdColor, 0);
     rend_builder_attach_depth(b, geoDepth);
     painter_set_global_data(&ctx, &camMat, &projMat, geoSize, time, RendViewType_Main);
@@ -845,12 +843,12 @@ static bool rend_canvas_paint_3d(
   rend_builder_attach_release(b, aoBuffer);
 
   // Distortion.
-  const RvkSize distSize   = set->flags & RendFlags_Distortion
-                                 ? rvk_size_scale(geoSize, set->distortionResolutionScale)
-                                 : rvk_size_one();
+  const bool    distActive = (set->flags & RendFlags_Distortion) != 0;
+  const f32     distScale  = set->distortionResolutionScale;
+  const RvkSize distSize   = distActive ? rvk_size_scale(geoSize, distScale) : rvk_size_one;
   RvkPass*      distPass   = platform->passes[AssetGraphicPass_Distortion];
   RvkImage*     distBuffer = rend_builder_attach_acquire_color(b, distPass, 0, distSize);
-  if (set->flags & RendFlags_Distortion) {
+  if (distActive) {
     rend_builder_pass_push(b, distPass);
 
     RvkImage* distDepth;
@@ -920,7 +918,7 @@ static bool rend_canvas_paint_3d(
       rend_builder_attach_release(b, images[i]);
     }
   } else {
-    bloomOutput = rend_builder_attach_acquire_color(b, bloomPass, 0, rvk_size_one());
+    bloomOutput = rend_builder_attach_acquire_color(b, bloomPass, 0, rvk_size_one);
     rend_builder_img_clear_color(b, bloomOutput, geo_color_white);
   }
 
@@ -943,7 +941,7 @@ static bool rend_canvas_paint_3d(
       painter_push_debug_image_viewer(&ctx, fogBuffer, exposure);
     } else if (set->flags & RendFlags_DebugShadow) {
       const f32 exposure = 0.5f;
-      painter_push_debug_image_viewer(&ctx, shadowDepth, exposure);
+      painter_push_debug_image_viewer(&ctx, shadDepth, exposure);
     } else if (set->flags & RendFlags_DebugDistortion) {
       const f32 exposure = 100.0f;
       painter_push_debug_image_viewer(&ctx, distBuffer, exposure);
@@ -955,7 +953,7 @@ static bool rend_canvas_paint_3d(
 
   rend_builder_attach_release(b, fogBuffer);
   rend_builder_attach_release(b, fwdColor);
-  rend_builder_attach_release(b, shadowDepth);
+  rend_builder_attach_release(b, shadDepth);
   rend_builder_attach_release(b, bloomOutput);
   rend_builder_attach_release(b, distBuffer);
 
