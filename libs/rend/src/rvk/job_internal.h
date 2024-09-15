@@ -14,6 +14,14 @@ typedef struct sRvkStatRecorder RvkStatRecorder;
 typedef struct sRvkStopwatch    RvkStopwatch;
 typedef struct sRvkUniformPool  RvkUniformPool;
 
+typedef enum eRvkJobPhase {
+  RvkJobPhase_Main,
+
+  RvkJobPhase_Count,
+  RvkJobPhase_First = 0,
+  RvkJobPhase_Last  = RvkJobPhase_Count - 1,
+} RvkJobPhase;
+
 typedef struct {
   TimeDuration waitForGpuDur; // Time the cpu was blocked waiting for the gpu.
   TimeDuration gpuExecDur;
