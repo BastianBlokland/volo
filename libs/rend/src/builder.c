@@ -225,9 +225,11 @@ Mem rend_builder_global_data(RendBuilder* b, const u32 size, const u16 dataIndex
       "RendBuilder: Pass global data {} already staged",
       fmt_int(dataIndex));
 
-  const RvkUniformHandle handle      = rvk_pass_uniform_push(b->pass, size);
+  RvkJob*                job    = rvk_canvas_job(b->canvas);
+  const RvkUniformHandle handle = rvk_job_uniform_push(job, size);
+
   b->passSetup.globalData[dataIndex] = handle;
-  return rvk_pass_uniform_map(b->pass, handle);
+  return rvk_job_uniform_map(job, handle);
 }
 
 void rend_builder_global_image(RendBuilder* b, RvkImage* img, const u16 imageIndex) {
@@ -273,9 +275,11 @@ Mem rend_builder_draw_data(RendBuilder* b, const u32 size) {
   diag_assert_msg(b->draw, "RendBuilder: Draw not active");
   diag_assert_msg(!b->draw->drawData, "RendBuilder: Draw-data already set");
 
-  const RvkUniformHandle handle = rvk_pass_uniform_push(b->pass, size);
-  b->draw->drawData             = handle;
-  return rvk_pass_uniform_map(b->pass, handle);
+  RvkJob*                job    = rvk_canvas_job(b->canvas);
+  const RvkUniformHandle handle = rvk_job_uniform_push(job, size);
+
+  b->draw->drawData = handle;
+  return rvk_job_uniform_map(job, handle);
 }
 
 u32 rend_builder_draw_instances_batch_size(RendBuilder* b, const u32 dataStride) {
@@ -288,24 +292,25 @@ Mem rend_builder_draw_instances(RendBuilder* b, const u32 dataStride, const u32 
   diag_assert_msg(count, "RendBuilder: Needs at least 1 instance");
   diag_assert(count <= rvk_pass_batch_size(b->pass, dataStride));
 
+  RvkJob*   job      = rvk_canvas_job(b->canvas);
   const u32 dataSize = dataStride * count;
 
   RvkUniformHandle handle = 0;
   if (b->draw->instCount) {
     diag_assert(b->draw->instDataStride == dataStride);
     if (dataStride) {
-      handle = rvk_pass_uniform_push_next(b->pass, b->draw->instData, dataSize);
+      handle = rvk_job_uniform_push_next(job, b->draw->instData, dataSize);
     }
   } else {
     b->draw->instDataStride = dataStride;
     if (dataStride) {
-      handle            = rvk_pass_uniform_push(b->pass, dataSize);
+      handle            = rvk_job_uniform_push(job, dataSize);
       b->draw->instData = handle;
     }
   }
   b->draw->instCount += count;
 
-  return handle ? rvk_pass_uniform_map(b->pass, handle) : mem_empty;
+  return handle ? rvk_job_uniform_map(job, handle) : mem_empty;
 }
 
 void rend_builder_draw_vertex_count(RendBuilder* b, const u32 vertexCount) {
