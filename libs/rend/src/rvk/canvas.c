@@ -117,7 +117,7 @@ void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
   for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {
     const RvkPass* pass = frame->passes[passIdx];
     if (!pass) {
-      continue;
+      break; // End of the used passes.
     }
     const RvkPassHandle passFrame = frame->passFrames[passIdx];
     diag_assert(!sentinel_check(passFrame));
@@ -169,11 +169,12 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
 
   // Cleanup the last frame's passes.
   for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {
-    if (frame->passes[passIdx]) {
-      diag_assert(!sentinel_check(frame->passFrames[passIdx]));
-      rvk_pass_frame_release(frame->passes[passIdx], frame->passFrames[passIdx]);
-      frame->passes[passIdx] = null;
+    if (!frame->passes[passIdx]) {
+      break; // End of the used passes.
     }
+    diag_assert(!sentinel_check(frame->passFrames[passIdx]));
+    rvk_pass_frame_release(frame->passes[passIdx], frame->passFrames[passIdx]);
+    frame->passes[passIdx] = null;
   }
 
   return true;
@@ -185,6 +186,9 @@ void rvk_canvas_pass_push(RvkCanvas* canvas, RvkPass* pass) {
 
   // Check if this pass was already pushed this frame.
   for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {
+    if (!frame->passes[passIdx]) {
+      break; // End of the used passes.
+    }
     if (frame->passes[passIdx] == pass) {
       return; // Already present in this frame.
     }
@@ -269,9 +273,10 @@ void rvk_canvas_end(RvkCanvas* canvas) {
   RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
 
   for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {
-    if (frame->passes[passIdx]) {
-      rvk_pass_frame_end(frame->passes[passIdx], frame->passFrames[passIdx]);
+    if (!frame->passes[passIdx]) {
+      break; // End of the used passes.
     }
+    rvk_pass_frame_end(frame->passes[passIdx], frame->passFrames[passIdx]);
   }
 
   RvkImage* swapchainImage = rvk_swapchain_image(canvas->swapchain, frame->swapchainIdx);
