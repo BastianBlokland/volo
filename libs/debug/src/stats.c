@@ -532,6 +532,7 @@ static void stats_draw_renderer_pass_dropdown(
     for (u32 i = 0; i != rendStats->passCount; ++i) {
       passNames[i] = rendStats->passes[i].name;
     }
+    stats->inspectPassIndex = math_min(stats->inspectPassIndex, rendStats->passCount - 1);
 
     ui_select(
         c,
