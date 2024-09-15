@@ -5,6 +5,7 @@
 #include "jobs_executor.h"
 
 #include "builder_internal.h"
+#include "rvk/canvas_internal.h"
 #include "rvk/graphic_internal.h"
 #include "rvk/image_internal.h"
 #include "rvk/pass_internal.h"
@@ -13,6 +14,7 @@
 
 struct sRendBuilderBuffer {
   ALIGNAS(64)
+  RvkCanvas*   canvas;
   RvkPass*     pass;
   RvkPassSetup passSetup;
   RvkPassDraw* draw;
@@ -58,10 +60,26 @@ RendBuilderBuffer* rend_builder_buffer(const RendBuilder* builder) {
   return (RendBuilderBuffer*)&builder->buffers[g_jobsWorkerId];
 }
 
+void rend_builder_canvas_push(RendBuilderBuffer* buffer, RvkCanvas* canvas) {
+  diag_assert_msg(!buffer->canvas, "RendBuilder: Canvas already active");
+  buffer->canvas = canvas;
+}
+
+void rend_builder_canvas_flush(RendBuilderBuffer* buffer) {
+  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
+  diag_assert_msg(!buffer->pass, "RendBuilder: Pass still active");
+
+  buffer->canvas = null;
+}
+
 void rend_builder_pass_push(RendBuilderBuffer* buffer, RvkPass* pass) {
   diag_assert_msg(!buffer->pass, "RendBuilder: Pass already active");
+  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
+
   buffer->pass      = pass;
   buffer->passSetup = (RvkPassSetup){0};
+
+  rvk_canvas_pass_push(buffer->canvas, pass);
 }
 
 void rend_builder_pass_flush(RendBuilderBuffer* buffer) {

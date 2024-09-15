@@ -8,6 +8,7 @@ typedef struct sAllocator Allocator;
 typedef union uGeoColor GeoColor;
 
 // Internal forward declarations:
+typedef struct sRvkCanvas      RvkCanvas;
 typedef struct sRvkGraphic     RvkGraphic;
 typedef struct sRvkImage       RvkImage;
 typedef struct sRvkMesh        RvkMesh;
@@ -28,6 +29,9 @@ void         rend_builder_destroy(RendBuilder*);
  * NOTE: Buffers should not be stored and/or shared between threads.
  */
 RendBuilderBuffer* rend_builder_buffer(const RendBuilder*);
+
+void rend_builder_canvas_push(RendBuilderBuffer*, RvkCanvas*);
+void rend_builder_canvas_flush(RendBuilderBuffer*);
 
 void rend_builder_pass_push(RendBuilderBuffer*, RvkPass*);
 void rend_builder_pass_flush(RendBuilderBuffer*);
