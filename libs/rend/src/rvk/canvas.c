@@ -229,36 +229,6 @@ RvkImage* rvk_canvas_swapchain_image(RvkCanvas* canvas) {
   return frame->swapchainFallback = rvk_attach_acquire_color(canvas->attachPool, spec, size);
 }
 
-RvkImage* rvk_canvas_attach_acquire_copy(RvkCanvas* canvas, RvkImage* src) {
-  RvkImage* res = rvk_canvas_attach_acquire_copy_uninit(canvas, src);
-
-  RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
-  rvk_job_img_copy(frame->job, src, res);
-
-  return res;
-}
-
-RvkImage* rvk_canvas_attach_acquire_copy_uninit(RvkCanvas* canvas, RvkImage* src) {
-  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
-
-  const RvkAttachSpec spec = {
-      .vkFormat     = src->vkFormat,
-      .capabilities = src->caps,
-  };
-  RvkImage* res;
-  if (src->type == RvkImageType_DepthAttachment) {
-    res = rvk_attach_acquire_depth(canvas->attachPool, spec, src->size);
-  } else {
-    res = rvk_attach_acquire_color(canvas->attachPool, spec, src->size);
-  }
-
-  return res;
-}
-
-void rvk_canvas_attach_release(RvkCanvas* canvas, RvkImage* img) {
-  rvk_attach_release(canvas->attachPool, img);
-}
-
 void rvk_canvas_img_clear_color(RvkCanvas* canvas, RvkImage* img, const GeoColor color) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
 
@@ -271,6 +241,13 @@ void rvk_canvas_img_clear_depth(RvkCanvas* canvas, RvkImage* img, const f32 dept
 
   RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
   rvk_job_img_clear_depth(frame->job, img, depth);
+}
+
+void rvk_canvas_img_copy(RvkCanvas* canvas, RvkImage* src, RvkImage* dst) {
+  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
+
+  RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
+  rvk_job_img_copy(frame->job, src, dst);
 }
 
 void rvk_canvas_img_blit(RvkCanvas* canvas, RvkImage* src, RvkImage* dst) {

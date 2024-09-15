@@ -122,19 +122,38 @@ RvkImage* rend_builder_attach_acquire_depth(RendBuilder* b, RvkPass* pass, const
   return rvk_attach_acquire_depth(attachPool, spec, size);
 }
 
-RvkImage* rend_builder_attach_acquire_copy(RendBuilder* b, RvkImage* img) {
+RvkImage* rend_builder_attach_acquire_copy(RendBuilder* b, RvkImage* src) {
   diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
-  return rvk_canvas_attach_acquire_copy(b->canvas, img);
+
+  RvkImage* res = rend_builder_attach_acquire_copy_uninit(b, src);
+  rvk_canvas_img_copy(b->canvas, src, res);
+  return res;
 }
 
-RvkImage* rend_builder_attach_acquire_copy_uninit(RendBuilder* b, RvkImage* img) {
+RvkImage* rend_builder_attach_acquire_copy_uninit(RendBuilder* b, RvkImage* src) {
   diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
-  return rvk_canvas_attach_acquire_copy_uninit(b->canvas, img);
+
+  RvkAttachPool* attachPool = rvk_canvas_attach_pool(b->canvas);
+
+  const RvkAttachSpec spec = {
+      .vkFormat     = src->vkFormat,
+      .capabilities = src->caps,
+  };
+  RvkImage* res;
+  if (src->type == RvkImageType_DepthAttachment) {
+    res = rvk_attach_acquire_depth(attachPool, spec, src->size);
+  } else {
+    res = rvk_attach_acquire_color(attachPool, spec, src->size);
+  }
+
+  return res;
 }
 
 void rend_builder_attach_release(RendBuilder* b, RvkImage* img) {
   diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
-  rvk_canvas_attach_release(b->canvas, img);
+
+  RvkAttachPool* attachPool = rvk_canvas_attach_pool(b->canvas);
+  rvk_attach_release(attachPool, img);
 }
 
 void rend_builder_pass_push(RendBuilder* b, RvkPass* pass) {

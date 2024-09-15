@@ -51,12 +51,9 @@ void      rvk_canvas_swapchain_stats(const RvkCanvas*, RvkSwapchainStats* out);
 RvkSize   rvk_canvas_swapchain_size(const RvkCanvas*);
 RvkImage* rvk_canvas_swapchain_image(RvkCanvas*);
 
-RvkImage* rvk_canvas_attach_acquire_copy(RvkCanvas*, RvkImage*);
-RvkImage* rvk_canvas_attach_acquire_copy_uninit(RvkCanvas*, RvkImage*);
-void      rvk_canvas_attach_release(RvkCanvas*, RvkImage*);
-
 void rvk_canvas_img_clear_color(RvkCanvas*, RvkImage*, GeoColor);
 void rvk_canvas_img_clear_depth(RvkCanvas*, RvkImage*, f32 depth);
+void rvk_canvas_img_copy(RvkCanvas*, RvkImage* src, RvkImage* dst);
 void rvk_canvas_img_blit(RvkCanvas*, RvkImage* src, RvkImage* dst);
 
 /**

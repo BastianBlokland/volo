@@ -50,8 +50,8 @@ void rend_builder_pass_flush(RendBuilder*);
 
 RvkImage* rend_builder_attach_acquire_color(RendBuilder*, RvkPass*, u32 binding, RvkSize);
 RvkImage* rend_builder_attach_acquire_depth(RendBuilder*, RvkPass*, RvkSize);
-RvkImage* rend_builder_attach_acquire_copy(RendBuilder*, RvkImage*);
-RvkImage* rend_builder_attach_acquire_copy_uninit(RendBuilder*, RvkImage*);
+RvkImage* rend_builder_attach_acquire_copy(RendBuilder*, RvkImage* src);
+RvkImage* rend_builder_attach_acquire_copy_uninit(RendBuilder*, RvkImage* src);
 void      rend_builder_attach_release(RendBuilder*, RvkImage*);
 
 void rend_builder_clear_color(RendBuilder*, GeoColor clearColor);
