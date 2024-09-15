@@ -502,6 +502,12 @@ static RvkPassFrame* rvk_pass_frame_get_active(RvkPass* pass) {
   return null;
 }
 
+static RvkPassFrame* rvk_pass_frame_require_active(RvkPass* pass) {
+  RvkPassFrame* res = rvk_pass_frame_get_active(pass);
+  diag_assert_msg(res, "Pass has no active frame");
+  return res;
+}
+
 static const RvkPassFrame* rvk_pass_frame_get(const RvkPass* pass, const RvkPassHandle handle) {
   diag_assert(handle < pass->frames.size);
   return &dynarray_begin_t(&pass->frames, RvkPassFrame)[handle];
@@ -777,7 +783,7 @@ u64 rvk_pass_stat_pipeline(
 }
 
 u32 rvk_pass_batch_size(RvkPass* pass, const u32 instanceDataSize) {
-  RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
+  RvkPassFrame* frame = rvk_pass_frame_require_active(pass);
   if (!instanceDataSize) {
     return pass_instance_count_max;
   }
@@ -786,25 +792,25 @@ u32 rvk_pass_batch_size(RvkPass* pass, const u32 instanceDataSize) {
 }
 
 Mem rvk_pass_uniform_map(RvkPass* pass, const RvkUniformHandle handle) {
-  RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
+  RvkPassFrame* frame = rvk_pass_frame_require_active(pass);
   return rvk_uniform_map(frame->uniformPool, handle);
 }
 
 RvkUniformHandle rvk_pass_uniform_push(RvkPass* pass, const usize size) {
-  RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
+  RvkPassFrame* frame = rvk_pass_frame_require_active(pass);
   return rvk_uniform_push(frame->uniformPool, size);
 }
 
 RvkUniformHandle
 rvk_pass_uniform_push_next(RvkPass* pass, const RvkUniformHandle head, const usize size) {
-  RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
+  RvkPassFrame* frame = rvk_pass_frame_require_active(pass);
   return rvk_uniform_push_next(frame->uniformPool, head, size);
 }
 
 void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
   diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
 
-  RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
+  RvkPassFrame* frame = rvk_pass_frame_require_active(pass);
 
   RvkPassInvoc* invoc  = rvk_pass_invoc_begin(pass, frame);
   invoc->size          = rvk_pass_size(pass, setup);
@@ -873,7 +879,7 @@ void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
 }
 
 void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* draw) {
-  RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
+  RvkPassFrame* frame = rvk_pass_frame_require_active(pass);
 
   RvkPassInvoc* invoc = rvk_pass_invoc_active(pass);
   diag_assert_msg(invoc, "Pass invocation not active");
@@ -976,7 +982,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* 
 }
 
 void rvk_pass_end(RvkPass* pass, const RvkPassSetup* setup) {
-  RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
+  RvkPassFrame* frame = rvk_pass_frame_require_active(pass);
 
   RvkPassInvoc* invoc = rvk_pass_invoc_active(pass);
   diag_assert_msg(invoc, "Pass not active");
