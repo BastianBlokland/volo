@@ -705,7 +705,7 @@ RvkPassHandle rvk_pass_frame_begin(RvkPass* pass, RvkJob* job) {
   frame->uniformPool  = rvk_job_uniform_pool(job);
   frame->stopwatch    = rvk_job_stopwatch(job);
   frame->statrecorder = rvk_job_statrecorder(job);
-  frame->vkCmdBuf     = rvk_job_cmdbuffer(job);
+  frame->vkCmdBuf     = rvk_job_cmdbuffer(job, RvkJobPhase_Main);
 
   return frameHandle;
 }

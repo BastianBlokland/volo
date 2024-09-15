@@ -100,20 +100,23 @@ RvkImage* rend_builder_img_swapchain(RendBuilder* b) {
 
 void rend_builder_img_clear_color(RendBuilder* b, RvkImage* img, const GeoColor color) {
   diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
-  RvkJob* job = rvk_canvas_job(b->canvas);
-  rvk_job_img_clear_color(job, img, color);
+  RvkJob*           job      = rvk_canvas_job(b->canvas);
+  const RvkJobPhase jobPhase = RvkJobPhase_Main;
+  rvk_job_img_clear_color(job, jobPhase, img, color);
 }
 
 void rend_builder_img_clear_depth(RendBuilder* b, RvkImage* img, const f32 depth) {
   diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
-  RvkJob* job = rvk_canvas_job(b->canvas);
-  rvk_job_img_clear_depth(job, img, depth);
+  RvkJob*           job      = rvk_canvas_job(b->canvas);
+  const RvkJobPhase jobPhase = RvkJobPhase_Main;
+  rvk_job_img_clear_depth(job, jobPhase, img, depth);
 }
 
 void rend_builder_img_blit(RendBuilder* b, RvkImage* src, RvkImage* dst) {
   diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
-  RvkJob* job = rvk_canvas_job(b->canvas);
-  rvk_job_img_blit(job, src, dst);
+  RvkJob*           job      = rvk_canvas_job(b->canvas);
+  const RvkJobPhase jobPhase = RvkJobPhase_Main;
+  rvk_job_img_blit(job, jobPhase, src, dst);
 }
 
 RvkImage* rend_builder_attach_acquire_color(
@@ -136,9 +139,11 @@ RvkImage* rend_builder_attach_acquire_depth(RendBuilder* b, RvkPass* pass, const
 RvkImage* rend_builder_attach_acquire_copy(RendBuilder* b, RvkImage* src) {
   diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
 
-  RvkImage* res = rend_builder_attach_acquire_copy_uninit(b, src);
-  RvkJob*   job = rvk_canvas_job(b->canvas);
-  rvk_job_img_copy(job, src, res);
+  RvkImage*         res      = rend_builder_attach_acquire_copy_uninit(b, src);
+  RvkJob*           job      = rvk_canvas_job(b->canvas);
+  const RvkJobPhase jobPhase = RvkJobPhase_Main;
+
+  rvk_job_img_copy(job, jobPhase, src, res);
   return res;
 }
 

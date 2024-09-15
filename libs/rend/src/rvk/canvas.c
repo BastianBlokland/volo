@@ -244,12 +244,12 @@ void rvk_canvas_end(RvkCanvas* canvas) {
   RvkImage* swapchainImage = rvk_swapchain_image(canvas->swapchain, frame->swapchainIdx);
   // If using a swapchain-fallback copy the final content into the swapchain.
   if (frame->swapchainFallback) {
-    rvk_job_img_blit(frame->job, frame->swapchainFallback, swapchainImage);
+    rvk_job_img_blit(frame->job, RvkJobPhase_Main, frame->swapchainFallback, swapchainImage);
     rvk_attach_release(canvas->attachPool, frame->swapchainFallback);
     frame->swapchainFallback = null;
   }
   // Transition the swapchain-image to the present phase.
-  rvk_job_img_transition(frame->job, swapchainImage, RvkImagePhase_Present);
+  rvk_job_img_transition(frame->job, RvkJobPhase_Main, swapchainImage, RvkImagePhase_Present);
 
   VkSemaphore attachmentsReady = null;
   if (canvas->flags & RvkCanvasFlags_Submitted) {
