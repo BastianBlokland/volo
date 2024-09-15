@@ -107,6 +107,33 @@ void rend_builder_img_blit(RendBuilderBuffer* buffer, RvkImage* src, RvkImage* d
   rvk_canvas_img_blit(buffer->canvas, src, dst);
 }
 
+RvkImage* rend_builder_attach_acquire_color(
+    RendBuilderBuffer* buffer, RvkPass* pass, const u32 binding, const RvkSize size) {
+  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
+  return rvk_canvas_attach_acquire_color(buffer->canvas, pass, binding, size);
+}
+
+RvkImage*
+rend_builder_attach_acquire_depth(RendBuilderBuffer* buffer, RvkPass* pass, const RvkSize size) {
+  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
+  return rvk_canvas_attach_acquire_depth(buffer->canvas, pass, size);
+}
+
+RvkImage* rend_builder_attach_acquire_copy(RendBuilderBuffer* buffer, RvkImage* img) {
+  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
+  return rvk_canvas_attach_acquire_copy(buffer->canvas, img);
+}
+
+RvkImage* rend_builder_attach_acquire_copy_uninit(RendBuilderBuffer* buffer, RvkImage* img) {
+  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
+  return rvk_canvas_attach_acquire_copy_uninit(buffer->canvas, img);
+}
+
+void rend_builder_attach_release(RendBuilderBuffer* buffer, RvkImage* img) {
+  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
+  rvk_canvas_attach_release(buffer->canvas, img);
+}
+
 void rend_builder_pass_push(RendBuilderBuffer* buffer, RvkPass* pass) {
   diag_assert_msg(!buffer->pass, "RendBuilder: Pass already active");
   diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");

@@ -48,6 +48,12 @@ void      rend_builder_img_blit(RendBuilderBuffer*, RvkImage* src, RvkImage* dst
 void rend_builder_pass_push(RendBuilderBuffer*, RvkPass*);
 void rend_builder_pass_flush(RendBuilderBuffer*);
 
+RvkImage* rend_builder_attach_acquire_color(RendBuilderBuffer*, RvkPass*, u32 binding, RvkSize);
+RvkImage* rend_builder_attach_acquire_depth(RendBuilderBuffer*, RvkPass*, RvkSize);
+RvkImage* rend_builder_attach_acquire_copy(RendBuilderBuffer*, RvkImage*);
+RvkImage* rend_builder_attach_acquire_copy_uninit(RendBuilderBuffer*, RvkImage*);
+void      rend_builder_attach_release(RendBuilderBuffer*, RvkImage*);
+
 void rend_builder_clear_color(RendBuilderBuffer*, GeoColor clearColor);
 
 void rend_builder_attach_color(RendBuilderBuffer*, RvkImage*, u16 colorAttachIndex);

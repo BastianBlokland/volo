@@ -656,9 +656,9 @@ static bool rend_canvas_paint_3d(
   // Geometry pass.
   const RvkSize geoSize  = rvk_size_scale(winSize, set->resolutionScale);
   RvkPass*      geoPass  = platform->passes[AssetGraphicPass_Geometry];
-  RvkImage*     geoData0 = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 0, geoSize);
-  RvkImage*     geoData1 = rvk_canvas_attach_acquire_color(painter->canvas, geoPass, 1, geoSize);
-  RvkImage*     geoDepth = rvk_canvas_attach_acquire_depth(painter->canvas, geoPass, geoSize);
+  RvkImage*     geoData0 = rend_builder_attach_acquire_color(builder, geoPass, 0, geoSize);
+  RvkImage*     geoData1 = rend_builder_attach_acquire_color(builder, geoPass, 1, geoSize);
+  RvkImage*     geoDepth = rend_builder_attach_acquire_depth(builder, geoPass, geoSize);
   SceneTags     geoTagMask;
   {
     trace_begin("rend_paint_geo", TraceColor_White);
@@ -677,7 +677,7 @@ static bool rend_canvas_paint_3d(
 
   // Make a copy of the geometry depth to read from while still writing to the original.
   // TODO: Instead of a straight copy considering performing linearization at the same time.
-  RvkImage* geoDepthRead = rvk_canvas_attach_acquire_copy(painter->canvas, geoDepth);
+  RvkImage* geoDepthRead = rend_builder_attach_acquire_copy(builder, geoDepth);
 
   // Decal pass.
   RvkPass* decalPass = platform->passes[AssetGraphicPass_Decal];
@@ -686,7 +686,7 @@ static bool rend_canvas_paint_3d(
     rend_builder_pass_push(builder, decalPass);
 
     // Copy the gbufer data1 image to be able to read the gbuffer normal and tags.
-    RvkImage* geoData1Cpy = rvk_canvas_attach_acquire_copy(painter->canvas, geoData1);
+    RvkImage* geoData1Cpy = rend_builder_attach_acquire_copy(builder, geoData1);
 
     RendPaintContext ctx = painter_context(builder, set, time, mainView);
     rend_builder_global_image(builder, geoData1Cpy, 0);
@@ -700,7 +700,7 @@ static bool rend_canvas_paint_3d(
     rend_builder_pass_flush(builder);
     trace_end();
 
-    rvk_canvas_attach_release(painter->canvas, geoData1Cpy);
+    rend_builder_attach_release(builder, geoData1Cpy);
   }
 
   // Fog pass.
@@ -708,7 +708,7 @@ static bool rend_canvas_paint_3d(
   RvkPass*      fogPass   = platform->passes[AssetGraphicPass_Fog];
   const u16     fogRes    = set->fogResolution;
   const RvkSize fogSize   = fogActive ? (RvkSize){fogRes, fogRes} : (RvkSize){1, 1};
-  RvkImage*     fogBuffer = rvk_canvas_attach_acquire_color(painter->canvas, fogPass, 0, fogSize);
+  RvkImage*     fogBuffer = rend_builder_attach_acquire_color(builder, fogPass, 0, fogSize);
   if (fogActive) {
     trace_begin("rend_paint_fog", TraceColor_White);
     rend_builder_pass_push(builder, fogPass);
@@ -740,7 +740,7 @@ static bool rend_canvas_paint_3d(
       f32 sampleScale;
     } blurData = {.sampleScale = set->fogBlurScale};
 
-    RvkImage* tmp = rvk_canvas_attach_acquire_copy_uninit(painter->canvas, fogBuffer);
+    RvkImage* tmp = rend_builder_attach_acquire_copy_uninit(builder, fogBuffer);
     for (u32 i = 0; i != set->fogBlurSteps; ++i) {
       // Horizontal pass.
       rend_builder_pass_push(builder, fogBlurPass);
@@ -756,7 +756,7 @@ static bool rend_canvas_paint_3d(
       painter_push_simple(&ctx, RvkRepositoryId_FogBlurVerGraphic, mem_var(blurData));
       rend_builder_pass_flush(builder);
     }
-    rvk_canvas_attach_release(painter->canvas, tmp);
+    rend_builder_attach_release(builder, tmp);
     trace_end();
   }
 
@@ -765,7 +765,7 @@ static bool rend_canvas_paint_3d(
   const RvkSize shadowSize =
       shadowsActive ? (RvkSize){set->shadowResolution, set->shadowResolution} : (RvkSize){1, 1};
   RvkPass*  shadowPass  = platform->passes[AssetGraphicPass_Shadow];
-  RvkImage* shadowDepth = rvk_canvas_attach_acquire_depth(painter->canvas, shadowPass, shadowSize);
+  RvkImage* shadowDepth = rend_builder_attach_acquire_depth(builder, shadowPass, shadowSize);
   if (shadowsActive) {
     trace_begin("rend_paint_shadows", TraceColor_White);
     rend_builder_pass_push(builder, shadowPass);
@@ -796,7 +796,7 @@ static bool rend_canvas_paint_3d(
                                ? rvk_size_scale(geoSize, set->aoResolutionScale)
                                : (RvkSize){1, 1};
   RvkPass*      aoPass   = platform->passes[AssetGraphicPass_AmbientOcclusion];
-  RvkImage*     aoBuffer = rvk_canvas_attach_acquire_color(painter->canvas, aoPass, 0, aoSize);
+  RvkImage*     aoBuffer = rend_builder_attach_acquire_color(builder, aoPass, 0, aoSize);
   if (set->flags & RendFlags_AmbientOcclusion) {
     trace_begin("rend_paint_ao", TraceColor_White);
     rend_builder_pass_push(builder, aoPass);
@@ -816,7 +816,7 @@ static bool rend_canvas_paint_3d(
 
   // Forward pass.
   RvkPass*  fwdPass  = platform->passes[AssetGraphicPass_Forward];
-  RvkImage* fwdColor = rvk_canvas_attach_acquire_color(painter->canvas, fwdPass, 0, geoSize);
+  RvkImage* fwdColor = rend_builder_attach_acquire_color(builder, fwdPass, 0, geoSize);
   {
     trace_begin("rend_paint_forward", TraceColor_White);
     rend_builder_pass_push(builder, fwdPass);
@@ -865,17 +865,17 @@ static bool rend_canvas_paint_3d(
     trace_end();
   }
 
-  rvk_canvas_attach_release(painter->canvas, geoData0);
-  rvk_canvas_attach_release(painter->canvas, geoData1);
-  rvk_canvas_attach_release(painter->canvas, geoDepthRead);
-  rvk_canvas_attach_release(painter->canvas, aoBuffer);
+  rend_builder_attach_release(builder, geoData0);
+  rend_builder_attach_release(builder, geoData1);
+  rend_builder_attach_release(builder, geoDepthRead);
+  rend_builder_attach_release(builder, aoBuffer);
 
   // Distortion.
-  const RvkSize distSize = set->flags & RendFlags_Distortion
-                               ? rvk_size_scale(geoSize, set->distortionResolutionScale)
-                               : (RvkSize){1, 1};
-  RvkPass*      distPass = platform->passes[AssetGraphicPass_Distortion];
-  RvkImage* distBuffer   = rvk_canvas_attach_acquire_color(painter->canvas, distPass, 0, distSize);
+  const RvkSize distSize   = set->flags & RendFlags_Distortion
+                                 ? rvk_size_scale(geoSize, set->distortionResolutionScale)
+                                 : (RvkSize){1, 1};
+  RvkPass*      distPass   = platform->passes[AssetGraphicPass_Distortion];
+  RvkImage*     distBuffer = rend_builder_attach_acquire_color(builder, distPass, 0, distSize);
   if (set->flags & RendFlags_Distortion) {
     trace_begin("rend_paint_distortion", TraceColor_White);
     rend_builder_pass_push(builder, distPass);
@@ -884,7 +884,7 @@ static bool rend_canvas_paint_3d(
     if (distSize.data == geoSize.data) {
       distDepth = geoDepth;
     } else {
-      distDepth = rvk_canvas_attach_acquire_depth(painter->canvas, distPass, distSize);
+      distDepth = rend_builder_attach_acquire_depth(builder, distPass, distSize);
       rend_builder_img_blit(builder, geoDepth, distDepth);
     }
 
@@ -898,13 +898,13 @@ static bool rend_canvas_paint_3d(
     trace_end();
 
     if (distSize.data != geoSize.data) {
-      rvk_canvas_attach_release(painter->canvas, distDepth);
+      rend_builder_attach_release(builder, distDepth);
     }
   } else {
     rend_builder_img_clear_color(builder, distBuffer, geo_color_black);
   }
 
-  rvk_canvas_attach_release(painter->canvas, geoDepth);
+  rend_builder_attach_release(builder, geoDepth);
 
   // Bloom pass.
   RvkPass*  bloomPass = platform->passes[AssetGraphicPass_Bloom];
@@ -919,7 +919,7 @@ static bool rend_canvas_paint_3d(
 
     for (u32 i = 0; i != set->bloomSteps; ++i) {
       size      = rvk_size_scale(size, 0.5f);
-      images[i] = rvk_canvas_attach_acquire_color(painter->canvas, bloomPass, 0, size);
+      images[i] = rend_builder_attach_acquire_color(builder, bloomPass, 0, size);
     }
 
     struct {
@@ -948,11 +948,11 @@ static bool rend_canvas_paint_3d(
     // Keep the largest image as the output, release the others.
     bloomOutput = images[0];
     for (u32 i = 1; i != set->bloomSteps; ++i) {
-      rvk_canvas_attach_release(painter->canvas, images[i]);
+      rend_builder_attach_release(builder, images[i]);
     }
     trace_end();
   } else {
-    bloomOutput = rvk_canvas_attach_acquire_color(painter->canvas, bloomPass, 0, (RvkSize){1, 1});
+    bloomOutput = rend_builder_attach_acquire_color(builder, bloomPass, 0, (RvkSize){1, 1});
     rend_builder_img_clear_color(builder, bloomOutput, geo_color_white);
   }
 
@@ -989,11 +989,11 @@ static bool rend_canvas_paint_3d(
     trace_end();
   }
 
-  rvk_canvas_attach_release(painter->canvas, fogBuffer);
-  rvk_canvas_attach_release(painter->canvas, fwdColor);
-  rvk_canvas_attach_release(painter->canvas, shadowDepth);
-  rvk_canvas_attach_release(painter->canvas, bloomOutput);
-  rvk_canvas_attach_release(painter->canvas, distBuffer);
+  rend_builder_attach_release(builder, fogBuffer);
+  rend_builder_attach_release(builder, fwdColor);
+  rend_builder_attach_release(builder, shadowDepth);
+  rend_builder_attach_release(builder, bloomOutput);
+  rend_builder_attach_release(builder, distBuffer);
 
   // Finish the frame.
   trace_end();
