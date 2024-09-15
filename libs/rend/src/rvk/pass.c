@@ -575,12 +575,18 @@ static RvkPassInvoc* rvk_pass_invoc_begin(RvkPass* pass, RvkPassFrame* frame) {
   return res;
 }
 
-static RvkPassInvoc* rvk_pass_invoc_active(RvkPass* pass) {
+static RvkPassInvoc* rvk_pass_invoc_get_active(RvkPass* pass) {
   RvkPassFrame* frame = rvk_pass_frame_get_active(pass);
   if (!frame || !(pass->flags & RvkPassFlags_Active)) {
     return null;
   }
   return dynarray_at_t(&frame->invocations, frame->invocations.size - 1, RvkPassInvoc);
+}
+
+static RvkPassInvoc* rvk_pass_invoc_require_active(RvkPass* pass) {
+  RvkPassInvoc* res = rvk_pass_invoc_get_active(pass);
+  diag_assert_msg(res, "Pass not active");
+  return res;
 }
 
 static RvkSize rvk_pass_size(MAYBE_UNUSED const RvkPass* pass, const RvkPassSetup* setup) {
@@ -639,7 +645,7 @@ RvkPass* rvk_pass_create(RvkDevice* dev, const RvkPassConfig* config) {
 }
 
 void rvk_pass_destroy(RvkPass* pass) {
-  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation still active");
+  diag_assert_msg(!rvk_pass_invoc_get_active(pass), "Pass invocation still active");
 
   dynarray_for_t(&pass->frames, RvkPassFrame, frame) { rvk_pass_frame_destroy(pass, frame); }
   dynarray_destroy(&pass->frames);
@@ -652,7 +658,9 @@ void rvk_pass_destroy(RvkPass* pass) {
 
 const RvkPassConfig* rvk_pass_config(const RvkPass* pass) { return pass->config; }
 
-bool rvk_pass_active(const RvkPass* pass) { return rvk_pass_invoc_active((RvkPass*)pass) != null; }
+bool rvk_pass_active(const RvkPass* pass) {
+  return rvk_pass_invoc_get_active((RvkPass*)pass) != null;
+}
 
 RvkAttachSpec rvk_pass_spec_attach_color(const RvkPass* pass, const u16 colorAttachIndex) {
   return (RvkAttachSpec){
@@ -703,7 +711,7 @@ RvkPassHandle rvk_pass_frame_begin(RvkPass* pass, RvkJob* job) {
 }
 
 void rvk_pass_frame_end(RvkPass* pass, const RvkPassHandle frameHandle) {
-  diag_assert_msg(!rvk_pass_invoc_active((RvkPass*)pass), "Pass invocation still active");
+  diag_assert_msg(!rvk_pass_invoc_get_active((RvkPass*)pass), "Pass invocation still active");
 
   RvkPassFrame* frame = rvk_pass_frame_get_mut(pass, frameHandle);
   diag_assert_msg(frame->state == RvkPassFrameState_Active, "Pass frame not active");
@@ -808,7 +816,7 @@ rvk_pass_uniform_push_next(RvkPass* pass, const RvkUniformHandle head, const usi
 }
 
 void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
-  diag_assert_msg(!rvk_pass_invoc_active(pass), "Pass invocation already active");
+  diag_assert_msg(!rvk_pass_invoc_get_active(pass), "Pass invocation already active");
 
   RvkPassFrame* frame = rvk_pass_frame_require_active(pass);
 
@@ -880,9 +888,7 @@ void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
 
 void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* draw) {
   RvkPassFrame* frame = rvk_pass_frame_require_active(pass);
-
-  RvkPassInvoc* invoc = rvk_pass_invoc_active(pass);
-  diag_assert_msg(invoc, "Pass invocation not active");
+  RvkPassInvoc* invoc = rvk_pass_invoc_require_active(pass);
 
   RvkImage* drawImg = null;
   if (!sentinel_check(draw->drawImageIndex)) {
@@ -983,9 +989,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* 
 
 void rvk_pass_end(RvkPass* pass, const RvkPassSetup* setup) {
   RvkPassFrame* frame = rvk_pass_frame_require_active(pass);
-
-  RvkPassInvoc* invoc = rvk_pass_invoc_active(pass);
-  diag_assert_msg(invoc, "Pass not active");
+  RvkPassInvoc* invoc = rvk_pass_invoc_require_active(pass);
 
   pass->flags &= ~RvkPassFlags_Active;
 
