@@ -6,6 +6,7 @@
 
 #include "attach_internal.h"
 #include "canvas_internal.h"
+#include "debug_internal.h"
 #include "device_internal.h"
 #include "job_internal.h"
 #include "pass_internal.h"
@@ -57,14 +58,23 @@ RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
   *canvas = (RvkCanvas){.dev = dev, .swapchain = swapchain, .attachPool = attachPool};
 
   for (u32 i = 0; i != canvas_frame_count; ++i) {
-    canvas->frames[i] = (RvkCanvasFrame){
+    RvkCanvasFrame* frame = &canvas->frames[i];
+
+    *frame = (RvkCanvasFrame){
         .job                 = rvk_job_create(dev, i),
         .attachmentsReleased = rvk_semaphore_create(dev),
         .swapchainAvailable  = rvk_semaphore_create(dev),
         .swapchainPresent    = rvk_semaphore_create(dev),
         .swapchainIdx        = sentinel_u32,
     };
-    mem_set(array_mem(canvas->frames[i].passFrames), 0xFF);
+    mem_set(array_mem(frame->passFrames), 0xFF);
+
+    rvk_debug_name_semaphore(
+        dev->debug, frame->attachmentsReleased, "attachmentsReleased_{}", fmt_int(i));
+    rvk_debug_name_semaphore(
+        dev->debug, frame->swapchainAvailable, "swapchainAvailable_{}", fmt_int(i));
+    rvk_debug_name_semaphore(
+        dev->debug, frame->swapchainPresent, "swapchainPresent_{}", fmt_int(i));
   }
 
   log_d(
