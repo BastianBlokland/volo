@@ -60,15 +60,25 @@ RendBuilderBuffer* rend_builder_buffer(const RendBuilder* builder) {
   return (RendBuilderBuffer*)&builder->buffers[g_jobsWorkerId];
 }
 
-void rend_builder_canvas_push(RendBuilderBuffer* buffer, RvkCanvas* canvas) {
+bool rend_builder_canvas_push(
+    RendBuilderBuffer*      buffer,
+    RvkCanvas*              canvas,
+    const RendSettingsComp* settings,
+    const RvkSize           windowSize) {
   diag_assert_msg(!buffer->canvas, "RendBuilder: Canvas already active");
+
+  if (!rvk_canvas_begin(canvas, settings, windowSize)) {
+    return false; // Canvas not ready for rendering.
+  }
   buffer->canvas = canvas;
+  return true;
 }
 
 void rend_builder_canvas_flush(RendBuilderBuffer* buffer) {
   diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
   diag_assert_msg(!buffer->pass, "RendBuilder: Pass still active");
 
+  rvk_canvas_end(buffer->canvas);
   buffer->canvas = null;
 }
 

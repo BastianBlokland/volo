@@ -599,13 +599,11 @@ static bool rend_canvas_paint_2d(
     EcsView*                objView,
     EcsView*                resView) {
 
-  if (!rvk_canvas_begin(painter->canvas, set, painter_win_size(win))) {
+  RendBuilderBuffer* builder = rend_builder_buffer(platform->builder);
+  if (!rend_builder_canvas_push(builder, painter->canvas, set, painter_win_size(win))) {
     return false; // Canvas not ready for rendering.
   }
   trace_begin("rend_paint_2d", TraceColor_Red);
-
-  RendBuilderBuffer* builder = rend_builder_buffer(platform->builder);
-  rend_builder_canvas_push(builder, painter->canvas);
 
   const RendView mainView = painter_view_2d_create(camEntity);
 
@@ -624,7 +622,6 @@ static bool rend_canvas_paint_2d(
 
   trace_end();
   rend_builder_canvas_flush(builder);
-  rvk_canvas_end(painter->canvas);
   return true;
 }
 
@@ -646,13 +643,11 @@ static bool rend_canvas_paint_3d(
   const RvkSize winSize   = painter_win_size(win);
   const f32     winAspect = (f32)winSize.width / (f32)winSize.height;
 
-  if (!rvk_canvas_begin(painter->canvas, set, winSize)) {
+  RendBuilderBuffer* builder = rend_builder_buffer(platform->builder);
+  if (!rend_builder_canvas_push(builder, painter->canvas, set, winSize)) {
     return false; // Canvas not ready for rendering.
   }
   trace_begin("rend_paint_3d", TraceColor_Red);
-
-  RendBuilderBuffer* builder = rend_builder_buffer(platform->builder);
-  rend_builder_canvas_push(builder, painter->canvas);
 
   const GeoMatrix camMat   = camTrans ? scene_transform_matrix(camTrans) : geo_matrix_ident();
   const GeoMatrix projMat  = scene_camera_proj(cam, winAspect);
@@ -1003,7 +998,6 @@ static bool rend_canvas_paint_3d(
   // Finish the frame.
   trace_end();
   rend_builder_canvas_flush(builder);
-  rvk_canvas_end(painter->canvas);
   return true;
 }
 

@@ -1,5 +1,8 @@
 #pragma once
 #include "core_memory.h"
+#include "rend_settings.h"
+
+#include "rvk/types_internal.h"
 
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
@@ -31,7 +34,8 @@ void         rend_builder_destroy(RendBuilder*);
  */
 RendBuilderBuffer* rend_builder_buffer(const RendBuilder*);
 
-void rend_builder_canvas_push(RendBuilderBuffer*, RvkCanvas*);
+bool rend_builder_canvas_push(
+    RendBuilderBuffer*, RvkCanvas*, const RendSettingsComp*, RvkSize windowSize);
 void rend_builder_canvas_flush(RendBuilderBuffer*);
 
 const RvkRepository* rend_builder_repository(RendBuilderBuffer*);
