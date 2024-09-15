@@ -12,7 +12,7 @@
 
 #define rend_builder_workers_max 8
 
-struct sRendBuilderBuffer {
+struct sRendBuilder {
   ALIGNAS(64)
   RvkCanvas*   canvas;
   RvkPass*     pass;
@@ -21,11 +21,11 @@ struct sRendBuilderBuffer {
   DynArray     drawList; // RvkPassDraw[]
 };
 
-ASSERT(alignof(RendBuilderBuffer) == 64, "Unexpected buffer alignment")
+ASSERT(alignof(RendBuilder) == 64, "Unexpected builder alignment")
 
 struct sRendBuilderContainer {
-  Allocator*        allocator;
-  RendBuilderBuffer buffers[rend_builder_workers_max];
+  Allocator*  allocator;
+  RendBuilder builders[rend_builder_workers_max];
 };
 
 static i8 builder_draw_compare(const void* a, const void* b) {
@@ -40,7 +40,7 @@ RendBuilderContainer* rend_builder_container_create(Allocator* alloc) {
   *container = (RendBuilderContainer){.allocator = alloc};
 
   for (u32 i = 0; i != rend_builder_workers_max; ++i) {
-    container->buffers[i] = (RendBuilderBuffer){
+    container->builders[i] = (RendBuilder){
         .drawList = dynarray_create_t(alloc, RvkPassDraw, 8),
     };
   }
@@ -50,280 +50,266 @@ RendBuilderContainer* rend_builder_container_create(Allocator* alloc) {
 
 void rend_builder_container_destroy(RendBuilderContainer* container) {
   for (u32 i = 0; i != rend_builder_workers_max; ++i) {
-    dynarray_destroy(&container->buffers[i].drawList);
+    dynarray_destroy(&container->builders[i].drawList);
   }
   alloc_free_t(container->allocator, container);
 }
 
-RendBuilderBuffer* rend_builder_buffer(const RendBuilderContainer* container) {
+RendBuilder* rend_builder(const RendBuilderContainer* container) {
   diag_assert(g_jobsWorkerId < rend_builder_workers_max);
-  return (RendBuilderBuffer*)&container->buffers[g_jobsWorkerId];
+  return (RendBuilder*)&container->builders[g_jobsWorkerId];
 }
 
 bool rend_builder_canvas_push(
-    RendBuilderBuffer*      buffer,
-    RvkCanvas*              canvas,
-    const RendSettingsComp* settings,
-    const RvkSize           windowSize) {
-  diag_assert_msg(!buffer->canvas, "RendBuilder: Canvas already active");
+    RendBuilder* b, RvkCanvas* canvas, const RendSettingsComp* settings, const RvkSize windowSize) {
+  diag_assert_msg(!b->canvas, "RendBuilder: Canvas already active");
 
   if (!rvk_canvas_begin(canvas, settings, windowSize)) {
     return false; // Canvas not ready for rendering.
   }
-  buffer->canvas = canvas;
+  b->canvas = canvas;
   return true;
 }
 
-void rend_builder_canvas_flush(RendBuilderBuffer* buffer) {
-  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
-  diag_assert_msg(!buffer->pass, "RendBuilder: Pass still active");
+void rend_builder_canvas_flush(RendBuilder* b) {
+  diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
+  diag_assert_msg(!b->pass, "RendBuilder: Pass still active");
 
-  rvk_canvas_end(buffer->canvas);
-  buffer->canvas = null;
+  rvk_canvas_end(b->canvas);
+  b->canvas = null;
 }
 
-const RvkRepository* rend_builder_repository(RendBuilderBuffer* buffer) {
-  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
-  return rvk_canvas_repository(buffer->canvas);
+const RvkRepository* rend_builder_repository(RendBuilder* b) {
+  diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
+  return rvk_canvas_repository(b->canvas);
 }
 
-RvkImage* rend_builder_img_swapchain(RendBuilderBuffer* buffer) {
-  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
-  return rvk_canvas_swapchain_image(buffer->canvas);
+RvkImage* rend_builder_img_swapchain(RendBuilder* b) {
+  diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
+  return rvk_canvas_swapchain_image(b->canvas);
 }
 
-void rend_builder_img_clear_color(RendBuilderBuffer* buffer, RvkImage* img, const GeoColor color) {
-  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
-  rvk_canvas_img_clear_color(buffer->canvas, img, color);
+void rend_builder_img_clear_color(RendBuilder* b, RvkImage* img, const GeoColor color) {
+  diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
+  rvk_canvas_img_clear_color(b->canvas, img, color);
 }
 
-void rend_builder_img_clear_depth(RendBuilderBuffer* buffer, RvkImage* img, const f32 depth) {
-  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
-  rvk_canvas_img_clear_depth(buffer->canvas, img, depth);
+void rend_builder_img_clear_depth(RendBuilder* b, RvkImage* img, const f32 depth) {
+  diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
+  rvk_canvas_img_clear_depth(b->canvas, img, depth);
 }
 
-void rend_builder_img_blit(RendBuilderBuffer* buffer, RvkImage* src, RvkImage* dst) {
-  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
-  rvk_canvas_img_blit(buffer->canvas, src, dst);
+void rend_builder_img_blit(RendBuilder* b, RvkImage* src, RvkImage* dst) {
+  diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
+  rvk_canvas_img_blit(b->canvas, src, dst);
 }
 
 RvkImage* rend_builder_attach_acquire_color(
-    RendBuilderBuffer* buffer, RvkPass* pass, const u32 binding, const RvkSize size) {
-  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
-  return rvk_canvas_attach_acquire_color(buffer->canvas, pass, binding, size);
+    RendBuilder* b, RvkPass* pass, const u32 binding, const RvkSize size) {
+  diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
+  return rvk_canvas_attach_acquire_color(b->canvas, pass, binding, size);
 }
 
-RvkImage*
-rend_builder_attach_acquire_depth(RendBuilderBuffer* buffer, RvkPass* pass, const RvkSize size) {
-  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
-  return rvk_canvas_attach_acquire_depth(buffer->canvas, pass, size);
+RvkImage* rend_builder_attach_acquire_depth(RendBuilder* b, RvkPass* pass, const RvkSize size) {
+  diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
+  return rvk_canvas_attach_acquire_depth(b->canvas, pass, size);
 }
 
-RvkImage* rend_builder_attach_acquire_copy(RendBuilderBuffer* buffer, RvkImage* img) {
-  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
-  return rvk_canvas_attach_acquire_copy(buffer->canvas, img);
+RvkImage* rend_builder_attach_acquire_copy(RendBuilder* b, RvkImage* img) {
+  diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
+  return rvk_canvas_attach_acquire_copy(b->canvas, img);
 }
 
-RvkImage* rend_builder_attach_acquire_copy_uninit(RendBuilderBuffer* buffer, RvkImage* img) {
-  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
-  return rvk_canvas_attach_acquire_copy_uninit(buffer->canvas, img);
+RvkImage* rend_builder_attach_acquire_copy_uninit(RendBuilder* b, RvkImage* img) {
+  diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
+  return rvk_canvas_attach_acquire_copy_uninit(b->canvas, img);
 }
 
-void rend_builder_attach_release(RendBuilderBuffer* buffer, RvkImage* img) {
-  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
-  rvk_canvas_attach_release(buffer->canvas, img);
+void rend_builder_attach_release(RendBuilder* b, RvkImage* img) {
+  diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
+  rvk_canvas_attach_release(b->canvas, img);
 }
 
-void rend_builder_pass_push(RendBuilderBuffer* buffer, RvkPass* pass) {
-  diag_assert_msg(!buffer->pass, "RendBuilder: Pass already active");
-  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
+void rend_builder_pass_push(RendBuilder* b, RvkPass* pass) {
+  diag_assert_msg(!b->pass, "RendBuilder: Pass already active");
+  diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
 
-  buffer->pass      = pass;
-  buffer->passSetup = (RvkPassSetup){0};
+  b->pass      = pass;
+  b->passSetup = (RvkPassSetup){0};
 
-  rvk_canvas_pass_push(buffer->canvas, pass);
+  rvk_canvas_pass_push(b->canvas, pass);
 }
 
-void rend_builder_pass_flush(RendBuilderBuffer* buffer) {
-  diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
-  diag_assert_msg(!buffer->draw, "RendBuilder: Draw still active");
+void rend_builder_pass_flush(RendBuilder* b) {
+  diag_assert_msg(b->pass, "RendBuilder: Pass not active");
+  diag_assert_msg(!b->draw, "RendBuilder: Draw still active");
 
-  rvk_pass_begin(buffer->pass, &buffer->passSetup);
-  dynarray_sort(&buffer->drawList, builder_draw_compare);
-  dynarray_for_t(&buffer->drawList, RvkPassDraw, draw) {
-    rvk_pass_draw(buffer->pass, &buffer->passSetup, draw);
-  }
-  rvk_pass_end(buffer->pass, &buffer->passSetup);
+  rvk_pass_begin(b->pass, &b->passSetup);
+  dynarray_sort(&b->drawList, builder_draw_compare);
+  dynarray_for_t(&b->drawList, RvkPassDraw, draw) { rvk_pass_draw(b->pass, &b->passSetup, draw); }
+  rvk_pass_end(b->pass, &b->passSetup);
 
-  dynarray_clear(&buffer->drawList);
+  dynarray_clear(&b->drawList);
 
-  buffer->pass = null;
+  b->pass = null;
 }
 
-void rend_builder_clear_color(RendBuilderBuffer* buffer, const GeoColor clearColor) {
-  diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
-
-  buffer->passSetup.clearColor = clearColor;
+void rend_builder_clear_color(RendBuilder* b, const GeoColor clearColor) {
+  diag_assert_msg(b->pass, "RendBuilder: Pass not active");
+  b->passSetup.clearColor = clearColor;
 }
 
-void rend_builder_attach_color(
-    RendBuilderBuffer* buffer, RvkImage* img, const u16 colorAttachIndex) {
-  diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
+void rend_builder_attach_color(RendBuilder* b, RvkImage* img, const u16 colorAttachIndex) {
+  diag_assert_msg(b->pass, "RendBuilder: Pass not active");
   diag_assert_msg(
-      !buffer->passSetup.attachColors[colorAttachIndex],
+      !b->passSetup.attachColors[colorAttachIndex],
       "RendBuilder: Pass color attachment {} already staged",
       fmt_int(colorAttachIndex));
 
-  buffer->passSetup.attachColors[colorAttachIndex] = img;
+  b->passSetup.attachColors[colorAttachIndex] = img;
 }
 
-void rend_builder_attach_depth(RendBuilderBuffer* buffer, RvkImage* img) {
-  diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
-  diag_assert_msg(
-      !buffer->passSetup.attachDepth, "RendBuilder: Pass depth attachment already staged");
-
-  buffer->passSetup.attachDepth = img;
+void rend_builder_attach_depth(RendBuilder* b, RvkImage* img) {
+  diag_assert_msg(b->pass, "RendBuilder: Pass not active");
+  diag_assert_msg(!b->passSetup.attachDepth, "RendBuilder: Pass depth attachment already staged");
+  b->passSetup.attachDepth = img;
 }
 
-Mem rend_builder_global_data(RendBuilderBuffer* buffer, const u32 size, const u16 dataIndex) {
-  diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
+Mem rend_builder_global_data(RendBuilder* b, const u32 size, const u16 dataIndex) {
+  diag_assert_msg(b->pass, "RendBuilder: Pass not active");
   diag_assert_msg(
-      !buffer->passSetup.globalData[dataIndex],
+      !b->passSetup.globalData[dataIndex],
       "RendBuilder: Pass global data {} already staged",
       fmt_int(dataIndex));
 
-  const RvkUniformHandle handle           = rvk_pass_uniform_push(buffer->pass, size);
-  buffer->passSetup.globalData[dataIndex] = handle;
-  return rvk_pass_uniform_map(buffer->pass, handle);
+  const RvkUniformHandle handle      = rvk_pass_uniform_push(b->pass, size);
+  b->passSetup.globalData[dataIndex] = handle;
+  return rvk_pass_uniform_map(b->pass, handle);
 }
 
-void rend_builder_global_image(RendBuilderBuffer* buffer, RvkImage* img, const u16 imageIndex) {
-  diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
+void rend_builder_global_image(RendBuilder* b, RvkImage* img, const u16 imageIndex) {
+  diag_assert_msg(b->pass, "RendBuilder: Pass not active");
   diag_assert_msg(
-      !buffer->passSetup.globalImages[imageIndex],
+      !b->passSetup.globalImages[imageIndex],
       "RendBuilder: Pass global image {} already staged",
       fmt_int(imageIndex));
 
-  buffer->passSetup.globalImages[imageIndex]        = img;
-  buffer->passSetup.globalImageSamplers[imageIndex] = (RvkSamplerSpec){0};
+  b->passSetup.globalImages[imageIndex]        = img;
+  b->passSetup.globalImageSamplers[imageIndex] = (RvkSamplerSpec){0};
 }
 
-void rend_builder_global_image_frozen(
-    RendBuilderBuffer* buffer, const RvkImage* img, const u16 imageIndex) {
+void rend_builder_global_image_frozen(RendBuilder* b, const RvkImage* img, const u16 imageIndex) {
   diag_assert_msg(img->frozen, "Image is not frozen");
   // Frozen images are immutable thus we can const-cast them without worry.
-  rend_builder_global_image(buffer, (RvkImage*)img, imageIndex);
+  rend_builder_global_image(b, (RvkImage*)img, imageIndex);
 }
 
-void rend_builder_global_shadow(RendBuilderBuffer* buffer, RvkImage* img, const u16 imageIndex) {
-  diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
+void rend_builder_global_shadow(RendBuilder* b, RvkImage* img, const u16 imageIndex) {
+  diag_assert_msg(b->pass, "RendBuilder: Pass not active");
   diag_assert_msg(
-      !buffer->passSetup.globalImages[imageIndex],
+      !b->passSetup.globalImages[imageIndex],
       "RendBuilder: Pass global image {} already staged",
       fmt_int(imageIndex));
 
-  buffer->passSetup.globalImages[imageIndex]        = img;
-  buffer->passSetup.globalImageSamplers[imageIndex] = (RvkSamplerSpec){
+  b->passSetup.globalImages[imageIndex]        = img;
+  b->passSetup.globalImageSamplers[imageIndex] = (RvkSamplerSpec){
       .flags = RvkSamplerFlags_SupportCompare, // Enable support for sampler2DShadow.
       .wrap  = RvkSamplerWrap_Zero,
   };
 }
 
-void rend_builder_draw_push(RendBuilderBuffer* buffer, const RvkGraphic* graphic) {
-  diag_assert_msg(buffer->pass, "RendBuilder: Pass not active");
-  diag_assert_msg(!buffer->draw, "RendBuilder: Draw already active");
+void rend_builder_draw_push(RendBuilder* b, const RvkGraphic* graphic) {
+  diag_assert_msg(b->pass, "RendBuilder: Pass not active");
+  diag_assert_msg(!b->draw, "RendBuilder: Draw already active");
 
-  buffer->draw  = dynarray_push_t(&buffer->drawList, RvkPassDraw);
-  *buffer->draw = (RvkPassDraw){.graphic = graphic, .drawImageIndex = sentinel_u16};
+  b->draw  = dynarray_push_t(&b->drawList, RvkPassDraw);
+  *b->draw = (RvkPassDraw){.graphic = graphic, .drawImageIndex = sentinel_u16};
 }
 
-Mem rend_builder_draw_data(RendBuilderBuffer* buffer, const u32 size) {
-  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
-  diag_assert_msg(!buffer->draw->drawData, "RendBuilder: Draw-data already set");
+Mem rend_builder_draw_data(RendBuilder* b, const u32 size) {
+  diag_assert_msg(b->draw, "RendBuilder: Draw not active");
+  diag_assert_msg(!b->draw->drawData, "RendBuilder: Draw-data already set");
 
-  const RvkUniformHandle handle = rvk_pass_uniform_push(buffer->pass, size);
-  buffer->draw->drawData        = handle;
-  return rvk_pass_uniform_map(buffer->pass, handle);
+  const RvkUniformHandle handle = rvk_pass_uniform_push(b->pass, size);
+  b->draw->drawData             = handle;
+  return rvk_pass_uniform_map(b->pass, handle);
 }
 
-u32 rend_builder_draw_instances_batch_size(RendBuilderBuffer* buffer, const u32 dataStride) {
-  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
-  return rvk_pass_batch_size(buffer->pass, (u32)dataStride);
+u32 rend_builder_draw_instances_batch_size(RendBuilder* b, const u32 dataStride) {
+  diag_assert_msg(b->draw, "RendBuilder: Draw not active");
+  return rvk_pass_batch_size(b->pass, (u32)dataStride);
 }
 
-Mem rend_builder_draw_instances(RendBuilderBuffer* buffer, const u32 dataStride, const u32 count) {
-  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
+Mem rend_builder_draw_instances(RendBuilder* b, const u32 dataStride, const u32 count) {
+  diag_assert_msg(b->draw, "RendBuilder: Draw not active");
   diag_assert_msg(count, "RendBuilder: Needs at least 1 instance");
-  diag_assert(count <= rvk_pass_batch_size(buffer->pass, dataStride));
+  diag_assert(count <= rvk_pass_batch_size(b->pass, dataStride));
 
   const u32 dataSize = dataStride * count;
 
   RvkUniformHandle handle = 0;
-  if (buffer->draw->instCount) {
-    diag_assert(buffer->draw->instDataStride == dataStride);
+  if (b->draw->instCount) {
+    diag_assert(b->draw->instDataStride == dataStride);
     if (dataStride) {
-      handle = rvk_pass_uniform_push_next(buffer->pass, buffer->draw->instData, dataSize);
+      handle = rvk_pass_uniform_push_next(b->pass, b->draw->instData, dataSize);
     }
   } else {
-    buffer->draw->instDataStride = dataStride;
+    b->draw->instDataStride = dataStride;
     if (dataStride) {
-      handle                 = rvk_pass_uniform_push(buffer->pass, dataSize);
-      buffer->draw->instData = handle;
+      handle            = rvk_pass_uniform_push(b->pass, dataSize);
+      b->draw->instData = handle;
     }
   }
-  buffer->draw->instCount += count;
+  b->draw->instCount += count;
 
-  return handle ? rvk_pass_uniform_map(buffer->pass, handle) : mem_empty;
+  return handle ? rvk_pass_uniform_map(b->pass, handle) : mem_empty;
 }
 
-void rend_builder_draw_vertex_count(RendBuilderBuffer* buffer, const u32 vertexCount) {
-  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
-  diag_assert_msg(!buffer->draw->vertexCountOverride, "RendBuilder: Vertex-count already set");
-
-  buffer->draw->vertexCountOverride = vertexCount;
+void rend_builder_draw_vertex_count(RendBuilder* b, const u32 vertexCount) {
+  diag_assert_msg(b->draw, "RendBuilder: Draw not active");
+  diag_assert_msg(!b->draw->vertexCountOverride, "RendBuilder: Vertex-count already set");
+  b->draw->vertexCountOverride = vertexCount;
 }
 
-void rend_builder_draw_mesh(RendBuilderBuffer* buffer, const RvkMesh* mesh) {
-  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
-  diag_assert_msg(!buffer->draw->drawMesh, "RendBuilder: Draw-mesh already set");
-
-  buffer->draw->drawMesh = mesh;
+void rend_builder_draw_mesh(RendBuilder* b, const RvkMesh* mesh) {
+  diag_assert_msg(b->draw, "RendBuilder: Draw not active");
+  diag_assert_msg(!b->draw->drawMesh, "RendBuilder: Draw-mesh already set");
+  b->draw->drawMesh = mesh;
 }
 
-void rend_builder_draw_image(RendBuilderBuffer* buffer, RvkImage* img) {
-  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
-  diag_assert_msg(
-      sentinel_check(buffer->draw->drawImageIndex), "RendBuilder: Draw-image already set");
+void rend_builder_draw_image(RendBuilder* b, RvkImage* img) {
+  diag_assert_msg(b->draw, "RendBuilder: Draw not active");
+  diag_assert_msg(sentinel_check(b->draw->drawImageIndex), "RendBuilder: Draw-image already set");
 
   for (u32 i = 0; i != rvk_pass_draw_image_max; ++i) {
-    if (buffer->passSetup.drawImages[i] == img) {
-      buffer->draw->drawImageIndex = (u16)i;
+    if (b->passSetup.drawImages[i] == img) {
+      b->draw->drawImageIndex = (u16)i;
       return; // Image was already staged.
     }
-    if (!buffer->passSetup.drawImages[i]) {
-      buffer->draw->drawImageIndex    = (u16)i;
-      buffer->passSetup.drawImages[i] = img;
+    if (!b->passSetup.drawImages[i]) {
+      b->draw->drawImageIndex    = (u16)i;
+      b->passSetup.drawImages[i] = img;
       return; // Image is staged in a empty slot.
     }
   }
   diag_assert_fail("Amount of staged per-draw images exceeds the maximum");
 }
 
-void rend_builder_draw_image_frozen(RendBuilderBuffer* buffer, const RvkImage* img) {
+void rend_builder_draw_image_frozen(RendBuilder* b, const RvkImage* img) {
   diag_assert_msg(img->frozen, "Image is not frozen");
   // Frozen images are immutable thus we can const-cast them without worry.
-  rend_builder_draw_image(buffer, (RvkImage*)img);
+  rend_builder_draw_image(b, (RvkImage*)img);
 }
 
-void rend_builder_draw_sampler(RendBuilderBuffer* buffer, const RvkSamplerSpec samplerSpec) {
-  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
-  buffer->draw->drawSampler = samplerSpec;
+void rend_builder_draw_sampler(RendBuilder* b, const RvkSamplerSpec samplerSpec) {
+  diag_assert_msg(b->draw, "RendBuilder: Draw not active");
+  b->draw->drawSampler = samplerSpec;
 }
 
-void rend_builder_draw_flush(RendBuilderBuffer* buffer) {
-  diag_assert_msg(buffer->draw, "RendBuilder: Draw not active");
-  if (!buffer->draw->instCount) {
-    dynarray_remove(&buffer->drawList, buffer->drawList.size - 1, 1);
+void rend_builder_draw_flush(RendBuilder* b) {
+  diag_assert_msg(b->draw, "RendBuilder: Draw not active");
+  if (!b->draw->instCount) {
+    dynarray_remove(&b->drawList, b->drawList.size - 1, 1);
   }
-  buffer->draw = null;
+  b->draw = null;
 }

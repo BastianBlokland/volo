@@ -23,54 +23,54 @@ typedef struct sRvkSamplerSpec RvkSamplerSpec;
  * Utility to submit draws.
  */
 typedef struct sRendBuilderContainer RendBuilderContainer;
-typedef struct sRendBuilderBuffer    RendBuilderBuffer;
+typedef struct sRendBuilder          RendBuilder;
 
 RendBuilderContainer* rend_builder_container_create(Allocator*);
 void                  rend_builder_container_destroy(RendBuilderContainer*);
 
 /**
- * Retrieve a thread-local buffer for the calling thread.
- * NOTE: Buffers should not be stored and/or shared between threads.
+ * Retrieve a thread-local builder for the calling thread.
+ * NOTE: Builders should not be stored and/or shared between threads.
  */
-RendBuilderBuffer* rend_builder_buffer(const RendBuilderContainer*);
+RendBuilder* rend_builder(const RendBuilderContainer*);
 
 bool rend_builder_canvas_push(
-    RendBuilderBuffer*, RvkCanvas*, const RendSettingsComp*, RvkSize windowSize);
-void rend_builder_canvas_flush(RendBuilderBuffer*);
+    RendBuilder*, RvkCanvas*, const RendSettingsComp*, RvkSize windowSize);
+void rend_builder_canvas_flush(RendBuilder*);
 
-const RvkRepository* rend_builder_repository(RendBuilderBuffer*);
+const RvkRepository* rend_builder_repository(RendBuilder*);
 
-RvkImage* rend_builder_img_swapchain(RendBuilderBuffer*);
-void      rend_builder_img_clear_color(RendBuilderBuffer*, RvkImage*, GeoColor);
-void      rend_builder_img_clear_depth(RendBuilderBuffer*, RvkImage*, f32 depth);
-void      rend_builder_img_blit(RendBuilderBuffer*, RvkImage* src, RvkImage* dst);
+RvkImage* rend_builder_img_swapchain(RendBuilder*);
+void      rend_builder_img_clear_color(RendBuilder*, RvkImage*, GeoColor);
+void      rend_builder_img_clear_depth(RendBuilder*, RvkImage*, f32 depth);
+void      rend_builder_img_blit(RendBuilder*, RvkImage* src, RvkImage* dst);
 
-void rend_builder_pass_push(RendBuilderBuffer*, RvkPass*);
-void rend_builder_pass_flush(RendBuilderBuffer*);
+void rend_builder_pass_push(RendBuilder*, RvkPass*);
+void rend_builder_pass_flush(RendBuilder*);
 
-RvkImage* rend_builder_attach_acquire_color(RendBuilderBuffer*, RvkPass*, u32 binding, RvkSize);
-RvkImage* rend_builder_attach_acquire_depth(RendBuilderBuffer*, RvkPass*, RvkSize);
-RvkImage* rend_builder_attach_acquire_copy(RendBuilderBuffer*, RvkImage*);
-RvkImage* rend_builder_attach_acquire_copy_uninit(RendBuilderBuffer*, RvkImage*);
-void      rend_builder_attach_release(RendBuilderBuffer*, RvkImage*);
+RvkImage* rend_builder_attach_acquire_color(RendBuilder*, RvkPass*, u32 binding, RvkSize);
+RvkImage* rend_builder_attach_acquire_depth(RendBuilder*, RvkPass*, RvkSize);
+RvkImage* rend_builder_attach_acquire_copy(RendBuilder*, RvkImage*);
+RvkImage* rend_builder_attach_acquire_copy_uninit(RendBuilder*, RvkImage*);
+void      rend_builder_attach_release(RendBuilder*, RvkImage*);
 
-void rend_builder_clear_color(RendBuilderBuffer*, GeoColor clearColor);
+void rend_builder_clear_color(RendBuilder*, GeoColor clearColor);
 
-void rend_builder_attach_color(RendBuilderBuffer*, RvkImage*, u16 colorAttachIndex);
-void rend_builder_attach_depth(RendBuilderBuffer*, RvkImage*);
+void rend_builder_attach_color(RendBuilder*, RvkImage*, u16 colorAttachIndex);
+void rend_builder_attach_depth(RendBuilder*, RvkImage*);
 
-Mem  rend_builder_global_data(RendBuilderBuffer*, u32 size, u16 dataIndex);
-void rend_builder_global_image(RendBuilderBuffer*, RvkImage*, u16 imageIndex);
-void rend_builder_global_image_frozen(RendBuilderBuffer*, const RvkImage*, u16 imageIndex);
-void rend_builder_global_shadow(RendBuilderBuffer*, RvkImage*, u16 imageIndex);
+Mem  rend_builder_global_data(RendBuilder*, u32 size, u16 dataIndex);
+void rend_builder_global_image(RendBuilder*, RvkImage*, u16 imageIndex);
+void rend_builder_global_image_frozen(RendBuilder*, const RvkImage*, u16 imageIndex);
+void rend_builder_global_shadow(RendBuilder*, RvkImage*, u16 imageIndex);
 
-void rend_builder_draw_push(RendBuilderBuffer*, const RvkGraphic*);
-Mem  rend_builder_draw_data(RendBuilderBuffer*, u32 size);
-u32  rend_builder_draw_instances_batch_size(RendBuilderBuffer*, u32 dataStride);
-Mem  rend_builder_draw_instances(RendBuilderBuffer*, u32 dataStride, u32 count);
-void rend_builder_draw_vertex_count(RendBuilderBuffer*, u32 vertexCount);
-void rend_builder_draw_mesh(RendBuilderBuffer*, const RvkMesh*);
-void rend_builder_draw_image(RendBuilderBuffer*, RvkImage*);
-void rend_builder_draw_image_frozen(RendBuilderBuffer*, const RvkImage*);
-void rend_builder_draw_sampler(RendBuilderBuffer*, RvkSamplerSpec);
-void rend_builder_draw_flush(RendBuilderBuffer*);
+void rend_builder_draw_push(RendBuilder*, const RvkGraphic*);
+Mem  rend_builder_draw_data(RendBuilder*, u32 size);
+u32  rend_builder_draw_instances_batch_size(RendBuilder*, u32 dataStride);
+Mem  rend_builder_draw_instances(RendBuilder*, u32 dataStride, u32 count);
+void rend_builder_draw_vertex_count(RendBuilder*, u32 vertexCount);
+void rend_builder_draw_mesh(RendBuilder*, const RvkMesh*);
+void rend_builder_draw_image(RendBuilder*, RvkImage*);
+void rend_builder_draw_image_frozen(RendBuilder*, const RvkImage*);
+void rend_builder_draw_sampler(RendBuilder*, RvkSamplerSpec);
+void rend_builder_draw_flush(RendBuilder*);

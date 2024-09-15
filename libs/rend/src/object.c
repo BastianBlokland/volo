@@ -265,27 +265,26 @@ static void rend_object_sort(const RendObjectComp* obj, RendObjectSortKey* keys,
 #endif
 }
 
-NO_INLINE_HINT static void
-rend_instances_push_all(const RendObjectComp* obj, RendBuilderBuffer* builder) {
-  const u32 batchSize = rend_builder_draw_instances_batch_size(builder, obj->instDataSize);
+NO_INLINE_HINT static void rend_instances_push_all(const RendObjectComp* obj, RendBuilder* b) {
+  const u32 batchSize = rend_builder_draw_instances_batch_size(b, obj->instDataSize);
   for (u32 i = 0; i != obj->instCount;) {
     const u32   count      = math_min(obj->instCount - i, batchSize);
     const usize dataOffset = i * obj->instDataSize;
     const Mem   data       = mem_slice(obj->instDataMem, dataOffset, count * obj->instDataSize);
-    mem_cpy(rend_builder_draw_instances(builder, obj->instDataSize, count), data);
+    mem_cpy(rend_builder_draw_instances(b, obj->instDataSize, count), data);
     i += count;
   }
 }
 
 NO_INLINE_HINT static void rend_instances_push_filtered(
-    const RendObjectComp* obj, RendBuilderBuffer* builder, const BitSet filter, const u32 count) {
+    const RendObjectComp* obj, RendBuilder* b, const BitSet filter, const u32 count) {
 
-  const u32 batchMax  = rend_builder_draw_instances_batch_size(builder, obj->instDataSize);
+  const u32 batchMax  = rend_builder_draw_instances_batch_size(b, obj->instDataSize);
   usize     instIndex = bitset_next(filter, 0);
   for (u32 i = 0; i != count;) {
     const u32 batchSize = math_min(count - i, batchMax);
     const u32 batchEnd  = i + batchSize;
-    u8*       outputPtr = rend_builder_draw_instances(builder, obj->instDataSize, batchSize).ptr;
+    u8*       outputPtr = rend_builder_draw_instances(b, obj->instDataSize, batchSize).ptr;
     for (; i != batchEnd; ++i, outputPtr += obj->instDataSize) {
       const Mem inInstMem = rend_object_inst_data(obj, (u32)instIndex);
       rend_object_memcpy(outputPtr, inInstMem.ptr, inInstMem.size);
@@ -296,18 +295,15 @@ NO_INLINE_HINT static void rend_instances_push_filtered(
 }
 
 NO_INLINE_HINT static void rend_instances_push_sorted(
-    const RendObjectComp* obj,
-    RendBuilderBuffer*    builder,
-    RendObjectSortKey*    sortKeys,
-    const u32             count) {
+    const RendObjectComp* obj, RendBuilder* b, RendObjectSortKey* sortKeys, const u32 count) {
 
   rend_object_sort(obj, sortKeys, count);
 
-  const u32 batchMax = rend_builder_draw_instances_batch_size(builder, obj->instDataSize);
+  const u32 batchMax = rend_builder_draw_instances_batch_size(b, obj->instDataSize);
   for (u32 i = 0; i != count;) {
     const u32 batchSize = math_min(count - i, batchMax);
     const u32 batchEnd  = i + batchSize;
-    u8*       outputPtr = rend_builder_draw_instances(builder, obj->instDataSize, batchSize).ptr;
+    u8*       outputPtr = rend_builder_draw_instances(b, obj->instDataSize, batchSize).ptr;
     for (; i != batchEnd; ++i, outputPtr += obj->instDataSize) {
       const Mem inInstMem = rend_object_inst_data(obj, sortKeys[i].instIndex);
       rend_object_memcpy(outputPtr, inInstMem.ptr, inInstMem.size);
@@ -319,7 +315,7 @@ void rend_object_draw(
     const RendObjectComp*   obj,
     const RendView*         view,
     const RendSettingsComp* settings,
-    RendBuilderBuffer*      builder) {
+    RendBuilder*            b) {
   if (!obj->instCount) {
     return;
   }
@@ -328,13 +324,13 @@ void rend_object_draw(
   }
   if (obj->dataSize) {
     const Mem dataMem = mem_slice(obj->dataMem, 0, obj->dataSize);
-    mem_cpy(rend_builder_draw_data(builder, obj->dataSize), dataMem);
+    mem_cpy(rend_builder_draw_data(b, obj->dataSize), dataMem);
   }
   if (obj->vertexCountOverride) {
-    rend_builder_draw_vertex_count(builder, obj->vertexCountOverride);
+    rend_builder_draw_vertex_count(b, obj->vertexCountOverride);
   }
   if (obj->flags & RendObjectFlags_NoInstanceFiltering) {
-    rend_instances_push_all(obj, builder);
+    rend_instances_push_all(obj, b);
     return;
   }
 
@@ -376,9 +372,9 @@ void rend_object_draw(
 
   if (filteredInstCount) {
     if (obj->flags & RendObjectFlags_Sorted) {
-      rend_instances_push_sorted(obj, builder, sortKeys, filteredInstCount);
+      rend_instances_push_sorted(obj, b, sortKeys, filteredInstCount);
     } else {
-      rend_instances_push_filtered(obj, builder, filter, filteredInstCount);
+      rend_instances_push_filtered(obj, b, filter, filteredInstCount);
     }
   }
 }
