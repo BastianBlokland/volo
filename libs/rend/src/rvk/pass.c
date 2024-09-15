@@ -704,7 +704,7 @@ void rvk_pass_frame_end(RvkPass* pass, const RvkPassHandle frameHandle) {
 
   frame->state       = RvkPassFrameState_Reserved;
   frame->vkCmdBuf    = null; // No more commands should be submitted to this frame.
-  frame->uniformPool = null; // NO more data should be allocated as part of this frame.
+  frame->uniformPool = null; // No more data should be allocated as part of this frame.
 }
 
 void rvk_pass_frame_release(RvkPass* pass, const RvkPassHandle frameHandle) {
