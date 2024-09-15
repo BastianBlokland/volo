@@ -49,7 +49,7 @@ void      rvk_canvas_swapchain_stats(const RvkCanvas*, RvkSwapchainStats* out);
 RvkSize   rvk_canvas_swapchain_size(const RvkCanvas*);
 RvkImage* rvk_canvas_swapchain_image(RvkCanvas*);
 
-RvkImage* rvk_canvas_attach_acquire_color(RvkCanvas*, RvkPass*, const u32 i, RvkSize);
+RvkImage* rvk_canvas_attach_acquire_color(RvkCanvas*, RvkPass*, u32 binding, RvkSize);
 RvkImage* rvk_canvas_attach_acquire_depth(RvkCanvas*, RvkPass*, RvkSize);
 RvkImage* rvk_canvas_attach_acquire_copy(RvkCanvas*, RvkImage*);
 RvkImage* rvk_canvas_attach_acquire_copy_uninit(RvkCanvas*, RvkImage*);
