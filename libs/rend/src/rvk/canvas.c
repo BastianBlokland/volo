@@ -98,6 +98,11 @@ const RvkRepository* rvk_canvas_repository(const RvkCanvas* canvas) {
 
 RvkAttachPool* rvk_canvas_attach_pool(RvkCanvas* canvas) { return canvas->attachPool; }
 
+RvkJob* rvk_canvas_job(RvkCanvas* canvas) {
+  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
+  return canvas->frames[canvas->jobIdx].job;
+}
+
 void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
   const RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
   diag_assert(rvk_job_is_done(frame->job));

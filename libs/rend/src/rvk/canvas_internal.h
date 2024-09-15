@@ -14,6 +14,7 @@ typedef union uGeoColor GeoColor;
 typedef struct sRvkAttachPool     RvkAttachPool;
 typedef struct sRvkDevice         RvkDevice;
 typedef struct sRvkImage          RvkImage;
+typedef struct sRvkJob            RvkJob;
 typedef struct sRvkPass           RvkPass;
 typedef struct sRvkRepository     RvkRepository;
 typedef struct sRvkSwapchainStats RvkSwapchainStats;
@@ -36,6 +37,7 @@ void rvk_canvas_destroy(RvkCanvas*);
 
 const RvkRepository* rvk_canvas_repository(const RvkCanvas*);
 RvkAttachPool*       rvk_canvas_attach_pool(RvkCanvas*);
+RvkJob*              rvk_canvas_job(RvkCanvas*);
 
 /**
  * Query statistics about the previous submitted draw.
