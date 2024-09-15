@@ -43,20 +43,14 @@ RvkJob*              rvk_canvas_job(RvkCanvas*);
  * Query statistics about the previous submitted draw.
  */
 void rvk_canvas_stats(const RvkCanvas*, RvkCanvasStats* out);
-u16  rvk_canvas_attach_count(const RvkCanvas*);
-u64  rvk_canvas_attach_memory(const RvkCanvas*);
 
 bool rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
+
 void rvk_canvas_pass_push(RvkCanvas*, RvkPass* pass);
 
 void      rvk_canvas_swapchain_stats(const RvkCanvas*, RvkSwapchainStats* out);
 RvkSize   rvk_canvas_swapchain_size(const RvkCanvas*);
 RvkImage* rvk_canvas_swapchain_image(RvkCanvas*);
-
-/**
- * Full barrier; will flush and invalidate all caches and stall everything. Only for debugging.
- */
-void rvk_canvas_barrier_full(const RvkCanvas*);
 
 void rvk_canvas_end(RvkCanvas*);
 

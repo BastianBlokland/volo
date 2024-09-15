@@ -144,14 +144,6 @@ void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
   }
 }
 
-u16 rvk_canvas_attach_count(const RvkCanvas* canvas) {
-  return rvk_attach_pool_count(canvas->attachPool);
-}
-
-u64 rvk_canvas_attach_memory(const RvkCanvas* canvas) {
-  return rvk_attach_pool_memory(canvas->attachPool);
-}
-
 bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const RvkSize size) {
   diag_assert_msg(!(canvas->flags & RvkCanvasFlags_Active), "Canvas already active");
 
@@ -236,13 +228,6 @@ RvkImage* rvk_canvas_swapchain_image(RvkCanvas* canvas) {
       .capabilities = RvkImageCapability_AttachmentColor | RvkImageCapability_TransferSource,
   };
   return frame->swapchainFallback = rvk_attach_acquire_color(canvas->attachPool, spec, size);
-}
-
-void rvk_canvas_barrier_full(const RvkCanvas* canvas) {
-  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
-
-  const RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
-  rvk_job_barrier_full(frame->job);
 }
 
 void rvk_canvas_end(RvkCanvas* canvas) {
