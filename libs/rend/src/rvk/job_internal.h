@@ -57,9 +57,4 @@ void rvk_job_img_transition(RvkJob*, RvkJobPhase, RvkImage* img, RvkImagePhase p
  */
 void rvk_job_barrier_full(RvkJob*, RvkJobPhase);
 
-void rvk_job_end(
-    RvkJob*,
-    VkSemaphore        waitForDeps,
-    VkSemaphore        waitForTarget,
-    const VkSemaphore* signals,
-    u32                signalCount);
+void rvk_job_end(RvkJob*, VkSemaphore waitForTarget, const VkSemaphore signals[], u32 signalCount);

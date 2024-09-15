@@ -87,21 +87,12 @@ static void rvk_commandbuffer_end(VkCommandBuffer vkCmdBuf) {
 }
 
 static void rvk_job_submit(
-    RvkJob*            job,
-    VkSemaphore        waitForDeps,
-    VkSemaphore        waitForTarget,
-    const VkSemaphore* signals,
-    u32                signalCount) {
+    RvkJob* job, VkSemaphore waitForTarget, const VkSemaphore signals[], u32 signalCount) {
 
   VkSemaphore          waitSemaphores[2];
   VkPipelineStageFlags waitStages[2];
   u32                  waitCount = 0;
 
-  if (waitForDeps) {
-    waitSemaphores[waitCount] = waitForDeps;
-    waitStages[waitCount]     = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-    ++waitCount;
-  }
   if (waitForTarget) {
     /**
      * At the moment we do a single submit for the whole frame and thus we need to wait with all
@@ -337,11 +328,7 @@ void rvk_job_barrier_full(RvkJob* job, const RvkJobPhase phase) {
 }
 
 void rvk_job_end(
-    RvkJob*            job,
-    VkSemaphore        waitForDeps,
-    VkSemaphore        waitForTarget,
-    const VkSemaphore* signals,
-    u32                signalCount) {
+    RvkJob* job, VkSemaphore waitForTarget, const VkSemaphore signals[], u32 signalCount) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 
   job->timeRecEnd = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[RvkJobPhase_Last]);
@@ -354,7 +341,7 @@ void rvk_job_end(
   rvk_uniform_flush(job->uniformPool);
 
   rvk_call(vkResetFences, job->dev->vkDev, 1, &job->fenceJobDone);
-  rvk_job_submit(job, waitForDeps, waitForTarget, signals, signalCount);
+  rvk_job_submit(job, waitForTarget, signals, signalCount);
 
   job->flags &= ~RvkJob_Active;
 }

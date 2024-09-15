@@ -27,7 +27,7 @@ typedef enum {
 
 typedef struct {
   RvkJob*         job;
-  VkSemaphore     attachmentsReleased, swapchainAvailable, swapchainPresent;
+  VkSemaphore     swapchainAvailable, swapchainPresent;
   RvkSwapchainIdx swapchainIdx;
   RvkImage*       swapchainFallback; // Only used when the preferred format is not available.
   RvkPass*        passes[rvk_canvas_max_passes];
@@ -61,16 +61,13 @@ RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
     RvkCanvasFrame* frame = &canvas->frames[i];
 
     *frame = (RvkCanvasFrame){
-        .job                 = rvk_job_create(dev, i),
-        .attachmentsReleased = rvk_semaphore_create(dev),
-        .swapchainAvailable  = rvk_semaphore_create(dev),
-        .swapchainPresent    = rvk_semaphore_create(dev),
-        .swapchainIdx        = sentinel_u32,
+        .job                = rvk_job_create(dev, i),
+        .swapchainAvailable = rvk_semaphore_create(dev),
+        .swapchainPresent   = rvk_semaphore_create(dev),
+        .swapchainIdx       = sentinel_u32,
     };
     mem_set(array_mem(frame->passFrames), 0xFF);
 
-    rvk_debug_name_semaphore(
-        dev->debug, frame->attachmentsReleased, "attachmentsReleased_{}", fmt_int(i));
     rvk_debug_name_semaphore(
         dev->debug, frame->swapchainAvailable, "swapchainAvailable_{}", fmt_int(i));
     rvk_debug_name_semaphore(
@@ -89,7 +86,6 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
 
   array_for_t(canvas->frames, RvkCanvasFrame, frame) {
     rvk_job_destroy(frame->job);
-    vkDestroySemaphore(canvas->dev->vkDev, frame->attachmentsReleased, &canvas->dev->vkAlloc);
     vkDestroySemaphore(canvas->dev->vkDev, frame->swapchainAvailable, &canvas->dev->vkAlloc);
     vkDestroySemaphore(canvas->dev->vkDev, frame->swapchainPresent, &canvas->dev->vkAlloc);
   }
@@ -261,23 +257,11 @@ void rvk_canvas_end(RvkCanvas* canvas) {
   // Transition the swapchain-image to the present phase.
   rvk_job_img_transition(frame->job, RvkJobPhase_Main, swapchainImage, RvkImagePhase_Present);
 
-  VkSemaphore attachmentsReady = null;
-  if (canvas->flags & RvkCanvasFlags_Submitted) {
-    /**
-     * Wait for the other job to release the attachments.
-     * Reason is we reuse the attachments in both jobs to avoid wasting gpu memory.
-     */
-    attachmentsReady = canvas->frames[canvas->jobIdx ^ 1].attachmentsReleased;
-  }
-  const VkSemaphore endSignals[] = {
-      frame->swapchainPresent,    // Trigger the present.
-      frame->attachmentsReleased, // Trigger the next job.
-  };
-
   trace_begin("rend_submit", TraceColor_White);
   {
-    const VkSemaphore swapchainSema = frame->swapchainAvailable;
-    rvk_job_end(frame->job, attachmentsReady, swapchainSema, endSignals, array_elems(endSignals));
+    const VkSemaphore waitSignal   = frame->swapchainAvailable;
+    const VkSemaphore endSignals[] = {frame->swapchainPresent /* Trigger the present. */};
+    rvk_job_end(frame->job, waitSignal, endSignals, array_elems(endSignals));
   }
   trace_end();
 
