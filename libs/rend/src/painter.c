@@ -95,7 +95,6 @@ static RendView painter_view_3d_create(
 }
 
 typedef struct {
-  RvkCanvas*              canvas;
   RendBuilderBuffer*      builder;
   const RendSettingsComp* settings;
   const SceneTimeComp*    time;
@@ -103,14 +102,12 @@ typedef struct {
 } RendPaintContext;
 
 static RendPaintContext painter_context(
-    RvkCanvas*              canvas,
     RendBuilderBuffer*      builder,
     const RendSettingsComp* settings,
     const SceneTimeComp*    time,
     const RendView          view) {
 
   return (RendPaintContext){
-      .canvas   = canvas,
       .builder  = builder,
       .settings = settings,
       .time     = time,
@@ -214,7 +211,7 @@ static const RvkTexture* painter_get_texture(EcsIterator* resourceItr, const Ecs
 }
 
 static void painter_push_simple(RendPaintContext* ctx, const RvkRepositoryId id, const Mem data) {
-  const RvkRepository* repo    = rvk_canvas_repository(ctx->canvas);
+  const RvkRepository* repo    = rend_builder_repository(ctx->builder);
   const RvkGraphic*    graphic = rvk_repository_graphic_get(repo, id);
   if (graphic) {
     rend_builder_draw_push(ctx->builder, graphic);
@@ -264,7 +261,7 @@ static SceneTags painter_push_objects_simple(
 }
 
 static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView* resView) {
-  const RvkRepository* repo     = rvk_canvas_repository(ctx->canvas);
+  const RvkRepository* repo     = rend_builder_repository(ctx->builder);
   const RvkTexture*    whiteTex = rvk_repository_texture_get(repo, RvkRepositoryId_WhiteTexture);
   if (!whiteTex) {
     return; // Texture not loaded (yet).
@@ -313,7 +310,7 @@ static void painter_push_shadow(RendPaintContext* ctx, EcsView* objView, EcsView
 }
 
 static void painter_push_fog(RendPaintContext* ctx, const RendFogComp* fog, RvkImage* fogMap) {
-  const RvkRepository* repo    = rvk_canvas_repository(ctx->canvas);
+  const RvkRepository* repo    = rend_builder_repository(ctx->builder);
   const RvkGraphic*    graphic = rvk_repository_graphic_get(repo, RvkRepositoryId_FogGraphic);
   if (graphic) {
     struct {
@@ -398,7 +395,7 @@ static void painter_push_tonemapping(RendPaintContext* ctx) {
 
 static void
 painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f32 exposure) {
-  const RvkRepository* repo = rvk_canvas_repository(ctx->canvas);
+  const RvkRepository* repo = rend_builder_repository(ctx->builder);
   const RvkGraphic*    graphic;
   if (image->type == RvkImageType_ColorSourceCube) {
     graphic = rvk_repository_graphic_get(repo, RvkRepositoryId_DebugImageViewerCubeGraphic);
@@ -459,7 +456,7 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
 
 static void
 painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspect, const RvkMesh* mesh) {
-  const RvkRepository*  repo      = rvk_canvas_repository(ctx->canvas);
+  const RvkRepository*  repo      = rend_builder_repository(ctx->builder);
   const RvkRepositoryId graphicId = RvkRepositoryId_DebugMeshViewerGraphic;
   const RvkGraphic*     graphic   = rvk_repository_graphic_get(repo, graphicId);
   if (graphic) {
@@ -619,7 +616,7 @@ static bool rend_canvas_paint_2d(
 
     rvk_canvas_img_clear_color(painter->canvas, swapchainImage, geo_color_black);
 
-    RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, mainView);
+    RendPaintContext ctx = painter_context(builder, set, time, mainView);
     rend_builder_attach_color(builder, swapchainImage, 0);
     painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Post);
     rend_builder_pass_flush(builder);
@@ -672,7 +669,7 @@ static bool rend_canvas_paint_3d(
     trace_begin("rend_paint_geo", TraceColor_White);
     rend_builder_pass_push(builder, geoPass);
 
-    RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, mainView);
+    RendPaintContext ctx = painter_context(builder, set, time, mainView);
     rend_builder_attach_color(builder, geoData0, 0);
     rend_builder_attach_color(builder, geoData1, 1);
     rend_builder_attach_depth(builder, geoDepth);
@@ -696,7 +693,7 @@ static bool rend_canvas_paint_3d(
     // Copy the gbufer data1 image to be able to read the gbuffer normal and tags.
     RvkImage* geoData1Cpy = rvk_canvas_attach_acquire_copy(painter->canvas, geoData1);
 
-    RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, mainView);
+    RendPaintContext ctx = painter_context(builder, set, time, mainView);
     rend_builder_global_image(builder, geoData1Cpy, 0);
     rend_builder_global_image(builder, geoDepthRead, 1);
     rend_builder_attach_color(builder, geoData0, 0);
@@ -726,7 +723,7 @@ static bool rend_canvas_paint_3d(
     const SceneTagFilter fogFilter = {0};
     const RendView       fogView = painter_view_3d_create(fogTrans, fogProj, camEntity, fogFilter);
 
-    RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, fogView);
+    RendPaintContext ctx = painter_context(builder, set, time, fogView);
     rend_builder_attach_color(builder, fogBuffer, 0);
     painter_set_global_data(&ctx, fogTrans, fogProj, fogSize, time, RendViewType_Fog);
     painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Fog);
@@ -741,7 +738,7 @@ static bool rend_canvas_paint_3d(
   RvkPass* fogBlurPass = platform->passes[AssetGraphicPass_FogBlur];
   if (fogActive && set->fogBlurSteps) {
     trace_begin("rend_paint_fog_blur", TraceColor_White);
-    RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, mainView);
+    RendPaintContext ctx = painter_context(builder, set, time, mainView);
 
     struct {
       ALIGNAS(16)
@@ -788,7 +785,7 @@ static bool rend_canvas_paint_3d(
       shadFilter.illegal |= SceneTags_Vfx;
     }
     const RendView   shadView = painter_view_3d_create(shadTrans, shadProj, camEntity, shadFilter);
-    RendPaintContext ctx      = painter_context(painter->canvas, builder, set, time, shadView);
+    RendPaintContext ctx      = painter_context(builder, set, time, shadView);
     rend_builder_attach_depth(builder, shadowDepth);
     painter_set_global_data(&ctx, shadTrans, shadProj, shadowSize, time, RendViewType_Shadow);
     painter_push_shadow(&ctx, objView, resView);
@@ -809,7 +806,7 @@ static bool rend_canvas_paint_3d(
     trace_begin("rend_paint_ao", TraceColor_White);
     rend_builder_pass_push(builder, aoPass);
 
-    RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, mainView);
+    RendPaintContext ctx = painter_context(builder, set, time, mainView);
     rend_builder_global_image(builder, geoData1, 0);
     rend_builder_global_image(builder, geoDepthRead, 1);
     rend_builder_attach_color(builder, aoBuffer, 0);
@@ -833,7 +830,7 @@ static bool rend_canvas_paint_3d(
       // NOTE: The debug camera-mode does not draw to the whole image; thus we need to clear it.
       rvk_canvas_img_clear_color(painter->canvas, fwdColor, geo_color_black);
     }
-    RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, mainView);
+    RendPaintContext ctx = painter_context(builder, set, time, mainView);
     if (ctx.settings->ambientMode >= RendAmbientMode_DebugStart) {
       // Disable lighting when using any of the debug ambient modes.
       ctx.view.filter.illegal |= SceneTags_Light;
@@ -896,7 +893,7 @@ static bool rend_canvas_paint_3d(
       rvk_canvas_img_blit(painter->canvas, geoDepth, distDepth);
     }
 
-    RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, mainView);
+    RendPaintContext ctx = painter_context(builder, set, time, mainView);
     rend_builder_attach_color(builder, distBuffer, 0);
     rend_builder_attach_depth(builder, distDepth);
     painter_set_global_data(&ctx, &camMat, &projMat, distSize, time, RendViewType_Main);
@@ -920,7 +917,7 @@ static bool rend_canvas_paint_3d(
   if ((set->flags & RendFlags_Bloom) && set->bloomIntensity > f32_epsilon) {
     trace_begin("rend_paint_bloom", TraceColor_White);
 
-    RendPaintContext ctx  = painter_context(painter->canvas, builder, set, time, mainView);
+    RendPaintContext ctx  = painter_context(builder, set, time, mainView);
     RvkSize          size = geoSize;
     RvkImage*        images[6];
     diag_assert(set->bloomSteps <= array_elems(images));
@@ -972,7 +969,7 @@ static bool rend_canvas_paint_3d(
 
     RvkImage* swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
 
-    RendPaintContext ctx = painter_context(painter->canvas, builder, set, time, mainView);
+    RendPaintContext ctx = painter_context(builder, set, time, mainView);
     rend_builder_global_image(builder, fwdColor, 0);
     rend_builder_global_image(builder, bloomOutput, 1);
     rend_builder_global_image(builder, distBuffer, 2);
