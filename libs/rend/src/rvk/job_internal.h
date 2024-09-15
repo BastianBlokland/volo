@@ -32,7 +32,7 @@ void rvk_job_begin(RvkJob*);
 RvkUniformPool*  rvk_job_uniform_pool(RvkJob*);
 RvkStopwatch*    rvk_job_stopwatch(RvkJob*);
 RvkStatRecorder* rvk_job_statrecorder(RvkJob*);
-VkCommandBuffer  rvk_job_drawbuffer(RvkJob*);
+VkCommandBuffer  rvk_job_cmdbuffer(RvkJob*);
 
 void rvk_job_img_clear_color(RvkJob*, RvkImage*, GeoColor);
 void rvk_job_img_clear_depth(RvkJob*, RvkImage*, f32 depth);
