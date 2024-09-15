@@ -38,6 +38,13 @@ ecs_view_define(SeekTargetView) {
   ecs_access_with(SceneCollisionComp);
 }
 
+static void projectile_validate_pos(MAYBE_UNUSED const GeoVector vec) {
+  diag_assert_msg(
+      geo_vector_mag_sqr(vec) <= (1e5f * 1e5f),
+      "Position ({}) is out of bounds",
+      geo_vector_fmt(vec));
+}
+
 static GeoVector seek_position(EcsIterator* entityItr) {
   const SceneTransformComp* trans = ecs_view_read_t(entityItr, SceneTransformComp);
 
@@ -195,9 +202,9 @@ ecs_system_define(SceneProjectileSys) {
     const GeoRay           ray       = {.point = trans->position, .dir = dir};
     const QueryFilterCtx   filterCtx = {.instigator = entity};
     const SceneQueryFilter filter    = {
-           .context   = &filterCtx,
-           .callback  = &projectile_query_filter,
-           .layerMask = projectile_query_layer_mask(faction),
+        .context   = &filterCtx,
+        .callback  = &projectile_query_filter,
+        .layerMask = projectile_query_layer_mask(faction),
     };
 
     // Test collisions with other entities.
@@ -224,6 +231,7 @@ ecs_system_define(SceneProjectileSys) {
     // Update position.
     const GeoVector deltaPos = geo_vector_mul(dir, deltaDist);
     trans->position          = geo_vector_add(trans->position, deltaPos);
+    projectile_validate_pos(trans->position);
   }
 }
 
