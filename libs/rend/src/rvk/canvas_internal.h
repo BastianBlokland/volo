@@ -14,6 +14,7 @@ typedef union uGeoColor GeoColor;
 typedef struct sRvkAttachPool     RvkAttachPool;
 typedef struct sRvkDevice         RvkDevice;
 typedef struct sRvkImage          RvkImage;
+typedef struct sRvkJob            RvkJob;
 typedef struct sRvkPass           RvkPass;
 typedef struct sRvkRepository     RvkRepository;
 typedef struct sRvkSwapchainStats RvkSwapchainStats;
@@ -36,30 +37,20 @@ void rvk_canvas_destroy(RvkCanvas*);
 
 const RvkRepository* rvk_canvas_repository(const RvkCanvas*);
 RvkAttachPool*       rvk_canvas_attach_pool(RvkCanvas*);
+RvkJob*              rvk_canvas_job(RvkCanvas*);
 
 /**
  * Query statistics about the previous submitted draw.
  */
 void rvk_canvas_stats(const RvkCanvas*, RvkCanvasStats* out);
-u16  rvk_canvas_attach_count(const RvkCanvas*);
-u64  rvk_canvas_attach_memory(const RvkCanvas*);
 
 bool rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
+
 void rvk_canvas_pass_push(RvkCanvas*, RvkPass* pass);
 
 void      rvk_canvas_swapchain_stats(const RvkCanvas*, RvkSwapchainStats* out);
 RvkSize   rvk_canvas_swapchain_size(const RvkCanvas*);
 RvkImage* rvk_canvas_swapchain_image(RvkCanvas*);
-
-void rvk_canvas_img_clear_color(RvkCanvas*, RvkImage*, GeoColor);
-void rvk_canvas_img_clear_depth(RvkCanvas*, RvkImage*, f32 depth);
-void rvk_canvas_img_copy(RvkCanvas*, RvkImage* src, RvkImage* dst);
-void rvk_canvas_img_blit(RvkCanvas*, RvkImage* src, RvkImage* dst);
-
-/**
- * Full barrier; will flush and invalidate all caches and stall everything. Only for debugging.
- */
-void rvk_canvas_barrier_full(const RvkCanvas*);
 
 void rvk_canvas_end(RvkCanvas*);
 

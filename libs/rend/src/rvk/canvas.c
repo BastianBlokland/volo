@@ -98,6 +98,11 @@ const RvkRepository* rvk_canvas_repository(const RvkCanvas* canvas) {
 
 RvkAttachPool* rvk_canvas_attach_pool(RvkCanvas* canvas) { return canvas->attachPool; }
 
+RvkJob* rvk_canvas_job(RvkCanvas* canvas) {
+  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
+  return canvas->frames[canvas->jobIdx].job;
+}
+
 void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
   const RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
   diag_assert(rvk_job_is_done(frame->job));
@@ -137,14 +142,6 @@ void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
         .shadersFrag = rvk_pass_stat_pipeline(pass, passFrame, RvkStat_ShaderInvocationsFrag),
     };
   }
-}
-
-u16 rvk_canvas_attach_count(const RvkCanvas* canvas) {
-  return rvk_attach_pool_count(canvas->attachPool);
-}
-
-u64 rvk_canvas_attach_memory(const RvkCanvas* canvas) {
-  return rvk_attach_pool_memory(canvas->attachPool);
 }
 
 bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const RvkSize size) {
@@ -231,41 +228,6 @@ RvkImage* rvk_canvas_swapchain_image(RvkCanvas* canvas) {
       .capabilities = RvkImageCapability_AttachmentColor | RvkImageCapability_TransferSource,
   };
   return frame->swapchainFallback = rvk_attach_acquire_color(canvas->attachPool, spec, size);
-}
-
-void rvk_canvas_img_clear_color(RvkCanvas* canvas, RvkImage* img, const GeoColor color) {
-  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
-
-  RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
-  rvk_job_img_clear_color(frame->job, img, color);
-}
-
-void rvk_canvas_img_clear_depth(RvkCanvas* canvas, RvkImage* img, const f32 depth) {
-  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
-
-  RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
-  rvk_job_img_clear_depth(frame->job, img, depth);
-}
-
-void rvk_canvas_img_copy(RvkCanvas* canvas, RvkImage* src, RvkImage* dst) {
-  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
-
-  RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
-  rvk_job_img_copy(frame->job, src, dst);
-}
-
-void rvk_canvas_img_blit(RvkCanvas* canvas, RvkImage* src, RvkImage* dst) {
-  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
-
-  RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
-  rvk_job_img_blit(frame->job, src, dst);
-}
-
-void rvk_canvas_barrier_full(const RvkCanvas* canvas) {
-  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
-
-  const RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
-  rvk_job_barrier_full(frame->job);
 }
 
 void rvk_canvas_end(RvkCanvas* canvas) {

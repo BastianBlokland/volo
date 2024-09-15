@@ -133,10 +133,12 @@ ecs_system_define(RendUpdateCamStatsSys) {
     stats->descSetsOccupied = rvk_desc_pool_sets_occupied(plat->device->descPool);
     stats->descSetsReserved = rvk_desc_pool_sets_reserved(plat->device->descPool);
     stats->descLayouts      = rvk_desc_pool_layouts(plat->device->descPool);
-    stats->attachCount      = rvk_canvas_attach_count(painter->canvas);
-    stats->attachMemory     = rvk_canvas_attach_memory(painter->canvas);
     stats->samplerCount     = rvk_sampler_pool_count(plat->device->samplerPool);
     rend_stats_update_resources(world, stats->resources);
+
+    const RvkAttachPool* attachPool = rvk_canvas_attach_pool(painter->canvas);
+    stats->attachCount              = rvk_attach_pool_count(attachPool);
+    stats->attachMemory             = rvk_attach_pool_memory(attachPool);
   }
 }
 

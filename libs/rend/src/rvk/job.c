@@ -231,6 +231,19 @@ VkCommandBuffer rvk_job_cmdbuffer(RvkJob* job) {
   return job->vkCmdBuffer;
 }
 
+Mem rvk_job_uniform_map(RvkJob* job, const RvkUniformHandle handle) {
+  return rvk_uniform_map(job->uniformPool, handle);
+}
+
+RvkUniformHandle rvk_job_uniform_push(RvkJob* job, const usize size) {
+  return rvk_uniform_push(job->uniformPool, size);
+}
+
+RvkUniformHandle
+rvk_job_uniform_push_next(RvkJob* job, const RvkUniformHandle head, const usize size) {
+  return rvk_uniform_push_next(job->uniformPool, head, size);
+}
+
 void rvk_job_img_clear_color(RvkJob* job, RvkImage* img, const GeoColor color) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 

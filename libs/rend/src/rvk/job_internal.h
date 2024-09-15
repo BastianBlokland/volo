@@ -1,7 +1,7 @@
 #pragma once
 #include "core_time.h"
 
-#include "vulkan_internal.h"
+#include "uniform_internal.h"
 
 // Forward declare from 'geo_color.h'.
 typedef union uGeoColor GeoColor;
@@ -33,6 +33,10 @@ RvkUniformPool*  rvk_job_uniform_pool(RvkJob*);
 RvkStopwatch*    rvk_job_stopwatch(RvkJob*);
 RvkStatRecorder* rvk_job_statrecorder(RvkJob*);
 VkCommandBuffer  rvk_job_cmdbuffer(RvkJob*);
+
+Mem              rvk_job_uniform_map(RvkJob*, RvkUniformHandle);
+RvkUniformHandle rvk_job_uniform_push(RvkJob*, usize size);
+RvkUniformHandle rvk_job_uniform_push_next(RvkJob*, RvkUniformHandle head, usize size);
 
 void rvk_job_img_clear_color(RvkJob*, RvkImage*, GeoColor);
 void rvk_job_img_clear_depth(RvkJob*, RvkImage*, f32 depth);
