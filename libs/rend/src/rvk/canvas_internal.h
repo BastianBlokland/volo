@@ -11,6 +11,7 @@
 typedef union uGeoColor GeoColor;
 
 // Internal forward declarations:
+typedef struct sRvkAttachPool     RvkAttachPool;
 typedef struct sRvkDevice         RvkDevice;
 typedef struct sRvkImage          RvkImage;
 typedef struct sRvkPass           RvkPass;
@@ -33,7 +34,8 @@ RvkCanvas* rvk_canvas_create(RvkDevice*, const GapWindowComp*);
 
 void rvk_canvas_destroy(RvkCanvas*);
 
-const RvkRepository* rvk_canvas_repository(RvkCanvas*);
+const RvkRepository* rvk_canvas_repository(const RvkCanvas*);
+RvkAttachPool*       rvk_canvas_attach_pool(RvkCanvas*);
 
 /**
  * Query statistics about the previous submitted draw.
