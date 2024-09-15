@@ -602,20 +602,18 @@ static bool rend_canvas_paint_2d(
   if (!rend_builder_canvas_push(b, painter->canvas, set, painter_win_size(win))) {
     return false; // Canvas not ready for rendering.
   }
-  const RendView mainView = painter_view_2d_create(camEntity);
 
   RvkImage* swapchainImage = rend_builder_img_swapchain(b);
-  RvkPass*  postPass       = platform->passes[AssetGraphicPass_Post];
+  rend_builder_img_clear_color(b, swapchainImage, geo_color_black);
+
+  rend_builder_pass_push(b, platform->passes[AssetGraphicPass_Post]);
   {
-    rend_builder_pass_push(b, postPass);
-
-    rend_builder_img_clear_color(b, swapchainImage, geo_color_black);
-
-    RendPaintContext ctx = painter_context(b, set, time, mainView);
+    const RendView   mainView = painter_view_2d_create(camEntity);
+    RendPaintContext ctx      = painter_context(b, set, time, mainView);
     rend_builder_attach_color(b, swapchainImage, 0);
     painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Post);
-    rend_builder_pass_flush(b);
   }
+  rend_builder_pass_flush(b);
 
   rend_builder_canvas_flush(b);
   return true;
@@ -672,9 +670,8 @@ static bool rend_canvas_paint_3d(
   RvkImage* geoDepthRead = rend_builder_attach_acquire_copy(b, geoDepth);
 
   // Decal pass.
-  RvkPass* decalPass = platform->passes[AssetGraphicPass_Decal];
   if (set->flags & RendFlags_Decals) {
-    rend_builder_pass_push(b, decalPass);
+    rend_builder_pass_push(b, platform->passes[AssetGraphicPass_Decal]);
 
     // Copy the gbufer data1 image to be able to read the gbuffer normal and tags.
     RvkImage* geoData1Cpy = rend_builder_attach_acquire_copy(b, geoData1);
@@ -717,7 +714,6 @@ static bool rend_canvas_paint_3d(
   }
 
   // Fog-blur pass.
-  RvkPass* fogBlurPass = platform->passes[AssetGraphicPass_FogBlur];
   if (fogActive && set->fogBlurSteps) {
     RendPaintContext ctx = painter_context(b, set, time, mainView);
 
@@ -729,14 +725,14 @@ static bool rend_canvas_paint_3d(
     RvkImage* tmp = rend_builder_attach_acquire_copy_uninit(b, fogBuffer);
     for (u32 i = 0; i != set->fogBlurSteps; ++i) {
       // Horizontal pass.
-      rend_builder_pass_push(b, fogBlurPass);
+      rend_builder_pass_push(b, platform->passes[AssetGraphicPass_FogBlur]);
       rend_builder_global_image(b, fogBuffer, 0);
       rend_builder_attach_color(b, tmp, 0);
       painter_push_simple(&ctx, RvkRepositoryId_FogBlurHorGraphic, mem_var(blurData));
       rend_builder_pass_flush(b);
 
       // Vertical pass.
-      rend_builder_pass_push(b, fogBlurPass);
+      rend_builder_pass_push(b, platform->passes[AssetGraphicPass_FogBlur]);
       rend_builder_global_image(b, tmp, 0);
       rend_builder_attach_color(b, fogBuffer, 0);
       painter_push_simple(&ctx, RvkRepositoryId_FogBlurVerGraphic, mem_var(blurData));
@@ -930,11 +926,9 @@ static bool rend_canvas_paint_3d(
   }
 
   // Post pass.
-  RvkPass* postPass = platform->passes[AssetGraphicPass_Post];
   {
-    rend_builder_pass_push(b, postPass);
-
     RvkImage* swapchainImage = rend_builder_img_swapchain(b);
+    rend_builder_pass_push(b, platform->passes[AssetGraphicPass_Post]);
 
     RendPaintContext ctx = painter_context(b, set, time, mainView);
     rend_builder_global_image(b, fwdColor, 0);
