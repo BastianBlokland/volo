@@ -98,6 +98,11 @@ void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
   const RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
   diag_assert(rvk_job_is_done(frame->job));
 
+  if (!(canvas->flags & RvkCanvasFlags_Submitted)) {
+    *out = (RvkCanvasStats){0};
+    return;
+  }
+
   RvkJobStats jobStats;
   rvk_job_stats(frame->job, &jobStats);
 
