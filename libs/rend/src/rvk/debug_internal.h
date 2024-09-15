@@ -32,6 +32,9 @@ void      rvk_debug_label_end(RvkDebug*, VkCommandBuffer);
 #define rvk_debug_name_queue(_DBG_, _OBJ_, _LIT_, ...)                                             \
   rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_QUEUE, _OBJ_, "queue_" _LIT_, __VA_ARGS__)
 
+#define rvk_debug_name_semaphore(_DBG_, _OBJ_, _LIT_, ...)                                         \
+  rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_SEMAPHORE, _OBJ_, "semaphore_" _LIT_, __VA_ARGS__)
+
 #define rvk_debug_name_cmdpool(_DBG_, _OBJ_, _LIT_, ...)                                           \
   rvk_debug_name_fmt(_DBG_, VK_OBJECT_TYPE_COMMAND_POOL, _OBJ_, "cmdpool_" _LIT_, __VA_ARGS__)
 
