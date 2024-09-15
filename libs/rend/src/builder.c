@@ -5,6 +5,7 @@
 #include "jobs_executor.h"
 
 #include "builder_internal.h"
+#include "rvk/attach_internal.h"
 #include "rvk/canvas_internal.h"
 #include "rvk/graphic_internal.h"
 #include "rvk/image_internal.h"
@@ -107,12 +108,18 @@ void rend_builder_img_blit(RendBuilder* b, RvkImage* src, RvkImage* dst) {
 RvkImage* rend_builder_attach_acquire_color(
     RendBuilder* b, RvkPass* pass, const u32 binding, const RvkSize size) {
   diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
-  return rvk_canvas_attach_acquire_color(b->canvas, pass, binding, size);
+
+  RvkAttachPool*      attachPool = rvk_canvas_attach_pool(b->canvas);
+  const RvkAttachSpec spec       = rvk_pass_spec_attach_color(pass, binding);
+  return rvk_attach_acquire_color(attachPool, spec, size);
 }
 
 RvkImage* rend_builder_attach_acquire_depth(RendBuilder* b, RvkPass* pass, const RvkSize size) {
   diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
-  return rvk_canvas_attach_acquire_depth(b->canvas, pass, size);
+
+  RvkAttachPool*      attachPool = rvk_canvas_attach_pool(b->canvas);
+  const RvkAttachSpec spec       = rvk_pass_spec_attach_depth(pass);
+  return rvk_attach_acquire_depth(attachPool, spec, size);
 }
 
 RvkImage* rend_builder_attach_acquire_copy(RendBuilder* b, RvkImage* img) {
