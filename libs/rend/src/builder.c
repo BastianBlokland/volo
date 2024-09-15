@@ -66,9 +66,13 @@ bool rend_builder_canvas_push(
     RendBuilder* b, RvkCanvas* canvas, const RendSettingsComp* settings, const RvkSize windowSize) {
   diag_assert_msg(!b->canvas, "RendBuilder: Canvas already active");
 
+  trace_begin("rend_builder_canvas", TraceColor_Red);
+
   if (!rvk_canvas_begin(canvas, settings, windowSize)) {
+    trace_end();
     return false; // Canvas not ready for rendering.
   }
+
   b->canvas = canvas;
   return true;
 }
@@ -79,6 +83,8 @@ void rend_builder_canvas_flush(RendBuilder* b) {
 
   rvk_canvas_end(b->canvas);
   b->canvas = null;
+
+  trace_end();
 }
 
 const RvkRepository* rend_builder_repository(RendBuilder* b) {
