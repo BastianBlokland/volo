@@ -10,6 +10,7 @@
 #include "rvk/canvas_internal.h"
 #include "rvk/graphic_internal.h"
 #include "rvk/image_internal.h"
+#include "rvk/job_internal.h"
 #include "rvk/pass_internal.h"
 
 #define rend_builder_workers_max 8
@@ -99,17 +100,20 @@ RvkImage* rend_builder_img_swapchain(RendBuilder* b) {
 
 void rend_builder_img_clear_color(RendBuilder* b, RvkImage* img, const GeoColor color) {
   diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
-  rvk_canvas_img_clear_color(b->canvas, img, color);
+  RvkJob* job = rvk_canvas_job(b->canvas);
+  rvk_job_img_clear_color(job, img, color);
 }
 
 void rend_builder_img_clear_depth(RendBuilder* b, RvkImage* img, const f32 depth) {
   diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
-  rvk_canvas_img_clear_depth(b->canvas, img, depth);
+  RvkJob* job = rvk_canvas_job(b->canvas);
+  rvk_job_img_clear_depth(job, img, depth);
 }
 
 void rend_builder_img_blit(RendBuilder* b, RvkImage* src, RvkImage* dst) {
   diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
-  rvk_canvas_img_blit(b->canvas, src, dst);
+  RvkJob* job = rvk_canvas_job(b->canvas);
+  rvk_job_img_blit(job, src, dst);
 }
 
 RvkImage* rend_builder_attach_acquire_color(
@@ -133,7 +137,8 @@ RvkImage* rend_builder_attach_acquire_copy(RendBuilder* b, RvkImage* src) {
   diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
 
   RvkImage* res = rend_builder_attach_acquire_copy_uninit(b, src);
-  rvk_canvas_img_copy(b->canvas, src, res);
+  RvkJob*   job = rvk_canvas_job(b->canvas);
+  rvk_job_img_copy(job, src, res);
   return res;
 }
 
