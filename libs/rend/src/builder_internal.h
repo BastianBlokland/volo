@@ -40,6 +40,11 @@ void rend_builder_canvas_flush(RendBuilderBuffer*);
 
 const RvkRepository* rend_builder_repository(RendBuilderBuffer*);
 
+RvkImage* rend_builder_img_swapchain(RendBuilderBuffer*);
+void      rend_builder_img_clear_color(RendBuilderBuffer*, RvkImage*, GeoColor);
+void      rend_builder_img_clear_depth(RendBuilderBuffer*, RvkImage*, f32 depth);
+void      rend_builder_img_blit(RendBuilderBuffer*, RvkImage* src, RvkImage* dst);
+
 void rend_builder_pass_push(RendBuilderBuffer*, RvkPass*);
 void rend_builder_pass_flush(RendBuilderBuffer*);
 

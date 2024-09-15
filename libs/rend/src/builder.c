@@ -84,8 +84,27 @@ void rend_builder_canvas_flush(RendBuilderBuffer* buffer) {
 
 const RvkRepository* rend_builder_repository(RendBuilderBuffer* buffer) {
   diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
-
   return rvk_canvas_repository(buffer->canvas);
+}
+
+RvkImage* rend_builder_img_swapchain(RendBuilderBuffer* buffer) {
+  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
+  return rvk_canvas_swapchain_image(buffer->canvas);
+}
+
+void rend_builder_img_clear_color(RendBuilderBuffer* buffer, RvkImage* img, const GeoColor color) {
+  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
+  rvk_canvas_img_clear_color(buffer->canvas, img, color);
+}
+
+void rend_builder_img_clear_depth(RendBuilderBuffer* buffer, RvkImage* img, const f32 depth) {
+  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
+  rvk_canvas_img_clear_depth(buffer->canvas, img, depth);
+}
+
+void rend_builder_img_blit(RendBuilderBuffer* buffer, RvkImage* src, RvkImage* dst) {
+  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
+  rvk_canvas_img_blit(buffer->canvas, src, dst);
 }
 
 void rend_builder_pass_push(RendBuilderBuffer* buffer, RvkPass* pass) {

@@ -607,12 +607,12 @@ static bool rend_canvas_paint_2d(
 
   const RendView mainView = painter_view_2d_create(camEntity);
 
-  RvkImage* swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
+  RvkImage* swapchainImage = rend_builder_img_swapchain(builder);
   RvkPass*  postPass       = platform->passes[AssetGraphicPass_Post];
   {
     rend_builder_pass_push(builder, postPass);
 
-    rvk_canvas_img_clear_color(painter->canvas, swapchainImage, geo_color_black);
+    rend_builder_img_clear_color(builder, swapchainImage, geo_color_black);
 
     RendPaintContext ctx = painter_context(builder, set, time, mainView);
     rend_builder_attach_color(builder, swapchainImage, 0);
@@ -726,7 +726,7 @@ static bool rend_canvas_paint_3d(
     rend_builder_pass_flush(builder);
     trace_end();
   } else {
-    rvk_canvas_img_clear_color(painter->canvas, fogBuffer, geo_color_white);
+    rend_builder_img_clear_color(builder, fogBuffer, geo_color_white);
   }
 
   // Fog-blur pass.
@@ -788,7 +788,7 @@ static bool rend_canvas_paint_3d(
     rend_builder_pass_flush(builder);
     trace_end();
   } else {
-    rvk_canvas_img_clear_depth(painter->canvas, shadowDepth, 0);
+    rend_builder_img_clear_depth(builder, shadowDepth, 0);
   }
 
   // Ambient occlusion.
@@ -811,7 +811,7 @@ static bool rend_canvas_paint_3d(
     rend_builder_pass_flush(builder);
     trace_end();
   } else {
-    rvk_canvas_img_clear_color(painter->canvas, aoBuffer, geo_color_white);
+    rend_builder_img_clear_color(builder, aoBuffer, geo_color_white);
   }
 
   // Forward pass.
@@ -823,7 +823,7 @@ static bool rend_canvas_paint_3d(
 
     if (set->flags & RendFlags_DebugCamera && set->skyMode == RendSkyMode_None) {
       // NOTE: The debug camera-mode does not draw to the whole image; thus we need to clear it.
-      rvk_canvas_img_clear_color(painter->canvas, fwdColor, geo_color_black);
+      rend_builder_img_clear_color(builder, fwdColor, geo_color_black);
     }
     RendPaintContext ctx = painter_context(builder, set, time, mainView);
     if (ctx.settings->ambientMode >= RendAmbientMode_DebugStart) {
@@ -885,7 +885,7 @@ static bool rend_canvas_paint_3d(
       distDepth = geoDepth;
     } else {
       distDepth = rvk_canvas_attach_acquire_depth(painter->canvas, distPass, distSize);
-      rvk_canvas_img_blit(painter->canvas, geoDepth, distDepth);
+      rend_builder_img_blit(builder, geoDepth, distDepth);
     }
 
     RendPaintContext ctx = painter_context(builder, set, time, mainView);
@@ -901,7 +901,7 @@ static bool rend_canvas_paint_3d(
       rvk_canvas_attach_release(painter->canvas, distDepth);
     }
   } else {
-    rvk_canvas_img_clear_color(painter->canvas, distBuffer, geo_color_black);
+    rend_builder_img_clear_color(builder, distBuffer, geo_color_black);
   }
 
   rvk_canvas_attach_release(painter->canvas, geoDepth);
@@ -953,7 +953,7 @@ static bool rend_canvas_paint_3d(
     trace_end();
   } else {
     bloomOutput = rvk_canvas_attach_acquire_color(painter->canvas, bloomPass, 0, (RvkSize){1, 1});
-    rvk_canvas_img_clear_color(painter->canvas, bloomOutput, geo_color_white);
+    rend_builder_img_clear_color(builder, bloomOutput, geo_color_white);
   }
 
   // Post pass.
@@ -962,7 +962,7 @@ static bool rend_canvas_paint_3d(
     trace_begin("rend_paint_post", TraceColor_White);
     rend_builder_pass_push(builder, postPass);
 
-    RvkImage* swapchainImage = rvk_canvas_swapchain_image(painter->canvas);
+    RvkImage* swapchainImage = rend_builder_img_swapchain(builder);
 
     RendPaintContext ctx = painter_context(builder, set, time, mainView);
     rend_builder_global_image(builder, fwdColor, 0);
