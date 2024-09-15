@@ -661,7 +661,6 @@ static bool rend_canvas_paint_3d(
   RvkImage*     geoDepth = rend_builder_attach_acquire_depth(b, geoPass, geoSize);
   SceneTags     geoTagMask;
   {
-    trace_begin("rend_paint_geo", TraceColor_White);
     rend_builder_pass_push(b, geoPass);
 
     RendPaintContext ctx = painter_context(b, set, time, mainView);
@@ -672,7 +671,6 @@ static bool rend_canvas_paint_3d(
     geoTagMask = painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Geometry);
 
     rend_builder_pass_flush(b);
-    trace_end();
   }
 
   // Make a copy of the geometry depth to read from while still writing to the original.
@@ -682,7 +680,6 @@ static bool rend_canvas_paint_3d(
   // Decal pass.
   RvkPass* decalPass = platform->passes[AssetGraphicPass_Decal];
   if (set->flags & RendFlags_Decals) {
-    trace_begin("rend_paint_decals", TraceColor_White);
     rend_builder_pass_push(b, decalPass);
 
     // Copy the gbufer data1 image to be able to read the gbuffer normal and tags.
@@ -698,8 +695,6 @@ static bool rend_canvas_paint_3d(
     painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Decal);
 
     rend_builder_pass_flush(b);
-    trace_end();
-
     rend_builder_attach_release(b, geoData1Cpy);
   }
 
@@ -710,7 +705,6 @@ static bool rend_canvas_paint_3d(
   const RvkSize fogSize   = fogActive ? (RvkSize){fogRes, fogRes} : (RvkSize){1, 1};
   RvkImage*     fogBuffer = rend_builder_attach_acquire_color(b, fogPass, 0, fogSize);
   if (fogActive) {
-    trace_begin("rend_paint_fog", TraceColor_White);
     rend_builder_pass_push(b, fogPass);
 
     const GeoMatrix*     fogTrans  = rend_fog_trans(fog);
@@ -724,7 +718,6 @@ static bool rend_canvas_paint_3d(
     painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Fog);
 
     rend_builder_pass_flush(b);
-    trace_end();
   } else {
     rend_builder_img_clear_color(b, fogBuffer, geo_color_white);
   }
@@ -732,7 +725,6 @@ static bool rend_canvas_paint_3d(
   // Fog-blur pass.
   RvkPass* fogBlurPass = platform->passes[AssetGraphicPass_FogBlur];
   if (fogActive && set->fogBlurSteps) {
-    trace_begin("rend_paint_fog_blur", TraceColor_White);
     RendPaintContext ctx = painter_context(b, set, time, mainView);
 
     struct {
@@ -757,7 +749,6 @@ static bool rend_canvas_paint_3d(
       rend_builder_pass_flush(b);
     }
     rend_builder_attach_release(b, tmp);
-    trace_end();
   }
 
   // Shadow pass.
@@ -767,7 +758,6 @@ static bool rend_canvas_paint_3d(
   RvkPass*  shadowPass  = platform->passes[AssetGraphicPass_Shadow];
   RvkImage* shadowDepth = rend_builder_attach_acquire_depth(b, shadowPass, shadowSize);
   if (shadowsActive) {
-    trace_begin("rend_paint_shadows", TraceColor_White);
     rend_builder_pass_push(b, shadowPass);
 
     const GeoMatrix* shadTrans  = rend_light_shadow_trans(light);
@@ -786,7 +776,6 @@ static bool rend_canvas_paint_3d(
     painter_push_shadow(&ctx, objView, resView);
 
     rend_builder_pass_flush(b);
-    trace_end();
   } else {
     rend_builder_img_clear_depth(b, shadowDepth, 0);
   }
@@ -798,7 +787,6 @@ static bool rend_canvas_paint_3d(
   RvkPass*      aoPass   = platform->passes[AssetGraphicPass_AmbientOcclusion];
   RvkImage*     aoBuffer = rend_builder_attach_acquire_color(b, aoPass, 0, aoSize);
   if (set->flags & RendFlags_AmbientOcclusion) {
-    trace_begin("rend_paint_ao", TraceColor_White);
     rend_builder_pass_push(b, aoPass);
 
     RendPaintContext ctx = painter_context(b, set, time, mainView);
@@ -809,7 +797,6 @@ static bool rend_canvas_paint_3d(
     painter_push_ambient_occlusion(&ctx);
 
     rend_builder_pass_flush(b);
-    trace_end();
   } else {
     rend_builder_img_clear_color(b, aoBuffer, geo_color_white);
   }
@@ -818,7 +805,6 @@ static bool rend_canvas_paint_3d(
   RvkPass*  fwdPass  = platform->passes[AssetGraphicPass_Forward];
   RvkImage* fwdColor = rend_builder_attach_acquire_color(b, fwdPass, 0, geoSize);
   {
-    trace_begin("rend_paint_forward", TraceColor_White);
     rend_builder_pass_push(b, fwdPass);
 
     if (set->flags & RendFlags_DebugCamera && set->skyMode == RendSkyMode_None) {
@@ -862,7 +848,6 @@ static bool rend_canvas_paint_3d(
     }
 
     rend_builder_pass_flush(b);
-    trace_end();
   }
 
   rend_builder_attach_release(b, geoData0);
@@ -877,7 +862,6 @@ static bool rend_canvas_paint_3d(
   RvkPass*      distPass   = platform->passes[AssetGraphicPass_Distortion];
   RvkImage*     distBuffer = rend_builder_attach_acquire_color(b, distPass, 0, distSize);
   if (set->flags & RendFlags_Distortion) {
-    trace_begin("rend_paint_distortion", TraceColor_White);
     rend_builder_pass_push(b, distPass);
 
     RvkImage* distDepth;
@@ -895,8 +879,6 @@ static bool rend_canvas_paint_3d(
     painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Distortion);
     rend_builder_pass_flush(b);
 
-    trace_end();
-
     if (distSize.data != geoSize.data) {
       rend_builder_attach_release(b, distDepth);
     }
@@ -910,8 +892,6 @@ static bool rend_canvas_paint_3d(
   RvkPass*  bloomPass = platform->passes[AssetGraphicPass_Bloom];
   RvkImage* bloomOutput;
   if ((set->flags & RendFlags_Bloom) && set->bloomIntensity > f32_epsilon) {
-    trace_begin("rend_paint_bloom", TraceColor_White);
-
     RendPaintContext ctx  = painter_context(b, set, time, mainView);
     RvkSize          size = geoSize;
     RvkImage*        images[6];
@@ -950,7 +930,6 @@ static bool rend_canvas_paint_3d(
     for (u32 i = 1; i != set->bloomSteps; ++i) {
       rend_builder_attach_release(b, images[i]);
     }
-    trace_end();
   } else {
     bloomOutput = rend_builder_attach_acquire_color(b, bloomPass, 0, (RvkSize){1, 1});
     rend_builder_img_clear_color(b, bloomOutput, geo_color_white);
@@ -959,7 +938,6 @@ static bool rend_canvas_paint_3d(
   // Post pass.
   RvkPass* postPass = platform->passes[AssetGraphicPass_Post];
   {
-    trace_begin("rend_paint_post", TraceColor_White);
     rend_builder_pass_push(b, postPass);
 
     RvkImage* swapchainImage = rend_builder_img_swapchain(b);
@@ -986,7 +964,6 @@ static bool rend_canvas_paint_3d(
       painter_push_debug_resource_viewer(world, &ctx, winAspect, resView, set->debugViewerResource);
     }
     rend_builder_pass_flush(b);
-    trace_end();
   }
 
   rend_builder_attach_release(b, fogBuffer);

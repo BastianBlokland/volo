@@ -3,6 +3,7 @@
 #include "core_dynarray.h"
 #include "geo_color.h"
 #include "jobs_executor.h"
+#include "trace_tracer.h"
 
 #include "builder_internal.h"
 #include "rvk/attach_internal.h"
@@ -160,6 +161,9 @@ void rend_builder_pass_push(RendBuilder* b, RvkPass* pass) {
   diag_assert_msg(!b->pass, "RendBuilder: Pass already active");
   diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
 
+  MAYBE_UNUSED const String passName = rvk_pass_config(pass)->name;
+  trace_begin_msg("rend_builder_pass", TraceColor_White, "pass_{}", fmt_text(passName));
+
   b->pass      = pass;
   b->passSetup = (RvkPassSetup){0};
 
@@ -178,6 +182,8 @@ void rend_builder_pass_flush(RendBuilder* b) {
   dynarray_clear(&b->drawList);
 
   b->pass = null;
+
+  trace_end();
 }
 
 void rend_builder_clear_color(RendBuilder* b, const GeoColor clearColor) {
