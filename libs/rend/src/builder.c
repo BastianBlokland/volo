@@ -72,6 +72,12 @@ void rend_builder_canvas_flush(RendBuilderBuffer* buffer) {
   buffer->canvas = null;
 }
 
+const RvkRepository* rend_builder_repository(RendBuilderBuffer* buffer) {
+  diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");
+
+  return rvk_canvas_repository(buffer->canvas);
+}
+
 void rend_builder_pass_push(RendBuilderBuffer* buffer, RvkPass* pass) {
   diag_assert_msg(!buffer->pass, "RendBuilder: Pass already active");
   diag_assert_msg(buffer->canvas, "RendBuilder: Canvas not active");

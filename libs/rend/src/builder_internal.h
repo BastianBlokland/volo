@@ -13,6 +13,7 @@ typedef struct sRvkGraphic     RvkGraphic;
 typedef struct sRvkImage       RvkImage;
 typedef struct sRvkMesh        RvkMesh;
 typedef struct sRvkPass        RvkPass;
+typedef struct sRvkRepository  RvkRepository;
 typedef struct sRvkSamplerSpec RvkSamplerSpec;
 
 /**
@@ -32,6 +33,8 @@ RendBuilderBuffer* rend_builder_buffer(const RendBuilder*);
 
 void rend_builder_canvas_push(RendBuilderBuffer*, RvkCanvas*);
 void rend_builder_canvas_flush(RendBuilderBuffer*);
+
+const RvkRepository* rend_builder_repository(RendBuilderBuffer*);
 
 void rend_builder_pass_push(RendBuilderBuffer*, RvkPass*);
 void rend_builder_pass_flush(RendBuilderBuffer*);
