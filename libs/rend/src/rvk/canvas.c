@@ -29,7 +29,8 @@ typedef struct {
   VkSemaphore     attachmentsReleased, swapchainAvailable, swapchainPresent;
   RvkSwapchainIdx swapchainIdx;
   RvkImage*       swapchainFallback; // Only used when the preferred format is not available.
-  RvkPassHandle   passHandles[rvk_canvas_max_passes];
+  RvkPass*        passes[rvk_canvas_max_passes];
+  RvkPassHandle   passFrames[rvk_canvas_max_passes];
 } RvkCanvasFrame;
 
 struct sRvkCanvas {
@@ -39,8 +40,6 @@ struct sRvkCanvas {
   RvkCanvasFrame frames[canvas_frame_count];
   RvkCanvasFlags flags;
   u32            jobIdx;
-  u32            passCount;
-  RvkPass*       passes[rvk_canvas_max_passes];
 };
 
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
@@ -50,20 +49,12 @@ static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
   return result;
 }
 
-RvkCanvas* rvk_canvas_create(
-    RvkDevice* dev, const GapWindowComp* window, RvkPass* passes[], const u32 passCount) {
-  diag_assert(passCount <= rvk_canvas_max_passes);
-
+RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
   RvkSwapchain*  swapchain  = rvk_swapchain_create(dev, window);
   RvkAttachPool* attachPool = rvk_attach_pool_create(dev);
   RvkCanvas*     canvas     = alloc_alloc_t(g_allocHeap, RvkCanvas);
 
-  *canvas = (RvkCanvas){
-      .dev        = dev,
-      .swapchain  = swapchain,
-      .attachPool = attachPool,
-      .passCount  = passCount,
-  };
+  *canvas = (RvkCanvas){.dev = dev, .swapchain = swapchain, .attachPool = attachPool};
 
   for (u32 i = 0; i != canvas_frame_count; ++i) {
     canvas->frames[i] = (RvkCanvasFrame){
@@ -73,11 +64,7 @@ RvkCanvas* rvk_canvas_create(
         .swapchainPresent    = rvk_semaphore_create(dev),
         .swapchainIdx        = sentinel_u32,
     };
-    mem_set(array_mem(canvas->frames[i].passHandles), 0xFF);
-  }
-
-  for (u32 passIdx = 0; passIdx != passCount; ++passIdx) {
-    canvas->passes[passIdx] = passes[passIdx];
+    mem_set(array_mem(canvas->frames[i].passFrames), 0xFF);
   }
 
   log_d(
@@ -118,12 +105,13 @@ void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
   out->gpuExecDur    = jobStats.gpuExecDur;
 
   out->passCount = 0;
-  for (u32 passIdx = 0; passIdx != canvas->passCount; ++passIdx) {
-    const RvkPass*      pass      = canvas->passes[passIdx];
-    const RvkPassHandle passFrame = frame->passHandles[passIdx];
-    if (sentinel_check(passFrame)) {
+  for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {
+    const RvkPass* pass = frame->passes[passIdx];
+    if (!pass) {
       continue;
     }
+    const RvkPassHandle passFrame = frame->passFrames[passIdx];
+    diag_assert(!sentinel_check(passFrame));
 
     const RvkSize sizeMax         = rvk_pass_stat_size_max(pass, passFrame);
     out->passes[out->passCount++] = (RendStatsPass){
@@ -170,15 +158,39 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
   canvas->flags |= RvkCanvasFlags_Active;
   rvk_job_begin(frame->job);
 
-  for (u32 passIdx = 0; passIdx != canvas->passCount; ++passIdx) {
-    RvkPass* pass = canvas->passes[passIdx];
-    if (!sentinel_check(frame->passHandles[passIdx])) {
-      rvk_pass_frame_release(pass, frame->passHandles[passIdx]);
+  // Cleanup the last frame's passes.
+  for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {
+    if (frame->passes[passIdx]) {
+      diag_assert(!sentinel_check(frame->passFrames[passIdx]));
+      rvk_pass_frame_release(frame->passes[passIdx], frame->passFrames[passIdx]);
+      frame->passes[passIdx] = null;
     }
-    frame->passHandles[passIdx] = rvk_pass_frame_begin(pass, frame->job);
   }
 
   return true;
+}
+
+void rvk_canvas_pass_push(RvkCanvas* canvas, RvkPass* pass) {
+  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
+  RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
+
+  // Check if this pass was already pushed this frame.
+  for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {
+    if (frame->passes[passIdx] == pass) {
+      return; // Already present in this frame.
+    }
+  }
+
+  // Register the pass to this frame.
+  for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {
+    if (!frame->passes[passIdx]) {
+      frame->passes[passIdx]     = pass;
+      frame->passFrames[passIdx] = rvk_pass_frame_begin(pass, frame->job);
+      return;
+    }
+  }
+
+  diag_crash_msg("Canvas pass limit exceeded");
 }
 
 void rvk_canvas_swapchain_stats(const RvkCanvas* canvas, RvkSwapchainStats* out) {
@@ -288,8 +300,10 @@ void rvk_canvas_end(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
   RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
 
-  for (u32 passIdx = 0; passIdx != canvas->passCount; ++passIdx) {
-    rvk_pass_frame_end(canvas->passes[passIdx], frame->passHandles[passIdx]);
+  for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {
+    if (frame->passes[passIdx]) {
+      rvk_pass_frame_end(frame->passes[passIdx], frame->passFrames[passIdx]);
+    }
   }
 
   RvkImage* swapchainImage = rvk_swapchain_image(canvas->swapchain, frame->swapchainIdx);

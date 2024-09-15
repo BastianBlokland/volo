@@ -29,7 +29,7 @@ typedef struct sRvkCanvasStats {
  */
 typedef struct sRvkCanvas RvkCanvas;
 
-RvkCanvas* rvk_canvas_create(RvkDevice*, const GapWindowComp*, RvkPass* passes[], u32 passCount);
+RvkCanvas* rvk_canvas_create(RvkDevice*, const GapWindowComp*);
 
 void rvk_canvas_destroy(RvkCanvas*);
 
@@ -43,6 +43,7 @@ u16  rvk_canvas_attach_count(const RvkCanvas*);
 u64  rvk_canvas_attach_memory(const RvkCanvas*);
 
 bool rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
+void rvk_canvas_pass_push(RvkCanvas*, RvkPass* pass);
 
 void      rvk_canvas_swapchain_stats(const RvkCanvas*, RvkSwapchainStats* out);
 RvkSize   rvk_canvas_swapchain_size(const RvkCanvas*);
