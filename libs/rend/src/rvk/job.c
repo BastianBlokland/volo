@@ -146,6 +146,8 @@ RvkJob* rvk_job_create(RvkDevice* dev, const u32 jobId) {
 
   rvk_commandbuffer_create_batch(dev, vkCmdPool, job->vkCmdBuffers, RvkJobPhase_Count);
 
+  rvk_debug_name_fence(dev->debug, job->fenceJobDone, "jobDone");
+
   return job;
 }
 
