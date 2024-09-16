@@ -168,7 +168,7 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
   }
 
   canvas->flags |= RvkCanvasFlags_Active;
-  rvk_job_begin(frame->job, RvkJobPhase_Output);
+  rvk_job_begin(frame->job, RvkJobPhase_First);
 
   // Cleanup the last frame's passes.
   for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {
@@ -216,6 +216,16 @@ RvkJobPhase rvk_canvas_phase(const RvkCanvas* canvas) {
   return rvk_job_phase(frame->job);
 }
 
+void rvk_canvas_phase_output(RvkCanvas* canvas) {
+  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
+
+  RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
+  if (rvk_job_phase(frame->job) == RvkJobPhase_Output) {
+    return;
+  }
+  rvk_job_advance(frame->job); // Submit the previous phase.
+}
+
 void rvk_canvas_swapchain_stats(const RvkCanvas* canvas, RvkSwapchainStats* out) {
   rvk_swapchain_stats(canvas->swapchain, out);
 }
@@ -229,9 +239,14 @@ RvkImage* rvk_canvas_swapchain_image(RvkCanvas* canvas) {
   diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
 
   RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
+  diag_assert_msg(
+      rvk_job_phase(frame->job) == RvkJobPhase_Output,
+      "Swapchain image can only be acquired in the output phase");
+
   if (rvk_swapchain_format(canvas->swapchain) == canvas->dev->preferredSwapchainFormat) {
     return rvk_swapchain_image(canvas->swapchain, frame->swapchainIdx);
   }
+
   if (frame->swapchainFallback) {
     return frame->swapchainFallback;
   }

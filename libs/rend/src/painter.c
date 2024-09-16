@@ -603,6 +603,8 @@ static bool rend_canvas_paint_2d(
     return false; // Canvas not ready for rendering.
   }
 
+  rend_builder_phase_output(b); // Acquire swapchain image.
+
   RvkImage* swapchainImage = rend_builder_img_swapchain(b);
   rend_builder_img_clear_color(b, swapchainImage, geo_color_black);
 
@@ -751,8 +753,8 @@ static bool rend_canvas_paint_3d(
     const GeoMatrix* shadTrans  = rend_light_shadow_trans(light);
     const GeoMatrix* shadProj   = rend_light_shadow_proj(light);
     SceneTagFilter   shadFilter = {
-          .required = cam->filter.required | SceneTags_ShadowCaster,
-          .illegal  = cam->filter.illegal,
+        .required = cam->filter.required | SceneTags_ShadowCaster,
+        .illegal  = cam->filter.illegal,
     };
     if (!(set->flags & RendFlags_VfxShadows)) {
       shadFilter.illegal |= SceneTags_Vfx;
@@ -921,6 +923,8 @@ static bool rend_canvas_paint_3d(
     bloomOutput = rend_builder_attach_acquire_color(b, bloomPass, 0, rvk_size_one);
     rend_builder_img_clear_color(b, bloomOutput, geo_color_white);
   }
+
+  rend_builder_phase_output(b); // Acquire swapchain image.
 
   // Post pass.
   {

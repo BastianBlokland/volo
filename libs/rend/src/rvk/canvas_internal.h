@@ -50,6 +50,7 @@ bool rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
 void rvk_canvas_pass_push(RvkCanvas*, RvkPass* pass);
 
 RvkJobPhase rvk_canvas_phase(const RvkCanvas*);
+void        rvk_canvas_phase_output(RvkCanvas*);
 
 void      rvk_canvas_swapchain_stats(const RvkCanvas*, RvkSwapchainStats* out);
 RvkSize   rvk_canvas_swapchain_size(const RvkCanvas*);

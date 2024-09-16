@@ -45,6 +45,8 @@ void      rend_builder_img_clear_color(RendBuilder*, RvkImage*, GeoColor);
 void      rend_builder_img_clear_depth(RendBuilder*, RvkImage*, f32 depth);
 void      rend_builder_img_blit(RendBuilder*, RvkImage* src, RvkImage* dst);
 
+void rend_builder_phase_output(RendBuilder*); // Advance to the output phase.
+
 void rend_builder_pass_push(RendBuilder*, RvkPass*);
 void rend_builder_pass_flush(RendBuilder*);
 

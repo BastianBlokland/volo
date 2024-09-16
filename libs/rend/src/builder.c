@@ -169,6 +169,11 @@ void rend_builder_attach_release(RendBuilder* b, RvkImage* img) {
   rvk_attach_release(attachPool, img);
 }
 
+void rend_builder_phase_output(RendBuilder* b) {
+  diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
+  rvk_canvas_phase_output(b->canvas);
+}
+
 void rend_builder_pass_push(RendBuilder* b, RvkPass* pass) {
   diag_assert_msg(!b->pass, "RendBuilder: Pass already active");
   diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
