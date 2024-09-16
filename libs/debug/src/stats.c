@@ -441,12 +441,12 @@ stats_draw_cpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsC
   busyFrac -= st->rendLimiterFrac;
 
   const StatChartEntry entries[] = {
-      {math_max(busyFrac, 0), ui_color(0, 128, 0, 178)},
-      {st->rendWaitForGpuFrac, ui_color(255, 0, 0, 178)},
-      {st->rendPresAcqFrac, ui_color(128, 0, 128, 178)},
-      {st->rendPresEnqFrac, ui_color(0, 0, 255, 178)},
-      {st->rendPresWaitFrac, ui_color(0, 128, 128, 128)},
-      {st->rendLimiterFrac, ui_color(128, 128, 128, 128)},
+      {math_max(busyFrac, 0), ui_color(0, 128, 0, 210)},
+      {st->rendWaitForGpuFrac, ui_color(255, 0, 0, 64)},
+      {st->rendPresAcqFrac, ui_color(128, 0, 128, 64)},
+      {st->rendPresEnqFrac, ui_color(0, 0, 255, 64)},
+      {st->rendPresWaitFrac, ui_color(0, 128, 128, 64)},
+      {st->rendLimiterFrac, ui_color(128, 128, 128, 64)},
   };
   const String tooltip = fmt_write_scratch(
       "\a~red\a.bWait for gpu\ar:\a>12{>8}\n"
