@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_thread.h"
 
 #include "debug_internal.h"
@@ -207,6 +208,9 @@ void rvk_job_stats(const RvkJob* job, RvkJobStats* out) {
   out->cpuWaitDur = job->cpuWaitDur;
   out->gpuWaitDur = rvk_job_stopwatch_duration(job, job->gpuWaitBegin, job->gpuWaitEnd);
   out->gpuExecDur = rvk_job_stopwatch_duration(job, job->gpuTimeBegin, job->gpuTimeEnd);
+
+  // NOTE: Consider the wait-time as non-executing.
+  out->gpuExecDur = math_max(out->gpuExecDur - out->gpuWaitDur, 0);
 }
 
 void rvk_job_begin(RvkJob* job, const RvkJobPhase firstPhase) {
