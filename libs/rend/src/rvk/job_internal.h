@@ -25,6 +25,7 @@ typedef enum eRvkJobPhase {
 
 typedef struct {
   TimeDuration cpuWaitDur; // Time the cpu was blocked waiting for the gpu.
+  TimeDuration gpuWaitDur; // Time the gpu was blocked waiting for the target.
   TimeDuration gpuExecDur;
 } RvkJobStats;
 
