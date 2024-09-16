@@ -18,18 +18,19 @@ typedef enum {
 } RvkJobFlags;
 
 struct sRvkJob {
-  RvkDevice*       dev;
-  u32              jobId;
+  RvkDevice* dev;
+  u32        jobId;
+
+  RvkJobFlags flags : 16;
+  RvkJobPhase phase : 16;
+
   RvkUniformPool*  uniformPool;
   RvkStopwatch*    stopwatch;
   RvkStatRecorder* statrecorder;
 
-  RvkJobPhase phase;
-
   VkFence         fenceJobDone;
   VkCommandPool   vkCmdPool;
   VkCommandBuffer vkCmdBuffers[RvkJobPhase_Count];
-  RvkJobFlags     flags;
 
   RvkStopwatchRecord timeRecBegin, timeRecEnd;
   TimeDuration       waitForGpuDur;
@@ -89,44 +90,39 @@ static void rvk_commandbuffer_end(VkCommandBuffer vkCmdBuf) {
   rvk_call(vkEndCommandBuffer, vkCmdBuf);
 }
 
-static void rvk_job_submit(
-    RvkJob* job, VkSemaphore waitForTarget, const VkSemaphore signals[], u32 signalCount) {
+static void rvk_job_submit_phase(RvkJob* job) {
+  diag_assert(job->phase != RvkJobPhase_Output); // Output requires special handling.
 
-  VkSemaphore          waitSemaphores[2];
-  VkPipelineStageFlags waitStages[2];
-  u32                  waitCount = 0;
-
-  if (waitForTarget) {
-    /**
-     * At the moment we do a single submit for the whole frame and thus we need to wait with all
-     * output until the target image is available. Potentially this could be improved by splitting
-     * the rendering into multiple submits.
-     */
-    waitSemaphores[waitCount] = waitForTarget;
-    waitStages[waitCount] =
-        VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    ++waitCount;
-  }
-
-  const VkSubmitInfo submitInfos[] = {
-      {
-          .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-          .waitSemaphoreCount   = waitCount,
-          .pWaitSemaphores      = waitSemaphores,
-          .pWaitDstStageMask    = waitStages,
-          .commandBufferCount   = 1,
-          .pCommandBuffers      = &job->vkCmdBuffers[RvkJobPhase_Main],
-          .signalSemaphoreCount = signalCount,
-          .pSignalSemaphores    = signals,
-      },
+  const VkSubmitInfo submitInfo = {
+      .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+      .commandBufferCount = 1,
+      .pCommandBuffers    = &job->vkCmdBuffers[job->phase],
   };
   thread_mutex_lock(job->dev->queueSubmitMutex);
-  rvk_call(
-      vkQueueSubmit,
-      job->dev->vkGraphicsQueue,
-      array_elems(submitInfos),
-      submitInfos,
-      job->fenceJobDone);
+  rvk_call(vkQueueSubmit, job->dev->vkGraphicsQueue, 1, &submitInfo, null);
+  thread_mutex_unlock(job->dev->queueSubmitMutex);
+}
+
+static void rvk_job_submit(
+    RvkJob* job, VkSemaphore waitForTarget, const VkSemaphore signals[], const u32 signalCount) {
+
+  diag_assert(job->phase == RvkJobPhase_Output);
+
+  const VkPipelineStageFlags waitForTargetStageMask =
+      VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+  const VkSubmitInfo submitInfo = {
+      .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+      .waitSemaphoreCount   = 1,
+      .pWaitSemaphores      = &waitForTarget,
+      .pWaitDstStageMask    = &waitForTargetStageMask,
+      .commandBufferCount   = 1,
+      .pCommandBuffers      = &job->vkCmdBuffers[RvkJobPhase_Output],
+      .signalSemaphoreCount = signalCount,
+      .pSignalSemaphores    = signals,
+  };
+  thread_mutex_lock(job->dev->queueSubmitMutex);
+  rvk_call(vkQueueSubmit, job->dev->vkGraphicsQueue, 1, &submitInfo, job->fenceJobDone);
   thread_mutex_unlock(job->dev->queueSubmitMutex);
 }
 
@@ -148,7 +144,7 @@ RvkJob* rvk_job_create(RvkDevice* dev, const u32 jobId) {
 
   rvk_commandbuffer_create_batch(dev, vkCmdPool, job->vkCmdBuffers, RvkJobPhase_Count);
 
-  rvk_debug_name_fence(dev->debug, job->fenceJobDone, "jobDone");
+  rvk_debug_name_fence(dev->debug, job->fenceJobDone, "job_{}", fmt_int(jobId));
 
   return job;
 }
@@ -194,6 +190,7 @@ void rvk_job_begin(RvkJob* job) {
   diag_assert_msg(!(job->flags & RvkJob_Active), "job already active");
 
   job->flags |= RvkJob_Active;
+  job->phase         = RvkJobPhase_First;
   job->waitForGpuDur = 0;
 
   rvk_uniform_reset(job->uniformPool);
@@ -219,14 +216,14 @@ void rvk_job_begin(RvkJob* job) {
 
 RvkJobPhase rvk_job_phase(const RvkJob* job) { return job->phase; }
 
-void rvk_job_phase_advance(RvkJob* job, const RvkJobPhase phase) {
-  if (job->phase == phase) {
-    return;
-  }
-  diag_assert(phase > job->phase);
+void rvk_job_advance(RvkJob* job) {
+  diag_assert(job->phase != RvkJobPhase_Last);
 
-  // TODO: Submit past phases.
-  job->phase = phase;
+  rvk_debug_label_end(job->dev->debug, job->vkCmdBuffers[job->phase]);
+  rvk_commandbuffer_end(job->vkCmdBuffers[job->phase]);
+
+  rvk_job_submit_phase(job);
+  ++job->phase;
 }
 
 RvkUniformPool* rvk_job_uniform_pool(RvkJob* job) {
@@ -345,13 +342,12 @@ void rvk_job_barrier_full(RvkJob* job) {
 void rvk_job_end(
     RvkJob* job, VkSemaphore waitForTarget, const VkSemaphore signals[], u32 signalCount) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
+  diag_assert_msg(job->phase == RvkJobPhase_Last, "job not advanced to the last phase");
 
   job->timeRecEnd = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[RvkJobPhase_Last]);
 
-  for (RvkJobPhase phase = 0; phase != RvkJobPhase_Count; ++phase) {
-    rvk_debug_label_end(job->dev->debug, job->vkCmdBuffers[phase]);
-    rvk_commandbuffer_end(job->vkCmdBuffers[phase]);
-  }
+  rvk_debug_label_end(job->dev->debug, job->vkCmdBuffers[job->phase]);
+  rvk_commandbuffer_end(job->vkCmdBuffers[job->phase]);
 
   rvk_uniform_flush(job->uniformPool);
 

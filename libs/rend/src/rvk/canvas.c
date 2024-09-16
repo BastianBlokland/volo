@@ -169,6 +169,7 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
 
   canvas->flags |= RvkCanvasFlags_Active;
   rvk_job_begin(frame->job);
+  rvk_job_advance(frame->job);
 
   // Cleanup the last frame's passes.
   for (u32 passIdx = 0; passIdx != rvk_canvas_max_passes; ++passIdx) {

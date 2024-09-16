@@ -39,7 +39,7 @@ void    rvk_job_stats(const RvkJob*, RvkJobStats* out);
 void rvk_job_begin(RvkJob*);
 
 RvkJobPhase rvk_job_phase(const RvkJob*);
-void        rvk_job_phase_advance(RvkJob*, RvkJobPhase);
+void        rvk_job_advance(RvkJob*);
 
 RvkUniformPool*  rvk_job_uniform_pool(RvkJob*);
 RvkStopwatch*    rvk_job_stopwatch(RvkJob*);
