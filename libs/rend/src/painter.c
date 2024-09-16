@@ -1,14 +1,10 @@
-#include "core_alloc.h"
-#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
 #include "ecs_utils.h"
-#include "gap_window.h"
 #include "log_logger.h"
 #include "rend_register.h"
-#include "rend_settings.h"
 #include "scene_camera.h"
 #include "scene_time.h"
 #include "scene_transform.h"
@@ -23,9 +19,7 @@
 #include "resource_internal.h"
 #include "rvk/canvas_internal.h"
 #include "rvk/graphic_internal.h"
-#include "rvk/image_internal.h"
 #include "rvk/mesh_internal.h"
-#include "rvk/pass_internal.h"
 #include "rvk/repository_internal.h"
 #include "rvk/texture_internal.h"
 #include "view_internal.h"
@@ -753,8 +747,8 @@ static bool rend_canvas_paint_3d(
     const GeoMatrix* shadTrans  = rend_light_shadow_trans(light);
     const GeoMatrix* shadProj   = rend_light_shadow_proj(light);
     SceneTagFilter   shadFilter = {
-        .required = cam->filter.required | SceneTags_ShadowCaster,
-        .illegal  = cam->filter.illegal,
+          .required = cam->filter.required | SceneTags_ShadowCaster,
+          .illegal  = cam->filter.illegal,
     };
     if (!(set->flags & RendFlags_VfxShadows)) {
       shadFilter.illegal |= SceneTags_Vfx;
