@@ -90,19 +90,6 @@ static void rvk_commandbuffer_end(VkCommandBuffer vkCmdBuf) {
   rvk_call(vkEndCommandBuffer, vkCmdBuf);
 }
 
-static void rvk_job_submit_phase(RvkJob* job) {
-  diag_assert(job->phase != RvkJobPhase_Output); // Output requires special handling.
-
-  const VkSubmitInfo submitInfo = {
-      .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-      .commandBufferCount = 1,
-      .pCommandBuffers    = &job->vkCmdBuffers[job->phase],
-  };
-  thread_mutex_lock(job->dev->queueSubmitMutex);
-  rvk_call(vkQueueSubmit, job->dev->vkGraphicsQueue, 1, &submitInfo, null);
-  thread_mutex_unlock(job->dev->queueSubmitMutex);
-}
-
 static void rvk_job_submit(
     RvkJob* job, VkSemaphore waitForTarget, const VkSemaphore signals[], const u32 signalCount) {
 
@@ -123,6 +110,35 @@ static void rvk_job_submit(
   };
   thread_mutex_lock(job->dev->queueSubmitMutex);
   rvk_call(vkQueueSubmit, job->dev->vkGraphicsQueue, 1, &submitInfo, job->fenceJobDone);
+  thread_mutex_unlock(job->dev->queueSubmitMutex);
+}
+
+static void rvk_job_phase_begin(RvkJob* job) {
+  rvk_commandbuffer_begin(job->vkCmdBuffers[job->phase]);
+  rvk_debug_label_begin(
+      job->dev->debug,
+      job->vkCmdBuffers[job->phase],
+      geo_color_teal,
+      "job_{}_{}",
+      fmt_int(job->jobId),
+      fmt_text(g_rvkJobPhaseNames[job->phase]));
+}
+
+static void rvk_job_phase_end(RvkJob* job) {
+  rvk_debug_label_end(job->dev->debug, job->vkCmdBuffers[job->phase]);
+  rvk_commandbuffer_end(job->vkCmdBuffers[job->phase]);
+}
+
+static void rvk_job_phase_submit(RvkJob* job) {
+  diag_assert(job->phase != RvkJobPhase_Output); // Output cannot be submitted individually.
+
+  const VkSubmitInfo submitInfo = {
+      .sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+      .commandBufferCount = 1,
+      .pCommandBuffers    = &job->vkCmdBuffers[job->phase],
+  };
+  thread_mutex_lock(job->dev->queueSubmitMutex);
+  rvk_call(vkQueueSubmit, job->dev->vkGraphicsQueue, 1, &submitInfo, null);
   thread_mutex_unlock(job->dev->queueSubmitMutex);
 }
 
@@ -196,17 +212,7 @@ void rvk_job_begin(RvkJob* job) {
   rvk_uniform_reset(job->uniformPool);
   rvk_commandpool_reset(job->dev, job->vkCmdPool);
 
-  for (RvkJobPhase phase = 0; phase != RvkJobPhase_Count; ++phase) {
-    rvk_commandbuffer_begin(job->vkCmdBuffers[phase]);
-
-    rvk_debug_label_begin(
-        job->dev->debug,
-        job->vkCmdBuffers[phase],
-        geo_color_teal,
-        "job_{}_{}",
-        fmt_int(job->jobId),
-        fmt_text(g_rvkJobPhaseNames[phase]));
-  }
+  rvk_job_phase_begin(job);
 
   rvk_stopwatch_reset(job->stopwatch, job->vkCmdBuffers[RvkJobPhase_First]);
   rvk_statrecorder_reset(job->statrecorder, job->vkCmdBuffers[RvkJobPhase_First]);
@@ -219,11 +225,10 @@ RvkJobPhase rvk_job_phase(const RvkJob* job) { return job->phase; }
 void rvk_job_advance(RvkJob* job) {
   diag_assert(job->phase != RvkJobPhase_Last);
 
-  rvk_debug_label_end(job->dev->debug, job->vkCmdBuffers[job->phase]);
-  rvk_commandbuffer_end(job->vkCmdBuffers[job->phase]);
-
-  rvk_job_submit_phase(job);
+  rvk_job_phase_end(job);
+  rvk_job_phase_submit(job);
   ++job->phase;
+  rvk_job_phase_begin(job);
 }
 
 RvkUniformPool* rvk_job_uniform_pool(RvkJob* job) {
@@ -346,9 +351,7 @@ void rvk_job_end(
 
   job->timeRecEnd = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[RvkJobPhase_Last]);
 
-  rvk_debug_label_end(job->dev->debug, job->vkCmdBuffers[job->phase]);
-  rvk_commandbuffer_end(job->vkCmdBuffers[job->phase]);
-
+  rvk_job_phase_end(job);
   rvk_uniform_flush(job->uniformPool);
 
   rvk_call(vkResetFences, job->dev->vkDev, 1, &job->fenceJobDone);
