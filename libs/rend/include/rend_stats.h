@@ -28,7 +28,7 @@ ecs_comp_extern_public(RendStatsComp) {
   String gpuName;
 
   TimeDuration waitForGpuDur; // Time the cpu was blocked waiting for the gpu.
-  TimeDuration gpuExecDur;
+  TimeDuration gpuWaitDur, gpuExecDur;
   TimeDuration presentAcquireDur, presentEnqueueDur, presentWaitDur;
   TimeDuration limiterDur;
 

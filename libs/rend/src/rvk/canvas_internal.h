@@ -22,7 +22,7 @@ typedef struct sRvkSwapchainStats RvkSwapchainStats;
 
 typedef struct sRvkCanvasStats {
   TimeDuration  waitForGpuDur; // Time the cpu was blocked waiting for the gpu.
-  TimeDuration  gpuExecDur;
+  TimeDuration  gpuWaitDur, gpuExecDur;
   u32           passCount;
   RendStatsPass passes[rvk_canvas_max_passes];
 } RvkCanvasStats;
