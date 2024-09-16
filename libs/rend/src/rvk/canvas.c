@@ -121,7 +121,7 @@ void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
   RvkJobStats jobStats;
   rvk_job_stats(frame->job, &jobStats);
 
-  out->waitForGpuDur = jobStats.waitForGpuDur;
+  out->waitForGpuDur = jobStats.cpuWaitDur;
   out->gpuExecDur    = jobStats.gpuExecDur;
 
   out->passCount = 0;

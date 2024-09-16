@@ -33,7 +33,7 @@ struct sRvkJob {
   VkCommandBuffer vkCmdBuffers[RvkJobPhase_Count];
 
   RvkStopwatchRecord timeRecBegin, timeRecEnd;
-  TimeDuration       waitForGpuDur;
+  TimeDuration       cpuWaitDur;
 };
 
 static const String g_rvkJobPhaseNames[] = {
@@ -188,7 +188,7 @@ void rvk_job_wait_for_done(const RvkJob* job) {
 
   rvk_call(vkWaitForFences, job->dev->vkDev, 1, &job->fenceJobDone, true, u64_max);
 
-  ((RvkJob*)job)->waitForGpuDur += time_steady_duration(waitStart, time_steady_clock());
+  ((RvkJob*)job)->cpuWaitDur += time_steady_duration(waitStart, time_steady_clock());
 }
 
 void rvk_job_stats(const RvkJob* job, RvkJobStats* out) {
@@ -197,8 +197,8 @@ void rvk_job_stats(const RvkJob* job, RvkJobStats* out) {
   const TimeSteady timestampBegin = rvk_stopwatch_query(job->stopwatch, job->timeRecBegin);
   const TimeSteady timestampEnd   = rvk_stopwatch_query(job->stopwatch, job->timeRecEnd);
 
-  out->waitForGpuDur = job->waitForGpuDur;
-  out->gpuExecDur    = time_steady_duration(timestampBegin, timestampEnd);
+  out->cpuWaitDur = job->cpuWaitDur;
+  out->gpuExecDur = time_steady_duration(timestampBegin, timestampEnd);
 }
 
 void rvk_job_begin(RvkJob* job, const RvkJobPhase firstPhase) {
@@ -206,8 +206,8 @@ void rvk_job_begin(RvkJob* job, const RvkJobPhase firstPhase) {
   diag_assert_msg(!(job->flags & RvkJob_Active), "job already active");
 
   job->flags |= RvkJob_Active;
-  job->phase         = firstPhase;
-  job->waitForGpuDur = 0;
+  job->phase      = firstPhase;
+  job->cpuWaitDur = 0;
 
   rvk_uniform_reset(job->uniformPool);
   rvk_commandpool_reset(job->dev, job->vkCmdPool);
