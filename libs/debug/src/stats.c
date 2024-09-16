@@ -81,7 +81,7 @@ ecs_comp_define(DebugStatsComp) {
   f32 rendWaitForGpuFrac, rendPresAcqFrac, rendPresEnqFrac, rendPresWaitFrac, rendLimiterFrac;
 
   // Gpu frame fractions.
-  f32 gpuExecFrac;
+  f32 gpuWaitFrac, gpuExecFrac;
   f32 gpuPassFrac[rend_stats_max_passes];
 };
 
@@ -441,12 +441,12 @@ stats_draw_cpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsC
   busyFrac -= st->rendLimiterFrac;
 
   const StatChartEntry entries[] = {
-      {math_max(busyFrac, 0), ui_color(0, 128, 0, 178)},
-      {st->rendWaitForGpuFrac, ui_color(255, 0, 0, 178)},
-      {st->rendPresAcqFrac, ui_color(128, 0, 128, 178)},
-      {st->rendPresEnqFrac, ui_color(0, 0, 255, 178)},
-      {st->rendPresWaitFrac, ui_color(0, 128, 128, 128)},
-      {st->rendLimiterFrac, ui_color(128, 128, 128, 128)},
+      {math_max(busyFrac, 0), ui_color(0, 128, 0, 210)},
+      {st->rendWaitForGpuFrac, ui_color(255, 0, 0, 64)},
+      {st->rendPresAcqFrac, ui_color(128, 0, 128, 64)},
+      {st->rendPresEnqFrac, ui_color(0, 0, 255, 64)},
+      {st->rendPresWaitFrac, ui_color(0, 128, 128, 64)},
+      {st->rendLimiterFrac, ui_color(128, 128, 128, 64)},
   };
   const String tooltip = fmt_write_scratch(
       "\a~red\a.bWait for gpu\ar:\a>12{>8}\n"
@@ -477,7 +477,7 @@ stats_draw_gpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsC
 
   ui_layout_grow(c, UiAlign_MiddleRight, ui_vector(-g_statsLabelWidth, 0), UiBase_Absolute, Ui_X);
 
-  StatChartEntry entries[rend_stats_max_passes + 1 /* +1 for the 'other' entry */];
+  StatChartEntry entries[rend_stats_max_passes + 2 /* +2 for the 'other' and 'wait' entries */];
 
   Mem       tooltipBuffer = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
   DynString tooltip       = dynstring_create_over(tooltipBuffer);
@@ -502,16 +502,22 @@ stats_draw_gpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsC
         fmt_text(passName),
         fmt_duration(passDuration, .minDecDigits = 1, .maxDecDigits = 1));
   }
-  entries[rendSt->passCount] = (StatChartEntry){
+  entries[rendSt->passCount + 0] = (StatChartEntry){
       .frac  = otherFrac,
       .color = ui_color(128, 128, 128, 178),
   };
+  entries[rendSt->passCount + 1] = (StatChartEntry){
+      .frac  = st->gpuWaitFrac,
+      .color = ui_color(0, 128, 128, 64),
+  };
   fmt_write(
       &tooltip,
-      "\a.bTotal\ar:\a>13{>7}",
-      fmt_duration(rendSt->gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1));
+      "\a.bTotal\ar:\a>13{>7}\n"
+      "\a~teal\a.bWait\ar:\a>13{>7}",
+      fmt_duration(rendSt->gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
+      fmt_duration(rendSt->gpuWaitDur, .minDecDigits = 1, .maxDecDigits = 1));
 
-  stats_draw_chart(c, entries, rendSt->passCount + 1, dynstring_view(&tooltip));
+  stats_draw_chart(c, entries, rendSt->passCount + 2, dynstring_view(&tooltip));
 
   ui_style_pop(c);
   ui_layout_pop(c);
@@ -754,6 +760,7 @@ static void debug_stats_update(
   debug_avg_f32(&stats->rendPresEnqFrac, debug_frame_frac(frameDur, rendStats->presentEnqueueDur));
   debug_avg_f32(&stats->rendPresWaitFrac, debug_frame_frac(frameDur, rendStats->presentWaitDur));
   debug_avg_f32(&stats->rendLimiterFrac, debug_frame_frac(frameDur, rendStats->limiterDur));
+  debug_avg_f32(&stats->gpuWaitFrac, debug_frame_frac(frameDur, rendStats->gpuWaitDur));
   debug_avg_f32(&stats->gpuExecFrac, debug_frame_frac(frameDur, rendStats->gpuExecDur));
   for (u32 pass = 0; pass != rendStats->passCount; ++pass) {
     const f32 passFrac = debug_frame_frac(frameDur, rendStats->passes[pass].gpuExecDur);

@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_math.h"
 #include "core_thread.h"
 
 #include "debug_internal.h"
@@ -32,8 +33,9 @@ struct sRvkJob {
   VkCommandPool   vkCmdPool;
   VkCommandBuffer vkCmdBuffers[RvkJobPhase_Count];
 
-  RvkStopwatchRecord timeRecBegin, timeRecEnd;
-  TimeDuration       waitForGpuDur;
+  RvkStopwatchRecord gpuTimeBegin, gpuTimeEnd;
+  RvkStopwatchRecord gpuWaitBegin, gpuWaitEnd;
+  TimeDuration       cpuWaitDur;
 };
 
 static const String g_rvkJobPhaseNames[] = {
@@ -142,6 +144,15 @@ static void rvk_job_phase_submit(RvkJob* job) {
   thread_mutex_unlock(job->dev->queueSubmitMutex);
 }
 
+static TimeDuration rvk_job_stopwatch_duration(
+    const RvkJob* job, const RvkStopwatchRecord begin, const RvkStopwatchRecord end) {
+  diag_assert(rvk_job_is_done(job));
+
+  const TimeSteady timestampBegin = rvk_stopwatch_query(job->stopwatch, begin);
+  const TimeSteady timestampEnd   = rvk_stopwatch_query(job->stopwatch, end);
+  return time_steady_duration(timestampBegin, timestampEnd);
+}
+
 RvkJob* rvk_job_create(RvkDevice* dev, const u32 jobId) {
   RvkJob* job = alloc_alloc_t(g_allocHeap, RvkJob);
 
@@ -188,17 +199,18 @@ void rvk_job_wait_for_done(const RvkJob* job) {
 
   rvk_call(vkWaitForFences, job->dev->vkDev, 1, &job->fenceJobDone, true, u64_max);
 
-  ((RvkJob*)job)->waitForGpuDur += time_steady_duration(waitStart, time_steady_clock());
+  ((RvkJob*)job)->cpuWaitDur += time_steady_duration(waitStart, time_steady_clock());
 }
 
 void rvk_job_stats(const RvkJob* job, RvkJobStats* out) {
   diag_assert(rvk_job_is_done(job));
 
-  const TimeSteady timestampBegin = rvk_stopwatch_query(job->stopwatch, job->timeRecBegin);
-  const TimeSteady timestampEnd   = rvk_stopwatch_query(job->stopwatch, job->timeRecEnd);
+  out->cpuWaitDur = job->cpuWaitDur;
+  out->gpuWaitDur = rvk_job_stopwatch_duration(job, job->gpuWaitBegin, job->gpuWaitEnd);
+  out->gpuExecDur = rvk_job_stopwatch_duration(job, job->gpuTimeBegin, job->gpuTimeEnd);
 
-  out->waitForGpuDur = job->waitForGpuDur;
-  out->gpuExecDur    = time_steady_duration(timestampBegin, timestampEnd);
+  // NOTE: Consider the wait-time as non-executing.
+  out->gpuExecDur = math_max(out->gpuExecDur - out->gpuWaitDur, 0);
 }
 
 void rvk_job_begin(RvkJob* job, const RvkJobPhase firstPhase) {
@@ -206,8 +218,8 @@ void rvk_job_begin(RvkJob* job, const RvkJobPhase firstPhase) {
   diag_assert_msg(!(job->flags & RvkJob_Active), "job already active");
 
   job->flags |= RvkJob_Active;
-  job->phase         = firstPhase;
-  job->waitForGpuDur = 0;
+  job->phase      = firstPhase;
+  job->cpuWaitDur = 0;
 
   rvk_uniform_reset(job->uniformPool);
   rvk_commandpool_reset(job->dev, job->vkCmdPool);
@@ -217,7 +229,7 @@ void rvk_job_begin(RvkJob* job, const RvkJobPhase firstPhase) {
   rvk_stopwatch_reset(job->stopwatch, job->vkCmdBuffers[job->phase]);
   rvk_statrecorder_reset(job->statrecorder, job->vkCmdBuffers[job->phase]);
 
-  job->timeRecBegin = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[job->phase]);
+  job->gpuTimeBegin = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[job->phase]);
 }
 
 RvkJobPhase rvk_job_phase(const RvkJob* job) { return job->phase; }
@@ -225,10 +237,18 @@ RvkJobPhase rvk_job_phase(const RvkJob* job) { return job->phase; }
 void rvk_job_advance(RvkJob* job) {
   diag_assert(job->phase != RvkJobPhase_Last);
 
+  const RvkJobPhase phaseNext = job->phase + 1;
+  if (phaseNext == RvkJobPhase_Last) {
+    job->gpuWaitBegin = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[job->phase]);
+  }
+
   rvk_job_phase_end(job);
   rvk_job_phase_submit(job);
-  ++job->phase;
+
+  job->phase = phaseNext;
+
   rvk_job_phase_begin(job);
+  job->gpuWaitEnd = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[job->phase]);
 }
 
 RvkUniformPool* rvk_job_uniform_pool(RvkJob* job) {
@@ -349,7 +369,7 @@ void rvk_job_end(
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
   diag_assert_msg(job->phase == RvkJobPhase_Last, "job not advanced to the last phase");
 
-  job->timeRecEnd = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[job->phase]);
+  job->gpuTimeEnd = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[job->phase]);
 
   rvk_job_phase_end(job);
   rvk_uniform_flush(job->uniformPool);

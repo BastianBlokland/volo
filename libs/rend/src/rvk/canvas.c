@@ -121,7 +121,8 @@ void rvk_canvas_stats(const RvkCanvas* canvas, RvkCanvasStats* out) {
   RvkJobStats jobStats;
   rvk_job_stats(frame->job, &jobStats);
 
-  out->waitForGpuDur = jobStats.waitForGpuDur;
+  out->waitForGpuDur = jobStats.cpuWaitDur;
+  out->gpuWaitDur    = jobStats.gpuWaitDur;
   out->gpuExecDur    = jobStats.gpuExecDur;
 
   out->passCount = 0;
@@ -156,14 +157,9 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
   RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
   diag_assert(rvk_job_is_done(frame->job));
 
-  trace_begin("rend_present_acquire", TraceColor_White);
-  {
-    const VkSemaphore availableSema = frame->swapchainAvailable;
-    frame->swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, settings, availableSema, size);
-  }
-  trace_end();
+  frame->swapchainIdx = sentinel_u32;
 
-  if (sentinel_check(frame->swapchainIdx)) {
+  if (!rvk_swapchain_prepare(canvas->swapchain, settings, size)) {
     return false;
   }
 
@@ -224,6 +220,10 @@ void rvk_canvas_phase_output(RvkCanvas* canvas) {
     return;
   }
   rvk_job_advance(frame->job); // Submit the previous phase.
+
+  trace_begin("rend_swapchain_acquire", TraceColor_White);
+  frame->swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, frame->swapchainAvailable);
+  trace_end();
 }
 
 void rvk_canvas_swapchain_stats(const RvkCanvas* canvas, RvkSwapchainStats* out) {

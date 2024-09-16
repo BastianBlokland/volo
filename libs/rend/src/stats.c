@@ -113,6 +113,7 @@ ecs_system_define(RendUpdateCamStatsSys) {
     stats->swapchainPresentId  = swapchainStats.presentId;
     stats->swapchainImageCount = swapchainStats.imageCount;
     stats->waitForGpuDur       = canvasStats.waitForGpuDur;
+    stats->gpuWaitDur          = canvasStats.gpuWaitDur;
     stats->gpuExecDur          = canvasStats.gpuExecDur;
     stats->presentAcquireDur   = swapchainStats.acquireDur;
     stats->presentEnqueueDur   = swapchainStats.presentEnqueueDur;

@@ -29,11 +29,16 @@ void          rvk_swapchain_invalidate(RvkSwapchain*);
 RvkImage*     rvk_swapchain_image(RvkSwapchain*, RvkSwapchainIdx);
 
 /**
+ * Prepare the swapchain to be acquired.
+ * Returns true if an image can be acquired, returns false if not.
+ */
+bool rvk_swapchain_prepare(RvkSwapchain*, const RendSettingsComp*, RvkSize);
+
+/**
  * Acquire a new image to render into.
  * The provided semaphore will be signaled when the image is available.
- * NOTE: Returns sentinel_u32 on failure (for example because the window was minimized).
  */
-RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain*, const RendSettingsComp*, VkSemaphore, RvkSize);
+RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain*, VkSemaphore);
 
 /**
  * Enqueue an image to be presented to the surface.
