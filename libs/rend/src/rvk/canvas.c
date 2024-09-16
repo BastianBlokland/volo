@@ -156,13 +156,11 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
   RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
   diag_assert(rvk_job_is_done(frame->job));
 
+  frame->swapchainIdx = sentinel_u32;
+
   if (!rvk_swapchain_prepare(canvas->swapchain, settings, size)) {
     return false;
   }
-
-  trace_begin("rend_present_acquire", TraceColor_White);
-  frame->swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, frame->swapchainAvailable);
-  trace_end();
 
   canvas->flags |= RvkCanvasFlags_Active;
   rvk_job_begin(frame->job, RvkJobPhase_First);
@@ -221,6 +219,10 @@ void rvk_canvas_phase_output(RvkCanvas* canvas) {
     return;
   }
   rvk_job_advance(frame->job); // Submit the previous phase.
+
+  trace_begin("rend_swapchain_acquire", TraceColor_White);
+  frame->swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, frame->swapchainAvailable);
+  trace_end();
 }
 
 void rvk_canvas_swapchain_stats(const RvkCanvas* canvas, RvkSwapchainStats* out) {
