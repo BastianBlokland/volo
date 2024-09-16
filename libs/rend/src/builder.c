@@ -138,6 +138,7 @@ RvkImage* rend_builder_attach_acquire_copy(RendBuilder* b, RvkImage* src) {
 
   RvkImage* res = rend_builder_attach_acquire_copy_uninit(b, src);
   RvkJob*   job = rvk_canvas_job(b->canvas);
+
   rvk_job_img_copy(job, src, res);
   return res;
 }
@@ -166,6 +167,11 @@ void rend_builder_attach_release(RendBuilder* b, RvkImage* img) {
 
   RvkAttachPool* attachPool = rvk_canvas_attach_pool(b->canvas);
   rvk_attach_release(attachPool, img);
+}
+
+void rend_builder_phase_output(RendBuilder* b) {
+  diag_assert_msg(b->canvas, "RendBuilder: Canvas not active");
+  rvk_canvas_phase_output(b->canvas);
 }
 
 void rend_builder_pass_push(RendBuilder* b, RvkPass* pass) {

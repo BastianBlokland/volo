@@ -12,6 +12,7 @@
 #define rvk_pass_draw_image_max 5
 
 // Internal forward declarations:
+typedef enum eRvkJobPhase     RvkJobPhase;
 typedef enum eRvkStat         RvkStat;
 typedef struct sRvkAttachSpec RvkAttachSpec;
 typedef struct sRvkDescMeta   RvkDescMeta;

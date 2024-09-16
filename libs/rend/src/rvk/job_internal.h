@@ -14,6 +14,15 @@ typedef struct sRvkStatRecorder RvkStatRecorder;
 typedef struct sRvkStopwatch    RvkStopwatch;
 typedef struct sRvkUniformPool  RvkUniformPool;
 
+typedef enum eRvkJobPhase {
+  RvkJobPhase_Main,
+  RvkJobPhase_Output, // Work that can only be done when the output is available.
+
+  RvkJobPhase_Count,
+  RvkJobPhase_First = 0,
+  RvkJobPhase_Last  = RvkJobPhase_Count - 1,
+} RvkJobPhase;
+
 typedef struct {
   TimeDuration waitForGpuDur; // Time the cpu was blocked waiting for the gpu.
   TimeDuration gpuExecDur;
@@ -27,7 +36,10 @@ bool    rvk_job_is_done(const RvkJob*);
 void    rvk_job_wait_for_done(const RvkJob*);
 void    rvk_job_stats(const RvkJob*, RvkJobStats* out);
 
-void rvk_job_begin(RvkJob*);
+void rvk_job_begin(RvkJob*, RvkJobPhase firstPhase);
+
+RvkJobPhase rvk_job_phase(const RvkJob*);
+void        rvk_job_advance(RvkJob*);
 
 RvkUniformPool*  rvk_job_uniform_pool(RvkJob*);
 RvkStopwatch*    rvk_job_stopwatch(RvkJob*);
@@ -49,9 +61,4 @@ void rvk_job_img_transition(RvkJob*, RvkImage* img, RvkImagePhase phase);
  */
 void rvk_job_barrier_full(RvkJob*);
 
-void rvk_job_end(
-    RvkJob*,
-    VkSemaphore        waitForDeps,
-    VkSemaphore        waitForTarget,
-    const VkSemaphore* signals,
-    u32                signalCount);
+void rvk_job_end(RvkJob*, VkSemaphore waitForTarget, const VkSemaphore signals[], u32 signalCount);
