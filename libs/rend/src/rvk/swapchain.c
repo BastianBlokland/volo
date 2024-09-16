@@ -312,15 +312,13 @@ RvkImage* rvk_swapchain_image(RvkSwapchain* swapchain, const RvkSwapchainIdx idx
   return &swapchain->images[idx];
 }
 
-RvkSwapchainIdx rvk_swapchain_acquire(
-    RvkSwapchain*           swapchain,
-    const RendSettingsComp* settings,
-    VkSemaphore             available,
-    const RvkSize           size) {
+bool rvk_swapchain_prepare(
+    RvkSwapchain* swapchain, const RendSettingsComp* settings, const RvkSize size) {
 
   const bool outOfDate      = (swapchain->flags & RvkSwapchainFlags_OutOfDate) != 0;
   const bool changedSize    = !rvk_size_equal(size, swapchain->size);
   const bool changedPresent = swapchain->presentModeSetting != settings->presentMode;
+
   if (!swapchain->vkSwapchain || outOfDate || changedSize || changedPresent) {
     /**
      * Synchronize swapchain (re)creation by waiting for all rendering to be done. This a very
@@ -331,14 +329,18 @@ RvkSwapchainIdx rvk_swapchain_acquire(
     rvk_device_wait_idle(swapchain->dev);
 
     if (!rvk_swapchain_init(swapchain, settings, size)) {
-      return sentinel_u32;
+      return false;
     }
   }
 
   if (!swapchain->size.width || !swapchain->size.height) {
-    return sentinel_u32;
+    return false;
   }
 
+  return true;
+}
+
+RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain* swapchain, VkSemaphore available) {
   const TimeSteady acquireStart = time_steady_clock();
   u32              index;
   const VkResult   result = vkAcquireNextImageKHR(

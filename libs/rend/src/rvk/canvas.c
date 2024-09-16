@@ -156,16 +156,13 @@ bool rvk_canvas_begin(RvkCanvas* canvas, const RendSettingsComp* settings, const
   RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
   diag_assert(rvk_job_is_done(frame->job));
 
-  trace_begin("rend_present_acquire", TraceColor_White);
-  {
-    const VkSemaphore availableSema = frame->swapchainAvailable;
-    frame->swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, settings, availableSema, size);
-  }
-  trace_end();
-
-  if (sentinel_check(frame->swapchainIdx)) {
+  if (!rvk_swapchain_prepare(canvas->swapchain, settings, size)) {
     return false;
   }
+
+  trace_begin("rend_present_acquire", TraceColor_White);
+  frame->swapchainIdx = rvk_swapchain_acquire(canvas->swapchain, frame->swapchainAvailable);
+  trace_end();
 
   canvas->flags |= RvkCanvasFlags_Active;
   rvk_job_begin(frame->job, RvkJobPhase_First);
