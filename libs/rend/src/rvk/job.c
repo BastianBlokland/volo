@@ -24,6 +24,8 @@ struct sRvkJob {
   RvkStopwatch*    stopwatch;
   RvkStatRecorder* statrecorder;
 
+  RvkJobPhase phase;
+
   VkFence         fenceJobDone;
   VkCommandPool   vkCmdPool;
   VkCommandBuffer vkCmdBuffers[RvkJobPhase_Count];
@@ -215,6 +217,18 @@ void rvk_job_begin(RvkJob* job) {
   job->timeRecBegin = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[RvkJobPhase_First]);
 }
 
+RvkJobPhase rvk_job_phase(const RvkJob* job) { return job->phase; }
+
+void rvk_job_phase_advance(RvkJob* job, const RvkJobPhase phase) {
+  if (job->phase == phase) {
+    return;
+  }
+  diag_assert(phase > job->phase);
+
+  // TODO: Submit past phases.
+  job->phase = phase;
+}
+
 RvkUniformPool* rvk_job_uniform_pool(RvkJob* job) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
   return job->uniformPool;
@@ -230,9 +244,9 @@ RvkStatRecorder* rvk_job_statrecorder(RvkJob* job) {
   return job->statrecorder;
 }
 
-VkCommandBuffer rvk_job_cmdbuffer(RvkJob* job, const RvkJobPhase phase) {
+VkCommandBuffer rvk_job_cmdbuffer(RvkJob* job) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
-  return job->vkCmdBuffers[phase];
+  return job->vkCmdBuffers[job->phase];
 }
 
 Mem rvk_job_uniform_map(RvkJob* job, const RvkUniformHandle handle) {
@@ -248,11 +262,10 @@ rvk_job_uniform_push_next(RvkJob* job, const RvkUniformHandle head, const usize 
   return rvk_uniform_push_next(job->uniformPool, head, size);
 }
 
-void rvk_job_img_clear_color(
-    RvkJob* job, const RvkJobPhase phase, RvkImage* img, const GeoColor color) {
+void rvk_job_img_clear_color(RvkJob* job, RvkImage* img, const GeoColor color) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 
-  VkCommandBuffer cmdBuf = job->vkCmdBuffers[phase];
+  VkCommandBuffer cmdBuf = job->vkCmdBuffers[job->phase];
   rvk_debug_label_begin(job->dev->debug, cmdBuf, geo_color_purple, "clear-color");
 
   rvk_image_transition(img, RvkImagePhase_TransferDest, cmdBuf);
@@ -261,10 +274,10 @@ void rvk_job_img_clear_color(
   rvk_debug_label_end(job->dev->debug, cmdBuf);
 }
 
-void rvk_job_img_clear_depth(RvkJob* job, const RvkJobPhase phase, RvkImage* img, const f32 depth) {
+void rvk_job_img_clear_depth(RvkJob* job, RvkImage* img, const f32 depth) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 
-  VkCommandBuffer cmdBuf = job->vkCmdBuffers[phase];
+  VkCommandBuffer cmdBuf = job->vkCmdBuffers[job->phase];
   rvk_debug_label_begin(job->dev->debug, cmdBuf, geo_color_purple, "clear-depth");
 
   rvk_image_transition(img, RvkImagePhase_TransferDest, cmdBuf);
@@ -273,10 +286,10 @@ void rvk_job_img_clear_depth(RvkJob* job, const RvkJobPhase phase, RvkImage* img
   rvk_debug_label_end(job->dev->debug, cmdBuf);
 }
 
-void rvk_job_img_copy(RvkJob* job, const RvkJobPhase phase, RvkImage* src, RvkImage* dst) {
+void rvk_job_img_copy(RvkJob* job, RvkImage* src, RvkImage* dst) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 
-  VkCommandBuffer cmdBuf = job->vkCmdBuffers[phase];
+  VkCommandBuffer cmdBuf = job->vkCmdBuffers[job->phase];
   rvk_debug_label_begin(job->dev->debug, cmdBuf, geo_color_purple, "copy");
 
   const RvkImageTransition transitions[] = {
@@ -290,10 +303,10 @@ void rvk_job_img_copy(RvkJob* job, const RvkJobPhase phase, RvkImage* src, RvkIm
   rvk_debug_label_end(job->dev->debug, cmdBuf);
 }
 
-void rvk_job_img_blit(RvkJob* job, const RvkJobPhase phase, RvkImage* src, RvkImage* dst) {
+void rvk_job_img_blit(RvkJob* job, RvkImage* src, RvkImage* dst) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 
-  VkCommandBuffer cmdBuf = job->vkCmdBuffers[phase];
+  VkCommandBuffer cmdBuf = job->vkCmdBuffers[job->phase];
   rvk_debug_label_begin(job->dev->debug, cmdBuf, geo_color_purple, "blit");
 
   const RvkImageTransition transitions[] = {
@@ -307,18 +320,17 @@ void rvk_job_img_blit(RvkJob* job, const RvkJobPhase phase, RvkImage* src, RvkIm
   rvk_debug_label_end(job->dev->debug, cmdBuf);
 }
 
-void rvk_job_img_transition(
-    RvkJob* job, const RvkJobPhase phase, RvkImage* img, const RvkImagePhase targetPhase) {
+void rvk_job_img_transition(RvkJob* job, RvkImage* img, const RvkImagePhase targetPhase) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 
-  VkCommandBuffer cmdBuf = job->vkCmdBuffers[phase];
+  VkCommandBuffer cmdBuf = job->vkCmdBuffers[job->phase];
   rvk_image_transition(img, targetPhase, cmdBuf);
 }
 
-void rvk_job_barrier_full(RvkJob* job, const RvkJobPhase phase) {
+void rvk_job_barrier_full(RvkJob* job) {
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
 
-  VkCommandBuffer cmdBuf = job->vkCmdBuffers[phase];
+  VkCommandBuffer cmdBuf = job->vkCmdBuffers[job->phase];
 
   const VkMemoryBarrier barrier = {
       .sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER,

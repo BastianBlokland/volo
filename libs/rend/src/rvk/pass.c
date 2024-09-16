@@ -569,11 +569,10 @@ static void rvk_pass_frame_destroy(RvkPass* pass, RvkPassFrame* frame) {
   dynarray_destroy(&frame->descSetsVolatile);
 }
 
-static RvkPassInvoc*
-rvk_pass_invoc_begin(RvkPass* pass, RvkPassFrame* frame, const RvkJobPhase phase) {
+static RvkPassInvoc* rvk_pass_invoc_begin(RvkPass* pass, RvkPassFrame* frame) {
   pass->flags |= RvkPassFlags_Active;
   RvkPassInvoc* res = dynarray_push_t(&frame->invocations, RvkPassInvoc);
-  *res              = (RvkPassInvoc){.vkCmdBuf = rvk_job_cmdbuffer(frame->job, phase)};
+  *res              = (RvkPassInvoc){.vkCmdBuf = rvk_job_cmdbuffer(frame->job)};
   return res;
 }
 
@@ -801,12 +800,12 @@ u32 rvk_pass_batch_size(RvkPass* pass, const u32 instanceDataSize) {
   return math_min(uniformMaxInstances, pass_instance_count_max);
 }
 
-void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup, const RvkJobPhase jobPhase) {
+void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
   diag_assert_msg(!rvk_pass_invoc_get_active(pass), "Pass invocation already active");
 
   RvkPassFrame* frame = rvk_pass_frame_require_active(pass);
 
-  RvkPassInvoc* invoc  = rvk_pass_invoc_begin(pass, frame, jobPhase);
+  RvkPassInvoc* invoc  = rvk_pass_invoc_begin(pass, frame);
   invoc->size          = rvk_pass_size(pass, setup);
   invoc->vkFrameBuffer = rvk_framebuffer_create(pass, setup, invoc->size);
 

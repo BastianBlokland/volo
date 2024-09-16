@@ -38,24 +38,27 @@ void    rvk_job_stats(const RvkJob*, RvkJobStats* out);
 
 void rvk_job_begin(RvkJob*);
 
+RvkJobPhase rvk_job_phase(const RvkJob*);
+void        rvk_job_phase_advance(RvkJob*, RvkJobPhase);
+
 RvkUniformPool*  rvk_job_uniform_pool(RvkJob*);
 RvkStopwatch*    rvk_job_stopwatch(RvkJob*);
 RvkStatRecorder* rvk_job_statrecorder(RvkJob*);
-VkCommandBuffer  rvk_job_cmdbuffer(RvkJob*, RvkJobPhase);
+VkCommandBuffer  rvk_job_cmdbuffer(RvkJob*);
 
 Mem              rvk_job_uniform_map(RvkJob*, RvkUniformHandle);
 RvkUniformHandle rvk_job_uniform_push(RvkJob*, usize size);
 RvkUniformHandle rvk_job_uniform_push_next(RvkJob*, RvkUniformHandle head, usize size);
 
-void rvk_job_img_clear_color(RvkJob*, RvkJobPhase, RvkImage*, GeoColor);
-void rvk_job_img_clear_depth(RvkJob*, RvkJobPhase, RvkImage*, f32 depth);
-void rvk_job_img_copy(RvkJob*, RvkJobPhase, RvkImage* src, RvkImage* dst);
-void rvk_job_img_blit(RvkJob*, RvkJobPhase, RvkImage* src, RvkImage* dst);
-void rvk_job_img_transition(RvkJob*, RvkJobPhase, RvkImage* img, RvkImagePhase phase);
+void rvk_job_img_clear_color(RvkJob*, RvkImage*, GeoColor);
+void rvk_job_img_clear_depth(RvkJob*, RvkImage*, f32 depth);
+void rvk_job_img_copy(RvkJob*, RvkImage* src, RvkImage* dst);
+void rvk_job_img_blit(RvkJob*, RvkImage* src, RvkImage* dst);
+void rvk_job_img_transition(RvkJob*, RvkImage* img, RvkImagePhase phase);
 
 /**
  * Full barrier; will flush and invalidate all caches and stall everything. Only for debugging.
  */
-void rvk_job_barrier_full(RvkJob*, RvkJobPhase);
+void rvk_job_barrier_full(RvkJob*);
 
 void rvk_job_end(RvkJob*, VkSemaphore waitForTarget, const VkSemaphore signals[], u32 signalCount);
