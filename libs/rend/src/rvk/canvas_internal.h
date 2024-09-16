@@ -11,6 +11,7 @@
 typedef union uGeoColor GeoColor;
 
 // Internal forward declarations:
+typedef enum eRvkJobPhase         RvkJobPhase;
 typedef struct sRvkAttachPool     RvkAttachPool;
 typedef struct sRvkDevice         RvkDevice;
 typedef struct sRvkImage          RvkImage;
@@ -47,6 +48,8 @@ void rvk_canvas_stats(const RvkCanvas*, RvkCanvasStats* out);
 bool rvk_canvas_begin(RvkCanvas*, const RendSettingsComp*, RvkSize);
 
 void rvk_canvas_pass_push(RvkCanvas*, RvkPass* pass);
+
+RvkJobPhase rvk_canvas_phase(const RvkCanvas*);
 
 void      rvk_canvas_swapchain_stats(const RvkCanvas*, RvkSwapchainStats* out);
 RvkSize   rvk_canvas_swapchain_size(const RvkCanvas*);

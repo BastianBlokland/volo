@@ -209,6 +209,13 @@ void rvk_canvas_pass_push(RvkCanvas* canvas, RvkPass* pass) {
   diag_crash_msg("Canvas pass limit exceeded");
 }
 
+RvkJobPhase rvk_canvas_phase(const RvkCanvas* canvas) {
+  diag_assert_msg(canvas->flags & RvkCanvasFlags_Active, "Canvas not active");
+
+  const RvkCanvasFrame* frame = &canvas->frames[canvas->jobIdx];
+  return rvk_job_phase(frame->job);
+}
+
 void rvk_canvas_swapchain_stats(const RvkCanvas* canvas, RvkSwapchainStats* out) {
   rvk_swapchain_stats(canvas->swapchain, out);
 }
