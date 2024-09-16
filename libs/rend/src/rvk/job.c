@@ -34,7 +34,8 @@ struct sRvkJob {
 };
 
 static const String g_rvkJobPhaseNames[] = {
-    [RvkJobPhase_Main] = string_static("main"),
+    [RvkJobPhase_Main]   = string_static("main"),
+    [RvkJobPhase_Output] = string_static("output"),
 };
 ASSERT(array_elems(g_rvkJobPhaseNames) == RvkJobPhase_Count, "Unexpected phase name count");
 

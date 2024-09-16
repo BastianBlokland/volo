@@ -16,10 +16,10 @@ typedef struct sRvkUniformPool  RvkUniformPool;
 
 typedef enum eRvkJobPhase {
   RvkJobPhase_Main,
+  RvkJobPhase_Output, // Work that can only be done when the output is available.
 
   RvkJobPhase_Count,
-  RvkJobPhase_First = 0,
-  RvkJobPhase_Last  = RvkJobPhase_Count - 1,
+  RvkJobPhase_Last = RvkJobPhase_Count - 1,
 } RvkJobPhase;
 
 typedef struct {
