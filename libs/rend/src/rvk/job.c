@@ -104,7 +104,7 @@ static void rvk_job_submit(
       .pWaitSemaphores      = &waitForTarget,
       .pWaitDstStageMask    = &waitForTargetStageMask,
       .commandBufferCount   = 1,
-      .pCommandBuffers      = &job->vkCmdBuffers[RvkJobPhase_Output],
+      .pCommandBuffers      = &job->vkCmdBuffers[job->phase],
       .signalSemaphoreCount = signalCount,
       .pSignalSemaphores    = signals,
   };
@@ -201,12 +201,12 @@ void rvk_job_stats(const RvkJob* job, RvkJobStats* out) {
   out->gpuExecDur    = time_steady_duration(timestampBegin, timestampEnd);
 }
 
-void rvk_job_begin(RvkJob* job) {
+void rvk_job_begin(RvkJob* job, const RvkJobPhase firstPhase) {
   diag_assert(rvk_job_is_done(job));
   diag_assert_msg(!(job->flags & RvkJob_Active), "job already active");
 
   job->flags |= RvkJob_Active;
-  job->phase         = RvkJobPhase_First;
+  job->phase         = firstPhase;
   job->waitForGpuDur = 0;
 
   rvk_uniform_reset(job->uniformPool);
@@ -214,10 +214,10 @@ void rvk_job_begin(RvkJob* job) {
 
   rvk_job_phase_begin(job);
 
-  rvk_stopwatch_reset(job->stopwatch, job->vkCmdBuffers[RvkJobPhase_First]);
-  rvk_statrecorder_reset(job->statrecorder, job->vkCmdBuffers[RvkJobPhase_First]);
+  rvk_stopwatch_reset(job->stopwatch, job->vkCmdBuffers[job->phase]);
+  rvk_statrecorder_reset(job->statrecorder, job->vkCmdBuffers[job->phase]);
 
-  job->timeRecBegin = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[RvkJobPhase_First]);
+  job->timeRecBegin = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[job->phase]);
 }
 
 RvkJobPhase rvk_job_phase(const RvkJob* job) { return job->phase; }
@@ -349,7 +349,7 @@ void rvk_job_end(
   diag_assert_msg(job->flags & RvkJob_Active, "job not active");
   diag_assert_msg(job->phase == RvkJobPhase_Last, "job not advanced to the last phase");
 
-  job->timeRecEnd = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[RvkJobPhase_Last]);
+  job->timeRecEnd = rvk_stopwatch_mark(job->stopwatch, job->vkCmdBuffers[job->phase]);
 
   rvk_job_phase_end(job);
   rvk_uniform_flush(job->uniformPool);

@@ -36,7 +36,7 @@ bool    rvk_job_is_done(const RvkJob*);
 void    rvk_job_wait_for_done(const RvkJob*);
 void    rvk_job_stats(const RvkJob*, RvkJobStats* out);
 
-void rvk_job_begin(RvkJob*);
+void rvk_job_begin(RvkJob*, RvkJobPhase firstPhase);
 
 RvkJobPhase rvk_job_phase(const RvkJob*);
 void        rvk_job_advance(RvkJob*);
