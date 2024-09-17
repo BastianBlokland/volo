@@ -334,20 +334,22 @@ void rend_object_draw(
     return;
   }
 
-  RendObjectSortKey* sortKeys;
-  BitSet             filter;
+  RendObjectSortKey* sortKeys = null;
+  BitSet             filter   = mem_empty;
 
   if (obj->flags & RendObjectFlags_Sorted) {
     const usize requiredSortMem = obj->instCount * sizeof(RendObjectSortKey);
-    if (UNLIKELY(obj->instCount > u16_max || requiredSortMem > alloc_max_size(g_allocScratch))) {
+    if (LIKELY(obj->instCount <= u16_max && requiredSortMem <= alloc_max_size(g_allocScratch))) {
+      sortKeys = alloc_array_t(g_allocScratch, RendObjectSortKey, obj->instCount);
+    } else {
       log_e(
           "Sorted object instance count exceeds maximum",
           log_param("graphic", ecs_entity_fmt(obj->resources[RendObjectRes_Graphic])),
           log_param("count", fmt_int(obj->instCount)));
-      return;
     }
-    sortKeys = alloc_array_t(g_allocScratch, RendObjectSortKey, obj->instCount);
-  } else {
+  }
+
+  if (!sortKeys) {
     filter = alloc_alloc(g_allocScratch, bits_to_bytes(obj->instCount) + 1, 1);
     bitset_clear_all(filter);
   }
@@ -360,7 +362,7 @@ void rend_object_draw(
       continue;
     }
     const u32 outputIndex = filteredInstCount++;
-    if (obj->flags & RendObjectFlags_Sorted) {
+    if (sortKeys) {
       sortKeys[outputIndex] = (RendObjectSortKey){
           .instIndex = (u16)i,
           .viewDist  = rend_view_sort_dist(view, instAabb),
@@ -371,7 +373,7 @@ void rend_object_draw(
   }
 
   if (filteredInstCount) {
-    if (obj->flags & RendObjectFlags_Sorted) {
+    if (sortKeys) {
       rend_instances_push_sorted(obj, b, sortKeys, filteredInstCount);
     } else {
       rend_instances_push_filtered(obj, b, filter, filteredInstCount);
