@@ -122,11 +122,7 @@ ecs_view_define(AssetView) {
   ecs_access_maybe_read(AssetScriptComp); // Maybe-read because it could have been unloaded since.
 }
 
-ecs_view_define(WindowView) {
-  ecs_access_with(GapWindowComp);
-  ecs_access_read(SceneCameraComp);
-  ecs_access_maybe_read(SceneTransformComp);
-}
+ecs_view_define(WindowView) { ecs_access_with(GapWindowComp); }
 
 static void info_panel_tab_script_draw(
     EcsWorld*             world,
@@ -823,6 +819,12 @@ ecs_view_define(RayUpdateGlobalView) {
   ecs_access_write(SceneScriptEnvComp);
 }
 
+ecs_view_define(RayUpdateWindowView) {
+  ecs_access_with(GapWindowComp);
+  ecs_access_read(SceneCameraComp);
+  ecs_access_maybe_read(SceneTransformComp);
+}
+
 ecs_system_define(DebugScriptUpdateRaySys) {
   EcsView*     globalView = ecs_world_view_t(world, RayUpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -832,7 +834,7 @@ ecs_system_define(DebugScriptUpdateRaySys) {
   SceneScriptEnvComp*     scriptEnv = ecs_view_write_t(globalItr, SceneScriptEnvComp);
   const InputManagerComp* input     = ecs_view_read_t(globalItr, InputManagerComp);
 
-  EcsView*     camView = ecs_world_view_t(world, WindowView);
+  EcsView*     camView = ecs_world_view_t(world, RayUpdateWindowView);
   EcsIterator* camItr  = ecs_view_maybe_at(camView, input_active_window(input));
   if (!camItr) {
     return; // No active window.
@@ -865,7 +867,9 @@ ecs_module_init(debug_script_module) {
       ecs_view_id(WindowView));
 
   ecs_register_system(
-      DebugScriptUpdateRaySys, ecs_register_view(RayUpdateGlobalView), ecs_view_id(WindowView));
+      DebugScriptUpdateRaySys,
+      ecs_register_view(RayUpdateGlobalView),
+      ecs_register_view(RayUpdateWindowView));
 
   ecs_order(DebugScriptUpdateRaySys, SceneOrder_ScriptUpdate - 1);
 }

@@ -410,8 +410,8 @@ static void trace_data_events_draw(
     const f64      fracWidth = fracRightClamped - fracLeftClamped;
     const UiVector size      = {.width = (f32)fracWidth, .height = eventHeight};
     const UiVector pos       = {
-        .x = (f32)fracLeftClamped,
-        .y = 1.0f - size.height * (evt->stackDepth + 1),
+              .x = (f32)fracLeftClamped,
+              .y = 1.0f - size.height * (evt->stackDepth + 1),
     };
     ui_layout_set(c, ui_rect(pos, size), UiBase_Container);
 
@@ -571,6 +571,8 @@ ecs_system_define(DebugTracePanelQuerySys) {
 }
 
 ecs_view_define(PanelDrawView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // DebugTracePanelComp's are exclusively managed here.
+
   ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugTracePanelComp);
   ecs_access_write(UiCanvasComp);
