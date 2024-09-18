@@ -1252,7 +1252,7 @@ void gap_pal_window_cursor_pos_set(
 
   const GapVector screenPos = pal_client_to_screen(windowId, win32Pos);
   if (SetCursorPos(screenPos.x, screenPos.y)) {
-    pal_window((GapPal*)pal, windowId)->params[GapParam_CursorPos] = position;
+    window->params[GapParam_CursorPos] = position;
   }
 }
 
