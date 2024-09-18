@@ -1251,10 +1251,9 @@ void gap_pal_window_cursor_pos_set(
   };
 
   const GapVector screenPos = pal_client_to_screen(windowId, win32Pos);
-  if (!SetCursorPos(screenPos.x, screenPos.y)) {
-    pal_crash_with_win32_err(string_lit("SetCursorPos"));
+  if (SetCursorPos(screenPos.x, screenPos.y)) {
+    window->params[GapParam_CursorPos] = position;
   }
-  pal_window((GapPal*)pal, windowId)->params[GapParam_CursorPos] = position;
 }
 
 void gap_pal_window_clip_copy(GapPal* pal, const GapWindowId windowId, const String value) {
