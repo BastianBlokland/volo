@@ -267,6 +267,8 @@ ecs_view_define(LogGlobalView) {
 }
 
 ecs_view_define(LogViewerView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // DebugLogViewerComp's are exclusively managed here.
+
   ecs_access_write(DebugLogViewerComp);
   ecs_access_write(UiCanvasComp);
 }

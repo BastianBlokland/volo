@@ -86,6 +86,8 @@ ecs_view_define(UpdateGlobalView) {
 }
 
 ecs_view_define(UpdateView) {
+  ecs_view_flags(EcsViewFlags_Exclusive); // DebugGridPanelComp's are exclusively managed here.
+
   ecs_access_read(DebugPanelComp);
   ecs_access_write(DebugGridPanelComp);
   ecs_access_write(UiCanvasComp);
