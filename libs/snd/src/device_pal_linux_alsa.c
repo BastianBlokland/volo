@@ -125,10 +125,14 @@ typedef struct sSndDevice {
 } SndDevice;
 
 typedef enum {
-  AlsaPcmStatus_Underrun, // Device buffer under-run has occurred.
-  AlsaPcmStatus_Busy,     // No period is available for recording.
-  AlsaPcmStatus_Ready,    // A period is available for recording.
-  AlsaPcmStatus_Error,    // Device has encountered an error.
+  AlsaPcmError_None,
+  AlsaPcmError_Underrun, // Device buffer under-run has occurred.
+  AlsaPcmError_Unknown,  // Device has encountered an unknown error.
+} AlsaPcmError;
+
+typedef struct {
+  AlsaPcmError error;
+  u32          availableFrames;
 } AlsaPcmStatus;
 
 typedef enum {
@@ -359,15 +363,15 @@ static AlsaPcmStatus alsa_pcm_query(SndDevice* dev) {
   if (UNLIKELY(avail < 0)) {
     const i32 err = (i32)avail;
     if (err == -EPIPE) {
-      return AlsaPcmStatus_Underrun;
+      return (AlsaPcmStatus){.error = AlsaPcmError_Underrun};
     }
     log_e(
         "Failed to query sound-device",
         log_param("err-code", fmt_int(err)),
         log_param("err", fmt_text(alsa_error_str(dev, (i32)avail))));
-    return AlsaPcmStatus_Error;
+    return (AlsaPcmStatus){.error = AlsaPcmError_Unknown};
   }
-  return avail < snd_alsa_period_frames ? AlsaPcmStatus_Busy : AlsaPcmStatus_Ready;
+  return (AlsaPcmStatus){.availableFrames = (u32)avail};
 }
 
 static AlsaPcmWriteResult
@@ -477,22 +481,24 @@ StartPlayingIfIdle:
     }
   }
 
+  // Query the device-status to check if there's a period ready for rendering.
   if (UNLIKELY(dev->state == SndDeviceState_Error)) {
     return false; // Device is in an unrecoverable error state.
   }
 
-  // Query the device-status to check if there's a period ready for rendering.
-  switch (alsa_pcm_query(dev)) {
-  case AlsaPcmStatus_Underrun:
+  const AlsaPcmStatus status = alsa_pcm_query(dev);
+  switch (status.error) {
+  case AlsaPcmError_None:
+    if (status.availableFrames < snd_alsa_period_frames) {
+      return false; // No period available for rendering.
+    }
+    dev->flags |= SndDeviceFlags_Rendering;
+    return true; // Period can be rendered.
+  case AlsaPcmError_Underrun:
     snd_device_report_underrun(dev);
     dev->state = SndDeviceState_Idle; // PCM ran out of samples in the buffer; Restart the playback.
     goto StartPlayingIfIdle;
-  case AlsaPcmStatus_Busy:
-    return false; // No period available for rendering.
-  case AlsaPcmStatus_Ready:
-    dev->flags |= SndDeviceFlags_Rendering;
-    return true; // Period can be rendered.
-  case AlsaPcmStatus_Error:
+  case AlsaPcmError_Unknown:
     dev->state = SndDeviceState_Error;
     return false;
   }
