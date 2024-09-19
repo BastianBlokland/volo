@@ -471,11 +471,11 @@ StartPlayingIfIdle:
     }
   }
 
-  // Query the device-status to check if there's a period ready for rendering.
   if (UNLIKELY(dev->state == SndDeviceState_Error)) {
     return false; // Device is in an unrecoverable error state.
   }
 
+  // Query the device-status to check if there's a period ready for rendering.
   const AlsaPcmStatus status = alsa_pcm_query(dev);
   switch (status.error) {
   case AlsaPcmError_None:
