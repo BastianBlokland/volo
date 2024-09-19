@@ -135,12 +135,6 @@ typedef struct {
   u32          availableFrames;
 } AlsaPcmStatus;
 
-typedef enum {
-  AlsaPcmWriteResult_Success,
-  AlsaPcmWriteResult_Underrun, // Device buffer under-run was detected while writing.
-  AlsaPcmWriteResult_Error,
-} AlsaPcmWriteResult;
-
 static bool alsa_lib_init(AlsaLib* lib, Allocator* alloc) {
   DynLibResult loadRes = dynlib_load(alloc, string_lit("libasound.so"), &lib->asound);
   if (loadRes != DynLibResult_Success) {
@@ -374,21 +368,21 @@ static AlsaPcmStatus alsa_pcm_query(SndDevice* dev) {
   return (AlsaPcmStatus){.availableFrames = (u32)avail};
 }
 
-static AlsaPcmWriteResult
+static AlsaPcmError
 alsa_pcm_write(SndDevice* dev, i16 buf[PARAM_ARRAY_SIZE(snd_alsa_period_samples)]) {
   const AlsaSFrames written = dev->alsa.pcm_writei(dev->pcm, buf, snd_alsa_period_frames);
   if (written < 0 || (AlsaUFrames)written != snd_alsa_period_frames) {
     const i32 err = (i32)written;
     if (err == -EPIPE) {
-      return AlsaPcmWriteResult_Underrun;
+      return AlsaPcmError_Underrun;
     }
     log_e(
         "Failed to write to sound-device",
         log_param("err-code", fmt_int(err)),
         log_param("err", fmt_text(alsa_error_str(dev, err))));
-    return AlsaPcmWriteResult_Error;
+    return AlsaPcmError_Unknown;
   }
-  return AlsaPcmWriteResult_Success;
+  return AlsaPcmError_None;
 }
 
 static void snd_device_report_underrun(SndDevice* device) {
@@ -518,14 +512,14 @@ void snd_device_end(SndDevice* dev) {
   diag_assert_msg(dev->flags & SndDeviceFlags_Rendering, "Device not currently rendering");
 
   switch (alsa_pcm_write(dev, dev->periodRenderingBuffer)) {
-  case AlsaPcmWriteResult_Success:
+  case AlsaPcmError_None:
     dev->nextPeriodBeginTime += snd_alsa_period_time;
     break;
-  case AlsaPcmWriteResult_Underrun:
+  case AlsaPcmError_Underrun:
     snd_device_report_underrun(dev);
     dev->state = SndDeviceState_Idle; // Playback stopped due to an underrun.
     break;
-  case AlsaPcmWriteResult_Error:
+  case AlsaPcmError_Unknown:
     dev->state = SndDeviceState_Error;
     break;
   }
