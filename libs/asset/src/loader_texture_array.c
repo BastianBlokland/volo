@@ -146,7 +146,7 @@ typedef struct {
 
 static CubePoint arraytex_cube_lookup(const GeoVector dir) {
   CubePoint       res;
-  float           scale;
+  f32             scale;
   const GeoVector dirAbs = geo_vector_abs(dir);
   if (dirAbs.z >= dirAbs.x && dirAbs.z >= dirAbs.y) {
     res.face   = dir.z < 0.0f ? 5 : 4;

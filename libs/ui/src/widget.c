@@ -543,8 +543,8 @@ static void ui_tooltip_text(
 
   if (dir == Ui_Left) {
     /**
-     * Because we always draw the text left aligned it needs to be offsetted if the tooltip should
-     * be on the left side of the input.
+     * Because we always draw the text left aligned it needs to be offset if the tooltip should be
+     * on the left side of the input.
      */
     ui_layout_move_dir(canvas, Ui_Right, opts->maxSize.width - lastRect.width, UiBase_Absolute);
   }
@@ -577,7 +577,7 @@ static bool ui_tooltip_show(UiCanvasComp* canvas, const UiId id, const UiTooltip
 bool ui_tooltip_with_opts(
     UiCanvasComp* canvas, const UiId id, const String text, const UiTooltipOpts* opts) {
 
-  if (!ui_tooltip_show(canvas, id, opts)) {
+  if (string_is_empty(text) || !ui_tooltip_show(canvas, id, opts)) {
     ui_canvas_id_skip(canvas, 2);
     return false;
   }
