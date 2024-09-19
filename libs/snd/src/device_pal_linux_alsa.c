@@ -113,15 +113,7 @@ typedef struct sSndDevice {
   u64        underrunCounter;
   TimeSteady underrunLastReportTime;
 
-  /**
-   * Buffer for rendering the period samples into.
-   *
-   * TODO: We can avoid copying from our rendering-buffer to the device buffer if the device
-   * supports mmap-ing the buffer, however not all devices support this so we need to keep the
-   * copying path as a fallback.
-   */
-  ALIGNAS(snd_frame_sample_alignment)
-  i16 periodRenderingBuffer[snd_alsa_period_samples];
+  i16* renderBuffer;
 } SndDevice;
 
 typedef enum {
@@ -419,6 +411,9 @@ SndDevice* snd_device_create(Allocator* alloc) {
   }
   dev->state = SndDeviceState_Idle;
 
+  const usize bufferSize = sizeof(u16) * dev->pcmConfig.bufferSize * dev->pcmConfig.periodCount;
+  dev->renderBuffer      = alloc_alloc(alloc, bufferSize, snd_alsa_period_samples).ptr;
+
   log_i(
       "Alsa sound device created",
       log_param("id", fmt_text(dev->id)),
@@ -441,6 +436,10 @@ void snd_device_destroy(SndDevice* dev) {
     dynlib_destroy(dev->alsa.asound);
   }
   string_maybe_free(dev->alloc, dev->id);
+  if (dev->renderBuffer) {
+    const usize bufferSize = sizeof(u16) * dev->pcmConfig.bufferSize * dev->pcmConfig.periodCount;
+    alloc_free(dev->alloc, mem_create(dev->renderBuffer, bufferSize));
+  }
   alloc_free_t(dev->alloc, dev);
 
   log_i("Alsa sound device destroyed");
@@ -504,14 +503,14 @@ SndDevicePeriod snd_device_period(SndDevice* dev) {
   return (SndDevicePeriod){
       .timeBegin  = dev->nextPeriodBeginTime,
       .frameCount = snd_alsa_period_frames,
-      .samples    = dev->periodRenderingBuffer,
+      .samples    = dev->renderBuffer,
   };
 }
 
 void snd_device_end(SndDevice* dev) {
   diag_assert_msg(dev->flags & SndDeviceFlags_Rendering, "Device not currently rendering");
 
-  switch (alsa_pcm_write(dev, dev->periodRenderingBuffer)) {
+  switch (alsa_pcm_write(dev, dev->renderBuffer)) {
   case AlsaPcmError_None:
     dev->nextPeriodBeginTime += snd_alsa_period_time;
     break;
