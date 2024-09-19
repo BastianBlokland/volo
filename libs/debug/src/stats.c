@@ -55,7 +55,7 @@ typedef enum {
 } DebugBgFlags;
 
 typedef struct {
-  f32 values[stats_plot_size];
+  ALIGNAS(16) f32 values[stats_plot_size];
   u32 cur;
 } DebugStatPlot;
 
