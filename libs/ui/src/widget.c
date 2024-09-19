@@ -543,8 +543,8 @@ static void ui_tooltip_text(
 
   if (dir == Ui_Left) {
     /**
-     * Because we always draw the text left aligned it needs to be offsetted if the tooltip should
-     * be on the left side of the input.
+     * Because we always draw the text left aligned it needs to be offset if the tooltip should be
+     * on the left side of the input.
      */
     ui_layout_move_dir(canvas, Ui_Right, opts->maxSize.width - lastRect.width, UiBase_Absolute);
   }
