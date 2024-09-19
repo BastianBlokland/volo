@@ -166,6 +166,11 @@ static void debug_plot_add_dur(DebugStatPlot* plot, const TimeDuration value) {
   debug_plot_add(plot, (f32)(value / (f64)time_microsecond));
 }
 
+static f32 debug_plot_newest(const DebugStatPlot* plot) {
+  const u32 newestIndex = (plot->cur + stats_plot_size - 1) % stats_plot_size;
+  return plot->values[newestIndex];
+}
+
 static f32 debug_plot_min(const DebugStatPlot* plot) {
 #ifdef VOLO_SIMD
   ASSERT((stats_plot_size % 4) == 0, "Only multiple of 4 plot sizes are supported");
@@ -317,8 +322,39 @@ static bool stats_draw_section(UiCanvasComp* c, const String label) {
   return isOpen;
 }
 
-static void
-stats_draw_plot(UiCanvasComp* c, const DebugStatPlot* plot, const f32 minVal, const f32 maxVal) {
+typedef void (*PlotValueWriter)(DynString*, f32 value);
+
+static void stats_draw_plot_tooltip(
+    UiCanvasComp* c, const DebugStatPlot* plot, const PlotValueWriter valWriter) {
+  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+#define APPEND_PLOT_VAL(_TITLE_, _FUNC_)                                                           \
+  do {                                                                                             \
+    dynstring_append(&buffer, string_lit("\a.b" _TITLE_ "\ar:\a>09"));                             \
+    valWriter(&buffer, _FUNC_(plot));                                                              \
+    dynstring_append_char(&buffer, '\n');                                                          \
+  } while (false)
+
+  if (plot->initialized) {
+    APPEND_PLOT_VAL("Newest", debug_plot_newest);
+    APPEND_PLOT_VAL("Average", debug_plot_avg);
+    APPEND_PLOT_VAL("Min", debug_plot_min);
+    APPEND_PLOT_VAL("Max", debug_plot_max);
+    APPEND_PLOT_VAL("Variance", debug_plot_var);
+  }
+
+  const UiId id = ui_canvas_id_peek(c);
+  ui_canvas_draw_glyph(c, UiShape_Empty, 0, UiFlags_Interactable); // Invisible rect.
+  ui_tooltip(c, id, dynstring_view(&buffer), .variation = UiVariation_Monospace);
+}
+
+static void stats_draw_plot(
+    UiCanvasComp*         c,
+    const DebugStatPlot*  plot,
+    const f32             minVal,
+    const f32             maxVal,
+    const PlotValueWriter valWriter) {
   static const f32 g_stepX    = 1.0f / stats_plot_size;
   static const f32 g_statRows = 2.0f; // Amount of rows the plot takes up.
 
@@ -359,17 +395,25 @@ stats_draw_plot(UiCanvasComp* c, const DebugStatPlot* plot, const f32 minVal, co
     ui_canvas_draw_glyph(c, UiShape_Square, 0, UiFlags_None);
   }
 
+  ui_layout_inner(c, UiBase_Container, UiAlign_BottomLeft, ui_vector(1, 1), UiBase_Container);
+  stats_draw_plot_tooltip(c, plot, valWriter);
+
   ui_style_pop(c);
   ui_layout_container_pop(c);
   ui_layout_pop(c);
   ui_layout_move_dir(c, Ui_Down, g_statRows, UiBase_Current);
 }
 
+static void stats_dur_val_writer(DynString* str, const f32 value) {
+  const TimeDuration valueDur = (TimeDuration)(value * (f64)time_microsecond);
+  fmt_write(str, "{>8}", fmt_duration(valueDur, .minDecDigits = 1, .maxDecDigits = 1));
+}
+
 static void stats_draw_plot_dur(
     UiCanvasComp* c, const DebugStatPlot* plot, const TimeDuration min, const TimeDuration max) {
   const f32 minUs = (f32)(min / (f64)time_microsecond);
   const f32 maxUs = (f32)(max / (f64)time_microsecond);
-  stats_draw_plot(c, plot, minUs, maxUs);
+  stats_draw_plot(c, plot, minUs, maxUs, stats_dur_val_writer);
 }
 
 static void stats_draw_frametime(UiCanvasComp* c, const DebugStatsComp* stats) {
@@ -465,11 +509,11 @@ stats_draw_cpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsC
       {st->rendLimiterFrac, ui_color(128, 128, 128, 64)},
   };
   const String tooltip = fmt_write_scratch(
-      "\a~red\a.bWait for gpu\ar:\a>12{>8}\n"
-      "\a~purple\a.bPresent acquire\ar:\a>12{>8}\n"
-      "\a~blue\a.bPresent enqueue\ar:\a>12{>8}\n"
-      "\a~teal\a.bPresent wait\ar:\a>12{>8}\n"
-      "\a.bLimiter\ar:\a>12{>8}",
+      "\a~red\a.bWait for gpu\ar:\a>10{>8}\n"
+      "\a~purple\a.bPresent acquire\ar:\a>10{>8}\n"
+      "\a~blue\a.bPresent enqueue\ar:\a>10{>8}\n"
+      "\a~teal\a.bPresent wait\ar:\a>10{>8}\n"
+      "\a.bLimiter\ar:\a>10{>8}",
       fmt_duration(rendSt->waitForGpuDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->presentAcquireDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->presentEnqueueDur, .minDecDigits = 1, .maxDecDigits = 1),
@@ -513,7 +557,7 @@ stats_draw_gpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsC
 
     fmt_write(
         &tooltip,
-        "{}\a.b{}\ar:\a>13{>7}\n",
+        "{}\a.b{}\ar:\a>0A{>7}\n",
         fmt_ui_color(passColor),
         fmt_text(passName),
         fmt_duration(passDuration, .minDecDigits = 1, .maxDecDigits = 1));
@@ -528,8 +572,8 @@ stats_draw_gpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsC
   };
   fmt_write(
       &tooltip,
-      "\a.bTotal\ar:\a>13{>7}\n"
-      "\a~teal\a.bWait\ar:\a>13{>7}",
+      "\a.bTotal\ar:\a>0A{>7}\n"
+      "\a~teal\a.bWait\ar:\a>0A{>7}",
       fmt_duration(rendSt->gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->gpuWaitDur, .minDecDigits = 1, .maxDecDigits = 1));
 
