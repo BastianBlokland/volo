@@ -90,20 +90,15 @@ typedef struct {
 
 typedef struct {
   u32 periodCount;
-  u32 bufferSize;
+  u32 bufferSize; // In frames.
 } AlsaPcmConfig;
-
-typedef enum {
-  SndDeviceFlags_Rendering = 1 << 0,
-} SndDeviceFlags;
 
 typedef struct sSndDevice {
   Allocator* alloc;
   AlsaLib    alsa;
   String     id;
 
-  SndDeviceState state : 8;
-  SndDeviceFlags flags : 8;
+  SndDeviceState state;
 
   AlsaPcm*      pcm;
   AlsaPcmConfig pcmConfig;
@@ -114,6 +109,7 @@ typedef struct sSndDevice {
   TimeSteady underrunLastReportTime;
 
   i16* renderBuffer;
+  u32  renderFrames, renderFramesMax;
 } SndDevice;
 
 typedef enum {
@@ -360,10 +356,9 @@ static AlsaPcmStatus alsa_pcm_query(SndDevice* dev) {
   return (AlsaPcmStatus){.availableFrames = (u32)avail};
 }
 
-static AlsaPcmError
-alsa_pcm_write(SndDevice* dev, i16 buf[PARAM_ARRAY_SIZE(snd_alsa_period_samples)]) {
-  const AlsaSFrames written = dev->alsa.pcm_writei(dev->pcm, buf, snd_alsa_period_frames);
-  if (written < 0 || (AlsaUFrames)written != snd_alsa_period_frames) {
+static AlsaPcmError alsa_pcm_write(SndDevice* dev, const i16* buf, const u32 bufFrameCount) {
+  const AlsaSFrames written = dev->alsa.pcm_writei(dev->pcm, buf, bufFrameCount);
+  if (written < 0 || (AlsaUFrames)written != bufFrameCount) {
     const i32 err = (i32)written;
     if (err == -EPIPE) {
       return AlsaPcmError_Underrun;
@@ -411,8 +406,10 @@ SndDevice* snd_device_create(Allocator* alloc) {
   }
   dev->state = SndDeviceState_Idle;
 
-  const usize bufferSize = sizeof(u16) * dev->pcmConfig.bufferSize * dev->pcmConfig.periodCount;
-  dev->renderBuffer      = alloc_alloc(alloc, bufferSize, snd_alsa_period_samples).ptr;
+  dev->renderFramesMax = math_min(dev->pcmConfig.bufferSize, snd_frame_count_max);
+
+  const usize renderBufferSize = dev->renderFramesMax * SndChannel_Count * sizeof(i16);
+  dev->renderBuffer = alloc_alloc(alloc, renderBufferSize, snd_frame_sample_alignment).ptr;
 
   log_i(
       "Alsa sound device created",
@@ -437,8 +434,8 @@ void snd_device_destroy(SndDevice* dev) {
   }
   string_maybe_free(dev->alloc, dev->id);
   if (dev->renderBuffer) {
-    const usize bufferSize = sizeof(u16) * dev->pcmConfig.bufferSize * dev->pcmConfig.periodCount;
-    alloc_free(dev->alloc, mem_create(dev->renderBuffer, bufferSize));
+    const usize renderBufferSize = dev->renderFramesMax * SndChannel_Count * sizeof(i16);
+    alloc_free(dev->alloc, mem_create(dev->renderBuffer, renderBufferSize));
   }
   alloc_free_t(dev->alloc, dev);
 
@@ -462,12 +459,12 @@ SndDeviceState snd_device_state(const SndDevice* dev) { return dev->state; }
 u64 snd_device_underruns(const SndDevice* dev) { return dev->underrunCounter; }
 
 bool snd_device_begin(SndDevice* dev) {
-  diag_assert_msg(!(dev->flags & SndDeviceFlags_Rendering), "Device rendering already active");
+  diag_assert_msg(!dev->renderFrames, "Device rendering already active");
 
 StartPlayingIfIdle:
   if (dev->state == SndDeviceState_Idle) {
     if (alsa_pcm_prepare(dev)) {
-      dev->nextPeriodBeginTime = time_steady_clock() + snd_alsa_period_time;
+      dev->nextPeriodBeginTime = time_steady_clock();
       dev->state               = SndDeviceState_Playing;
     } else {
       dev->state = SndDeviceState_Error;
@@ -482,11 +479,11 @@ StartPlayingIfIdle:
   const AlsaPcmStatus status = alsa_pcm_query(dev);
   switch (status.error) {
   case AlsaPcmError_None:
-    if (status.availableFrames < snd_alsa_period_frames) {
-      return false; // No period available for rendering.
+    if (!status.availableFrames) {
+      return false; // No frames available for rendering.
     }
-    dev->flags |= SndDeviceFlags_Rendering;
-    return true; // Period can be rendered.
+    dev->renderFrames = math_min(status.availableFrames, dev->renderFramesMax);
+    return true; // Frames ready for rendering.
   case AlsaPcmError_Underrun:
     snd_device_report_underrun(dev);
     dev->state = SndDeviceState_Idle; // PCM ran out of samples in the buffer; Restart the playback.
@@ -499,20 +496,20 @@ StartPlayingIfIdle:
 }
 
 SndDevicePeriod snd_device_period(SndDevice* dev) {
-  diag_assert_msg(dev->flags & SndDeviceFlags_Rendering, "Device not currently rendering");
+  diag_assert_msg(dev->renderFrames, "Device not currently rendering");
   return (SndDevicePeriod){
       .timeBegin  = dev->nextPeriodBeginTime,
-      .frameCount = snd_alsa_period_frames,
+      .frameCount = dev->renderFrames,
       .samples    = dev->renderBuffer,
   };
 }
 
 void snd_device_end(SndDevice* dev) {
-  diag_assert_msg(dev->flags & SndDeviceFlags_Rendering, "Device not currently rendering");
+  diag_assert_msg(dev->renderFrames, "Device not currently rendering");
 
-  switch (alsa_pcm_write(dev, dev->renderBuffer)) {
+  switch (alsa_pcm_write(dev, dev->renderBuffer, dev->renderFrames)) {
   case AlsaPcmError_None:
-    dev->nextPeriodBeginTime += snd_alsa_period_time;
+    dev->nextPeriodBeginTime += dev->renderFrames * time_second / snd_frame_rate;
     break;
   case AlsaPcmError_Underrun:
     snd_device_report_underrun(dev);
@@ -522,5 +519,5 @@ void snd_device_end(SndDevice* dev) {
     dev->state = SndDeviceState_Error;
     break;
   }
-  dev->flags &= ~SndDeviceFlags_Rendering;
+  dev->renderFrames = 0;
 }
