@@ -56,7 +56,8 @@ typedef enum {
 
 typedef struct {
   ALIGNAS(16) f32 values[stats_plot_size];
-  u32 cur;
+  u32  cur;
+  bool initialized;
 } DebugStatPlot;
 
 typedef struct {
@@ -138,7 +139,25 @@ static DebugStatPlot* debug_plot_alloc(Allocator* alloc) {
   return plot;
 }
 
+static void debug_plot_set(DebugStatPlot* plot, const f32 value) {
+#ifdef VOLO_SIMD
+  ASSERT((stats_plot_size % 4) == 0, "Only multiple of 4 plot sizes are supported");
+  const SimdVec valueVec = simd_vec_broadcast(value);
+  for (u32 i = 0; i != stats_plot_size; i += 4) {
+    simd_vec_store(valueVec, plot->values + i);
+  }
+#else
+  for (u32 i = 0; i != stats_plot_size; ++i) {
+    plot->values[i] = value;
+  }
+#endif
+}
+
 static void debug_plot_add(DebugStatPlot* plot, const f32 value) {
+  if (UNLIKELY(!plot->initialized)) {
+    debug_plot_set(plot, value);
+    plot->initialized = true;
+  }
   plot->values[plot->cur] = value;
   plot->cur               = (plot->cur + 1) % stats_plot_size;
 }
@@ -150,7 +169,6 @@ static void debug_plot_add_dur(DebugStatPlot* plot, const TimeDuration value) {
 static f32 debug_plot_min(const DebugStatPlot* plot) {
 #ifdef VOLO_SIMD
   ASSERT((stats_plot_size % 4) == 0, "Only multiple of 4 plot sizes are supported");
-
   SimdVec min = simd_vec_broadcast(plot->values[0]);
   for (u32 i = 0; i != stats_plot_size; i += 4) {
     min = simd_vec_min(min, simd_vec_min_comp(simd_vec_load(plot->values + i)));
@@ -170,7 +188,6 @@ static f32 debug_plot_min(const DebugStatPlot* plot) {
 static f32 debug_plot_max(const DebugStatPlot* plot) {
 #ifdef VOLO_SIMD
   ASSERT((stats_plot_size % 4) == 0, "Only multiple of 4 plot sizes are supported");
-
   SimdVec max = simd_vec_broadcast(plot->values[0]);
   for (u32 i = 0; i != stats_plot_size; i += 4) {
     max = simd_vec_max(max, simd_vec_max_comp(simd_vec_load(plot->values + i)));
@@ -194,7 +211,6 @@ static f32 debug_plot_var(const DebugStatPlot* plot) {
 static f32 debug_plot_sum(const DebugStatPlot* plot) {
 #ifdef VOLO_SIMD
   ASSERT((stats_plot_size % 4) == 0, "Only multiple of 4 plot sizes are supported");
-
   SimdVec accum = simd_vec_zero();
   for (u32 i = 0; i != stats_plot_size; i += 4) {
     accum = simd_vec_add(accum, simd_vec_add_comp(simd_vec_load(plot->values + i)));
