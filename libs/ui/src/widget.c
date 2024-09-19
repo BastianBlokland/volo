@@ -577,7 +577,7 @@ static bool ui_tooltip_show(UiCanvasComp* canvas, const UiId id, const UiTooltip
 bool ui_tooltip_with_opts(
     UiCanvasComp* canvas, const UiId id, const String text, const UiTooltipOpts* opts) {
 
-  if (!ui_tooltip_show(canvas, id, opts)) {
+  if (string_is_empty(text) || !ui_tooltip_show(canvas, id, opts)) {
     ui_canvas_id_skip(canvas, 2);
     return false;
   }
