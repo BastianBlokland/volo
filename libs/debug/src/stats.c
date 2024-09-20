@@ -557,7 +557,7 @@ stats_draw_gpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsC
 
     fmt_write(
         &tooltip,
-        "{}\a.b{}\ar:\a>0A{>7}\n",
+        "{}\a.b{}\ar:\a>12{>7}\n",
         fmt_ui_color(passColor),
         fmt_text(passName),
         fmt_duration(passDuration, .minDecDigits = 1, .maxDecDigits = 1));
@@ -572,8 +572,8 @@ stats_draw_gpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsC
   };
   fmt_write(
       &tooltip,
-      "\a.bTotal\ar:\a>0A{>7}\n"
-      "\a~teal\a.bWait\ar:\a>0A{>7}",
+      "\a.bTotal\ar:\a>12{>7}\n"
+      "\a~teal\a.bWait\ar:\a>12{>7}",
       fmt_duration(rendSt->gpuExecDur, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_duration(rendSt->gpuWaitDur, .minDecDigits = 1, .maxDecDigits = 1));
 
