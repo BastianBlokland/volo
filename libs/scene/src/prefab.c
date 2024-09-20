@@ -6,6 +6,7 @@
 #include "core_rng.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "scene_attachment.h"
 #include "scene_attack.h"
 #include "scene_bark.h"
 #include "scene_collision.h"
@@ -436,6 +437,33 @@ static void setup_vision(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
   ecs_world_add_t(w, e, SceneVisionComp, .flags = flags, .radius = t->radius);
 }
 
+static void setup_attachment(
+    EcsWorld*                         w,
+    const EcsEntityId                 e,
+    const ScenePrefabSpec*            s,
+    const AssetPrefabTraitAttachment* t) {
+
+  const EcsEntityId attachEntity = scene_prefab_spawn(
+      w,
+      &(ScenePrefabSpec){
+          .flags    = ScenePrefabFlags_Volatile,
+          .prefabId = t->attachmentPrefab,
+          .faction  = s->faction,
+          .position = s->position,
+          .rotation = s->rotation,
+          .scale    = t->attachmentScale});
+
+  ecs_world_add_t(w, attachEntity, SceneLifetimeOwnerComp, .owners[0] = e);
+  ecs_world_add_t(
+      w,
+      attachEntity,
+      SceneAttachmentComp,
+      .target     = e,
+      .jointIndex = sentinel_u32,
+      .jointName  = t->joint,
+      .offset     = t->offset);
+}
+
 static void
 setup_production(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitProduction* t) {
   ecs_world_add_t(
@@ -523,6 +551,9 @@ static void setup_trait(
     return;
   case AssetPrefabTrait_Vision:
     setup_vision(w, e, &t->data_vision);
+    return;
+  case AssetPrefabTrait_Attachment:
+    setup_attachment(w, e, s, &t->data_attachment);
     return;
   case AssetPrefabTrait_Production:
     setup_production(w, e, &t->data_production);
