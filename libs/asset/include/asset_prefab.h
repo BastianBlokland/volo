@@ -63,6 +63,7 @@ typedef enum {
   AssetPrefabTrait_Location,
   AssetPrefabTrait_Status,
   AssetPrefabTrait_Vision,
+  AssetPrefabTrait_Attachment,
   AssetPrefabTrait_Production,
   AssetPrefabTrait_Scalable,
 
@@ -177,6 +178,13 @@ typedef struct {
 } AssetPrefabTraitVision;
 
 typedef struct {
+  StringHash attachmentPrefab;
+  f32        attachmentScale;
+  StringHash joint;
+  GeoVector  offset;
+} AssetPrefabTraitAttachment;
+
+typedef struct {
   GeoVector   spawnPos, rallyPos;
   EcsEntityId rallySoundAsset;
   f32         rallySoundGain;
@@ -207,6 +215,7 @@ typedef struct {
     AssetPrefabTraitLocation     data_location;
     AssetPrefabTraitStatus       data_status;
     AssetPrefabTraitVision       data_vision;
+    AssetPrefabTraitAttachment   data_attachment;
     AssetPrefabTraitProduction   data_production;
   };
 } AssetPrefabTrait;

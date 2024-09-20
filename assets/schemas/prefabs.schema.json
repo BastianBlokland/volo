@@ -278,6 +278,18 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
+            "$type": { "const": "AssetPrefabTrait_Attachment" },
+            "attachmentPrefab": { "title": "String", "type": "string", "minLength": 1 },
+            "attachmentScale": { "title": "f32", "type": "number" },
+            "joint": { "title": "String", "type": "string" },
+            "offset": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" }
+          },
+          "required": [ "$type", "attachmentPrefab" ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
             "$type": { "const": "AssetPrefabTrait_Production" },
             "spawnPos": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
             "rallyPos": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
@@ -318,6 +330,7 @@
         { "label": "New AssetPrefabTrait_Location", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Location\"\n}" },
         { "label": "New AssetPrefabTrait_Status", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Status\"\n}" },
         { "label": "New AssetPrefabTrait_Vision", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Vision\",\n  \"radius\": 1\n}" },
+        { "label": "New AssetPrefabTrait_Attachment", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Attachment\",\n  \"attachmentPrefab\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Production", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Production\",\n  \"productSetId\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Scalable", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Scalable\"\n}" }
       ]
