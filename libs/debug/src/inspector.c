@@ -17,6 +17,7 @@
 #include "gap_window.h"
 #include "geo_query.h"
 #include "input_manager.h"
+#include "scene_attachment.h"
 #include "scene_attack.h"
 #include "scene_bounds.h"
 #include "scene_camera.h"
@@ -205,6 +206,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_read(SceneTargetTraceComp);
   ecs_access_maybe_read(SceneVelocityComp);
   ecs_access_maybe_read(SceneVisionComp);
+  ecs_access_maybe_write(SceneAttachmentComp);
   ecs_access_maybe_write(SceneAttackComp);
   ecs_access_maybe_write(SceneBoundsComp);
   ecs_access_maybe_write(SceneCollisionComp);
@@ -816,6 +818,24 @@ static void inspector_panel_draw_location(
   }
 }
 
+static void inspector_panel_draw_attachment(
+    UiCanvasComp*            canvas,
+    DebugInspectorPanelComp* panelComp,
+    UiTable*                 table,
+    EcsIterator*             subject) {
+  SceneAttachmentComp* attach = subject ? ecs_view_write_t(subject, SceneAttachmentComp) : null;
+  if (attach) {
+    inspector_panel_next(canvas, panelComp, table);
+    if (inspector_panel_section(canvas, string_lit("Attachment"))) {
+      inspector_panel_next(canvas, panelComp, table);
+
+      ui_label(canvas, string_lit("Offset"));
+      ui_table_next_column(canvas, table);
+      debug_widget_editor_vec3(canvas, &attach->offset, UiWidget_Default);
+    }
+  }
+}
+
 static void inspector_panel_draw_components(
     EcsWorld*                world,
     UiCanvasComp*            canvas,
@@ -964,6 +984,9 @@ static void inspector_panel_draw(
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_location(canvas, panelComp, &table, subject);
+  ui_canvas_id_block_next(canvas);
+
+  inspector_panel_draw_attachment(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_bounds(canvas, panelComp, &table, subject);
