@@ -31,6 +31,7 @@
  */
 
 #define gltf_eq_threshold 1e-2f
+#define gltf_skin_weight_min 1e-3f
 
 typedef enum {
   GltfLoadPhase_BuffersAcquire,
@@ -1051,7 +1052,13 @@ static void gltf_vertex_skin(
    * Retrieve the 4 joint influences (joint-index + weight) for a vertex.
    */
   for (u32 i = 0; i != 4; ++i) {
-    out->weights.comps[i] = ld->access[prim->accWeights].data_f32[attr * 4 + i];
+    const f32 weight = ld->access[prim->accWeights].data_f32[attr * 4 + i];
+    if (weight < gltf_skin_weight_min) {
+      out->weights.comps[i] = 0;
+      out->joints[i]        = 0;
+      continue; // Joint unused in skin.
+    }
+    out->weights.comps[i] = weight;
     switch (ld->access[prim->accJoints].compType) {
     case GltfType_u8:
       out->joints[i] = ld->access[prim->accJoints].data_u8[attr * 4 + i];
@@ -1078,7 +1085,7 @@ gltf_track_skinned_vertex(GltfLoad* ld, const AssetMeshVertex* vertex, const Ass
   for (u32 i = 0; i != 4; ++i) {
     const f32 jointWeight = skin->weights.comps[i];
     const u8  jointIndex  = skin->joints[i];
-    if (jointWeight < 1e-3f) {
+    if (jointWeight < gltf_skin_weight_min) {
       continue; // Joint unused in skin.
     }
     GltfJoint* joint = &ld->joints[jointIndex];
