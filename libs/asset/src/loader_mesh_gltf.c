@@ -113,7 +113,8 @@ typedef struct {
   u32           skinCount;      // Amount of vertices skinned to this joint.
   f32           boundingRadius; // Bounding radius of the vertices skinned to this joint.
   String        name;           // Interned in the global string-table.
-  GltfTransform trans;
+  GltfTransform defaultTrans;
+  GeoMatrix     bindMat, bindMatInv; // Bind-space to world-space matrix (and inverse).
 } GltfJoint;
 
 typedef struct {
@@ -140,7 +141,7 @@ ecs_comp_define(AssetGltfLoadComp) {
   u32           jointCount;
   u32           animCount;
   GltfTransform sceneTrans;
-  u32           accBindPoseInvMats; // Access index [Optional]. World to local bind space matrix.
+  u32           accBindInvMats; // Access index [Optional].
 };
 
 typedef AssetGltfLoadComp GltfLoad;
@@ -184,7 +185,7 @@ typedef enum {
   GltfError_MalformedPrimTexcoords,
   GltfError_MalformedPrimJoints,
   GltfError_MalformedPrimWeights,
-  GltfError_MalformedBindPose,
+  GltfError_MalformedBindMatrix,
   GltfError_MalformedSceneTransform,
   GltfError_MalformedSkin,
   GltfError_MalformedNodes,
@@ -214,7 +215,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Malformed primitive texcoords"),
       string_static("Malformed primitive joints"),
       string_static("Malformed primitive weights"),
-      string_static("Malformed bind pose"),
+      string_static("Malformed bind matrix"),
       string_static("Malformed scene transform"),
       string_static("Malformed skin"),
       string_static("Malformed nodes"),
@@ -754,7 +755,7 @@ static void gltf_parse_skin(GltfLoad* ld, GltfError* err) {
   if (json_type(ld->jDoc, skin) != JsonType_Object) {
     goto Error;
   }
-  if (!gltf_json_field_u32(ld, skin, string_lit("inverseBindMatrices"), &ld->accBindPoseInvMats)) {
+  if (!gltf_json_field_u32(ld, skin, string_lit("inverseBindMatrices"), &ld->accBindInvMats)) {
     goto Error;
   }
   const JsonVal joints = json_field_lit(ld->jDoc, skin, "joints");
@@ -802,7 +803,7 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
     GltfJoint* out = &ld->joints[jointIndex];
 
     gltf_json_name(ld, node, &out->name);
-    gltf_json_transform(ld, node, &out->trans);
+    gltf_json_transform(ld, node, &out->defaultTrans);
 
     const JsonVal children = json_field_lit(ld->jDoc, node, "children");
     if (gltf_json_check(ld, children, JsonType_Array)) {
@@ -830,17 +831,26 @@ Error:
   *err = GltfError_MalformedNodes;
 }
 
-static void gltf_parse_bind_poses(GltfLoad* ld, GltfError* err) {
+static void gltf_parse_bind_matrices(GltfLoad* ld, GltfError* err) {
   if (!ld->jointCount) {
     return;
   }
-  if (!gltf_access_check(ld, ld->accBindPoseInvMats, GltfType_f32, 16)) {
-    *err = GltfError_MalformedBindPose;
+  if (!gltf_access_check(ld, ld->accBindInvMats, GltfType_f32, 16)) {
+    *err = GltfError_MalformedBindMatrix;
     return;
   }
-  if (ld->access[ld->accBindPoseInvMats].count < ld->jointCount) {
-    *err = GltfError_MalformedBindPose;
+  if (ld->access[ld->accBindInvMats].count < ld->jointCount) {
+    *err = GltfError_MalformedBindMatrix;
     return;
+  }
+  const f32* bindInvMatData = ld->access[ld->accBindInvMats].data_f32;
+  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+    GltfJoint* joint = &ld->joints[jointIndex];
+
+    mem_cpy(array_mem(joint->bindMatInv.comps), mem_create(bindInvMatData + jointIndex * 16, 64));
+
+    // TODO: Add error when the matrix is non invertible?
+    joint->bindMat = geo_matrix_inverse(&joint->bindMatInv);
   }
 }
 
@@ -1107,7 +1117,7 @@ gltf_track_skinned_vertex(GltfLoad* ld, const AssetMeshVertex* vertex, const Ass
     GltfJoint* joint = &ld->joints[jointIndex];
 
     // TODO: Use the joint bindPose instead of the default skeleton pose (which might be different).
-    const GeoVector toVert = geo_vector_sub(vertex->position, joint->trans.t);
+    const GeoVector toVert = geo_vector_sub(vertex->position, joint->defaultTrans.t);
     const f32       dist   = geo_vector_mag(toVert);
 
     ++joint->skinCount;
@@ -1434,11 +1444,14 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
   // Create the default pose output.
   AssetMeshDataPtr resDefaultPose = gltf_data_begin(ld, alignof(GeoVector));
   for (const GltfJoint* joint = ld->joints; joint != ld->joints + ld->jointCount; ++joint) {
-    gltf_data_push_trans(ld, joint->trans);
+    gltf_data_push_trans(ld, joint->defaultTrans);
   }
 
-  AssetMeshDataPtr bindPoseInvMats = gltf_data_push_access_mat(ld, ld->accBindPoseInvMats);
-  AssetMeshDataPtr rootTransform   = gltf_data_push_trans(ld, ld->sceneTrans);
+  // Create the bind matrix output.
+  AssetMeshDataPtr resBindMatInv = gltf_data_push_access_mat(ld, ld->accBindInvMats);
+
+  // Create the root-transform output.
+  AssetMeshDataPtr resRootTransform = gltf_data_push_trans(ld, ld->sceneTrans);
 
   // Pad animData so the size is always a multiple of 16.
   mem_set(dynarray_push(&ld->animData, bits_padding(ld->animData.size, 16)), 0);
@@ -1446,9 +1459,9 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
   *out = (AssetMeshSkeletonComp){
       .anims.values    = resAnims,
       .anims.count     = ld->animCount,
-      .bindPoseInvMats = bindPoseInvMats,
+      .bindMatInv      = resBindMatInv,
       .defaultPose     = resDefaultPose,
-      .rootTransform   = rootTransform,
+      .rootTransform   = resRootTransform,
       .parentIndices   = resParents,
       .skinCounts      = resSkinCounts,
       .boundingRadius  = resBoundingRadius,
@@ -1544,7 +1557,7 @@ ecs_system_define(GltfLoadAssetSys) {
       if (err) {
         goto Error;
       }
-      gltf_parse_bind_poses(ld, &err);
+      gltf_parse_bind_matrices(ld, &err);
       if (err) {
         goto Error;
       }
@@ -1634,9 +1647,9 @@ void asset_load_mesh_gltf(
       world,
       entity,
       AssetGltfLoadComp,
-      .assetId            = id,
-      .jDoc               = jsonDoc,
-      .jRoot              = jsonRes.type,
-      .accBindPoseInvMats = sentinel_u32,
-      .animData           = dynarray_create(g_allocHeap, 1, 1, 0));
+      .assetId        = id,
+      .jDoc           = jsonDoc,
+      .jRoot          = jsonRes.type,
+      .accBindInvMats = sentinel_u32,
+      .animData       = dynarray_create(g_allocHeap, 1, 1, 0));
 }

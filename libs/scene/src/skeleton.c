@@ -58,14 +58,14 @@ typedef struct {
 ecs_comp_define(SceneSkeletonTemplComp) {
   SkeletonTemplState    state;
   EcsEntityId           mesh;
-  SceneSkeletonAnim*    anims;           // [animCount].
-  const GeoMatrix*      bindPoseInvMats; // [jointCount].
-  const SceneJointPose* defaultPose;     // [jointCount].
-  const SceneJointPose* rootPose;        // [1].
-  const u32*            parentIndices;   // [jointCount].
-  const u32*            skinCounts;      // [jointCount]. Amount of verts skinned to each joint.
-  const f32*            boundingRadius;  // f32[jointCount]. Bounding sphere radius for each joint.
-  const StringHash*     jointNames;      // [jointCount].
+  SceneSkeletonAnim*    anims;          // [animCount].
+  const GeoMatrix*      bindMatInv;     // [jointCount].
+  const SceneJointPose* defaultPose;    // [jointCount].
+  const SceneJointPose* rootPose;       // [1].
+  const u32*            parentIndices;  // [jointCount].
+  const u32*            skinCounts;     // [jointCount]. Amount of verts skinned to each joint.
+  const f32*            boundingRadius; // f32[jointCount]. Bounding sphere radius for each joint.
+  const StringHash*     jointNames;     // [jointCount].
   GeoMatrix             rootTransform;
   u32                   jointCount;
   u32                   animCount;
@@ -224,14 +224,14 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
     }
   }
 
-  tl->bindPoseInvMats = (const GeoMatrix*)mem_at_u8(tl->data, asset->bindPoseInvMats);
-  tl->defaultPose     = (const SceneJointPose*)mem_at_u8(tl->data, asset->defaultPose);
-  tl->parentIndices   = (const u32*)mem_at_u8(tl->data, asset->parentIndices);
-  tl->skinCounts      = (const u32*)mem_at_u8(tl->data, asset->skinCounts);
-  tl->boundingRadius  = (const f32*)mem_at_u8(tl->data, asset->boundingRadius);
-  tl->jointNames      = (const StringHash*)mem_at_u8(tl->data, asset->jointNameHashes);
-  tl->rootPose        = (const SceneJointPose*)mem_at_u8(tl->data, asset->rootTransform);
-  tl->rootTransform   = geo_matrix_trs(tl->rootPose->t, tl->rootPose->r, tl->rootPose->s);
+  tl->bindMatInv     = (const GeoMatrix*)mem_at_u8(tl->data, asset->bindMatInv);
+  tl->defaultPose    = (const SceneJointPose*)mem_at_u8(tl->data, asset->defaultPose);
+  tl->parentIndices  = (const u32*)mem_at_u8(tl->data, asset->parentIndices);
+  tl->skinCounts     = (const u32*)mem_at_u8(tl->data, asset->skinCounts);
+  tl->boundingRadius = (const f32*)mem_at_u8(tl->data, asset->boundingRadius);
+  tl->jointNames     = (const StringHash*)mem_at_u8(tl->data, asset->jointNameHashes);
+  tl->rootPose       = (const SceneJointPose*)mem_at_u8(tl->data, asset->rootTransform);
+  tl->rootTransform  = geo_matrix_trs(tl->rootPose->t, tl->rootPose->r, tl->rootPose->s);
 
   // Add the joint names to the string-table for debug purposes.
   const u8* jointNamesItr = mem_at_u8(tl->data, asset->jointNames);
@@ -828,5 +828,5 @@ bool scene_skeleton_mask_test(const SceneSkeletonMask* mask, const u32 joint) {
 void scene_skeleton_delta(
     const SceneSkeletonComp* sk, const SceneSkeletonTemplComp* tl, GeoMatrix* restrict out) {
   diag_assert(sk->jointCount == tl->jointCount);
-  geo_matrix_mul_batch(sk->jointTransforms, tl->bindPoseInvMats, out, sk->jointCount);
+  geo_matrix_mul_batch(sk->jointTransforms, tl->bindMatInv, out, sk->jointCount);
 }

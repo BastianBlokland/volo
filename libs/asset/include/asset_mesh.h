@@ -55,7 +55,7 @@ typedef struct {
 
 ecs_comp_extern_public(AssetMeshSkeletonComp) {
   HeapArray_t(AssetMeshAnim) anims;
-  AssetMeshDataPtr bindPoseInvMats; // GeoMatrix[jointCount]. From world to local bind space.
+  AssetMeshDataPtr bindMatInv;      // GeoMatrix[jointCount]. From world to bind space.
   AssetMeshDataPtr defaultPose;     // (GeoVector | GeoQuat)[jointCount][3]. Local TRS.
   AssetMeshDataPtr rootTransform;   // (GeoVector | GeoQuat)[3]. // TRS.
   AssetMeshDataPtr parentIndices;   // u32[jointCount].
