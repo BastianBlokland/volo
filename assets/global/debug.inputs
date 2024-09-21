@@ -155,7 +155,7 @@
       ]
     },
     {
-      "name": "DebugPanelAnimation",
+      "name": "DebugPanelSkeleton",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F6" }

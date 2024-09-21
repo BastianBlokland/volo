@@ -10,6 +10,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "scene_bounds.h"
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
 #include "scene_time.h"
@@ -58,17 +59,18 @@ typedef struct {
 ecs_comp_define(SceneSkeletonTemplComp) {
   SkeletonTemplState    state;
   EcsEntityId           mesh;
-  SceneSkeletonAnim*    anims;           // [animCount].
-  const GeoMatrix*      bindPoseInvMats; // [jointCount].
-  const SceneJointPose* defaultPose;     // [jointCount].
-  const SceneJointPose* rootPose;        // [1].
-  const u32*            parentIndices;   // [jointCount].
-  const u32*            skinCounts;      // [jointCount]. Amount of verts skinned to each joint.
-  const StringHash*     jointNames;      // [jointCount].
+  SceneSkeletonAnim*    anims;          // [animCount].
+  const GeoMatrix*      bindMatInv;     // [jointCount].
+  const SceneJointPose* defaultPose;    // [jointCount].
+  const SceneJointPose* rootPose;       // [1].
+  const u32*            parentIndices;  // [jointCount].
+  const u32*            skinCounts;     // [jointCount]. Amount of verts skinned to each joint.
+  const f32*            boundingRadius; // f32[jointCount]. Bounding sphere radius for each joint.
+  const StringHash*     jointNames;     // [jointCount].
   GeoMatrix             rootTransform;
   u32                   jointCount;
   u32                   animCount;
-  Mem                   animData;
+  Mem                   data;
 };
 ecs_comp_define(SceneSkeletonTemplLoadedComp);
 
@@ -96,8 +98,8 @@ static void ecs_destruct_skeleton_templ_comp(void* data) {
   if (comp->animCount) {
     alloc_free_array_t(g_allocHeap, comp->anims, comp->animCount);
   }
-  if (comp->animData.size) {
-    alloc_free(g_allocHeap, comp->animData);
+  if (comp->data.size) {
+    alloc_free(g_allocHeap, comp->data);
   }
 }
 
@@ -201,7 +203,7 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
   diag_assert(asset->jointCount <= scene_skeleton_joints_max);
 
   tl->jointCount = asset->jointCount;
-  tl->animData   = alloc_dup(g_allocHeap, data_mem(asset->data), 16);
+  tl->data       = alloc_dup(g_allocHeap, data_mem(asset->data), 16);
 
   tl->anims     = alloc_array_t(g_allocHeap, SceneSkeletonAnim, asset->anims.count);
   tl->animCount = (u32)asset->anims.count;
@@ -216,23 +218,24 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
 
         tl->anims[animIndex].joints[joint][target] = (SceneSkeletonChannel){
             .frameCount = assetChannel->frameCount,
-            .times      = (const u16*)mem_at_u8(tl->animData, assetChannel->timeData),
-            .values_raw = mem_at_u8(tl->animData, assetChannel->valueData),
+            .times      = (const u16*)mem_at_u8(tl->data, assetChannel->timeData),
+            .values_raw = mem_at_u8(tl->data, assetChannel->valueData),
         };
       }
     }
   }
 
-  tl->bindPoseInvMats = (const GeoMatrix*)mem_at_u8(tl->animData, asset->bindPoseInvMats);
-  tl->defaultPose     = (const SceneJointPose*)mem_at_u8(tl->animData, asset->defaultPose);
-  tl->parentIndices   = (const u32*)mem_at_u8(tl->animData, asset->parentIndices);
-  tl->skinCounts      = (const u32*)mem_at_u8(tl->animData, asset->skinCounts);
-  tl->jointNames      = (const StringHash*)mem_at_u8(tl->animData, asset->jointNameHashes);
-  tl->rootPose        = (const SceneJointPose*)mem_at_u8(tl->animData, asset->rootTransform);
-  tl->rootTransform   = geo_matrix_trs(tl->rootPose->t, tl->rootPose->r, tl->rootPose->s);
+  tl->bindMatInv     = (const GeoMatrix*)mem_at_u8(tl->data, asset->bindMatInv);
+  tl->defaultPose    = (const SceneJointPose*)mem_at_u8(tl->data, asset->defaultPose);
+  tl->parentIndices  = (const u32*)mem_at_u8(tl->data, asset->parentIndices);
+  tl->skinCounts     = (const u32*)mem_at_u8(tl->data, asset->skinCounts);
+  tl->boundingRadius = (const f32*)mem_at_u8(tl->data, asset->boundingRadius);
+  tl->jointNames     = (const StringHash*)mem_at_u8(tl->data, asset->jointNameHashes);
+  tl->rootPose       = (const SceneJointPose*)mem_at_u8(tl->data, asset->rootTransform);
+  tl->rootTransform  = geo_matrix_trs(tl->rootPose->t, tl->rootPose->r, tl->rootPose->s);
 
   // Add the joint names to the string-table for debug purposes.
-  const u8* jointNamesItr = mem_at_u8(tl->animData, asset->jointNames);
+  const u8* jointNamesItr = mem_at_u8(tl->data, asset->jointNames);
   for (u32 joint = 0; joint != asset->jointCount; ++joint) {
     const u8 size = *jointNamesItr++;
     stringtable_add(g_stringtable, mem_create(jointNamesItr, size));
@@ -482,6 +485,17 @@ static void anim_mul_rec(
   }
 }
 
+static GeoBox anim_calc_bounds(const SceneSkeletonTemplComp* tl, const GeoMatrix* jointTransforms) {
+  const GeoVector joint0Pos = geo_matrix_to_translation(&jointTransforms[0]);
+  GeoBox          bounds    = geo_box_from_sphere(joint0Pos, tl->boundingRadius[0]);
+  for (u32 i = 1; i != tl->jointCount; ++i) {
+    const GeoVector jointPos    = geo_matrix_to_translation(&jointTransforms[i]);
+    const GeoBox    jointBounds = geo_box_from_sphere(jointPos, tl->boundingRadius[i]);
+    bounds                      = geo_box_encapsulate_box(&bounds, &jointBounds);
+  }
+  return bounds;
+}
+
 static f32 anim_compute_fade(const f32 timeNorm, const SceneAnimFlags flags) {
   const f32 tQuad    = timeNorm * 4.0f;
   f32       strength = 1.0f;
@@ -515,6 +529,7 @@ ecs_view_define(UpdateView) {
   ecs_access_with(SceneSkeletonLoadedComp);
   ecs_access_write(SceneAnimationComp);
   ecs_access_write(SceneSkeletonComp);
+  ecs_access_maybe_write(SceneBoundsComp);
 }
 
 ecs_system_define(SceneSkeletonUpdateSys) {
@@ -574,6 +589,11 @@ ecs_system_define(SceneSkeletonUpdateSys) {
 
     if (!sentinel_check(sk->postTransJointIdx)) {
       anim_mul_rec(tl, sk->postTransJointIdx, &sk->postTransMat, sk->jointTransforms);
+    }
+
+    SceneBoundsComp* bounds = ecs_view_write_t(itr, SceneBoundsComp);
+    if (bounds) {
+      bounds->local = anim_calc_bounds(tl, sk->jointTransforms);
     }
   }
 }
@@ -712,6 +732,11 @@ u32 scene_skeleton_joint_skin_count(const SceneSkeletonTemplComp* tl, const u32 
   return tl->skinCounts[joint];
 }
 
+f32 scene_skeleton_joint_bounding_radius(const SceneSkeletonTemplComp* tl, const u32 joint) {
+  diag_assert(joint < tl->jointCount);
+  return tl->boundingRadius[joint];
+}
+
 GeoMatrix scene_skeleton_joint_world(
     const SceneTransformComp* trans,
     const SceneScaleComp*     scale,
@@ -821,5 +846,5 @@ bool scene_skeleton_mask_test(const SceneSkeletonMask* mask, const u32 joint) {
 void scene_skeleton_delta(
     const SceneSkeletonComp* sk, const SceneSkeletonTemplComp* tl, GeoMatrix* restrict out) {
   diag_assert(sk->jointCount == tl->jointCount);
-  geo_matrix_mul_batch(sk->jointTransforms, tl->bindPoseInvMats, out, sk->jointCount);
+  geo_matrix_mul_batch(sk->jointTransforms, tl->bindMatInv, out, sk->jointCount);
 }

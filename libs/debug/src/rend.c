@@ -370,13 +370,17 @@ static void debug_overlay_size(UiCanvasComp* c, UiTable* t, const String label, 
   debug_overlay_str(c, t, label, fmt_write_scratch("{}", fmt_size(v)));
 }
 
-static void debug_overlay_bool(UiCanvasComp* c, UiTable* t, const String label, const bool v) {
-  debug_overlay_str(c, t, label, fmt_write_scratch("{}", fmt_bool(v)));
-}
-
 static void
 debug_overlay_entity(UiCanvasComp* c, UiTable* t, const String label, const EcsEntityId v) {
   debug_overlay_str(c, t, label, fmt_write_scratch("{}", ecs_entity_fmt(v)));
+}
+
+static void debug_overlay_vec3(UiCanvasComp* c, UiTable* t, const String label, const GeoVector v) {
+  debug_overlay_str(
+      c,
+      t,
+      label,
+      fmt_write_scratch("{}", fmt_list_lit(fmt_float(v.x), fmt_float(v.y), fmt_float(v.z))));
 }
 
 static void debug_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsView* resView) {
@@ -429,11 +433,12 @@ static void debug_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsVi
   }
   const RendResMeshComp* mesh = ecs_view_read_t(resourceItr, RendResMeshComp);
   if (mesh) {
+    const GeoBox bounds = rend_res_mesh_bounds(mesh);
     debug_overlay_size(c, &table, string_lit("Memory"), rend_res_mesh_memory(mesh));
     debug_overlay_int(c, &table, string_lit("Vertices"), rend_res_mesh_vertices(mesh));
     debug_overlay_int(c, &table, string_lit("Indices"), rend_res_mesh_indices(mesh));
     debug_overlay_int(c, &table, string_lit("Triangles"), rend_res_mesh_indices(mesh) / 3);
-    debug_overlay_bool(c, &table, string_lit("Skinned"), rend_res_mesh_is_skinned(mesh));
+    debug_overlay_vec3(c, &table, string_lit("Bounds"), geo_box_size(&bounds));
   }
   ui_layout_set(c, ui_rect(ui_vector(0, 0), ui_vector(1, 1)), UiBase_Container);
   ui_layout_container_pop(c);

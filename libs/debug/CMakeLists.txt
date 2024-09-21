@@ -5,7 +5,6 @@
 message(STATUS "> library: debug")
 
 add_library(lib_debug STATIC
-  src/animation.c
   src/asset.c
   src/camera.c
   src/ecs.c
@@ -22,6 +21,7 @@ add_library(lib_debug STATIC
   src/rend.c
   src/script.c
   src/shape.c
+  src/skeleton.c
   src/sound.c
   src/stats.c
   src/text.c

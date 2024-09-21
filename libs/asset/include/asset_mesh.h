@@ -9,7 +9,7 @@
 ASSERT(asset_mesh_joints_max <= u8_max, "Joint indices should be representable by a u8");
 
 typedef u16 AssetMeshIndex;
-typedef u32 AssetMeshAnimPtr;
+typedef u32 AssetMeshDataPtr;
 
 /**
  * Packed vertex.
@@ -26,18 +26,11 @@ typedef struct {
 ASSERT(sizeof(AssetMeshVertexPacked) == 32, "Unexpected vertex size");
 ASSERT(alignof(AssetMeshVertexPacked) == 16, "Unexpected vertex alignment");
 
-typedef enum {
-  AssetMeshFlags_Skinned = 1 << 0,
-} AssetMeshFlags;
-
 ecs_comp_extern_public(AssetMeshComp) {
-  AssetMeshFlags flags;
-  u32            vertexCount, indexCount;
-  DataMem        vertexData; // AssetMeshVertexPacked[]
-  DataMem        indexData;  // AssetMeshIndex[]
-  GeoBox         positionBounds;
-  GeoBox         positionRawBounds; // Unscaled (does not take skinning into account).
-  GeoBox         texcoordBounds;
+  u32     vertexCount, indexCount;
+  DataMem vertexData; // AssetMeshVertexPacked[]
+  DataMem indexData;  // AssetMeshIndex[]
+  GeoBox  bounds;
 };
 
 typedef enum {
@@ -50,8 +43,8 @@ typedef enum {
 
 typedef struct {
   u32              frameCount;
-  AssetMeshAnimPtr timeData;  // u16[frameCount] (normalized, fractions of the anim duration).
-  AssetMeshAnimPtr valueData; // (GeoVector | GeoQuat)[frameCount].
+  AssetMeshDataPtr timeData;  // u16[frameCount] (normalized, fractions of the anim duration).
+  AssetMeshDataPtr valueData; // (GeoVector | GeoQuat)[frameCount].
 } AssetMeshAnimChannel;
 
 typedef struct {
@@ -62,13 +55,14 @@ typedef struct {
 
 ecs_comp_extern_public(AssetMeshSkeletonComp) {
   HeapArray_t(AssetMeshAnim) anims;
-  AssetMeshAnimPtr bindPoseInvMats; // GeoMatrix[jointCount]. From world to local bind space.
-  AssetMeshAnimPtr defaultPose;     // (GeoVector | GeoQuat)[jointCount][3]. Local TRS.
-  AssetMeshAnimPtr rootTransform;   // (GeoVector | GeoQuat)[3]. // TRS.
-  AssetMeshAnimPtr parentIndices;   // u32[jointCount].
-  AssetMeshAnimPtr skinCounts;      // u32[jointCount]. Amount of verts skinned to each joint.
-  AssetMeshAnimPtr jointNameHashes; // StringHash[jointCount].
-  AssetMeshAnimPtr jointNames;      // struct { u8 size; u8 data[size]; }[jointCount].
+  AssetMeshDataPtr bindMatInv;      // GeoMatrix[jointCount]. From world to bind space.
+  AssetMeshDataPtr defaultPose;     // (GeoVector | GeoQuat)[jointCount][3]. Local TRS.
+  AssetMeshDataPtr rootTransform;   // (GeoVector | GeoQuat)[3]. // TRS.
+  AssetMeshDataPtr parentIndices;   // u32[jointCount].
+  AssetMeshDataPtr skinCounts;      // u32[jointCount]. Amount of verts skinned to each joint.
+  AssetMeshDataPtr boundingRadius;  // f32[jointCount]. Bounding sphere radius for each joint.
+  AssetMeshDataPtr jointNameHashes; // StringHash[jointCount].
+  AssetMeshDataPtr jointNames;      // struct { u8 size; u8 data[size]; }[jointCount].
   u8               jointCount;
   DataMem          data; // 16 bit aligned and the size is always a multiple of 16.
 };

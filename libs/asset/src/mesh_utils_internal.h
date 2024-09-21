@@ -19,10 +19,8 @@ typedef struct {
 AssetMeshBuilder* asset_mesh_builder_create(Allocator*, u32 maxVertexCount);
 void              asset_mesh_builder_destroy(AssetMeshBuilder*);
 void              asset_mesh_builder_clear(AssetMeshBuilder*);
-AssetMeshIndex    asset_mesh_builder_push(AssetMeshBuilder*, AssetMeshVertex);
+AssetMeshIndex    asset_mesh_builder_push(AssetMeshBuilder*, const AssetMeshVertex*);
 void              asset_mesh_builder_set_skin(AssetMeshBuilder*, AssetMeshIndex, AssetMeshSkin);
-void              asset_mesh_builder_override_bounds(AssetMeshBuilder*, GeoBox);
-void              asset_mesh_builder_grow_bounds(AssetMeshBuilder*, f32 multiplier);
 
 AssetMeshComp asset_mesh_create(const AssetMeshBuilder*);
 

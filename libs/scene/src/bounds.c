@@ -144,7 +144,7 @@ ecs_system_define(SceneBoundsTemplateLoadSys) {
       }
       if (ecs_view_maybe_jump(meshItr, templateComp->mesh)) {
         const AssetMeshComp* mesh = ecs_view_read_t(meshItr, AssetMeshComp);
-        templateComp->localBounds = mesh->positionBounds;
+        templateComp->localBounds = mesh->bounds;
       }
       scene_bounds_template_load_done(world, itr);
       break;

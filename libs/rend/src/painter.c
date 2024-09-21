@@ -453,8 +453,8 @@ painter_push_debug_mesh_viewer(RendPaintContext* ctx, const f32 aspect, const Rv
   const RvkRepositoryId graphicId = RvkRepositoryId_DebugMeshViewerGraphic;
   const RvkGraphic*     graphic   = rvk_repository_graphic_get(repo, graphicId);
   if (graphic) {
-    const GeoVector meshCenter = geo_box_center(&mesh->positionRawBounds);
-    const f32       meshSize   = math_max(1.0f, geo_box_size(&mesh->positionRawBounds).y);
+    const GeoVector meshCenter = geo_box_center(&mesh->bounds);
+    const f32       meshSize   = math_max(1.0f, geo_box_size(&mesh->bounds).y);
 
     const GeoVector pos       = geo_vector(0, -meshCenter.y + meshSize * 0.15f);
     const f32       orthoSize = meshSize * 1.75f;
@@ -747,8 +747,8 @@ static bool rend_canvas_paint_3d(
     const GeoMatrix* shadTrans  = rend_light_shadow_trans(light);
     const GeoMatrix* shadProj   = rend_light_shadow_proj(light);
     SceneTagFilter   shadFilter = {
-          .required = cam->filter.required | SceneTags_ShadowCaster,
-          .illegal  = cam->filter.illegal,
+        .required = cam->filter.required | SceneTags_ShadowCaster,
+        .illegal  = cam->filter.illegal,
     };
     if (!(set->flags & RendFlags_VfxShadows)) {
       shadFilter.illegal |= SceneTags_Vfx;

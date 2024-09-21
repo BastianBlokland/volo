@@ -253,6 +253,15 @@ GeoVector geo_vector_max(const GeoVector x, const GeoVector y) {
 #endif
 }
 
+f32 geo_vector_max_comp3(const GeoVector vec) {
+#ifdef VOLO_SIMD
+  return simd_vec_x(simd_vec_max_comp3(simd_vec_load(vec.comps)));
+#else
+  const f32 tmp = math_max(vec.x, vec.y);
+  return math_max(tmp, vec.z);
+#endif
+}
+
 GeoVector geo_vector_xyz(const GeoVector v) { return geo_vector(v.x, v.y, v.z, 0); }
 GeoVector geo_vector_xz(const GeoVector v) { return geo_vector(v.x, 0, v.z, 0); }
 

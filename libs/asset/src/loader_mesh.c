@@ -67,18 +67,12 @@ ecs_module_init(asset_mesh_module) {
 
 void asset_data_init_mesh(void) {
   // clang-format off
-  data_reg_enum_multi_t(g_dataReg, AssetMeshFlags);
-  data_reg_const_t(g_dataReg, AssetMeshFlags, Skinned);
-
   data_reg_struct_t(g_dataReg, AssetMeshComp);
-  data_reg_field_t(g_dataReg, AssetMeshComp, flags, t_AssetMeshFlags);
   data_reg_field_t(g_dataReg, AssetMeshComp, vertexCount, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetMeshComp, indexCount, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetMeshComp, vertexData, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
   data_reg_field_t(g_dataReg, AssetMeshComp, indexData, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
-  data_reg_field_t(g_dataReg, AssetMeshComp, positionBounds, g_assetGeoBoxType);
-  data_reg_field_t(g_dataReg, AssetMeshComp, positionRawBounds, g_assetGeoBoxType);
-  data_reg_field_t(g_dataReg, AssetMeshComp, texcoordBounds, g_assetGeoBoxType);
+  data_reg_field_t(g_dataReg, AssetMeshComp, bounds, g_assetGeoBoxType);
 
   data_reg_enum_t(g_dataReg, AssetMeshAnimTarget);
   data_reg_const_t(g_dataReg, AssetMeshAnimTarget, Translation);
@@ -97,11 +91,12 @@ void asset_data_init_mesh(void) {
 
   data_reg_struct_t(g_dataReg, AssetMeshSkeletonComp);
   data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, anims, t_AssetMeshAnim, .container = DataContainer_HeapArray);
-  data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, bindPoseInvMats, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, bindMatInv, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, defaultPose, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, rootTransform, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, parentIndices, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, skinCounts, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, boundingRadius, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, jointNameHashes, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, jointNames, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, jointCount, data_prim_t(u8));

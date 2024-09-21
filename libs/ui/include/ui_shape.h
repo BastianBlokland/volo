@@ -50,6 +50,7 @@
   X(0xE8B8, Settings)                                                                              \
   X(0xE8F4, Visibility)                                                                            \
   X(0xE92B, Delete)                                                                                \
+  X(0xE92C, Body)                                                                                  \
   X(0xE9BA, Logout)                                                                                \
   X(0xE9E4, Speed)                                                                                 \
   X(0xE9FE, ViewInAr)                                                                              \
@@ -66,8 +67,8 @@
   X(0xF016, Grid4x4)                                                                               \
   X(0xF053, Restart)                                                                               \
   X(0xF10D, PushPin)                                                                               \
-  X(0xF233, Groups)                                                                                \
-  X(0xF230, Default)
+  X(0xF230, Default)                                                                               \
+  X(0xF233, Groups)
 
 enum {
 #define X(_UNICODE_, _NAME_) UiShape_##_NAME_ = _UNICODE_,

@@ -4,6 +4,9 @@
 // Forward declare from 'asset_manager.h'.
 typedef enum eAssetGraphicPass AssetGraphicPass;
 
+// Forward declare from 'geo_box.h'.
+typedef struct sGeoBox GeoBox;
+
 /**
  * Renderer resource.
  */
@@ -24,8 +27,8 @@ u32    rend_res_ticks_until_unload(const RendResComp*);
 u32    rend_res_dependents(const RendResComp*);
 u32    rend_res_mesh_vertices(const RendResMeshComp*);
 u32    rend_res_mesh_indices(const RendResMeshComp*);
-bool   rend_res_mesh_is_skinned(const RendResMeshComp*);
 usize  rend_res_mesh_memory(const RendResMeshComp*);
+GeoBox rend_res_mesh_bounds(const RendResMeshComp*);
 u16    rend_res_texture_width(const RendResTextureComp*);
 u16    rend_res_texture_height(const RendResTextureComp*);
 u16    rend_res_texture_layers(const RendResTextureComp*);

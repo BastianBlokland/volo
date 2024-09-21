@@ -13,7 +13,7 @@ struct sAssetMeshBuilder {
   DynArray        indexData;  // AssetMeshIndex[]
   AssetMeshIndex* indexTable;
   u32             tableSize, maxVertexCount;
-  GeoBox          positionBounds, positionRawBounds, texcoordBounds;
+  GeoBox          bounds;
   Allocator*      alloc;
 };
 
@@ -60,15 +60,13 @@ AssetMeshBuilder* asset_mesh_builder_create(Allocator* alloc, const u32 maxVerte
   AssetMeshBuilder* builder = alloc_alloc_t(alloc, AssetMeshBuilder);
 
   *builder = (AssetMeshBuilder){
-      .vertexData        = dynarray_create_t(alloc, AssetMeshVertex, maxVertexCount),
-      .skinData          = dynarray_create_t(alloc, AssetMeshSkin, 0),
-      .indexData         = dynarray_create_t(alloc, AssetMeshIndex, maxVertexCount),
-      .tableSize         = bits_nextpow2((u32)maxVertexCount),
-      .maxVertexCount    = (u32)maxVertexCount,
-      .positionBounds    = geo_box_inverted3(),
-      .positionRawBounds = geo_box_inverted3(),
-      .texcoordBounds    = geo_box_inverted2(),
-      .alloc             = alloc,
+      .vertexData     = dynarray_create_t(alloc, AssetMeshVertex, maxVertexCount),
+      .skinData       = dynarray_create_t(alloc, AssetMeshSkin, 0),
+      .indexData      = dynarray_create_t(alloc, AssetMeshIndex, maxVertexCount),
+      .tableSize      = bits_nextpow2((u32)maxVertexCount),
+      .maxVertexCount = (u32)maxVertexCount,
+      .bounds         = geo_box_inverted3(),
+      .alloc          = alloc,
   };
 
   builder->indexTable = alloc_array_t(alloc, AssetMeshIndex, builder->tableSize);
@@ -92,9 +90,7 @@ void asset_mesh_builder_clear(AssetMeshBuilder* builder) {
   dynarray_clear(&builder->vertexData);
   dynarray_clear(&builder->skinData);
   dynarray_clear(&builder->indexData);
-  builder->positionBounds    = geo_box_inverted3();
-  builder->positionRawBounds = geo_box_inverted3();
-  builder->texcoordBounds    = geo_box_inverted3();
+  builder->bounds = geo_box_inverted3();
 
   // Reset the index table.
   for (u32 i = 0; i != builder->tableSize; ++i) {
@@ -102,12 +98,13 @@ void asset_mesh_builder_clear(AssetMeshBuilder* builder) {
   }
 }
 
-AssetMeshIndex asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMeshVertex vert) {
+AssetMeshIndex asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMeshVertex* vert) {
   /**
    * Deduplicate using a simple open-addressing hash table.
    * https://en.wikipedia.org/wiki/Open_addressing
    */
-  u32 bucket = bits_hash_32(mem_var(vert)) & (builder->tableSize - 1);
+  const Mem vertMem = mem_create(vert, sizeof(AssetMeshVertex));
+  u32       bucket  = bits_hash_32(vertMem) & (builder->tableSize - 1);
   for (usize i = 0; i != builder->tableSize; ++i) {
     AssetMeshIndex* slot = &builder->indexTable[bucket];
 
@@ -119,16 +116,15 @@ AssetMeshIndex asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMes
 
       // Unique vertex, copy to output and save the index in the table.
       *slot = (AssetMeshIndex)builder->vertexData.size;
-      *dynarray_push_t(&builder->vertexData, AssetMeshVertex) = vert;
+      *dynarray_push_t(&builder->vertexData, AssetMeshVertex) = *vert;
       *dynarray_push_t(&builder->indexData, AssetMeshIndex)   = *slot;
 
-      builder->positionRawBounds = geo_box_encapsulate(&builder->positionRawBounds, vert.position);
-      builder->texcoordBounds    = geo_box_encapsulate2(&builder->texcoordBounds, vert.texcoord);
+      builder->bounds = geo_box_encapsulate(&builder->bounds, vert->position);
       return *slot;
     }
 
     diag_assert(*slot < builder->vertexData.size);
-    if (mem_eq(dynarray_at(&builder->vertexData, *slot, 1), mem_var(vert))) {
+    if (mem_eq(dynarray_at(&builder->vertexData, *slot, 1), vertMem)) {
       // Equal to the vertex in this slot, reuse the vertex.
       *dynarray_push_t(&builder->indexData, AssetMeshIndex) = *slot;
       return *slot;
@@ -150,16 +146,6 @@ void asset_mesh_builder_set_skin(
   *dynarray_at_t(&builder->skinData, idx, AssetMeshSkin) = skin;
 }
 
-void asset_mesh_builder_override_bounds(AssetMeshBuilder* builder, const GeoBox overrideBounds) {
-  builder->positionBounds = overrideBounds;
-}
-
-void asset_mesh_builder_grow_bounds(AssetMeshBuilder* builder, const f32 multiplier) {
-  const GeoVector center  = geo_box_center(&builder->positionRawBounds);
-  const GeoVector size    = geo_box_size(&builder->positionRawBounds);
-  builder->positionBounds = geo_box_from_center(center, geo_vector_mul(size, multiplier));
-}
-
 AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
   diag_assert_msg(builder->indexData.size, "Empty mesh is invalid");
 
@@ -167,11 +153,6 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
   const u32  indexCount = (u32)builder->indexData.size;
   const bool isSkinned  = builder->skinData.size != 0;
   diag_assert(!isSkinned || builder->skinData.size == vertCount);
-
-  GeoBox positionBounds = builder->positionBounds;
-  if (geo_box_is_inverted3(&positionBounds)) {
-    positionBounds = builder->positionRawBounds;
-  }
 
   const usize vertexDataSize = sizeof(AssetMeshVertexPacked) * vertCount;
   const Mem   vertexData = alloc_alloc(g_allocHeap, vertexDataSize, alignof(AssetMeshVertexPacked));
@@ -215,20 +196,12 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
   const Mem   indexData     = alloc_alloc(g_allocHeap, indexDataSize, sizeof(AssetMeshIndex));
   mem_cpy(indexData, dynarray_at(&builder->indexData, 0, indexCount));
 
-  AssetMeshFlags flags = 0;
-  if (isSkinned) {
-    flags |= AssetMeshFlags_Skinned;
-  }
-
   return (AssetMeshComp){
-      .flags             = flags,
-      .vertexCount       = vertCount,
-      .indexCount        = indexCount,
-      .vertexData        = data_mem_create(vertexData),
-      .indexData         = data_mem_create(indexData),
-      .positionBounds    = positionBounds,
-      .positionRawBounds = builder->positionRawBounds,
-      .texcoordBounds    = builder->texcoordBounds,
+      .vertexCount = vertCount,
+      .indexCount  = indexCount,
+      .vertexData  = data_mem_create(vertexData),
+      .indexData   = data_mem_create(indexData),
+      .bounds      = builder->bounds,
   };
 }
 
@@ -261,13 +234,13 @@ void asset_mesh_compute_flat_normals(AssetMeshBuilder* builder) {
     const GeoVector normQuant = geo_vector_quantize3(norm, 20);
 
     vA->normal                = normQuant;
-    const AssetMeshIndex idxA = asset_mesh_builder_push(builder, *vA);
+    const AssetMeshIndex idxA = asset_mesh_builder_push(builder, vA);
 
     vB->normal                = normQuant;
-    const AssetMeshIndex idxB = asset_mesh_builder_push(builder, *vB);
+    const AssetMeshIndex idxB = asset_mesh_builder_push(builder, vB);
 
     vC->normal                = normQuant;
-    const AssetMeshIndex idxC = asset_mesh_builder_push(builder, *vC);
+    const AssetMeshIndex idxC = asset_mesh_builder_push(builder, vC);
 
     if (snapshot.skinData) {
       // Preserve the original skinning.

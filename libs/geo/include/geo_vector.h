@@ -125,6 +125,7 @@ GeoVector geo_vector_bilerp(GeoVector v1, GeoVector v2, GeoVector v3, GeoVector 
  */
 GeoVector geo_vector_min(GeoVector x, GeoVector y);
 GeoVector geo_vector_max(GeoVector x, GeoVector y);
+f32       geo_vector_max_comp3(GeoVector);
 
 /**
  * Clear out the non-specified components.

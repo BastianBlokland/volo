@@ -41,19 +41,13 @@ typedef enum {
 } ProcMeshType;
 
 typedef struct {
-  f32 minX, minY, minZ;
-  f32 maxX, maxY, maxZ;
-} ProcMeshBounds;
-
-typedef struct {
-  ProcMeshType    type;
-  ProcMeshAxis    axis;
-  u32             subdivisions;
-  f32             length;
-  f32             scaleX, scaleY, scaleZ;
-  f32             offsetX, offsetY, offsetZ;
-  bool            uncapped;
-  ProcMeshBounds* bounds;
+  ProcMeshType type;
+  ProcMeshAxis axis;
+  u32          subdivisions;
+  f32          length;
+  f32          scaleX, scaleY, scaleZ;
+  f32          offsetX, offsetY, offsetZ;
+  bool         uncapped;
 } ProcMeshDef;
 
 typedef struct {
@@ -132,25 +126,23 @@ static GeoMatrix procmesh_def_matrix(const ProcMeshDef* def) {
 
 static void
 procmesh_push_vert(ProcMeshGenerator* gen, const GeoVector pos, const GeoVector texcoord) {
-  const GeoMatrix mat = geo_matrix_mul(&gen->transformGlobal, &gen->transformLocal);
-  asset_mesh_builder_push(
-      gen->builder,
-      (AssetMeshVertex){
-          .position = geo_matrix_transform3_point(&mat, pos),
-          .texcoord = texcoord,
-      });
+  const GeoMatrix       mat  = geo_matrix_mul(&gen->transformGlobal, &gen->transformLocal);
+  const AssetMeshVertex vert = {
+      .position = geo_matrix_transform3_point(&mat, pos),
+      .texcoord = texcoord,
+  };
+  asset_mesh_builder_push(gen->builder, &vert);
 }
 
 static void procmesh_push_vert_nrm(
     ProcMeshGenerator* gen, const GeoVector pos, const GeoVector texcoord, const GeoVector normal) {
-  const GeoMatrix mat = geo_matrix_mul(&gen->transformGlobal, &gen->transformLocal);
-  asset_mesh_builder_push(
-      gen->builder,
-      (AssetMeshVertex){
-          .position = geo_matrix_transform3_point(&mat, pos),
-          .texcoord = texcoord,
-          .normal   = geo_matrix_transform3(&mat, normal),
-      });
+  const GeoMatrix       mat  = geo_matrix_mul(&gen->transformGlobal, &gen->transformLocal);
+  const AssetMeshVertex vert = {
+      .position = geo_matrix_transform3_point(&mat, pos),
+      .texcoord = texcoord,
+      .normal   = geo_matrix_transform3(&mat, normal),
+  };
+  asset_mesh_builder_push(gen->builder, &vert);
 }
 
 void procmesh_push_triangle(ProcMeshGenerator* gen) {
@@ -532,14 +524,6 @@ void asset_data_init_procmesh(void) {
   data_reg_const_t(g_dataReg, ProcMeshAxis, Forward);
   data_reg_const_t(g_dataReg, ProcMeshAxis, Backward);
 
-  data_reg_struct_t(g_dataReg, ProcMeshBounds);
-  data_reg_field_t(g_dataReg, ProcMeshBounds, minX, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, ProcMeshBounds, minY, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, ProcMeshBounds, minZ, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, ProcMeshBounds, maxX, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, ProcMeshBounds, maxY, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, ProcMeshBounds, maxZ, data_prim_t(f32));
-
   data_reg_struct_t(g_dataReg, ProcMeshDef);
   data_reg_field_t(g_dataReg, ProcMeshDef, type, t_ProcMeshType);
   data_reg_field_t(g_dataReg, ProcMeshDef, axis, t_ProcMeshAxis);
@@ -552,7 +536,6 @@ void asset_data_init_procmesh(void) {
   data_reg_field_t(g_dataReg, ProcMeshDef, offsetY, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ProcMeshDef, offsetZ, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, ProcMeshDef, uncapped, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, ProcMeshDef, bounds, t_ProcMeshBounds, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
   // clang-format on
 
   g_assetProcMeshDefMeta = data_meta_t(t_ProcMeshDef);
@@ -582,14 +565,6 @@ void asset_load_mesh_proc(
       .transformGlobal = procmesh_def_matrix(&def),
       .transformLocal  = geo_matrix_ident(),
   });
-
-  if (def.bounds) {
-    const GeoBox box = (GeoBox){
-        .min = geo_vector(def.bounds->minX, def.bounds->minY, def.bounds->minZ),
-        .max = geo_vector(def.bounds->maxX, def.bounds->maxY, def.bounds->maxZ),
-    };
-    asset_mesh_builder_override_bounds(builder, box);
-  }
 
   AssetMeshBundle meshBundle = {0};
   meshBundle.mesh            = asset_mesh_create(builder);
