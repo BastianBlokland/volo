@@ -822,7 +822,10 @@ Error:
 
 static bool gltf_anim_target(const String str, AssetMeshAnimTarget* out) {
   static const String g_names[] = {
-      string_static("translation"), string_static("rotation"), string_static("scale")};
+      string_static("translation"),
+      string_static("rotation"),
+      string_static("scale"),
+  };
   for (u32 i = 0; i != array_elems(g_names); ++i) {
     if (string_eq(str, g_names[i])) {
       *out = i;
