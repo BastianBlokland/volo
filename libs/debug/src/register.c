@@ -2,7 +2,6 @@
 #include "ecs_def.h"
 
 void debug_register(EcsDef* def) {
-  ecs_register_module(def, debug_animation_module);
   ecs_register_module(def, debug_asset_module);
   ecs_register_module(def, debug_camera_module);
   ecs_register_module(def, debug_ecs_module);
@@ -18,6 +17,7 @@ void debug_register(EcsDef* def) {
   ecs_register_module(def, debug_rend_module);
   ecs_register_module(def, debug_script_module);
   ecs_register_module(def, debug_shape_module);
+  ecs_register_module(def, debug_skeleton_module);
   ecs_register_module(def, debug_sound_module);
   ecs_register_module(def, debug_stats_module);
   ecs_register_module(def, debug_text_module);
