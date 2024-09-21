@@ -140,7 +140,7 @@ ecs_comp_define(AssetGltfLoadComp) {
   u32           jointCount;
   u32           animCount;
   GltfTransform sceneTrans;
-  u32           accBindPoseInvMats; // Access index [Optional].
+  u32           accBindPoseInvMats; // Access index [Optional]. World to local bind space matrix.
 };
 
 typedef AssetGltfLoadComp GltfLoad;
@@ -184,6 +184,7 @@ typedef enum {
   GltfError_MalformedPrimTexcoords,
   GltfError_MalformedPrimJoints,
   GltfError_MalformedPrimWeights,
+  GltfError_MalformedBindPose,
   GltfError_MalformedSceneTransform,
   GltfError_MalformedSkin,
   GltfError_MalformedNodes,
@@ -213,6 +214,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Malformed primitive texcoords"),
       string_static("Malformed primitive joints"),
       string_static("Malformed primitive weights"),
+      string_static("Malformed bind pose"),
       string_static("Malformed scene transform"),
       string_static("Malformed skin"),
       string_static("Malformed nodes"),
@@ -828,6 +830,20 @@ Error:
   *err = GltfError_MalformedNodes;
 }
 
+static void gltf_parse_bind_poses(GltfLoad* ld, GltfError* err) {
+  if (!ld->jointCount) {
+    return;
+  }
+  if (!gltf_access_check(ld, ld->accBindPoseInvMats, GltfType_f32, 16)) {
+    *err = GltfError_MalformedBindPose;
+    return;
+  }
+  if (ld->access[ld->accBindPoseInvMats].count < ld->jointCount) {
+    *err = GltfError_MalformedBindPose;
+    return;
+  }
+}
+
 static bool gltf_anim_target(const String str, AssetMeshAnimTarget* out) {
   static const String g_names[] = {
       string_static("translation"),
@@ -1315,13 +1331,6 @@ static bool gtlf_process_any_joint_scaled(GltfLoad* ld, const AssetMeshAnim* ani
 static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfError* err) {
   diag_assert(ld->jointCount);
 
-  if (!gltf_access_check(ld, ld->accBindPoseInvMats, GltfType_f32, 16)) {
-    goto Error;
-  }
-  if (ld->access[ld->accBindPoseInvMats].count < ld->jointCount) {
-    goto Error;
-  }
-
   // Verify the accessors of all animated channels.
   for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
     for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
@@ -1532,6 +1541,10 @@ ecs_system_define(GltfLoadAssetSys) {
         goto Error;
       }
       gltf_parse_skeleton_nodes(ld, &err);
+      if (err) {
+        goto Error;
+      }
+      gltf_parse_bind_poses(ld, &err);
       if (err) {
         goto Error;
       }
