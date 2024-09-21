@@ -839,6 +839,8 @@ usize rend_res_mesh_memory(const RendResMeshComp* comp) {
   return comp->mesh->vertexBuffer.size + comp->mesh->indexBuffer.size;
 }
 
+GeoBox rend_res_mesh_bounds(const RendResMeshComp* comp) { return comp->mesh->bounds; }
+
 u16 rend_res_texture_width(const RendResTextureComp* comp) {
   return comp->texture->image.size.width;
 }
