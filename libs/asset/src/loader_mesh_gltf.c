@@ -438,6 +438,12 @@ static AssetMeshDataPtr gltf_data_push_trans(GltfLoad* ld, const GltfTransform v
   return res;
 }
 
+static AssetMeshDataPtr gltf_data_push_matrix(GltfLoad* ld, const GeoMatrix val) {
+  const AssetMeshDataPtr res = gltf_data_begin(ld, alignof(GeoMatrix));
+  *((GeoMatrix*)dynarray_push(&ld->animData, sizeof(GeoMatrix)).ptr) = val;
+  return res;
+}
+
 static AssetMeshDataPtr gltf_data_push_string(GltfLoad* ld, const String val) {
   diag_assert(val.size <= u8_max);
   const AssetMeshDataPtr res                           = gltf_data_begin(ld, alignof(u8));
@@ -464,29 +470,6 @@ static AssetMeshDataPtr gltf_data_push_access_vec(GltfLoad* ld, const u32 acc) {
     mem_cpy(
         dynarray_push(&ld->animData, sizeof(f32) * 4),
         mem_create(&ld->access[acc].data_f32[i], sizeof(f32) * compCount));
-  }
-  return res;
-}
-
-static AssetMeshDataPtr gltf_data_push_access_mat(GltfLoad* ld, const u32 acc) {
-  diag_assert(ld->access[acc].compType == GltfType_f32);
-  diag_assert(ld->access[acc].compCount == 16);
-
-  const u32              elemSize = sizeof(GeoMatrix);
-  const AssetMeshDataPtr res      = gltf_data_begin(ld, alignof(GeoMatrix));
-  for (u32 i = 0; i != ld->access[acc].count; ++i) {
-    // NOTE: Mem copy it into a local variable to satisfy alignment requirements.
-    GeoMatrix src;
-    mem_cpy(mem_var(src), mem_create(ld->access[acc].data_u8 + i * elemSize, elemSize));
-
-    /**
-     * Gltf also uses column-major 4x4 f32 matrices, the only post-processing needed is converting
-     * from a right-handed to a left-handed coordinate system.
-     */
-    static const GeoMatrix g_negZMat = {{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, 1}}};
-    src                              = geo_matrix_mul(&src, &g_negZMat);
-
-    mem_cpy(dynarray_push(&ld->animData, sizeof(GeoMatrix)), mem_var(src));
   }
   return res;
 }
@@ -847,7 +830,15 @@ static void gltf_parse_bind_matrices(GltfLoad* ld, GltfError* err) {
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
     GltfJoint* joint = &ld->joints[jointIndex];
 
+    // Copy the raw gltf inverse bind matrix.
     mem_cpy(array_mem(joint->bindMatInv.comps), mem_create(bindInvMatData + jointIndex * 16, 64));
+
+    /**
+     * Gltf also uses column-major 4x4 f32 matrices, the only post-processing needed is converting
+     * from a right-handed to a left-handed coordinate system.
+     */
+    static const GeoMatrix g_negZMat = {{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, 1}}};
+    joint->bindMatInv                = geo_matrix_mul(&joint->bindMatInv, &g_negZMat);
 
     // TODO: Add error when the matrix is non invertible?
     joint->bindMat = geo_matrix_inverse(&joint->bindMatInv);
@@ -1448,7 +1439,10 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
   }
 
   // Create the bind matrix output.
-  AssetMeshDataPtr resBindMatInv = gltf_data_push_access_mat(ld, ld->accBindInvMats);
+  AssetMeshDataPtr resBindMatInv = gltf_data_begin(ld, alignof(GeoMatrix));
+  for (const GltfJoint* joint = ld->joints; joint != ld->joints + ld->jointCount; ++joint) {
+    gltf_data_push_matrix(ld, joint->bindMatInv);
+  }
 
   // Create the root-transform output.
   AssetMeshDataPtr resRootTransform = gltf_data_push_trans(ld, ld->sceneTrans);
