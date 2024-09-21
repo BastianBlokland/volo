@@ -10,6 +10,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "scene_bounds.h"
 #include "scene_renderable.h"
 #include "scene_skeleton.h"
 #include "scene_time.h"
@@ -484,6 +485,17 @@ static void anim_mul_rec(
   }
 }
 
+static GeoBox anim_calc_bounds(const SceneSkeletonTemplComp* tl, const GeoMatrix* jointTransforms) {
+  const GeoVector joint0Pos = geo_matrix_to_translation(&jointTransforms[0]);
+  GeoBox          bounds    = geo_box_from_sphere(joint0Pos, tl->boundingRadius[0]);
+  for (u32 i = 1; i != tl->jointCount; ++i) {
+    const GeoVector jointPos    = geo_matrix_to_translation(&jointTransforms[i]);
+    const GeoBox    jointBounds = geo_box_from_sphere(jointPos, tl->boundingRadius[i]);
+    bounds                      = geo_box_encapsulate_box(&bounds, &jointBounds);
+  }
+  return bounds;
+}
+
 static f32 anim_compute_fade(const f32 timeNorm, const SceneAnimFlags flags) {
   const f32 tQuad    = timeNorm * 4.0f;
   f32       strength = 1.0f;
@@ -517,6 +529,7 @@ ecs_view_define(UpdateView) {
   ecs_access_with(SceneSkeletonLoadedComp);
   ecs_access_write(SceneAnimationComp);
   ecs_access_write(SceneSkeletonComp);
+  ecs_access_maybe_write(SceneBoundsComp);
 }
 
 ecs_system_define(SceneSkeletonUpdateSys) {
@@ -576,6 +589,11 @@ ecs_system_define(SceneSkeletonUpdateSys) {
 
     if (!sentinel_check(sk->postTransJointIdx)) {
       anim_mul_rec(tl, sk->postTransJointIdx, &sk->postTransMat, sk->jointTransforms);
+    }
+
+    SceneBoundsComp* bounds = ecs_view_write_t(itr, SceneBoundsComp);
+    if (bounds) {
+      bounds->local = anim_calc_bounds(tl, sk->jointTransforms);
     }
   }
 }
