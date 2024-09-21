@@ -1070,14 +1070,25 @@ static void gltf_vertex_skin(
   *err = GltfError_None;
 }
 
-static void gltf_track_skinned_vertex(GltfLoad* ld, const AssetMeshSkin* skin) {
-  /**
-   * Track how many vertices are skinned to each joint.
-   */
+/**
+ * Update joint meta-data for the given skinned vertex.
+ */
+static void
+gltf_track_skinned_vertex(GltfLoad* ld, const AssetMeshVertex* vertex, const AssetMeshSkin* skin) {
   for (u32 i = 0; i != 4; ++i) {
-    if (skin->weights.comps[i] > 0.001f) {
-      ++ld->joints[skin->joints[i]].skinCount;
+    const f32 jointWeight = skin->weights.comps[i];
+    const u8  jointIndex  = skin->joints[i];
+    if (jointWeight < 1e-3f) {
+      continue; // Joint unused in skin.
     }
+    GltfJoint* joint = &ld->joints[jointIndex];
+
+    // TODO: Use the joint bindPose instead of the default skeleton pose (which might be different).
+    const GeoVector toVert = geo_vector_sub(vertex->position, joint->trans.t);
+    const f32       dist   = geo_vector_mag(toVert);
+
+    ++joint->skinCount;
+    joint->boundingRadius = math_max(joint->boundingRadius, dist);
   }
 }
 
@@ -1153,7 +1164,7 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
           goto Cleanup;
         }
         asset_mesh_builder_set_skin(builder, vertexIdx, skin);
-        gltf_track_skinned_vertex(ld, &skin);
+        gltf_track_skinned_vertex(ld, &vertex, &skin);
       }
     }
   }
