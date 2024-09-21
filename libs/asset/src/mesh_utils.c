@@ -145,10 +145,6 @@ void asset_mesh_builder_set_skin(
   *dynarray_at_t(&builder->skinData, idx, AssetMeshSkin) = skin;
 }
 
-void asset_mesh_builder_override_bounds(AssetMeshBuilder* builder, const GeoBox overrideBounds) {
-  builder->bounds = overrideBounds;
-}
-
 AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
   diag_assert_msg(builder->indexData.size, "Empty mesh is invalid");
 
