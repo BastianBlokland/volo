@@ -37,7 +37,6 @@ ecs_comp_extern_public(AssetMeshComp) {
   DataMem        indexData;  // AssetMeshIndex[]
   GeoBox         positionBounds;
   GeoBox         positionRawBounds; // Unscaled (does not take skinning into account).
-  GeoBox         texcoordBounds;
 };
 
 typedef enum {

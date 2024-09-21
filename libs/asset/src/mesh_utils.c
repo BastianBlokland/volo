@@ -13,7 +13,7 @@ struct sAssetMeshBuilder {
   DynArray        indexData;  // AssetMeshIndex[]
   AssetMeshIndex* indexTable;
   u32             tableSize, maxVertexCount;
-  GeoBox          positionBounds, positionRawBounds, texcoordBounds;
+  GeoBox          positionBounds, positionRawBounds;
   Allocator*      alloc;
 };
 
@@ -67,7 +67,6 @@ AssetMeshBuilder* asset_mesh_builder_create(Allocator* alloc, const u32 maxVerte
       .maxVertexCount    = (u32)maxVertexCount,
       .positionBounds    = geo_box_inverted3(),
       .positionRawBounds = geo_box_inverted3(),
-      .texcoordBounds    = geo_box_inverted2(),
       .alloc             = alloc,
   };
 
@@ -94,7 +93,6 @@ void asset_mesh_builder_clear(AssetMeshBuilder* builder) {
   dynarray_clear(&builder->indexData);
   builder->positionBounds    = geo_box_inverted3();
   builder->positionRawBounds = geo_box_inverted3();
-  builder->texcoordBounds    = geo_box_inverted3();
 
   // Reset the index table.
   for (u32 i = 0; i != builder->tableSize; ++i) {
@@ -123,7 +121,6 @@ AssetMeshIndex asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMes
       *dynarray_push_t(&builder->indexData, AssetMeshIndex)   = *slot;
 
       builder->positionRawBounds = geo_box_encapsulate(&builder->positionRawBounds, vert.position);
-      builder->texcoordBounds    = geo_box_encapsulate2(&builder->texcoordBounds, vert.texcoord);
       return *slot;
     }
 
@@ -228,7 +225,6 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
       .indexData         = data_mem_create(indexData),
       .positionBounds    = positionBounds,
       .positionRawBounds = builder->positionRawBounds,
-      .texcoordBounds    = builder->texcoordBounds,
   };
 }
 
