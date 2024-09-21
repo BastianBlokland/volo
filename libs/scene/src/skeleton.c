@@ -68,7 +68,7 @@ ecs_comp_define(SceneSkeletonTemplComp) {
   GeoMatrix             rootTransform;
   u32                   jointCount;
   u32                   animCount;
-  Mem                   animData;
+  Mem                   data;
 };
 ecs_comp_define(SceneSkeletonTemplLoadedComp);
 
@@ -96,8 +96,8 @@ static void ecs_destruct_skeleton_templ_comp(void* data) {
   if (comp->animCount) {
     alloc_free_array_t(g_allocHeap, comp->anims, comp->animCount);
   }
-  if (comp->animData.size) {
-    alloc_free(g_allocHeap, comp->animData);
+  if (comp->data.size) {
+    alloc_free(g_allocHeap, comp->data);
   }
 }
 
@@ -201,7 +201,7 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
   diag_assert(asset->jointCount <= scene_skeleton_joints_max);
 
   tl->jointCount = asset->jointCount;
-  tl->animData   = alloc_dup(g_allocHeap, data_mem(asset->data), 16);
+  tl->data       = alloc_dup(g_allocHeap, data_mem(asset->data), 16);
 
   tl->anims     = alloc_array_t(g_allocHeap, SceneSkeletonAnim, asset->anims.count);
   tl->animCount = (u32)asset->anims.count;
@@ -216,23 +216,23 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
 
         tl->anims[animIndex].joints[joint][target] = (SceneSkeletonChannel){
             .frameCount = assetChannel->frameCount,
-            .times      = (const u16*)mem_at_u8(tl->animData, assetChannel->timeData),
-            .values_raw = mem_at_u8(tl->animData, assetChannel->valueData),
+            .times      = (const u16*)mem_at_u8(tl->data, assetChannel->timeData),
+            .values_raw = mem_at_u8(tl->data, assetChannel->valueData),
         };
       }
     }
   }
 
-  tl->bindPoseInvMats = (const GeoMatrix*)mem_at_u8(tl->animData, asset->bindPoseInvMats);
-  tl->defaultPose     = (const SceneJointPose*)mem_at_u8(tl->animData, asset->defaultPose);
-  tl->parentIndices   = (const u32*)mem_at_u8(tl->animData, asset->parentIndices);
-  tl->skinCounts      = (const u32*)mem_at_u8(tl->animData, asset->skinCounts);
-  tl->jointNames      = (const StringHash*)mem_at_u8(tl->animData, asset->jointNameHashes);
-  tl->rootPose        = (const SceneJointPose*)mem_at_u8(tl->animData, asset->rootTransform);
+  tl->bindPoseInvMats = (const GeoMatrix*)mem_at_u8(tl->data, asset->bindPoseInvMats);
+  tl->defaultPose     = (const SceneJointPose*)mem_at_u8(tl->data, asset->defaultPose);
+  tl->parentIndices   = (const u32*)mem_at_u8(tl->data, asset->parentIndices);
+  tl->skinCounts      = (const u32*)mem_at_u8(tl->data, asset->skinCounts);
+  tl->jointNames      = (const StringHash*)mem_at_u8(tl->data, asset->jointNameHashes);
+  tl->rootPose        = (const SceneJointPose*)mem_at_u8(tl->data, asset->rootTransform);
   tl->rootTransform   = geo_matrix_trs(tl->rootPose->t, tl->rootPose->r, tl->rootPose->s);
 
   // Add the joint names to the string-table for debug purposes.
-  const u8* jointNamesItr = mem_at_u8(tl->animData, asset->jointNames);
+  const u8* jointNamesItr = mem_at_u8(tl->data, asset->jointNames);
   for (u32 joint = 0; joint != asset->jointCount; ++joint) {
     const u8 size = *jointNamesItr++;
     stringtable_add(g_stringtable, mem_create(jointNamesItr, size));

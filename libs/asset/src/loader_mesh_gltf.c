@@ -407,48 +407,48 @@ static f32 gltf_access_max_f32(GltfLoad* ld, const u32 acc) {
   return res;
 }
 
-static AssetMeshAnimPtr gltf_anim_data_begin(GltfLoad* ld, const u32 align) {
+static AssetMeshDataPtr gltf_data_begin(GltfLoad* ld, const u32 align) {
   // Insert padding to reach the requested alignment.
   dynarray_push(&ld->animData, bits_padding_32((u32)ld->animData.size, align));
   return (u32)ld->animData.size;
 }
 
-static AssetMeshAnimPtr gltf_anim_data_push_u32(GltfLoad* ld, const u32 val) {
-  const AssetMeshAnimPtr res                             = gltf_anim_data_begin(ld, alignof(u32));
+static AssetMeshDataPtr gltf_data_push_u32(GltfLoad* ld, const u32 val) {
+  const AssetMeshDataPtr res                             = gltf_data_begin(ld, alignof(u32));
   *((u32*)dynarray_push(&ld->animData, sizeof(u32)).ptr) = val;
   return res;
 }
 
-static AssetMeshAnimPtr gltf_anim_data_push_trans(GltfLoad* ld, const GltfTransform val) {
-  const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, alignof(GeoVector));
+static AssetMeshDataPtr gltf_data_push_trans(GltfLoad* ld, const GltfTransform val) {
+  const AssetMeshDataPtr res = gltf_data_begin(ld, alignof(GeoVector));
   *((GeoVector*)dynarray_push(&ld->animData, sizeof(GeoVector)).ptr) = val.t;
   *((GeoQuat*)dynarray_push(&ld->animData, sizeof(GeoQuat)).ptr)     = val.r;
   *((GeoVector*)dynarray_push(&ld->animData, sizeof(GeoVector)).ptr) = val.s;
   return res;
 }
 
-static AssetMeshAnimPtr gltf_anim_data_push_string(GltfLoad* ld, const String val) {
+static AssetMeshDataPtr gltf_data_push_string(GltfLoad* ld, const String val) {
   diag_assert(val.size <= u8_max);
-  const AssetMeshAnimPtr res                           = gltf_anim_data_begin(ld, alignof(u8));
+  const AssetMeshDataPtr res                           = gltf_data_begin(ld, alignof(u8));
   *((u8*)dynarray_push(&ld->animData, sizeof(u8)).ptr) = (u8)val.size;
   mem_cpy(dynarray_push(&ld->animData, val.size), val);
   return res;
 }
 
-MAYBE_UNUSED static AssetMeshAnimPtr gltf_anim_data_push_access(GltfLoad* ld, const u32 acc) {
+MAYBE_UNUSED static AssetMeshDataPtr gltf_data_push_access(GltfLoad* ld, const u32 acc) {
   const u32 elemSize         = gltf_comp_size(ld->access[acc].compType) * ld->access[acc].compCount;
-  const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, bits_nextpow2(elemSize));
+  const AssetMeshDataPtr res = gltf_data_begin(ld, bits_nextpow2(elemSize));
   const Mem accessorMem = mem_create(ld->access[acc].data_raw, elemSize * ld->access[acc].count);
   mem_cpy(dynarray_push(&ld->animData, accessorMem.size), accessorMem);
   return res;
 }
 
-static AssetMeshAnimPtr gltf_anim_data_push_access_vec(GltfLoad* ld, const u32 acc) {
+static AssetMeshDataPtr gltf_data_push_access_vec(GltfLoad* ld, const u32 acc) {
   diag_assert(ld->access[acc].compType == GltfType_f32);
   const u32 compCount      = ld->access[acc].compCount;
   const u32 totalCompCount = compCount * ld->access[acc].count;
 
-  const AssetMeshAnimPtr res = gltf_anim_data_begin(ld, alignof(GeoVector));
+  const AssetMeshDataPtr res = gltf_data_begin(ld, alignof(GeoVector));
   for (u32 i = 0; i != totalCompCount; i += compCount) {
     mem_cpy(
         dynarray_push(&ld->animData, sizeof(f32) * 4),
@@ -457,12 +457,12 @@ static AssetMeshAnimPtr gltf_anim_data_push_access_vec(GltfLoad* ld, const u32 a
   return res;
 }
 
-static AssetMeshAnimPtr gltf_anim_data_push_access_mat(GltfLoad* ld, const u32 acc) {
+static AssetMeshDataPtr gltf_data_push_access_mat(GltfLoad* ld, const u32 acc) {
   diag_assert(ld->access[acc].compType == GltfType_f32);
   diag_assert(ld->access[acc].compCount == 16);
 
   const u32              elemSize = sizeof(GeoMatrix);
-  const AssetMeshAnimPtr res      = gltf_anim_data_begin(ld, alignof(GeoMatrix));
+  const AssetMeshDataPtr res      = gltf_data_begin(ld, alignof(GeoMatrix));
   for (u32 i = 0; i != ld->access[acc].count; ++i) {
     // NOTE: Mem copy it into a local variable to satisfy alignment requirements.
     GeoMatrix src;
@@ -480,13 +480,13 @@ static AssetMeshAnimPtr gltf_anim_data_push_access_mat(GltfLoad* ld, const u32 a
   return res;
 }
 
-static AssetMeshAnimPtr
-gltf_anim_data_push_access_norm16(GltfLoad* ld, const u32 acc, const f32 refValue) {
+static AssetMeshDataPtr
+gltf_data_push_access_norm16(GltfLoad* ld, const u32 acc, const f32 refValue) {
   diag_assert(ld->access[acc].compType == GltfType_f32);
   diag_assert(ld->access[acc].compCount == 1);
 
   const f32              refValueInv = refValue > 0 ? (1.0f / refValue) : 0.0f;
-  const AssetMeshAnimPtr res         = gltf_anim_data_begin(ld, 16); // Always 16 byte aligned.
+  const AssetMeshDataPtr res         = gltf_data_begin(ld, 16); // Always 16 byte aligned.
   for (u32 i = 0; i != ld->access[acc].count; ++i) {
     const f32 valNorm = ld->access[acc].data_f32[i] * refValueInv;
     *(u16*)dynarray_push(&ld->animData, sizeof(u16)).ptr = (u16)(valNorm * u16_max);
@@ -1326,27 +1326,27 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
   }
 
   // Output the joint parent indices.
-  AssetMeshAnimPtr resParents = gltf_anim_data_begin(ld, alignof(u32));
+  AssetMeshDataPtr resParents = gltf_data_begin(ld, alignof(u32));
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
-    gltf_anim_data_push_u32(ld, ld->joints[jointIndex].parentIndex);
+    gltf_data_push_u32(ld, ld->joints[jointIndex].parentIndex);
   }
 
   // Output the skinned-vertex counts per joint.
-  AssetMeshAnimPtr resSkinCounts = gltf_anim_data_begin(ld, alignof(u32));
+  AssetMeshDataPtr resSkinCounts = gltf_data_begin(ld, alignof(u32));
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
-    gltf_anim_data_push_u32(ld, ld->joints[jointIndex].skinCount);
+    gltf_data_push_u32(ld, ld->joints[jointIndex].skinCount);
   }
 
   // Output the joint name-hashes.
-  AssetMeshAnimPtr resNameHashes = gltf_anim_data_begin(ld, alignof(StringHash));
+  AssetMeshDataPtr resNameHashes = gltf_data_begin(ld, alignof(StringHash));
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
-    gltf_anim_data_push_u32(ld, string_hash(ld->joints[jointIndex].name));
+    gltf_data_push_u32(ld, string_hash(ld->joints[jointIndex].name));
   }
 
   // Output the joint names.
-  AssetMeshAnimPtr resNames = gltf_anim_data_begin(ld, alignof(u8));
+  AssetMeshDataPtr resNames = gltf_data_begin(ld, alignof(u8));
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
-    gltf_anim_data_push_string(ld, ld->joints[jointIndex].name);
+    gltf_data_push_string(ld, ld->joints[jointIndex].name);
   }
 
   // Create the animation output structures.
@@ -1367,8 +1367,8 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
 
           *resChannel = (AssetMeshAnimChannel){
               .frameCount = ld->access[srcChannel->accInput].count,
-              .timeData   = gltf_anim_data_push_access_norm16(ld, srcChannel->accInput, duration),
-              .valueData  = gltf_anim_data_push_access_vec(ld, srcChannel->accOutput),
+              .timeData   = gltf_data_push_access_norm16(ld, srcChannel->accInput, duration),
+              .valueData  = gltf_data_push_access_vec(ld, srcChannel->accOutput),
           };
           if (target == AssetMeshAnimTarget_Rotation) {
             gltf_process_anim_channel_rot(ld, resChannel);
@@ -1393,13 +1393,13 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
   }
 
   // Create the default pose output.
-  AssetMeshAnimPtr resDefaultPose = gltf_anim_data_begin(ld, alignof(GeoVector));
+  AssetMeshDataPtr resDefaultPose = gltf_data_begin(ld, alignof(GeoVector));
   for (const GltfJoint* joint = ld->joints; joint != ld->joints + ld->jointCount; ++joint) {
-    gltf_anim_data_push_trans(ld, joint->trans);
+    gltf_data_push_trans(ld, joint->trans);
   }
 
-  AssetMeshAnimPtr bindPoseInvMats = gltf_anim_data_push_access_mat(ld, ld->accBindPoseInvMats);
-  AssetMeshAnimPtr rootTransform   = gltf_anim_data_push_trans(ld, ld->sceneTrans);
+  AssetMeshDataPtr bindPoseInvMats = gltf_data_push_access_mat(ld, ld->accBindPoseInvMats);
+  AssetMeshDataPtr rootTransform   = gltf_data_push_trans(ld, ld->sceneTrans);
 
   // Pad animData so the size is always a multiple of 16.
   mem_set(dynarray_push(&ld->animData, bits_padding(ld->animData.size, 16)), 0);
