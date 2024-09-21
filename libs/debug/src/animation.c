@@ -529,7 +529,7 @@ static void debug_draw_bounds(
     const GeoVector jointPos       = geo_matrix_to_translation(&jointMatrices[i]);
     const f32       boundingRadius = scene_skeleton_joint_bounding_radius(skeletonTemplate, i);
 
-    debug_sphere(shape, jointPos, boundingRadius, geo_color(0, 1, 0, 0.2f), DebugShape_Fill);
+    debug_sphere(shape, jointPos, boundingRadius, geo_color(0, 1, 0, 0.1f), DebugShape_Fill);
     debug_sphere(shape, jointPos, boundingRadius, geo_color(0, 1, 0, 0.5f), DebugShape_Wire);
   }
 }
