@@ -3,4 +3,4 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
-EcsEntityId debug_animation_panel_open(EcsWorld*, EcsEntityId window, DebugPanelType);
+EcsEntityId debug_skeleton_panel_open(EcsWorld*, EcsEntityId window, DebugPanelType);

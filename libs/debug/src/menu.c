@@ -3,7 +3,6 @@
 #include "core_diag.h"
 #include "core_format.h"
 #include "core_math.h"
-#include "debug_animation.h"
 #include "debug_asset.h"
 #include "debug_camera.h"
 #include "debug_ecs.h"
@@ -15,6 +14,7 @@
 #include "debug_prefab.h"
 #include "debug_rend.h"
 #include "debug_script.h"
+#include "debug_skeleton.h"
 #include "debug_sound.h"
 #include "debug_stats.h"
 #include "debug_time.h"
@@ -86,11 +86,11 @@ static const struct {
         .hotkeyName   = string_static("DebugPanelTime"),
     },
     {
-        .name         = string_static("Animation"),
-        .iconShape    = UiShape_Animation,
+        .name         = string_static("Skeleton"),
+        .iconShape    = UiShape_Body,
         .detachedSize = {.x = 950, .y = 350},
-        .openFunc     = debug_animation_panel_open,
-        .hotkeyName   = string_static("DebugPanelAnimation"),
+        .openFunc     = debug_skeleton_panel_open,
+        .hotkeyName   = string_static("DebugPanelSkeleton"),
     },
     {
         .name         = string_static("Script"),
