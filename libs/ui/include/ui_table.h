@@ -6,7 +6,7 @@
 
 ecs_comp_extern(UiCanvasComp);
 
-#define ui_table_max_columns 10
+#define ui_table_max_columns 16
 
 typedef enum {
   UiTableColumn_Fixed,
