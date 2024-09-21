@@ -98,12 +98,13 @@ void asset_mesh_builder_clear(AssetMeshBuilder* builder) {
   }
 }
 
-AssetMeshIndex asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMeshVertex vert) {
+AssetMeshIndex asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMeshVertex* vert) {
   /**
    * Deduplicate using a simple open-addressing hash table.
    * https://en.wikipedia.org/wiki/Open_addressing
    */
-  u32 bucket = bits_hash_32(mem_var(vert)) & (builder->tableSize - 1);
+  const Mem vertMem = mem_create(vert, sizeof(AssetMeshVertex));
+  u32       bucket  = bits_hash_32(vertMem) & (builder->tableSize - 1);
   for (usize i = 0; i != builder->tableSize; ++i) {
     AssetMeshIndex* slot = &builder->indexTable[bucket];
 
@@ -115,15 +116,15 @@ AssetMeshIndex asset_mesh_builder_push(AssetMeshBuilder* builder, const AssetMes
 
       // Unique vertex, copy to output and save the index in the table.
       *slot = (AssetMeshIndex)builder->vertexData.size;
-      *dynarray_push_t(&builder->vertexData, AssetMeshVertex) = vert;
+      *dynarray_push_t(&builder->vertexData, AssetMeshVertex) = *vert;
       *dynarray_push_t(&builder->indexData, AssetMeshIndex)   = *slot;
 
-      builder->bounds = geo_box_encapsulate(&builder->bounds, vert.position);
+      builder->bounds = geo_box_encapsulate(&builder->bounds, vert->position);
       return *slot;
     }
 
     diag_assert(*slot < builder->vertexData.size);
-    if (mem_eq(dynarray_at(&builder->vertexData, *slot, 1), mem_var(vert))) {
+    if (mem_eq(dynarray_at(&builder->vertexData, *slot, 1), vertMem)) {
       // Equal to the vertex in this slot, reuse the vertex.
       *dynarray_push_t(&builder->indexData, AssetMeshIndex) = *slot;
       return *slot;
@@ -233,13 +234,13 @@ void asset_mesh_compute_flat_normals(AssetMeshBuilder* builder) {
     const GeoVector normQuant = geo_vector_quantize3(norm, 20);
 
     vA->normal                = normQuant;
-    const AssetMeshIndex idxA = asset_mesh_builder_push(builder, *vA);
+    const AssetMeshIndex idxA = asset_mesh_builder_push(builder, vA);
 
     vB->normal                = normQuant;
-    const AssetMeshIndex idxB = asset_mesh_builder_push(builder, *vB);
+    const AssetMeshIndex idxB = asset_mesh_builder_push(builder, vB);
 
     vC->normal                = normQuant;
-    const AssetMeshIndex idxC = asset_mesh_builder_push(builder, *vC);
+    const AssetMeshIndex idxC = asset_mesh_builder_push(builder, vC);
 
     if (snapshot.skinData) {
       // Preserve the original skinning.

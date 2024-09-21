@@ -126,25 +126,23 @@ static GeoMatrix procmesh_def_matrix(const ProcMeshDef* def) {
 
 static void
 procmesh_push_vert(ProcMeshGenerator* gen, const GeoVector pos, const GeoVector texcoord) {
-  const GeoMatrix mat = geo_matrix_mul(&gen->transformGlobal, &gen->transformLocal);
-  asset_mesh_builder_push(
-      gen->builder,
-      (AssetMeshVertex){
-          .position = geo_matrix_transform3_point(&mat, pos),
-          .texcoord = texcoord,
-      });
+  const GeoMatrix       mat  = geo_matrix_mul(&gen->transformGlobal, &gen->transformLocal);
+  const AssetMeshVertex vert = {
+      .position = geo_matrix_transform3_point(&mat, pos),
+      .texcoord = texcoord,
+  };
+  asset_mesh_builder_push(gen->builder, &vert);
 }
 
 static void procmesh_push_vert_nrm(
     ProcMeshGenerator* gen, const GeoVector pos, const GeoVector texcoord, const GeoVector normal) {
-  const GeoMatrix mat = geo_matrix_mul(&gen->transformGlobal, &gen->transformLocal);
-  asset_mesh_builder_push(
-      gen->builder,
-      (AssetMeshVertex){
-          .position = geo_matrix_transform3_point(&mat, pos),
-          .texcoord = texcoord,
-          .normal   = geo_matrix_transform3(&mat, normal),
-      });
+  const GeoMatrix       mat  = geo_matrix_mul(&gen->transformGlobal, &gen->transformLocal);
+  const AssetMeshVertex vert = {
+      .position = geo_matrix_transform3_point(&mat, pos),
+      .texcoord = texcoord,
+      .normal   = geo_matrix_transform3(&mat, normal),
+  };
+  asset_mesh_builder_push(gen->builder, &vert);
 }
 
 void procmesh_push_triangle(ProcMeshGenerator* gen) {
