@@ -20,7 +20,8 @@ typedef enum {
   DebugAnimationFlags_DrawJointTransforms = 1 << 1,
   DebugAnimationFlags_DrawJointNames      = 1 << 2,
   DebugAnimationFlags_DrawSkinCounts      = 1 << 3,
-  DebugAnimationFlags_DrawAny             = bit_range_32(0, 4),
+  DebugAnimationFlags_DrawBounds          = 1 << 4,
+  DebugAnimationFlags_DrawAny             = bit_range_32(0, 5),
 } DebugAnimationFlags;
 
 ecs_comp_define(DebugAnimationSettingsComp) { DebugAnimationFlags flags; };
@@ -267,6 +268,8 @@ static void anim_panel_options_draw(UiCanvasComp* canvas, DebugAnimationSettings
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
   ui_table_add_column(&table, UiTableColumn_Fixed, 25);
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
 
   ui_table_next_row(canvas, &table);
   ui_layout_move_dir(canvas, Ui_Right, 5, UiBase_Absolute);
@@ -291,6 +294,11 @@ static void anim_panel_options_draw(UiCanvasComp* canvas, DebugAnimationSettings
   ui_toggle_flag(canvas, (u32*)&settings->flags, DebugAnimationFlags_DrawSkinCounts);
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("[Skin Counts]"), .fontSize = 14);
+  ui_table_next_column(canvas, &table);
+
+  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugAnimationFlags_DrawBounds);
+  ui_table_next_column(canvas, &table);
+  ui_label(canvas, string_lit("[Bounds]"), .fontSize = 14);
 
   ui_layout_pop(canvas);
 }
@@ -440,7 +448,7 @@ ecs_system_define(DebugAnimationUpdatePanelSys) {
 }
 
 static void debug_draw_skeleton(
-    DebugShapeComp*               shapes,
+    DebugShapeComp*               shape,
     const SceneSkeletonTemplComp* skeletonTemplate,
     const u32                     jointCount,
     const GeoMatrix*              jointMatrices) {
@@ -449,7 +457,7 @@ static void debug_draw_skeleton(
     const u32       parentIndex = scene_skeleton_joint_parent(skeletonTemplate, i);
     const GeoVector jointPos    = geo_matrix_to_translation(&jointMatrices[i]);
     const GeoVector parentPos   = geo_matrix_to_translation(&jointMatrices[parentIndex]);
-    debug_line(shapes, jointPos, parentPos, geo_color_purple);
+    debug_line(shape, jointPos, parentPos, geo_color_purple);
   }
 }
 
@@ -503,6 +511,21 @@ static void debug_draw_skin_counts(
   }
 }
 
+static void debug_draw_bounds(
+    DebugShapeComp*               shape,
+    const SceneSkeletonTemplComp* skeletonTemplate,
+    const u32                     jointCount,
+    const GeoMatrix*              jointMatrices) {
+
+  for (u32 i = 0; i != jointCount; ++i) {
+    const GeoVector jointPos       = geo_matrix_to_translation(&jointMatrices[i]);
+    const f32       boundingRadius = scene_skeleton_joint_bounding_radius(skeletonTemplate, i);
+
+    debug_sphere(shape, jointPos, boundingRadius, geo_color(0, 1, 0, 0.2f), DebugShape_Fill);
+    debug_sphere(shape, jointPos, boundingRadius, geo_color(0, 1, 0, 0.5f), DebugShape_Wire);
+  }
+}
+
 ecs_view_define(GlobalDrawView) {
   ecs_access_read(DebugAnimationSettingsComp);
   ecs_access_read(SceneSetEnvComp);
@@ -552,6 +575,10 @@ ecs_system_define(DebugAnimationDrawSys) {
     if (set->flags & DebugAnimationFlags_DrawSkinCounts) {
       debug_draw_skin_counts(
           text, subject.skeletonTemplate, subject.skeleton->jointCount, jointMatrices);
+    }
+    if (set->flags & DebugAnimationFlags_DrawBounds) {
+      debug_draw_bounds(
+          shape, subject.skeletonTemplate, subject.skeleton->jointCount, jointMatrices);
     }
   }
 }
