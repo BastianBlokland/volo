@@ -67,11 +67,7 @@ ecs_module_init(asset_mesh_module) {
 
 void asset_data_init_mesh(void) {
   // clang-format off
-  data_reg_enum_multi_t(g_dataReg, AssetMeshFlags);
-  data_reg_const_t(g_dataReg, AssetMeshFlags, Skinned);
-
   data_reg_struct_t(g_dataReg, AssetMeshComp);
-  data_reg_field_t(g_dataReg, AssetMeshComp, flags, t_AssetMeshFlags);
   data_reg_field_t(g_dataReg, AssetMeshComp, vertexCount, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetMeshComp, indexCount, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetMeshComp, vertexData, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);

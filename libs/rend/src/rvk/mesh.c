@@ -19,10 +19,6 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
       .positionRawBounds = asset->positionRawBounds,
   };
 
-  if (asset->flags & AssetMeshFlags_Skinned) {
-    mesh->flags |= RvkMeshFlags_Skinned;
-  }
-
   const Mem vertexMem = data_mem(asset->vertexData);
   const Mem indexMem  = data_mem(asset->indexData);
 
@@ -39,7 +35,6 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
   log_d(
       "Vulkan mesh created",
       log_param("name", fmt_text(dbgName)),
-      log_param("skinned", fmt_bool((mesh->flags & RvkMeshFlags_Skinned) != 0)),
       log_param("vertices", fmt_int(mesh->vertexCount)),
       log_param("indices", fmt_int(mesh->indexCount)),
       log_param("vertex-memory", fmt_size(mesh->vertexBuffer.mem.size)),

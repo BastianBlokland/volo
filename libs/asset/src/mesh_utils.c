@@ -212,13 +212,7 @@ AssetMeshComp asset_mesh_create(const AssetMeshBuilder* builder) {
   const Mem   indexData     = alloc_alloc(g_allocHeap, indexDataSize, sizeof(AssetMeshIndex));
   mem_cpy(indexData, dynarray_at(&builder->indexData, 0, indexCount));
 
-  AssetMeshFlags flags = 0;
-  if (isSkinned) {
-    flags |= AssetMeshFlags_Skinned;
-  }
-
   return (AssetMeshComp){
-      .flags             = flags,
       .vertexCount       = vertCount,
       .indexCount        = indexCount,
       .vertexData        = data_mem_create(vertexData),

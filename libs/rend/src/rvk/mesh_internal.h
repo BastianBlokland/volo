@@ -7,12 +7,7 @@
 // Internal forward declarations:
 typedef struct sRvkDevice RvkDevice;
 
-typedef enum {
-  RvkMeshFlags_Skinned = 1 << 0,
-} RvkMeshFlags;
-
 typedef struct sRvkMesh {
-  RvkMeshFlags  flags;
   u32           vertexCount, indexCount;
   RvkBuffer     vertexBuffer, indexBuffer;
   RvkTransferId vertexTransfer, indexTransfer;

@@ -835,10 +835,6 @@ u32 rend_res_mesh_vertices(const RendResMeshComp* comp) { return comp->mesh->ver
 
 u32 rend_res_mesh_indices(const RendResMeshComp* comp) { return comp->mesh->indexCount; }
 
-bool rend_res_mesh_is_skinned(const RendResMeshComp* comp) {
-  return (comp->mesh->flags & RvkMeshFlags_Skinned) != 0;
-}
-
 usize rend_res_mesh_memory(const RendResMeshComp* comp) {
   return comp->mesh->vertexBuffer.size + comp->mesh->indexBuffer.size;
 }

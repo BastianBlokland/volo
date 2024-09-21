@@ -26,17 +26,12 @@ typedef struct {
 ASSERT(sizeof(AssetMeshVertexPacked) == 32, "Unexpected vertex size");
 ASSERT(alignof(AssetMeshVertexPacked) == 16, "Unexpected vertex alignment");
 
-typedef enum {
-  AssetMeshFlags_Skinned = 1 << 0,
-} AssetMeshFlags;
-
 ecs_comp_extern_public(AssetMeshComp) {
-  AssetMeshFlags flags;
-  u32            vertexCount, indexCount;
-  DataMem        vertexData; // AssetMeshVertexPacked[]
-  DataMem        indexData;  // AssetMeshIndex[]
-  GeoBox         positionBounds;
-  GeoBox         positionRawBounds; // Unscaled (does not take skinning into account).
+  u32     vertexCount, indexCount;
+  DataMem vertexData; // AssetMeshVertexPacked[]
+  DataMem indexData;  // AssetMeshIndex[]
+  GeoBox  positionBounds;
+  GeoBox  positionRawBounds; // Unscaled (does not take skinning into account).
 };
 
 typedef enum {
