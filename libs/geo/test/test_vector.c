@@ -227,6 +227,13 @@ spec(vector) {
     check_eq_vector(geo_vector_max(v1, v2), geo_vector(4, 6, 6, 5));
   }
 
+  it("can compute the maximum component") {
+    const GeoVector v1 = {.x = 2, .y = 6, .z = -5};
+    const GeoVector v2 = {.x = -4, .y = -2, .z = -6};
+    check_eq_float(geo_vector_max_comp3(v1), 6, 1e-6);
+    check_eq_float(geo_vector_max_comp3(v2), -2, 1e-6);
+  }
+
   it("can clear components") {
     check_eq_vector(geo_vector_xyz(geo_vector(1, 2, 3, 4)), geo_vector(1, 2, 3, 0));
     check_eq_vector(geo_vector_xz(geo_vector(1, 2, 3, 4)), geo_vector(1, 0, 3, 0));
