@@ -64,6 +64,7 @@ ecs_comp_define(SceneSkeletonTemplComp) {
   const SceneJointPose* rootPose;        // [1].
   const u32*            parentIndices;   // [jointCount].
   const u32*            skinCounts;      // [jointCount]. Amount of verts skinned to each joint.
+  const f32*            boundingRadius;  // f32[jointCount]. Bounding sphere radius for each joint.
   const StringHash*     jointNames;      // [jointCount].
   GeoMatrix             rootTransform;
   u32                   jointCount;
@@ -227,6 +228,7 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
   tl->defaultPose     = (const SceneJointPose*)mem_at_u8(tl->data, asset->defaultPose);
   tl->parentIndices   = (const u32*)mem_at_u8(tl->data, asset->parentIndices);
   tl->skinCounts      = (const u32*)mem_at_u8(tl->data, asset->skinCounts);
+  tl->boundingRadius  = (const f32*)mem_at_u8(tl->data, asset->boundingRadius);
   tl->jointNames      = (const StringHash*)mem_at_u8(tl->data, asset->jointNameHashes);
   tl->rootPose        = (const SceneJointPose*)mem_at_u8(tl->data, asset->rootTransform);
   tl->rootTransform   = geo_matrix_trs(tl->rootPose->t, tl->rootPose->r, tl->rootPose->s);
@@ -710,6 +712,11 @@ u32 scene_skeleton_joint_parent(const SceneSkeletonTemplComp* tl, const u32 join
 u32 scene_skeleton_joint_skin_count(const SceneSkeletonTemplComp* tl, const u32 joint) {
   diag_assert(joint < tl->jointCount);
   return tl->skinCounts[joint];
+}
+
+f32 scene_skeleton_joint_bounding_radius(const SceneSkeletonTemplComp* tl, const u32 joint) {
+  diag_assert(joint < tl->jointCount);
+  return tl->boundingRadius[joint];
 }
 
 GeoMatrix scene_skeleton_joint_world(

@@ -72,6 +72,7 @@ u32        scene_skeleton_joint_count(const SceneSkeletonTemplComp*);
 StringHash scene_skeleton_joint_name(const SceneSkeletonTemplComp*, u32 joint);
 u32        scene_skeleton_joint_parent(const SceneSkeletonTemplComp*, u32 joint);
 u32        scene_skeleton_joint_skin_count(const SceneSkeletonTemplComp*, u32 joint);
+f32        scene_skeleton_joint_bounding_radius(const SceneSkeletonTemplComp*, u32 joint);
 
 GeoMatrix scene_skeleton_joint_world(
     const SceneTransformComp*, const SceneScaleComp*, const SceneSkeletonComp*, u32 joint);
