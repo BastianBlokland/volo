@@ -22,6 +22,8 @@ typedef enum {
   DebugAnimationFlags_DrawSkinCounts      = 1 << 3,
   DebugAnimationFlags_DrawBounds          = 1 << 4,
   DebugAnimationFlags_DrawAny             = bit_range_32(0, 5),
+
+  DebugAnimationFlags_Default = 0,
 } DebugAnimationFlags;
 
 ecs_comp_define(DebugAnimationSettingsComp) { DebugAnimationFlags flags; };
@@ -400,8 +402,14 @@ static void anim_panel_draw(
 static DebugAnimationSettingsComp* anim_settings_get_or_create(EcsWorld* world) {
   EcsView*     view = ecs_world_view_t(world, SettingsWriteView);
   EcsIterator* itr  = ecs_view_maybe_at(view, ecs_world_global(world));
-  return itr ? ecs_view_write_t(itr, DebugAnimationSettingsComp)
-             : ecs_world_add_t(world, ecs_world_global(world), DebugAnimationSettingsComp);
+  if (itr) {
+    return ecs_view_write_t(itr, DebugAnimationSettingsComp);
+  }
+  return ecs_world_add_t(
+      world,
+      ecs_world_global(world),
+      DebugAnimationSettingsComp,
+      .flags = DebugAnimationFlags_Default);
 }
 
 ecs_view_define(PanelUpdateGlobalView) { ecs_access_read(SceneSetEnvComp); }
