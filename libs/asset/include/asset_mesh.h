@@ -60,7 +60,7 @@ ecs_comp_extern_public(AssetMeshSkeletonComp) {
   AssetMeshDataPtr rootTransform;   // (GeoVector | GeoQuat)[3]. // TRS.
   AssetMeshDataPtr parentIndices;   // u32[jointCount].
   AssetMeshDataPtr skinCounts;      // u32[jointCount]. Amount of verts skinned to each joint.
-  AssetMeshDataPtr boundsRadius;    // f32[jointCount]. Bounding sphere radius for each joint.
+  AssetMeshDataPtr boundingRadius;  // f32[jointCount]. Bounding sphere radius for each joint.
   AssetMeshDataPtr jointNameHashes; // StringHash[jointCount].
   AssetMeshDataPtr jointNames;      // struct { u8 size; u8 data[size]; }[jointCount].
   u8               jointCount;

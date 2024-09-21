@@ -109,8 +109,9 @@ typedef struct {
 typedef struct {
   u32           nodeIndex;
   u32           parentIndex;
-  u32           skinCount; // Amount of vertices skinned to this joint.
-  String        name;      // Interned in the global string-table.
+  u32           skinCount;      // Amount of vertices skinned to this joint.
+  f32           boundingRadius; // Bounding radius of the vertices skinned to this joint.
+  String        name;           // Interned in the global string-table.
   GltfTransform trans;
 } GltfJoint;
 
@@ -416,6 +417,12 @@ static AssetMeshDataPtr gltf_data_begin(GltfLoad* ld, const u32 align) {
 static AssetMeshDataPtr gltf_data_push_u32(GltfLoad* ld, const u32 val) {
   const AssetMeshDataPtr res                             = gltf_data_begin(ld, alignof(u32));
   *((u32*)dynarray_push(&ld->animData, sizeof(u32)).ptr) = val;
+  return res;
+}
+
+static AssetMeshDataPtr gltf_data_push_f32(GltfLoad* ld, const f32 val) {
+  const AssetMeshDataPtr res                             = gltf_data_begin(ld, alignof(f32));
+  *((f32*)dynarray_push(&ld->animData, sizeof(f32)).ptr) = val;
   return res;
 }
 
@@ -1337,6 +1344,12 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
     gltf_data_push_u32(ld, ld->joints[jointIndex].skinCount);
   }
 
+  // Output the bounding radius per joint.
+  AssetMeshDataPtr resBoundingRadius = gltf_data_begin(ld, alignof(f32));
+  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+    gltf_data_push_f32(ld, ld->joints[jointIndex].boundingRadius);
+  }
+
   // Output the joint name-hashes.
   AssetMeshDataPtr resNameHashes = gltf_data_begin(ld, alignof(StringHash));
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
@@ -1412,6 +1425,7 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
       .rootTransform   = rootTransform,
       .parentIndices   = resParents,
       .skinCounts      = resSkinCounts,
+      .boundingRadius  = resBoundingRadius,
       .jointNameHashes = resNameHashes,
       .jointNames      = resNames,
       .jointCount      = ld->jointCount,

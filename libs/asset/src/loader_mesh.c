@@ -96,7 +96,7 @@ void asset_data_init_mesh(void) {
   data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, rootTransform, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, parentIndices, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, skinCounts, data_prim_t(u32));
-  data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, boundsRadius, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, boundingRadius, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, jointNameHashes, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, jointNames, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetMeshSkeletonComp, jointCount, data_prim_t(u8));
