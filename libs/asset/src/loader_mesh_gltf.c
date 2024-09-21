@@ -1107,9 +1107,9 @@ gltf_track_skinned_vertex(GltfLoad* ld, const AssetMeshVertex* vertex, const Ass
     }
     GltfJoint* joint = &ld->joints[jointIndex];
 
-    // TODO: Use the joint bindPose instead of the default skeleton pose (which might be different).
-    const GeoVector toVert = geo_vector_sub(vertex->position, joint->defaultTrans.t);
-    const f32       dist   = geo_vector_mag(toVert);
+    const GeoVector jointPos = geo_matrix_to_translation(&joint->bindMat);
+    const GeoVector toVert   = geo_vector_sub(vertex->position, jointPos);
+    const f32       dist     = geo_vector_mag(toVert);
 
     ++joint->skinCount;
     joint->boundingRadius = math_max(joint->boundingRadius, dist);
