@@ -89,8 +89,8 @@ static void rend_terrain_obj_update(const SceneTerrainComp* sceneTerrain, RendOb
       };
       const GeoVector patchCenter = {.x = patchData.posX, .y = 0, .z = patchData.posZ};
       const GeoBox    patchBounds = {
-             .min = geo_vector_sub(patchCenter, geo_vector(patchHalfSize, 0, patchHalfSize)),
-             .max = geo_vector_add(patchCenter, geo_vector(patchHalfSize, heightScale, patchHalfSize)),
+          .min = geo_vector_sub(patchCenter, geo_vector(patchHalfSize, 0, patchHalfSize)),
+          .max = geo_vector_add(patchCenter, geo_vector(patchHalfSize, heightScale, patchHalfSize)),
       };
       *rend_object_add_instance_t(obj, RendTerrainPatchData, patchTags, patchBounds) = patchData;
     }
