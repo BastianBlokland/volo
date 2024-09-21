@@ -30,8 +30,7 @@ ecs_comp_extern_public(AssetMeshComp) {
   u32     vertexCount, indexCount;
   DataMem vertexData; // AssetMeshVertexPacked[]
   DataMem indexData;  // AssetMeshIndex[]
-  GeoBox  positionBounds;
-  GeoBox  positionRawBounds; // Unscaled (does not take skinning into account).
+  GeoBox  bounds;
 };
 
 typedef enum {

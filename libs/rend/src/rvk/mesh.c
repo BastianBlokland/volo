@@ -13,10 +13,9 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
   RvkMesh* mesh = alloc_alloc_t(g_allocHeap, RvkMesh);
 
   *mesh = (RvkMesh){
-      .vertexCount       = asset->vertexCount,
-      .indexCount        = asset->indexCount,
-      .positionBounds    = asset->positionBounds,
-      .positionRawBounds = asset->positionRawBounds,
+      .vertexCount = asset->vertexCount,
+      .indexCount  = asset->indexCount,
+      .bounds      = asset->bounds,
   };
 
   const Mem vertexMem = data_mem(asset->vertexData);

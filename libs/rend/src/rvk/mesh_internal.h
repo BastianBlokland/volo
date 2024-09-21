@@ -11,7 +11,7 @@ typedef struct sRvkMesh {
   u32           vertexCount, indexCount;
   RvkBuffer     vertexBuffer, indexBuffer;
   RvkTransferId vertexTransfer, indexTransfer;
-  GeoBox        positionBounds, positionRawBounds;
+  GeoBox        bounds;
 } RvkMesh;
 
 RvkMesh* rvk_mesh_create(RvkDevice*, const AssetMeshComp*, String dbgName);

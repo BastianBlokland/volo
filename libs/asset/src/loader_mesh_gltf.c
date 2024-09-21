@@ -30,13 +30,6 @@
  * assumes the host system matches that.
  */
 
-/**
- * Multiplier to scale the bounds of skinned meshes.
- * This is a very crude way of giving the animations some space to move the vertices while staying
- * within bounds. An alternative solution would be to compute bounds per joint.
- */
-#define gltf_skinned_bounds_mult 3.0f
-
 #define gltf_eq_threshold 1e-2f
 
 typedef enum {
@@ -1160,9 +1153,6 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
   }
   if (!(meta.features & GltfFeature_Tangents)) {
     asset_mesh_compute_tangents(builder);
-  }
-  if (meta.features & GltfFeature_Skinning) {
-    asset_mesh_builder_grow_bounds(builder, gltf_skinned_bounds_mult);
   }
   *out = asset_mesh_create(builder);
   *err = GltfError_None;
