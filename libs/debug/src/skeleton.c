@@ -26,6 +26,14 @@ typedef enum {
   DebugSkelFlags_Default = 0,
 } DebugSkelFlags;
 
+static const String g_skeletonFlagNames[] = {
+    string_static("Skeleton"),
+    string_static("Transforms"),
+    string_static("Names"),
+    string_static("Skin counts"),
+    string_static("Bounds"),
+};
+
 ecs_comp_define(DebugSkelSettingsComp) { DebugSkelFlags flags; };
 
 ecs_comp_define(DebugSkelPanelComp) {
@@ -260,47 +268,26 @@ static void skel_panel_drag_flags(UiCanvasComp* canvas, SceneAnimLayer* layer) {
 static void skel_panel_options_draw(UiCanvasComp* canvas, DebugSkelSettingsComp* settings) {
   ui_layout_push(canvas);
 
+  static const DebugSkelFlags g_drawAny = DebugSkelFlags_DrawAny;
+
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 25);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  bitset_for(bitset_from_var(g_drawAny), i) {
+    ui_table_add_column(&table, UiTableColumn_Fixed, 25);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 125);
+  }
 
   ui_table_next_row(canvas, &table);
   ui_layout_move_dir(canvas, Ui_Right, 5, UiBase_Absolute);
   ui_label(canvas, string_lit("Draw:"));
   ui_table_next_column(canvas, &table);
 
-  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugSkelFlags_DrawSkeleton);
-  ui_table_next_column(canvas, &table);
-  ui_label(canvas, string_lit("[Skeleton]"), .fontSize = 14);
-  ui_table_next_column(canvas, &table);
-
-  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugSkelFlags_DrawJointTransforms);
-  ui_table_next_column(canvas, &table);
-  ui_label(canvas, string_lit("[Joints]"), .fontSize = 14);
-  ui_table_next_column(canvas, &table);
-
-  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugSkelFlags_DrawJointNames);
-  ui_table_next_column(canvas, &table);
-  ui_label(canvas, string_lit("[Names]"), .fontSize = 14);
-  ui_table_next_column(canvas, &table);
-
-  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugSkelFlags_DrawSkinCounts);
-  ui_table_next_column(canvas, &table);
-  ui_label(canvas, string_lit("[Skin Counts]"), .fontSize = 14);
-  ui_table_next_column(canvas, &table);
-
-  ui_toggle_flag(canvas, (u32*)&settings->flags, DebugSkelFlags_DrawBounds);
-  ui_table_next_column(canvas, &table);
-  ui_label(canvas, string_lit("[Bounds]"), .fontSize = 14);
+  bitset_for(bitset_from_var(g_drawAny), i) {
+    ui_toggle_flag(canvas, (u32*)&settings->flags, 1 << i);
+    ui_table_next_column(canvas, &table);
+    ui_label(canvas, fmt_write_scratch("[{}]", fmt_text(g_skeletonFlagNames[i])), .fontSize = 14);
+    ui_table_next_column(canvas, &table);
+  }
 
   ui_layout_pop(canvas);
 }
