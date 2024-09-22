@@ -174,6 +174,7 @@ typedef enum {
   GltfError_None = 0,
   GltfError_InvalidJson,
   GltfError_MalformedFile,
+  GltfError_MalformedGlbHeader,
   GltfError_MalformedBuffers,
   GltfError_MalformedBufferViews,
   GltfError_MalformedAccessors,
@@ -194,6 +195,7 @@ typedef enum {
   GltfError_InvalidBuffer,
   GltfError_UnsupportedPrimitiveMode,
   GltfError_UnsupportedInterpolationMode,
+  GltfError_UnsupportedGlbVersion,
   GltfError_NoPrimitives,
 
   GltfError_Count,
@@ -204,6 +206,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("None"),
       string_static("Invalid json"),
       string_static("Malformed gltf file"),
+      string_static("Malformed glb header"),
       string_static("Gltf 'buffers' field malformed"),
       string_static("Gltf 'bufferViews' field malformed"),
       string_static("Gltf 'accessors' field malformed"),
@@ -224,6 +227,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Gltf invalid buffer"),
       string_static("Unsupported primitive mode, only triangle primitives supported"),
       string_static("Unsupported interpolation mode, only linear interpolation supported"),
+      string_static("Unsupported glb version"),
       string_static("Gltf mesh does not have any primitives"),
   };
   ASSERT(array_elems(g_msgs) == GltfError_Count, "Incorrect number of gltf-error messages");
@@ -1648,10 +1652,47 @@ void asset_load_mesh_gltf(
       .animData       = dynarray_create(g_allocHeap, 1, 1, 0));
 }
 
+typedef struct {
+  u32 version, length;
+} GlbHeader;
+
+static Mem glb_read_header(Mem data, GlbHeader* out, GltfError* err) {
+  if (UNLIKELY(data.size < sizeof(u32) * 3)) {
+    *err = GltfError_MalformedGlbHeader;
+    return data;
+  }
+  u32 magic;
+  data = mem_consume_le_u32(data, &magic);
+  if (UNLIKELY(magic != 0x46546C67 /* ascii: 'glTF' */)) {
+    *err = GltfError_MalformedGlbHeader;
+    return data;
+  }
+  data = mem_consume_le_u32(data, &out->version);
+  data = mem_consume_le_u32(data, &out->length);
+  return data;
+}
+
 void asset_load_mesh_glb(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
-  (void)world;
-  (void)id;
-  (void)entity;
-  (void)src;
+
+  GlbHeader header;
+  GltfError err;
+  Mem       data = glb_read_header(src->data, &header, &err);
+  if (UNLIKELY(err)) {
+    gltf_load_fail(world, entity, id, err);
+    goto Failed;
+  }
+  if (UNLIKELY(header.version != 2)) {
+    gltf_load_fail(world, entity, id, GltfError_UnsupportedGlbVersion);
+    goto Failed;
+  }
+  if (UNLIKELY(header.length != src->data.size)) {
+    gltf_load_fail(world, entity, id, GltfError_MalformedFile);
+    goto Failed;
+  }
+
+  (void)data;
+
+Failed:
+  asset_repo_source_close(src);
 }
