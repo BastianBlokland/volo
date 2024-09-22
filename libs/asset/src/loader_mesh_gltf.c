@@ -33,6 +33,8 @@
 #define gltf_uri_size_max 512
 #define gltf_eq_threshold 1e-2f
 #define gltf_skin_weight_min 1e-3f
+#define gltf_transient_alloc_chunk_size (1 * usize_mebibyte)
+
 #define glb_chunk_count_max 16
 
 typedef enum {
@@ -139,6 +141,7 @@ typedef struct {
 } GltfAnim;
 
 ecs_comp_define(AssetGltfLoadComp) {
+  Allocator*    transientAlloc;
   String        assetId;
   JsonDoc*      jDoc;
   JsonVal       jRoot;
@@ -189,6 +192,7 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   if (comp->glbDataSource) {
     asset_repo_source_close(comp->glbDataSource);
   }
+  alloc_chunked_destroy(comp->transientAlloc);
   dynarray_destroy(&comp->animData);
 }
 
@@ -1684,10 +1688,14 @@ static GltfLoad* gltf_load(EcsWorld* w, const String id, const EcsEntityId e, co
     return null;
   }
 
+  Allocator* transientAlloc =
+      alloc_chunked_create(g_allocHeap, alloc_bump_create, gltf_transient_alloc_chunk_size);
+
   return ecs_world_add_t(
       w,
       e,
       AssetGltfLoadComp,
+      .transientAlloc = transientAlloc,
       .assetId        = id,
       .jDoc           = jsonDoc,
       .jRoot          = jsonRes.val,
