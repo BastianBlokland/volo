@@ -56,6 +56,7 @@ ecs_view_define(SkeletonTemplView) { ecs_access_read(SceneSkeletonTemplComp); }
 
 typedef struct {
   bool                          valid;
+  f32                           worldScale;
   GeoMatrix                     worldMat;
   SceneAnimationComp*           animation;
   const SceneSkeletonComp*      skeleton;
@@ -75,11 +76,12 @@ static DebugSkelSubject debug_skel_subject(EcsWorld* world, const EcsEntityId en
   if (!skelTemplItr) {
     return (DebugSkelSubject){0};
   }
-  const SceneTransformComp* trans = ecs_view_read_t(subjectItr, SceneTransformComp);
-  const SceneScaleComp*     scale = ecs_view_read_t(subjectItr, SceneScaleComp);
+  const SceneTransformComp* transComp = ecs_view_read_t(subjectItr, SceneTransformComp);
+  const SceneScaleComp*     scaleComp = ecs_view_read_t(subjectItr, SceneScaleComp);
   return (DebugSkelSubject){
       .valid            = true,
-      .worldMat         = scene_matrix_world(trans, scale),
+      .worldScale       = scaleComp ? scaleComp->scale : 1.0f,
+      .worldMat         = scene_matrix_world(transComp, scaleComp),
       .animation        = ecs_view_write_t(subjectItr, SceneAnimationComp),
       .skeleton         = ecs_view_read_t(subjectItr, SceneSkeletonComp),
       .skeletonTemplate = ecs_view_read_t(skelTemplItr, SceneSkeletonTemplComp),
@@ -507,15 +509,18 @@ static void debug_draw_skin_counts(
 static void debug_draw_bounds(
     DebugShapeComp*               shape,
     const SceneSkeletonTemplComp* skeletonTemplate,
+    const f32                     worldScale,
     const u32                     jointCount,
     const GeoMatrix*              jointMatrices) {
 
   for (u32 i = 0; i != jointCount; ++i) {
-    const GeoVector jointPos       = geo_matrix_to_translation(&jointMatrices[i]);
-    const f32       boundingRadius = scene_skeleton_joint_bounding_radius(skeletonTemplate, i);
+    const GeoVector jointPos = geo_matrix_to_translation(&jointMatrices[i]);
 
-    debug_sphere(shape, jointPos, boundingRadius, geo_color(0, 1, 0, 0.1f), DebugShape_Fill);
-    debug_sphere(shape, jointPos, boundingRadius, geo_color(0, 1, 0, 0.5f), DebugShape_Wire);
+    const f32 radius       = scene_skeleton_joint_bounding_radius(skeletonTemplate, i);
+    const f32 radiusScaled = radius * worldScale;
+
+    debug_sphere(shape, jointPos, radiusScaled, geo_color(0, 1, 0, 0.1f), DebugShape_Fill);
+    debug_sphere(shape, jointPos, radiusScaled, geo_color(0, 1, 0, 0.5f), DebugShape_Wire);
   }
 }
 
@@ -571,7 +576,11 @@ ecs_system_define(DebugSkeletonDrawSys) {
     }
     if (set->flags & DebugSkelFlags_DrawBounds) {
       debug_draw_bounds(
-          shape, subject.skeletonTemplate, subject.skeleton->jointCount, jointMatrices);
+          shape,
+          subject.skeletonTemplate,
+          subject.worldScale,
+          subject.skeleton->jointCount,
+          jointMatrices);
     }
   }
 }

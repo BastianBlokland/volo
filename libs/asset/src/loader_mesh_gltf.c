@@ -32,12 +32,27 @@
 
 #define gltf_eq_threshold 1e-2f
 #define gltf_skin_weight_min 1e-3f
+#define glb_chunk_count_max 16
 
 typedef enum {
   GltfLoadPhase_BuffersAcquire,
   GltfLoadPhase_BuffersWait,
   GltfLoadPhase_Parse,
 } GltfLoadPhase;
+
+typedef struct {
+  u32 version, length;
+} GlbHeader;
+
+typedef enum {
+  GlbChunkType_Json = 0x4E4F534A,
+  GlbChunkType_Bin  = 0x004E4942,
+} GlbChunkType;
+
+typedef struct {
+  u32   length, type;
+  void* dataPtr;
+} GlbChunk;
 
 typedef struct {
   u32         length;
@@ -142,6 +157,9 @@ ecs_comp_define(AssetGltfLoadComp) {
   u32           animCount;
   GltfTransform sceneTrans;
   u32           accBindInvMats; // Access index [Optional].
+
+  AssetSource* glbDataSource;
+  GlbChunk     glbBinChunk;
 };
 
 typedef AssetGltfLoadComp GltfLoad;
@@ -167,6 +185,9 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   if (comp->anims) {
     alloc_free_array_t(g_allocHeap, comp->anims, comp->animCount);
   }
+  if (comp->glbDataSource) {
+    asset_repo_source_close(comp->glbDataSource);
+  }
   dynarray_destroy(&comp->animData);
 }
 
@@ -174,6 +195,8 @@ typedef enum {
   GltfError_None = 0,
   GltfError_InvalidJson,
   GltfError_MalformedFile,
+  GltfError_MalformedGlbHeader,
+  GltfError_MalformedGlbChunk,
   GltfError_MalformedBuffers,
   GltfError_MalformedBufferViews,
   GltfError_MalformedAccessors,
@@ -194,6 +217,9 @@ typedef enum {
   GltfError_InvalidBuffer,
   GltfError_UnsupportedPrimitiveMode,
   GltfError_UnsupportedInterpolationMode,
+  GltfError_UnsupportedGlbVersion,
+  GltfError_GlbJsonChunkMissing,
+  GltfError_GlbChunkCountExceedsMaximum,
   GltfError_NoPrimitives,
 
   GltfError_Count,
@@ -204,6 +230,8 @@ static String gltf_error_str(const GltfError err) {
       string_static("None"),
       string_static("Invalid json"),
       string_static("Malformed gltf file"),
+      string_static("Malformed glb header"),
+      string_static("Malformed glb chunk"),
       string_static("Gltf 'buffers' field malformed"),
       string_static("Gltf 'bufferViews' field malformed"),
       string_static("Gltf 'accessors' field malformed"),
@@ -224,6 +252,9 @@ static String gltf_error_str(const GltfError err) {
       string_static("Gltf invalid buffer"),
       string_static("Unsupported primitive mode, only triangle primitives supported"),
       string_static("Unsupported interpolation mode, only linear interpolation supported"),
+      string_static("Unsupported glb version"),
+      string_static("Glb json chunk missing"),
+      string_static("Glb chunk count exceeds maximum"),
       string_static("Gltf mesh does not have any primitives"),
   };
   ASSERT(array_elems(g_msgs) == GltfError_Count, "Incorrect number of gltf-error messages");
@@ -534,16 +565,27 @@ static void gltf_buffers_acquire(GltfLoad* ld, EcsWorld* w, AssetManagerComp* ma
       goto Error;
     }
     String uri;
-    if (!gltf_json_field_str(ld, bufferElem, string_lit("uri"), &uri)) {
-      goto Error;
+    if (gltf_json_field_str(ld, bufferElem, string_lit("uri"), &uri)) {
+      /**
+       * External buffer.
+       */
+      const String assetId = gltf_buffer_asset_id(ld, uri);
+      if (string_eq(assetId, ld->assetId)) {
+        goto Error; // Cannot load this same file again as a buffer.
+      }
+      out->entity = asset_lookup(w, man, assetId);
+      asset_acquire(w, out->entity);
+      ++out;
+    } else {
+      /**
+       * Glb binary chunk.
+       */
+      if (ld->glbBinChunk.length < out->length) {
+        goto Error; // Too little data in the glb binary chunk.
+      }
+      out->entity = 0;
+      out->data   = mem_create(ld->glbBinChunk.dataPtr, out->length);
     }
-    const String assetId = gltf_buffer_asset_id(ld, uri);
-    if (string_eq(assetId, ld->assetId)) {
-      goto Error; // Cannot load this same file again as a buffer.
-    }
-    out->entity = asset_lookup(w, man, assetId);
-    asset_acquire(w, out->entity);
-    ++out;
   }
   *err = GltfError_None;
   return;
@@ -1506,6 +1548,9 @@ ecs_system_define(GltfLoadAssetSys) {
       goto Next;
     case GltfLoadPhase_BuffersWait:
       for (GltfBuffer* buffer = ld->buffers; buffer != ld->buffers + ld->bufferCount; ++buffer) {
+        if (!buffer->entity) {
+          continue; // Internal buffer (glb binary chunk).
+        }
         if (ecs_world_has_t(world, buffer->entity, AssetFailedComp)) {
           err = GltfError_InvalidBuffer;
           goto Error;
@@ -1618,32 +1663,127 @@ ecs_module_init(asset_mesh_gltf_module) {
       GltfLoadAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView), ecs_view_id(BufferView));
 }
 
-void asset_load_mesh_gltf(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+static GltfLoad* gltf_load(EcsWorld* w, const String id, const EcsEntityId e, const Mem data) {
   JsonDoc*   jsonDoc = json_create(g_allocHeap, 512);
   JsonResult jsonRes;
-  json_read(jsonDoc, src->data, JsonReadFlags_HashOnlyFieldNames, &jsonRes);
-  asset_repo_source_close(src);
+  json_read(jsonDoc, data, JsonReadFlags_HashOnlyFieldNames, &jsonRes);
 
-  if (jsonRes.type != JsonResultType_Success) {
-    gltf_load_fail_msg(world, entity, id, GltfError_InvalidJson, json_error_str(jsonRes.error));
+  if (UNLIKELY(jsonRes.type != JsonResultType_Success)) {
+    gltf_load_fail_msg(w, e, id, GltfError_InvalidJson, json_error_str(jsonRes.error));
     json_destroy(jsonDoc);
-    return;
+    return null;
   }
 
-  if (json_type(jsonDoc, jsonRes.type) != JsonType_Object) {
-    gltf_load_fail(world, entity, id, GltfError_MalformedFile);
+  if (UNLIKELY(json_type(jsonDoc, jsonRes.type) != JsonType_Object)) {
+    gltf_load_fail(w, e, id, GltfError_MalformedFile);
     json_destroy(jsonDoc);
-    return;
+    return null;
   }
 
-  ecs_world_add_t(
-      world,
-      entity,
+  return ecs_world_add_t(
+      w,
+      e,
       AssetGltfLoadComp,
       .assetId        = id,
       .jDoc           = jsonDoc,
-      .jRoot          = jsonRes.type,
+      .jRoot          = jsonRes.val,
       .accBindInvMats = sentinel_u32,
       .animData       = dynarray_create(g_allocHeap, 1, 1, 0));
+}
+
+void asset_load_mesh_gltf(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+
+  gltf_load(world, id, entity, src->data);
+  asset_repo_source_close(src);
+}
+
+static Mem glb_read_header(Mem data, GlbHeader* out, GltfError* err) {
+  if (UNLIKELY(data.size < sizeof(u32) * 3)) {
+    *err = GltfError_MalformedGlbHeader;
+    return data;
+  }
+  u32 magic;
+  data = mem_consume_le_u32(data, &magic);
+  if (UNLIKELY(magic != 0x46546C67 /* ascii: 'glTF' */)) {
+    *err = GltfError_MalformedGlbHeader;
+    return data;
+  }
+  data = mem_consume_le_u32(data, &out->version);
+  data = mem_consume_le_u32(data, &out->length);
+  return data;
+}
+
+static Mem glb_read_chunk(Mem data, GlbChunk* out, GltfError* err) {
+  if (UNLIKELY(data.size < sizeof(u32) * 2)) {
+    *err = GltfError_MalformedGlbChunk;
+    return data;
+  }
+  data = mem_consume_le_u32(data, &out->length);
+  data = mem_consume_le_u32(data, &out->type);
+  if (UNLIKELY(data.size < out->length)) {
+    *err = GltfError_MalformedGlbChunk;
+    return data;
+  }
+  if (UNLIKELY(!bits_aligned(out->length, 4))) {
+    *err = GltfError_MalformedGlbChunk;
+    return data;
+  }
+  out->dataPtr = data.ptr;
+  return mem_consume(data, out->length);
+}
+
+void asset_load_mesh_glb(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+  GltfError err = GltfError_None;
+
+  GlbHeader header;
+  Mem       data = glb_read_header(src->data, &header, &err);
+  if (UNLIKELY(err)) {
+    gltf_load_fail(world, entity, id, err);
+    goto Failed;
+  }
+  if (UNLIKELY(header.version != 2)) {
+    gltf_load_fail(world, entity, id, GltfError_UnsupportedGlbVersion);
+    goto Failed;
+  }
+  if (UNLIKELY(header.length != src->data.size)) {
+    gltf_load_fail(world, entity, id, GltfError_MalformedFile);
+    goto Failed;
+  }
+
+  GlbChunk chunks[glb_chunk_count_max];
+  u32      chunkCount = 0;
+  while (data.size) {
+    if (UNLIKELY(chunkCount == glb_chunk_count_max)) {
+      gltf_load_fail(world, entity, id, GltfError_GlbChunkCountExceedsMaximum);
+      goto Failed;
+    }
+    data = glb_read_chunk(data, &chunks[chunkCount++], &err);
+    if (UNLIKELY(err)) {
+      gltf_load_fail(world, entity, id, err);
+      goto Failed;
+    }
+  }
+
+  if (UNLIKELY(!chunkCount || chunks[0].type != GlbChunkType_Json)) {
+    gltf_load_fail(world, entity, id, GltfError_GlbJsonChunkMissing);
+    goto Failed;
+  }
+
+  GltfLoad* ld = gltf_load(world, id, entity, mem_create(chunks[0].dataPtr, chunks[0].length));
+  if (UNLIKELY(!ld)) {
+    goto Failed;
+  }
+
+  if (chunkCount > 1 && chunks[1].type == GlbChunkType_Bin) {
+    ld->glbBinChunk   = chunks[1];
+    ld->glbDataSource = src;
+  } else {
+    asset_repo_source_close(src);
+  }
+  return; // Success;
+
+Failed:
+  asset_repo_source_close(src);
 }
