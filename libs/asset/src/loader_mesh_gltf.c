@@ -31,7 +31,7 @@
  * assumes the host system matches that.
  */
 
-#define gltf_uri_size_max 512
+#define gltf_uri_size_max 128
 #define gltf_eq_threshold 1e-2f
 #define gltf_skin_weight_min 1e-3f
 #define gltf_transient_alloc_chunk_size (1 * usize_mebibyte)

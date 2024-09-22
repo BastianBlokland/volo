@@ -21,6 +21,7 @@
 
 #define asset_max_load_time_per_task time_millisecond
 #define asset_num_load_tasks 2
+#define asset_id_max_size 256
 #define asset_id_chunk_size (16 * usize_kibibyte)
 
 /**
@@ -547,8 +548,8 @@ ecs_system_define(AssetCacheSys) {
         ecs_view_jump(depItr, depComp->dependencies.single);
         const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
         deps[depCount++]              = (AssetRepoDep){
-            .id      = depAssetComp->id,
-            .modTime = depAssetComp->loadModTime,
+                         .id      = depAssetComp->id,
+                         .modTime = depAssetComp->loadModTime,
         };
       } break;
       case AssetDepStorageType_Many:
@@ -559,8 +560,8 @@ ecs_system_define(AssetCacheSys) {
           ecs_view_jump(depItr, *asset);
           const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
           deps[depCount++]              = (AssetRepoDep){
-              .id      = depAssetComp->id,
-              .modTime = depAssetComp->loadModTime,
+                           .id      = depAssetComp->id,
+                           .modTime = depAssetComp->loadModTime,
           };
         }
         break;
@@ -654,6 +655,7 @@ AssetManagerComp* asset_manager_create_mem(
 
 EcsEntityId asset_lookup(EcsWorld* world, AssetManagerComp* manager, const String id) {
   diag_assert_msg(!string_is_empty(id), "Asset id cannot be empty");
+  diag_assert_msg(id.size <= asset_id_max_size, "Asset id size exceeds maximum");
 
   const AssetEntry tgt = {.idHash = string_hash(id)};
   AssetEntry* entry = dynarray_find_or_insert_sorted(&manager->lookup, asset_compare_entry, &tgt);
