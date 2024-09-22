@@ -1781,8 +1781,8 @@ void asset_load_mesh_glb(
     ld->glbDataSource = src;
   } else {
     asset_repo_source_close(src);
-    return;
   }
+  return; // Success;
 
 Failed:
   asset_repo_source_close(src);
