@@ -17,6 +17,7 @@ static const String g_assetFormatExtensions[AssetFormat_Count] = {
     [AssetFormat_Icon]           = string_static("icon"),
     [AssetFormat_Inputs]         = string_static("inputs"),
     [AssetFormat_Level]          = string_static("level"),
+    [AssetFormat_MeshGlb]        = string_static("glb"),
     [AssetFormat_MeshGltf]       = string_static("gltf"),
     [AssetFormat_MeshObj]        = string_static("obj"),
     [AssetFormat_MeshProc]       = string_static("procmesh"),
