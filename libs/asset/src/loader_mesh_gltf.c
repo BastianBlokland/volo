@@ -1643,33 +1643,32 @@ ecs_module_init(asset_mesh_gltf_module) {
       GltfLoadAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView), ecs_view_id(BufferView));
 }
 
-static bool gltf_load(EcsWorld* world, const String id, const EcsEntityId entity, const Mem data) {
+static GltfLoad* gltf_load(EcsWorld* w, const String id, const EcsEntityId e, const Mem data) {
   JsonDoc*   jsonDoc = json_create(g_allocHeap, 512);
   JsonResult jsonRes;
   json_read(jsonDoc, data, JsonReadFlags_HashOnlyFieldNames, &jsonRes);
 
   if (UNLIKELY(jsonRes.type != JsonResultType_Success)) {
-    gltf_load_fail_msg(world, entity, id, GltfError_InvalidJson, json_error_str(jsonRes.error));
+    gltf_load_fail_msg(w, e, id, GltfError_InvalidJson, json_error_str(jsonRes.error));
     json_destroy(jsonDoc);
-    return false;
+    return null;
   }
 
   if (UNLIKELY(json_type(jsonDoc, jsonRes.type) != JsonType_Object)) {
-    gltf_load_fail(world, entity, id, GltfError_MalformedFile);
+    gltf_load_fail(w, e, id, GltfError_MalformedFile);
     json_destroy(jsonDoc);
-    return false;
+    return null;
   }
 
-  ecs_world_add_t(
-      world,
-      entity,
+  return ecs_world_add_t(
+      w,
+      e,
       AssetGltfLoadComp,
       .assetId        = id,
       .jDoc           = jsonDoc,
-      .jRoot          = jsonRes.type,
+      .jRoot          = jsonRes.val,
       .accBindInvMats = sentinel_u32,
       .animData       = dynarray_create(g_allocHeap, 1, 1, 0));
-  return true;
 }
 
 void asset_load_mesh_gltf(
