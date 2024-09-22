@@ -1,6 +1,7 @@
 #include "asset_raw.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_base64.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
@@ -30,8 +31,11 @@
  * assumes the host system matches that.
  */
 
+#define gltf_uri_size_max 512
 #define gltf_eq_threshold 1e-2f
 #define gltf_skin_weight_min 1e-3f
+#define gltf_transient_alloc_chunk_size (1 * usize_mebibyte)
+
 #define glb_chunk_count_max 16
 
 typedef enum {
@@ -138,6 +142,7 @@ typedef struct {
 } GltfAnim;
 
 ecs_comp_define(AssetGltfLoadComp) {
+  Allocator*    transientAlloc;
   String        assetId;
   JsonDoc*      jDoc;
   JsonVal       jRoot;
@@ -167,27 +172,10 @@ typedef AssetGltfLoadComp GltfLoad;
 static void ecs_destruct_gltf_load_comp(void* data) {
   AssetGltfLoadComp* comp = data;
   json_destroy(comp->jDoc);
-  if (comp->buffers) {
-    alloc_free_array_t(g_allocHeap, comp->buffers, comp->bufferCount);
-  }
-  if (comp->views) {
-    alloc_free_array_t(g_allocHeap, comp->views, comp->viewCount);
-  }
-  if (comp->access) {
-    alloc_free_array_t(g_allocHeap, comp->access, comp->accessCount);
-  }
-  if (comp->prims) {
-    alloc_free_array_t(g_allocHeap, comp->prims, comp->primCount);
-  }
-  if (comp->joints) {
-    alloc_free_array_t(g_allocHeap, comp->joints, comp->jointCount);
-  }
-  if (comp->anims) {
-    alloc_free_array_t(g_allocHeap, comp->anims, comp->animCount);
-  }
   if (comp->glbDataSource) {
     asset_repo_source_close(comp->glbDataSource);
   }
+  alloc_chunked_destroy(comp->transientAlloc);
   dynarray_destroy(&comp->animData);
 }
 
@@ -551,12 +539,36 @@ static bool gltf_accessor_check(const String typeString, u32* outCompCount) {
   return false;
 }
 
+/**
+ * "data" URL scheme.
+ * Spec: https://www.rfc-editor.org/rfc/inline-errata/rfc2397.html
+ * NOTE: Only base64 encoded binary data is supported at this time.
+ */
+static Mem gtlf_uri_data_resolve(GltfLoad* ld, String uri) {
+  static const String g_prefix = string_static("data:application/octet-stream;base64,");
+  if (!string_starts_with(uri, g_prefix)) {
+    return mem_empty;
+  }
+  uri = mem_consume(uri, g_prefix.size);
+
+  const usize size = base64_decoded_size(uri);
+  if (!size) {
+    return mem_empty;
+  }
+  const Mem res    = alloc_alloc(ld->transientAlloc, size, 16);
+  DynString writer = dynstring_create_over(res);
+  if (!base64_decode(&writer, uri)) {
+    return mem_empty;
+  }
+  return res;
+}
+
 static void gltf_buffers_acquire(GltfLoad* ld, EcsWorld* w, AssetManagerComp* man, GltfError* err) {
   const JsonVal buffers = json_field_lit(ld->jDoc, ld->jRoot, "buffers");
   if (!(ld->bufferCount = gltf_json_elem_count(ld, buffers))) {
     goto Error;
   }
-  ld->buffers = alloc_array_t(g_allocHeap, GltfBuffer, ld->bufferCount);
+  ld->buffers = alloc_array_t(ld->transientAlloc, GltfBuffer, ld->bufferCount);
   mem_set(mem_create(ld->buffers, sizeof(GltfBuffer) * ld->bufferCount), 0);
   GltfBuffer* out = ld->buffers;
 
@@ -566,16 +578,30 @@ static void gltf_buffers_acquire(GltfLoad* ld, EcsWorld* w, AssetManagerComp* ma
     }
     String uri;
     if (gltf_json_field_str(ld, bufferElem, string_lit("uri"), &uri)) {
-      /**
-       * External buffer.
-       */
-      const String assetId = gltf_buffer_asset_id(ld, uri);
-      if (string_eq(assetId, ld->assetId)) {
-        goto Error; // Cannot load this same file again as a buffer.
+      if (string_starts_with(uri, string_lit("data:"))) {
+        /**
+         * Data URI.
+         */
+        const Mem data = gtlf_uri_data_resolve(ld, uri);
+        if (data.size < out->length) {
+          goto Error; // Too little data contained in the data-uri.
+        }
+        out->entity = 0;
+        out->data   = mem_slice(data, 0, out->length);
+      } else {
+        /**
+         * External buffer.
+         */
+        if (uri.size > gltf_uri_size_max) {
+          goto Error; // Buffer uri exceeds maximum.
+        }
+        const String assetId = gltf_buffer_asset_id(ld, uri);
+        if (string_eq(assetId, ld->assetId)) {
+          goto Error; // Cannot load this same file again as a buffer.
+        }
+        out->entity = asset_lookup(w, man, assetId);
+        asset_acquire(w, out->entity);
       }
-      out->entity = asset_lookup(w, man, assetId);
-      asset_acquire(w, out->entity);
-      ++out;
     } else {
       /**
        * Glb binary chunk.
@@ -586,6 +612,7 @@ static void gltf_buffers_acquire(GltfLoad* ld, EcsWorld* w, AssetManagerComp* ma
       out->entity = 0;
       out->data   = mem_create(ld->glbBinChunk.dataPtr, out->length);
     }
+    ++out;
   }
   *err = GltfError_None;
   return;
@@ -599,7 +626,7 @@ static void gltf_parse_views(GltfLoad* ld, GltfError* err) {
   if (!(ld->viewCount = gltf_json_elem_count(ld, views))) {
     goto Error;
   }
-  ld->views     = alloc_array_t(g_allocHeap, GltfView, ld->viewCount);
+  ld->views     = alloc_array_t(ld->transientAlloc, GltfView, ld->viewCount);
   GltfView* out = ld->views;
 
   json_for_elems(ld->jDoc, views, bufferView) {
@@ -633,7 +660,7 @@ static void gltf_parse_accessors(GltfLoad* ld, GltfError* err) {
   if (!(ld->accessCount = gltf_json_elem_count(ld, accessors))) {
     goto Error;
   }
-  ld->access      = alloc_array_t(g_allocHeap, GltfAccess, ld->accessCount);
+  ld->access      = alloc_array_t(ld->transientAlloc, GltfAccess, ld->accessCount);
   GltfAccess* out = ld->access;
 
   json_for_elems(ld->jDoc, accessors, accessor) {
@@ -692,7 +719,7 @@ static void gltf_parse_primitives(GltfLoad* ld, GltfError* err) {
   if (!(ld->primCount = gltf_json_elem_count(ld, primitives))) {
     goto Error;
   }
-  ld->prims     = alloc_array_t(g_allocHeap, GltfPrim, ld->primCount);
+  ld->prims     = alloc_array_t(ld->transientAlloc, GltfPrim, ld->primCount);
   GltfPrim* out = ld->prims;
 
   json_for_elems(ld->jDoc, primitives, primitive) {
@@ -794,7 +821,7 @@ static void gltf_parse_skin(GltfLoad* ld, GltfError* err) {
     *err = GltfError_JointCountExceedsMaximum;
     return;
   }
-  ld->joints = alloc_array_t(g_allocHeap, GltfJoint, ld->jointCount);
+  ld->joints = alloc_array_t(ld->transientAlloc, GltfJoint, ld->jointCount);
 
   GltfJoint* outJoint = ld->joints;
   json_for_elems(ld->jDoc, joints, joint) {
@@ -916,7 +943,7 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
   if (!(ld->animCount = gltf_json_elem_count(ld, animations))) {
     goto Success; // Animations are optional.
   }
-  ld->anims         = alloc_array_t(g_allocHeap, GltfAnim, ld->animCount);
+  ld->anims         = alloc_array_t(ld->transientAlloc, GltfAnim, ld->animCount);
   GltfAnim* outAnim = ld->anims;
 
   enum { GltfMaxSamplerCount = 1024 };
@@ -1680,10 +1707,14 @@ static GltfLoad* gltf_load(EcsWorld* w, const String id, const EcsEntityId e, co
     return null;
   }
 
+  Allocator* transientAlloc =
+      alloc_chunked_create(g_allocHeap, alloc_bump_create, gltf_transient_alloc_chunk_size);
+
   return ecs_world_add_t(
       w,
       e,
       AssetGltfLoadComp,
+      .transientAlloc = transientAlloc,
       .assetId        = id,
       .jDoc           = jsonDoc,
       .jRoot          = jsonRes.val,
