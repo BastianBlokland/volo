@@ -1647,3 +1647,11 @@ void asset_load_mesh_gltf(
       .accBindInvMats = sentinel_u32,
       .animData       = dynarray_create(g_allocHeap, 1, 1, 0));
 }
+
+void asset_load_mesh_glb(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+  (void)world;
+  (void)id;
+  (void)entity;
+  (void)src;
+}
