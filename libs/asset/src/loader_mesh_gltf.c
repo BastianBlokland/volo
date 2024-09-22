@@ -1,6 +1,7 @@
 #include "asset_raw.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_base64.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
@@ -538,6 +539,30 @@ static bool gltf_accessor_check(const String typeString, u32* outCompCount) {
   return false;
 }
 
+/**
+ * "data" URL scheme.
+ * Spec: https://www.rfc-editor.org/rfc/inline-errata/rfc2397.html
+ * NOTE: Only base64 encoded binary data is supported at this time.
+ */
+static Mem gtlf_uri_data_resolve(GltfLoad* ld, String uri) {
+  static const String g_prefix = string_static("data:application/octet-stream;base64,");
+  if (!string_starts_with(uri, g_prefix)) {
+    return mem_empty;
+  }
+  uri = mem_consume(uri, g_prefix.size);
+
+  const usize size = base64_decoded_size(uri);
+  if (!size) {
+    return mem_empty;
+  }
+  const Mem res    = alloc_alloc(ld->transientAlloc, size, 16);
+  DynString writer = dynstring_create_over(res);
+  if (!base64_decode(&writer, uri)) {
+    return mem_empty;
+  }
+  return res;
+}
+
 static void gltf_buffers_acquire(GltfLoad* ld, EcsWorld* w, AssetManagerComp* man, GltfError* err) {
   const JsonVal buffers = json_field_lit(ld->jDoc, ld->jRoot, "buffers");
   if (!(ld->bufferCount = gltf_json_elem_count(ld, buffers))) {
@@ -553,19 +578,30 @@ static void gltf_buffers_acquire(GltfLoad* ld, EcsWorld* w, AssetManagerComp* ma
     }
     String uri;
     if (gltf_json_field_str(ld, bufferElem, string_lit("uri"), &uri)) {
-      /**
-       * External buffer.
-       */
-      if (uri.size > gltf_uri_size_max) {
-        goto Error; // Buffer uri exceeds maximum.
+      if (string_starts_with(uri, string_lit("data:"))) {
+        /**
+         * Data URI.
+         */
+        const Mem data = gtlf_uri_data_resolve(ld, uri);
+        if (data.size < out->length) {
+          goto Error; // Too little data contained in the data-uri.
+        }
+        out->entity = 0;
+        out->data   = mem_slice(data, 0, out->length);
+      } else {
+        /**
+         * External buffer.
+         */
+        if (uri.size > gltf_uri_size_max) {
+          goto Error; // Buffer uri exceeds maximum.
+        }
+        const String assetId = gltf_buffer_asset_id(ld, uri);
+        if (string_eq(assetId, ld->assetId)) {
+          goto Error; // Cannot load this same file again as a buffer.
+        }
+        out->entity = asset_lookup(w, man, assetId);
+        asset_acquire(w, out->entity);
       }
-      const String assetId = gltf_buffer_asset_id(ld, uri);
-      if (string_eq(assetId, ld->assetId)) {
-        goto Error; // Cannot load this same file again as a buffer.
-      }
-      out->entity = asset_lookup(w, man, assetId);
-      asset_acquire(w, out->entity);
-      ++out;
     } else {
       /**
        * Glb binary chunk.
@@ -576,6 +612,7 @@ static void gltf_buffers_acquire(GltfLoad* ld, EcsWorld* w, AssetManagerComp* ma
       out->entity = 0;
       out->data   = mem_create(ld->glbBinChunk.dataPtr, out->length);
     }
+    ++out;
   }
   *err = GltfError_None;
   return;
