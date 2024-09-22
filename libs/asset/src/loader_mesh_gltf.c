@@ -32,6 +32,7 @@
 
 #define gltf_eq_threshold 1e-2f
 #define gltf_skin_weight_min 1e-3f
+#define glb_chunk_count_max 64
 
 typedef enum {
   GltfLoadPhase_BuffersAcquire,
@@ -175,6 +176,7 @@ typedef enum {
   GltfError_InvalidJson,
   GltfError_MalformedFile,
   GltfError_MalformedGlbHeader,
+  GltfError_MalformedGlbChunk,
   GltfError_MalformedBuffers,
   GltfError_MalformedBufferViews,
   GltfError_MalformedAccessors,
@@ -196,6 +198,7 @@ typedef enum {
   GltfError_UnsupportedPrimitiveMode,
   GltfError_UnsupportedInterpolationMode,
   GltfError_UnsupportedGlbVersion,
+  GltfError_GlbChunkCountExceedsMaximum,
   GltfError_NoPrimitives,
 
   GltfError_Count,
@@ -207,6 +210,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Invalid json"),
       string_static("Malformed gltf file"),
       string_static("Malformed glb header"),
+      string_static("Malformed glb chunk"),
       string_static("Gltf 'buffers' field malformed"),
       string_static("Gltf 'bufferViews' field malformed"),
       string_static("Gltf 'accessors' field malformed"),
@@ -228,6 +232,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Unsupported primitive mode, only triangle primitives supported"),
       string_static("Unsupported interpolation mode, only linear interpolation supported"),
       string_static("Unsupported glb version"),
+      string_static("Glb chunk count exceeds maximum"),
       string_static("Gltf mesh does not have any primitives"),
   };
   ASSERT(array_elems(g_msgs) == GltfError_Count, "Incorrect number of gltf-error messages");
@@ -1656,6 +1661,11 @@ typedef struct {
   u32 version, length;
 } GlbHeader;
 
+typedef struct {
+  u32 length, type;
+  Mem data;
+} GlbChunk;
+
 static Mem glb_read_header(Mem data, GlbHeader* out, GltfError* err) {
   if (UNLIKELY(data.size < sizeof(u32) * 3)) {
     *err = GltfError_MalformedGlbHeader;
@@ -1670,6 +1680,25 @@ static Mem glb_read_header(Mem data, GlbHeader* out, GltfError* err) {
   data = mem_consume_le_u32(data, &out->version);
   data = mem_consume_le_u32(data, &out->length);
   return data;
+}
+
+static Mem glb_read_chunk(Mem data, GlbChunk* out, GltfError* err) {
+  if (UNLIKELY(data.size < sizeof(u32) * 2)) {
+    *err = GltfError_MalformedGlbChunk;
+    return data;
+  }
+  data = mem_consume_le_u32(data, &out->length);
+  data = mem_consume_le_u32(data, &out->type);
+  if (UNLIKELY(data.size < out->length)) {
+    *err = GltfError_MalformedGlbChunk;
+    return data;
+  }
+  if (UNLIKELY(!bits_aligned(out->length, 4))) {
+    *err = GltfError_MalformedGlbChunk;
+    return data;
+  }
+  out->data = mem_slice(data, 0, out->length);
+  return mem_consume(data, out->length);
 }
 
 void asset_load_mesh_glb(
@@ -1691,7 +1720,19 @@ void asset_load_mesh_glb(
     goto Failed;
   }
 
-  (void)data;
+  GlbChunk chunks[glb_chunk_count_max];
+  u32      chunkCount = 0;
+  while (data.size) {
+    if (UNLIKELY(chunkCount == glb_chunk_count_max)) {
+      gltf_load_fail(world, entity, id, GltfError_GlbChunkCountExceedsMaximum);
+      goto Failed;
+    }
+    data = glb_read_chunk(data, &chunks[chunkCount++], &err);
+    if (UNLIKELY(err)) {
+      gltf_load_fail(world, entity, id, err);
+      goto Failed;
+    }
+  }
 
 Failed:
   asset_repo_source_close(src);
