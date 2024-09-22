@@ -198,6 +198,7 @@ typedef enum {
   GltfError_UnsupportedPrimitiveMode,
   GltfError_UnsupportedInterpolationMode,
   GltfError_UnsupportedGlbVersion,
+  GltfError_GlbJsonChunkMissing,
   GltfError_GlbChunkCountExceedsMaximum,
   GltfError_NoPrimitives,
 
@@ -232,6 +233,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Unsupported primitive mode, only triangle primitives supported"),
       string_static("Unsupported interpolation mode, only linear interpolation supported"),
       string_static("Unsupported glb version"),
+      string_static("Glb json chunk missing"),
       string_static("Glb chunk count exceeds maximum"),
       string_static("Gltf mesh does not have any primitives"),
   };
@@ -1661,6 +1663,11 @@ typedef struct {
   u32 version, length;
 } GlbHeader;
 
+typedef enum {
+  GlbChunkType_Json = 0x4E4F534A,
+  GlbChunkType_Bin  = 0x004E4942,
+} GlbChunkType;
+
 typedef struct {
   u32 length, type;
   Mem data;
@@ -1732,6 +1739,11 @@ void asset_load_mesh_glb(
       gltf_load_fail(world, entity, id, err);
       goto Failed;
     }
+  }
+
+  if (UNLIKELY(!chunkCount || chunks[0].type != GlbChunkType_Json)) {
+    gltf_load_fail(world, entity, id, GltfError_GlbJsonChunkMissing);
+    goto Failed;
   }
 
 Failed:
