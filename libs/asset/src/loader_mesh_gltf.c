@@ -565,16 +565,27 @@ static void gltf_buffers_acquire(GltfLoad* ld, EcsWorld* w, AssetManagerComp* ma
       goto Error;
     }
     String uri;
-    if (!gltf_json_field_str(ld, bufferElem, string_lit("uri"), &uri)) {
-      goto Error;
+    if (gltf_json_field_str(ld, bufferElem, string_lit("uri"), &uri)) {
+      /**
+       * External buffer.
+       */
+      const String assetId = gltf_buffer_asset_id(ld, uri);
+      if (string_eq(assetId, ld->assetId)) {
+        goto Error; // Cannot load this same file again as a buffer.
+      }
+      out->entity = asset_lookup(w, man, assetId);
+      asset_acquire(w, out->entity);
+      ++out;
+    } else {
+      /**
+       * Glb binary chunk.
+       */
+      if (ld->glbBinChunk.length < out->length) {
+        goto Error; // Too little data in the glb binary chunk.
+      }
+      out->entity = 0;
+      out->data   = string_slice(ld->glbBinChunk.data, 0, out->length);
     }
-    const String assetId = gltf_buffer_asset_id(ld, uri);
-    if (string_eq(assetId, ld->assetId)) {
-      goto Error; // Cannot load this same file again as a buffer.
-    }
-    out->entity = asset_lookup(w, man, assetId);
-    asset_acquire(w, out->entity);
-    ++out;
   }
   *err = GltfError_None;
   return;
@@ -1537,6 +1548,9 @@ ecs_system_define(GltfLoadAssetSys) {
       goto Next;
     case GltfLoadPhase_BuffersWait:
       for (GltfBuffer* buffer = ld->buffers; buffer != ld->buffers + ld->bufferCount; ++buffer) {
+        if (!buffer->entity) {
+          continue; // Internal buffer (glb binary chunk).
+        }
         if (ecs_world_has_t(world, buffer->entity, AssetFailedComp)) {
           err = GltfError_InvalidBuffer;
           goto Error;
