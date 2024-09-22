@@ -30,6 +30,7 @@
  * assumes the host system matches that.
  */
 
+#define gltf_uri_size_max 512
 #define gltf_eq_threshold 1e-2f
 #define gltf_skin_weight_min 1e-3f
 #define glb_chunk_count_max 16
@@ -569,6 +570,9 @@ static void gltf_buffers_acquire(GltfLoad* ld, EcsWorld* w, AssetManagerComp* ma
       /**
        * External buffer.
        */
+      if (uri.size > gltf_uri_size_max) {
+        goto Error; // Buffer uri exceeds maximum.
+      }
       const String assetId = gltf_buffer_asset_id(ld, uri);
       if (string_eq(assetId, ld->assetId)) {
         goto Error; // Cannot load this same file again as a buffer.
