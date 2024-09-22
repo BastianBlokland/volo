@@ -555,7 +555,10 @@ static Mem gtlf_uri_data_resolve(GltfLoad* ld, String uri) {
   if (!size) {
     return mem_empty;
   }
-  const Mem res    = alloc_alloc(ld->transientAlloc, size, 16);
+  const Mem res = alloc_alloc(ld->transientAlloc, size, 16);
+  if (!mem_valid(res)) {
+    return mem_empty; // Transient allocator ran out of space. TODO: Report proper error.
+  }
   DynString writer = dynstring_create_over(res);
   if (!base64_decode(&writer, uri)) {
     return mem_empty;
