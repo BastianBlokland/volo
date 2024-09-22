@@ -1735,9 +1735,9 @@ static Mem glb_read_chunk(Mem data, GlbChunk* out, GltfError* err) {
 
 void asset_load_mesh_glb(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+  GltfError err = GltfError_None;
 
   GlbHeader header;
-  GltfError err;
   Mem       data = glb_read_header(src->data, &header, &err);
   if (UNLIKELY(err)) {
     gltf_load_fail(world, entity, id, err);
