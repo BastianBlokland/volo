@@ -50,8 +50,8 @@ typedef enum {
 } GlbChunkType;
 
 typedef struct {
-  u32 length, type;
-  Mem data;
+  u32   length, type;
+  void* dataPtr;
 } GlbChunk;
 
 typedef struct {
@@ -584,7 +584,7 @@ static void gltf_buffers_acquire(GltfLoad* ld, EcsWorld* w, AssetManagerComp* ma
         goto Error; // Too little data in the glb binary chunk.
       }
       out->entity = 0;
-      out->data   = string_slice(ld->glbBinChunk.data, 0, out->length);
+      out->data   = mem_create(ld->glbBinChunk.dataPtr, out->length);
     }
   }
   *err = GltfError_None;
@@ -1729,7 +1729,7 @@ static Mem glb_read_chunk(Mem data, GlbChunk* out, GltfError* err) {
     *err = GltfError_MalformedGlbChunk;
     return data;
   }
-  out->data = mem_slice(data, 0, out->length);
+  out->dataPtr = data.ptr;
   return mem_consume(data, out->length);
 }
 
@@ -1771,7 +1771,7 @@ void asset_load_mesh_glb(
     goto Failed;
   }
 
-  GltfLoad* ld = gltf_load(world, id, entity, chunks[0].data);
+  GltfLoad* ld = gltf_load(world, id, entity, mem_create(chunks[0].dataPtr, chunks[0].length));
   if (UNLIKELY(!ld)) {
     goto Failed;
   }
