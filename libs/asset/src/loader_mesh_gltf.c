@@ -32,7 +32,7 @@
 
 #define gltf_eq_threshold 1e-2f
 #define gltf_skin_weight_min 1e-3f
-#define glb_chunk_count_max 64
+#define glb_chunk_count_max 16
 
 typedef enum {
   GltfLoadPhase_BuffersAcquire,
@@ -157,6 +157,9 @@ ecs_comp_define(AssetGltfLoadComp) {
   u32           animCount;
   GltfTransform sceneTrans;
   u32           accBindInvMats; // Access index [Optional].
+
+  AssetSource* glbDataSource;
+  GlbChunk     glbBinChunk;
 };
 
 typedef AssetGltfLoadComp GltfLoad;
@@ -181,6 +184,9 @@ static void ecs_destruct_gltf_load_comp(void* data) {
   }
   if (comp->anims) {
     alloc_free_array_t(g_allocHeap, comp->anims, comp->animCount);
+  }
+  if (comp->glbDataSource) {
+    asset_repo_source_close(comp->glbDataSource);
   }
   dynarray_destroy(&comp->animData);
 }
@@ -1751,11 +1757,18 @@ void asset_load_mesh_glb(
     goto Failed;
   }
 
-  if (UNLIKELY(!gltf_load(world, id, entity, chunks[0].data))) {
+  GltfLoad* ld = gltf_load(world, id, entity, chunks[0].data);
+  if (UNLIKELY(!ld)) {
     goto Failed;
   }
 
-  // TODO: Close the asset-source when loading is finished.
+  if (chunkCount > 1 && chunks[1].type == GlbChunkType_Bin) {
+    ld->glbBinChunk   = chunks[1];
+    ld->glbDataSource = src;
+  } else {
+    asset_repo_source_close(src);
+    return;
+  }
 
 Failed:
   asset_repo_source_close(src);
