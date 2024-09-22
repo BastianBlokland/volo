@@ -215,8 +215,13 @@ asset_manager_create_internal(EcsWorld* world, AssetRepo* repo, const AssetManag
 static EcsEntityId asset_entity_create(EcsWorld* world, Allocator* idAlloc, const String id) {
   diag_assert_msg(!string_is_empty(id), "Empty asset-id is invalid");
 
+  const String idDup = string_dup(idAlloc, id);
+  if (UNLIKELY(!idDup.ptr)) {
+    diag_crash_msg("Asset id allocator ran out of space");
+  }
+
   const EcsEntityId entity = ecs_world_entity_create(world);
-  ecs_world_add_t(world, entity, AssetComp, .id = string_dup(idAlloc, id));
+  ecs_world_add_t(world, entity, AssetComp, .id = idDup);
   return entity;
 }
 
