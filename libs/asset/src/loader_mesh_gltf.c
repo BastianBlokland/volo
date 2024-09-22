@@ -41,6 +41,20 @@ typedef enum {
 } GltfLoadPhase;
 
 typedef struct {
+  u32 version, length;
+} GlbHeader;
+
+typedef enum {
+  GlbChunkType_Json = 0x4E4F534A,
+  GlbChunkType_Bin  = 0x004E4942,
+} GlbChunkType;
+
+typedef struct {
+  u32 length, type;
+  Mem data;
+} GlbChunk;
+
+typedef struct {
   u32         length;
   EcsEntityId entity;
   String      data; // NOTE: Available after the BuffersWait phase.
@@ -1664,20 +1678,6 @@ void asset_load_mesh_gltf(
   gltf_load(world, id, entity, src->data);
   asset_repo_source_close(src);
 }
-
-typedef struct {
-  u32 version, length;
-} GlbHeader;
-
-typedef enum {
-  GlbChunkType_Json = 0x4E4F534A,
-  GlbChunkType_Bin  = 0x004E4942,
-} GlbChunkType;
-
-typedef struct {
-  u32 length, type;
-  Mem data;
-} GlbChunk;
 
 static Mem glb_read_header(Mem data, GlbHeader* out, GltfError* err) {
   if (UNLIKELY(data.size < sizeof(u32) * 3)) {
