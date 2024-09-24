@@ -8,6 +8,8 @@
 
 #include "registry_internal.h"
 
+#define VOLO_DATA_VALIDATE_CHECKSUMS 1
+
 static const String g_dataBinMagic = string_static("VOLO");
 
 #define result_success()                                                                           \
@@ -203,6 +205,11 @@ static void data_read_bin_header_internal(ReadCtx* ctx, DataBinHeader* out, Data
 
 Truncated:
   *res = result_fail_truncated();
+}
+
+MAYBE_UNUSED static u32 data_read_bin_checksum(const Mem input) {
+  const usize offset = g_dataBinMagic.size + sizeof(u32) /* version */ + sizeof(u32) /* checksum */;
+  return bits_crc_32(0, mem_consume(input, offset));
 }
 
 static void data_read_bin_val(ReadCtx*, DataReadResult*);
@@ -644,6 +651,12 @@ String data_read_bin(
   if (UNLIKELY(res->error)) {
     goto Ret;
   }
+#if VOLO_DATA_VALIDATE_CHECKSUMS
+  if (UNLIKELY(header.checksum && header.checksum != data_read_bin_checksum(input))) {
+    *res = result_fail(DataReadError_Corrupted, "Checksum mismatch");
+    goto Ret;
+  }
+#endif
   if (UNLIKELY(header.metaTypeNameHash != data_name_hash(reg, meta.type))) {
     *res = result_fail(DataReadError_Incompatible, "Input mismatched type name");
     goto Ret;
