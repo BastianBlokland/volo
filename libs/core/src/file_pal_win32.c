@@ -362,6 +362,30 @@ FileResult file_pal_unmap(File* file, FileMapping* mapping) {
   return FileResult_Success;
 }
 
+FileResult file_rename(const String oldPath, const String newPath) {
+  // Convert the paths to null-terminated wide-char strings.
+  const usize oldPathBufferSize = winutils_to_widestr_size(oldPath);
+  const usize newPathBufferSize = winutils_to_widestr_size(newPath);
+  if (sentinel_check(oldPathBufferSize) || sentinel_check(newPathBufferSize)) {
+    return FileResult_PathInvalid;
+  }
+  if (oldPathBufferSize > path_pal_max_size || newPathBufferSize > path_pal_max_size) {
+    return FileResult_PathTooLong;
+  }
+
+  Mem oldPathBufferMem = mem_stack(oldPathBufferSize);
+  winutils_to_widestr(oldPathBufferMem, oldPath);
+
+  Mem newPathBufferMem = mem_stack(newPathBufferSize);
+  winutils_to_widestr(newPathBufferMem, newPath);
+
+  const BOOL success = MoveFileEx(
+      (const wchar_t*)oldPathBufferMem.ptr,
+      (const wchar_t*)newPathBufferMem.ptr,
+      MOVEFILE_REPLACE_EXISTING);
+  return success ? FileResult_Success : fileresult_from_lasterror();
+}
+
 FileResult file_pal_create_dir_single_sync(String path) {
   // Convert the path to a null-terminated wide-char string.
   const usize pathBufferSize = winutils_to_widestr_size(path);
