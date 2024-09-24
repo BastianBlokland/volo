@@ -22,6 +22,7 @@ String deflate_decode(const String input, DynString* out, DeflateError* err) {
       .input = input,
       .out   = out,
   };
+  *err = DeflateError_None;
   while (inflate_block(&ctx, err) && *err == DeflateError_None)
     ;
   return ctx.input;
