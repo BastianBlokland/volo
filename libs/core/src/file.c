@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_file.h"
 #include "core_path.h"
+#include "core_rng.h"
 #include "core_thread.h"
 
 #include "file_internal.h"
@@ -115,6 +116,22 @@ ret:
     file_destroy(file);
   }
   return res;
+}
+
+FileResult file_write_to_path_atomic(const String path, const String data) {
+  const String tmpFileName = path_name_random_scratch(g_rng, string_lit("volo"), string_lit("tmp"));
+  const String tmpPath     = path_build_scratch(g_pathTempDir, tmpFileName);
+
+  FileResult res;
+  if ((res = file_write_to_path_sync(tmpPath, data))) {
+    file_delete_sync(tmpPath);
+    return res;
+  }
+  if ((res = file_rename(tmpPath, path))) {
+    file_delete_sync(tmpPath);
+    return res;
+  }
+  return FileResult_Success;
 }
 
 FileResult file_read_to_end_sync(File* file, DynString* output) {

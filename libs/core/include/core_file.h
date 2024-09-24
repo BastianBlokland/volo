@@ -124,8 +124,10 @@ FileResult file_write_sync(File*, String);
 
 /**
  * Synchronously write a string to a new file at the given path.
+ * NOTE: The atomic version writes to a temp file and then renames to the final path.
  */
 FileResult file_write_to_path_sync(String path, String data);
+FileResult file_write_to_path_atomic(String path, String data);
 
 /**
  * Synchronously read a block of available data in the dynamic-string.
