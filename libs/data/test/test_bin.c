@@ -12,10 +12,17 @@ static void test_bin_roundtrip(
 
   const String writeResult = dynstring_view(&writeStr);
 
-  Mem            readData = mem_stack(data.size);
   DataReadResult readRes;
-  const String   readRem = data_read_bin(reg, writeResult, g_allocHeap, meta, readData, &readRes);
 
+  DataBinHeader dataHeader;
+  data_read_bin_header(writeResult, &dataHeader, &readRes);
+  if (readRes.error != DataReadError_None) {
+    check_error("Roundtrip read header failed: {}", fmt_text(readRes.errorMsg));
+  }
+  check_eq_int(dataHeader.checksum, data_read_bin_checksum(writeResult));
+
+  Mem          readData = mem_stack(data.size);
+  const String readRem  = data_read_bin(reg, writeResult, g_allocHeap, meta, readData, &readRes);
   if (readRes.error != DataReadError_None) {
     check_error("Roundtrip read failed: {}", fmt_text(readRes.errorMsg));
   }
