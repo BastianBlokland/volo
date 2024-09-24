@@ -13,7 +13,7 @@ typedef struct {
 
 static bool inflate_block(InflateCtx* ctx, DeflateError* err) {
   (void)ctx;
-  (void)err;
+  *err = DeflateError_Unknown;
   return false;
 }
 
