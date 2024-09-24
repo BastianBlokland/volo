@@ -22,6 +22,7 @@ add_library(lib_core STATIC
   src/bitset.c
   src/compare.c
   src/complex.c
+  src/deflate.c
   src/diag_pal.c
   src/diag.c
   src/dynarray.c
