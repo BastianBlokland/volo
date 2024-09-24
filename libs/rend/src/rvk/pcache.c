@@ -116,7 +116,7 @@ void rvk_pcache_save(RvkDevice* dev, VkPipelineCache vkCache) {
   vkGetPipelineCacheData(dev->vkDev, vkCache, &size, buffer.ptr);
 
   const String     path = rvk_pcache_path_scratch();
-  const FileResult res  = file_write_to_path_sync(path, mem_create(buffer.ptr, size));
+  const FileResult res  = file_write_to_path_atomic(path, mem_create(buffer.ptr, size));
 
   alloc_free(g_allocHeap, buffer);
 

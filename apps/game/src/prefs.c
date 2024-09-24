@@ -68,7 +68,7 @@ static void prefs_save(const GamePrefsComp* prefs) {
 
   // Save the data to disk.
   const String     filePath = prefs_path_scratch();
-  const FileResult fileRes  = file_write_to_path_sync(filePath, dynstring_view(&dataBuffer));
+  const FileResult fileRes  = file_write_to_path_atomic(filePath, dynstring_view(&dataBuffer));
   if (UNLIKELY(fileRes)) {
     log_e("Failed to write preference file", log_param("err", fmt_text(file_result_str(fileRes))));
   }

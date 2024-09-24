@@ -64,7 +64,7 @@ static bool dbgsetup_write_json(String path, const JsonDoc* jsonDoc, const JsonV
   json_write(&dynString, jsonDoc, jsonVal, &json_write_opts(.mode = JsonWriteMode_Compact));
 
   FileResult res;
-  if ((res = file_write_to_path_sync(path, dynstring_view(&dynString)))) {
+  if ((res = file_write_to_path_atomic(path, dynstring_view(&dynString)))) {
     log_e(
         "Failed to write output file",
         log_param("err", fmt_text(file_result_str(res))),

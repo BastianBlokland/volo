@@ -357,7 +357,7 @@ void asset_cache_set(
 
   // Save the blob to disk.
   const String     blobPath     = cache_blob_path_scratch(c, idHash);
-  const FileResult blobWriteRes = file_write_to_path_sync(blobPath, blob);
+  const FileResult blobWriteRes = file_write_to_path_atomic(blobPath, blob);
   if (UNLIKELY(blobWriteRes != FileResult_Success)) {
     log_w(
         "Failed to write asset cache blob",

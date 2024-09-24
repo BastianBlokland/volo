@@ -234,7 +234,7 @@ static BcuResult bcu_image_write(const BcuSize size, const BcColor8888* pixels, 
     pathWithExt = fmt_write_scratch("{}.tga", fmt_path(path));
   }
 
-  const FileResult writeRes = file_write_to_path_sync(pathWithExt, data);
+  const FileResult writeRes = file_write_to_path_atomic(pathWithExt, data);
   alloc_free(g_allocHeap, data);
   return writeRes ? BcuResult_FileWriteFailed : BcuResult_Success;
 }

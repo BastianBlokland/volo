@@ -128,7 +128,7 @@ static bool asset_repo_fs_save(AssetRepo* repo, const String id, const String da
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
   const String     path   = path_build_scratch(repoFs->rootPath, id);
-  const FileResult result = file_write_to_path_sync(path, data);
+  const FileResult result = file_write_to_path_atomic(path, data);
   if (result) {
     log_w(
         "Failed to save file",

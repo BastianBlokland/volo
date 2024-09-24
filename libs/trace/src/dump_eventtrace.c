@@ -151,7 +151,7 @@ bool trace_dump_eventtrace_to_path(const TraceSink* storeSink, const String path
 
   trace_dump_eventtrace(storeSink, &dynString);
 
-  const FileResult res = file_write_to_path_sync(pathCopy, dynstring_view(&dynString));
+  const FileResult res = file_write_to_path_atomic(pathCopy, dynstring_view(&dynString));
 
   dynstring_destroy(&dynString);
 
