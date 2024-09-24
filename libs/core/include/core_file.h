@@ -176,6 +176,11 @@ FileResult file_map(File*, String* output, FileHints);
 FileResult file_unmap(File*);
 
 /**
+ * Rename the file at the given path.
+ */
+FileResult file_rename(String oldPath, String newPath);
+
+/**
  * Synchronously create a new file-system directory.
  * NOTE: Will also create the parent directory if its missing.
  */
