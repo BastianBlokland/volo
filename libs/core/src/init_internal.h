@@ -6,6 +6,7 @@
  * Fired once when the core library is initialized.
  */
 void alloc_init(void);
+void bits_init(void);
 void dynlib_init(void);
 void file_init(void);
 void float_init(void);

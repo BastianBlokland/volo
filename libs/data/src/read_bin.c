@@ -8,8 +8,9 @@
 
 #include "registry_internal.h"
 
-static const String g_dataBinMagic   = string_static("VOLO");
-static const u32    g_dataBinVersion = 1;
+#define VOLO_DATA_VALIDATE_CHECKSUMS 0
+
+static const String g_dataBinMagic = string_static("VOLO");
 
 #define result_success()                                                                           \
   (DataReadResult) { 0 }
@@ -161,39 +162,49 @@ static void data_read_bin_header_internal(ReadCtx* ctx, DataBinHeader* out, Data
     return;
   }
   u32 inFormatVersion = 0;
-  if (!bin_pop_u32(ctx, &inFormatVersion) || inFormatVersion != g_dataBinVersion) {
+  if (!bin_pop_u32(ctx, &inFormatVersion)) {
+    goto Truncated;
+  }
+  if (!inFormatVersion || inFormatVersion > 2) {
     *res = result_fail(
-        DataReadError_Incompatible, "Input format {} is unsupported", fmt_int(inFormatVersion));
+        DataReadError_Incompatible,
+        "Input format version {} is unsupported",
+        fmt_int(inFormatVersion));
     return;
   }
+
+  if (inFormatVersion == 1) {
+    out->checksum = 0; // Version 1 had no checksum.
+  } else if (!bin_pop_u32(ctx, &out->checksum)) {
+    goto Truncated;
+  }
+
   if (!bin_pop_u32(ctx, &out->metaTypeNameHash)) {
-    *res = result_fail_truncated();
-    return;
+    goto Truncated;
   }
   if (!bin_pop_u32(ctx, &out->metaFormatHash)) {
-    *res = result_fail_truncated();
-    return;
+    goto Truncated;
   }
 
   u8 metaContainerVal, metaFlagsVal;
   if (!bin_pop_u8(ctx, &metaContainerVal)) {
-    *res = result_fail_truncated();
-    return;
+    goto Truncated;
   }
   if (!bin_pop_u8(ctx, &metaFlagsVal)) {
-    *res = result_fail_truncated();
-    return;
+    goto Truncated;
   }
   out->metaContainer = (DataContainer)metaContainerVal;
   out->metaFlags     = (DataFlags)metaFlagsVal;
 
   if (!bin_pop_u16(ctx, &out->metaFixedCount)) {
-    *res = result_fail_truncated();
-    return;
+    goto Truncated;
   }
 
   *res = result_success();
   return;
+
+Truncated:
+  *res = result_fail_truncated();
 }
 
 static void data_read_bin_val(ReadCtx*, DataReadResult*);
@@ -635,6 +646,12 @@ String data_read_bin(
   if (UNLIKELY(res->error)) {
     goto Ret;
   }
+#if VOLO_DATA_VALIDATE_CHECKSUMS
+  if (UNLIKELY(header.checksum && header.checksum != data_read_bin_checksum(input))) {
+    *res = result_fail(DataReadError_Corrupted, "Checksum mismatch");
+    goto Ret;
+  }
+#endif
   if (UNLIKELY(header.metaTypeNameHash != data_name_hash(reg, meta.type))) {
     *res = result_fail(DataReadError_Incompatible, "Input mismatched type name");
     goto Ret;
@@ -672,4 +689,12 @@ String data_read_bin_header(const String input, DataBinHeader* out, DataReadResu
   };
   data_read_bin_header_internal(&ctx, out, res);
   return ctx.input;
+}
+
+u32 data_read_bin_checksum(const String input) {
+  const usize offset = g_dataBinMagic.size + sizeof(u32) /* version */ + sizeof(u32) /* checksum */;
+  if (UNLIKELY(input.size < offset)) {
+    return 0; // Invalid data blob.
+  }
+  return bits_crc_32(0, mem_consume(input, offset));
 }

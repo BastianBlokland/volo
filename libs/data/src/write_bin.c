@@ -8,13 +8,20 @@
 #include "registry_internal.h"
 
 static const String g_dataBinMagic   = string_static("VOLO");
-static const u32    g_dataBinVersion = 1;
+static const u32    g_dataBinVersion = 2;
+
+/**
+ * Format version history:
+ * 1: Initial version.
+ * 2: Added crc32 checksum.
+ */
 
 typedef struct {
   const DataReg* reg;
   DynString*     out;
+  usize          checksumOffset;
   const DataMeta meta;
-  Mem            data;
+  const Mem      data;
 } WriteCtx;
 
 static void bin_push_u8(const WriteCtx* ctx, const u8 val) {
@@ -65,14 +72,29 @@ static void bin_push_padding(const WriteCtx* ctx, const usize offset, const usiz
   diag_assert(bits_aligned(ctx->out->size + offset, align));
 }
 
-static void data_write_bin_header(const WriteCtx* ctx) {
+static void data_write_bin_header(WriteCtx* ctx) {
   mem_cpy(dynstring_push(ctx->out, g_dataBinMagic.size), g_dataBinMagic);
   bin_push_u32(ctx, g_dataBinVersion);
+
+  /**
+   * Write a placeholder for the checksum field. The actual checksum will only be filled in after
+   * all the data has been written.
+   * NOTE: The magic and the version (and the checksum itself) are not part of the checksum.
+   */
+  ctx->checksumOffset = (usize)ctx->out->size;
+  dynstring_push(ctx->out, sizeof(u32));
+
   bin_push_u32(ctx, data_name_hash(ctx->reg, ctx->meta.type));
   bin_push_u32(ctx, data_hash(ctx->reg, ctx->meta, DataHashFlags_ExcludeIds));
   bin_push_u8(ctx, (u8)ctx->meta.container);
   bin_push_u8(ctx, (u8)ctx->meta.flags);
   bin_push_u16(ctx, ctx->meta.fixedCount);
+}
+
+static void data_write_bin_checksum(const WriteCtx* ctx) {
+  const Mem data = dynstring_view(ctx->out);
+  const u32 crc  = bits_crc_32(0, mem_consume(data, ctx->checksumOffset + sizeof(u32)));
+  mem_write_le_u32(mem_slice(data, ctx->checksumOffset, sizeof(u32)), crc);
 }
 
 static void data_write_bin_val(const WriteCtx*);
@@ -200,10 +222,10 @@ static void data_write_bin_val_pointer(const WriteCtx* ctx) {
   if (ptr) {
     const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
     const WriteCtx  subCtx = {
-         .reg  = ctx->reg,
-         .out  = ctx->out,
-         .meta = data_meta_base(ctx->meta),
-         .data = mem_create(ptr, decl->size),
+        .reg  = ctx->reg,
+        .out  = ctx->out,
+        .meta = data_meta_base(ctx->meta),
+        .data = mem_create(ptr, decl->size),
     };
     data_write_bin_val_single(&subCtx);
   }
@@ -283,7 +305,7 @@ static void data_write_bin_val(const WriteCtx* ctx) {
 }
 
 void data_write_bin(const DataReg* reg, DynString* str, const DataMeta meta, const Mem data) {
-  const WriteCtx ctx = {
+  WriteCtx ctx = {
       .reg  = reg,
       .out  = str,
       .meta = meta,
@@ -291,4 +313,5 @@ void data_write_bin(const DataReg* reg, DynString* str, const DataMeta meta, con
   };
   data_write_bin_header(&ctx);
   data_write_bin_val(&ctx);
+  data_write_bin_checksum(&ctx);
 }

@@ -1,6 +1,31 @@
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_intrinsic.h"
+
+static const u32 g_crcPolynomial = 0xEDB88320; // Reversed version of: 0x04C11DB7.
+static u32       g_crcTable[256];
+
+static void bits_init_crc(void) {
+  /**
+   * Compute a CRC32 (ISO 3309) lookup table.
+   * Based on the gzip spec:
+   * https://datatracker.ietf.org/doc/html/rfc1952#page-11
+   */
+  for (u32 i = 0; i != array_elems(g_crcTable); ++i) {
+    u32 res = i;
+    for (u32 k = 0; k != 8; ++k) {
+      if (res & 1) {
+        res = g_crcPolynomial ^ (res >> 1);
+      } else {
+        res >>= 1;
+      }
+    }
+    g_crcTable[i] = res;
+  }
+}
+
+void bits_init(void) { bits_init_crc(); }
 
 u8 bits_popcnt_32(const u32 mask) { return intrinsic_popcnt_32(mask); }
 
@@ -114,6 +139,17 @@ u64 bits_hash_64_val(u64 hash) {
 
 u32 bits_hash_32_combine(const u32 x, const u32 y) {
   return x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2));
+}
+
+u32 bits_crc_32(const u32 crc, const Mem mem) {
+  /**
+   * Compute a CRC32 (ISO 3309) checksum with pre and pose conditioning.
+   * Based on the gzip spec:
+   * https://datatracker.ietf.org/doc/html/rfc1952#page-11
+   */
+  u32 res = crc ^ 0xffffffff;
+  mem_for_u8(mem, byte) { res = g_crcTable[(res ^ *byte) & 0xff] ^ (res >> 8); }
+  return res ^ 0xffffffff;
 }
 
 u32 bits_padding_32(const u32 val, const u32 align) {

@@ -24,6 +24,7 @@ void core_init(void) {
     alloc_init_thread();
   }
   if (!g_initalized) {
+    bits_init();
     symbol_init();
     time_init();
   }
