@@ -88,3 +88,8 @@ typedef struct {
  * Pre-condition: res != null.
  */
 String data_read_bin_header(String, DataBinHeader* out, DataReadResult*);
+
+/**
+ * Compute the binary blob checksum (crc32 ISO 3309) over the given data.
+ */
+u32 data_read_bin_checksum(String);

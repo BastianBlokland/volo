@@ -207,11 +207,6 @@ Truncated:
   *res = result_fail_truncated();
 }
 
-MAYBE_UNUSED static u32 data_read_bin_checksum(const Mem input) {
-  const usize offset = g_dataBinMagic.size + sizeof(u32) /* version */ + sizeof(u32) /* checksum */;
-  return bits_crc_32(0, mem_consume(input, offset));
-}
-
 static void data_read_bin_val(ReadCtx*, DataReadResult*);
 
 /**
@@ -694,4 +689,12 @@ String data_read_bin_header(const String input, DataBinHeader* out, DataReadResu
   };
   data_read_bin_header_internal(&ctx, out, res);
   return ctx.input;
+}
+
+u32 data_read_bin_checksum(const String input) {
+  const usize offset = g_dataBinMagic.size + sizeof(u32) /* version */ + sizeof(u32) /* checksum */;
+  if (UNLIKELY(input.size < offset)) {
+    return 0; // Invalid data blob.
+  }
+  return bits_crc_32(0, mem_consume(input, offset));
 }
