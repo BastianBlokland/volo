@@ -8,7 +8,7 @@
 
 #include "registry_internal.h"
 
-#define VOLO_DATA_VALIDATE_CHECKSUMS 1
+#define VOLO_DATA_VALIDATE_CHECKSUMS 0
 
 static const String g_dataBinMagic = string_static("VOLO");
 
