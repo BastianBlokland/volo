@@ -7,31 +7,33 @@
 #include "core_thread.h"
 #include "core_time.h"
 
-static String test_random_name() {
-  return path_name_random_scratch(g_rng, string_lit("test-file-monitor"), string_lit("tmp"));
+static String test_random_name(void) {
+  return path_name_random_scratch(g_rng, string_lit("volo-test-file-monitor"), string_lit("tmp"));
 }
 
 spec(file_monitor) {
 
-  FileMonitor* monitor = null;
+  String       testFilePath = string_empty;
+  FileMonitor* monitor      = null;
 
   setup() {
     monitor = file_monitor_create(g_allocHeap, g_pathTempDir, FileMonitorFlags_None);
 
     // Create an empty test file.
-    file_write_to_path_sync(path_build_scratch(g_pathTempDir, string_lit("test")), string_empty);
+    testFilePath = test_random_name();
+    file_write_to_path_sync(path_build_scratch(g_pathTempDir, testFilePath), string_empty);
   }
 
   it("can watch a file") {
-    const FileMonitorResult res = file_monitor_watch(monitor, string_lit("test"), 0);
+    const FileMonitorResult res = file_monitor_watch(monitor, testFilePath, 0);
     check_eq_int(res, FileMonitorResult_Success);
   }
 
   it("fails when watching a file twice") {
-    const FileMonitorResult res1 = file_monitor_watch(monitor, string_lit("test"), 0);
+    const FileMonitorResult res1 = file_monitor_watch(monitor, testFilePath, 0);
     check_eq_int(res1, FileMonitorResult_Success);
 
-    const FileMonitorResult res2 = file_monitor_watch(monitor, string_lit("test"), 0);
+    const FileMonitorResult res2 = file_monitor_watch(monitor, testFilePath, 0);
     check_eq_int(res2, FileMonitorResult_AlreadyWatching);
   }
 
@@ -136,5 +138,8 @@ spec(file_monitor) {
     file_monitor_destroy(mon);
   }
 
-  teardown() { file_monitor_destroy(monitor); }
+  teardown() {
+    file_monitor_destroy(monitor);
+    file_delete_sync(path_build_scratch(g_pathTempDir, testFilePath));
+  }
 }

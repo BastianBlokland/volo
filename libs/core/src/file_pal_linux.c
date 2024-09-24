@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/limits.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -298,6 +299,24 @@ FileResult file_pal_unmap(File* file, FileMapping* mapping) {
   }
 
   return FileResult_Success;
+}
+
+FileResult file_rename(const String oldPath, const String newPath) {
+  // Copy the paths on the stack and null-terminate them.
+  if (oldPath.size >= PATH_MAX || newPath.size >= PATH_MAX) {
+    return FileResult_PathTooLong;
+  }
+
+  Mem oldPathBuffer = mem_stack(PATH_MAX);
+  mem_cpy(oldPathBuffer, oldPath);
+  *mem_at_u8(oldPathBuffer, oldPath.size) = '\0';
+
+  Mem newPathBuffer = mem_stack(PATH_MAX);
+  mem_cpy(newPathBuffer, newPath);
+  *mem_at_u8(newPathBuffer, newPath.size) = '\0';
+
+  const int res = rename((const char*)oldPathBuffer.ptr, (const char*)newPathBuffer.ptr);
+  return res != 0 ? fileresult_from_errno() : FileResult_Success;
 }
 
 FileResult file_pal_create_dir_single_sync(String path) {

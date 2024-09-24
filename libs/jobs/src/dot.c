@@ -84,7 +84,7 @@ FileResult jobs_dot_dump_graph_to_path(String path, const JobGraph* graph) {
   DynString buffer = dynstring_create(g_allocHeap, usize_kibibyte);
   jobs_dot_write_graph(&buffer, graph);
 
-  res = file_write_to_path_sync(path, dynstring_view(&buffer));
+  res = file_write_to_path_atomic(path, dynstring_view(&buffer));
 
   dynstring_destroy(&buffer);
   return res;

@@ -209,7 +209,7 @@ void path_name_random(DynString* str, Rng* rng, const String prefix, const Strin
     dynstring_append_char(str, '_');
   }
 
-  static const usize g_nameSize = 12; // Note: Only multiples of 4 are supported atm.
+  static const usize g_nameSize = 16; // Note: Only multiples of 4 are supported atm.
   for (usize i = 0; i < g_nameSize; i += 4) {
     const u32 rngVal = rng_sample_u32(rng);
     dynstring_append_char(str, g_chars[((rngVal >> 0) & 255) % array_elems(g_chars)]);
