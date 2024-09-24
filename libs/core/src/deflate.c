@@ -6,8 +6,23 @@
  * Spec: https://www.rfc-editor.org/rfc/rfc1951
  */
 
-String deflate_decode(const String input, DynString* out, DeflateError* err) {
-  (void)out;
+typedef struct {
+  String     input;
+  DynString* out;
+} InflateCtx;
+
+static bool inflate_block(InflateCtx* ctx, DeflateError* err) {
+  (void)ctx;
   (void)err;
-  return input;
+  return false;
+}
+
+String deflate_decode(const String input, DynString* out, DeflateError* err) {
+  InflateCtx ctx = {
+      .input = input,
+      .out   = out,
+  };
+  while (inflate_block(&ctx, err) && *err == DeflateError_None)
+    ;
+  return ctx.input;
 }
