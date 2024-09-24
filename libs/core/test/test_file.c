@@ -216,8 +216,11 @@ spec(file) {
     // Move the file to location B.
     check_eq_int(file_rename(pathA, pathB), FileResult_Success);
 
-    // Verify that the file mpw exists at location B.
+    // Verify that the file now exists at location B.
     check_eq_int(file_stat_path_sync(pathB).type, FileType_Regular);
+
+    // Cleanup the file.
+    check_eq_int(file_delete_sync(pathB), FileResult_Success);
   }
 
   teardown() {
