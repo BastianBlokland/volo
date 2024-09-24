@@ -3,7 +3,6 @@
 #include "core_diag.h"
 #include "core_file.h"
 #include "core_path.h"
-#include "core_rng.h"
 #include "core_thread.h"
 
 #include "file_internal.h"
@@ -119,8 +118,11 @@ ret:
 }
 
 FileResult file_write_to_path_atomic(const String path, const String data) {
-  const String tmpFileName = path_name_random_scratch(g_rng, string_lit("volo"), string_lit("tmp"));
-  const String tmpPath     = path_build_scratch(g_pathTempDir, tmpFileName);
+  /**
+   * NOTE: Its important to use the same directory as the target for the temporary file as we need
+   * to make sure its on the same filesystem (and not on tmpfs for example).
+   */
+  const String tmpPath = fmt_write_scratch("{}.tmp", fmt_text(path));
 
   FileResult res;
   if ((res = file_write_to_path_sync(tmpPath, data))) {

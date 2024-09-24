@@ -179,6 +179,7 @@ FileResult file_unmap(File*);
 
 /**
  * Rename the file at the given path.
+ * NOTE: oldPath and newPath need to be on the same filesystem.
  */
 FileResult file_rename(String oldPath, String newPath);
 
