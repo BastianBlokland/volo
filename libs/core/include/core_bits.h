@@ -155,6 +155,15 @@ u32 bits_hash_32_combine(u32 x, u32 y);
 u64 bits_hash_64_val(u64);
 
 /**
+ * Compute the CRC32 (Cyclic Redundancy Check) of the input data.
+ * ISO 3309, used in: Gzip, cksum, png and many others.
+ * Polynomial: 0x04C11DB7 (reversed: 0xEDB88320) with one's complement pre and post conditioning.
+ * NOTE: Provide crc of zero for the start of a new checksum.
+ * NOTE: Not to be confused with CRC-32C (Castagnoli) as implemented by the x86 'CRC32' instruction.
+ */
+u32 bits_crc_32(u32 crc, Mem);
+
+/**
  * Calculate the amount of padding required to reach the requested alignment.
  * Pre-condition: bits_ispow2(align) (alignment has to be a power of two).
  */
