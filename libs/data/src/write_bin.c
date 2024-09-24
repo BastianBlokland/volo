@@ -19,11 +19,9 @@ static const u32    g_dataBinVersion = 2;
 typedef struct {
   const DataReg* reg;
   DynString*     out;
+  usize          checksumOffset;
   const DataMeta meta;
-  Mem            data;
-
-  Mem   checksumMem;
-  usize checksumOffset;
+  const Mem      data;
 } WriteCtx;
 
 static void bin_push_u8(const WriteCtx* ctx, const u8 val) {
@@ -83,8 +81,8 @@ static void data_write_bin_header(WriteCtx* ctx) {
    * all the data has been written.
    * NOTE: The magic and the version (and the checksum itself) are not part of the checksum.
    */
-  ctx->checksumMem    = dynstring_push(ctx->out, sizeof(u32));
   ctx->checksumOffset = (usize)ctx->out->size;
+  dynstring_push(ctx->out, sizeof(u32));
 
   bin_push_u32(ctx, data_name_hash(ctx->reg, ctx->meta.type));
   bin_push_u32(ctx, data_hash(ctx->reg, ctx->meta, DataHashFlags_ExcludeIds));
@@ -94,8 +92,9 @@ static void data_write_bin_header(WriteCtx* ctx) {
 }
 
 static void data_write_bin_checksum(const WriteCtx* ctx) {
-  const u32 crc = bits_crc_32(0, mem_consume(dynstring_view(ctx->out), ctx->checksumOffset));
-  mem_write_le_u32(ctx->checksumMem, crc);
+  const Mem data = dynstring_view(ctx->out);
+  const u32 crc  = bits_crc_32(0, mem_consume(data, ctx->checksumOffset + sizeof(u32)));
+  mem_write_le_u32(mem_slice(data, ctx->checksumOffset, sizeof(u32)), crc);
 }
 
 static void data_write_bin_val(const WriteCtx*);
