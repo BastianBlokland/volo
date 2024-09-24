@@ -141,6 +141,21 @@ spec(bits) {
     // Undefined for val > 9223372036854775808.
   }
 
+  it("can compute a crc32 checksum") {
+    // Test checksums generated using: http://www.zorc.breitbandkatze.de/crc.html
+    check_eq_int(bits_crc_32(0, string_lit("")), 0x0);
+    check_eq_int(bits_crc_32(0, string_lit("h")), 0x916B06E7);
+    check_eq_int(bits_crc_32(0, string_lit("hello")), 0x3610A686);
+    check_eq_int(bits_crc_32(0, string_lit("Hello World")), 0x4A17B156);
+    {
+      u32 crc = 0;
+      crc     = bits_crc_32(crc, string_lit("Hello"));
+      crc     = bits_crc_32(crc, string_lit(" "));
+      crc     = bits_crc_32(crc, string_lit("World"));
+      check_eq_int(crc, 0x4A17B156);
+    }
+  }
+
   it("can compute the amount of padding required to align a 32 bit integer") {
     check_eq_int(bits_padding_32(0, 4), 0);
     check_eq_int(bits_padding_32(4, 4), 0);
