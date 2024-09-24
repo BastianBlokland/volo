@@ -161,7 +161,7 @@ spec(file) {
   }
 
   it("can create a new file by opening a file-handle with 'Create' mode") {
-    String path = path_build_scratch(
+    const String path = path_build_scratch(
         g_pathTempDir, path_name_random_scratch(g_rng, string_lit("volo"), string_empty));
 
     // Create a new file containing 'Hello World'.
@@ -184,7 +184,7 @@ spec(file) {
   }
 
   it("can create a new directory") {
-    String path = path_build_scratch(
+    const String path = path_build_scratch(
         g_pathTempDir, path_name_random_scratch(g_rng, string_lit("volo"), string_empty));
 
     check_eq_int(file_create_dir_sync(path), FileResult_Success);
@@ -199,6 +199,25 @@ spec(file) {
     }
 
     check_eq_int(file_delete_dir_sync(path), FileResult_Success);
+  }
+
+  it("can move a file") {
+    const String pathA = path_build_scratch(
+        g_pathTempDir, path_name_random_scratch(g_rng, string_lit("volo"), string_empty));
+    const String pathB = path_build_scratch(
+        g_pathTempDir, path_name_random_scratch(g_rng, string_lit("volo"), string_empty));
+
+    // Write a new file at location A.
+    check_eq_int(file_write_to_path_sync(pathA, string_lit("Hello World!")), FileResult_Success);
+
+    // Verify that no file exists at location B.
+    check_eq_int(file_stat_path_sync(pathB).type, FileType_None);
+
+    // Move the file to location B.
+    check_eq_int(file_rename(pathA, pathB), FileResult_Success);
+
+    // Verify that the file mpw exists at location B.
+    check_eq_int(file_stat_path_sync(pathB).type, FileType_Regular);
   }
 
   teardown() {
