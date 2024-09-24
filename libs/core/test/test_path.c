@@ -149,13 +149,13 @@ spec(path) {
     Rng*       rng   = rng_create_xorwow(alloc, g_seed);
 
     check_eq_string(
-        path_name_random_scratch(rng, string_empty, string_empty), string_lit("nkOZrR4b15bJ"));
+        path_name_random_scratch(rng, string_empty, string_empty), string_lit("nkOZrR4b15bJecfc"));
     check_eq_string(
         path_name_random_scratch(rng, string_lit("hello"), string_empty),
-        string_lit("hello_ecfcmkK1mPyR"));
+        string_lit("hello_mkK1mPyRxplKkOyV"));
     check_eq_string(
         path_name_random_scratch(rng, string_lit("hello"), string_lit("tmp")),
-        string_lit("hello_xplKkOyVzmkf.tmp"));
+        string_lit("hello_zmkfxljevkjecbae.tmp"));
   }
 
   it("can generate a timestampped file-name") {
