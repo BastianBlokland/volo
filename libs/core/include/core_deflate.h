@@ -6,6 +6,7 @@ typedef struct sDynArray DynString;
 
 typedef enum {
   DeflateError_None,
+  DeflateError_Truncated,
   DeflateError_Unknown,
 } DeflateError;
 
