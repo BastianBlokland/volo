@@ -78,6 +78,36 @@ spec(deflate) {
         string_empty);
   }
 
+  it("successfully decodes an uncompressed block") {
+    test_decode_success(
+        _testCtx,
+        string_lit("1"                /* Final */
+                   "00"               /* Type */
+                   "00000"            /* Alignment padding */
+                   "1100000000000000" /* Length */
+                   "0011111111111111" /* Length inverted */
+                   "101010101010101010101010" /* Data */),
+        string_lit("101010101010101010101010"));
+  }
+
+  it("successfully decodes multiple uncompressed blocks") {
+    test_decode_success(
+        _testCtx,
+        string_lit("0"                /* Final */
+                   "00"               /* Type */
+                   "00000"            /* Alignment padding */
+                   "1000000000000000" /* Length */
+                   "0111111111111111" /* Length inverted */
+                   "10101010"         /* Data */
+                   "1"                /* Final */
+                   "00"               /* Type */
+                   "00000"            /* Alignment padding */
+                   "1000000000000000" /* Length */
+                   "0111111111111111" /* Length inverted */
+                   "01010101" /* Data */),
+        string_lit("1010101001010101"));
+  }
+
   it("fails to decode on empty input") {
     test_decode_fail(_testCtx, string_lit(""), DeflateError_Truncated);
   }
@@ -92,5 +122,47 @@ spec(deflate) {
         string_lit("1" /* Final */
                    "11" /* Type */),
         DeflateError_Malformed);
+  }
+
+  it("fails to decode when missing a final block") {
+    test_decode_fail(
+        _testCtx,
+        string_lit("0" /* Final */
+                   "11" /* Type */),
+        DeflateError_Malformed);
+  }
+
+  it("fails to decode an uncompressed block with mismatched nlen") {
+    test_decode_fail(
+        _testCtx,
+        string_lit("1"                /* Final */
+                   "00"               /* Type */
+                   "00000"            /* Alignment padding */
+                   "1100000000000000" /* Length */
+                   "0111111111111111" /* Length inverted */
+                   "1010101010101010" /* Data */),
+        DeflateError_Malformed);
+  }
+
+  it("fails to decode an uncompressed block with missing nlen") {
+    test_decode_fail(
+        _testCtx,
+        string_lit("1"     /* Final */
+                   "00"    /* Type */
+                   "00000" /* Alignment padding */
+                   "1100000000000000" /* Length */),
+        DeflateError_Malformed);
+  }
+
+  it("fails to decode a truncated uncompressed block") {
+    test_decode_fail(
+        _testCtx,
+        string_lit("1"                /* Final */
+                   "00"               /* Type */
+                   "00000"            /* Alignment padding */
+                   "1100000000000000" /* Length */
+                   "0011111111111111" /* Length inverted */
+                   "1010101010101010" /* Data */),
+        DeflateError_Truncated);
   }
 }
