@@ -113,7 +113,7 @@ spec(deflate) {
   }
 
   it("fails to decode when block-type is missing") {
-    test_decode_fail(_testCtx, string_lit("1" /* Final */), DeflateError_Malformed);
+    test_decode_fail(_testCtx, string_lit("1" /* Final */), DeflateError_Truncated);
   }
 
   it("fails to decode an invalid block-type") {
@@ -151,7 +151,7 @@ spec(deflate) {
                    "00"    /* Type */
                    "00000" /* Alignment padding */
                    "1100000000000000" /* Length */),
-        DeflateError_Malformed);
+        DeflateError_Truncated);
   }
 
   it("fails to decode a truncated uncompressed block") {

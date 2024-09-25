@@ -65,6 +65,9 @@ static u16 inflate_read_u16(InflateCtx* ctx, DeflateError* err) {
 static void inflate_block_uncompressed(InflateCtx* ctx, DeflateError* err) {
   const u16 len  = inflate_read_u16(ctx, err);
   const u16 nlen = inflate_read_u16(ctx, err);
+  if (UNLIKELY(*err)) {
+    return;
+  }
   if (UNLIKELY((u16)~len != nlen)) {
     *err = DeflateError_Malformed;
     return;
