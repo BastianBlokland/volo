@@ -33,13 +33,19 @@ test_decode_success(CheckTestContext* _testCtx, const String inputBits, const St
   DeflateError err;
   const String remaining = deflate_decode(input, &outputBuffer, &err);
 
-  check_msg(!remaining.size, "Unexpected remaining data: {}", fmt_bitset(remaining));
-  check_msg(err == DeflateError_None, "Failed to decode: {}", fmt_bitset(input));
+  check_msg(
+      !remaining.size, "Remaining data {} (input: {})", fmt_bitset(remaining), fmt_bitset(input));
+
+  check_msg(err == DeflateError_None, "Decode failed (input: {})", fmt_bitset(input));
 
   const String output         = dynstring_view(&outputBuffer);
   const String expectedOutput = test_data_scratch(expectedBits);
   check_msg(
-      mem_eq(output, expectedOutput), "{} == {}", fmt_bitset(output), fmt_bitset(expectedOutput));
+      mem_eq(output, expectedOutput),
+      "Output {} == {} (input: {})",
+      fmt_bitset(output),
+      fmt_bitset(expectedOutput),
+      fmt_bitset(input));
 }
 
 static void test_decode_fail(
@@ -52,7 +58,12 @@ static void test_decode_fail(
   DeflateError err;
   deflate_decode(input, &outputBuffer, &err);
 
-  check_eq_int(err, expectedError);
+  check_msg(
+      err == expectedError,
+      "Error {} == {} (input: {})",
+      fmt_int(err),
+      fmt_int(expectedError),
+      fmt_bitset(input));
 }
 
 spec(deflate) {
@@ -69,5 +80,17 @@ spec(deflate) {
 
   it("fails to decode on empty input") {
     test_decode_fail(_testCtx, string_lit(""), DeflateError_Truncated);
+  }
+
+  it("fails to decode when block-type is missing") {
+    test_decode_fail(_testCtx, string_lit("1" /* Final */), DeflateError_Malformed);
+  }
+
+  it("fails to decode an invalid block-type") {
+    test_decode_fail(
+        _testCtx,
+        string_lit("1" /* Final */
+                   "11" /* Type */),
+        DeflateError_Malformed);
   }
 }
