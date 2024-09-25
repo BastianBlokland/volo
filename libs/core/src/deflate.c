@@ -15,17 +15,17 @@ typedef struct {
   DynString* out;
 } InflateCtx;
 
-INLINE_HINT static void inflate_mem_consume_inplace(Mem* mem, const usize amount) {
-  mem->ptr = bits_ptr_offset(mem->ptr, amount);
-  mem->size -= amount;
+static void inflate_consume(InflateCtx* ctx, const usize amount) {
+  ctx->input.ptr = bits_ptr_offset(ctx->input.ptr, amount);
+  ctx->input.size -= amount;
 }
 
-static u32 inflate_read_int(InflateCtx* ctx, const u32 bits, DeflateError* err) {
+static u32 inflate_read_unaligned(InflateCtx* ctx, const u32 bits, DeflateError* err) {
   diag_assert(bits <= 32);
   u32 res = 0;
   for (u32 i = 0; i != bits; ++i) {
     if (ctx->inputBitIndex == 8) {
-      inflate_mem_consume_inplace(&ctx->input, 1);
+      inflate_consume(ctx, 1);
       ctx->inputBitIndex = 0;
     }
     if (UNLIKELY(!ctx->input.size)) {
@@ -45,15 +45,62 @@ static u32 inflate_read_int(InflateCtx* ctx, const u32 bits, DeflateError* err) 
 static void inflate_read_align(InflateCtx* ctx) {
   if (ctx->inputBitIndex) {
     diag_assert(ctx->input.size);
-    inflate_mem_consume_inplace(&ctx->input, 1);
+    inflate_consume(ctx, 1);
     ctx->inputBitIndex = 0;
   }
 }
 
+static u16 inflate_read_u16(InflateCtx* ctx, DeflateError* err) {
+  inflate_read_align(ctx);
+  if (UNLIKELY(ctx->input.size < sizeof(u16))) {
+    *err = DeflateError_Truncated;
+    return 0;
+  }
+  u8*       data = mem_begin(ctx->input);
+  const u16 val  = (u16)data[0] | (u16)data[1] << 8;
+  inflate_consume(ctx, 2);
+  return val;
+}
+
+static void inflate_block_uncompressed(InflateCtx* ctx, DeflateError* err) {
+  const u16 len  = inflate_read_u16(ctx, err);
+  const u16 nlen = inflate_read_u16(ctx, err);
+  if (UNLIKELY((len ^ 0xFFFF) != nlen)) {
+    *err = DeflateError_Malformed;
+    return;
+  }
+  if (UNLIKELY(ctx->input.size < len)) {
+    *err = DeflateError_Truncated;
+    return;
+  }
+  dynstring_append(ctx->out, mem_slice(ctx->input, 0, len));
+  inflate_consume(ctx, len);
+}
+
 static bool inflate_block(InflateCtx* ctx, DeflateError* err) {
-  (void)ctx;
-  *err = DeflateError_Unknown;
-  return false;
+  const bool finalBlock = inflate_read_unaligned(ctx, 1, err);
+  const u32  type       = inflate_read_unaligned(ctx, 2, err);
+
+  if (UNLIKELY(*err)) {
+    return false;
+  }
+
+  switch (type) {
+  case 0: /* no compression */
+    inflate_block_uncompressed(ctx, err);
+    break;
+  case 1: /* compressed with fixed Huffman codes */
+    break;
+  case 2: /* compressed with dynamic Huffman codes */
+    break;
+  case 3: /* reserved */
+    *err = DeflateError_Malformed;
+    return false;
+  default:
+    UNREACHABLE
+  }
+
+  return !finalBlock;
 }
 
 String deflate_decode(const String input, DynString* out, DeflateError* err) {
