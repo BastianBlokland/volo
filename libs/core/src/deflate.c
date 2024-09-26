@@ -51,7 +51,7 @@ static void inflate_read_align(InflateCtx* ctx) {
 }
 
 static u16 inflate_read_u16(InflateCtx* ctx, DeflateError* err) {
-  inflate_read_align(ctx);
+  inflate_read_align(ctx); // Align to a byte boundary.
   if (UNLIKELY(ctx->input.size < sizeof(u16))) {
     *err = DeflateError_Truncated;
     return 0;
@@ -118,5 +118,6 @@ String deflate_decode(const String input, DynString* out, DeflateError* err) {
   *err = DeflateError_None;
   while (inflate_block(&ctx, err) && *err == DeflateError_None)
     ;
+  inflate_read_align(&ctx); // Always end on a byte boundary.
   return ctx.input;
 }
