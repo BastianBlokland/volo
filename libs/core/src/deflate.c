@@ -106,6 +106,10 @@ static bool inflate_block(InflateCtx* ctx, DeflateError* err) {
   return !finalBlock;
 }
 
+void deflate_init(void) {
+  // TODO: Implement.
+}
+
 String deflate_decode(const String input, DynString* out, DeflateError* err) {
   InflateCtx ctx = {
       .input = input,

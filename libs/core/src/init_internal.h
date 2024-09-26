@@ -7,6 +7,7 @@
  */
 void alloc_init(void);
 void bits_init(void);
+void deflate_init(void);
 void dynlib_init(void);
 void file_init(void);
 void float_init(void);
