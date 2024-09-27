@@ -62,11 +62,16 @@ static void huffman_build(HuffmanTree* tree, const u32 symbolCodeLengths[], cons
 }
 
 static void huffman_write_code(DynString* out, const u16 code, const u32 codeLength) {
+  // Iterate backwards as huffman codes are usually written out most- to least-significant bits.
   for (u32 i = codeLength; i-- != 0;) {
     dynstring_append_char(out, code & (1 << i) ? '1' : '0');
   }
 }
 
+/**
+ * For each leaf node in the tree draw its symbol value and its code (path through to the tree to
+ * reach it).
+ */
 MAYBE_UNUSED static void huffman_dump_tree_codes(const HuffmanTree* tree) {
   Mem       scratchMem = alloc_alloc(g_allocScratch, alloc_max_size(g_allocScratch), 1);
   DynString buffer     = dynstring_create_over(scratchMem);
