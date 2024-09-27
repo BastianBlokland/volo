@@ -1,8 +1,10 @@
+#include "core_alloc.h"
 #include "core_annotation.h"
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_deflate.h"
 #include "core_diag.h"
+#include "core_file.h"
 
 /**
  * DEFLATE (RFC 1951) compressed data stream utilities.
@@ -57,6 +59,30 @@ static void huffman_build(HuffmanTree* tree, const u32 symbolCodeLengths[], cons
     }
     tree->symbols[codeLengthStart[codeLength]++] = i;
   }
+}
+
+static void huffman_write_code(DynString* out, const u16 code, const u32 codeLength) {
+  for (u32 i = codeLength; i-- != 0;) {
+    dynstring_append_char(out, code & (1 << i) ? '1' : '0');
+  }
+}
+
+MAYBE_UNUSED static void huffman_dump_tree_codes(const HuffmanTree* tree) {
+  Mem       scratchMem = alloc_alloc(g_allocScratch, alloc_max_size(g_allocScratch), 1);
+  DynString buffer     = dynstring_create_over(scratchMem);
+
+  u16 symbolCode  = 0;
+  u16 symbolIndex = 0;
+  for (u16 bits = 1; bits <= huffman_max_code_length; ++bits) {
+    symbolCode <<= 1;
+    for (u16 i = 0; i != tree->counts[bits]; ++i, ++symbolIndex) {
+      fmt_write(&buffer, "[{}] ", fmt_int(tree->symbols[symbolIndex], .minDigits = 3));
+      huffman_write_code(&buffer, symbolCode++, bits);
+      dynstring_append_char(&buffer, '\n');
+    }
+  }
+
+  file_write_sync(g_fileStdOut, dynstring_view(&buffer));
 }
 
 static void inflate_consume(InflateCtx* ctx, const usize amount) {
