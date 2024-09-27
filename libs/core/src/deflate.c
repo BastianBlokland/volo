@@ -85,7 +85,7 @@ static void huffman_write_code(DynString* out, const u16 code, const u16 codeLen
  * Dump the Huffman tree leaf nodes to stdout.
  * Includes the symbol value of the node and the code to reach it.
  */
-MAYBE_UNUSED static void huffman_dump_tree_leafs(const HuffmanTree* tree) {
+MAYBE_UNUSED static void huffman_dump_tree_leaves(const HuffmanTree* tree) {
   Mem       scratchMem = alloc_alloc(g_allocScratch, alloc_max_size(g_allocScratch), 1);
   DynString buffer     = dynstring_create_over(scratchMem);
 
