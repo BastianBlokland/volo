@@ -1,4 +1,5 @@
 #include "core_annotation.h"
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_deflate.h"
 #include "core_diag.h"
@@ -9,11 +10,54 @@
  * Spec: https://www.rfc-editor.org/rfc/rfc1951
  */
 
+#define huffman_max_code_length 15
+#define huffman_max_symbols 288
+
+typedef struct {
+  u32 symbolCount;
+  u16 counts[huffman_max_code_length + 1]; // Number of symbols with the same code length.
+  u16 symbols[huffman_max_symbols];
+} HuffmanTree;
+
 typedef struct {
   String     input;
   u32        inputBitIndex;
   DynString* out;
 } InflateCtx;
+
+static HuffmanTree g_fixedLiteralTree;
+static HuffmanTree g_fixedDistanceTree;
+
+static void huffman_build(HuffmanTree* tree, const u32 symbolCodeLengths[], const u32 symbolCount) {
+  tree->symbolCount = symbolCount;
+
+  // Gather the symbol count for each code-length.
+  mem_set(array_mem(tree->counts), 0);
+  for (u32 i = 0; i != symbolCount; ++i) {
+    const u32 codeLength = symbolCodeLengths[i];
+    if (!codeLength) {
+      continue; // Unused symbol.
+    }
+    diag_assert(symbolCodeLengths[i] <= huffman_max_code_length);
+    ++tree->counts[symbolCodeLengths[i]];
+  }
+
+  // Compute the start index for each of the code lengths.
+  u16 codeLengthStart[huffman_max_code_length + 1];
+  for (u32 i = 0, nodeCounter = 0; i != array_elems(codeLengthStart); ++i) {
+    codeLengthStart[i] = nodeCounter;
+    nodeCounter += tree->counts[i];
+  }
+
+  // Insert the symbols into tree sorted by code.
+  for (u32 i = 0; i != symbolCount; ++i) {
+    const u32 codeLength = symbolCodeLengths[i];
+    if (!codeLength) {
+      continue; // Unused symbol.
+    }
+    tree->symbols[codeLengthStart[codeLength]++] = i;
+  }
+}
 
 static void inflate_consume(InflateCtx* ctx, const usize amount) {
   ctx->input.ptr = bits_ptr_offset(ctx->input.ptr, amount);
@@ -106,8 +150,31 @@ static bool inflate_block(InflateCtx* ctx, DeflateError* err) {
   return !finalBlock;
 }
 
+static void deflate_init_fixed_literal_tree(HuffmanTree* tree) {
+  u32 symbolCodeLengths[huffman_max_symbols];
+  u32 i = 0;
+  while (i != 144)
+    symbolCodeLengths[i++] = 8;
+  while (i != 256)
+    symbolCodeLengths[i++] = 9;
+  while (i != 280)
+    symbolCodeLengths[i++] = 7;
+  while (i != 288)
+    symbolCodeLengths[i++] = 8;
+  huffman_build(tree, symbolCodeLengths, i);
+}
+
+static void deflate_init_fixed_distance_tree(HuffmanTree* tree) {
+  u32 symbolCodeLengths[huffman_max_symbols];
+  u32 i = 0;
+  while (i != 32)
+    symbolCodeLengths[i++] = 5;
+  huffman_build(tree, symbolCodeLengths, i);
+}
+
 void deflate_init(void) {
-  // TODO: Implement.
+  deflate_init_fixed_literal_tree(&g_fixedLiteralTree);
+  deflate_init_fixed_distance_tree(&g_fixedDistanceTree);
 }
 
 String deflate_decode(const String input, DynString* out, DeflateError* err) {
