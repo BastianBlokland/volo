@@ -13,12 +13,22 @@
  */
 
 #define huffman_max_code_length 15
+#define huffman_max_levels (huffman_max_code_length + 1)
 #define huffman_max_symbols 288
 
+/**
+ * Huffman code, encodes a path through the tree.
+ * Bit 0 represents following the left child and bit 1 the right child.
+ */
 typedef struct {
-  u16 symbolCount;
-  u16 counts[huffman_max_code_length + 1]; // Number of symbols with the same code length.
-  u16 symbols[huffman_max_symbols];
+  u16 bits;
+  u16 length; // Number of levels into the tree.
+} HuffmanCode;
+
+typedef struct {
+  u16 leafCount;
+  u16 leafCountPerLevel[huffman_max_levels]; // Number of leaf nodes per tree level.
+  u16 leafSymbols[huffman_max_symbols];
 } HuffmanTree;
 
 typedef struct {
@@ -30,54 +40,58 @@ typedef struct {
 static HuffmanTree g_fixedLiteralTree;
 static HuffmanTree g_fixedDistanceTree;
 
-static void huffman_build(HuffmanTree* tree, const u16 symbolCodeLengths[], const u16 symbolCount) {
-  tree->symbolCount = symbolCount;
+static bool huffman_code_sample(const HuffmanCode code, const u16 level) {
+  diag_assert(level < code.length);
+  // Huffman codes are sampled from most- to least-significant bits.
+  return (code.bits & (1 << (code.length - 1 - level))) != 0;
+}
 
-  // Gather the symbol count for each code-length.
-  mem_set(array_mem(tree->counts), 0);
+static void huffman_code_write(const HuffmanCode code, DynString* out) {
+  for (u16 level = 0; level != code.length; ++level) {
+    dynstring_append_char(out, huffman_code_sample(code, level) ? '1' : '0');
+  }
+}
+
+static void huffman_build(HuffmanTree* tree, const u16 symbolLevels[], const u16 symbolCount) {
+  tree->leafCount = symbolCount;
+
+  // Gather the symbol count for each level.
+  mem_set(array_mem(tree->leafCountPerLevel), 0);
   for (u16 i = 0; i != symbolCount; ++i) {
-    const u16 codeLength = symbolCodeLengths[i];
-    if (!codeLength) {
+    const u16 level = symbolLevels[i];
+    if (!level) {
       continue; // Unused symbol.
     }
-    diag_assert(symbolCodeLengths[i] <= huffman_max_code_length);
-    ++tree->counts[symbolCodeLengths[i]];
+    diag_assert(level < huffman_max_levels);
+    ++tree->leafCountPerLevel[level];
   }
 
-  // Compute the start index for each of the code lengths.
-  u16 codeLengthStart[huffman_max_code_length + 1];
-  for (u16 i = 0, nodeCounter = 0; i != array_elems(codeLengthStart); ++i) {
-    codeLengthStart[i] = nodeCounter;
-    nodeCounter += tree->counts[i];
+  // Compute the start index for each level.
+  u16 levelStart[huffman_max_code_length + 1];
+  for (u16 level = 0, nodeCounter = 0; level != array_elems(levelStart); ++level) {
+    levelStart[level] = nodeCounter;
+    nodeCounter += tree->leafCountPerLevel[level];
   }
 
-  // Insert the symbols into tree sorted by code.
+  // Insert the symbols into tree.
   for (u16 i = 0; i != symbolCount; ++i) {
-    const u16 codeLength = symbolCodeLengths[i];
-    if (!codeLength) {
+    const u16 level = symbolLevels[i];
+    if (!level) {
       continue; // Unused symbol.
     }
-    tree->symbols[codeLengthStart[codeLength]++] = i;
+    tree->leafSymbols[levelStart[level]++] = i;
   }
 }
 
 /**
- * Retrieve the huffman code (paths through the tree) and its length for each leaf node.
+ * Retrieve the huffman code (path through the tree) for each leaf node.
  */
-static void huffman_tree_codes(const HuffmanTree* tree, u16 codes[], u16 codeLengths[]) {
-  for (u16 symbolIndex = 0, symbolCode = 0, bits = 1; bits <= huffman_max_code_length; ++bits) {
-    symbolCode <<= 1;
-    for (u16 i = 0; i != tree->counts[bits]; ++i, ++symbolIndex) {
-      codes[symbolIndex]       = symbolCode++;
-      codeLengths[symbolIndex] = bits;
+static void huffman_tree_codes(const HuffmanTree* tree, HuffmanCode codes[]) {
+  for (u16 symbolIndex = 0, codeBits = 0, level = 1; level <= huffman_max_code_length; ++level) {
+    codeBits <<= 1;
+    for (u16 i = 0; i != tree->leafCountPerLevel[level]; ++i, ++symbolIndex) {
+      codes[symbolIndex] = (HuffmanCode){.bits = codeBits++, .length = level};
     }
-  }
-}
-
-static void huffman_write_code(DynString* out, const u16 code, const u16 codeLength) {
-  // Iterate backwards as huffman codes are usually written out most- to least-significant bits.
-  for (u16 i = codeLength; i-- != 0;) {
-    dynstring_append_char(out, code & (1 << i) ? '1' : '0');
   }
 }
 
@@ -85,17 +99,16 @@ static void huffman_write_code(DynString* out, const u16 code, const u16 codeLen
  * Dump the Huffman tree leaf nodes to stdout.
  * Includes the symbol value of the node and the code to reach it.
  */
-MAYBE_UNUSED static void huffman_dump_tree_leaves(const HuffmanTree* tree) {
+MAYBE_UNUSED static void huffman_dump_tree_symbols(const HuffmanTree* tree) {
   Mem       scratchMem = alloc_alloc(g_allocScratch, alloc_max_size(g_allocScratch), 1);
   DynString buffer     = dynstring_create_over(scratchMem);
 
-  u16 codes[huffman_max_symbols];       // Path through the tree to reach a symbol.
-  u16 codeLengths[huffman_max_symbols]; // Length in bits of the code for a symbol.
-  huffman_tree_codes(tree, codes, codeLengths);
+  HuffmanCode codes[huffman_max_symbols]; // Path through the tree to reach the symbol.
+  huffman_tree_codes(tree, codes);
 
-  for (u16 i = 0; i != tree->symbolCount; ++i) {
-    fmt_write(&buffer, "[{}] ", fmt_int(tree->symbols[i], .minDigits = 3));
-    huffman_write_code(&buffer, codes[i], codeLengths[i]);
+  for (u16 i = 0; i != tree->leafCount; ++i) {
+    fmt_write(&buffer, "[{}] ", fmt_int(tree->leafSymbols[i], .minDigits = 3));
+    huffman_code_write(codes[i], &buffer);
     dynstring_append_char(&buffer, '\n');
   }
 
@@ -194,25 +207,25 @@ static bool inflate_block(InflateCtx* ctx, DeflateError* err) {
 }
 
 static void deflate_init_fixed_literal_tree(HuffmanTree* tree) {
-  u16 symbolCodeLengths[huffman_max_symbols];
+  u16 symbolLevels[huffman_max_symbols];
   u16 i = 0;
   while (i != 144)
-    symbolCodeLengths[i++] = 8;
+    symbolLevels[i++] = 8;
   while (i != 256)
-    symbolCodeLengths[i++] = 9;
+    symbolLevels[i++] = 9;
   while (i != 280)
-    symbolCodeLengths[i++] = 7;
+    symbolLevels[i++] = 7;
   while (i != 288)
-    symbolCodeLengths[i++] = 8;
-  huffman_build(tree, symbolCodeLengths, i);
+    symbolLevels[i++] = 8;
+  huffman_build(tree, symbolLevels, i);
 }
 
 static void deflate_init_fixed_distance_tree(HuffmanTree* tree) {
-  u16 symbolCodeLengths[huffman_max_symbols];
+  u16 symbolLevels[huffman_max_symbols];
   u16 i = 0;
   while (i != 32)
-    symbolCodeLengths[i++] = 5;
-  huffman_build(tree, symbolCodeLengths, i);
+    symbolLevels[i++] = 5;
+  huffman_build(tree, symbolLevels, i);
 }
 
 void deflate_init(void) {
