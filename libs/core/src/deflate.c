@@ -157,6 +157,32 @@ MAYBE_UNUSED static u16 huffman_lookup(const HuffmanTree* t, const HuffmanCode c
   return sentinel_u16;
 }
 
+/**
+ * Build a complete (no unconnected nodes) Huffman tree.
+ * Symbol values are based on their index and the position in the tree is based on the given level.
+ *
+ * Example input symbols (NOTE: value is inferred by the order, level is provided explicitly):
+ *   [A] 1
+ *   [B] 0 (level zero indicates this symbol should be skipped)
+ *   [C] 3
+ *   [D] 2
+ *   [E] 3
+ *
+ * Example resulting Huffman tree:
+ *     .
+ *    / \
+ *   A   .
+ *      / \
+ *     D   .
+ *        / \
+ *       C   E
+ *
+ * Example resulting Huffman codes (paths through the tree):
+ *   [A] 0
+ *   [C] 110
+ *   [D] 10
+ *   [E] 111
+ */
 static DeflateError huffman_build(HuffmanTree* t, const u16 symbolLevels[], const u16 symbolCount) {
   // Gather the symbol count for each level.
   mem_set(array_mem(t->leafCountPerLevel), 0);
