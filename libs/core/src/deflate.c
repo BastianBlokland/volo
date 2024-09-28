@@ -144,9 +144,11 @@ static void huffman_levels(const HuffmanTree* t, HuffmanLevel levels[]) {
  * Returns sentinel_u16 when the code does not point to a leaf node in the tree.
  */
 MAYBE_UNUSED static u16 huffman_lookup(const HuffmanTree* t, const HuffmanCode code) {
+  if (!t->leafCount) {
+    return sentinel_u16;
+  }
   HuffmanNode node        = {.level = 0, .index = 0}; // Root node.
   u16         symbolStart = 0;
-
   while (node.level <= code.level) {
     node = huffman_child(t, node, huffman_code_sample(code, node.level));
     if (huffman_is_leaf(t, node)) {
@@ -357,6 +359,10 @@ static u16 inflate_read_u16(InflateCtx* ctx, DeflateError* err) {
 }
 
 static u16 inflate_read_symbol(InflateCtx* ctx, const HuffmanTree* t, DeflateError* err) {
+  if (!t->leafCount) {
+    *err = DeflateError_Malformed;
+    return sentinel_u16;
+  }
   HuffmanNode node        = {.level = 0, .index = 0}; // Root node.
   u16         symbolStart = 0;
   while (*err == DeflateError_None) {
@@ -370,6 +376,7 @@ static u16 inflate_read_symbol(InflateCtx* ctx, const HuffmanTree* t, DeflateErr
     }
     symbolStart += t->leafCountPerLevel[node.level];
   }
+  diag_assert(*err);
   return sentinel_u16;
 }
 
