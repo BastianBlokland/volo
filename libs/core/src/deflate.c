@@ -12,8 +12,8 @@
  * Spec: https://www.rfc-editor.org/rfc/rfc1951
  */
 
-#define huffman_max_code_length 15
-#define huffman_max_levels (huffman_max_code_length + 1)
+#define huffman_validation 0
+#define huffman_max_levels 15
 #define huffman_max_symbols 288
 
 /**
@@ -52,6 +52,38 @@ static void huffman_code_write(const HuffmanCode code, DynString* out) {
   }
 }
 
+/**
+ * Retrieve the huffman code (path through the tree) for each leaf node.
+ */
+static void huffman_tree_codes(const HuffmanTree* tree, HuffmanCode codes[]) {
+  for (u16 symbolIndex = 0, codeBits = 0, level = 0; level < huffman_max_levels; ++level) {
+    codeBits <<= 1;
+    for (u16 i = 0; i != tree->leafCountPerLevel[level]; ++i, ++symbolIndex) {
+      codes[symbolIndex] = (HuffmanCode){.bits = codeBits++, .length = level + 1};
+    }
+  }
+}
+
+/**
+ * Lookup a symbol by its code (path through the tree).
+ * Returns sentinel_u16 when the code does not point to a leaf node in the tree.
+ */
+MAYBE_UNUSED static u16 huffman_lookup(const HuffmanTree* tree, const HuffmanCode code) {
+  u16 base = 0, offset = 0;
+  for (u16 level = 0; level != code.length; ++level) {
+    offset *= 2;
+    if (huffman_code_sample(code, level)) {
+      ++offset; // Take the right branch.
+    }
+    if (offset < tree->leafCountPerLevel[level]) {
+      return tree->leafSymbols[base + offset];
+    }
+    base += tree->leafCountPerLevel[level];
+    offset -= tree->leafCountPerLevel[level];
+  }
+  return sentinel_u16;
+}
+
 static void huffman_build(HuffmanTree* tree, const u16 symbolLevels[], const u16 symbolCount) {
   tree->leafCount = symbolCount;
 
@@ -67,7 +99,7 @@ static void huffman_build(HuffmanTree* tree, const u16 symbolLevels[], const u16
   }
 
   // Compute the start index for each level.
-  u16 levelStart[huffman_max_code_length + 1];
+  u16 levelStart[huffman_max_levels];
   for (u16 level = 0, nodeCounter = 0; level != array_elems(levelStart); ++level) {
     levelStart[level] = nodeCounter;
     nodeCounter += tree->leafCountPerLevel[level];
@@ -81,18 +113,17 @@ static void huffman_build(HuffmanTree* tree, const u16 symbolLevels[], const u16
     }
     tree->leafSymbols[levelStart[level]++] = i;
   }
-}
 
-/**
- * Retrieve the huffman code (path through the tree) for each leaf node.
- */
-static void huffman_tree_codes(const HuffmanTree* tree, HuffmanCode codes[]) {
-  for (u16 symbolIndex = 0, codeBits = 0, level = 1; level <= huffman_max_code_length; ++level) {
-    codeBits <<= 1;
-    for (u16 i = 0; i != tree->leafCountPerLevel[level]; ++i, ++symbolIndex) {
-      codes[symbolIndex] = (HuffmanCode){.bits = codeBits++, .length = level};
+#if huffman_validation
+  {
+    HuffmanCode codes[huffman_max_symbols];
+    huffman_tree_codes(tree, codes);
+
+    for (u32 i = 0; i != symbolCount; ++i) {
+      diag_assert(huffman_lookup(tree, codes[i]) == tree->leafSymbols[i]);
     }
   }
+#endif
 }
 
 /**
@@ -210,13 +241,13 @@ static void deflate_init_fixed_literal_tree(HuffmanTree* tree) {
   u16 symbolLevels[huffman_max_symbols];
   u16 i = 0;
   while (i != 144)
-    symbolLevels[i++] = 8;
-  while (i != 256)
-    symbolLevels[i++] = 9;
-  while (i != 280)
     symbolLevels[i++] = 7;
-  while (i != 288)
+  while (i != 256)
     symbolLevels[i++] = 8;
+  while (i != 280)
+    symbolLevels[i++] = 6;
+  while (i != 288)
+    symbolLevels[i++] = 7;
   huffman_build(tree, symbolLevels, i);
 }
 
@@ -224,7 +255,7 @@ static void deflate_init_fixed_distance_tree(HuffmanTree* tree) {
   u16 symbolLevels[huffman_max_symbols];
   u16 i = 0;
   while (i != 32)
-    symbolLevels[i++] = 5;
+    symbolLevels[i++] = 4;
   huffman_build(tree, symbolLevels, i);
 }
 
