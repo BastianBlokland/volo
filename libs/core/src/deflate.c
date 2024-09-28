@@ -356,6 +356,23 @@ static u16 inflate_read_u16(InflateCtx* ctx, DeflateError* err) {
   return val;
 }
 
+static u16 inflate_read_symbol(InflateCtx* ctx, const HuffmanTree* t, DeflateError* err) {
+  HuffmanNode node        = {.level = 0, .index = 0}; // Root node.
+  u16         symbolStart = 0;
+  while (*err == DeflateError_None) {
+    node = huffman_child(t, node, inflate_read_unaligned(ctx, 1, err));
+    if (huffman_is_leaf(t, node)) {
+      return t->leafSymbols[symbolStart + node.index];
+    }
+    if (UNLIKELY(node.level == (huffman_max_levels - 1))) {
+      *err = DeflateError_Malformed;
+      break;
+    }
+    symbolStart += t->leafCountPerLevel[node.level];
+  }
+  return sentinel_u16;
+}
+
 static void inflate_block_uncompressed(InflateCtx* ctx, DeflateError* err) {
   const u16 len  = inflate_read_u16(ctx, err);
   const u16 nlen = inflate_read_u16(ctx, err);
