@@ -184,18 +184,27 @@ static DeflateError huffman_build(HuffmanTree* t, const u16 symbolLevels[], cons
     t->leafCount += leafNodes;
   }
 
-  if (UNLIKELY(availableInternalNodes[huffman_max_levels - 1])) {
-    return DeflateError_Malformed; // Incomplete tree (has unconnected nodes).
-  }
-
   // Insert the symbols for the leaf nodes into tree.
   for (u16 i = 0; i != symbolCount; ++i) {
     const u16 level = symbolLevels[i];
     if (!level) {
       continue; // The root node is always an internal node and cannot contain a symbol.
     }
-    ++t->leafCount;
     t->leafSymbols[symbolStart[level]++] = i;
+  }
+
+  if (t->leafCount == 1) {
+    /**
+     * Special case for tree's with only 1 leaf node. Because the root node is always an internal
+     * node the single leaf will be inserted at level 1 with an unused sibling.
+     */
+    t->leafCountPerLevel[1] = t->leafCount = 2;
+    t->leafSymbols[1]                      = 0; // Unused sibling.
+  } else {
+    // Validate the tree is complete.
+    if (UNLIKELY(availableInternalNodes[huffman_max_levels - 1])) {
+      return DeflateError_Malformed; // Incomplete tree (has unconnected nodes).
+    }
   }
 
 #if huffman_validation
