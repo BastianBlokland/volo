@@ -157,8 +157,7 @@ MAYBE_UNUSED static u16 huffman_lookup(const HuffmanTree* t, const HuffmanCode c
   return sentinel_u16;
 }
 
-static void huffman_build(HuffmanTree* t, const u16 symbolLevels[], const u16 symbolCount) {
-
+static DeflateError huffman_build(HuffmanTree* t, const u16 symbolLevels[], const u16 symbolCount) {
   // Gather the symbol count for each level.
   mem_set(array_mem(t->leafCountPerLevel), 0);
   for (u16 i = 0; i != symbolCount; ++i) {
@@ -168,21 +167,31 @@ static void huffman_build(HuffmanTree* t, const u16 symbolLevels[], const u16 sy
     }
     diag_assert(level < huffman_max_levels);
     ++t->leafCountPerLevel[level];
-    diag_assert(t->leafCountPerLevel[level] <= huffman_max_nodes_for_level(level));
   }
 
-  // Compute the start index for each level.
+  // Compute the start symbol index for each level.
   u16 symbolStart[huffman_max_levels];
-  for (u16 level = 0, leafCounter = 0; level != array_elems(symbolStart); ++level) {
+  u16 availableInternalNodes[huffman_max_levels];
+  for (u16 level = 0, leafCounter = 0;; ++level) {
     symbolStart[level] = leafCounter;
-    leafCounter += t->leafCountPerLevel[level];
+
+    const u16 maxNodes = level ? (availableInternalNodes[level - 1] * 2) : 1;
+    if (!maxNodes) {
+      break; // End of the tree.
+    }
+    const u16 leafNodes = t->leafCountPerLevel[level];
+    if (UNLIKELY(leafNodes > maxNodes)) {
+      return DeflateError_Malformed; // Invalid tree.
+    }
+    availableInternalNodes[level] = maxNodes - leafNodes;
+    leafCounter += leafNodes;
   }
 
   // Insert the symbols for the leaf nodes into tree.
   for (u16 i = 0; i != symbolCount; ++i) {
     const u16 level = symbolLevels[i];
     if (!level) {
-      continue; // Unused symbol.
+      continue; // The root node is always an internal node and cannot contain a symbol.
     }
     ++t->leafCount;
     t->leafSymbols[symbolStart[level]++] = i;
@@ -198,6 +207,7 @@ static void huffman_build(HuffmanTree* t, const u16 symbolLevels[], const u16 sy
     }
   }
 #endif
+  return DeflateError_None;
 }
 
 /**
@@ -365,7 +375,8 @@ static void deflate_init_fixed_literal_tree(HuffmanTree* tree) {
     symbolLevels[i++] = 7;
   while (i != 288)
     symbolLevels[i++] = 8;
-  huffman_build(tree, symbolLevels, i);
+  MAYBE_UNUSED const DeflateError err = huffman_build(tree, symbolLevels, i);
+  diag_assert(!err);
 }
 
 static void deflate_init_fixed_distance_tree(HuffmanTree* tree) {
@@ -373,7 +384,8 @@ static void deflate_init_fixed_distance_tree(HuffmanTree* tree) {
   u16 i = 0;
   while (i != 32)
     symbolLevels[i++] = 5;
-  huffman_build(tree, symbolLevels, i);
+  MAYBE_UNUSED const DeflateError err = huffman_build(tree, symbolLevels, i);
+  diag_assert(!err);
 }
 
 void deflate_init(void) {
