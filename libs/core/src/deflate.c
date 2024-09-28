@@ -158,7 +158,6 @@ MAYBE_UNUSED static u16 huffman_lookup(const HuffmanTree* t, const HuffmanCode c
 }
 
 static void huffman_build(HuffmanTree* t, const u16 symbolLevels[], const u16 symbolCount) {
-  t->leafCount = symbolCount;
 
   // Gather the symbol count for each level.
   mem_set(array_mem(t->leafCountPerLevel), 0);
@@ -179,12 +178,13 @@ static void huffman_build(HuffmanTree* t, const u16 symbolLevels[], const u16 sy
     leafCounter += t->leafCountPerLevel[level];
   }
 
-  // Insert the symbols into tree.
+  // Insert the symbols for the leaf nodes into tree.
   for (u16 i = 0; i != symbolCount; ++i) {
     const u16 level = symbolLevels[i];
     if (!level) {
       continue; // Unused symbol.
     }
+    ++t->leafCount;
     t->leafSymbols[symbolStart[level]++] = i;
   }
 
