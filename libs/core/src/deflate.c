@@ -62,12 +62,11 @@ static HuffmanTree g_fixedDistanceTree;
 static bool huffman_code_sample(const HuffmanCode code, const u16 level) {
   diag_assert(level <= code.level);
   // Huffman codes are sampled from most- to least-significant bits.
-  return (code.bits & (1 << (code.level - level))) != 0;
+  return (code.bits & (1 << (code.level - 1 - level))) != 0;
 }
 
 static void huffman_code_write(const HuffmanCode code, DynString* out) {
-  // NOTE: Start from 1 as the root level is excluded from the codes.
-  for (u16 level = 1; level <= code.level; ++level) {
+  for (u16 level = 0; level != code.level; ++level) {
     dynstring_append_char(out, huffman_code_sample(code, level) ? '1' : '0');
   }
 }
@@ -143,19 +142,15 @@ static void huffman_tree_levels(const HuffmanTree* tree, HuffmanLevel levels[]) 
  * Returns sentinel_u16 when the code does not point to a leaf node in the tree.
  */
 MAYBE_UNUSED static u16 huffman_lookup(const HuffmanTree* tree, const HuffmanCode code) {
-  u16 levelLeafStart = 0, levelIndex = 0;
-  // NOTE: Skip the root node as its always an internal node.
-  for (u16 level = 1; level <= code.level; ++level) {
-    levelIndex *= 2;
-    if (huffman_code_sample(code, level)) {
-      ++levelIndex; // Take the right branch.
+  HuffmanNode node        = {.level = 0, .index = 0}; // Root node.
+  u16         symbolStart = 0;
+
+  while (node.level <= code.level) {
+    node = huffman_node_child(tree, node, huffman_code_sample(code, node.level));
+    if (huffman_node_is_leaf(tree, node)) {
+      return tree->leafSymbols[symbolStart + node.index];
     }
-    if (levelIndex < tree->leafCountPerLevel[level]) {
-      diag_assert(levelLeafStart + levelIndex < huffman_max_symbols);
-      return tree->leafSymbols[levelLeafStart + levelIndex];
-    }
-    levelLeafStart += tree->leafCountPerLevel[level];
-    levelIndex -= tree->leafCountPerLevel[level];
+    symbolStart += tree->leafCountPerLevel[node.level];
   }
   return sentinel_u16;
 }
