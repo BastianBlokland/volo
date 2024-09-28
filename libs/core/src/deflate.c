@@ -380,6 +380,44 @@ static u16 inflate_read_symbol(InflateCtx* ctx, const HuffmanTree* t, DeflateErr
   return sentinel_u16;
 }
 
+static u16 inflate_read_run_length(InflateCtx* ctx, const u16 symbol, DeflateError* err) {
+  diag_assert(symbol > 256 && symbol < huffman_max_symbols);
+  /**
+   * Run length is based on the input symbol plus additional bits.
+   * Source of the tables can be found in the RFC.
+   */
+  static const u16 g_lengthBase[] = {
+      3,  4,  5,  6,  7,  8,  9,  10, 11,  13,  15,  17,  19,  23,  27,
+      31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258,
+  };
+  static const u16 g_lengthBits[] = {
+      0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0,
+  };
+  const u16 tableIndex = symbol - 257; // 0 - 28.
+  return g_lengthBase[tableIndex] + inflate_read_unaligned(ctx, g_lengthBits[tableIndex], err);
+}
+
+static u16 inflate_read_run_distance(InflateCtx* ctx, const HuffmanTree* t, DeflateError* err) {
+  const u16 symbol = inflate_read_symbol(ctx, t, err);
+  if (UNLIKELY(symbol > 29)) {
+    *err = DeflateError_Malformed;
+    return sentinel_u16;
+  }
+  /**
+   * Run distance is based on an input symbol plus additional bits.
+   * Source of the tables can be found in the RFC.
+   */
+  static const u16 g_distBase[] = {
+      1,   2,   3,   4,   5,   7,    9,    13,   17,   25,   33,   49,   65,    97,    129,
+      193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577,
+  };
+  static const u16 g_distBits[] = {
+      0, 0, 0, 0, 1, 1, 2, 2,  3,  3,  4,  4,  5,  5,  6,
+      6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13,
+  };
+  return g_distBase[symbol] + inflate_read_unaligned(ctx, g_distBits[symbol], err);
+}
+
 static void inflate_block_uncompressed(InflateCtx* ctx, DeflateError* err) {
   const u16 len  = inflate_read_u16(ctx, err);
   const u16 nlen = inflate_read_u16(ctx, err);
@@ -398,6 +436,46 @@ static void inflate_block_uncompressed(InflateCtx* ctx, DeflateError* err) {
   inflate_consume(ctx, len);
 }
 
+static void inflate_block_compressed(
+    InflateCtx*        ctx,
+    const HuffmanTree* literalTree,
+    const HuffmanTree* distanceTree,
+    DeflateError*      err) {
+  for (;;) {
+    const u16 symbol = inflate_read_symbol(ctx, literalTree, err);
+    if (UNLIKELY(*err)) {
+      break;
+    }
+    if (symbol == 256) {
+      break; // End of block.
+    }
+    if (symbol < 256) {
+      // Output literal byte.
+      dynstring_append_char(ctx->out, (u8)symbol);
+      continue;
+    }
+    /**
+     * Run-length data; copy a section (indicated by a length and a backwards distance) from output.
+     * NOTE: The spec limits the backwards distance to 32k but because we keep the whole output in
+     * memory we have no such limit in practice.
+     */
+    const u16 runLength   = inflate_read_run_length(ctx, symbol, err);
+    const u16 runDistance = inflate_read_run_distance(ctx, distanceTree, err);
+    if (UNLIKELY(*err)) {
+      break;
+    }
+    if (UNLIKELY(runDistance > ctx->out->size)) {
+      *err = DeflateError_Malformed;
+      break;
+    }
+    // Copy section from output.
+    for (u16 i = 0; i != runLength; ++i) {
+      const String history = dynstring_view(ctx->out);
+      dynstring_append_char(ctx->out, mem_end(history)[-runDistance]);
+    }
+  }
+}
+
 static bool inflate_block(InflateCtx* ctx, DeflateError* err) {
   const bool finalBlock = inflate_read_unaligned(ctx, 1, err);
   const u32  type       = inflate_read_unaligned(ctx, 2, err);
@@ -411,6 +489,7 @@ static bool inflate_block(InflateCtx* ctx, DeflateError* err) {
     inflate_block_uncompressed(ctx, err);
     break;
   case 1: /* compressed with fixed Huffman codes */
+    inflate_block_compressed(ctx, &g_fixedLiteralTree, &g_fixedDistanceTree, err);
     break;
   case 2: /* compressed with dynamic Huffman codes */
     break;
