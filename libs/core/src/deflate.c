@@ -52,6 +52,11 @@ static void huffman_code_write(const HuffmanCode code, DynString* out) {
   }
 }
 
+MAYBE_UNUSED static u32 huffman_max_nodes_for_level(const u16 level) {
+  // Because a huffman tree is a binary tree the amount of nodes is bounded by pow(2, level + 1).
+  return 1 << (level + 1);
+}
+
 /**
  * Retrieve the huffman code (path through the tree) for each leaf node.
  */
@@ -96,6 +101,7 @@ static void huffman_build(HuffmanTree* tree, const u16 symbolLevels[], const u16
     }
     diag_assert(level < huffman_max_levels);
     ++tree->leafCountPerLevel[level];
+    diag_assert(tree->leafCountPerLevel[level] <= huffman_max_nodes_for_level(level));
   }
 
   // Compute the start index for each level.
