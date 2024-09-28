@@ -35,11 +35,11 @@ typedef struct {
 } HuffmanNode;
 
 /**
- * Huffman tree is a binary tree that is indexed by prefix codes (HuffmanCode) which represent
+ * Huffman tree is a binary tree that is indexed by prefix codes (HuffmanCode's) which represent
  * paths through the tree.
  *
  * Properties of the Huffman tree's as used in deflate:
- * - Symbols have consecutive values within the same tree level (eg the same code length).
+ * - Symbols have consecutive values within the same tree level (the same code length).
  * - In each level there are leafCountPerLevel[] leaves on the left and internal nodes on the right.
  *
  * The structure of the tree is not explicitly stored but can be implied from these properties.
@@ -59,6 +59,9 @@ typedef struct {
 static HuffmanTree g_fixedLiteralTree;
 static HuffmanTree g_fixedDistanceTree;
 
+/**
+ * Test if we should take the left (false) or right (true) branch at the given level of the tree.
+ */
 static bool huffman_code_sample(const HuffmanCode code, const u16 level) {
   diag_assert(level <= code.level);
   // Huffman codes are sampled from most- to least-significant bits.
@@ -72,32 +75,31 @@ static void huffman_code_write(const HuffmanCode code, DynString* out) {
 }
 
 static u32 huffman_max_nodes_for_level(const u16 level) {
-  // Because a huffman tree is a binary tree the amount of nodes is bounded by pow(2, level + 1).
-  return 1 << (level + 1);
+  // Because a huffman tree is a binary tree the amount of nodes is bounded by pow(2, level).
+  return 1 << level;
 }
 
 /**
  * Lookup the index of the first symbol in the given level.
  */
-static u16 huffman_tree_symbol_start(const HuffmanTree* tree, const u16 level) {
+static u16 huffman_symbol_start(const HuffmanTree* t, const u16 level) {
   diag_assert(level < huffman_max_levels);
   u16 leafCounter = 0;
   for (u16 i = 0; i != level; ++i) {
-    leafCounter += tree->leafCountPerLevel[i];
+    leafCounter += t->leafCountPerLevel[i];
   }
   return leafCounter;
 }
 
-static bool huffman_node_is_root(const HuffmanNode node) { return node.level == 0; }
+static bool huffman_is_root(const HuffmanNode node) { return node.level == 0; }
 
-static bool huffman_node_is_leaf(const HuffmanTree* tree, const HuffmanNode node) {
-  return node.index < tree->leafCountPerLevel[node.level];
+static bool huffman_is_leaf(const HuffmanTree* t, const HuffmanNode node) {
+  return node.index < t->leafCountPerLevel[node.level];
 }
 
-static HuffmanNode
-huffman_node_child(const HuffmanTree* tree, const HuffmanNode node, const bool right) {
-  diag_assert(!huffman_node_is_leaf(tree, node));
-  const u16 internalIndex = node.index - tree->leafCountPerLevel[node.level];
+static HuffmanNode huffman_child(const HuffmanTree* t, const HuffmanNode node, const bool right) {
+  diag_assert(!huffman_is_leaf(t, node));
+  const u16 internalIndex = node.index - t->leafCountPerLevel[node.level];
   // NOTE: Multiply by two as the next level as twice as many nodes.
   return (HuffmanNode){.level = node.level + 1, .index = internalIndex * 2 + right};
 }
@@ -105,11 +107,11 @@ huffman_node_child(const HuffmanTree* tree, const HuffmanNode node, const bool r
 /**
  * Retrieve the huffman code (path through the tree) for each leaf node.
  */
-static void huffman_tree_codes(const HuffmanTree* tree, HuffmanCode codes[]) {
+static void huffman_codes(const HuffmanTree* t, HuffmanCode codes[]) {
   // NOTE: Start level from 1 as the root is always an internal node.
   for (u16 symbolIndex = 0, codeBits = 0, level = 1; level < huffman_max_levels; ++level) {
     codeBits <<= 1;
-    for (u16 i = 0; i != tree->leafCountPerLevel[level]; ++i, ++symbolIndex) {
+    for (u16 i = 0; i != t->leafCountPerLevel[level]; ++i, ++symbolIndex) {
       codes[symbolIndex] = (HuffmanCode){.bits = codeBits++, .level = level};
     }
   }
@@ -118,12 +120,12 @@ static void huffman_tree_codes(const HuffmanTree* tree, HuffmanCode codes[]) {
 /**
  * Lookup the structure of each level in the tree.
  */
-static void huffman_tree_levels(const HuffmanTree* tree, HuffmanLevel levels[]) {
+static void huffman_levels(const HuffmanTree* t, HuffmanLevel levels[]) {
   mem_set(mem_create(levels, sizeof(HuffmanLevel) * huffman_max_levels), 0);
 
   for (u16 level = huffman_max_levels; level-- != 0;) {
-    levels[level].symbolStart = huffman_tree_symbol_start(tree, level);
-    levels[level].leafNodes   = tree->leafCountPerLevel[level];
+    levels[level].symbolStart = huffman_symbol_start(t, level);
+    levels[level].leafNodes   = t->leafCountPerLevel[level];
 
     const u16 totalNodes = levels[level].leafNodes + levels[level].internalNodes;
     diag_assert(totalNodes <= huffman_max_nodes_for_level(level));
@@ -141,40 +143,40 @@ static void huffman_tree_levels(const HuffmanTree* tree, HuffmanLevel levels[]) 
  * Lookup a symbol by its code (path through the tree).
  * Returns sentinel_u16 when the code does not point to a leaf node in the tree.
  */
-MAYBE_UNUSED static u16 huffman_lookup(const HuffmanTree* tree, const HuffmanCode code) {
+MAYBE_UNUSED static u16 huffman_lookup(const HuffmanTree* t, const HuffmanCode code) {
   HuffmanNode node        = {.level = 0, .index = 0}; // Root node.
   u16         symbolStart = 0;
 
   while (node.level <= code.level) {
-    node = huffman_node_child(tree, node, huffman_code_sample(code, node.level));
-    if (huffman_node_is_leaf(tree, node)) {
-      return tree->leafSymbols[symbolStart + node.index];
+    node = huffman_child(t, node, huffman_code_sample(code, node.level));
+    if (huffman_is_leaf(t, node)) {
+      return t->leafSymbols[symbolStart + node.index];
     }
-    symbolStart += tree->leafCountPerLevel[node.level];
+    symbolStart += t->leafCountPerLevel[node.level];
   }
   return sentinel_u16;
 }
 
-static void huffman_build(HuffmanTree* tree, const u16 symbolLevels[], const u16 symbolCount) {
-  tree->leafCount = symbolCount;
+static void huffman_build(HuffmanTree* t, const u16 symbolLevels[], const u16 symbolCount) {
+  t->leafCount = symbolCount;
 
   // Gather the symbol count for each level.
-  mem_set(array_mem(tree->leafCountPerLevel), 0);
+  mem_set(array_mem(t->leafCountPerLevel), 0);
   for (u16 i = 0; i != symbolCount; ++i) {
     const u16 level = symbolLevels[i];
     if (!level) {
-      continue; // Unused symbol.
+      continue; // The root node is always an internal node and cannot contain a symbol.
     }
     diag_assert(level < huffman_max_levels);
-    ++tree->leafCountPerLevel[level];
-    diag_assert(tree->leafCountPerLevel[level] <= huffman_max_nodes_for_level(level));
+    ++t->leafCountPerLevel[level];
+    diag_assert(t->leafCountPerLevel[level] <= huffman_max_nodes_for_level(level));
   }
 
   // Compute the start index for each level.
-  u16 levelStart[huffman_max_levels];
-  for (u16 level = 0, leafCounter = 0; level != array_elems(levelStart); ++level) {
-    levelStart[level] = leafCounter;
-    leafCounter += tree->leafCountPerLevel[level];
+  u16 symbolStart[huffman_max_levels];
+  for (u16 level = 0, leafCounter = 0; level != array_elems(symbolStart); ++level) {
+    symbolStart[level] = leafCounter;
+    leafCounter += t->leafCountPerLevel[level];
   }
 
   // Insert the symbols into tree.
@@ -183,16 +185,16 @@ static void huffman_build(HuffmanTree* tree, const u16 symbolLevels[], const u16
     if (!level) {
       continue; // Unused symbol.
     }
-    tree->leafSymbols[levelStart[level]++] = i;
+    t->leafSymbols[symbolStart[level]++] = i;
   }
 
 #if huffman_validation
   {
     HuffmanCode codes[huffman_max_symbols];
-    huffman_tree_codes(tree, codes);
+    huffman_codes(t, codes);
 
     for (u32 i = 0; i != symbolCount; ++i) {
-      diag_assert(huffman_lookup(tree, codes[i]) == tree->leafSymbols[i]);
+      diag_assert(huffman_lookup(t, codes[i]) == t->leafSymbols[i]);
     }
   }
 #endif
@@ -202,15 +204,15 @@ static void huffman_build(HuffmanTree* tree, const u16 symbolLevels[], const u16
  * Dump the Huffman tree leaf nodes to stdout.
  * Includes the symbol value of the node and the code to reach it.
  */
-MAYBE_UNUSED static void huffman_dump_tree_symbols(const HuffmanTree* tree) {
+MAYBE_UNUSED static void huffman_dump_tree_symbols(const HuffmanTree* t) {
   Mem       scratchMem = alloc_alloc(g_allocScratch, alloc_max_size(g_allocScratch), 1);
   DynString buffer     = dynstring_create_over(scratchMem);
 
   HuffmanCode codes[huffman_max_symbols]; // Path through the tree to reach the symbol.
-  huffman_tree_codes(tree, codes);
+  huffman_codes(t, codes);
 
-  for (u16 i = 0; i != tree->leafCount; ++i) {
-    fmt_write(&buffer, "[{}] ", fmt_int(tree->leafSymbols[i], .minDigits = 3));
+  for (u16 i = 0; i != t->leafCount; ++i) {
+    fmt_write(&buffer, "[{}] ", fmt_int(t->leafSymbols[i], .minDigits = 3));
     huffman_code_write(codes[i], &buffer);
     dynstring_append_char(&buffer, '\n');
   }
@@ -221,12 +223,12 @@ MAYBE_UNUSED static void huffman_dump_tree_symbols(const HuffmanTree* tree) {
 /**
  * Dump the huffman tree structure to stdout.
  */
-MAYBE_UNUSED static void huffman_dump_tree_structure(const HuffmanTree* tree) {
+MAYBE_UNUSED static void huffman_dump_tree_structure(const HuffmanTree* t) {
   Mem       scratchMem = alloc_alloc(g_allocScratch, alloc_max_size(g_allocScratch), 1);
   DynString buffer     = dynstring_create_over(scratchMem);
 
   HuffmanLevel levels[huffman_max_levels];
-  huffman_tree_levels(tree, levels);
+  huffman_levels(t, levels);
 
   HuffmanNode queue[16];
   u32         queueCount = 0;
@@ -238,23 +240,23 @@ MAYBE_UNUSED static void huffman_dump_tree_structure(const HuffmanTree* tree) {
     const HuffmanNode node = queue[--queueCount];
     dynstring_append_chars(&buffer, ' ', node.level * 2);
 
-    if (huffman_node_is_root(node)) {
+    if (huffman_is_root(node)) {
       dynstring_append(&buffer, string_lit("Root"));
     } else {
       const bool isLeft = (node.index % 2) == 0;
       fmt_write(&buffer, "{}", fmt_char(isLeft ? 'L' : 'R'));
     }
 
-    if (huffman_node_is_leaf(tree, node)) {
-      const u16 symbol = tree->leafSymbols[levels[node.level].symbolStart + node.index];
+    if (huffman_is_leaf(t, node)) {
+      const u16 symbol = t->leafSymbols[levels[node.level].symbolStart + node.index];
       fmt_write(&buffer, " [{}]\n", fmt_int(symbol));
     } else {
       fmt_write(&buffer, "\n");
 
       // Enqueue the child nodes.
       diag_assert((queueCount + 2) < array_elems(queue));
-      queue[queueCount++] = huffman_node_child(tree, node, true /* right */);
-      queue[queueCount++] = huffman_node_child(tree, node, false /* right */);
+      queue[queueCount++] = huffman_child(t, node, true /* right */);
+      queue[queueCount++] = huffman_child(t, node, false /* left */);
     }
   }
 
