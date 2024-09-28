@@ -89,11 +89,18 @@ static u16 huffman_tree_symbol_start(const HuffmanTree* tree, const u16 level) {
   return leafCounter;
 }
 
-/**
- * Check if a node is a leaf-node or an internal node.
- */
+static bool huffman_node_is_root(const HuffmanNode node) { return node.level == 0; }
+
 static bool huffman_node_is_leaf(const HuffmanTree* tree, const HuffmanNode node) {
   return node.index < tree->leafCountPerLevel[node.level];
+}
+
+static HuffmanNode
+huffman_node_child(const HuffmanTree* tree, const HuffmanNode node, const bool right) {
+  diag_assert(!huffman_node_is_leaf(tree, node));
+  const u16 internalIndex = node.index - tree->leafCountPerLevel[node.level];
+  // NOTE: Multiply by two as the next level as twice as many nodes.
+  return (HuffmanNode){.level = node.level + 1, .index = internalIndex * 2 + right};
 }
 
 /**
@@ -236,8 +243,7 @@ MAYBE_UNUSED static void huffman_dump_tree_structure(const HuffmanTree* tree) {
     const HuffmanNode node = queue[--queueCount];
     dynstring_append_chars(&buffer, ' ', node.level * 2);
 
-    const bool isRoot = node.level == 0;
-    if (isRoot) {
+    if (huffman_node_is_root(node)) {
       dynstring_append(&buffer, string_lit("Root"));
     } else {
       const bool isLeft = (node.index % 2) == 0;
@@ -252,9 +258,8 @@ MAYBE_UNUSED static void huffman_dump_tree_structure(const HuffmanTree* tree) {
 
       // Enqueue the child nodes.
       diag_assert((queueCount + 2) < array_elems(queue));
-      const u16 internalIndex = node.index - tree->leafCountPerLevel[node.level];
-      queue[queueCount++] = (HuffmanNode){.level = node.level + 1, .index = internalIndex * 2 + 1};
-      queue[queueCount++] = (HuffmanNode){.level = node.level + 1, .index = internalIndex * 2 + 0};
+      queue[queueCount++] = huffman_node_child(tree, node, true /* right */);
+      queue[queueCount++] = huffman_node_child(tree, node, false /* right */);
     }
   }
 
