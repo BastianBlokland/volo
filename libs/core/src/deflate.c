@@ -172,19 +172,20 @@ static DeflateError huffman_build(HuffmanTree* t, const u16 symbolLevels[], cons
   // Compute the start symbol index for each level.
   u16 symbolStart[huffman_max_levels];
   u16 availableInternalNodes[huffman_max_levels];
-  for (u16 level = 0, leafCounter = 0;; ++level) {
-    symbolStart[level] = leafCounter;
+  for (u16 level = 0; level != huffman_max_levels; ++level) {
+    symbolStart[level] = t->leafCount;
 
-    const u16 maxNodes = level ? (availableInternalNodes[level - 1] * 2) : 1;
-    if (!maxNodes) {
-      break; // End of the tree.
-    }
+    const u16 maxNodes  = level ? (availableInternalNodes[level - 1] * 2) : 1;
     const u16 leafNodes = t->leafCountPerLevel[level];
     if (UNLIKELY(leafNodes > maxNodes)) {
       return DeflateError_Malformed; // Invalid tree.
     }
     availableInternalNodes[level] = maxNodes - leafNodes;
-    leafCounter += leafNodes;
+    t->leafCount += leafNodes;
+  }
+
+  if (UNLIKELY(availableInternalNodes[huffman_max_levels - 1])) {
+    return DeflateError_Malformed; // Incomplete tree (has unconnected nodes).
   }
 
   // Insert the symbols for the leaf nodes into tree.
