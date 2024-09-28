@@ -25,6 +25,16 @@ typedef struct {
   u16 length; // Number of levels into the tree.
 } HuffmanCode;
 
+/**
+ * Huffman tree is a binary tree that is indexed by prefix codes (HuffmanCode) which represent
+ * paths through the tree.
+ *
+ * Properties of the Huffman tree's as used in deflate:
+ * - Symbols have consecutive values within the same tree level (eg the same code length).
+ * - In each level there are leafCountPerLevel[] leaves on the left and internal nodes on the right.
+ *
+ * The structure of the tree is not explicitly stored but can be implied from these properties.
+ */
 typedef struct {
   u16 leafCount;
   u16 leafCountPerLevel[huffman_max_levels]; // Number of leaf nodes per tree level.
@@ -74,17 +84,18 @@ static void huffman_tree_codes(const HuffmanTree* tree, HuffmanCode codes[]) {
  * Returns sentinel_u16 when the code does not point to a leaf node in the tree.
  */
 MAYBE_UNUSED static u16 huffman_lookup(const HuffmanTree* tree, const HuffmanCode code) {
-  u16 base = 0, offset = 0;
+  u16 levelStart = 0, levelIndex = 0;
   for (u16 level = 0; level != code.length; ++level) {
-    offset *= 2;
+    levelIndex *= 2;
     if (huffman_code_sample(code, level)) {
-      ++offset; // Take the right branch.
+      ++levelIndex; // Take the right branch.
     }
-    if (offset < tree->leafCountPerLevel[level]) {
-      return tree->leafSymbols[base + offset];
+    if (levelIndex < tree->leafCountPerLevel[level]) {
+      diag_assert(levelStart + levelIndex < huffman_max_symbols);
+      return tree->leafSymbols[levelStart + levelIndex];
     }
-    base += tree->leafCountPerLevel[level];
-    offset -= tree->leafCountPerLevel[level];
+    levelStart += tree->leafCountPerLevel[level];
+    levelIndex -= tree->leafCountPerLevel[level];
   }
   return sentinel_u16;
 }
