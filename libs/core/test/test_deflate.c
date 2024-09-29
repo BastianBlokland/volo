@@ -35,20 +35,20 @@ test_decode_success(CheckTestContext* _testCtx, const String inputBits, const St
 
   check_msg(
       !remaining.size,
-      "Remaining data {} (input: {})",
+      "Remaining data [{}] (input: [{}])",
       fmt_bitset(remaining, .order = FormatBitsetOrder_LeastToMostSignificant),
       fmt_bitset(input, .order = FormatBitsetOrder_LeastToMostSignificant));
 
   check_msg(
       err == DeflateError_None,
-      "Decode failed (input: {})",
+      "Decode failed (input: [{}])",
       fmt_bitset(input, .order = FormatBitsetOrder_LeastToMostSignificant));
 
   const String output         = dynstring_view(&outputBuffer);
   const String expectedOutput = test_data_scratch(expectedBits);
   check_msg(
       mem_eq(output, expectedOutput),
-      "Output {} ({} bytes) == {} ({} bytes) (input: {})",
+      "Output [{}] ({} bytes) == [{}] ({} bytes) (input: [{}])",
       fmt_bitset(output, .order = FormatBitsetOrder_LeastToMostSignificant),
       fmt_int(output.size),
       fmt_bitset(expectedOutput, .order = FormatBitsetOrder_LeastToMostSignificant),
