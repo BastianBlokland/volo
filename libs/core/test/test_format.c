@@ -218,7 +218,7 @@ spec(format) {
     dynstring_destroy(&string);
   }
 
-  it("can write bitsets") {
+  it("can write bitsets in most to least significant order") {
     struct {
       BitSet val;
       String expected;
@@ -228,10 +228,33 @@ spec(format) {
         {bitset_from_var((u16){0b0101110101011101}), string_lit("0101110101011101")},
     };
 
+    const FormatOptsBitset opts = {.order = FormatBitsetOrder_MostToLeastSignificant};
+
     DynString string = dynstring_create_over(mem_stack(128));
     for (usize i = 0; i != array_elems(data); ++i) {
       dynstring_clear(&string);
-      format_write_bitset(&string, data[i].val);
+      format_write_bitset(&string, data[i].val, &opts);
+      check_eq_string(dynstring_view(&string), data[i].expected);
+    }
+    dynstring_destroy(&string);
+  }
+
+  it("can write bitsets in least to most significant order") {
+    struct {
+      BitSet val;
+      String expected;
+    } const data[] = {
+        {bitset_from_var((u8){0}), string_lit("00000000")},
+        {bitset_from_var((u8){0b01011101}), string_lit("10111010")},
+        {bitset_from_var((u16){0b0101110101011101}), string_lit("1011101010111010")},
+    };
+
+    const FormatOptsBitset opts = {.order = FormatBitsetOrder_LeastToMostSignificant};
+
+    DynString string = dynstring_create_over(mem_stack(128));
+    for (usize i = 0; i != array_elems(data); ++i) {
+      dynstring_clear(&string);
+      format_write_bitset(&string, data[i].val, &opts);
       check_eq_string(dynstring_view(&string), data[i].expected);
     }
     dynstring_destroy(&string);
@@ -293,7 +316,7 @@ spec(format) {
     dynstring_destroy(&string);
   }
 
-  it("can write time in iso8601 format without seperators") {
+  it("can write time in iso8601 format without separators") {
     const TimeReal time =
         time_real_offset(time_real_epoch, time_days(40) + time_hours(13) + time_milliseconds(42));
     const String str = format_write_arg_scratch(&fmt_time(time, .flags = FormatTimeFlags_None));

@@ -266,8 +266,10 @@ static ScriptVal repl_bind_print_bits(void* ctx, const ScriptArgs args, ScriptEr
   Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
+  const FormatOptsBitset opts = {.order = FormatBitsetOrder_MostToLeastSignificant};
+
   for (usize i = 0; i != args.count; ++i) {
-    format_write_bitset(&buffer, bitset_from_var(args.values[i]));
+    format_write_bitset(&buffer, bitset_from_var(args.values[i]), &opts);
     dynstring_append_char(&buffer, '\n');
   }
 

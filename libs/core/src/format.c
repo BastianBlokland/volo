@@ -174,7 +174,7 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
     dynstring_append(str, ((const FormatOptsList*)arg->settings)->prefix);
     for (const FormatArg* child = arg->value_list; child->type != FormatArgType_End; ++child) {
       if (child != arg->value_list) {
-        dynstring_append(str, ((const FormatOptsList*)arg->settings)->seperator);
+        dynstring_append(str, ((const FormatOptsList*)arg->settings)->separator);
       }
       format_write_arg(str, child);
     }
@@ -193,7 +193,7 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
     format_write_bool(str, arg->value_bool);
     break;
   case FormatArgType_BitSet:
-    format_write_bitset(str, arg->value_bitset);
+    format_write_bitset(str, arg->value_bitset, arg->settings);
     break;
   case FormatArgType_Mem:
     format_write_mem(str, arg->value_mem);
@@ -406,9 +406,19 @@ void format_write_bool(DynString* str, const bool val) {
   dynstring_append(str, val ? string_lit("true") : string_lit("false"));
 }
 
-void format_write_bitset(DynString* str, const BitSet val) {
-  for (usize i = bitset_size(val); i-- != 0;) {
-    dynstring_append_char(str, bitset_test(val, i) ? '1' : '0');
+void format_write_bitset(DynString* str, const BitSet val, const FormatOptsBitset* opts) {
+  const usize size = bitset_size(val);
+  switch (opts->order) {
+  case FormatBitsetOrder_MostToLeastSignificant: {
+    for (usize i = size; i-- != 0;) {
+      dynstring_append_char(str, bitset_test(val, i) ? '1' : '0');
+    }
+  } break;
+  case FormatBitsetOrder_LeastToMostSignificant: {
+    for (usize i = 0; i != size; ++i) {
+      dynstring_append_char(str, bitset_test(val, i) ? '1' : '0');
+    }
+  } break;
   }
 }
 

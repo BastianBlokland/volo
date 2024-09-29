@@ -113,7 +113,7 @@ editor_cp_is_valid(const Unicode cp, const UiTextFilter filter, const UiEditorSo
   return true;
 }
 
-static bool editor_cp_is_seperator(const Unicode cp) {
+static bool editor_cp_is_separator(const Unicode cp) {
   switch ((u32)cp) {
   case Unicode_Space:
   case Unicode_ZeroWidthSpace:
@@ -167,9 +167,9 @@ static usize editor_word_end_index(UiEditor* editor, usize index) {
       return editor->text.size; // Return the end index when no more characters are found.
     }
     const Unicode nextCp      = editor_cp_at(editor, nextIndex);
-    const bool    isSeperator = editor_cp_is_seperator(nextCp);
-    foundStartingWord |= !isSeperator;
-    if (isSeperator && foundStartingWord) {
+    const bool    isseparator = editor_cp_is_separator(nextCp);
+    foundStartingWord |= !isseparator;
+    if (isseparator && foundStartingWord) {
       return nextIndex;
     }
     index = nextIndex;
@@ -183,7 +183,7 @@ static usize editor_word_start_index(UiEditor* editor, usize index) {
     if (sentinel_check(prevIndex)) {
       return index;
     }
-    if (editor_cp_is_seperator(editor_cp_at(editor, prevIndex))) {
+    if (editor_cp_is_separator(editor_cp_at(editor, prevIndex))) {
       if (foundStartingWord) {
         return index;
       }
