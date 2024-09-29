@@ -418,12 +418,47 @@ static u32 inflate_read_run_distance(InflateCtx* ctx, const HuffmanTree* t, Defl
   return g_distBase[symbol] + inflate_read_unaligned(ctx, g_distBits[symbol], err);
 }
 
+/**
+ * Read two dynamic huffman tree's from the input:
+ * - Literal (or run length) tree.
+ * - Distance tree.
+ * For the meaning of these tree's check the usage in 'inflate_block_compressed()'.
+ */
 static void inflate_read_huffman_trees(
     InflateCtx* ctx, HuffmanTree* outLiteral, HuffmanTree* outDistance, DeflateError* err) {
-  (void)ctx;
+  /**
+   * The Huffman trees are defined by a collection of symbol tree level's (see 'huffman_build()').
+   * These levels are themselves encoded with a third dynamic Huffman tree we call the level-tree.
+   */
+  const u32 numLiteralSymbols  = inflate_read_unaligned(ctx, 5, err) + 256; // hlit + 257.
+  const u32 numDistanceSymbols = inflate_read_unaligned(ctx, 5, err) + 1;   // hdist + 1.
+  const u32 numLevelSymbols    = inflate_read_unaligned(ctx, 4, err) + 4;   // hclen + 4.
+  if (UNLIKELY(*err)) {
+    return;
+  }
+
+  /**
+   * Read a Huffman tree for the tree levels (also known as the 'code length' tree in the spec).
+   * The source of the index table can be found in the RFC.
+   */
+  diag_assert(numLevelSymbols < 19);
+  static const u8 g_levelSymbolIndex[] = {
+      16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15,
+  };
+  u8 levelSymbolLevels[19];
+  for (u32 i = 0; i != numLevelSymbols; ++i) {
+    levelSymbolLevels[g_levelSymbolIndex[i]] = inflate_read_unaligned(ctx, 3, err);
+  }
+  HuffmanTree levelTree;
+  *err = huffman_build(&levelTree, levelSymbolLevels, numLevelSymbols);
+  if (UNLIKELY(*err)) {
+    return;
+  }
+
+  (void)numLiteralSymbols;
+  (void)numDistanceSymbols;
   (void)outLiteral;
   (void)outDistance;
-  (void)err;
 }
 
 static void inflate_block_uncompressed(InflateCtx* ctx, DeflateError* err) {
