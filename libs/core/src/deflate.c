@@ -436,7 +436,7 @@ static void inflate_read_huffman_trees(
    * The Huffman trees are defined by a collection of symbol tree level's (see 'huffman_build()').
    * These levels are themselves encoded with a third dynamic Huffman tree we call the level-tree.
    */
-  const u32 numLiteralSymbols  = inflate_read_unaligned(ctx, 5, err) + 256; // hlit + 257.
+  const u32 numLiteralSymbols  = inflate_read_unaligned(ctx, 5, err) + 257; // hlit + 257.
   const u32 numDistanceSymbols = inflate_read_unaligned(ctx, 5, err) + 1;   // hdist + 1.
   const u32 numLevelSymbols    = inflate_read_unaligned(ctx, 4, err) + 4;   // hclen + 4.
   if (UNLIKELY(*err)) {
