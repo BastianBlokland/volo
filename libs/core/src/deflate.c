@@ -13,6 +13,7 @@
  */
 
 #define huffman_validation 0
+#define huffman_dump_trees 0
 #define huffman_max_levels 16
 #define huffman_max_symbols 288
 
@@ -279,7 +280,7 @@ MAYBE_UNUSED static void huffman_dump_tree_symbols(const HuffmanTree* t) {
 /**
  * Dump the huffman tree structure to stdout.
  */
-MAYBE_UNUSED static void huffman_dump_tree_structure(const HuffmanTree* t) {
+MAYBE_UNUSED static void huffman_dump_tree_structure(const HuffmanTree* t, const String name) {
   Mem       scratchMem = alloc_alloc(g_allocScratch, alloc_max_size(g_allocScratch), 1);
   DynString buffer     = dynstring_create_over(scratchMem);
 
@@ -297,7 +298,7 @@ MAYBE_UNUSED static void huffman_dump_tree_structure(const HuffmanTree* t) {
     dynstring_append_chars(&buffer, ' ', node.level * 2);
 
     if (huffman_is_root(node)) {
-      dynstring_append(&buffer, string_lit("Root"));
+      fmt_write(&buffer, "<{}>", fmt_text(name));
     } else {
       const bool isLeft = (node.index % 2) == 0;
       fmt_write(&buffer, "{}", fmt_char(isLeft ? 'L' : 'R'));
@@ -465,6 +466,9 @@ static void inflate_read_huffman_trees(
   if (UNLIKELY(*err)) {
     return;
   }
+#if huffman_dump_trees
+  huffman_dump_tree_structure(&levelTree, string_lit("Level Tree"));
+#endif
   if (UNLIKELY(!levelTree.leafCount)) {
     *err = DeflateError_Malformed;
     return;
@@ -522,6 +526,14 @@ static void inflate_read_huffman_trees(
     return;
   }
   *err = huffman_build(outDistance, symbolLevels + numLiteralSymbols, numDistanceSymbols);
+  if (UNLIKELY(*err)) {
+    return;
+  }
+
+#if huffman_dump_trees
+  huffman_dump_tree_structure(outLiteral, string_lit("Literal Tree"));
+  huffman_dump_tree_structure(outDistance, string_lit("Distance Tree"));
+#endif
 }
 
 static void inflate_block_uncompressed(InflateCtx* ctx, DeflateError* err) {
