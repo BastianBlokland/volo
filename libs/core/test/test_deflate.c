@@ -383,4 +383,88 @@ spec(deflate) {
                    "1" /* End symbol */),
         string_lit(""));
   }
+
+  it("fails to decode a dynamic huffman block with run-length repeat at start") {
+    test_decode_fail(
+        _testCtx,
+        string_lit("1"     /* Final */
+                   "01"    /* Type */
+                   "00000" /* Literal tree symbol count */
+                   "00000" /* Distance tree symbol count */
+                   "0111"  /* Level tree symbol count */
+                   "100 000 000 000 000 000 000 000 000 000 000 000 000 000 000 000 000 100"
+                   "1" /* End symbol */),
+        DeflateError_Malformed);
+  }
+
+  it("fails to decode a dynamic huffman block with too many levels") {
+    test_decode_fail(
+        _testCtx,
+        string_lit("1"     /* Final */
+                   "01"    /* Type */
+                   "00000" /* Literal tree symbol count */
+                   "00000" /* Distance tree symbol count */
+                   "0111"  /* Level tree symbol count */
+                   "000 000 100 000 000 000 000 000 000 000 000 000 000 000 000 000 000 100"
+                   "0 0 11111111 10011011"),
+        DeflateError_Malformed);
+  }
+
+  it("fails to decode a dynamic huffman block with an overfull level-tree") {
+    test_decode_fail(
+        _testCtx,
+        string_lit("1"     /* Final */
+                   "01"    /* Type */
+                   "00000" /* Literal tree symbol count */
+                   "00000" /* Distance tree symbol count */
+                   "0000"  /* Level tree symbol count */
+                   "100 100 100 000"),
+        DeflateError_Malformed);
+  }
+
+  it("fails to decode a dynamic huffman block with an empty level-tree") {
+    test_decode_fail(
+        _testCtx,
+        string_lit("1"     /* Final */
+                   "01"    /* Type */
+                   "00000" /* Literal tree symbol count */
+                   "00000" /* Distance tree symbol count */
+                   "0000"  /* Level tree symbol count */
+                   "000 000 000 000"),
+        DeflateError_Malformed);
+  }
+
+  it("fails to decode a dynamic huffman block with an un-complete level-tree") {
+    test_decode_fail(
+        _testCtx,
+        string_lit("1"     /* Final */
+                   "01"    /* Type */
+                   "00000" /* Literal tree symbol count */
+                   "00000" /* Distance tree symbol count */
+                   "0000"  /* Level tree symbol count */
+                   "100 010 110 000"),
+        DeflateError_Malformed);
+
+    test_decode_fail(
+        _testCtx,
+        string_lit("1"     /* Final */
+                   "01"    /* Type */
+                   "00000" /* Literal tree symbol count */
+                   "00000" /* Distance tree symbol count */
+                   "0000"  /* Level tree symbol count */
+                   "010 100 000 000"),
+        DeflateError_Malformed);
+  }
+
+  it("fails to decode a dynamic huffman block with truncated levels") {
+    test_decode_fail(
+        _testCtx,
+        string_lit("1"     /* Final */
+                   "01"    /* Type */
+                   "00000" /* Literal tree symbol count */
+                   "00000" /* Distance tree symbol count */
+                   "0000"  /* Level tree symbol count */
+                   "000 000 100 000"),
+        DeflateError_Truncated);
+  }
 }
