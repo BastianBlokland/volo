@@ -78,12 +78,9 @@ struct sFormatArg {
  * Create a list formatting argument, takes a pointer to a FormatArg array that ends with with a
  * '0' (FormatArgType_End) argument.
  */
-#define fmt_list(_CHILD_ARGS_, ...)                                                                \
-  ((FormatArg){                                                                                    \
-    .type       = FormatArgType_List,                                                              \
-    .value_list = (_CHILD_ARGS_),                                                                  \
-    .settings   = &format_opts_list(__VA_ARGS__)                                                   \
-  })
+#define fmt_list(_CHILD_ARGS_, ...) ((FormatArg){ .type = FormatArgType_List,                      \
+  .value_list = (_CHILD_ARGS_),                                                                    \
+  .settings   = &format_opts_list(__VA_ARGS__)})
 
 /**
  * Create a list formatting argument.
@@ -92,47 +89,41 @@ struct sFormatArg {
  *  const FormatArg arg = fmt_list_lit(fmt_int(42), fmt_bool(true));
  * '
  */
-#define fmt_list_lit(...)                                                                          \
-  ((FormatArg){                                                                                    \
-    .type       = FormatArgType_List,                                                              \
-    .value_list = (const FormatArg[]){VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, (FormatArg){0})},       \
-    .settings   = &format_opts_list()                                                              \
-  })
+#define fmt_list_lit(...) ((FormatArg){ .type = FormatArgType_List,                                \
+  .value_list = (const FormatArg[]){VA_ARGS_SKIP_FIRST(0, ##__VA_ARGS__, (FormatArg){0})},         \
+  .settings   = &format_opts_list()})
 
 /**
  * Create an integer formatting argument.
  */
-#define fmt_int(_VAL_, ...)                                                                        \
-  _Generic(+(_VAL_),                                                                               \
-    u32: ((FormatArg){                                                                             \
-      .type = FormatArgType_u64,                                                                   \
-      .value_u64 = (u64)(_VAL_),                                                                   \
-      .settings = &format_opts_int(__VA_ARGS__)                                                    \
-    }),                                                                                            \
-    i32: ((FormatArg){                                                                             \
-      .type = FormatArgType_i64,                                                                   \
-      .value_i64 = (i64)(_VAL_),                                                                   \
-      .settings = &format_opts_int(__VA_ARGS__)                                                    \
-    }),                                                                                            \
-    u64: ((FormatArg){                                                                             \
-      .type = FormatArgType_u64,                                                                   \
-      .value_u64 = (u64)(_VAL_),                                                                   \
-      .settings = &format_opts_int(__VA_ARGS__)                                                    \
-    }),                                                                                            \
-    i64: ((FormatArg){                                                                             \
-      .type = FormatArgType_i64,                                                                   \
-      .value_i64 = (i64)(_VAL_),                                                                   \
-      .settings = &format_opts_int(__VA_ARGS__)                                                    \
-    })                                                                                             \
-  )
+#define fmt_int(_VAL_, ...) _Generic(+(_VAL_),                                                     \
+  u32: ((FormatArg){                                                                               \
+    .type = FormatArgType_u64,                                                                     \
+    .value_u64 = (u64)(_VAL_),                                                                     \
+    .settings = &format_opts_int(__VA_ARGS__)                                                      \
+  }),                                                                                              \
+  i32: ((FormatArg){                                                                               \
+    .type = FormatArgType_i64,                                                                     \
+    .value_i64 = (i64)(_VAL_),                                                                     \
+    .settings = &format_opts_int(__VA_ARGS__)                                                      \
+  }),                                                                                              \
+  u64: ((FormatArg){                                                                               \
+    .type = FormatArgType_u64,                                                                     \
+    .value_u64 = (u64)(_VAL_),                                                                     \
+    .settings = &format_opts_int(__VA_ARGS__)                                                      \
+  }),                                                                                              \
+  i64: ((FormatArg){                                                                               \
+    .type = FormatArgType_i64,                                                                     \
+    .value_i64 = (i64)(_VAL_),                                                                     \
+    .settings = &format_opts_int(__VA_ARGS__)                                                      \
+  })                                                                                               \
+)
 
 /**
  * Create an float formatting argument.
  */
-#define fmt_float(_VAL_, ...)                                                                      \
-  ((FormatArg){                                                                                    \
-      .type = FormatArgType_f64, .value_f64 = (_VAL_), .settings = &format_opts_float(__VA_ARGS__) \
-  })
+#define fmt_float(_VAL_, ...) ((FormatArg){ .type = FormatArgType_f64,                             \
+  .value_f64 = (_VAL_), .settings = &format_opts_float(__VA_ARGS__)})
 
 /**
  * Create an boolean formatting argument.
@@ -143,9 +134,8 @@ struct sFormatArg {
  * Create an bitset formatting argument.
  */
 #define fmt_bitset(_VAL_) ((FormatArg){ .type = FormatArgType_BitSet,                              \
-    .value_bitset = (_VAL_),                                                                       \
-    .settings     = &format_opts_bitset(__VA_ARGS__),                                              \
-  })
+  .value_bitset = (_VAL_),                                                                         \
+  .settings     = &format_opts_bitset(__VA_ARGS__)})
 
 /**
  * Create an memory formatting argument.
@@ -160,31 +150,23 @@ struct sFormatArg {
 /**
  * Create an time duration formatting argument.
  */
-#define fmt_duration(_VAL_, ...) ((FormatArg){                                                     \
-    .type           = FormatArgType_Duration,                                                      \
-    .value_duration = (_VAL_),                                                                     \
-    .settings       = &format_opts_float(.maxDecDigits = 1, __VA_ARGS__)                           \
-  })
+#define fmt_duration(_VAL_, ...) ((FormatArg){ .type = FormatArgType_Duration,                     \
+  .value_duration = (_VAL_),                                                                       \
+  .settings       = &format_opts_float(.maxDecDigits = 1, __VA_ARGS__)})
 
 /**
  * Create an time real formatting argument.
  */
-#define fmt_time(_VAL_, ...)                                                                       \
-  ((FormatArg){                                                                                    \
-      .type       = FormatArgType_Time,                                                            \
-      .value_time = (_VAL_),                                                                       \
-      .settings   = &format_opts_time(__VA_ARGS__)                                                 \
-  })
+#define fmt_time(_VAL_, ...) ((FormatArg){ .type = FormatArgType_Time,                             \
+  .value_time = (_VAL_),                                                                           \
+  .settings   = &format_opts_time(__VA_ARGS__)})
 
 /**
  * Create text formatting argument.
  */
-#define fmt_text(_VAL_, ...)                                                                       \
-  ((FormatArg){                                                                                    \
-      .type       = FormatArgType_Text,                                                            \
-      .value_text = (_VAL_),                                                                       \
-      .settings   = &format_opts_text(__VA_ARGS__)                                                 \
-  })
+#define fmt_text(_VAL_, ...) ((FormatArg){.type = FormatArgType_Text,                              \
+  .value_text = (_VAL_),                                                                           \
+  .settings   = &format_opts_text(__VA_ARGS__)})
 
 /**
  * Create text formatting argument from a string literal.
@@ -194,12 +176,9 @@ struct sFormatArg {
 /**
  * Create char formatting argument.
  */
-#define fmt_char(_VAL_, ...)                                                                       \
-  ((FormatArg){                                                                                    \
-      .type       = FormatArgType_Char,                                                            \
-      .value_char = (_VAL_),                                                                       \
-      .settings   = &format_opts_text(__VA_ARGS__)                                                 \
-  })
+#define fmt_char(_VAL_, ...) ((FormatArg){ .type = FormatArgType_Char,                             \
+  .value_char = (_VAL_),                                                                           \
+  .settings   = &format_opts_text(__VA_ARGS__)})
 
 /**
  * Create file path formatting argument.
@@ -251,7 +230,7 @@ struct sFormatArg {
 typedef struct {
   String prefix;
   String suffix;
-  String seperator;
+  String separator;
 } FormatOptsList;
 
 /**
@@ -276,35 +255,12 @@ typedef struct {
  * Configuration struct for floating point formatting.
  */
 typedef struct {
-  /**
-   * Prefix positive numbers with a '+' sign.
-   */
-  bool plusSign;
-
-  /**
-   * Minimum amount of digits before the decimal place.
-   */
-  u8 minIntDigits;
-
-  /**
-   * Minimum amount of digits after the decimal place.
-   */
-  u8 minDecDigits;
-
-  /**
-   * Maximum amount of digits after the decimal place (will apply rounding to the remainder).
-   */
-  u8 maxDecDigits;
-
-  /**
-   * Use scientific notation for values bigger then this.
-   */
-  f64 expThresholdPos;
-
-  /**
-   * Use scientific notation for values closer to 0 then this.
-   */
-  f64 expThresholdNeg;
+  bool plusSign;     // Prefix positive numbers with a '+' sign.
+  u8   minIntDigits; // Minimum amount of digits before the decimal place.
+  u8   minDecDigits; // Minimum amount of digits after the decimal place.
+  u8   maxDecDigits; // Maximum digits after the decimal place (applies rounding to the remainder).
+  f64  expThresholdPos; // Use scientific notation for values bigger then this.
+  f64  expThresholdNeg; // Use scientific notation for values closer to 0 then this.
 } FormatOptsFloat;
 
 typedef enum {
@@ -366,54 +322,38 @@ typedef struct {
 
 // clang-format off
 
-#define format_opts_list(...)                                                                      \
-  ((FormatOptsList){                                                                               \
-    .prefix     = string_empty,                                                                    \
-    .suffix     = string_empty,                                                                    \
-    .seperator  = string_lit(", "),                                                                \
-    __VA_ARGS__                                                                                    \
-  })
+#define format_opts_list(...) ((FormatOptsList){                                                   \
+  .prefix     = string_empty,                                                                      \
+  .suffix     = string_empty,                                                                      \
+  .separator  = string_lit(", "),                                                                  \
+  __VA_ARGS__ })
 
-#define format_opts_int(...)                                                                       \
-  ((FormatOptsInt){                                                                                \
-    .base      = 10,                                                                               \
-    .minDigits = 0,                                                                                \
-    __VA_ARGS__                                                                                    \
-  })
+#define format_opts_int(...) ((FormatOptsInt){                                                     \
+  .base      = 10,                                                                                 \
+  __VA_ARGS__ })
 
-#define format_opts_float(...)                                                                     \
-  ((FormatOptsFloat){                                                                              \
-    .minIntDigits     = 0,                                                                         \
-    .minDecDigits     = 0,                                                                         \
-    .maxDecDigits     = 7,                                                                         \
-    .expThresholdPos  = 1e7,                                                                       \
-    .expThresholdNeg  = 1e-5,                                                                      \
-    __VA_ARGS__                                                                                    \
-  })
+#define format_opts_float(...) ((FormatOptsFloat){                                                 \
+  .maxDecDigits     = 7,                                                                           \
+  .expThresholdPos  = 1e7,                                                                         \
+  .expThresholdNeg  = 1e-5,                                                                        \
+  __VA_ARGS__ })
 
 #define format_opts_bitset(...) ((FormatOptsBitset){                                               \
-    .order = FormatBitsetOrder_MostToLeastSignificant,                                             \
-    __VA_ARGS__ })
+  .order = FormatBitsetOrder_MostToLeastSignificant,                                               \
+  __VA_ARGS__ })
 
-#define format_opts_time(...)                                                                      \
-  ((FormatOptsTime){                                                                               \
-    .timezone   = time_zone_utc,                                                                   \
-    .terms      = FormatTimeTerms_All,                                                             \
-    .flags      = FormatTimeFlags_HumanReadable,                                                   \
-    __VA_ARGS__                                                                                    \
-  })
+#define format_opts_time(...) ((FormatOptsTime){                                                   \
+  .timezone   = time_zone_utc,                                                                     \
+  .terms      = FormatTimeTerms_All,                                                               \
+  .flags      = FormatTimeFlags_HumanReadable,                                                     \
+  __VA_ARGS__ })
 
-#define format_opts_text(...)                                                                      \
-  ((FormatOptsText){                                                                               \
-    .flags   = FormatTextFlags_None,                                                               \
-    __VA_ARGS__                                                                                    \
-  })
+#define format_opts_text(...) ((FormatOptsText){ 0, __VA_ARGS__ })
 
 /**
  * Write a integer as ascii characters to the given dynamic-string.
  */
-#define format_write_int(_DYNSTRING_, _VAL_, ...)                                                  \
-  _Generic(+(_VAL_),                                                                               \
+#define format_write_int(_DYNSTRING_, _VAL_, ...) _Generic(+(_VAL_),                               \
     u32: format_write_u64(_DYNSTRING_, (u64)(_VAL_), &format_opts_int(__VA_ARGS__)),               \
     i32: format_write_i64(_DYNSTRING_, (i64)(_VAL_), &format_opts_int(__VA_ARGS__)),               \
     u64: format_write_u64(_DYNSTRING_, _VAL_, &format_opts_int(__VA_ARGS__)),                      \

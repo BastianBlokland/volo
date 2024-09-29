@@ -174,7 +174,7 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
     dynstring_append(str, ((const FormatOptsList*)arg->settings)->prefix);
     for (const FormatArg* child = arg->value_list; child->type != FormatArgType_End; ++child) {
       if (child != arg->value_list) {
-        dynstring_append(str, ((const FormatOptsList*)arg->settings)->seperator);
+        dynstring_append(str, ((const FormatOptsList*)arg->settings)->separator);
       }
       format_write_arg(str, child);
     }

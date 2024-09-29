@@ -316,7 +316,7 @@ spec(format) {
     dynstring_destroy(&string);
   }
 
-  it("can write time in iso8601 format without seperators") {
+  it("can write time in iso8601 format without separators") {
     const TimeReal time =
         time_real_offset(time_real_epoch, time_days(40) + time_hours(13) + time_milliseconds(42));
     const String str = format_write_arg_scratch(&fmt_time(time, .flags = FormatTimeFlags_None));
