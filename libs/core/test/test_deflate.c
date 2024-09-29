@@ -369,4 +369,18 @@ spec(deflate) {
                    "1" /* End symbol */),
         string_lit(""));
   }
+
+  it("successfully decodes an empty dynamic huffman block without a distance tree") {
+    test_decode_success(
+        _testCtx,
+        string_lit("1"     /* Final */
+                   "01"    /* Type */
+                   "00000" /* Literal tree symbol count */
+                   "00000" /* Distance tree symbol count */
+                   "0111"  /* Level tree symbol count */
+                   "000 000 100 010 000 000 000 000 000 000 000 000 000 000 000 000 000 010"
+                   "01111111 00101011 11 11 10"
+                   "1" /* End symbol */),
+        string_lit(""));
+  }
 }
