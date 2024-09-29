@@ -42,9 +42,11 @@ test_decode_success(CheckTestContext* _testCtx, const String inputBits, const St
   const String expectedOutput = test_data_scratch(expectedBits);
   check_msg(
       mem_eq(output, expectedOutput),
-      "Output {} == {} (input: {})",
+      "Output {} ({} bytes) == {} ({} bytes) (input: {})",
       fmt_bitset(output),
+      fmt_int(output.size),
       fmt_bitset(expectedOutput),
+      fmt_int(expectedOutput.size),
       fmt_bitset(input));
 }
 
@@ -164,5 +166,36 @@ spec(deflate) {
                    "0011111111111111" /* Length inverted */
                    "1010101010101010" /* Data */),
         DeflateError_Truncated);
+  }
+
+  it("successfully decodes an empty fixed huffman block") {
+    test_decode_success(
+        _testCtx,
+        string_lit("1"  /* Final */
+                   "10" /* Type */
+                   "0000000" /* End symbol */),
+        string_empty);
+  }
+
+  it("successfully decodes a fixed huffman block using literal symbols") {
+    test_decode_success(
+        _testCtx,
+        string_lit("1"         /* Final */
+                   "10"        /* Type */
+                   "00110000"  /* Literal 0 */
+                   "00110001"  /* Literal 1 */
+                   "10110000"  /* Literal 128 */
+                   "10111111"  /* Literal 143 */
+                   "110010000" /* Literal 144 */
+                   "111000000" /* Literal 192 */
+                   "111111111" /* Literal 255 */
+                   "0000000" /* End symbol */),
+        string_lit("00000000" /* 0 */
+                   "10000000" /* 1 */
+                   "00000001" /* 128 */
+                   "11110001" /* 143 */
+                   "00001001" /* 144 */
+                   "00000011" /* 192 */
+                   "11111111" /* 255 */));
   }
 }
