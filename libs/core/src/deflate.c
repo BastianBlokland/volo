@@ -186,6 +186,10 @@ MAYBE_UNUSED static u16 huffman_lookup(const HuffmanTree* t, const HuffmanCode c
  *   [E] 111
  */
 static DeflateError huffman_build(HuffmanTree* t, const u8 symbolLevels[], const u32 symbolCount) {
+  if (UNLIKELY(symbolCount >= huffman_max_symbols)) {
+    return DeflateError_Malformed;
+  }
+
   // Gather the symbol count for each level.
   mem_set(array_mem(t->leafCountPerLevel), 0);
   for (u32 i = 0; i != symbolCount; ++i) {
@@ -193,7 +197,9 @@ static DeflateError huffman_build(HuffmanTree* t, const u8 symbolLevels[], const
     if (!level) {
       continue; // The root node is always an internal node and cannot contain a symbol.
     }
-    diag_assert(level < huffman_max_levels);
+    if (UNLIKELY(level >= huffman_max_levels)) {
+      return DeflateError_Malformed;
+    }
     ++t->leafCountPerLevel[level];
   }
 
