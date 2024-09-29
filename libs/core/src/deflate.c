@@ -442,7 +442,7 @@ static void inflate_read_huffman_trees(
   if (UNLIKELY(*err)) {
     return;
   }
-  if (UNLIKELY(numDistanceSymbols > 286 || numDistanceSymbols > 32 || numLevelSymbols > 19)) {
+  if (UNLIKELY(numLiteralSymbols > 286 || numDistanceSymbols > 32 || numLevelSymbols > 19)) {
     *err = DeflateError_Malformed;
     return;
   }
@@ -468,10 +468,58 @@ static void inflate_read_huffman_trees(
     return;
   }
 
-  (void)numLiteralSymbols;
-  (void)numDistanceSymbols;
-  (void)outLiteral;
-  (void)outDistance;
+  /**
+   * Read the symbol levels (depth in the tree) for both the literal and distance trees.
+   */
+  u8 symbolLevels[286 /* literal symbols */ + 32 /* distance symbols */];
+  for (u32 i = 0; i != array_elems(symbolLevels);) {
+    const u16 symbol = inflate_read_symbol(ctx, &levelTree, err);
+    if (UNLIKELY(*err)) {
+      break;
+    }
+    if (symbol < 16) /* 0 - 15 are literal levels */ {
+      symbolLevels[i++] = (u8)symbol;
+      continue;
+    }
+    u8 runValue, runLength;
+    switch (symbol) {
+    case 16: // Copy the previous level 3 - 6 times.
+      if (UNLIKELY(i == 0)) {
+        *err = DeflateError_Malformed;
+        return; // Previous level is missing.
+      }
+      runValue  = symbolLevels[i - 1];
+      runLength = (u8)inflate_read_unaligned(ctx, 2, err) + 3;
+      break;
+    case 17: // Repeat a level of 0 for 3 - 10 times.
+      runValue  = 0;
+      runLength = (u8)inflate_read_unaligned(ctx, 3, err) + 3;
+      break;
+    case 18: // Repeat a level of 0 for 11 - 138 times.
+      runValue  = 0;
+      runLength = (u8)inflate_read_unaligned(ctx, 7, err) + 11;
+      break;
+    default:
+      *err = DeflateError_Malformed;
+      return;
+    }
+    if (UNLIKELY(i + runLength > array_elems(symbolLevels))) {
+      *err = DeflateError_Malformed;
+      return;
+    }
+    for (u32 runItr = 0; runItr != runLength; ++runItr) {
+      symbolLevels[i++] = runValue;
+    }
+  }
+
+  /**
+   * Build the output trees.
+   */
+  *err = huffman_build(outLiteral, symbolLevels, numLiteralSymbols);
+  if (UNLIKELY(*err)) {
+    return;
+  }
+  *err = huffman_build(outDistance, symbolLevels + numLiteralSymbols, numDistanceSymbols);
 }
 
 static void inflate_block_uncompressed(InflateCtx* ctx, DeflateError* err) {
