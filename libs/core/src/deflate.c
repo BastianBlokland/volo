@@ -477,8 +477,9 @@ static void inflate_read_huffman_trees(
   /**
    * Read the symbol levels (depth in the tree) for both the literal and distance trees.
    */
-  u8 symbolLevels[286 /* literal symbols */ + 32 /* distance symbols */];
-  for (u32 i = 0; i != array_elems(symbolLevels);) {
+  u8        symbolLevels[286 /* literal symbols */ + 32 /* distance symbols */];
+  const u32 numSymbolLevels = numLiteralSymbols + numDistanceSymbols;
+  for (u32 i = 0; i != numSymbolLevels;) {
     const u16 symbol = inflate_read_symbol(ctx, &levelTree, err);
     if (UNLIKELY(*err)) {
       break;
@@ -509,7 +510,10 @@ static void inflate_read_huffman_trees(
       *err = DeflateError_Malformed;
       return;
     }
-    if (UNLIKELY(i + runLength > array_elems(symbolLevels))) {
+    if (UNLIKELY(*err)) {
+      return; // Input truncated.
+    }
+    if (UNLIKELY(i + runLength > numSymbolLevels)) {
       *err = DeflateError_Malformed;
       return;
     }
