@@ -460,6 +460,10 @@ static void inflate_read_huffman_trees(
   if (UNLIKELY(*err)) {
     return;
   }
+  if (UNLIKELY(!levelTree.leafCount)) {
+    *err = DeflateError_Malformed;
+    return;
+  }
 
   (void)numLiteralSymbols;
   (void)numDistanceSymbols;
