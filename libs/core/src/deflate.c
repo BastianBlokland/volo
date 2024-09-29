@@ -186,7 +186,7 @@ MAYBE_UNUSED static u16 huffman_lookup(const HuffmanTree* t, const HuffmanCode c
  *   [E] 111
  */
 static DeflateError huffman_build(HuffmanTree* t, const u8 symbolLevels[], const u32 symbolCount) {
-  if (UNLIKELY(symbolCount >= huffman_max_symbols)) {
+  if (UNLIKELY(symbolCount > huffman_max_symbols)) {
     return DeflateError_Malformed;
   }
 
