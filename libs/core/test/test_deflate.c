@@ -370,6 +370,20 @@ spec(deflate) {
         string_lit(""));
   }
 
+  it("successfully decodes an empty dynamic huffman block with one literal symbol") {
+    test_decode_success(
+        _testCtx,
+        string_lit("1"     /* Final */
+                   "01"    /* Type */
+                   "00000" /* Literal tree symbol count */
+                   "10000" /* Distance tree symbol count */
+                   "0111"  /* Level tree symbol count */
+                   "000 000 100 010 000 000 000 000 000 000 000 000 000 000 000 000 000 010"
+                   "01111111 01101011 11 10 11"
+                   "0" /* End symbol */),
+        string_lit(""));
+  }
+
   it("successfully decodes an empty dynamic huffman block that specifies all levels") {
     test_decode_success(
         _testCtx,
