@@ -458,11 +458,15 @@ static void inflate_read_huffman_trees(
       16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15,
   };
   u8 levelSymbolLevels[19];
-  for (u32 i = 0; i != numLevelSymbols; ++i) {
-    levelSymbolLevels[g_levelSymbolIndex[i]] = inflate_read_unaligned(ctx, 3, err);
+  for (u32 i = 0; i != array_elems(levelSymbolLevels); ++i) {
+    u32 val = 0;
+    if (i < numLevelSymbols) {
+      val = inflate_read_unaligned(ctx, 3, err);
+    }
+    levelSymbolLevels[g_levelSymbolIndex[i]] = val;
   }
   HuffmanTree levelTree;
-  *err = huffman_build(&levelTree, levelSymbolLevels, numLevelSymbols);
+  *err = huffman_build(&levelTree, levelSymbolLevels, array_elems(levelSymbolLevels));
   if (UNLIKELY(*err)) {
     return;
   }
