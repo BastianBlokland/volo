@@ -124,6 +124,10 @@ static void huffman_codes(const HuffmanTree* t, HuffmanCode codes[]) {
 static void huffman_levels(const HuffmanTree* t, HuffmanLevel levels[]) {
   mem_set(mem_create(levels, sizeof(HuffmanLevel) * huffman_max_levels), 0);
 
+  if (!t->leafCount) {
+    return; // Tree is empty.
+  }
+
   for (u16 level = huffman_max_levels; level-- != 0;) {
     levels[level].symbolStart = huffman_symbol_start(t, level);
     levels[level].leafNodes   = t->leafCountPerLevel[level];
@@ -287,6 +291,12 @@ MAYBE_UNUSED static void huffman_dump_tree_symbols(const HuffmanTree* t) {
 MAYBE_UNUSED static void huffman_dump_tree_structure(const HuffmanTree* t, const String name) {
   Mem       scratchMem = alloc_alloc(g_allocScratch, alloc_max_size(g_allocScratch), 1);
   DynString buffer     = dynstring_create_over(scratchMem);
+
+  if (!t->leafCount) {
+    fmt_write(&buffer, "<{}>\n", fmt_text(name));
+    file_write_sync(g_fileStdOut, dynstring_view(&buffer));
+    return; // Tree is empty.
+  }
 
   HuffmanLevel levels[huffman_max_levels];
   huffman_levels(t, levels);
