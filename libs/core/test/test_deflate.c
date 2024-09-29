@@ -9,6 +9,9 @@ static String test_data_scratch(const String bitString) {
 
   u32 accum = 0, accumBits = 0;
   mem_for_u8(bitString, bitChar) {
+    if (*bitChar == ' ') {
+      continue;
+    }
     const u32 val = *bitChar != '0';
     accum |= val << accumBits;
     if (++accumBits == 8) {
