@@ -206,6 +206,8 @@ static DeflateError huffman_build(HuffmanTree* t, const u8 symbolLevels[], const
   // Compute the start symbol index for each level.
   u16 symbolStart[huffman_max_levels];
   u16 availableInternalNodes[huffman_max_levels];
+
+  t->leafCount = 0;
   for (u16 level = 0; level != huffman_max_levels; ++level) {
     symbolStart[level] = t->leafCount;
 
