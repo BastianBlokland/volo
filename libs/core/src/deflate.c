@@ -404,7 +404,10 @@ static u16 inflate_read_symbol(InflateCtx* ctx, const HuffmanTree* t, DeflateErr
 }
 
 static u32 inflate_read_run_length(InflateCtx* ctx, const u16 symbol, DeflateError* err) {
-  diag_assert(symbol > 256 && symbol < huffman_max_symbols);
+  if (UNLIKELY(symbol <= 256 || symbol >= 286)) {
+    *err = DeflateError_Malformed;
+    return sentinel_u32;
+  }
   /**
    * Run length is based on the input symbol plus additional bits.
    * Source of the tables can be found in the RFC.
@@ -417,6 +420,7 @@ static u32 inflate_read_run_length(InflateCtx* ctx, const u16 symbol, DeflateErr
       0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0,
   };
   const u32 tableIndex = symbol - 257; // 0 - 28.
+  diag_assert(tableIndex < array_elems(g_lengthBase) && tableIndex < array_elems(g_lengthBits));
   return g_lengthBase[tableIndex] + inflate_read_unaligned(ctx, g_lengthBits[tableIndex], err);
 }
 
@@ -424,7 +428,7 @@ static u32 inflate_read_run_distance(InflateCtx* ctx, const HuffmanTree* t, Defl
   const u16 symbol = inflate_read_symbol(ctx, t, err);
   if (UNLIKELY(symbol > 29)) {
     *err = DeflateError_Malformed;
-    return sentinel_u16;
+    return sentinel_u32;
   }
   /**
    * Run distance is based on an input symbol plus additional bits.
