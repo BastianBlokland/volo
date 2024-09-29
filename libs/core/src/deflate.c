@@ -248,7 +248,7 @@ static DeflateError huffman_build(HuffmanTree* t, const u8 symbolLevels[], const
     HuffmanCode codes[huffman_max_symbols];
     huffman_codes(t, codes);
 
-    for (u32 i = 0; i != symbolCount; ++i) {
+    for (u32 i = 0; i != t->leafCount; ++i) {
       diag_assert(huffman_lookup(t, codes[i]) == t->leafSymbols[i]);
     }
   }
