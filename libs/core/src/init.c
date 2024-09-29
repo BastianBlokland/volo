@@ -25,6 +25,7 @@ void core_init(void) {
   }
   if (!g_initalized) {
     bits_init();
+    deflate_init();
     symbol_init();
     time_init();
   }

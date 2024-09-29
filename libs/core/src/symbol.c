@@ -135,6 +135,9 @@ static const SymbolReg* symbol_reg_get(void) {
   if (g_symReg) {
     return g_symReg;
   }
+  if (!g_symInit) {
+    return null;
+  }
   static THREAD_LOCAL bool g_symRegInitializing;
   if (g_symRegInitializing) {
     /**
