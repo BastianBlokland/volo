@@ -133,7 +133,7 @@ struct sFormatArg {
 /**
  * Create an bitset formatting argument.
  */
-#define fmt_bitset(_VAL_) ((FormatArg){ .type = FormatArgType_BitSet,                              \
+#define fmt_bitset(_VAL_, ...) ((FormatArg){ .type = FormatArgType_BitSet,                         \
   .value_bitset = (_VAL_),                                                                         \
   .settings     = &format_opts_bitset(__VA_ARGS__)})
 
