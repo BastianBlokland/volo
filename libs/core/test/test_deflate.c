@@ -384,6 +384,24 @@ spec(deflate) {
         string_lit(""));
   }
 
+  it("successfully decodes an empty dynamic huffman block with one distance symbol") {
+    test_decode_success(
+        _testCtx,
+        string_lit("1"     /* Final */
+                   "01"    /* Type */
+                   "10000" /* Literal tree symbol count */
+                   "00000" /* Distance tree symbol count */
+                   "0111"  /* Level tree symbol count */
+                   "000 000 010 010 000 000 000 000 000 000 000 000 000 000 000 010 000 010"
+                   "00 10 111111111 111001011 01 10 01"
+                   "10 11 0" /* Data */
+                   "0" /* End symbol */),
+        string_lit("10000000" /* 1 */
+                   "10000000" /* 1 */
+                   "10000000" /* 1 */
+                   "10000000" /* 1 */));
+  }
+
   it("fails to decode a dynamic huffman block with run-length repeat at start") {
     test_decode_fail(
         _testCtx,
