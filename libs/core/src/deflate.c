@@ -380,7 +380,7 @@ static u16 inflate_read_symbol(InflateCtx* ctx, const HuffmanTree* t, DeflateErr
   return sentinel_u16;
 }
 
-static u16 inflate_read_run_length(InflateCtx* ctx, const u16 symbol, DeflateError* err) {
+static u32 inflate_read_run_length(InflateCtx* ctx, const u16 symbol, DeflateError* err) {
   diag_assert(symbol > 256 && symbol < huffman_max_symbols);
   /**
    * Run length is based on the input symbol plus additional bits.
@@ -393,11 +393,11 @@ static u16 inflate_read_run_length(InflateCtx* ctx, const u16 symbol, DeflateErr
   static const u16 g_lengthBits[] = {
       0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0,
   };
-  const u16 tableIndex = symbol - 257; // 0 - 28.
+  const u32 tableIndex = symbol - 257; // 0 - 28.
   return g_lengthBase[tableIndex] + inflate_read_unaligned(ctx, g_lengthBits[tableIndex], err);
 }
 
-static u16 inflate_read_run_distance(InflateCtx* ctx, const HuffmanTree* t, DeflateError* err) {
+static u32 inflate_read_run_distance(InflateCtx* ctx, const HuffmanTree* t, DeflateError* err) {
   const u16 symbol = inflate_read_symbol(ctx, t, err);
   if (UNLIKELY(symbol > 29)) {
     *err = DeflateError_Malformed;
@@ -459,8 +459,8 @@ static void inflate_block_compressed(
      * NOTE: The spec limits the backwards distance to 32k but because we keep the whole output in
      * memory we have no such limit in practice.
      */
-    const u16 runLength   = inflate_read_run_length(ctx, symbol, err);
-    const u16 runDistance = inflate_read_run_distance(ctx, distanceTree, err);
+    const u32 runLength   = inflate_read_run_length(ctx, symbol, err);
+    const u32 runDistance = inflate_read_run_distance(ctx, distanceTree, err);
     if (UNLIKELY(*err)) {
       break;
     }
@@ -469,9 +469,9 @@ static void inflate_block_compressed(
       break;
     }
     // Copy section from output.
-    for (u16 i = 0; i != runLength; ++i) {
+    for (u32 i = 0; i != runLength; ++i) {
       const String history = dynstring_view(ctx->out);
-      dynstring_append_char(ctx->out, mem_end(history)[-runDistance]);
+      dynstring_append_char(ctx->out, *(mem_end(history) - runDistance));
     }
   }
 }
