@@ -40,6 +40,7 @@ add_library(lib_core STATIC
   src/file.c
   src/float.c
   src/format.c
+  src/gzip.c
   src/init.c
   src/math.c
   src/memory.c
