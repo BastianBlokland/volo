@@ -142,7 +142,10 @@ struct sFormatArg {
 /**
  * Create an bitset formatting argument.
  */
-#define fmt_bitset(_VAL_) ((FormatArg){ .type = FormatArgType_BitSet, .value_bitset = (_VAL_) })
+#define fmt_bitset(_VAL_) ((FormatArg){ .type = FormatArgType_BitSet,                              \
+    .value_bitset = (_VAL_),                                                                       \
+    .settings     = &format_opts_bitset(__VA_ARGS__),                                              \
+  })
 
 /**
  * Create an memory formatting argument.
@@ -304,6 +307,18 @@ typedef struct {
   f64 expThresholdNeg;
 } FormatOptsFloat;
 
+typedef enum {
+  FormatBitsetOrder_MostToLeastSignificant,
+  FormatBitsetOrder_LeastToMostSignificant,
+} FormatBitsetOrder;
+
+/**
+ * Configuration struct for bitset formatting.
+ */
+typedef struct {
+  FormatBitsetOrder order;
+} FormatOptsBitset;
+
 /**
  * Bit field of time terms.
  */
@@ -375,6 +390,10 @@ typedef struct {
     .expThresholdNeg  = 1e-5,                                                                      \
     __VA_ARGS__                                                                                    \
   })
+
+#define format_opts_bitset(...) ((FormatOptsBitset){                                               \
+    .order = FormatBitsetOrder_MostToLeastSignificant,                                             \
+    __VA_ARGS__ })
 
 #define format_opts_time(...)                                                                      \
   ((FormatOptsTime){                                                                               \
@@ -461,7 +480,7 @@ void format_write_bool(DynString*, bool val);
 /**
  * Write a bitset value as ascii characters (0 for unset bits or 1 for set bits).
  */
-void format_write_bitset(DynString*, BitSet val);
+void format_write_bitset(DynString*, BitSet val, const FormatOptsBitset*);
 
 /**
  * Write a mem value as hexadecimal ascii characters.
