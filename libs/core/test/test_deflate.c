@@ -278,4 +278,78 @@ spec(deflate) {
                    "10000000" /* 1 */
                    "01000000" /* 2 */));
   }
+
+  it("fails to decode a fixed huffman block using length symbol 286") {
+    test_decode_fail(
+        _testCtx,
+        string_lit("1"  /* Final */
+                   "10" /* Type */
+                   "11000110" /* Symbol 286 */),
+        DeflateError_Malformed);
+  }
+
+  it("fails to decode a fixed huffman block using length symbol 287") {
+    test_decode_fail(
+        _testCtx,
+        string_lit("1"  /* Final */
+                   "10" /* Type */
+                   "11000111" /* Symbol 287 */),
+        DeflateError_Malformed);
+  }
+
+  it("fails to decode a fixed huffman block using distance symbol 30") {
+    test_decode_fail(
+        _testCtx,
+        string_lit("1"        /* Final */
+                   "10"       /* Type */
+                   "00110000" /* Literal 0 */
+                   "0000001"  /* Symbol 257 (run length of 3) */
+                   "11110" /* Symbol 30 */),
+        DeflateError_Malformed);
+  }
+
+  it("fails to decode a fixed huffman block using distance symbol 31") {
+    test_decode_fail(
+        _testCtx,
+        string_lit("1"        /* Final */
+                   "10"       /* Type */
+                   "00110000" /* Literal 0 */
+                   "0000001"  /* Symbol 257 (run length of 3) */
+                   "11111" /* Symbol 31 */),
+        DeflateError_Malformed);
+  }
+
+  it("fails to decode a fixed huffman block with truncated data") {
+    test_decode_fail(
+        _testCtx,
+        string_lit("1"  /* Final */
+                   "10" /* Type */
+                   "00000" /* Truncated symbol */),
+        DeflateError_Truncated);
+  }
+
+  it("fails to decode a fixed huffman block with truncated length extension bits") {
+    test_decode_fail(
+        _testCtx,
+        string_lit("1"        /* Final */
+                   "10"       /* Type */
+                   "00110000" /* Literal 0 */
+                   "0001101"  /* Symbol 269 */
+                   "1" /* Truncated extension bits */),
+        DeflateError_Truncated);
+  }
+
+  it("fails to decode a fixed huffman block with truncated distance extension bits") {
+    test_decode_fail(
+        _testCtx,
+        string_lit("1"        /* Final */
+                   "10"       /* Type */
+                   "00110000" /* Literal 0 */
+                   "11000101" /* Symbol 285 */
+                   "00000"    /* Symbol 0 */
+                   "0000001"  /* Symbol 257 */
+                   "01000"    /* Symbol 8 */
+                   "00" /* Truncated extension bits */),
+        DeflateError_Truncated);
+  }
 }
