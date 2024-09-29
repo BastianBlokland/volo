@@ -34,20 +34,26 @@ test_decode_success(CheckTestContext* _testCtx, const String inputBits, const St
   const String remaining = deflate_decode(input, &outputBuffer, &err);
 
   check_msg(
-      !remaining.size, "Remaining data {} (input: {})", fmt_bitset(remaining), fmt_bitset(input));
+      !remaining.size,
+      "Remaining data {} (input: {})",
+      fmt_bitset(remaining, .order = FormatBitsetOrder_LeastToMostSignificant),
+      fmt_bitset(input, .order = FormatBitsetOrder_LeastToMostSignificant));
 
-  check_msg(err == DeflateError_None, "Decode failed (input: {})", fmt_bitset(input));
+  check_msg(
+      err == DeflateError_None,
+      "Decode failed (input: {})",
+      fmt_bitset(input, .order = FormatBitsetOrder_LeastToMostSignificant));
 
   const String output         = dynstring_view(&outputBuffer);
   const String expectedOutput = test_data_scratch(expectedBits);
   check_msg(
       mem_eq(output, expectedOutput),
       "Output {} ({} bytes) == {} ({} bytes) (input: {})",
-      fmt_bitset(output),
+      fmt_bitset(output, .order = FormatBitsetOrder_LeastToMostSignificant),
       fmt_int(output.size),
-      fmt_bitset(expectedOutput),
+      fmt_bitset(expectedOutput, .order = FormatBitsetOrder_LeastToMostSignificant),
       fmt_int(expectedOutput.size),
-      fmt_bitset(input));
+      fmt_bitset(input, .order = FormatBitsetOrder_LeastToMostSignificant));
 }
 
 static void test_decode_fail(
@@ -65,7 +71,7 @@ static void test_decode_fail(
       "Error {} == {} (input: {})",
       fmt_int(err),
       fmt_int(expectedError),
-      fmt_bitset(input));
+      fmt_bitset(input, .order = FormatBitsetOrder_LeastToMostSignificant));
 }
 
 spec(deflate) {
