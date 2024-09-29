@@ -355,4 +355,18 @@ spec(deflate) {
                    "00" /* Truncated extension bits */),
         DeflateError_Truncated);
   }
+
+  it("successfully decodes an empty dynamic huffman block") {
+    test_decode_success(
+        _testCtx,
+        string_lit("1"     /* Final */
+                   "01"    /* Type */
+                   "00000" /* Literal tree symbol count */
+                   "10000" /* Distance tree symbol count */
+                   "1111"  /* Level tree symbol count */
+                   "000 000 100 000 000 000 000 000 000 000 000 000 000 000 000 000 000 100 000"
+                   "0 11111111 10101011 0 0 0"
+                   "1" /* End symbol */),
+        string_lit(""));
+  }
 }
