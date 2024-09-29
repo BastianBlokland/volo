@@ -224,4 +224,58 @@ spec(deflate) {
                    "00000011" /* 192 */
                    "11111111" /* 255 */));
   }
+
+  it("successfully decodes a fixed huffman block using a run length") {
+    test_decode_success(
+        _testCtx,
+        string_lit("1"        /* Final */
+                   "10"       /* Type */
+                   "00110001" /* Literal 1 */
+                   "0000010"  /* Symbol 258 (run length of 4) */
+                   "00000"    /* Symbol 0 (run distance of 1) */
+                   "0000000" /* End symbol */),
+        string_lit("10000000" /* 1 */
+                   "10000000" /* 1 */
+                   "10000000" /* 1 */
+                   "10000000" /* 1 */
+                   "10000000" /* 1 */));
+  }
+
+  it("successfully decodes a fixed huffman block using a run length of distance 2") {
+    test_decode_success(
+        _testCtx,
+        string_lit("1"        /* Final */
+                   "10"       /* Type */
+                   "10111110" /* Literal 142 */
+                   "10111111" /* Literal 143 */
+                   "0000011"  /* Symbol 259 (run length of 5) */
+                   "00001"    /* Symbol 1 (run distance of 2) */
+                   "0000000" /* End symbol */),
+        string_lit("01110001" /* 142 */
+                   "11110001" /* 143 */
+                   "01110001" /* 142 */
+                   "11110001" /* 143 */
+                   "01110001" /* 142 */
+                   "11110001" /* 143 */
+                   "01110001" /* 142 */));
+  }
+
+  it("successfully decodes a fixed huffman block using overlapping run length") {
+    test_decode_success(
+        _testCtx,
+        string_lit("1"        /* Final */
+                   "10"       /* Type */
+                   "00110000" /* Literal 0 */
+                   "00110001" /* Literal 1 */
+                   "00110010" /* Literal 2 */
+                   "0000001"  /* Symbol 257 (run length of 3) */
+                   "00010"    /* Symbol 2 (run distance of 3) */
+                   "0000000" /* End symbol */),
+        string_lit("00000000" /* 0 */
+                   "10000000" /* 1 */
+                   "01000000" /* 2 */
+                   "00000000" /* 0 */
+                   "10000000" /* 1 */
+                   "01000000" /* 2 */));
+  }
 }
