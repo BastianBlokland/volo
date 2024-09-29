@@ -418,6 +418,14 @@ static u32 inflate_read_run_distance(InflateCtx* ctx, const HuffmanTree* t, Defl
   return g_distBase[symbol] + inflate_read_unaligned(ctx, g_distBits[symbol], err);
 }
 
+static void inflate_read_huffman_trees(
+    InflateCtx* ctx, HuffmanTree* outLiteral, HuffmanTree* outDistance, DeflateError* err) {
+  (void)ctx;
+  (void)outLiteral;
+  (void)outDistance;
+  (void)err;
+}
+
 static void inflate_block_uncompressed(InflateCtx* ctx, DeflateError* err) {
   const u16 len  = inflate_read_u16(ctx, err);
   const u16 nlen = inflate_read_u16(ctx, err);
@@ -491,8 +499,13 @@ static bool inflate_block(InflateCtx* ctx, DeflateError* err) {
   case 1: /* compressed with fixed Huffman codes */
     inflate_block_compressed(ctx, &g_fixedLiteralTree, &g_fixedDistanceTree, err);
     break;
-  case 2: /* compressed with dynamic Huffman codes */
-    break;
+  case 2: { /* compressed with dynamic Huffman codes */
+    HuffmanTree literalTree, distanceTree;
+    inflate_read_huffman_trees(ctx, &literalTree, &distanceTree, err);
+    if (LIKELY(*err == DeflateError_None)) {
+      inflate_block_compressed(ctx, &literalTree, &distanceTree, err);
+    }
+  } break;
   case 3: /* reserved */
     *err = DeflateError_Malformed;
     return false;
