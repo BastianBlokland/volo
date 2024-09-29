@@ -110,6 +110,26 @@ spec(deflate) {
         string_lit("1010101001010101"));
   }
 
+  it("successfully decodes an uncompressed block without any padding after a fixed huffman block") {
+    test_decode_success(
+        _testCtx,
+        string_lit("0"                /* Final */
+                   "10"               /* Type */
+                   "110010000"        /* Literal 144 */
+                   "111000000"        /* Literal 192 */
+                   "111111111"        /* Literal 255 */
+                   "0000000"          /* End Symbol */
+                   "1"                /* Final */
+                   "00"               /* Type */
+                   "1100000000000000" /* Length */
+                   "0011111111111111" /* Length inverted */
+                   "101010101010101010101010" /* Data */),
+        string_lit("00001001" /* 144 */
+                   "00000011" /* 192 */
+                   "11111111" /* 255 */
+                   "101010101010101010101010" /* Uncompressed data */));
+  }
+
   it("fails to decode on empty input") {
     test_decode_fail(_testCtx, string_lit(""), DeflateError_Truncated);
   }
