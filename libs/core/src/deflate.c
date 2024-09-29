@@ -568,7 +568,8 @@ static void inflate_block_uncompressed(InflateCtx* ctx, DeflateError* err) {
   if (UNLIKELY(*err)) {
     return;
   }
-  if (UNLIKELY((u16)~len != nlen)) {
+  const u16 lenNeg = (u16)~len;
+  if (UNLIKELY(lenNeg != nlen)) {
     *err = DeflateError_Malformed;
     return;
   }
