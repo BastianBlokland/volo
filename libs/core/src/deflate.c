@@ -442,12 +442,15 @@ static void inflate_read_huffman_trees(
   if (UNLIKELY(*err)) {
     return;
   }
+  if (UNLIKELY(numDistanceSymbols > 286 || numDistanceSymbols > 32 || numLevelSymbols > 19)) {
+    *err = DeflateError_Malformed;
+    return;
+  }
 
   /**
    * Read a Huffman tree for the tree levels (also known as the 'code length' tree in the spec).
    * The source of the index table can be found in the RFC.
    */
-  diag_assert(numLevelSymbols < 19);
   static const u8 g_levelSymbolIndex[] = {
       16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15,
   };
