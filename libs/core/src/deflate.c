@@ -75,7 +75,7 @@ static void huffman_code_write(const HuffmanCode code, DynString* out) {
   }
 }
 
-static u32 huffman_max_nodes_for_level(const u32 level) {
+MAYBE_UNUSED static u32 huffman_max_nodes_for_level(const u32 level) {
   // Because a huffman tree is a binary tree the amount of nodes is bounded by pow(2, level).
   return 1 << level;
 }
