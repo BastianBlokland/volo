@@ -79,6 +79,21 @@ static void unzip_read_header(UnzipCtx* ctx, GzipHeader* out, GzipError* err) {
   ctx->input = mem_consume(ctx->input, 2);
 }
 
+static void unzip_read_extra(UnzipCtx* ctx, GzipError* err) {
+  if (UNLIKELY(ctx->input.size < 2)) {
+    *err = GzipError_Truncated;
+    return;
+  }
+  u16 extraLen;
+  ctx->input = mem_consume_le_u16(ctx->input, &extraLen);
+  if (UNLIKELY(ctx->input.size < extraLen)) {
+    *err = GzipError_Truncated;
+    return;
+  }
+  // Skip over extra data.
+  ctx->input = mem_consume(ctx->input, extraLen);
+}
+
 static void unzip(UnzipCtx* ctx, GzipError* err) {
   GzipHeader header;
   unzip_read_header(ctx, &header, err);
@@ -88,6 +103,12 @@ static void unzip(UnzipCtx* ctx, GzipError* err) {
   if (UNLIKELY(header.method != GzipMethod_Deflate)) {
     *err = GzipError_UnsupportedMethod;
     return;
+  }
+  if (header.flags & GzipFlags_Extra) {
+    unzip_read_extra(ctx, err);
+    if (UNLIKELY(*err)) {
+      return;
+    }
   }
 }
 
