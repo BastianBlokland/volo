@@ -87,18 +87,18 @@ Ret:
   return res;
 }
 
-static CliId g_optInput, g_optHelp;
+static CliId g_optFiles, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("GZip Utility."));
 
-  g_optInput = cli_register_arg(app, string_lit("input"), CliOptionFlags_Required);
-  cli_register_desc(app, g_optInput, string_lit("Gzip (.gz) file path."));
-  cli_register_validator(app, g_optInput, cli_validate_file_regular);
+  g_optFiles = cli_register_arg(app, string_lit("files"), CliOptionFlags_RequiredMultiValue);
+  cli_register_desc(app, g_optFiles, string_lit("Gzip (.gz) file paths."));
+  cli_register_validator(app, g_optFiles, cli_validate_file_regular);
 
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
-  cli_register_exclusions(app, g_optHelp, g_optInput);
+  cli_register_exclusions(app, g_optHelp, g_optFiles);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
@@ -110,7 +110,12 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, ~LogMask_Debug));
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
-  const String inputPath = cli_read_string(invoc, g_optInput, string_empty);
-
-  return gzipu_run(inputPath);
+  const CliParseValues files = cli_parse_values(invoc, g_optFiles);
+  for (usize i = 0; i != files.count; ++i) {
+    const i32 res = gzipu_run(files.values[i]);
+    if (res) {
+      return res;
+    }
+  }
+  return 0;
 }
