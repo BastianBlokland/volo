@@ -13,6 +13,7 @@ static i32 gzipu_run(const String inputPath) {
   i32        res = 0;
   FileResult fileRes;
 
+  const String inputStem    = path_stem(inputPath);
   const String outputDir    = path_parent(inputPath);
   DynString    outputBuffer = dynstring_create(g_allocHeap, usize_kibibyte);
 
@@ -55,10 +56,9 @@ static i32 gzipu_run(const String inputPath) {
     if (!string_is_empty(gzipMeta.name)) {
       outputPath = gzipMeta.name;
     } else if (!outputCounter) {
-      outputPath = path_stem(inputPath);
+      outputPath = inputStem;
     } else {
-      outputPath =
-          fmt_write_scratch("{}.{}", fmt_text(path_stem(inputPath)), fmt_int(outputCounter));
+      outputPath = fmt_write_scratch("{}.{}", fmt_text(inputStem), fmt_int(outputCounter));
     }
     if (!string_is_empty(outputDir)) {
       outputPath = path_build_scratch(outputDir, outputPath);
