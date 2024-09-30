@@ -159,7 +159,7 @@ static void gzip_read_data(UnzipCtx* ctx, GzipError* err) {
   ctx->input = mem_consume_le_u32(ctx->input, &crc);
   ctx->input = mem_consume_le_u32(ctx->input, &length);
 
-  if (UNLIKELY(ctx->out->size - outOffset != length)) {
+  if (UNLIKELY((u32)(ctx->out->size - outOffset) != length)) {
     *err = GzipError_Malformed;
     return;
   }
