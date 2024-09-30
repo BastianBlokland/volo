@@ -93,7 +93,7 @@ void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("GZip Utility."));
 
   g_optFiles = cli_register_arg(app, string_lit("files"), CliOptionFlags_RequiredMultiValue);
-  cli_register_desc(app, g_optFiles, string_lit("Gzip (.gz) file paths."));
+  cli_register_desc(app, g_optFiles, string_lit("GZip (.gz) file paths."));
   cli_register_validator(app, g_optFiles, cli_validate_file_regular);
 
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
