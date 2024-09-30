@@ -1,4 +1,5 @@
 #include "core_annotation.h"
+#include "core_bits.h"
 #include "core_gzip.h"
 #include "core_time.h"
 
@@ -9,11 +10,11 @@
  */
 
 typedef enum {
-  GzipFlags_Text    = 1 << 0,
-  GzipFlags_HCrc    = 1 << 1,
-  GzipFlags_Extra   = 1 << 2,
-  GzipFlags_Name    = 1 << 3,
-  GzipFlags_Comment = 1 << 4,
+  GzipFlags_Text      = 1 << 0,
+  GzipFlags_HeaderCrc = 1 << 1,
+  GzipFlags_Extra     = 1 << 2,
+  GzipFlags_Name      = 1 << 3,
+  GzipFlags_Comment   = 1 << 4,
 } GzipFlags;
 
 typedef enum {
@@ -28,7 +29,7 @@ typedef struct {
 } GzipHeader;
 
 typedef struct {
-  String     input;
+  String     input, inputFull;
   DynString* out;
 } UnzipCtx;
 
@@ -109,6 +110,16 @@ static void unzip_read_string(UnzipCtx* ctx, GzipError* err) {
   }
 }
 
+static u16 unzip_read_header_crc(UnzipCtx* ctx, GzipError* err) {
+  if (UNLIKELY(ctx->input.size < 2)) {
+    *err = GzipError_Truncated;
+    return 0;
+  }
+  u16 crc;
+  ctx->input = mem_consume_le_u16(ctx->input, &crc);
+  return crc;
+}
+
 static void unzip(UnzipCtx* ctx, GzipError* err) {
   GzipHeader header;
   unzip_read_header(ctx, &header, err);
@@ -137,12 +148,24 @@ static void unzip(UnzipCtx* ctx, GzipError* err) {
       return;
     }
   }
+  if (header.flags & GzipFlags_HeaderCrc) {
+    const Mem headerMem = mem_slice(ctx->inputFull, 0, ctx->inputFull.size - ctx->input.size);
+    const u16 headerCrc = unzip_read_header_crc(ctx, err);
+    if (UNLIKELY(*err)) {
+      return;
+    }
+    if (UNLIKELY(headerCrc != (bits_crc_32(0, headerMem) & 0x0000FFFF))) {
+      *err = GzipError_Malformed;
+      return;
+    }
+  }
 }
 
 String gzip_decode(const String input, DynString* out, GzipError* err) {
   UnzipCtx ctx = {
-      .input = input,
-      .out   = out,
+      .input     = input,
+      .inputFull = input,
+      .out       = out,
   };
   *err = GzipError_None;
   unzip(&ctx, err);
