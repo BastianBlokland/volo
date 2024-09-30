@@ -8,7 +8,6 @@ typedef enum {
   DeflateError_None,
   DeflateError_Malformed,
   DeflateError_Truncated,
-  DeflateError_Unknown,
 } DeflateError;
 
 /**

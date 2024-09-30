@@ -25,6 +25,7 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, file);
   register_spec(check, float);
   register_spec(check, format);
+  register_spec(check, gzip);
   register_spec(check, macro);
   register_spec(check, math);
   register_spec(check, memory);

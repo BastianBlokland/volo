@@ -40,6 +40,7 @@ add_library(lib_core STATIC
   src/file.c
   src/float.c
   src/format.c
+  src/gzip.c
   src/init.c
   src/math.c
   src/memory.c
@@ -101,6 +102,7 @@ add_executable(test_lib_core
   test/test_file.c
   test/test_float.c
   test/test_format.c
+  test/test_gzip.c
   test/test_macro.c
   test/test_math.c
   test/test_memory.c
