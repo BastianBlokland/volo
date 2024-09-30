@@ -112,7 +112,7 @@ static String gzip_read_string(UnzipCtx* ctx, GzipError* err) {
       break; // Reached null-terminator.
     }
   }
-  const String result = mem_slice(ctx->input, 0, inputIdx);
+  const String result = mem_slice(ctx->input, 0, inputIdx - 1 /* remove the null-terminator */);
   ctx->input          = mem_consume(ctx->input, inputIdx);
   return result;
 }

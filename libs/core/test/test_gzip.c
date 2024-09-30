@@ -13,10 +13,12 @@ spec(gzip) {
     DynString outputBuffer = dynstring_create_over(outputMem);
 
     GzipError    err;
-    const String remaining = gzip_decode(data, null, &outputBuffer, &err);
+    GzipMeta     meta;
+    const String remaining = gzip_decode(data, &meta, &outputBuffer, &err);
 
     check_eq_int(err, GzipError_None);
     check_eq_string(remaining, string_empty);
+    check_eq_string(meta.name, string_lit("test.txt"));
     check_eq_string(dynstring_view(&outputBuffer), string_lit("Hello World!\n"));
   }
 }
