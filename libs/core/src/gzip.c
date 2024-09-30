@@ -33,6 +33,9 @@ typedef struct {
 typedef struct {
   String     input, inputFull;
   DynString* out;
+
+  GzipHeader header;
+  String     name;
 } UnzipCtx;
 
 static void gzip_read_header(UnzipCtx* ctx, GzipHeader* out, GzipError* err) {
@@ -155,34 +158,33 @@ static void gzip_read_data(UnzipCtx* ctx, GzipError* err) {
 }
 
 static void gzip_read(UnzipCtx* ctx, GzipError* err) {
-  GzipHeader header;
-  gzip_read_header(ctx, &header, err);
+  gzip_read_header(ctx, &ctx->header, err);
   if (UNLIKELY(*err)) {
     return;
   }
-  if (UNLIKELY(header.method != GzipMethod_Deflate)) {
+  if (UNLIKELY(ctx->header.method != GzipMethod_Deflate)) {
     *err = GzipError_UnsupportedMethod;
     return;
   }
-  if (header.flags & GzipFlags_Extra) {
+  if (ctx->header.flags & GzipFlags_Extra) {
     gzip_read_extra(ctx, err);
     if (UNLIKELY(*err)) {
       return;
     }
   }
-  if (header.flags & GzipFlags_Name) {
+  if (ctx->header.flags & GzipFlags_Name) {
+    ctx->name = gzip_read_string(ctx, err);
+    if (UNLIKELY(*err)) {
+      return;
+    }
+  }
+  if (ctx->header.flags & GzipFlags_Comment) {
     gzip_read_string(ctx, err);
     if (UNLIKELY(*err)) {
       return;
     }
   }
-  if (header.flags & GzipFlags_Comment) {
-    gzip_read_string(ctx, err);
-    if (UNLIKELY(*err)) {
-      return;
-    }
-  }
-  if (header.flags & GzipFlags_HeaderCrc) {
+  if (ctx->header.flags & GzipFlags_HeaderCrc) {
     const Mem headerMem = mem_slice(ctx->inputFull, 0, ctx->inputFull.size - ctx->input.size);
     const u16 headerCrc = gzip_read_header_crc(ctx, err);
     if (UNLIKELY(*err)) {
@@ -196,7 +198,7 @@ static void gzip_read(UnzipCtx* ctx, GzipError* err) {
   gzip_read_data(ctx, err);
 }
 
-String gzip_decode(const String input, DynString* out, GzipError* err) {
+String gzip_decode(const String input, GzipMeta* outMeta, DynString* out, GzipError* err) {
   UnzipCtx ctx = {
       .input     = input,
       .inputFull = input,
@@ -204,5 +206,11 @@ String gzip_decode(const String input, DynString* out, GzipError* err) {
   };
   *err = GzipError_None;
   gzip_read(&ctx, err);
+  if (outMeta) {
+    *outMeta = (GzipMeta){
+        .name    = ctx.name,
+        .modTime = ctx.header.modTime,
+    };
+  }
   return ctx.input;
 }

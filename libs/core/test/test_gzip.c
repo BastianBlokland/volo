@@ -13,7 +13,7 @@ spec(gzip) {
     DynString outputBuffer = dynstring_create_over(outputMem);
 
     GzipError    err;
-    const String remaining = gzip_decode(data, &outputBuffer, &err);
+    const String remaining = gzip_decode(data, null, &outputBuffer, &err);
 
     check_eq_int(err, GzipError_None);
     check_eq_string(remaining, string_empty);
