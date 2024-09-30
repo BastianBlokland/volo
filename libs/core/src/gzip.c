@@ -123,14 +123,6 @@ static u16 gzip_read_header_crc(UnzipCtx* ctx, GzipError* err) {
 }
 
 static void gzip_read_data(UnzipCtx* ctx, GzipError* err) {
-  if (UNLIKELY(ctx->input.size < 8)) {
-    *err = GzipError_Truncated;
-    return;
-  }
-  u32 length, crc;
-  ctx->input = mem_consume_le_u32(ctx->input, &length);
-  ctx->input = mem_consume_le_u32(ctx->input, &crc);
-
   const usize outOffset = ctx->out->size;
 
   DeflateError deflateErr;
@@ -139,10 +131,20 @@ static void gzip_read_data(UnzipCtx* ctx, GzipError* err) {
     *err = GzipError_DeflateError;
     return;
   }
+
+  if (UNLIKELY(ctx->input.size < 8)) {
+    *err = GzipError_Truncated;
+    return;
+  }
+  u32 crc, length;
+  ctx->input = mem_consume_le_u32(ctx->input, &crc);
+  ctx->input = mem_consume_le_u32(ctx->input, &length);
+
   if (UNLIKELY(ctx->out->size - outOffset != length)) {
     *err = GzipError_Malformed;
     return;
   }
+
   const Mem outMem = mem_consume(dynstring_view(ctx->out), outOffset);
   if (UNLIKELY(bits_crc_32(0, outMem) != crc)) {
     *err = GzipError_ChecksumError;
