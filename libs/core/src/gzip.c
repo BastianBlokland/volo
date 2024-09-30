@@ -94,6 +94,21 @@ static void unzip_read_extra(UnzipCtx* ctx, GzipError* err) {
   ctx->input = mem_consume(ctx->input, extraLen);
 }
 
+static void unzip_read_string(UnzipCtx* ctx, GzipError* err) {
+  // Skip over null-terminated string.
+  for (;;) {
+    if (UNLIKELY(string_is_empty(ctx->input))) {
+      *err = GzipError_Truncated;
+      return;
+    }
+    u8 ch;
+    ctx->input = mem_consume_u8(ctx->input, &ch);
+    if (!ch) {
+      break; // Reached null-terminator.
+    }
+  }
+}
+
 static void unzip(UnzipCtx* ctx, GzipError* err) {
   GzipHeader header;
   unzip_read_header(ctx, &header, err);
@@ -106,6 +121,18 @@ static void unzip(UnzipCtx* ctx, GzipError* err) {
   }
   if (header.flags & GzipFlags_Extra) {
     unzip_read_extra(ctx, err);
+    if (UNLIKELY(*err)) {
+      return;
+    }
+  }
+  if (header.flags & GzipFlags_Name) {
+    unzip_read_string(ctx, err);
+    if (UNLIKELY(*err)) {
+      return;
+    }
+  }
+  if (header.flags & GzipFlags_Comment) {
+    unzip_read_string(ctx, err);
     if (UNLIKELY(*err)) {
       return;
     }
