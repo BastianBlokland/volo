@@ -9,6 +9,8 @@ typedef enum {
   GzipError_Truncated,
   GzipError_Malformed,
   GzipError_UnsupportedMethod,
+  GzipError_DeflateError,
+  GzipError_ChecksumError,
   GzipError_Unknown,
 } GzipError;
 

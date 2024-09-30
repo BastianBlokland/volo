@@ -1,5 +1,7 @@
 #include "core_annotation.h"
 #include "core_bits.h"
+#include "core_deflate.h"
+#include "core_dynstring.h"
 #include "core_gzip.h"
 #include "core_time.h"
 
@@ -120,7 +122,35 @@ static u16 unzip_read_header_crc(UnzipCtx* ctx, GzipError* err) {
   return crc;
 }
 
-static void unzip(UnzipCtx* ctx, GzipError* err) {
+static void unzip_read_data(UnzipCtx* ctx, GzipError* err) {
+  if (UNLIKELY(ctx->input.size < 8)) {
+    *err = GzipError_Truncated;
+    return;
+  }
+  u32 length, crc;
+  ctx->input = mem_consume_le_u32(ctx->input, &length);
+  ctx->input = mem_consume_le_u32(ctx->input, &crc);
+
+  const usize outOffset = ctx->out->size;
+
+  DeflateError deflateErr;
+  ctx->input = deflate_decode(ctx->input, ctx->out, &deflateErr);
+  if (UNLIKELY(deflateErr)) {
+    *err = GzipError_DeflateError;
+    return;
+  }
+  if (UNLIKELY(ctx->out->size - outOffset != length)) {
+    *err = GzipError_Malformed;
+    return;
+  }
+  const Mem outMem = mem_consume(dynstring_view(ctx->out), outOffset);
+  if (UNLIKELY(bits_crc_32(0, outMem) != crc)) {
+    *err = GzipError_ChecksumError;
+    return;
+  }
+}
+
+static void unzip_read(UnzipCtx* ctx, GzipError* err) {
   GzipHeader header;
   unzip_read_header(ctx, &header, err);
   if (UNLIKELY(*err)) {
@@ -154,11 +184,12 @@ static void unzip(UnzipCtx* ctx, GzipError* err) {
     if (UNLIKELY(*err)) {
       return;
     }
-    if (UNLIKELY(headerCrc != (bits_crc_32(0, headerMem) & 0x0000FFFF))) {
-      *err = GzipError_Malformed;
+    if (UNLIKELY((bits_crc_32(0, headerMem) & 0x0000FFFF) != headerCrc)) {
+      *err = GzipError_ChecksumError;
       return;
     }
   }
+  unzip_read_data(ctx, err);
 }
 
 String gzip_decode(const String input, DynString* out, GzipError* err) {
@@ -168,6 +199,6 @@ String gzip_decode(const String input, DynString* out, GzipError* err) {
       .out       = out,
   };
   *err = GzipError_None;
-  unzip(&ctx, err);
+  unzip_read(&ctx, err);
   return ctx.input;
 }
