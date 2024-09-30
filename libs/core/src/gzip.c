@@ -35,7 +35,7 @@ typedef struct {
   DynString* out;
 
   GzipHeader header;
-  String     name;
+  String     name, comment;
 } UnzipCtx;
 
 static void gzip_read_header(UnzipCtx* ctx, GzipHeader* out, GzipError* err) {
@@ -179,7 +179,7 @@ static void gzip_read(UnzipCtx* ctx, GzipError* err) {
     }
   }
   if (ctx->header.flags & GzipFlags_Comment) {
-    gzip_read_string(ctx, err);
+    ctx->comment = gzip_read_string(ctx, err);
     if (UNLIKELY(*err)) {
       return;
     }
@@ -209,6 +209,7 @@ String gzip_decode(const String input, GzipMeta* outMeta, DynString* out, GzipEr
   if (outMeta) {
     *outMeta = (GzipMeta){
         .name    = ctx.name,
+        .comment = ctx.comment,
         .modTime = ctx.header.modTime,
     };
   }

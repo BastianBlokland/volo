@@ -18,7 +18,7 @@ typedef enum {
 } GzipError;
 
 typedef struct {
-  String   name;
+  String   name, comment;
   TimeReal modTime;
 } GzipMeta;
 
