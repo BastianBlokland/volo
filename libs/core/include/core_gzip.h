@@ -6,6 +6,9 @@ typedef struct sDynArray DynString;
 
 typedef enum {
   GzipError_None,
+  GzipError_Truncated,
+  GzipError_Malformed,
+  GzipError_UnsupportedMethod,
   GzipError_Unknown,
 } GzipError;
 
