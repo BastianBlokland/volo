@@ -51,15 +51,18 @@ static i32 gzipu_run(const String inputPath) {
       goto Ret;
     }
 
-    String fileName;
-    if (gzipMeta.name.size) {
-      fileName = gzipMeta.name;
+    String outputPath;
+    if (!string_is_empty(gzipMeta.name)) {
+      outputPath = gzipMeta.name;
     } else if (!outputCounter) {
-      fileName = path_stem(inputPath);
+      outputPath = path_stem(inputPath);
     } else {
-      fileName = fmt_write_scratch("{}.{}", fmt_text(path_stem(inputPath)), fmt_int(outputCounter));
+      outputPath =
+          fmt_write_scratch("{}.{}", fmt_text(path_stem(inputPath)), fmt_int(outputCounter));
     }
-    const String outputPath = path_build_scratch(outputDir, fileName);
+    if (!string_is_empty(outputDir)) {
+      outputPath = path_build_scratch(outputDir, outputPath);
+    }
 
     if ((fileRes = file_write_to_path_atomic(outputPath, dynstring_view(&outputBuffer)))) {
       log_e(
