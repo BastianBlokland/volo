@@ -35,7 +35,7 @@ typedef struct {
   DynString* out;
 } UnzipCtx;
 
-static void unzip_read_header(UnzipCtx* ctx, GzipHeader* out, GzipError* err) {
+static void gzip_read_header(UnzipCtx* ctx, GzipHeader* out, GzipError* err) {
   if (UNLIKELY(ctx->input.size < 10)) {
     *err = GzipError_Truncated;
     return;
@@ -82,7 +82,7 @@ static void unzip_read_header(UnzipCtx* ctx, GzipHeader* out, GzipError* err) {
   ctx->input = mem_consume(ctx->input, 2);
 }
 
-static void unzip_read_extra(UnzipCtx* ctx, GzipError* err) {
+static void gzip_read_extra(UnzipCtx* ctx, GzipError* err) {
   if (UNLIKELY(ctx->input.size < 2)) {
     *err = GzipError_Truncated;
     return;
@@ -97,7 +97,7 @@ static void unzip_read_extra(UnzipCtx* ctx, GzipError* err) {
   ctx->input = mem_consume(ctx->input, extraLen);
 }
 
-static void unzip_read_string(UnzipCtx* ctx, GzipError* err) {
+static void gzip_read_string(UnzipCtx* ctx, GzipError* err) {
   // Skip over null-terminated string.
   for (;;) {
     if (UNLIKELY(string_is_empty(ctx->input))) {
@@ -112,7 +112,7 @@ static void unzip_read_string(UnzipCtx* ctx, GzipError* err) {
   }
 }
 
-static u16 unzip_read_header_crc(UnzipCtx* ctx, GzipError* err) {
+static u16 gzip_read_header_crc(UnzipCtx* ctx, GzipError* err) {
   if (UNLIKELY(ctx->input.size < 2)) {
     *err = GzipError_Truncated;
     return 0;
@@ -122,7 +122,7 @@ static u16 unzip_read_header_crc(UnzipCtx* ctx, GzipError* err) {
   return crc;
 }
 
-static void unzip_read_data(UnzipCtx* ctx, GzipError* err) {
+static void gzip_read_data(UnzipCtx* ctx, GzipError* err) {
   if (UNLIKELY(ctx->input.size < 8)) {
     *err = GzipError_Truncated;
     return;
@@ -150,9 +150,9 @@ static void unzip_read_data(UnzipCtx* ctx, GzipError* err) {
   }
 }
 
-static void unzip_read(UnzipCtx* ctx, GzipError* err) {
+static void gzip_read(UnzipCtx* ctx, GzipError* err) {
   GzipHeader header;
-  unzip_read_header(ctx, &header, err);
+  gzip_read_header(ctx, &header, err);
   if (UNLIKELY(*err)) {
     return;
   }
@@ -161,26 +161,26 @@ static void unzip_read(UnzipCtx* ctx, GzipError* err) {
     return;
   }
   if (header.flags & GzipFlags_Extra) {
-    unzip_read_extra(ctx, err);
+    gzip_read_extra(ctx, err);
     if (UNLIKELY(*err)) {
       return;
     }
   }
   if (header.flags & GzipFlags_Name) {
-    unzip_read_string(ctx, err);
+    gzip_read_string(ctx, err);
     if (UNLIKELY(*err)) {
       return;
     }
   }
   if (header.flags & GzipFlags_Comment) {
-    unzip_read_string(ctx, err);
+    gzip_read_string(ctx, err);
     if (UNLIKELY(*err)) {
       return;
     }
   }
   if (header.flags & GzipFlags_HeaderCrc) {
     const Mem headerMem = mem_slice(ctx->inputFull, 0, ctx->inputFull.size - ctx->input.size);
-    const u16 headerCrc = unzip_read_header_crc(ctx, err);
+    const u16 headerCrc = gzip_read_header_crc(ctx, err);
     if (UNLIKELY(*err)) {
       return;
     }
@@ -189,7 +189,7 @@ static void unzip_read(UnzipCtx* ctx, GzipError* err) {
       return;
     }
   }
-  unzip_read_data(ctx, err);
+  gzip_read_data(ctx, err);
 }
 
 String gzip_decode(const String input, DynString* out, GzipError* err) {
@@ -199,6 +199,6 @@ String gzip_decode(const String input, DynString* out, GzipError* err) {
       .out       = out,
   };
   *err = GzipError_None;
-  unzip_read(&ctx, err);
+  gzip_read(&ctx, err);
   return ctx.input;
 }
