@@ -97,19 +97,21 @@ static void gzip_read_extra(UnzipCtx* ctx, GzipError* err) {
   ctx->input = mem_consume(ctx->input, extraLen);
 }
 
-static void gzip_read_string(UnzipCtx* ctx, GzipError* err) {
-  // Skip over null-terminated string.
+static String gzip_read_string(UnzipCtx* ctx, GzipError* err) {
+  usize inputIdx = 0;
   for (;;) {
-    if (UNLIKELY(string_is_empty(ctx->input))) {
+    if (UNLIKELY(inputIdx >= ctx->input.size)) {
       *err = GzipError_Truncated;
-      return;
+      return string_empty;
     }
-    u8 ch;
-    ctx->input = mem_consume_u8(ctx->input, &ch);
-    if (!ch) {
+    const u8 ch = *string_at(ctx->input, inputIdx++);
+    if (ch == '\0') {
       break; // Reached null-terminator.
     }
   }
+  const String result = mem_slice(ctx->input, 0, inputIdx);
+  ctx->input          = mem_consume(ctx->input, inputIdx);
+  return result;
 }
 
 static u16 gzip_read_header_crc(UnzipCtx* ctx, GzipError* err) {
