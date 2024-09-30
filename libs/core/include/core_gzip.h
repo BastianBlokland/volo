@@ -15,12 +15,19 @@ typedef enum {
   GzipError_DeflateError,
   GzipError_ChecksumError,
   GzipError_Unknown,
+
+  GzipError_Count,
 } GzipError;
 
 typedef struct {
   String   name, comment;
   TimeReal modTime;
 } GzipMeta;
+
+/**
+ * Return a textual representation of the given GzipError.
+ */
+String gzip_error_str(GzipError);
 
 /**
  * Decode a GZIP (RFC 1952) compressed data stream.

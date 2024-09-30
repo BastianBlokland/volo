@@ -1,6 +1,8 @@
 #include "core_annotation.h"
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_deflate.h"
+#include "core_diag.h"
 #include "core_dynstring.h"
 #include "core_gzip.h"
 #include "core_time.h"
@@ -37,6 +39,18 @@ typedef struct {
   GzipHeader header;
   String     name, comment;
 } UnzipCtx;
+
+static const String g_errorStrs[] = {
+    string_static("None"),
+    string_static("Truncated"),
+    string_static("Malformed"),
+    string_static("UnsupportedMethod"),
+    string_static("DeflateError"),
+    string_static("ChecksumError"),
+    string_static("Unknown"),
+};
+
+ASSERT(array_elems(g_errorStrs) == GzipError_Count, "Incorrect number of GzipError strings");
 
 static void gzip_read_header(UnzipCtx* ctx, GzipHeader* out, GzipError* err) {
   if (UNLIKELY(ctx->input.size < 10)) {
@@ -196,6 +210,11 @@ static void gzip_read(UnzipCtx* ctx, GzipError* err) {
     }
   }
   gzip_read_data(ctx, err);
+}
+
+String gzip_error_str(const GzipError err) {
+  diag_assert(err < GzipError_Count);
+  return g_errorStrs[err];
 }
 
 String gzip_decode(const String input, GzipMeta* outMeta, DynString* out, GzipError* err) {
