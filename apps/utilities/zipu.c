@@ -10,8 +10,9 @@
  * ZipUtility - Utility to test gzip/zlib decoding.
  */
 
-static bool zipu_decompress_data_gzip(const String data, const String path) {
+static i32 zipu_decompress_data_gzip(const String data, const String path) {
   DynString outputBuffer = dynstring_create(g_allocHeap, usize_kibibyte);
+  i32       res          = 0;
 
   GzipMeta  gzipMeta;
   GzipError gzipError;
@@ -21,7 +22,8 @@ static bool zipu_decompress_data_gzip(const String data, const String path) {
         "Failed to decode gzip data",
         log_param("path", fmt_path(path)),
         log_param("error", fmt_text(gzip_error_str(gzipError))));
-    return false;
+    res = 2;
+    goto Ret;
   }
 
   String outputPath;
@@ -42,15 +44,20 @@ static bool zipu_decompress_data_gzip(const String data, const String path) {
         "Failed to write output file",
         log_param("path", fmt_path(outputPath)),
         log_param("error", fmt_text(file_result_str(fileRes))));
-    return false;
+    res = 1;
+    goto Ret;
   }
 
   log_i("Successfully decompressed file", log_param("path", fmt_path(outputPath)));
-  return true;
+
+Ret:
+  dynstring_destroy(&outputBuffer);
+  return res;
 }
 
-static bool zipu_decompress_data_zlib(const String data, const String path) {
+static i32 zipu_decompress_data_zlib(const String data, const String path) {
   DynString outputBuffer = dynstring_create(g_allocHeap, usize_kibibyte);
+  i32       res          = 0;
 
   ZlibError zlibError;
   zlib_decode(data, &outputBuffer, &zlibError);
@@ -59,7 +66,8 @@ static bool zipu_decompress_data_zlib(const String data, const String path) {
         "Failed to decode zlib data",
         log_param("path", fmt_path(path)),
         log_param("error", fmt_text(zlib_error_str(zlibError))));
-    return false;
+    res = 2;
+    goto Ret;
   }
 
   String       outputPath = fmt_write_scratch("{}.out", fmt_text(path_stem(path)));
@@ -74,14 +82,18 @@ static bool zipu_decompress_data_zlib(const String data, const String path) {
         "Failed to write output file",
         log_param("path", fmt_path(outputPath)),
         log_param("error", fmt_text(file_result_str(fileRes))));
-    return false;
+    res = 1;
+    goto Ret;
   }
 
   log_i("Successfully decompressed file", log_param("path", fmt_path(outputPath)));
-  return true;
+
+Ret:
+  dynstring_destroy(&outputBuffer);
+  return res;
 }
 
-static bool zipu_decompress_data(const String data, const String path) {
+static i32 zipu_decompress_data(const String data, const String path) {
   const String extension = path_extension(path);
   if (string_eq(extension, string_lit("gz"))) {
     return zipu_decompress_data_gzip(data, path);
@@ -93,7 +105,7 @@ static bool zipu_decompress_data(const String data, const String path) {
       "Unsupported data extension",
       log_param("path", fmt_path(path)),
       log_param("extension", fmt_text(extension)));
-  return false;
+  return 3;
 }
 
 static i32 zipu_decompress(const String inputPath) {
@@ -120,10 +132,7 @@ static i32 zipu_decompress(const String inputPath) {
     goto Ret;
   }
 
-  if (!zipu_decompress_data(inputData, inputPath)) {
-    res = 2;
-    goto Ret;
-  }
+  res = zipu_decompress_data(inputData, inputPath);
 
 Ret:
   if (inputFile) {
