@@ -14,7 +14,6 @@ typedef enum {
   GzipError_UnsupportedMethod,
   GzipError_DeflateError,
   GzipError_ChecksumError,
-  GzipError_Unknown,
 
   GzipError_Count,
 } GzipError;

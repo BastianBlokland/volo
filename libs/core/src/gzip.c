@@ -47,7 +47,6 @@ static const String g_errorStrs[] = {
     string_static("UnsupportedMethod"),
     string_static("DeflateError"),
     string_static("ChecksumError"),
-    string_static("Unknown"),
 };
 
 ASSERT(array_elems(g_errorStrs) == GzipError_Count, "Incorrect number of GzipError strings");
