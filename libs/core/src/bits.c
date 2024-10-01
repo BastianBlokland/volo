@@ -10,7 +10,7 @@ static void bits_init_crc(void) {
   /**
    * Compute a CRC32 (ISO 3309) lookup table.
    * Based on the gzip spec:
-   * https://datatracker.ietf.org/doc/html/rfc1952#page-11
+   * https://www.rfc-editor.org/rfc/rfc1952
    */
   for (u32 i = 0; i != array_elems(g_crcTable); ++i) {
     u32 res = i;
@@ -145,11 +145,27 @@ u32 bits_crc_32(const u32 crc, const Mem mem) {
   /**
    * Compute a CRC32 (ISO 3309) checksum with pre and pose conditioning.
    * Based on the gzip spec:
-   * https://datatracker.ietf.org/doc/html/rfc1952#page-11
+   * https://www.rfc-editor.org/rfc/rfc1952
    */
   u32 res = crc ^ 0xffffffff;
   mem_for_u8(mem, byte) { res = g_crcTable[(res ^ *byte) & 0xff] ^ (res >> 8); }
   return res ^ 0xffffffff;
+}
+
+u32 bits_adler32(u32 adler, const Mem mem) {
+  /**
+   * Compute the Adler32 checksum of the input data.
+   * Based on the zlib spec:
+   * https://www.rfc-editor.org/rfc/rfc1950
+   */
+  enum { Base = 65521 /* Largest prime smaller than 65536 */ };
+  u32 s1 = adler & 0xffff;
+  u32 s2 = (adler >> 16) & 0xffff;
+  mem_for_u8(mem, byte) {
+    s1 = (s1 + *byte) % Base;
+    s2 = (s2 + s1) % Base;
+  }
+  return (s2 << 16) + s1;
 }
 
 u32 bits_padding_32(const u32 val, const u32 align) {

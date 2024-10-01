@@ -164,6 +164,12 @@ u64 bits_hash_64_val(u64);
 u32 bits_crc_32(u32 crc, Mem);
 
 /**
+ * Compute the Adler32 checksum of the input data.
+ * NOTE: Provide a 'adler' of 1 for the start of a new checksum.
+ */
+u32 bits_adler32(u32 adler, Mem);
+
+/**
  * Calculate the amount of padding required to reach the requested alignment.
  * Pre-condition: bits_ispow2(align) (alignment has to be a power of two).
  */
