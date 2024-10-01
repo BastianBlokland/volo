@@ -1,6 +1,8 @@
 #include "core_annotation.h"
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_deflate.h"
+#include "core_diag.h"
 #include "core_dynstring.h"
 #include "core_zlib.h"
 
@@ -13,6 +15,21 @@
 typedef enum {
   ZlibMethod_Deflate = 8,
 } ZlibMethod;
+
+static const String g_errorStrs[] = {
+    string_static("None"),
+    string_static("Truncated"),
+    string_static("UnsupportedMethod"),
+    string_static("DeflateError"),
+    string_static("ChecksumError"),
+};
+
+ASSERT(array_elems(g_errorStrs) == ZlibError_Count, "Incorrect number of ZlibError strings");
+
+String zlib_error_str(const ZlibError err) {
+  diag_assert(err < ZlibError_Count);
+  return g_errorStrs[err];
+}
 
 String zlib_decode(String input, DynString* out, ZlibError* err) {
   const usize outOffset = out->size;

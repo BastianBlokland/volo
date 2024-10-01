@@ -15,6 +15,11 @@ typedef enum {
 } ZlibError;
 
 /**
+ * Return a textual representation of the given ZlibError.
+ */
+String zlib_error_str(ZlibError);
+
+/**
  * Decode a ZLIB (RFC 1950) compressed data stream.
  *
  * Returns the remaining input.
