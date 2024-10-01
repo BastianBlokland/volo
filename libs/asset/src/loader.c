@@ -37,6 +37,7 @@
   _X_(AssetFormat_TexFontBin,       tex_font_bin       )                                           \
   _X_(AssetFormat_TexHeight16,      tex_height16       )                                           \
   _X_(AssetFormat_TexHeight32,      tex_height32       )                                           \
+  _X_(AssetFormat_TexPng,           tex_png            )                                           \
   _X_(AssetFormat_TexPpm,           tex_ppm            )                                           \
   _X_(AssetFormat_TexProc,          tex_proc           )                                           \
   _X_(AssetFormat_TexTga,           tex_tga            )                                           \

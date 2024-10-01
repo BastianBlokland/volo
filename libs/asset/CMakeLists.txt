@@ -33,6 +33,7 @@ add_library(lib_asset STATIC
   src/loader_texture_atlas.c
   src/loader_texture_font.c
   src/loader_texture_height.c
+  src/loader_texture_png.c
   src/loader_texture_ppm.c
   src/loader_texture_proc.c
   src/loader_texture_tga.c
