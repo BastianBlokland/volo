@@ -6,10 +6,10 @@
 #include "log.h"
 
 /**
- * GZipUtility - Utility to test gzip decoding.
+ * ZipUtility - Utility to test gzip/zlib decoding.
  */
 
-static i32 gzipu_run(const String inputPath) {
+static i32 zipu_run(const String inputPath) {
   i32        res = 0;
   FileResult fileRes;
 
@@ -74,7 +74,7 @@ static i32 gzipu_run(const String inputPath) {
     }
     dynstring_clear(&outputBuffer);
 
-    log_i("Successfully decoded GZip file", log_param("path", fmt_path(outputPath)));
+    log_i("Successfully decompressed file", log_param("path", fmt_path(outputPath)));
 
     ++outputCounter;
   } while (!string_is_empty(inputData));
@@ -90,10 +90,10 @@ Ret:
 static CliId g_optFiles, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
-  cli_app_register_desc(app, string_lit("GZip Utility."));
+  cli_app_register_desc(app, string_lit("Zip Utility."));
 
   g_optFiles = cli_register_arg(app, string_lit("files"), CliOptionFlags_RequiredMultiValue);
-  cli_register_desc(app, g_optFiles, string_lit("GZip (.gz) file paths."));
+  cli_register_desc(app, g_optFiles, string_lit("GZip (.gz) / ZLib (.zz) files to decompress."));
   cli_register_validator(app, g_optFiles, cli_validate_file_regular);
 
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
@@ -112,7 +112,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   const CliParseValues files = cli_parse_values(invoc, g_optFiles);
   for (usize i = 0; i != files.count; ++i) {
-    const i32 res = gzipu_run(files.values[i]);
+    const i32 res = zipu_run(files.values[i]);
     if (res) {
       return res;
     }

@@ -58,8 +58,8 @@ add_executable(app_blob2j blob2j.c)
 target_link_libraries(app_blob2j PRIVATE lib_app_cli lib_asset)
 configure_debuggable(app_blob2j)
 
-message(STATUS "> application: gzipu")
+message(STATUS "> application: zipu")
 
-add_executable(app_gzipu gzipu.c)
-target_link_libraries(app_gzipu PRIVATE lib_app_cli lib_log)
-configure_debuggable(app_gzipu)
+add_executable(app_zipu zipu.c)
+target_link_libraries(app_zipu PRIVATE lib_app_cli lib_log)
+configure_debuggable(app_zipu)
