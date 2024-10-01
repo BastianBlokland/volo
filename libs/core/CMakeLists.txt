@@ -69,6 +69,7 @@ add_library(lib_core STATIC
   src/unicode.c
   src/utf8.c
   src/winutils.c
+  src/zlib.c
   )
 target_include_directories(lib_core PUBLIC include)
 if(${VOLO_PLATFORM} STREQUAL "linux")
@@ -121,6 +122,7 @@ add_executable(test_lib_core
   test/test_unicode.c
   test/test_utf8.c
   test/test_winutils.c
+  test/test_zlib.c
   )
 target_link_libraries(test_lib_core PRIVATE lib_app_check lib_core)
 

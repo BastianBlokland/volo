@@ -43,6 +43,7 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, unicode);
   register_spec(check, utf8);
   register_spec(check, winutils);
+  register_spec(check, zlib);
 
 #ifdef VOLO_SIMD
   register_spec(check, simd);

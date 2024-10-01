@@ -152,7 +152,7 @@ u32 bits_crc_32(const u32 crc, const Mem mem) {
   return res ^ 0xffffffff;
 }
 
-u32 bits_adler32(u32 adler, const Mem mem) {
+u32 bits_adler_32(u32 adler, const Mem mem) {
   /**
    * Compute the Adler32 checksum of the input data.
    * Based on the zlib spec:
