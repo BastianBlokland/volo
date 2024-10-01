@@ -7,11 +7,9 @@ typedef struct sDynArray DynString;
 typedef enum {
   ZlibError_None,
   ZlibError_Truncated,
-  ZlibError_Malformed,
   ZlibError_UnsupportedMethod,
   ZlibError_DeflateError,
   ZlibError_ChecksumError,
-  ZlibError_Unknown,
 
   ZlibError_Count,
 } ZlibError;
