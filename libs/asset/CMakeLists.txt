@@ -68,6 +68,7 @@ add_executable(test_lib_asset
   test/test_loader_terrain.c
   test/test_loader_texture_atlas.c
   test/test_loader_texture_font.c
+  test/test_loader_texture_png.c
   test/test_loader_texture_ppm.c
   test/test_loader_texture_tga.c
   test/test_loader_weapon.c
