@@ -156,6 +156,20 @@ spec(bits) {
     }
   }
 
+  it("can compute a adler32 checksum") {
+    check_eq_int(bits_adler32(1, string_lit("")), 0x1);
+    check_eq_int(bits_adler32(1, string_lit("h")), 0x00690069);
+    check_eq_int(bits_adler32(1, string_lit("hello")), 0x062c0215);
+    check_eq_int(bits_adler32(1, string_lit("Hello World")), 0x180b041d);
+    {
+      u32 adler = 1;
+      adler     = bits_adler32(adler, string_lit("Hello"));
+      adler     = bits_adler32(adler, string_lit(" "));
+      adler     = bits_adler32(adler, string_lit("World"));
+      check_eq_int(adler, 0x180b041d);
+    }
+  }
+
   it("can compute the amount of padding required to align a 32 bit integer") {
     check_eq_int(bits_padding_32(0, 4), 0);
     check_eq_int(bits_padding_32(4, 4), 0);
