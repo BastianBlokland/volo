@@ -3,19 +3,102 @@
 #include "core_file.h"
 #include "core_gzip.h"
 #include "core_path.h"
+#include "core_zlib.h"
 #include "log.h"
 
 /**
  * ZipUtility - Utility to test gzip/zlib decoding.
  */
 
-static i32 zipu_run(const String inputPath) {
+static bool zipu_decompress_data_gzip(const String data, const String path) {
+  DynString outputBuffer = dynstring_create(g_allocHeap, usize_kibibyte);
+
+  GzipMeta  gzipMeta;
+  GzipError gzipError;
+  gzip_decode(data, &gzipMeta, &outputBuffer, &gzipError);
+  if (gzipError) {
+    log_e(
+        "Failed to decode gzip data",
+        log_param("path", fmt_path(path)),
+        log_param("error", fmt_text(gzip_error_str(gzipError))));
+    return false;
+  }
+
+  String outputPath;
+  if (!string_is_empty(gzipMeta.name)) {
+    outputPath = gzipMeta.name;
+  } else {
+    outputPath = fmt_write_scratch("{}.out", fmt_text(path_stem(path)));
+  }
+
+  const String outputDir = path_parent(path);
+  if (!string_is_empty(outputDir)) {
+    outputPath = path_build_scratch(outputDir, outputPath);
+  }
+
+  FileResult fileRes;
+  if ((fileRes = file_write_to_path_atomic(outputPath, dynstring_view(&outputBuffer)))) {
+    log_e(
+        "Failed to write output file",
+        log_param("path", fmt_path(outputPath)),
+        log_param("error", fmt_text(file_result_str(fileRes))));
+    return false;
+  }
+
+  log_i("Successfully decompressed file", log_param("path", fmt_path(outputPath)));
+  return true;
+}
+
+static bool zipu_decompress_data_zlib(const String data, const String path) {
+  DynString outputBuffer = dynstring_create(g_allocHeap, usize_kibibyte);
+
+  ZlibError zlibError;
+  zlib_decode(data, &outputBuffer, &zlibError);
+  if (zlibError) {
+    log_e(
+        "Failed to decode zlib data",
+        log_param("path", fmt_path(path)),
+        log_param("error", fmt_text(zlib_error_str(zlibError))));
+    return false;
+  }
+
+  String       outputPath = fmt_write_scratch("{}.out", fmt_text(path_stem(path)));
+  const String outputDir  = path_parent(path);
+  if (!string_is_empty(outputDir)) {
+    outputPath = path_build_scratch(outputDir, outputPath);
+  }
+
+  FileResult fileRes;
+  if ((fileRes = file_write_to_path_atomic(outputPath, dynstring_view(&outputBuffer)))) {
+    log_e(
+        "Failed to write output file",
+        log_param("path", fmt_path(outputPath)),
+        log_param("error", fmt_text(file_result_str(fileRes))));
+    return false;
+  }
+
+  log_i("Successfully decompressed file", log_param("path", fmt_path(outputPath)));
+  return true;
+}
+
+static bool zipu_decompress_data(const String data, const String path) {
+  const String extension = path_extension(path);
+  if (string_eq(extension, string_lit("gz"))) {
+    return zipu_decompress_data_gzip(data, path);
+  }
+  if (string_eq(extension, string_lit("zz"))) {
+    return zipu_decompress_data_zlib(data, path);
+  }
+  log_e(
+      "Unsupported data extension",
+      log_param("path", fmt_path(path)),
+      log_param("extension", fmt_text(extension)));
+  return false;
+}
+
+static i32 zipu_decompress(const String inputPath) {
   i32        res = 0;
   FileResult fileRes;
-
-  const String inputStem    = path_stem(inputPath);
-  const String outputDir    = path_parent(inputPath);
-  DynString    outputBuffer = dynstring_create(g_allocHeap, usize_kibibyte);
 
   File* inputFile = null;
   if ((fileRes = file_create(g_allocHeap, inputPath, FileMode_Open, FileAccess_Read, &inputFile))) {
@@ -37,53 +120,15 @@ static i32 zipu_run(const String inputPath) {
     goto Ret;
   }
 
-  u32 outputCounter = 0;
-  do {
-    GzipMeta  gzipMeta;
-    GzipError gzipError;
-    inputData = gzip_decode(inputData, &gzipMeta, &outputBuffer, &gzipError);
-
-    if (gzipError) {
-      log_e(
-          "Failed to decode GZip data",
-          log_param("path", fmt_path(inputPath)),
-          log_param("error", fmt_text(gzip_error_str(gzipError))));
-      res = 2;
-      goto Ret;
-    }
-
-    String outputPath;
-    if (!string_is_empty(gzipMeta.name)) {
-      outputPath = gzipMeta.name;
-    } else if (!outputCounter) {
-      outputPath = inputStem;
-    } else {
-      outputPath = fmt_write_scratch("{}.{}", fmt_text(inputStem), fmt_int(outputCounter));
-    }
-    if (!string_is_empty(outputDir)) {
-      outputPath = path_build_scratch(outputDir, outputPath);
-    }
-
-    if ((fileRes = file_write_to_path_atomic(outputPath, dynstring_view(&outputBuffer)))) {
-      log_e(
-          "Failed to write output file",
-          log_param("path", fmt_path(outputPath)),
-          log_param("error", fmt_text(file_result_str(fileRes))));
-      res = 3;
-      goto Ret;
-    }
-    dynstring_clear(&outputBuffer);
-
-    log_i("Successfully decompressed file", log_param("path", fmt_path(outputPath)));
-
-    ++outputCounter;
-  } while (!string_is_empty(inputData));
+  if (!zipu_decompress_data(inputData, inputPath)) {
+    res = 2;
+    goto Ret;
+  }
 
 Ret:
   if (inputFile) {
     file_destroy(inputFile);
   }
-  dynstring_destroy(&outputBuffer);
   return res;
 }
 
@@ -112,7 +157,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   const CliParseValues files = cli_parse_values(invoc, g_optFiles);
   for (usize i = 0; i != files.count; ++i) {
-    const i32 res = zipu_run(files.values[i]);
+    const i32 res = zipu_decompress(files.values[i]);
     if (res) {
       return res;
     }
