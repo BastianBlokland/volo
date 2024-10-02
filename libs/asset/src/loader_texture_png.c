@@ -3,10 +3,14 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "loader_texture_internal.h"
 #include "repo_internal.h"
 
 /**
  * Portable Network Graphics.
+ * NOTE: Only 8 bit images are supported.
+ * NOTE: Indexed and or interlaced images are not supported.
+ * NOTE: Grayscale with alpha is not supported.
  *
  * Spec: https://www.w3.org/TR/png-3/
  */
@@ -78,6 +82,15 @@ static String png_error_str(const PngError err) {
 
 static bool png_chunk_match(const PngChunk* chunk, const String type) {
   return mem_eq(array_mem(chunk->type), type);
+}
+
+static const PngChunk* png_chunk_find(const PngChunk chunks[], const u32 count, const String type) {
+  for (u32 i = 0; i != count; ++i) {
+    if (png_chunk_match(&chunks[i], type)) {
+      return &chunks[i];
+    }
+  }
+  return null;
 }
 
 static u32 png_read_chunks(Mem d, PngChunk out[PARAM_ARRAY_SIZE(png_max_chunks)], PngError* err) {
@@ -169,6 +182,23 @@ static void png_load_fail(EcsWorld* w, const EcsEntityId e, const String id, con
   ecs_world_add_empty_t(w, e, AssetFailedComp);
 }
 
+static bool png_is_normalmap(const String id) {
+  static const String g_patterns[] = {
+      string_static("*_nrm*"),
+      string_static("*_normal*"),
+  };
+  array_for_t(g_patterns, String, pattern) {
+    if (string_match_glob(id, *pattern, StringMatchFlags_IgnoreCase)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static bool png_is_lossless(const String id) {
+  return string_match_glob(id, string_lit("*_lossless*"), StringMatchFlags_IgnoreCase);
+}
+
 void asset_load_tex_png(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
 
@@ -224,8 +254,18 @@ void asset_load_tex_png(
     goto Ret;
   }
 
-  // TODO: Implement png parsing.
-  (void)chunkCount;
+  AssetTextureFlags flags = AssetTextureFlags_GenerateMips;
+  if (png_is_normalmap(id)) {
+    // Normal maps are in linear space (and thus not sRGB).
+    flags |= AssetTextureFlags_NormalMap;
+  } else if (png_chunk_find(chunks, chunkCount, string_lit("sRGB")) && channels >= 3) {
+    flags |= AssetTextureFlags_Srgb;
+  }
+  if (png_is_lossless(id)) {
+    flags |= AssetTextureFlags_Lossless;
+  }
+
+  // TODO: Implement png data parsing.
   png_load_fail(world, entity, id, PngError_Truncated);
 
 Ret:
