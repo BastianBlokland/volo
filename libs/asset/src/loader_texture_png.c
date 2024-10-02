@@ -36,6 +36,9 @@ typedef enum {
   PngError_ChunkChecksumFailed,
   PngError_HeaderChunkMissing,
   PngError_EndChunkMissing,
+  PngError_UnsupportedCompression,
+  PngError_UnsupportedFilter,
+  PngError_UnsupportedInterlacing,
 
   PngError_Count,
 } PngError;
@@ -50,6 +53,9 @@ static String png_error_str(const PngError err) {
       string_static("Png chunk checksum failed"),
       string_static("Png header chunk missing"),
       string_static("Png end chunk missing"),
+      string_static("Unsupported png compression method"),
+      string_static("Unsupported png filter method"),
+      string_static("Unsupported png interlace method (only non-interlaced is supported)"),
   };
   ASSERT(array_elems(g_msgs) == PngError_Count, "Incorrect number of png-error messages");
   return g_msgs[err];
@@ -158,6 +164,19 @@ void asset_load_tex_png(
   png_read_header(&chunks[0], &header, &err);
   if (UNLIKELY(err)) {
     png_load_fail(world, entity, id, err);
+    goto Ret;
+  }
+
+  if (UNLIKELY(header.compressionMethod)) {
+    png_load_fail(world, entity, id, PngError_UnsupportedCompression);
+    goto Ret;
+  }
+  if (UNLIKELY(header.filterMethod)) {
+    png_load_fail(world, entity, id, PngError_UnsupportedFilter);
+    goto Ret;
+  }
+  if (UNLIKELY(header.interlaceMethod)) {
+    png_load_fail(world, entity, id, PngError_UnsupportedInterlacing);
     goto Ret;
   }
 
