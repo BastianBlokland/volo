@@ -20,10 +20,18 @@ typedef struct {
   Mem data;
 } PngChunk;
 
+typedef struct {
+  u32 width, height;
+  u8  bitDepth;
+  u8  colorType;
+  u8  compressionMethod, filterMethod, interlaceMethod;
+} PngHeader;
+
 typedef enum {
   PngError_None = 0,
   PngError_MagicMismatch,
   PngError_Truncated,
+  PngError_Malformed,
   PngError_ChunkLimitExceeded,
   PngError_ChunkChecksumFailed,
   PngError_HeaderChunkMissing,
@@ -37,6 +45,7 @@ static String png_error_str(const PngError err) {
       string_static("None"),
       string_static("Data is not a png file"),
       string_static("Truncated png data"),
+      string_static("Malformed png data"),
       string_static("Png exceeds chunk limit"),
       string_static("Png chunk checksum failed"),
       string_static("Png header chunk missing"),
@@ -102,6 +111,21 @@ static u32 png_read_chunks(Mem d, PngChunk out[PARAM_ARRAY_SIZE(png_max_chunks)]
   return chunkCount;
 }
 
+static void png_read_header(const PngChunk* chunk, PngHeader* out, PngError* err) {
+  Mem d = chunk->data;
+  if (UNLIKELY(d.size != 13)) {
+    *err = PngError_Malformed;
+    return;
+  }
+  d = mem_consume_be_u32(d, &out->width);
+  d = mem_consume_be_u32(d, &out->height);
+  d = mem_consume_u8(d, &out->bitDepth);
+  d = mem_consume_u8(d, &out->colorType);
+  d = mem_consume_u8(d, &out->compressionMethod);
+  d = mem_consume_u8(d, &out->filterMethod);
+  d = mem_consume_u8(d, &out->interlaceMethod);
+}
+
 static void png_load_fail(EcsWorld* w, const EcsEntityId e, const String id, const PngError err) {
   log_e(
       "Failed to parse Png texture",
@@ -127,6 +151,13 @@ void asset_load_tex_png(
   }
   if (UNLIKELY(!chunkCount || !png_chunk_match(&chunks[chunkCount - 1], string_lit("IEND")))) {
     png_load_fail(world, entity, id, PngError_EndChunkMissing);
+    goto Ret;
+  }
+
+  PngHeader header;
+  png_read_header(&chunks[0], &header, &err);
+  if (UNLIKELY(err)) {
+    png_load_fail(world, entity, id, err);
     goto Ret;
   }
 
