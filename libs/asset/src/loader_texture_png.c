@@ -22,6 +22,13 @@ typedef struct {
   Mem data;
 } PngChunk;
 
+typedef enum {
+  PngChannels_Invalid,
+  PngChannels_R    = 1,
+  PngChannels_RGB  = 3,
+  PngChannels_RGBA = 4,
+} PngChannels;
+
 typedef struct {
   u32 width, height;
   u8  bitDepth;
@@ -38,6 +45,7 @@ typedef enum {
   PngError_ChunkChecksumFailed,
   PngError_HeaderChunkMissing,
   PngError_EndChunkMissing,
+  PngError_UnsupportedColorType,
   PngError_UnsupportedCompression,
   PngError_UnsupportedFilter,
   PngError_UnsupportedInterlacing,
@@ -57,6 +65,7 @@ static String png_error_str(const PngError err) {
       string_static("Png chunk checksum failed"),
       string_static("Png header chunk missing"),
       string_static("Png end chunk missing"),
+      string_static("Unsupported png color-type (only R, RGB, and RGBA supported)"),
       string_static("Unsupported png compression method"),
       string_static("Unsupported png filter method"),
       string_static("Unsupported png interlace method (only non-interlaced is supported)"),
@@ -138,6 +147,19 @@ static void png_read_header(const PngChunk* chunk, PngHeader* out, PngError* err
   d = mem_consume_u8(d, &out->interlaceMethod);
 }
 
+static PngChannels png_channels(const PngHeader* header) {
+  switch (header->colorType) {
+  case 0:
+    return PngChannels_R;
+  case 2:
+    return PngChannels_RGB;
+  case 6:
+    return PngChannels_RGBA;
+  default:
+    return PngChannels_Invalid;
+  }
+}
+
 static void png_load_fail(EcsWorld* w, const EcsEntityId e, const String id, const PngError err) {
   log_e(
       "Failed to parse Png texture",
@@ -172,7 +194,11 @@ void asset_load_tex_png(
     png_load_fail(world, entity, id, err);
     goto Ret;
   }
-
+  const PngChannels channels = png_channels(&header);
+  if (UNLIKELY(!channels)) {
+    png_load_fail(world, entity, id, PngError_UnsupportedColorType);
+    goto Ret;
+  }
   if (UNLIKELY(!header.width || !header.height)) {
     png_load_fail(world, entity, id, PngError_UnsupportedSize);
     goto Ret;
