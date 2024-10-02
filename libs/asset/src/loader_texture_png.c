@@ -12,6 +12,8 @@
  */
 
 #define png_max_chunks 64
+#define png_max_width (1024 * 16)
+#define png_max_height (1024 * 16)
 
 static const String g_pngMagic = string_lit("\x89\x50\x4E\x47\x0D\x0A\x1A\x0A");
 
@@ -39,6 +41,7 @@ typedef enum {
   PngError_UnsupportedCompression,
   PngError_UnsupportedFilter,
   PngError_UnsupportedInterlacing,
+  PngError_UnsupportedSize,
 
   PngError_Count,
 } PngError;
@@ -56,6 +59,7 @@ static String png_error_str(const PngError err) {
       string_static("Unsupported png compression method"),
       string_static("Unsupported png filter method"),
       string_static("Unsupported png interlace method (only non-interlaced is supported)"),
+      string_static("Unsupported image size"),
   };
   ASSERT(array_elems(g_msgs) == PngError_Count, "Incorrect number of png-error messages");
   return g_msgs[err];
@@ -167,6 +171,14 @@ void asset_load_tex_png(
     goto Ret;
   }
 
+  if (UNLIKELY(!header.width || !header.height)) {
+    png_load_fail(world, entity, id, PngError_UnsupportedSize);
+    goto Ret;
+  }
+  if (UNLIKELY(header.width > png_max_width || header.height > png_max_height)) {
+    png_load_fail(world, entity, id, PngError_UnsupportedSize);
+    goto Ret;
+  }
   if (UNLIKELY(header.compressionMethod)) {
     png_load_fail(world, entity, id, PngError_UnsupportedCompression);
     goto Ret;
