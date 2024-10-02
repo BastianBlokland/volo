@@ -26,6 +26,7 @@ typedef enum {
   PngError_Truncated,
   PngError_ChunkLimitExceeded,
   PngError_ChunkChecksumFailed,
+  PngError_EndChunkMissing,
 
   PngError_Count,
 } PngError;
@@ -37,12 +38,13 @@ static String png_error_str(const PngError err) {
       string_static("Truncated png data"),
       string_static("Png exceeds chunk limit"),
       string_static("Png chunk checksum failed"),
+      string_static("Png end chunk missing"),
   };
   ASSERT(array_elems(g_msgs) == PngError_Count, "Incorrect number of png-error messages");
   return g_msgs[err];
 }
 
-static u32 png_load_chunks(Mem d, PngChunk out[PARAM_ARRAY_SIZE(png_max_chunks)], PngError* err) {
+static u32 png_read_chunks(Mem d, PngChunk out[PARAM_ARRAY_SIZE(png_max_chunks)], PngError* err) {
   // Read magic bytes.
   if (UNLIKELY(!string_starts_with(d, g_pngMagic))) {
     *err = PngError_MagicMismatch;
@@ -108,9 +110,13 @@ void asset_load_tex_png(
 
   PngError  err = PngError_None;
   PngChunk  chunks[png_max_chunks];
-  const u32 chunkCount = png_load_chunks(src->data, chunks, &err);
+  const u32 chunkCount = png_read_chunks(src->data, chunks, &err);
   if (UNLIKELY(err)) {
     png_load_fail(world, entity, id, err);
+    goto Ret;
+  }
+  if (!chunkCount || !mem_eq(array_mem(chunks[chunkCount - 1].type), string_lit("IEND"))) {
+    png_load_fail(world, entity, id, PngError_EndChunkMissing);
     goto Ret;
   }
 
