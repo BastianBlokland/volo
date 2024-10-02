@@ -41,6 +41,7 @@ typedef enum {
   PngError_UnsupportedCompression,
   PngError_UnsupportedFilter,
   PngError_UnsupportedInterlacing,
+  PngError_UnsupportedBitDepth,
   PngError_UnsupportedSize,
 
   PngError_Count,
@@ -59,6 +60,7 @@ static String png_error_str(const PngError err) {
       string_static("Unsupported png compression method"),
       string_static("Unsupported png filter method"),
       string_static("Unsupported png interlace method (only non-interlaced is supported)"),
+      string_static("Unsupported image bit depth (only 8 bit supported)"),
       string_static("Unsupported image size"),
   };
   ASSERT(array_elems(g_msgs) == PngError_Count, "Incorrect number of png-error messages");
@@ -177,6 +179,10 @@ void asset_load_tex_png(
   }
   if (UNLIKELY(header.width > png_max_width || header.height > png_max_height)) {
     png_load_fail(world, entity, id, PngError_UnsupportedSize);
+    goto Ret;
+  }
+  if (UNLIKELY(header.bitDepth != 8)) {
+    png_load_fail(world, entity, id, PngError_UnsupportedBitDepth);
     goto Ret;
   }
   if (UNLIKELY(header.compressionMethod)) {
