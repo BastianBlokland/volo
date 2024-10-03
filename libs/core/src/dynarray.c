@@ -49,10 +49,10 @@ void dynarray_destroy(DynArray* a) {
 
 usize dynarray_size(const DynArray* a) { return a->size; }
 
-NO_INLINE_HINT static void dynarray_resize_grow(DynArray* a, const usize size) {
+NO_INLINE_HINT static void dynarray_resize_grow(DynArray* a, const usize capacity) {
   diag_assert_msg(a->alloc, "DynArray without an allocator ran out of memory");
 
-  const Mem newMem = alloc_alloc(a->alloc, bits_nextpow2_64(size * a->stride), a->align);
+  const Mem newMem = alloc_alloc(a->alloc, bits_nextpow2_64(capacity * a->stride), a->align);
   diag_assert_msg(mem_valid(newMem), "Allocation failed");
 
   if (LIKELY(mem_valid(a->data))) {
@@ -70,6 +70,12 @@ INLINE_HINT static void dynarray_resize_internal(DynArray* a, const usize size) 
 }
 
 void dynarray_resize(DynArray* a, const usize size) { dynarray_resize_internal(a, size); }
+
+void dynarray_reserve(DynArray* a, const usize capacity) {
+  if (UNLIKELY(capacity * a->stride > a->data.size)) {
+    dynarray_resize_grow(a, capacity);
+  }
+}
 
 void dynarray_clear(DynArray* a) { a->size = 0; }
 

@@ -43,6 +43,15 @@ spec(dynarray) {
     dynarray_destroy(&array);
   }
 
+  it("can be reserved") {
+    Allocator* alloc = alloc_bump_create_stack(1024);
+
+    DynArray array = dynarray_create_t(alloc, u64, 0);
+    dynarray_reserve(&array, 8);
+
+    dynarray_destroy(&array);
+  }
+
   it("can get a pointer to the begin") {
     Allocator* alloc = alloc_bump_create_stack(1024);
 
