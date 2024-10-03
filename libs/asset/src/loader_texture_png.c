@@ -1,5 +1,7 @@
+#include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
+#include "core_zlib.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
@@ -49,6 +51,8 @@ typedef enum {
   PngError_ChunkChecksumFailed,
   PngError_HeaderChunkMissing,
   PngError_EndChunkMissing,
+  PngError_DataMissing,
+  PngError_DataMalformed,
   PngError_UnsupportedColorType,
   PngError_UnsupportedCompression,
   PngError_UnsupportedFilter,
@@ -69,6 +73,8 @@ static String png_error_str(const PngError err) {
       string_static("Png chunk checksum failed"),
       string_static("Png header chunk missing"),
       string_static("Png end chunk missing"),
+      string_static("Png data missing"),
+      string_static("Png data malformed"),
       string_static("Unsupported png color-type (only R, RGB, and RGBA supported)"),
       string_static("Unsupported png compression method"),
       string_static("Unsupported png filter method"),
@@ -160,6 +166,50 @@ static void png_read_header(const PngChunk* chunk, PngHeader* out, PngError* err
   d = mem_consume_u8(d, &out->interlaceMethod);
 }
 
+static void png_read_data(const PngChunk chunks[], const u32 count, DynString* out, PngError* err) {
+  u32   dataChunkCount = 0;
+  usize dataChunkSize  = 0;
+  for (u32 i = 0; i != count; ++i) {
+    if (png_chunk_match(&chunks[i], string_lit("IDAT"))) {
+      dataChunkCount += 1;
+      dataChunkSize += chunks[i].data.size;
+    }
+  }
+
+  if (UNLIKELY(!dataChunkSize)) {
+    *err = PngError_DataMissing;
+    return;
+  }
+
+  /**
+   * The PNG spec allows splitting the ZLib stream across multiple IDAT chunks, because we only
+   * support contigious zlib data we have to combine the chunks before decoding.
+   */
+
+  Mem   dataCombined = dataChunkCount ? alloc_alloc(g_allocHeap, dataChunkSize, 1) : mem_empty;
+  usize dataOffset   = 0;
+  for (u32 i = 0; i != count; ++i) {
+    if (png_chunk_match(&chunks[i], string_lit("IDAT"))) {
+      if (dataChunkCount) {
+        mem_cpy(mem_consume(dataCombined, dataOffset), chunks[i].data);
+      } else {
+        dataCombined = chunks[i].data;
+        break;
+      }
+    }
+  }
+
+  ZlibError zlibErr;
+  zlib_decode(dataCombined, out, &zlibErr);
+  if (UNLIKELY(zlibErr)) {
+    *err = PngError_DataMalformed;
+  }
+
+  if (dataChunkCount) {
+    alloc_free(g_allocHeap, dataCombined);
+  }
+}
+
 static PngChannels png_channels(const PngHeader* header) {
   switch (header->colorType) {
   case 0:
@@ -201,6 +251,8 @@ static bool png_is_lossless(const String id) {
 
 void asset_load_tex_png(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+
+  DynString pixelData = dynstring_create(g_allocHeap, 0);
 
   PngError  err = PngError_None;
   PngChunk  chunks[png_max_chunks];
@@ -254,6 +306,13 @@ void asset_load_tex_png(
     goto Ret;
   }
 
+  dynstring_reserve(&pixelData, header.width * header.height * channels);
+  png_read_data(chunks, chunkCount, &pixelData, &err);
+  if (UNLIKELY(err)) {
+    png_load_fail(world, entity, id, err);
+    goto Ret;
+  }
+
   AssetTextureFlags flags = AssetTextureFlags_GenerateMips;
   if (png_is_normalmap(id)) {
     // Normal maps are in linear space (and thus not sRGB).
@@ -269,5 +328,6 @@ void asset_load_tex_png(
   png_load_fail(world, entity, id, PngError_Truncated);
 
 Ret:
+  dynarray_destroy(&pixelData);
   asset_repo_source_close(src);
 }
