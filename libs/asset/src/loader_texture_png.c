@@ -1,6 +1,9 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
+#include "core_diag.h"
+#include "core_dynstring.h"
+#include "core_math.h"
 #include "core_zlib.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -35,6 +38,14 @@ typedef enum {
   PngChannels_RGBA = 4,
 } PngChannels;
 
+typedef enum {
+  PngFilterType_None,
+  PngFilterType_Sub,
+  PngFilterType_Up,
+  PngFilterType_Average,
+  PngFilterType_Paeth,
+} PngFilterType;
+
 typedef struct {
   u32 width, height;
   u8  bitDepth;
@@ -54,6 +65,7 @@ typedef enum {
   PngError_DataMissing,
   PngError_DataMalformed,
   PngError_DataUnexpectedSize,
+  PngError_DataInvalidFilter,
   PngError_UnsupportedColorType,
   PngError_UnsupportedCompression,
   PngError_UnsupportedFilter,
@@ -77,6 +89,7 @@ static String png_error_str(const PngError err) {
       string_static("Png data missing"),
       string_static("Png data malformed"),
       string_static("Png unexpected data size"),
+      string_static("Png data filter invalid"),
       string_static("Unsupported png color-type (only R, RGB, and RGBA supported)"),
       string_static("Unsupported png compression method"),
       string_static("Unsupported png filter method"),
@@ -212,6 +225,71 @@ static void png_read_data(const PngChunk chunks[], const u32 count, DynString* o
   }
 }
 
+/**
+ * PaethPredictor function.
+ * Based on the spec: https://www.w3.org/TR/png-3/#9Filter-type-4-Paeth
+ */
+static i32 png_paeth_predictor(const i32 a, const i32 b, const i32 c) {
+  const i32 p  = a + b - c;
+  const i32 pA = math_abs(p - a);
+  const i32 pB = math_abs(p - b);
+  const i32 pC = math_abs(p - c);
+  if (pA <= pB && pA <= pC) {
+    return a;
+  }
+  if (pB <= pC) {
+    return b;
+  }
+  return c;
+}
+
+static void png_filter_decode(
+    const PngHeader* header, const PngChannels channels, DynString* data, PngError* err) {
+
+  const Mem   dataMem           = dynstring_view(data);
+  const usize scanlineSize      = header->width * channels;
+  const usize scanlineInputSize = scanlineSize + 1; // + 1 byte for filterType.
+
+  for (u32 y = 0; y != header->height; ++y) {
+    Mem scanlineData = mem_slice(dataMem, scanlineSize * y, scanlineInputSize);
+
+    // Read filter.
+    u8 filterType;
+    scanlineData = mem_consume_u8(scanlineData, &filterType);
+
+    for (u32 x = 0; x != header->width; ++x) {
+      const u8 a = x ? *mem_at_u8(scanlineData, x - 1) : 0;
+      const u8 b = y ? *mem_at_u8(scanlineData, x - scanlineInputSize) : 0;
+      const u8 c = x && y ? *mem_at_u8(scanlineData, x - scanlineInputSize - 1) : 0;
+
+      // Decode filter.
+      switch (filterType) {
+      case PngFilterType_None: // Recon(x) = Filt(x)
+        break;
+      case PngFilterType_Sub: // Recon(x) = Filt(x) + Recon(a)
+        *mem_at_u8(scanlineData, x) += a;
+        break;
+      case PngFilterType_Up: // Recon(x) = Filt(x) + Recon(b)
+        *mem_at_u8(scanlineData, x) += b;
+        break;
+      case PngFilterType_Average: // Recon(x) = Filt(x) + floor((Recon(a) + Recon(b)) / 2)
+        *mem_at_u8(scanlineData, x) += (a + b) / 2;
+        break;
+      case PngFilterType_Paeth: // Recon(x) = Filt(x) + PaethPredictor(Recon(a), Recon(b), Recon(c))
+        *mem_at_u8(scanlineData, x) += png_paeth_predictor(a, b, c);
+        break;
+      default:
+        *err = PngError_DataInvalidFilter;
+        return;
+      }
+    }
+    // Move the scanline into its final position (removing the filterType bytes).
+    mem_move(mem_slice(dataMem, scanlineSize * y, scanlineSize), scanlineData);
+  }
+
+  dynstring_resize(data, scanlineSize * header->height);
+}
+
 static PngChannels png_channels(const PngHeader* header) {
   switch (header->colorType) {
   case 0:
@@ -322,6 +400,9 @@ void asset_load_tex_png(
     png_load_fail(world, entity, id, PngError_DataUnexpectedSize);
     goto Ret;
   }
+
+  png_filter_decode(&header, channels, &pixelData, &err);
+  diag_assert(pixelData.size == pixelBytes);
 
   AssetTextureFlags flags = AssetTextureFlags_GenerateMips;
   if (png_is_normalmap(id)) {
