@@ -21,7 +21,7 @@
  * Spec: https://www.w3.org/TR/png-3/
  */
 
-#define png_max_chunks 64
+#define png_max_chunks 1024
 #define png_max_width (1024 * 16)
 #define png_max_height (1024 * 16)
 
