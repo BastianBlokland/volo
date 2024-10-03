@@ -9,6 +9,7 @@
 #include "log_logger.h"
 
 #include "loader_texture_internal.h"
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 /**
@@ -251,7 +252,7 @@ static void png_filter_decode(
   const usize scanlineInputSize = scanlineSize + 1; // + 1 byte for filterType.
 
   for (u32 y = 0; y != header->height; ++y) {
-    Mem scanlineData = mem_slice(dataMem, scanlineSize * y, scanlineInputSize);
+    Mem scanlineData = mem_slice(dataMem, scanlineInputSize * y, scanlineInputSize);
 
     // Read filter.
     u8 filterType;
@@ -402,6 +403,10 @@ void asset_load_tex_png(
   }
 
   png_filter_decode(&header, channels, &pixelData, &err);
+  if (UNLIKELY(err)) {
+    png_load_fail(world, entity, id, err);
+    goto Ret;
+  }
   diag_assert(pixelData.size == pixelBytes);
 
   AssetTextureFlags flags = AssetTextureFlags_GenerateMips;
@@ -415,8 +420,20 @@ void asset_load_tex_png(
     flags |= AssetTextureFlags_Lossless;
   }
 
-  // TODO: Implement png data parsing.
-  png_load_fail(world, entity, id, PngError_Truncated);
+  AssetTextureComp* texComp = ecs_world_add_t(world, entity, AssetTextureComp);
+  *texComp                  = asset_texture_create(
+      dynstring_view(&pixelData),
+      header.width,
+      header.height,
+      channels,
+      1 /* layers */,
+      1 /* mipsSrc */,
+      0 /* mipsMax */,
+      AssetTextureType_u8,
+      flags);
+
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+  asset_cache(world, entity, g_assetTexMeta, mem_create(texComp, sizeof(AssetTextureComp)));
 
 Ret:
   dynarray_destroy(&pixelData);
