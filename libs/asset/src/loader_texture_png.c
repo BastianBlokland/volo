@@ -248,37 +248,37 @@ static i32 png_paeth_predictor(const i32 a, const i32 b, const i32 c) {
 static void png_filter_decode(
     const PngHeader* header, const PngChannels channels, DynString* data, PngError* err) {
 
-  const Mem   dataMem           = dynstring_view(data);
+  const Mem   mem               = dynstring_view(data);
   const usize scanlineSize      = header->width * channels;
   const usize scanlineInputSize = scanlineSize + 1; // + 1 byte for filterType.
 
   for (u32 y = 0; y != header->height; ++y) {
-    Mem scanlineData = mem_slice(dataMem, scanlineInputSize * y, scanlineInputSize);
+    Mem scanline = mem_slice(mem, scanlineInputSize * y, scanlineInputSize);
 
     // Read filter.
     u8 filterType;
-    scanlineData = mem_consume_u8(scanlineData, &filterType);
+    scanline = mem_consume_u8(scanline, &filterType);
 
-    for (u32 x = 0; x != header->width; ++x) {
-      const u8 a = x ? *mem_at_u8(scanlineData, x - 1) : 0;
-      const u8 b = y ? *mem_at_u8(scanlineData, x - scanlineInputSize) : 0;
-      const u8 c = x && y ? *mem_at_u8(scanlineData, x - scanlineInputSize - 1) : 0;
+    for (u32 i = 0; i != scanlineSize; ++i) {
+      const u8 a = i >= channels ? *mem_at_u8(scanline, i - channels) : 0;
+      const u8 b = y ? *mem_at_u8(mem, scanlineSize * (y - 1) + i) : 0;
+      const u8 c = i >= channels && y ? *mem_at_u8(mem, scanlineSize * (y - 1) + i - channels) : 0;
 
       // Decode filter.
       switch (filterType) {
       case PngFilterType_None: // Recon(x) = Filt(x)
         break;
       case PngFilterType_Sub: // Recon(x) = Filt(x) + Recon(a)
-        *mem_at_u8(scanlineData, x) += a;
+        *mem_at_u8(scanline, i) += a;
         break;
       case PngFilterType_Up: // Recon(x) = Filt(x) + Recon(b)
-        *mem_at_u8(scanlineData, x) += b;
+        *mem_at_u8(scanline, i) += b;
         break;
       case PngFilterType_Average: // Recon(x) = Filt(x) + floor((Recon(a) + Recon(b)) / 2)
-        *mem_at_u8(scanlineData, x) += (a + b) / 2;
+        *mem_at_u8(scanline, i) += ((u32)a + (u32)b) / 2;
         break;
       case PngFilterType_Paeth: // Recon(x) = Filt(x) + PaethPredictor(Recon(a), Recon(b), Recon(c))
-        *mem_at_u8(scanlineData, x) += png_paeth_predictor(a, b, c);
+        *mem_at_u8(scanline, i) += (u8)png_paeth_predictor(a, b, c);
         break;
       default:
         *err = PngError_DataInvalidFilter;
@@ -286,7 +286,7 @@ static void png_filter_decode(
       }
     }
     // Move the scanline into its final position (removing the filterType bytes).
-    mem_move(mem_slice(dataMem, scanlineSize * y, scanlineSize), scanlineData);
+    mem_move(mem_slice(mem, scanlineSize * y, scanlineSize), scanline);
   }
 
   dynstring_resize(data, scanlineSize * header->height);
