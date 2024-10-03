@@ -53,6 +53,7 @@ typedef enum {
   PngError_EndChunkMissing,
   PngError_DataMissing,
   PngError_DataMalformed,
+  PngError_DataUnexpectedSize,
   PngError_UnsupportedColorType,
   PngError_UnsupportedCompression,
   PngError_UnsupportedFilter,
@@ -75,6 +76,7 @@ static String png_error_str(const PngError err) {
       string_static("Png end chunk missing"),
       string_static("Png data missing"),
       string_static("Png data malformed"),
+      string_static("Png unexpected data size"),
       string_static("Unsupported png color-type (only R, RGB, and RGBA supported)"),
       string_static("Unsupported png compression method"),
       string_static("Unsupported png filter method"),
@@ -306,10 +308,18 @@ void asset_load_tex_png(
     goto Ret;
   }
 
-  dynstring_reserve(&pixelData, header.width * header.height * channels);
+  const usize filterBytes = header.height * sizeof(u8);
+  const usize pixelBytes  = header.width * header.height * channels;
+  dynstring_reserve(&pixelData, pixelBytes + filterBytes);
+
   png_read_data(chunks, chunkCount, &pixelData, &err);
   if (UNLIKELY(err)) {
     png_load_fail(world, entity, id, err);
+    goto Ret;
+  }
+
+  if (UNLIKELY(pixelData.size != pixelBytes + filterBytes)) {
+    png_load_fail(world, entity, id, PngError_DataUnexpectedSize);
     goto Ret;
   }
 
