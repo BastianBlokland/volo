@@ -210,10 +210,11 @@ static void png_read_data(const PngChunk chunks[], const u32 count, DynString* o
         mem_cpy(mem_consume(dataCombined, dataOffset), chunks[i].data);
       } else {
         dataCombined = chunks[i].data;
-        break;
       }
+      dataOffset += chunks[i].data.size;
     }
   }
+  diag_assert(dataOffset = dataChunkSize);
 
   ZlibError zlibErr;
   zlib_decode(dataCombined, out, &zlibErr);
