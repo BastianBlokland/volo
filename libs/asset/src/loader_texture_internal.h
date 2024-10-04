@@ -18,6 +18,11 @@ usize asset_texture_type_size(
     AssetTextureType, u32 channels, u32 width, u32 height, u32 layers, u32 mips);
 
 /**
+ * In-place flip (mirror) the y axis.
+ */
+void asset_texture_flip_y(Mem, u32 width, u32 height, u32 channels, AssetTextureType);
+
+/**
  * Create a new texture from the given input pixels.
  *
  * Pre-condition: width > 0

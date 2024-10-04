@@ -801,6 +801,24 @@ usize asset_texture_type_size(
   return tex_pixel_count(width, height, layers, mips) * channels * tex_type_size(type);
 }
 
+void asset_texture_flip_y(
+    const Mem              mem,
+    const u32              width,
+    const u32              height,
+    const u32              channels,
+    const AssetTextureType type) {
+  const u32 rowSize   = width * channels * tex_type_size(type);
+  const Mem rowBuffer = alloc_alloc(g_allocScratch, rowSize, 1);
+  for (u32 y = 0; y != (height / 2); ++y) {
+    const Mem rowA = mem_slice(mem, y * rowSize, rowSize);
+    const Mem rowB = mem_slice(mem, (height - y - 1) * rowSize, rowSize);
+
+    mem_cpy(rowBuffer, rowA);
+    mem_cpy(rowA, rowB);
+    mem_cpy(rowB, rowBuffer);
+  }
+}
+
 AssetTextureComp asset_texture_create(
     const Mem              in,
     const u32              width,
