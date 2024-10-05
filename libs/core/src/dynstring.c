@@ -9,13 +9,13 @@ DynString dynstring_create_over(Mem memory) { return dynarray_create_over(memory
 
 void dynstring_destroy(DynString* dynstring) { dynarray_destroy(dynstring); }
 
-usize dynstring_size(const DynString* dynstring) { return dynarray_size(dynstring); }
+usize dynstring_size(const DynString* dynstring) { return dynstring->size; }
 
 String dynstring_view(const DynString* dynstring) {
-  return dynarray_at(dynstring, 0, dynstring->size);
+  return mem_create(dynstring->data.ptr, dynstring->size);
 }
 
-void dynstring_clear(DynString* dynstring) { dynarray_clear(dynstring); }
+void dynstring_clear(DynString* dynstring) { dynstring->size = 0; }
 
 void dynstring_resize(DynString* dynstring, const usize size) { dynarray_resize(dynstring, size); }
 
@@ -28,7 +28,7 @@ void dynstring_append(DynString* dynstring, const String value) {
 }
 
 void dynstring_append_char(DynString* dynstring, const u8 val) {
-  *dynarray_push_t(dynstring, u8) = val;
+  *(u8*)dynarray_push(dynstring, 1).ptr = val;
 }
 
 void dynstring_append_chars(DynString* dynstring, const u8 val, const usize amount) {

@@ -14,14 +14,14 @@
 
 /**
  * Portable Network Graphics.
- * NOTE: Only 8 bit images are supported.
+ * NOTE: Only 8/16 bit images are supported.
  * NOTE: Indexed and or interlaced images are not supported.
  * NOTE: Grayscale with alpha is not supported.
  *
  * Spec: https://www.w3.org/TR/png-3/
  */
 
-#define png_max_chunks 1024
+#define png_max_chunks 2048
 #define png_max_width (1024 * 16)
 #define png_max_height (1024 * 16)
 
