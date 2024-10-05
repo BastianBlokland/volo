@@ -47,6 +47,20 @@ static const struct {
         .format     = AssetTextureFormat_u8_rgba,
     },
     {
+        .id         = string_static("2x2_rgb.png"),
+        .base64Data = string_static("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVQI12P4z8"
+                                    "DA8J+BkYHh////DAAe9gT9SMYJHwAAAABJRU5ErkJggg=="),
+        .pixels =
+            {
+                {0.0f, 0.0f, 1.0f, 1.0f},
+                {1.0f, 1.0f, 1.0f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.0f, 1.0f, 0.0f, 1.0f},
+            },
+        .pixelCount = 4,
+        .format     = AssetTextureFormat_u8_rgba,
+    },
+    {
         .id         = string_static("2x2_rgba.png"),
         .base64Data = string_static("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAGUlEQVQI1wXBAQ"
                                     "0AAAzDIJbcv+UeRNJNwgM+/wYAegsO9AAAAABJRU5ErkJggg=="),
