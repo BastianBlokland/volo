@@ -25,7 +25,7 @@
 #define png_max_width (1024 * 16)
 #define png_max_height (1024 * 16)
 
-static const String g_pngMagic = string_lit("\x89\x50\x4E\x47\x0D\x0A\x1A\x0A");
+static const String g_pngMagic = string_static("\x89\x50\x4E\x47\x0D\x0A\x1A\x0A");
 
 typedef struct {
   u8  type[4];
