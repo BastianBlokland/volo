@@ -314,3 +314,12 @@ void geo_color_pack_f16(const GeoColor color, f16 out[PARAM_ARRAY_SIZE(4)]) {
   out[3] = float_f32_to_f16(color.a);
 #endif
 }
+
+GeoColor geo_color_unpack_f16(const f16 in[PARAM_ARRAY_SIZE(4)]) {
+  GeoColor res;
+  res.r = float_f16_to_f32(in[0]);
+  res.g = float_f16_to_f32(in[1]);
+  res.b = float_f16_to_f32(in[2]);
+  res.a = float_f16_to_f32(in[3]);
+  return res;
+}
