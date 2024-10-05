@@ -3,6 +3,7 @@
 void app_check_configure(CheckDef* check) {
   register_spec(check, binder);
   register_spec(check, doc);
+  register_spec(check, enum_);
   register_spec(check, eval);
   register_spec(check, format);
   register_spec(check, lex);
