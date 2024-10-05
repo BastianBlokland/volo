@@ -291,7 +291,7 @@ static void png_filter_decode(
           *mem_at_u8(scanlineMem, i) += a / 2;
         }
       } else /* y > 0 */ {
-        for (u32 i = 0; i != channels; ++i) {
+        for (u32 i = 0; i != (u32)channels; ++i) {
           // First pixel: 'a' is always zero.
           const u8 b = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i);
           *mem_at_u8(scanlineMem, i) += b / 2;
@@ -312,7 +312,7 @@ static void png_filter_decode(
           *mem_at_u8(scanlineMem, i) += png_paeth_predictor(a, 0, 0);
         }
       } else /* y > 0 */ {
-        for (u32 i = 0; i != channels; ++i) {
+        for (u32 i = 0; i != (u32)channels; ++i) {
           // First pixel: 'a' and 'c' are always zero.
           const u8 b = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i);
           *mem_at_u8(scanlineMem, i) += png_paeth_predictor(0, b, 0);
