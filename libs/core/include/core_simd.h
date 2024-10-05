@@ -85,6 +85,18 @@ simd_vec_set(const f32 a, const f32 b, const f32 c, const f32 d) {
   return _mm_set_ps(d, c, b, a);
 }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_set_u16(
+    const u16 a,
+    const u16 b,
+    const u16 c,
+    const u16 d,
+    const u16 e,
+    const u16 f,
+    const u16 g,
+    const u16 h) {
+  return _mm_set_epi16(h, g, f, e, d, c, b, a);
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast(const f32 value) {
   return _mm_set1_ps(value);
 }
