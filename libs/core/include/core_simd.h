@@ -298,6 +298,14 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_f32_to_f16_soft(const SimdVec v
   return simd_vec_permute(res, 0, 0, 2, 0);
 }
 
+/**
+ * Convert four 16 bit floating point values to 32 bit.
+ * NOTE: Requires the F16C extension.
+ */
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_f16_to_f32(const SimdVec vec) {
+  return _mm_cvtph_ps(_mm_castps_si128(vec));
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_abs(const SimdVec vec) {
   return _mm_andnot_ps(simd_vec_sign_mask(), vec);
 }
