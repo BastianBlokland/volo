@@ -12,6 +12,8 @@
  * Spec: https://www.rfc-editor.org/rfc/rfc1950
  */
 
+#define VOLO_ZLIB_VALIDATE_CHECKSUM 0
+
 typedef enum {
   ZlibMethod_Deflate = 8,
 } ZlibMethod;
@@ -77,12 +79,14 @@ String zlib_decode(String input, DynString* out, ZlibError* err) {
   u32 checksum;
   input = mem_consume_be_u32(input, &checksum);
 
+#if VOLO_ZLIB_VALIDATE_CHECKSUM
   // Verify the checksum.
   const Mem outMem = mem_consume(dynstring_view(out), outOffset);
   if (UNLIKELY(bits_adler_32(1, outMem) != checksum)) {
     *err = ZlibError_ChecksumError;
     return input;
   }
+#endif
 
   *err = ZlibError_None;
   return input;
