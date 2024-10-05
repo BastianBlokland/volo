@@ -11,11 +11,26 @@
  */
 
 static const struct {
-  String   id;
-  String   base64Data;
-  GeoColor pixels[16];
-  usize    pixelCount;
+  String             id;
+  String             base64Data;
+  GeoColor           pixels[16];
+  usize              pixelCount;
+  AssetTextureFormat format;
 } g_testData[] = {
+    {
+        .id         = string_static("2x2_r.png"),
+        .base64Data = string_static("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAAAAABX3VL4AAAADklEQVQI12Nous"
+                                    "Pg9h8AB4sCpCBjt1YAAAAASUVORK5CYII="),
+        .pixels =
+            {
+                {0.27f, 0.0f, 0.0f, 1.0f},
+                {1.0f, 0.0f, 0.0f, 1.0f},
+                {0.5f, 0.0f, 0.0f, 1.0f},
+                {0.86f, 0.0f, 0.0f, 1.0f},
+            },
+        .pixelCount = 4,
+        .format     = AssetTextureFormat_u8_r,
+    },
     {
         .id         = string_static("2x2_rgba.png"),
         .base64Data = string_static("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAGUlEQVQI1wXBAQ"
@@ -28,6 +43,7 @@ static const struct {
                 {0.0f, 1.0f, 0.0f, 1.0f},
             },
         .pixelCount = 4,
+        .format     = AssetTextureFormat_u8_rgba,
     },
 };
 
@@ -87,14 +103,14 @@ spec(loader_texture_png) {
 
       check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
       const AssetTextureComp* tex = ecs_utils_read_t(world, AssetView, asset, AssetTextureComp);
-      check_eq_int(tex->format, AssetTextureFormat_u8_rgba);
+      check_eq_int(tex->format, g_testData[i].format);
       check_require(tex->height * tex->height == g_testData[i].pixelCount);
       for (usize p = 0; p != g_testData[i].pixelCount; ++p) {
-        const GeoColor colorSrgb = geo_color_linear_to_srgb(asset_texture_at(tex, 0, p));
-        check_eq_float(colorSrgb.r, g_testData[i].pixels[p].r, 1e-2);
-        check_eq_float(colorSrgb.g, g_testData[i].pixels[p].g, 1e-2);
-        check_eq_float(colorSrgb.b, g_testData[i].pixels[p].b, 1e-2);
-        check_eq_float(colorSrgb.a, g_testData[i].pixels[p].a, 1e-2);
+        const GeoColor pixel = asset_texture_at(tex, 0, p);
+        check_eq_float(pixel.r, g_testData[i].pixels[p].r, 1e-2);
+        check_eq_float(pixel.g, g_testData[i].pixels[p].g, 1e-2);
+        check_eq_float(pixel.b, g_testData[i].pixels[p].b, 1e-2);
+        check_eq_float(pixel.a, g_testData[i].pixels[p].a, 1e-2);
       }
     };
 
