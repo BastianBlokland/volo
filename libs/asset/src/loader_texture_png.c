@@ -231,8 +231,8 @@ static void png_read_data(const PngChunk chunks[], const u32 count, DynString* o
  * PaethPredictor function.
  * Based on the spec: https://www.w3.org/TR/png-3/#9Filter-type-4-Paeth
  */
-static i32 png_paeth_predictor(const i32 a, const i32 b, const i32 c) {
-  const i32 p  = a + b - c;
+static u8 png_paeth_predictor(const u8 a, const u8 b, const u8 c) {
+  const i32 p  = (i32)a + (i32)b - (i32)c;
   const i32 pA = math_abs(p - a);
   const i32 pB = math_abs(p - b);
   const i32 pC = math_abs(p - c);
@@ -314,13 +314,13 @@ static void png_filter_decode(
         for (u32 i = 0; i != channels; ++i) {
           // First pixel: 'a' and 'c' are always zero.
           const u8 b = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i);
-          *mem_at_u8(scanlineMem, i) += (u8)png_paeth_predictor(0, b, 0);
+          *mem_at_u8(scanlineMem, i) += png_paeth_predictor(0, b, 0);
         }
         for (u32 i = channels; i != scanlineBytes; ++i) {
           const u8 a = *mem_at_u8(scanlineMem, i - channels);
           const u8 b = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i);
           const u8 c = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i - channels);
-          *mem_at_u8(scanlineMem, i) += (u8)png_paeth_predictor(a, b, c);
+          *mem_at_u8(scanlineMem, i) += png_paeth_predictor(a, b, c);
         }
       }
       break;
