@@ -46,6 +46,16 @@ String dynstring_view(const DynString*);
 void dynstring_clear(DynString*);
 
 /**
+ * Change the size of the dynamic-string, will allocate when size is bigger then the capacity.
+ */
+void dynstring_resize(DynString*, usize size);
+
+/**
+ * Increase the capacity of the dynamic-string, will allocate when bigger then the current.
+ */
+void dynstring_reserve(DynString*, usize capacity);
+
+/**
  * Append all characters to the end of the given dynamic-string.
  */
 void dynstring_append(DynString*, String);

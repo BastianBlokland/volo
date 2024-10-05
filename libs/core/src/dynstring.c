@@ -17,6 +17,12 @@ String dynstring_view(const DynString* dynstring) {
 
 void dynstring_clear(DynString* dynstring) { dynarray_clear(dynstring); }
 
+void dynstring_resize(DynString* dynstring, const usize size) { dynarray_resize(dynstring, size); }
+
+void dynstring_reserve(DynString* dynstring, const usize capacity) {
+  dynarray_reserve(dynstring, capacity);
+}
+
 void dynstring_append(DynString* dynstring, const String value) {
   mem_cpy(dynarray_push(dynstring, value.size), value);
 }

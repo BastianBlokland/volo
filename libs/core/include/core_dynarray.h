@@ -127,6 +127,11 @@ usize dynarray_size(const DynArray*);
 void dynarray_resize(DynArray*, usize size);
 
 /**
+ * Increase the capacity of the dynamic-array, will allocate when bigger then the current.
+ */
+void dynarray_reserve(DynArray*, usize capacity);
+
+/**
  * Resizes the dynamic-array to be 0 length.
  */
 void dynarray_clear(DynArray*);

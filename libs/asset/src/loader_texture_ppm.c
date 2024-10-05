@@ -145,9 +145,6 @@ static String ppm_read_pixels_binary(
   /**
    * NOTE: PPM images use the top-left as the origin, while the Volo project uses the bottom-left,
    * so we have to remap the y axis.
-   *
-   * NOTE: Follows the same to RGBA conversion rules as the Vulkan spec:
-   * https://registry.khronos.org/vulkan/specs/1.0/html/chap16.html#textures-conversion-to-rgba
    */
 
   u8* data = input.ptr;
