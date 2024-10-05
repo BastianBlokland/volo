@@ -289,7 +289,23 @@ static void png_filter_decode(
     mem_move(mem_slice(mem, scanlineSize * y, scanlineSize), scanline);
   }
 
-  dynstring_resize(data, scanlineSize * header->height);
+static bool png_is_linear(const PngChunk chunks[], const u32 chunkCount) {
+  /**
+   * Most png images found in the wild are sRGB encoded (or atleast non-linear) often without any
+   * color profile data in the png file at all. Therefore we only treat textures as linear as they
+   * explicitly specify a gamma of 1.0.
+   */
+  const PngChunk* srgbChunk = png_chunk_find(chunks, chunkCount, string_lit("sRGB"));
+  if (srgbChunk) {
+    return false; // Texture is explicitly sRGB encoded.
+  }
+  const PngChunk* gammaChunk = png_chunk_find(chunks, chunkCount, string_lit("gAMA"));
+  if (gammaChunk && gammaChunk->data.size == 4) {
+    u32 gammaVal; // gamma * 100000.
+    mem_consume_be_u32(gammaChunk->data, &gammaVal);
+    return gammaVal == 100000; // Gamma 1.0 therefore linear.
+  }
+  return false; // Gamma unknown, assume sRGB.
 }
 
 static PngChannels png_channels(const PngHeader* header) {
@@ -420,7 +436,7 @@ void asset_load_tex_png(
   if (png_is_normalmap(id)) {
     // Normal maps are in linear space (and thus not sRGB).
     flags |= AssetTextureFlags_NormalMap;
-  } else if (png_chunk_find(chunks, chunkCount, string_lit("sRGB")) && channels >= 3) {
+  } else if (channels >= 3 && !png_is_linear(chunks, chunkCount)) {
     flags |= AssetTextureFlags_Srgb;
   }
   if (png_is_lossless(id)) {
