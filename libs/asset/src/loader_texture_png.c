@@ -14,7 +14,7 @@
 
 /**
  * Portable Network Graphics.
- * NOTE: Only 8 bit images are supported.
+ * NOTE: Only 8/16 bit images are supported.
  * NOTE: Indexed and or interlaced images are not supported.
  * NOTE: Grayscale with alpha is not supported.
  *
