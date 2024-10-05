@@ -35,6 +35,7 @@ typedef struct {
 typedef enum {
   PngChannels_Invalid,
   PngChannels_R    = 1,
+  PngChannels_RG   = 2, // NOTE: Png specifies this as RA but we import it as RG.
   PngChannels_RGB  = 3,
   PngChannels_RGBA = 4,
 } PngChannels;
@@ -361,6 +362,12 @@ static PngChannels png_channels(const PngHeader* header) {
     return PngChannels_R;
   case 2:
     return PngChannels_RGB;
+  case 4:
+    /**
+     * NOTE: Png specifies this as RA (single channel + alpha), unfortunately this is not something
+     * we support so we import it as RG (red + green).
+     */
+    return PngChannels_RG;
   case 6:
     return PngChannels_RGBA;
   default:
