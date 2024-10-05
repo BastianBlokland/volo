@@ -34,7 +34,7 @@ String zlib_error_str(const ZlibError err) {
 }
 
 String zlib_decode(String input, DynString* out, ZlibError* err) {
-  const usize outOffset = out->size;
+  MAYBE_UNUSED const usize outOffset = out->size;
   if (UNLIKELY(input.size < 2)) {
     *err = ZlibError_Truncated;
     return input;
