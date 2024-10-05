@@ -20,8 +20,8 @@ bind_internal(0) in f32v2 in_texcoord;
 
 bind_internal(0) out f32v4 out_color;
 
-f32v3 checker_pattern(const f32v2 texcoord) {
-  const f32v2 scaled = floor(texcoord * 100);
+f32v3 checker_pattern(const f32v2 texcoord, const f32 aspect) {
+  const f32v2 scaled = floor(f32v2(texcoord.x, texcoord.y / aspect) * 100);
   const f32   val    = max(sign(mod(scaled.x + scaled.y, 2.0)), 0.0);
   return mix(f32v3(0.2), f32v3(0.3), val);
 }
@@ -52,7 +52,8 @@ void main() {
     } else if ((u_draw.flags & c_flagsAlphaIgnore) != 0) {
       out_color = f32v4(imageColor.rgb, 1);
     } else {
-      out_color = f32v4(mix(checker_pattern(in_texcoord), imageColor.rgb, imageColor.a), 1);
+      const f32v3 checker = checker_pattern(in_texcoord, u_draw.aspect);
+      out_color           = f32v4(mix(checker, imageColor.rgb, imageColor.a), 1);
     }
     break;
   }
