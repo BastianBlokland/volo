@@ -128,13 +128,7 @@ MAYBE_UNUSED INLINE_HINT static GeoQuat val_as_quat(const ScriptVal value) {
 
 MAYBE_UNUSED INLINE_HINT static GeoColor val_as_color(const ScriptVal value) {
   f16* restrict comps = (f16*)value.bytes;
-
-  GeoColor result;
-  result.r = float_f16_to_f32(comps[0]);
-  result.g = float_f16_to_f32(comps[1]);
-  result.b = float_f16_to_f32(comps[2]);
-  result.a = float_f16_to_f32(comps[3]);
-  return result;
+  return geo_color_unpack_f16(comps);
 }
 
 MAYBE_UNUSED INLINE_HINT static EcsEntityId val_as_entity(const ScriptVal value) {
