@@ -41,6 +41,12 @@ typedef enum {
 } PngChannels;
 
 typedef enum {
+  PngType_Invalid,
+  PngType_u8  = 1,
+  PngType_u16 = 2,
+} PngType;
+
+typedef enum {
   PngFilterType_None,
   PngFilterType_Sub,
   PngFilterType_Up,
@@ -96,7 +102,7 @@ static String png_error_str(const PngError err) {
       string_static("Unsupported png compression method"),
       string_static("Unsupported png filter method"),
       string_static("Unsupported png interlace method (only non-interlaced is supported)"),
-      string_static("Unsupported image bit depth (only 8 bit supported)"),
+      string_static("Unsupported image bit depth (only 8/16 bit are supported)"),
       string_static("Unsupported image size"),
   };
   ASSERT(array_elems(g_msgs) == PngError_Count, "Incorrect number of png-error messages");
@@ -247,11 +253,16 @@ static u8 png_paeth_predictor(const u8 a, const u8 b, const u8 c) {
 }
 
 static void png_filter_decode(
-    const PngHeader* header, const PngChannels channels, DynString* data, PngError* err) {
+    const PngHeader*  header,
+    const PngType     type,
+    const PngChannels channels,
+    DynString*        data,
+    PngError*         err) {
 
-  const Mem   dataMem            = dynstring_view(data);
-  const usize scanlineBytes      = header->width * channels;
-  const usize scanlineInputBytes = scanlineBytes + 1; // + 1 byte for filterType.
+  const Mem dataMem            = dynstring_view(data);
+  const u32 pixelBytes         = (u32)channels * (u32)type;
+  const u32 scanlineBytes      = pixelBytes * header->width;
+  const u32 scanlineInputBytes = scanlineBytes + 1; // + 1 byte for filterType.
 
   /**
    * Inplace decode the filters for each scanline.
@@ -268,9 +279,9 @@ static void png_filter_decode(
     case PngFilterType_None: // Recon(x) = Filt(x).
       break;
     case PngFilterType_Sub: // Recon(x) = Filt(x) + Recon(a).
-      for (u32 i = channels; i != scanlineBytes; ++i) {
+      for (u32 i = pixelBytes; i != scanlineBytes; ++i) {
         // NOTE: Skip the first pixel as 'a' is always zero.
-        const u8 a = *mem_at_u8(scanlineMem, i - channels);
+        const u8 a = *mem_at_u8(scanlineMem, i - pixelBytes);
         *mem_at_u8(scanlineMem, i) += a;
       }
       break;
@@ -285,19 +296,19 @@ static void png_filter_decode(
       break;
     case PngFilterType_Average: // Recon(x) = Filt(x) + floor((Recon(a) + Recon(b)) / 2)
       if (y == 0) {
-        for (u32 i = channels; i != scanlineBytes; ++i) {
+        for (u32 i = pixelBytes; i != scanlineBytes; ++i) {
           // First scanline: 'b' is always zero.
-          const u8 a = *mem_at_u8(scanlineMem, i - channels);
+          const u8 a = *mem_at_u8(scanlineMem, i - pixelBytes);
           *mem_at_u8(scanlineMem, i) += a / 2;
         }
       } else /* y > 0 */ {
-        for (u32 i = 0; i != (u32)channels; ++i) {
+        for (u32 i = 0; i != pixelBytes; ++i) {
           // First pixel: 'a' is always zero.
           const u8 b = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i);
           *mem_at_u8(scanlineMem, i) += b / 2;
         }
-        for (u32 i = channels; i != scanlineBytes; ++i) {
-          const u32 a = *mem_at_u8(scanlineMem, i - channels);
+        for (u32 i = pixelBytes; i != scanlineBytes; ++i) {
+          const u32 a = *mem_at_u8(scanlineMem, i - pixelBytes);
           const u32 b = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i);
           *mem_at_u8(scanlineMem, i) += (a + b) / 2;
         }
@@ -307,20 +318,20 @@ static void png_filter_decode(
       if (y == 0) {
         // First scanline: 'b' and 'c' are always zero.
         // NOTE: Skip the first scanline as 'a' is always zero there as well.
-        for (u32 i = channels; i != scanlineBytes; ++i) {
-          const u8 a = *mem_at_u8(scanlineMem, i - channels);
+        for (u32 i = pixelBytes; i != scanlineBytes; ++i) {
+          const u8 a = *mem_at_u8(scanlineMem, i - pixelBytes);
           *mem_at_u8(scanlineMem, i) += png_paeth_predictor(a, 0, 0);
         }
       } else /* y > 0 */ {
-        for (u32 i = 0; i != (u32)channels; ++i) {
+        for (u32 i = 0; i != pixelBytes; ++i) {
           // First pixel: 'a' and 'c' are always zero.
           const u8 b = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i);
           *mem_at_u8(scanlineMem, i) += png_paeth_predictor(0, b, 0);
         }
-        for (u32 i = channels; i != scanlineBytes; ++i) {
-          const u8 a = *mem_at_u8(scanlineMem, i - channels);
+        for (u32 i = pixelBytes; i != scanlineBytes; ++i) {
+          const u8 a = *mem_at_u8(scanlineMem, i - pixelBytes);
           const u8 b = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i);
-          const u8 c = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i - channels);
+          const u8 c = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i - pixelBytes);
           *mem_at_u8(scanlineMem, i) += png_paeth_predictor(a, b, c);
         }
       }
@@ -354,6 +365,17 @@ static bool png_is_linear(const PngChunk chunks[], const u32 chunkCount) {
     return gammaVal == 100000; // Gamma 1.0 therefore linear.
   }
   return false; // Gamma unknown, assume sRGB.
+}
+
+static PngType png_type(const PngHeader* header) {
+  switch (header->bitDepth) {
+  case 8:
+    return PngType_u8;
+  case 16:
+    return PngType_u16;
+  default:
+    return PngType_Invalid;
+  }
 }
 
 static PngChannels png_channels(const PngHeader* header) {
@@ -401,6 +423,17 @@ static bool png_is_lossless(const String id) {
   return string_match_glob(id, string_lit("*_lossless*"), StringMatchFlags_IgnoreCase);
 }
 
+static AssetTextureType png_tex_type(const PngType type) {
+  switch (type) {
+  case PngType_u8:
+    return AssetTextureType_u8;
+  case PngType_u16:
+    return AssetTextureType_u16;
+  default:
+    diag_crash();
+  }
+}
+
 void asset_load_tex_png(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
 
@@ -428,6 +461,11 @@ void asset_load_tex_png(
     png_load_fail(world, entity, id, err);
     goto Ret;
   }
+  const PngType type = png_type(&header);
+  if (UNLIKELY(!type)) {
+    png_load_fail(world, entity, id, PngError_UnsupportedBitDepth);
+    goto Ret;
+  }
   const PngChannels channels = png_channels(&header);
   if (UNLIKELY(!channels)) {
     png_load_fail(world, entity, id, PngError_UnsupportedColorType);
@@ -439,10 +477,6 @@ void asset_load_tex_png(
   }
   if (UNLIKELY(header.width > png_max_width || header.height > png_max_height)) {
     png_load_fail(world, entity, id, PngError_UnsupportedSize);
-    goto Ret;
-  }
-  if (UNLIKELY(header.bitDepth != 8)) {
-    png_load_fail(world, entity, id, PngError_UnsupportedBitDepth);
     goto Ret;
   }
   if (UNLIKELY(header.compressionMethod)) {
@@ -459,7 +493,7 @@ void asset_load_tex_png(
   }
 
   const usize filterBytes = header.height * sizeof(u8);
-  const usize pixelBytes  = header.width * header.height * channels;
+  const usize pixelBytes  = header.width * header.height * channels * type;
   dynstring_reserve(&pixelData, pixelBytes + filterBytes);
 
   png_read_data(chunks, chunkCount, &pixelData, &err);
@@ -473,24 +507,24 @@ void asset_load_tex_png(
     goto Ret;
   }
 
-  png_filter_decode(&header, channels, &pixelData, &err);
+  png_filter_decode(&header, type, channels, &pixelData, &err);
   if (UNLIKELY(err)) {
     png_load_fail(world, entity, id, err);
     goto Ret;
   }
   diag_assert(pixelData.size == pixelBytes);
 
-  const AssetTextureType type = AssetTextureType_u8;
   /**
    * Png defined y0 as the top-left and we are using y0 as bottom-left so we need to flip.
    */
-  asset_texture_flip_y(dynstring_view(&pixelData), header.width, header.height, channels, type);
+  const AssetTextureType texType = png_tex_type(type);
+  asset_texture_flip_y(dynstring_view(&pixelData), header.width, header.height, channels, texType);
 
   AssetTextureFlags flags = AssetTextureFlags_GenerateMips;
   if (png_is_normalmap(id)) {
     // Normal maps are in linear space (and thus not sRGB).
     flags |= AssetTextureFlags_NormalMap;
-  } else if (channels >= 3 && !png_is_linear(chunks, chunkCount)) {
+  } else if (channels >= 3 && type == PngType_u8 && !png_is_linear(chunks, chunkCount)) {
     flags |= AssetTextureFlags_Srgb;
   }
   if (png_is_lossless(id)) {
@@ -506,7 +540,7 @@ void asset_load_tex_png(
       1 /* layers */,
       1 /* mipsSrc */,
       0 /* mipsMax */,
-      type,
+      texType,
       flags);
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
