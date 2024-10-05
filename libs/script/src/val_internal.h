@@ -83,11 +83,8 @@ MAYBE_UNUSED INLINE_HINT static ScriptVal val_quat(const GeoQuat q) {
 
 MAYBE_UNUSED INLINE_HINT static ScriptVal val_color(const GeoColor value) {
   ScriptVal result;
-  f16* restrict resultComps         = (f16*)result.bytes;
-  resultComps[0]                    = float_f32_to_f16(value.r);
-  resultComps[1]                    = float_f32_to_f16(value.g);
-  resultComps[2]                    = float_f32_to_f16(value.b);
-  resultComps[3]                    = float_f32_to_f16(value.a);
+  f16* restrict resultComps = (f16*)result.bytes;
+  geo_color_pack_f16(value, resultComps);
   result.bytes[val_type_byte_index] = ScriptType_Color;
   return result;
 }
