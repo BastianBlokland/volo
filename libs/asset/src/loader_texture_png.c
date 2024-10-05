@@ -410,6 +410,12 @@ void asset_load_tex_png(
   }
   diag_assert(pixelData.size == pixelBytes);
 
+  const AssetTextureType type = AssetTextureType_u8;
+  /**
+   * Png defined y0 as the top-left and we are using y0 as bottom-left so we need to flip.
+   */
+  asset_texture_flip_y(dynstring_view(&pixelData), header.width, header.height, channels, type);
+
   AssetTextureFlags flags = AssetTextureFlags_GenerateMips;
   if (png_is_normalmap(id)) {
     // Normal maps are in linear space (and thus not sRGB).
@@ -430,7 +436,7 @@ void asset_load_tex_png(
       1 /* layers */,
       1 /* mipsSrc */,
       0 /* mipsMax */,
-      AssetTextureType_u8,
+      type,
       flags);
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
