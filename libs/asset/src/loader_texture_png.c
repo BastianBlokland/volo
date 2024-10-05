@@ -248,46 +248,93 @@ static i32 png_paeth_predictor(const i32 a, const i32 b, const i32 c) {
 static void png_filter_decode(
     const PngHeader* header, const PngChannels channels, DynString* data, PngError* err) {
 
-  const Mem   mem               = dynstring_view(data);
-  const usize scanlineSize      = header->width * channels;
-  const usize scanlineInputSize = scanlineSize + 1; // + 1 byte for filterType.
+  const Mem   dataMem            = dynstring_view(data);
+  const usize scanlineBytes      = header->width * channels;
+  const usize scanlineInputBytes = scanlineBytes + 1; // + 1 byte for filterType.
 
+  /**
+   * Inplace decode the filters for each scanline.
+   */
   for (u32 y = 0; y != header->height; ++y) {
-    Mem scanline = mem_slice(mem, scanlineInputSize * y, scanlineInputSize);
+    Mem scanlineMem = mem_slice(dataMem, scanlineInputBytes * y, scanlineInputBytes);
 
     // Read filter.
     u8 filterType;
-    scanline = mem_consume_u8(scanline, &filterType);
+    scanlineMem = mem_consume_u8(scanlineMem, &filterType);
 
-    for (u32 i = 0; i != scanlineSize; ++i) {
-      const u8 a = i >= channels ? *mem_at_u8(scanline, i - channels) : 0;
-      const u8 b = y ? *mem_at_u8(mem, scanlineSize * (y - 1) + i) : 0;
-      const u8 c = i >= channels && y ? *mem_at_u8(mem, scanlineSize * (y - 1) + i - channels) : 0;
-
-      // Decode filter.
-      switch (filterType) {
-      case PngFilterType_None: // Recon(x) = Filt(x)
-        break;
-      case PngFilterType_Sub: // Recon(x) = Filt(x) + Recon(a)
-        *mem_at_u8(scanline, i) += a;
-        break;
-      case PngFilterType_Up: // Recon(x) = Filt(x) + Recon(b)
-        *mem_at_u8(scanline, i) += b;
-        break;
-      case PngFilterType_Average: // Recon(x) = Filt(x) + floor((Recon(a) + Recon(b)) / 2)
-        *mem_at_u8(scanline, i) += ((u32)a + (u32)b) / 2;
-        break;
-      case PngFilterType_Paeth: // Recon(x) = Filt(x) + PaethPredictor(Recon(a), Recon(b), Recon(c))
-        *mem_at_u8(scanline, i) += (u8)png_paeth_predictor(a, b, c);
-        break;
-      default:
-        *err = PngError_DataInvalidFilter;
-        return;
+    // Decode filter.
+    switch (filterType) {
+    case PngFilterType_None: // Recon(x) = Filt(x).
+      break;
+    case PngFilterType_Sub: // Recon(x) = Filt(x) + Recon(a).
+      for (u32 i = channels; i != scanlineBytes; ++i) {
+        // NOTE: Skip the first pixel as 'a' is always zero.
+        const u8 a = *mem_at_u8(scanlineMem, i - channels);
+        *mem_at_u8(scanlineMem, i) += a;
       }
+      break;
+    case PngFilterType_Up: // Recon(x) = Filt(x) + Recon(b)
+      if (y != 0) {
+        // NOTE: Skip the first scanline as 'b' is always zero.
+        for (u32 i = 0; i != scanlineBytes; ++i) {
+          const u8 b = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i);
+          *mem_at_u8(scanlineMem, i) += b;
+        }
+      }
+      break;
+    case PngFilterType_Average: // Recon(x) = Filt(x) + floor((Recon(a) + Recon(b)) / 2)
+      if (y == 0) {
+        for (u32 i = channels; i != scanlineBytes; ++i) {
+          // First scanline: 'b' is always zero.
+          const u8 a = *mem_at_u8(scanlineMem, i - channels);
+          *mem_at_u8(scanlineMem, i) += a / 2;
+        }
+      } else /* y > 0 */ {
+        for (u32 i = 0; i != channels; ++i) {
+          // First pixel: 'a' is always zero.
+          const u8 b = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i);
+          *mem_at_u8(scanlineMem, i) += b / 2;
+        }
+        for (u32 i = channels; i != scanlineBytes; ++i) {
+          const u32 a = *mem_at_u8(scanlineMem, i - channels);
+          const u32 b = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i);
+          *mem_at_u8(scanlineMem, i) += (a + b) / 2;
+        }
+      }
+      break;
+    case PngFilterType_Paeth: // Recon(x) = Filt(x) + PaethPredictor(Recon(a), Recon(b), Recon(c))
+      if (y == 0) {
+        // First scanline: 'b' and 'c' are always zero.
+        // NOTE: Skip the first scanline as 'a' is always zero there as well.
+        for (u32 i = channels; i != scanlineBytes; ++i) {
+          const u8 a = *mem_at_u8(scanlineMem, i - channels);
+          *mem_at_u8(scanlineMem, i) += png_paeth_predictor(a, 0, 0);
+        }
+      } else /* y > 0 */ {
+        for (u32 i = 0; i != channels; ++i) {
+          // First pixel: 'a' and 'c' are always zero.
+          const u8 b = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i);
+          *mem_at_u8(scanlineMem, i) += (u8)png_paeth_predictor(0, b, 0);
+        }
+        for (u32 i = channels; i != scanlineBytes; ++i) {
+          const u8 a = *mem_at_u8(scanlineMem, i - channels);
+          const u8 b = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i);
+          const u8 c = *mem_at_u8(dataMem, scanlineBytes * (y - 1) + i - channels);
+          *mem_at_u8(scanlineMem, i) += (u8)png_paeth_predictor(a, b, c);
+        }
+      }
+      break;
+    default:
+      *err = PngError_DataInvalidFilter;
+      return;
     }
+
     // Move the scanline into its final position (removing the filterType bytes).
-    mem_move(mem_slice(mem, scanlineSize * y, scanlineSize), scanline);
+    mem_move(mem_slice(dataMem, scanlineBytes * y, scanlineBytes), scanlineMem);
   }
+
+  dynstring_resize(data, scanlineBytes * header->height);
+}
 
 static bool png_is_linear(const PngChunk chunks[], const u32 chunkCount) {
   /**
