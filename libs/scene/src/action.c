@@ -477,6 +477,10 @@ ecs_module_init(scene_action_module) {
   ecs_order(SceneActionUpdateSys, SceneOrder_Action);
 }
 
+SceneActionQueueComp* scene_action_queue_add(EcsWorld* w, const EcsEntityId entity) {
+  return ecs_world_add_t(w, entity, SceneActionQueueComp);
+}
+
 SceneAction* scene_action_push(SceneActionQueueComp* q, const SceneActionType type) {
   if (q->count == q->cap) {
     action_queue_grow(q);

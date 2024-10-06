@@ -167,6 +167,8 @@ typedef union {
 
 ecs_comp_extern(SceneActionQueueComp);
 
+SceneActionQueueComp* scene_action_queue_add(EcsWorld*, EcsEntityId entity);
+
 /**
  * TODO:
  * Document invalidate after next push.
