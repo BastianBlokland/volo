@@ -9,6 +9,7 @@
 #include "core_thread.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "scene_action.h"
 #include "scene_attachment.h"
 #include "scene_attack.h"
 #include "scene_bark.h"
@@ -149,34 +150,59 @@ static void eval_enum_init_target_exclude(void) {
 }
 
 static void eval_enum_init_renderable_param(void) {
-  script_enum_push(&g_scriptEnumRenderableParam, string_lit("Color"), 0);
-  script_enum_push(&g_scriptEnumRenderableParam, string_lit("Alpha"), 1);
-  script_enum_push(&g_scriptEnumRenderableParam, string_lit("Emissive"), 2);
+#define PUSH_RENDERABLE_PARAM(_ENUM_, _NAME_)                                                      \
+  script_enum_push((_ENUM_), string_lit(#_NAME_), SceneActionRenderableParam_##_NAME_);
+
+  PUSH_RENDERABLE_PARAM(&g_scriptEnumRenderableParam, Color);
+  PUSH_RENDERABLE_PARAM(&g_scriptEnumRenderableParam, Alpha);
+  PUSH_RENDERABLE_PARAM(&g_scriptEnumRenderableParam, Emissive);
+
+#undef PUSH_RENDERABLE_PARAM
 }
 
 static void eval_enum_init_vfx_param(void) {
-  script_enum_push(&g_scriptEnumVfxParam, string_lit("Alpha"), 0);
-  script_enum_push(&g_scriptEnumVfxParam, string_lit("EmitMultiplier"), 1);
+#define PUSH_VFX_PARAM(_ENUM_, _NAME_)                                                             \
+  script_enum_push((_ENUM_), string_lit(#_NAME_), SceneActionVfxParam_##_NAME_);
+
+  PUSH_VFX_PARAM(&g_scriptEnumVfxParam, Alpha);
+  PUSH_VFX_PARAM(&g_scriptEnumVfxParam, EmitMultiplier);
+
+#undef PUSH_VFX_PARAM
 }
 
 static void eval_enum_init_light_param(void) {
-  script_enum_push(&g_scriptEnumLightParam, string_lit("Radiance"), 0);
+#define PUSH_LIGHT_PARAM(_ENUM_, _NAME_)                                                           \
+  script_enum_push((_ENUM_), string_lit(#_NAME_), SceneActionLightParam_##_NAME_);
+
+  PUSH_LIGHT_PARAM(&g_scriptEnumLightParam, Radiance);
+
+#undef PUSH_LIGHT_PARAM
 }
 
 static void eval_enum_init_sound_param(void) {
-  script_enum_push(&g_scriptEnumSoundParam, string_lit("Gain"), 0);
-  script_enum_push(&g_scriptEnumSoundParam, string_lit("Pitch"), 1);
+#define PUSH_SOUND_PARAM(_ENUM_, _NAME_)                                                           \
+  script_enum_push((_ENUM_), string_lit(#_NAME_), SceneActionSoundParam_##_NAME_);
+
+  PUSH_SOUND_PARAM(&g_scriptEnumSoundParam, Gain);
+  PUSH_SOUND_PARAM(&g_scriptEnumSoundParam, Pitch);
+
+#undef PUSH_SOUND_PARAM
 }
 
 static void eval_enum_init_anim_param(void) {
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("Time"), 0);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("TimeNorm"), 1);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("Speed"), 2);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("Weight"), 3);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("Loop"), 4);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("FadeIn"), 5);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("FadeOut"), 6);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("Duration"), 7);
+#define PUSH_ANIM_PARAM(_ENUM_, _NAME_)                                                            \
+  script_enum_push((_ENUM_), string_lit(#_NAME_), SceneActionAnimParam_##_NAME_);
+
+  PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, Time);
+  PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, TimeNorm);
+  PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, Speed);
+  PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, Weight);
+  PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, Loop);
+  PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, FadeIn);
+  PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, FadeOut);
+  PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, Duration);
+
+#undef PUSH_ANIM_PARAM
 }
 
 static void eval_enum_init_layer(void) {
@@ -2893,6 +2919,8 @@ SceneScriptComp* scene_script_add(
     diag_assert(ecs_world_exists(world, scriptAssets[i]));
     script->slots[i].asset = scriptAssets[i];
   }
+
+  scene_action_queue_add(world, entity);
 
   return script;
 }
