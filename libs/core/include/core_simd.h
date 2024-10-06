@@ -113,6 +113,10 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast_u32(const u32 value) 
   return _mm_castsi128_ps(_mm_set1_epi32(value));
 }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast_i32(const i32 value) {
+  return _mm_castsi128_ps(_mm_set1_epi32(value));
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast_u64(const u64 value) {
   return _mm_castsi128_ps(_mm_set1_epi64((__m64)value));
 }
