@@ -6,6 +6,7 @@
 #include "core_rng.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "scene_action.h"
 #include "scene_attachment.h"
 #include "scene_attack.h"
 #include "scene_bark.h"
@@ -368,6 +369,7 @@ static void setup_script(
     const AssetPrefabTraitScript* t) {
 
   scene_script_add(w, e, t->scriptAssets, t->scriptAssetCount);
+  scene_action_queue_add(w, e);
 
   SceneKnowledgeComp* knowledge = scene_knowledge_add(w, e);
   for (u16 i = 0; i != t->knowledgeCount; ++i) {
