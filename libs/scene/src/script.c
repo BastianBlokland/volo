@@ -324,8 +324,8 @@ typedef struct {
   EcsEntityId            instigator;
   SceneFaction           instigatorFaction;
   SceneScriptSlot        slot;
-  SceneScriptComp*       scriptInstance;
-  SceneKnowledgeComp*    scriptKnowledge;
+  SceneScriptComp*       instance;
+  SceneKnowledgeComp*    knowledge;
   const AssetScriptComp* scriptAsset;
   String                 scriptId;
   SceneActionQueueComp*  actions;
@@ -1058,9 +1058,9 @@ static ScriptVal eval_nav_travel(EvalContext* ctx, const ScriptArgs args, Script
     }
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_NavTravel);
     act->navTravel   = (SceneActionNavTravel){
-        .entity         = entity,
-        .targetEntity   = script_arg_maybe_entity(args, 1, ecs_entity_invalid),
-        .targetPosition = script_arg_maybe_vec3(args, 1, geo_vector(0)),
+          .entity         = entity,
+          .targetEntity   = script_arg_maybe_entity(args, 1, ecs_entity_invalid),
+          .targetPosition = script_arg_maybe_vec3(args, 1, geo_vector(0)),
     };
   }
   return script_null();
@@ -1125,8 +1125,8 @@ static ScriptVal eval_damage(EvalContext* ctx, const ScriptArgs args, ScriptErro
   if (LIKELY(entity) && amount > f32_epsilon) {
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_HealthMod);
     act->healthMod   = (SceneActionHealthMod){
-        .entity = entity,
-        .amount = -amount /* negate for damage */,
+          .entity = entity,
+          .amount = -amount /* negate for damage */,
     };
   }
   return script_null();
@@ -1781,7 +1781,7 @@ static ScriptVal eval_debug_text(EvalContext* ctx, const ScriptArgs args, Script
   if (UNLIKELY(script_error_valid(err)) || !buffer.size) {
     return script_null();
   }
-  data.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1);
+  data.text = ctx->transientDup(ctx->instance, dynstring_view(&buffer), 1);
   *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
       .type      = SceneScriptDebugType_Text,
       .slot      = ctx->slot,
@@ -1803,7 +1803,7 @@ static ScriptVal eval_debug_trace(EvalContext* ctx, const ScriptArgs args, Scrip
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type            = SceneScriptDebugType_Trace,
         .slot            = ctx->slot,
-        .data_trace.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1),
+        .data_trace.text = ctx->transientDup(ctx->instance, dynstring_view(&buffer), 1),
     };
   }
   return script_null();
@@ -2103,8 +2103,8 @@ ecs_system_define(SceneScriptResourceUnloadChangedSys) {
 }
 
 static void scene_script_eval(EvalContext* ctx) {
-  SceneScriptData* data = &ctx->scriptInstance->slots[ctx->slot];
-  if (UNLIKELY(ctx->scriptInstance->flags & SceneScriptFlags_PauseEvaluation)) {
+  SceneScriptData* data = &ctx->instance->slots[ctx->slot];
+  if (UNLIKELY(ctx->instance->flags & SceneScriptFlags_PauseEvaluation)) {
     data->stats = (SceneScriptStats){0};
     data->panic = (ScriptPanic){0};
     return;
@@ -2112,7 +2112,7 @@ static void scene_script_eval(EvalContext* ctx) {
 
   const ScriptDoc* doc  = ctx->scriptAsset->doc;
   const ScriptExpr expr = ctx->scriptAsset->expr;
-  ScriptMem*       mem  = scene_knowledge_memory_mut(ctx->scriptKnowledge);
+  ScriptMem*       mem  = scene_knowledge_memory_mut(ctx->knowledge);
 
   const TimeSteady startTime = time_steady_clock();
 
@@ -2128,7 +2128,7 @@ static void scene_script_eval(EvalContext* ctx) {
         log_param("script", fmt_text(ctx->scriptId)),
         log_param("entity", ecs_entity_fmt(ctx->instigator)));
 
-    ctx->scriptInstance->flags |= SceneScriptFlags_DidPanic;
+    ctx->instance->flags |= SceneScriptFlags_DidPanic;
     data->panic = evalRes.panic;
   } else {
     data->panic = (ScriptPanic){0};
@@ -2198,19 +2198,19 @@ ecs_system_define(SceneScriptUpdateSys) {
 
     ctx.instigator        = ecs_view_entity(itr);
     ctx.instigatorFaction = factionComp ? factionComp->id : SceneFaction_None;
-    ctx.scriptInstance    = ecs_view_write_t(itr, SceneScriptComp);
-    ctx.scriptKnowledge   = ecs_view_write_t(itr, SceneKnowledgeComp);
+    ctx.instance          = ecs_view_write_t(itr, SceneScriptComp);
+    ctx.knowledge         = ecs_view_write_t(itr, SceneKnowledgeComp);
     ctx.actions           = ecs_view_write_t(itr, SceneActionQueueComp);
-    ctx.debug             = &ctx.scriptInstance->debug;
+    ctx.debug             = &ctx.instance->debug;
 
     // Clear the previous frame transient data.
-    if (ctx.scriptInstance->allocTransient) {
-      alloc_reset(ctx.scriptInstance->allocTransient);
+    if (ctx.instance->allocTransient) {
+      alloc_reset(ctx.instance->allocTransient);
     }
     dynarray_clear(ctx.debug);
 
-    for (SceneScriptSlot slot = 0; slot != ctx.scriptInstance->slotCount; ++slot) {
-      SceneScriptData* data = &ctx.scriptInstance->slots[slot];
+    for (SceneScriptSlot slot = 0; slot != ctx.instance->slotCount; ++slot) {
+      SceneScriptData* data = &ctx.instance->slots[slot];
       ctx.slot              = slot;
       ctx.usedQueries       = 0;
 
@@ -2221,7 +2221,7 @@ ecs_system_define(SceneScriptUpdateSys) {
 
         const u8 version = ecs_view_read_t(resourceAssetItr, SceneScriptResourceComp)->resVersion;
         if (UNLIKELY(data->resVersion != version)) {
-          ctx.scriptInstance->flags &= ~SceneScriptFlags_DidPanic;
+          ctx.instance->flags &= ~SceneScriptFlags_DidPanic;
           data->resVersion = version;
         }
         scene_script_eval(&ctx);
