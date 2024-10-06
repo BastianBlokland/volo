@@ -1195,9 +1195,9 @@ static ScriptVal eval_nav_travel(EvalContext* ctx, const ScriptArgs args, Script
     }
     ScriptAction* act = action_push(ctx, ScriptActionType_NavTravel);
     act->navTravel    = (ScriptActionNavTravel){
-           .entity         = entity,
-           .targetEntity   = script_arg_maybe_entity(args, 1, ecs_entity_invalid),
-           .targetPosition = script_arg_maybe_vec3(args, 1, geo_vector(0)),
+        .entity         = entity,
+        .targetEntity   = script_arg_maybe_entity(args, 1, ecs_entity_invalid),
+        .targetPosition = script_arg_maybe_vec3(args, 1, geo_vector(0)),
     };
   }
   return script_null();
@@ -1262,8 +1262,8 @@ static ScriptVal eval_damage(EvalContext* ctx, const ScriptArgs args, ScriptErro
   if (LIKELY(entity) && amount > f32_epsilon) {
     ScriptAction* act = action_push(ctx, ScriptActionType_HealthMod);
     act->healthMod    = (ScriptActionHealthMod){
-           .entity = entity,
-           .amount = -amount /* negate for damage */,
+        .entity = entity,
+        .amount = -amount /* negate for damage */,
     };
   }
   return script_null();
@@ -2825,7 +2825,7 @@ ecs_module_init(scene_script_module) {
       ecs_register_view(ActionSoundView),
       ecs_register_view(ActionAnimView));
 
-  ecs_order(ScriptActionApplySys, SceneOrder_ScriptActionApply);
+  ecs_order(ScriptActionApplySys, SceneOrder_Action);
 }
 
 SceneScriptFlags scene_script_flags(const SceneScriptComp* script) { return script->flags; }
