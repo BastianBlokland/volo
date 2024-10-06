@@ -20,7 +20,10 @@
 typedef u8 ActionTypeStorage;
 
 /**
- * TODO: Document queue layout.
+ * Queue memory layout:
+ * - ScriptAction      [capacity]
+ * - ActionTypeStorage [capacity]
+ * - u8                [padding]
  */
 ecs_comp_define(SceneActionQueueComp) {
   void* data;

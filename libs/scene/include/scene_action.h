@@ -9,7 +9,7 @@
 #include "script_val.h"
 
 /**
- * TODO:
+ * Per-entity action queue.
  */
 
 typedef enum {
@@ -201,7 +201,7 @@ ecs_comp_extern(SceneActionQueueComp);
 SceneActionQueueComp* scene_action_queue_add(EcsWorld*, EcsEntityId entity);
 
 /**
- * TODO:
- * Document invalidate after next push.
+ * Queue an action to be executed at the next 'SceneOrder_Action' update.
+ * NOTE: Returned pointer is invalidated on the next push to the same queue.
  */
 SceneAction* scene_action_push(SceneActionQueueComp*, SceneActionType);
