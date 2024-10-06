@@ -133,10 +133,14 @@ typedef struct {
   f32                 value;
 } SceneActionUpdateVfxParam;
 
+typedef enum {
+  SceneActionLightParam_Radiance,
+} SceneActionLightParam;
+
 typedef struct {
-  EcsEntityId entity;
-  i32         param;
-  GeoColor    value;
+  EcsEntityId           entity;
+  SceneActionLightParam param;
+  GeoColor              value;
 } SceneActionUpdateLightParam;
 
 typedef struct {

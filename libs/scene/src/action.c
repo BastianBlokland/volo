@@ -291,7 +291,7 @@ static void action_update_light_param(ActionContext* ctx, const SceneActionUpdat
   if (ecs_view_maybe_jump(ctx->lightPointItr, a->entity)) {
     SceneLightPointComp* pointComp = ecs_view_write_t(ctx->lightPointItr, SceneLightPointComp);
     switch (a->param) {
-    case 0 /* Radiance */:
+    case SceneActionLightParam_Radiance:
       pointComp->radiance = a->value;
       break;
     }
@@ -299,7 +299,7 @@ static void action_update_light_param(ActionContext* ctx, const SceneActionUpdat
   if (ecs_view_maybe_jump(ctx->lightDirItr, a->entity)) {
     SceneLightDirComp* dirComp = ecs_view_write_t(ctx->lightDirItr, SceneLightDirComp);
     switch (a->param) {
-    case 0 /* Radiance */:
+    case SceneActionLightParam_Radiance:
       dirComp->radiance = a->value;
       break;
     }
