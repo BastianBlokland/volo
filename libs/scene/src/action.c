@@ -28,7 +28,8 @@ ecs_comp_define(SceneActionQueueComp) {
 };
 
 static usize action_queue_mem_size(const u32 cap) {
-  return sizeof(SceneAction) * cap + sizeof(ActionTypeStorage) * cap;
+  const usize rawSize = sizeof(SceneAction) * cap + sizeof(ActionTypeStorage) * cap;
+  return bits_align(rawSize, alignof(SceneAction));
 }
 
 static Mem action_queue_types(void* memPtr, const u32 cap) {
