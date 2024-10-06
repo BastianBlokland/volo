@@ -5,6 +5,7 @@
 message(STATUS "> library: scene")
 
 add_library(lib_scene STATIC
+  src/action.c
   src/attachment.c
   src/attack.c
   src/bark.c

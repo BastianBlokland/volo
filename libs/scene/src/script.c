@@ -1,7 +1,6 @@
 #include "asset_manager.h"
 #include "asset_script.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
@@ -9,9 +8,8 @@
 #include "core_thread.h"
 #include "ecs_world.h"
 #include "log_logger.h"
-#include "scene_attachment.h"
+#include "scene_action.h"
 #include "scene_attack.h"
-#include "scene_bark.h"
 #include "scene_collision.h"
 #include "scene_health.h"
 #include "scene_knowledge.h"
@@ -22,7 +20,6 @@
 #include "scene_locomotion.h"
 #include "scene_name.h"
 #include "scene_nav.h"
-#include "scene_prefab.h"
 #include "scene_register.h"
 #include "scene_renderable.h"
 #include "scene_script.h"
@@ -149,34 +146,59 @@ static void eval_enum_init_target_exclude(void) {
 }
 
 static void eval_enum_init_renderable_param(void) {
-  script_enum_push(&g_scriptEnumRenderableParam, string_lit("Color"), 0);
-  script_enum_push(&g_scriptEnumRenderableParam, string_lit("Alpha"), 1);
-  script_enum_push(&g_scriptEnumRenderableParam, string_lit("Emissive"), 2);
+#define PUSH_RENDERABLE_PARAM(_ENUM_, _NAME_)                                                      \
+  script_enum_push((_ENUM_), string_lit(#_NAME_), SceneActionRenderableParam_##_NAME_);
+
+  PUSH_RENDERABLE_PARAM(&g_scriptEnumRenderableParam, Color);
+  PUSH_RENDERABLE_PARAM(&g_scriptEnumRenderableParam, Alpha);
+  PUSH_RENDERABLE_PARAM(&g_scriptEnumRenderableParam, Emissive);
+
+#undef PUSH_RENDERABLE_PARAM
 }
 
 static void eval_enum_init_vfx_param(void) {
-  script_enum_push(&g_scriptEnumVfxParam, string_lit("Alpha"), 0);
-  script_enum_push(&g_scriptEnumVfxParam, string_lit("EmitMultiplier"), 1);
+#define PUSH_VFX_PARAM(_ENUM_, _NAME_)                                                             \
+  script_enum_push((_ENUM_), string_lit(#_NAME_), SceneActionVfxParam_##_NAME_);
+
+  PUSH_VFX_PARAM(&g_scriptEnumVfxParam, Alpha);
+  PUSH_VFX_PARAM(&g_scriptEnumVfxParam, EmitMultiplier);
+
+#undef PUSH_VFX_PARAM
 }
 
 static void eval_enum_init_light_param(void) {
-  script_enum_push(&g_scriptEnumLightParam, string_lit("Radiance"), 0);
+#define PUSH_LIGHT_PARAM(_ENUM_, _NAME_)                                                           \
+  script_enum_push((_ENUM_), string_lit(#_NAME_), SceneActionLightParam_##_NAME_);
+
+  PUSH_LIGHT_PARAM(&g_scriptEnumLightParam, Radiance);
+
+#undef PUSH_LIGHT_PARAM
 }
 
 static void eval_enum_init_sound_param(void) {
-  script_enum_push(&g_scriptEnumSoundParam, string_lit("Gain"), 0);
-  script_enum_push(&g_scriptEnumSoundParam, string_lit("Pitch"), 1);
+#define PUSH_SOUND_PARAM(_ENUM_, _NAME_)                                                           \
+  script_enum_push((_ENUM_), string_lit(#_NAME_), SceneActionSoundParam_##_NAME_);
+
+  PUSH_SOUND_PARAM(&g_scriptEnumSoundParam, Gain);
+  PUSH_SOUND_PARAM(&g_scriptEnumSoundParam, Pitch);
+
+#undef PUSH_SOUND_PARAM
 }
 
 static void eval_enum_init_anim_param(void) {
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("Time"), 0);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("TimeNorm"), 1);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("Speed"), 2);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("Weight"), 3);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("Loop"), 4);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("FadeIn"), 5);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("FadeOut"), 6);
-  script_enum_push(&g_scriptEnumAnimParam, string_lit("Duration"), 7);
+#define PUSH_ANIM_PARAM(_ENUM_, _NAME_)                                                            \
+  script_enum_push((_ENUM_), string_lit(#_NAME_), SceneActionAnimParam_##_NAME_);
+
+  PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, Time);
+  PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, TimeNorm);
+  PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, Speed);
+  PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, Weight);
+  PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, Loop);
+  PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, FadeIn);
+  PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, FadeOut);
+  PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, Duration);
+
+#undef PUSH_ANIM_PARAM
 }
 
 static void eval_enum_init_layer(void) {
@@ -215,162 +237,6 @@ static void eval_enum_init_health_stat(void) {
     script_enum_push(&g_scriptEnumHealthStat, scene_health_stat_name(stat), stat);
   }
 }
-
-typedef enum {
-  ScriptActionType_Tell,
-  ScriptActionType_Ask,
-  ScriptActionType_Spawn,
-  ScriptActionType_Teleport,
-  ScriptActionType_NavTravel,
-  ScriptActionType_NavStop,
-  ScriptActionType_Attach,
-  ScriptActionType_Detach,
-  ScriptActionType_HealthMod,
-  ScriptActionType_Attack,
-  ScriptActionType_Bark,
-  ScriptActionType_UpdateFaction,
-  ScriptActionType_UpdateSet,
-  ScriptActionType_UpdateRenderableParam,
-  ScriptActionType_UpdateVfxParam,
-  ScriptActionType_UpdateLightParam,
-  ScriptActionType_UpdateSoundParam,
-  ScriptActionType_UpdateAnimParam,
-} ScriptActionType;
-
-typedef struct {
-  EcsEntityId entity;
-  StringHash  memKey;
-  ScriptVal   value;
-} ScriptActionTell;
-
-typedef struct {
-  EcsEntityId entity;
-  EcsEntityId target;
-  StringHash  memKey;
-} ScriptActionAsk;
-
-typedef struct {
-  EcsEntityId  entity;
-  StringHash   prefabId;
-  f32          scale;
-  SceneFaction faction;
-  GeoVector    position;
-  GeoQuat      rotation;
-} ScriptActionSpawn;
-
-typedef struct {
-  EcsEntityId entity;
-  GeoVector   position;
-  GeoQuat     rotation;
-} ScriptActionTeleport;
-
-typedef struct {
-  EcsEntityId entity;
-  EcsEntityId targetEntity; // If zero: The targetPosition is used instead.
-  GeoVector   targetPosition;
-} ScriptActionNavTravel;
-
-typedef struct {
-  EcsEntityId entity;
-} ScriptActionNavStop;
-
-typedef struct {
-  EcsEntityId entity;
-  EcsEntityId target;
-  StringHash  jointName;
-  GeoVector   offset;
-} ScriptActionAttach;
-
-typedef struct {
-  EcsEntityId entity;
-} ScriptActionDetach;
-
-typedef struct {
-  EcsEntityId entity;
-  f32         amount; // Negative for damage, positive for healing.
-} ScriptActionHealthMod;
-
-typedef struct {
-  EcsEntityId entity;
-  EcsEntityId target;
-} ScriptActionAttack;
-
-typedef struct {
-  EcsEntityId   entity;
-  SceneBarkType type;
-} ScriptActionBark;
-
-typedef struct {
-  EcsEntityId  entity;
-  SceneFaction faction;
-} ScriptActionUpdateFaction;
-
-typedef struct {
-  EcsEntityId entity;
-  StringHash  set;
-  bool        add;
-} ScriptActionUpdateSet;
-
-typedef struct {
-  EcsEntityId entity;
-  i32         param;
-  union {
-    f32      value_num;
-    GeoColor value_color;
-  };
-} ScriptActionUpdateRenderableParam;
-
-typedef struct {
-  EcsEntityId entity;
-  i32         param;
-  f32         value;
-} ScriptActionUpdateVfxParam;
-
-typedef struct {
-  EcsEntityId entity;
-  i32         param;
-  GeoColor    value;
-} ScriptActionUpdateLightParam;
-
-typedef struct {
-  EcsEntityId entity;
-  i32         param;
-  f32         value;
-} ScriptActionUpdateSoundParam;
-
-typedef struct {
-  EcsEntityId entity;
-  StringHash  layerName;
-  i32         param;
-  union {
-    f32  value_f32;
-    bool value_bool;
-  };
-} ScriptActionUpdateAnimParam;
-
-typedef struct {
-  ScriptActionType type;
-  union {
-    ScriptActionTell                  data_tell;
-    ScriptActionAsk                   data_ask;
-    ScriptActionSpawn                 data_spawn;
-    ScriptActionTeleport              data_teleport;
-    ScriptActionNavTravel             data_navTravel;
-    ScriptActionNavStop               data_navStop;
-    ScriptActionAttach                data_attach;
-    ScriptActionDetach                data_detach;
-    ScriptActionHealthMod             data_healthMod;
-    ScriptActionAttack                data_attack;
-    ScriptActionBark                  data_bark;
-    ScriptActionUpdateFaction         data_updateFaction;
-    ScriptActionUpdateSet             data_updateSet;
-    ScriptActionUpdateRenderableParam data_updateRenderableParam;
-    ScriptActionUpdateVfxParam        data_updateVfxParam;
-    ScriptActionUpdateLightParam      data_updateLightParam;
-    ScriptActionUpdateSoundParam      data_updateSoundParam;
-    ScriptActionUpdateAnimParam       data_updateAnimParam;
-  };
-} ScriptAction;
 
 ecs_view_define(EvalGlobalView) {
   ecs_access_read(SceneCollisionEnvComp);
@@ -462,8 +328,8 @@ typedef struct {
   SceneKnowledgeComp*    scriptKnowledge;
   const AssetScriptComp* scriptAsset;
   String                 scriptId;
-  DynArray*              actions; // ScriptAction[].
-  DynArray*              debug;   // SceneScriptDebug[].
+  SceneActionQueueComp*  actions;
+  DynArray*              debug; // SceneScriptDebug[].
   GeoRay                 debugRay;
 
   EvalQuery* queries; // EvalQuery[scene_script_query_max]
@@ -620,10 +486,8 @@ static ScriptVal eval_faction(EvalContext* ctx, const ScriptArgs args, ScriptErr
   if (UNLIKELY(script_error_valid(err))) {
     return script_null();
   }
-  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-      .type               = ScriptActionType_UpdateFaction,
-      .data_updateFaction = {.entity = e, .faction = faction},
-  };
+  SceneAction* act   = scene_action_push(ctx->actions, SceneActionType_UpdateFaction);
+  act->updateFaction = (SceneActionUpdateFaction){.entity = e, .faction = faction};
   return script_null();
 }
 
@@ -713,10 +577,11 @@ static ScriptVal eval_set(EvalContext* ctx, const ScriptArgs args, ScriptError* 
     const SceneSetEnvComp* setEnv = ecs_view_read_t(ctx->globalItr, SceneSetEnvComp);
     return script_bool(scene_set_contains(setEnv, set, e));
   }
-  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-      .type           = ScriptActionType_UpdateSet,
-      .data_updateSet = {.entity = e, .set = set, .add = script_arg_bool(args, 2, err)},
-  };
+  const bool add = script_arg_bool(args, 2, err);
+
+  SceneAction* act = scene_action_push(ctx->actions, SceneActionType_UpdateSet);
+  act->updateSet   = (SceneActionUpdateSet){.entity = e, .set = set, .add = add};
+
   return script_null();
 }
 
@@ -963,11 +828,13 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
   }
 
   const EvalLineOfSightFilterCtx filterCtx = {.srcEntity = srcEntity, .tgtEntity = tgtEntity};
-  const SceneQueryFilter         filter    = {
+
+  const SceneQueryFilter filter = {
       .layerMask = SceneLayer_Environment | SceneLayer_Structure | tgtCol->layer,
       .callback  = eval_line_of_sight_filter,
       .context   = &filterCtx,
   };
+
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
   const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
 
@@ -1078,10 +945,8 @@ static ScriptVal eval_tell(EvalContext* ctx, const ScriptArgs args, ScriptError*
   const StringHash  key   = script_arg_str(args, 1, err);
   const ScriptVal   value = script_arg_any(args, 2, err);
   if (LIKELY(e && key)) {
-    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type      = ScriptActionType_Tell,
-        .data_tell = {.entity = e, .memKey = key, .value = value},
-    };
+    SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Tell);
+    act->tell        = (SceneActionTell){.entity = e, .memKey = key, .value = value};
   }
   return script_null();
 }
@@ -1091,10 +956,8 @@ static ScriptVal eval_ask(EvalContext* ctx, const ScriptArgs args, ScriptError* 
   const EcsEntityId target = script_arg_entity(args, 1, err);
   const StringHash  key    = script_arg_str(args, 2, err);
   if (LIKELY(e && target && key)) {
-    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type     = ScriptActionType_Ask,
-        .data_ask = {.entity = e, .target = target, .memKey = key},
-    };
+    SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Ask);
+    act->ask         = (SceneActionAsk){.entity = e, .target = target, .memKey = key};
   }
   return script_null();
 }
@@ -1104,20 +967,19 @@ static ScriptVal eval_prefab_spawn(EvalContext* ctx, const ScriptArgs args, Scri
   if (UNLIKELY(!prefabId)) {
     return script_null(); // Invalid prefab-id.
   }
-  const EcsEntityId result                     = ecs_world_entity_create(ctx->world);
-  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-      .type = ScriptActionType_Spawn,
-      .data_spawn =
-          {
-              .entity   = result,
-              .prefabId = prefabId,
-              .position = script_arg_opt_vec3(args, 1, geo_vector(0), err),
-              .rotation = script_arg_opt_quat(args, 2, geo_quat_ident, err),
-              .scale    = (f32)script_arg_opt_num_range(args, 3, 0.001, 1000.0, 1.0, err),
-              .faction = script_arg_opt_enum(args, 4, &g_scriptEnumFaction, SceneFaction_None, err),
+  const EcsEntityId result = ecs_world_entity_create(ctx->world);
 
-          },
+  SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Spawn);
+
+  act->spawn = (SceneActionSpawn){
+      .entity   = result,
+      .prefabId = prefabId,
+      .position = script_arg_opt_vec3(args, 1, geo_vector(0), err),
+      .rotation = script_arg_opt_quat(args, 2, geo_quat_ident, err),
+      .scale    = (f32)script_arg_opt_num_range(args, 3, 0.001, 1000.0, 1.0, err),
+      .faction  = script_arg_opt_enum(args, 4, &g_scriptEnumFaction, SceneFaction_None, err),
   };
+
   return script_entity(result);
 }
 
@@ -1181,10 +1043,8 @@ static ScriptVal eval_teleport(EvalContext* ctx, const ScriptArgs args, ScriptEr
       *err = script_error_arg(ScriptError_ArgumentInvalid, 1);
     }
 
-    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type          = ScriptActionType_Teleport,
-        .data_teleport = {.entity = entity, .position = pos, .rotation = rot},
-    };
+    SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Teleport);
+    act->teleport    = (SceneActionTeleport){.entity = entity, .position = pos, .rotation = rot};
   }
   return script_null();
 }
@@ -1196,14 +1056,11 @@ static ScriptVal eval_nav_travel(EvalContext* ctx, const ScriptArgs args, Script
     if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_NavTravel))) {
       *err = script_error_arg(ScriptError_MissingCapability, 0);
     }
-    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type = ScriptActionType_NavTravel,
-        .data_navTravel =
-            {
-                .entity         = entity,
-                .targetEntity   = script_arg_maybe_entity(args, 1, ecs_entity_invalid),
-                .targetPosition = script_arg_maybe_vec3(args, 1, geo_vector(0)),
-            },
+    SceneAction* act = scene_action_push(ctx->actions, SceneActionType_NavTravel);
+    act->navTravel   = (SceneActionNavTravel){
+        .entity         = entity,
+        .targetEntity   = script_arg_maybe_entity(args, 1, ecs_entity_invalid),
+        .targetPosition = script_arg_maybe_vec3(args, 1, geo_vector(0)),
     };
   }
   return script_null();
@@ -1215,10 +1072,8 @@ static ScriptVal eval_nav_stop(EvalContext* ctx, const ScriptArgs args, ScriptEr
     if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_NavTravel))) {
       *err = script_error_arg(ScriptError_MissingCapability, 0);
     }
-    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type         = ScriptActionType_NavStop,
-        .data_navStop = {.entity = entity},
-    };
+    SceneAction* act = scene_action_push(ctx->actions, SceneActionType_NavStop);
+    act->navStop     = (SceneActionNavStop){.entity = entity};
   }
   return script_null();
 }
@@ -1243,26 +1098,23 @@ static ScriptVal eval_attach(EvalContext* ctx, const ScriptArgs args, ScriptErro
   if (UNLIKELY(!target)) {
     return script_null();
   }
-  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-      .type = ScriptActionType_Attach,
-      .data_attach =
-          {
-              .entity    = entity,
-              .target    = target,
-              .jointName = script_arg_opt_str(args, 2, 0, err),
-              .offset    = script_arg_opt_vec3(args, 3, geo_vector(0), err),
-          },
+  SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Attach);
+
+  act->attach = (SceneActionAttach){
+      .entity    = entity,
+      .target    = target,
+      .jointName = script_arg_opt_str(args, 2, 0, err),
+      .offset    = script_arg_opt_vec3(args, 3, geo_vector(0), err),
   };
+
   return script_null();
 }
 
 static ScriptVal eval_detach(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   if (LIKELY(entity)) {
-    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type        = ScriptActionType_Detach,
-        .data_detach = {.entity = entity},
-    };
+    SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Detach);
+    act->detach      = (SceneActionDetach){.entity = entity};
   }
   return script_null();
 }
@@ -1271,9 +1123,10 @@ static ScriptVal eval_damage(EvalContext* ctx, const ScriptArgs args, ScriptErro
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   const f32         amount = (f32)script_arg_num_range(args, 1, 1.0, 10000.0, err);
   if (LIKELY(entity) && amount > f32_epsilon) {
-    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type           = ScriptActionType_HealthMod,
-        .data_healthMod = {.entity = entity, .amount = -amount /* negate for damage */},
+    SceneAction* act = scene_action_push(ctx->actions, SceneActionType_HealthMod);
+    act->healthMod   = (SceneActionHealthMod){
+        .entity = entity,
+        .amount = -amount /* negate for damage */,
     };
   }
   return script_null();
@@ -1283,10 +1136,8 @@ static ScriptVal eval_heal(EvalContext* ctx, const ScriptArgs args, ScriptError*
   const EcsEntityId entity = script_arg_entity(args, 0, err);
   const f32         amount = (f32)script_arg_num_range(args, 1, 1.0, 10000.0, err);
   if (LIKELY(entity) && amount > f32_epsilon) {
-    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type           = ScriptActionType_HealthMod,
-        .data_healthMod = {.entity = entity, .amount = amount},
-    };
+    SceneAction* act = scene_action_push(ctx->actions, SceneActionType_HealthMod);
+    act->healthMod   = (SceneActionHealthMod){.entity = entity, .amount = amount};
   }
   return script_null();
 }
@@ -1299,10 +1150,8 @@ static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptErro
     if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Attack))) {
       *err = script_error_arg(ScriptError_MissingCapability, 0);
     }
-    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type        = ScriptActionType_Attack,
-        .data_attack = {.entity = entity, .target = target},
-    };
+    SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Attack);
+    act->attack      = (SceneActionAttack){.entity = entity, .target = target};
   }
   return script_null();
 }
@@ -1324,10 +1173,8 @@ static ScriptVal eval_bark(EvalContext* ctx, const ScriptArgs args, ScriptError*
     if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Bark))) {
       *err = script_error_arg(ScriptError_MissingCapability, 0);
     }
-    *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-        .type      = ScriptActionType_Bark,
-        .data_bark = {.entity = entity, .type = type},
-    };
+    SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Bark);
+    act->bark        = (SceneActionBark){.entity = entity, .type = type};
   }
   return script_null();
 }
@@ -1421,22 +1268,22 @@ static ScriptVal eval_renderable_param(EvalContext* ctx, const ScriptArgs args, 
     *err = script_error_arg(ScriptError_MissingCapability, 0);
   }
 
-  ScriptActionUpdateRenderableParam update;
+  SceneActionUpdateRenderableParam update;
   update.entity = entity;
   update.param  = param;
   switch (param) {
-  case 0 /* Color */:
+  case SceneActionRenderableParam_Color:
     update.value_color = script_arg_color(args, 2, err);
     break;
-  case 1 /* Alpha */:
-  case 2 /* Emissive */:
+  case SceneActionRenderableParam_Alpha:
+  case SceneActionRenderableParam_Emissive:
     update.value_num = (f32)script_arg_num_range(args, 2, 0.0, 1.0, err);
     break;
   }
-  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-      .type                       = ScriptActionType_UpdateRenderableParam,
-      .data_updateRenderableParam = update,
-  };
+
+  SceneAction* act = scene_action_push(ctx->actions, SceneActionType_UpdateRenderableParam);
+  act->updateRenderableParam = update;
+
   return script_null();
 }
 
@@ -1495,16 +1342,16 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
     if (ecs_view_maybe_jump(ctx->vfxSysItr, entity)) {
       const SceneVfxSystemComp* vfxSysComp = ecs_view_read_t(ctx->vfxSysItr, SceneVfxSystemComp);
       switch (param) {
-      case 0 /* Alpha */:
+      case SceneActionVfxParam_Alpha:
         return script_num(vfxSysComp->alpha);
-      case 1 /* EmitMultiplier */:
+      case SceneActionVfxParam_EmitMultiplier:
         return script_num(vfxSysComp->emitMultiplier);
       }
     }
     if (ecs_view_maybe_jump(ctx->vfxDecalItr, entity)) {
       const SceneVfxDecalComp* vfxDecalComp = ecs_view_read_t(ctx->vfxDecalItr, SceneVfxDecalComp);
       switch (param) {
-      case 0 /* Alpha */:
+      case SceneActionVfxParam_Alpha:
         return script_num(vfxDecalComp->alpha);
       }
     }
@@ -1513,15 +1360,14 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
   if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Vfx))) {
     *err = script_error_arg(ScriptError_MissingCapability, 0);
   }
-  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-      .type = ScriptActionType_UpdateVfxParam,
-      .data_updateVfxParam =
-          {
-              .entity = entity,
-              .param  = param,
-              .value  = (f32)script_arg_num_range(args, 2, 0.0, 1.0, err),
-          },
+
+  SceneAction* act    = scene_action_push(ctx->actions, SceneActionType_UpdateVfxParam);
+  act->updateVfxParam = (SceneActionUpdateVfxParam){
+      .entity = entity,
+      .param  = param,
+      .value  = (f32)script_arg_num_range(args, 2, 0.0, 1.0, err),
   };
+
   return script_null();
 }
 
@@ -1601,14 +1447,14 @@ static ScriptVal eval_light_param(EvalContext* ctx, const ScriptArgs args, Scrip
     if (ecs_view_maybe_jump(ctx->lightPointItr, entity)) {
       const SceneLightPointComp* point = ecs_view_read_t(ctx->lightPointItr, SceneLightPointComp);
       switch (param) {
-      case 0 /* Radiance */:
+      case SceneActionLightParam_Radiance:
         return script_color(point->radiance);
       }
     }
     if (ecs_view_maybe_jump(ctx->lightDirItr, entity)) {
       const SceneLightDirComp* dir = ecs_view_read_t(ctx->lightDirItr, SceneLightDirComp);
       switch (param) {
-      case 0 /* Radiance */:
+      case SceneActionLightParam_Radiance:
         return script_color(dir->radiance);
       }
     }
@@ -1617,15 +1463,14 @@ static ScriptVal eval_light_param(EvalContext* ctx, const ScriptArgs args, Scrip
   if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Light))) {
     *err = script_error_arg(ScriptError_MissingCapability, 0);
   }
-  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-      .type = ScriptActionType_UpdateLightParam,
-      .data_updateLightParam =
-          {
-              .entity = entity,
-              .param  = param,
-              .value  = script_arg_color(args, 2, err),
-          },
+
+  SceneAction* act      = scene_action_push(ctx->actions, SceneActionType_UpdateLightParam);
+  act->updateLightParam = (SceneActionUpdateLightParam){
+      .entity = entity,
+      .param  = param,
+      .value  = script_arg_color(args, 2, err),
   };
+
   return script_null();
 }
 
@@ -1673,9 +1518,9 @@ static ScriptVal eval_sound_param(EvalContext* ctx, const ScriptArgs args, Scrip
     if (ecs_view_maybe_jump(ctx->soundItr, entity)) {
       const SceneSoundComp* soundComp = ecs_view_read_t(ctx->soundItr, SceneSoundComp);
       switch (param) {
-      case 0 /* Gain */:
+      case SceneActionSoundParam_Gain:
         return script_num(soundComp->gain);
-      case 1 /* Pitch */:
+      case SceneActionSoundParam_Pitch:
         return script_num(soundComp->pitch);
       }
     }
@@ -1684,14 +1529,11 @@ static ScriptVal eval_sound_param(EvalContext* ctx, const ScriptArgs args, Scrip
   if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Sound))) {
     *err = script_error_arg(ScriptError_MissingCapability, 0);
   }
-  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-      .type = ScriptActionType_UpdateSoundParam,
-      .data_updateSoundParam =
-          {
-              .entity = entity,
-              .param  = param,
-              .value  = (f32)script_arg_num_range(args, 2, 0.0, 10.0, err),
-          },
+  SceneAction* act      = scene_action_push(ctx->actions, SceneActionType_UpdateSoundParam);
+  act->updateSoundParam = (SceneActionUpdateSoundParam){
+      .entity = entity,
+      .param  = param,
+      .value  = (f32)script_arg_num_range(args, 2, 0.0, 10.0, err),
   };
   return script_null();
 }
@@ -1709,21 +1551,21 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
       const SceneAnimLayer*     layer    = scene_animation_layer(animComp, layerName);
       if (layer) {
         switch (param) {
-        case 0 /* Time */:
+        case SceneActionAnimParam_Time:
           return script_num(layer->time);
-        case 1 /* TimeNorm */:
+        case SceneActionAnimParam_TimeNorm:
           return script_num(layer->duration > 0 ? (layer->time / layer->duration) : 0.0f);
-        case 2 /* Speed */:
+        case SceneActionAnimParam_Speed:
           return script_num(layer->speed);
-        case 3 /* Weight */:
+        case SceneActionAnimParam_Weight:
           return script_num(layer->weight);
-        case 4 /* Loop */:
+        case SceneActionAnimParam_Loop:
           return script_bool((layer->flags & SceneAnimFlags_Loop) != 0);
-        case 5 /* FadeIn */:
+        case SceneActionAnimParam_FadeIn:
           return script_bool((layer->flags & SceneAnimFlags_AutoFadeIn) != 0);
-        case 6 /* FadeOut */:
+        case SceneActionAnimParam_FadeOut:
           return script_bool((layer->flags & SceneAnimFlags_AutoFadeOut) != 0);
-        case 7 /* Duration */:
+        case SceneActionAnimParam_Duration:
           return script_num(layer->duration);
         }
       }
@@ -1735,7 +1577,7 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
     *err = script_error_arg(ScriptError_MissingCapability, 0);
   }
 
-  ScriptActionUpdateAnimParam update;
+  SceneActionUpdateAnimParam update;
   update.entity    = entity;
   update.layerName = layerName;
   update.param     = param;
@@ -1761,10 +1603,9 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
     *err = script_error_arg(ScriptError_ReadonlyParam, 3);
     return script_null();
   }
-  *dynarray_push_t(ctx->actions, ScriptAction) = (ScriptAction){
-      .type                 = ScriptActionType_UpdateAnimParam,
-      .data_updateAnimParam = update,
-  };
+  SceneAction* act     = scene_action_push(ctx->actions, SceneActionType_UpdateAnimParam);
+  act->updateAnimParam = update;
+
   return script_null();
 }
 
@@ -2180,8 +2021,7 @@ ecs_comp_define(SceneScriptComp) {
   u8               slotCount;
   SceneScriptData* slots; // SceneScriptData[slotCount].
   Allocator*       allocTransient;
-  DynArray         actions; // ScriptAction[].
-  DynArray         debug;   // SceneScriptDebug[].
+  DynArray         debug; // SceneScriptDebug[].
 };
 
 ecs_comp_define(SceneScriptResourceComp) {
@@ -2195,7 +2035,6 @@ static void ecs_destruct_script_instance(void* data) {
   if (scriptInstance->allocTransient) {
     alloc_chunked_destroy(scriptInstance->allocTransient);
   }
-  dynarray_destroy(&scriptInstance->actions);
   dynarray_destroy(&scriptInstance->debug);
 }
 
@@ -2215,6 +2054,7 @@ ecs_system_define(SceneScriptEnvInitSys) {
 ecs_view_define(ScriptUpdateView) {
   ecs_access_write(SceneScriptComp);
   ecs_access_write(SceneKnowledgeComp);
+  ecs_access_write(SceneActionQueueComp);
   ecs_access_maybe_read(SceneFactionComp);
 }
 
@@ -2360,7 +2200,7 @@ ecs_system_define(SceneScriptUpdateSys) {
     ctx.instigatorFaction = factionComp ? factionComp->id : SceneFaction_None;
     ctx.scriptInstance    = ecs_view_write_t(itr, SceneScriptComp);
     ctx.scriptKnowledge   = ecs_view_write_t(itr, SceneKnowledgeComp);
-    ctx.actions           = &ctx.scriptInstance->actions;
+    ctx.actions           = ecs_view_write_t(itr, SceneActionQueueComp);
     ctx.debug             = &ctx.scriptInstance->debug;
 
     // Clear the previous frame transient data.
@@ -2399,380 +2239,6 @@ ecs_system_define(SceneScriptUpdateSys) {
   }
 }
 
-ecs_view_define(ActionGlobalView) {
-  ecs_access_write(ScenePrefabEnvComp);
-  ecs_access_write(SceneSetEnvComp);
-}
-
-ecs_view_define(ActionKnowledgeView) { ecs_access_write(SceneKnowledgeComp); }
-ecs_view_define(ActionTransformView) { ecs_access_write(SceneTransformComp); }
-ecs_view_define(ActionNavAgentView) { ecs_access_write(SceneNavAgentComp); }
-ecs_view_define(ActionAttachmentView) { ecs_access_write(SceneAttachmentComp); }
-ecs_view_define(ActionHealthReqView) { ecs_access_write(SceneHealthRequestComp); }
-ecs_view_define(ActionAttackView) { ecs_access_write(SceneAttackComp); }
-ecs_view_define(ActionBarkView) { ecs_access_write(SceneBarkComp); }
-ecs_view_define(ActionFactionView) { ecs_access_write(SceneFactionComp); }
-ecs_view_define(ActionRenderableView) { ecs_access_write(SceneRenderableComp); }
-ecs_view_define(ActionVfxSysView) { ecs_access_write(SceneVfxSystemComp); }
-ecs_view_define(ActionVfxDecalView) { ecs_access_write(SceneVfxDecalComp); }
-ecs_view_define(ActionLightPointView) { ecs_access_write(SceneLightPointComp); }
-ecs_view_define(ActionLightDirView) { ecs_access_write(SceneLightDirComp); }
-ecs_view_define(ActionSoundView) { ecs_access_write(SceneSoundComp); }
-ecs_view_define(ActionAnimView) { ecs_access_write(SceneAnimationComp); }
-
-typedef struct {
-  EcsWorld*    world;
-  EcsEntityId  instigator;
-  EcsIterator* globalItr;
-  EcsIterator* knowledgeItr;
-  EcsIterator* transItr;
-  EcsIterator* navAgentItr;
-  EcsIterator* attachItr;
-  EcsIterator* healthReqItr;
-  EcsIterator* attackItr;
-  EcsIterator* barkItr;
-  EcsIterator* factionItr;
-  EcsIterator* renderableItr;
-  EcsIterator* vfxSysItr;
-  EcsIterator* vfxDecalItr;
-  EcsIterator* lightPointItr;
-  EcsIterator* lightDirItr;
-  EcsIterator* soundItr;
-  EcsIterator* animItr;
-} ActionContext;
-
-static u32 action_update_flag(u32 mask, const u32 flag, const bool enable) {
-  if (enable) {
-    mask |= flag;
-  } else {
-    mask &= ~flag;
-  }
-  return mask;
-}
-
-static void action_tell(ActionContext* ctx, const ScriptActionTell* a) {
-  if (ecs_view_maybe_jump(ctx->knowledgeItr, a->entity)) {
-    SceneKnowledgeComp* knowledge = ecs_view_write_t(ctx->knowledgeItr, SceneKnowledgeComp);
-    scene_knowledge_store(knowledge, a->memKey, a->value);
-  }
-}
-
-static void action_ask(ActionContext* ctx, const ScriptActionAsk* a) {
-  if (ecs_view_maybe_jump(ctx->knowledgeItr, a->entity)) {
-    SceneKnowledgeComp* knowledge = ecs_view_write_t(ctx->knowledgeItr, SceneKnowledgeComp);
-    if (ecs_view_maybe_jump(ctx->knowledgeItr, a->target)) {
-      const SceneKnowledgeComp* target = ecs_view_read_t(ctx->knowledgeItr, SceneKnowledgeComp);
-      scene_knowledge_store(knowledge, a->memKey, scene_knowledge_load(target, a->memKey));
-    }
-  }
-}
-
-static void action_spawn(ActionContext* ctx, const ScriptActionSpawn* a) {
-  ScenePrefabEnvComp* prefabEnv = ecs_view_write_t(ctx->globalItr, ScenePrefabEnvComp);
-
-  const ScenePrefabSpec spec = {
-      .flags    = ScenePrefabFlags_Volatile, // Do not persist script-spawned prefabs.
-      .prefabId = a->prefabId,
-      .faction  = a->faction,
-      .position = a->position,
-      .rotation = a->rotation,
-      .scale    = a->scale,
-  };
-  scene_prefab_spawn_onto(prefabEnv, &spec, a->entity);
-}
-
-static void action_teleport(ActionContext* ctx, const ScriptActionTeleport* a) {
-  if (ecs_view_maybe_jump(ctx->transItr, a->entity)) {
-    SceneTransformComp* trans = ecs_view_write_t(ctx->transItr, SceneTransformComp);
-    trans->position           = a->position;
-    trans->rotation           = a->rotation;
-  }
-}
-
-static void action_nav_travel(ActionContext* ctx, const ScriptActionNavTravel* a) {
-  if (ecs_view_maybe_jump(ctx->navAgentItr, a->entity)) {
-    SceneNavAgentComp* agent = ecs_view_write_t(ctx->navAgentItr, SceneNavAgentComp);
-    if (a->targetEntity) {
-      scene_nav_travel_to_entity(agent, a->targetEntity);
-    } else {
-      scene_nav_travel_to(agent, a->targetPosition);
-    }
-  }
-}
-
-static void action_nav_stop(ActionContext* ctx, const ScriptActionNavStop* a) {
-  if (ecs_view_maybe_jump(ctx->navAgentItr, a->entity)) {
-    SceneNavAgentComp* agent = ecs_view_write_t(ctx->navAgentItr, SceneNavAgentComp);
-    scene_nav_stop(agent);
-  }
-}
-
-static void action_attach(ActionContext* ctx, const ScriptActionAttach* a) {
-  SceneAttachmentComp* attach;
-  if (ecs_view_maybe_jump(ctx->attachItr, a->entity)) {
-    attach = ecs_view_write_t(ctx->attachItr, SceneAttachmentComp);
-  } else {
-    if (ecs_world_exists(ctx->world, a->entity)) {
-      // TODO: Crashes if there's two attachments for the same entity in the same frame.
-      attach = ecs_world_add_t(ctx->world, a->entity, SceneAttachmentComp);
-    } else {
-      return; // Entity does not exist.
-    }
-  }
-  attach->target     = a->target;
-  attach->jointIndex = sentinel_u32;
-  if (a->jointName) {
-    attach->jointName = a->jointName;
-  }
-  attach->offset = a->offset;
-}
-
-static void action_detach(ActionContext* ctx, const ScriptActionDetach* a) {
-  if (ecs_view_maybe_jump(ctx->attachItr, a->entity)) {
-    ecs_view_write_t(ctx->attachItr, SceneAttachmentComp)->target = 0;
-  }
-}
-
-static void action_health_mod(ActionContext* ctx, const ScriptActionHealthMod* a) {
-  if (ecs_view_maybe_jump(ctx->healthReqItr, a->entity)) {
-    SceneHealthRequestComp* reqComp = ecs_view_write_t(ctx->healthReqItr, SceneHealthRequestComp);
-    scene_health_request_add(
-        reqComp,
-        &(SceneHealthMod){
-            .instigator = ctx->instigator,
-            .amount     = a->amount,
-        });
-  }
-}
-
-static void action_attack(ActionContext* ctx, const ScriptActionAttack* a) {
-  if (ecs_view_maybe_jump(ctx->attackItr, a->entity)) {
-    ecs_view_write_t(ctx->attackItr, SceneAttackComp)->targetDesired = a->target;
-  }
-}
-
-static void action_bark(ActionContext* ctx, const ScriptActionBark* a) {
-  if (ecs_view_maybe_jump(ctx->barkItr, a->entity)) {
-    SceneBarkComp* barkComp = ecs_view_write_t(ctx->barkItr, SceneBarkComp);
-    scene_bark_request(barkComp, a->type);
-  }
-}
-
-static void action_update_faction(ActionContext* ctx, const ScriptActionUpdateFaction* a) {
-  if (ecs_view_maybe_jump(ctx->factionItr, a->entity)) {
-    ecs_view_write_t(ctx->factionItr, SceneFactionComp)->id = a->faction;
-  }
-}
-
-static void action_update_set(ActionContext* ctx, const ScriptActionUpdateSet* a) {
-  SceneSetEnvComp* setEnv = ecs_view_write_t(ctx->globalItr, SceneSetEnvComp);
-  if (a->add) {
-    scene_set_add(setEnv, a->set, a->entity, SceneSetFlags_None);
-  } else {
-    scene_set_remove(setEnv, a->set, a->entity);
-  }
-}
-
-static void
-action_update_renderable_param(ActionContext* ctx, const ScriptActionUpdateRenderableParam* a) {
-  if (ecs_view_maybe_jump(ctx->renderableItr, a->entity)) {
-    SceneRenderableComp* rendComp = ecs_view_write_t(ctx->renderableItr, SceneRenderableComp);
-    switch (a->param) {
-    case 0 /* Color */:
-      rendComp->color = a->value_color;
-      break;
-    case 1 /* Alpha */:
-      rendComp->color.a = a->value_num;
-      break;
-    case 2 /* Emissive */:
-      rendComp->emissive = a->value_num;
-      break;
-    }
-  }
-}
-
-static void action_update_vfx_param(ActionContext* ctx, const ScriptActionUpdateVfxParam* a) {
-  if (ecs_view_maybe_jump(ctx->vfxSysItr, a->entity)) {
-    SceneVfxSystemComp* vfxSysComp = ecs_view_write_t(ctx->vfxSysItr, SceneVfxSystemComp);
-    switch (a->param) {
-    case 0 /* Alpha */:
-      vfxSysComp->alpha = a->value;
-      break;
-    case 1 /* EmitMultiplier */:
-      vfxSysComp->emitMultiplier = a->value;
-      break;
-    }
-  }
-  if (ecs_view_maybe_jump(ctx->vfxDecalItr, a->entity)) {
-    SceneVfxDecalComp* vfxDecalComp = ecs_view_write_t(ctx->vfxDecalItr, SceneVfxDecalComp);
-    switch (a->param) {
-    case 0 /* Alpha */:
-      vfxDecalComp->alpha = a->value;
-      break;
-    }
-  }
-}
-
-static void action_update_light_param(ActionContext* ctx, const ScriptActionUpdateLightParam* a) {
-  if (ecs_view_maybe_jump(ctx->lightPointItr, a->entity)) {
-    SceneLightPointComp* pointComp = ecs_view_write_t(ctx->lightPointItr, SceneLightPointComp);
-    switch (a->param) {
-    case 0 /* Radiance */:
-      pointComp->radiance = a->value;
-      break;
-    }
-  }
-  if (ecs_view_maybe_jump(ctx->lightDirItr, a->entity)) {
-    SceneLightDirComp* dirComp = ecs_view_write_t(ctx->lightDirItr, SceneLightDirComp);
-    switch (a->param) {
-    case 0 /* Radiance */:
-      dirComp->radiance = a->value;
-      break;
-    }
-  }
-}
-
-static void action_update_sound_param(ActionContext* ctx, const ScriptActionUpdateSoundParam* a) {
-  if (ecs_view_maybe_jump(ctx->soundItr, a->entity)) {
-    SceneSoundComp* soundComp = ecs_view_write_t(ctx->soundItr, SceneSoundComp);
-    switch (a->param) {
-    case 0 /* Gain */:
-      soundComp->gain = a->value;
-      break;
-    case 1 /* Pitch */:
-      soundComp->pitch = a->value;
-      break;
-    }
-  }
-}
-
-static void action_update_anim_param(ActionContext* ctx, const ScriptActionUpdateAnimParam* a) {
-  if (ecs_view_maybe_jump(ctx->animItr, a->entity)) {
-    SceneAnimationComp* animComp = ecs_view_write_t(ctx->animItr, SceneAnimationComp);
-    SceneAnimLayer*     layer    = scene_animation_layer_mut(animComp, a->layerName);
-    if (layer) {
-      switch (a->param) {
-      case 0 /* Time */:
-        layer->time = a->value_f32;
-        break;
-      case 1 /* TimeNorm */:
-        layer->time = a->value_f32 * layer->duration;
-        break;
-      case 2 /* Speed */:
-        layer->speed = a->value_f32;
-        break;
-      case 3 /* Weight */:
-        layer->weight = a->value_f32;
-        break;
-      case 4 /* Loop */:
-        layer->flags = action_update_flag(layer->flags, SceneAnimFlags_Loop, a->value_bool);
-        break;
-      case 5 /* FadeIn */:
-        layer->flags = action_update_flag(layer->flags, SceneAnimFlags_AutoFadeIn, a->value_bool);
-        break;
-      case 6 /* FadeOut */:
-        layer->flags = action_update_flag(layer->flags, SceneAnimFlags_AutoFadeOut, a->value_bool);
-        break;
-      }
-    }
-  }
-}
-
-ecs_view_define(ScriptActionApplyView) { ecs_access_write(SceneScriptComp); }
-
-ecs_system_define(ScriptActionApplySys) {
-  EcsView*     globalView = ecs_world_view_t(world, ActionGlobalView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (!globalItr) {
-    return; // Global dependency not yet initialized.
-  }
-
-  ActionContext ctx = {
-      .world         = world,
-      .globalItr     = globalItr,
-      .knowledgeItr  = ecs_view_itr(ecs_world_view_t(world, ActionKnowledgeView)),
-      .transItr      = ecs_view_itr(ecs_world_view_t(world, ActionTransformView)),
-      .navAgentItr   = ecs_view_itr(ecs_world_view_t(world, ActionNavAgentView)),
-      .attachItr     = ecs_view_itr(ecs_world_view_t(world, ActionAttachmentView)),
-      .healthReqItr  = ecs_view_itr(ecs_world_view_t(world, ActionHealthReqView)),
-      .attackItr     = ecs_view_itr(ecs_world_view_t(world, ActionAttackView)),
-      .barkItr       = ecs_view_itr(ecs_world_view_t(world, ActionBarkView)),
-      .factionItr    = ecs_view_itr(ecs_world_view_t(world, ActionFactionView)),
-      .renderableItr = ecs_view_itr(ecs_world_view_t(world, ActionRenderableView)),
-      .vfxSysItr     = ecs_view_itr(ecs_world_view_t(world, ActionVfxSysView)),
-      .vfxDecalItr   = ecs_view_itr(ecs_world_view_t(world, ActionVfxDecalView)),
-      .lightPointItr = ecs_view_itr(ecs_world_view_t(world, ActionLightPointView)),
-      .lightDirItr   = ecs_view_itr(ecs_world_view_t(world, ActionLightDirView)),
-      .soundItr      = ecs_view_itr(ecs_world_view_t(world, ActionSoundView)),
-      .animItr       = ecs_view_itr(ecs_world_view_t(world, ActionAnimView)),
-  };
-
-  EcsView* entityView = ecs_world_view_t(world, ScriptActionApplyView);
-  for (EcsIterator* itr = ecs_view_itr(entityView); ecs_view_walk(itr);) {
-    ctx.instigator                  = ecs_view_entity(itr);
-    SceneScriptComp* scriptInstance = ecs_view_write_t(itr, SceneScriptComp);
-    dynarray_for_t(&scriptInstance->actions, ScriptAction, action) {
-      switch (action->type) {
-      case ScriptActionType_Tell:
-        action_tell(&ctx, &action->data_tell);
-        break;
-      case ScriptActionType_Ask:
-        action_ask(&ctx, &action->data_ask);
-        break;
-      case ScriptActionType_Spawn:
-        action_spawn(&ctx, &action->data_spawn);
-        break;
-      case ScriptActionType_Teleport:
-        action_teleport(&ctx, &action->data_teleport);
-        break;
-      case ScriptActionType_NavTravel:
-        action_nav_travel(&ctx, &action->data_navTravel);
-        break;
-      case ScriptActionType_NavStop:
-        action_nav_stop(&ctx, &action->data_navStop);
-        break;
-      case ScriptActionType_Attach:
-        action_attach(&ctx, &action->data_attach);
-        break;
-      case ScriptActionType_Detach:
-        action_detach(&ctx, &action->data_detach);
-        break;
-      case ScriptActionType_HealthMod:
-        action_health_mod(&ctx, &action->data_healthMod);
-        break;
-      case ScriptActionType_Attack:
-        action_attack(&ctx, &action->data_attack);
-        break;
-      case ScriptActionType_Bark:
-        action_bark(&ctx, &action->data_bark);
-        break;
-      case ScriptActionType_UpdateFaction:
-        action_update_faction(&ctx, &action->data_updateFaction);
-        break;
-      case ScriptActionType_UpdateSet:
-        action_update_set(&ctx, &action->data_updateSet);
-        break;
-      case ScriptActionType_UpdateRenderableParam:
-        action_update_renderable_param(&ctx, &action->data_updateRenderableParam);
-        break;
-      case ScriptActionType_UpdateVfxParam:
-        action_update_vfx_param(&ctx, &action->data_updateVfxParam);
-        break;
-      case ScriptActionType_UpdateLightParam:
-        action_update_light_param(&ctx, &action->data_updateLightParam);
-        break;
-      case ScriptActionType_UpdateSoundParam:
-        action_update_sound_param(&ctx, &action->data_updateSoundParam);
-        break;
-      case ScriptActionType_UpdateAnimParam:
-        action_update_anim_param(&ctx, &action->data_updateAnimParam);
-        break;
-      }
-    }
-    dynarray_clear(&scriptInstance->actions);
-  }
-}
-
 ecs_module_init(scene_script_module) {
   eval_binder_init();
 
@@ -2782,7 +2248,6 @@ ecs_module_init(scene_script_module) {
 
   ecs_register_view(ResourceAssetView);
   ecs_register_view(ResourceLoadView);
-  ecs_register_view(ScriptActionApplyView);
   ecs_register_view(ScriptUpdateView);
 
   ecs_register_system(SceneScriptEnvInitSys);
@@ -2820,28 +2285,6 @@ ecs_module_init(scene_script_module) {
 
   ecs_order(SceneScriptUpdateSys, SceneOrder_ScriptUpdate);
   ecs_parallel(SceneScriptUpdateSys, g_jobsWorkerCount);
-
-  ecs_register_system(
-      ScriptActionApplySys,
-      ecs_view_id(ScriptActionApplyView),
-      ecs_register_view(ActionGlobalView),
-      ecs_register_view(ActionKnowledgeView),
-      ecs_register_view(ActionTransformView),
-      ecs_register_view(ActionNavAgentView),
-      ecs_register_view(ActionAttachmentView),
-      ecs_register_view(ActionHealthReqView),
-      ecs_register_view(ActionAttackView),
-      ecs_register_view(ActionBarkView),
-      ecs_register_view(ActionFactionView),
-      ecs_register_view(ActionRenderableView),
-      ecs_register_view(ActionVfxSysView),
-      ecs_register_view(ActionVfxDecalView),
-      ecs_register_view(ActionLightPointView),
-      ecs_register_view(ActionLightDirView),
-      ecs_register_view(ActionSoundView),
-      ecs_register_view(ActionAnimView));
-
-  ecs_order(ScriptActionApplySys, SceneOrder_ScriptActionApply);
 }
 
 SceneScriptFlags scene_script_flags(const SceneScriptComp* script) { return script->flags; }
@@ -2896,11 +2339,7 @@ SceneScriptComp* scene_script_add(
   diag_assert(scriptAssetCount);           // Need at least one script asset.
 
   SceneScriptComp* script = ecs_world_add_t(
-      world,
-      entity,
-      SceneScriptComp,
-      .actions = dynarray_create_t(g_allocHeap, ScriptAction, 0),
-      .debug   = dynarray_create_t(g_allocHeap, SceneScriptDebug, 0));
+      world, entity, SceneScriptComp, .debug = dynarray_create_t(g_allocHeap, SceneScriptDebug, 0));
 
   script->slotCount = (u8)scriptAssetCount;
   script->slots     = alloc_array_t(g_allocHeap, SceneScriptData, scriptAssetCount);
@@ -2908,6 +2347,8 @@ SceneScriptComp* scene_script_add(
     diag_assert(ecs_world_exists(world, scriptAssets[i]));
     script->slots[i].asset = scriptAssets[i];
   }
+
+  scene_action_queue_add(world, entity);
 
   return script;
 }
