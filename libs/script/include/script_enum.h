@@ -14,6 +14,7 @@ typedef struct sScriptEnum {
 
 void script_enum_push(ScriptEnum*, String name, i32 value);
 
+bool       script_enum_contains(const ScriptEnum*, StringHash nameHash);
 i32        script_enum_lookup_value(const ScriptEnum*, StringHash nameHash, ScriptError*);
 i32        script_enum_lookup_maybe_value(const ScriptEnum*, StringHash nameHash, i32 def);
 StringHash script_enum_lookup_name(const ScriptEnum*, i32 value);

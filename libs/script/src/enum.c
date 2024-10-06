@@ -4,10 +4,23 @@
 #include "script_error.h"
 
 void script_enum_push(ScriptEnum* e, const String name, const i32 value) {
+  const StringHash nameHash = stringtable_add(g_stringtable, name);
+
   diag_assert_msg(e->count < script_enum_max_entries, "ScriptEnum entry count exceeds max");
-  e->nameHashes[e->count] = stringtable_add(g_stringtable, name);
+  diag_assert_msg(!script_enum_contains(e, nameHash), "Duplicate name in ScriptEnum");
+
+  e->nameHashes[e->count] = nameHash;
   e->values[e->count]     = value;
   ++e->count;
+}
+
+bool script_enum_contains(const ScriptEnum* e, const StringHash nameHash) {
+  for (u32 i = 0; i != e->count; ++i) {
+    if (e->nameHashes[i] == nameHash) {
+      return e->values[i];
+    }
+  }
+  return false;
 }
 
 i32 script_enum_lookup_value(const ScriptEnum* e, const StringHash nameHash, ScriptError* err) {
