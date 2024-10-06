@@ -201,7 +201,7 @@ ecs_comp_extern(SceneActionQueueComp);
 SceneActionQueueComp* scene_action_queue_add(EcsWorld*, EcsEntityId entity);
 
 /**
- * Queue an action to be executed at the next 'SceneOrder_Action' update.
+ * Queue an action to be executed at the next 'SceneOrder_ActionUpdate' update.
  * NOTE: Returned pointer is invalidated on the next push to the same queue.
  */
 SceneAction* scene_action_push(SceneActionQueueComp*, SceneActionType);

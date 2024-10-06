@@ -500,7 +500,7 @@ ecs_module_init(scene_action_module) {
       ecs_register_view(ActionSoundView),
       ecs_register_view(ActionAnimView));
 
-  ecs_order(SceneActionUpdateSys, SceneOrder_Action);
+  ecs_order(SceneActionUpdateSys, SceneOrder_ActionUpdate);
 }
 
 SceneActionQueueComp* scene_action_queue_add(EcsWorld* w, const EcsEntityId entity) {
