@@ -2,6 +2,7 @@
 #include "scene_register.h"
 
 void scene_register(EcsDef* def) {
+  ecs_register_module(def, scene_action_module);
   ecs_register_module(def, scene_attachment_module);
   ecs_register_module(def, scene_attack_module);
   ecs_register_module(def, scene_bark_module);
