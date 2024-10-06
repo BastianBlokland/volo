@@ -55,6 +55,20 @@ static void ecs_destruct_action_queue(void* comp) {
   }
 }
 
+static void ecs_combine_action_queue(void* compA, void* compB) {
+  SceneActionQueueComp* queueA = compA;
+  SceneActionQueueComp* queueB = compB;
+
+  if (queueB->count) {
+    ActionTypeStorage* bTypes = action_queue_types(queueB->data, queueB->cap).ptr;
+    SceneAction*       bDefs  = action_queue_defs(queueB->data, queueB->cap).ptr;
+    for (u32 i = 0; i != queueB->count; ++i) {
+      *scene_action_push(queueA, bTypes[i]) = bDefs[i];
+    }
+    alloc_free(g_allocHeap, mem_create(queueB->data, action_queue_mem_size(queueB->cap)));
+  }
+}
+
 NO_INLINE_HINT static void action_queue_grow(SceneActionQueueComp* q) {
   const u32   newCap     = bits_nextpow2(q->cap + 1);
   const usize newMemSize = action_queue_mem_size(newCap);
@@ -457,7 +471,10 @@ ecs_system_define(SceneActionUpdateSys) {
 }
 
 ecs_module_init(scene_action_module) {
-  ecs_register_comp(SceneActionQueueComp, .destructor = ecs_destruct_action_queue);
+  ecs_register_comp(
+      SceneActionQueueComp,
+      .destructor = ecs_destruct_action_queue,
+      .combinator = ecs_combine_action_queue);
 
   ecs_register_system(
       SceneActionUpdateSys,
