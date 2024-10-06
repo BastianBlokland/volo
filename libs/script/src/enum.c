@@ -33,7 +33,7 @@ INLINE_HINT static u32 script_enum_find_free(const ScriptEnum* e) {
 INLINE_HINT static u32 script_enum_find_name(const ScriptEnum* e, const StringHash nameHash) {
 #ifdef VOLO_SIMD
   const SimdVec targetVec = simd_vec_broadcast_u32(nameHash);
-  for (u32 i = 0; i < e->count; i += 8) {
+  for (u32 i = 0; i != script_enum_max_entries; i += 8) {
     const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load(e->nameHashes + i), targetVec);
     const SimdVec eqB    = simd_vec_eq_u32(simd_vec_load(e->nameHashes + i + 4), targetVec);
     const u32     eqMask = simd_vec_mask_u8(simd_vec_pack_u32_to_u16(eqA, eqB));
@@ -42,7 +42,7 @@ INLINE_HINT static u32 script_enum_find_name(const ScriptEnum* e, const StringHa
     }
   }
 #else
-  for (u32 i = 0; i != e->count; ++i) {
+  for (u32 i = 0; i != script_enum_max_entries; ++i) {
     if (e->nameHashes[i] == nameHash) {
       return i;
     }
@@ -54,7 +54,7 @@ INLINE_HINT static u32 script_enum_find_name(const ScriptEnum* e, const StringHa
 INLINE_HINT static u32 script_enum_find_value(const ScriptEnum* e, const i32 value) {
 #ifdef VOLO_SIMD
   const SimdVec targetVec = simd_vec_broadcast_i32(value);
-  for (u32 i = 0; i < e->count; i += 8) {
+  for (u32 i = 0; i < script_enum_max_entries; i += 8) {
     const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load(e->values + i), targetVec);
     const SimdVec eqB    = simd_vec_eq_u32(simd_vec_load(e->values + i + 4), targetVec);
     const u32     eqMask = simd_vec_mask_u8(simd_vec_pack_u32_to_u16(eqA, eqB));
@@ -63,7 +63,7 @@ INLINE_HINT static u32 script_enum_find_value(const ScriptEnum* e, const i32 val
     }
   }
 #else
-  for (u32 i = 0; i != e->count; ++i) {
+  for (u32 i = 0; i != script_enum_max_entries; ++i) {
     if (e->values[i] == value) {
       return i;
     }
@@ -79,35 +79,36 @@ void script_enum_push(ScriptEnum* e, const String name, const i32 value) {
   const u32 index = script_enum_find_free(e);
   diag_assert_msg(!sentinel_check(index), "ScriptEnum entry count exceeds max");
 
-  e->nameHashes[e->count] = nameHash;
-  e->values[e->count]     = value;
-  ++e->count;
+  e->nameHashes[index] = nameHash;
+  e->values[index]     = value;
 }
 
 bool script_enum_contains_name(const ScriptEnum* e, const StringHash nameHash) {
-  return script_enum_find_name(e, nameHash) < e->count;
+  const u32 index = script_enum_find_name(e, nameHash);
+  return !sentinel_check(index);
 }
 
 i32 script_enum_lookup_value(const ScriptEnum* e, const StringHash nameHash, ScriptError* err) {
   const u32 index = script_enum_find_name(e, nameHash);
-  if (index < e->count) {
-    return e->values[index];
+  if (sentinel_check(index)) {
+    return *err = script_error(ScriptError_EnumInvalidEntry), 0;
   }
-  return *err = script_error(ScriptError_EnumInvalidEntry), 0;
+  return e->values[index];
 }
 
 i32 script_enum_lookup_maybe_value(const ScriptEnum* e, const StringHash nameHash, const i32 def) {
   const u32 index = script_enum_find_name(e, nameHash);
-  if (index < e->count) {
-    return e->values[index];
+  if (sentinel_check(index)) {
+    return def;
   }
-  return def;
+  return e->values[index];
 }
 
 StringHash script_enum_lookup_name(const ScriptEnum* e, const i32 value) {
   const u32 index = script_enum_find_value(e, value);
-  if (index < e->count) {
-    return e->nameHashes[index];
+  if (sentinel_check(index)) {
+    return 0;
   }
-  return 0;
+  // NOTE: Index can point to an unused entry but in that case nameHashes will always be zero.
+  return e->nameHashes[index];
 }

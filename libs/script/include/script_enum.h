@@ -8,7 +8,6 @@ typedef struct sScriptError ScriptError;
 #define script_enum_max_entries 16
 
 typedef struct sScriptEnum {
-  u32 count;
   ALIGNAS(16) StringHash nameHashes[script_enum_max_entries];
   ALIGNAS(16) i32 values[script_enum_max_entries];
 } ScriptEnum;
