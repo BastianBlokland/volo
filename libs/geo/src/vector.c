@@ -394,6 +394,17 @@ void geo_vector_pack_f16(const GeoVector v, f16 out[PARAM_ARRAY_SIZE(4)]) {
 }
 
 GeoVector geo_vector_unpack_f16(const f16 in[PARAM_ARRAY_SIZE(4)]) {
+#ifdef VOLO_SIMD
+  if (g_f16cSupport) {
+    COMPILER_BARRIER(); // Don't allow re-ordering 'simd_vec_f16_to_f32' before the check.
+    const SimdVec vecF16 = simd_vec_set_u16(in[0], in[1], in[2], in[3], 0, 0, 0, 0);
+    const SimdVec vecF32 = simd_vec_f16_to_f32(vecF16);
+
+    GeoVector res;
+    simd_vec_store(vecF32, res.comps);
+    return res;
+  }
+#endif
   GeoVector res;
   res.x = float_f16_to_f32(in[0]);
   res.y = float_f16_to_f32(in[1]);

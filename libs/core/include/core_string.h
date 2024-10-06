@@ -42,7 +42,7 @@ typedef enum {
  * Create a string over a character literal.
  */
 #define string_static(_LIT_)                                                                       \
-  { .ptr = (void*)(_LIT_), .size = sizeof(_LIT_) - 1u, }
+  { .ptr = (_LIT_), .size = sizeof(_LIT_) - 1u, }
 
 /**
  * Create a string over a character literal.

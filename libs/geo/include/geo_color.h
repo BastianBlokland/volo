@@ -137,7 +137,8 @@ GeoColor geo_color_from_hsv(f32 hue, f32 saturation, f32 value, f32 alpha);
 /**
  * Pack a color to 16 bit floats.
  */
-void geo_color_pack_f16(GeoColor, f16 out[PARAM_ARRAY_SIZE(4)]);
+void     geo_color_pack_f16(GeoColor, f16 out[PARAM_ARRAY_SIZE(4)]);
+GeoColor geo_color_unpack_f16(const f16[PARAM_ARRAY_SIZE(4)]);
 
 /**
  * Create a formatting argument for a color.

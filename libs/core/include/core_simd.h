@@ -85,6 +85,18 @@ simd_vec_set(const f32 a, const f32 b, const f32 c, const f32 d) {
   return _mm_set_ps(d, c, b, a);
 }
 
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_set_u16(
+    const u16 a,
+    const u16 b,
+    const u16 c,
+    const u16 d,
+    const u16 e,
+    const u16 f,
+    const u16 g,
+    const u16 h) {
+  return _mm_castsi128_ps(_mm_set_epi16(h, g, f, e, d, c, b, a));
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast(const f32 value) {
   return _mm_set1_ps(value);
 }
@@ -98,6 +110,10 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast_u16(const u16 value) 
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast_u32(const u32 value) {
+  return _mm_castsi128_ps(_mm_set1_epi32(value));
+}
+
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast_i32(const i32 value) {
   return _mm_castsi128_ps(_mm_set1_epi32(value));
 }
 
@@ -292,6 +308,14 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_f32_to_f16_soft(const SimdVec v
   res = _mm_castsi128_ps(_mm_shufflehi_epi16(_mm_castps_si128(res), _MM_SHUFFLE(0, 0, 2, 0)));
   res = _mm_castsi128_ps(_mm_shufflelo_epi16(_mm_castps_si128(res), _MM_SHUFFLE(0, 0, 2, 0)));
   return simd_vec_permute(res, 0, 0, 2, 0);
+}
+
+/**
+ * Convert four 16 bit floating point values to 32 bit.
+ * NOTE: Requires the F16C extension.
+ */
+MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_f16_to_f32(const SimdVec vec) {
+  return _mm_cvtph_ps(_mm_castps_si128(vec));
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_abs(const SimdVec vec) {
