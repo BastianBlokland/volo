@@ -326,26 +326,29 @@ static void action_update_anim_param(ActionContext* ctx, const SceneActionUpdate
     SceneAnimLayer*     layer    = scene_animation_layer_mut(animComp, a->layerName);
     if (layer) {
       switch (a->param) {
-      case 0 /* Time */:
+      case SceneActionAnimParam_Time:
         layer->time = a->value_f32;
         break;
-      case 1 /* TimeNorm */:
+      case SceneActionAnimParam_TimeNorm:
         layer->time = a->value_f32 * layer->duration;
         break;
-      case 2 /* Speed */:
+      case SceneActionAnimParam_Speed:
         layer->speed = a->value_f32;
         break;
-      case 3 /* Weight */:
+      case SceneActionAnimParam_Weight:
         layer->weight = a->value_f32;
         break;
-      case 4 /* Loop */:
+      case SceneActionAnimParam_Loop:
         layer->flags = action_update_flag(layer->flags, SceneAnimFlags_Loop, a->value_bool);
         break;
-      case 5 /* FadeIn */:
+      case SceneActionAnimParam_FadeIn:
         layer->flags = action_update_flag(layer->flags, SceneAnimFlags_AutoFadeIn, a->value_bool);
         break;
-      case 6 /* FadeOut */:
+      case SceneActionAnimParam_FadeOut:
         layer->flags = action_update_flag(layer->flags, SceneAnimFlags_AutoFadeOut, a->value_bool);
+        break;
+      case SceneActionAnimParam_Duration:
+        diag_assert_fail("Animation duration cannot be changed");
         break;
       }
     }

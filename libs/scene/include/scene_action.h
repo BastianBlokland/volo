@@ -154,10 +154,21 @@ typedef struct {
   f32                   value;
 } SceneActionUpdateSoundParam;
 
+typedef enum {
+  SceneActionAnimParam_Time,
+  SceneActionAnimParam_TimeNorm,
+  SceneActionAnimParam_Speed,
+  SceneActionAnimParam_Weight,
+  SceneActionAnimParam_Loop,
+  SceneActionAnimParam_FadeIn,
+  SceneActionAnimParam_FadeOut,
+  SceneActionAnimParam_Duration,
+} SceneActionAnimParam;
+
 typedef struct {
-  EcsEntityId entity;
-  StringHash  layerName;
-  i32         param;
+  EcsEntityId          entity;
+  StringHash           layerName;
+  SceneActionAnimParam param;
   union {
     f32  value_f32;
     bool value_bool;
