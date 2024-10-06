@@ -310,10 +310,10 @@ static void action_update_sound_param(ActionContext* ctx, const SceneActionUpdat
   if (ecs_view_maybe_jump(ctx->soundItr, a->entity)) {
     SceneSoundComp* soundComp = ecs_view_write_t(ctx->soundItr, SceneSoundComp);
     switch (a->param) {
-    case 0 /* Gain */:
+    case SceneActionSoundParam_Gain:
       soundComp->gain = a->value;
       break;
-    case 1 /* Pitch */:
+    case SceneActionSoundParam_Pitch:
       soundComp->pitch = a->value;
       break;
     }

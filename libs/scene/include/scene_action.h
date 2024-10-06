@@ -143,10 +143,15 @@ typedef struct {
   GeoColor              value;
 } SceneActionUpdateLightParam;
 
+typedef enum {
+  SceneActionSoundParam_Gain,
+  SceneActionSoundParam_Pitch,
+} SceneActionSoundParam;
+
 typedef struct {
-  EcsEntityId entity;
-  i32         param;
-  f32         value;
+  EcsEntityId           entity;
+  SceneActionSoundParam param;
+  f32                   value;
 } SceneActionUpdateSoundParam;
 
 typedef struct {
