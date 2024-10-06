@@ -1276,11 +1276,11 @@ static ScriptVal eval_renderable_param(EvalContext* ctx, const ScriptArgs args, 
   update.entity = entity;
   update.param  = param;
   switch (param) {
-  case 0 /* Color */:
+  case SceneActionRenderableParam_Color:
     update.value_color = script_arg_color(args, 2, err);
     break;
-  case 1 /* Alpha */:
-  case 2 /* Emissive */:
+  case SceneActionRenderableParam_Alpha:
+  case SceneActionRenderableParam_Emissive:
     update.value_num = (f32)script_arg_num_range(args, 2, 0.0, 1.0, err);
     break;
   }
@@ -1346,16 +1346,16 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
     if (ecs_view_maybe_jump(ctx->vfxSysItr, entity)) {
       const SceneVfxSystemComp* vfxSysComp = ecs_view_read_t(ctx->vfxSysItr, SceneVfxSystemComp);
       switch (param) {
-      case 0 /* Alpha */:
+      case SceneActionVfxParam_Alpha:
         return script_num(vfxSysComp->alpha);
-      case 1 /* EmitMultiplier */:
+      case SceneActionVfxParam_EmitMultiplier:
         return script_num(vfxSysComp->emitMultiplier);
       }
     }
     if (ecs_view_maybe_jump(ctx->vfxDecalItr, entity)) {
       const SceneVfxDecalComp* vfxDecalComp = ecs_view_read_t(ctx->vfxDecalItr, SceneVfxDecalComp);
       switch (param) {
-      case 0 /* Alpha */:
+      case SceneActionVfxParam_Alpha:
         return script_num(vfxDecalComp->alpha);
       }
     }
@@ -1451,14 +1451,14 @@ static ScriptVal eval_light_param(EvalContext* ctx, const ScriptArgs args, Scrip
     if (ecs_view_maybe_jump(ctx->lightPointItr, entity)) {
       const SceneLightPointComp* point = ecs_view_read_t(ctx->lightPointItr, SceneLightPointComp);
       switch (param) {
-      case 0 /* Radiance */:
+      case SceneActionLightParam_Radiance:
         return script_color(point->radiance);
       }
     }
     if (ecs_view_maybe_jump(ctx->lightDirItr, entity)) {
       const SceneLightDirComp* dir = ecs_view_read_t(ctx->lightDirItr, SceneLightDirComp);
       switch (param) {
-      case 0 /* Radiance */:
+      case SceneActionLightParam_Radiance:
         return script_color(dir->radiance);
       }
     }
@@ -1522,9 +1522,9 @@ static ScriptVal eval_sound_param(EvalContext* ctx, const ScriptArgs args, Scrip
     if (ecs_view_maybe_jump(ctx->soundItr, entity)) {
       const SceneSoundComp* soundComp = ecs_view_read_t(ctx->soundItr, SceneSoundComp);
       switch (param) {
-      case 0 /* Gain */:
+      case SceneActionSoundParam_Gain:
         return script_num(soundComp->gain);
-      case 1 /* Pitch */:
+      case SceneActionSoundParam_Pitch:
         return script_num(soundComp->pitch);
       }
     }
@@ -1555,21 +1555,21 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
       const SceneAnimLayer*     layer    = scene_animation_layer(animComp, layerName);
       if (layer) {
         switch (param) {
-        case 0 /* Time */:
+        case SceneActionAnimParam_Time:
           return script_num(layer->time);
-        case 1 /* TimeNorm */:
+        case SceneActionAnimParam_TimeNorm:
           return script_num(layer->duration > 0 ? (layer->time / layer->duration) : 0.0f);
-        case 2 /* Speed */:
+        case SceneActionAnimParam_Speed:
           return script_num(layer->speed);
-        case 3 /* Weight */:
+        case SceneActionAnimParam_Weight:
           return script_num(layer->weight);
-        case 4 /* Loop */:
+        case SceneActionAnimParam_Loop:
           return script_bool((layer->flags & SceneAnimFlags_Loop) != 0);
-        case 5 /* FadeIn */:
+        case SceneActionAnimParam_FadeIn:
           return script_bool((layer->flags & SceneAnimFlags_AutoFadeIn) != 0);
-        case 6 /* FadeOut */:
+        case SceneActionAnimParam_FadeOut:
           return script_bool((layer->flags & SceneAnimFlags_AutoFadeOut) != 0);
-        case 7 /* Duration */:
+        case SceneActionAnimParam_Duration:
           return script_num(layer->duration);
         }
       }
