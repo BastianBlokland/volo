@@ -94,7 +94,7 @@ MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_set_u16(
     const u16 f,
     const u16 g,
     const u16 h) {
-  return _mm_set_epi16(h, g, f, e, d, c, b, a);
+  return _mm_castsi128_ps(_mm_set_epi16(h, g, f, e, d, c, b, a));
 }
 
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_broadcast(const f32 value) {
