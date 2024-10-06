@@ -267,10 +267,10 @@ static void action_update_vfx_param(ActionContext* ctx, const SceneActionUpdateV
   if (ecs_view_maybe_jump(ctx->vfxSysItr, a->entity)) {
     SceneVfxSystemComp* vfxSysComp = ecs_view_write_t(ctx->vfxSysItr, SceneVfxSystemComp);
     switch (a->param) {
-    case 0 /* Alpha */:
+    case SceneActionVfxParam_Alpha:
       vfxSysComp->alpha = a->value;
       break;
-    case 1 /* EmitMultiplier */:
+    case SceneActionVfxParam_EmitMultiplier:
       vfxSysComp->emitMultiplier = a->value;
       break;
     }
@@ -278,8 +278,10 @@ static void action_update_vfx_param(ActionContext* ctx, const SceneActionUpdateV
   if (ecs_view_maybe_jump(ctx->vfxDecalItr, a->entity)) {
     SceneVfxDecalComp* vfxDecalComp = ecs_view_write_t(ctx->vfxDecalItr, SceneVfxDecalComp);
     switch (a->param) {
-    case 0 /* Alpha */:
+    case SceneActionVfxParam_Alpha:
       vfxDecalComp->alpha = a->value;
+      break;
+    default:
       break;
     }
   }

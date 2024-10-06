@@ -122,10 +122,15 @@ typedef struct {
   };
 } SceneActionUpdateRenderableParam;
 
+typedef enum {
+  SceneActionVfxParam_Alpha,
+  SceneActionVfxParam_EmitMultiplier,
+} SceneActionVfxParam;
+
 typedef struct {
-  EcsEntityId entity;
-  i32         param;
-  f32         value;
+  EcsEntityId         entity;
+  SceneActionVfxParam param;
+  f32                 value;
 } SceneActionUpdateVfxParam;
 
 typedef struct {
