@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_bits.h"
+#include "core_diag.h"
 #include "scene_action.h"
 
 typedef u8 ActionTypeStorage;
@@ -8,56 +9,55 @@ typedef u8 ActionTypeStorage;
  * TODO: Document queue layout.
  */
 ecs_comp_define(SceneActionQueueComp) {
-  void* memPtr;
-  u32   count, capacity;
+  void* data;
+  u32   count, cap;
 };
 
-static usize action_queue_mem_size(const u32 capacity) {
-  return sizeof(SceneAction) * capacity + sizeof(ActionTypeStorage) * capacity;
+static usize action_queue_mem_size(const u32 cap) {
+  return sizeof(SceneAction) * cap + sizeof(ActionTypeStorage) * cap;
 }
 
-static ActionTypeStorage* action_entry_types(void* memPtr, const u32 capacity) {
-  return bits_ptr_offset(memPtr, sizeof(SceneAction) * capacity);
+static Mem action_queue_types(void* memPtr, const u32 cap) {
+  const usize offset = sizeof(SceneAction) * cap;
+  return mem_create(bits_ptr_offset(memPtr, offset), sizeof(ActionTypeStorage) * cap);
 }
 
-static SceneAction* action_entry_defs(void* memPtr, const u32 capacity) {
-  (void)capacity;
-  return memPtr;
+static Mem action_queue_defs(void* memPtr, const u32 cap) {
+  return mem_create(memPtr, sizeof(SceneAction) * cap);
 }
 
-static ActionTypeStorage* action_entry_type(void* memPtr, const u32 capacity, const u32 index) {
-  return action_entry_types(memPtr, capacity) + index;
+static ActionTypeStorage* action_entry_type(void* data, const u32 cap, const u32 index) {
+  return (ActionTypeStorage*)action_queue_types(data, cap).ptr + index;
 }
 
-static SceneAction* action_entry_def(void* memPtr, const u32 capacity, const u32 index) {
-  return action_entry_defs(memPtr, capacity) + index;
+static SceneAction* action_entry_def(void* data, const u32 capacity, const u32 index) {
+  return (SceneAction*)action_queue_defs(data, capacity).ptr + index;
 }
 
-static void ecs_destruct_action_queue(void* data) {
-  SceneActionQueueComp* q = data;
-  if (q->capacity) {
-    alloc_free(g_allocHeap, mem_create(q->memPtr, action_queue_mem_size(q->capacity)));
+static void ecs_destruct_action_queue(void* comp) {
+  SceneActionQueueComp* q = comp;
+  if (q->cap) {
+    alloc_free(g_allocHeap, mem_create(q->data, action_queue_mem_size(q->cap)));
   }
 }
 
-NO_INLINE_HINT void action_queue_grow(SceneActionQueueComp* q) {
-  const u32   newCapacity = bits_nextpow2(q->capacity + 1);
-  const usize newMemSize  = action_queue_mem_size(newCapacity);
-  void*       newMemPtr   = alloc_alloc(g_allocHeap, newMemSize, alignof(SceneAction)).ptr;
+NO_INLINE_HINT static void action_queue_grow(SceneActionQueueComp* q) {
+  const u32   newCap     = bits_nextpow2(q->cap + 1);
+  const usize newMemSize = action_queue_mem_size(newCap);
+  void*       newData    = alloc_alloc(g_allocHeap, newMemSize, alignof(SceneAction)).ptr;
+  diag_assert_msg(newData, "Allocation failed");
 
-  // Copy the data to the new allocation.
-  for (u32 i = 0; i != q->count; ++i) {
-    const ActionTypeStorage type = action_entry_type(q->memPtr, q->capacity, i);
-    const SceneAction*      data = action_entry_def(q->memPtr, q->capacity, i);
+  if (q->cap) {
+    // Copy the action types and definitions to the new allocation.
+    mem_cpy(action_queue_types(newData, newCap), action_queue_types(q->data, q->cap));
+    mem_cpy(action_queue_defs(newData, newCap), action_queue_defs(q->data, q->cap));
+
+    // Free the old allocation.
+    alloc_free(g_allocHeap, mem_create(q->data, action_queue_mem_size(q->cap)));
   }
 
-  // Free the old allocation.
-  if (q->capacity) {
-    alloc_free(g_allocHeap, mem_create(q->memPtr, action_queue_mem_size(q->capacity)));
-  }
-
-  q->memPtr   = newMemPtr;
-  q->capacity = newCapacity;
+  q->data = newData;
+  q->cap  = newCap;
 }
 
 ecs_module_init(scene_action_module) {
@@ -65,12 +65,12 @@ ecs_module_init(scene_action_module) {
 }
 
 SceneAction* scene_action_push(SceneActionQueueComp* q, const SceneActionType type) {
-  if (q->count == q->capacity) {
+  if (q->count == q->cap) {
     action_queue_grow(q);
   }
 
-  ActionTypeStorage* entryType = action_entry_type(q->memPtr, q->capacity, q->count);
-  SceneAction*       entryDef  = action_entry_def(q->memPtr, q->capacity, q->count);
+  ActionTypeStorage* entryType = action_entry_type(q->data, q->cap, q->count);
+  SceneAction*       entryDef  = action_entry_def(q->data, q->cap, q->count);
   ++q->count;
 
   *entryType = (ActionTypeStorage)type;
