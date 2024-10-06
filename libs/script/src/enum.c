@@ -9,6 +9,27 @@
 
 ASSERT((script_enum_max_entries % 8) == 0, "Only multiple of 8 max entry counts are supported");
 
+INLINE_HINT static u32 script_enum_find_free(const ScriptEnum* e) {
+#ifdef VOLO_SIMD
+  const SimdVec zeroVec = simd_vec_zero();
+  for (u32 i = 0; i != script_enum_max_entries; i += 8) {
+    const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load(e->nameHashes + i), zeroVec);
+    const SimdVec eqB    = simd_vec_eq_u32(simd_vec_load(e->nameHashes + i + 4), zeroVec);
+    const u32     eqMask = simd_vec_mask_u8(simd_vec_pack_u32_to_u16(eqA, eqB));
+    if (eqMask) {
+      return i + intrinsic_ctz_32(eqMask) / 2; // Div 2 due to 16 bit entries.
+    }
+  }
+#else
+  for (u32 i = 0; i != script_enum_max_entries; ++i) {
+    if (!e->nameHashes[i]) {
+      return i;
+    }
+  }
+#endif
+  return sentinel_u32;
+}
+
 INLINE_HINT static u32 script_enum_find_name(const ScriptEnum* e, const StringHash nameHash) {
 #ifdef VOLO_SIMD
   const SimdVec targetVec = simd_vec_broadcast_u32(nameHash);
@@ -53,9 +74,10 @@ INLINE_HINT static u32 script_enum_find_value(const ScriptEnum* e, const i32 val
 
 void script_enum_push(ScriptEnum* e, const String name, const i32 value) {
   const StringHash nameHash = stringtable_add(g_stringtable, name);
-
-  diag_assert_msg(e->count < script_enum_max_entries, "ScriptEnum entry count exceeds max");
   diag_assert_msg(!script_enum_contains_name(e, nameHash), "Duplicate name in ScriptEnum");
+
+  const u32 index = script_enum_find_free(e);
+  diag_assert_msg(!sentinel_check(index), "ScriptEnum entry count exceeds max");
 
   e->nameHashes[e->count] = nameHash;
   e->values[e->count]     = value;
