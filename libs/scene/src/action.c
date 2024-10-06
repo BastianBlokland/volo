@@ -250,13 +250,13 @@ action_update_renderable_param(ActionContext* ctx, const SceneActionUpdateRender
   if (ecs_view_maybe_jump(ctx->renderableItr, a->entity)) {
     SceneRenderableComp* rendComp = ecs_view_write_t(ctx->renderableItr, SceneRenderableComp);
     switch (a->param) {
-    case 0 /* Color */:
+    case SceneActionRenderableParam_Color:
       rendComp->color = a->value_color;
       break;
-    case 1 /* Alpha */:
+    case SceneActionRenderableParam_Alpha:
       rendComp->color.a = a->value_num;
       break;
-    case 2 /* Emissive */:
+    case SceneActionRenderableParam_Emissive:
       rendComp->emissive = a->value_num;
       break;
     }

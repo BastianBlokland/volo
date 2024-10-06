@@ -107,9 +107,15 @@ typedef struct {
   bool        add;
 } SceneActionUpdateSet;
 
+typedef enum {
+  SceneActionRenderableParam_Color,
+  SceneActionRenderableParam_Alpha,
+  SceneActionRenderableParam_Emissive,
+} SceneActionRenderableParam;
+
 typedef struct {
-  EcsEntityId entity;
-  i32         param;
+  EcsEntityId                entity;
+  SceneActionRenderableParam param;
   union {
     f32      value_num;
     GeoColor value_color;
