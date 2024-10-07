@@ -52,10 +52,9 @@ static ScriptBinderHash binder_hash_compute(const ScriptBinder* binder) {
   return (ScriptBinderHash)((u64)funcNameHash | ((u64)binder->count << 32u));
 }
 
-static ScriptVal binder_func_fallback(void* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal binder_func_fallback(void* ctx, ScriptBinderCall* call) {
   (void)ctx;
-  (void)args;
-  *err = script_error(ScriptError_UnimplementedBinding);
+  call->err = script_error(ScriptError_UnimplementedBinding);
   return script_null();
 }
 
@@ -161,14 +160,10 @@ ScriptBinderSlot script_binder_next(const ScriptBinder* binder, const ScriptBind
 }
 
 ScriptVal script_binder_exec(
-    const ScriptBinder*    binder,
-    const ScriptBinderSlot func,
-    void*                  ctx,
-    const ScriptArgs       args,
-    ScriptError*           err) {
+    const ScriptBinder* binder, const ScriptBinderSlot func, void* ctx, ScriptBinderCall* call) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
   diag_assert(func < binder->count);
-  return binder->funcs[func](ctx, args, err);
+  return binder->funcs[func](ctx, call);
 }
 
 static JsonVal binder_mask_to_json(JsonDoc* d, const ScriptMask mask) {

@@ -220,18 +220,17 @@ static TtyFgColor repl_token_color(const ScriptTokenKind tokenKind) {
   return TtyFgColor_Default;
 }
 
-static ScriptVal repl_bind_print(void* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal repl_bind_print(void* ctx, ScriptBinderCall* call) {
   (void)ctx;
-  (void)err;
 
   Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  for (usize i = 0; i != args.count; ++i) {
+  for (usize i = 0; i != call->args.count; ++i) {
     if (i) {
       dynstring_append_char(&buffer, ' ');
     }
-    script_val_write(args.values[i], &buffer);
+    script_val_write(call->args.values[i], &buffer);
   }
   dynstring_append_char(&buffer, '\n');
 
@@ -241,15 +240,13 @@ static ScriptVal repl_bind_print(void* ctx, const ScriptArgs args, ScriptError* 
   return script_null();
 }
 
-static ScriptVal repl_bind_print_bytes(void* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal repl_bind_print_bytes(void* ctx, ScriptBinderCall* call) {
   (void)ctx;
-  (void)err;
-
   Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  for (usize i = 0; i != args.count; ++i) {
-    format_write_mem(&buffer, mem_var(args.values[i]));
+  for (usize i = 0; i != call->args.count; ++i) {
+    format_write_mem(&buffer, mem_var(call->args.values[i]));
     dynstring_append_char(&buffer, '\n');
   }
 
@@ -259,17 +256,16 @@ static ScriptVal repl_bind_print_bytes(void* ctx, const ScriptArgs args, ScriptE
   return script_null();
 }
 
-static ScriptVal repl_bind_print_bits(void* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal repl_bind_print_bits(void* ctx, ScriptBinderCall* call) {
   (void)ctx;
-  (void)err;
 
   Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   const FormatOptsBitset opts = {.order = FormatBitsetOrder_MostToLeastSignificant};
 
-  for (usize i = 0; i != args.count; ++i) {
-    format_write_bitset(&buffer, bitset_from_var(args.values[i]), &opts);
+  for (usize i = 0; i != call->args.count; ++i) {
+    format_write_bitset(&buffer, bitset_from_var(call->args.values[i]), &opts);
     dynstring_append_char(&buffer, '\n');
   }
 

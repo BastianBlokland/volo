@@ -1,6 +1,7 @@
 #pragma once
 #include "core_string.h"
 #include "script_args.h"
+#include "script_error.h"
 
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
@@ -11,9 +12,6 @@ typedef struct sDynArray DynString;
 // Forward declare from 'script_val.h'.
 typedef struct sScriptVal ScriptVal;
 
-// Forward declare from 'script_error.h'.
-typedef struct sScriptError ScriptError;
-
 // Forward declare from 'script_sig.h'.
 typedef struct sScriptSig ScriptSig;
 
@@ -22,7 +20,12 @@ typedef struct sScriptSig ScriptSig;
 typedef u16 ScriptBinderSlot;
 typedef u64 ScriptBinderHash;
 
-typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptArgs, ScriptError*);
+typedef struct {
+  ScriptArgs  args;
+  ScriptError err;
+} ScriptBinderCall;
+
+typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptBinderCall*);
 
 /**
  * Table of native bound functions.
@@ -96,8 +99,7 @@ ScriptBinderSlot script_binder_next(const ScriptBinder*, ScriptBinderSlot);
  * Execute a bound function.
  * Pre-condition: Binder has been finalized.
  */
-ScriptVal script_binder_exec(
-    const ScriptBinder*, ScriptBinderSlot func, void* ctx, ScriptArgs, ScriptError* err);
+ScriptVal script_binder_exec(const ScriptBinder*, ScriptBinderSlot, void* ctx, ScriptBinderCall*);
 
 /**
  * Binder serialization utils.

@@ -322,13 +322,16 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
       return val_null();
     }
   }
-  const ScriptArgs args = {.values = argValues, .count = data->argCount};
-  ScriptError      err  = {0};
-  const ScriptVal  ret  = script_binder_exec(ctx->binder, data->func, ctx->bindCtx, args, &err);
-  if (UNLIKELY(err.kind)) {
-    const ScriptExpr errExpr = err.argIndex < data->argCount ? argExprs[err.argIndex] : e;
-    ctx->panic               = (ScriptPanic){
-        .kind  = script_error_to_panic(err.kind),
+  ScriptBinderCall call = {
+      .args = {.values = argValues, .count = data->argCount},
+  };
+  const ScriptVal ret = script_binder_exec(ctx->binder, data->func, ctx->bindCtx, &call);
+  if (UNLIKELY(call.err.kind)) {
+    const u16        argIndex = call.err.argIndex;
+    const ScriptExpr errExpr  = argIndex < data->argCount ? argExprs[argIndex] : e;
+
+    ctx->panic = (ScriptPanic){
+        .kind  = script_error_to_panic(call.err.kind),
         .range = script_expr_range(ctx->doc, errExpr),
     };
     ctx->signal |= ScriptEvalSignal_Panic;

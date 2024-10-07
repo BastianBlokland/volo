@@ -15,28 +15,25 @@ typedef struct {
   u32 counter;
 } ScriptEvalTestCtx;
 
-static ScriptVal test_increase_counter(void* ctx, const ScriptArgs args, ScriptError* err) {
-  (void)args;
-  (void)err;
+static ScriptVal test_increase_counter(void* ctx, ScriptBinderCall* call) {
+  (void)call;
 
   ScriptEvalTestCtx* typedCtx = ctx;
   ++typedCtx->counter;
   return script_null();
 }
 
-static ScriptVal test_return_null(void* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal test_return_null(void* ctx, ScriptBinderCall* call) {
   (void)ctx;
-  (void)args;
-  (void)err;
+  (void)call;
 
   return script_null();
 }
 
-static ScriptVal test_return_first(void* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal test_return_first(void* ctx, ScriptBinderCall* call) {
   (void)ctx;
-  (void)err;
 
-  return args.count ? args.values[0] : script_null();
+  return call->args.count ? call->args.values[0] : script_null();
 }
 
 spec(eval) {

@@ -8,18 +8,16 @@ typedef struct {
   u32 counterA, counterB;
 } ScriptBindTestCtx;
 
-static ScriptVal test_bind_a(void* ctx, const ScriptArgs args, ScriptError* err) {
-  (void)args;
-  (void)err;
+static ScriptVal test_bind_a(void* ctx, ScriptBinderCall* call) {
+  (void)call;
 
   ScriptBindTestCtx* typedCtx = ctx;
   ++typedCtx->counterA;
   return script_null();
 }
 
-static ScriptVal test_bind_b(void* ctx, const ScriptArgs args, ScriptError* err) {
-  (void)args;
-  (void)err;
+static ScriptVal test_bind_b(void* ctx, ScriptBinderCall* call) {
+  (void)call;
 
   ScriptBindTestCtx* typedCtx = ctx;
   ++typedCtx->counterB;
@@ -50,8 +48,6 @@ spec(binder) {
   }
 
   it("can execute bound functions") {
-    ScriptError err = {0};
-
     const String a = string_lit("a");
     const String b = string_lit("b");
 
@@ -62,13 +58,13 @@ spec(binder) {
     script_binder_finalize(binder);
 
     ScriptBindTestCtx ctx  = {0};
-    const ScriptArgs  args = {0};
+    ScriptBinderCall  call = {0};
 
-    script_binder_exec(binder, script_binder_lookup(binder, string_hash(a)), &ctx, args, &err);
+    script_binder_exec(binder, script_binder_lookup(binder, string_hash(a)), &ctx, &call);
     check_eq_int(ctx.counterA, 1);
     check_eq_int(ctx.counterB, 0);
 
-    script_binder_exec(binder, script_binder_lookup(binder, string_hash(b)), &ctx, args, &err);
+    script_binder_exec(binder, script_binder_lookup(binder, string_hash(b)), &ctx, &call);
     check_eq_int(ctx.counterA, 1);
     check_eq_int(ctx.counterB, 1);
   }
