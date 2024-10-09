@@ -36,7 +36,10 @@ static void emit_value(ScriptCompileContext* ctx, const u8 valId, const u8 regId
 
 static ScriptCompileResult compile_value(ScriptCompileContext* ctx, const ScriptExpr e) {
   const ScriptExprValue* data = &expr_data(ctx->doc, e)->value;
-  emit_value(ctx, data->valId, ScriptReg_Accum);
+  if (data->valId > u8_max) {
+    return ScriptCompileResult_TooManyValues;
+  }
+  emit_value(ctx, (u8)data->valId, ScriptReg_Accum);
   return ScriptCompileResult_Success;
 }
 
