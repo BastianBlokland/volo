@@ -25,3 +25,8 @@ typedef struct {
  */
 ScriptVmResult
 script_vm_eval(const ScriptDoc*, String code, ScriptMem*, const ScriptBinder*, void* bindCtx);
+
+/**
+ * Pretty print byte-code to the given DynString.
+ */
+void script_vm_write_pretty(const ScriptDoc*, String code, DynString* out);

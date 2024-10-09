@@ -15,7 +15,7 @@ typedef struct {
 } ScriptVmContext;
 
 static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
-  u8*       ip    = mem_begin(code);
+  const u8* ip    = mem_begin(code);
   const u8* ipEnd = mem_end(code);
   for (;;) {
     if (UNLIKELY(ip == ipEnd)) {
@@ -57,4 +57,23 @@ ScriptVmResult script_vm_eval(
   res.panic = ctx.panic;
 
   return res;
+}
+
+void script_vm_write_pretty(const ScriptDoc* doc, const String code, DynString* out) {
+  (void)doc;
+  const u8* itr    = mem_begin(code);
+  const u8* itrEnd = mem_end(code);
+  while (itr != itrEnd) {
+    const ScriptOp op = *itr++;
+    switch (op) {
+    case ScriptOp_Fail:
+      fmt_write(out, "[Fail]\n");
+      break;
+    case ScriptOp_Return:
+      fmt_write(out, "[Return]\n");
+      break;
+    default:
+      return;
+    }
+  }
 }
