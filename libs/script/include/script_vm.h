@@ -8,6 +8,13 @@ typedef struct sScriptMem ScriptMem;
 // Forward declare from 'core_binder.h'.
 typedef struct sScriptBinder ScriptBinder;
 
+#define script_vm_regs 8
+
+typedef enum {
+  ScriptOp_Fail   = 0,  // [] ()    -> ()   Terminate the execution.
+  ScriptOp_Return = 10, // [] (r0)  -> ()   Return r0.
+} ScriptOp;
+
 typedef struct {
   ScriptPanic panic;
   ScriptVal   val;
@@ -17,4 +24,4 @@ typedef struct {
  * Evaluate the given byte-code.
  */
 ScriptVmResult
-script_vm_eval(const ScriptDoc*, Mem code, ScriptMem*, const ScriptBinder*, void* bindCtx);
+script_vm_eval(const ScriptDoc*, String code, ScriptMem*, const ScriptBinder*, void* bindCtx);

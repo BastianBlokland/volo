@@ -4,20 +4,22 @@
 #include "script_panic.h"
 
 static const String g_panicKindStrs[] = {
-    string_static("None"),
-    string_static("Assertion failed"),
-    string_static("Execution limit exceeded"),
-    string_static("Argument invalid"),
-    string_static("Argument is null"),
-    string_static("Argument missing"),
-    string_static("Argument out of range"),
-    string_static("Argument count exceeds maximum"),
-    string_static("Invalid enum entry"),
-    string_static("Unimplemented binding"),
-    string_static("Query limit exceeded"),
-    string_static("Query invalid"),
-    string_static("Cannot change readonly parameter"),
-    string_static("Required capability is missing"),
+    [ScriptPanic_None]                        = string_static("None"),
+    [ScriptPanic_AssertionFailed]             = string_static("Assertion failed"),
+    [ScriptPanic_ExecutionFailed]             = string_static("Execution failed"),
+    [ScriptPanic_ExecutionLimitExceeded]      = string_static("Execution limit exceeded"),
+    [ScriptPanic_ArgumentInvalid]             = string_static("Argument invalid"),
+    [ScriptPanic_ArgumentNull]                = string_static("Argument is null"),
+    [ScriptPanic_ArgumentMissing]             = string_static("Argument missing"),
+    [ScriptPanic_ArgumentOutOfRange]          = string_static("Argument out of range"),
+    [ScriptPanic_ArgumentCountExceedsMaximum] = string_static("Argument count exceeds maximum"),
+    [ScriptPanic_EnumInvalidEntry]            = string_static("Invalid enum entry"),
+    [ScriptPanic_UnimplementedBinding]        = string_static("Unimplemented binding"),
+    [ScriptPanic_QueryLimitExceeded]          = string_static("Query limit exceeded"),
+    [ScriptPanic_QueryInvalid]                = string_static("Query invalid"),
+    [ScriptPanic_ReadonlyParam]               = string_static("Cannot change readonly parameter"),
+    [ScriptPanic_MissingCapability]           = string_static("Required capability is missing"),
+    [ScriptPanic_CorruptCode]                 = string_static("Corrupt code"),
 };
 ASSERT(array_elems(g_panicKindStrs) == ScriptPanicKind_Count, "Incorrect number of kind strs");
 
