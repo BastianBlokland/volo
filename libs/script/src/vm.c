@@ -35,6 +35,13 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       ctx->regs[regId] = dynarray_begin_t(&ctx->doc->values, ScriptVal)[valId];
       continue;
     }
+    case ScriptOp_Add: {
+      if (UNLIKELY((ip += 2) >= ipEnd)) goto Corrupt;
+      const u8 regId = ip[-1];
+      if(UNLIKELY(regId >= script_vm_regs)) goto Corrupt;
+      ctx->regs[0] = script_val_add(ctx->regs[0], ctx->regs[regId]);
+      continue;
+    }
     }
     // clang-format on
     goto Corrupt;
@@ -90,6 +97,10 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     case ScriptOp_Value: {
       if (UNLIKELY((ip += 3) > ipEnd)) { return; }
       fmt_write(out, "[Value v{} r{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
+    } break;
+    case ScriptOp_Add: {
+      if (UNLIKELY((ip += 2) > ipEnd)) { return; }
+      fmt_write(out, "[Add r{}]\n", fmt_int(ip[-1]));
     } break;
     default:
       return;
