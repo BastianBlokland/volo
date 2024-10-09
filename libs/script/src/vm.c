@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_diag.h"
 #include "script_binder.h"
 #include "script_vm.h"
@@ -59,7 +60,7 @@ ScriptVmResult script_vm_eval(
   return res;
 }
 
-void script_vm_write_pretty(const ScriptDoc* doc, const String code, DynString* out) {
+void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* out) {
   (void)doc;
   const u8* itr    = mem_begin(code);
   const u8* itrEnd = mem_end(code);
@@ -76,4 +77,13 @@ void script_vm_write_pretty(const ScriptDoc* doc, const String code, DynString* 
       return;
     }
   }
+}
+
+String script_vm_disasm_scratch(const ScriptDoc* doc, const String code) {
+  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte * 16, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  script_vm_disasm_write(doc, code, &buffer);
+
+  return dynstring_view(&buffer);
 }

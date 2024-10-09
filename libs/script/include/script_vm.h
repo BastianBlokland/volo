@@ -27,6 +27,7 @@ ScriptVmResult
 script_vm_eval(const ScriptDoc*, String code, ScriptMem*, const ScriptBinder*, void* bindCtx);
 
 /**
- * Pretty print byte-code to the given DynString.
+ * Disassemble the given byte-code.
  */
-void script_vm_write_pretty(const ScriptDoc*, String code, DynString* out);
+void   script_vm_disasm_write(const ScriptDoc*, String code, DynString* out);
+String script_vm_disasm_scratch(const ScriptDoc*, String code);

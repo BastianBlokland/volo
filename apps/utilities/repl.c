@@ -31,7 +31,8 @@ typedef enum {
   ReplFlags_OutputTokens  = 1 << 3,
   ReplFlags_OutputAst     = 1 << 4,
   ReplFlags_OutputStats   = 1 << 5,
-  ReplFlags_OutputSymbols = 1 << 6,
+  ReplFlags_OutputCode    = 1 << 6,
+  ReplFlags_OutputSymbols = 1 << 7,
 } ReplFlags;
 
 typedef struct {
@@ -168,6 +169,10 @@ static void repl_output_stats(const ScriptDoc* script, const ScriptExpr expr) {
 
   repl_output(dynstring_view(&buffer));
   dynstring_destroy(&buffer);
+}
+
+static void repl_output_code(const ScriptDoc* script, const String code) {
+  repl_output(script_vm_disasm_scratch(script, code));
 }
 
 static TtyFgColor repl_token_color(const ScriptTokenKind tokenKind) {
@@ -343,7 +348,10 @@ static void repl_exec(
         if (compileRes != ScriptCompileResult_Success) {
           repl_output_error(string_lit("Compilation failed"), id);
         } else {
-          const String         code  = dynstring_view(&codeBuffer);
+          const String code = dynstring_view(&codeBuffer);
+          if (flags & ReplFlags_OutputCode) {
+            repl_output_code(script, code);
+          }
           const ScriptVmResult vmRes = script_vm_eval(script, code, mem, binder, null);
           if (script_panic_valid(&vmRes.panic)) {
             repl_output_panic(input, &vmRes.panic, id);
@@ -623,7 +631,8 @@ Ret:
 
 static CliId g_optFile;
 static CliId g_optBinder;
-static CliId g_optNoEval, g_optVm, g_optWatch, g_optTokens, g_optAst, g_optStats, g_optSyms;
+static CliId g_optNoEval, g_optVm, g_optWatch;
+static CliId g_optTokens, g_optAst, g_optStats, g_optCode, g_optSyms;
 static CliId g_optHelp;
 
 void app_cli_configure(CliApp* app) {
@@ -650,16 +659,19 @@ void app_cli_configure(CliApp* app) {
   cli_register_desc(app, g_optWatch, string_lit("Reevaluate the script when the file changes."));
 
   g_optTokens = cli_register_flag(app, 't', string_lit("tokens"), CliOptionFlags_None);
-  cli_register_desc(app, g_optTokens, string_lit("Ouput the tokens."));
+  cli_register_desc(app, g_optTokens, string_lit("Output the tokens."));
 
   g_optAst = cli_register_flag(app, 'a', string_lit("ast"), CliOptionFlags_None);
-  cli_register_desc(app, g_optAst, string_lit("Ouput the abstract-syntax-tree expressions."));
+  cli_register_desc(app, g_optAst, string_lit("Output the abstract-syntax-tree expressions."));
 
   g_optStats = cli_register_flag(app, 's', string_lit("stats"), CliOptionFlags_None);
-  cli_register_desc(app, g_optStats, string_lit("Ouput script statistics."));
+  cli_register_desc(app, g_optStats, string_lit("Output script statistics."));
+
+  g_optCode = cli_register_flag(app, 'c', string_lit("code"), CliOptionFlags_None);
+  cli_register_desc(app, g_optCode, string_lit("Output the vm byte-code."));
 
   g_optSyms = cli_register_flag(app, 'y', string_lit("syms"), CliOptionFlags_None);
-  cli_register_desc(app, g_optSyms, string_lit("Ouput script symbols."));
+  cli_register_desc(app, g_optSyms, string_lit("Output script symbols."));
 
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
@@ -670,6 +682,7 @@ void app_cli_configure(CliApp* app) {
   cli_register_exclusions(app, g_optHelp, g_optTokens);
   cli_register_exclusions(app, g_optHelp, g_optAst);
   cli_register_exclusions(app, g_optHelp, g_optStats);
+  cli_register_exclusions(app, g_optHelp, g_optCode);
   cli_register_exclusions(app, g_optHelp, g_optSyms);
   cli_register_exclusions(app, g_optHelp, g_optBinder);
 }
@@ -701,6 +714,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   }
   if (cli_parse_provided(invoc, g_optStats)) {
     flags |= ReplFlags_OutputStats;
+  }
+  if (cli_parse_provided(invoc, g_optCode)) {
+    flags |= ReplFlags_OutputCode;
   }
   if (cli_parse_provided(invoc, g_optSyms)) {
     flags |= ReplFlags_OutputSymbols;
