@@ -22,6 +22,7 @@ add_library(lib_script STATIC
   src/sig.c
   src/sym.c
   src/val.c
+  src/vm.c
   )
 target_include_directories(lib_script PUBLIC include)
 target_link_libraries(lib_script PUBLIC lib_core lib_geo lib_ecs)
