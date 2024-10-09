@@ -596,7 +596,7 @@ Ret:
 
 static CliId g_optFile;
 static CliId g_optBinder;
-static CliId g_optNoEval, g_optWatch, g_optTokens, g_optAst, g_optStats, g_optSyms;
+static CliId g_optNoEval, g_optVm, g_optWatch, g_optTokens, g_optAst, g_optStats, g_optSyms;
 static CliId g_optHelp;
 
 void app_cli_configure(CliApp* app) {
@@ -614,6 +614,10 @@ void app_cli_configure(CliApp* app) {
 
   g_optNoEval = cli_register_flag(app, 'n', string_lit("no-eval"), CliOptionFlags_None);
   cli_register_desc(app, g_optNoEval, string_lit("Skip evaluating the input."));
+
+  g_optVm = cli_register_flag(app, 'v', string_lit("vm"), CliOptionFlags_None);
+  cli_register_desc(app, g_optVm, string_lit("Use the VM for evaluating."));
+  cli_register_exclusions(app, g_optVm, g_optNoEval);
 
   g_optWatch = cli_register_flag(app, 'w', string_lit("watch"), CliOptionFlags_None);
   cli_register_desc(app, g_optWatch, string_lit("Reevaluate the script when the file changes."));
@@ -634,6 +638,7 @@ void app_cli_configure(CliApp* app) {
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
   cli_register_exclusions(app, g_optHelp, g_optFile);
   cli_register_exclusions(app, g_optHelp, g_optNoEval);
+  cli_register_exclusions(app, g_optHelp, g_optVm);
   cli_register_exclusions(app, g_optHelp, g_optWatch);
   cli_register_exclusions(app, g_optHelp, g_optTokens);
   cli_register_exclusions(app, g_optHelp, g_optAst);
