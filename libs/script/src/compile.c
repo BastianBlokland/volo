@@ -1,5 +1,7 @@
 #include "core_diag.h"
+#include "core_dynstring.h"
 #include "script_compile.h"
+#include "script_vm.h"
 
 #include "doc_internal.h"
 
@@ -8,9 +10,13 @@ typedef struct {
   DynString*       out;
 } ScriptCompileContext;
 
+static void emit_return(ScriptCompileContext* ctx) {
+  dynstring_append_char(ctx->out, ScriptOp_Return);
+}
+
 static ScriptCompileResult compile_expr(ScriptCompileContext* ctx, const ScriptExpr expr) {
-  (void)ctx;
   (void)expr;
+  emit_return(ctx);
   return ScriptCompileResult_Success;
 }
 
