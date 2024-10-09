@@ -10,9 +10,17 @@ typedef struct sScriptBinder ScriptBinder;
 
 #define script_vm_regs 8
 
+/**
+ * Code operation.
+ *
+ * Doc format:
+ * - '[]' represents data part of the operation itself.
+ * - '()' represents registers that are read or written by the operation.
+ */
 typedef enum {
-  ScriptOp_Fail   = 0,  // [] ()    -> ()   Terminate the execution.
-  ScriptOp_Return = 10, // [] (r0)  -> ()   Return r0.
+  ScriptOp_Fail   = 0,  // [    ] (  ) -> ( ) Terminate the execution.
+  ScriptOp_Return = 10, // [    ] (r0) -> ( ) Return r0.
+  ScriptOp_Value  = 20, // [v, r] (  ) -> (r) Load value with index 'v' into register 'r'.
 } ScriptOp;
 
 typedef struct {

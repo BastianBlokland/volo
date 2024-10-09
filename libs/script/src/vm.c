@@ -18,23 +18,39 @@ typedef struct {
 static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
   const u8* ip    = mem_begin(code);
   const u8* ipEnd = mem_end(code);
-  for (;;) {
-    if (UNLIKELY(ip == ipEnd)) {
-      ctx->panic = (ScriptPanic){.kind = ScriptPanic_CorruptCode};
-      return script_null();
-    }
-    const ScriptOp op = *ip++;
-    switch (op) {
-    case ScriptOp_Fail:
-      ctx->panic = (ScriptPanic){.kind = ScriptPanic_ExecutionFailed};
-      return script_null();
-    case ScriptOp_Return:
-      return ctx->regs[0];
-    default:
-      ctx->panic = (ScriptPanic){.kind = ScriptPanic_CorruptCode};
-      return script_null();
-    }
+  if (UNLIKELY(ip == ipEnd)) {
+    goto Corrupt;
   }
+  for (;;) {
+    // clang-format off
+    switch ((ScriptOp)*ip) {
+    case ScriptOp_Fail: {
+      if (UNLIKELY((ip += 1) >= ipEnd)) { goto Corrupt; }
+      goto ExecFailed;
+    }
+    case ScriptOp_Return: {
+      if (UNLIKELY((ip += 1) >= ipEnd)) { goto Corrupt; }
+      return ctx->regs[0];
+    }
+    case ScriptOp_Value: {
+      if (UNLIKELY((ip += 3) >= ipEnd)) { goto Corrupt; }
+      const u8 valId = ip[-2];
+      const u8 regId = ip[-1];
+      ctx->regs[regId] = dynarray_begin_t(&ctx->doc->values, ScriptVal)[valId];
+      continue;
+    }
+    }
+    // clang-format on
+    goto Corrupt;
+  }
+
+Corrupt:
+  ctx->panic = (ScriptPanic){.kind = ScriptPanic_CorruptCode};
+  return script_null();
+
+ExecFailed:
+  ctx->panic = (ScriptPanic){.kind = ScriptPanic_ExecutionFailed};
+  return script_null();
 }
 
 ScriptVmResult script_vm_eval(
@@ -62,20 +78,30 @@ ScriptVmResult script_vm_eval(
 
 void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* out) {
   (void)doc;
-  const u8* itr    = mem_begin(code);
-  const u8* itrEnd = mem_end(code);
-  while (itr != itrEnd) {
-    const ScriptOp op = *itr++;
-    switch (op) {
-    case ScriptOp_Fail:
+  const u8* ip    = mem_begin(code);
+  const u8* ipEnd = mem_end(code);
+  if (UNLIKELY(ip == ipEnd)) {
+    return;
+  }
+  for (;;) {
+    // clang-format off
+    switch ((ScriptOp)*ip) {
+    case ScriptOp_Fail: {
+      if (UNLIKELY((ip += 1) >= ipEnd)) { return; }
       fmt_write(out, "[Fail]\n");
-      break;
-    case ScriptOp_Return:
+    } break;
+    case ScriptOp_Return: {
+      if (UNLIKELY((ip += 1) >= ipEnd)) { return; }
       fmt_write(out, "[Return]\n");
-      break;
+    } break;
+    case ScriptOp_Value: {
+      if (UNLIKELY((ip += 3) >= ipEnd)) { return; }
+      fmt_write(out, "[Value v{} r{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
+    } break;
     default:
       return;
     }
+    // clang-format on
   }
 }
 
