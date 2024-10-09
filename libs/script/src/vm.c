@@ -26,6 +26,15 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
     switch ((ScriptOp)*ip) {
     case ScriptOp_Fail: goto ExecFailed;
     case ScriptOp_Return: return ctx->regs[0];
+    case ScriptOp_Move: {
+      if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
+      const u8 regIdDst = ip[-2];
+      const u8 regIdSrc = ip[-1];
+      if(UNLIKELY(regIdDst >= script_vm_regs)) goto Corrupt;
+      if(UNLIKELY(regIdSrc >= script_vm_regs)) goto Corrupt;
+      ctx->regs[regIdDst] = ctx->regs[regIdSrc];
+      continue;
+    }
     case ScriptOp_Value: {
       if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
       const u8 regId = ip[-2];
@@ -94,13 +103,17 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       if (UNLIKELY((ip += 1) > ipEnd)) { return; }
       fmt_write(out, "[Return]\n");
     } break;
+    case ScriptOp_Move: {
+      if (UNLIKELY((ip += 3) > ipEnd)) { return; }
+      fmt_write(out, "[Move d{} s{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
+    } break;
     case ScriptOp_Value: {
       if (UNLIKELY((ip += 3) > ipEnd)) { return; }
-      fmt_write(out, "[Value r{} v{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
+      fmt_write(out, "[Value d{} v{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
     } break;
     case ScriptOp_Add: {
       if (UNLIKELY((ip += 2) > ipEnd)) { return; }
-      fmt_write(out, "[Add r{}]\n", fmt_int(ip[-1]));
+      fmt_write(out, "[Add s{}]\n", fmt_int(ip[-1]));
     } break;
     default:
       return;

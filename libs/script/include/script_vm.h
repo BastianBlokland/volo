@@ -16,12 +16,14 @@ typedef struct sScriptBinder ScriptBinder;
  * Doc format:
  * - '[]' represents data part of the operation itself.
  * - '()' represents registers that are read or written by the operation.
+ * - 'a' represent register 0 aka the 'accumulator'.
  */
 typedef enum {
-  ScriptOp_Fail   = 0,   // [    ] (     ) -> (  ) Terminate the execution.
-  ScriptOp_Return = 10,  // [    ] (r0   ) -> (  ) Return r0.
-  ScriptOp_Value  = 20,  // [r, v] (     ) -> (r ) Load value with index 'v' into register 'r'.
-  ScriptOp_Add    = 100, // [r   ] (r0, r) -> (r0) Add register 'r' to 'r0'.
+  ScriptOp_Fail   = 0,   // [    ] (    ) -> ( ) Terminate the execution.
+  ScriptOp_Return = 10,  // [    ] (a   ) -> ( ) Return a.
+  ScriptOp_Move   = 20,  // [d, s] (o   ) -> (r) Load value at register 's' into register 'd'.
+  ScriptOp_Value  = 30,  // [d, v] (    ) -> (r) Load value with index 'v' into register 'd'.
+  ScriptOp_Add    = 100, // [s   ] (a, r) -> (a) Add register 's' to 'a'.
 } ScriptOp;
 
 typedef struct {
