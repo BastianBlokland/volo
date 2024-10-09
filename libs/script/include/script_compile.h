@@ -6,7 +6,12 @@ typedef struct sDynArray DynString;
 
 typedef enum {
   ScriptCompileResult_Success,
+  ScriptCompileResult_TooManyValues,
+
+  ScriptCompileResult_Count,
 } ScriptCompileResult;
+
+String script_compile_result_str(ScriptCompileResult);
 
 /**
  * Compile an expression to byte-code for that can be executed in the vm.

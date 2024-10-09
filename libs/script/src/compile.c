@@ -1,9 +1,16 @@
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
 #include "script_compile.h"
 #include "script_vm.h"
 
 #include "doc_internal.h"
+
+static const String g_compileResStrs[] = {
+    [ScriptCompileResult_Success]       = string_static("Success"),
+    [ScriptCompileResult_TooManyValues] = string_static("Too many values"),
+};
+ASSERT(array_elems(g_compileResStrs) == ScriptCompileResult_Count, "Incorrect number of strings");
 
 typedef enum {
   ScriptReg_Accum = 0,
@@ -51,6 +58,11 @@ static ScriptCompileResult compile_expr(ScriptCompileContext* ctx, const ScriptE
   }
   diag_assert_fail("Unknown expression kind");
   UNREACHABLE
+}
+
+String script_compile_result_str(const ScriptCompileResult res) {
+  diag_assert(res < ScriptCompileResult_Count);
+  return g_compileResStrs[res];
 }
 
 ScriptCompileResult script_compile(const ScriptDoc* doc, const ScriptExpr expr, DynString* out) {

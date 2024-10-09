@@ -346,7 +346,8 @@ static void repl_exec(
         DynString                 codeBuffer = dynstring_create(g_allocScratch, usize_kibibyte);
         const ScriptCompileResult compileRes = script_compile(script, expr, &codeBuffer);
         if (compileRes != ScriptCompileResult_Success) {
-          repl_output_error(string_lit("Compilation failed"), id);
+          const String resStr = script_compile_result_str(compileRes);
+          repl_output_error(fmt_write_scratch("Compilation failed: {}", fmt_text(resStr)), id);
         } else {
           const String code = dynstring_view(&codeBuffer);
           if (flags & ReplFlags_OutputCode) {
