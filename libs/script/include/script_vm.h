@@ -9,13 +9,12 @@ typedef struct sScriptMem ScriptMem;
 typedef struct sScriptBinder ScriptBinder;
 
 typedef struct {
-  u32         executedExprs;
   ScriptPanic panic;
   ScriptVal   val;
-} ScriptEvalResult;
+} ScriptVmResult;
 
 /**
- * Evaluate the given expression.
+ * Evaluate the given byte-code.
  */
-ScriptEvalResult
-script_eval(const ScriptDoc*, ScriptExpr, ScriptMem*, const ScriptBinder*, void* bindCtx);
+ScriptVmResult
+script_vm_eval(const ScriptDoc*, Mem code, ScriptMem*, const ScriptBinder*, void* bindCtx);
