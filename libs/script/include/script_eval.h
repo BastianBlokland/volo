@@ -20,5 +20,5 @@ typedef struct {
  */
 
 // clang-format off
-ScriptEvalResult script_eval(const ScriptDoc*, ScriptMem*, ScriptExpr, const ScriptBinder*, void* bindCtx);
+ScriptEvalResult script_eval(const ScriptDoc*, ScriptExpr, ScriptMem*, const ScriptBinder*, void* bindCtx);
 // clang-format on

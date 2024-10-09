@@ -371,8 +371,8 @@ NO_INLINE_HINT static ScriptVal eval_expr(ScriptEvalContext* ctx, const ScriptEx
 
 ScriptEvalResult script_eval(
     const ScriptDoc*    doc,
-    ScriptMem*          m,
     const ScriptExpr    expr,
+    ScriptMem*          m,
     const ScriptBinder* binder,
     void*               bindCtx) {
   if (binder) {

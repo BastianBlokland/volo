@@ -290,7 +290,7 @@ spec(eval) {
       const ScriptExpr expr = script_read(doc, binder, testData[i].input, diagsNull, symsNull);
       check_require_msg(!sentinel_check(expr), "Read failed ({})", fmt_text(testData[i].input));
 
-      const ScriptEvalResult evalRes = script_eval(doc, &mem, expr, binder, bindCtxNull);
+      const ScriptEvalResult evalRes = script_eval(doc, expr, &mem, binder, bindCtxNull);
       check(!script_panic_valid(&evalRes.panic));
       check_msg(
           script_val_equal(evalRes.val, testData[i].expected),
@@ -306,7 +306,7 @@ spec(eval) {
         doc, binder, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), diagsNull, symsNull);
     check_require(!sentinel_check(expr));
 
-    const ScriptEvalResult evalRes = script_eval(doc, &mem, expr, binder, bindCtxNull);
+    const ScriptEvalResult evalRes = script_eval(doc, expr, &mem, binder, bindCtxNull);
     check(!script_panic_valid(&evalRes.panic));
     check_eq_val(script_mem_load(&mem, string_hash_lit("test1")), script_num(42));
     check_eq_val(script_mem_load(&mem, string_hash_lit("test2")), script_num(1337));
@@ -324,7 +324,7 @@ spec(eval) {
         symsNull);
     check_require(!sentinel_check(expr));
 
-    const ScriptEvalResult evalRes = script_eval(doc, &mem, expr, binder, &ctx);
+    const ScriptEvalResult evalRes = script_eval(doc, expr, &mem, binder, &ctx);
     check(!script_panic_valid(&evalRes.panic));
     check_eq_int(ctx.counter, 3);
   }
@@ -340,7 +340,7 @@ spec(eval) {
         symsNull);
     check_require(!sentinel_check(expr));
 
-    const ScriptEvalResult evalRes = script_eval(doc, &mem, expr, binder, &ctx);
+    const ScriptEvalResult evalRes = script_eval(doc, expr, &mem, binder, &ctx);
     check(evalRes.panic.kind == ScriptPanic_AssertionFailed);
     check_eq_int(ctx.counter, 1);
     check_eq_val(evalRes.val, script_null());
@@ -351,7 +351,7 @@ spec(eval) {
         script_read(doc, binder, string_lit("while(true) {}"), diagsNull, symsNull);
     check_require(!sentinel_check(expr));
 
-    const ScriptEvalResult evalRes = script_eval(doc, &mem, expr, binder, bindCtxNull);
+    const ScriptEvalResult evalRes = script_eval(doc, expr, &mem, binder, bindCtxNull);
     check(evalRes.panic.kind == ScriptPanic_ExecutionLimitExceeded);
     check_eq_val(evalRes.val, script_null());
   }

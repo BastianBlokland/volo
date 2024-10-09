@@ -326,7 +326,7 @@ static void repl_exec(
     }
     const bool noErrors = script_diag_count(diags, ScriptDiagFilter_Error) == 0;
     if (noErrors && !(flags & ReplFlags_NoEval)) {
-      const ScriptEvalResult evalRes = script_eval(script, mem, expr, binder, null);
+      const ScriptEvalResult evalRes = script_eval(script, expr, mem, binder, null);
       if (script_panic_valid(&evalRes.panic)) {
         repl_output_panic(input, &evalRes.panic, id);
       } else {

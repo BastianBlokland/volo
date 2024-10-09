@@ -2117,7 +2117,7 @@ static void scene_script_eval(EvalContext* ctx) {
   const TimeSteady startTime = time_steady_clock();
 
   // Eval.
-  const ScriptEvalResult evalRes = script_eval(doc, mem, expr, g_scriptBinder, ctx);
+  const ScriptEvalResult evalRes = script_eval(doc, expr, mem, g_scriptBinder, ctx);
 
   // Handle panics.
   if (UNLIKELY(script_panic_valid(&evalRes.panic))) {
