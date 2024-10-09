@@ -27,9 +27,11 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
     case ScriptOp_Fail: goto ExecFailed;
     case ScriptOp_Return: return ctx->regs[0];
     case ScriptOp_Value: {
-      if (UNLIKELY((ip += 3) >= ipEnd)) { goto Corrupt; }
+      if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
       const u8 valId = ip[-2];
       const u8 regId = ip[-1];
+      if(UNLIKELY(valId >= ctx->doc->values.size)) goto Corrupt;
+      if(UNLIKELY(regId >= script_vm_regs)) goto Corrupt;
       ctx->regs[regId] = dynarray_begin_t(&ctx->doc->values, ScriptVal)[valId];
       continue;
     }
