@@ -24,14 +24,8 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
   for (;;) {
     // clang-format off
     switch ((ScriptOp)*ip) {
-    case ScriptOp_Fail: {
-      if (UNLIKELY((ip += 1) >= ipEnd)) { goto Corrupt; }
-      goto ExecFailed;
-    }
-    case ScriptOp_Return: {
-      if (UNLIKELY((ip += 1) >= ipEnd)) { goto Corrupt; }
-      return ctx->regs[0];
-    }
+    case ScriptOp_Fail: goto ExecFailed;
+    case ScriptOp_Return: return ctx->regs[0];
     case ScriptOp_Value: {
       if (UNLIKELY((ip += 3) >= ipEnd)) { goto Corrupt; }
       const u8 valId = ip[-2];
@@ -80,22 +74,19 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
   (void)doc;
   const u8* ip    = mem_begin(code);
   const u8* ipEnd = mem_end(code);
-  if (UNLIKELY(ip == ipEnd)) {
-    return;
-  }
-  for (;;) {
+  while (ip != ipEnd) {
     // clang-format off
     switch ((ScriptOp)*ip) {
     case ScriptOp_Fail: {
-      if (UNLIKELY((ip += 1) >= ipEnd)) { return; }
+      if (UNLIKELY((ip += 1) > ipEnd)) { return; }
       fmt_write(out, "[Fail]\n");
     } break;
     case ScriptOp_Return: {
-      if (UNLIKELY((ip += 1) >= ipEnd)) { return; }
+      if (UNLIKELY((ip += 1) > ipEnd)) { return; }
       fmt_write(out, "[Return]\n");
     } break;
     case ScriptOp_Value: {
-      if (UNLIKELY((ip += 3) >= ipEnd)) { return; }
+      if (UNLIKELY((ip += 3) > ipEnd)) { return; }
       fmt_write(out, "[Value v{} r{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
     } break;
     default:
