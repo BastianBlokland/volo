@@ -7,6 +7,7 @@ message(STATUS "> library: script")
 add_library(lib_script STATIC
   src/args.c
   src/binder.c
+  src/compile.c
   src/diag.c
   src/doc.c
   src/enum.c
