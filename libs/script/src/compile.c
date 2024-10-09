@@ -27,11 +27,11 @@ static void emit_return(ScriptCompileContext* ctx) {
   dynstring_append_char(ctx->out, ScriptOp_Return);
 }
 
-static void emit_value(ScriptCompileContext* ctx, const u8 valId, const u8 regId) {
+static void emit_value(ScriptCompileContext* ctx, const u8 regId, const u8 valId) {
   diag_assert(regId < script_vm_regs);
   dynstring_append_char(ctx->out, ScriptOp_Value);
-  dynstring_append_char(ctx->out, valId);
   dynstring_append_char(ctx->out, regId);
+  dynstring_append_char(ctx->out, valId);
 }
 
 static ScriptCompileResult compile_value(ScriptCompileContext* ctx, const ScriptExpr e) {
