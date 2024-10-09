@@ -10,12 +10,14 @@
 #include "core_tty.h"
 #include "core_utf8.h"
 #include "script_binder.h"
+#include "script_compile.h"
 #include "script_diag.h"
 #include "script_eval.h"
 #include "script_lex.h"
 #include "script_mem.h"
 #include "script_read.h"
 #include "script_sym.h"
+#include "script_vm.h"
 
 /**
  * ReadEvalPrintLoop - Utility to play around with script execution.
@@ -24,11 +26,12 @@
 typedef enum {
   ReplFlags_None          = 0,
   ReplFlags_NoEval        = 1 << 0,
-  ReplFlags_Watch         = 1 << 1,
-  ReplFlags_OutputTokens  = 1 << 2,
-  ReplFlags_OutputAst     = 1 << 3,
-  ReplFlags_OutputStats   = 1 << 4,
-  ReplFlags_OutputSymbols = 1 << 5,
+  ReplFlags_Vm            = 1 << 1,
+  ReplFlags_Watch         = 1 << 2,
+  ReplFlags_OutputTokens  = 1 << 3,
+  ReplFlags_OutputAst     = 1 << 4,
+  ReplFlags_OutputStats   = 1 << 5,
+  ReplFlags_OutputSymbols = 1 << 6,
 } ReplFlags;
 
 typedef struct {
@@ -43,6 +46,32 @@ static void repl_script_collect_stats(void* ctx, const ScriptDoc* doc, const Scr
 }
 
 static void repl_output(const String text) { file_write_sync(g_fileStdOut, text); }
+
+static void repl_output_val(const ScriptVal val) {
+  repl_output(fmt_write_scratch("{}\n", script_val_fmt(val)));
+}
+
+static void repl_output_error(const String text, const String id) {
+  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  const TtyStyle styleErr     = ttystyle(.bgColor = TtyBgColor_Red, .flags = TtyStyleFlags_Bold);
+  const TtyStyle styleDefault = ttystyle();
+
+  tty_write_style_sequence(&buffer, styleErr);
+
+  if (!string_is_empty(id)) {
+    dynstring_append(&buffer, id);
+    dynstring_append(&buffer, string_lit(": "));
+  }
+  dynstring_append(&buffer, text);
+
+  tty_write_style_sequence(&buffer, styleDefault);
+  dynstring_append_char(&buffer, '\n');
+
+  repl_output(dynstring_view(&buffer));
+  dynstring_destroy(&buffer);
+}
 
 static void repl_output_diag(const String src, const ScriptDiag* diag, const String id) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
@@ -75,25 +104,7 @@ static void repl_output_diag(const String src, const ScriptDiag* diag, const Str
 }
 
 static void repl_output_panic(const String src, const ScriptPanic* panic, const String id) {
-  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
-  DynString buffer    = dynstring_create_over(bufferMem);
-
-  const TtyStyle styleErr     = ttystyle(.bgColor = TtyBgColor_Red, .flags = TtyStyleFlags_Bold);
-  const TtyStyle styleDefault = ttystyle();
-
-  tty_write_style_sequence(&buffer, styleErr);
-
-  if (!string_is_empty(id)) {
-    dynstring_append(&buffer, id);
-    dynstring_append(&buffer, string_lit(": "));
-  }
-  script_panic_pretty_write(&buffer, src, panic);
-
-  tty_write_style_sequence(&buffer, styleDefault);
-  dynstring_append_char(&buffer, '\n');
-
-  repl_output(dynstring_view(&buffer));
-  dynstring_destroy(&buffer);
+  repl_output_error(script_panic_pretty_scratch(src, panic), id);
 }
 
 static void repl_output_sym(const ScriptSymBag* symBag, const ScriptSym sym) {
@@ -326,11 +337,27 @@ static void repl_exec(
     }
     const bool noErrors = script_diag_count(diags, ScriptDiagFilter_Error) == 0;
     if (noErrors && !(flags & ReplFlags_NoEval)) {
-      const ScriptEvalResult evalRes = script_eval(script, expr, mem, binder, null);
-      if (script_panic_valid(&evalRes.panic)) {
-        repl_output_panic(input, &evalRes.panic, id);
-      } else {
-        repl_output(fmt_write_scratch("{}\n", script_val_fmt(evalRes.val)));
+      if (flags & ReplFlags_Vm) {
+        DynString                 codeBuffer = dynstring_create(g_allocScratch, usize_kibibyte);
+        const ScriptCompileResult compileRes = script_compile(script, expr, &codeBuffer);
+        if (compileRes != ScriptCompileResult_Success) {
+          repl_output_error(string_lit("Compilation failed"), id);
+        } else {
+          const String         code  = dynstring_view(&codeBuffer);
+          const ScriptVmResult vmRes = script_vm_eval(script, code, mem, binder, null);
+          if (script_panic_valid(&vmRes.panic)) {
+            repl_output_panic(input, &vmRes.panic, id);
+          } else {
+            repl_output_val(vmRes.val);
+          }
+        }
+      } else /* !ReplFlags_Vm */ {
+        const ScriptEvalResult evalRes = script_eval(script, expr, mem, binder, null);
+        if (script_panic_valid(&evalRes.panic)) {
+          repl_output_panic(input, &evalRes.panic, id);
+        } else {
+          repl_output_val(evalRes.val);
+        }
       }
     }
   }
@@ -659,6 +686,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   ReplFlags flags = ReplFlags_None;
   if (cli_parse_provided(invoc, g_optNoEval)) {
     flags |= ReplFlags_NoEval;
+  }
+  if (cli_parse_provided(invoc, g_optVm)) {
+    flags |= ReplFlags_Vm;
   }
   if (cli_parse_provided(invoc, g_optWatch)) {
     flags |= ReplFlags_Watch;
