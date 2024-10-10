@@ -213,6 +213,20 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   UNREACHABLE
 }
 
+static ScriptCompileError compile_block(Context* ctx, const RegId dst, const ScriptExpr e) {
+  const ScriptExprBlock* data  = &expr_data(ctx->doc, e)->block;
+  const ScriptExpr*      exprs = expr_set_data(ctx->doc, data->exprSet);
+
+  // NOTE: Blocks need at least one expression.
+  ScriptCompileError err = ScriptCompileError_None;
+  for (u32 i = 0; i != data->exprCount; ++i) {
+    if ((err = compile_expr(ctx, dst, exprs[i]))) {
+      break;
+    }
+  }
+  return err;
+}
+
 static ScriptCompileError compile_expr(Context* ctx, const RegId dst, const ScriptExpr e) {
   switch (expr_kind(ctx->doc, e)) {
   case ScriptExprKind_Value:
@@ -226,6 +240,7 @@ static ScriptCompileError compile_expr(Context* ctx, const RegId dst, const Scri
   case ScriptExprKind_Intrinsic:
     return compile_intr(ctx, dst, e);
   case ScriptExprKind_Block:
+    return compile_block(ctx, dst, e);
   case ScriptExprKind_Extern:
     emit_simple(ctx, ScriptOp_Fail);
     return ScriptCompileError_None;
