@@ -23,6 +23,10 @@ typedef enum {
   ScriptOp_Move   = 20,  // [d,s] (o   ) -> (r) Load value at register 's' into register 'd'.
   ScriptOp_Value  = 30,  // [d,v] (    ) -> (r) Load value with index 'v' into register 'd'.
   ScriptOp_Add    = 100, // [d,s] (a, b) -> (r) Add register 's' to 'd'.
+  ScriptOp_Sub    = 101, // [d,s] (a, b) -> (r) Subtract register 's' from 'd'.
+  ScriptOp_Mul    = 102, // [d,s] (a, b) -> (r) Multiply register 'd' by register 's'.
+  ScriptOp_Div    = 103, // [d,s] (a, b) -> (r) Divide register 'd' by register 's'.
+  ScriptOp_Mod    = 104, // [d,s] (a, b) -> (r) Modulo register 'd' by register 's'.
 } ScriptOp;
 
 typedef struct {

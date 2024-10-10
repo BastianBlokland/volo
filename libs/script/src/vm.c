@@ -58,19 +58,28 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       ctx->regs[regId] = dynarray_begin_t(&ctx->doc->values, ScriptVal)[valId];
       continue;
     }
-    case ScriptOp_Add: {
-      if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
-      const u8 regIdDst = ip[-2];
-      const u8 regIdSrc = ip[-1];
-      if(UNLIKELY(!vm_reg_valid(ctx, regIdDst))) goto Corrupt;
-      if(UNLIKELY(!vm_reg_valid(ctx, regIdSrc))) goto Corrupt;
-      ctx->regs[regIdDst] = script_val_add(ctx->regs[regIdDst], ctx->regs[regIdSrc]);
-      continue;
+#define OP_BIN_SIMPLE(_OP_, _FUNC_)                                                                \
+    case ScriptOp_##_OP_: {                                                                        \
+      if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;                                              \
+      const u8 regIdDst = ip[-2];                                                                  \
+      const u8 regIdSrc = ip[-1];                                                                  \
+      if(UNLIKELY(!vm_reg_valid(ctx, regIdDst))) goto Corrupt;                                     \
+      if(UNLIKELY(!vm_reg_valid(ctx, regIdSrc))) goto Corrupt;                                     \
+      ctx->regs[regIdDst] = _FUNC_(ctx->regs[regIdDst], ctx->regs[regIdSrc]);                      \
+      continue;                                                                                    \
     }
+
+    OP_BIN_SIMPLE(Add, script_val_add)
+    OP_BIN_SIMPLE(Sub, script_val_sub)
+    OP_BIN_SIMPLE(Mul, script_val_mul)
+    OP_BIN_SIMPLE(Div, script_val_div)
+    OP_BIN_SIMPLE(Mod, script_val_mod)
+
+#undef OP_BIN_SIMPLE
     }
-    // clang-format on
     goto Corrupt;
   }
+  // clang-format on
 
 Corrupt:
   ctx->panic = (ScriptPanic){.kind = ScriptPanic_CorruptCode};
@@ -127,12 +136,19 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       if (UNLIKELY((ip += 3) > ipEnd)) { return; }
       fmt_write(out, "[Value r{} v{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
     } break;
-    case ScriptOp_Add: {
-      if (UNLIKELY((ip += 3) > ipEnd)) { return; }
-      fmt_write(out, "[Add r{} r{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
+#define OP_BIN_SIMPLE(_OP_)                                                                        \
+    case ScriptOp_##_OP_: {                                                                        \
+      if (UNLIKELY((ip += 3) > ipEnd)) { return; }                                                 \
+      fmt_write(out, "[" #_OP_ " r{} r{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));                   \
     } break;
-    default:
-      return;
+
+    OP_BIN_SIMPLE(Add)
+    OP_BIN_SIMPLE(Sub)
+    OP_BIN_SIMPLE(Mul)
+    OP_BIN_SIMPLE(Div)
+    OP_BIN_SIMPLE(Mod)
+
+#undef OP_BIN_SIMPLE
     }
     // clang-format on
   }
