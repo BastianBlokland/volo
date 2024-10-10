@@ -43,36 +43,34 @@ static void reg_free_all(CompileContext* ctx) {
   ctx->regAvailability = (u64_lit(1) << script_vm_regs) - 1;
 }
 
-static void emit_fail(CompileContext* ctx) { dynstring_append_char(ctx->out, ScriptOp_Fail); }
+static void emit_simple(CompileContext* ctx, const ScriptOp op) {
+  dynstring_append_char(ctx->out, op);
+}
 
-static void emit_return(CompileContext* ctx, const RegId src) {
-  diag_assert(src < script_vm_regs);
-  dynstring_append_char(ctx->out, ScriptOp_Return);
+static void emit_value(CompileContext* ctx, const RegId dst, const u8 valId) {
+  dynstring_append_char(ctx->out, ScriptOp_Value);
+  dynstring_append_char(ctx->out, dst);
+  dynstring_append_char(ctx->out, valId);
+}
+
+static void emit_unary(CompileContext* ctx, const ScriptOp op, const RegId dst) {
+  dynstring_append_char(ctx->out, op);
+  dynstring_append_char(ctx->out, dst);
+}
+
+static void emit_binary(CompileContext* ctx, const ScriptOp op, const RegId dst, const RegId src) {
+  dynstring_append_char(ctx->out, op);
+  dynstring_append_char(ctx->out, dst);
   dynstring_append_char(ctx->out, src);
 }
 
 // static void emit_move(CompileContext* ctx, const RegId dst, const RegId src) {
-//   diag_assert(dst < script_vm_regs && src < script_vm_regs);
 //   if (dst != src) {
 //     dynstring_append_char(ctx->out, ScriptOp_Move);
 //     dynstring_append_char(ctx->out, dst);
 //     dynstring_append_char(ctx->out, src);
 //   }
 // }
-
-static void emit_value(CompileContext* ctx, const RegId dst, const u8 valId) {
-  diag_assert(dst < script_vm_regs);
-  dynstring_append_char(ctx->out, ScriptOp_Value);
-  dynstring_append_char(ctx->out, dst);
-  dynstring_append_char(ctx->out, valId);
-}
-
-static void emit_binary(CompileContext* ctx, const ScriptOp op, const RegId dst, const RegId src) {
-  diag_assert(dst < script_vm_regs && src < script_vm_regs);
-  dynstring_append_char(ctx->out, op);
-  dynstring_append_char(ctx->out, dst);
-  dynstring_append_char(ctx->out, src);
-}
 
 static ScriptCompileError compile_expr(CompileContext*, RegId dst, ScriptExpr);
 
@@ -83,6 +81,16 @@ static ScriptCompileError compile_value(CompileContext* ctx, const RegId dst, co
   }
   emit_value(ctx, dst, (u8)data->valId);
   return ScriptCompileError_None;
+}
+
+static ScriptCompileError compile_intr_unary(
+    CompileContext* ctx, const RegId dst, const ScriptOp op, const ScriptExpr* args) {
+  ScriptCompileError err = ScriptCompileError_None;
+  if ((err = compile_expr(ctx, dst, args[0]))) {
+    return err;
+  }
+  emit_unary(ctx, op, dst);
+  return err;
 }
 
 static ScriptCompileError compile_intr_binary(
@@ -127,7 +135,7 @@ static ScriptCompileError compile_intr(CompileContext* ctx, const RegId dst, con
   case ScriptIntrinsic_LessOrEqual:
   case ScriptIntrinsic_Greater:
   case ScriptIntrinsic_GreaterOrEqual:
-    emit_fail(ctx);
+    emit_simple(ctx, ScriptOp_Fail);
     return ScriptCompileError_None;
   case ScriptIntrinsic_Add:
     return compile_intr_binary(ctx, dst, ScriptOp_Add, args);
@@ -140,7 +148,9 @@ static ScriptCompileError compile_intr(CompileContext* ctx, const RegId dst, con
   case ScriptIntrinsic_Mod:
     return compile_intr_binary(ctx, dst, ScriptOp_Mod, args);
   case ScriptIntrinsic_Negate:
+    return compile_intr_unary(ctx, dst, ScriptOp_Negate, args);
   case ScriptIntrinsic_Invert:
+    return compile_intr_unary(ctx, dst, ScriptOp_Invert, args);
   case ScriptIntrinsic_Distance:
   case ScriptIntrinsic_Angle:
   case ScriptIntrinsic_Sin:
@@ -169,7 +179,7 @@ static ScriptCompileError compile_intr(CompileContext* ctx, const RegId dst, con
   case ScriptIntrinsic_Min:
   case ScriptIntrinsic_Max:
   case ScriptIntrinsic_Perlin3:
-    emit_fail(ctx);
+    emit_simple(ctx, ScriptOp_Fail);
     return ScriptCompileError_None;
   case ScriptIntrinsic_Count:
     break;
@@ -190,7 +200,7 @@ static ScriptCompileError compile_expr(CompileContext* ctx, const RegId dst, con
     return compile_intr(ctx, dst, e);
   case ScriptExprKind_Block:
   case ScriptExprKind_Extern:
-    emit_fail(ctx);
+    emit_simple(ctx, ScriptOp_Fail);
     return ScriptCompileError_None;
   case ScriptExprKind_Count:
     break;
@@ -217,7 +227,7 @@ ScriptCompileError script_compile(const ScriptDoc* doc, const ScriptExpr expr, D
 
   const ScriptCompileError err = compile_expr(&ctx, resultReg, expr);
   if (!err) {
-    emit_return(&ctx, resultReg);
+    emit_unary(&ctx, ScriptOp_Return, resultReg);
   }
 
   reg_free(&ctx, resultReg);
