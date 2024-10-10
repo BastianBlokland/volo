@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "script_binder.h"
 #include "script_vm.h"
@@ -15,6 +16,14 @@ typedef struct {
   ScriptVal           regs[script_vm_regs];
 } ScriptVmContext;
 
+INLINE_HINT static bool vm_reg_valid(ScriptVmContext* ctx, const u8 regId) {
+  return regId < array_elems(ctx->regs);
+}
+
+INLINE_HINT static bool vm_val_valid(ScriptVmContext* ctx, const u8 valId) {
+  return valId < ctx->doc->values.size;
+}
+
 static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
   const u8* ip    = mem_begin(code);
   const u8* ipEnd = mem_end(code);
@@ -28,15 +37,15 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
     case ScriptOp_Return: {
       if (UNLIKELY((ip += 2) > ipEnd)) goto Corrupt;
       const u8 regId = ip[-1];
-      if(UNLIKELY(regId >= script_vm_regs)) goto Corrupt;
+      if(UNLIKELY(!vm_reg_valid(ctx, regId))) goto Corrupt;
       return ctx->regs[regId];
     }
     case ScriptOp_Move: {
       if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
       const u8 regIdDst = ip[-2];
       const u8 regIdSrc = ip[-1];
-      if(UNLIKELY(regIdDst >= script_vm_regs)) goto Corrupt;
-      if(UNLIKELY(regIdSrc >= script_vm_regs)) goto Corrupt;
+      if(UNLIKELY(!vm_reg_valid(ctx, regIdDst))) goto Corrupt;
+      if(UNLIKELY(!vm_reg_valid(ctx, regIdSrc))) goto Corrupt;
       ctx->regs[regIdDst] = ctx->regs[regIdSrc];
       continue;
     }
@@ -44,8 +53,8 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
       const u8 regId = ip[-2];
       const u8 valId = ip[-1];
-      if(UNLIKELY(regId >= script_vm_regs)) goto Corrupt;
-      if(UNLIKELY(valId >= ctx->doc->values.size)) goto Corrupt;
+      if(UNLIKELY(!vm_reg_valid(ctx, regId))) goto Corrupt;
+      if(UNLIKELY(!vm_val_valid(ctx, valId))) goto Corrupt;
       ctx->regs[regId] = dynarray_begin_t(&ctx->doc->values, ScriptVal)[valId];
       continue;
     }
@@ -54,9 +63,9 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       const u8 regIdDst = ip[-3];
       const u8 regIdA = ip[-2];
       const u8 regIdB = ip[-1];
-      if(UNLIKELY(regIdDst >= script_vm_regs)) goto Corrupt;
-      if(UNLIKELY(regIdA >= script_vm_regs)) goto Corrupt;
-      if(UNLIKELY(regIdB >= script_vm_regs)) goto Corrupt;
+      if(UNLIKELY(!vm_reg_valid(ctx, regIdDst))) goto Corrupt;
+      if(UNLIKELY(!vm_reg_valid(ctx, regIdA))) goto Corrupt;
+      if(UNLIKELY(!vm_reg_valid(ctx, regIdB))) goto Corrupt;
       ctx->regs[regIdDst] = script_val_add(ctx->regs[regIdA], ctx->regs[regIdB]);
       continue;
     }
