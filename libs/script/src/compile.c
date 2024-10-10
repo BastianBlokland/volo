@@ -20,6 +20,7 @@ typedef struct {
   const ScriptDoc* doc;
   DynString*       out;
   u64              regAvailability; // Bitmask of available registers.
+  RegId            varRegisters[script_var_count];
 } CompileContext;
 
 static u32 reg_available(CompileContext* ctx) { return bits_popcnt_64(ctx->regAvailability); }
@@ -64,22 +65,28 @@ static void emit_binary(CompileContext* ctx, const ScriptOp op, const RegId dst,
   dynstring_append_char(ctx->out, src);
 }
 
-// static void emit_move(CompileContext* ctx, const RegId dst, const RegId src) {
-//   if (dst != src) {
-//     dynstring_append_char(ctx->out, ScriptOp_Move);
-//     dynstring_append_char(ctx->out, dst);
-//     dynstring_append_char(ctx->out, src);
-//   }
-// }
+static void emit_move(CompileContext* ctx, const RegId dst, const RegId src) {
+  if (dst != src) {
+    emit_binary(ctx, ScriptOp_Move, dst, src);
+  }
+}
 
 static ScriptCompileError compile_expr(CompileContext*, RegId dst, ScriptExpr);
 
 static ScriptCompileError compile_value(CompileContext* ctx, const RegId dst, const ScriptExpr e) {
   const ScriptExprValue* data = &expr_data(ctx->doc, e)->value;
-  if (data->valId > u8_max) {
+  if (UNLIKELY(data->valId > u8_max)) {
     return ScriptCompileError_TooManyValues;
   }
   emit_value(ctx, dst, (u8)data->valId);
+  return ScriptCompileError_None;
+}
+
+static ScriptCompileError
+compile_var_load(CompileContext* ctx, const RegId dst, const ScriptExpr e) {
+  const ScriptExprVarLoad* data = &expr_data(ctx->doc, e)->var_load;
+  diag_assert(!sentinel_check(ctx->varRegisters[data->var]));
+  emit_move(ctx, dst, ctx->varRegisters[data->var]);
   return ScriptCompileError_None;
 }
 
@@ -193,6 +200,7 @@ static ScriptCompileError compile_expr(CompileContext* ctx, const RegId dst, con
   case ScriptExprKind_Value:
     return compile_value(ctx, dst, e);
   case ScriptExprKind_VarLoad:
+    return compile_var_load(ctx, dst, e);
   case ScriptExprKind_VarStore:
   case ScriptExprKind_MemLoad:
   case ScriptExprKind_MemStore:
@@ -219,6 +227,8 @@ ScriptCompileError script_compile(const ScriptDoc* doc, const ScriptExpr expr, D
       .doc = doc,
       .out = out,
   };
+  mem_set(array_mem(ctx.varRegisters), 0xFF);
+
   reg_free_all(&ctx);
   diag_assert(reg_available(&ctx) == script_vm_regs);
 
@@ -231,6 +241,14 @@ ScriptCompileError script_compile(const ScriptDoc* doc, const ScriptExpr expr, D
   }
 
   reg_free(&ctx, resultReg);
+
+  // Free all used variable registers.
+  array_for_t(ctx.varRegisters, RegId, varReg) {
+    if (!sentinel_check(*varReg)) {
+      reg_free(&ctx, *varReg);
+    }
+  }
+
   diag_assert_msg(reg_available(&ctx) == script_vm_regs, "Not all registers freed");
 
   return err;
