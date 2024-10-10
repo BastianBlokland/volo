@@ -17,17 +17,17 @@ typedef u8 RegId;
 typedef struct {
   const ScriptDoc* doc;
   DynString*       out;
-} ScriptCompileContext;
+} CompileContext;
 
-static void emit_fail(ScriptCompileContext* ctx) { dynstring_append_char(ctx->out, ScriptOp_Fail); }
+static void emit_fail(CompileContext* ctx) { dynstring_append_char(ctx->out, ScriptOp_Fail); }
 
-static void emit_return(ScriptCompileContext* ctx, const RegId src) {
+static void emit_return(CompileContext* ctx, const RegId src) {
   diag_assert(src < script_vm_regs);
   dynstring_append_char(ctx->out, ScriptOp_Return);
   dynstring_append_char(ctx->out, src);
 }
 
-// static void emit_move(ScriptCompileContext* ctx, const RegId dst, const RegId src) {
+// static void emit_move(CompileContext* ctx, const RegId dst, const RegId src) {
 //   diag_assert(dst < script_vm_regs && src < script_vm_regs);
 //   if (dst != src) {
 //     dynstring_append_char(ctx->out, ScriptOp_Move);
@@ -36,14 +36,14 @@ static void emit_return(ScriptCompileContext* ctx, const RegId src) {
 //   }
 // }
 
-static void emit_value(ScriptCompileContext* ctx, const RegId dst, const u8 valId) {
+static void emit_value(CompileContext* ctx, const RegId dst, const u8 valId) {
   diag_assert(dst < script_vm_regs);
   dynstring_append_char(ctx->out, ScriptOp_Value);
   dynstring_append_char(ctx->out, dst);
   dynstring_append_char(ctx->out, valId);
 }
 
-static void emit_add(ScriptCompileContext* ctx, const RegId dst, const RegId a, const RegId b) {
+static void emit_add(CompileContext* ctx, const RegId dst, const RegId a, const RegId b) {
   diag_assert(dst < script_vm_regs && a < script_vm_regs && b < script_vm_regs);
   dynstring_append_char(ctx->out, ScriptOp_Add);
   dynstring_append_char(ctx->out, dst);
@@ -51,10 +51,9 @@ static void emit_add(ScriptCompileContext* ctx, const RegId dst, const RegId a, 
   dynstring_append_char(ctx->out, b);
 }
 
-static ScriptCompileResult compile_expr(ScriptCompileContext*, RegId dst, ScriptExpr);
+static ScriptCompileResult compile_expr(CompileContext*, RegId dst, ScriptExpr);
 
-static ScriptCompileResult
-compile_value(ScriptCompileContext* ctx, const RegId dst, const ScriptExpr e) {
+static ScriptCompileResult compile_value(CompileContext* ctx, const RegId dst, const ScriptExpr e) {
   const ScriptExprValue* data = &expr_data(ctx->doc, e)->value;
   if (data->valId > u8_max) {
     return ScriptCompileResult_TooManyValues;
@@ -63,8 +62,7 @@ compile_value(ScriptCompileContext* ctx, const RegId dst, const ScriptExpr e) {
   return ScriptCompileResult_Success;
 }
 
-static ScriptCompileResult
-compile_intr(ScriptCompileContext* ctx, const RegId dst, const ScriptExpr e) {
+static ScriptCompileResult compile_intr(CompileContext* ctx, const RegId dst, const ScriptExpr e) {
   const ScriptExprIntrinsic* data = &expr_data(ctx->doc, e)->intrinsic;
   const ScriptExpr*          args = expr_set_data(ctx->doc, data->argSet);
   switch (data->intrinsic) {
@@ -135,8 +133,7 @@ compile_intr(ScriptCompileContext* ctx, const RegId dst, const ScriptExpr e) {
   UNREACHABLE
 }
 
-static ScriptCompileResult
-compile_expr(ScriptCompileContext* ctx, const RegId dst, const ScriptExpr e) {
+static ScriptCompileResult compile_expr(CompileContext* ctx, const RegId dst, const ScriptExpr e) {
   switch (expr_kind(ctx->doc, e)) {
   case ScriptExprKind_Value:
     return compile_value(ctx, dst, e);
@@ -163,7 +160,7 @@ String script_compile_result_str(const ScriptCompileResult res) {
 }
 
 ScriptCompileResult script_compile(const ScriptDoc* doc, const ScriptExpr expr, DynString* out) {
-  ScriptCompileContext ctx = {
+  CompileContext ctx = {
       .doc = doc,
       .out = out,
   };
