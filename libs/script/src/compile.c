@@ -85,9 +85,26 @@ static ScriptCompileError compile_value(CompileContext* ctx, const RegId dst, co
   return ScriptCompileError_None;
 }
 
-static ScriptCompileError compile_intr(CompileContext* ctx, const RegId dst, const ScriptExpr e) {
+static ScriptCompileError compile_intr_binary(
+    CompileContext* ctx, const RegId dst, const ScriptOp op, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
+  if ((err = compile_expr(ctx, dst, args[0]))) {
+    return err;
+  }
+  const RegId tmpReg = reg_alloc(ctx);
+  if (sentinel_check(tmpReg)) {
+    err = ScriptCompileError_TooManyRegisters;
+    return err;
+  }
+  if ((err = compile_expr(ctx, tmpReg, args[1]))) {
+    return err;
+  }
+  emit_binary(ctx, op, dst, tmpReg);
+  reg_free(ctx, tmpReg);
+  return err;
+}
 
+static ScriptCompileError compile_intr(CompileContext* ctx, const RegId dst, const ScriptExpr e) {
   const ScriptExprIntrinsic* data = &expr_data(ctx->doc, e)->intrinsic;
   const ScriptExpr*          args = expr_set_data(ctx->doc, data->argSet);
   switch (data->intrinsic) {
@@ -109,30 +126,19 @@ static ScriptCompileError compile_intr(CompileContext* ctx, const RegId dst, con
   case ScriptIntrinsic_Less:
   case ScriptIntrinsic_LessOrEqual:
   case ScriptIntrinsic_Greater:
-  case ScriptIntrinsic_GreaterOrEqual: {
+  case ScriptIntrinsic_GreaterOrEqual:
     emit_fail(ctx);
-    goto Ret;
-  }
-  case ScriptIntrinsic_Add: {
-    if ((err = compile_expr(ctx, dst, args[0]))) {
-      goto Ret;
-    }
-    const RegId tmpReg = reg_alloc(ctx);
-    if (sentinel_check(tmpReg)) {
-      err = ScriptCompileError_TooManyRegisters;
-      goto Ret;
-    }
-    if ((err = compile_expr(ctx, tmpReg, args[1]))) {
-      goto Ret;
-    }
-    emit_binary(ctx, ScriptOp_Add, dst, tmpReg);
-    reg_free(ctx, tmpReg);
     return ScriptCompileError_None;
-  }
+  case ScriptIntrinsic_Add:
+    return compile_intr_binary(ctx, dst, ScriptOp_Add, args);
   case ScriptIntrinsic_Sub:
+    return compile_intr_binary(ctx, dst, ScriptOp_Sub, args);
   case ScriptIntrinsic_Mul:
+    return compile_intr_binary(ctx, dst, ScriptOp_Mul, args);
   case ScriptIntrinsic_Div:
+    return compile_intr_binary(ctx, dst, ScriptOp_Div, args);
   case ScriptIntrinsic_Mod:
+    return compile_intr_binary(ctx, dst, ScriptOp_Mod, args);
   case ScriptIntrinsic_Negate:
   case ScriptIntrinsic_Invert:
   case ScriptIntrinsic_Distance:
@@ -164,14 +170,12 @@ static ScriptCompileError compile_intr(CompileContext* ctx, const RegId dst, con
   case ScriptIntrinsic_Max:
   case ScriptIntrinsic_Perlin3:
     emit_fail(ctx);
-    goto Ret;
+    return ScriptCompileError_None;
   case ScriptIntrinsic_Count:
     break;
   }
   diag_assert_fail("Unknown intrinsic");
-
-Ret:
-  return err;
+  UNREACHABLE
 }
 
 static ScriptCompileError compile_expr(CompileContext* ctx, const RegId dst, const ScriptExpr e) {
