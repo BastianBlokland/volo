@@ -106,7 +106,10 @@ static ScriptCompileError compile_intr(CompileContext* ctx, const RegId dst, con
   case ScriptIntrinsic_Less:
   case ScriptIntrinsic_LessOrEqual:
   case ScriptIntrinsic_Greater:
-  case ScriptIntrinsic_GreaterOrEqual:
+  case ScriptIntrinsic_GreaterOrEqual: {
+    emit_fail(ctx);
+    return ScriptCompileError_None;
+  }
   case ScriptIntrinsic_Add: {
     compile_expr(ctx, dst, args[0]);
     const RegId tmpReg = reg_alloc(ctx);
