@@ -34,48 +34,37 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
     // clang-format off
     switch ((ScriptOp)*ip) {
     case ScriptOp_Fail: goto ExecFailed;
-    case ScriptOp_Return: {
+    case ScriptOp_Return:
       if (UNLIKELY((ip += 2) > ipEnd)) goto Corrupt;
-      const u8 regId = ip[-1];
-      if(UNLIKELY(!vm_reg_valid(ctx, regId))) goto Corrupt;
-      return ctx->regs[regId];
-    }
-    case ScriptOp_Move: {
+      if(UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;
+      return ctx->regs[ip[-1]];
+    case ScriptOp_Move:
       if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
-      const u8 regIdDst = ip[-2];
-      const u8 regIdSrc = ip[-1];
-      if(UNLIKELY(!vm_reg_valid(ctx, regIdDst))) goto Corrupt;
-      if(UNLIKELY(!vm_reg_valid(ctx, regIdSrc))) goto Corrupt;
-      ctx->regs[regIdDst] = ctx->regs[regIdSrc];
+      if(UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;
+      if(UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;
+      ctx->regs[ip[-2]] = ctx->regs[ip[-1]];
       continue;
-    }
-    case ScriptOp_Value: {
+    case ScriptOp_Value:
       if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
-      const u8 regId = ip[-2];
-      const u8 valId = ip[-1];
-      if(UNLIKELY(!vm_reg_valid(ctx, regId))) goto Corrupt;
-      if(UNLIKELY(!vm_val_valid(ctx, valId))) goto Corrupt;
-      ctx->regs[regId] = dynarray_begin_t(&ctx->doc->values, ScriptVal)[valId];
+      if(UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;
+      if(UNLIKELY(!vm_val_valid(ctx, ip[-1]))) goto Corrupt;
+      ctx->regs[ip[-2]] = dynarray_begin_t(&ctx->doc->values, ScriptVal)[ip[-1]];
       continue;
-    }
-#define OP_BIN_SIMPLE(_OP_, _FUNC_)                                                                \
-    case ScriptOp_##_OP_: {                                                                        \
+#define OP_BINARY_SIMPLE(_OP_, _FUNC_)                                                                \
+    case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;                                              \
-      const u8 regIdDst = ip[-2];                                                                  \
-      const u8 regIdSrc = ip[-1];                                                                  \
-      if(UNLIKELY(!vm_reg_valid(ctx, regIdDst))) goto Corrupt;                                     \
-      if(UNLIKELY(!vm_reg_valid(ctx, regIdSrc))) goto Corrupt;                                     \
-      ctx->regs[regIdDst] = _FUNC_(ctx->regs[regIdDst], ctx->regs[regIdSrc]);                      \
+      if(UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;                                       \
+      if(UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;                                       \
+      ctx->regs[ip[-2]] = _FUNC_(ctx->regs[ip[-2]], ctx->regs[ip[-1]]);                            \
       continue;                                                                                    \
-    }
 
-    OP_BIN_SIMPLE(Add, script_val_add)
-    OP_BIN_SIMPLE(Sub, script_val_sub)
-    OP_BIN_SIMPLE(Mul, script_val_mul)
-    OP_BIN_SIMPLE(Div, script_val_div)
-    OP_BIN_SIMPLE(Mod, script_val_mod)
+    OP_BINARY_SIMPLE(Add, script_val_add)
+    OP_BINARY_SIMPLE(Sub, script_val_sub)
+    OP_BINARY_SIMPLE(Mul, script_val_mul)
+    OP_BINARY_SIMPLE(Div, script_val_div)
+    OP_BINARY_SIMPLE(Mod, script_val_mod)
 
-#undef OP_BIN_SIMPLE
+#undef OP_BINARY_SIMPLE
     }
     goto Corrupt;
   }
@@ -136,19 +125,19 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       if (UNLIKELY((ip += 3) > ipEnd)) { return; }
       fmt_write(out, "[Value r{} v{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
     } break;
-#define OP_BIN_SIMPLE(_OP_)                                                                        \
+#define OP_BINARY_SIMPLE(_OP_)                                                                        \
     case ScriptOp_##_OP_: {                                                                        \
       if (UNLIKELY((ip += 3) > ipEnd)) { return; }                                                 \
       fmt_write(out, "[" #_OP_ " r{} r{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));                   \
     } break;
 
-    OP_BIN_SIMPLE(Add)
-    OP_BIN_SIMPLE(Sub)
-    OP_BIN_SIMPLE(Mul)
-    OP_BIN_SIMPLE(Div)
-    OP_BIN_SIMPLE(Mod)
+    OP_BINARY_SIMPLE(Add)
+    OP_BINARY_SIMPLE(Sub)
+    OP_BINARY_SIMPLE(Mul)
+    OP_BINARY_SIMPLE(Div)
+    OP_BINARY_SIMPLE(Mod)
 
-#undef OP_BIN_SIMPLE
+#undef OP_BINARY_SIMPLE
     }
     // clang-format on
   }
