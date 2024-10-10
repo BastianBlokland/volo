@@ -67,9 +67,9 @@ static void emit_value(CompileContext* ctx, const RegId dst, const u8 valId) {
   dynstring_append_char(ctx->out, valId);
 }
 
-static void emit_add(CompileContext* ctx, const RegId dst, const RegId src) {
+static void emit_binary(CompileContext* ctx, const ScriptOp op, const RegId dst, const RegId src) {
   diag_assert(dst < script_vm_regs && src < script_vm_regs);
-  dynstring_append_char(ctx->out, ScriptOp_Add);
+  dynstring_append_char(ctx->out, op);
   dynstring_append_char(ctx->out, dst);
   dynstring_append_char(ctx->out, src);
 }
@@ -125,7 +125,7 @@ static ScriptCompileError compile_intr(CompileContext* ctx, const RegId dst, con
     if ((err = compile_expr(ctx, tmpReg, args[1]))) {
       goto Ret;
     }
-    emit_add(ctx, dst, tmpReg);
+    emit_binary(ctx, ScriptOp_Add, dst, tmpReg);
     reg_free(ctx, tmpReg);
     return ScriptCompileError_None;
   }
