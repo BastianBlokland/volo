@@ -25,7 +25,12 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
     // clang-format off
     switch ((ScriptOp)*ip) {
     case ScriptOp_Fail: goto ExecFailed;
-    case ScriptOp_Return: return ctx->regs[0];
+    case ScriptOp_Return: {
+      if (UNLIKELY((ip += 2) > ipEnd)) goto Corrupt;
+      const u8 regId = ip[-1];
+      if(UNLIKELY(regId >= script_vm_regs)) goto Corrupt;
+      return ctx->regs[regId];
+    }
     case ScriptOp_Move: {
       if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
       const u8 regIdDst = ip[-2];
@@ -100,8 +105,8 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       fmt_write(out, "[Fail]\n");
     } break;
     case ScriptOp_Return: {
-      if (UNLIKELY((ip += 1) > ipEnd)) { return; }
-      fmt_write(out, "[Return]\n");
+      if (UNLIKELY((ip += 2) > ipEnd)) { return; }
+      fmt_write(out, "[Return r{}]\n", fmt_int(ip[-1]));
     } break;
     case ScriptOp_Move: {
       if (UNLIKELY((ip += 3) > ipEnd)) { return; }

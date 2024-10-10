@@ -25,8 +25,10 @@ typedef struct {
 
 static void emit_fail(ScriptCompileContext* ctx) { dynstring_append_char(ctx->out, ScriptOp_Fail); }
 
-static void emit_return(ScriptCompileContext* ctx) {
+static void emit_return(ScriptCompileContext* ctx, const ScriptReg src) {
+  diag_assert(src < script_vm_regs);
   dynstring_append_char(ctx->out, ScriptOp_Return);
+  dynstring_append_char(ctx->out, src);
 }
 
 static void emit_move(ScriptCompileContext* ctx, const ScriptReg dst, const ScriptReg src) {
@@ -171,7 +173,7 @@ ScriptCompileResult script_compile(const ScriptDoc* doc, const ScriptExpr expr, 
   };
   const ScriptCompileResult res = compile_expr(&ctx, ScriptReg_Accum, expr);
   if (res == ScriptCompileResult_Success) {
-    emit_return(&ctx);
+    emit_return(&ctx, ScriptReg_Accum);
   }
   return res;
 }

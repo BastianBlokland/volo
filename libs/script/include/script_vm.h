@@ -20,7 +20,7 @@ typedef struct sScriptBinder ScriptBinder;
  */
 typedef enum {
   ScriptOp_Fail   = 0,   // [    ] (    ) -> ( ) Terminate the execution.
-  ScriptOp_Return = 10,  // [    ] (a   ) -> ( ) Return a.
+  ScriptOp_Return = 10,  // [r   ] (r   ) -> ( ) Return register 'r'.
   ScriptOp_Move   = 20,  // [d, s] (o   ) -> (r) Load value at register 's' into register 'd'.
   ScriptOp_Value  = 30,  // [d, v] (    ) -> (r) Load value with index 'v' into register 'd'.
   ScriptOp_Add    = 100, // [s   ] (a, r) -> (a) Add register 's' to 'a'.
