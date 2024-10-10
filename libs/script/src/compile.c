@@ -31,14 +31,14 @@ static void emit_return(ScriptCompileContext* ctx, const ScriptReg src) {
   dynstring_append_char(ctx->out, src);
 }
 
-static void emit_move(ScriptCompileContext* ctx, const ScriptReg dst, const ScriptReg src) {
-  diag_assert(dst < script_vm_regs && src < script_vm_regs);
-  if (dst != src) {
-    dynstring_append_char(ctx->out, ScriptOp_Move);
-    dynstring_append_char(ctx->out, dst);
-    dynstring_append_char(ctx->out, src);
-  }
-}
+// static void emit_move(ScriptCompileContext* ctx, const ScriptReg dst, const ScriptReg src) {
+//   diag_assert(dst < script_vm_regs && src < script_vm_regs);
+//   if (dst != src) {
+//     dynstring_append_char(ctx->out, ScriptOp_Move);
+//     dynstring_append_char(ctx->out, dst);
+//     dynstring_append_char(ctx->out, src);
+//   }
+// }
 
 static void emit_value(ScriptCompileContext* ctx, const ScriptReg dst, const u8 valId) {
   diag_assert(dst < script_vm_regs);
@@ -47,10 +47,13 @@ static void emit_value(ScriptCompileContext* ctx, const ScriptReg dst, const u8 
   dynstring_append_char(ctx->out, valId);
 }
 
-static void emit_add(ScriptCompileContext* ctx, const ScriptReg src) {
-  diag_assert(src < script_vm_regs);
+static void
+emit_add(ScriptCompileContext* ctx, const ScriptReg dst, const ScriptReg a, const ScriptReg b) {
+  diag_assert(dst < script_vm_regs && a < script_vm_regs && b < script_vm_regs);
   dynstring_append_char(ctx->out, ScriptOp_Add);
-  dynstring_append_char(ctx->out, src);
+  dynstring_append_char(ctx->out, dst);
+  dynstring_append_char(ctx->out, a);
+  dynstring_append_char(ctx->out, b);
 }
 
 static ScriptCompileResult compile_expr(ScriptCompileContext*, ScriptExpr, ScriptReg);
@@ -92,9 +95,7 @@ compile_intr(ScriptCompileContext* ctx, const ScriptReg dst, const ScriptExpr e)
   case ScriptIntrinsic_Add:
     compile_expr(ctx, ScriptReg_GP0, args[0]);
     compile_expr(ctx, ScriptReg_GP1, args[1]);
-    emit_move(ctx, ScriptReg_Accum, ScriptReg_GP0);
-    emit_add(ctx, ScriptReg_GP1);
-    emit_move(ctx, dst, ScriptReg_Accum);
+    emit_add(ctx, dst, ScriptReg_GP0, ScriptReg_GP1);
     return ScriptCompileResult_Success;
   case ScriptIntrinsic_Sub:
   case ScriptIntrinsic_Mul:
