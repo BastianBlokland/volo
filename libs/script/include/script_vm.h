@@ -8,7 +8,7 @@ typedef struct sScriptMem ScriptMem;
 // Forward declare from 'core_binder.h'.
 typedef struct sScriptBinder ScriptBinder;
 
-#define script_vm_regs 8
+#define script_vm_regs 32
 
 /**
  * Code operation.
