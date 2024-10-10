@@ -91,6 +91,23 @@ static ScriptCompileError compile_var_load(Context* ctx, const RegId dst, const 
   return ScriptCompileError_None;
 }
 
+static ScriptCompileError compile_var_store(Context* ctx, const RegId dst, const ScriptExpr e) {
+  const ScriptExprVarStore* data = &expr_data(ctx->doc, e)->var_store;
+  ScriptCompileError        err  = ScriptCompileError_None;
+  if ((err = compile_expr(ctx, dst, data->val))) {
+    return err;
+  }
+  if (sentinel_check(ctx->varRegisters[data->var])) {
+    const RegId newReg = reg_alloc(ctx);
+    if (UNLIKELY(sentinel_check(newReg))) {
+      return ScriptCompileError_TooManyRegisters;
+    }
+    ctx->varRegisters[data->var] = newReg;
+  }
+  emit_move(ctx, ctx->varRegisters[data->var], dst);
+  return ScriptCompileError_None;
+}
+
 static ScriptCompileError
 compile_intr_unary(Context* ctx, const RegId dst, const ScriptOp op, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
@@ -203,6 +220,7 @@ static ScriptCompileError compile_expr(Context* ctx, const RegId dst, const Scri
   case ScriptExprKind_VarLoad:
     return compile_var_load(ctx, dst, e);
   case ScriptExprKind_VarStore:
+    return compile_var_store(ctx, dst, e);
   case ScriptExprKind_MemLoad:
   case ScriptExprKind_MemStore:
   case ScriptExprKind_Intrinsic:
