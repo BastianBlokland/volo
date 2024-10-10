@@ -21,6 +21,8 @@ typedef struct {
   u64              regAvailability; // Bitmask of available registers.
 } CompileContext;
 
+static u32 reg_available(CompileContext* ctx) { return bits_popcnt_64(ctx->regAvailability); }
+
 static RegId reg_alloc(CompileContext* ctx) {
   if (UNLIKELY(!ctx->regAvailability)) {
     return sentinel_u8; // No registers are available.
@@ -38,7 +40,6 @@ static void reg_free(CompileContext* ctx, const RegId reg) {
 static void reg_free_all(CompileContext* ctx) {
   ASSERT(script_vm_regs <= 63, "Register allocator only supports up to 63 registers");
   ctx->regAvailability = (u64_lit(1) << script_vm_regs) - 1;
-  diag_assert(bits_popcnt_64(ctx->regAvailability) == script_vm_regs);
 }
 
 static void emit_fail(CompileContext* ctx) { dynstring_append_char(ctx->out, ScriptOp_Fail); }
@@ -190,6 +191,7 @@ ScriptCompileError script_compile(const ScriptDoc* doc, const ScriptExpr expr, D
       .out = out,
   };
   reg_free_all(&ctx);
+  diag_assert(reg_available(&ctx) == script_vm_regs);
 
   const RegId resultReg = reg_alloc(&ctx);
   diag_assert(resultReg < script_vm_regs);
@@ -198,5 +200,9 @@ ScriptCompileError script_compile(const ScriptDoc* doc, const ScriptExpr expr, D
   if (!err) {
     emit_return(&ctx, resultReg);
   }
+
+  reg_free(&ctx, resultReg);
+  diag_assert_msg(reg_available(&ctx) == script_vm_regs, "Not all registers freed");
+
   return err;
 }
