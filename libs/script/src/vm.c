@@ -50,12 +50,18 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       if(UNLIKELY(!vm_val_valid(ctx, ip[-1]))) goto Corrupt;
       ctx->regs[ip[-2]] = dynarray_begin_t(&ctx->doc->values, ScriptVal)[ip[-1]];
       continue;
-#define OP_BINARY_SIMPLE(_OP_, _FUNC_)                                                                \
+#define OP_BINARY_SIMPLE(_OP_, _FUNC_)                                                             \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;                                              \
       if(UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;                                       \
       if(UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;                                       \
       ctx->regs[ip[-2]] = _FUNC_(ctx->regs[ip[-2]], ctx->regs[ip[-1]]);                            \
+      continue;
+#define OP_UNARY_SIMPLE(_OP_, _FUNC_)                                                              \
+    case ScriptOp_##_OP_:                                                                          \
+      if (UNLIKELY((ip += 2) >= ipEnd)) goto Corrupt;                                              \
+      if(UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;                                       \
+      ctx->regs[ip[-1]] = _FUNC_(ctx->regs[ip[-1]]);                                               \
       continue;                                                                                    \
 
     OP_BINARY_SIMPLE(Add, script_val_add)
@@ -63,8 +69,11 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
     OP_BINARY_SIMPLE(Mul, script_val_mul)
     OP_BINARY_SIMPLE(Div, script_val_div)
     OP_BINARY_SIMPLE(Mod, script_val_mod)
+    OP_UNARY_SIMPLE(Negate, script_val_neg)
+    OP_UNARY_SIMPLE(Invert, script_val_inv)
 
 #undef OP_BINARY_SIMPLE
+#undef OP_UNARY_SIMPLE
     }
     goto Corrupt;
   }
@@ -125,10 +134,15 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       if (UNLIKELY((ip += 3) > ipEnd)) { return; }
       fmt_write(out, "[Value r{} v{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
     } break;
-#define OP_BINARY_SIMPLE(_OP_)                                                                        \
+#define OP_BINARY_SIMPLE(_OP_)                                                                     \
     case ScriptOp_##_OP_: {                                                                        \
       if (UNLIKELY((ip += 3) > ipEnd)) { return; }                                                 \
       fmt_write(out, "[" #_OP_ " r{} r{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));                   \
+    } break;
+#define OP_UNARY_SIMPLE(_OP_)                                                                      \
+    case ScriptOp_##_OP_: {                                                                        \
+      if (UNLIKELY((ip += 2) > ipEnd)) { return; }                                                 \
+      fmt_write(out, "[" #_OP_ " r{}]\n", fmt_int(ip[-1]));                                        \
     } break;
 
     OP_BINARY_SIMPLE(Add)
@@ -136,8 +150,11 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     OP_BINARY_SIMPLE(Mul)
     OP_BINARY_SIMPLE(Div)
     OP_BINARY_SIMPLE(Mod)
+    OP_UNARY_SIMPLE(Negate)
+    OP_UNARY_SIMPLE(Invert)
 
 #undef OP_BINARY_SIMPLE
+#undef OP_UNARY_SIMPLE
     }
     // clang-format on
   }
