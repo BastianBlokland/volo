@@ -12,11 +12,7 @@ static const String g_compileResStrs[] = {
 };
 ASSERT(array_elems(g_compileResStrs) == ScriptCompileResult_Count, "Incorrect number of strings");
 
-typedef enum {
-  ScriptReg_Accum = 0,
-  ScriptReg_GP0   = 1,
-  ScriptReg_GP1   = 2,
-} ScriptReg;
+typedef u8 RegId;
 
 typedef struct {
   const ScriptDoc* doc;
@@ -25,13 +21,13 @@ typedef struct {
 
 static void emit_fail(ScriptCompileContext* ctx) { dynstring_append_char(ctx->out, ScriptOp_Fail); }
 
-static void emit_return(ScriptCompileContext* ctx, const ScriptReg src) {
+static void emit_return(ScriptCompileContext* ctx, const RegId src) {
   diag_assert(src < script_vm_regs);
   dynstring_append_char(ctx->out, ScriptOp_Return);
   dynstring_append_char(ctx->out, src);
 }
 
-// static void emit_move(ScriptCompileContext* ctx, const ScriptReg dst, const ScriptReg src) {
+// static void emit_move(ScriptCompileContext* ctx, const RegId dst, const RegId src) {
 //   diag_assert(dst < script_vm_regs && src < script_vm_regs);
 //   if (dst != src) {
 //     dynstring_append_char(ctx->out, ScriptOp_Move);
@@ -40,15 +36,14 @@ static void emit_return(ScriptCompileContext* ctx, const ScriptReg src) {
 //   }
 // }
 
-static void emit_value(ScriptCompileContext* ctx, const ScriptReg dst, const u8 valId) {
+static void emit_value(ScriptCompileContext* ctx, const RegId dst, const u8 valId) {
   diag_assert(dst < script_vm_regs);
   dynstring_append_char(ctx->out, ScriptOp_Value);
   dynstring_append_char(ctx->out, dst);
   dynstring_append_char(ctx->out, valId);
 }
 
-static void
-emit_add(ScriptCompileContext* ctx, const ScriptReg dst, const ScriptReg a, const ScriptReg b) {
+static void emit_add(ScriptCompileContext* ctx, const RegId dst, const RegId a, const RegId b) {
   diag_assert(dst < script_vm_regs && a < script_vm_regs && b < script_vm_regs);
   dynstring_append_char(ctx->out, ScriptOp_Add);
   dynstring_append_char(ctx->out, dst);
@@ -56,10 +51,10 @@ emit_add(ScriptCompileContext* ctx, const ScriptReg dst, const ScriptReg a, cons
   dynstring_append_char(ctx->out, b);
 }
 
-static ScriptCompileResult compile_expr(ScriptCompileContext*, ScriptExpr, ScriptReg);
+static ScriptCompileResult compile_expr(ScriptCompileContext*, RegId dst, ScriptExpr);
 
 static ScriptCompileResult
-compile_value(ScriptCompileContext* ctx, const ScriptReg dst, const ScriptExpr e) {
+compile_value(ScriptCompileContext* ctx, const RegId dst, const ScriptExpr e) {
   const ScriptExprValue* data = &expr_data(ctx->doc, e)->value;
   if (data->valId > u8_max) {
     return ScriptCompileResult_TooManyValues;
@@ -69,7 +64,7 @@ compile_value(ScriptCompileContext* ctx, const ScriptReg dst, const ScriptExpr e
 }
 
 static ScriptCompileResult
-compile_intr(ScriptCompileContext* ctx, const ScriptReg dst, const ScriptExpr e) {
+compile_intr(ScriptCompileContext* ctx, const RegId dst, const ScriptExpr e) {
   const ScriptExprIntrinsic* data = &expr_data(ctx->doc, e)->intrinsic;
   const ScriptExpr*          args = expr_set_data(ctx->doc, data->argSet);
   switch (data->intrinsic) {
@@ -93,9 +88,9 @@ compile_intr(ScriptCompileContext* ctx, const ScriptReg dst, const ScriptExpr e)
   case ScriptIntrinsic_Greater:
   case ScriptIntrinsic_GreaterOrEqual:
   case ScriptIntrinsic_Add:
-    compile_expr(ctx, ScriptReg_GP0, args[0]);
-    compile_expr(ctx, ScriptReg_GP1, args[1]);
-    emit_add(ctx, dst, ScriptReg_GP0, ScriptReg_GP1);
+    compile_expr(ctx, 1, args[0]);
+    compile_expr(ctx, 2, args[1]);
+    emit_add(ctx, dst, 1, 2);
     return ScriptCompileResult_Success;
   case ScriptIntrinsic_Sub:
   case ScriptIntrinsic_Mul:
@@ -141,7 +136,7 @@ compile_intr(ScriptCompileContext* ctx, const ScriptReg dst, const ScriptExpr e)
 }
 
 static ScriptCompileResult
-compile_expr(ScriptCompileContext* ctx, const ScriptReg dst, const ScriptExpr e) {
+compile_expr(ScriptCompileContext* ctx, const RegId dst, const ScriptExpr e) {
   switch (expr_kind(ctx->doc, e)) {
   case ScriptExprKind_Value:
     return compile_value(ctx, dst, e);
@@ -172,9 +167,9 @@ ScriptCompileResult script_compile(const ScriptDoc* doc, const ScriptExpr expr, 
       .doc = doc,
       .out = out,
   };
-  const ScriptCompileResult res = compile_expr(&ctx, ScriptReg_Accum, expr);
+  const ScriptCompileResult res = compile_expr(&ctx, 0, expr);
   if (res == ScriptCompileResult_Success) {
-    emit_return(&ctx, ScriptReg_Accum);
+    emit_return(&ctx, 0);
   }
   return res;
 }
