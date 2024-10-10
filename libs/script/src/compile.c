@@ -1,4 +1,5 @@
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
 #include "script_compile.h"
@@ -17,7 +18,28 @@ typedef u8 RegId;
 typedef struct {
   const ScriptDoc* doc;
   DynString*       out;
+  u64              regAvailability; // Bitmask of available registers.
 } CompileContext;
+
+static RegId reg_alloc(CompileContext* ctx) {
+  if (UNLIKELY(!ctx->regAvailability)) {
+    return sentinel_u8; // No registers are available.
+  }
+  const RegId res = bits_ctz_64(ctx->regAvailability);
+  ctx->regAvailability &= ~(u64_lit(1) << res);
+  return res;
+}
+
+static void reg_free(CompileContext* ctx, const RegId reg) {
+  diag_assert_msg(!(ctx->regAvailability & (u64_lit(1) << reg)), "Register already freed");
+  ctx->regAvailability |= u64_lit(1) << reg;
+}
+
+static void reg_free_all(CompileContext* ctx) {
+  ASSERT(script_vm_regs <= 63, "Register allocator only supports up to 63 registers");
+  ctx->regAvailability = (u64_lit(1) << script_vm_regs) - 1;
+  diag_assert(bits_popcnt_64(ctx->regAvailability) == script_vm_regs);
+}
 
 static void emit_fail(CompileContext* ctx) { dynstring_append_char(ctx->out, ScriptOp_Fail); }
 
@@ -85,11 +107,14 @@ static ScriptCompileError compile_intr(CompileContext* ctx, const RegId dst, con
   case ScriptIntrinsic_LessOrEqual:
   case ScriptIntrinsic_Greater:
   case ScriptIntrinsic_GreaterOrEqual:
-  case ScriptIntrinsic_Add:
-    compile_expr(ctx, 1, args[0]);
-    compile_expr(ctx, 2, args[1]);
-    emit_add(ctx, dst, 1, 2);
+  case ScriptIntrinsic_Add: {
+    compile_expr(ctx, dst, args[0]);
+    const RegId tmpReg = reg_alloc(ctx);
+    compile_expr(ctx, tmpReg, args[1]);
+    emit_add(ctx, dst, dst, tmpReg);
+    reg_free(ctx, tmpReg);
     return ScriptCompileError_None;
+  }
   case ScriptIntrinsic_Sub:
   case ScriptIntrinsic_Mul:
   case ScriptIntrinsic_Div:
@@ -164,9 +189,14 @@ ScriptCompileError script_compile(const ScriptDoc* doc, const ScriptExpr expr, D
       .doc = doc,
       .out = out,
   };
-  const ScriptCompileError res = compile_expr(&ctx, 0, expr);
-  if (res == ScriptCompileError_None) {
-    emit_return(&ctx, 0);
+  reg_free_all(&ctx);
+
+  const RegId resultReg = reg_alloc(&ctx);
+  diag_assert(resultReg < script_vm_regs);
+
+  const ScriptCompileError err = compile_expr(&ctx, resultReg, expr);
+  if (!err) {
+    emit_return(&ctx, resultReg);
   }
-  return res;
+  return err;
 }
