@@ -123,15 +123,15 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     } break;
     case ScriptOp_Move: {
       if (UNLIKELY((ip += 3) > ipEnd)) { return; }
-      fmt_write(out, "[Move d{} s{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
+      fmt_write(out, "[Move r{} r{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
     } break;
     case ScriptOp_Value: {
       if (UNLIKELY((ip += 3) > ipEnd)) { return; }
-      fmt_write(out, "[Value d{} v{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
+      fmt_write(out, "[Value r{} v{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
     } break;
     case ScriptOp_Add: {
       if (UNLIKELY((ip += 4) > ipEnd)) { return; }
-      fmt_write(out, "[Add r{} a{} b{}]\n", fmt_int(ip[-3]), fmt_int(ip[-2]), fmt_int(ip[-1]));
+      fmt_write(out, "[Add r{} r{} r{}]\n", fmt_int(ip[-3]), fmt_int(ip[-2]), fmt_int(ip[-1]));
     } break;
     default:
       return;
