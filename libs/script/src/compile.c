@@ -8,8 +8,9 @@
 #include "doc_internal.h"
 
 static const String g_compileErrorStrs[] = {
-    [ScriptCompileError_None]          = string_static("None"),
-    [ScriptCompileError_TooManyValues] = string_static("Too many values"),
+    [ScriptCompileError_None]             = string_static("None"),
+    [ScriptCompileError_TooManyRegisters] = string_static("Register limit exceeded"),
+    [ScriptCompileError_TooManyValues]    = string_static("Value limit exceeded"),
 };
 ASSERT(array_elems(g_compileErrorStrs) == ScriptCompileError_Count, "Incorrect number of strings");
 
@@ -85,6 +86,8 @@ static ScriptCompileError compile_value(CompileContext* ctx, const RegId dst, co
 }
 
 static ScriptCompileError compile_intr(CompileContext* ctx, const RegId dst, const ScriptExpr e) {
+  ScriptCompileError err = ScriptCompileError_None;
+
   const ScriptExprIntrinsic* data = &expr_data(ctx->doc, e)->intrinsic;
   const ScriptExpr*          args = expr_set_data(ctx->doc, data->argSet);
   switch (data->intrinsic) {
@@ -108,12 +111,20 @@ static ScriptCompileError compile_intr(CompileContext* ctx, const RegId dst, con
   case ScriptIntrinsic_Greater:
   case ScriptIntrinsic_GreaterOrEqual: {
     emit_fail(ctx);
-    return ScriptCompileError_None;
+    goto Ret;
   }
   case ScriptIntrinsic_Add: {
-    compile_expr(ctx, dst, args[0]);
+    if ((err = compile_expr(ctx, dst, args[0]))) {
+      goto Ret;
+    }
     const RegId tmpReg = reg_alloc(ctx);
-    compile_expr(ctx, tmpReg, args[1]);
+    if (sentinel_check(tmpReg)) {
+      err = ScriptCompileError_TooManyRegisters;
+      goto Ret;
+    }
+    if ((err = compile_expr(ctx, tmpReg, args[1]))) {
+      goto Ret;
+    }
     emit_add(ctx, dst, tmpReg);
     reg_free(ctx, tmpReg);
     return ScriptCompileError_None;
@@ -153,12 +164,14 @@ static ScriptCompileError compile_intr(CompileContext* ctx, const RegId dst, con
   case ScriptIntrinsic_Max:
   case ScriptIntrinsic_Perlin3:
     emit_fail(ctx);
-    return ScriptCompileError_None;
+    goto Ret;
   case ScriptIntrinsic_Count:
     break;
   }
   diag_assert_fail("Unknown intrinsic");
-  UNREACHABLE
+
+Ret:
+  return err;
 }
 
 static ScriptCompileError compile_expr(CompileContext* ctx, const RegId dst, const ScriptExpr e) {

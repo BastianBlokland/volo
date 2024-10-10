@@ -6,6 +6,7 @@ typedef struct sDynArray DynString;
 
 typedef enum {
   ScriptCompileError_None,
+  ScriptCompileError_TooManyRegisters,
   ScriptCompileError_TooManyValues,
 
   ScriptCompileError_Count,
