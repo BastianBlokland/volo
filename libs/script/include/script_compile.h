@@ -5,16 +5,16 @@
 typedef struct sDynArray DynString;
 
 typedef enum {
-  ScriptCompileResult_Success,
-  ScriptCompileResult_TooManyValues,
+  ScriptCompileError_None,
+  ScriptCompileError_TooManyValues,
 
-  ScriptCompileResult_Count,
-} ScriptCompileResult;
+  ScriptCompileError_Count,
+} ScriptCompileError;
 
-String script_compile_result_str(ScriptCompileResult);
+String script_compile_error_str(ScriptCompileError);
 
 /**
  * Compile an expression to byte-code for that can be executed in the vm.
  * Output is written to the given DynString.
  */
-ScriptCompileResult script_compile(const ScriptDoc*, ScriptExpr, DynString* out);
+ScriptCompileError script_compile(const ScriptDoc*, ScriptExpr, DynString* out);

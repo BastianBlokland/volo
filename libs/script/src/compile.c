@@ -6,11 +6,11 @@
 
 #include "doc_internal.h"
 
-static const String g_compileResStrs[] = {
-    [ScriptCompileResult_Success]       = string_static("Success"),
-    [ScriptCompileResult_TooManyValues] = string_static("Too many values"),
+static const String g_compileErrorStrs[] = {
+    [ScriptCompileError_None]          = string_static("None"),
+    [ScriptCompileError_TooManyValues] = string_static("Too many values"),
 };
-ASSERT(array_elems(g_compileResStrs) == ScriptCompileResult_Count, "Incorrect number of strings");
+ASSERT(array_elems(g_compileErrorStrs) == ScriptCompileError_Count, "Incorrect number of strings");
 
 typedef u8 RegId;
 
@@ -51,18 +51,18 @@ static void emit_add(CompileContext* ctx, const RegId dst, const RegId a, const 
   dynstring_append_char(ctx->out, b);
 }
 
-static ScriptCompileResult compile_expr(CompileContext*, RegId dst, ScriptExpr);
+static ScriptCompileError compile_expr(CompileContext*, RegId dst, ScriptExpr);
 
-static ScriptCompileResult compile_value(CompileContext* ctx, const RegId dst, const ScriptExpr e) {
+static ScriptCompileError compile_value(CompileContext* ctx, const RegId dst, const ScriptExpr e) {
   const ScriptExprValue* data = &expr_data(ctx->doc, e)->value;
   if (data->valId > u8_max) {
-    return ScriptCompileResult_TooManyValues;
+    return ScriptCompileError_TooManyValues;
   }
   emit_value(ctx, dst, (u8)data->valId);
-  return ScriptCompileResult_Success;
+  return ScriptCompileError_None;
 }
 
-static ScriptCompileResult compile_intr(CompileContext* ctx, const RegId dst, const ScriptExpr e) {
+static ScriptCompileError compile_intr(CompileContext* ctx, const RegId dst, const ScriptExpr e) {
   const ScriptExprIntrinsic* data = &expr_data(ctx->doc, e)->intrinsic;
   const ScriptExpr*          args = expr_set_data(ctx->doc, data->argSet);
   switch (data->intrinsic) {
@@ -89,7 +89,7 @@ static ScriptCompileResult compile_intr(CompileContext* ctx, const RegId dst, co
     compile_expr(ctx, 1, args[0]);
     compile_expr(ctx, 2, args[1]);
     emit_add(ctx, dst, 1, 2);
-    return ScriptCompileResult_Success;
+    return ScriptCompileError_None;
   case ScriptIntrinsic_Sub:
   case ScriptIntrinsic_Mul:
   case ScriptIntrinsic_Div:
@@ -125,7 +125,7 @@ static ScriptCompileResult compile_intr(CompileContext* ctx, const RegId dst, co
   case ScriptIntrinsic_Max:
   case ScriptIntrinsic_Perlin3:
     emit_fail(ctx);
-    return ScriptCompileResult_Success;
+    return ScriptCompileError_None;
   case ScriptIntrinsic_Count:
     break;
   }
@@ -133,7 +133,7 @@ static ScriptCompileResult compile_intr(CompileContext* ctx, const RegId dst, co
   UNREACHABLE
 }
 
-static ScriptCompileResult compile_expr(CompileContext* ctx, const RegId dst, const ScriptExpr e) {
+static ScriptCompileError compile_expr(CompileContext* ctx, const RegId dst, const ScriptExpr e) {
   switch (expr_kind(ctx->doc, e)) {
   case ScriptExprKind_Value:
     return compile_value(ctx, dst, e);
@@ -146,7 +146,7 @@ static ScriptCompileResult compile_expr(CompileContext* ctx, const RegId dst, co
   case ScriptExprKind_Block:
   case ScriptExprKind_Extern:
     emit_fail(ctx);
-    return ScriptCompileResult_Success;
+    return ScriptCompileError_None;
   case ScriptExprKind_Count:
     break;
   }
@@ -154,18 +154,18 @@ static ScriptCompileResult compile_expr(CompileContext* ctx, const RegId dst, co
   UNREACHABLE
 }
 
-String script_compile_result_str(const ScriptCompileResult res) {
-  diag_assert(res < ScriptCompileResult_Count);
-  return g_compileResStrs[res];
+String script_compile_error_str(const ScriptCompileError res) {
+  diag_assert(res < ScriptCompileError_Count);
+  return g_compileErrorStrs[res];
 }
 
-ScriptCompileResult script_compile(const ScriptDoc* doc, const ScriptExpr expr, DynString* out) {
+ScriptCompileError script_compile(const ScriptDoc* doc, const ScriptExpr expr, DynString* out) {
   CompileContext ctx = {
       .doc = doc,
       .out = out,
   };
-  const ScriptCompileResult res = compile_expr(&ctx, 0, expr);
-  if (res == ScriptCompileResult_Success) {
+  const ScriptCompileError res = compile_expr(&ctx, 0, expr);
+  if (res == ScriptCompileError_None) {
     emit_return(&ctx, 0);
   }
   return res;

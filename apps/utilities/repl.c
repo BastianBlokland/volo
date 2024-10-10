@@ -343,11 +343,11 @@ static void repl_exec(
     const bool noErrors = script_diag_count(diags, ScriptDiagFilter_Error) == 0;
     if (noErrors && !(flags & ReplFlags_NoEval)) {
       if (flags & ReplFlags_Vm) {
-        DynString                 codeBuffer = dynstring_create(g_allocScratch, usize_kibibyte);
-        const ScriptCompileResult compileRes = script_compile(script, expr, &codeBuffer);
-        if (compileRes != ScriptCompileResult_Success) {
-          const String resStr = script_compile_result_str(compileRes);
-          repl_output_error(fmt_write_scratch("Compilation failed: {}", fmt_text(resStr)), id);
+        DynString                codeBuffer = dynstring_create(g_allocScratch, usize_kibibyte);
+        const ScriptCompileError compileErr = script_compile(script, expr, &codeBuffer);
+        if (compileErr) {
+          const String errStr = script_compile_error_str(compileErr);
+          repl_output_error(fmt_write_scratch("Compilation failed: {}", fmt_text(errStr)), id);
         } else {
           const String code = dynstring_view(&codeBuffer);
           if (flags & ReplFlags_OutputCode) {
