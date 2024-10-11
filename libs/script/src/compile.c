@@ -207,7 +207,10 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   switch (data->intrinsic) {
   case ScriptIntrinsic_Continue:
   case ScriptIntrinsic_Break:
+    emit_simple(ctx, ScriptOp_Fail);
+    return ScriptCompileError_None;
   case ScriptIntrinsic_Return:
+    return compile_intr_unary(ctx, dst, ScriptOp_Return, args);
   case ScriptIntrinsic_Type:
   case ScriptIntrinsic_Hash:
   case ScriptIntrinsic_Assert:
