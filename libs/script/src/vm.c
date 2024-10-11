@@ -32,7 +32,7 @@ INLINE_HINT static bool vm_val_valid(ScriptVmContext* ctx, const u8 valId) {
 
 INLINE_HINT static u16 vm_read_u16(const u8 data[]) {
   // NOTE: Input data is not required to be aligned to 16 bit.
-  return (u16)data[0] << 8 | (u16)data[1];
+  return (u16)data[0] | (u16)data[1] << 8;
 }
 
 INLINE_HINT static u32 vm_read_u32(const u8 data[]) {
