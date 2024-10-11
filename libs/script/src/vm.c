@@ -80,7 +80,7 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       if (UNLIKELY((ip += 6) >= ipEnd)) goto Corrupt;
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-5]))) goto Corrupt;
       if (UNLIKELY(!vm_reg_set_valid(ctx, ip[-2], ip[-1]))) goto Corrupt;
-      const ScriptBinderSlot funcSlot = vm_read_u16(&ip[4]);
+      const ScriptBinderSlot funcSlot = vm_read_u16(&ip[-4]);
       if (UNLIKELY(funcSlot >= script_binder_count(ctx->binder))) goto Corrupt;
       const ScriptArgs args = {.values = &ctx->regs[ip[-2]], .count = ip[-1]};
       ScriptError      err  = {0};
