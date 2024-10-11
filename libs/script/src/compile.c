@@ -67,6 +67,13 @@ static void emit_binary(Context* ctx, const ScriptOp op, const RegId dst, const 
   dynstring_append_char(ctx->out, src);
 }
 
+static void emit_mem_op(Context* ctx, const ScriptOp op, const RegId dst, const StringHash key) {
+  diag_assert((op == ScriptOp_MemLoad || op == ScriptOp_MemStore) && dst < script_vm_regs);
+  dynstring_append_char(ctx->out, op);
+  dynstring_append_char(ctx->out, dst);
+  mem_write_le_u32(dynstring_push(ctx->out, 4), key);
+}
+
 static void emit_move(Context* ctx, const RegId dst, const RegId src) {
   if (dst != src) {
     emit_binary(ctx, ScriptOp_Move, dst, src);
@@ -106,6 +113,22 @@ static ScriptCompileError compile_var_store(Context* ctx, const RegId dst, const
   }
   emit_move(ctx, ctx->varRegisters[data->var], dst);
   return ScriptCompileError_None;
+}
+
+static ScriptCompileError compile_mem_load(Context* ctx, const RegId dst, const ScriptExpr e) {
+  const ScriptExprMemLoad* data = &expr_data(ctx->doc, e)->mem_load;
+  emit_mem_op(ctx, ScriptOp_MemLoad, dst, data->key);
+  return ScriptCompileError_None;
+}
+
+static ScriptCompileError compile_mem_store(Context* ctx, const RegId dst, const ScriptExpr e) {
+  const ScriptExprMemStore* data = &expr_data(ctx->doc, e)->mem_store;
+  ScriptCompileError        err  = ScriptCompileError_None;
+  if ((err = compile_expr(ctx, dst, data->val))) {
+    return err;
+  }
+  emit_mem_op(ctx, ScriptOp_MemStore, dst, data->key);
+  return err;
 }
 
 static ScriptCompileError
@@ -236,7 +259,9 @@ static ScriptCompileError compile_expr(Context* ctx, const RegId dst, const Scri
   case ScriptExprKind_VarStore:
     return compile_var_store(ctx, dst, e);
   case ScriptExprKind_MemLoad:
+    return compile_mem_load(ctx, dst, e);
   case ScriptExprKind_MemStore:
+    return compile_mem_store(ctx, dst, e);
   case ScriptExprKind_Intrinsic:
     return compile_intr(ctx, dst, e);
   case ScriptExprKind_Block:
