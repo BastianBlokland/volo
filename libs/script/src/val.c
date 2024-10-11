@@ -375,6 +375,8 @@ ScriptVal script_val_type(const ScriptVal val) {
   return val_str(g_valTypeHashes[val_type(val)]);
 }
 
+ScriptVal script_val_hash(const ScriptVal val) { return val_num(script_hash(val)); }
+
 ScriptVal script_val_neg(const ScriptVal val) {
   switch (val_type(val)) {
   case ScriptType_Null:

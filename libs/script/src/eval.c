@@ -90,7 +90,7 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
   case ScriptIntrinsic_Type:
     return script_val_type(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Hash:
-    return script_num(script_hash(eval_expr(ctx, args[0])));
+    return script_val_hash(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Assert: {
     if (script_falsy(eval_expr(ctx, args[0]))) {
       ctx->panic = (ScriptPanic){
