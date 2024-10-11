@@ -30,22 +30,23 @@ typedef struct sScriptBinder ScriptBinder;
  */
 typedef enum {
   ScriptOp_Fail     = 0, // [       ] (   ) -> ( ) Terminate the execution.
-  ScriptOp_Return   = 1, // [s      ] (s  ) -> ( ) Return register 's'.
-  ScriptOp_Move     = 2, // [d,s    ] (s  ) -> (d) Load value at register 's' into register 'd'.
-  ScriptOp_Value    = 3, // [d,v    ] (   ) -> (d) Load value with index 'v' into register 'd'.
-  ScriptOp_MemLoad  = 4, // [d,k    ] (   ) -> (d) Load from memory at key 'k' into register 'd'.
-  ScriptOp_MemStore = 5, // [s,k    ] (s  ) -> ( ) Store to memory at key 'k' from register 's'.
-  ScriptOp_Extern   = 6, // [d,f,r,c] (r:c) -> (d) Invoke extern func 'f' using count 'c' regs
+  ScriptOp_Assert   = 1, // [s      ] (s  ) -> ( ) Terminate the execution if register 's' is false.
+  ScriptOp_Return   = 2, // [s      ] (s  ) -> ( ) Return register 's'.
+  ScriptOp_Move     = 3, // [d,s    ] (s  ) -> (d) Load value at register 's' into register 'd'.
+  ScriptOp_Value    = 4, // [d,v    ] (   ) -> (d) Load value with index 'v' into register 'd'.
+  ScriptOp_MemLoad  = 5, // [d,k    ] (   ) -> (d) Load from memory at key 'k' into register 'd'.
+  ScriptOp_MemStore = 6, // [s,k    ] (s  ) -> ( ) Store to memory at key 'k' from register 's'.
+  ScriptOp_Extern   = 7, // [d,f,r,c] (r:c) -> (d) Invoke extern func 'f' using count 'c' regs
                          //                        starting from 'r' and store result in reg 'd'.
-  ScriptOp_Type   = 7,   // [d      ] (d  ) -> (d) Retrieve the type for register 'd'.
-  ScriptOp_Hash   = 8,   // [d      ] (d  ) -> (d) Retrieve the hash for register 'd'.
-  ScriptOp_Add    = 9,   // [d,s    ] (d,s) -> (d) Add register 's' to 'd'.
-  ScriptOp_Sub    = 10,  // [d,s    ] (d,s) -> (d) Subtract register 's' from 'd'.
-  ScriptOp_Mul    = 11,  // [d,s    ] (d,s) -> (d) Multiply register 'd' by register 's'.
-  ScriptOp_Div    = 12,  // [d,s    ] (d,s) -> (d) Divide register 'd' by register 's'.
-  ScriptOp_Mod    = 13,  // [d,s    ] (d,s) -> (d) Modulo register 'd' by register 's'.
-  ScriptOp_Negate = 14,  // [d      ] (d  ) -> (d) Negate register 'd'.
-  ScriptOp_Invert = 15,  // [d      ] (d  ) -> (d) Invert register 'd'.
+  ScriptOp_Type   = 8,   // [d      ] (d  ) -> (d) Retrieve the type for register 'd'.
+  ScriptOp_Hash   = 9,   // [d      ] (d  ) -> (d) Retrieve the hash for register 'd'.
+  ScriptOp_Add    = 10,  // [d,s    ] (d,s) -> (d) Add register 's' to 'd'.
+  ScriptOp_Sub    = 11,  // [d,s    ] (d,s) -> (d) Subtract register 's' from 'd'.
+  ScriptOp_Mul    = 12,  // [d,s    ] (d,s) -> (d) Multiply register 'd' by register 's'.
+  ScriptOp_Div    = 13,  // [d,s    ] (d,s) -> (d) Divide register 'd' by register 's'.
+  ScriptOp_Mod    = 14,  // [d,s    ] (d,s) -> (d) Modulo register 'd' by register 's'.
+  ScriptOp_Negate = 15,  // [d      ] (d  ) -> (d) Negate register 'd'.
+  ScriptOp_Invert = 16,  // [d      ] (d  ) -> (d) Invert register 'd'.
 } ScriptOp;
 
 typedef struct {

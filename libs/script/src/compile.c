@@ -220,6 +220,7 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_Hash:
     return compile_intr_unary(ctx, dst, ScriptOp_Hash, args);
   case ScriptIntrinsic_Assert:
+    return compile_intr_unary(ctx, dst, ScriptOp_Assert, args);
   case ScriptIntrinsic_MemLoadDynamic:
   case ScriptIntrinsic_MemStoreDynamic:
   case ScriptIntrinsic_Select:

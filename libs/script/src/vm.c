@@ -49,7 +49,17 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
   for (;;) {
     // clang-format off
     switch ((ScriptOp)*ip) {
-    case ScriptOp_Fail: goto ExecFailed;
+    case ScriptOp_Fail:
+      ctx->panic = (ScriptPanic){.kind = ScriptPanic_ExecutionFailed};
+      return script_null();
+    case ScriptOp_Assert:
+      if (UNLIKELY((ip += 2) >= ipEnd)) goto Corrupt;
+      if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;
+      if (script_falsy(ctx->regs[ip[-1]])) {
+        ctx->panic = (ScriptPanic){.kind = ScriptPanic_AssertionFailed};
+        return script_null();
+      }
+      continue;
     case ScriptOp_Return:
       if (UNLIKELY((ip += 2) > ipEnd)) goto Corrupt;
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;
@@ -124,10 +134,6 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
 Corrupt:
   ctx->panic = (ScriptPanic){.kind = ScriptPanic_CorruptCode};
   return script_null();
-
-ExecFailed:
-  ctx->panic = (ScriptPanic){.kind = ScriptPanic_ExecutionFailed};
-  return script_null();
 }
 
 ScriptVmResult script_vm_eval(
@@ -163,6 +169,10 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     case ScriptOp_Fail:
       if (UNLIKELY((ip += 1) > ipEnd)) return;
       fmt_write(out, "[Fail]\n");
+      break;
+    case ScriptOp_Assert:
+      if (UNLIKELY((ip += 2) > ipEnd)) return;
+      fmt_write(out, "[Assert r{}]\n", fmt_int(ip[-1]));
       break;
     case ScriptOp_Return:
       if (UNLIKELY((ip += 2) > ipEnd)) return;
