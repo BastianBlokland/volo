@@ -67,7 +67,7 @@ static void reg_free(Context* ctx, const RegId reg) {
 
 static void reg_free_set(Context* ctx, const RegSet set) {
   if (set.count) {
-    const u8  last = set.begin + set.count;
+    const u8  last = set.begin + set.count - 1;
     const u64 mask = (u64_lit(1) << last) - (u64_lit(1) << set.begin);
     diag_assert_msg(!(ctx->regAvailability & mask), "Register already freed");
     ctx->regAvailability |= mask;
