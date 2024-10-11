@@ -26,6 +26,7 @@ typedef struct {
 typedef struct {
   const ScriptDoc* doc;
   DynString*       out;
+  ScriptOp         lastOp;
   u64              regAvailability; // Bitmask of available registers.
   RegId            varRegisters[script_var_count];
 } Context;
@@ -77,31 +78,34 @@ static void reg_free_all(Context* ctx) {
   ctx->regAvailability = (u64_lit(1) << script_vm_regs) - 1;
 }
 
-static void emit_simple(Context* ctx, const ScriptOp op) { dynstring_append_char(ctx->out, op); }
+static void emit_op(Context* ctx, const ScriptOp op) {
+  dynstring_append_char(ctx->out, op);
+  ctx->lastOp = op;
+}
 
 static void emit_value(Context* ctx, const RegId dst, const u8 valId) {
   diag_assert(dst < script_vm_regs && valId < ctx->doc->values.size);
-  dynstring_append_char(ctx->out, ScriptOp_Value);
+  emit_op(ctx, ScriptOp_Value);
   dynstring_append_char(ctx->out, dst);
   dynstring_append_char(ctx->out, valId);
 }
 
 static void emit_unary(Context* ctx, const ScriptOp op, const RegId dst) {
   diag_assert(dst < script_vm_regs);
-  dynstring_append_char(ctx->out, op);
+  emit_op(ctx, op);
   dynstring_append_char(ctx->out, dst);
 }
 
 static void emit_binary(Context* ctx, const ScriptOp op, const RegId dst, const RegId src) {
   diag_assert(dst < script_vm_regs && src < script_vm_regs);
-  dynstring_append_char(ctx->out, op);
+  emit_op(ctx, op);
   dynstring_append_char(ctx->out, dst);
   dynstring_append_char(ctx->out, src);
 }
 
 static void emit_mem_op(Context* ctx, const ScriptOp op, const RegId dst, const StringHash key) {
   diag_assert((op == ScriptOp_MemLoad || op == ScriptOp_MemStore) && dst < script_vm_regs);
-  dynstring_append_char(ctx->out, op);
+  emit_op(ctx, op);
   dynstring_append_char(ctx->out, dst);
   mem_write_le_u32(dynstring_push(ctx->out, 4), key);
 }
@@ -114,7 +118,7 @@ static void emit_move(Context* ctx, const RegId dst, const RegId src) {
 
 static void emit_extern(Context* ctx, const RegId dst, const ScriptBinderSlot f, const RegSet in) {
   diag_assert(dst < script_vm_regs && in.begin + in.count <= script_vm_regs);
-  dynstring_append_char(ctx->out, ScriptOp_Extern);
+  emit_op(ctx, ScriptOp_Extern);
   dynstring_append_char(ctx->out, dst);
   mem_write_le_u16(dynstring_push(ctx->out, 2), f);
   dynstring_append_char(ctx->out, in.begin);
@@ -207,7 +211,7 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   switch (data->intrinsic) {
   case ScriptIntrinsic_Continue:
   case ScriptIntrinsic_Break:
-    emit_simple(ctx, ScriptOp_Fail);
+    emit_op(ctx, ScriptOp_Fail);
     return ScriptCompileError_None;
   case ScriptIntrinsic_Return:
     return compile_intr_unary(ctx, dst, ScriptOp_Return, args);
@@ -227,7 +231,7 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_LessOrEqual:
   case ScriptIntrinsic_Greater:
   case ScriptIntrinsic_GreaterOrEqual:
-    emit_simple(ctx, ScriptOp_Fail);
+    emit_op(ctx, ScriptOp_Fail);
     return ScriptCompileError_None;
   case ScriptIntrinsic_Add:
     return compile_intr_binary(ctx, dst, ScriptOp_Add, args);
@@ -271,7 +275,7 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_Min:
   case ScriptIntrinsic_Max:
   case ScriptIntrinsic_Perlin3:
-    emit_simple(ctx, ScriptOp_Fail);
+    emit_op(ctx, ScriptOp_Fail);
     return ScriptCompileError_None;
   case ScriptIntrinsic_Count:
     break;
@@ -358,7 +362,9 @@ ScriptCompileError script_compile(const ScriptDoc* doc, const ScriptExpr expr, D
 
   const ScriptCompileError err = compile_expr(&ctx, resultReg, expr);
   if (!err) {
-    emit_unary(&ctx, ScriptOp_Return, resultReg);
+    if (ctx.lastOp != ScriptOp_Return) {
+      emit_unary(&ctx, ScriptOp_Return, resultReg);
+    }
 
     // Verify no registers where leaked.
     reg_free(&ctx, resultReg);
