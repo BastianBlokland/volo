@@ -108,8 +108,8 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
   }
   case ScriptIntrinsic_MemStoreDynamic: {
     EVAL_ARG_WITH_INTERRUPT(0);
+    EVAL_ARG_WITH_INTERRUPT(1);
     if (val_type(arg0) == ScriptType_Str) {
-      EVAL_ARG_WITH_INTERRUPT(1);
       script_mem_store(ctx->m, val_as_str(arg0), arg1);
       return arg1;
     }
