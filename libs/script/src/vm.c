@@ -152,11 +152,11 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       break;
     case ScriptOp_MemLoad:
       if (UNLIKELY((ip += 6) > ipEnd)) { return; }
-      fmt_write(out, "[MemLoad r{} #{}]\n", fmt_int(ip[-1]), fmt_int(vm_read_u32(&ip[-4])));
+      fmt_write(out, "[MemLoad r{} #{}]\n", fmt_int(ip[-5]), fmt_int(vm_read_u32(&ip[-4])));
       break;
     case ScriptOp_MemStore:
       if (UNLIKELY((ip += 6) > ipEnd)) { return; }
-      fmt_write(out, "[MemStore r{} #{}]\n", fmt_int(ip[-1]), fmt_int(vm_read_u32(&ip[-4])));
+      fmt_write(out, "[MemStore r{} #{}]\n", fmt_int(ip[-5]), fmt_int(vm_read_u32(&ip[-4])));
       break;
 #define OP_BINARY_SIMPLE(_OP_)                                                                     \
     case ScriptOp_##_OP_:                                                                          \
