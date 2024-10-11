@@ -7,6 +7,8 @@
 
 #include "doc_internal.h"
 
+ASSERT(script_vm_regs <= 63, "Register allocator only supports up to 63 registers");
+
 static const String g_compileErrorStrs[] = {
     [ScriptCompileError_None]             = string_static("None"),
     [ScriptCompileError_TooManyRegisters] = string_static("Register limit exceeded"),
@@ -15,6 +17,11 @@ static const String g_compileErrorStrs[] = {
 ASSERT(array_elems(g_compileErrorStrs) == ScriptCompileError_Count, "Incorrect number of strings");
 
 typedef u8 RegId;
+
+typedef struct {
+  RegId begin;
+  u8    count;
+} RegSet;
 
 typedef struct {
   const ScriptDoc* doc;
@@ -34,14 +41,39 @@ static RegId reg_alloc(Context* ctx) {
   return res;
 }
 
+static RegSet reg_alloc_set(Context* ctx, const u8 count) {
+  if (!count) {
+    return (RegSet){0};
+  }
+  if (count > script_vm_regs) {
+    return (RegSet){.begin = sentinel_u8, .count = sentinel_u8}; // Too many registers requested.
+  }
+  const u32 maxIndex = script_vm_regs - count;
+  u64       mask     = (u64_lit(1) << count) - 1;
+  for (u32 i = 0; i != maxIndex; ++i, mask <<= 1) {
+    if ((ctx->regAvailability & mask) == mask) {
+      return (RegSet){.begin = (RegId)i, .count = count};
+    }
+  }
+  return (RegSet){.begin = sentinel_u8, .count = sentinel_u8}; // Not enough registers available.
+}
+
 static void reg_free(Context* ctx, const RegId reg) {
   diag_assert(reg < script_vm_regs);
   diag_assert_msg(!(ctx->regAvailability & (u64_lit(1) << reg)), "Register already freed");
   ctx->regAvailability |= u64_lit(1) << reg;
 }
 
+static void reg_free_set(Context* ctx, const RegSet set) {
+  if (set.count) {
+    const u8  last = set.begin + set.count;
+    const u64 mask = (u64_lit(1) << last) - (u64_lit(1) << set.begin);
+    diag_assert_msg(!(ctx->regAvailability & mask), "Register already freed");
+    ctx->regAvailability |= mask;
+  }
+}
+
 static void reg_free_all(Context* ctx) {
-  ASSERT(script_vm_regs <= 63, "Register allocator only supports up to 63 registers");
   ctx->regAvailability = (u64_lit(1) << script_vm_regs) - 1;
 }
 
@@ -78,6 +110,15 @@ static void emit_move(Context* ctx, const RegId dst, const RegId src) {
   if (dst != src) {
     emit_binary(ctx, ScriptOp_Move, dst, src);
   }
+}
+
+static void emit_extern(Context* ctx, const RegId dst, const ScriptBinderSlot f, const RegSet in) {
+  diag_assert(dst < script_vm_regs && in.begin + in.count <= script_vm_regs);
+  dynstring_append_char(ctx->out, ScriptOp_Extern);
+  dynstring_append_char(ctx->out, dst);
+  mem_write_le_u16(dynstring_push(ctx->out, 2), f);
+  dynstring_append_char(ctx->out, in.begin);
+  dynstring_append_char(ctx->out, in.count);
 }
 
 static ScriptCompileError compile_expr(Context*, RegId dst, ScriptExpr);
@@ -250,6 +291,25 @@ static ScriptCompileError compile_block(Context* ctx, const RegId dst, const Scr
   return err;
 }
 
+static ScriptCompileError compile_extern(Context* ctx, const RegId dst, const ScriptExpr e) {
+  const ScriptExprExtern* data     = &expr_data(ctx->doc, e)->extern_;
+  const ScriptExpr*       argExprs = expr_set_data(ctx->doc, data->argSet);
+  const RegSet            argRegs  = reg_alloc_set(ctx, data->argCount);
+  if (sentinel_check(argRegs.begin)) {
+    return ScriptCompileError_TooManyRegisters;
+  }
+  ScriptCompileError err = ScriptCompileError_None;
+  for (u32 i = 0; i != data->argCount; ++i) {
+    if ((err = compile_expr(ctx, argRegs.begin + i, argExprs[i]))) {
+      goto Ret;
+    }
+  }
+  emit_extern(ctx, dst, data->func, argRegs);
+  reg_free_set(ctx, argRegs);
+Ret:
+  return err;
+}
+
 static ScriptCompileError compile_expr(Context* ctx, const RegId dst, const ScriptExpr e) {
   switch (expr_kind(ctx->doc, e)) {
   case ScriptExprKind_Value:
@@ -267,8 +327,7 @@ static ScriptCompileError compile_expr(Context* ctx, const RegId dst, const Scri
   case ScriptExprKind_Block:
     return compile_block(ctx, dst, e);
   case ScriptExprKind_Extern:
-    emit_simple(ctx, ScriptOp_Fail);
-    return ScriptCompileError_None;
+    return compile_extern(ctx, dst, e);
   case ScriptExprKind_Count:
     break;
   }
@@ -297,18 +356,15 @@ ScriptCompileError script_compile(const ScriptDoc* doc, const ScriptExpr expr, D
   const ScriptCompileError err = compile_expr(&ctx, resultReg, expr);
   if (!err) {
     emit_unary(&ctx, ScriptOp_Return, resultReg);
-  }
 
-  reg_free(&ctx, resultReg);
-
-  // Free all used variable registers.
-  array_for_t(ctx.varRegisters, RegId, varReg) {
-    if (!sentinel_check(*varReg)) {
-      reg_free(&ctx, *varReg);
+    // Verify no registers where leaked.
+    reg_free(&ctx, resultReg);
+    array_for_t(ctx.varRegisters, RegId, varReg) {
+      if (!sentinel_check(*varReg)) {
+        reg_free(&ctx, *varReg);
+      }
     }
+    diag_assert_msg(reg_available(&ctx) == script_vm_regs, "Not all registers freed");
   }
-
-  diag_assert_msg(reg_available(&ctx) == script_vm_regs, "Not all registers freed");
-
   return err;
 }
