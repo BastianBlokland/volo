@@ -95,23 +95,24 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       if (UNLIKELY((ip += 2) >= ipEnd)) goto Corrupt;                                              \
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;                                      \
       ctx->regs[ip[-1]] = _FUNC_(ctx->regs[ip[-1]]);                                               \
-      continue;
+      continue
 #define OP_SIMPLE_BINARY(_OP_, _FUNC_)                                                             \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;                                              \
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;                                      \
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;                                      \
       ctx->regs[ip[-2]] = _FUNC_(ctx->regs[ip[-2]], ctx->regs[ip[-1]]);                            \
-      continue;
+      continue
 
-    OP_SIMPLE_UNARY(Type, script_val_type)
-    OP_SIMPLE_BINARY(Add, script_val_add)
-    OP_SIMPLE_BINARY(Sub, script_val_sub)
-    OP_SIMPLE_BINARY(Mul, script_val_mul)
-    OP_SIMPLE_BINARY(Div, script_val_div)
-    OP_SIMPLE_BINARY(Mod, script_val_mod)
-    OP_SIMPLE_UNARY(Negate, script_val_neg)
-    OP_SIMPLE_UNARY(Invert, script_val_inv)
+    OP_SIMPLE_UNARY(Type, script_val_type);
+    OP_SIMPLE_UNARY(Hash, script_val_hash);
+    OP_SIMPLE_BINARY(Add, script_val_add);
+    OP_SIMPLE_BINARY(Sub, script_val_sub);
+    OP_SIMPLE_BINARY(Mul, script_val_mul);
+    OP_SIMPLE_BINARY(Div, script_val_div);
+    OP_SIMPLE_BINARY(Mod, script_val_mod);
+    OP_SIMPLE_UNARY(Negate, script_val_neg);
+    OP_SIMPLE_UNARY(Invert, script_val_inv);
 
 #undef OP_SIMPLE_BINARY
 #undef OP_SIMPLE_UNARY
@@ -191,21 +192,22 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 2) > ipEnd)) return;                                                     \
       fmt_write(out, "[" #_OP_ " r{}]\n", fmt_int(ip[-1]));                                        \
-      break;
+      break
 #define OP_SIMPLE_BINARY(_OP_)                                                                     \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 3) > ipEnd)) return;                                                     \
       fmt_write(out, "[" #_OP_ " r{} r{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));                   \
-      break;
+      break
 
-    OP_SIMPLE_UNARY(Type)
-    OP_SIMPLE_BINARY(Add)
-    OP_SIMPLE_BINARY(Sub)
-    OP_SIMPLE_BINARY(Mul)
-    OP_SIMPLE_BINARY(Div)
-    OP_SIMPLE_BINARY(Mod)
-    OP_SIMPLE_UNARY(Negate)
-    OP_SIMPLE_UNARY(Invert)
+    OP_SIMPLE_UNARY(Type);
+    OP_SIMPLE_UNARY(Hash);
+    OP_SIMPLE_BINARY(Add);
+    OP_SIMPLE_BINARY(Sub);
+    OP_SIMPLE_BINARY(Mul);
+    OP_SIMPLE_BINARY(Div);
+    OP_SIMPLE_BINARY(Mod);
+    OP_SIMPLE_UNARY(Negate);
+    OP_SIMPLE_UNARY(Invert);
 
 #undef OP_SIMPLE_BINARY
 #undef OP_SIMPLE_UNARY

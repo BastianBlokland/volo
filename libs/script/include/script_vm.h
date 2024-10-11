@@ -38,13 +38,14 @@ typedef enum {
   ScriptOp_Extern   = 6, // [d,f,r,c] (r:c) -> (d) Invoke extern func 'f' using count 'c' regs
                          //                        starting from 'r' and store result in reg 'd'.
   ScriptOp_Type   = 7,   // [d      ] (d  ) -> (d) Retrieve the type for register 'd'.
-  ScriptOp_Add    = 8,   // [d,s    ] (d,s) -> (d) Add register 's' to 'd'.
-  ScriptOp_Sub    = 9,   // [d,s    ] (d,s) -> (d) Subtract register 's' from 'd'.
-  ScriptOp_Mul    = 10,  // [d,s    ] (d,s) -> (d) Multiply register 'd' by register 's'.
-  ScriptOp_Div    = 11,  // [d,s    ] (d,s) -> (d) Divide register 'd' by register 's'.
-  ScriptOp_Mod    = 12,  // [d,s    ] (d,s) -> (d) Modulo register 'd' by register 's'.
-  ScriptOp_Negate = 13,  // [d      ] (d  ) -> (d) Negate register 'd'.
-  ScriptOp_Invert = 14,  // [d      ] (d  ) -> (d) Invert register 'd'.
+  ScriptOp_Hash   = 8,   // [d      ] (d  ) -> (d) Retrieve the hash for register 'd'.
+  ScriptOp_Add    = 9,   // [d,s    ] (d,s) -> (d) Add register 's' to 'd'.
+  ScriptOp_Sub    = 10,  // [d,s    ] (d,s) -> (d) Subtract register 's' from 'd'.
+  ScriptOp_Mul    = 11,  // [d,s    ] (d,s) -> (d) Multiply register 'd' by register 's'.
+  ScriptOp_Div    = 12,  // [d,s    ] (d,s) -> (d) Divide register 'd' by register 's'.
+  ScriptOp_Mod    = 13,  // [d,s    ] (d,s) -> (d) Modulo register 'd' by register 's'.
+  ScriptOp_Negate = 14,  // [d      ] (d  ) -> (d) Negate register 'd'.
+  ScriptOp_Invert = 15,  // [d      ] (d  ) -> (d) Invert register 'd'.
 } ScriptOp;
 
 typedef struct {
