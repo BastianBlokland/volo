@@ -88,7 +88,7 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     return ret;
   }
   case ScriptIntrinsic_Type:
-    return script_str(script_val_type_hash(script_type(eval_expr(ctx, args[0]))));
+    return script_val_type(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Hash:
     return script_num(script_hash(eval_expr(ctx, args[0])));
   case ScriptIntrinsic_Assert: {

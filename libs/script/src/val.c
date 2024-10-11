@@ -370,6 +370,11 @@ bool script_val_greater(const ScriptVal a, const ScriptVal b) {
   UNREACHABLE
 }
 
+ScriptVal script_val_type(const ScriptVal val) {
+  val_type_hashes_init();
+  return val_str(g_valTypeHashes[val_type(val)]);
+}
+
 ScriptVal script_val_neg(const ScriptVal val) {
   switch (val_type(val)) {
   case ScriptType_Null:
