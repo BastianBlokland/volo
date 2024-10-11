@@ -95,6 +95,17 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
         ctx->regs[ip[-1]] = val_null();
       }
       continue;
+    case ScriptOp_MemStoreDyn:
+      if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
+      if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;
+      if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;
+      if(val_type(ctx->regs[ip[-2]]) == ScriptType_Str) {
+        script_mem_store(ctx->m, val_as_str(ctx->regs[ip[-2]]), ctx->regs[ip[-1]]);
+        ctx->regs[ip[-2]] = ctx->regs[ip[-1]];
+      } else {
+        ctx->regs[ip[-2]] = val_null();
+      }
+      continue;
     case ScriptOp_Extern: {
       if (UNLIKELY((ip += 6) >= ipEnd)) goto Corrupt;
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-5]))) goto Corrupt;
@@ -206,6 +217,10 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     case ScriptOp_MemLoadDyn:
       if (UNLIKELY((ip += 2) > ipEnd)) return;
       fmt_write(out, "[MemLoadDyn r{}]\n", fmt_int(ip[-1]));
+      break;
+    case ScriptOp_MemStoreDyn:
+      if (UNLIKELY((ip += 3) > ipEnd)) return;
+      fmt_write(out, "[MemStoreDyn r{} r{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
       break;
     case ScriptOp_Extern:
       if (UNLIKELY((ip += 6) > ipEnd)) return;

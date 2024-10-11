@@ -224,6 +224,7 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_MemLoadDynamic:
     return compile_intr_unary(ctx, dst, ScriptOp_MemLoadDyn, args);
   case ScriptIntrinsic_MemStoreDynamic:
+    return compile_intr_binary(ctx, dst, ScriptOp_MemStoreDyn, args);
   case ScriptIntrinsic_Select:
   case ScriptIntrinsic_NullCoalescing:
   case ScriptIntrinsic_LogicAnd:

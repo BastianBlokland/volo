@@ -39,16 +39,17 @@ typedef enum {
   ScriptOp_MemLoad     = 5,  // [d,k    ] (   ) -> (d) Load from memory at key 'k' into register 'd'.
   ScriptOp_MemStore    = 6,  // [s,k    ] (s  ) -> ( ) Store to memory at key 'k' from register 's'.
   ScriptOp_MemLoadDyn  = 7,  // [d      ] (d  ) -> (d) Load from memory with a key from register 'd'.
-  ScriptOp_Extern      = 8,  // [d,f,r,c] (r:c) -> (d) Invoke extern func 'f' using count 'c' registers starting from 'r' and store result in register 'd'.
-  ScriptOp_Type        = 9,  // [d      ] (d  ) -> (d) Retrieve the type for register 'd'.
-  ScriptOp_Hash        = 10, // [d      ] (d  ) -> (d) Retrieve the hash for register 'd'.
-  ScriptOp_Add         = 11, // [d,s    ] (d,s) -> (d) Add register 's' to 'd'.
-  ScriptOp_Sub         = 12, // [d,s    ] (d,s) -> (d) Subtract register 's' from 'd'.
-  ScriptOp_Mul         = 13, // [d,s    ] (d,s) -> (d) Multiply register 'd' by register 's'.
-  ScriptOp_Div         = 14, // [d,s    ] (d,s) -> (d) Divide register 'd' by register 's'.
-  ScriptOp_Mod         = 15, // [d,s    ] (d,s) -> (d) Modulo register 'd' by register 's'.
-  ScriptOp_Negate      = 16, // [d      ] (d  ) -> (d) Negate register 'd'.
-  ScriptOp_Invert      = 17, // [d      ] (d  ) -> (d) Invert register 'd'.
+  ScriptOp_MemStoreDyn = 8,  // [s,r    ] (s,r) -> ( ) Store a value from register 's' to memory with a key from register 'r'.
+  ScriptOp_Extern      = 9,  // [d,f,r,c] (r:c) -> (d) Invoke extern func 'f' using count 'c' registers starting from 'r' and store result in register 'd'.
+  ScriptOp_Type        = 10, // [d      ] (d  ) -> (d) Retrieve the type for register 'd'.
+  ScriptOp_Hash        = 11, // [d      ] (d  ) -> (d) Retrieve the hash for register 'd'.
+  ScriptOp_Add         = 12, // [d,s    ] (d,s) -> (d) Add register 's' to 'd'.
+  ScriptOp_Sub         = 13, // [d,s    ] (d,s) -> (d) Subtract register 's' from 'd'.
+  ScriptOp_Mul         = 14, // [d,s    ] (d,s) -> (d) Multiply register 'd' by register 's'.
+  ScriptOp_Div         = 15, // [d,s    ] (d,s) -> (d) Divide register 'd' by register 's'.
+  ScriptOp_Mod         = 16, // [d,s    ] (d,s) -> (d) Modulo register 'd' by register 's'.
+  ScriptOp_Negate      = 17, // [d      ] (d  ) -> (d) Negate register 'd'.
+  ScriptOp_Invert      = 18, // [d      ] (d  ) -> (d) Invert register 'd'.
 } ScriptOp;
 
 // clang-format on
