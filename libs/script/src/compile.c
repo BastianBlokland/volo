@@ -216,6 +216,7 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_Return:
     return compile_intr_unary(ctx, dst, ScriptOp_Return, args);
   case ScriptIntrinsic_Type:
+    return compile_intr_unary(ctx, dst, ScriptOp_Type, args);
   case ScriptIntrinsic_Hash:
   case ScriptIntrinsic_Assert:
   case ScriptIntrinsic_MemLoadDynamic:
