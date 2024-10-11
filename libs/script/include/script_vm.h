@@ -16,19 +16,30 @@ typedef struct sScriptBinder ScriptBinder;
  * Doc format:
  * - '[]' represents data part of the operation itself.
  * - '()' represents registers that are read or written by the operation.
+ *
+ * Operation data:
+ * - op-code:     1 byte(s).
+ * - register-id: 1 byte(s).
+ * - value-id:    1 byte(s).
+ * - memory-key:  4 byte(s).
+ *
+ * NOTE: Multi-byte operation data is encoded in little-endian.
+ * NOTE: There is no alignment requirement for operation data.
  */
 typedef enum {
-  ScriptOp_Fail   = 0,   // [   ] (   ) -> ( ) Terminate the execution.
-  ScriptOp_Return = 10,  // [s  ] (s  ) -> ( ) Return register 's'.
-  ScriptOp_Move   = 20,  // [d,s] (s  ) -> (d) Load value at register 's' into register 'd'.
-  ScriptOp_Value  = 30,  // [d,v] (   ) -> (d) Load value with index 'v' into register 'd'.
-  ScriptOp_Add    = 100, // [d,s] (d,s) -> (d) Add register 's' to 'd'.
-  ScriptOp_Sub    = 101, // [d,s] (d,s) -> (d) Subtract register 's' from 'd'.
-  ScriptOp_Mul    = 102, // [d,s] (d,s) -> (d) Multiply register 'd' by register 's'.
-  ScriptOp_Div    = 103, // [d,s] (d,s) -> (d) Divide register 'd' by register 's'.
-  ScriptOp_Mod    = 104, // [d,s] (d,s) -> (d) Modulo register 'd' by register 's'.
-  ScriptOp_Negate = 105, // [d  ] (d  ) -> (d) Negate register 'd'.
-  ScriptOp_Invert = 106, // [d  ] (d  ) -> (d) Invert register 'd'.
+  ScriptOp_Fail     = 0,   // [   ] (   ) -> ( ) Terminate the execution.
+  ScriptOp_Return   = 10,  // [s  ] (s  ) -> ( ) Return register 's'.
+  ScriptOp_Move     = 20,  // [d,s] (s  ) -> (d) Load value at register 's' into register 'd'.
+  ScriptOp_Value    = 30,  // [d,v] (   ) -> (d) Load value with index 'v' into register 'd'.
+  ScriptOp_MemLoad  = 40,  // [d,k] (   ) -> (d) Load from memory at key 'k' into register 'd'.
+  ScriptOp_MemStore = 41,  // [s,k] (s  ) -> ( ) Store to memory at key 'k' from register 's'.
+  ScriptOp_Add      = 100, // [d,s] (d,s) -> (d) Add register 's' to 'd'.
+  ScriptOp_Sub      = 101, // [d,s] (d,s) -> (d) Subtract register 's' from 'd'.
+  ScriptOp_Mul      = 102, // [d,s] (d,s) -> (d) Multiply register 'd' by register 's'.
+  ScriptOp_Div      = 103, // [d,s] (d,s) -> (d) Divide register 'd' by register 's'.
+  ScriptOp_Mod      = 104, // [d,s] (d,s) -> (d) Modulo register 'd' by register 's'.
+  ScriptOp_Negate   = 105, // [d  ] (d  ) -> (d) Negate register 'd'.
+  ScriptOp_Invert   = 106, // [d  ] (d  ) -> (d) Invert register 'd'.
 } ScriptOp;
 
 typedef struct {
