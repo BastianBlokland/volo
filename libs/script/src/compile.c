@@ -438,6 +438,44 @@ compile_intr_logic_or(Context* ctx, const RegId dst, const ScriptExpr* args) {
   return err;
 }
 
+static ScriptCompileError compile_intr_loop(Context* ctx, const RegId dst, const ScriptExpr* args) {
+  ScriptCompileError err    = ScriptCompileError_None;
+  const RegId        tmpReg = reg_alloc(ctx);
+  if (sentinel_check(tmpReg)) {
+    err = ScriptCompileError_TooManyRegisters;
+    return err;
+  }
+
+  // Setup expression.
+  if ((err = compile_expr(ctx, tmpReg, args[0]))) {
+    return err;
+  }
+  const LabelId condLabel = label_alloc(ctx), endLabel = label_alloc(ctx);
+
+  // Condition expression.
+  label_link(ctx, condLabel);
+  if ((err = compile_expr(ctx, tmpReg, args[1]))) {
+    return err;
+  }
+  emit_jump_if_falsy(ctx, tmpReg, endLabel);
+
+  // Body expression.
+  if ((err = compile_expr(ctx, dst, args[3]))) {
+    return err;
+  }
+
+  // Increment expression.
+  if ((err = compile_expr(ctx, tmpReg, args[2]))) {
+    return err;
+  }
+  emit_jump(ctx, condLabel);
+
+  label_link(ctx, endLabel);
+
+  reg_free(ctx, tmpReg);
+  return err;
+}
+
 static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const ScriptExpr e) {
   const ScriptExprIntrinsic* data = &expr_data(ctx->doc, e)->intrinsic;
   const ScriptExpr*          args = expr_set_data(ctx->doc, data->argSet);
@@ -467,8 +505,7 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_LogicOr:
     return compile_intr_logic_or(ctx, dst, args);
   case ScriptIntrinsic_Loop:
-    emit_op(ctx, ScriptOp_Fail);
-    return ScriptCompileError_None;
+    return compile_intr_loop(ctx, dst, args);
   case ScriptIntrinsic_Equal:
     return compile_intr_binary(ctx, dst, ScriptOp_Equal, args);
   case ScriptIntrinsic_NotEqual: {
