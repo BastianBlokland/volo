@@ -211,6 +211,13 @@ static void emit_jump_if_falsy(Context* ctx, const RegId cond, const LabelId lab
   label_write(ctx, label);
 }
 
+static void emit_jump_if_non_null(Context* ctx, const RegId cond, const LabelId label) {
+  diag_assert(cond < script_vm_regs);
+  emit_op(ctx, ScriptOp_JumpIfNonNull);
+  dynstring_append_char(ctx->out, cond);
+  label_write(ctx, label);
+}
+
 static void emit_extern(Context* ctx, const RegId dst, const ScriptBinderSlot f, const RegSet in) {
   diag_assert(dst < script_vm_regs && in.begin + in.count <= script_vm_regs);
   emit_op(ctx, ScriptOp_Extern);
@@ -379,6 +386,23 @@ compile_intr_select(Context* ctx, const RegId dst, const ScriptExpr* args) {
 }
 
 static ScriptCompileError
+compile_intr_null_coalescing(Context* ctx, const RegId dst, const ScriptExpr* args) {
+  ScriptCompileError err = ScriptCompileError_None;
+  if ((err = compile_expr(ctx, dst, args[0]))) {
+    return err;
+  }
+  const LabelId retLabel = label_alloc(ctx);
+  emit_jump_if_non_null(ctx, dst, retLabel);
+
+  if ((err = compile_expr(ctx, dst, args[1]))) {
+    return err;
+  }
+
+  label_link(ctx, retLabel);
+  return err;
+}
+
+static ScriptCompileError
 compile_intr_logic_and(Context* ctx, const RegId dst, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
   if ((err = compile_expr(ctx, dst, args[0]))) {
@@ -437,8 +461,7 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_Select:
     return compile_intr_select(ctx, dst, args);
   case ScriptIntrinsic_NullCoalescing:
-    emit_op(ctx, ScriptOp_Fail);
-    return ScriptCompileError_None;
+    return compile_intr_null_coalescing(ctx, dst, args);
   case ScriptIntrinsic_LogicAnd:
     return compile_intr_logic_and(ctx, dst, args);
   case ScriptIntrinsic_LogicOr:
