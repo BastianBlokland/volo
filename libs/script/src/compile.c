@@ -43,6 +43,8 @@ typedef struct {
   u64   regAvailability; // Bitmask of available registers.
   RegId varRegisters[script_var_count];
 
+  LabelId loopLabelCond, loopLabelEnd;
+
   DynArray labels;       // Label[].
   DynArray labelPatches; // LabelPatch[].
 } Context;
@@ -453,14 +455,15 @@ static ScriptCompileError compile_intr_loop(Context* ctx, const RegId dst, const
   if ((err = compile_expr(ctx, tmpReg, args[0]))) {
     return err;
   }
-  const LabelId condLabel = label_alloc(ctx), endLabel = label_alloc(ctx);
+  ctx->loopLabelCond = label_alloc(ctx);
+  ctx->loopLabelEnd  = label_alloc(ctx);
 
   // Condition expression.
-  label_link(ctx, condLabel);
+  label_link(ctx, ctx->loopLabelCond);
   if ((err = compile_expr(ctx, tmpReg, args[1]))) {
     return err;
   }
-  emit_jump_if_falsy(ctx, tmpReg, endLabel);
+  emit_jump_if_falsy(ctx, tmpReg, ctx->loopLabelEnd);
 
   // Body expression.
   if ((err = compile_expr(ctx, dst, args[3]))) {
@@ -471,12 +474,25 @@ static ScriptCompileError compile_intr_loop(Context* ctx, const RegId dst, const
   if ((err = compile_expr(ctx, tmpReg, args[2]))) {
     return err;
   }
-  emit_jump(ctx, condLabel);
+  emit_jump(ctx, ctx->loopLabelCond);
 
-  label_link(ctx, endLabel);
+  label_link(ctx, ctx->loopLabelEnd);
 
+  ctx->loopLabelCond = ctx->loopLabelEnd = sentinel_u32;
   reg_free(ctx, tmpReg);
   return err;
+}
+
+static ScriptCompileError compile_intr_continue(Context* ctx) {
+  diag_assert(!sentinel_check(ctx->loopLabelCond));
+  emit_jump(ctx, ctx->loopLabelCond);
+  return ScriptCompileError_None;
+}
+
+static ScriptCompileError compile_intr_break(Context* ctx) {
+  diag_assert(!sentinel_check(ctx->loopLabelEnd));
+  emit_jump(ctx, ctx->loopLabelEnd);
+  return ScriptCompileError_None;
 }
 
 static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const ScriptExpr e) {
@@ -484,9 +500,9 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   const ScriptExpr*          args = expr_set_data(ctx->doc, data->argSet);
   switch (data->intrinsic) {
   case ScriptIntrinsic_Continue:
+    return compile_intr_continue(ctx);
   case ScriptIntrinsic_Break:
-    emit_op(ctx, ScriptOp_Fail);
-    return ScriptCompileError_None;
+    return compile_intr_break(ctx);
   case ScriptIntrinsic_Return:
     return compile_intr_unary(ctx, dst, ScriptOp_Return, args);
   case ScriptIntrinsic_Type:
