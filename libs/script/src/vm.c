@@ -243,72 +243,73 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
   const u8* ipEnd = mem_end(code);
   while (ip != ipEnd) {
     // clang-format off
+    fmt_write(out, "[{}] ", fmt_int((uptr)(ip - mem_begin(code)), .base = 16, .minDigits = 4));
     switch ((ScriptOp)*ip) {
     case ScriptOp_Fail:
       if (UNLIKELY((ip += 1) > ipEnd)) return;
-      fmt_write(out, "[Fail]\n");
+      fmt_write(out, "Fail]\n");
       break;
     case ScriptOp_Assert:
       if (UNLIKELY((ip += 2) > ipEnd)) return;
-      fmt_write(out, "[Assert r{}]\n", fmt_int(ip[-1]));
+      fmt_write(out, "Assert r{}\n", fmt_int(ip[-1]));
       break;
     case ScriptOp_Return:
       if (UNLIKELY((ip += 2) > ipEnd)) return;
-      fmt_write(out, "[Return r{}]\n", fmt_int(ip[-1]));
+      fmt_write(out, "Return r{}\n", fmt_int(ip[-1]));
       break;
     case ScriptOp_Move:
       if (UNLIKELY((ip += 3) > ipEnd)) return;
-      fmt_write(out, "[Move r{} r{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
+      fmt_write(out, "Move r{} r{}\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
       break;
     case ScriptOp_Value:
       if (UNLIKELY((ip += 3) > ipEnd)) return;
-      fmt_write(out, "[Value r{} v{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
+      fmt_write(out, "Value r{} v{}\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
       break;
     case ScriptOp_MemLoad:
       if (UNLIKELY((ip += 6) > ipEnd)) return;
-      fmt_write(out, "[MemLoad r{} #{}]\n", fmt_int(ip[-5]), fmt_int(vm_read_u32(&ip[-4])));
+      fmt_write(out, "MemLoad r{} #{}\n", fmt_int(ip[-5]), fmt_int(vm_read_u32(&ip[-4])));
       break;
     case ScriptOp_MemStore:
       if (UNLIKELY((ip += 6) > ipEnd)) return;
-      fmt_write(out, "[MemStore r{} #{}]\n", fmt_int(ip[-5]), fmt_int(vm_read_u32(&ip[-4])));
+      fmt_write(out, "MemStore r{} #{}\n", fmt_int(ip[-5]), fmt_int(vm_read_u32(&ip[-4])));
       break;
     case ScriptOp_MemLoadDyn:
       if (UNLIKELY((ip += 2) > ipEnd)) return;
-      fmt_write(out, "[MemLoadDyn r{}]\n", fmt_int(ip[-1]));
+      fmt_write(out, "MemLoadDyn r{}\n", fmt_int(ip[-1]));
       break;
     case ScriptOp_MemStoreDyn:
       if (UNLIKELY((ip += 3) > ipEnd)) return;
-      fmt_write(out, "[MemStoreDyn r{} r{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
+      fmt_write(out, "MemStoreDyn r{} r{}\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
       break;
     case ScriptOp_Extern:
       if (UNLIKELY((ip += 6) > ipEnd)) return;
-      fmt_write(out, "[Extern r{} f{} r{} c{}]\n", fmt_int(ip[-5]), fmt_int(vm_read_u16(&ip[-4])), fmt_int(ip[-2]), fmt_int(ip[-1]));
+      fmt_write(out, "Extern r{} f{} r{} c{}\n", fmt_int(ip[-5]), fmt_int(vm_read_u16(&ip[-4])), fmt_int(ip[-2]), fmt_int(ip[-1]));
       break;
-#define OP_SIMPLE_ZERO(_OP_)                                                                      \
+#define OP_SIMPLE_ZERO(_OP_)                                                                       \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 2) > ipEnd)) return;                                                     \
-      fmt_write(out, "[" #_OP_ " r{}]\n", fmt_int(ip[-1]));                                        \
+      fmt_write(out, #_OP_ " r{}\n", fmt_int(ip[-1]));                                             \
       break
 #define OP_SIMPLE_UNARY(_OP_)                                                                      \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 2) > ipEnd)) return;                                                     \
-      fmt_write(out, "[" #_OP_ " r{}]\n", fmt_int(ip[-1]));                                        \
+      fmt_write(out, #_OP_ " r{}\n", fmt_int(ip[-1]));                                             \
       break
 #define OP_SIMPLE_BINARY(_OP_)                                                                     \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 3) > ipEnd)) return;                                                     \
-      fmt_write(out, "[" #_OP_ " r{} r{}]\n", fmt_int(ip[-2]), fmt_int(ip[-1]));                   \
+      fmt_write(out, #_OP_ " r{} r{}\n", fmt_int(ip[-2]), fmt_int(ip[-1]));                        \
       break
 #define OP_SIMPLE_TERNARY(_OP_)                                                                    \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 4) > ipEnd)) return;                                                     \
-      fmt_write(out, "[" #_OP_ " r{} r{} r{}]\n",                                                  \
+      fmt_write(out, #_OP_ " r{} r{} r{}\n",                                                       \
         fmt_int(ip[-3]), fmt_int(ip[-2]), fmt_int(ip[-1]));                                        \
       break
 #define OP_SIMPLE_QUATERNARY(_OP_)                                                                 \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 5) > ipEnd)) return;                                                     \
-      fmt_write(out, "[" #_OP_ " r{} r{} r{} r{}]\n",                                              \
+      fmt_write(out, #_OP_ " r{} r{} r{} r{}\n",                                                   \
         fmt_int(ip[-4]), fmt_int(ip[-3]), fmt_int(ip[-2]), fmt_int(ip[-1]));                       \
       break
 
