@@ -192,6 +192,13 @@ static void emit_move(Context* ctx, const RegId dst, const RegId src) {
   }
 }
 
+static void emit_jump_if_truthy(Context* ctx, const RegId cond, const LabelId label) {
+  diag_assert(cond < script_vm_regs);
+  emit_op(ctx, ScriptOp_JumpIfTruthy);
+  dynstring_append_char(ctx->out, cond);
+  label_write(ctx, label);
+}
+
 static void emit_jump_if_falsy(Context* ctx, const RegId cond, const LabelId label) {
   diag_assert(cond < script_vm_regs);
   emit_op(ctx, ScriptOp_JumpIfFalsy);
@@ -361,6 +368,24 @@ compile_intr_logic_and(Context* ctx, const RegId dst, const ScriptExpr* args) {
   return err;
 }
 
+static ScriptCompileError
+compile_intr_logic_or(Context* ctx, const RegId dst, const ScriptExpr* args) {
+  ScriptCompileError err = ScriptCompileError_None;
+  if ((err = compile_expr(ctx, dst, args[0]))) {
+    return err;
+  }
+  const LabelId retLabel = label_alloc(ctx);
+  emit_jump_if_truthy(ctx, dst, retLabel);
+
+  if ((err = compile_expr(ctx, dst, args[1]))) {
+    return err;
+  }
+
+  label_link(ctx, retLabel);
+  emit_unary(ctx, ScriptOp_Truthy, dst); // Convert to result to boolean.
+  return err;
+}
+
 static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const ScriptExpr e) {
   const ScriptExprIntrinsic* data = &expr_data(ctx->doc, e)->intrinsic;
   const ScriptExpr*          args = expr_set_data(ctx->doc, data->argSet);
@@ -388,6 +413,7 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_LogicAnd:
     return compile_intr_logic_and(ctx, dst, args);
   case ScriptIntrinsic_LogicOr:
+    return compile_intr_logic_or(ctx, dst, args);
   case ScriptIntrinsic_Loop:
     emit_op(ctx, ScriptOp_Fail);
     return ScriptCompileError_None;
