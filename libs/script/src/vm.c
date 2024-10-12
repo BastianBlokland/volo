@@ -194,6 +194,7 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
         _FUNC_(ctx->regs[ip[-4]], ctx->regs[ip[-3]], ctx->regs[ip[-2]], ctx->regs[ip[-1]]);        \
       continue
 
+    OP_SIMPLE_ZERO(Null,                  script_null);
     OP_SIMPLE_UNARY(Truthy,               script_truthy_as_val);
     OP_SIMPLE_UNARY(Falsy,                script_falsy_as_val);
     OP_SIMPLE_UNARY(Type,                 script_val_type);
@@ -367,6 +368,7 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
         fmt_int(ip[-4]), fmt_int(ip[-3]), fmt_int(ip[-2]), fmt_int(ip[-1]));                       \
       break
 
+    OP_SIMPLE_ZERO(Null);
     OP_SIMPLE_UNARY(Truthy);
     OP_SIMPLE_UNARY(Falsy);
     OP_SIMPLE_UNARY(Type);
