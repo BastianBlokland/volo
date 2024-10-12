@@ -53,6 +53,8 @@ typedef enum {
   ScriptOp_Mod         = 19, // [d,s    ] (d,s) -> (d) Modulo register 'd' by register 's'.
   ScriptOp_Negate      = 20, // [d      ] (d  ) -> (d) Negate register 'd'.
   ScriptOp_Invert      = 21, // [d      ] (d  ) -> (d) Invert register 'd'.
+  ScriptOp_Distance    = 22, // [d,s    ] (d,s) -> (d) Compute the distance between 'd' and 's' and store result in register 'd'.
+  ScriptOp_Angle       = 23, // [d,s    ] (d,s) -> (d) Compare the angle between 'd' and 's' and store result in register 'd'.
 } ScriptOp;
 
 // clang-format on

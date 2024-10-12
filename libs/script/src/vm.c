@@ -134,18 +134,20 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       ctx->regs[ip[-2]] = _FUNC_(ctx->regs[ip[-2]], ctx->regs[ip[-1]]);                            \
       continue
 
-    OP_SIMPLE_UNARY(Type,     script_val_type);
-    OP_SIMPLE_UNARY(Hash,     script_val_hash);
-    OP_SIMPLE_BINARY(Equal,   script_val_equal_as_val);
-    OP_SIMPLE_BINARY(Less,    script_val_less_as_val);
-    OP_SIMPLE_BINARY(Greater, script_val_greater_as_val);
-    OP_SIMPLE_BINARY(Add,     script_val_add);
-    OP_SIMPLE_BINARY(Sub,     script_val_sub);
-    OP_SIMPLE_BINARY(Mul,     script_val_mul);
-    OP_SIMPLE_BINARY(Div,     script_val_div);
-    OP_SIMPLE_BINARY(Mod,     script_val_mod);
-    OP_SIMPLE_UNARY(Negate,   script_val_neg);
-    OP_SIMPLE_UNARY(Invert,   script_val_inv);
+    OP_SIMPLE_UNARY(Type,      script_val_type);
+    OP_SIMPLE_UNARY(Hash,      script_val_hash);
+    OP_SIMPLE_BINARY(Equal,    script_val_equal_as_val);
+    OP_SIMPLE_BINARY(Less,     script_val_less_as_val);
+    OP_SIMPLE_BINARY(Greater,  script_val_greater_as_val);
+    OP_SIMPLE_BINARY(Add,      script_val_add);
+    OP_SIMPLE_BINARY(Sub,      script_val_sub);
+    OP_SIMPLE_BINARY(Mul,      script_val_mul);
+    OP_SIMPLE_BINARY(Div,      script_val_div);
+    OP_SIMPLE_BINARY(Mod,      script_val_mod);
+    OP_SIMPLE_UNARY(Negate,    script_val_neg);
+    OP_SIMPLE_UNARY(Invert,    script_val_inv);
+    OP_SIMPLE_BINARY(Distance, script_val_dist);
+    OP_SIMPLE_BINARY(Angle,    script_val_angle);
 
 #undef OP_SIMPLE_BINARY
 #undef OP_SIMPLE_UNARY
@@ -252,6 +254,8 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     OP_SIMPLE_BINARY(Mod);
     OP_SIMPLE_UNARY(Negate);
     OP_SIMPLE_UNARY(Invert);
+    OP_SIMPLE_BINARY(Distance);
+    OP_SIMPLE_BINARY(Angle);
 
 #undef OP_SIMPLE_BINARY
 #undef OP_SIMPLE_UNARY

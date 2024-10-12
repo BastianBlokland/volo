@@ -274,7 +274,9 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_Invert:
     return compile_intr_unary(ctx, dst, ScriptOp_Invert, args);
   case ScriptIntrinsic_Distance:
+    return compile_intr_binary(ctx, dst, ScriptOp_Distance, args);
   case ScriptIntrinsic_Angle:
+    return compile_intr_binary(ctx, dst, ScriptOp_Angle, args);
   case ScriptIntrinsic_Sin:
   case ScriptIntrinsic_Cos:
   case ScriptIntrinsic_Normalize:
