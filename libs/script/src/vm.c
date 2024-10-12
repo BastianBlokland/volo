@@ -141,6 +141,16 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;                                      \
       ctx->regs[ip[-3]] = _FUNC_(ctx->regs[ip[-3]], ctx->regs[ip[-2]], ctx->regs[ip[-1]]);         \
       continue
+#define OP_SIMPLE_QUATERNARY(_OP_, _FUNC_)                                                         \
+    case ScriptOp_##_OP_:                                                                          \
+      if (UNLIKELY((ip += 5) >= ipEnd)) goto Corrupt;                                              \
+      if (UNLIKELY(!vm_reg_valid(ctx, ip[-4]))) goto Corrupt;                                      \
+      if (UNLIKELY(!vm_reg_valid(ctx, ip[-3]))) goto Corrupt;                                      \
+      if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;                                      \
+      if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;                                      \
+      ctx->regs[ip[-4]] =                                                                          \
+        _FUNC_(ctx->regs[ip[-4]], ctx->regs[ip[-3]], ctx->regs[ip[-2]], ctx->regs[ip[-1]]);        \
+      continue
 
     OP_SIMPLE_UNARY(Type,               script_val_type);
     OP_SIMPLE_UNARY(Hash,               script_val_hash);
@@ -167,7 +177,9 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
     OP_SIMPLE_TERNARY(Vec3Compose,      script_val_vec3_compose);
     OP_SIMPLE_TERNARY(QuatFromEuler,    script_val_quat_from_euler);
     OP_SIMPLE_BINARY(QuatFromAngleAxis, script_val_quat_from_angle_axis);
+    OP_SIMPLE_QUATERNARY(ColorCompose,  script_val_color_compose);
 
+#undef OP_SIMPLE_QUATERNARY
 #undef OP_SIMPLE_TERNARY
 #undef OP_SIMPLE_BINARY
 #undef OP_SIMPLE_UNARY
@@ -267,6 +279,12 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       fmt_write(out, "[" #_OP_ " r{} r{} r{}]\n",                                                  \
         fmt_int(ip[-3]), fmt_int(ip[-2]), fmt_int(ip[-1]));                                        \
       break
+#define OP_SIMPLE_QUATERNARY(_OP_)                                                                 \
+    case ScriptOp_##_OP_:                                                                          \
+      if (UNLIKELY((ip += 5) > ipEnd)) return;                                                     \
+      fmt_write(out, "[" #_OP_ " r{} r{} r{} r{}]\n",                                              \
+        fmt_int(ip[-4]), fmt_int(ip[-3]), fmt_int(ip[-2]), fmt_int(ip[-1]));                       \
+      break
 
     OP_SIMPLE_UNARY(Type);
     OP_SIMPLE_UNARY(Hash);
@@ -293,6 +311,7 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     OP_SIMPLE_TERNARY(Vec3Compose);
     OP_SIMPLE_TERNARY(QuatFromEuler);
     OP_SIMPLE_BINARY(QuatFromAngleAxis);
+    OP_SIMPLE_QUATERNARY(ColorCompose);
 
 #undef OP_SIMPLE_TERNARY
 #undef OP_SIMPLE_BINARY

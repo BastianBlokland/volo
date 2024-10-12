@@ -112,6 +112,22 @@ emit_ternary(Context* ctx, const ScriptOp op, const RegId dst, const RegId src1,
   dynstring_append_char(ctx->out, src2);
 }
 
+static void emit_quaternary(
+    Context*       ctx,
+    const ScriptOp op,
+    const RegId    dst,
+    const RegId    src1,
+    const RegId    src2,
+    const RegId    src3) {
+  diag_assert(dst < script_vm_regs);
+  diag_assert(src1 < script_vm_regs && src2 < script_vm_regs && src3 < script_vm_regs);
+  emit_op(ctx, op);
+  dynstring_append_char(ctx->out, dst);
+  dynstring_append_char(ctx->out, src1);
+  dynstring_append_char(ctx->out, src2);
+  dynstring_append_char(ctx->out, src3);
+}
+
 static void emit_mem_op(Context* ctx, const ScriptOp op, const RegId dst, const StringHash key) {
   diag_assert((op == ScriptOp_MemLoad || op == ScriptOp_MemStore) && dst < script_vm_regs);
   emit_op(ctx, op);
@@ -237,6 +253,33 @@ compile_intr_ternary(Context* ctx, const RegId dst, const ScriptOp op, const Scr
   return err;
 }
 
+static ScriptCompileError
+compile_intr_quaternary(Context* ctx, const RegId dst, const ScriptOp op, const ScriptExpr* args) {
+  ScriptCompileError err = ScriptCompileError_None;
+  if ((err = compile_expr(ctx, dst, args[0]))) {
+    return err;
+  }
+  const RegId tmpReg1 = reg_alloc(ctx), tmpReg2 = reg_alloc(ctx), tmpReg3 = reg_alloc(ctx);
+  if (sentinel_check(tmpReg1) || sentinel_check(tmpReg2) || sentinel_check(tmpReg3)) {
+    err = ScriptCompileError_TooManyRegisters;
+    return err;
+  }
+  if ((err = compile_expr(ctx, tmpReg1, args[1]))) {
+    return err;
+  }
+  if ((err = compile_expr(ctx, tmpReg2, args[2]))) {
+    return err;
+  }
+  if ((err = compile_expr(ctx, tmpReg3, args[3]))) {
+    return err;
+  }
+  emit_quaternary(ctx, op, dst, tmpReg1, tmpReg2, tmpReg3);
+  reg_free(ctx, tmpReg1);
+  reg_free(ctx, tmpReg2);
+  reg_free(ctx, tmpReg3);
+  return err;
+}
+
 static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const ScriptExpr e) {
   const ScriptExprIntrinsic* data = &expr_data(ctx->doc, e)->intrinsic;
   const ScriptExpr*          args = expr_set_data(ctx->doc, data->argSet);
@@ -332,6 +375,7 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_QuatFromAngleAxis:
     return compile_intr_binary(ctx, dst, ScriptOp_QuatFromAngleAxis, args);
   case ScriptIntrinsic_ColorCompose:
+    return compile_intr_quaternary(ctx, dst, ScriptOp_ColorCompose, args);
   case ScriptIntrinsic_ColorComposeHsv:
   case ScriptIntrinsic_ColorFor:
   case ScriptIntrinsic_Random:
