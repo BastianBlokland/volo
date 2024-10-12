@@ -71,6 +71,7 @@ static RegSet reg_alloc_set(Context* ctx, const u8 count) {
   u64       mask     = (u64_lit(1) << count) - 1;
   for (u32 i = 0; i != maxIndex; ++i, mask <<= 1) {
     if ((ctx->regAvailability & mask) == mask) {
+      ctx->regAvailability &= ~mask;
       return (RegSet){.begin = (RegId)i, .count = count};
     }
   }
@@ -85,8 +86,8 @@ static void reg_free(Context* ctx, const RegId reg) {
 
 static void reg_free_set(Context* ctx, const RegSet set) {
   if (set.count) {
-    const u8  last = set.begin + set.count - 1;
-    const u64 mask = (u64_lit(1) << last) - (u64_lit(1) << set.begin);
+    const u8  end  = set.begin + set.count;
+    const u64 mask = (u64_lit(1) << end) - (u64_lit(1) << set.begin);
     diag_assert_msg(!(ctx->regAvailability & mask), "Register already freed");
     ctx->regAvailability |= mask;
   }
