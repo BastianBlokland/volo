@@ -197,6 +197,7 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
     OP_SIMPLE_TERNARY(Lerp,               script_val_lerp);
     OP_SIMPLE_BINARY(Min,                 script_val_min);
     OP_SIMPLE_BINARY(Max,                 script_val_max);
+    OP_SIMPLE_UNARY(Perlin3,              script_val_perlin3);
 
 #undef OP_SIMPLE_QUATERNARY
 #undef OP_SIMPLE_TERNARY
@@ -350,6 +351,7 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     OP_SIMPLE_TERNARY(Lerp);
     OP_SIMPLE_BINARY(Min);
     OP_SIMPLE_BINARY(Max);
+    OP_SIMPLE_UNARY(Perlin3);
 
 #undef OP_SIMPLE_TERNARY
 #undef OP_SIMPLE_BINARY

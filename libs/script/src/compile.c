@@ -408,8 +408,7 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_Max:
     return compile_intr_binary(ctx, dst, ScriptOp_Max, args);
   case ScriptIntrinsic_Perlin3:
-    emit_op(ctx, ScriptOp_Fail);
-    return ScriptCompileError_None;
+    return compile_intr_unary(ctx, dst, ScriptOp_Perlin3, args);
   case ScriptIntrinsic_Count:
     break;
   }

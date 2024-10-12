@@ -80,6 +80,7 @@ typedef enum {
   ScriptOp_Lerp              = 46, // [x,y,z  ] (x,y,z  ) -> (x) Compute a linearly interpolated value from 'x' to 'y' at time 'z' and store in register 'x'.
   ScriptOp_Min               = 47, // [x,y    ] (x,y    ) -> (x) Store the minimum value of 'x' and 'y' in register 'x'.
   ScriptOp_Max               = 48, // [x,y    ] (x,y    ) -> (x) Store the maximum value of 'x' and 'y' in register 'x'.
+  ScriptOp_Perlin3           = 49, // [d      ] (       ) -> (d) Compute a 3d perlin noise in register 'd'.
 } ScriptOp;
 
 // clang-format on
