@@ -95,6 +95,7 @@ typedef enum {
 // clang-format on
 
 typedef struct {
+  u32         executedOps;
   ScriptPanic panic;
   ScriptVal   val;
 } ScriptVmResult;

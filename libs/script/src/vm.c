@@ -278,8 +278,9 @@ ScriptVmResult script_vm_eval(
   };
 
   ScriptVmResult res;
-  res.val   = vm_run(&ctx, code);
-  res.panic = ctx.panic;
+  res.val         = vm_run(&ctx, code);
+  res.panic       = ctx.panic;
+  res.executedOps = ctx.executedOps;
 
   return res;
 }
