@@ -69,6 +69,7 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
         ctx->panic = (ScriptPanic){.kind = ScriptPanic_AssertionFailed};
         return script_null();
       }
+      ctx->regs[ip[-1]] = script_null();
       continue;
     case ScriptOp_Return:
       if (UNLIKELY((ip += 2) > ipEnd)) goto Corrupt;
