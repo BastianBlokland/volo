@@ -116,9 +116,12 @@ String     script_mask_scratch(ScriptMask);
 /**
  * Compare values.
  */
-bool script_val_equal(ScriptVal, ScriptVal);
-bool script_val_less(ScriptVal, ScriptVal);
-bool script_val_greater(ScriptVal, ScriptVal);
+bool      script_val_equal(ScriptVal, ScriptVal);
+ScriptVal script_val_equal_as_val(ScriptVal, ScriptVal);
+bool      script_val_less(ScriptVal, ScriptVal);
+ScriptVal script_val_less_as_val(ScriptVal, ScriptVal);
+bool      script_val_greater(ScriptVal, ScriptVal);
+ScriptVal script_val_greater_as_val(ScriptVal, ScriptVal);
 
 /**
  * Value arithmetic.

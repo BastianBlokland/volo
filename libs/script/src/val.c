@@ -318,6 +318,10 @@ bool script_val_equal(const ScriptVal a, const ScriptVal b) {
   UNREACHABLE
 }
 
+ScriptVal script_val_equal_as_val(const ScriptVal a, const ScriptVal b) {
+  return val_bool(script_val_equal(a, b));
+}
+
 bool script_val_less(const ScriptVal a, const ScriptVal b) {
   if (val_type(a) != val_type(b)) {
     return false;
@@ -344,6 +348,10 @@ bool script_val_less(const ScriptVal a, const ScriptVal b) {
   UNREACHABLE
 }
 
+ScriptVal script_val_less_as_val(const ScriptVal a, const ScriptVal b) {
+  return val_bool(script_val_less(a, b));
+}
+
 bool script_val_greater(const ScriptVal a, const ScriptVal b) {
   if (val_type(a) != val_type(b)) {
     return false;
@@ -368,6 +376,10 @@ bool script_val_greater(const ScriptVal a, const ScriptVal b) {
   }
   diag_assert_fail("Invalid script value");
   UNREACHABLE
+}
+
+ScriptVal script_val_greater_as_val(const ScriptVal a, const ScriptVal b) {
+  return val_bool(script_val_greater(a, b));
 }
 
 ScriptVal script_val_type(const ScriptVal val) {
