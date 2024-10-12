@@ -278,10 +278,15 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_Angle:
     return compile_intr_binary(ctx, dst, ScriptOp_Angle, args);
   case ScriptIntrinsic_Sin:
+    return compile_intr_unary(ctx, dst, ScriptOp_Sin, args);
   case ScriptIntrinsic_Cos:
+    return compile_intr_unary(ctx, dst, ScriptOp_Cos, args);
   case ScriptIntrinsic_Normalize:
+    return compile_intr_unary(ctx, dst, ScriptOp_Normalize, args);
   case ScriptIntrinsic_Magnitude:
+    return compile_intr_unary(ctx, dst, ScriptOp_Magnitude, args);
   case ScriptIntrinsic_Absolute:
+    return compile_intr_unary(ctx, dst, ScriptOp_Absolute, args);
   case ScriptIntrinsic_VecX:
   case ScriptIntrinsic_VecY:
   case ScriptIntrinsic_VecZ:

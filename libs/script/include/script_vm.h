@@ -55,6 +55,11 @@ typedef enum {
   ScriptOp_Invert      = 21, // [d      ] (d  ) -> (d) Invert register 'd'.
   ScriptOp_Distance    = 22, // [d,s    ] (d,s) -> (d) Compute the distance between 'd' and 's' and store result in register 'd'.
   ScriptOp_Angle       = 23, // [d,s    ] (d,s) -> (d) Compare the angle between 'd' and 's' and store result in register 'd'.
+  ScriptOp_Sin         = 24, // [d      ] (d  ) -> (d) Evaluate the sine wave at 'd'.
+  ScriptOp_Cos         = 25, // [d      ] (d  ) -> (d) Evaluate the cosine wave at 'd'.
+  ScriptOp_Normalize   = 26, // [d      ] (d  ) -> (d) Normalize register 'd'.
+  ScriptOp_Magnitude   = 27, // [d      ] (d  ) -> (d) Compute the magnitude of register 'd'.
+  ScriptOp_Absolute    = 28, // [d      ] (d  ) -> (d) Normalize register 'd'.
 } ScriptOp;
 
 // clang-format on
