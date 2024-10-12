@@ -238,6 +238,15 @@ static bool expr_is_null(Context* ctx, const ScriptExpr e) {
   return script_type(val) == ScriptType_Null;
 }
 
+static bool expr_is_true(Context* ctx, const ScriptExpr e) {
+  if (expr_kind(ctx->doc, e) != ScriptExprKind_Value) {
+    return false;
+  }
+  const ScriptExprValue* data = &expr_data(ctx->doc, e)->value;
+  const ScriptVal        val  = *dynarray_at_t(&ctx->doc->values, data->valId, ScriptVal);
+  return script_get_bool(val, false);
+}
+
 static ScriptCompileError compile_expr(Context*, RegId dst, ScriptExpr);
 
 static ScriptCompileError compile_value(Context* ctx, const RegId dst, const ScriptExpr e) {
@@ -471,10 +480,12 @@ static ScriptCompileError compile_intr_loop(Context* ctx, const RegId dst, const
 
   // Condition expression.
   label_link(ctx, ctx->loopLabelCond);
-  if ((err = compile_expr(ctx, tmpReg, args[1]))) {
-    return err;
+  if (!expr_is_true(ctx, args[1])) {
+    if ((err = compile_expr(ctx, tmpReg, args[1]))) {
+      return err;
+    }
+    emit_jump_if_falsy(ctx, tmpReg, ctx->loopLabelEnd);
   }
-  emit_jump_if_falsy(ctx, tmpReg, ctx->loopLabelEnd);
 
   // Body expression.
   if ((err = compile_expr(ctx, dst, args[3]))) {
