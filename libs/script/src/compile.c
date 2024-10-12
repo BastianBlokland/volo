@@ -404,7 +404,9 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_Lerp:
     return compile_intr_ternary(ctx, dst, ScriptOp_Lerp, args);
   case ScriptIntrinsic_Min:
+    return compile_intr_binary(ctx, dst, ScriptOp_Min, args);
   case ScriptIntrinsic_Max:
+    return compile_intr_binary(ctx, dst, ScriptOp_Max, args);
   case ScriptIntrinsic_Perlin3:
     emit_op(ctx, ScriptOp_Fail);
     return ScriptCompileError_None;
