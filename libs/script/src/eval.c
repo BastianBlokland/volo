@@ -250,7 +250,7 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     return script_val_color_compose_hsv(arg0, arg1, arg2, eval_expr(ctx, args[3]));
   }
   case ScriptIntrinsic_ColorFor:
-    return script_color(geo_color_for_hash(script_hash(eval_expr(ctx, args[0]))));
+    return script_val_color_for_val(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Random:
     return script_val_random();
   case ScriptIntrinsic_RandomSphere:

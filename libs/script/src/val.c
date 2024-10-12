@@ -1036,3 +1036,8 @@ ScriptVal script_val_color_compose_hsv(
 
   return val_color(geo_color_from_hsv(hue, saturation, value, alpha));
 }
+
+ScriptVal script_val_color_for_val(const ScriptVal v) {
+  const u32 hash = script_hash(v);
+  return val_color(geo_color_for_hash(hash));
+}
