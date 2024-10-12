@@ -201,6 +201,11 @@ static ScriptCompileError compile_mem_store(Context* ctx, const RegId dst, const
   return err;
 }
 
+static ScriptCompileError compile_intr_zero(Context* ctx, const RegId dst, const ScriptOp op) {
+  emit_unary(ctx, op, dst);
+  return ScriptCompileError_None;
+}
+
 static ScriptCompileError
 compile_intr_unary(Context* ctx, const RegId dst, const ScriptOp op, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
@@ -381,8 +386,11 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_ColorFor:
     return compile_intr_unary(ctx, dst, ScriptOp_ColorFor, args);
   case ScriptIntrinsic_Random:
+    return compile_intr_zero(ctx, dst, ScriptOp_Random);
   case ScriptIntrinsic_RandomSphere:
+    return compile_intr_zero(ctx, dst, ScriptOp_RandomSphere);
   case ScriptIntrinsic_RandomCircleXZ:
+    return compile_intr_zero(ctx, dst, ScriptOp_RandomCircleXZ);
   case ScriptIntrinsic_RandomBetween:
   case ScriptIntrinsic_RoundDown:
   case ScriptIntrinsic_RoundNearest:

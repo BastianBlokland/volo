@@ -69,6 +69,9 @@ typedef enum {
   ScriptOp_ColorCompose      = 35, // [x,y,z,w] (x,y,z,w) -> (x) Compose a color from 'x', 'y', 'z', 'w' and store in register 'x'.
   ScriptOp_ColorComposeHsv   = 36, // [x,y,z,w] (x,y,z,w) -> (x) Compose a hsv color from 'x', 'y', 'z', 'w' and store in register 'x'.
   ScriptOp_ColorFor          = 37, // [d      ] (d      ) -> (d) Compute a color for register 'd'.
+  ScriptOp_Random            = 38, // [d      ] (       ) -> (d) Compute a random value (0 - 1) in register 'd'.
+  ScriptOp_RandomSphere      = 39, // [d      ] (       ) -> (d) Compute a random vector on a unit sphere in register 'd'.
+  ScriptOp_RandomCircleXZ    = 40, // [d      ] (       ) -> (d) Compute a random vector on a unit circle in register 'd'.
 } ScriptOp;
 
 // clang-format on

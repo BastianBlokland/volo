@@ -120,6 +120,12 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
         return script_null();
       }
     } continue;
+#define OP_SIMPLE_ZERO(_OP_, _FUNC_)                                                               \
+    case ScriptOp_##_OP_:                                                                          \
+      if (UNLIKELY((ip += 2) >= ipEnd)) goto Corrupt;                                              \
+      if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;                                      \
+      ctx->regs[ip[-1]] = _FUNC_();                                                                \
+      continue
 #define OP_SIMPLE_UNARY(_OP_, _FUNC_)                                                              \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 2) >= ipEnd)) goto Corrupt;                                              \
@@ -180,11 +186,15 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
     OP_SIMPLE_QUATERNARY(ColorCompose,    script_val_color_compose);
     OP_SIMPLE_QUATERNARY(ColorComposeHsv, script_val_color_compose_hsv);
     OP_SIMPLE_UNARY(ColorFor,             script_val_color_for_val);
+    OP_SIMPLE_ZERO(Random,                script_val_random);
+    OP_SIMPLE_ZERO(RandomSphere,          script_val_random_sphere);
+    OP_SIMPLE_ZERO(RandomCircleXZ,        script_val_random_circle_xz);
 
 #undef OP_SIMPLE_QUATERNARY
 #undef OP_SIMPLE_TERNARY
 #undef OP_SIMPLE_BINARY
 #undef OP_SIMPLE_UNARY
+#undef OP_SIMPLE_ZERO
     }
     goto Corrupt;
   }
@@ -265,6 +275,11 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       if (UNLIKELY((ip += 6) > ipEnd)) return;
       fmt_write(out, "[Extern r{} f{} r{} c{}]\n", fmt_int(ip[-5]), fmt_int(vm_read_u16(&ip[-4])), fmt_int(ip[-2]), fmt_int(ip[-1]));
       break;
+#define OP_SIMPLE_ZERO(_OP_)                                                                      \
+    case ScriptOp_##_OP_:                                                                          \
+      if (UNLIKELY((ip += 2) > ipEnd)) return;                                                     \
+      fmt_write(out, "[" #_OP_ " r{}]\n", fmt_int(ip[-1]));                                        \
+      break
 #define OP_SIMPLE_UNARY(_OP_)                                                                      \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 2) > ipEnd)) return;                                                     \
@@ -316,10 +331,14 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     OP_SIMPLE_QUATERNARY(ColorCompose);
     OP_SIMPLE_QUATERNARY(ColorComposeHsv);
     OP_SIMPLE_UNARY(ColorFor);
+    OP_SIMPLE_ZERO(Random);
+    OP_SIMPLE_ZERO(RandomSphere);
+    OP_SIMPLE_ZERO(RandomCircleXZ);
 
 #undef OP_SIMPLE_TERNARY
 #undef OP_SIMPLE_BINARY
 #undef OP_SIMPLE_UNARY
+#undef OP_SIMPLE_ZERO
     }
     // clang-format on
   }
