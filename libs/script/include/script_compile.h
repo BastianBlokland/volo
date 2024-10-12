@@ -16,7 +16,7 @@ typedef enum {
 String script_compile_error_str(ScriptCompileError);
 
 /**
- * Compile an expression to byte-code for that can be executed in the vm.
+ * Compile an expression to byte-code that can be executed in the vm.
  * Output is written to the given DynString.
  */
 ScriptCompileError script_compile(const ScriptDoc*, ScriptExpr, DynString* out);
