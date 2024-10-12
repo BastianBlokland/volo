@@ -97,7 +97,9 @@ TimeDuration script_get_time(ScriptVal, TimeDuration fallback);
  * Value utilities.
  */
 bool      script_truthy(ScriptVal);
+ScriptVal script_truthy_as_val(ScriptVal);
 bool      script_falsy(ScriptVal);
+ScriptVal script_falsy_as_val(ScriptVal);
 bool      script_val_has(ScriptVal);
 ScriptVal script_val_or(ScriptVal value, ScriptVal fallback);
 u32       script_hash(ScriptVal);

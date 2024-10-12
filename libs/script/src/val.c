@@ -102,7 +102,11 @@ bool script_truthy(const ScriptVal value) {
   UNREACHABLE
 }
 
+ScriptVal script_truthy_as_val(const ScriptVal value) { return val_bool(script_truthy(value)); }
+
 bool script_falsy(const ScriptVal value) { return !script_truthy(value); }
+
+ScriptVal script_falsy_as_val(const ScriptVal value) { return val_bool(!script_truthy(value)); }
 
 bool script_val_has(const ScriptVal value) { return val_type(value) != ScriptType_Null; }
 
