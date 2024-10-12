@@ -41,6 +41,9 @@ INLINE_HINT static u32 vm_read_u32(const u8 data[]) {
 }
 
 static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
+  if (UNLIKELY(code.size > u16_max)) {
+    goto Corrupt;
+  }
   const u8* ip    = mem_begin(code);
   const u8* ipEnd = mem_end(code);
   if (UNLIKELY(ip == ipEnd)) {
@@ -246,7 +249,6 @@ ScriptVmResult script_vm_eval(
     ScriptMem*          m,
     const ScriptBinder* binder,
     void*               bindCtx) {
-  diag_assert(code.size <= u16_max);
   if (binder) {
     diag_assert_msg(script_binder_hash(binder) == doc->binderHash, "Incompatible binder");
   }
@@ -265,7 +267,6 @@ ScriptVmResult script_vm_eval(
 }
 
 void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* out) {
-  diag_assert(code.size <= u16_max);
   (void)doc;
   const u8* ip    = mem_begin(code);
   const u8* ipEnd = mem_end(code);
