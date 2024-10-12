@@ -142,29 +142,30 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       ctx->regs[ip[-3]] = _FUNC_(ctx->regs[ip[-3]], ctx->regs[ip[-2]], ctx->regs[ip[-1]]);         \
       continue
 
-    OP_SIMPLE_UNARY(Type,          script_val_type);
-    OP_SIMPLE_UNARY(Hash,          script_val_hash);
-    OP_SIMPLE_BINARY(Equal,        script_val_equal_as_val);
-    OP_SIMPLE_BINARY(Less,         script_val_less_as_val);
-    OP_SIMPLE_BINARY(Greater,      script_val_greater_as_val);
-    OP_SIMPLE_BINARY(Add,          script_val_add);
-    OP_SIMPLE_BINARY(Sub,          script_val_sub);
-    OP_SIMPLE_BINARY(Mul,          script_val_mul);
-    OP_SIMPLE_BINARY(Div,          script_val_div);
-    OP_SIMPLE_BINARY(Mod,          script_val_mod);
-    OP_SIMPLE_UNARY(Negate,        script_val_neg);
-    OP_SIMPLE_UNARY(Invert,        script_val_inv);
-    OP_SIMPLE_BINARY(Distance,     script_val_dist);
-    OP_SIMPLE_BINARY(Angle,        script_val_angle);
-    OP_SIMPLE_UNARY(Sin,           script_val_sin);
-    OP_SIMPLE_UNARY(Cos,           script_val_cos);
-    OP_SIMPLE_UNARY(Normalize,     script_val_norm);
-    OP_SIMPLE_UNARY(Magnitude,     script_val_mag);
-    OP_SIMPLE_UNARY(Absolute,      script_val_abs);
-    OP_SIMPLE_UNARY(VecX,          script_val_vec_x);
-    OP_SIMPLE_UNARY(VecY,          script_val_vec_y);
-    OP_SIMPLE_UNARY(VecZ,          script_val_vec_z);
-    OP_SIMPLE_TERNARY(Vec3Compose, script_val_vec3_compose);
+    OP_SIMPLE_UNARY(Type,            script_val_type);
+    OP_SIMPLE_UNARY(Hash,            script_val_hash);
+    OP_SIMPLE_BINARY(Equal,          script_val_equal_as_val);
+    OP_SIMPLE_BINARY(Less,           script_val_less_as_val);
+    OP_SIMPLE_BINARY(Greater,        script_val_greater_as_val);
+    OP_SIMPLE_BINARY(Add,            script_val_add);
+    OP_SIMPLE_BINARY(Sub,            script_val_sub);
+    OP_SIMPLE_BINARY(Mul,            script_val_mul);
+    OP_SIMPLE_BINARY(Div,            script_val_div);
+    OP_SIMPLE_BINARY(Mod,            script_val_mod);
+    OP_SIMPLE_UNARY(Negate,          script_val_neg);
+    OP_SIMPLE_UNARY(Invert,          script_val_inv);
+    OP_SIMPLE_BINARY(Distance,       script_val_dist);
+    OP_SIMPLE_BINARY(Angle,          script_val_angle);
+    OP_SIMPLE_UNARY(Sin,             script_val_sin);
+    OP_SIMPLE_UNARY(Cos,             script_val_cos);
+    OP_SIMPLE_UNARY(Normalize,       script_val_norm);
+    OP_SIMPLE_UNARY(Magnitude,       script_val_mag);
+    OP_SIMPLE_UNARY(Absolute,        script_val_abs);
+    OP_SIMPLE_UNARY(VecX,            script_val_vec_x);
+    OP_SIMPLE_UNARY(VecY,            script_val_vec_y);
+    OP_SIMPLE_UNARY(VecZ,            script_val_vec_z);
+    OP_SIMPLE_TERNARY(Vec3Compose,   script_val_vec3_compose);
+    OP_SIMPLE_TERNARY(QuatFromEuler, script_val_quat_from_euler);
 
 #undef OP_SIMPLE_TERNARY
 #undef OP_SIMPLE_BINARY
@@ -289,6 +290,7 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     OP_SIMPLE_UNARY(VecY);
     OP_SIMPLE_UNARY(VecZ);
     OP_SIMPLE_TERNARY(Vec3Compose);
+    OP_SIMPLE_TERNARY(QuatFromEuler);
 
 #undef OP_SIMPLE_TERNARY
 #undef OP_SIMPLE_BINARY
