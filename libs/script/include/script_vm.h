@@ -68,6 +68,7 @@ typedef enum {
   ScriptOp_QuatFromAngleAxis = 34, // [x,y    ] (x,y    ) -> (x) Compose a quaternion from angle 'x' and axis 'y' and store in register 'x'.
   ScriptOp_ColorCompose      = 35, // [x,y,z,w] (x,y,z,w) -> (x) Compose a color from 'x', 'y', 'z', 'w' and store in register 'x'.
   ScriptOp_ColorComposeHsv   = 36, // [x,y,z,w] (x,y,z,w) -> (x) Compose a hsv color from 'x', 'y', 'z', 'w' and store in register 'x'.
+  ScriptOp_ColorFor          = 37, // [d      ] (d      ) -> (d) Compute a color for register 'd'.
 } ScriptOp;
 
 // clang-format on

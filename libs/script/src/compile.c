@@ -379,6 +379,7 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_ColorComposeHsv:
     return compile_intr_quaternary(ctx, dst, ScriptOp_ColorComposeHsv, args);
   case ScriptIntrinsic_ColorFor:
+    return compile_intr_unary(ctx, dst, ScriptOp_ColorFor, args);
   case ScriptIntrinsic_Random:
   case ScriptIntrinsic_RandomSphere:
   case ScriptIntrinsic_RandomCircleXZ:

@@ -179,6 +179,7 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
     OP_SIMPLE_BINARY(QuatFromAngleAxis,   script_val_quat_from_angle_axis);
     OP_SIMPLE_QUATERNARY(ColorCompose,    script_val_color_compose);
     OP_SIMPLE_QUATERNARY(ColorComposeHsv, script_val_color_compose_hsv);
+    OP_SIMPLE_UNARY(ColorFor,             script_val_color_for_val);
 
 #undef OP_SIMPLE_QUATERNARY
 #undef OP_SIMPLE_TERNARY
@@ -314,6 +315,7 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     OP_SIMPLE_BINARY(QuatFromAngleAxis);
     OP_SIMPLE_QUATERNARY(ColorCompose);
     OP_SIMPLE_QUATERNARY(ColorComposeHsv);
+    OP_SIMPLE_UNARY(ColorFor);
 
 #undef OP_SIMPLE_TERNARY
 #undef OP_SIMPLE_BINARY
