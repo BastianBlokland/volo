@@ -9,7 +9,7 @@
 #include "doc_internal.h"
 #include "val_internal.h"
 
-#define script_executed_exprs_max 25000
+#define script_executed_ops_max 25000
 
 typedef enum {
   ScriptEvalSignal_None     = 0,
@@ -26,7 +26,7 @@ typedef struct {
   void*               bindCtx;
   ScriptEvalSignal    signal;
   ScriptPanic         panic;
-  u32                 executedExprs;
+  u32                 executedOps;
   ScriptVal           vars[script_var_count];
 } ScriptEvalContext;
 
@@ -337,7 +337,7 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
 }
 
 NO_INLINE_HINT static ScriptVal eval_expr(ScriptEvalContext* ctx, const ScriptExpr e) {
-  if (UNLIKELY(ctx->executedExprs++ == script_executed_exprs_max)) {
+  if (UNLIKELY(ctx->executedOps++ == script_executed_ops_max)) {
     ctx->panic = (ScriptPanic){
         .kind  = ScriptPanic_ExecutionLimitExceeded,
         .range = script_expr_range(ctx->doc, e),
@@ -386,9 +386,9 @@ ScriptEvalResult script_eval(
   };
 
   ScriptEvalResult res;
-  res.val           = eval_expr(&ctx, expr);
-  res.panic         = ctx.panic;
-  res.executedExprs = ctx.executedExprs;
+  res.val         = eval_expr(&ctx, expr);
+  res.panic       = ctx.panic;
+  res.executedOps = ctx.executedOps;
 
   diag_assert(((ctx.signal & ScriptEvalSignal_Panic) != 0) == script_panic_valid(&ctx.panic));
   diag_assert(!(ctx.signal & ScriptEvalSignal_Break));

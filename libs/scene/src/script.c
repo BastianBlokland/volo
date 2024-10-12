@@ -2135,8 +2135,8 @@ static void scene_script_eval(EvalContext* ctx) {
   }
 
   // Update stats.
-  data->stats.executedExprs = evalRes.executedOps;
-  data->stats.executedDur   = time_steady_duration(startTime, time_steady_clock());
+  data->stats.executedOps = evalRes.executedOps;
+  data->stats.executedDur = time_steady_duration(startTime, time_steady_clock());
 }
 
 static Mem scene_script_transient_dup(SceneScriptComp* inst, const Mem mem, const usize align) {

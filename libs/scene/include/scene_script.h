@@ -18,7 +18,7 @@ typedef enum {
 } SceneScriptFlags;
 
 typedef struct {
-  u32          executedExprs;
+  u32          executedOps;
   TimeDuration executedDur;
 } SceneScriptStats;
 

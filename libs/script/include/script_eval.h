@@ -9,7 +9,7 @@ typedef struct sScriptMem ScriptMem;
 typedef struct sScriptBinder ScriptBinder;
 
 typedef struct {
-  u32         executedExprs;
+  u32         executedOps;
   ScriptPanic panic;
   ScriptVal   val;
 } ScriptEvalResult;
