@@ -70,6 +70,12 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;
       ctx->regs[ip[-2]] = ctx->regs[ip[-1]];
       continue;
+    case ScriptOp_Jump: {
+      if (UNLIKELY((ip + 3) >= ipEnd)) goto Corrupt;
+      const u16 ipOffset = vm_read_u16(&ip[-2]);
+      if (UNLIKELY(ipOffset >= (code.size - 1))) goto Corrupt;
+      ip = mem_begin(code) + ipOffset;
+    } continue;
     case ScriptOp_Value:
       if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;
@@ -220,6 +226,7 @@ ScriptVmResult script_vm_eval(
     ScriptMem*          m,
     const ScriptBinder* binder,
     void*               bindCtx) {
+  diag_assert(code.size <= u16_max);
   if (binder) {
     diag_assert_msg(script_binder_hash(binder) == doc->binderHash, "Incompatible binder");
   }
@@ -238,6 +245,7 @@ ScriptVmResult script_vm_eval(
 }
 
 void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* out) {
+  diag_assert(code.size <= u16_max);
   (void)doc;
   const u8* ip    = mem_begin(code);
   const u8* ipEnd = mem_end(code);
@@ -260,6 +268,10 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     case ScriptOp_Move:
       if (UNLIKELY((ip += 3) > ipEnd)) return;
       fmt_write(out, "Move r{} r{}\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
+      break;
+    case ScriptOp_Jump:
+      if (UNLIKELY((ip += 3) > ipEnd)) return;
+      fmt_write(out, "Jump i{}\n", fmt_int(vm_read_u16(&ip[-2]),.base = 16, .minDigits = 4));
       break;
     case ScriptOp_Value:
       if (UNLIKELY((ip += 3) > ipEnd)) return;
