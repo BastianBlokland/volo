@@ -446,6 +446,9 @@ static ScriptCompileError compile_intr_loop(Context* ctx, const RegId dst, const
     return err;
   }
 
+  // Initialize output to null.
+  emit_unary(ctx, ScriptOp_Null, dst);
+
   // Setup expression.
   if ((err = compile_expr(ctx, tmpReg, args[0]))) {
     return err;
