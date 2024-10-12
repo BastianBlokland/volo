@@ -273,17 +273,18 @@ static ScriptCompileError compile_var_load(Context* ctx, const RegId dst, const 
 static ScriptCompileError compile_var_store(Context* ctx, const RegId dst, const ScriptExpr e) {
   const ScriptExprVarStore* data = &expr_data(ctx->doc, e)->var_store;
   ScriptCompileError        err  = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, dst, data->val))) {
-    return err;
-  }
   if (sentinel_check(ctx->varRegisters[data->var])) {
     const RegId newReg = reg_alloc(ctx);
     if (UNLIKELY(sentinel_check(newReg))) {
-      return ScriptCompileError_TooManyRegisters;
+      err = ScriptCompileError_TooManyRegisters;
+      return err;
     }
     ctx->varRegisters[data->var] = newReg;
   }
-  emit_move(ctx, ctx->varRegisters[data->var], dst);
+  if ((err = compile_expr(ctx, ctx->varRegisters[data->var], data->val))) {
+    return err;
+  }
+  emit_move(ctx, dst, ctx->varRegisters[data->var]); // Return the stored variable.
   return ScriptCompileError_None;
 }
 
