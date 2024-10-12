@@ -134,15 +134,18 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       ctx->regs[ip[-2]] = _FUNC_(ctx->regs[ip[-2]], ctx->regs[ip[-1]]);                            \
       continue
 
-    OP_SIMPLE_UNARY(Type, script_val_type);
-    OP_SIMPLE_UNARY(Hash, script_val_hash);
-    OP_SIMPLE_BINARY(Add, script_val_add);
-    OP_SIMPLE_BINARY(Sub, script_val_sub);
-    OP_SIMPLE_BINARY(Mul, script_val_mul);
-    OP_SIMPLE_BINARY(Div, script_val_div);
-    OP_SIMPLE_BINARY(Mod, script_val_mod);
-    OP_SIMPLE_UNARY(Negate, script_val_neg);
-    OP_SIMPLE_UNARY(Invert, script_val_inv);
+    OP_SIMPLE_UNARY(Type,     script_val_type);
+    OP_SIMPLE_UNARY(Hash,     script_val_hash);
+    OP_SIMPLE_BINARY(Equal,   script_val_equal_as_val);
+    OP_SIMPLE_BINARY(Less,    script_val_less_as_val);
+    OP_SIMPLE_BINARY(Greater, script_val_greater_as_val);
+    OP_SIMPLE_BINARY(Add,     script_val_add);
+    OP_SIMPLE_BINARY(Sub,     script_val_sub);
+    OP_SIMPLE_BINARY(Mul,     script_val_mul);
+    OP_SIMPLE_BINARY(Div,     script_val_div);
+    OP_SIMPLE_BINARY(Mod,     script_val_mod);
+    OP_SIMPLE_UNARY(Negate,   script_val_neg);
+    OP_SIMPLE_UNARY(Invert,   script_val_inv);
 
 #undef OP_SIMPLE_BINARY
 #undef OP_SIMPLE_UNARY
@@ -239,6 +242,9 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
 
     OP_SIMPLE_UNARY(Type);
     OP_SIMPLE_UNARY(Hash);
+    OP_SIMPLE_BINARY(Equal);
+    OP_SIMPLE_BINARY(Less);
+    OP_SIMPLE_BINARY(Greater);
     OP_SIMPLE_BINARY(Add);
     OP_SIMPLE_BINARY(Sub);
     OP_SIMPLE_BINARY(Mul);

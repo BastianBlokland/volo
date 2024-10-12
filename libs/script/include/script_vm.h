@@ -43,13 +43,16 @@ typedef enum {
   ScriptOp_Extern      = 9,  // [d,f,r,c] (r:c) -> (d) Invoke extern func 'f' using count 'c' registers starting from 'r' and store result in register 'd'.
   ScriptOp_Type        = 10, // [d      ] (d  ) -> (d) Retrieve the type for register 'd'.
   ScriptOp_Hash        = 11, // [d      ] (d  ) -> (d) Retrieve the hash for register 'd'.
-  ScriptOp_Add         = 12, // [d,s    ] (d,s) -> (d) Add register 's' to 'd'.
-  ScriptOp_Sub         = 13, // [d,s    ] (d,s) -> (d) Subtract register 's' from 'd'.
-  ScriptOp_Mul         = 14, // [d,s    ] (d,s) -> (d) Multiply register 'd' by register 's'.
-  ScriptOp_Div         = 15, // [d,s    ] (d,s) -> (d) Divide register 'd' by register 's'.
-  ScriptOp_Mod         = 16, // [d,s    ] (d,s) -> (d) Modulo register 'd' by register 's'.
-  ScriptOp_Negate      = 17, // [d      ] (d  ) -> (d) Negate register 'd'.
-  ScriptOp_Invert      = 18, // [d      ] (d  ) -> (d) Invert register 'd'.
+  ScriptOp_Equal       = 12, // [d,s    ] (d,s) -> (d) Compare 'd' and 's' and store result in register 'd'.
+  ScriptOp_Less        = 13, // [d,s    ] (d,s) -> (d) Compare 'd' and 's' and store result in register 'd'.
+  ScriptOp_Greater     = 14, // [d,s    ] (d,s) -> (d) Compare 'd' and 's' and store result in register 'd'.
+  ScriptOp_Add         = 15, // [d,s    ] (d,s) -> (d) Add register 's' to 'd'.
+  ScriptOp_Sub         = 16, // [d,s    ] (d,s) -> (d) Subtract register 's' from 'd'.
+  ScriptOp_Mul         = 17, // [d,s    ] (d,s) -> (d) Multiply register 'd' by register 's'.
+  ScriptOp_Div         = 18, // [d,s    ] (d,s) -> (d) Divide register 'd' by register 's'.
+  ScriptOp_Mod         = 19, // [d,s    ] (d,s) -> (d) Modulo register 'd' by register 's'.
+  ScriptOp_Negate      = 20, // [d      ] (d  ) -> (d) Negate register 'd'.
+  ScriptOp_Invert      = 21, // [d      ] (d  ) -> (d) Invert register 'd'.
 } ScriptOp;
 
 // clang-format on
