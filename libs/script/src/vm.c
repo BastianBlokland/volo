@@ -266,7 +266,7 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     switch ((ScriptOp)*ip) {
     case ScriptOp_Fail:
       if (UNLIKELY((ip += 1) > ipEnd)) return;
-      fmt_write(out, "Fail]\n");
+      fmt_write(out, "Fail\n");
       break;
     case ScriptOp_Assert:
       if (UNLIKELY((ip += 2) > ipEnd)) return;
@@ -285,7 +285,7 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       fmt_write(out, "Jump i{}\n", fmt_int(vm_read_u16(&ip[-2]),.base = 16, .minDigits = 4));
       break;
     case ScriptOp_JumpIf:
-      if (UNLIKELY((ip += 3) > ipEnd)) return;
+      if (UNLIKELY((ip += 4) > ipEnd)) return;
       fmt_write(out, "JumpIf r{} i{}\n", fmt_int(ip[-3]), fmt_int(vm_read_u16(&ip[-2]),.base = 16, .minDigits = 4));
       break;
     case ScriptOp_Value:
