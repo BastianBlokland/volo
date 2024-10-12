@@ -43,7 +43,7 @@ typedef struct {
   u64   regAvailability; // Bitmask of available registers.
   RegId varRegisters[script_var_count];
 
-  LabelId loopLabelCond, loopLabelEnd;
+  LabelId loopLabelIncrement, loopLabelEnd;
 
   DynArray labels;       // Label[].
   DynArray labelPatches; // LabelPatch[].
@@ -478,11 +478,16 @@ static ScriptCompileError compile_intr_loop(Context* ctx, const RegId dst, const
       return err;
     }
   }
-  ctx->loopLabelCond = label_alloc(ctx);
-  ctx->loopLabelEnd  = label_alloc(ctx);
+  const LabelId labelCond = label_alloc(ctx);
+  ctx->loopLabelIncrement = label_alloc(ctx);
+  ctx->loopLabelEnd       = label_alloc(ctx);
 
   // Condition expression.
-  label_link(ctx, ctx->loopLabelCond);
+  if (expr_is_null(ctx, args[2])) {
+    // NOTE: Loop is not using a increment expression; we can skip straight to the condition.
+    label_link(ctx, ctx->loopLabelIncrement);
+  }
+  label_link(ctx, labelCond);
   if (!expr_is_true(ctx, args[1])) {
     if ((err = compile_expr(ctx, tmpReg, args[1]))) {
       return err;
@@ -497,22 +502,23 @@ static ScriptCompileError compile_intr_loop(Context* ctx, const RegId dst, const
 
   // Increment expression.
   if (!expr_is_null(ctx, args[2])) {
+    label_link(ctx, ctx->loopLabelIncrement);
     if ((err = compile_expr(ctx, tmpReg, args[2]))) {
       return err;
     }
   }
-  emit_jump(ctx, ctx->loopLabelCond);
+  emit_jump(ctx, labelCond);
 
   label_link(ctx, ctx->loopLabelEnd);
 
-  ctx->loopLabelCond = ctx->loopLabelEnd = sentinel_u32;
+  ctx->loopLabelIncrement = ctx->loopLabelEnd = sentinel_u32;
   reg_free(ctx, tmpReg);
   return err;
 }
 
 static ScriptCompileError compile_intr_continue(Context* ctx) {
-  diag_assert(!sentinel_check(ctx->loopLabelCond));
-  emit_jump(ctx, ctx->loopLabelCond);
+  diag_assert(!sentinel_check(ctx->loopLabelIncrement));
+  emit_jump(ctx, ctx->loopLabelIncrement);
   return ScriptCompileError_None;
 }
 
