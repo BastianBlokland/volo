@@ -49,7 +49,7 @@ typedef struct {
   DynArray labelPatches; // LabelPatch[].
 } Context;
 
-static u32 reg_available(Context* ctx) { return bits_popcnt_64(ctx->regAvailability); }
+MAYBE_UNUSED static u32 reg_available(Context* ctx) { return bits_popcnt_64(ctx->regAvailability); }
 
 static RegId reg_alloc(Context* ctx) {
   if (UNLIKELY(!ctx->regAvailability)) {
