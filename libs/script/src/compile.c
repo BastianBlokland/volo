@@ -400,7 +400,9 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_RoundUp:
     return compile_intr_unary(ctx, dst, ScriptOp_RoundUp, args);
   case ScriptIntrinsic_Clamp:
+    return compile_intr_ternary(ctx, dst, ScriptOp_Clamp, args);
   case ScriptIntrinsic_Lerp:
+    return compile_intr_ternary(ctx, dst, ScriptOp_Lerp, args);
   case ScriptIntrinsic_Min:
   case ScriptIntrinsic_Max:
   case ScriptIntrinsic_Perlin3:

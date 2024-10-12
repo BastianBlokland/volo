@@ -193,6 +193,8 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
     OP_SIMPLE_UNARY(RoundDown,            script_val_round_down);
     OP_SIMPLE_UNARY(RoundNearest,         script_val_round_nearest);
     OP_SIMPLE_UNARY(RoundUp,              script_val_round_up);
+    OP_SIMPLE_TERNARY(Clamp,              script_val_clamp);
+    OP_SIMPLE_TERNARY(Lerp,               script_val_lerp);
 
 #undef OP_SIMPLE_QUATERNARY
 #undef OP_SIMPLE_TERNARY
@@ -342,6 +344,8 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     OP_SIMPLE_UNARY(RoundDown);
     OP_SIMPLE_UNARY(RoundNearest);
     OP_SIMPLE_UNARY(RoundUp);
+    OP_SIMPLE_TERNARY(Clamp);
+    OP_SIMPLE_TERNARY(Lerp);
 
 #undef OP_SIMPLE_TERNARY
 #undef OP_SIMPLE_BINARY

@@ -76,6 +76,8 @@ typedef enum {
   ScriptOp_RoundDown         = 42, // [d      ] (d      ) -> (d) Round register 'd' down.
   ScriptOp_RoundNearest      = 43, // [d      ] (d      ) -> (d) Round register 'd' to nearest.
   ScriptOp_RoundUp           = 44, // [d      ] (d      ) -> (d) Round register 'd' up.
+  ScriptOp_Clamp             = 45, // [x,y,z  ] (x,y,z  ) -> (x) Clamp register 'x' between 'y' and 'z' and store in register 'x'.
+  ScriptOp_Lerp              = 46, // [x,y,z  ] (x,y,z  ) -> (x) Compute a linearly interpolated value from 'x' to 'y' at time 'z' and store in register 'x'.
 } ScriptOp;
 
 // clang-format on
