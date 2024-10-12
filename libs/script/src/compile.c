@@ -11,9 +11,10 @@
 ASSERT(script_vm_regs <= 63, "Register allocator only supports up to 63 registers");
 
 static const String g_compileErrorStrs[] = {
-    [ScriptCompileError_None]             = string_static("None"),
-    [ScriptCompileError_TooManyRegisters] = string_static("Register limit exceeded"),
-    [ScriptCompileError_TooManyValues]    = string_static("Value limit exceeded"),
+    [ScriptCompileError_None]              = string_static("None"),
+    [ScriptCompileError_TooManyRegisters]  = string_static("Register limit exceeded"),
+    [ScriptCompileError_TooManyValues]     = string_static("Value limit exceeded"),
+    [ScriptCompileError_CodeLimitExceeded] = string_static("Output exceeds 0xFFFF bytes"),
 };
 ASSERT(array_elems(g_compileErrorStrs) == ScriptCompileError_Count, "Incorrect number of strings");
 
@@ -572,10 +573,15 @@ ScriptCompileError script_compile(const ScriptDoc* doc, const ScriptExpr expr, D
   const RegId resultReg = reg_alloc(&ctx);
   diag_assert(resultReg < script_vm_regs);
 
-  const ScriptCompileError err = compile_expr(&ctx, resultReg, expr);
+  ScriptCompileError err = compile_expr(&ctx, resultReg, expr);
   if (!err) {
     if (ctx.lastOp != ScriptOp_Return) {
       emit_unary(&ctx, ScriptOp_Return, resultReg);
+    }
+
+    // Verify that output limit was not exceeded.
+    if (out->size > u16_max) {
+      err = ScriptCompileError_CodeLimitExceeded;
     }
 
     // Verify no registers where leaked.

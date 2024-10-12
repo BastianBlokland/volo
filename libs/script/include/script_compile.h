@@ -8,6 +8,7 @@ typedef enum {
   ScriptCompileError_None,
   ScriptCompileError_TooManyRegisters,
   ScriptCompileError_TooManyValues,
+  ScriptCompileError_CodeLimitExceeded,
 
   ScriptCompileError_Count,
 } ScriptCompileError;
