@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
@@ -16,7 +17,8 @@ static const String g_compileErrorStrs[] = {
 };
 ASSERT(array_elems(g_compileErrorStrs) == ScriptCompileError_Count, "Incorrect number of strings");
 
-typedef u8 RegId;
+typedef u8  RegId;
+typedef u32 LabelId;
 
 typedef struct {
   RegId begin;
@@ -24,11 +26,24 @@ typedef struct {
 } RegSet;
 
 typedef struct {
+  u16 instruction; // Offset in the output stream.
+} Label;
+
+typedef struct {
+  LabelId label;
+  u16     offset; // Offset in the output stream.
+} LabelPatch;
+
+typedef struct {
   const ScriptDoc* doc;
   DynString*       out;
   ScriptOp         lastOp;
-  u64              regAvailability; // Bitmask of available registers.
-  RegId            varRegisters[script_var_count];
+
+  u64   regAvailability; // Bitmask of available registers.
+  RegId varRegisters[script_var_count];
+
+  DynArray labels;       // Label[].
+  DynArray labelPatches; // LabelPatch[].
 } Context;
 
 static u32 reg_available(Context* ctx) { return bits_popcnt_64(ctx->regAvailability); }
@@ -76,6 +91,41 @@ static void reg_free_set(Context* ctx, const RegSet set) {
 
 static void reg_free_all(Context* ctx) {
   ctx->regAvailability = (u64_lit(1) << script_vm_regs) - 1;
+}
+
+static LabelId label_alloc(Context* ctx) {
+  const LabelId res                     = (LabelId)ctx->labels.size;
+  *dynarray_push_t(&ctx->labels, Label) = (Label){.instruction = 0xFFFF};
+  return res;
+}
+
+static void label_link(Context* ctx, const LabelId labelId) {
+  Label* label = dynarray_at_t(&ctx->labels, labelId, Label);
+  diag_assert_msg(sentinel_check(label->instruction), "Label {} already linked", fmt_int(labelId));
+  label->instruction = (u16)ctx->out->size;
+
+  // If there are any outstanding patches for this label then apply them now.
+  for (usize i = ctx->labelPatches.size; i-- > 0;) {
+    LabelPatch* patch = dynarray_at_t(&ctx->labelPatches, i, LabelPatch);
+    if (patch->label == labelId) {
+      mem_write_le_u16(mem_slice(dynstring_view(ctx->out), patch->offset, 2), label->instruction);
+      dynarray_remove(&ctx->labelPatches, i, 1);
+    }
+  }
+}
+
+static void label_write(Context* ctx, const LabelId labelId) {
+  Label* label = dynarray_at_t(&ctx->labels, labelId, Label);
+  if (sentinel_check(label->instruction)) {
+    // No instruction known yet for the label; register a pending patch.
+    *dynarray_push_t(&ctx->labelPatches, LabelPatch) = (LabelPatch){
+        .label  = labelId,
+        .offset = (u16)ctx->out->size,
+    };
+    mem_write_le_u16(dynstring_push(ctx->out, 2), 0xFFFF);
+    return;
+  }
+  mem_write_le_u16(dynstring_push(ctx->out, 2), label->instruction);
 }
 
 static void emit_op(Context* ctx, const ScriptOp op) {
@@ -139,6 +189,13 @@ static void emit_move(Context* ctx, const RegId dst, const RegId src) {
   if (dst != src) {
     emit_binary(ctx, ScriptOp_Move, dst, src);
   }
+}
+
+static void emit_jump_if_falsy(Context* ctx, const RegId cond, const LabelId label) {
+  diag_assert(cond < script_vm_regs);
+  emit_op(ctx, ScriptOp_JumpIfFalsy);
+  dynstring_append_char(ctx->out, cond);
+  label_write(ctx, label);
 }
 
 static void emit_extern(Context* ctx, const RegId dst, const ScriptBinderSlot f, const RegSet in) {
@@ -285,6 +342,24 @@ compile_intr_quaternary(Context* ctx, const RegId dst, const ScriptOp op, const 
   return err;
 }
 
+static ScriptCompileError
+compile_intr_logic_and(Context* ctx, const RegId dst, const ScriptExpr* args) {
+  ScriptCompileError err = ScriptCompileError_None;
+  if ((err = compile_expr(ctx, dst, args[0]))) {
+    return err;
+  }
+  const LabelId retLabel = label_alloc(ctx);
+  emit_jump_if_falsy(ctx, dst, retLabel);
+
+  if ((err = compile_expr(ctx, dst, args[1]))) {
+    return err;
+  }
+
+  label_link(ctx, retLabel);
+  emit_unary(ctx, ScriptOp_Truthy, dst); // Convert to result to boolean.
+  return err;
+}
+
 static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const ScriptExpr e) {
   const ScriptExprIntrinsic* data = &expr_data(ctx->doc, e)->intrinsic;
   const ScriptExpr*          args = expr_set_data(ctx->doc, data->argSet);
@@ -307,7 +382,10 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
     return compile_intr_binary(ctx, dst, ScriptOp_MemStoreDyn, args);
   case ScriptIntrinsic_Select:
   case ScriptIntrinsic_NullCoalescing:
+    emit_op(ctx, ScriptOp_Fail);
+    return ScriptCompileError_None;
   case ScriptIntrinsic_LogicAnd:
+    return compile_intr_logic_and(ctx, dst, args);
   case ScriptIntrinsic_LogicOr:
   case ScriptIntrinsic_Loop:
     emit_op(ctx, ScriptOp_Fail);
@@ -481,8 +559,10 @@ String script_compile_error_str(const ScriptCompileError res) {
 
 ScriptCompileError script_compile(const ScriptDoc* doc, const ScriptExpr expr, DynString* out) {
   Context ctx = {
-      .doc = doc,
-      .out = out,
+      .doc          = doc,
+      .out          = out,
+      .labels       = dynarray_create_t(g_allocHeap, Label, 0),
+      .labelPatches = dynarray_create_t(g_allocHeap, LabelPatch, 0),
   };
   mem_set(array_mem(ctx.varRegisters), 0xFF);
 
@@ -507,5 +587,8 @@ ScriptCompileError script_compile(const ScriptDoc* doc, const ScriptExpr expr, D
     }
     diag_assert_msg(reg_available(&ctx) == script_vm_regs, "Not all registers freed");
   }
+
+  dynstring_destroy(&ctx.labels);
+  dynstring_destroy(&ctx.labelPatches);
   return err;
 }
