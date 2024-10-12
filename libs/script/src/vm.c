@@ -190,6 +190,9 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
     OP_SIMPLE_ZERO(RandomSphere,          script_val_random_sphere);
     OP_SIMPLE_ZERO(RandomCircleXZ,        script_val_random_circle_xz);
     OP_SIMPLE_BINARY(RandomBetween,       script_val_random_between);
+    OP_SIMPLE_UNARY(RoundDown,            script_val_round_down);
+    OP_SIMPLE_UNARY(RoundNearest,         script_val_round_nearest);
+    OP_SIMPLE_UNARY(RoundUp,              script_val_round_up);
 
 #undef OP_SIMPLE_QUATERNARY
 #undef OP_SIMPLE_TERNARY
@@ -336,6 +339,9 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     OP_SIMPLE_ZERO(RandomSphere);
     OP_SIMPLE_ZERO(RandomCircleXZ);
     OP_SIMPLE_BINARY(RandomBetween);
+    OP_SIMPLE_UNARY(RoundDown);
+    OP_SIMPLE_UNARY(RoundNearest);
+    OP_SIMPLE_UNARY(RoundUp);
 
 #undef OP_SIMPLE_TERNARY
 #undef OP_SIMPLE_BINARY

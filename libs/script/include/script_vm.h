@@ -73,6 +73,9 @@ typedef enum {
   ScriptOp_RandomSphere      = 39, // [d      ] (       ) -> (d) Compute a random vector on a unit sphere in register 'd'.
   ScriptOp_RandomCircleXZ    = 40, // [d      ] (       ) -> (d) Compute a random vector on a unit circle in register 'd'.
   ScriptOp_RandomBetween     = 41, // [x,y    ] (x,y    ) -> (x) Compute a random value between 'x' and 'y' and store in register 'x'.
+  ScriptOp_RoundDown         = 42, // [d      ] (d      ) -> (d) Round register 'd' down.
+  ScriptOp_RoundNearest      = 43, // [d      ] (d      ) -> (d) Round register 'd' to nearest.
+  ScriptOp_RoundUp           = 44, // [d      ] (d      ) -> (d) Round register 'd' up.
 } ScriptOp;
 
 // clang-format on

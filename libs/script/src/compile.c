@@ -394,8 +394,11 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_RandomBetween:
     return compile_intr_binary(ctx, dst, ScriptOp_RandomBetween, args);
   case ScriptIntrinsic_RoundDown:
+    return compile_intr_unary(ctx, dst, ScriptOp_RoundDown, args);
   case ScriptIntrinsic_RoundNearest:
+    return compile_intr_unary(ctx, dst, ScriptOp_RoundNearest, args);
   case ScriptIntrinsic_RoundUp:
+    return compile_intr_unary(ctx, dst, ScriptOp_RoundUp, args);
   case ScriptIntrinsic_Clamp:
   case ScriptIntrinsic_Lerp:
   case ScriptIntrinsic_Min:
