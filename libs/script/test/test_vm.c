@@ -1,55 +1,40 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
-#include "core_math.h"
 #include "geo_color.h"
 #include "geo_quat.h"
 #include "script_binder.h"
-#include "script_eval.h"
+#include "script_compile.h"
 #include "script_mem.h"
 #include "script_read.h"
-
-#include "utils_internal.h"
-
-typedef struct {
-  u32 counter;
-} ScriptEvalTestCtx;
-
-static ScriptVal test_increase_counter(void* ctx, const ScriptArgs args, ScriptError* err) {
-  (void)args;
-  (void)err;
-
-  ScriptEvalTestCtx* typedCtx = ctx;
-  ++typedCtx->counter;
-  return script_null();
-}
+#include "script_vm.h"
 
 static ScriptVal test_return_null(void* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
   (void)args;
   (void)err;
-
   return script_null();
 }
 
 static ScriptVal test_return_first(void* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
   (void)err;
-
   return args.count ? args.values[0] : script_null();
 }
 
-spec(eval) {
+spec(vm) {
   ScriptMem      mem;
   ScriptDoc*     doc         = null;
   ScriptBinder*  binder      = null;
   void*          bindCtxNull = null;
   ScriptDiagBag* diagsNull   = null;
   ScriptSymBag*  symsNull    = null;
+  DynString      code;
 
   setup() {
-    mem = script_mem_create();
-    doc = script_create(g_allocHeap);
+    mem  = script_mem_create();
+    doc  = script_create(g_allocHeap);
+    code = dynstring_create(g_allocScratch, usize_kibibyte);
 
     script_mem_store(&mem, string_hash_lit("v1"), script_bool(true));
     script_mem_store(&mem, string_hash_lit("v2"), script_num(1337));
@@ -62,8 +47,6 @@ spec(eval) {
         binder, string_lit("test_return_null"), documentation, nullSig, test_return_null);
     script_binder_declare(
         binder, string_lit("test_return_first"), documentation, nullSig, test_return_first);
-    script_binder_declare(
-        binder, string_lit("test_increase_counter"), documentation, nullSig, test_increase_counter);
     script_binder_finalize(binder);
   }
 
@@ -290,75 +273,26 @@ spec(eval) {
       const ScriptExpr expr = script_read(doc, binder, testData[i].input, diagsNull, symsNull);
       check_require_msg(!sentinel_check(expr), "Read failed ({})", fmt_text(testData[i].input));
 
-      const ScriptEvalResult evalRes = script_eval(doc, expr, &mem, binder, bindCtxNull);
-      check(!script_panic_valid(&evalRes.panic));
+      dynstring_clear(&code);
+      const ScriptCompileError err = script_compile(doc, expr, &code);
+      check_require_msg(!err, "Compile failed ({})", fmt_text(testData[i].input));
+
+      const String         codeView = dynstring_view(&code);
+      const ScriptVmResult vmRes    = script_vm_eval(doc, codeView, &mem, binder, bindCtxNull);
+      check(!script_panic_valid(&vmRes.panic));
       check_msg(
-          script_val_equal(evalRes.val, testData[i].expected),
+          script_val_equal(vmRes.val, testData[i].expected),
           "{} == {} ({})",
-          script_val_fmt(evalRes.val),
+          script_val_fmt(vmRes.val),
           script_val_fmt(testData[i].expected),
           fmt_text(testData[i].input));
     }
-  }
-
-  it("can store memory values") {
-    const ScriptExpr expr = script_read(
-        doc, binder, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), diagsNull, symsNull);
-    check_require(!sentinel_check(expr));
-
-    const ScriptEvalResult evalRes = script_eval(doc, expr, &mem, binder, bindCtxNull);
-    check(!script_panic_valid(&evalRes.panic));
-    check_eq_val(script_mem_load(&mem, string_hash_lit("test1")), script_num(42));
-    check_eq_val(script_mem_load(&mem, string_hash_lit("test2")), script_num(1337));
-    check_eq_val(script_mem_load(&mem, string_hash_lit("test3")), script_bool(false));
-  }
-
-  it("can modify the context") {
-    ScriptEvalTestCtx ctx = {0};
-
-    const ScriptExpr expr = script_read(
-        doc,
-        binder,
-        string_lit("test_increase_counter(); test_increase_counter(); test_increase_counter()"),
-        diagsNull,
-        symsNull);
-    check_require(!sentinel_check(expr));
-
-    const ScriptEvalResult evalRes = script_eval(doc, expr, &mem, binder, &ctx);
-    check(!script_panic_valid(&evalRes.panic));
-    check_eq_int(ctx.counter, 3);
-  }
-
-  it("stops execution after a runtime-error") {
-    ScriptEvalTestCtx ctx = {0};
-
-    const ScriptExpr expr = script_read(
-        doc,
-        binder,
-        string_lit("test_increase_counter(); assert(0); test_increase_counter()"),
-        diagsNull,
-        symsNull);
-    check_require(!sentinel_check(expr));
-
-    const ScriptEvalResult evalRes = script_eval(doc, expr, &mem, binder, &ctx);
-    check(evalRes.panic.kind == ScriptPanic_AssertionFailed);
-    check_eq_int(ctx.counter, 1);
-    check_eq_val(evalRes.val, script_null());
-  }
-
-  it("limits the executed expressions count") {
-    const ScriptExpr expr =
-        script_read(doc, binder, string_lit("while(true) {}"), diagsNull, symsNull);
-    check_require(!sentinel_check(expr));
-
-    const ScriptEvalResult evalRes = script_eval(doc, expr, &mem, binder, bindCtxNull);
-    check(evalRes.panic.kind == ScriptPanic_ExecutionLimitExceeded);
-    check_eq_val(evalRes.val, script_null());
   }
 
   teardown() {
     script_destroy(doc);
     script_binder_destroy(binder);
     script_mem_destroy(&mem);
+    dynstring_destroy(&code);
   }
 }

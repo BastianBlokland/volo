@@ -7,6 +7,7 @@ typedef struct sDynArray DynString;
 typedef enum eScriptPanicKind {
   ScriptPanic_None,
   ScriptPanic_AssertionFailed,
+  ScriptPanic_ExecutionFailed,
   ScriptPanic_ExecutionLimitExceeded,
   ScriptPanic_ArgumentInvalid,
   ScriptPanic_ArgumentNull,
@@ -19,6 +20,7 @@ typedef enum eScriptPanicKind {
   ScriptPanic_QueryInvalid,
   ScriptPanic_ReadonlyParam,
   ScriptPanic_MissingCapability,
+  ScriptPanic_CorruptCode,
 
   ScriptPanicKind_Count,
 } ScriptPanicKind;

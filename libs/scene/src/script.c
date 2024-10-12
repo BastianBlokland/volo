@@ -37,7 +37,7 @@
 #include "script_binder.h"
 #include "script_enum.h"
 #include "script_error.h"
-#include "script_eval.h"
+#include "script_vm.h"
 
 #define scene_script_max_asset_loads 8
 #define scene_script_line_of_sight_min 1.0f
@@ -2111,13 +2111,13 @@ static void scene_script_eval(EvalContext* ctx) {
   }
 
   const ScriptDoc* doc  = ctx->scriptAsset->doc;
-  const ScriptExpr expr = ctx->scriptAsset->expr;
+  const String     code = ctx->scriptAsset->code;
   ScriptMem*       mem  = scene_knowledge_memory_mut(ctx->scriptKnowledge);
 
   const TimeSteady startTime = time_steady_clock();
 
   // Eval.
-  const ScriptEvalResult evalRes = script_eval(doc, mem, expr, g_scriptBinder, ctx);
+  const ScriptVmResult evalRes = script_vm_eval(doc, code, mem, g_scriptBinder, ctx);
 
   // Handle panics.
   if (UNLIKELY(script_panic_valid(&evalRes.panic))) {
@@ -2135,8 +2135,8 @@ static void scene_script_eval(EvalContext* ctx) {
   }
 
   // Update stats.
-  data->stats.executedExprs = evalRes.executedExprs;
-  data->stats.executedDur   = time_steady_duration(startTime, time_steady_clock());
+  data->stats.executedOps = evalRes.executedOps;
+  data->stats.executedDur = time_steady_duration(startTime, time_steady_clock());
 }
 
 static Mem scene_script_transient_dup(SceneScriptComp* inst, const Mem mem, const usize align) {

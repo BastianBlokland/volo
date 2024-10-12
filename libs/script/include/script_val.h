@@ -97,7 +97,9 @@ TimeDuration script_get_time(ScriptVal, TimeDuration fallback);
  * Value utilities.
  */
 bool      script_truthy(ScriptVal);
+ScriptVal script_truthy_as_val(ScriptVal);
 bool      script_falsy(ScriptVal);
+ScriptVal script_falsy_as_val(ScriptVal);
 bool      script_val_has(ScriptVal);
 ScriptVal script_val_or(ScriptVal value, ScriptVal fallback);
 u32       script_hash(ScriptVal);
@@ -116,13 +118,18 @@ String     script_mask_scratch(ScriptMask);
 /**
  * Compare values.
  */
-bool script_val_equal(ScriptVal, ScriptVal);
-bool script_val_less(ScriptVal, ScriptVal);
-bool script_val_greater(ScriptVal, ScriptVal);
+bool      script_val_equal(ScriptVal, ScriptVal);
+ScriptVal script_val_equal_as_val(ScriptVal, ScriptVal);
+bool      script_val_less(ScriptVal, ScriptVal);
+ScriptVal script_val_less_as_val(ScriptVal, ScriptVal);
+bool      script_val_greater(ScriptVal, ScriptVal);
+ScriptVal script_val_greater_as_val(ScriptVal, ScriptVal);
 
 /**
  * Value arithmetic.
  */
+ScriptVal script_val_type(ScriptVal);
+ScriptVal script_val_hash(ScriptVal);
 ScriptVal script_val_neg(ScriptVal);
 ScriptVal script_val_inv(ScriptVal);
 ScriptVal script_val_add(ScriptVal, ScriptVal);
@@ -161,6 +168,7 @@ ScriptVal script_val_quat_from_euler(ScriptVal x, ScriptVal y, ScriptVal z);
 ScriptVal script_val_quat_from_angle_axis(ScriptVal angle, ScriptVal axis);
 ScriptVal script_val_color_compose(ScriptVal r, ScriptVal g, ScriptVal b, ScriptVal a);
 ScriptVal script_val_color_compose_hsv(ScriptVal h, ScriptVal s, ScriptVal v, ScriptVal a);
+ScriptVal script_val_color_for_val(ScriptVal);
 
 /**
  * Create a formatting argument for a script value.

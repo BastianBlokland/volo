@@ -11,4 +11,5 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, read);
   register_spec(check, sig);
   register_spec(check, val);
+  register_spec(check, vm);
 }

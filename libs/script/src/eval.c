@@ -9,7 +9,7 @@
 #include "doc_internal.h"
 #include "val_internal.h"
 
-#define script_executed_exprs_max 25000
+#define script_executed_ops_max 25000
 
 typedef enum {
   ScriptEvalSignal_None     = 0,
@@ -26,7 +26,7 @@ typedef struct {
   void*               bindCtx;
   ScriptEvalSignal    signal;
   ScriptPanic         panic;
-  u32                 executedExprs;
+  u32                 executedOps;
   ScriptVal           vars[script_var_count];
 } ScriptEvalContext;
 
@@ -88,9 +88,9 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     return ret;
   }
   case ScriptIntrinsic_Type:
-    return script_str(script_val_type_hash(script_type(eval_expr(ctx, args[0]))));
+    return script_val_type(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Hash:
-    return script_num(script_hash(eval_expr(ctx, args[0])));
+    return script_val_hash(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Assert: {
     if (script_falsy(eval_expr(ctx, args[0]))) {
       ctx->panic = (ScriptPanic){
@@ -108,8 +108,8 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
   }
   case ScriptIntrinsic_MemStoreDynamic: {
     EVAL_ARG_WITH_INTERRUPT(0);
+    EVAL_ARG_WITH_INTERRUPT(1);
     if (val_type(arg0) == ScriptType_Str) {
-      EVAL_ARG_WITH_INTERRUPT(1);
       script_mem_store(ctx->m, val_as_str(arg0), arg1);
       return arg1;
     }
@@ -250,7 +250,7 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     return script_val_color_compose_hsv(arg0, arg1, arg2, eval_expr(ctx, args[3]));
   }
   case ScriptIntrinsic_ColorFor:
-    return script_color(geo_color_for_hash(script_hash(eval_expr(ctx, args[0]))));
+    return script_val_color_for_val(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Random:
     return script_val_random();
   case ScriptIntrinsic_RandomSphere:
@@ -337,7 +337,7 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
 }
 
 NO_INLINE_HINT static ScriptVal eval_expr(ScriptEvalContext* ctx, const ScriptExpr e) {
-  if (UNLIKELY(ctx->executedExprs++ == script_executed_exprs_max)) {
+  if (UNLIKELY(ctx->executedOps++ == script_executed_ops_max)) {
     ctx->panic = (ScriptPanic){
         .kind  = ScriptPanic_ExecutionLimitExceeded,
         .range = script_expr_range(ctx->doc, e),
@@ -371,8 +371,8 @@ NO_INLINE_HINT static ScriptVal eval_expr(ScriptEvalContext* ctx, const ScriptEx
 
 ScriptEvalResult script_eval(
     const ScriptDoc*    doc,
-    ScriptMem*          m,
     const ScriptExpr    expr,
+    ScriptMem*          m,
     const ScriptBinder* binder,
     void*               bindCtx) {
   if (binder) {
@@ -386,9 +386,9 @@ ScriptEvalResult script_eval(
   };
 
   ScriptEvalResult res;
-  res.val           = eval_expr(&ctx, expr);
-  res.panic         = ctx.panic;
-  res.executedExprs = ctx.executedExprs;
+  res.val         = eval_expr(&ctx, expr);
+  res.panic       = ctx.panic;
+  res.executedOps = ctx.executedOps;
 
   diag_assert(((ctx.signal & ScriptEvalSignal_Panic) != 0) == script_panic_valid(&ctx.panic));
   diag_assert(!(ctx.signal & ScriptEvalSignal_Break));

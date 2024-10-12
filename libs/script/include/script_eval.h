@@ -1,7 +1,6 @@
 #pragma once
 #include "script_doc.h"
 #include "script_panic.h"
-#include "script_pos.h"
 
 // Forward declare from 'script_mem.h'.
 typedef struct sScriptMem ScriptMem;
@@ -10,7 +9,7 @@ typedef struct sScriptMem ScriptMem;
 typedef struct sScriptBinder ScriptBinder;
 
 typedef struct {
-  u32         executedExprs;
+  u32         executedOps;
   ScriptPanic panic;
   ScriptVal   val;
 } ScriptEvalResult;
@@ -18,7 +17,5 @@ typedef struct {
 /**
  * Evaluate the given expression.
  */
-
-// clang-format off
-ScriptEvalResult script_eval(const ScriptDoc*, ScriptMem*, ScriptExpr, const ScriptBinder*, void* bindCtx);
-// clang-format on
+ScriptEvalResult
+script_eval(const ScriptDoc*, ScriptExpr, ScriptMem*, const ScriptBinder*, void* bindCtx);

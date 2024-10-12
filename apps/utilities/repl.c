@@ -10,12 +10,14 @@
 #include "core_tty.h"
 #include "core_utf8.h"
 #include "script_binder.h"
+#include "script_compile.h"
 #include "script_diag.h"
 #include "script_eval.h"
 #include "script_lex.h"
 #include "script_mem.h"
 #include "script_read.h"
 #include "script_sym.h"
+#include "script_vm.h"
 
 /**
  * ReadEvalPrintLoop - Utility to play around with script execution.
@@ -24,11 +26,13 @@
 typedef enum {
   ReplFlags_None          = 0,
   ReplFlags_NoEval        = 1 << 0,
-  ReplFlags_Watch         = 1 << 1,
-  ReplFlags_OutputTokens  = 1 << 2,
-  ReplFlags_OutputAst     = 1 << 3,
-  ReplFlags_OutputStats   = 1 << 4,
-  ReplFlags_OutputSymbols = 1 << 5,
+  ReplFlags_Vm            = 1 << 1,
+  ReplFlags_Watch         = 1 << 2,
+  ReplFlags_OutputTokens  = 1 << 3,
+  ReplFlags_OutputAst     = 1 << 4,
+  ReplFlags_OutputStats   = 1 << 5,
+  ReplFlags_OutputCode    = 1 << 6,
+  ReplFlags_OutputSymbols = 1 << 7,
 } ReplFlags;
 
 typedef struct {
@@ -43,6 +47,32 @@ static void repl_script_collect_stats(void* ctx, const ScriptDoc* doc, const Scr
 }
 
 static void repl_output(const String text) { file_write_sync(g_fileStdOut, text); }
+
+static void repl_output_val(const ScriptVal val) {
+  repl_output(fmt_write_scratch("{}\n", script_val_fmt(val)));
+}
+
+static void repl_output_error(const String text, const String id) {
+  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  const TtyStyle styleErr     = ttystyle(.bgColor = TtyBgColor_Red, .flags = TtyStyleFlags_Bold);
+  const TtyStyle styleDefault = ttystyle();
+
+  tty_write_style_sequence(&buffer, styleErr);
+
+  if (!string_is_empty(id)) {
+    dynstring_append(&buffer, id);
+    dynstring_append(&buffer, string_lit(": "));
+  }
+  dynstring_append(&buffer, text);
+
+  tty_write_style_sequence(&buffer, styleDefault);
+  dynstring_append_char(&buffer, '\n');
+
+  repl_output(dynstring_view(&buffer));
+  dynstring_destroy(&buffer);
+}
 
 static void repl_output_diag(const String src, const ScriptDiag* diag, const String id) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
@@ -75,25 +105,7 @@ static void repl_output_diag(const String src, const ScriptDiag* diag, const Str
 }
 
 static void repl_output_panic(const String src, const ScriptPanic* panic, const String id) {
-  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
-  DynString buffer    = dynstring_create_over(bufferMem);
-
-  const TtyStyle styleErr     = ttystyle(.bgColor = TtyBgColor_Red, .flags = TtyStyleFlags_Bold);
-  const TtyStyle styleDefault = ttystyle();
-
-  tty_write_style_sequence(&buffer, styleErr);
-
-  if (!string_is_empty(id)) {
-    dynstring_append(&buffer, id);
-    dynstring_append(&buffer, string_lit(": "));
-  }
-  script_panic_pretty_write(&buffer, src, panic);
-
-  tty_write_style_sequence(&buffer, styleDefault);
-  dynstring_append_char(&buffer, '\n');
-
-  repl_output(dynstring_view(&buffer));
-  dynstring_destroy(&buffer);
+  repl_output_error(script_panic_pretty_scratch(src, panic), id);
 }
 
 static void repl_output_sym(const ScriptSymBag* symBag, const ScriptSym sym) {
@@ -157,6 +169,10 @@ static void repl_output_stats(const ScriptDoc* script, const ScriptExpr expr) {
 
   repl_output(dynstring_view(&buffer));
   dynstring_destroy(&buffer);
+}
+
+static void repl_output_code(const ScriptDoc* script, const String code) {
+  repl_output(script_vm_disasm_scratch(script, code));
 }
 
 static TtyFgColor repl_token_color(const ScriptTokenKind tokenKind) {
@@ -326,11 +342,31 @@ static void repl_exec(
     }
     const bool noErrors = script_diag_count(diags, ScriptDiagFilter_Error) == 0;
     if (noErrors && !(flags & ReplFlags_NoEval)) {
-      const ScriptEvalResult evalRes = script_eval(script, mem, expr, binder, null);
-      if (script_panic_valid(&evalRes.panic)) {
-        repl_output_panic(input, &evalRes.panic, id);
-      } else {
-        repl_output(fmt_write_scratch("{}\n", script_val_fmt(evalRes.val)));
+      if (flags & ReplFlags_Vm) {
+        DynString                codeBuffer = dynstring_create(g_allocScratch, usize_kibibyte);
+        const ScriptCompileError compileErr = script_compile(script, expr, &codeBuffer);
+        if (compileErr) {
+          const String errStr = script_compile_error_str(compileErr);
+          repl_output_error(fmt_write_scratch("Compilation failed: {}", fmt_text(errStr)), id);
+        } else {
+          const String code = dynstring_view(&codeBuffer);
+          if (flags & ReplFlags_OutputCode) {
+            repl_output_code(script, code);
+          }
+          const ScriptVmResult vmRes = script_vm_eval(script, code, mem, binder, null);
+          if (script_panic_valid(&vmRes.panic)) {
+            repl_output_panic(input, &vmRes.panic, id);
+          } else {
+            repl_output_val(vmRes.val);
+          }
+        }
+      } else /* !ReplFlags_Vm */ {
+        const ScriptEvalResult evalRes = script_eval(script, expr, mem, binder, null);
+        if (script_panic_valid(&evalRes.panic)) {
+          repl_output_panic(input, &evalRes.panic, id);
+        } else {
+          repl_output_val(evalRes.val);
+        }
       }
     }
   }
@@ -596,7 +632,8 @@ Ret:
 
 static CliId g_optFile;
 static CliId g_optBinder;
-static CliId g_optNoEval, g_optWatch, g_optTokens, g_optAst, g_optStats, g_optSyms;
+static CliId g_optNoEval, g_optVm, g_optWatch;
+static CliId g_optTokens, g_optAst, g_optStats, g_optCode, g_optSyms;
 static CliId g_optHelp;
 
 void app_cli_configure(CliApp* app) {
@@ -615,29 +652,38 @@ void app_cli_configure(CliApp* app) {
   g_optNoEval = cli_register_flag(app, 'n', string_lit("no-eval"), CliOptionFlags_None);
   cli_register_desc(app, g_optNoEval, string_lit("Skip evaluating the input."));
 
+  g_optVm = cli_register_flag(app, 'v', string_lit("vm"), CliOptionFlags_None);
+  cli_register_desc(app, g_optVm, string_lit("Use the VM for evaluating."));
+  cli_register_exclusions(app, g_optVm, g_optNoEval);
+
   g_optWatch = cli_register_flag(app, 'w', string_lit("watch"), CliOptionFlags_None);
   cli_register_desc(app, g_optWatch, string_lit("Reevaluate the script when the file changes."));
 
   g_optTokens = cli_register_flag(app, 't', string_lit("tokens"), CliOptionFlags_None);
-  cli_register_desc(app, g_optTokens, string_lit("Ouput the tokens."));
+  cli_register_desc(app, g_optTokens, string_lit("Output the tokens."));
 
   g_optAst = cli_register_flag(app, 'a', string_lit("ast"), CliOptionFlags_None);
-  cli_register_desc(app, g_optAst, string_lit("Ouput the abstract-syntax-tree expressions."));
+  cli_register_desc(app, g_optAst, string_lit("Output the abstract-syntax-tree expressions."));
 
   g_optStats = cli_register_flag(app, 's', string_lit("stats"), CliOptionFlags_None);
-  cli_register_desc(app, g_optStats, string_lit("Ouput script statistics."));
+  cli_register_desc(app, g_optStats, string_lit("Output script statistics."));
+
+  g_optCode = cli_register_flag(app, 'c', string_lit("code"), CliOptionFlags_None);
+  cli_register_desc(app, g_optCode, string_lit("Output the vm byte-code."));
 
   g_optSyms = cli_register_flag(app, 'y', string_lit("syms"), CliOptionFlags_None);
-  cli_register_desc(app, g_optSyms, string_lit("Ouput script symbols."));
+  cli_register_desc(app, g_optSyms, string_lit("Output script symbols."));
 
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
   cli_register_exclusions(app, g_optHelp, g_optFile);
   cli_register_exclusions(app, g_optHelp, g_optNoEval);
+  cli_register_exclusions(app, g_optHelp, g_optVm);
   cli_register_exclusions(app, g_optHelp, g_optWatch);
   cli_register_exclusions(app, g_optHelp, g_optTokens);
   cli_register_exclusions(app, g_optHelp, g_optAst);
   cli_register_exclusions(app, g_optHelp, g_optStats);
+  cli_register_exclusions(app, g_optHelp, g_optCode);
   cli_register_exclusions(app, g_optHelp, g_optSyms);
   cli_register_exclusions(app, g_optHelp, g_optBinder);
 }
@@ -655,6 +701,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   if (cli_parse_provided(invoc, g_optNoEval)) {
     flags |= ReplFlags_NoEval;
   }
+  if (cli_parse_provided(invoc, g_optVm)) {
+    flags |= ReplFlags_Vm;
+  }
   if (cli_parse_provided(invoc, g_optWatch)) {
     flags |= ReplFlags_Watch;
   }
@@ -666,6 +715,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   }
   if (cli_parse_provided(invoc, g_optStats)) {
     flags |= ReplFlags_OutputStats;
+  }
+  if (cli_parse_provided(invoc, g_optCode)) {
+    flags |= ReplFlags_OutputCode;
   }
   if (cli_parse_provided(invoc, g_optSyms)) {
     flags |= ReplFlags_OutputSymbols;

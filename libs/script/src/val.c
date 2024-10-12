@@ -102,7 +102,11 @@ bool script_truthy(const ScriptVal value) {
   UNREACHABLE
 }
 
+ScriptVal script_truthy_as_val(const ScriptVal value) { return val_bool(script_truthy(value)); }
+
 bool script_falsy(const ScriptVal value) { return !script_truthy(value); }
+
+ScriptVal script_falsy_as_val(const ScriptVal value) { return val_bool(!script_truthy(value)); }
 
 bool script_val_has(const ScriptVal value) { return val_type(value) != ScriptType_Null; }
 
@@ -318,6 +322,10 @@ bool script_val_equal(const ScriptVal a, const ScriptVal b) {
   UNREACHABLE
 }
 
+ScriptVal script_val_equal_as_val(const ScriptVal a, const ScriptVal b) {
+  return val_bool(script_val_equal(a, b));
+}
+
 bool script_val_less(const ScriptVal a, const ScriptVal b) {
   if (val_type(a) != val_type(b)) {
     return false;
@@ -342,6 +350,10 @@ bool script_val_less(const ScriptVal a, const ScriptVal b) {
   }
   diag_assert_fail("Invalid script value");
   UNREACHABLE
+}
+
+ScriptVal script_val_less_as_val(const ScriptVal a, const ScriptVal b) {
+  return val_bool(script_val_less(a, b));
 }
 
 bool script_val_greater(const ScriptVal a, const ScriptVal b) {
@@ -369,6 +381,17 @@ bool script_val_greater(const ScriptVal a, const ScriptVal b) {
   diag_assert_fail("Invalid script value");
   UNREACHABLE
 }
+
+ScriptVal script_val_greater_as_val(const ScriptVal a, const ScriptVal b) {
+  return val_bool(script_val_greater(a, b));
+}
+
+ScriptVal script_val_type(const ScriptVal val) {
+  val_type_hashes_init();
+  return val_str(g_valTypeHashes[val_type(val)]);
+}
+
+ScriptVal script_val_hash(const ScriptVal val) { return val_num(script_hash(val)); }
 
 ScriptVal script_val_neg(const ScriptVal val) {
   switch (val_type(val)) {
@@ -1016,4 +1039,9 @@ ScriptVal script_val_color_compose_hsv(
   const f32 alpha      = (f32)val_as_num(a);
 
   return val_color(geo_color_from_hsv(hue, saturation, value, alpha));
+}
+
+ScriptVal script_val_color_for_val(const ScriptVal v) {
+  const u32 hash = script_hash(v);
+  return val_color(geo_color_for_hash(hash));
 }

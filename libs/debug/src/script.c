@@ -177,9 +177,9 @@ static void info_panel_tab_script_draw(
     }
 
     ui_table_next_row(c, table);
-    ui_label(c, string_lit("Expressions"));
+    ui_label(c, string_lit("Operations"));
     ui_table_next_column(c, table);
-    ui_label(c, fmt_write_scratch("{}", fmt_int(stats->executedExprs)));
+    ui_label(c, fmt_write_scratch("{}", fmt_int(stats->executedOps)));
 
     ui_table_next_row(c, table);
     ui_label(c, string_lit("Duration"));
