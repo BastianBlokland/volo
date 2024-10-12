@@ -97,6 +97,15 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
         ip = mem_begin(code) + ipOffset;
       }
     } continue;
+    case ScriptOp_JumpIfNonNull: {
+      if (UNLIKELY((ip += 4) >= ipEnd)) goto Corrupt;
+      if (UNLIKELY(!vm_reg_valid(ctx, ip[-3]))) goto Corrupt;
+      const u16 ipOffset = vm_read_u16(&ip[-2]);
+      if (UNLIKELY(ipOffset >= (code.size - 1))) goto Corrupt;
+      if (script_val_has(ctx->regs[ip[-3]])) {
+        ip = mem_begin(code) + ipOffset;
+      }
+    } continue;
     case ScriptOp_Value:
       if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;
@@ -301,6 +310,10 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     case ScriptOp_JumpIfFalsy:
       if (UNLIKELY((ip += 4) > ipEnd)) return;
       fmt_write(out, "JumpIfFalsy r{} i{}\n", fmt_int(ip[-3]), fmt_int(vm_read_u16(&ip[-2]),.base = 16, .minDigits = 4));
+      break;
+    case ScriptOp_JumpIfNonNull:
+      if (UNLIKELY((ip += 4) > ipEnd)) return;
+      fmt_write(out, "JumpIfNonNull r{} i{}\n", fmt_int(ip[-3]), fmt_int(vm_read_u16(&ip[-2]),.base = 16, .minDigits = 4));
       break;
     case ScriptOp_Value:
       if (UNLIKELY((ip += 3) > ipEnd)) return;
