@@ -466,8 +466,10 @@ static ScriptCompileError compile_intr_loop(Context* ctx, const RegId dst, const
     return err;
   }
 
-  // Initialize output to null.
-  emit_unary(ctx, ScriptOp_Null, dst);
+  // Initialize output to null in case the loop body is never entered.
+  if (!expr_is_true(ctx, args[1])) {
+    emit_unary(ctx, ScriptOp_Null, dst);
+  }
 
   // Setup expression.
   if (!expr_is_null(ctx, args[0])) {
