@@ -18,6 +18,7 @@ ecs_comp_extern_public(AssetScriptComp) {
   String           sourceText; // Used for reporting error positions.
   const ScriptDoc* doc;
   ScriptExpr       expr;
+  String           code;
 };
 
 extern ScriptBinder* g_assetScriptBinder;

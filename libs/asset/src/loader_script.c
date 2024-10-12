@@ -4,6 +4,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "script_binder.h"
+#include "script_compile.h"
 #include "script_diag.h"
 #include "script_read.h"
 #include "script_sig.h"
@@ -29,6 +30,7 @@ static void ecs_destruct_script_comp(void* data) {
   AssetScriptComp* comp = data;
   string_maybe_free(g_allocHeap, comp->sourceText);
   script_destroy((ScriptDoc*)comp->doc);
+  string_maybe_free(g_allocHeap, comp->code);
 }
 
 ecs_view_define(ScriptUnloadView) {
@@ -808,7 +810,8 @@ void asset_data_init_script(void) {
 void asset_load_script(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
 
-  Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
+  Allocator* tempAlloc  = alloc_bump_create_stack(2 * usize_kibibyte);
+  DynString  codeBuffer = dynstring_create(g_allocHeap, usize_kibibyte);
 
   ScriptDoc*     doc      = script_create(g_allocHeap);
   ScriptDiagBag* diags    = script_diag_bag_create(tempAlloc, ScriptDiagFilter_Error);
@@ -821,7 +824,7 @@ void asset_load_script(
     const ScriptDiag* diag = script_diag_data(diags) + i;
     const String      msg  = script_diag_pretty_scratch(src->data, diag);
     log_e(
-        "Script load error",
+        "Script read error",
         log_param("id", fmt_text(id)),
         log_param("entity", ecs_entity_fmt(entity)),
         log_param("error", fmt_text(msg)));
@@ -833,13 +836,24 @@ void asset_load_script(
     goto Error;
   }
 
+  const ScriptCompileError compileErr = script_compile(doc, expr, &codeBuffer);
+  if (UNLIKELY(compileErr)) {
+    log_e(
+        "Script compile error",
+        log_param("id", fmt_text(id)),
+        log_param("entity", ecs_entity_fmt(entity)),
+        log_param("error", fmt_text(script_compile_error_str(compileErr))));
+    goto Error;
+  }
+
   ecs_world_add_t(
       world,
       entity,
       AssetScriptComp,
       .sourceText = string_maybe_dup(g_allocHeap, src->data),
       .doc        = doc,
-      .expr       = expr);
+      .expr       = expr,
+      .code       = string_maybe_dup(g_allocHeap, dynstring_view(&codeBuffer)));
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   goto Cleanup;
@@ -850,6 +864,7 @@ Error:
 
 Cleanup:
   asset_repo_source_close(src);
+  dynstring_destroy(&codeBuffer);
 }
 
 void asset_script_binder_write(DynString* str) { script_binder_write(str, g_assetScriptBinder); }
