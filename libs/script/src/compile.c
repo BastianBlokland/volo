@@ -330,6 +330,7 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_QuatFromEuler:
     return compile_intr_ternary(ctx, dst, ScriptOp_QuatFromEuler, args);
   case ScriptIntrinsic_QuatFromAngleAxis:
+    return compile_intr_binary(ctx, dst, ScriptOp_QuatFromAngleAxis, args);
   case ScriptIntrinsic_ColorCompose:
   case ScriptIntrinsic_ColorComposeHsv:
   case ScriptIntrinsic_ColorFor:
