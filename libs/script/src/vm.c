@@ -74,7 +74,7 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       ctx->regs[ip[-2]] = ctx->regs[ip[-1]];
       continue;
     case ScriptOp_Jump: {
-      if (UNLIKELY((ip + 3) >= ipEnd)) goto Corrupt;
+      if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
       const u16 ipOffset = vm_read_u16(&ip[-2]);
       if (UNLIKELY(ipOffset >= (code.size - 1))) goto Corrupt;
       ip = mem_begin(code) + ipOffset;
