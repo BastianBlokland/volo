@@ -189,6 +189,7 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
     OP_SIMPLE_ZERO(Random,                script_val_random);
     OP_SIMPLE_ZERO(RandomSphere,          script_val_random_sphere);
     OP_SIMPLE_ZERO(RandomCircleXZ,        script_val_random_circle_xz);
+    OP_SIMPLE_BINARY(RandomBetween,       script_val_random_between);
 
 #undef OP_SIMPLE_QUATERNARY
 #undef OP_SIMPLE_TERNARY
@@ -334,6 +335,7 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     OP_SIMPLE_ZERO(Random);
     OP_SIMPLE_ZERO(RandomSphere);
     OP_SIMPLE_ZERO(RandomCircleXZ);
+    OP_SIMPLE_BINARY(RandomBetween);
 
 #undef OP_SIMPLE_TERNARY
 #undef OP_SIMPLE_BINARY

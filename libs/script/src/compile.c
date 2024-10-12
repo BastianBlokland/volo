@@ -392,6 +392,7 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_RandomCircleXZ:
     return compile_intr_zero(ctx, dst, ScriptOp_RandomCircleXZ);
   case ScriptIntrinsic_RandomBetween:
+    return compile_intr_binary(ctx, dst, ScriptOp_RandomBetween, args);
   case ScriptIntrinsic_RoundDown:
   case ScriptIntrinsic_RoundNearest:
   case ScriptIntrinsic_RoundUp:
