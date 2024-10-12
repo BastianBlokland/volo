@@ -229,6 +229,15 @@ static void emit_extern(Context* ctx, const RegId dst, const ScriptBinderSlot f,
   dynstring_append_char(ctx->out, in.count);
 }
 
+static bool expr_is_null(Context* ctx, const ScriptExpr e) {
+  if (expr_kind(ctx->doc, e) != ScriptExprKind_Value) {
+    return false;
+  }
+  const ScriptExprValue* data = &expr_data(ctx->doc, e)->value;
+  const ScriptVal        val  = *dynarray_at_t(&ctx->doc->values, data->valId, ScriptVal);
+  return script_type(val) == ScriptType_Null;
+}
+
 static ScriptCompileError compile_expr(Context*, RegId dst, ScriptExpr);
 
 static ScriptCompileError compile_value(Context* ctx, const RegId dst, const ScriptExpr e) {
@@ -452,8 +461,10 @@ static ScriptCompileError compile_intr_loop(Context* ctx, const RegId dst, const
   emit_unary(ctx, ScriptOp_Null, dst);
 
   // Setup expression.
-  if ((err = compile_expr(ctx, tmpReg, args[0]))) {
-    return err;
+  if (!expr_is_null(ctx, args[0])) {
+    if ((err = compile_expr(ctx, tmpReg, args[0]))) {
+      return err;
+    }
   }
   ctx->loopLabelCond = label_alloc(ctx);
   ctx->loopLabelEnd  = label_alloc(ctx);
@@ -471,8 +482,10 @@ static ScriptCompileError compile_intr_loop(Context* ctx, const RegId dst, const
   }
 
   // Increment expression.
-  if ((err = compile_expr(ctx, tmpReg, args[2]))) {
-    return err;
+  if (!expr_is_null(ctx, args[2])) {
+    if ((err = compile_expr(ctx, tmpReg, args[2]))) {
+      return err;
+    }
   }
   emit_jump(ctx, ctx->loopLabelCond);
 
