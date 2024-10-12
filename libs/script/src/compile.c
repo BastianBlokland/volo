@@ -192,6 +192,11 @@ static void emit_move(Context* ctx, const RegId dst, const RegId src) {
   }
 }
 
+static void emit_jump(Context* ctx, const LabelId label) {
+  emit_op(ctx, ScriptOp_Jump);
+  label_write(ctx, label);
+}
+
 static void emit_jump_if_truthy(Context* ctx, const RegId cond, const LabelId label) {
   diag_assert(cond < script_vm_regs);
   emit_op(ctx, ScriptOp_JumpIfTruthy);
@@ -351,6 +356,29 @@ compile_intr_quaternary(Context* ctx, const RegId dst, const ScriptOp op, const 
 }
 
 static ScriptCompileError
+compile_intr_select(Context* ctx, const RegId dst, const ScriptExpr* args) {
+  ScriptCompileError err = ScriptCompileError_None;
+  if ((err = compile_expr(ctx, dst, args[0]))) {
+    return err;
+  }
+  const LabelId retLabel = label_alloc(ctx), falseLabel = label_alloc(ctx);
+  emit_jump_if_falsy(ctx, dst, falseLabel);
+
+  if ((err = compile_expr(ctx, dst, args[1]))) {
+    return err;
+  }
+  emit_jump(ctx, retLabel);
+
+  label_link(ctx, falseLabel);
+  if ((err = compile_expr(ctx, dst, args[2]))) {
+    return err;
+  }
+
+  label_link(ctx, retLabel);
+  return err;
+}
+
+static ScriptCompileError
 compile_intr_logic_and(Context* ctx, const RegId dst, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
   if ((err = compile_expr(ctx, dst, args[0]))) {
@@ -407,6 +435,7 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_MemStoreDynamic:
     return compile_intr_binary(ctx, dst, ScriptOp_MemStoreDyn, args);
   case ScriptIntrinsic_Select:
+    return compile_intr_select(ctx, dst, args);
   case ScriptIntrinsic_NullCoalescing:
     emit_op(ctx, ScriptOp_Fail);
     return ScriptCompileError_None;
