@@ -251,6 +251,10 @@ static bool expr_is_true(Context* ctx, const ScriptExpr e) {
 static ScriptCompileError compile_expr(Context*, RegId dst, ScriptExpr);
 
 static ScriptCompileError compile_value(Context* ctx, const RegId dst, const ScriptExpr e) {
+  if (expr_is_null(ctx, e)) {
+    emit_unary(ctx, ScriptOp_Null, dst);
+    return ScriptCompileError_None;
+  }
   const ScriptExprValue* data = &expr_data(ctx->doc, e)->value;
   if (UNLIKELY(data->valId > u8_max)) {
     return ScriptCompileError_TooManyValues;
