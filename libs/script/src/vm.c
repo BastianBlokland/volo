@@ -9,11 +9,14 @@
 #include "doc_internal.h"
 #include "val_internal.h"
 
+#define script_vm_ops_max 25000
+
 typedef struct {
   const ScriptDoc*    doc;
   ScriptMem*          m;
   const ScriptBinder* binder;
   void*               bindCtx;
+  u32                 executedOps;
   ScriptPanic         panic;
   ScriptVal           regs[script_vm_regs];
 } ScriptVmContext;
@@ -50,6 +53,10 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
     goto Corrupt;
   }
   for (;;) {
+    if (UNLIKELY(ctx->executedOps++ == script_vm_ops_max)) {
+      ctx->panic = (ScriptPanic){.kind = ScriptPanic_ExecutionLimitExceeded};
+      return val_null();
+    }
     // clang-format off
     switch ((ScriptOp)*ip) {
     case ScriptOp_Fail:
