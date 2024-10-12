@@ -288,8 +288,11 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_Absolute:
     return compile_intr_unary(ctx, dst, ScriptOp_Absolute, args);
   case ScriptIntrinsic_VecX:
+    return compile_intr_unary(ctx, dst, ScriptOp_VecX, args);
   case ScriptIntrinsic_VecY:
+    return compile_intr_unary(ctx, dst, ScriptOp_VecY, args);
   case ScriptIntrinsic_VecZ:
+    return compile_intr_unary(ctx, dst, ScriptOp_VecZ, args);
   case ScriptIntrinsic_Vec3Compose:
   case ScriptIntrinsic_QuatFromEuler:
   case ScriptIntrinsic_QuatFromAngleAxis:

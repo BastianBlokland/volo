@@ -153,6 +153,9 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
     OP_SIMPLE_UNARY(Normalize, script_val_norm);
     OP_SIMPLE_UNARY(Magnitude, script_val_mag);
     OP_SIMPLE_UNARY(Absolute,  script_val_abs);
+    OP_SIMPLE_UNARY(VecX,      script_val_vec_x);
+    OP_SIMPLE_UNARY(VecY,      script_val_vec_y);
+    OP_SIMPLE_UNARY(VecZ,      script_val_vec_z);
 
 #undef OP_SIMPLE_BINARY
 #undef OP_SIMPLE_UNARY
@@ -266,6 +269,9 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     OP_SIMPLE_UNARY(Normalize);
     OP_SIMPLE_UNARY(Magnitude);
     OP_SIMPLE_UNARY(Absolute);
+    OP_SIMPLE_UNARY(VecX);
+    OP_SIMPLE_UNARY(VecY);
+    OP_SIMPLE_UNARY(VecZ);
 
 #undef OP_SIMPLE_BINARY
 #undef OP_SIMPLE_UNARY

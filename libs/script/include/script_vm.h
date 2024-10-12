@@ -60,6 +60,9 @@ typedef enum {
   ScriptOp_Normalize   = 26, // [d      ] (d  ) -> (d) Normalize register 'd'.
   ScriptOp_Magnitude   = 27, // [d      ] (d  ) -> (d) Compute the magnitude of register 'd'.
   ScriptOp_Absolute    = 28, // [d      ] (d  ) -> (d) Normalize register 'd'.
+  ScriptOp_VecX        = 29, // [d      ] (d  ) -> (d) Retrieve the x component of a vector in register 'd'.
+  ScriptOp_VecY        = 30, // [d      ] (d  ) -> (d) Retrieve the y component of a vector in register 'd'.
+  ScriptOp_VecZ        = 31, // [d      ] (d  ) -> (d) Retrieve the z component of a vector in register 'd'.
 } ScriptOp;
 
 // clang-format on
