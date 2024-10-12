@@ -230,14 +230,35 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_LogicAnd:
   case ScriptIntrinsic_LogicOr:
   case ScriptIntrinsic_Loop:
-  case ScriptIntrinsic_Equal:
-  case ScriptIntrinsic_NotEqual:
-  case ScriptIntrinsic_Less:
-  case ScriptIntrinsic_LessOrEqual:
-  case ScriptIntrinsic_Greater:
-  case ScriptIntrinsic_GreaterOrEqual:
     emit_op(ctx, ScriptOp_Fail);
     return ScriptCompileError_None;
+  case ScriptIntrinsic_Equal:
+    return compile_intr_binary(ctx, dst, ScriptOp_Equal, args);
+  case ScriptIntrinsic_NotEqual: {
+    const ScriptCompileError err = compile_intr_binary(ctx, dst, ScriptOp_Equal, args);
+    if (!err) {
+      emit_unary(ctx, ScriptOp_Invert, dst);
+    }
+    return err;
+  }
+  case ScriptIntrinsic_Less:
+    return compile_intr_binary(ctx, dst, ScriptOp_Less, args);
+  case ScriptIntrinsic_LessOrEqual: {
+    const ScriptCompileError err = compile_intr_binary(ctx, dst, ScriptOp_Greater, args);
+    if (!err) {
+      emit_unary(ctx, ScriptOp_Invert, dst);
+    }
+    return err;
+  }
+  case ScriptIntrinsic_Greater:
+    return compile_intr_binary(ctx, dst, ScriptOp_Greater, args);
+  case ScriptIntrinsic_GreaterOrEqual: {
+    const ScriptCompileError err = compile_intr_binary(ctx, dst, ScriptOp_Less, args);
+    if (!err) {
+      emit_unary(ctx, ScriptOp_Invert, dst);
+    }
+    return err;
+  }
   case ScriptIntrinsic_Add:
     return compile_intr_binary(ctx, dst, ScriptOp_Add, args);
   case ScriptIntrinsic_Sub:
