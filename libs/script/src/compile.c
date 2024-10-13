@@ -3,6 +3,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
+#include "core_math.h"
 #include "script_compile.h"
 #include "script_vm.h"
 
@@ -37,11 +38,14 @@ typedef struct {
 
 typedef struct {
   RegId reg;
-  bool  optional;
+  bool  optional, jumpCondition;
 } Target;
 
 #define target_reg(_REG_)                                                                          \
   (Target) { .reg = (_REG_) }
+
+#define target_reg_jump_cond(_REG_)                                                                \
+  (Target) { .reg = (_REG_), .jumpCondition = true }
 
 #define target_reg_opt(_REG_)                                                                      \
   (Target) { .reg = (_REG_), .optional = true }
@@ -59,6 +63,11 @@ typedef struct {
   DynArray labels;       // Label[].
   DynArray labelPatches; // LabelPatch[].
 } Context;
+
+static Target target_required(Target tgt) {
+  tgt.optional = false;
+  return tgt;
+}
 
 MAYBE_UNUSED static u32 reg_available(Context* ctx) { return bits_popcnt_64(ctx->regAvailability); }
 
@@ -153,6 +162,20 @@ static void emit_value(Context* ctx, const RegId dst, const u8 valId) {
   emit_op(ctx, ScriptOp_Value);
   dynstring_append_char(ctx->out, dst);
   dynstring_append_char(ctx->out, valId);
+}
+
+static void emit_value_bool(Context* ctx, const RegId dst, const bool val) {
+  diag_assert(dst < script_vm_regs);
+  emit_op(ctx, ScriptOp_ValueBool);
+  dynstring_append_char(ctx->out, dst);
+  dynstring_append_char(ctx->out, val);
+}
+
+static void emit_value_small_int(Context* ctx, const RegId dst, const u8 val) {
+  diag_assert(dst < script_vm_regs);
+  emit_op(ctx, ScriptOp_ValueSmallInt);
+  dynstring_append_char(ctx->out, dst);
+  dynstring_append_char(ctx->out, val);
 }
 
 static void emit_unary(Context* ctx, const ScriptOp op, const RegId dst) {
@@ -259,20 +282,47 @@ static bool expr_is_true(Context* ctx, const ScriptExpr e) {
   return script_get_bool(val, false);
 }
 
+static bool expr_is_var_load(Context* ctx, const ScriptExpr e) {
+  return expr_kind(ctx->doc, e) == ScriptExprKind_VarLoad;
+}
+
+static bool expr_is_intrinsic(Context* ctx, const ScriptExpr e, const ScriptIntrinsic intr) {
+  if (expr_kind(ctx->doc, e) != ScriptExprKind_Intrinsic) {
+    return false;
+  }
+  const ScriptExprIntrinsic* data = &expr_data(ctx->doc, e)->intrinsic;
+  return data->intrinsic == intr;
+}
+
 static ScriptCompileError compile_expr(Context*, Target, ScriptExpr);
 
 static ScriptCompileError compile_value(Context* ctx, const Target tgt, const ScriptExpr e) {
-  if (expr_is_null(ctx, e)) {
-    emit_unary(ctx, ScriptOp_Null, tgt.reg);
+  if (tgt.optional) {
     return ScriptCompileError_None;
   }
   const ScriptExprValue* data = &expr_data(ctx->doc, e)->value;
-  if (UNLIKELY(data->valId > u8_max)) {
-    return ScriptCompileError_TooManyValues;
-  }
-  if (!tgt.optional) {
-    // NOTE: Optional value doesn't make sense and should produce warnings during read.
+  const ScriptVal        val  = *dynarray_at_t(&ctx->doc->values, data->valId, ScriptVal);
+  switch (script_type(val)) {
+  case ScriptType_Null:
+    emit_unary(ctx, ScriptOp_ValueNull, tgt.reg);
+    break;
+  case ScriptType_Bool:
+    emit_value_bool(ctx, tgt.reg, script_get_bool(val, false));
+    break;
+  case ScriptType_Num: {
+    const f64 num     = script_get_num(val, 0.0);
+    const f64 rounded = math_round_nearest_f64(num);
+    if (num == rounded && rounded <= u8_max) {
+      emit_value_small_int(ctx, tgt.reg, (u8)rounded);
+      break;
+    }
+  } // Fallthrough.
+  default:
+    if (UNLIKELY(data->valId > u8_max)) {
+      return ScriptCompileError_TooManyValues;
+    }
     emit_value(ctx, tgt.reg, (u8)data->valId);
+    break;
   }
   return ScriptCompileError_None;
 }
@@ -318,7 +368,19 @@ static ScriptCompileError compile_mem_load(Context* ctx, const Target tgt, const
 
 static ScriptCompileError compile_mem_store(Context* ctx, const Target tgt, const ScriptExpr e) {
   const ScriptExprMemStore* data = &expr_data(ctx->doc, e)->mem_store;
-  ScriptCompileError        err  = ScriptCompileError_None;
+
+  if (tgt.optional && expr_is_var_load(ctx, data->val)) {
+    /**
+     * Fast path for storing a variable to memory when the target register is optional; We can skip
+     * the load and instead directly store the variable register.
+     */
+    const ScriptExprVarLoad* varLoadData = &expr_data(ctx->doc, data->val)->var_load;
+    diag_assert(!sentinel_check(ctx->varRegisters[varLoadData->var]));
+    emit_mem_op(ctx, ScriptOp_MemStore, ctx->varRegisters[varLoadData->var], data->key);
+    return ScriptCompileError_None;
+  }
+
+  ScriptCompileError err = ScriptCompileError_None;
   if ((err = compile_expr(ctx, target_reg(tgt.reg), data->val))) {
     return err;
   }
@@ -413,19 +475,40 @@ compile_intr_quaternary(Context* ctx, const Target tgt, const ScriptOp op, const
 static ScriptCompileError
 compile_intr_select(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
-    return err;
+  // Condition.
+  const bool invert = expr_is_intrinsic(ctx, args[0], ScriptIntrinsic_Invert);
+  if (invert) {
+    // Fast path for inverted conditions; we can skip the invert expr and instead invert the jump.
+    const ScriptExprIntrinsic* invertData = &expr_data(ctx->doc, args[0])->intrinsic;
+    const ScriptExpr*          invertArgs = expr_set_data(ctx->doc, invertData->argSet);
+    if ((err = compile_expr(ctx, target_reg_jump_cond(tgt.reg), invertArgs[0]))) {
+      return err;
+    }
+  } else {
+    if ((err = compile_expr(ctx, target_reg_jump_cond(tgt.reg), args[0]))) {
+      return err;
+    }
   }
   const LabelId retLabel = label_alloc(ctx), falseLabel = label_alloc(ctx);
-  emit_jump_if_falsy(ctx, tgt.reg, falseLabel);
+  if (invert) {
+    emit_jump_if_truthy(ctx, tgt.reg, falseLabel);
+  } else {
+    emit_jump_if_falsy(ctx, tgt.reg, falseLabel);
+  }
 
-  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[1]))) {
+  // If branch.
+  if ((err = compile_expr(ctx, tgt, args[1]))) {
     return err;
   }
-  emit_jump(ctx, retLabel);
+  const bool skipElse = tgt.optional && expr_is_null(ctx, args[2]);
+  if (!skipElse) {
+    emit_jump(ctx, retLabel); // Skip over the else branch.
+  }
 
   label_link(ctx, falseLabel);
-  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[2]))) {
+
+  // Else branch.
+  if (!skipElse && (err = compile_expr(ctx, tgt, args[2]))) {
     return err;
   }
 
@@ -453,36 +536,40 @@ compile_intr_null_coalescing(Context* ctx, const Target tgt, const ScriptExpr* a
 static ScriptCompileError
 compile_intr_logic_and(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
+  if ((err = compile_expr(ctx, target_required(tgt), args[0]))) {
     return err;
   }
   const LabelId retLabel = label_alloc(ctx);
   emit_jump_if_falsy(ctx, tgt.reg, retLabel);
 
-  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[1]))) {
+  if ((err = compile_expr(ctx, target_required(tgt), args[1]))) {
     return err;
   }
 
   label_link(ctx, retLabel);
-  emit_unary(ctx, ScriptOp_Truthy, tgt.reg); // Convert to result to boolean.
+  if (!tgt.jumpCondition) {
+    emit_unary(ctx, ScriptOp_Truthy, tgt.reg); // Convert the result to boolean.
+  }
   return err;
 }
 
 static ScriptCompileError
 compile_intr_logic_or(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
+  if ((err = compile_expr(ctx, target_required(tgt), args[0]))) {
     return err;
   }
   const LabelId retLabel = label_alloc(ctx);
   emit_jump_if_truthy(ctx, tgt.reg, retLabel);
 
-  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[1]))) {
+  if ((err = compile_expr(ctx, target_required(tgt), args[1]))) {
     return err;
   }
 
   label_link(ctx, retLabel);
-  emit_unary(ctx, ScriptOp_Truthy, tgt.reg); // Convert to result to boolean.
+  if (!tgt.jumpCondition) {
+    emit_unary(ctx, ScriptOp_Truthy, tgt.reg); // Convert the result to boolean.
+  }
   return err;
 }
 
@@ -497,7 +584,7 @@ compile_intr_loop(Context* ctx, const Target tgt, const ScriptExpr* args) {
 
   // Initialize output to null in case the loop body is never entered.
   if (!tgt.optional && !expr_is_true(ctx, args[1])) {
-    emit_unary(ctx, ScriptOp_Null, tgt.reg);
+    emit_unary(ctx, ScriptOp_ValueNull, tgt.reg);
   }
 
   // Setup expression.
@@ -517,10 +604,21 @@ compile_intr_loop(Context* ctx, const Target tgt, const ScriptExpr* args) {
   }
   label_link(ctx, labelCond);
   if (!expr_is_true(ctx, args[1])) {
-    if ((err = compile_expr(ctx, target_reg(tmpReg), args[1]))) {
-      return err;
+    const bool invert = expr_is_intrinsic(ctx, args[1], ScriptIntrinsic_Invert);
+    if (invert) {
+      // Fast path for inverted conditions; we can skip the invert expr and instead invert the jump.
+      const ScriptExprIntrinsic* invertData = &expr_data(ctx->doc, args[1])->intrinsic;
+      const ScriptExpr*          invertArgs = expr_set_data(ctx->doc, invertData->argSet);
+      if ((err = compile_expr(ctx, target_reg_jump_cond(tmpReg), invertArgs[0]))) {
+        return err;
+      }
+      emit_jump_if_truthy(ctx, tmpReg, ctx->loopLabelEnd);
+    } else {
+      if ((err = compile_expr(ctx, target_reg_jump_cond(tmpReg), args[1]))) {
+        return err;
+      }
+      emit_jump_if_falsy(ctx, tmpReg, ctx->loopLabelEnd);
     }
-    emit_jump_if_falsy(ctx, tmpReg, ctx->loopLabelEnd);
   }
 
   // Body expression.
@@ -564,8 +662,13 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
     return compile_intr_continue(ctx);
   case ScriptIntrinsic_Break:
     return compile_intr_break(ctx);
-  case ScriptIntrinsic_Return:
+  case ScriptIntrinsic_Return: {
+    if (expr_is_null(ctx, args[0])) {
+      emit_op(ctx, ScriptOp_ReturnNull);
+      return ScriptCompileError_None;
+    }
     return compile_intr_unary(ctx, tgt, ScriptOp_Return, args);
+  }
   case ScriptIntrinsic_Type:
     return compile_intr_unary(ctx, tgt, ScriptOp_Type, args);
   case ScriptIntrinsic_Hash:
@@ -589,6 +692,12 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
   case ScriptIntrinsic_Equal:
     return compile_intr_binary(ctx, tgt, ScriptOp_Equal, args);
   case ScriptIntrinsic_NotEqual: {
+    if (expr_is_null(ctx, args[0])) {
+      return compile_intr_unary(ctx, tgt, ScriptOp_NonNull, &args[1]);
+    }
+    if (expr_is_null(ctx, args[1])) {
+      return compile_intr_unary(ctx, tgt, ScriptOp_NonNull, &args[0]);
+    }
     const ScriptCompileError err = compile_intr_binary(ctx, tgt, ScriptOp_Equal, args);
     if (!err) {
       emit_unary(ctx, ScriptOp_Invert, tgt.reg);
@@ -709,7 +818,18 @@ static ScriptCompileError compile_block(Context* ctx, const Target tgt, const Sc
 static ScriptCompileError compile_extern(Context* ctx, const Target tgt, const ScriptExpr e) {
   const ScriptExprExtern* data     = &expr_data(ctx->doc, e)->extern_;
   const ScriptExpr*       argExprs = expr_set_data(ctx->doc, data->argSet);
-  const RegSet            argRegs  = reg_alloc_set(ctx, data->argCount);
+  if (data->argCount == 1 && expr_is_var_load(ctx, argExprs[0])) {
+    /**
+     * Fast path for calling an extern func with a single variable argument, in this case we can
+     * skip loading the variable and pass the variable register directly as an argument set.
+     */
+    const ScriptExprVarLoad* varLoadData = &expr_data(ctx->doc, argExprs[0])->var_load;
+    diag_assert(!sentinel_check(ctx->varRegisters[varLoadData->var]));
+    const RegSet argRegs = {.begin = ctx->varRegisters[varLoadData->var], .count = 1};
+    emit_extern(ctx, tgt.reg, data->func, argRegs);
+    return ScriptCompileError_None;
+  }
+  const RegSet argRegs = reg_alloc_set(ctx, data->argCount);
   if (sentinel_check(argRegs.begin)) {
     return ScriptCompileError_TooManyRegisters;
   }
@@ -772,7 +892,7 @@ ScriptCompileError script_compile(const ScriptDoc* doc, const ScriptExpr expr, D
 
   ScriptCompileError err = compile_expr(&ctx, target_reg(resultReg), expr);
   if (!err) {
-    if (ctx.lastOp != ScriptOp_Return) {
+    if (ctx.lastOp != ScriptOp_Return && ctx.lastOp != ScriptOp_ReturnNull) {
       emit_unary(&ctx, ScriptOp_Return, resultReg);
     }
 

@@ -75,6 +75,8 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       if (UNLIKELY((ip += 2) > ipEnd)) goto Corrupt;
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;
       return ctx->regs[ip[-1]];
+    case ScriptOp_ReturnNull:
+      return val_null();
     case ScriptOp_Move:
       if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;
@@ -110,7 +112,7 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-3]))) goto Corrupt;
       const u16 ipOffset = vm_read_u16(&ip[-2]);
       if (UNLIKELY(ipOffset >= (code.size - 1))) goto Corrupt;
-      if (script_val_has(ctx->regs[ip[-3]])) {
+      if (script_non_null(ctx->regs[ip[-3]])) {
         ip = mem_begin(code) + ipOffset;
       }
     } continue;
@@ -119,6 +121,21 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;
       if (UNLIKELY(!vm_val_valid(ctx, ip[-1]))) goto Corrupt;
       ctx->regs[ip[-2]] = dynarray_begin_t(&ctx->doc->values, ScriptVal)[ip[-1]];
+      continue;
+    case ScriptOp_ValueNull:
+      if (UNLIKELY((ip += 2) >= ipEnd)) goto Corrupt;
+      if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;
+      ctx->regs[ip[-1]] = val_null();
+      continue;
+    case ScriptOp_ValueBool:
+      if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
+      if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;
+      ctx->regs[ip[-2]] = val_bool(ip[-1] != 0);
+      continue;
+    case ScriptOp_ValueSmallInt:
+      if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
+      if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;
+      ctx->regs[ip[-2]] = val_num(ip[-1]);
       continue;
     case ScriptOp_MemLoad:
       if (UNLIKELY((ip += 6) >= ipEnd)) goto Corrupt;
@@ -202,9 +219,9 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
         _FUNC_(ctx->regs[ip[-4]], ctx->regs[ip[-3]], ctx->regs[ip[-2]], ctx->regs[ip[-1]]);        \
       continue
 
-    OP_SIMPLE_ZERO(Null,                  script_null);
     OP_SIMPLE_UNARY(Truthy,               script_truthy_as_val);
     OP_SIMPLE_UNARY(Falsy,                script_falsy_as_val);
+    OP_SIMPLE_UNARY(NonNull,              script_non_null_as_val);
     OP_SIMPLE_UNARY(Type,                 script_val_type);
     OP_SIMPLE_UNARY(Hash,                 script_val_hash);
     OP_SIMPLE_BINARY(Equal,               script_val_equal_as_val);
@@ -305,6 +322,10 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       if (UNLIKELY((ip += 2) > ipEnd)) return;
       fmt_write(out, "Return r{}\n", fmt_int(ip[-1]));
       break;
+    case ScriptOp_ReturnNull:
+      if (UNLIKELY((ip += 1) > ipEnd)) return;
+      fmt_write(out, "ReturnNull\n");
+      break;
     case ScriptOp_Move:
       if (UNLIKELY((ip += 3) > ipEnd)) return;
       fmt_write(out, "Move r{} r{}\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
@@ -328,6 +349,18 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     case ScriptOp_Value:
       if (UNLIKELY((ip += 3) > ipEnd)) return;
       fmt_write(out, "Value r{} v{}\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
+      break;
+    case ScriptOp_ValueNull:
+      if (UNLIKELY((ip += 2) > ipEnd)) return;
+      fmt_write(out, "ValueNull r{}\n", fmt_int(ip[-1]));
+      break;
+    case ScriptOp_ValueBool:
+      if (UNLIKELY((ip += 3) > ipEnd)) return;
+      fmt_write(out, "ValueBool r{} {}\n", fmt_int(ip[-2]), fmt_bool(ip[-1]));
+      break;
+    case ScriptOp_ValueSmallInt:
+      if (UNLIKELY((ip += 3) > ipEnd)) return;
+      fmt_write(out, "ValueSmallInt r{} {}\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
       break;
     case ScriptOp_MemLoad:
       if (UNLIKELY((ip += 6) > ipEnd)) return;
@@ -377,9 +410,9 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
         fmt_int(ip[-4]), fmt_int(ip[-3]), fmt_int(ip[-2]), fmt_int(ip[-1]));                       \
       break
 
-    OP_SIMPLE_ZERO(Null);
     OP_SIMPLE_UNARY(Truthy);
     OP_SIMPLE_UNARY(Falsy);
+    OP_SIMPLE_UNARY(NonNull);
     OP_SIMPLE_UNARY(Type);
     OP_SIMPLE_UNARY(Hash);
     OP_SIMPLE_BINARY(Equal);

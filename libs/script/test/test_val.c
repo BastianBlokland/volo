@@ -180,8 +180,8 @@ spec(val) {
   }
 
   it("can test if a value is not null") {
-    check(script_val_has(script_num(42)));
-    check(!script_val_has(script_null()));
+    check(script_non_null(script_num(42)));
+    check(!script_non_null(script_null()));
   }
 
   it("can return a default if the value is null") {

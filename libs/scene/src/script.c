@@ -1662,7 +1662,7 @@ static ScriptVal eval_random_of(EvalContext* ctx, const ScriptArgs args, ScriptE
   }
 
   for (u16 i = 0; i != args.count; ++i) {
-    if (script_val_has(args.values[i])) {
+    if (script_non_null(args.values[i])) {
       choices[choiceCount++] = args.values[i];
     }
   }

@@ -100,7 +100,8 @@ bool      script_truthy(ScriptVal);
 ScriptVal script_truthy_as_val(ScriptVal);
 bool      script_falsy(ScriptVal);
 ScriptVal script_falsy_as_val(ScriptVal);
-bool      script_val_has(ScriptVal);
+bool      script_non_null(ScriptVal);
+ScriptVal script_non_null_as_val(ScriptVal);
 ScriptVal script_val_or(ScriptVal value, ScriptVal fallback);
 u32       script_hash(ScriptVal);
 
