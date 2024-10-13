@@ -84,8 +84,17 @@ typedef struct {
   ScriptPosLineCol pos;
 } DebugEditorRequest;
 
+typedef struct {
+  String       id;
+  EcsEntityId  entity;
+  u32          totalEntities;
+  u32          totalOperations;
+  TimeDuration totalDuration;
+} DebugScriptAsset;
+
 ecs_comp_define(DebugScriptTrackerComp) {
   DynArray outputEntries; // DebugScriptOutput[]
+  DynArray assetEntries;  // DebugScriptAsset[]
   bool     autoOpenOnPanic;
 };
 
@@ -103,6 +112,7 @@ ecs_comp_define(DebugScriptPanelComp) {
 static void ecs_destruct_script_tracker(void* data) {
   DebugScriptTrackerComp* comp = data;
   dynarray_destroy(&comp->outputEntries);
+  dynarray_destroy(&comp->assetEntries);
 }
 
 static void ecs_destroy_script_panel(void* data) {
@@ -418,7 +428,13 @@ static DebugScriptTrackerComp* tracker_create(EcsWorld* world) {
       ecs_world_global(world),
       DebugScriptTrackerComp,
       .outputEntries   = dynarray_create_t(g_allocHeap, DebugScriptOutput, 64),
+      .assetEntries    = dynarray_create_t(g_allocHeap, DebugScriptAsset, 32),
       .autoOpenOnPanic = true);
+}
+
+static i8 tracker_compare_asset(const void* a, const void* b) {
+  return ecs_compare_entity(
+      field_ptr(a, DebugScriptAsset, entity), field_ptr(b, DebugScriptAsset, entity));
 }
 
 static bool tracker_has_panic(const DebugScriptTrackerComp* tracker) {
@@ -474,14 +490,32 @@ static void tracker_output_add(
   mem_cpy(mem_create(entry->msgData, entry->msgLength), string_slice(message, 0, entry->msgLength));
 }
 
+static void tracker_asset_add(
+    DebugScriptTrackerComp* tracker,
+    const EcsEntityId       entity,
+    const String            id,
+    const SceneScriptStats* stats) {
+  const DebugScriptAsset compareTarget = {.entity = entity};
+  DebugScriptAsset*      entry =
+      dynarray_find_or_insert_sorted(&tracker->assetEntries, tracker_compare_asset, &compareTarget);
+
+  entry->id     = id;
+  entry->entity = entity;
+  entry->totalEntities += 1;
+  entry->totalOperations += stats->executedOps;
+  entry->totalDuration += stats->executedDur;
+}
+
 static void
 tracker_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* subjectView) {
   const TimeReal now          = time_real_clock();
   const TimeReal oldestToKeep = time_real_offset(now, -output_max_age);
   tracker_prune_older(tracker, oldestToKeep);
 
-  const AssetComp*       assetComps[64];
-  const AssetScriptComp* assetScripts[64];
+  const AssetComp*       assetComps[32];
+  const AssetScriptComp* assetScripts[32];
+
+  dynarray_clear(&tracker->assetEntries);
 
   for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
     const EcsEntityId      entity         = ecs_view_entity(itr);
@@ -502,6 +536,9 @@ tracker_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* s
       ecs_view_jump(assetItr, scene_script_asset(scriptInstance, slot));
       assetComps[slot]   = ecs_view_read_t(assetItr, AssetComp);
       assetScripts[slot] = ecs_view_read_t(assetItr, AssetScriptComp);
+
+      const SceneScriptStats* stats = scene_script_stats(scriptInstance, slot);
+      tracker_asset_add(tracker, ecs_view_entity(assetItr), asset_id(assetComps[slot]), stats);
 
       // Output panics.
       const ScriptPanic* panic = scene_script_panic(scriptInstance, slot);
