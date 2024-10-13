@@ -263,7 +263,9 @@ static ScriptCompileError compile_expr(Context*, Target, ScriptExpr);
 
 static ScriptCompileError compile_value(Context* ctx, const Target tgt, const ScriptExpr e) {
   if (expr_is_null(ctx, e)) {
-    emit_unary(ctx, ScriptOp_Null, tgt.reg);
+    if (!tgt.optional) {
+      emit_unary(ctx, ScriptOp_Null, tgt.reg);
+    }
     return ScriptCompileError_None;
   }
   const ScriptExprValue* data = &expr_data(ctx->doc, e)->value;
@@ -271,7 +273,6 @@ static ScriptCompileError compile_value(Context* ctx, const Target tgt, const Sc
     return ScriptCompileError_TooManyValues;
   }
   if (!tgt.optional) {
-    // NOTE: Optional value doesn't make sense and should produce warnings during read.
     emit_value(ctx, tgt.reg, (u8)data->valId);
   }
   return ScriptCompileError_None;
