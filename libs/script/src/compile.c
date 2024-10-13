@@ -363,7 +363,19 @@ static ScriptCompileError compile_mem_load(Context* ctx, const Target tgt, const
 
 static ScriptCompileError compile_mem_store(Context* ctx, const Target tgt, const ScriptExpr e) {
   const ScriptExprMemStore* data = &expr_data(ctx->doc, e)->mem_store;
-  ScriptCompileError        err  = ScriptCompileError_None;
+
+  if (tgt.optional && expr_is_var_load(ctx, data->val)) {
+    /**
+     * Fast path for storing a variable to memory when the target register is optional; We can skip
+     * the load and instead directly store the variable register.
+     */
+    const ScriptExprVarLoad* varLoadData = &expr_data(ctx->doc, data->val)->var_load;
+    diag_assert(!sentinel_check(ctx->varRegisters[varLoadData->var]));
+    emit_mem_op(ctx, ScriptOp_MemStore, ctx->varRegisters[varLoadData->var], data->key);
+    return ScriptCompileError_None;
+  }
+
+  ScriptCompileError err = ScriptCompileError_None;
   if ((err = compile_expr(ctx, target_reg(tgt.reg), data->val))) {
     return err;
   }
