@@ -480,7 +480,7 @@ compile_intr_select(Context* ctx, const Target tgt, const ScriptExpr* args) {
   }
 
   // If branch.
-  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[1]))) {
+  if ((err = compile_expr(ctx, tgt, args[1]))) {
     return err;
   }
   const bool skipElse = tgt.optional && expr_is_null(ctx, args[2]);
@@ -491,7 +491,7 @@ compile_intr_select(Context* ctx, const Target tgt, const ScriptExpr* args) {
   label_link(ctx, falseLabel);
 
   // Else branch.
-  if (!skipElse && (err = compile_expr(ctx, target_reg(tgt.reg), args[2]))) {
+  if (!skipElse && (err = compile_expr(ctx, tgt, args[2]))) {
     return err;
   }
 
