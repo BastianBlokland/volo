@@ -34,6 +34,7 @@ typedef enum {
   DebugScriptTab_Info,
   DebugScriptTab_Memory,
   DebugScriptTab_Output,
+  DebugScriptTab_Global,
 
   DebugScriptTab_Count,
 } DebugScriptTab;
@@ -42,6 +43,7 @@ static const String g_scriptTabNames[] = {
     string_static("Info"),
     string_static("\uE322 Memory"),
     string_static("Output"),
+    string_static("Global"),
 };
 ASSERT(array_elems(g_scriptTabNames) == DebugScriptTab_Count, "Incorrect number of names");
 
@@ -506,8 +508,15 @@ static void tracker_asset_add(
   entry->totalDuration += stats->executedDur;
 }
 
-static void
-tracker_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* subjectView) {
+typedef enum {
+  TrackerQueryFlags_QueryAssets = 1 << 0,
+} TrackerQueryFlags;
+
+static void tracker_query(
+    DebugScriptTrackerComp* tracker,
+    EcsIterator*            assetItr,
+    EcsView*                subjectView,
+    const TrackerQueryFlags flags) {
   const TimeReal now          = time_real_clock();
   const TimeReal oldestToKeep = time_real_offset(now, -output_max_age);
   tracker_prune_older(tracker, oldestToKeep);
@@ -525,8 +534,8 @@ tracker_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* s
     }
     const bool  didPanic   = (scene_script_flags(scriptInstance) & SceneScriptFlags_DidPanic) != 0;
     const usize debugCount = scene_script_debug_count(scriptInstance);
-    if (!didPanic && !debugCount) {
-      continue; // Early out when there was no panic and no debug data.
+    if (!(flags & TrackerQueryFlags_QueryAssets) && !didPanic && !debugCount) {
+      continue; // Early out when we don't need to query assets and there was no output.
     }
 
     const u32 scriptCount = scene_script_count(scriptInstance);
@@ -537,8 +546,10 @@ tracker_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* s
       assetComps[slot]   = ecs_view_read_t(assetItr, AssetComp);
       assetScripts[slot] = ecs_view_read_t(assetItr, AssetScriptComp);
 
-      const SceneScriptStats* stats = scene_script_stats(scriptInstance, slot);
-      tracker_asset_add(tracker, ecs_view_entity(assetItr), asset_id(assetComps[slot]), stats);
+      if (flags & TrackerQueryFlags_QueryAssets) {
+        const SceneScriptStats* stats = scene_script_stats(scriptInstance, slot);
+        tracker_asset_add(tracker, ecs_view_entity(assetItr), asset_id(assetComps[slot]), stats);
+      }
 
       // Output panics.
       const ScriptPanic* panic = scene_script_panic(scriptInstance, slot);
@@ -696,6 +707,49 @@ static void output_panel_tab_draw(
   ui_layout_container_pop(c);
 }
 
+static void global_panel_tab_draw(
+    UiCanvasComp* c, DebugScriptPanelComp* panelComp, const DebugScriptTrackerComp* tracker) {
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5));
+  ui_table_add_column(&table, UiTableColumn_Fixed, 350);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Flexible, 0);
+
+  ui_table_draw_header(
+      c,
+      &table,
+      (const UiTableColumnName[]){
+          {string_lit("Script"), string_lit("Script asset.")},
+          {string_lit("Entities"), string_lit("Amount of entities that run the script.")},
+          {string_lit("Operations"), string_lit("Total operations that the script runs.")},
+          {string_lit("Time"), string_lit("Time execution time for the script.")},
+      });
+
+  const u32 numScripts = (u32)tracker->assetEntries.size;
+  ui_scrollview_begin(c, &panelComp->scrollview, ui_table_height(&table, numScripts));
+
+  if (!numScripts) {
+    ui_label(c, string_lit("No active scripts."), .align = UiAlign_MiddleCenter);
+  }
+
+  dynarray_for_t(&tracker->assetEntries, DebugScriptAsset, entry) {
+    ui_table_next_row(c, &table);
+    ui_table_draw_row_bg(c, &table, ui_color(48, 48, 48, 192));
+
+    ui_label(c, entry->id, .selectable = true);
+    ui_table_next_column(c, &table);
+    ui_label(c, fmt_write_scratch("{}", fmt_int(entry->totalEntities)));
+    ui_table_next_column(c, &table);
+    ui_label(c, fmt_write_scratch("{}", fmt_int(entry->totalOperations)));
+    ui_table_next_column(c, &table);
+    ui_label(c, fmt_write_scratch("{}", fmt_duration(entry->totalDuration)));
+  }
+  ui_canvas_id_block_next(c);
+
+  ui_scrollview_end(c, &panelComp->scrollview);
+}
+
 static void script_panel_draw(
     EcsWorld*               world,
     UiCanvasComp*           c,
@@ -730,6 +784,9 @@ static void script_panel_draw(
     break;
   case DebugScriptTab_Output:
     output_panel_tab_draw(c, panelComp, tracker, setEnv, subjectItr);
+    break;
+  case DebugScriptTab_Global:
+    global_panel_tab_draw(c, panelComp, tracker);
     break;
   }
 
@@ -799,6 +856,20 @@ static void debug_editor_update(DebugScriptPanelComp* panelComp, const AssetMana
   }
 }
 
+static bool debug_panel_needs_asset_query(EcsView* panelView) {
+  for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
+    DebugScriptPanelComp* panelComp = ecs_view_write_t(itr, DebugScriptPanelComp);
+    const bool            pinned    = ui_panel_pinned(&panelComp->panel);
+    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+      continue;
+    }
+    if (panelComp->panel.activeTab == DebugScriptTab_Global) {
+      return true;
+    }
+  }
+  return true;
+}
+
 ecs_system_define(DebugScriptUpdatePanelSys) {
   EcsView*     globalView = ecs_world_view_t(world, PanelUpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -816,12 +887,18 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
   EcsView*     assetView = ecs_world_view_t(world, AssetView);
   EcsIterator* assetItr  = ecs_view_itr(assetView);
 
+  EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
+
   const StringHash selectedSet = g_sceneSetSelected;
 
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
   EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_set_main(setEnv, selectedSet));
 
-  tracker_query(tracker, assetItr, subjectView);
+  TrackerQueryFlags queryFlags = 0;
+  if (debug_panel_needs_asset_query(panelView)) {
+    queryFlags |= TrackerQueryFlags_QueryAssets;
+  }
+  tracker_query(tracker, assetItr, subjectView, queryFlags);
 
   if (tracker->autoOpenOnPanic && tracker_has_panic(tracker)) {
     EcsIterator* windowItr = ecs_view_first(ecs_world_view_t(world, WindowView));
@@ -831,7 +908,6 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     }
   }
 
-  EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     DebugScriptPanelComp* panelComp = ecs_view_write_t(itr, DebugScriptPanelComp);
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
