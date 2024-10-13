@@ -589,7 +589,7 @@ compile_intr_loop(Context* ctx, const Target tgt, const ScriptExpr* args) {
   }
   label_link(ctx, labelCond);
   if (!expr_is_true(ctx, args[1])) {
-    if ((err = compile_expr(ctx, target_reg(tmpReg), args[1]))) {
+    if ((err = compile_expr(ctx, target_reg_jump_cond(tmpReg), args[1]))) {
       return err;
     }
     emit_jump_if_falsy(ctx, tmpReg, ctx->loopLabelEnd);
