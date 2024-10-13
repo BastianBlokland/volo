@@ -97,6 +97,7 @@ typedef struct {
 ecs_comp_define(DebugScriptTrackerComp) {
   DynArray outputEntries; // DebugScriptOutput[]
   DynArray assetEntries;  // DebugScriptAsset[]
+  bool     freezeAssets;
   bool     autoOpenOnPanic;
 };
 
@@ -524,7 +525,9 @@ static void tracker_query(
   const AssetComp*       assetComps[32];
   const AssetScriptComp* assetScripts[32];
 
-  dynarray_clear(&tracker->assetEntries);
+  if (!tracker->freezeAssets) {
+    dynarray_clear(&tracker->assetEntries);
+  }
 
   for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
     const EcsEntityId      entity         = ecs_view_entity(itr);
@@ -546,7 +549,7 @@ static void tracker_query(
       assetComps[slot]   = ecs_view_read_t(assetItr, AssetComp);
       assetScripts[slot] = ecs_view_read_t(assetItr, AssetScriptComp);
 
-      if (flags & TrackerQueryFlags_QueryAssets) {
+      if ((flags & TrackerQueryFlags_QueryAssets) && !tracker->freezeAssets) {
         const SceneScriptStats* stats = scene_script_stats(scriptInstance, slot);
         tracker_asset_add(tracker, ecs_view_entity(assetItr), asset_id(assetComps[slot]), stats);
       }
@@ -707,8 +710,26 @@ static void output_panel_tab_draw(
   ui_layout_container_pop(c);
 }
 
+static void global_options_draw(UiCanvasComp* c, DebugScriptTrackerComp* tracker) {
+  ui_layout_push(c);
+
+  UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 75);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 150);
+
+  ui_table_next_row(c, &table);
+  ui_label(c, string_lit("Freeze:"));
+  ui_table_next_column(c, &table);
+  ui_toggle(c, &tracker->freezeAssets);
+
+  ui_layout_pop(c);
+}
+
 static void global_panel_tab_draw(
-    UiCanvasComp* c, DebugScriptPanelComp* panelComp, const DebugScriptTrackerComp* tracker) {
+    UiCanvasComp* c, DebugScriptPanelComp* panelComp, DebugScriptTrackerComp* tracker) {
+  global_options_draw(c, tracker);
+  ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
+  ui_layout_container_push(c, UiClip_None);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
@@ -748,6 +769,7 @@ static void global_panel_tab_draw(
   ui_canvas_id_block_next(c);
 
   ui_scrollview_end(c, &panelComp->scrollview);
+  ui_layout_container_pop(c);
 }
 
 static void script_panel_draw(
