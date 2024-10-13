@@ -595,10 +595,15 @@ static void output_panel_tab_draw(
 
   panelComp->lastRowCount = 0;
   dynarray_for_t(&tracker->entries, DebugScriptOutput, entry) {
-    if (panelComp->outputMode == DebugScriptOutputMode_Self) {
+    switch (panelComp->outputMode) {
+    case DebugScriptOutputMode_All:
+      break;
+    case DebugScriptOutputMode_Self:
       if (!subjectItr || ecs_view_entity(subjectItr) != entry->entity) {
-        continue;
+        continue; // Entry does not belong to the subject.
       }
+    case DebugScriptOutputMode_Count:
+      break;
     }
 
     ui_table_next_row(c, &table);
