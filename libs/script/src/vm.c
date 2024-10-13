@@ -75,6 +75,8 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       if (UNLIKELY((ip += 2) > ipEnd)) goto Corrupt;
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;
       return ctx->regs[ip[-1]];
+    case ScriptOp_ReturnNull:
+      return val_null();
     case ScriptOp_Move:
       if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;
@@ -304,6 +306,10 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     case ScriptOp_Return:
       if (UNLIKELY((ip += 2) > ipEnd)) return;
       fmt_write(out, "Return r{}\n", fmt_int(ip[-1]));
+      break;
+    case ScriptOp_ReturnNull:
+      if (UNLIKELY((ip += 1) > ipEnd)) return;
+      fmt_write(out, "ReturnNull\n");
       break;
     case ScriptOp_Move:
       if (UNLIKELY((ip += 3) > ipEnd)) return;

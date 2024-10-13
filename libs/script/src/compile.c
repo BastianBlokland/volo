@@ -571,8 +571,13 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
     return compile_intr_continue(ctx);
   case ScriptIntrinsic_Break:
     return compile_intr_break(ctx);
-  case ScriptIntrinsic_Return:
+  case ScriptIntrinsic_Return: {
+    if (expr_is_null(ctx, args[0])) {
+      emit_op(ctx, ScriptOp_ReturnNull);
+      return ScriptCompileError_None;
+    }
     return compile_intr_unary(ctx, tgt, ScriptOp_Return, args);
+  }
   case ScriptIntrinsic_Type:
     return compile_intr_unary(ctx, tgt, ScriptOp_Type, args);
   case ScriptIntrinsic_Hash:
@@ -779,7 +784,7 @@ ScriptCompileError script_compile(const ScriptDoc* doc, const ScriptExpr expr, D
 
   ScriptCompileError err = compile_expr(&ctx, target_reg(resultReg), expr);
   if (!err) {
-    if (ctx.lastOp != ScriptOp_Return) {
+    if (ctx.lastOp != ScriptOp_Return && ctx.lastOp != ScriptOp_ReturnNull) {
       emit_unary(&ctx, ScriptOp_Return, resultReg);
     }
 
