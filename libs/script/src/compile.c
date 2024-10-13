@@ -155,6 +155,13 @@ static void emit_value(Context* ctx, const RegId dst, const u8 valId) {
   dynstring_append_char(ctx->out, valId);
 }
 
+static void emit_value_bool(Context* ctx, const RegId dst, const bool val) {
+  diag_assert(dst < script_vm_regs);
+  emit_op(ctx, ScriptOp_ValueBool);
+  dynstring_append_char(ctx->out, dst);
+  dynstring_append_char(ctx->out, val);
+}
+
 static void emit_unary(Context* ctx, const ScriptOp op, const RegId dst) {
   diag_assert(dst < script_vm_regs);
   emit_op(ctx, op);
@@ -266,18 +273,24 @@ static bool expr_is_var_load(Context* ctx, const ScriptExpr e) {
 static ScriptCompileError compile_expr(Context*, Target, ScriptExpr);
 
 static ScriptCompileError compile_value(Context* ctx, const Target tgt, const ScriptExpr e) {
-  if (expr_is_null(ctx, e)) {
-    if (!tgt.optional) {
-      emit_unary(ctx, ScriptOp_Null, tgt.reg);
-    }
+  if (tgt.optional) {
     return ScriptCompileError_None;
   }
   const ScriptExprValue* data = &expr_data(ctx->doc, e)->value;
-  if (UNLIKELY(data->valId > u8_max)) {
-    return ScriptCompileError_TooManyValues;
-  }
-  if (!tgt.optional) {
+  const ScriptVal        val  = *dynarray_at_t(&ctx->doc->values, data->valId, ScriptVal);
+  switch (script_type(val)) {
+  case ScriptType_Null:
+    emit_unary(ctx, ScriptOp_Null, tgt.reg);
+    break;
+  case ScriptType_Bool:
+    emit_value_bool(ctx, tgt.reg, script_get_bool(val, false));
+    break;
+  default:
+    if (UNLIKELY(data->valId > u8_max)) {
+      return ScriptCompileError_TooManyValues;
+    }
     emit_value(ctx, tgt.reg, (u8)data->valId);
+    break;
   }
   return ScriptCompileError_None;
 }

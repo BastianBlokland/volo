@@ -122,6 +122,11 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       if (UNLIKELY(!vm_val_valid(ctx, ip[-1]))) goto Corrupt;
       ctx->regs[ip[-2]] = dynarray_begin_t(&ctx->doc->values, ScriptVal)[ip[-1]];
       continue;
+    case ScriptOp_ValueBool:
+      if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
+      if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;
+      ctx->regs[ip[-2]] = val_bool(ip[-1] != 0);
+      continue;
     case ScriptOp_MemLoad:
       if (UNLIKELY((ip += 6) >= ipEnd)) goto Corrupt;
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-5]))) goto Corrupt;
@@ -334,6 +339,10 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     case ScriptOp_Value:
       if (UNLIKELY((ip += 3) > ipEnd)) return;
       fmt_write(out, "Value r{} v{}\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
+      break;
+    case ScriptOp_ValueBool:
+      if (UNLIKELY((ip += 3) > ipEnd)) return;
+      fmt_write(out, "ValueBool r{} {}\n", fmt_int(ip[-2]), fmt_bool(ip[-1]));
       break;
     case ScriptOp_MemLoad:
       if (UNLIKELY((ip += 6) > ipEnd)) return;
