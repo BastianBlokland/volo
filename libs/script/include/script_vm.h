@@ -27,6 +27,7 @@ typedef struct sScriptBinder ScriptBinder;
  * - extern-func:    2 byte(s).
  * - value-id:       1 byte(s).
  * - boolean         1 byte(s).
+ * - small-int       1 byte(s).
  * - memory-key:     4 byte(s).
  *
  * NOTE: Multi-byte operation data is encoded as little-endian.
@@ -45,54 +46,55 @@ typedef enum {
   ScriptOp_JumpIfNonNull     = 8,  // [r,i    ] (r      ) -> ( ) Jump to instruction 'i' if register 'r' is not null.
   ScriptOp_Value             = 9,  // [d,v    ] (       ) -> (d) Load value with index 'v' into register 'd'.
   ScriptOp_ValueBool         = 10, // [d,b    ] (       ) -> (d) Load value boolean 'b' into register 'd'.
-  ScriptOp_MemLoad           = 11, // [d,k    ] (       ) -> (d) Load from memory at key 'k' into register 'd'.
-  ScriptOp_MemStore          = 12, // [s,k    ] (s      ) -> ( ) Store to memory at key 'k' from register 's'.
-  ScriptOp_MemLoadDyn        = 13, // [d      ] (d      ) -> (d) Load from memory with a key from register 'd'.
-  ScriptOp_MemStoreDyn       = 14, // [s,r    ] (s,r    ) -> ( ) Store a value from register 's' to memory with a key from register 'r'.
-  ScriptOp_Extern            = 15, // [d,f,r,c] (r:c    ) -> (d) Invoke extern func 'f' using count 'c' registers starting from 'r' and store result in register 'd'.
-  ScriptOp_Null              = 16, // [d      ] (       ) -> (d) Load null value into register 'd'.
-  ScriptOp_Truthy            = 17, // [d      ] (d      ) -> (d) Check if register 'd' is truthy.
-  ScriptOp_Falsy             = 18, // [d      ] (d      ) -> (d) Check if register 'd' is falsy.
-  ScriptOp_Type              = 19, // [d      ] (d      ) -> (d) Retrieve the type for register 'd'.
-  ScriptOp_Hash              = 20, // [d      ] (d      ) -> (d) Retrieve the hash for register 'd'.
-  ScriptOp_Equal             = 21, // [d,s    ] (d,s    ) -> (d) Compare 'd' and 's' and store result in register 'd'.
-  ScriptOp_Less              = 22, // [d,s    ] (d,s    ) -> (d) Compare 'd' and 's' and store result in register 'd'.
-  ScriptOp_Greater           = 23, // [d,s    ] (d,s    ) -> (d) Compare 'd' and 's' and store result in register 'd'.
-  ScriptOp_Add               = 24, // [d,s    ] (d,s    ) -> (d) Add register 's' to 'd'.
-  ScriptOp_Sub               = 25, // [d,s    ] (d,s    ) -> (d) Subtract register 's' from 'd'.
-  ScriptOp_Mul               = 26, // [d,s    ] (d,s    ) -> (d) Multiply register 'd' by register 's'.
-  ScriptOp_Div               = 27, // [d,s    ] (d,s    ) -> (d) Divide register 'd' by register 's'.
-  ScriptOp_Mod               = 28, // [d,s    ] (d,s    ) -> (d) Modulo register 'd' by register 's'.
-  ScriptOp_Negate            = 29, // [d      ] (d      ) -> (d) Negate register 'd'.
-  ScriptOp_Invert            = 30, // [d      ] (d      ) -> (d) Invert register 'd'.
-  ScriptOp_Distance          = 31, // [d,s    ] (d,s    ) -> (d) Compute the distance between 'd' and 's' and store result in register 'd'.
-  ScriptOp_Angle             = 32, // [d,s    ] (d,s    ) -> (d) Compare the angle between 'd' and 's' and store result in register 'd'.
-  ScriptOp_Sin               = 33, // [d      ] (d      ) -> (d) Evaluate the sine wave at 'd'.
-  ScriptOp_Cos               = 34, // [d      ] (d      ) -> (d) Evaluate the cosine wave at 'd'.
-  ScriptOp_Normalize         = 35, // [d      ] (d      ) -> (d) Normalize register 'd'.
-  ScriptOp_Magnitude         = 36, // [d      ] (d      ) -> (d) Compute the magnitude of register 'd'.
-  ScriptOp_Absolute          = 37, // [d      ] (d      ) -> (d) Normalize register 'd'.
-  ScriptOp_VecX              = 38, // [d      ] (d      ) -> (d) Retrieve the x component of a vector in register 'd'.
-  ScriptOp_VecY              = 39, // [d      ] (d      ) -> (d) Retrieve the y component of a vector in register 'd'.
-  ScriptOp_VecZ              = 40, // [d      ] (d      ) -> (d) Retrieve the z component of a vector in register 'd'.
-  ScriptOp_Vec3Compose       = 41, // [x,y,z  ] (x,y,z  ) -> (x) Compose a vector from 'x', 'y', 'z' and store in register 'x'.
-  ScriptOp_QuatFromEuler     = 42, // [x,y,z  ] (x,y,z  ) -> (x) Compose a quaternion from 'x', 'y', 'z' angles and store in register 'x'.
-  ScriptOp_QuatFromAngleAxis = 43, // [x,y    ] (x,y    ) -> (x) Compose a quaternion from angle 'x' and axis 'y' and store in register 'x'.
-  ScriptOp_ColorCompose      = 44, // [x,y,z,w] (x,y,z,w) -> (x) Compose a color from 'x', 'y', 'z', 'w' and store in register 'x'.
-  ScriptOp_ColorComposeHsv   = 45, // [x,y,z,w] (x,y,z,w) -> (x) Compose a hsv color from 'x', 'y', 'z', 'w' and store in register 'x'.
-  ScriptOp_ColorFor          = 46, // [d      ] (d      ) -> (d) Compute a color for register 'd'.
-  ScriptOp_Random            = 47, // [d      ] (       ) -> (d) Compute a random value (0 - 1) in register 'd'.
-  ScriptOp_RandomSphere      = 48, // [d      ] (       ) -> (d) Compute a random vector on a unit sphere in register 'd'.
-  ScriptOp_RandomCircleXZ    = 49, // [d      ] (       ) -> (d) Compute a random vector on a unit circle in register 'd'.
-  ScriptOp_RandomBetween     = 50, // [x,y    ] (x,y    ) -> (x) Compute a random value between 'x' and 'y' and store in register 'x'.
-  ScriptOp_RoundDown         = 51, // [d      ] (d      ) -> (d) Round register 'd' down.
-  ScriptOp_RoundNearest      = 52, // [d      ] (d      ) -> (d) Round register 'd' to nearest.
-  ScriptOp_RoundUp           = 53, // [d      ] (d      ) -> (d) Round register 'd' up.
-  ScriptOp_Clamp             = 54, // [x,y,z  ] (x,y,z  ) -> (x) Clamp register 'x' between 'y' and 'z' and store in register 'x'.
-  ScriptOp_Lerp              = 55, // [x,y,z  ] (x,y,z  ) -> (x) Compute a linearly interpolated value from 'x' to 'y' at time 'z' and store in register 'x'.
-  ScriptOp_Min               = 56, // [x,y    ] (x,y    ) -> (x) Store the minimum value of 'x' and 'y' in register 'x'.
-  ScriptOp_Max               = 57, // [x,y    ] (x,y    ) -> (x) Store the maximum value of 'x' and 'y' in register 'x'.
-  ScriptOp_Perlin3           = 58, // [d      ] (       ) -> (d) Compute a 3d perlin noise in register 'd'.
+  ScriptOp_ValueSmallInt     = 11, // [d,i    ] (       ) -> (d) Load small integer value 'i' into register 'd'.
+  ScriptOp_MemLoad           = 12, // [d,k    ] (       ) -> (d) Load from memory at key 'k' into register 'd'.
+  ScriptOp_MemStore          = 13, // [s,k    ] (s      ) -> ( ) Store to memory at key 'k' from register 's'.
+  ScriptOp_MemLoadDyn        = 14, // [d      ] (d      ) -> (d) Load from memory with a key from register 'd'.
+  ScriptOp_MemStoreDyn       = 15, // [s,r    ] (s,r    ) -> ( ) Store a value from register 's' to memory with a key from register 'r'.
+  ScriptOp_Extern            = 16, // [d,f,r,c] (r:c    ) -> (d) Invoke extern func 'f' using count 'c' registers starting from 'r' and store result in register 'd'.
+  ScriptOp_Null              = 17, // [d      ] (       ) -> (d) Load null value into register 'd'.
+  ScriptOp_Truthy            = 18, // [d      ] (d      ) -> (d) Check if register 'd' is truthy.
+  ScriptOp_Falsy             = 19, // [d      ] (d      ) -> (d) Check if register 'd' is falsy.
+  ScriptOp_Type              = 20, // [d      ] (d      ) -> (d) Retrieve the type for register 'd'.
+  ScriptOp_Hash              = 21, // [d      ] (d      ) -> (d) Retrieve the hash for register 'd'.
+  ScriptOp_Equal             = 22, // [d,s    ] (d,s    ) -> (d) Compare 'd' and 's' and store result in register 'd'.
+  ScriptOp_Less              = 23, // [d,s    ] (d,s    ) -> (d) Compare 'd' and 's' and store result in register 'd'.
+  ScriptOp_Greater           = 24, // [d,s    ] (d,s    ) -> (d) Compare 'd' and 's' and store result in register 'd'.
+  ScriptOp_Add               = 25, // [d,s    ] (d,s    ) -> (d) Add register 's' to 'd'.
+  ScriptOp_Sub               = 26, // [d,s    ] (d,s    ) -> (d) Subtract register 's' from 'd'.
+  ScriptOp_Mul               = 27, // [d,s    ] (d,s    ) -> (d) Multiply register 'd' by register 's'.
+  ScriptOp_Div               = 28, // [d,s    ] (d,s    ) -> (d) Divide register 'd' by register 's'.
+  ScriptOp_Mod               = 29, // [d,s    ] (d,s    ) -> (d) Modulo register 'd' by register 's'.
+  ScriptOp_Negate            = 30, // [d      ] (d      ) -> (d) Negate register 'd'.
+  ScriptOp_Invert            = 31, // [d      ] (d      ) -> (d) Invert register 'd'.
+  ScriptOp_Distance          = 32, // [d,s    ] (d,s    ) -> (d) Compute the distance between 'd' and 's' and store result in register 'd'.
+  ScriptOp_Angle             = 33, // [d,s    ] (d,s    ) -> (d) Compare the angle between 'd' and 's' and store result in register 'd'.
+  ScriptOp_Sin               = 34, // [d      ] (d      ) -> (d) Evaluate the sine wave at 'd'.
+  ScriptOp_Cos               = 35, // [d      ] (d      ) -> (d) Evaluate the cosine wave at 'd'.
+  ScriptOp_Normalize         = 36, // [d      ] (d      ) -> (d) Normalize register 'd'.
+  ScriptOp_Magnitude         = 37, // [d      ] (d      ) -> (d) Compute the magnitude of register 'd'.
+  ScriptOp_Absolute          = 38, // [d      ] (d      ) -> (d) Normalize register 'd'.
+  ScriptOp_VecX              = 39, // [d      ] (d      ) -> (d) Retrieve the x component of a vector in register 'd'.
+  ScriptOp_VecY              = 40, // [d      ] (d      ) -> (d) Retrieve the y component of a vector in register 'd'.
+  ScriptOp_VecZ              = 41, // [d      ] (d      ) -> (d) Retrieve the z component of a vector in register 'd'.
+  ScriptOp_Vec3Compose       = 42, // [x,y,z  ] (x,y,z  ) -> (x) Compose a vector from 'x', 'y', 'z' and store in register 'x'.
+  ScriptOp_QuatFromEuler     = 43, // [x,y,z  ] (x,y,z  ) -> (x) Compose a quaternion from 'x', 'y', 'z' angles and store in register 'x'.
+  ScriptOp_QuatFromAngleAxis = 44, // [x,y    ] (x,y    ) -> (x) Compose a quaternion from angle 'x' and axis 'y' and store in register 'x'.
+  ScriptOp_ColorCompose      = 45, // [x,y,z,w] (x,y,z,w) -> (x) Compose a color from 'x', 'y', 'z', 'w' and store in register 'x'.
+  ScriptOp_ColorComposeHsv   = 46, // [x,y,z,w] (x,y,z,w) -> (x) Compose a hsv color from 'x', 'y', 'z', 'w' and store in register 'x'.
+  ScriptOp_ColorFor          = 47, // [d      ] (d      ) -> (d) Compute a color for register 'd'.
+  ScriptOp_Random            = 48, // [d      ] (       ) -> (d) Compute a random value (0 - 1) in register 'd'.
+  ScriptOp_RandomSphere      = 49, // [d      ] (       ) -> (d) Compute a random vector on a unit sphere in register 'd'.
+  ScriptOp_RandomCircleXZ    = 50, // [d      ] (       ) -> (d) Compute a random vector on a unit circle in register 'd'.
+  ScriptOp_RandomBetween     = 51, // [x,y    ] (x,y    ) -> (x) Compute a random value between 'x' and 'y' and store in register 'x'.
+  ScriptOp_RoundDown         = 52, // [d      ] (d      ) -> (d) Round register 'd' down.
+  ScriptOp_RoundNearest      = 53, // [d      ] (d      ) -> (d) Round register 'd' to nearest.
+  ScriptOp_RoundUp           = 54, // [d      ] (d      ) -> (d) Round register 'd' up.
+  ScriptOp_Clamp             = 55, // [x,y,z  ] (x,y,z  ) -> (x) Clamp register 'x' between 'y' and 'z' and store in register 'x'.
+  ScriptOp_Lerp              = 56, // [x,y,z  ] (x,y,z  ) -> (x) Compute a linearly interpolated value from 'x' to 'y' at time 'z' and store in register 'x'.
+  ScriptOp_Min               = 57, // [x,y    ] (x,y    ) -> (x) Store the minimum value of 'x' and 'y' in register 'x'.
+  ScriptOp_Max               = 58, // [x,y    ] (x,y    ) -> (x) Store the maximum value of 'x' and 'y' in register 'x'.
+  ScriptOp_Perlin3           = 59, // [d      ] (       ) -> (d) Compute a 3d perlin noise in register 'd'.
 } ScriptOp;
 
 // clang-format on

@@ -3,6 +3,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
+#include "core_math.h"
 #include "script_compile.h"
 #include "script_vm.h"
 
@@ -162,6 +163,13 @@ static void emit_value_bool(Context* ctx, const RegId dst, const bool val) {
   dynstring_append_char(ctx->out, val);
 }
 
+static void emit_value_small_int(Context* ctx, const RegId dst, const u8 val) {
+  diag_assert(dst < script_vm_regs);
+  emit_op(ctx, ScriptOp_ValueSmallInt);
+  dynstring_append_char(ctx->out, dst);
+  dynstring_append_char(ctx->out, val);
+}
+
 static void emit_unary(Context* ctx, const ScriptOp op, const RegId dst) {
   diag_assert(dst < script_vm_regs);
   emit_op(ctx, op);
@@ -285,6 +293,14 @@ static ScriptCompileError compile_value(Context* ctx, const Target tgt, const Sc
   case ScriptType_Bool:
     emit_value_bool(ctx, tgt.reg, script_get_bool(val, false));
     break;
+  case ScriptType_Num: {
+    const f64 num     = script_get_num(val, 0.0);
+    const f64 rounded = math_round_nearest_f64(num);
+    if (num == rounded && rounded <= u8_max) {
+      emit_value_small_int(ctx, tgt.reg, (u8)rounded);
+      break;
+    }
+  } // Fallthrough.
   default:
     if (UNLIKELY(data->valId > u8_max)) {
       return ScriptCompileError_TooManyValues;
