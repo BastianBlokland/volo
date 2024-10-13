@@ -413,19 +413,26 @@ compile_intr_quaternary(Context* ctx, const Target tgt, const ScriptOp op, const
 static ScriptCompileError
 compile_intr_select(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
+  // Condition.
   if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
     return err;
   }
   const LabelId retLabel = label_alloc(ctx), falseLabel = label_alloc(ctx);
   emit_jump_if_falsy(ctx, tgt.reg, falseLabel);
 
+  // If branch.
   if ((err = compile_expr(ctx, target_reg(tgt.reg), args[1]))) {
     return err;
   }
-  emit_jump(ctx, retLabel);
+  const bool skipElse = tgt.optional && expr_is_null(ctx, args[2]);
+  if (!skipElse) {
+    emit_jump(ctx, retLabel); // Skip over the else branch.
+  }
 
   label_link(ctx, falseLabel);
-  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[2]))) {
+
+  // Else branch.
+  if (!skipElse && (err = compile_expr(ctx, target_reg(tgt.reg), args[2]))) {
     return err;
   }
 
