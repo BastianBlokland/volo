@@ -735,6 +735,7 @@ static void global_panel_tab_draw(
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
   ui_table_add_column(&table, UiTableColumn_Fixed, 100);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -742,6 +743,7 @@ static void global_panel_tab_draw(
       &table,
       (const UiTableColumnName[]){
           {string_lit("Script"), string_lit("Script asset.")},
+          {string_lit("Actions"), string_lit("Actions to run for the scripts.")},
           {string_lit("Entities"), string_lit("Amount of entities that run the script.")},
           {string_lit("Operations"), string_lit("Total operations that the script runs.")},
           {string_lit("Time"), string_lit("Time execution time for the script.")},
@@ -759,6 +761,10 @@ static void global_panel_tab_draw(
     ui_table_draw_row_bg(c, &table, ui_color(48, 48, 48, 192));
 
     ui_label(c, entry->id, .selectable = true);
+    ui_table_next_column(c, &table);
+    if (ui_button(c, .label = string_lit("Open"), .tooltip = g_tooltipOpenScript)) {
+      panelComp->editorReq = (DebugEditorRequest){.scriptId = entry->id};
+    }
     ui_table_next_column(c, &table);
     ui_label(c, fmt_write_scratch("{}", fmt_int(entry->totalEntities)));
     ui_table_next_column(c, &table);
