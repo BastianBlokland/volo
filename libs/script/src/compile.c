@@ -461,9 +461,7 @@ compile_intr_select(Context* ctx, const Target tgt, const ScriptExpr* args) {
   // Condition.
   const bool invert = expr_is_intrinsic(ctx, args[0], ScriptIntrinsic_Invert);
   if (invert) {
-    /**
-     * Fast path for inverted conditions; we can skip the invert expr and instead invert the jump.
-     */
+    // Fast path for inverted conditions; we can skip the invert expr and instead invert the jump.
     const ScriptExprIntrinsic* invertData = &expr_data(ctx->doc, args[0])->intrinsic;
     const ScriptExpr*          invertArgs = expr_set_data(ctx->doc, invertData->argSet);
     if ((err = compile_expr(ctx, target_reg_jump_cond(tgt.reg), invertArgs[0]))) {
@@ -589,10 +587,21 @@ compile_intr_loop(Context* ctx, const Target tgt, const ScriptExpr* args) {
   }
   label_link(ctx, labelCond);
   if (!expr_is_true(ctx, args[1])) {
-    if ((err = compile_expr(ctx, target_reg_jump_cond(tmpReg), args[1]))) {
-      return err;
+    const bool invert = expr_is_intrinsic(ctx, args[1], ScriptIntrinsic_Invert);
+    if (invert) {
+      // Fast path for inverted conditions; we can skip the invert expr and instead invert the jump.
+      const ScriptExprIntrinsic* invertData = &expr_data(ctx->doc, args[1])->intrinsic;
+      const ScriptExpr*          invertArgs = expr_set_data(ctx->doc, invertData->argSet);
+      if ((err = compile_expr(ctx, target_reg_jump_cond(tmpReg), invertArgs[0]))) {
+        return err;
+      }
+      emit_jump_if_truthy(ctx, tmpReg, ctx->loopLabelEnd);
+    } else {
+      if ((err = compile_expr(ctx, target_reg_jump_cond(tmpReg), args[1]))) {
+        return err;
+      }
+      emit_jump_if_falsy(ctx, tmpReg, ctx->loopLabelEnd);
     }
-    emit_jump_if_falsy(ctx, tmpReg, ctx->loopLabelEnd);
   }
 
   // Body expression.
