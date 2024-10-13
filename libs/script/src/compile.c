@@ -64,6 +64,11 @@ typedef struct {
   DynArray labelPatches; // LabelPatch[].
 } Context;
 
+static Target target_required(Target tgt) {
+  tgt.optional = false;
+  return tgt;
+}
+
 MAYBE_UNUSED static u32 reg_available(Context* ctx) { return bits_popcnt_64(ctx->regAvailability); }
 
 static RegId reg_alloc(Context* ctx) {
@@ -531,13 +536,13 @@ compile_intr_null_coalescing(Context* ctx, const Target tgt, const ScriptExpr* a
 static ScriptCompileError
 compile_intr_logic_and(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
+  if ((err = compile_expr(ctx, target_required(tgt), args[0]))) {
     return err;
   }
   const LabelId retLabel = label_alloc(ctx);
   emit_jump_if_falsy(ctx, tgt.reg, retLabel);
 
-  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[1]))) {
+  if ((err = compile_expr(ctx, target_required(tgt), args[1]))) {
     return err;
   }
 
@@ -551,13 +556,13 @@ compile_intr_logic_and(Context* ctx, const Target tgt, const ScriptExpr* args) {
 static ScriptCompileError
 compile_intr_logic_or(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
+  if ((err = compile_expr(ctx, target_required(tgt), args[0]))) {
     return err;
   }
   const LabelId retLabel = label_alloc(ctx);
   emit_jump_if_truthy(ctx, tgt.reg, retLabel);
 
-  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[1]))) {
+  if ((err = compile_expr(ctx, target_required(tgt), args[1]))) {
     return err;
   }
 
