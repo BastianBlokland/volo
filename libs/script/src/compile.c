@@ -259,6 +259,10 @@ static bool expr_is_true(Context* ctx, const ScriptExpr e) {
   return script_get_bool(val, false);
 }
 
+static bool expr_is_var_load(Context* ctx, const ScriptExpr e) {
+  return expr_kind(ctx->doc, e) == ScriptExprKind_VarLoad;
+}
+
 static ScriptCompileError compile_expr(Context*, Target, ScriptExpr);
 
 static ScriptCompileError compile_value(Context* ctx, const Target tgt, const ScriptExpr e) {
@@ -722,7 +726,18 @@ static ScriptCompileError compile_block(Context* ctx, const Target tgt, const Sc
 static ScriptCompileError compile_extern(Context* ctx, const Target tgt, const ScriptExpr e) {
   const ScriptExprExtern* data     = &expr_data(ctx->doc, e)->extern_;
   const ScriptExpr*       argExprs = expr_set_data(ctx->doc, data->argSet);
-  const RegSet            argRegs  = reg_alloc_set(ctx, data->argCount);
+  if (data->argCount == 1 && expr_is_var_load(ctx, argExprs[0])) {
+    /**
+     * Fast path for calling an extern func with a single variable argument, in this case we can
+     * skip loading the variable and pass the variable register directly as an argument set.
+     */
+    const ScriptExprVarLoad* varLoadData = &expr_data(ctx->doc, argExprs[0])->var_load;
+    diag_assert(!sentinel_check(ctx->varRegisters[varLoadData->var]));
+    const RegSet argRegs = {.begin = ctx->varRegisters[varLoadData->var], .count = 1};
+    emit_extern(ctx, tgt.reg, data->func, argRegs);
+    return ScriptCompileError_None;
+  }
+  const RegSet argRegs = reg_alloc_set(ctx, data->argCount);
   if (sentinel_check(argRegs.begin)) {
     return ScriptCompileError_TooManyRegisters;
   }
