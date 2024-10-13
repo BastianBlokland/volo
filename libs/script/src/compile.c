@@ -281,6 +281,14 @@ static bool expr_is_var_load(Context* ctx, const ScriptExpr e) {
   return expr_kind(ctx->doc, e) == ScriptExprKind_VarLoad;
 }
 
+static bool expr_is_intrinsic(Context* ctx, const ScriptExpr e, const ScriptIntrinsic intr) {
+  if (expr_kind(ctx->doc, e) != ScriptExprKind_Intrinsic) {
+    return false;
+  }
+  const ScriptExprIntrinsic* data = &expr_data(ctx->doc, e)->intrinsic;
+  return data->intrinsic == intr;
+}
+
 static ScriptCompileError compile_expr(Context*, Target, ScriptExpr);
 
 static ScriptCompileError compile_value(Context* ctx, const Target tgt, const ScriptExpr e) {
@@ -451,11 +459,27 @@ static ScriptCompileError
 compile_intr_select(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
   // Condition.
-  if ((err = compile_expr(ctx, target_reg_jump_cond(tgt.reg), args[0]))) {
-    return err;
+  const bool invert = expr_is_intrinsic(ctx, args[0], ScriptIntrinsic_Invert);
+  if (invert) {
+    /**
+     * Fast path for inverted conditions; we can skip the invert expr and instead invert the jump.
+     */
+    const ScriptExprIntrinsic* invertData = &expr_data(ctx->doc, args[0])->intrinsic;
+    const ScriptExpr*          invertArgs = expr_set_data(ctx->doc, invertData->argSet);
+    if ((err = compile_expr(ctx, target_reg_jump_cond(tgt.reg), invertArgs[0]))) {
+      return err;
+    }
+  } else {
+    if ((err = compile_expr(ctx, target_reg_jump_cond(tgt.reg), args[0]))) {
+      return err;
+    }
   }
   const LabelId retLabel = label_alloc(ctx), falseLabel = label_alloc(ctx);
-  emit_jump_if_falsy(ctx, tgt.reg, falseLabel);
+  if (invert) {
+    emit_jump_if_truthy(ctx, tgt.reg, falseLabel);
+  } else {
+    emit_jump_if_falsy(ctx, tgt.reg, falseLabel);
+  }
 
   // If branch.
   if ((err = compile_expr(ctx, target_reg(tgt.reg), args[1]))) {
