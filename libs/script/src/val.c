@@ -108,7 +108,11 @@ bool script_falsy(const ScriptVal value) { return !script_truthy(value); }
 
 ScriptVal script_falsy_as_val(const ScriptVal value) { return val_bool(!script_truthy(value)); }
 
-bool script_val_has(const ScriptVal value) { return val_type(value) != ScriptType_Null; }
+bool script_non_null(const ScriptVal value) { return val_type(value) != ScriptType_Null; }
+
+ScriptVal script_non_null_as_val(const ScriptVal value) {
+  return val_bool(val_type(value) != ScriptType_Null);
+}
 
 ScriptVal script_val_or(const ScriptVal value, const ScriptVal fallback) {
   return val_type(value) ? value : fallback;

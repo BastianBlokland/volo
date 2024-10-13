@@ -112,7 +112,7 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-3]))) goto Corrupt;
       const u16 ipOffset = vm_read_u16(&ip[-2]);
       if (UNLIKELY(ipOffset >= (code.size - 1))) goto Corrupt;
-      if (script_val_has(ctx->regs[ip[-3]])) {
+      if (script_non_null(ctx->regs[ip[-3]])) {
         ip = mem_begin(code) + ipOffset;
       }
     } continue;

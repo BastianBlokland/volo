@@ -121,7 +121,7 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
   }
   case ScriptIntrinsic_NullCoalescing: {
     EVAL_ARG_WITH_INTERRUPT(0);
-    return script_val_has(arg0) ? arg0 : eval_expr(ctx, args[1]);
+    return script_non_null(arg0) ? arg0 : eval_expr(ctx, args[1]);
   }
   case ScriptIntrinsic_LogicAnd: {
     EVAL_ARG_WITH_INTERRUPT(0);

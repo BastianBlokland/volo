@@ -384,7 +384,7 @@ memory_panel_tab_draw(UiCanvasComp* c, DebugScriptPanelComp* panelComp, EcsItera
   DynArray entries = dynarray_create_t(g_allocScratch, DebugMemoryEntry, 256);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const String name = stringtable_lookup(g_stringtable, itr.key);
-    if (panelComp->hideNullMemory && !script_val_has(script_mem_load(memory, itr.key))) {
+    if (panelComp->hideNullMemory && !script_non_null(script_mem_load(memory, itr.key))) {
       continue;
     }
     *dynarray_push_t(&entries, DebugMemoryEntry) = (DebugMemoryEntry){
