@@ -412,7 +412,7 @@ memory_panel_tab_draw(UiCanvasComp* c, DebugScriptPanelComp* panelComp, EcsItera
   ui_layout_container_pop(c);
 }
 
-static DebugScriptTrackerComp* output_tracker_create(EcsWorld* world) {
+static DebugScriptTrackerComp* tracker_create(EcsWorld* world) {
   return ecs_world_add_t(
       world,
       ecs_world_global(world),
@@ -421,7 +421,7 @@ static DebugScriptTrackerComp* output_tracker_create(EcsWorld* world) {
       .autoOpenOnPanic = true);
 }
 
-static bool output_has_panic(const DebugScriptTrackerComp* tracker) {
+static bool tracker_has_panic(const DebugScriptTrackerComp* tracker) {
   dynarray_for_t(&tracker->outputEntries, DebugScriptOutput, entry) {
     if (entry->type == DebugScriptOutputType_Panic) {
       return true;
@@ -430,11 +430,11 @@ static bool output_has_panic(const DebugScriptTrackerComp* tracker) {
   return false;
 }
 
-static void output_clear(DebugScriptTrackerComp* tracker) {
+static void tracker_output_clear(DebugScriptTrackerComp* tracker) {
   dynarray_clear(&tracker->outputEntries);
 }
 
-static void output_prune_older(DebugScriptTrackerComp* tracker, const TimeReal timestamp) {
+static void tracker_prune_older(DebugScriptTrackerComp* tracker, const TimeReal timestamp) {
   for (usize i = tracker->outputEntries.size; i-- != 0;) {
     if (dynarray_at_t(&tracker->outputEntries, i, DebugScriptOutput)->timestamp < timestamp) {
       dynarray_remove_unordered(&tracker->outputEntries, i, 1);
@@ -442,7 +442,7 @@ static void output_prune_older(DebugScriptTrackerComp* tracker, const TimeReal t
   }
 }
 
-static void output_add(
+static void tracker_output_add(
     DebugScriptTrackerComp*     tracker,
     const DebugScriptOutputType type,
     const EcsEntityId           entity,
@@ -475,10 +475,10 @@ static void output_add(
 }
 
 static void
-output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* subjectView) {
+tracker_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* subjectView) {
   const TimeReal now          = time_real_clock();
   const TimeReal oldestToKeep = time_real_offset(now, -output_max_age);
-  output_prune_older(tracker, oldestToKeep);
+  tracker_prune_older(tracker, oldestToKeep);
 
   const AssetComp*       assetComps[64];
   const AssetScriptComp* assetScripts[64];
@@ -513,7 +513,7 @@ output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* su
           range = script_range_to_line_col(assetScripts[slot]->sourceText, panic->range);
         }
         const DebugScriptOutputType type = DebugScriptOutputType_Panic;
-        output_add(tracker, type, entity, now, slot, scriptId, msg, range);
+        tracker_output_add(tracker, type, entity, now, slot, scriptId, msg, range);
       }
     }
 
@@ -525,7 +525,7 @@ output_query(DebugScriptTrackerComp* tracker, EcsIterator* assetItr, EcsView* su
         const String                msg      = debugData[i].data_trace.text;
         const ScriptRangeLineCol    range    = {0}; // TODO: Collect ranges for traces.
         const DebugScriptOutputType type     = DebugScriptOutputType_Trace;
-        output_add(tracker, type, entity, now, debugData[i].slot, scriptId, msg, range);
+        tracker_output_add(tracker, type, entity, now, debugData[i].slot, scriptId, msg, range);
       }
     }
   }
@@ -558,7 +558,7 @@ static void output_options_draw(
 
   ui_table_next_column(c, &table);
   if (ui_button(c, .label = string_lit("Clear"))) {
-    output_clear(tracker);
+    tracker_output_clear(tracker);
   }
 
   ui_layout_pop(c);
@@ -770,7 +770,7 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
   }
   DebugScriptTrackerComp* tracker = ecs_view_write_t(globalItr, DebugScriptTrackerComp);
   if (!tracker) {
-    tracker = output_tracker_create(world);
+    tracker = tracker_create(world);
   }
 
   SceneSetEnvComp*        setEnv       = ecs_view_write_t(globalItr, SceneSetEnvComp);
@@ -784,9 +784,9 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
   EcsView*     subjectView = ecs_world_view_t(world, SubjectView);
   EcsIterator* subjectItr  = ecs_view_maybe_at(subjectView, scene_set_main(setEnv, selectedSet));
 
-  output_query(tracker, assetItr, subjectView);
+  tracker_query(tracker, assetItr, subjectView);
 
-  if (tracker->autoOpenOnPanic && output_has_panic(tracker)) {
+  if (tracker->autoOpenOnPanic && tracker_has_panic(tracker)) {
     EcsIterator* windowItr = ecs_view_first(ecs_world_view_t(world, WindowView));
     if (windowItr) {
       debug_script_panel_open_output(world, ecs_view_entity(windowItr));
