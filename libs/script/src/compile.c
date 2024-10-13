@@ -299,7 +299,7 @@ static ScriptCompileError compile_value(Context* ctx, const Target tgt, const Sc
   const ScriptVal        val  = *dynarray_at_t(&ctx->doc->values, data->valId, ScriptVal);
   switch (script_type(val)) {
   case ScriptType_Null:
-    emit_unary(ctx, ScriptOp_Null, tgt.reg);
+    emit_unary(ctx, ScriptOp_ValueNull, tgt.reg);
     break;
   case ScriptType_Bool:
     emit_value_bool(ctx, tgt.reg, script_get_bool(val, false));
@@ -567,7 +567,7 @@ compile_intr_loop(Context* ctx, const Target tgt, const ScriptExpr* args) {
 
   // Initialize output to null in case the loop body is never entered.
   if (!tgt.optional && !expr_is_true(ctx, args[1])) {
-    emit_unary(ctx, ScriptOp_Null, tgt.reg);
+    emit_unary(ctx, ScriptOp_ValueNull, tgt.reg);
   }
 
   // Setup expression.

@@ -122,6 +122,11 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
       if (UNLIKELY(!vm_val_valid(ctx, ip[-1]))) goto Corrupt;
       ctx->regs[ip[-2]] = dynarray_begin_t(&ctx->doc->values, ScriptVal)[ip[-1]];
       continue;
+    case ScriptOp_ValueNull:
+      if (UNLIKELY((ip += 2) >= ipEnd)) goto Corrupt;
+      if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;
+      ctx->regs[ip[-1]] = val_null();
+      continue;
     case ScriptOp_ValueBool:
       if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
       if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;
@@ -214,7 +219,6 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
         _FUNC_(ctx->regs[ip[-4]], ctx->regs[ip[-3]], ctx->regs[ip[-2]], ctx->regs[ip[-1]]);        \
       continue
 
-    OP_SIMPLE_ZERO(Null,                  script_null);
     OP_SIMPLE_UNARY(Truthy,               script_truthy_as_val);
     OP_SIMPLE_UNARY(Falsy,                script_falsy_as_val);
     OP_SIMPLE_UNARY(Type,                 script_val_type);
@@ -345,6 +349,10 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       if (UNLIKELY((ip += 3) > ipEnd)) return;
       fmt_write(out, "Value r{} v{}\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
       break;
+    case ScriptOp_ValueNull:
+      if (UNLIKELY((ip += 2) > ipEnd)) return;
+      fmt_write(out, "ValueNull r{}\n", fmt_int(ip[-1]));
+      break;
     case ScriptOp_ValueBool:
       if (UNLIKELY((ip += 3) > ipEnd)) return;
       fmt_write(out, "ValueBool r{} {}\n", fmt_int(ip[-2]), fmt_bool(ip[-1]));
@@ -401,7 +409,6 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
         fmt_int(ip[-4]), fmt_int(ip[-3]), fmt_int(ip[-2]), fmt_int(ip[-1]));                       \
       break
 
-    OP_SIMPLE_ZERO(Null);
     OP_SIMPLE_UNARY(Truthy);
     OP_SIMPLE_UNARY(Falsy);
     OP_SIMPLE_UNARY(Type);
