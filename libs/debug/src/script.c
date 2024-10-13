@@ -162,8 +162,8 @@ static void info_panel_tab_script_draw(
   ui_label(c, fmt_write_scratch("{}", fmt_text(scriptId)), .selectable = true);
 
   ui_layout_push(c);
-  ui_layout_inner(c, UiBase_Current, UiAlign_MiddleRight, ui_vector(100, 25), UiBase_Absolute);
-  if (ui_button(c, .label = string_lit("Open Script"), .tooltip = g_tooltipOpenScript)) {
+  ui_layout_inner(c, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 25), UiBase_Absolute);
+  if (ui_button(c, .label = ui_shape_scratch(UiShape_OpenInNew), .tooltip = g_tooltipOpenScript)) {
     panelComp->editorReq = (DebugEditorRequest){.scriptId = scriptId};
   }
   ui_layout_pop(c);
@@ -762,7 +762,9 @@ static void global_panel_tab_draw(
 
     ui_label(c, entry->id, .selectable = true);
     ui_table_next_column(c, &table);
-    if (ui_button(c, .label = string_lit("Open"), .tooltip = g_tooltipOpenScript)) {
+    ui_layout_resize(c, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
+    if (ui_button(
+            c, .label = ui_shape_scratch(UiShape_OpenInNew), .tooltip = g_tooltipOpenScript)) {
       panelComp->editorReq = (DebugEditorRequest){.scriptId = entry->id};
     }
     ui_table_next_column(c, &table);
