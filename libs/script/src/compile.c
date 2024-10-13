@@ -38,11 +38,14 @@ typedef struct {
 
 typedef struct {
   RegId reg;
-  bool  optional;
+  bool  optional, jumpCondition;
 } Target;
 
 #define target_reg(_REG_)                                                                          \
   (Target) { .reg = (_REG_) }
+
+#define target_reg_jump_cond(_REG_)                                                                \
+  (Target) { .reg = (_REG_), .jumpCondition = true }
 
 #define target_reg_opt(_REG_)                                                                      \
   (Target) { .reg = (_REG_), .optional = true }
@@ -448,7 +451,7 @@ static ScriptCompileError
 compile_intr_select(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
   // Condition.
-  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
+  if ((err = compile_expr(ctx, target_reg_jump_cond(tgt.reg), args[0]))) {
     return err;
   }
   const LabelId retLabel = label_alloc(ctx), falseLabel = label_alloc(ctx);
@@ -505,7 +508,9 @@ compile_intr_logic_and(Context* ctx, const Target tgt, const ScriptExpr* args) {
   }
 
   label_link(ctx, retLabel);
-  emit_unary(ctx, ScriptOp_Truthy, tgt.reg); // Convert to result to boolean.
+  if (!tgt.jumpCondition) {
+    emit_unary(ctx, ScriptOp_Truthy, tgt.reg); // Convert the result to boolean.
+  }
   return err;
 }
 
@@ -523,7 +528,9 @@ compile_intr_logic_or(Context* ctx, const Target tgt, const ScriptExpr* args) {
   }
 
   label_link(ctx, retLabel);
-  emit_unary(ctx, ScriptOp_Truthy, tgt.reg); // Convert to result to boolean.
+  if (!tgt.jumpCondition) {
+    emit_unary(ctx, ScriptOp_Truthy, tgt.reg); // Convert the result to boolean.
+  }
   return err;
 }
 
