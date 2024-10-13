@@ -36,6 +36,17 @@ typedef struct {
 } LabelPatch;
 
 typedef struct {
+  RegId reg;
+  bool  optional;
+} Target;
+
+#define target_reg(_REG_)                                                                          \
+  (Target) { .reg = (_REG_) }
+
+#define target_reg_opt(_REG_)                                                                      \
+  (Target) { .reg = (_REG_), .optional = true }
+
+typedef struct {
   const ScriptDoc* doc;
   DynString*       out;
   ScriptOp         lastOp;
@@ -248,29 +259,35 @@ static bool expr_is_true(Context* ctx, const ScriptExpr e) {
   return script_get_bool(val, false);
 }
 
-static ScriptCompileError compile_expr(Context*, RegId dst, ScriptExpr);
+static ScriptCompileError compile_expr(Context*, Target, ScriptExpr);
 
-static ScriptCompileError compile_value(Context* ctx, const RegId dst, const ScriptExpr e) {
+static ScriptCompileError compile_value(Context* ctx, const Target tgt, const ScriptExpr e) {
   if (expr_is_null(ctx, e)) {
-    emit_unary(ctx, ScriptOp_Null, dst);
+    emit_unary(ctx, ScriptOp_Null, tgt.reg);
     return ScriptCompileError_None;
   }
   const ScriptExprValue* data = &expr_data(ctx->doc, e)->value;
   if (UNLIKELY(data->valId > u8_max)) {
     return ScriptCompileError_TooManyValues;
   }
-  emit_value(ctx, dst, (u8)data->valId);
+  if (!tgt.optional) {
+    // NOTE: Optional value doesn't make sense and should produce warnings during read.
+    emit_value(ctx, tgt.reg, (u8)data->valId);
+  }
   return ScriptCompileError_None;
 }
 
-static ScriptCompileError compile_var_load(Context* ctx, const RegId dst, const ScriptExpr e) {
+static ScriptCompileError compile_var_load(Context* ctx, const Target tgt, const ScriptExpr e) {
   const ScriptExprVarLoad* data = &expr_data(ctx->doc, e)->var_load;
   diag_assert(!sentinel_check(ctx->varRegisters[data->var]));
-  emit_move(ctx, dst, ctx->varRegisters[data->var]);
+  if (!tgt.optional) {
+    // NOTE: Optional variable load doesn't make sense and should produce warnings during read.
+    emit_move(ctx, tgt.reg, ctx->varRegisters[data->var]);
+  }
   return ScriptCompileError_None;
 }
 
-static ScriptCompileError compile_var_store(Context* ctx, const RegId dst, const ScriptExpr e) {
+static ScriptCompileError compile_var_store(Context* ctx, const Target tgt, const ScriptExpr e) {
   const ScriptExprVarStore* data = &expr_data(ctx->doc, e)->var_store;
   ScriptCompileError        err  = ScriptCompileError_None;
   if (sentinel_check(ctx->varRegisters[data->var])) {
@@ -281,48 +298,53 @@ static ScriptCompileError compile_var_store(Context* ctx, const RegId dst, const
     }
     ctx->varRegisters[data->var] = newReg;
   }
-  if ((err = compile_expr(ctx, ctx->varRegisters[data->var], data->val))) {
+  if ((err = compile_expr(ctx, target_reg(ctx->varRegisters[data->var]), data->val))) {
     return err;
   }
-  emit_move(ctx, dst, ctx->varRegisters[data->var]); // Return the stored variable.
+  if (!tgt.optional) {
+    emit_move(ctx, tgt.reg, ctx->varRegisters[data->var]); // Return the stored variable.
+  }
   return ScriptCompileError_None;
 }
 
-static ScriptCompileError compile_mem_load(Context* ctx, const RegId dst, const ScriptExpr e) {
+static ScriptCompileError compile_mem_load(Context* ctx, const Target tgt, const ScriptExpr e) {
   const ScriptExprMemLoad* data = &expr_data(ctx->doc, e)->mem_load;
-  emit_mem_op(ctx, ScriptOp_MemLoad, dst, data->key);
+  if (!tgt.optional) {
+    // NOTE: Optional memory load doesn't make sense and should produce warnings during read.
+    emit_mem_op(ctx, ScriptOp_MemLoad, tgt.reg, data->key);
+  }
   return ScriptCompileError_None;
 }
 
-static ScriptCompileError compile_mem_store(Context* ctx, const RegId dst, const ScriptExpr e) {
+static ScriptCompileError compile_mem_store(Context* ctx, const Target tgt, const ScriptExpr e) {
   const ScriptExprMemStore* data = &expr_data(ctx->doc, e)->mem_store;
   ScriptCompileError        err  = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, dst, data->val))) {
+  if ((err = compile_expr(ctx, target_reg(tgt.reg), data->val))) {
     return err;
   }
-  emit_mem_op(ctx, ScriptOp_MemStore, dst, data->key);
+  emit_mem_op(ctx, ScriptOp_MemStore, tgt.reg, data->key);
   return err;
 }
 
-static ScriptCompileError compile_intr_zero(Context* ctx, const RegId dst, const ScriptOp op) {
-  emit_unary(ctx, op, dst);
+static ScriptCompileError compile_intr_zero(Context* ctx, const Target tgt, const ScriptOp op) {
+  emit_unary(ctx, op, tgt.reg);
   return ScriptCompileError_None;
 }
 
 static ScriptCompileError
-compile_intr_unary(Context* ctx, const RegId dst, const ScriptOp op, const ScriptExpr* args) {
+compile_intr_unary(Context* ctx, const Target tgt, const ScriptOp op, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, dst, args[0]))) {
+  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
     return err;
   }
-  emit_unary(ctx, op, dst);
+  emit_unary(ctx, op, tgt.reg);
   return err;
 }
 
 static ScriptCompileError
-compile_intr_binary(Context* ctx, const RegId dst, const ScriptOp op, const ScriptExpr* args) {
+compile_intr_binary(Context* ctx, const Target tgt, const ScriptOp op, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, dst, args[0]))) {
+  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
     return err;
   }
   const RegId tmpReg = reg_alloc(ctx);
@@ -330,18 +352,18 @@ compile_intr_binary(Context* ctx, const RegId dst, const ScriptOp op, const Scri
     err = ScriptCompileError_TooManyRegisters;
     return err;
   }
-  if ((err = compile_expr(ctx, tmpReg, args[1]))) {
+  if ((err = compile_expr(ctx, target_reg(tmpReg), args[1]))) {
     return err;
   }
-  emit_binary(ctx, op, dst, tmpReg);
+  emit_binary(ctx, op, tgt.reg, tmpReg);
   reg_free(ctx, tmpReg);
   return err;
 }
 
 static ScriptCompileError
-compile_intr_ternary(Context* ctx, const RegId dst, const ScriptOp op, const ScriptExpr* args) {
+compile_intr_ternary(Context* ctx, const Target tgt, const ScriptOp op, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, dst, args[0]))) {
+  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
     return err;
   }
   const RegId tmpReg1 = reg_alloc(ctx), tmpReg2 = reg_alloc(ctx);
@@ -349,22 +371,22 @@ compile_intr_ternary(Context* ctx, const RegId dst, const ScriptOp op, const Scr
     err = ScriptCompileError_TooManyRegisters;
     return err;
   }
-  if ((err = compile_expr(ctx, tmpReg1, args[1]))) {
+  if ((err = compile_expr(ctx, target_reg(tmpReg1), args[1]))) {
     return err;
   }
-  if ((err = compile_expr(ctx, tmpReg2, args[2]))) {
+  if ((err = compile_expr(ctx, target_reg(tmpReg2), args[2]))) {
     return err;
   }
-  emit_ternary(ctx, op, dst, tmpReg1, tmpReg2);
+  emit_ternary(ctx, op, tgt.reg, tmpReg1, tmpReg2);
   reg_free(ctx, tmpReg1);
   reg_free(ctx, tmpReg2);
   return err;
 }
 
 static ScriptCompileError
-compile_intr_quaternary(Context* ctx, const RegId dst, const ScriptOp op, const ScriptExpr* args) {
+compile_intr_quaternary(Context* ctx, const Target tgt, const ScriptOp op, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, dst, args[0]))) {
+  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
     return err;
   }
   const RegId tmpReg1 = reg_alloc(ctx), tmpReg2 = reg_alloc(ctx), tmpReg3 = reg_alloc(ctx);
@@ -372,16 +394,16 @@ compile_intr_quaternary(Context* ctx, const RegId dst, const ScriptOp op, const 
     err = ScriptCompileError_TooManyRegisters;
     return err;
   }
-  if ((err = compile_expr(ctx, tmpReg1, args[1]))) {
+  if ((err = compile_expr(ctx, target_reg(tmpReg1), args[1]))) {
     return err;
   }
-  if ((err = compile_expr(ctx, tmpReg2, args[2]))) {
+  if ((err = compile_expr(ctx, target_reg(tmpReg2), args[2]))) {
     return err;
   }
-  if ((err = compile_expr(ctx, tmpReg3, args[3]))) {
+  if ((err = compile_expr(ctx, target_reg(tmpReg3), args[3]))) {
     return err;
   }
-  emit_quaternary(ctx, op, dst, tmpReg1, tmpReg2, tmpReg3);
+  emit_quaternary(ctx, op, tgt.reg, tmpReg1, tmpReg2, tmpReg3);
   reg_free(ctx, tmpReg1);
   reg_free(ctx, tmpReg2);
   reg_free(ctx, tmpReg3);
@@ -389,21 +411,21 @@ compile_intr_quaternary(Context* ctx, const RegId dst, const ScriptOp op, const 
 }
 
 static ScriptCompileError
-compile_intr_select(Context* ctx, const RegId dst, const ScriptExpr* args) {
+compile_intr_select(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, dst, args[0]))) {
+  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
     return err;
   }
   const LabelId retLabel = label_alloc(ctx), falseLabel = label_alloc(ctx);
-  emit_jump_if_falsy(ctx, dst, falseLabel);
+  emit_jump_if_falsy(ctx, tgt.reg, falseLabel);
 
-  if ((err = compile_expr(ctx, dst, args[1]))) {
+  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[1]))) {
     return err;
   }
   emit_jump(ctx, retLabel);
 
   label_link(ctx, falseLabel);
-  if ((err = compile_expr(ctx, dst, args[2]))) {
+  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[2]))) {
     return err;
   }
 
@@ -412,15 +434,15 @@ compile_intr_select(Context* ctx, const RegId dst, const ScriptExpr* args) {
 }
 
 static ScriptCompileError
-compile_intr_null_coalescing(Context* ctx, const RegId dst, const ScriptExpr* args) {
+compile_intr_null_coalescing(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, dst, args[0]))) {
+  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
     return err;
   }
   const LabelId retLabel = label_alloc(ctx);
-  emit_jump_if_non_null(ctx, dst, retLabel);
+  emit_jump_if_non_null(ctx, tgt.reg, retLabel);
 
-  if ((err = compile_expr(ctx, dst, args[1]))) {
+  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[1]))) {
     return err;
   }
 
@@ -429,42 +451,43 @@ compile_intr_null_coalescing(Context* ctx, const RegId dst, const ScriptExpr* ar
 }
 
 static ScriptCompileError
-compile_intr_logic_and(Context* ctx, const RegId dst, const ScriptExpr* args) {
+compile_intr_logic_and(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, dst, args[0]))) {
+  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
     return err;
   }
   const LabelId retLabel = label_alloc(ctx);
-  emit_jump_if_falsy(ctx, dst, retLabel);
+  emit_jump_if_falsy(ctx, tgt.reg, retLabel);
 
-  if ((err = compile_expr(ctx, dst, args[1]))) {
+  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[1]))) {
     return err;
   }
 
   label_link(ctx, retLabel);
-  emit_unary(ctx, ScriptOp_Truthy, dst); // Convert to result to boolean.
+  emit_unary(ctx, ScriptOp_Truthy, tgt.reg); // Convert to result to boolean.
   return err;
 }
 
 static ScriptCompileError
-compile_intr_logic_or(Context* ctx, const RegId dst, const ScriptExpr* args) {
+compile_intr_logic_or(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, dst, args[0]))) {
+  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
     return err;
   }
   const LabelId retLabel = label_alloc(ctx);
-  emit_jump_if_truthy(ctx, dst, retLabel);
+  emit_jump_if_truthy(ctx, tgt.reg, retLabel);
 
-  if ((err = compile_expr(ctx, dst, args[1]))) {
+  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[1]))) {
     return err;
   }
 
   label_link(ctx, retLabel);
-  emit_unary(ctx, ScriptOp_Truthy, dst); // Convert to result to boolean.
+  emit_unary(ctx, ScriptOp_Truthy, tgt.reg); // Convert to result to boolean.
   return err;
 }
 
-static ScriptCompileError compile_intr_loop(Context* ctx, const RegId dst, const ScriptExpr* args) {
+static ScriptCompileError
+compile_intr_loop(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err    = ScriptCompileError_None;
   const RegId        tmpReg = reg_alloc(ctx);
   if (sentinel_check(tmpReg)) {
@@ -473,13 +496,13 @@ static ScriptCompileError compile_intr_loop(Context* ctx, const RegId dst, const
   }
 
   // Initialize output to null in case the loop body is never entered.
-  if (!expr_is_true(ctx, args[1])) {
-    emit_unary(ctx, ScriptOp_Null, dst);
+  if (!tgt.optional && !expr_is_true(ctx, args[1])) {
+    emit_unary(ctx, ScriptOp_Null, tgt.reg);
   }
 
   // Setup expression.
   if (!expr_is_null(ctx, args[0])) {
-    if ((err = compile_expr(ctx, tmpReg, args[0]))) {
+    if ((err = compile_expr(ctx, target_reg_opt(tmpReg), args[0]))) {
       return err;
     }
   }
@@ -494,21 +517,21 @@ static ScriptCompileError compile_intr_loop(Context* ctx, const RegId dst, const
   }
   label_link(ctx, labelCond);
   if (!expr_is_true(ctx, args[1])) {
-    if ((err = compile_expr(ctx, tmpReg, args[1]))) {
+    if ((err = compile_expr(ctx, target_reg(tmpReg), args[1]))) {
       return err;
     }
     emit_jump_if_falsy(ctx, tmpReg, ctx->loopLabelEnd);
   }
 
   // Body expression.
-  if ((err = compile_expr(ctx, dst, args[3]))) {
+  if ((err = compile_expr(ctx, tgt, args[3]))) {
     return err;
   }
 
   // Increment expression.
   if (!expr_is_null(ctx, args[2])) {
     label_link(ctx, ctx->loopLabelIncrement);
-    if ((err = compile_expr(ctx, tmpReg, args[2]))) {
+    if ((err = compile_expr(ctx, target_reg_opt(tmpReg), args[2]))) {
       return err;
     }
   }
@@ -533,7 +556,7 @@ static ScriptCompileError compile_intr_break(Context* ctx) {
   return ScriptCompileError_None;
 }
 
-static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const ScriptExpr e) {
+static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const ScriptExpr e) {
   const ScriptExprIntrinsic* data = &expr_data(ctx->doc, e)->intrinsic;
   const ScriptExpr*          args = expr_set_data(ctx->doc, data->argSet);
   switch (data->intrinsic) {
@@ -542,124 +565,124 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   case ScriptIntrinsic_Break:
     return compile_intr_break(ctx);
   case ScriptIntrinsic_Return:
-    return compile_intr_unary(ctx, dst, ScriptOp_Return, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_Return, args);
   case ScriptIntrinsic_Type:
-    return compile_intr_unary(ctx, dst, ScriptOp_Type, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_Type, args);
   case ScriptIntrinsic_Hash:
-    return compile_intr_unary(ctx, dst, ScriptOp_Hash, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_Hash, args);
   case ScriptIntrinsic_Assert:
-    return compile_intr_unary(ctx, dst, ScriptOp_Assert, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_Assert, args);
   case ScriptIntrinsic_MemLoadDynamic:
-    return compile_intr_unary(ctx, dst, ScriptOp_MemLoadDyn, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_MemLoadDyn, args);
   case ScriptIntrinsic_MemStoreDynamic:
-    return compile_intr_binary(ctx, dst, ScriptOp_MemStoreDyn, args);
+    return compile_intr_binary(ctx, tgt, ScriptOp_MemStoreDyn, args);
   case ScriptIntrinsic_Select:
-    return compile_intr_select(ctx, dst, args);
+    return compile_intr_select(ctx, tgt, args);
   case ScriptIntrinsic_NullCoalescing:
-    return compile_intr_null_coalescing(ctx, dst, args);
+    return compile_intr_null_coalescing(ctx, tgt, args);
   case ScriptIntrinsic_LogicAnd:
-    return compile_intr_logic_and(ctx, dst, args);
+    return compile_intr_logic_and(ctx, tgt, args);
   case ScriptIntrinsic_LogicOr:
-    return compile_intr_logic_or(ctx, dst, args);
+    return compile_intr_logic_or(ctx, tgt, args);
   case ScriptIntrinsic_Loop:
-    return compile_intr_loop(ctx, dst, args);
+    return compile_intr_loop(ctx, tgt, args);
   case ScriptIntrinsic_Equal:
-    return compile_intr_binary(ctx, dst, ScriptOp_Equal, args);
+    return compile_intr_binary(ctx, tgt, ScriptOp_Equal, args);
   case ScriptIntrinsic_NotEqual: {
-    const ScriptCompileError err = compile_intr_binary(ctx, dst, ScriptOp_Equal, args);
+    const ScriptCompileError err = compile_intr_binary(ctx, tgt, ScriptOp_Equal, args);
     if (!err) {
-      emit_unary(ctx, ScriptOp_Invert, dst);
+      emit_unary(ctx, ScriptOp_Invert, tgt.reg);
     }
     return err;
   }
   case ScriptIntrinsic_Less:
-    return compile_intr_binary(ctx, dst, ScriptOp_Less, args);
+    return compile_intr_binary(ctx, tgt, ScriptOp_Less, args);
   case ScriptIntrinsic_LessOrEqual: {
-    const ScriptCompileError err = compile_intr_binary(ctx, dst, ScriptOp_Greater, args);
+    const ScriptCompileError err = compile_intr_binary(ctx, tgt, ScriptOp_Greater, args);
     if (!err) {
-      emit_unary(ctx, ScriptOp_Invert, dst);
+      emit_unary(ctx, ScriptOp_Invert, tgt.reg);
     }
     return err;
   }
   case ScriptIntrinsic_Greater:
-    return compile_intr_binary(ctx, dst, ScriptOp_Greater, args);
+    return compile_intr_binary(ctx, tgt, ScriptOp_Greater, args);
   case ScriptIntrinsic_GreaterOrEqual: {
-    const ScriptCompileError err = compile_intr_binary(ctx, dst, ScriptOp_Less, args);
+    const ScriptCompileError err = compile_intr_binary(ctx, tgt, ScriptOp_Less, args);
     if (!err) {
-      emit_unary(ctx, ScriptOp_Invert, dst);
+      emit_unary(ctx, ScriptOp_Invert, tgt.reg);
     }
     return err;
   }
   case ScriptIntrinsic_Add:
-    return compile_intr_binary(ctx, dst, ScriptOp_Add, args);
+    return compile_intr_binary(ctx, tgt, ScriptOp_Add, args);
   case ScriptIntrinsic_Sub:
-    return compile_intr_binary(ctx, dst, ScriptOp_Sub, args);
+    return compile_intr_binary(ctx, tgt, ScriptOp_Sub, args);
   case ScriptIntrinsic_Mul:
-    return compile_intr_binary(ctx, dst, ScriptOp_Mul, args);
+    return compile_intr_binary(ctx, tgt, ScriptOp_Mul, args);
   case ScriptIntrinsic_Div:
-    return compile_intr_binary(ctx, dst, ScriptOp_Div, args);
+    return compile_intr_binary(ctx, tgt, ScriptOp_Div, args);
   case ScriptIntrinsic_Mod:
-    return compile_intr_binary(ctx, dst, ScriptOp_Mod, args);
+    return compile_intr_binary(ctx, tgt, ScriptOp_Mod, args);
   case ScriptIntrinsic_Negate:
-    return compile_intr_unary(ctx, dst, ScriptOp_Negate, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_Negate, args);
   case ScriptIntrinsic_Invert:
-    return compile_intr_unary(ctx, dst, ScriptOp_Invert, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_Invert, args);
   case ScriptIntrinsic_Distance:
-    return compile_intr_binary(ctx, dst, ScriptOp_Distance, args);
+    return compile_intr_binary(ctx, tgt, ScriptOp_Distance, args);
   case ScriptIntrinsic_Angle:
-    return compile_intr_binary(ctx, dst, ScriptOp_Angle, args);
+    return compile_intr_binary(ctx, tgt, ScriptOp_Angle, args);
   case ScriptIntrinsic_Sin:
-    return compile_intr_unary(ctx, dst, ScriptOp_Sin, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_Sin, args);
   case ScriptIntrinsic_Cos:
-    return compile_intr_unary(ctx, dst, ScriptOp_Cos, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_Cos, args);
   case ScriptIntrinsic_Normalize:
-    return compile_intr_unary(ctx, dst, ScriptOp_Normalize, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_Normalize, args);
   case ScriptIntrinsic_Magnitude:
-    return compile_intr_unary(ctx, dst, ScriptOp_Magnitude, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_Magnitude, args);
   case ScriptIntrinsic_Absolute:
-    return compile_intr_unary(ctx, dst, ScriptOp_Absolute, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_Absolute, args);
   case ScriptIntrinsic_VecX:
-    return compile_intr_unary(ctx, dst, ScriptOp_VecX, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_VecX, args);
   case ScriptIntrinsic_VecY:
-    return compile_intr_unary(ctx, dst, ScriptOp_VecY, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_VecY, args);
   case ScriptIntrinsic_VecZ:
-    return compile_intr_unary(ctx, dst, ScriptOp_VecZ, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_VecZ, args);
   case ScriptIntrinsic_Vec3Compose:
-    return compile_intr_ternary(ctx, dst, ScriptOp_Vec3Compose, args);
+    return compile_intr_ternary(ctx, tgt, ScriptOp_Vec3Compose, args);
   case ScriptIntrinsic_QuatFromEuler:
-    return compile_intr_ternary(ctx, dst, ScriptOp_QuatFromEuler, args);
+    return compile_intr_ternary(ctx, tgt, ScriptOp_QuatFromEuler, args);
   case ScriptIntrinsic_QuatFromAngleAxis:
-    return compile_intr_binary(ctx, dst, ScriptOp_QuatFromAngleAxis, args);
+    return compile_intr_binary(ctx, tgt, ScriptOp_QuatFromAngleAxis, args);
   case ScriptIntrinsic_ColorCompose:
-    return compile_intr_quaternary(ctx, dst, ScriptOp_ColorCompose, args);
+    return compile_intr_quaternary(ctx, tgt, ScriptOp_ColorCompose, args);
   case ScriptIntrinsic_ColorComposeHsv:
-    return compile_intr_quaternary(ctx, dst, ScriptOp_ColorComposeHsv, args);
+    return compile_intr_quaternary(ctx, tgt, ScriptOp_ColorComposeHsv, args);
   case ScriptIntrinsic_ColorFor:
-    return compile_intr_unary(ctx, dst, ScriptOp_ColorFor, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_ColorFor, args);
   case ScriptIntrinsic_Random:
-    return compile_intr_zero(ctx, dst, ScriptOp_Random);
+    return compile_intr_zero(ctx, tgt, ScriptOp_Random);
   case ScriptIntrinsic_RandomSphere:
-    return compile_intr_zero(ctx, dst, ScriptOp_RandomSphere);
+    return compile_intr_zero(ctx, tgt, ScriptOp_RandomSphere);
   case ScriptIntrinsic_RandomCircleXZ:
-    return compile_intr_zero(ctx, dst, ScriptOp_RandomCircleXZ);
+    return compile_intr_zero(ctx, tgt, ScriptOp_RandomCircleXZ);
   case ScriptIntrinsic_RandomBetween:
-    return compile_intr_binary(ctx, dst, ScriptOp_RandomBetween, args);
+    return compile_intr_binary(ctx, tgt, ScriptOp_RandomBetween, args);
   case ScriptIntrinsic_RoundDown:
-    return compile_intr_unary(ctx, dst, ScriptOp_RoundDown, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_RoundDown, args);
   case ScriptIntrinsic_RoundNearest:
-    return compile_intr_unary(ctx, dst, ScriptOp_RoundNearest, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_RoundNearest, args);
   case ScriptIntrinsic_RoundUp:
-    return compile_intr_unary(ctx, dst, ScriptOp_RoundUp, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_RoundUp, args);
   case ScriptIntrinsic_Clamp:
-    return compile_intr_ternary(ctx, dst, ScriptOp_Clamp, args);
+    return compile_intr_ternary(ctx, tgt, ScriptOp_Clamp, args);
   case ScriptIntrinsic_Lerp:
-    return compile_intr_ternary(ctx, dst, ScriptOp_Lerp, args);
+    return compile_intr_ternary(ctx, tgt, ScriptOp_Lerp, args);
   case ScriptIntrinsic_Min:
-    return compile_intr_binary(ctx, dst, ScriptOp_Min, args);
+    return compile_intr_binary(ctx, tgt, ScriptOp_Min, args);
   case ScriptIntrinsic_Max:
-    return compile_intr_binary(ctx, dst, ScriptOp_Max, args);
+    return compile_intr_binary(ctx, tgt, ScriptOp_Max, args);
   case ScriptIntrinsic_Perlin3:
-    return compile_intr_unary(ctx, dst, ScriptOp_Perlin3, args);
+    return compile_intr_unary(ctx, tgt, ScriptOp_Perlin3, args);
   case ScriptIntrinsic_Count:
     break;
   }
@@ -667,21 +690,23 @@ static ScriptCompileError compile_intr(Context* ctx, const RegId dst, const Scri
   UNREACHABLE
 }
 
-static ScriptCompileError compile_block(Context* ctx, const RegId dst, const ScriptExpr e) {
+static ScriptCompileError compile_block(Context* ctx, const Target tgt, const ScriptExpr e) {
   const ScriptExprBlock* data  = &expr_data(ctx->doc, e)->block;
   const ScriptExpr*      exprs = expr_set_data(ctx->doc, data->exprSet);
 
   // NOTE: Blocks need at least one expression.
   ScriptCompileError err = ScriptCompileError_None;
   for (u32 i = 0; i != data->exprCount; ++i) {
-    if ((err = compile_expr(ctx, dst, exprs[i]))) {
+    const bool last = i == (data->exprCount - 1);
+    // For all but the last expression the output is optional (as it will never be observed).
+    if ((err = compile_expr(ctx, last ? tgt : target_reg_opt(tgt.reg), exprs[i]))) {
       break;
     }
   }
   return err;
 }
 
-static ScriptCompileError compile_extern(Context* ctx, const RegId dst, const ScriptExpr e) {
+static ScriptCompileError compile_extern(Context* ctx, const Target tgt, const ScriptExpr e) {
   const ScriptExprExtern* data     = &expr_data(ctx->doc, e)->extern_;
   const ScriptExpr*       argExprs = expr_set_data(ctx->doc, data->argSet);
   const RegSet            argRegs  = reg_alloc_set(ctx, data->argCount);
@@ -690,34 +715,34 @@ static ScriptCompileError compile_extern(Context* ctx, const RegId dst, const Sc
   }
   ScriptCompileError err = ScriptCompileError_None;
   for (u32 i = 0; i != data->argCount; ++i) {
-    if ((err = compile_expr(ctx, argRegs.begin + i, argExprs[i]))) {
+    if ((err = compile_expr(ctx, target_reg(argRegs.begin + i), argExprs[i]))) {
       goto Ret;
     }
   }
-  emit_extern(ctx, dst, data->func, argRegs);
+  emit_extern(ctx, tgt.reg, data->func, argRegs);
   reg_free_set(ctx, argRegs);
 Ret:
   return err;
 }
 
-static ScriptCompileError compile_expr(Context* ctx, const RegId dst, const ScriptExpr e) {
+static ScriptCompileError compile_expr(Context* ctx, const Target tgt, const ScriptExpr e) {
   switch (expr_kind(ctx->doc, e)) {
   case ScriptExprKind_Value:
-    return compile_value(ctx, dst, e);
+    return compile_value(ctx, tgt, e);
   case ScriptExprKind_VarLoad:
-    return compile_var_load(ctx, dst, e);
+    return compile_var_load(ctx, tgt, e);
   case ScriptExprKind_VarStore:
-    return compile_var_store(ctx, dst, e);
+    return compile_var_store(ctx, tgt, e);
   case ScriptExprKind_MemLoad:
-    return compile_mem_load(ctx, dst, e);
+    return compile_mem_load(ctx, tgt, e);
   case ScriptExprKind_MemStore:
-    return compile_mem_store(ctx, dst, e);
+    return compile_mem_store(ctx, tgt, e);
   case ScriptExprKind_Intrinsic:
-    return compile_intr(ctx, dst, e);
+    return compile_intr(ctx, tgt, e);
   case ScriptExprKind_Block:
-    return compile_block(ctx, dst, e);
+    return compile_block(ctx, tgt, e);
   case ScriptExprKind_Extern:
-    return compile_extern(ctx, dst, e);
+    return compile_extern(ctx, tgt, e);
   case ScriptExprKind_Count:
     break;
   }
@@ -745,7 +770,7 @@ ScriptCompileError script_compile(const ScriptDoc* doc, const ScriptExpr expr, D
   const RegId resultReg = reg_alloc(&ctx);
   diag_assert(resultReg < script_vm_regs);
 
-  ScriptCompileError err = compile_expr(&ctx, resultReg, expr);
+  ScriptCompileError err = compile_expr(&ctx, target_reg(resultReg), expr);
   if (!err) {
     if (ctx.lastOp != ScriptOp_Return) {
       emit_unary(&ctx, ScriptOp_Return, resultReg);
