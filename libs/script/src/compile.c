@@ -675,6 +675,12 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
   case ScriptIntrinsic_Equal:
     return compile_intr_binary(ctx, tgt, ScriptOp_Equal, args);
   case ScriptIntrinsic_NotEqual: {
+    if (expr_is_null(ctx, args[0])) {
+      return compile_intr_unary(ctx, tgt, ScriptOp_NonNull, &args[1]);
+    }
+    if (expr_is_null(ctx, args[1])) {
+      return compile_intr_unary(ctx, tgt, ScriptOp_NonNull, &args[0]);
+    }
     const ScriptCompileError err = compile_intr_binary(ctx, tgt, ScriptOp_Equal, args);
     if (!err) {
       emit_unary(ctx, ScriptOp_Invert, tgt.reg);
