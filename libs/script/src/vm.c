@@ -221,6 +221,7 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
 
     OP_SIMPLE_UNARY(Truthy,               script_truthy_as_val);
     OP_SIMPLE_UNARY(Falsy,                script_falsy_as_val);
+    OP_SIMPLE_UNARY(NonNull,              script_non_null_as_val);
     OP_SIMPLE_UNARY(Type,                 script_val_type);
     OP_SIMPLE_UNARY(Hash,                 script_val_hash);
     OP_SIMPLE_BINARY(Equal,               script_val_equal_as_val);
@@ -411,6 +412,7 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
 
     OP_SIMPLE_UNARY(Truthy);
     OP_SIMPLE_UNARY(Falsy);
+    OP_SIMPLE_UNARY(NonNull);
     OP_SIMPLE_UNARY(Type);
     OP_SIMPLE_UNARY(Hash);
     OP_SIMPLE_BINARY(Equal);
