@@ -172,6 +172,8 @@ spec(vm) {
         {string_static("true && {$b = 2; false}; $b"), script_num(2)},
         {string_static("false || {$c = 3; false}; $c"), script_num(3)},
         {string_static("true || {$d = 4; false}; $d"), script_null()},
+        {string_static("1 || 1"), script_bool(true)},
+        {string_static("1 && 1"), script_bool(true)},
 
         // Condition expressions.
         {string_static("null ?? null"), script_null()},
