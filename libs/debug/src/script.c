@@ -85,7 +85,7 @@ typedef struct {
 } DebugEditorRequest;
 
 ecs_comp_define(DebugScriptTrackerComp) {
-  DynArray entries; // DebugScriptOutput[]
+  DynArray outputEntries; // DebugScriptOutput[]
   bool     autoOpenOnPanic;
 };
 
@@ -102,7 +102,7 @@ ecs_comp_define(DebugScriptPanelComp) {
 
 static void ecs_destruct_script_tracker(void* data) {
   DebugScriptTrackerComp* comp = data;
-  dynarray_destroy(&comp->entries);
+  dynarray_destroy(&comp->outputEntries);
 }
 
 static void ecs_destroy_script_panel(void* data) {
@@ -417,12 +417,12 @@ static DebugScriptTrackerComp* output_tracker_create(EcsWorld* world) {
       world,
       ecs_world_global(world),
       DebugScriptTrackerComp,
-      .entries         = dynarray_create_t(g_allocHeap, DebugScriptOutput, 64),
+      .outputEntries   = dynarray_create_t(g_allocHeap, DebugScriptOutput, 64),
       .autoOpenOnPanic = true);
 }
 
 static bool output_has_panic(const DebugScriptTrackerComp* tracker) {
-  dynarray_for_t(&tracker->entries, DebugScriptOutput, entry) {
+  dynarray_for_t(&tracker->outputEntries, DebugScriptOutput, entry) {
     if (entry->type == DebugScriptOutputType_Panic) {
       return true;
     }
@@ -430,12 +430,14 @@ static bool output_has_panic(const DebugScriptTrackerComp* tracker) {
   return false;
 }
 
-static void output_clear(DebugScriptTrackerComp* tracker) { dynarray_clear(&tracker->entries); }
+static void output_clear(DebugScriptTrackerComp* tracker) {
+  dynarray_clear(&tracker->outputEntries);
+}
 
 static void output_prune_older(DebugScriptTrackerComp* tracker, const TimeReal timestamp) {
-  for (usize i = tracker->entries.size; i-- != 0;) {
-    if (dynarray_at_t(&tracker->entries, i, DebugScriptOutput)->timestamp < timestamp) {
-      dynarray_remove_unordered(&tracker->entries, i, 1);
+  for (usize i = tracker->outputEntries.size; i-- != 0;) {
+    if (dynarray_at_t(&tracker->outputEntries, i, DebugScriptOutput)->timestamp < timestamp) {
+      dynarray_remove_unordered(&tracker->outputEntries, i, 1);
     }
   }
 }
@@ -451,8 +453,8 @@ static void output_add(
     const ScriptRangeLineCol    range) {
   DebugScriptOutput* entry = null;
   // Find an existing entry of the same type for the same entity.
-  for (usize i = 0; i != tracker->entries.size; ++i) {
-    DebugScriptOutput* other = dynarray_at_t(&tracker->entries, i, DebugScriptOutput);
+  for (usize i = 0; i != tracker->outputEntries.size; ++i) {
+    DebugScriptOutput* other = dynarray_at_t(&tracker->outputEntries, i, DebugScriptOutput);
     if (other->type == type && other->entity == entity && other->slot == slot) {
       entry = other;
       break;
@@ -460,7 +462,7 @@ static void output_add(
   }
   if (!entry) {
     // No existing entry found; add a new one.
-    entry = dynarray_push_t(&tracker->entries, DebugScriptOutput);
+    entry = dynarray_push_t(&tracker->outputEntries, DebugScriptOutput);
   }
   entry->type      = type;
   entry->slot      = slot;
@@ -594,7 +596,7 @@ static void output_panel_tab_draw(
   }
 
   panelComp->lastRowCount = 0;
-  dynarray_for_t(&tracker->entries, DebugScriptOutput, entry) {
+  dynarray_for_t(&tracker->outputEntries, DebugScriptOutput, entry) {
     switch (panelComp->outputMode) {
     case DebugScriptOutputMode_All:
       break;
