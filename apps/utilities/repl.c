@@ -25,14 +25,15 @@
 
 typedef enum {
   ReplFlags_None          = 0,
-  ReplFlags_NoEval        = 1 << 0,
-  ReplFlags_Vm            = 1 << 1,
-  ReplFlags_Watch         = 1 << 2,
-  ReplFlags_OutputTokens  = 1 << 3,
-  ReplFlags_OutputAst     = 1 << 4,
-  ReplFlags_OutputStats   = 1 << 5,
-  ReplFlags_OutputCode    = 1 << 6,
-  ReplFlags_OutputSymbols = 1 << 7,
+  ReplFlags_TtyOutput     = 1 << 0,
+  ReplFlags_NoEval        = 1 << 1,
+  ReplFlags_Vm            = 1 << 2,
+  ReplFlags_Watch         = 1 << 3,
+  ReplFlags_OutputTokens  = 1 << 4,
+  ReplFlags_OutputAst     = 1 << 5,
+  ReplFlags_OutputStats   = 1 << 6,
+  ReplFlags_OutputCode    = 1 << 7,
+  ReplFlags_OutputSymbols = 1 << 8,
 } ReplFlags;
 
 typedef struct {
@@ -52,14 +53,16 @@ static void repl_output_val(const ScriptVal val) {
   repl_output(fmt_write_scratch("{}\n", script_val_fmt(val)));
 }
 
-static void repl_output_error(const String text, const String id) {
+static void repl_output_error(const ReplFlags flags, const String text, const String id) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
   const TtyStyle styleErr     = ttystyle(.bgColor = TtyBgColor_Red, .flags = TtyStyleFlags_Bold);
   const TtyStyle styleDefault = ttystyle();
 
-  tty_write_style_sequence(&buffer, styleErr);
+  if (flags & ReplFlags_TtyOutput) {
+    tty_write_style_sequence(&buffer, styleErr);
+  }
 
   if (!string_is_empty(id)) {
     dynstring_append(&buffer, id);
@@ -67,14 +70,17 @@ static void repl_output_error(const String text, const String id) {
   }
   dynstring_append(&buffer, text);
 
-  tty_write_style_sequence(&buffer, styleDefault);
+  if (flags & ReplFlags_TtyOutput) {
+    tty_write_style_sequence(&buffer, styleDefault);
+  }
   dynstring_append_char(&buffer, '\n');
 
   repl_output(dynstring_view(&buffer));
   dynstring_destroy(&buffer);
 }
 
-static void repl_output_diag(const String src, const ScriptDiag* diag, const String id) {
+static void
+repl_output_diag(const ReplFlags flags, const String src, const ScriptDiag* diag, const String id) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
@@ -82,13 +88,15 @@ static void repl_output_diag(const String src, const ScriptDiag* diag, const Str
   const TtyStyle styleWarn    = ttystyle(.bgColor = TtyBgColor_Yellow, .flags = TtyStyleFlags_Bold);
   const TtyStyle styleDefault = ttystyle();
 
-  switch (diag->severity) {
-  case ScriptDiagSeverity_Error:
-    tty_write_style_sequence(&buffer, styleErr);
-    break;
-  case ScriptDiagSeverity_Warning:
-    tty_write_style_sequence(&buffer, styleWarn);
-    break;
+  if (flags & ReplFlags_TtyOutput) {
+    switch (diag->severity) {
+    case ScriptDiagSeverity_Error:
+      tty_write_style_sequence(&buffer, styleErr);
+      break;
+    case ScriptDiagSeverity_Warning:
+      tty_write_style_sequence(&buffer, styleWarn);
+      break;
+    }
   }
 
   if (!string_is_empty(id)) {
@@ -97,15 +105,18 @@ static void repl_output_diag(const String src, const ScriptDiag* diag, const Str
   }
   script_diag_pretty_write(&buffer, src, diag);
 
-  tty_write_style_sequence(&buffer, styleDefault);
+  if (flags & ReplFlags_TtyOutput) {
+    tty_write_style_sequence(&buffer, styleDefault);
+  }
   dynstring_append_char(&buffer, '\n');
 
   repl_output(dynstring_view(&buffer));
   dynstring_destroy(&buffer);
 }
 
-static void repl_output_panic(const String src, const ScriptPanic* panic, const String id) {
-  repl_output_error(script_panic_pretty_scratch(src, panic), id);
+static void repl_output_panic(
+    const ReplFlags flags, const String src, const ScriptPanic* panic, const String id) {
+  repl_output_error(flags, script_panic_pretty_scratch(src, panic), id);
 }
 
 static void repl_output_sym(const ScriptSymBag* symBag, const ScriptSym sym) {
@@ -325,7 +336,7 @@ static void repl_exec(
 
   const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
   for (u32 i = 0; i != diagCount; ++i) {
-    repl_output_diag(input, script_diag_data(diags) + i, id);
+    repl_output_diag(flags, input, script_diag_data(diags) + i, id);
   }
   if (flags & ReplFlags_OutputSymbols) {
     ScriptSym itr = script_sym_first(syms, script_pos_sentinel);
@@ -350,7 +361,7 @@ static void repl_exec(
     const ScriptCompileError compileErr = script_compile(script, expr, &codeBuffer);
     if (compileErr) {
       const String errStr = script_compile_error_str(compileErr);
-      repl_output_error(fmt_write_scratch("Compilation failed: {}", fmt_text(errStr)), id);
+      repl_output_error(flags, fmt_write_scratch("Compilation failed: {}", fmt_text(errStr)), id);
       goto Ret;
     }
     if (flags & ReplFlags_OutputCode) {
@@ -364,7 +375,7 @@ static void repl_exec(
     const String         code  = dynstring_view(&codeBuffer);
     const ScriptVmResult vmRes = script_vm_eval(script, code, mem, binder, null);
     if (script_panic_valid(&vmRes.panic)) {
-      repl_output_panic(input, &vmRes.panic, id);
+      repl_output_panic(flags, input, &vmRes.panic, id);
     } else {
       repl_output_val(vmRes.val);
     }
@@ -372,7 +383,7 @@ static void repl_exec(
   }
   const ScriptEvalResult evalRes = script_eval(script, expr, mem, binder, null);
   if (script_panic_valid(&evalRes.panic)) {
-    repl_output_panic(input, &evalRes.panic, id);
+    repl_output_panic(flags, input, &evalRes.panic, id);
   } else {
     repl_output_val(evalRes.val);
   }
@@ -507,6 +518,10 @@ static bool repl_edit_update(ReplEditor* editor, TtyInputToken* input) {
 }
 
 static i32 repl_run_interactive(const ScriptBinder* binder, const ReplFlags flags) {
+  if (!(flags & ReplFlags_TtyOutput)) {
+    file_write_sync(g_fileStdErr, string_lit("ERROR: REPL needs tty input/output streams.\n"));
+    return 1;
+  }
   DynString readBuffer = dynstring_create(g_allocHeap, 32);
   DynString editBuffer = dynstring_create(g_allocHeap, 128);
 
@@ -730,11 +745,8 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     flags |= ReplFlags_OutputSymbols;
   }
 
-  if (!tty_isatty(g_fileStdOut)) {
-    // TODO: Support non-tty output for non-interactive modes by conditionally removing the styling.
-    file_write_sync(g_fileStdErr, string_lit("ERROR: REPL needs a tty output stream.\n"));
-    exitCode = 1;
-    goto Exit;
+  if (tty_isatty(g_fileStdOut)) {
+    flags |= ReplFlags_TtyOutput;
   }
 
   binder = script_binder_create(g_allocHeap);
