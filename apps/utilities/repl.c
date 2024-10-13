@@ -316,8 +316,9 @@ static void repl_exec(
 
   Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
 
-  ScriptDoc*     script = script_create(g_allocHeap);
-  ScriptDiagBag* diags  = script_diag_bag_create(tempAlloc, ScriptDiagFilter_All);
+  DynString      codeBuffer = dynstring_create(g_allocHeap, 0);
+  ScriptDoc*     script     = script_create(g_allocHeap);
+  ScriptDiagBag* diags      = script_diag_bag_create(tempAlloc, ScriptDiagFilter_All);
   ScriptSymBag*  syms = (flags & ReplFlags_OutputSymbols) ? script_sym_bag_create(g_allocHeap) : 0;
 
   const ScriptExpr expr = script_read(script, binder, input, diags, syms);
@@ -333,49 +334,56 @@ static void repl_exec(
     }
   }
 
-  if (!sentinel_check(expr)) {
-    if (flags & ReplFlags_OutputAst) {
-      repl_output_ast(script, expr);
+  if (sentinel_check(expr)) {
+    goto Ret;
+  }
+  if (flags & ReplFlags_OutputAst) {
+    repl_output_ast(script, expr);
+  }
+  if (flags & ReplFlags_OutputStats) {
+    repl_output_stats(script, expr);
+  }
+  if (script_diag_count(diags, ScriptDiagFilter_Error)) {
+    goto Ret;
+  }
+  if (flags & ReplFlags_Vm) {
+    const ScriptCompileError compileErr = script_compile(script, expr, &codeBuffer);
+    if (compileErr) {
+      const String errStr = script_compile_error_str(compileErr);
+      repl_output_error(fmt_write_scratch("Compilation failed: {}", fmt_text(errStr)), id);
+      goto Ret;
     }
-    if (flags & ReplFlags_OutputStats) {
-      repl_output_stats(script, expr);
-    }
-    const bool noErrors = script_diag_count(diags, ScriptDiagFilter_Error) == 0;
-    if (noErrors && !(flags & ReplFlags_NoEval)) {
-      if (flags & ReplFlags_Vm) {
-        DynString                codeBuffer = dynstring_create(g_allocScratch, usize_kibibyte);
-        const ScriptCompileError compileErr = script_compile(script, expr, &codeBuffer);
-        if (compileErr) {
-          const String errStr = script_compile_error_str(compileErr);
-          repl_output_error(fmt_write_scratch("Compilation failed: {}", fmt_text(errStr)), id);
-        } else {
-          const String code = dynstring_view(&codeBuffer);
-          if (flags & ReplFlags_OutputCode) {
-            repl_output_code(script, code);
-          }
-          const ScriptVmResult vmRes = script_vm_eval(script, code, mem, binder, null);
-          if (script_panic_valid(&vmRes.panic)) {
-            repl_output_panic(input, &vmRes.panic, id);
-          } else {
-            repl_output_val(vmRes.val);
-          }
-        }
-      } else /* !ReplFlags_Vm */ {
-        const ScriptEvalResult evalRes = script_eval(script, expr, mem, binder, null);
-        if (script_panic_valid(&evalRes.panic)) {
-          repl_output_panic(input, &evalRes.panic, id);
-        } else {
-          repl_output_val(evalRes.val);
-        }
-      }
+    if (flags & ReplFlags_OutputCode) {
+      repl_output_code(script, dynstring_view(&codeBuffer));
     }
   }
+  if (flags & ReplFlags_NoEval) {
+    goto Ret;
+  }
+  if (flags & ReplFlags_Vm) {
+    const String         code  = dynstring_view(&codeBuffer);
+    const ScriptVmResult vmRes = script_vm_eval(script, code, mem, binder, null);
+    if (script_panic_valid(&vmRes.panic)) {
+      repl_output_panic(input, &vmRes.panic, id);
+    } else {
+      repl_output_val(vmRes.val);
+    }
+    goto Ret;
+  }
+  const ScriptEvalResult evalRes = script_eval(script, expr, mem, binder, null);
+  if (script_panic_valid(&evalRes.panic)) {
+    repl_output_panic(input, &evalRes.panic, id);
+  } else {
+    repl_output_val(evalRes.val);
+  }
 
+Ret:
   script_destroy(script);
   script_diag_bag_destroy(diags);
   if (syms) {
     script_sym_bag_destroy(syms);
   }
+  dynstring_destroy(&codeBuffer);
 }
 
 typedef struct {
@@ -653,8 +661,7 @@ void app_cli_configure(CliApp* app) {
   cli_register_desc(app, g_optNoEval, string_lit("Skip evaluating the input."));
 
   g_optVm = cli_register_flag(app, 'v', string_lit("vm"), CliOptionFlags_None);
-  cli_register_desc(app, g_optVm, string_lit("Use the VM for evaluating."));
-  cli_register_exclusions(app, g_optVm, g_optNoEval);
+  cli_register_desc(app, g_optVm, string_lit("Target the VM for evaluation."));
 
   g_optWatch = cli_register_flag(app, 'w', string_lit("watch"), CliOptionFlags_None);
   cli_register_desc(app, g_optWatch, string_lit("Reevaluate the script when the file changes."));
