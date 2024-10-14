@@ -312,7 +312,7 @@ static ScriptCompileError compile_value(Context* ctx, const Target tgt, const Sc
   case ScriptType_Num: {
     const f64 num     = script_get_num(val, 0.0);
     const f64 rounded = math_round_nearest_f64(num);
-    if (num == rounded && rounded <= u8_max) {
+    if (num == rounded && rounded >= 0.0 && rounded <= u8_max) {
       emit_value_small_int(ctx, tgt.reg, (u8)rounded);
       break;
     }
