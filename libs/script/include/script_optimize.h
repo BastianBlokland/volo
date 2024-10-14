@@ -3,6 +3,6 @@
 
 /**
  * Perform various optimization passes on the given expression.
- * NOTE: May modify the existing expression or return a new expression.
+ * NOTE: Returns a new optimized expression or the same expression if no optimization was possible.
  */
 ScriptExpr script_optimize(ScriptDoc*, ScriptExpr);
