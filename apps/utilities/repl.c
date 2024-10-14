@@ -15,6 +15,7 @@
 #include "script_eval.h"
 #include "script_lex.h"
 #include "script_mem.h"
+#include "script_optimize.h"
 #include "script_read.h"
 #include "script_sym.h"
 #include "script_vm.h"
@@ -28,12 +29,13 @@ typedef enum {
   ReplFlags_TtyOutput     = 1 << 0,
   ReplFlags_NoEval        = 1 << 1,
   ReplFlags_Vm            = 1 << 2,
-  ReplFlags_Watch         = 1 << 3,
-  ReplFlags_OutputTokens  = 1 << 4,
-  ReplFlags_OutputAst     = 1 << 5,
-  ReplFlags_OutputStats   = 1 << 6,
-  ReplFlags_OutputCode    = 1 << 7,
-  ReplFlags_OutputSymbols = 1 << 8,
+  ReplFlags_Optimize      = 1 << 3,
+  ReplFlags_Watch         = 1 << 4,
+  ReplFlags_OutputTokens  = 1 << 5,
+  ReplFlags_OutputAst     = 1 << 6,
+  ReplFlags_OutputStats   = 1 << 7,
+  ReplFlags_OutputCode    = 1 << 8,
+  ReplFlags_OutputSymbols = 1 << 9,
 } ReplFlags;
 
 typedef struct {
@@ -332,7 +334,7 @@ static void repl_exec(
   ScriptDiagBag* diags      = script_diag_bag_create(tempAlloc, ScriptDiagFilter_All);
   ScriptSymBag*  syms = (flags & ReplFlags_OutputSymbols) ? script_sym_bag_create(g_allocHeap) : 0;
 
-  const ScriptExpr expr = script_read(script, binder, input, diags, syms);
+  ScriptExpr expr = script_read(script, binder, input, diags, syms);
 
   const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
   for (u32 i = 0; i != diagCount; ++i) {
@@ -344,9 +346,11 @@ static void repl_exec(
       repl_output_sym(syms, itr);
     }
   }
-
   if (sentinel_check(expr)) {
-    goto Ret;
+    goto Ret; // Script malformed.
+  }
+  if (flags & ReplFlags_Optimize) {
+    expr = script_optimize(script, expr);
   }
   if (flags & ReplFlags_OutputAst) {
     repl_output_ast(script, expr);
@@ -655,7 +659,7 @@ Ret:
 
 static CliId g_optFile;
 static CliId g_optBinder;
-static CliId g_optNoEval, g_optVm, g_optWatch;
+static CliId g_optNoEval, g_optVm, g_optOptimize, g_optWatch;
 static CliId g_optTokens, g_optAst, g_optStats, g_optCode, g_optSyms;
 static CliId g_optHelp;
 
@@ -677,6 +681,9 @@ void app_cli_configure(CliApp* app) {
 
   g_optVm = cli_register_flag(app, 'v', string_lit("vm"), CliOptionFlags_None);
   cli_register_desc(app, g_optVm, string_lit("Target the VM for evaluation."));
+
+  g_optOptimize = cli_register_flag(app, 'o', string_lit("optimize"), CliOptionFlags_None);
+  cli_register_desc(app, g_optOptimize, string_lit("Optimize the program before evaluation."));
 
   g_optWatch = cli_register_flag(app, 'w', string_lit("watch"), CliOptionFlags_None);
   cli_register_desc(app, g_optWatch, string_lit("Reevaluate the script when the file changes."));
@@ -701,6 +708,7 @@ void app_cli_configure(CliApp* app) {
   cli_register_exclusions(app, g_optHelp, g_optFile);
   cli_register_exclusions(app, g_optHelp, g_optNoEval);
   cli_register_exclusions(app, g_optHelp, g_optVm);
+  cli_register_exclusions(app, g_optHelp, g_optOptimize);
   cli_register_exclusions(app, g_optHelp, g_optWatch);
   cli_register_exclusions(app, g_optHelp, g_optTokens);
   cli_register_exclusions(app, g_optHelp, g_optAst);
@@ -725,6 +733,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   }
   if (cli_parse_provided(invoc, g_optVm)) {
     flags |= ReplFlags_Vm;
+  }
+  if (cli_parse_provided(invoc, g_optOptimize)) {
+    flags |= ReplFlags_Optimize;
   }
   if (cli_parse_provided(invoc, g_optWatch)) {
     flags |= ReplFlags_Watch;
