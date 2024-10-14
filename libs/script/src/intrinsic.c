@@ -81,11 +81,7 @@ u32 script_intrinsic_arg_count_always_reached(const ScriptIntrinsic i) {
     return 2;                          //
   default:                             // Always reached args: all.
     return script_intrinsic_arg_count(i);
-  case ScriptIntrinsic_Count:
-    break;
   }
-  diag_assert_fail("Unknown intrinsic type");
-  UNREACHABLE
 }
 
 bool script_intrinsic_deterministic(const ScriptIntrinsic i) {
@@ -103,11 +99,7 @@ bool script_intrinsic_deterministic(const ScriptIntrinsic i) {
     return false;
   default:
     return true;
-  case ScriptIntrinsic_Count:
-    break;
   }
-  diag_assert_fail("Unknown intrinsic type");
-  UNREACHABLE
 }
 
 String script_intrinsic_str(const ScriptIntrinsic i) {
