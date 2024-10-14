@@ -6,6 +6,7 @@
 #include "script_binder.h"
 #include "script_compile.h"
 #include "script_diag.h"
+#include "script_optimize.h"
 #include "script_read.h"
 #include "script_sig.h"
 
@@ -817,7 +818,8 @@ void asset_load_script(
   ScriptDiagBag* diags    = script_diag_bag_create(tempAlloc, ScriptDiagFilter_Error);
   ScriptSymBag*  symsNull = null;
 
-  const ScriptExpr expr = script_read(doc, g_assetScriptBinder, src->data, diags, symsNull);
+  // Parse the script.
+  ScriptExpr expr = script_read(doc, g_assetScriptBinder, src->data, diags, symsNull);
 
   const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
   for (u32 i = 0; i != diagCount; ++i) {
@@ -836,6 +838,10 @@ void asset_load_script(
     goto Error;
   }
 
+  // Perform optimization passes.
+  expr = script_optimize(doc, expr);
+
+  // Compile to byte-code.
   const ScriptCompileError compileErr = script_compile(doc, expr, &codeBuffer);
   if (UNLIKELY(compileErr)) {
     log_e(
