@@ -17,6 +17,7 @@ add_library(lib_script STATIC
   src/intrinsic.c
   src/lex.c
   src/mem.c
+  src/optimize.c
   src/panic.c
   src/pos.c
   src/read.c

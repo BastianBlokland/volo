@@ -103,6 +103,9 @@ u32 script_expr_arg_index(const ScriptDoc*, ScriptExpr, ScriptPos);
 typedef void (*ScriptVisitor)(void* ctx, const ScriptDoc*, ScriptExpr);
 void script_expr_visit(const ScriptDoc*, ScriptExpr, void* ctx, ScriptVisitor);
 
+typedef ScriptExpr (*ScriptRewriter)(void* ctx, ScriptDoc*, ScriptExpr);
+ScriptExpr script_expr_rewrite(ScriptDoc*, ScriptExpr, void* ctx, ScriptRewriter);
+
 typedef enum {
   ScriptDocSignal_None     = 0,
   ScriptDocSignal_Continue = 1 << 0,
