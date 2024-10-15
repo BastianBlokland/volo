@@ -367,7 +367,7 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     case ScriptOp_MemLoad: {
       if (UNLIKELY((ip += 6) > ipEnd)) return;
       const String keyName = stringtable_lookup(g_stringtable, vm_read_u32(&ip[-4]));
-      fmt_write(out, "MemLoad r{} #{}", fmt_int(ip[-5]), fmt_int(vm_read_u32(&ip[-4])));
+      fmt_write(out, "MemLoad r{} ${}", fmt_int(ip[-5]), fmt_int(vm_read_u32(&ip[-4])));
       if (!string_is_empty(keyName)) {
         fmt_write(out, " ({})", fmt_text(keyName));
       }
@@ -376,7 +376,7 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     case ScriptOp_MemStore: {
       if (UNLIKELY((ip += 6) > ipEnd)) return;
       const String keyName = stringtable_lookup(g_stringtable, vm_read_u32(&ip[-4]));
-      fmt_write(out, "MemStore r{} #{}", fmt_int(ip[-5]), fmt_int(vm_read_u32(&ip[-4])));
+      fmt_write(out, "MemStore r{} ${}", fmt_int(ip[-5]), fmt_int(vm_read_u32(&ip[-4])));
       if (!string_is_empty(keyName)) {
         fmt_write(out, " ({})", fmt_text(keyName));
       }
