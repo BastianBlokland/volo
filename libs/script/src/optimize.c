@@ -46,19 +46,21 @@ static ScriptExpr rewriter_null_coalescing_store(void* ctx, ScriptDoc* doc, cons
   (void)ctx;
   switch (script_expr_kind(doc, e)) {
   case ScriptExprKind_MemStore: {
-    const ScriptRange         storeRange = script_expr_range(doc, e);
-    const ScriptExprMemStore* storeData  = &expr_data(doc, e)->mem_store;
-    if (!expr_is_intrinsic(doc, storeData->val, ScriptIntrinsic_NullCoalescing)) {
+    const ScriptRange storeRange = script_expr_range(doc, e);
+    const ScriptExpr  storeVal   = expr_data(doc, e)->mem_store.val;
+    const StringHash  storeKey   = expr_data(doc, e)->mem_store.key;
+    if (!expr_is_intrinsic(doc, storeVal, ScriptIntrinsic_NullCoalescing)) {
       return e; // Not a null-coalescing store.
     }
-    const ScriptExprIntrinsic* valData = &expr_data(doc, storeData->val)->intrinsic;
-    const ScriptExpr*          valArgs = expr_set_data(doc, valData->argSet);
-    if (!expr_is_mem_load(doc, valArgs[0], storeData->key)) {
+    const ScriptExprIntrinsic* valData = &expr_data(doc, storeVal)->intrinsic;
+    const ScriptExpr           valLhs  = expr_set_data(doc, valData->argSet)[0];
+    const ScriptExpr           valRhs  = expr_set_data(doc, valData->argSet)[1];
+    if (!expr_is_mem_load(doc, valLhs, storeKey)) {
       return e; // Not a null-coalescing store.
     }
     const ScriptExpr newArgs[] = {
-        script_add_mem_load(doc, storeRange, storeData->key),
-        script_add_mem_store(doc, storeRange, storeData->key, valArgs[1]),
+        script_add_mem_load(doc, storeRange, storeKey),
+        script_add_mem_store(doc, storeRange, storeKey, valRhs),
     };
     return script_add_intrinsic(doc, storeRange, ScriptIntrinsic_NullCoalescing, newArgs);
   }
