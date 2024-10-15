@@ -350,7 +350,7 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       if (UNLIKELY((ip += 3) > ipEnd)) return;
       if (UNLIKELY(ip[-1] >= doc->values.size)) return;
       const ScriptVal val = dynarray_begin_t(&doc->values, ScriptVal)[ip[-1]];
-      fmt_write(out, "Value r{} v{} ({})\n", fmt_int(ip[-2]), fmt_int(ip[-1]), script_val_fmt(val));
+      fmt_write(out, "Value r{} v{} '{}'\n", fmt_int(ip[-2]), fmt_int(ip[-1]), script_val_fmt(val));
     } break;
     case ScriptOp_ValueNull:
       if (UNLIKELY((ip += 2) > ipEnd)) return;
@@ -358,18 +358,18 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       break;
     case ScriptOp_ValueBool:
       if (UNLIKELY((ip += 3) > ipEnd)) return;
-      fmt_write(out, "ValueBool r{} ({})\n", fmt_int(ip[-2]), fmt_bool(ip[-1]));
+      fmt_write(out, "ValueBool r{} '{}'\n", fmt_int(ip[-2]), fmt_bool(ip[-1]));
       break;
     case ScriptOp_ValueSmallInt:
       if (UNLIKELY((ip += 3) > ipEnd)) return;
-      fmt_write(out, "ValueSmallInt r{} ({})\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
+      fmt_write(out, "ValueSmallInt r{} '{}'\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
       break;
     case ScriptOp_MemLoad: {
       if (UNLIKELY((ip += 6) > ipEnd)) return;
       const String keyName = stringtable_lookup(g_stringtable, vm_read_u32(&ip[-4]));
       fmt_write(out, "MemLoad r{} ${}", fmt_int(ip[-5]), fmt_int(vm_read_u32(&ip[-4])));
       if (!string_is_empty(keyName)) {
-        fmt_write(out, " ({})", fmt_text(keyName));
+        fmt_write(out, " '{}'", fmt_text(keyName));
       }
       dynstring_append_char(out, '\n');
     } break;
@@ -378,7 +378,7 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       const String keyName = stringtable_lookup(g_stringtable, vm_read_u32(&ip[-4]));
       fmt_write(out, "MemStore r{} ${}", fmt_int(ip[-5]), fmt_int(vm_read_u32(&ip[-4])));
       if (!string_is_empty(keyName)) {
-        fmt_write(out, " ({})", fmt_text(keyName));
+        fmt_write(out, " '{}'", fmt_text(keyName));
       }
       dynstring_append_char(out, '\n');
     } break;

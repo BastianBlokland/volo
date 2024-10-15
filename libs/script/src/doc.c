@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_stringtable.h"
 #include "script_eval.h"
 #include "script_pos.h"
 
@@ -684,9 +685,9 @@ void script_expr_write(
   const ScriptExprData* data = expr_data(doc, expr);
   switch (expr_kind(doc, expr)) {
   case ScriptExprKind_Value:
-    fmt_write(str, "[value: ");
+    fmt_write(str, "[value: '");
     script_val_write(script_doc_val_data(doc, data->value.valId), str);
-    fmt_write(str, "]");
+    fmt_write(str, "']");
     return;
   case ScriptExprKind_VarLoad:
     fmt_write(str, "[var-load: {}]", fmt_int(data->var_load.var));
@@ -695,13 +696,25 @@ void script_expr_write(
     fmt_write(str, "[var-store: {}]", fmt_int(data->var_store.var));
     script_expr_write_child(doc, data->var_store.val, indent + 1, str);
     return;
-  case ScriptExprKind_MemLoad:
-    fmt_write(str, "[mem-load: ${}]", fmt_int(data->mem_load.key));
+  case ScriptExprKind_MemLoad: {
+    const String keyName = stringtable_lookup(g_stringtable, data->mem_load.key);
+    fmt_write(str, "[mem-load: ${}", fmt_int(data->mem_load.key));
+    if (!string_is_empty(keyName)) {
+      fmt_write(str, " '{}'", fmt_text(keyName));
+    }
+    dynstring_append_char(str, ']');
     return;
-  case ScriptExprKind_MemStore:
-    fmt_write(str, "[mem-store: ${}]", fmt_int(data->mem_store.key));
+  }
+  case ScriptExprKind_MemStore: {
+    const String keyName = stringtable_lookup(g_stringtable, data->mem_store.key);
+    fmt_write(str, "[mem-store: ${}", fmt_int(data->mem_store.key));
     script_expr_write_child(doc, data->mem_store.val, indent + 1, str);
+    if (!string_is_empty(keyName)) {
+      fmt_write(str, " '{}'", fmt_text(keyName));
+    }
+    dynstring_append_char(str, ']');
     return;
+  }
   case ScriptExprKind_Intrinsic: {
     fmt_write(str, "[intrinsic: {}]", script_intrinsic_fmt(data->intrinsic.intrinsic));
     const ScriptExpr* args     = expr_set_data(doc, data->block.exprSet);
