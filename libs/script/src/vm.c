@@ -303,7 +303,6 @@ ScriptVmResult script_vm_eval(
 }
 
 void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* out) {
-  (void)doc;
   const u8* ip    = mem_begin(code);
   const u8* ipEnd = mem_end(code);
   while (ip != ipEnd) {
@@ -346,10 +345,12 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       if (UNLIKELY((ip += 4) > ipEnd)) return;
       fmt_write(out, "JumpIfNonNull r{} i{}\n", fmt_int(ip[-3]), fmt_int(vm_read_u16(&ip[-2]),.base = 16, .minDigits = 4));
       break;
-    case ScriptOp_Value:
+    case ScriptOp_Value: {
       if (UNLIKELY((ip += 3) > ipEnd)) return;
-      fmt_write(out, "Value r{} v{}\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
-      break;
+      if (UNLIKELY(ip[-1] >= doc->values.size)) return;
+      const ScriptVal val = dynarray_begin_t(&doc->values, ScriptVal)[ip[-1]];
+      fmt_write(out, "Value r{} v{} ({})\n", fmt_int(ip[-2]), fmt_int(ip[-1]), script_val_fmt(val));
+    } break;
     case ScriptOp_ValueNull:
       if (UNLIKELY((ip += 2) > ipEnd)) return;
       fmt_write(out, "ValueNull r{}\n", fmt_int(ip[-1]));
