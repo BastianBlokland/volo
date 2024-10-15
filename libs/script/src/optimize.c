@@ -1,3 +1,4 @@
+#include "core_diag.h"
 #include "script_eval.h"
 #include "script_optimize.h"
 
@@ -17,6 +18,12 @@ static bool expr_is_mem_load(ScriptDoc* doc, const ScriptExpr e, const StringHas
   }
   const ScriptExprMemLoad* data = &expr_data(doc, e)->mem_load;
   return data->key == key;
+}
+
+static ScriptExpr expr_intrinsic_arg(ScriptDoc* doc, const ScriptExpr e, const u32 argIndex) {
+  diag_assert(expr_kind(doc, e) == ScriptExprKind_Intrinsic);
+  diag_assert(argIndex < script_intrinsic_arg_count(expr_data(doc, e)->intrinsic.intrinsic));
+  return expr_set_data(doc, expr_data(doc, e)->intrinsic.argSet)[argIndex];
 }
 
 /**
@@ -52,15 +59,12 @@ static ScriptExpr rewriter_null_coalescing_store(void* ctx, ScriptDoc* doc, cons
     if (!expr_is_intrinsic(doc, storeVal, ScriptIntrinsic_NullCoalescing)) {
       return e; // Not a null-coalescing store.
     }
-    const ScriptExprIntrinsic* valData = &expr_data(doc, storeVal)->intrinsic;
-    const ScriptExpr           valLhs  = expr_set_data(doc, valData->argSet)[0];
-    const ScriptExpr           valRhs  = expr_set_data(doc, valData->argSet)[1];
-    if (!expr_is_mem_load(doc, valLhs, storeKey)) {
+    if (!expr_is_mem_load(doc, expr_intrinsic_arg(doc, storeVal, 0), storeKey)) {
       return e; // Not a null-coalescing store.
     }
     const ScriptExpr newArgs[] = {
         script_add_mem_load(doc, storeRange, storeKey),
-        script_add_mem_store(doc, storeRange, storeKey, valRhs),
+        script_add_mem_store(doc, storeRange, storeKey, expr_intrinsic_arg(doc, storeVal, 1)),
     };
     return script_add_intrinsic(doc, storeRange, ScriptIntrinsic_NullCoalescing, newArgs);
   }
