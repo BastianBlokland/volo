@@ -365,7 +365,7 @@ script_expr_rewrite(ScriptDoc* doc, const ScriptExpr expr, void* ctx, ScriptRewr
     if (newVal == data.mem_store.val) {
       return expr; // Not rewritten.
     }
-    return script_add_mem_store(doc, range, data.mem_store.val, newVal);
+    return script_add_mem_store(doc, range, data.mem_store.key, newVal);
   }
   case ScriptExprKind_Intrinsic: {
     const u32   argCount     = script_intrinsic_arg_count(data.intrinsic.intrinsic);
