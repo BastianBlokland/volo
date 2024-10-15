@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_stringtable.h"
 #include "script_binder.h"
 #include "script_error.h"
 #include "script_mem.h"
@@ -357,20 +358,30 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       break;
     case ScriptOp_ValueBool:
       if (UNLIKELY((ip += 3) > ipEnd)) return;
-      fmt_write(out, "ValueBool r{} {}\n", fmt_int(ip[-2]), fmt_bool(ip[-1]));
+      fmt_write(out, "ValueBool r{} ({})\n", fmt_int(ip[-2]), fmt_bool(ip[-1]));
       break;
     case ScriptOp_ValueSmallInt:
       if (UNLIKELY((ip += 3) > ipEnd)) return;
-      fmt_write(out, "ValueSmallInt r{} {}\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
+      fmt_write(out, "ValueSmallInt r{} ({})\n", fmt_int(ip[-2]), fmt_int(ip[-1]));
       break;
-    case ScriptOp_MemLoad:
+    case ScriptOp_MemLoad: {
       if (UNLIKELY((ip += 6) > ipEnd)) return;
-      fmt_write(out, "MemLoad r{} #{}\n", fmt_int(ip[-5]), fmt_int(vm_read_u32(&ip[-4])));
-      break;
-    case ScriptOp_MemStore:
+      const String keyName = stringtable_lookup(g_stringtable, vm_read_u32(&ip[-4]));
+      fmt_write(out, "MemLoad r{} #{}", fmt_int(ip[-5]), fmt_int(vm_read_u32(&ip[-4])));
+      if (!string_is_empty(keyName)) {
+        fmt_write(out, " ({})", fmt_text(keyName));
+      }
+      dynstring_append_char(out, '\n');
+    } break;
+    case ScriptOp_MemStore: {
       if (UNLIKELY((ip += 6) > ipEnd)) return;
-      fmt_write(out, "MemStore r{} #{}\n", fmt_int(ip[-5]), fmt_int(vm_read_u32(&ip[-4])));
-      break;
+      const String keyName = stringtable_lookup(g_stringtable, vm_read_u32(&ip[-4]));
+      fmt_write(out, "MemStore r{} #{}", fmt_int(ip[-5]), fmt_int(vm_read_u32(&ip[-4])));
+      if (!string_is_empty(keyName)) {
+        fmt_write(out, " ({})", fmt_text(keyName));
+      }
+      dynstring_append_char(out, '\n');
+    } break;
     case ScriptOp_MemLoadDyn:
       if (UNLIKELY((ip += 2) > ipEnd)) return;
       fmt_write(out, "MemLoadDyn r{}\n", fmt_int(ip[-1]));
