@@ -339,6 +339,80 @@ void script_expr_visit(
   UNREACHABLE
 }
 
+ScriptExpr
+script_expr_rewrite(ScriptDoc* doc, const ScriptExpr expr, void* ctx, ScriptRewriter rewriter) {
+  const ScriptExpr rewritten = rewriter(ctx, doc, expr);
+  if (rewritten != expr) {
+    return rewritten;
+  }
+  const ScriptExprData* data  = expr_data(doc, expr);
+  const ScriptRange     range = script_expr_range(doc, expr);
+  switch (expr_kind(doc, expr)) {
+  case ScriptExprKind_Value:
+  case ScriptExprKind_VarLoad:
+  case ScriptExprKind_MemLoad:
+    return expr; // No children.
+  case ScriptExprKind_VarStore: {
+    const ScriptExpr newVal = script_expr_rewrite(doc, data->var_store.val, ctx, rewriter);
+    if (newVal == data->var_store.val) {
+      return expr; // Not rewritten.
+    }
+    return script_add_var_store(doc, range, data->var_store.var, newVal);
+  }
+  case ScriptExprKind_MemStore: {
+    const ScriptExpr newVal = script_expr_rewrite(doc, data->mem_store.val, ctx, rewriter);
+    if (newVal == data->mem_store.val) {
+      return expr; // Not rewritten.
+    }
+    return script_add_mem_store(doc, range, data->mem_store.val, newVal);
+  }
+  case ScriptExprKind_Intrinsic: {
+    const u32         argCount     = script_intrinsic_arg_count(data->intrinsic.intrinsic);
+    const ScriptExpr* args         = expr_set_data(doc, data->intrinsic.argSet);
+    ScriptExpr*       newArgs      = mem_stack(sizeof(ScriptExpr) * argCount).ptr;
+    bool              anyRewritten = false;
+    for (u32 i = 0; i != argCount; ++i) {
+      newArgs[i] = script_expr_rewrite(doc, args[i], ctx, rewriter);
+      anyRewritten |= newArgs[i] != args[i];
+    }
+    if (!anyRewritten) {
+      return expr; // Not rewritten.
+    }
+    return script_add_intrinsic(doc, range, data->intrinsic.intrinsic, newArgs);
+  }
+  case ScriptExprKind_Block: {
+    const ScriptExpr* exprs        = expr_set_data(doc, data->block.exprSet);
+    ScriptExpr*       newExprs     = mem_stack(sizeof(ScriptExpr) * data->block.exprCount).ptr;
+    bool              anyRewritten = false;
+    for (u32 i = 0; i != data->block.exprCount; ++i) {
+      newExprs[i] = script_expr_rewrite(doc, exprs[i], ctx, rewriter);
+      anyRewritten |= newExprs[i] != exprs[i];
+    }
+    if (!anyRewritten) {
+      return expr; // Not rewritten.
+    }
+    return script_add_block(doc, range, newExprs, data->block.exprCount);
+  }
+  case ScriptExprKind_Extern: {
+    const ScriptExpr* args         = expr_set_data(doc, data->extern_.argSet);
+    ScriptExpr*       newArgs      = mem_stack(sizeof(ScriptExpr) * data->extern_.argCount).ptr;
+    bool              anyRewritten = false;
+    for (u32 i = 0; i != data->extern_.argCount; ++i) {
+      newArgs[i] = script_expr_rewrite(doc, args[i], ctx, rewriter);
+      anyRewritten |= newArgs[i] != args[i];
+    }
+    if (!anyRewritten) {
+      return expr; // Not rewritten.
+    }
+    return script_add_extern(doc, range, data->extern_.func, newArgs, data->extern_.argCount);
+  }
+  case ScriptExprKind_Count:
+    break;
+  }
+  diag_assert_fail("Unknown expression kind");
+  UNREACHABLE
+}
+
 ScriptDocSignal script_expr_always_uncaught_signal(const ScriptDoc* doc, const ScriptExpr expr) {
   const ScriptExprData* data = expr_data(doc, expr);
   switch (expr_kind(doc, expr)) {
