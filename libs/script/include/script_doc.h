@@ -90,7 +90,6 @@ ScriptExpr script_add_anon_intrinsic(ScriptDoc*, ScriptIntrinsic, const ScriptEx
 u32            script_values_total(const ScriptDoc*);
 ScriptExprKind script_expr_kind(const ScriptDoc*, ScriptExpr);
 ScriptRange    script_expr_range(const ScriptDoc*, ScriptExpr);
-bool           script_expr_readonly(const ScriptDoc*, ScriptExpr);
 bool           script_expr_static(const ScriptDoc*, ScriptExpr);
 ScriptVal      script_expr_static_val(const ScriptDoc*, ScriptExpr);
 bool           script_expr_always_truthy(const ScriptDoc*, ScriptExpr);

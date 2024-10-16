@@ -224,35 +224,6 @@ ScriptRange script_expr_range(const ScriptDoc* doc, const ScriptExpr expr) {
   return expr_range(doc, expr);
 }
 
-static void script_visitor_readonly(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
-  bool* isReadonly = ctx;
-  switch (expr_kind(doc, expr)) {
-  case ScriptExprKind_MemStore:
-  case ScriptExprKind_Extern:
-    *isReadonly = false;
-    return;
-  case ScriptExprKind_Value:
-  case ScriptExprKind_VarLoad:
-  case ScriptExprKind_VarStore: // NOTE: Variables are volatile so are considered readonly.
-  case ScriptExprKind_MemLoad:
-  case ScriptExprKind_Intrinsic:
-  case ScriptExprKind_Block:
-    return;
-  case ScriptExprKind_Count:
-    break;
-  }
-  diag_assert_fail("Unknown expression kind");
-  UNREACHABLE
-}
-
-bool script_expr_readonly(const ScriptDoc* doc, const ScriptExpr expr) {
-  diag_assert_msg(expr < doc->exprData.size, "Out of bounds ScriptExpr");
-
-  bool isReadonly = true;
-  script_expr_visit(doc, expr, &isReadonly, script_visitor_readonly);
-  return isReadonly;
-}
-
 static void script_visitor_static(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
   bool* isStatic = ctx;
   switch (expr_kind(doc, expr)) {
