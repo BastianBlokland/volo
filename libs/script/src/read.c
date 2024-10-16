@@ -1131,11 +1131,11 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx, const ScriptPos 
 
   const ScriptRange range = script_range(start, script_expr_range(ctx->doc, valExpr).end);
 
-  ScriptVarMeta* var = read_var_declare(ctx, token.val_identifier, idRange);
+  const ScriptVarMeta* var = read_var_declare(ctx, token.val_identifier, idRange);
   if (!var) {
     return read_emit_err(ctx, ScriptDiag_VarLimitExceeded, range), read_fail_semantic(ctx, range);
   }
-  return script_add_var_store(ctx->doc, range, var->varSlot, valExpr);
+  return script_add_var_store(ctx->doc, range, var->scopeId, var->varSlot, valExpr);
 }
 
 static ScriptExpr
@@ -1148,7 +1148,7 @@ read_expr_var_lookup(ScriptReadContext* ctx, const StringHash id, const ScriptPo
   ScriptVarMeta* var = read_var_lookup(ctx, id);
   if (var) {
     var->used = true;
-    return script_add_var_load(ctx->doc, range, var->varSlot);
+    return script_add_var_load(ctx->doc, range, var->scopeId, var->varSlot);
   }
   return read_emit_err(ctx, ScriptDiag_NoVarFoundForId, range), read_fail_semantic(ctx, range);
 }
@@ -1168,7 +1168,7 @@ read_expr_var_assign(ScriptReadContext* ctx, const StringHash id, const ScriptPo
     return read_emit_err(ctx, ScriptDiag_NoVarFoundForId, range), read_fail_semantic(ctx, range);
   }
 
-  return script_add_var_store(ctx->doc, range, var->varSlot, expr);
+  return script_add_var_store(ctx->doc, range, var->scopeId, var->varSlot, expr);
 }
 
 static ScriptExpr read_expr_var_modify(
@@ -1194,10 +1194,10 @@ static ScriptExpr read_expr_var_modify(
 
   var->used = true;
 
-  const ScriptExpr loadExpr   = script_add_var_load(ctx->doc, varRange, var->varSlot);
+  const ScriptExpr loadExpr   = script_add_var_load(ctx->doc, varRange, var->scopeId, var->varSlot);
   const ScriptExpr intrArgs[] = {loadExpr, val};
   const ScriptExpr intrExpr   = script_add_intrinsic(ctx->doc, range, intr, intrArgs);
-  return script_add_var_store(ctx->doc, range, var->varSlot, intrExpr);
+  return script_add_var_store(ctx->doc, range, var->scopeId, var->varSlot, intrExpr);
 }
 
 static ScriptExpr

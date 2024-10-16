@@ -106,18 +106,29 @@ ScriptExpr script_add_value(ScriptDoc* doc, const ScriptRange range, const Scrip
       doc, range, ScriptExprKind_Value, (ScriptExprData){.value = {.valId = valId}});
 }
 
-ScriptExpr script_add_var_load(ScriptDoc* doc, const ScriptRange range, const ScriptVarId var) {
+ScriptExpr script_add_var_load(
+    ScriptDoc* doc, const ScriptRange range, const ScriptScopeId scope, const ScriptVarId var) {
   diag_assert_msg(var < script_var_count, "Out of bounds script variable");
   return script_doc_expr_add(
-      doc, range, ScriptExprKind_VarLoad, (ScriptExprData){.var_load = {.var = var}});
+      doc,
+      range,
+      ScriptExprKind_VarLoad,
+      (ScriptExprData){.var_load = {.scope = scope, .var = var}});
 }
 
 ScriptExpr script_add_var_store(
-    ScriptDoc* doc, const ScriptRange range, const ScriptVarId var, const ScriptExpr val) {
+    ScriptDoc*          doc,
+    const ScriptRange   range,
+    const ScriptScopeId scope,
+    const ScriptVarId   var,
+    const ScriptExpr    val) {
   diag_assert_msg(var < script_var_count, "Out of bounds script variable");
   script_validate_subrange(doc, range, val);
   return script_doc_expr_add(
-      doc, range, ScriptExprKind_VarStore, (ScriptExprData){.var_store = {.var = var, .val = val}});
+      doc,
+      range,
+      ScriptExprKind_VarStore,
+      (ScriptExprData){.var_store = {.scope = scope, .var = var, .val = val}});
 }
 
 ScriptExpr script_add_mem_load(ScriptDoc* doc, const ScriptRange range, const StringHash key) {
@@ -178,12 +189,14 @@ ScriptExpr script_add_anon_value(ScriptDoc* doc, const ScriptVal val) {
   return script_add_value(doc, script_range_sentinel, val);
 }
 
-ScriptExpr script_add_anon_var_load(ScriptDoc* doc, const ScriptVarId var) {
-  return script_add_var_load(doc, script_range_sentinel, var);
+ScriptExpr
+script_add_anon_var_load(ScriptDoc* doc, const ScriptScopeId scope, const ScriptVarId var) {
+  return script_add_var_load(doc, script_range_sentinel, scope, var);
 }
 
-ScriptExpr script_add_anon_var_store(ScriptDoc* doc, const ScriptVarId var, const ScriptExpr val) {
-  return script_add_var_store(doc, script_range_sentinel, var, val);
+ScriptExpr script_add_anon_var_store(
+    ScriptDoc* doc, const ScriptScopeId scope, const ScriptVarId var, const ScriptExpr val) {
+  return script_add_var_store(doc, script_range_sentinel, scope, var, val);
 }
 
 ScriptExpr script_add_anon_mem_load(ScriptDoc* doc, const StringHash key) {
@@ -357,7 +370,7 @@ script_expr_rewrite(ScriptDoc* doc, const ScriptExpr expr, void* ctx, ScriptRewr
     if (newVal == data.var_store.val) {
       return expr; // Not rewritten.
     }
-    return script_add_var_store(doc, range, data.var_store.var, newVal);
+    return script_add_var_store(doc, range, data.var_store.scope, data.var_store.var, newVal);
   }
   case ScriptExprKind_MemStore: {
     const ScriptExpr newVal = script_expr_rewrite(doc, data.mem_store.val, ctx, rewriter);
