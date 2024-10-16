@@ -39,6 +39,7 @@ add_executable(test_lib_script
   test/test_format.c
   test/test_lex.c
   test/test_mem.c
+  test/test_optimize.c
   test/test_read.c
   test/test_sig.c
   test/test_val.c
