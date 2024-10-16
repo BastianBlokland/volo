@@ -558,6 +558,7 @@ typedef struct {
 } ScriptVarMeta;
 
 typedef struct sScriptScope {
+  ScriptScopeId        id;
   ScriptVarMeta        vars[script_var_count];
   struct sScriptScope* next;
 } ScriptScope;
@@ -596,6 +597,7 @@ typedef struct {
   ScriptReadFlags     flags : 8;
   ScriptSection       section : 8;
   u16                 recursionDepth;
+  u32                 scopeCounter;
   u8                  varAvailability[bits_to_bytes(script_var_count) + 1]; // Bitmask of free vars.
   StringHash          trackedMemKeys[script_tracked_mem_keys_max];
 } ScriptReadContext;
@@ -706,6 +708,7 @@ static ScriptScope* read_scope_tail(ScriptReadContext* ctx) {
 }
 
 static void read_scope_push(ScriptReadContext* ctx, ScriptScope* scope) {
+  scope->id                  = (ScriptScopeId)ctx->scopeCounter++;
   read_scope_tail(ctx)->next = scope;
 }
 
@@ -906,9 +909,9 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableStart = expr_range(ctx->doc, exprs[i + 1]).start;
       const ScriptPos  unreachableEnd   = expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-           .severity = ScriptDiagSeverity_Warning,
-           .kind     = ScriptDiag_ExprUnreachable,
-           .range    = script_range(unreachableStart, unreachableEnd),
+          .severity = ScriptDiagSeverity_Warning,
+          .kind     = ScriptDiag_ExprUnreachable,
+          .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -1946,13 +1949,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .diags      = diags,
-            .syms       = syms,
-            .input      = src,
-            .inputTotal = src,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .diags      = diags,
+      .syms       = syms,
+      .input      = src,
+      .inputTotal = src,
+      .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 
