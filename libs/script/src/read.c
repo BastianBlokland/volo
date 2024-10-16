@@ -734,8 +734,8 @@ static void read_scope_pop(ScriptReadContext* ctx) {
   }
 }
 
-static bool read_var_declare(
-    ScriptReadContext* ctx, const StringHash id, const ScriptRange declRange, ScriptVarId* out) {
+static ScriptVarMeta*
+read_var_declare(ScriptReadContext* ctx, const StringHash id, const ScriptRange declRange) {
   ScriptScope* scope = read_scope_tail(ctx);
   diag_assert(scope);
 
@@ -743,19 +743,20 @@ static bool read_var_declare(
     if (scope->vars[i].id) {
       continue; // Var already in use.
     }
-    if (!read_var_alloc(ctx, out)) {
-      return false;
+    ScriptVarId varId;
+    if (!read_var_alloc(ctx, &varId)) {
+      return null;
     }
     scope->vars[i] = (ScriptVarMeta){
         .id              = id,
         .scopeId         = scope->id,
-        .varSlot         = *out,
+        .varSlot         = varId,
         .declRange       = declRange,
         .validUsageStart = read_pos_current(ctx),
     };
-    return true;
+    return &scope->vars[i];
   }
-  return false;
+  return null;
 }
 
 static ScriptVarMeta* read_var_lookup(ScriptReadContext* ctx, const StringHash id) {
@@ -1130,12 +1131,11 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx, const ScriptPos 
 
   const ScriptRange range = script_range(start, script_expr_range(ctx->doc, valExpr).end);
 
-  ScriptVarId varId;
-  if (!read_var_declare(ctx, token.val_identifier, idRange, &varId)) {
+  ScriptVarMeta* var = read_var_declare(ctx, token.val_identifier, idRange);
+  if (!var) {
     return read_emit_err(ctx, ScriptDiag_VarLimitExceeded, range), read_fail_semantic(ctx, range);
   }
-
-  return script_add_var_store(ctx->doc, range, varId, valExpr);
+  return script_add_var_store(ctx->doc, range, var->varSlot, valExpr);
 }
 
 static ScriptExpr
