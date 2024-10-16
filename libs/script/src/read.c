@@ -550,11 +550,12 @@ static bool token_intr_rhs_scope(const ScriptIntrinsic intr) {
 }
 
 typedef struct {
-  StringHash  id;
-  ScriptVarId varSlot;
-  bool        used;
-  ScriptRange declRange;
-  ScriptPos   validUsageStart;
+  StringHash    id;
+  ScriptScopeId scopeId;
+  ScriptVarId   varSlot;
+  bool          used;
+  ScriptRange   declRange;
+  ScriptPos     validUsageStart;
 } ScriptVarMeta;
 
 typedef struct sScriptScope {
@@ -747,6 +748,7 @@ static bool read_var_declare(
     }
     scope->vars[i] = (ScriptVarMeta){
         .id              = id,
+        .scopeId         = scope->id,
         .varSlot         = *out,
         .declRange       = declRange,
         .validUsageStart = read_pos_current(ctx),
