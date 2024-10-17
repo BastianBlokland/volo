@@ -1,6 +1,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "script_eval.h"
+#include "script_intrinsic.h"
 #include "script_optimize.h"
 
 #include "doc_internal.h"
@@ -134,8 +135,12 @@ static ScriptExpr opt_static_flow_rewriter(void* ctx, ScriptDoc* d, const Script
   switch (data->intrinsic) {
   case ScriptIntrinsic_Select: {
     if (script_expr_static(d, exprs[0])) {
-      const bool truthy = script_truthy(script_expr_static_val(d, exprs[0]));
-      return truthy ? exprs[1] : exprs[2];
+      return script_truthy(script_expr_static_val(d, exprs[0])) ? exprs[1] : exprs[2];
+    }
+  } break;
+  case ScriptIntrinsic_NullCoalescing: {
+    if (script_expr_static(d, exprs[0])) {
+      return script_non_null(script_expr_static_val(d, exprs[0])) ? exprs[0] : exprs[1];
     }
   } break;
   default:
