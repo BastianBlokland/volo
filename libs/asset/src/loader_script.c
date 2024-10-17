@@ -1,6 +1,7 @@
 #include "asset_script.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_diag.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "script_binder.h"
@@ -9,6 +10,7 @@
 #include "script_optimize.h"
 #include "script_read.h"
 #include "script_sig.h"
+#include "script_vm.h"
 
 #include "repo_internal.h"
 
@@ -851,6 +853,8 @@ void asset_load_script(
         log_param("error", fmt_text(script_compile_error_str(compileErr))));
     goto Error;
   }
+
+  diag_assert(script_vm_validate(doc, dynstring_view(&codeBuffer), g_assetScriptBinder));
 
   ecs_world_add_t(
       world,
