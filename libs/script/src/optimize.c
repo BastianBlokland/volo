@@ -135,12 +135,14 @@ static ScriptExpr opt_static_flow_rewriter(void* ctx, ScriptDoc* d, const Script
   switch (data->intrinsic) {
   case ScriptIntrinsic_Select: {
     if (script_expr_static(d, exprs[0])) {
-      return script_truthy(script_expr_static_val(d, exprs[0])) ? exprs[1] : exprs[2];
+      const bool truthy = script_truthy(script_expr_static_val(d, exprs[0]));
+      return opt_static_flow_rewriter(ctx, d, truthy ? exprs[1] : exprs[2]);
     }
   } break;
   case ScriptIntrinsic_NullCoalescing: {
     if (script_expr_static(d, exprs[0])) {
-      return script_non_null(script_expr_static_val(d, exprs[0])) ? exprs[0] : exprs[1];
+      const bool nonNull = script_non_null(script_expr_static_val(d, exprs[0]));
+      return opt_static_flow_rewriter(ctx, d, nonNull ? exprs[0] : exprs[1]);
     }
   } break;
   default:
