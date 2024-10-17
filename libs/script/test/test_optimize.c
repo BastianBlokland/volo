@@ -37,6 +37,23 @@ spec(optimize) {
             string_static("var a = 1; a + 2"),
             string_static("[value: 3]"),
         },
+
+        // Shake non-observed expressions.
+        {
+            string_static("0; 1; 42"),
+            string_static("[value: 42]"),
+        },
+        {
+            string_static("vec3(1,2,3); 42"),
+            string_static("[value: 42]"),
+        },
+        {
+            string_static("0; $a = 1; 2"),
+            string_static("[block]\n"
+                          "  [mem-store: $3645546703]\n"
+                          "    [value: 1]\n"
+                          "  [value: 2]"),
+        },
     };
 
     ScriptDoc* doc = script_create(g_allocHeap);

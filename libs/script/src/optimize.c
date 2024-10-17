@@ -144,8 +144,7 @@ static ScriptExpr opt_static_eval_rewriter(void* ctx, ScriptDoc* d, const Script
  */
 static ScriptExpr opt_null_coalescing_store_rewriter(void* ctx, ScriptDoc* d, const ScriptExpr e) {
   (void)ctx;
-  switch (script_expr_kind(d, e)) {
-  case ScriptExprKind_MemStore: {
+  if (script_expr_kind(d, e) == ScriptExprKind_MemStore) {
     const ScriptRange storeRange = script_expr_range(d, e);
     const ScriptExpr  storeVal   = expr_data(d, e)->mem_store.val;
     const StringHash  storeKey   = expr_data(d, e)->mem_store.key;
@@ -161,14 +160,43 @@ static ScriptExpr opt_null_coalescing_store_rewriter(void* ctx, ScriptDoc* d, co
     };
     return script_add_intrinsic(d, storeRange, ScriptIntrinsic_NullCoalescing, newArgs);
   }
-  default:
-    return e; // Not a null-coalescing store.
+  return e; // Not a null-coalescing store.
+}
+
+/**
+ * Shake any expressions without side-effects where the value is not used.
+ * Example: '0; 1; 42' -> '42'
+ * Example: '1 + 2; 42' -> '42'
+ */
+static ScriptExpr opt_shake_rewriter(void* ctx, ScriptDoc* d, const ScriptExpr e) {
+  (void)ctx;
+  if (script_expr_kind(d, e) == ScriptExprKind_Block) {
+    const ScriptExprBlock* data  = &expr_data(d, e)->block;
+    const ScriptExpr*      exprs = expr_set_data(d, data->exprSet);
+
+    ScriptExpr* newExprs     = mem_stack(sizeof(ScriptExpr) * data->exprCount).ptr;
+    u32         newExprCount = 0;
+    for (u32 i = 0; i != data->exprCount; ++i) {
+      const bool last = i == (data->exprCount - 1);
+      if (script_expr_static(d, exprs[i]) && !last) {
+        continue;
+      }
+      newExprs[newExprCount++] = exprs[i];
+    }
+
+    diag_assert(newExprCount);
+    if (newExprCount == 1) {
+      return newExprs[0];
+    }
+    return script_add_block(d, script_expr_range(d, e), newExprs, newExprCount);
   }
+  return e; // Not shakable.
 }
 
 ScriptExpr script_optimize(ScriptDoc* d, ScriptExpr e) {
   e = opt_prune(d, e);
   e = script_expr_rewrite(d, e, null, opt_null_coalescing_store_rewriter);
   e = script_expr_rewrite(d, e, null, opt_static_eval_rewriter);
+  e = script_expr_rewrite(d, e, null, opt_shake_rewriter);
   return e;
 }
