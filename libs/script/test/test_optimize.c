@@ -15,6 +15,8 @@ spec(optimize) {
         {string_static("1 + 2"), string_static("[value: 3]")},
         {string_static("1 + 2 * 3 + 4"), string_static("[value: 11]")},
         {string_static("vec3(1,2,3)"), string_static("[value: 1, 2, 3]")},
+        {string_static("true ? $a : $b"), string_static("[mem-load: $3645546703]")},
+        {string_static("false ? $a : $b"), string_static("[mem-load: $1612769824]")},
 
         // Null-coalescing memory stores.
         {

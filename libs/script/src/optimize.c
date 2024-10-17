@@ -120,6 +120,31 @@ static ScriptExpr opt_prune(ScriptDoc* d, const ScriptExpr e) {
 }
 
 /**
+ * Pre-evaluate static control-flow.
+ * Example: 'true ? $a : $b' -> '$a'.
+ * Example: 'false ? $a : $b' -> '$b'.
+ */
+static ScriptExpr opt_static_flow_rewriter(void* ctx, ScriptDoc* d, const ScriptExpr e) {
+  (void)ctx;
+  if (script_expr_kind(d, e) != ScriptExprKind_Intrinsic) {
+    return e;
+  }
+  const ScriptExprIntrinsic* data  = &expr_data(d, e)->intrinsic;
+  const ScriptExpr*          exprs = expr_set_data(d, data->argSet);
+  switch (data->intrinsic) {
+  case ScriptIntrinsic_Select: {
+    if (script_expr_static(d, exprs[0])) {
+      const bool truthy = script_truthy(script_expr_static_val(d, exprs[0]));
+      return truthy ? exprs[1] : exprs[2];
+    }
+  } break;
+  default:
+    break;
+  }
+  return e;
+}
+
+/**
  * Pre-evaluate static expressions.
  * Example: '1 + 2' -> '3'.
  */
@@ -196,6 +221,7 @@ static ScriptExpr opt_shake_rewriter(void* ctx, ScriptDoc* d, const ScriptExpr e
 ScriptExpr script_optimize(ScriptDoc* d, ScriptExpr e) {
   e = opt_prune(d, e);
   e = script_expr_rewrite(d, e, null, opt_null_coalescing_store_rewriter);
+  e = script_expr_rewrite(d, e, null, opt_static_flow_rewriter);
   e = script_expr_rewrite(d, e, null, opt_static_eval_rewriter);
   e = script_expr_rewrite(d, e, null, opt_shake_rewriter);
   return e;
