@@ -114,6 +114,11 @@ ScriptVmResult
 script_vm_eval(const ScriptDoc*, String code, ScriptMem*, const ScriptBinder*, void* bindCtx);
 
 /**
+ * Validate the given byte-code.
+ */
+bool script_vm_validate(const ScriptDoc*, String code, const ScriptBinder*);
+
+/**
  * Disassemble the given byte-code.
  */
 void   script_vm_disasm_write(const ScriptDoc*, String code, DynString* out);
