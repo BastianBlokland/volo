@@ -15,6 +15,8 @@ typedef struct sScriptRange ScriptRange;
 typedef u16 ScriptBinderSlot;
 
 #define script_var_count 16
+#define script_var_sentinel sentinel_u8
+#define script_scope_sentinel sentinel_u32
 #define script_expr_sentinel sentinel_u32
 
 typedef u8  ScriptVarId;

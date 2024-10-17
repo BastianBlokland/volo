@@ -31,6 +31,12 @@ spec(optimize) {
                           "  [mem-store: $3645546703]\n"
                           "    [value: 42]"),
         },
+
+        // Prune unnecessary variables.
+        {
+            string_static("var a = 1; a + 2"),
+            string_static("[value: 3]"),
+        },
     };
 
     ScriptDoc* doc = script_create(g_allocHeap);

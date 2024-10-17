@@ -1,3 +1,4 @@
+#include "core_array.h"
 #include "core_diag.h"
 #include "script_eval.h"
 #include "script_optimize.h"
@@ -24,6 +25,98 @@ static ScriptExpr expr_intrinsic_arg(ScriptDoc* d, const ScriptExpr e, const u32
   diag_assert(expr_kind(d, e) == ScriptExprKind_Intrinsic);
   diag_assert(argIndex < script_intrinsic_arg_count(expr_data(d, e)->intrinsic.intrinsic));
   return expr_set_data(d, expr_data(d, e)->intrinsic.argSet)[argIndex];
+}
+
+#define opt_prune_max_vars 32
+
+typedef struct {
+  ScriptVarId   id;
+  ScriptScopeId scope;
+  ScriptExpr    val;
+} OptPruneEntry;
+
+typedef struct {
+  OptPruneEntry vars[opt_prune_max_vars];
+} OptPruneContext;
+
+static OptPruneEntry*
+opt_prune_find(OptPruneContext* ctx, const ScriptValId var, const ScriptScopeId scope) {
+  for (u32 i = 0; i != opt_prune_max_vars; ++i) {
+    if (ctx->vars[i].id == var && ctx->vars[i].scope == scope) {
+      return &ctx->vars[i];
+    }
+  }
+  return null;
+}
+
+static void opt_prune_register_store(
+    OptPruneContext* ctx, const ScriptDoc* d, const ScriptExprVarStore* store) {
+
+  OptPruneEntry* existing = opt_prune_find(ctx, store->var, store->scope);
+  if (existing) {
+    // Second store for the same variable; not eligible for pruning.
+    existing->id = script_var_sentinel;
+    return;
+  }
+
+  // Validate that the value expression is safe to move (no side-effects).
+  if (!script_expr_static(d, store->val)) {
+    return; // Value not static; not eligible for pruning.
+  }
+
+  // Register the prune candidate.
+  for (u32 i = 0; i != opt_prune_max_vars; ++i) {
+    if (sentinel_check(ctx->vars[i].id)) {
+      ctx->vars[i].id    = store->var;
+      ctx->vars[i].scope = store->scope;
+      ctx->vars[i].val   = store->val;
+      break;
+    }
+  }
+}
+
+static void opt_prune_collect(void* ctx, const ScriptDoc* d, const ScriptExpr e) {
+  OptPruneContext* pruneCtx = ctx;
+  if (script_expr_kind(d, e) == ScriptExprKind_VarStore) {
+    opt_prune_register_store(pruneCtx, d, &expr_data(d, e)->var_store);
+  }
+}
+
+static ScriptExpr opt_prune_rewriter(void* ctx, ScriptDoc* d, const ScriptExpr e) {
+  OptPruneContext* pruneCtx = ctx;
+  switch (script_expr_kind(d, e)) {
+  case ScriptExprKind_VarStore: {
+    const ScriptExprVarStore* data     = &expr_data(d, e)->var_store;
+    OptPruneEntry*            pruneVar = opt_prune_find(pruneCtx, data->var, data->scope);
+    if (pruneVar) {
+      diag_assert(pruneVar->val == data->val);
+      return pruneVar->val;
+    }
+  } break;
+  case ScriptExprKind_VarLoad: {
+    const ScriptExprVarLoad* data     = &expr_data(d, e)->var_load;
+    OptPruneEntry*           pruneVar = opt_prune_find(pruneCtx, data->var, data->scope);
+    if (pruneVar) {
+      return pruneVar->val;
+    }
+  } break;
+  default:
+    break;
+  }
+  return e; // Cannot be pruned.
+}
+
+/**
+ * Remove unnecessary (static value) variables.
+ * Example: 'var a = 1; var b = a + 2' -> '1; 1 + 2'.
+ */
+static ScriptExpr opt_prune(ScriptDoc* d, const ScriptExpr e) {
+  OptPruneContext pruneCtx = {0};
+  mem_set(array_mem(pruneCtx.vars), 0xFF);
+
+  script_expr_visit(d, e, &pruneCtx, opt_prune_collect);
+
+  return script_expr_rewrite(d, e, &pruneCtx, opt_prune_rewriter);
 }
 
 /**
@@ -74,6 +167,7 @@ static ScriptExpr opt_null_coalescing_store_rewriter(void* ctx, ScriptDoc* d, co
 }
 
 ScriptExpr script_optimize(ScriptDoc* d, ScriptExpr e) {
+  e = opt_prune(d, e);
   e = script_expr_rewrite(d, e, null, opt_null_coalescing_store_rewriter);
   e = script_expr_rewrite(d, e, null, opt_static_eval_rewriter);
   return e;
