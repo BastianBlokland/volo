@@ -43,7 +43,6 @@ ScriptVmResult script_vm_eval(
   }
 
   ScriptVmResult res;
-  res.panic       = (ScriptPanic){0};
   res.executedOps = 0;
 
   ScriptVal regs[script_vm_regs];
@@ -68,9 +67,11 @@ ScriptVmResult script_vm_eval(
       regs[ip[-1]] = val_null();
       continue;
     case ScriptOp_Return: ip += 2;
+      res.panic = (ScriptPanic){0};
       res.val = regs[ip[-1]];
       return res;
     case ScriptOp_ReturnNull:
+      res.panic = (ScriptPanic){0};
       res.val = val_null();
       return res;
     case ScriptOp_Move: ip += 3;
