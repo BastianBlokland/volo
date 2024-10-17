@@ -550,14 +550,16 @@ static bool token_intr_rhs_scope(const ScriptIntrinsic intr) {
 }
 
 typedef struct {
-  StringHash  id;
-  ScriptVarId varSlot;
-  bool        used;
-  ScriptRange declRange;
-  ScriptPos   validUsageStart;
+  StringHash    id;
+  ScriptScopeId scopeId;
+  ScriptVarId   varSlot;
+  bool          used;
+  ScriptRange   declRange;
+  ScriptPos     validUsageStart;
 } ScriptVarMeta;
 
 typedef struct sScriptScope {
+  ScriptScopeId        id;
   ScriptVarMeta        vars[script_var_count];
   struct sScriptScope* next;
 } ScriptScope;
@@ -596,6 +598,7 @@ typedef struct {
   ScriptReadFlags     flags : 8;
   ScriptSection       section : 8;
   u16                 recursionDepth;
+  u32                 scopeCounter;
   u8                  varAvailability[bits_to_bytes(script_var_count) + 1]; // Bitmask of free vars.
   StringHash          trackedMemKeys[script_tracked_mem_keys_max];
 } ScriptReadContext;
@@ -706,6 +709,7 @@ static ScriptScope* read_scope_tail(ScriptReadContext* ctx) {
 }
 
 static void read_scope_push(ScriptReadContext* ctx, ScriptScope* scope) {
+  scope->id                  = (ScriptScopeId)ctx->scopeCounter++;
   read_scope_tail(ctx)->next = scope;
 }
 
@@ -730,8 +734,8 @@ static void read_scope_pop(ScriptReadContext* ctx) {
   }
 }
 
-static bool read_var_declare(
-    ScriptReadContext* ctx, const StringHash id, const ScriptRange declRange, ScriptVarId* out) {
+static ScriptVarMeta*
+read_var_declare(ScriptReadContext* ctx, const StringHash id, const ScriptRange declRange) {
   ScriptScope* scope = read_scope_tail(ctx);
   diag_assert(scope);
 
@@ -739,18 +743,20 @@ static bool read_var_declare(
     if (scope->vars[i].id) {
       continue; // Var already in use.
     }
-    if (!read_var_alloc(ctx, out)) {
-      return false;
+    ScriptVarId varId;
+    if (!read_var_alloc(ctx, &varId)) {
+      return null;
     }
     scope->vars[i] = (ScriptVarMeta){
         .id              = id,
-        .varSlot         = *out,
+        .scopeId         = scope->id,
+        .varSlot         = varId,
         .declRange       = declRange,
         .validUsageStart = read_pos_current(ctx),
     };
-    return true;
+    return &scope->vars[i];
   }
-  return false;
+  return null;
 }
 
 static ScriptVarMeta* read_var_lookup(ScriptReadContext* ctx, const StringHash id) {
@@ -906,9 +912,9 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableStart = expr_range(ctx->doc, exprs[i + 1]).start;
       const ScriptPos  unreachableEnd   = expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-           .severity = ScriptDiagSeverity_Warning,
-           .kind     = ScriptDiag_ExprUnreachable,
-           .range    = script_range(unreachableStart, unreachableEnd),
+          .severity = ScriptDiagSeverity_Warning,
+          .kind     = ScriptDiag_ExprUnreachable,
+          .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -1125,12 +1131,11 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx, const ScriptPos 
 
   const ScriptRange range = script_range(start, script_expr_range(ctx->doc, valExpr).end);
 
-  ScriptVarId varId;
-  if (!read_var_declare(ctx, token.val_identifier, idRange, &varId)) {
+  const ScriptVarMeta* var = read_var_declare(ctx, token.val_identifier, idRange);
+  if (!var) {
     return read_emit_err(ctx, ScriptDiag_VarLimitExceeded, range), read_fail_semantic(ctx, range);
   }
-
-  return script_add_var_store(ctx->doc, range, varId, valExpr);
+  return script_add_var_store(ctx->doc, range, var->scopeId, var->varSlot, valExpr);
 }
 
 static ScriptExpr
@@ -1143,7 +1148,7 @@ read_expr_var_lookup(ScriptReadContext* ctx, const StringHash id, const ScriptPo
   ScriptVarMeta* var = read_var_lookup(ctx, id);
   if (var) {
     var->used = true;
-    return script_add_var_load(ctx->doc, range, var->varSlot);
+    return script_add_var_load(ctx->doc, range, var->scopeId, var->varSlot);
   }
   return read_emit_err(ctx, ScriptDiag_NoVarFoundForId, range), read_fail_semantic(ctx, range);
 }
@@ -1163,7 +1168,7 @@ read_expr_var_assign(ScriptReadContext* ctx, const StringHash id, const ScriptPo
     return read_emit_err(ctx, ScriptDiag_NoVarFoundForId, range), read_fail_semantic(ctx, range);
   }
 
-  return script_add_var_store(ctx->doc, range, var->varSlot, expr);
+  return script_add_var_store(ctx->doc, range, var->scopeId, var->varSlot, expr);
 }
 
 static ScriptExpr read_expr_var_modify(
@@ -1189,10 +1194,10 @@ static ScriptExpr read_expr_var_modify(
 
   var->used = true;
 
-  const ScriptExpr loadExpr   = script_add_var_load(ctx->doc, varRange, var->varSlot);
+  const ScriptExpr loadExpr   = script_add_var_load(ctx->doc, varRange, var->scopeId, var->varSlot);
   const ScriptExpr intrArgs[] = {loadExpr, val};
   const ScriptExpr intrExpr   = script_add_intrinsic(ctx->doc, range, intr, intrArgs);
-  return script_add_var_store(ctx->doc, range, var->varSlot, intrExpr);
+  return script_add_var_store(ctx->doc, range, var->scopeId, var->varSlot, intrExpr);
 }
 
 static ScriptExpr
@@ -1946,13 +1951,13 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc        = doc,
-            .binder     = binder,
-            .diags      = diags,
-            .syms       = syms,
-            .input      = src,
-            .inputTotal = src,
-            .scopeRoot  = &scopeRoot,
+      .doc        = doc,
+      .binder     = binder,
+      .diags      = diags,
+      .syms       = syms,
+      .input      = src,
+      .inputTotal = src,
+      .scopeRoot  = &scopeRoot,
   };
   read_var_free_all(&ctx);
 

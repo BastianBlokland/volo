@@ -13,12 +13,14 @@ typedef struct {
 } ScriptExprValue;
 
 typedef struct {
-  ScriptVarId var;
+  ScriptScopeId scope;
+  ScriptVarId   var;
 } ScriptExprVarLoad;
 
 typedef struct {
-  ScriptVarId var;
-  ScriptExpr  val;
+  ScriptScopeId scope;
+  ScriptVarId   var;
+  ScriptExpr    val;
 } ScriptExprVarStore;
 
 typedef struct {

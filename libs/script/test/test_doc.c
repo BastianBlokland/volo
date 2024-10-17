@@ -116,34 +116,6 @@ spec(doc) {
     check_eq_int(ctx.count, 6);
   }
 
-  it("can test if expressions are readonly") {
-    static const struct {
-      String input;
-      bool   readonly;
-    } g_testData[] = {
-        {string_static("1"), .readonly = true},
-        {string_static("1 + 2 + 3"), .readonly = true},
-        {string_static("$hello"), .readonly = true},
-        {string_static("1 + 2 + $hello"), .readonly = true},
-        {string_static("$hello + $world"), .readonly = true},
-
-        {string_static("$hello = 42"), .readonly = false},
-        {string_static("1 + 2 + ($hello = 42)"), .readonly = false},
-        {string_static("($hello = 42) + ($world = 1337)"), .readonly = false},
-        {string_static("$hello + ($world = 42)"), .readonly = false},
-    };
-
-    for (u32 i = 0; i != array_elems(g_testData); ++i) {
-      ScriptBinder*    binder    = null;
-      ScriptDiagBag*   diagsNull = null;
-      ScriptSymBag*    symsNull  = null;
-      const ScriptExpr expr = script_read(doc, binder, g_testData[i].input, diagsNull, symsNull);
-      check_require(!sentinel_check(expr));
-
-      check(script_expr_readonly(doc, expr) == g_testData[i].readonly);
-    }
-  }
-
   it("can test if expressions are static") {
     static const struct {
       String input;
