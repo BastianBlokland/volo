@@ -12,16 +12,6 @@
 
 #define script_vm_ops_max 25000
 
-typedef struct {
-  const ScriptDoc*    doc;
-  ScriptMem*          m;
-  const ScriptBinder* binder;
-  void*               bindCtx;
-  u32                 executedOps;
-  ScriptPanic         panic;
-  ScriptVal           regs[script_vm_regs];
-} ScriptVmContext;
-
 INLINE_HINT static bool vm_reg_valid(const u8 regId) { return regId < script_vm_regs; }
 
 INLINE_HINT static bool vm_reg_set_valid(const u8 regId, const u8 regCount) {
@@ -42,112 +32,131 @@ INLINE_HINT static u32 vm_read_u32(const u8 data[]) {
   return (u32)data[0] | (u32)data[1] << 8 | (u32)data[2] << 16 | (u32)data[3] << 24;
 }
 
-static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
+ScriptVmResult script_vm_eval(
+    const ScriptDoc*    doc,
+    const String        code,
+    ScriptMem*          m,
+    const ScriptBinder* binder,
+    void*               bindCtx) {
+  if (binder) {
+    diag_assert_msg(script_binder_hash(binder) == doc->binderHash, "Incompatible binder");
+  }
+
+  ScriptVmResult res;
+  res.panic       = (ScriptPanic){0};
+  res.executedOps = 0;
+
+  ScriptVal regs[script_vm_regs];
   for (const u8* ip = mem_begin(code);;) {
-    if (UNLIKELY(ctx->executedOps++ == script_vm_ops_max)) {
-      ctx->panic = (ScriptPanic){.kind = ScriptPanic_ExecutionLimitExceeded};
-      return val_null();
+    if (UNLIKELY(res.executedOps++ == script_vm_ops_max)) {
+      res.panic = (ScriptPanic){.kind = ScriptPanic_ExecutionLimitExceeded};
+      res.val   = val_null();
+      return res;
     }
     // clang-format off
     switch ((ScriptOp)*ip) {
     case ScriptOp_Fail:
-      ctx->panic = (ScriptPanic){.kind = ScriptPanic_ExecutionFailed};
-      return script_null();
+      res.panic = (ScriptPanic){.kind = ScriptPanic_ExecutionFailed};
+      res.val = val_null();
+      return res;
     case ScriptOp_Assert: ip += 2;
-      if (script_falsy(ctx->regs[ip[-1]])) {
-        ctx->panic = (ScriptPanic){.kind = ScriptPanic_AssertionFailed};
-        return script_null();
+      if (script_falsy(regs[ip[-1]])) {
+        res.panic = (ScriptPanic){.kind = ScriptPanic_AssertionFailed};
+        res.val = val_null();
+        return res;
       }
-      ctx->regs[ip[-1]] = script_null();
+      regs[ip[-1]] = val_null();
       continue;
     case ScriptOp_Return: ip += 2;
-      return ctx->regs[ip[-1]];
+      res.val = regs[ip[-1]];
+      return res;
     case ScriptOp_ReturnNull:
-      return val_null();
+      res.val = val_null();
+      return res;
     case ScriptOp_Move: ip += 3;
-      ctx->regs[ip[-2]] = ctx->regs[ip[-1]];
+      regs[ip[-2]] = regs[ip[-1]];
       continue;
     case ScriptOp_Jump: ip += 3;
       ip = mem_begin(code) + vm_read_u16(&ip[-2]);
       continue;
     case ScriptOp_JumpIfTruthy: ip += 4;
-      if (script_truthy(ctx->regs[ip[-3]])) {
+      if (script_truthy(regs[ip[-3]])) {
         ip = mem_begin(code) + vm_read_u16(&ip[-2]);
       }
       continue;
     case ScriptOp_JumpIfFalsy: ip += 4;
-      if (script_falsy(ctx->regs[ip[-3]])) {
+      if (script_falsy(regs[ip[-3]])) {
         ip = mem_begin(code) + vm_read_u16(&ip[-2]);
       }
       continue;
     case ScriptOp_JumpIfNonNull: ip += 4;
-      if (script_non_null(ctx->regs[ip[-3]])) {
+      if (script_non_null(regs[ip[-3]])) {
         ip = mem_begin(code) + vm_read_u16(&ip[-2]);
       }
       continue;
     case ScriptOp_Value: ip += 3;
-      ctx->regs[ip[-2]] = dynarray_begin_t(&ctx->doc->values, ScriptVal)[ip[-1]];
+      regs[ip[-2]] = dynarray_begin_t(&doc->values, ScriptVal)[ip[-1]];
       continue;
     case ScriptOp_ValueNull: ip += 2;
-      ctx->regs[ip[-1]] = val_null();
+      regs[ip[-1]] = val_null();
       continue;
     case ScriptOp_ValueBool: ip += 3;
-      ctx->regs[ip[-2]] = val_bool(ip[-1] != 0);
+      regs[ip[-2]] = val_bool(ip[-1] != 0);
       continue;
     case ScriptOp_ValueSmallInt: ip += 3;
-      ctx->regs[ip[-2]] = val_num(ip[-1]);
+      regs[ip[-2]] = val_num(ip[-1]);
       continue;
     case ScriptOp_MemLoad: ip += 6;
-      ctx->regs[ip[-5]] = script_mem_load(ctx->m, vm_read_u32(&ip[-4]));
+      regs[ip[-5]] = script_mem_load(m, vm_read_u32(&ip[-4]));
       continue;
     case ScriptOp_MemStore: ip += 6;
-      script_mem_store(ctx->m, vm_read_u32(&ip[-4]), ctx->regs[ip[-5]]);
+      script_mem_store(m, vm_read_u32(&ip[-4]), regs[ip[-5]]);
       continue;
     case ScriptOp_MemLoadDyn: ip += 2;
-      if(val_type(ctx->regs[ip[-1]]) == ScriptType_Str) {
-        ctx->regs[ip[-1]] = script_mem_load(ctx->m, val_as_str(ctx->regs[ip[-1]]));
+      if(val_type(regs[ip[-1]]) == ScriptType_Str) {
+        regs[ip[-1]] = script_mem_load(m, val_as_str(regs[ip[-1]]));
       } else {
-        ctx->regs[ip[-1]] = val_null();
+        regs[ip[-1]] = val_null();
       }
       continue;
     case ScriptOp_MemStoreDyn: ip += 3;
-      if(val_type(ctx->regs[ip[-2]]) == ScriptType_Str) {
-        script_mem_store(ctx->m, val_as_str(ctx->regs[ip[-2]]), ctx->regs[ip[-1]]);
-        ctx->regs[ip[-2]] = ctx->regs[ip[-1]];
+      if(val_type(regs[ip[-2]]) == ScriptType_Str) {
+        script_mem_store(m, val_as_str(regs[ip[-2]]), regs[ip[-1]]);
+        regs[ip[-2]] = regs[ip[-1]];
       } else {
-        ctx->regs[ip[-2]] = val_null();
+        regs[ip[-2]] = val_null();
       }
       continue;
     case ScriptOp_Extern: ip += 6;
       const ScriptBinderSlot funcSlot = vm_read_u16(&ip[-4]);
-      const ScriptArgs args = {.values = &ctx->regs[ip[-2]], .count = ip[-1]};
-      ScriptError      err  = {0};
-      ctx->regs[ip[-5]] = script_binder_exec(ctx->binder, funcSlot, ctx->bindCtx, args, &err);
+      const ScriptArgs args = {.values = &regs[ip[-2]], .count = ip[-1]};
+      ScriptError err = {0};
+      regs[ip[-5]] = script_binder_exec(binder, funcSlot, bindCtx, args, &err);
       if (UNLIKELY(err.kind)) {
-        ctx->panic = (ScriptPanic){.kind = script_error_to_panic(err.kind)};
-        return script_null();
+        res.panic = (ScriptPanic){.kind = script_error_to_panic(err.kind)};
+        res.val = val_null();
+        return res;
       }
       continue;
 #define OP_SIMPLE_ZERO(_OP_, _FUNC_)                                                               \
     case ScriptOp_##_OP_: ip += 2;                                                                 \
-      ctx->regs[ip[-1]] = _FUNC_();                                                                \
+      regs[ip[-1]] = _FUNC_();                                                                     \
       continue
 #define OP_SIMPLE_UNARY(_OP_, _FUNC_)                                                              \
     case ScriptOp_##_OP_: ip += 2;                                                                 \
-      ctx->regs[ip[-1]] = _FUNC_(ctx->regs[ip[-1]]);                                               \
+      regs[ip[-1]] = _FUNC_(regs[ip[-1]]);                                                         \
       continue
 #define OP_SIMPLE_BINARY(_OP_, _FUNC_)                                                             \
     case ScriptOp_##_OP_: ip += 3;                                                                 \
-      ctx->regs[ip[-2]] = _FUNC_(ctx->regs[ip[-2]], ctx->regs[ip[-1]]);                            \
+      regs[ip[-2]] = _FUNC_(regs[ip[-2]], regs[ip[-1]]);                                           \
       continue
 #define OP_SIMPLE_TERNARY(_OP_, _FUNC_)                                                            \
     case ScriptOp_##_OP_: ip += 4;                                                                 \
-      ctx->regs[ip[-3]] = _FUNC_(ctx->regs[ip[-3]], ctx->regs[ip[-2]], ctx->regs[ip[-1]]);         \
+      regs[ip[-3]] = _FUNC_(regs[ip[-3]], regs[ip[-2]], regs[ip[-1]]);                             \
       continue
 #define OP_SIMPLE_QUATERNARY(_OP_, _FUNC_)                                                         \
     case ScriptOp_##_OP_: ip += 5;                                                                 \
-      ctx->regs[ip[-4]] =                                                                          \
-        _FUNC_(ctx->regs[ip[-4]], ctx->regs[ip[-3]], ctx->regs[ip[-2]], ctx->regs[ip[-1]]);        \
+      regs[ip[-4]] = _FUNC_(regs[ip[-4]], regs[ip[-3]], regs[ip[-2]], regs[ip[-1]]);               \
       continue
 
     OP_SIMPLE_UNARY(Truthy,               script_truthy_as_val);
@@ -203,30 +212,6 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
     UNREACHABLE
   }
   // clang-format on
-}
-
-ScriptVmResult script_vm_eval(
-    const ScriptDoc*    doc,
-    const String        code,
-    ScriptMem*          m,
-    const ScriptBinder* binder,
-    void*               bindCtx) {
-  if (binder) {
-    diag_assert_msg(script_binder_hash(binder) == doc->binderHash, "Incompatible binder");
-  }
-  ScriptVmContext ctx = {
-      .doc     = doc,
-      .m       = m,
-      .binder  = binder,
-      .bindCtx = bindCtx,
-  };
-
-  ScriptVmResult res;
-  res.val         = vm_run(&ctx, code);
-  res.panic       = ctx.panic;
-  res.executedOps = ctx.executedOps;
-
-  return res;
 }
 
 bool script_vm_validate(const ScriptDoc* doc, const String code, const ScriptBinder* binder) {
