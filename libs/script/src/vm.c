@@ -45,7 +45,8 @@ ScriptVmResult script_vm_eval(
   ScriptVmResult res;
   res.executedOps = 0;
 
-  ScriptVal regs[script_vm_regs];
+  ScriptVal regs[script_vm_regs] = {0};
+
   for (const u8* ip = mem_begin(code);;) {
     if (UNLIKELY(res.executedOps++ == script_vm_ops_max)) {
       res.panic = (ScriptPanic){.kind = ScriptPanic_ExecutionLimitExceeded};
