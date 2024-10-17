@@ -227,80 +227,80 @@ bool script_vm_validate(const ScriptDoc* doc, const String code, const ScriptBin
     switch ((ScriptOp)*ip) {
     case ScriptOp_Fail:
       if (UNLIKELY((ip += 1) > ipEnd)) return false;
-      break;
+      continue;
     case ScriptOp_Assert:
       if (UNLIKELY((ip += 2) > ipEnd)) return false;
       if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;
-      break;
+      continue;
     case ScriptOp_Return:
       if (UNLIKELY((ip += 2) > ipEnd)) return false;
       if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;
-      break;
+      continue;
     case ScriptOp_ReturnNull:
       if (UNLIKELY((ip += 1) > ipEnd)) return false;
-      break;
+      continue;
     case ScriptOp_Move:
       if (UNLIKELY((ip += 3) > ipEnd)) return false;
       if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;
       if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;
-      break;
+      continue;
     case ScriptOp_Jump: {
       if (UNLIKELY((ip += 3) > ipEnd)) return false;
       const u16 ipOffset = vm_read_u16(&ip[-2]);
       if (UNLIKELY(ipOffset >= (code.size - 1))) return false;
-    } break;
+    } continue;
     case ScriptOp_JumpIfTruthy: {
       if (UNLIKELY((ip += 4) > ipEnd)) return false;
       if (UNLIKELY(!vm_reg_valid(ip[-3]))) return false;
       const u16 ipOffset = vm_read_u16(&ip[-2]);
       if (UNLIKELY(ipOffset >= (code.size - 1))) return false;
-    } break;
+    } continue;
     case ScriptOp_JumpIfFalsy: {
       if (UNLIKELY((ip += 4) > ipEnd)) return false;
       if (UNLIKELY(!vm_reg_valid(ip[-3]))) return false;
       const u16 ipOffset = vm_read_u16(&ip[-2]);
       if (UNLIKELY(ipOffset >= (code.size - 1))) return false;
-    } break;
+    } continue;
     case ScriptOp_JumpIfNonNull:
       if (UNLIKELY((ip += 4) > ipEnd)) return false;
       if (UNLIKELY(!vm_reg_valid(ip[-3]))) return false;
       const u16 ipOffset = vm_read_u16(&ip[-2]);
       if (UNLIKELY(ipOffset >= (code.size - 1))) return false;
-      break;
+      continue;
     case ScriptOp_Value:
       if (UNLIKELY((ip += 3) > ipEnd)) return false;
       if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;
       if (UNLIKELY(!vm_val_valid(doc, ip[-1]))) return false;
-      break;
+      continue;
     case ScriptOp_ValueNull:
       if (UNLIKELY((ip += 2) > ipEnd)) return false;
       if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;
-      break;
+      continue;
     case ScriptOp_ValueBool:
       if (UNLIKELY((ip += 3) > ipEnd)) return false;
       if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;
-      break;
+      continue;
     case ScriptOp_ValueSmallInt:
       if (UNLIKELY((ip += 3) > ipEnd)) return false;
       if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;
-      break;
+      continue;
     case ScriptOp_MemLoad:
       if (UNLIKELY((ip += 6) > ipEnd)) return false;
       if (UNLIKELY(!vm_reg_valid(ip[-5]))) return false;
-      break;
+      continue;
     case ScriptOp_MemStore:
       if (UNLIKELY((ip += 6) > ipEnd)) return false;
       if (UNLIKELY(!vm_reg_valid(ip[-5]))) return false;
-      break;
+      continue;
     case ScriptOp_MemLoadDyn:
       if (UNLIKELY((ip += 2) > ipEnd)) return false;
       if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;
-      break;
+      continue;
     case ScriptOp_MemStoreDyn:
       if (UNLIKELY((ip += 3) > ipEnd)) return false;
       if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;
       if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;
-      break;
+      continue;
     case ScriptOp_Extern: {
       if (UNLIKELY((ip += 6) > ipEnd)) return false;
       if (UNLIKELY(!vm_reg_valid(ip[-5]))) return false;
@@ -308,30 +308,30 @@ bool script_vm_validate(const ScriptDoc* doc, const String code, const ScriptBin
       const ScriptBinderSlot funcSlot = vm_read_u16(&ip[-4]);
       if (UNLIKELY(!binder)) return false;
       if (UNLIKELY(funcSlot >= script_binder_count(binder))) return false;
-    } break;
+    } continue;
 #define OP_SIMPLE_ZERO(_OP_)                                                                       \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 2) > ipEnd)) return false;                                               \
       if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;                                           \
-      break
+      continue
 #define OP_SIMPLE_UNARY(_OP_)                                                                      \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 2) > ipEnd)) return false;                                               \
       if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;                                           \
-      break
+      continue
 #define OP_SIMPLE_BINARY(_OP_)                                                                     \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 3) > ipEnd)) return false;                                               \
       if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;                                           \
       if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;                                           \
-      break
+      continue
 #define OP_SIMPLE_TERNARY(_OP_)                                                                    \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 4) > ipEnd)) return false;                                               \
       if (UNLIKELY(!vm_reg_valid(ip[-3]))) return false;                                           \
       if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;                                           \
       if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;                                           \
-      break
+      continue
 #define OP_SIMPLE_QUATERNARY(_OP_)                                                                 \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 5) > ipEnd)) return false;                                               \
@@ -339,7 +339,7 @@ bool script_vm_validate(const ScriptDoc* doc, const String code, const ScriptBin
       if (UNLIKELY(!vm_reg_valid(ip[-3]))) return false;                                           \
       if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;                                           \
       if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;                                           \
-      break
+      continue
 
     OP_SIMPLE_UNARY(Truthy);
     OP_SIMPLE_UNARY(Falsy);
@@ -392,6 +392,7 @@ bool script_vm_validate(const ScriptDoc* doc, const String code, const ScriptBin
 #undef OP_SIMPLE_ZERO
     }
     // clang-format on
+    return false; // Unknown op-code.
   }
   return true;
 }
