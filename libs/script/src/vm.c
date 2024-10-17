@@ -200,13 +200,9 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
 #undef OP_SIMPLE_UNARY
 #undef OP_SIMPLE_ZERO
     }
-    goto Corrupt;
+    UNREACHABLE
   }
   // clang-format on
-
-Corrupt:
-  ctx->panic = (ScriptPanic){.kind = ScriptPanic_CorruptCode};
-  return script_null();
 }
 
 ScriptVmResult script_vm_eval(
