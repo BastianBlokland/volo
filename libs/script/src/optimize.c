@@ -201,17 +201,18 @@ static ScriptExpr opt_null_coalescing_store_rewriter(void* ctx, ScriptDoc* d, co
 static ScriptExpr opt_shake_rewriter(void* ctx, ScriptDoc* d, const ScriptExpr e) {
   (void)ctx;
   if (script_expr_kind(d, e) == ScriptExprKind_Block) {
-    const ScriptExprBlock* data  = &expr_data(d, e)->block;
-    const ScriptExpr*      exprs = expr_set_data(d, data->exprSet);
+    const u32           exprCount = expr_data(d, e)->block.exprCount;
+    const ScriptExprSet exprSet   = expr_data(d, e)->block.exprSet;
 
-    ScriptExpr* newExprs     = mem_stack(sizeof(ScriptExpr) * data->exprCount).ptr;
+    ScriptExpr* newExprs     = mem_stack(sizeof(ScriptExpr) * exprCount).ptr;
     u32         newExprCount = 0;
-    for (u32 i = 0; i != data->exprCount; ++i) {
-      const bool last = i == (data->exprCount - 1);
-      if (script_expr_static(d, exprs[i]) && !last) {
+    for (u32 i = 0; i != exprCount; ++i) {
+      const ScriptExpr child = expr_set_data(d, exprSet)[i];
+      const bool       last  = i == (exprCount - 1);
+      if (script_expr_static(d, child) && !last) {
         continue;
       }
-      newExprs[newExprCount++] = exprs[i];
+      newExprs[newExprCount++] = script_expr_rewrite(d, child, null, opt_shake_rewriter);
     }
 
     diag_assert(newExprCount);
