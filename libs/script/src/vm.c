@@ -12,26 +12,14 @@
 
 #define script_vm_ops_max 25000
 
-typedef struct {
-  const ScriptDoc*    doc;
-  ScriptMem*          m;
-  const ScriptBinder* binder;
-  void*               bindCtx;
-  u32                 executedOps;
-  ScriptPanic         panic;
-  ScriptVal           regs[script_vm_regs];
-} ScriptVmContext;
+INLINE_HINT static bool vm_reg_valid(const u8 regId) { return regId < script_vm_regs; }
 
-INLINE_HINT static bool vm_reg_valid(ScriptVmContext* ctx, const u8 regId) {
-  return regId < array_elems(ctx->regs);
+INLINE_HINT static bool vm_reg_set_valid(const u8 regId, const u8 regCount) {
+  return regId + regCount <= script_vm_regs;
 }
 
-INLINE_HINT static bool vm_reg_set_valid(ScriptVmContext* ctx, const u8 regId, const u8 regCount) {
-  return regId + regCount <= array_elems(ctx->regs);
-}
-
-INLINE_HINT static bool vm_val_valid(ScriptVmContext* ctx, const u8 valId) {
-  return valId < ctx->doc->values.size;
+INLINE_HINT static bool vm_val_valid(const ScriptDoc* doc, const u8 valId) {
+  return valId < doc->values.size;
 }
 
 INLINE_HINT static u16 vm_read_u16(const u8 data[]) {
@@ -44,180 +32,133 @@ INLINE_HINT static u32 vm_read_u32(const u8 data[]) {
   return (u32)data[0] | (u32)data[1] << 8 | (u32)data[2] << 16 | (u32)data[3] << 24;
 }
 
-static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
-  if (UNLIKELY(code.size > u16_max)) {
-    goto Corrupt;
+ScriptVmResult script_vm_eval(
+    const ScriptDoc*    doc,
+    const String        code,
+    ScriptMem*          m,
+    const ScriptBinder* binder,
+    void*               bindCtx) {
+  if (binder) {
+    diag_assert_msg(script_binder_hash(binder) == doc->binderHash, "Incompatible binder");
   }
-  const u8* ip    = mem_begin(code);
-  const u8* ipEnd = mem_end(code);
-  if (UNLIKELY(ip == ipEnd)) {
-    goto Corrupt;
-  }
-  for (;;) {
-    if (UNLIKELY(ctx->executedOps++ == script_vm_ops_max)) {
-      ctx->panic = (ScriptPanic){.kind = ScriptPanic_ExecutionLimitExceeded};
-      return val_null();
+
+  ScriptVmResult res;
+  res.executedOps = 0;
+
+  ScriptVal regs[script_vm_regs] = {0};
+
+  for (const u8* ip = mem_begin(code);;) {
+    if (UNLIKELY(res.executedOps++ == script_vm_ops_max)) {
+      res.panic = (ScriptPanic){.kind = ScriptPanic_ExecutionLimitExceeded};
+      res.val   = val_null();
+      return res;
     }
     // clang-format off
     switch ((ScriptOp)*ip) {
     case ScriptOp_Fail:
-      ctx->panic = (ScriptPanic){.kind = ScriptPanic_ExecutionFailed};
-      return script_null();
-    case ScriptOp_Assert:
-      if (UNLIKELY((ip += 2) >= ipEnd)) goto Corrupt;
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;
-      if (script_falsy(ctx->regs[ip[-1]])) {
-        ctx->panic = (ScriptPanic){.kind = ScriptPanic_AssertionFailed};
-        return script_null();
+      res.panic = (ScriptPanic){.kind = ScriptPanic_ExecutionFailed};
+      res.val = val_null();
+      return res;
+    case ScriptOp_Assert: ip += 2;
+      if (script_falsy(regs[ip[-1]])) {
+        res.panic = (ScriptPanic){.kind = ScriptPanic_AssertionFailed};
+        res.val = val_null();
+        return res;
       }
-      ctx->regs[ip[-1]] = script_null();
+      regs[ip[-1]] = val_null();
       continue;
-    case ScriptOp_Return:
-      if (UNLIKELY((ip += 2) > ipEnd)) goto Corrupt;
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;
-      return ctx->regs[ip[-1]];
+    case ScriptOp_Return: ip += 2;
+      res.panic = (ScriptPanic){0};
+      res.val = regs[ip[-1]];
+      return res;
     case ScriptOp_ReturnNull:
-      return val_null();
-    case ScriptOp_Move:
-      if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;
-      ctx->regs[ip[-2]] = ctx->regs[ip[-1]];
+      res.panic = (ScriptPanic){0};
+      res.val = val_null();
+      return res;
+    case ScriptOp_Move: ip += 3;
+      regs[ip[-2]] = regs[ip[-1]];
       continue;
-    case ScriptOp_Jump: {
-      if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
-      const u16 ipOffset = vm_read_u16(&ip[-2]);
-      if (UNLIKELY(ipOffset >= (code.size - 1))) goto Corrupt;
-      ip = mem_begin(code) + ipOffset;
-    } continue;
-    case ScriptOp_JumpIfTruthy: {
-      if (UNLIKELY((ip += 4) >= ipEnd)) goto Corrupt;
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-3]))) goto Corrupt;
-      const u16 ipOffset = vm_read_u16(&ip[-2]);
-      if (UNLIKELY(ipOffset >= (code.size - 1))) goto Corrupt;
-      if (script_truthy(ctx->regs[ip[-3]])) {
-        ip = mem_begin(code) + ipOffset;
+    case ScriptOp_Jump: ip += 3;
+      ip = mem_begin(code) + vm_read_u16(&ip[-2]);
+      continue;
+    case ScriptOp_JumpIfTruthy: ip += 4;
+      if (script_truthy(regs[ip[-3]])) {
+        ip = mem_begin(code) + vm_read_u16(&ip[-2]);
       }
-    } continue;
-    case ScriptOp_JumpIfFalsy: {
-      if (UNLIKELY((ip += 4) >= ipEnd)) goto Corrupt;
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-3]))) goto Corrupt;
-      const u16 ipOffset = vm_read_u16(&ip[-2]);
-      if (UNLIKELY(ipOffset >= (code.size - 1))) goto Corrupt;
-      if (script_falsy(ctx->regs[ip[-3]])) {
-        ip = mem_begin(code) + ipOffset;
+      continue;
+    case ScriptOp_JumpIfFalsy: ip += 4;
+      if (script_falsy(regs[ip[-3]])) {
+        ip = mem_begin(code) + vm_read_u16(&ip[-2]);
       }
-    } continue;
-    case ScriptOp_JumpIfNonNull: {
-      if (UNLIKELY((ip += 4) >= ipEnd)) goto Corrupt;
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-3]))) goto Corrupt;
-      const u16 ipOffset = vm_read_u16(&ip[-2]);
-      if (UNLIKELY(ipOffset >= (code.size - 1))) goto Corrupt;
-      if (script_non_null(ctx->regs[ip[-3]])) {
-        ip = mem_begin(code) + ipOffset;
+      continue;
+    case ScriptOp_JumpIfNonNull: ip += 4;
+      if (script_non_null(regs[ip[-3]])) {
+        ip = mem_begin(code) + vm_read_u16(&ip[-2]);
       }
-    } continue;
-    case ScriptOp_Value:
-      if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;
-      if (UNLIKELY(!vm_val_valid(ctx, ip[-1]))) goto Corrupt;
-      ctx->regs[ip[-2]] = dynarray_begin_t(&ctx->doc->values, ScriptVal)[ip[-1]];
       continue;
-    case ScriptOp_ValueNull:
-      if (UNLIKELY((ip += 2) >= ipEnd)) goto Corrupt;
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;
-      ctx->regs[ip[-1]] = val_null();
+    case ScriptOp_Value: ip += 3;
+      regs[ip[-2]] = dynarray_begin_t(&doc->values, ScriptVal)[ip[-1]];
       continue;
-    case ScriptOp_ValueBool:
-      if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;
-      ctx->regs[ip[-2]] = val_bool(ip[-1] != 0);
+    case ScriptOp_ValueNull: ip += 2;
+      regs[ip[-1]] = val_null();
       continue;
-    case ScriptOp_ValueSmallInt:
-      if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;
-      ctx->regs[ip[-2]] = val_num(ip[-1]);
+    case ScriptOp_ValueBool: ip += 3;
+      regs[ip[-2]] = val_bool(ip[-1] != 0);
       continue;
-    case ScriptOp_MemLoad:
-      if (UNLIKELY((ip += 6) >= ipEnd)) goto Corrupt;
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-5]))) goto Corrupt;
-      ctx->regs[ip[-5]] = script_mem_load(ctx->m, vm_read_u32(&ip[-4]));
+    case ScriptOp_ValueSmallInt: ip += 3;
+      regs[ip[-2]] = val_num(ip[-1]);
       continue;
-    case ScriptOp_MemStore:
-      if (UNLIKELY((ip += 6) >= ipEnd)) goto Corrupt;
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-5]))) goto Corrupt;
-      script_mem_store(ctx->m, vm_read_u32(&ip[-4]), ctx->regs[ip[-5]]);
+    case ScriptOp_MemLoad: ip += 6;
+      regs[ip[-5]] = script_mem_load(m, vm_read_u32(&ip[-4]));
       continue;
-    case ScriptOp_MemLoadDyn:
-      if (UNLIKELY((ip += 2) >= ipEnd)) goto Corrupt;
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;
-      if(val_type(ctx->regs[ip[-1]]) == ScriptType_Str) {
-        ctx->regs[ip[-1]] = script_mem_load(ctx->m, val_as_str(ctx->regs[ip[-1]]));
+    case ScriptOp_MemStore: ip += 6;
+      script_mem_store(m, vm_read_u32(&ip[-4]), regs[ip[-5]]);
+      continue;
+    case ScriptOp_MemLoadDyn: ip += 2;
+      if(val_type(regs[ip[-1]]) == ScriptType_Str) {
+        regs[ip[-1]] = script_mem_load(m, val_as_str(regs[ip[-1]]));
       } else {
-        ctx->regs[ip[-1]] = val_null();
+        regs[ip[-1]] = val_null();
       }
       continue;
-    case ScriptOp_MemStoreDyn:
-      if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;
-      if(val_type(ctx->regs[ip[-2]]) == ScriptType_Str) {
-        script_mem_store(ctx->m, val_as_str(ctx->regs[ip[-2]]), ctx->regs[ip[-1]]);
-        ctx->regs[ip[-2]] = ctx->regs[ip[-1]];
+    case ScriptOp_MemStoreDyn: ip += 3;
+      if(val_type(regs[ip[-2]]) == ScriptType_Str) {
+        script_mem_store(m, val_as_str(regs[ip[-2]]), regs[ip[-1]]);
+        regs[ip[-2]] = regs[ip[-1]];
       } else {
-        ctx->regs[ip[-2]] = val_null();
+        regs[ip[-2]] = val_null();
       }
       continue;
-    case ScriptOp_Extern: {
-      if (UNLIKELY((ip += 6) >= ipEnd)) goto Corrupt;
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-5]))) goto Corrupt;
-      if (UNLIKELY(!vm_reg_set_valid(ctx, ip[-2], ip[-1]))) goto Corrupt;
+    case ScriptOp_Extern: ip += 6;
       const ScriptBinderSlot funcSlot = vm_read_u16(&ip[-4]);
-      if (UNLIKELY(funcSlot >= script_binder_count(ctx->binder))) goto Corrupt;
-      const ScriptArgs args = {.values = &ctx->regs[ip[-2]], .count = ip[-1]};
-      ScriptError      err  = {0};
-      ctx->regs[ip[-5]] = script_binder_exec(ctx->binder, funcSlot, ctx->bindCtx, args, &err);
+      const ScriptArgs args = {.values = &regs[ip[-2]], .count = ip[-1]};
+      ScriptError err = {0};
+      regs[ip[-5]] = script_binder_exec(binder, funcSlot, bindCtx, args, &err);
       if (UNLIKELY(err.kind)) {
-        ctx->panic = (ScriptPanic){.kind = script_error_to_panic(err.kind)};
-        return script_null();
+        res.panic = (ScriptPanic){.kind = script_error_to_panic(err.kind)};
+        res.val = val_null();
+        return res;
       }
-    } continue;
+      continue;
 #define OP_SIMPLE_ZERO(_OP_, _FUNC_)                                                               \
-    case ScriptOp_##_OP_:                                                                          \
-      if (UNLIKELY((ip += 2) >= ipEnd)) goto Corrupt;                                              \
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;                                      \
-      ctx->regs[ip[-1]] = _FUNC_();                                                                \
+    case ScriptOp_##_OP_: ip += 2;                                                                 \
+      regs[ip[-1]] = _FUNC_();                                                                     \
       continue
 #define OP_SIMPLE_UNARY(_OP_, _FUNC_)                                                              \
-    case ScriptOp_##_OP_:                                                                          \
-      if (UNLIKELY((ip += 2) >= ipEnd)) goto Corrupt;                                              \
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;                                      \
-      ctx->regs[ip[-1]] = _FUNC_(ctx->regs[ip[-1]]);                                               \
+    case ScriptOp_##_OP_: ip += 2;                                                                 \
+      regs[ip[-1]] = _FUNC_(regs[ip[-1]]);                                                         \
       continue
 #define OP_SIMPLE_BINARY(_OP_, _FUNC_)                                                             \
-    case ScriptOp_##_OP_:                                                                          \
-      if (UNLIKELY((ip += 3) >= ipEnd)) goto Corrupt;                                              \
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;                                      \
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;                                      \
-      ctx->regs[ip[-2]] = _FUNC_(ctx->regs[ip[-2]], ctx->regs[ip[-1]]);                            \
+    case ScriptOp_##_OP_: ip += 3;                                                                 \
+      regs[ip[-2]] = _FUNC_(regs[ip[-2]], regs[ip[-1]]);                                           \
       continue
 #define OP_SIMPLE_TERNARY(_OP_, _FUNC_)                                                            \
-    case ScriptOp_##_OP_:                                                                          \
-      if (UNLIKELY((ip += 4) >= ipEnd)) goto Corrupt;                                              \
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-3]))) goto Corrupt;                                      \
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;                                      \
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;                                      \
-      ctx->regs[ip[-3]] = _FUNC_(ctx->regs[ip[-3]], ctx->regs[ip[-2]], ctx->regs[ip[-1]]);         \
+    case ScriptOp_##_OP_: ip += 4;                                                                 \
+      regs[ip[-3]] = _FUNC_(regs[ip[-3]], regs[ip[-2]], regs[ip[-1]]);                             \
       continue
 #define OP_SIMPLE_QUATERNARY(_OP_, _FUNC_)                                                         \
-    case ScriptOp_##_OP_:                                                                          \
-      if (UNLIKELY((ip += 5) >= ipEnd)) goto Corrupt;                                              \
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-4]))) goto Corrupt;                                      \
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-3]))) goto Corrupt;                                      \
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-2]))) goto Corrupt;                                      \
-      if (UNLIKELY(!vm_reg_valid(ctx, ip[-1]))) goto Corrupt;                                      \
-      ctx->regs[ip[-4]] =                                                                          \
-        _FUNC_(ctx->regs[ip[-4]], ctx->regs[ip[-3]], ctx->regs[ip[-2]], ctx->regs[ip[-1]]);        \
+    case ScriptOp_##_OP_: ip += 5;                                                                 \
+      regs[ip[-4]] = _FUNC_(regs[ip[-4]], regs[ip[-3]], regs[ip[-2]], regs[ip[-1]]);               \
       continue
 
     OP_SIMPLE_UNARY(Truthy,               script_truthy_as_val);
@@ -270,37 +211,190 @@ static ScriptVal vm_run(ScriptVmContext* ctx, const String code) {
 #undef OP_SIMPLE_UNARY
 #undef OP_SIMPLE_ZERO
     }
-    goto Corrupt;
+    UNREACHABLE
   }
   // clang-format on
-
-Corrupt:
-  ctx->panic = (ScriptPanic){.kind = ScriptPanic_CorruptCode};
-  return script_null();
 }
 
-ScriptVmResult script_vm_eval(
-    const ScriptDoc*    doc,
-    const String        code,
-    ScriptMem*          m,
-    const ScriptBinder* binder,
-    void*               bindCtx) {
-  if (binder) {
-    diag_assert_msg(script_binder_hash(binder) == doc->binderHash, "Incompatible binder");
+bool script_vm_validate(const ScriptDoc* doc, const String code, const ScriptBinder* binder) {
+  if (UNLIKELY(code.size > u16_max)) {
+    return false;
   }
-  ScriptVmContext ctx = {
-      .doc     = doc,
-      .m       = m,
-      .binder  = binder,
-      .bindCtx = bindCtx,
-  };
+  const u8* ip    = mem_begin(code);
+  const u8* ipEnd = mem_end(code);
+  while (ip != ipEnd) {
+    // clang-format off
+    switch ((ScriptOp)*ip) {
+    case ScriptOp_Fail:
+      if (UNLIKELY((ip += 1) > ipEnd)) return false;
+      continue;
+    case ScriptOp_Assert:
+      if (UNLIKELY((ip += 2) > ipEnd)) return false;
+      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;
+      continue;
+    case ScriptOp_Return:
+      if (UNLIKELY((ip += 2) > ipEnd)) return false;
+      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;
+      continue;
+    case ScriptOp_ReturnNull:
+      if (UNLIKELY((ip += 1) > ipEnd)) return false;
+      continue;
+    case ScriptOp_Move:
+      if (UNLIKELY((ip += 3) > ipEnd)) return false;
+      if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;
+      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;
+      continue;
+    case ScriptOp_Jump: {
+      if (UNLIKELY((ip += 3) > ipEnd)) return false;
+      const u16 ipOffset = vm_read_u16(&ip[-2]);
+      if (UNLIKELY(ipOffset >= (code.size - 1))) return false;
+    } continue;
+    case ScriptOp_JumpIfTruthy: {
+      if (UNLIKELY((ip += 4) > ipEnd)) return false;
+      if (UNLIKELY(!vm_reg_valid(ip[-3]))) return false;
+      const u16 ipOffset = vm_read_u16(&ip[-2]);
+      if (UNLIKELY(ipOffset >= (code.size - 1))) return false;
+    } continue;
+    case ScriptOp_JumpIfFalsy: {
+      if (UNLIKELY((ip += 4) > ipEnd)) return false;
+      if (UNLIKELY(!vm_reg_valid(ip[-3]))) return false;
+      const u16 ipOffset = vm_read_u16(&ip[-2]);
+      if (UNLIKELY(ipOffset >= (code.size - 1))) return false;
+    } continue;
+    case ScriptOp_JumpIfNonNull:
+      if (UNLIKELY((ip += 4) > ipEnd)) return false;
+      if (UNLIKELY(!vm_reg_valid(ip[-3]))) return false;
+      const u16 ipOffset = vm_read_u16(&ip[-2]);
+      if (UNLIKELY(ipOffset >= (code.size - 1))) return false;
+      continue;
+    case ScriptOp_Value:
+      if (UNLIKELY((ip += 3) > ipEnd)) return false;
+      if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;
+      if (UNLIKELY(!vm_val_valid(doc, ip[-1]))) return false;
+      continue;
+    case ScriptOp_ValueNull:
+      if (UNLIKELY((ip += 2) > ipEnd)) return false;
+      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;
+      continue;
+    case ScriptOp_ValueBool:
+      if (UNLIKELY((ip += 3) > ipEnd)) return false;
+      if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;
+      continue;
+    case ScriptOp_ValueSmallInt:
+      if (UNLIKELY((ip += 3) > ipEnd)) return false;
+      if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;
+      continue;
+    case ScriptOp_MemLoad:
+      if (UNLIKELY((ip += 6) > ipEnd)) return false;
+      if (UNLIKELY(!vm_reg_valid(ip[-5]))) return false;
+      continue;
+    case ScriptOp_MemStore:
+      if (UNLIKELY((ip += 6) > ipEnd)) return false;
+      if (UNLIKELY(!vm_reg_valid(ip[-5]))) return false;
+      continue;
+    case ScriptOp_MemLoadDyn:
+      if (UNLIKELY((ip += 2) > ipEnd)) return false;
+      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;
+      continue;
+    case ScriptOp_MemStoreDyn:
+      if (UNLIKELY((ip += 3) > ipEnd)) return false;
+      if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;
+      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;
+      continue;
+    case ScriptOp_Extern: {
+      if (UNLIKELY((ip += 6) > ipEnd)) return false;
+      if (UNLIKELY(!vm_reg_valid(ip[-5]))) return false;
+      if (UNLIKELY(!vm_reg_set_valid(ip[-2], ip[-1]))) return false;
+      const ScriptBinderSlot funcSlot = vm_read_u16(&ip[-4]);
+      if (UNLIKELY(!binder)) return false;
+      if (UNLIKELY(funcSlot >= script_binder_count(binder))) return false;
+    } continue;
+#define OP_SIMPLE_ZERO(_OP_)                                                                       \
+    case ScriptOp_##_OP_:                                                                          \
+      if (UNLIKELY((ip += 2) > ipEnd)) return false;                                               \
+      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;                                           \
+      continue
+#define OP_SIMPLE_UNARY(_OP_)                                                                      \
+    case ScriptOp_##_OP_:                                                                          \
+      if (UNLIKELY((ip += 2) > ipEnd)) return false;                                               \
+      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;                                           \
+      continue
+#define OP_SIMPLE_BINARY(_OP_)                                                                     \
+    case ScriptOp_##_OP_:                                                                          \
+      if (UNLIKELY((ip += 3) > ipEnd)) return false;                                               \
+      if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;                                           \
+      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;                                           \
+      continue
+#define OP_SIMPLE_TERNARY(_OP_)                                                                    \
+    case ScriptOp_##_OP_:                                                                          \
+      if (UNLIKELY((ip += 4) > ipEnd)) return false;                                               \
+      if (UNLIKELY(!vm_reg_valid(ip[-3]))) return false;                                           \
+      if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;                                           \
+      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;                                           \
+      continue
+#define OP_SIMPLE_QUATERNARY(_OP_)                                                                 \
+    case ScriptOp_##_OP_:                                                                          \
+      if (UNLIKELY((ip += 5) > ipEnd)) return false;                                               \
+      if (UNLIKELY(!vm_reg_valid(ip[-4]))) return false;                                           \
+      if (UNLIKELY(!vm_reg_valid(ip[-3]))) return false;                                           \
+      if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;                                           \
+      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;                                           \
+      continue
 
-  ScriptVmResult res;
-  res.val         = vm_run(&ctx, code);
-  res.panic       = ctx.panic;
-  res.executedOps = ctx.executedOps;
+    OP_SIMPLE_UNARY(Truthy);
+    OP_SIMPLE_UNARY(Falsy);
+    OP_SIMPLE_UNARY(NonNull);
+    OP_SIMPLE_UNARY(Type);
+    OP_SIMPLE_UNARY(Hash);
+    OP_SIMPLE_BINARY(Equal);
+    OP_SIMPLE_BINARY(Less);
+    OP_SIMPLE_BINARY(Greater);
+    OP_SIMPLE_BINARY(Add);
+    OP_SIMPLE_BINARY(Sub);
+    OP_SIMPLE_BINARY(Mul);
+    OP_SIMPLE_BINARY(Div);
+    OP_SIMPLE_BINARY(Mod);
+    OP_SIMPLE_UNARY(Negate);
+    OP_SIMPLE_UNARY(Invert);
+    OP_SIMPLE_BINARY(Distance);
+    OP_SIMPLE_BINARY(Angle);
+    OP_SIMPLE_UNARY(Sin);
+    OP_SIMPLE_UNARY(Cos);
+    OP_SIMPLE_UNARY(Normalize);
+    OP_SIMPLE_UNARY(Magnitude);
+    OP_SIMPLE_UNARY(Absolute);
+    OP_SIMPLE_UNARY(VecX);
+    OP_SIMPLE_UNARY(VecY);
+    OP_SIMPLE_UNARY(VecZ);
+    OP_SIMPLE_TERNARY(Vec3Compose);
+    OP_SIMPLE_TERNARY(QuatFromEuler);
+    OP_SIMPLE_BINARY(QuatFromAngleAxis);
+    OP_SIMPLE_QUATERNARY(ColorCompose);
+    OP_SIMPLE_QUATERNARY(ColorComposeHsv);
+    OP_SIMPLE_UNARY(ColorFor);
+    OP_SIMPLE_ZERO(Random);
+    OP_SIMPLE_ZERO(RandomSphere);
+    OP_SIMPLE_ZERO(RandomCircleXZ);
+    OP_SIMPLE_BINARY(RandomBetween);
+    OP_SIMPLE_UNARY(RoundDown);
+    OP_SIMPLE_UNARY(RoundNearest);
+    OP_SIMPLE_UNARY(RoundUp);
+    OP_SIMPLE_TERNARY(Clamp);
+    OP_SIMPLE_TERNARY(Lerp);
+    OP_SIMPLE_BINARY(Min);
+    OP_SIMPLE_BINARY(Max);
+    OP_SIMPLE_UNARY(Perlin3);
 
-  return res;
+#undef OP_SIMPLE_QUATERNARY
+#undef OP_SIMPLE_TERNARY
+#undef OP_SIMPLE_BINARY
+#undef OP_SIMPLE_UNARY
+#undef OP_SIMPLE_ZERO
+    }
+    // clang-format on
+    return false; // Unknown op-code.
+  }
+  return true;
 }
 
 void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* out) {
@@ -348,7 +442,7 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       break;
     case ScriptOp_Value: {
       if (UNLIKELY((ip += 3) > ipEnd)) return;
-      if (UNLIKELY(ip[-1] >= doc->values.size)) return;
+      if (UNLIKELY(!vm_val_valid(doc, ip[-1]))) return;
       const ScriptVal val = dynarray_begin_t(&doc->values, ScriptVal)[ip[-1]];
       fmt_write(out, "Value r{} v{} '{}'\n", fmt_int(ip[-2]), fmt_int(ip[-1]), script_val_fmt(val));
     } break;
@@ -466,6 +560,7 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     OP_SIMPLE_BINARY(Max);
     OP_SIMPLE_UNARY(Perlin3);
 
+#undef OP_SIMPLE_QUATERNARY
 #undef OP_SIMPLE_TERNARY
 #undef OP_SIMPLE_BINARY
 #undef OP_SIMPLE_UNARY

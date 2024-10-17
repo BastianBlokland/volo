@@ -19,7 +19,6 @@ static const String g_panicKindStrs[] = {
     [ScriptPanic_QueryInvalid]                = string_static("Query invalid"),
     [ScriptPanic_ReadonlyParam]               = string_static("Cannot change readonly parameter"),
     [ScriptPanic_MissingCapability]           = string_static("Required capability is missing"),
-    [ScriptPanic_CorruptCode]                 = string_static("Corrupt code"),
 };
 ASSERT(array_elems(g_panicKindStrs) == ScriptPanicKind_Count, "Incorrect number of kind strs");
 

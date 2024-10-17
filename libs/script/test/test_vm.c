@@ -279,8 +279,9 @@ spec(vm) {
       const ScriptCompileError err = script_compile(doc, expr, &code);
       check_require_msg(!err, "Compile failed ({})", fmt_text(testData[i].input));
 
-      const String         codeView = dynstring_view(&code);
-      const ScriptVmResult vmRes    = script_vm_eval(doc, codeView, &mem, binder, bindCtxNull);
+      const String codeView = dynstring_view(&code);
+      check_require(script_vm_validate(doc, codeView, binder));
+      const ScriptVmResult vmRes = script_vm_eval(doc, codeView, &mem, binder, bindCtxNull);
       check(!script_panic_valid(&vmRes.panic));
       check_msg(
           script_val_equal(vmRes.val, testData[i].expected),
