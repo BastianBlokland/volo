@@ -60,111 +60,111 @@ ScriptVmResult script_vm_eval(
 
   ScriptVal regs[script_vm_regs] = {0};
 
-Dispatch:
-  if (UNLIKELY(res.executedOps++ == script_vm_ops_max)) {
-    goto PanicExecutionLimitReached;
-  }
-
   // clang-format off
+
+#define VM_NEXT(_OP_SIZE_) { ip += (_OP_SIZE_); goto Dispatch; }
+#define VM_JUMP(_INSTRUCTION_) { ip = mem_begin(code) + (_INSTRUCTION_); goto Dispatch; }
+
+Dispatch:
+  if (UNLIKELY(res.executedOps++ == script_vm_ops_max)) { goto PanicExecutionLimitReached; }
   switch ((ScriptOp)ip[0]) {
   case ScriptOp_Fail:
     goto PanicExecutionFailed;
-  case ScriptOp_Assert: ip += 2;
-    if (UNLIKELY(script_falsy(regs[ip[-1]]))) {
+  case ScriptOp_Assert:
+    if (UNLIKELY(script_falsy(regs[ip[1]]))) {
       goto PanicAssertionFailed;
     }
-    regs[ip[-1]] = val_null();
-    goto Dispatch;
-  case ScriptOp_Return: ip += 2;
-    res.val = regs[ip[-1]];
+    regs[ip[1]] = val_null();
+    VM_NEXT(2);
+  case ScriptOp_Return:
+    res.val = regs[ip[1]];
     goto Return;
   case ScriptOp_ReturnNull:
     res.val = val_null();
     goto Return;
-  case ScriptOp_Move: ip += 3;
-    regs[ip[-2]] = regs[ip[-1]];
-    goto Dispatch;
-  case ScriptOp_Jump: ip += 3;
-    ip = mem_begin(code) + vm_read_u16(&ip[-2]);
-    goto Dispatch;
-  case ScriptOp_JumpIfTruthy: ip += 4;
-    if (script_truthy(regs[ip[-3]])) {
-      ip = mem_begin(code) + vm_read_u16(&ip[-2]);
+  case ScriptOp_Move:
+    regs[ip[1]] = regs[ip[2]];
+    VM_NEXT(3);
+  case ScriptOp_Jump:
+    VM_JUMP(vm_read_u16(&ip[1]));
+  case ScriptOp_JumpIfTruthy:
+    if (script_truthy(regs[ip[1]])) {
+      VM_JUMP(vm_read_u16(&ip[2]));
     }
-    goto Dispatch;
-  case ScriptOp_JumpIfFalsy: ip += 4;
-    if (script_falsy(regs[ip[-3]])) {
-      ip = mem_begin(code) + vm_read_u16(&ip[-2]);
+    VM_NEXT(4);
+  case ScriptOp_JumpIfFalsy:
+    if (script_falsy(regs[ip[1]])) {
+      VM_JUMP(vm_read_u16(&ip[2]));
     }
-    goto Dispatch;
-  case ScriptOp_JumpIfNonNull: ip += 4;
-    if (script_non_null(regs[ip[-3]])) {
-      ip = mem_begin(code) + vm_read_u16(&ip[-2]);
+    VM_NEXT(4);
+  case ScriptOp_JumpIfNonNull:
+    if (script_non_null(regs[ip[1]])) {
+      VM_JUMP(vm_read_u16(&ip[2]));
     }
-    goto Dispatch;
-  case ScriptOp_Value: ip += 3;
-    regs[ip[-2]] = dynarray_begin_t(&doc->values, ScriptVal)[ip[-1]];
-    goto Dispatch;
-  case ScriptOp_ValueNull: ip += 2;
-    regs[ip[-1]] = val_null();
-    goto Dispatch;
-  case ScriptOp_ValueBool: ip += 3;
-    regs[ip[-2]] = val_bool(ip[-1] != 0);
-    goto Dispatch;
-  case ScriptOp_ValueSmallInt: ip += 3;
-    regs[ip[-2]] = val_num(ip[-1]);
-    goto Dispatch;
-  case ScriptOp_MemLoad: ip += 6;
-    regs[ip[-5]] = script_mem_load(m, vm_read_u32(&ip[-4]));
-    goto Dispatch;
-  case ScriptOp_MemStore: ip += 6;
-    script_mem_store(m, vm_read_u32(&ip[-4]), regs[ip[-5]]);
-    goto Dispatch;
-  case ScriptOp_MemLoadDyn: ip += 2;
-    if(val_type(regs[ip[-1]]) == ScriptType_Str) {
-      regs[ip[-1]] = script_mem_load(m, val_as_str(regs[ip[-1]]));
+    VM_NEXT(4);
+  case ScriptOp_Value:
+    regs[ip[1]] = dynarray_begin_t(&doc->values, ScriptVal)[ip[2]];
+    VM_NEXT(3);
+  case ScriptOp_ValueNull:
+    regs[ip[1]] = val_null();
+    VM_NEXT(2);
+  case ScriptOp_ValueBool:
+    regs[ip[1]] = val_bool(ip[2] != 0);
+    VM_NEXT(3);
+  case ScriptOp_ValueSmallInt:
+    regs[ip[1]] = val_num(ip[2]);
+    VM_NEXT(3);
+  case ScriptOp_MemLoad:
+    regs[ip[1]] = script_mem_load(m, vm_read_u32(&ip[2]));
+    VM_NEXT(6);
+  case ScriptOp_MemStore:
+    script_mem_store(m, vm_read_u32(&ip[2]), regs[ip[1]]);
+    VM_NEXT(6);
+  case ScriptOp_MemLoadDyn:
+    if(val_type(regs[ip[1]]) == ScriptType_Str) {
+      regs[ip[1]] = script_mem_load(m, val_as_str(regs[ip[1]]));
     } else {
-      regs[ip[-1]] = val_null();
+      regs[ip[1]] = val_null();
     }
-    goto Dispatch;
-  case ScriptOp_MemStoreDyn: ip += 3;
-    if(val_type(regs[ip[-2]]) == ScriptType_Str) {
-      script_mem_store(m, val_as_str(regs[ip[-2]]), regs[ip[-1]]);
-      regs[ip[-2]] = regs[ip[-1]];
+    VM_NEXT(2);
+  case ScriptOp_MemStoreDyn:
+    if(val_type(regs[ip[1]]) == ScriptType_Str) {
+      script_mem_store(m, val_as_str(regs[ip[1]]), regs[ip[2]]);
+      regs[ip[1]] = regs[ip[2]];
     } else {
-      regs[ip[-2]] = val_null();
+      regs[ip[1]] = val_null();
     }
-    goto Dispatch;
-  case ScriptOp_Extern: ip += 6;
-    const ScriptBinderSlot funcSlot = vm_read_u16(&ip[-4]);
-    const ScriptArgs args = {.values = &regs[ip[-2]], .count = ip[-1]};
+    VM_NEXT(3);
+  case ScriptOp_Extern:
+    const ScriptBinderSlot funcSlot = vm_read_u16(&ip[2]);
+    const ScriptArgs args = {.values = &regs[ip[4]], .count = ip[5]};
     ScriptError err = {0};
-    regs[ip[-5]] = script_binder_exec(binder, funcSlot, bindCtx, args, &err);
+    regs[ip[1]] = script_binder_exec(binder, funcSlot, bindCtx, args, &err);
     if (UNLIKELY(err.kind)) {
       res.panic = (ScriptPanic){.kind = script_error_to_panic(err.kind)};
       goto PanicCustom;
     }
-    goto Dispatch;
+    VM_NEXT(6);
 #define OP_SIMPLE_ZERO(_OP_, _FUNC_)                                                               \
-  case ScriptOp_##_OP_: ip += 2;                                                                   \
-    regs[ip[-1]] = _FUNC_();                                                                       \
-    goto Dispatch
+  case ScriptOp_##_OP_:                                                                            \
+    regs[ip[1]] = _FUNC_();                                                                        \
+    VM_NEXT(2)
 #define OP_SIMPLE_UNARY(_OP_, _FUNC_)                                                              \
-  case ScriptOp_##_OP_: ip += 2;                                                                   \
-    regs[ip[-1]] = _FUNC_(regs[ip[-1]]);                                                           \
-    goto Dispatch
+  case ScriptOp_##_OP_:                                                                            \
+    regs[ip[1]] = _FUNC_(regs[ip[1]]);                                                             \
+    VM_NEXT(2)
 #define OP_SIMPLE_BINARY(_OP_, _FUNC_)                                                             \
-  case ScriptOp_##_OP_: ip += 3;                                                                   \
-    regs[ip[-2]] = _FUNC_(regs[ip[-2]], regs[ip[-1]]);                                             \
-    goto Dispatch
+  case ScriptOp_##_OP_:                                                                            \
+    regs[ip[1]] = _FUNC_(regs[ip[1]], regs[ip[2]]);                                                \
+    VM_NEXT(3)
 #define OP_SIMPLE_TERNARY(_OP_, _FUNC_)                                                            \
-  case ScriptOp_##_OP_: ip += 4;                                                                   \
-    regs[ip[-3]] = _FUNC_(regs[ip[-3]], regs[ip[-2]], regs[ip[-1]]);                               \
-    goto Dispatch
+  case ScriptOp_##_OP_:                                                                            \
+    regs[ip[1]] = _FUNC_(regs[ip[1]], regs[ip[2]], regs[ip[3]]);                                   \
+    VM_NEXT(4)
 #define OP_SIMPLE_QUATERNARY(_OP_, _FUNC_)                                                         \
-  case ScriptOp_##_OP_: ip += 5;                                                                   \
-    regs[ip[-4]] = _FUNC_(regs[ip[-4]], regs[ip[-3]], regs[ip[-2]], regs[ip[-1]]);                 \
-    goto Dispatch
+  case ScriptOp_##_OP_:                                                                            \
+    regs[ip[1]] = _FUNC_(regs[ip[1]], regs[ip[2]], regs[ip[3]], regs[ip[4]]);                      \
+    VM_NEXT(5)
 
   OP_SIMPLE_UNARY(Truthy,               script_truthy_as_val);
   OP_SIMPLE_UNARY(Falsy,                script_falsy_as_val);
@@ -218,6 +218,9 @@ Dispatch:
   }
   UNREACHABLE
   // clang-format on
+
+#undef VM_NEXT
+#undef VM_JUMP
 
 PanicExecutionFailed:
   res.panic = (ScriptPanic){.kind = ScriptPanic_ExecutionFailed};
