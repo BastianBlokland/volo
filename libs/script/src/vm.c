@@ -42,177 +42,179 @@ ScriptVmResult script_vm_eval(
     diag_assert_msg(script_binder_hash(binder) == doc->binderHash, "Incompatible binder");
   }
 
+  const u8* ip = mem_begin(code);
+
   ScriptVmResult res;
   res.executedOps = 0;
 
   ScriptVal regs[script_vm_regs] = {0};
 
-  for (const u8* ip = mem_begin(code);;) {
-    if (UNLIKELY(res.executedOps++ == script_vm_ops_max)) {
-      res.panic = (ScriptPanic){.kind = ScriptPanic_ExecutionLimitExceeded};
-      res.val   = val_null();
+Dispatch:
+  if (UNLIKELY(res.executedOps++ == script_vm_ops_max)) {
+    res.panic = (ScriptPanic){.kind = ScriptPanic_ExecutionLimitExceeded};
+    res.val   = val_null();
+    return res;
+  }
+
+  // clang-format off
+  switch ((ScriptOp)ip[0]) {
+  case ScriptOp_Fail:
+    res.panic = (ScriptPanic){.kind = ScriptPanic_ExecutionFailed};
+    res.val = val_null();
+    return res;
+  case ScriptOp_Assert: ip += 2;
+    if (script_falsy(regs[ip[-1]])) {
+      res.panic = (ScriptPanic){.kind = ScriptPanic_AssertionFailed};
+      res.val = val_null();
       return res;
     }
-    // clang-format off
-    switch ((ScriptOp)*ip) {
-    case ScriptOp_Fail:
-      res.panic = (ScriptPanic){.kind = ScriptPanic_ExecutionFailed};
-      res.val = val_null();
-      return res;
-    case ScriptOp_Assert: ip += 2;
-      if (script_falsy(regs[ip[-1]])) {
-        res.panic = (ScriptPanic){.kind = ScriptPanic_AssertionFailed};
-        res.val = val_null();
-        return res;
-      }
-      regs[ip[-1]] = val_null();
-      continue;
-    case ScriptOp_Return: ip += 2;
-      res.panic = (ScriptPanic){0};
-      res.val = regs[ip[-1]];
-      return res;
-    case ScriptOp_ReturnNull:
-      res.panic = (ScriptPanic){0};
-      res.val = val_null();
-      return res;
-    case ScriptOp_Move: ip += 3;
-      regs[ip[-2]] = regs[ip[-1]];
-      continue;
-    case ScriptOp_Jump: ip += 3;
+    regs[ip[-1]] = val_null();
+    goto Dispatch;
+  case ScriptOp_Return: ip += 2;
+    res.panic = (ScriptPanic){0};
+    res.val = regs[ip[-1]];
+    return res;
+  case ScriptOp_ReturnNull:
+    res.panic = (ScriptPanic){0};
+    res.val = val_null();
+    return res;
+  case ScriptOp_Move: ip += 3;
+    regs[ip[-2]] = regs[ip[-1]];
+    goto Dispatch;
+  case ScriptOp_Jump: ip += 3;
+    ip = mem_begin(code) + vm_read_u16(&ip[-2]);
+    goto Dispatch;
+  case ScriptOp_JumpIfTruthy: ip += 4;
+    if (script_truthy(regs[ip[-3]])) {
       ip = mem_begin(code) + vm_read_u16(&ip[-2]);
-      continue;
-    case ScriptOp_JumpIfTruthy: ip += 4;
-      if (script_truthy(regs[ip[-3]])) {
-        ip = mem_begin(code) + vm_read_u16(&ip[-2]);
-      }
-      continue;
-    case ScriptOp_JumpIfFalsy: ip += 4;
-      if (script_falsy(regs[ip[-3]])) {
-        ip = mem_begin(code) + vm_read_u16(&ip[-2]);
-      }
-      continue;
-    case ScriptOp_JumpIfNonNull: ip += 4;
-      if (script_non_null(regs[ip[-3]])) {
-        ip = mem_begin(code) + vm_read_u16(&ip[-2]);
-      }
-      continue;
-    case ScriptOp_Value: ip += 3;
-      regs[ip[-2]] = dynarray_begin_t(&doc->values, ScriptVal)[ip[-1]];
-      continue;
-    case ScriptOp_ValueNull: ip += 2;
+    }
+    goto Dispatch;
+  case ScriptOp_JumpIfFalsy: ip += 4;
+    if (script_falsy(regs[ip[-3]])) {
+      ip = mem_begin(code) + vm_read_u16(&ip[-2]);
+    }
+    goto Dispatch;
+  case ScriptOp_JumpIfNonNull: ip += 4;
+    if (script_non_null(regs[ip[-3]])) {
+      ip = mem_begin(code) + vm_read_u16(&ip[-2]);
+    }
+    goto Dispatch;
+  case ScriptOp_Value: ip += 3;
+    regs[ip[-2]] = dynarray_begin_t(&doc->values, ScriptVal)[ip[-1]];
+    goto Dispatch;
+  case ScriptOp_ValueNull: ip += 2;
+    regs[ip[-1]] = val_null();
+    goto Dispatch;
+  case ScriptOp_ValueBool: ip += 3;
+    regs[ip[-2]] = val_bool(ip[-1] != 0);
+    goto Dispatch;
+  case ScriptOp_ValueSmallInt: ip += 3;
+    regs[ip[-2]] = val_num(ip[-1]);
+    goto Dispatch;
+  case ScriptOp_MemLoad: ip += 6;
+    regs[ip[-5]] = script_mem_load(m, vm_read_u32(&ip[-4]));
+    goto Dispatch;
+  case ScriptOp_MemStore: ip += 6;
+    script_mem_store(m, vm_read_u32(&ip[-4]), regs[ip[-5]]);
+    goto Dispatch;
+  case ScriptOp_MemLoadDyn: ip += 2;
+    if(val_type(regs[ip[-1]]) == ScriptType_Str) {
+      regs[ip[-1]] = script_mem_load(m, val_as_str(regs[ip[-1]]));
+    } else {
       regs[ip[-1]] = val_null();
-      continue;
-    case ScriptOp_ValueBool: ip += 3;
-      regs[ip[-2]] = val_bool(ip[-1] != 0);
-      continue;
-    case ScriptOp_ValueSmallInt: ip += 3;
-      regs[ip[-2]] = val_num(ip[-1]);
-      continue;
-    case ScriptOp_MemLoad: ip += 6;
-      regs[ip[-5]] = script_mem_load(m, vm_read_u32(&ip[-4]));
-      continue;
-    case ScriptOp_MemStore: ip += 6;
-      script_mem_store(m, vm_read_u32(&ip[-4]), regs[ip[-5]]);
-      continue;
-    case ScriptOp_MemLoadDyn: ip += 2;
-      if(val_type(regs[ip[-1]]) == ScriptType_Str) {
-        regs[ip[-1]] = script_mem_load(m, val_as_str(regs[ip[-1]]));
-      } else {
-        regs[ip[-1]] = val_null();
-      }
-      continue;
-    case ScriptOp_MemStoreDyn: ip += 3;
-      if(val_type(regs[ip[-2]]) == ScriptType_Str) {
-        script_mem_store(m, val_as_str(regs[ip[-2]]), regs[ip[-1]]);
-        regs[ip[-2]] = regs[ip[-1]];
-      } else {
-        regs[ip[-2]] = val_null();
-      }
-      continue;
-    case ScriptOp_Extern: ip += 6;
-      const ScriptBinderSlot funcSlot = vm_read_u16(&ip[-4]);
-      const ScriptArgs args = {.values = &regs[ip[-2]], .count = ip[-1]};
-      ScriptError err = {0};
-      regs[ip[-5]] = script_binder_exec(binder, funcSlot, bindCtx, args, &err);
-      if (UNLIKELY(err.kind)) {
-        res.panic = (ScriptPanic){.kind = script_error_to_panic(err.kind)};
-        res.val = val_null();
-        return res;
-      }
-      continue;
+    }
+    goto Dispatch;
+  case ScriptOp_MemStoreDyn: ip += 3;
+    if(val_type(regs[ip[-2]]) == ScriptType_Str) {
+      script_mem_store(m, val_as_str(regs[ip[-2]]), regs[ip[-1]]);
+      regs[ip[-2]] = regs[ip[-1]];
+    } else {
+      regs[ip[-2]] = val_null();
+    }
+    goto Dispatch;
+  case ScriptOp_Extern: ip += 6;
+    const ScriptBinderSlot funcSlot = vm_read_u16(&ip[-4]);
+    const ScriptArgs args = {.values = &regs[ip[-2]], .count = ip[-1]};
+    ScriptError err = {0};
+    regs[ip[-5]] = script_binder_exec(binder, funcSlot, bindCtx, args, &err);
+    if (UNLIKELY(err.kind)) {
+      res.panic = (ScriptPanic){.kind = script_error_to_panic(err.kind)};
+      res.val = val_null();
+      return res;
+    }
+    goto Dispatch;
 #define OP_SIMPLE_ZERO(_OP_, _FUNC_)                                                               \
-    case ScriptOp_##_OP_: ip += 2;                                                                 \
-      regs[ip[-1]] = _FUNC_();                                                                     \
-      continue
+  case ScriptOp_##_OP_: ip += 2;                                                                   \
+    regs[ip[-1]] = _FUNC_();                                                                       \
+    goto Dispatch
 #define OP_SIMPLE_UNARY(_OP_, _FUNC_)                                                              \
-    case ScriptOp_##_OP_: ip += 2;                                                                 \
-      regs[ip[-1]] = _FUNC_(regs[ip[-1]]);                                                         \
-      continue
+  case ScriptOp_##_OP_: ip += 2;                                                                   \
+    regs[ip[-1]] = _FUNC_(regs[ip[-1]]);                                                           \
+    goto Dispatch
 #define OP_SIMPLE_BINARY(_OP_, _FUNC_)                                                             \
-    case ScriptOp_##_OP_: ip += 3;                                                                 \
-      regs[ip[-2]] = _FUNC_(regs[ip[-2]], regs[ip[-1]]);                                           \
-      continue
+  case ScriptOp_##_OP_: ip += 3;                                                                   \
+    regs[ip[-2]] = _FUNC_(regs[ip[-2]], regs[ip[-1]]);                                             \
+    goto Dispatch
 #define OP_SIMPLE_TERNARY(_OP_, _FUNC_)                                                            \
-    case ScriptOp_##_OP_: ip += 4;                                                                 \
-      regs[ip[-3]] = _FUNC_(regs[ip[-3]], regs[ip[-2]], regs[ip[-1]]);                             \
-      continue
+  case ScriptOp_##_OP_: ip += 4;                                                                   \
+    regs[ip[-3]] = _FUNC_(regs[ip[-3]], regs[ip[-2]], regs[ip[-1]]);                               \
+    goto Dispatch
 #define OP_SIMPLE_QUATERNARY(_OP_, _FUNC_)                                                         \
-    case ScriptOp_##_OP_: ip += 5;                                                                 \
-      regs[ip[-4]] = _FUNC_(regs[ip[-4]], regs[ip[-3]], regs[ip[-2]], regs[ip[-1]]);               \
-      continue
+  case ScriptOp_##_OP_: ip += 5;                                                                   \
+    regs[ip[-4]] = _FUNC_(regs[ip[-4]], regs[ip[-3]], regs[ip[-2]], regs[ip[-1]]);                 \
+    goto Dispatch
 
-    OP_SIMPLE_UNARY(Truthy,               script_truthy_as_val);
-    OP_SIMPLE_UNARY(Falsy,                script_falsy_as_val);
-    OP_SIMPLE_UNARY(NonNull,              script_non_null_as_val);
-    OP_SIMPLE_UNARY(Type,                 script_val_type);
-    OP_SIMPLE_UNARY(Hash,                 script_val_hash);
-    OP_SIMPLE_BINARY(Equal,               script_val_equal_as_val);
-    OP_SIMPLE_BINARY(Less,                script_val_less_as_val);
-    OP_SIMPLE_BINARY(Greater,             script_val_greater_as_val);
-    OP_SIMPLE_BINARY(Add,                 script_val_add);
-    OP_SIMPLE_BINARY(Sub,                 script_val_sub);
-    OP_SIMPLE_BINARY(Mul,                 script_val_mul);
-    OP_SIMPLE_BINARY(Div,                 script_val_div);
-    OP_SIMPLE_BINARY(Mod,                 script_val_mod);
-    OP_SIMPLE_UNARY(Negate,               script_val_neg);
-    OP_SIMPLE_UNARY(Invert,               script_val_inv);
-    OP_SIMPLE_BINARY(Distance,            script_val_dist);
-    OP_SIMPLE_BINARY(Angle,               script_val_angle);
-    OP_SIMPLE_UNARY(Sin,                  script_val_sin);
-    OP_SIMPLE_UNARY(Cos,                  script_val_cos);
-    OP_SIMPLE_UNARY(Normalize,            script_val_norm);
-    OP_SIMPLE_UNARY(Magnitude,            script_val_mag);
-    OP_SIMPLE_UNARY(Absolute,             script_val_abs);
-    OP_SIMPLE_UNARY(VecX,                 script_val_vec_x);
-    OP_SIMPLE_UNARY(VecY,                 script_val_vec_y);
-    OP_SIMPLE_UNARY(VecZ,                 script_val_vec_z);
-    OP_SIMPLE_TERNARY(Vec3Compose,        script_val_vec3_compose);
-    OP_SIMPLE_TERNARY(QuatFromEuler,      script_val_quat_from_euler);
-    OP_SIMPLE_BINARY(QuatFromAngleAxis,   script_val_quat_from_angle_axis);
-    OP_SIMPLE_QUATERNARY(ColorCompose,    script_val_color_compose);
-    OP_SIMPLE_QUATERNARY(ColorComposeHsv, script_val_color_compose_hsv);
-    OP_SIMPLE_UNARY(ColorFor,             script_val_color_for_val);
-    OP_SIMPLE_ZERO(Random,                script_val_random);
-    OP_SIMPLE_ZERO(RandomSphere,          script_val_random_sphere);
-    OP_SIMPLE_ZERO(RandomCircleXZ,        script_val_random_circle_xz);
-    OP_SIMPLE_BINARY(RandomBetween,       script_val_random_between);
-    OP_SIMPLE_UNARY(RoundDown,            script_val_round_down);
-    OP_SIMPLE_UNARY(RoundNearest,         script_val_round_nearest);
-    OP_SIMPLE_UNARY(RoundUp,              script_val_round_up);
-    OP_SIMPLE_TERNARY(Clamp,              script_val_clamp);
-    OP_SIMPLE_TERNARY(Lerp,               script_val_lerp);
-    OP_SIMPLE_BINARY(Min,                 script_val_min);
-    OP_SIMPLE_BINARY(Max,                 script_val_max);
-    OP_SIMPLE_UNARY(Perlin3,              script_val_perlin3);
+  OP_SIMPLE_UNARY(Truthy,               script_truthy_as_val);
+  OP_SIMPLE_UNARY(Falsy,                script_falsy_as_val);
+  OP_SIMPLE_UNARY(NonNull,              script_non_null_as_val);
+  OP_SIMPLE_UNARY(Type,                 script_val_type);
+  OP_SIMPLE_UNARY(Hash,                 script_val_hash);
+  OP_SIMPLE_BINARY(Equal,               script_val_equal_as_val);
+  OP_SIMPLE_BINARY(Less,                script_val_less_as_val);
+  OP_SIMPLE_BINARY(Greater,             script_val_greater_as_val);
+  OP_SIMPLE_BINARY(Add,                 script_val_add);
+  OP_SIMPLE_BINARY(Sub,                 script_val_sub);
+  OP_SIMPLE_BINARY(Mul,                 script_val_mul);
+  OP_SIMPLE_BINARY(Div,                 script_val_div);
+  OP_SIMPLE_BINARY(Mod,                 script_val_mod);
+  OP_SIMPLE_UNARY(Negate,               script_val_neg);
+  OP_SIMPLE_UNARY(Invert,               script_val_inv);
+  OP_SIMPLE_BINARY(Distance,            script_val_dist);
+  OP_SIMPLE_BINARY(Angle,               script_val_angle);
+  OP_SIMPLE_UNARY(Sin,                  script_val_sin);
+  OP_SIMPLE_UNARY(Cos,                  script_val_cos);
+  OP_SIMPLE_UNARY(Normalize,            script_val_norm);
+  OP_SIMPLE_UNARY(Magnitude,            script_val_mag);
+  OP_SIMPLE_UNARY(Absolute,             script_val_abs);
+  OP_SIMPLE_UNARY(VecX,                 script_val_vec_x);
+  OP_SIMPLE_UNARY(VecY,                 script_val_vec_y);
+  OP_SIMPLE_UNARY(VecZ,                 script_val_vec_z);
+  OP_SIMPLE_TERNARY(Vec3Compose,        script_val_vec3_compose);
+  OP_SIMPLE_TERNARY(QuatFromEuler,      script_val_quat_from_euler);
+  OP_SIMPLE_BINARY(QuatFromAngleAxis,   script_val_quat_from_angle_axis);
+  OP_SIMPLE_QUATERNARY(ColorCompose,    script_val_color_compose);
+  OP_SIMPLE_QUATERNARY(ColorComposeHsv, script_val_color_compose_hsv);
+  OP_SIMPLE_UNARY(ColorFor,             script_val_color_for_val);
+  OP_SIMPLE_ZERO(Random,                script_val_random);
+  OP_SIMPLE_ZERO(RandomSphere,          script_val_random_sphere);
+  OP_SIMPLE_ZERO(RandomCircleXZ,        script_val_random_circle_xz);
+  OP_SIMPLE_BINARY(RandomBetween,       script_val_random_between);
+  OP_SIMPLE_UNARY(RoundDown,            script_val_round_down);
+  OP_SIMPLE_UNARY(RoundNearest,         script_val_round_nearest);
+  OP_SIMPLE_UNARY(RoundUp,              script_val_round_up);
+  OP_SIMPLE_TERNARY(Clamp,              script_val_clamp);
+  OP_SIMPLE_TERNARY(Lerp,               script_val_lerp);
+  OP_SIMPLE_BINARY(Min,                 script_val_min);
+  OP_SIMPLE_BINARY(Max,                 script_val_max);
+  OP_SIMPLE_UNARY(Perlin3,              script_val_perlin3);
 
 #undef OP_SIMPLE_QUATERNARY
 #undef OP_SIMPLE_TERNARY
 #undef OP_SIMPLE_BINARY
 #undef OP_SIMPLE_UNARY
 #undef OP_SIMPLE_ZERO
-    }
-    UNREACHABLE
   }
+  UNREACHABLE
   // clang-format on
 }
 
@@ -224,7 +226,7 @@ bool script_vm_validate(const ScriptDoc* doc, const String code, const ScriptBin
   const u8* ipEnd = mem_end(code);
   while (ip != ipEnd) {
     // clang-format off
-    switch ((ScriptOp)*ip) {
+    switch ((ScriptOp)ip[0]) {
     case ScriptOp_Fail:
       if (UNLIKELY((ip += 1) > ipEnd)) return false;
       continue;
@@ -403,7 +405,7 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
   while (ip != ipEnd) {
     // clang-format off
     fmt_write(out, "[{}] ", fmt_int((uptr)(ip - mem_begin(code)), .base = 16, .minDigits = 4));
-    switch ((ScriptOp)*ip) {
+    switch ((ScriptOp)ip[0]) {
     case ScriptOp_Fail:
       if (UNLIKELY((ip += 1) > ipEnd)) return;
       fmt_write(out, "Fail\n");
