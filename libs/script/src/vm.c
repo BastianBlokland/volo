@@ -32,6 +32,17 @@ INLINE_HINT static u32 vm_read_u32(const u8 data[]) {
   return (u32)data[0] | (u32)data[1] << 8 | (u32)data[2] << 16 | (u32)data[3] << 24;
 }
 
+static bool vm_op_is_terminating(const ScriptOp op) {
+  switch (op) {
+  case ScriptOp_Fail:
+  case ScriptOp_Return:
+  case ScriptOp_ReturnNull:
+    return true;
+  default:
+    return false;
+  }
+}
+
 ScriptVmResult script_vm_eval(
     const ScriptDoc*    doc,
     const String        code,
@@ -409,6 +420,9 @@ bool script_vm_validate(const ScriptDoc* doc, const String code, const ScriptBin
     }
     // clang-format on
     return false; // Unknown op-code.
+  }
+  if (UNLIKELY(!vm_op_is_terminating(mem_end(code)[-1]))) {
+    return false;
   }
   return true;
 }
