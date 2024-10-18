@@ -51,33 +51,25 @@ ScriptVmResult script_vm_eval(
 
 Dispatch:
   if (UNLIKELY(res.executedOps++ == script_vm_ops_max)) {
-    res.panic = (ScriptPanic){.kind = ScriptPanic_ExecutionLimitExceeded};
-    res.val   = val_null();
-    return res;
+    goto PanicExecutionLimitReached;
   }
 
   // clang-format off
   switch ((ScriptOp)ip[0]) {
   case ScriptOp_Fail:
-    res.panic = (ScriptPanic){.kind = ScriptPanic_ExecutionFailed};
-    res.val = val_null();
-    return res;
+    goto PanicExecutionFailed;
   case ScriptOp_Assert: ip += 2;
-    if (script_falsy(regs[ip[-1]])) {
-      res.panic = (ScriptPanic){.kind = ScriptPanic_AssertionFailed};
-      res.val = val_null();
-      return res;
+    if (UNLIKELY(script_falsy(regs[ip[-1]]))) {
+      goto PanicAssertionFailed;
     }
     regs[ip[-1]] = val_null();
     goto Dispatch;
   case ScriptOp_Return: ip += 2;
-    res.panic = (ScriptPanic){0};
     res.val = regs[ip[-1]];
-    return res;
+    goto Return;
   case ScriptOp_ReturnNull:
-    res.panic = (ScriptPanic){0};
     res.val = val_null();
-    return res;
+    goto Return;
   case ScriptOp_Move: ip += 3;
     regs[ip[-2]] = regs[ip[-1]];
     goto Dispatch;
@@ -139,8 +131,7 @@ Dispatch:
     regs[ip[-5]] = script_binder_exec(binder, funcSlot, bindCtx, args, &err);
     if (UNLIKELY(err.kind)) {
       res.panic = (ScriptPanic){.kind = script_error_to_panic(err.kind)};
-      res.val = val_null();
-      return res;
+      goto PanicCustom;
     }
     goto Dispatch;
 #define OP_SIMPLE_ZERO(_OP_, _FUNC_)                                                               \
@@ -216,6 +207,29 @@ Dispatch:
   }
   UNREACHABLE
   // clang-format on
+
+PanicExecutionFailed:
+  res.panic = (ScriptPanic){.kind = ScriptPanic_ExecutionFailed};
+  res.val   = val_null();
+  return res;
+
+PanicAssertionFailed:
+  res.panic = (ScriptPanic){.kind = ScriptPanic_AssertionFailed};
+  res.val   = val_null();
+  return res;
+
+PanicExecutionLimitReached:
+  res.panic = (ScriptPanic){.kind = ScriptPanic_ExecutionLimitExceeded};
+  res.val   = val_null();
+  return res;
+
+PanicCustom:
+  res.val = val_null();
+  return res;
+
+Return:
+  res.panic = (ScriptPanic){0};
+  return res;
 }
 
 bool script_vm_validate(const ScriptDoc* doc, const String code, const ScriptBinder* binder) {
