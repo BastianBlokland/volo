@@ -135,15 +135,15 @@ Dispatch:
       regs[ip[1]] = val_null();
     }
     VM_NEXT(3);
-  case ScriptOp_Extern:
-    const ScriptBinderSlot funcSlot = vm_read_u16(&ip[2]);
+  case ScriptOp_Extern: {
     const ScriptArgs args = {.values = &regs[ip[4]], .count = ip[5]};
     ScriptError err = {0};
-    regs[ip[1]] = script_binder_exec(binder, funcSlot, bindCtx, args, &err);
+    regs[ip[1]] = script_binder_exec(binder, vm_read_u16(&ip[2]), bindCtx, args, &err);
     if (UNLIKELY(err.kind)) {
       VM_PANIC((ScriptPanic){.kind = script_error_to_panic(err.kind)});
     }
     VM_NEXT(6);
+  }
 #define OP_SIMPLE_ZERO(_OP_, _FUNC_)                                                               \
   case ScriptOp_##_OP_:                                                                            \
     regs[ip[1]] = _FUNC_();                                                                        \
