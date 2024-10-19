@@ -1,5 +1,4 @@
 #include "asset_manager.h"
-#include "asset_script.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
@@ -130,11 +129,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneScriptComp);
 }
 
-ecs_view_define(AssetView) {
-  ecs_access_read(AssetComp);
-  ecs_access_maybe_read(AssetScriptComp); // Maybe-read because it could have been unloaded since.
-}
-
+ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 ecs_view_define(WindowView) { ecs_access_with(GapWindowComp); }
 
 static void info_panel_tab_script_draw(
@@ -522,8 +517,7 @@ static void tracker_query(
   const TimeReal oldestToKeep = time_real_offset(now, -output_max_age);
   tracker_prune_older(tracker, oldestToKeep);
 
-  const AssetComp*       assetComps[32];
-  const AssetScriptComp* assetScripts[32];
+  const AssetComp* assetComps[32];
 
   if (!tracker->freezeAssets) {
     dynarray_clear(&tracker->assetEntries);
@@ -546,8 +540,7 @@ static void tracker_query(
       diag_assert(slot < array_elems(assetComps));
 
       ecs_view_jump(assetItr, scene_script_asset(scriptInstance, slot));
-      assetComps[slot]   = ecs_view_read_t(assetItr, AssetComp);
-      assetScripts[slot] = ecs_view_read_t(assetItr, AssetScriptComp);
+      assetComps[slot] = ecs_view_read_t(assetItr, AssetComp);
 
       if ((flags & TrackerQueryFlags_QueryAssets) && !tracker->freezeAssets) {
         const SceneScriptStats* stats = scene_script_stats(scriptInstance, slot);
