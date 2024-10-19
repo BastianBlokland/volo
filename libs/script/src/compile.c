@@ -53,7 +53,8 @@ typedef struct {
 typedef struct {
   const ScriptDoc* doc;
   DynString        outCode;
-  DynArray         outLiterals; // ScriptVal[].
+  DynArray         outLiterals;  // ScriptVal[].
+  DynArray         outPositions; // ScriptProgramPos[].
   ScriptOp         lastOp;
 
   u64   regAvailability; // Bitmask of available registers.
@@ -64,6 +65,12 @@ typedef struct {
   DynArray labels;       // Label[].
   DynArray labelPatches; // LabelPatch[].
 } Context;
+
+static i8 script_compare_pos(const void* a, const void* b) {
+  const ScriptProgramPos* posA = a;
+  const ScriptProgramPos* posB = b;
+  return compare_u16(&posA->instruction, &posB->instruction);
+}
 
 static Target target_required(Target tgt) {
   tgt.optional = false;
@@ -885,6 +892,7 @@ ScriptCompileError script_compile(
       .doc          = doc,
       .outCode      = dynstring_create(g_allocHeap, 64),
       .outLiterals  = dynarray_create_t(g_allocHeap, ScriptVal, 0),
+      .outPositions = dynarray_create_t(g_allocHeap, ScriptProgramPos, 16),
       .labels       = dynarray_create_t(g_allocHeap, Label, 0),
       .labelPatches = dynarray_create_t(g_allocHeap, LabelPatch, 0),
   };
@@ -920,15 +928,19 @@ ScriptCompileError script_compile(
   diag_assert_msg(reg_available(&ctx) == script_prog_regs, "Not all registers freed");
 
   // Create program.
+  dynarray_sort(&ctx.outPositions, script_compare_pos);
   *out = (ScriptProgram){
-      .code            = string_dup(outAlloc, dynstring_view(&ctx.outCode)),
-      .literals.values = dynarray_copy_as_new(&ctx.outLiterals, outAlloc),
-      .literals.count  = ctx.outLiterals.size,
+      .code             = string_dup(outAlloc, dynstring_view(&ctx.outCode)),
+      .literals.values  = dynarray_copy_as_new(&ctx.outLiterals, outAlloc),
+      .literals.count   = ctx.outLiterals.size,
+      .positions.values = dynarray_copy_as_new(&ctx.outPositions, outAlloc),
+      .positions.count  = ctx.outPositions.size,
   };
 
 Ret:
   dynstring_destroy(&ctx.outCode);
   dynarray_destroy(&ctx.outLiterals);
+  dynarray_destroy(&ctx.outPositions);
   dynarray_destroy(&ctx.labels);
   dynarray_destroy(&ctx.labelPatches);
   return err;
