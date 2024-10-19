@@ -699,6 +699,7 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
   case ScriptIntrinsic_Hash:
     return compile_intr_unary(ctx, tgt, ScriptOp_Hash, args);
   case ScriptIntrinsic_Assert:
+    emit_position(ctx, e);
     return compile_intr_unary(ctx, tgt, ScriptOp_Assert, args);
   case ScriptIntrinsic_MemLoadDynamic:
     return compile_intr_unary(ctx, tgt, ScriptOp_MemLoadDyn, args);
@@ -841,6 +842,8 @@ static ScriptCompileError compile_block(Context* ctx, const Target tgt, const Sc
 }
 
 static ScriptCompileError compile_extern(Context* ctx, const Target tgt, const ScriptExpr e) {
+  emit_position(ctx, e);
+
   const ScriptExprExtern* data     = &expr_data(ctx->doc, e)->extern_;
   const ScriptExpr*       argExprs = expr_set_data(ctx->doc, data->argSet);
   if (data->argCount == 1 && expr_is_var_load(ctx, argExprs[0])) {
