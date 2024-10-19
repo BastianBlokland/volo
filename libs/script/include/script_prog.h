@@ -104,12 +104,12 @@ typedef enum {
 typedef struct {
   u16                instruction; // Offset in the code stream.
   ScriptRangeLineCol range;
-} ScriptProgramLoc;
+} ScriptProgramPos;
 
 typedef struct sScriptProgram {
   String code;
   HeapArray_t(ScriptVal) literals;
-  HeapArray_t(ScriptProgramLoc) locations; // Sorted on instruction.
+  HeapArray_t(ScriptProgramPos) positions; // Sorted on instruction.
 } ScriptProgram;
 
 typedef struct {
