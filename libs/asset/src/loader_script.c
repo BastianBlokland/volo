@@ -817,6 +817,8 @@ void asset_load_script(
   ScriptDiagBag* diags    = script_diag_bag_create(tempAlloc, ScriptDiagFilter_Error);
   ScriptSymBag*  symsNull = null;
 
+  script_source_set(doc, src->data);
+
   // Parse the script.
   ScriptExpr expr = script_read(doc, g_assetScriptBinder, src->data, diags, symsNull);
 

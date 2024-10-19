@@ -330,6 +330,8 @@ static void repl_exec(
   ScriptDiagBag* diags  = script_diag_bag_create(tempAlloc, ScriptDiagFilter_All);
   ScriptSymBag*  syms = (flags & ReplFlags_OutputSymbols) ? script_sym_bag_create(g_allocHeap) : 0;
 
+  script_source_set(script, input);
+
   ScriptExpr expr = script_read(script, binder, input, diags, syms);
 
   const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
