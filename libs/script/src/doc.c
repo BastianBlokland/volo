@@ -205,6 +205,7 @@ ScriptDoc* script_create(Allocator* alloc) {
 }
 
 void script_destroy(ScriptDoc* doc) {
+  string_maybe_free(doc->alloc, doc->sourceText);
   dynarray_destroy(&doc->exprData);
   dynarray_destroy(&doc->exprKinds);
   dynarray_destroy(&doc->exprRanges);
@@ -220,6 +221,15 @@ void script_clear(ScriptDoc* doc) {
   dynarray_clear(&doc->exprSets);
   dynarray_clear(&doc->values);
 }
+
+void script_source_set(ScriptDoc* doc, const String sourceText) {
+  if (!string_is_empty(doc->sourceText)) {
+    string_maybe_free(doc->alloc, doc->sourceText);
+  }
+  doc->sourceText = string_maybe_dup(doc->alloc, sourceText);
+}
+
+String script_source_get(ScriptDoc* doc) { return doc->sourceText; }
 
 ScriptExpr script_add_value(ScriptDoc* doc, const ScriptRange range, const ScriptVal val) {
   return doc_expr_add_value(doc, range, val, ScriptExprFlags_ValidateRange);

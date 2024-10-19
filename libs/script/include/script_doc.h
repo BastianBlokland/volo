@@ -63,6 +63,13 @@ void script_destroy(ScriptDoc*);
  */
 void script_clear(ScriptDoc*);
 
+/**
+ * Set the source-text for this document.
+ * When set it will be used to compute human readable line-column numbers.
+ */
+void   script_source_set(ScriptDoc*, String sourceText);
+String script_source_get(ScriptDoc*); // Optional.
+
 // clang-format off
 
 /**
