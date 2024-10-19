@@ -22,7 +22,7 @@ static ScriptVal test_return_first(void* ctx, const ScriptArgs args, ScriptError
   return args.count ? args.values[0] : script_null();
 }
 
-spec(vm) {
+spec(prog) {
   ScriptMem      mem;
   ScriptDoc*     doc         = null;
   ScriptProgram  prog        = {0};
@@ -279,12 +279,12 @@ spec(vm) {
       check_require_msg(!err, "Compile failed ({})", fmt_text(testData[i].input));
 
       check_require(script_prog_validate(&prog, binder));
-      const ScriptProgResult vmRes = script_prog_eval(&prog, &mem, binder, bindCtxNull);
-      check(!script_panic_valid(&vmRes.panic));
+      const ScriptProgResult res = script_prog_eval(&prog, &mem, binder, bindCtxNull);
+      check(!script_panic_valid(&res.panic));
       check_msg(
-          script_val_equal(vmRes.val, testData[i].expected),
+          script_val_equal(res.val, testData[i].expected),
           "{} == {} ({})",
-          script_val_fmt(vmRes.val),
+          script_val_fmt(res.val),
           script_val_fmt(testData[i].expected),
           fmt_text(testData[i].input));
     }
