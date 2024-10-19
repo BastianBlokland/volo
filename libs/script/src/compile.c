@@ -161,6 +161,20 @@ static void label_write(Context* ctx, const LabelId labelId) {
   mem_write_le_u16(dynstring_push(&ctx->outCode, 2), label->instruction);
 }
 
+static void emit_position(Context* ctx, const ScriptExpr e) {
+  if (ctx->outCode.size > u16_max) {
+    return; // Code out of bounds (will result in a compile error).
+  }
+  const ScriptRangeLineCol range = script_expr_range_line_col(ctx->doc, e);
+  if (!range.start.line && !range.end.line && !range.start.column && !range.end.column) {
+    return; // Position unknown.
+  }
+  *dynarray_push_t(&ctx->outPositions, ScriptProgramPos) = (ScriptProgramPos){
+      .instruction = (u16)ctx->outCode.size,
+      .range       = range,
+  };
+}
+
 static void emit_op(Context* ctx, const ScriptOp op) {
   dynstring_append_char(&ctx->outCode, op);
   ctx->lastOp = op;
