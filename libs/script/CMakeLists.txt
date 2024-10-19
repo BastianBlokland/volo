@@ -20,11 +20,11 @@ add_library(lib_script STATIC
   src/optimize.c
   src/panic.c
   src/pos.c
+  src/prog.c
   src/read.c
   src/sig.c
   src/sym.c
   src/val.c
-  src/vm.c
   )
 target_include_directories(lib_script PUBLIC include)
 target_link_libraries(lib_script PUBLIC lib_core lib_geo lib_ecs)

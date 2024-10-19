@@ -4,7 +4,7 @@
 #include "script_binder.h"
 #include "script_error.h"
 #include "script_mem.h"
-#include "script_vm.h"
+#include "script_prog.h"
 
 #include "val_internal.h"
 
@@ -62,13 +62,13 @@ void script_prog_clear(ScriptProgram* prog, Allocator* alloc) {
   }
 }
 
-ScriptVmResult script_prog_eval(
+ScriptProgResult script_prog_eval(
     const ScriptProgram* prog, ScriptMem* m, const ScriptBinder* binder, void* bindCtx) {
 
   const u8* ip = mem_begin(prog->code);
 
-  ScriptVmResult res                    = {0};
-  ScriptVal      regs[script_prog_regs] = {0};
+  ScriptProgResult res                    = {0};
+  ScriptVal        regs[script_prog_regs] = {0};
 
   // clang-format off
 

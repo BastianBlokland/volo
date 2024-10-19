@@ -16,9 +16,9 @@
 #include "script_lex.h"
 #include "script_mem.h"
 #include "script_optimize.h"
+#include "script_prog.h"
 #include "script_read.h"
 #include "script_sym.h"
-#include "script_vm.h"
 
 /**
  * ReadEvalPrintLoop - Utility to play around with script execution.
@@ -372,7 +372,7 @@ static void repl_exec(
     goto Ret;
   }
   if (flags & ReplFlags_Vm) {
-    const ScriptVmResult vmRes = script_prog_eval(&prog, mem, binder, null);
+    const ScriptProgResult vmRes = script_prog_eval(&prog, mem, binder, null);
     if (script_panic_valid(&vmRes.panic)) {
       repl_output_panic(flags, input, &vmRes.panic, id);
     } else {

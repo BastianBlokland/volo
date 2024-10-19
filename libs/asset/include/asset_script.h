@@ -1,6 +1,6 @@
 #pragma once
 #include "ecs_module.h"
-#include "script_vm.h"
+#include "script_prog.h"
 
 // Forward declare from 'script_binder.h'.
 typedef struct sScriptBinder ScriptBinder;

@@ -10,7 +10,6 @@
 #include "script_optimize.h"
 #include "script_read.h"
 #include "script_sig.h"
-#include "script_vm.h"
 
 #include "repo_internal.h"
 

@@ -37,7 +37,7 @@
 #include "script_binder.h"
 #include "script_enum.h"
 #include "script_error.h"
-#include "script_vm.h"
+#include "script_prog.h"
 
 #define scene_script_max_asset_loads 8
 #define scene_script_line_of_sight_min 1.0f
@@ -2116,7 +2116,7 @@ static void scene_script_eval(EvalContext* ctx) {
   const TimeSteady startTime = time_steady_clock();
 
   // Eval.
-  const ScriptVmResult evalRes = script_prog_eval(prog, mem, g_scriptBinder, ctx);
+  const ScriptProgResult evalRes = script_prog_eval(prog, mem, g_scriptBinder, ctx);
 
   // Handle panics.
   if (UNLIKELY(script_panic_valid(&evalRes.panic))) {

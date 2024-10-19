@@ -6,8 +6,8 @@
 #include "script_binder.h"
 #include "script_compile.h"
 #include "script_mem.h"
+#include "script_prog.h"
 #include "script_read.h"
-#include "script_vm.h"
 
 static ScriptVal test_return_null(void* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
@@ -279,7 +279,7 @@ spec(vm) {
       check_require_msg(!err, "Compile failed ({})", fmt_text(testData[i].input));
 
       check_require(script_prog_validate(&prog, binder));
-      const ScriptVmResult vmRes = script_prog_eval(&prog, &mem, binder, bindCtxNull);
+      const ScriptProgResult vmRes = script_prog_eval(&prog, &mem, binder, bindCtxNull);
       check(!script_panic_valid(&vmRes.panic));
       check_msg(
           script_val_equal(vmRes.val, testData[i].expected),

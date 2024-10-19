@@ -110,7 +110,7 @@ typedef struct {
   u32         executedOps;
   ScriptPanic panic;
   ScriptVal   val;
-} ScriptVmResult;
+} ScriptProgResult;
 
 void script_prog_destroy(ScriptProgram*, Allocator*);
 void script_prog_clear(ScriptProgram*, Allocator*);
@@ -119,7 +119,7 @@ void script_prog_clear(ScriptProgram*, Allocator*);
  * Evaluate the program.
  * Pre-condition: script_prog_validate(program, binder).
  */
-ScriptVmResult
+ScriptProgResult
 script_prog_eval(const ScriptProgram*, ScriptMem*, const ScriptBinder*, void* bindCtx);
 
 /**
