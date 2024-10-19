@@ -52,7 +52,8 @@ typedef struct {
 
 typedef struct {
   const ScriptDoc* doc;
-  DynString*       out;
+  DynString        outCode;
+  DynArray         outValues; // ScriptVal[].
   ScriptOp         lastOp;
 
   u64   regAvailability; // Bitmask of available registers.
@@ -126,13 +127,14 @@ static LabelId label_alloc(Context* ctx) {
 static void label_link(Context* ctx, const LabelId labelId) {
   Label* label = dynarray_at_t(&ctx->labels, labelId, Label);
   diag_assert_msg(sentinel_check(label->instruction), "Label {} already linked", fmt_int(labelId));
-  label->instruction = (u16)ctx->out->size;
+  label->instruction = (u16)ctx->outCode.size;
 
   // If there are any outstanding patches for this label then apply them now.
   for (usize i = ctx->labelPatches.size; i-- > 0;) {
     LabelPatch* patch = dynarray_at_t(&ctx->labelPatches, i, LabelPatch);
     if (patch->label == labelId) {
-      mem_write_le_u16(mem_slice(dynstring_view(ctx->out), patch->offset, 2), label->instruction);
+      const String patchCode = mem_slice(dynstring_view(&ctx->outCode), patch->offset, 2);
+      mem_write_le_u16(patchCode, label->instruction);
       dynarray_remove(&ctx->labelPatches, i, 1);
     }
   }
@@ -144,60 +146,60 @@ static void label_write(Context* ctx, const LabelId labelId) {
     // No instruction known yet for the label; register a pending patch.
     *dynarray_push_t(&ctx->labelPatches, LabelPatch) = (LabelPatch){
         .label  = labelId,
-        .offset = (u16)ctx->out->size,
+        .offset = (u16)ctx->outCode.size,
     };
-    mem_write_le_u16(dynstring_push(ctx->out, 2), 0xFFFF);
+    mem_write_le_u16(dynstring_push(&ctx->outCode, 2), 0xFFFF);
     return;
   }
-  mem_write_le_u16(dynstring_push(ctx->out, 2), label->instruction);
+  mem_write_le_u16(dynstring_push(&ctx->outCode, 2), label->instruction);
 }
 
 static void emit_op(Context* ctx, const ScriptOp op) {
-  dynstring_append_char(ctx->out, op);
+  dynstring_append_char(&ctx->outCode, op);
   ctx->lastOp = op;
 }
 
 static void emit_value(Context* ctx, const RegId dst, const u8 valId) {
-  diag_assert(dst < script_vm_regs && valId < ctx->doc->values.size);
+  diag_assert(dst < script_vm_regs && valId < ctx->outValues.size);
   emit_op(ctx, ScriptOp_Value);
-  dynstring_append_char(ctx->out, dst);
-  dynstring_append_char(ctx->out, valId);
+  dynstring_append_char(&ctx->outCode, dst);
+  dynstring_append_char(&ctx->outCode, valId);
 }
 
 static void emit_value_bool(Context* ctx, const RegId dst, const bool val) {
   diag_assert(dst < script_vm_regs);
   emit_op(ctx, ScriptOp_ValueBool);
-  dynstring_append_char(ctx->out, dst);
-  dynstring_append_char(ctx->out, val);
+  dynstring_append_char(&ctx->outCode, dst);
+  dynstring_append_char(&ctx->outCode, val);
 }
 
 static void emit_value_small_int(Context* ctx, const RegId dst, const u8 val) {
   diag_assert(dst < script_vm_regs);
   emit_op(ctx, ScriptOp_ValueSmallInt);
-  dynstring_append_char(ctx->out, dst);
-  dynstring_append_char(ctx->out, val);
+  dynstring_append_char(&ctx->outCode, dst);
+  dynstring_append_char(&ctx->outCode, val);
 }
 
 static void emit_unary(Context* ctx, const ScriptOp op, const RegId dst) {
   diag_assert(dst < script_vm_regs);
   emit_op(ctx, op);
-  dynstring_append_char(ctx->out, dst);
+  dynstring_append_char(&ctx->outCode, dst);
 }
 
 static void emit_binary(Context* ctx, const ScriptOp op, const RegId dst, const RegId src) {
   diag_assert(dst < script_vm_regs && src < script_vm_regs);
   emit_op(ctx, op);
-  dynstring_append_char(ctx->out, dst);
-  dynstring_append_char(ctx->out, src);
+  dynstring_append_char(&ctx->outCode, dst);
+  dynstring_append_char(&ctx->outCode, src);
 }
 
 static void
 emit_ternary(Context* ctx, const ScriptOp op, const RegId dst, const RegId src1, const RegId src2) {
   diag_assert(dst < script_vm_regs && src1 < script_vm_regs && src2 < script_vm_regs);
   emit_op(ctx, op);
-  dynstring_append_char(ctx->out, dst);
-  dynstring_append_char(ctx->out, src1);
-  dynstring_append_char(ctx->out, src2);
+  dynstring_append_char(&ctx->outCode, dst);
+  dynstring_append_char(&ctx->outCode, src1);
+  dynstring_append_char(&ctx->outCode, src2);
 }
 
 static void emit_quaternary(
@@ -210,17 +212,17 @@ static void emit_quaternary(
   diag_assert(dst < script_vm_regs);
   diag_assert(src1 < script_vm_regs && src2 < script_vm_regs && src3 < script_vm_regs);
   emit_op(ctx, op);
-  dynstring_append_char(ctx->out, dst);
-  dynstring_append_char(ctx->out, src1);
-  dynstring_append_char(ctx->out, src2);
-  dynstring_append_char(ctx->out, src3);
+  dynstring_append_char(&ctx->outCode, dst);
+  dynstring_append_char(&ctx->outCode, src1);
+  dynstring_append_char(&ctx->outCode, src2);
+  dynstring_append_char(&ctx->outCode, src3);
 }
 
 static void emit_mem_op(Context* ctx, const ScriptOp op, const RegId dst, const StringHash key) {
   diag_assert((op == ScriptOp_MemLoad || op == ScriptOp_MemStore) && dst < script_vm_regs);
   emit_op(ctx, op);
-  dynstring_append_char(ctx->out, dst);
-  mem_write_le_u32(dynstring_push(ctx->out, 4), key);
+  dynstring_append_char(&ctx->outCode, dst);
+  mem_write_le_u32(dynstring_push(&ctx->outCode, 4), key);
 }
 
 static void emit_move(Context* ctx, const RegId dst, const RegId src) {
@@ -237,31 +239,31 @@ static void emit_jump(Context* ctx, const LabelId label) {
 static void emit_jump_if_truthy(Context* ctx, const RegId cond, const LabelId label) {
   diag_assert(cond < script_vm_regs);
   emit_op(ctx, ScriptOp_JumpIfTruthy);
-  dynstring_append_char(ctx->out, cond);
+  dynstring_append_char(&ctx->outCode, cond);
   label_write(ctx, label);
 }
 
 static void emit_jump_if_falsy(Context* ctx, const RegId cond, const LabelId label) {
   diag_assert(cond < script_vm_regs);
   emit_op(ctx, ScriptOp_JumpIfFalsy);
-  dynstring_append_char(ctx->out, cond);
+  dynstring_append_char(&ctx->outCode, cond);
   label_write(ctx, label);
 }
 
 static void emit_jump_if_non_null(Context* ctx, const RegId cond, const LabelId label) {
   diag_assert(cond < script_vm_regs);
   emit_op(ctx, ScriptOp_JumpIfNonNull);
-  dynstring_append_char(ctx->out, cond);
+  dynstring_append_char(&ctx->outCode, cond);
   label_write(ctx, label);
 }
 
 static void emit_extern(Context* ctx, const RegId dst, const ScriptBinderSlot f, const RegSet in) {
   diag_assert(dst < script_vm_regs && in.begin + in.count <= script_vm_regs);
   emit_op(ctx, ScriptOp_Extern);
-  dynstring_append_char(ctx->out, dst);
-  mem_write_le_u16(dynstring_push(ctx->out, 2), f);
-  dynstring_append_char(ctx->out, in.begin);
-  dynstring_append_char(ctx->out, in.count);
+  dynstring_append_char(&ctx->outCode, dst);
+  mem_write_le_u16(dynstring_push(&ctx->outCode, 2), f);
+  dynstring_append_char(&ctx->outCode, in.begin);
+  dynstring_append_char(&ctx->outCode, in.count);
 }
 
 static bool expr_is_null(Context* ctx, const ScriptExpr e) {
@@ -318,10 +320,12 @@ static ScriptCompileError compile_value(Context* ctx, const Target tgt, const Sc
     }
   } // Fallthrough.
   default:
-    if (UNLIKELY(data->valId > u8_max)) {
+    if (UNLIKELY(ctx->outValues.size >= u8_max)) {
       return ScriptCompileError_TooManyValues;
     }
-    emit_value(ctx, tgt.reg, (u8)data->valId);
+    const u8 valId                               = (u8)ctx->outValues.size;
+    *dynarray_push_t(&ctx->outValues, ScriptVal) = val;
+    emit_value(ctx, tgt.reg, valId);
     break;
   }
   return ScriptCompileError_None;
@@ -875,10 +879,12 @@ String script_compile_error_str(const ScriptCompileError res) {
   return g_compileErrorStrs[res];
 }
 
-ScriptCompileError script_compile(const ScriptDoc* doc, const ScriptExpr expr, DynString* out) {
+ScriptCompileError script_compile(
+    const ScriptDoc* doc, const ScriptExpr expr, Allocator* outAlloc, ScriptProgram* out) {
   Context ctx = {
       .doc          = doc,
-      .out          = out,
+      .outCode      = dynstring_create(g_allocHeap, 64),
+      .outValues    = dynarray_create_t(g_allocHeap, ScriptVal, 0),
       .labels       = dynarray_create_t(g_allocHeap, Label, 0),
       .labelPatches = dynarray_create_t(g_allocHeap, LabelPatch, 0),
   };
@@ -891,27 +897,38 @@ ScriptCompileError script_compile(const ScriptDoc* doc, const ScriptExpr expr, D
   diag_assert(resultReg < script_vm_regs);
 
   ScriptCompileError err = compile_expr(&ctx, target_reg(resultReg), expr);
-  if (!err) {
-    if (ctx.lastOp != ScriptOp_Return && ctx.lastOp != ScriptOp_ReturnNull) {
-      emit_unary(&ctx, ScriptOp_Return, resultReg);
-    }
-
-    // Verify that output limit was not exceeded.
-    if (out->size > u16_max) {
-      err = ScriptCompileError_CodeLimitExceeded;
-    }
-
-    // Verify no registers where leaked.
-    reg_free(&ctx, resultReg);
-    array_for_t(ctx.varRegisters, RegId, varReg) {
-      if (!sentinel_check(*varReg)) {
-        reg_free(&ctx, *varReg);
-      }
-    }
-    diag_assert_msg(reg_available(&ctx) == script_vm_regs, "Not all registers freed");
+  if (UNLIKELY(err)) {
+    goto Ret;
   }
 
-  dynstring_destroy(&ctx.labels);
-  dynstring_destroy(&ctx.labelPatches);
+  if (ctx.lastOp != ScriptOp_Return && ctx.lastOp != ScriptOp_ReturnNull) {
+    emit_unary(&ctx, ScriptOp_Return, resultReg);
+  }
+
+  // Verify that output limit was not exceeded.
+  if (UNLIKELY(ctx.outCode.size > u16_max)) {
+    err = ScriptCompileError_CodeLimitExceeded;
+  }
+
+  // Verify no registers where leaked.
+  reg_free(&ctx, resultReg);
+  array_for_t(ctx.varRegisters, RegId, varReg) {
+    if (!sentinel_check(*varReg)) {
+      reg_free(&ctx, *varReg);
+    }
+  }
+  diag_assert_msg(reg_available(&ctx) == script_vm_regs, "Not all registers freed");
+
+  // Create program.
+  *out = (ScriptProgram){
+      .code   = string_dup(outAlloc, dynstring_view(&ctx.outCode)),
+      .values = dynarray_copy_as_new(&ctx.outValues, outAlloc),
+  };
+
+Ret:
+  dynstring_destroy(&ctx.outCode);
+  dynarray_destroy(&ctx.outValues);
+  dynarray_destroy(&ctx.labels);
+  dynarray_destroy(&ctx.labelPatches);
   return err;
 }

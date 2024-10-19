@@ -1,8 +1,12 @@
 #pragma once
-#include "script_doc.h"
+#include "core_string.h"
 
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
+// Forward declare from 'script_prog.h'
+typedef struct sScriptProgram ScriptProgram;
+
+// Forward declare from 'script_doc.h'
+typedef struct sScriptDoc ScriptDoc;
+typedef u32               ScriptExpr;
 
 typedef enum {
   ScriptCompileError_None,
@@ -19,4 +23,4 @@ String script_compile_error_str(ScriptCompileError);
  * Compile an expression to byte-code that can be executed in the vm.
  * Output is written to the given DynString.
  */
-ScriptCompileError script_compile(const ScriptDoc*, ScriptExpr, DynString* out);
+ScriptCompileError script_compile(const ScriptDoc*, ScriptExpr, Allocator*, ScriptProgram* out);

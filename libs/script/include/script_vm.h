@@ -104,7 +104,7 @@ typedef enum {
 
 // clang-format on
 
-typedef struct {
+typedef struct sScriptProgram {
   String code;
   HeapArray_t(ScriptVal) values;
 } ScriptProgram;
