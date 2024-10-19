@@ -2,7 +2,9 @@
 #include "core_array.h"
 #include "script_doc.h"
 #include "script_panic.h"
-#include "script_val.h"
+
+// Forward declare from 'script_val.h'.
+typedef struct sScriptVal ScriptVal;
 
 // Forward declare from 'script_mem.h'.
 typedef struct sScriptMem ScriptMem;
