@@ -1,5 +1,4 @@
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_diag.h"
 #include "core_stringtable.h"
 #include "script_binder.h"
@@ -7,32 +6,31 @@
 #include "script_mem.h"
 #include "script_vm.h"
 
-#include "doc_internal.h"
 #include "val_internal.h"
 
-#define script_vm_ops_max 25000
+#define script_prog_ops_max 25000
 
-INLINE_HINT static bool vm_reg_valid(const u8 regId) { return regId < script_vm_regs; }
+INLINE_HINT static bool prog_reg_valid(const u8 regId) { return regId < script_prog_regs; }
 
-INLINE_HINT static bool vm_reg_set_valid(const u8 regId, const u8 regCount) {
-  return regId + regCount <= script_vm_regs;
+INLINE_HINT static bool prog_reg_set_valid(const u8 regId, const u8 regCount) {
+  return regId + regCount <= script_prog_regs;
 }
 
-INLINE_HINT static bool vm_val_valid(const ScriptDoc* doc, const u8 valId) {
-  return valId < doc->values.size;
+INLINE_HINT static bool prog_val_valid(const ScriptProgram* prog, const u8 valId) {
+  return valId < prog->literals.count;
 }
 
-INLINE_HINT static u16 vm_read_u16(const u8 data[]) {
+INLINE_HINT static u16 prog_read_u16(const u8 data[]) {
   // NOTE: Input data is not required to be aligned to 16 bit.
   return (u16)data[0] | (u16)data[1] << 8;
 }
 
-INLINE_HINT static u32 vm_read_u32(const u8 data[]) {
+INLINE_HINT static u32 prog_read_u32(const u8 data[]) {
   // NOTE: Input data is not required to be aligned to 32 bit.
   return (u32)data[0] | (u32)data[1] << 8 | (u32)data[2] << 16 | (u32)data[3] << 24;
 }
 
-static bool vm_op_is_terminating(const ScriptOp op) {
+static bool prog_op_is_terminating(const ScriptOp op) {
   switch (op) {
   case ScriptOp_Fail:
   case ScriptOp_Return:
@@ -45,33 +43,26 @@ static bool vm_op_is_terminating(const ScriptOp op) {
 
 void script_prog_destroy(ScriptProgram* prog, Allocator* alloc) {
   alloc_free(alloc, prog->code);
-  alloc_free_array_t(alloc, prog->values.values, prog->values.count);
+  alloc_free_array_t(alloc, prog->literals.values, prog->literals.count);
 }
 
-ScriptVmResult script_vm_eval(
-    const ScriptDoc*    doc,
-    const String        code,
-    ScriptMem*          m,
-    const ScriptBinder* binder,
-    void*               bindCtx) {
-  if (binder) {
-    diag_assert_msg(script_binder_hash(binder) == doc->binderHash, "Incompatible binder");
-  }
+ScriptVmResult script_prog_eval(
+    const ScriptProgram* prog, ScriptMem* m, const ScriptBinder* binder, void* bindCtx) {
 
-  const u8* ip = mem_begin(code);
+  const u8* ip = mem_begin(prog->code);
 
-  ScriptVmResult res                  = {0};
-  ScriptVal      regs[script_vm_regs] = {0};
+  ScriptVmResult res                    = {0};
+  ScriptVal      regs[script_prog_regs] = {0};
 
   // clang-format off
 
 #define VM_NEXT(_OP_SIZE_) { ip += (_OP_SIZE_); goto Dispatch; }
-#define VM_JUMP(_INSTRUCTION_) { ip = mem_begin(code) + (_INSTRUCTION_); goto Dispatch; }
+#define VM_JUMP(_INSTRUCTION_) { ip = mem_begin(prog->code) + (_INSTRUCTION_); goto Dispatch; }
 #define VM_PANIC(_PANIC_) { res.panic = (_PANIC_); return res; }
 #define VM_RETURN(_VALUE_) { res.val = (_VALUE_); return res; }
 
 Dispatch:
-  if (UNLIKELY(res.executedOps++ == script_vm_ops_max)) {
+  if (UNLIKELY(res.executedOps++ == script_prog_ops_max)) {
     VM_PANIC((ScriptPanic){.kind = ScriptPanic_ExecutionLimitExceeded});
   }
   switch ((ScriptOp)ip[0]) {
@@ -91,24 +82,24 @@ Dispatch:
     regs[ip[1]] = regs[ip[2]];
     VM_NEXT(3);
   case ScriptOp_Jump:
-    VM_JUMP(vm_read_u16(&ip[1]));
+    VM_JUMP(prog_read_u16(&ip[1]));
   case ScriptOp_JumpIfTruthy:
     if (script_truthy(regs[ip[1]])) {
-      VM_JUMP(vm_read_u16(&ip[2]));
+      VM_JUMP(prog_read_u16(&ip[2]));
     }
     VM_NEXT(4);
   case ScriptOp_JumpIfFalsy:
     if (script_falsy(regs[ip[1]])) {
-      VM_JUMP(vm_read_u16(&ip[2]));
+      VM_JUMP(prog_read_u16(&ip[2]));
     }
     VM_NEXT(4);
   case ScriptOp_JumpIfNonNull:
     if (script_non_null(regs[ip[1]])) {
-      VM_JUMP(vm_read_u16(&ip[2]));
+      VM_JUMP(prog_read_u16(&ip[2]));
     }
     VM_NEXT(4);
   case ScriptOp_Value:
-    regs[ip[1]] = dynarray_begin_t(&doc->values, ScriptVal)[ip[2]];
+    regs[ip[1]] = prog->literals.values[ip[2]];
     VM_NEXT(3);
   case ScriptOp_ValueNull:
     regs[ip[1]] = val_null();
@@ -120,10 +111,10 @@ Dispatch:
     regs[ip[1]] = val_num(ip[2]);
     VM_NEXT(3);
   case ScriptOp_MemLoad:
-    regs[ip[1]] = script_mem_load(m, vm_read_u32(&ip[2]));
+    regs[ip[1]] = script_mem_load(m, prog_read_u32(&ip[2]));
     VM_NEXT(6);
   case ScriptOp_MemStore:
-    script_mem_store(m, vm_read_u32(&ip[2]), regs[ip[1]]);
+    script_mem_store(m, prog_read_u32(&ip[2]), regs[ip[1]]);
     VM_NEXT(6);
   case ScriptOp_MemLoadDyn:
     if(val_type(regs[ip[1]]) == ScriptType_Str) {
@@ -143,7 +134,7 @@ Dispatch:
   case ScriptOp_Extern: {
     const ScriptArgs args = {.values = &regs[ip[4]], .count = ip[5]};
     ScriptError err = {0};
-    regs[ip[1]] = script_binder_exec(binder, vm_read_u16(&ip[2]), bindCtx, args, &err);
+    regs[ip[1]] = script_binder_exec(binder, prog_read_u16(&ip[2]), bindCtx, args, &err);
     if (UNLIKELY(err.kind)) {
       VM_PANIC((ScriptPanic){.kind = script_error_to_panic(err.kind)});
     }
@@ -229,12 +220,12 @@ Dispatch:
 #undef VM_RETURN
 }
 
-bool script_vm_validate(const ScriptDoc* doc, const String code, const ScriptBinder* binder) {
-  if (UNLIKELY(code.size > u16_max)) {
+bool script_vm_validate(const ScriptProgram* prog, const ScriptBinder* binder) {
+  if (UNLIKELY(prog->code.size > u16_max)) {
     return false;
   }
-  const u8* ip    = mem_begin(code);
-  const u8* ipEnd = mem_end(code);
+  const u8* ip    = mem_begin(prog->code);
+  const u8* ipEnd = mem_end(prog->code);
   while (ip != ipEnd) {
     // clang-format off
     switch ((ScriptOp)ip[0]) {
@@ -243,115 +234,115 @@ bool script_vm_validate(const ScriptDoc* doc, const String code, const ScriptBin
       continue;
     case ScriptOp_Assert:
       if (UNLIKELY((ip += 2) > ipEnd)) return false;
-      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;
+      if (UNLIKELY(!prog_reg_valid(ip[-1]))) return false;
       continue;
     case ScriptOp_Return:
       if (UNLIKELY((ip += 2) > ipEnd)) return false;
-      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;
+      if (UNLIKELY(!prog_reg_valid(ip[-1]))) return false;
       continue;
     case ScriptOp_ReturnNull:
       if (UNLIKELY((ip += 1) > ipEnd)) return false;
       continue;
     case ScriptOp_Move:
       if (UNLIKELY((ip += 3) > ipEnd)) return false;
-      if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;
-      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;
+      if (UNLIKELY(!prog_reg_valid(ip[-2]))) return false;
+      if (UNLIKELY(!prog_reg_valid(ip[-1]))) return false;
       continue;
     case ScriptOp_Jump: {
       if (UNLIKELY((ip += 3) > ipEnd)) return false;
-      const u16 ipOffset = vm_read_u16(&ip[-2]);
-      if (UNLIKELY(ipOffset >= (code.size - 1))) return false;
+      const u16 ipOffset = prog_read_u16(&ip[-2]);
+      if (UNLIKELY(ipOffset >= (prog->code.size - 1))) return false;
     } continue;
     case ScriptOp_JumpIfTruthy: {
       if (UNLIKELY((ip += 4) > ipEnd)) return false;
-      if (UNLIKELY(!vm_reg_valid(ip[-3]))) return false;
-      const u16 ipOffset = vm_read_u16(&ip[-2]);
-      if (UNLIKELY(ipOffset >= (code.size - 1))) return false;
+      if (UNLIKELY(!prog_reg_valid(ip[-3]))) return false;
+      const u16 ipOffset = prog_read_u16(&ip[-2]);
+      if (UNLIKELY(ipOffset >= (prog->code.size - 1))) return false;
     } continue;
     case ScriptOp_JumpIfFalsy: {
       if (UNLIKELY((ip += 4) > ipEnd)) return false;
-      if (UNLIKELY(!vm_reg_valid(ip[-3]))) return false;
-      const u16 ipOffset = vm_read_u16(&ip[-2]);
-      if (UNLIKELY(ipOffset >= (code.size - 1))) return false;
+      if (UNLIKELY(!prog_reg_valid(ip[-3]))) return false;
+      const u16 ipOffset = prog_read_u16(&ip[-2]);
+      if (UNLIKELY(ipOffset >= (prog->code.size - 1))) return false;
     } continue;
     case ScriptOp_JumpIfNonNull:
       if (UNLIKELY((ip += 4) > ipEnd)) return false;
-      if (UNLIKELY(!vm_reg_valid(ip[-3]))) return false;
-      const u16 ipOffset = vm_read_u16(&ip[-2]);
-      if (UNLIKELY(ipOffset >= (code.size - 1))) return false;
+      if (UNLIKELY(!prog_reg_valid(ip[-3]))) return false;
+      const u16 ipOffset = prog_read_u16(&ip[-2]);
+      if (UNLIKELY(ipOffset >= (prog->code.size - 1))) return false;
       continue;
     case ScriptOp_Value:
       if (UNLIKELY((ip += 3) > ipEnd)) return false;
-      if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;
-      if (UNLIKELY(!vm_val_valid(doc, ip[-1]))) return false;
+      if (UNLIKELY(!prog_reg_valid(ip[-2]))) return false;
+      if (UNLIKELY(!prog_val_valid(prog, ip[-1]))) return false;
       continue;
     case ScriptOp_ValueNull:
       if (UNLIKELY((ip += 2) > ipEnd)) return false;
-      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;
+      if (UNLIKELY(!prog_reg_valid(ip[-1]))) return false;
       continue;
     case ScriptOp_ValueBool:
       if (UNLIKELY((ip += 3) > ipEnd)) return false;
-      if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;
+      if (UNLIKELY(!prog_reg_valid(ip[-2]))) return false;
       continue;
     case ScriptOp_ValueSmallInt:
       if (UNLIKELY((ip += 3) > ipEnd)) return false;
-      if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;
+      if (UNLIKELY(!prog_reg_valid(ip[-2]))) return false;
       continue;
     case ScriptOp_MemLoad:
       if (UNLIKELY((ip += 6) > ipEnd)) return false;
-      if (UNLIKELY(!vm_reg_valid(ip[-5]))) return false;
+      if (UNLIKELY(!prog_reg_valid(ip[-5]))) return false;
       continue;
     case ScriptOp_MemStore:
       if (UNLIKELY((ip += 6) > ipEnd)) return false;
-      if (UNLIKELY(!vm_reg_valid(ip[-5]))) return false;
+      if (UNLIKELY(!prog_reg_valid(ip[-5]))) return false;
       continue;
     case ScriptOp_MemLoadDyn:
       if (UNLIKELY((ip += 2) > ipEnd)) return false;
-      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;
+      if (UNLIKELY(!prog_reg_valid(ip[-1]))) return false;
       continue;
     case ScriptOp_MemStoreDyn:
       if (UNLIKELY((ip += 3) > ipEnd)) return false;
-      if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;
-      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;
+      if (UNLIKELY(!prog_reg_valid(ip[-2]))) return false;
+      if (UNLIKELY(!prog_reg_valid(ip[-1]))) return false;
       continue;
     case ScriptOp_Extern: {
       if (UNLIKELY((ip += 6) > ipEnd)) return false;
-      if (UNLIKELY(!vm_reg_valid(ip[-5]))) return false;
-      if (UNLIKELY(!vm_reg_set_valid(ip[-2], ip[-1]))) return false;
-      const ScriptBinderSlot funcSlot = vm_read_u16(&ip[-4]);
+      if (UNLIKELY(!prog_reg_valid(ip[-5]))) return false;
+      if (UNLIKELY(!prog_reg_set_valid(ip[-2], ip[-1]))) return false;
+      const ScriptBinderSlot funcSlot = prog_read_u16(&ip[-4]);
       if (UNLIKELY(!binder)) return false;
       if (UNLIKELY(funcSlot >= script_binder_count(binder))) return false;
     } continue;
 #define OP_SIMPLE_ZERO(_OP_)                                                                       \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 2) > ipEnd)) return false;                                               \
-      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;                                           \
+      if (UNLIKELY(!prog_reg_valid(ip[-1]))) return false;                                         \
       continue
 #define OP_SIMPLE_UNARY(_OP_)                                                                      \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 2) > ipEnd)) return false;                                               \
-      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;                                           \
+      if (UNLIKELY(!prog_reg_valid(ip[-1]))) return false;                                         \
       continue
 #define OP_SIMPLE_BINARY(_OP_)                                                                     \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 3) > ipEnd)) return false;                                               \
-      if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;                                           \
-      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;                                           \
+      if (UNLIKELY(!prog_reg_valid(ip[-2]))) return false;                                         \
+      if (UNLIKELY(!prog_reg_valid(ip[-1]))) return false;                                         \
       continue
 #define OP_SIMPLE_TERNARY(_OP_)                                                                    \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 4) > ipEnd)) return false;                                               \
-      if (UNLIKELY(!vm_reg_valid(ip[-3]))) return false;                                           \
-      if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;                                           \
-      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;                                           \
+      if (UNLIKELY(!prog_reg_valid(ip[-3]))) return false;                                         \
+      if (UNLIKELY(!prog_reg_valid(ip[-2]))) return false;                                         \
+      if (UNLIKELY(!prog_reg_valid(ip[-1]))) return false;                                         \
       continue
 #define OP_SIMPLE_QUATERNARY(_OP_)                                                                 \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 5) > ipEnd)) return false;                                               \
-      if (UNLIKELY(!vm_reg_valid(ip[-4]))) return false;                                           \
-      if (UNLIKELY(!vm_reg_valid(ip[-3]))) return false;                                           \
-      if (UNLIKELY(!vm_reg_valid(ip[-2]))) return false;                                           \
-      if (UNLIKELY(!vm_reg_valid(ip[-1]))) return false;                                           \
+      if (UNLIKELY(!prog_reg_valid(ip[-4]))) return false;                                         \
+      if (UNLIKELY(!prog_reg_valid(ip[-3]))) return false;                                         \
+      if (UNLIKELY(!prog_reg_valid(ip[-2]))) return false;                                         \
+      if (UNLIKELY(!prog_reg_valid(ip[-1]))) return false;                                         \
       continue
 
     OP_SIMPLE_UNARY(Truthy);
@@ -407,18 +398,19 @@ bool script_vm_validate(const ScriptDoc* doc, const String code, const ScriptBin
     // clang-format on
     return false; // Unknown op-code.
   }
-  if (UNLIKELY(!vm_op_is_terminating(mem_end(code)[-1]))) {
+  if (UNLIKELY(!prog_op_is_terminating(mem_end(prog->code)[-1]))) {
     return false;
   }
   return true;
 }
 
-void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* out) {
-  const u8* ip    = mem_begin(code);
-  const u8* ipEnd = mem_end(code);
+void script_prog_write(const ScriptProgram* prog, DynString* out) {
+  const u8* ipBegin = mem_begin(prog->code);
+  const u8* ipEnd   = mem_end(prog->code);
+  const u8* ip      = ipBegin;
   while (ip != ipEnd) {
     // clang-format off
-    fmt_write(out, "[{}] ", fmt_int((uptr)(ip - mem_begin(code)), .base = 16, .minDigits = 4));
+    fmt_write(out, "[{}] ", fmt_int((uptr)(ip - ipBegin), .base = 16, .minDigits = 4));
     switch ((ScriptOp)ip[0]) {
     case ScriptOp_Fail:
       if (UNLIKELY((ip += 1) > ipEnd)) return;
@@ -442,24 +434,24 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       break;
     case ScriptOp_Jump:
       if (UNLIKELY((ip += 3) > ipEnd)) return;
-      fmt_write(out, "Jump i{}\n", fmt_int(vm_read_u16(&ip[-2]),.base = 16, .minDigits = 4));
+      fmt_write(out, "Jump i{}\n", fmt_int(prog_read_u16(&ip[-2]),.base = 16, .minDigits = 4));
       break;
     case ScriptOp_JumpIfTruthy:
       if (UNLIKELY((ip += 4) > ipEnd)) return;
-      fmt_write(out, "JumpIfTruthy r{} i{}\n", fmt_int(ip[-3]), fmt_int(vm_read_u16(&ip[-2]),.base = 16, .minDigits = 4));
+      fmt_write(out, "JumpIfTruthy r{} i{}\n", fmt_int(ip[-3]), fmt_int(prog_read_u16(&ip[-2]),.base = 16, .minDigits = 4));
       break;
     case ScriptOp_JumpIfFalsy:
       if (UNLIKELY((ip += 4) > ipEnd)) return;
-      fmt_write(out, "JumpIfFalsy r{} i{}\n", fmt_int(ip[-3]), fmt_int(vm_read_u16(&ip[-2]),.base = 16, .minDigits = 4));
+      fmt_write(out, "JumpIfFalsy r{} i{}\n", fmt_int(ip[-3]), fmt_int(prog_read_u16(&ip[-2]),.base = 16, .minDigits = 4));
       break;
     case ScriptOp_JumpIfNonNull:
       if (UNLIKELY((ip += 4) > ipEnd)) return;
-      fmt_write(out, "JumpIfNonNull r{} i{}\n", fmt_int(ip[-3]), fmt_int(vm_read_u16(&ip[-2]),.base = 16, .minDigits = 4));
+      fmt_write(out, "JumpIfNonNull r{} i{}\n", fmt_int(ip[-3]), fmt_int(prog_read_u16(&ip[-2]),.base = 16, .minDigits = 4));
       break;
     case ScriptOp_Value: {
       if (UNLIKELY((ip += 3) > ipEnd)) return;
-      if (UNLIKELY(!vm_val_valid(doc, ip[-1]))) return;
-      const ScriptVal val = dynarray_begin_t(&doc->values, ScriptVal)[ip[-1]];
+      if (UNLIKELY(!prog_val_valid(prog, ip[-1]))) return;
+      const ScriptVal val = prog->literals.values[ip[-1]];
       fmt_write(out, "Value r{} v{} '{}'\n", fmt_int(ip[-2]), fmt_int(ip[-1]), script_val_fmt(val));
     } break;
     case ScriptOp_ValueNull:
@@ -476,8 +468,8 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       break;
     case ScriptOp_MemLoad: {
       if (UNLIKELY((ip += 6) > ipEnd)) return;
-      const String keyName = stringtable_lookup(g_stringtable, vm_read_u32(&ip[-4]));
-      fmt_write(out, "MemLoad r{} ${}", fmt_int(ip[-5]), fmt_int(vm_read_u32(&ip[-4])));
+      const String keyName = stringtable_lookup(g_stringtable, prog_read_u32(&ip[-4]));
+      fmt_write(out, "MemLoad r{} ${}", fmt_int(ip[-5]), fmt_int(prog_read_u32(&ip[-4])));
       if (!string_is_empty(keyName)) {
         fmt_write(out, " '{}'", fmt_text(keyName));
       }
@@ -485,8 +477,8 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
     } break;
     case ScriptOp_MemStore: {
       if (UNLIKELY((ip += 6) > ipEnd)) return;
-      const String keyName = stringtable_lookup(g_stringtable, vm_read_u32(&ip[-4]));
-      fmt_write(out, "MemStore r{} ${}", fmt_int(ip[-5]), fmt_int(vm_read_u32(&ip[-4])));
+      const String keyName = stringtable_lookup(g_stringtable, prog_read_u32(&ip[-4]));
+      fmt_write(out, "MemStore r{} ${}", fmt_int(ip[-5]), fmt_int(prog_read_u32(&ip[-4])));
       if (!string_is_empty(keyName)) {
         fmt_write(out, " '{}'", fmt_text(keyName));
       }
@@ -502,7 +494,7 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
       break;
     case ScriptOp_Extern:
       if (UNLIKELY((ip += 6) > ipEnd)) return;
-      fmt_write(out, "Extern r{} f{} r{} c{}\n", fmt_int(ip[-5]), fmt_int(vm_read_u16(&ip[-4])), fmt_int(ip[-2]), fmt_int(ip[-1]));
+      fmt_write(out, "Extern r{} f{} r{} c{}\n", fmt_int(ip[-5]), fmt_int(prog_read_u16(&ip[-4])), fmt_int(ip[-2]), fmt_int(ip[-1]));
       break;
 #define OP_SIMPLE_ZERO(_OP_)                                                                       \
     case ScriptOp_##_OP_:                                                                          \
@@ -586,11 +578,11 @@ void script_vm_disasm_write(const ScriptDoc* doc, const String code, DynString* 
   }
 }
 
-String script_vm_disasm_scratch(const ScriptDoc* doc, const String code) {
+String script_prog_write_scratch(const ScriptProgram* prog) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte * 16, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  script_vm_disasm_write(doc, code, &buffer);
+  script_prog_write(prog, &buffer);
 
   return dynstring_view(&buffer);
 }

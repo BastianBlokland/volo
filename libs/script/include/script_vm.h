@@ -1,10 +1,7 @@
 #pragma once
 #include "core_array.h"
-#include "script_doc.h"
 #include "script_panic.h"
-
-// Forward declare from 'script_val.h'.
-typedef struct sScriptVal ScriptVal;
+#include "script_val.h"
 
 // Forward declare from 'script_mem.h'.
 typedef struct sScriptMem ScriptMem;
@@ -12,7 +9,7 @@ typedef struct sScriptMem ScriptMem;
 // Forward declare from 'core_binder.h'.
 typedef struct sScriptBinder ScriptBinder;
 
-#define script_vm_regs 32
+#define script_prog_regs 32
 
 // clang-format off
 
@@ -106,7 +103,7 @@ typedef enum {
 
 typedef struct sScriptProgram {
   String code;
-  HeapArray_t(ScriptVal) values;
+  HeapArray_t(ScriptVal) literals;
 } ScriptProgram;
 
 typedef struct {
@@ -118,19 +115,19 @@ typedef struct {
 void script_prog_destroy(ScriptProgram*, Allocator*);
 
 /**
- * Evaluate the given byte-code.
- * NOTE: Maximum supported code size is u16_max.
+ * Evaluate the program.
+ * Pre-condition: script_prog_validate(program, binder).
  */
 ScriptVmResult
-script_vm_eval(const ScriptDoc*, String code, ScriptMem*, const ScriptBinder*, void* bindCtx);
+script_prog_eval(const ScriptProgram*, ScriptMem*, const ScriptBinder*, void* bindCtx);
 
 /**
- * Validate the given byte-code.
+ * Validate the given program.
  */
-bool script_vm_validate(const ScriptDoc*, String code, const ScriptBinder*);
+bool script_prog_validate(const ScriptProgram*, const ScriptBinder*);
 
 /**
- * Disassemble the given byte-code.
+ * Write the program disassembly for diagnostic purposes.
  */
-void   script_vm_disasm_write(const ScriptDoc*, String code, DynString* out);
-String script_vm_disasm_scratch(const ScriptDoc*, String code);
+void   script_prog_write(const ScriptProgram*, DynString* out);
+String script_prog_write_scratch(const ScriptProgram*);
