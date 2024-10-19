@@ -14,7 +14,7 @@ typedef struct sScriptRange {
   ScriptPos start, end;
 } ScriptRange;
 
-typedef struct {
+typedef struct sScriptRangeLineCol {
   ScriptPosLineCol start, end;
 } ScriptRangeLineCol;
 

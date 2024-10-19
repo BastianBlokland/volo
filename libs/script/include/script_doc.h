@@ -8,8 +8,9 @@
 typedef struct sAllocator Allocator;
 
 // Forward declare from 'script_pos.h'.
-typedef u32                 ScriptPos;
-typedef struct sScriptRange ScriptRange;
+typedef u32                        ScriptPos;
+typedef struct sScriptRange        ScriptRange;
+typedef struct sScriptRangeLineCol ScriptRangeLineCol;
 
 // Forward declare from 'script_binder.h'.
 typedef u16 ScriptBinderSlot;
@@ -96,12 +97,13 @@ ScriptExpr script_add_anon_intrinsic(ScriptDoc*, ScriptIntrinsic, const ScriptEx
 /**
  * Query expression data.
  */
-u32            script_values_total(const ScriptDoc*);
-ScriptExprKind script_expr_kind(const ScriptDoc*, ScriptExpr);
-ScriptRange    script_expr_range(const ScriptDoc*, ScriptExpr);
-bool           script_expr_static(const ScriptDoc*, ScriptExpr);
-ScriptVal      script_expr_static_val(const ScriptDoc*, ScriptExpr);
-bool           script_expr_always_truthy(const ScriptDoc*, ScriptExpr);
+u32                script_values_total(const ScriptDoc*);
+ScriptExprKind     script_expr_kind(const ScriptDoc*, ScriptExpr);
+ScriptRange        script_expr_range(const ScriptDoc*, ScriptExpr);
+ScriptRangeLineCol script_expr_range_line_col(const ScriptDoc*, ScriptExpr); // Requires source.
+bool               script_expr_static(const ScriptDoc*, ScriptExpr);
+ScriptVal          script_expr_static_val(const ScriptDoc*, ScriptExpr);
+bool               script_expr_always_truthy(const ScriptDoc*, ScriptExpr);
 
 typedef bool (*ScriptPred)(void* ctx, const ScriptDoc*, ScriptExpr);
 ScriptExpr script_expr_find(const ScriptDoc*, ScriptExpr root, ScriptPos, void* ctx, ScriptPred);

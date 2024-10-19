@@ -316,6 +316,12 @@ ScriptRange script_expr_range(const ScriptDoc* doc, const ScriptExpr expr) {
   return expr_range(doc, expr);
 }
 
+ScriptRangeLineCol script_expr_range_line_col(const ScriptDoc* doc, const ScriptExpr expr) {
+  diag_assert(!string_is_empty(doc->sourceText));
+  const ScriptRange range = script_expr_range(doc, expr);
+  return script_range_to_line_col(doc->sourceText, range);
+}
+
 static void script_visitor_static(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
   bool* isStatic = ctx;
   switch (expr_kind(doc, expr)) {
