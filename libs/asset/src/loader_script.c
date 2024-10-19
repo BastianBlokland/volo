@@ -30,7 +30,6 @@ ecs_comp_define_public(AssetScriptComp);
 
 static void ecs_destruct_script_comp(void* data) {
   AssetScriptComp* comp = data;
-  string_maybe_free(g_allocHeap, comp->sourceText);
   script_prog_destroy(&comp->prog, g_allocHeap);
 }
 
@@ -856,13 +855,7 @@ void asset_load_script(
 
   diag_assert(script_prog_validate(&prog, g_assetScriptBinder));
 
-  ecs_world_add_t(
-      world,
-      entity,
-      AssetScriptComp,
-      .sourceText = string_maybe_dup(g_allocHeap, src->data),
-      .prog       = prog);
-
+  ecs_world_add_t(world, entity, AssetScriptComp, .prog = prog);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   goto Cleanup;
 

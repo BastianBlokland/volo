@@ -8,10 +8,7 @@ typedef struct sScriptBinder ScriptBinder;
 /**
  * Script file.
  */
-ecs_comp_extern_public(AssetScriptComp) {
-  String        sourceText; // Used for reporting error positions.
-  ScriptProgram prog;
-};
+ecs_comp_extern_public(AssetScriptComp) { ScriptProgram prog; };
 
 extern ScriptBinder* g_assetScriptBinder;
 
