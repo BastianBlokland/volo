@@ -48,6 +48,9 @@ void script_prog_destroy(ScriptProgram* prog, Allocator* alloc) {
   if (prog->literals.count) {
     alloc_free_array_t(alloc, prog->literals.values, prog->literals.count);
   }
+  if (prog->locations.count) {
+    alloc_free_array_t(alloc, prog->locations.values, prog->locations.count);
+  }
 }
 
 void script_prog_clear(ScriptProgram* prog, Allocator* alloc) {
@@ -59,6 +62,11 @@ void script_prog_clear(ScriptProgram* prog, Allocator* alloc) {
     alloc_free_array_t(alloc, prog->literals.values, prog->literals.count);
     prog->literals.values = null;
     prog->literals.count  = 0;
+  }
+  if (prog->locations.count) {
+    alloc_free_array_t(alloc, prog->locations.values, prog->locations.count);
+    prog->locations.values = null;
+    prog->locations.count  = 0;
   }
 }
 

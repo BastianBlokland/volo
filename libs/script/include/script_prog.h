@@ -101,9 +101,15 @@ typedef enum {
 
 // clang-format on
 
+typedef struct {
+  u16                instruction; // Offset in the code stream.
+  ScriptRangeLineCol range;
+} ScriptProgramLoc;
+
 typedef struct sScriptProgram {
   String code;
   HeapArray_t(ScriptVal) literals;
+  HeapArray_t(ScriptProgramLoc) locations; // Sorted on instruction.
 } ScriptProgram;
 
 typedef struct {
