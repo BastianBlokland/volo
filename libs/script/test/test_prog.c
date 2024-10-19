@@ -6,8 +6,8 @@
 #include "script_binder.h"
 #include "script_compile.h"
 #include "script_mem.h"
+#include "script_prog.h"
 #include "script_read.h"
-#include "script_vm.h"
 
 static ScriptVal test_return_null(void* ctx, const ScriptArgs args, ScriptError* err) {
   (void)ctx;
@@ -22,19 +22,18 @@ static ScriptVal test_return_first(void* ctx, const ScriptArgs args, ScriptError
   return args.count ? args.values[0] : script_null();
 }
 
-spec(vm) {
+spec(prog) {
   ScriptMem      mem;
   ScriptDoc*     doc         = null;
+  ScriptProgram  prog        = {0};
   ScriptBinder*  binder      = null;
   void*          bindCtxNull = null;
   ScriptDiagBag* diagsNull   = null;
   ScriptSymBag*  symsNull    = null;
-  DynString      code;
 
   setup() {
-    mem  = script_mem_create();
-    doc  = script_create(g_allocHeap);
-    code = dynstring_create(g_allocScratch, usize_kibibyte);
+    mem = script_mem_create();
+    doc = script_create(g_allocHeap);
 
     script_mem_store(&mem, string_hash_lit("v1"), script_bool(true));
     script_mem_store(&mem, string_hash_lit("v2"), script_num(1337));
@@ -275,18 +274,17 @@ spec(vm) {
       const ScriptExpr expr = script_read(doc, binder, testData[i].input, diagsNull, symsNull);
       check_require_msg(!sentinel_check(expr), "Read failed ({})", fmt_text(testData[i].input));
 
-      dynstring_clear(&code);
-      const ScriptCompileError err = script_compile(doc, expr, &code);
+      script_prog_clear(&prog, g_allocHeap);
+      const ScriptCompileError err = script_compile(doc, expr, g_allocHeap, &prog);
       check_require_msg(!err, "Compile failed ({})", fmt_text(testData[i].input));
 
-      const String codeView = dynstring_view(&code);
-      check_require(script_vm_validate(doc, codeView, binder));
-      const ScriptVmResult vmRes = script_vm_eval(doc, codeView, &mem, binder, bindCtxNull);
-      check(!script_panic_valid(&vmRes.panic));
+      check_require(script_prog_validate(&prog, binder));
+      const ScriptProgResult res = script_prog_eval(&prog, &mem, binder, bindCtxNull);
+      check(!script_panic_valid(&res.panic));
       check_msg(
-          script_val_equal(vmRes.val, testData[i].expected),
+          script_val_equal(res.val, testData[i].expected),
           "{} == {} ({})",
-          script_val_fmt(vmRes.val),
+          script_val_fmt(res.val),
           script_val_fmt(testData[i].expected),
           fmt_text(testData[i].input));
     }
@@ -294,8 +292,8 @@ spec(vm) {
 
   teardown() {
     script_destroy(doc);
+    script_prog_destroy(&prog, g_allocHeap);
     script_binder_destroy(binder);
     script_mem_destroy(&mem);
-    dynstring_destroy(&code);
   }
 }

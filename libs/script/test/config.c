@@ -9,8 +9,8 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, lex);
   register_spec(check, mem);
   register_spec(check, optimize);
+  register_spec(check, prog);
   register_spec(check, read);
   register_spec(check, sig);
   register_spec(check, val);
-  register_spec(check, vm);
 }

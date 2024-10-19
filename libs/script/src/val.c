@@ -74,6 +74,29 @@ TimeDuration script_get_time(const ScriptVal value, const TimeDuration fallback)
                                            : fallback;
 }
 
+bool script_val_valid(const ScriptVal value) {
+  const ScriptType type = val_type(value);
+  if (type >= ScriptType_Count) {
+    return false; // Invalid type.
+  }
+  switch (type) {
+  case ScriptType_Null:
+  case ScriptType_Str:
+  case ScriptType_Quat:
+  case ScriptType_Num:
+  case ScriptType_Color:
+  case ScriptType_Vec3:
+    return true;
+  case ScriptType_Bool:
+    return val_as_bool(value) < 2;
+  case ScriptType_Entity:
+    return ecs_entity_valid(val_as_entity(value));
+  case ScriptType_Count:
+    break;
+  }
+  UNREACHABLE
+}
+
 bool script_truthy(const ScriptVal value) {
   switch (val_type(value)) {
   case ScriptType_Null:

@@ -53,7 +53,6 @@ typedef enum {
 
 typedef struct {
   String         identifier;
-  String         text;
   ScriptDoc*     scriptDoc;
   ScriptDiagBag* scriptDiags;
   ScriptSymBag*  scriptSyms;
@@ -166,15 +165,13 @@ static const JRpcError g_jrpcErrorInvalidParams = {
 
 static void lsp_doc_destroy(LspDocument* doc) {
   string_free(g_allocHeap, doc->identifier);
-  string_maybe_free(g_allocHeap, doc->text);
   script_destroy(doc->scriptDoc);
   script_diag_bag_destroy(doc->scriptDiags);
   script_sym_bag_destroy(doc->scriptSyms);
 }
 
 static void lsp_doc_update_text(LspDocument* doc, const String text) {
-  string_maybe_free(g_allocHeap, doc->text);
-  doc->text = string_maybe_dup(g_allocHeap, text);
+  script_source_set(doc->scriptDoc, text);
 }
 
 static LspDocument* lsp_doc_find(LspContext* ctx, const String identifier) {
@@ -191,11 +188,12 @@ static LspDocument* lsp_doc_open(LspContext* ctx, const String identifier, const
 
   *res = (LspDocument){
       .identifier  = string_dup(g_allocHeap, identifier),
-      .text        = string_maybe_dup(g_allocHeap, text),
       .scriptDoc   = script_create(g_allocHeap),
       .scriptDiags = script_diag_bag_create(g_allocHeap, ScriptDiagFilter_All),
       .scriptSyms  = script_sym_bag_create(g_allocHeap),
   };
+
+  script_source_set(res->scriptDoc, text);
 
   return res;
 }
@@ -583,8 +581,9 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
 
   const TimeSteady readStartTime = time_steady_clock();
 
+  const String sourceText = script_source_get(doc->scriptDoc);
   doc->scriptRoot =
-      script_read(doc->scriptDoc, ctx->scriptBinder, doc->text, doc->scriptDiags, doc->scriptSyms);
+      script_read(doc->scriptDoc, ctx->scriptBinder, sourceText, doc->scriptDiags, doc->scriptSyms);
 
   if (ctx->flags & LspFlags_Trace) {
     const TimeDuration dur   = time_steady_duration(readStartTime, time_steady_clock());
@@ -600,9 +599,9 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
 
     // TODO: Report text ranges in utf16 instead of utf32.
     lspDiags[i] = (LspDiag){
-        .range    = script_range_to_line_col(doc->text, diag->range),
+        .range    = script_range_to_line_col(sourceText, diag->range),
         .severity = diag->severity,
-        .message  = script_diag_msg_scratch(doc->text, diag),
+        .message  = script_diag_msg_scratch(sourceText, diag),
     };
   }
   lsp_send_diagnostics(ctx, doc->identifier, lspDiags, lspDiagCount);
@@ -792,7 +791,8 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
   }
 
-  const ScriptPos pos = script_pos_from_line_col(doc->text, posLc);
+  const String    sourceText = script_source_get(doc->scriptDoc);
+  const ScriptPos pos        = script_pos_from_line_col(sourceText, posLc);
   if (UNLIKELY(sentinel_check(pos))) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
   }
@@ -809,12 +809,8 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
     return;
   }
 
-  const ScriptExpr  hoverExpr  = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos, null, null);
-  const ScriptRange hoverRange = script_expr_range(doc->scriptDoc, hoverExpr);
+  const ScriptExpr hoverExpr = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos, null, null);
   const ScriptExprKind hoverKind = script_expr_kind(doc->scriptDoc, hoverExpr);
-
-  // NOTE: Anonymous expressions are not allowed to be emitted by the parser.
-  diag_assert(!sentinel_check(hoverRange.start) && !sentinel_check(hoverRange.end));
 
   if (hoverKind == ScriptExprKind_Block) {
     // Ignore hovers on block expressions.
@@ -843,7 +839,7 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
   }
 
   const LspHover hover = {
-      .range = script_range_to_line_col(doc->text, hoverRange),
+      .range = script_expr_range_line_col(doc->scriptDoc, hoverExpr),
       .text  = dynstring_view(&textBuffer),
   };
   lsp_send_response_success(ctx, req, lsp_hover_to_json(ctx, &hover));
@@ -871,7 +867,8 @@ static void lsp_handle_req_definition(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
   }
 
-  const ScriptPos pos = script_pos_from_line_col(doc->text, posLc);
+  const String    sourceText = script_source_get(doc->scriptDoc);
+  const ScriptPos pos        = script_pos_from_line_col(sourceText, posLc);
   if (UNLIKELY(sentinel_check(pos))) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
   }
@@ -899,7 +896,7 @@ static void lsp_handle_req_definition(LspContext* ctx, const JRpcRequest* req) {
 
   const LspLocation location = {
       .uri   = uri,
-      .range = script_range_to_line_col(doc->text, symRange),
+      .range = script_range_to_line_col(sourceText, symRange),
   };
   lsp_send_response_success(ctx, req, lsp_location_to_json(ctx, &location));
   return;
@@ -950,13 +947,14 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
   }
 
-  ScriptPos pos = script_pos_from_line_col(doc->text, posLc);
+  const String sourceText = script_source_get(doc->scriptDoc);
+  ScriptPos    pos        = script_pos_from_line_col(sourceText, posLc);
   if (UNLIKELY(sentinel_check(pos))) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
   }
   // NOTE: The cursor can be after the last character, in which case its outside of the document
   // text (and we won't find any completion items), to counter this we clamp it.
-  pos = math_min(pos, (u32)doc->text.size - 1);
+  pos = math_min(pos, (u32)sourceText.size - 1);
 
   if (ctx->flags & LspFlags_Trace) {
     const String txt = fmt_write_scratch(
@@ -1012,7 +1010,8 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
     goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
   }
 
-  const ScriptPos pos = script_pos_from_line_col(doc->text, posLc);
+  const String    sourceText = script_source_get(doc->scriptDoc);
+  const ScriptPos pos        = script_pos_from_line_col(sourceText, posLc);
   if (UNLIKELY(sentinel_check(pos))) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
   }
@@ -1072,6 +1071,7 @@ static void lsp_handle_req_symbols(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
   }
 
+  const String  sourceText = script_source_get(doc->scriptDoc);
   const JsonVal symbolsArr = json_add_array(ctx->jDoc);
 
   ScriptSym itr = script_sym_first(doc->scriptSyms, script_pos_sentinel);
@@ -1084,7 +1084,7 @@ static void lsp_handle_req_symbols(LspContext* ctx, const JRpcRequest* req) {
     const LspSymbol symbol = {
         .name  = script_sym_label(doc->scriptSyms, itr),
         .kind  = LspSymbolKind_Variable,
-        .range = script_range_to_line_col(doc->text, location),
+        .range = script_range_to_line_col(sourceText, location),
     };
     json_add_elem(ctx->jDoc, symbolsArr, lsp_symbol_to_json(ctx, &symbol));
   }
@@ -1114,13 +1114,14 @@ static void lsp_handle_req_formatting(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams;
   }
 
-  const usize expectedResultSize = (usize)(doc->text.size * 1.5f); // Guesstimate the output size.
-  DynString   resultBuffer       = dynstring_create(g_allocHeap, expectedResultSize);
+  const String sourceText         = script_source_get(doc->scriptDoc);
+  const usize  expectedResultSize = (usize)(sourceText.size * 1.5f); // Guesstimate the output size.
+  DynString    resultBuffer       = dynstring_create(g_allocHeap, expectedResultSize);
 
   const TimeSteady formatStartTime = time_steady_clock();
 
   const ScriptFormatSettings settings = {.indentSize = (u32)tabSize};
-  script_format(&resultBuffer, doc->text, &settings);
+  script_format(&resultBuffer, sourceText, &settings);
 
   if (ctx->flags & LspFlags_Trace) {
     const TimeDuration dur   = time_steady_duration(formatStartTime, time_steady_clock());
@@ -1132,10 +1133,10 @@ static void lsp_handle_req_formatting(LspContext* ctx, const JRpcRequest* req) {
   const String formattedDocText = dynstring_view(&resultBuffer);
 
   const JsonVal editsArr = json_add_array(ctx->jDoc);
-  if (!string_eq(doc->text, formattedDocText)) {
+  if (!string_eq(sourceText, formattedDocText)) {
     // TODO: Report text ranges in utf16 instead of utf32.
-    const ScriptRange        editRange   = script_range_full(doc->text);
-    const ScriptRangeLineCol editRangeLc = script_range_to_line_col(doc->text, editRange);
+    const ScriptRange        editRange   = script_range_full(sourceText);
+    const ScriptRangeLineCol editRangeLc = script_range_to_line_col(sourceText, editRange);
     const LspTextEdit        edit        = {.range = editRangeLc, .newText = formattedDocText};
     json_add_elem(ctx->jDoc, editsArr, lsp_text_edit_to_json(ctx, &edit));
   }

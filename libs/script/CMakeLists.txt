@@ -20,11 +20,11 @@ add_library(lib_script STATIC
   src/optimize.c
   src/panic.c
   src/pos.c
+  src/prog.c
   src/read.c
   src/sig.c
   src/sym.c
   src/val.c
-  src/vm.c
   )
 target_include_directories(lib_script PUBLIC include)
 target_link_libraries(lib_script PUBLIC lib_core lib_geo lib_ecs)
@@ -40,10 +40,10 @@ add_executable(test_lib_script
   test/test_lex.c
   test/test_mem.c
   test/test_optimize.c
+  test/test_prog.c
   test/test_read.c
   test/test_sig.c
   test/test_val.c
-  test/test_vm.c
   test/utils.c
   )
 target_link_libraries(test_lib_script PRIVATE lib_app_check lib_script)

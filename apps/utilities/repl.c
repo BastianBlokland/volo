@@ -16,9 +16,9 @@
 #include "script_lex.h"
 #include "script_mem.h"
 #include "script_optimize.h"
+#include "script_prog.h"
 #include "script_read.h"
 #include "script_sym.h"
-#include "script_vm.h"
 
 /**
  * ReadEvalPrintLoop - Utility to play around with script execution.
@@ -28,13 +28,13 @@ typedef enum {
   ReplFlags_None          = 0,
   ReplFlags_TtyOutput     = 1 << 0,
   ReplFlags_NoEval        = 1 << 1,
-  ReplFlags_Vm            = 1 << 2,
+  ReplFlags_Compile       = 1 << 2,
   ReplFlags_Optimize      = 1 << 3,
   ReplFlags_Watch         = 1 << 4,
   ReplFlags_OutputTokens  = 1 << 5,
   ReplFlags_OutputAst     = 1 << 6,
   ReplFlags_OutputStats   = 1 << 7,
-  ReplFlags_OutputCode    = 1 << 8,
+  ReplFlags_OutputProgram = 1 << 8,
   ReplFlags_OutputSymbols = 1 << 9,
 } ReplFlags;
 
@@ -116,9 +116,8 @@ repl_output_diag(const ReplFlags flags, const String src, const ScriptDiag* diag
   dynstring_destroy(&buffer);
 }
 
-static void repl_output_panic(
-    const ReplFlags flags, const String src, const ScriptPanic* panic, const String id) {
-  repl_output_error(flags, script_panic_pretty_scratch(src, panic), id);
+static void repl_output_panic(const ReplFlags flags, const ScriptPanic* panic, const String id) {
+  repl_output_error(flags, script_panic_pretty_scratch(panic), id);
 }
 
 static void repl_output_sym(const ScriptSymBag* symBag, const ScriptSym sym) {
@@ -182,10 +181,6 @@ static void repl_output_stats(const ScriptDoc* script, const ScriptExpr expr) {
 
   repl_output(dynstring_view(&buffer));
   dynstring_destroy(&buffer);
-}
-
-static void repl_output_code(const ScriptDoc* script, const String code) {
-  repl_output(script_vm_disasm_scratch(script, code));
 }
 
 static TtyFgColor repl_token_color(const ScriptTokenKind tokenKind) {
@@ -329,10 +324,12 @@ static void repl_exec(
 
   Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
 
-  DynString      codeBuffer = dynstring_create(g_allocHeap, 0);
-  ScriptDoc*     script     = script_create(g_allocHeap);
-  ScriptDiagBag* diags      = script_diag_bag_create(tempAlloc, ScriptDiagFilter_All);
+  ScriptProgram  prog   = {0};
+  ScriptDoc*     script = script_create(g_allocHeap);
+  ScriptDiagBag* diags  = script_diag_bag_create(tempAlloc, ScriptDiagFilter_All);
   ScriptSymBag*  syms = (flags & ReplFlags_OutputSymbols) ? script_sym_bag_create(g_allocHeap) : 0;
+
+  script_source_set(script, input);
 
   ScriptExpr expr = script_read(script, binder, input, diags, syms);
 
@@ -361,33 +358,32 @@ static void repl_exec(
   if (script_diag_count(diags, ScriptDiagFilter_Error)) {
     goto Ret;
   }
-  if (flags & ReplFlags_Vm) {
-    const ScriptCompileError compileErr = script_compile(script, expr, &codeBuffer);
+  if (flags & ReplFlags_Compile) {
+    const ScriptCompileError compileErr = script_compile(script, expr, g_allocHeap, &prog);
     if (compileErr) {
       const String errStr = script_compile_error_str(compileErr);
       repl_output_error(flags, fmt_write_scratch("Compilation failed: {}", fmt_text(errStr)), id);
       goto Ret;
     }
-    if (flags & ReplFlags_OutputCode) {
-      repl_output_code(script, dynstring_view(&codeBuffer));
+    if (flags & ReplFlags_OutputProgram) {
+      repl_output(script_prog_write_scratch(&prog));
     }
   }
   if (flags & ReplFlags_NoEval) {
     goto Ret;
   }
-  if (flags & ReplFlags_Vm) {
-    const String         code  = dynstring_view(&codeBuffer);
-    const ScriptVmResult vmRes = script_vm_eval(script, code, mem, binder, null);
-    if (script_panic_valid(&vmRes.panic)) {
-      repl_output_panic(flags, input, &vmRes.panic, id);
+  if (flags & ReplFlags_Compile) {
+    const ScriptProgResult progRes = script_prog_eval(&prog, mem, binder, null);
+    if (script_panic_valid(&progRes.panic)) {
+      repl_output_panic(flags, &progRes.panic, id);
     } else {
-      repl_output_val(vmRes.val);
+      repl_output_val(progRes.val);
     }
     goto Ret;
   }
   const ScriptEvalResult evalRes = script_eval(script, expr, mem, binder, null);
   if (script_panic_valid(&evalRes.panic)) {
-    repl_output_panic(flags, input, &evalRes.panic, id);
+    repl_output_panic(flags, &evalRes.panic, id);
   } else {
     repl_output_val(evalRes.val);
   }
@@ -398,7 +394,7 @@ Ret:
   if (syms) {
     script_sym_bag_destroy(syms);
   }
-  dynstring_destroy(&codeBuffer);
+  script_prog_destroy(&prog, g_allocHeap);
 }
 
 typedef struct {
@@ -659,8 +655,8 @@ Ret:
 
 static CliId g_optFile;
 static CliId g_optBinder;
-static CliId g_optNoEval, g_optVm, g_optOptimize, g_optWatch;
-static CliId g_optTokens, g_optAst, g_optStats, g_optCode, g_optSyms;
+static CliId g_optNoEval, g_optCompile, g_optOptimize, g_optWatch;
+static CliId g_optTokens, g_optAst, g_optStats, g_optProgram, g_optSyms;
 static CliId g_optHelp;
 
 void app_cli_configure(CliApp* app) {
@@ -679,8 +675,8 @@ void app_cli_configure(CliApp* app) {
   g_optNoEval = cli_register_flag(app, 'n', string_lit("no-eval"), CliOptionFlags_None);
   cli_register_desc(app, g_optNoEval, string_lit("Skip evaluating the input."));
 
-  g_optVm = cli_register_flag(app, 'v', string_lit("vm"), CliOptionFlags_None);
-  cli_register_desc(app, g_optVm, string_lit("Target the VM for evaluation."));
+  g_optCompile = cli_register_flag(app, 'c', string_lit("compile"), CliOptionFlags_None);
+  cli_register_desc(app, g_optCompile, string_lit("Compile a script program."));
 
   g_optOptimize = cli_register_flag(app, 'o', string_lit("optimize"), CliOptionFlags_None);
   cli_register_desc(app, g_optOptimize, string_lit("Optimize the program before evaluation."));
@@ -697,8 +693,8 @@ void app_cli_configure(CliApp* app) {
   g_optStats = cli_register_flag(app, 's', string_lit("stats"), CliOptionFlags_None);
   cli_register_desc(app, g_optStats, string_lit("Output script statistics."));
 
-  g_optCode = cli_register_flag(app, 'c', string_lit("code"), CliOptionFlags_None);
-  cli_register_desc(app, g_optCode, string_lit("Output the vm byte-code."));
+  g_optProgram = cli_register_flag(app, 'p', string_lit("program"), CliOptionFlags_None);
+  cli_register_desc(app, g_optProgram, string_lit("Output the script program (requires compile)."));
 
   g_optSyms = cli_register_flag(app, 'y', string_lit("syms"), CliOptionFlags_None);
   cli_register_desc(app, g_optSyms, string_lit("Output script symbols."));
@@ -707,13 +703,13 @@ void app_cli_configure(CliApp* app) {
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
   cli_register_exclusions(app, g_optHelp, g_optFile);
   cli_register_exclusions(app, g_optHelp, g_optNoEval);
-  cli_register_exclusions(app, g_optHelp, g_optVm);
+  cli_register_exclusions(app, g_optHelp, g_optCompile);
   cli_register_exclusions(app, g_optHelp, g_optOptimize);
   cli_register_exclusions(app, g_optHelp, g_optWatch);
   cli_register_exclusions(app, g_optHelp, g_optTokens);
   cli_register_exclusions(app, g_optHelp, g_optAst);
   cli_register_exclusions(app, g_optHelp, g_optStats);
-  cli_register_exclusions(app, g_optHelp, g_optCode);
+  cli_register_exclusions(app, g_optHelp, g_optProgram);
   cli_register_exclusions(app, g_optHelp, g_optSyms);
   cli_register_exclusions(app, g_optHelp, g_optBinder);
 }
@@ -731,8 +727,8 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   if (cli_parse_provided(invoc, g_optNoEval)) {
     flags |= ReplFlags_NoEval;
   }
-  if (cli_parse_provided(invoc, g_optVm)) {
-    flags |= ReplFlags_Vm;
+  if (cli_parse_provided(invoc, g_optCompile)) {
+    flags |= ReplFlags_Compile;
   }
   if (cli_parse_provided(invoc, g_optOptimize)) {
     flags |= ReplFlags_Optimize;
@@ -749,8 +745,8 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   if (cli_parse_provided(invoc, g_optStats)) {
     flags |= ReplFlags_OutputStats;
   }
-  if (cli_parse_provided(invoc, g_optCode)) {
-    flags |= ReplFlags_OutputCode;
+  if (cli_parse_provided(invoc, g_optProgram)) {
+    flags |= ReplFlags_OutputProgram;
   }
   if (cli_parse_provided(invoc, g_optSyms)) {
     flags |= ReplFlags_OutputSymbols;
