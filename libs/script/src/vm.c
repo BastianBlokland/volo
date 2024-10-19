@@ -43,6 +43,11 @@ static bool vm_op_is_terminating(const ScriptOp op) {
   }
 }
 
+void script_prog_destroy(ScriptProgram* prog, Allocator* alloc) {
+  alloc_free(alloc, prog->code);
+  alloc_free_array_t(alloc, prog->values.values, prog->values.count);
+}
+
 ScriptVmResult script_vm_eval(
     const ScriptDoc*    doc,
     const String        code,

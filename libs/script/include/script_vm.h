@@ -1,6 +1,8 @@
 #pragma once
+#include "core_array.h"
 #include "script_doc.h"
 #include "script_panic.h"
+#include "script_val.h"
 
 // Forward declare from 'script_mem.h'.
 typedef struct sScriptMem ScriptMem;
@@ -101,10 +103,17 @@ typedef enum {
 // clang-format on
 
 typedef struct {
+  String code;
+  HeapArray_t(ScriptVal) values;
+} ScriptProgram;
+
+typedef struct {
   u32         executedOps;
   ScriptPanic panic;
   ScriptVal   val;
 } ScriptVmResult;
+
+void script_prog_destroy(ScriptProgram*, Allocator*);
 
 /**
  * Evaluate the given byte-code.
