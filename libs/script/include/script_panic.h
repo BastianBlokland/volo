@@ -25,11 +25,11 @@ typedef enum eScriptPanicKind {
 } ScriptPanicKind;
 
 typedef struct sScriptPanic {
-  ScriptPanicKind kind;
-  ScriptRange     range;
+  ScriptPanicKind    kind;
+  ScriptRangeLineCol rangeLineCol;
 } ScriptPanic;
 
 bool   script_panic_valid(const ScriptPanic*);
 String script_panic_kind_str(ScriptPanicKind);
-void   script_panic_pretty_write(DynString*, String sourceText, const ScriptPanic*);
-String script_panic_pretty_scratch(String sourceText, const ScriptPanic*);
+void   script_panic_pretty_write(DynString*, const ScriptPanic*);
+String script_panic_pretty_scratch(const ScriptPanic*);

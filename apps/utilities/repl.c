@@ -116,9 +116,8 @@ repl_output_diag(const ReplFlags flags, const String src, const ScriptDiag* diag
   dynstring_destroy(&buffer);
 }
 
-static void repl_output_panic(
-    const ReplFlags flags, const String src, const ScriptPanic* panic, const String id) {
-  repl_output_error(flags, script_panic_pretty_scratch(src, panic), id);
+static void repl_output_panic(const ReplFlags flags, const ScriptPanic* panic, const String id) {
+  repl_output_error(flags, script_panic_pretty_scratch(panic), id);
 }
 
 static void repl_output_sym(const ScriptSymBag* symBag, const ScriptSym sym) {
@@ -376,7 +375,7 @@ static void repl_exec(
   if (flags & ReplFlags_Compile) {
     const ScriptProgResult progRes = script_prog_eval(&prog, mem, binder, null);
     if (script_panic_valid(&progRes.panic)) {
-      repl_output_panic(flags, input, &progRes.panic, id);
+      repl_output_panic(flags, &progRes.panic, id);
     } else {
       repl_output_val(progRes.val);
     }
@@ -384,7 +383,7 @@ static void repl_exec(
   }
   const ScriptEvalResult evalRes = script_eval(script, expr, mem, binder, null);
   if (script_panic_valid(&evalRes.panic)) {
-    repl_output_panic(flags, input, &evalRes.panic, id);
+    repl_output_panic(flags, &evalRes.panic, id);
   } else {
     repl_output_val(evalRes.val);
   }

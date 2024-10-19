@@ -557,14 +557,10 @@ static void tracker_query(
       // Output panics.
       const ScriptPanic* panic = scene_script_panic(scriptInstance, slot);
       if (panic) {
-        const String       scriptId = asset_id(assetComps[slot]);
-        const String       msg      = script_panic_kind_str(panic->kind);
-        ScriptRangeLineCol range    = {0};
-        if (assetScripts[slot]) {
-          range = script_range_to_line_col(assetScripts[slot]->sourceText, panic->range);
-        }
-        const DebugScriptOutputType type = DebugScriptOutputType_Panic;
-        tracker_output_add(tracker, type, entity, now, slot, scriptId, msg, range);
+        const String                scriptId = asset_id(assetComps[slot]);
+        const String                msg      = script_panic_kind_str(panic->kind);
+        const DebugScriptOutputType type     = DebugScriptOutputType_Panic;
+        tracker_output_add(tracker, type, entity, now, slot, scriptId, msg, panic->rangeLineCol);
       }
     }
 

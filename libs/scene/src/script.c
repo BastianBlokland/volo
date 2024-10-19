@@ -2113,14 +2113,13 @@ static void scene_script_eval(EvalContext* ctx) {
   const ScriptProgram* prog = &ctx->scriptAsset->prog;
   ScriptMem*           mem  = scene_knowledge_memory_mut(ctx->scriptKnowledge);
 
-  const TimeSteady startTime = time_steady_clock();
-
   // Eval.
-  const ScriptProgResult evalRes = script_prog_eval(prog, mem, g_scriptBinder, ctx);
+  const TimeSteady       startTime = time_steady_clock();
+  const ScriptProgResult evalRes   = script_prog_eval(prog, mem, g_scriptBinder, ctx);
 
   // Handle panics.
   if (UNLIKELY(script_panic_valid(&evalRes.panic))) {
-    const String msg = script_panic_pretty_scratch(ctx->scriptAsset->sourceText, &evalRes.panic);
+    const String msg = script_panic_pretty_scratch(&evalRes.panic);
     log_e(
         "Script panic",
         log_param("panic", fmt_text(msg)),
