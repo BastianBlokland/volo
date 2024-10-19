@@ -42,8 +42,24 @@ static bool prog_op_is_terminating(const ScriptOp op) {
 }
 
 void script_prog_destroy(ScriptProgram* prog, Allocator* alloc) {
-  alloc_free(alloc, prog->code);
-  alloc_free_array_t(alloc, prog->literals.values, prog->literals.count);
+  if (prog->code.size) {
+    alloc_free(alloc, prog->code);
+  }
+  if (prog->literals.count) {
+    alloc_free_array_t(alloc, prog->literals.values, prog->literals.count);
+  }
+}
+
+void script_prog_clear(ScriptProgram* prog, Allocator* alloc) {
+  if (prog->code.size) {
+    alloc_free(alloc, prog->code);
+    prog->code = string_empty;
+  }
+  if (prog->literals.count) {
+    alloc_free_array_t(alloc, prog->literals.values, prog->literals.count);
+    prog->literals.values = null;
+    prog->literals.count  = 0;
+  }
 }
 
 ScriptVmResult script_prog_eval(
@@ -220,8 +236,8 @@ Dispatch:
 #undef VM_RETURN
 }
 
-bool script_vm_validate(const ScriptProgram* prog, const ScriptBinder* binder) {
-  if (UNLIKELY(prog->code.size > u16_max)) {
+bool script_prog_validate(const ScriptProgram* prog, const ScriptBinder* binder) {
+  if (UNLIKELY(!prog->code.size || prog->code.size > u16_max)) {
     return false;
   }
   const u8* ip    = mem_begin(prog->code);

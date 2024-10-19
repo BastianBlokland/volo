@@ -184,10 +184,6 @@ static void repl_output_stats(const ScriptDoc* script, const ScriptExpr expr) {
   dynstring_destroy(&buffer);
 }
 
-static void repl_output_code(const ScriptDoc* script, const String code) {
-  repl_output(script_vm_disasm_scratch(script, code));
-}
-
 static TtyFgColor repl_token_color(const ScriptTokenKind tokenKind) {
   switch (tokenKind) {
   case ScriptTokenKind_Diag:
@@ -329,9 +325,9 @@ static void repl_exec(
 
   Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
 
-  DynString      codeBuffer = dynstring_create(g_allocHeap, 0);
-  ScriptDoc*     script     = script_create(g_allocHeap);
-  ScriptDiagBag* diags      = script_diag_bag_create(tempAlloc, ScriptDiagFilter_All);
+  ScriptProgram  prog   = {0};
+  ScriptDoc*     script = script_create(g_allocHeap);
+  ScriptDiagBag* diags  = script_diag_bag_create(tempAlloc, ScriptDiagFilter_All);
   ScriptSymBag*  syms = (flags & ReplFlags_OutputSymbols) ? script_sym_bag_create(g_allocHeap) : 0;
 
   ScriptExpr expr = script_read(script, binder, input, diags, syms);
@@ -362,22 +358,21 @@ static void repl_exec(
     goto Ret;
   }
   if (flags & ReplFlags_Vm) {
-    const ScriptCompileError compileErr = script_compile(script, expr, &codeBuffer);
+    const ScriptCompileError compileErr = script_compile(script, expr, g_allocHeap, &prog);
     if (compileErr) {
       const String errStr = script_compile_error_str(compileErr);
       repl_output_error(flags, fmt_write_scratch("Compilation failed: {}", fmt_text(errStr)), id);
       goto Ret;
     }
     if (flags & ReplFlags_OutputCode) {
-      repl_output_code(script, dynstring_view(&codeBuffer));
+      repl_output(script_prog_write_scratch(&prog));
     }
   }
   if (flags & ReplFlags_NoEval) {
     goto Ret;
   }
   if (flags & ReplFlags_Vm) {
-    const String         code  = dynstring_view(&codeBuffer);
-    const ScriptVmResult vmRes = script_vm_eval(script, code, mem, binder, null);
+    const ScriptVmResult vmRes = script_prog_eval(&prog, mem, binder, null);
     if (script_panic_valid(&vmRes.panic)) {
       repl_output_panic(flags, input, &vmRes.panic, id);
     } else {
@@ -398,7 +393,7 @@ Ret:
   if (syms) {
     script_sym_bag_destroy(syms);
   }
-  dynstring_destroy(&codeBuffer);
+  script_prog_destroy(&prog, g_allocHeap);
 }
 
 typedef struct {

@@ -113,6 +113,7 @@ typedef struct {
 } ScriptVmResult;
 
 void script_prog_destroy(ScriptProgram*, Allocator*);
+void script_prog_clear(ScriptProgram*, Allocator*);
 
 /**
  * Evaluate the program.

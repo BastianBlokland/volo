@@ -32,8 +32,7 @@ ecs_comp_define_public(AssetScriptComp);
 static void ecs_destruct_script_comp(void* data) {
   AssetScriptComp* comp = data;
   string_maybe_free(g_allocHeap, comp->sourceText);
-  script_destroy((ScriptDoc*)comp->doc);
-  string_maybe_free(g_allocHeap, comp->code);
+  script_prog_destroy(&comp->prog, g_allocHeap);
 }
 
 ecs_view_define(ScriptUnloadView) {
@@ -813,8 +812,7 @@ void asset_data_init_script(void) {
 void asset_load_script(
     EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
 
-  Allocator* tempAlloc  = alloc_bump_create_stack(2 * usize_kibibyte);
-  DynString  codeBuffer = dynstring_create(g_allocHeap, usize_kibibyte);
+  Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
 
   ScriptDoc*     doc      = script_create(g_allocHeap);
   ScriptDiagBag* diags    = script_diag_bag_create(tempAlloc, ScriptDiagFilter_Error);
@@ -843,8 +841,9 @@ void asset_load_script(
   // Perform optimization passes.
   expr = script_optimize(doc, expr);
 
-  // Compile to byte-code.
-  const ScriptCompileError compileErr = script_compile(doc, expr, &codeBuffer);
+  // Compile the program.
+  ScriptProgram            prog;
+  const ScriptCompileError compileErr = script_compile(doc, expr, g_allocHeap, &prog);
   if (UNLIKELY(compileErr)) {
     log_e(
         "Script compile error",
@@ -854,27 +853,24 @@ void asset_load_script(
     goto Error;
   }
 
-  diag_assert(script_vm_validate(doc, dynstring_view(&codeBuffer), g_assetScriptBinder));
+  diag_assert(script_prog_validate(&prog, g_assetScriptBinder));
 
   ecs_world_add_t(
       world,
       entity,
       AssetScriptComp,
       .sourceText = string_maybe_dup(g_allocHeap, src->data),
-      .doc        = doc,
-      .expr       = expr,
-      .code       = string_maybe_dup(g_allocHeap, dynstring_view(&codeBuffer)));
+      .prog       = prog);
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   goto Cleanup;
 
 Error:
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
-  script_destroy(doc);
 
 Cleanup:
+  script_destroy(doc);
   asset_repo_source_close(src);
-  dynstring_destroy(&codeBuffer);
 }
 
 void asset_script_binder_write(DynString* str) { script_binder_write(str, g_assetScriptBinder); }

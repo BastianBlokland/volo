@@ -921,8 +921,9 @@ ScriptCompileError script_compile(
 
   // Create program.
   *out = (ScriptProgram){
-      .code     = string_dup(outAlloc, dynstring_view(&ctx.outCode)),
-      .literals = dynarray_copy_as_new(&ctx.outLiterals, outAlloc),
+      .code            = string_dup(outAlloc, dynstring_view(&ctx.outCode)),
+      .literals.values = dynarray_copy_as_new(&ctx.outLiterals, outAlloc),
+      .literals.count  = ctx.outLiterals.size,
   };
 
 Ret:
