@@ -956,7 +956,8 @@ ScriptCompileError script_compile(
   // Create program.
   dynarray_sort(&ctx.outPositions, script_compare_pos);
   *out = (ScriptProgram){
-      .code             = string_dup(outAlloc, dynstring_view(&ctx.outCode)),
+      .code.ptr         = string_dup(outAlloc, dynstring_view(&ctx.outCode)).ptr,
+      .code.size        = ctx.outCode.size,
       .literals.values  = dynarray_copy_as_new(&ctx.outLiterals, outAlloc),
       .literals.count   = ctx.outLiterals.size,
       .positions.values = dynarray_copy_as_new(&ctx.outPositions, outAlloc),
