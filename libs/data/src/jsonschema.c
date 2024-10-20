@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_base64.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
@@ -122,6 +123,16 @@ static JsonVal schema_default_enum(const JsonSchemaCtx* ctx, const DataMeta meta
   return json_add_string(ctx->doc, dynarray_at_t(consts, 0, DataDeclConst)->id.name);
 }
 
+static JsonVal schema_default_opaque(const JsonSchemaCtx* ctx, const DataMeta meta) {
+  const DataDecl* decl = data_decl(ctx->reg, meta.type);
+  diag_assert(decl->kind == DataKind_Opaque);
+
+  const Mem zeroMem = alloc_alloc(g_allocScratch, decl->size, 1);
+  mem_set(zeroMem, 0);
+
+  return json_add_string(ctx->doc, base64_encode_scratch(zeroMem));
+}
+
 static JsonVal schema_default_array(const JsonSchemaCtx* ctx, const DataMeta meta) {
   const JsonVal arr = json_add_array(ctx->doc);
   if (meta.fixedCount) {
@@ -165,6 +176,8 @@ static JsonVal schema_default_type(const JsonSchemaCtx* ctx, const DataMeta meta
       return schema_default_union(ctx, meta);
     case DataKind_Enum:
       return schema_default_enum(ctx, meta);
+    case DataKind_Opaque:
+      return schema_default_opaque(ctx, meta);
     case DataKind_Invalid:
     case DataKind_Count:
       UNREACHABLE
@@ -424,6 +437,17 @@ static void schema_add_enum(const JsonSchemaCtx* ctx, const JsonVal obj, const D
   }
 }
 
+static void schema_add_opaque(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
+  const DataDecl* decl = data_decl(ctx->reg, meta.type);
+  diag_assert(decl->kind == DataKind_Opaque);
+
+  const usize stringLen = base64_encoded_size(decl->size);
+
+  json_add_field_lit(ctx->doc, obj, "type", json_add_string_lit(ctx->doc, "string"));
+  json_add_field_lit(ctx->doc, obj, "minLength", json_add_number(ctx->doc, stringLen));
+  json_add_field_lit(ctx->doc, obj, "maxLength", json_add_number(ctx->doc, stringLen));
+}
+
 static void schema_add_pointer(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
   if (meta.flags & DataFlags_NotEmpty) {
     schema_add_type(ctx, obj, data_meta_base(meta));
@@ -483,6 +507,9 @@ static void schema_add_ref(const JsonSchemaCtx* ctx, const JsonVal obj, const Da
     case DataKind_Enum:
       schema_add_enum(ctx, defObj, meta);
       break;
+    case DataKind_Opaque:
+      schema_add_opaque(ctx, defObj, meta);
+      break;
     default:
       diag_crash_msg("Unsupported json-schema $ref type");
     }
@@ -528,6 +555,7 @@ static void schema_add_type(const JsonSchemaCtx* ctx, const JsonVal obj, const D
     case DataKind_Struct:
     case DataKind_Union:
     case DataKind_Enum:
+    case DataKind_Opaque:
       schema_add_ref(ctx, obj, meta);
       break;
     case DataKind_Invalid:

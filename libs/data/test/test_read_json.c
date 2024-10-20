@@ -741,5 +741,42 @@ spec(read_json) {
         DataReadError_UnionInvalidName);
   }
 
+  it("can read opaque types") {
+    typedef struct {
+      ALIGNAS(16)
+      u8 data[16];
+    } OpaqueStruct;
+
+    data_reg_opaque_t(reg, OpaqueStruct);
+
+    const DataMeta meta = data_meta_t(t_OpaqueStruct);
+
+    {
+      const OpaqueStruct ref = {0};
+      OpaqueStruct       val;
+      test_read_success(
+          _testCtx, reg, string_lit("\"AAAAAAAAAAAAAAAAAAAAAA==\""), meta, mem_var(val));
+
+      check(mem_eq(mem_var(val), mem_var(ref)));
+    }
+    {
+      const OpaqueStruct ref = {.data = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}};
+      OpaqueStruct       val;
+      test_read_success(
+          _testCtx, reg, string_lit("\"AQIDBAUGBwgJCgsMDQ4PEA==\""), meta, mem_var(val));
+
+      check(mem_eq(mem_var(val), mem_var(ref)));
+    }
+
+    test_read_fail(_testCtx, reg, string_empty, meta, DataReadError_Malformed);
+    test_read_fail(_testCtx, reg, string_lit("\"\""), meta, DataReadError_Base64DataInvalid);
+    test_read_fail(
+        _testCtx,
+        reg,
+        string_lit("\"AAAAAAAAAAAAAAAAAAAAAA=\""),
+        meta,
+        DataReadError_Base64DataInvalid);
+  }
+
   teardown() { data_reg_destroy(reg); }
 }

@@ -31,6 +31,7 @@ static bool data_destroy_needed_single(const DataReg* reg, const DataMeta meta) 
   case DataKind_f64:
   case DataKind_Enum:
   case DataKind_StringHash:
+  case DataKind_Opaque:
     return false;
   case DataKind_String:
     return (meta.flags & DataFlags_Intern) == 0;
@@ -152,6 +153,7 @@ static void data_destroy_single(const DestroyCtx* ctx) {
   case DataKind_f64:
   case DataKind_Enum:
   case DataKind_StringHash:
+  case DataKind_Opaque:
     return;
   case DataKind_String:
     data_destroy_string(ctx);

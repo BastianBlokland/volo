@@ -209,6 +209,9 @@ static void data_write_bin_val_single(const WriteCtx* ctx) {
   case DataKind_Enum:
     data_write_bin_enum(ctx);
     return;
+  case DataKind_Opaque:
+    mem_cpy(dynstring_push(ctx->out, ctx->data.size), ctx->data);
+    return;
   case DataKind_Invalid:
   case DataKind_Count:
     break;
@@ -222,10 +225,10 @@ static void data_write_bin_val_pointer(const WriteCtx* ctx) {
   if (ptr) {
     const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
     const WriteCtx  subCtx = {
-        .reg  = ctx->reg,
-        .out  = ctx->out,
-        .meta = data_meta_base(ctx->meta),
-        .data = mem_create(ptr, decl->size),
+         .reg  = ctx->reg,
+         .out  = ctx->out,
+         .meta = data_meta_base(ctx->meta),
+         .data = mem_create(ptr, decl->size),
     };
     data_write_bin_val_single(&subCtx);
   }

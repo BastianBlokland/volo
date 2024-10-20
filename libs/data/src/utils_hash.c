@@ -89,6 +89,14 @@ static u32 data_hash_enum(const HashCtx* ctx) {
   return hash;
 }
 
+static u32 data_hash_opaque(const HashCtx* ctx) {
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+
+  u32 hash = bits_hash_32_val(DataKind_Opaque);
+  hash     = bits_hash_32_combine(hash, bits_hash_32_val((u32)decl->size));
+  return hash;
+}
+
 static u32 data_hash_single(const HashCtx* ctx) {
   const DataKind kind = data_decl(ctx->reg, ctx->meta.type)->kind;
   switch (kind) {
@@ -114,6 +122,8 @@ static u32 data_hash_single(const HashCtx* ctx) {
     return data_hash_union(ctx);
   case DataKind_Enum:
     return data_hash_enum(ctx);
+  case DataKind_Opaque:
+    return data_hash_opaque(ctx);
   case DataKind_Invalid:
   case DataKind_Count:
     break;

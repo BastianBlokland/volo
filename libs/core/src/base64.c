@@ -27,7 +27,7 @@ static const u8 g_decodeTable[] = {
 };
 ASSERT(sizeof(g_decodeTable) == 'z' - '+' + 1, "Incorrect decode table size");
 
-usize base64_encoded_size(const String data) { return (data.size + 2) / 3 * 4; }
+usize base64_encoded_size(const usize dataSize) { return (dataSize + 2) / 3 * 4; }
 
 usize base64_decoded_size(const String encoded) {
   if (encoded.size < 2) {
@@ -101,7 +101,7 @@ bool base64_decode(DynString* str, const String encoded) {
 }
 
 String base64_encode_scratch(const String data) {
-  const usize encodedSize = base64_encoded_size(data);
+  const usize encodedSize = base64_encoded_size(data.size);
   if (!encodedSize) {
     return string_empty;
   }

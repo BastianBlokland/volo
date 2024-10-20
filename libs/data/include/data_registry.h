@@ -184,6 +184,15 @@ DataType data_reg_enum(DataReg*, String name, bool multi);
 void data_reg_const(DataReg*, DataType parent, String name, i32 value);
 
 /**
+ * Register a new Opaque type.
+ */
+#define data_reg_opaque_t(_REG_, _T_)                                                              \
+  MAYBE_UNUSED const DataType t_##_T_ =                                                            \
+      data_reg_opaque((_REG_), string_lit(#_T_), sizeof(_T_), alignof(_T_))
+
+DataType data_reg_opaque(DataReg*, String name, usize size, usize align);
+
+/**
  * Attach a comment to the given type.
  * Pre-condition: Type is declared in the registry.
  */

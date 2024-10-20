@@ -347,5 +347,32 @@ spec(jsonschema) {
     // clang-format on
   }
 
+  it("supports opaque types") {
+    typedef struct {
+      ALIGNAS(16)
+      u8 data[16];
+    } OpaqueStruct;
+
+    data_reg_opaque_t(reg, OpaqueStruct);
+
+    const DataMeta meta = data_meta_t(t_OpaqueStruct);
+
+    test_jsonschema_write(
+        _testCtx,
+        reg,
+        meta,
+        string_lit("{\n"
+                   "  \"title\": \"OpaqueStruct\",\n"
+                   "  \"$ref\": \"#/$defs/OpaqueStruct\",\n"
+                   "  \"$defs\": {\n"
+                   "    \"OpaqueStruct\": {\n"
+                   "      \"type\": \"string\",\n"
+                   "      \"minLength\": 24,\n"
+                   "      \"maxLength\": 24\n"
+                   "    }\n"
+                   "  }\n"
+                   "}"));
+  }
+
   teardown() { data_reg_destroy(reg); }
 }
