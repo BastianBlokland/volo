@@ -237,6 +237,19 @@ spec(registry) {
     check_eq_int(data_align(reg, t_MyCustomFlags), alignof(MyCustomFlags));
   }
 
+  it("can register an opaque data type") {
+    typedef struct {
+      ALIGNAS(16)
+      u8 data[16];
+    } OpaqueStruct;
+
+    data_reg_opaque_t(reg, OpaqueStruct);
+
+    check_eq_string(data_name(reg, t_OpaqueStruct), string_lit("OpaqueStruct"));
+    check_eq_int(data_size(reg, t_OpaqueStruct), sizeof(OpaqueStruct));
+    check_eq_int(data_align(reg, t_OpaqueStruct), alignof(OpaqueStruct));
+  }
+
   it("can register comments to types") {
     check_eq_string(data_comment(reg, data_prim_t(f32)), string_empty);
 
