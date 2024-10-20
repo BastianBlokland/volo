@@ -53,7 +53,8 @@ typedef struct {
 typedef struct {
   const ScriptDoc* doc;
   DynString        outCode;
-  DynArray         outLiterals; // ScriptVal[].
+  DynArray         outLiterals;  // ScriptVal[].
+  DynArray         outPositions; // ScriptProgramPos[].
   ScriptOp         lastOp;
 
   u64   regAvailability; // Bitmask of available registers.
@@ -64,6 +65,12 @@ typedef struct {
   DynArray labels;       // Label[].
   DynArray labelPatches; // LabelPatch[].
 } Context;
+
+static i8 script_compare_pos(const void* a, const void* b) {
+  const ScriptProgramPos* posA = a;
+  const ScriptProgramPos* posB = b;
+  return compare_u16(&posA->instruction, &posB->instruction);
+}
 
 static Target target_required(Target tgt) {
   tgt.optional = false;
@@ -152,6 +159,20 @@ static void label_write(Context* ctx, const LabelId labelId) {
     return;
   }
   mem_write_le_u16(dynstring_push(&ctx->outCode, 2), label->instruction);
+}
+
+static void emit_position(Context* ctx, const ScriptExpr e) {
+  if (ctx->outCode.size > u16_max) {
+    return; // Code out of bounds (will result in a compile error).
+  }
+  const ScriptRangeLineCol range = script_expr_range_line_col(ctx->doc, e);
+  if (!range.start.line && !range.end.line && !range.start.column && !range.end.column) {
+    return; // Position unknown.
+  }
+  *dynarray_push_t(&ctx->outPositions, ScriptProgramPos) = (ScriptProgramPos){
+      .instruction = (u16)ctx->outCode.size,
+      .range       = range,
+  };
 }
 
 static void emit_op(Context* ctx, const ScriptOp op) {
@@ -477,6 +498,17 @@ compile_intr_quaternary(Context* ctx, const Target tgt, const ScriptOp op, const
 }
 
 static ScriptCompileError
+compile_assert(Context* ctx, const Target tgt, const ScriptExpr expr, const ScriptExpr* args) {
+  ScriptCompileError err = ScriptCompileError_None;
+  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
+    return err;
+  }
+  emit_position(ctx, expr);
+  emit_unary(ctx, ScriptOp_Assert, tgt.reg);
+  return err;
+}
+
+static ScriptCompileError
 compile_intr_select(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
   // Condition.
@@ -678,7 +710,7 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
   case ScriptIntrinsic_Hash:
     return compile_intr_unary(ctx, tgt, ScriptOp_Hash, args);
   case ScriptIntrinsic_Assert:
-    return compile_intr_unary(ctx, tgt, ScriptOp_Assert, args);
+    return compile_assert(ctx, tgt, e, args);
   case ScriptIntrinsic_MemLoadDynamic:
     return compile_intr_unary(ctx, tgt, ScriptOp_MemLoadDyn, args);
   case ScriptIntrinsic_MemStoreDynamic:
@@ -843,6 +875,7 @@ static ScriptCompileError compile_extern(Context* ctx, const Target tgt, const S
       goto Ret;
     }
   }
+  emit_position(ctx, e);
   emit_extern(ctx, tgt.reg, data->func, argRegs);
   reg_free_set(ctx, argRegs);
 Ret:
@@ -885,6 +918,7 @@ ScriptCompileError script_compile(
       .doc          = doc,
       .outCode      = dynstring_create(g_allocHeap, 64),
       .outLiterals  = dynarray_create_t(g_allocHeap, ScriptVal, 0),
+      .outPositions = dynarray_create_t(g_allocHeap, ScriptProgramPos, 16),
       .labels       = dynarray_create_t(g_allocHeap, Label, 0),
       .labelPatches = dynarray_create_t(g_allocHeap, LabelPatch, 0),
   };
@@ -920,15 +954,19 @@ ScriptCompileError script_compile(
   diag_assert_msg(reg_available(&ctx) == script_prog_regs, "Not all registers freed");
 
   // Create program.
+  dynarray_sort(&ctx.outPositions, script_compare_pos);
   *out = (ScriptProgram){
-      .code            = string_dup(outAlloc, dynstring_view(&ctx.outCode)),
-      .literals.values = dynarray_copy_as_new(&ctx.outLiterals, outAlloc),
-      .literals.count  = ctx.outLiterals.size,
+      .code             = string_dup(outAlloc, dynstring_view(&ctx.outCode)),
+      .literals.values  = dynarray_copy_as_new(&ctx.outLiterals, outAlloc),
+      .literals.count   = ctx.outLiterals.size,
+      .positions.values = dynarray_copy_as_new(&ctx.outPositions, outAlloc),
+      .positions.count  = ctx.outPositions.size,
   };
 
 Ret:
   dynstring_destroy(&ctx.outCode);
   dynarray_destroy(&ctx.outLiterals);
+  dynarray_destroy(&ctx.outPositions);
   dynarray_destroy(&ctx.labels);
   dynarray_destroy(&ctx.labelPatches);
   return err;

@@ -26,7 +26,7 @@ typedef enum eScriptPanicKind {
 
 typedef struct sScriptPanic {
   ScriptPanicKind    kind;
-  ScriptRangeLineCol rangeLineCol;
+  ScriptRangeLineCol range;
 } ScriptPanic;
 
 bool   script_panic_valid(const ScriptPanic*);
