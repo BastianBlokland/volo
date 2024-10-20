@@ -1,6 +1,9 @@
 #pragma once
 #include "script_doc.h"
 
+// Forward declare from 'core_stringtable.h'.
+typedef struct sStringTable StringTable;
+
 // Forward declare from 'script_binder.h'.
 typedef struct sScriptBinder ScriptBinder;
 
@@ -14,6 +17,8 @@ typedef struct sScriptSymBag ScriptSymBag;
  * Read a script expression.
  * NOTE: If read fails then 'script_expr_sentinel' is returned.
  *
+ * To receive string literals you can optionally provide a string-table.
  * To receive diagnostics you can optionally provide a diagnostic-bag.
  */
-ScriptExpr script_read(ScriptDoc*, const ScriptBinder*, String src, ScriptDiagBag*, ScriptSymBag*);
+ScriptExpr script_read(
+    ScriptDoc*, const ScriptBinder*, String src, StringTable*, ScriptDiagBag*, ScriptSymBag*);

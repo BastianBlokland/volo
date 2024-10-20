@@ -24,12 +24,13 @@ static ScriptVal test_return_first(void* ctx, const ScriptArgs args, ScriptError
 
 spec(prog) {
   ScriptMem      mem;
-  ScriptDoc*     doc         = null;
-  ScriptProgram  prog        = {0};
-  ScriptBinder*  binder      = null;
-  void*          bindCtxNull = null;
-  ScriptDiagBag* diagsNull   = null;
-  ScriptSymBag*  symsNull    = null;
+  ScriptDoc*     doc             = null;
+  ScriptProgram  prog            = {0};
+  ScriptBinder*  binder          = null;
+  void*          bindCtxNull     = null;
+  StringTable*   stringtableNull = null;
+  ScriptDiagBag* diagsNull       = null;
+  ScriptSymBag*  symsNull        = null;
 
   setup() {
     mem = script_mem_create();
@@ -271,7 +272,8 @@ spec(prog) {
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
-      const ScriptExpr expr = script_read(doc, binder, testData[i].input, diagsNull, symsNull);
+      const ScriptExpr expr =
+          script_read(doc, binder, testData[i].input, stringtableNull, diagsNull, symsNull);
       check_require_msg(!sentinel_check(expr), "Read failed ({})", fmt_text(testData[i].input));
 
       script_prog_clear(&prog, g_allocHeap);

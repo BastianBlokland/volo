@@ -591,6 +591,7 @@ typedef enum {
 typedef struct {
   ScriptDoc*          doc;
   const ScriptBinder* binder;
+  StringTable*        stringtable;
   ScriptDiagBag*      diags;
   ScriptSymBag*       syms;
   String              input, inputTotal;
@@ -794,13 +795,13 @@ static ScriptToken read_peek(ScriptReadContext* ctx) {
 
 static ScriptToken read_consume(ScriptReadContext* ctx) {
   ScriptToken token;
-  ctx->input = script_lex(ctx->input, g_stringtable, &token, ScriptLexFlags_None);
+  ctx->input = script_lex(ctx->input, ctx->stringtable, &token, ScriptLexFlags_None);
   return token;
 }
 
 static bool read_consume_if(ScriptReadContext* ctx, const ScriptTokenKind kind) {
   ScriptToken  token;
-  const String rem = script_lex(ctx->input, g_stringtable, &token, ScriptLexFlags_None);
+  const String rem = script_lex(ctx->input, ctx->stringtable, &token, ScriptLexFlags_None);
   if (token.kind == kind) {
     ctx->input = rem;
     return true;
@@ -964,7 +965,7 @@ BlockNext:
 
   const ScriptPos sepStart = read_pos_next(ctx);
   ScriptToken     sepToken;
-  ctx->input = script_lex(ctx->input, g_stringtable, &sepToken, ScriptLexFlags_IncludeNewlines);
+  ctx->input = script_lex(ctx->input, ctx->stringtable, &sepToken, ScriptLexFlags_IncludeNewlines);
 
   if (!read_is_block_separator(sepToken.kind)) {
     read_emit_err(ctx, ScriptDiag_MissingSemicolon, expr_range(ctx->doc, exprNew));
@@ -1631,7 +1632,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
 
   ScriptToken  token;
   const String prevInput = ctx->input;
-  ctx->input             = script_lex(prevInput, g_stringtable, &token, ScriptLexFlags_None);
+  ctx->input             = script_lex(prevInput, ctx->stringtable, &token, ScriptLexFlags_None);
 
   const ScriptRange range = read_range_to_current(ctx, start);
 
@@ -1801,7 +1802,8 @@ static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPreced
    */
   while (true) {
     ScriptToken  nextToken;
-    const String remInput = script_lex(ctx->input, g_stringtable, &nextToken, ScriptLexFlags_None);
+    const String remInput =
+        script_lex(ctx->input, ctx->stringtable, &nextToken, ScriptLexFlags_None);
 
     const OpPrecedence opPrecedence = op_precedence(nextToken.kind);
     if (!opPrecedence || opPrecedence <= minPrecedence) {
@@ -1899,15 +1901,14 @@ static void read_sym_push_extern(ScriptReadContext* ctx) {
 }
 
 static void read_sym_push_mem_keys(ScriptReadContext* ctx) {
-  if (!ctx->syms) {
+  if (!ctx->syms || !ctx->stringtable) {
     return;
   }
   for (u32 i = 0; i != script_tracked_mem_keys_max; ++i) {
     if (!ctx->trackedMemKeys[i]) {
       break;
     }
-    // TODO: Using the global string-table for this is kinda questionable.
-    const String keyStr = stringtable_lookup(g_stringtable, ctx->trackedMemKeys[i]);
+    const String keyStr = stringtable_lookup(ctx->stringtable, ctx->trackedMemKeys[i]);
     if (!string_is_empty(keyStr)) {
       const String label = fmt_write_scratch("${}", fmt_text(keyStr));
       script_sym_push_mem_key(ctx->syms, label, ctx->trackedMemKeys[i]);
@@ -1941,6 +1942,7 @@ ScriptExpr script_read(
     ScriptDoc*          doc,
     const ScriptBinder* binder,
     const String        src,
+    StringTable*        stringtable,
     ScriptDiagBag*      diags,
     ScriptSymBag*       syms) {
   script_read_init();
@@ -1951,13 +1953,14 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc        = doc,
-      .binder     = binder,
-      .diags      = diags,
-      .syms       = syms,
-      .input      = src,
-      .inputTotal = src,
-      .scopeRoot  = &scopeRoot,
+      .doc         = doc,
+      .binder      = binder,
+      .stringtable = stringtable,
+      .diags       = diags,
+      .syms        = syms,
+      .input       = src,
+      .inputTotal  = src,
+      .scopeRoot   = &scopeRoot,
   };
   read_var_free_all(&ctx);
 

@@ -41,11 +41,12 @@ static ScriptVal test_return_first(void* ctx, const ScriptArgs args, ScriptError
 
 spec(eval) {
   ScriptMem      mem;
-  ScriptDoc*     doc         = null;
-  ScriptBinder*  binder      = null;
-  void*          bindCtxNull = null;
-  ScriptDiagBag* diagsNull   = null;
-  ScriptSymBag*  symsNull    = null;
+  ScriptDoc*     doc             = null;
+  ScriptBinder*  binder          = null;
+  void*          bindCtxNull     = null;
+  StringTable*   stringtableNull = null;
+  ScriptDiagBag* diagsNull       = null;
+  ScriptSymBag*  symsNull        = null;
 
   setup() {
     mem = script_mem_create();
@@ -287,7 +288,8 @@ spec(eval) {
     };
 
     for (u32 i = 0; i != array_elems(testData); ++i) {
-      const ScriptExpr expr = script_read(doc, binder, testData[i].input, diagsNull, symsNull);
+      const ScriptExpr expr =
+          script_read(doc, binder, testData[i].input, stringtableNull, diagsNull, symsNull);
       check_require_msg(!sentinel_check(expr), "Read failed ({})", fmt_text(testData[i].input));
 
       const ScriptEvalResult evalRes = script_eval(doc, expr, &mem, binder, bindCtxNull);
@@ -303,7 +305,12 @@ spec(eval) {
 
   it("can store memory values") {
     const ScriptExpr expr = script_read(
-        doc, binder, string_lit("$test1 = 42; $test2 = 1337; $test3 = false"), diagsNull, symsNull);
+        doc,
+        binder,
+        string_lit("$test1 = 42; $test2 = 1337; $test3 = false"),
+        stringtableNull,
+        diagsNull,
+        symsNull);
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, expr, &mem, binder, bindCtxNull);
@@ -320,6 +327,7 @@ spec(eval) {
         doc,
         binder,
         string_lit("test_increase_counter(); test_increase_counter(); test_increase_counter()"),
+        stringtableNull,
         diagsNull,
         symsNull);
     check_require(!sentinel_check(expr));
@@ -336,6 +344,7 @@ spec(eval) {
         doc,
         binder,
         string_lit("test_increase_counter(); assert(0); test_increase_counter()"),
+        stringtableNull,
         diagsNull,
         symsNull);
     check_require(!sentinel_check(expr));
@@ -347,8 +356,8 @@ spec(eval) {
   }
 
   it("limits the executed expressions count") {
-    const ScriptExpr expr =
-        script_read(doc, binder, string_lit("while(true) {}"), diagsNull, symsNull);
+    const ScriptExpr expr = script_read(
+        doc, binder, string_lit("while(true) {}"), stringtableNull, diagsNull, symsNull);
     check_require(!sentinel_check(expr));
 
     const ScriptEvalResult evalRes = script_eval(doc, expr, &mem, binder, bindCtxNull);

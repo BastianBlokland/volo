@@ -8,11 +8,12 @@
 #include "utils_internal.h"
 
 spec(read) {
-  ScriptDoc*     doc       = null;
-  ScriptDiagBag* diags     = null;
-  ScriptBinder*  binder    = null;
-  ScriptDiagBag* diagsNull = null;
-  ScriptSymBag*  symsNull  = null;
+  ScriptDoc*     doc             = null;
+  ScriptDiagBag* diags           = null;
+  ScriptBinder*  binder          = null;
+  StringTable*   stringtableNull = null;
+  ScriptDiagBag* diagsNull       = null;
+  ScriptSymBag*  symsNull        = null;
 
   setup() {
     doc   = script_create(g_allocHeap);
@@ -928,7 +929,8 @@ spec(read) {
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
-      const ScriptExpr expr = script_read(doc, binder, g_testData[i].input, diagsNull, symsNull);
+      const ScriptExpr expr =
+          script_read(doc, binder, g_testData[i].input, g_stringtable, diagsNull, symsNull);
 
       check_require_msg(!sentinel_check(expr), "Read failed [{}]", fmt_text(g_testData[i].input));
       check_expr_str(doc, expr, g_testData[i].expect);
@@ -1068,7 +1070,7 @@ spec(read) {
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       script_diag_clear(diags);
-      script_read(doc, binder, g_testData[i].input, diags, symsNull);
+      script_read(doc, binder, g_testData[i].input, stringtableNull, diags, symsNull);
 
       const u32 errorCount = script_diag_count(diags, ScriptDiagFilter_Error);
       check_require_msg(errorCount >= 1, "errorCount >= 1 [{}]", fmt_text(g_testData[i].input));
@@ -1100,7 +1102,8 @@ spec(read) {
       // NOTE: Invalid programs are only returned when providing a diagnostic-bag as otherwise there
       // would be no way to determine if the output program was valid.
       script_diag_clear(diags);
-      const ScriptExpr expr = script_read(doc, binder, g_testData[i].input, diags, symsNull);
+      const ScriptExpr expr =
+          script_read(doc, binder, g_testData[i].input, stringtableNull, diags, symsNull);
 
       check_msg(!sentinel_check(expr), "valid expression [{}]", fmt_text(g_testData[i].input));
 
@@ -1113,7 +1116,8 @@ spec(read) {
   }
 
   it("can read all input") {
-    const ScriptExpr expr = script_read(doc, binder, string_lit("1  "), diagsNull, symsNull);
+    const ScriptExpr expr =
+        script_read(doc, binder, string_lit("1  "), stringtableNull, diagsNull, symsNull);
 
     check_require(!sentinel_check(expr));
   }
@@ -1123,7 +1127,7 @@ spec(read) {
     dynstring_append_chars(&str, '(', 100);
 
     script_diag_clear(diags);
-    script_read(doc, binder, dynstring_view(&str), diags, symsNull);
+    script_read(doc, binder, dynstring_view(&str), stringtableNull, diags, symsNull);
 
     check_require(script_diag_count(diags, ScriptDiagFilter_Error) == 1);
     const ScriptDiag* diag = script_diag_first(diags, ScriptDiagFilter_Error);
@@ -1139,7 +1143,7 @@ spec(read) {
     }
 
     script_diag_clear(diags);
-    script_read(doc, binder, dynstring_view(&str), diags, symsNull);
+    script_read(doc, binder, dynstring_view(&str), stringtableNull, diags, symsNull);
 
     check_require(script_diag_count(diags, ScriptDiagFilter_Error) == 1);
     const ScriptDiag* diag = script_diag_first(diags, ScriptDiagFilter_Error);
@@ -1163,7 +1167,7 @@ spec(read) {
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
       const String input = g_testData[i].input;
       script_diag_clear(diags);
-      script_read(doc, binder, input, diags, symsNull);
+      script_read(doc, binder, input, stringtableNull, diags, symsNull);
 
       check_require(script_diag_count(diags, ScriptDiagFilter_All) == 1);
 

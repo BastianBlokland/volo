@@ -63,7 +63,7 @@ spec(optimize) {
     ScriptDoc* doc = script_create(g_allocHeap);
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
-      ScriptExpr expr = script_read(doc, null, g_testData[i].input, null, null);
+      ScriptExpr expr = script_read(doc, null, g_testData[i].input, null, null, null);
       if (!sentinel_check(expr)) {
         expr = script_optimize(doc, expr);
       }

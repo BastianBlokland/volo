@@ -864,7 +864,8 @@ void asset_load_script(
   script_source_set(doc, src->data);
 
   // Parse the script.
-  ScriptExpr expr = script_read(doc, g_assetScriptBinder, src->data, diags, symsNull);
+  ScriptExpr expr =
+      script_read(doc, g_assetScriptBinder, src->data, g_stringtable, diags, symsNull);
 
   const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
   for (u32 i = 0; i != diagCount; ++i) {

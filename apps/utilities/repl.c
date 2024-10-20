@@ -351,7 +351,7 @@ static void repl_exec(
 
   script_source_set(script, input);
 
-  ScriptExpr expr = script_read(script, binder, input, diags, syms);
+  ScriptExpr expr = script_read(script, binder, input, g_stringtable, diags, syms);
 
   const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
   for (u32 i = 0; i != diagCount; ++i) {
