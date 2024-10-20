@@ -224,5 +224,20 @@ spec(utils_equal) {
     check(!data_equal(reg, data_meta_t(t_CloneUnionA), mem_var(unionA), mem_var(unionB)));
   }
 
+  it("can compare opaque data") {
+    typedef struct {
+      ALIGNAS(16)
+      u8 data[16];
+    } OpaqueStruct;
+
+    data_reg_opaque_t(reg, OpaqueStruct);
+
+    const OpaqueStruct dataA = {.data = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}};
+    const OpaqueStruct dataB = {.data = {1, 2, 3, 4, 5, 6, 7, 9, 8, 10, 11, 12, 13, 14, 15, 16}};
+
+    check(data_equal(reg, data_meta_t(t_OpaqueStruct), mem_var(dataA), mem_var(dataA)));
+    check(!data_equal(reg, data_meta_t(t_OpaqueStruct), mem_var(dataA), mem_var(dataB)));
+  }
+
   teardown() { data_reg_destroy(reg); }
 }
