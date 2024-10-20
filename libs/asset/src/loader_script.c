@@ -932,6 +932,16 @@ void asset_load_script_bin(
     return;
   }
 
+  if (UNLIKELY(!script_prog_validate(&script.prog, g_assetScriptBinder))) {
+    log_e(
+        "Malformed binary script",
+        log_param("id", fmt_text(id)),
+        log_param("entity", ecs_entity_fmt(entity)));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_repo_source_close(src);
+    return;
+  }
+
   *ecs_world_add_t(world, entity, AssetScriptComp) = script;
   ecs_world_add_t(world, entity, AssetScriptSourceComp, .src = src);
 
