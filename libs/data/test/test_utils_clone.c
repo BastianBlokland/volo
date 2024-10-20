@@ -337,5 +337,21 @@ spec(utils_clone) {
     data_destroy(reg, g_allocHeap, data_meta_t(t_CloneUnionA), mem_var(clone));
   }
 
+  it("can clone opaque data") {
+    typedef struct {
+      ALIGNAS(16)
+      u8 data[16];
+    } OpaqueStruct;
+
+    data_reg_opaque_t(reg, OpaqueStruct);
+
+    const OpaqueStruct original = {.data = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}};
+    OpaqueStruct       clone;
+
+    data_clone(reg, g_allocHeap, data_meta_t(t_OpaqueStruct), mem_var(original), mem_var(clone));
+
+    check(mem_eq(mem_var(original), mem_var(clone)));
+  }
+
   teardown() { data_reg_destroy(reg); }
 }
