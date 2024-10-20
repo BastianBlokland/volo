@@ -11,6 +11,7 @@
 #include "script_read.h"
 #include "script_sig.h"
 
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 ScriptBinder* g_assetScriptBinder;
@@ -886,8 +887,13 @@ void asset_load_script(
 
   diag_assert(script_prog_validate(&prog, g_assetScriptBinder));
 
-  ecs_world_add_t(world, entity, AssetScriptComp, .prog = prog);
+  AssetScriptComp* scriptAsset = ecs_world_add_t(world, entity, AssetScriptComp, .prog = prog);
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+
+  if (scriptAsset) {
+    asset_cache(world, entity, g_assetScriptMeta, mem_create(scriptAsset, sizeof(AssetScriptComp)));
+  }
+
   goto Cleanup;
 
 Error:
