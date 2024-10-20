@@ -454,7 +454,7 @@ NO_INLINE_HINT static void data_read_bin_enum(ReadCtx* ctx, DataReadResult* res)
 NO_INLINE_HINT static void data_read_bin_opaque(ReadCtx* ctx, DataReadResult* res) {
   const DataDecl* decl = data_decl_unchecked(ctx->reg, ctx->meta.type);
   Mem             bytes;
-  if (UNLIKELY(bin_pop_bytes(ctx, decl->size, &bytes))) {
+  if (UNLIKELY(!bin_pop_bytes(ctx, decl->size, &bytes))) {
     *res = result_fail_truncated();
     return;
   }
