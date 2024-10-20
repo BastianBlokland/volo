@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "data.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "script_binder.h"
@@ -806,6 +807,7 @@ ecs_system_define(ScriptUnloadAssetSys) {
   for (EcsIterator* itr = ecs_view_itr(unloadView); ecs_view_walk(itr);) {
     const EcsEntityId entity = ecs_view_entity(itr);
     ecs_world_remove_t(world, entity, AssetScriptComp);
+    ecs_utils_maybe_remove_t(world, entity, AssetScriptSourceComp);
   }
 }
 
