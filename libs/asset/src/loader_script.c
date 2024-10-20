@@ -787,7 +787,8 @@ ecs_comp_define(AssetScriptSourceComp) { AssetSource* src; };
 
 static void ecs_destruct_script_comp(void* data) {
   AssetScriptComp* comp = data;
-  script_prog_destroy(&comp->prog, g_allocHeap);
+  data_destroy(
+      g_dataReg, g_allocHeap, g_assetScriptMeta, mem_create(comp, sizeof(AssetScriptComp)));
 }
 
 static void ecs_destruct_script_source_comp(void* data) {
