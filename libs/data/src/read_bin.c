@@ -451,6 +451,21 @@ NO_INLINE_HINT static void data_read_bin_enum(ReadCtx* ctx, DataReadResult* res)
   *res                 = result_success();
 }
 
+NO_INLINE_HINT static void data_read_bin_opaque(ReadCtx* ctx, DataReadResult* res) {
+  const DataDecl* decl = data_decl_unchecked(ctx->reg, ctx->meta.type);
+  Mem             bytes;
+  if (UNLIKELY(bin_pop_bytes(ctx, decl->size, &bytes))) {
+    *res = result_fail_truncated();
+    return;
+  }
+  diag_assert(ctx->data.size == decl->size);
+  /**
+   * NOTE: No endianness conversion is done so its important that file and host endianess match.
+   */
+  mem_cpy(ctx->data, bytes);
+  *res = result_success();
+}
+
 INLINE_HINT static void data_read_bin_val_single(ReadCtx* ctx, DataReadResult* res) {
   switch (data_decl_unchecked(ctx->reg, ctx->meta.type)->kind) {
   case DataKind_bool:
@@ -486,6 +501,9 @@ INLINE_HINT static void data_read_bin_val_single(ReadCtx* ctx, DataReadResult* r
     return;
   case DataKind_Enum:
     data_read_bin_enum(ctx, res);
+    return;
+  case DataKind_Opaque:
+    data_read_bin_opaque(ctx, res);
     return;
   case DataKind_Invalid:
   case DataKind_Count:
