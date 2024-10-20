@@ -97,7 +97,7 @@ static JsonVal data_write_json_mem(const WriteCtx* ctx) {
    * TODO: Instead of 'json_add_string' copying the encoded data once again we could encode directly
    * into a string owned by the json document.
    */
-  const usize base64Size   = base64_encoded_size(data_mem(val));
+  const usize base64Size   = base64_encoded_size(data_mem(val).size);
   const bool  useScratch   = base64Size <= alloc_max_size(g_allocScratch);
   Allocator*  bufferAlloc  = useScratch ? g_allocScratch : g_allocHeap;
   const Mem   base64Buffer = alloc_alloc(bufferAlloc, base64Size, 1);
@@ -247,10 +247,10 @@ static JsonVal data_write_json_val_pointer(const WriteCtx* ctx) {
   }
   const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
   const WriteCtx  subCtx = {
-      .reg  = ctx->reg,
-      .doc  = ctx->doc,
-      .meta = data_meta_base(ctx->meta),
-      .data = mem_create(ptr, decl->size),
+       .reg  = ctx->reg,
+       .doc  = ctx->doc,
+       .meta = data_meta_base(ctx->meta),
+       .data = mem_create(ptr, decl->size),
   };
   return data_write_json_val_single(&subCtx);
 }

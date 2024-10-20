@@ -13,7 +13,7 @@
 /**
  * Calculate how many bytes the given data would take encoded as base64.
  */
-usize base64_encoded_size(String data);
+usize base64_encoded_size(usize dataSize);
 
 /**
  * Calculate how many bytes the decoded output will be.

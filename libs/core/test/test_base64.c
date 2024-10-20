@@ -8,7 +8,7 @@ spec(base64) {
     const String decoded = base64_decode_scratch(encoded);
 
     check_eq_int(base64_decoded_size(encoded), decoded.size);
-    check_eq_int(base64_encoded_size(decoded), encoded.size);
+    check_eq_int(base64_encoded_size(decoded.size), encoded.size);
 
     check_eq_string(decoded, string_lit("Hello World"));
     check_eq_string(encoded, base64_encode_scratch(decoded));
@@ -24,7 +24,7 @@ spec(base64) {
     const String decoded = base64_decode_scratch(encoded);
 
     check_eq_int(base64_decoded_size(encoded), decoded.size);
-    check_eq_int(base64_encoded_size(decoded), encoded.size);
+    check_eq_int(base64_encoded_size(decoded.size), encoded.size);
 
     check_eq_string(
         decoded,
@@ -42,7 +42,7 @@ spec(base64) {
     const String decoded = base64_decode_scratch(encoded);
 
     check_eq_int(base64_decoded_size(encoded), decoded.size);
-    check_eq_int(base64_encoded_size(decoded), encoded.size);
+    check_eq_int(base64_encoded_size(decoded.size), encoded.size);
 
     check_eq_string(decoded, string_lit("any carnal pleasure"));
     check_eq_string(encoded, base64_encode_scratch(decoded));
@@ -53,7 +53,7 @@ spec(base64) {
     const String decoded = base64_decode_scratch(encoded);
 
     check_eq_int(base64_decoded_size(encoded), decoded.size);
-    check_eq_int(base64_encoded_size(decoded), encoded.size);
+    check_eq_int(base64_encoded_size(decoded.size), encoded.size);
 
     check_eq_string(decoded, string_lit("any carnal pleasu"));
     check_eq_string(encoded, base64_encode_scratch(decoded));
@@ -64,7 +64,7 @@ spec(base64) {
     const String decoded = base64_decode_scratch(encoded);
 
     check_eq_int(base64_decoded_size(encoded), decoded.size);
-    check_eq_int(base64_encoded_size(decoded), encoded.size);
+    check_eq_int(base64_encoded_size(decoded.size), encoded.size);
 
     check_eq_string(decoded, string_lit("any carnal pleasur"));
     check_eq_string(encoded, base64_encode_scratch(decoded));
@@ -76,7 +76,7 @@ spec(base64) {
   }
 
   it("encodes an empty string to an empty string") {
-    check_eq_int(base64_encoded_size(string_empty), 0);
+    check_eq_int(base64_encoded_size(0), 0);
     check_eq_string(base64_encode_scratch(string_empty), string_empty);
   }
 
