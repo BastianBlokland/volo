@@ -106,10 +106,9 @@ ScriptProgResult script_prog_eval(
 #define VM_NEXT(_OP_SIZE_) { ip += (_OP_SIZE_); goto Dispatch; }
 #define VM_JUMP(_INSTRUCTION_) { ip = mem_begin(prog->code) + (_INSTRUCTION_); goto Dispatch; }
 #define VM_RETURN(_VALUE_) { res.val = (_VALUE_); return res; }
-#define VM_PANIC(_PANIC_) { res.panic = (ScriptPanic){                                             \
-    .kind         = (_PANIC_),                                                                     \
-    .rangeLineCol = prog_pos_from_ip(prog, ip)                                                     \
-  }; return res; }
+#define VM_PANIC(_PANIC_) {                                                                        \
+    res.panic = (ScriptPanic){.kind = (_PANIC_), .range = prog_pos_from_ip(prog, ip)};             \
+    return res; }
 
 Dispatch:
   if (UNLIKELY(res.executedOps++ == script_prog_ops_max)) {

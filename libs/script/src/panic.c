@@ -35,10 +35,10 @@ void script_panic_pretty_write(DynString* out, const ScriptPanic* panic) {
   fmt_write(
       out,
       "{}:{}-{}:{}: {}",
-      fmt_int(panic->rangeLineCol.start.line + 1),
-      fmt_int(panic->rangeLineCol.start.column + 1),
-      fmt_int(panic->rangeLineCol.end.line + 1),
-      fmt_int(panic->rangeLineCol.end.column + 1),
+      fmt_int(panic->range.start.line + 1),
+      fmt_int(panic->range.start.column + 1),
+      fmt_int(panic->range.end.line + 1),
+      fmt_int(panic->range.end.column + 1),
       fmt_text(g_panicKindStrs[panic->kind]));
 }
 
