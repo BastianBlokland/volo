@@ -463,6 +463,11 @@ bool script_prog_validate(const ScriptProgram* prog, const ScriptBinder* binder)
   return true;
 }
 
+ScriptRangeLineCol script_prog_position(const ScriptProgram* prog, const u32 callId) {
+  diag_assert(callId < u16_max);
+  return prog_pos(prog, (u16)callId);
+}
+
 void script_prog_write(const ScriptProgram* prog, DynString* out) {
   const u8* ipBegin = mem_begin(prog->code);
   const u8* ipEnd   = mem_end(prog->code);

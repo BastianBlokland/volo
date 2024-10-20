@@ -138,6 +138,11 @@ script_prog_eval(const ScriptProgram*, ScriptMem*, const ScriptBinder*, void* bi
 bool script_prog_validate(const ScriptProgram*, const ScriptBinder*);
 
 /**
+ * Lookup the source position for the given call-identifier.
+ */
+ScriptRangeLineCol script_prog_position(const ScriptProgram*, u32 callId);
+
+/**
  * Write the program disassembly for diagnostic purposes.
  */
 void   script_prog_write(const ScriptProgram*, DynString* out);
