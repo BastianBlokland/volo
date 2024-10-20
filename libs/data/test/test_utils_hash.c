@@ -205,5 +205,23 @@ spec(utils_hash) {
     check(hashA != hashB);
   }
 
+  it("can compute the hash of opaque types") {
+    typedef struct {
+      ALIGNAS(16)
+      u8 data[16];
+    } OpaqueA;
+
+    typedef struct {
+      u8 data[15];
+    } OpaqueB;
+
+    data_reg_opaque_t(reg, OpaqueA);
+    data_reg_opaque_t(reg, OpaqueB);
+
+    const u32 hashA = data_hash(reg, data_meta_t(t_OpaqueA), DataHashFlags_None);
+    const u32 hashB = data_hash(reg, data_meta_t(t_OpaqueB), DataHashFlags_None);
+    check(hashA != hashB);
+  }
+
   teardown() { data_reg_destroy(reg); }
 }
