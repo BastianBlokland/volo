@@ -27,39 +27,8 @@ static void bind(
   script_binder_declare(binder, name, doc, sig, null);
 }
 
-ecs_comp_define_public(AssetScriptComp);
-
-static void ecs_destruct_script_comp(void* data) {
-  AssetScriptComp* comp = data;
-  script_prog_destroy(&comp->prog, g_allocHeap);
-}
-
-ecs_view_define(ScriptUnloadView) {
-  ecs_access_with(AssetScriptComp);
-  ecs_access_without(AssetLoadedComp);
-}
-
-/**
- * Remove any script-asset component for unloaded assets.
- */
-ecs_system_define(ScriptUnloadAssetSys) {
-  EcsView* unloadView = ecs_world_view_t(world, ScriptUnloadView);
-  for (EcsIterator* itr = ecs_view_itr(unloadView); ecs_view_walk(itr);) {
-    const EcsEntityId entity = ecs_view_entity(itr);
-    ecs_world_remove_t(world, entity, AssetScriptComp);
-  }
-}
-
-ecs_module_init(asset_script_module) {
-  ecs_register_comp(AssetScriptComp, .destructor = ecs_destruct_script_comp);
-
-  ecs_register_view(ScriptUnloadView);
-
-  ecs_register_system(ScriptUnloadAssetSys, ecs_view_id(ScriptUnloadView));
-}
-
-void asset_data_init_script(void) {
-  ScriptBinder* binder = script_binder_create(g_allocPersist);
+static ScriptBinder* asset_script_binder_create(Allocator* alloc) {
+  ScriptBinder* binder = script_binder_create(alloc);
   // clang-format off
   static const String g_layerDoc           = string_static("Supported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
   static const String g_factionDoc         = string_static("Supported factions:\n\n-`FactionA`\n\n-`FactionB`\n\n-`FactionC`\n\n-`FactionD`\n\n-`FactionNone`");
@@ -805,7 +774,42 @@ void asset_data_init_script(void) {
   // clang-format on
 
   script_binder_finalize(binder);
-  g_assetScriptBinder = binder;
+  return binder;
+}
+
+ecs_comp_define_public(AssetScriptComp);
+
+static void ecs_destruct_script_comp(void* data) {
+  AssetScriptComp* comp = data;
+  script_prog_destroy(&comp->prog, g_allocHeap);
+}
+
+ecs_view_define(ScriptUnloadView) {
+  ecs_access_with(AssetScriptComp);
+  ecs_access_without(AssetLoadedComp);
+}
+
+/**
+ * Remove any script-asset component for unloaded assets.
+ */
+ecs_system_define(ScriptUnloadAssetSys) {
+  EcsView* unloadView = ecs_world_view_t(world, ScriptUnloadView);
+  for (EcsIterator* itr = ecs_view_itr(unloadView); ecs_view_walk(itr);) {
+    const EcsEntityId entity = ecs_view_entity(itr);
+    ecs_world_remove_t(world, entity, AssetScriptComp);
+  }
+}
+
+ecs_module_init(asset_script_module) {
+  ecs_register_comp(AssetScriptComp, .destructor = ecs_destruct_script_comp);
+
+  ecs_register_view(ScriptUnloadView);
+
+  ecs_register_system(ScriptUnloadAssetSys, ecs_view_id(ScriptUnloadView));
+}
+
+void asset_data_init_script(void) {
+  g_assetScriptBinder = asset_script_binder_create(g_allocPersist);
 }
 
 void asset_load_script(
