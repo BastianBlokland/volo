@@ -43,6 +43,7 @@ typedef enum {
   DataKind_Struct,
   DataKind_Union,
   DataKind_Enum,
+  DataKind_Opaque,
 
   DataKind_Count,
 } DataKind;
