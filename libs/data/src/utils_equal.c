@@ -95,6 +95,7 @@ static bool data_equal_single(const EqualCtx* ctx) {
   case DataKind_f64:
   case DataKind_Enum:
   case DataKind_StringHash:
+  case DataKind_Opaque:
     return mem_eq(ctx->a, ctx->b);
   case DataKind_String:
     return data_equal_string(ctx);
