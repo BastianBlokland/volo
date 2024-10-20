@@ -322,8 +322,12 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
       return val_null();
     }
   }
-  ScriptBinderCall call = {.args.values = argValues, .args.count = data->argCount};
-  const ScriptVal  ret  = script_binder_exec(ctx->binder, data->func, ctx->bindCtx, &call);
+  ScriptBinderCall call = {
+      .args.values = argValues,
+      .args.count  = data->argCount,
+      .callId      = e,
+  };
+  const ScriptVal ret = script_binder_exec(ctx->binder, data->func, ctx->bindCtx, &call);
   if (UNLIKELY(call.err.kind)) {
     const ScriptExpr errExpr = call.err.argIndex < data->argCount ? argExprs[call.err.argIndex] : e;
 

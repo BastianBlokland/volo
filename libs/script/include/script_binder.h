@@ -23,6 +23,7 @@ typedef u64 ScriptBinderHash;
 typedef struct {
   ScriptArgs  args;
   ScriptError err;
+  u32         callId;
 } ScriptBinderCall;
 
 typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptBinderCall*);
