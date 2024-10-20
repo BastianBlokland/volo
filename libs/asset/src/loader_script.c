@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_stringtable.h"
 #include "data.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
@@ -845,6 +846,7 @@ void asset_data_init_script(void) {
 
   data_reg_struct_t(g_dataReg, AssetScriptComp);
   data_reg_field_t(g_dataReg, AssetScriptComp, prog, t_ScriptProgram);
+  data_reg_field_t(g_dataReg, AssetScriptComp, stringLiterals, data_prim_t(String), .container = DataContainer_HeapArray);
   // clang-format on
 
   g_assetScriptMeta = data_meta_t(t_AssetScriptComp);
@@ -943,6 +945,9 @@ void asset_load_script_bin(
     asset_repo_source_close(src);
     return;
   }
+
+  // Register string-literals to the global string-table.
+  heap_array_for_t(script.stringLiterals, String, str) { stringtable_add(g_stringtable, *str); }
 
   *ecs_world_add_t(world, entity, AssetScriptComp) = script;
   ecs_world_add_t(world, entity, AssetScriptSourceComp, .src = src);

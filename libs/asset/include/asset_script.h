@@ -9,7 +9,10 @@ typedef struct sScriptBinder ScriptBinder;
 /**
  * Script file.
  */
-ecs_comp_extern_public(AssetScriptComp) { ScriptProgram prog; };
+ecs_comp_extern_public(AssetScriptComp) {
+  ScriptProgram prog;
+  HeapArray_t(String) stringLiterals;
+};
 
 extern ScriptBinder* g_assetScriptBinder;
 extern DataMeta      g_assetScriptMeta;
