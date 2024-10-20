@@ -273,7 +273,18 @@ Dispatch:
 }
 
 bool script_prog_validate(const ScriptProgram* prog, const ScriptBinder* binder) {
+  // Validate literals.
+  for (usize i = 0; i != prog->literals.count; ++i) {
+    if (UNLIKELY(!script_val_valid(prog->literals.values[i]))) {
+      return false;
+    }
+  }
+
+  // Validate code.
   if (UNLIKELY(!prog->code.size || prog->code.size > u16_max)) {
+    return false;
+  }
+  if (UNLIKELY(!prog_op_is_terminating(mem_end(prog->code)[-1]))) {
     return false;
   }
   const u8* ip    = mem_begin(prog->code);
@@ -449,9 +460,6 @@ bool script_prog_validate(const ScriptProgram* prog, const ScriptBinder* binder)
     }
     // clang-format on
     return false; // Unknown op-code.
-  }
-  if (UNLIKELY(!prog_op_is_terminating(mem_end(prog->code)[-1]))) {
-    return false;
   }
   return true;
 }
