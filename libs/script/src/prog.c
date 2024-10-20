@@ -184,11 +184,10 @@ Dispatch:
     }
     VM_NEXT(3);
   case ScriptOp_Extern: {
-    const ScriptArgs args = {.values = &regs[ip[4]], .count = ip[5]};
-    ScriptError err = {0};
-    regs[ip[1]] = script_binder_exec(binder, prog_read_u16(&ip[2]), bindCtx, args, &err);
-    if (UNLIKELY(err.kind)) {
-      VM_PANIC(script_error_to_panic(err.kind));
+    ScriptBinderCall call = {.args.values = &regs[ip[4]], .args.count = ip[5]};
+    regs[ip[1]] = script_binder_exec(binder, prog_read_u16(&ip[2]), bindCtx, &call);
+    if (UNLIKELY(call.err.kind)) {
+      VM_PANIC(script_error_to_panic(call.err.kind));
     }
     VM_NEXT(6);
   }
