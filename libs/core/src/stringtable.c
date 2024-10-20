@@ -196,3 +196,31 @@ String stringtable_intern(StringTable* table, const String str) {
   thread_spinlock_unlock(&table->slotsLock);
   return result;
 }
+
+StringTableArray stringtable_clone_strings(const StringTable* table, Allocator* alloc) {
+  StringTable* tableMutable = (StringTable*)table;
+  u32          count;
+  thread_spinlock_lock(&tableMutable->slotsLock);
+  count = table->slotCountUsed;
+  thread_spinlock_unlock(&tableMutable->slotsLock);
+
+  if (!count) {
+    return (StringTableArray){0};
+  }
+
+  const StringTableArray res = {
+      .values = alloc_array_t(alloc, String, count),
+      .count  = count,
+  };
+
+  thread_spinlock_lock(&tableMutable->slotsLock);
+  u32 i = 0;
+  for (StringTableSlot* slot = table->slots; slot != (table->slots + table->slotCount); ++slot) {
+    if (slot->hash) {
+      res.values[i++] = slot->data;
+    }
+  }
+  thread_spinlock_unlock(&tableMutable->slotsLock);
+
+  return res;
+}

@@ -55,3 +55,14 @@ StringHash stringtable_add(StringTable*, String);
  * Pre-condition: string.size <= 512
  */
 String stringtable_intern(StringTable*, String);
+
+typedef struct {
+  String* values;
+  usize   count;
+} StringTableArray;
+
+/**
+ * Clone the strings in the given StringTable to a new heap-array.
+ * NOTE: The individual strings are NOT heap allocated, instead they are interned in the table.
+ */
+StringTableArray stringtable_clone_strings(const StringTable*, Allocator*);
