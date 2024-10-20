@@ -1,4 +1,5 @@
 #pragma once
+#include "data_registry.h"
 #include "ecs_module.h"
 #include "script_prog.h"
 
@@ -11,5 +12,6 @@ typedef struct sScriptBinder ScriptBinder;
 ecs_comp_extern_public(AssetScriptComp) { ScriptProgram prog; };
 
 extern ScriptBinder* g_assetScriptBinder;
+extern DataMeta      g_assetScriptMeta;
 
 void asset_script_binder_write(DynString* str);

@@ -14,6 +14,7 @@
 #include "repo_internal.h"
 
 ScriptBinder* g_assetScriptBinder;
+DataMeta      g_assetScriptMeta;
 
 static void bind(
     ScriptBinder*      binder,
