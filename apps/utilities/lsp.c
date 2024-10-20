@@ -5,6 +5,7 @@
 #include "core_format.h"
 #include "core_math.h"
 #include "core_path.h"
+#include "core_stringtable.h"
 #include "json.h"
 #include "script_binder.h"
 #include "script_diag.h"
@@ -582,8 +583,13 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
   const TimeSteady readStartTime = time_steady_clock();
 
   const String sourceText = script_source_get(doc->scriptDoc);
-  doc->scriptRoot =
-      script_read(doc->scriptDoc, ctx->scriptBinder, sourceText, doc->scriptDiags, doc->scriptSyms);
+  doc->scriptRoot         = script_read(
+      doc->scriptDoc,
+      ctx->scriptBinder,
+      sourceText,
+      g_stringtable,
+      doc->scriptDiags,
+      doc->scriptSyms);
 
   if (ctx->flags & LspFlags_Trace) {
     const TimeDuration dur   = time_steady_duration(readStartTime, time_steady_clock());

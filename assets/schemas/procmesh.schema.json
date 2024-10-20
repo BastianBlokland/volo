@@ -16,13 +16,7 @@
         "offsetX": { "title": "f32", "type": "number" },
         "offsetY": { "title": "f32", "type": "number" },
         "offsetZ": { "title": "f32", "type": "number" },
-        "uncapped": { "title": "bool", "type": "boolean" },
-        "bounds": {
-          "anyOf": [
-            { "title": "ProcMeshBounds", "$ref": "#/$defs/ProcMeshBounds" },
-            { "const": null, "title": "ProcMeshBounds" }
-          ]
-        }
+        "uncapped": { "title": "bool", "type": "boolean" }
       },
       "required": [ "type", "axis" ],
       "defaultSnippets": [
@@ -48,29 +42,6 @@
         "Left",
         "Forward",
         "Backward"
-      ]
-    },
-    "ProcMeshBounds": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "minX": { "title": "f32", "type": "number" },
-        "minY": { "title": "f32", "type": "number" },
-        "minZ": { "title": "f32", "type": "number" },
-        "maxX": { "title": "f32", "type": "number" },
-        "maxY": { "title": "f32", "type": "number" },
-        "maxZ": { "title": "f32", "type": "number" }
-      },
-      "required": [
-        "minX",
-        "minY",
-        "minZ",
-        "maxX",
-        "maxY",
-        "maxZ"
-      ],
-      "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"minX\": 0,\n  \"minY\": 0,\n  \"minZ\": 0,\n  \"maxX\": 0,\n  \"maxY\": 0,\n  \"maxZ\": 0\n}" }
       ]
     }
   }

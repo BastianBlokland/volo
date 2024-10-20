@@ -80,7 +80,7 @@ typedef struct {
  * Returns the remaining input.
  * The token is written to the output pointer.
  *
- * NOTE: StringTable can optionally provided to store the text representations of keys.
+ * NOTE: StringTable can optionally provided to store the text representations of keys and strings.
  */
 String script_lex(String, StringTable*, ScriptToken* out, ScriptLexFlags);
 

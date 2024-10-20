@@ -3,6 +3,7 @@
 #include "asset_icon.h"
 #include "asset_level.h"
 #include "asset_mesh.h"
+#include "asset_script.h"
 #include "asset_shader.h"
 #include "asset_sound.h"
 #include "asset_texture.h"
@@ -61,6 +62,7 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_Products]       = string_static("Products"),
     [AssetFormat_Raw]            = string_static("Raw"),
     [AssetFormat_Script]         = string_static("Script"),
+    [AssetFormat_ScriptBin]      = string_static("ScriptBin"),
     [AssetFormat_ShaderBin]      = string_static("ShaderBin"),
     [AssetFormat_ShaderGlsl]     = string_static("ShaderGlsl"),
     [AssetFormat_ShaderGlslFrag] = string_static("ShaderGlslFrag"),
@@ -89,6 +91,7 @@ static const DataMeta* g_assetFormatBinMeta[AssetFormat_Count] = {
     [AssetFormat_IconBin]     = &g_assetIconMeta,
     [AssetFormat_LevelBin]    = &g_assetLevelDefMeta,
     [AssetFormat_MeshBin]     = &g_assetMeshBundleMeta,
+    [AssetFormat_ScriptBin]   = &g_assetScriptMeta,
     [AssetFormat_ShaderBin]   = &g_assetShaderMeta,
     [AssetFormat_SoundBin]    = &g_assetSoundMeta,
     [AssetFormat_TexAtlasBin] = &g_assetAtlasBundleMeta,

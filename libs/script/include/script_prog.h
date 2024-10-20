@@ -107,7 +107,11 @@ typedef struct {
 } ScriptProgramPos;
 
 typedef struct sScriptProgram {
-  String code;
+  struct {
+    bool  external;
+    void* ptr;
+    usize size;
+  } code; // Instruction stream (struct layout compatible with DataMem).
   HeapArray_t(ScriptVal) literals;
   HeapArray_t(ScriptProgramPos) positions; // Sorted on instruction.
 } ScriptProgram;

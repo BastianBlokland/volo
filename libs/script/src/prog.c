@@ -65,8 +65,8 @@ static ScriptRangeLineCol prog_pos_from_ip(const ScriptProgram* prog, const u8* 
 }
 
 void script_prog_destroy(ScriptProgram* prog, Allocator* alloc) {
-  if (prog->code.size) {
-    alloc_free(alloc, prog->code);
+  if (prog->code.size && !prog->code.external) {
+    alloc_free(alloc, mem_create(prog->code.ptr, prog->code.size));
   }
   if (prog->literals.count) {
     alloc_free_array_t(alloc, prog->literals.values, prog->literals.count);
@@ -78,8 +78,11 @@ void script_prog_destroy(ScriptProgram* prog, Allocator* alloc) {
 
 void script_prog_clear(ScriptProgram* prog, Allocator* alloc) {
   if (prog->code.size) {
-    alloc_free(alloc, prog->code);
-    prog->code = string_empty;
+    if (!prog->code.external) {
+      alloc_free(alloc, mem_create(prog->code.ptr, prog->code.size));
+    }
+    prog->code.ptr  = null;
+    prog->code.size = 0;
   }
   if (prog->literals.count) {
     alloc_free_array_t(alloc, prog->literals.values, prog->literals.count);
@@ -270,7 +273,18 @@ Dispatch:
 }
 
 bool script_prog_validate(const ScriptProgram* prog, const ScriptBinder* binder) {
+  // Validate literals.
+  for (usize i = 0; i != prog->literals.count; ++i) {
+    if (UNLIKELY(!script_val_valid(prog->literals.values[i]))) {
+      return false;
+    }
+  }
+
+  // Validate code.
   if (UNLIKELY(!prog->code.size || prog->code.size > u16_max)) {
+    return false;
+  }
+  if (UNLIKELY(!prog_op_is_terminating(mem_end(prog->code)[-1]))) {
     return false;
   }
   const u8* ip    = mem_begin(prog->code);
@@ -446,9 +460,6 @@ bool script_prog_validate(const ScriptProgram* prog, const ScriptBinder* binder)
     }
     // clang-format on
     return false; // Unknown op-code.
-  }
-  if (UNLIKELY(!prog_op_is_terminating(mem_end(prog->code)[-1]))) {
-    return false;
   }
   return true;
 }

@@ -20,6 +20,7 @@ typedef enum {
   DataFlags_NotEmpty       = 1 << 1,
   DataFlags_Intern         = 1 << 2, // Intern the string in the global string-table.
   DataFlags_ExternalMemory = 1 << 3, // Support external allocations on this memory type.
+  DataFlags_TransferToBase = DataFlags_Intern | DataFlags_ExternalMemory,
 } DataFlags;
 
 /**

@@ -2,6 +2,9 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_stringtable.h"
+#include "data.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "script_binder.h"
@@ -11,9 +14,11 @@
 #include "script_read.h"
 #include "script_sig.h"
 
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 ScriptBinder* g_assetScriptBinder;
+DataMeta      g_assetScriptMeta;
 
 static void bind(
     ScriptBinder*      binder,
@@ -26,39 +31,8 @@ static void bind(
   script_binder_declare(binder, name, doc, sig, null);
 }
 
-ecs_comp_define_public(AssetScriptComp);
-
-static void ecs_destruct_script_comp(void* data) {
-  AssetScriptComp* comp = data;
-  script_prog_destroy(&comp->prog, g_allocHeap);
-}
-
-ecs_view_define(ScriptUnloadView) {
-  ecs_access_with(AssetScriptComp);
-  ecs_access_without(AssetLoadedComp);
-}
-
-/**
- * Remove any script-asset component for unloaded assets.
- */
-ecs_system_define(ScriptUnloadAssetSys) {
-  EcsView* unloadView = ecs_world_view_t(world, ScriptUnloadView);
-  for (EcsIterator* itr = ecs_view_itr(unloadView); ecs_view_walk(itr);) {
-    const EcsEntityId entity = ecs_view_entity(itr);
-    ecs_world_remove_t(world, entity, AssetScriptComp);
-  }
-}
-
-ecs_module_init(asset_script_module) {
-  ecs_register_comp(AssetScriptComp, .destructor = ecs_destruct_script_comp);
-
-  ecs_register_view(ScriptUnloadView);
-
-  ecs_register_system(ScriptUnloadAssetSys, ecs_view_id(ScriptUnloadView));
-}
-
-void asset_data_init_script(void) {
-  ScriptBinder* binder = script_binder_create(g_allocPersist);
+static ScriptBinder* asset_script_binder_create(Allocator* alloc) {
+  ScriptBinder* binder = script_binder_create(alloc);
   // clang-format off
   static const String g_layerDoc           = string_static("Supported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
   static const String g_factionDoc         = string_static("Supported factions:\n\n-`FactionA`\n\n-`FactionB`\n\n-`FactionC`\n\n-`FactionD`\n\n-`FactionNone`");
@@ -804,7 +778,79 @@ void asset_data_init_script(void) {
   // clang-format on
 
   script_binder_finalize(binder);
-  g_assetScriptBinder = binder;
+  return binder;
+}
+
+ecs_comp_define_public(AssetScriptComp);
+
+ecs_comp_define(AssetScriptSourceComp) { AssetSource* src; };
+
+static void ecs_destruct_script_comp(void* data) {
+  AssetScriptComp* comp = data;
+  data_destroy(
+      g_dataReg, g_allocHeap, g_assetScriptMeta, mem_create(comp, sizeof(AssetScriptComp)));
+}
+
+static void ecs_destruct_script_source_comp(void* data) {
+  AssetScriptSourceComp* comp = data;
+  asset_repo_source_close(comp->src);
+}
+
+ecs_view_define(ScriptUnloadView) {
+  ecs_access_with(AssetScriptComp);
+  ecs_access_without(AssetLoadedComp);
+}
+
+/**
+ * Remove any script-asset component for unloaded assets.
+ */
+ecs_system_define(ScriptUnloadAssetSys) {
+  EcsView* unloadView = ecs_world_view_t(world, ScriptUnloadView);
+  for (EcsIterator* itr = ecs_view_itr(unloadView); ecs_view_walk(itr);) {
+    const EcsEntityId entity = ecs_view_entity(itr);
+    ecs_world_remove_t(world, entity, AssetScriptComp);
+    ecs_utils_maybe_remove_t(world, entity, AssetScriptSourceComp);
+  }
+}
+
+ecs_module_init(asset_script_module) {
+  ecs_register_comp(AssetScriptComp, .destructor = ecs_destruct_script_comp);
+  ecs_register_comp(AssetScriptSourceComp, .destructor = ecs_destruct_script_source_comp);
+
+  ecs_register_view(ScriptUnloadView);
+
+  ecs_register_system(ScriptUnloadAssetSys, ecs_view_id(ScriptUnloadView));
+}
+
+void asset_data_init_script(void) {
+  g_assetScriptBinder = asset_script_binder_create(g_allocPersist);
+
+  // clang-format off
+  data_reg_opaque_t(g_dataReg, ScriptVal);
+
+  data_reg_struct_t(g_dataReg, ScriptPosLineCol);
+  data_reg_field_t(g_dataReg, ScriptPosLineCol, line, data_prim_t(u16));
+  data_reg_field_t(g_dataReg, ScriptPosLineCol, column, data_prim_t(u16));
+
+  data_reg_struct_t(g_dataReg, ScriptRangeLineCol);
+  data_reg_field_t(g_dataReg, ScriptRangeLineCol, start, t_ScriptPosLineCol);
+  data_reg_field_t(g_dataReg, ScriptRangeLineCol, end, t_ScriptPosLineCol);
+
+  data_reg_struct_t(g_dataReg, ScriptProgramPos);
+  data_reg_field_t(g_dataReg, ScriptProgramPos, instruction, data_prim_t(u16));
+  data_reg_field_t(g_dataReg, ScriptProgramPos, range, t_ScriptRangeLineCol);
+
+  data_reg_struct_t(g_dataReg, ScriptProgram);
+  data_reg_field_t(g_dataReg, ScriptProgram, code, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
+  data_reg_field_t(g_dataReg, ScriptProgram, literals, t_ScriptVal, .container = DataContainer_HeapArray);
+  data_reg_field_t(g_dataReg, ScriptProgram, positions, t_ScriptProgramPos, .container = DataContainer_HeapArray);
+
+  data_reg_struct_t(g_dataReg, AssetScriptComp);
+  data_reg_field_t(g_dataReg, AssetScriptComp, prog, t_ScriptProgram);
+  data_reg_field_t(g_dataReg, AssetScriptComp, stringLiterals, data_prim_t(String), .container = DataContainer_HeapArray, .flags = DataFlags_Intern);
+  // clang-format on
+
+  g_assetScriptMeta = data_meta_t(t_AssetScriptComp);
 }
 
 void asset_load_script(
@@ -812,14 +858,15 @@ void asset_load_script(
 
   Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
 
-  ScriptDoc*     doc      = script_create(g_allocHeap);
-  ScriptDiagBag* diags    = script_diag_bag_create(tempAlloc, ScriptDiagFilter_Error);
-  ScriptSymBag*  symsNull = null;
+  ScriptDoc*     doc         = script_create(g_allocHeap);
+  StringTable*   stringtable = stringtable_create(g_allocHeap);
+  ScriptDiagBag* diags       = script_diag_bag_create(tempAlloc, ScriptDiagFilter_Error);
+  ScriptSymBag*  symsNull    = null;
 
   script_source_set(doc, src->data);
 
   // Parse the script.
-  ScriptExpr expr = script_read(doc, g_assetScriptBinder, src->data, diags, symsNull);
+  ScriptExpr expr = script_read(doc, g_assetScriptBinder, src->data, stringtable, diags, symsNull);
 
   const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
   for (u32 i = 0; i != diagCount; ++i) {
@@ -855,8 +902,25 @@ void asset_load_script(
 
   diag_assert(script_prog_validate(&prog, g_assetScriptBinder));
 
-  ecs_world_add_t(world, entity, AssetScriptComp, .prog = prog);
+  const StringTableArray strings = stringtable_clone_strings(stringtable, g_allocHeap);
+
+  // Register string-literals to the global string-table.
+  heap_array_for_t(strings, String, str) { stringtable_add(g_stringtable, *str); }
+
+  AssetScriptComp* scriptAsset = ecs_world_add_t(
+      world,
+      entity,
+      AssetScriptComp,
+      .prog                  = prog,
+      .stringLiterals.values = strings.values,
+      .stringLiterals.count  = strings.count);
+
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+
+  if (scriptAsset) {
+    asset_cache(world, entity, g_assetScriptMeta, mem_create(scriptAsset, sizeof(AssetScriptComp)));
+  }
+
   goto Cleanup;
 
 Error:
@@ -864,7 +928,43 @@ Error:
 
 Cleanup:
   script_destroy(doc);
+  stringtable_destroy(stringtable);
   asset_repo_source_close(src);
+}
+
+void asset_load_script_bin(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+
+  AssetScriptComp script;
+  DataReadResult  result;
+  data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetScriptMeta, mem_var(script), &result);
+
+  if (UNLIKELY(result.error)) {
+    log_e(
+        "Failed to load binary script",
+        log_param("id", fmt_text(id)),
+        log_param("entity", ecs_entity_fmt(entity)),
+        log_param("error-code", fmt_int(result.error)),
+        log_param("error", fmt_text(result.errorMsg)));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_repo_source_close(src);
+    return;
+  }
+
+  if (UNLIKELY(!script_prog_validate(&script.prog, g_assetScriptBinder))) {
+    log_e(
+        "Malformed binary script",
+        log_param("id", fmt_text(id)),
+        log_param("entity", ecs_entity_fmt(entity)));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_repo_source_close(src);
+    return;
+  }
+
+  *ecs_world_add_t(world, entity, AssetScriptComp) = script;
+  ecs_world_add_t(world, entity, AssetScriptSourceComp, .src = src);
+
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 }
 
 void asset_script_binder_write(DynString* str) { script_binder_write(str, g_assetScriptBinder); }

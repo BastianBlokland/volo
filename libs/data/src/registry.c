@@ -63,8 +63,8 @@ void data_reg_global_teardown(void) {
 DataReg* data_reg_create(Allocator* alloc) {
   DataReg* reg = alloc_alloc_t(alloc, DataReg);
   *reg         = (DataReg){
-              .types = dynarray_create_t(alloc, DataDecl, 64),
-              .alloc = alloc,
+      .types = dynarray_create_t(alloc, DataDecl, 64),
+      .alloc = alloc,
   };
 
 #define X(_T_)                                                                                     \
@@ -360,7 +360,9 @@ void data_reg_comment(DataReg* reg, const DataType type, const String comment) {
   decl->comment = string_maybe_dup(reg->alloc, comment);
 }
 
-DataMeta data_meta_base(const DataMeta meta) { return (DataMeta){.type = meta.type}; }
+DataMeta data_meta_base(const DataMeta meta) {
+  return (DataMeta){.type = meta.type, .flags = meta.flags & DataFlags_TransferToBase};
+}
 
 const DataDecl* data_decl(const DataReg* reg, const DataType type) {
   diag_assert_msg(type, "Uninitialized data-type");
