@@ -328,6 +328,19 @@ spec(bin) {
     test_bin_roundtrip(_testCtx, reg, data_meta_t(t_WriteJsonUnion), mem_var(val));
   }
 
+  it("can serialize opaque types") {
+    typedef struct {
+      ALIGNAS(16)
+      u8 data[16];
+    } OpaqueStruct;
+
+    data_reg_opaque_t(reg, OpaqueStruct);
+
+    const OpaqueStruct val = {.data = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}};
+
+    test_bin_roundtrip(_testCtx, reg, data_meta_t(t_OpaqueStruct), mem_var(val));
+  }
+
   it("can read the binary header") {
     const DataMeta meta = data_meta_t(data_prim_t(bool), .flags = DataFlags_Opt);
 
