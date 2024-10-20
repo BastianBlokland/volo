@@ -498,6 +498,17 @@ compile_intr_quaternary(Context* ctx, const Target tgt, const ScriptOp op, const
 }
 
 static ScriptCompileError
+compile_assert(Context* ctx, const Target tgt, const ScriptExpr expr, const ScriptExpr* args) {
+  ScriptCompileError err = ScriptCompileError_None;
+  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
+    return err;
+  }
+  emit_position(ctx, expr);
+  emit_unary(ctx, ScriptOp_Assert, tgt.reg);
+  return err;
+}
+
+static ScriptCompileError
 compile_intr_select(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
   // Condition.
@@ -699,8 +710,7 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
   case ScriptIntrinsic_Hash:
     return compile_intr_unary(ctx, tgt, ScriptOp_Hash, args);
   case ScriptIntrinsic_Assert:
-    emit_position(ctx, e);
-    return compile_intr_unary(ctx, tgt, ScriptOp_Assert, args);
+    return compile_assert(ctx, tgt, e, args);
   case ScriptIntrinsic_MemLoadDynamic:
     return compile_intr_unary(ctx, tgt, ScriptOp_MemLoadDyn, args);
   case ScriptIntrinsic_MemStoreDynamic:
@@ -842,8 +852,6 @@ static ScriptCompileError compile_block(Context* ctx, const Target tgt, const Sc
 }
 
 static ScriptCompileError compile_extern(Context* ctx, const Target tgt, const ScriptExpr e) {
-  emit_position(ctx, e);
-
   const ScriptExprExtern* data     = &expr_data(ctx->doc, e)->extern_;
   const ScriptExpr*       argExprs = expr_set_data(ctx->doc, data->argSet);
   if (data->argCount == 1 && expr_is_var_load(ctx, argExprs[0])) {
@@ -867,6 +875,7 @@ static ScriptCompileError compile_extern(Context* ctx, const Target tgt, const S
       goto Ret;
     }
   }
+  emit_position(ctx, e);
   emit_extern(ctx, tgt.reg, data->func, argRegs);
   reg_free_set(ctx, argRegs);
 Ret:
