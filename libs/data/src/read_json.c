@@ -581,6 +581,26 @@ static void data_read_json_enum(const ReadCtx* ctx, DataReadResult* res) {
   }
 }
 
+static void data_read_json_opaque(const ReadCtx* ctx, DataReadResult* res) {
+  if (UNLIKELY(!data_check_type(ctx, JsonType_String, res))) {
+    return;
+  }
+  const String jsonStr     = json_string(ctx->doc, ctx->val);
+  const usize  decodedSize = base64_decoded_size(jsonStr);
+
+  if (UNLIKELY(decodedSize != ctx->data.size)) {
+    *res = result_fail(DataReadError_Base64DataInvalid, "Value contains invalid base64 data");
+    return;
+  }
+
+  DynString memStr = dynstring_create_over(ctx->data);
+  if (base64_decode(&memStr, jsonStr)) {
+    *res = result_success();
+  } else {
+    *res = result_fail(DataReadError_Base64DataInvalid, "Value contains invalid base64 data");
+  }
+}
+
 static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
   switch (data_decl(ctx->reg, ctx->meta.type)->kind) {
   case DataKind_bool:
@@ -618,6 +638,9 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
     return;
   case DataKind_Enum:
     data_read_json_enum(ctx, res);
+    return;
+  case DataKind_Opaque:
+    data_read_json_opaque(ctx, res);
     return;
   case DataKind_Invalid:
   case DataKind_Count:
