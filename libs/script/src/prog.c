@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_search.h"
 #include "core_stringtable.h"
 #include "script_binder.h"
 #include "script_error.h"
@@ -39,6 +40,28 @@ static bool prog_op_is_terminating(const ScriptOp op) {
   default:
     return false;
   }
+}
+
+static i8 prog_compare_pos(const void* a, const void* b) {
+  const ScriptProgramPos* posA = a;
+  const ScriptProgramPos* posB = b;
+  return compare_u16(&posA->instruction, &posB->instruction);
+}
+
+static ScriptRangeLineCol prog_pos(const ScriptProgram* prog, const u16 instruction) {
+
+  const ScriptProgramPos* r = search_binary_t(
+      prog->positions.values,
+      prog->positions.values + prog->positions.count,
+      ScriptProgramPos,
+      prog_compare_pos,
+      &(ScriptProgramPos){.instruction = instruction});
+
+  return r ? r->range : (ScriptRangeLineCol){0};
+}
+
+static ScriptRangeLineCol prog_pos_from_ip(const ScriptProgram* prog, const u8* ip) {
+  return prog_pos(prog, (u16)(ip - mem_begin(prog->code)));
 }
 
 void script_prog_destroy(ScriptProgram* prog, Allocator* alloc) {
@@ -82,19 +105,22 @@ ScriptProgResult script_prog_eval(
 
 #define VM_NEXT(_OP_SIZE_) { ip += (_OP_SIZE_); goto Dispatch; }
 #define VM_JUMP(_INSTRUCTION_) { ip = mem_begin(prog->code) + (_INSTRUCTION_); goto Dispatch; }
-#define VM_PANIC(_PANIC_) { res.panic = (_PANIC_); return res; }
 #define VM_RETURN(_VALUE_) { res.val = (_VALUE_); return res; }
+#define VM_PANIC(_PANIC_) { res.panic = (ScriptPanic){                                             \
+    .kind         = (_PANIC_),                                                                     \
+    .rangeLineCol = prog_pos_from_ip(prog, ip)                                                     \
+  }; return res; }
 
 Dispatch:
   if (UNLIKELY(res.executedOps++ == script_prog_ops_max)) {
-    VM_PANIC((ScriptPanic){.kind = ScriptPanic_ExecutionLimitExceeded});
+    VM_PANIC(ScriptPanic_ExecutionLimitExceeded);
   }
   switch ((ScriptOp)ip[0]) {
   case ScriptOp_Fail:
-    VM_PANIC((ScriptPanic){.kind = ScriptPanic_AssertionFailed});
+    VM_PANIC(ScriptPanic_AssertionFailed);
   case ScriptOp_Assert:
     if (UNLIKELY(script_falsy(regs[ip[1]]))) {
-      VM_PANIC((ScriptPanic){.kind = ScriptPanic_ExecutionFailed});
+      VM_PANIC(ScriptPanic_ExecutionFailed);
     }
     regs[ip[1]] = val_null();
     VM_NEXT(2);
@@ -160,7 +186,7 @@ Dispatch:
     ScriptError err = {0};
     regs[ip[1]] = script_binder_exec(binder, prog_read_u16(&ip[2]), bindCtx, args, &err);
     if (UNLIKELY(err.kind)) {
-      VM_PANIC((ScriptPanic){.kind = script_error_to_panic(err.kind)});
+      VM_PANIC(script_error_to_panic(err.kind));
     }
     VM_NEXT(6);
   }
