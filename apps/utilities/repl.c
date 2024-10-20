@@ -1,5 +1,6 @@
 #include "app_cli.h"
 #include "core_alloc.h"
+#include "core_base64.h"
 #include "core_diag.h"
 #include "core_file.h"
 #include "core_file_monitor.h"
@@ -303,6 +304,24 @@ static ScriptVal repl_bind_print_bits(void* ctx, const ScriptArgs args, ScriptEr
   return script_null();
 }
 
+static ScriptVal repl_bind_print_base64(void* ctx, const ScriptArgs args, ScriptError* err) {
+  (void)ctx;
+  (void)err;
+
+  Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
+  DynString buffer    = dynstring_create_over(bufferMem);
+
+  for (usize i = 0; i != args.count; ++i) {
+    base64_encode(&buffer, mem_var(args.values[i]));
+    dynstring_append_char(&buffer, '\n');
+  }
+
+  repl_output(dynstring_view(&buffer));
+  dynstring_destroy(&buffer);
+
+  return script_null();
+}
+
 static void repl_bind_init(ScriptBinder* binder) {
   const String     doc = string_empty;
   const ScriptSig* sig = null;
@@ -310,6 +329,7 @@ static void repl_bind_init(ScriptBinder* binder) {
   script_binder_declare(binder, string_lit("print"), doc, sig, &repl_bind_print);
   script_binder_declare(binder, string_lit("print_bytes"), doc, sig, &repl_bind_print_bytes);
   script_binder_declare(binder, string_lit("print_bits"), doc, sig, &repl_bind_print_bits);
+  script_binder_declare(binder, string_lit("print_base64"), doc, sig, &repl_bind_print_base64);
 }
 
 static void repl_exec(
