@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "data.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "script_binder.h"
@@ -780,9 +781,16 @@ static ScriptBinder* asset_script_binder_create(Allocator* alloc) {
 
 ecs_comp_define_public(AssetScriptComp);
 
+ecs_comp_define(AssetScriptSourceComp) { AssetSource* src; };
+
 static void ecs_destruct_script_comp(void* data) {
   AssetScriptComp* comp = data;
   script_prog_destroy(&comp->prog, g_allocHeap);
+}
+
+static void ecs_destruct_script_source_comp(void* data) {
+  AssetScriptSourceComp* comp = data;
+  asset_repo_source_close(comp->src);
 }
 
 ecs_view_define(ScriptUnloadView) {
@@ -803,6 +811,7 @@ ecs_system_define(ScriptUnloadAssetSys) {
 
 ecs_module_init(asset_script_module) {
   ecs_register_comp(AssetScriptComp, .destructor = ecs_destruct_script_comp);
+  ecs_register_comp(AssetScriptSourceComp, .destructor = ecs_destruct_script_source_comp);
 
   ecs_register_view(ScriptUnloadView);
 
@@ -902,6 +911,31 @@ Error:
 Cleanup:
   script_destroy(doc);
   asset_repo_source_close(src);
+}
+
+void asset_load_script_bin(
+    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+
+  AssetScriptComp script;
+  DataReadResult  result;
+  data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetScriptMeta, mem_var(script), &result);
+
+  if (UNLIKELY(result.error)) {
+    log_e(
+        "Failed to load binary script",
+        log_param("id", fmt_text(id)),
+        log_param("entity", ecs_entity_fmt(entity)),
+        log_param("error-code", fmt_int(result.error)),
+        log_param("error", fmt_text(result.errorMsg)));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    asset_repo_source_close(src);
+    return;
+  }
+
+  *ecs_world_add_t(world, entity, AssetScriptComp) = script;
+  ecs_world_add_t(world, entity, AssetScriptSourceComp, .src = src);
+
+  ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 }
 
 void asset_script_binder_write(DynString* str) { script_binder_write(str, g_assetScriptBinder); }
