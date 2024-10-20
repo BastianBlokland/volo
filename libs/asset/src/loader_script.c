@@ -847,7 +847,7 @@ void asset_data_init_script(void) {
 
   data_reg_struct_t(g_dataReg, AssetScriptComp);
   data_reg_field_t(g_dataReg, AssetScriptComp, prog, t_ScriptProgram);
-  data_reg_field_t(g_dataReg, AssetScriptComp, stringLiterals, data_prim_t(String), .container = DataContainer_HeapArray);
+  data_reg_field_t(g_dataReg, AssetScriptComp, stringLiterals, data_prim_t(String), .container = DataContainer_HeapArray, .flags = DataFlags_Intern);
   // clang-format on
 
   g_assetScriptMeta = data_meta_t(t_AssetScriptComp);
@@ -858,15 +858,15 @@ void asset_load_script(
 
   Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
 
-  ScriptDoc*     doc      = script_create(g_allocHeap);
-  ScriptDiagBag* diags    = script_diag_bag_create(tempAlloc, ScriptDiagFilter_Error);
-  ScriptSymBag*  symsNull = null;
+  ScriptDoc*     doc         = script_create(g_allocHeap);
+  StringTable*   stringtable = stringtable_create(g_allocHeap);
+  ScriptDiagBag* diags       = script_diag_bag_create(tempAlloc, ScriptDiagFilter_Error);
+  ScriptSymBag*  symsNull    = null;
 
   script_source_set(doc, src->data);
 
   // Parse the script.
-  ScriptExpr expr =
-      script_read(doc, g_assetScriptBinder, src->data, g_stringtable, diags, symsNull);
+  ScriptExpr expr = script_read(doc, g_assetScriptBinder, src->data, stringtable, diags, symsNull);
 
   const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
   for (u32 i = 0; i != diagCount; ++i) {
@@ -902,7 +902,19 @@ void asset_load_script(
 
   diag_assert(script_prog_validate(&prog, g_assetScriptBinder));
 
-  AssetScriptComp* scriptAsset = ecs_world_add_t(world, entity, AssetScriptComp, .prog = prog);
+  const StringTableArray strings = stringtable_clone_strings(stringtable, g_allocHeap);
+
+  // Register string-literals to the global string-table.
+  heap_array_for_t(strings, String, str) { stringtable_add(g_stringtable, *str); }
+
+  AssetScriptComp* scriptAsset = ecs_world_add_t(
+      world,
+      entity,
+      AssetScriptComp,
+      .prog                  = prog,
+      .stringLiterals.values = strings.values,
+      .stringLiterals.count  = strings.count);
+
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 
   if (scriptAsset) {
@@ -916,6 +928,7 @@ Error:
 
 Cleanup:
   script_destroy(doc);
+  stringtable_destroy(stringtable);
   asset_repo_source_close(src);
 }
 
@@ -947,9 +960,6 @@ void asset_load_script_bin(
     asset_repo_source_close(src);
     return;
   }
-
-  // Register string-literals to the global string-table.
-  heap_array_for_t(script.stringLiterals, String, str) { stringtable_add(g_stringtable, *str); }
 
   *ecs_world_add_t(world, entity, AssetScriptComp) = script;
   ecs_world_add_t(world, entity, AssetScriptSourceComp, .src = src);

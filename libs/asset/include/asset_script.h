@@ -11,7 +11,7 @@ typedef struct sScriptBinder ScriptBinder;
  */
 ecs_comp_extern_public(AssetScriptComp) {
   ScriptProgram prog;
-  HeapArray_t(String) stringLiterals;
+  HeapArray_t(String) stringLiterals; // To be interned in the global stringtable.
 };
 
 extern ScriptBinder* g_assetScriptBinder;
