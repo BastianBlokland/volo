@@ -336,6 +336,24 @@ void data_reg_const(DataReg* reg, const DataType parent, const String name, cons
   };
 }
 
+DataType data_reg_opaque(DataReg* reg, const String name, const usize size, const usize align) {
+  diag_assert_msg(name.size, "Type name cannot be empty");
+  diag_assert_msg(bits_ispow2(align), "Alignment '{}' is not a power-of-two", fmt_int(align));
+  diag_assert_msg(
+      bits_aligned(size, align),
+      "Size '{}' is not a multiple of alignment '{}'",
+      fmt_size(size),
+      fmt_int(align));
+
+  const DataType type = data_type_declare(reg, name);
+  DataDecl*      decl = data_decl_mutable(reg, type);
+  diag_assert_msg(!decl->kind, "Type '{}' already defined", fmt_text(decl->id.name));
+  decl->kind  = DataKind_Opaque;
+  decl->size  = size;
+  decl->align = align;
+  return type;
+}
+
 void data_reg_comment(DataReg* reg, const DataType type, const String comment) {
   DataDecl* decl = data_decl_mutable(reg, type);
   string_maybe_free(reg->alloc, decl->comment);
