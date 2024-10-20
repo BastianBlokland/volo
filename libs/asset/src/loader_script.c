@@ -827,7 +827,7 @@ void asset_data_init_script(void) {
   data_reg_field_t(g_dataReg, ScriptProgramPos, range, t_ScriptRangeLineCol);
 
   data_reg_struct_t(g_dataReg, ScriptProgram);
-  data_reg_field_t(g_dataReg, ScriptProgram, code, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, ScriptProgram, code, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
   data_reg_field_t(g_dataReg, ScriptProgram, literals, t_ScriptVal, .container = DataContainer_HeapArray);
   data_reg_field_t(g_dataReg, ScriptProgram, positions, t_ScriptProgramPos, .container = DataContainer_HeapArray);
 
