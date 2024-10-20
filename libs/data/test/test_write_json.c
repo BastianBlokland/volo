@@ -490,5 +490,31 @@ spec(write_json) {
                    "}"));
   }
 
+  it("can write opaque types") {
+    typedef struct {
+      ALIGNAS(16)
+      u8 data[16];
+    } OpaqueStruct;
+
+    data_reg_opaque_t(reg, OpaqueStruct);
+
+    const OpaqueStruct val1 = {.data = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}};
+    const OpaqueStruct val2 = {0};
+
+    test_write(
+        _testCtx,
+        reg,
+        data_meta_t(t_OpaqueStruct),
+        mem_var(val1),
+        string_lit("\"AQIDBAUGBwgJCgsMDQ4PEA==\""));
+
+    test_write(
+        _testCtx,
+        reg,
+        data_meta_t(t_OpaqueStruct),
+        mem_var(val2),
+        string_lit("\"AAAAAAAAAAAAAAAAAAAAAA==\""));
+  }
+
   teardown() { data_reg_destroy(reg); }
 }
