@@ -563,7 +563,7 @@ static void tracker_query(
       if (debugData[i].type == SceneScriptDebugType_Trace) {
         const String                scriptId = asset_id(assetComps[debugData[i].slot]);
         const String                msg      = debugData[i].data_trace.text;
-        const ScriptRangeLineCol    range    = {0}; // TODO: Collect ranges for traces.
+        const ScriptRangeLineCol    range    = debugData[i].range;
         const DebugScriptOutputType type     = DebugScriptOutputType_Trace;
         tracker_output_add(tracker, type, entity, now, debugData[i].slot, scriptId, msg, range);
       }

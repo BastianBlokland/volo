@@ -1720,6 +1720,7 @@ static ScriptVal eval_debug_line(EvalContext* ctx, ScriptBinderCall* call) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type      = SceneScriptDebugType_Line,
         .slot      = ctx->slot,
+        .range     = script_prog_location(ctx->scriptProgram, call->callId),
         .data_line = data,
     };
   }
@@ -1735,6 +1736,7 @@ static ScriptVal eval_debug_sphere(EvalContext* ctx, ScriptBinderCall* call) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type        = SceneScriptDebugType_Sphere,
         .slot        = ctx->slot,
+        .range       = script_prog_location(ctx->scriptProgram, call->callId),
         .data_sphere = data,
     };
   }
@@ -1751,6 +1753,7 @@ static ScriptVal eval_debug_box(EvalContext* ctx, ScriptBinderCall* call) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type     = SceneScriptDebugType_Box,
         .slot     = ctx->slot,
+        .range    = script_prog_location(ctx->scriptProgram, call->callId),
         .data_box = data,
     };
   }
@@ -1767,6 +1770,7 @@ static ScriptVal eval_debug_arrow(EvalContext* ctx, ScriptBinderCall* call) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type       = SceneScriptDebugType_Arrow,
         .slot       = ctx->slot,
+        .range      = script_prog_location(ctx->scriptProgram, call->callId),
         .data_arrow = data,
     };
   }
@@ -1782,6 +1786,7 @@ static ScriptVal eval_debug_orientation(EvalContext* ctx, ScriptBinderCall* call
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type             = SceneScriptDebugType_Orientation,
         .slot             = ctx->slot,
+        .range            = script_prog_location(ctx->scriptProgram, call->callId),
         .data_orientation = data,
     };
   }
@@ -1808,6 +1813,7 @@ static ScriptVal eval_debug_text(EvalContext* ctx, ScriptBinderCall* call) {
   *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
       .type      = SceneScriptDebugType_Text,
       .slot      = ctx->slot,
+      .range     = script_prog_location(ctx->scriptProgram, call->callId),
       .data_text = data,
   };
   return script_null();
@@ -1825,6 +1831,7 @@ static ScriptVal eval_debug_trace(EvalContext* ctx, ScriptBinderCall* call) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type            = SceneScriptDebugType_Trace,
         .slot            = ctx->slot,
+        .range           = script_prog_location(ctx->scriptProgram, call->callId),
         .data_trace.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1),
     };
   }
