@@ -1693,7 +1693,7 @@ static ScriptVal eval_debug_log(EvalContext* ctx, ScriptBinderCall* call) {
     script_val_write(call->args.values[i], &buffer);
   }
 
-  const ScriptRangeLineCol scriptPos    = script_prog_position(ctx->scriptProgram, call->callId);
+  const ScriptRangeLineCol scriptPos    = script_prog_location(ctx->scriptProgram, call->callId);
   const String             scriptPosStr = fmt_write_scratch(
       "{}:{}-{}:{}",
       fmt_int(scriptPos.start.line + 1),
