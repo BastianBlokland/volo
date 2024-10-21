@@ -19,7 +19,7 @@ typedef struct sScriptSig ScriptSig;
 typedef u16 ScriptBinderSlot;
 typedef u64 ScriptBinderHash;
 
-typedef struct {
+typedef struct sScriptBinderCall {
   const ScriptVal* args;
   u32              argCount;
   u32              callId;
