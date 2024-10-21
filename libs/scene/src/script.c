@@ -321,16 +321,16 @@ typedef struct {
   EcsIterator* skeletonItr;
   EcsIterator* skeletonTemplItr;
 
-  EcsEntityId            instigator;
-  SceneFaction           instigatorFaction;
-  SceneScriptSlot        slot;
-  SceneScriptComp*       scriptInstance;
-  SceneKnowledgeComp*    scriptKnowledge;
-  const AssetScriptComp* scriptAsset;
-  String                 scriptId;
-  SceneActionQueueComp*  actions;
-  DynArray*              debug; // SceneScriptDebug[].
-  GeoRay                 debugRay;
+  EcsEntityId           instigator;
+  SceneFaction          instigatorFaction;
+  SceneScriptSlot       slot;
+  SceneScriptComp*      scriptInstance;
+  SceneKnowledgeComp*   scriptKnowledge;
+  const ScriptProgram*  scriptProgram;
+  String                scriptId;
+  SceneActionQueueComp* actions;
+  DynArray*             debug; // SceneScriptDebug[].
+  GeoRay                debugRay;
 
   EvalQuery* queries; // EvalQuery[scene_script_query_max]
   u32        usedQueries;
@@ -1064,9 +1064,9 @@ static ScriptVal eval_nav_travel(EvalContext* ctx, ScriptBinderCall* call) {
     }
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_NavTravel);
     act->navTravel   = (SceneActionNavTravel){
-          .entity         = entity,
-          .targetEntity   = script_arg_maybe_entity(call->args, 1, ecs_entity_invalid),
-          .targetPosition = script_arg_maybe_vec3(call->args, 1, geo_vector(0)),
+        .entity         = entity,
+        .targetEntity   = script_arg_maybe_entity(call->args, 1, ecs_entity_invalid),
+        .targetPosition = script_arg_maybe_vec3(call->args, 1, geo_vector(0)),
     };
   }
   return script_null();
@@ -1132,8 +1132,8 @@ static ScriptVal eval_damage(EvalContext* ctx, ScriptBinderCall* call) {
   if (LIKELY(entity) && amount > f32_epsilon) {
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_HealthMod);
     act->healthMod   = (SceneActionHealthMod){
-          .entity = entity,
-          .amount = -amount /* negate for damage */,
+        .entity = entity,
+        .amount = -amount /* negate for damage */,
     };
   }
   return script_null();
@@ -1693,11 +1693,20 @@ static ScriptVal eval_debug_log(EvalContext* ctx, ScriptBinderCall* call) {
     script_val_write(call->args.values[i], &buffer);
   }
 
+  const ScriptRangeLineCol scriptPos    = script_prog_position(ctx->scriptProgram, call->callId);
+  const String             scriptPosStr = fmt_write_scratch(
+      "{}:{}-{}:{}",
+      fmt_int(scriptPos.start.line + 1),
+      fmt_int(scriptPos.start.column + 1),
+      fmt_int(scriptPos.end.line + 1),
+      fmt_int(scriptPos.end.column + 1));
+
   log_i(
       "script: {}",
       log_param("text", fmt_text(dynstring_view(&buffer))),
       log_param("entity", ecs_entity_fmt(ctx->instigator)),
-      log_param("script", fmt_text(ctx->scriptId)));
+      log_param("script", fmt_text(ctx->scriptId)),
+      log_param("script-pos", fmt_text(scriptPosStr)));
 
   return script_null();
 }
@@ -2119,12 +2128,11 @@ static void scene_script_eval(EvalContext* ctx) {
     return;
   }
 
-  const ScriptProgram* prog = &ctx->scriptAsset->prog;
-  ScriptMem*           mem  = scene_knowledge_memory_mut(ctx->scriptKnowledge);
+  ScriptMem* mem = scene_knowledge_memory_mut(ctx->scriptKnowledge);
 
   // Eval.
   const TimeSteady       startTime = time_steady_clock();
-  const ScriptProgResult evalRes   = script_prog_eval(prog, mem, g_scriptBinder, ctx);
+  const ScriptProgResult evalRes   = script_prog_eval(ctx->scriptProgram, mem, g_scriptBinder, ctx);
 
   // Handle panics.
   if (UNLIKELY(script_panic_valid(&evalRes.panic))) {
@@ -2223,8 +2231,8 @@ ecs_system_define(SceneScriptUpdateSys) {
 
       // Evaluate the script if the asset is loaded.
       if (ecs_view_maybe_jump(resourceAssetItr, data->asset)) {
-        ctx.scriptAsset = ecs_view_read_t(resourceAssetItr, AssetScriptComp);
-        ctx.scriptId    = asset_id(ecs_view_read_t(resourceAssetItr, AssetComp));
+        ctx.scriptProgram = &ecs_view_read_t(resourceAssetItr, AssetScriptComp)->prog;
+        ctx.scriptId      = asset_id(ecs_view_read_t(resourceAssetItr, AssetComp));
 
         const u8 version = ecs_view_read_t(resourceAssetItr, SceneScriptResourceComp)->resVersion;
         if (UNLIKELY(data->resVersion != version)) {
