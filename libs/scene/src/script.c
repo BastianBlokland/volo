@@ -1693,20 +1693,20 @@ static ScriptVal eval_debug_log(EvalContext* ctx, ScriptBinderCall* call) {
     script_val_write(call->args.values[i], &buffer);
   }
 
-  const ScriptRangeLineCol scriptPos    = script_prog_location(ctx->scriptProgram, call->callId);
-  const String             scriptPosStr = fmt_write_scratch(
+  const ScriptRangeLineCol scriptRange    = script_prog_location(ctx->scriptProgram, call->callId);
+  const String             scriptRangeStr = fmt_write_scratch(
       "{}:{}-{}:{}",
-      fmt_int(scriptPos.start.line + 1),
-      fmt_int(scriptPos.start.column + 1),
-      fmt_int(scriptPos.end.line + 1),
-      fmt_int(scriptPos.end.column + 1));
+      fmt_int(scriptRange.start.line + 1),
+      fmt_int(scriptRange.start.column + 1),
+      fmt_int(scriptRange.end.line + 1),
+      fmt_int(scriptRange.end.column + 1));
 
   log_i(
       "script: {}",
       log_param("text", fmt_text(dynstring_view(&buffer))),
       log_param("entity", ecs_entity_fmt(ctx->instigator)),
       log_param("script", fmt_text(ctx->scriptId)),
-      log_param("script-pos", fmt_text(scriptPosStr)));
+      log_param("script-range", fmt_text(scriptRangeStr)));
 
   return script_null();
 }
