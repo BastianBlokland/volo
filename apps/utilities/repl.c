@@ -251,11 +251,11 @@ static ScriptVal repl_bind_print(void* ctx, ScriptBinderCall* call) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  for (usize i = 0; i != call->args.count; ++i) {
+  for (usize i = 0; i != call->argCount; ++i) {
     if (i) {
       dynstring_append_char(&buffer, ' ');
     }
-    script_val_write(call->args.values[i], &buffer);
+    script_val_write(call->args[i], &buffer);
   }
   dynstring_append_char(&buffer, '\n');
 
@@ -270,8 +270,8 @@ static ScriptVal repl_bind_print_bytes(void* ctx, ScriptBinderCall* call) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  for (usize i = 0; i != call->args.count; ++i) {
-    format_write_mem(&buffer, mem_var(call->args.values[i]));
+  for (usize i = 0; i != call->argCount; ++i) {
+    format_write_mem(&buffer, mem_var(call->args[i]));
     dynstring_append_char(&buffer, '\n');
   }
 
@@ -289,8 +289,8 @@ static ScriptVal repl_bind_print_bits(void* ctx, ScriptBinderCall* call) {
 
   const FormatOptsBitset opts = {.order = FormatBitsetOrder_MostToLeastSignificant};
 
-  for (usize i = 0; i != call->args.count; ++i) {
-    format_write_bitset(&buffer, bitset_from_var(call->args.values[i]), &opts);
+  for (usize i = 0; i != call->argCount; ++i) {
+    format_write_bitset(&buffer, bitset_from_var(call->args[i]), &opts);
     dynstring_append_char(&buffer, '\n');
   }
 
@@ -306,8 +306,8 @@ static ScriptVal repl_bind_print_base64(void* ctx, ScriptBinderCall* call) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  for (usize i = 0; i != call->args.count; ++i) {
-    base64_encode(&buffer, mem_var(call->args.values[i]));
+  for (usize i = 0; i != call->argCount; ++i) {
+    base64_encode(&buffer, mem_var(call->args[i]));
     dynstring_append_char(&buffer, '\n');
   }
 

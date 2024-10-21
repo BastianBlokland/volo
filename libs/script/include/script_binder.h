@@ -1,6 +1,5 @@
 #pragma once
 #include "core_string.h"
-#include "script_args.h"
 #include "script_error.h"
 
 // Forward declare from 'core_alloc.h'.
@@ -20,10 +19,11 @@ typedef struct sScriptSig ScriptSig;
 typedef u16 ScriptBinderSlot;
 typedef u64 ScriptBinderHash;
 
-typedef struct {
-  ScriptArgs  args;
-  ScriptError err;
-  u32         callId;
+typedef struct sScriptBinderCall {
+  const ScriptVal* args;
+  u32              argCount;
+  u32              callId;
+  ScriptError      err;
 } ScriptBinderCall;
 
 typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptBinderCall*);

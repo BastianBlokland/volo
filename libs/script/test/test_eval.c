@@ -33,7 +33,7 @@ static ScriptVal test_return_null(void* ctx, ScriptBinderCall* call) {
 static ScriptVal test_return_first(void* ctx, ScriptBinderCall* call) {
   (void)ctx;
 
-  return call->args.count ? call->args.values[0] : script_null();
+  return call->argCount ? call->args[0] : script_null();
 }
 
 spec(eval) {

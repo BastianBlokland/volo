@@ -6,6 +6,7 @@
 #include "core_math.h"
 #include "core_path.h"
 #include "core_stringtable.h"
+#include "core_time.h"
 #include "json.h"
 #include "script_binder.h"
 #include "script_diag.h"
