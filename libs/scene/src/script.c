@@ -321,16 +321,16 @@ typedef struct {
   EcsIterator* skeletonItr;
   EcsIterator* skeletonTemplItr;
 
-  EcsEntityId            instigator;
-  SceneFaction           instigatorFaction;
-  SceneScriptSlot        slot;
-  SceneScriptComp*       scriptInstance;
-  SceneKnowledgeComp*    scriptKnowledge;
-  const AssetScriptComp* scriptAsset;
-  String                 scriptId;
-  SceneActionQueueComp*  actions;
-  DynArray*              debug; // SceneScriptDebug[].
-  GeoRay                 debugRay;
+  EcsEntityId           instigator;
+  SceneFaction          instigatorFaction;
+  SceneScriptSlot       slot;
+  SceneScriptComp*      scriptInstance;
+  SceneKnowledgeComp*   scriptKnowledge;
+  const ScriptProgram*  scriptProgram;
+  String                scriptId;
+  SceneActionQueueComp* actions;
+  DynArray*             debug; // SceneScriptDebug[].
+  GeoRay                debugRay;
 
   EvalQuery* queries; // EvalQuery[scene_script_query_max]
   u32        usedQueries;
@@ -384,39 +384,39 @@ static EvalQuery* context_query_get(EvalContext* ctx, const u32 id) {
   return id < ctx->usedQueries ? &ctx->queries[id] : null;
 }
 
-static EcsEntityId arg_asset(EvalContext* ctx, const ScriptArgs a, const u16 i, ScriptError* err) {
-  const EcsEntityId e = script_arg_entity(a, i, err);
-  if (UNLIKELY(script_error_valid(err))) {
+static EcsEntityId arg_asset(EvalContext* ctx, ScriptBinderCall* call, const u16 i) {
+  const EcsEntityId e = script_arg_entity(call->args, i, &call->err);
+  if (UNLIKELY(script_error_valid(&call->err))) {
     return e;
   }
   if (UNLIKELY(!ecs_world_exists(ctx->world, e) || !ecs_world_has_t(ctx->world, e, AssetComp))) {
-    *err = script_error_arg(ScriptError_ArgumentInvalid, i);
+    call->err = script_error_arg(ScriptError_ArgumentInvalid, i);
   }
   return e;
 }
 
-static SceneLayer arg_layer(const ScriptArgs a, const u16 i, ScriptError* err) {
-  if (a.count <= i) {
+static SceneLayer arg_layer(ScriptBinderCall* call, const u16 i) {
+  if (call->args.count <= i) {
     return SceneLayer_Environment;
   }
-  return (SceneLayer)script_arg_enum(a, i, &g_scriptEnumLayer, err);
+  return (SceneLayer)script_arg_enum(call->args, i, &g_scriptEnumLayer, &call->err);
 }
 
-static SceneLayer arg_layer_mask(const ScriptArgs a, const u16 i, ScriptError* err) {
-  if (a.count <= i) {
+static SceneLayer arg_layer_mask(ScriptBinderCall* call, const u16 i) {
+  if (call->args.count <= i) {
     return SceneLayer_AllNonDebug;
   }
   SceneLayer layerMask = 0;
-  for (u8 argIndex = i; argIndex != a.count; ++argIndex) {
-    layerMask |= (SceneLayer)script_arg_enum(a, argIndex, &g_scriptEnumLayer, err);
+  for (u8 argIndex = i; argIndex != call->args.count; ++argIndex) {
+    layerMask |= (SceneLayer)script_arg_enum(call->args, argIndex, &g_scriptEnumLayer, &call->err);
   }
   return layerMask;
 }
 
-static SceneQueryFilter arg_query_filter(
-    const SceneFaction factionSelf, const ScriptArgs a, const u16 i, ScriptError* err) {
-  const u32  option    = script_arg_opt_enum(a, i, &g_scriptEnumQueryOption, 0, err);
-  SceneLayer layerMask = arg_layer_mask(a, i + 1, err);
+static SceneQueryFilter
+arg_query_filter(const SceneFaction factionSelf, ScriptBinderCall* call, const u16 i) {
+  const u32  option = script_arg_opt_enum(call->args, i, &g_scriptEnumQueryOption, 0, &call->err);
+  SceneLayer layerMask = arg_layer_mask(call, i + 1);
   switch (option) {
   case 1 /* FactionSelf */:
     layerMask &= scene_faction_layers(factionSelf);
@@ -428,53 +428,52 @@ static SceneQueryFilter arg_query_filter(
   return (SceneQueryFilter){.layerMask = layerMask};
 }
 
-static ScriptVal eval_self(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  (void)args;
-  (void)err;
+static ScriptVal eval_self(EvalContext* ctx, ScriptBinderCall* call) {
+  (void)call;
   return script_entity(ctx->instigator);
 }
 
-static ScriptVal eval_exists(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  if (script_arg_check(args, 0, script_mask_entity | script_mask_null, err)) {
-    const EcsEntityId e = script_get_entity(args.values[0], ecs_entity_invalid);
+static ScriptVal eval_exists(EvalContext* ctx, ScriptBinderCall* call) {
+  if (script_arg_check(call->args, 0, script_mask_entity | script_mask_null, &call->err)) {
+    const EcsEntityId e = script_get_entity(call->args.values[0], ecs_entity_invalid);
     return script_bool(e && ecs_world_exists(ctx->world, e));
   }
   return script_bool(false);
 }
 
-static ScriptVal eval_position(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId  e   = script_arg_entity(args, 0, err);
+static ScriptVal eval_position(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId  e   = script_arg_entity(call->args, 0, &call->err);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->transformItr, e);
   return itr ? script_vec3(ecs_view_read_t(itr, SceneTransformComp)->position) : script_null();
 }
 
-static ScriptVal eval_velocity(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId  e   = script_arg_entity(args, 0, err);
+static ScriptVal eval_velocity(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId  e   = script_arg_entity(call->args, 0, &call->err);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->veloItr, e);
   return itr ? script_vec3(ecs_view_read_t(itr, SceneVelocityComp)->velocityAvg) : script_null();
 }
 
-static ScriptVal eval_rotation(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId  e   = script_arg_entity(args, 0, err);
+static ScriptVal eval_rotation(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId  e   = script_arg_entity(call->args, 0, &call->err);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->transformItr, e);
   return itr ? script_quat(ecs_view_read_t(itr, SceneTransformComp)->rotation) : script_null();
 }
 
-static ScriptVal eval_scale(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId  e   = script_arg_entity(args, 0, err);
+static ScriptVal eval_scale(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId  e   = script_arg_entity(call->args, 0, &call->err);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->scaleItr, e);
   return itr ? script_num(ecs_view_read_t(itr, SceneScaleComp)->scale) : script_null();
 }
 
-static ScriptVal eval_name(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId  e   = script_arg_entity(args, 0, err);
+static ScriptVal eval_name(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId  e   = script_arg_entity(call->args, 0, &call->err);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->nameItr, e);
   return itr ? script_str(ecs_view_read_t(itr, SceneNameComp)->name) : script_null();
 }
 
-static ScriptVal eval_faction(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId e = script_arg_entity(args, 0, err);
-  if (args.count == 1) {
+static ScriptVal eval_faction(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId e = script_arg_entity(call->args, 0, &call->err);
+  if (call->args.count == 1) {
     if (ecs_view_maybe_jump(ctx->factionItr, e)) {
       const SceneFactionComp* factionComp = ecs_view_read_t(ctx->factionItr, SceneFactionComp);
       const StringHash factionName = script_enum_lookup_name(&g_scriptEnumFaction, factionComp->id);
@@ -482,8 +481,8 @@ static ScriptVal eval_faction(EvalContext* ctx, const ScriptArgs args, ScriptErr
     }
     return script_null();
   }
-  const SceneFaction faction = script_arg_enum(args, 1, &g_scriptEnumFaction, err);
-  if (UNLIKELY(script_error_valid(err))) {
+  const SceneFaction faction = script_arg_enum(call->args, 1, &g_scriptEnumFaction, &call->err);
+  if (UNLIKELY(script_error_valid(&call->err))) {
     return script_null();
   }
   SceneAction* act   = scene_action_push(ctx->actions, SceneActionType_UpdateFaction);
@@ -491,9 +490,9 @@ static ScriptVal eval_faction(EvalContext* ctx, const ScriptArgs args, ScriptErr
   return script_null();
 }
 
-static ScriptVal eval_health(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId e          = script_arg_entity(args, 0, err);
-  const bool        normalized = script_arg_opt_bool(args, 1, false, err);
+static ScriptVal eval_health(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId e          = script_arg_entity(call->args, 0, &call->err);
+  const bool        normalized = script_arg_opt_bool(call->args, 1, false, &call->err);
   if (ecs_view_maybe_jump(ctx->healthItr, e)) {
     const SceneHealthComp* healthComp = ecs_view_read_t(ctx->healthItr, SceneHealthComp);
     if (normalized) {
@@ -504,17 +503,17 @@ static ScriptVal eval_health(EvalContext* ctx, const ScriptArgs args, ScriptErro
   return script_null();
 }
 
-static ScriptVal eval_health_stat(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId     e    = script_arg_entity(args, 0, err);
-  const SceneHealthStat stat = script_arg_enum(args, 1, &g_scriptEnumHealthStat, err);
+static ScriptVal eval_health_stat(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId     e    = script_arg_entity(call->args, 0, &call->err);
+  const SceneHealthStat stat = script_arg_enum(call->args, 1, &g_scriptEnumHealthStat, &call->err);
   if (ecs_view_maybe_jump(ctx->healthStatsItr, e)) {
     return script_num(ecs_view_read_t(ctx->healthStatsItr, SceneHealthStatsComp)->values[stat]);
   }
   return script_null();
 }
 
-static ScriptVal eval_vision(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId e = script_arg_entity(args, 0, err);
+static ScriptVal eval_vision(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId e = script_arg_entity(call->args, 0, &call->err);
   if (ecs_view_maybe_jump(ctx->visionItr, e)) {
     const SceneVisionComp* visionComp = ecs_view_read_t(ctx->visionItr, SceneVisionComp);
     return script_num(visionComp->radius);
@@ -522,23 +521,24 @@ static ScriptVal eval_vision(EvalContext* ctx, const ScriptArgs args, ScriptErro
   return script_null();
 }
 
-static ScriptVal eval_visible(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const GeoVector    pos        = script_arg_vec3(args, 0, err);
+static ScriptVal eval_visible(EvalContext* ctx, ScriptBinderCall* call) {
+  const GeoVector    pos        = script_arg_vec3(call->args, 0, &call->err);
   const SceneFaction factionDef = ctx->instigatorFaction;
-  const SceneFaction faction = script_arg_opt_enum(args, 1, &g_scriptEnumFaction, factionDef, err);
-  if (UNLIKELY(script_error_valid(err))) {
+  const SceneFaction faction =
+      script_arg_opt_enum(call->args, 1, &g_scriptEnumFaction, factionDef, &call->err);
+  if (UNLIKELY(script_error_valid(&call->err))) {
     return script_null();
   }
   const SceneVisibilityEnvComp* env = ecs_view_read_t(ctx->globalItr, SceneVisibilityEnvComp);
   return script_bool(scene_visible_pos(env, faction, pos));
 }
 
-static ScriptVal eval_time(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal eval_time(EvalContext* ctx, ScriptBinderCall* call) {
   const SceneTimeComp* time = ecs_view_read_t(ctx->globalItr, SceneTimeComp);
-  if (!args.count) {
+  if (!call->args.count) {
     return script_time(time->time);
   }
-  switch (script_arg_enum(args, 0, &g_scriptEnumClock, err)) {
+  switch (script_arg_enum(call->args, 0, &g_scriptEnumClock, &call->err)) {
   case 0 /* Time */:
     return script_time(time->time);
   case 1 /* RealTime */:
@@ -560,24 +560,24 @@ static bool eval_set_allowed(EvalContext* ctx, const EcsEntityId e) {
   return true;
 }
 
-static ScriptVal eval_set(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId e = script_arg_entity(args, 0, err);
+static ScriptVal eval_set(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId e = script_arg_entity(call->args, 0, &call->err);
   if (UNLIKELY(!e)) {
     return script_null();
   }
   if (UNLIKELY(!eval_set_allowed(ctx, e))) {
-    *err = script_error_arg(ScriptError_ArgumentInvalid, 0);
+    call->err = script_error_arg(ScriptError_ArgumentInvalid, 0);
     return script_null();
   }
-  const StringHash set = script_arg_str(args, 1, err);
+  const StringHash set = script_arg_str(call->args, 1, &call->err);
   if (UNLIKELY(!set)) {
     return script_null();
   }
-  if (args.count == 2) {
+  if (call->args.count == 2) {
     const SceneSetEnvComp* setEnv = ecs_view_read_t(ctx->globalItr, SceneSetEnvComp);
     return script_bool(scene_set_contains(setEnv, set, e));
   }
-  const bool add = script_arg_bool(args, 2, err);
+  const bool add = script_arg_bool(call->args, 2, &call->err);
 
   SceneAction* act = scene_action_push(ctx->actions, SceneActionType_UpdateSet);
   act->updateSet   = (SceneActionUpdateSet){.entity = e, .set = set, .add = add};
@@ -585,17 +585,17 @@ static ScriptVal eval_set(EvalContext* ctx, const ScriptArgs args, ScriptError* 
   return script_null();
 }
 
-static ScriptVal eval_query_set(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal eval_query_set(EvalContext* ctx, ScriptBinderCall* call) {
   const SceneSetEnvComp* setEnv = ecs_view_read_t(ctx->globalItr, SceneSetEnvComp);
 
-  const StringHash set = script_arg_str(args, 0, err);
+  const StringHash set = script_arg_str(call->args, 0, &call->err);
   if (UNLIKELY(!set)) {
     return script_null();
   }
 
   EvalQuery* query = context_query_alloc(ctx);
   if (UNLIKELY(!query)) {
-    *err = script_error(ScriptError_QueryLimitExceeded);
+    call->err = script_error(ScriptError_QueryLimitExceeded);
     return script_null();
   }
 
@@ -612,20 +612,20 @@ static ScriptVal eval_query_set(EvalContext* ctx, const ScriptArgs args, ScriptE
   return script_num(context_query_id(ctx, query));
 }
 
-static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal eval_query_sphere(EvalContext* ctx, ScriptBinderCall* call) {
   const SceneCollisionEnvComp* colEnv = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
 
-  const GeoVector        pos    = script_arg_vec3(args, 0, err);
-  const f32              radius = (f32)script_arg_num_range(args, 1, 0.01, 100.0, err);
-  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, args, 2, err);
+  const GeoVector        pos    = script_arg_vec3(call->args, 0, &call->err);
+  const f32              radius = (f32)script_arg_num_range(call->args, 1, 0.01, 100.0, &call->err);
+  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, call, 2);
 
-  if (UNLIKELY(script_error_valid(err))) {
+  if (UNLIKELY(script_error_valid(&call->err))) {
     return script_null();
   }
 
   EvalQuery* query = context_query_alloc(ctx);
   if (UNLIKELY(!query)) {
-    *err = script_error(ScriptError_QueryLimitExceeded);
+    call->err = script_error(ScriptError_QueryLimitExceeded);
     return script_null();
   }
 
@@ -639,21 +639,21 @@ static ScriptVal eval_query_sphere(EvalContext* ctx, const ScriptArgs args, Scri
   return script_num(context_query_id(ctx, query));
 }
 
-static ScriptVal eval_query_box(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal eval_query_box(EvalContext* ctx, ScriptBinderCall* call) {
   const SceneCollisionEnvComp* colEnv = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
 
-  const GeoVector        pos    = script_arg_vec3(args, 0, err);
-  const GeoVector        size   = script_arg_vec3(args, 1, err);
-  const GeoQuat          rot    = script_arg_opt_quat(args, 2, geo_quat_ident, err);
-  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, args, 3, err);
+  const GeoVector        pos    = script_arg_vec3(call->args, 0, &call->err);
+  const GeoVector        size   = script_arg_vec3(call->args, 1, &call->err);
+  const GeoQuat          rot    = script_arg_opt_quat(call->args, 2, geo_quat_ident, &call->err);
+  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, call, 3);
 
-  if (UNLIKELY(script_error_valid(err))) {
+  if (UNLIKELY(script_error_valid(&call->err))) {
     return script_null();
   }
 
   EvalQuery* query = context_query_alloc(ctx);
   if (UNLIKELY(!query)) {
-    *err = script_error(ScriptError_QueryLimitExceeded);
+    call->err = script_error(ScriptError_QueryLimitExceeded);
     return script_null();
   }
 
@@ -669,14 +669,14 @@ static ScriptVal eval_query_box(EvalContext* ctx, const ScriptArgs args, ScriptE
   return script_num(context_query_id(ctx, query));
 }
 
-static ScriptVal eval_query_pop(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const u32 queryId = (u32)script_arg_num(args, 0, err);
-  if (UNLIKELY(script_error_valid(err))) {
+static ScriptVal eval_query_pop(EvalContext* ctx, ScriptBinderCall* call) {
+  const u32 queryId = (u32)script_arg_num(call->args, 0, &call->err);
+  if (UNLIKELY(script_error_valid(&call->err))) {
     return script_null();
   }
   EvalQuery* query = context_query_get(ctx, queryId);
   if (UNLIKELY(!query)) {
-    *err = script_error_arg(ScriptError_QueryInvalid, 0);
+    call->err = script_error_arg(ScriptError_QueryInvalid, 0);
     return script_null();
   }
   if (query->itr == query->count) {
@@ -685,14 +685,14 @@ static ScriptVal eval_query_pop(EvalContext* ctx, const ScriptArgs args, ScriptE
   return script_entity(query->values[query->itr++]);
 }
 
-static ScriptVal eval_query_random(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const u32 queryId = (u32)script_arg_num(args, 0, err);
-  if (UNLIKELY(script_error_valid(err))) {
+static ScriptVal eval_query_random(EvalContext* ctx, ScriptBinderCall* call) {
+  const u32 queryId = (u32)script_arg_num(call->args, 0, &call->err);
+  if (UNLIKELY(script_error_valid(&call->err))) {
     return script_null();
   }
   EvalQuery* query = context_query_get(ctx, queryId);
   if (UNLIKELY(!query)) {
-    *err = script_error_arg(ScriptError_QueryInvalid, 0);
+    call->err = script_error_arg(ScriptError_QueryInvalid, 0);
     return script_null();
   }
   if (query->itr == query->count) {
@@ -703,20 +703,20 @@ static ScriptVal eval_query_random(EvalContext* ctx, const ScriptArgs args, Scri
   return script_entity(query->values[index]);
 }
 
-static ScriptVal eval_nav_find(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const GeoVector     pos = script_arg_vec3(args, 0, err);
-  const SceneNavLayer layer =
-      (SceneNavLayer)script_arg_opt_enum(args, 1, &g_scriptEnumNavLayer, SceneNavLayer_Normal, err);
-  if (UNLIKELY(err->kind)) {
+static ScriptVal eval_nav_find(EvalContext* ctx, ScriptBinderCall* call) {
+  const GeoVector     pos   = script_arg_vec3(call->args, 0, &call->err);
+  const SceneNavLayer layer = (SceneNavLayer)script_arg_opt_enum(
+      call->args, 1, &g_scriptEnumNavLayer, SceneNavLayer_Normal, &call->err);
+  if (UNLIKELY(script_error_valid(&call->err))) {
     return script_null();
   }
   const SceneNavEnvComp* navEnv = ecs_view_read_t(ctx->globalItr, SceneNavEnvComp);
   const GeoNavGrid*      grid   = scene_nav_grid(navEnv, layer);
   const GeoNavCell       cell   = geo_nav_at_position(grid, pos);
-  if (args.count < 3) {
+  if (call->args.count < 3) {
     return script_vec3(geo_nav_position(grid, cell));
   }
-  switch (script_arg_enum(args, 2, &g_scriptEnumNavFind, err)) {
+  switch (script_arg_enum(call->args, 2, &g_scriptEnumNavFind, &call->err)) {
   case 0 /* ClosestCell */:
     return script_vec3(geo_nav_position(grid, cell));
   case 1 /* UnblockedCell */: {
@@ -731,8 +731,8 @@ static ScriptVal eval_nav_find(EvalContext* ctx, const ScriptArgs args, ScriptEr
   return script_null();
 }
 
-static ScriptVal eval_nav_target(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId        e     = script_arg_entity(args, 0, err);
+static ScriptVal eval_nav_target(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId        e     = script_arg_entity(call->args, 0, &call->err);
   const EcsIterator*       itr   = ecs_view_maybe_jump(ctx->navAgentItr, e);
   const SceneNavAgentComp* agent = itr ? ecs_view_read_t(itr, SceneNavAgentComp) : null;
   if (!agent) {
@@ -784,10 +784,10 @@ static bool eval_line_of_sight_filter(const void* ctx, const EcsEntityId entity,
   return true;
 }
 
-static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal eval_line_of_sight(EvalContext* ctx, ScriptBinderCall* call) {
   const SceneCollisionEnvComp* colEnv = ecs_view_read_t(ctx->globalItr, SceneCollisionEnvComp);
 
-  const EcsEntityId srcEntity = script_arg_entity(args, 0, err);
+  const EcsEntityId srcEntity = script_arg_entity(call->args, 0, &call->err);
   EcsIterator*      srcItr    = ecs_view_maybe_jump(ctx->lineOfSightItr, srcEntity);
   if (!srcItr) {
     return script_null(); // Source not valid.
@@ -803,7 +803,7 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
    */
   const GeoVector srcPos = eval_aim_center(srcTrans, srcScale, srcLoc);
 
-  const EcsEntityId tgtEntity = script_arg_entity(args, 1, err);
+  const EcsEntityId tgtEntity = script_arg_entity(call->args, 1, &call->err);
   EcsIterator*      tgtItr    = ecs_view_maybe_jump(ctx->lineOfSightItr, tgtEntity);
   if (!tgtItr) {
     return script_null(); // Target not valid.
@@ -836,7 +836,7 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
   };
 
   const GeoRay ray    = {.point = srcPos, .dir = geo_vector_div(toTgt, dist)};
-  const f32    radius = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 0.0, err);
+  const f32    radius = (f32)script_arg_opt_num_range(call->args, 2, 0.0, 10.0, 0.0, &call->err);
 
   SceneRayHit hit;
   bool        hasHit;
@@ -849,15 +849,16 @@ static ScriptVal eval_line_of_sight(EvalContext* ctx, const ScriptArgs args, Scr
   return hasLos ? script_num(hit.time) : script_null();
 }
 
-static ScriptVal eval_capable(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId           e   = script_arg_entity(args, 0, err);
-  const SceneScriptCapability cap = script_arg_enum(args, 1, &g_scriptEnumCapability, err);
+static ScriptVal eval_capable(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId           e = script_arg_entity(call->args, 0, &call->err);
+  const SceneScriptCapability cap =
+      script_arg_enum(call->args, 1, &g_scriptEnumCapability, &call->err);
   return script_bool(e && context_is_capable(ctx, e, cap));
 }
 
-static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId e = script_arg_entity(args, 0, err);
-  switch (script_arg_enum(args, 1, &g_scriptEnumActivity, err)) {
+static ScriptVal eval_active(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId e = script_arg_entity(call->args, 0, &call->err);
+  switch (script_arg_enum(call->args, 1, &g_scriptEnumActivity, &call->err)) {
   case 0 /* Dead */: {
     bool dead = false;
     if (ecs_world_exists(ctx->world, e)) {
@@ -899,8 +900,8 @@ static ScriptVal eval_active(EvalContext* ctx, const ScriptArgs args, ScriptErro
   return script_null();
 }
 
-static ScriptVal eval_target_primary(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId e = script_arg_entity(args, 0, err);
+static ScriptVal eval_target_primary(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId e = script_arg_entity(call->args, 0, &call->err);
   if (ecs_view_maybe_jump(ctx->targetItr, e)) {
     const SceneTargetFinderComp* finder = ecs_view_read_t(ctx->targetItr, SceneTargetFinderComp);
     return script_entity_or_null(scene_target_primary(finder));
@@ -908,8 +909,8 @@ static ScriptVal eval_target_primary(EvalContext* ctx, const ScriptArgs args, Sc
   return script_null();
 }
 
-static ScriptVal eval_target_range_min(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId e = script_arg_entity(args, 0, err);
+static ScriptVal eval_target_range_min(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId e = script_arg_entity(call->args, 0, &call->err);
   if (ecs_view_maybe_jump(ctx->targetItr, e)) {
     const SceneTargetFinderComp* finder = ecs_view_read_t(ctx->targetItr, SceneTargetFinderComp);
     return script_num(finder->rangeMin);
@@ -917,8 +918,8 @@ static ScriptVal eval_target_range_min(EvalContext* ctx, const ScriptArgs args, 
   return script_null();
 }
 
-static ScriptVal eval_target_range_max(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId e = script_arg_entity(args, 0, err);
+static ScriptVal eval_target_range_max(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId e = script_arg_entity(call->args, 0, &call->err);
   if (ecs_view_maybe_jump(ctx->targetItr, e)) {
     const SceneTargetFinderComp* finder = ecs_view_read_t(ctx->targetItr, SceneTargetFinderComp);
     return script_num(finder->rangeMax);
@@ -926,11 +927,11 @@ static ScriptVal eval_target_range_max(EvalContext* ctx, const ScriptArgs args, 
   return script_null();
 }
 
-static ScriptVal eval_target_exclude(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId e = script_arg_entity(args, 0, err);
+static ScriptVal eval_target_exclude(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId e = script_arg_entity(call->args, 0, &call->err);
   if (ecs_view_maybe_jump(ctx->targetItr, e)) {
     const SceneTargetFinderComp* finder = ecs_view_read_t(ctx->targetItr, SceneTargetFinderComp);
-    switch (script_arg_enum(args, 1, &g_scriptEnumTargetExclude, err)) {
+    switch (script_arg_enum(call->args, 1, &g_scriptEnumTargetExclude, &call->err)) {
     case 0 /* Unreachable */:
       return script_bool((finder->config & SceneTargetConfig_ExcludeUnreachable) != 0);
     case 1 /* Obscured */:
@@ -940,10 +941,10 @@ static ScriptVal eval_target_exclude(EvalContext* ctx, const ScriptArgs args, Sc
   return script_null();
 }
 
-static ScriptVal eval_tell(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId e     = script_arg_entity(args, 0, err);
-  const StringHash  key   = script_arg_str(args, 1, err);
-  const ScriptVal   value = script_arg_any(args, 2, err);
+static ScriptVal eval_tell(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId e     = script_arg_entity(call->args, 0, &call->err);
+  const StringHash  key   = script_arg_str(call->args, 1, &call->err);
+  const ScriptVal   value = script_arg_any(call->args, 2, &call->err);
   if (LIKELY(e && key)) {
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Tell);
     act->tell        = (SceneActionTell){.entity = e, .memKey = key, .value = value};
@@ -951,10 +952,10 @@ static ScriptVal eval_tell(EvalContext* ctx, const ScriptArgs args, ScriptError*
   return script_null();
 }
 
-static ScriptVal eval_ask(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId e      = script_arg_entity(args, 0, err);
-  const EcsEntityId target = script_arg_entity(args, 1, err);
-  const StringHash  key    = script_arg_str(args, 2, err);
+static ScriptVal eval_ask(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId e      = script_arg_entity(call->args, 0, &call->err);
+  const EcsEntityId target = script_arg_entity(call->args, 1, &call->err);
+  const StringHash  key    = script_arg_str(call->args, 2, &call->err);
   if (LIKELY(e && target && key)) {
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Ask);
     act->ask         = (SceneActionAsk){.entity = e, .target = target, .memKey = key};
@@ -962,8 +963,8 @@ static ScriptVal eval_ask(EvalContext* ctx, const ScriptArgs args, ScriptError* 
   return script_null();
 }
 
-static ScriptVal eval_prefab_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const StringHash prefabId = script_arg_str(args, 0, err);
+static ScriptVal eval_prefab_spawn(EvalContext* ctx, ScriptBinderCall* call) {
+  const StringHash prefabId = script_arg_str(call->args, 0, &call->err);
   if (UNLIKELY(!prefabId)) {
     return script_null(); // Invalid prefab-id.
   }
@@ -974,10 +975,11 @@ static ScriptVal eval_prefab_spawn(EvalContext* ctx, const ScriptArgs args, Scri
   act->spawn = (SceneActionSpawn){
       .entity   = result,
       .prefabId = prefabId,
-      .position = script_arg_opt_vec3(args, 1, geo_vector(0), err),
-      .rotation = script_arg_opt_quat(args, 2, geo_quat_ident, err),
-      .scale    = (f32)script_arg_opt_num_range(args, 3, 0.001, 1000.0, 1.0, err),
-      .faction  = script_arg_opt_enum(args, 4, &g_scriptEnumFaction, SceneFaction_None, err),
+      .position = script_arg_opt_vec3(call->args, 1, geo_vector(0), &call->err),
+      .rotation = script_arg_opt_quat(call->args, 2, geo_quat_ident, &call->err),
+      .scale    = (f32)script_arg_opt_num_range(call->args, 3, 0.001, 1000.0, 1.0, &call->err),
+      .faction =
+          script_arg_opt_enum(call->args, 4, &g_scriptEnumFaction, SceneFaction_None, &call->err),
   };
 
   return script_entity(result);
@@ -990,13 +992,13 @@ static bool eval_destroy_allowed(EvalContext* ctx, const EcsEntityId e) {
   return true;
 }
 
-static ScriptVal eval_destroy(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity = script_arg_entity(args, 0, err);
+static ScriptVal eval_destroy(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId entity = script_arg_entity(call->args, 0, &call->err);
   if (UNLIKELY(!entity)) {
     return script_null();
   }
   if (UNLIKELY(!eval_destroy_allowed(ctx, entity))) {
-    *err = script_error_arg(ScriptError_ArgumentInvalid, 0);
+    call->err = script_error_arg(ScriptError_ArgumentInvalid, 0);
     return script_null();
   }
   if (ecs_world_exists(ctx->world, entity)) {
@@ -1005,20 +1007,21 @@ static ScriptVal eval_destroy(EvalContext* ctx, const ScriptArgs args, ScriptErr
   return script_null();
 }
 
-static ScriptVal eval_destroy_after(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity = script_arg_entity(args, 0, err);
+static ScriptVal eval_destroy_after(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId entity = script_arg_entity(call->args, 0, &call->err);
   if (UNLIKELY(!entity)) {
     return script_null();
   }
   if (UNLIKELY(!eval_destroy_allowed(ctx, entity))) {
-    *err = script_error_arg(ScriptError_ArgumentInvalid, 0);
+    call->err = script_error_arg(ScriptError_ArgumentInvalid, 0);
     return script_null();
   }
-  if (UNLIKELY(!script_arg_check(args, 1, script_mask_entity | script_mask_time, err))) {
+  if (UNLIKELY(
+          !script_arg_check(call->args, 1, script_mask_entity | script_mask_time, &call->err))) {
     return script_null();
   }
-  const EcsEntityId  owner = script_arg_maybe_entity(args, 1, 0);
-  const TimeDuration delay = script_arg_maybe_time(args, 1, 0);
+  const EcsEntityId  owner = script_arg_maybe_entity(call->args, 1, 0);
+  const TimeDuration delay = script_arg_maybe_time(call->args, 1, 0);
   if (ecs_world_exists(ctx->world, entity)) {
     if (owner) {
       ecs_world_add_t(ctx->world, entity, SceneLifetimeOwnerComp, .owners[0] = owner);
@@ -1029,18 +1032,20 @@ static ScriptVal eval_destroy_after(EvalContext* ctx, const ScriptArgs args, Scr
   return script_null();
 }
 
-static ScriptVal eval_teleport(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity = script_arg_entity(args, 0, err);
+static ScriptVal eval_teleport(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId entity = script_arg_entity(call->args, 0, &call->err);
   if (LIKELY(entity)) {
     if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Teleport))) {
-      *err = script_error_arg(ScriptError_MissingCapability, 0);
+      call->err = script_error_arg(ScriptError_MissingCapability, 0);
+      return script_null();
     }
-    const GeoVector pos = script_arg_opt_vec3(args, 1, geo_vector(0), err);
-    const GeoQuat   rot = script_arg_opt_quat(args, 2, geo_quat_ident, err);
+    const GeoVector pos = script_arg_opt_vec3(call->args, 1, geo_vector(0), &call->err);
+    const GeoQuat   rot = script_arg_opt_quat(call->args, 2, geo_quat_ident, &call->err);
 
     const bool posValid = geo_vector_mag_sqr(pos) <= (1e5f * 1e5f);
     if (UNLIKELY(!posValid)) {
-      *err = script_error_arg(ScriptError_ArgumentInvalid, 1);
+      call->err = script_error_arg(ScriptError_ArgumentInvalid, 1);
+      return script_null();
     }
 
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Teleport);
@@ -1049,28 +1054,30 @@ static ScriptVal eval_teleport(EvalContext* ctx, const ScriptArgs args, ScriptEr
   return script_null();
 }
 
-static ScriptVal eval_nav_travel(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity     = script_arg_entity(args, 0, err);
+static ScriptVal eval_nav_travel(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId entity     = script_arg_entity(call->args, 0, &call->err);
   const ScriptMask  targetMask = script_mask_entity | script_mask_vec3;
-  if (LIKELY(entity && script_arg_check(args, 1, targetMask, err))) {
+  if (LIKELY(entity && script_arg_check(call->args, 1, targetMask, &call->err))) {
     if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_NavTravel))) {
-      *err = script_error_arg(ScriptError_MissingCapability, 0);
+      call->err = script_error_arg(ScriptError_MissingCapability, 0);
+      return script_null();
     }
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_NavTravel);
     act->navTravel   = (SceneActionNavTravel){
         .entity         = entity,
-        .targetEntity   = script_arg_maybe_entity(args, 1, ecs_entity_invalid),
-        .targetPosition = script_arg_maybe_vec3(args, 1, geo_vector(0)),
+        .targetEntity   = script_arg_maybe_entity(call->args, 1, ecs_entity_invalid),
+        .targetPosition = script_arg_maybe_vec3(call->args, 1, geo_vector(0)),
     };
   }
   return script_null();
 }
 
-static ScriptVal eval_nav_stop(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity = script_arg_entity(args, 0, err);
+static ScriptVal eval_nav_stop(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId entity = script_arg_entity(call->args, 0, &call->err);
   if (LIKELY(entity)) {
     if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_NavTravel))) {
-      *err = script_error_arg(ScriptError_MissingCapability, 0);
+      call->err = script_error_arg(ScriptError_MissingCapability, 0);
+      return script_null();
     }
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_NavStop);
     act->navStop     = (SceneActionNavStop){.entity = entity};
@@ -1085,16 +1092,16 @@ static bool eval_attach_allowed(EvalContext* ctx, const EcsEntityId e) {
   return true;
 }
 
-static ScriptVal eval_attach(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity = script_arg_entity(args, 0, err);
+static ScriptVal eval_attach(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId entity = script_arg_entity(call->args, 0, &call->err);
   if (UNLIKELY(!entity)) {
     return script_null();
   }
   if (UNLIKELY(!eval_attach_allowed(ctx, entity))) {
-    *err = script_error_arg(ScriptError_ArgumentInvalid, 0);
+    call->err = script_error_arg(ScriptError_ArgumentInvalid, 0);
     return script_null();
   }
-  const EcsEntityId target = script_arg_entity(args, 1, err);
+  const EcsEntityId target = script_arg_entity(call->args, 1, &call->err);
   if (UNLIKELY(!target)) {
     return script_null();
   }
@@ -1103,15 +1110,15 @@ static ScriptVal eval_attach(EvalContext* ctx, const ScriptArgs args, ScriptErro
   act->attach = (SceneActionAttach){
       .entity    = entity,
       .target    = target,
-      .jointName = script_arg_opt_str(args, 2, 0, err),
-      .offset    = script_arg_opt_vec3(args, 3, geo_vector(0), err),
+      .jointName = script_arg_opt_str(call->args, 2, 0, &call->err),
+      .offset    = script_arg_opt_vec3(call->args, 3, geo_vector(0), &call->err),
   };
 
   return script_null();
 }
 
-static ScriptVal eval_detach(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity = script_arg_entity(args, 0, err);
+static ScriptVal eval_detach(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId entity = script_arg_entity(call->args, 0, &call->err);
   if (LIKELY(entity)) {
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Detach);
     act->detach      = (SceneActionDetach){.entity = entity};
@@ -1119,9 +1126,9 @@ static ScriptVal eval_detach(EvalContext* ctx, const ScriptArgs args, ScriptErro
   return script_null();
 }
 
-static ScriptVal eval_damage(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity = script_arg_entity(args, 0, err);
-  const f32         amount = (f32)script_arg_num_range(args, 1, 1.0, 10000.0, err);
+static ScriptVal eval_damage(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId entity = script_arg_entity(call->args, 0, &call->err);
+  const f32         amount = (f32)script_arg_num_range(call->args, 1, 1.0, 10000.0, &call->err);
   if (LIKELY(entity) && amount > f32_epsilon) {
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_HealthMod);
     act->healthMod   = (SceneActionHealthMod){
@@ -1132,9 +1139,9 @@ static ScriptVal eval_damage(EvalContext* ctx, const ScriptArgs args, ScriptErro
   return script_null();
 }
 
-static ScriptVal eval_heal(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity = script_arg_entity(args, 0, err);
-  const f32         amount = (f32)script_arg_num_range(args, 1, 1.0, 10000.0, err);
+static ScriptVal eval_heal(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId entity = script_arg_entity(call->args, 0, &call->err);
+  const f32         amount = (f32)script_arg_num_range(call->args, 1, 1.0, 10000.0, &call->err);
   if (LIKELY(entity) && amount > f32_epsilon) {
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_HealthMod);
     act->healthMod   = (SceneActionHealthMod){.entity = entity, .amount = amount};
@@ -1142,13 +1149,14 @@ static ScriptVal eval_heal(EvalContext* ctx, const ScriptArgs args, ScriptError*
   return script_null();
 }
 
-static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity     = script_arg_entity(args, 0, err);
+static ScriptVal eval_attack(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId entity     = script_arg_entity(call->args, 0, &call->err);
   const ScriptMask  targetMask = script_mask_entity | script_mask_null;
-  const EcsEntityId target     = script_arg_maybe_entity(args, 1, ecs_entity_invalid);
-  if (LIKELY(entity && script_arg_check(args, 1, targetMask, err))) {
+  const EcsEntityId target     = script_arg_maybe_entity(call->args, 1, ecs_entity_invalid);
+  if (LIKELY(entity && script_arg_check(call->args, 1, targetMask, &call->err))) {
     if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Attack))) {
-      *err = script_error_arg(ScriptError_MissingCapability, 0);
+      call->err = script_error_arg(ScriptError_MissingCapability, 0);
+      return script_null();
     }
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Attack);
     act->attack      = (SceneActionAttack){.entity = entity, .target = target};
@@ -1156,8 +1164,8 @@ static ScriptVal eval_attack(EvalContext* ctx, const ScriptArgs args, ScriptErro
   return script_null();
 }
 
-static ScriptVal eval_attack_target(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId      entity = script_arg_entity(args, 0, err);
+static ScriptVal eval_attack_target(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId      entity = script_arg_entity(call->args, 0, &call->err);
   const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, entity);
   const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
   if (attack) {
@@ -1166,12 +1174,14 @@ static ScriptVal eval_attack_target(EvalContext* ctx, const ScriptArgs args, Scr
   return script_null();
 }
 
-static ScriptVal eval_bark(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId   entity = script_arg_entity(args, 0, err);
-  const SceneBarkType type   = (SceneBarkType)script_arg_enum(args, 1, &g_scriptEnumBark, err);
-  if (LIKELY(!script_error_valid(err))) {
+static ScriptVal eval_bark(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId   entity = script_arg_entity(call->args, 0, &call->err);
+  const SceneBarkType type =
+      (SceneBarkType)script_arg_enum(call->args, 1, &g_scriptEnumBark, &call->err);
+  if (LIKELY(!script_error_valid(&call->err))) {
     if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Bark))) {
-      *err = script_error_arg(ScriptError_MissingCapability, 0);
+      call->err = script_error_arg(ScriptError_MissingCapability, 0);
+      return script_null();
     }
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Bark);
     act->bark        = (SceneActionBark){.entity = entity, .type = type};
@@ -1186,24 +1196,25 @@ static bool eval_status_allowed(EvalContext* ctx, const EcsEntityId e) {
   return true;
 }
 
-static ScriptVal eval_status(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity = script_arg_entity(args, 0, err);
+static ScriptVal eval_status(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId entity = script_arg_entity(call->args, 0, &call->err);
   if (UNLIKELY(!entity)) {
     return script_null();
   }
   if (UNLIKELY(!eval_status_allowed(ctx, entity))) {
-    *err = script_error_arg(ScriptError_ArgumentInvalid, 0);
+    call->err = script_error_arg(ScriptError_ArgumentInvalid, 0);
     return script_null();
   }
-  const SceneStatusType type = (SceneStatusType)script_arg_enum(args, 1, &g_scriptEnumStatus, err);
-  if (args.count < 3) {
+  const SceneStatusType type =
+      (SceneStatusType)script_arg_enum(call->args, 1, &g_scriptEnumStatus, &call->err);
+  if (call->args.count < 3) {
     if (ecs_view_maybe_jump(ctx->statusItr, entity)) {
       const SceneStatusComp* statusComp = ecs_view_read_t(ctx->statusItr, SceneStatusComp);
       return script_bool(scene_status_active(statusComp, type));
     }
     return script_null();
   }
-  if (script_arg_bool(args, 2, err)) {
+  if (script_arg_bool(call->args, 2, &call->err)) {
     scene_status_add(ctx->world, entity, type, ctx->instigator);
   } else {
     scene_status_remove(ctx->world, entity, type);
@@ -1211,15 +1222,15 @@ static ScriptVal eval_status(EvalContext* ctx, const ScriptArgs args, ScriptErro
   return script_null();
 }
 
-static ScriptVal eval_renderable_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId asset    = arg_asset(ctx, args, 0, err);
-  const GeoVector   pos      = script_arg_vec3(args, 1, err);
-  const GeoQuat     rot      = script_arg_opt_quat(args, 2, geo_quat_ident, err);
-  const f32         scale    = (f32)script_arg_opt_num_range(args, 3, 0.0001, 10000, 1.0, err);
-  const GeoColor    color    = script_arg_opt_color(args, 4, geo_color_white, err);
-  const f32         emissive = (f32)script_arg_opt_num_range(args, 5, 0.0, 1.0, 0.0, err);
-  const bool        requireVisibility = script_arg_opt_bool(args, 6, false, err);
-  if (UNLIKELY(script_error_valid(err))) {
+static ScriptVal eval_renderable_spawn(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId asset = arg_asset(ctx, call, 0);
+  const GeoVector   pos   = script_arg_vec3(call->args, 1, &call->err);
+  const GeoQuat     rot   = script_arg_opt_quat(call->args, 2, geo_quat_ident, &call->err);
+  const f32 scale = (f32)script_arg_opt_num_range(call->args, 3, 0.0001, 10000, 1.0, &call->err);
+  const GeoColor color    = script_arg_opt_color(call->args, 4, geo_color_white, &call->err);
+  const f32      emissive = (f32)script_arg_opt_num_range(call->args, 5, 0.0, 1.0, 0.0, &call->err);
+  const bool     requireVisibility = script_arg_opt_bool(call->args, 6, false, &call->err);
+  if (UNLIKELY(script_error_valid(&call->err))) {
     return script_null();
   }
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
@@ -1243,13 +1254,13 @@ static ScriptVal eval_renderable_spawn(EvalContext* ctx, const ScriptArgs args, 
   return script_entity(result);
 }
 
-static ScriptVal eval_renderable_param(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity = script_arg_entity(args, 0, err);
+static ScriptVal eval_renderable_param(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId entity = script_arg_entity(call->args, 0, &call->err);
   if (UNLIKELY(!entity)) {
     return script_null();
   }
-  const i32 param = script_arg_enum(args, 1, &g_scriptEnumRenderableParam, err);
-  if (args.count == 2) {
+  const i32 param = script_arg_enum(call->args, 1, &g_scriptEnumRenderableParam, &call->err);
+  if (call->args.count == 2) {
     if (ecs_view_maybe_jump(ctx->renderableItr, entity)) {
       const SceneRenderableComp* r = ecs_view_read_t(ctx->renderableItr, SceneRenderableComp);
       switch (param) {
@@ -1265,7 +1276,8 @@ static ScriptVal eval_renderable_param(EvalContext* ctx, const ScriptArgs args, 
   }
 
   if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Renderable))) {
-    *err = script_error_arg(ScriptError_MissingCapability, 0);
+    call->err = script_error_arg(ScriptError_MissingCapability, 0);
+    return script_null();
   }
 
   SceneActionUpdateRenderableParam update;
@@ -1273,11 +1285,11 @@ static ScriptVal eval_renderable_param(EvalContext* ctx, const ScriptArgs args, 
   update.param  = param;
   switch (param) {
   case SceneActionRenderableParam_Color:
-    update.value_color = script_arg_color(args, 2, err);
+    update.value_color = script_arg_color(call->args, 2, &call->err);
     break;
   case SceneActionRenderableParam_Alpha:
   case SceneActionRenderableParam_Emissive:
-    update.value_num = (f32)script_arg_num_range(args, 2, 0.0, 1.0, err);
+    update.value_num = (f32)script_arg_num_range(call->args, 2, 0.0, 1.0, &call->err);
     break;
   }
 
@@ -1287,14 +1299,15 @@ static ScriptVal eval_renderable_param(EvalContext* ctx, const ScriptArgs args, 
   return script_null();
 }
 
-static ScriptVal eval_vfx_system_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId asset             = arg_asset(ctx, args, 0, err);
-  const GeoVector   pos               = script_arg_vec3(args, 1, err);
-  const GeoQuat     rot               = script_arg_quat(args, 2, err);
-  const f32         alpha             = (f32)script_arg_opt_num_range(args, 3, 0.0, 1.0, 1.0, err);
-  const f32         emitMultiplier    = (f32)script_arg_opt_num_range(args, 4, 0.0, 1.0, 1.0, err);
-  const bool        requireVisibility = script_arg_opt_bool(args, 5, false, err);
-  if (UNLIKELY(script_error_valid(err))) {
+static ScriptVal eval_vfx_system_spawn(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId asset = arg_asset(ctx, call, 0);
+  const GeoVector   pos   = script_arg_vec3(call->args, 1, &call->err);
+  const GeoQuat     rot   = script_arg_quat(call->args, 2, &call->err);
+  const f32         alpha = (f32)script_arg_opt_num_range(call->args, 3, 0.0, 1.0, 1.0, &call->err);
+  const f32         emitMultiplier =
+      (f32)script_arg_opt_num_range(call->args, 4, 0.0, 1.0, 1.0, &call->err);
+  const bool requireVisibility = script_arg_opt_bool(call->args, 5, false, &call->err);
+  if (UNLIKELY(script_error_valid(&call->err))) {
     return script_null();
   }
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
@@ -1313,13 +1326,13 @@ static ScriptVal eval_vfx_system_spawn(EvalContext* ctx, const ScriptArgs args, 
   return script_entity(result);
 }
 
-static ScriptVal eval_vfx_decal_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId asset = arg_asset(ctx, args, 0, err);
-  const GeoVector   pos   = script_arg_vec3(args, 1, err);
-  const GeoQuat     rot   = script_arg_quat(args, 2, err);
-  const f32         alpha = (f32)script_arg_opt_num_range(args, 3, 0.0, 100.0, 1.0, err);
-  const bool        requireVisibility = script_arg_opt_bool(args, 4, false, err);
-  if (UNLIKELY(script_error_valid(err))) {
+static ScriptVal eval_vfx_decal_spawn(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId asset = arg_asset(ctx, call, 0);
+  const GeoVector   pos   = script_arg_vec3(call->args, 1, &call->err);
+  const GeoQuat     rot   = script_arg_quat(call->args, 2, &call->err);
+  const f32  alpha = (f32)script_arg_opt_num_range(call->args, 3, 0.0, 100.0, 1.0, &call->err);
+  const bool requireVisibility = script_arg_opt_bool(call->args, 4, false, &call->err);
+  if (UNLIKELY(script_error_valid(&call->err))) {
     return script_null();
   }
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
@@ -1332,13 +1345,13 @@ static ScriptVal eval_vfx_decal_spawn(EvalContext* ctx, const ScriptArgs args, S
   return script_entity(result);
 }
 
-static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity = script_arg_entity(args, 0, err);
+static ScriptVal eval_vfx_param(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId entity = script_arg_entity(call->args, 0, &call->err);
   if (UNLIKELY(!entity)) {
     return script_null();
   }
-  const i32 param = script_arg_enum(args, 1, &g_scriptEnumVfxParam, err);
-  if (args.count == 2) {
+  const i32 param = script_arg_enum(call->args, 1, &g_scriptEnumVfxParam, &call->err);
+  if (call->args.count == 2) {
     if (ecs_view_maybe_jump(ctx->vfxSysItr, entity)) {
       const SceneVfxSystemComp* vfxSysComp = ecs_view_read_t(ctx->vfxSysItr, SceneVfxSystemComp);
       switch (param) {
@@ -1358,27 +1371,27 @@ static ScriptVal eval_vfx_param(EvalContext* ctx, const ScriptArgs args, ScriptE
     return script_null();
   }
   if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Vfx))) {
-    *err = script_error_arg(ScriptError_MissingCapability, 0);
+    call->err = script_error_arg(ScriptError_MissingCapability, 0);
+    return script_null();
   }
 
   SceneAction* act    = scene_action_push(ctx->actions, SceneActionType_UpdateVfxParam);
   act->updateVfxParam = (SceneActionUpdateVfxParam){
       .entity = entity,
       .param  = param,
-      .value  = (f32)script_arg_num_range(args, 2, 0.0, 1.0, err),
+      .value  = (f32)script_arg_num_range(call->args, 2, 0.0, 1.0, &call->err),
   };
 
   return script_null();
 }
 
-static ScriptVal
-eval_collision_box_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const GeoVector  pos        = script_arg_vec3(args, 0, err);
-  const GeoVector  size       = script_arg_vec3(args, 1, err);
-  const GeoQuat    rot        = script_arg_opt_quat(args, 2, geo_quat_ident, err);
-  const SceneLayer layer      = arg_layer(args, 3, err);
-  const bool       navBlocker = script_arg_opt_bool(args, 4, false, err);
-  if (UNLIKELY(script_error_valid(err))) {
+static ScriptVal eval_collision_box_spawn(EvalContext* ctx, ScriptBinderCall* call) {
+  const GeoVector  pos        = script_arg_vec3(call->args, 0, &call->err);
+  const GeoVector  size       = script_arg_vec3(call->args, 1, &call->err);
+  const GeoQuat    rot        = script_arg_opt_quat(call->args, 2, geo_quat_ident, &call->err);
+  const SceneLayer layer      = arg_layer(call, 3);
+  const bool       navBlocker = script_arg_opt_bool(call->args, 4, false, &call->err);
+  if (UNLIKELY(script_error_valid(&call->err))) {
     return script_null();
   }
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
@@ -1398,13 +1411,12 @@ eval_collision_box_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* e
   return script_entity(result);
 }
 
-static ScriptVal
-eval_collision_sphere_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const GeoVector  pos        = script_arg_vec3(args, 0, err);
-  const f32        radius     = (f32)script_arg_num(args, 1, err);
-  const SceneLayer layer      = arg_layer(args, 2, err);
-  const bool       navBlocker = script_arg_opt_bool(args, 3, false, err);
-  if (UNLIKELY(script_error_valid(err))) {
+static ScriptVal eval_collision_sphere_spawn(EvalContext* ctx, ScriptBinderCall* call) {
+  const GeoVector  pos        = script_arg_vec3(call->args, 0, &call->err);
+  const f32        radius     = (f32)script_arg_num(call->args, 1, &call->err);
+  const SceneLayer layer      = arg_layer(call, 2);
+  const bool       navBlocker = script_arg_opt_bool(call->args, 3, false, &call->err);
+  if (UNLIKELY(script_error_valid(&call->err))) {
     return script_null();
   }
   const GeoQuat     rot    = geo_quat_ident;
@@ -1422,12 +1434,12 @@ eval_collision_sphere_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError
   return script_entity(result);
 }
 
-static ScriptVal eval_light_point_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const GeoVector pos      = script_arg_vec3(args, 0, err);
+static ScriptVal eval_light_point_spawn(EvalContext* ctx, ScriptBinderCall* call) {
+  const GeoVector pos      = script_arg_vec3(call->args, 0, &call->err);
   const GeoQuat   rot      = geo_quat_ident;
-  const GeoColor  radiance = script_arg_color(args, 1, err);
-  const f32       radius   = (f32)script_arg_num_range(args, 2, 1e-3f, 1e+3f, err);
-  if (UNLIKELY(script_error_valid(err))) {
+  const GeoColor  radiance = script_arg_color(call->args, 1, &call->err);
+  const f32       radius   = (f32)script_arg_num_range(call->args, 2, 1e-3f, 1e+3f, &call->err);
+  if (UNLIKELY(script_error_valid(&call->err))) {
     return script_null();
   }
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
@@ -1437,13 +1449,13 @@ static ScriptVal eval_light_point_spawn(EvalContext* ctx, const ScriptArgs args,
   return script_entity(result);
 }
 
-static ScriptVal eval_light_param(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity = script_arg_entity(args, 0, err);
+static ScriptVal eval_light_param(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId entity = script_arg_entity(call->args, 0, &call->err);
   if (UNLIKELY(!entity)) {
     return script_null();
   }
-  const i32 param = script_arg_enum(args, 1, &g_scriptEnumLightParam, err);
-  if (args.count == 2) {
+  const i32 param = script_arg_enum(call->args, 1, &g_scriptEnumLightParam, &call->err);
+  if (call->args.count == 2) {
     if (ecs_view_maybe_jump(ctx->lightPointItr, entity)) {
       const SceneLightPointComp* point = ecs_view_read_t(ctx->lightPointItr, SceneLightPointComp);
       switch (param) {
@@ -1461,31 +1473,32 @@ static ScriptVal eval_light_param(EvalContext* ctx, const ScriptArgs args, Scrip
     return script_null();
   }
   if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Light))) {
-    *err = script_error_arg(ScriptError_MissingCapability, 0);
+    call->err = script_error_arg(ScriptError_MissingCapability, 0);
+    return script_null();
   }
 
   SceneAction* act      = scene_action_push(ctx->actions, SceneActionType_UpdateLightParam);
   act->updateLightParam = (SceneActionUpdateLightParam){
       .entity = entity,
       .param  = param,
-      .value  = script_arg_color(args, 2, err),
+      .value  = script_arg_color(call->args, 2, &call->err),
   };
 
   return script_null();
 }
 
-static ScriptVal eval_sound_spawn(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId asset = arg_asset(ctx, args, 0, err);
+static ScriptVal eval_sound_spawn(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId asset = arg_asset(ctx, call, 0);
   GeoVector         pos;
-  const bool        is3d = script_arg_has(args, 1);
+  const bool        is3d = script_arg_has(call->args, 1);
   if (is3d) {
-    pos = script_arg_vec3(args, 1, err);
+    pos = script_arg_vec3(call->args, 1, &call->err);
   }
-  const f32  gain              = (f32)script_arg_opt_num_range(args, 2, 0.0, 10.0, 1.0, err);
-  const f32  pitch             = (f32)script_arg_opt_num_range(args, 3, 0.0, 10.0, 1.0, err);
-  const bool looping           = script_arg_opt_bool(args, 4, false, err);
-  const bool requireVisibility = is3d && script_arg_opt_bool(args, 5, false, err);
-  if (UNLIKELY(script_error_valid(err))) {
+  const f32  gain    = (f32)script_arg_opt_num_range(call->args, 2, 0.0, 10.0, 1.0, &call->err);
+  const f32  pitch   = (f32)script_arg_opt_num_range(call->args, 3, 0.0, 10.0, 1.0, &call->err);
+  const bool looping = script_arg_opt_bool(call->args, 4, false, &call->err);
+  const bool requireVisibility = is3d && script_arg_opt_bool(call->args, 5, false, &call->err);
+  if (UNLIKELY(script_error_valid(&call->err))) {
     return script_null();
   }
   const EcsEntityId result = ecs_world_entity_create(ctx->world);
@@ -1508,13 +1521,13 @@ static ScriptVal eval_sound_spawn(EvalContext* ctx, const ScriptArgs args, Scrip
   return script_entity(result);
 }
 
-static ScriptVal eval_sound_param(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity = script_arg_entity(args, 0, err);
+static ScriptVal eval_sound_param(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId entity = script_arg_entity(call->args, 0, &call->err);
   if (UNLIKELY(!entity)) {
     return script_null();
   }
-  const i32 param = script_arg_enum(args, 1, &g_scriptEnumSoundParam, err);
-  if (args.count == 2) {
+  const i32 param = script_arg_enum(call->args, 1, &g_scriptEnumSoundParam, &call->err);
+  if (call->args.count == 2) {
     if (ecs_view_maybe_jump(ctx->soundItr, entity)) {
       const SceneSoundComp* soundComp = ecs_view_read_t(ctx->soundItr, SceneSoundComp);
       switch (param) {
@@ -1527,25 +1540,26 @@ static ScriptVal eval_sound_param(EvalContext* ctx, const ScriptArgs args, Scrip
     return script_null();
   }
   if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Sound))) {
-    *err = script_error_arg(ScriptError_MissingCapability, 0);
+    call->err = script_error_arg(ScriptError_MissingCapability, 0);
+    return script_null();
   }
   SceneAction* act      = scene_action_push(ctx->actions, SceneActionType_UpdateSoundParam);
   act->updateSoundParam = (SceneActionUpdateSoundParam){
       .entity = entity,
       .param  = param,
-      .value  = (f32)script_arg_num_range(args, 2, 0.0, 10.0, err),
+      .value  = (f32)script_arg_num_range(call->args, 2, 0.0, 10.0, &call->err),
   };
   return script_null();
 }
 
-static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity    = script_arg_entity(args, 0, err);
-  const StringHash  layerName = script_arg_str(args, 1, err);
-  const i32         param     = script_arg_enum(args, 2, &g_scriptEnumAnimParam, err);
-  if (UNLIKELY(script_error_valid(err))) {
+static ScriptVal eval_anim_param(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId entity    = script_arg_entity(call->args, 0, &call->err);
+  const StringHash  layerName = script_arg_str(call->args, 1, &call->err);
+  const i32         param     = script_arg_enum(call->args, 2, &g_scriptEnumAnimParam, &call->err);
+  if (UNLIKELY(script_error_valid(&call->err))) {
     return script_null();
   }
-  if (args.count == 3) {
+  if (call->args.count == 3) {
     if (ecs_view_maybe_jump(ctx->animItr, entity)) {
       const SceneAnimationComp* animComp = ecs_view_read_t(ctx->animItr, SceneAnimationComp);
       const SceneAnimLayer*     layer    = scene_animation_layer(animComp, layerName);
@@ -1574,7 +1588,8 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
   }
 
   if (UNLIKELY(!context_is_capable(ctx, entity, SceneScriptCapability_Animation))) {
-    *err = script_error_arg(ScriptError_MissingCapability, 0);
+    call->err = script_error_arg(ScriptError_MissingCapability, 0);
+    return script_null();
   }
 
   SceneActionUpdateAnimParam update;
@@ -1583,24 +1598,24 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
   update.param     = param;
   switch (param) {
   case 0 /* Time */:
-    update.value_f32 = (f32)script_arg_num_range(args, 3, 0.0, 1000.0, err);
+    update.value_f32 = (f32)script_arg_num_range(call->args, 3, 0.0, 1000.0, &call->err);
     break;
   case 1 /* TimeNorm */:
-    update.value_f32 = (f32)script_arg_num_range(args, 3, 0.0, 1.0, err);
+    update.value_f32 = (f32)script_arg_num_range(call->args, 3, 0.0, 1.0, &call->err);
     break;
   case 2 /* Speed */:
-    update.value_f32 = (f32)script_arg_num_range(args, 3, -1000.0, 1000.0, err);
+    update.value_f32 = (f32)script_arg_num_range(call->args, 3, -1000.0, 1000.0, &call->err);
     break;
   case 3 /* Weight */:
-    update.value_f32 = (f32)script_arg_num_range(args, 3, 0.0, 1.0, err);
+    update.value_f32 = (f32)script_arg_num_range(call->args, 3, 0.0, 1.0, &call->err);
     break;
   case 4 /* Loop */:
   case 5 /* FadeIn */:
   case 6 /* FadeOut */:
-    update.value_bool = script_arg_bool(args, 3, err);
+    update.value_bool = script_arg_bool(call->args, 3, &call->err);
     break;
   case 7 /* Duration */:
-    *err = script_error_arg(ScriptError_ReadonlyParam, 3);
+    call->err = script_error_arg(ScriptError_ReadonlyParam, 3);
     return script_null();
   }
   SceneAction* act     = scene_action_push(ctx->actions, SceneActionType_UpdateAnimParam);
@@ -1609,10 +1624,10 @@ static ScriptVal eval_anim_param(EvalContext* ctx, const ScriptArgs args, Script
   return script_null();
 }
 
-static ScriptVal eval_joint_position(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const EcsEntityId entity    = script_arg_entity(args, 0, err);
-  const StringHash  jointName = script_arg_str(args, 1, err);
-  if (UNLIKELY(script_error_valid(err))) {
+static ScriptVal eval_joint_position(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId entity    = script_arg_entity(call->args, 0, &call->err);
+  const StringHash  jointName = script_arg_str(call->args, 1, &call->err);
+  if (UNLIKELY(script_error_valid(&call->err))) {
     return script_null();
   }
   if (!ecs_view_maybe_jump(ctx->skeletonItr, entity)) {
@@ -1645,7 +1660,7 @@ static ScriptVal eval_joint_position(EvalContext* ctx, const ScriptArgs args, Sc
   return script_vec3(jointPos);
 }
 
-static ScriptVal eval_random_of(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal eval_random_of(EvalContext* ctx, ScriptBinderCall* call) {
   (void)ctx;
   /**
    * Return a random (non-null) value from the given arguments.
@@ -1656,163 +1671,176 @@ static ScriptVal eval_random_of(EvalContext* ctx, const ScriptArgs args, ScriptE
   ScriptVal choices[10];
   u32       choiceCount = 0;
 
-  if (UNLIKELY(args.count > array_elems(choices))) {
-    *err = script_error(ScriptError_ArgumentCountExceedsMaximum);
+  if (UNLIKELY(call->args.count > array_elems(choices))) {
+    call->err = script_error(ScriptError_ArgumentCountExceedsMaximum);
     return script_null();
   }
 
-  for (u16 i = 0; i != args.count; ++i) {
-    if (script_non_null(args.values[i])) {
-      choices[choiceCount++] = args.values[i];
+  for (u16 i = 0; i != call->args.count; ++i) {
+    if (script_non_null(call->args.values[i])) {
+      choices[choiceCount++] = call->args.values[i];
     }
   }
   return choiceCount ? choices[(u32)(choiceCount * rng_sample_f32(g_rng))] : script_null();
 }
 
-static ScriptVal eval_debug_log(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  (void)err;
+static ScriptVal eval_debug_log(EvalContext* ctx, ScriptBinderCall* call) {
   DynString buffer = dynstring_create_over(alloc_alloc(g_allocScratch, usize_kibibyte, 1));
-  for (u16 i = 0; i != args.count; ++i) {
+  for (u16 i = 0; i != call->args.count; ++i) {
     if (i) {
       dynstring_append_char(&buffer, ' ');
     }
-    script_val_write(args.values[i], &buffer);
+    script_val_write(call->args.values[i], &buffer);
   }
+
+  const ScriptRangeLineCol scriptRange    = script_prog_location(ctx->scriptProgram, call->callId);
+  const String             scriptRangeStr = fmt_write_scratch(
+      "{}:{}-{}:{}",
+      fmt_int(scriptRange.start.line + 1),
+      fmt_int(scriptRange.start.column + 1),
+      fmt_int(scriptRange.end.line + 1),
+      fmt_int(scriptRange.end.column + 1));
 
   log_i(
       "script: {}",
       log_param("text", fmt_text(dynstring_view(&buffer))),
       log_param("entity", ecs_entity_fmt(ctx->instigator)),
-      log_param("script", fmt_text(ctx->scriptId)));
+      log_param("script", fmt_text(ctx->scriptId)),
+      log_param("script-range", fmt_text(scriptRangeStr)));
 
   return script_null();
 }
 
-static ScriptVal eval_debug_line(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal eval_debug_line(EvalContext* ctx, ScriptBinderCall* call) {
   SceneScriptDebugLine data;
-  data.start = script_arg_vec3(args, 0, err);
-  data.end   = script_arg_vec3(args, 1, err);
-  data.color = script_arg_opt_color(args, 2, geo_color_white, err);
-  if (LIKELY(!script_error_valid(err))) {
+  data.start = script_arg_vec3(call->args, 0, &call->err);
+  data.end   = script_arg_vec3(call->args, 1, &call->err);
+  data.color = script_arg_opt_color(call->args, 2, geo_color_white, &call->err);
+  if (LIKELY(!script_error_valid(&call->err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type      = SceneScriptDebugType_Line,
         .slot      = ctx->slot,
+        .range     = script_prog_location(ctx->scriptProgram, call->callId),
         .data_line = data,
     };
   }
   return script_null();
 }
 
-static ScriptVal eval_debug_sphere(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal eval_debug_sphere(EvalContext* ctx, ScriptBinderCall* call) {
   SceneScriptDebugSphere data;
-  data.pos    = script_arg_vec3(args, 0, err);
-  data.radius = (f32)script_arg_opt_num_range(args, 1, 0.01f, 100.0f, 0.25f, err);
-  data.color  = script_arg_opt_color(args, 2, geo_color_white, err);
-  if (LIKELY(!script_error_valid(err))) {
+  data.pos    = script_arg_vec3(call->args, 0, &call->err);
+  data.radius = (f32)script_arg_opt_num_range(call->args, 1, 0.01f, 100.0f, 0.25f, &call->err);
+  data.color  = script_arg_opt_color(call->args, 2, geo_color_white, &call->err);
+  if (LIKELY(!script_error_valid(&call->err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type        = SceneScriptDebugType_Sphere,
         .slot        = ctx->slot,
+        .range       = script_prog_location(ctx->scriptProgram, call->callId),
         .data_sphere = data,
     };
   }
   return script_null();
 }
 
-static ScriptVal eval_debug_box(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal eval_debug_box(EvalContext* ctx, ScriptBinderCall* call) {
   SceneScriptDebugBox data;
-  data.pos   = script_arg_vec3(args, 0, err);
-  data.size  = script_arg_vec3(args, 1, err);
-  data.rot   = script_arg_opt_quat(args, 2, geo_quat_ident, err);
-  data.color = script_arg_opt_color(args, 3, geo_color_white, err);
-  if (LIKELY(!script_error_valid(err))) {
+  data.pos   = script_arg_vec3(call->args, 0, &call->err);
+  data.size  = script_arg_vec3(call->args, 1, &call->err);
+  data.rot   = script_arg_opt_quat(call->args, 2, geo_quat_ident, &call->err);
+  data.color = script_arg_opt_color(call->args, 3, geo_color_white, &call->err);
+  if (LIKELY(!script_error_valid(&call->err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type     = SceneScriptDebugType_Box,
         .slot     = ctx->slot,
+        .range    = script_prog_location(ctx->scriptProgram, call->callId),
         .data_box = data,
     };
   }
   return script_null();
 }
 
-static ScriptVal eval_debug_arrow(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal eval_debug_arrow(EvalContext* ctx, ScriptBinderCall* call) {
   SceneScriptDebugArrow data;
-  data.start  = script_arg_vec3(args, 0, err);
-  data.end    = script_arg_vec3(args, 1, err);
-  data.radius = (f32)script_arg_opt_num_range(args, 2, 0.01f, 10.0f, 0.25f, err);
-  data.color  = script_arg_opt_color(args, 3, geo_color_white, err);
-  if (LIKELY(!script_error_valid(err))) {
+  data.start  = script_arg_vec3(call->args, 0, &call->err);
+  data.end    = script_arg_vec3(call->args, 1, &call->err);
+  data.radius = (f32)script_arg_opt_num_range(call->args, 2, 0.01f, 10.0f, 0.25f, &call->err);
+  data.color  = script_arg_opt_color(call->args, 3, geo_color_white, &call->err);
+  if (LIKELY(!script_error_valid(&call->err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type       = SceneScriptDebugType_Arrow,
         .slot       = ctx->slot,
+        .range      = script_prog_location(ctx->scriptProgram, call->callId),
         .data_arrow = data,
     };
   }
   return script_null();
 }
 
-static ScriptVal eval_debug_orientation(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal eval_debug_orientation(EvalContext* ctx, ScriptBinderCall* call) {
   SceneScriptDebugOrientation data;
-  data.pos  = script_arg_vec3(args, 0, err);
-  data.rot  = script_arg_quat(args, 1, err);
-  data.size = (f32)script_arg_opt_num_range(args, 2, 0.01f, 10.0f, 1.0f, err);
-  if (LIKELY(!script_error_valid(err))) {
+  data.pos  = script_arg_vec3(call->args, 0, &call->err);
+  data.rot  = script_arg_quat(call->args, 1, &call->err);
+  data.size = (f32)script_arg_opt_num_range(call->args, 2, 0.01f, 10.0f, 1.0f, &call->err);
+  if (LIKELY(!script_error_valid(&call->err))) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type             = SceneScriptDebugType_Orientation,
         .slot             = ctx->slot,
+        .range            = script_prog_location(ctx->scriptProgram, call->callId),
         .data_orientation = data,
     };
   }
   return script_null();
 }
 
-static ScriptVal eval_debug_text(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal eval_debug_text(EvalContext* ctx, ScriptBinderCall* call) {
   SceneScriptDebugText data;
-  data.pos      = script_arg_vec3(args, 0, err);
-  data.color    = script_arg_color(args, 1, err);
-  data.fontSize = (u16)script_arg_num_range(args, 2, 6.0, 30.0, err);
+  data.pos      = script_arg_vec3(call->args, 0, &call->err);
+  data.color    = script_arg_color(call->args, 1, &call->err);
+  data.fontSize = (u16)script_arg_num_range(call->args, 2, 6.0, 30.0, &call->err);
 
   DynString buffer = dynstring_create_over(alloc_alloc(g_allocScratch, usize_kibibyte, 1));
-  for (u16 i = 3; i < args.count; ++i) {
+  for (u16 i = 3; i < call->args.count; ++i) {
     if (i) {
       dynstring_append_char(&buffer, ' ');
     }
-    script_val_write(args.values[i], &buffer);
+    script_val_write(call->args.values[i], &buffer);
   }
-  if (UNLIKELY(script_error_valid(err)) || !buffer.size) {
+  if (UNLIKELY(script_error_valid(&call->err)) || !buffer.size) {
     return script_null();
   }
   data.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1);
   *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
       .type      = SceneScriptDebugType_Text,
       .slot      = ctx->slot,
+      .range     = script_prog_location(ctx->scriptProgram, call->callId),
       .data_text = data,
   };
   return script_null();
 }
 
-static ScriptVal eval_debug_trace(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  (void)err;
+static ScriptVal eval_debug_trace(EvalContext* ctx, ScriptBinderCall* call) {
   DynString buffer = dynstring_create_over(alloc_alloc(g_allocScratch, usize_kibibyte, 1));
-  for (u16 i = 0; i < args.count; ++i) {
+  for (u16 i = 0; i < call->args.count; ++i) {
     if (i) {
       dynstring_append_char(&buffer, ' ');
     }
-    script_val_write(args.values[i], &buffer);
+    script_val_write(call->args.values[i], &buffer);
   }
   if (buffer.size) {
     *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
         .type            = SceneScriptDebugType_Trace,
         .slot            = ctx->slot,
+        .range           = script_prog_location(ctx->scriptProgram, call->callId),
         .data_trace.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1),
     };
   }
   return script_null();
 }
 
-static ScriptVal eval_debug_break(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
+static ScriptVal eval_debug_break(EvalContext* ctx, ScriptBinderCall* call) {
   (void)ctx;
-  (void)args;
-  (void)err;
+  (void)call;
   diag_break();
   return script_null();
 }
@@ -1855,31 +1883,28 @@ static bool eval_debug_input_hit(EvalContext* ctx, const SceneQueryFilter* f, De
   return false;
 }
 
-static ScriptVal
-eval_debug_input_position(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, args, 0, err);
+static ScriptVal eval_debug_input_position(EvalContext* ctx, ScriptBinderCall* call) {
+  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, call, 0);
   DebugInputHit          hit;
-  if (!script_error_valid(err) && eval_debug_input_hit(ctx, &filter, &hit)) {
+  if (!script_error_valid(&call->err) && eval_debug_input_hit(ctx, &filter, &hit)) {
     return script_vec3(hit.pos);
   }
   return script_null();
 }
 
-static ScriptVal
-eval_debug_input_rotation(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, args, 0, err);
+static ScriptVal eval_debug_input_rotation(EvalContext* ctx, ScriptBinderCall* call) {
+  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, call, 0);
   DebugInputHit          hit;
-  if (!script_error_valid(err) && eval_debug_input_hit(ctx, &filter, &hit)) {
+  if (!script_error_valid(&call->err) && eval_debug_input_hit(ctx, &filter, &hit)) {
     return script_quat(geo_quat_look(hit.normal, geo_up));
   }
   return script_null();
 }
 
-static ScriptVal
-eval_debug_input_entity(EvalContext* ctx, const ScriptArgs args, ScriptError* err) {
-  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, args, 0, err);
+static ScriptVal eval_debug_input_entity(EvalContext* ctx, ScriptBinderCall* call) {
+  const SceneQueryFilter filter = arg_query_filter(ctx->instigatorFaction, call, 0);
   DebugInputHit          hit;
-  if (!script_error_valid(err) && eval_debug_input_hit(ctx, &filter, &hit)) {
+  if (!script_error_valid(&call->err) && eval_debug_input_hit(ctx, &filter, &hit)) {
     return script_entity_or_null(hit.entity);
   }
   return script_null();
@@ -1887,7 +1912,7 @@ eval_debug_input_entity(EvalContext* ctx, const ScriptArgs args, ScriptError* er
 
 static ScriptBinder* g_scriptBinder;
 
-typedef ScriptVal (*SceneScriptBinderFunc)(EvalContext* ctx, ScriptArgs, ScriptError* err);
+typedef ScriptVal (*SceneScriptBinderFunc)(EvalContext* ctx, ScriptBinderCall*);
 
 static void eval_bind(ScriptBinder* b, const String name, SceneScriptBinderFunc f) {
   const ScriptSig* nullSig       = null;
@@ -2110,12 +2135,11 @@ static void scene_script_eval(EvalContext* ctx) {
     return;
   }
 
-  const ScriptProgram* prog = &ctx->scriptAsset->prog;
-  ScriptMem*           mem  = scene_knowledge_memory_mut(ctx->scriptKnowledge);
+  ScriptMem* mem = scene_knowledge_memory_mut(ctx->scriptKnowledge);
 
   // Eval.
   const TimeSteady       startTime = time_steady_clock();
-  const ScriptProgResult evalRes   = script_prog_eval(prog, mem, g_scriptBinder, ctx);
+  const ScriptProgResult evalRes   = script_prog_eval(ctx->scriptProgram, mem, g_scriptBinder, ctx);
 
   // Handle panics.
   if (UNLIKELY(script_panic_valid(&evalRes.panic))) {
@@ -2214,8 +2238,8 @@ ecs_system_define(SceneScriptUpdateSys) {
 
       // Evaluate the script if the asset is loaded.
       if (ecs_view_maybe_jump(resourceAssetItr, data->asset)) {
-        ctx.scriptAsset = ecs_view_read_t(resourceAssetItr, AssetScriptComp);
-        ctx.scriptId    = asset_id(ecs_view_read_t(resourceAssetItr, AssetComp));
+        ctx.scriptProgram = &ecs_view_read_t(resourceAssetItr, AssetScriptComp)->prog;
+        ctx.scriptId      = asset_id(ecs_view_read_t(resourceAssetItr, AssetComp));
 
         const u8 version = ecs_view_read_t(resourceAssetItr, SceneScriptResourceComp)->resVersion;
         if (UNLIKELY(data->resVersion != version)) {

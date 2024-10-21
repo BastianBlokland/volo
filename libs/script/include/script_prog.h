@@ -104,7 +104,7 @@ typedef enum {
 typedef struct {
   u16                instruction; // Offset in the code stream.
   ScriptRangeLineCol range;
-} ScriptProgramPos;
+} ScriptProgramLoc;
 
 typedef struct sScriptProgram {
   struct {
@@ -113,7 +113,7 @@ typedef struct sScriptProgram {
     usize size;
   } code; // Instruction stream (struct layout compatible with DataMem).
   HeapArray_t(ScriptVal) literals;
-  HeapArray_t(ScriptProgramPos) positions; // Sorted on instruction.
+  HeapArray_t(ScriptProgramLoc) locations; // Sorted on instruction.
 } ScriptProgram;
 
 typedef struct {
@@ -136,6 +136,11 @@ script_prog_eval(const ScriptProgram*, ScriptMem*, const ScriptBinder*, void* bi
  * Validate the given program.
  */
 bool script_prog_validate(const ScriptProgram*, const ScriptBinder*);
+
+/**
+ * Lookup the source range for the given call-identifier.
+ */
+ScriptRangeLineCol script_prog_location(const ScriptProgram*, u32 callId);
 
 /**
  * Write the program disassembly for diagnostic purposes.

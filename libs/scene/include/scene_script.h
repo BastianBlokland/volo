@@ -4,6 +4,7 @@
 #include "geo_color.h"
 #include "geo_quat.h"
 #include "geo_ray.h"
+#include "script_pos.h"
 
 // Forward declare from 'core_time.h'.
 typedef i64 TimeDuration;
@@ -101,6 +102,7 @@ typedef struct {
 typedef struct {
   SceneScriptDebugType type;
   SceneScriptSlot      slot;
+  ScriptRangeLineCol   range;
   union {
     SceneScriptDebugLine        data_line;
     SceneScriptDebugSphere      data_sphere;

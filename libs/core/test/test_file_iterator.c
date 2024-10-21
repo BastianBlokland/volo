@@ -138,9 +138,5 @@ spec(file_iterator) {
     file_iterator_destroy(itr);
   }
 
-  teardown() {
-    if (file_delete_dir_sync(dirPath) != FileResult_Success) {
-      diag_crash_msg("file_iterator: Failed to cleanup test directory");
-    }
-  }
+  teardown() { file_delete_dir_sync(dirPath); }
 }
