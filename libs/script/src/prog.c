@@ -185,9 +185,9 @@ Dispatch:
     VM_NEXT(3);
   case ScriptOp_Extern: {
     ScriptBinderCall call = {
-      .args.values = &regs[ip[4]],
-      .args.count  = ip[5],
-      .callId      = (u32)(ip - mem_begin(prog->code)),
+      .args     = &regs[ip[4]],
+      .argCount = ip[5],
+      .callId   = (u32)(ip - mem_begin(prog->code)),
     };
     regs[ip[1]] = script_binder_exec(binder, prog_read_u16(&ip[2]), bindCtx, &call);
     if (UNLIKELY(call.err.kind)) {

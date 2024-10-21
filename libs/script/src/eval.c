@@ -323,9 +323,9 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
     }
   }
   ScriptBinderCall call = {
-      .args.values = argValues,
-      .args.count  = data->argCount,
-      .callId      = e,
+      .args     = argValues,
+      .argCount = data->argCount,
+      .callId   = e,
   };
   const ScriptVal ret = script_binder_exec(ctx->binder, data->func, ctx->bindCtx, &call);
   if (UNLIKELY(call.err.kind)) {
