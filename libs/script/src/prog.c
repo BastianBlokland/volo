@@ -11,6 +11,53 @@
 
 #define script_prog_ops_max 25000
 
+// clang-format off
+#define VM_VISIT_OP_SIMPLE                                                       \
+  VM_OP_SIMPLE_UNARY(       Truthy,             script_truthy_as_val            )\
+  VM_OP_SIMPLE_UNARY(       Falsy,              script_falsy_as_val             )\
+  VM_OP_SIMPLE_UNARY(       NonNull,            script_non_null_as_val          )\
+  VM_OP_SIMPLE_UNARY(       Type,               script_val_type                 )\
+  VM_OP_SIMPLE_UNARY(       Hash,               script_val_hash                 )\
+  VM_OP_SIMPLE_BINARY(      Equal,              script_val_equal_as_val         )\
+  VM_OP_SIMPLE_BINARY(      Less,               script_val_less_as_val          )\
+  VM_OP_SIMPLE_BINARY(      Greater,            script_val_greater_as_val       )\
+  VM_OP_SIMPLE_BINARY(      Add,                script_val_add                  )\
+  VM_OP_SIMPLE_BINARY(      Sub,                script_val_sub                  )\
+  VM_OP_SIMPLE_BINARY(      Mul,                script_val_mul                  )\
+  VM_OP_SIMPLE_BINARY(      Div,                script_val_div                  )\
+  VM_OP_SIMPLE_BINARY(      Mod,                script_val_mod                  )\
+  VM_OP_SIMPLE_UNARY(       Negate,             script_val_neg                  )\
+  VM_OP_SIMPLE_UNARY(       Invert,             script_val_inv                  )\
+  VM_OP_SIMPLE_BINARY(      Distance,           script_val_dist                 )\
+  VM_OP_SIMPLE_BINARY(      Angle,              script_val_angle                )\
+  VM_OP_SIMPLE_UNARY(       Sin,                script_val_sin                  )\
+  VM_OP_SIMPLE_UNARY(       Cos,                script_val_cos                  )\
+  VM_OP_SIMPLE_UNARY(       Normalize,          script_val_norm                 )\
+  VM_OP_SIMPLE_UNARY(       Magnitude,          script_val_mag                  )\
+  VM_OP_SIMPLE_UNARY(       Absolute,           script_val_abs                  )\
+  VM_OP_SIMPLE_UNARY(       VecX,               script_val_vec_x                )\
+  VM_OP_SIMPLE_UNARY(       VecY,               script_val_vec_y                )\
+  VM_OP_SIMPLE_UNARY(       VecZ,               script_val_vec_z                )\
+  VM_OP_SIMPLE_TERNARY(     Vec3Compose,        script_val_vec3_compose         )\
+  VM_OP_SIMPLE_TERNARY(     QuatFromEuler,      script_val_quat_from_euler      )\
+  VM_OP_SIMPLE_BINARY(      QuatFromAngleAxis,  script_val_quat_from_angle_axis )\
+  VM_OP_SIMPLE_QUATERNARY(  ColorCompose,       script_val_color_compose        )\
+  VM_OP_SIMPLE_QUATERNARY(  ColorComposeHsv,    script_val_color_compose_hsv    )\
+  VM_OP_SIMPLE_UNARY(       ColorFor,           script_val_color_for_val        )\
+  VM_OP_SIMPLE_ZERO(        Random,             script_val_random               )\
+  VM_OP_SIMPLE_ZERO(        RandomSphere,       script_val_random_sphere        )\
+  VM_OP_SIMPLE_ZERO(        RandomCircleXZ,     script_val_random_circle_xz     )\
+  VM_OP_SIMPLE_BINARY(      RandomBetween,      script_val_random_between       )\
+  VM_OP_SIMPLE_UNARY(       RoundDown,          script_val_round_down           )\
+  VM_OP_SIMPLE_UNARY(       RoundNearest,       script_val_round_nearest        )\
+  VM_OP_SIMPLE_UNARY(       RoundUp,            script_val_round_up             )\
+  VM_OP_SIMPLE_TERNARY(     Clamp,              script_val_clamp                )\
+  VM_OP_SIMPLE_TERNARY(     Lerp,               script_val_lerp                 )\
+  VM_OP_SIMPLE_BINARY(      Min,                script_val_min                  )\
+  VM_OP_SIMPLE_BINARY(      Max,                script_val_max                  )\
+  VM_OP_SIMPLE_UNARY(       Perlin3,            script_val_perlin3              )
+// clang-format on
+
 INLINE_HINT static bool prog_reg_valid(const u8 regId) { return regId < script_prog_regs; }
 
 INLINE_HINT static bool prog_reg_set_valid(const u8 regId, const u8 regCount) {
@@ -195,76 +242,34 @@ Dispatch:
     }
     VM_NEXT(6);
   }
-#define OP_SIMPLE_ZERO(_OP_, _FUNC_)                                                               \
+#define VM_OP_SIMPLE_ZERO(_OP_, _FUNC_)                                                            \
   case ScriptOp_##_OP_:                                                                            \
     regs[ip[1]] = _FUNC_();                                                                        \
     VM_NEXT(2)
-#define OP_SIMPLE_UNARY(_OP_, _FUNC_)                                                              \
+#define VM_OP_SIMPLE_UNARY(_OP_, _FUNC_)                                                           \
   case ScriptOp_##_OP_:                                                                            \
     regs[ip[1]] = _FUNC_(regs[ip[1]]);                                                             \
     VM_NEXT(2)
-#define OP_SIMPLE_BINARY(_OP_, _FUNC_)                                                             \
+#define VM_OP_SIMPLE_BINARY(_OP_, _FUNC_)                                                          \
   case ScriptOp_##_OP_:                                                                            \
     regs[ip[1]] = _FUNC_(regs[ip[1]], regs[ip[2]]);                                                \
     VM_NEXT(3)
-#define OP_SIMPLE_TERNARY(_OP_, _FUNC_)                                                            \
+#define VM_OP_SIMPLE_TERNARY(_OP_, _FUNC_)                                                         \
   case ScriptOp_##_OP_:                                                                            \
     regs[ip[1]] = _FUNC_(regs[ip[1]], regs[ip[2]], regs[ip[3]]);                                   \
     VM_NEXT(4)
-#define OP_SIMPLE_QUATERNARY(_OP_, _FUNC_)                                                         \
+#define VM_OP_SIMPLE_QUATERNARY(_OP_, _FUNC_)                                                      \
   case ScriptOp_##_OP_:                                                                            \
     regs[ip[1]] = _FUNC_(regs[ip[1]], regs[ip[2]], regs[ip[3]], regs[ip[4]]);                      \
     VM_NEXT(5)
 
-  OP_SIMPLE_UNARY(Truthy,               script_truthy_as_val);
-  OP_SIMPLE_UNARY(Falsy,                script_falsy_as_val);
-  OP_SIMPLE_UNARY(NonNull,              script_non_null_as_val);
-  OP_SIMPLE_UNARY(Type,                 script_val_type);
-  OP_SIMPLE_UNARY(Hash,                 script_val_hash);
-  OP_SIMPLE_BINARY(Equal,               script_val_equal_as_val);
-  OP_SIMPLE_BINARY(Less,                script_val_less_as_val);
-  OP_SIMPLE_BINARY(Greater,             script_val_greater_as_val);
-  OP_SIMPLE_BINARY(Add,                 script_val_add);
-  OP_SIMPLE_BINARY(Sub,                 script_val_sub);
-  OP_SIMPLE_BINARY(Mul,                 script_val_mul);
-  OP_SIMPLE_BINARY(Div,                 script_val_div);
-  OP_SIMPLE_BINARY(Mod,                 script_val_mod);
-  OP_SIMPLE_UNARY(Negate,               script_val_neg);
-  OP_SIMPLE_UNARY(Invert,               script_val_inv);
-  OP_SIMPLE_BINARY(Distance,            script_val_dist);
-  OP_SIMPLE_BINARY(Angle,               script_val_angle);
-  OP_SIMPLE_UNARY(Sin,                  script_val_sin);
-  OP_SIMPLE_UNARY(Cos,                  script_val_cos);
-  OP_SIMPLE_UNARY(Normalize,            script_val_norm);
-  OP_SIMPLE_UNARY(Magnitude,            script_val_mag);
-  OP_SIMPLE_UNARY(Absolute,             script_val_abs);
-  OP_SIMPLE_UNARY(VecX,                 script_val_vec_x);
-  OP_SIMPLE_UNARY(VecY,                 script_val_vec_y);
-  OP_SIMPLE_UNARY(VecZ,                 script_val_vec_z);
-  OP_SIMPLE_TERNARY(Vec3Compose,        script_val_vec3_compose);
-  OP_SIMPLE_TERNARY(QuatFromEuler,      script_val_quat_from_euler);
-  OP_SIMPLE_BINARY(QuatFromAngleAxis,   script_val_quat_from_angle_axis);
-  OP_SIMPLE_QUATERNARY(ColorCompose,    script_val_color_compose);
-  OP_SIMPLE_QUATERNARY(ColorComposeHsv, script_val_color_compose_hsv);
-  OP_SIMPLE_UNARY(ColorFor,             script_val_color_for_val);
-  OP_SIMPLE_ZERO(Random,                script_val_random);
-  OP_SIMPLE_ZERO(RandomSphere,          script_val_random_sphere);
-  OP_SIMPLE_ZERO(RandomCircleXZ,        script_val_random_circle_xz);
-  OP_SIMPLE_BINARY(RandomBetween,       script_val_random_between);
-  OP_SIMPLE_UNARY(RoundDown,            script_val_round_down);
-  OP_SIMPLE_UNARY(RoundNearest,         script_val_round_nearest);
-  OP_SIMPLE_UNARY(RoundUp,              script_val_round_up);
-  OP_SIMPLE_TERNARY(Clamp,              script_val_clamp);
-  OP_SIMPLE_TERNARY(Lerp,               script_val_lerp);
-  OP_SIMPLE_BINARY(Min,                 script_val_min);
-  OP_SIMPLE_BINARY(Max,                 script_val_max);
-  OP_SIMPLE_UNARY(Perlin3,              script_val_perlin3);
+  VM_VISIT_OP_SIMPLE
 
-#undef OP_SIMPLE_QUATERNARY
-#undef OP_SIMPLE_TERNARY
-#undef OP_SIMPLE_BINARY
-#undef OP_SIMPLE_UNARY
-#undef OP_SIMPLE_ZERO
+#undef VM_OP_SIMPLE_QUATERNARY
+#undef VM_OP_SIMPLE_TERNARY
+#undef VM_OP_SIMPLE_BINARY
+#undef VM_OP_SIMPLE_UNARY
+#undef VM_OP_SIMPLE_ZERO
   }
   UNREACHABLE
   // clang-format on
@@ -379,87 +384,45 @@ bool script_prog_validate(const ScriptProgram* prog, const ScriptBinder* binder)
       if (UNLIKELY(!binder)) return false;
       if (UNLIKELY(funcSlot >= script_binder_count(binder))) return false;
     } continue;
-#define OP_SIMPLE_ZERO(_OP_)                                                                       \
+#define VM_OP_SIMPLE_ZERO(_OP_, _FUNC_)                                                            \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 2) > ipEnd)) return false;                                               \
       if (UNLIKELY(!prog_reg_valid(ip[-1]))) return false;                                         \
-      continue
-#define OP_SIMPLE_UNARY(_OP_)                                                                      \
+      continue;
+#define VM_OP_SIMPLE_UNARY(_OP_, _FUNC_)                                                           \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 2) > ipEnd)) return false;                                               \
       if (UNLIKELY(!prog_reg_valid(ip[-1]))) return false;                                         \
-      continue
-#define OP_SIMPLE_BINARY(_OP_)                                                                     \
+      continue;
+#define VM_OP_SIMPLE_BINARY(_OP_, _FUNC_)                                                          \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 3) > ipEnd)) return false;                                               \
       if (UNLIKELY(!prog_reg_valid(ip[-2]))) return false;                                         \
       if (UNLIKELY(!prog_reg_valid(ip[-1]))) return false;                                         \
-      continue
-#define OP_SIMPLE_TERNARY(_OP_)                                                                    \
+      continue;
+#define VM_OP_SIMPLE_TERNARY(_OP_, _FUNC_)                                                         \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 4) > ipEnd)) return false;                                               \
       if (UNLIKELY(!prog_reg_valid(ip[-3]))) return false;                                         \
       if (UNLIKELY(!prog_reg_valid(ip[-2]))) return false;                                         \
       if (UNLIKELY(!prog_reg_valid(ip[-1]))) return false;                                         \
-      continue
-#define OP_SIMPLE_QUATERNARY(_OP_)                                                                 \
+      continue;
+#define VM_OP_SIMPLE_QUATERNARY(_OP_, _FUNC_)                                                      \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 5) > ipEnd)) return false;                                               \
       if (UNLIKELY(!prog_reg_valid(ip[-4]))) return false;                                         \
       if (UNLIKELY(!prog_reg_valid(ip[-3]))) return false;                                         \
       if (UNLIKELY(!prog_reg_valid(ip[-2]))) return false;                                         \
       if (UNLIKELY(!prog_reg_valid(ip[-1]))) return false;                                         \
-      continue
+      continue;
 
-    OP_SIMPLE_UNARY(Truthy);
-    OP_SIMPLE_UNARY(Falsy);
-    OP_SIMPLE_UNARY(NonNull);
-    OP_SIMPLE_UNARY(Type);
-    OP_SIMPLE_UNARY(Hash);
-    OP_SIMPLE_BINARY(Equal);
-    OP_SIMPLE_BINARY(Less);
-    OP_SIMPLE_BINARY(Greater);
-    OP_SIMPLE_BINARY(Add);
-    OP_SIMPLE_BINARY(Sub);
-    OP_SIMPLE_BINARY(Mul);
-    OP_SIMPLE_BINARY(Div);
-    OP_SIMPLE_BINARY(Mod);
-    OP_SIMPLE_UNARY(Negate);
-    OP_SIMPLE_UNARY(Invert);
-    OP_SIMPLE_BINARY(Distance);
-    OP_SIMPLE_BINARY(Angle);
-    OP_SIMPLE_UNARY(Sin);
-    OP_SIMPLE_UNARY(Cos);
-    OP_SIMPLE_UNARY(Normalize);
-    OP_SIMPLE_UNARY(Magnitude);
-    OP_SIMPLE_UNARY(Absolute);
-    OP_SIMPLE_UNARY(VecX);
-    OP_SIMPLE_UNARY(VecY);
-    OP_SIMPLE_UNARY(VecZ);
-    OP_SIMPLE_TERNARY(Vec3Compose);
-    OP_SIMPLE_TERNARY(QuatFromEuler);
-    OP_SIMPLE_BINARY(QuatFromAngleAxis);
-    OP_SIMPLE_QUATERNARY(ColorCompose);
-    OP_SIMPLE_QUATERNARY(ColorComposeHsv);
-    OP_SIMPLE_UNARY(ColorFor);
-    OP_SIMPLE_ZERO(Random);
-    OP_SIMPLE_ZERO(RandomSphere);
-    OP_SIMPLE_ZERO(RandomCircleXZ);
-    OP_SIMPLE_BINARY(RandomBetween);
-    OP_SIMPLE_UNARY(RoundDown);
-    OP_SIMPLE_UNARY(RoundNearest);
-    OP_SIMPLE_UNARY(RoundUp);
-    OP_SIMPLE_TERNARY(Clamp);
-    OP_SIMPLE_TERNARY(Lerp);
-    OP_SIMPLE_BINARY(Min);
-    OP_SIMPLE_BINARY(Max);
-    OP_SIMPLE_UNARY(Perlin3);
+    VM_VISIT_OP_SIMPLE
 
-#undef OP_SIMPLE_QUATERNARY
-#undef OP_SIMPLE_TERNARY
-#undef OP_SIMPLE_BINARY
-#undef OP_SIMPLE_UNARY
-#undef OP_SIMPLE_ZERO
+#undef VM_OP_SIMPLE_QUATERNARY
+#undef VM_OP_SIMPLE_TERNARY
+#undef VM_OP_SIMPLE_BINARY
+#undef VM_OP_SIMPLE_UNARY
+#undef VM_OP_SIMPLE_ZERO
     }
     // clang-format on
     return false; // Unknown op-code.
@@ -564,83 +527,41 @@ void script_prog_write(const ScriptProgram* prog, DynString* out) {
       if (UNLIKELY((ip += 6) > ipEnd)) return;
       fmt_write(out, "Extern r{} f{} r{} c{}\n", fmt_int(ip[-5]), fmt_int(prog_read_u16(&ip[-4])), fmt_int(ip[-2]), fmt_int(ip[-1]));
       break;
-#define OP_SIMPLE_ZERO(_OP_)                                                                       \
+#define VM_OP_SIMPLE_ZERO(_OP_, _FUNC_)                                                            \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 2) > ipEnd)) return;                                                     \
       fmt_write(out, #_OP_ " r{}\n", fmt_int(ip[-1]));                                             \
-      break
-#define OP_SIMPLE_UNARY(_OP_)                                                                      \
+      break;
+#define VM_OP_SIMPLE_UNARY(_OP_, _FUNC_)                                                           \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 2) > ipEnd)) return;                                                     \
       fmt_write(out, #_OP_ " r{}\n", fmt_int(ip[-1]));                                             \
-      break
-#define OP_SIMPLE_BINARY(_OP_)                                                                     \
+      break;
+#define VM_OP_SIMPLE_BINARY(_OP_, _FUNC_)                                                          \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 3) > ipEnd)) return;                                                     \
       fmt_write(out, #_OP_ " r{} r{}\n", fmt_int(ip[-2]), fmt_int(ip[-1]));                        \
-      break
-#define OP_SIMPLE_TERNARY(_OP_)                                                                    \
+      break;
+#define VM_OP_SIMPLE_TERNARY(_OP_, _FUNC_)                                                         \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 4) > ipEnd)) return;                                                     \
       fmt_write(out, #_OP_ " r{} r{} r{}\n",                                                       \
         fmt_int(ip[-3]), fmt_int(ip[-2]), fmt_int(ip[-1]));                                        \
-      break
-#define OP_SIMPLE_QUATERNARY(_OP_)                                                                 \
+      break;
+#define VM_OP_SIMPLE_QUATERNARY(_OP_, _FUNC_)                                                      \
     case ScriptOp_##_OP_:                                                                          \
       if (UNLIKELY((ip += 5) > ipEnd)) return;                                                     \
       fmt_write(out, #_OP_ " r{} r{} r{} r{}\n",                                                   \
         fmt_int(ip[-4]), fmt_int(ip[-3]), fmt_int(ip[-2]), fmt_int(ip[-1]));                       \
-      break
+      break;
 
-    OP_SIMPLE_UNARY(Truthy);
-    OP_SIMPLE_UNARY(Falsy);
-    OP_SIMPLE_UNARY(NonNull);
-    OP_SIMPLE_UNARY(Type);
-    OP_SIMPLE_UNARY(Hash);
-    OP_SIMPLE_BINARY(Equal);
-    OP_SIMPLE_BINARY(Less);
-    OP_SIMPLE_BINARY(Greater);
-    OP_SIMPLE_BINARY(Add);
-    OP_SIMPLE_BINARY(Sub);
-    OP_SIMPLE_BINARY(Mul);
-    OP_SIMPLE_BINARY(Div);
-    OP_SIMPLE_BINARY(Mod);
-    OP_SIMPLE_UNARY(Negate);
-    OP_SIMPLE_UNARY(Invert);
-    OP_SIMPLE_BINARY(Distance);
-    OP_SIMPLE_BINARY(Angle);
-    OP_SIMPLE_UNARY(Sin);
-    OP_SIMPLE_UNARY(Cos);
-    OP_SIMPLE_UNARY(Normalize);
-    OP_SIMPLE_UNARY(Magnitude);
-    OP_SIMPLE_UNARY(Absolute);
-    OP_SIMPLE_UNARY(VecX);
-    OP_SIMPLE_UNARY(VecY);
-    OP_SIMPLE_UNARY(VecZ);
-    OP_SIMPLE_TERNARY(Vec3Compose);
-    OP_SIMPLE_TERNARY(QuatFromEuler);
-    OP_SIMPLE_BINARY(QuatFromAngleAxis);
-    OP_SIMPLE_QUATERNARY(ColorCompose);
-    OP_SIMPLE_QUATERNARY(ColorComposeHsv);
-    OP_SIMPLE_UNARY(ColorFor);
-    OP_SIMPLE_ZERO(Random);
-    OP_SIMPLE_ZERO(RandomSphere);
-    OP_SIMPLE_ZERO(RandomCircleXZ);
-    OP_SIMPLE_BINARY(RandomBetween);
-    OP_SIMPLE_UNARY(RoundDown);
-    OP_SIMPLE_UNARY(RoundNearest);
-    OP_SIMPLE_UNARY(RoundUp);
-    OP_SIMPLE_TERNARY(Clamp);
-    OP_SIMPLE_TERNARY(Lerp);
-    OP_SIMPLE_BINARY(Min);
-    OP_SIMPLE_BINARY(Max);
-    OP_SIMPLE_UNARY(Perlin3);
+    VM_VISIT_OP_SIMPLE
 
-#undef OP_SIMPLE_QUATERNARY
-#undef OP_SIMPLE_TERNARY
-#undef OP_SIMPLE_BINARY
-#undef OP_SIMPLE_UNARY
-#undef OP_SIMPLE_ZERO
+#undef VM_OP_SIMPLE_QUATERNARY
+#undef VM_OP_SIMPLE_TERNARY
+#undef VM_OP_SIMPLE_BINARY
+#undef VM_OP_SIMPLE_UNARY
+#undef VM_OP_SIMPLE_ZERO
     }
     // clang-format on
   }
