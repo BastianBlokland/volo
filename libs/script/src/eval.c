@@ -389,7 +389,7 @@ ScriptEvalResult script_eval(
   res.panic       = ctx.panic;
   res.executedOps = ctx.executedOps;
 
-  diag_assert(((ctx.signal & ScriptEvalSignal_Panic) != 0) == script_panic_valid(&ctx.panic));
+  diag_assert(((ctx.signal & ScriptEvalSignal_Panic) != 0) == (ctx.panic.kind != ScriptPanic_None));
   diag_assert(!(ctx.signal & ScriptEvalSignal_Break));
   diag_assert(!(ctx.signal & ScriptEvalSignal_Continue));
 

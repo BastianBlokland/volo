@@ -389,7 +389,7 @@ static void repl_exec(
   }
   if (flags & ReplFlags_Compile) {
     const ScriptProgResult progRes = script_prog_eval(&prog, mem, binder, null);
-    if (script_panic_valid(&progRes.panic)) {
+    if (progRes.panic.kind) {
       repl_output_panic(flags, &progRes.panic, id);
     } else {
       repl_output_val(progRes.val);
@@ -397,7 +397,7 @@ static void repl_exec(
     goto Ret;
   }
   const ScriptEvalResult evalRes = script_eval(script, expr, mem, binder, null);
-  if (script_panic_valid(&evalRes.panic)) {
+  if (evalRes.panic.kind) {
     repl_output_panic(flags, &evalRes.panic, id);
   } else {
     repl_output_val(evalRes.val);

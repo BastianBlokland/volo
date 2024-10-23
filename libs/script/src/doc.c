@@ -361,7 +361,7 @@ ScriptVal script_expr_static_val(const ScriptDoc* doc, const ScriptExpr expr) {
     return script_null();
   }
   const ScriptEvalResult evalRes = script_eval(doc, expr, null, null, null);
-  return script_panic_valid(&evalRes.panic) ? script_null() : evalRes.val;
+  return evalRes.panic.kind ? script_null() : evalRes.val;
 }
 
 bool script_expr_always_truthy(const ScriptDoc* doc, const ScriptExpr expr) {
@@ -369,7 +369,7 @@ bool script_expr_always_truthy(const ScriptDoc* doc, const ScriptExpr expr) {
     return false;
   }
   const ScriptEvalResult evalRes = script_eval(doc, expr, null, null, null);
-  return !script_panic_valid(&evalRes.panic) && script_truthy(evalRes.val);
+  return !evalRes.panic.kind && script_truthy(evalRes.val);
 }
 
 void script_expr_visit(
@@ -525,7 +525,7 @@ ScriptDocSignal script_expr_always_uncaught_signal(const ScriptDoc* doc, const S
       }
       if (script_expr_static(doc, args[0])) {
         const ScriptEvalResult res = script_eval(doc, args[0], null, null, null);
-        if (!script_panic_valid(&res.panic)) {
+        if (!res.panic.kind) {
           const bool condition = script_truthy(res.val);
           return script_expr_always_uncaught_signal(doc, condition ? args[1] : args[2]);
         }

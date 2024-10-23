@@ -22,8 +22,6 @@ static const String g_panicKindStrs[] = {
 };
 ASSERT(array_elems(g_panicKindStrs) == ScriptPanicKind_Count, "Incorrect number of kind strs");
 
-bool script_panic_valid(const ScriptPanic* panic) { return panic->kind != ScriptPanic_None; }
-
 String script_panic_kind_str(const ScriptPanicKind kind) {
   diag_assert(kind < ScriptPanicKind_Count);
   return g_panicKindStrs[kind];

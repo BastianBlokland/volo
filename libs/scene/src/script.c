@@ -2135,7 +2135,7 @@ static void scene_script_eval(EvalContext* ctx) {
   const ScriptProgResult evalRes   = script_prog_eval(ctx->scriptProgram, mem, g_scriptBinder, ctx);
 
   // Handle panics.
-  if (UNLIKELY(script_panic_valid(&evalRes.panic))) {
+  if (UNLIKELY((evalRes.panic.kind))) {
     const String msg = script_panic_pretty_scratch(&evalRes.panic);
     log_e(
         "Script panic",
@@ -2326,7 +2326,7 @@ EcsEntityId scene_script_asset(const SceneScriptComp* script, const SceneScriptS
 const ScriptPanic* scene_script_panic(const SceneScriptComp* script, const SceneScriptSlot slot) {
   diag_assert(slot < script->slotCount);
   const ScriptPanic* panic = &script->slots[slot].panic;
-  return script_panic_valid(panic) ? panic : null;
+  return panic->kind ? panic : null;
 }
 
 const SceneScriptStats*
