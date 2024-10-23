@@ -463,7 +463,7 @@ static void tracker_output_add(
     const TimeReal              time,
     const SceneScriptSlot       slot,
     const String                scriptId,
-    const String                message,
+    const String                msg,
     const ScriptRangeLineCol    range) {
   DebugScriptOutput* entry = null;
   // Find an existing entry of the same type for the same entity.
@@ -480,12 +480,12 @@ static void tracker_output_add(
   }
   entry->type      = type;
   entry->slot      = slot;
-  entry->msgLength = math_min((u8)message.size, output_max_message_size);
+  entry->msgLength = math_min((u8)msg.size, output_max_message_size);
   entry->timestamp = time;
   entry->entity    = entity;
   entry->scriptId  = scriptId;
   entry->range     = range;
-  mem_cpy(mem_create(entry->msgData, entry->msgLength), string_slice(message, 0, entry->msgLength));
+  mem_cpy(mem_create(entry->msgData, entry->msgLength), string_slice(msg, 0, entry->msgLength));
 }
 
 static void tracker_asset_add(
