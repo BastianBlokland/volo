@@ -2136,7 +2136,7 @@ static void scene_script_eval(EvalContext* ctx) {
 
   // Handle panics.
   if (UNLIKELY((evalRes.panic.kind))) {
-    const String msg = script_panic_pretty_scratch(&evalRes.panic, ScriptPanicOutput_IncludeRange);
+    const String msg = script_panic_scratch(&evalRes.panic, ScriptPanicOutput_IncludeRange);
     log_e(
         "Script panic",
         log_param("panic", fmt_text(msg)),

@@ -35,5 +35,5 @@ typedef enum {
 } ScriptPanicOutputFlags;
 
 String script_panic_kind_str(ScriptPanicKind);
-void   script_panic_pretty_write(DynString*, const ScriptPanic*, ScriptPanicOutputFlags);
-String script_panic_pretty_scratch(const ScriptPanic*, ScriptPanicOutputFlags);
+void   script_panic_write(DynString*, const ScriptPanic*, ScriptPanicOutputFlags);
+String script_panic_scratch(const ScriptPanic*, ScriptPanicOutputFlags);
