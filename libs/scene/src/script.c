@@ -675,7 +675,7 @@ static ScriptVal eval_query_pop(EvalContext* ctx, ScriptBinderCall* call) {
   }
   EvalQuery* query = context_query_get(ctx, queryId);
   if (UNLIKELY(!query)) {
-    call->panic = (ScriptPanic){ScriptPanic_QueryInvalid, .argIndex = 0};
+    call->panic = (ScriptPanic){ScriptPanic_QueryInvalid, .argIndex = 0, .contextInt = queryId};
     return script_null();
   }
   if (query->itr == query->count) {
@@ -691,7 +691,7 @@ static ScriptVal eval_query_random(EvalContext* ctx, ScriptBinderCall* call) {
   }
   EvalQuery* query = context_query_get(ctx, queryId);
   if (UNLIKELY(!query)) {
-    call->panic = (ScriptPanic){ScriptPanic_QueryInvalid, .argIndex = 0};
+    call->panic = (ScriptPanic){ScriptPanic_QueryInvalid, .argIndex = 0, .contextInt = queryId};
     return script_null();
   }
   if (query->itr == query->count) {

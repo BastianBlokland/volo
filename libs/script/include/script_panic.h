@@ -29,7 +29,8 @@ typedef struct sScriptPanic {
   ScriptPanicKind    kind : 16;
   u16                argIndex;
   ScriptMask         typeMask;
-  ScriptType         typeActual;
+  ScriptType         typeActual : 16;
+  u32                contextInt;
   ScriptRangeLineCol range;
 } ScriptPanic;
 

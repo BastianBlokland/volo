@@ -17,7 +17,7 @@ static const String g_panicStrs[] = {
     [ScriptPanic_EnumInvalidEntry]            = string_static("Invalid enum entry"),
     [ScriptPanic_UnimplementedBinding]        = string_static("Unimplemented binding"),
     [ScriptPanic_QueryLimitExceeded]          = string_static("Query limit exceeded"),
-    [ScriptPanic_QueryInvalid]                = string_static("Query invalid"),
+    [ScriptPanic_QueryInvalid]                = string_static("Query {context-int} invalid"),
     [ScriptPanic_ReadonlyParam]               = string_static("Cannot change readonly parameter"),
     [ScriptPanic_MissingCapability]           = string_static("Required capability is missing"),
 };
@@ -28,6 +28,7 @@ typedef enum {
   PanicReplKind_ArgIndex,
   PanicReplKind_TypeMask,
   PanicReplKind_TypeActual,
+  PanicReplKind_ContextInt,
 } PanicReplKind;
 
 typedef struct {
@@ -44,6 +45,9 @@ static PanicReplKind panic_replacement_parse(const String str) {
   }
   if (string_eq(str, string_lit("type-actual"))) {
     return PanicReplKind_TypeActual;
+  }
+  if (string_eq(str, string_lit("context-int"))) {
+    return PanicReplKind_ContextInt;
   }
   diag_crash_msg("Unsupported panic replacement");
 }
@@ -99,6 +103,9 @@ void script_panic_write(
       break;
     case PanicReplKind_TypeActual:
       dynstring_append(out, script_val_type_str(panic->typeActual));
+      break;
+    case PanicReplKind_ContextInt:
+      format_write_int(out, panic->contextInt);
       break;
     }
 
