@@ -31,9 +31,9 @@ typedef struct sScriptPanic {
 } ScriptPanic;
 
 typedef enum {
+  ScriptPanicOutput_Default      = 0,
   ScriptPanicOutput_IncludeRange = 1 << 0,
 } ScriptPanicOutputFlags;
 
-String script_panic_kind_str(ScriptPanicKind);
 void   script_panic_write(DynString*, const ScriptPanic*, ScriptPanicOutputFlags);
 String script_panic_scratch(const ScriptPanic*, ScriptPanicOutputFlags);
