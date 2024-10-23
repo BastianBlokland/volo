@@ -3,7 +3,7 @@
 #include "core_diag.h"
 #include "script_panic.h"
 
-static const String g_panicKindStrs[] = {
+static const String g_panicStrs[] = {
     [ScriptPanic_None]                        = string_static("None"),
     [ScriptPanic_AssertionFailed]             = string_static("Assertion failed"),
     [ScriptPanic_ExecutionFailed]             = string_static("Execution failed"),
@@ -20,7 +20,7 @@ static const String g_panicKindStrs[] = {
     [ScriptPanic_ReadonlyParam]               = string_static("Cannot change readonly parameter"),
     [ScriptPanic_MissingCapability]           = string_static("Required capability is missing"),
 };
-ASSERT(array_elems(g_panicKindStrs) == ScriptPanicKind_Count, "Incorrect number of kind strs");
+ASSERT(array_elems(g_panicStrs) == ScriptPanicKind_Count, "Incorrect number of kind strs");
 
 void script_panic_write(
     DynString* out, const ScriptPanic* panic, const ScriptPanicOutputFlags flags) {
@@ -36,7 +36,7 @@ void script_panic_write(
         fmt_int(panic->range.end.column + 1));
   }
 
-  dynstring_append(out, g_panicKindStrs[panic->kind]);
+  dynstring_append(out, g_panicStrs[panic->kind]);
 }
 
 String script_panic_scratch(const ScriptPanic* diag, const ScriptPanicOutputFlags flags) {
