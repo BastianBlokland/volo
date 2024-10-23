@@ -1,5 +1,6 @@
 #pragma once
 #include "script_pos.h"
+#include "script_val.h"
 
 // Forward declare from 'core_dynstring.h'.
 typedef struct sDynArray DynString;
@@ -10,7 +11,7 @@ typedef enum eScriptPanicKind {
   ScriptPanic_ExecutionFailed,
   ScriptPanic_ExecutionLimitExceeded,
   ScriptPanic_ArgumentInvalid,
-  ScriptPanic_ArgumentNull,
+  ScriptPanic_ArgumentTypeMismatch,
   ScriptPanic_ArgumentMissing,
   ScriptPanic_ArgumentOutOfRange,
   ScriptPanic_ArgumentCountExceedsMaximum,
@@ -27,6 +28,8 @@ typedef enum eScriptPanicKind {
 typedef struct sScriptPanic {
   ScriptPanicKind    kind : 16;
   u16                argIndex;
+  ScriptMask         typeMask;
+  ScriptType         typeActual;
   ScriptRangeLineCol range;
 } ScriptPanic;
 

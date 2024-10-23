@@ -3,13 +3,14 @@
 #include "core_diag.h"
 #include "script_panic.h"
 
+// clang-format off
 static const String g_panicStrs[] = {
     [ScriptPanic_None]                        = string_static("None"),
     [ScriptPanic_AssertionFailed]             = string_static("Assertion failed"),
     [ScriptPanic_ExecutionFailed]             = string_static("Execution failed"),
     [ScriptPanic_ExecutionLimitExceeded]      = string_static("Execution limit exceeded"),
     [ScriptPanic_ArgumentInvalid]             = string_static("Argument {arg-index} invalid"),
-    [ScriptPanic_ArgumentNull]                = string_static("Argument {arg-index} is null"),
+    [ScriptPanic_ArgumentTypeMismatch]        = string_static("Argument {arg-index} expected '{type-mask}' got '{type-actual}'"),
     [ScriptPanic_ArgumentMissing]             = string_static("Argument {arg-index} missing"),
     [ScriptPanic_ArgumentOutOfRange]          = string_static("Argument {arg-index} out of range"),
     [ScriptPanic_ArgumentCountExceedsMaximum] = string_static("Argument count exceeds maximum"),
@@ -20,10 +21,13 @@ static const String g_panicStrs[] = {
     [ScriptPanic_ReadonlyParam]               = string_static("Cannot change readonly parameter"),
     [ScriptPanic_MissingCapability]           = string_static("Required capability is missing"),
 };
+// clang-format on
 ASSERT(array_elems(g_panicStrs) == ScriptPanicKind_Count, "Incorrect number of kind strs");
 
 typedef enum {
   PanicReplKind_ArgIndex,
+  PanicReplKind_TypeMask,
+  PanicReplKind_TypeActual,
 } PanicReplKind;
 
 typedef struct {
@@ -34,6 +38,12 @@ typedef struct {
 static PanicReplKind panic_replacement_parse(const String str) {
   if (string_eq(str, string_lit("arg-index"))) {
     return PanicReplKind_ArgIndex;
+  }
+  if (string_eq(str, string_lit("type-mask"))) {
+    return PanicReplKind_TypeMask;
+  }
+  if (string_eq(str, string_lit("type-actual"))) {
+    return PanicReplKind_TypeActual;
   }
   diag_crash_msg("Unsupported panic replacement");
 }
@@ -83,6 +93,12 @@ void script_panic_write(
     switch (repl.kind) {
     case PanicReplKind_ArgIndex:
       format_write_int(out, panic->argIndex);
+      break;
+    case PanicReplKind_TypeMask:
+      dynstring_append(out, script_mask_scratch(panic->typeMask));
+      break;
+    case PanicReplKind_TypeActual:
+      dynstring_append(out, script_val_type_str(panic->typeActual));
       break;
     }
 
