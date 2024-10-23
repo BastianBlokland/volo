@@ -8,10 +8,10 @@ static const String g_panicStrs[] = {
     [ScriptPanic_AssertionFailed]             = string_static("Assertion failed"),
     [ScriptPanic_ExecutionFailed]             = string_static("Execution failed"),
     [ScriptPanic_ExecutionLimitExceeded]      = string_static("Execution limit exceeded"),
-    [ScriptPanic_ArgumentInvalid]             = string_static("Argument invalid"),
-    [ScriptPanic_ArgumentNull]                = string_static("Argument is null"),
-    [ScriptPanic_ArgumentMissing]             = string_static("Argument missing"),
-    [ScriptPanic_ArgumentOutOfRange]          = string_static("Argument out of range"),
+    [ScriptPanic_ArgumentInvalid]             = string_static("Argument {arg-index} invalid"),
+    [ScriptPanic_ArgumentNull]                = string_static("Argument {arg-index} is null"),
+    [ScriptPanic_ArgumentMissing]             = string_static("Argument {arg-index} missing"),
+    [ScriptPanic_ArgumentOutOfRange]          = string_static("Argument {arg-index} out of range"),
     [ScriptPanic_ArgumentCountExceedsMaximum] = string_static("Argument count exceeds maximum"),
     [ScriptPanic_EnumInvalidEntry]            = string_static("Invalid enum entry"),
     [ScriptPanic_UnimplementedBinding]        = string_static("Unimplemented binding"),
@@ -21,6 +21,38 @@ static const String g_panicStrs[] = {
     [ScriptPanic_MissingCapability]           = string_static("Required capability is missing"),
 };
 ASSERT(array_elems(g_panicStrs) == ScriptPanicKind_Count, "Incorrect number of kind strs");
+
+typedef enum {
+  PanicReplKind_ArgIndex,
+} PanicReplKind;
+
+typedef struct {
+  usize         start, end;
+  PanicReplKind kind;
+} PanicRepl;
+
+static PanicReplKind panic_replacement_parse(const String str) {
+  if (string_eq(str, string_lit("arg-index"))) {
+    return PanicReplKind_ArgIndex;
+  }
+  diag_crash_msg("Unsupported panic replacement");
+}
+
+static bool panic_replacement_find(String str, PanicRepl* result) {
+  const usize startIdx = string_find_first_char(str, '{');
+  if (sentinel_check(startIdx)) {
+    return false;
+  }
+  const usize len = string_find_first_char(mem_consume(str, startIdx), '}');
+  diag_assert(!sentinel_check(len));
+
+  *result = (PanicRepl){
+      .start = startIdx,
+      .end   = startIdx + len + 1,
+      .kind  = panic_replacement_parse(string_slice(str, startIdx + 1, len - 1)),
+  };
+  return true;
+}
 
 void script_panic_write(
     DynString* out, const ScriptPanic* panic, const ScriptPanicOutputFlags flags) {
@@ -36,7 +68,26 @@ void script_panic_write(
         fmt_int(panic->range.end.column + 1));
   }
 
-  dynstring_append(out, g_panicStrs[panic->kind]);
+  String str = g_panicStrs[panic->kind];
+  while (!string_is_empty(str)) {
+    PanicRepl repl;
+    if (!panic_replacement_find(str, &repl)) {
+      // No replacement, append the text verbatim.
+      dynstring_append(out, str);
+      break;
+    }
+
+    // Append the text before the replacement verbatim.
+    dynstring_append(out, string_slice(str, 0, repl.start));
+
+    switch (repl.kind) {
+    case PanicReplKind_ArgIndex:
+      format_write_int(out, panic->argIndex);
+      break;
+    }
+
+    str = mem_consume(str, repl.end);
+  }
 }
 
 String script_panic_scratch(const ScriptPanic* diag, const ScriptPanicOutputFlags flags) {
