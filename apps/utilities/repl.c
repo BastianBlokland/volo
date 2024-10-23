@@ -118,7 +118,7 @@ repl_output_diag(const ReplFlags flags, const String src, const ScriptDiag* diag
 }
 
 static void repl_output_panic(const ReplFlags flags, const ScriptPanic* panic, const String id) {
-  repl_output_error(flags, script_panic_pretty_scratch(panic), id);
+  repl_output_error(flags, script_panic_pretty_scratch(panic, ScriptPanicOutput_IncludeRange), id);
 }
 
 static void repl_output_sym(const ScriptSymBag* symBag, const ScriptSym sym) {

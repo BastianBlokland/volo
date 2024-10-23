@@ -30,6 +30,10 @@ typedef struct sScriptPanic {
   ScriptRangeLineCol range;
 } ScriptPanic;
 
+typedef enum {
+  ScriptPanicOutput_IncludeRange = 1 << 0,
+} ScriptPanicOutputFlags;
+
 String script_panic_kind_str(ScriptPanicKind);
-void   script_panic_pretty_write(DynString*, const ScriptPanic*);
-String script_panic_pretty_scratch(const ScriptPanic*);
+void   script_panic_pretty_write(DynString*, const ScriptPanic*, ScriptPanicOutputFlags);
+String script_panic_pretty_scratch(const ScriptPanic*, ScriptPanicOutputFlags);

@@ -27,24 +27,28 @@ String script_panic_kind_str(const ScriptPanicKind kind) {
   return g_panicKindStrs[kind];
 }
 
-void script_panic_pretty_write(DynString* out, const ScriptPanic* panic) {
+void script_panic_pretty_write(
+    DynString* out, const ScriptPanic* panic, const ScriptPanicOutputFlags flags) {
   diag_assert(panic->kind != ScriptPanic_None && panic->kind < ScriptPanicKind_Count);
 
-  fmt_write(
-      out,
-      "{}:{}-{}:{}: {}",
-      fmt_int(panic->range.start.line + 1),
-      fmt_int(panic->range.start.column + 1),
-      fmt_int(panic->range.end.line + 1),
-      fmt_int(panic->range.end.column + 1),
-      fmt_text(g_panicKindStrs[panic->kind]));
+  if (flags & ScriptPanicOutput_IncludeRange) {
+    fmt_write(
+        out,
+        "{}:{}-{}:{}: ",
+        fmt_int(panic->range.start.line + 1),
+        fmt_int(panic->range.start.column + 1),
+        fmt_int(panic->range.end.line + 1),
+        fmt_int(panic->range.end.column + 1));
+  }
+
+  dynstring_append(out, g_panicKindStrs[panic->kind]);
 }
 
-String script_panic_pretty_scratch(const ScriptPanic* diag) {
+String script_panic_pretty_scratch(const ScriptPanic* diag, const ScriptPanicOutputFlags flags) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  script_panic_pretty_write(&buffer, diag);
+  script_panic_pretty_write(&buffer, diag, flags);
 
   return dynstring_view(&buffer);
 }
