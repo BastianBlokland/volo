@@ -1,6 +1,7 @@
 #pragma once
+#include "core_annotation.h"
 #include "core_string.h"
-#include "script_error.h"
+#include "script_panic.h"
 
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
@@ -23,7 +24,7 @@ typedef struct sScriptBinderCall {
   const ScriptVal* args;
   u32              argCount;
   u32              callId;
-  ScriptError      err;
+  ScriptPanic      panic;
 } ScriptBinderCall;
 
 typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptBinderCall*);
@@ -35,6 +36,13 @@ typedef struct sScriptBinder ScriptBinder;
 
 ScriptBinder* script_binder_create(Allocator*);
 void          script_binder_destroy(ScriptBinder*);
+
+/**
+ * Check if a panic has occurred during the given call.
+ */
+MAYBE_UNUSED static bool script_call_panicked(const ScriptBinderCall* call) {
+  return call->panic.kind != ScriptPanic_None;
+}
 
 /**
  * Declare a new function.

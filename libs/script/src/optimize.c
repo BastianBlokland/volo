@@ -162,7 +162,7 @@ static ScriptExpr opt_static_eval_rewriter(void* ctx, ScriptDoc* d, const Script
   }
   if (script_expr_static(d, e)) {
     const ScriptEvalResult evalRes = script_eval(d, e, null, null, null);
-    if (!script_panic_valid(&evalRes.panic)) {
+    if (!evalRes.panic.kind) {
       return script_add_value(d, script_expr_range(d, e), evalRes.val);
     }
   }

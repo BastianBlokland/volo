@@ -280,7 +280,7 @@ spec(prog) {
 
       check_require(script_prog_validate(&prog, binder));
       const ScriptProgResult res = script_prog_eval(&prog, &mem, binder, bindCtxNull);
-      check(!script_panic_valid(&res.panic));
+      check(!res.panic.kind);
       check_msg(
           script_val_equal(res.val, testData[i].expected),
           "{} == {} ({})",

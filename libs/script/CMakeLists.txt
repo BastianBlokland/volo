@@ -11,7 +11,6 @@ add_library(lib_script STATIC
   src/diag.c
   src/doc.c
   src/enum.c
-  src/error.c
   src/eval.c
   src/format.c
   src/intrinsic.c

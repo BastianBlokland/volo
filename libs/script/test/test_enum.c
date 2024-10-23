@@ -1,6 +1,6 @@
 #include "check_spec.h"
 #include "script_enum.h"
-#include "script_error.h"
+#include "script_panic.h"
 
 spec(enum_) {
   it("can check if it contains a name") {
@@ -33,15 +33,15 @@ spec(enum_) {
     script_enum_push(&e, string_lit("b"), 42);
     script_enum_push(&e, string_lit("c"), 1337);
 
-    ScriptError err = {0};
-    check_eq_int(script_enum_lookup_value(&e, string_hash_lit("a"), &err), 1);
-    check_eq_int(err.kind, ScriptError_None);
+    ScriptPanic panic = {0};
+    check_eq_int(script_enum_lookup_value(&e, string_hash_lit("a"), &panic), 1);
+    check_eq_int(panic.kind, ScriptPanic_None);
 
-    check_eq_int(script_enum_lookup_value(&e, string_hash_lit("b"), &err), 42);
-    check_eq_int(err.kind, ScriptError_None);
+    check_eq_int(script_enum_lookup_value(&e, string_hash_lit("b"), &panic), 42);
+    check_eq_int(panic.kind, ScriptPanic_None);
 
-    check_eq_int(script_enum_lookup_value(&e, string_hash_lit("c"), &err), 1337);
-    check_eq_int(err.kind, ScriptError_None);
+    check_eq_int(script_enum_lookup_value(&e, string_hash_lit("c"), &panic), 1337);
+    check_eq_int(panic.kind, ScriptPanic_None);
   }
 
   it("can optionally lookup a value") {
@@ -62,9 +62,9 @@ spec(enum_) {
     script_enum_push(&e, string_lit("b"), 42);
     script_enum_push(&e, string_lit("c"), 1337);
 
-    ScriptError err = {0};
-    script_enum_lookup_value(&e, string_hash_lit("d"), &err);
-    check_eq_int(err.kind, ScriptError_EnumInvalidEntry);
+    ScriptPanic panic = {0};
+    script_enum_lookup_value(&e, string_hash_lit("d"), &panic);
+    check_eq_int(panic.kind, ScriptPanic_EnumInvalidEntry);
   }
 
   it("can lookup names") {
