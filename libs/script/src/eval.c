@@ -1,7 +1,6 @@
 #include "core_annotation.h"
 #include "core_diag.h"
 #include "script_binder.h"
-#include "script_error.h"
 #include "script_eval.h"
 #include "script_mem.h"
 #include "script_val.h"
@@ -328,13 +327,9 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
       .callId   = e,
   };
   const ScriptVal ret = script_binder_exec(ctx->binder, data->func, ctx->bindCtx, &call);
-  if (UNLIKELY(call.err.kind)) {
-    const ScriptExpr errExpr = call.err.argIndex < data->argCount ? argExprs[call.err.argIndex] : e;
-
-    ctx->panic = (ScriptPanic){
-        .kind  = script_error_to_panic(call.err.kind),
-        .range = script_expr_range_line_col(ctx->doc, errExpr),
-    };
+  if (UNLIKELY(script_call_panicked(&call))) {
+    call.panic.range = script_expr_range_line_col(ctx->doc, e);
+    ctx->panic       = call.panic;
     ctx->signal |= ScriptEvalSignal_Panic;
   }
   return ret;

@@ -25,7 +25,8 @@ typedef enum eScriptPanicKind {
 } ScriptPanicKind;
 
 typedef struct sScriptPanic {
-  ScriptPanicKind    kind;
+  ScriptPanicKind    kind : 16;
+  u16                argIndex;
   ScriptRangeLineCol range;
 } ScriptPanic;
 

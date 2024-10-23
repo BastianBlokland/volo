@@ -1,7 +1,7 @@
 #include "core_diag.h"
 #include "core_stringtable.h"
 #include "script_enum.h"
-#include "script_error.h"
+#include "script_panic.h"
 
 #ifdef VOLO_SIMD
 #include "core_simd.h"
@@ -67,10 +67,10 @@ bool script_enum_contains_name(const ScriptEnum* e, const StringHash nameHash) {
   return !sentinel_check(index);
 }
 
-i32 script_enum_lookup_value(const ScriptEnum* e, const StringHash nameHash, ScriptError* err) {
+i32 script_enum_lookup_value(const ScriptEnum* e, const StringHash nameHash, ScriptPanic* panic) {
   const u32 index = script_enum_find_name(e, nameHash);
   if (sentinel_check(index)) {
-    return *err = script_error(ScriptError_EnumInvalidEntry), 0;
+    return *panic = (ScriptPanic){ScriptPanic_EnumInvalidEntry}, 0;
   }
   return e->values[index];
 }

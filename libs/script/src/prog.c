@@ -3,7 +3,6 @@
 #include "core_search.h"
 #include "core_stringtable.h"
 #include "script_binder.h"
-#include "script_error.h"
 #include "script_mem.h"
 #include "script_prog.h"
 
@@ -156,20 +155,18 @@ ScriptProgResult script_prog_eval(
 #define VM_NEXT(_OP_SIZE_) { ip += (_OP_SIZE_); goto Dispatch; }
 #define VM_JUMP(_INSTRUCTION_) { ip = mem_begin(prog->code) + (_INSTRUCTION_); goto Dispatch; }
 #define VM_RETURN(_VALUE_) { res.val = (_VALUE_); return res; }
-#define VM_PANIC(_PANIC_) {                                                                        \
-    res.panic = (ScriptPanic){.kind = (_PANIC_), .range = prog_loc_from_ip(prog, ip)};             \
-    return res; }
+#define VM_PANIC(_PANIC_) { res.panic = (_PANIC_); return res; }
 
 Dispatch:
   if (UNLIKELY(res.executedOps++ == script_prog_ops_max)) {
-    VM_PANIC(ScriptPanic_ExecutionLimitExceeded);
+    VM_PANIC(((ScriptPanic){ScriptPanic_ExecutionLimitExceeded, .range = prog_loc_from_ip(prog, ip)}));
   }
   switch ((ScriptOp)ip[0]) {
   case ScriptOp_Fail:
-    VM_PANIC(ScriptPanic_AssertionFailed);
+    VM_PANIC(((ScriptPanic){ScriptPanic_AssertionFailed, .range = prog_loc_from_ip(prog, ip)}));
   case ScriptOp_Assert:
     if (UNLIKELY(script_falsy(regs[ip[1]]))) {
-      VM_PANIC(ScriptPanic_ExecutionFailed);
+      VM_PANIC(((ScriptPanic){ScriptPanic_ExecutionFailed, .range = prog_loc_from_ip(prog, ip)}));
     }
     regs[ip[1]] = val_null();
     VM_NEXT(2);
@@ -237,8 +234,9 @@ Dispatch:
       .callId   = (u32)(ip - mem_begin(prog->code)),
     };
     regs[ip[1]] = script_binder_exec(binder, prog_read_u16(&ip[2]), bindCtx, &call);
-    if (UNLIKELY(call.err.kind)) {
-      VM_PANIC(script_error_to_panic(call.err.kind));
+  if (UNLIKELY(script_call_panicked(&call))) {
+      call.panic.range = prog_loc_from_ip(prog, ip);
+      VM_PANIC(call.panic);
     }
     VM_NEXT(6);
   }
