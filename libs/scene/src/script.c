@@ -2136,11 +2136,19 @@ static void scene_script_eval(EvalContext* ctx) {
 
   // Handle panics.
   if (UNLIKELY((evalRes.panic.kind))) {
-    const String msg = script_panic_scratch(&evalRes.panic, ScriptPanicOutput_IncludeRange);
+    const String msg            = script_panic_scratch(&evalRes.panic, ScriptPanicOutput_Default);
+    const String scriptRangeStr = fmt_write_scratch(
+        "{}:{}-{}:{}",
+        fmt_int(evalRes.panic.range.start.line + 1),
+        fmt_int(evalRes.panic.range.start.column + 1),
+        fmt_int(evalRes.panic.range.end.line + 1),
+        fmt_int(evalRes.panic.range.end.column + 1));
+
     log_e(
         "Script panic",
         log_param("panic", fmt_text(msg)),
         log_param("script", fmt_text(ctx->scriptId)),
+        log_param("script-range", fmt_text(scriptRangeStr)),
         log_param("entity", ecs_entity_fmt(ctx->instigator)));
 
     ctx->scriptInstance->flags |= SceneScriptFlags_DidPanic;
