@@ -11,6 +11,69 @@
 #define script_prog_ops_max 25000
 
 // clang-format off
+#define VM_VISIT_OP_NAMES        \
+  VM_OP_NAME(Fail               )\
+  VM_OP_NAME(Assert             )\
+  VM_OP_NAME(Return             )\
+  VM_OP_NAME(ReturnNull         )\
+  VM_OP_NAME(Move               )\
+  VM_OP_NAME(Jump               )\
+  VM_OP_NAME(JumpIfTruthy       )\
+  VM_OP_NAME(JumpIfFalsy        )\
+  VM_OP_NAME(JumpIfNonNull      )\
+  VM_OP_NAME(Value              )\
+  VM_OP_NAME(ValueNull          )\
+  VM_OP_NAME(ValueBool          )\
+  VM_OP_NAME(ValueSmallInt      )\
+  VM_OP_NAME(MemLoad            )\
+  VM_OP_NAME(MemStore           )\
+  VM_OP_NAME(MemLoadDyn         )\
+  VM_OP_NAME(MemStoreDyn        )\
+  VM_OP_NAME(Extern             )\
+  VM_OP_NAME(Truthy             )\
+  VM_OP_NAME(Falsy              )\
+  VM_OP_NAME(NonNull            )\
+  VM_OP_NAME(Type               )\
+  VM_OP_NAME(Hash               )\
+  VM_OP_NAME(Equal              )\
+  VM_OP_NAME(Less               )\
+  VM_OP_NAME(Greater            )\
+  VM_OP_NAME(Add                )\
+  VM_OP_NAME(Sub                )\
+  VM_OP_NAME(Mul                )\
+  VM_OP_NAME(Div                )\
+  VM_OP_NAME(Mod                )\
+  VM_OP_NAME(Negate             )\
+  VM_OP_NAME(Invert             )\
+  VM_OP_NAME(Distance           )\
+  VM_OP_NAME(Angle              )\
+  VM_OP_NAME(Sin                )\
+  VM_OP_NAME(Cos                )\
+  VM_OP_NAME(Normalize          )\
+  VM_OP_NAME(Magnitude          )\
+  VM_OP_NAME(Absolute           )\
+  VM_OP_NAME(VecX               )\
+  VM_OP_NAME(VecY               )\
+  VM_OP_NAME(VecZ               )\
+  VM_OP_NAME(Vec3Compose        )\
+  VM_OP_NAME(QuatFromEuler      )\
+  VM_OP_NAME(QuatFromAngleAxis  )\
+  VM_OP_NAME(ColorCompose       )\
+  VM_OP_NAME(ColorComposeHsv    )\
+  VM_OP_NAME(ColorFor           )\
+  VM_OP_NAME(Random             )\
+  VM_OP_NAME(RandomSphere       )\
+  VM_OP_NAME(RandomCircleXZ     )\
+  VM_OP_NAME(RandomBetween      )\
+  VM_OP_NAME(RoundDown          )\
+  VM_OP_NAME(RoundNearest       )\
+  VM_OP_NAME(RoundUp            )\
+  VM_OP_NAME(Clamp              )\
+  VM_OP_NAME(Lerp               )\
+  VM_OP_NAME(Min                )\
+  VM_OP_NAME(Max                )\
+  VM_OP_NAME(Perlin3            )
+
 #define VM_VISIT_OP_SIMPLE                                                       \
   VM_OP_SIMPLE_UNARY(       Truthy,             script_truthy_as_val            )\
   VM_OP_SIMPLE_UNARY(       Falsy,              script_falsy_as_val             )\
@@ -150,76 +213,98 @@ ScriptProgResult script_prog_eval(
   ScriptProgResult res                    = {0};
   ScriptVal        regs[script_prog_regs] = {0};
 
+  static void* g_dispatchTable[] = {
+#define VM_OP_NAME(_OP_) &&ScriptOp_##_OP_,
+      VM_VISIT_OP_NAMES
+#undef VM_OP_NAME
+  };
+
   // clang-format off
 
-#define VM_NEXT(_OP_SIZE_) { ip += (_OP_SIZE_); goto Dispatch; }
-#define VM_JUMP(_INSTRUCTION_) { ip = mem_begin(prog->code) + (_INSTRUCTION_); goto Dispatch; }
-#define VM_RETURN(_VALUE_) { res.val = (_VALUE_); return res; }
-#define VM_PANIC(_PANIC_) { res.panic = (_PANIC_); return res; }
+#define VM_DISPATCH()         { goto* g_dispatchTable[ip[0]]; }
+#define VM_RETURN(_VALUE_)    { res.val = (_VALUE_); return res; }
+#define VM_PANIC(_PANIC_)     { res.panic = (_PANIC_); res.panic.range = prog_loc_from_ip(prog, ip); return res; }
 
-Dispatch:
-  if (UNLIKELY(res.executedOps++ == script_prog_ops_max)) {
-    VM_PANIC(((ScriptPanic){ScriptPanic_ExecutionLimitExceeded, .range = prog_loc_from_ip(prog, ip)}));
+#define VM_CHECK_EXEC_LIMIT()                                                                      \
+  {                                                                                                \
+    if (UNLIKELY(res.executedOps++ == script_prog_ops_max))                                        \
+      VM_PANIC(((ScriptPanic){ScriptPanic_ExecutionLimitExceeded}));                               \
   }
-  switch ((ScriptOp)ip[0]) {
-  case ScriptOp_Fail:
+
+#define VM_NEXT(_OP_SIZE_)                                                                         \
+  {                                                                                                \
+    ip += (_OP_SIZE_);                                                                             \
+    VM_CHECK_EXEC_LIMIT()                                                                          \
+    VM_DISPATCH()                                                                                  \
+  }
+
+#define VM_JUMP(_INSTRUCTION_)                                                                     \
+  {                                                                                                \
+    ip = mem_begin(prog->code) + (_INSTRUCTION_);                                                  \
+    VM_CHECK_EXEC_LIMIT()                                                                          \
+    VM_DISPATCH()                                                                                  \
+  }
+
+  VM_DISPATCH()
+
+  ScriptOp_Fail:
     VM_PANIC(((ScriptPanic){ScriptPanic_AssertionFailed, .range = prog_loc_from_ip(prog, ip)}));
-  case ScriptOp_Assert:
+  ScriptOp_Assert:
     if (UNLIKELY(script_falsy(regs[ip[1]]))) {
       VM_PANIC(((ScriptPanic){ScriptPanic_ExecutionFailed, .range = prog_loc_from_ip(prog, ip)}));
     }
     regs[ip[1]] = val_null();
     VM_NEXT(2);
-  case ScriptOp_Return:
+  ScriptOp_Return:
     VM_RETURN(regs[ip[1]]);
-  case ScriptOp_ReturnNull:
+  ScriptOp_ReturnNull:
     VM_RETURN(val_null());
-  case ScriptOp_Move:
+  ScriptOp_Move:
     regs[ip[1]] = regs[ip[2]];
     VM_NEXT(3);
-  case ScriptOp_Jump:
+  ScriptOp_Jump:
     VM_JUMP(prog_read_u16(&ip[1]));
-  case ScriptOp_JumpIfTruthy:
+  ScriptOp_JumpIfTruthy:
     if (script_truthy(regs[ip[1]])) {
       VM_JUMP(prog_read_u16(&ip[2]));
     }
     VM_NEXT(4);
-  case ScriptOp_JumpIfFalsy:
+  ScriptOp_JumpIfFalsy:
     if (script_falsy(regs[ip[1]])) {
       VM_JUMP(prog_read_u16(&ip[2]));
     }
     VM_NEXT(4);
-  case ScriptOp_JumpIfNonNull:
+  ScriptOp_JumpIfNonNull:
     if (script_non_null(regs[ip[1]])) {
       VM_JUMP(prog_read_u16(&ip[2]));
     }
     VM_NEXT(4);
-  case ScriptOp_Value:
+  ScriptOp_Value:
     regs[ip[1]] = prog->literals.values[ip[2]];
     VM_NEXT(3);
-  case ScriptOp_ValueNull:
+  ScriptOp_ValueNull:
     regs[ip[1]] = val_null();
     VM_NEXT(2);
-  case ScriptOp_ValueBool:
+  ScriptOp_ValueBool:
     regs[ip[1]] = val_bool(ip[2] != 0);
     VM_NEXT(3);
-  case ScriptOp_ValueSmallInt:
+  ScriptOp_ValueSmallInt:
     regs[ip[1]] = val_num(ip[2]);
     VM_NEXT(3);
-  case ScriptOp_MemLoad:
+  ScriptOp_MemLoad:
     regs[ip[1]] = script_mem_load(m, prog_read_u32(&ip[2]));
     VM_NEXT(6);
-  case ScriptOp_MemStore:
+  ScriptOp_MemStore:
     script_mem_store(m, prog_read_u32(&ip[2]), regs[ip[1]]);
     VM_NEXT(6);
-  case ScriptOp_MemLoadDyn:
+  ScriptOp_MemLoadDyn:
     if(val_type(regs[ip[1]]) == ScriptType_Str) {
       regs[ip[1]] = script_mem_load(m, val_as_str(regs[ip[1]]));
     } else {
       regs[ip[1]] = val_null();
     }
     VM_NEXT(2);
-  case ScriptOp_MemStoreDyn:
+  ScriptOp_MemStoreDyn:
     if(val_type(regs[ip[1]]) == ScriptType_Str) {
       script_mem_store(m, val_as_str(regs[ip[1]]), regs[ip[2]]);
       regs[ip[1]] = regs[ip[2]];
@@ -227,7 +312,7 @@ Dispatch:
       regs[ip[1]] = val_null();
     }
     VM_NEXT(3);
-  case ScriptOp_Extern: {
+  ScriptOp_Extern: {
     ScriptBinderCall call = {
       .args     = &regs[ip[4]],
       .argCount = ip[5],
@@ -241,23 +326,23 @@ Dispatch:
     VM_NEXT(6);
   }
 #define VM_OP_SIMPLE_ZERO(_OP_, _FUNC_)                                                            \
-  case ScriptOp_##_OP_:                                                                            \
+  ScriptOp_##_OP_:                                                                                 \
     regs[ip[1]] = _FUNC_();                                                                        \
     VM_NEXT(2)
 #define VM_OP_SIMPLE_UNARY(_OP_, _FUNC_)                                                           \
-  case ScriptOp_##_OP_:                                                                            \
+  ScriptOp_##_OP_:                                                                                 \
     regs[ip[1]] = _FUNC_(regs[ip[1]]);                                                             \
     VM_NEXT(2)
 #define VM_OP_SIMPLE_BINARY(_OP_, _FUNC_)                                                          \
-  case ScriptOp_##_OP_:                                                                            \
+  ScriptOp_##_OP_:                                                                                 \
     regs[ip[1]] = _FUNC_(regs[ip[1]], regs[ip[2]]);                                                \
     VM_NEXT(3)
 #define VM_OP_SIMPLE_TERNARY(_OP_, _FUNC_)                                                         \
-  case ScriptOp_##_OP_:                                                                            \
+  ScriptOp_##_OP_:                                                                                 \
     regs[ip[1]] = _FUNC_(regs[ip[1]], regs[ip[2]], regs[ip[3]]);                                   \
     VM_NEXT(4)
 #define VM_OP_SIMPLE_QUATERNARY(_OP_, _FUNC_)                                                      \
-  case ScriptOp_##_OP_:                                                                            \
+  ScriptOp_##_OP_:                                                                                 \
     regs[ip[1]] = _FUNC_(regs[ip[1]], regs[ip[2]], regs[ip[3]], regs[ip[4]]);                      \
     VM_NEXT(5)
 
@@ -268,14 +353,16 @@ Dispatch:
 #undef VM_OP_SIMPLE_BINARY
 #undef VM_OP_SIMPLE_UNARY
 #undef VM_OP_SIMPLE_ZERO
-  }
-  UNREACHABLE
   // clang-format on
+
+  UNREACHABLE
 
 #undef VM_NEXT
 #undef VM_JUMP
+#undef VM_CHECK_EXEC_LIMIT
 #undef VM_PANIC
 #undef VM_RETURN
+#undef VM_DISPATCH
 }
 
 bool script_prog_validate(const ScriptProgram* prog, const ScriptBinder* binder) {
