@@ -749,6 +749,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
 
   const JsonVal symbolOpts     = json_add_object(ctx->jDoc);
   const JsonVal formattingOpts = json_add_object(ctx->jDoc);
+  const JsonVal renameOpts     = json_add_object(ctx->jDoc);
 
   const JsonVal capabilities = json_add_object(ctx->jDoc);
   // NOTE: At the time of writing VSCode only supports utf-16 position encoding.
@@ -761,6 +762,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, capabilities, "signatureHelpProvider", signatureHelpOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "documentSymbolProvider", symbolOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "documentFormattingProvider", formattingOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "renameProvider", renameOpts);
 
   const JsonVal info          = json_add_object(ctx->jDoc);
   const JsonVal serverName    = json_add_string_lit(ctx->jDoc, "Volo Language Server");
@@ -1034,9 +1036,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
   }
   const ScriptSym    callSym = script_sym_find(doc->scriptSyms, doc->scriptDoc, callExpr);
   const LspSignature sig     = {
-      .label     = script_sym_label(doc->scriptSyms, callSym),
-      .doc       = script_sym_doc(doc->scriptSyms, callSym),
-      .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
+          .label     = script_sym_label(doc->scriptSyms, callSym),
+          .doc       = script_sym_doc(doc->scriptSyms, callSym),
+          .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
@@ -1156,6 +1158,39 @@ InvalidParams:
   lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
 }
 
+static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
+  const JsonVal docVal = lsp_maybe_field(ctx, req->params, string_lit("textDocument"));
+  const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
+  if (UNLIKELY(string_is_empty(uri))) {
+    goto InvalidParams;
+  }
+  const JsonVal    posLcVal = lsp_maybe_field(ctx, req->params, string_lit("position"));
+  ScriptPosLineCol posLc;
+  if (UNLIKELY(!lsp_position_from_json(ctx, posLcVal, &posLc))) {
+    goto InvalidParams;
+  }
+
+  const LspDocument* doc = lsp_doc_find(ctx, uri);
+  if (UNLIKELY(!doc)) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
+  }
+
+  const String    sourceText = script_source_get(doc->scriptDoc);
+  const ScriptPos pos        = script_pos_from_line_col(sourceText, posLc);
+  if (UNLIKELY(sentinel_check(pos))) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
+  }
+
+  if (sentinel_check(doc->scriptRoot)) {
+    goto NoSignature; // Script did not parse correctly (likely due to structural errors).
+  }
+
+  return;
+
+InvalidParams:
+  lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+}
+
 static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
   static const struct {
     String method;
@@ -1169,6 +1204,7 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
       {string_static("textDocument/signatureHelp"), lsp_handle_req_signature_help},
       {string_static("textDocument/documentSymbol"), lsp_handle_req_symbols},
       {string_static("textDocument/formatting"), lsp_handle_req_formatting},
+      {string_static("textDocument/rename"), lsp_handle_req_rename},
   };
 
   for (u32 i = 0; i != array_elems(g_handlers); ++i) {
