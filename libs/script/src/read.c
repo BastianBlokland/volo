@@ -1162,7 +1162,7 @@ read_expr_var_assign(ScriptReadContext* ctx, const StringHash id, const ScriptPo
   if (UNLIKELY(sentinel_check(expr))) {
     return read_fail_structural(ctx);
   }
-  const ScriptRange range = read_range_to_current(ctx, start);
+  const ScriptRange range = script_range(start, script_expr_range(ctx->doc, expr).end);
 
   const ScriptVarMeta* var = read_var_lookup(ctx, id);
   if (UNLIKELY(!var)) {
@@ -1622,7 +1622,7 @@ static ScriptExpr read_expr_return(ScriptReadContext* ctx, const ScriptPos start
     }
   }
 
-  const ScriptRange range      = read_range_to_current(ctx, start);
+  const ScriptRange range      = script_range(start, script_expr_range(ctx->doc, retExpr).end);
   const ScriptExpr  intrArgs[] = {retExpr};
   return script_add_intrinsic(ctx->doc, range, ScriptIntrinsic_Return, intrArgs);
 }
