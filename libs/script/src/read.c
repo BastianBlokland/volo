@@ -555,7 +555,7 @@ typedef struct {
   ScriptVarId   varSlot;
   bool          used;
   ScriptRange   declRange;
-  ScriptPos     validUsageStart;
+  ScriptPos     validRangeStart;
 } ScriptVarMeta;
 
 typedef struct sScriptScope {
@@ -677,7 +677,7 @@ static void read_sym_push_vars(ScriptReadContext* ctx, const ScriptScope* scope)
     }
     const String      label      = script_range_text(ctx->inputTotal, scope->vars[i].declRange);
     const ScriptRange location   = scope->vars[i].declRange;
-    const ScriptRange validRange = read_range_to_next(ctx, scope->vars[i].validUsageStart);
+    const ScriptRange validRange = read_range_to_next(ctx, scope->vars[i].validRangeStart);
     script_sym_push_var(ctx->syms, label, scope->vars[i].varSlot, location, validRange);
   }
 }
@@ -753,7 +753,7 @@ read_var_declare(ScriptReadContext* ctx, const StringHash id, const ScriptRange 
         .scopeId         = scope->id,
         .varSlot         = varId,
         .declRange       = declRange,
-        .validUsageStart = read_pos_current(ctx),
+        .validRangeStart = read_pos_current(ctx),
     };
     return &scope->vars[i];
   }
