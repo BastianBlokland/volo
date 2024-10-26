@@ -1157,6 +1157,9 @@ read_expr_var_lookup(ScriptReadContext* ctx, const StringHash id, const ScriptPo
   ScriptVarMeta* var = read_var_lookup(ctx, id);
   if (var) {
     var->used = true;
+    if (ctx->syms) {
+      script_sym_push_ref(ctx->syms, var->sym, range);
+    }
     return script_add_var_load(ctx->doc, range, var->scopeId, var->varSlot);
   }
   return read_emit_err(ctx, ScriptDiag_NoVarFoundForId, range), read_fail_semantic(ctx, range);
@@ -1177,6 +1180,9 @@ read_expr_var_assign(ScriptReadContext* ctx, const StringHash id, const ScriptPo
     return read_emit_err(ctx, ScriptDiag_NoVarFoundForId, range), read_fail_semantic(ctx, range);
   }
 
+  if (ctx->syms) {
+    script_sym_push_ref(ctx->syms, var->sym, range);
+  }
   return script_add_var_store(ctx->doc, range, var->scopeId, var->varSlot, expr);
 }
 
@@ -1202,6 +1208,10 @@ static ScriptExpr read_expr_var_modify(
   }
 
   var->used = true;
+
+  if (ctx->syms) {
+    script_sym_push_ref(ctx->syms, var->sym, range);
+  }
 
   const ScriptExpr loadExpr   = script_add_var_load(ctx->doc, varRange, var->scopeId, var->varSlot);
   const ScriptExpr intrArgs[] = {loadExpr, val};
