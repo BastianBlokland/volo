@@ -23,7 +23,6 @@ typedef struct {
   ScriptVarId   slot; // NOTE: Only unique within the scope.
   ScriptScopeId scope;
   ScriptRange   location;
-  ScriptRange   validRange;
 } ScriptSymVar;
 
 typedef struct {
@@ -34,6 +33,7 @@ typedef struct {
   ScriptSymKind kind;
   String        label;
   String        doc;
+  ScriptRange   validRange;
   union {
     ScriptSymBuiltinFunc builtinFunc;
     ScriptSymExternFunc  externFunc;
@@ -62,15 +62,13 @@ INLINE_HINT static const ScriptSymData* sym_data(const ScriptSymBag* bag, const 
 }
 
 INLINE_HINT static bool sym_in_valid_range(const ScriptSymData* sym, const ScriptPos pos) {
-  switch (sym->kind) {
-  case ScriptSymKind_Variable:
-    if (sentinel_check(pos)) {
-      return true; // 'script_pos_sentinel' indicates that all ranges should be included.
-    }
-    return script_range_contains(sym->data.var.validRange, pos);
-  default:
-    return true;
+  if (sentinel_check(pos)) {
+    return true; // 'script_pos_sentinel' indicates that all ranges should be included.
   }
+  if (sentinel_check(sym->validRange.start) || sentinel_check(sym->validRange.end)) {
+    return true; // Symbol is valid in the entire document.
+  }
+  return script_range_contains(sym->validRange, pos);
 }
 
 static ScriptSym sym_find_by_intr(const ScriptSymBag* b, const ScriptIntrinsic intr) {
@@ -186,8 +184,9 @@ ScriptSym script_sym_push_keyword(ScriptSymBag* bag, const String label) {
   return sym_push(
       bag,
       &(ScriptSymData){
-          .kind  = ScriptSymKind_Keyword,
-          .label = string_dup(bag->alloc, label),
+          .kind       = ScriptSymKind_Keyword,
+          .label      = string_dup(bag->alloc, label),
+          .validRange = script_range_sentinel,
       });
 }
 
@@ -197,8 +196,9 @@ ScriptSym script_sym_push_builtin_const(ScriptSymBag* bag, const String label) {
   return sym_push(
       bag,
       &(ScriptSymData){
-          .kind  = ScriptSymKind_BuiltinConstant,
-          .label = string_dup(bag->alloc, label),
+          .kind       = ScriptSymKind_BuiltinConstant,
+          .label      = string_dup(bag->alloc, label),
+          .validRange = script_range_sentinel,
       });
 }
 
@@ -216,6 +216,7 @@ ScriptSym script_sym_push_builtin_func(
           .kind                  = ScriptSymKind_BuiltinFunction,
           .label                 = string_dup(bag->alloc, label),
           .doc                   = string_maybe_dup(bag->alloc, doc),
+          .validRange            = script_range_sentinel,
           .data.builtinFunc.intr = intr,
           .data.builtinFunc.sig  = sig ? script_sig_clone(bag->alloc, sig) : null,
       });
@@ -235,6 +236,7 @@ ScriptSym script_sym_push_extern_func(
           .kind                       = ScriptSymKind_ExternFunction,
           .label                      = string_dup(bag->alloc, label),
           .doc                        = string_maybe_dup(bag->alloc, doc),
+          .validRange                 = script_range_sentinel,
           .data.externFunc.binderSlot = binderSlot,
           .data.externFunc.sig        = sig ? script_sig_clone(bag->alloc, sig) : null,
       });
@@ -252,12 +254,12 @@ ScriptSym script_sym_push_var(
   return sym_push(
       bag,
       &(ScriptSymData){
-          .kind                = ScriptSymKind_Variable,
-          .label               = string_dup(bag->alloc, label),
-          .data.var.slot       = slot,
-          .data.var.scope      = scope,
-          .data.var.location   = location,
-          .data.var.validRange = validRange,
+          .kind              = ScriptSymKind_Variable,
+          .label             = string_dup(bag->alloc, label),
+          .validRange        = validRange,
+          .data.var.slot     = slot,
+          .data.var.scope    = scope,
+          .data.var.location = location,
       });
 }
 
@@ -269,6 +271,7 @@ ScriptSym script_sym_push_mem_key(ScriptSymBag* bag, const String label, const S
       &(ScriptSymData){
           .kind            = ScriptSymKind_MemoryKey,
           .label           = string_dup(bag->alloc, label),
+          .validRange      = script_range_sentinel,
           .data.memKey.key = key,
       });
 }
