@@ -171,9 +171,9 @@ static const JRpcError g_jrpcErrorRenameFailed = {
     .msg  = string_static("Failed to rename symbol"),
 };
 
-static const JRpcError g_jrpcErrorInvalidIdentifier = {
+static const JRpcError g_jrpcErrorInvalidSymbolName = {
     .code = -32803,
-    .msg  = string_static("Invalid identifier"),
+    .msg  = string_static("Invalid symbol name"),
 };
 
 static void lsp_doc_destroy(LspDocument* doc) {
@@ -1265,11 +1265,29 @@ static bool lsp_sym_can_rename(const ScriptSymKind symKind) {
   }
 }
 
-static bool lsp_sym_validate_id(const String id) {
+static bool lsp_sym_validate_id(const String str) {
   const ScriptLexFlags flags = ScriptLexFlags_NoWhitespace | ScriptLexFlags_IncludeComments;
   ScriptToken          token;
-  const String         rem = script_lex(id, null, &token, flags);
+  const String         rem = script_lex(str, null, &token, flags);
   return string_is_empty(rem) && token.kind == ScriptTokenKind_Identifier;
+}
+
+static bool lsp_sym_validate_key(const String str) {
+  const ScriptLexFlags flags = ScriptLexFlags_NoWhitespace | ScriptLexFlags_IncludeComments;
+  ScriptToken          token;
+  const String         rem = script_lex(str, null, &token, flags);
+  return string_is_empty(rem) && token.kind == ScriptTokenKind_Key;
+}
+
+static bool lsp_sym_validate_name(const ScriptSymKind symKind, const String str) {
+  switch (symKind) {
+  case ScriptSymKind_Variable:
+    return lsp_sym_validate_id(str);
+  case ScriptSymKind_MemoryKey:
+    return lsp_sym_validate_key(str);
+  default:
+    return false;
+  }
 }
 
 static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
@@ -1284,13 +1302,10 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams;
   }
 
-  const String newId = lsp_maybe_str(ctx, lsp_maybe_field(ctx, req->params, string_lit("newName")));
-  if (UNLIKELY(string_is_empty(newId))) {
+  const String newName =
+      lsp_maybe_str(ctx, lsp_maybe_field(ctx, req->params, string_lit("newName")));
+  if (UNLIKELY(string_is_empty(newName))) {
     goto InvalidParams;
-  }
-  if (!lsp_sym_validate_id(newId)) {
-    lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidIdentifier);
-    return;
   }
 
   const LspDocument* doc = lsp_doc_find(ctx, uri);
@@ -1310,7 +1325,7 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
         fmt_text(uri),
         fmt_int(posLc.line + 1),
         fmt_int(posLc.column + 1),
-        fmt_text(newId));
+        fmt_text(newName));
     lsp_send_trace(ctx, txt);
   }
 
@@ -1326,6 +1341,10 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
   if (sentinel_check(sym) || !lsp_sym_can_rename(script_sym_kind(doc->scriptSyms, sym))) {
     goto RenameFailed; // Symbol not found or cannot be renamed.
   }
+  if (!lsp_sym_validate_name(script_sym_kind(doc->scriptSyms, sym), newName)) {
+    lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidSymbolName);
+    return;
+  }
 
   const JsonVal workspaceEditObj = json_add_object(ctx->jDoc);
   const JsonVal changesObj       = json_add_object(ctx->jDoc);
@@ -1338,7 +1357,7 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
   const ScriptRange symRange = script_sym_location(doc->scriptSyms, sym);
   if (!sentinel_check(symRange.start) && !sentinel_check(symRange.end)) {
     const ScriptRangeLineCol rangeLc = script_range_to_line_col(sourceText, symRange);
-    const LspTextEdit        edit    = {.range = rangeLc, .newText = newId};
+    const LspTextEdit        edit    = {.range = rangeLc, .newText = newName};
     json_add_elem(ctx->jDoc, editsArr, lsp_text_edit_to_json(ctx, &edit));
   }
 
@@ -1346,7 +1365,7 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
   const ScriptSymRefSet refs = script_sym_refs(doc->scriptSyms, sym);
   for (const ScriptSymRef* ref = refs.begin; ref != refs.end; ++ref) {
     const ScriptRangeLineCol locationLc = script_range_to_line_col(sourceText, ref->location);
-    const LspTextEdit        edit       = {.range = locationLc, .newText = newId};
+    const LspTextEdit        edit       = {.range = locationLc, .newText = newName};
     json_add_elem(ctx->jDoc, editsArr, lsp_text_edit_to_json(ctx, &edit));
   }
 
