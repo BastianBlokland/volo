@@ -1111,13 +1111,13 @@ static ScriptExpr read_expr_var_declare(ScriptReadContext* ctx, const ScriptPos 
   const ScriptToken token   = read_consume(ctx);
   const ScriptRange idRange = read_range_to_current(ctx, idStart);
   if (UNLIKELY(token.kind != ScriptTokenKind_Identifier)) {
-    return read_emit_err(ctx, ScriptDiag_VarIdInvalid, idRange), read_fail_structural(ctx);
+    return read_emit_err(ctx, ScriptDiag_VarIdInvalid, idRange), read_fail_semantic(ctx, idRange);
   }
   if (script_builtin_const_lookup(token.val_identifier)) {
-    read_emit_err(ctx, ScriptDiag_VarIdConflicts, idRange), read_fail_semantic(ctx, idRange);
+    return read_emit_err(ctx, ScriptDiag_VarIdConflicts, idRange), read_fail_semantic(ctx, idRange);
   }
   if (read_var_lookup(ctx, token.val_identifier)) {
-    read_emit_err(ctx, ScriptDiag_VarIdConflicts, idRange), read_fail_semantic(ctx, idRange);
+    return read_emit_err(ctx, ScriptDiag_VarIdConflicts, idRange), read_fail_semantic(ctx, idRange);
   }
 
   ScriptExpr valExpr;
