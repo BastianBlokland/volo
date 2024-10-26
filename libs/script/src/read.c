@@ -609,6 +609,7 @@ typedef struct {
   u8                  varAvailability[bits_to_bytes(script_var_count) + 1]; // Bitmask of free vars.
   ScriptReadMemKey    trackedMemKeys[script_tracked_mem_keys_max];
   ScriptSym           externSyms[script_binder_max_funcs];
+  ScriptSym           builtinFuncSyms[script_builtin_funcs_max];
 } ScriptReadContext;
 
 static ScriptSection read_section_add(ScriptReadContext* ctx, const ScriptSection flags) {
@@ -1364,6 +1365,9 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
       // Correct number of arguments; validate value types and emit warnings if needed.
       read_emit_invalid_args(ctx, args, (u8)argCount, builtin->sig, callRange);
     }
+    if (!sentinel_check(ctx->builtinFuncSyms[builtin - g_scriptBuiltinFuncs])) {
+      script_sym_push_ref(ctx->syms, ctx->builtinFuncSyms[builtin - g_scriptBuiltinFuncs], idRange);
+    }
     return script_add_intrinsic(ctx->doc, callRange, builtin->intr, args);
   }
 
@@ -1946,7 +1950,7 @@ static void read_sym_push_builtin(ScriptReadContext* ctx) {
     script_sym_push_builtin_const(ctx->syms, g_scriptBuiltinConsts[i].id);
   }
   for (u32 i = 0; i != g_scriptBuiltinFuncCount; ++i) {
-    script_sym_push_builtin_func(
+    ctx->builtinFuncSyms[i] = script_sym_push_builtin_func(
         ctx->syms,
         g_scriptBuiltinFuncs[i].id,
         g_scriptBuiltinFuncs[i].doc,
@@ -2016,6 +2020,7 @@ ScriptExpr script_read(
   };
   read_var_free_all(&ctx);
   mem_set(array_mem(ctx.externSyms), 0xFF);
+  mem_set(array_mem(ctx.builtinFuncSyms), 0xFF);
 
   read_sym_push_keywords(&ctx);
   read_sym_push_builtin(&ctx);
