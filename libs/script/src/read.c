@@ -1782,6 +1782,9 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
    * Lex errors.
    */
   case ScriptTokenKind_Semicolon:
+    if (ctx->section & ScriptSection_DisallowStatement) {
+      goto MissingPrimaryExpr;
+    }
     return read_emit_err(ctx, ScriptDiag_UnexpectedSemicolon, range), read_fail_structural(ctx);
   case ScriptTokenKind_Diag:
     return read_emit_err(ctx, token.val_diag, range), read_fail_semantic(ctx, range);
