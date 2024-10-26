@@ -1001,7 +1001,7 @@ BlockEnd:;
 /**
  * NOTE: Caller is expected to consume the opening curly-brace.
  */
-static ScriptExpr read_expr_scope_block(ScriptReadContext* ctx) {
+static ScriptExpr read_expr_scope_block(ScriptReadContext* ctx, const ScriptPos start) {
   ScriptScope scope = {0};
   read_scope_push(ctx, &scope);
 
@@ -1017,7 +1017,7 @@ static ScriptExpr read_expr_scope_block(ScriptReadContext* ctx) {
   }
 
   if (UNLIKELY(read_consume(ctx).kind != ScriptTokenKind_CurlyClose)) {
-    const ScriptRange range = expr_range(ctx->doc, expr);
+    const ScriptRange range = script_range(start, expr_range(ctx->doc, expr).end);
     return read_emit_err(ctx, ScriptDiag_UnterminatedBlock, range), read_fail_structural(ctx);
   }
 
@@ -1391,8 +1391,10 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
     goto RetIfExpr;
   }
 
+  const ScriptPos b1BlockStart = read_pos_next(ctx);
   read_consume(ctx); // Consume the opening curly.
-  b1 = read_expr_scope_block(ctx);
+
+  b1 = read_expr_scope_block(ctx, b1BlockStart);
   if (UNLIKELY(sentinel_check(b1))) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
@@ -1402,7 +1404,7 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   if (read_consume_if(ctx, ScriptTokenKind_Else)) {
     const ScriptPos elseBlockStart = read_pos_next(ctx);
     if (read_consume_if(ctx, ScriptTokenKind_CurlyOpen)) {
-      b2 = read_expr_scope_block(ctx);
+      b2 = read_expr_scope_block(ctx, elseBlockStart);
       if (UNLIKELY(sentinel_check(b2))) {
         return read_scope_pop(ctx), read_fail_structural(ctx);
       }
@@ -1460,7 +1462,7 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
   }
 
   const ScriptSection prevSection = read_section_add(ctx, ScriptSection_InsideLoop);
-  const ScriptExpr    body        = read_expr_scope_block(ctx);
+  const ScriptExpr    body        = read_expr_scope_block(ctx, blockStart);
   ctx->section                    = prevSection;
 
   if (UNLIKELY(sentinel_check(body))) {
@@ -1562,7 +1564,7 @@ static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
   }
 
   const ScriptSection prevSection = read_section_add(ctx, ScriptSection_InsideLoop);
-  const ScriptExpr    body        = read_expr_scope_block(ctx);
+  const ScriptExpr    body        = read_expr_scope_block(ctx, blockStart);
   ctx->section                    = prevSection;
 
   if (UNLIKELY(sentinel_check(body))) {
@@ -1654,7 +1656,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
    * Scope.
    */
   case ScriptTokenKind_CurlyOpen:
-    return read_expr_scope_block(ctx);
+    return read_expr_scope_block(ctx, start);
   /**
    * Keywords.
    */
