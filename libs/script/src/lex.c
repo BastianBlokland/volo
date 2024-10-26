@@ -384,6 +384,10 @@ String script_lex(String str, StringTable* stringtable, ScriptToken* out, const 
     case ' ':
     case '\r':
     case '\t':
+      if (UNLIKELY(fl & ScriptLexFlags_NoWhitespace)) {
+        *out = script_token_diag(ScriptDiag_UnexpectedWhitespace);
+        return script_consume_chars(str, 1);
+      }
       str = script_consume_chars(str, 1); // Skip whitespace.
       continue;
     default:

@@ -17,6 +17,7 @@ typedef enum {
   ScriptDiag_NumberEndsWithSeparator,
   ScriptDiag_KeyEmpty,
   ScriptDiag_UnterminatedString,
+  ScriptDiag_UnexpectedWhitespace,
   ScriptDiag_RecursionLimitExceeded,
   ScriptDiag_VarLimitExceeded,
   ScriptDiag_VarIdInvalid,
