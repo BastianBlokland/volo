@@ -1595,18 +1595,21 @@ static ScriptExpr read_expr_select(ScriptReadContext* ctx, const ScriptExpr cond
     return read_fail_structural(ctx);
   }
 
-  const ScriptToken token = read_consume(ctx);
-  if (UNLIKELY(token.kind != ScriptTokenKind_Colon)) {
+  ScriptExpr b2;
+  if (UNLIKELY(read_peek(ctx).kind != ScriptTokenKind_Colon)) {
     const ScriptRange range = read_range_to_current(ctx, start);
     read_emit_err(ctx, ScriptDiag_MissingColonInSelectExpr, range);
-    return read_fail_structural(ctx);
+    b2 = read_fail_semantic(ctx, read_range_dummy(ctx));
+    goto RetSelectExpr;
   }
+  read_consume(ctx); // Consume the colon.
 
-  const ScriptExpr b2 = read_expr_scope_single(ctx, OpPrecedence_Conditional);
+  b2 = read_expr_scope_single(ctx, OpPrecedence_Conditional);
   if (UNLIKELY(sentinel_check(b2))) {
     return read_fail_structural(ctx);
   }
 
+RetSelectExpr:;
   const ScriptRange range      = script_range(start, script_expr_range(ctx->doc, b2).end);
   const ScriptExpr  intrArgs[] = {condition, b1, b2};
   return script_add_intrinsic(ctx->doc, range, ScriptIntrinsic_Select, intrArgs);
