@@ -12,6 +12,7 @@
 #include "script_diag.h"
 #include "script_eval.h"
 #include "script_format.h"
+#include "script_lex.h"
 #include "script_read.h"
 #include "script_sig.h"
 #include "script_sym.h"
@@ -163,6 +164,11 @@ static const JRpcError g_jrpcErrorMethodNotFound = {
 static const JRpcError g_jrpcErrorInvalidParams = {
     .code = -32602,
     .msg  = string_static("Invalid parameters"),
+};
+
+static const JRpcError g_jrpcErrorRenameFailed = {
+    .code = -32803,
+    .msg  = string_static("Failed to rename symbol"),
 };
 
 static void lsp_doc_destroy(LspDocument* doc) {
@@ -757,6 +763,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   const JsonVal symbolOpts     = json_add_object(ctx->jDoc);
   const JsonVal formattingOpts = json_add_object(ctx->jDoc);
   const JsonVal referencesOpts = json_add_object(ctx->jDoc);
+  const JsonVal renameOpts     = json_add_object(ctx->jDoc);
 
   const JsonVal capabilities = json_add_object(ctx->jDoc);
   // NOTE: At the time of writing VSCode only supports utf-16 position encoding.
@@ -770,6 +777,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, capabilities, "documentSymbolProvider", symbolOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "documentFormattingProvider", formattingOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "referencesProvider", referencesOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "renameProvider", renameOpts);
 
   const JsonVal info          = json_add_object(ctx->jDoc);
   const JsonVal serverName    = json_add_string_lit(ctx->jDoc, "Volo Language Server");
@@ -807,8 +815,7 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
   }
 
-  const String    sourceText = script_source_get(doc->scriptDoc);
-  const ScriptPos pos        = script_pos_from_line_col(sourceText, posLc);
+  const ScriptPos pos = script_pos_from_line_col(script_source_get(doc->scriptDoc), posLc);
   if (UNLIKELY(sentinel_check(pos))) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
   }
@@ -1043,9 +1050,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
   }
   const ScriptSym    callSym = script_sym_find(doc->scriptSyms, doc->scriptDoc, callExpr);
   const LspSignature sig     = {
-      .label     = script_sym_label(doc->scriptSyms, callSym),
-      .doc       = script_sym_doc(doc->scriptSyms, callSym),
-      .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
+          .label     = script_sym_label(doc->scriptSyms, callSym),
+          .doc       = script_sym_doc(doc->scriptSyms, callSym),
+          .scriptSig = script_sym_sig(doc->scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
@@ -1243,6 +1250,89 @@ InvalidParams:
   return;
 }
 
+static bool lsp_sym_can_rename(const ScriptSymKind symKind) {
+  switch (symKind) {
+  case ScriptSymKind_Variable:
+  case ScriptSymKind_MemoryKey:
+    return true;
+  default:
+    return false;
+  }
+}
+
+static bool lsp_sym_validate_id(const String id) {
+  const ScriptLexFlags flags = ScriptLexFlags_NoWhitespace | ScriptLexFlags_IncludeComments;
+  ScriptToken          token;
+  const String         rem = script_lex(id, null, &token, flags);
+  return string_is_empty(rem) && token.kind == ScriptTokenKind_Identifier;
+}
+
+static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
+  const JsonVal docVal = lsp_maybe_field(ctx, req->params, string_lit("textDocument"));
+  const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
+  if (UNLIKELY(string_is_empty(uri))) {
+    goto InvalidParams;
+  }
+  const JsonVal    posLcVal = lsp_maybe_field(ctx, req->params, string_lit("position"));
+  ScriptPosLineCol posLc;
+  if (UNLIKELY(!lsp_position_from_json(ctx, posLcVal, &posLc))) {
+    goto InvalidParams;
+  }
+
+  const String newId = lsp_maybe_str(ctx, lsp_maybe_field(ctx, req->params, string_lit("newName")));
+  if (UNLIKELY(string_is_empty(newId))) {
+    goto InvalidParams;
+  }
+  if (!lsp_sym_validate_id(newId)) {
+    goto RenameFailed; // Invalid identifier.
+  }
+
+  const LspDocument* doc = lsp_doc_find(ctx, uri);
+  if (UNLIKELY(!doc)) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
+  }
+
+  const String    sourceText = script_source_get(doc->scriptDoc);
+  const ScriptPos pos        = script_pos_from_line_col(sourceText, posLc);
+  if (UNLIKELY(sentinel_check(pos))) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
+  }
+
+  if (ctx->flags & LspFlags_Trace) {
+    const String txt = fmt_write_scratch(
+        "Rename: {} [{}:{}] -> '{}'",
+        fmt_text(uri),
+        fmt_int(posLc.line + 1),
+        fmt_int(posLc.column + 1),
+        fmt_text(newId));
+    lsp_send_trace(ctx, txt);
+  }
+
+  if (sentinel_check(doc->scriptRoot)) {
+    goto RenameFailed; // Script did not parse correctly (likely due to structural errors).
+  }
+
+  const ScriptExpr refExpr = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos, null, null);
+  if (sentinel_check(refExpr)) {
+    goto RenameFailed; // No symbol found for the expression.
+  }
+  const ScriptSym sym = script_sym_find(doc->scriptSyms, doc->scriptDoc, refExpr);
+  if (sentinel_check(sym) || !lsp_sym_can_rename(script_sym_kind(doc->scriptSyms, sym))) {
+    goto RenameFailed; // Symbol not found or cannot be renamed.
+  }
+
+  // TODO: Compute renames.
+  lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
+  return;
+
+InvalidParams:
+  lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+  return;
+
+RenameFailed:
+  lsp_send_response_error(ctx, req, &g_jrpcErrorRenameFailed);
+}
+
 static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
   static const struct {
     String method;
@@ -1257,6 +1347,7 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
       {string_static("textDocument/documentSymbol"), lsp_handle_req_symbols},
       {string_static("textDocument/formatting"), lsp_handle_req_formatting},
       {string_static("textDocument/references"), lsp_handle_req_references},
+      {string_static("textDocument/rename"), lsp_handle_req_rename},
   };
 
   for (u32 i = 0; i != array_elems(g_handlers); ++i) {
