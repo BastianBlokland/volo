@@ -36,6 +36,11 @@ typedef enum {
   ScriptSymKind_Count,
 } ScriptSymKind;
 
+typedef struct {
+  ScriptSym   sym;
+  ScriptRange location;
+} ScriptSymRef;
+
 typedef struct sScriptSymBag ScriptSymBag;
 
 ScriptSymBag* script_sym_bag_create(Allocator*);
@@ -68,6 +73,13 @@ ScriptSym script_sym_find(const ScriptSymBag*, const ScriptDoc*, ScriptExpr);
 
 ScriptSym script_sym_first(const ScriptSymBag*, ScriptPos);
 ScriptSym script_sym_next(const ScriptSymBag*, ScriptPos, ScriptSym);
+
+typedef struct {
+  const ScriptSymRef* begin;
+  const ScriptSymRef* end;
+} ScriptSymRefSet;
+
+ScriptSymRefSet script_sym_refs(const ScriptSymBag*, ScriptSym);
 
 String script_sym_kind_str(ScriptSymKind);
 void   script_sym_write(DynString*, const ScriptSymBag*, ScriptSym);

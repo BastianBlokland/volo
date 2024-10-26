@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_search.h"
 #include "script_sig.h"
 #include "script_sym.h"
 
@@ -41,11 +42,6 @@ typedef struct {
     ScriptSymMemKey      memKey;
   } data;
 } ScriptSymData;
-
-typedef struct {
-  ScriptSym   sym;
-  ScriptRange location;
-} ScriptSymRef;
 
 struct sScriptSymBag {
   Allocator* alloc;
@@ -391,6 +387,31 @@ ScriptSym script_sym_next(const ScriptSymBag* bag, const ScriptPos pos, ScriptSy
     }
   }
   return script_sym_sentinel;
+}
+
+ScriptSymRefSet script_sym_refs(const ScriptSymBag* bag, const ScriptSym sym) {
+  const ScriptSymRef* begin = dynarray_begin_t(&bag->references, ScriptSymRef);
+  const ScriptSymRef* end   = dynarray_end_t(&bag->references, ScriptSymRef);
+  const ScriptSymRef  tgt   = {.sym = sym};
+
+  const ScriptSymRef* res = search_binary_t(begin, end, ScriptSymRef, sym_compare_ref, &tgt);
+  if (!res) {
+    // No references found for the given symbol.
+    return (ScriptSymRefSet){null, null};
+  }
+
+  // Find the beginning of the references for this symbol.
+  while (res != begin && (res - 1)->sym == sym) {
+    --res;
+  }
+
+  // Find the end of the references for this symbol.
+  const ScriptSymRef* resEnd = res;
+  while (resEnd != end && (resEnd + 1)->sym == sym) {
+    ++resEnd;
+  }
+
+  return (ScriptSymRefSet){.begin = res, .end = resEnd};
 }
 
 String script_sym_kind_str(const ScriptSymKind kind) {
