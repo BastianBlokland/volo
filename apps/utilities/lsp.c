@@ -1327,8 +1327,30 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
     goto RenameFailed; // Symbol not found or cannot be renamed.
   }
 
-  // TODO: Compute renames.
-  lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
+  const JsonVal workspaceEditObj = json_add_object(ctx->jDoc);
+  const JsonVal changesObj       = json_add_object(ctx->jDoc);
+  const JsonVal editsArr         = json_add_array(ctx->jDoc);
+
+  json_add_field_lit(ctx->jDoc, workspaceEditObj, "changes", changesObj);
+  json_add_field_str(ctx->jDoc, changesObj, uri, editsArr);
+
+  // Rename the symbol itself.
+  const ScriptRange symRange = script_sym_location(doc->scriptSyms, sym);
+  if (!sentinel_check(symRange.start) && !sentinel_check(symRange.end)) {
+    const ScriptRangeLineCol rangeLc = script_range_to_line_col(sourceText, symRange);
+    const LspTextEdit        edit    = {.range = rangeLc, .newText = newId};
+    json_add_elem(ctx->jDoc, editsArr, lsp_text_edit_to_json(ctx, &edit));
+  }
+
+  // Rename the references.
+  const ScriptSymRefSet refs = script_sym_refs(doc->scriptSyms, sym);
+  for (const ScriptSymRef* ref = refs.begin; ref != refs.end; ++ref) {
+    const ScriptRangeLineCol locationLc = script_range_to_line_col(sourceText, ref->location);
+    const LspTextEdit        edit       = {.range = locationLc, .newText = newId};
+    json_add_elem(ctx->jDoc, editsArr, lsp_text_edit_to_json(ctx, &edit));
+  }
+
+  lsp_send_response_success(ctx, req, workspaceEditObj);
   return;
 
 InvalidParams:
