@@ -1399,8 +1399,6 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
 
-  const ScriptPos elseStart = read_pos_next(ctx);
-
   if (read_consume_if(ctx, ScriptTokenKind_Else)) {
     const ScriptPos elseBlockStart = read_pos_next(ctx);
     if (read_consume_if(ctx, ScriptTokenKind_CurlyOpen)) {
@@ -1414,9 +1412,8 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
         return read_scope_pop(ctx), read_fail_structural(ctx);
       }
     } else {
-      const ScriptRange elseRange = read_range_to_current(ctx, elseStart);
-      read_emit_err(ctx, ScriptDiag_BlockOrIfExpected, elseRange);
-      return read_scope_pop(ctx), read_fail_structural(ctx);
+      read_emit_err(ctx, ScriptDiag_BlockOrIfExpected, read_range_dummy(ctx));
+      b2 = read_fail_semantic(ctx, read_range_dummy(ctx));
     }
   } else {
     b2 = script_add_value(ctx->doc, read_range_dummy(ctx), script_null());
