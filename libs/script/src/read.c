@@ -1444,11 +1444,14 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
   if (UNLIKELY(conditionCount != 1)) {
-    const ScriptRange wholeRange = read_range_to_current(ctx, start);
-    read_emit_err(ctx, ScriptDiag_InvalidConditionCount, wholeRange);
-    return read_scope_pop(ctx), read_fail_structural(ctx);
+    ctx->flags |= ScriptReadFlags_ProgramInvalid;
+    read_emit_err(ctx, ScriptDiag_InvalidConditionCount, read_range_to_current(ctx, start));
+    if (!conditionCount) {
+      conditions[0] = read_fail_semantic(ctx, read_range_dummy(ctx));
+    }
+  } else {
+    read_emit_static_condition(ctx, conditions[0]);
   }
-  read_emit_static_condition(ctx, conditions[0]);
 
   const ScriptPos blockStart = read_pos_next(ctx);
 
