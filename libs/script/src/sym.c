@@ -22,7 +22,7 @@ typedef struct {
 typedef struct {
   ScriptVarId slot; // NOTE: Only unique within the scope.
   ScriptRange location;
-  ScriptRange scope;
+  ScriptRange validRange;
 } ScriptSymVar;
 
 typedef struct {
@@ -60,13 +60,13 @@ INLINE_HINT static const ScriptSymData* sym_data(const ScriptSymBag* bag, const 
   return &dynarray_begin_t(&bag->symbols, ScriptSymData)[id];
 }
 
-INLINE_HINT static bool sym_in_scope(const ScriptSymData* sym, const ScriptPos pos) {
+INLINE_HINT static bool sym_in_valid_range(const ScriptSymData* sym, const ScriptPos pos) {
   switch (sym->kind) {
   case ScriptSymKind_Variable:
     if (sentinel_check(pos)) {
       return true; // 'script_pos_sentinel' indicates that all ranges should be included.
     }
-    return script_range_contains(sym->data.var.scope, pos);
+    return script_range_contains(sym->data.var.validRange, pos);
   default:
     return true;
   }
@@ -109,7 +109,7 @@ static ScriptSym sym_find_by_var(const ScriptSymBag* b, const ScriptVarId v, con
     const ScriptSymData* sym = sym_data(b, id);
     switch (sym->kind) {
     case ScriptSymKind_Variable:
-      if (sym->data.var.slot == v && sym_in_scope(sym, p)) {
+      if (sym->data.var.slot == v && sym_in_valid_range(sym, p)) {
         return id;
       }
       break;
@@ -244,17 +244,17 @@ ScriptSym script_sym_push_var(
     const String      label,
     const ScriptVarId slot,
     const ScriptRange location,
-    const ScriptRange scope) {
+    const ScriptRange validRange) {
   diag_assert(!string_is_empty(label));
 
   return sym_push(
       bag,
       &(ScriptSymData){
-          .kind              = ScriptSymKind_Variable,
-          .label             = string_dup(bag->alloc, label),
-          .data.var.slot     = slot,
-          .data.var.location = location,
-          .data.var.scope    = scope,
+          .kind                = ScriptSymKind_Variable,
+          .label               = string_dup(bag->alloc, label),
+          .data.var.slot       = slot,
+          .data.var.location   = location,
+          .data.var.validRange = validRange,
       });
 }
 
@@ -336,13 +336,13 @@ ScriptSym script_sym_first(const ScriptSymBag* bag, const ScriptPos pos) {
     return script_sym_sentinel;
   }
   const ScriptSymData* first = sym_data(bag, 0);
-  return sym_in_scope(first, pos) ? 0 : script_sym_next(bag, 0, pos);
+  return sym_in_valid_range(first, pos) ? 0 : script_sym_next(bag, 0, pos);
 }
 
 ScriptSym script_sym_next(const ScriptSymBag* bag, const ScriptPos pos, ScriptSym itr) {
   const ScriptSym lastId = (ScriptSym)(bag->symbols.size - 1);
   while (itr < lastId) {
-    if (sym_in_scope(sym_data(bag, ++itr), pos)) {
+    if (sym_in_valid_range(sym_data(bag, ++itr), pos)) {
       return itr;
     }
   }
