@@ -590,6 +590,11 @@ typedef enum {
 // clang-format on
 
 typedef struct {
+  ScriptSym  sym; // Only set when a ScriptSymBag is provided.
+  StringHash key;
+} ScriptReadMemKey;
+
+typedef struct {
   ScriptDoc*          doc;
   const ScriptBinder* binder;
   StringTable*        stringtable;
@@ -602,7 +607,7 @@ typedef struct {
   u16                 recursionDepth;
   u32                 scopeCounter;
   u8                  varAvailability[bits_to_bytes(script_var_count) + 1]; // Bitmask of free vars.
-  StringHash          trackedMemKeys[script_tracked_mem_keys_max];
+  ScriptReadMemKey    trackedMemKeys[script_tracked_mem_keys_max];
 } ScriptReadContext;
 
 static ScriptSection read_section_add(ScriptReadContext* ctx, const ScriptSection flags) {
@@ -782,13 +787,25 @@ static ScriptVarMeta* read_var_lookup(ScriptReadContext* ctx, const StringHash i
 
 static bool read_track_mem_key(ScriptReadContext* ctx, const StringHash key) {
   for (u32 i = 0; i != script_tracked_mem_keys_max; ++i) {
-    if (ctx->trackedMemKeys[i] == key) {
-      return true;
+    ScriptReadMemKey* trackedKey = &ctx->trackedMemKeys[i];
+    if (trackedKey->key == key) {
+      return true; // Already tracked.
     }
-    if (!ctx->trackedMemKeys[i]) {
-      ctx->trackedMemKeys[i] = key;
-      return true;
+    if (trackedKey->key) {
+      continue; // Slot already used.
     }
+
+    trackedKey->key = key;
+    trackedKey->sym = script_sym_sentinel;
+
+    if (ctx->syms) {
+      const String keyStr = stringtable_lookup(ctx->stringtable, key);
+      if (!string_is_empty(keyStr)) {
+        const String label = fmt_write_scratch("${}", fmt_text(keyStr));
+        trackedKey->sym    = script_sym_push_mem_key(ctx->syms, label, key);
+      }
+    }
+    return true; // Key inserted.
   }
   return false;
 }
@@ -1943,22 +1960,6 @@ static void read_sym_push_extern(ScriptReadContext* ctx) {
   }
 }
 
-static void read_sym_push_mem_keys(ScriptReadContext* ctx) {
-  if (!ctx->syms || !ctx->stringtable) {
-    return;
-  }
-  for (u32 i = 0; i != script_tracked_mem_keys_max; ++i) {
-    if (!ctx->trackedMemKeys[i]) {
-      break;
-    }
-    const String keyStr = stringtable_lookup(ctx->stringtable, ctx->trackedMemKeys[i]);
-    if (!string_is_empty(keyStr)) {
-      const String label = fmt_write_scratch("${}", fmt_text(keyStr));
-      script_sym_push_mem_key(ctx->syms, label, ctx->trackedMemKeys[i]);
-    }
-  }
-}
-
 static void script_link_binder(ScriptDoc* doc, const ScriptBinder* binder) {
   const ScriptBinderHash hash = script_binder_hash(binder);
   if (doc->binderHash && doc->binderHash != hash) {
@@ -2016,7 +2017,6 @@ ScriptExpr script_read(
     diag_assert_msg(read_peek(&ctx).kind == ScriptTokenKind_End, "Not all input consumed");
   }
 
-  read_sym_push_mem_keys(&ctx);
   read_sym_set_var_valid_ranges(&ctx, &scopeRoot);
   read_emit_unused_vars(&ctx, &scopeRoot);
 
