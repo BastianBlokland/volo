@@ -1784,7 +1784,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
   case ScriptTokenKind_Semicolon:
     return read_emit_err(ctx, ScriptDiag_UnexpectedSemicolon, range), read_fail_structural(ctx);
   case ScriptTokenKind_Diag:
-    return read_emit_err(ctx, token.val_diag, range), read_fail_structural(ctx);
+    return read_emit_err(ctx, token.val_diag, range), read_fail_semantic(ctx, range);
   case ScriptTokenKind_End:
     return read_emit_err(ctx, ScriptDiag_MissingPrimaryExpr, range), read_fail_structural(ctx);
   default:
