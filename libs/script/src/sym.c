@@ -104,7 +104,7 @@ static ScriptSym sym_find_by_intr(const ScriptSymBag* b, const ScriptIntrinsic i
   return script_sym_sentinel;
 }
 
-static ScriptSym sym_find_by_binder_slot(const ScriptSymBag* b, const ScriptBinderSlot slot) {
+static ScriptSym sym_find_binder_slot(const ScriptSymBag* b, const ScriptBinderSlot slot) {
   for (ScriptSym id = 0; id != b->symbols.size; ++id) {
     const ScriptSymData* sym = sym_data(b, id);
     switch (sym->kind) {
@@ -136,7 +136,7 @@ static ScriptSym sym_find_var(const ScriptSymBag* b, const ScriptVarId v, const 
   return script_sym_sentinel;
 }
 
-static ScriptSym sym_find_by_mem_key(const ScriptSymBag* b, const StringHash memKey) {
+static ScriptSym sym_find_mem_key(const ScriptSymBag* b, const StringHash memKey) {
   for (ScriptSym id = 0; id != b->symbols.size; ++id) {
     const ScriptSymData* sym = sym_data(b, id);
     switch (sym->kind) {
@@ -361,11 +361,11 @@ ScriptSym script_sym_find(const ScriptSymBag* bag, const ScriptDoc* doc, const S
   case ScriptExprKind_VarStore:
     return sym_find_var(bag, exprData->var_store.var, exprData->var_load.scope);
   case ScriptExprKind_MemLoad:
-    return sym_find_by_mem_key(bag, exprData->mem_load.key);
+    return sym_find_mem_key(bag, exprData->mem_load.key);
   case ScriptExprKind_MemStore:
-    return sym_find_by_mem_key(bag, exprData->mem_store.key);
+    return sym_find_mem_key(bag, exprData->mem_store.key);
   case ScriptExprKind_Extern:
-    return sym_find_by_binder_slot(bag, exprData->extern_.func);
+    return sym_find_binder_slot(bag, exprData->extern_.func);
   default:
     return script_sym_sentinel;
   }
