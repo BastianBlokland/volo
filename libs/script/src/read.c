@@ -1079,7 +1079,9 @@ ArgNext:;
     };
     return read_emit_err(ctx, ScriptDiag_ArgumentCountExceedsMaximum, wholeArgsRange), -1;
   }
-  const ScriptSection prevSection = read_section_add(ctx, ScriptSection_InsideArg);
+  const ScriptSection section = ScriptSection_InsideArg | ScriptSection_DisallowLoop |
+                                ScriptSection_DisallowIf | ScriptSection_DisallowReturn;
+  const ScriptSection prevSection = read_section_add(ctx, section);
   const ScriptExpr    arg         = read_expr(ctx, OpPrecedence_None);
   ctx->section                    = prevSection;
   if (UNLIKELY(sentinel_check(arg))) {
