@@ -290,6 +290,13 @@ static f64 lsp_maybe_number(LspContext* ctx, const JsonVal val) {
   return json_number(ctx->jDoc, val);
 }
 
+static bool lsp_maybe_bool(LspContext* ctx, const JsonVal val) {
+  if (sentinel_check(val) || json_type(ctx->jDoc, val) != JsonType_Bool) {
+    return false;
+  }
+  return json_bool(ctx->jDoc, val);
+}
+
 static JsonVal lsp_maybe_field(LspContext* ctx, const JsonVal val, const String fieldName) {
   if (sentinel_check(val) || json_type(ctx->jDoc, val) != JsonType_Object) {
     return sentinel_u32;
@@ -1170,6 +1177,10 @@ static void lsp_handle_req_references(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams;
   }
 
+  const JsonVal ctxVal = lsp_maybe_field(ctx, req->params, string_lit("context"));
+  const bool    includeDeclaration =
+      lsp_maybe_bool(ctx, lsp_maybe_field(ctx, ctxVal, string_lit("includeDeclaration")));
+
   const LspDocument* doc = lsp_doc_find(ctx, uri);
   if (UNLIKELY(!doc)) {
     goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
@@ -1199,13 +1210,23 @@ static void lsp_handle_req_references(LspContext* ctx, const JRpcRequest* req) {
     goto NoReferences; // No symbol found for the expression.
   }
   const ScriptSym sym = script_sym_find(doc->scriptSyms, doc->scriptDoc, refExpr);
-  if (sentinel_check(sym) || script_sym_kind(doc->scriptSyms, sym) != ScriptSymKind_Variable) {
+  if (sentinel_check(sym)) {
     goto NoReferences; // No symbol found for the expression.
   }
 
-  const ScriptSymRefSet refs = script_sym_refs(doc->scriptSyms, sym);
-
   const JsonVal locationsArr = json_add_array(ctx->jDoc);
+  if (includeDeclaration) {
+    const ScriptRange symRange = script_sym_location(doc->scriptSyms, sym);
+    if (!sentinel_check(symRange.start) && !sentinel_check(symRange.end)) {
+      const LspLocation location = {
+          .uri   = uri,
+          .range = script_range_to_line_col(sourceText, symRange),
+      };
+      json_add_elem(ctx->jDoc, locationsArr, lsp_location_to_json(ctx, &location));
+    }
+  }
+
+  const ScriptSymRefSet refs = script_sym_refs(doc->scriptSyms, sym);
   for (const ScriptSymRef* ref = refs.begin; ref != refs.end; ++ref) {
     const LspLocation location = {
         .uri   = uri,
