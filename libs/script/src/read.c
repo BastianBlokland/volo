@@ -1798,7 +1798,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
       goto MissingPrimaryExpr;
     }
 
-    // Unexpected token; we have to treat it as a structural failure.
+    // Unexpected token; treat it as a structural failure.
     return read_emit_err(ctx, ScriptDiag_InvalidPrimaryExpr, range), read_fail_structural(ctx);
   }
 
