@@ -11,8 +11,6 @@
 #include "script_sig.h"
 #include "script_val.h"
 
-#define script_binder_max_funcs 96
-
 ASSERT(script_binder_max_funcs <= u16_max, "Binder slot needs to be representable by a u16")
 
 typedef enum {

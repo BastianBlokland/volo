@@ -608,6 +608,7 @@ typedef struct {
   u32                 scopeCounter;
   u8                  varAvailability[bits_to_bytes(script_var_count) + 1]; // Bitmask of free vars.
   ScriptReadMemKey    trackedMemKeys[script_tracked_mem_keys_max];
+  ScriptSym           externSyms[script_binder_max_funcs];
 } ScriptReadContext;
 
 static ScriptSection read_section_add(ScriptReadContext* ctx, const ScriptSection flags) {
@@ -1369,12 +1370,13 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
   if (ctx->binder) {
     const ScriptBinderSlot externFunc = script_binder_lookup(ctx->binder, id);
     if (!sentinel_check(externFunc)) {
-
       const ScriptSig* sig = script_binder_sig(ctx->binder, externFunc);
       if (sig) {
         read_emit_invalid_args(ctx, args, (u8)argCount, sig, callRange);
       }
-
+      if (!sentinel_check(ctx->externSyms[externFunc])) {
+        script_sym_push_ref(ctx->syms, ctx->externSyms[externFunc], idRange);
+      }
       return script_add_extern(ctx->doc, callRange, externFunc, args, (u16)argCount);
     }
   }
@@ -1962,7 +1964,7 @@ static void read_sym_push_extern(ScriptReadContext* ctx) {
     const String     label = script_binder_name(ctx->binder, itr);
     const String     doc   = script_binder_doc(ctx->binder, itr);
     const ScriptSig* sig   = script_binder_sig(ctx->binder, itr);
-    script_sym_push_extern_func(ctx->syms, label, doc, itr, sig);
+    ctx->externSyms[itr]   = script_sym_push_extern_func(ctx->syms, label, doc, itr, sig);
   }
 }
 
@@ -2013,6 +2015,7 @@ ScriptExpr script_read(
       .scopeRoot   = &scopeRoot,
   };
   read_var_free_all(&ctx);
+  mem_set(array_mem(ctx.externSyms), 0xFF);
 
   read_sym_push_keywords(&ctx);
   read_sym_push_builtin(&ctx);
