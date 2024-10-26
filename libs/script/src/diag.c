@@ -43,11 +43,7 @@ static const String g_diagKindStrs[] = {
     [ScriptDiag_MissingColonInSelectExpr]         = string_static("Missing colon in select-expression"),
     [ScriptDiag_UnexpectedTokenAfterExpr]         = string_static("Unexpected token after expression"),
     [ScriptDiag_OnlyValidInLoop]                  = string_static("{} not valid outside a loop body"),
-    [ScriptDiag_VarDeclareNotAllowed]             = string_static("Variable declaration is not allowed in this section"),
     [ScriptDiag_VarUnused]                        = string_static("Variable '{}' is not used"),
-    [ScriptDiag_LoopNotAllowed]                   = string_static("Loops are not allowed in this section"),
-    [ScriptDiag_IfNotAllowed]                     = string_static("If-expressions are not allowed in this section"),
-    [ScriptDiag_ReturnNotAllowed]                 = string_static("Return-expressions are not allowed in this section"),
     [ScriptDiag_ExprHasNoEffect]                  = string_static("Expression has no effect"),
     [ScriptDiag_ExprUnreachable]                  = string_static("Unreachable expressions"),
     [ScriptDiag_ConditionExprStatic]              = string_static("Condition expression is static"),
@@ -69,8 +65,8 @@ struct sScriptDiagBag {
 ScriptDiagBag* script_diag_bag_create(Allocator* alloc, const ScriptDiagFilter filter) {
   ScriptDiagBag* bag = alloc_alloc_t(alloc, ScriptDiagBag);
   *bag               = (ScriptDiagBag){
-                    .alloc  = alloc,
-                    .filter = filter,
+      .alloc  = alloc,
+      .filter = filter,
   };
   return bag;
 }

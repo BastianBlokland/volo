@@ -1652,22 +1652,22 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
    */
   case ScriptTokenKind_If:
     if (UNLIKELY(ctx->section & ScriptSection_DisallowIf)) {
-      return read_emit_err(ctx, ScriptDiag_IfNotAllowed, range), read_fail_structural(ctx);
+      goto MissingPrimaryExpr;
     }
     return read_expr_if(ctx, start);
   case ScriptTokenKind_While:
     if (UNLIKELY(ctx->section & ScriptSection_DisallowLoop)) {
-      return read_emit_err(ctx, ScriptDiag_LoopNotAllowed, range), read_fail_structural(ctx);
+      goto MissingPrimaryExpr;
     }
     return read_expr_while(ctx, start);
   case ScriptTokenKind_For:
     if (UNLIKELY(ctx->section & ScriptSection_DisallowLoop)) {
-      return read_emit_err(ctx, ScriptDiag_LoopNotAllowed, range), read_fail_structural(ctx);
+      goto MissingPrimaryExpr;
     }
     return read_expr_for(ctx, start);
   case ScriptTokenKind_Var:
     if (UNLIKELY(ctx->section & ScriptSection_DisallowVarDeclare)) {
-      return read_emit_err(ctx, ScriptDiag_VarDeclareNotAllowed, range), read_fail_structural(ctx);
+      goto MissingPrimaryExpr;
     }
     return read_expr_var_declare(ctx, start);
   case ScriptTokenKind_Continue:
@@ -1682,7 +1682,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
     return script_add_intrinsic(ctx->doc, range, ScriptIntrinsic_Break, null);
   case ScriptTokenKind_Return:
     if (UNLIKELY(ctx->section & ScriptSection_DisallowReturn)) {
-      return read_emit_err(ctx, ScriptDiag_ReturnNotAllowed, range), read_fail_structural(ctx);
+      goto MissingPrimaryExpr;
     }
     return read_expr_return(ctx, start);
   /**
@@ -1774,14 +1774,17 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
      * the rest of the script.
      */
     if (ctx->section & ScriptSection_InsideArg && read_is_arg_end(token.kind)) {
-      ctx->input = prevInput; // Un-consume the token.
-      read_emit_err(ctx, ScriptDiag_MissingPrimaryExpr, range);
-      return read_fail_semantic(ctx, read_range_to_current(ctx, start));
+      goto MissingPrimaryExpr;
     }
 
     // Unexpected token; we have to treat it as a structural failure.
     return read_emit_err(ctx, ScriptDiag_InvalidPrimaryExpr, range), read_fail_structural(ctx);
   }
+
+MissingPrimaryExpr:
+  ctx->input = prevInput; // Un-consume the token.
+  read_emit_err(ctx, ScriptDiag_MissingPrimaryExpr, read_range_dummy(ctx));
+  return read_fail_semantic(ctx, read_range_dummy(ctx));
 }
 
 static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPrecedence) {
