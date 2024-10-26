@@ -753,7 +753,7 @@ read_var_declare(ScriptReadContext* ctx, const StringHash id, const ScriptRange 
         .scopeId         = scope->id,
         .varSlot         = varId,
         .declRange       = declRange,
-        .validRangeStart = read_pos_current(ctx),
+        .validRangeStart = read_pos_next(ctx),
     };
     return &scope->vars[i];
   }
