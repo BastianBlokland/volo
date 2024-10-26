@@ -1166,6 +1166,7 @@ InvalidParams:
 }
 
 static void lsp_handle_req_references(LspContext* ctx, const JRpcRequest* req) {
+  const JsonVal ctxObj = lsp_maybe_field(ctx, req->params, string_lit("context"));
   const JsonVal docVal = lsp_maybe_field(ctx, req->params, string_lit("textDocument"));
   const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
   if (UNLIKELY(string_is_empty(uri))) {
@@ -1176,10 +1177,6 @@ static void lsp_handle_req_references(LspContext* ctx, const JRpcRequest* req) {
   if (UNLIKELY(!lsp_position_from_json(ctx, posLcVal, &posLc))) {
     goto InvalidParams;
   }
-
-  const JsonVal ctxVal = lsp_maybe_field(ctx, req->params, string_lit("context"));
-  const bool    includeDeclaration =
-      lsp_maybe_bool(ctx, lsp_maybe_field(ctx, ctxVal, string_lit("includeDeclaration")));
 
   const LspDocument* doc = lsp_doc_find(ctx, uri);
   if (UNLIKELY(!doc)) {
@@ -1215,7 +1212,7 @@ static void lsp_handle_req_references(LspContext* ctx, const JRpcRequest* req) {
   }
 
   const JsonVal locationsArr = json_add_array(ctx->jDoc);
-  if (includeDeclaration) {
+  if (lsp_maybe_bool(ctx, lsp_maybe_field(ctx, ctxObj, string_lit("includeDeclaration")))) {
     const ScriptRange symRange = script_sym_location(doc->scriptSyms, sym);
     if (!sentinel_check(symRange.start) && !sentinel_check(symRange.end)) {
       const LspLocation location = {
