@@ -785,12 +785,17 @@ static ScriptVarMeta* read_var_lookup(ScriptReadContext* ctx, const StringHash i
   return null;
 }
 
-static bool read_track_mem_key(ScriptReadContext* ctx, const StringHash key) {
+static bool
+read_track_mem_access(ScriptReadContext* ctx, const StringHash key, const ScriptRange range) {
   for (u32 i = 0; i != script_tracked_mem_keys_max; ++i) {
     ScriptReadMemKey* trackedKey = &ctx->trackedMemKeys[i];
     if (trackedKey->key == key) {
+      if (!sentinel_check(trackedKey->sym)) {
+        script_sym_push_ref(ctx->syms, trackedKey->sym, range);
+      }
       return true; // Already tracked.
     }
+
     if (trackedKey->key) {
       continue; // Slot already used.
     }
@@ -803,6 +808,7 @@ static bool read_track_mem_key(ScriptReadContext* ctx, const StringHash key) {
       if (!string_is_empty(keyStr)) {
         const String label = fmt_write_scratch("${}", fmt_text(keyStr));
         trackedKey->sym    = script_sym_push_mem_key(ctx->syms, label, key);
+        script_sym_push_ref(ctx->syms, trackedKey->sym, range);
       }
     }
     return true; // Key inserted.
@@ -1791,7 +1797,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
    */
   case ScriptTokenKind_Key: {
     // TODO: Should failing to track be an error? Currently these are only used to report symbols.
-    read_track_mem_key(ctx, token.val_key);
+    read_track_mem_access(ctx, token.val_key, range);
 
     ScriptToken  nextToken;
     const String remInput = script_lex(ctx->input, null, &nextToken, ScriptLexFlags_None);
