@@ -1519,7 +1519,7 @@ static ScriptExpr read_expr_for_comp(ScriptReadContext* ctx, const ReadForComp c
     res                       = script_add_value(ctx->doc, range, skipVal);
   } else if (UNLIKELY(read_peek(ctx).kind == ScriptTokenKind_ParenClose)) {
     const ScriptRange range = read_range_to_current(ctx, start);
-    return read_emit_err(ctx, ScriptDiag_ForLoopCompMissing, range), read_fail_structural(ctx);
+    return read_emit_err(ctx, ScriptDiag_ForLoopCompMissing, range), read_fail_semantic(ctx, range);
   } else {
     res = read_expr(ctx, OpPrecedence_None);
     if (UNLIKELY(sentinel_check(res))) {
@@ -1559,22 +1559,26 @@ static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
 
-  const ScriptPos blockStart = read_pos_next(ctx);
+  ScriptExpr body;
 
-  if (UNLIKELY(read_consume(ctx).kind != ScriptTokenKind_CurlyOpen)) {
-    const ScriptRange blockRange = read_range_to_current(ctx, blockStart);
-    read_emit_err(ctx, ScriptDiag_BlockExpected, blockRange);
-    return read_scope_pop(ctx), read_fail_structural(ctx);
+  if (UNLIKELY(read_peek(ctx).kind != ScriptTokenKind_CurlyOpen)) {
+    read_emit_err(ctx, ScriptDiag_BlockExpected, read_range_dummy(ctx));
+    body = read_fail_semantic(ctx, read_range_dummy(ctx));
+    goto RetForExpr;
   }
 
+  const ScriptPos blockStart = read_pos_next(ctx);
+  read_consume(ctx); // Consume the opening curly.
+
   const ScriptSection prevSection = read_section_add(ctx, ScriptSection_InsideLoop);
-  const ScriptExpr    body        = read_expr_scope_block(ctx, blockStart);
+  body                            = read_expr_scope_block(ctx, blockStart);
   ctx->section                    = prevSection;
 
   if (UNLIKELY(sentinel_check(body))) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
 
+RetForExpr:
   diag_assert(&scope == read_scope_tail(ctx));
   read_scope_pop(ctx);
 
