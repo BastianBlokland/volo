@@ -14,6 +14,7 @@ static const String g_diagKindStrs[] = {
     [ScriptDiag_NumberEndsWithSeparator]          = string_static("Number ends with a separator"),
     [ScriptDiag_KeyEmpty]                         = string_static("Key cannot be empty"),
     [ScriptDiag_UnterminatedString]               = string_static("String is not terminated"),
+    [ScriptDiag_UnexpectedWhitespace]             = string_static("Unexpected whitespace"),
     [ScriptDiag_RecursionLimitExceeded]           = string_static("Recursion limit exceeded"),
     [ScriptDiag_VarLimitExceeded]                 = string_static("Variable limit exceeded"),
     [ScriptDiag_VarIdInvalid]                     = string_static("Variable identifier invalid"),
@@ -64,10 +65,12 @@ struct sScriptDiagBag {
 
 ScriptDiagBag* script_diag_bag_create(Allocator* alloc, const ScriptDiagFilter filter) {
   ScriptDiagBag* bag = alloc_alloc_t(alloc, ScriptDiagBag);
-  *bag               = (ScriptDiagBag){
+
+  *bag = (ScriptDiagBag){
       .alloc  = alloc,
       .filter = filter,
   };
+
   return bag;
 }
 

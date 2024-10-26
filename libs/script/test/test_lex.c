@@ -219,6 +219,16 @@ spec(lex) {
     check_eq_int(token.kind, ScriptTokenKind_End);
   }
 
+  it("can optionally fail on whitespace") {
+    ScriptToken token;
+
+    script_lex(string_lit(" hello"), null, &token, ScriptLexFlags_NoWhitespace);
+    check_eq_int(token.kind, ScriptTokenKind_Diag);
+
+    script_lex(string_lit("hello"), null, &token, ScriptLexFlags_NoWhitespace);
+    check_eq_int(token.kind, ScriptTokenKind_Identifier);
+  }
+
   it("can trim until the next token") {
     const struct {
       String input, expected;

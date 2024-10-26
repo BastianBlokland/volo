@@ -67,6 +67,7 @@ typedef enum {
   ScriptLexFlags_None,
   ScriptLexFlags_IncludeNewlines = 1 << 0,
   ScriptLexFlags_IncludeComments = 1 << 1,
+  ScriptLexFlags_NoWhitespace    = 1 << 2,
 } ScriptLexFlags;
 
 typedef struct {
