@@ -105,12 +105,12 @@ static ScriptSym sym_find_by_binder_slot(const ScriptSymBag* b, const ScriptBind
   return script_sym_sentinel;
 }
 
-static ScriptSym sym_find_by_var(const ScriptSymBag* b, const ScriptVarId v, const ScriptPos p) {
+static ScriptSym sym_find_var(const ScriptSymBag* b, const ScriptVarId v, const ScriptScopeId s) {
   for (ScriptSym id = 0; id != b->symbols.size; ++id) {
     const ScriptSymData* sym = sym_data(b, id);
     switch (sym->kind) {
     case ScriptSymKind_Variable:
-      if (sym->data.var.slot == v && sym_in_valid_range(sym, p)) {
+      if (sym->data.var.slot == v && sym->data.var.scope == s) {
         return id;
       }
       break;
@@ -316,19 +316,20 @@ const ScriptSig* script_sym_sig(const ScriptSymBag* bag, const ScriptSym sym) {
 }
 
 ScriptSym script_sym_find(const ScriptSymBag* bag, const ScriptDoc* doc, const ScriptExpr expr) {
+  const ScriptExprData* exprData = expr_data(doc, expr);
   switch (expr_kind(doc, expr)) {
   case ScriptExprKind_Intrinsic:
-    return sym_find_by_intr(bag, expr_data(doc, expr)->intrinsic.intrinsic);
+    return sym_find_by_intr(bag, exprData->intrinsic.intrinsic);
   case ScriptExprKind_VarLoad:
-    return sym_find_by_var(bag, expr_data(doc, expr)->var_load.var, expr_range(doc, expr).start);
+    return sym_find_var(bag, exprData->var_load.var, exprData->var_load.scope);
   case ScriptExprKind_VarStore:
-    return sym_find_by_var(bag, expr_data(doc, expr)->var_store.var, expr_range(doc, expr).start);
+    return sym_find_var(bag, exprData->var_store.var, exprData->var_load.scope);
   case ScriptExprKind_MemLoad:
-    return sym_find_by_mem_key(bag, expr_data(doc, expr)->mem_load.key);
+    return sym_find_by_mem_key(bag, exprData->mem_load.key);
   case ScriptExprKind_MemStore:
-    return sym_find_by_mem_key(bag, expr_data(doc, expr)->mem_store.key);
+    return sym_find_by_mem_key(bag, exprData->mem_store.key);
   case ScriptExprKind_Extern:
-    return sym_find_by_binder_slot(bag, expr_data(doc, expr)->extern_.func);
+    return sym_find_by_binder_slot(bag, exprData->extern_.func);
   default:
     return script_sym_sentinel;
   }
