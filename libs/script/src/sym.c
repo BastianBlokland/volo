@@ -42,9 +42,15 @@ typedef struct {
   } data;
 } ScriptSymData;
 
+typedef struct {
+  ScriptSym   sym;
+  ScriptRange location;
+} ScriptSymRef;
+
 struct sScriptSymBag {
   Allocator* alloc;
-  DynArray   symbols; // ScriptSym[]
+  DynArray   symbols;    // ScriptSym[]
+  DynArray   references; // ScriptSymRef[]
 };
 
 static ScriptSym sym_push(ScriptSymBag* bag, ScriptSymData* data) {
@@ -54,6 +60,10 @@ static ScriptSym sym_push(ScriptSymBag* bag, ScriptSymData* data) {
   }
   *dynarray_push_t(&bag->symbols, ScriptSymData) = *data;
   return id;
+}
+
+static void sym_push_ref(ScriptSymBag* bag, ScriptSymRef* data) {
+  *dynarray_push_t(&bag->references, ScriptSymRef) = *data;
 }
 
 INLINE_HINT static const ScriptSymData* sym_data(const ScriptSymBag* bag, const ScriptSym id) {
@@ -144,8 +154,9 @@ ScriptSymBag* script_sym_bag_create(Allocator* alloc) {
   ScriptSymBag* bag = alloc_alloc_t(alloc, ScriptSymBag);
 
   *bag = (ScriptSymBag){
-      .alloc   = alloc,
-      .symbols = dynarray_create_t(alloc, ScriptSymData, 128),
+      .alloc      = alloc,
+      .symbols    = dynarray_create_t(alloc, ScriptSymData, 128),
+      .references = dynarray_create_t(alloc, ScriptSymRef, 128),
   };
 
   return bag;
@@ -154,6 +165,7 @@ ScriptSymBag* script_sym_bag_create(Allocator* alloc) {
 void script_sym_bag_destroy(ScriptSymBag* bag) {
   script_sym_bag_clear(bag);
   dynarray_destroy(&bag->symbols);
+  dynarray_destroy(&bag->references);
   alloc_free_t(bag->alloc, bag);
 }
 
@@ -181,6 +193,7 @@ void script_sym_bag_clear(ScriptSymBag* bag) {
     }
   }
   dynarray_clear(&bag->symbols);
+  dynarray_clear(&bag->references);
 }
 
 ScriptSym script_sym_push_keyword(ScriptSymBag* bag, const String label) {
@@ -277,6 +290,16 @@ ScriptSym script_sym_push_mem_key(ScriptSymBag* bag, const String label, const S
           .label           = string_dup(bag->alloc, label),
           .validRange      = script_range_sentinel,
           .data.memKey.key = key,
+      });
+}
+
+void script_sym_push_ref(ScriptSymBag* bag, const ScriptSym sym, const ScriptRange location) {
+  diag_assert(sym < bag->symbols.size);
+  sym_push_ref(
+      bag,
+      &(ScriptSymRef){
+          .sym      = sym,
+          .location = location,
       });
 }
 

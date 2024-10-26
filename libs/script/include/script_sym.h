@@ -51,6 +51,8 @@ ScriptSym script_sym_push_extern_func(ScriptSymBag*, String label, String doc, S
 ScriptSym script_sym_push_var(ScriptSymBag*, String label, ScriptVarId, ScriptScopeId, ScriptRange location);
 ScriptSym script_sym_push_mem_key(ScriptSymBag*, String label, StringHash key);
 
+void script_sym_push_ref(ScriptSymBag*, ScriptSym, ScriptRange location);
+
 void script_sym_set_valid_range(ScriptSymBag*, ScriptSym, ScriptRange);
 
 // clang-format on
