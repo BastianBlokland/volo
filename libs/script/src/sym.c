@@ -411,7 +411,7 @@ ScriptSymRefSet script_sym_refs(const ScriptSymBag* bag, const ScriptSym sym) {
     ++resEnd;
   }
 
-  return (ScriptSymRefSet){.begin = res, .end = resEnd};
+  return (ScriptSymRefSet){.begin = res, .end = resEnd + 1};
 }
 
 String script_sym_kind_str(const ScriptSymKind kind) {
