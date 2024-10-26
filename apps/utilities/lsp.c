@@ -1304,9 +1304,6 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
 
   const String newName =
       lsp_maybe_str(ctx, lsp_maybe_field(ctx, req->params, string_lit("newName")));
-  if (UNLIKELY(string_is_empty(newName))) {
-    goto InvalidParams;
-  }
 
   const LspDocument* doc = lsp_doc_find(ctx, uri);
   if (UNLIKELY(!doc)) {
@@ -1347,10 +1344,11 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
   }
 
   const JsonVal workspaceEditObj = json_add_object(ctx->jDoc);
-  const JsonVal changesObj       = json_add_object(ctx->jDoc);
-  const JsonVal editsArr         = json_add_array(ctx->jDoc);
 
+  const JsonVal changesObj = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, workspaceEditObj, "changes", changesObj);
+
+  const JsonVal editsArr = json_add_array(ctx->jDoc);
   json_add_field_str(ctx->jDoc, changesObj, uri, editsArr);
 
   // Rename the symbol itself.
