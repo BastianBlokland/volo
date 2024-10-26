@@ -12,6 +12,7 @@ typedef struct sDynArray DynString;
 typedef struct sScriptDoc ScriptDoc;
 typedef u32               ScriptExpr;
 typedef u8                ScriptVarId;
+typedef u32               ScriptScopeId;
 
 // Forward declare from 'script_sig.h'.
 typedef struct sScriptSig ScriptSig;
@@ -47,7 +48,7 @@ ScriptSym script_sym_push_keyword(ScriptSymBag*, String label);
 ScriptSym script_sym_push_builtin_const(ScriptSymBag*, String label);
 ScriptSym script_sym_push_builtin_func(ScriptSymBag*, String label, String doc, ScriptIntrinsic, const ScriptSig*);
 ScriptSym script_sym_push_extern_func(ScriptSymBag*, String label, String doc, ScriptBinderSlot, const ScriptSig*);
-ScriptSym script_sym_push_var(ScriptSymBag*, String label, ScriptVarId, ScriptRange location, ScriptRange validRange);
+ScriptSym script_sym_push_var(ScriptSymBag*, String label, ScriptVarId, ScriptScopeId, ScriptRange location, ScriptRange validRange);
 ScriptSym script_sym_push_mem_key(ScriptSymBag*, String label, StringHash key);
 
 // clang-format on

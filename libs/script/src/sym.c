@@ -20,9 +20,10 @@ typedef struct {
 } ScriptSymExternFunc;
 
 typedef struct {
-  ScriptVarId slot; // NOTE: Only unique within the scope.
-  ScriptRange location;
-  ScriptRange validRange;
+  ScriptVarId   slot; // NOTE: Only unique within the scope.
+  ScriptScopeId scope;
+  ScriptRange   location;
+  ScriptRange   validRange;
 } ScriptSymVar;
 
 typedef struct {
@@ -240,11 +241,12 @@ ScriptSym script_sym_push_extern_func(
 }
 
 ScriptSym script_sym_push_var(
-    ScriptSymBag*     bag,
-    const String      label,
-    const ScriptVarId slot,
-    const ScriptRange location,
-    const ScriptRange validRange) {
+    ScriptSymBag*       bag,
+    const String        label,
+    const ScriptVarId   slot,
+    const ScriptScopeId scope,
+    const ScriptRange   location,
+    const ScriptRange   validRange) {
   diag_assert(!string_is_empty(label));
 
   return sym_push(
@@ -253,6 +255,7 @@ ScriptSym script_sym_push_var(
           .kind                = ScriptSymKind_Variable,
           .label               = string_dup(bag->alloc, label),
           .data.var.slot       = slot,
+          .data.var.scope      = scope,
           .data.var.location   = location,
           .data.var.validRange = validRange,
       });
