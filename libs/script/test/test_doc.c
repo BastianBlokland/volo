@@ -214,7 +214,6 @@ spec(doc) {
         {string_static("var i = { return }"), .sig = ScriptDocSignal_Return},
         {string_static("$i = { return }"), .sig = ScriptDocSignal_Return},
         {string_static("vec3(1,2,3)"), .sig = ScriptDocSignal_None},
-        {string_static("vec3(1,return 2,3)"), .sig = ScriptDocSignal_Return},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {

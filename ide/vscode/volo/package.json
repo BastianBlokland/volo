@@ -4,7 +4,7 @@
   "displayName": "volo",
   "description": "Ide support for the Volo engine",
   "license": "MIT",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "repository": {
     "type": "git",
     "url": "https://github.com/bastianblokland/volo"
@@ -48,6 +48,17 @@
         "scopeName": "script",
         "path": "./syntaxes/script.tmLanguage"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Volo",
+      "properties": {
+        "volo-lsp.trace.server": {
+          "type": "string",
+          "default": "off",
+          "enum": [ "off", "verbose" ],
+          "description": "Control the LSP server diagnostic trace mode."
+        }
+      }
+    }
   }
 }

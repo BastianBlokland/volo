@@ -290,6 +290,13 @@ static f64 lsp_maybe_number(LspContext* ctx, const JsonVal val) {
   return json_number(ctx->jDoc, val);
 }
 
+static bool lsp_maybe_bool(LspContext* ctx, const JsonVal val) {
+  if (sentinel_check(val) || json_type(ctx->jDoc, val) != JsonType_Bool) {
+    return false;
+  }
+  return json_bool(ctx->jDoc, val);
+}
+
 static JsonVal lsp_maybe_field(LspContext* ctx, const JsonVal val, const String fieldName) {
   if (sentinel_check(val) || json_type(ctx->jDoc, val) != JsonType_Object) {
     return sentinel_u32;
@@ -749,6 +756,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
 
   const JsonVal symbolOpts     = json_add_object(ctx->jDoc);
   const JsonVal formattingOpts = json_add_object(ctx->jDoc);
+  const JsonVal referencesOpts = json_add_object(ctx->jDoc);
 
   const JsonVal capabilities = json_add_object(ctx->jDoc);
   // NOTE: At the time of writing VSCode only supports utf-16 position encoding.
@@ -761,6 +769,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, capabilities, "signatureHelpProvider", signatureHelpOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "documentSymbolProvider", symbolOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "documentFormattingProvider", formattingOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "referencesProvider", referencesOpts);
 
   const JsonVal info          = json_add_object(ctx->jDoc);
   const JsonVal serverName    = json_add_string_lit(ctx->jDoc, "Volo Language Server");
@@ -1156,6 +1165,84 @@ InvalidParams:
   lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
 }
 
+static void lsp_handle_req_references(LspContext* ctx, const JRpcRequest* req) {
+  const JsonVal ctxObj = lsp_maybe_field(ctx, req->params, string_lit("context"));
+  const JsonVal docVal = lsp_maybe_field(ctx, req->params, string_lit("textDocument"));
+  const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
+  if (UNLIKELY(string_is_empty(uri))) {
+    goto InvalidParams;
+  }
+  const JsonVal    posLcVal = lsp_maybe_field(ctx, req->params, string_lit("position"));
+  ScriptPosLineCol posLc;
+  if (UNLIKELY(!lsp_position_from_json(ctx, posLcVal, &posLc))) {
+    goto InvalidParams;
+  }
+
+  const LspDocument* doc = lsp_doc_find(ctx, uri);
+  if (UNLIKELY(!doc)) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
+  }
+
+  const String    sourceText = script_source_get(doc->scriptDoc);
+  const ScriptPos pos        = script_pos_from_line_col(sourceText, posLc);
+  if (UNLIKELY(sentinel_check(pos))) {
+    goto InvalidParams; // TODO: Make a unique error respose for the 'position out of range' case.
+  }
+
+  if (ctx->flags & LspFlags_Trace) {
+    const String txt = fmt_write_scratch(
+        "FindReferences: {} [{}:{}]",
+        fmt_text(uri),
+        fmt_int(posLc.line + 1),
+        fmt_int(posLc.column + 1));
+    lsp_send_trace(ctx, txt);
+  }
+
+  if (sentinel_check(doc->scriptRoot)) {
+    goto NoReferences; // Script did not parse correctly (likely due to structural errors).
+  }
+
+  const ScriptExpr refExpr = script_expr_find(doc->scriptDoc, doc->scriptRoot, pos, null, null);
+  if (sentinel_check(refExpr)) {
+    goto NoReferences; // No symbol found for the expression.
+  }
+  const ScriptSym sym = script_sym_find(doc->scriptSyms, doc->scriptDoc, refExpr);
+  if (sentinel_check(sym)) {
+    goto NoReferences; // No symbol found for the expression.
+  }
+
+  const JsonVal locationsArr = json_add_array(ctx->jDoc);
+  if (lsp_maybe_bool(ctx, lsp_maybe_field(ctx, ctxObj, string_lit("includeDeclaration")))) {
+    const ScriptRange symRange = script_sym_location(doc->scriptSyms, sym);
+    if (!sentinel_check(symRange.start) && !sentinel_check(symRange.end)) {
+      const LspLocation location = {
+          .uri   = uri,
+          .range = script_range_to_line_col(sourceText, symRange),
+      };
+      json_add_elem(ctx->jDoc, locationsArr, lsp_location_to_json(ctx, &location));
+    }
+  }
+
+  const ScriptSymRefSet refs = script_sym_refs(doc->scriptSyms, sym);
+  for (const ScriptSymRef* ref = refs.begin; ref != refs.end; ++ref) {
+    const LspLocation location = {
+        .uri   = uri,
+        .range = script_range_to_line_col(sourceText, ref->location),
+    };
+    json_add_elem(ctx->jDoc, locationsArr, lsp_location_to_json(ctx, &location));
+  }
+  lsp_send_response_success(ctx, req, locationsArr);
+  return;
+
+NoReferences:
+  lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
+  return;
+
+InvalidParams:
+  lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+  return;
+}
+
 static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
   static const struct {
     String method;
@@ -1169,6 +1256,7 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
       {string_static("textDocument/signatureHelp"), lsp_handle_req_signature_help},
       {string_static("textDocument/documentSymbol"), lsp_handle_req_symbols},
       {string_static("textDocument/formatting"), lsp_handle_req_formatting},
+      {string_static("textDocument/references"), lsp_handle_req_references},
   };
 
   for (u32 i = 0; i != array_elems(g_handlers); ++i) {

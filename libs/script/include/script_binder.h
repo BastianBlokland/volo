@@ -15,6 +15,7 @@ typedef struct sScriptVal ScriptVal;
 // Forward declare from 'script_sig.h'.
 typedef struct sScriptSig ScriptSig;
 
+#define script_binder_max_funcs 96
 #define script_binder_slot_sentinel sentinel_u16
 
 typedef u16 ScriptBinderSlot;

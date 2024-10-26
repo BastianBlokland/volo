@@ -12,6 +12,7 @@ typedef struct sDynArray DynString;
 typedef struct sScriptDoc ScriptDoc;
 typedef u32               ScriptExpr;
 typedef u8                ScriptVarId;
+typedef u32               ScriptScopeId;
 
 // Forward declare from 'script_sig.h'.
 typedef struct sScriptSig ScriptSig;
@@ -35,6 +36,11 @@ typedef enum {
   ScriptSymKind_Count,
 } ScriptSymKind;
 
+typedef struct {
+  ScriptSym   sym;
+  ScriptRange location;
+} ScriptSymRef;
+
 typedef struct sScriptSymBag ScriptSymBag;
 
 ScriptSymBag* script_sym_bag_create(Allocator*);
@@ -47,8 +53,12 @@ ScriptSym script_sym_push_keyword(ScriptSymBag*, String label);
 ScriptSym script_sym_push_builtin_const(ScriptSymBag*, String label);
 ScriptSym script_sym_push_builtin_func(ScriptSymBag*, String label, String doc, ScriptIntrinsic, const ScriptSig*);
 ScriptSym script_sym_push_extern_func(ScriptSymBag*, String label, String doc, ScriptBinderSlot, const ScriptSig*);
-ScriptSym script_sym_push_var(ScriptSymBag*, String label, ScriptVarId, ScriptRange location, ScriptRange scope);
+ScriptSym script_sym_push_var(ScriptSymBag*, String label, ScriptVarId, ScriptScopeId, ScriptRange location);
 ScriptSym script_sym_push_mem_key(ScriptSymBag*, String label, StringHash key);
+
+void script_sym_push_ref(ScriptSymBag*, ScriptSym, ScriptRange location);
+
+void script_sym_set_valid_range(ScriptSymBag*, ScriptSym, ScriptRange);
 
 // clang-format on
 
@@ -63,6 +73,13 @@ ScriptSym script_sym_find(const ScriptSymBag*, const ScriptDoc*, ScriptExpr);
 
 ScriptSym script_sym_first(const ScriptSymBag*, ScriptPos);
 ScriptSym script_sym_next(const ScriptSymBag*, ScriptPos, ScriptSym);
+
+typedef struct {
+  const ScriptSymRef* begin;
+  const ScriptSymRef* end;
+} ScriptSymRefSet;
+
+ScriptSymRefSet script_sym_refs(const ScriptSymBag*, ScriptSym);
 
 String script_sym_kind_str(ScriptSymKind);
 void   script_sym_write(DynString*, const ScriptSymBag*, ScriptSym);
