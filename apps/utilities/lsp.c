@@ -171,6 +171,11 @@ static const JRpcError g_jrpcErrorRenameFailed = {
     .msg  = string_static("Failed to rename symbol"),
 };
 
+static const JRpcError g_jrpcErrorInvalidIdentifier = {
+    .code = -32803,
+    .msg  = string_static("Invalid identifier"),
+};
+
 static void lsp_doc_destroy(LspDocument* doc) {
   string_free(g_allocHeap, doc->identifier);
   script_destroy(doc->scriptDoc);
@@ -1284,7 +1289,8 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
     goto InvalidParams;
   }
   if (!lsp_sym_validate_id(newId)) {
-    goto RenameFailed; // Invalid identifier.
+    lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidIdentifier);
+    return;
   }
 
   const LspDocument* doc = lsp_doc_find(ctx, uri);
