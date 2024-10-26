@@ -554,6 +554,7 @@ typedef struct {
   ScriptScopeId scopeId;
   ScriptVarId   varSlot;
   bool          used;
+  ScriptSym     sym; // Only set when a ScriptSymBag is provided.
   ScriptRange   declRange;
   ScriptPos     validRangeStart;
 } ScriptVarMeta;
@@ -667,22 +668,17 @@ static void read_emit_unused_vars(ScriptReadContext* ctx, const ScriptScope* sco
   }
 }
 
-static void read_sym_push_vars(ScriptReadContext* ctx, const ScriptScope* scope) {
+static void read_sym_set_var_valid_ranges(ScriptReadContext* ctx, const ScriptScope* scope) {
   if (!ctx->syms) {
     return;
   }
   for (u32 i = 0; i != script_var_count; ++i) {
-    if (!scope->vars[i].id) {
-      break;
-    }
-    const String        label    = script_range_text(ctx->inputTotal, scope->vars[i].declRange);
-    const ScriptRange   location = scope->vars[i].declRange;
-    const ScriptVarId   varSlot  = scope->vars[i].varSlot;
-    const ScriptScopeId varScope = scope->vars[i].scopeId;
-    const ScriptSym     varSym = script_sym_push_var(ctx->syms, label, varSlot, varScope, location);
+    if (scope->vars[i].id) {
+      diag_assert(!sentinel_check(scope->vars[i].sym));
 
-    const ScriptRange validRange = read_range_to_next(ctx, scope->vars[i].validRangeStart);
-    script_sym_set_valid_range(ctx->syms, varSym, validRange);
+      const ScriptRange validRange = read_range_to_next(ctx, scope->vars[i].validRangeStart);
+      script_sym_set_valid_range(ctx->syms, scope->vars[i].sym, validRange);
+    }
   }
 }
 
@@ -728,7 +724,7 @@ static void read_scope_pop(ScriptReadContext* ctx) {
     ;
   newTail->next = null;
 
-  read_sym_push_vars(ctx, scope);
+  read_sym_set_var_valid_ranges(ctx, scope);
   read_emit_unused_vars(ctx, scope);
 
   // Free all the variables that the scope declared.
@@ -752,10 +748,16 @@ read_var_declare(ScriptReadContext* ctx, const StringHash id, const ScriptRange 
     if (!read_var_alloc(ctx, &varId)) {
       return null;
     }
+    ScriptSym sym = script_sym_sentinel;
+    if (ctx->syms) {
+      const String label = script_range_text(ctx->inputTotal, declRange);
+      sym                = script_sym_push_var(ctx->syms, label, varId, scope->id, declRange);
+    }
     scope->vars[i] = (ScriptVarMeta){
         .id              = id,
         .scopeId         = scope->id,
         .varSlot         = varId,
+        .sym             = sym,
         .declRange       = declRange,
         .validRangeStart = read_pos_next(ctx) + 1,
     };
@@ -917,9 +919,9 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableStart = expr_range(ctx->doc, exprs[i + 1]).start;
       const ScriptPos  unreachableEnd   = expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-           .severity = ScriptDiagSeverity_Warning,
-           .kind     = ScriptDiag_ExprUnreachable,
-           .range    = script_range(unreachableStart, unreachableEnd),
+          .severity = ScriptDiagSeverity_Warning,
+          .kind     = ScriptDiag_ExprUnreachable,
+          .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -1984,14 +1986,14 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc         = doc,
-            .binder      = binder,
-            .stringtable = stringtable,
-            .diags       = diags,
-            .syms        = syms,
-            .input       = src,
-            .inputTotal  = src,
-            .scopeRoot   = &scopeRoot,
+      .doc         = doc,
+      .binder      = binder,
+      .stringtable = stringtable,
+      .diags       = diags,
+      .syms        = syms,
+      .input       = src,
+      .inputTotal  = src,
+      .scopeRoot   = &scopeRoot,
   };
   read_var_free_all(&ctx);
 
@@ -2005,7 +2007,7 @@ ScriptExpr script_read(
   }
 
   read_sym_push_mem_keys(&ctx);
-  read_sym_push_vars(&ctx, &scopeRoot);
+  read_sym_set_var_valid_ranges(&ctx, &scopeRoot);
   read_emit_unused_vars(&ctx, &scopeRoot);
 
   const bool fail = sentinel_check(expr) || (ctx.flags & ScriptReadFlags_ProgramInvalid) != 0;
