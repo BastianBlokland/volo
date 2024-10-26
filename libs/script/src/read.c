@@ -675,12 +675,14 @@ static void read_sym_push_vars(ScriptReadContext* ctx, const ScriptScope* scope)
     if (!scope->vars[i].id) {
       break;
     }
-    const String        label      = script_range_text(ctx->inputTotal, scope->vars[i].declRange);
-    const ScriptRange   location   = scope->vars[i].declRange;
-    const ScriptRange   validRange = read_range_to_next(ctx, scope->vars[i].validRangeStart);
-    const ScriptVarId   varSlot    = scope->vars[i].varSlot;
-    const ScriptScopeId varScope   = scope->vars[i].scopeId;
-    script_sym_push_var(ctx->syms, label, varSlot, varScope, location, validRange);
+    const String        label    = script_range_text(ctx->inputTotal, scope->vars[i].declRange);
+    const ScriptRange   location = scope->vars[i].declRange;
+    const ScriptVarId   varSlot  = scope->vars[i].varSlot;
+    const ScriptScopeId varScope = scope->vars[i].scopeId;
+    const ScriptSym     varSym = script_sym_push_var(ctx->syms, label, varSlot, varScope, location);
+
+    const ScriptRange validRange = read_range_to_next(ctx, scope->vars[i].validRangeStart);
+    script_sym_set_valid_range(ctx->syms, varSym, validRange);
   }
 }
 

@@ -61,6 +61,11 @@ INLINE_HINT static const ScriptSymData* sym_data(const ScriptSymBag* bag, const 
   return &dynarray_begin_t(&bag->symbols, ScriptSymData)[id];
 }
 
+INLINE_HINT static ScriptSymData* sym_data_mut(ScriptSymBag* bag, const ScriptSym id) {
+  diag_assert(id < bag->symbols.size);
+  return &dynarray_begin_t(&bag->symbols, ScriptSymData)[id];
+}
+
 INLINE_HINT static bool sym_in_valid_range(const ScriptSymData* sym, const ScriptPos pos) {
   if (sentinel_check(pos)) {
     return true; // 'script_pos_sentinel' indicates that all ranges should be included.
@@ -247,8 +252,7 @@ ScriptSym script_sym_push_var(
     const String        label,
     const ScriptVarId   slot,
     const ScriptScopeId scope,
-    const ScriptRange   location,
-    const ScriptRange   validRange) {
+    const ScriptRange   location) {
   diag_assert(!string_is_empty(label));
 
   return sym_push(
@@ -256,7 +260,7 @@ ScriptSym script_sym_push_var(
       &(ScriptSymData){
           .kind              = ScriptSymKind_Variable,
           .label             = string_dup(bag->alloc, label),
-          .validRange        = validRange,
+          .validRange        = script_range_sentinel,
           .data.var.slot     = slot,
           .data.var.scope    = scope,
           .data.var.location = location,
@@ -274,6 +278,10 @@ ScriptSym script_sym_push_mem_key(ScriptSymBag* bag, const String label, const S
           .validRange      = script_range_sentinel,
           .data.memKey.key = key,
       });
+}
+
+void script_sym_set_valid_range(ScriptSymBag* bag, const ScriptSym sym, const ScriptRange range) {
+  sym_data_mut(bag, sym)->validRange = range;
 }
 
 ScriptSymKind script_sym_kind(const ScriptSymBag* bag, const ScriptSym sym) {
