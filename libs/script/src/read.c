@@ -1360,8 +1360,8 @@ static void read_emit_static_condition(ScriptReadContext* ctx, const ScriptExpr 
 static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.kind != ScriptTokenKind_ParenOpen)) {
-    const ScriptRange wholeRange = read_range_to_current(ctx, start);
-    return read_emit_err(ctx, ScriptDiag_InvalidIf, wholeRange), read_fail_structural(ctx);
+    const ScriptRange range = read_range_to_current(ctx, start);
+    return read_emit_err(ctx, ScriptDiag_InvalidIf, range), read_fail_semantic(ctx, range);
   }
 
   ScriptScope scope = {0};
@@ -1431,8 +1431,8 @@ RetIfExpr:
 static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.kind != ScriptTokenKind_ParenOpen)) {
-    const ScriptRange wholeRange = read_range_to_current(ctx, start);
-    return read_emit_err(ctx, ScriptDiag_InvalidWhileLoop, wholeRange), read_fail_structural(ctx);
+    const ScriptRange range = read_range_to_current(ctx, start);
+    return read_emit_err(ctx, ScriptDiag_InvalidWhileLoop, range), read_fail_semantic(ctx, range);
   }
 
   ScriptScope scope = {0};
@@ -1533,7 +1533,7 @@ static ScriptExpr read_expr_for(ScriptReadContext* ctx, const ScriptPos start) {
   const ScriptToken token = read_consume(ctx);
   if (UNLIKELY(token.kind != ScriptTokenKind_ParenOpen)) {
     const ScriptRange range = read_range_to_current(ctx, start);
-    return read_emit_err(ctx, ScriptDiag_InvalidForLoop, range), read_fail_structural(ctx);
+    return read_emit_err(ctx, ScriptDiag_InvalidForLoop, range), read_fail_semantic(ctx, range);
   }
 
   ScriptScope scope = {0};
