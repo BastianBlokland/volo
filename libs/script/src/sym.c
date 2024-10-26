@@ -50,8 +50,14 @@ typedef struct {
 struct sScriptSymBag {
   Allocator* alloc;
   DynArray   symbols;    // ScriptSym[]
-  DynArray   references; // ScriptSymRef[]
+  DynArray   references; // ScriptSymRef[], kept sorted on 'sym'.
 };
+
+static i8 sym_compare_ref(const void* a, const void* b) {
+  const ScriptSymRef* entryA = a;
+  const ScriptSymRef* entryB = b;
+  return compare_u16(&entryA->sym, &entryB->sym);
+}
 
 static ScriptSym sym_push(ScriptSymBag* bag, ScriptSymData* data) {
   const ScriptSym id = (ScriptSym)bag->symbols.size;
@@ -63,7 +69,7 @@ static ScriptSym sym_push(ScriptSymBag* bag, ScriptSymData* data) {
 }
 
 static void sym_push_ref(ScriptSymBag* bag, ScriptSymRef* data) {
-  *dynarray_push_t(&bag->references, ScriptSymRef) = *data;
+  *dynarray_insert_sorted_t(&bag->references, ScriptSymRef, sym_compare_ref, data) = *data;
 }
 
 INLINE_HINT static const ScriptSymData* sym_data(const ScriptSymBag* bag, const ScriptSym id) {
