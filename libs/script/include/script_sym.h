@@ -36,9 +36,16 @@ typedef enum {
   ScriptSymKind_Count,
 } ScriptSymKind;
 
+typedef enum {
+  ScriptSymRefKind_Read,
+  ScriptSymRefKind_Write,
+  ScriptSymRefKind_Call,
+} ScriptSymRefKind;
+
 typedef struct {
-  ScriptSym   sym;
-  ScriptRange location;
+  ScriptSym        sym;
+  ScriptSymRefKind kind : 16;
+  ScriptRange      location;
 } ScriptSymRef;
 
 typedef struct sScriptSymBag ScriptSymBag;
@@ -56,7 +63,7 @@ ScriptSym script_sym_push_extern_func(ScriptSymBag*, String label, String doc, S
 ScriptSym script_sym_push_var(ScriptSymBag*, String label, ScriptVarId, ScriptScopeId, ScriptRange location);
 ScriptSym script_sym_push_mem_key(ScriptSymBag*, String label, StringHash key);
 
-void script_sym_push_ref(ScriptSymBag*, ScriptSym, ScriptRange location);
+void script_sym_push_ref(ScriptSymBag*, ScriptSym, ScriptSymRefKind, ScriptRange location);
 
 void script_sym_set_valid_range(ScriptSymBag*, ScriptSym, ScriptRange);
 

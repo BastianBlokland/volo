@@ -1203,6 +1203,17 @@ static void lsp_handle_req_references(LspContext* ctx, const JRpcRequest* req) {
   lsp_send_response_success(ctx, req, locationsArr);
 }
 
+static LspHighlightKind lsp_sym_ref_highlight_kind(const ScriptSymRef* ref) {
+  switch (ref->kind) {
+  case ScriptSymRefKind_Write:
+    return LspHighlightKind_Write;
+  case ScriptSymRefKind_Read:
+  case ScriptSymRefKind_Call:
+    return LspHighlightKind_Read;
+  }
+  diag_crash_msg("Unsupported reference");
+}
+
 static void lsp_handle_req_highlight(LspContext* ctx, const JRpcRequest* req) {
   LspTextDocPos docPos;
   if (UNLIKELY(!lsp_doc_pos_from_json(ctx, req->params, &docPos))) {
@@ -1253,7 +1264,7 @@ static void lsp_handle_req_highlight(LspContext* ctx, const JRpcRequest* req) {
   for (const ScriptSymRef* ref = refs.begin; ref != refs.end; ++ref) {
     const LspHighlight highlight = {
         .range = script_range_to_line_col(scriptSource, ref->location),
-        .kind  = LspHighlightKind_Write,
+        .kind  = lsp_sym_ref_highlight_kind(ref),
     };
     json_add_elem(ctx->jDoc, highlightsArr, lsp_highlight_to_json(ctx, &highlight));
   }

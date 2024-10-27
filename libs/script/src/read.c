@@ -787,13 +787,32 @@ static ScriptVarMeta* read_var_lookup(ScriptReadContext* ctx, const StringHash i
   return null;
 }
 
-static bool
-read_track_mem_access(ScriptReadContext* ctx, const StringHash key, const ScriptRange range) {
+typedef enum {
+  ReadMemAccess_Read,
+  ReadMemAccess_Write,
+} ReadMemAccess;
+
+static bool read_track_mem_access(
+    ScriptReadContext*  ctx,
+    const StringHash    key,
+    const ReadMemAccess access,
+    const ScriptRange   range) {
+
+  ScriptSymRefKind refKind;
+  switch (access) {
+  case ReadMemAccess_Read:
+    refKind = ScriptSymRefKind_Read;
+    break;
+  case ReadMemAccess_Write:
+    refKind = ScriptSymRefKind_Write;
+    break;
+  }
+
   for (u32 i = 0; i != script_tracked_mem_keys_max; ++i) {
     ScriptReadMemKey* trackedKey = &ctx->trackedMemKeys[i];
     if (trackedKey->key == key) {
       if (!sentinel_check(trackedKey->sym)) {
-        script_sym_push_ref(ctx->syms, trackedKey->sym, range);
+        script_sym_push_ref(ctx->syms, trackedKey->sym, refKind, range);
       }
       return true; // Already tracked.
     }
@@ -810,7 +829,7 @@ read_track_mem_access(ScriptReadContext* ctx, const StringHash key, const Script
       if (!string_is_empty(keyStr)) {
         const String label = fmt_write_scratch("${}", fmt_text(keyStr));
         trackedKey->sym    = script_sym_push_mem_key(ctx->syms, label, key);
-        script_sym_push_ref(ctx->syms, trackedKey->sym, range);
+        script_sym_push_ref(ctx->syms, trackedKey->sym, refKind, range);
       }
     }
     return true; // Key inserted.
@@ -944,9 +963,9 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableStart = expr_range(ctx->doc, exprs[i + 1]).start;
       const ScriptPos  unreachableEnd   = expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-          .severity = ScriptDiagSeverity_Warning,
-          .kind     = ScriptDiag_ExprUnreachable,
-          .range    = script_range(unreachableStart, unreachableEnd),
+           .severity = ScriptDiagSeverity_Warning,
+           .kind     = ScriptDiag_ExprUnreachable,
+           .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -1183,7 +1202,7 @@ read_expr_var_lookup(ScriptReadContext* ctx, const StringHash id, const ScriptPo
   if (var) {
     var->used = true;
     if (ctx->syms) {
-      script_sym_push_ref(ctx->syms, var->sym, range);
+      script_sym_push_ref(ctx->syms, var->sym, ScriptSymRefKind_Read, range);
     }
     return script_add_var_load(ctx->doc, range, var->scopeId, var->varSlot);
   }
@@ -1206,7 +1225,7 @@ read_expr_var_assign(ScriptReadContext* ctx, const StringHash id, const ScriptRa
   }
 
   if (ctx->syms) {
-    script_sym_push_ref(ctx->syms, var->sym, idRange);
+    script_sym_push_ref(ctx->syms, var->sym, ScriptSymRefKind_Write, idRange);
   }
   return script_add_var_store(ctx->doc, range, var->scopeId, var->varSlot, expr);
 }
@@ -1235,7 +1254,7 @@ static ScriptExpr read_expr_var_modify(
   var->used = true;
 
   if (ctx->syms) {
-    script_sym_push_ref(ctx->syms, var->sym, varRange);
+    script_sym_push_ref(ctx->syms, var->sym, ScriptSymRefKind_Write, varRange);
   }
 
   const ScriptExpr loadExpr   = script_add_var_load(ctx->doc, varRange, var->scopeId, var->varSlot);
@@ -1365,8 +1384,9 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
       // Correct number of arguments; validate value types and emit warnings if needed.
       read_emit_invalid_args(ctx, args, (u8)argCount, builtin->sig, callRange);
     }
-    if (!sentinel_check(ctx->builtinFuncSyms[builtin - g_scriptBuiltinFuncs])) {
-      script_sym_push_ref(ctx->syms, ctx->builtinFuncSyms[builtin - g_scriptBuiltinFuncs], idRange);
+    const ScriptSym builtinSym = ctx->builtinFuncSyms[builtin - g_scriptBuiltinFuncs];
+    if (!sentinel_check(builtinSym)) {
+      script_sym_push_ref(ctx->syms, builtinSym, ScriptSymRefKind_Call, idRange);
     }
     return script_add_intrinsic(ctx->doc, callRange, builtin->intr, args);
   }
@@ -1378,8 +1398,9 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
       if (sig) {
         read_emit_invalid_args(ctx, args, (u8)argCount, sig, callRange);
       }
-      if (!sentinel_check(ctx->externSyms[externFunc])) {
-        script_sym_push_ref(ctx->syms, ctx->externSyms[externFunc], idRange);
+      const ScriptSym externSym = ctx->externSyms[externFunc];
+      if (!sentinel_check(externSym)) {
+        script_sym_push_ref(ctx->syms, externSym, ScriptSymRefKind_Call, idRange);
       }
       return script_add_extern(ctx->doc, callRange, externFunc, args, (u16)argCount);
     }
@@ -1802,14 +1823,12 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
    * Memory access.
    */
   case ScriptTokenKind_Key: {
-    // TODO: Should failing to track be an error? Currently these are only used to report symbols.
-    read_track_mem_access(ctx, token.val_key, range);
-
     ScriptToken  nextToken;
     const String remInput = script_lex(ctx->input, null, &nextToken, ScriptLexFlags_None);
     switch (nextToken.kind) {
     case ScriptTokenKind_Eq:
       ctx->input = remInput; // Consume the 'nextToken'.
+      read_track_mem_access(ctx, token.val_key, ReadMemAccess_Write, range);
       return read_expr_mem_store(ctx, token.val_key, start);
     case ScriptTokenKind_PlusEq:
     case ScriptTokenKind_MinusEq:
@@ -1818,8 +1837,10 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
     case ScriptTokenKind_PercentEq:
     case ScriptTokenKind_QMarkQMarkEq:
       ctx->input = remInput; // Consume the 'nextToken'.
+      read_track_mem_access(ctx, token.val_key, ReadMemAccess_Write, range);
       return read_expr_mem_modify(ctx, token.val_key, nextToken.kind, range);
     default:
+      read_track_mem_access(ctx, token.val_key, ReadMemAccess_Read, range);
       return script_add_mem_load(ctx->doc, range, token.val_key);
     }
   }
@@ -2009,14 +2030,14 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc         = doc,
-      .binder      = binder,
-      .stringtable = stringtable,
-      .diags       = diags,
-      .syms        = syms,
-      .input       = src,
-      .inputTotal  = src,
-      .scopeRoot   = &scopeRoot,
+            .doc         = doc,
+            .binder      = binder,
+            .stringtable = stringtable,
+            .diags       = diags,
+            .syms        = syms,
+            .input       = src,
+            .inputTotal  = src,
+            .scopeRoot   = &scopeRoot,
   };
   read_var_free_all(&ctx);
   mem_set(array_mem(ctx.externSyms), 0xFF);

@@ -295,12 +295,17 @@ ScriptSym script_sym_push_mem_key(ScriptSymBag* bag, const String label, const S
       });
 }
 
-void script_sym_push_ref(ScriptSymBag* bag, const ScriptSym sym, const ScriptRange location) {
+void script_sym_push_ref(
+    ScriptSymBag*          bag,
+    const ScriptSym        sym,
+    const ScriptSymRefKind kind,
+    const ScriptRange      location) {
   diag_assert(sym < bag->symbols.size);
   sym_push_ref(
       bag,
       &(ScriptSymRef){
           .sym      = sym,
+          .kind     = kind,
           .location = location,
       });
 }
