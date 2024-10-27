@@ -51,7 +51,7 @@ static void doc_validate_subrange(
     MAYBE_UNUSED const ScriptExpr  expr) {
 #ifndef VOLO_FAST
   const ScriptRange exprRange = script_expr_range(doc, expr);
-  if (!sentinel_check(exprRange.start) && !sentinel_check(exprRange.end)) {
+  if (script_range_valid(exprRange)) {
     diag_assert_msg(
         script_range_subrange(range, exprRange),
         "Child expression range is not a sub-range of its parent");

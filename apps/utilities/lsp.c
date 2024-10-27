@@ -904,7 +904,7 @@ static void lsp_handle_req_definition(LspContext* ctx, const JRpcRequest* req) {
   }
 
   const ScriptRange symRange = script_sym_location(scriptSyms, sym);
-  if (sentinel_check(symRange.start)) {
+  if (!script_range_valid(symRange)) {
     lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
     return; // No location found for the symbol.
   }
@@ -1069,7 +1069,7 @@ static void lsp_handle_req_symbols(LspContext* ctx, const JRpcRequest* req) {
   for (; !sentinel_check(itr); itr = script_sym_next(doc->scriptSyms, script_pos_sentinel, itr)) {
     const ScriptSymKind kind     = script_sym_kind(doc->scriptSyms, itr);
     const ScriptRange   location = script_sym_location(doc->scriptSyms, itr);
-    if (sentinel_check(location.start) || sentinel_check(location.end)) {
+    if (!script_range_valid(location)) {
       continue; // Symbol has no location.
     }
     // TODO: Report text ranges in utf16 instead of utf32.
@@ -1170,7 +1170,7 @@ static void lsp_handle_req_references(LspContext* ctx, const JRpcRequest* req) {
   const JsonVal locationsArr = json_add_array(ctx->jDoc);
   if (includeDecl) {
     const ScriptRange symRange = script_sym_location(scriptSyms, sym);
-    if (!sentinel_check(symRange.start) && !sentinel_check(symRange.end)) {
+    if (script_range_valid(symRange)) {
       const LspLocation location = lsp_doc_location(docPos.doc, symRange);
       json_add_elem(ctx->jDoc, locationsArr, lsp_location_to_json(ctx, &location));
     }
@@ -1268,7 +1268,7 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
 
   // Rename the symbol itself.
   const ScriptRange symRange = script_sym_location(scriptSyms, sym);
-  if (!sentinel_check(symRange.start) && !sentinel_check(symRange.end)) {
+  if (script_range_valid(symRange)) {
     const ScriptRangeLineCol rangeLc = script_range_to_line_col(scriptSource, symRange);
     const LspTextEdit        edit    = {.range = rangeLc, .newText = new};
     json_add_elem(ctx->jDoc, editsArr, lsp_text_edit_to_json(ctx, &edit));

@@ -62,6 +62,10 @@ ScriptRange script_range(const ScriptPos start, const ScriptPos end) {
   return (ScriptRange){.start = start, .end = end};
 }
 
+bool script_range_valid(const ScriptRange range) {
+  return !sentinel_check(range.start) && !sentinel_check(range.end);
+}
+
 bool script_range_contains(const ScriptRange range, const ScriptPos pos) {
   return pos >= range.start && pos < range.end;
 }
