@@ -802,6 +802,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   const JsonVal symbolOpts     = json_add_object(ctx->jDoc);
   const JsonVal formattingOpts = json_add_object(ctx->jDoc);
   const JsonVal referencesOpts = json_add_object(ctx->jDoc);
+  const JsonVal highlightOpts  = json_add_object(ctx->jDoc);
   const JsonVal renameOpts     = json_add_object(ctx->jDoc);
 
   const JsonVal capabilities = json_add_object(ctx->jDoc);
@@ -816,6 +817,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, capabilities, "documentSymbolProvider", symbolOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "documentFormattingProvider", formattingOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "referencesProvider", referencesOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "documentHighlightProvider", highlightOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "renameProvider", renameOpts);
 
   const JsonVal info          = json_add_object(ctx->jDoc);
@@ -1177,7 +1179,7 @@ static void lsp_handle_req_references(LspContext* ctx, const JRpcRequest* req) {
   const ScriptExpr refExpr = script_expr_find(scriptDoc, scriptRoot, docPos.pos, null, null);
   if (sentinel_check(refExpr)) {
     lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
-    return; // No symbol found for the expression.
+    return; // No expression found at the given position.
   }
   const ScriptSym sym = script_sym_find(scriptSyms, scriptDoc, refExpr);
   if (sentinel_check(sym)) {
@@ -1199,6 +1201,63 @@ static void lsp_handle_req_references(LspContext* ctx, const JRpcRequest* req) {
     json_add_elem(ctx->jDoc, locationsArr, lsp_location_to_json(ctx, &location));
   }
   lsp_send_response_success(ctx, req, locationsArr);
+}
+
+static void lsp_handle_req_highlight(LspContext* ctx, const JRpcRequest* req) {
+  LspTextDocPos docPos;
+  if (UNLIKELY(!lsp_doc_pos_from_json(ctx, req->params, &docPos))) {
+    lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+    return;
+  }
+
+  if (ctx->flags & LspFlags_Trace) {
+    const String txt = fmt_write_scratch("Highlight: {}", fmt_text(lsp_doc_pos_scratch(&docPos)));
+    lsp_send_trace(ctx, txt);
+  }
+
+  const ScriptDoc*    scriptDoc    = docPos.doc->scriptDoc;
+  const ScriptSymBag* scriptSyms   = docPos.doc->scriptSyms;
+  const ScriptExpr    scriptRoot   = docPos.doc->scriptRoot;
+  const String        scriptSource = script_source_get(scriptDoc);
+
+  if (sentinel_check(scriptRoot)) {
+    lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
+    return; // Script did not parse correctly (likely due to structural errors).
+  }
+
+  const ScriptExpr refExpr = script_expr_find(scriptDoc, scriptRoot, docPos.pos, null, null);
+  if (sentinel_check(refExpr)) {
+    lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
+    return; // No expression found at the given position.
+  }
+  const ScriptSym sym = script_sym_find(scriptSyms, scriptDoc, refExpr);
+  if (sentinel_check(sym)) {
+    lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
+    return; // No symbol found for the expression.
+  }
+
+  const JsonVal highlightsArr = json_add_array(ctx->jDoc);
+
+  // Highlight the symbol declaration.
+  const ScriptRange symRange = script_sym_location(scriptSyms, sym);
+  if (script_range_valid(symRange)) {
+    const LspHighlight highlight = {
+        .range = script_range_to_line_col(scriptSource, symRange),
+        .kind  = LspHighlightKind_Write,
+    };
+    json_add_elem(ctx->jDoc, highlightsArr, lsp_highlight_to_json(ctx, &highlight));
+  }
+
+  // Highlight the symbol references.
+  const ScriptSymRefSet refs = script_sym_refs(scriptSyms, sym);
+  for (const ScriptSymRef* ref = refs.begin; ref != refs.end; ++ref) {
+    const LspHighlight highlight = {
+        .range = script_range_to_line_col(scriptSource, ref->location),
+        .kind  = LspHighlightKind_Write,
+    };
+    json_add_elem(ctx->jDoc, highlightsArr, lsp_highlight_to_json(ctx, &highlight));
+  }
+  lsp_send_response_success(ctx, req, highlightsArr);
 }
 
 static bool lsp_sym_can_rename(const ScriptSymKind symKind) {
@@ -1264,7 +1323,7 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
   const ScriptExpr refExpr = script_expr_find(scriptDoc, scriptRoot, docPos.pos, null, null);
   if (sentinel_check(refExpr)) {
     lsp_send_response_error(ctx, req, &g_jrpcErrorRenameFailed);
-    return; // No symbol found for the expression.
+    return; // No expression found at the given position.
   }
   const ScriptSym sym = script_sym_find(scriptSyms, scriptDoc, refExpr);
   if (sentinel_check(sym) || !lsp_sym_can_rename(script_sym_kind(scriptSyms, sym))) {
@@ -1317,6 +1376,7 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
       {string_static("textDocument/documentSymbol"), lsp_handle_req_symbols},
       {string_static("textDocument/formatting"), lsp_handle_req_formatting},
       {string_static("textDocument/references"), lsp_handle_req_references},
+      {string_static("textDocument/documentHighlight"), lsp_handle_req_highlight},
       {string_static("textDocument/rename"), lsp_handle_req_rename},
   };
 
