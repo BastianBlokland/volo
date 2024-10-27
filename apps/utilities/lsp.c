@@ -915,6 +915,15 @@ static void lsp_handle_req_shutdown(LspContext* ctx, const JRpcRequest* req) {
   lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
 }
 
+static bool lsp_sym_support_semantic_token(const ScriptSymKind kind) {
+  switch (kind) {
+  case ScriptSymKind_Variable:
+    return true;
+  default:
+    return false;
+  }
+}
+
 static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* req) {
   const LspDocument* doc = lsp_doc_from_json(ctx, req->params);
   if (UNLIKELY(!doc)) {
@@ -930,12 +939,16 @@ static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* r
   usize            tokenCount = 0;
 
   // Gather tokens from symbols.
-  ScriptSym itr = script_sym_first(scriptSyms, script_pos_sentinel);
-  for (; !sentinel_check(itr); itr = script_sym_next(scriptSyms, script_pos_sentinel, itr)) {
+  ScriptSym sym = script_sym_first(scriptSyms, script_pos_sentinel);
+  for (; !sentinel_check(sym); sym = script_sym_next(scriptSyms, script_pos_sentinel, sym)) {
+    const ScriptSymKind symKind = script_sym_kind(scriptSyms, sym);
+    if (!lsp_sym_support_semantic_token(symKind)) {
+      continue;
+    }
     if (tokenCount == array_elems(tokens)) {
       break; // Token limit reached.
     }
-    const ScriptRange symLoc = script_sym_location(scriptSyms, itr);
+    const ScriptRange symLoc = script_sym_location(scriptSyms, sym);
     if (script_range_valid(symLoc)) {
       const ScriptRangeLineCol symLocLc = script_range_to_line_col(scriptSource, symLoc);
       if (UNLIKELY(symLocLc.start.line != symLocLc.end.line)) {
