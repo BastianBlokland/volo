@@ -915,13 +915,41 @@ static void lsp_handle_req_shutdown(LspContext* ctx, const JRpcRequest* req) {
   lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
 }
 
-static bool lsp_sym_support_semantic_token(const ScriptSymKind kind) {
+static bool lsp_semantic_token_sym_enabled(const ScriptSymKind kind) {
   switch (kind) {
+  case ScriptSymKind_BuiltinFunction:
+  case ScriptSymKind_ExternFunction:
   case ScriptSymKind_Variable:
     return true;
   default:
     return false;
   }
+}
+
+static LspSemanticTokenType lsp_semantic_token_sym_type(const ScriptSymKind kind) {
+  switch (kind) {
+  case ScriptSymKind_BuiltinFunction:
+  case ScriptSymKind_ExternFunction:
+    return LspSemanticTokenType_Function;
+  case ScriptSymKind_Variable:
+    return LspSemanticTokenType_Variable;
+  default:
+    break;
+  }
+  diag_crash_msg("Unsupported symbol kind");
+}
+
+static LspSemanticTokenMod lsp_semantic_token_sym_mod(const ScriptSymKind kind) {
+  (void)kind;
+  return LspSemanticTokenMod_None;
+}
+
+static LspSemanticTokenMod lsp_semantic_token_ref_mod(const ScriptSymRef* ref) {
+  LspSemanticTokenMod mod = LspSemanticTokenMod_None;
+  if (ref->kind == ScriptSymRefKind_Write) {
+    mod |= LspSemanticTokenMod_Modification;
+  }
+  return mod;
 }
 
 static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* req) {
@@ -942,23 +970,45 @@ static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* r
   ScriptSym sym = script_sym_first(scriptSyms, script_pos_sentinel);
   for (; !sentinel_check(sym); sym = script_sym_next(scriptSyms, script_pos_sentinel, sym)) {
     const ScriptSymKind symKind = script_sym_kind(scriptSyms, sym);
-    if (!lsp_sym_support_semantic_token(symKind)) {
+    if (!lsp_semantic_token_sym_enabled(symKind)) {
       continue;
     }
-    if (tokenCount == array_elems(tokens)) {
-      break; // Token limit reached.
-    }
+    const LspSemanticTokenType tokType = lsp_semantic_token_sym_type(symKind);
+    const LspSemanticTokenMod  tokMod  = lsp_semantic_token_sym_mod(symKind);
+
+    // Add symbol definition token.
     const ScriptRange symLoc = script_sym_location(scriptSyms, sym);
     if (script_range_valid(symLoc)) {
       const ScriptRangeLineCol symLocLc = script_range_to_line_col(scriptSource, symLoc);
       if (UNLIKELY(symLocLc.start.line != symLocLc.end.line)) {
         continue; // Multi-line tokens are not supported.
       }
+      if (tokenCount == array_elems(tokens)) {
+        break; // Token limit reached.
+      }
       tokens[tokenCount++] = (LspSemanticToken){
           .pos    = symLocLc.start,
           .length = symLoc.end - symLoc.start,
-          .type   = LspSemanticTokenType_Variable,
-          .mod    = LspSemanticTokenMod_Definition,
+          .type   = tokType,
+          .mod    = tokMod | LspSemanticTokenMod_Definition,
+      };
+    }
+
+    // Add symbol reference tokens.
+    const ScriptSymRefSet refs = script_sym_refs(scriptSyms, sym);
+    for (const ScriptSymRef* ref = refs.begin; ref != refs.end; ++ref) {
+      const ScriptRangeLineCol refLoc = script_range_to_line_col(scriptSource, ref->location);
+      if (UNLIKELY(refLoc.start.line != refLoc.end.line)) {
+        continue; // Multi-line tokens are not supported.
+      }
+      if (tokenCount == array_elems(tokens)) {
+        break; // Token limit reached.
+      }
+      tokens[tokenCount++] = (LspSemanticToken){
+          .pos    = refLoc.start,
+          .length = ref->location.end - ref->location.start,
+          .type   = tokType,
+          .mod    = tokMod | lsp_semantic_token_ref_mod(ref),
       };
     }
   }
