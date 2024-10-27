@@ -4,6 +4,7 @@
 #include "core_file.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "core_sort.h"
 #include "core_time.h"
 #include "json.h"
 #include "script_binder.h"
@@ -109,7 +110,7 @@ typedef enum {
 } LspSemanticTokenMod;
 
 typedef struct {
-  ScriptPosLineCol     start;
+  ScriptPosLineCol     pos;
   u16                  length; // In unicode code points.
   LspSemanticTokenType type : 16;
   LspSemanticTokenMod  mod : 16;
@@ -209,6 +210,17 @@ static const JRpcError g_jrpcErrorInvalidSymbolName = {
     .code = -32803,
     .msg  = string_static("Invalid symbol name"),
 };
+
+static i8 lsp_semantic_token_compare(const void* a, const void* b) {
+  const LspSemanticToken* tokA = a;
+  const LspSemanticToken* tokB = b;
+
+  i8 res = compare_u16(&tokA->pos.line, &tokB->pos.line);
+  if (!res) {
+    res = compare_u16(&tokA->pos.column, &tokB->pos.column);
+  }
+  return res;
+}
 
 static void lsp_doc_destroy(LspDocument* doc) {
   string_free(g_allocHeap, doc->identifier);
@@ -417,17 +429,20 @@ static JsonVal lsp_location_to_json(LspContext* ctx, const LspLocation* location
   return obj;
 }
 
+/**
+ * Pre-condition: Tokens are sorted by position.
+ */
 static JsonVal lsp_semantic_tokens_to_json(
     LspContext* ctx, const LspSemanticToken tokens[], const usize tokenCount) {
 
   JsonVal tokensArr = json_add_array(ctx->jDoc);
   for (usize i = 0; i != tokenCount; ++i) {
-    const u16 lineNum      = tokens[i].start.line;
-    const u16 lineNumPrev  = i ? tokens[i - 1].start.line : 0;
+    const u16 lineNum      = tokens[i].pos.line;
+    const u16 lineNumPrev  = i ? tokens[i - 1].pos.line : 0;
     const u16 lineNumDelta = lineNum - lineNumPrev;
 
-    const u16 colNum      = tokens[i].start.column;
-    const u16 colNumPrev  = i ? tokens[i - 1].start.column : 0;
+    const u16 colNum      = tokens[i].pos.column;
+    const u16 colNumPrev  = i ? tokens[i - 1].pos.column : 0;
     const u16 colNumDelta = lineNum == lineNumPrev ? (colNum - colNumPrev) : colNum;
 
     json_add_elem(ctx->jDoc, tokensArr, json_add_number(ctx->jDoc, lineNumDelta));
@@ -908,6 +923,9 @@ static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* r
 
   LspSemanticToken tokens[1024];
   usize            tokenCount = 0;
+
+  // Sort tokens by position.
+  sort_quicksort_t(tokens, tokens + tokenCount, LspSemanticToken, lsp_semantic_token_compare);
 
   const JsonVal res = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, res, "data", lsp_semantic_tokens_to_json(ctx, tokens, tokenCount));
