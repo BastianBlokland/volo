@@ -93,7 +93,23 @@ INLINE_HINT static bool sym_in_valid_range(const ScriptSymData* sym, const Scrip
   return script_range_contains(sym->validRange, pos);
 }
 
-static ScriptSym sym_find_by_intr(const ScriptSymBag* b, const ScriptIntrinsic intr) {
+static ScriptSym sym_find_value(const ScriptSymBag* b, const ScriptVal v) {
+  for (ScriptSym id = 0; id != b->symbols.size; ++id) {
+    const ScriptSymData* sym = sym_data(b, id);
+    switch (sym->kind) {
+    case ScriptSymKind_BuiltinConstant:
+      if (script_val_equal(sym->data.builtinConst.value, v)) {
+        return id;
+      }
+      break;
+    default:
+      break;
+    }
+  }
+  return script_sym_sentinel;
+}
+
+static ScriptSym sym_find_intr(const ScriptSymBag* b, const ScriptIntrinsic intr) {
   for (ScriptSym id = 0; id != b->symbols.size; ++id) {
     const ScriptSymData* sym = sym_data(b, id);
     switch (sym->kind) {
@@ -365,8 +381,10 @@ const ScriptSig* script_sym_sig(const ScriptSymBag* bag, const ScriptSym sym) {
 ScriptSym script_sym_find(const ScriptSymBag* bag, const ScriptDoc* doc, const ScriptExpr expr) {
   const ScriptExprData* exprData = expr_data(doc, expr);
   switch (expr_kind(doc, expr)) {
+  case ScriptExprKind_Value:
+    return sym_find_value(bag, dynarray_begin_t(&doc->values, ScriptVal)[exprData->value.valId]);
   case ScriptExprKind_Intrinsic:
-    return sym_find_by_intr(bag, exprData->intrinsic.intrinsic);
+    return sym_find_intr(bag, exprData->intrinsic.intrinsic);
   case ScriptExprKind_VarLoad:
     return sym_find_var(bag, exprData->var_load.var, exprData->var_load.scope);
   case ScriptExprKind_VarStore:
