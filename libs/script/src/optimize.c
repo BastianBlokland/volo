@@ -5,6 +5,7 @@
 #include "script_optimize.h"
 
 #include "doc_internal.h"
+#include "val_internal.h"
 
 static bool expr_is_intrinsic(ScriptDoc* d, const ScriptExpr e, const ScriptIntrinsic intr) {
   if (expr_kind(d, e) != ScriptExprKind_Intrinsic) {
@@ -196,6 +197,38 @@ static ScriptExpr opt_null_coalescing_store_rewriter(void* ctx, ScriptDoc* d, co
 }
 
 /**
+ * Optimize dynamic mem_load / mem_store using static keys.
+ * Example: 'mem_load("hello")' -> '$hello'.
+ * Example: 'mem_store("hello", 42)' -> '$hello = 42'.
+ */
+static ScriptExpr opt_static_mem_access(void* ctx, ScriptDoc* d, const ScriptExpr e) {
+  (void)ctx;
+  // Rewrite dynamic-mem-load intrinsics with a static key expr to non-dynamic mem loads.
+  if (expr_is_intrinsic(d, e, ScriptIntrinsic_MemLoadDynamic)) {
+    const ScriptExpr keyExpr = expr_intrinsic_arg(d, e, 0);
+    if (script_expr_static(d, keyExpr)) {
+      const ScriptVal keyVal = script_expr_static_val(d, keyExpr);
+      if (script_type(keyVal) == ScriptType_Str) {
+        return script_add_mem_load(d, script_expr_range(d, e), val_as_str(keyVal));
+      }
+    }
+  }
+  // Rewrite dynamic-mem-store intrinsics with a static key expr to non-dynamic mem stores.
+  if (expr_is_intrinsic(d, e, ScriptIntrinsic_MemStoreDynamic)) {
+    const ScriptExpr keyExpr = expr_intrinsic_arg(d, e, 0);
+    if (script_expr_static(d, keyExpr)) {
+      const ScriptVal keyVal = script_expr_static_val(d, keyExpr);
+      if (script_type(keyVal) == ScriptType_Str) {
+        const ScriptExpr valExpr    = expr_intrinsic_arg(d, e, 1);
+        const ScriptExpr newValExpr = script_expr_rewrite(d, valExpr, null, opt_static_mem_access);
+        return script_add_mem_store(d, script_expr_range(d, e), val_as_str(keyVal), newValExpr);
+      }
+    }
+  }
+  return e; // Not optimizable.
+}
+
+/**
  * Shake any expressions without side-effects where the value is not used.
  * Example: '0; 1; 42' -> '42'
  * Example: '1 + 2; 42' -> '42'
@@ -231,6 +264,7 @@ ScriptExpr script_optimize(ScriptDoc* d, ScriptExpr e) {
   e = script_expr_rewrite(d, e, null, opt_null_coalescing_store_rewriter);
   e = script_expr_rewrite(d, e, null, opt_static_flow_rewriter);
   e = script_expr_rewrite(d, e, null, opt_static_eval_rewriter);
+  e = script_expr_rewrite(d, e, null, opt_static_mem_access);
   e = script_expr_rewrite(d, e, null, opt_shake_rewriter);
   return e;
 }
