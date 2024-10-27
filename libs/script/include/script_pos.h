@@ -23,6 +23,7 @@ ScriptPosLineCol script_pos_to_line_col(String src, ScriptPos);
 ScriptPos        script_pos_from_line_col(String src, ScriptPosLineCol);
 
 ScriptRange        script_range(ScriptPos start, ScriptPos end);
+bool               script_range_valid(ScriptRange);
 bool               script_range_contains(ScriptRange, ScriptPos);
 bool               script_range_subrange(ScriptRange, ScriptRange);
 ScriptRange        script_range_full(String src);

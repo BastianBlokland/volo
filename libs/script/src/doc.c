@@ -51,7 +51,7 @@ static void doc_validate_subrange(
     MAYBE_UNUSED const ScriptExpr  expr) {
 #ifndef VOLO_FAST
   const ScriptRange exprRange = script_expr_range(doc, expr);
-  if (!sentinel_check(exprRange.start) && !sentinel_check(exprRange.end)) {
+  if (script_range_valid(exprRange)) {
     diag_assert_msg(
         script_range_subrange(range, exprRange),
         "Child expression range is not a sub-range of its parent");
@@ -229,7 +229,7 @@ void script_source_set(ScriptDoc* doc, const String sourceText) {
   doc->sourceText = string_maybe_dup(doc->alloc, sourceText);
 }
 
-String script_source_get(ScriptDoc* doc) { return doc->sourceText; }
+String script_source_get(const ScriptDoc* doc) { return doc->sourceText; }
 
 ScriptExpr script_add_value(ScriptDoc* doc, const ScriptRange range, const ScriptVal val) {
   return doc_expr_add_value(doc, range, val, ScriptExprFlags_ValidateRange);

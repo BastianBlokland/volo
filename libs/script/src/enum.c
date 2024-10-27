@@ -33,7 +33,7 @@ INLINE_HINT static u32 script_enum_find_name(const ScriptEnum* e, const StringHa
 INLINE_HINT static u32 script_enum_find_value(const ScriptEnum* e, const i32 value) {
 #ifdef VOLO_SIMD
   const SimdVec targetVec = simd_vec_broadcast_i32(value);
-  for (u32 i = 0; i < script_enum_max_entries; i += 8) {
+  for (u32 i = 0; i != script_enum_max_entries; i += 8) {
     const SimdVec eqA    = simd_vec_eq_u32(simd_vec_load(e->values + i), targetVec);
     const SimdVec eqB    = simd_vec_eq_u32(simd_vec_load(e->values + i + 4), targetVec);
     const u32     eqMask = simd_vec_mask_u8(simd_vec_pack_u32_to_u16(eqA, eqB));
