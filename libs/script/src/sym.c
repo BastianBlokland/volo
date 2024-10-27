@@ -11,6 +11,10 @@
 ASSERT(script_syms_max < u16_max, "ScriptSym has to be storable as a 16-bit integer");
 
 typedef struct {
+  ScriptVal value;
+} ScriptSymBuiltinConst;
+
+typedef struct {
   ScriptIntrinsic intr;
   ScriptSig*      sig;
 } ScriptSymBuiltinFunc;
@@ -36,10 +40,11 @@ typedef struct {
   String        doc;
   ScriptRange   validRange;
   union {
-    ScriptSymBuiltinFunc builtinFunc;
-    ScriptSymExternFunc  externFunc;
-    ScriptSymVar         var;
-    ScriptSymMemKey      memKey;
+    ScriptSymBuiltinConst builtinConst;
+    ScriptSymBuiltinFunc  builtinFunc;
+    ScriptSymExternFunc   externFunc;
+    ScriptSymVar          var;
+    ScriptSymMemKey       memKey;
   } data;
 } ScriptSymData;
 
@@ -210,15 +215,16 @@ ScriptSym script_sym_push_keyword(ScriptSymBag* bag, const String label) {
       });
 }
 
-ScriptSym script_sym_push_builtin_const(ScriptSymBag* bag, const String label) {
+ScriptSym script_sym_push_builtin_const(ScriptSymBag* bag, const String label, const ScriptVal v) {
   diag_assert(!string_is_empty(label));
 
   return sym_push(
       bag,
       &(ScriptSymData){
-          .kind       = ScriptSymKind_BuiltinConstant,
-          .label      = string_dup(bag->alloc, label),
-          .validRange = script_range_sentinel,
+          .kind                    = ScriptSymKind_BuiltinConstant,
+          .label                   = string_dup(bag->alloc, label),
+          .validRange              = script_range_sentinel,
+          .data.builtinConst.value = v,
       });
 }
 

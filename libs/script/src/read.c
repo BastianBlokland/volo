@@ -1976,8 +1976,8 @@ static void read_sym_push_builtin(ScriptReadContext* ctx) {
     return;
   }
   for (u32 i = 0; i != g_scriptBuiltinConstCount; ++i) {
-    ctx->builtinConstSyms[i] =
-        script_sym_push_builtin_const(ctx->syms, g_scriptBuiltinConsts[i].id);
+    ctx->builtinConstSyms[i] = script_sym_push_builtin_const(
+        ctx->syms, g_scriptBuiltinConsts[i].id, g_scriptBuiltinConsts[i].val);
   }
   for (u32 i = 0; i != g_scriptBuiltinFuncCount; ++i) {
     ctx->builtinFuncSyms[i] = script_sym_push_builtin_func(
