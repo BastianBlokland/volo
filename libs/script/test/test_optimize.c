@@ -42,6 +42,19 @@ spec(optimize) {
             string_static("[value: 3]"),
         },
 
+        // Static key in dynamic mem-load.
+        {
+            string_static("mem_load(\"a\")"),
+            string_static("[mem-load: $3645546703]"),
+        },
+
+        // Static key in dynamic mem-store.
+        {
+            string_static("mem_store(\"a\", 42)"),
+            string_static("[mem-store: $3645546703]\n"
+                          "  [value: 42]"),
+        },
+
         // Shake non-observed expressions.
         {
             string_static("0; 1; 42"),
