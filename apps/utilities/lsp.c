@@ -899,6 +899,21 @@ static void lsp_handle_req_shutdown(LspContext* ctx, const JRpcRequest* req) {
   lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
 }
 
+static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* req) {
+  const LspDocument* doc = lsp_doc_from_json(ctx, req->params);
+  if (UNLIKELY(!doc)) {
+    lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+    return;
+  }
+
+  LspSemanticToken tokens[1024];
+  usize            tokenCount = 0;
+
+  const JsonVal res = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, res, "data", lsp_semantic_tokens_to_json(ctx, tokens, tokenCount));
+  lsp_send_response_success(ctx, req, res);
+}
+
 static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
   LspTextDocPos docPos;
   if (UNLIKELY(!lsp_doc_pos_from_json(ctx, req->params, &docPos))) {
@@ -1441,6 +1456,7 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
   } g_handlers[] = {
       {string_static("initialize"), lsp_handle_req_initialize},
       {string_static("shutdown"), lsp_handle_req_shutdown},
+      {string_static("textDocument/semanticTokens/full"), lsp_handle_req_semantic_tokens},
       {string_static("textDocument/hover"), lsp_handle_req_hover},
       {string_static("textDocument/definition"), lsp_handle_req_definition},
       {string_static("textDocument/completion"), lsp_handle_req_completion},
