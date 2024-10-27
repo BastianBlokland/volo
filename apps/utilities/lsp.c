@@ -108,6 +108,13 @@ typedef enum {
   LspSemanticTokenMod_Modification = 1 << 2,
 } LspSemanticTokenMod;
 
+typedef struct {
+  ScriptPosLineCol     start;
+  u16                  length; // In unicode code points.
+  LspSemanticTokenType type : 16;
+  LspSemanticTokenMod  mod : 16;
+} LspSemanticToken;
+
 typedef enum {
   LspCompletionItemKind_Function    = 3,
   LspCompletionItemKind_Constructor = 4,
@@ -408,6 +415,28 @@ static JsonVal lsp_location_to_json(LspContext* ctx, const LspLocation* location
   json_add_field_lit(ctx->jDoc, obj, "uri", json_add_string(ctx->jDoc, location->uri));
   json_add_field_lit(ctx->jDoc, obj, "range", lsp_range_to_json(ctx, &location->range));
   return obj;
+}
+
+static JsonVal lsp_semantic_tokens_to_json(
+    LspContext* ctx, const LspSemanticToken tokens[], const usize tokenCount) {
+
+  JsonVal tokensArr = json_add_array(ctx->jDoc);
+  for (usize i = 0; i != tokenCount; ++i) {
+    const u16 lineNum      = tokens[i].start.line;
+    const u16 lineNumPrev  = i ? tokens[i - 1].start.line : 0;
+    const u16 lineNumDelta = lineNum - lineNumPrev;
+
+    const u16 colNum      = tokens[i].start.column;
+    const u16 colNumPrev  = i ? tokens[i - 1].start.column : 0;
+    const u16 colNumDelta = lineNum == lineNumPrev ? (colNum - colNumPrev) : colNum;
+
+    json_add_elem(ctx->jDoc, tokensArr, json_add_number(ctx->jDoc, lineNumDelta));
+    json_add_elem(ctx->jDoc, tokensArr, json_add_number(ctx->jDoc, colNumDelta));
+    json_add_elem(ctx->jDoc, tokensArr, json_add_number(ctx->jDoc, tokens[i].length));
+    json_add_elem(ctx->jDoc, tokensArr, json_add_number(ctx->jDoc, tokens[i].type));
+    json_add_elem(ctx->jDoc, tokensArr, json_add_number(ctx->jDoc, tokens[i].mod));
+  }
+  return tokensArr;
 }
 
 static JsonVal lsp_completion_item_to_json(LspContext* ctx, const LspCompletionItem* item) {
