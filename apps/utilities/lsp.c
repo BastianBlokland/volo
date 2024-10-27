@@ -101,6 +101,7 @@ typedef struct {
 typedef enum {
   LspSemanticTokenType_Variable,
   LspSemanticTokenType_Function,
+  LspSemanticTokenType_Enum,
 } LspSemanticTokenType;
 
 typedef enum {
@@ -832,6 +833,7 @@ static JsonVal lsp_semantic_tokens_legend(LspContext* ctx) {
   const JsonVal tokenTypesArr = json_add_array(ctx->jDoc);
   json_add_elem(ctx->jDoc, tokenTypesArr, json_add_string_lit(ctx->jDoc, "variable"));
   json_add_elem(ctx->jDoc, tokenTypesArr, json_add_string_lit(ctx->jDoc, "function"));
+  json_add_elem(ctx->jDoc, tokenTypesArr, json_add_string_lit(ctx->jDoc, "enum"));
 
   const JsonVal tokenModifiersArr = json_add_array(ctx->jDoc);
   json_add_elem(ctx->jDoc, tokenModifiersArr, json_add_string_lit(ctx->jDoc, "definition"));
@@ -917,6 +919,7 @@ static void lsp_handle_req_shutdown(LspContext* ctx, const JRpcRequest* req) {
 
 static bool lsp_semantic_token_sym_enabled(const ScriptSymKind kind) {
   switch (kind) {
+  case ScriptSymKind_BuiltinConstant:
   case ScriptSymKind_BuiltinFunction:
   case ScriptSymKind_ExternFunction:
   case ScriptSymKind_Variable:
@@ -928,6 +931,8 @@ static bool lsp_semantic_token_sym_enabled(const ScriptSymKind kind) {
 
 static LspSemanticTokenType lsp_semantic_token_sym_type(const ScriptSymKind kind) {
   switch (kind) {
+  case ScriptSymKind_BuiltinConstant:
+    return LspSemanticTokenType_Enum;
   case ScriptSymKind_BuiltinFunction:
   case ScriptSymKind_ExternFunction:
     return LspSemanticTokenType_Function;
@@ -940,8 +945,12 @@ static LspSemanticTokenType lsp_semantic_token_sym_type(const ScriptSymKind kind
 }
 
 static LspSemanticTokenMod lsp_semantic_token_sym_mod(const ScriptSymKind kind) {
-  (void)kind;
-  return LspSemanticTokenMod_None;
+  switch (kind) {
+  case ScriptSymKind_BuiltinConstant:
+    return LspSemanticTokenMod_ReadOnly;
+  default:
+    return LspSemanticTokenMod_None;
+  }
 }
 
 static LspSemanticTokenMod lsp_semantic_token_ref_mod(const ScriptSymRef* ref) {
@@ -1216,9 +1225,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
 
   const ScriptSym    callSym = script_sym_find(scriptSyms, scriptDoc, callExpr);
   const LspSignature sig     = {
-      .label     = script_sym_label(scriptSyms, callSym),
-      .doc       = script_sym_doc(scriptSyms, callSym),
-      .scriptSig = script_sym_sig(scriptSyms, callSym),
+          .label     = script_sym_label(scriptSyms, callSym),
+          .doc       = script_sym_doc(scriptSyms, callSym),
+          .scriptSig = script_sym_sig(scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);

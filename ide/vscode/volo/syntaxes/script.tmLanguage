@@ -99,12 +99,6 @@
 			<array>
 				<dict>
 					<key>match</key>
-					<string>\b(null|true|false|pi|rad_to_deg|deg_to_rad|up|down|left|right|forward|backward)\b</string>
-					<key>name</key>
-					<string>constant.language.builtin.script</string>
-				</dict>
-				<dict>
-					<key>match</key>
 					<string>(\.[0-9_]+)|([0-9_]+(\.[0-9_]+)?)\b</string>
 					<key>name</key>
 					<string>constant.numeric.script</string>
