@@ -719,8 +719,8 @@ static void lsp_handle_notif_doc_did_close(LspContext* ctx, const JRpcNotificati
     if (ctx->flags & LspFlags_Trace) {
       lsp_send_trace(ctx, fmt_write_scratch("Document close: {}", fmt_text(doc->identifier)));
     }
-    lsp_doc_close(ctx, doc);
     lsp_send_diagnostics(ctx, doc->identifier, null, 0);
+    lsp_doc_close(ctx, doc);
   } else {
     lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(doc->identifier)));
   }
