@@ -229,7 +229,7 @@ void script_source_set(ScriptDoc* doc, const String sourceText) {
   doc->sourceText = string_maybe_dup(doc->alloc, sourceText);
 }
 
-String script_source_get(ScriptDoc* doc) { return doc->sourceText; }
+String script_source_get(const ScriptDoc* doc) { return doc->sourceText; }
 
 ScriptExpr script_add_value(ScriptDoc* doc, const ScriptRange range, const ScriptVal val) {
   return doc_expr_add_value(doc, range, val, ScriptExprFlags_ValidateRange);
