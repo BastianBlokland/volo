@@ -1113,9 +1113,10 @@ static bool read_is_args_end(const ScriptTokenKind tokenKind) {
 
 /**
  * NOTE: Caller is expected to consume the opening parenthesis.
+ * NOTE: Returns 'sentinel_u32' when a structural error was detected.
  */
-static i32 read_args(ScriptReadContext* ctx, ScriptExpr outExprs[script_args_max]) {
-  i32 count = 0;
+static u32 read_args(ScriptReadContext* ctx, ScriptExpr outExprs[script_args_max]) {
+  u32 count = 0;
 
   if (read_is_args_end(read_peek(ctx).kind)) {
     goto ArgEnd; // Empty argument list.
@@ -1127,7 +1128,7 @@ ArgNext:;
         .start = expr_range(ctx->doc, outExprs[0]).start,
         .end   = expr_range(ctx->doc, outExprs[count - 1]).end,
     };
-    return read_emit_err(ctx, ScriptDiag_ArgumentCountExceedsMaximum, wholeArgsRange), -1;
+    return read_emit_err(ctx, ScriptDiag_ArgumentCountExceedsMaximum, wholeArgsRange), sentinel_u32;
   }
   const ScriptSection section = ScriptSection_InsideArg | ScriptSection_DisallowLoop |
                                 ScriptSection_DisallowIf | ScriptSection_DisallowReturn;
@@ -1135,7 +1136,7 @@ ArgNext:;
   const ScriptExpr    arg         = read_expr(ctx, OpPrecedence_None);
   ctx->section                    = prevSection;
   if (UNLIKELY(sentinel_check(arg))) {
-    return -1;
+    return sentinel_u32;
   }
   outExprs[count++] = arg;
 
@@ -1144,15 +1145,18 @@ ArgNext:;
   }
 
 ArgEnd:
-  if (UNLIKELY(read_consume(ctx).kind != ScriptTokenKind_ParenClose)) {
+  if (UNLIKELY(read_peek(ctx).kind != ScriptTokenKind_ParenClose)) {
     ScriptRange range;
     if (count == 0) {
       range = read_range_dummy(ctx);
     } else {
       range = expr_range(ctx->doc, outExprs[count - 1]);
     }
-    return read_emit_err(ctx, ScriptDiag_UnterminatedArgumentList, range), -1;
+    ctx->flags = ScriptReadFlags_ProgramInvalid;
+    return read_emit_err(ctx, ScriptDiag_UnterminatedArgumentList, range), count;
   }
+  read_consume(ctx); // Consume the closing parenthesis.
+
   return count;
 }
 
@@ -1354,11 +1358,11 @@ static void read_emit_invalid_args(
 static ScriptExpr
 read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange idRange) {
   ScriptExpr args[script_args_max];
-  const i32  argCount = read_args(ctx, args);
-  if (UNLIKELY(argCount < 0)) {
+  const u32  argCount = read_args(ctx, args);
+  if (UNLIKELY(sentinel_check(argCount))) {
     return read_fail_structural(ctx);
   }
-  diag_assert((u32)argCount < u8_max);
+  diag_assert(argCount < u8_max);
 
   const ScriptRange callRange = read_range_to_current(ctx, idRange.start);
 
@@ -1434,8 +1438,8 @@ static ScriptExpr read_expr_if(ScriptReadContext* ctx, const ScriptPos start) {
   read_scope_push(ctx, &scope);
 
   ScriptExpr conditions[script_args_max];
-  const i32  conditionCount = read_args(ctx, conditions);
-  if (UNLIKELY(conditionCount < 0)) {
+  const u32  conditionCount = read_args(ctx, conditions);
+  if (UNLIKELY(sentinel_check(conditionCount))) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
   if (UNLIKELY(conditionCount != 1)) {
@@ -1505,8 +1509,8 @@ static ScriptExpr read_expr_while(ScriptReadContext* ctx, const ScriptPos start)
   read_scope_push(ctx, &scope);
 
   ScriptExpr conditions[script_args_max];
-  const i32  conditionCount = read_args(ctx, conditions);
-  if (UNLIKELY(conditionCount < 0)) {
+  const u32  conditionCount = read_args(ctx, conditions);
+  if (UNLIKELY(sentinel_check(conditionCount))) {
     return read_scope_pop(ctx), read_fail_structural(ctx);
   }
   if (UNLIKELY(conditionCount != 1)) {
