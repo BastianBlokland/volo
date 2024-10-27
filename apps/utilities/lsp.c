@@ -114,6 +114,17 @@ typedef struct {
   u8                    commitChar;
 } LspCompletionItem;
 
+typedef enum {
+  LspHighlightKind_Text  = 1,
+  LspHighlightKind_Read  = 2,
+  LspHighlightKind_Write = 3,
+} LspHighlightKind;
+
+typedef struct {
+  ScriptRangeLineCol range;
+  LspHighlightKind   kind;
+} LspHighlight;
+
 typedef struct {
   String           label;
   String           doc;
@@ -371,6 +382,13 @@ static JsonVal lsp_hover_to_json(LspContext* ctx, const LspHover* hover) {
   const JsonVal obj = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, obj, "range", lsp_range_to_json(ctx, &hover->range));
   json_add_field_lit(ctx->jDoc, obj, "contents", json_add_string(ctx->jDoc, hover->text));
+  return obj;
+}
+
+static JsonVal lsp_highlight_to_json(LspContext* ctx, const LspHighlight* highlight) {
+  const JsonVal obj = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, obj, "range", lsp_range_to_json(ctx, &highlight->range));
+  json_add_field_lit(ctx->jDoc, obj, "kind", json_add_number(ctx->jDoc, highlight->kind));
   return obj;
 }
 
