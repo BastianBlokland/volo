@@ -478,18 +478,22 @@ static void lsp_copy_id(LspContext* ctx, const JsonVal obj, const JsonVal id) {
   json_add_field_lit(ctx->jDoc, obj, "id", idCopy);
 }
 
-static bool lsp_doc_pos_from_json(LspContext* ctx, const JsonVal val, LspTextDocPos* out) {
+static LspDocument* lsp_doc_from_json(LspContext* ctx, const JsonVal val) {
   const JsonVal docVal = lsp_maybe_field(ctx, val, string_lit("textDocument"));
   const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
   if (UNLIKELY(string_is_empty(uri))) {
+    return null;
+  }
+  return lsp_doc_find(ctx, uri);
+}
+
+static bool lsp_doc_pos_from_json(LspContext* ctx, const JsonVal val, LspTextDocPos* out) {
+  out->doc = lsp_doc_from_json(ctx, val);
+  if (UNLIKELY(!out->doc)) {
     return false;
   }
   const JsonVal posLcVal = lsp_maybe_field(ctx, val, string_lit("position"));
   if (UNLIKELY(!lsp_position_from_json(ctx, posLcVal, &out->posLc))) {
-    return false;
-  }
-  out->doc = lsp_doc_find(ctx, uri);
-  if (UNLIKELY(!out->doc)) {
     return false;
   }
   out->pos = script_pos_from_line_col(script_source_get(out->doc->scriptDoc), out->posLc);
@@ -628,13 +632,10 @@ static void lsp_handle_notif_exit(LspContext* ctx, const JRpcNotification* notif
 static void lsp_handle_notif_set_trace(LspContext* ctx, const JRpcNotification* notif) {
   const JsonVal traceVal = lsp_maybe_field(ctx, notif->params, string_lit("value"));
   if (UNLIKELY(sentinel_check(traceVal))) {
-    goto Error;
+    ctx->status = LspStatus_ErrorMalformedNotification;
+    return;
   }
   lsp_update_trace_config(ctx, traceVal);
-  return;
-
-Error:
-  ctx->status = LspStatus_ErrorMalformedNotification;
 }
 
 static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
@@ -679,7 +680,8 @@ static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotificatio
   const JsonVal docVal = lsp_maybe_field(ctx, notif->params, string_lit("textDocument"));
   const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
   if (UNLIKELY(string_is_empty(uri))) {
-    goto Error;
+    ctx->status = LspStatus_ErrorMalformedNotification;
+    return;
   }
   const String text = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("text")));
 
@@ -697,63 +699,39 @@ static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotificatio
   if (ctx->flags & LspFlags_Trace) {
     lsp_send_trace(ctx, fmt_write_scratch("Document count: {}", fmt_int(ctx->openDocs->size)));
   }
-  return;
-
-Error:
-  ctx->status = LspStatus_ErrorMalformedNotification;
 }
 
 static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotification* notif) {
-  const JsonVal docVal = lsp_maybe_field(ctx, notif->params, string_lit("textDocument"));
-  const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
-  if (UNLIKELY(string_is_empty(uri))) {
-    goto Error;
-  }
   const JsonVal changesVal    = lsp_maybe_field(ctx, notif->params, string_lit("contentChanges"));
   const JsonVal changeZeroVal = lsp_maybe_elem(ctx, changesVal, 0);
   const String  text = lsp_maybe_str(ctx, lsp_maybe_field(ctx, changeZeroVal, string_lit("text")));
 
-  if (ctx->flags & LspFlags_Trace) {
-    lsp_send_trace(ctx, fmt_write_scratch("Document update: {}", fmt_text(uri)));
-  }
-
-  LspDocument* doc = lsp_doc_find(ctx, uri);
+  LspDocument* doc = lsp_doc_from_json(ctx, notif->params);
   if (LIKELY(doc)) {
+    if (ctx->flags & LspFlags_Trace) {
+      lsp_send_trace(ctx, fmt_write_scratch("Document update: {}", fmt_text(doc->identifier)));
+    }
     lsp_doc_update_text(doc, text);
     lsp_analyze_doc(ctx, doc);
   } else {
-    lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(uri)));
+    lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(doc->identifier)));
   }
-  return;
-
-Error:
-  ctx->status = LspStatus_ErrorMalformedNotification;
 }
 
 static void lsp_handle_notif_doc_did_close(LspContext* ctx, const JRpcNotification* notif) {
-  const JsonVal docVal = lsp_maybe_field(ctx, notif->params, string_lit("textDocument"));
-  const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
-  if (UNLIKELY(string_is_empty(uri))) {
-    goto Error;
-  }
-  if (ctx->flags & LspFlags_Trace) {
-    lsp_send_trace(ctx, fmt_write_scratch("Document close: {}", fmt_text(uri)));
-  }
-
-  LspDocument* doc = lsp_doc_find(ctx, uri);
+  LspDocument* doc = lsp_doc_from_json(ctx, notif->params);
   if (LIKELY(doc)) {
+    if (ctx->flags & LspFlags_Trace) {
+      lsp_send_trace(ctx, fmt_write_scratch("Document close: {}", fmt_text(doc->identifier)));
+    }
     lsp_doc_close(ctx, doc);
-    lsp_send_diagnostics(ctx, uri, null, 0);
+    lsp_send_diagnostics(ctx, doc->identifier, null, 0);
   } else {
-    lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(uri)));
+    lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(doc->identifier)));
   }
   if (ctx->flags & LspFlags_Trace) {
     lsp_send_trace(ctx, fmt_write_scratch("Document count: {}", fmt_int(ctx->openDocs->size)));
   }
-  return;
-
-Error:
-  ctx->status = LspStatus_ErrorMalformedNotification;
 }
 
 static void lsp_handle_notif(LspContext* ctx, const JRpcNotification* notif) {
@@ -1066,18 +1044,13 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
 }
 
 static void lsp_handle_req_symbols(LspContext* ctx, const JRpcRequest* req) {
-  const JsonVal docVal = lsp_maybe_field(ctx, req->params, string_lit("textDocument"));
-  const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
-  if (UNLIKELY(string_is_empty(uri))) {
-    goto InvalidParams;
-  }
-  const LspDocument* doc = lsp_doc_find(ctx, uri);
+  const LspDocument* doc = lsp_doc_from_json(ctx, req->params);
   if (UNLIKELY(!doc)) {
-    goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
+    lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+    return;
   }
-
-  const String  sourceText = script_source_get(doc->scriptDoc);
-  const JsonVal symbolsArr = json_add_array(ctx->jDoc);
+  const String  scriptSource = script_source_get(doc->scriptDoc);
+  const JsonVal symbolsArr   = json_add_array(ctx->jDoc);
 
   ScriptSym itr = script_sym_first(doc->scriptSyms, script_pos_sentinel);
   for (; !sentinel_check(itr); itr = script_sym_next(doc->scriptSyms, script_pos_sentinel, itr)) {
@@ -1089,34 +1062,28 @@ static void lsp_handle_req_symbols(LspContext* ctx, const JRpcRequest* req) {
     const LspSymbol symbol = {
         .name  = script_sym_label(doc->scriptSyms, itr),
         .kind  = LspSymbolKind_Variable,
-        .range = script_range_to_line_col(sourceText, location),
+        .range = script_range_to_line_col(scriptSource, location),
     };
     json_add_elem(ctx->jDoc, symbolsArr, lsp_symbol_to_json(ctx, &symbol));
   }
   lsp_send_response_success(ctx, req, symbolsArr);
-  return;
-
-InvalidParams:
-  lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
 }
 
 static void lsp_handle_req_formatting(LspContext* ctx, const JRpcRequest* req) {
-  const JsonVal docVal = lsp_maybe_field(ctx, req->params, string_lit("textDocument"));
-  const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
-  if (UNLIKELY(string_is_empty(uri))) {
-    goto InvalidParams;
-  }
-  LspDocument* doc = lsp_doc_find(ctx, uri);
+  const LspDocument* doc = lsp_doc_from_json(ctx, req->params);
   if (UNLIKELY(!doc)) {
-    goto InvalidParams; // TODO: Make a unique error respose for the 'document not open' case.
+    lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+    return;
   }
   const JsonVal optsVal = lsp_maybe_field(ctx, req->params, string_lit("options"));
   if (sentinel_check(optsVal)) {
-    goto InvalidParams;
+    lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+    return;
   }
   const f64 tabSize = lsp_maybe_number(ctx, lsp_maybe_field(ctx, optsVal, string_lit("tabSize")));
   if (UNLIKELY(tabSize < 1.0 || tabSize > 8.0)) {
-    goto InvalidParams;
+    lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+    return;
   }
 
   const String sourceText         = script_source_get(doc->scriptDoc);
@@ -1148,10 +1115,6 @@ static void lsp_handle_req_formatting(LspContext* ctx, const JRpcRequest* req) {
   lsp_send_response_success(ctx, req, editsArr);
 
   dynarray_destroy(&resultBuffer);
-  return;
-
-InvalidParams:
-  lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
 }
 
 static void lsp_handle_req_references(LspContext* ctx, const JRpcRequest* req) {
