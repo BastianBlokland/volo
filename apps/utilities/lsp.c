@@ -4,6 +4,7 @@
 #include "core_file.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "core_sort.h"
 #include "core_time.h"
 #include "json.h"
 #include "script_binder.h"
@@ -96,6 +97,25 @@ typedef struct {
   String             uri;
   ScriptRangeLineCol range;
 } LspLocation;
+
+typedef enum {
+  LspSemanticTokenType_Variable,
+  LspSemanticTokenType_Function,
+} LspSemanticTokenType;
+
+typedef enum {
+  LspSemanticTokenMod_None         = 0,
+  LspSemanticTokenMod_Definition   = 1 << 0,
+  LspSemanticTokenMod_ReadOnly     = 1 << 1,
+  LspSemanticTokenMod_Modification = 1 << 2,
+} LspSemanticTokenMod;
+
+typedef struct {
+  ScriptPosLineCol     pos;
+  u16                  length; // In unicode code points.
+  LspSemanticTokenType type : 16;
+  LspSemanticTokenMod  mod : 16;
+} LspSemanticToken;
 
 typedef enum {
   LspCompletionItemKind_Function    = 3,
@@ -191,6 +211,17 @@ static const JRpcError g_jrpcErrorInvalidSymbolName = {
     .code = -32803,
     .msg  = string_static("Invalid symbol name"),
 };
+
+static i8 lsp_semantic_token_compare(const void* a, const void* b) {
+  const LspSemanticToken* tokA = a;
+  const LspSemanticToken* tokB = b;
+
+  i8 res = compare_u16(&tokA->pos.line, &tokB->pos.line);
+  if (!res) {
+    res = compare_u16(&tokA->pos.column, &tokB->pos.column);
+  }
+  return res;
+}
 
 static void lsp_doc_destroy(LspDocument* doc) {
   string_free(g_allocHeap, doc->identifier);
@@ -397,6 +428,31 @@ static JsonVal lsp_location_to_json(LspContext* ctx, const LspLocation* location
   json_add_field_lit(ctx->jDoc, obj, "uri", json_add_string(ctx->jDoc, location->uri));
   json_add_field_lit(ctx->jDoc, obj, "range", lsp_range_to_json(ctx, &location->range));
   return obj;
+}
+
+/**
+ * Pre-condition: Tokens are sorted by position.
+ */
+static JsonVal lsp_semantic_tokens_to_json(
+    LspContext* ctx, const LspSemanticToken tokens[], const usize tokenCount) {
+
+  JsonVal tokensArr = json_add_array(ctx->jDoc);
+  for (usize i = 0; i != tokenCount; ++i) {
+    const u16 lineNum      = tokens[i].pos.line;
+    const u16 lineNumPrev  = i ? tokens[i - 1].pos.line : 0;
+    const u16 lineNumDelta = lineNum - lineNumPrev;
+
+    const u16 colNum      = tokens[i].pos.column;
+    const u16 colNumPrev  = i ? tokens[i - 1].pos.column : 0;
+    const u16 colNumDelta = lineNum == lineNumPrev ? (colNum - colNumPrev) : colNum;
+
+    json_add_elem(ctx->jDoc, tokensArr, json_add_number(ctx->jDoc, lineNumDelta));
+    json_add_elem(ctx->jDoc, tokensArr, json_add_number(ctx->jDoc, colNumDelta));
+    json_add_elem(ctx->jDoc, tokensArr, json_add_number(ctx->jDoc, tokens[i].length));
+    json_add_elem(ctx->jDoc, tokensArr, json_add_number(ctx->jDoc, tokens[i].type));
+    json_add_elem(ctx->jDoc, tokensArr, json_add_number(ctx->jDoc, tokens[i].mod));
+  }
+  return tokensArr;
 }
 
 static JsonVal lsp_completion_item_to_json(LspContext* ctx, const LspCompletionItem* item) {
@@ -772,6 +828,22 @@ static void lsp_handle_notif(LspContext* ctx, const JRpcNotification* notif) {
   }
 }
 
+static JsonVal lsp_semantic_tokens_legend(LspContext* ctx) {
+  const JsonVal tokenTypesArr = json_add_array(ctx->jDoc);
+  json_add_elem(ctx->jDoc, tokenTypesArr, json_add_string_lit(ctx->jDoc, "variable"));
+  json_add_elem(ctx->jDoc, tokenTypesArr, json_add_string_lit(ctx->jDoc, "function"));
+
+  const JsonVal tokenModifiersArr = json_add_array(ctx->jDoc);
+  json_add_elem(ctx->jDoc, tokenModifiersArr, json_add_string_lit(ctx->jDoc, "definition"));
+  json_add_elem(ctx->jDoc, tokenModifiersArr, json_add_string_lit(ctx->jDoc, "readonly"));
+  json_add_elem(ctx->jDoc, tokenModifiersArr, json_add_string_lit(ctx->jDoc, "modification"));
+
+  const JsonVal legendObj = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, legendObj, "tokenTypes", tokenTypesArr);
+  json_add_field_lit(ctx->jDoc, legendObj, "tokenModifiers", tokenModifiersArr);
+  return legendObj;
+}
+
 static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   const JsonVal traceVal = lsp_maybe_field(ctx, req->params, string_lit("trace"));
   if (!sentinel_check(traceVal)) {
@@ -799,6 +871,10 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   const JsonVal signatureHelpOpts = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, signatureHelpOpts, "triggerCharacters", signatureTriggerCharArr);
 
+  const JsonVal semanticTokensOpts = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, semanticTokensOpts, "legend", lsp_semantic_tokens_legend(ctx));
+  json_add_field_lit(ctx->jDoc, semanticTokensOpts, "full", json_add_bool(ctx->jDoc, true));
+
   const JsonVal symbolOpts     = json_add_object(ctx->jDoc);
   const JsonVal formattingOpts = json_add_object(ctx->jDoc);
   const JsonVal referencesOpts = json_add_object(ctx->jDoc);
@@ -814,6 +890,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, capabilities, "definitionProvider", definitionOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "completionProvider", completionOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "signatureHelpProvider", signatureHelpOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "semanticTokensProvider", semanticTokensOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "documentSymbolProvider", symbolOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "documentFormattingProvider", formattingOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "referencesProvider", referencesOpts);
@@ -836,6 +913,113 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
 static void lsp_handle_req_shutdown(LspContext* ctx, const JRpcRequest* req) {
   ctx->flags |= LspFlags_Shutdown;
   lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
+}
+
+static bool lsp_semantic_token_sym_enabled(const ScriptSymKind kind) {
+  switch (kind) {
+  case ScriptSymKind_BuiltinFunction:
+  case ScriptSymKind_ExternFunction:
+  case ScriptSymKind_Variable:
+    return true;
+  default:
+    return false;
+  }
+}
+
+static LspSemanticTokenType lsp_semantic_token_sym_type(const ScriptSymKind kind) {
+  switch (kind) {
+  case ScriptSymKind_BuiltinFunction:
+  case ScriptSymKind_ExternFunction:
+    return LspSemanticTokenType_Function;
+  case ScriptSymKind_Variable:
+    return LspSemanticTokenType_Variable;
+  default:
+    break;
+  }
+  diag_crash_msg("Unsupported symbol kind");
+}
+
+static LspSemanticTokenMod lsp_semantic_token_sym_mod(const ScriptSymKind kind) {
+  (void)kind;
+  return LspSemanticTokenMod_None;
+}
+
+static LspSemanticTokenMod lsp_semantic_token_ref_mod(const ScriptSymRef* ref) {
+  LspSemanticTokenMod mod = LspSemanticTokenMod_None;
+  if (ref->kind == ScriptSymRefKind_Write) {
+    mod |= LspSemanticTokenMod_Modification;
+  }
+  return mod;
+}
+
+static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* req) {
+  const LspDocument* doc = lsp_doc_from_json(ctx, req->params);
+  if (UNLIKELY(!doc)) {
+    lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+    return;
+  }
+
+  const ScriptDoc*    scriptDoc    = doc->scriptDoc;
+  const ScriptSymBag* scriptSyms   = doc->scriptSyms;
+  const String        scriptSource = script_source_get(scriptDoc);
+
+  LspSemanticToken tokens[1024];
+  usize            tokenCount = 0;
+
+  // Gather tokens from symbols.
+  ScriptSym sym = script_sym_first(scriptSyms, script_pos_sentinel);
+  for (; !sentinel_check(sym); sym = script_sym_next(scriptSyms, script_pos_sentinel, sym)) {
+    const ScriptSymKind symKind = script_sym_kind(scriptSyms, sym);
+    if (!lsp_semantic_token_sym_enabled(symKind)) {
+      continue;
+    }
+    const LspSemanticTokenType tokType = lsp_semantic_token_sym_type(symKind);
+    const LspSemanticTokenMod  tokMod  = lsp_semantic_token_sym_mod(symKind);
+
+    // Add symbol definition token.
+    const ScriptRange symLoc = script_sym_location(scriptSyms, sym);
+    if (script_range_valid(symLoc)) {
+      const ScriptRangeLineCol symLocLc = script_range_to_line_col(scriptSource, symLoc);
+      if (UNLIKELY(symLocLc.start.line != symLocLc.end.line)) {
+        continue; // Multi-line tokens are not supported.
+      }
+      if (tokenCount == array_elems(tokens)) {
+        break; // Token limit reached.
+      }
+      tokens[tokenCount++] = (LspSemanticToken){
+          .pos    = symLocLc.start,
+          .length = symLoc.end - symLoc.start,
+          .type   = tokType,
+          .mod    = tokMod | LspSemanticTokenMod_Definition,
+      };
+    }
+
+    // Add symbol reference tokens.
+    const ScriptSymRefSet refs = script_sym_refs(scriptSyms, sym);
+    for (const ScriptSymRef* ref = refs.begin; ref != refs.end; ++ref) {
+      const ScriptRangeLineCol refLoc = script_range_to_line_col(scriptSource, ref->location);
+      if (UNLIKELY(refLoc.start.line != refLoc.end.line)) {
+        continue; // Multi-line tokens are not supported.
+      }
+      if (tokenCount == array_elems(tokens)) {
+        break; // Token limit reached.
+      }
+      tokens[tokenCount++] = (LspSemanticToken){
+          .pos    = refLoc.start,
+          .length = ref->location.end - ref->location.start,
+          .type   = tokType,
+          .mod    = tokMod | lsp_semantic_token_ref_mod(ref),
+      };
+    }
+  }
+
+  // Sort tokens by position.
+  sort_quicksort_t(tokens, tokens + tokenCount, LspSemanticToken, lsp_semantic_token_compare);
+
+  // Send the response.
+  const JsonVal res = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, res, "data", lsp_semantic_tokens_to_json(ctx, tokens, tokenCount));
+  lsp_send_response_success(ctx, req, res);
 }
 
 static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
@@ -1032,9 +1216,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
 
   const ScriptSym    callSym = script_sym_find(scriptSyms, scriptDoc, callExpr);
   const LspSignature sig     = {
-          .label     = script_sym_label(scriptSyms, callSym),
-          .doc       = script_sym_doc(scriptSyms, callSym),
-          .scriptSig = script_sym_sig(scriptSyms, callSym),
+      .label     = script_sym_label(scriptSyms, callSym),
+      .doc       = script_sym_doc(scriptSyms, callSym),
+      .scriptSig = script_sym_sig(scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
@@ -1380,6 +1564,7 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
   } g_handlers[] = {
       {string_static("initialize"), lsp_handle_req_initialize},
       {string_static("shutdown"), lsp_handle_req_shutdown},
+      {string_static("textDocument/semanticTokens/full"), lsp_handle_req_semantic_tokens},
       {string_static("textDocument/hover"), lsp_handle_req_hover},
       {string_static("textDocument/definition"), lsp_handle_req_definition},
       {string_static("textDocument/completion"), lsp_handle_req_completion},
