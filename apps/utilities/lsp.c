@@ -104,6 +104,7 @@ typedef enum {
 } LspSemanticTokenType;
 
 typedef enum {
+  LspSemanticTokenMod_None         = 0,
   LspSemanticTokenMod_Definition   = 1 << 0,
   LspSemanticTokenMod_ReadOnly     = 1 << 1,
   LspSemanticTokenMod_Modification = 1 << 2,
@@ -921,12 +922,38 @@ static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* r
     return;
   }
 
+  const ScriptDoc*    scriptDoc    = doc->scriptDoc;
+  const ScriptSymBag* scriptSyms   = doc->scriptSyms;
+  const String        scriptSource = script_source_get(scriptDoc);
+
   LspSemanticToken tokens[1024];
   usize            tokenCount = 0;
+
+  // Gather tokens from symbols.
+  ScriptSym itr = script_sym_first(scriptSyms, script_pos_sentinel);
+  for (; !sentinel_check(itr); itr = script_sym_next(scriptSyms, script_pos_sentinel, itr)) {
+    if (tokenCount == array_elems(tokens)) {
+      break; // Token limit reached.
+    }
+    const ScriptRange symLoc = script_sym_location(scriptSyms, itr);
+    if (script_range_valid(symLoc)) {
+      const ScriptRangeLineCol symLocLc = script_range_to_line_col(scriptSource, symLoc);
+      if (UNLIKELY(symLocLc.start.line != symLocLc.end.line)) {
+        continue; // Multi-line tokens are not supported.
+      }
+      tokens[tokenCount++] = (LspSemanticToken){
+          .pos    = symLocLc.start,
+          .length = symLoc.end - symLoc.start,
+          .type   = LspSemanticTokenType_Variable,
+          .mod    = LspSemanticTokenMod_Definition,
+      };
+    }
+  }
 
   // Sort tokens by position.
   sort_quicksort_t(tokens, tokens + tokenCount, LspSemanticToken, lsp_semantic_token_compare);
 
+  // Send the response.
   const JsonVal res = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, res, "data", lsp_semantic_tokens_to_json(ctx, tokens, tokenCount));
   lsp_send_response_success(ctx, req, res);
