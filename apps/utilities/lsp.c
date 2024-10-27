@@ -98,6 +98,17 @@ typedef struct {
 } LspLocation;
 
 typedef enum {
+  LspSemanticTokenType_Variable,
+  LspSemanticTokenType_Function,
+} LspSemanticTokenType;
+
+typedef enum {
+  LspSemanticTokenMod_Definition   = 1 << 0,
+  LspSemanticTokenMod_ReadOnly     = 1 << 1,
+  LspSemanticTokenMod_Modification = 1 << 2,
+} LspSemanticTokenMod;
+
+typedef enum {
   LspCompletionItemKind_Function    = 3,
   LspCompletionItemKind_Constructor = 4,
   LspCompletionItemKind_Variable    = 6,
@@ -772,6 +783,22 @@ static void lsp_handle_notif(LspContext* ctx, const JRpcNotification* notif) {
   }
 }
 
+static JsonVal lsp_semantic_tokens_legend(LspContext* ctx) {
+  const JsonVal tokenTypesArr = json_add_array(ctx->jDoc);
+  json_add_elem(ctx->jDoc, tokenTypesArr, json_add_string_lit(ctx->jDoc, "variable"));
+  json_add_elem(ctx->jDoc, tokenTypesArr, json_add_string_lit(ctx->jDoc, "function"));
+
+  const JsonVal tokenModifiersArr = json_add_array(ctx->jDoc);
+  json_add_elem(ctx->jDoc, tokenModifiersArr, json_add_string_lit(ctx->jDoc, "definition"));
+  json_add_elem(ctx->jDoc, tokenModifiersArr, json_add_string_lit(ctx->jDoc, "readonly"));
+  json_add_elem(ctx->jDoc, tokenModifiersArr, json_add_string_lit(ctx->jDoc, "modification"));
+
+  const JsonVal legendObj = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, legendObj, "tokenTypes", tokenTypesArr);
+  json_add_field_lit(ctx->jDoc, legendObj, "tokenModifiers", tokenModifiersArr);
+  return legendObj;
+}
+
 static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   const JsonVal traceVal = lsp_maybe_field(ctx, req->params, string_lit("trace"));
   if (!sentinel_check(traceVal)) {
@@ -799,6 +826,10 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   const JsonVal signatureHelpOpts = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, signatureHelpOpts, "triggerCharacters", signatureTriggerCharArr);
 
+  const JsonVal semanticTokensOpts = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, semanticTokensOpts, "legend", lsp_semantic_tokens_legend(ctx));
+  json_add_field_lit(ctx->jDoc, semanticTokensOpts, "full", json_add_bool(ctx->jDoc, true));
+
   const JsonVal symbolOpts     = json_add_object(ctx->jDoc);
   const JsonVal formattingOpts = json_add_object(ctx->jDoc);
   const JsonVal referencesOpts = json_add_object(ctx->jDoc);
@@ -814,6 +845,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, capabilities, "definitionProvider", definitionOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "completionProvider", completionOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "signatureHelpProvider", signatureHelpOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "semanticTokensProvider", semanticTokensOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "documentSymbolProvider", symbolOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "documentFormattingProvider", formattingOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "referencesProvider", referencesOpts);
@@ -1032,9 +1064,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
 
   const ScriptSym    callSym = script_sym_find(scriptSyms, scriptDoc, callExpr);
   const LspSignature sig     = {
-          .label     = script_sym_label(scriptSyms, callSym),
-          .doc       = script_sym_doc(scriptSyms, callSym),
-          .scriptSig = script_sym_sig(scriptSyms, callSym),
+      .label     = script_sym_label(scriptSyms, callSym),
+      .doc       = script_sym_doc(scriptSyms, callSym),
+      .scriptSig = script_sym_sig(scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
