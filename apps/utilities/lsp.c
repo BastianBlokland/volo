@@ -4,12 +4,9 @@
 #include "core_file.h"
 #include "core_format.h"
 #include "core_math.h"
-#include "core_path.h"
-#include "core_stringtable.h"
 #include "core_time.h"
 #include "json.h"
 #include "script_binder.h"
-#include "script_diag.h"
 #include "script_eval.h"
 #include "script_format.h"
 #include "script_lex.h"
@@ -32,7 +29,6 @@ typedef enum {
   LspStatus_ErrorInvalidJRpcMessage,
   LspStatus_ErrorUnsupportedJRpcVersion,
   LspStatus_ErrorMalformedNotification,
-  LspStatus_ErrorMalformedRequest,
 
   LspStatus_Count,
 } LspStatus;
@@ -45,7 +41,6 @@ static const String g_lspStatusMessage[LspStatus_Count] = {
     [LspStatus_ErrorInvalidJRpcMessage]     = string_static("Error: Invalid jrpc message received"),
     [LspStatus_ErrorUnsupportedJRpcVersion] = string_static("Error: Unsupported jrpc version"),
     [LspStatus_ErrorMalformedNotification]  = string_static("Error: Malformed notification"),
-    [LspStatus_ErrorMalformedRequest]       = string_static("Error: Malformed request"),
 };
 
 typedef enum {
@@ -126,7 +121,11 @@ typedef struct {
 } LspSignature;
 
 typedef enum {
+  LspSymbolKind_Function = 12,
   LspSymbolKind_Variable = 13,
+  LspSymbolKind_Constant = 14,
+  LspSymbolKind_Key      = 20,
+  LspSymbolKind_Operator = 25,
 } LspSymbolKind;
 
 typedef struct {
@@ -187,10 +186,6 @@ static void lsp_doc_destroy(LspDocument* doc) {
   script_destroy(doc->scriptDoc);
   script_diag_bag_destroy(doc->scriptDiags);
   script_sym_bag_destroy(doc->scriptSyms);
-}
-
-static void lsp_doc_update_text(LspDocument* doc, const String text) {
-  script_source_set(doc->scriptDoc, text);
 }
 
 static LspDocument* lsp_doc_find(LspContext* ctx, const String identifier) {
@@ -643,13 +638,13 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
   script_diag_clear(doc->scriptDiags);
   script_sym_bag_clear(doc->scriptSyms);
 
+  const String     scriptSource  = script_source_get(doc->scriptDoc);
   const TimeSteady readStartTime = time_steady_clock();
 
-  const String sourceText = script_source_get(doc->scriptDoc);
-  doc->scriptRoot         = script_read(
+  doc->scriptRoot = script_read(
       doc->scriptDoc,
       ctx->scriptBinder,
-      sourceText,
+      scriptSource,
       g_stringtable,
       doc->scriptDiags,
       doc->scriptSyms);
@@ -668,9 +663,9 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
 
     // TODO: Report text ranges in utf16 instead of utf32.
     lspDiags[i] = (LspDiag){
-        .range    = script_range_to_line_col(sourceText, diag->range),
+        .range    = script_range_to_line_col(scriptSource, diag->range),
         .severity = diag->severity,
-        .message  = script_diag_msg_scratch(sourceText, diag),
+        .message  = script_diag_msg_scratch(scriptSource, diag),
     };
   }
   lsp_send_diagnostics(ctx, doc->identifier, lspDiags, lspDiagCount);
@@ -711,7 +706,7 @@ static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotificat
     if (ctx->flags & LspFlags_Trace) {
       lsp_send_trace(ctx, fmt_write_scratch("Document update: {}", fmt_text(doc->identifier)));
     }
-    lsp_doc_update_text(doc, text);
+    script_source_set(doc->scriptDoc, text);
     lsp_analyze_doc(ctx, doc);
   } else {
     lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(doc->identifier)));
@@ -816,7 +811,6 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, result, "serverInfo", info);
 
   lsp_send_response_success(ctx, req, result);
-  return;
 }
 
 static void lsp_handle_req_shutdown(LspContext* ctx, const JRpcRequest* req) {
@@ -1043,6 +1037,25 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
   lsp_send_response_success(ctx, req, sigHelp);
 }
 
+static LspSymbolKind lsp_sym_kind_map(const ScriptSymKind symKind) {
+  switch (symKind) {
+  case ScriptSymKind_Keyword:
+    return LspSymbolKind_Operator;
+  case ScriptSymKind_BuiltinConstant:
+    return LspSymbolKind_Constant;
+  case ScriptSymKind_BuiltinFunction:
+  case ScriptSymKind_ExternFunction:
+    return LspSymbolKind_Function;
+  case ScriptSymKind_Variable:
+    return LspSymbolKind_Variable;
+  case ScriptSymKind_MemoryKey:
+    return LspSymbolKind_Key;
+  case ScriptSymKind_Count:
+    break;
+  }
+  diag_crash_msg("Unsupported symbol kind");
+}
+
 static void lsp_handle_req_symbols(LspContext* ctx, const JRpcRequest* req) {
   const LspDocument* doc = lsp_doc_from_json(ctx, req->params);
   if (UNLIKELY(!doc)) {
@@ -1054,14 +1067,15 @@ static void lsp_handle_req_symbols(LspContext* ctx, const JRpcRequest* req) {
 
   ScriptSym itr = script_sym_first(doc->scriptSyms, script_pos_sentinel);
   for (; !sentinel_check(itr); itr = script_sym_next(doc->scriptSyms, script_pos_sentinel, itr)) {
-    if (script_sym_kind(doc->scriptSyms, itr) != ScriptSymKind_Variable) {
-      continue;
+    const ScriptSymKind kind     = script_sym_kind(doc->scriptSyms, itr);
+    const ScriptRange   location = script_sym_location(doc->scriptSyms, itr);
+    if (sentinel_check(location.start) || sentinel_check(location.end)) {
+      continue; // Symbol has no location.
     }
-    const ScriptRange location = script_sym_location(doc->scriptSyms, itr);
     // TODO: Report text ranges in utf16 instead of utf32.
     const LspSymbol symbol = {
         .name  = script_sym_label(doc->scriptSyms, itr),
-        .kind  = LspSymbolKind_Variable,
+        .kind  = lsp_sym_kind_map(kind),
         .range = script_range_to_line_col(scriptSource, location),
     };
     json_add_elem(ctx->jDoc, symbolsArr, lsp_symbol_to_json(ctx, &symbol));
@@ -1161,7 +1175,6 @@ static void lsp_handle_req_references(LspContext* ctx, const JRpcRequest* req) {
       json_add_elem(ctx->jDoc, locationsArr, lsp_location_to_json(ctx, &location));
     }
   }
-
   const ScriptSymRefSet refs = script_sym_refs(scriptSyms, sym);
   for (const ScriptSymRef* ref = refs.begin; ref != refs.end; ++ref) {
     const LspLocation location = lsp_doc_location(docPos.doc, ref->location);
@@ -1212,12 +1225,11 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
     return;
   }
 
-  const String newName =
-      lsp_maybe_str(ctx, lsp_maybe_field(ctx, req->params, string_lit("newName")));
+  const String new = lsp_maybe_str(ctx, lsp_maybe_field(ctx, req->params, string_lit("newName")));
 
   if (ctx->flags & LspFlags_Trace) {
     const String txt = fmt_write_scratch(
-        "Rename: {} -> '{}'", fmt_text(lsp_doc_pos_scratch(&docPos)), fmt_text(newName));
+        "Rename: {} -> '{}'", fmt_text(lsp_doc_pos_scratch(&docPos)), fmt_text(new));
     lsp_send_trace(ctx, txt);
   }
 
@@ -1241,9 +1253,9 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
     lsp_send_response_error(ctx, req, &g_jrpcErrorRenameFailed);
     return; // Symbol not found or cannot be renamed.
   }
-  if (!lsp_sym_validate_name(script_sym_kind(scriptSyms, sym), newName)) {
+  if (!lsp_sym_validate_name(script_sym_kind(scriptSyms, sym), new)) {
     lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidSymbolName);
-    return;
+    return; // Invalid new-name.
   }
 
   const JsonVal workspaceEditObj = json_add_object(ctx->jDoc);
@@ -1258,7 +1270,7 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
   const ScriptRange symRange = script_sym_location(scriptSyms, sym);
   if (!sentinel_check(symRange.start) && !sentinel_check(symRange.end)) {
     const ScriptRangeLineCol rangeLc = script_range_to_line_col(scriptSource, symRange);
-    const LspTextEdit        edit    = {.range = rangeLc, .newText = newName};
+    const LspTextEdit        edit    = {.range = rangeLc, .newText = new};
     json_add_elem(ctx->jDoc, editsArr, lsp_text_edit_to_json(ctx, &edit));
   }
 
@@ -1266,12 +1278,11 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
   const ScriptSymRefSet refs = script_sym_refs(scriptSyms, sym);
   for (const ScriptSymRef* ref = refs.begin; ref != refs.end; ++ref) {
     const ScriptRangeLineCol locationLc = script_range_to_line_col(scriptSource, ref->location);
-    const LspTextEdit        edit       = {.range = locationLc, .newText = newName};
+    const LspTextEdit        edit       = {.range = locationLc, .newText = new};
     json_add_elem(ctx->jDoc, editsArr, lsp_text_edit_to_json(ctx, &edit));
   }
 
   lsp_send_response_success(ctx, req, workspaceEditObj);
-  return;
 }
 
 static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
