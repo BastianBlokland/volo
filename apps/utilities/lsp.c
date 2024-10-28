@@ -1187,16 +1187,29 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
 
 typedef struct {
   const ScriptSymBag* symBag;
+  ScriptPos           cursor;
 } SignatureHelpContext;
 
-static bool find_pred_with_signature(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
+/**
+ * Predicate for finding call expressions where the cursor is inside the argument list.
+ */
+static bool find_pred_signature_help(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
   SignatureHelpContext* sigHelpCtx = ctx;
 
   const ScriptSym sym = script_sym_find(sigHelpCtx->symBag, doc, expr);
   if (sentinel_check(sym)) {
-    return false;
+    return false; // No symbol known.
   }
-  return script_sym_sig(sigHelpCtx->symBag, sym) != null;
+  if (!script_sym_sig(sigHelpCtx->symBag, sym)) {
+    return false; // No signature known (not a call expression).
+  }
+  const String      label = script_sym_label(sigHelpCtx->symBag, sym);
+  const ScriptRange range = script_expr_range(doc, expr);
+  diag_assert(script_range_contains(range, sigHelpCtx->cursor));
+
+  // Exclude calls where the cursor is on the identifier label instead of the argument list.
+  const u32 relCursor = sigHelpCtx->cursor - range.start;
+  return relCursor >= (label.size + 1);
 }
 
 static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* req) {
@@ -1220,9 +1233,13 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
     return; // Script did not parse correctly (likely due to structural errors).
   }
 
-  SignatureHelpContext sigHelpCtx = {.symBag = scriptSyms};
-  const ScriptExpr     callExpr =
-      script_expr_find(scriptDoc, scriptRoot, docPos.pos, &sigHelpCtx, find_pred_with_signature);
+  SignatureHelpContext sigHelpCtx = {
+      .symBag = scriptSyms,
+      .cursor = docPos.pos,
+  };
+
+  const ScriptExpr callExpr =
+      script_expr_find(scriptDoc, scriptRoot, docPos.pos, &sigHelpCtx, find_pred_signature_help);
 
   if (sentinel_check(callExpr)) {
     lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
