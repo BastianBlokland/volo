@@ -1188,13 +1188,13 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
 typedef struct {
   const ScriptSymBag* symBag;
   ScriptPos           cursor;
-} SignatureHelpContext;
+} LspSignatureHelpContext;
 
 /**
  * Predicate for finding call expressions where the cursor is inside the argument list.
  */
-static bool find_pred_signature_help(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
-  SignatureHelpContext* sigHelpCtx = ctx;
+static bool lsp_pred_signature_help(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
+  LspSignatureHelpContext* sigHelpCtx = ctx;
 
   const ScriptSym sym = script_sym_find(sigHelpCtx->symBag, doc, expr);
   if (sentinel_check(sym)) {
@@ -1233,13 +1233,13 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
     return; // Script did not parse correctly (likely due to structural errors).
   }
 
-  SignatureHelpContext sigHelpCtx = {
+  LspSignatureHelpContext sigHelpCtx = {
       .symBag = scriptSyms,
       .cursor = docPos.pos,
   };
 
   const ScriptExpr callExpr =
-      script_expr_find(scriptDoc, scriptRoot, docPos.pos, &sigHelpCtx, find_pred_signature_help);
+      script_expr_find(scriptDoc, scriptRoot, docPos.pos, &sigHelpCtx, lsp_pred_signature_help);
 
   if (sentinel_check(callExpr)) {
     lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
