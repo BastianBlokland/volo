@@ -1185,13 +1185,18 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
   lsp_send_response_success(ctx, req, itemsArr);
 }
 
+typedef struct {
+  const ScriptSymBag* symBag;
+} SignatureHelpContext;
+
 static bool find_pred_with_signature(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
-  const ScriptSymBag* symBag = ctx;
-  const ScriptSym     sym    = script_sym_find(symBag, doc, expr);
+  SignatureHelpContext* sigHelpCtx = ctx;
+
+  const ScriptSym sym = script_sym_find(sigHelpCtx->symBag, doc, expr);
   if (sentinel_check(sym)) {
     return false;
   }
-  return script_sym_sig(symBag, sym) != null;
+  return script_sym_sig(sigHelpCtx->symBag, sym) != null;
 }
 
 static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* req) {
@@ -1215,8 +1220,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
     return; // Script did not parse correctly (likely due to structural errors).
   }
 
-  const ScriptExpr callExpr = script_expr_find(
-      scriptDoc, scriptRoot, docPos.pos, (void*)scriptSyms, find_pred_with_signature);
+  SignatureHelpContext sigHelpCtx = {.symBag = scriptSyms};
+  const ScriptExpr     callExpr =
+      script_expr_find(scriptDoc, scriptRoot, docPos.pos, &sigHelpCtx, find_pred_with_signature);
 
   if (sentinel_check(callExpr)) {
     lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
