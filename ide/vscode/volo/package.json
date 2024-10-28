@@ -55,7 +55,7 @@
         "volo-lsp.trace.server": {
           "type": "string",
           "default": "off",
-          "enum": [ "off", "verbose" ],
+          "enum": [ "off", "messages", "verbose" ],
           "description": "Control the LSP server diagnostic trace mode."
         }
       }
