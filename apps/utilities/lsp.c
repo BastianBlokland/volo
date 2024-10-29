@@ -437,6 +437,25 @@ static JsonVal lsp_location_to_json(LspContext* ctx, const LspLocation* location
   return obj;
 }
 
+static JsonVal lsp_selection_range_to_json(
+    LspContext* ctx, const ScriptRangeLineCol ranges[], const usize rangeCount) {
+  const JsonVal headObj = json_add_object(ctx->jDoc);
+  if (rangeCount) {
+    JsonVal tailObj = headObj;
+    json_add_field_lit(ctx->jDoc, headObj, "range", lsp_range_to_json(ctx, &ranges[0]));
+    for (u32 i = 1; i != rangeCount; ++i) {
+      const JsonVal obj = json_add_object(ctx->jDoc);
+      json_add_field_lit(ctx->jDoc, obj, "range", lsp_range_to_json(ctx, &ranges[i]));
+      json_add_field_lit(ctx->jDoc, tailObj, "parent", obj);
+      tailObj = obj;
+    }
+  } else {
+    // TODO: Should this be an empty object or a '0:0 - 0:0' range?
+    json_add_field_lit(ctx->jDoc, headObj, "range", json_add_object(ctx->jDoc));
+  }
+  return headObj;
+}
+
 /**
  * Pre-condition: Tokens are sorted by position.
  */
@@ -896,12 +915,13 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, semanticTokensOpts, "legend", lsp_semantic_tokens_legend(ctx));
   json_add_field_lit(ctx->jDoc, semanticTokensOpts, "full", json_add_bool(ctx->jDoc, true));
 
-  const JsonVal symbolOpts     = json_add_object(ctx->jDoc);
-  const JsonVal formattingOpts = json_add_object(ctx->jDoc);
-  const JsonVal referencesOpts = json_add_object(ctx->jDoc);
-  const JsonVal highlightOpts  = json_add_object(ctx->jDoc);
-  const JsonVal renameOpts     = json_add_object(ctx->jDoc);
-  const JsonVal colorOpts      = json_add_object(ctx->jDoc);
+  const JsonVal colorOpts          = json_add_object(ctx->jDoc);
+  const JsonVal formattingOpts     = json_add_object(ctx->jDoc);
+  const JsonVal highlightOpts      = json_add_object(ctx->jDoc);
+  const JsonVal referencesOpts     = json_add_object(ctx->jDoc);
+  const JsonVal renameOpts         = json_add_object(ctx->jDoc);
+  const JsonVal selectionRangeOpts = json_add_object(ctx->jDoc);
+  const JsonVal symbolOpts         = json_add_object(ctx->jDoc);
 
   const JsonVal capabilities = json_add_object(ctx->jDoc);
   // NOTE: At the time of writing VSCode only supports utf-16 position encoding.
@@ -916,6 +936,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, capabilities, "positionEncoding", positionEncoding);
   json_add_field_lit(ctx->jDoc, capabilities, "referencesProvider", referencesOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "renameProvider", renameOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "selectionRangeProvider", selectionRangeOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "semanticTokensProvider", semanticTokensOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "signatureHelpProvider", signatureHelpOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "textDocumentSync", docSyncOpts);
@@ -1500,6 +1521,36 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
   lsp_send_response_success(ctx, req, workspaceEditObj);
 }
 
+static void lsp_handle_req_selection_range(LspContext* ctx, const JRpcRequest* req) {
+  const LspDocument* doc = lsp_doc_from_json(ctx, req->params);
+  if (UNLIKELY(!doc)) {
+    lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+    return;
+  }
+
+  const JsonVal positionsArr = lsp_maybe_field(ctx, req->params, string_lit("positions"));
+  if (sentinel_check(positionsArr) || json_type(ctx->jDoc, positionsArr) != JsonType_Array) {
+    lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+    return;
+  }
+
+  const JsonVal resultArr = json_add_array(ctx->jDoc);
+  json_for_elems(ctx->jDoc, positionsArr, posObj) {
+    ScriptPosLineCol pos;
+    if (!lsp_position_from_json(ctx, posObj, &pos)) {
+      lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+      return;
+    }
+    ScriptRangeLineCol ranges[32];
+    usize              rangeCount = 0;
+
+    // TODO: Compute ranges.
+
+    json_add_elem(ctx->jDoc, resultArr, lsp_selection_range_to_json(ctx, ranges, rangeCount));
+  }
+  lsp_send_response_success(ctx, req, resultArr);
+}
+
 static bool lsp_semantic_token_sym_enabled(const ScriptSymKind kind) {
   switch (kind) {
   case ScriptSymKind_BuiltinConstant:
@@ -1719,6 +1770,7 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
       {string_static("textDocument/hover"), lsp_handle_req_hover},
       {string_static("textDocument/references"), lsp_handle_req_references},
       {string_static("textDocument/rename"), lsp_handle_req_rename},
+      {string_static("textDocument/selectionRange"), lsp_handle_req_selection_range},
       {string_static("textDocument/semanticTokens/full"), lsp_handle_req_semantic_tokens},
       {string_static("textDocument/signatureHelp"), lsp_handle_req_signature_help},
   };
