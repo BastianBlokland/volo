@@ -706,27 +706,6 @@ static void lsp_send_response_error(LspContext* ctx, const JRpcRequest* req, con
   lsp_send_json(ctx, resp);
 }
 
-static void lsp_handle_notif_initialized(LspContext* ctx, const JRpcNotification* notif) {
-  (void)notif;
-  ctx->flags |= LspFlags_Initialized;
-
-  lsp_send_info(ctx, string_lit("Server successfully initialized"));
-}
-
-static void lsp_handle_notif_exit(LspContext* ctx, const JRpcNotification* notif) {
-  (void)notif;
-  ctx->status = LspStatus_Exit;
-}
-
-static void lsp_handle_notif_set_trace(LspContext* ctx, const JRpcNotification* notif) {
-  const JsonVal traceVal = lsp_maybe_field(ctx, notif->params, string_lit("value"));
-  if (UNLIKELY(sentinel_check(traceVal))) {
-    ctx->status = LspStatus_ErrorMalformedNotification;
-    return;
-  }
-  lsp_update_trace_config(ctx, traceVal);
-}
-
 static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
   script_clear(doc->scriptDoc);
   script_diag_clear(doc->scriptDiags);
@@ -765,6 +744,27 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
   lsp_send_diagnostics(ctx, doc->identifier, lspDiags, lspDiagCount);
 }
 
+static void lsp_handle_notif_set_trace(LspContext* ctx, const JRpcNotification* notif) {
+  const JsonVal traceVal = lsp_maybe_field(ctx, notif->params, string_lit("value"));
+  if (UNLIKELY(sentinel_check(traceVal))) {
+    ctx->status = LspStatus_ErrorMalformedNotification;
+    return;
+  }
+  lsp_update_trace_config(ctx, traceVal);
+}
+
+static void lsp_handle_notif_exit(LspContext* ctx, const JRpcNotification* notif) {
+  (void)notif;
+  ctx->status = LspStatus_Exit;
+}
+
+static void lsp_handle_notif_initialized(LspContext* ctx, const JRpcNotification* notif) {
+  (void)notif;
+  ctx->flags |= LspFlags_Initialized;
+
+  lsp_send_info(ctx, string_lit("Server successfully initialized"));
+}
+
 static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotification* notif) {
   const JsonVal docVal = lsp_maybe_field(ctx, notif->params, string_lit("textDocument"));
   const String  uri    = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("uri")));
@@ -790,6 +790,22 @@ static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotificatio
   }
 }
 
+static void lsp_handle_notif_doc_did_close(LspContext* ctx, const JRpcNotification* notif) {
+  LspDocument* doc = lsp_doc_from_json(ctx, notif->params);
+  if (LIKELY(doc)) {
+    if (ctx->flags & LspFlags_Trace) {
+      lsp_send_trace(ctx, fmt_write_scratch("Document close: {}", fmt_text(doc->identifier)));
+    }
+    lsp_send_diagnostics(ctx, doc->identifier, null, 0);
+    lsp_doc_close(ctx, doc);
+  } else {
+    lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(doc->identifier)));
+  }
+  if (ctx->flags & LspFlags_Trace) {
+    lsp_send_trace(ctx, fmt_write_scratch("Document count: {}", fmt_int(ctx->openDocs->size)));
+  }
+}
+
 static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotification* notif) {
   const JsonVal changesVal    = lsp_maybe_field(ctx, notif->params, string_lit("contentChanges"));
   const JsonVal changeZeroVal = lsp_maybe_elem(ctx, changesVal, 0);
@@ -807,33 +823,17 @@ static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotificat
   }
 }
 
-static void lsp_handle_notif_doc_did_close(LspContext* ctx, const JRpcNotification* notif) {
-  LspDocument* doc = lsp_doc_from_json(ctx, notif->params);
-  if (LIKELY(doc)) {
-    if (ctx->flags & LspFlags_Trace) {
-      lsp_send_trace(ctx, fmt_write_scratch("Document close: {}", fmt_text(doc->identifier)));
-    }
-    lsp_send_diagnostics(ctx, doc->identifier, null, 0);
-    lsp_doc_close(ctx, doc);
-  } else {
-    lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(doc->identifier)));
-  }
-  if (ctx->flags & LspFlags_Trace) {
-    lsp_send_trace(ctx, fmt_write_scratch("Document count: {}", fmt_int(ctx->openDocs->size)));
-  }
-}
-
 static void lsp_handle_notif(LspContext* ctx, const JRpcNotification* notif) {
   static const struct {
     String method;
     void (*handler)(LspContext*, const JRpcNotification*);
   } g_handlers[] = {
-      {string_static("initialized"), lsp_handle_notif_initialized},
-      {string_static("exit"), lsp_handle_notif_exit},
       {string_static("$/setTrace"), lsp_handle_notif_set_trace},
+      {string_static("exit"), lsp_handle_notif_exit},
+      {string_static("initialized"), lsp_handle_notif_initialized},
       {string_static("textDocument/didOpen"), lsp_handle_notif_doc_did_open},
-      {string_static("textDocument/didChange"), lsp_handle_notif_doc_did_change},
       {string_static("textDocument/didClose"), lsp_handle_notif_doc_did_close},
+      {string_static("textDocument/didChange"), lsp_handle_notif_doc_did_change},
   };
 
   for (u32 i = 0; i != array_elems(g_handlers); ++i) {
@@ -906,19 +906,19 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   const JsonVal capabilities = json_add_object(ctx->jDoc);
   // NOTE: At the time of writing VSCode only supports utf-16 position encoding.
   const JsonVal positionEncoding = json_add_string_lit(ctx->jDoc, "utf-16");
-  json_add_field_lit(ctx->jDoc, capabilities, "positionEncoding", positionEncoding);
-  json_add_field_lit(ctx->jDoc, capabilities, "textDocumentSync", docSyncOpts);
-  json_add_field_lit(ctx->jDoc, capabilities, "hoverProvider", hoverOpts);
-  json_add_field_lit(ctx->jDoc, capabilities, "definitionProvider", definitionOpts);
-  json_add_field_lit(ctx->jDoc, capabilities, "completionProvider", completionOpts);
-  json_add_field_lit(ctx->jDoc, capabilities, "signatureHelpProvider", signatureHelpOpts);
-  json_add_field_lit(ctx->jDoc, capabilities, "semanticTokensProvider", semanticTokensOpts);
-  json_add_field_lit(ctx->jDoc, capabilities, "documentSymbolProvider", symbolOpts);
-  json_add_field_lit(ctx->jDoc, capabilities, "documentFormattingProvider", formattingOpts);
-  json_add_field_lit(ctx->jDoc, capabilities, "referencesProvider", referencesOpts);
-  json_add_field_lit(ctx->jDoc, capabilities, "documentHighlightProvider", highlightOpts);
-  json_add_field_lit(ctx->jDoc, capabilities, "renameProvider", renameOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "colorProvider", colorOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "completionProvider", completionOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "definitionProvider", definitionOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "documentFormattingProvider", formattingOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "documentHighlightProvider", highlightOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "documentSymbolProvider", symbolOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "hoverProvider", hoverOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "positionEncoding", positionEncoding);
+  json_add_field_lit(ctx->jDoc, capabilities, "referencesProvider", referencesOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "renameProvider", renameOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "semanticTokensProvider", semanticTokensOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "signatureHelpProvider", signatureHelpOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "textDocumentSync", docSyncOpts);
 
   const JsonVal info          = json_add_object(ctx->jDoc);
   const JsonVal serverName    = json_add_string_lit(ctx->jDoc, "Volo Language Server");
