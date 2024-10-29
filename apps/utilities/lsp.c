@@ -6,6 +6,7 @@
 #include "core_math.h"
 #include "core_sort.h"
 #include "core_time.h"
+#include "geo_color.h"
 #include "json.h"
 #include "script_binder.h"
 #include "script_eval.h"
@@ -176,6 +177,11 @@ typedef struct {
   ScriptPos        pos;
   ScriptPosLineCol posLc;
 } LspTextDocPos;
+
+typedef struct {
+  ScriptRangeLineCol range;
+  GeoColor           color;
+} LspColorInfo;
 
 typedef struct {
   String  method;
@@ -501,6 +507,19 @@ static JsonVal lsp_text_edit_to_json(LspContext* ctx, const LspTextEdit* edit) {
   json_add_field_lit(ctx->jDoc, obj, "range", lsp_range_to_json(ctx, &edit->range));
   json_add_field_lit(ctx->jDoc, obj, "newText", json_add_string(ctx->jDoc, edit->newText));
   return obj;
+}
+
+static JsonVal lsp_color_info_to_json(LspContext* ctx, const LspColorInfo* info) {
+  const JsonVal colorObj = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, colorObj, "red", json_add_number(ctx->jDoc, info->color.r));
+  json_add_field_lit(ctx->jDoc, colorObj, "green", json_add_number(ctx->jDoc, info->color.g));
+  json_add_field_lit(ctx->jDoc, colorObj, "blue", json_add_number(ctx->jDoc, info->color.b));
+  json_add_field_lit(ctx->jDoc, colorObj, "alpha", json_add_number(ctx->jDoc, info->color.a));
+
+  const JsonVal res = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, res, "range", lsp_range_to_json(ctx, &info->range));
+  json_add_field_lit(ctx->jDoc, res, "color", colorObj);
+  return res;
 }
 
 static JsonVal lsp_signature_to_json(LspContext* ctx, const LspSignature* sig) {
@@ -882,6 +901,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   const JsonVal referencesOpts = json_add_object(ctx->jDoc);
   const JsonVal highlightOpts  = json_add_object(ctx->jDoc);
   const JsonVal renameOpts     = json_add_object(ctx->jDoc);
+  const JsonVal colorOpts      = json_add_object(ctx->jDoc);
 
   const JsonVal capabilities = json_add_object(ctx->jDoc);
   // NOTE: At the time of writing VSCode only supports utf-16 position encoding.
@@ -898,6 +918,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   json_add_field_lit(ctx->jDoc, capabilities, "referencesProvider", referencesOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "documentHighlightProvider", highlightOpts);
   json_add_field_lit(ctx->jDoc, capabilities, "renameProvider", renameOpts);
+  json_add_field_lit(ctx->jDoc, capabilities, "colorProvider", colorOpts);
 
   const JsonVal info          = json_add_object(ctx->jDoc);
   const JsonVal serverName    = json_add_string_lit(ctx->jDoc, "Volo Language Server");
@@ -1248,9 +1269,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
 
   const ScriptSym    callSym = script_sym_find(scriptSyms, scriptDoc, callExpr);
   const LspSignature sig     = {
-          .label     = script_sym_label(scriptSyms, callSym),
-          .doc       = script_sym_doc(scriptSyms, callSym),
-          .scriptSig = script_sym_sig(scriptSyms, callSym),
+      .label     = script_sym_label(scriptSyms, callSym),
+      .doc       = script_sym_doc(scriptSyms, callSym),
+      .scriptSig = script_sym_sig(scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
@@ -1589,6 +1610,98 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
   lsp_send_response_success(ctx, req, workspaceEditObj);
 }
 
+typedef struct {
+  struct {
+    ScriptRange range;
+    GeoColor    color;
+  } entries[32];
+  u32 entryCount;
+} LspColorContext;
+
+static bool lsp_expr_potential_color(const ScriptDoc* doc, const ScriptExpr expr) {
+  const ScriptExprKind exprKind = script_expr_kind(doc, expr);
+  if (exprKind == ScriptExprKind_Value) {
+    return true;
+  }
+  if (script_expr_is_intrinsic(doc, expr, ScriptIntrinsic_ColorCompose)) {
+    return true;
+  }
+  if (script_expr_is_intrinsic(doc, expr, ScriptIntrinsic_ColorComposeHsv)) {
+    return true;
+  }
+  return false;
+}
+
+static void lsp_collect_colors(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
+  LspColorContext* colorCtx = ctx;
+  if (colorCtx->entryCount == array_elems(colorCtx->entries)) {
+    return; // Maximum amount of colors found.
+  }
+  if (lsp_expr_potential_color(doc, expr) && script_expr_static(doc, expr)) {
+    const ScriptVal val = script_expr_static_val(doc, expr);
+    if (script_type(val) == ScriptType_Color) {
+      colorCtx->entries[colorCtx->entryCount].range = script_expr_range(doc, expr);
+      colorCtx->entries[colorCtx->entryCount].color = script_get_color(val, geo_color_white);
+      ++colorCtx->entryCount;
+    }
+  }
+}
+
+static void lsp_handle_req_color(LspContext* ctx, const JRpcRequest* req) {
+  const LspDocument* doc = lsp_doc_from_json(ctx, req->params);
+  if (UNLIKELY(!doc)) {
+    lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+    return;
+  }
+
+  const ScriptDoc* scriptDoc    = doc->scriptDoc;
+  const ScriptExpr scriptRoot   = doc->scriptRoot;
+  const String     scriptSource = script_source_get(scriptDoc);
+
+  LspColorContext colorCtx = {0};
+  if (!sentinel_check(scriptRoot)) {
+    script_expr_visit(scriptDoc, scriptRoot, &colorCtx, lsp_collect_colors);
+  }
+
+  const JsonVal resultArr = json_add_array(ctx->jDoc);
+  for (u32 i = 0; i != colorCtx.entryCount; ++i) {
+    const LspColorInfo info = {
+        .range = script_range_to_line_col(scriptSource, colorCtx.entries[i].range),
+        .color = colorCtx.entries[i].color,
+    };
+    json_add_elem(ctx->jDoc, resultArr, lsp_color_info_to_json(ctx, &info));
+  }
+  lsp_send_response_success(ctx, req, resultArr);
+}
+
+static void lsp_handle_req_color_representation(LspContext* ctx, const JRpcRequest* req) {
+  const LspDocument* doc = lsp_doc_from_json(ctx, req->params);
+  if (UNLIKELY(!doc)) {
+    lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
+    return;
+  }
+
+  const JsonVal colObj = lsp_maybe_field(ctx, req->params, string_lit("color"));
+  const f64     colR   = lsp_maybe_number(ctx, lsp_maybe_field(ctx, colObj, string_lit("red")));
+  const f64     colG   = lsp_maybe_number(ctx, lsp_maybe_field(ctx, colObj, string_lit("green")));
+  const f64     colB   = lsp_maybe_number(ctx, lsp_maybe_field(ctx, colObj, string_lit("blue")));
+  const f64     colA   = lsp_maybe_number(ctx, lsp_maybe_field(ctx, colObj, string_lit("alpha")));
+
+  const String constructLabel = fmt_write_scratch(
+      "color({}, {}, {}, {})",
+      fmt_float(colR, .minDecDigits = 2, .maxDecDigits = 2),
+      fmt_float(colG, .minDecDigits = 2, .maxDecDigits = 2),
+      fmt_float(colB, .minDecDigits = 2, .maxDecDigits = 2),
+      fmt_float(colA, .minDecDigits = 2, .maxDecDigits = 2));
+
+  const JsonVal constructObj = json_add_object(ctx->jDoc);
+  json_add_field_lit(ctx->jDoc, constructObj, "label", json_add_string(ctx->jDoc, constructLabel));
+
+  const JsonVal resultArr = json_add_array(ctx->jDoc);
+  json_add_elem(ctx->jDoc, resultArr, constructObj);
+  lsp_send_response_success(ctx, req, resultArr);
+}
+
 static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
   static const struct {
     String method;
@@ -1606,6 +1719,8 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
       {string_static("textDocument/references"), lsp_handle_req_references},
       {string_static("textDocument/documentHighlight"), lsp_handle_req_highlight},
       {string_static("textDocument/rename"), lsp_handle_req_rename},
+      {string_static("textDocument/documentColor"), lsp_handle_req_color},
+      {string_static("textDocument/colorPresentation"), lsp_handle_req_color_representation},
   };
 
   for (u32 i = 0; i != array_elems(g_handlers); ++i) {
