@@ -372,6 +372,15 @@ bool script_expr_always_truthy(const ScriptDoc* doc, const ScriptExpr expr) {
   return !evalRes.panic.kind && script_truthy(evalRes.val);
 }
 
+bool script_expr_is_intrinsic(
+    const ScriptDoc* doc, const ScriptExpr expr, const ScriptIntrinsic intr) {
+  if (expr_kind(doc, expr) != ScriptExprKind_Intrinsic) {
+    return false;
+  }
+  const ScriptExprIntrinsic* data = &expr_data(doc, expr)->intrinsic;
+  return data->intrinsic == intr;
+}
+
 void script_expr_visit(
     const ScriptDoc* doc, const ScriptExpr expr, void* ctx, ScriptVisitor visitor) {
   /**
