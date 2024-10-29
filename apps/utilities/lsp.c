@@ -437,21 +437,28 @@ static JsonVal lsp_location_to_json(LspContext* ctx, const LspLocation* location
   return obj;
 }
 
+static JsonVal lsp_selection_range_empty_to_json(LspContext* ctx) {
+  const JsonVal obj = json_add_object(ctx->jDoc);
+  // TODO: Should this be an empty object or a '0:0 - 0:0' range?
+  json_add_field_lit(ctx->jDoc, obj, "range", json_add_object(ctx->jDoc));
+  return obj;
+}
+
 static JsonVal lsp_selection_range_to_json(
     LspContext* ctx, const ScriptRangeLineCol ranges[], const usize rangeCount) {
+  if (!rangeCount) {
+    return lsp_selection_range_empty_to_json(ctx);
+  }
   const JsonVal headObj = json_add_object(ctx->jDoc);
-  if (rangeCount) {
-    JsonVal tailObj = headObj;
-    json_add_field_lit(ctx->jDoc, headObj, "range", lsp_range_to_json(ctx, &ranges[0]));
-    for (u32 i = 1; i != rangeCount; ++i) {
-      const JsonVal obj = json_add_object(ctx->jDoc);
-      json_add_field_lit(ctx->jDoc, obj, "range", lsp_range_to_json(ctx, &ranges[i]));
-      json_add_field_lit(ctx->jDoc, tailObj, "parent", obj);
-      tailObj = obj;
-    }
-  } else {
-    // TODO: Should this be an empty object or a '0:0 - 0:0' range?
-    json_add_field_lit(ctx->jDoc, headObj, "range", json_add_object(ctx->jDoc));
+  json_add_field_lit(ctx->jDoc, headObj, "range", lsp_range_to_json(ctx, &ranges[0]));
+
+  JsonVal tailObj = headObj;
+  for (u32 i = 1; i != rangeCount; ++i) {
+    const JsonVal obj = json_add_object(ctx->jDoc);
+    json_add_field_lit(ctx->jDoc, obj, "range", lsp_range_to_json(ctx, &ranges[i]));
+
+    json_add_field_lit(ctx->jDoc, tailObj, "parent", obj);
+    tailObj = obj;
   }
   return headObj;
 }
@@ -1521,6 +1528,22 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
   lsp_send_response_success(ctx, req, workspaceEditObj);
 }
 
+typedef struct {
+  ScriptRange ranges[16];
+  usize       count;
+} LspSelectionRangesCtx;
+
+/**
+ * Collect a hierarchy of ranges corresponding to AST nodes containing the specified position.
+ */
+static bool lsp_find_selection_ranges(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
+  LspSelectionRangesCtx* rangesCtx = ctx;
+  if (rangesCtx->count != array_elems(rangesCtx->ranges)) {
+    rangesCtx->ranges[rangesCtx->count++] = script_expr_range(doc, expr);
+  }
+  return false; // Return false to visit all parent expressions as well.
+}
+
 static void lsp_handle_req_selection_range(LspContext* ctx, const JRpcRequest* req) {
   const LspDocument* doc = lsp_doc_from_json(ctx, req->params);
   if (UNLIKELY(!doc)) {
@@ -1534,21 +1557,35 @@ static void lsp_handle_req_selection_range(LspContext* ctx, const JRpcRequest* r
     return;
   }
 
-  const JsonVal resultArr = json_add_array(ctx->jDoc);
+  const ScriptDoc* scriptDoc    = doc->scriptDoc;
+  const ScriptExpr scriptRoot   = doc->scriptRoot;
+  const String     scriptSource = script_source_get(scriptDoc);
+
+  const JsonVal resArr = json_add_array(ctx->jDoc);
   json_for_elems(ctx->jDoc, positionsArr, posObj) {
-    ScriptPosLineCol pos;
-    if (!lsp_position_from_json(ctx, posObj, &pos)) {
-      lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
-      return;
+    ScriptPosLineCol posLc;
+    if (!lsp_position_from_json(ctx, posObj, &posLc) || sentinel_check(scriptRoot)) {
+      json_add_elem(ctx->jDoc, resArr, lsp_selection_range_empty_to_json(ctx));
+      continue; // Invalid position or script did not parse correctly.
     }
-    ScriptRangeLineCol ranges[32];
-    usize              rangeCount = 0;
+    const ScriptPos pos = script_pos_from_line_col(scriptSource, posLc);
+    if (sentinel_check(pos)) {
+      json_add_elem(ctx->jDoc, resArr, lsp_selection_range_empty_to_json(ctx));
+      continue; // Position out of bounds.
+    }
 
-    // TODO: Compute ranges.
+    // Collect hierarchy of ranges at the given position.
+    LspSelectionRangesCtx rangesCtx = {0};
+    script_expr_find(scriptDoc, scriptRoot, pos, &rangesCtx, lsp_find_selection_ranges);
 
-    json_add_elem(ctx->jDoc, resultArr, lsp_selection_range_to_json(ctx, ranges, rangeCount));
+    // Convert ranges to line-column format and add them to the result.
+    ScriptRangeLineCol rangesLc[array_elems(rangesCtx.ranges)];
+    for (usize i = 0; i != rangesCtx.count; ++i) {
+      rangesLc[i] = script_range_to_line_col(scriptSource, rangesCtx.ranges[i]);
+    }
+    json_add_elem(ctx->jDoc, resArr, lsp_selection_range_to_json(ctx, rangesLc, rangesCtx.count));
   }
-  lsp_send_response_success(ctx, req, resultArr);
+  lsp_send_response_success(ctx, req, resArr);
 }
 
 static bool lsp_semantic_token_sym_enabled(const ScriptSymKind kind) {
@@ -1728,9 +1765,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
 
   const ScriptSym    callSym = script_sym_find(scriptSyms, scriptDoc, callExpr);
   const LspSignature sig     = {
-      .label     = script_sym_label(scriptSyms, callSym),
-      .doc       = script_sym_doc(scriptSyms, callSym),
-      .scriptSig = script_sym_sig(scriptSyms, callSym),
+          .label     = script_sym_label(scriptSyms, callSym),
+          .doc       = script_sym_doc(scriptSyms, callSym),
+          .scriptSig = script_sym_sig(scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
