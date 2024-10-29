@@ -241,7 +241,12 @@ void script_val_write(const ScriptVal value, DynString* str) {
   case ScriptType_Color: {
     const GeoColor c = val_as_color(value);
     format_write_arg(
-        str, &fmt_list_lit(fmt_float(c.r), fmt_float(c.g), fmt_float(c.b), fmt_float(c.a)));
+        str,
+        &fmt_list_lit(
+            fmt_float(c.r, .minDecDigits = 2, .maxDecDigits = 2),
+            fmt_float(c.g, .minDecDigits = 2, .maxDecDigits = 2),
+            fmt_float(c.b, .minDecDigits = 2, .maxDecDigits = 2),
+            fmt_float(c.a, .minDecDigits = 2, .maxDecDigits = 2)));
     return;
   }
   case ScriptType_Entity:
