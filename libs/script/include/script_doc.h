@@ -104,6 +104,7 @@ ScriptRangeLineCol script_expr_range_line_col(const ScriptDoc*, ScriptExpr); // 
 bool               script_expr_static(const ScriptDoc*, ScriptExpr);
 ScriptVal          script_expr_static_val(const ScriptDoc*, ScriptExpr);
 bool               script_expr_always_truthy(const ScriptDoc*, ScriptExpr);
+bool               script_expr_is_intrinsic(const ScriptDoc*, ScriptExpr, ScriptIntrinsic);
 
 typedef bool (*ScriptPred)(void* ctx, const ScriptDoc*, ScriptExpr);
 ScriptExpr script_expr_find(const ScriptDoc*, ScriptExpr root, ScriptPos, void* ctx, ScriptPred);

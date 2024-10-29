@@ -7,14 +7,6 @@
 #include "doc_internal.h"
 #include "val_internal.h"
 
-static bool expr_is_intrinsic(ScriptDoc* d, const ScriptExpr e, const ScriptIntrinsic intr) {
-  if (expr_kind(d, e) != ScriptExprKind_Intrinsic) {
-    return false;
-  }
-  const ScriptExprIntrinsic* data = &expr_data(d, e)->intrinsic;
-  return data->intrinsic == intr;
-}
-
 static bool expr_is_mem_load(ScriptDoc* d, const ScriptExpr e, const StringHash key) {
   if (expr_kind(d, e) != ScriptExprKind_MemLoad) {
     return false;
@@ -181,7 +173,7 @@ static ScriptExpr opt_null_coalescing_store_rewriter(void* ctx, ScriptDoc* d, co
     const ScriptRange storeRange = script_expr_range(d, e);
     const ScriptExpr  storeVal   = expr_data(d, e)->mem_store.val;
     const StringHash  storeKey   = expr_data(d, e)->mem_store.key;
-    if (!expr_is_intrinsic(d, storeVal, ScriptIntrinsic_NullCoalescing)) {
+    if (!script_expr_is_intrinsic(d, storeVal, ScriptIntrinsic_NullCoalescing)) {
       return e; // Not a null-coalescing store.
     }
     if (!expr_is_mem_load(d, expr_intrinsic_arg(d, storeVal, 0), storeKey)) {
@@ -204,7 +196,7 @@ static ScriptExpr opt_null_coalescing_store_rewriter(void* ctx, ScriptDoc* d, co
 static ScriptExpr opt_static_mem_access(void* ctx, ScriptDoc* d, const ScriptExpr e) {
   (void)ctx;
   // Rewrite dynamic-mem-load intrinsics with a static key expr to non-dynamic mem loads.
-  if (expr_is_intrinsic(d, e, ScriptIntrinsic_MemLoadDynamic)) {
+  if (script_expr_is_intrinsic(d, e, ScriptIntrinsic_MemLoadDynamic)) {
     const ScriptExpr keyExpr = expr_intrinsic_arg(d, e, 0);
     if (script_expr_static(d, keyExpr)) {
       const ScriptVal keyVal = script_expr_static_val(d, keyExpr);
@@ -214,7 +206,7 @@ static ScriptExpr opt_static_mem_access(void* ctx, ScriptDoc* d, const ScriptExp
     }
   }
   // Rewrite dynamic-mem-store intrinsics with a static key expr to non-dynamic mem stores.
-  if (expr_is_intrinsic(d, e, ScriptIntrinsic_MemStoreDynamic)) {
+  if (script_expr_is_intrinsic(d, e, ScriptIntrinsic_MemStoreDynamic)) {
     const ScriptExpr keyExpr = expr_intrinsic_arg(d, e, 0);
     if (script_expr_static(d, keyExpr)) {
       const ScriptVal keyVal = script_expr_static_val(d, keyExpr);
