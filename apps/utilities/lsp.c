@@ -1830,7 +1830,7 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
   lsp_send_response_error(ctx, req, &g_jrpcErrorMethodNotFound);
 }
 
-static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
+static void lsp_handle_jrpc(LspContext* ctx, const LspHeader* header, const JsonVal value) {
   const String version = lsp_maybe_str(ctx, lsp_maybe_field(ctx, value, string_lit("jsonrpc")));
   if (UNLIKELY(!string_eq(version, string_lit("2.0")))) {
     ctx->status = LspStatus_ErrorUnsupportedJRpcVersion;
@@ -1857,7 +1857,11 @@ static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
     const TimeDuration dur      = time_steady_duration(startTime, time_steady_clock());
     const usize        bytesOut = ctx->bytesOut - startBytesOut;
     const String       text     = fmt_write_scratch(
-        "[{}] {} - out: {}", fmt_text(method), fmt_duration(dur), fmt_size(bytesOut));
+        "[{}] dur: {} in: {} out: {}",
+        fmt_text(method),
+        fmt_duration(dur),
+        fmt_size(header->contentLength),
+        fmt_size(bytesOut));
     lsp_send_info(ctx, text);
   }
 }
@@ -1899,7 +1903,7 @@ static i32 lsp_run_stdio(const ScriptBinder* scriptBinder) {
       break;
     }
 
-    lsp_handle_jrpc(&ctx, jsonResult.val);
+    lsp_handle_jrpc(&ctx, &header, jsonResult.val);
 
     lsp_read_trim(&ctx);
     json_clear(jDoc);
