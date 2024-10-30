@@ -4,7 +4,7 @@
   "displayName": "volo",
   "description": "Ide support for the Volo engine",
   "license": "MIT",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "repository": {
     "type": "git",
     "url": "https://github.com/bastianblokland/volo"
@@ -57,6 +57,11 @@
           "default": "off",
           "enum": [ "off", "messages", "verbose" ],
           "description": "Control the LSP server diagnostic trace mode."
+        },
+        "volo-lsp.profile": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable diagnostic profiling for the LSP server."
         }
       }
     }

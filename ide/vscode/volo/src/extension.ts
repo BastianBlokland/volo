@@ -11,8 +11,8 @@ import {
 
 let client: LanguageClient;
 
-function getWorkspaceServerPaths(workspace: WorkspaceFolder): string[] {
-  const serverPath = path.join(workspace.uri.fsPath, "build", "apps", "utilities", "app_lsp");
+function getWorkspaceServerPaths(workspaceFolder: WorkspaceFolder): string[] {
+  const serverPath = path.join(workspaceFolder.uri.fsPath, "build", "apps", "utilities", "app_lsp");
   return [serverPath, serverPath + ".exe"];
 }
 
@@ -24,8 +24,8 @@ function getValidServerPath(): string | undefined {
   return getServerPaths().filter(fs.existsSync)[0];
 }
 
-function getWorkspaceBinderPaths(workspace: WorkspaceFolder): string[] {
-  return [path.join(workspace.uri.fsPath, "assets", "schemas", "script_binder.json")];
+function getWorkspaceBinderPaths(workspaceFolder: WorkspaceFolder): string[] {
+  return [path.join(workspaceFolder.uri.fsPath, "assets", "schemas", "script_binder.json")];
 }
 
 function getBinderPaths(): string[] {
@@ -59,6 +59,9 @@ export function activate(context: ExtensionContext) {
   const clientOptions: LanguageClientOptions = {
     documentSelector: [{ scheme: 'file', language: 'volo-script' }],
     stdioEncoding: "utf8",
+    initializationOptions: {
+      profile: workspace.getConfiguration("volo-lsp").get("profile"),
+    },
     synchronize: {}
   };
 

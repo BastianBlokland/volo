@@ -49,6 +49,7 @@ typedef enum {
   LspFlags_Initialized = 1 << 0,
   LspFlags_Shutdown    = 1 << 1,
   LspFlags_Trace       = 1 << 2,
+  LspFlags_Profile     = 1 << 3,
 } LspFlags;
 
 typedef struct {
@@ -895,6 +896,12 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   const JsonVal traceVal = lsp_maybe_field(ctx, req->params, string_lit("trace"));
   if (!sentinel_check(traceVal)) {
     lsp_update_trace_config(ctx, traceVal);
+  }
+
+  const JsonVal options = lsp_maybe_field(ctx, req->params, string_lit("initializationOptions"));
+  const JsonVal optionProfile = lsp_maybe_field(ctx, options, string_lit("profile"));
+  if (lsp_maybe_bool(ctx, optionProfile)) {
+    ctx->flags |= LspFlags_Profile;
   }
 
   const JsonVal docSyncOpts = json_add_object(ctx->jDoc);
@@ -1765,9 +1772,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
 
   const ScriptSym    callSym = script_sym_find(scriptSyms, scriptDoc, callExpr);
   const LspSignature sig     = {
-          .label     = script_sym_label(scriptSyms, callSym),
-          .doc       = script_sym_doc(scriptSyms, callSym),
-          .scriptSig = script_sym_sig(scriptSyms, callSym),
+      .label     = script_sym_label(scriptSyms, callSym),
+      .doc       = script_sym_doc(scriptSyms, callSym),
+      .scriptSig = script_sym_sig(scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
