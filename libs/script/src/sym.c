@@ -8,6 +8,8 @@
 
 #include "doc_internal.h"
 
+#define sym_transient_chunk_size (16 * usize_kibibyte)
+
 ASSERT(script_syms_max < u16_max, "ScriptSym has to be storable as a 16-bit integer");
 
 typedef struct {
@@ -50,6 +52,7 @@ typedef struct {
 
 struct sScriptSymBag {
   Allocator* alloc;
+  Allocator* allocTransient;
   DynArray   symbols;    // ScriptSym[]
   DynArray   references; // ScriptSymRef[], kept sorted on 'sym'.
 };
@@ -177,56 +180,37 @@ ScriptSymBag* script_sym_bag_create(Allocator* alloc) {
   ScriptSymBag* bag = alloc_alloc_t(alloc, ScriptSymBag);
 
   *bag = (ScriptSymBag){
-      .alloc      = alloc,
-      .symbols    = dynarray_create_t(alloc, ScriptSymData, 128),
-      .references = dynarray_create_t(alloc, ScriptSymRef, 128),
+      .alloc          = alloc,
+      .allocTransient = alloc_chunked_create(alloc, alloc_bump_create, sym_transient_chunk_size),
+      .symbols        = dynarray_create_t(alloc, ScriptSymData, 128),
+      .references     = dynarray_create_t(alloc, ScriptSymRef, 128),
   };
 
   return bag;
 }
 
 void script_sym_bag_destroy(ScriptSymBag* bag) {
-  script_sym_bag_clear(bag);
   dynarray_destroy(&bag->symbols);
   dynarray_destroy(&bag->references);
+  alloc_chunked_destroy(bag->allocTransient);
   alloc_free_t(bag->alloc, bag);
 }
 
 void script_sym_bag_clear(ScriptSymBag* bag) {
-  dynarray_for_t(&bag->symbols, ScriptSymData, sym) {
-    string_free(bag->alloc, sym->label);
-    string_maybe_free(bag->alloc, sym->doc);
-    switch (sym->kind) {
-    case ScriptSymKind_BuiltinFunction:
-      if (sym->data.builtinFunc.sig) {
-        script_sig_destroy(sym->data.builtinFunc.sig);
-      }
-      break;
-    case ScriptSymKind_ExternFunction:
-      if (sym->data.externFunc.sig) {
-        script_sig_destroy(sym->data.externFunc.sig);
-      }
-      break;
-    case ScriptSymKind_Variable:
-    case ScriptSymKind_MemoryKey:
-    case ScriptSymKind_BuiltinConstant:
-    case ScriptSymKind_Keyword:
-    case ScriptSymKind_Count:
-      break;
-    }
-  }
   dynarray_clear(&bag->symbols);
   dynarray_clear(&bag->references);
+  alloc_reset(bag->allocTransient);
 }
 
 ScriptSym script_sym_push_keyword(ScriptSymBag* bag, const String label) {
   diag_assert(!string_is_empty(label));
 
+  // TODO: Report error when the transient allocator runs out of space.
   return sym_push(
       bag,
       &(ScriptSymData){
           .kind       = ScriptSymKind_Keyword,
-          .label      = string_dup(bag->alloc, label),
+          .label      = string_dup(bag->allocTransient, label),
           .validRange = script_range_sentinel,
       });
 }
@@ -234,11 +218,12 @@ ScriptSym script_sym_push_keyword(ScriptSymBag* bag, const String label) {
 ScriptSym script_sym_push_builtin_const(ScriptSymBag* bag, const String label, const ScriptVal v) {
   diag_assert(!string_is_empty(label));
 
+  // TODO: Report error when the transient allocator runs out of space.
   return sym_push(
       bag,
       &(ScriptSymData){
           .kind                    = ScriptSymKind_BuiltinConstant,
-          .label                   = string_dup(bag->alloc, label),
+          .label                   = string_dup(bag->allocTransient, label),
           .validRange              = script_range_sentinel,
           .data.builtinConst.value = v,
       });
@@ -252,15 +237,16 @@ ScriptSym script_sym_push_builtin_func(
     const ScriptSig*      sig) {
   diag_assert(!string_is_empty(label));
 
+  // TODO: Report error when the transient allocator runs out of space.
   return sym_push(
       bag,
       &(ScriptSymData){
           .kind                  = ScriptSymKind_BuiltinFunction,
-          .label                 = string_dup(bag->alloc, label),
-          .doc                   = string_maybe_dup(bag->alloc, doc),
+          .label                 = string_dup(bag->allocTransient, label),
+          .doc                   = string_maybe_dup(bag->allocTransient, doc),
           .validRange            = script_range_sentinel,
           .data.builtinFunc.intr = intr,
-          .data.builtinFunc.sig  = sig ? script_sig_clone(bag->alloc, sig) : null,
+          .data.builtinFunc.sig  = sig ? script_sig_clone(bag->allocTransient, sig) : null,
       });
 }
 
@@ -272,15 +258,16 @@ ScriptSym script_sym_push_extern_func(
     const ScriptSig*       sig) {
   diag_assert(!string_is_empty(label));
 
+  // TODO: Report error when the transient allocator runs out of space.
   return sym_push(
       bag,
       &(ScriptSymData){
           .kind                       = ScriptSymKind_ExternFunction,
-          .label                      = string_dup(bag->alloc, label),
-          .doc                        = string_maybe_dup(bag->alloc, doc),
+          .label                      = string_dup(bag->allocTransient, label),
+          .doc                        = string_maybe_dup(bag->allocTransient, doc),
           .validRange                 = script_range_sentinel,
           .data.externFunc.binderSlot = binderSlot,
-          .data.externFunc.sig        = sig ? script_sig_clone(bag->alloc, sig) : null,
+          .data.externFunc.sig        = sig ? script_sig_clone(bag->allocTransient, sig) : null,
       });
 }
 
@@ -292,11 +279,12 @@ ScriptSym script_sym_push_var(
     const ScriptRange   location) {
   diag_assert(!string_is_empty(label));
 
+  // TODO: Report error when the transient allocator runs out of space.
   return sym_push(
       bag,
       &(ScriptSymData){
           .kind              = ScriptSymKind_Variable,
-          .label             = string_dup(bag->alloc, label),
+          .label             = string_dup(bag->allocTransient, label),
           .validRange        = script_range_sentinel,
           .data.var.slot     = slot,
           .data.var.scope    = scope,
@@ -307,11 +295,12 @@ ScriptSym script_sym_push_var(
 ScriptSym script_sym_push_mem_key(ScriptSymBag* bag, const String label, const StringHash key) {
   diag_assert(!string_is_empty(label));
 
+  // TODO: Report error when the transient allocator runs out of space.
   return sym_push(
       bag,
       &(ScriptSymData){
           .kind            = ScriptSymKind_MemoryKey,
-          .label           = string_dup(bag->alloc, label),
+          .label           = string_dup(bag->allocTransient, label),
           .validRange      = script_range_sentinel,
           .data.memKey.key = key,
       });
