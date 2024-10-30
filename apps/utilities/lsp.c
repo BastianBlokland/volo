@@ -49,6 +49,7 @@ typedef enum {
   LspFlags_Initialized = 1 << 0,
   LspFlags_Shutdown    = 1 << 1,
   LspFlags_Trace       = 1 << 2,
+  LspFlags_Profile     = 1 << 3,
 } LspFlags;
 
 typedef struct {
@@ -70,6 +71,7 @@ typedef struct {
   DynArray*           openDocs; // LspDocument[]*
   File*               in;
   File*               out;
+  usize               bytesOut; // For diagnostic purposes only.
 } LspContext;
 
 typedef struct {
@@ -635,6 +637,7 @@ static void lsp_send_json(LspContext* ctx, const JsonVal val) {
   dynstring_insert(ctx->writeBuffer, headerText, 0);
 
   file_write_sync(ctx->out, dynstring_view(ctx->writeBuffer));
+  ctx->bytesOut += ctx->writeBuffer->size;
   dynstring_clear(ctx->writeBuffer);
 }
 
@@ -895,6 +898,12 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
   const JsonVal traceVal = lsp_maybe_field(ctx, req->params, string_lit("trace"));
   if (!sentinel_check(traceVal)) {
     lsp_update_trace_config(ctx, traceVal);
+  }
+
+  const JsonVal options = lsp_maybe_field(ctx, req->params, string_lit("initializationOptions"));
+  const JsonVal optionProfile = lsp_maybe_field(ctx, options, string_lit("profile"));
+  if (lsp_maybe_bool(ctx, optionProfile)) {
+    ctx->flags |= LspFlags_Profile;
   }
 
   const JsonVal docSyncOpts = json_add_object(ctx->jDoc);
@@ -1765,9 +1774,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
 
   const ScriptSym    callSym = script_sym_find(scriptSyms, scriptDoc, callExpr);
   const LspSignature sig     = {
-          .label     = script_sym_label(scriptSyms, callSym),
-          .doc       = script_sym_doc(scriptSyms, callSym),
-          .scriptSig = script_sym_sig(scriptSyms, callSym),
+      .label     = script_sym_label(scriptSyms, callSym),
+      .doc       = script_sym_doc(scriptSyms, callSym),
+      .scriptSig = script_sym_sig(scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
@@ -1821,7 +1830,7 @@ static void lsp_handle_req(LspContext* ctx, const JRpcRequest* req) {
   lsp_send_response_error(ctx, req, &g_jrpcErrorMethodNotFound);
 }
 
-static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
+static void lsp_handle_jrpc(LspContext* ctx, const LspHeader* header, const JsonVal value) {
   const String version = lsp_maybe_str(ctx, lsp_maybe_field(ctx, value, string_lit("jsonrpc")));
   if (UNLIKELY(!string_eq(version, string_lit("2.0")))) {
     ctx->status = LspStatus_ErrorUnsupportedJRpcVersion;
@@ -1835,10 +1844,29 @@ static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
   const JsonVal params = lsp_maybe_field(ctx, value, string_lit("params"));
   const JsonVal id     = lsp_maybe_field(ctx, value, string_lit("id"));
 
+  const TimeSteady startTime       = time_steady_clock();
+  const usize      startBytesOut   = ctx->bytesOut;
+  const u64        startHeapAllocs = alloc_stats_query().heapCounter;
+
   if (sentinel_check(id)) {
     lsp_handle_notif(ctx, &(JRpcNotification){.method = method, .params = params});
   } else {
     lsp_handle_req(ctx, &(JRpcRequest){.method = method, .params = params, .id = id});
+  }
+
+  if (ctx->flags & LspFlags_Profile) {
+    const TimeDuration dur        = time_steady_duration(startTime, time_steady_clock());
+    const usize        bytesOut   = ctx->bytesOut - startBytesOut;
+    const u64          heapAllocs = alloc_stats_query().heapCounter - startHeapAllocs;
+
+    const String text = fmt_write_scratch(
+        "[Profile] dur: {<7} in: {<8} out: {<8} allocs: {<4} ({})",
+        fmt_duration(dur),
+        fmt_size(header->contentLength),
+        fmt_size(bytesOut),
+        fmt_int(heapAllocs),
+        fmt_text(method));
+    lsp_send_info(ctx, text);
   }
 }
 
@@ -1879,7 +1907,7 @@ static i32 lsp_run_stdio(const ScriptBinder* scriptBinder) {
       break;
     }
 
-    lsp_handle_jrpc(&ctx, jsonResult.val);
+    lsp_handle_jrpc(&ctx, &header, jsonResult.val);
 
     lsp_read_trim(&ctx);
     json_clear(jDoc);
