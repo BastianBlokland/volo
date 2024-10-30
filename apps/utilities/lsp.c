@@ -1842,10 +1842,17 @@ static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
   const JsonVal params = lsp_maybe_field(ctx, value, string_lit("params"));
   const JsonVal id     = lsp_maybe_field(ctx, value, string_lit("id"));
 
+  const TimeSteady timeStart = time_steady_clock();
+
   if (sentinel_check(id)) {
     lsp_handle_notif(ctx, &(JRpcNotification){.method = method, .params = params});
   } else {
     lsp_handle_req(ctx, &(JRpcRequest){.method = method, .params = params, .id = id});
+  }
+
+  if (ctx->flags & LspFlags_Profile) {
+    const TimeDuration timeDur = time_steady_duration(timeStart, time_steady_clock());
+    lsp_send_info(ctx, fmt_write_scratch("[{}] {}", fmt_text(method), fmt_duration(timeDur)));
   }
 }
 
