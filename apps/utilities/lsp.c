@@ -1844,8 +1844,9 @@ static void lsp_handle_jrpc(LspContext* ctx, const LspHeader* header, const Json
   const JsonVal params = lsp_maybe_field(ctx, value, string_lit("params"));
   const JsonVal id     = lsp_maybe_field(ctx, value, string_lit("id"));
 
-  const TimeSteady startTime     = time_steady_clock();
-  const usize      startBytesOut = ctx->bytesOut;
+  const TimeSteady startTime       = time_steady_clock();
+  const usize      startBytesOut   = ctx->bytesOut;
+  const u64        startHeapAllocs = alloc_stats_query().heapCounter;
 
   if (sentinel_check(id)) {
     lsp_handle_notif(ctx, &(JRpcNotification){.method = method, .params = params});
@@ -1854,13 +1855,16 @@ static void lsp_handle_jrpc(LspContext* ctx, const LspHeader* header, const Json
   }
 
   if (ctx->flags & LspFlags_Profile) {
-    const TimeDuration dur      = time_steady_duration(startTime, time_steady_clock());
-    const usize        bytesOut = ctx->bytesOut - startBytesOut;
-    const String       text     = fmt_write_scratch(
-        "[Profile] dur: {<7} in: {<7} out: {<7} ({})",
+    const TimeDuration dur        = time_steady_duration(startTime, time_steady_clock());
+    const usize        bytesOut   = ctx->bytesOut - startBytesOut;
+    const u64          heapAllocs = alloc_stats_query().heapCounter - startHeapAllocs;
+
+    const String text = fmt_write_scratch(
+        "[Profile] dur: {<7} in: {<7} out: {<7} allocs: {<3} ({})",
         fmt_duration(dur),
         fmt_size(header->contentLength),
         fmt_size(bytesOut),
+        fmt_int(heapAllocs),
         fmt_text(method));
     lsp_send_info(ctx, text);
   }
