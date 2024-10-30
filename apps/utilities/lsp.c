@@ -1857,11 +1857,11 @@ static void lsp_handle_jrpc(LspContext* ctx, const LspHeader* header, const Json
     const TimeDuration dur      = time_steady_duration(startTime, time_steady_clock());
     const usize        bytesOut = ctx->bytesOut - startBytesOut;
     const String       text     = fmt_write_scratch(
-        "[{}] dur: {} in: {} out: {}",
-        fmt_text(method),
+        "[Profile] dur: {<7} in: {<7} out: {<7} ({})",
         fmt_duration(dur),
         fmt_size(header->contentLength),
-        fmt_size(bytesOut));
+        fmt_size(bytesOut),
+        fmt_text(method));
     lsp_send_info(ctx, text);
   }
 }
