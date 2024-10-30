@@ -1860,7 +1860,7 @@ static void lsp_handle_jrpc(LspContext* ctx, const LspHeader* header, const Json
     const u64          heapAllocs = alloc_stats_query().heapCounter - startHeapAllocs;
 
     const String text = fmt_write_scratch(
-        "[Profile] dur: {<7} in: {<7} out: {<7} allocs: {<3} ({})",
+        "[Profile] dur: {<7} in: {<8} out: {<8} allocs: {<4} ({})",
         fmt_duration(dur),
         fmt_size(header->contentLength),
         fmt_size(bytesOut),
