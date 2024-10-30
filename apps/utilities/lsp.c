@@ -71,6 +71,7 @@ typedef struct {
   DynArray*           openDocs; // LspDocument[]*
   File*               in;
   File*               out;
+  usize               bytesOut; // For diagnostic purposes only.
 } LspContext;
 
 typedef struct {
@@ -636,6 +637,7 @@ static void lsp_send_json(LspContext* ctx, const JsonVal val) {
   dynstring_insert(ctx->writeBuffer, headerText, 0);
 
   file_write_sync(ctx->out, dynstring_view(ctx->writeBuffer));
+  ctx->bytesOut += ctx->writeBuffer->size;
   dynstring_clear(ctx->writeBuffer);
 }
 
@@ -1842,7 +1844,8 @@ static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
   const JsonVal params = lsp_maybe_field(ctx, value, string_lit("params"));
   const JsonVal id     = lsp_maybe_field(ctx, value, string_lit("id"));
 
-  const TimeSteady timeStart = time_steady_clock();
+  const TimeSteady startTime     = time_steady_clock();
+  const usize      startBytesOut = ctx->bytesOut;
 
   if (sentinel_check(id)) {
     lsp_handle_notif(ctx, &(JRpcNotification){.method = method, .params = params});
@@ -1851,8 +1854,11 @@ static void lsp_handle_jrpc(LspContext* ctx, const JsonVal value) {
   }
 
   if (ctx->flags & LspFlags_Profile) {
-    const TimeDuration timeDur = time_steady_duration(timeStart, time_steady_clock());
-    lsp_send_info(ctx, fmt_write_scratch("[{}] {}", fmt_text(method), fmt_duration(timeDur)));
+    const TimeDuration dur      = time_steady_duration(startTime, time_steady_clock());
+    const usize        bytesOut = ctx->bytesOut - startBytesOut;
+    const String       text     = fmt_write_scratch(
+        "[{}] {} - out: {}", fmt_text(method), fmt_duration(dur), fmt_size(bytesOut));
+    lsp_send_info(ctx, text);
   }
 }
 
