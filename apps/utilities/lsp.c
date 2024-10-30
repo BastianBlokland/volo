@@ -1652,7 +1652,7 @@ static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* r
   const ScriptSymBag* scriptSyms   = doc->scriptSyms;
   const String        scriptSource = script_source_get(scriptDoc);
 
-  LspSemanticToken tokens[1024];
+  LspSemanticToken tokens[2048];
   usize            tokenCount = 0;
 
   // Gather tokens from symbols.
