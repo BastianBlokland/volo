@@ -620,6 +620,44 @@ static bool lsp_doc_pos_from_json(LspContext* ctx, const JsonVal val, LspTextDoc
   return true;
 }
 
+static LspTextEdit lsp_edit_delta(const String from, const String to) {
+  const u32 headMax = (u32)math_min(from.size, to.size);
+
+  // Compute the head index where both strings are still identical.
+  u32 head = 0;
+  for (; head != headMax; ++head) {
+    if (*string_at(from, head) != *string_at(to, head)) {
+      break; // Difference found.
+    }
+  }
+
+  const u32 tailMax = (u32)math_min(to.size - head, from.size - head);
+
+  // Compute the tail index where both strings are still identical.
+  u32 tail = 0;
+  for (; tail != tailMax; ++tail) {
+    if (*string_at(from, from.size - tail - 1) != *string_at(to, to.size - tail - 1)) {
+      break; // Difference found.
+    }
+  }
+
+  const ScriptRange range = {.start = head, .end = (u32)from.size - tail};
+  return (LspTextEdit){
+      .range   = script_range_to_line_col(from, range),
+      .newText = string_slice(to, head, to.size - tail - head),
+  };
+}
+
+static bool lsp_edit_is_ident(const LspTextEdit* edit) {
+  if (edit->range.start.line != edit->range.end.line) {
+    return false;
+  }
+  if (edit->range.start.column != edit->range.end.column) {
+    return false;
+  }
+  return string_is_empty(edit->newText);
+}
+
 static void lsp_update_trace_config(LspContext* ctx, const JsonVal traceValue) {
   if (string_eq(lsp_maybe_str(ctx, traceValue), string_lit("off"))) {
     ctx->flags &= ~LspFlags_Trace;
@@ -1311,14 +1349,15 @@ static void lsp_handle_req_formatting(LspContext* ctx, const JRpcRequest* req) {
         ctx, fmt_write_scratch("Document formatted: {} ({})", fmt_text(docId), fmt_duration(dur)));
   }
 
-  const String formattedDocText = dynstring_view(&resultBuffer);
+  const String  formattedDocText = dynstring_view(&resultBuffer);
+  const JsonVal editsArr         = json_add_array(ctx->jDoc);
 
-  const JsonVal editsArr = json_add_array(ctx->jDoc);
-  if (!string_eq(sourceText, formattedDocText)) {
-    // TODO: Report text ranges in utf16 instead of utf32.
-    const ScriptRange        editRange   = script_range_full(sourceText);
-    const ScriptRangeLineCol editRangeLc = script_range_to_line_col(sourceText, editRange);
-    const LspTextEdit        edit        = {.range = editRangeLc, .newText = formattedDocText};
+  // TODO: Report text ranges in utf16 instead of utf32.
+  const LspTextEdit edit = lsp_edit_delta(sourceText, formattedDocText);
+  if (lsp_edit_is_ident(&edit)) {
+    diag_assert(string_eq(sourceText, formattedDocText));
+  } else {
+    diag_assert(!string_eq(sourceText, formattedDocText));
     json_add_elem(ctx->jDoc, editsArr, lsp_text_edit_to_json(ctx, &edit));
   }
   lsp_send_response_success(ctx, req, editsArr);
@@ -1652,7 +1691,7 @@ static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* r
   const ScriptSymBag* scriptSyms   = doc->scriptSyms;
   const String        scriptSource = script_source_get(scriptDoc);
 
-  LspSemanticToken tokens[1024];
+  LspSemanticToken tokens[2048];
   usize            tokenCount = 0;
 
   // Gather tokens from symbols.
@@ -1672,7 +1711,7 @@ static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* r
       if (UNLIKELY(symLocLc.start.line != symLocLc.end.line)) {
         continue; // Multi-line tokens are not supported.
       }
-      if (tokenCount == array_elems(tokens)) {
+      if (UNLIKELY(tokenCount == array_elems(tokens))) {
         break; // Token limit reached.
       }
       tokens[tokenCount++] = (LspSemanticToken){
@@ -1690,7 +1729,7 @@ static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* r
       if (UNLIKELY(refLoc.start.line != refLoc.end.line)) {
         continue; // Multi-line tokens are not supported.
       }
-      if (tokenCount == array_elems(tokens)) {
+      if (UNLIKELY(tokenCount == array_elems(tokens))) {
         break; // Token limit reached.
       }
       tokens[tokenCount++] = (LspSemanticToken){
