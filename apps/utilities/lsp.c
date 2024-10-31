@@ -648,6 +648,16 @@ static LspTextEdit lsp_edit_delta(const String from, const String to) {
   };
 }
 
+static bool lsp_edit_is_ident(const LspTextEdit* edit) {
+  if (edit->range.start.line != edit->range.end.line) {
+    return false;
+  }
+  if (edit->range.start.column != edit->range.end.column) {
+    return false;
+  }
+  return string_is_empty(edit->newText);
+}
+
 static void lsp_update_trace_config(LspContext* ctx, const JsonVal traceValue) {
   if (string_eq(lsp_maybe_str(ctx, traceValue), string_lit("off"))) {
     ctx->flags &= ~LspFlags_Trace;
@@ -1344,7 +1354,12 @@ static void lsp_handle_req_formatting(LspContext* ctx, const JRpcRequest* req) {
 
   // TODO: Report text ranges in utf16 instead of utf32.
   const LspTextEdit edit = lsp_edit_delta(sourceText, formattedDocText);
-  json_add_elem(ctx->jDoc, editsArr, lsp_text_edit_to_json(ctx, &edit));
+  if (lsp_edit_is_ident(&edit)) {
+    diag_assert(string_eq(sourceText, formattedDocText));
+  } else {
+    diag_assert(!string_eq(sourceText, formattedDocText));
+    json_add_elem(ctx->jDoc, editsArr, lsp_text_edit_to_json(ctx, &edit));
+  }
   lsp_send_response_success(ctx, req, editsArr);
 
   dynarray_destroy(&resultBuffer);
