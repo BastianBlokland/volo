@@ -1691,7 +1691,7 @@ static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* r
   const ScriptSymBag* scriptSyms   = doc->scriptSyms;
   const String        scriptSource = script_source_get(scriptDoc);
 
-  LspSemanticToken tokens[2048];
+  LspSemanticToken tokens[4096];
   usize            tokenCount = 0;
 
   // Gather tokens from symbols.
@@ -1813,9 +1813,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
 
   const ScriptSym    callSym = script_sym_find(scriptSyms, scriptDoc, callExpr);
   const LspSignature sig     = {
-      .label     = script_sym_label(scriptSyms, callSym),
-      .doc       = script_sym_doc(scriptSyms, callSym),
-      .scriptSig = script_sym_sig(scriptSyms, callSym),
+          .label     = script_sym_label(scriptSyms, callSym),
+          .doc       = script_sym_doc(scriptSyms, callSym),
+          .scriptSig = script_sym_sig(scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
