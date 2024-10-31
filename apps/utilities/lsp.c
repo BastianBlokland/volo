@@ -1711,7 +1711,7 @@ static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* r
       if (UNLIKELY(symLocLc.start.line != symLocLc.end.line)) {
         continue; // Multi-line tokens are not supported.
       }
-      if (tokenCount == array_elems(tokens)) {
+      if (UNLIKELY(tokenCount == array_elems(tokens))) {
         break; // Token limit reached.
       }
       tokens[tokenCount++] = (LspSemanticToken){
@@ -1729,7 +1729,7 @@ static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* r
       if (UNLIKELY(refLoc.start.line != refLoc.end.line)) {
         continue; // Multi-line tokens are not supported.
       }
-      if (tokenCount == array_elems(tokens)) {
+      if (UNLIKELY(tokenCount == array_elems(tokens))) {
         break; // Token limit reached.
       }
       tokens[tokenCount++] = (LspSemanticToken){
