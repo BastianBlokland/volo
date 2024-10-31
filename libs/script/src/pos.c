@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_utf8.h"
@@ -99,4 +100,37 @@ ScriptRange script_range_from_line_col(const String src, const ScriptRangeLineCo
       .start = script_pos_from_line_col(src, range.start),
       .end   = script_pos_from_line_col(src, range.end),
   };
+}
+
+struct sScriptPosLookup {
+  Allocator* alloc;
+  usize      srcSize;
+  DynArray   lineEnds; // ScriptPos[], sorted positions in the source where a line ends.
+};
+
+ScriptPosLookup* script_pos_lookup_create(Allocator* alloc) {
+  ScriptPosLookup* lookup = alloc_alloc_t(alloc, ScriptPosLookup);
+
+  *lookup = (ScriptPosLookup){
+      .alloc    = alloc,
+      .lineEnds = dynarray_create_t(alloc, ScriptPos, 128),
+  };
+
+  return lookup;
+}
+
+void script_pos_lookup_update(ScriptPosLookup* lookup, const String src) {
+  lookup->srcSize = src.size;
+
+  dynarray_clear(&lookup->lineEnds);
+  for (const u8* itr = string_begin(src); itr != string_end(src); ++itr) {
+    if (*itr == '\n') {
+      *dynarray_push_t(&lookup->lineEnds, ScriptPos) = (ScriptPos)(itr - string_begin(src));
+    }
+  }
+}
+
+void script_pos_lookup_destroy(ScriptPosLookup* lookup) {
+  dynarray_destroy(&lookup->lineEnds);
+  alloc_free_t(lookup->alloc, lookup);
 }

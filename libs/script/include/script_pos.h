@@ -30,3 +30,12 @@ ScriptRange        script_range_full(String src);
 String             script_range_text(String src, ScriptRange);
 ScriptRangeLineCol script_range_to_line_col(String src, ScriptRange);
 ScriptRange        script_range_from_line_col(String src, ScriptRangeLineCol);
+
+/**
+ * Helper to speed-up looking-up positions in the given source text.
+ */
+typedef struct sScriptPosLookup ScriptPosLookup;
+
+ScriptPosLookup* script_pos_lookup_create(Allocator*);
+void             script_pos_lookup_update(ScriptPosLookup*, String src);
+void             script_pos_lookup_destroy(ScriptPosLookup*);
