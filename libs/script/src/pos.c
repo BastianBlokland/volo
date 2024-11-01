@@ -165,3 +165,26 @@ ScriptPosLineCol script_pos_lookup_to_line_col(const ScriptPosLookup* lookup, co
       .column = (u32)utf8_cp_count(lineSrc),
   };
 }
+
+ScriptPos
+script_pos_lookup_from_line_col(const ScriptPosLookup* lookup, const ScriptPosLineCol lc) {
+  if (UNLIKELY(lc.line > lookup->lineEnds.size)) {
+    return script_pos_sentinel;
+  }
+
+  ScriptPos currentPos = 0;
+  if (lc.line) {
+    currentPos = *dynarray_at_t(&lookup->lineEnds, lc.line - 1, ScriptPos);
+  }
+
+  // Advance 'lc.column' columns.
+  for (u16 col = 0; col != lc.column; ++col) {
+    if (UNLIKELY(currentPos >= lookup->srcSize)) {
+      return script_pos_sentinel;
+    }
+    const u8 ch = *string_at(lookup->srcBuffer, currentPos);
+    currentPos += (u32)math_max(utf8_cp_bytes_from_first(ch), 1);
+  }
+
+  return currentPos;
+}
