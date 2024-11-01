@@ -149,16 +149,16 @@ void script_pos_lookup_destroy(ScriptPosLookup* lookup) {
 }
 
 ScriptPosLineCol script_pos_lookup_to_line_col(const ScriptPosLookup* lookup, const ScriptPos pos) {
+  diag_assert(pos <= lookup->srcSize);
+
   const ScriptPos* linesBegin = dynarray_begin_t(&lookup->lineEnds, ScriptPos);
   const ScriptPos* linesEnd   = dynarray_end_t(&lookup->lineEnds, ScriptPos);
 
   const ScriptPos* nextLinePtr =
       search_binary_greater_t(linesBegin, linesEnd, ScriptPos, compare_u32, &pos);
 
-  const ScriptPos posClamped = (ScriptPos)math_min(pos, lookup->srcSize);
-
   const ScriptPos lineOffset = nextLinePtr && (nextLinePtr != linesBegin) ? 0 : *(linesBegin - 1);
-  const String    lineSrc    = string_slice(lookup->srcBuffer, lineOffset, posClamped - lineOffset);
+  const String    lineSrc    = string_slice(lookup->srcBuffer, lineOffset, pos - lineOffset);
 
   return (ScriptPosLineCol){
       .line   = nextLinePtr ? (u32)(nextLinePtr - linesBegin) : 0,
