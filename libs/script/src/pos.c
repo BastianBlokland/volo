@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_utf8.h"
@@ -105,6 +106,7 @@ ScriptRange script_range_from_line_col(const String src, const ScriptRangeLineCo
 struct sScriptPosLookup {
   Allocator* alloc;
   usize      srcSize;
+  String     srcBuffer;
   DynArray   lineEnds; // ScriptPos[], sorted positions in the source where a line ends.
 };
 
@@ -120,6 +122,11 @@ ScriptPosLookup* script_pos_lookup_create(Allocator* alloc) {
 }
 
 void script_pos_lookup_update(ScriptPosLookup* lookup, const String src) {
+  if (src.size > lookup->srcBuffer.size) {
+    string_maybe_free(lookup->alloc, lookup->srcBuffer);
+    lookup->srcBuffer = alloc_alloc(lookup->alloc, bits_nextpow2(src.size), 1);
+  }
+  mem_cpy(lookup->srcBuffer, src);
   lookup->srcSize = src.size;
 
   dynarray_clear(&lookup->lineEnds);
@@ -131,6 +138,7 @@ void script_pos_lookup_update(ScriptPosLookup* lookup, const String src) {
 }
 
 void script_pos_lookup_destroy(ScriptPosLookup* lookup) {
+  string_maybe_free(lookup->alloc, lookup->srcBuffer);
   dynarray_destroy(&lookup->lineEnds);
   alloc_free_t(lookup->alloc, lookup);
 }
