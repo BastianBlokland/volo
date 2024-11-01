@@ -36,11 +36,11 @@ ScriptRange        script_range_from_line_col(String src, ScriptRangeLineCol);
  */
 typedef struct sScriptLookup ScriptLookup;
 
-ScriptLookup*      script_pos_lookup_create(Allocator*);
-void               script_pos_lookup_update(ScriptLookup*, String src);
-String             script_pos_lookup_src(const ScriptLookup*);
-void               script_pos_lookup_destroy(ScriptLookup*);
-ScriptPosLineCol   script_pos_lookup_to_line_col(const ScriptLookup*, ScriptPos);
-ScriptPos          script_pos_lookup_from_line_col(const ScriptLookup*, ScriptPosLineCol);
-ScriptRangeLineCol script_pos_lookup_range_to_line_col(const ScriptLookup*, ScriptRange);
-ScriptRange        script_pos_lookup_range_from_line_col(const ScriptLookup*, ScriptRangeLineCol);
+ScriptLookup*      script_lookup_create(Allocator*);
+void               script_lookup_update(ScriptLookup*, String src);
+String             script_lookup_src(const ScriptLookup*);
+void               script_lookup_destroy(ScriptLookup*);
+ScriptPosLineCol   script_lookup_to_line_col(const ScriptLookup*, ScriptPos);
+ScriptPos          script_lookup_from_line_col(const ScriptLookup*, ScriptPosLineCol);
+ScriptRangeLineCol script_lookup_range_to_line_col(const ScriptLookup*, ScriptRange);
+ScriptRange        script_lookup_range_from_line_col(const ScriptLookup*, ScriptRangeLineCol);
