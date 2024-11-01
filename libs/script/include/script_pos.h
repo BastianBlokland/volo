@@ -38,4 +38,5 @@ typedef struct sScriptPosLookup ScriptPosLookup;
 
 ScriptPosLookup* script_pos_lookup_create(Allocator*);
 void             script_pos_lookup_update(ScriptPosLookup*, String src);
+String           script_pos_lookup_src(const ScriptPosLookup*);
 void             script_pos_lookup_destroy(ScriptPosLookup*);

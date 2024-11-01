@@ -137,6 +137,10 @@ void script_pos_lookup_update(ScriptPosLookup* lookup, const String src) {
   }
 }
 
+String script_pos_lookup_src(const ScriptPosLookup* lookup) {
+  return string_slice(lookup->srcBuffer, 0, lookup->srcSize);
+}
+
 void script_pos_lookup_destroy(ScriptPosLookup* lookup) {
   string_maybe_free(lookup->alloc, lookup->srcBuffer);
   dynarray_destroy(&lookup->lineEnds);
