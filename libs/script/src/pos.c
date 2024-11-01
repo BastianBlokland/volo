@@ -104,17 +104,17 @@ ScriptRange script_range_from_line_col(const String src, const ScriptRangeLineCo
   };
 }
 
-struct sScriptPosLookup {
+struct sScriptLookup {
   Allocator* alloc;
   usize      srcSize;
   String     srcBuffer;
   DynArray   lineEnds; // ScriptPos[], sorted positions in the source where a line ends.
 };
 
-ScriptPosLookup* script_pos_lookup_create(Allocator* alloc) {
-  ScriptPosLookup* lookup = alloc_alloc_t(alloc, ScriptPosLookup);
+ScriptLookup* script_pos_lookup_create(Allocator* alloc) {
+  ScriptLookup* lookup = alloc_alloc_t(alloc, ScriptLookup);
 
-  *lookup = (ScriptPosLookup){
+  *lookup = (ScriptLookup){
       .alloc    = alloc,
       .lineEnds = dynarray_create_t(alloc, ScriptPos, 128),
   };
@@ -122,7 +122,7 @@ ScriptPosLookup* script_pos_lookup_create(Allocator* alloc) {
   return lookup;
 }
 
-void script_pos_lookup_update(ScriptPosLookup* lookup, const String src) {
+void script_pos_lookup_update(ScriptLookup* lookup, const String src) {
   if (src.size > lookup->srcBuffer.size) {
     string_maybe_free(lookup->alloc, lookup->srcBuffer);
     lookup->srcBuffer = alloc_alloc(lookup->alloc, bits_nextpow2(src.size), 1);
@@ -138,17 +138,17 @@ void script_pos_lookup_update(ScriptPosLookup* lookup, const String src) {
   }
 }
 
-String script_pos_lookup_src(const ScriptPosLookup* lookup) {
+String script_pos_lookup_src(const ScriptLookup* lookup) {
   return string_slice(lookup->srcBuffer, 0, lookup->srcSize);
 }
 
-void script_pos_lookup_destroy(ScriptPosLookup* lookup) {
+void script_pos_lookup_destroy(ScriptLookup* lookup) {
   string_maybe_free(lookup->alloc, lookup->srcBuffer);
   dynarray_destroy(&lookup->lineEnds);
   alloc_free_t(lookup->alloc, lookup);
 }
 
-ScriptPosLineCol script_pos_lookup_to_line_col(const ScriptPosLookup* lookup, const ScriptPos pos) {
+ScriptPosLineCol script_pos_lookup_to_line_col(const ScriptLookup* lookup, const ScriptPos pos) {
   diag_assert(pos <= lookup->srcSize);
 
   const ScriptPos* linesBegin = dynarray_begin_t(&lookup->lineEnds, ScriptPos);
@@ -166,8 +166,7 @@ ScriptPosLineCol script_pos_lookup_to_line_col(const ScriptPosLookup* lookup, co
   };
 }
 
-ScriptPos
-script_pos_lookup_from_line_col(const ScriptPosLookup* lookup, const ScriptPosLineCol lc) {
+ScriptPos script_pos_lookup_from_line_col(const ScriptLookup* lookup, const ScriptPosLineCol lc) {
   if (UNLIKELY(lc.line > lookup->lineEnds.size)) {
     return script_pos_sentinel;
   }
@@ -190,15 +189,15 @@ script_pos_lookup_from_line_col(const ScriptPosLookup* lookup, const ScriptPosLi
 }
 
 ScriptRangeLineCol
-script_pos_lookup_range_to_line_col(const ScriptPosLookup* lookup, const ScriptRange range) {
+script_pos_lookup_range_to_line_col(const ScriptLookup* lookup, const ScriptRange range) {
   return (ScriptRangeLineCol){
       .start = script_pos_lookup_to_line_col(lookup, range.start),
       .end   = script_pos_lookup_to_line_col(lookup, range.end),
   };
 }
 
-ScriptRange script_pos_lookup_range_from_line_col(
-    const ScriptPosLookup* lookup, const ScriptRangeLineCol range) {
+ScriptRange
+script_pos_lookup_range_from_line_col(const ScriptLookup* lookup, const ScriptRangeLineCol range) {
   return (ScriptRange){
       .start = script_pos_lookup_from_line_col(lookup, range.start),
       .end   = script_pos_lookup_from_line_col(lookup, range.end),
