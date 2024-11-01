@@ -157,7 +157,7 @@ ScriptPosLineCol script_lookup_to_line_col(const ScriptLookup* l, const ScriptPo
   const ScriptPos* nextLinePtr =
       search_binary_greater_t(linesBegin, linesEnd, ScriptPos, compare_u32, &pos);
 
-  const ScriptPos lineOffset = nextLinePtr && (nextLinePtr != linesBegin) ? 0 : *(linesBegin - 1);
+  const ScriptPos lineOffset = nextLinePtr && (nextLinePtr != linesBegin) ? *(nextLinePtr - 1) : 0;
   const String    lineSrc    = string_slice(l->srcBuffer, lineOffset, pos - lineOffset);
 
   return (ScriptPosLineCol){
