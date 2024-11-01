@@ -54,6 +54,7 @@ typedef enum {
 
 typedef struct {
   String         identifier;
+  ScriptLookup*  scriptLookup;
   ScriptDoc*     scriptDoc;
   ScriptDiagBag* scriptDiags;
   ScriptSymBag*  scriptSyms;
@@ -234,6 +235,7 @@ static i8 lsp_semantic_token_compare(const void* a, const void* b) {
 
 static void lsp_doc_destroy(LspDocument* doc) {
   string_free(g_allocHeap, doc->identifier);
+  script_lookup_destroy(doc->scriptLookup);
   script_destroy(doc->scriptDoc);
   script_diag_bag_destroy(doc->scriptDiags);
   script_sym_bag_destroy(doc->scriptSyms);
@@ -252,12 +254,14 @@ static LspDocument* lsp_doc_open(LspContext* ctx, const String identifier, const
   LspDocument* res = dynarray_push_t(ctx->openDocs, LspDocument);
 
   *res = (LspDocument){
-      .identifier  = string_dup(g_allocHeap, identifier),
-      .scriptDoc   = script_create(g_allocHeap),
-      .scriptDiags = script_diag_bag_create(g_allocHeap, ScriptDiagFilter_All),
-      .scriptSyms  = script_sym_bag_create(g_allocHeap),
+      .identifier   = string_dup(g_allocHeap, identifier),
+      .scriptLookup = script_lookup_create(g_allocHeap),
+      .scriptDoc    = script_create(g_allocHeap),
+      .scriptDiags  = script_diag_bag_create(g_allocHeap, ScriptDiagFilter_All),
+      .scriptSyms   = script_sym_bag_create(g_allocHeap),
   };
 
+  script_lookup_update(res->scriptLookup, text);
   script_source_set(res->scriptDoc, text);
 
   return res;
@@ -883,6 +887,7 @@ static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotificat
     if (ctx->flags & LspFlags_Trace) {
       lsp_send_trace(ctx, fmt_write_scratch("Document update: {}", fmt_text(doc->identifier)));
     }
+    script_lookup_update(doc->scriptLookup, text);
     script_source_set(doc->scriptDoc, text);
     lsp_analyze_doc(ctx, doc);
   } else {
@@ -1813,9 +1818,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
 
   const ScriptSym    callSym = script_sym_find(scriptSyms, scriptDoc, callExpr);
   const LspSignature sig     = {
-          .label     = script_sym_label(scriptSyms, callSym),
-          .doc       = script_sym_doc(scriptSyms, callSym),
-          .scriptSig = script_sym_sig(scriptSyms, callSym),
+      .label     = script_sym_label(scriptSyms, callSym),
+      .doc       = script_sym_doc(scriptSyms, callSym),
+      .scriptSig = script_sym_sig(scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
