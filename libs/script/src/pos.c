@@ -2,6 +2,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_search.h"
 #include "core_utf8.h"
 #include "script_lex.h"
 #include "script_pos.h"
@@ -145,4 +146,22 @@ void script_pos_lookup_destroy(ScriptPosLookup* lookup) {
   string_maybe_free(lookup->alloc, lookup->srcBuffer);
   dynarray_destroy(&lookup->lineEnds);
   alloc_free_t(lookup->alloc, lookup);
+}
+
+ScriptPosLineCol script_pos_lookup_to_line_col(const ScriptPosLookup* lookup, const ScriptPos pos) {
+  const ScriptPos* linesBegin = dynarray_begin_t(&lookup->lineEnds, ScriptPos);
+  const ScriptPos* linesEnd   = dynarray_end_t(&lookup->lineEnds, ScriptPos);
+
+  const ScriptPos* nextLinePtr =
+      search_binary_greater_t(linesBegin, linesEnd, ScriptPos, compare_u32, &pos);
+
+  const ScriptPos posClamped = (ScriptPos)math_min(pos, lookup->srcSize);
+
+  const ScriptPos lineOffset = nextLinePtr && (nextLinePtr != linesBegin) ? 0 : *(linesBegin - 1);
+  const String    lineSrc    = string_slice(lookup->srcBuffer, lineOffset, posClamped - lineOffset);
+
+  return (ScriptPosLineCol){
+      .line   = nextLinePtr ? (u32)(nextLinePtr - linesBegin) : 0,
+      .column = (u32)utf8_cp_count(lineSrc),
+  };
 }
