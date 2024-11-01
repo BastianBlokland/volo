@@ -188,3 +188,19 @@ script_pos_lookup_from_line_col(const ScriptPosLookup* lookup, const ScriptPosLi
 
   return currentPos;
 }
+
+ScriptRangeLineCol
+script_pos_lookup_range_to_line_col(const ScriptPosLookup* lookup, const ScriptRange range) {
+  return (ScriptRangeLineCol){
+      .start = script_pos_lookup_to_line_col(lookup, range.start),
+      .end   = script_pos_lookup_to_line_col(lookup, range.end),
+  };
+}
+
+ScriptRange script_pos_lookup_range_from_line_col(
+    const ScriptPosLookup* lookup, const ScriptRangeLineCol range) {
+  return (ScriptRange){
+      .start = script_pos_lookup_from_line_col(lookup, range.start),
+      .end   = script_pos_lookup_from_line_col(lookup, range.end),
+  };
+}
