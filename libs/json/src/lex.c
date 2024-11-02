@@ -113,6 +113,10 @@ static String json_lex_string(String str, JsonToken* out) {
       case 'U': {
         u64 unicode;
         str = format_read_u64(str, &unicode, 16);
+        if (UNLIKELY(result.size + utf8_cp_bytes((Unicode)unicode) >= resultBuffer.size)) {
+          *out = json_token_err(JsonError_TooLongString);
+          goto Ret;
+        }
         utf8_cp_write_to(&result, (Unicode)unicode);
       } break;
       default:
@@ -140,6 +144,10 @@ static String json_lex_string(String str, JsonToken* out) {
         str = utf8_cp_read(str, &cp);
         if (UNLIKELY(!cp)) {
           *out = json_token_err(JsonError_InvalidUtf8);
+          goto Ret;
+        }
+        if (UNLIKELY(result.size + utf8_cp_bytes(cp) >= resultBuffer.size)) {
+          *out = json_token_err(JsonError_TooLongString);
           goto Ret;
         }
         utf8_cp_write_to(&result, cp);
