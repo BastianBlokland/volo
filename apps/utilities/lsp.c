@@ -1399,7 +1399,7 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
   dynstring_append(&textBuffer, script_expr_kind_str(exprKind));
 
   if (script_expr_static(scriptDoc, expr)) {
-    const ScriptEvalResult evalRes = script_eval(scriptDoc, expr, null, null, null);
+    const ScriptEvalResult evalRes = script_eval(scriptDoc, scriptLookup, expr, null, null, null);
     fmt_write(&textBuffer, " `{}`", fmt_text(script_val_scratch(evalRes.val)));
   }
   const ScriptSym sym = script_sym_find(scriptSyms, scriptDoc, expr);
@@ -1812,9 +1812,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
 
   const ScriptSym    callSym = script_sym_find(scriptSyms, scriptDoc, callExpr);
   const LspSignature sig     = {
-      .label     = script_sym_label(scriptSyms, callSym),
-      .doc       = script_sym_doc(scriptSyms, callSym),
-      .scriptSig = script_sym_sig(scriptSyms, callSym),
+          .label     = script_sym_label(scriptSyms, callSym),
+          .doc       = script_sym_doc(scriptSyms, callSym),
+          .scriptSig = script_sym_sig(scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);

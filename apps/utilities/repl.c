@@ -344,7 +344,8 @@ static void repl_exec(
   ScriptDiagBag* diags  = script_diag_bag_create(tempAlloc, ScriptDiagFilter_All);
   ScriptSymBag*  syms = (flags & ReplFlags_OutputSymbols) ? script_sym_bag_create(g_allocHeap) : 0;
 
-  script_source_set(script, input);
+  ScriptLookup* lookup = script_lookup_create(g_allocHeap);
+  script_lookup_update(lookup, input);
 
   ScriptExpr expr = script_read(script, binder, input, g_stringtable, diags, syms);
 
@@ -396,7 +397,7 @@ static void repl_exec(
     }
     goto Ret;
   }
-  const ScriptEvalResult evalRes = script_eval(script, expr, mem, binder, null);
+  const ScriptEvalResult evalRes = script_eval(script, lookup, expr, mem, binder, null);
   if (evalRes.panic.kind) {
     repl_output_panic(flags, &evalRes.panic, id);
   } else {
@@ -409,6 +410,7 @@ Ret:
   if (syms) {
     script_sym_bag_destroy(syms);
   }
+  script_lookup_destroy(lookup);
   script_prog_destroy(&prog, g_allocHeap);
 }
 

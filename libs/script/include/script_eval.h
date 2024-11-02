@@ -8,6 +8,9 @@ typedef struct sScriptMem ScriptMem;
 // Forward declare from 'core_binder.h'.
 typedef struct sScriptBinder ScriptBinder;
 
+// Forward declare from 'core_pos.h'.
+typedef struct sScriptLookup ScriptLookup;
+
 typedef struct {
   u32         executedOps;
   ScriptPanic panic;
@@ -17,5 +20,10 @@ typedef struct {
 /**
  * Evaluate the given expression.
  */
-ScriptEvalResult
-script_eval(const ScriptDoc*, ScriptExpr, ScriptMem*, const ScriptBinder*, void* bindCtx);
+ScriptEvalResult script_eval(
+    const ScriptDoc*,
+    const ScriptLookup*, // [Optional] Used to lookup source locations.
+    ScriptExpr,
+    ScriptMem*,          // [Optional] Memory access provider.
+    const ScriptBinder*, // [Optional] External function binder.
+    void* bindCtx);
