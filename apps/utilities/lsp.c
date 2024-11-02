@@ -1935,7 +1935,6 @@ static i32 lsp_run_stdio(const ScriptBinder* scriptBinder) {
     const String    content = lsp_read_sized(&ctx, header.contentLength);
 
     JsonResult jsonResult;
-    // TODO: JRpc spec only supports utf8 encoding while our json lexer only supports Ascii.
     json_read(jDoc, content, JsonReadFlags_None, &jsonResult);
     if (UNLIKELY(jsonResult.type == JsonResultType_Fail)) {
       const String jsonErr = json_error_str(jsonResult.error);
