@@ -1759,7 +1759,7 @@ static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* r
       }
       tokens[tokenCount++] = (LspSemanticToken){
           .pos    = refLoc.start,
-          .length = ref->location.end - ref->location.start,
+          .length = refLoc.end.column - refLoc.start.column,
           .type   = tokType,
           .mod    = tokMod | lsp_semantic_token_ref_mod(ref),
       };
@@ -1838,9 +1838,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
 
   const ScriptSym    callSym = script_sym_find(scriptSyms, scriptDoc, callExpr);
   const LspSignature sig     = {
-          .label     = script_sym_label(scriptSyms, callSym),
-          .doc       = script_sym_doc(scriptSyms, callSym),
-          .scriptSig = script_sym_sig(scriptSyms, callSym),
+      .label     = script_sym_label(scriptSyms, callSym),
+      .doc       = script_sym_doc(scriptSyms, callSym),
+      .scriptSig = script_sym_sig(scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
