@@ -38,7 +38,9 @@ typedef struct sScriptLookup ScriptLookup;
 
 ScriptLookup*      script_lookup_create(Allocator*);
 void               script_lookup_update(ScriptLookup*, String src);
+void               script_lookup_update_range(ScriptLookup*, String src, ScriptRange);
 String             script_lookup_src(const ScriptLookup*);
+String             script_lookup_src_range(const ScriptLookup*, ScriptRange);
 void               script_lookup_destroy(ScriptLookup*);
 ScriptPosLineCol   script_lookup_to_line_col(const ScriptLookup*, ScriptPos);
 ScriptPos          script_lookup_from_line_col(const ScriptLookup*, ScriptPosLineCol);

@@ -872,7 +872,7 @@ void asset_load_script(
   const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
   for (u32 i = 0; i != diagCount; ++i) {
     const ScriptDiag* diag = script_diag_data(diags) + i;
-    const String      msg  = script_diag_pretty_scratch(src->data, diag);
+    const String      msg  = script_diag_pretty_scratch(lookup, diag);
     log_e(
         "Script read error",
         log_param("id", fmt_text(id)),
