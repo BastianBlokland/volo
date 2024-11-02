@@ -2051,9 +2051,19 @@ ScriptExpr script_read(
   read_sym_push_builtin(&ctx);
   read_sym_push_extern(&ctx);
 
-  const ScriptExpr expr = read_expr_block(&ctx, ScriptBlockType_Implicit, read_pos_current(&ctx));
+  ScriptExpr expr = read_expr_block(&ctx, ScriptBlockType_Implicit, read_pos_current(&ctx));
   if (!sentinel_check(expr)) {
     diag_assert_msg(read_peek(&ctx).kind == ScriptTokenKind_End, "Not all input consumed");
+    /**
+     * For single-expression scripts we remove the outer block, this makes debugging expressions in
+     * the REPL (and unit-tests) cleaner.
+     */
+    if (expr_kind(doc, expr) == ScriptExprKind_Block) {
+      const ScriptExprBlock* blockData = &expr_data(doc, expr)->block;
+      if (blockData->exprCount == 1) {
+        expr = expr_set_data(doc, blockData->exprSet)[0];
+      }
+    }
   }
 
   read_sym_set_var_valid_ranges(&ctx, &scopeRoot);
