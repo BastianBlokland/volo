@@ -990,7 +990,8 @@ static bool read_is_block_separator(const ScriptTokenKind tokenKind) {
   return tokenKind == ScriptTokenKind_Newline || tokenKind == ScriptTokenKind_Semicolon;
 }
 
-static ScriptExpr read_expr_block(ScriptReadContext* ctx, const ScriptBlockType blockType) {
+static ScriptExpr read_expr_block(
+    ScriptReadContext* ctx, const ScriptBlockType blockType, const ScriptPos blockStart) {
   ScriptExpr exprs[script_block_size_max];
   u32        exprCount = 0;
 
@@ -1000,7 +1001,6 @@ static ScriptExpr read_expr_block(ScriptReadContext* ctx, const ScriptBlockType 
 
 BlockNext:
   if (UNLIKELY(exprCount == script_block_size_max)) {
-    const ScriptPos   blockStart = expr_range(ctx->doc, exprs[0]).start;
     const ScriptRange blockRange = read_range_to_current(ctx, blockStart);
     return read_emit_err(ctx, ScriptDiag_BlockTooBig, blockRange), read_fail_structural(ctx);
   }
@@ -1031,22 +1031,24 @@ BlockNext:
   }
 
 BlockEnd:;
-  switch (exprCount) {
-  case 0: {
-    return script_add_value(ctx->doc, read_range_dummy(ctx), script_null());
+  if (blockType == ScriptBlockType_Explicit) {
+    if (UNLIKELY(read_consume(ctx).kind != ScriptTokenKind_CurlyClose)) {
+      const ScriptRange range = script_range(blockStart, read_pos_current(ctx));
+      return read_emit_err(ctx, ScriptDiag_UnterminatedBlock, range), read_fail_structural(ctx);
+    }
   }
-  case 1:
-    return exprs[0];
-  default:
-    read_emit_no_effect(ctx, exprs, exprCount);
-    read_emit_unreachable(ctx, exprs, exprCount);
 
-    const ScriptRange blockRange = {
-        .start = expr_range(ctx->doc, exprs[0]).start,
-        .end   = expr_range(ctx->doc, exprs[exprCount - 1]).end,
-    };
-    return script_add_block(ctx->doc, blockRange, exprs, exprCount);
+  // NOTE: Blocks always need a single expression; insert a null value for empty blocks.
+  if (!exprCount) {
+    exprs[0]  = script_add_value(ctx->doc, read_range_dummy(ctx), script_null());
+    exprCount = 1;
   }
+
+  read_emit_no_effect(ctx, exprs, exprCount);
+  read_emit_unreachable(ctx, exprs, exprCount);
+
+  const ScriptRange blockRange = {.start = blockStart, .end = read_pos_current(ctx)};
+  return script_add_block(ctx->doc, blockRange, exprs, exprCount);
 }
 
 /**
@@ -1057,20 +1059,11 @@ static ScriptExpr read_expr_scope_block(ScriptReadContext* ctx, const ScriptPos 
   read_scope_push(ctx, &scope);
 
   const ScriptSection prevSection = read_section_reset(ctx, ScriptSection_ResetOnExplicitScope);
-  const ScriptExpr    expr        = read_expr_block(ctx, ScriptBlockType_Explicit);
+  const ScriptExpr    expr        = read_expr_block(ctx, ScriptBlockType_Explicit, start);
   ctx->section                    = prevSection;
 
   diag_assert(&scope == read_scope_tail(ctx));
   read_scope_pop(ctx);
-
-  if (UNLIKELY(sentinel_check(expr))) {
-    return read_fail_structural(ctx);
-  }
-
-  if (UNLIKELY(read_consume(ctx).kind != ScriptTokenKind_CurlyClose)) {
-    const ScriptRange range = script_range(start, expr_range(ctx->doc, expr).end);
-    return read_emit_err(ctx, ScriptDiag_UnterminatedBlock, range), read_fail_structural(ctx);
-  }
 
   return expr;
 }
@@ -2058,9 +2051,19 @@ ScriptExpr script_read(
   read_sym_push_builtin(&ctx);
   read_sym_push_extern(&ctx);
 
-  const ScriptExpr expr = read_expr_block(&ctx, ScriptBlockType_Implicit);
+  ScriptExpr expr = read_expr_block(&ctx, ScriptBlockType_Implicit, read_pos_current(&ctx));
   if (!sentinel_check(expr)) {
     diag_assert_msg(read_peek(&ctx).kind == ScriptTokenKind_End, "Not all input consumed");
+    /**
+     * For single-expression scripts we remove the outer block, this makes debugging expressions in
+     * the REPL (and unit-tests) cleaner.
+     */
+    if (expr_kind(doc, expr) == ScriptExprKind_Block) {
+      const ScriptExprBlock* blockData = &expr_data(doc, expr)->block;
+      if (blockData->exprCount == 1) {
+        expr = expr_set_data(doc, blockData->exprSet)[0];
+      }
+    }
   }
 
   read_sym_set_var_valid_ranges(&ctx, &scopeRoot);

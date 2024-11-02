@@ -142,13 +142,15 @@ spec(read) {
         },
         {
             string_static("{ return }"),
-            string_static("[intrinsic: return]\n"
-                          "  [value: null]"),
+            string_static("[block]\n"
+                          "  [intrinsic: return]\n"
+                          "    [value: null]"),
         },
         {
             string_static("{ return 42 }"),
-            string_static("[intrinsic: return]\n"
-                          "  [value: 42]"),
+            string_static("[block]\n"
+                          "  [intrinsic: return]\n"
+                          "    [value: 42]"),
         },
 
         // External functions.
@@ -175,50 +177,62 @@ spec(read) {
             string_static("if(true) {2}"),
             string_static("[intrinsic: select]\n"
                           "  [value: true]\n"
-                          "  [value: 2]\n"
+                          "  [block]\n"
+                          "    [value: 2]\n"
                           "  [value: null]"),
         },
         {
             string_static("if(true) {2} else {3}"),
             string_static("[intrinsic: select]\n"
                           "  [value: true]\n"
-                          "  [value: 2]\n"
-                          "  [value: 3]"),
+                          "  [block]\n"
+                          "    [value: 2]\n"
+                          "  [block]\n"
+                          "    [value: 3]"),
         },
         {
             string_static("if(true) {} else {}"),
             string_static("[intrinsic: select]\n"
                           "  [value: true]\n"
-                          "  [value: null]\n"
-                          "  [value: null]"),
+                          "  [block]\n"
+                          "    [value: null]\n"
+                          "  [block]\n"
+                          "    [value: null]"),
         },
         {
             string_static("if(false) {2} else if(true) {3}"),
             string_static("[intrinsic: select]\n"
                           "  [value: false]\n"
-                          "  [value: 2]\n"
+                          "  [block]\n"
+                          "    [value: 2]\n"
                           "  [intrinsic: select]\n"
                           "    [value: true]\n"
-                          "    [value: 3]\n"
+                          "    [block]\n"
+                          "      [value: 3]\n"
                           "    [value: null]"),
         },
         {
             string_static("if(false) {2} else if(true) {3} else {4}"),
             string_static("[intrinsic: select]\n"
                           "  [value: false]\n"
-                          "  [value: 2]\n"
+                          "  [block]\n"
+                          "    [value: 2]\n"
                           "  [intrinsic: select]\n"
                           "    [value: true]\n"
-                          "    [value: 3]\n"
-                          "    [value: 4]"),
+                          "    [block]\n"
+                          "      [value: 3]\n"
+                          "    [block]\n"
+                          "      [value: 4]"),
         },
         {
             string_static("if(var i = 42) {i} else {i}"),
             string_static("[intrinsic: select]\n"
                           "  [var-store: 0]\n"
                           "    [value: 42]\n"
-                          "  [var-load: 0]\n"
-                          "  [var-load: 0]"),
+                          "  [block]\n"
+                          "    [var-load: 0]\n"
+                          "  [block]\n"
+                          "    [var-load: 0]"),
         },
         {
             string_static("if(var i = 1) {i}; if(var i = 2) {i}"),
@@ -226,12 +240,14 @@ spec(read) {
                           "  [intrinsic: select]\n"
                           "    [var-store: 0]\n"
                           "      [value: 1]\n"
-                          "    [var-load: 0]\n"
+                          "    [block]\n"
+                          "      [var-load: 0]\n"
                           "    [value: null]\n"
                           "  [intrinsic: select]\n"
                           "    [var-store: 0]\n"
                           "      [value: 2]\n"
-                          "    [var-load: 0]\n"
+                          "    [block]\n"
+                          "      [var-load: 0]\n"
                           "    [value: null]"),
         },
         {
@@ -239,7 +255,8 @@ spec(read) {
             string_static("[block]\n"
                           "  [intrinsic: select]\n"
                           "    [value: true]\n"
-                          "    [value: null]\n"
+                          "    [block]\n"
+                          "      [value: null]\n"
                           "    [value: null]\n"
                           "  [var-store: 0]\n"
                           "    [value: null]"),
@@ -275,7 +292,8 @@ spec(read) {
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"
-                          "  [extern: 1]"),
+                          "  [block]\n"
+                          "    [extern: 1]"),
         },
         {
             string_static("while(true) { break }"),
@@ -283,7 +301,8 @@ spec(read) {
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"
-                          "  [intrinsic: break]"),
+                          "  [block]\n"
+                          "    [intrinsic: break]"),
         },
         {
             string_static("while(true) { continue }"),
@@ -291,7 +310,8 @@ spec(read) {
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"
-                          "  [intrinsic: continue]"),
+                          "  [block]\n"
+                          "    [intrinsic: continue]"),
         },
         {
             string_static("while(true) { while(false) {}; break }"),
@@ -304,7 +324,8 @@ spec(read) {
                           "      [value: null]\n"
                           "      [value: false]\n"
                           "      [value: null]\n"
-                          "      [value: null]\n"
+                          "      [block]\n"
+                          "        [value: null]\n"
                           "    [intrinsic: break]"),
         },
         {
@@ -313,8 +334,10 @@ spec(read) {
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"
-                          "  [var-store: 0]\n"
-                          "    [intrinsic: break]"),
+                          "  [block]\n"
+                          "    [var-store: 0]\n"
+                          "      [block]\n"
+                          "        [intrinsic: break]"),
         },
 
         // For expressions.
@@ -324,7 +347,8 @@ spec(read) {
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"
-                          "  [value: null]"),
+                          "  [block]\n"
+                          "    [value: null]"),
         },
         {
             string_static("for(;;) { bind_test_1() }"),
@@ -332,7 +356,8 @@ spec(read) {
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"
-                          "  [extern: 1]"),
+                          "  [block]\n"
+                          "    [extern: 1]"),
         },
         {
             string_static("for(var i = 0;;) { bind_test_1() }"),
@@ -341,7 +366,8 @@ spec(read) {
                           "    [value: 0]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"
-                          "  [extern: 1]"),
+                          "  [block]\n"
+                          "    [extern: 1]"),
         },
         {
             string_static("for(;42;) { bind_test_1() }"),
@@ -349,7 +375,8 @@ spec(read) {
                           "  [value: null]\n"
                           "  [value: 42]\n"
                           "  [value: null]\n"
-                          "  [extern: 1]"),
+                          "  [block]\n"
+                          "    [extern: 1]"),
         },
         {
             string_static("for(;;42) { bind_test_1() }"),
@@ -357,7 +384,8 @@ spec(read) {
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: 42]\n"
-                          "  [extern: 1]"),
+                          "  [block]\n"
+                          "    [extern: 1]"),
         },
         {
             string_static("for(var i = 0; i != 10;) { bind_test_1() }"),
@@ -368,7 +396,8 @@ spec(read) {
                           "    [var-load: 0]\n"
                           "    [value: 10]\n"
                           "  [value: null]\n"
-                          "  [extern: 1]"),
+                          "  [block]\n"
+                          "    [extern: 1]"),
         },
         {
             string_static("for(var i = 0; i != 10; i += 1) { bind_test_1() }"),
@@ -382,7 +411,8 @@ spec(read) {
                           "    [intrinsic: add]\n"
                           "      [var-load: 0]\n"
                           "      [value: 1]\n"
-                          "  [extern: 1]"),
+                          "  [block]\n"
+                          "    [extern: 1]"),
         },
         {
             string_static("for(;;) { break }"),
@@ -390,7 +420,8 @@ spec(read) {
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"
-                          "  [intrinsic: break]"),
+                          "  [block]\n"
+                          "    [intrinsic: break]"),
         },
         {
             string_static("for(;;) { continue }"),
@@ -398,7 +429,8 @@ spec(read) {
                           "  [value: null]\n"
                           "  [value: true]\n"
                           "  [value: null]\n"
-                          "  [intrinsic: continue]"),
+                          "  [block]\n"
+                          "    [intrinsic: continue]"),
         },
 
         // Unary expressions.
@@ -798,11 +830,13 @@ spec(read) {
         },
         {
             string_static("{1}"),
-            string_static("[value: 1]"),
+            string_static("[block]\n"
+                          "  [value: 1]"),
         },
         {
             string_static("{1;}"),
-            string_static("[value: 1]"),
+            string_static("[block]\n"
+                          "  [value: 1]"),
         },
         {
             string_static("{1; 2}"),
@@ -874,42 +908,52 @@ spec(read) {
         {
             string_static("{var a = 1}; {var b = 2}; {var c = 3}; {var d = 4}"),
             string_static("[block]\n"
-                          "  [var-store: 0]\n"
-                          "    [value: 1]\n"
-                          "  [var-store: 0]\n"
-                          "    [value: 2]\n"
-                          "  [var-store: 0]\n"
-                          "    [value: 3]\n"
-                          "  [var-store: 0]\n"
-                          "    [value: 4]"),
+                          "  [block]\n"
+                          "    [var-store: 0]\n"
+                          "      [value: 1]\n"
+                          "  [block]\n"
+                          "    [var-store: 0]\n"
+                          "      [value: 2]\n"
+                          "  [block]\n"
+                          "    [var-store: 0]\n"
+                          "      [value: 3]\n"
+                          "  [block]\n"
+                          "    [var-store: 0]\n"
+                          "      [value: 4]"),
         },
         {
             string_static("{var a = 1}; {var a = 2}; {var a = 3}; {var a = 4}"),
             string_static("[block]\n"
-                          "  [var-store: 0]\n"
-                          "    [value: 1]\n"
-                          "  [var-store: 0]\n"
-                          "    [value: 2]\n"
-                          "  [var-store: 0]\n"
-                          "    [value: 3]\n"
-                          "  [var-store: 0]\n"
-                          "    [value: 4]"),
+                          "  [block]\n"
+                          "    [var-store: 0]\n"
+                          "      [value: 1]\n"
+                          "  [block]\n"
+                          "    [var-store: 0]\n"
+                          "      [value: 2]\n"
+                          "  [block]\n"
+                          "    [var-store: 0]\n"
+                          "      [value: 3]\n"
+                          "  [block]\n"
+                          "    [var-store: 0]\n"
+                          "      [value: 4]"),
         },
         {
             string_static("var a = 42; {a}"),
             string_static("[block]\n"
                           "  [var-store: 0]\n"
                           "    [value: 42]\n"
-                          "  [var-load: 0]"),
+                          "  [block]\n"
+                          "    [var-load: 0]"),
         },
         {
             string_static("var a = 42; {a * a}"),
             string_static("[block]\n"
                           "  [var-store: 0]\n"
                           "    [value: 42]\n"
-                          "  [intrinsic: mul]\n"
-                          "    [var-load: 0]\n"
-                          "    [var-load: 0]"),
+                          "  [block]\n"
+                          "    [intrinsic: mul]\n"
+                          "      [var-load: 0]\n"
+                          "      [var-load: 0]"),
         },
         {
             string_static("var a = 1; { var b = 2; { var c = 3; a; b; c; } }"),
