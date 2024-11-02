@@ -385,13 +385,6 @@ static JsonVal lsp_maybe_field(LspContext* ctx, const JsonVal val, const String 
   return json_field(ctx->jDoc, val, string_hash(fieldName));
 }
 
-static JsonVal lsp_maybe_elem(LspContext* ctx, const JsonVal val, const u32 index) {
-  if (sentinel_check(val) || json_type(ctx->jDoc, val) != JsonType_Array) {
-    return sentinel_u32;
-  }
-  return json_elem(ctx->jDoc, val, index);
-}
-
 static JsonVal lsp_position_to_json(LspContext* ctx, const ScriptPosLineCol* pos) {
   const JsonVal obj = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, obj, "line", json_add_number(ctx->jDoc, pos->line));
@@ -418,6 +411,16 @@ static JsonVal lsp_range_to_json(LspContext* ctx, const ScriptRangeLineCol* rang
   json_add_field_lit(ctx->jDoc, obj, "start", lsp_position_to_json(ctx, &range->start));
   json_add_field_lit(ctx->jDoc, obj, "end", lsp_position_to_json(ctx, &range->end));
   return obj;
+}
+
+static bool lsp_range_from_json(LspContext* ctx, const JsonVal val, ScriptRangeLineCol* out) {
+  if (!lsp_position_from_json(ctx, lsp_maybe_field(ctx, val, string_lit("start")), &out->start)) {
+    return false;
+  }
+  if (!lsp_position_from_json(ctx, lsp_maybe_field(ctx, val, string_lit("end")), &out->end)) {
+    return false;
+  }
+  return true;
 }
 
 static JsonVal lsp_hover_to_json(LspContext* ctx, const LspHover* hover) {
@@ -780,13 +783,12 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
   script_diag_clear(doc->scriptDiags);
   script_sym_bag_clear(doc->scriptSyms);
 
-  const String     scriptSource  = script_lookup_src(doc->scriptLookup);
   const TimeSteady readStartTime = time_steady_clock();
 
   doc->scriptRoot = script_read(
       doc->scriptDoc,
       ctx->scriptBinder,
-      scriptSource,
+      script_lookup_src(doc->scriptLookup),
       g_stringtable,
       doc->scriptDiags,
       doc->scriptSyms);
@@ -876,10 +878,6 @@ static void lsp_handle_notif_doc_did_close(LspContext* ctx, const JRpcNotificati
 }
 
 static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotification* notif) {
-  const JsonVal changesVal    = lsp_maybe_field(ctx, notif->params, string_lit("contentChanges"));
-  const JsonVal changeZeroVal = lsp_maybe_elem(ctx, changesVal, 0);
-  const String  text = lsp_maybe_str(ctx, lsp_maybe_field(ctx, changeZeroVal, string_lit("text")));
-
   LspDocument* doc = lsp_doc_from_json(ctx, notif->params);
   if (UNLIKELY(!doc)) {
     lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(doc->identifier)));
@@ -889,8 +887,37 @@ static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotificat
   if (ctx->flags & LspFlags_Trace) {
     lsp_send_trace(ctx, fmt_write_scratch("Document update: {}", fmt_text(doc->identifier)));
   }
-  script_lookup_update(doc->scriptLookup, text);
+
+  const JsonVal changesArr = lsp_maybe_field(ctx, notif->params, string_lit("contentChanges"));
+  if (sentinel_check(changesArr) || json_type(ctx->jDoc, changesArr) != JsonType_Array) {
+    goto InvalidChange;
+  }
+
+  // Apply the changes.
+  json_for_elems(ctx->jDoc, changesArr, change) {
+    const String  newText  = lsp_maybe_str(ctx, lsp_maybe_field(ctx, change, string_lit("text")));
+    const JsonVal rangeVal = lsp_maybe_field(ctx, change, string_lit("range"));
+    if (sentinel_check(rangeVal)) {
+      script_lookup_update(doc->scriptLookup, newText); // No range provided; replace all text.
+    } else {
+      ScriptRangeLineCol rangeLc;
+      if (!lsp_range_from_json(ctx, rangeVal, &rangeLc)) {
+        goto InvalidChange;
+      }
+      const ScriptRange range = script_lookup_range_from_line_col(doc->scriptLookup, rangeLc);
+      if (!script_range_valid(range)) {
+        goto InvalidChange;
+      }
+      script_lookup_update_range(doc->scriptLookup, newText, range);
+    }
+  }
+
+  // Re-analyze the document.
   lsp_analyze_doc(ctx, doc);
+  return;
+
+InvalidChange:
+  lsp_send_error(ctx, fmt_write_scratch("Invalid document change notification"));
 }
 
 static void lsp_handle_notif(LspContext* ctx, const JRpcNotification* notif) {
@@ -949,7 +976,7 @@ static void lsp_handle_req_initialize(LspContext* ctx, const JRpcRequest* req) {
 
   const JsonVal docSyncOpts = json_add_object(ctx->jDoc);
   json_add_field_lit(ctx->jDoc, docSyncOpts, "openClose", json_add_bool(ctx->jDoc, true));
-  json_add_field_lit(ctx->jDoc, docSyncOpts, "change", json_add_number(ctx->jDoc, 1));
+  json_add_field_lit(ctx->jDoc, docSyncOpts, "change", json_add_number(ctx->jDoc, 2));
 
   const JsonVal hoverOpts      = json_add_object(ctx->jDoc);
   const JsonVal definitionOpts = json_add_object(ctx->jDoc);
