@@ -262,7 +262,6 @@ static LspDocument* lsp_doc_open(LspContext* ctx, const String identifier, const
   };
 
   script_lookup_update(res->scriptLookup, text);
-  script_source_set(res->scriptDoc, text);
 
   return res;
 }
@@ -887,7 +886,6 @@ static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotificat
       lsp_send_trace(ctx, fmt_write_scratch("Document update: {}", fmt_text(doc->identifier)));
     }
     script_lookup_update(doc->scriptLookup, text);
-    script_source_set(doc->scriptDoc, text);
     lsp_analyze_doc(ctx, doc);
   } else {
     lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(doc->identifier)));

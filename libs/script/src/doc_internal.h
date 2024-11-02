@@ -60,7 +60,6 @@ typedef union {
 } ScriptExprData;
 
 struct sScriptDoc {
-  String           sourceText; // Optional.
   DynArray         exprData;   // ScriptExprData[]
   DynArray         exprKinds;  // u8[] (ScriptExprKind[])
   DynArray         exprRanges; // ScriptRange[]

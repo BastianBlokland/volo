@@ -205,7 +205,6 @@ ScriptDoc* script_create(Allocator* alloc) {
 }
 
 void script_destroy(ScriptDoc* doc) {
-  string_maybe_free(doc->alloc, doc->sourceText);
   dynarray_destroy(&doc->exprData);
   dynarray_destroy(&doc->exprKinds);
   dynarray_destroy(&doc->exprRanges);
@@ -221,15 +220,6 @@ void script_clear(ScriptDoc* doc) {
   dynarray_clear(&doc->exprSets);
   dynarray_clear(&doc->values);
 }
-
-void script_source_set(ScriptDoc* doc, const String sourceText) {
-  if (!string_is_empty(doc->sourceText)) {
-    string_maybe_free(doc->alloc, doc->sourceText);
-  }
-  doc->sourceText = string_maybe_dup(doc->alloc, sourceText);
-}
-
-String script_source_get(const ScriptDoc* doc) { return doc->sourceText; }
 
 ScriptExpr script_add_value(ScriptDoc* doc, const ScriptRange range, const ScriptVal val) {
   return doc_expr_add_value(doc, range, val, ScriptExprFlags_ValidateRange);
@@ -314,14 +304,6 @@ ScriptExprKind script_expr_kind(const ScriptDoc* doc, const ScriptExpr expr) {
 ScriptRange script_expr_range(const ScriptDoc* doc, const ScriptExpr expr) {
   diag_assert_msg(expr < doc->exprRanges.size, "Out of bounds ScriptExpr");
   return expr_range(doc, expr);
-}
-
-ScriptRangeLineCol script_expr_range_line_col(const ScriptDoc* doc, const ScriptExpr expr) {
-  if (string_is_empty(doc->sourceText)) {
-    return (ScriptRangeLineCol){0};
-  }
-  const ScriptRange range = script_expr_range(doc, expr);
-  return script_range_to_line_col(doc->sourceText, range);
 }
 
 static void script_visitor_static(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
