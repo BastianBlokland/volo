@@ -82,8 +82,8 @@ static void repl_output_error(const ReplFlags flags, const String text, const St
   dynstring_destroy(&buffer);
 }
 
-static void
-repl_output_diag(const ReplFlags flags, const String src, const ScriptDiag* diag, const String id) {
+static void repl_output_diag(
+    const ReplFlags flags, const ScriptLookup* lookup, const ScriptDiag* diag, const String id) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
@@ -106,7 +106,7 @@ repl_output_diag(const ReplFlags flags, const String src, const ScriptDiag* diag
     dynstring_append(&buffer, id);
     dynstring_append_char(&buffer, ':');
   }
-  script_diag_pretty_write(&buffer, src, diag);
+  script_diag_pretty_write(&buffer, lookup, diag);
 
   if (flags & ReplFlags_TtyOutput) {
     tty_write_style_sequence(&buffer, styleDefault);
@@ -351,7 +351,7 @@ static void repl_exec(
 
   const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
   for (u32 i = 0; i != diagCount; ++i) {
-    repl_output_diag(flags, input, script_diag_data(diags) + i, id);
+    repl_output_diag(flags, lookup, script_diag_data(diags) + i, id);
   }
   if (flags & ReplFlags_OutputSymbols) {
     ScriptSym itr = script_sym_first(syms, script_pos_sentinel);

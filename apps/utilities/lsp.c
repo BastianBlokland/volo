@@ -807,7 +807,7 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
     lspDiags[i] = (LspDiag){
         .range    = script_lookup_range_to_line_col(doc->scriptLookup, diag->range),
         .severity = diag->severity,
-        .message  = script_diag_msg_scratch(scriptSource, diag),
+        .message  = script_diag_msg_scratch(doc->scriptLookup, diag),
     };
   }
   lsp_send_diagnostics(ctx, doc->identifier, lspDiags, lspDiagCount);

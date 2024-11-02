@@ -142,6 +142,11 @@ String script_lookup_src(const ScriptLookup* l) {
   return string_slice(l->srcBuffer, 0, l->srcSize);
 }
 
+String script_lookup_src_range(const ScriptLookup* l, const ScriptRange range) {
+  diag_assert(range.end >= range.start);
+  return string_slice(l->srcBuffer, range.start, range.end - range.start);
+}
+
 void script_lookup_destroy(ScriptLookup* l) {
   string_maybe_free(l->alloc, l->srcBuffer);
   dynarray_destroy(&l->lineEnds);

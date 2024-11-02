@@ -117,8 +117,8 @@ bool script_diag_push(ScriptDiagBag* bag, const ScriptDiag* diag) {
 
 void script_diag_clear(ScriptDiagBag* bag) { bag->count = 0; }
 
-String script_diag_msg_scratch(const String sourceText, const ScriptDiag* diag) {
-  const String rangeText = script_range_text(sourceText, diag->range);
+String script_diag_msg_scratch(const ScriptLookup* lookup, const ScriptDiag* diag) {
+  const String rangeText = script_lookup_src_range(lookup, diag->range);
 
   FormatArg formatArgs[2] = {0};
   if (rangeText.size < 32) {
@@ -127,8 +127,8 @@ String script_diag_msg_scratch(const String sourceText, const ScriptDiag* diag) 
   return format_write_formatted_scratch(g_diagKindStrs[diag->kind], formatArgs);
 }
 
-void script_diag_pretty_write(DynString* out, const String sourceText, const ScriptDiag* diag) {
-  const ScriptRangeLineCol rangeLineCol = script_range_to_line_col(sourceText, diag->range);
+void script_diag_pretty_write(DynString* out, const ScriptLookup* lookup, const ScriptDiag* diag) {
+  const ScriptRangeLineCol rangeLineCol = script_lookup_range_to_line_col(lookup, diag->range);
   fmt_write(
       out,
       "{}:{}-{}:{}: {}",
@@ -136,14 +136,14 @@ void script_diag_pretty_write(DynString* out, const String sourceText, const Scr
       fmt_int(rangeLineCol.start.column + 1),
       fmt_int(rangeLineCol.end.line + 1),
       fmt_int(rangeLineCol.end.column + 1),
-      fmt_text(script_diag_msg_scratch(sourceText, diag)));
+      fmt_text(script_diag_msg_scratch(lookup, diag)));
 }
 
-String script_diag_pretty_scratch(const String sourceText, const ScriptDiag* diag) {
+String script_diag_pretty_scratch(const ScriptLookup* lookup, const ScriptDiag* diag) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  script_diag_pretty_write(&buffer, sourceText, diag);
+  script_diag_pretty_write(&buffer, lookup, diag);
 
   return dynstring_view(&buffer);
 }
