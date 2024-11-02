@@ -19,20 +19,21 @@ typedef struct {
   (JsonResult) { .type = JsonResultType_Success, .val = (_VAL_) }
 
 static const String g_errorStrs[] = {
-    string_static("DuplicateField"),
-    string_static("InvalidChar"),
-    string_static("InvalidCharInFalse"),
-    string_static("InvalidCharInNull"),
-    string_static("InvalidCharInString"),
-    string_static("InvalidCharInTrue"),
-    string_static("InvalidEscapeSequence"),
-    string_static("InvalidFieldName"),
-    string_static("InvalidFieldSeparator"),
-    string_static("MaximumDepthExceeded"),
-    string_static("TooLongString"),
-    string_static("Truncated"),
-    string_static("UnexpectedToken"),
-    string_static("UnterminatedString"),
+    [JsonError_DuplicateField]        = string_static("DuplicateField"),
+    [JsonError_InvalidChar]           = string_static("InvalidChar"),
+    [JsonError_InvalidCharInFalse]    = string_static("InvalidCharInFalse"),
+    [JsonError_InvalidCharInNull]     = string_static("InvalidCharInNull"),
+    [JsonError_InvalidCharInString]   = string_static("InvalidCharInString"),
+    [JsonError_InvalidCharInTrue]     = string_static("InvalidCharInTrue"),
+    [JsonError_InvalidUtf8]           = string_static("InvalidUtf8"),
+    [JsonError_InvalidEscapeSequence] = string_static("InvalidEscapeSequence"),
+    [JsonError_InvalidFieldName]      = string_static("InvalidFieldName"),
+    [JsonError_InvalidFieldSeparator] = string_static("InvalidFieldSeparator"),
+    [JsonError_MaximumDepthExceeded]  = string_static("MaximumDepthExceeded"),
+    [JsonError_TooLongString]         = string_static("TooLongString"),
+    [JsonError_Truncated]             = string_static("Truncated"),
+    [JsonError_UnexpectedToken]       = string_static("UnexpectedToken"),
+    [JsonError_UnterminatedString]    = string_static("UnterminatedString"),
 };
 
 ASSERT(array_elems(g_errorStrs) == JsonError_Count, "Incorrect number of JsonError strings");
