@@ -375,7 +375,7 @@ static void repl_exec(
     goto Ret;
   }
   if (flags & ReplFlags_Compile) {
-    const ScriptCompileError compileErr = script_compile(script, expr, g_allocHeap, &prog);
+    const ScriptCompileError compileErr = script_compile(script, lookup, expr, g_allocHeap, &prog);
     if (compileErr) {
       const String errStr = script_compile_error_str(compileErr);
       repl_output_error(flags, fmt_write_scratch("Compilation failed: {}", fmt_text(errStr)), id);

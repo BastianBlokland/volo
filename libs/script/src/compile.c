@@ -51,11 +51,12 @@ typedef struct {
   (Target) { .reg = (_REG_), .optional = true }
 
 typedef struct {
-  const ScriptDoc* doc;
-  DynString        outCode;
-  DynArray         outLiterals;  // ScriptVal[].
-  DynArray         outLocations; // ScriptProgramLoc[].
-  ScriptOp         lastOp;
+  const ScriptDoc*    doc;
+  const ScriptLookup* lookup;
+  DynString           outCode;
+  DynArray            outLiterals;  // ScriptVal[].
+  DynArray            outLocations; // ScriptProgramLoc[].
+  ScriptOp            lastOp;
 
   u64   regAvailability; // Bitmask of available registers.
   RegId varRegisters[script_var_count];
@@ -165,13 +166,16 @@ static void emit_location(Context* ctx, const ScriptExpr e) {
   if (ctx->outCode.size > u16_max) {
     return; // Code out of bounds (will result in a compile error).
   }
-  const ScriptRangeLineCol range = script_expr_range_line_col(ctx->doc, e);
-  if (!range.start.line && !range.end.line && !range.start.column && !range.end.column) {
-    return; // Position unknown.
+  if (!ctx->lookup) {
+    return; // No lookup provided to resource source locations.
+  }
+  const ScriptRange range = script_expr_range(ctx->doc, e);
+  if (sentinel_check(range.start) || sentinel_check(range.end)) {
+    return; // Location unknown.
   }
   *dynarray_push_t(&ctx->outLocations, ScriptProgramLoc) = (ScriptProgramLoc){
       .instruction = (u16)ctx->outCode.size,
-      .range       = range,
+      .range       = script_lookup_range_to_line_col(ctx->lookup, range),
   };
 }
 
@@ -913,9 +917,14 @@ String script_compile_error_str(const ScriptCompileError res) {
 }
 
 ScriptCompileError script_compile(
-    const ScriptDoc* doc, const ScriptExpr expr, Allocator* outAlloc, ScriptProgram* out) {
+    const ScriptDoc*    doc,
+    const ScriptLookup* lookup,
+    const ScriptExpr    expr,
+    Allocator*          outAlloc,
+    ScriptProgram*      out) {
   Context ctx = {
       .doc          = doc,
+      .lookup       = lookup,
       .outCode      = dynstring_create(g_allocHeap, 64),
       .outLiterals  = dynarray_create_t(g_allocHeap, ScriptVal, 0),
       .outLocations = dynarray_create_t(g_allocHeap, ScriptProgramLoc, 16),

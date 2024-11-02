@@ -5,10 +5,10 @@
 // Forward declare from 'script_mem.h'.
 typedef struct sScriptMem ScriptMem;
 
-// Forward declare from 'core_binder.h'.
+// Forward declare from 'script_binder.h'.
 typedef struct sScriptBinder ScriptBinder;
 
-// Forward declare from 'core_pos.h'.
+// Forward declare from 'script_pos.h'.
 typedef struct sScriptLookup ScriptLookup;
 
 typedef struct {

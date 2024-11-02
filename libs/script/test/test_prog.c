@@ -275,7 +275,7 @@ spec(prog) {
       check_require_msg(!sentinel_check(expr), "Read failed ({})", fmt_text(testData[i].input));
 
       script_prog_clear(&prog, g_allocHeap);
-      const ScriptCompileError err = script_compile(doc, expr, g_allocHeap, &prog);
+      const ScriptCompileError err = script_compile(doc, null, expr, g_allocHeap, &prog);
       check_require_msg(!err, "Compile failed ({})", fmt_text(testData[i].input));
 
       check_require(script_prog_validate(&prog, binder));

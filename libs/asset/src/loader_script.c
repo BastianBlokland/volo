@@ -863,7 +863,8 @@ void asset_load_script(
   ScriptDiagBag* diags       = script_diag_bag_create(tempAlloc, ScriptDiagFilter_Error);
   ScriptSymBag*  symsNull    = null;
 
-  script_source_set(doc, src->data);
+  ScriptLookup* lookup = script_lookup_create(g_allocHeap);
+  script_lookup_update(lookup, src->data);
 
   // Parse the script.
   ScriptExpr expr = script_read(doc, g_assetScriptBinder, src->data, stringtable, diags, symsNull);
@@ -890,7 +891,7 @@ void asset_load_script(
 
   // Compile the program.
   ScriptProgram            prog;
-  const ScriptCompileError compileErr = script_compile(doc, expr, g_allocHeap, &prog);
+  const ScriptCompileError compileErr = script_compile(doc, lookup, expr, g_allocHeap, &prog);
   if (UNLIKELY(compileErr)) {
     log_e(
         "Script compile error",
@@ -929,6 +930,7 @@ Error:
 Cleanup:
   script_destroy(doc);
   stringtable_destroy(stringtable);
+  script_lookup_destroy(lookup);
   asset_repo_source_close(src);
 }
 
