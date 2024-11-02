@@ -14,6 +14,7 @@ typedef enum {
   JsonError_InvalidCharInNull,
   JsonError_InvalidCharInString,
   JsonError_InvalidCharInTrue,
+  JsonError_InvalidUtf8,
   JsonError_InvalidEscapeSequence,
   JsonError_InvalidFieldName,
   JsonError_InvalidFieldSeparator,

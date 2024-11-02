@@ -59,7 +59,7 @@ spec(read) {
   }
 
   it("can read objects") {
-    JsonVal tmpValA, tmpValB, tmpValC, tmpValD, tmpValE;
+    JsonVal tmpValA, tmpValB, tmpValC, tmpValD, tmpValE, tmpValF;
     struct {
       String  input;
       JsonVal expected;
@@ -90,6 +90,10 @@ spec(read) {
           json_add_field_str(doc, tmpValE, string_lit("a"), json_add_object(doc)),
           json_add_field_str(doc, tmpValE, string_lit("b"), json_add_object(doc)),
           tmpValE)},
+        {string_lit("{\"你好世界\":true}"),
+         (tmpValF = json_add_object(doc),
+          json_add_field_str(doc, tmpValF, string_lit("你好世界"), json_add_bool(doc, true)),
+          tmpValF)},
     };
 
     JsonResult res;
@@ -151,6 +155,7 @@ spec(read) {
         {string_lit("\"\\u41\""), string_lit("A")},
         {string_lit("\"\\u0041\""), string_lit("A")},
         {string_lit("\"\\ug\""), string_lit("\0g")},
+        {string_lit("\"你好世界\""), string_lit("你好世界")},
     };
 
     JsonResult res;
