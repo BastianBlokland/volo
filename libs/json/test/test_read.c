@@ -151,6 +151,7 @@ spec(read) {
         {string_lit("\"\\u41\""), string_lit("A")},
         {string_lit("\"\\u0041\""), string_lit("A")},
         {string_lit("\"\\ug\""), string_lit("\0g")},
+        {string_lit("\"你好世界\""), string_lit("你好世界")},
     };
 
     JsonResult res;
