@@ -144,6 +144,7 @@ spec(manager) {
 
     ecs_run_sync(runner);
     ecs_run_sync(runner);
+    ecs_run_sync(runner);
 
     check(ecs_world_has_t(world, assetA, AssetLoadedComp));
     check(ecs_world_has_t(world, assetA, AssetRawComp));
