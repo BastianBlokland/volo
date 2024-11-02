@@ -20,6 +20,7 @@ typedef enum {
 
 typedef struct {
   const ScriptDoc*    doc;
+  const ScriptLookup* lookup;
   ScriptMem*          m;
   const ScriptBinder* binder;
   void*               bindCtx;
@@ -30,6 +31,13 @@ typedef struct {
 } ScriptEvalContext;
 
 static ScriptVal eval_expr(ScriptEvalContext*, ScriptExpr);
+
+static ScriptRangeLineCol eval_source_range(ScriptEvalContext* ctx, const ScriptExpr e) {
+  if (!ctx->lookup) {
+    return (ScriptRangeLineCol){0}; // No source information known.
+  }
+  return script_lookup_range_to_line_col(ctx->lookup, script_expr_range(ctx->doc, e));
+}
 
 INLINE_HINT static ScriptVal eval_value(ScriptEvalContext* ctx, const ScriptExpr e) {
   const ScriptExprValue* data = &expr_data(ctx->doc, e)->value;
@@ -94,7 +102,7 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     if (script_falsy(eval_expr(ctx, args[0]))) {
       ctx->panic = (ScriptPanic){
           .kind  = ScriptPanic_AssertionFailed,
-          .range = script_expr_range_line_col(ctx->doc, e),
+          .range = eval_source_range(ctx, e),
       };
       ctx->signal |= ScriptEvalSignal_Panic;
     }
@@ -328,7 +336,7 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
   };
   const ScriptVal ret = script_binder_exec(ctx->binder, data->func, ctx->bindCtx, &call);
   if (UNLIKELY(script_call_panicked(&call))) {
-    call.panic.range = script_expr_range_line_col(ctx->doc, e);
+    call.panic.range = eval_source_range(ctx, e);
     ctx->panic       = call.panic;
     ctx->signal |= ScriptEvalSignal_Panic;
   }
@@ -339,7 +347,7 @@ NO_INLINE_HINT static ScriptVal eval_expr(ScriptEvalContext* ctx, const ScriptEx
   if (UNLIKELY(ctx->executedOps++ == script_executed_ops_max)) {
     ctx->panic = (ScriptPanic){
         .kind  = ScriptPanic_ExecutionLimitExceeded,
-        .range = script_expr_range_line_col(ctx->doc, e),
+        .range = eval_source_range(ctx, e),
     };
     ctx->signal |= ScriptEvalSignal_Panic;
     return val_null();
@@ -370,6 +378,7 @@ NO_INLINE_HINT static ScriptVal eval_expr(ScriptEvalContext* ctx, const ScriptEx
 
 ScriptEvalResult script_eval(
     const ScriptDoc*    doc,
+    const ScriptLookup* lookup,
     const ScriptExpr    expr,
     ScriptMem*          m,
     const ScriptBinder* binder,
@@ -379,6 +388,7 @@ ScriptEvalResult script_eval(
   }
   ScriptEvalContext ctx = {
       .doc     = doc,
+      .lookup  = lookup,
       .m       = m,
       .binder  = binder,
       .bindCtx = bindCtx,

@@ -8,6 +8,9 @@ typedef struct sScriptProgram ScriptProgram;
 typedef struct sScriptDoc ScriptDoc;
 typedef u32               ScriptExpr;
 
+// Forward declare from 'script_pos.h'.
+typedef struct sScriptLookup ScriptLookup;
+
 typedef enum {
   ScriptCompileError_None,
   ScriptCompileError_TooManyRegisters,
@@ -23,4 +26,5 @@ String script_compile_error_str(ScriptCompileError);
  * Compile an expression to byte-code that can be executed in the vm.
  * Output is written to the given DynString.
  */
-ScriptCompileError script_compile(const ScriptDoc*, ScriptExpr, Allocator*, ScriptProgram* out);
+ScriptCompileError
+script_compile(const ScriptDoc*, const ScriptLookup*, ScriptExpr, Allocator*, ScriptProgram* out);

@@ -54,6 +54,7 @@ typedef enum {
 
 typedef struct {
   String         identifier;
+  ScriptLookup*  scriptLookup;
   ScriptDoc*     scriptDoc;
   ScriptDiagBag* scriptDiags;
   ScriptSymBag*  scriptSyms;
@@ -234,6 +235,7 @@ static i8 lsp_semantic_token_compare(const void* a, const void* b) {
 
 static void lsp_doc_destroy(LspDocument* doc) {
   string_free(g_allocHeap, doc->identifier);
+  script_lookup_destroy(doc->scriptLookup);
   script_destroy(doc->scriptDoc);
   script_diag_bag_destroy(doc->scriptDiags);
   script_sym_bag_destroy(doc->scriptSyms);
@@ -252,13 +254,14 @@ static LspDocument* lsp_doc_open(LspContext* ctx, const String identifier, const
   LspDocument* res = dynarray_push_t(ctx->openDocs, LspDocument);
 
   *res = (LspDocument){
-      .identifier  = string_dup(g_allocHeap, identifier),
-      .scriptDoc   = script_create(g_allocHeap),
-      .scriptDiags = script_diag_bag_create(g_allocHeap, ScriptDiagFilter_All),
-      .scriptSyms  = script_sym_bag_create(g_allocHeap),
+      .identifier   = string_dup(g_allocHeap, identifier),
+      .scriptLookup = script_lookup_create(g_allocHeap),
+      .scriptDoc    = script_create(g_allocHeap),
+      .scriptDiags  = script_diag_bag_create(g_allocHeap, ScriptDiagFilter_All),
+      .scriptSyms   = script_sym_bag_create(g_allocHeap),
   };
 
-  script_source_set(res->scriptDoc, text);
+  script_lookup_update(res->scriptLookup, text);
 
   return res;
 }
@@ -271,10 +274,9 @@ static void lsp_doc_close(LspContext* ctx, LspDocument* doc) {
 }
 
 static LspLocation lsp_doc_location(const LspDocument* doc, const ScriptRange range) {
-  const String sourceText = script_source_get(doc->scriptDoc);
   return (LspLocation){
       .uri   = doc->identifier,
-      .range = script_range_to_line_col(sourceText, range),
+      .range = script_lookup_range_to_line_col(doc->scriptLookup, range),
   };
 }
 
@@ -613,7 +615,7 @@ static bool lsp_doc_pos_from_json(LspContext* ctx, const JsonVal val, LspTextDoc
   if (UNLIKELY(!lsp_position_from_json(ctx, posLcVal, &out->posLc))) {
     return false;
   }
-  out->pos = script_pos_from_line_col(script_source_get(out->doc->scriptDoc), out->posLc);
+  out->pos = script_lookup_from_line_col(out->doc->scriptLookup, out->posLc);
   if (UNLIKELY(sentinel_check(out->pos))) {
     return false;
   }
@@ -778,7 +780,7 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
   script_diag_clear(doc->scriptDiags);
   script_sym_bag_clear(doc->scriptSyms);
 
-  const String     scriptSource  = script_source_get(doc->scriptDoc);
+  const String     scriptSource  = script_lookup_src(doc->scriptLookup);
   const TimeSteady readStartTime = time_steady_clock();
 
   doc->scriptRoot = script_read(
@@ -803,7 +805,7 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
 
     // TODO: Report text ranges in utf16 instead of utf32.
     lspDiags[i] = (LspDiag){
-        .range    = script_range_to_line_col(scriptSource, diag->range),
+        .range    = script_lookup_range_to_line_col(doc->scriptLookup, diag->range),
         .severity = diag->severity,
         .message  = script_diag_msg_scratch(scriptSource, diag),
     };
@@ -883,7 +885,7 @@ static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotificat
     if (ctx->flags & LspFlags_Trace) {
       lsp_send_trace(ctx, fmt_write_scratch("Document update: {}", fmt_text(doc->identifier)));
     }
-    script_source_set(doc->scriptDoc, text);
+    script_lookup_update(doc->scriptLookup, text);
     lsp_analyze_doc(ctx, doc);
   } else {
     lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(doc->identifier)));
@@ -1074,9 +1076,8 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
     lsp_send_trace(ctx, txt);
   }
 
-  const ScriptDoc*    scriptDoc    = docPos.doc->scriptDoc;
   const ScriptSymBag* scriptSyms   = docPos.doc->scriptSyms;
-  const String        scriptSource = script_source_get(scriptDoc);
+  const String        scriptSource = script_lookup_src(docPos.doc->scriptLookup);
 
   // NOTE: The cursor can be after the last character, in which case its outside of the document
   // text (and we won't find any completion items), to counter this we clamp it.
@@ -1182,9 +1183,8 @@ static void lsp_handle_req_color(LspContext* ctx, const JRpcRequest* req) {
     return;
   }
 
-  const ScriptDoc* scriptDoc    = doc->scriptDoc;
-  const ScriptExpr scriptRoot   = doc->scriptRoot;
-  const String     scriptSource = script_source_get(scriptDoc);
+  const ScriptDoc* scriptDoc  = doc->scriptDoc;
+  const ScriptExpr scriptRoot = doc->scriptRoot;
 
   LspColorContext colorCtx = {0};
   if (!sentinel_check(scriptRoot)) {
@@ -1194,7 +1194,7 @@ static void lsp_handle_req_color(LspContext* ctx, const JRpcRequest* req) {
   const JsonVal resultArr = json_add_array(ctx->jDoc);
   for (u32 i = 0; i != colorCtx.entryCount; ++i) {
     const LspColorInfo info = {
-        .range = script_range_to_line_col(scriptSource, colorCtx.entries[i].range),
+        .range = script_lookup_range_to_line_col(doc->scriptLookup, colorCtx.entries[i].range),
         .color = colorCtx.entries[i].color,
     };
     json_add_elem(ctx->jDoc, resultArr, lsp_color_info_to_json(ctx, &info));
@@ -1225,10 +1225,9 @@ static void lsp_handle_req_highlight(LspContext* ctx, const JRpcRequest* req) {
     lsp_send_trace(ctx, txt);
   }
 
-  const ScriptDoc*    scriptDoc    = docPos.doc->scriptDoc;
-  const ScriptSymBag* scriptSyms   = docPos.doc->scriptSyms;
-  const ScriptExpr    scriptRoot   = docPos.doc->scriptRoot;
-  const String        scriptSource = script_source_get(scriptDoc);
+  const ScriptDoc*    scriptDoc  = docPos.doc->scriptDoc;
+  const ScriptSymBag* scriptSyms = docPos.doc->scriptSyms;
+  const ScriptExpr    scriptRoot = docPos.doc->scriptRoot;
 
   if (sentinel_check(scriptRoot)) {
     lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
@@ -1252,7 +1251,7 @@ static void lsp_handle_req_highlight(LspContext* ctx, const JRpcRequest* req) {
   const ScriptRange symRange = script_sym_location(scriptSyms, sym);
   if (script_range_valid(symRange)) {
     const LspHighlight highlight = {
-        .range = script_range_to_line_col(scriptSource, symRange),
+        .range = script_lookup_range_to_line_col(docPos.doc->scriptLookup, symRange),
         .kind  = LspHighlightKind_Write,
     };
     json_add_elem(ctx->jDoc, highlightsArr, lsp_highlight_to_json(ctx, &highlight));
@@ -1262,7 +1261,7 @@ static void lsp_handle_req_highlight(LspContext* ctx, const JRpcRequest* req) {
   const ScriptSymRefSet refs = script_sym_refs(scriptSyms, sym);
   for (const ScriptSymRef* ref = refs.begin; ref != refs.end; ++ref) {
     const LspHighlight highlight = {
-        .range = script_range_to_line_col(scriptSource, ref->location),
+        .range = script_lookup_range_to_line_col(docPos.doc->scriptLookup, ref->location),
         .kind  = lsp_sym_ref_highlight_kind(ref),
     };
     json_add_elem(ctx->jDoc, highlightsArr, lsp_highlight_to_json(ctx, &highlight));
@@ -1295,8 +1294,7 @@ static void lsp_handle_req_symbols(LspContext* ctx, const JRpcRequest* req) {
     lsp_send_response_error(ctx, req, &g_jrpcErrorInvalidParams);
     return;
   }
-  const String  scriptSource = script_source_get(doc->scriptDoc);
-  const JsonVal symbolsArr   = json_add_array(ctx->jDoc);
+  const JsonVal symbolsArr = json_add_array(ctx->jDoc);
 
   ScriptSym itr = script_sym_first(doc->scriptSyms, script_pos_sentinel);
   for (; !sentinel_check(itr); itr = script_sym_next(doc->scriptSyms, script_pos_sentinel, itr)) {
@@ -1309,7 +1307,7 @@ static void lsp_handle_req_symbols(LspContext* ctx, const JRpcRequest* req) {
     const LspSymbol symbol = {
         .name  = script_sym_label(doc->scriptSyms, itr),
         .kind  = lsp_sym_kind_map(kind),
-        .range = script_range_to_line_col(scriptSource, location),
+        .range = script_lookup_range_to_line_col(doc->scriptLookup, location),
     };
     json_add_elem(ctx->jDoc, symbolsArr, lsp_symbol_to_json(ctx, &symbol));
   }
@@ -1333,7 +1331,7 @@ static void lsp_handle_req_formatting(LspContext* ctx, const JRpcRequest* req) {
     return;
   }
 
-  const String sourceText         = script_source_get(doc->scriptDoc);
+  const String sourceText         = script_lookup_src(doc->scriptLookup);
   const usize  expectedResultSize = (usize)(sourceText.size * 1.5f); // Guesstimate the output size.
   DynString    resultBuffer       = dynstring_create(g_allocHeap, expectedResultSize);
 
@@ -1377,9 +1375,10 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
     lsp_send_trace(ctx, txt);
   }
 
-  const ScriptDoc*    scriptDoc  = docPos.doc->scriptDoc;
-  const ScriptSymBag* scriptSyms = docPos.doc->scriptSyms;
-  const ScriptExpr    scriptRoot = docPos.doc->scriptRoot;
+  const ScriptDoc*    scriptDoc    = docPos.doc->scriptDoc;
+  const ScriptSymBag* scriptSyms   = docPos.doc->scriptSyms;
+  const ScriptLookup* scriptLookup = docPos.doc->scriptLookup;
+  const ScriptExpr    scriptRoot   = docPos.doc->scriptRoot;
 
   if (sentinel_check(scriptRoot)) {
     lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
@@ -1398,7 +1397,7 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
   dynstring_append(&textBuffer, script_expr_kind_str(exprKind));
 
   if (script_expr_static(scriptDoc, expr)) {
-    const ScriptEvalResult evalRes = script_eval(scriptDoc, expr, null, null, null);
+    const ScriptEvalResult evalRes = script_eval(scriptDoc, scriptLookup, expr, null, null, null);
     fmt_write(&textBuffer, " `{}`", fmt_text(script_val_scratch(evalRes.val)));
   }
   const ScriptSym sym = script_sym_find(scriptSyms, scriptDoc, expr);
@@ -1415,7 +1414,7 @@ static void lsp_handle_req_hover(LspContext* ctx, const JRpcRequest* req) {
   }
 
   const LspHover hover = {
-      .range = script_expr_range_line_col(scriptDoc, expr),
+      .range = script_lookup_range_to_line_col(scriptLookup, script_expr_range(scriptDoc, expr)),
       .text  = dynstring_view(&textBuffer),
   };
   lsp_send_response_success(ctx, req, lsp_hover_to_json(ctx, &hover));
@@ -1526,8 +1525,8 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
 
   const ScriptDoc*    scriptDoc    = docPos.doc->scriptDoc;
   const ScriptSymBag* scriptSyms   = docPos.doc->scriptSyms;
+  const ScriptLookup* scriptLookup = docPos.doc->scriptLookup;
   const ScriptExpr    scriptRoot   = docPos.doc->scriptRoot;
-  const String        scriptSource = script_source_get(scriptDoc);
 
   if (sentinel_check(scriptRoot)) {
     lsp_send_response_success(ctx, req, json_add_null(ctx->jDoc));
@@ -1560,7 +1559,7 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
   // Rename the symbol itself.
   const ScriptRange symRange = script_sym_location(scriptSyms, sym);
   if (script_range_valid(symRange)) {
-    const ScriptRangeLineCol rangeLc = script_range_to_line_col(scriptSource, symRange);
+    const ScriptRangeLineCol rangeLc = script_lookup_range_to_line_col(scriptLookup, symRange);
     const LspTextEdit        edit    = {.range = rangeLc, .newText = new};
     json_add_elem(ctx->jDoc, editsArr, lsp_text_edit_to_json(ctx, &edit));
   }
@@ -1568,8 +1567,8 @@ static void lsp_handle_req_rename(LspContext* ctx, const JRpcRequest* req) {
   // Rename the references.
   const ScriptSymRefSet refs = script_sym_refs(scriptSyms, sym);
   for (const ScriptSymRef* ref = refs.begin; ref != refs.end; ++ref) {
-    const ScriptRangeLineCol locationLc = script_range_to_line_col(scriptSource, ref->location);
-    const LspTextEdit        edit       = {.range = locationLc, .newText = new};
+    const ScriptRangeLineCol locLc = script_lookup_range_to_line_col(scriptLookup, ref->location);
+    const LspTextEdit        edit  = {.range = locLc, .newText = new};
     json_add_elem(ctx->jDoc, editsArr, lsp_text_edit_to_json(ctx, &edit));
   }
 
@@ -1605,9 +1604,8 @@ static void lsp_handle_req_selection_range(LspContext* ctx, const JRpcRequest* r
     return;
   }
 
-  const ScriptDoc* scriptDoc    = doc->scriptDoc;
-  const ScriptExpr scriptRoot   = doc->scriptRoot;
-  const String     scriptSource = script_source_get(scriptDoc);
+  const ScriptDoc* scriptDoc  = doc->scriptDoc;
+  const ScriptExpr scriptRoot = doc->scriptRoot;
 
   const JsonVal resArr = json_add_array(ctx->jDoc);
   json_for_elems(ctx->jDoc, positionsArr, posObj) {
@@ -1616,7 +1614,7 @@ static void lsp_handle_req_selection_range(LspContext* ctx, const JRpcRequest* r
       json_add_elem(ctx->jDoc, resArr, lsp_selection_range_empty_to_json(ctx));
       continue; // Invalid position or script did not parse correctly.
     }
-    const ScriptPos pos = script_pos_from_line_col(scriptSource, posLc);
+    const ScriptPos pos = script_lookup_from_line_col(doc->scriptLookup, posLc);
     if (sentinel_check(pos)) {
       json_add_elem(ctx->jDoc, resArr, lsp_selection_range_empty_to_json(ctx));
       continue; // Position out of bounds.
@@ -1629,7 +1627,7 @@ static void lsp_handle_req_selection_range(LspContext* ctx, const JRpcRequest* r
     // Convert ranges to line-column format and add them to the result.
     ScriptRangeLineCol rangesLc[array_elems(rangesCtx.ranges)];
     for (usize i = 0; i != rangesCtx.count; ++i) {
-      rangesLc[i] = script_range_to_line_col(scriptSource, rangesCtx.ranges[i]);
+      rangesLc[i] = script_lookup_range_to_line_col(doc->scriptLookup, rangesCtx.ranges[i]);
     }
     json_add_elem(ctx->jDoc, resArr, lsp_selection_range_to_json(ctx, rangesLc, rangesCtx.count));
   }
@@ -1687,11 +1685,10 @@ static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* r
     return;
   }
 
-  const ScriptDoc*    scriptDoc    = doc->scriptDoc;
   const ScriptSymBag* scriptSyms   = doc->scriptSyms;
-  const String        scriptSource = script_source_get(scriptDoc);
+  const ScriptLookup* scriptLookup = doc->scriptLookup;
 
-  LspSemanticToken tokens[2048];
+  LspSemanticToken tokens[4096];
   usize            tokenCount = 0;
 
   // Gather tokens from symbols.
@@ -1707,7 +1704,7 @@ static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* r
     // Add symbol definition token.
     const ScriptRange symLoc = script_sym_location(scriptSyms, sym);
     if (script_range_valid(symLoc)) {
-      const ScriptRangeLineCol symLocLc = script_range_to_line_col(scriptSource, symLoc);
+      const ScriptRangeLineCol symLocLc = script_lookup_range_to_line_col(scriptLookup, symLoc);
       if (UNLIKELY(symLocLc.start.line != symLocLc.end.line)) {
         continue; // Multi-line tokens are not supported.
       }
@@ -1725,7 +1722,7 @@ static void lsp_handle_req_semantic_tokens(LspContext* ctx, const JRpcRequest* r
     // Add symbol reference tokens.
     const ScriptSymRefSet refs = script_sym_refs(scriptSyms, sym);
     for (const ScriptSymRef* ref = refs.begin; ref != refs.end; ++ref) {
-      const ScriptRangeLineCol refLoc = script_range_to_line_col(scriptSource, ref->location);
+      ScriptRangeLineCol refLoc = script_lookup_range_to_line_col(scriptLookup, ref->location);
       if (UNLIKELY(refLoc.start.line != refLoc.end.line)) {
         continue; // Multi-line tokens are not supported.
       }
@@ -1813,9 +1810,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
 
   const ScriptSym    callSym = script_sym_find(scriptSyms, scriptDoc, callExpr);
   const LspSignature sig     = {
-      .label     = script_sym_label(scriptSyms, callSym),
-      .doc       = script_sym_doc(scriptSyms, callSym),
-      .scriptSig = script_sym_sig(scriptSyms, callSym),
+          .label     = script_sym_label(scriptSyms, callSym),
+          .doc       = script_sym_doc(scriptSyms, callSym),
+          .scriptSig = script_sym_sig(scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
@@ -1938,6 +1935,7 @@ static i32 lsp_run_stdio(const ScriptBinder* scriptBinder) {
     const String    content = lsp_read_sized(&ctx, header.contentLength);
 
     JsonResult jsonResult;
+    // TODO: JRpc spec only supports utf8 encoding while our json lexer only supports Ascii.
     json_read(jDoc, content, JsonReadFlags_None, &jsonResult);
     if (UNLIKELY(jsonResult.type == JsonResultType_Fail)) {
       const String jsonErr = json_error_str(jsonResult.error);

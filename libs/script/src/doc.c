@@ -205,7 +205,6 @@ ScriptDoc* script_create(Allocator* alloc) {
 }
 
 void script_destroy(ScriptDoc* doc) {
-  string_maybe_free(doc->alloc, doc->sourceText);
   dynarray_destroy(&doc->exprData);
   dynarray_destroy(&doc->exprKinds);
   dynarray_destroy(&doc->exprRanges);
@@ -221,15 +220,6 @@ void script_clear(ScriptDoc* doc) {
   dynarray_clear(&doc->exprSets);
   dynarray_clear(&doc->values);
 }
-
-void script_source_set(ScriptDoc* doc, const String sourceText) {
-  if (!string_is_empty(doc->sourceText)) {
-    string_maybe_free(doc->alloc, doc->sourceText);
-  }
-  doc->sourceText = string_maybe_dup(doc->alloc, sourceText);
-}
-
-String script_source_get(const ScriptDoc* doc) { return doc->sourceText; }
 
 ScriptExpr script_add_value(ScriptDoc* doc, const ScriptRange range, const ScriptVal val) {
   return doc_expr_add_value(doc, range, val, ScriptExprFlags_ValidateRange);
@@ -316,14 +306,6 @@ ScriptRange script_expr_range(const ScriptDoc* doc, const ScriptExpr expr) {
   return expr_range(doc, expr);
 }
 
-ScriptRangeLineCol script_expr_range_line_col(const ScriptDoc* doc, const ScriptExpr expr) {
-  if (string_is_empty(doc->sourceText)) {
-    return (ScriptRangeLineCol){0};
-  }
-  const ScriptRange range = script_expr_range(doc, expr);
-  return script_range_to_line_col(doc->sourceText, range);
-}
-
 static void script_visitor_static(void* ctx, const ScriptDoc* doc, const ScriptExpr expr) {
   bool* isStatic = ctx;
   switch (expr_kind(doc, expr)) {
@@ -360,7 +342,7 @@ ScriptVal script_expr_static_val(const ScriptDoc* doc, const ScriptExpr expr) {
   if (!script_expr_static(doc, expr)) {
     return script_null();
   }
-  const ScriptEvalResult evalRes = script_eval(doc, expr, null, null, null);
+  const ScriptEvalResult evalRes = script_eval(doc, null, expr, null, null, null);
   return evalRes.panic.kind ? script_null() : evalRes.val;
 }
 
@@ -368,7 +350,7 @@ bool script_expr_always_truthy(const ScriptDoc* doc, const ScriptExpr expr) {
   if (!script_expr_static(doc, expr)) {
     return false;
   }
-  const ScriptEvalResult evalRes = script_eval(doc, expr, null, null, null);
+  const ScriptEvalResult evalRes = script_eval(doc, null, expr, null, null, null);
   return !evalRes.panic.kind && script_truthy(evalRes.val);
 }
 
@@ -533,7 +515,7 @@ ScriptDocSignal script_expr_always_uncaught_signal(const ScriptDoc* doc, const S
         return sig;
       }
       if (script_expr_static(doc, args[0])) {
-        const ScriptEvalResult res = script_eval(doc, args[0], null, null, null);
+        const ScriptEvalResult res = script_eval(doc, null, args[0], null, null, null);
         if (!res.panic.kind) {
           const bool condition = script_truthy(res.val);
           return script_expr_always_uncaught_signal(doc, condition ? args[1] : args[2]);
