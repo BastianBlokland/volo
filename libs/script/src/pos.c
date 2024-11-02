@@ -154,15 +154,21 @@ ScriptPosLineCol script_lookup_to_line_col(const ScriptLookup* l, const ScriptPo
   const ScriptPos* linesBegin = dynarray_begin_t(&l->lineEnds, ScriptPos);
   const ScriptPos* linesEnd   = dynarray_end_t(&l->lineEnds, ScriptPos);
 
-  const ScriptPos* nextLinePtr =
-      search_binary_greater_t(linesBegin, linesEnd, ScriptPos, compare_u32, &pos);
+  const ScriptPos* nextLine =
+      search_binary_greater_or_equal_t(linesBegin, linesEnd, ScriptPos, compare_u32, &pos);
 
-  const ScriptPos lineOffset = nextLinePtr && (nextLinePtr != linesBegin) ? *(nextLinePtr - 1) : 0;
-  const String    lineSrc    = string_slice(l->srcBuffer, lineOffset, pos - lineOffset);
+  const ScriptPos* nextLineOrEnd = nextLine ? nextLine : linesEnd;
+
+  u16       line       = 0;
+  ScriptPos lineOffset = 0;
+  if (nextLineOrEnd != linesBegin) {
+    line       = (u16)(nextLineOrEnd - linesBegin);
+    lineOffset = *(nextLineOrEnd - 1) + 1; // +1 to skip over the newline character.
+  }
 
   return (ScriptPosLineCol){
-      .line   = nextLinePtr ? (u32)(nextLinePtr - linesBegin) : 0,
-      .column = (u32)utf8_cp_count(lineSrc),
+      .line   = line,
+      .column = (u32)utf8_cp_count(string_slice(l->srcBuffer, lineOffset, pos - lineOffset)),
   };
 }
 
@@ -173,7 +179,7 @@ ScriptPos script_lookup_from_line_col(const ScriptLookup* l, const ScriptPosLine
 
   ScriptPos currentPos = 0;
   if (lc.line) {
-    currentPos = *dynarray_at_t(&l->lineEnds, lc.line - 1, ScriptPos);
+    currentPos = *dynarray_at_t(&l->lineEnds, lc.line - 1, ScriptPos) + 1; // +1 for newline char.
   }
 
   // Advance 'lc.column' columns.
