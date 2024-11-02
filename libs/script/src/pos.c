@@ -122,6 +122,17 @@ ScriptLookup* script_lookup_create(Allocator* alloc) {
   return lookup;
 }
 
+static void script_lookup_compute_line_ends(ScriptLookup* l) {
+  const String src = script_lookup_src(l);
+
+  dynarray_clear(&l->lineEnds);
+  for (const u8* itr = string_begin(src); itr != string_end(src); ++itr) {
+    if (*itr == '\n') {
+      *dynarray_push_t(&l->lineEnds, ScriptPos) = (ScriptPos)(itr - string_begin(src));
+    }
+  }
+}
+
 void script_lookup_update(ScriptLookup* l, const String src) {
   if (src.size > l->srcBuffer.size) {
     string_maybe_free(l->alloc, l->srcBuffer);
@@ -130,12 +141,29 @@ void script_lookup_update(ScriptLookup* l, const String src) {
   mem_cpy(l->srcBuffer, src);
   l->srcSize = src.size;
 
-  dynarray_clear(&l->lineEnds);
-  for (const u8* itr = string_begin(src); itr != string_end(src); ++itr) {
-    if (*itr == '\n') {
-      *dynarray_push_t(&l->lineEnds, ScriptPos) = (ScriptPos)(itr - string_begin(src));
-    }
+  script_lookup_compute_line_ends(l);
+}
+
+void script_lookup_update_range(ScriptLookup* l, const String src, const ScriptRange range) {
+  const usize newSize = l->srcSize - (range.end - range.start) + src.size;
+  if (newSize > l->srcBuffer.size) {
+    const String newAlloc = alloc_alloc(l->alloc, bits_nextpow2(newSize), 1);
+    mem_cpy(newAlloc, l->srcBuffer); // TODO: This can also copy text that will be replaced.
+    string_maybe_free(l->alloc, l->srcBuffer);
+    l->srcBuffer = newAlloc;
   }
+
+  // Move the unchanged text at the end.
+  mem_move(
+      mem_slice(l->srcBuffer, range.start + src.size, l->srcSize - range.end),
+      mem_slice(l->srcBuffer, range.end, l->srcSize - range.end));
+
+  // Copy the changed section.
+  mem_cpy(mem_slice(l->srcBuffer, range.start, src.size), src);
+
+  l->srcSize = newSize;
+
+  script_lookup_compute_line_ends(l);
 }
 
 String script_lookup_src(const ScriptLookup* l) {
