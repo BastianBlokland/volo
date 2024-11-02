@@ -30,15 +30,14 @@ static String json_lex_number(String str, JsonToken* out) {
 }
 
 static String json_lex_string(String str, JsonToken* out) {
-
   // Caller is responsible for checking that the first character is valid.
   diag_assert(*string_begin(str) == '"');
   str = json_consume_chars(str, 1);
 
 #ifdef VOLO_SIMD
   /**
-   * Fast path for simple strings (no escape sequences), if the fast path cannot handle the input it
-   * will abort and let the slow path handle it.
+   * Fast path for simple Ascii strings (with no escape sequences), if the fast path cannot handle
+   * the input it will abort and let the slow path handle it.
    */
   const SimdVec quoteVec   = simd_vec_broadcast_u8('"');
   const SimdVec escapeVec  = simd_vec_broadcast_u8('\\');
@@ -74,21 +73,17 @@ static String json_lex_string(String str, JsonToken* out) {
 
   bool escaped = false;
   while (true) {
-
-    if (UNLIKELY(result.size >= resultBuffer.size)) {
+    if (UNLIKELY(result.size == resultBuffer.size)) {
       *out = json_token_err(JsonError_TooLongString);
       goto Ret;
     }
-
     if (UNLIKELY(string_is_empty(str))) {
       *out = json_token_err(JsonError_UnterminatedString);
       goto Ret;
     }
-
     const u8 ch = *string_begin(str);
-    str         = json_consume_chars(str, 1);
-
     if (escaped) {
+      str = json_consume_chars(str, 1);
       switch (ch) {
       case '"':
         dynstring_append_char(&result, '"');
@@ -130,18 +125,32 @@ static String json_lex_string(String str, JsonToken* out) {
 
     switch (ch) {
     case '\\':
+      str     = json_consume_chars(str, 1);
       escaped = true;
       break;
     case '"':
+      str             = json_consume_chars(str, 1);
       out->type       = JsonTokenType_String;
       out->val_string = mem_create(result.data.ptr, result.size);
       goto Ret;
-    default:
-      if (UNLIKELY(!ascii_is_printable(ch))) {
-        *out = json_token_err(JsonError_InvalidCharInString);
-        goto Ret;
+    default:;
+      static const u8 g_utf8Start = 0xC0;
+      if (ch >= g_utf8Start) {
+        Unicode cp;
+        str = utf8_cp_read(str, &cp);
+        if (UNLIKELY(!cp)) {
+          *out = json_token_err(JsonError_InvalidUtf8);
+          goto Ret;
+        }
+        utf8_cp_write_to(&result, cp);
+      } else {
+        str = json_consume_chars(str, 1);
+        if (UNLIKELY(!ascii_is_printable(ch))) {
+          *out = json_token_err(JsonError_InvalidCharInString);
+          goto Ret;
+        }
+        dynstring_append_char(&result, ch);
       }
-      dynstring_append_char(&result, ch);
     }
   }
 
