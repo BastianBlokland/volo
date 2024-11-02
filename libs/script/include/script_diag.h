@@ -89,6 +89,6 @@ const ScriptDiag* script_diag_first(const ScriptDiagBag*, ScriptDiagFilter);
 bool script_diag_push(ScriptDiagBag*, const ScriptDiag*);
 void script_diag_clear(ScriptDiagBag*);
 
-String script_diag_msg_scratch(String sourceText, const ScriptDiag*);
-void   script_diag_pretty_write(DynString*, String sourceText, const ScriptDiag*);
-String script_diag_pretty_scratch(String sourceText, const ScriptDiag*);
+String script_diag_msg_scratch(const ScriptLookup*, const ScriptDiag*);
+void   script_diag_pretty_write(DynString*, const ScriptLookup*, const ScriptDiag*);
+String script_diag_pretty_scratch(const ScriptLookup*, const ScriptDiag*);
