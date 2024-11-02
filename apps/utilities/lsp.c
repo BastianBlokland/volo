@@ -881,15 +881,16 @@ static void lsp_handle_notif_doc_did_change(LspContext* ctx, const JRpcNotificat
   const String  text = lsp_maybe_str(ctx, lsp_maybe_field(ctx, changeZeroVal, string_lit("text")));
 
   LspDocument* doc = lsp_doc_from_json(ctx, notif->params);
-  if (LIKELY(doc)) {
-    if (ctx->flags & LspFlags_Trace) {
-      lsp_send_trace(ctx, fmt_write_scratch("Document update: {}", fmt_text(doc->identifier)));
-    }
-    script_lookup_update(doc->scriptLookup, text);
-    lsp_analyze_doc(ctx, doc);
-  } else {
+  if (UNLIKELY(!doc)) {
     lsp_send_error(ctx, fmt_write_scratch("Document not open: {}", fmt_text(doc->identifier)));
+    return;
   }
+
+  if (ctx->flags & LspFlags_Trace) {
+    lsp_send_trace(ctx, fmt_write_scratch("Document update: {}", fmt_text(doc->identifier)));
+  }
+  script_lookup_update(doc->scriptLookup, text);
+  lsp_analyze_doc(ctx, doc);
 }
 
 static void lsp_handle_notif(LspContext* ctx, const JRpcNotification* notif) {
