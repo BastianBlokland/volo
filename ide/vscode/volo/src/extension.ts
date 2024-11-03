@@ -25,7 +25,7 @@ function getValidServerPath(): string | undefined {
 }
 
 function getWorkspaceBinderPaths(workspaceFolder: WorkspaceFolder): string[] {
-  return [path.join(workspaceFolder.uri.fsPath, "assets", "schemas", "script_binder.json")];
+  return [path.join(workspaceFolder.uri.fsPath, "assets", "schemas", "script_scene_binder.json")];
 }
 
 function getBinderPaths(): string[] {
