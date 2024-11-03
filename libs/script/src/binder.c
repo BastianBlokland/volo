@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_intrinsic.h"
@@ -15,18 +16,23 @@
 
 ASSERT(script_binder_max_funcs <= u16_max, "Binder slot needs to be representable by a u16")
 
+static const String g_scriptBinderFlagNames[] = {
+    string_static("DisallowMemoryAccess"),
+};
+
 struct sScriptBinder {
-  Allocator*       alloc;
-  Allocator*       allocAux; // (chunked) bump allocator for axillary data (eg signatures).
-  String           name;
-  String           filter; // File-filter glob pattern.
-  bool             finalized;
-  u16              count;
-  ScriptBinderHash hash;
-  ScriptBinderFunc funcs[script_binder_max_funcs];
-  StringHash       names[script_binder_max_funcs];
-  String           docs[script_binder_max_funcs];
-  ScriptSig*       sigs[script_binder_max_funcs];
+  Allocator*        alloc;
+  Allocator*        allocAux; // (chunked) bump allocator for axillary data (eg signatures).
+  String            name;
+  String            filter; // File-filter glob pattern.
+  ScriptBinderFlags flags : 8;
+  bool              finalized;
+  u16               count;
+  ScriptBinderHash  hash;
+  ScriptBinderFunc  funcs[script_binder_max_funcs];
+  StringHash        names[script_binder_max_funcs];
+  String            docs[script_binder_max_funcs];
+  ScriptSig*        sigs[script_binder_max_funcs];
 };
 
 static i8 binder_index_compare(const void* ctx, const usize a, const usize b) {
@@ -57,7 +63,8 @@ static ScriptVal binder_func_fallback(void* ctx, ScriptBinderCall* call) {
   return script_null();
 }
 
-ScriptBinder* script_binder_create(Allocator* alloc, const String name) {
+ScriptBinder*
+script_binder_create(Allocator* alloc, const String name, const ScriptBinderFlags flags) {
   ScriptBinder* binder = alloc_alloc_t(alloc, ScriptBinder);
 
   Allocator* allocAux =
@@ -67,6 +74,7 @@ ScriptBinder* script_binder_create(Allocator* alloc, const String name) {
       .alloc    = alloc,
       .allocAux = allocAux,
       .name     = string_maybe_dup(allocAux, name),
+      .flags    = flags,
   };
 
   return binder;
@@ -78,6 +86,8 @@ void script_binder_destroy(ScriptBinder* binder) {
 }
 
 String script_binder_name(const ScriptBinder* binder) { return binder->name; }
+
+ScriptBinderFlags script_binder_flags(const ScriptBinder* binder) { return binder->flags; }
 
 void script_binder_filter_set(ScriptBinder* binder, const String globPattern) {
   // NOTE: The old filter will not be cleaned up from the auxillary data until destruction.
@@ -239,6 +249,15 @@ static JsonVal binder_func_to_json(JsonDoc* d, const ScriptBinder* b, const Scri
   return obj;
 }
 
+static JsonVal binder_flags_to_json(JsonDoc* d, const ScriptBinderFlags flags) {
+  JsonVal arr = json_add_array(d);
+  bitset_for(bitset_from_var(flags), flagIndex) {
+    diag_assert(flagIndex < array_elems(g_scriptBinderFlagNames));
+    json_add_elem(d, arr, json_add_string(d, g_scriptBinderFlagNames[flagIndex]));
+  }
+  return arr;
+}
+
 void script_binder_write(DynString* str, const ScriptBinder* b) {
   diag_assert_msg(b->finalized, "Binder has not been finalized");
 
@@ -252,6 +271,9 @@ void script_binder_write(DynString* str, const ScriptBinder* b) {
   const JsonVal obj = json_add_object(doc);
   if (!string_is_empty(b->name)) {
     json_add_field_lit(doc, obj, "name", json_add_string(doc, b->name));
+  }
+  if (b->flags) {
+    json_add_field_lit(doc, obj, "flags", binder_flags_to_json(doc, b->flags));
   }
   if (!string_is_empty(b->filter)) {
     json_add_field_lit(doc, obj, "filter", json_add_string(doc, b->filter));
@@ -336,12 +358,30 @@ static bool binder_func_from_json(ScriptBinder* out, const JsonDoc* d, const Jso
   return true;
 }
 
-static String binder_name_from_json(const JsonDoc* d, const JsonVal v) {
-  const JsonVal nameVal = json_field_lit(d, v, "name");
+static String binder_name_from_json(const JsonDoc* d, const JsonVal nameVal) {
   if (sentinel_check(nameVal) || json_type(d, nameVal) != JsonType_String) {
     return string_empty;
   }
   return json_string(d, nameVal);
+}
+
+static ScriptBinderFlags binder_flags_from_json(const JsonDoc* d, const JsonVal flagsVal) {
+  ScriptBinderFlags flags = ScriptBinderFlags_None;
+  if (sentinel_check(flagsVal) || json_type(d, flagsVal) != JsonType_Array) {
+    return flags;
+  }
+  json_for_elems(d, flagsVal, flagNameVal) {
+    if (json_type(d, flagNameVal) == JsonType_String) {
+      const StringHash flagNameHash = json_string_hash(d, flagNameVal);
+      for (u32 i = 0; i != array_elems(g_scriptBinderFlagNames); ++i) {
+        if (flagNameHash == string_hash(g_scriptBinderFlagNames[i])) {
+          flags |= 1 << i;
+          break;
+        }
+      }
+    }
+  }
+  return flags;
 }
 
 ScriptBinder* script_binder_read(Allocator* alloc, const String str) {
@@ -353,19 +393,22 @@ ScriptBinder* script_binder_read(Allocator* alloc, const String str) {
   JsonResult readRes;
   json_read(doc, str, JsonReadFlags_None, &readRes);
 
-  if (readRes.type != JsonResultType_Success || json_type(doc, readRes.val) != JsonType_Object) {
+  const JsonVal root = readRes.val;
+  if (readRes.type != JsonResultType_Success || json_type(doc, root) != JsonType_Object) {
     success = false;
     goto Done;
   }
 
-  out = script_binder_create(alloc, binder_name_from_json(doc, readRes.val));
+  const String            name  = binder_name_from_json(doc, json_field_lit(doc, root, "name"));
+  const ScriptBinderFlags flags = binder_flags_from_json(doc, json_field_lit(doc, root, "flags"));
+  out                           = script_binder_create(alloc, name, flags);
 
-  const JsonVal filterVal = json_field_lit(doc, readRes.val, "filter");
+  const JsonVal filterVal = json_field_lit(doc, root, "filter");
   if (!sentinel_check(filterVal) && json_type(doc, filterVal) == JsonType_String) {
     script_binder_filter_set(out, json_string(doc, filterVal));
   }
 
-  const JsonVal funcsVal = json_field_lit(doc, readRes.val, "functions");
+  const JsonVal funcsVal = json_field_lit(doc, root, "functions");
   if (sentinel_check(funcsVal) || json_type(doc, funcsVal) != JsonType_Array) {
     success = false;
     goto Done;

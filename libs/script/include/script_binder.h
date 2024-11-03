@@ -30,14 +30,20 @@ typedef struct sScriptBinderCall {
 
 typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptBinderCall*);
 
+typedef enum {
+  ScriptBinderFlags_None,
+  ScriptBinderFlags_DisallowMemoryAccess = 1 << 0,
+} ScriptBinderFlags;
+
 /**
  * Table of native bound functions.
  */
 typedef struct sScriptBinder ScriptBinder;
 
-ScriptBinder* script_binder_create(Allocator*, String name);
-void          script_binder_destroy(ScriptBinder*);
-String        script_binder_name(const ScriptBinder*);
+ScriptBinder*     script_binder_create(Allocator*, String name, ScriptBinderFlags);
+void              script_binder_destroy(ScriptBinder*);
+String            script_binder_name(const ScriptBinder*);
+ScriptBinderFlags script_binder_flags(const ScriptBinder*);
 
 /**
  * Set a glob filter for determining which files this binder is valid for.
