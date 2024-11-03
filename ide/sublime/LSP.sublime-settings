@@ -1,0 +1,16 @@
+{
+  "lsp_format_on_save": true,
+  "semantic_highlighting": true,
+  "clients": {
+    "volo-script": {
+      "enabled": true,
+      "command": [
+        "volo/build/apps/utilities/app_lsp",
+        "--stdio",
+        "--binder", "volo/assets/schemas/script_binder.json"
+      ],
+      "languageId": "volo-script",
+      "scopes": [ "source.volo-script" ]
+    }
+  }
+}
