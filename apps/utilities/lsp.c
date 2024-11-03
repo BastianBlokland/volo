@@ -1838,9 +1838,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
 
   const ScriptSym    callSym = script_sym_find(scriptSyms, scriptDoc, callExpr);
   const LspSignature sig     = {
-      .label     = script_sym_label(scriptSyms, callSym),
-      .doc       = script_sym_doc(scriptSyms, callSym),
-      .scriptSig = script_sym_sig(scriptSyms, callSym),
+          .label     = script_sym_label(scriptSyms, callSym),
+          .doc       = script_sym_doc(scriptSyms, callSym),
+          .scriptSig = script_sym_sig(scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
@@ -1992,31 +1992,29 @@ static i32 lsp_run_stdio(const ScriptBinder* scriptBinder) {
   return 0;
 }
 
-static bool lsp_read_binder_file(ScriptBinder* binder, const String path) {
-  bool       success = true;
-  File*      file;
-  FileResult fileRes;
+static ScriptBinder* lsp_read_binder_file(const String path) {
+  ScriptBinder* out = null;
+  File*         file;
+  FileResult    fileRes;
   if ((fileRes = file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &file))) {
     file_write_sync(g_fileStdErr, string_lit("lsp: Failed to open binder file.\n"));
-    success = false;
     goto Ret;
   }
   String fileData;
   if ((fileRes = file_map(file, &fileData, FileHints_Prefetch))) {
     file_write_sync(g_fileStdErr, string_lit("lsp: Failed to map binder file.\n"));
-    success = false;
     goto Ret;
   }
-  if (!script_binder_read(binder, fileData)) {
+  out = script_binder_read(g_allocHeap, fileData);
+  if (!out) {
     file_write_sync(g_fileStdErr, string_lit("lsp: Invalid binder file.\n"));
-    success = false;
     goto Ret;
   }
 Ret:
   if (file) {
     file_destroy(file);
   }
-  return success;
+  return out;
 }
 
 static CliId g_optStdio, g_optBinder, g_optHelp;
@@ -2048,12 +2046,11 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   const CliParseValues binderArg = cli_parse_values(invoc, g_optBinder);
   if (binderArg.count) {
-    scriptBinder = script_binder_create(g_allocHeap);
-    if (!lsp_read_binder_file(scriptBinder, binderArg.values[0])) {
+    scriptBinder = lsp_read_binder_file(binderArg.values[0]);
+    if (!scriptBinder) {
       exitCode = 1;
       goto Exit;
     }
-    script_binder_finalize(scriptBinder);
   }
 
   if (cli_parse_provided(invoc, g_optStdio)) {
