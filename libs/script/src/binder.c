@@ -22,6 +22,7 @@ typedef enum {
 struct sScriptBinder {
   Allocator*        alloc;
   Allocator*        allocAux; // (chunked) bump allocator for axillary data (eg signatures).
+  String            filter;   // File-filter glob pattern.
   ScriptBinderFlags flags;
   u16               count;
   ScriptBinderHash  hash;
@@ -73,6 +74,18 @@ ScriptBinder* script_binder_create(Allocator* alloc) {
 void script_binder_destroy(ScriptBinder* binder) {
   alloc_chunked_destroy(binder->allocAux);
   alloc_free_t(binder->alloc, binder);
+}
+
+void script_binder_filter_set(ScriptBinder* binder, const String globPattern) {
+  // NOTE: The old filter will not be cleaned up from the auxillary data until destruction.
+  binder->filter = string_maybe_dup(binder->allocAux, globPattern);
+}
+
+bool script_binder_filter(const ScriptBinder* binder, const String fileIdentifier) {
+  if (string_is_empty(binder->filter)) {
+    return true; // No filter; always valid.
+  }
+  return string_match_glob(fileIdentifier, binder->filter, StringMatchFlags_IgnoreCase);
 }
 
 void script_binder_declare(
@@ -225,6 +238,9 @@ void script_binder_write(DynString* str, const ScriptBinder* b) {
   }
 
   const JsonVal obj = json_add_object(doc);
+  if (!string_is_empty(b->filter)) {
+    json_add_field_lit(doc, obj, "filter", json_add_string(doc, b->filter));
+  }
   json_add_field_lit(doc, obj, "functions", funcsArr);
 
   json_write(str, doc, obj, &json_write_opts(.mode = JsonWriteMode_Compact));
@@ -307,19 +323,29 @@ static bool binder_func_from_json(ScriptBinder* out, const JsonDoc* d, const Jso
 
 bool script_binder_read(ScriptBinder* out, const String str) {
   JsonDoc* doc     = json_create(g_allocHeap, 512);
-  bool     success = false;
+  bool     success = true;
 
   JsonResult readRes;
   json_read(doc, str, JsonReadFlags_None, &readRes);
 
-  if (readRes.type == JsonResultType_Success && json_type(doc, readRes.val) == JsonType_Object) {
-    const JsonVal funcsVal = json_field_lit(doc, readRes.val, "functions");
-    if (!sentinel_check(funcsVal) && json_type(doc, funcsVal) == JsonType_Array) {
-      success = true;
-      json_for_elems(doc, funcsVal, f) { success &= binder_func_from_json(out, doc, f); }
-    }
+  if (readRes.type != JsonResultType_Success || json_type(doc, readRes.val) != JsonType_Object) {
+    success = false;
+    goto Done;
   }
 
+  const JsonVal filterVal = json_field_lit(doc, readRes.val, "filter");
+  if (!sentinel_check(filterVal) && json_type(doc, filterVal) == JsonType_String) {
+    script_binder_filter_set(out, json_string(doc, filterVal));
+  }
+
+  const JsonVal funcsVal = json_field_lit(doc, readRes.val, "functions");
+  if (sentinel_check(funcsVal) || json_type(doc, funcsVal) != JsonType_Array) {
+    success = false;
+    goto Done;
+  }
+  json_for_elems(doc, funcsVal, f) { success &= binder_func_from_json(out, doc, f); }
+
+Done:
   json_destroy(doc);
   return success;
 }

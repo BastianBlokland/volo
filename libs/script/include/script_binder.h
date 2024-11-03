@@ -39,6 +39,13 @@ ScriptBinder* script_binder_create(Allocator*);
 void          script_binder_destroy(ScriptBinder*);
 
 /**
+ * Set a glob filter for which files this binder is valid.
+ * Example: `* /units/ *.script' (NOTE: the spaces should be ignored).
+ */
+void script_binder_filter_set(ScriptBinder*, String globPattern);
+bool script_binder_filter(const ScriptBinder*, String fileIdentifier);
+
+/**
  * Check if a panic has occurred during the given call.
  */
 MAYBE_UNUSED static bool script_call_panicked(const ScriptBinderCall* call) {
