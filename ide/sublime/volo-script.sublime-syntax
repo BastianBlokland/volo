@@ -1,0 +1,95 @@
+%YAML 1.2
+---
+name: Volo Script
+file_extensions: [script]
+scope: source.volo-script
+version: 2
+
+contexts:
+  main:
+    - include: comments
+    - include: code
+
+  code:
+    - include: identifiers
+    - include: constants
+    - include: keywords
+    - include: operators
+    - include: punctuation
+
+  comments:
+    - match: //
+      captures:
+        1: punctuation.definition.comment.volo-script
+      push:
+        - meta_scope: comment.line.double-slash.volo-script
+        - match: $\n?
+          captures:
+            1: punctuation.definition.comment.volo-script
+          pop: true
+    - match: /\*
+      captures:
+        0: punctuation.definition.comment.begin.volo-script
+      push:
+        - meta_scope: comment.block.volo-script
+        - match: \*/
+          captures:
+            0: punctuation.definition.comment.end.volo-script
+          pop: true
+
+  constants:
+    - match: '(\.[0-9_]+)|([0-9_]+(\.[0-9_]+)?)\b'
+      scope: constant.numeric.volo-script
+    - match: '"'
+      captures:
+        0: punctuation.definition.string.begin.volo-script
+      push:
+        - meta_scope: string.quoted.double.volo-script
+        - match: '"'
+          captures:
+            0: punctuation.definition.string.end.volo-script
+          pop: true
+
+  identifiers:
+    - match: '\$[a-zA-Z0-9_]+'
+      scope: variable.parameter.volo-script
+
+  keywords:
+    - match: '(\b(if|else|for|while|continue|break|return)\b)|(\?(?!\?))|\:'
+      scope: keyword.control.volo-script
+    - match: \bvar\b
+      scope: storage.type.var.volo-script
+
+  operators:
+    - match: '%=|\+=|\-=|\*=|\\=|\?\?='
+      scope: keyword.operator.assignment.compound.volo-script
+    - match: '!=|<=|>=|==|<|>'
+      scope: keyword.operator.comparison.volo-script
+    - match: '&&|!|\|\||\?\?'
+      scope: keyword.operator.logical.volo-script
+    - match: '='
+      scope: keyword.operator.assignment.volo-script
+    - match: '%|\*|/|\-|\+'
+      scope: keyword.operator.arithmetic.volo-script
+
+  punctuation:
+    - match: \;
+      scope: punctuation.terminator.statement.volo-script
+    - match: '\{'
+      captures:
+        0: punctuation.section.scope.begin.volo-script
+      push:
+        - match: '\}'
+          captures:
+            0: punctuation.section.scope.end.volo-script
+          pop: true
+        - include: main
+    - match: \(
+      captures:
+        0: punctuation.section.scope.begin.volo-script
+      push:
+        - match: \)
+          captures:
+            0: punctuation.section.scope.end.volo-script
+          pop: true
+        - include: main

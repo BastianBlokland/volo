@@ -59,13 +59,13 @@
 						<key>1</key>
 						<dict>
 							<key>name</key>
-							<string>punctuation.definition.comment.script</string>
+							<string>punctuation.definition.comment.volo-script</string>
 						</dict>
 					</dict>
 					<key>end</key>
 					<string>$\n?</string>
 					<key>name</key>
-					<string>comment.line.double-slash.script</string>
+					<string>comment.line.double-slash.volo-script</string>
 				</dict>
 				<dict>
 					<key>begin</key>
@@ -75,7 +75,7 @@
 						<key>0</key>
 						<dict>
 							<key>name</key>
-							<string>punctuation.definition.comment.begin.script</string>
+							<string>punctuation.definition.comment.begin.volo-script</string>
 						</dict>
 					</dict>
 					<key>end</key>
@@ -85,11 +85,11 @@
 						<key>0</key>
 						<dict>
 							<key>name</key>
-							<string>punctuation.definition.comment.end.script</string>
+							<string>punctuation.definition.comment.end.volo-script</string>
 						</dict>
 					</dict>
 					<key>name</key>
-					<string>comment.block.script</string>
+					<string>comment.block.volo-script</string>
 				</dict>
 			</array>
 		</dict>
@@ -101,7 +101,7 @@
 					<key>match</key>
 					<string>(\.[0-9_]+)|([0-9_]+(\.[0-9_]+)?)\b</string>
 					<key>name</key>
-					<string>constant.numeric.script</string>
+					<string>constant.numeric.volo-script</string>
 				</dict>
 				<dict>
 					<key>begin</key>
@@ -111,7 +111,7 @@
 						<key>0</key>
 						<dict>
 							<key>name</key>
-							<string>punctuation.definition.string.begin.script</string>
+							<string>punctuation.definition.string.begin.volo-script</string>
 						</dict>
 					</dict>
 					<key>end</key>
@@ -121,11 +121,11 @@
 						<key>0</key>
 						<dict>
 							<key>name</key>
-							<string>punctuation.definition.string.end.script</string>
+							<string>punctuation.definition.string.end.volo-script</string>
 						</dict>
 					</dict>
 					<key>name</key>
-					<string>string.quoted.double.script</string>
+					<string>string.quoted.double.volo-script</string>
 				</dict>
 			</array>
 		</dict>
@@ -137,7 +137,7 @@
 					<key>match</key>
 					<string>\$[a-zA-Z0-9_]+</string>
 					<key>name</key>
-					<string>variable.parameter.script</string>
+					<string>variable.parameter.volo-script</string>
 				</dict>
 			</array>
 		</dict>
@@ -149,13 +149,13 @@
 					<key>match</key>
 					<string>(\b(if|else|for|while|continue|break|return)\b)|(\?(?!\?))|\:</string>
 					<key>name</key>
-					<string>keyword.control.script</string>
+					<string>keyword.control.volo-script</string>
 				</dict>
 				<dict>
 					<key>match</key>
 					<string>\bvar\b</string>
 					<key>name</key>
-					<string>storage.type.var.script</string>
+					<string>storage.type.var.volo-script</string>
 				</dict>
 			</array>
 		</dict>
@@ -167,31 +167,31 @@
 					<key>match</key>
 					<string>%=|\+=|\-=|\*=|\\=|\?\?=</string>
 					<key>name</key>
-					<string>keyword.operator.assignment.compound.script</string>
+					<string>keyword.operator.assignment.compound.volo-script</string>
 				</dict>
 				<dict>
 					<key>match</key>
 					<string>!=|&lt;=|&gt;=|==|&lt;|&gt;</string>
 					<key>name</key>
-					<string>keyword.operator.comparison.script</string>
+					<string>keyword.operator.comparison.volo-script</string>
 				</dict>
 				<dict>
 					<key>match</key>
 					<string>&amp;&amp;|!|\|\||\?\?</string>
 					<key>name</key>
-					<string>keyword.operator.logical.script</string>
+					<string>keyword.operator.logical.volo-script</string>
 				</dict>
 				<dict>
 					<key>match</key>
 					<string>=</string>
 					<key>name</key>
-					<string>keyword.operator.assignment.script</string>
+					<string>keyword.operator.assignment.volo-script</string>
 				</dict>
 				<dict>
 					<key>match</key>
 					<string>%|\*|/|\-|\+</string>
 					<key>name</key>
-					<string>keyword.operator.arithmetic.script</string>
+					<string>keyword.operator.arithmetic.volo-script</string>
 				</dict>
 			</array>
 		</dict>
@@ -203,7 +203,7 @@
 					<key>match</key>
 					<string>\;</string>
 					<key>name</key>
-					<string>punctuation.terminator.statement.script</string>
+					<string>punctuation.terminator.statement.volo-script</string>
 				</dict>
 				<dict>
 					<key>begin</key>
@@ -213,7 +213,7 @@
 						<key>0</key>
 						<dict>
 							<key>name</key>
-							<string>punctuation.section.scope.begin.script</string>
+							<string>punctuation.section.scope.begin.volo-script</string>
 						</dict>
 					</dict>
 					<key>end</key>
@@ -223,7 +223,7 @@
 						<key>0</key>
 						<dict>
 							<key>name</key>
-							<string>punctuation.section.scope.end.script</string>
+							<string>punctuation.section.scope.end.volo-script</string>
 						</dict>
 					</dict>
 					<key>patterns</key>
@@ -242,7 +242,7 @@
 						<key>0</key>
 						<dict>
 							<key>name</key>
-							<string>punctuation.section.scope.begin.script</string>
+							<string>punctuation.section.scope.begin.volo-script</string>
 						</dict>
 					</dict>
 					<key>end</key>
@@ -252,7 +252,7 @@
 						<key>0</key>
 						<dict>
 							<key>name</key>
-							<string>punctuation.section.scope.end.script</string>
+							<string>punctuation.section.scope.end.volo-script</string>
 						</dict>
 					</dict>
 					<key>patterns</key>
@@ -267,7 +267,7 @@
 		</dict>
 	</dict>
 	<key>scopeName</key>
-	<string>script</string>
+	<string>volo-script</string>
 	<key>uuid</key>
 	<string>CF36F12F-9CB0-4E0A-9B42-7725997A274D</string>
 </dict>
