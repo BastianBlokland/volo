@@ -127,7 +127,7 @@ ScriptBinderHash script_binder_hash(const ScriptBinder* binder) {
   return binder->hash;
 }
 
-ScriptBinderSlot script_binder_lookup(const ScriptBinder* binder, const StringHash nameHash) {
+ScriptBinderSlot script_binder_slot_lookup(const ScriptBinder* binder, const StringHash nameHash) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
 
   const StringHash* itr = search_binary_t(
@@ -136,21 +136,21 @@ ScriptBinderSlot script_binder_lookup(const ScriptBinder* binder, const StringHa
   return itr ? (ScriptBinderSlot)(itr - binder->names) : script_binder_slot_sentinel;
 }
 
-String script_binder_name(const ScriptBinder* binder, const ScriptBinderSlot slot) {
+String script_binder_slot_name(const ScriptBinder* binder, const ScriptBinderSlot slot) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
   diag_assert_msg(slot < binder->count, "Invalid slot");
 
   return stringtable_lookup(g_stringtable, binder->names[slot]);
 }
 
-String script_binder_doc(const ScriptBinder* binder, const ScriptBinderSlot slot) {
+String script_binder_slot_doc(const ScriptBinder* binder, const ScriptBinderSlot slot) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
   diag_assert_msg(slot < binder->count, "Invalid slot");
 
   return binder->docs[slot];
 }
 
-const ScriptSig* script_binder_sig(const ScriptBinder* binder, const ScriptBinderSlot slot) {
+const ScriptSig* script_binder_slot_sig(const ScriptBinder* binder, const ScriptBinderSlot slot) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
   diag_assert_msg(slot < binder->count, "Invalid slot");
 
@@ -216,9 +216,9 @@ static JsonVal binder_sig_to_json(JsonDoc* d, const ScriptSig* sig) {
 }
 
 static JsonVal binder_func_to_json(JsonDoc* d, const ScriptBinder* b, const ScriptBinderSlot s) {
-  const String     name = script_binder_name(b, s);
-  const String     docu = script_binder_doc(b, s);
-  const ScriptSig* sig  = script_binder_sig(b, s);
+  const String     name = script_binder_slot_name(b, s);
+  const String     docu = script_binder_slot_doc(b, s);
+  const ScriptSig* sig  = script_binder_slot_sig(b, s);
 
   const JsonVal obj = json_add_object(d);
   json_add_field_lit(d, obj, "name", json_add_string(d, name));

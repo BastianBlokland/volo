@@ -85,25 +85,25 @@ ScriptBinderHash script_binder_hash(const ScriptBinder*);
  * NOTE: Returns 'script_binder_slot_sentinel' if no function was found with the given name.
  * Pre-condition: Binder has been finalized.
  */
-ScriptBinderSlot script_binder_lookup(const ScriptBinder*, StringHash nameHash);
+ScriptBinderSlot script_binder_slot_lookup(const ScriptBinder*, StringHash nameHash);
 
 /**
  * Lookup the name for a slot.
  * Pre-condition: Binder has been finalized.
  */
-String script_binder_name(const ScriptBinder*, ScriptBinderSlot);
+String script_binder_slot_name(const ScriptBinder*, ScriptBinderSlot);
 
 /**
  * Lookup the documentation for a slot.
  * Pre-condition: Binder has been finalized.
  */
-String script_binder_doc(const ScriptBinder*, ScriptBinderSlot);
+String script_binder_slot_doc(const ScriptBinder*, ScriptBinderSlot);
 
 /**
  * Lookup the signature for a slot.
  * Pre-condition: Binder has been finalized.
  */
-const ScriptSig* script_binder_sig(const ScriptBinder*, ScriptBinderSlot);
+const ScriptSig* script_binder_slot_sig(const ScriptBinder*, ScriptBinderSlot);
 
 /**
  * Iterate over the bound slots.

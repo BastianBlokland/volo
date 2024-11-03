@@ -39,11 +39,11 @@ spec(binder) {
     script_binder_declare(binder, string_lit("e"), doc, nullSig, null);
     script_binder_finalize(binder);
 
-    check_eq_int(script_binder_lookup(binder, string_hash_lit("b")), 0);
-    check_eq_int(script_binder_lookup(binder, string_hash_lit("c")), 1);
-    check_eq_int(script_binder_lookup(binder, string_hash_lit("d")), 2);
-    check_eq_int(script_binder_lookup(binder, string_hash_lit("e")), 3);
-    check_eq_int(script_binder_lookup(binder, string_hash_lit("a")), 4);
+    check_eq_int(script_binder_slot_lookup(binder, string_hash_lit("b")), 0);
+    check_eq_int(script_binder_slot_lookup(binder, string_hash_lit("c")), 1);
+    check_eq_int(script_binder_slot_lookup(binder, string_hash_lit("d")), 2);
+    check_eq_int(script_binder_slot_lookup(binder, string_hash_lit("e")), 3);
+    check_eq_int(script_binder_slot_lookup(binder, string_hash_lit("a")), 4);
   }
 
   it("can execute bound functions") {
@@ -59,11 +59,11 @@ spec(binder) {
     ScriptBindTestCtx ctx  = {0};
     ScriptBinderCall  call = {0};
 
-    script_binder_exec(binder, script_binder_lookup(binder, string_hash(a)), &ctx, &call);
+    script_binder_exec(binder, script_binder_slot_lookup(binder, string_hash(a)), &ctx, &call);
     check_eq_int(ctx.counterA, 1);
     check_eq_int(ctx.counterB, 0);
 
-    script_binder_exec(binder, script_binder_lookup(binder, string_hash(b)), &ctx, &call);
+    script_binder_exec(binder, script_binder_slot_lookup(binder, string_hash(b)), &ctx, &call);
     check_eq_int(ctx.counterA, 1);
     check_eq_int(ctx.counterB, 1);
   }

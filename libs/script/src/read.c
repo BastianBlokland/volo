@@ -1394,9 +1394,9 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
   }
 
   if (ctx->binder) {
-    const ScriptBinderSlot externFunc = script_binder_lookup(ctx->binder, id);
+    const ScriptBinderSlot externFunc = script_binder_slot_lookup(ctx->binder, id);
     if (!sentinel_check(externFunc)) {
-      const ScriptSig* sig = script_binder_sig(ctx->binder, externFunc);
+      const ScriptSig* sig = script_binder_slot_sig(ctx->binder, externFunc);
       if (sig) {
         read_emit_invalid_args(ctx, args, (u8)argCount, sig, callRange);
       }
@@ -1988,9 +1988,9 @@ static void read_sym_push_extern(ScriptReadContext* ctx) {
   }
   ScriptBinderSlot itr = script_binder_first(ctx->binder);
   for (; !sentinel_check(itr); itr = script_binder_next(ctx->binder, itr)) {
-    const String     label = script_binder_name(ctx->binder, itr);
-    const String     doc   = script_binder_doc(ctx->binder, itr);
-    const ScriptSig* sig   = script_binder_sig(ctx->binder, itr);
+    const String     label = script_binder_slot_name(ctx->binder, itr);
+    const String     doc   = script_binder_slot_doc(ctx->binder, itr);
+    const ScriptSig* sig   = script_binder_slot_sig(ctx->binder, itr);
     ctx->externSyms[itr]   = script_sym_push_extern_func(ctx->syms, label, doc, itr, sig);
   }
 }
