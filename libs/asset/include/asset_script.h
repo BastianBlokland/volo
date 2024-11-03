@@ -14,7 +14,5 @@ ecs_comp_extern_public(AssetScriptComp) {
   HeapArray_t(String) stringLiterals; // To be interned in the global stringtable.
 };
 
-extern ScriptBinder* g_assetScriptBinder;
+extern ScriptBinder* g_assetScriptSceneBinder;
 extern DataMeta      g_assetScriptMeta;
-
-void asset_script_binder_write(DynString* str);
