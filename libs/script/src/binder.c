@@ -15,22 +15,18 @@
 
 ASSERT(script_binder_max_funcs <= u16_max, "Binder slot needs to be representable by a u16")
 
-typedef enum {
-  ScriptBinderFlags_Finalized = 1 << 0,
-} ScriptBinderFlags;
-
 struct sScriptBinder {
-  Allocator*        alloc;
-  Allocator*        allocAux; // (chunked) bump allocator for axillary data (eg signatures).
-  String            name;
-  String            filter; // File-filter glob pattern.
-  ScriptBinderFlags flags;
-  u16               count;
-  ScriptBinderHash  hash;
-  ScriptBinderFunc  funcs[script_binder_max_funcs];
-  StringHash        names[script_binder_max_funcs];
-  String            docs[script_binder_max_funcs];
-  ScriptSig*        sigs[script_binder_max_funcs];
+  Allocator*       alloc;
+  Allocator*       allocAux; // (chunked) bump allocator for axillary data (eg signatures).
+  String           name;
+  String           filter; // File-filter glob pattern.
+  bool             finalized;
+  u16              count;
+  ScriptBinderHash hash;
+  ScriptBinderFunc funcs[script_binder_max_funcs];
+  StringHash       names[script_binder_max_funcs];
+  String           docs[script_binder_max_funcs];
+  ScriptSig*       sigs[script_binder_max_funcs];
 };
 
 static i8 binder_index_compare(const void* ctx, const usize a, const usize b) {
@@ -111,7 +107,7 @@ void script_binder_declare(
     const ScriptSig*       sig,
     const ScriptBinderFunc func) {
   diag_assert(!string_is_empty(name));
-  diag_assert_msg(!(binder->flags & ScriptBinderFlags_Finalized), "Binder already finalized");
+  diag_assert_msg(!binder->finalized, "Binder already finalized");
   diag_assert_msg(binder->count < script_binder_max_funcs, "Declared function count exceeds max");
 
   // TODO: Add error when auxillary allocator runs out of space.
@@ -124,27 +120,27 @@ void script_binder_declare(
 }
 
 void script_binder_finalize(ScriptBinder* binder) {
-  diag_assert_msg(!(binder->flags & ScriptBinderFlags_Finalized), "Binder already finalized");
+  diag_assert_msg(!binder->finalized, "Binder already finalized");
 
   // Compute the binding order (sorted on the name-hash).
   sort_index_quicksort(binder, 0, binder->count, binder_index_compare, binder_index_swap);
 
-  binder->hash = binder_hash_compute(binder);
-  binder->flags |= ScriptBinderFlags_Finalized;
+  binder->hash      = binder_hash_compute(binder);
+  binder->finalized = true;
 }
 
 u16 script_binder_count(const ScriptBinder* binder) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(binder->finalized, "Binder has not been finalized");
   return binder->count;
 }
 
 ScriptBinderHash script_binder_hash(const ScriptBinder* binder) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(binder->finalized, "Binder has not been finalized");
   return binder->hash;
 }
 
 ScriptBinderSlot script_binder_slot_lookup(const ScriptBinder* binder, const StringHash nameHash) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(binder->finalized, "Binder has not been finalized");
 
   const StringHash* itr = search_binary_t(
       binder->names, binder->names + binder->count, StringHash, compare_stringhash, &nameHash);
@@ -153,33 +149,33 @@ ScriptBinderSlot script_binder_slot_lookup(const ScriptBinder* binder, const Str
 }
 
 String script_binder_slot_name(const ScriptBinder* binder, const ScriptBinderSlot slot) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(binder->finalized, "Binder has not been finalized");
   diag_assert_msg(slot < binder->count, "Invalid slot");
 
   return stringtable_lookup(g_stringtable, binder->names[slot]);
 }
 
 String script_binder_slot_doc(const ScriptBinder* binder, const ScriptBinderSlot slot) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(binder->finalized, "Binder has not been finalized");
   diag_assert_msg(slot < binder->count, "Invalid slot");
 
   return binder->docs[slot];
 }
 
 const ScriptSig* script_binder_slot_sig(const ScriptBinder* binder, const ScriptBinderSlot slot) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(binder->finalized, "Binder has not been finalized");
   diag_assert_msg(slot < binder->count, "Invalid slot");
 
   return binder->sigs[slot];
 }
 
 ScriptBinderSlot script_binder_first(const ScriptBinder* binder) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(binder->finalized, "Binder has not been finalized");
   return binder->count ? 0 : script_binder_slot_sentinel;
 }
 
 ScriptBinderSlot script_binder_next(const ScriptBinder* binder, const ScriptBinderSlot itr) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(binder->finalized, "Binder has not been finalized");
   if (itr >= (binder->count - 1)) {
     return script_binder_slot_sentinel;
   }
@@ -188,7 +184,7 @@ ScriptBinderSlot script_binder_next(const ScriptBinder* binder, const ScriptBind
 
 ScriptVal script_binder_exec(
     const ScriptBinder* binder, const ScriptBinderSlot func, void* ctx, ScriptBinderCall* call) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(binder->finalized, "Binder has not been finalized");
   diag_assert(func < binder->count);
   return binder->funcs[func](ctx, call);
 }
@@ -244,7 +240,7 @@ static JsonVal binder_func_to_json(JsonDoc* d, const ScriptBinder* b, const Scri
 }
 
 void script_binder_write(DynString* str, const ScriptBinder* b) {
-  diag_assert_msg(b->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(b->finalized, "Binder has not been finalized");
 
   JsonDoc* doc = json_create(g_allocHeap, 512);
 
