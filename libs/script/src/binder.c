@@ -93,10 +93,15 @@ String script_binder_filter_get(const ScriptBinder* binder) {
 }
 
 bool script_binder_filter(const ScriptBinder* binder, const String fileIdentifier) {
-  if (string_is_empty(binder->filter)) {
+  String filter = binder->filter;
+  if (string_is_empty(filter)) {
     return true; // No filter; always valid.
   }
-  return string_match_glob(fileIdentifier, binder->filter, StringMatchFlags_IgnoreCase);
+  // Always start with an implicit wild-card.
+  if (*string_begin(filter) != '*') {
+    filter = string_combine(g_allocScratch, string_lit("*"), filter);
+  }
+  return string_match_glob(fileIdentifier, filter, StringMatchFlags_IgnoreCase);
 }
 
 void script_binder_declare(
