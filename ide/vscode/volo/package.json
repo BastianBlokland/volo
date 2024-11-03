@@ -4,7 +4,7 @@
   "displayName": "volo",
   "description": "Ide support for the Volo engine",
   "license": "MIT",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "repository": {
     "type": "git",
     "url": "https://github.com/bastianblokland/volo"
@@ -45,7 +45,7 @@
     "grammars": [
       {
         "language": "volo-script",
-        "scopeName": "script",
+        "scopeName": "volo-script",
         "path": "./syntaxes/script.tmLanguage"
       }
     ],
