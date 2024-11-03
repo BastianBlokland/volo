@@ -384,7 +384,7 @@ ScriptEvalResult script_eval(
     const ScriptBinder* binder,
     void*               bindCtx) {
 
-  diag_assert(doc->binderHash == (binder ? script_binder_hash(binder) : 0));
+  diag_assert(!binder || doc->binderHash == script_binder_hash(binder));
 
   ScriptEvalContext ctx = {
       .doc     = doc,
