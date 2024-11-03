@@ -323,7 +323,9 @@ static bool binder_func_from_json(ScriptBinder* out, const JsonDoc* d, const Jso
   return true;
 }
 
-bool script_binder_read(ScriptBinder* out, const String str) {
+ScriptBinder* script_binder_read(Allocator* alloc, const String str) {
+  ScriptBinder* out = script_binder_create(alloc);
+
   JsonDoc* doc     = json_create(g_allocHeap, 512);
   bool     success = true;
 
@@ -349,5 +351,10 @@ bool script_binder_read(ScriptBinder* out, const String str) {
 
 Done:
   json_destroy(doc);
-  return success;
+  if (success) {
+    script_binder_finalize(out);
+    return out;
+  }
+  script_binder_destroy(out);
+  return null;
 }

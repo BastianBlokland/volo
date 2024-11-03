@@ -122,5 +122,5 @@ ScriptVal script_binder_exec(const ScriptBinder*, ScriptBinderSlot, void* ctx, S
 /**
  * Binder serialization utils.
  */
-void script_binder_write(DynString* str, const ScriptBinder*);
-bool script_binder_read(ScriptBinder*, String);
+void          script_binder_write(DynString* str, const ScriptBinder*);
+ScriptBinder* script_binder_read(Allocator*, String);
