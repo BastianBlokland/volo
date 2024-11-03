@@ -22,7 +22,8 @@ typedef enum {
 struct sScriptBinder {
   Allocator*        alloc;
   Allocator*        allocAux; // (chunked) bump allocator for axillary data (eg signatures).
-  String            filter;   // File-filter glob pattern.
+  String            name;
+  String            filter; // File-filter glob pattern.
   ScriptBinderFlags flags;
   u16               count;
   ScriptBinderHash  hash;
@@ -60,12 +61,16 @@ static ScriptVal binder_func_fallback(void* ctx, ScriptBinderCall* call) {
   return script_null();
 }
 
-ScriptBinder* script_binder_create(Allocator* alloc) {
+ScriptBinder* script_binder_create(Allocator* alloc, const String name) {
   ScriptBinder* binder = alloc_alloc_t(alloc, ScriptBinder);
+
+  Allocator* allocAux =
+      alloc_chunked_create(alloc, alloc_bump_create, script_binder_aux_chunk_size);
 
   *binder = (ScriptBinder){
       .alloc    = alloc,
-      .allocAux = alloc_chunked_create(alloc, alloc_bump_create, script_binder_aux_chunk_size),
+      .allocAux = allocAux,
+      .name     = string_maybe_dup(allocAux, name),
   };
 
   return binder;
@@ -75,6 +80,8 @@ void script_binder_destroy(ScriptBinder* binder) {
   alloc_chunked_destroy(binder->allocAux);
   alloc_free_t(binder->alloc, binder);
 }
+
+String script_binder_name(const ScriptBinder* binder) { return binder->name; }
 
 void script_binder_filter_set(ScriptBinder* binder, const String globPattern) {
   // NOTE: The old filter will not be cleaned up from the auxillary data until destruction.
@@ -240,6 +247,9 @@ void script_binder_write(DynString* str, const ScriptBinder* b) {
   }
 
   const JsonVal obj = json_add_object(doc);
+  if (!string_is_empty(b->name)) {
+    json_add_field_lit(doc, obj, "name", json_add_string(doc, b->name));
+  }
   if (!string_is_empty(b->filter)) {
     json_add_field_lit(doc, obj, "filter", json_add_string(doc, b->filter));
   }
@@ -323,8 +333,16 @@ static bool binder_func_from_json(ScriptBinder* out, const JsonDoc* d, const Jso
   return true;
 }
 
+static String binder_name_from_json(const JsonDoc* d, const JsonVal v) {
+  const JsonVal nameVal = json_field_lit(d, v, "name");
+  if (sentinel_check(nameVal) || json_type(d, nameVal) != JsonType_String) {
+    return string_empty;
+  }
+  return json_string(d, nameVal);
+}
+
 ScriptBinder* script_binder_read(Allocator* alloc, const String str) {
-  ScriptBinder* out = script_binder_create(alloc);
+  ScriptBinder* out = null;
 
   JsonDoc* doc     = json_create(g_allocHeap, 512);
   bool     success = true;
@@ -336,6 +354,8 @@ ScriptBinder* script_binder_read(Allocator* alloc, const String str) {
     success = false;
     goto Done;
   }
+
+  out = script_binder_create(alloc, binder_name_from_json(doc, readRes.val));
 
   const JsonVal filterVal = json_field_lit(doc, readRes.val, "filter");
   if (!sentinel_check(filterVal) && json_type(doc, filterVal) == JsonType_String) {
@@ -355,6 +375,8 @@ Done:
     script_binder_finalize(out);
     return out;
   }
-  script_binder_destroy(out);
+  if (out) {
+    script_binder_destroy(out);
+  }
   return null;
 }
