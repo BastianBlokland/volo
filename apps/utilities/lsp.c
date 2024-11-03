@@ -870,7 +870,7 @@ static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotificatio
     }
     lsp_send_trace(
         ctx,
-        fmt_write_scratch("Document open: {} (binder: {})", fmt_text(uri), fmt_text(binderName)));
+        fmt_write_scratch("Document open: {} (binder: '{}')", fmt_text(uri), fmt_text(binderName)));
   }
 
   lsp_analyze_doc(ctx, doc);
@@ -1973,12 +1973,16 @@ static i32 lsp_run_stdio(ScriptBinder* scriptBinders[PARAM_ARRAY_SIZE(lsp_script
   lsp_send_info(&ctx, string_lit("Server starting up"));
   for (u32 i = 0; i != lsp_script_binders_max; ++i) {
     if (scriptBinders[i]) {
+      const String binderName   = script_binder_name(scriptBinders[i]);
+      const String binderFilter = script_binder_filter_get(scriptBinders[i]);
+      const u16    binderCount  = script_binder_count(scriptBinders[i]);
       lsp_send_info(
           &ctx,
           fmt_write_scratch(
-              "Loaded script-binder '{}' ({} functions)",
-              fmt_text(script_binder_name(scriptBinders[i])),
-              fmt_int(script_binder_count(scriptBinders[i]))));
+              "Loaded script-binder '{}' (filter: '{}', {} functions)",
+              fmt_text(binderName),
+              fmt_text(binderFilter),
+              fmt_int(binderCount)));
     }
   }
 
