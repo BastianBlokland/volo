@@ -23,6 +23,8 @@
  * https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/
  */
 
+#define lsp_script_binders_max 16
+
 typedef enum {
   LspStatus_Running,
   LspStatus_Exit,
@@ -1838,9 +1840,9 @@ static void lsp_handle_req_signature_help(LspContext* ctx, const JRpcRequest* re
 
   const ScriptSym    callSym = script_sym_find(scriptSyms, scriptDoc, callExpr);
   const LspSignature sig     = {
-          .label     = script_sym_label(scriptSyms, callSym),
-          .doc       = script_sym_doc(scriptSyms, callSym),
-          .scriptSig = script_sym_sig(scriptSyms, callSym),
+      .label     = script_sym_label(scriptSyms, callSym),
+      .doc       = script_sym_doc(scriptSyms, callSym),
+      .scriptSig = script_sym_sig(scriptSyms, callSym),
   };
 
   const JsonVal signaturesArr = json_add_array(ctx->jDoc);
@@ -1934,7 +1936,7 @@ static void lsp_handle_jrpc(LspContext* ctx, const LspHeader* header, const Json
   }
 }
 
-static i32 lsp_run_stdio(const ScriptBinder* scriptBinder) {
+static i32 lsp_run_stdio(ScriptBinder* scriptBinders[], const u32 scriptBinderCount) {
   DynString readBuffer  = dynstring_create(g_allocHeap, 8 * usize_kibibyte);
   DynString writeBuffer = dynstring_create(g_allocHeap, 2 * usize_kibibyte);
   JsonDoc*  jDoc        = json_create(g_allocHeap, 1024);
@@ -1944,7 +1946,7 @@ static i32 lsp_run_stdio(const ScriptBinder* scriptBinder) {
       .status       = LspStatus_Running,
       .readBuffer   = &readBuffer,
       .writeBuffer  = &writeBuffer,
-      .scriptBinder = scriptBinder,
+      .scriptBinder = scriptBinderCount ? scriptBinders[0] : null,
       .jDoc         = jDoc,
       .openDocs     = &openDocs,
       .in           = g_fileStdIn,
@@ -1952,10 +1954,13 @@ static i32 lsp_run_stdio(const ScriptBinder* scriptBinder) {
   };
 
   lsp_send_info(&ctx, string_lit("Server starting up"));
-  if (scriptBinder) {
-    const u16 funcCount = script_binder_count(scriptBinder);
+  for (u32 i = 0; i != scriptBinderCount; ++i) {
     lsp_send_info(
-        &ctx, fmt_write_scratch("Server loaded script-binder ({} functions)", fmt_int(funcCount)));
+        &ctx,
+        fmt_write_scratch(
+            "Loaded script-binder '{}' ({} functions)",
+            fmt_text(script_binder_name(scriptBinders[i])),
+            fmt_int(script_binder_count(scriptBinders[i]))));
   }
 
   while (LIKELY(ctx.status == LspStatus_Running)) {
@@ -2017,7 +2022,7 @@ Ret:
   return out;
 }
 
-static CliId g_optStdio, g_optBinder, g_optHelp;
+static CliId g_optStdio, g_optBinders, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo Script Language Server"));
@@ -2025,44 +2030,52 @@ void app_cli_configure(CliApp* app) {
   g_optStdio = cli_register_flag(app, 0, string_lit("stdio"), CliOptionFlags_None);
   cli_register_desc(app, g_optStdio, string_lit("Use stdin and stdout for communication."));
 
-  g_optBinder = cli_register_flag(app, 'b', string_lit("binder"), CliOptionFlags_Value);
-  cli_register_desc(app, g_optBinder, string_lit("Script binder schema to use."));
-  cli_register_validator(app, g_optBinder, cli_validate_file_regular);
+  g_optBinders = cli_register_flag(app, 'b', string_lit("binders"), CliOptionFlags_MultiValue);
+  const String binderDesc = string_lit("Script binder schemas to use."
+                                       "\nFirst matching binder is used per doc.");
+  cli_register_desc(app, g_optBinders, binderDesc);
+  cli_register_validator(app, g_optBinders, cli_validate_file_regular);
 
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
   cli_register_exclusions(app, g_optHelp, g_optStdio);
-  cli_register_exclusions(app, g_optHelp, g_optBinder);
+  cli_register_exclusions(app, g_optHelp, g_optBinders);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
-  i32           exitCode     = 0;
-  ScriptBinder* scriptBinder = null;
+  i32           exitCode = 0;
+  ScriptBinder* scriptBinders[lsp_script_binders_max];
+  u32           scriptBinderCount = 0;
 
   if (cli_parse_provided(invoc, g_optHelp)) {
     cli_help_write_file(app, g_fileStdOut);
     goto Exit;
   }
 
-  const CliParseValues binderArg = cli_parse_values(invoc, g_optBinder);
-  if (binderArg.count) {
-    scriptBinder = lsp_read_binder_file(binderArg.values[0]);
-    if (!scriptBinder) {
+  const CliParseValues binderArg = cli_parse_values(invoc, g_optBinders);
+  if (binderArg.count > lsp_script_binders_max) {
+    file_write_sync(g_fileStdErr, string_lit("lsp: Binder count exceeds maximum.\n"));
+    exitCode = 1;
+    goto Exit;
+  }
+  for (; scriptBinderCount != binderArg.count; ++scriptBinderCount) {
+    scriptBinders[scriptBinderCount] = lsp_read_binder_file(binderArg.values[scriptBinderCount]);
+    if (!scriptBinders[scriptBinderCount]) {
       exitCode = 1;
       goto Exit;
     }
   }
 
   if (cli_parse_provided(invoc, g_optStdio)) {
-    exitCode = lsp_run_stdio(scriptBinder);
+    exitCode = lsp_run_stdio(scriptBinders, scriptBinderCount);
   } else {
     exitCode = 1;
     file_write_sync(g_fileStdErr, string_lit("lsp: No communication method specified.\n"));
   }
 
 Exit:
-  if (scriptBinder) {
-    script_binder_destroy(scriptBinder);
+  for (u32 i = 0; i != scriptBinderCount; ++i) {
+    script_binder_destroy(scriptBinders[i]);
   }
   return exitCode;
 }
