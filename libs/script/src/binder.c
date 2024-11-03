@@ -88,7 +88,9 @@ void script_binder_filter_set(ScriptBinder* binder, const String globPattern) {
   binder->filter = string_maybe_dup(binder->allocAux, globPattern);
 }
 
-String script_binder_filter_get(const ScriptBinder* binder) { return binder->filter; }
+String script_binder_filter_get(const ScriptBinder* binder) {
+  return string_is_empty(binder->filter) ? string_lit("*") : binder->filter;
+}
 
 bool script_binder_filter(const ScriptBinder* binder, const String fileIdentifier) {
   if (string_is_empty(binder->filter)) {
