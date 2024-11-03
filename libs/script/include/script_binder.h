@@ -40,7 +40,7 @@ void          script_binder_destroy(ScriptBinder*);
 String        script_binder_name(const ScriptBinder*);
 
 /**
- * Set a glob filter for which files this binder is valid.
+ * Set a glob filter for determining which files this binder is valid for.
  * Example: `* /units/ *.script' (NOTE: the spaces should be ignored).
  */
 void   script_binder_filter_set(ScriptBinder*, String globPattern);
