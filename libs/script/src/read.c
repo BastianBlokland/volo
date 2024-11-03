@@ -788,6 +788,13 @@ static ScriptVarMeta* read_var_lookup(ScriptReadContext* ctx, const StringHash i
   return null;
 }
 
+static bool read_mem_access_disallowed(ScriptReadContext* ctx) {
+  if (!ctx->binder) {
+    return false; // At the moment only binders can disallow memory access.
+  }
+  return (script_binder_flags(ctx->binder) & ScriptBinderFlags_DisallowMemoryAccess) != 0;
+}
+
 typedef enum {
   ReadMemAccess_Read,
   ReadMemAccess_Write,
@@ -1274,8 +1281,16 @@ read_expr_mem_store(ScriptReadContext* ctx, const StringHash key, const ScriptPo
   if (UNLIKELY(sentinel_check(val))) {
     return read_fail_structural(ctx);
   }
-  const ScriptRange range = script_range(start, script_expr_range(ctx->doc, val).end);
-  return script_add_mem_store(ctx->doc, range, key, val);
+
+  const ScriptRange range     = script_range(start, script_expr_range(ctx->doc, val).end);
+  const ScriptExpr  storeExpr = script_add_mem_store(ctx->doc, range, key, val);
+
+  if (read_mem_access_disallowed(ctx)) {
+    read_emit_err(ctx, ScriptDiag_MemoryAccessDisallowed, range);
+    ctx->flags |= ScriptReadFlags_ProgramInvalid;
+  }
+
+  return storeExpr;
 }
 
 static ScriptExpr read_expr_mem_modify(
@@ -1296,7 +1311,14 @@ static ScriptExpr read_expr_mem_modify(
   const ScriptExpr  loadExpr   = script_add_mem_load(ctx->doc, keyRange, key);
   const ScriptExpr  intrArgs[] = {loadExpr, val};
   const ScriptExpr  intrExpr   = script_add_intrinsic(ctx->doc, range, intr, intrArgs);
-  return script_add_mem_store(ctx->doc, range, key, intrExpr);
+  const ScriptExpr  storeExpr  = script_add_mem_store(ctx->doc, range, key, intrExpr);
+
+  if (read_mem_access_disallowed(ctx)) {
+    read_emit_err(ctx, ScriptDiag_MemoryAccessDisallowed, range);
+    ctx->flags |= ScriptReadFlags_ProgramInvalid;
+  }
+
+  return storeExpr;
 }
 
 static void read_emit_invalid_args(
@@ -1842,7 +1864,12 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
       return read_expr_mem_modify(ctx, token.val_key, nextToken.kind, range);
     default:
       read_track_mem_access(ctx, token.val_key, ReadMemAccess_Read, range);
-      return script_add_mem_load(ctx->doc, range, token.val_key);
+      const ScriptExpr loadExpr = script_add_mem_load(ctx->doc, range, token.val_key);
+      if (read_mem_access_disallowed(ctx)) {
+        read_emit_err(ctx, ScriptDiag_MemoryAccessDisallowed, range);
+        ctx->flags |= ScriptReadFlags_ProgramInvalid;
+      }
+      return loadExpr;
     }
   }
   /**
