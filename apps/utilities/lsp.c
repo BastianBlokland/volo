@@ -258,7 +258,7 @@ static LspDocument* lsp_doc_open(LspContext* ctx, const String identifier, const
 
   const ScriptBinder* scriptBinder = null;
   for (u32 i = 0; i != lsp_script_binders_max; ++i) {
-    if (ctx->scriptBinders[i] && script_binder_filter(ctx->scriptBinders[i], identifier)) {
+    if (ctx->scriptBinders[i] && script_binder_match(ctx->scriptBinders[i], identifier)) {
       scriptBinder = ctx->scriptBinders[i];
       break;
     }

@@ -92,7 +92,7 @@ String script_binder_filter_get(const ScriptBinder* binder) {
   return string_is_empty(binder->filter) ? string_lit("*") : binder->filter;
 }
 
-bool script_binder_filter(const ScriptBinder* binder, const String fileIdentifier) {
+bool script_binder_match(const ScriptBinder* binder, const String fileIdentifier) {
   String filter = binder->filter;
   if (string_is_empty(filter)) {
     return true; // No filter; always valid.

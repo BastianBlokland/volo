@@ -870,7 +870,7 @@ void asset_load_script(
   script_lookup_update(lookup, src->data);
 
   // Parse the script.
-  diag_assert(script_binder_filter(g_assetScriptSceneBinder, id));
+  diag_assert(script_binder_match(g_assetScriptSceneBinder, id));
   ScriptExpr expr =
       script_read(doc, g_assetScriptSceneBinder, src->data, stringtable, diags, symsNull);
 

@@ -45,7 +45,7 @@ String        script_binder_name(const ScriptBinder*);
  */
 void   script_binder_filter_set(ScriptBinder*, String globPattern);
 String script_binder_filter_get(const ScriptBinder*);
-bool   script_binder_filter(const ScriptBinder*, String fileIdentifier);
+bool   script_binder_match(const ScriptBinder*, String fileIdentifier);
 
 /**
  * Check if a panic has occurred during the given call.
