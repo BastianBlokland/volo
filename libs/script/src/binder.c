@@ -46,7 +46,8 @@ static ScriptBinderHash binder_hash_compute(const ScriptBinder* binder) {
   for (u32 i = 0; i != binder->count; ++i) {
     funcNameHash = bits_hash_32_combine(funcNameHash, binder->names[i]);
   }
-  return (ScriptBinderHash)((u64)funcNameHash | ((u64)binder->count << 32u));
+  const u64 input = (u64)funcNameHash | ((u64)binder->count << 32u);
+  return (ScriptBinderHash)bits_hash_64_val(input);
 }
 
 static ScriptVal binder_func_fallback(void* ctx, ScriptBinderCall* call) {
@@ -57,11 +58,7 @@ static ScriptVal binder_func_fallback(void* ctx, ScriptBinderCall* call) {
 
 ScriptBinder* script_binder_create(Allocator* alloc) {
   ScriptBinder* binder = alloc_alloc_t(alloc, ScriptBinder);
-
-  *binder = (ScriptBinder){
-      .alloc = alloc,
-  };
-
+  *binder              = (ScriptBinder){.alloc = alloc};
   return binder;
 }
 
@@ -125,7 +122,6 @@ String script_binder_name(const ScriptBinder* binder, const ScriptBinderSlot slo
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
   diag_assert_msg(slot < binder->count, "Invalid slot");
 
-  // TODO: Using the global string-table for this is kinda questionable.
   return stringtable_lookup(g_stringtable, binder->names[slot]);
 }
 
@@ -293,13 +289,15 @@ static const ScriptSig* binder_sig_from_json(const JsonDoc* d, const JsonVal v) 
   return script_sig_create(g_allocScratch, ret, args, argCount);
 }
 
-static void binder_func_from_json(ScriptBinder* out, const JsonDoc* d, const JsonVal v) {
-  if (!sentinel_check(v) && json_type(d, v) == JsonType_Object) {
-    const String     name = binder_string_from_json(d, json_field_lit(d, v, "name"));
-    const String     doc  = binder_string_from_json(d, json_field_lit(d, v, "doc"));
-    const ScriptSig* sig  = binder_sig_from_json(d, json_field_lit(d, v, "sig"));
-    script_binder_declare(out, name, doc, sig, null);
+static bool binder_func_from_json(ScriptBinder* out, const JsonDoc* d, const JsonVal v) {
+  if (sentinel_check(v) || json_type(d, v) != JsonType_Object) {
+    return false;
   }
+  const String     name = binder_string_from_json(d, json_field_lit(d, v, "name"));
+  const String     doc  = binder_string_from_json(d, json_field_lit(d, v, "doc"));
+  const ScriptSig* sig  = binder_sig_from_json(d, json_field_lit(d, v, "sig"));
+  script_binder_declare(out, name, doc, sig, null);
+  return true;
 }
 
 bool script_binder_read(ScriptBinder* out, const String str) {
@@ -312,9 +310,9 @@ bool script_binder_read(ScriptBinder* out, const String str) {
   if (readRes.type == JsonResultType_Success && json_type(doc, readRes.val) == JsonType_Object) {
     const JsonVal funcsVal = json_field_lit(doc, readRes.val, "functions");
     if (!sentinel_check(funcsVal) && json_type(doc, funcsVal) == JsonType_Array) {
-      json_for_elems(doc, funcsVal, f) { binder_func_from_json(out, doc, f); }
+      success = true;
+      json_for_elems(doc, funcsVal, f) { success &= binder_func_from_json(out, doc, f); }
     }
-    success = true;
   }
 
   json_destroy(doc);
