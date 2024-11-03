@@ -55,26 +55,28 @@ typedef enum {
 } LspFlags;
 
 typedef struct {
-  String         identifier;
-  ScriptLookup*  scriptLookup;
-  ScriptDoc*     scriptDoc;
-  ScriptDiagBag* scriptDiags;
-  ScriptSymBag*  scriptSyms;
-  ScriptExpr     scriptRoot;
+  String              identifier;
+  ScriptLookup*       scriptLookup;
+  ScriptDoc*          scriptDoc;
+  const ScriptBinder* scriptBinder;
+  ScriptDiagBag*      scriptDiags;
+  ScriptSymBag*       scriptSyms;
+  ScriptExpr          scriptRoot;
 } LspDocument;
 
 typedef struct {
-  LspStatus           status;
-  LspFlags            flags;
-  DynString*          readBuffer;
-  usize               readCursor;
-  DynString*          writeBuffer;
-  const ScriptBinder* scriptBinder;
-  JsonDoc*            jDoc;     // Cleared between messages.
-  DynArray*           openDocs; // LspDocument[]*
-  File*               in;
-  File*               out;
-  usize               bytesOut; // For diagnostic purposes only.
+  LspStatus      status;
+  LspFlags       flags;
+  DynString*     readBuffer;
+  usize          readCursor;
+  DynString*     writeBuffer;
+  ScriptBinder** scriptBinders;
+  u32            scriptBinderCount;
+  JsonDoc*       jDoc;     // Cleared between messages.
+  DynArray*      openDocs; // LspDocument[]*
+  File*          in;
+  File*          out;
+  usize          bytesOut; // For diagnostic purposes only.
 } LspContext;
 
 typedef struct {
@@ -255,10 +257,19 @@ static LspDocument* lsp_doc_find(LspContext* ctx, const String identifier) {
 static LspDocument* lsp_doc_open(LspContext* ctx, const String identifier, const String text) {
   LspDocument* res = dynarray_push_t(ctx->openDocs, LspDocument);
 
+  const ScriptBinder* scriptBinder = null;
+  for (u32 i = 0; i != ctx->scriptBinderCount; ++i) {
+    if (script_binder_filter(ctx->scriptBinders[i], identifier)) {
+      scriptBinder = ctx->scriptBinders[i];
+      break;
+    }
+  }
+
   *res = (LspDocument){
       .identifier   = string_dup(g_allocHeap, identifier),
       .scriptLookup = script_lookup_create(g_allocHeap),
       .scriptDoc    = script_create(g_allocHeap),
+      .scriptBinder = scriptBinder,
       .scriptDiags  = script_diag_bag_create(g_allocHeap, ScriptDiagFilter_All),
       .scriptSyms   = script_sym_bag_create(g_allocHeap),
   };
@@ -789,7 +800,7 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
 
   doc->scriptRoot = script_read(
       doc->scriptDoc,
-      ctx->scriptBinder,
+      doc->scriptBinder,
       script_lookup_src(doc->scriptLookup),
       g_stringtable,
       doc->scriptDiags,
@@ -847,15 +858,22 @@ static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotificatio
   }
   const String text = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("text")));
 
-  if (ctx->flags & LspFlags_Trace) {
-    lsp_send_trace(ctx, fmt_write_scratch("Document open: {}", fmt_text(uri)));
-  }
-
   if (UNLIKELY(lsp_doc_find(ctx, uri))) {
     lsp_send_error(ctx, fmt_write_scratch("Document already open: {}", fmt_text(uri)));
     return;
   }
   LspDocument* doc = lsp_doc_open(ctx, uri, text);
+
+  if (ctx->flags & LspFlags_Trace) {
+    String binderName = string_lit("<none>");
+    if (doc->scriptBinder) {
+      binderName = script_binder_name(doc->scriptBinder);
+    }
+    lsp_send_trace(
+        ctx,
+        fmt_write_scratch("Document open: {} (binder: {})", fmt_text(uri), fmt_text(binderName)));
+  }
+
   lsp_analyze_doc(ctx, doc);
 
   if (ctx->flags & LspFlags_Trace) {
@@ -1943,14 +1961,15 @@ static i32 lsp_run_stdio(ScriptBinder* scriptBinders[], const u32 scriptBinderCo
   DynArray  openDocs    = dynarray_create_t(g_allocHeap, LspDocument, 16);
 
   LspContext ctx = {
-      .status       = LspStatus_Running,
-      .readBuffer   = &readBuffer,
-      .writeBuffer  = &writeBuffer,
-      .scriptBinder = scriptBinderCount ? scriptBinders[0] : null,
-      .jDoc         = jDoc,
-      .openDocs     = &openDocs,
-      .in           = g_fileStdIn,
-      .out          = g_fileStdOut,
+      .status            = LspStatus_Running,
+      .readBuffer        = &readBuffer,
+      .writeBuffer       = &writeBuffer,
+      .scriptBinders     = scriptBinders,
+      .scriptBinderCount = scriptBinderCount,
+      .jDoc              = jDoc,
+      .openDocs          = &openDocs,
+      .in                = g_fileStdIn,
+      .out               = g_fileStdOut,
   };
 
   lsp_send_info(&ctx, string_lit("Server starting up"));
