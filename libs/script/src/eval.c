@@ -383,9 +383,9 @@ ScriptEvalResult script_eval(
     ScriptMem*          m,
     const ScriptBinder* binder,
     void*               bindCtx) {
-  if (binder) {
-    diag_assert_msg(script_binder_hash(binder) == doc->binderHash, "Incompatible binder");
-  }
+
+  diag_assert(!binder || doc->binderHash == script_binder_hash(binder));
+
   ScriptEvalContext ctx = {
       .doc     = doc,
       .lookup  = lookup,

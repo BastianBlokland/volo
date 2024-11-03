@@ -7,6 +7,7 @@
 typedef struct sScriptMem ScriptMem;
 
 // Forward declare from 'core_binder.h'.
+typedef u64                  ScriptBinderHash;
 typedef struct sScriptBinder ScriptBinder;
 
 #define script_prog_regs 32
@@ -112,6 +113,7 @@ typedef struct sScriptProgram {
     void* ptr;
     usize size;
   } code; // Instruction stream (struct layout compatible with DataMem).
+  ScriptBinderHash binderHash;
   HeapArray_t(ScriptVal) literals;
   HeapArray_t(ScriptProgramLoc) locations; // Sorted on instruction.
 } ScriptProgram;

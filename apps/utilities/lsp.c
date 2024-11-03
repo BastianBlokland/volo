@@ -23,6 +23,8 @@
  * https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/
  */
 
+#define lsp_script_binders_max 16
+
 typedef enum {
   LspStatus_Running,
   LspStatus_Exit,
@@ -53,26 +55,27 @@ typedef enum {
 } LspFlags;
 
 typedef struct {
-  String         identifier;
-  ScriptLookup*  scriptLookup;
-  ScriptDoc*     scriptDoc;
-  ScriptDiagBag* scriptDiags;
-  ScriptSymBag*  scriptSyms;
-  ScriptExpr     scriptRoot;
+  String              identifier;
+  ScriptLookup*       scriptLookup;
+  ScriptDoc*          scriptDoc;
+  const ScriptBinder* scriptBinder;
+  ScriptDiagBag*      scriptDiags;
+  ScriptSymBag*       scriptSyms;
+  ScriptExpr          scriptRoot;
 } LspDocument;
 
 typedef struct {
-  LspStatus           status;
-  LspFlags            flags;
-  DynString*          readBuffer;
-  usize               readCursor;
-  DynString*          writeBuffer;
-  const ScriptBinder* scriptBinder;
-  JsonDoc*            jDoc;     // Cleared between messages.
-  DynArray*           openDocs; // LspDocument[]*
-  File*               in;
-  File*               out;
-  usize               bytesOut; // For diagnostic purposes only.
+  LspStatus            status;
+  LspFlags             flags;
+  DynString*           readBuffer;
+  usize                readCursor;
+  DynString*           writeBuffer;
+  ScriptBinder* const* scriptBinders;
+  JsonDoc*             jDoc;     // Cleared between messages.
+  DynArray*            openDocs; // LspDocument[]*
+  File*                in;
+  File*                out;
+  usize                bytesOut; // For diagnostic purposes only.
 } LspContext;
 
 typedef struct {
@@ -253,10 +256,19 @@ static LspDocument* lsp_doc_find(LspContext* ctx, const String identifier) {
 static LspDocument* lsp_doc_open(LspContext* ctx, const String identifier, const String text) {
   LspDocument* res = dynarray_push_t(ctx->openDocs, LspDocument);
 
+  const ScriptBinder* scriptBinder = null;
+  for (u32 i = 0; i != lsp_script_binders_max; ++i) {
+    if (ctx->scriptBinders[i] && script_binder_match(ctx->scriptBinders[i], identifier)) {
+      scriptBinder = ctx->scriptBinders[i];
+      break;
+    }
+  }
+
   *res = (LspDocument){
       .identifier   = string_dup(g_allocHeap, identifier),
       .scriptLookup = script_lookup_create(g_allocHeap),
       .scriptDoc    = script_create(g_allocHeap),
+      .scriptBinder = scriptBinder,
       .scriptDiags  = script_diag_bag_create(g_allocHeap, ScriptDiagFilter_All),
       .scriptSyms   = script_sym_bag_create(g_allocHeap),
   };
@@ -787,7 +799,7 @@ static void lsp_analyze_doc(LspContext* ctx, LspDocument* doc) {
 
   doc->scriptRoot = script_read(
       doc->scriptDoc,
-      ctx->scriptBinder,
+      doc->scriptBinder,
       script_lookup_src(doc->scriptLookup),
       g_stringtable,
       doc->scriptDiags,
@@ -845,15 +857,22 @@ static void lsp_handle_notif_doc_did_open(LspContext* ctx, const JRpcNotificatio
   }
   const String text = lsp_maybe_str(ctx, lsp_maybe_field(ctx, docVal, string_lit("text")));
 
-  if (ctx->flags & LspFlags_Trace) {
-    lsp_send_trace(ctx, fmt_write_scratch("Document open: {}", fmt_text(uri)));
-  }
-
   if (UNLIKELY(lsp_doc_find(ctx, uri))) {
     lsp_send_error(ctx, fmt_write_scratch("Document already open: {}", fmt_text(uri)));
     return;
   }
   LspDocument* doc = lsp_doc_open(ctx, uri, text);
+
+  if (ctx->flags & LspFlags_Trace) {
+    String binderName = string_lit("<none>");
+    if (doc->scriptBinder) {
+      binderName = script_binder_name(doc->scriptBinder);
+    }
+    lsp_send_trace(
+        ctx,
+        fmt_write_scratch("Document open: {} (binder: '{}')", fmt_text(uri), fmt_text(binderName)));
+  }
+
   lsp_analyze_doc(ctx, doc);
 
   if (ctx->flags & LspFlags_Trace) {
@@ -1934,28 +1953,37 @@ static void lsp_handle_jrpc(LspContext* ctx, const LspHeader* header, const Json
   }
 }
 
-static i32 lsp_run_stdio(const ScriptBinder* scriptBinder) {
+static i32 lsp_run_stdio(ScriptBinder* scriptBinders[PARAM_ARRAY_SIZE(lsp_script_binders_max)]) {
   DynString readBuffer  = dynstring_create(g_allocHeap, 8 * usize_kibibyte);
   DynString writeBuffer = dynstring_create(g_allocHeap, 2 * usize_kibibyte);
   JsonDoc*  jDoc        = json_create(g_allocHeap, 1024);
   DynArray  openDocs    = dynarray_create_t(g_allocHeap, LspDocument, 16);
 
   LspContext ctx = {
-      .status       = LspStatus_Running,
-      .readBuffer   = &readBuffer,
-      .writeBuffer  = &writeBuffer,
-      .scriptBinder = scriptBinder,
-      .jDoc         = jDoc,
-      .openDocs     = &openDocs,
-      .in           = g_fileStdIn,
-      .out          = g_fileStdOut,
+      .status        = LspStatus_Running,
+      .readBuffer    = &readBuffer,
+      .writeBuffer   = &writeBuffer,
+      .scriptBinders = scriptBinders,
+      .jDoc          = jDoc,
+      .openDocs      = &openDocs,
+      .in            = g_fileStdIn,
+      .out           = g_fileStdOut,
   };
 
   lsp_send_info(&ctx, string_lit("Server starting up"));
-  if (scriptBinder) {
-    const u16 funcCount = script_binder_count(scriptBinder);
-    lsp_send_info(
-        &ctx, fmt_write_scratch("Server loaded script-binder ({} functions)", fmt_int(funcCount)));
+  for (u32 i = 0; i != lsp_script_binders_max; ++i) {
+    if (scriptBinders[i]) {
+      const String binderName   = script_binder_name(scriptBinders[i]);
+      const String binderFilter = script_binder_filter_get(scriptBinders[i]);
+      const u16    binderCount  = script_binder_count(scriptBinders[i]);
+      lsp_send_info(
+          &ctx,
+          fmt_write_scratch(
+              "Loaded script-binder '{}' (filter: '{}', {} functions)",
+              fmt_text(binderName),
+              fmt_text(binderFilter),
+              fmt_int(binderCount)));
+    }
   }
 
   while (LIKELY(ctx.status == LspStatus_Running)) {
@@ -1992,34 +2020,32 @@ static i32 lsp_run_stdio(const ScriptBinder* scriptBinder) {
   return 0;
 }
 
-static bool lsp_read_binder_file(ScriptBinder* binder, const String path) {
-  bool       success = true;
-  File*      file;
-  FileResult fileRes;
+static ScriptBinder* lsp_read_binder_file(const String path) {
+  ScriptBinder* out = null;
+  File*         file;
+  FileResult    fileRes;
   if ((fileRes = file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &file))) {
     file_write_sync(g_fileStdErr, string_lit("lsp: Failed to open binder file.\n"));
-    success = false;
     goto Ret;
   }
   String fileData;
   if ((fileRes = file_map(file, &fileData, FileHints_Prefetch))) {
     file_write_sync(g_fileStdErr, string_lit("lsp: Failed to map binder file.\n"));
-    success = false;
     goto Ret;
   }
-  if (!script_binder_read(binder, fileData)) {
+  out = script_binder_read(g_allocHeap, fileData);
+  if (!out) {
     file_write_sync(g_fileStdErr, string_lit("lsp: Invalid binder file.\n"));
-    success = false;
     goto Ret;
   }
 Ret:
   if (file) {
     file_destroy(file);
   }
-  return success;
+  return out;
 }
 
-static CliId g_optStdio, g_optBinder, g_optHelp;
+static CliId g_optStdio, g_optBinders, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Volo Script Language Server"));
@@ -2027,45 +2053,53 @@ void app_cli_configure(CliApp* app) {
   g_optStdio = cli_register_flag(app, 0, string_lit("stdio"), CliOptionFlags_None);
   cli_register_desc(app, g_optStdio, string_lit("Use stdin and stdout for communication."));
 
-  g_optBinder = cli_register_flag(app, 'b', string_lit("binder"), CliOptionFlags_Value);
-  cli_register_desc(app, g_optBinder, string_lit("Script binder schema to use."));
-  cli_register_validator(app, g_optBinder, cli_validate_file_regular);
+  g_optBinders = cli_register_flag(app, 'b', string_lit("binders"), CliOptionFlags_MultiValue);
+  const String binderDesc = string_lit("Script binder schemas to use."
+                                       "\nFirst matching binder is used per doc.");
+  cli_register_desc(app, g_optBinders, binderDesc);
+  cli_register_validator(app, g_optBinders, cli_validate_file_regular);
 
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
   cli_register_exclusions(app, g_optHelp, g_optStdio);
-  cli_register_exclusions(app, g_optHelp, g_optBinder);
+  cli_register_exclusions(app, g_optHelp, g_optBinders);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
-  i32           exitCode     = 0;
-  ScriptBinder* scriptBinder = null;
+  i32           exitCode                              = 0;
+  ScriptBinder* scriptBinders[lsp_script_binders_max] = {0};
 
   if (cli_parse_provided(invoc, g_optHelp)) {
     cli_help_write_file(app, g_fileStdOut);
     goto Exit;
   }
 
-  const CliParseValues binderArg = cli_parse_values(invoc, g_optBinder);
-  if (binderArg.count) {
-    scriptBinder = script_binder_create(g_allocHeap);
-    if (!lsp_read_binder_file(scriptBinder, binderArg.values[0])) {
+  const CliParseValues binderArgs = cli_parse_values(invoc, g_optBinders);
+  if (binderArgs.count > lsp_script_binders_max) {
+    file_write_sync(g_fileStdErr, string_lit("lsp: Binder count exceeds maximum.\n"));
+    exitCode = 1;
+    goto Exit;
+  }
+  for (u32 i = 0; i != binderArgs.count; ++i) {
+    scriptBinders[i] = lsp_read_binder_file(binderArgs.values[i]);
+    if (!scriptBinders[i]) {
       exitCode = 1;
       goto Exit;
     }
-    script_binder_finalize(scriptBinder);
   }
 
   if (cli_parse_provided(invoc, g_optStdio)) {
-    exitCode = lsp_run_stdio(scriptBinder);
+    exitCode = lsp_run_stdio(scriptBinders);
   } else {
     exitCode = 1;
     file_write_sync(g_fileStdErr, string_lit("lsp: No communication method specified.\n"));
   }
 
 Exit:
-  if (scriptBinder) {
-    script_binder_destroy(scriptBinder);
+  for (u32 i = 0; i != lsp_script_binders_max; ++i) {
+    if (scriptBinders[i]) {
+      script_binder_destroy(scriptBinders[i]);
+    }
   }
   return exitCode;
 }

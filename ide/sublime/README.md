@@ -31,7 +31,7 @@ Installation:
 			"command": [
 				"[REPOSITORY_PATH]/build/apps/utilities/app_lsp",
 				"--stdio",
-				"--binder", "[REPOSITORY_PATH]/assets/schemas/script_binder.json"
+				"--binders", "[REPOSITORY_PATH]/assets/schemas/script_scene_binder.json"
 			],
 			"languageId": "volo-script",
 			"scopes": [ "source.volo-script" ]

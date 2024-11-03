@@ -237,4 +237,10 @@ spec(bits) {
     check_eq_float(bits_u64_as_f64(bits_f64_as_u64(1.337)), 1.337, 1e-6f);
     check_eq_int(bits_f64_as_u64(bits_u64_as_f64(42)), 42);
   }
+
+  it("can combine a hash starting from zero") {
+    u32       hash = 0;
+    const u32 res  = bits_hash_32_combine(hash, string_hash_lit("Hello World"));
+    check(res != 0);
+  }
 }

@@ -4,7 +4,7 @@
   "displayName": "volo",
   "description": "Ide support for the Volo engine",
   "license": "MIT",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "repository": {
     "type": "git",
     "url": "https://github.com/bastianblokland/volo"

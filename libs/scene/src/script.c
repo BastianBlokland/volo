@@ -1060,9 +1060,9 @@ static ScriptVal eval_nav_travel(EvalContext* ctx, ScriptBinderCall* call) {
     }
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_NavTravel);
     act->navTravel   = (SceneActionNavTravel){
-        .entity         = entity,
-        .targetEntity   = script_arg_maybe_entity(call, 1, ecs_entity_invalid),
-        .targetPosition = script_arg_maybe_vec3(call, 1, geo_vector(0)),
+          .entity         = entity,
+          .targetEntity   = script_arg_maybe_entity(call, 1, ecs_entity_invalid),
+          .targetPosition = script_arg_maybe_vec3(call, 1, geo_vector(0)),
     };
   }
   return script_null();
@@ -1128,8 +1128,8 @@ static ScriptVal eval_damage(EvalContext* ctx, ScriptBinderCall* call) {
   if (LIKELY(entity) && amount > f32_epsilon) {
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_HealthMod);
     act->healthMod   = (SceneActionHealthMod){
-        .entity = entity,
-        .amount = -amount /* negate for damage */,
+          .entity = entity,
+          .amount = -amount /* negate for damage */,
     };
   }
   return script_null();
@@ -1921,7 +1921,7 @@ static void eval_binder_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_scriptBinder) {
-    ScriptBinder* b = script_binder_create(g_allocPersist);
+    ScriptBinder* b = script_binder_create(g_allocPersist, string_lit("scene"));
 
     eval_enum_init_faction();
     eval_enum_init_clock();

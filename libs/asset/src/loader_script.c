@@ -17,7 +17,7 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
-ScriptBinder* g_assetScriptBinder;
+ScriptBinder* g_assetScriptSceneBinder;
 DataMeta      g_assetScriptMeta;
 
 static void bind(
@@ -31,8 +31,10 @@ static void bind(
   script_binder_declare(binder, name, doc, sig, null);
 }
 
-static ScriptBinder* asset_script_binder_create(Allocator* alloc) {
-  ScriptBinder* binder = script_binder_create(alloc);
+static ScriptBinder* script_scene_binder_create(Allocator* alloc) {
+  ScriptBinder* binder = script_binder_create(alloc, string_lit("scene"));
+  script_binder_filter_set(binder, string_lit("*.script"));
+
   // clang-format off
   static const String g_layerDoc           = string_static("Supported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
   static const String g_factionDoc         = string_static("Supported factions:\n\n-`FactionA`\n\n-`FactionB`\n\n-`FactionC`\n\n-`FactionD`\n\n-`FactionNone`");
@@ -823,7 +825,7 @@ ecs_module_init(asset_script_module) {
 }
 
 void asset_data_init_script(void) {
-  g_assetScriptBinder = asset_script_binder_create(g_allocPersist);
+  g_assetScriptSceneBinder = script_scene_binder_create(g_allocPersist);
 
   // clang-format off
   data_reg_opaque_t(g_dataReg, ScriptVal);
@@ -842,6 +844,7 @@ void asset_data_init_script(void) {
 
   data_reg_struct_t(g_dataReg, ScriptProgram);
   data_reg_field_t(g_dataReg, ScriptProgram, code, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
+  data_reg_field_t(g_dataReg, ScriptProgram, binderHash, data_prim_t(u64));
   data_reg_field_t(g_dataReg, ScriptProgram, literals, t_ScriptVal, .container = DataContainer_HeapArray);
   data_reg_field_t(g_dataReg, ScriptProgram, locations, t_ScriptProgramLoc, .container = DataContainer_HeapArray);
 
@@ -867,7 +870,9 @@ void asset_load_script(
   script_lookup_update(lookup, src->data);
 
   // Parse the script.
-  ScriptExpr expr = script_read(doc, g_assetScriptBinder, src->data, stringtable, diags, symsNull);
+  diag_assert(script_binder_match(g_assetScriptSceneBinder, id));
+  ScriptExpr expr =
+      script_read(doc, g_assetScriptSceneBinder, src->data, stringtable, diags, symsNull);
 
   const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
   for (u32 i = 0; i != diagCount; ++i) {
@@ -901,7 +906,7 @@ void asset_load_script(
     goto Error;
   }
 
-  diag_assert(script_prog_validate(&prog, g_assetScriptBinder));
+  diag_assert(script_prog_validate(&prog, g_assetScriptSceneBinder));
 
   const StringTableArray strings = stringtable_clone_strings(stringtable, g_allocHeap);
 
@@ -953,7 +958,7 @@ void asset_load_script_bin(
     return;
   }
 
-  if (UNLIKELY(!script_prog_validate(&script.prog, g_assetScriptBinder))) {
+  if (UNLIKELY(!script_prog_validate(&script.prog, g_assetScriptSceneBinder))) {
     log_e(
         "Malformed binary script",
         log_param("id", fmt_text(id)),
@@ -968,5 +973,3 @@ void asset_load_script_bin(
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 }
-
-void asset_script_binder_write(DynString* str) { script_binder_write(str, g_assetScriptBinder); }

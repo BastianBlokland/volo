@@ -145,6 +145,8 @@ void script_prog_clear(ScriptProgram* prog, Allocator* alloc) {
 ScriptProgResult script_prog_eval(
     const ScriptProgram* prog, ScriptMem* m, const ScriptBinder* binder, void* bindCtx) {
 
+  diag_assert(prog->binderHash == (binder ? script_binder_hash(binder) : 0));
+
   const u8* ip = mem_begin(prog->code);
 
   ScriptProgResult res                    = {0};
@@ -279,6 +281,10 @@ Dispatch:
 }
 
 bool script_prog_validate(const ScriptProgram* prog, const ScriptBinder* binder) {
+  if (UNLIKELY(prog->binderHash != (binder ? script_binder_hash(binder) : 0))) {
+    return false; // Incompatible binder.
+  }
+
   // Validate literals.
   for (usize i = 0; i != prog->literals.count; ++i) {
     if (UNLIKELY(!script_val_valid(prog->literals.values[i]))) {

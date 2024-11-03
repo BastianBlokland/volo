@@ -1,4 +1,6 @@
 {
+  "name": "scene",
+  "filter": "*.script",
   "functions": [
     {
       "name": "destroy",

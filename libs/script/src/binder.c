@@ -11,6 +11,8 @@
 #include "script_sig.h"
 #include "script_val.h"
 
+#define script_binder_aux_chunk_size (4 * usize_kibibyte)
+
 ASSERT(script_binder_max_funcs <= u16_max, "Binder slot needs to be representable by a u16")
 
 typedef enum {
@@ -19,6 +21,9 @@ typedef enum {
 
 struct sScriptBinder {
   Allocator*        alloc;
+  Allocator*        allocAux; // (chunked) bump allocator for axillary data (eg signatures).
+  String            name;
+  String            filter; // File-filter glob pattern.
   ScriptBinderFlags flags;
   u16               count;
   ScriptBinderHash  hash;
@@ -42,11 +47,12 @@ static void binder_index_swap(void* ctx, const usize a, const usize b) {
 }
 
 static ScriptBinderHash binder_hash_compute(const ScriptBinder* binder) {
-  u32 funcNameHash = 42;
+  u32 funcNameHash = string_maybe_hash(binder->name);
   for (u32 i = 0; i != binder->count; ++i) {
     funcNameHash = bits_hash_32_combine(funcNameHash, binder->names[i]);
   }
-  return (ScriptBinderHash)((u64)funcNameHash | ((u64)binder->count << 32u));
+  const u64 input = (u64)funcNameHash | ((u64)binder->count << 32u);
+  return (ScriptBinderHash)bits_hash_64_val(input);
 }
 
 static ScriptVal binder_func_fallback(void* ctx, ScriptBinderCall* call) {
@@ -55,24 +61,47 @@ static ScriptVal binder_func_fallback(void* ctx, ScriptBinderCall* call) {
   return script_null();
 }
 
-ScriptBinder* script_binder_create(Allocator* alloc) {
+ScriptBinder* script_binder_create(Allocator* alloc, const String name) {
   ScriptBinder* binder = alloc_alloc_t(alloc, ScriptBinder);
 
+  Allocator* allocAux =
+      alloc_chunked_create(alloc, alloc_bump_create, script_binder_aux_chunk_size);
+
   *binder = (ScriptBinder){
-      .alloc = alloc,
+      .alloc    = alloc,
+      .allocAux = allocAux,
+      .name     = string_maybe_dup(allocAux, name),
   };
 
   return binder;
 }
 
 void script_binder_destroy(ScriptBinder* binder) {
-  for (u16 i = 0; i != binder->count; ++i) {
-    string_maybe_free(binder->alloc, binder->docs[i]);
-    if (binder->sigs[i]) {
-      script_sig_destroy(binder->sigs[i]);
-    }
-  }
+  alloc_chunked_destroy(binder->allocAux);
   alloc_free_t(binder->alloc, binder);
+}
+
+String script_binder_name(const ScriptBinder* binder) { return binder->name; }
+
+void script_binder_filter_set(ScriptBinder* binder, const String globPattern) {
+  // NOTE: The old filter will not be cleaned up from the auxillary data until destruction.
+  binder->filter = string_maybe_dup(binder->allocAux, globPattern);
+}
+
+String script_binder_filter_get(const ScriptBinder* binder) {
+  return string_is_empty(binder->filter) ? string_lit("*") : binder->filter;
+}
+
+bool script_binder_match(const ScriptBinder* binder, const String fileIdentifier) {
+  String filter = binder->filter;
+  if (string_is_empty(filter)) {
+    return true; // No filter; always valid.
+  }
+  // Always start with an implicit wild-card.
+  if (*string_begin(filter) != '*') {
+    filter = string_combine(g_allocScratch, string_lit("*"), filter);
+  }
+  return string_match_glob(fileIdentifier, filter, StringMatchFlags_IgnoreCase);
 }
 
 void script_binder_declare(
@@ -85,10 +114,12 @@ void script_binder_declare(
   diag_assert_msg(!(binder->flags & ScriptBinderFlags_Finalized), "Binder already finalized");
   diag_assert_msg(binder->count < script_binder_max_funcs, "Declared function count exceeds max");
 
+  // TODO: Add error when auxillary allocator runs out of space.
+
   binder->names[binder->count] = stringtable_add(g_stringtable, name);
   binder->funcs[binder->count] = func ? func : binder_func_fallback;
-  binder->docs[binder->count]  = string_maybe_dup(binder->alloc, doc);
-  binder->sigs[binder->count]  = sig ? script_sig_clone(binder->alloc, sig) : null;
+  binder->docs[binder->count]  = string_maybe_dup(binder->allocAux, doc);
+  binder->sigs[binder->count]  = sig ? script_sig_clone(binder->allocAux, sig) : null;
   ++binder->count;
 }
 
@@ -112,7 +143,7 @@ ScriptBinderHash script_binder_hash(const ScriptBinder* binder) {
   return binder->hash;
 }
 
-ScriptBinderSlot script_binder_lookup(const ScriptBinder* binder, const StringHash nameHash) {
+ScriptBinderSlot script_binder_slot_lookup(const ScriptBinder* binder, const StringHash nameHash) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
 
   const StringHash* itr = search_binary_t(
@@ -121,22 +152,21 @@ ScriptBinderSlot script_binder_lookup(const ScriptBinder* binder, const StringHa
   return itr ? (ScriptBinderSlot)(itr - binder->names) : script_binder_slot_sentinel;
 }
 
-String script_binder_name(const ScriptBinder* binder, const ScriptBinderSlot slot) {
+String script_binder_slot_name(const ScriptBinder* binder, const ScriptBinderSlot slot) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
   diag_assert_msg(slot < binder->count, "Invalid slot");
 
-  // TODO: Using the global string-table for this is kinda questionable.
   return stringtable_lookup(g_stringtable, binder->names[slot]);
 }
 
-String script_binder_doc(const ScriptBinder* binder, const ScriptBinderSlot slot) {
+String script_binder_slot_doc(const ScriptBinder* binder, const ScriptBinderSlot slot) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
   diag_assert_msg(slot < binder->count, "Invalid slot");
 
   return binder->docs[slot];
 }
 
-const ScriptSig* script_binder_sig(const ScriptBinder* binder, const ScriptBinderSlot slot) {
+const ScriptSig* script_binder_slot_sig(const ScriptBinder* binder, const ScriptBinderSlot slot) {
   diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
   diag_assert_msg(slot < binder->count, "Invalid slot");
 
@@ -202,9 +232,9 @@ static JsonVal binder_sig_to_json(JsonDoc* d, const ScriptSig* sig) {
 }
 
 static JsonVal binder_func_to_json(JsonDoc* d, const ScriptBinder* b, const ScriptBinderSlot s) {
-  const String     name = script_binder_name(b, s);
-  const String     docu = script_binder_doc(b, s);
-  const ScriptSig* sig  = script_binder_sig(b, s);
+  const String     name = script_binder_slot_name(b, s);
+  const String     docu = script_binder_slot_doc(b, s);
+  const ScriptSig* sig  = script_binder_slot_sig(b, s);
 
   const JsonVal obj = json_add_object(d);
   json_add_field_lit(d, obj, "name", json_add_string(d, name));
@@ -224,6 +254,12 @@ void script_binder_write(DynString* str, const ScriptBinder* b) {
   }
 
   const JsonVal obj = json_add_object(doc);
+  if (!string_is_empty(b->name)) {
+    json_add_field_lit(doc, obj, "name", json_add_string(doc, b->name));
+  }
+  if (!string_is_empty(b->filter)) {
+    json_add_field_lit(doc, obj, "filter", json_add_string(doc, b->filter));
+  }
   json_add_field_lit(doc, obj, "functions", funcsArr);
 
   json_write(str, doc, obj, &json_write_opts(.mode = JsonWriteMode_Compact));
@@ -293,30 +329,61 @@ static const ScriptSig* binder_sig_from_json(const JsonDoc* d, const JsonVal v) 
   return script_sig_create(g_allocScratch, ret, args, argCount);
 }
 
-static void binder_func_from_json(ScriptBinder* out, const JsonDoc* d, const JsonVal v) {
-  if (!sentinel_check(v) && json_type(d, v) == JsonType_Object) {
-    const String     name = binder_string_from_json(d, json_field_lit(d, v, "name"));
-    const String     doc  = binder_string_from_json(d, json_field_lit(d, v, "doc"));
-    const ScriptSig* sig  = binder_sig_from_json(d, json_field_lit(d, v, "sig"));
-    script_binder_declare(out, name, doc, sig, null);
+static bool binder_func_from_json(ScriptBinder* out, const JsonDoc* d, const JsonVal v) {
+  if (sentinel_check(v) || json_type(d, v) != JsonType_Object) {
+    return false;
   }
+  const String     name = binder_string_from_json(d, json_field_lit(d, v, "name"));
+  const String     doc  = binder_string_from_json(d, json_field_lit(d, v, "doc"));
+  const ScriptSig* sig  = binder_sig_from_json(d, json_field_lit(d, v, "sig"));
+  script_binder_declare(out, name, doc, sig, null);
+  return true;
 }
 
-bool script_binder_read(ScriptBinder* out, const String str) {
+static String binder_name_from_json(const JsonDoc* d, const JsonVal v) {
+  const JsonVal nameVal = json_field_lit(d, v, "name");
+  if (sentinel_check(nameVal) || json_type(d, nameVal) != JsonType_String) {
+    return string_empty;
+  }
+  return json_string(d, nameVal);
+}
+
+ScriptBinder* script_binder_read(Allocator* alloc, const String str) {
+  ScriptBinder* out = null;
+
   JsonDoc* doc     = json_create(g_allocHeap, 512);
-  bool     success = false;
+  bool     success = true;
 
   JsonResult readRes;
   json_read(doc, str, JsonReadFlags_None, &readRes);
 
-  if (readRes.type == JsonResultType_Success && json_type(doc, readRes.val) == JsonType_Object) {
-    const JsonVal funcsVal = json_field_lit(doc, readRes.val, "functions");
-    if (!sentinel_check(funcsVal) && json_type(doc, funcsVal) == JsonType_Array) {
-      json_for_elems(doc, funcsVal, f) { binder_func_from_json(out, doc, f); }
-    }
-    success = true;
+  if (readRes.type != JsonResultType_Success || json_type(doc, readRes.val) != JsonType_Object) {
+    success = false;
+    goto Done;
   }
 
+  out = script_binder_create(alloc, binder_name_from_json(doc, readRes.val));
+
+  const JsonVal filterVal = json_field_lit(doc, readRes.val, "filter");
+  if (!sentinel_check(filterVal) && json_type(doc, filterVal) == JsonType_String) {
+    script_binder_filter_set(out, json_string(doc, filterVal));
+  }
+
+  const JsonVal funcsVal = json_field_lit(doc, readRes.val, "functions");
+  if (sentinel_check(funcsVal) || json_type(doc, funcsVal) != JsonType_Array) {
+    success = false;
+    goto Done;
+  }
+  json_for_elems(doc, funcsVal, f) { success &= binder_func_from_json(out, doc, f); }
+
+Done:
   json_destroy(doc);
-  return success;
+  if (success) {
+    script_binder_finalize(out);
+    return out;
+  }
+  if (out) {
+    script_binder_destroy(out);
+  }
+  return null;
 }

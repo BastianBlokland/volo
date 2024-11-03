@@ -25,15 +25,15 @@ function getValidServerPath(): string | undefined {
 }
 
 function getWorkspaceBinderPaths(workspaceFolder: WorkspaceFolder): string[] {
-  return [path.join(workspaceFolder.uri.fsPath, "assets", "schemas", "script_binder.json")];
+  const schemaDirPath: string = path.join(workspaceFolder.uri.fsPath, "assets", "schemas");
+  return fs
+    .readdirSync(schemaDirPath)
+    .filter((fileName: string) => fileName.match(/^script_\w+_binder\.json$/) !== null)
+    .map((fileName: string) => path.join(schemaDirPath, fileName));
 }
 
 function getBinderPaths(): string[] {
   return workspace.workspaceFolders.flatMap(getWorkspaceBinderPaths);
-}
-
-function getValidBinderPath(): string | undefined {
-  return getBinderPaths().filter(fs.existsSync)[0];
 }
 
 export function activate(context: ExtensionContext) {
@@ -44,9 +44,9 @@ export function activate(context: ExtensionContext) {
 
   let serverArgs: string[] = [];
 
-  const binderPath: string | undefined = getValidBinderPath();
-  if (binderPath !== undefined) {
-    serverArgs.push("--binder", binderPath);
+  const binderPaths: string[] = getBinderPaths();
+  if (binderPaths.length > 0) {
+    serverArgs.push("--binders", ...binderPaths);
   }
 
   const serverOptions: ServerOptions = {

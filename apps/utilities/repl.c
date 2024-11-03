@@ -317,14 +317,18 @@ static ScriptVal repl_bind_print_base64(void* ctx, ScriptBinderCall* call) {
   return script_null();
 }
 
-static void repl_bind_init(ScriptBinder* binder) {
-  const String     doc = string_empty;
-  const ScriptSig* sig = null;
+static ScriptBinder* repl_bind_init(void) {
+  ScriptBinder*    binder = script_binder_create(g_allocHeap, string_lit("repl"));
+  const String     doc    = string_empty;
+  const ScriptSig* sig    = null;
 
   script_binder_declare(binder, string_lit("print"), doc, sig, &repl_bind_print);
   script_binder_declare(binder, string_lit("print_bytes"), doc, sig, &repl_bind_print_bytes);
   script_binder_declare(binder, string_lit("print_bits"), doc, sig, &repl_bind_print_bits);
   script_binder_declare(binder, string_lit("print_base64"), doc, sig, &repl_bind_print_base64);
+
+  script_binder_finalize(binder);
+  return binder;
 }
 
 static void repl_exec(
@@ -643,31 +647,29 @@ Ret:
   return res;
 }
 
-static bool repl_read_binder_file(ScriptBinder* binder, const String path) {
-  bool       success = true;
-  File*      file    = null;
-  FileResult fileRes;
+static ScriptBinder* repl_read_binder_file(const String path) {
+  ScriptBinder* out  = null;
+  File*         file = null;
+  FileResult    fileRes;
   if ((fileRes = file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &file))) {
     file_write_sync(g_fileStdErr, string_lit("ERROR: Failed to open binder file.\n"));
-    success = false;
     goto Ret;
   }
   String fileData;
   if ((fileRes = file_map(file, &fileData, FileHints_Prefetch))) {
     file_write_sync(g_fileStdErr, string_lit("ERROR: Failed to map binder file.\n"));
-    success = false;
     goto Ret;
   }
-  if (!script_binder_read(binder, fileData)) {
+  out = script_binder_read(g_allocHeap, fileData);
+  if (!out) {
     file_write_sync(g_fileStdErr, string_lit("ERROR: Invalid binder file.\n"));
-    success = false;
     goto Ret;
   }
 Ret:
   if (file) {
     file_destroy(file);
   }
-  return success;
+  return out;
 }
 
 static CliId g_optFile;
@@ -773,16 +775,16 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     flags |= ReplFlags_TtyOutput;
   }
 
-  binder = script_binder_create(g_allocHeap);
-  repl_bind_init(binder);
   const CliParseValues binderArg = cli_parse_values(invoc, g_optBinder);
   if (binderArg.count) {
-    if (!repl_read_binder_file(binder, binderArg.values[0])) {
+    binder = repl_read_binder_file(binderArg.values[0]);
+    if (!binder) {
       exitCode = 1;
       goto Exit;
     }
+  } else {
+    binder = repl_bind_init();
   }
-  script_binder_finalize(binder);
 
   const CliParseValues fileArg = cli_parse_values(invoc, g_optFile);
   if (fileArg.count) {

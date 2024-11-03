@@ -35,8 +35,17 @@ typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptBinderCall*);
  */
 typedef struct sScriptBinder ScriptBinder;
 
-ScriptBinder* script_binder_create(Allocator*);
+ScriptBinder* script_binder_create(Allocator*, String name);
 void          script_binder_destroy(ScriptBinder*);
+String        script_binder_name(const ScriptBinder*);
+
+/**
+ * Set a glob filter for determining which files this binder is valid for.
+ * Example: `* /units/ *.script' (NOTE: the spaces should be ignored).
+ */
+void   script_binder_filter_set(ScriptBinder*, String globPattern);
+String script_binder_filter_get(const ScriptBinder*);
+bool   script_binder_match(const ScriptBinder*, String fileIdentifier);
 
 /**
  * Check if a panic has occurred during the given call.
@@ -78,25 +87,25 @@ ScriptBinderHash script_binder_hash(const ScriptBinder*);
  * NOTE: Returns 'script_binder_slot_sentinel' if no function was found with the given name.
  * Pre-condition: Binder has been finalized.
  */
-ScriptBinderSlot script_binder_lookup(const ScriptBinder*, StringHash nameHash);
+ScriptBinderSlot script_binder_slot_lookup(const ScriptBinder*, StringHash nameHash);
 
 /**
  * Lookup the name for a slot.
  * Pre-condition: Binder has been finalized.
  */
-String script_binder_name(const ScriptBinder*, ScriptBinderSlot);
+String script_binder_slot_name(const ScriptBinder*, ScriptBinderSlot);
 
 /**
  * Lookup the documentation for a slot.
  * Pre-condition: Binder has been finalized.
  */
-String script_binder_doc(const ScriptBinder*, ScriptBinderSlot);
+String script_binder_slot_doc(const ScriptBinder*, ScriptBinderSlot);
 
 /**
  * Lookup the signature for a slot.
  * Pre-condition: Binder has been finalized.
  */
-const ScriptSig* script_binder_sig(const ScriptBinder*, ScriptBinderSlot);
+const ScriptSig* script_binder_slot_sig(const ScriptBinder*, ScriptBinderSlot);
 
 /**
  * Iterate over the bound slots.
@@ -114,5 +123,5 @@ ScriptVal script_binder_exec(const ScriptBinder*, ScriptBinderSlot, void* ctx, S
 /**
  * Binder serialization utils.
  */
-void script_binder_write(DynString* str, const ScriptBinder*);
-bool script_binder_read(ScriptBinder*, String);
+void          script_binder_write(DynString* str, const ScriptBinder*);
+ScriptBinder* script_binder_read(Allocator*, String);
