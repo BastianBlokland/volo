@@ -22,8 +22,7 @@ typedef enum {
 struct sScriptBinder {
   Allocator*        alloc;
   Allocator*        allocAux; // (chunked) bump allocator for axillary data (eg signatures).
-  String            name;
-  String            filter; // File-filter glob pattern.
+  String            filter;   // File-filter glob pattern.
   ScriptBinderFlags flags;
   u16               count;
   ScriptBinderHash  hash;
@@ -61,16 +60,12 @@ static ScriptVal binder_func_fallback(void* ctx, ScriptBinderCall* call) {
   return script_null();
 }
 
-ScriptBinder* script_binder_create(Allocator* alloc, const String name) {
+ScriptBinder* script_binder_create(Allocator* alloc) {
   ScriptBinder* binder = alloc_alloc_t(alloc, ScriptBinder);
-
-  Allocator* allocAux =
-      alloc_chunked_create(alloc, alloc_bump_create, script_binder_aux_chunk_size);
 
   *binder = (ScriptBinder){
       .alloc    = alloc,
-      .allocAux = allocAux,
-      .name     = string_maybe_dup(allocAux, name),
+      .allocAux = alloc_chunked_create(alloc, alloc_bump_create, script_binder_aux_chunk_size),
   };
 
   return binder;
@@ -80,8 +75,6 @@ void script_binder_destroy(ScriptBinder* binder) {
   alloc_chunked_destroy(binder->allocAux);
   alloc_free_t(binder->alloc, binder);
 }
-
-String script_binder_name(const ScriptBinder* binder) { return binder->name; }
 
 void script_binder_filter_set(ScriptBinder* binder, const String globPattern) {
   // NOTE: The old filter will not be cleaned up from the auxillary data until destruction.
@@ -247,9 +240,6 @@ void script_binder_write(DynString* str, const ScriptBinder* b) {
   }
 
   const JsonVal obj = json_add_object(doc);
-  if (!string_is_empty(b->name)) {
-    json_add_field_lit(doc, obj, "name", json_add_string(doc, b->name));
-  }
   if (!string_is_empty(b->filter)) {
     json_add_field_lit(doc, obj, "filter", json_add_string(doc, b->filter));
   }
@@ -343,11 +333,6 @@ bool script_binder_read(ScriptBinder* out, const String str) {
   if (readRes.type != JsonResultType_Success || json_type(doc, readRes.val) != JsonType_Object) {
     success = false;
     goto Done;
-  }
-
-  const JsonVal nameVal = json_field_lit(doc, readRes.val, "name");
-  if (!sentinel_check(nameVal) && json_type(doc, nameVal) == JsonType_String) {
-    out->name = string_maybe_dup(out->allocAux, json_string(doc, nameVal));
   }
 
   const JsonVal filterVal = json_field_lit(doc, readRes.val, "filter");
