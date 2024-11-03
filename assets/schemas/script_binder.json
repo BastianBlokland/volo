@@ -1,4 +1,5 @@
 {
+  "name": "scene",
   "filter": "*.script",
   "functions": [
     {
