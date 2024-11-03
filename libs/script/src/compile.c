@@ -967,6 +967,7 @@ ScriptCompileError script_compile(
   *out = (ScriptProgram){
       .code.ptr         = string_dup(outAlloc, dynstring_view(&ctx.outCode)).ptr,
       .code.size        = ctx.outCode.size,
+      .binderHash       = doc->binderHash,
       .literals.values  = dynarray_copy_as_new(&ctx.outLiterals, outAlloc),
       .literals.count   = ctx.outLiterals.size,
       .locations.values = dynarray_copy_as_new(&ctx.outLocations, outAlloc),

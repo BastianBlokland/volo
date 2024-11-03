@@ -844,6 +844,7 @@ void asset_data_init_script(void) {
 
   data_reg_struct_t(g_dataReg, ScriptProgram);
   data_reg_field_t(g_dataReg, ScriptProgram, code, data_prim_t(DataMem), .flags = DataFlags_ExternalMemory);
+  data_reg_field_t(g_dataReg, ScriptProgram, binderHash, data_prim_t(u64));
   data_reg_field_t(g_dataReg, ScriptProgram, literals, t_ScriptVal, .container = DataContainer_HeapArray);
   data_reg_field_t(g_dataReg, ScriptProgram, locations, t_ScriptProgramLoc, .container = DataContainer_HeapArray);
 
