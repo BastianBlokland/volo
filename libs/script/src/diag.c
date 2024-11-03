@@ -51,6 +51,7 @@ static const String g_diagKindStrs[] = {
     [ScriptDiag_TooFewArguments]                  = string_static("Too few arguments"),
     [ScriptDiag_TooManyArguments]                 = string_static("Too many arguments"),
     [ScriptDiag_InvalidArgumentValue]             = string_static("Invalid value for argument"),
+    [ScriptDiag_MemoryAccessDisallowed]           = string_static("Memory access disallowed"),
 };
 ASSERT(array_elems(g_diagKindStrs) == ScriptDiagKind_Count, "Incorrect number of kind strs");
 
