@@ -71,7 +71,6 @@ typedef struct {
   usize          readCursor;
   DynString*     writeBuffer;
   ScriptBinder** scriptBinders;
-  u32            scriptBinderCount;
   JsonDoc*       jDoc;     // Cleared between messages.
   DynArray*      openDocs; // LspDocument[]*
   File*          in;
@@ -258,8 +257,8 @@ static LspDocument* lsp_doc_open(LspContext* ctx, const String identifier, const
   LspDocument* res = dynarray_push_t(ctx->openDocs, LspDocument);
 
   const ScriptBinder* scriptBinder = null;
-  for (u32 i = 0; i != ctx->scriptBinderCount; ++i) {
-    if (script_binder_filter(ctx->scriptBinders[i], identifier)) {
+  for (u32 i = 0; i != lsp_script_binders_max; ++i) {
+    if (ctx->scriptBinders[i] && script_binder_filter(ctx->scriptBinders[i], identifier)) {
       scriptBinder = ctx->scriptBinders[i];
       break;
     }
@@ -1954,32 +1953,33 @@ static void lsp_handle_jrpc(LspContext* ctx, const LspHeader* header, const Json
   }
 }
 
-static i32 lsp_run_stdio(ScriptBinder* scriptBinders[], const u32 scriptBinderCount) {
+static i32 lsp_run_stdio(ScriptBinder* scriptBinders[PARAM_ARRAY_SIZE(lsp_script_binders_max)]) {
   DynString readBuffer  = dynstring_create(g_allocHeap, 8 * usize_kibibyte);
   DynString writeBuffer = dynstring_create(g_allocHeap, 2 * usize_kibibyte);
   JsonDoc*  jDoc        = json_create(g_allocHeap, 1024);
   DynArray  openDocs    = dynarray_create_t(g_allocHeap, LspDocument, 16);
 
   LspContext ctx = {
-      .status            = LspStatus_Running,
-      .readBuffer        = &readBuffer,
-      .writeBuffer       = &writeBuffer,
-      .scriptBinders     = scriptBinders,
-      .scriptBinderCount = scriptBinderCount,
-      .jDoc              = jDoc,
-      .openDocs          = &openDocs,
-      .in                = g_fileStdIn,
-      .out               = g_fileStdOut,
+      .status        = LspStatus_Running,
+      .readBuffer    = &readBuffer,
+      .writeBuffer   = &writeBuffer,
+      .scriptBinders = scriptBinders,
+      .jDoc          = jDoc,
+      .openDocs      = &openDocs,
+      .in            = g_fileStdIn,
+      .out           = g_fileStdOut,
   };
 
   lsp_send_info(&ctx, string_lit("Server starting up"));
-  for (u32 i = 0; i != scriptBinderCount; ++i) {
-    lsp_send_info(
-        &ctx,
-        fmt_write_scratch(
-            "Loaded script-binder '{}' ({} functions)",
-            fmt_text(script_binder_name(scriptBinders[i])),
-            fmt_int(script_binder_count(scriptBinders[i]))));
+  for (u32 i = 0; i != lsp_script_binders_max; ++i) {
+    if (scriptBinders[i]) {
+      lsp_send_info(
+          &ctx,
+          fmt_write_scratch(
+              "Loaded script-binder '{}' ({} functions)",
+              fmt_text(script_binder_name(scriptBinders[i])),
+              fmt_int(script_binder_count(scriptBinders[i]))));
+    }
   }
 
   while (LIKELY(ctx.status == LspStatus_Running)) {
@@ -2062,9 +2062,8 @@ void app_cli_configure(CliApp* app) {
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
-  i32           exitCode = 0;
-  ScriptBinder* scriptBinders[lsp_script_binders_max];
-  u32           scriptBinderCount = 0;
+  i32           exitCode                              = 0;
+  ScriptBinder* scriptBinders[lsp_script_binders_max] = {0};
 
   if (cli_parse_provided(invoc, g_optHelp)) {
     cli_help_write_file(app, g_fileStdOut);
@@ -2077,24 +2076,26 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     exitCode = 1;
     goto Exit;
   }
-  for (; scriptBinderCount != binderArg.count; ++scriptBinderCount) {
-    scriptBinders[scriptBinderCount] = lsp_read_binder_file(binderArg.values[scriptBinderCount]);
-    if (!scriptBinders[scriptBinderCount]) {
+  for (u32 i = 0; i != binderArg.count; ++i) {
+    scriptBinders[i] = lsp_read_binder_file(binderArg.values[i]);
+    if (!scriptBinders[i]) {
       exitCode = 1;
       goto Exit;
     }
   }
 
   if (cli_parse_provided(invoc, g_optStdio)) {
-    exitCode = lsp_run_stdio(scriptBinders, scriptBinderCount);
+    exitCode = lsp_run_stdio(scriptBinders);
   } else {
     exitCode = 1;
     file_write_sync(g_fileStdErr, string_lit("lsp: No communication method specified.\n"));
   }
 
 Exit:
-  for (u32 i = 0; i != scriptBinderCount; ++i) {
-    script_binder_destroy(scriptBinders[i]);
+  for (u32 i = 0; i != lsp_script_binders_max; ++i) {
+    if (scriptBinders[i]) {
+      script_binder_destroy(scriptBinders[i]);
+    }
   }
   return exitCode;
 }
