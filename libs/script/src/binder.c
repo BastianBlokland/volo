@@ -49,12 +49,14 @@ static void binder_index_swap(void* ctx, const usize a, const usize b) {
 }
 
 static ScriptBinderHash binder_hash_compute(const ScriptBinder* binder) {
-  u32 funcNameHash = string_maybe_hash(binder->name);
+  u32 hashA = string_maybe_hash(binder->name);
   for (u32 i = 0; i != binder->count; ++i) {
-    funcNameHash = bits_hash_32_combine(funcNameHash, binder->names[i]);
+    hashA = bits_hash_32_combine(hashA, binder->names[i]);
   }
-  const u64 input = (u64)funcNameHash | ((u64)binder->count << 32u);
-  return (ScriptBinderHash)bits_hash_64_val(input);
+
+  u32 hashB = bits_hash_32_val(binder->flags);
+  hashB     = bits_hash_32_combine(hashB, bits_hash_32_val(binder->count));
+  return (u64)hashA | ((u64)hashB << 32u);
 }
 
 static ScriptVal binder_func_fallback(void* ctx, ScriptBinderCall* call) {
