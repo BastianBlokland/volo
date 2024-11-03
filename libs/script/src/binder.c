@@ -11,6 +11,8 @@
 #include "script_sig.h"
 #include "script_val.h"
 
+#define script_binder_aux_chunk_size (4 * usize_kibibyte)
+
 ASSERT(script_binder_max_funcs <= u16_max, "Binder slot needs to be representable by a u16")
 
 typedef enum {
@@ -19,6 +21,7 @@ typedef enum {
 
 struct sScriptBinder {
   Allocator*        alloc;
+  Allocator*        allocAux; // (chunked) bump allocator for axillary data (eg signatures).
   ScriptBinderFlags flags;
   u16               count;
   ScriptBinderHash  hash;
@@ -58,17 +61,17 @@ static ScriptVal binder_func_fallback(void* ctx, ScriptBinderCall* call) {
 
 ScriptBinder* script_binder_create(Allocator* alloc) {
   ScriptBinder* binder = alloc_alloc_t(alloc, ScriptBinder);
-  *binder              = (ScriptBinder){.alloc = alloc};
+
+  *binder = (ScriptBinder){
+      .alloc    = alloc,
+      .allocAux = alloc_chunked_create(alloc, alloc_bump_create, script_binder_aux_chunk_size),
+  };
+
   return binder;
 }
 
 void script_binder_destroy(ScriptBinder* binder) {
-  for (u16 i = 0; i != binder->count; ++i) {
-    string_maybe_free(binder->alloc, binder->docs[i]);
-    if (binder->sigs[i]) {
-      script_sig_destroy(binder->sigs[i]);
-    }
-  }
+  alloc_chunked_destroy(binder->allocAux);
   alloc_free_t(binder->alloc, binder);
 }
 
@@ -82,10 +85,12 @@ void script_binder_declare(
   diag_assert_msg(!(binder->flags & ScriptBinderFlags_Finalized), "Binder already finalized");
   diag_assert_msg(binder->count < script_binder_max_funcs, "Declared function count exceeds max");
 
+  // TODO: Add error when auxillary allocator runs out of space.
+
   binder->names[binder->count] = stringtable_add(g_stringtable, name);
   binder->funcs[binder->count] = func ? func : binder_func_fallback;
-  binder->docs[binder->count]  = string_maybe_dup(binder->alloc, doc);
-  binder->sigs[binder->count]  = sig ? script_sig_clone(binder->alloc, sig) : null;
+  binder->docs[binder->count]  = string_maybe_dup(binder->allocAux, doc);
+  binder->sigs[binder->count]  = sig ? script_sig_clone(binder->allocAux, sig) : null;
   ++binder->count;
 }
 
