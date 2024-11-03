@@ -35,8 +35,9 @@ typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptBinderCall*);
  */
 typedef struct sScriptBinder ScriptBinder;
 
-ScriptBinder* script_binder_create(Allocator*);
+ScriptBinder* script_binder_create(Allocator*, String name);
 void          script_binder_destroy(ScriptBinder*);
+String        script_binder_name(const ScriptBinder*);
 
 /**
  * Set a glob filter for which files this binder is valid.
