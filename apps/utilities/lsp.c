@@ -2074,14 +2074,14 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     goto Exit;
   }
 
-  const CliParseValues binderArg = cli_parse_values(invoc, g_optBinders);
-  if (binderArg.count > lsp_script_binders_max) {
+  const CliParseValues binderArgs = cli_parse_values(invoc, g_optBinders);
+  if (binderArgs.count > lsp_script_binders_max) {
     file_write_sync(g_fileStdErr, string_lit("lsp: Binder count exceeds maximum.\n"));
     exitCode = 1;
     goto Exit;
   }
-  for (u32 i = 0; i != binderArg.count; ++i) {
-    scriptBinders[i] = lsp_read_binder_file(binderArg.values[i]);
+  for (u32 i = 0; i != binderArgs.count; ++i) {
+    scriptBinders[i] = lsp_read_binder_file(binderArgs.values[i]);
     if (!scriptBinders[i]) {
       exitCode = 1;
       goto Exit;
