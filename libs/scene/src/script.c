@@ -1921,7 +1921,8 @@ static void eval_binder_init(void) {
   }
   thread_spinlock_lock(&g_initLock);
   if (!g_scriptBinder) {
-    ScriptBinder* b = script_binder_create(g_allocPersist, string_lit("scene"));
+    const ScriptBinderFlags flags = ScriptBinderFlags_None;
+    ScriptBinder*           b = script_binder_create(g_allocPersist, string_lit("scene"), flags);
 
     eval_enum_init_faction();
     eval_enum_init_clock();

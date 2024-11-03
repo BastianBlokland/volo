@@ -32,7 +32,8 @@ static void bind(
 }
 
 static ScriptBinder* script_scene_binder_create(Allocator* alloc) {
-  ScriptBinder* binder = script_binder_create(alloc, string_lit("scene"));
+  const ScriptBinderFlags flags  = ScriptBinderFlags_None;
+  ScriptBinder*           binder = script_binder_create(alloc, string_lit("scene"), flags);
   script_binder_filter_set(binder, string_lit("*.script"));
 
   // clang-format off
