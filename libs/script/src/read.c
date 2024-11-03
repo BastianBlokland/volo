@@ -70,6 +70,16 @@ static const ScriptBuiltinFunc* script_builtin_func_lookup(const StringHash id) 
   return null;
 }
 
+static bool script_builtin_is_mem_access(const ScriptBuiltinFunc* func) {
+  switch (func->intr) {
+  case ScriptIntrinsic_MemLoadDynamic:
+  case ScriptIntrinsic_MemStoreDynamic:
+    return true;
+  default:
+    return false;
+  }
+}
+
 static void script_builtin_func_add(
     const String          id,
     const ScriptIntrinsic intr,
@@ -1411,6 +1421,10 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
     if (ctx->syms) {
       const ScriptSym builtinSym = ctx->builtinFuncSyms[builtin - g_scriptBuiltinFuncs];
       script_sym_push_ref(ctx->syms, builtinSym, ScriptSymRefKind_Call, idRange);
+    }
+    if (script_builtin_is_mem_access(builtin) && read_mem_access_disallowed(ctx)) {
+      read_emit_err(ctx, ScriptDiag_MemoryAccessDisallowed, callRange);
+      ctx->flags |= ScriptReadFlags_ProgramInvalid;
     }
     return script_add_intrinsic(ctx->doc, callRange, builtin->intr, args);
   }
