@@ -33,6 +33,8 @@ static void bind(
 
 static ScriptBinder* asset_script_binder_create(Allocator* alloc) {
   ScriptBinder* binder = script_binder_create(alloc);
+  script_binder_filter_set(binder, string_lit("*.script"));
+
   // clang-format off
   static const String g_layerDoc           = string_static("Supported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
   static const String g_factionDoc         = string_static("Supported factions:\n\n-`FactionA`\n\n-`FactionB`\n\n-`FactionC`\n\n-`FactionD`\n\n-`FactionNone`");
@@ -867,6 +869,7 @@ void asset_load_script(
   script_lookup_update(lookup, src->data);
 
   // Parse the script.
+  diag_assert(script_binder_filter(g_assetScriptBinder, id));
   ScriptExpr expr = script_read(doc, g_assetScriptBinder, src->data, stringtable, diags, symsNull);
 
   const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);

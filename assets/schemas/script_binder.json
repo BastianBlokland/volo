@@ -1,4 +1,5 @@
 {
+  "filter": "*.script",
   "functions": [
     {
       "name": "destroy",
