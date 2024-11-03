@@ -32,7 +32,8 @@ static void bind(
 }
 
 static ScriptBinder* script_scene_binder_create(Allocator* alloc) {
-  ScriptBinder* binder = script_binder_create(alloc, string_lit("scene"));
+  const ScriptBinderFlags flags  = ScriptBinderFlags_None;
+  ScriptBinder*           binder = script_binder_create(alloc, string_lit("scene"), flags);
   script_binder_filter_set(binder, string_lit("*.script"));
 
   // clang-format off
@@ -963,6 +964,8 @@ void asset_load_script_bin(
         "Malformed binary script",
         log_param("id", fmt_text(id)),
         log_param("entity", ecs_entity_fmt(entity)));
+
+    data_destroy(g_dataReg, g_allocHeap, g_assetScriptMeta, mem_var(script));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
     asset_repo_source_close(src);
     return;

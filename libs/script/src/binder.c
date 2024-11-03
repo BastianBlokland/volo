@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_intrinsic.h"
@@ -15,16 +16,17 @@
 
 ASSERT(script_binder_max_funcs <= u16_max, "Binder slot needs to be representable by a u16")
 
-typedef enum {
-  ScriptBinderFlags_Finalized = 1 << 0,
-} ScriptBinderFlags;
+static const String g_scriptBinderFlagNames[] = {
+    string_static("DisallowMemoryAccess"),
+};
 
 struct sScriptBinder {
   Allocator*        alloc;
   Allocator*        allocAux; // (chunked) bump allocator for axillary data (eg signatures).
   String            name;
   String            filter; // File-filter glob pattern.
-  ScriptBinderFlags flags;
+  ScriptBinderFlags flags : 8;
+  bool              finalized;
   u16               count;
   ScriptBinderHash  hash;
   ScriptBinderFunc  funcs[script_binder_max_funcs];
@@ -47,12 +49,14 @@ static void binder_index_swap(void* ctx, const usize a, const usize b) {
 }
 
 static ScriptBinderHash binder_hash_compute(const ScriptBinder* binder) {
-  u32 funcNameHash = string_maybe_hash(binder->name);
+  u32 hashA = string_maybe_hash(binder->name);
   for (u32 i = 0; i != binder->count; ++i) {
-    funcNameHash = bits_hash_32_combine(funcNameHash, binder->names[i]);
+    hashA = bits_hash_32_combine(hashA, binder->names[i]);
   }
-  const u64 input = (u64)funcNameHash | ((u64)binder->count << 32u);
-  return (ScriptBinderHash)bits_hash_64_val(input);
+
+  u32 hashB = bits_hash_32_val(binder->flags);
+  hashB     = bits_hash_32_combine(hashB, bits_hash_32_val(binder->count));
+  return (u64)hashA | ((u64)hashB << 32u);
 }
 
 static ScriptVal binder_func_fallback(void* ctx, ScriptBinderCall* call) {
@@ -61,7 +65,8 @@ static ScriptVal binder_func_fallback(void* ctx, ScriptBinderCall* call) {
   return script_null();
 }
 
-ScriptBinder* script_binder_create(Allocator* alloc, const String name) {
+ScriptBinder*
+script_binder_create(Allocator* alloc, const String name, const ScriptBinderFlags flags) {
   ScriptBinder* binder = alloc_alloc_t(alloc, ScriptBinder);
 
   Allocator* allocAux =
@@ -71,6 +76,7 @@ ScriptBinder* script_binder_create(Allocator* alloc, const String name) {
       .alloc    = alloc,
       .allocAux = allocAux,
       .name     = string_maybe_dup(allocAux, name),
+      .flags    = flags,
   };
 
   return binder;
@@ -82,6 +88,8 @@ void script_binder_destroy(ScriptBinder* binder) {
 }
 
 String script_binder_name(const ScriptBinder* binder) { return binder->name; }
+
+ScriptBinderFlags script_binder_flags(const ScriptBinder* binder) { return binder->flags; }
 
 void script_binder_filter_set(ScriptBinder* binder, const String globPattern) {
   // NOTE: The old filter will not be cleaned up from the auxillary data until destruction.
@@ -111,7 +119,7 @@ void script_binder_declare(
     const ScriptSig*       sig,
     const ScriptBinderFunc func) {
   diag_assert(!string_is_empty(name));
-  diag_assert_msg(!(binder->flags & ScriptBinderFlags_Finalized), "Binder already finalized");
+  diag_assert_msg(!binder->finalized, "Binder already finalized");
   diag_assert_msg(binder->count < script_binder_max_funcs, "Declared function count exceeds max");
 
   // TODO: Add error when auxillary allocator runs out of space.
@@ -124,27 +132,27 @@ void script_binder_declare(
 }
 
 void script_binder_finalize(ScriptBinder* binder) {
-  diag_assert_msg(!(binder->flags & ScriptBinderFlags_Finalized), "Binder already finalized");
+  diag_assert_msg(!binder->finalized, "Binder already finalized");
 
   // Compute the binding order (sorted on the name-hash).
   sort_index_quicksort(binder, 0, binder->count, binder_index_compare, binder_index_swap);
 
-  binder->hash = binder_hash_compute(binder);
-  binder->flags |= ScriptBinderFlags_Finalized;
+  binder->hash      = binder_hash_compute(binder);
+  binder->finalized = true;
 }
 
 u16 script_binder_count(const ScriptBinder* binder) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(binder->finalized, "Binder has not been finalized");
   return binder->count;
 }
 
 ScriptBinderHash script_binder_hash(const ScriptBinder* binder) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(binder->finalized, "Binder has not been finalized");
   return binder->hash;
 }
 
 ScriptBinderSlot script_binder_slot_lookup(const ScriptBinder* binder, const StringHash nameHash) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(binder->finalized, "Binder has not been finalized");
 
   const StringHash* itr = search_binary_t(
       binder->names, binder->names + binder->count, StringHash, compare_stringhash, &nameHash);
@@ -153,33 +161,33 @@ ScriptBinderSlot script_binder_slot_lookup(const ScriptBinder* binder, const Str
 }
 
 String script_binder_slot_name(const ScriptBinder* binder, const ScriptBinderSlot slot) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(binder->finalized, "Binder has not been finalized");
   diag_assert_msg(slot < binder->count, "Invalid slot");
 
   return stringtable_lookup(g_stringtable, binder->names[slot]);
 }
 
 String script_binder_slot_doc(const ScriptBinder* binder, const ScriptBinderSlot slot) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(binder->finalized, "Binder has not been finalized");
   diag_assert_msg(slot < binder->count, "Invalid slot");
 
   return binder->docs[slot];
 }
 
 const ScriptSig* script_binder_slot_sig(const ScriptBinder* binder, const ScriptBinderSlot slot) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(binder->finalized, "Binder has not been finalized");
   diag_assert_msg(slot < binder->count, "Invalid slot");
 
   return binder->sigs[slot];
 }
 
 ScriptBinderSlot script_binder_first(const ScriptBinder* binder) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(binder->finalized, "Binder has not been finalized");
   return binder->count ? 0 : script_binder_slot_sentinel;
 }
 
 ScriptBinderSlot script_binder_next(const ScriptBinder* binder, const ScriptBinderSlot itr) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(binder->finalized, "Binder has not been finalized");
   if (itr >= (binder->count - 1)) {
     return script_binder_slot_sentinel;
   }
@@ -188,7 +196,7 @@ ScriptBinderSlot script_binder_next(const ScriptBinder* binder, const ScriptBind
 
 ScriptVal script_binder_exec(
     const ScriptBinder* binder, const ScriptBinderSlot func, void* ctx, ScriptBinderCall* call) {
-  diag_assert_msg(binder->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(binder->finalized, "Binder has not been finalized");
   diag_assert(func < binder->count);
   return binder->funcs[func](ctx, call);
 }
@@ -243,8 +251,17 @@ static JsonVal binder_func_to_json(JsonDoc* d, const ScriptBinder* b, const Scri
   return obj;
 }
 
+static JsonVal binder_flags_to_json(JsonDoc* d, const ScriptBinderFlags flags) {
+  JsonVal arr = json_add_array(d);
+  bitset_for(bitset_from_var(flags), flagIndex) {
+    diag_assert(flagIndex < array_elems(g_scriptBinderFlagNames));
+    json_add_elem(d, arr, json_add_string(d, g_scriptBinderFlagNames[flagIndex]));
+  }
+  return arr;
+}
+
 void script_binder_write(DynString* str, const ScriptBinder* b) {
-  diag_assert_msg(b->flags & ScriptBinderFlags_Finalized, "Binder has not been finalized");
+  diag_assert_msg(b->finalized, "Binder has not been finalized");
 
   JsonDoc* doc = json_create(g_allocHeap, 512);
 
@@ -256,6 +273,9 @@ void script_binder_write(DynString* str, const ScriptBinder* b) {
   const JsonVal obj = json_add_object(doc);
   if (!string_is_empty(b->name)) {
     json_add_field_lit(doc, obj, "name", json_add_string(doc, b->name));
+  }
+  if (b->flags) {
+    json_add_field_lit(doc, obj, "flags", binder_flags_to_json(doc, b->flags));
   }
   if (!string_is_empty(b->filter)) {
     json_add_field_lit(doc, obj, "filter", json_add_string(doc, b->filter));
@@ -340,12 +360,30 @@ static bool binder_func_from_json(ScriptBinder* out, const JsonDoc* d, const Jso
   return true;
 }
 
-static String binder_name_from_json(const JsonDoc* d, const JsonVal v) {
-  const JsonVal nameVal = json_field_lit(d, v, "name");
+static String binder_name_from_json(const JsonDoc* d, const JsonVal nameVal) {
   if (sentinel_check(nameVal) || json_type(d, nameVal) != JsonType_String) {
     return string_empty;
   }
   return json_string(d, nameVal);
+}
+
+static ScriptBinderFlags binder_flags_from_json(const JsonDoc* d, const JsonVal flagsVal) {
+  ScriptBinderFlags flags = ScriptBinderFlags_None;
+  if (sentinel_check(flagsVal) || json_type(d, flagsVal) != JsonType_Array) {
+    return flags;
+  }
+  json_for_elems(d, flagsVal, flagNameVal) {
+    if (json_type(d, flagNameVal) == JsonType_String) {
+      const StringHash flagNameHash = json_string_hash(d, flagNameVal);
+      for (u32 i = 0; i != array_elems(g_scriptBinderFlagNames); ++i) {
+        if (flagNameHash == string_hash(g_scriptBinderFlagNames[i])) {
+          flags |= 1 << i;
+          break;
+        }
+      }
+    }
+  }
+  return flags;
 }
 
 ScriptBinder* script_binder_read(Allocator* alloc, const String str) {
@@ -357,19 +395,22 @@ ScriptBinder* script_binder_read(Allocator* alloc, const String str) {
   JsonResult readRes;
   json_read(doc, str, JsonReadFlags_None, &readRes);
 
-  if (readRes.type != JsonResultType_Success || json_type(doc, readRes.val) != JsonType_Object) {
+  const JsonVal root = readRes.val;
+  if (readRes.type != JsonResultType_Success || json_type(doc, root) != JsonType_Object) {
     success = false;
     goto Done;
   }
 
-  out = script_binder_create(alloc, binder_name_from_json(doc, readRes.val));
+  const String            name  = binder_name_from_json(doc, json_field_lit(doc, root, "name"));
+  const ScriptBinderFlags flags = binder_flags_from_json(doc, json_field_lit(doc, root, "flags"));
+  out                           = script_binder_create(alloc, name, flags);
 
-  const JsonVal filterVal = json_field_lit(doc, readRes.val, "filter");
+  const JsonVal filterVal = json_field_lit(doc, root, "filter");
   if (!sentinel_check(filterVal) && json_type(doc, filterVal) == JsonType_String) {
     script_binder_filter_set(out, json_string(doc, filterVal));
   }
 
-  const JsonVal funcsVal = json_field_lit(doc, readRes.val, "functions");
+  const JsonVal funcsVal = json_field_lit(doc, root, "functions");
   if (sentinel_check(funcsVal) || json_type(doc, funcsVal) != JsonType_Array) {
     success = false;
     goto Done;

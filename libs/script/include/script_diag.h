@@ -54,6 +54,7 @@ typedef enum {
   ScriptDiag_TooFewArguments,
   ScriptDiag_TooManyArguments,
   ScriptDiag_InvalidArgumentValue,
+  ScriptDiag_MemoryAccessDisallowed,
 
   ScriptDiagKind_Count,
 } ScriptDiagKind;

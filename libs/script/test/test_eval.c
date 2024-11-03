@@ -54,7 +54,7 @@ spec(eval) {
     script_mem_store(&mem, string_hash_lit("v2"), script_num(1337));
     script_mem_store(&mem, string_hash_lit("v3"), script_null());
 
-    binder                         = script_binder_create(g_allocHeap, string_lit("test"));
+    binder = script_binder_create(g_allocHeap, string_lit("test"), ScriptBinderFlags_None);
     const String     documentation = string_empty;
     const ScriptSig* nullSig       = null;
     script_binder_declare(
