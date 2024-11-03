@@ -65,17 +65,17 @@ typedef struct {
 } LspDocument;
 
 typedef struct {
-  LspStatus      status;
-  LspFlags       flags;
-  DynString*     readBuffer;
-  usize          readCursor;
-  DynString*     writeBuffer;
-  ScriptBinder** scriptBinders;
-  JsonDoc*       jDoc;     // Cleared between messages.
-  DynArray*      openDocs; // LspDocument[]*
-  File*          in;
-  File*          out;
-  usize          bytesOut; // For diagnostic purposes only.
+  LspStatus            status;
+  LspFlags             flags;
+  DynString*           readBuffer;
+  usize                readCursor;
+  DynString*           writeBuffer;
+  ScriptBinder* const* scriptBinders;
+  JsonDoc*             jDoc;     // Cleared between messages.
+  DynArray*            openDocs; // LspDocument[]*
+  File*                in;
+  File*                out;
+  usize                bytesOut; // For diagnostic purposes only.
 } LspContext;
 
 typedef struct {
