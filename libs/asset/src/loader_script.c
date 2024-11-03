@@ -964,6 +964,8 @@ void asset_load_script_bin(
         "Malformed binary script",
         log_param("id", fmt_text(id)),
         log_param("entity", ecs_entity_fmt(entity)));
+
+    data_destroy(g_dataReg, g_allocHeap, g_assetScriptMeta, mem_var(script));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
     asset_repo_source_close(src);
     return;
