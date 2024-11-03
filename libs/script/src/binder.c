@@ -47,7 +47,7 @@ static void binder_index_swap(void* ctx, const usize a, const usize b) {
 }
 
 static ScriptBinderHash binder_hash_compute(const ScriptBinder* binder) {
-  u32 funcNameHash = 42;
+  u32 funcNameHash = string_maybe_hash(binder->name);
   for (u32 i = 0; i != binder->count; ++i) {
     funcNameHash = bits_hash_32_combine(funcNameHash, binder->names[i]);
   }
