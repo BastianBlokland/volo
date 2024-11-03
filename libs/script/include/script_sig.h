@@ -28,7 +28,7 @@ typedef struct sScriptSig ScriptSig;
 
 ScriptSig* script_sig_create(Allocator*, ScriptMask ret, const ScriptSigArg args[], u8 argCount);
 ScriptSig* script_sig_clone(Allocator*, const ScriptSig*);
-void       script_sig_destroy(ScriptSig*);
+void       script_sig_destroy(ScriptSig*, Allocator*);
 
 ScriptMask   script_sig_ret(const ScriptSig*);
 u8           script_sig_arg_count(const ScriptSig*);
