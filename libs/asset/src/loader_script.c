@@ -19,6 +19,14 @@
 
 DataMeta g_assetScriptMeta;
 
+static const ScriptBinder* asset_script_binder_for_domain(const AssetScriptDomain domain) {
+  switch (domain) {
+  case AssetScriptDomain_Scene:
+    return g_assetScriptSceneBinder;
+  }
+  diag_crash();
+}
+
 ecs_comp_define_public(AssetScriptComp);
 ecs_comp_define(AssetScriptSourceComp) { AssetSource* src; };
 
@@ -196,7 +204,8 @@ void asset_load_script_bin(
     return;
   }
 
-  if (UNLIKELY(!script_prog_validate(&script.prog, g_assetScriptSceneBinder))) {
+  const ScriptBinder* binder = asset_script_binder_for_domain(script.domain);
+  if (UNLIKELY(!script_prog_validate(&script.prog, binder))) {
     log_e(
         "Malformed binary script",
         log_param("id", fmt_text(id)),
