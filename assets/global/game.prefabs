@@ -47,9 +47,9 @@
         {
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
-            "scripts/behavior/unit_move.script",
-            "scripts/behavior/unit_attack.script",
-            "scripts/behavior/unit_promotion.script"
+            "scripts/scene/behavior/unit_move.script",
+            "scripts/scene/behavior/unit_attack.script",
+            "scripts/scene/behavior/unit_promotion.script"
           ]
         },
         {
@@ -108,9 +108,9 @@
         {
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
-            "scripts/behavior/unit_move.script",
-            "scripts/behavior/unit_attack.script",
-            "scripts/behavior/unit_promotion.script"
+            "scripts/scene/behavior/unit_move.script",
+            "scripts/scene/behavior/unit_attack.script",
+            "scripts/scene/behavior/unit_promotion.script"
           ]
         },
         {
@@ -169,10 +169,10 @@
         {
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
-            "scripts/behavior/unit_move.script",
-            "scripts/behavior/unit_attack.script",
-            "scripts/behavior/unit_promotion.script",
-            "scripts/effects/unit_flame.script"
+            "scripts/scene/behavior/unit_move.script",
+            "scripts/scene/behavior/unit_attack.script",
+            "scripts/scene/behavior/unit_promotion.script",
+            "scripts/scene/effects/unit_flame.script"
           ],
           "knowledge": [
             { "$name": "assetSndBurning", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/burning-02.wav" },
@@ -235,9 +235,9 @@
         {
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
-            "scripts/behavior/unit_move.script",
-            "scripts/behavior/unit_attack.script",
-            "scripts/behavior/unit_promotion.script"
+            "scripts/scene/behavior/unit_move.script",
+            "scripts/scene/behavior/unit_attack.script",
+            "scripts/scene/behavior/unit_promotion.script"
           ],
           "knowledge": [
             { "$type": "AssetPrefabValue_Number", "$name": "cfgAttackRange", "$data": 1.75 },
@@ -293,7 +293,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Script",
-          "scriptIds": [ "scripts/behavior/unit_move_random.script" ],
+          "scriptIds": [ "scripts/scene/behavior/unit_move_random.script" ],
           "knowledge": [
             { "$type": "AssetPrefabValue_Number", "$name": "cfgLocationRadius", "$data": 200 }
           ]
@@ -346,11 +346,11 @@
         {
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
-            "scripts/behavior/unit_move.script",
-            "scripts/behavior/unit_attack.script",
-            "scripts/behavior/unit_promotion.script",
-            "scripts/effects/unit_aim.script",
-            "scripts/effects/unit_vehicle.script"
+            "scripts/scene/behavior/unit_move.script",
+            "scripts/scene/behavior/unit_attack.script",
+            "scripts/scene/behavior/unit_promotion.script",
+            "scripts/scene/effects/unit_aim.script",
+            "scripts/scene/effects/unit_vehicle.script"
           ],
           "knowledge": [
             { "$name": "cfgAttackWhileMoving", "$type": "AssetPrefabValue_Bool", "$data": true },
@@ -405,9 +405,9 @@
         {
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
-            "scripts/behavior/unit_attack.script",
-            "scripts/behavior/unit_promotion.script",
-            "scripts/effects/unit_aim.script"
+            "scripts/scene/behavior/unit_attack.script",
+            "scripts/scene/behavior/unit_promotion.script",
+            "scripts/scene/effects/unit_aim.script"
           ],
           "knowledge": [
             { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/electric-motor-01.wav" }
@@ -450,9 +450,9 @@
         {
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [
-            "scripts/behavior/unit_attack.script",
-            "scripts/behavior/unit_promotion.script",
-            "scripts/effects/unit_aim.script"
+            "scripts/scene/behavior/unit_attack.script",
+            "scripts/scene/behavior/unit_promotion.script",
+            "scripts/scene/effects/unit_aim.script"
           ],
           "knowledge": [
             { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/electric-motor-01.wav" }
@@ -569,7 +569,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Script",
-          "scriptIds": [ "scripts/behavior/unit_hospital.script" ]
+          "scriptIds": [ "scripts/scene/behavior/unit_hospital.script" ]
         },
         { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning" ] }
       ]
@@ -653,7 +653,7 @@
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "gate" ] },
         {
           "$type": "AssetPrefabTrait_Script",
-          "scriptIds": [ "scripts/logic/gate.script" ],
+          "scriptIds": [ "scripts/scene/logic/gate.script" ],
           "knowledge": [
             { "$name": "cfgGateOpen", "$type": "AssetPrefabValue_Bool", "$data": false }
           ]
@@ -665,7 +665,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_pressure_plate.graphic" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "switch" ] },
-        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/logic/pressure_plate.script" ] }
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/scene/logic/pressure_plate.script" ] }
       ]
     },
     {
@@ -673,7 +673,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_floor_light.graphic" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "light" ] },
-        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/logic/light.script" ] }
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/scene/logic/light.script" ] }
       ]
     },
     {
@@ -833,7 +833,7 @@
             "max": { "x": 0.1, "y": 3.7, "z": 0.1 }
           }
         },
-        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/effects/prop_alarm.script" ],
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/scene/effects/prop_alarm.script" ],
           "knowledge": [
             { "$name": "cfgAlarmFrequency", "$type": "AssetPrefabValue_Number", "$data": 0.5 },
             { "$name": "assetSndAlarm", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/alarm-01.wav", "persistent": true }
@@ -954,7 +954,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Script",
-          "scriptIds": [ "scripts/logic/spawner.script" ],
+          "scriptIds": [ "scripts/scene/logic/spawner.script" ],
           "knowledge": [
             { "$name": "cfgSpawnerPrefab", "$type": "AssetPrefabValue_String", "$data": "InfantryMonster" }
           ]
@@ -964,7 +964,7 @@
     {
       "name": "Ambiance",
       "traits": [
-        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/effects/ambiance.script" ],
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/scene/effects/ambiance.script" ],
           "knowledge": [
             { "$name": "assetSndAmbiance", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/ambiance-01.wav" }
           ]
@@ -992,7 +992,7 @@
     {
       "name": "LogicSwitch",
       "traits": [
-        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/logic/gate_switch.script" ] }
+        { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/scene/logic/gate_switch.script" ] }
       ]
     },
     {
@@ -1003,7 +1003,7 @@
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_medium.vfx" },
         {
           "$type": "AssetPrefabTrait_Script",
-          "scriptIds": [ "scripts/logic/explosive.script" ],
+          "scriptIds": [ "scripts/scene/logic/explosive.script" ],
           "knowledge": [
             { "$name": "cfgExplodeDelay", "$type": "AssetPrefabValue_Number", "$data": 0.1 },
             { "$name": "cfgExplodeRadius", "$type": "AssetPrefabValue_Number", "$data": 4 },
@@ -1279,7 +1279,7 @@
       "name": "TestTrail",
       "traits": [
         {
-          "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/effects/test_trail.script" ],
+          "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/scene/effects/test_trail.script" ],
           "knowledge": [
             { "$name": "assetDecalTrail", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/test_trail.decal" }
           ]
@@ -1290,7 +1290,7 @@
       "name": "TestPacing",
       "traits": [
         {
-          "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/logic/test_pacing.script" ],
+          "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/scene/logic/test_pacing.script" ],
           "knowledge": [
             { "$name": "assetGraphic", "$type": "AssetPrefabValue_Asset", "$data": "graphics/scene/sphere.graphic" }
           ]
