@@ -1060,9 +1060,9 @@ static ScriptVal eval_nav_travel(EvalContext* ctx, ScriptBinderCall* call) {
     }
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_NavTravel);
     act->navTravel   = (SceneActionNavTravel){
-          .entity         = entity,
-          .targetEntity   = script_arg_maybe_entity(call, 1, ecs_entity_invalid),
-          .targetPosition = script_arg_maybe_vec3(call, 1, geo_vector(0)),
+        .entity         = entity,
+        .targetEntity   = script_arg_maybe_entity(call, 1, ecs_entity_invalid),
+        .targetPosition = script_arg_maybe_vec3(call, 1, geo_vector(0)),
     };
   }
   return script_null();
@@ -1128,8 +1128,8 @@ static ScriptVal eval_damage(EvalContext* ctx, ScriptBinderCall* call) {
   if (LIKELY(entity) && amount > f32_epsilon) {
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_HealthMod);
     act->healthMod   = (SceneActionHealthMod){
-          .entity = entity,
-          .amount = -amount /* negate for damage */,
+        .entity = entity,
+        .amount = -amount /* negate for damage */,
     };
   }
   return script_null();
@@ -2240,8 +2240,13 @@ ecs_system_define(SceneScriptUpdateSys) {
 
       // Evaluate the script if the asset is loaded.
       if (ecs_view_maybe_jump(resourceAssetItr, data->asset)) {
-        ctx.scriptProgram = &ecs_view_read_t(resourceAssetItr, AssetScriptComp)->prog;
-        ctx.scriptId      = asset_id(ecs_view_read_t(resourceAssetItr, AssetComp));
+        ctx.scriptId                       = asset_id(ecs_view_read_t(resourceAssetItr, AssetComp));
+        const AssetScriptComp* scriptAsset = ecs_view_read_t(resourceAssetItr, AssetScriptComp);
+        if (UNLIKELY(scriptAsset->domain != AssetScriptDomain_Scene)) {
+          log_e("Mismatched script-domain", log_param("script", fmt_text(ctx.scriptId)));
+          continue;
+        }
+        ctx.scriptProgram = &scriptAsset->prog;
 
         const u8 version = ecs_view_read_t(resourceAssetItr, SceneScriptResourceComp)->resVersion;
         if (UNLIKELY(data->resVersion != version)) {
