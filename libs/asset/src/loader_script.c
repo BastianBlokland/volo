@@ -849,7 +849,11 @@ void asset_data_init_script(void) {
   data_reg_field_t(g_dataReg, ScriptProgram, literals, t_ScriptVal, .container = DataContainer_HeapArray);
   data_reg_field_t(g_dataReg, ScriptProgram, locations, t_ScriptProgramLoc, .container = DataContainer_HeapArray);
 
+  data_reg_enum_t(g_dataReg, AssetScriptDomain);
+  data_reg_const_t(g_dataReg, AssetScriptDomain, Scene);
+
   data_reg_struct_t(g_dataReg, AssetScriptComp);
+  data_reg_field_t(g_dataReg, AssetScriptComp, domain, t_AssetScriptDomain);
   data_reg_field_t(g_dataReg, AssetScriptComp, prog, t_ScriptProgram);
   data_reg_field_t(g_dataReg, AssetScriptComp, stringLiterals, data_prim_t(String), .container = DataContainer_HeapArray, .flags = DataFlags_Intern);
   // clang-format on
@@ -918,6 +922,7 @@ void asset_load_script(
       world,
       entity,
       AssetScriptComp,
+      .domain                = AssetScriptDomain_Scene,
       .prog                  = prog,
       .stringLiterals.values = strings.values,
       .stringLiterals.count  = strings.count);

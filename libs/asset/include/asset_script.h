@@ -6,11 +6,16 @@
 // Forward declare from 'script_binder.h'.
 typedef struct sScriptBinder ScriptBinder;
 
+typedef enum {
+  AssetScriptDomain_Scene,
+} AssetScriptDomain;
+
 /**
  * Script file.
  */
 ecs_comp_extern_public(AssetScriptComp) {
-  ScriptProgram prog;
+  AssetScriptDomain domain;
+  ScriptProgram     prog;
   HeapArray_t(String) stringLiterals; // To be interned in the global stringtable.
 };
 
