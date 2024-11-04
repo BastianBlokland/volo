@@ -20,7 +20,7 @@ static void bind(
 void asset_data_init_script_scene(void) {
   const ScriptBinderFlags flags  = ScriptBinderFlags_None;
   ScriptBinder*           binder = script_binder_create(g_allocPersist, string_lit("scene"), flags);
-  script_binder_filter_set(binder, string_lit("*.script"));
+  script_binder_filter_set(binder, string_lit("scene/*.script"));
 
   // clang-format off
   static const String g_layerDoc           = string_static("Supported layers:\n\n-`Environment`\n\n-`Destructible`\n\n-`Infantry`\n\n-`Vehicle`\n\n-`Structure`\n\n-`Unit`\n\n-`Debug`\n\n-`AllIncludingDebug`\n\n-`AllNonDebug` (default)");
