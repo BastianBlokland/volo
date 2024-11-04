@@ -19,12 +19,20 @@
 
 DataMeta g_assetScriptMeta;
 
-static const ScriptBinder* asset_script_binder_for_domain(const AssetScriptDomain domain) {
+static const ScriptBinder* asset_script_domain_binder(const AssetScriptDomain domain) {
   switch (domain) {
   case AssetScriptDomain_Scene:
     return g_assetScriptSceneBinder;
   }
   diag_crash();
+}
+
+static bool asset_script_domain_match(const String fileIdentifier, AssetScriptDomain* out) {
+  if (script_binder_match(g_assetScriptSceneBinder, fileIdentifier)) {
+    *out = AssetScriptDomain_Scene;
+    return true;
+  }
+  return false;
 }
 
 ecs_comp_define_public(AssetScriptComp);
@@ -114,10 +122,18 @@ void asset_load_script(
   ScriptLookup* lookup = script_lookup_create(g_allocHeap);
   script_lookup_update(lookup, src->data);
 
+  AssetScriptDomain domain;
+  if (UNLIKELY(!asset_script_domain_match(id, &domain))) {
+    log_e(
+        "Failed to match script domain",
+        log_param("id", fmt_text(id)),
+        log_param("entity", ecs_entity_fmt(entity)));
+    goto Error;
+  }
+  const ScriptBinder* domainBinder = asset_script_domain_binder(domain);
+
   // Parse the script.
-  diag_assert(script_binder_match(g_assetScriptSceneBinder, id));
-  ScriptExpr expr =
-      script_read(doc, g_assetScriptSceneBinder, src->data, stringtable, diags, symsNull);
+  ScriptExpr expr = script_read(doc, domainBinder, src->data, stringtable, diags, symsNull);
 
   const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
   for (u32 i = 0; i != diagCount; ++i) {
@@ -151,7 +167,7 @@ void asset_load_script(
     goto Error;
   }
 
-  diag_assert(script_prog_validate(&prog, g_assetScriptSceneBinder));
+  diag_assert(script_prog_validate(&prog, domainBinder));
 
   const StringTableArray strings = stringtable_clone_strings(stringtable, g_allocHeap);
 
@@ -204,7 +220,7 @@ void asset_load_script_bin(
     return;
   }
 
-  const ScriptBinder* binder = asset_script_binder_for_domain(script.domain);
+  const ScriptBinder* binder = asset_script_domain_binder(script.domain);
   if (UNLIKELY(!script_prog_validate(&script.prog, binder))) {
     log_e(
         "Malformed binary script",
