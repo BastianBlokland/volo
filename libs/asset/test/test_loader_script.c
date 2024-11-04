@@ -10,7 +10,7 @@ static const struct {
   String text;
 } g_testData[] = {
     {
-        .id   = string_static("hello-world.script"),
+        .id   = string_static("scene/hello-world.script"),
         .text = string_static("debug_log(\"Hello World\")"),
     },
 };
@@ -20,7 +20,7 @@ static const struct {
   String text;
 } g_errorTestData[] = {
     {
-        .id   = string_static("invalid.script"),
+        .id   = string_static("scene/invalid.script"),
         .text = string_static("function_does_not_exist()"),
     },
 };
@@ -72,14 +72,17 @@ spec(loader_script) {
   }
 
   it("can unload script assets") {
-    const AssetMemRecord record = {.id = string_lit("test.script"), .data = g_testData[0].text};
+    const AssetMemRecord record = {
+        .id   = string_lit("scene/test.script"),
+        .data = g_testData[0].text,
+    };
     asset_manager_create_mem(world, AssetManagerFlags_None, &record, 1);
     ecs_world_flush(world);
 
     EcsEntityId asset;
     {
       AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-      asset                     = asset_lookup(world, manager, string_lit("test.script"));
+      asset                     = asset_lookup(world, manager, string_lit("scene/test.script"));
     }
     asset_acquire(world, asset);
 
