@@ -11,7 +11,7 @@
 
 static const AssetMemRecord g_testScriptAssets[] = {
     {
-        .id   = string_static("set_knowledge.script"),
+        .id   = string_static("scene/set_knowledge.script"),
         .data = string_static("$test = 42"),
     },
 };
@@ -59,7 +59,7 @@ spec(script) {
     EcsEntityId scriptAssets[1];
     {
       AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-      scriptAssets[0]           = asset_lookup(world, manager, string_lit("set_knowledge.script"));
+      scriptAssets[0] = asset_lookup(world, manager, string_lit("scene/set_knowledge.script"));
     }
 
     const EcsEntityId e = ecs_world_entity_create(world);
