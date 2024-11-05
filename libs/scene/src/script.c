@@ -1905,7 +1905,7 @@ static ScriptVal eval_debug_input_entity(EvalContext* ctx, ScriptBinderCall* cal
 
 static ScriptBinder* g_scriptBinder;
 
-typedef ScriptVal (*SceneScriptBinderFunc)(EvalContext* ctx, ScriptBinderCall*);
+typedef ScriptVal (*SceneScriptBinderFunc)(EvalContext*, ScriptBinderCall*);
 
 static void eval_bind(ScriptBinder* b, const String name, SceneScriptBinderFunc f) {
   const ScriptSig* nullSig       = null;
