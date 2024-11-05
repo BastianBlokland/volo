@@ -17,7 +17,11 @@ ecs_comp_define(AssetImportEnvComp) {
   DynArray scriptEntities; // EcsEntityId[]
 };
 
-ecs_comp_define(AssetImportScriptComp) { u32 dummy; };
+typedef enum {
+  AssetImportScript_ResourceAcquired = 1 << 0,
+} AssetImportScriptFlags;
+
+ecs_comp_define(AssetImportScriptComp) { AssetImportScriptFlags flags; };
 
 static void ecs_destruct_import_env_comp(void* data) {
   AssetImportEnvComp* comp = data;
@@ -44,7 +48,9 @@ import_scripts_refresh(EcsWorld* world, AssetImportEnvComp* env, AssetManagerCom
     *dynarray_push_t(&env->scriptEntities, EcsEntityId) = assets[i];
 
     if (!ecs_world_has_t(world, assets[i], AssetImportScriptComp)) {
-      ecs_world_add_t(world, assets[i], AssetImportScriptComp);
+      asset_acquire(world, assets[i]);
+      ecs_world_add_t(
+          world, assets[i], AssetImportScriptComp, .flags = AssetImportScript_ResourceAcquired);
     }
   }
 }
