@@ -14,22 +14,24 @@ static const String g_assetImportScriptsPath = string_static("scripts/import/*.s
 
 ScriptBinder* g_assetScriptImportBinder;
 
-ecs_comp_define(AssetImportEnvComp) {
-  DynArray scriptEntities; // EcsEntityId[]
-};
-
 typedef enum {
   AssetImportScript_Reloading = 1 << 0,
 } AssetImportScriptFlags;
 
-ecs_comp_define(AssetImportScriptComp) {
-  AssetImportScriptFlags flags;
+typedef struct {
+  AssetImportScriptFlags flags : 8;
   u32                    version; // Incremented on reload.
+  EcsEntityId            asset;
+  const ScriptProgram*   program;
+} AssetImportScript;
+
+ecs_comp_define(AssetImportEnvComp) {
+  DynArray scripts; // AssetImportScript[]
 };
 
 static void ecs_destruct_import_env_comp(void* data) {
   AssetImportEnvComp* comp = data;
-  dynarray_destroy(&comp->scriptEntities);
+  dynarray_destroy(&comp->scripts);
 }
 
 typedef struct {
@@ -43,25 +45,28 @@ static ScriptVal eval_dummy(AssetImportContext* ctx, ScriptBinderCall* call) {
 }
 
 static AssetImportEnvComp* import_env_init(EcsWorld* world, AssetManagerComp* manager) {
-  DynArray scriptEntities = dynarray_create_t(g_allocHeap, EcsEntityId, 16);
+  DynArray scripts = dynarray_create_t(g_allocHeap, AssetImportScript, 16);
 
   EcsEntityId assets[asset_query_max_results];
   const u32   assetCount = asset_query(world, manager, g_assetImportScriptsPath, assets);
 
   for (u32 i = 0; i != assetCount; ++i) {
-    *dynarray_push_t(&scriptEntities, EcsEntityId) = assets[i];
-
     asset_acquire(world, assets[i]);
-    ecs_world_add_t(world, assets[i], AssetImportScriptComp);
+    *dynarray_push_t(&scripts, AssetImportScript) = (AssetImportScript){.asset = assets[i]};
   }
-
-  return ecs_world_add_t(
-      world, ecs_world_global(world), AssetImportEnvComp, .scriptEntities = scriptEntities);
+  return ecs_world_add_t(world, ecs_world_global(world), AssetImportEnvComp, .scripts = scripts);
 }
 
 ecs_view_define(InitGlobalView) {
   ecs_access_maybe_write(AssetImportEnvComp);
   ecs_access_write(AssetManagerComp);
+}
+
+ecs_view_define(InitScriptView) {
+  ecs_access_with(AssetLoadedComp);
+  ecs_access_without(AssetFailedComp);
+  ecs_access_without(AssetChangedComp);
+  ecs_access_read(AssetScriptComp);
 }
 
 ecs_system_define(AssetImportInitSys) {
@@ -75,45 +80,48 @@ ecs_system_define(AssetImportInitSys) {
   if (UNLIKELY(!importEnv)) {
     importEnv = import_env_init(world, manager);
   }
-}
 
-ecs_view_define(ScriptReloadView) { ecs_access_write(AssetImportScriptComp); }
+  EcsView*     scriptView = ecs_world_view_t(world, InitScriptView);
+  EcsIterator* scriptItr  = ecs_view_itr(scriptView);
 
-ecs_system_define(AssetImportScriptReloadSys) {
-  EcsView* reloadView = ecs_world_view_t(world, ScriptReloadView);
-  for (EcsIterator* itr = ecs_view_itr(reloadView); ecs_view_walk(itr);) {
-    EcsEntityId            entity = ecs_view_entity(itr);
-    AssetImportScriptComp* comp   = ecs_view_write_t(itr, AssetImportScriptComp);
+  /**
+   * Update the import scripts.
+   * NOTE: Its important to refresh the program pointers at the beginning of each frame as the ECS
+   * can move component data around during flushes.
+   */
+  dynarray_for_t(&importEnv->scripts, AssetImportScript, script) {
+    const bool isLoaded   = ecs_world_has_t(world, script->asset, AssetLoadedComp);
+    const bool isFailed   = ecs_world_has_t(world, script->asset, AssetFailedComp);
+    const bool hasChanged = ecs_world_has_t(world, script->asset, AssetChangedComp);
 
-    const bool isLoaded   = ecs_world_has_t(world, entity, AssetLoadedComp);
-    const bool isFailed   = ecs_world_has_t(world, entity, AssetFailedComp);
-    const bool hasChanged = ecs_world_has_t(world, entity, AssetChangedComp);
-
-    if (hasChanged && !(comp->flags & AssetImportScript_Reloading) && (isLoaded || isFailed)) {
+    if (hasChanged && !(script->flags & AssetImportScript_Reloading) && (isLoaded || isFailed)) {
       log_i("Reloading import script", log_param("reason", fmt_text_lit("Asset changed")));
 
-      asset_release(world, entity);
-      ++comp->version;
-      comp->flags |= AssetImportScript_Reloading;
+      asset_release(world, script->asset);
+      ++script->version;
+      script->flags |= AssetImportScript_Reloading;
     }
-    if (comp->flags & AssetImportScript_Reloading && !isLoaded) {
-      asset_acquire(world, entity);
-      comp->flags &= ~AssetImportScript_Reloading;
+    if (script->flags & AssetImportScript_Reloading && !isLoaded) {
+      asset_acquire(world, script->asset);
+      script->flags &= ~AssetImportScript_Reloading;
+    }
+
+    if (ecs_view_maybe_jump(scriptItr, script->asset)) {
+      script->program = &ecs_view_read_t(scriptItr, AssetScriptComp)->prog;
+    } else {
+      script->program = null;
     }
   }
 }
 
 ecs_module_init(asset_import_module) {
   ecs_register_comp(AssetImportEnvComp, .destructor = ecs_destruct_import_env_comp);
-  ecs_register_comp(AssetImportScriptComp);
 
   ecs_register_view(InitGlobalView);
-  ecs_register_view(ScriptReloadView);
+  ecs_register_view(InitScriptView);
 
-  ecs_register_system(AssetImportInitSys, ecs_view_id(InitGlobalView));
+  ecs_register_system(AssetImportInitSys, ecs_view_id(InitGlobalView), ecs_view_id(InitScriptView));
   ecs_order(AssetImportInitSys, AssetOrder_Init);
-
-  ecs_register_system(AssetImportScriptReloadSys, ecs_view_id(ScriptReloadView));
 }
 
 typedef ScriptVal (*ImportBinderFunc)(AssetImportContext*, ScriptBinderCall*);
