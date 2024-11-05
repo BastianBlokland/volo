@@ -1,7 +1,9 @@
+#include "asset_manager.h"
 #include "asset_register.h"
 #include "asset_script.h"
 #include "core_alloc.h"
 #include "core_format.h"
+#include "ecs_world.h"
 #include "script_binder.h"
 #include "script_sig.h"
 
@@ -26,12 +28,29 @@ static ScriptVal eval_dummy(AssetImportContext* ctx, ScriptBinderCall* call) {
   return script_null();
 }
 
-ecs_system_define(AssetImportInitSys) {}
+ecs_view_define(InitGlobalView) {
+  ecs_access_maybe_write(AssetImportEnvComp);
+  ecs_access_write(AssetManagerComp);
+}
+
+ecs_system_define(AssetImportInitSys) {
+  EcsView*     globalView = ecs_world_view_t(world, InitGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return; // Global dependencies not initialized.
+  }
+  AssetImportEnvComp* importEnv = ecs_view_write_t(globalItr, AssetImportEnvComp);
+  if (UNLIKELY(!importEnv)) {
+    importEnv = ecs_world_add_t(world, ecs_world_global(world), AssetImportEnvComp);
+  }
+}
 
 ecs_module_init(asset_import_module) {
   ecs_register_comp(AssetImportEnvComp, .destructor = ecs_destruct_import_env_comp);
 
-  ecs_register_system(AssetImportInitSys);
+  ecs_register_view(InitGlobalView);
+
+  ecs_register_system(AssetImportInitSys, ecs_view_id(InitGlobalView));
 
   ecs_order(AssetImportInitSys, AssetOrder_Init);
 }
