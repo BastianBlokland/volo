@@ -1,0 +1,17 @@
+{
+  "name": "import",
+  "flags": [ "DisallowMemoryAccess" ],
+  "filter": "import/*.script",
+  "functions": [
+    {
+      "name": "dummy",
+      "doc": "Set a dummy import config",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "val", "mask": "null" }
+        ]
+      }
+    }
+  ]
+}
