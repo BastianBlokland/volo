@@ -6,6 +6,13 @@
 
 ScriptBinder* g_assetScriptImportBinder;
 
+ecs_comp_define(AssetImportComp) { u32 dummy; };
+
+static void ecs_destruct_import_comp(void* data) {
+  AssetImportComp* comp = data;
+  (void)comp;
+}
+
 typedef struct {
   u32 dummy;
 } AssetImportContext;
@@ -17,7 +24,7 @@ static ScriptVal eval_dummy(AssetImportContext* ctx, ScriptBinderCall* call) {
 }
 
 ecs_module_init(asset_import_module) {
-  // TODO: Register import systems.
+  ecs_register_comp(AssetImportComp, .destructor = ecs_destruct_import_comp);
 }
 
 typedef ScriptVal (*ImportBinderFunc)(AssetImportContext*, ScriptBinderCall*);
