@@ -114,14 +114,31 @@ ecs_system_define(AssetImportInitSys) {
   }
 }
 
+ecs_view_define(DeinitGlobalView) { ecs_access_write(AssetImportEnvComp); }
+
+ecs_system_define(AssetImportDeinitSys) {
+  EcsView*     globalView = ecs_world_view_t(world, DeinitGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (globalItr) {
+    AssetImportEnvComp* importEnv = ecs_view_write_t(globalItr, AssetImportEnvComp);
+
+    // Clear program pointers; will be refreshed next frame.
+    dynarray_for_t(&importEnv->scripts, AssetImportScript, script) { script->program = null; }
+  }
+}
+
 ecs_module_init(asset_import_module) {
   ecs_register_comp(AssetImportEnvComp, .destructor = ecs_destruct_import_env_comp);
 
   ecs_register_view(InitGlobalView);
   ecs_register_view(InitScriptView);
+  ecs_register_view(DeinitGlobalView);
 
   ecs_register_system(AssetImportInitSys, ecs_view_id(InitGlobalView), ecs_view_id(InitScriptView));
   ecs_order(AssetImportInitSys, AssetOrder_Init);
+
+  ecs_register_system(AssetImportDeinitSys, ecs_view_id(DeinitGlobalView));
+  ecs_order(AssetImportDeinitSys, AssetOrder_Deinit);
 }
 
 typedef ScriptVal (*ImportBinderFunc)(AssetImportContext*, ScriptBinderCall*);
