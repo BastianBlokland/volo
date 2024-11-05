@@ -17,6 +17,8 @@ ecs_comp_define(AssetImportEnvComp) {
   DynArray scriptEntities; // EcsEntityId[]
 };
 
+ecs_comp_define(AssetImportScriptComp) { u32 dummy; };
+
 static void ecs_destruct_import_env_comp(void* data) {
   AssetImportEnvComp* comp = data;
   dynarray_destroy(&comp->scriptEntities);
@@ -40,6 +42,10 @@ import_scripts_refresh(EcsWorld* world, AssetImportEnvComp* env, AssetManagerCom
   dynarray_clear(&env->scriptEntities);
   for (u32 i = 0; i != assetCount; ++i) {
     *dynarray_push_t(&env->scriptEntities, EcsEntityId) = assets[i];
+
+    if (!ecs_world_has_t(world, assets[i], AssetImportScriptComp)) {
+      ecs_world_add_t(world, assets[i], AssetImportScriptComp);
+    }
   }
 }
 
@@ -70,6 +76,7 @@ ecs_system_define(AssetImportInitSys) {
 
 ecs_module_init(asset_import_module) {
   ecs_register_comp(AssetImportEnvComp, .destructor = ecs_destruct_import_env_comp);
+  ecs_register_comp(AssetImportScriptComp);
 
   ecs_register_view(InitGlobalView);
 
