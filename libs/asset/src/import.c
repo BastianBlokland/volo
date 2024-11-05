@@ -176,3 +176,12 @@ void asset_data_init_import(void) {
   script_binder_finalize(binder);
   g_assetScriptImportBinder = binder;
 }
+
+bool asset_import_ready(const AssetImportEnvComp* env) {
+  dynarray_for_t(&env->scripts, AssetImportScript, script) {
+    if (!script->program) {
+      return false;
+    }
+  }
+  return true;
+}
