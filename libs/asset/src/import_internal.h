@@ -2,6 +2,6 @@
 #include "ecs_module.h"
 
 /**
- * Global asset import utility.
+ * Global asset import environment.
  */
-ecs_comp_extern(AssetImportComp);
+ecs_comp_extern(AssetImportEnvComp);

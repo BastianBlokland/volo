@@ -5,12 +5,14 @@
 #include "script_binder.h"
 #include "script_sig.h"
 
+#include "import_internal.h"
+
 ScriptBinder* g_assetScriptImportBinder;
 
-ecs_comp_define(AssetImportComp) { u32 dummy; };
+ecs_comp_define(AssetImportEnvComp) { u32 dummy; };
 
-static void ecs_destruct_import_comp(void* data) {
-  AssetImportComp* comp = data;
+static void ecs_destruct_import_env_comp(void* data) {
+  AssetImportEnvComp* comp = data;
   (void)comp;
 }
 
@@ -27,7 +29,7 @@ static ScriptVal eval_dummy(AssetImportContext* ctx, ScriptBinderCall* call) {
 ecs_system_define(AssetImportInitSys) {}
 
 ecs_module_init(asset_import_module) {
-  ecs_register_comp(AssetImportComp, .destructor = ecs_destruct_import_comp);
+  ecs_register_comp(AssetImportEnvComp, .destructor = ecs_destruct_import_env_comp);
 
   ecs_register_system(AssetImportInitSys);
 
