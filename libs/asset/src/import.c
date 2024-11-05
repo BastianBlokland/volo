@@ -16,6 +16,10 @@ static ScriptVal eval_dummy(AssetImportContext* ctx, ScriptBinderCall* call) {
   return script_null();
 }
 
+ecs_module_init(asset_import_module) {
+  // TODO: Register import systems.
+}
+
 typedef ScriptVal (*ImportBinderFunc)(AssetImportContext*, ScriptBinderCall*);
 
 static void bind_eval(

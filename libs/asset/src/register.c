@@ -11,6 +11,7 @@ void asset_register(EcsDef* def) {
   ecs_register_module(def, asset_font_module);
   ecs_register_module(def, asset_graphic_module);
   ecs_register_module(def, asset_icon_module);
+  ecs_register_module(def, asset_import_module);
   ecs_register_module(def, asset_inputmap_module);
   ecs_register_module(def, asset_level_module);
   ecs_register_module(def, asset_manager_module);
