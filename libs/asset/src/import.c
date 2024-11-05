@@ -1,3 +1,4 @@
+#include "asset_register.h"
 #include "asset_script.h"
 #include "core_alloc.h"
 #include "core_format.h"
@@ -23,8 +24,14 @@ static ScriptVal eval_dummy(AssetImportContext* ctx, ScriptBinderCall* call) {
   return script_null();
 }
 
+ecs_system_define(AssetImportInitSys) {}
+
 ecs_module_init(asset_import_module) {
   ecs_register_comp(AssetImportComp, .destructor = ecs_destruct_import_comp);
+
+  ecs_register_system(AssetImportInitSys);
+
+  ecs_order(AssetImportInitSys, AssetOrder_Init);
 }
 
 typedef ScriptVal (*ImportBinderFunc)(AssetImportContext*, ScriptBinderCall*);
