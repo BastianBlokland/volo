@@ -4,6 +4,7 @@
 #include "core_alloc.h"
 #include "core_format.h"
 #include "ecs_world.h"
+#include "log_logger.h"
 #include "script_binder.h"
 #include "script_sig.h"
 
@@ -18,10 +19,13 @@ ecs_comp_define(AssetImportEnvComp) {
 };
 
 typedef enum {
-  AssetImportScript_ResourceAcquired = 1 << 0,
+  AssetImportScript_Reloading = 1 << 0,
 } AssetImportScriptFlags;
 
-ecs_comp_define(AssetImportScriptComp) { AssetImportScriptFlags flags; };
+ecs_comp_define(AssetImportScriptComp) {
+  AssetImportScriptFlags flags;
+  u32                    version; // Incremented on reload.
+};
 
 static void ecs_destruct_import_env_comp(void* data) {
   AssetImportEnvComp* comp = data;
@@ -49,8 +53,7 @@ import_scripts_refresh(EcsWorld* world, AssetImportEnvComp* env, AssetManagerCom
 
     if (!ecs_world_has_t(world, assets[i], AssetImportScriptComp)) {
       asset_acquire(world, assets[i]);
-      ecs_world_add_t(
-          world, assets[i], AssetImportScriptComp, .flags = AssetImportScript_ResourceAcquired);
+      ecs_world_add_t(world, assets[i], AssetImportScriptComp);
     }
   }
 }
@@ -80,15 +83,43 @@ ecs_system_define(AssetImportInitSys) {
   import_scripts_refresh(world, importEnv, manager);
 }
 
+ecs_view_define(ScriptReloadView) { ecs_access_write(AssetImportScriptComp); }
+
+ecs_system_define(AssetImportScriptReloadSys) {
+  EcsView* reloadView = ecs_world_view_t(world, ScriptReloadView);
+  for (EcsIterator* itr = ecs_view_itr(reloadView); ecs_view_walk(itr);) {
+    EcsEntityId            entity = ecs_view_entity(itr);
+    AssetImportScriptComp* comp   = ecs_view_write_t(itr, AssetImportScriptComp);
+
+    const bool isLoaded   = ecs_world_has_t(world, entity, AssetLoadedComp);
+    const bool isFailed   = ecs_world_has_t(world, entity, AssetFailedComp);
+    const bool hasChanged = ecs_world_has_t(world, entity, AssetChangedComp);
+
+    if (hasChanged && !(comp->flags & AssetImportScript_Reloading) && (isLoaded || isFailed)) {
+      log_i("Reloading import script", log_param("reason", fmt_text_lit("Asset changed")));
+
+      asset_release(world, entity);
+      ++comp->version;
+      comp->flags |= AssetImportScript_Reloading;
+    }
+    if (comp->flags & AssetImportScript_Reloading && !isLoaded) {
+      asset_acquire(world, entity);
+      comp->flags &= ~AssetImportScript_Reloading;
+    }
+  }
+}
+
 ecs_module_init(asset_import_module) {
   ecs_register_comp(AssetImportEnvComp, .destructor = ecs_destruct_import_env_comp);
   ecs_register_comp(AssetImportScriptComp);
 
   ecs_register_view(InitGlobalView);
+  ecs_register_view(ScriptReloadView);
 
   ecs_register_system(AssetImportInitSys, ecs_view_id(InitGlobalView));
-
   ecs_order(AssetImportInitSys, AssetOrder_Init);
+
+  ecs_register_system(AssetImportScriptReloadSys, ecs_view_id(ScriptReloadView));
 }
 
 typedef ScriptVal (*ImportBinderFunc)(AssetImportContext*, ScriptBinderCall*);
