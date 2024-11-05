@@ -21,6 +21,8 @@ DataMeta g_assetScriptMeta;
 
 static const ScriptBinder* asset_script_domain_binder(const AssetScriptDomain domain) {
   switch (domain) {
+  case AssetScriptDomain_Import:
+    return g_assetScriptImportBinder;
   case AssetScriptDomain_Scene:
     return g_assetScriptSceneBinder;
   }
@@ -28,6 +30,10 @@ static const ScriptBinder* asset_script_domain_binder(const AssetScriptDomain do
 }
 
 static bool asset_script_domain_match(const String fileIdentifier, AssetScriptDomain* out) {
+  if (script_binder_match(g_assetScriptImportBinder, fileIdentifier)) {
+    *out = AssetScriptDomain_Import;
+    return true;
+  }
   if (script_binder_match(g_assetScriptSceneBinder, fileIdentifier)) {
     *out = AssetScriptDomain_Scene;
     return true;
@@ -98,6 +104,7 @@ void asset_data_init_script(void) {
   data_reg_field_t(g_dataReg, ScriptProgram, locations, t_ScriptProgramLoc, .container = DataContainer_HeapArray);
 
   data_reg_enum_t(g_dataReg, AssetScriptDomain);
+  data_reg_const_t(g_dataReg, AssetScriptDomain, Import);
   data_reg_const_t(g_dataReg, AssetScriptDomain, Scene);
 
   data_reg_struct_t(g_dataReg, AssetScriptComp);
@@ -178,7 +185,7 @@ void asset_load_script(
       world,
       entity,
       AssetScriptComp,
-      .domain                = AssetScriptDomain_Scene,
+      .domain                = domain,
       .prog                  = prog,
       .stringLiterals.values = strings.values,
       .stringLiterals.count  = strings.count);
