@@ -42,20 +42,21 @@ static ScriptVal eval_dummy(AssetImportContext* ctx, ScriptBinderCall* call) {
   return script_null();
 }
 
-static void
-import_scripts_refresh(EcsWorld* world, AssetImportEnvComp* env, AssetManagerComp* manager) {
+static AssetImportEnvComp* import_env_init(EcsWorld* world, AssetManagerComp* manager) {
+  DynArray scriptEntities = dynarray_create_t(g_allocHeap, EcsEntityId, 16);
+
   EcsEntityId assets[asset_query_max_results];
   const u32   assetCount = asset_query(world, manager, g_assetImportScriptsPath, assets);
 
-  dynarray_clear(&env->scriptEntities);
   for (u32 i = 0; i != assetCount; ++i) {
-    *dynarray_push_t(&env->scriptEntities, EcsEntityId) = assets[i];
+    *dynarray_push_t(&scriptEntities, EcsEntityId) = assets[i];
 
-    if (!ecs_world_has_t(world, assets[i], AssetImportScriptComp)) {
-      asset_acquire(world, assets[i]);
-      ecs_world_add_t(world, assets[i], AssetImportScriptComp);
-    }
+    asset_acquire(world, assets[i]);
+    ecs_world_add_t(world, assets[i], AssetImportScriptComp);
   }
+
+  return ecs_world_add_t(
+      world, ecs_world_global(world), AssetImportEnvComp, .scriptEntities = scriptEntities);
 }
 
 ecs_view_define(InitGlobalView) {
@@ -69,18 +70,11 @@ ecs_system_define(AssetImportInitSys) {
   if (!globalItr) {
     return; // Global dependencies not initialized.
   }
+  AssetManagerComp*   manager   = ecs_view_write_t(globalItr, AssetManagerComp);
   AssetImportEnvComp* importEnv = ecs_view_write_t(globalItr, AssetImportEnvComp);
   if (UNLIKELY(!importEnv)) {
-    importEnv = ecs_world_add_t(
-        world,
-        ecs_world_global(world),
-        AssetImportEnvComp,
-        .scriptEntities = dynarray_create_t(g_allocHeap, EcsEntityId, 16));
+    importEnv = import_env_init(world, manager);
   }
-  AssetManagerComp* manager = ecs_view_write_t(globalItr, AssetManagerComp);
-
-  // Find all import scripts (every frame to support creating new scripts while running).
-  import_scripts_refresh(world, importEnv, manager);
 }
 
 ecs_view_define(ScriptReloadView) { ecs_access_write(AssetImportScriptComp); }
