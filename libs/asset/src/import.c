@@ -9,13 +9,17 @@
 
 #include "import_internal.h"
 
+static const String g_assetImportScriptsPath = string_static("scripts/import/*.script");
+
 ScriptBinder* g_assetScriptImportBinder;
 
-ecs_comp_define(AssetImportEnvComp) { u32 dummy; };
+ecs_comp_define(AssetImportEnvComp) {
+  DynArray scriptEntities; // EcsEntityId[]
+};
 
 static void ecs_destruct_import_env_comp(void* data) {
   AssetImportEnvComp* comp = data;
-  (void)comp;
+  dynarray_destroy(&comp->scriptEntities);
 }
 
 typedef struct {
@@ -26,6 +30,17 @@ static ScriptVal eval_dummy(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)ctx;
   (void)call;
   return script_null();
+}
+
+static void
+import_scripts_refresh(EcsWorld* world, AssetImportEnvComp* env, AssetManagerComp* manager) {
+  EcsEntityId assets[asset_query_max_results];
+  const u32   assetCount = asset_query(world, manager, g_assetImportScriptsPath, assets);
+
+  dynarray_clear(&env->scriptEntities);
+  for (u32 i = 0; i != assetCount; ++i) {
+    *dynarray_push_t(&env->scriptEntities, EcsEntityId) = assets[i];
+  }
 }
 
 ecs_view_define(InitGlobalView) {
@@ -41,8 +56,16 @@ ecs_system_define(AssetImportInitSys) {
   }
   AssetImportEnvComp* importEnv = ecs_view_write_t(globalItr, AssetImportEnvComp);
   if (UNLIKELY(!importEnv)) {
-    importEnv = ecs_world_add_t(world, ecs_world_global(world), AssetImportEnvComp);
+    importEnv = ecs_world_add_t(
+        world,
+        ecs_world_global(world),
+        AssetImportEnvComp,
+        .scriptEntities = dynarray_create_t(g_allocHeap, EcsEntityId, 16));
   }
+  AssetManagerComp* manager = ecs_view_write_t(globalItr, AssetManagerComp);
+
+  // Find all import scripts (every frame to support creating new scripts while running).
+  import_scripts_refresh(world, importEnv, manager);
 }
 
 ecs_module_init(asset_import_module) {
