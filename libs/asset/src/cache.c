@@ -32,6 +32,7 @@ typedef struct {
   StringHash     idHash;
   AssetCacheMeta meta;
   TimeReal       modTime;
+  u32            importHash;
   HeapArray_t(AssetCacheDependency) dependencies;
 } AssetCacheEntry;
 
@@ -281,6 +282,7 @@ void asset_data_init_cache(void) {
   data_reg_field_t(g_dataReg, AssetCacheEntry, idHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetCacheEntry, meta, t_AssetCacheMeta);
   data_reg_field_t(g_dataReg, AssetCacheEntry, modTime, data_prim_t(i64));
+  data_reg_field_t(g_dataReg, AssetCacheEntry, importHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetCacheEntry, dependencies, t_AssetCacheDependency, .container = DataContainer_HeapArray);
 
   data_reg_struct_t(g_dataReg, AssetCacheRegistry);
@@ -385,6 +387,7 @@ void asset_cache_set(
     AssetCacheEntry* entry = cache_reg_add(c, id, idHash);
     entry->meta            = cacheMeta;
     entry->modTime         = blobModTime;
+    entry->importHash      = 0; // TODO: Provide import hash.
     if (entry->dependencies.count) {
       // Cleanup the old dependencies.
       heap_array_for_t(entry->dependencies, AssetCacheDependency, dep) {
@@ -422,8 +425,9 @@ bool asset_cache_get(AssetCache* c, const String id, AssetCacheRecord* out) {
       if (!cache_reg_validate(c, entry)) {
         goto Incompatible;
       }
-      out->modTime = entry->modTime;
-      success      = true;
+      out->modTime    = entry->modTime;
+      out->importHash = entry->importHash;
+      success         = true;
     }
   Incompatible:;
   }

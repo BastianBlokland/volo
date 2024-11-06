@@ -38,6 +38,7 @@ typedef struct {
   File*    blobFile; // NOTE: Caller is responsible for destroying the handle.
   DataMeta meta;
   TimeReal modTime;
+  u32      importHash;
 } AssetCacheRecord;
 
 /**
