@@ -3,11 +3,13 @@
 #include "asset_script.h"
 #include "core_alloc.h"
 #include "core_format.h"
+#include "core_path.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "script_binder.h"
 #include "script_sig.h"
 
+#include "format_internal.h"
 #include "import_internal.h"
 
 static const String g_assetImportScriptsPath = string_static("scripts/import/*.script");
@@ -32,6 +34,15 @@ ecs_comp_define(AssetImportEnvComp) {
 static void ecs_destruct_import_env_comp(void* data) {
   AssetImportEnvComp* comp = data;
   dynarray_destroy(&comp->scripts);
+}
+
+static bool import_enabled_for_format(const AssetFormat format) {
+  switch (format) {
+  case AssetFormat_MeshGltf:
+    return true;
+  default:
+    return false;
+  }
 }
 
 typedef struct {
@@ -178,7 +189,12 @@ void asset_data_init_import(void) {
 }
 
 bool asset_import_ready(const AssetImportEnvComp* env, const String assetId) {
-  (void)assetId;
+  const AssetFormat format = asset_format_from_ext(path_extension(assetId));
+  if (!import_enabled_for_format(format)) {
+    return true;
+  }
+
+  // Check if all import scripts are loaded.
   dynarray_for_t(&env->scripts, AssetImportScript, script) {
     if (!script->program) {
       return false;
