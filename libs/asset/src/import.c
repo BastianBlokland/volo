@@ -209,3 +209,11 @@ bool asset_import_ready(const AssetImportEnvComp* env, const String assetId) {
   }
   return true;
 }
+
+u32 asset_import_hash(const AssetImportEnvComp* env, const String assetId) {
+  const AssetFormat format = asset_format_from_ext(path_extension(assetId));
+  if (!import_enabled_for_format(format)) {
+    return 0; // No importer is enabled for the format.
+  }
+  return env->importHash;
+}
