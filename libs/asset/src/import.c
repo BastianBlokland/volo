@@ -177,7 +177,8 @@ void asset_data_init_import(void) {
   g_assetScriptImportBinder = binder;
 }
 
-bool asset_import_ready(const AssetImportEnvComp* env) {
+bool asset_import_ready(const AssetImportEnvComp* env, const String assetId) {
+  (void)assetId;
   dynarray_for_t(&env->scripts, AssetImportScript, script) {
     if (!script->program) {
       return false;
