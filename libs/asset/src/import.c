@@ -2,6 +2,7 @@
 #include "asset_register.h"
 #include "asset_script.h"
 #include "core_alloc.h"
+#include "core_diag.h"
 #include "core_format.h"
 #include "core_path.h"
 #include "ecs_world.h"
@@ -28,6 +29,7 @@ typedef struct {
 } AssetImportScript;
 
 ecs_comp_define(AssetImportEnvComp) {
+  u32      importHash;
   DynArray scripts; // AssetImportScript[]
 };
 
@@ -100,6 +102,7 @@ ecs_system_define(AssetImportInitSys) {
    * NOTE: Its important to refresh the program pointers at the beginning of each frame as the ECS
    * can move component data around during flushes.
    */
+  importEnv->importHash = 0;
   dynarray_for_t(&importEnv->scripts, AssetImportScript, script) {
     const bool isLoaded   = ecs_world_has_t(world, script->asset, AssetLoadedComp);
     const bool isFailed   = ecs_world_has_t(world, script->asset, AssetFailedComp);
@@ -118,7 +121,11 @@ ecs_system_define(AssetImportInitSys) {
     }
 
     if (ecs_view_maybe_jump(scriptItr, script->asset)) {
-      script->program = &ecs_view_read_t(scriptItr, AssetScriptComp)->prog;
+      const AssetScriptComp* scriptComp = ecs_view_read_t(scriptItr, AssetScriptComp);
+      diag_assert(scriptComp->domain == AssetScriptDomain_Import);
+
+      importEnv->importHash = bits_hash_32_combine(importEnv->importHash, scriptComp->hash);
+      script->program       = &scriptComp->prog;
     } else {
       script->program = null;
     }
