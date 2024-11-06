@@ -13,6 +13,7 @@
 #include "log_logger.h"
 #include "trace_tracer.h"
 
+#include "import_internal.h"
 #include "loader_internal.h"
 #include "manager_internal.h"
 #include "repo_internal.h"
@@ -279,6 +280,11 @@ static bool asset_manager_load(
   return success;
 }
 
+ecs_view_define(GlobalUpdateView) {
+  ecs_access_read(AssetImportEnvComp);
+  ecs_access_read(AssetManagerComp);
+}
+
 ecs_view_define(DirtyAssetView) {
   ecs_access_write(AssetComp);
   ecs_access_write(AssetDirtyComp);
@@ -314,15 +320,12 @@ static u32 asset_unload_delay(
 }
 
 ecs_system_define(AssetUpdateDirtySys) {
-  const AssetManagerComp* manager = asset_manager_readonly(world);
-  if (!manager) {
-    /**
-     * The manager has not been created yet, we delay the processing of asset requests until a
-     * manager has been created.
-     * NOTE: No requests get lost, they just stay unprocessed.
-     */
-    return;
+  EcsView*     globalView = ecs_world_view_t(world, GlobalUpdateView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return; // Global dependencies not initialized.
   }
+  const AssetManagerComp* manager = ecs_view_read_t(globalItr, AssetManagerComp);
 
   TimeDuration loadTime   = 0;
   EcsView*     assetsView = ecs_world_view_t(world, DirtyAssetView);
@@ -548,8 +551,8 @@ ecs_system_define(AssetCacheSys) {
         ecs_view_jump(depItr, depComp->dependencies.single);
         const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
         deps[depCount++]              = (AssetRepoDep){
-                         .id      = depAssetComp->id,
-                         .modTime = depAssetComp->loadModTime,
+            .id      = depAssetComp->id,
+            .modTime = depAssetComp->loadModTime,
         };
       } break;
       case AssetDepStorageType_Many:
@@ -560,8 +563,8 @@ ecs_system_define(AssetCacheSys) {
           ecs_view_jump(depItr, *asset);
           const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
           deps[depCount++]              = (AssetRepoDep){
-                           .id      = depAssetComp->id,
-                           .modTime = depAssetComp->loadModTime,
+              .id      = depAssetComp->id,
+              .modTime = depAssetComp->loadModTime,
           };
         }
         break;
@@ -606,13 +609,14 @@ ecs_module_init(asset_manager_module) {
   ecs_register_comp(AssetCacheRequestComp, .destructor = ecs_destruct_cache_request_comp);
   ecs_register_comp(AssetExtLoadComp, .combinator = ecs_combine_asset_ext_load);
 
+  ecs_register_view(GlobalUpdateView);
   ecs_register_view(DirtyAssetView);
   ecs_register_view(AssetDependencyView);
   ecs_register_view(GlobalReadView);
   ecs_register_view(GlobalWriteView);
 
   ecs_register_system(
-      AssetUpdateDirtySys, ecs_view_id(DirtyAssetView), ecs_view_id(GlobalReadView));
+      AssetUpdateDirtySys, ecs_view_id(GlobalUpdateView), ecs_view_id(DirtyAssetView));
   ecs_parallel(AssetUpdateDirtySys, asset_num_load_tasks);
   ecs_order(AssetUpdateDirtySys, AssetOrder_Update);
 
