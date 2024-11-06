@@ -16,6 +16,7 @@ typedef enum {
  */
 ecs_comp_extern_public(AssetScriptComp) {
   AssetScriptDomain domain;
+  u32               hash;
   ScriptProgram     prog;
   HeapArray_t(String) stringLiterals; // To be interned in the global stringtable.
 };
