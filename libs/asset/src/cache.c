@@ -25,6 +25,7 @@ typedef struct {
 typedef struct {
   String   id;
   TimeReal modTime;
+  u32      importHash;
 } AssetCacheDependency;
 
 typedef struct {
@@ -276,6 +277,7 @@ void asset_data_init_cache(void) {
   data_reg_struct_t(g_dataReg, AssetCacheDependency);
   data_reg_field_t(g_dataReg, AssetCacheDependency, id, data_prim_t(String));
   data_reg_field_t(g_dataReg, AssetCacheDependency, modTime, data_prim_t(i64));
+  data_reg_field_t(g_dataReg, AssetCacheDependency, importHash, data_prim_t(u32));
 
   data_reg_struct_t(g_dataReg, AssetCacheEntry);
   data_reg_field_t(g_dataReg, AssetCacheEntry, id, data_prim_t(String));
@@ -375,8 +377,9 @@ void asset_cache_set(
     for (usize i = 0; i != depCount; ++i) {
       diag_assert(!string_is_empty(deps[i].id));
       cacheDependencies[i] = (AssetCacheDependency){
-          .id      = string_dup(c->alloc, deps[i].id),
-          .modTime = deps[i].modTime,
+          .id         = string_dup(c->alloc, deps[i].id),
+          .modTime    = deps[i].modTime,
+          .importHash = deps[i].importHash,
       };
     }
   }
@@ -462,8 +465,9 @@ usize asset_cache_deps(
       result = math_min(entry->dependencies.count, asset_repo_cache_deps_max);
       for (usize i = 0; i != result; ++i) {
         out[i] = (AssetRepoDep){
-            .id      = string_dup(g_allocScratch, entry->dependencies.values[i].id),
-            .modTime = entry->dependencies.values[i].modTime,
+            .id         = string_dup(g_allocScratch, entry->dependencies.values[i].id),
+            .modTime    = entry->dependencies.values[i].modTime,
+            .importHash = entry->dependencies.values[i].importHash,
         };
       }
     }

@@ -15,6 +15,7 @@ typedef struct sAssetSource AssetSource;
 typedef struct {
   String   id;
   TimeReal modTime;
+  u32      importHash;
 } AssetRepoDep;
 
 typedef void (*AssetRepoQueryHandler)(void* ctx, String assetId);
