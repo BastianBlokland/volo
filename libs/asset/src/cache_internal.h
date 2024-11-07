@@ -30,6 +30,7 @@ void asset_cache_set(
     String              id,
     DataMeta            blobMeta,
     TimeReal            blobModTime,
+    u32                 blobImportHash,
     Mem                 blob,
     const AssetRepoDep* deps,
     usize               depCount);

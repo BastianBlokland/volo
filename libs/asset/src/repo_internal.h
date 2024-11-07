@@ -46,6 +46,7 @@ struct sAssetRepo {
       String              id,
       DataMeta            blobMeta,
       TimeReal            blobModTime,
+      u32                 blobImportHash,
       Mem                 blob,
       const AssetRepoDep* deps,
       usize               depCount);
@@ -87,6 +88,7 @@ void asset_repo_cache(
     String              id,
     DataMeta            blobMeta,
     TimeReal            blobModTime,
+    u32                 blobImportHash,
     Mem                 blob,
     const AssetRepoDep* deps,
     usize               depCount);

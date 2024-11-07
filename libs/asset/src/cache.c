@@ -350,6 +350,7 @@ void asset_cache_set(
     const String        id,
     const DataMeta      blobMeta,
     const TimeReal      blobModTime,
+    const u32           blobImportHash,
     const Mem           blob,
     const AssetRepoDep* deps,
     const usize         depCount) {
@@ -390,7 +391,7 @@ void asset_cache_set(
     AssetCacheEntry* entry = cache_reg_add(c, id, idHash);
     entry->meta            = cacheMeta;
     entry->modTime         = blobModTime;
-    entry->importHash      = 0; // TODO: Provide import hash.
+    entry->importHash      = blobImportHash;
     if (entry->dependencies.count) {
       // Cleanup the old dependencies.
       heap_array_for_t(entry->dependencies, AssetCacheDependency, dep) {

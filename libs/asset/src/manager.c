@@ -537,9 +537,11 @@ ecs_system_define(AssetCacheSys) {
     diag_assert(assetComp->loadCount); // Caching an asset without loading it makes no sense.
 
     // Collect asset data.
-    const String   id      = assetComp->id;
-    const Mem      blob    = mem_slice(requestComp->blobMem, 0, requestComp->blobSize);
-    const TimeReal modTime = assetComp->loadModTime;
+    const String   id         = assetComp->id;
+    const DataMeta dataMeta   = requestComp->blobMeta;
+    const Mem      blob       = mem_slice(requestComp->blobMem, 0, requestComp->blobSize);
+    const TimeReal modTime    = assetComp->loadModTime;
+    const u32      importHash = 0; // TODO: Gather import hash.
 
     // Collect asset dependencies.
     depCount = 0;
@@ -574,7 +576,7 @@ ecs_system_define(AssetCacheSys) {
     }
 
     // Save the asset in the repo cache.
-    asset_repo_cache(manager->repo, id, requestComp->blobMeta, modTime, blob, deps, depCount);
+    asset_repo_cache(manager->repo, id, dataMeta, modTime, importHash, blob, deps, depCount);
 
     ecs_world_remove_t(world, assetEntity, AssetCacheRequestComp);
   }

@@ -269,12 +269,13 @@ static void asset_repo_fs_cache(
     const String        id,
     const DataMeta      blobMeta,
     const TimeReal      blobModTime,
+    const u32           blobImportHash,
     const Mem           blob,
     const AssetRepoDep* deps,
     const usize         depCount) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
-  asset_cache_set(repoFs->cache, id, blobMeta, blobModTime, blob, deps, depCount);
+  asset_cache_set(repoFs->cache, id, blobMeta, blobModTime, blobImportHash, blob, deps, depCount);
   asset_cache_flush(repoFs->cache); // NOTE: We could batch flushes to be more efficient.
 }
 
