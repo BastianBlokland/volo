@@ -15,7 +15,7 @@ typedef struct sAssetSource AssetSource;
 typedef struct {
   String   id;
   TimeReal modTime;
-  u32      importHash;
+  u32      loaderHash;
 } AssetRepoDep;
 
 /**
@@ -55,7 +55,7 @@ struct sAssetRepo {
       String              id,
       DataMeta            blobMeta,
       TimeReal            blobModTime,
-      u32                 blobImportHash,
+      u32                 blobLoaderHash,
       Mem                 blob,
       const AssetRepoDep* deps,
       usize               depCount);
@@ -97,7 +97,7 @@ void asset_repo_cache(
     String              id,
     DataMeta            blobMeta,
     TimeReal            blobModTime,
-    u32                 blobImportHash,
+    u32                 blobLoaderHash,
     Mem                 blob,
     const AssetRepoDep* deps,
     usize               depCount);

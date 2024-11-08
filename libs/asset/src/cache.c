@@ -25,7 +25,7 @@ typedef struct {
 typedef struct {
   String   id;
   TimeReal modTime;
-  u32      importHash;
+  u32      loaderHash;
 } AssetCacheDependency;
 
 typedef struct {
@@ -33,7 +33,7 @@ typedef struct {
   StringHash     idHash;
   AssetCacheMeta meta;
   TimeReal       modTime;
-  u32            importHash;
+  u32            loaderHash;
   HeapArray_t(AssetCacheDependency) dependencies;
 } AssetCacheEntry;
 
@@ -277,14 +277,14 @@ void asset_data_init_cache(void) {
   data_reg_struct_t(g_dataReg, AssetCacheDependency);
   data_reg_field_t(g_dataReg, AssetCacheDependency, id, data_prim_t(String));
   data_reg_field_t(g_dataReg, AssetCacheDependency, modTime, data_prim_t(i64));
-  data_reg_field_t(g_dataReg, AssetCacheDependency, importHash, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCacheDependency, loaderHash, data_prim_t(u32));
 
   data_reg_struct_t(g_dataReg, AssetCacheEntry);
   data_reg_field_t(g_dataReg, AssetCacheEntry, id, data_prim_t(String));
   data_reg_field_t(g_dataReg, AssetCacheEntry, idHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetCacheEntry, meta, t_AssetCacheMeta);
   data_reg_field_t(g_dataReg, AssetCacheEntry, modTime, data_prim_t(i64));
-  data_reg_field_t(g_dataReg, AssetCacheEntry, importHash, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, AssetCacheEntry, loaderHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetCacheEntry, dependencies, t_AssetCacheDependency, .container = DataContainer_HeapArray);
 
   data_reg_struct_t(g_dataReg, AssetCacheRegistry);
@@ -350,7 +350,7 @@ void asset_cache_set(
     const String        id,
     const DataMeta      blobMeta,
     const TimeReal      blobModTime,
-    const u32           blobImportHash,
+    const u32           blobLoaderHash,
     const Mem           blob,
     const AssetRepoDep* deps,
     const usize         depCount) {
@@ -380,7 +380,7 @@ void asset_cache_set(
       cacheDependencies[i] = (AssetCacheDependency){
           .id         = string_dup(c->alloc, deps[i].id),
           .modTime    = deps[i].modTime,
-          .importHash = deps[i].importHash,
+          .loaderHash = deps[i].loaderHash,
       };
     }
   }
@@ -391,7 +391,7 @@ void asset_cache_set(
     AssetCacheEntry* entry = cache_reg_add(c, id, idHash);
     entry->meta            = cacheMeta;
     entry->modTime         = blobModTime;
-    entry->importHash      = blobImportHash;
+    entry->loaderHash      = blobLoaderHash;
     if (entry->dependencies.count) {
       // Cleanup the old dependencies.
       heap_array_for_t(entry->dependencies, AssetCacheDependency, dep) {
@@ -435,7 +435,7 @@ bool asset_cache_get(
         goto Incompatible;
       }
       out->modTime    = entry->modTime;
-      out->importHash = entry->importHash;
+      out->loaderHash = entry->loaderHash;
       success         = true;
     }
   Incompatible:;
@@ -473,7 +473,7 @@ usize asset_cache_deps(
         out[i] = (AssetRepoDep){
             .id         = string_dup(g_allocScratch, entry->dependencies.values[i].id),
             .modTime    = entry->dependencies.values[i].modTime,
-            .importHash = entry->dependencies.values[i].importHash,
+            .loaderHash = entry->dependencies.values[i].loaderHash,
         };
       }
     }

@@ -30,7 +30,7 @@ void asset_cache_set(
     String              id,
     DataMeta            blobMeta,
     TimeReal            blobModTime,
-    u32                 blobImportHash,
+    u32                 blobLoaderHash,
     Mem                 blob,
     const AssetRepoDep* deps,
     usize               depCount);
@@ -39,7 +39,7 @@ typedef struct {
   File*    blobFile; // NOTE: Caller is responsible for destroying the handle.
   DataMeta meta;
   TimeReal modTime;
-  u32      importHash;
+  u32      loaderHash;
 } AssetCacheRecord;
 
 /**

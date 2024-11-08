@@ -542,7 +542,7 @@ ecs_system_define(AssetCacheSys) {
     const DataMeta dataMeta   = requestComp->blobMeta;
     const Mem      blob       = mem_slice(requestComp->blobMem, 0, requestComp->blobSize);
     const TimeReal modTime    = assetComp->loadModTime;
-    const u32      importHash = 0; // TODO: Gather import hash.
+    const u32      loaderHash = 0; // TODO: Gather loader hash.
 
     // Collect asset dependencies.
     depCount = 0;
@@ -556,7 +556,7 @@ ecs_system_define(AssetCacheSys) {
         deps[depCount++]              = (AssetRepoDep){
             .id         = depAssetComp->id,
             .modTime    = depAssetComp->loadModTime,
-            .importHash = 0, // TODO: Gather import hash.
+            .loaderHash = 0, // TODO: Gather loader hash.
         };
       } break;
       case AssetDepStorageType_Many:
@@ -569,7 +569,7 @@ ecs_system_define(AssetCacheSys) {
           deps[depCount++]              = (AssetRepoDep){
               .id         = depAssetComp->id,
               .modTime    = depAssetComp->loadModTime,
-              .importHash = 0, // TODO: Gather import hash.
+              .loaderHash = 0, // TODO: Gather import hash.
           };
         }
         break;
@@ -577,7 +577,7 @@ ecs_system_define(AssetCacheSys) {
     }
 
     // Save the asset in the repo cache.
-    asset_repo_cache(manager->repo, id, dataMeta, modTime, importHash, blob, deps, depCount);
+    asset_repo_cache(manager->repo, id, dataMeta, modTime, loaderHash, blob, deps, depCount);
 
     ecs_world_remove_t(world, assetEntity, AssetCacheRequestComp);
   }

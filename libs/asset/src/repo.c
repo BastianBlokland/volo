@@ -75,12 +75,12 @@ void asset_repo_cache(
     const String        id,
     const DataMeta      blobMeta,
     const TimeReal      blobModTime,
-    const u32           blobImportHash,
+    const u32           blobLoaderHash,
     const Mem           blob,
     const AssetRepoDep* deps,
     const usize         depCount) {
   if (repo->cache) {
-    repo->cache(repo, id, blobMeta, blobModTime, blobImportHash, blob, deps, depCount);
+    repo->cache(repo, id, blobMeta, blobModTime, blobLoaderHash, blob, deps, depCount);
   }
 }
 
