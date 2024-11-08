@@ -227,6 +227,11 @@ static EcsEntityId asset_entity_create(EcsWorld* world, Allocator* idAlloc, cons
   return entity;
 }
 
+static u32 asset_manager_loader_hash(const void* ctx, const String assetId) {
+  const AssetImportEnvComp* importEnv = ctx;
+  return asset_loader_hash(importEnv, assetId);
+}
+
 static bool asset_manager_load(
     EcsWorld*                 world,
     const AssetManagerComp*   manager,
@@ -234,7 +239,12 @@ static bool asset_manager_load(
     AssetComp*                asset,
     const EcsEntityId         assetEntity) {
 
-  AssetSource* source = asset_repo_source_open(manager->repo, asset->id);
+  const AssetRepoLoaderHasher loaderHasher = {
+      .ctx         = importEnv,
+      .computeHash = asset_manager_loader_hash,
+  };
+
+  AssetSource* source = asset_repo_source_open(manager->repo, asset->id, loaderHasher);
   if (!source) {
     return false;
   }

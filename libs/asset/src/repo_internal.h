@@ -23,8 +23,8 @@ typedef struct {
  * When the loader hash changes any cached versions of this asset are invalidated.
  */
 typedef struct {
-  void* ctx;
-  u32 (*computeHash)(void* ctx, String assetId);
+  const void* ctx;
+  u32 (*computeHash)(const void* ctx, String assetId);
 } AssetRepoLoaderHasher;
 
 typedef void (*AssetRepoQueryHandler)(void* ctx, String assetId);
