@@ -60,6 +60,7 @@ ecs_comp_define(AssetComp) {
   AssetFlags  flags : 8;
   AssetFormat loadFormat : 8; // Source format of the last load (valid if loadCount > 0).
   TimeReal    loadModTime;    // Source modification of the last load (valid if loadCount > 0).
+  u32         loaderHash;     // Hash of the loader at the time of the last load.
 };
 
 ecs_comp_define(AssetLoadedComp);
@@ -259,6 +260,7 @@ static bool asset_manager_load(
   ++asset->loadCount;
   asset->loadFormat  = source->format;
   asset->loadModTime = source->modTime;
+  asset->loaderHash  = asset_loader_hash(importEnv, asset->id);
 
 #if VOLO_ASSET_LOGGING
   log_d(
@@ -552,7 +554,7 @@ ecs_system_define(AssetCacheSys) {
     const DataMeta dataMeta   = requestComp->blobMeta;
     const Mem      blob       = mem_slice(requestComp->blobMem, 0, requestComp->blobSize);
     const TimeReal modTime    = assetComp->loadModTime;
-    const u32      loaderHash = 0; // TODO: Gather loader hash.
+    const u32      loaderHash = assetComp->loaderHash;
 
     // Collect asset dependencies.
     depCount = 0;
@@ -566,7 +568,7 @@ ecs_system_define(AssetCacheSys) {
         deps[depCount++]              = (AssetRepoDep){
             .id         = depAssetComp->id,
             .modTime    = depAssetComp->loadModTime,
-            .loaderHash = 0, // TODO: Gather loader hash.
+            .loaderHash = depAssetComp->loaderHash,
         };
       } break;
       case AssetDepStorageType_Many:
@@ -579,7 +581,7 @@ ecs_system_define(AssetCacheSys) {
           deps[depCount++]              = (AssetRepoDep){
               .id         = depAssetComp->id,
               .modTime    = depAssetComp->loadModTime,
-              .loaderHash = 0, // TODO: Gather import hash.
+              .loaderHash = depAssetComp->loaderHash,
           };
         }
         break;
