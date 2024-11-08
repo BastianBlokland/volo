@@ -407,10 +407,15 @@ void asset_cache_set(
   thread_mutex_unlock(c->regMutex);
 }
 
-bool asset_cache_get(AssetCache* c, const String id, AssetCacheRecord* out) {
+bool asset_cache_get(
+    AssetCache*                 c,
+    const String                id,
+    const AssetRepoLoaderHasher loaderHasher,
+    AssetCacheRecord*           out) {
   if (UNLIKELY(c->error)) {
     return false;
   }
+  (void)loaderHasher;
   trace_begin("asset_cache_get", TraceColor_Green);
 
   const StringHash idHash = string_hash(id);

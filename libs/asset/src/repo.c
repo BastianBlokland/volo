@@ -29,8 +29,9 @@ bool asset_repo_path(AssetRepo* repo, const String id, DynString* out) {
   return false;
 }
 
-AssetSource* asset_repo_source_open(AssetRepo* repo, const String id) {
-  return repo->open(repo, id);
+AssetSource*
+asset_repo_source_open(AssetRepo* repo, const String id, const AssetRepoLoaderHasher loaderHasher) {
+  return repo->open(repo, id, loaderHasher);
 }
 
 bool asset_repo_save(AssetRepo* repo, const String id, const String data) {

@@ -228,10 +228,11 @@ static EcsEntityId asset_entity_create(EcsWorld* world, Allocator* idAlloc, cons
 }
 
 static bool asset_manager_load(
-    EcsWorld*               world,
-    const AssetManagerComp* manager,
-    AssetComp*              asset,
-    const EcsEntityId       assetEntity) {
+    EcsWorld*                 world,
+    const AssetManagerComp*   manager,
+    const AssetImportEnvComp* importEnv,
+    AssetComp*                asset,
+    const EcsEntityId         assetEntity) {
 
   AssetSource* source = asset_repo_source_open(manager->repo, asset->id);
   if (!source) {
@@ -375,7 +376,7 @@ ecs_system_define(AssetUpdateDirtySys) {
         MAYBE_UNUSED const String assetFileName = path_filename(assetComp->id);
         trace_begin_msg("asset_manager_load", TraceColor_Blue, "{}", fmt_text(assetFileName));
         {
-          if (asset_manager_load(world, manager, assetComp, entity)) {
+          if (asset_manager_load(world, manager, importEnv, assetComp, entity)) {
             loadTime += time_steady_duration(loadStart, time_steady_clock());
           } else {
             ecs_world_add_empty_t(world, entity, AssetFailedComp);

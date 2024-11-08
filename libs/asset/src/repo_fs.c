@@ -114,11 +114,12 @@ static AssetSource* asset_source_fs_open_normal(AssetRepoFs* repoFs, const Strin
   return (AssetSource*)src;
 }
 
-static AssetSource* asset_source_fs_open(AssetRepo* repo, const String id) {
+static AssetSource*
+asset_source_fs_open(AssetRepo* repo, const String id, const AssetRepoLoaderHasher loaderHasher) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
   AssetCacheRecord cacheRecord;
-  if (asset_cache_get(repoFs->cache, id, &cacheRecord)) {
+  if (asset_cache_get(repoFs->cache, id, loaderHasher, &cacheRecord)) {
     return asset_source_fs_open_cached(repoFs, &cacheRecord);
   }
   return asset_source_fs_open_normal(repoFs, id);
