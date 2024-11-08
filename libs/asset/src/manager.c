@@ -758,8 +758,14 @@ void asset_register_dep(EcsWorld* world, EcsEntityId asset, const EcsEntityId de
   ecs_world_add_t(world, asset, AssetDependencyComp, .dependencies = asset_dep_create(dependency));
 }
 
-AssetSource* asset_source_open(const AssetManagerComp* manager, const String id) {
-  return asset_repo_source_open(manager->repo, id);
+AssetSource* asset_source_open(
+    const AssetManagerComp* manager, const AssetImportEnvComp* importEnv, const String id) {
+
+  const AssetRepoLoaderHasher loaderHasher = {
+      .ctx         = importEnv,
+      .computeHash = asset_manager_loader_hash,
+  };
+  return asset_repo_source_open(manager->repo, id, loaderHasher);
 }
 
 EcsEntityId asset_watch(EcsWorld* world, AssetManagerComp* manager, const String id) {

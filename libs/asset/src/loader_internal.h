@@ -1,7 +1,7 @@
 #pragma once
 #include "repo_internal.h"
 
-// Forward declare from 'format_internal.h'.
+// Forward declare from 'import_internal.h'.
 typedef struct sAssetImportEnvComp AssetImportEnvComp;
 
 typedef void (*AssetLoader)(EcsWorld*, String id, EcsEntityId assetEntity, AssetSource*);
