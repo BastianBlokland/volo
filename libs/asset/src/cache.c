@@ -226,13 +226,20 @@ static bool cache_reg_validate_file(const AssetCache* c, const String id, const 
 /**
  * Pre-condition: cache->regMutex is held by this thread.
  */
-static bool cache_reg_validate(const AssetCache* c, const AssetCacheEntry* entry) {
+static bool cache_reg_validate(
+    const AssetCache* c, const AssetCacheEntry* entry, const AssetRepoLoaderHasher loaderHasher) {
   if (!cache_reg_validate_file(c, entry->id, entry->modTime)) {
-    return false;
+    return false; // File has changed.
+  }
+  if (entry->loaderHash != loaderHasher.computeHash(loaderHasher.ctx, entry->id)) {
+    return false; // Loader has changed.
   }
   heap_array_for_t(entry->dependencies, AssetCacheDependency, dep) {
     if (!cache_reg_validate_file(c, dep->id, dep->modTime)) {
-      return false;
+      return false; // Dependency file has changed.
+    }
+    if (dep->loaderHash != loaderHasher.computeHash(loaderHasher.ctx, dep->id)) {
+      return false; // Dependency loader has changed.
     }
   }
   return true;
@@ -415,7 +422,6 @@ bool asset_cache_get(
   if (UNLIKELY(c->error)) {
     return false;
   }
-  (void)loaderHasher;
   trace_begin("asset_cache_get", TraceColor_Green);
 
   const StringHash idHash = string_hash(id);
@@ -431,7 +437,7 @@ bool asset_cache_get(
       if (!cache_meta_resolve(g_dataReg, &entry->meta, &out->meta)) {
         goto Incompatible;
       }
-      if (!cache_reg_validate(c, entry)) {
+      if (!cache_reg_validate(c, entry, loaderHasher)) {
         goto Incompatible;
       }
       out->modTime    = entry->modTime;
