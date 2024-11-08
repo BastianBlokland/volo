@@ -101,6 +101,8 @@ ecs_system_define(AssetImportInitSys) {
    * Update the import scripts.
    * NOTE: Its important to refresh the program pointers at the beginning of each frame as the ECS
    * can move component data around during flushes.
+   * TODO: Don't reload import scripts while currently loading an asset.
+   * TODO: Mark imported assets as changed when an importer script changes.
    */
   importEnv->importHash = 0;
   dynarray_for_t(&importEnv->scripts, AssetImportScript, script) {
