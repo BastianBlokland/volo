@@ -1,6 +1,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 
+#include "import_internal.h"
 #include "loader_internal.h"
 
 // clang-format off
@@ -69,7 +70,10 @@ static const u32 g_assetLoaderVersions[AssetFormat_Count] = {
 AssetLoader asset_loader(const AssetFormat format) { return g_assetLoaders[format]; }
 u32         asset_loader_version(const AssetFormat format) { return g_assetLoaderVersions[format]; }
 
-u32 asset_loader_hash(const AssetFormat format) {
-  const u32 version = g_assetLoaderVersions[format];
-  return bits_hash_32_val(version);
+u32 asset_loader_hash(const AssetImportEnvComp* importEnv, const String assetId) {
+  const AssetFormat format = asset_format_from_ext(assetId);
+
+  u32 hash = bits_hash_32_val(g_assetLoaderVersions[format]);
+  hash     = bits_hash_32_combine(hash, asset_import_hash(importEnv, assetId));
+  return hash;
 }
