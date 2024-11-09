@@ -23,6 +23,7 @@ typedef enum {
 typedef struct {
   bool                 reloading;
   EcsEntityId          asset;
+  String               assetId;
   const ScriptProgram* program;
 } AssetImportScript;
 
@@ -102,6 +103,7 @@ ecs_view_define(InitScriptView) {
   ecs_access_without(AssetFailedComp);
   ecs_access_without(AssetChangedComp);
   ecs_access_read(AssetScriptComp);
+  ecs_access_read(AssetComp);
 }
 
 static void asset_import_reload_all(EcsWorld* world, const AssetImportType type) {
@@ -144,13 +146,16 @@ static void asset_import_init_handler(
     }
 
     if (!isFailed && !script->reloading && ecs_view_maybe_jump(scriptItr, script->asset)) {
+      const AssetComp*       assetComp  = ecs_view_read_t(scriptItr, AssetComp);
       const AssetScriptComp* scriptComp = ecs_view_read_t(scriptItr, AssetScriptComp);
       diag_assert(type == import_type_for_domain(scriptComp->domain));
 
       importHash      = bits_hash_32_combine(importHash, scriptComp->hash);
       script->program = &scriptComp->prog;
+      script->assetId = asset_id(assetComp);
     } else {
       script->program = null;
+      script->assetId = string_empty;
       ready           = false;
     }
 
@@ -315,7 +320,8 @@ bool asset_import_eval(
   };
 
   dynarray_for_t(&handler->scripts, AssetImportScript, script) {
-    ctx.prog = script->program;
+    ctx.prog   = script->program;
+    ctx.progId = script->assetId;
     script_prog_eval(script->program, null, binder, &ctx);
   }
   return true;

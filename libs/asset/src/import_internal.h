@@ -40,6 +40,7 @@ void asset_import_register(ScriptBinder*);
 typedef struct {
   String               assetId;
   const ScriptProgram* prog;
+  String               progId;
   void*                out; // Type specific output data.
 } AssetImportContext;
 
