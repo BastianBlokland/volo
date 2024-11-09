@@ -160,6 +160,7 @@ ecs_system_define(AssetImportInitSys) {
 ecs_view_define(DeinitGlobalView) { ecs_access_write(AssetImportEnvComp); }
 
 static void asset_import_deinit_handler(AssetImportHandler* handler) {
+  handler->ready = false;
   // Clear program pointers; will be refreshed next frame.
   dynarray_for_t(&handler->scripts, AssetImportScript, script) { script->program = null; }
 }
