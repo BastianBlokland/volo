@@ -593,9 +593,9 @@ ecs_system_define(AssetCacheSys) {
         ecs_view_jump(depItr, depComp->dependencies.single);
         const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
         deps[depCount++]              = (AssetRepoDep){
-                         .id         = depAssetComp->id,
-                         .modTime    = depAssetComp->loadModTime,
-                         .loaderHash = depAssetComp->loaderHash,
+            .id         = depAssetComp->id,
+            .modTime    = depAssetComp->loadModTime,
+            .loaderHash = depAssetComp->loaderHash,
         };
       } break;
       case AssetDepStorageType_Many:
@@ -606,9 +606,9 @@ ecs_system_define(AssetCacheSys) {
           ecs_view_jump(depItr, *asset);
           const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
           deps[depCount++]              = (AssetRepoDep){
-                           .id         = depAssetComp->id,
-                           .modTime    = depAssetComp->loadModTime,
-                           .loaderHash = depAssetComp->loaderHash,
+              .id         = depAssetComp->id,
+              .modTime    = depAssetComp->loadModTime,
+              .loaderHash = depAssetComp->loaderHash,
           };
         }
         break;
