@@ -8,7 +8,7 @@ void asset_data_init_decal(void);
 void asset_data_init_fonttex(void);
 void asset_data_init_graphic(void);
 void asset_data_init_icon(void);
-void asset_data_init_import(void);
+void asset_data_init_import_mesh(void);
 void asset_data_init_inputmap(void);
 void asset_data_init_level(void);
 void asset_data_init_mesh(void);

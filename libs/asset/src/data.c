@@ -158,7 +158,7 @@ void asset_data_init(void) {
     asset_data_init_fonttex();
     asset_data_init_graphic();
     asset_data_init_icon();
-    asset_data_init_import();
+    asset_data_init_import_mesh();
     asset_data_init_inputmap();
     asset_data_init_level();
     asset_data_init_mesh();

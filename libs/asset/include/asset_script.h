@@ -7,7 +7,7 @@
 typedef struct sScriptBinder ScriptBinder;
 
 typedef enum {
-  AssetScriptDomain_Import,
+  AssetScriptDomain_ImportMesh,
   AssetScriptDomain_Scene,
 } AssetScriptDomain;
 
@@ -21,6 +21,6 @@ ecs_comp_extern_public(AssetScriptComp) {
   HeapArray_t(String) stringLiterals; // To be interned in the global stringtable.
 };
 
-extern ScriptBinder* g_assetScriptImportBinder;
+extern ScriptBinder* g_assetScriptImportMeshBinder;
 extern ScriptBinder* g_assetScriptSceneBinder;
 extern DataMeta      g_assetScriptMeta;

@@ -8,7 +8,7 @@
         "volo/build/apps/utilities/app_lsp",
         "--stdio",
         "--binders",
-        "volo/assets/schemas/script_import_binder.json"
+        "volo/assets/schemas/script_import_mesh_binder.json"
         "volo/assets/schemas/script_scene_binder.json"
       ],
       "languageId": "volo-script",

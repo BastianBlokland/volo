@@ -32,7 +32,7 @@ Installation:
 				"[REPOSITORY_PATH]/build/apps/utilities/app_lsp",
 				"--stdio",
 				"--binders",
-				"[REPOSITORY_PATH]/assets/schemas/script_import_binder.json"
+				"[REPOSITORY_PATH]/assets/schemas/script_import_mesh_binder.json"
 				"[REPOSITORY_PATH]/assets/schemas/script_scene_binder.json"
 			],
 			"languageId": "volo-script",
