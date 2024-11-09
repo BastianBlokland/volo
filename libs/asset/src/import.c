@@ -4,6 +4,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_path.h"
+#include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
@@ -80,6 +81,13 @@ static AssetImportEnvComp* import_env_init(EcsWorld* world, AssetManagerComp* ma
   return res;
 }
 
+ecs_view_define(LoadingAssetsView) {
+  ecs_access_with(AssetComp);
+  ecs_access_with(AssetDirtyComp);
+  ecs_access_without(AssetLoadedComp);
+  ecs_access_without(AssetFailedComp);
+}
+
 ecs_view_define(InitGlobalView) {
   ecs_access_maybe_write(AssetImportEnvComp);
   ecs_access_write(AssetManagerComp);
@@ -100,11 +108,14 @@ static void asset_import_init_handler(
   (void)type;
   /**
    * Update the import scripts.
-   * NOTE: Its important to refresh the program pointers at the beginning of each frame as the ECS
-   * can move component data around during flushes.
-   * TODO: Don't reload import scripts while currently loading an asset.
+   * NOTE: Block unloading import scripts when we are currently loading an asset to make sure the
+   * importers stay consistent throughout the whole asset load process.
+   * NOTE: Refresh the program pointers at the beginning of each frame as the ECS can move component
+   * data around during flushes.
    * TODO: Mark imported assets as changed when an importer script changes.
    */
+  const bool canUnload = !ecs_utils_any(world, LoadingAssetsView);
+
   handler->importHash = 0;
   handler->ready      = true;
   dynarray_for_t(&handler->scripts, AssetImportScript, script) {
@@ -112,7 +123,7 @@ static void asset_import_init_handler(
     const bool isFailed   = ecs_world_has_t(world, script->asset, AssetFailedComp);
     const bool hasChanged = ecs_world_has_t(world, script->asset, AssetChangedComp);
 
-    if (hasChanged && !script->reloading && (isLoaded || isFailed)) {
+    if (canUnload && hasChanged && !script->reloading && (isLoaded || isFailed)) {
       log_i("Reloading import script", log_param("reason", fmt_text_lit("Asset changed")));
 
       asset_release(world, script->asset);
@@ -180,11 +191,16 @@ ecs_system_define(AssetImportDeinitSys) {
 ecs_module_init(asset_import_module) {
   ecs_register_comp(AssetImportEnvComp, .destructor = ecs_destruct_import_env_comp);
 
+  ecs_register_view(LoadingAssetsView);
   ecs_register_view(InitGlobalView);
   ecs_register_view(InitScriptView);
   ecs_register_view(DeinitGlobalView);
 
-  ecs_register_system(AssetImportInitSys, ecs_view_id(InitGlobalView), ecs_view_id(InitScriptView));
+  ecs_register_system(
+      AssetImportInitSys,
+      ecs_view_id(LoadingAssetsView),
+      ecs_view_id(InitGlobalView),
+      ecs_view_id(InitScriptView));
   ecs_order(AssetImportInitSys, AssetOrder_Init);
 
   ecs_register_system(AssetImportDeinitSys, ecs_view_id(DeinitGlobalView));
