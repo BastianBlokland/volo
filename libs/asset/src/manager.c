@@ -95,6 +95,8 @@ ecs_comp_define(AssetCacheRequestComp) {
   Mem      blobMem;
 };
 
+ecs_comp_define(AssetReloadRequestComp);
+
 ecs_comp_define(AssetExtLoadComp) {
   u32         count;
   AssetFormat format;
@@ -491,6 +493,27 @@ ecs_system_define(AssetPollChangedSys) {
   }
 }
 
+ecs_view_define(AssetReloadView) {
+  ecs_access_with(AssetComp);
+  ecs_access_with(AssetReloadRequestComp);
+  ecs_access_read(AssetDependencyComp);
+}
+
+ecs_system_define(AssetReloadRequestSys) {
+  EcsView* reloadView = ecs_world_view_t(world, AssetReloadView);
+  for (EcsIterator* itr = ecs_view_itr(reloadView); ecs_view_walk(itr);) {
+    const EcsEntityId entity = ecs_view_entity(itr);
+    ecs_utils_maybe_add_t(world, entity, AssetChangedComp);
+    ecs_utils_maybe_add_t(world, entity, AssetInstantUnloadComp);
+
+    const AssetDependencyComp* depComp = ecs_view_read_t(itr, AssetDependencyComp);
+    asset_dep_mark(&depComp->dependents, world, ecs_comp_id(AssetChangedComp));
+    asset_dep_mark(&depComp->dependents, world, ecs_comp_id(AssetInstantUnloadComp));
+
+    ecs_world_remove_t(world, entity, AssetReloadRequestComp);
+  }
+}
+
 ecs_view_define(AssetLoadExtView) {
   ecs_access_write(AssetComp);
   ecs_access_read(AssetExtLoadComp);
@@ -622,6 +645,7 @@ ecs_module_init(asset_manager_module) {
       .destructor = ecs_destruct_asset_dependency,
       .combinator = ecs_combine_asset_dependency);
   ecs_register_comp(AssetCacheRequestComp, .destructor = ecs_destruct_cache_request_comp);
+  ecs_register_comp_empty(AssetReloadRequestComp);
   ecs_register_comp(AssetExtLoadComp, .combinator = ecs_combine_asset_ext_load);
 
   ecs_register_view(GlobalUpdateView);
@@ -637,6 +661,8 @@ ecs_module_init(asset_manager_module) {
 
   ecs_register_system(
       AssetPollChangedSys, ecs_view_id(AssetDependencyView), ecs_view_id(GlobalReadView));
+
+  ecs_register_system(AssetReloadRequestSys, ecs_register_view(AssetReloadView));
 
   ecs_register_system(AssetLoadExtSys, ecs_register_view(AssetLoadExtView));
   ecs_order(AssetLoadExtSys, AssetOrder_Update);
@@ -700,12 +726,7 @@ void asset_release(EcsWorld* world, const EcsEntityId asset) {
 }
 
 void asset_reload_request(EcsWorld* world, const EcsEntityId assetEntity) {
-  /**
-   * Mark the asset as changed and bypass the normal unload delay.
-   * NOTE: Does not mark dependent assets as changed.
-   */
-  ecs_utils_maybe_add_t(world, assetEntity, AssetChangedComp);
-  ecs_utils_maybe_add_t(world, assetEntity, AssetInstantUnloadComp);
+  ecs_utils_maybe_add_t(world, assetEntity, AssetReloadRequestComp);
 }
 
 u32 asset_ref_count(const AssetComp* asset) { return asset->refCount; }
