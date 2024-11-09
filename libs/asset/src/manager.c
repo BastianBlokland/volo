@@ -359,7 +359,7 @@ ecs_system_define(AssetUpdateDirtySys) {
     // Loading assets should be continuously updated to track their progress.
     bool updateRequired = true;
 
-    if (assetComp->flags & AssetFlags_Failed) {
+    if (assetComp->refCount && assetComp->flags & AssetFlags_Failed) {
       /**
        * This asset failed before (but was now acquired again); clear the state to retry.
        */
