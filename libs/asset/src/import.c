@@ -248,8 +248,28 @@ u32 asset_import_hash(const AssetImportEnvComp* env, const String assetId) {
 }
 
 static ScriptVal asset_import_eval_log(AssetImportContext* ctx, ScriptBinderCall* call) {
-  (void)ctx;
-  (void)call;
+  DynString buffer = dynstring_create_over(alloc_alloc(g_allocScratch, usize_kibibyte, 1));
+  for (u16 i = 0; i != call->argCount; ++i) {
+    if (i) {
+      dynstring_append_char(&buffer, ' ');
+    }
+    script_val_write(call->args[i], &buffer);
+  }
+
+  const ScriptRangeLineCol scriptRange    = script_prog_location(ctx->prog, call->callId);
+  const String             scriptRangeStr = fmt_write_scratch(
+      "{}:{}-{}:{}",
+      fmt_int(scriptRange.start.line + 1),
+      fmt_int(scriptRange.start.column + 1),
+      fmt_int(scriptRange.end.line + 1),
+      fmt_int(scriptRange.end.column + 1));
+
+  log_i(
+      "import: {}",
+      log_param("text", fmt_text(dynstring_view(&buffer))),
+      log_param("asset", fmt_text(ctx->assetId)),
+      log_param("script-range", fmt_text(scriptRangeStr)));
+
   return script_null();
 }
 
