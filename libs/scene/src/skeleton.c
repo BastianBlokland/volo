@@ -599,9 +599,8 @@ ecs_system_define(SceneSkeletonUpdateSys) {
 }
 
 ecs_view_define(DirtyTemplateView) {
-  ecs_access_with(SceneSkeletonTemplComp);
+  ecs_access_read(SceneSkeletonTemplComp);
   ecs_access_with(SceneSkeletonTemplLoadedComp);
-  ecs_access_with(AssetChangedComp);
 }
 
 ecs_view_define(DirtyRenderableView) {
@@ -609,16 +608,33 @@ ecs_view_define(DirtyRenderableView) {
   ecs_access_with(SceneSkeletonLoadedComp);
 }
 
+static bool scene_skeleton_templ_dirty(
+    EcsWorld* world, const EcsEntityId entity, const SceneSkeletonTemplComp* templ) {
+  if (ecs_world_has_t(world, entity, AssetChangedComp)) {
+    return true;
+  }
+  if (templ->mesh && ecs_world_has_t(world, templ->mesh, AssetChangedComp)) {
+    return true;
+  }
+  return false;
+}
+
 ecs_system_define(SceneSkeletonClearDirtyTemplateSys) {
   EcsView* dirtyTemplateView   = ecs_world_view_t(world, DirtyTemplateView);
   EcsView* dirtyRenderableView = ecs_world_view_t(world, DirtyRenderableView);
 
   /**
-   * Clear skeleton templates for changed graphic assets.
+   * Clear skeleton templates for changed graphic / mesh assets.
    */
   DynArray clearedTemplates = dynarray_create_t(g_allocScratch, EcsEntityId, 0);
   for (EcsIterator* itr = ecs_view_itr(dirtyTemplateView); ecs_view_walk(itr);) {
-    const EcsEntityId entity = ecs_view_entity(itr);
+    const EcsEntityId             entity = ecs_view_entity(itr);
+    const SceneSkeletonTemplComp* templ  = ecs_view_read_t(itr, SceneSkeletonTemplComp);
+
+    if (!scene_skeleton_templ_dirty(world, entity, templ)) {
+      continue;
+    }
+
     ecs_world_remove_t(world, entity, SceneSkeletonTemplComp);
     ecs_world_remove_t(world, entity, SceneSkeletonTemplLoadedComp);
 
