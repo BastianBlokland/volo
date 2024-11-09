@@ -1,0 +1,27 @@
+{
+  "name": "import-mesh",
+  "flags": [ "DisallowMemoryAccess" ],
+  "filter": "import/mesh/*.script",
+  "functions": [
+    {
+      "name": "dummy",
+      "doc": "Set a dummy import config",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "val", "mask": "null" }
+        ]
+      }
+    },
+    {
+      "name": "log",
+      "doc": "Log the given values.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "values", "mask": "any", "multi": true }
+        ]
+      }
+    }
+  ]
+}

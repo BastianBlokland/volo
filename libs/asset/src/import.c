@@ -247,7 +247,25 @@ u32 asset_import_hash(const AssetImportEnvComp* env, const String assetId) {
   return env->handlers[type].importHash;
 }
 
-void asset_import_register(ScriptBinder* binder) { (void)binder; }
+static ScriptVal asset_import_eval_log(AssetImportContext* ctx, ScriptBinderCall* call) {
+  (void)ctx;
+  (void)call;
+  return script_null();
+}
+
+void asset_import_register(ScriptBinder* binder) {
+  // clang-format off
+  {
+    const String       name   = string_lit("log");
+    const String       doc    = string_lit("Log the given values.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("values"), script_mask_any, ScriptSigArgFlags_Multi},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), asset_import_eval_log);
+  }
+  // clang-format on
+}
 
 void asset_import_bind(
     ScriptBinder*               binder,
