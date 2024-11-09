@@ -125,7 +125,7 @@ static void asset_import_init_handler(
    * NOTE: Refresh the program pointers at the beginning of each frame as the ECS can move component
    * data around during flushes.
    */
-  const bool canUnload = !ecs_utils_any(world, LoadingAssetsView);
+  const bool canUnload = !handler->importHash || !ecs_utils_any(world, LoadingAssetsView);
 
   u32  importHash = 0;
   bool ready      = true;
