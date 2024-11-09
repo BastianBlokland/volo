@@ -4,8 +4,6 @@
 #include "script_binder.h"
 #include "script_sig.h"
 
-#include "import_mesh_internal.h"
-
 ScriptBinder* g_assetScriptImportMeshBinder;
 
 typedef struct {
