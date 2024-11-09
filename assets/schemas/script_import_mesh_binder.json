@@ -24,6 +24,14 @@
       }
     },
     {
+      "name": "asset_id",
+      "doc": "Lookup the identifier of the importing asset.",
+      "sig": {
+        "ret": "null",
+        "args": []
+      }
+    },
+    {
       "name": "log",
       "doc": "Log the given values.",
       "sig": {

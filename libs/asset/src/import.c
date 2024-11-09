@@ -4,6 +4,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_path.h"
+#include "core_stringtable.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
@@ -279,6 +280,12 @@ asset_import_log(AssetImportContext* ctx, ScriptBinderCall* call, const LogLevel
       log_param("script-range", fmt_text(scriptRangeStr)));
 }
 
+static ScriptVal asset_import_eval_asset_id(AssetImportContext* ctx, ScriptBinderCall* call) {
+  (void)call;
+  const StringHash assetIdHash = stringtable_add(g_stringtable, ctx->assetId);
+  return script_str(assetIdHash);
+}
+
 static ScriptVal asset_import_eval_log(AssetImportContext* ctx, ScriptBinderCall* call) {
   asset_import_log(ctx, call, LogLevel_Info);
   return script_null();
@@ -297,6 +304,12 @@ static ScriptVal asset_import_eval_fail(AssetImportContext* ctx, ScriptBinderCal
 
 void asset_import_register(ScriptBinder* binder) {
   // clang-format off
+  {
+    const String       name   = string_lit("asset_id");
+    const String       doc    = string_lit("Lookup the identifier of the importing asset.");
+    const ScriptMask   ret    = script_mask_null;
+    asset_import_bind(binder, name, doc, ret, null, 0, asset_import_eval_asset_id);
+  }
   {
     const String       name   = string_lit("log");
     const String       doc    = string_lit("Log the given values.");
