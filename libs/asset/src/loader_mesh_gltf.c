@@ -15,6 +15,7 @@
 #include "log_logger.h"
 #include "trace_tracer.h"
 
+#include "import_mesh_internal.h"
 #include "loader_mesh_internal.h"
 #include "manager_internal.h"
 #include "mesh_utils_internal.h"
@@ -162,6 +163,8 @@ ecs_comp_define(AssetGltfLoadComp) {
   u32           animCount;
   GltfTransform sceneTrans;
   u32           accBindInvMats; // Access index [Optional].
+
+  AssetImportMesh importData;
 
   AssetSource* glbDataSource;
   GlbChunk     glbBinChunk;
@@ -1693,7 +1696,13 @@ ecs_module_init(asset_mesh_gltf_module) {
       GltfLoadAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView), ecs_view_id(BufferView));
 }
 
-static GltfLoad* gltf_load(EcsWorld* w, const String id, const EcsEntityId e, const Mem data) {
+static GltfLoad* gltf_load(
+    EcsWorld*                 w,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         e,
+    const Mem                 data) {
+
   JsonDoc*   jsonDoc = json_create(g_allocHeap, 512);
   JsonResult jsonRes;
   json_read(jsonDoc, data, JsonReadFlags_HashOnlyFieldNames, &jsonRes);
@@ -1710,6 +1719,9 @@ static GltfLoad* gltf_load(EcsWorld* w, const String id, const EcsEntityId e, co
     return null;
   }
 
+  AssetImportMesh importData;
+  asset_import_mesh(importEnv, id, &importData);
+
   Allocator* transientAlloc =
       alloc_chunked_create(g_allocHeap, alloc_bump_create, gltf_transient_alloc_chunk_size);
 
@@ -1722,7 +1734,8 @@ static GltfLoad* gltf_load(EcsWorld* w, const String id, const EcsEntityId e, co
       .jDoc           = jsonDoc,
       .jRoot          = jsonRes.val,
       .accBindInvMats = sentinel_u32,
-      .animData       = dynarray_create(g_allocHeap, 1, 1, 0));
+      .animData       = dynarray_create(g_allocHeap, 1, 1, 0),
+      .importData     = importData);
 }
 
 void asset_load_mesh_gltf(
@@ -1731,9 +1744,8 @@ void asset_load_mesh_gltf(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
 
-  gltf_load(world, id, entity, src->data);
+  gltf_load(world, importEnv, id, entity, src->data);
   asset_repo_source_close(src);
 }
 
@@ -1816,7 +1828,8 @@ void asset_load_mesh_glb(
     goto Failed;
   }
 
-  GltfLoad* ld = gltf_load(world, id, entity, mem_create(chunks[0].dataPtr, chunks[0].length));
+  const Mem gltfData = mem_create(chunks[0].dataPtr, chunks[0].length);
+  GltfLoad* ld       = gltf_load(world, importEnv, id, entity, gltfData);
   if (UNLIKELY(!ld)) {
     goto Failed;
   }
