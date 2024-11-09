@@ -452,9 +452,9 @@ ecs_system_define(AssetUpdateDirtySys) {
       goto AssetUpdateDone;
     }
 
-    if (assetComp->refCount && assetComp->flags & AssetFlags_Loaded) {
+    if (!!assetComp->refCount == !!(assetComp->flags & AssetFlags_Loaded)) {
       /**
-       * Asset was already loaded, no need for further updates.
+       * Asset load state matches required state, no need for further updates.
        */
       updateRequired = false;
     }
