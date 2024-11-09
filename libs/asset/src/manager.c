@@ -496,7 +496,7 @@ ecs_system_define(AssetPollChangedSys) {
 ecs_view_define(AssetReloadView) {
   ecs_access_with(AssetComp);
   ecs_access_with(AssetReloadRequestComp);
-  ecs_access_read(AssetDependencyComp);
+  ecs_access_maybe_read(AssetDependencyComp);
 }
 
 ecs_system_define(AssetReloadRequestSys) {
@@ -507,9 +507,10 @@ ecs_system_define(AssetReloadRequestSys) {
     ecs_utils_maybe_add_t(world, entity, AssetInstantUnloadComp);
 
     const AssetDependencyComp* depComp = ecs_view_read_t(itr, AssetDependencyComp);
-    asset_dep_mark(&depComp->dependents, world, ecs_comp_id(AssetChangedComp));
-    asset_dep_mark(&depComp->dependents, world, ecs_comp_id(AssetInstantUnloadComp));
-
+    if (depComp) {
+      asset_dep_mark(&depComp->dependents, world, ecs_comp_id(AssetChangedComp));
+      asset_dep_mark(&depComp->dependents, world, ecs_comp_id(AssetInstantUnloadComp));
+    }
     ecs_world_remove_t(world, entity, AssetReloadRequestComp);
   }
 }
