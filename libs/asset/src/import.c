@@ -25,6 +25,7 @@ typedef struct {
 
 typedef struct {
   u32      importHash;
+  bool     ready;
   DynArray scripts; // AssetImportScript[]
 } AssetImportHandler;
 
@@ -105,6 +106,7 @@ static void asset_import_init_handler(
    * TODO: Mark imported assets as changed when an importer script changes.
    */
   handler->importHash = 0;
+  handler->ready      = true;
   dynarray_for_t(&handler->scripts, AssetImportScript, script) {
     const bool isLoaded   = ecs_world_has_t(world, script->asset, AssetLoadedComp);
     const bool isFailed   = ecs_world_has_t(world, script->asset, AssetFailedComp);
@@ -125,6 +127,7 @@ static void asset_import_init_handler(
       script->program     = &scriptComp->prog;
     } else {
       script->program = null;
+      handler->ready  = false;
     }
 
     if (script->reloading && !isLoaded) {
@@ -193,14 +196,7 @@ bool asset_import_ready(const AssetImportEnvComp* env, const String assetId) {
   if (type == AssetImportType_Sentinel) {
     return true; // No import-type defined for this format.
   }
-
-  // Check if all import scripts are loaded.
-  dynarray_for_t(&env->handlers[type].scripts, AssetImportScript, script) {
-    if (!script->program) {
-      return false;
-    }
-  }
-  return true;
+  return env->handlers[type].ready;
 }
 
 u32 asset_import_hash(const AssetImportEnvComp* env, const String assetId) {
