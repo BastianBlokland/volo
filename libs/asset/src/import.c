@@ -205,5 +205,6 @@ u32 asset_import_hash(const AssetImportEnvComp* env, const String assetId) {
   if (type == AssetImportType_Sentinel) {
     return 0; // No import-type defined for this format.
   }
+  diag_assert_msg(env->handlers[type].ready, "Unable to compute import-hash: Not ready");
   return env->handlers[type].importHash;
 }
