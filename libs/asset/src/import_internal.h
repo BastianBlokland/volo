@@ -12,6 +12,9 @@ typedef u16               ScriptMask;
 // Forward declare from 'script_sig.h'.
 typedef struct sScriptSigArg ScriptSigArg;
 
+// Forward declare from 'script_prog.h'.
+typedef struct sScriptProgram ScriptProgram;
+
 /**
  * Global asset import environment.
  */
@@ -35,8 +38,9 @@ u32 asset_import_hash(const AssetImportEnvComp*, String assetId);
 void asset_import_register(ScriptBinder*);
 
 typedef struct {
-  String assetId;
-  void*  out; // Type specific output data.
+  String               assetId;
+  const ScriptProgram* prog;
+  void*                out; // Type specific output data.
 } AssetImportContext;
 
 typedef ScriptVal (*AssetImportBinderFunc)(AssetImportContext*, ScriptBinderCall*);

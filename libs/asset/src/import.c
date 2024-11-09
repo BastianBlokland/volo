@@ -295,6 +295,7 @@ bool asset_import_eval(
   };
 
   dynarray_for_t(&handler->scripts, AssetImportScript, script) {
+    ctx.prog = script->program;
     script_prog_eval(script->program, null, binder, &ctx);
   }
   return true;
