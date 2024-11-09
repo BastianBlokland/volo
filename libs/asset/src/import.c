@@ -8,6 +8,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "script_binder.h"
+#include "script_sig.h"
 
 #include "format_internal.h"
 #include "import_internal.h"
@@ -247,6 +248,19 @@ u32 asset_import_hash(const AssetImportEnvComp* env, const String assetId) {
 }
 
 void asset_import_register(ScriptBinder* binder) { (void)binder; }
+
+void asset_import_bind(
+    ScriptBinder*               binder,
+    const String                name,
+    const String                doc,
+    const ScriptMask            retMask,
+    const ScriptSigArg*         args,
+    const u8                    argCount,
+    const AssetImportBinderFunc func) {
+  const ScriptSig* sig = script_sig_create(g_allocScratch, retMask, args, argCount);
+  // NOTE: Func pointer cast is needed to type-erase the context type.
+  script_binder_declare(binder, name, doc, sig, (ScriptBinderFunc)func);
+}
 
 void asset_import_eval(
     const AssetImportEnvComp* env, const ScriptBinder* binder, AssetImportContext* ctx) {

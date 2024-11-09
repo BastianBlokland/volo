@@ -7,6 +7,10 @@ typedef struct sScriptBinderCall ScriptBinderCall;
 
 // Forward declare from 'script_val.h'.
 typedef struct sScriptVal ScriptVal;
+typedef u16               ScriptMask;
+
+// Forward declare from 'script_sig.h'.
+typedef struct sScriptSigArg ScriptSigArg;
 
 /**
  * Global asset import environment.
@@ -36,5 +40,14 @@ typedef struct {
 } AssetImportContext;
 
 typedef ScriptVal (*AssetImportBinderFunc)(AssetImportContext*, ScriptBinderCall*);
+
+void asset_import_bind(
+    ScriptBinder*,
+    String              name,
+    String              doc,
+    ScriptMask          retMask,
+    const ScriptSigArg* args,
+    u8                  argCount,
+    AssetImportBinderFunc);
 
 void asset_import_eval(const AssetImportEnvComp*, const ScriptBinder*, AssetImportContext*);

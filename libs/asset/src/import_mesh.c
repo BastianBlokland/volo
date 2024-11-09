@@ -14,19 +14,6 @@ static ScriptVal eval_dummy(AssetImportContext* ctx, ScriptBinderCall* call) {
   return script_null();
 }
 
-static void bind_eval(
-    ScriptBinder*               binder,
-    const String                name,
-    const String                doc,
-    const ScriptMask            retMask,
-    const ScriptSigArg          args[],
-    const u8                    argCount,
-    const AssetImportBinderFunc func) {
-  const ScriptSig* sig = script_sig_create(g_allocScratch, retMask, args, argCount);
-  // NOTE: Func pointer cast is needed to type-erase the context type.
-  script_binder_declare(binder, name, doc, sig, (ScriptBinderFunc)func);
-}
-
 void asset_data_init_import_mesh(void) {
   const ScriptBinderFlags flags = ScriptBinderFlags_DisallowMemoryAccess;
   ScriptBinder* binder = script_binder_create(g_allocPersist, string_lit("import-mesh"), flags);
@@ -40,7 +27,7 @@ void asset_data_init_import_mesh(void) {
     const ScriptSigArg args[] = {
         {string_lit("val"), script_mask_null},
     };
-    bind_eval(binder, name, doc, ret, args, array_elems(args), eval_dummy);
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), eval_dummy);
   }
   // clang-format on
 

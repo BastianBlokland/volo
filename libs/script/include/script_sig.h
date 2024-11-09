@@ -18,7 +18,7 @@ typedef enum {
   ScriptSigArgFlags_Multi = 1 << 0,
 } ScriptSigArgFlags;
 
-typedef struct {
+typedef struct sScriptSigArg {
   String            name;
   ScriptMask        mask; // Mask of accepted types.
   ScriptSigArgFlags flags;
