@@ -289,6 +289,12 @@ static ScriptVal asset_import_eval_warn(AssetImportContext* ctx, ScriptBinderCal
   return script_null();
 }
 
+static ScriptVal asset_import_eval_fail(AssetImportContext* ctx, ScriptBinderCall* call) {
+  asset_import_log(ctx, call, LogLevel_Error);
+  ctx->failed = true;
+  return script_null();
+}
+
 void asset_import_register(ScriptBinder* binder) {
   // clang-format off
   {
@@ -308,6 +314,15 @@ void asset_import_register(ScriptBinder* binder) {
         {string_lit("values"), script_mask_any, ScriptSigArgFlags_Multi},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), asset_import_eval_warn);
+  }
+  {
+    const String       name   = string_lit("fail");
+    const String       doc    = string_lit("Fail the import and log an error with the given values.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("values"), script_mask_any, ScriptSigArgFlags_Multi},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), asset_import_eval_fail);
   }
   // clang-format on
 }
@@ -344,5 +359,6 @@ bool asset_import_eval(
     ctx.progId = script->assetId;
     script_prog_eval(script->program, null, binder, &ctx);
   }
-  return true;
+
+  return !ctx.failed;
 }

@@ -41,6 +41,7 @@ typedef struct {
   String               assetId;
   const ScriptProgram* prog;
   String               progId;
+  bool                 failed;
   void*                out; // Type specific output data.
 } AssetImportContext;
 

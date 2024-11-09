@@ -4,6 +4,16 @@
   "filter": "import/mesh/*.script",
   "functions": [
     {
+      "name": "fail",
+      "doc": "Fail the import and log an error with the given values.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "values", "mask": "any", "multi": true }
+        ]
+      }
+    },
+    {
       "name": "dummy",
       "doc": "Set a dummy import config",
       "sig": {
