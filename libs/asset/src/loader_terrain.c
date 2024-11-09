@@ -175,7 +175,13 @@ void asset_data_init_terrain(void) {
 }
 
 void asset_load_terrain(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
   (void)id;
+
   ecs_world_add_t(world, entity, AssetTerrainLoadComp, .src = src);
 }

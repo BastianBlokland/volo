@@ -227,7 +227,13 @@ wav_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
 }
 
 void asset_load_sound_wav(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
+
   WavError err        = WavError_None;
   DynArray chunks     = dynarray_create_t(g_allocHeap, WavChunk, 8);
   Mem      sampleMem  = mem_empty;

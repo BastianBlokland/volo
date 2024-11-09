@@ -615,7 +615,12 @@ void asset_data_init_arraytex(void) {
 }
 
 void asset_load_tex_array(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
   (void)id;
 
   String         errMsg;

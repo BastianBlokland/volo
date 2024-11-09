@@ -59,10 +59,10 @@ static void asset_inputmap_build(
   heap_array_for_t(def->actions, AssetInputActionDef, actionDef) {
     const usize            bindingCount = actionDef->bindings.count;
     const AssetInputAction action       = {
-        .nameHash     = stringtable_add(g_stringtable, actionDef->name),
-        .blockerBits  = actionDef->blockers,
-        .bindingIndex = (u16)outBindings->size,
-        .bindingCount = (u16)bindingCount,
+              .nameHash     = stringtable_add(g_stringtable, actionDef->name),
+              .blockerBits  = actionDef->blockers,
+              .bindingIndex = (u16)outBindings->size,
+              .bindingCount = (u16)bindingCount,
     };
     if (dynarray_search_binary(outActions, asset_inputmap_compare_action, &action)) {
       *err = InputMapError_DuplicateAction;
@@ -252,7 +252,12 @@ void asset_data_init_inputmap(void) {
 }
 
 void asset_load_inputs(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
 
   DynArray actions  = dynarray_create_t(g_allocHeap, AssetInputAction, 64);
   DynArray bindings = dynarray_create_t(g_allocHeap, AssetInputBinding, 128);

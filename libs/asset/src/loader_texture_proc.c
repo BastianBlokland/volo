@@ -341,7 +341,13 @@ void asset_data_init_proctex(void) {
 }
 
 void asset_load_tex_proc(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
+
   String         errMsg;
   ProcTexDef     def;
   DataReadResult result;

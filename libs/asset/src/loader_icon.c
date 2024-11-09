@@ -246,7 +246,14 @@ void asset_data_init_icon(void) {
   g_assetIconMeta    = data_meta_t(t_AssetIconComp);
 }
 
-void asset_load_icon(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_icon(
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
+
   IconDef        iconDef;
   String         errMsg;
   DataReadResult readRes;
@@ -273,7 +280,12 @@ Cleanup:
 }
 
 void asset_load_icon_bin(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
 
   AssetIconComp  icon;
   DataReadResult result;

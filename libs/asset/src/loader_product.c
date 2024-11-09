@@ -11,6 +11,7 @@
 #include "ecs_utils.h"
 #include "log_logger.h"
 
+#include "import_internal.h"
 #include "repo_internal.h"
 
 DataMeta g_assetProductDefMeta;
@@ -346,8 +347,14 @@ void asset_data_init_product(void) {
 }
 
 void asset_load_products(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
   (void)id;
+
   ecs_world_add_t(world, entity, AssetProductLoadComp, .src = src);
 }
 

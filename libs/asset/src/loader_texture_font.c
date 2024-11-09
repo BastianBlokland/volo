@@ -467,7 +467,13 @@ void asset_data_init_fonttex(void) {
 }
 
 void asset_load_tex_font(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
+
   String         errMsg;
   FontTexDef     def;
   DataReadResult result;
@@ -510,7 +516,12 @@ Error:
 }
 
 void asset_load_tex_font_bin(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
 
   FontTexBundle  bundle;
   DataReadResult result;

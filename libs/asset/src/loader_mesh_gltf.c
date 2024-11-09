@@ -1726,7 +1726,12 @@ static GltfLoad* gltf_load(EcsWorld* w, const String id, const EcsEntityId e, co
 }
 
 void asset_load_mesh_gltf(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
 
   gltf_load(world, id, entity, src->data);
   asset_repo_source_close(src);
@@ -1768,7 +1773,13 @@ static Mem glb_read_chunk(Mem data, GlbChunk* out, GltfError* err) {
 }
 
 void asset_load_mesh_glb(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
+
   GltfError err = GltfError_None;
 
   GlbHeader header;

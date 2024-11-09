@@ -7,6 +7,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "import_internal.h"
 #include "loader_font_internal.h"
 #include "repo_internal.h"
 
@@ -1071,7 +1072,13 @@ ttf_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
 }
 
 void asset_load_font_ttf(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
+
   TtfError            err                = TtfError_None;
   DynArray            characters         = dynarray_create_t(g_allocHeap, AssetFontChar, 128);
   DynArray            points             = dynarray_create_t(g_allocHeap, AssetFontPoint, 1024);

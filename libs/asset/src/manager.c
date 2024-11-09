@@ -278,7 +278,7 @@ static bool asset_manager_load(
   bool success = true;
   if (LIKELY(loader)) {
     trace_begin("asset_loader", TraceColor_Red);
-    loader(world, asset->id, assetEntity, source);
+    loader(world, importEnv, asset->id, assetEntity, source);
     trace_end();
   } else {
     log_e(
@@ -593,9 +593,9 @@ ecs_system_define(AssetCacheSys) {
         ecs_view_jump(depItr, depComp->dependencies.single);
         const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
         deps[depCount++]              = (AssetRepoDep){
-            .id         = depAssetComp->id,
-            .modTime    = depAssetComp->loadModTime,
-            .loaderHash = depAssetComp->loaderHash,
+                         .id         = depAssetComp->id,
+                         .modTime    = depAssetComp->loadModTime,
+                         .loaderHash = depAssetComp->loaderHash,
         };
       } break;
       case AssetDepStorageType_Many:
@@ -606,9 +606,9 @@ ecs_system_define(AssetCacheSys) {
           ecs_view_jump(depItr, *asset);
           const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
           deps[depCount++]              = (AssetRepoDep){
-              .id         = depAssetComp->id,
-              .modTime    = depAssetComp->loadModTime,
-              .loaderHash = depAssetComp->loaderHash,
+                           .id         = depAssetComp->id,
+                           .modTime    = depAssetComp->loadModTime,
+                           .loaderHash = depAssetComp->loaderHash,
           };
         }
         break;

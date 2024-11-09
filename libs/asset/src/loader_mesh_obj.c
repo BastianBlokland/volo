@@ -410,7 +410,12 @@ obj_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
 }
 
 void asset_load_mesh_obj(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
 
   ObjError          err     = ObjError_None;
   AssetMeshBuilder* builder = null;

@@ -48,7 +48,9 @@
   _X_(AssetFormat_Vfx,              vfx,                1  )                                       \
   _X_(AssetFormat_Weapons,          weapons,            1  )
 
-#define ASSET_LOADER_ITR(_FORMAT_, _NAME_, _VERSION_) void asset_load_##_NAME_(EcsWorld*, String, EcsEntityId, AssetSource*);
+#define ASSET_LOADER_ITR(_FORMAT_, _NAME_, _VERSION_) \
+  void asset_load_##_NAME_(EcsWorld*, const AssetImportEnvComp*, String, EcsEntityId, AssetSource*);
+
 ASSET_FOREACH_LOADER(ASSET_LOADER_ITR)
 #undef ASSET_LOADER_ITR
 
