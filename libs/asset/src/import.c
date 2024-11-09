@@ -8,6 +8,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "script_args.h"
 #include "script_binder.h"
 #include "script_sig.h"
 
@@ -286,6 +287,15 @@ static ScriptVal asset_import_eval_asset_id(AssetImportContext* ctx, ScriptBinde
   return script_str(assetIdHash);
 }
 
+static ScriptVal asset_import_eval_asset_id_match(AssetImportContext* ctx, ScriptBinderCall* call) {
+  const StringHash patternHash = script_arg_str(call, 0);
+  if (UNLIKELY(!patternHash)) {
+    return script_bool(false);
+  }
+  const String patternStr = stringtable_lookup(g_stringtable, patternHash);
+  return script_bool(string_match_glob(ctx->assetId, patternStr, StringMatchFlags_IgnoreCase));
+}
+
 static ScriptVal asset_import_eval_asset_format(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   const AssetFormat format        = asset_format_from_ext(path_extension(ctx->assetId));
@@ -311,11 +321,21 @@ static ScriptVal asset_import_eval_fail(AssetImportContext* ctx, ScriptBinderCal
 
 void asset_import_register(ScriptBinder* binder) {
   // clang-format off
+  static const String g_globPatternDoc = string_static("Supported pattern syntax:\n- '?' matches any single character.\n- '*' matches any number of any characters including none.\n- '!' inverts the entire match (not per segment and cannot be disabled after enabling).");
   {
     const String       name   = string_lit("asset_id");
     const String       doc    = string_lit("Lookup the identifier of the importing asset.");
     const ScriptMask   ret    = script_mask_str;
     asset_import_bind(binder, name, doc, ret, null, 0, asset_import_eval_asset_id);
+  }
+  {
+    const String       name   = string_lit("asset_id_match");
+    const String       doc    = fmt_write_scratch("Match the identifier of the importing asset against the given glob pattern.\n\n{}", fmt_text(g_globPatternDoc));
+    const ScriptMask   ret    = script_mask_bool;
+    const ScriptSigArg args[] = {
+        {string_lit("pattern"), script_mask_str},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), asset_import_eval_asset_id_match);
   }
   {
     const String       name   = string_lit("asset_format");

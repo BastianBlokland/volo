@@ -42,6 +42,16 @@
       }
     },
     {
+      "name": "asset_id_match",
+      "doc": "Match the identifier of the importing asset against the given glob pattern.\n\nSupported pattern syntax:\n- '?' matches any single character.\n- '*' matches any number of any characters including none.\n- '!' inverts the entire match (not per segment and cannot be disabled after enabling).",
+      "sig": {
+        "ret": "bool",
+        "args": [
+          { "name": "pattern", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "asset_format",
       "doc": "Lookup the format of the importing asset.",
       "sig": {
