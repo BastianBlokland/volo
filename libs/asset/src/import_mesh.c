@@ -14,16 +14,14 @@ static ScriptVal eval_dummy(AssetImportContext* ctx, ScriptBinderCall* call) {
   return script_null();
 }
 
-typedef ScriptVal (*ImportBinderFunc)(AssetImportContext*, ScriptBinderCall*);
-
 static void bind_eval(
-    ScriptBinder*          binder,
-    const String           name,
-    const String           doc,
-    const ScriptMask       retMask,
-    const ScriptSigArg     args[],
-    const u8               argCount,
-    const ImportBinderFunc func) {
+    ScriptBinder*               binder,
+    const String                name,
+    const String                doc,
+    const ScriptMask            retMask,
+    const ScriptSigArg          args[],
+    const u8                    argCount,
+    const AssetImportBinderFunc func) {
   const ScriptSig* sig = script_sig_create(g_allocScratch, retMask, args, argCount);
   // NOTE: Func pointer cast is needed to type-erase the context type.
   script_binder_declare(binder, name, doc, sig, (ScriptBinderFunc)func);

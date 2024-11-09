@@ -2,7 +2,11 @@
 #include "ecs_module.h"
 
 // Forward declare from 'script_binder.h'.
-typedef struct sScriptBinder ScriptBinder;
+typedef struct sScriptBinder     ScriptBinder;
+typedef struct sScriptBinderCall ScriptBinderCall;
+
+// Forward declare from 'script_val.h'.
+typedef struct sScriptVal ScriptVal;
 
 /**
  * Global asset import environment.
@@ -30,5 +34,7 @@ typedef struct {
   String assetId;
   void*  out; // Type specific output data.
 } AssetImportContext;
+
+typedef ScriptVal (*AssetImportBinderFunc)(AssetImportContext*, ScriptBinderCall*);
 
 void asset_import_eval(const AssetImportEnvComp*, const ScriptBinder*, AssetImportContext*);
