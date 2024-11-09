@@ -44,7 +44,7 @@ void asset_data_init_import_mesh(void) {
   }
   // clang-format on
 
-  asset_import_bind(binder);
+  asset_import_register(binder);
 
   script_binder_finalize(binder);
   g_assetScriptImportMeshBinder = binder;

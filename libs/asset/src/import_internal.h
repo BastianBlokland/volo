@@ -28,7 +28,7 @@ u32 asset_import_hash(const AssetImportEnvComp*, String assetId);
 /**
  * Register generic script bindings.
  */
-void asset_import_bind(ScriptBinder*);
+void asset_import_register(ScriptBinder*);
 
 typedef struct {
   String assetId;
