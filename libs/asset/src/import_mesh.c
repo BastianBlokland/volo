@@ -41,10 +41,5 @@ bool asset_import_mesh(const AssetImportEnvComp* env, const String id, AssetImpo
   *out = (AssetImportMesh){
       .scale = 1.0f,
   };
-  AssetImportContext ctx = {
-      .assetId = id,
-      .out     = out,
-  };
-  asset_import_eval(env, g_assetScriptImportMeshBinder, &ctx);
-  return true;
+  return asset_import_eval(env, g_assetScriptImportMeshBinder, id, out);
 }

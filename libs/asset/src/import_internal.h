@@ -50,4 +50,4 @@ void asset_import_bind(
     u8                  argCount,
     AssetImportBinderFunc);
 
-void asset_import_eval(const AssetImportEnvComp*, const ScriptBinder*, AssetImportContext*);
+bool asset_import_eval(const AssetImportEnvComp*, const ScriptBinder*, String assetId, void* out);

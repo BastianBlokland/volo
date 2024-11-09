@@ -280,16 +280,22 @@ void asset_import_bind(
   script_binder_declare(binder, name, doc, sig, (ScriptBinderFunc)func);
 }
 
-void asset_import_eval(
-    const AssetImportEnvComp* env, const ScriptBinder* binder, AssetImportContext* ctx) {
-  const AssetFormat     format = asset_format_from_ext(path_extension(ctx->assetId));
+bool asset_import_eval(
+    const AssetImportEnvComp* env, const ScriptBinder* binder, const String assetId, void* out) {
+  const AssetFormat     format = asset_format_from_ext(path_extension(assetId));
   const AssetImportType type   = import_type_for_format(format);
   diag_assert(type != AssetImportType_Sentinel);
 
   const AssetImportHandler* handler = &env->handlers[type];
   diag_assert(handler->ready);
 
+  AssetImportContext ctx = {
+      .assetId = assetId,
+      .out     = out,
+  };
+
   dynarray_for_t(&handler->scripts, AssetImportScript, script) {
-    script_prog_eval(script->program, null, binder, ctx);
+    script_prog_eval(script->program, null, binder, &ctx);
   }
+  return true;
 }
