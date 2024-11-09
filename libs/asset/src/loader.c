@@ -1,5 +1,6 @@
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_path.h"
 
 #include "import_internal.h"
 #include "loader_internal.h"
@@ -22,7 +23,7 @@
   _X_(AssetFormat_MeshProc,         mesh_proc,          1  )                                       \
   _X_(AssetFormat_Prefabs,          prefabs,            1  )                                       \
   _X_(AssetFormat_Products,         products,           1  )                                       \
-  _X_(AssetFormat_Raw,              raw,                1  )                                       \
+  _X_(AssetFormat_Raw,              raw,                0  ) /* Raw cannot be versioned. */        \
   _X_(AssetFormat_Script,           script,             1  )                                       \
   _X_(AssetFormat_ScriptBin,        script_bin,         1  )                                       \
   _X_(AssetFormat_ShaderBin,        shader_bin,         1  )                                       \
@@ -71,9 +72,16 @@ AssetLoader asset_loader(const AssetFormat format) { return g_assetLoaders[forma
 u32         asset_loader_version(const AssetFormat format) { return g_assetLoaderVersions[format]; }
 
 u32 asset_loader_hash(const AssetImportEnvComp* importEnv, const String assetId) {
-  const AssetFormat format = asset_format_from_ext(assetId);
+  const AssetFormat format     = asset_format_from_ext(path_extension(assetId));
+  const u32         version    = g_assetLoaderVersions[format];
+  const u32         importHash = asset_import_hash(importEnv, assetId);
 
-  u32 hash = bits_hash_32_val(g_assetLoaderVersions[format]);
-  hash     = bits_hash_32_combine(hash, asset_import_hash(importEnv, assetId));
+  u32 hash = 0;
+  if (version) {
+    hash = bits_hash_32_combine(hash, bits_hash_32_val(version));
+  }
+  if (importHash) {
+    hash = bits_hash_32_combine(hash, importHash);
+  }
   return hash;
 }
