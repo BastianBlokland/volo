@@ -5,4 +5,4 @@ typedef struct {
   f32 scale;
 } AssetImportMesh;
 
-void asset_import_mesh(const AssetImportEnvComp*, String id, AssetImportMesh*);
+bool asset_import_mesh(const AssetImportEnvComp*, String id, AssetImportMesh*);

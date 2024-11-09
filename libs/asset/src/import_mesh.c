@@ -50,7 +50,7 @@ void asset_data_init_import_mesh(void) {
   g_assetScriptImportMeshBinder = binder;
 }
 
-void asset_import_mesh(const AssetImportEnvComp* env, const String id, AssetImportMesh* out) {
+bool asset_import_mesh(const AssetImportEnvComp* env, const String id, AssetImportMesh* out) {
   *out = (AssetImportMesh){
       .scale = 1.0f,
   };
@@ -59,4 +59,5 @@ void asset_import_mesh(const AssetImportEnvComp* env, const String id, AssetImpo
       .out     = out,
   };
   asset_import_eval(env, g_assetScriptImportMeshBinder, &ctx);
+  return true;
 }

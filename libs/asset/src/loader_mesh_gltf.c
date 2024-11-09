@@ -212,6 +212,7 @@ typedef enum {
   GltfError_GlbJsonChunkMissing,
   GltfError_GlbChunkCountExceedsMaximum,
   GltfError_NoPrimitives,
+  GltfError_ImportFailed,
 
   GltfError_Count,
 } GltfError;
@@ -247,6 +248,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Glb json chunk missing"),
       string_static("Glb chunk count exceeds maximum"),
       string_static("Gltf mesh does not have any primitives"),
+      string_static("Import failed"),
   };
   ASSERT(array_elems(g_msgs) == GltfError_Count, "Incorrect number of gltf-error messages");
   return g_msgs[err];
@@ -1720,7 +1722,11 @@ static GltfLoad* gltf_load(
   }
 
   AssetImportMesh importData;
-  asset_import_mesh(importEnv, id, &importData);
+  if (!asset_import_mesh(importEnv, id, &importData)) {
+    gltf_load_fail(w, e, id, GltfError_ImportFailed);
+    json_destroy(jsonDoc);
+    return null;
+  }
 
   Allocator* transientAlloc =
       alloc_chunked_create(g_allocHeap, alloc_bump_create, gltf_transient_alloc_chunk_size);
