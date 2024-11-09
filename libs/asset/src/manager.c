@@ -522,6 +522,7 @@ ecs_view_define(AssetLoadExtView) {
 ecs_system_define(AssetLoadExtSys) {
   EcsView* extView = ecs_world_view_t(world, AssetLoadExtView);
   for (EcsIterator* itr = ecs_view_itr(extView); ecs_view_walk(itr);) {
+    const EcsEntityId       assetEntity = ecs_view_entity(itr);
     AssetComp*              assetComp   = ecs_view_write_t(itr, AssetComp);
     const AssetExtLoadComp* extLoadComp = ecs_view_read_t(itr, AssetExtLoadComp);
 
@@ -529,7 +530,8 @@ ecs_system_define(AssetLoadExtSys) {
     assetComp->loadFormat  = extLoadComp->format;
     assetComp->loadModTime = extLoadComp->modTime;
 
-    ecs_world_remove_t(world, ecs_view_entity(itr), AssetExtLoadComp);
+    ecs_utils_maybe_remove_t(world, assetEntity, AssetChangedComp);
+    ecs_world_remove_t(world, assetEntity, AssetExtLoadComp);
   }
 }
 
