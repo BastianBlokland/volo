@@ -10,49 +10,73 @@
 #include "format_internal.h"
 #include "import_internal.h"
 
-static const String g_assetImportScriptsPath = string_static("scripts/import/*.script");
-
 typedef enum {
-  AssetImportScript_Reloading = 1 << 0,
-} AssetImportScriptFlags;
+  AssetImportType_Mesh,
+
+  AssetImportType_Count,
+  AssetImportType_Sentinel = sentinel_u32
+} AssetImportType;
 
 typedef struct {
-  AssetImportScriptFlags flags : 8;
-  u32                    version; // Incremented on reload.
-  EcsEntityId            asset;
-  const ScriptProgram*   program;
+  bool                 reloading;
+  EcsEntityId          asset;
+  const ScriptProgram* program;
 } AssetImportScript;
 
-ecs_comp_define(AssetImportEnvComp) {
+typedef struct {
   u32      importHash;
   DynArray scripts; // AssetImportScript[]
+} AssetImportHandler;
+
+static const String g_assetImportScriptPaths[AssetImportType_Count] = {
+    [AssetImportType_Mesh] = string_static("scripts/import/mesh/*.script"),
 };
+
+ecs_comp_define(AssetImportEnvComp) { AssetImportHandler handlers[AssetImportType_Count]; };
 
 static void ecs_destruct_import_env_comp(void* data) {
   AssetImportEnvComp* comp = data;
-  dynarray_destroy(&comp->scripts);
+  for (AssetImportType type = 0; type != AssetImportType_Count; ++type) {
+    dynarray_destroy(&comp->handlers[type].scripts);
+  }
 }
 
-static bool import_enabled_for_format(const AssetFormat format) {
+static AssetImportType import_type_for_format(const AssetFormat format) {
   switch (format) {
   case AssetFormat_MeshGltf:
-    return true;
+    return AssetImportType_Mesh;
   default:
-    return false;
+    return AssetImportType_Sentinel;
+  }
+}
+
+MAYBE_UNUSED static AssetImportType import_type_for_domain(const AssetScriptDomain domain) {
+  switch (domain) {
+  case AssetScriptDomain_ImportMesh:
+    return AssetImportType_Mesh;
+  default:
+    return AssetImportType_Sentinel;
   }
 }
 
 static AssetImportEnvComp* import_env_init(EcsWorld* world, AssetManagerComp* manager) {
-  DynArray scripts = dynarray_create_t(g_allocHeap, AssetImportScript, 16);
+  AssetImportEnvComp* res = ecs_world_add_t(world, ecs_world_global(world), AssetImportEnvComp);
 
   EcsEntityId assets[asset_query_max_results];
-  const u32   assetCount = asset_query(world, manager, g_assetImportScriptsPath, assets);
+  u32         assetCount;
+  for (AssetImportType type = 0; type != AssetImportType_Count; ++type) {
+    assetCount = asset_query(world, manager, g_assetImportScriptPaths[type], assets);
 
-  for (u32 i = 0; i != assetCount; ++i) {
-    asset_acquire(world, assets[i]);
-    *dynarray_push_t(&scripts, AssetImportScript) = (AssetImportScript){.asset = assets[i]};
+    AssetImportHandler* handler = &res->handlers[type];
+    handler->scripts            = dynarray_create_t(g_allocHeap, AssetImportScript, assetCount);
+    for (u32 i = 0; i != assetCount; ++i) {
+      asset_acquire(world, assets[i]);
+      *dynarray_push_t(&handler->scripts, AssetImportScript) = (AssetImportScript){
+          .asset = assets[i],
+      };
+    }
   }
-  return ecs_world_add_t(world, ecs_world_global(world), AssetImportEnvComp, .scripts = scripts);
+  return res;
 }
 
 ecs_view_define(InitGlobalView) {
@@ -65,6 +89,49 @@ ecs_view_define(InitScriptView) {
   ecs_access_without(AssetFailedComp);
   ecs_access_without(AssetChangedComp);
   ecs_access_read(AssetScriptComp);
+}
+
+static void asset_import_init_handler(
+    EcsWorld*             world,
+    const AssetImportType type,
+    AssetImportHandler*   handler,
+    EcsIterator*          scriptItr) {
+  (void)type;
+  /**
+   * Update the import scripts.
+   * NOTE: Its important to refresh the program pointers at the beginning of each frame as the ECS
+   * can move component data around during flushes.
+   * TODO: Don't reload import scripts while currently loading an asset.
+   * TODO: Mark imported assets as changed when an importer script changes.
+   */
+  handler->importHash = 0;
+  dynarray_for_t(&handler->scripts, AssetImportScript, script) {
+    const bool isLoaded   = ecs_world_has_t(world, script->asset, AssetLoadedComp);
+    const bool isFailed   = ecs_world_has_t(world, script->asset, AssetFailedComp);
+    const bool hasChanged = ecs_world_has_t(world, script->asset, AssetChangedComp);
+
+    if (hasChanged && !script->reloading && (isLoaded || isFailed)) {
+      log_i("Reloading import script", log_param("reason", fmt_text_lit("Asset changed")));
+
+      asset_release(world, script->asset);
+      script->reloading = true;
+    }
+
+    if (!script->reloading && ecs_view_maybe_jump(scriptItr, script->asset)) {
+      const AssetScriptComp* scriptComp = ecs_view_read_t(scriptItr, AssetScriptComp);
+      diag_assert(type == import_type_for_domain(scriptComp->domain));
+
+      handler->importHash = bits_hash_32_combine(handler->importHash, scriptComp->hash);
+      script->program     = &scriptComp->prog;
+    } else {
+      script->program = null;
+    }
+
+    if (script->reloading && !isLoaded) {
+      asset_acquire(world, script->asset);
+      script->reloading = false;
+    }
+  }
 }
 
 ecs_system_define(AssetImportInitSys) {
@@ -82,44 +149,17 @@ ecs_system_define(AssetImportInitSys) {
   EcsView*     scriptView = ecs_world_view_t(world, InitScriptView);
   EcsIterator* scriptItr  = ecs_view_itr(scriptView);
 
-  /**
-   * Update the import scripts.
-   * NOTE: Its important to refresh the program pointers at the beginning of each frame as the ECS
-   * can move component data around during flushes.
-   * TODO: Don't reload import scripts while currently loading an asset.
-   * TODO: Mark imported assets as changed when an importer script changes.
-   */
-  importEnv->importHash = 0;
-  dynarray_for_t(&importEnv->scripts, AssetImportScript, script) {
-    const bool isLoaded   = ecs_world_has_t(world, script->asset, AssetLoadedComp);
-    const bool isFailed   = ecs_world_has_t(world, script->asset, AssetFailedComp);
-    const bool hasChanged = ecs_world_has_t(world, script->asset, AssetChangedComp);
-
-    if (hasChanged && !(script->flags & AssetImportScript_Reloading) && (isLoaded || isFailed)) {
-      log_i("Reloading import script", log_param("reason", fmt_text_lit("Asset changed")));
-
-      asset_release(world, script->asset);
-      ++script->version;
-      script->flags |= AssetImportScript_Reloading;
-    }
-    if (script->flags & AssetImportScript_Reloading && !isLoaded) {
-      asset_acquire(world, script->asset);
-      script->flags &= ~AssetImportScript_Reloading;
-    }
-
-    if (ecs_view_maybe_jump(scriptItr, script->asset)) {
-      const AssetScriptComp* scriptComp = ecs_view_read_t(scriptItr, AssetScriptComp);
-      diag_assert(scriptComp->domain == AssetScriptDomain_ImportMesh);
-
-      importEnv->importHash = bits_hash_32_combine(importEnv->importHash, scriptComp->hash);
-      script->program       = &scriptComp->prog;
-    } else {
-      script->program = null;
-    }
+  for (AssetImportType type = 0; type != AssetImportType_Count; ++type) {
+    asset_import_init_handler(world, type, &importEnv->handlers[type], scriptItr);
   }
 }
 
 ecs_view_define(DeinitGlobalView) { ecs_access_write(AssetImportEnvComp); }
+
+static void asset_import_deinit_handler(AssetImportHandler* handler) {
+  // Clear program pointers; will be refreshed next frame.
+  dynarray_for_t(&handler->scripts, AssetImportScript, script) { script->program = null; }
+}
 
 ecs_system_define(AssetImportDeinitSys) {
   EcsView*     globalView = ecs_world_view_t(world, DeinitGlobalView);
@@ -127,8 +167,9 @@ ecs_system_define(AssetImportDeinitSys) {
   if (globalItr) {
     AssetImportEnvComp* importEnv = ecs_view_write_t(globalItr, AssetImportEnvComp);
 
-    // Clear program pointers; will be refreshed next frame.
-    dynarray_for_t(&importEnv->scripts, AssetImportScript, script) { script->program = null; }
+    for (AssetImportType type = 0; type != AssetImportType_Count; ++type) {
+      asset_import_deinit_handler(&importEnv->handlers[type]);
+    }
   }
 }
 
@@ -147,13 +188,14 @@ ecs_module_init(asset_import_module) {
 }
 
 bool asset_import_ready(const AssetImportEnvComp* env, const String assetId) {
-  const AssetFormat format = asset_format_from_ext(path_extension(assetId));
-  if (!import_enabled_for_format(format)) {
-    return true;
+  const AssetFormat     format = asset_format_from_ext(path_extension(assetId));
+  const AssetImportType type   = import_type_for_format(format);
+  if (type == AssetImportType_Sentinel) {
+    return true; // No import-type defined for this format.
   }
 
   // Check if all import scripts are loaded.
-  dynarray_for_t(&env->scripts, AssetImportScript, script) {
+  dynarray_for_t(&env->handlers[type].scripts, AssetImportScript, script) {
     if (!script->program) {
       return false;
     }
@@ -162,9 +204,10 @@ bool asset_import_ready(const AssetImportEnvComp* env, const String assetId) {
 }
 
 u32 asset_import_hash(const AssetImportEnvComp* env, const String assetId) {
-  const AssetFormat format = asset_format_from_ext(path_extension(assetId));
-  if (!import_enabled_for_format(format)) {
-    return 0; // No importer is enabled for the format.
+  const AssetFormat     format = asset_format_from_ext(path_extension(assetId));
+  const AssetImportType type   = import_type_for_format(format);
+  if (type == AssetImportType_Sentinel) {
+    return 0; // No import-type defined for this format.
   }
-  return env->importHash;
+  return env->handlers[type].importHash;
 }
