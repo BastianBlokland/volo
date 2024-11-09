@@ -251,7 +251,6 @@ void asset_import_eval(
   const AssetFormat     format = asset_format_from_ext(path_extension(ctx->assetId));
   const AssetImportType type   = import_type_for_format(format);
   diag_assert(type != AssetImportType_Sentinel);
-  diag_assert(script_binder_match(binder, ctx->assetId));
 
   const AssetImportHandler* handler = &env->handlers[type];
   diag_assert(handler->ready);
