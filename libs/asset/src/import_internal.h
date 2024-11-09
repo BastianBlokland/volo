@@ -21,6 +21,11 @@ bool asset_import_ready(const AssetImportEnvComp*, String assetId);
  */
 u32 asset_import_hash(const AssetImportEnvComp*, String assetId);
 
+/**
+ * Register generic script bindings.
+ */
+void asset_import_bind(ScriptBinder*);
+
 typedef struct {
   String assetId;
   void*  out; // Type specific output data.

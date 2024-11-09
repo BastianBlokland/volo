@@ -246,6 +246,8 @@ u32 asset_import_hash(const AssetImportEnvComp* env, const String assetId) {
   return env->handlers[type].importHash;
 }
 
+void asset_import_bind(ScriptBinder* binder) { (void)binder; }
+
 void asset_import_eval(
     const AssetImportEnvComp* env, const ScriptBinder* binder, AssetImportContext* ctx) {
   const AssetFormat     format = asset_format_from_ext(path_extension(ctx->assetId));
