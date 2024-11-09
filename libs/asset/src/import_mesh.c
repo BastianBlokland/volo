@@ -4,6 +4,8 @@
 #include "script_binder.h"
 #include "script_sig.h"
 
+#include "import_mesh_internal.h"
+
 ScriptBinder* g_assetScriptImportMeshBinder;
 
 static ScriptVal eval_dummy(AssetImportContext* ctx, ScriptBinderCall* call) {
@@ -46,4 +48,15 @@ void asset_data_init_import_mesh(void) {
 
   script_binder_finalize(binder);
   g_assetScriptImportMeshBinder = binder;
+}
+
+void asset_import_mesh(const AssetImportEnvComp* env, const String id, AssetImportMesh* out) {
+  *out = (AssetImportMesh){
+      .scale = 1.0f,
+  };
+  AssetImportContext ctx = {
+      .assetId = id,
+      .out     = out,
+  };
+  asset_import_eval(env, g_assetScriptImportMeshBinder, &ctx);
 }
