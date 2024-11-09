@@ -284,6 +284,11 @@ static ScriptVal asset_import_eval_log(AssetImportContext* ctx, ScriptBinderCall
   return script_null();
 }
 
+static ScriptVal asset_import_eval_warn(AssetImportContext* ctx, ScriptBinderCall* call) {
+  asset_import_log(ctx, call, LogLevel_Warn);
+  return script_null();
+}
+
 void asset_import_register(ScriptBinder* binder) {
   // clang-format off
   {
@@ -294,6 +299,15 @@ void asset_import_register(ScriptBinder* binder) {
         {string_lit("values"), script_mask_any, ScriptSigArgFlags_Multi},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), asset_import_eval_log);
+  }
+  {
+    const String       name   = string_lit("warn");
+    const String       doc    = string_lit("Log a warning with the given values.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("values"), script_mask_any, ScriptSigArgFlags_Multi},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), asset_import_eval_warn);
   }
   // clang-format on
 }

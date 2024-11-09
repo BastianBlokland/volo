@@ -22,6 +22,16 @@
           { "name": "values", "mask": "any", "multi": true }
         ]
       }
+    },
+    {
+      "name": "warn",
+      "doc": "Log a warning with the given values.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "values", "mask": "any", "multi": true }
+        ]
+      }
     }
   ]
 }
