@@ -6,10 +6,6 @@
 
 ScriptBinder* g_assetScriptImportMeshBinder;
 
-typedef struct {
-  u32 dummy;
-} AssetImportContext;
-
 static ScriptVal eval_dummy(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)ctx;
   (void)call;

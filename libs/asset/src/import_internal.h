@@ -1,6 +1,9 @@
 #pragma once
 #include "ecs_module.h"
 
+// Forward declare from 'script_binder.h'.
+typedef struct sScriptBinder ScriptBinder;
+
 /**
  * Global asset import environment.
  */
@@ -17,3 +20,10 @@ bool asset_import_ready(const AssetImportEnvComp*, String assetId);
  * Pre-condition: asset_import_ready().
  */
 u32 asset_import_hash(const AssetImportEnvComp*, String assetId);
+
+typedef struct {
+  String assetId;
+  void*  out; // Type specific output data.
+} AssetImportContext;
+
+void asset_import_eval(const AssetImportEnvComp*, const ScriptBinder*, AssetImportContext*);

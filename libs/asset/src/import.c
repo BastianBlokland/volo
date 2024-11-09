@@ -7,6 +7,7 @@
 #include "ecs_utils.h"
 #include "ecs_world.h"
 #include "log_logger.h"
+#include "script_binder.h"
 
 #include "format_internal.h"
 #include "import_internal.h"
@@ -243,4 +244,19 @@ u32 asset_import_hash(const AssetImportEnvComp* env, const String assetId) {
   }
   diag_assert_msg(env->handlers[type].ready, "Unable to compute import-hash: Not ready");
   return env->handlers[type].importHash;
+}
+
+void asset_import_eval(
+    const AssetImportEnvComp* env, const ScriptBinder* binder, AssetImportContext* ctx) {
+  const AssetFormat     format = asset_format_from_ext(path_extension(ctx->assetId));
+  const AssetImportType type   = import_type_for_format(format);
+  diag_assert(type != AssetImportType_Sentinel);
+  diag_assert(script_binder_match(binder, ctx->assetId));
+
+  const AssetImportHandler* handler = &env->handlers[type];
+  diag_assert(handler->ready);
+
+  dynarray_for_t(&handler->scripts, AssetImportScript, script) {
+    script_prog_eval(script->program, null, binder, ctx);
+  }
 }
