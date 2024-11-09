@@ -335,6 +335,7 @@ ecs_system_define(FontTexLoadAssetSys) {
         defFont->asset = asset_lookup(world, manager, defFont->id);
         asset_acquire(world, defFont->asset);
         asset_register_dep(world, entity, defFont->asset);
+        goto Wait; // Wait for the acquire to take effect.
       }
       if (ecs_world_has_t(world, defFont->asset, AssetFailedComp)) {
         err = FontTexError_FontInvalid;

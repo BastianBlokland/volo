@@ -212,7 +212,7 @@ ecs_system_define(SceneLevelLoadSys) {
     case LevelLoadState_AssetAcquire:
       asset_acquire(world, req->levelAsset);
       ++req->state;
-      goto Wait;
+      goto Wait; // Wait for the acquire to take effect.
     case LevelLoadState_AssetWait:
       if (ecs_world_has_t(world, req->levelAsset, AssetFailedComp)) {
         ecs_view_jump(assetItr, req->levelAsset);

@@ -151,6 +151,7 @@ ecs_system_define(LoadIconAssetSys) {
       load->textureAsset = asset_lookup(world, manager, load->def.texture);
       asset_acquire(world, load->textureAsset);
       asset_register_dep(world, entity, load->textureAsset);
+      goto Next; // Wait for the acquire to take effect.
     }
 
     /**

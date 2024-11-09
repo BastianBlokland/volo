@@ -256,6 +256,7 @@ ecs_system_define(AtlasLoadAssetSys) {
         asset_acquire(world, texAsset);
         asset_register_dep(world, entity, texAsset);
       }
+      goto Next; // Wait for the acquires to take effect.
     }
 
     /**

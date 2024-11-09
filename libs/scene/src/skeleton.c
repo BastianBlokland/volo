@@ -267,7 +267,7 @@ ecs_system_define(SceneSkeletonTemplLoadSys) {
     case SkeletonTemplState_Start: {
       asset_acquire(world, entity);
       ++tl->state;
-      // Fallthrough.
+      break; // Wait for the asset to be acquired.
     }
     case SkeletonTemplState_LoadGraphic: {
       if (!scene_asset_is_loaded(world, entity)) {
@@ -285,7 +285,7 @@ ecs_system_define(SceneSkeletonTemplLoadSys) {
       tl->mesh = graphic->mesh;
       asset_acquire(world, graphic->mesh);
       ++tl->state;
-      // Fallthrough.
+      break; // Wait for the asset to be acquired.
     }
     case SkeletonTemplState_LoadMesh: {
       if (!scene_asset_is_loaded(world, tl->mesh)) {

@@ -119,7 +119,7 @@ ecs_system_define(SceneBoundsTemplateLoadSys) {
     case BoundsTemplState_Start: {
       asset_acquire(world, entity);
       ++templateComp->state;
-      // Fallthrough.
+      break; // Wait for the acquire to take effect.
     }
     case BoundsTemplState_LoadGraphic: {
       if (!scene_asset_is_loaded(world, entity)) {
@@ -136,7 +136,7 @@ ecs_system_define(SceneBoundsTemplateLoadSys) {
       templateComp->mesh = graphic->mesh;
       asset_acquire(world, graphic->mesh);
       ++templateComp->state;
-      // Fallthrough.
+      break; // Wait for the acquire to take effect.
     }
     case BoundsTemplState_LoadMesh: {
       if (!scene_asset_is_loaded(world, templateComp->mesh)) {
