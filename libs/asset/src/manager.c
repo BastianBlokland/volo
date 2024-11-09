@@ -396,6 +396,7 @@ ecs_system_define(AssetUpdateDirtySys) {
             ecs_world_add_empty_t(world, entity, AssetFailedComp);
           }
           ecs_utils_maybe_remove_t(world, entity, AssetChangedComp);
+          ecs_utils_maybe_remove_t(world, entity, AssetInstantUnloadComp);
         }
         trace_end();
       }
@@ -532,6 +533,8 @@ ecs_system_define(AssetLoadExtSys) {
     assetComp->loadModTime = extLoadComp->modTime;
 
     ecs_utils_maybe_remove_t(world, assetEntity, AssetChangedComp);
+    ecs_utils_maybe_remove_t(world, assetEntity, AssetInstantUnloadComp);
+
     ecs_world_remove_t(world, assetEntity, AssetExtLoadComp);
   }
 }
