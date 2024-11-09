@@ -404,7 +404,6 @@ ecs_system_define(AssetUpdateDirtySys) {
       /**
        * Asset has failed loading.
        */
-
       if (dependencyComp) {
         /*
          * Mark the assets that depend on this asset to be instantly unloaded (instead of waiting
@@ -413,7 +412,6 @@ ecs_system_define(AssetUpdateDirtySys) {
          */
         asset_dep_mark(&dependencyComp->dependents, world, ecs_comp_id(AssetInstantUnloadComp));
       }
-
       assetComp->flags &= ~AssetFlags_Loading;
       assetComp->flags |= AssetFlags_Failed;
       updateRequired = false;

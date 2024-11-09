@@ -119,7 +119,7 @@ static void asset_import_init_handler(
       script->reloading = true;
     }
 
-    if (!script->reloading && ecs_view_maybe_jump(scriptItr, script->asset)) {
+    if (!isFailed && !script->reloading && ecs_view_maybe_jump(scriptItr, script->asset)) {
       const AssetScriptComp* scriptComp = ecs_view_read_t(scriptItr, AssetScriptComp);
       diag_assert(type == import_type_for_domain(scriptComp->domain));
 
