@@ -286,6 +286,13 @@ static ScriptVal asset_import_eval_asset_id(AssetImportContext* ctx, ScriptBinde
   return script_str(assetIdHash);
 }
 
+static ScriptVal asset_import_eval_asset_format(AssetImportContext* ctx, ScriptBinderCall* call) {
+  (void)call;
+  const AssetFormat format        = asset_format_from_ext(path_extension(ctx->assetId));
+  const StringHash  formatStrHash = stringtable_add(g_stringtable, asset_format_str(format));
+  return script_str(formatStrHash);
+}
+
 static ScriptVal asset_import_eval_log(AssetImportContext* ctx, ScriptBinderCall* call) {
   asset_import_log(ctx, call, LogLevel_Info);
   return script_null();
@@ -307,8 +314,14 @@ void asset_import_register(ScriptBinder* binder) {
   {
     const String       name   = string_lit("asset_id");
     const String       doc    = string_lit("Lookup the identifier of the importing asset.");
-    const ScriptMask   ret    = script_mask_null;
+    const ScriptMask   ret    = script_mask_str;
     asset_import_bind(binder, name, doc, ret, null, 0, asset_import_eval_asset_id);
+  }
+  {
+    const String       name   = string_lit("asset_format");
+    const String       doc    = string_lit("Lookup the format of the importing asset.");
+    const ScriptMask   ret    = script_mask_str;
+    asset_import_bind(binder, name, doc, ret, null, 0, asset_import_eval_asset_format);
   }
   {
     const String       name   = string_lit("log");

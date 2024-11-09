@@ -27,7 +27,7 @@
       "name": "asset_id",
       "doc": "Lookup the identifier of the importing asset.",
       "sig": {
-        "ret": "null",
+        "ret": "str",
         "args": []
       }
     },
@@ -39,6 +39,14 @@
         "args": [
           { "name": "values", "mask": "any", "multi": true }
         ]
+      }
+    },
+    {
+      "name": "asset_format",
+      "doc": "Lookup the format of the importing asset.",
+      "sig": {
+        "ret": "str",
+        "args": []
       }
     },
     {
