@@ -252,7 +252,8 @@ u32 asset_import_hash(const AssetImportEnvComp* env, const String assetId) {
   return env->handlers[type].importHash;
 }
 
-static ScriptVal asset_import_eval_log(AssetImportContext* ctx, ScriptBinderCall* call) {
+static void
+asset_import_log(AssetImportContext* ctx, ScriptBinderCall* call, const LogLevel logLevel) {
   DynString buffer = dynstring_create_over(alloc_alloc(g_allocScratch, usize_kibibyte, 1));
   for (u16 i = 0; i != call->argCount; ++i) {
     if (i) {
@@ -269,12 +270,17 @@ static ScriptVal asset_import_eval_log(AssetImportContext* ctx, ScriptBinderCall
       fmt_int(scriptRange.end.line + 1),
       fmt_int(scriptRange.end.column + 1));
 
-  log_i(
+  log(g_logger,
+      logLevel,
       "import: {}",
       log_param("text", fmt_text(dynstring_view(&buffer))),
       log_param("asset", fmt_text(ctx->assetId)),
+      log_param("script", fmt_text(ctx->progId)),
       log_param("script-range", fmt_text(scriptRangeStr)));
+}
 
+static ScriptVal asset_import_eval_log(AssetImportContext* ctx, ScriptBinderCall* call) {
+  asset_import_log(ctx, call, LogLevel_Info);
   return script_null();
 }
 
