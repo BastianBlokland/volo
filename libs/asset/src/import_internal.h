@@ -42,7 +42,7 @@ typedef struct {
   const ScriptProgram* prog;
   String               progId;
   bool                 failed;
-  void*                out; // Type specific output data.
+  void*                data; // Type specific output data.
 } AssetImportContext;
 
 typedef ScriptVal (*AssetImportBinderFunc)(AssetImportContext*, ScriptBinderCall*);
@@ -56,4 +56,4 @@ void asset_import_bind(
     u8                  argCount,
     AssetImportBinderFunc);
 
-bool asset_import_eval(const AssetImportEnvComp*, const ScriptBinder*, String assetId, void* out);
+bool asset_import_eval(const AssetImportEnvComp*, const ScriptBinder*, String assetId, void* data);

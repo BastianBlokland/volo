@@ -431,7 +431,7 @@ void asset_import_bind(
 }
 
 bool asset_import_eval(
-    const AssetImportEnvComp* env, const ScriptBinder* binder, const String assetId, void* out) {
+    const AssetImportEnvComp* env, const ScriptBinder* binder, const String assetId, void* data) {
   const AssetFormat     format = asset_format_from_ext(path_extension(assetId));
   const AssetImportType type   = import_type_for_format(format);
   diag_assert(type != AssetImportType_Sentinel);
@@ -441,7 +441,7 @@ bool asset_import_eval(
 
   AssetImportContext ctx = {
       .assetId = assetId,
-      .out     = out,
+      .data    = data,
   };
 
   dynarray_for_t(&handler->scripts, AssetImportScript, script) {

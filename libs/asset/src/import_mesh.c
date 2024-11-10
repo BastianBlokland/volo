@@ -12,8 +12,8 @@ ScriptBinder* g_assetScriptImportMeshBinder;
 static ScriptVal import_eval_vertex_scale(AssetImportContext* ctx, ScriptBinderCall* call) {
   const f64 scale = script_arg_num_range(call, 0, 1e-3, 1e+6);
   if (!script_call_panicked(call)) {
-    AssetImportMesh* out = ctx->out;
-    out->vertexScale     = (f32)scale;
+    AssetImportMesh* data = ctx->data;
+    data->vertexScale     = (f32)scale;
   }
   return script_null();
 }

@@ -513,6 +513,8 @@ void asset_load_tex_png(
   AssetImportTexture import = {
       .flags    = AssetImportTextureFlags_Mips,
       .channels = channels,
+      .width    = header.width,
+      .height   = header.height,
   };
   if (!asset_import_texture(importEnv, id, &import)) {
     png_load_fail(world, entity, id, PngError_ImportFailed);
