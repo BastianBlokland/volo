@@ -3,6 +3,7 @@
  */
 
 if (asset_id_match("*_normal*") || asset_id_match("*_nrm*")) {
+  fail_if(texture_channels() < 3, "Normal maps require 3 channels")
   texture_flag("NormalMap", true)
 }
 if (asset_id_match("*_lossless*")) {
