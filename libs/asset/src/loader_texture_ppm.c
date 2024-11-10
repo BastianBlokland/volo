@@ -5,6 +5,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "import_texture_internal.h"
 #include "loader_texture_internal.h"
 #include "manager_internal.h"
 #include "repo_internal.h"
@@ -36,6 +37,7 @@ typedef enum {
   PixmapError_MalformedType,
   PixmapError_UnsupportedBitDepth,
   PixmapError_UnsupportedSize,
+  PixmapError_ImportFailed,
 
   PixmapError_Count,
 } PixmapError;
@@ -47,6 +49,7 @@ static String pixmap_error_str(PixmapError res) {
       string_static("Malformed pixmap type, expected 'P3' or 'P6'"),
       string_static("Unsupported bit depth, only 24 bit (RGB) is supported"),
       string_static("Unsupported image size"),
+      string_static("Import failed"),
   };
   ASSERT(array_elems(g_msgs) == PixmapError_Count, "Incorrect number of pixmap-error messages");
   return g_msgs[res];
@@ -181,34 +184,21 @@ ppm_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-static AssetTextureFlags ppm_texture_flags(const bool isNormalmap, const bool isLossless) {
+static AssetTextureFlags ppm_texture_flags(const AssetImportTexture* import) {
   AssetTextureFlags flags = AssetTextureFlags_GenerateMips;
-  if (isNormalmap) {
+  if (import->flags & AssetImportTextureFlags_NormalMap) {
+    // Normal maps are in linear space (and thus not sRGB).
     flags |= AssetTextureFlags_NormalMap;
+  } else if (import->flags & AssetImportTextureFlags_Linear) {
+    // Explicitly linear.
   } else {
+    // All other textures are assumed to be sRGB encoded.
     flags |= AssetTextureFlags_Srgb;
   }
-  if (isLossless) {
+  if (import->flags & AssetImportTextureFlags_Lossless) {
     flags |= AssetTextureFlags_Lossless;
   }
   return flags;
-}
-
-static bool ppm_is_normalmap(const String id) {
-  static const String g_patterns[] = {
-      string_static("*_nrm*"),
-      string_static("*_normal*"),
-  };
-  array_for_t(g_patterns, String, pattern) {
-    if (string_match_glob(id, *pattern, StringMatchFlags_IgnoreCase)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-static bool ppm_is_lossless(const String id) {
-  return string_match_glob(id, string_lit("*_lossless*"), StringMatchFlags_IgnoreCase);
 }
 
 void asset_load_tex_ppm(
@@ -217,10 +207,6 @@ void asset_load_tex_ppm(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
-
-  const bool isNormalmap = ppm_is_normalmap(id);
-  const bool isLossless  = ppm_is_lossless(id);
 
   String      input = src->data;
   PixmapError res   = PixmapError_None;
@@ -255,6 +241,12 @@ void asset_load_tex_ppm(
     goto Error;
   }
 
+  AssetImportTexture import;
+  if (!asset_import_texture(importEnv, id, &import)) {
+    ppm_load_fail(world, entity, id, PixmapError_ImportFailed);
+    goto Error;
+  }
+
   asset_repo_source_close(src);
 
   AssetTextureComp* texComp = ecs_world_add_t(world, entity, AssetTextureComp);
@@ -267,7 +259,7 @@ void asset_load_tex_ppm(
       1 /* mips */,
       0 /* mipsMax */,
       AssetTextureType_u8,
-      ppm_texture_flags(isNormalmap, isLossless));
+      ppm_texture_flags(&import));
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   asset_cache(world, entity, g_assetTexMeta, mem_create(texComp, sizeof(AssetTextureComp)));
