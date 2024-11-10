@@ -343,6 +343,16 @@ static ScriptVal import_eval_fail(AssetImportContext* ctx, ScriptBinderCall* cal
   return script_null();
 }
 
+static ScriptVal import_eval_fail_if(AssetImportContext* ctx, ScriptBinderCall* call) {
+  const ScriptVal cond = script_arg_any(call, 0);
+  if (!script_call_panicked(call) && script_truthy(cond)) {
+    script_arg_shift(call);
+    import_log(ctx, call, LogLevel_Error);
+    ctx->failed = true;
+  }
+  return script_null();
+}
+
 void asset_import_register(ScriptBinder* binder) {
   // clang-format off
   static const String g_globPatternDoc = string_static("Supported pattern syntax:\n- '?' matches any single character.\n- '*' matches any number of any characters including none.\n- '!' inverts the entire match (not per segment and cannot be disabled after enabling).");
@@ -393,6 +403,16 @@ void asset_import_register(ScriptBinder* binder) {
         {string_lit("values"), script_mask_any, ScriptSigArgFlags_Multi},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_fail);
+  }
+  {
+    const String       name   = string_lit("fail_if");
+    const String       doc    = string_lit("Fail the import if the given value is truthy.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("condition"), script_mask_bool},
+        {string_lit("message"), script_mask_str},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_fail_if);
   }
   // clang-format on
 }

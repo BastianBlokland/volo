@@ -4,6 +4,17 @@
   "filter": "import/texture/*.script",
   "functions": [
     {
+      "name": "fail_if",
+      "doc": "Fail the import if the given value is truthy.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "condition", "mask": "bool" },
+          { "name": "message", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "fail",
       "doc": "Fail the import and log an error with the given values.",
       "sig": {
