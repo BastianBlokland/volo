@@ -4,6 +4,7 @@
 
 if (asset_id_match("*_normal*") || asset_id_match("*_nrm*")) {
   fail_if(texture_channels() < 3, "Normal maps require 3 channels")
+  fail_if(texture_type() != "u8", "Normal maps should use 8 bit pixels")
   texture_flag("NormalMap", true)
 }
 if (asset_id_match("*_lossless*")) {
