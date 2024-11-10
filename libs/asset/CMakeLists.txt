@@ -9,6 +9,7 @@ add_library(lib_asset STATIC
   src/data.c
   src/format.c
   src/import_mesh.c
+  src/import_texture.c
   src/import.c
   src/loader_decal.c
   src/loader_font_ttf.c

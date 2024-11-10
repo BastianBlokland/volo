@@ -8,6 +8,7 @@ typedef struct sScriptBinder ScriptBinder;
 
 typedef enum {
   AssetScriptDomain_ImportMesh,
+  AssetScriptDomain_ImportTexture,
   AssetScriptDomain_Scene,
 } AssetScriptDomain;
 
@@ -22,5 +23,6 @@ ecs_comp_extern_public(AssetScriptComp) {
 };
 
 extern ScriptBinder* g_assetScriptImportMeshBinder;
+extern ScriptBinder* g_assetScriptImportTextureBinder;
 extern ScriptBinder* g_assetScriptSceneBinder;
 extern DataMeta      g_assetScriptMeta;
