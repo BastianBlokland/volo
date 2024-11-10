@@ -445,6 +445,16 @@ void asset_load_tex_tga(
     goto Ret;
   }
 
+  const AssetTextureFlags textureFlags = tga_texture_flags(channels, &import);
+  if (textureFlags & AssetTextureFlags_NormalMap && channels < 3) {
+    tga_load_fail(world, entity, id, TgaError_ImportFailed);
+    goto Ret;
+  }
+  if (textureFlags & AssetTextureFlags_Srgb && channels < 3) {
+    tga_load_fail(world, entity, id, TgaError_ImportFailed);
+    goto Ret;
+  }
+
   AssetTextureComp* texComp = ecs_world_add_t(world, entity, AssetTextureComp);
   *texComp                  = asset_texture_create(
       pixels,
@@ -455,7 +465,7 @@ void asset_load_tex_tga(
       1 /* mipsSrc */,
       0 /* mipsMax */,
       AssetTextureType_u8,
-      tga_texture_flags(channels, &import));
+      textureFlags);
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   asset_cache(world, entity, g_assetTexMeta, mem_create(texComp, sizeof(AssetTextureComp)));

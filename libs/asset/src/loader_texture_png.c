@@ -529,6 +529,15 @@ void asset_load_tex_png(
     flags |= AssetTextureFlags_Lossless;
   }
 
+  if (flags & AssetTextureFlags_NormalMap && channels < 3) {
+    png_load_fail(world, entity, id, PngError_ImportFailed);
+    goto Ret;
+  }
+  if (flags & AssetTextureFlags_Srgb && channels < 3) {
+    png_load_fail(world, entity, id, PngError_ImportFailed);
+    goto Ret;
+  }
+
   AssetTextureComp* texComp = ecs_world_add_t(world, entity, AssetTextureComp);
   *texComp                  = asset_texture_create(
       dynstring_view(&pixelData),
