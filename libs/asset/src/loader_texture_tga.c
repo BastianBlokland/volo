@@ -5,6 +5,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "import_texture_internal.h"
 #include "loader_texture_internal.h"
 #include "manager_internal.h"
 #include "repo_internal.h"
@@ -98,6 +99,7 @@ typedef enum {
   TgaError_UnsupportedInterleaved,
   TgaError_UnsupportedNonTrueColor,
   TgaError_UnsupportedSize,
+  TgaError_ImportFailed,
 
   TgaError_Count,
 } TgaError;
@@ -115,6 +117,7 @@ static String tga_error_str(const TgaError err) {
       string_static("Interleaved tga files are not supported"),
       string_static("Unsupported image type, only TrueColor is supported"),
       string_static("Unsupported image size"),
+      string_static("Import failed"),
   };
   ASSERT(array_elems(g_msgs) == TgaError_Count, "Incorrect number of tga-error messages");
   return g_msgs[err];
@@ -188,17 +191,18 @@ static u32 tga_index(const u32 x, const u32 y, const u32 width, const u32 height
   return ((flags & TgaFlags_YFlip) ? (height - 1 - y) * width : y * width) + x;
 }
 
-static AssetTextureFlags
-tga_texture_flags(const TgaChannels ch, const bool isNormalMap, const bool isLossless) {
+static AssetTextureFlags tga_texture_flags(const TgaChannels ch, const AssetImportTexture* import) {
   AssetTextureFlags flags = AssetTextureFlags_GenerateMips;
-  if (isNormalMap) {
+  if (import->flags & AssetImportTextureFlags_NormalMap) {
     // Normal maps are in linear space (and thus not sRGB).
     flags |= AssetTextureFlags_NormalMap;
+  } else if (import->flags & AssetImportTextureFlags_Linear) {
+    // Explicitly linear.
   } else if (ch == TgaChannels_RGB || ch == TgaChannels_RGBA) {
     // All other (3 or 4 channel) textures are assumed to be sRGB encoded.
     flags |= AssetTextureFlags_Srgb;
   }
-  if (isLossless) {
+  if (import->flags & AssetImportTextureFlags_Lossless) {
     flags |= AssetTextureFlags_Lossless;
   }
   return flags;
@@ -362,33 +366,12 @@ tga_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-static bool tga_is_normalmap(const String id) {
-  static const String g_patterns[] = {
-      string_static("*_nrm*"),
-      string_static("*_normal*"),
-  };
-  array_for_t(g_patterns, String, pattern) {
-    if (string_match_glob(id, *pattern, StringMatchFlags_IgnoreCase)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-static bool tga_is_lossless(const String id) {
-  return string_match_glob(id, string_lit("*_lossless*"), StringMatchFlags_IgnoreCase);
-}
-
 void asset_load_tex_tga(
     EcsWorld*                 world,
     const AssetImportEnvComp* importEnv,
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
-
-  const bool isNormalmap = tga_is_normalmap(id);
-  const bool isLossless  = tga_is_lossless(id);
 
   Mem      data   = src->data;
   TgaError res    = TgaError_None;
@@ -456,6 +439,22 @@ void asset_load_tex_tga(
     goto Ret;
   }
 
+  AssetImportTexture import;
+  if (!asset_import_texture(importEnv, id, &import)) {
+    tga_load_fail(world, entity, id, TgaError_ImportFailed);
+    goto Ret;
+  }
+
+  const AssetTextureFlags textureFlags = tga_texture_flags(channels, &import);
+  if (textureFlags & AssetTextureFlags_NormalMap && channels < 3) {
+    tga_load_fail(world, entity, id, TgaError_ImportFailed);
+    goto Ret;
+  }
+  if (textureFlags & AssetTextureFlags_Srgb && channels < 3) {
+    tga_load_fail(world, entity, id, TgaError_ImportFailed);
+    goto Ret;
+  }
+
   AssetTextureComp* texComp = ecs_world_add_t(world, entity, AssetTextureComp);
   *texComp                  = asset_texture_create(
       pixels,
@@ -466,7 +465,7 @@ void asset_load_tex_tga(
       1 /* mipsSrc */,
       0 /* mipsMax */,
       AssetTextureType_u8,
-      tga_texture_flags(channels, isNormalmap, isLossless));
+      textureFlags);
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   asset_cache(world, entity, g_assetTexMeta, mem_create(texComp, sizeof(AssetTextureComp)));

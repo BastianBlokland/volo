@@ -1,0 +1,74 @@
+{
+  "name": "import-texture",
+  "flags": [ "DisallowMemoryAccess" ],
+  "filter": "import/texture/*.script",
+  "functions": [
+    {
+      "name": "fail",
+      "doc": "Fail the import and log an error with the given values.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "values", "mask": "any", "multi": true }
+        ]
+      }
+    },
+    {
+      "name": "asset_id",
+      "doc": "Lookup the identifier of the importing asset.",
+      "sig": {
+        "ret": "str",
+        "args": []
+      }
+    },
+    {
+      "name": "log",
+      "doc": "Log the given values.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "values", "mask": "any", "multi": true }
+        ]
+      }
+    },
+    {
+      "name": "asset_id_match",
+      "doc": "Match the identifier of the importing asset against the given glob pattern.\n\nSupported pattern syntax:\n- '?' matches any single character.\n- '*' matches any number of any characters including none.\n- '!' inverts the entire match (not per segment and cannot be disabled after enabling).",
+      "sig": {
+        "ret": "bool",
+        "args": [
+          { "name": "pattern", "mask": "str" }
+        ]
+      }
+    },
+    {
+      "name": "asset_format",
+      "doc": "Lookup the format of the importing asset.",
+      "sig": {
+        "ret": "str",
+        "args": []
+      }
+    },
+    {
+      "name": "texture_flag",
+      "doc": "Set or unset a texture import flag.\n\nSupported flags:\n\n-`NormalMap`\n\n-`Lossless`\n\n-`Linear`",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "flag", "mask": "str" },
+          { "name": "enable", "mask": "bool" }
+        ]
+      }
+    },
+    {
+      "name": "warn",
+      "doc": "Log a warning with the given values.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "values", "mask": "any", "multi": true }
+        ]
+      }
+    }
+  ]
+}

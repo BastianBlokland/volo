@@ -23,6 +23,8 @@ static const ScriptBinder* asset_script_domain_binder(const AssetScriptDomain do
   switch (domain) {
   case AssetScriptDomain_ImportMesh:
     return g_assetScriptImportMeshBinder;
+  case AssetScriptDomain_ImportTexture:
+    return g_assetScriptImportTextureBinder;
   case AssetScriptDomain_Scene:
     return g_assetScriptSceneBinder;
   }
@@ -32,6 +34,10 @@ static const ScriptBinder* asset_script_domain_binder(const AssetScriptDomain do
 static bool asset_script_domain_match(const String fileIdentifier, AssetScriptDomain* out) {
   if (script_binder_match(g_assetScriptImportMeshBinder, fileIdentifier)) {
     *out = AssetScriptDomain_ImportMesh;
+    return true;
+  }
+  if (script_binder_match(g_assetScriptImportTextureBinder, fileIdentifier)) {
+    *out = AssetScriptDomain_ImportTexture;
     return true;
   }
   if (script_binder_match(g_assetScriptSceneBinder, fileIdentifier)) {
@@ -113,6 +119,7 @@ void asset_data_init_script(void) {
 
   data_reg_enum_t(g_dataReg, AssetScriptDomain);
   data_reg_const_t(g_dataReg, AssetScriptDomain, ImportMesh);
+  data_reg_const_t(g_dataReg, AssetScriptDomain, ImportTexture);
   data_reg_const_t(g_dataReg, AssetScriptDomain, Scene);
 
   data_reg_struct_t(g_dataReg, AssetScriptComp);
