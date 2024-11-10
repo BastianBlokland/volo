@@ -5,6 +5,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "import_texture_internal.h"
 #include "loader_texture_internal.h"
 #include "manager_internal.h"
 #include "repo_internal.h"
@@ -40,6 +41,7 @@ typedef enum {
   HtexError_Corrupt,
   HtexError_Empty,
   HtexError_NonPow2,
+  HtexError_ImportFailed,
 
   HtexError_Count,
 } HtexError;
@@ -50,6 +52,7 @@ static String htex_error_str(const HtexError err) {
       string_static("Corrupt height texture data"),
       string_static("Missing height texture data"),
       string_static("Non power-of-two size"),
+      string_static("Import failed"),
   };
   ASSERT(array_elems(g_msgs) == HtexError_Count, "Incorrect number of error messages");
   return g_msgs[err];
@@ -66,7 +69,13 @@ htex_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const
 }
 
 static void htex_load(
-    EcsWorld* world, const EcsEntityId entity, const String id, String data, const HtexType type) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const EcsEntityId         entity,
+    const String              id,
+    String                    data,
+    const HtexType            type) {
+
   const AssetTextureType pixelType = htex_texture_type(type);
   const usize            pixelSize = asset_texture_type_stride(pixelType, 1);
   if (UNLIKELY(data.size % pixelSize)) {
@@ -104,6 +113,18 @@ static void htex_load(
     data = mem_consume(data, rowStride);
   }
 
+  AssetImportTexture import;
+  if (!asset_import_texture(importEnv, id, &import)) {
+    htex_load_fail(world, entity, id, HtexError_ImportFailed);
+    alloc_free(g_allocHeap, pixelMem);
+    return;
+  }
+
+  AssetTextureFlags flags = AssetTextureFlags_None;
+  if (import.flags & AssetImportTextureFlags_Lossless) {
+    flags |= AssetTextureFlags_Lossless;
+  }
+
   AssetTextureComp* texComp = ecs_world_add_t(world, entity, AssetTextureComp);
   *texComp                  = asset_texture_create(
       pixelMem,
@@ -114,7 +135,7 @@ static void htex_load(
       1 /* mips */,
       0 /* mipsMax */,
       pixelType,
-      AssetTextureFlags_None);
+      flags);
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   asset_cache(world, entity, g_assetTexMeta, mem_create(texComp, sizeof(AssetTextureComp)));
@@ -128,9 +149,8 @@ void asset_load_tex_height16(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
 
-  htex_load(world, entity, id, src->data, HtexType_U16);
+  htex_load(world, importEnv, entity, id, src->data, HtexType_U16);
   asset_repo_source_close(src);
 }
 
@@ -140,8 +160,7 @@ void asset_load_tex_height32(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
 
-  htex_load(world, entity, id, src->data, HtexType_F32);
+  htex_load(world, importEnv, entity, id, src->data, HtexType_F32);
   asset_repo_source_close(src);
 }
