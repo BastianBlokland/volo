@@ -439,8 +439,8 @@ void asset_load_tex_tga(
     goto Ret;
   }
 
-  AssetImportTexture importData;
-  if (!asset_import_texture(importEnv, id, &importData)) {
+  AssetImportTexture import;
+  if (!asset_import_texture(importEnv, id, &import)) {
     tga_load_fail(world, entity, id, TgaError_ImportFailed);
     goto Ret;
   }
@@ -455,7 +455,7 @@ void asset_load_tex_tga(
       1 /* mipsSrc */,
       0 /* mipsMax */,
       AssetTextureType_u8,
-      tga_texture_flags(channels, &importData));
+      tga_texture_flags(channels, &import));
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   asset_cache(world, entity, g_assetTexMeta, mem_create(texComp, sizeof(AssetTextureComp)));

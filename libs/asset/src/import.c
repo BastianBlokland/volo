@@ -54,6 +54,7 @@ static AssetImportType import_type_for_format(const AssetFormat format) {
   switch (format) {
   case AssetFormat_MeshGltf:
     return AssetImportType_Mesh;
+  case AssetFormat_TexPng:
   case AssetFormat_TexTga:
     return AssetImportType_Texture;
 

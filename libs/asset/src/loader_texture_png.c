@@ -8,6 +8,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "import_texture_internal.h"
 #include "loader_texture_internal.h"
 #include "manager_internal.h"
 #include "repo_internal.h"
@@ -80,6 +81,7 @@ typedef enum {
   PngError_UnsupportedInterlacing,
   PngError_UnsupportedBitDepth,
   PngError_UnsupportedSize,
+  PngError_ImportFailed,
 
   PngError_Count,
 } PngError;
@@ -104,6 +106,7 @@ static String png_error_str(const PngError err) {
       string_static("Unsupported png interlace method (only non-interlaced is supported)"),
       string_static("Unsupported image bit depth (only 8/16 bit are supported)"),
       string_static("Unsupported image size"),
+      string_static("Import failed"),
   };
   ASSERT(array_elems(g_msgs) == PngError_Count, "Incorrect number of png-error messages");
   return g_msgs[err];
@@ -406,23 +409,6 @@ static void png_load_fail(EcsWorld* w, const EcsEntityId e, const String id, con
   ecs_world_add_empty_t(w, e, AssetFailedComp);
 }
 
-static bool png_is_normalmap(const String id) {
-  static const String g_patterns[] = {
-      string_static("*_nrm*"),
-      string_static("*_normal*"),
-  };
-  array_for_t(g_patterns, String, pattern) {
-    if (string_match_glob(id, *pattern, StringMatchFlags_IgnoreCase)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-static bool png_is_lossless(const String id) {
-  return string_match_glob(id, string_lit("*_lossless*"), StringMatchFlags_IgnoreCase);
-}
-
 static AssetTextureType png_tex_type(const PngType type) {
   switch (type) {
   case PngType_u8:
@@ -440,7 +426,6 @@ void asset_load_tex_png(
     const String              id,
     const EcsEntityId         entity,
     AssetSource*              src) {
-  (void)importEnv;
 
   DynString pixelData = dynstring_create(g_allocHeap, 0);
 
@@ -525,14 +510,22 @@ void asset_load_tex_png(
   const AssetTextureType texType = png_tex_type(type);
   asset_texture_flip_y(dynstring_view(&pixelData), header.width, header.height, channels, texType);
 
+  AssetImportTexture import;
+  if (!asset_import_texture(importEnv, id, &import)) {
+    png_load_fail(world, entity, id, PngError_ImportFailed);
+    goto Ret;
+  }
+
   AssetTextureFlags flags = AssetTextureFlags_GenerateMips;
-  if (png_is_normalmap(id)) {
+  if (import.flags & AssetImportTextureFlags_NormalMap) {
     // Normal maps are in linear space (and thus not sRGB).
     flags |= AssetTextureFlags_NormalMap;
-  } else if (channels >= 3 && type == PngType_u8 && !png_is_linear(chunks, chunkCount)) {
+  } else if (import.flags & AssetImportTextureFlags_Linear || png_is_linear(chunks, chunkCount)) {
+    // Explicitly linear.
+  } else if (channels >= 3 && type == PngType_u8) {
     flags |= AssetTextureFlags_Srgb;
   }
-  if (png_is_lossless(id)) {
+  if (import.flags & AssetImportTextureFlags_Lossless) {
     flags |= AssetTextureFlags_Lossless;
   }
 
