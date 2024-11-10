@@ -1,0 +1,13 @@
+/**
+ * Generic texture import rules applicable to all textures.
+ */
+
+if (asset_id_match("*_normal*") || asset_id_match("*_nrm*")) {
+  texture_flag("NormalMap", true)
+}
+if (asset_id_match("*_lossless*")) {
+  texture_flag("Lossless", true)
+}
+if (asset_id_match("*_linear*")) {
+  texture_flag("Linear", true)
+}
