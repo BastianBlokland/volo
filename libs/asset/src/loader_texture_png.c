@@ -555,7 +555,7 @@ void asset_load_tex_png(
       channels,
       1 /* layers */,
       1 /* mipsSrc */,
-      0 /* mipsMax */,
+      import.mips,
       texType,
       flags);
 

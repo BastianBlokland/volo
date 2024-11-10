@@ -15,7 +15,7 @@ typedef struct {
   u32                     channels;
   AssetTextureType        pixelType;
   u32                     width, height;
-  u32                     mipsMax;
+  u32                     mips; // 0 indicates maximum number of mips.
 } AssetImportTexture;
 
 bool asset_import_texture(const AssetImportEnvComp*, String id, AssetImportTexture*);

@@ -85,20 +85,27 @@ static ScriptVal import_eval_texture_height(AssetImportContext* ctx, ScriptBinde
 }
 
 static ScriptVal import_eval_texture_mips(AssetImportContext* ctx, ScriptBinderCall* call) {
-  if (!call->argCount) {
-    AssetImportTexture* data = ctx->data;
-    if (data->flags & AssetImportTextureFlags_Mips) {
-      u32 mips = data->mipsMax;
-      if (mips) {
-        mips = math_min(mips, import_texture_mips_max(data->width, data->height));
-      } else {
-        mips = import_texture_mips_max(data->width, data->height);
-      }
-      return script_num(mips);
+  AssetImportTexture* data = ctx->data;
+  if (call->argCount) {
+    const u32 mipsMax = import_texture_mips_max(data->width, data->height);
+    data->mips        = (u32)script_arg_num_range(call, 0, 0, mipsMax);
+    if (data->mips == 1) {
+      data->flags &= ~AssetImportTextureFlags_Mips;
+    } else {
+      data->flags |= AssetImportTextureFlags_Mips;
     }
-    return script_num(1);
+    return script_null();
   }
-  return script_null();
+  if (data->flags & AssetImportTextureFlags_Mips) {
+    u32 res = data->mips;
+    if (res) {
+      res = math_min(res, import_texture_mips_max(data->width, data->height));
+    } else {
+      res = import_texture_mips_max(data->width, data->height);
+    }
+    return script_num(res);
+  }
+  return script_num(1);
 }
 
 void asset_data_init_import_texture(void) {
@@ -148,9 +155,12 @@ void asset_data_init_import_texture(void) {
   }
   {
     const String       name   = string_lit("texture_mips");
-    const String       doc    = string_lit("Query the amount of mip levels.");
-    const ScriptMask   ret    = script_mask_num;
-    asset_import_bind(binder, name, doc, ret, null, 0, import_eval_texture_mips);
+    const String       doc    = string_lit("Change or query the amount of mip levels.\nNote: Provide 0 to set the maximum amount of mips.");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("mips"), script_mask_num | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_texture_mips);
   }
   // clang-format on
 

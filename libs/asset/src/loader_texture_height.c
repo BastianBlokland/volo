@@ -139,7 +139,7 @@ static void htex_load(
       1 /* channels */,
       1 /* layers */,
       1 /* mips */,
-      0 /* mipsMax */,
+      import.mips,
       pixelType,
       flags);
 

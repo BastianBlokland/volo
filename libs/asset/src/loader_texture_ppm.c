@@ -266,7 +266,7 @@ void asset_load_tex_ppm(
       3 /* channels */,
       1 /* layers */,
       1 /* mips */,
-      0 /* mipsMax */,
+      import.mips,
       AssetTextureType_u8,
       ppm_texture_flags(&import));
 

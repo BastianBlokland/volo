@@ -472,7 +472,7 @@ void asset_load_tex_tga(
       channels,
       1 /* layers */,
       1 /* mipsSrc */,
-      0 /* mipsMax */,
+      import.mips,
       AssetTextureType_u8,
       textureFlags);
 

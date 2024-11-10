@@ -92,10 +92,15 @@
     },
     {
       "name": "texture_mips",
-      "doc": "Query the amount of mip levels.",
+      "doc": "Change or query the amount of mip levels.\nNote: Provide 0 to set the maximum amount of mips.",
       "sig": {
-        "ret": "num",
-        "args": []
+        "ret": [ "null", "num" ],
+        "args": [
+          {
+            "name": "mips",
+            "mask": [ "null", "num" ]
+          }
+        ]
       }
     },
     {
