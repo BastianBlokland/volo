@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_format.h"
+#include "core_math.h"
 #include "script_args.h"
 #include "script_binder.h"
 #include "script_enum.h"
@@ -33,6 +34,15 @@ static void import_init_enum_pixel_type(void) {
   ENUM_PUSH(&g_importTexturePixelType, f32);
 
 #undef ENUM_PUSH
+}
+
+/**
+ * Compute how many times we can cut the image in half before both sides hit 1 pixel.
+ */
+static u16 import_texture_mips_max(const u32 width, const u32 height) {
+  const u16 biggestSide = math_max(width, height);
+  const u16 mipCount    = (u16)(32 - bits_clz_32(biggestSide));
+  return mipCount;
 }
 
 static ScriptVal import_eval_texture_channels(AssetImportContext* ctx, ScriptBinderCall* call) {
@@ -72,6 +82,23 @@ static ScriptVal import_eval_texture_height(AssetImportContext* ctx, ScriptBinde
   (void)call;
   AssetImportTexture* data = ctx->data;
   return script_num(data->height);
+}
+
+static ScriptVal import_eval_texture_mips(AssetImportContext* ctx, ScriptBinderCall* call) {
+  if (!call->argCount) {
+    AssetImportTexture* data = ctx->data;
+    if (data->flags & AssetImportTextureFlags_Mips) {
+      u32 mips = data->mipsMax;
+      if (mips) {
+        mips = math_min(mips, import_texture_mips_max(data->width, data->height));
+      } else {
+        mips = import_texture_mips_max(data->width, data->height);
+      }
+      return script_num(mips);
+    }
+    return script_num(1);
+  }
+  return script_null();
 }
 
 void asset_data_init_import_texture(void) {
@@ -118,6 +145,12 @@ void asset_data_init_import_texture(void) {
     const String       doc    = string_lit("Query the texture height in pixels.");
     const ScriptMask   ret    = script_mask_num;
     asset_import_bind(binder, name, doc, ret, null, 0, import_eval_texture_height);
+  }
+  {
+    const String       name   = string_lit("texture_mips");
+    const String       doc    = string_lit("Query the amount of mip levels.");
+    const ScriptMask   ret    = script_mask_num;
+    asset_import_bind(binder, name, doc, ret, null, 0, import_eval_texture_mips);
   }
   // clang-format on
 

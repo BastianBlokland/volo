@@ -91,6 +91,14 @@
       }
     },
     {
+      "name": "texture_mips",
+      "doc": "Query the amount of mip levels.",
+      "sig": {
+        "ret": "num",
+        "args": []
+      }
+    },
+    {
       "name": "texture_channels",
       "doc": "Query the amount of channels in the texture.",
       "sig": {
