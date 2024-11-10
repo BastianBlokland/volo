@@ -17,6 +17,7 @@
 
 typedef enum {
   AssetImportType_Mesh,
+  AssetImportType_Texture,
 
   AssetImportType_Count,
   AssetImportType_Sentinel = sentinel_u32
@@ -36,7 +37,8 @@ typedef struct {
 } AssetImportHandler;
 
 static const String g_assetImportScriptPaths[AssetImportType_Count] = {
-    [AssetImportType_Mesh] = string_static("scripts/import/mesh/*.script"),
+    [AssetImportType_Mesh]    = string_static("scripts/import/mesh/*.script"),
+    [AssetImportType_Texture] = string_static("scripts/import/texture/*.script"),
 };
 
 ecs_comp_define(AssetImportEnvComp) { AssetImportHandler handlers[AssetImportType_Count]; };
@@ -52,6 +54,9 @@ static AssetImportType import_type_for_format(const AssetFormat format) {
   switch (format) {
   case AssetFormat_MeshGltf:
     return AssetImportType_Mesh;
+  case AssetFormat_TexTga:
+    return AssetImportType_Texture;
+
   default:
     return AssetImportType_Sentinel;
   }
@@ -61,6 +66,8 @@ MAYBE_UNUSED static AssetImportType import_type_for_domain(const AssetScriptDoma
   switch (domain) {
   case AssetScriptDomain_ImportMesh:
     return AssetImportType_Mesh;
+  case AssetScriptDomain_ImportTexture:
+    return AssetImportType_Texture;
   default:
     return AssetImportType_Sentinel;
   }
