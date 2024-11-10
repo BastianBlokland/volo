@@ -243,12 +243,26 @@ ecs_module_init(asset_import_module) {
 }
 
 bool asset_import_ready(const AssetImportEnvComp* env, const String assetId) {
-  const AssetFormat     format = asset_format_from_ext(path_extension(assetId));
-  const AssetImportType type   = import_type_for_format(format);
-  if (type == AssetImportType_Sentinel) {
-    return true; // No import-type defined for this format.
+  /**
+   * Check if we are ready to import an asset with the given id.
+   *
+   * NOTE: Unfortunately its not enough to check if the handler for the asset is ready as the asset
+   * can depend on assets of other formats. To make this more optimal we could define for each
+   * asset-format which other formats they can depend on (as in practice its quite limited).
+   *
+   * NOTE: We cannot have an importer for scripts or for asset-formats that depend on scripts,
+   * reason is we always need to be able to freely load the importer scripts.
+   */
+  const AssetFormat format = asset_format_from_ext(path_extension(assetId));
+  if (format == AssetFormat_Script) {
+    return true;
   }
-  return env->handlers[type].ready;
+  for (AssetImportType type = 0; type != AssetImportType_Count; ++type) {
+    if (!env->handlers[type].ready) {
+      return false;
+    }
+  }
+  return true;
 }
 
 u32 asset_import_hash(const AssetImportEnvComp* env, const String assetId) {
