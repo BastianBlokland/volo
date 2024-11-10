@@ -9,6 +9,7 @@
         "--stdio",
         "--binders",
         "volo/assets/schemas/script_import_mesh_binder.json"
+        "volo/assets/schemas/script_import_texture_binder.json"
         "volo/assets/schemas/script_scene_binder.json"
       ],
       "languageId": "volo-script",
