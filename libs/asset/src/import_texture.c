@@ -45,6 +45,15 @@ static u16 import_texture_mips_max(const u32 width, const u32 height) {
   return mipCount;
 }
 
+static ScriptVal import_eval_is_pow2(AssetImportContext* ctx, ScriptBinderCall* call) {
+  (void)ctx;
+  const f64 val = script_arg_num(call, 0);
+  if (script_call_panicked(call)) {
+    return script_null();
+  }
+  return script_bool(bits_ispow2_64((u64)val));
+}
+
 static ScriptVal import_eval_texture_channels(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
@@ -125,6 +134,15 @@ void asset_data_init_import_texture(void) {
   // clang-format off
   static const String g_flagsDoc     = string_static("Supported flags:\n\n-`NormalMap`\n\n-`Lossless`\n\n-`Linear`\n\n-`Mips`");
   static const String g_pixelTypeDoc = string_static("Supported types:\n\n-`u8`\n\n-`u16`\n\n-`f32`");
+  {
+    const String       name   = string_lit("is_pow2");
+    const String       doc    = string_lit("Check if the given value is a power of two.");
+    const ScriptMask   ret    = script_mask_bool;
+    const ScriptSigArg args[] = {
+        {string_lit("value"), script_mask_num},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_is_pow2);
+  }
   {
     const String       name   = string_lit("texture_channels");
     const String       doc    = string_lit("Query the amount of channels in the texture.");

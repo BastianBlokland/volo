@@ -128,6 +128,16 @@
       }
     },
     {
+      "name": "is_pow2",
+      "doc": "Check if the given value is a power of two.",
+      "sig": {
+        "ret": "bool",
+        "args": [
+          { "name": "value", "mask": "num" }
+        ]
+      }
+    },
+    {
       "name": "warn",
       "doc": "Log a warning with the given values.",
       "sig": {
