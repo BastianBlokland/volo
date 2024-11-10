@@ -4,6 +4,14 @@
   "filter": "import/texture/*.script",
   "functions": [
     {
+      "name": "texture_type",
+      "doc": "Query the texture pixel type.\n\nSupported types:\n\n-`u8`\n\n-`u16`\n\n-`f32`",
+      "sig": {
+        "ret": "str",
+        "args": []
+      }
+    },
+    {
       "name": "fail_if",
       "doc": "Fail the import if the given value is truthy.",
       "sig": {

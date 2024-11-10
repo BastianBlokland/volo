@@ -114,10 +114,11 @@ static void htex_load(
   }
 
   AssetImportTexture import = {
-      .flags    = AssetImportTextureFlags_None,
-      .channels = 1,
-      .width    = size,
-      .height   = size,
+      .flags     = AssetImportTextureFlags_None,
+      .channels  = 1,
+      .pixelType = pixelType,
+      .width     = size,
+      .height    = size,
   };
   if (!asset_import_texture(importEnv, id, &import)) {
     htex_load_fail(world, entity, id, HtexError_ImportFailed);

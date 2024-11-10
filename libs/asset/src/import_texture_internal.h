@@ -1,5 +1,6 @@
 #pragma once
 #include "import_internal.h"
+#include "loader_texture_internal.h"
 
 typedef enum {
   AssetImportTextureFlags_None      = 0,
@@ -12,6 +13,7 @@ typedef enum {
 typedef struct {
   AssetImportTextureFlags flags;
   u32                     channels;
+  AssetTextureType        pixelType;
   u32                     width, height;
 } AssetImportTexture;
 
