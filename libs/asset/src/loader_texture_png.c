@@ -510,7 +510,10 @@ void asset_load_tex_png(
   const AssetTextureType texType = png_tex_type(type);
   asset_texture_flip_y(dynstring_view(&pixelData), header.width, header.height, channels, texType);
 
-  AssetImportTexture import = {.flags = AssetImportTextureFlags_Mips};
+  AssetImportTexture import = {
+      .flags    = AssetImportTextureFlags_Mips,
+      .channels = channels,
+  };
   if (!asset_import_texture(importEnv, id, &import)) {
     png_load_fail(world, entity, id, PngError_ImportFailed);
     goto Ret;

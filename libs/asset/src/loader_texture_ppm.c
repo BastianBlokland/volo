@@ -244,7 +244,10 @@ void asset_load_tex_ppm(
     goto Error;
   }
 
-  AssetImportTexture import = {.flags = AssetImportTextureFlags_Mips};
+  AssetImportTexture import = {
+      .flags    = AssetImportTextureFlags_Mips,
+      .channels = 3,
+  };
   if (!asset_import_texture(importEnv, id, &import)) {
     ppm_load_fail(world, entity, id, PixmapError_ImportFailed);
     goto Error;

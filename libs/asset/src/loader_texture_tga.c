@@ -442,7 +442,10 @@ void asset_load_tex_tga(
     goto Ret;
   }
 
-  AssetImportTexture import = {.flags = AssetImportTextureFlags_Mips};
+  AssetImportTexture import = {
+      .flags    = AssetImportTextureFlags_Mips,
+      .channels = channels,
+  };
   if (!asset_import_texture(importEnv, id, &import)) {
     tga_load_fail(world, entity, id, TgaError_ImportFailed);
     goto Ret;

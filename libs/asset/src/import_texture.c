@@ -24,6 +24,12 @@ static void import_init_enum_flags(void) {
 #undef PUSH_FLAG
 }
 
+static ScriptVal import_eval_texture_channels(AssetImportContext* ctx, ScriptBinderCall* call) {
+  (void)call;
+  AssetImportTexture* out = ctx->out;
+  return script_num(out->channels);
+}
+
 static ScriptVal import_eval_texture_flag(AssetImportContext* ctx, ScriptBinderCall* call) {
   const i32 flag = script_arg_enum(call, 0, &g_importTextureFlags);
   if (!script_call_panicked(call)) {
@@ -48,7 +54,13 @@ void asset_data_init_import_texture(void) {
 
   // clang-format off
   static const String g_flagsDoc = string_static("Supported flags:\n\n-`NormalMap`\n\n-`Lossless`\n\n-`Linear`\n\n-`Mips`");
-   {
+  {
+    const String       name   = string_lit("texture_channels");
+    const String       doc    = string_lit("Query the amount of channels in the texture.");
+    const ScriptMask   ret    = script_mask_num;
+    asset_import_bind(binder, name, doc, ret, null, 0, import_eval_texture_channels);
+  }
+  {
     const String       name   = string_lit("texture_flag");
     const String       doc    = fmt_write_scratch("Change or query a texture import flag.\n\n{}", fmt_text(g_flagsDoc));
     const ScriptMask   ret    = script_mask_null | script_mask_null;

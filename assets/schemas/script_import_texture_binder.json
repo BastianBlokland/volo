@@ -64,6 +64,14 @@
       }
     },
     {
+      "name": "texture_channels",
+      "doc": "Query the amount of channels in the texture.",
+      "sig": {
+        "ret": "num",
+        "args": []
+      }
+    },
+    {
       "name": "warn",
       "doc": "Log a warning with the given values.",
       "sig": {

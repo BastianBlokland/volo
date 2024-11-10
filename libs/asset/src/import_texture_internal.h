@@ -11,6 +11,7 @@ typedef enum {
 
 typedef struct {
   AssetImportTextureFlags flags;
+  u32                     channels;
 } AssetImportTexture;
 
 bool asset_import_texture(const AssetImportEnvComp*, String id, AssetImportTexture*);

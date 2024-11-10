@@ -113,7 +113,10 @@ static void htex_load(
     data = mem_consume(data, rowStride);
   }
 
-  AssetImportTexture import = {.flags = AssetImportTextureFlags_None};
+  AssetImportTexture import = {
+      .flags    = AssetImportTextureFlags_None,
+      .channels = 1,
+  };
   if (!asset_import_texture(importEnv, id, &import)) {
     htex_load_fail(world, entity, id, HtexError_ImportFailed);
     alloc_free(g_allocHeap, pixelMem);
