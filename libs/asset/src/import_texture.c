@@ -108,6 +108,12 @@ static ScriptVal import_eval_texture_mips(AssetImportContext* ctx, ScriptBinderC
   return script_num(1);
 }
 
+static ScriptVal import_eval_texture_mips_max(AssetImportContext* ctx, ScriptBinderCall* call) {
+  (void)call;
+  AssetImportTexture* data = ctx->data;
+  return script_num(import_texture_mips_max(data->width, data->height));
+}
+
 void asset_data_init_import_texture(void) {
   import_init_enum_flags();
   import_init_enum_pixel_type();
@@ -161,6 +167,12 @@ void asset_data_init_import_texture(void) {
         {string_lit("mips"), script_mask_num | script_mask_null},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_texture_mips);
+  }
+  {
+    const String       name   = string_lit("texture_mips_max");
+    const String       doc    = string_lit("Query the maximum amount of mip levels.");
+    const ScriptMask   ret    = script_mask_num;
+    asset_import_bind(binder, name, doc, ret, null, 0, import_eval_texture_mips_max);
   }
   // clang-format on
 

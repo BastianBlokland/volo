@@ -12,6 +12,14 @@
       }
     },
     {
+      "name": "texture_mips_max",
+      "doc": "Query the maximum amount of mip levels.",
+      "sig": {
+        "ret": "num",
+        "args": []
+      }
+    },
+    {
       "name": "fail_if",
       "doc": "Fail the import if the given value is truthy.",
       "sig": {
