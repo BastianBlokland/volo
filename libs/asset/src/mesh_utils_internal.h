@@ -16,6 +16,8 @@ typedef struct {
   GeoVector weights;   // joint weights.
 } AssetMeshSkin;
 
+void asset_mesh_vertex_scale(AssetMeshVertex*, f32 scale);
+
 AssetMeshBuilder* asset_mesh_builder_create(Allocator*, u32 maxVertexCount);
 void              asset_mesh_builder_destroy(AssetMeshBuilder*);
 void              asset_mesh_builder_clear(AssetMeshBuilder*);
