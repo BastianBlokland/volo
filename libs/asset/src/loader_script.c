@@ -21,6 +21,8 @@ DataMeta g_assetScriptMeta;
 
 static const ScriptBinder* asset_script_domain_binder(const AssetScriptDomain domain) {
   switch (domain) {
+  case AssetScriptDomain_ImportMesh:
+    return g_assetScriptImportMeshBinder;
   case AssetScriptDomain_Scene:
     return g_assetScriptSceneBinder;
   }
@@ -28,11 +30,23 @@ static const ScriptBinder* asset_script_domain_binder(const AssetScriptDomain do
 }
 
 static bool asset_script_domain_match(const String fileIdentifier, AssetScriptDomain* out) {
+  if (script_binder_match(g_assetScriptImportMeshBinder, fileIdentifier)) {
+    *out = AssetScriptDomain_ImportMesh;
+    return true;
+  }
   if (script_binder_match(g_assetScriptSceneBinder, fileIdentifier)) {
     *out = AssetScriptDomain_Scene;
     return true;
   }
   return false;
+}
+
+static u32 asset_script_prog_hash(const ScriptProgram* prog) {
+  u32 hash = bits_hash_32(mem_create(prog->code.ptr, prog->code.size));
+  for (u32 i = 0; i != prog->literals.count; ++i) {
+    hash = bits_hash_32_combine(hash, script_hash(prog->literals.values[i]));
+  }
+  return hash;
 }
 
 ecs_comp_define_public(AssetScriptComp);
@@ -98,10 +112,12 @@ void asset_data_init_script(void) {
   data_reg_field_t(g_dataReg, ScriptProgram, locations, t_ScriptProgramLoc, .container = DataContainer_HeapArray);
 
   data_reg_enum_t(g_dataReg, AssetScriptDomain);
+  data_reg_const_t(g_dataReg, AssetScriptDomain, ImportMesh);
   data_reg_const_t(g_dataReg, AssetScriptDomain, Scene);
 
   data_reg_struct_t(g_dataReg, AssetScriptComp);
   data_reg_field_t(g_dataReg, AssetScriptComp, domain, t_AssetScriptDomain);
+  data_reg_field_t(g_dataReg, AssetScriptComp, hash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetScriptComp, prog, t_ScriptProgram);
   data_reg_field_t(g_dataReg, AssetScriptComp, stringLiterals, data_prim_t(String), .container = DataContainer_HeapArray, .flags = DataFlags_Intern);
   // clang-format on
@@ -110,7 +126,12 @@ void asset_data_init_script(void) {
 }
 
 void asset_load_script(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
 
   Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
 
@@ -178,7 +199,8 @@ void asset_load_script(
       world,
       entity,
       AssetScriptComp,
-      .domain                = AssetScriptDomain_Scene,
+      .domain                = domain,
+      .hash                  = asset_script_prog_hash(&prog),
       .prog                  = prog,
       .stringLiterals.values = strings.values,
       .stringLiterals.count  = strings.count);
@@ -202,7 +224,12 @@ Cleanup:
 }
 
 void asset_load_script_bin(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
 
   AssetScriptComp script;
   DataReadResult  result;

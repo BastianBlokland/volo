@@ -22,7 +22,9 @@ static i8 asset_compare_entry(const void* a, const void* b) {
   return compare_stringhash(field_ptr(a, RepoEntry, idHash), field_ptr(b, RepoEntry, idHash));
 }
 
-static AssetSource* asset_source_mem_open(AssetRepo* repo, const String id) {
+static AssetSource*
+asset_source_mem_open(AssetRepo* repo, const String id, const AssetRepoLoaderHasher loaderHasher) {
+  (void)loaderHasher;
   AssetRepoMem* repoMem = (AssetRepoMem*)repo;
 
   const AssetFormat fmt    = asset_format_from_ext(path_extension(id));

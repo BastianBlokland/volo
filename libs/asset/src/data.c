@@ -158,6 +158,7 @@ void asset_data_init(void) {
     asset_data_init_fonttex();
     asset_data_init_graphic();
     asset_data_init_icon();
+    asset_data_init_import_mesh();
     asset_data_init_inputmap();
     asset_data_init_level();
     asset_data_init_mesh();
@@ -165,8 +166,8 @@ void asset_data_init(void) {
     asset_data_init_procmesh();
     asset_data_init_proctex();
     asset_data_init_product();
-    asset_data_init_script();
     asset_data_init_script_scene();
+    asset_data_init_script();
     asset_data_init_shader();
     asset_data_init_sound();
     asset_data_init_terrain();

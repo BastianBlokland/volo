@@ -7,6 +7,7 @@
 #include "log_logger.h"
 
 #include "data_internal.h"
+#include "import_internal.h"
 #include "loader_mesh_internal.h"
 #include "repo_internal.h"
 
@@ -113,7 +114,12 @@ void asset_data_init_mesh(void) {
 }
 
 void asset_load_mesh_bin(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
 
   AssetMeshBundle bundle;
   DataReadResult  result;

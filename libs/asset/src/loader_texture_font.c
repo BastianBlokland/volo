@@ -335,6 +335,7 @@ ecs_system_define(FontTexLoadAssetSys) {
         defFont->asset = asset_lookup(world, manager, defFont->id);
         asset_acquire(world, defFont->asset);
         asset_register_dep(world, entity, defFont->asset);
+        goto Wait; // Wait for the acquire to take effect.
       }
       if (ecs_world_has_t(world, defFont->asset, AssetFailedComp)) {
         err = FontTexError_FontInvalid;
@@ -467,7 +468,13 @@ void asset_data_init_fonttex(void) {
 }
 
 void asset_load_tex_font(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
+
   String         errMsg;
   FontTexDef     def;
   DataReadResult result;
@@ -510,7 +517,12 @@ Error:
 }
 
 void asset_load_tex_font_bin(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
 
   FontTexBundle  bundle;
   DataReadResult result;

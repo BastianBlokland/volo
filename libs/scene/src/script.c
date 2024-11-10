@@ -1905,7 +1905,7 @@ static ScriptVal eval_debug_input_entity(EvalContext* ctx, ScriptBinderCall* cal
 
 static ScriptBinder* g_scriptBinder;
 
-typedef ScriptVal (*SceneScriptBinderFunc)(EvalContext* ctx, ScriptBinderCall*);
+typedef ScriptVal (*SceneScriptBinderFunc)(EvalContext*, ScriptBinderCall*);
 
 static void eval_bind(ScriptBinder* b, const String name, SceneScriptBinderFunc f) {
   const ScriptSig* nullSig       = null;
@@ -2101,7 +2101,7 @@ ecs_system_define(SceneScriptResourceLoadSys) {
 ecs_system_define(SceneScriptResourceUnloadChangedSys) {
   EcsView* loadView = ecs_world_view_t(world, ResourceLoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
-    EcsEntityId              entity = ecs_view_entity(itr);
+    const EcsEntityId        entity = ecs_view_entity(itr);
     SceneScriptResourceComp* res    = ecs_view_write_t(itr, SceneScriptResourceComp);
 
     const bool isLoaded   = ecs_world_has_t(world, entity, AssetLoadedComp);

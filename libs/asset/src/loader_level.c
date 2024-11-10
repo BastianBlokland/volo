@@ -76,7 +76,12 @@ void asset_data_init_level(void) {
 }
 
 void asset_load_level(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
 
   AssetLevel     lvl;
   String         errMsg;

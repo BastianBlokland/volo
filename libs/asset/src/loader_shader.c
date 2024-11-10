@@ -5,6 +5,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "import_internal.h"
 #include "loader_shader_internal.h"
 
 ecs_comp_define_public(AssetShaderComp);
@@ -90,7 +91,12 @@ void asset_data_init_shader(void) {
 }
 
 void asset_load_shader_bin(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
 
   AssetShaderComp shader;
   DataReadResult  result;

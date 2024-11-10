@@ -25,6 +25,7 @@ typedef struct {
 typedef struct {
   String   id;
   TimeReal modTime;
+  u32      loaderHash;
 } AssetCacheDependency;
 
 typedef struct {
@@ -32,6 +33,7 @@ typedef struct {
   StringHash     idHash;
   AssetCacheMeta meta;
   TimeReal       modTime;
+  u32            loaderHash;
   HeapArray_t(AssetCacheDependency) dependencies;
 } AssetCacheEntry;
 
@@ -224,13 +226,20 @@ static bool cache_reg_validate_file(const AssetCache* c, const String id, const 
 /**
  * Pre-condition: cache->regMutex is held by this thread.
  */
-static bool cache_reg_validate(const AssetCache* c, const AssetCacheEntry* entry) {
+static bool cache_reg_validate(
+    const AssetCache* c, const AssetCacheEntry* entry, const AssetRepoLoaderHasher loaderHasher) {
   if (!cache_reg_validate_file(c, entry->id, entry->modTime)) {
-    return false;
+    return false; // File has changed.
+  }
+  if (entry->loaderHash != loaderHasher.computeHash(loaderHasher.ctx, entry->id)) {
+    return false; // Loader has changed.
   }
   heap_array_for_t(entry->dependencies, AssetCacheDependency, dep) {
     if (!cache_reg_validate_file(c, dep->id, dep->modTime)) {
-      return false;
+      return false; // Dependency file has changed.
+    }
+    if (dep->loaderHash != loaderHasher.computeHash(loaderHasher.ctx, dep->id)) {
+      return false; // Dependency loader has changed.
     }
   }
   return true;
@@ -275,12 +284,14 @@ void asset_data_init_cache(void) {
   data_reg_struct_t(g_dataReg, AssetCacheDependency);
   data_reg_field_t(g_dataReg, AssetCacheDependency, id, data_prim_t(String));
   data_reg_field_t(g_dataReg, AssetCacheDependency, modTime, data_prim_t(i64));
+  data_reg_field_t(g_dataReg, AssetCacheDependency, loaderHash, data_prim_t(u32));
 
   data_reg_struct_t(g_dataReg, AssetCacheEntry);
   data_reg_field_t(g_dataReg, AssetCacheEntry, id, data_prim_t(String));
   data_reg_field_t(g_dataReg, AssetCacheEntry, idHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetCacheEntry, meta, t_AssetCacheMeta);
   data_reg_field_t(g_dataReg, AssetCacheEntry, modTime, data_prim_t(i64));
+  data_reg_field_t(g_dataReg, AssetCacheEntry, loaderHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetCacheEntry, dependencies, t_AssetCacheDependency, .container = DataContainer_HeapArray);
 
   data_reg_struct_t(g_dataReg, AssetCacheRegistry);
@@ -346,6 +357,7 @@ void asset_cache_set(
     const String        id,
     const DataMeta      blobMeta,
     const TimeReal      blobModTime,
+    const u32           blobLoaderHash,
     const Mem           blob,
     const AssetRepoDep* deps,
     const usize         depCount) {
@@ -373,8 +385,9 @@ void asset_cache_set(
     for (usize i = 0; i != depCount; ++i) {
       diag_assert(!string_is_empty(deps[i].id));
       cacheDependencies[i] = (AssetCacheDependency){
-          .id      = string_dup(c->alloc, deps[i].id),
-          .modTime = deps[i].modTime,
+          .id         = string_dup(c->alloc, deps[i].id),
+          .modTime    = deps[i].modTime,
+          .loaderHash = deps[i].loaderHash,
       };
     }
   }
@@ -385,6 +398,7 @@ void asset_cache_set(
     AssetCacheEntry* entry = cache_reg_add(c, id, idHash);
     entry->meta            = cacheMeta;
     entry->modTime         = blobModTime;
+    entry->loaderHash      = blobLoaderHash;
     if (entry->dependencies.count) {
       // Cleanup the old dependencies.
       heap_array_for_t(entry->dependencies, AssetCacheDependency, dep) {
@@ -400,7 +414,11 @@ void asset_cache_set(
   thread_mutex_unlock(c->regMutex);
 }
 
-bool asset_cache_get(AssetCache* c, const String id, AssetCacheRecord* out) {
+bool asset_cache_get(
+    AssetCache*                 c,
+    const String                id,
+    const AssetRepoLoaderHasher loaderHasher,
+    AssetCacheRecord*           out) {
   if (UNLIKELY(c->error)) {
     return false;
   }
@@ -419,11 +437,12 @@ bool asset_cache_get(AssetCache* c, const String id, AssetCacheRecord* out) {
       if (!cache_meta_resolve(g_dataReg, &entry->meta, &out->meta)) {
         goto Incompatible;
       }
-      if (!cache_reg_validate(c, entry)) {
+      if (!cache_reg_validate(c, entry, loaderHasher)) {
         goto Incompatible;
       }
-      out->modTime = entry->modTime;
-      success      = true;
+      out->modTime    = entry->modTime;
+      out->loaderHash = entry->loaderHash;
+      success         = true;
     }
   Incompatible:;
   }
@@ -458,8 +477,9 @@ usize asset_cache_deps(
       result = math_min(entry->dependencies.count, asset_repo_cache_deps_max);
       for (usize i = 0; i != result; ++i) {
         out[i] = (AssetRepoDep){
-            .id      = string_dup(g_allocScratch, entry->dependencies.values[i].id),
-            .modTime = entry->dependencies.values[i].modTime,
+            .id         = string_dup(g_allocScratch, entry->dependencies.values[i].id),
+            .modTime    = entry->dependencies.values[i].modTime,
+            .loaderHash = entry->dependencies.values[i].loaderHash,
         };
       }
     }

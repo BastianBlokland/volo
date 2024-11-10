@@ -12,6 +12,7 @@
 #include "geo_vector.h"
 #include "log_logger.h"
 
+#include "import_internal.h"
 #include "loader_texture_internal.h"
 #include "repo_internal.h"
 
@@ -611,7 +612,12 @@ void asset_data_init_tex(void) {
 }
 
 void asset_load_tex_bin(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
 
   AssetTextureComp tex;
   DataReadResult   result;

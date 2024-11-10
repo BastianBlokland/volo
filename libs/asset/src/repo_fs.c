@@ -114,11 +114,12 @@ static AssetSource* asset_source_fs_open_normal(AssetRepoFs* repoFs, const Strin
   return (AssetSource*)src;
 }
 
-static AssetSource* asset_source_fs_open(AssetRepo* repo, const String id) {
+static AssetSource*
+asset_source_fs_open(AssetRepo* repo, const String id, const AssetRepoLoaderHasher loaderHasher) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
   AssetCacheRecord cacheRecord;
-  if (asset_cache_get(repoFs->cache, id, &cacheRecord)) {
+  if (asset_cache_get(repoFs->cache, id, loaderHasher, &cacheRecord)) {
     return asset_source_fs_open_cached(repoFs, &cacheRecord);
   }
   return asset_source_fs_open_normal(repoFs, id);
@@ -223,7 +224,9 @@ static AssetRepoQueryResult asset_repo_fs_query_iteration(
   if (UNLIKELY(itrResult != FileIteratorResult_End)) {
     log_w(
         "Error while performing file query",
-        log_param("result", fmt_text(file_iterator_result_str(itrResult))));
+        log_param("result", fmt_text(file_iterator_result_str(itrResult))),
+        log_param("directory", fmt_path(directory)),
+        log_param("pattern", fmt_text(pattern)));
     return AssetRepoQueryResult_ErrorWhileQuerying;
   }
   return AssetRepoQueryResult_Success;
@@ -269,12 +272,13 @@ static void asset_repo_fs_cache(
     const String        id,
     const DataMeta      blobMeta,
     const TimeReal      blobModTime,
+    const u32           blobLoaderHash,
     const Mem           blob,
     const AssetRepoDep* deps,
     const usize         depCount) {
   AssetRepoFs* repoFs = (AssetRepoFs*)repo;
 
-  asset_cache_set(repoFs->cache, id, blobMeta, blobModTime, blob, deps, depCount);
+  asset_cache_set(repoFs->cache, id, blobMeta, blobModTime, blobLoaderHash, blob, deps, depCount);
   asset_cache_flush(repoFs->cache); // NOTE: We could batch flushes to be more efficient.
 }
 

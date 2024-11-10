@@ -362,7 +362,14 @@ void asset_data_init_vfx(void) {
   g_assetVfxDefMeta = data_meta_t(t_VfxDef);
 }
 
-void asset_load_vfx(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_vfx(
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
+
   VfxDef         vfxDef;
   String         errMsg;
   DataReadResult readRes;

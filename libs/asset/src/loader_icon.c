@@ -151,6 +151,7 @@ ecs_system_define(LoadIconAssetSys) {
       load->textureAsset = asset_lookup(world, manager, load->def.texture);
       asset_acquire(world, load->textureAsset);
       asset_register_dep(world, entity, load->textureAsset);
+      goto Next; // Wait for the acquire to take effect.
     }
 
     /**
@@ -246,7 +247,14 @@ void asset_data_init_icon(void) {
   g_assetIconMeta    = data_meta_t(t_AssetIconComp);
 }
 
-void asset_load_icon(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_icon(
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
+
   IconDef        iconDef;
   String         errMsg;
   DataReadResult readRes;
@@ -273,7 +281,12 @@ Cleanup:
 }
 
 void asset_load_icon_bin(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
 
   AssetIconComp  icon;
   DataReadResult result;

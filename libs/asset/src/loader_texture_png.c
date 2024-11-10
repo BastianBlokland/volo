@@ -435,7 +435,12 @@ static AssetTextureType png_tex_type(const PngType type) {
 }
 
 void asset_load_tex_png(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
 
   DynString pixelData = dynstring_create(g_allocHeap, 0);
 

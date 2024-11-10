@@ -212,7 +212,13 @@ static bool ppm_is_lossless(const String id) {
 }
 
 void asset_load_tex_ppm(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
+
   const bool isNormalmap = ppm_is_normalmap(id);
   const bool isLossless  = ppm_is_lossless(id);
 

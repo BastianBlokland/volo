@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "ecs_world.h"
 
+#include "import_internal.h"
 #include "repo_internal.h"
 
 ecs_comp_define_public(AssetRawComp);
@@ -39,7 +40,13 @@ ecs_module_init(asset_raw_module) {
   ecs_register_system(UnloadRawAssetSys, ecs_view_id(UnloadView));
 }
 
-void asset_load_raw(EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+void asset_load_raw(
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
   (void)id;
 
   ecs_world_add_t(world, entity, AssetRawComp, .data = src->data);

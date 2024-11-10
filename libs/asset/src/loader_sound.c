@@ -5,6 +5,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "import_internal.h"
 #include "repo_internal.h"
 
 DataMeta g_assetSoundMeta;
@@ -62,7 +63,12 @@ void asset_data_init_sound(void) {
 }
 
 void asset_load_sound_bin(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
 
   AssetSoundComp sound;
   DataReadResult result;

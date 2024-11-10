@@ -2,7 +2,7 @@
 #include "core_string.h"
 #include "data_registry.h"
 
-typedef enum {
+typedef enum eAssetFormat {
   AssetFormat_Decal,
   AssetFormat_FontTtf,
   AssetFormat_Graphic,

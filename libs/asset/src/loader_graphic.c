@@ -237,8 +237,14 @@ void asset_data_init_graphic(void) {
 }
 
 void asset_load_graphic(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
   (void)id;
+
   ecs_world_add_t(world, entity, AssetGraphicLoadComp, .src = src);
 }
 

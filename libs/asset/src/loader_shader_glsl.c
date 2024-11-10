@@ -6,6 +6,7 @@
 #include "log_logger.h"
 #include "trace_tracer.h"
 
+#include "import_internal.h"
 #include "loader_shader_internal.h"
 #include "manager_internal.h"
 
@@ -65,9 +66,10 @@ typedef struct sShadercCompileOptions    ShadercCompileOptions;
 typedef struct sShadercCompilationResult ShadercCompilationResult;
 
 typedef struct {
-  EcsWorld*         world;
-  EcsEntityId       assetEntity;
-  AssetManagerComp* assetManager;
+  EcsWorld*                 world;
+  EcsEntityId               assetEntity;
+  AssetManagerComp*         assetManager;
+  const AssetImportEnvComp* importEnv;
 } GlslIncludeInvocation;
 
 typedef struct {
@@ -256,7 +258,7 @@ static ShadercIncludeResult* SYS_DECL glsl_include_resolve(
 
   const String id = string_dup(ctx->idAlloc, dynstring_view(&idBuilder));
 
-  AssetSource* src = asset_source_open(ctx->invoc->assetManager, id);
+  AssetSource* src = asset_source_open(ctx->invoc->assetManager, ctx->invoc->importEnv, id);
   if (UNLIKELY(!src)) {
     glsl_include_error(res, string_lit("File not found"));
     return res;
@@ -386,8 +388,9 @@ Done:
 }
 
 ecs_view_define(GlobalView) {
-  ecs_access_write(AssetManagerComp);
   ecs_access_maybe_write(AssetGlslEnvComp);
+  ecs_access_write(AssetManagerComp);
+  ecs_access_read(AssetImportEnvComp);
 }
 
 ecs_view_define(LoadView) {
@@ -404,8 +407,9 @@ ecs_system_define(LoadGlslAssetSys) {
   if (!globalItr) {
     return; // Global dependencies not ready.
   }
-  AssetManagerComp* manager = ecs_view_write_t(globalItr, AssetManagerComp);
-  AssetGlslEnvComp* glslEnv = ecs_view_write_t(globalItr, AssetGlslEnvComp);
+  AssetManagerComp*         manager   = ecs_view_write_t(globalItr, AssetManagerComp);
+  AssetGlslEnvComp*         glslEnv   = ecs_view_write_t(globalItr, AssetGlslEnvComp);
+  const AssetImportEnvComp* importEnv = ecs_view_read_t(globalItr, AssetImportEnvComp);
 
   EcsView* loadView = ecs_world_view_t(world, LoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
@@ -426,6 +430,7 @@ ecs_system_define(LoadGlslAssetSys) {
         .world        = world,
         .assetEntity  = entity,
         .assetManager = manager,
+        .importEnv    = importEnv,
     };
     glsl_include_ctx_prepare(glslEnv->includeCtx, &includeInvoc);
 
@@ -484,13 +489,25 @@ ecs_module_init(asset_shader_glsl_module) {
 }
 
 void asset_load_shader_glsl_vert(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
   (void)id;
+
   ecs_world_add_t(world, entity, AssetGlslLoadComp, .kind = ShadercShaderKind_Vertex, .src = src);
 }
 
 void asset_load_shader_glsl_frag(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
   (void)id;
+
   ecs_world_add_t(world, entity, AssetGlslLoadComp, .kind = ShadercShaderKind_Fragment, .src = src);
 }

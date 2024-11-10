@@ -256,6 +256,7 @@ ecs_system_define(AtlasLoadAssetSys) {
         asset_acquire(world, texAsset);
         asset_register_dep(world, entity, texAsset);
       }
+      goto Next; // Wait for the acquires to take effect.
     }
 
     /**
@@ -377,7 +378,13 @@ void asset_data_init_atlas(void) {
 }
 
 void asset_load_tex_atlas(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
+
   String         errMsg;
   AtlasDef       def;
   DataReadResult result;
@@ -442,7 +449,12 @@ Error:
 }
 
 void asset_load_tex_atlas_bin(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
 
   AtlasBundle    bundle;
   DataReadResult result;

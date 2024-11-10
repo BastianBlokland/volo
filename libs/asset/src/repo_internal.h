@@ -15,7 +15,17 @@ typedef struct sAssetSource AssetSource;
 typedef struct {
   String   id;
   TimeReal modTime;
+  u32      loaderHash;
 } AssetRepoDep;
+
+/**
+ * Utility to compute a hash of the loader (NOT a hash of the asset itself) for the given asset-id.
+ * When the loader hash changes any cached versions of this asset are invalidated.
+ */
+typedef struct {
+  const void* ctx;
+  u32 (*computeHash)(const void* ctx, String assetId);
+} AssetRepoLoaderHasher;
 
 typedef void (*AssetRepoQueryHandler)(void* ctx, String assetId);
 
@@ -34,7 +44,7 @@ typedef enum {
  */
 struct sAssetRepo {
   bool (*path)(AssetRepo*, String id, DynString* out);
-  AssetSource* (*open)(AssetRepo*, String id);
+  AssetSource* (*open)(AssetRepo*, String id, AssetRepoLoaderHasher);
   bool (*save)(AssetRepo*, String id, String data);
   void (*destroy)(AssetRepo*);
   void (*changesWatch)(AssetRepo*, String id, u64 userData);
@@ -45,6 +55,7 @@ struct sAssetRepo {
       String              id,
       DataMeta            blobMeta,
       TimeReal            blobModTime,
+      u32                 blobLoaderHash,
       Mem                 blob,
       const AssetRepoDep* deps,
       usize               depCount);
@@ -73,7 +84,7 @@ AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, usize recordCoun
 void       asset_repo_destroy(AssetRepo*);
 
 bool         asset_repo_path(AssetRepo* repo, String id, DynString* out);
-AssetSource* asset_repo_source_open(AssetRepo*, String id);
+AssetSource* asset_repo_source_open(AssetRepo*, String id, AssetRepoLoaderHasher);
 bool         asset_repo_save(AssetRepo*, String id, String data);
 void         asset_repo_source_close(AssetSource*);
 
@@ -86,6 +97,7 @@ void asset_repo_cache(
     String              id,
     DataMeta            blobMeta,
     TimeReal            blobModTime,
+    u32                 blobLoaderHash,
     Mem                 blob,
     const AssetRepoDep* deps,
     usize               depCount);

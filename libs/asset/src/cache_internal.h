@@ -30,6 +30,7 @@ void asset_cache_set(
     String              id,
     DataMeta            blobMeta,
     TimeReal            blobModTime,
+    u32                 blobLoaderHash,
     Mem                 blob,
     const AssetRepoDep* deps,
     usize               depCount);
@@ -38,6 +39,7 @@ typedef struct {
   File*    blobFile; // NOTE: Caller is responsible for destroying the handle.
   DataMeta meta;
   TimeReal modTime;
+  u32      loaderHash;
 } AssetCacheRecord;
 
 /**
@@ -45,7 +47,7 @@ typedef struct {
  * Returns true when a compatible cache entry was found.
  * NOTE: When successful the caller is responsible for destroying the blob file handle.
  */
-bool asset_cache_get(AssetCache*, String id, AssetCacheRecord* out);
+bool asset_cache_get(AssetCache*, String id, AssetRepoLoaderHasher, AssetCacheRecord* out);
 
 /**
  * Lookup cache dependencies for the given id.

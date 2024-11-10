@@ -380,7 +380,13 @@ static bool tga_is_lossless(const String id) {
 }
 
 void asset_load_tex_tga(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
+
   const bool isNormalmap = tga_is_normalmap(id);
   const bool isLossless  = tga_is_lossless(id);
 

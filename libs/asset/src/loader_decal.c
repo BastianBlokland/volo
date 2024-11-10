@@ -6,6 +6,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "import_internal.h"
 #include "repo_internal.h"
 
 #define decal_default_size 1.0f
@@ -135,7 +136,12 @@ void asset_data_init_decal(void) {
 }
 
 void asset_load_decal(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
   (void)id;
 
   DecalDef       decalDef;

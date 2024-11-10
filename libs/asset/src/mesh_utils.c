@@ -56,6 +56,10 @@ static AssetMeshSnapshot asset_mesh_snapshot(const AssetMeshBuilder* builder, Al
   };
 }
 
+void asset_mesh_vertex_scale(AssetMeshVertex* vert, f32 scale) {
+  vert->position = geo_vector_mul(vert->position, scale);
+}
+
 AssetMeshBuilder* asset_mesh_builder_create(Allocator* alloc, const u32 maxVertexCount) {
   AssetMeshBuilder* builder = alloc_alloc_t(alloc, AssetMeshBuilder);
 

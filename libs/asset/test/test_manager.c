@@ -195,6 +195,7 @@ spec(manager) {
     ecs_world_flush(world);
 
     ecs_run_sync(runner);
+    ecs_run_sync(runner);
 
     check(ecs_world_has_t(world, entity, AssetLoadedComp));
     check(ecs_world_has_t(world, entity, AssetRawComp));

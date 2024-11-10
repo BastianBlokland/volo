@@ -13,6 +13,7 @@
 #include "log_logger.h"
 #include "trace_tracer.h"
 
+#include "import_internal.h"
 #include "loader_internal.h"
 #include "manager_internal.h"
 #include "repo_internal.h"
@@ -59,6 +60,7 @@ ecs_comp_define(AssetComp) {
   AssetFlags  flags : 8;
   AssetFormat loadFormat : 8; // Source format of the last load (valid if loadCount > 0).
   TimeReal    loadModTime;    // Source modification of the last load (valid if loadCount > 0).
+  u32         loaderHash;     // Hash of the loader at the time of the last load.
 };
 
 ecs_comp_define(AssetLoadedComp);
@@ -92,6 +94,8 @@ ecs_comp_define(AssetCacheRequestComp) {
   usize    blobSize;
   Mem      blobMem;
 };
+
+ecs_comp_define(AssetReloadRequestComp);
 
 ecs_comp_define(AssetExtLoadComp) {
   u32         count;
@@ -226,13 +230,24 @@ static EcsEntityId asset_entity_create(EcsWorld* world, Allocator* idAlloc, cons
   return entity;
 }
 
-static bool asset_manager_load(
-    EcsWorld*               world,
-    const AssetManagerComp* manager,
-    AssetComp*              asset,
-    const EcsEntityId       assetEntity) {
+static u32 asset_manager_loader_hash(const void* ctx, const String assetId) {
+  const AssetImportEnvComp* importEnv = ctx;
+  return asset_loader_hash(importEnv, assetId);
+}
 
-  AssetSource* source = asset_repo_source_open(manager->repo, asset->id);
+static bool asset_manager_load(
+    EcsWorld*                 world,
+    const AssetManagerComp*   manager,
+    const AssetImportEnvComp* importEnv,
+    AssetComp*                asset,
+    const EcsEntityId         assetEntity) {
+
+  const AssetRepoLoaderHasher loaderHasher = {
+      .ctx         = importEnv,
+      .computeHash = asset_manager_loader_hash,
+  };
+
+  AssetSource* source = asset_repo_source_open(manager->repo, asset->id, loaderHasher);
   if (!source) {
     return false;
   }
@@ -247,6 +262,7 @@ static bool asset_manager_load(
   ++asset->loadCount;
   asset->loadFormat  = source->format;
   asset->loadModTime = source->modTime;
+  asset->loaderHash  = asset_loader_hash(importEnv, asset->id);
 
 #if VOLO_ASSET_LOGGING
   log_d(
@@ -262,7 +278,7 @@ static bool asset_manager_load(
   bool success = true;
   if (LIKELY(loader)) {
     trace_begin("asset_loader", TraceColor_Red);
-    loader(world, asset->id, assetEntity, source);
+    loader(world, importEnv, asset->id, assetEntity, source);
     trace_end();
   } else {
     log_e(
@@ -277,6 +293,11 @@ static bool asset_manager_load(
     asset_repo_source_close(source);
   }
   return success;
+}
+
+ecs_view_define(GlobalUpdateView) {
+  ecs_access_read(AssetImportEnvComp);
+  ecs_access_read(AssetManagerComp);
 }
 
 ecs_view_define(DirtyAssetView) {
@@ -314,15 +335,13 @@ static u32 asset_unload_delay(
 }
 
 ecs_system_define(AssetUpdateDirtySys) {
-  const AssetManagerComp* manager = asset_manager_readonly(world);
-  if (!manager) {
-    /**
-     * The manager has not been created yet, we delay the processing of asset requests until a
-     * manager has been created.
-     * NOTE: No requests get lost, they just stay unprocessed.
-     */
-    return;
+  EcsView*     globalView = ecs_world_view_t(world, GlobalUpdateView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return; // Global dependencies not initialized.
   }
+  const AssetManagerComp*   manager   = ecs_view_read_t(globalItr, AssetManagerComp);
+  const AssetImportEnvComp* importEnv = ecs_view_read_t(globalItr, AssetImportEnvComp);
 
   TimeDuration loadTime   = 0;
   EcsView*     assetsView = ecs_world_view_t(world, DirtyAssetView);
@@ -340,7 +359,7 @@ ecs_system_define(AssetUpdateDirtySys) {
     // Loading assets should be continuously updated to track their progress.
     bool updateRequired = true;
 
-    if (assetComp->flags & AssetFlags_Failed) {
+    if (assetComp->refCount && assetComp->flags & AssetFlags_Failed) {
       /**
        * This asset failed before (but was now acquired again); clear the state to retry.
        */
@@ -364,20 +383,20 @@ ecs_system_define(AssetUpdateDirtySys) {
        * Asset ref-count is non-zero; start loading.
        * NOTE: Loading can fail to start, for example the asset doesn't exist in the manager's repo.
        */
-      const bool canLoad = loadTime < asset_max_load_time_per_task;
-      if (canLoad) {
+      if (asset_import_ready(importEnv, assetComp->id) && loadTime < asset_max_load_time_per_task) {
         assetComp->flags |= AssetFlags_Loading;
         const TimeSteady loadStart = time_steady_clock();
 
         MAYBE_UNUSED const String assetFileName = path_filename(assetComp->id);
         trace_begin_msg("asset_manager_load", TraceColor_Blue, "{}", fmt_text(assetFileName));
         {
-          if (asset_manager_load(world, manager, assetComp, entity)) {
+          if (asset_manager_load(world, manager, importEnv, assetComp, entity)) {
             loadTime += time_steady_duration(loadStart, time_steady_clock());
           } else {
             ecs_world_add_empty_t(world, entity, AssetFailedComp);
           }
           ecs_utils_maybe_remove_t(world, entity, AssetChangedComp);
+          ecs_utils_maybe_remove_t(world, entity, AssetInstantUnloadComp);
         }
         trace_end();
       }
@@ -388,7 +407,6 @@ ecs_system_define(AssetUpdateDirtySys) {
       /**
        * Asset has failed loading.
        */
-
       if (dependencyComp) {
         /*
          * Mark the assets that depend on this asset to be instantly unloaded (instead of waiting
@@ -397,7 +415,6 @@ ecs_system_define(AssetUpdateDirtySys) {
          */
         asset_dep_mark(&dependencyComp->dependents, world, ecs_comp_id(AssetInstantUnloadComp));
       }
-
       assetComp->flags &= ~AssetFlags_Loading;
       assetComp->flags |= AssetFlags_Failed;
       updateRequired = false;
@@ -435,9 +452,9 @@ ecs_system_define(AssetUpdateDirtySys) {
       goto AssetUpdateDone;
     }
 
-    if (assetComp->refCount && assetComp->flags & AssetFlags_Loaded) {
+    if (!!assetComp->refCount == !!(assetComp->flags & AssetFlags_Loaded)) {
       /**
-       * Asset was already loaded, no need for further updates.
+       * Asset load state matches required state, no need for further updates.
        */
       updateRequired = false;
     }
@@ -477,6 +494,28 @@ ecs_system_define(AssetPollChangedSys) {
   }
 }
 
+ecs_view_define(AssetReloadView) {
+  ecs_access_with(AssetComp);
+  ecs_access_with(AssetReloadRequestComp);
+  ecs_access_maybe_read(AssetDependencyComp);
+}
+
+ecs_system_define(AssetReloadRequestSys) {
+  EcsView* reloadView = ecs_world_view_t(world, AssetReloadView);
+  for (EcsIterator* itr = ecs_view_itr(reloadView); ecs_view_walk(itr);) {
+    const EcsEntityId entity = ecs_view_entity(itr);
+    ecs_utils_maybe_add_t(world, entity, AssetChangedComp);
+    ecs_utils_maybe_add_t(world, entity, AssetInstantUnloadComp);
+
+    const AssetDependencyComp* depComp = ecs_view_read_t(itr, AssetDependencyComp);
+    if (depComp) {
+      asset_dep_mark(&depComp->dependents, world, ecs_comp_id(AssetChangedComp));
+      asset_dep_mark(&depComp->dependents, world, ecs_comp_id(AssetInstantUnloadComp));
+    }
+    ecs_world_remove_t(world, entity, AssetReloadRequestComp);
+  }
+}
+
 ecs_view_define(AssetLoadExtView) {
   ecs_access_write(AssetComp);
   ecs_access_read(AssetExtLoadComp);
@@ -485,6 +524,7 @@ ecs_view_define(AssetLoadExtView) {
 ecs_system_define(AssetLoadExtSys) {
   EcsView* extView = ecs_world_view_t(world, AssetLoadExtView);
   for (EcsIterator* itr = ecs_view_itr(extView); ecs_view_walk(itr);) {
+    const EcsEntityId       assetEntity = ecs_view_entity(itr);
     AssetComp*              assetComp   = ecs_view_write_t(itr, AssetComp);
     const AssetExtLoadComp* extLoadComp = ecs_view_read_t(itr, AssetExtLoadComp);
 
@@ -492,7 +532,10 @@ ecs_system_define(AssetLoadExtSys) {
     assetComp->loadFormat  = extLoadComp->format;
     assetComp->loadModTime = extLoadComp->modTime;
 
-    ecs_world_remove_t(world, ecs_view_entity(itr), AssetExtLoadComp);
+    ecs_utils_maybe_remove_t(world, assetEntity, AssetChangedComp);
+    ecs_utils_maybe_remove_t(world, assetEntity, AssetInstantUnloadComp);
+
+    ecs_world_remove_t(world, assetEntity, AssetExtLoadComp);
   }
 }
 
@@ -534,9 +577,11 @@ ecs_system_define(AssetCacheSys) {
     diag_assert(assetComp->loadCount); // Caching an asset without loading it makes no sense.
 
     // Collect asset data.
-    const String   id      = assetComp->id;
-    const Mem      blob    = mem_slice(requestComp->blobMem, 0, requestComp->blobSize);
-    const TimeReal modTime = assetComp->loadModTime;
+    const String   id         = assetComp->id;
+    const DataMeta dataMeta   = requestComp->blobMeta;
+    const Mem      blob       = mem_slice(requestComp->blobMem, 0, requestComp->blobSize);
+    const TimeReal modTime    = assetComp->loadModTime;
+    const u32      loaderHash = assetComp->loaderHash;
 
     // Collect asset dependencies.
     depCount = 0;
@@ -548,8 +593,9 @@ ecs_system_define(AssetCacheSys) {
         ecs_view_jump(depItr, depComp->dependencies.single);
         const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
         deps[depCount++]              = (AssetRepoDep){
-                         .id      = depAssetComp->id,
-                         .modTime = depAssetComp->loadModTime,
+            .id         = depAssetComp->id,
+            .modTime    = depAssetComp->loadModTime,
+            .loaderHash = depAssetComp->loaderHash,
         };
       } break;
       case AssetDepStorageType_Many:
@@ -560,8 +606,9 @@ ecs_system_define(AssetCacheSys) {
           ecs_view_jump(depItr, *asset);
           const AssetComp* depAssetComp = ecs_view_read_t(depItr, AssetComp);
           deps[depCount++]              = (AssetRepoDep){
-                           .id      = depAssetComp->id,
-                           .modTime = depAssetComp->loadModTime,
+              .id         = depAssetComp->id,
+              .modTime    = depAssetComp->loadModTime,
+              .loaderHash = depAssetComp->loaderHash,
           };
         }
         break;
@@ -569,7 +616,7 @@ ecs_system_define(AssetCacheSys) {
     }
 
     // Save the asset in the repo cache.
-    asset_repo_cache(manager->repo, id, requestComp->blobMeta, modTime, blob, deps, depCount);
+    asset_repo_cache(manager->repo, id, dataMeta, modTime, loaderHash, blob, deps, depCount);
 
     ecs_world_remove_t(world, assetEntity, AssetCacheRequestComp);
   }
@@ -604,20 +651,24 @@ ecs_module_init(asset_manager_module) {
       .destructor = ecs_destruct_asset_dependency,
       .combinator = ecs_combine_asset_dependency);
   ecs_register_comp(AssetCacheRequestComp, .destructor = ecs_destruct_cache_request_comp);
+  ecs_register_comp_empty(AssetReloadRequestComp);
   ecs_register_comp(AssetExtLoadComp, .combinator = ecs_combine_asset_ext_load);
 
+  ecs_register_view(GlobalUpdateView);
   ecs_register_view(DirtyAssetView);
   ecs_register_view(AssetDependencyView);
   ecs_register_view(GlobalReadView);
   ecs_register_view(GlobalWriteView);
 
   ecs_register_system(
-      AssetUpdateDirtySys, ecs_view_id(DirtyAssetView), ecs_view_id(GlobalReadView));
+      AssetUpdateDirtySys, ecs_view_id(GlobalUpdateView), ecs_view_id(DirtyAssetView));
   ecs_parallel(AssetUpdateDirtySys, asset_num_load_tasks);
   ecs_order(AssetUpdateDirtySys, AssetOrder_Update);
 
   ecs_register_system(
       AssetPollChangedSys, ecs_view_id(AssetDependencyView), ecs_view_id(GlobalReadView));
+
+  ecs_register_system(AssetReloadRequestSys, ecs_register_view(AssetReloadView));
 
   ecs_register_system(AssetLoadExtSys, ecs_register_view(AssetLoadExtView));
   ecs_order(AssetLoadExtSys, AssetOrder_Update);
@@ -681,12 +732,7 @@ void asset_release(EcsWorld* world, const EcsEntityId asset) {
 }
 
 void asset_reload_request(EcsWorld* world, const EcsEntityId assetEntity) {
-  /**
-   * Mark the asset as changed and bypass the normal unload delay.
-   * NOTE: Does not mark dependent assets as changed.
-   */
-  ecs_utils_maybe_add_t(world, assetEntity, AssetChangedComp);
-  ecs_utils_maybe_add_t(world, assetEntity, AssetInstantUnloadComp);
+  ecs_utils_maybe_add_t(world, assetEntity, AssetReloadRequestComp);
 }
 
 u32 asset_ref_count(const AssetComp* asset) { return asset->refCount; }
@@ -739,8 +785,14 @@ void asset_register_dep(EcsWorld* world, EcsEntityId asset, const EcsEntityId de
   ecs_world_add_t(world, asset, AssetDependencyComp, .dependencies = asset_dep_create(dependency));
 }
 
-AssetSource* asset_source_open(const AssetManagerComp* manager, const String id) {
-  return asset_repo_source_open(manager->repo, id);
+AssetSource* asset_source_open(
+    const AssetManagerComp* manager, const AssetImportEnvComp* importEnv, const String id) {
+
+  const AssetRepoLoaderHasher loaderHasher = {
+      .ctx         = importEnv,
+      .computeHash = asset_manager_loader_hash,
+  };
+  return asset_repo_source_open(manager->repo, id, loaderHasher);
 }
 
 EcsEntityId asset_watch(EcsWorld* world, AssetManagerComp* manager, const String id) {

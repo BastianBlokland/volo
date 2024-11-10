@@ -946,7 +946,12 @@ SpvError spv_init(EcsWorld* world, const EcsEntityId entity, const DataMem input
 }
 
 void asset_load_shader_spv(
-    EcsWorld* world, const String id, const EcsEntityId entity, AssetSource* src) {
+    EcsWorld*                 world,
+    const AssetImportEnvComp* importEnv,
+    const String              id,
+    const EcsEntityId         entity,
+    AssetSource*              src) {
+  (void)importEnv;
 
   const SpvError err = spv_init(world, entity, data_mem_create_ext(src->data));
   if (err) {
