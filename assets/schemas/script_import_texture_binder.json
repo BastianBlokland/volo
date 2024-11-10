@@ -51,12 +51,15 @@
     },
     {
       "name": "texture_flag",
-      "doc": "Set or unset a texture import flag.\n\nSupported flags:\n\n-`NormalMap`\n\n-`Lossless`\n\n-`Linear`",
+      "doc": "Change or query a texture import flag.\n\nSupported flags:\n\n-`NormalMap`\n\n-`Lossless`\n\n-`Linear`\n\n-`Mips`",
       "sig": {
         "ret": "null",
         "args": [
           { "name": "flag", "mask": "str" },
-          { "name": "enable", "mask": "bool" }
+          {
+            "name": "enable",
+            "mask": [ "null", "bool" ]
+          }
         ]
       }
     },

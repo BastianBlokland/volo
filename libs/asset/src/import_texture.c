@@ -25,11 +25,14 @@ static void import_init_enum_flags(void) {
 }
 
 static ScriptVal import_eval_texture_flag(AssetImportContext* ctx, ScriptBinderCall* call) {
-  const i32  flag    = script_arg_enum(call, 0, &g_importTextureFlags);
-  const bool enabled = script_arg_bool(call, 1);
+  const i32 flag = script_arg_enum(call, 0, &g_importTextureFlags);
   if (!script_call_panicked(call)) {
     AssetImportTexture* out = ctx->out;
-    if (enabled != !!(out->flags & flag)) {
+    if (call->argCount < 2) {
+      return script_bool((out->flags & flag) != 0);
+    }
+    const bool enabled = script_arg_bool(call, 1);
+    if (!script_call_panicked(call) && enabled != !!(out->flags & flag)) {
       out->flags ^= flag;
     }
   }
@@ -47,11 +50,11 @@ void asset_data_init_import_texture(void) {
   static const String g_flagsDoc = string_static("Supported flags:\n\n-`NormalMap`\n\n-`Lossless`\n\n-`Linear`\n\n-`Mips`");
    {
     const String       name   = string_lit("texture_flag");
-    const String       doc    = fmt_write_scratch("Set or unset a texture import flag.\n\n{}", fmt_text(g_flagsDoc));
-    const ScriptMask   ret    = script_mask_null;
+    const String       doc    = fmt_write_scratch("Change or query a texture import flag.\n\n{}", fmt_text(g_flagsDoc));
+    const ScriptMask   ret    = script_mask_null | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("flag"), script_mask_str},
-        {string_lit("enable"), script_mask_bool},
+        {string_lit("enable"), script_mask_bool | script_mask_null},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_texture_flag);
   }
