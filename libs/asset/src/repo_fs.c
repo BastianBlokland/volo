@@ -224,7 +224,9 @@ static AssetRepoQueryResult asset_repo_fs_query_iteration(
   if (UNLIKELY(itrResult != FileIteratorResult_End)) {
     log_w(
         "Error while performing file query",
-        log_param("result", fmt_text(file_iterator_result_str(itrResult))));
+        log_param("result", fmt_text(file_iterator_result_str(itrResult))),
+        log_param("directory", fmt_path(directory)),
+        log_param("pattern", fmt_text(pattern)));
     return AssetRepoQueryResult_ErrorWhileQuerying;
   }
   return AssetRepoQueryResult_Success;
