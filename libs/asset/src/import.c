@@ -427,7 +427,26 @@ bool asset_import_eval(
   dynarray_for_t(&handler->scripts, AssetImportScript, script) {
     ctx.prog   = script->program;
     ctx.progId = script->assetId;
-    script_prog_eval(script->program, null, binder, &ctx);
+
+    const ScriptProgResult evalRes = script_prog_eval(script->program, null, binder, &ctx);
+    if (UNLIKELY(evalRes.panic.kind)) {
+      const String msg            = script_panic_scratch(&evalRes.panic, ScriptPanicOutput_Default);
+      const String scriptRangeStr = fmt_write_scratch(
+          "{}:{}-{}:{}",
+          fmt_int(evalRes.panic.range.start.line + 1),
+          fmt_int(evalRes.panic.range.start.column + 1),
+          fmt_int(evalRes.panic.range.end.line + 1),
+          fmt_int(evalRes.panic.range.end.column + 1));
+
+      log_e(
+          "Import script panic",
+          log_param("panic", fmt_text(msg)),
+          log_param("script", fmt_text(script->assetId)),
+          log_param("script-range", fmt_text(scriptRangeStr)),
+          log_param("asset", fmt_text(assetId)));
+
+      ctx.failed = true;
+    }
   }
 
   return !ctx.failed;
