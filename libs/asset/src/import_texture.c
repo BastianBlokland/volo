@@ -19,6 +19,7 @@ static void import_init_enum_flags(void) {
   PUSH_FLAG(&g_importTextureFlags, NormalMap);
   PUSH_FLAG(&g_importTextureFlags, Lossless);
   PUSH_FLAG(&g_importTextureFlags, Linear);
+  PUSH_FLAG(&g_importTextureFlags, Mips);
 
 #undef PUSH_FLAG
 }
@@ -43,7 +44,7 @@ void asset_data_init_import_texture(void) {
   script_binder_filter_set(binder, string_lit("import/texture/*.script"));
 
   // clang-format off
-  static const String g_flagsDoc = string_static("Supported flags:\n\n-`NormalMap`\n\n-`Lossless`\n\n-`Linear`");
+  static const String g_flagsDoc = string_static("Supported flags:\n\n-`NormalMap`\n\n-`Lossless`\n\n-`Linear`\n\n-`Mips`");
    {
     const String       name   = string_lit("texture_flag");
     const String       doc    = fmt_write_scratch("Set or unset a texture import flag.\n\n{}", fmt_text(g_flagsDoc));
@@ -63,6 +64,5 @@ void asset_data_init_import_texture(void) {
 }
 
 bool asset_import_texture(const AssetImportEnvComp* env, const String id, AssetImportTexture* out) {
-  *out = (AssetImportTexture){0};
   return asset_import_eval(env, g_assetScriptImportTextureBinder, id, out);
 }
