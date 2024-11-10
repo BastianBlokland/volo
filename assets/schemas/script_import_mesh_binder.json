@@ -14,16 +14,6 @@
       }
     },
     {
-      "name": "dummy",
-      "doc": "Set a dummy import config",
-      "sig": {
-        "ret": "null",
-        "args": [
-          { "name": "val", "mask": "null" }
-        ]
-      }
-    },
-    {
       "name": "asset_id",
       "doc": "Lookup the identifier of the importing asset.",
       "sig": {
@@ -48,6 +38,16 @@
         "ret": "bool",
         "args": [
           { "name": "pattern", "mask": "str" }
+        ]
+      }
+    },
+    {
+      "name": "vertex_scale",
+      "doc": "Set the vertex import scale.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "scale", "mask": "num" }
         ]
       }
     },

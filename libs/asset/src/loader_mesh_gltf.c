@@ -1250,12 +1250,14 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
        * NOTE: Flip the z-axis to convert from right-handed to left-handed coordinate system.
        * NOTE: Flip the texture coordinate y axis as Gltf uses upper-left as the origin.
        */
-      const AssetMeshVertex vertex = {
+      AssetMeshVertex vertex = {
           .position = geo_vector(vertPos[0], vertPos[1], vertPos[2] * -1.0f),
           .normal   = geo_vector(vertNrm[0], vertNrm[1], vertNrm[2] * -1.0f),
           .tangent  = geo_vector(vertTan[0], vertTan[1], vertTan[2] * -1.0f, vertTan[3]),
           .texcoord = geo_vector(vertTex[0], 1.0f - vertTex[1]),
       };
+      asset_mesh_vertex_scale(&vertex, ld->importData.vertexScale);
+
       const AssetMeshIndex vertexIdx = asset_mesh_builder_push(builder, &vertex);
 
       if (meta.features & GltfFeature_Skinning) {

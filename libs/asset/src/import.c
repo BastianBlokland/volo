@@ -288,7 +288,7 @@ static ScriptVal import_eval_asset_id(AssetImportContext* ctx, ScriptBinderCall*
 
 static ScriptVal import_eval_asset_id_match(AssetImportContext* ctx, ScriptBinderCall* call) {
   const StringHash patternHash = script_arg_str(call, 0);
-  if (UNLIKELY(!patternHash)) {
+  if (UNLIKELY(script_call_panicked(call))) {
     return script_bool(false);
   }
   const String patternStr = stringtable_lookup(g_stringtable, patternHash);

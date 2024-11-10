@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_format.h"
+#include "script_args.h"
 #include "script_binder.h"
 #include "script_sig.h"
 
@@ -8,9 +9,12 @@
 
 ScriptBinder* g_assetScriptImportMeshBinder;
 
-static ScriptVal eval_dummy(AssetImportContext* ctx, ScriptBinderCall* call) {
-  (void)ctx;
-  (void)call;
+static ScriptVal import_eval_vertex_scale(AssetImportContext* ctx, ScriptBinderCall* call) {
+  const f64 scale = script_arg_num_range(call, 0, 1e-3, 1e+6);
+  if (!script_call_panicked(call)) {
+    AssetImportMesh* out = ctx->out;
+    out->vertexScale     = (f32)scale;
+  }
   return script_null();
 }
 
@@ -21,13 +25,13 @@ void asset_data_init_import_mesh(void) {
 
   // clang-format off
   {
-    const String       name   = string_lit("dummy");
-    const String       doc    = fmt_write_scratch("Set a dummy import config");
+    const String       name   = string_lit("vertex_scale");
+    const String       doc    = fmt_write_scratch("Set the vertex import scale.");
     const ScriptMask   ret    = script_mask_null;
     const ScriptSigArg args[] = {
-        {string_lit("val"), script_mask_null},
+        {string_lit("scale"), script_mask_num},
     };
-    asset_import_bind(binder, name, doc, ret, args, array_elems(args), eval_dummy);
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_vertex_scale);
   }
   // clang-format on
 
@@ -39,7 +43,7 @@ void asset_data_init_import_mesh(void) {
 
 bool asset_import_mesh(const AssetImportEnvComp* env, const String id, AssetImportMesh* out) {
   *out = (AssetImportMesh){
-      .scale = 1.0f,
+      .vertexScale = 1.0f,
   };
   return asset_import_eval(env, g_assetScriptImportMeshBinder, id, out);
 }
