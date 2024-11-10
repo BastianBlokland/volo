@@ -250,6 +250,7 @@ void asset_load_tex_ppm(
       .pixelType = AssetTextureType_u8,
       .width     = width,
       .height    = height,
+      .layers    = 1,
   };
   if (!asset_import_texture(importEnv, id, &import)) {
     ppm_load_fail(world, entity, id, PixmapError_ImportFailed);

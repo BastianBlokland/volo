@@ -93,6 +93,12 @@ static ScriptVal import_eval_texture_height(AssetImportContext* ctx, ScriptBinde
   return script_num(data->height);
 }
 
+static ScriptVal import_eval_texture_layers(AssetImportContext* ctx, ScriptBinderCall* call) {
+  (void)call;
+  AssetImportTexture* data = ctx->data;
+  return script_num(data->layers);
+}
+
 static ScriptVal import_eval_texture_mips(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportTexture* data = ctx->data;
   if (call->argCount) {
@@ -176,6 +182,12 @@ void asset_data_init_import_texture(void) {
     const String       doc    = string_lit("Query the texture height in pixels.");
     const ScriptMask   ret    = script_mask_num;
     asset_import_bind(binder, name, doc, ret, null, 0, import_eval_texture_height);
+  }
+  {
+    const String       name   = string_lit("texture_layers");
+    const String       doc    = string_lit("Query the amount of texture layers.");
+    const ScriptMask   ret    = script_mask_num;
+    asset_import_bind(binder, name, doc, ret, null, 0, import_eval_texture_layers);
   }
   {
     const String       name   = string_lit("texture_mips");

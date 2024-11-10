@@ -14,7 +14,7 @@ typedef struct {
   AssetImportTextureFlags flags;
   u32                     channels;
   AssetTextureType        pixelType;
-  u32                     width, height;
+  u32                     width, height, layers;
   u32                     mips; // 0 indicates maximum number of mips.
 } AssetImportTexture;
 

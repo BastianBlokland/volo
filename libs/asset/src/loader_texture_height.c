@@ -119,6 +119,7 @@ static void htex_load(
       .pixelType = pixelType,
       .width     = size,
       .height    = size,
+      .layers    = 1,
   };
   if (!asset_import_texture(importEnv, id, &import)) {
     htex_load_fail(world, entity, id, HtexError_ImportFailed);

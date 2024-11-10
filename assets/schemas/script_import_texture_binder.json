@@ -49,6 +49,14 @@
       }
     },
     {
+      "name": "texture_layers",
+      "doc": "Query the amount of texture layers.",
+      "sig": {
+        "ret": "num",
+        "args": []
+      }
+    },
+    {
       "name": "asset_id",
       "doc": "Lookup the identifier of the importing asset.",
       "sig": {

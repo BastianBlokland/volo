@@ -516,6 +516,7 @@ void asset_load_tex_png(
       .pixelType = texType,
       .width     = header.width,
       .height    = header.height,
+      .layers    = 1,
   };
   if (!asset_import_texture(importEnv, id, &import)) {
     png_load_fail(world, entity, id, PngError_ImportFailed);
