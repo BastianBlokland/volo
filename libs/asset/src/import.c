@@ -108,7 +108,7 @@ ecs_view_define(InitScriptView) {
   ecs_access_read(AssetComp);
 }
 
-static void asset_import_reload_all(EcsWorld* world, const AssetImportType type) {
+static void import_reload_all(EcsWorld* world, const AssetImportType type) {
   EcsView* reloadView = ecs_world_view_t(world, AssetReloadView);
   for (EcsIterator* itr = ecs_view_itr(reloadView); ecs_view_walk(itr);) {
     const String      assetId = asset_id(ecs_view_read_t(itr, AssetComp));
@@ -119,7 +119,7 @@ static void asset_import_reload_all(EcsWorld* world, const AssetImportType type)
   }
 }
 
-static void asset_import_init_handler(
+static void import_init_handler(
     EcsWorld*             world,
     const AssetImportType type,
     AssetImportHandler*   handler,
@@ -168,7 +168,7 @@ static void asset_import_init_handler(
   }
 
   if (ready && importHash != handler->importHash) {
-    asset_import_reload_all(world, type);
+    import_reload_all(world, type);
     handler->importHash = importHash;
   }
   handler->ready = ready;
@@ -190,13 +190,13 @@ ecs_system_define(AssetImportInitSys) {
   EcsIterator* scriptItr  = ecs_view_itr(scriptView);
 
   for (AssetImportType type = 0; type != AssetImportType_Count; ++type) {
-    asset_import_init_handler(world, type, &importEnv->handlers[type], scriptItr);
+    import_init_handler(world, type, &importEnv->handlers[type], scriptItr);
   }
 }
 
 ecs_view_define(DeinitGlobalView) { ecs_access_write(AssetImportEnvComp); }
 
-static void asset_import_deinit_handler(AssetImportHandler* handler) {
+static void import_deinit_handler(AssetImportHandler* handler) {
   handler->ready = false;
   // Clear program pointers; will be refreshed next frame.
   dynarray_for_t(&handler->scripts, AssetImportScript, script) { script->program = null; }
@@ -209,7 +209,7 @@ ecs_system_define(AssetImportDeinitSys) {
     AssetImportEnvComp* importEnv = ecs_view_write_t(globalItr, AssetImportEnvComp);
 
     for (AssetImportType type = 0; type != AssetImportType_Count; ++type) {
-      asset_import_deinit_handler(&importEnv->handlers[type]);
+      import_deinit_handler(&importEnv->handlers[type]);
     }
   }
 }
@@ -254,8 +254,7 @@ u32 asset_import_hash(const AssetImportEnvComp* env, const String assetId) {
   return env->handlers[type].importHash;
 }
 
-static void
-asset_import_log(AssetImportContext* ctx, ScriptBinderCall* call, const LogLevel logLevel) {
+static void import_log(AssetImportContext* ctx, ScriptBinderCall* call, const LogLevel logLevel) {
   DynString buffer = dynstring_create_over(alloc_alloc(g_allocScratch, usize_kibibyte, 1));
   for (u16 i = 0; i != call->argCount; ++i) {
     if (i) {
@@ -281,13 +280,13 @@ asset_import_log(AssetImportContext* ctx, ScriptBinderCall* call, const LogLevel
       log_param("script-range", fmt_text(scriptRangeStr)));
 }
 
-static ScriptVal asset_import_eval_asset_id(AssetImportContext* ctx, ScriptBinderCall* call) {
+static ScriptVal import_eval_asset_id(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   const StringHash assetIdHash = stringtable_add(g_stringtable, ctx->assetId);
   return script_str(assetIdHash);
 }
 
-static ScriptVal asset_import_eval_asset_id_match(AssetImportContext* ctx, ScriptBinderCall* call) {
+static ScriptVal import_eval_asset_id_match(AssetImportContext* ctx, ScriptBinderCall* call) {
   const StringHash patternHash = script_arg_str(call, 0);
   if (UNLIKELY(!patternHash)) {
     return script_bool(false);
@@ -296,25 +295,25 @@ static ScriptVal asset_import_eval_asset_id_match(AssetImportContext* ctx, Scrip
   return script_bool(string_match_glob(ctx->assetId, patternStr, StringMatchFlags_IgnoreCase));
 }
 
-static ScriptVal asset_import_eval_asset_format(AssetImportContext* ctx, ScriptBinderCall* call) {
+static ScriptVal import_eval_asset_format(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   const AssetFormat format        = asset_format_from_ext(path_extension(ctx->assetId));
   const StringHash  formatStrHash = stringtable_add(g_stringtable, asset_format_str(format));
   return script_str(formatStrHash);
 }
 
-static ScriptVal asset_import_eval_log(AssetImportContext* ctx, ScriptBinderCall* call) {
-  asset_import_log(ctx, call, LogLevel_Info);
+static ScriptVal import_eval_log(AssetImportContext* ctx, ScriptBinderCall* call) {
+  import_log(ctx, call, LogLevel_Info);
   return script_null();
 }
 
-static ScriptVal asset_import_eval_warn(AssetImportContext* ctx, ScriptBinderCall* call) {
-  asset_import_log(ctx, call, LogLevel_Warn);
+static ScriptVal import_eval_warn(AssetImportContext* ctx, ScriptBinderCall* call) {
+  import_log(ctx, call, LogLevel_Warn);
   return script_null();
 }
 
-static ScriptVal asset_import_eval_fail(AssetImportContext* ctx, ScriptBinderCall* call) {
-  asset_import_log(ctx, call, LogLevel_Error);
+static ScriptVal import_eval_fail(AssetImportContext* ctx, ScriptBinderCall* call) {
+  import_log(ctx, call, LogLevel_Error);
   ctx->failed = true;
   return script_null();
 }
@@ -326,7 +325,7 @@ void asset_import_register(ScriptBinder* binder) {
     const String       name   = string_lit("asset_id");
     const String       doc    = string_lit("Lookup the identifier of the importing asset.");
     const ScriptMask   ret    = script_mask_str;
-    asset_import_bind(binder, name, doc, ret, null, 0, asset_import_eval_asset_id);
+    asset_import_bind(binder, name, doc, ret, null, 0, import_eval_asset_id);
   }
   {
     const String       name   = string_lit("asset_id_match");
@@ -335,13 +334,13 @@ void asset_import_register(ScriptBinder* binder) {
     const ScriptSigArg args[] = {
         {string_lit("pattern"), script_mask_str},
     };
-    asset_import_bind(binder, name, doc, ret, args, array_elems(args), asset_import_eval_asset_id_match);
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_asset_id_match);
   }
   {
     const String       name   = string_lit("asset_format");
     const String       doc    = string_lit("Lookup the format of the importing asset.");
     const ScriptMask   ret    = script_mask_str;
-    asset_import_bind(binder, name, doc, ret, null, 0, asset_import_eval_asset_format);
+    asset_import_bind(binder, name, doc, ret, null, 0, import_eval_asset_format);
   }
   {
     const String       name   = string_lit("log");
@@ -350,7 +349,7 @@ void asset_import_register(ScriptBinder* binder) {
     const ScriptSigArg args[] = {
         {string_lit("values"), script_mask_any, ScriptSigArgFlags_Multi},
     };
-    asset_import_bind(binder, name, doc, ret, args, array_elems(args), asset_import_eval_log);
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_log);
   }
   {
     const String       name   = string_lit("warn");
@@ -359,7 +358,7 @@ void asset_import_register(ScriptBinder* binder) {
     const ScriptSigArg args[] = {
         {string_lit("values"), script_mask_any, ScriptSigArgFlags_Multi},
     };
-    asset_import_bind(binder, name, doc, ret, args, array_elems(args), asset_import_eval_warn);
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_warn);
   }
   {
     const String       name   = string_lit("fail");
@@ -368,7 +367,7 @@ void asset_import_register(ScriptBinder* binder) {
     const ScriptSigArg args[] = {
         {string_lit("values"), script_mask_any, ScriptSigArgFlags_Multi},
     };
-    asset_import_bind(binder, name, doc, ret, args, array_elems(args), asset_import_eval_fail);
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_fail);
   }
   // clang-format on
 }
