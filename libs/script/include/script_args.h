@@ -26,6 +26,8 @@ typedef struct sScriptBinderCall ScriptBinderCall;
 bool script_arg_check(ScriptBinderCall*, u16 i, ScriptMask);
 bool script_arg_has(ScriptBinderCall*, u16 i);
 
+void script_arg_shift(ScriptBinderCall*);
+
 ScriptVal    script_arg_any(ScriptBinderCall*, u16 i);
 f64          script_arg_num(ScriptBinderCall*, u16 i);
 f64          script_arg_num_range(ScriptBinderCall*, u16 i, f64 min, f64 max);
