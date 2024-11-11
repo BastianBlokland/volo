@@ -1,0 +1,8 @@
+/**
+ * Interface texture import rules.
+ */
+
+if (asset_id_match("external/icon/*")) {
+  texture_flag("Mips", false)
+  texture_flag("Lossless", true)
+}
