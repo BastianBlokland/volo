@@ -154,6 +154,14 @@
       }
     },
     {
+      "name": "failed",
+      "doc": "Check if the import has failed.",
+      "sig": {
+        "ret": "bool",
+        "args": []
+      }
+    },
+    {
       "name": "warn",
       "doc": "Log a warning with the given values.",
       "sig": {
