@@ -20,6 +20,16 @@
       }
     },
     {
+      "name": "pow2_next",
+      "doc": "Return the next power of two greater or equal to the given value.",
+      "sig": {
+        "ret": "num",
+        "args": [
+          { "name": "value", "mask": "num" }
+        ]
+      }
+    },
+    {
       "name": "fail_if",
       "doc": "Fail the import if the given value is truthy.",
       "sig": {
@@ -136,6 +146,16 @@
       }
     },
     {
+      "name": "pow2_test",
+      "doc": "Check if the given value is a power of two.",
+      "sig": {
+        "ret": "bool",
+        "args": [
+          { "name": "value", "mask": "num" }
+        ]
+      }
+    },
+    {
       "name": "texture_width",
       "doc": "Query the texture width in pixels.",
       "sig": {
@@ -144,13 +164,11 @@
       }
     },
     {
-      "name": "is_pow2",
-      "doc": "Check if the given value is a power of two.",
+      "name": "failed",
+      "doc": "Check if the import has failed.",
       "sig": {
         "ret": "bool",
-        "args": [
-          { "name": "value", "mask": "num" }
-        ]
+        "args": []
       }
     },
     {

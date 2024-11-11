@@ -353,6 +353,11 @@ static ScriptVal import_eval_fail_if(AssetImportContext* ctx, ScriptBinderCall* 
   return script_null();
 }
 
+static ScriptVal import_eval_failed(AssetImportContext* ctx, ScriptBinderCall* call) {
+  (void)call;
+  return script_bool(ctx->failed);
+}
+
 void asset_import_register(ScriptBinder* binder) {
   // clang-format off
   static const String g_globPatternDoc = string_static("Supported pattern syntax:\n- '?' matches any single character.\n- '*' matches any number of any characters including none.\n- '!' inverts the entire match (not per segment and cannot be disabled after enabling).");
@@ -413,6 +418,12 @@ void asset_import_register(ScriptBinder* binder) {
         {string_lit("message"), script_mask_str},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_fail_if);
+  }
+  {
+    const String       name   = string_lit("failed");
+    const String       doc    = string_lit("Check if the import has failed.");
+    const ScriptMask   ret    = script_mask_bool;
+    asset_import_bind(binder, name, doc, ret, null, 0, import_eval_failed);
   }
   // clang-format on
 }
