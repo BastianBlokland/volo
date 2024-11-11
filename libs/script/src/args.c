@@ -1,3 +1,4 @@
+#include "core_diag.h"
 #include "script_args.h"
 #include "script_binder.h"
 #include "script_enum.h"
@@ -28,6 +29,12 @@ bool script_arg_check(ScriptBinderCall* c, const u16 i, const ScriptMask mask) {
 
 bool script_arg_has(ScriptBinderCall* c, const u16 i) {
   return c->argCount > i && val_type(c->args[i]) != ScriptType_Null;
+}
+
+void script_arg_shift(ScriptBinderCall* c) {
+  diag_assert(c->argCount);
+  ++c->args;
+  --c->argCount;
 }
 
 ScriptVal script_arg_any(ScriptBinderCall* c, const u16 i) {

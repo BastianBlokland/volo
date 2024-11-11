@@ -4,6 +4,41 @@
   "filter": "import/texture/*.script",
   "functions": [
     {
+      "name": "texture_type",
+      "doc": "Query the texture pixel type.\n\nSupported types:\n\n-`u8`\n\n-`u16`\n\n-`f32`",
+      "sig": {
+        "ret": "str",
+        "args": []
+      }
+    },
+    {
+      "name": "texture_mips_max",
+      "doc": "Query the maximum amount of mip levels.",
+      "sig": {
+        "ret": "num",
+        "args": []
+      }
+    },
+    {
+      "name": "fail_if",
+      "doc": "Fail the import if the given value is truthy.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "condition", "mask": "bool" },
+          { "name": "message", "mask": "str" }
+        ]
+      }
+    },
+    {
+      "name": "texture_height",
+      "doc": "Query the texture height in pixels.",
+      "sig": {
+        "ret": "num",
+        "args": []
+      }
+    },
+    {
       "name": "fail",
       "doc": "Fail the import and log an error with the given values.",
       "sig": {
@@ -11,6 +46,14 @@
         "args": [
           { "name": "values", "mask": "any", "multi": true }
         ]
+      }
+    },
+    {
+      "name": "texture_layers",
+      "doc": "Query the amount of texture layers.",
+      "sig": {
+        "ret": "num",
+        "args": []
       }
     },
     {
@@ -51,12 +94,62 @@
     },
     {
       "name": "texture_flag",
-      "doc": "Set or unset a texture import flag.\n\nSupported flags:\n\n-`NormalMap`\n\n-`Lossless`\n\n-`Linear`",
+      "doc": "Change or query a texture import flag.\n\nSupported flags:\n\n-`NormalMap`\n\n-`Lossless`\n\n-`Linear`\n\n-`Mips`",
       "sig": {
-        "ret": "null",
+        "ret": [ "null", "bool" ],
         "args": [
           { "name": "flag", "mask": "str" },
-          { "name": "enable", "mask": "bool" }
+          {
+            "name": "enable",
+            "mask": [ "null", "bool" ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "texture_mips",
+      "doc": "Change or query the amount of mip levels.\nNote: Provide 0 to set the maximum amount of mips.",
+      "sig": {
+        "ret": [ "null", "num" ],
+        "args": [
+          {
+            "name": "mips",
+            "mask": [ "null", "num" ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "texture_flip_y",
+      "doc": "Apply a y axis mirror transform.",
+      "sig": {
+        "ret": "null",
+        "args": []
+      }
+    },
+    {
+      "name": "texture_channels",
+      "doc": "Query the amount of channels in the texture.",
+      "sig": {
+        "ret": "num",
+        "args": []
+      }
+    },
+    {
+      "name": "texture_width",
+      "doc": "Query the texture width in pixels.",
+      "sig": {
+        "ret": "num",
+        "args": []
+      }
+    },
+    {
+      "name": "is_pow2",
+      "doc": "Check if the given value is a power of two.",
+      "sig": {
+        "ret": "bool",
+        "args": [
+          { "name": "value", "mask": "num" }
         ]
       }
     },

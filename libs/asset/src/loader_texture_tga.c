@@ -192,7 +192,10 @@ static u32 tga_index(const u32 x, const u32 y, const u32 width, const u32 height
 }
 
 static AssetTextureFlags tga_texture_flags(const TgaChannels ch, const AssetImportTexture* import) {
-  AssetTextureFlags flags = AssetTextureFlags_GenerateMips;
+  AssetTextureFlags flags = 0;
+  if (import->flags & AssetImportTextureFlags_Mips) {
+    flags |= AssetTextureFlags_GenerateMips;
+  }
   if (import->flags & AssetImportTextureFlags_NormalMap) {
     // Normal maps are in linear space (and thus not sRGB).
     flags |= AssetTextureFlags_NormalMap;
@@ -439,10 +442,20 @@ void asset_load_tex_tga(
     goto Ret;
   }
 
-  AssetImportTexture import;
+  AssetImportTexture import = {
+      .flags     = AssetImportTextureFlags_Mips,
+      .channels  = channels,
+      .pixelType = AssetTextureType_u8,
+      .width     = width,
+      .height    = height,
+      .layers    = 1,
+  };
   if (!asset_import_texture(importEnv, id, &import)) {
     tga_load_fail(world, entity, id, TgaError_ImportFailed);
     goto Ret;
+  }
+  if (import.trans & AssetImportTextureTrans_FlipY) {
+    asset_texture_flip_y(pixels, width, height, channels, AssetTextureType_u8);
   }
 
   const AssetTextureFlags textureFlags = tga_texture_flags(channels, &import);
@@ -463,7 +476,7 @@ void asset_load_tex_tga(
       channels,
       1 /* layers */,
       1 /* mipsSrc */,
-      0 /* mipsMax */,
+      import.mips,
       AssetTextureType_u8,
       textureFlags);
 

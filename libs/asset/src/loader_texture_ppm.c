@@ -185,7 +185,10 @@ ppm_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
 }
 
 static AssetTextureFlags ppm_texture_flags(const AssetImportTexture* import) {
-  AssetTextureFlags flags = AssetTextureFlags_GenerateMips;
+  AssetTextureFlags flags = 0;
+  if (import->flags & AssetImportTextureFlags_Mips) {
+    flags |= AssetTextureFlags_GenerateMips;
+  }
   if (import->flags & AssetImportTextureFlags_NormalMap) {
     // Normal maps are in linear space (and thus not sRGB).
     flags |= AssetTextureFlags_NormalMap;
@@ -241,10 +244,20 @@ void asset_load_tex_ppm(
     goto Error;
   }
 
-  AssetImportTexture import;
+  AssetImportTexture import = {
+      .flags     = AssetImportTextureFlags_Mips,
+      .channels  = 3,
+      .pixelType = AssetTextureType_u8,
+      .width     = width,
+      .height    = height,
+      .layers    = 1,
+  };
   if (!asset_import_texture(importEnv, id, &import)) {
     ppm_load_fail(world, entity, id, PixmapError_ImportFailed);
     goto Error;
+  }
+  if (import.trans & AssetImportTextureTrans_FlipY) {
+    asset_texture_flip_y(pixelMem, width, height, 3, AssetTextureType_u8);
   }
 
   asset_repo_source_close(src);
@@ -257,7 +270,7 @@ void asset_load_tex_ppm(
       3 /* channels */,
       1 /* layers */,
       1 /* mips */,
-      0 /* mipsMax */,
+      import.mips,
       AssetTextureType_u8,
       ppm_texture_flags(&import));
 

@@ -343,6 +343,16 @@ static ScriptVal import_eval_fail(AssetImportContext* ctx, ScriptBinderCall* cal
   return script_null();
 }
 
+static ScriptVal import_eval_fail_if(AssetImportContext* ctx, ScriptBinderCall* call) {
+  const ScriptVal cond = script_arg_any(call, 0);
+  if (!script_call_panicked(call) && script_truthy(cond)) {
+    script_arg_shift(call);
+    import_log(ctx, call, LogLevel_Error);
+    ctx->failed = true;
+  }
+  return script_null();
+}
+
 void asset_import_register(ScriptBinder* binder) {
   // clang-format off
   static const String g_globPatternDoc = string_static("Supported pattern syntax:\n- '?' matches any single character.\n- '*' matches any number of any characters including none.\n- '!' inverts the entire match (not per segment and cannot be disabled after enabling).");
@@ -394,6 +404,16 @@ void asset_import_register(ScriptBinder* binder) {
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_fail);
   }
+  {
+    const String       name   = string_lit("fail_if");
+    const String       doc    = string_lit("Fail the import if the given value is truthy.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("condition"), script_mask_bool},
+        {string_lit("message"), script_mask_str},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_fail_if);
+  }
   // clang-format on
 }
 
@@ -411,7 +431,7 @@ void asset_import_bind(
 }
 
 bool asset_import_eval(
-    const AssetImportEnvComp* env, const ScriptBinder* binder, const String assetId, void* out) {
+    const AssetImportEnvComp* env, const ScriptBinder* binder, const String assetId, void* data) {
   const AssetFormat     format = asset_format_from_ext(path_extension(assetId));
   const AssetImportType type   = import_type_for_format(format);
   diag_assert(type != AssetImportType_Sentinel);
@@ -421,13 +441,32 @@ bool asset_import_eval(
 
   AssetImportContext ctx = {
       .assetId = assetId,
-      .out     = out,
+      .data    = data,
   };
 
   dynarray_for_t(&handler->scripts, AssetImportScript, script) {
     ctx.prog   = script->program;
     ctx.progId = script->assetId;
-    script_prog_eval(script->program, null, binder, &ctx);
+
+    const ScriptProgResult evalRes = script_prog_eval(script->program, null, binder, &ctx);
+    if (UNLIKELY(evalRes.panic.kind)) {
+      const String msg            = script_panic_scratch(&evalRes.panic, ScriptPanicOutput_Default);
+      const String scriptRangeStr = fmt_write_scratch(
+          "{}:{}-{}:{}",
+          fmt_int(evalRes.panic.range.start.line + 1),
+          fmt_int(evalRes.panic.range.start.column + 1),
+          fmt_int(evalRes.panic.range.end.line + 1),
+          fmt_int(evalRes.panic.range.end.column + 1));
+
+      log_e(
+          "Import script panic",
+          log_param("panic", fmt_text(msg)),
+          log_param("script", fmt_text(script->assetId)),
+          log_param("script-range", fmt_text(scriptRangeStr)),
+          log_param("asset", fmt_text(assetId)));
+
+      ctx.failed = true;
+    }
   }
 
   return !ctx.failed;

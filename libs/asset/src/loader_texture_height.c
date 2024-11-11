@@ -113,11 +113,21 @@ static void htex_load(
     data = mem_consume(data, rowStride);
   }
 
-  AssetImportTexture import;
+  AssetImportTexture import = {
+      .flags     = AssetImportTextureFlags_None,
+      .channels  = 1,
+      .pixelType = pixelType,
+      .width     = size,
+      .height    = size,
+      .layers    = 1,
+  };
   if (!asset_import_texture(importEnv, id, &import)) {
     htex_load_fail(world, entity, id, HtexError_ImportFailed);
     alloc_free(g_allocHeap, pixelMem);
     return;
+  }
+  if (import.trans & AssetImportTextureTrans_FlipY) {
+    asset_texture_flip_y(pixelMem, size, size, 1, pixelType);
   }
 
   AssetTextureFlags flags = AssetTextureFlags_None;
@@ -133,7 +143,7 @@ static void htex_load(
       1 /* channels */,
       1 /* layers */,
       1 /* mips */,
-      0 /* mipsMax */,
+      import.mips,
       pixelType,
       flags);
 

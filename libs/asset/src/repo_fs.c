@@ -221,7 +221,9 @@ static AssetRepoQueryResult asset_repo_fs_query_iteration(
   }
   file_iterator_destroy(itr);
 
-  if (UNLIKELY(itrResult != FileIteratorResult_End)) {
+  if (UNLIKELY(
+          itrResult != FileIteratorResult_End &&
+          itrResult != FileIteratorResult_DirectoryDoesNotExist)) {
     log_w(
         "Error while performing file query",
         log_param("result", fmt_text(file_iterator_result_str(itrResult))),
@@ -229,6 +231,7 @@ static AssetRepoQueryResult asset_repo_fs_query_iteration(
         log_param("pattern", fmt_text(pattern)));
     return AssetRepoQueryResult_ErrorWhileQuerying;
   }
+
   return AssetRepoQueryResult_Success;
 }
 

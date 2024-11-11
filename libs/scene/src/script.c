@@ -2136,7 +2136,7 @@ static void scene_script_eval(EvalContext* ctx) {
   const ScriptProgResult evalRes   = script_prog_eval(ctx->scriptProgram, mem, g_scriptBinder, ctx);
 
   // Handle panics.
-  if (UNLIKELY((evalRes.panic.kind))) {
+  if (UNLIKELY(evalRes.panic.kind)) {
     const String msg            = script_panic_scratch(&evalRes.panic, ScriptPanicOutput_Default);
     const String scriptRangeStr = fmt_write_scratch(
         "{}:{}-{}:{}",
