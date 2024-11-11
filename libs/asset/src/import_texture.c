@@ -144,7 +144,7 @@ void asset_data_init_import_texture(void) {
   script_binder_filter_set(binder, string_lit("import/texture/*.script"));
 
   // clang-format off
-  static const String g_flagsDoc     = string_static("Supported flags:\n\n-`NormalMap`\n\n-`Lossless`\n\n-`Linear`\n\n-`Mips`");
+  static const String g_flagsDoc     = string_static("Supported flags:\n\n-`Lossless`\n\n-`Linear`\n\n-`Mips`");
   static const String g_pixelTypeDoc = string_static("Supported types:\n\n-`u8`\n\n-`u16`\n\n-`f32`");
   {
     const String       name   = string_lit("is_pow2");
