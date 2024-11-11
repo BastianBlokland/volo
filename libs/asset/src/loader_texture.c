@@ -182,6 +182,98 @@ static usize tex_format_size(
   return res;
 }
 
+/**
+ * Sample the color at the specified index.
+ * NOTE: Does NOT perform any Srgb conversion.
+ */
+static GeoColor
+tex_read_at(const Mem mem, const u32 channels, const AssetTextureType type, const u32 index) {
+  diag_assert(mem.size > index * channels * tex_type_size(type));
+  static const f32 g_u8MaxInv  = 1.0f / u8_max;
+  static const f32 g_u16MaxInv = 1.0f / u16_max;
+  GeoColor         color;
+  switch (type) {
+  case AssetTextureType_u8: {
+    const u8* restrict data = mem.ptr;
+    color.r                 = data[index * channels + 0] * g_u8MaxInv;
+    color.g                 = channels >= 2 ? data[index * channels + 1] * g_u8MaxInv : 0.0f;
+    color.b                 = channels >= 3 ? data[index * channels + 2] * g_u8MaxInv : 0.0f;
+    color.a                 = channels >= 4 ? data[index * channels + 3] * g_u8MaxInv : 1.0f;
+  } break;
+  case AssetTextureType_u16: {
+    const u16* restrict data = mem.ptr;
+    color.r                  = data[index * channels + 0] * g_u16MaxInv;
+    color.g                  = channels >= 2 ? data[index * channels + 1] * g_u16MaxInv : 0.0f;
+    color.b                  = channels >= 3 ? data[index * channels + 2] * g_u16MaxInv : 0.0f;
+    color.a                  = channels >= 4 ? data[index * channels + 3] * g_u16MaxInv : 1.0f;
+  } break;
+  case AssetTextureType_f32: {
+    const f32* restrict data = mem.ptr;
+    color.r                  = data[index * channels + 0];
+    color.g                  = channels >= 2 ? data[index * channels + 1] : 0.0f;
+    color.b                  = channels >= 3 ? data[index * channels + 2] : 0.0f;
+    color.a                  = channels >= 4 ? data[index * channels + 3] : 1.0f;
+  } break;
+  }
+  return color;
+}
+
+/**
+ * Write the color at the specified index.
+ * NOTE: Does NOT perform any Srgb conversion.
+ */
+static void tex_write_at(
+    const Mem              mem,
+    const u32              channels,
+    const AssetTextureType type,
+    const u32              index,
+    const GeoColor         color) {
+  diag_assert(mem.size > index * channels * tex_type_size(type));
+  static const f32 g_u8MaxPlusOneRoundDown  = 255.999f;
+  static const f32 g_u16MaxPlusOneRoundDown = 65535.999f;
+  switch (type) {
+  case AssetTextureType_u8: {
+    u8* restrict data = mem.ptr;
+    switch (channels) {
+    case 4:
+      data[index * channels + 3] = (u8)(color.a * g_u8MaxPlusOneRoundDown);
+    case 3:
+      data[index * channels + 2] = (u8)(color.b * g_u8MaxPlusOneRoundDown);
+    case 2:
+      data[index * channels + 1] = (u8)(color.g * g_u8MaxPlusOneRoundDown);
+    case 1:
+      data[index * channels + 0] = (u8)(color.r * g_u8MaxPlusOneRoundDown);
+    }
+  } break;
+  case AssetTextureType_u16: {
+    u16* restrict data = mem.ptr;
+    switch (channels) {
+    case 4:
+      data[index * channels + 3] = (u16)(color.a * g_u16MaxPlusOneRoundDown);
+    case 3:
+      data[index * channels + 2] = (u16)(color.b * g_u16MaxPlusOneRoundDown);
+    case 2:
+      data[index * channels + 1] = (u16)(color.g * g_u16MaxPlusOneRoundDown);
+    case 1:
+      data[index * channels + 0] = (u16)(color.r * g_u16MaxPlusOneRoundDown);
+    }
+  } break;
+  case AssetTextureType_f32: {
+    f32* restrict data = mem.ptr;
+    switch (channels) {
+    case 4:
+      data[index * channels + 3] = color.a;
+    case 3:
+      data[index * channels + 2] = color.b;
+    case 2:
+      data[index * channels + 1] = color.g;
+    case 1:
+      data[index * channels + 0] = color.r;
+    }
+  } break;
+  }
+}
+
 static bool tex_can_compress_u8(const u32 width, const u32 height) {
   if (!bits_ispow2(width) || !bits_ispow2(height)) {
     /**
