@@ -22,9 +22,8 @@ typedef enum {
   AssetTextureFlags_Srgb         = 1 << 0,
   AssetTextureFlags_GenerateMips = 1 << 1,
   AssetTextureFlags_CubeMap      = 1 << 2,
-  AssetTextureFlags_NormalMap    = 1 << 3,
-  AssetTextureFlags_Alpha        = 1 << 4, // Alpha channel is in use.
-  AssetTextureFlags_Lossless     = 1 << 5, // Texture should not be compressed.
+  AssetTextureFlags_Alpha        = 1 << 3, // Alpha channel is in use.
+  AssetTextureFlags_Lossless     = 1 << 4, // Texture should not be compressed.
 } AssetTextureFlags;
 
 ecs_comp_extern_public(AssetTextureComp) {

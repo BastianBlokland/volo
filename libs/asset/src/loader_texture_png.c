@@ -530,10 +530,7 @@ void asset_load_tex_png(
   if (import.flags & AssetImportTextureFlags_Mips) {
     flags |= AssetTextureFlags_GenerateMips;
   }
-  if (import.flags & AssetImportTextureFlags_NormalMap) {
-    // Normal maps are in linear space (and thus not sRGB).
-    flags |= AssetTextureFlags_NormalMap;
-  } else if (import.flags & AssetImportTextureFlags_Linear || png_is_linear(chunks, chunkCount)) {
+  if (import.flags & AssetImportTextureFlags_Linear || png_is_linear(chunks, chunkCount)) {
     // Explicitly linear.
   } else if (channels >= 3 && type == PngType_u8) {
     flags |= AssetTextureFlags_Srgb;
@@ -542,10 +539,6 @@ void asset_load_tex_png(
     flags |= AssetTextureFlags_Lossless;
   }
 
-  if (flags & AssetTextureFlags_NormalMap && channels < 3) {
-    png_load_fail(world, entity, id, PngError_ImportFailed);
-    goto Ret;
-  }
   if (flags & AssetTextureFlags_Srgb && channels < 3) {
     png_load_fail(world, entity, id, PngError_ImportFailed);
     goto Ret;

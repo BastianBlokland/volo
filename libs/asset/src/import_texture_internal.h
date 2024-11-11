@@ -3,11 +3,10 @@
 #include "loader_texture_internal.h"
 
 typedef enum {
-  AssetImportTextureFlags_None      = 0,
-  AssetImportTextureFlags_NormalMap = 1 << 0,
-  AssetImportTextureFlags_Lossless  = 1 << 1,
-  AssetImportTextureFlags_Linear    = 1 << 2,
-  AssetImportTextureFlags_Mips      = 1 << 3,
+  AssetImportTextureFlags_None     = 0,
+  AssetImportTextureFlags_Lossless = 1 << 0,
+  AssetImportTextureFlags_Linear   = 1 << 1,
+  AssetImportTextureFlags_Mips     = 1 << 2,
 } AssetImportTextureFlags;
 
 typedef enum {

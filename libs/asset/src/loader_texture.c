@@ -593,7 +593,6 @@ void asset_data_init_tex(void) {
   data_reg_const_t(g_dataReg, AssetTextureFlags, Srgb);
   data_reg_const_t(g_dataReg, AssetTextureFlags, GenerateMips);
   data_reg_const_t(g_dataReg, AssetTextureFlags, CubeMap);
-  data_reg_const_t(g_dataReg, AssetTextureFlags, NormalMap);
   data_reg_const_t(g_dataReg, AssetTextureFlags, Alpha);
   data_reg_const_t(g_dataReg, AssetTextureFlags, Lossless);
 
@@ -839,9 +838,6 @@ AssetTextureComp asset_texture_create(
 
   if (UNLIKELY(flags & AssetTextureFlags_Srgb && channels < 3)) {
     diag_crash_msg("Srgb requires at least 3 channels");
-  }
-  if (UNLIKELY(flags & AssetTextureFlags_NormalMap && channels < 3)) {
-    diag_crash_msg("NormalMap requires at least 3 channels");
   }
   if (UNLIKELY(flags & AssetTextureFlags_CubeMap && layers != 6)) {
     diag_crash_msg("CubeMap requires 6 layers");

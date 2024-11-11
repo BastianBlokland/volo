@@ -17,7 +17,6 @@ static void import_init_enum_flags(void) {
 #define ENUM_PUSH(_ENUM_, _NAME_)                                                                  \
   script_enum_push((_ENUM_), string_lit(#_NAME_), AssetImportTextureFlags_##_NAME_);
 
-  ENUM_PUSH(&g_importTextureFlags, NormalMap);
   ENUM_PUSH(&g_importTextureFlags, Lossless);
   ENUM_PUSH(&g_importTextureFlags, Linear);
   ENUM_PUSH(&g_importTextureFlags, Mips);
