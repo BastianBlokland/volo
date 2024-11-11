@@ -504,13 +504,8 @@ void asset_load_tex_png(
   }
   diag_assert(pixelData.size == pixelBytes);
 
-  /**
-   * Png defined y0 as the top-left and we are using y0 as bottom-left so we need to flip.
-   */
   const AssetTextureType texType = png_tex_type(type);
-  asset_texture_flip_y(dynstring_view(&pixelData), header.width, header.height, channels, texType);
-
-  AssetImportTexture import = {
+  AssetImportTexture     import  = {
       .flags     = AssetImportTextureFlags_Mips,
       .channels  = channels,
       .pixelType = texType,
@@ -521,6 +516,14 @@ void asset_load_tex_png(
   if (!asset_import_texture(importEnv, id, &import)) {
     png_load_fail(world, entity, id, PngError_ImportFailed);
     goto Ret;
+  }
+
+  if (!(import.trans & AssetImportTextureTrans_FlipY)) {
+    /**
+     * Png defines y0 as the top-left and we are using y0 as bottom-left so we need to flip.
+     */
+    const Mem pixelMem = dynstring_view(&pixelData);
+    asset_texture_flip_y(pixelMem, header.width, header.height, channels, texType);
   }
 
   AssetTextureFlags flags = 0;

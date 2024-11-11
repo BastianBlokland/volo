@@ -129,6 +129,13 @@ static ScriptVal import_eval_texture_mips_max(AssetImportContext* ctx, ScriptBin
   return script_num(import_texture_mips_max(data->width, data->height));
 }
 
+static ScriptVal import_eval_texture_flip_y(AssetImportContext* ctx, ScriptBinderCall* call) {
+  (void)call;
+  AssetImportTexture* data = ctx->data;
+  data->trans |= AssetImportTextureTrans_FlipY;
+  return script_null();
+}
+
 void asset_data_init_import_texture(void) {
   import_init_enum_flags();
   import_init_enum_pixel_type();
@@ -203,6 +210,12 @@ void asset_data_init_import_texture(void) {
     const String       doc    = string_lit("Query the maximum amount of mip levels.");
     const ScriptMask   ret    = script_mask_num;
     asset_import_bind(binder, name, doc, ret, null, 0, import_eval_texture_mips_max);
+  }
+  {
+    const String       name   = string_lit("texture_flip_y");
+    const String       doc    = string_lit("Apply a y axis mirror transform.");
+    const ScriptMask   ret    = script_mask_null;
+    asset_import_bind(binder, name, doc, ret, null, 0, import_eval_texture_flip_y);
   }
   // clang-format on
 

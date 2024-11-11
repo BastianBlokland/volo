@@ -256,6 +256,9 @@ void asset_load_tex_ppm(
     ppm_load_fail(world, entity, id, PixmapError_ImportFailed);
     goto Error;
   }
+  if (import.trans & AssetImportTextureTrans_FlipY) {
+    asset_texture_flip_y(pixelMem, width, height, 3, AssetTextureType_u8);
+  }
 
   asset_repo_source_close(src);
 

@@ -120,6 +120,14 @@
       }
     },
     {
+      "name": "texture_flip_y",
+      "doc": "Apply a y axis mirror transform.",
+      "sig": {
+        "ret": "null",
+        "args": []
+      }
+    },
+    {
       "name": "texture_channels",
       "doc": "Query the amount of channels in the texture.",
       "sig": {

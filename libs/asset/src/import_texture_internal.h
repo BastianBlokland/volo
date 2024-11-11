@@ -10,8 +10,14 @@ typedef enum {
   AssetImportTextureFlags_Mips      = 1 << 3,
 } AssetImportTextureFlags;
 
+typedef enum {
+  AssetImportTextureTrans_None  = 0,
+  AssetImportTextureTrans_FlipY = 1 << 0,
+} AssetImportTextureTrans;
+
 typedef struct {
   AssetImportTextureFlags flags;
+  AssetImportTextureTrans trans;
   u32                     channels;
   AssetTextureType        pixelType;
   u32                     width, height, layers;

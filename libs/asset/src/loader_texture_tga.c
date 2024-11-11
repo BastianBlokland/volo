@@ -454,6 +454,9 @@ void asset_load_tex_tga(
     tga_load_fail(world, entity, id, TgaError_ImportFailed);
     goto Ret;
   }
+  if (import.trans & AssetImportTextureTrans_FlipY) {
+    asset_texture_flip_y(pixels, width, height, channels, AssetTextureType_u8);
+  }
 
   const AssetTextureFlags textureFlags = tga_texture_flags(channels, &import);
   if (textureFlags & AssetTextureFlags_NormalMap && channels < 3) {

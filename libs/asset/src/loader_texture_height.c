@@ -126,6 +126,9 @@ static void htex_load(
     alloc_free(g_allocHeap, pixelMem);
     return;
   }
+  if (import.trans & AssetImportTextureTrans_FlipY) {
+    asset_texture_flip_y(pixelMem, size, size, 1, pixelType);
+  }
 
   AssetTextureFlags flags = AssetTextureFlags_None;
   if (import.flags & AssetImportTextureFlags_Lossless) {
