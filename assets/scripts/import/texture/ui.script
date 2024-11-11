@@ -3,6 +3,13 @@
  */
 
 if (asset_id_match("external/icon/*")) {
+  // Icons are combined in an atlas; no compressed needed on the source assets.
+  texture_flag("Mips", false)
+  texture_flag("Lossless", true)
+}
+
+if (asset_id_match("external/cursors/*")) {
+  // Cursors are stored in a custom format; no compressed needed on the source assets.
   texture_flag("Mips", false)
   texture_flag("Lossless", true)
 }
