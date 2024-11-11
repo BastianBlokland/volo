@@ -2,17 +2,14 @@
  * Vfx texture import rules.
  */
 
-if (asset_id_match("external/vfx/*")) {
+if (asset_id_match("external/vfx/*") || asset_id_match("external/fire_2/*")) {
+  // Sprites are combined in an atlas; no compressed needed on the source assets.
   texture_flag("Mips", false)
   texture_flag("Lossless", true)
 }
 
 if (asset_id_match("external/decal/*")) {
-  texture_flag("Mips", false)
-  texture_flag("Lossless", true)
-}
-
-if (asset_id_match("external/fire_2/*")) {
+  // Decals are combined in an atlas; no compressed needed on the source assets.
   texture_flag("Mips", false)
   texture_flag("Lossless", true)
 }

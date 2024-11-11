@@ -196,10 +196,7 @@ static AssetTextureFlags tga_texture_flags(const TgaChannels ch, const AssetImpo
   if (import->flags & AssetImportTextureFlags_Mips) {
     flags |= AssetTextureFlags_GenerateMips;
   }
-  if (import->flags & AssetImportTextureFlags_NormalMap) {
-    // Normal maps are in linear space (and thus not sRGB).
-    flags |= AssetTextureFlags_NormalMap;
-  } else if (import->flags & AssetImportTextureFlags_Linear) {
+  if (import->flags & AssetImportTextureFlags_Linear) {
     // Explicitly linear.
   } else if (ch == TgaChannels_RGB || ch == TgaChannels_RGBA) {
     // All other (3 or 4 channel) textures are assumed to be sRGB encoded.
@@ -459,10 +456,6 @@ void asset_load_tex_tga(
   }
 
   const AssetTextureFlags textureFlags = tga_texture_flags(channels, &import);
-  if (textureFlags & AssetTextureFlags_NormalMap && channels < 3) {
-    tga_load_fail(world, entity, id, TgaError_ImportFailed);
-    goto Ret;
-  }
   if (textureFlags & AssetTextureFlags_Srgb && channels < 3) {
     tga_load_fail(world, entity, id, TgaError_ImportFailed);
     goto Ret;

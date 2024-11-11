@@ -24,7 +24,7 @@
   _X_(AssetFormat_Prefabs,          prefabs,            1  )                                       \
   _X_(AssetFormat_Products,         products,           1  )                                       \
   _X_(AssetFormat_Raw,              raw,                0  ) /* Raw cannot be versioned. */        \
-  _X_(AssetFormat_Script,           script,             2  )                                       \
+  _X_(AssetFormat_Script,           script,             3  )                                       \
   _X_(AssetFormat_ScriptBin,        script_bin,         1  )                                       \
   _X_(AssetFormat_ShaderBin,        shader_bin,         1  )                                       \
   _X_(AssetFormat_ShaderGlslFrag,   shader_glsl_frag,   1  )                                       \
@@ -39,12 +39,12 @@
   _X_(AssetFormat_TexBin,           tex_bin,            1  )                                       \
   _X_(AssetFormat_TexFont,          tex_font,           1  )                                       \
   _X_(AssetFormat_TexFontBin,       tex_font_bin,       1  )                                       \
-  _X_(AssetFormat_TexHeight16,      tex_height16,       1  )                                       \
-  _X_(AssetFormat_TexHeight32,      tex_height32,       1  )                                       \
-  _X_(AssetFormat_TexPng,           tex_png,            1  )                                       \
-  _X_(AssetFormat_TexPpm,           tex_ppm,            1  )                                       \
+  _X_(AssetFormat_TexHeight16,      tex_height16,       2  )                                       \
+  _X_(AssetFormat_TexHeight32,      tex_height32,       2  )                                       \
+  _X_(AssetFormat_TexPng,           tex_png,            2  )                                       \
+  _X_(AssetFormat_TexPpm,           tex_ppm,            2  )                                       \
   _X_(AssetFormat_TexProc,          tex_proc,           1  )                                       \
-  _X_(AssetFormat_TexTga,           tex_tga,            1  )                                       \
+  _X_(AssetFormat_TexTga,           tex_tga,            2  )                                       \
   _X_(AssetFormat_Vfx,              vfx,                1  )                                       \
   _X_(AssetFormat_Weapons,          weapons,            1  )
 

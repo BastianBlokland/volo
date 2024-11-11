@@ -189,10 +189,7 @@ static AssetTextureFlags ppm_texture_flags(const AssetImportTexture* import) {
   if (import->flags & AssetImportTextureFlags_Mips) {
     flags |= AssetTextureFlags_GenerateMips;
   }
-  if (import->flags & AssetImportTextureFlags_NormalMap) {
-    // Normal maps are in linear space (and thus not sRGB).
-    flags |= AssetTextureFlags_NormalMap;
-  } else if (import->flags & AssetImportTextureFlags_Linear) {
+  if (import->flags & AssetImportTextureFlags_Linear) {
     // Explicitly linear.
   } else {
     // All other textures are assumed to be sRGB encoded.

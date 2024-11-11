@@ -94,7 +94,7 @@
     },
     {
       "name": "texture_flag",
-      "doc": "Change or query a texture import flag.\n\nSupported flags:\n\n-`NormalMap`\n\n-`Lossless`\n\n-`Linear`\n\n-`Mips`",
+      "doc": "Change or query a texture import flag.\n\nSupported flags:\n\n-`Lossless`\n\n-`Linear`\n\n-`Mips`",
       "sig": {
         "ret": [ "null", "bool" ],
         "args": [
