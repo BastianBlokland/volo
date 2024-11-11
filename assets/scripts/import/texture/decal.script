@@ -1,8 +1,0 @@
-/**
- * Decal texture import rules.
- */
-
-if (asset_id_match("external/decal/*")) {
-  texture_flag("Mips", false)
-  texture_flag("Lossless", true)
-}

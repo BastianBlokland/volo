@@ -1,0 +1,18 @@
+/**
+ * Vfx texture import rules.
+ */
+
+if (asset_id_match("external/vfx/*")) {
+  texture_flag("Mips", false)
+  texture_flag("Lossless", true)
+}
+
+if (asset_id_match("external/decal/*")) {
+  texture_flag("Mips", false)
+  texture_flag("Lossless", true)
+}
+
+if (asset_id_match("external/fire_2/*")) {
+  texture_flag("Mips", false)
+  texture_flag("Lossless", true)
+}
