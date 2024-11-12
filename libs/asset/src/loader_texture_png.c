@@ -506,12 +506,14 @@ void asset_load_tex_png(
 
   const AssetTextureType texType = png_tex_type(type);
   AssetImportTexture     import  = {
-      .flags     = AssetImportTextureFlags_Mips,
-      .channels  = channels,
-      .pixelType = texType,
-      .orgWidth  = header.width,
-      .orgHeight = header.height,
-      .layers    = 1,
+      .flags        = AssetImportTextureFlags_Mips,
+      .width        = header.width,
+      .height       = header.height,
+      .orgChannels  = channels,
+      .orgPixelType = texType,
+      .orgWidth     = header.width,
+      .orgHeight    = header.height,
+      .orgLayers    = 1,
   };
   if (!asset_import_texture(importEnv, id, &import)) {
     png_load_fail(world, entity, id, PngError_ImportFailed);

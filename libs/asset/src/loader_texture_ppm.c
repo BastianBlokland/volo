@@ -242,12 +242,14 @@ void asset_load_tex_ppm(
   }
 
   AssetImportTexture import = {
-      .flags     = AssetImportTextureFlags_Mips,
-      .channels  = 3,
-      .pixelType = AssetTextureType_u8,
-      .orgWidth  = width,
-      .orgHeight = height,
-      .layers    = 1,
+      .flags        = AssetImportTextureFlags_Mips,
+      .width        = width,
+      .height       = height,
+      .orgChannels  = 3,
+      .orgPixelType = AssetTextureType_u8,
+      .orgWidth     = width,
+      .orgHeight    = height,
+      .orgLayers    = 1,
   };
   if (!asset_import_texture(importEnv, id, &import)) {
     ppm_load_fail(world, entity, id, PixmapError_ImportFailed);

@@ -440,12 +440,14 @@ void asset_load_tex_tga(
   }
 
   AssetImportTexture import = {
-      .flags     = AssetImportTextureFlags_Mips,
-      .channels  = channels,
-      .pixelType = AssetTextureType_u8,
-      .orgWidth  = width,
-      .orgHeight = height,
-      .layers    = 1,
+      .flags        = AssetImportTextureFlags_Mips,
+      .width        = width,
+      .height       = height,
+      .orgChannels  = channels,
+      .orgPixelType = AssetTextureType_u8,
+      .orgWidth     = width,
+      .orgHeight    = height,
+      .orgLayers    = 1,
   };
   if (!asset_import_texture(importEnv, id, &import)) {
     tga_load_fail(world, entity, id, TgaError_ImportFailed);

@@ -65,7 +65,7 @@ static ScriptVal import_eval_pow2_next(AssetImportContext* ctx, ScriptBinderCall
 static ScriptVal import_eval_texture_channels(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
-  return script_num(data->channels);
+  return script_num(data->orgChannels);
 }
 
 static ScriptVal import_eval_texture_flag(AssetImportContext* ctx, ScriptBinderCall* call) {
@@ -86,7 +86,7 @@ static ScriptVal import_eval_texture_flag(AssetImportContext* ctx, ScriptBinderC
 static ScriptVal import_eval_texture_type(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
-  return script_str(script_enum_lookup_name(&g_importTexturePixelType, data->pixelType));
+  return script_str(script_enum_lookup_name(&g_importTexturePixelType, data->orgPixelType));
 }
 
 static ScriptVal import_eval_texture_width(AssetImportContext* ctx, ScriptBinderCall* call) {
@@ -104,7 +104,7 @@ static ScriptVal import_eval_texture_height(AssetImportContext* ctx, ScriptBinde
 static ScriptVal import_eval_texture_layers(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
-  return script_num(data->layers);
+  return script_num(data->orgLayers);
 }
 
 static ScriptVal import_eval_texture_mips(AssetImportContext* ctx, ScriptBinderCall* call) {
