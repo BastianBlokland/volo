@@ -128,8 +128,28 @@ static void htex_load(
     alloc_free(g_allocHeap, pixelMem);
     return;
   }
+
+  if (import.width != import.orgWidth || import.height != import.orgHeight) {
+    const Mem newMem = alloc_alloc(g_allocHeap, import.width * import.height * type, type);
+
+    asset_texture_convert(
+        pixelMem,
+        import.orgWidth,
+        import.orgHeight,
+        1 /* srcChannels */,
+        pixelType,
+        newMem,
+        import.width,
+        import.height,
+        1 /* dstChannels */,
+        pixelType);
+
+    alloc_free(g_allocHeap, pixelMem);
+    pixelMem = newMem;
+  }
+
   if (import.trans & AssetImportTextureTrans_FlipY) {
-    asset_texture_flip_y(pixelMem, size, size, 1, pixelType);
+    asset_texture_flip_y(pixelMem, import.width, import.height, 1, pixelType);
   }
 
   AssetTextureFlags flags = AssetTextureFlags_None;
@@ -140,8 +160,8 @@ static void htex_load(
   AssetTextureComp* texComp = ecs_world_add_t(world, entity, AssetTextureComp);
   *texComp                  = asset_texture_create(
       pixelMem,
-      size,
-      size,
+      import.width,
+      import.height,
       1 /* channels */,
       1 /* layers */,
       1 /* mips */,

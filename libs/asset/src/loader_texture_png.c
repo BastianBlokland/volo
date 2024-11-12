@@ -503,6 +503,7 @@ void asset_load_tex_png(
     goto Ret;
   }
   diag_assert(pixelData.size == pixelBytes);
+  Mem pixelMem = dynstring_view(&pixelData);
 
   const AssetTextureType texType = png_tex_type(type);
   AssetImportTexture     import  = {
@@ -520,12 +521,30 @@ void asset_load_tex_png(
     goto Ret;
   }
 
+  if (import.width != import.orgWidth || import.height != import.orgHeight) {
+    const Mem newMem =
+        alloc_alloc(g_allocHeap, import.width * import.height * channels * type, type);
+
+    asset_texture_convert(
+        pixelMem,
+        import.orgWidth,
+        import.orgHeight,
+        channels,
+        texType,
+        newMem,
+        import.width,
+        import.height,
+        channels,
+        texType);
+
+    pixelMem = newMem;
+  }
+
   if (!(import.trans & AssetImportTextureTrans_FlipY)) {
     /**
      * Png defines y0 as the top-left and we are using y0 as bottom-left so we need to flip.
      */
-    const Mem pixelMem = dynstring_view(&pixelData);
-    asset_texture_flip_y(pixelMem, header.width, header.height, channels, texType);
+    asset_texture_flip_y(pixelMem, import.width, import.height, channels, texType);
   }
 
   AssetTextureFlags flags = 0;
@@ -549,8 +568,8 @@ void asset_load_tex_png(
   AssetTextureComp* texComp = ecs_world_add_t(world, entity, AssetTextureComp);
   *texComp                  = asset_texture_create(
       dynstring_view(&pixelData),
-      header.width,
-      header.height,
+      import.width,
+      import.height,
       channels,
       1 /* layers */,
       1 /* mipsSrc */,
