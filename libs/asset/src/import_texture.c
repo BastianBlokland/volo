@@ -65,7 +65,7 @@ static ScriptVal import_eval_pow2_next(AssetImportContext* ctx, ScriptBinderCall
 static ScriptVal import_eval_texture_channels(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
-  return script_num(data->channels);
+  return script_num(data->orgChannels);
 }
 
 static ScriptVal import_eval_texture_flag(AssetImportContext* ctx, ScriptBinderCall* call) {
@@ -86,31 +86,31 @@ static ScriptVal import_eval_texture_flag(AssetImportContext* ctx, ScriptBinderC
 static ScriptVal import_eval_texture_type(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
-  return script_str(script_enum_lookup_name(&g_importTexturePixelType, data->pixelType));
+  return script_str(script_enum_lookup_name(&g_importTexturePixelType, data->orgPixelType));
 }
 
 static ScriptVal import_eval_texture_width(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
-  return script_num(data->width);
+  return script_num(data->orgWidth);
 }
 
 static ScriptVal import_eval_texture_height(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
-  return script_num(data->height);
+  return script_num(data->orgHeight);
 }
 
 static ScriptVal import_eval_texture_layers(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
-  return script_num(data->layers);
+  return script_num(data->orgLayers);
 }
 
 static ScriptVal import_eval_texture_mips(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportTexture* data = ctx->data;
   if (call->argCount) {
-    const u32 mipsMax = import_texture_mips_max(data->width, data->height);
+    const u32 mipsMax = import_texture_mips_max(data->orgWidth, data->orgHeight);
     data->mips        = (u32)script_arg_num_range(call, 0, 0, mipsMax);
     if (data->mips == 1) {
       data->flags &= ~AssetImportTextureFlags_Mips;
@@ -122,9 +122,9 @@ static ScriptVal import_eval_texture_mips(AssetImportContext* ctx, ScriptBinderC
   if (data->flags & AssetImportTextureFlags_Mips) {
     u32 res = data->mips;
     if (res) {
-      res = math_min(res, import_texture_mips_max(data->width, data->height));
+      res = math_min(res, import_texture_mips_max(data->orgWidth, data->orgHeight));
     } else {
-      res = import_texture_mips_max(data->width, data->height);
+      res = import_texture_mips_max(data->orgWidth, data->orgHeight);
     }
     return script_num(res);
   }
@@ -134,13 +134,24 @@ static ScriptVal import_eval_texture_mips(AssetImportContext* ctx, ScriptBinderC
 static ScriptVal import_eval_texture_mips_max(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
-  return script_num(import_texture_mips_max(data->width, data->height));
+  return script_num(import_texture_mips_max(data->orgWidth, data->orgHeight));
 }
 
 static ScriptVal import_eval_texture_flip_y(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
-  data->trans |= AssetImportTextureTrans_FlipY;
+  data->trans ^= AssetImportTextureTrans_FlipY;
+  return script_null();
+}
+
+static ScriptVal import_eval_texture_resize(AssetImportContext* ctx, ScriptBinderCall* call) {
+  const u32 width  = (u32)script_arg_num_range(call, 0, 1, 1024 * 16);
+  const u32 height = (u32)script_arg_num_range(call, 1, 1, 1024 * 16);
+  if (!script_call_panicked(call)) {
+    AssetImportTexture* data = ctx->data;
+    data->width              = width;
+    data->height             = height;
+  }
   return script_null();
 }
 
@@ -233,6 +244,16 @@ void asset_data_init_import_texture(void) {
     const String       doc    = string_lit("Apply a y axis mirror transform.");
     const ScriptMask   ret    = script_mask_null;
     asset_import_bind(binder, name, doc, ret, null, 0, import_eval_texture_flip_y);
+  }
+  {
+    const String       name   = string_lit("texture_resize");
+    const String       doc    = string_lit("Resize the current texture.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("width"), script_mask_num},
+        {string_lit("height"), script_mask_num},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_texture_resize);
   }
   // clang-format on
 

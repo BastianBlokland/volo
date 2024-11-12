@@ -12,6 +12,9 @@
 #include "manager_internal.h"
 #include "repo_internal.h"
 
+#define icon_max_width 64
+#define icon_max_height 64
+
 DataMeta g_assetIconDefMeta;
 DataMeta g_assetIconMeta;
 
@@ -25,6 +28,7 @@ typedef struct {
 typedef enum {
   IconError_None,
   IconError_InvalidTexture,
+  IconError_TextureTooBig,
 
   IconError_Count,
 } IconError;
@@ -33,6 +37,7 @@ static String icon_error_str(const IconError err) {
   static const String g_msgs[] = {
       string_static("None"),
       string_static("Icon specifies an invalid texture"),
+      string_static("Icon texture size exceeds the maximum"),
   };
   ASSERT(array_elems(g_msgs) == IconError_Count, "Incorrect number of error messages");
   return g_msgs[err];
@@ -170,10 +175,18 @@ ecs_system_define(LoadIconAssetSys) {
     }
 
     /**
-     * Build icon.
+     * Validate the icon texture.
      */
     const AssetTextureComp* texture = ecs_view_read_t(textureItr, AssetTextureComp);
-    AssetIconComp*          icon    = ecs_world_add_t(world, entity, AssetIconComp);
+    if (UNLIKELY(texture->width > icon_max_width || texture->height > icon_max_height)) {
+      err = IconError_TextureTooBig;
+      goto Error;
+    }
+
+    /**
+     * Build icon.
+     */
+    AssetIconComp* icon = ecs_world_add_t(world, entity, AssetIconComp);
     asset_icon_generate(&load->def, texture, icon);
 
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);

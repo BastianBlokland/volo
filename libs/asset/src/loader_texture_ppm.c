@@ -232,7 +232,7 @@ void asset_load_tex_ppm(
 
   const u32 width    = (u32)header.width;
   const u32 height   = (u32)header.height;
-  const Mem pixelMem = alloc_alloc(g_allocHeap, width * height * 3, sizeof(u8));
+  Mem       pixelMem = alloc_alloc(g_allocHeap, width * height * 3, sizeof(u8));
   u8*       pixels   = pixelMem.ptr;
   input              = ppm_read_pixels(input, &header, pixels, &res);
   if (res) {
@@ -242,19 +242,41 @@ void asset_load_tex_ppm(
   }
 
   AssetImportTexture import = {
-      .flags     = AssetImportTextureFlags_Mips,
-      .channels  = 3,
-      .pixelType = AssetTextureType_u8,
-      .width     = width,
-      .height    = height,
-      .layers    = 1,
+      .flags        = AssetImportTextureFlags_Mips,
+      .width        = width,
+      .height       = height,
+      .orgChannels  = 3,
+      .orgPixelType = AssetTextureType_u8,
+      .orgWidth     = width,
+      .orgHeight    = height,
+      .orgLayers    = 1,
   };
   if (!asset_import_texture(importEnv, id, &import)) {
     ppm_load_fail(world, entity, id, PixmapError_ImportFailed);
     goto Error;
   }
+
+  if (import.width != import.orgWidth || import.height != import.orgHeight) {
+    const Mem newMem = alloc_alloc(g_allocHeap, import.width * import.height * 3, 1);
+
+    asset_texture_convert(
+        pixelMem,
+        import.orgWidth,
+        import.orgHeight,
+        3 /* srcChannels */,
+        AssetTextureType_u8,
+        newMem,
+        import.width,
+        import.height,
+        3 /* dstChannels */,
+        AssetTextureType_u8);
+
+    alloc_free(g_allocHeap, pixelMem);
+    pixelMem = newMem;
+  }
+
   if (import.trans & AssetImportTextureTrans_FlipY) {
-    asset_texture_flip_y(pixelMem, width, height, 3, AssetTextureType_u8);
+    asset_texture_flip_y(pixelMem, import.width, import.height, 3, AssetTextureType_u8);
   }
 
   asset_repo_source_close(src);
@@ -262,8 +284,8 @@ void asset_load_tex_ppm(
   AssetTextureComp* texComp = ecs_world_add_t(world, entity, AssetTextureComp);
   *texComp                  = asset_texture_create(
       pixelMem,
-      width,
-      height,
+      import.width,
+      import.height,
       3 /* channels */,
       1 /* layers */,
       1 /* mips */,

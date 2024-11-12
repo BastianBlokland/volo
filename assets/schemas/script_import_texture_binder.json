@@ -59,6 +59,17 @@
       }
     },
     {
+      "name": "texture_resize",
+      "doc": "Resize the current texture.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "width", "mask": "num" },
+          { "name": "height", "mask": "num" }
+        ]
+      }
+    },
+    {
       "name": "texture_layers",
       "doc": "Query the amount of texture layers.",
       "sig": {

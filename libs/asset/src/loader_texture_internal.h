@@ -18,6 +18,25 @@ usize asset_texture_type_size(
     AssetTextureType, u32 channels, u32 width, u32 height, u32 layers, u32 mips);
 
 /**
+ * Convert the source pixels to the given size, channels and type.
+ *
+ * Pre-condition: srcWidth > 0 && dstWidth > 0
+ * Pre-condition: srcHeight > 0 && dstHeight > 0
+ * Pre-condition: srcChannels > 0 && dstChannels > 0
+ */
+void asset_texture_convert(
+    Mem              srcMem,
+    u32              srcWidth,
+    u32              srcHeight,
+    u32              srcChannels,
+    AssetTextureType srcType,
+    Mem              dstMem,
+    u32              dstWidth,
+    u32              dstHeight,
+    u32              dstChannels,
+    AssetTextureType dstType);
+
+/**
  * In-place flip (mirror) the y axis.
  */
 void asset_texture_flip_y(Mem, u32 width, u32 height, u32 channels, AssetTextureType);
