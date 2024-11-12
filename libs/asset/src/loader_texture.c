@@ -921,6 +921,32 @@ void asset_texture_convert(
     }
     return;
   }
+
+  /**
+   * Bilinear interpolation + pixel resampling.
+   */
+
+  const f32 xScale = (f32)(srcWidth - 1) / (f32)dstWidth;
+  const f32 yScale = (f32)(srcHeight - 1) / (f32)dstHeight;
+
+  for (u32 dstY = 0; dstY < dstHeight; dstY++) {
+    for (u32 dstX = 0; dstX < dstWidth; dstX++) {
+      const u32 srcX   = (u32)(xScale * dstX);
+      const u32 srcY   = (u32)(yScale * dstY);
+      const u32 srcIdx = (srcY * srcWidth + srcX);
+
+      const GeoColor c1 = tex_read_at(srcMem, srcChannels, srcType, srcIdx);
+      const GeoColor c2 = tex_read_at(srcMem, srcChannels, srcType, srcIdx + 1);
+      const GeoColor c3 = tex_read_at(srcMem, srcChannels, srcType, srcIdx + srcWidth);
+      const GeoColor c4 = tex_read_at(srcMem, srcChannels, srcType, srcIdx + srcWidth + 1);
+
+      const f32 xFrac = (xScale * dstX) - srcX;
+      const f32 yFrac = (yScale * dstY) - srcY;
+
+      const GeoColor pixel = geo_color_bilerp(c1, c2, c3, c4, xFrac, yFrac);
+      tex_write_at(dstMem, dstChannels, dstType, dstY * srcWidth + dstX, pixel);
+    }
+  }
 }
 
 void asset_texture_flip_y(
