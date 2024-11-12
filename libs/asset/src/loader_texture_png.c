@@ -509,8 +509,8 @@ void asset_load_tex_png(
       .flags     = AssetImportTextureFlags_Mips,
       .channels  = channels,
       .pixelType = texType,
-      .width     = header.width,
-      .height    = header.height,
+      .orgWidth  = header.width,
+      .orgHeight = header.height,
       .layers    = 1,
   };
   if (!asset_import_texture(importEnv, id, &import)) {

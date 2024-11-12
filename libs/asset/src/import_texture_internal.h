@@ -19,7 +19,7 @@ typedef struct {
   AssetImportTextureTrans trans;
   u32                     channels;
   AssetTextureType        pixelType;
-  u32                     width, height, layers;
+  u32                     orgWidth, orgHeight, layers;
   u32                     mips; // 0 indicates maximum number of mips.
 } AssetImportTexture;
 

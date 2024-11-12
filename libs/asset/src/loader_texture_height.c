@@ -117,8 +117,8 @@ static void htex_load(
       .flags     = AssetImportTextureFlags_None,
       .channels  = 1,
       .pixelType = pixelType,
-      .width     = size,
-      .height    = size,
+      .orgWidth  = size,
+      .orgHeight = size,
       .layers    = 1,
   };
   if (!asset_import_texture(importEnv, id, &import)) {

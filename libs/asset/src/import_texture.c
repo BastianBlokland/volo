@@ -92,13 +92,13 @@ static ScriptVal import_eval_texture_type(AssetImportContext* ctx, ScriptBinderC
 static ScriptVal import_eval_texture_width(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
-  return script_num(data->width);
+  return script_num(data->orgWidth);
 }
 
 static ScriptVal import_eval_texture_height(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
-  return script_num(data->height);
+  return script_num(data->orgHeight);
 }
 
 static ScriptVal import_eval_texture_layers(AssetImportContext* ctx, ScriptBinderCall* call) {
@@ -110,7 +110,7 @@ static ScriptVal import_eval_texture_layers(AssetImportContext* ctx, ScriptBinde
 static ScriptVal import_eval_texture_mips(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportTexture* data = ctx->data;
   if (call->argCount) {
-    const u32 mipsMax = import_texture_mips_max(data->width, data->height);
+    const u32 mipsMax = import_texture_mips_max(data->orgWidth, data->orgHeight);
     data->mips        = (u32)script_arg_num_range(call, 0, 0, mipsMax);
     if (data->mips == 1) {
       data->flags &= ~AssetImportTextureFlags_Mips;
@@ -122,9 +122,9 @@ static ScriptVal import_eval_texture_mips(AssetImportContext* ctx, ScriptBinderC
   if (data->flags & AssetImportTextureFlags_Mips) {
     u32 res = data->mips;
     if (res) {
-      res = math_min(res, import_texture_mips_max(data->width, data->height));
+      res = math_min(res, import_texture_mips_max(data->orgWidth, data->orgHeight));
     } else {
-      res = import_texture_mips_max(data->width, data->height);
+      res = import_texture_mips_max(data->orgWidth, data->orgHeight);
     }
     return script_num(res);
   }
@@ -134,7 +134,7 @@ static ScriptVal import_eval_texture_mips(AssetImportContext* ctx, ScriptBinderC
 static ScriptVal import_eval_texture_mips_max(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
-  return script_num(import_texture_mips_max(data->width, data->height));
+  return script_num(import_texture_mips_max(data->orgWidth, data->orgHeight));
 }
 
 static ScriptVal import_eval_texture_flip_y(AssetImportContext* ctx, ScriptBinderCall* call) {

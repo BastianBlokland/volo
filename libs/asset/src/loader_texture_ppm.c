@@ -245,8 +245,8 @@ void asset_load_tex_ppm(
       .flags     = AssetImportTextureFlags_Mips,
       .channels  = 3,
       .pixelType = AssetTextureType_u8,
-      .width     = width,
-      .height    = height,
+      .orgWidth  = width,
+      .orgHeight = height,
       .layers    = 1,
   };
   if (!asset_import_texture(importEnv, id, &import)) {

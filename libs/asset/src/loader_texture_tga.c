@@ -443,8 +443,8 @@ void asset_load_tex_tga(
       .flags     = AssetImportTextureFlags_Mips,
       .channels  = channels,
       .pixelType = AssetTextureType_u8,
-      .width     = width,
-      .height    = height,
+      .orgWidth  = width,
+      .orgHeight = height,
       .layers    = 1,
   };
   if (!asset_import_texture(importEnv, id, &import)) {
