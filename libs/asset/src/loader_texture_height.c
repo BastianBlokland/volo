@@ -130,7 +130,8 @@ static void htex_load(
   }
 
   if (import.width != import.orgWidth || import.height != import.orgHeight) {
-    const Mem newMem = alloc_alloc(g_allocHeap, import.width * import.height * type, type);
+    const Mem newMem =
+        alloc_alloc(g_allocHeap, import.width * import.height * pixelSize, pixelSize);
 
     asset_texture_convert(
         pixelMem,
