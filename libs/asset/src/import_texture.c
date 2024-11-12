@@ -140,7 +140,7 @@ static ScriptVal import_eval_texture_mips_max(AssetImportContext* ctx, ScriptBin
 static ScriptVal import_eval_texture_flip_y(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
-  data->trans |= AssetImportTextureTrans_FlipY;
+  data->trans ^= AssetImportTextureTrans_FlipY;
   return script_null();
 }
 
