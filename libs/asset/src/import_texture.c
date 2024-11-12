@@ -144,6 +144,17 @@ static ScriptVal import_eval_texture_flip_y(AssetImportContext* ctx, ScriptBinde
   return script_null();
 }
 
+static ScriptVal import_eval_texture_resize(AssetImportContext* ctx, ScriptBinderCall* call) {
+  const u32 width  = (u32)script_arg_num_range(call, 0, 1, 1024 * 16);
+  const u32 height = (u32)script_arg_num_range(call, 1, 1, 1024 * 16);
+  if (!script_call_panicked(call)) {
+    AssetImportTexture* data = ctx->data;
+    data->width              = width;
+    data->height             = height;
+  }
+  return script_null();
+}
+
 void asset_data_init_import_texture(void) {
   import_init_enum_flags();
   import_init_enum_pixel_type();
@@ -233,6 +244,16 @@ void asset_data_init_import_texture(void) {
     const String       doc    = string_lit("Apply a y axis mirror transform.");
     const ScriptMask   ret    = script_mask_null;
     asset_import_bind(binder, name, doc, ret, null, 0, import_eval_texture_flip_y);
+  }
+  {
+    const String       name   = string_lit("texture_resize");
+    const String       doc    = string_lit("Resize the current texture.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("width"), script_mask_num},
+        {string_lit("height"), script_mask_num},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_texture_resize);
   }
   // clang-format on
 
