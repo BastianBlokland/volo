@@ -898,6 +898,31 @@ usize asset_texture_type_size(
   return tex_pixel_count(width, height, layers, mips) * channels * tex_type_size(type);
 }
 
+void asset_texture_convert(
+    const Mem              srcMem,
+    const u32              srcWidth,
+    const u32              srcHeight,
+    const u32              srcChannels,
+    const AssetTextureType srcType,
+    const Mem              dstMem,
+    const u32              dstWidth,
+    const u32              dstHeight,
+    const u32              dstChannels,
+    const AssetTextureType dstType) {
+  diag_assert(
+      srcMem.size == asset_texture_type_size(srcType, srcChannels, srcWidth, srcHeight, 1, 1));
+  diag_assert(
+      dstMem.size == asset_texture_type_size(dstType, dstChannels, dstWidth, dstHeight, 1, 1));
+
+  if (srcWidth == dstWidth && srcHeight == dstHeight) {
+    // Identical size; no interpolation necessary just resample the pixel.
+    for (u32 i = 0; i != srcHeight * srcWidth; ++i) {
+      tex_write_at(dstMem, dstChannels, dstType, i, tex_read_at(srcMem, srcChannels, srcType, i));
+    }
+    return;
+  }
+}
+
 void asset_texture_flip_y(
     const Mem              mem,
     const u32              width,
