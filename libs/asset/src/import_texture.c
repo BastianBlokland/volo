@@ -88,7 +88,15 @@ static ScriptVal import_eval_pow2_next(AssetImportContext* ctx, ScriptBinderCall
 static ScriptVal import_eval_texture_channels(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
-  return script_num(data->channels);
+  if (call->argCount < 1) {
+    return script_num(data->channels);
+  }
+  const u32 newChannels = (u32)script_arg_num_range(call, 0, 1, 4);
+  if (!script_call_panicked(call)) {
+    diag_assert(newChannels >= 1 && newChannels <= 4);
+    data->channels = newChannels;
+  }
+  return script_null();
 }
 
 static ScriptVal import_eval_texture_flag(AssetImportContext* ctx, ScriptBinderCall* call) {
@@ -209,9 +217,12 @@ void asset_data_init_import_texture(void) {
   }
   {
     const String       name   = string_lit("texture_channels");
-    const String       doc    = string_lit("Query the amount of channels in the texture.");
-    const ScriptMask   ret    = script_mask_num;
-    asset_import_bind(binder, name, doc, ret, null, 0, import_eval_texture_channels);
+    const String       doc    = string_lit("Change or query the amount of channels in the texture.");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("channels"), script_mask_num | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_texture_channels);
   }
   {
     const String       name   = string_lit("texture_flag");
@@ -319,8 +330,9 @@ bool asset_import_texture(
   }
 
   // Apply resize.
-  if (import.width != width || import.height != height) {
-    outMem = alloc_alloc(g_allocHeap, import.width * import.height * channels * typeSize, typeSize);
+  if (import.width != width || import.height != height || import.channels != channels) {
+    const u32 dstPixelCount = import.width * import.height;
+    outMem       = alloc_alloc(g_allocHeap, dstPixelCount * import.channels * typeSize, typeSize);
     outMemOwning = true;
 
     asset_texture_convert(
@@ -347,14 +359,14 @@ bool asset_import_texture(
   }
   if (import.flags & AssetImportTextureFlags_Linear) {
     // Explicitly linear.
-  } else if (channels >= 3 && type == AssetTextureType_u8) {
+  } else if (import.channels >= 3 && type == AssetTextureType_u8) {
     outFlags |= AssetTextureFlags_Srgb;
   }
   if (import.flags & AssetImportTextureFlags_Lossless) {
     outFlags |= AssetTextureFlags_Lossless;
   }
 
-  if (outFlags & AssetTextureFlags_Srgb && channels < 3) {
+  if (outFlags & AssetTextureFlags_Srgb && import.channels < 3) {
     goto Ret;
   }
 
