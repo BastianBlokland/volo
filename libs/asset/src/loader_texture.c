@@ -87,7 +87,7 @@ static u32 tex_type_size(const AssetTextureType type) {
   case AssetTextureType_f32:
     return sizeof(f32);
   }
-  diag_crash();
+  UNREACHABLE
 }
 
 /**

@@ -503,82 +503,37 @@ void asset_load_tex_png(
     goto Ret;
   }
   diag_assert(pixelData.size == pixelBytes);
-  Mem pixelMem = dynstring_view(&pixelData);
 
-  const AssetTextureType texType = png_tex_type(type);
-  AssetImportTexture     import  = {
-      .flags        = AssetImportTextureFlags_Mips,
-      .width        = header.width,
-      .height       = header.height,
-      .orgChannels  = channels,
-      .orgPixelType = texType,
-      .orgWidth     = header.width,
-      .orgHeight    = header.height,
-      .orgLayers    = 1,
-  };
-  if (!asset_import_texture(importEnv, id, &import)) {
+  AssetImportTextureFlags importFlags = AssetImportTextureFlags_Mips;
+  if (png_is_linear(chunks, chunkCount)) {
+    importFlags |= AssetImportTextureFlags_Linear;
+  }
+
+  AssetImportTextureTrans importTrans = 0;
+  /**
+   * Png defines y0 as the top-left and we are using y0 as bottom-left so we need to flip.
+   */
+  importTrans |= AssetImportTextureTrans_FlipY;
+
+  AssetTextureComp tex;
+  if (!asset_import_texture(
+          importEnv,
+          id,
+          dynstring_view(&pixelData),
+          header.width,
+          header.height,
+          channels,
+          png_tex_type(type),
+          importFlags,
+          importTrans,
+          &tex)) {
     png_load_fail(world, entity, id, PngError_ImportFailed);
     goto Ret;
   }
 
-  if (import.width != import.orgWidth || import.height != import.orgHeight) {
-    const Mem newMem =
-        alloc_alloc(g_allocHeap, import.width * import.height * channels * type, type);
-
-    asset_texture_convert(
-        pixelMem,
-        import.orgWidth,
-        import.orgHeight,
-        channels,
-        texType,
-        newMem,
-        import.width,
-        import.height,
-        channels,
-        texType);
-
-    pixelMem = newMem;
-  }
-
-  if (!(import.trans & AssetImportTextureTrans_FlipY)) {
-    /**
-     * Png defines y0 as the top-left and we are using y0 as bottom-left so we need to flip.
-     */
-    asset_texture_flip_y(pixelMem, import.width, import.height, channels, texType);
-  }
-
-  AssetTextureFlags flags = 0;
-  if (import.flags & AssetImportTextureFlags_Mips) {
-    flags |= AssetTextureFlags_GenerateMips;
-  }
-  if (import.flags & AssetImportTextureFlags_Linear || png_is_linear(chunks, chunkCount)) {
-    // Explicitly linear.
-  } else if (channels >= 3 && type == PngType_u8) {
-    flags |= AssetTextureFlags_Srgb;
-  }
-  if (import.flags & AssetImportTextureFlags_Lossless) {
-    flags |= AssetTextureFlags_Lossless;
-  }
-
-  if (flags & AssetTextureFlags_Srgb && channels < 3) {
-    png_load_fail(world, entity, id, PngError_ImportFailed);
-    goto Ret;
-  }
-
-  AssetTextureComp* texComp = ecs_world_add_t(world, entity, AssetTextureComp);
-  *texComp                  = asset_texture_create(
-      dynstring_view(&pixelData),
-      import.width,
-      import.height,
-      channels,
-      1 /* layers */,
-      1 /* mipsSrc */,
-      import.mips,
-      texType,
-      flags);
-
+  *ecs_world_add_t(world, entity, AssetTextureComp) = tex;
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
-  asset_cache(world, entity, g_assetTexMeta, mem_create(texComp, sizeof(AssetTextureComp)));
+  asset_cache(world, entity, g_assetTexMeta, mem_var(tex));
 
 Ret:
   dynarray_destroy(&pixelData);

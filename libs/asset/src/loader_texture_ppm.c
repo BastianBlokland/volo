@@ -184,23 +184,6 @@ ppm_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 }
 
-static AssetTextureFlags ppm_texture_flags(const AssetImportTexture* import) {
-  AssetTextureFlags flags = 0;
-  if (import->flags & AssetImportTextureFlags_Mips) {
-    flags |= AssetTextureFlags_GenerateMips;
-  }
-  if (import->flags & AssetImportTextureFlags_Linear) {
-    // Explicitly linear.
-  } else {
-    // All other textures are assumed to be sRGB encoded.
-    flags |= AssetTextureFlags_Srgb;
-  }
-  if (import->flags & AssetImportTextureFlags_Lossless) {
-    flags |= AssetTextureFlags_Lossless;
-  }
-  return flags;
-}
-
 void asset_load_tex_ppm(
     EcsWorld*                 world,
     const AssetImportEnvComp* importEnv,
@@ -241,60 +224,28 @@ void asset_load_tex_ppm(
     goto Error;
   }
 
-  AssetImportTexture import = {
-      .flags        = AssetImportTextureFlags_Mips,
-      .width        = width,
-      .height       = height,
-      .orgChannels  = 3,
-      .orgPixelType = AssetTextureType_u8,
-      .orgWidth     = width,
-      .orgHeight    = height,
-      .orgLayers    = 1,
-  };
-  if (!asset_import_texture(importEnv, id, &import)) {
+  AssetTextureComp tex;
+  if (!asset_import_texture(
+          importEnv,
+          id,
+          pixelMem,
+          width,
+          height,
+          3 /* channels */,
+          AssetTextureType_u8,
+          AssetImportTextureFlags_Mips,
+          AssetImportTextureTrans_None,
+          &tex)) {
     ppm_load_fail(world, entity, id, PixmapError_ImportFailed);
     goto Error;
   }
 
-  if (import.width != import.orgWidth || import.height != import.orgHeight) {
-    const Mem newMem = alloc_alloc(g_allocHeap, import.width * import.height * 3, 1);
-
-    asset_texture_convert(
-        pixelMem,
-        import.orgWidth,
-        import.orgHeight,
-        3 /* srcChannels */,
-        AssetTextureType_u8,
-        newMem,
-        import.width,
-        import.height,
-        3 /* dstChannels */,
-        AssetTextureType_u8);
-
-    alloc_free(g_allocHeap, pixelMem);
-    pixelMem = newMem;
-  }
-
-  if (import.trans & AssetImportTextureTrans_FlipY) {
-    asset_texture_flip_y(pixelMem, import.width, import.height, 3, AssetTextureType_u8);
-  }
-
   asset_repo_source_close(src);
 
-  AssetTextureComp* texComp = ecs_world_add_t(world, entity, AssetTextureComp);
-  *texComp                  = asset_texture_create(
-      pixelMem,
-      import.width,
-      import.height,
-      3 /* channels */,
-      1 /* layers */,
-      1 /* mips */,
-      import.mips,
-      AssetTextureType_u8,
-      ppm_texture_flags(&import));
+  *ecs_world_add_t(world, entity, AssetTextureComp) = tex;
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
-  asset_cache(world, entity, g_assetTexMeta, mem_create(texComp, sizeof(AssetTextureComp)));
+  asset_cache(world, entity, g_assetTexMeta, mem_var(tex));
 
   alloc_free(g_allocHeap, pixelMem);
   return;
