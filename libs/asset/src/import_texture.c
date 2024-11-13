@@ -65,6 +65,9 @@ typedef struct {
   u32                     mips; // 0 indicates maximum number of mips.
   u32                     channels;
   AssetTextureType        type;
+  Mem                     data;
+  u32                     dataWidth, dataHeight, dataChannels;
+  AssetTextureType        dataType;
 } AssetImportTexture;
 
 static ScriptVal import_eval_pow2_test(AssetImportContext* ctx, ScriptBinderCall* call) {
@@ -318,13 +321,18 @@ bool asset_import_texture(
   diag_assert(data.size == width * height * channels * import_texture_type_size(type));
 
   AssetImportTexture ctx = {
-      .flags    = importFlags,
-      .flip     = importFlip,
-      .width    = width,
-      .height   = height,
-      .channels = channels,
-      .type     = type,
-      .layers   = 1,
+      .flags        = importFlags,
+      .flip         = importFlip,
+      .width        = width,
+      .height       = height,
+      .channels     = channels,
+      .type         = type,
+      .layers       = 1,
+      .data         = data,
+      .dataWidth    = width,
+      .dataHeight   = height,
+      .dataChannels = channels,
+      .dataType     = type,
   };
   if (!asset_import_eval(env, g_assetScriptImportTextureBinder, id, &ctx)) {
     goto Ret;
