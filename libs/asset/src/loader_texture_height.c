@@ -113,65 +113,26 @@ static void htex_load(
     data = mem_consume(data, rowStride);
   }
 
-  AssetImportTexture import = {
-      .flags        = AssetImportTextureFlags_None,
-      .width        = size,
-      .height       = size,
-      .orgChannels  = 1,
-      .orgPixelType = pixelType,
-      .orgWidth     = size,
-      .orgHeight    = size,
-      .orgLayers    = 1,
-  };
-  if (!asset_import_texture(importEnv, id, &import)) {
+  AssetTextureComp tex;
+  if (!asset_import_texture(
+          importEnv,
+          id,
+          pixelMem,
+          size,
+          size,
+          1 /* channels */,
+          pixelType,
+          AssetImportTextureFlags_None,
+          AssetImportTextureTrans_None,
+          &tex)) {
     htex_load_fail(world, entity, id, HtexError_ImportFailed);
     alloc_free(g_allocHeap, pixelMem);
     return;
   }
 
-  if (import.width != import.orgWidth || import.height != import.orgHeight) {
-    const Mem newMem =
-        alloc_alloc(g_allocHeap, import.width * import.height * pixelSize, pixelSize);
-
-    asset_texture_convert(
-        pixelMem,
-        import.orgWidth,
-        import.orgHeight,
-        1 /* srcChannels */,
-        pixelType,
-        newMem,
-        import.width,
-        import.height,
-        1 /* dstChannels */,
-        pixelType);
-
-    alloc_free(g_allocHeap, pixelMem);
-    pixelMem = newMem;
-  }
-
-  if (import.trans & AssetImportTextureTrans_FlipY) {
-    asset_texture_flip_y(pixelMem, import.width, import.height, 1, pixelType);
-  }
-
-  AssetTextureFlags flags = AssetTextureFlags_None;
-  if (import.flags & AssetImportTextureFlags_Lossless) {
-    flags |= AssetTextureFlags_Lossless;
-  }
-
-  AssetTextureComp* texComp = ecs_world_add_t(world, entity, AssetTextureComp);
-  *texComp                  = asset_texture_create(
-      pixelMem,
-      import.width,
-      import.height,
-      1 /* channels */,
-      1 /* layers */,
-      1 /* mips */,
-      import.mips,
-      pixelType,
-      flags);
-
+  *ecs_world_add_t(world, entity, AssetTextureComp) = tex;
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
-  asset_cache(world, entity, g_assetTexMeta, mem_create(texComp, sizeof(AssetTextureComp)));
+  asset_cache(world, entity, g_assetTexMeta, mem_var(tex));
 
   alloc_free(g_allocHeap, pixelMem);
 }
