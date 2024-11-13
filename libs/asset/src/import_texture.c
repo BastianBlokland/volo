@@ -64,7 +64,7 @@ typedef struct {
   u32                     width, height, layers;
   u32                     mips; // 0 indicates maximum number of mips.
   u32                     channels;
-  AssetTextureType        pixelType;
+  AssetTextureType        type;
 } AssetImportTexture;
 
 static ScriptVal import_eval_pow2_test(AssetImportContext* ctx, ScriptBinderCall* call) {
@@ -86,9 +86,16 @@ static ScriptVal import_eval_pow2_next(AssetImportContext* ctx, ScriptBinderCall
 }
 
 static ScriptVal import_eval_texture_channels(AssetImportContext* ctx, ScriptBinderCall* call) {
-  (void)call;
   AssetImportTexture* data = ctx->data;
-  return script_num(data->channels);
+  if (call->argCount < 1) {
+    return script_num(data->channels);
+  }
+  const u32 newChannels = (u32)script_arg_num_range(call, 0, 1, 4);
+  if (!script_call_panicked(call)) {
+    diag_assert(newChannels >= 1 && newChannels <= 4);
+    data->channels = newChannels;
+  }
+  return script_null();
 }
 
 static ScriptVal import_eval_texture_flag(AssetImportContext* ctx, ScriptBinderCall* call) {
@@ -107,9 +114,12 @@ static ScriptVal import_eval_texture_flag(AssetImportContext* ctx, ScriptBinderC
 }
 
 static ScriptVal import_eval_texture_type(AssetImportContext* ctx, ScriptBinderCall* call) {
-  (void)call;
   AssetImportTexture* data = ctx->data;
-  return script_str(script_enum_lookup_name(&g_importTexturePixelType, data->pixelType));
+  if (call->argCount < 1) {
+    return script_str(script_enum_lookup_name(&g_importTexturePixelType, data->type));
+  }
+  data->type = (AssetTextureType)script_arg_enum(call, 0, &g_importTexturePixelType);
+  return script_null();
 }
 
 static ScriptVal import_eval_texture_width(AssetImportContext* ctx, ScriptBinderCall* call) {
@@ -209,13 +219,16 @@ void asset_data_init_import_texture(void) {
   }
   {
     const String       name   = string_lit("texture_channels");
-    const String       doc    = string_lit("Query the amount of channels in the texture.");
-    const ScriptMask   ret    = script_mask_num;
-    asset_import_bind(binder, name, doc, ret, null, 0, import_eval_texture_channels);
+    const String       doc    = string_lit("Query or change the amount of channels in the texture.");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("channels"), script_mask_num | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_texture_channels);
   }
   {
     const String       name   = string_lit("texture_flag");
-    const String       doc    = fmt_write_scratch("Change or query a texture import flag.\n\n{}", fmt_text(g_flagsDoc));
+    const String       doc    = fmt_write_scratch("Query or change a texture import flag.\n\n{}", fmt_text(g_flagsDoc));
     const ScriptMask   ret    = script_mask_bool | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("flag"), script_mask_str},
@@ -225,7 +238,7 @@ void asset_data_init_import_texture(void) {
   }
   {
     const String       name   = string_lit("texture_type");
-    const String       doc    = fmt_write_scratch("Query the texture pixel type.\n\n{}", fmt_text(g_pixelTypeDoc));
+    const String       doc    = fmt_write_scratch("Query or change the texture pixel type.\n\n{}", fmt_text(g_pixelTypeDoc));
     const ScriptMask   ret    = script_mask_str;
     asset_import_bind(binder, name, doc, ret, null, 0, import_eval_texture_type);
   }
@@ -249,7 +262,7 @@ void asset_data_init_import_texture(void) {
   }
   {
     const String       name   = string_lit("texture_mips");
-    const String       doc    = string_lit("Change or query the amount of mip levels.\nNote: Provide 0 to set the maximum amount of mips.");
+    const String       doc    = string_lit("Query or change the amount of mip levels.\nNote: Provide 0 to set the maximum amount of mips.");
     const ScriptMask   ret    = script_mask_num | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("mips"), script_mask_num | script_mask_null},
@@ -302,72 +315,65 @@ bool asset_import_texture(
   bool outMemOwning = false;
   bool success      = false;
 
-  const usize typeSize = import_texture_type_size(type);
-  diag_assert(data.size == width * height * channels * typeSize);
+  diag_assert(data.size == width * height * channels * import_texture_type_size(type));
 
-  AssetImportTexture import = {
-      .flags     = importFlags,
-      .trans     = importTrans,
-      .width     = width,
-      .height    = height,
-      .channels  = channels,
-      .pixelType = type,
-      .layers    = 1,
+  AssetImportTexture ctx = {
+      .flags    = importFlags,
+      .trans    = importTrans,
+      .width    = width,
+      .height   = height,
+      .channels = channels,
+      .type     = type,
+      .layers   = 1,
   };
-  if (!asset_import_eval(env, g_assetScriptImportTextureBinder, id, &import)) {
+  if (!asset_import_eval(env, g_assetScriptImportTextureBinder, id, &ctx)) {
     goto Ret;
   }
 
   // Apply resize.
-  if (import.width != width || import.height != height) {
-    outMem = alloc_alloc(g_allocHeap, import.width * import.height * channels * typeSize, typeSize);
+  if (ctx.width != width || ctx.height != height || ctx.channels != channels || ctx.type != type) {
+    const u32   dstPixelCount = ctx.width * ctx.height;
+    const usize dstTypeSize   = import_texture_type_size(ctx.type);
+
+    outMem = alloc_alloc(g_allocHeap, dstPixelCount * ctx.channels * dstTypeSize, dstTypeSize);
     outMemOwning = true;
 
     asset_texture_convert(
-        data,
-        width,
-        height,
-        channels,
-        type,
-        outMem,
-        import.width,
-        import.height,
-        import.channels,
-        import.pixelType);
+        data, width, height, channels, type, outMem, ctx.width, ctx.height, ctx.channels, ctx.type);
   }
 
   // Apply transformations.
-  if (import.trans & AssetImportTextureTrans_FlipY) {
-    asset_texture_flip_y(outMem, import.width, import.height, channels, import.pixelType);
+  if (ctx.trans & AssetImportTextureTrans_FlipY) {
+    asset_texture_flip_y(outMem, ctx.width, ctx.height, channels, ctx.type);
   }
 
   AssetTextureFlags outFlags = 0;
-  if (import.flags & AssetImportTextureFlags_Mips) {
+  if (ctx.flags & AssetImportTextureFlags_Mips) {
     outFlags |= AssetTextureFlags_GenerateMips;
   }
-  if (import.flags & AssetImportTextureFlags_Linear) {
+  if (ctx.flags & AssetImportTextureFlags_Linear) {
     // Explicitly linear.
-  } else if (channels >= 3 && type == AssetTextureType_u8) {
+  } else if (ctx.channels >= 3 && ctx.type == AssetTextureType_u8) {
     outFlags |= AssetTextureFlags_Srgb;
   }
-  if (import.flags & AssetImportTextureFlags_Lossless) {
+  if (ctx.flags & AssetImportTextureFlags_Lossless) {
     outFlags |= AssetTextureFlags_Lossless;
   }
 
-  if (outFlags & AssetTextureFlags_Srgb && channels < 3) {
+  if (outFlags & AssetTextureFlags_Srgb && ctx.channels < 3) {
     goto Ret;
   }
 
   // Output texture.
   *out = asset_texture_create(
       outMem,
-      import.width,
-      import.height,
-      import.channels,
-      import.layers,
+      ctx.width,
+      ctx.height,
+      ctx.channels,
+      ctx.layers,
       1 /* mipsSrc */,
-      import.mips,
-      import.pixelType,
+      ctx.mips,
+      ctx.type,
       outFlags);
 
   success = true;

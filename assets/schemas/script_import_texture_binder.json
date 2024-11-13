@@ -5,7 +5,7 @@
   "functions": [
     {
       "name": "texture_type",
-      "doc": "Query the texture pixel type.\n\nSupported types:\n\n-`u8`\n\n-`u16`\n\n-`f32`",
+      "doc": "Query or change the texture pixel type.\n\nSupported types:\n\n-`u8`\n\n-`u16`\n\n-`f32`",
       "sig": {
         "ret": "str",
         "args": []
@@ -115,7 +115,7 @@
     },
     {
       "name": "texture_flag",
-      "doc": "Change or query a texture import flag.\n\nSupported flags:\n\n-`Lossless`\n\n-`Linear`\n\n-`Mips`",
+      "doc": "Query or change a texture import flag.\n\nSupported flags:\n\n-`Lossless`\n\n-`Linear`\n\n-`Mips`",
       "sig": {
         "ret": [ "null", "bool" ],
         "args": [
@@ -129,7 +129,7 @@
     },
     {
       "name": "texture_mips",
-      "doc": "Change or query the amount of mip levels.\nNote: Provide 0 to set the maximum amount of mips.",
+      "doc": "Query or change the amount of mip levels.\nNote: Provide 0 to set the maximum amount of mips.",
       "sig": {
         "ret": [ "null", "num" ],
         "args": [
@@ -150,10 +150,15 @@
     },
     {
       "name": "texture_channels",
-      "doc": "Query the amount of channels in the texture.",
+      "doc": "Query or change the amount of channels in the texture.",
       "sig": {
-        "ret": "num",
-        "args": []
+        "ret": [ "null", "num" ],
+        "args": [
+          {
+            "name": "channels",
+            "mask": [ "null", "num" ]
+          }
+        ]
       }
     },
     {
