@@ -60,7 +60,7 @@ static u16 import_texture_mips_max(const u32 width, const u32 height) {
 
 typedef struct {
   AssetImportTextureFlags flags;
-  AssetImportTextureTrans trans;
+  AssetImportTextureFlip  flip;
   u32                     width, height, layers;
   u32                     mips; // 0 indicates maximum number of mips.
   u32                     channels;
@@ -173,7 +173,7 @@ static ScriptVal import_eval_texture_mips_max(AssetImportContext* ctx, ScriptBin
 static ScriptVal import_eval_texture_flip_y(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
-  data->trans ^= AssetImportTextureTrans_FlipY;
+  data->flip ^= AssetImportTextureFlip_Y;
   return script_null();
 }
 
@@ -277,7 +277,7 @@ void asset_data_init_import_texture(void) {
   }
   {
     const String       name   = string_lit("texture_flip_y");
-    const String       doc    = string_lit("Apply a y axis mirror transform.");
+    const String       doc    = string_lit("Apply a y axis mirror.");
     const ScriptMask   ret    = script_mask_null;
     asset_import_bind(binder, name, doc, ret, null, 0, import_eval_texture_flip_y);
   }
@@ -308,7 +308,7 @@ bool asset_import_texture(
     const u32                     channels,
     const AssetTextureType        type,
     const AssetImportTextureFlags importFlags,
-    const AssetImportTextureTrans importTrans,
+    const AssetImportTextureFlip  importFlip,
     AssetTextureComp*             out) {
 
   Mem  outMem       = data;
@@ -319,7 +319,7 @@ bool asset_import_texture(
 
   AssetImportTexture ctx = {
       .flags    = importFlags,
-      .trans    = importTrans,
+      .flip     = importFlip,
       .width    = width,
       .height   = height,
       .channels = channels,
@@ -342,8 +342,8 @@ bool asset_import_texture(
         data, width, height, channels, type, outMem, ctx.width, ctx.height, ctx.channels, ctx.type);
   }
 
-  // Apply transformations.
-  if (ctx.trans & AssetImportTextureTrans_FlipY) {
+  // Apply flip.
+  if (ctx.flip & AssetImportTextureFlip_Y) {
     asset_texture_flip_y(outMem, ctx.width, ctx.height, channels, ctx.type);
   }
 

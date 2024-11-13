@@ -123,7 +123,7 @@ static void htex_load(
           1 /* channels */,
           pixelType,
           AssetImportTextureFlags_None,
-          AssetImportTextureTrans_None,
+          AssetImportTextureFlip_None,
           &tex)) {
     htex_load_fail(world, entity, id, HtexError_ImportFailed);
     alloc_free(g_allocHeap, pixelMem);

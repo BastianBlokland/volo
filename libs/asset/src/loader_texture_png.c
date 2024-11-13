@@ -509,11 +509,11 @@ void asset_load_tex_png(
     importFlags |= AssetImportTextureFlags_Linear;
   }
 
-  AssetImportTextureTrans importTrans = 0;
+  AssetImportTextureFlip importFlip = 0;
   /**
    * Png defines y0 as the top-left and we are using y0 as bottom-left so we need to flip.
    */
-  importTrans |= AssetImportTextureTrans_FlipY;
+  importFlip |= AssetImportTextureFlip_Y;
 
   AssetTextureComp tex;
   if (!asset_import_texture(
@@ -525,7 +525,7 @@ void asset_load_tex_png(
           channels,
           png_tex_type(type),
           importFlags,
-          importTrans,
+          importFlip,
           &tex)) {
     png_load_fail(world, entity, id, PngError_ImportFailed);
     goto Ret;
