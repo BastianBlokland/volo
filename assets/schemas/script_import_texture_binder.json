@@ -78,6 +78,16 @@
       }
     },
     {
+      "name": "texture_trans_add",
+      "doc": "Add the given color to each pixel.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "color", "mask": "color" }
+        ]
+      }
+    },
+    {
       "name": "texture_trans_mul",
       "doc": "Multiply each pixel by the given color.",
       "sig": {
@@ -187,6 +197,16 @@
       "sig": {
         "ret": "num",
         "args": []
+      }
+    },
+    {
+      "name": "texture_trans_sub",
+      "doc": "Subtract the given color from each pixel.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "color", "mask": "color" }
+        ]
       }
     },
     {
