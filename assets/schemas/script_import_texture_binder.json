@@ -192,6 +192,14 @@
       }
     },
     {
+      "name": "texture_trans_gray",
+      "doc": "Convert each pixel to gray-scale using the Rec709 luminance coefficients.",
+      "sig": {
+        "ret": "null",
+        "args": []
+      }
+    },
+    {
       "name": "texture_width",
       "doc": "Query the texture width in pixels.",
       "sig": {
