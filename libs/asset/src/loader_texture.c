@@ -956,7 +956,7 @@ void asset_texture_transform(
     const u32              channels,
     const AssetTextureType type,
     AssetTextureTransform  transform,
-    void*                  transformCtx) {
+    const void*            transformCtx) {
 
   const u32 pixelCount = width * height;
   for (u32 i = 0; i != pixelCount; ++i) {

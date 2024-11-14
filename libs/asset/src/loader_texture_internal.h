@@ -41,7 +41,7 @@ void asset_texture_convert(
  */
 void asset_texture_flip_y(Mem, u32 width, u32 height, u32 channels, AssetTextureType);
 
-typedef GeoColor (*AssetTextureTransform)(void* ctx, GeoColor);
+typedef GeoColor (*AssetTextureTransform)(const void* ctx, GeoColor);
 
 /**
  * Apply a  color transformation.
@@ -53,7 +53,7 @@ void asset_texture_transform(
     u32 channels,
     AssetTextureType,
     AssetTextureTransform,
-    void* transformCtx);
+    const void* transformCtx);
 
 /**
  * Create a new texture from the given input pixels.
