@@ -78,6 +78,16 @@
       }
     },
     {
+      "name": "texture_trans_mul",
+      "doc": "Multiply each pixel by the given color.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "color", "mask": "color" }
+        ]
+      }
+    },
+    {
       "name": "asset_id",
       "doc": "Lookup the identifier of the importing asset.",
       "sig": {
@@ -142,7 +152,7 @@
     },
     {
       "name": "texture_flip_y",
-      "doc": "Apply a y axis mirror transform.",
+      "doc": "Apply a y axis mirror.",
       "sig": {
         "ret": "null",
         "args": []

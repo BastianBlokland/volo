@@ -191,6 +191,27 @@ static ScriptVal import_eval_texture_resize(AssetImportContext* ctx, ScriptBinde
   return script_null();
 }
 
+static GeoColor tex_trans_mul(const void* ctx, const GeoColor color) {
+  const GeoColor* ref = ctx;
+  return geo_color_clamp01(geo_color_mul_comps(color, *ref));
+}
+
+static ScriptVal import_eval_texture_trans_mul(AssetImportContext* ctx, ScriptBinderCall* call) {
+  const GeoColor color = script_arg_color(call, 0);
+  if (!script_call_panicked(call)) {
+    AssetImportTexture* data = ctx->data;
+    asset_texture_transform(
+        data->data,
+        data->dataWidth,
+        data->dataHeight,
+        data->dataChannels,
+        data->dataType,
+        tex_trans_mul,
+        &color);
+  }
+  return script_null();
+}
+
 void asset_data_init_import_texture(void) {
   import_init_enum_flags();
   import_init_enum_pixel_type();
@@ -293,6 +314,15 @@ void asset_data_init_import_texture(void) {
         {string_lit("height"), script_mask_num},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_texture_resize);
+  }
+  {
+    const String       name   = string_lit("texture_trans_mul");
+    const String       doc    = string_lit("Multiply each pixel by the given color.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("color"), script_mask_color},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_texture_trans_mul);
   }
   // clang-format on
 
