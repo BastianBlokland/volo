@@ -85,6 +85,11 @@ spec(color) {
     check_eq_color(geo_color_clamp_comps(c, cMin, cMax), geo_color(2, 0, 3, 1));
   }
 
+  it("can clamp between 0 and 1 (saturate)") {
+    const GeoColor c = {.r = -1, .g = 0.5f, .b = 1, .a = 2};
+    check_eq_color(geo_color_clamp01(c), geo_color(0, 0.5f, 1, 1));
+  }
+
   it("lists all components when formatted") {
     check_eq_string(
         fmt_write_scratch("{}", geo_color_fmt(geo_color_white)), string_lit("1, 1, 1, 1"));

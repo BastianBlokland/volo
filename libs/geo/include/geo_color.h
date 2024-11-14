@@ -114,6 +114,7 @@ GeoColor geo_color_max(GeoColor x, GeoColor y);
  */
 GeoColor geo_color_clamp(GeoColor, f32 maxMagnitude);
 GeoColor geo_color_clamp_comps(GeoColor, GeoColor min, GeoColor max);
+GeoColor geo_color_clamp01(GeoColor);
 
 /**
  * Replace the alpha value for the given color.

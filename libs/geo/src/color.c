@@ -212,6 +212,24 @@ GeoColor geo_color_clamp_comps(const GeoColor c, const GeoColor min, const GeoCo
 #endif
 }
 
+GeoColor geo_color_clamp01(const GeoColor c) {
+#ifdef VOLO_SIMD
+  SimdVec vec = simd_vec_load(c.data);
+  vec         = simd_vec_max(vec, simd_vec_zero());
+  vec         = simd_vec_min(vec, simd_vec_broadcast(1.0f));
+  GeoColor res;
+  simd_vec_store(vec, res.data);
+  return res;
+#else
+  return (GeoColor){
+      .r = math_clamp_f32(c.r, 0.0f, 1.0f),
+      .g = math_clamp_f32(c.g, 0.0f, 1.0f),
+      .b = math_clamp_f32(c.b, 0.0f, 1.0f),
+      .a = math_clamp_f32(c.a, 0.0f, 1.0f),
+  };
+#endif
+}
+
 GeoColor geo_color_with_alpha(const GeoColor color, const f32 alpha) {
   return geo_color(color.r, color.g, color.b, alpha);
 }

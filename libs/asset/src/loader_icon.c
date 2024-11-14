@@ -102,7 +102,7 @@ asset_icon_generate(const IconDef* def, const AssetTextureComp* texture, AssetIc
 
       if (colored) {
         colorLinear = geo_color_mul_comps(colorLinear, colorMul);
-        colorLinear = geo_color_clamp_comps(colorLinear, geo_color_clear, geo_color_white);
+        colorLinear = geo_color_clamp01(colorLinear);
       }
 
       // Always output Srgb encoded pixels.
