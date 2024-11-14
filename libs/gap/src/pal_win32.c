@@ -894,6 +894,9 @@ static HICON gap_pal_win32_icon_create(const AssetIconComp* asset) {
   };
 
   HICON result = CreateIconIndirect(&iconInfo);
+  if (!result) {
+    pal_crash_with_win32_err(string_lit("CreateIconIndirect"));
+  }
   if (!DeleteObject(iconInfo.hbmMask)) {
     pal_crash_with_win32_err(string_lit("DeleteObject"));
   }
