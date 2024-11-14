@@ -12,9 +12,9 @@ typedef enum {
 } AssetImportTextureFlags;
 
 typedef enum {
-  AssetImportTextureTrans_None  = 0,
-  AssetImportTextureTrans_FlipY = 1 << 0,
-} AssetImportTextureTrans;
+  AssetImportTextureFlip_None = 0,
+  AssetImportTextureFlip_Y    = 1 << 0,
+} AssetImportTextureFlip;
 
 bool asset_import_texture(
     const AssetImportEnvComp*,
@@ -25,5 +25,5 @@ bool asset_import_texture(
     u32    channels,
     AssetTextureType,
     AssetImportTextureFlags,
-    AssetImportTextureTrans,
+    AssetImportTextureFlip,
     AssetTextureComp* out);

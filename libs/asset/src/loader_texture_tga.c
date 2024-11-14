@@ -432,7 +432,7 @@ void asset_load_tex_tga(
           channels,
           AssetTextureType_u8,
           AssetImportTextureFlags_Mips,
-          AssetImportTextureTrans_None,
+          AssetImportTextureFlip_None,
           &tex)) {
     tga_load_fail(world, entity, id, TgaError_ImportFailed);
     goto Ret;

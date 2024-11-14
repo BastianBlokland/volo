@@ -234,7 +234,7 @@ void asset_load_tex_ppm(
           3 /* channels */,
           AssetTextureType_u8,
           AssetImportTextureFlags_Mips,
-          AssetImportTextureTrans_None,
+          AssetImportTextureFlip_None,
           &tex)) {
     ppm_load_fail(world, entity, id, PixmapError_ImportFailed);
     goto Error;

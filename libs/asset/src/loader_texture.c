@@ -949,6 +949,23 @@ void asset_texture_convert(
   }
 }
 
+void asset_texture_transform(
+    const Mem              mem,
+    const u32              width,
+    const u32              height,
+    const u32              channels,
+    const AssetTextureType type,
+    AssetTextureTransform  transform,
+    const void*            transformCtx) {
+
+  const u32 pixelCount = width * height;
+  for (u32 i = 0; i != pixelCount; ++i) {
+    const GeoColor pixel            = tex_read_at(mem, channels, type, i);
+    const GeoColor pixelTransformed = transform(transformCtx, pixel);
+    tex_write_at(mem, channels, type, i, pixelTransformed);
+  }
+}
+
 void asset_texture_flip_y(
     const Mem              mem,
     const u32              width,

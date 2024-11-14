@@ -60,11 +60,14 @@ static u16 import_texture_mips_max(const u32 width, const u32 height) {
 
 typedef struct {
   AssetImportTextureFlags flags;
-  AssetImportTextureTrans trans;
+  AssetImportTextureFlip  flip;
   u32                     width, height, layers;
   u32                     mips; // 0 indicates maximum number of mips.
   u32                     channels;
   AssetTextureType        type;
+  Mem                     data;
+  u32                     dataWidth, dataHeight, dataChannels;
+  AssetTextureType        dataType;
 } AssetImportTexture;
 
 static ScriptVal import_eval_pow2_test(AssetImportContext* ctx, ScriptBinderCall* call) {
@@ -173,7 +176,7 @@ static ScriptVal import_eval_texture_mips_max(AssetImportContext* ctx, ScriptBin
 static ScriptVal import_eval_texture_flip_y(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
-  data->trans ^= AssetImportTextureTrans_FlipY;
+  data->flip ^= AssetImportTextureFlip_Y;
   return script_null();
 }
 
@@ -185,6 +188,90 @@ static ScriptVal import_eval_texture_resize(AssetImportContext* ctx, ScriptBinde
     data->width              = width;
     data->height             = height;
   }
+  return script_null();
+}
+
+static GeoColor tex_trans_mul(const void* ctx, const GeoColor color) {
+  const GeoColor* ref = ctx;
+  return geo_color_clamp01(geo_color_mul_comps(color, *ref));
+}
+
+static GeoColor tex_trans_add(const void* ctx, const GeoColor color) {
+  const GeoColor* ref = ctx;
+  return geo_color_clamp01(geo_color_add(color, *ref));
+}
+
+static GeoColor tex_trans_sub(const void* ctx, const GeoColor color) {
+  const GeoColor* ref = ctx;
+  return geo_color_clamp01(geo_color_sub(color, *ref));
+}
+
+static GeoColor tex_trans_gray(const void* ctx, const GeoColor color) {
+  (void)ctx;
+  // Rec709 luminance coefficients.
+  const f32 luma = color.r * 0.2126f + color.g * 0.7152f + color.b * 0.0722f;
+  return geo_color(luma, luma, luma, color.a);
+}
+
+static ScriptVal import_eval_texture_trans_mul(AssetImportContext* ctx, ScriptBinderCall* call) {
+  const GeoColor color = script_arg_color(call, 0);
+  if (!script_call_panicked(call)) {
+    AssetImportTexture* data = ctx->data;
+    asset_texture_transform(
+        data->data,
+        data->dataWidth,
+        data->dataHeight,
+        data->dataChannels,
+        data->dataType,
+        tex_trans_mul,
+        &color);
+  }
+  return script_null();
+}
+
+static ScriptVal import_eval_texture_trans_add(AssetImportContext* ctx, ScriptBinderCall* call) {
+  const GeoColor color = script_arg_color(call, 0);
+  if (!script_call_panicked(call)) {
+    AssetImportTexture* data = ctx->data;
+    asset_texture_transform(
+        data->data,
+        data->dataWidth,
+        data->dataHeight,
+        data->dataChannels,
+        data->dataType,
+        tex_trans_add,
+        &color);
+  }
+  return script_null();
+}
+
+static ScriptVal import_eval_texture_trans_sub(AssetImportContext* ctx, ScriptBinderCall* call) {
+  const GeoColor color = script_arg_color(call, 0);
+  if (!script_call_panicked(call)) {
+    AssetImportTexture* data = ctx->data;
+    asset_texture_transform(
+        data->data,
+        data->dataWidth,
+        data->dataHeight,
+        data->dataChannels,
+        data->dataType,
+        tex_trans_sub,
+        &color);
+  }
+  return script_null();
+}
+
+static ScriptVal import_eval_texture_trans_gray(AssetImportContext* ctx, ScriptBinderCall* call) {
+  (void)call;
+  AssetImportTexture* data = ctx->data;
+  asset_texture_transform(
+      data->data,
+      data->dataWidth,
+      data->dataHeight,
+      data->dataChannels,
+      data->dataType,
+      tex_trans_gray,
+      null);
   return script_null();
 }
 
@@ -277,7 +364,7 @@ void asset_data_init_import_texture(void) {
   }
   {
     const String       name   = string_lit("texture_flip_y");
-    const String       doc    = string_lit("Apply a y axis mirror transform.");
+    const String       doc    = string_lit("Apply a y axis mirror.");
     const ScriptMask   ret    = script_mask_null;
     asset_import_bind(binder, name, doc, ret, null, 0, import_eval_texture_flip_y);
   }
@@ -290,6 +377,39 @@ void asset_data_init_import_texture(void) {
         {string_lit("height"), script_mask_num},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_texture_resize);
+  }
+  {
+    const String       name   = string_lit("texture_trans_mul");
+    const String       doc    = string_lit("Multiply each pixel by the given color.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("color"), script_mask_color},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_texture_trans_mul);
+  }
+  {
+    const String       name   = string_lit("texture_trans_add");
+    const String       doc    = string_lit("Add the given color to each pixel.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("color"), script_mask_color},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_texture_trans_add);
+  }
+  {
+    const String       name   = string_lit("texture_trans_sub");
+    const String       doc    = string_lit("Subtract the given color from each pixel.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("color"), script_mask_color},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_texture_trans_sub);
+  }
+  {
+    const String       name   = string_lit("texture_trans_gray");
+    const String       doc    = string_lit("Convert each pixel to gray-scale using the Rec709 luminance coefficients.");
+    const ScriptMask   ret    = script_mask_null;
+    asset_import_bind(binder, name, doc, ret, null, 0, import_eval_texture_trans_gray);
   }
   // clang-format on
 
@@ -308,7 +428,7 @@ bool asset_import_texture(
     const u32                     channels,
     const AssetTextureType        type,
     const AssetImportTextureFlags importFlags,
-    const AssetImportTextureTrans importTrans,
+    const AssetImportTextureFlip  importFlip,
     AssetTextureComp*             out) {
 
   Mem  outMem       = data;
@@ -318,13 +438,18 @@ bool asset_import_texture(
   diag_assert(data.size == width * height * channels * import_texture_type_size(type));
 
   AssetImportTexture ctx = {
-      .flags    = importFlags,
-      .trans    = importTrans,
-      .width    = width,
-      .height   = height,
-      .channels = channels,
-      .type     = type,
-      .layers   = 1,
+      .flags        = importFlags,
+      .flip         = importFlip,
+      .width        = width,
+      .height       = height,
+      .channels     = channels,
+      .type         = type,
+      .layers       = 1,
+      .data         = data,
+      .dataWidth    = width,
+      .dataHeight   = height,
+      .dataChannels = channels,
+      .dataType     = type,
   };
   if (!asset_import_eval(env, g_assetScriptImportTextureBinder, id, &ctx)) {
     goto Ret;
@@ -342,8 +467,8 @@ bool asset_import_texture(
         data, width, height, channels, type, outMem, ctx.width, ctx.height, ctx.channels, ctx.type);
   }
 
-  // Apply transformations.
-  if (ctx.trans & AssetImportTextureTrans_FlipY) {
+  // Apply flip.
+  if (ctx.flip & AssetImportTextureFlip_Y) {
     asset_texture_flip_y(outMem, ctx.width, ctx.height, channels, ctx.type);
   }
 
