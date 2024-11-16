@@ -114,7 +114,6 @@ ecs_view_define(InitGlobalView) {
 ecs_view_define(InitScriptView) {
   ecs_access_with(AssetLoadedComp);
   ecs_access_without(AssetFailedComp);
-  ecs_access_without(AssetChangedComp);
   ecs_access_read(AssetScriptComp);
   ecs_access_read(AssetComp);
 }
