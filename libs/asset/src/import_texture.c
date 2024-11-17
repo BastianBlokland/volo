@@ -58,6 +58,21 @@ static u16 import_texture_mips_max(const u32 width, const u32 height) {
   return mipCount;
 }
 
+static f32 import_texture_rem1(const f32 val) {
+  const f32 mod = val - (u32)val;
+  return mod < 0.0f ? 1.0f + mod : mod;
+}
+
+static f32 import_texture_clamp01(const f32 val) {
+  if (val <= 0.0f) {
+    return 0.0f;
+  }
+  if (val >= 1.0f) {
+    return 1.0f;
+  }
+  return val;
+}
+
 typedef struct {
   AssetImportTextureFlags flags;
   AssetImportTextureFlip  flip;
@@ -196,23 +211,6 @@ static GeoColor tex_trans_mul(const void* ctx, const GeoColor color) {
   return geo_color_clamp01(geo_color_mul_comps(color, *ref));
 }
 
-static GeoColor tex_trans_add(const void* ctx, const GeoColor color) {
-  const GeoColor* ref = ctx;
-  return geo_color_clamp01(geo_color_add(color, *ref));
-}
-
-static GeoColor tex_trans_sub(const void* ctx, const GeoColor color) {
-  const GeoColor* ref = ctx;
-  return geo_color_clamp01(geo_color_sub(color, *ref));
-}
-
-static GeoColor tex_trans_gray(const void* ctx, const GeoColor color) {
-  (void)ctx;
-  // Rec709 luminance coefficients.
-  const f32 luma = color.r * 0.2126f + color.g * 0.7152f + color.b * 0.0722f;
-  return geo_color(luma, luma, luma, color.a);
-}
-
 static ScriptVal import_eval_texture_trans_mul(AssetImportContext* ctx, ScriptBinderCall* call) {
   const GeoColor color = script_arg_color(call, 0);
   if (!script_call_panicked(call)) {
@@ -227,6 +225,11 @@ static ScriptVal import_eval_texture_trans_mul(AssetImportContext* ctx, ScriptBi
         &color);
   }
   return script_null();
+}
+
+static GeoColor tex_trans_add(const void* ctx, const GeoColor color) {
+  const GeoColor* ref = ctx;
+  return geo_color_clamp01(geo_color_add(color, *ref));
 }
 
 static ScriptVal import_eval_texture_trans_add(AssetImportContext* ctx, ScriptBinderCall* call) {
@@ -245,6 +248,11 @@ static ScriptVal import_eval_texture_trans_add(AssetImportContext* ctx, ScriptBi
   return script_null();
 }
 
+static GeoColor tex_trans_sub(const void* ctx, const GeoColor color) {
+  const GeoColor* ref = ctx;
+  return geo_color_clamp01(geo_color_sub(color, *ref));
+}
+
 static ScriptVal import_eval_texture_trans_sub(AssetImportContext* ctx, ScriptBinderCall* call) {
   const GeoColor color = script_arg_color(call, 0);
   if (!script_call_panicked(call)) {
@@ -261,6 +269,13 @@ static ScriptVal import_eval_texture_trans_sub(AssetImportContext* ctx, ScriptBi
   return script_null();
 }
 
+static GeoColor tex_trans_gray(const void* ctx, const GeoColor color) {
+  (void)ctx;
+  // Rec709 luminance coefficients.
+  const f32 luma = color.r * 0.2126f + color.g * 0.7152f + color.b * 0.0722f;
+  return geo_color(luma, luma, luma, color.a);
+}
+
 static ScriptVal import_eval_texture_trans_gray(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportTexture* data = ctx->data;
@@ -272,6 +287,45 @@ static ScriptVal import_eval_texture_trans_gray(AssetImportContext* ctx, ScriptB
       data->dataType,
       tex_trans_gray,
       null);
+  return script_null();
+}
+
+typedef struct {
+  f32 hue, saturation, value, alpha;
+} TexTransShiftCtx;
+
+static GeoColor tex_trans_shift(const void* ctx, const GeoColor color) {
+  const TexTransShiftCtx* shiftCtx = ctx;
+
+  f32 hue, saturation, value, alpha;
+  geo_color_to_hsv(color, &hue, &saturation, &value, &alpha);
+
+  hue        = import_texture_rem1(hue + shiftCtx->hue);
+  saturation = import_texture_clamp01(saturation + shiftCtx->saturation);
+  value      = import_texture_clamp01(value + shiftCtx->value);
+  alpha      = import_texture_clamp01(alpha + shiftCtx->alpha);
+
+  return geo_color_from_hsv(hue, saturation, value, alpha);
+}
+
+static ScriptVal import_eval_texture_trans_shift(AssetImportContext* ctx, ScriptBinderCall* call) {
+  const TexTransShiftCtx shiftCtx = {
+      .hue        = (f32)script_arg_num(call, 0),
+      .saturation = (f32)script_arg_opt_num(call, 1, 0.0),
+      .value      = (f32)script_arg_opt_num(call, 2, 0.0),
+      .alpha      = (f32)script_arg_opt_num(call, 3, 0.0),
+  };
+  if (!script_call_panicked(call)) {
+    AssetImportTexture* data = ctx->data;
+    asset_texture_transform(
+        data->data,
+        data->dataWidth,
+        data->dataHeight,
+        data->dataChannels,
+        data->dataType,
+        tex_trans_shift,
+        &shiftCtx);
+  }
   return script_null();
 }
 
@@ -410,6 +464,18 @@ void asset_data_init_import_texture(void) {
     const String       doc    = string_lit("Convert each pixel to gray-scale using the Rec709 luminance coefficients.");
     const ScriptMask   ret    = script_mask_null;
     asset_import_bind(binder, name, doc, ret, null, 0, import_eval_texture_trans_gray);
+  }
+  {
+    const String       name   = string_lit("texture_trans_shift");
+    const String       doc    = string_lit("Shift the color of each pixel.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("hue"), script_mask_num},
+        {string_lit("saturation"), script_mask_num | script_mask_null},
+        {string_lit("value"), script_mask_num | script_mask_null},
+        {string_lit("alpha"), script_mask_num | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_texture_trans_shift);
   }
   // clang-format on
 

@@ -70,6 +70,28 @@
       }
     },
     {
+      "name": "texture_trans_shift",
+      "doc": "Shift the color of each pixel.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "hue", "mask": "num" },
+          {
+            "name": "saturation",
+            "mask": [ "null", "num" ]
+          },
+          {
+            "name": "value",
+            "mask": [ "null", "num" ]
+          },
+          {
+            "name": "alpha",
+            "mask": [ "null", "num" ]
+          }
+        ]
+      }
+    },
+    {
       "name": "texture_layers",
       "doc": "Query the amount of texture layers.",
       "sig": {
