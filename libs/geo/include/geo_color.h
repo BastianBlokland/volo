@@ -134,6 +134,7 @@ GeoColor geo_color_srgb_to_linear(GeoColor);
  * NOTE: Both hue and saturation are normalized (in the 0-1 range).
  */
 GeoColor geo_color_from_hsv(f32 hue, f32 saturation, f32 value, f32 alpha);
+void     geo_color_to_hsv(GeoColor, f32* outHue, f32* outSaturation, f32* outValue, f32* outAlpha);
 
 /**
  * Pack a color to 16 bit floats.

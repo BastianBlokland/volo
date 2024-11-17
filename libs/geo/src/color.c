@@ -314,6 +314,42 @@ GeoColor geo_color_from_hsv(const f32 hue, const f32 saturation, const f32 value
   diag_crash_msg("hsv to rgb failed: Invalid hue");
 }
 
+void geo_color_to_hsv(
+    const GeoColor c, f32* outHue, f32* outSaturation, f32* outValue, f32* outAlpha) {
+  /**
+   * rgb to hsv, implementation based on:
+   * https://www.cs.rit.edu/~ncs/color/t_convert.html
+   */
+  const f32 min   = math_min(c.r, math_min(c.g, c.b));
+  const f32 max   = math_max(c.r, math_max(c.g, c.b));
+  const f32 delta = max - min;
+
+  *outValue = max;
+  *outAlpha = c.a;
+
+  if (delta < f32_epsilon) {
+    *outHue        = 0.0f;
+    *outSaturation = 0.0f;
+    return;
+  }
+
+  *outSaturation = delta / max;
+
+  if (c.r == max) {
+    *outHue = (c.g - c.b) / delta; // Between yellow and magenta.
+  } else if (c.g == max) {
+    *outHue = 2.0f + (c.b - c.r) / delta; // Between cyan and yellow.
+  } else {
+    *outHue = 4.0f + (c.r - c.g) / delta; // Between magenta and cyan.
+  }
+
+  static const f32 g_hueSeg = 60.0f / 360.0f;
+  *outHue *= g_hueSeg;
+  if (*outHue < 0.0f) {
+    *outHue += 1.0f;
+  }
+}
+
 void geo_color_pack_f16(const GeoColor color, f16 out[PARAM_ARRAY_SIZE(4)]) {
 #ifdef VOLO_SIMD
   const SimdVec vecF32 = simd_vec_load(color.data);
