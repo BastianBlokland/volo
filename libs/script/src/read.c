@@ -1916,7 +1916,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
 MissingPrimaryExpr:
   ctx->input = prevInput; // Un-consume the token.
   read_emit_err(ctx, ScriptDiag_MissingPrimaryExpr, read_range_dummy(ctx));
-  return read_fail_semantic(ctx, read_range_dummy(ctx));
+  return read_fail_semantic(ctx, read_range_to_next(ctx, start));
 }
 
 static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPrecedence) {
