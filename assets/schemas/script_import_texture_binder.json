@@ -100,6 +100,21 @@
       }
     },
     {
+      "name": "texture_trans_replace",
+      "doc": "Replace a specific hue with another.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "oldHue", "mask": "num" },
+          { "name": "newHue", "mask": "num" },
+          {
+            "name": "threshold",
+            "mask": [ "null", "num" ]
+          }
+        ]
+      }
+    },
+    {
       "name": "texture_trans_add",
       "doc": "Add the given color to each pixel.",
       "sig": {
