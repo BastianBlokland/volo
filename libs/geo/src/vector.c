@@ -366,6 +366,13 @@ GeoVector geo_vector_quantize(const GeoVector v, const u8 maxMantissaBits) {
   };
 }
 
+GeoVector geo_vector_quantize2(const GeoVector v, const u8 maxMantissaBits) {
+  return (GeoVector){
+      .x = float_quantize_f32(v.x, maxMantissaBits),
+      .y = float_quantize_f32(v.y, maxMantissaBits),
+  };
+}
+
 GeoVector geo_vector_quantize3(const GeoVector v, const u8 maxMantissaBits) {
   return (GeoVector){
       .x = float_quantize_f32(v.x, maxMantissaBits),
