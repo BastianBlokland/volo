@@ -1,5 +1,7 @@
 #include "check_spec.h"
+#include "core_alloc.h"
 #include "core_float.h"
+#include "core_rng.h"
 
 #include "utils_internal.h"
 
@@ -115,6 +117,99 @@ spec(color) {
     check_eq_color(geo_color_from_hsv(0.5f, 0.5f, 1.0f, 1.0f), geo_color(0.5f, 1.0f, 1.0f, 1.0f));
     check_eq_color(geo_color_from_hsv(0.25f, 0.5f, 1.0f, 1.0f), geo_color(0.75f, 1.0f, 0.5f, 1.0f));
     check_eq_color(geo_color_from_hsv(0.75f, 0.5f, 1.0f, 1.0f), geo_color(0.75f, 0.5f, 1.0f, 1.0f));
+  }
+
+  it("can convert a color to hsv") {
+    {
+      f32 hue, saturation, value, alpha;
+      geo_color_to_hsv(geo_color_black, &hue, &saturation, &value, &alpha);
+      check_eq_float(hue, 0.0f, 1e-8f);
+      check_eq_float(saturation, 0.0f, 1e-8f);
+      check_eq_float(value, 0.0f, 1e-8f);
+      check_eq_float(alpha, 1.0f, 1e-8f);
+    }
+    {
+      f32 hue, saturation, value, alpha;
+      geo_color_to_hsv(geo_color_white, &hue, &saturation, &value, &alpha);
+      check_eq_float(hue, 0.0f, 1e-8f);
+      check_eq_float(saturation, 0.0f, 1e-8f);
+      check_eq_float(value, 1.0f, 1e-8f);
+      check_eq_float(alpha, 1.0f, 1e-8f);
+    }
+    {
+      f32 hue, saturation, value, alpha;
+      geo_color_to_hsv(geo_color(0.5f, 0.5f, 0.5f, 1.0f), &hue, &saturation, &value, &alpha);
+      check_eq_float(hue, 0.0f, 1e-8f);
+      check_eq_float(saturation, 0.0f, 1e-8f);
+      check_eq_float(value, 0.5f, 1e-8f);
+      check_eq_float(alpha, 1.0f, 1e-8f);
+    }
+    {
+      f32 hue, saturation, value, alpha;
+      geo_color_to_hsv(geo_color(1.0f, 0.0f, 0.0f, 1.0f), &hue, &saturation, &value, &alpha);
+      check_eq_float(hue, 0.0f, 1e-8f);
+      check_eq_float(saturation, 1.0f, 1e-8f);
+      check_eq_float(value, 1.0f, 1e-8f);
+      check_eq_float(alpha, 1.0f, 1e-8f);
+    }
+    {
+      f32 hue, saturation, value, alpha;
+      geo_color_to_hsv(geo_color(0.0f, 1.0f, 1.0f, 1.0f), &hue, &saturation, &value, &alpha);
+      check_eq_float(hue, 0.5f, 1e-8f);
+      check_eq_float(saturation, 1.0f, 1e-8f);
+      check_eq_float(value, 1.0f, 1e-8f);
+      check_eq_float(alpha, 1.0f, 1e-8f);
+    }
+    {
+      f32 hue, saturation, value, alpha;
+      geo_color_to_hsv(geo_color(0.5f, 1.0f, 0.0f, 1.0f), &hue, &saturation, &value, &alpha);
+      check_eq_float(hue, 0.25f, 1e-8f);
+      check_eq_float(saturation, 1.0f, 1e-8f);
+      check_eq_float(value, 1.0f, 1e-8f);
+      check_eq_float(alpha, 1.0f, 1e-8f);
+    }
+    {
+      f32 hue, saturation, value, alpha;
+      geo_color_to_hsv(geo_color(0.5f, 0.0f, 1.0f, 1.0f), &hue, &saturation, &value, &alpha);
+      check_eq_float(hue, 0.75f, 1e-8f);
+      check_eq_float(saturation, 1.0f, 1e-8f);
+      check_eq_float(value, 1.0f, 1e-8f);
+      check_eq_float(alpha, 1.0f, 1e-8f);
+    }
+    {
+      f32 hue, saturation, value, alpha;
+      geo_color_to_hsv(geo_color(1.0f, 0.5f, 0.5f, 1.0f), &hue, &saturation, &value, &alpha);
+      check_eq_float(hue, 0.0f, 1e-8f);
+      check_eq_float(saturation, 0.5f, 1e-8f);
+      check_eq_float(value, 1.0f, 1e-8f);
+      check_eq_float(alpha, 1.0f, 1e-8f);
+    }
+    {
+      f32 hue, saturation, value, alpha;
+      geo_color_to_hsv(geo_color(0.75f, 1.0f, 0.5f, 1.0f), &hue, &saturation, &value, &alpha);
+      check_eq_float(hue, 0.25f, 1e-8f);
+      check_eq_float(saturation, 0.5f, 1e-8f);
+      check_eq_float(value, 1.0f, 1e-8f);
+      check_eq_float(alpha, 1.0f, 1e-8f);
+    }
+  }
+
+  it("round-trips hsv conversion") {
+    Rng* rng = rng_create_xorwow(g_allocScratch, 42);
+    for (u32 i = 0; i != 100; ++i) {
+      const f32      r        = rng_sample_f32(rng);
+      const f32      g        = rng_sample_f32(rng);
+      const f32      b        = rng_sample_f32(rng);
+      const f32      a        = rng_sample_f32(rng);
+      const GeoColor colorOrg = geo_color(r, g, b, a);
+
+      f32 h, s, v, a2;
+      geo_color_to_hsv(colorOrg, &h, &s, &v, &a2);
+      check_eq_float(a2, a, 1e-8f);
+
+      const GeoColor color2 = geo_color_from_hsv(h, s, v, a2);
+      check_eq_color(colorOrg, color2);
+    }
   }
 
   it("can be packed into 16 bits") {
