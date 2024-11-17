@@ -656,6 +656,10 @@ static ScriptRange read_range_to_next(ScriptReadContext* ctx, const ScriptPos st
   return script_range(start, read_pos_next(ctx) + 1);
 }
 
+static ScriptRange read_range_until_next(ScriptReadContext* ctx, const ScriptPos start) {
+  return script_range(start, read_pos_next(ctx));
+}
+
 static void read_emit_err(ScriptReadContext* ctx, const ScriptDiagKind kind, const ScriptRange r) {
   if (ctx->diags) {
     const ScriptDiag diag = {
@@ -981,9 +985,9 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableStart = expr_range(ctx->doc, exprs[i + 1]).start;
       const ScriptPos  unreachableEnd   = expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-           .severity = ScriptDiagSeverity_Warning,
-           .kind     = ScriptDiag_ExprUnreachable,
-           .range    = script_range(unreachableStart, unreachableEnd),
+          .severity = ScriptDiagSeverity_Warning,
+          .kind     = ScriptDiag_ExprUnreachable,
+          .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -1916,7 +1920,7 @@ static ScriptExpr read_expr_primary(ScriptReadContext* ctx) {
 MissingPrimaryExpr:
   ctx->input = prevInput; // Un-consume the token.
   read_emit_err(ctx, ScriptDiag_MissingPrimaryExpr, read_range_dummy(ctx));
-  return read_fail_semantic(ctx, read_range_to_next(ctx, start));
+  return read_fail_semantic(ctx, read_range_until_next(ctx, start));
 }
 
 static ScriptExpr read_expr(ScriptReadContext* ctx, const OpPrecedence minPrecedence) {
@@ -2073,14 +2077,14 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-            .doc         = doc,
-            .binder      = binder,
-            .stringtable = stringtable,
-            .diags       = diags,
-            .syms        = syms,
-            .input       = src,
-            .inputTotal  = src,
-            .scopeRoot   = &scopeRoot,
+      .doc         = doc,
+      .binder      = binder,
+      .stringtable = stringtable,
+      .diags       = diags,
+      .syms        = syms,
+      .input       = src,
+      .inputTotal  = src,
+      .scopeRoot   = &scopeRoot,
   };
   read_var_free_all(&ctx);
 
