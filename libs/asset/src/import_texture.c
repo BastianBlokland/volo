@@ -292,10 +292,10 @@ static ScriptVal import_eval_texture_trans_gray(AssetImportContext* ctx, ScriptB
 
 typedef struct {
   f32 hue, saturation, value, alpha;
-} TexTransShiftCtx;
+} TexShiftCtx;
 
 static GeoColor tex_trans_shift(const void* ctx, const GeoColor color) {
-  const TexTransShiftCtx* shiftCtx = ctx;
+  const TexShiftCtx* shiftCtx = ctx;
 
   f32 hue, saturation, value, alpha;
   geo_color_to_hsv(color, &hue, &saturation, &value, &alpha);
@@ -309,7 +309,7 @@ static GeoColor tex_trans_shift(const void* ctx, const GeoColor color) {
 }
 
 static ScriptVal import_eval_texture_trans_shift(AssetImportContext* ctx, ScriptBinderCall* call) {
-  const TexTransShiftCtx shiftCtx = {
+  const TexShiftCtx shiftCtx = {
       .hue        = (f32)script_arg_num(call, 0),
       .saturation = (f32)script_arg_opt_num(call, 1, 0.0),
       .value      = (f32)script_arg_opt_num(call, 2, 0.0),
@@ -325,6 +325,50 @@ static ScriptVal import_eval_texture_trans_shift(AssetImportContext* ctx, Script
         data->dataType,
         tex_trans_shift,
         &shiftCtx);
+  }
+  return script_null();
+}
+
+typedef struct {
+  f32 old, new;
+  f32 threshold, thresholdInv;
+} TexReplaceHueCtx;
+
+static GeoColor tex_trans_replace_hue(const void* ctx, const GeoColor color) {
+  const TexReplaceHueCtx* replaceCtx = ctx;
+
+  f32 hue, saturation, value, alpha;
+  geo_color_to_hsv(color, &hue, &saturation, &value, &alpha);
+
+  const f32 hueDelta = replaceCtx->old - hue;
+  const f32 hueDist  = math_abs(hueDelta);
+  if (hueDist > replaceCtx->threshold) {
+    return color;
+  }
+  const GeoColor colorNew = geo_color_from_hsv(replaceCtx->new, saturation, value, alpha);
+
+  return geo_color_lerp(color, colorNew, 1.0f - hueDist * replaceCtx->thresholdInv);
+}
+
+static ScriptVal
+import_eval_texture_trans_replace(AssetImportContext* ctx, ScriptBinderCall* call) {
+  TexReplaceHueCtx replaceCtx = {
+      .old       = (f32)script_arg_num(call, 0),
+      .new       = (f32)script_arg_num(call, 1),
+      .threshold = (f32)script_arg_opt_num_range(call, 2, 1e-3, 1.0, 0.1),
+  };
+  if (!script_call_panicked(call)) {
+    replaceCtx.thresholdInv = 1.0f / replaceCtx.threshold;
+
+    AssetImportTexture* data = ctx->data;
+    asset_texture_transform(
+        data->data,
+        data->dataWidth,
+        data->dataHeight,
+        data->dataChannels,
+        data->dataType,
+        tex_trans_replace_hue,
+        &replaceCtx);
   }
   return script_null();
 }
@@ -476,6 +520,17 @@ void asset_data_init_import_texture(void) {
         {string_lit("alpha"), script_mask_num | script_mask_null},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_texture_trans_shift);
+  }
+  {
+    const String       name   = string_lit("texture_trans_replace");
+    const String       doc    = string_lit("Replace a specific hue with another.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("oldHue"), script_mask_num},
+        {string_lit("newHue"), script_mask_num},
+        {string_lit("threshold"), script_mask_num | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_texture_trans_replace);
   }
   // clang-format on
 
