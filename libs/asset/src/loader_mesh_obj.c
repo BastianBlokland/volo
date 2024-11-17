@@ -367,27 +367,30 @@ static void obj_triangulate(const ObjData* data, AssetMeshBuilder* builder) {
     }
 
     // Create a triangle fan around the first vertex.
-    const ObjVertex*      inA   = &vertices[face->vertexIndex];
-    const AssetMeshVertex vertA = {
+    const ObjVertex* inA   = &vertices[face->vertexIndex];
+    AssetMeshVertex  vertA = {
         .position = positions[inA->positionIndex],
         .normal   = face->useFaceNormal ? faceNrm : normals[inA->normalIndex],
         .texcoord = obj_get_texcoord(data, inA),
     };
+    asset_mesh_vertex_quantize(&vertA);
 
     for (u32 i = 2; i < face->vertexCount; ++i) {
-      const ObjVertex*      inB   = &vertices[face->vertexIndex + i - 1];
-      const AssetMeshVertex vertB = {
+      const ObjVertex* inB   = &vertices[face->vertexIndex + i - 1];
+      AssetMeshVertex  vertB = {
           .position = positions[inB->positionIndex],
           .normal   = face->useFaceNormal ? faceNrm : normals[inB->normalIndex],
           .texcoord = obj_get_texcoord(data, inB),
       };
+      asset_mesh_vertex_quantize(&vertB);
 
-      const ObjVertex*      inC   = &vertices[face->vertexIndex + i];
-      const AssetMeshVertex vertC = {
+      const ObjVertex* inC   = &vertices[face->vertexIndex + i];
+      AssetMeshVertex  vertC = {
           .position = positions[inC->positionIndex],
           .normal   = face->useFaceNormal ? faceNrm : normals[inC->normalIndex],
           .texcoord = obj_get_texcoord(data, inC),
       };
+      asset_mesh_vertex_quantize(&vertC);
 
       /**
        * NOTE: Convert from clock-wise winding to counter-clockwise by submitting in opposite order.

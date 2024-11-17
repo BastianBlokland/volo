@@ -164,6 +164,7 @@ GeoVector geo_vector_perspective_div(GeoVector);
  * Pre-condition: maxMantissaBits > 0 && maxMantissaBits <= 23
  */
 GeoVector geo_vector_quantize(GeoVector, u8 maxMantissaBits);
+GeoVector geo_vector_quantize2(GeoVector, u8 maxMantissaBits);
 GeoVector geo_vector_quantize3(GeoVector, u8 maxMantissaBits);
 
 /**

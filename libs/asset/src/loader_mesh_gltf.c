@@ -1257,6 +1257,7 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
           .texcoord = geo_vector(vertTex[0], 1.0f - vertTex[1]),
       };
       asset_mesh_vertex_scale(&vertex, ld->importData.vertexScale);
+      asset_mesh_vertex_quantize(&vertex);
 
       const AssetMeshIndex vertexIdx = asset_mesh_builder_push(builder, &vertex);
 

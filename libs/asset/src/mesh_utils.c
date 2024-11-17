@@ -60,6 +60,13 @@ void asset_mesh_vertex_scale(AssetMeshVertex* vert, f32 scale) {
   vert->position = geo_vector_mul(vert->position, scale);
 }
 
+void asset_mesh_vertex_quantize(AssetMeshVertex* vert) {
+  vert->position = geo_vector_quantize3(vert->position, f16_mantissa_bits);
+  vert->normal   = geo_vector_quantize3(vert->normal, f16_mantissa_bits);
+  vert->tangent  = geo_vector_quantize(vert->tangent, f16_mantissa_bits);
+  vert->texcoord = geo_vector_quantize2(vert->texcoord, f16_mantissa_bits);
+}
+
 AssetMeshBuilder* asset_mesh_builder_create(Allocator* alloc, const u32 maxVertexCount) {
   AssetMeshBuilder* builder = alloc_alloc_t(alloc, AssetMeshBuilder);
 
@@ -235,7 +242,7 @@ void asset_mesh_compute_flat_normals(AssetMeshBuilder* builder) {
     AssetMeshVertex* vC = &snapshot.vertexData[snapshot.indexData[i + 2]];
 
     const GeoVector norm      = asset_mesh_tri_norm(vA->position, vB->position, vC->position);
-    const GeoVector normQuant = geo_vector_quantize3(norm, 20);
+    const GeoVector normQuant = geo_vector_quantize3(norm, f16_mantissa_bits);
 
     vA->normal                = normQuant;
     const AssetMeshIndex idxA = asset_mesh_builder_push(builder, vA);
