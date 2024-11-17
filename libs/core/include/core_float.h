@@ -1,9 +1,11 @@
 #pragma once
 #include "core_types.h"
 
+#define f16_mantissa_bits 10
 #define f32_mantissa_bits 23
 #define f64_mantissa_bits 52
 
+#define f16_mantissa_max ((((u16)1) << f16_mantissa_bits) - 1)
 #define f32_mantissa_max ((((u32)1) << f32_mantissa_bits) - 1)
 #define f64_mantissa_max ((((u64)1) << f64_mantissa_bits) - 1)
 
@@ -48,7 +50,7 @@
  * Returns true if the given floating point number is equal to infinity.
  * NOTE: _VAL_ is expanded multiple times, so care must be taken when providing complex expressions.
  */
-#define float_isinf(_VAL_) ((_VAL_) != 0.0 && (_VAL_) * 2 == (_VAL_))
+#define float_isinf(_VAL_) ((_VAL_) != 0.0 && (_VAL_)*2 == (_VAL_))
 
 /**
  * Indicates if the F16C (aka CVT16) extension is supported.
