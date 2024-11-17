@@ -17,6 +17,7 @@ typedef struct {
 } AssetMeshSkin;
 
 void asset_mesh_vertex_scale(AssetMeshVertex*, f32 scale);
+void asset_mesh_vertex_quantize(AssetMeshVertex*);
 
 AssetMeshBuilder* asset_mesh_builder_create(Allocator*, u32 maxVertexCount);
 void              asset_mesh_builder_destroy(AssetMeshBuilder*);
