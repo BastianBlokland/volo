@@ -1577,8 +1577,8 @@ ecs_system_define(GltfLoadAssetSys) {
   if (!globalItr) {
     return; // Global dependencies not initialized.
   }
-  AssetManagerComp*   manager   = ecs_view_write_t(globalItr, AssetManagerComp);
-  AssetImportEnvComp* importEnv = ecs_view_write_t(globalItr, AssetImportEnvComp);
+  AssetManagerComp*         manager   = ecs_view_write_t(globalItr, AssetManagerComp);
+  const AssetImportEnvComp* importEnv = ecs_view_read_t(globalItr, AssetImportEnvComp);
 
   EcsView*     loadView  = ecs_world_view_t(world, LoadView);
   EcsIterator* bufferItr = ecs_view_itr(ecs_world_view_t(world, BufferView));
