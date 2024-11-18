@@ -164,8 +164,6 @@ ecs_comp_define(AssetGltfLoadComp) {
   GltfTransform sceneTrans;
   u32           accBindInvMats; // Access index [Optional].
 
-  AssetImportMesh importData;
-
   AssetSource* glbDataSource;
   GlbChunk     glbBinChunk;
 };
@@ -1193,7 +1191,8 @@ gltf_track_skinned_vertex(GltfLoad* ld, const AssetMeshVertex* vertex, const Ass
   }
 }
 
-static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
+static void gltf_build_mesh(
+    GltfLoad* ld, const AssetImportMesh* importData, AssetMeshComp* out, GltfError* err) {
   GltfMeshMeta meta = gltf_mesh_meta(ld, err);
   if (*err) {
     return;
@@ -1256,7 +1255,7 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
           .tangent  = geo_vector(vertTan[0], vertTan[1], vertTan[2] * -1.0f, vertTan[3]),
           .texcoord = geo_vector(vertTex[0], 1.0f - vertTex[1]),
       };
-      asset_mesh_vertex_scale(&vertex, ld->importData.vertexScale);
+      asset_mesh_vertex_scale(&vertex, importData->vertexScale);
       asset_mesh_vertex_quantize(&vertex);
 
       const AssetMeshIndex vertexIdx = asset_mesh_builder_push(builder, &vertex);
@@ -1579,6 +1578,8 @@ ecs_system_define(GltfLoadAssetSys) {
   EcsView*     loadView  = ecs_world_view_t(world, LoadView);
   EcsIterator* bufferItr = ecs_view_itr(ecs_world_view_t(world, BufferView));
 
+  AssetImportMesh importData;
+
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId  entity = ecs_view_entity(itr);
     AssetGltfLoadComp* ld     = ecs_view_write_t(itr, AssetGltfLoadComp);
@@ -1650,7 +1651,7 @@ ecs_system_define(GltfLoadAssetSys) {
       if (err) {
         goto Error;
       }
-      if (!asset_import_mesh(importEnv, ld->assetId, &ld->importData)) {
+      if (!asset_import_mesh(importEnv, ld->assetId, &importData)) {
         err = GltfError_ImportFailed;
         goto Error;
       }
@@ -1661,7 +1662,7 @@ ecs_system_define(GltfLoadAssetSys) {
       trace_begin_msg("asset_gltf_build", TraceColor_Blue, "{}", fmt_text(traceMsg));
 
       AssetMeshBundle meshBundle;
-      gltf_build_mesh(ld, &meshBundle.mesh, &err);
+      gltf_build_mesh(ld, &importData, &meshBundle.mesh, &err);
 
       trace_end();
       if (err) {
