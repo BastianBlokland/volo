@@ -1552,8 +1552,14 @@ Error:
 }
 
 static void asset_import_mesh_init(GltfLoad* ld, AssetImportMesh* importData) {
-  (void)ld;
+  diag_assert(ld->jointCount <= asset_mesh_joints_max);
+
   importData->vertexScale = 1.0f;
+  importData->jointCount  = ld->jointCount;
+  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+    diag_assert(!string_is_empty(ld->joints[jointIndex].name));
+    importData->joints[jointIndex].nameHash = string_hash(ld->joints[jointIndex].name);
+  }
 }
 
 ecs_view_define(LoadGlobalView) {
