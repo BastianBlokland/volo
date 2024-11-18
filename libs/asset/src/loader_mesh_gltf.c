@@ -1551,6 +1551,11 @@ Error:
   *err = GltfError_MalformedAnimation;
 }
 
+static void asset_import_mesh_init(GltfLoad* ld, AssetImportMesh* importData) {
+  (void)ld;
+  importData->vertexScale = 1.0f;
+}
+
 ecs_view_define(LoadGlobalView) {
   ecs_access_write(AssetManagerComp);
   ecs_access_read(AssetImportEnvComp);
@@ -1651,6 +1656,7 @@ ecs_system_define(GltfLoadAssetSys) {
       if (err) {
         goto Error;
       }
+      asset_import_mesh_init(ld, &importData);
       if (!asset_import_mesh(importEnv, ld->assetId, &importData)) {
         err = GltfError_ImportFailed;
         goto Error;

@@ -41,9 +41,6 @@ void asset_data_init_import_mesh(void) {
   g_assetScriptImportMeshBinder = binder;
 }
 
-bool asset_import_mesh(const AssetImportEnvComp* env, const String id, AssetImportMesh* out) {
-  *out = (AssetImportMesh){
-      .vertexScale = 1.0f,
-  };
-  return asset_import_eval(env, g_assetScriptImportMeshBinder, id, out);
+bool asset_import_mesh(const AssetImportEnvComp* env, const String id, AssetImportMesh* data) {
+  return asset_import_eval(env, g_assetScriptImportMeshBinder, id, data);
 }
