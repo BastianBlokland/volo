@@ -164,8 +164,6 @@ ecs_comp_define(AssetGltfLoadComp) {
   GltfTransform sceneTrans;
   u32           accBindInvMats; // Access index [Optional].
 
-  AssetImportMesh importData;
-
   AssetSource* glbDataSource;
   GlbChunk     glbBinChunk;
 };
@@ -1193,7 +1191,8 @@ gltf_track_skinned_vertex(GltfLoad* ld, const AssetMeshVertex* vertex, const Ass
   }
 }
 
-static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
+static void gltf_build_mesh(
+    GltfLoad* ld, const AssetImportMesh* importData, AssetMeshComp* out, GltfError* err) {
   GltfMeshMeta meta = gltf_mesh_meta(ld, err);
   if (*err) {
     return;
@@ -1256,7 +1255,7 @@ static void gltf_build_mesh(GltfLoad* ld, AssetMeshComp* out, GltfError* err) {
           .tangent  = geo_vector(vertTan[0], vertTan[1], vertTan[2] * -1.0f, vertTan[3]),
           .texcoord = geo_vector(vertTex[0], 1.0f - vertTex[1]),
       };
-      asset_mesh_vertex_scale(&vertex, ld->importData.vertexScale);
+      asset_mesh_vertex_scale(&vertex, importData->vertexScale);
       asset_mesh_vertex_quantize(&vertex);
 
       const AssetMeshIndex vertexIdx = asset_mesh_builder_push(builder, &vertex);
@@ -1409,7 +1408,8 @@ static bool gtlf_process_any_joint_scaled(GltfLoad* ld, const AssetMeshAnim* ani
   return false;
 }
 
-static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfError* err) {
+static void gltf_build_skeleton(
+    GltfLoad* ld, const AssetImportMesh* importData, AssetMeshSkeletonComp* out, GltfError* err) {
   diag_assert(ld->jointCount);
 
   // Verify the accessors of all animated channels.
@@ -1460,13 +1460,15 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
   // Output the joint name-hashes.
   AssetMeshDataPtr resNameHashes = gltf_data_begin(ld, alignof(StringHash));
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
-    gltf_data_push_u32(ld, string_hash(ld->joints[jointIndex].name));
+    const StringHash importedJointNameHash = importData->joints[jointIndex].nameHash;
+    gltf_data_push_u32(ld, importedJointNameHash);
   }
 
   // Output the joint names.
   AssetMeshDataPtr resNames = gltf_data_begin(ld, alignof(u8));
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
-    gltf_data_push_string(ld, ld->joints[jointIndex].name);
+    const StringHash importedJointNameHash = importData->joints[jointIndex].nameHash;
+    gltf_data_push_string(ld, stringtable_lookup(g_stringtable, importedJointNameHash));
   }
 
   // Create the animation output structures.
@@ -1552,24 +1554,47 @@ Error:
   *err = GltfError_MalformedAnimation;
 }
 
-ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
+static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, AssetImportMesh* out) {
+  diag_assert(ld->jointCount <= asset_mesh_joints_max);
+
+  out->vertexScale = 1.0f;
+  out->jointCount  = ld->jointCount;
+  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+    diag_assert(!string_is_empty(ld->joints[jointIndex].name));
+    out->joints[jointIndex].nameHash = string_hash(ld->joints[jointIndex].name);
+  }
+
+  return asset_import_mesh(importEnv, ld->assetId, out);
+}
+
+ecs_view_define(LoadGlobalView) {
+  ecs_access_write(AssetManagerComp);
+  ecs_access_read(AssetImportEnvComp);
+}
+
 ecs_view_define(LoadView) {
   ecs_access_write(AssetGltfLoadComp);
   ecs_access_read(AssetComp);
 }
+
 ecs_view_define(BufferView) { ecs_access_read(AssetRawComp); }
 
 /**
  * Update all active loads.
  */
 ecs_system_define(GltfLoadAssetSys) {
-  AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-  if (!manager) {
-    return;
+  EcsView*     globalView = ecs_world_view_t(world, LoadGlobalView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return; // Global dependencies not initialized.
   }
+  AssetManagerComp*         manager   = ecs_view_write_t(globalItr, AssetManagerComp);
+  const AssetImportEnvComp* importEnv = ecs_view_read_t(globalItr, AssetImportEnvComp);
 
   EcsView*     loadView  = ecs_world_view_t(world, LoadView);
   EcsIterator* bufferItr = ecs_view_itr(ecs_world_view_t(world, BufferView));
+
+  AssetImportMesh importData;
 
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId  entity = ecs_view_entity(itr);
@@ -1642,13 +1667,18 @@ ecs_system_define(GltfLoadAssetSys) {
       if (err) {
         goto Error;
       }
+      if (!gltf_import(importEnv, ld, &importData)) {
+        err = GltfError_ImportFailed;
+        goto Error;
+      }
+
 #ifdef VOLO_TRACE
       const String traceMsg = path_filename(asset_id(ecs_view_read_t(itr, AssetComp)));
 #endif
       trace_begin_msg("asset_gltf_build", TraceColor_Blue, "{}", fmt_text(traceMsg));
 
       AssetMeshBundle meshBundle;
-      gltf_build_mesh(ld, &meshBundle.mesh, &err);
+      gltf_build_mesh(ld, &importData, &meshBundle.mesh, &err);
 
       trace_end();
       if (err) {
@@ -1657,7 +1687,7 @@ ecs_system_define(GltfLoadAssetSys) {
       *ecs_world_add_t(world, entity, AssetMeshComp) = meshBundle.mesh;
       if (ld->jointCount) {
         AssetMeshSkeletonComp resultSkeleton;
-        gltf_build_skeleton(ld, &resultSkeleton, &err);
+        gltf_build_skeleton(ld, &importData, &resultSkeleton, &err);
         if (err) {
           goto Error;
         }
@@ -1693,12 +1723,15 @@ ecs_system_define(GltfLoadAssetSys) {
 ecs_module_init(asset_mesh_gltf_module) {
   ecs_register_comp(AssetGltfLoadComp, .destructor = ecs_destruct_gltf_load_comp);
 
-  ecs_register_view(ManagerView);
+  ecs_register_view(LoadGlobalView);
   ecs_register_view(LoadView);
   ecs_register_view(BufferView);
 
   ecs_register_system(
-      GltfLoadAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView), ecs_view_id(BufferView));
+      GltfLoadAssetSys,
+      ecs_view_id(LoadGlobalView),
+      ecs_view_id(LoadView),
+      ecs_view_id(BufferView));
 }
 
 static GltfLoad* gltf_load(
@@ -1707,6 +1740,7 @@ static GltfLoad* gltf_load(
     const String              id,
     const EcsEntityId         e,
     const Mem                 data) {
+  (void)importEnv;
 
   JsonDoc*   jsonDoc = json_create(g_allocHeap, 512);
   JsonResult jsonRes;
@@ -1724,13 +1758,6 @@ static GltfLoad* gltf_load(
     return null;
   }
 
-  AssetImportMesh importData;
-  if (!asset_import_mesh(importEnv, id, &importData)) {
-    gltf_load_fail(w, e, id, GltfError_ImportFailed);
-    json_destroy(jsonDoc);
-    return null;
-  }
-
   Allocator* transientAlloc =
       alloc_chunked_create(g_allocHeap, alloc_bump_create, gltf_transient_alloc_chunk_size);
 
@@ -1743,8 +1770,7 @@ static GltfLoad* gltf_load(
       .jDoc           = jsonDoc,
       .jRoot          = jsonRes.val,
       .accBindInvMats = sentinel_u32,
-      .animData       = dynarray_create(g_allocHeap, 1, 1, 0),
-      .importData     = importData);
+      .animData       = dynarray_create(g_allocHeap, 1, 1, 0));
 }
 
 void asset_load_mesh_gltf(

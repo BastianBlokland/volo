@@ -1,8 +1,16 @@
 #pragma once
+#include "asset_mesh.h"
+
 #include "import_internal.h"
 
 typedef struct {
-  f32 vertexScale;
+  StringHash nameHash; // Interned in the global string table.
+} AssetImportJoint;
+
+typedef struct {
+  f32              vertexScale;
+  AssetImportJoint joints[asset_mesh_joints_max];
+  u32              jointCount;
 } AssetImportMesh;
 
 bool asset_import_mesh(const AssetImportEnvComp*, String id, AssetImportMesh*);
