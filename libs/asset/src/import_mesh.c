@@ -48,7 +48,14 @@ static ScriptVal import_eval_joint_name(AssetImportContext* ctx, ScriptBinderCal
     return script_null();
   }
   diag_assert(index < data->jointCount);
-  return script_str(data->joints[index].nameHash);
+  if (call->argCount < 2) {
+    return script_str(data->joints[index].nameHash);
+  }
+  const StringHash newName = script_arg_str(call, 1);
+  if (!script_call_panicked(call)) {
+    data->joints[index].nameHash = newName;
+  }
+  return script_null();
 }
 
 void asset_data_init_import_mesh(void) {
@@ -83,10 +90,11 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("joint_name");
-    const String       doc    = fmt_write_scratch("Query the name of the joint at the given index.");
-    const ScriptMask   ret    = script_mask_str;
+    const String       doc    = fmt_write_scratch("Query or change the name of the joint at the given index.");
+    const ScriptMask   ret    = script_mask_str | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("index"), script_mask_num},
+        {string_lit("newName"), script_mask_str | script_mask_null},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_joint_name);
   }
