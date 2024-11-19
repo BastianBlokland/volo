@@ -56,9 +56,12 @@
       "name": "vertex_scale",
       "doc": "Set the vertex import scale.",
       "sig": {
-        "ret": "null",
+        "ret": [ "null", "num" ],
         "args": [
-          { "name": "scale", "mask": "num" }
+          {
+            "name": "scale",
+            "mask": [ "null", "num" ]
+          }
         ]
       }
     },

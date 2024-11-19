@@ -10,10 +10,13 @@
 ScriptBinder* g_assetScriptImportMeshBinder;
 
 static ScriptVal import_eval_vertex_scale(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data = ctx->data;
+  if (call->argCount < 1) {
+    return script_num(data->vertexScale);
+  }
   const f64 scale = script_arg_num_range(call, 0, 1e-3, 1e+6);
   if (!script_call_panicked(call)) {
-    AssetImportMesh* data = ctx->data;
-    data->vertexScale     = (f32)scale;
+    data->vertexScale = (f32)scale;
   }
   return script_null();
 }
@@ -27,9 +30,9 @@ void asset_data_init_import_mesh(void) {
   {
     const String       name   = string_lit("vertex_scale");
     const String       doc    = fmt_write_scratch("Set the vertex import scale.");
-    const ScriptMask   ret    = script_mask_null;
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
     const ScriptSigArg args[] = {
-        {string_lit("scale"), script_mask_num},
+        {string_lit("scale"), script_mask_num | script_mask_null},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_vertex_scale);
   }
