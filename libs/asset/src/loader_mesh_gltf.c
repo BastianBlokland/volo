@@ -1408,7 +1408,8 @@ static bool gtlf_process_any_joint_scaled(GltfLoad* ld, const AssetMeshAnim* ani
   return false;
 }
 
-static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfError* err) {
+static void gltf_build_skeleton(
+    GltfLoad* ld, const AssetImportMesh* importData, AssetMeshSkeletonComp* out, GltfError* err) {
   diag_assert(ld->jointCount);
 
   // Verify the accessors of all animated channels.
@@ -1459,13 +1460,15 @@ static void gltf_build_skeleton(GltfLoad* ld, AssetMeshSkeletonComp* out, GltfEr
   // Output the joint name-hashes.
   AssetMeshDataPtr resNameHashes = gltf_data_begin(ld, alignof(StringHash));
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
-    gltf_data_push_u32(ld, string_hash(ld->joints[jointIndex].name));
+    const StringHash importedJointNameHash = importData->joints[jointIndex].nameHash;
+    gltf_data_push_u32(ld, importedJointNameHash);
   }
 
   // Output the joint names.
   AssetMeshDataPtr resNames = gltf_data_begin(ld, alignof(u8));
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
-    gltf_data_push_string(ld, ld->joints[jointIndex].name);
+    const StringHash importedJointNameHash = importData->joints[jointIndex].nameHash;
+    gltf_data_push_string(ld, stringtable_lookup(g_stringtable, importedJointNameHash));
   }
 
   // Create the animation output structures.
@@ -1684,7 +1687,7 @@ ecs_system_define(GltfLoadAssetSys) {
       *ecs_world_add_t(world, entity, AssetMeshComp) = meshBundle.mesh;
       if (ld->jointCount) {
         AssetMeshSkeletonComp resultSkeleton;
-        gltf_build_skeleton(ld, &resultSkeleton, &err);
+        gltf_build_skeleton(ld, &importData, &resultSkeleton, &err);
         if (err) {
           goto Error;
         }
