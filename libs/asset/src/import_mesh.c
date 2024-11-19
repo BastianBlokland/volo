@@ -28,6 +28,19 @@ static ScriptVal import_eval_joint_count(AssetImportContext* ctx, ScriptBinderCa
   return script_num(data->jointCount);
 }
 
+static ScriptVal import_eval_joint_find(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data      = ctx->data;
+  const StringHash jointName = script_arg_str(call, 0);
+  if (!script_call_panicked(call)) {
+    for (u32 jointIndex = 0; jointIndex != data->jointCount; ++jointIndex) {
+      if (data->joints[jointIndex].nameHash == jointName) {
+        return script_num(jointIndex);
+      }
+    }
+  }
+  return script_null();
+}
+
 static ScriptVal import_eval_joint_name(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data  = ctx->data;
   const u32        index = (u32)script_arg_num_range(call, 0, 0, data->jointCount - 1);
@@ -58,6 +71,15 @@ void asset_data_init_import_mesh(void) {
     const String       doc    = fmt_write_scratch("Query the amount of joints in the mesh.");
     const ScriptMask   ret    = script_mask_num | script_mask_null;
     asset_import_bind(binder, name, doc, ret, null, 0, import_eval_joint_count);
+  }
+  {
+    const String       name   = string_lit("joint_find");
+    const String       doc    = fmt_write_scratch("Find a joint with the given name, returns the index of the joint or null if none was found.");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("jointName"), script_mask_str},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_joint_find);
   }
   {
     const String       name   = string_lit("joint_name");
