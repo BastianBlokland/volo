@@ -74,6 +74,16 @@
       }
     },
     {
+      "name": "joint_find",
+      "doc": "Find a joint with the given name, returns the index of the joint or null if none was found.",
+      "sig": {
+        "ret": [ "null", "num" ],
+        "args": [
+          { "name": "jointName", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "asset_format",
       "doc": "Lookup the format of the importing asset.",
       "sig": {
