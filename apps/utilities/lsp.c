@@ -1141,7 +1141,7 @@ static void lsp_handle_req_completion(LspContext* ctx, const JRpcRequest* req) {
         .labelDetail = sig ? script_sig_scratch(sig) : string_empty,
         .doc         = script_sym_doc(scriptSyms, itr),
         .kind        = lsp_completion_kind_for_sym(kind),
-        .commitChar  = script_sym_is_func(scriptSyms, itr) ? '(' : ' ',
+        .commitChar  = script_sym_is_func(scriptSyms, itr) ? '(' : 0,
     };
     json_add_elem(ctx->jDoc, itemsArr, lsp_completion_item_to_json(ctx, &completionItem));
   }
