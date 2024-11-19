@@ -21,6 +21,12 @@ static ScriptVal import_eval_vertex_scale(AssetImportContext* ctx, ScriptBinderC
   return script_null();
 }
 
+static ScriptVal import_eval_joint_count(AssetImportContext* ctx, ScriptBinderCall* call) {
+  (void)call;
+  AssetImportMesh* data = ctx->data;
+  return script_num(data->jointCount);
+}
+
 void asset_data_init_import_mesh(void) {
   const ScriptBinderFlags flags = ScriptBinderFlags_DisallowMemoryAccess;
   ScriptBinder* binder = script_binder_create(g_allocPersist, string_lit("import-mesh"), flags);
@@ -35,6 +41,12 @@ void asset_data_init_import_mesh(void) {
         {string_lit("scale"), script_mask_num | script_mask_null},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_vertex_scale);
+  }
+  {
+    const String       name   = string_lit("joint_count");
+    const String       doc    = fmt_write_scratch("Query the amount of joints in the mesh.");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    asset_import_bind(binder, name, doc, ret, null, 0, import_eval_joint_count);
   }
   // clang-format on
 
