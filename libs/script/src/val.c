@@ -101,27 +101,18 @@ bool script_truthy(const ScriptVal value) {
   switch (val_type(value)) {
   case ScriptType_Null:
     return false;
-  case ScriptType_Num:
-    return val_as_num(value) != 0;
   case ScriptType_Bool:
     return val_as_bool(value);
+  case ScriptType_Num:
   case ScriptType_Vec3:
   case ScriptType_Quat:
   case ScriptType_Color:
-    /**
-     * NOTE: At the moment vectors, quaternions and colors are always considered to be truthy. This
-     * is arguably inconsistent with numbers where we treat 0 as falsy. However its unclear what
-     * good truthy semantics are for these types, for example is a unit-quaternion truthy or not?
-     */
-    return true;
   case ScriptType_Entity:
-    return true; // Only valid entities can be stored in values.
   case ScriptType_Str:
-    return val_as_str(value) != 0;
+    return true;
   case ScriptType_Count:
     break;
   }
-  diag_assert_fail("Invalid script value");
   UNREACHABLE
 }
 

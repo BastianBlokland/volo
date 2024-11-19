@@ -341,7 +341,7 @@ spec(eval) {
     const ScriptExpr expr = script_read(
         doc,
         binder,
-        string_lit("test_increase_counter(); assert(0); test_increase_counter()"),
+        string_lit("test_increase_counter(); assert(false); test_increase_counter()"),
         stringtableNull,
         diagsNull,
         symsNull);
