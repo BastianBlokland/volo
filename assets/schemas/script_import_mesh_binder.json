@@ -33,6 +33,14 @@
       }
     },
     {
+      "name": "joint_count",
+      "doc": "Query the amount of joints in the mesh.",
+      "sig": {
+        "ret": [ "null", "num" ],
+        "args": []
+      }
+    },
+    {
       "name": "log",
       "doc": "Log the given values.",
       "sig": {
@@ -88,6 +96,16 @@
         "ret": "null",
         "args": [
           { "name": "values", "mask": "any", "multi": true }
+        ]
+      }
+    },
+    {
+      "name": "joint_name",
+      "doc": "Query the name of the joint at the given index.",
+      "sig": {
+        "ret": "str",
+        "args": [
+          { "name": "index", "mask": "num" }
         ]
       }
     }
