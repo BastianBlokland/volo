@@ -1551,15 +1551,17 @@ Error:
   *err = GltfError_MalformedAnimation;
 }
 
-static void asset_import_mesh_init(GltfLoad* ld, AssetImportMesh* importData) {
+static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, AssetImportMesh* out) {
   diag_assert(ld->jointCount <= asset_mesh_joints_max);
 
-  importData->vertexScale = 1.0f;
-  importData->jointCount  = ld->jointCount;
+  out->vertexScale = 1.0f;
+  out->jointCount  = ld->jointCount;
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
     diag_assert(!string_is_empty(ld->joints[jointIndex].name));
-    importData->joints[jointIndex].nameHash = string_hash(ld->joints[jointIndex].name);
+    out->joints[jointIndex].nameHash = string_hash(ld->joints[jointIndex].name);
   }
+
+  return asset_import_mesh(importEnv, ld->assetId, out);
 }
 
 ecs_view_define(LoadGlobalView) {
@@ -1662,8 +1664,7 @@ ecs_system_define(GltfLoadAssetSys) {
       if (err) {
         goto Error;
       }
-      asset_import_mesh_init(ld, &importData);
-      if (!asset_import_mesh(importEnv, ld->assetId, &importData)) {
+      if (!gltf_import(importEnv, ld, &importData)) {
         err = GltfError_ImportFailed;
         goto Error;
       }
