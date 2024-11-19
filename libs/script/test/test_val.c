@@ -135,12 +135,12 @@ spec(val) {
   it("can test if a value is truthy") {
     check(!script_truthy(script_null()));
 
-    check(!script_truthy(script_num(0)));
-    check(!script_truthy(script_num(-0.0)));
-    check(script_truthy(script_num(42)));
-
     check(!script_truthy(script_bool(false)));
     check(script_truthy(script_bool(true)));
+
+    check(script_truthy(script_num(0)));
+    check(script_truthy(script_num(-0.0)));
+    check(script_truthy(script_num(42)));
 
     check(script_truthy(script_vec3_lit(0, 0, 0)));
     check(script_truthy(script_vec3_lit(1, 2, 0)));
@@ -152,18 +152,17 @@ spec(val) {
 
     check(script_truthy(script_entity(dummyEntity1)));
 
-    check(!script_truthy(script_str(0)));
+    check(script_truthy(script_str(0)));
     check(script_truthy(script_str(string_hash_lit("Hello World"))));
   }
 
   it("can test if a value is falsy") {
     check(script_falsy(script_null()));
-
-    check(script_falsy(script_num(0)));
-    check(!script_falsy(script_num(42)));
-
     check(script_falsy(script_bool(false)));
     check(!script_falsy(script_bool(true)));
+
+    check(!script_falsy(script_num(0)));
+    check(!script_falsy(script_num(42)));
 
     check(!script_falsy(script_vec3_lit(0, 0, 0)));
     check(!script_falsy(script_vec3_lit(1, 2, 0)));
@@ -175,7 +174,7 @@ spec(val) {
 
     check(!script_falsy(script_entity(dummyEntity1)));
 
-    check(script_falsy(script_str(0)));
+    check(!script_falsy(script_str(0)));
     check(!script_falsy(script_str(string_hash_lit("Hello World"))));
   }
 
