@@ -4,6 +4,21 @@
   "filter": "import/mesh/*.script",
   "functions": [
     {
+      "name": "joint_name_trim",
+      "doc": "Remove a prefix (and optionally suffix) from the joint name at the given index. Returns the new name.",
+      "sig": {
+        "ret": "str",
+        "args": [
+          { "name": "index", "mask": "num" },
+          { "name": "prefix", "mask": "str" },
+          {
+            "name": "suffix",
+            "mask": [ "null", "str" ]
+          }
+        ]
+      }
+    },
+    {
       "name": "fail_if",
       "doc": "Fail the import if the given value is truthy.",
       "sig": {
