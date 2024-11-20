@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_format.h"
+#include "core_stringtable.h"
 #include "script_args.h"
 #include "script_binder.h"
 #include "script_sig.h"
@@ -58,6 +59,33 @@ static ScriptVal import_eval_joint_name(AssetImportContext* ctx, ScriptBinderCal
   return script_null();
 }
 
+static ScriptVal import_eval_joint_name_trim(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data       = ctx->data;
+  const u32        index      = (u32)script_arg_num_range(call, 0, 0, data->jointCount - 1);
+  const StringHash prefixHash = script_arg_str(call, 1);
+  const StringHash suffixHash = script_arg_opt_str(call, 2, 0);
+  if (script_call_panicked(call)) {
+    return script_null();
+  }
+  if (!data->joints[index].nameHash) {
+    return script_str(string_hash_lit(""));
+  }
+  String name = stringtable_lookup(g_stringtable, data->joints[index].nameHash);
+
+  const String prefix = stringtable_lookup(g_stringtable, prefixHash);
+  if (string_starts_with(name, prefix)) {
+    name = string_slice(name, prefix.size, name.size - prefix.size);
+  }
+
+  const String suffix = suffixHash ? stringtable_lookup(g_stringtable, suffixHash) : string_empty;
+  if (string_ends_with(name, suffix)) {
+    name = string_slice(name, 0, name.size - suffix.size);
+  }
+
+  data->joints[index].nameHash = stringtable_add(g_stringtable, name);
+  return script_str(data->joints[index].nameHash);
+}
+
 void asset_data_init_import_mesh(void) {
   const ScriptBinderFlags flags = ScriptBinderFlags_DisallowMemoryAccess;
   ScriptBinder* binder = script_binder_create(g_allocPersist, string_lit("import-mesh"), flags);
@@ -97,6 +125,17 @@ void asset_data_init_import_mesh(void) {
         {string_lit("newName"), script_mask_str | script_mask_null},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_joint_name);
+  }
+  {
+    const String       name   = string_lit("joint_name_trim");
+    const String       doc    = fmt_write_scratch("Remove a prefix (and optionally suffix) from the joint name at the given index. Returns the new name.");
+    const ScriptMask   ret    = script_mask_str;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("prefix"), script_mask_str},
+        {string_lit("suffix"), script_mask_str | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_joint_name_trim);
   }
   // clang-format on
 
