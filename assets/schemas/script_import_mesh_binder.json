@@ -40,6 +40,28 @@
       }
     },
     {
+      "name": "anim_count",
+      "doc": "Query the amount of animations in the mesh.",
+      "sig": {
+        "ret": [ "null", "num" ],
+        "args": []
+      }
+    },
+    {
+      "name": "anim_name",
+      "doc": "Query or change the name of the animation at the given index.",
+      "sig": {
+        "ret": [ "null", "str" ],
+        "args": [
+          { "name": "index", "mask": "num" },
+          {
+            "name": "newName",
+            "mask": [ "null", "str" ]
+          }
+        ]
+      }
+    },
+    {
       "name": "asset_id",
       "doc": "Lookup the identifier of the importing asset.",
       "sig": {
@@ -95,6 +117,16 @@
         "ret": [ "null", "num" ],
         "args": [
           { "name": "jointName", "mask": "str" }
+        ]
+      }
+    },
+    {
+      "name": "anim_find",
+      "doc": "Find an animation with the given name, returns the index of the animation or null if none was found.",
+      "sig": {
+        "ret": [ "null", "num" ],
+        "args": [
+          { "name": "animName", "mask": "str" }
         ]
       }
     },

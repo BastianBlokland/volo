@@ -86,6 +86,42 @@ static ScriptVal import_eval_joint_name_trim(AssetImportContext* ctx, ScriptBind
   return script_str(data->joints[index].nameHash);
 }
 
+static ScriptVal import_eval_anim_count(AssetImportContext* ctx, ScriptBinderCall* call) {
+  (void)call;
+  AssetImportMesh* data = ctx->data;
+  return script_num(data->animCount);
+}
+
+static ScriptVal import_eval_anim_find(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data     = ctx->data;
+  const StringHash animName = script_arg_str(call, 0);
+  if (!script_call_panicked(call)) {
+    for (u32 animIndex = 0; animIndex != data->animCount; ++animIndex) {
+      if (data->anims[animIndex].nameHash == animName) {
+        return script_num(animIndex);
+      }
+    }
+  }
+  return script_null();
+}
+
+static ScriptVal import_eval_anim_name(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data  = ctx->data;
+  const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  if (script_call_panicked(call)) {
+    return script_null();
+  }
+  diag_assert(index < data->animCount);
+  if (call->argCount < 2) {
+    return script_str(data->anims[index].nameHash);
+  }
+  const StringHash newName = script_arg_str(call, 1);
+  if (!script_call_panicked(call)) {
+    data->anims[index].nameHash = newName;
+  }
+  return script_null();
+}
+
 void asset_data_init_import_mesh(void) {
   const ScriptBinderFlags flags = ScriptBinderFlags_DisallowMemoryAccess;
   ScriptBinder* binder = script_binder_create(g_allocPersist, string_lit("import-mesh"), flags);
@@ -136,6 +172,31 @@ void asset_data_init_import_mesh(void) {
         {string_lit("suffix"), script_mask_str | script_mask_null},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_joint_name_trim);
+  }
+  {
+    const String       name   = string_lit("anim_count");
+    const String       doc    = fmt_write_scratch("Query the amount of animations in the mesh.");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    asset_import_bind(binder, name, doc, ret, null, 0, import_eval_anim_count);
+  }
+  {
+    const String       name   = string_lit("anim_find");
+    const String       doc    = fmt_write_scratch("Find an animation with the given name, returns the index of the animation or null if none was found.");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("animName"), script_mask_str},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_find);
+  }
+  {
+    const String       name   = string_lit("anim_name");
+    const String       doc    = fmt_write_scratch("Query or change the name of the animation at the given index.");
+    const ScriptMask   ret    = script_mask_str | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("newName"), script_mask_str | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_name);
   }
   // clang-format on
 
