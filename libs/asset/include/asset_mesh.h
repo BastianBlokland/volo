@@ -6,6 +6,8 @@
 
 #define asset_mesh_vertices_max u16_max
 #define asset_mesh_joints_max 75
+#define asset_mesh_anims_max 32
+
 ASSERT(asset_mesh_joints_max <= u8_max, "Joint indices should be representable by a u8");
 
 typedef u16 AssetMeshIndex;

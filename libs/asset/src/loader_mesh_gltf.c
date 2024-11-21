@@ -203,6 +203,7 @@ typedef enum {
   GltfError_MalformedNodes,
   GltfError_MalformedAnimation,
   GltfError_JointCountExceedsMaximum,
+  GltfError_AnimCountExceedsMaximum,
   GltfError_InvalidBuffer,
   GltfError_UnsupportedPrimitiveMode,
   GltfError_UnsupportedInterpolationMode,
@@ -239,6 +240,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Malformed nodes"),
       string_static("Malformed animation"),
       string_static("Joint count exceeds maximum"),
+      string_static("Animation count exceeds maximum"),
       string_static("Gltf invalid buffer"),
       string_static("Unsupported primitive mode, only triangle primitives supported"),
       string_static("Unsupported interpolation mode, only linear interpolation supported"),
@@ -948,6 +950,10 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
   const JsonVal animations = json_field_lit(ld->jDoc, ld->jRoot, "animations");
   if (!(ld->animCount = gltf_json_elem_count(ld, animations))) {
     goto Success; // Animations are optional.
+  }
+  if (ld->animCount > asset_mesh_anims_max) {
+    *err = GltfError_AnimCountExceedsMaximum;
+    return;
   }
   ld->anims         = alloc_array_t(ld->transientAlloc, GltfAnim, ld->animCount);
   GltfAnim* outAnim = ld->anims;
