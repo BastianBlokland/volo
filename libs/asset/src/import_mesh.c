@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_format.h"
+#include "core_sort.h"
 #include "core_stringtable.h"
 #include "script_args.h"
 #include "script_binder.h"
@@ -10,6 +11,10 @@
 #include "import_mesh_internal.h"
 
 ScriptBinder* g_assetScriptImportMeshBinder;
+
+static i8 import_compare_anim_layer(const void* a, const void* b) {
+  return compare_i32(field_ptr(a, AssetImportAnim, layer), field_ptr(b, AssetImportAnim, layer));
+}
 
 static ScriptVal import_eval_vertex_scale(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data = ctx->data;
@@ -86,6 +91,76 @@ static ScriptVal import_eval_joint_name_trim(AssetImportContext* ctx, ScriptBind
   return script_str(data->joints[index].nameHash);
 }
 
+static ScriptVal import_eval_anim_count(AssetImportContext* ctx, ScriptBinderCall* call) {
+  (void)call;
+  AssetImportMesh* data = ctx->data;
+  return script_num(data->animCount);
+}
+
+static ScriptVal import_eval_anim_find(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data     = ctx->data;
+  const StringHash animName = script_arg_str(call, 0);
+  if (!script_call_panicked(call)) {
+    for (u32 animIndex = 0; animIndex != data->animCount; ++animIndex) {
+      if (data->anims[animIndex].nameHash == animName) {
+        return script_num(animIndex);
+      }
+    }
+  }
+  return script_null();
+}
+
+static ScriptVal import_eval_anim_layer(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data  = ctx->data;
+  const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  if (script_call_panicked(call)) {
+    return script_null();
+  }
+  diag_assert(index < data->animCount);
+  if (call->argCount < 2) {
+    return script_num(data->anims[index].layer);
+  }
+  const i32 newLayer = (i32)script_arg_num(call, 1);
+  if (!script_call_panicked(call)) {
+    data->anims[index].layer = newLayer;
+  }
+  return script_null();
+}
+
+static ScriptVal import_eval_anim_name(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data  = ctx->data;
+  const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  if (script_call_panicked(call)) {
+    return script_null();
+  }
+  diag_assert(index < data->animCount);
+  if (call->argCount < 2) {
+    return script_str(data->anims[index].nameHash);
+  }
+  const StringHash newName = script_arg_str(call, 1);
+  if (!script_call_panicked(call)) {
+    data->anims[index].nameHash = newName;
+  }
+  return script_null();
+}
+
+static ScriptVal import_eval_anim_duration(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data  = ctx->data;
+  const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  if (script_call_panicked(call)) {
+    return script_null();
+  }
+  diag_assert(index < data->animCount);
+  if (call->argCount < 2) {
+    return script_num(data->anims[index].duration);
+  }
+  const f32 newDuration = (f32)script_arg_num(call, 1);
+  if (!script_call_panicked(call)) {
+    data->anims[index].duration = newDuration;
+  }
+  return script_null();
+}
+
 void asset_data_init_import_mesh(void) {
   const ScriptBinderFlags flags = ScriptBinderFlags_DisallowMemoryAccess;
   ScriptBinder* binder = script_binder_create(g_allocPersist, string_lit("import-mesh"), flags);
@@ -137,6 +212,51 @@ void asset_data_init_import_mesh(void) {
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_joint_name_trim);
   }
+  {
+    const String       name   = string_lit("anim_count");
+    const String       doc    = fmt_write_scratch("Query the amount of animations in the mesh.");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    asset_import_bind(binder, name, doc, ret, null, 0, import_eval_anim_count);
+  }
+  {
+    const String       name   = string_lit("anim_find");
+    const String       doc    = fmt_write_scratch("Find an animation with the given name, returns the index of the animation or null if none was found.");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("animName"), script_mask_str},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_find);
+  }
+  {
+    const String       name   = string_lit("anim_layer");
+    const String       doc    = fmt_write_scratch("Query or change the layer (sorting index) of the animation at the given index.");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("newLayer"), script_mask_num | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_layer);
+  }
+  {
+    const String       name   = string_lit("anim_name");
+    const String       doc    = fmt_write_scratch("Query or change the name of the animation at the given index.");
+    const ScriptMask   ret    = script_mask_str | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("newName"), script_mask_str | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_name);
+  }
+  {
+    const String       name   = string_lit("anim_duration");
+    const String       doc    = fmt_write_scratch("Query or change the animation duration.");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("newDuration"), script_mask_num | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_duration);
+  }
   // clang-format on
 
   asset_import_register(binder);
@@ -146,5 +266,13 @@ void asset_data_init_import_mesh(void) {
 }
 
 bool asset_import_mesh(const AssetImportEnvComp* env, const String id, AssetImportMesh* data) {
-  return asset_import_eval(env, g_assetScriptImportMeshBinder, id, data);
+  if (!asset_import_eval(env, g_assetScriptImportMeshBinder, id, data)) {
+    return false;
+  }
+
+  // Apply layer sorting.
+  sort_quicksort_t(
+      data->anims, data->anims + data->animCount, AssetImportAnim, import_compare_anim_layer);
+
+  return true;
 }

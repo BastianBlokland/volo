@@ -40,6 +40,56 @@
       }
     },
     {
+      "name": "anim_duration",
+      "doc": "Query or change the animation duration.",
+      "sig": {
+        "ret": [ "null", "num" ],
+        "args": [
+          { "name": "index", "mask": "num" },
+          {
+            "name": "newDuration",
+            "mask": [ "null", "num" ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "anim_count",
+      "doc": "Query the amount of animations in the mesh.",
+      "sig": {
+        "ret": [ "null", "num" ],
+        "args": []
+      }
+    },
+    {
+      "name": "anim_name",
+      "doc": "Query or change the name of the animation at the given index.",
+      "sig": {
+        "ret": [ "null", "str" ],
+        "args": [
+          { "name": "index", "mask": "num" },
+          {
+            "name": "newName",
+            "mask": [ "null", "str" ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "anim_layer",
+      "doc": "Query or change the layer (sorting index) of the animation at the given index.",
+      "sig": {
+        "ret": [ "null", "num" ],
+        "args": [
+          { "name": "index", "mask": "num" },
+          {
+            "name": "newLayer",
+            "mask": [ "null", "num" ]
+          }
+        ]
+      }
+    },
+    {
       "name": "asset_id",
       "doc": "Lookup the identifier of the importing asset.",
       "sig": {
@@ -95,6 +145,16 @@
         "ret": [ "null", "num" ],
         "args": [
           { "name": "jointName", "mask": "str" }
+        ]
+      }
+    },
+    {
+      "name": "anim_find",
+      "doc": "Find an animation with the given name, returns the index of the animation or null if none was found.",
+      "sig": {
+        "ret": [ "null", "num" ],
+        "args": [
+          { "name": "animName", "mask": "str" }
         ]
       }
     },

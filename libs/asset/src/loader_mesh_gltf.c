@@ -139,6 +139,7 @@ typedef struct {
 
 typedef struct {
   String          name; // Interned in the global string-table.
+  f32             duration;
   GltfAnimChannel channels[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
 } GltfAnim;
 
@@ -203,6 +204,7 @@ typedef enum {
   GltfError_MalformedNodes,
   GltfError_MalformedAnimation,
   GltfError_JointCountExceedsMaximum,
+  GltfError_AnimCountExceedsMaximum,
   GltfError_InvalidBuffer,
   GltfError_UnsupportedPrimitiveMode,
   GltfError_UnsupportedInterpolationMode,
@@ -239,6 +241,7 @@ static String gltf_error_str(const GltfError err) {
       string_static("Malformed nodes"),
       string_static("Malformed animation"),
       string_static("Joint count exceeds maximum"),
+      string_static("Animation count exceeds maximum"),
       string_static("Gltf invalid buffer"),
       string_static("Unsupported primitive mode, only triangle primitives supported"),
       string_static("Unsupported interpolation mode, only linear interpolation supported"),
@@ -949,6 +952,10 @@ static void gltf_parse_animations(GltfLoad* ld, GltfError* err) {
   if (!(ld->animCount = gltf_json_elem_count(ld, animations))) {
     goto Success; // Animations are optional.
   }
+  if (ld->animCount > asset_mesh_anims_max) {
+    *err = GltfError_AnimCountExceedsMaximum;
+    return;
+  }
   ld->anims         = alloc_array_t(ld->transientAlloc, GltfAnim, ld->animCount);
   GltfAnim* outAnim = ld->anims;
 
@@ -1284,6 +1291,24 @@ Cleanup:
   asset_mesh_builder_destroy(builder);
 }
 
+static f32 gltf_anim_duration(GltfLoad* ld, const GltfAnim* anim) {
+  f32 duration = 0.0f;
+  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+    for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
+      const GltfAnimChannel* channel = &anim->channels[jointIndex][target];
+      if (sentinel_check(channel->accInput)) {
+        continue; // Channel is not animated.
+      }
+      if (!gltf_access_check(ld, channel->accInput, GltfType_f32, 1)) {
+        continue; // Input is of incorrect type; import will fail during skeleton building.
+      }
+      const f32 channelDur = gltf_access_max_f32(ld, channel->accInput);
+      duration             = math_max(duration, channelDur);
+    }
+  }
+  return duration;
+}
+
 static bool gltf_skeleton_is_topologically_sorted(GltfLoad* ld) {
   if (!ld->jointCount) {
     return true;
@@ -1474,34 +1499,36 @@ static void gltf_build_skeleton(
   // Create the animation output structures.
   AssetMeshAnim* resAnims =
       ld->animCount ? alloc_array_t(g_allocHeap, AssetMeshAnim, ld->animCount) : null;
-  for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
-    resAnims[animIndex].name = ld->anims[animIndex].name;
-    f32 duration             = 0;
+  for (u32 i = 0; i != importData->animCount; ++i) {
+    const AssetImportAnim* importAnim = &importData->anims[i];
+    const GltfAnim*        anim       = &ld->anims[importAnim->index];
+
+    resAnims[i].name = stringtable_lookup(g_stringtable, importAnim->nameHash);
+
+    const f32 durationOrg      = anim->duration;
+    const f32 durationImported = importAnim->duration;
 
     for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
       for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
-        const GltfAnimChannel* srcChannel = &ld->anims[animIndex].channels[jointIndex][target];
-        AssetMeshAnimChannel*  resChannel = &resAnims[animIndex].joints[jointIndex][target];
+        const GltfAnimChannel* srcChannel = &anim->channels[jointIndex][target];
+        AssetMeshAnimChannel*  resChannel = &resAnims[i].joints[jointIndex][target];
 
         if (!sentinel_check(srcChannel->accInput)) {
-          const f32 channelDur = gltf_access_max_f32(ld, srcChannel->accInput);
-          duration             = math_max(duration, channelDur);
-
           *resChannel = (AssetMeshAnimChannel){
               .frameCount = ld->access[srcChannel->accInput].count,
-              .timeData   = gltf_data_push_access_norm16(ld, srcChannel->accInput, duration),
+              .timeData   = gltf_data_push_access_norm16(ld, srcChannel->accInput, durationOrg),
               .valueData  = gltf_data_push_access_vec(ld, srcChannel->accOutput),
           };
           if (target == AssetMeshAnimTarget_Rotation) {
             gltf_process_anim_channel_rot(ld, resChannel);
           }
-          gltf_process_anim_channel(ld, resChannel, target, duration);
+          gltf_process_anim_channel(ld, resChannel, target, durationOrg);
         } else {
           *resChannel = (AssetMeshAnimChannel){0};
         }
       }
     }
-    resAnims[animIndex].duration = duration;
+    resAnims[i].duration = durationImported;
   }
 
   // Remove all scale channels if all of the channels use the identity scale.
@@ -1558,10 +1585,25 @@ static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, Asset
   diag_assert(ld->jointCount <= asset_mesh_joints_max);
 
   out->vertexScale = 1.0f;
-  out->jointCount  = ld->jointCount;
+
+  out->jointCount = ld->jointCount;
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
     diag_assert(!string_is_empty(ld->joints[jointIndex].name));
     out->joints[jointIndex].nameHash = string_hash(ld->joints[jointIndex].name);
+  }
+
+  out->animCount = ld->animCount;
+  for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
+    GltfAnim* anim = &ld->anims[animIndex];
+
+    out->anims[animIndex].index = animIndex;
+    out->anims[animIndex].layer = (i32)animIndex;
+
+    diag_assert(!string_is_empty(anim->name));
+    out->anims[animIndex].nameHash = string_hash(anim->name);
+
+    anim->duration                 = gltf_anim_duration(ld, anim);
+    out->anims[animIndex].duration = anim->duration;
   }
 
   return asset_import_mesh(importEnv, ld->assetId, out);
