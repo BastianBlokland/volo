@@ -1564,10 +1564,17 @@ static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, Asset
   diag_assert(ld->jointCount <= asset_mesh_joints_max);
 
   out->vertexScale = 1.0f;
-  out->jointCount  = ld->jointCount;
+
+  out->jointCount = ld->jointCount;
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
     diag_assert(!string_is_empty(ld->joints[jointIndex].name));
     out->joints[jointIndex].nameHash = string_hash(ld->joints[jointIndex].name);
+  }
+
+  out->animCount = ld->animCount;
+  for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
+    diag_assert(!string_is_empty(ld->anims[animIndex].name));
+    out->anims[animIndex].nameHash = string_hash(ld->anims[animIndex].name);
   }
 
   return asset_import_mesh(importEnv, ld->assetId, out);
