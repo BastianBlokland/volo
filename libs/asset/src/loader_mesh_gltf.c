@@ -1481,9 +1481,10 @@ static void gltf_build_skeleton(
   AssetMeshAnim* resAnims =
       ld->animCount ? alloc_array_t(g_allocHeap, AssetMeshAnim, ld->animCount) : null;
   for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
-    resAnims[animIndex].name = ld->anims[animIndex].name;
-    f32 duration             = 0;
+    const StringHash importedAnimNameHash = importData->anims[animIndex].nameHash;
+    resAnims[animIndex].name              = stringtable_lookup(g_stringtable, importedAnimNameHash);
 
+    f32 duration = 0;
     for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
       for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
         const GltfAnimChannel* srcChannel = &ld->anims[animIndex].channels[jointIndex][target];
