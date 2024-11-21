@@ -1499,17 +1499,19 @@ static void gltf_build_skeleton(
   // Create the animation output structures.
   AssetMeshAnim* resAnims =
       ld->animCount ? alloc_array_t(g_allocHeap, AssetMeshAnim, ld->animCount) : null;
-  for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
-    const StringHash importedAnimNameHash = importData->anims[animIndex].nameHash;
-    resAnims[animIndex].name              = stringtable_lookup(g_stringtable, importedAnimNameHash);
+  for (u32 i = 0; i != importData->animCount; ++i) {
+    const AssetImportAnim* importAnim = &importData->anims[i];
+    const GltfAnim*        anim       = &ld->anims[importAnim->index];
 
-    const f32 durationOrg      = ld->anims[animIndex].duration;
-    const f32 durationImported = importData->anims[animIndex].duration;
+    resAnims[i].name = stringtable_lookup(g_stringtable, importAnim->nameHash);
+
+    const f32 durationOrg      = anim->duration;
+    const f32 durationImported = importAnim->duration;
 
     for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
       for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
-        const GltfAnimChannel* srcChannel = &ld->anims[animIndex].channels[jointIndex][target];
-        AssetMeshAnimChannel*  resChannel = &resAnims[animIndex].joints[jointIndex][target];
+        const GltfAnimChannel* srcChannel = &anim->channels[jointIndex][target];
+        AssetMeshAnimChannel*  resChannel = &resAnims[i].joints[jointIndex][target];
 
         if (!sentinel_check(srcChannel->accInput)) {
           *resChannel = (AssetMeshAnimChannel){
@@ -1526,7 +1528,7 @@ static void gltf_build_skeleton(
         }
       }
     }
-    resAnims[animIndex].duration = durationImported;
+    resAnims[i].duration = durationImported;
   }
 
   // Remove all scale channels if all of the channels use the identity scale.
@@ -1594,6 +1596,7 @@ static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, Asset
   for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
     GltfAnim* anim = &ld->anims[animIndex];
 
+    out->anims[animIndex].index = animIndex;
     out->anims[animIndex].layer = (i32)animIndex;
 
     diag_assert(!string_is_empty(anim->name));

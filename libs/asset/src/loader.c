@@ -18,13 +18,13 @@
   _X_(AssetFormat_LevelBin,         level,              1  )                                       \
   _X_(AssetFormat_MeshBin,          mesh_bin,           1  )                                       \
   _X_(AssetFormat_MeshGlb,          mesh_glb,           3  )                                       \
-  _X_(AssetFormat_MeshGltf,         mesh_gltf,          6  )                                       \
+  _X_(AssetFormat_MeshGltf,         mesh_gltf,          7  )                                       \
   _X_(AssetFormat_MeshObj,          mesh_obj,           3  )                                       \
   _X_(AssetFormat_MeshProc,         mesh_proc,          1  )                                       \
   _X_(AssetFormat_Prefabs,          prefabs,            1  )                                       \
   _X_(AssetFormat_Products,         products,           1  )                                       \
   _X_(AssetFormat_Raw,              raw,                0  ) /* Raw cannot be versioned. */        \
-  _X_(AssetFormat_Script,           script,             16 )                                       \
+  _X_(AssetFormat_Script,           script,             17 )                                       \
   _X_(AssetFormat_ScriptBin,        script_bin,         1  )                                       \
   _X_(AssetFormat_ShaderBin,        shader_bin,         1  )                                       \
   _X_(AssetFormat_ShaderGlslFrag,   shader_glsl_frag,   1  )                                       \

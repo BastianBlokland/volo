@@ -9,6 +9,7 @@ typedef struct {
 
 typedef struct {
   StringHash nameHash; // Interned in the global string table.
+  u32        index;    // Data index, immutable.
   i32        layer;    // Sort order; sorting wil be applied after importing.
   f32        duration;
 } AssetImportAnim;

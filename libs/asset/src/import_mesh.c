@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_format.h"
+#include "core_sort.h"
 #include "core_stringtable.h"
 #include "script_args.h"
 #include "script_binder.h"
@@ -10,6 +11,10 @@
 #include "import_mesh_internal.h"
 
 ScriptBinder* g_assetScriptImportMeshBinder;
+
+static i8 import_compare_anim_layer(const void* a, const void* b) {
+  return compare_i32(field_ptr(a, AssetImportAnim, layer), field_ptr(b, AssetImportAnim, layer));
+}
 
 static ScriptVal import_eval_vertex_scale(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data = ctx->data;
@@ -261,5 +266,13 @@ void asset_data_init_import_mesh(void) {
 }
 
 bool asset_import_mesh(const AssetImportEnvComp* env, const String id, AssetImportMesh* data) {
-  return asset_import_eval(env, g_assetScriptImportMeshBinder, id, data);
+  if (!asset_import_eval(env, g_assetScriptImportMeshBinder, id, data)) {
+    return false;
+  }
+
+  // Apply layer sorting.
+  sort_quicksort_t(
+      data->anims, data->anims + data->animCount, AssetImportAnim, import_compare_anim_layer);
+
+  return true;
 }
