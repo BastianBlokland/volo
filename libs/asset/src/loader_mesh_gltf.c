@@ -139,6 +139,7 @@ typedef struct {
 
 typedef struct {
   String          name; // Interned in the global string-table.
+  f32             duration;
   GltfAnimChannel channels[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
 } GltfAnim;
 
@@ -1502,7 +1503,9 @@ static void gltf_build_skeleton(
     const StringHash importedAnimNameHash = importData->anims[animIndex].nameHash;
     resAnims[animIndex].name              = stringtable_lookup(g_stringtable, importedAnimNameHash);
 
-    const f32 duration = importData->anims[animIndex].duration;
+    const f32 durationOrg      = ld->anims[animIndex].duration;
+    const f32 durationImported = importData->anims[animIndex].duration;
+
     for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
       for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
         const GltfAnimChannel* srcChannel = &ld->anims[animIndex].channels[jointIndex][target];
@@ -1511,19 +1514,19 @@ static void gltf_build_skeleton(
         if (!sentinel_check(srcChannel->accInput)) {
           *resChannel = (AssetMeshAnimChannel){
               .frameCount = ld->access[srcChannel->accInput].count,
-              .timeData   = gltf_data_push_access_norm16(ld, srcChannel->accInput, duration),
+              .timeData   = gltf_data_push_access_norm16(ld, srcChannel->accInput, durationOrg),
               .valueData  = gltf_data_push_access_vec(ld, srcChannel->accOutput),
           };
           if (target == AssetMeshAnimTarget_Rotation) {
             gltf_process_anim_channel_rot(ld, resChannel);
           }
-          gltf_process_anim_channel(ld, resChannel, target, duration);
+          gltf_process_anim_channel(ld, resChannel, target, durationOrg);
         } else {
           *resChannel = (AssetMeshAnimChannel){0};
         }
       }
     }
-    resAnims[animIndex].duration = duration;
+    resAnims[animIndex].duration = durationImported;
   }
 
   // Remove all scale channels if all of the channels use the identity scale.
@@ -1589,10 +1592,12 @@ static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, Asset
 
   out->animCount = ld->animCount;
   for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
-    const GltfAnim* anim = &ld->anims[animIndex];
+    GltfAnim* anim = &ld->anims[animIndex];
     diag_assert(!string_is_empty(anim->name));
     out->anims[animIndex].nameHash = string_hash(anim->name);
-    out->anims[animIndex].duration = gltf_anim_duration(ld, anim);
+
+    anim->duration                 = gltf_anim_duration(ld, anim);
+    out->anims[animIndex].duration = anim->duration;
   }
 
   return asset_import_mesh(importEnv, ld->assetId, out);
