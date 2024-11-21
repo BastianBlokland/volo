@@ -40,6 +40,20 @@
       }
     },
     {
+      "name": "anim_duration",
+      "doc": "Query or change the animation duration.",
+      "sig": {
+        "ret": [ "null", "num" ],
+        "args": [
+          { "name": "index", "mask": "num" },
+          {
+            "name": "newDuration",
+            "mask": [ "null", "num" ]
+          }
+        ]
+      }
+    },
+    {
       "name": "anim_count",
       "doc": "Query the amount of animations in the mesh.",
       "sig": {

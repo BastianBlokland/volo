@@ -122,6 +122,23 @@ static ScriptVal import_eval_anim_name(AssetImportContext* ctx, ScriptBinderCall
   return script_null();
 }
 
+static ScriptVal import_eval_anim_duration(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data  = ctx->data;
+  const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  if (script_call_panicked(call)) {
+    return script_null();
+  }
+  diag_assert(index < data->animCount);
+  if (call->argCount < 2) {
+    return script_num(data->anims[index].duration);
+  }
+  const f32 newDuration = (f32)script_arg_num(call, 1);
+  if (!script_call_panicked(call)) {
+    data->anims[index].duration = newDuration;
+  }
+  return script_null();
+}
+
 void asset_data_init_import_mesh(void) {
   const ScriptBinderFlags flags = ScriptBinderFlags_DisallowMemoryAccess;
   ScriptBinder* binder = script_binder_create(g_allocPersist, string_lit("import-mesh"), flags);
@@ -197,6 +214,16 @@ void asset_data_init_import_mesh(void) {
         {string_lit("newName"), script_mask_str | script_mask_null},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_name);
+  }
+  {
+    const String       name   = string_lit("anim_duration");
+    const String       doc    = fmt_write_scratch("Query or change the animation duration.");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("newDuration"), script_mask_num | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_duration);
   }
   // clang-format on
 
