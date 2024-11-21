@@ -9,6 +9,7 @@ typedef struct {
 
 typedef struct {
   StringHash nameHash; // Interned in the global string table.
+  f32        duration;
 } AssetImportAnim;
 
 typedef struct {
