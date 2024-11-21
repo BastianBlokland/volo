@@ -1593,6 +1593,9 @@ static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, Asset
   out->animCount = ld->animCount;
   for (u32 animIndex = 0; animIndex != ld->animCount; ++animIndex) {
     GltfAnim* anim = &ld->anims[animIndex];
+
+    out->anims[animIndex].layer = (i32)animIndex;
+
     diag_assert(!string_is_empty(anim->name));
     out->anims[animIndex].nameHash = string_hash(anim->name);
 

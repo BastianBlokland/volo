@@ -76,6 +76,20 @@
       }
     },
     {
+      "name": "anim_layer",
+      "doc": "Query or change the layer (sorting index) of the animation at the given index.",
+      "sig": {
+        "ret": [ "null", "num" ],
+        "args": [
+          { "name": "index", "mask": "num" },
+          {
+            "name": "newLayer",
+            "mask": [ "null", "num" ]
+          }
+        ]
+      }
+    },
+    {
       "name": "asset_id",
       "doc": "Lookup the identifier of the importing asset.",
       "sig": {

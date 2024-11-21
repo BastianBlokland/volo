@@ -105,6 +105,23 @@ static ScriptVal import_eval_anim_find(AssetImportContext* ctx, ScriptBinderCall
   return script_null();
 }
 
+static ScriptVal import_eval_anim_layer(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data  = ctx->data;
+  const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  if (script_call_panicked(call)) {
+    return script_null();
+  }
+  diag_assert(index < data->animCount);
+  if (call->argCount < 2) {
+    return script_num(data->anims[index].layer);
+  }
+  const i32 newLayer = (i32)script_arg_num(call, 1);
+  if (!script_call_panicked(call)) {
+    data->anims[index].layer = newLayer;
+  }
+  return script_null();
+}
+
 static ScriptVal import_eval_anim_name(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data  = ctx->data;
   const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
@@ -204,6 +221,16 @@ void asset_data_init_import_mesh(void) {
         {string_lit("animName"), script_mask_str},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_find);
+  }
+  {
+    const String       name   = string_lit("anim_layer");
+    const String       doc    = fmt_write_scratch("Query or change the layer (sorting index) of the animation at the given index.");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("newLayer"), script_mask_num | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_layer);
   }
   {
     const String       name   = string_lit("anim_name");
