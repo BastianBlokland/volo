@@ -1529,7 +1529,7 @@ static void gltf_build_skeleton(
       }
     }
     resAnim->duration = importAnim->duration;
-    resAnim->time     = importAnim->time;
+    resAnim->time     = math_clamp_f32(importAnim->time, 0.0f, importAnim->duration);
     resAnim->speed    = importAnim->speed;
     resAnim->weight   = importAnim->weight;
   }
