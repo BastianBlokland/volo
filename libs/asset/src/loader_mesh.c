@@ -88,6 +88,9 @@ void asset_data_init_mesh(void) {
   data_reg_struct_t(g_dataReg, AssetMeshAnim);
   data_reg_field_t(g_dataReg, AssetMeshAnim, name, data_prim_t(String), .flags = DataFlags_Intern);
   data_reg_field_t(g_dataReg, AssetMeshAnim, duration, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetMeshAnim, time, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetMeshAnim, speed, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetMeshAnim, weight, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetMeshAnim, joints, t_AssetMeshAnimChannel, .container = DataContainer_InlineArray, .fixedCount = asset_mesh_joints_max * AssetMeshAnimTarget_Count);
 
   data_reg_struct_t(g_dataReg, AssetMeshSkeletonComp);
