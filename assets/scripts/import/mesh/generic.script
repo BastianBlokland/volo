@@ -1,3 +1,9 @@
 /**
  * Generic mesh import rules applicable to all meshes.
  */
+
+// Assign starting weight for animations.
+for (var animIndex = 0; animIndex != anim_count(); animIndex += 1) {
+  var isLowestLayer = animIndex == anim_count() - 1
+  anim_weight(animIndex, isLowestLayer ? 1.0 : 0.0)
+}
