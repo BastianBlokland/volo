@@ -49,7 +49,7 @@ typedef struct {
 
 typedef struct {
   StringHash           nameHash;
-  f32                  duration;
+  f32                  duration, time, speed, weight;
   SceneSkeletonChannel joints[scene_skeleton_joints_max][AssetMeshAnimTarget_Count];
 } SceneSkeletonAnim;
 
@@ -145,13 +145,12 @@ scene_skeleton_init(EcsWorld* world, const EcsEntityId entity, const SceneSkelet
 
   SceneAnimLayer* layers = alloc_array_t(g_allocHeap, SceneAnimLayer, tl->animCount);
   for (u32 i = 0; i != tl->animCount; ++i) {
-    const bool isLowestLayer = i == tl->animCount - 1;
-
     layers[i] = (SceneAnimLayer){
-        .duration = tl->anims[i].duration,
-        .speed    = 1.0f,
-        .weight   = isLowestLayer ? 1.0f : 0.0f,
         .nameHash = tl->anims[i].nameHash,
+        .duration = tl->anims[i].duration,
+        .time     = tl->anims[i].time,
+        .speed    = tl->anims[i].speed,
+        .weight   = tl->anims[i].weight,
         .flags    = SceneAnimFlags_Loop,
     };
     scene_skeleton_mask_set_rec(&layers[i].mask, tl, 0);
@@ -211,6 +210,9 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
     const AssetMeshAnim* assetAnim = &asset->anims.values[animIndex];
     tl->anims[animIndex].nameHash  = string_hash(assetAnim->name);
     tl->anims[animIndex].duration  = assetAnim->duration;
+    tl->anims[animIndex].time      = assetAnim->time;
+    tl->anims[animIndex].speed     = assetAnim->speed;
+    tl->anims[animIndex].weight    = assetAnim->weight;
 
     for (u32 joint = 0; joint != asset->jointCount; ++joint) {
       for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {

@@ -1717,7 +1717,10 @@ static ScriptExpr read_expr_select(ScriptReadContext* ctx, const ScriptExpr cond
   }
 
 RetSelectExpr:;
-  const ScriptRange range      = script_range(start, script_expr_range(ctx->doc, b2).end);
+  // NOTE: b1 can exceed the range of b2 due to how ranges for missing expressions work.
+  const ScriptRange b1Range    = script_expr_range(ctx->doc, b1);
+  const ScriptRange b2Range    = script_expr_range(ctx->doc, b2);
+  const ScriptRange range      = script_range(start, math_max(b1Range.end, b2Range.end));
   const ScriptExpr  intrArgs[] = {condition, b1, b2};
   return script_add_intrinsic(ctx->doc, range, ScriptIntrinsic_Select, intrArgs);
 }

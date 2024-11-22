@@ -51,7 +51,7 @@ typedef struct {
 
 typedef struct {
   String               name; // Interned.
-  f32                  duration;
+  f32                  duration, time, speed, weight;
   AssetMeshAnimChannel joints[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
 } AssetMeshAnim;
 
