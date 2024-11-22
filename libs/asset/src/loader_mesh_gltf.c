@@ -1604,6 +1604,10 @@ static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, Asset
 
     anim->duration                 = gltf_anim_duration(ld, anim);
     out->anims[animIndex].duration = anim->duration;
+
+    out->anims[animIndex].time   = 0.0f;
+    out->anims[animIndex].speed  = 1.0f;
+    out->anims[animIndex].weight = 1.0f;
   }
 
   return asset_import_mesh(importEnv, ld->assetId, out);

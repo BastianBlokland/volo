@@ -161,6 +161,57 @@ static ScriptVal import_eval_anim_duration(AssetImportContext* ctx, ScriptBinder
   return script_null();
 }
 
+static ScriptVal import_eval_anim_time(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data  = ctx->data;
+  const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  if (script_call_panicked(call)) {
+    return script_null();
+  }
+  diag_assert(index < data->animCount);
+  if (call->argCount < 2) {
+    return script_num(data->anims[index].time);
+  }
+  const f32 newTime = (f32)script_arg_num(call, 1);
+  if (!script_call_panicked(call)) {
+    data->anims[index].time = newTime;
+  }
+  return script_null();
+}
+
+static ScriptVal import_eval_anim_speed(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data  = ctx->data;
+  const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  if (script_call_panicked(call)) {
+    return script_null();
+  }
+  diag_assert(index < data->animCount);
+  if (call->argCount < 2) {
+    return script_num(data->anims[index].speed);
+  }
+  const f32 newSpeed = (f32)script_arg_num(call, 1);
+  if (!script_call_panicked(call)) {
+    data->anims[index].speed = newSpeed;
+  }
+  return script_null();
+}
+
+static ScriptVal import_eval_anim_weight(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data  = ctx->data;
+  const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  if (script_call_panicked(call)) {
+    return script_null();
+  }
+  diag_assert(index < data->animCount);
+  if (call->argCount < 2) {
+    return script_num(data->anims[index].weight);
+  }
+  const f32 newWeight = (f32)script_arg_num(call, 1);
+  if (!script_call_panicked(call)) {
+    data->anims[index].weight = newWeight;
+  }
+  return script_null();
+}
+
 void asset_data_init_import_mesh(void) {
   const ScriptBinderFlags flags = ScriptBinderFlags_DisallowMemoryAccess;
   ScriptBinder* binder = script_binder_create(g_allocPersist, string_lit("import-mesh"), flags);
@@ -256,6 +307,36 @@ void asset_data_init_import_mesh(void) {
         {string_lit("newDuration"), script_mask_num | script_mask_null},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_duration);
+  }
+  {
+    const String       name   = string_lit("anim_time");
+    const String       doc    = fmt_write_scratch("Query or change the initial animation time (in seconds).");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("newTime"), script_mask_num | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_time);
+  }
+  {
+    const String       name   = string_lit("anim_speed");
+    const String       doc    = fmt_write_scratch("Query or change the initial animation speed.");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("newSpeed"), script_mask_num | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_speed);
+  }
+  {
+    const String       name   = string_lit("anim_weight");
+    const String       doc    = fmt_write_scratch("Query or change the initial animation weight.");
+    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("newWeight"), script_mask_num | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_weight);
   }
   // clang-format on
 

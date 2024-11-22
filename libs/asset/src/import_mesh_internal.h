@@ -12,6 +12,9 @@ typedef struct {
   u32        index;    // Data index, immutable.
   i32        layer;    // Sort order; sorting wil be applied after importing.
   f32        duration;
+  f32        time;
+  f32        speed;
+  f32        weight;
 } AssetImportAnim;
 
 typedef struct {
