@@ -154,7 +154,7 @@ static ScriptVal import_eval_anim_duration(AssetImportContext* ctx, ScriptBinder
   if (call->argCount < 2) {
     return script_num(data->anims[index].duration);
   }
-  const f32 newDuration = (f32)script_arg_num(call, 1);
+  const f32 newDuration = (f32)script_arg_num_range(call, 1, 1e-4, 1e+4);
   if (!script_call_panicked(call)) {
     data->anims[index].duration = newDuration;
   }
@@ -171,7 +171,7 @@ static ScriptVal import_eval_anim_time(AssetImportContext* ctx, ScriptBinderCall
   if (call->argCount < 2) {
     return script_num(data->anims[index].time);
   }
-  const f32 newTime = (f32)script_arg_num(call, 1);
+  const f32 newTime = (f32)script_arg_num_range(call, 1, 0.0, 1e+4);
   if (!script_call_panicked(call)) {
     data->anims[index].time = newTime;
   }
@@ -188,7 +188,7 @@ static ScriptVal import_eval_anim_speed(AssetImportContext* ctx, ScriptBinderCal
   if (call->argCount < 2) {
     return script_num(data->anims[index].speed);
   }
-  const f32 newSpeed = (f32)script_arg_num(call, 1);
+  const f32 newSpeed = (f32)script_arg_num_range(call, 1, 0.0, 1e3);
   if (!script_call_panicked(call)) {
     data->anims[index].speed = newSpeed;
   }
@@ -205,7 +205,7 @@ static ScriptVal import_eval_anim_weight(AssetImportContext* ctx, ScriptBinderCa
   if (call->argCount < 2) {
     return script_num(data->anims[index].weight);
   }
-  const f32 newWeight = (f32)script_arg_num(call, 1);
+  const f32 newWeight = (f32)script_arg_num_range(call, 1, 0.0, 1.0);
   if (!script_call_panicked(call)) {
     data->anims[index].weight = newWeight;
   }
