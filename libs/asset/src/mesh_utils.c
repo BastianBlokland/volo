@@ -333,7 +333,14 @@ void asset_mesh_compute_tangents(AssetMeshBuilder* builder) {
     }
 
     // Ortho-normalize the tangent in case the texcoords are skewed.
-    GeoVector orthoTan = geo_vector_norm(geo_vector_sub(t, geo_vector_project(t, n)));
+    const GeoVector orthoTanRaw = geo_vector_sub(t, geo_vector_project(t, n));
+    if (geo_vector_mag_sqr(orthoTanRaw) <= f32_epsilon) {
+      // Not possible to calculate a tangent, tangent and normal are opposite of each-other.
+      vertices[i].tangent = geo_vector(1, 0, 0, 1);
+      continue;
+    }
+
+    GeoVector orthoTan = geo_vector_norm(orthoTanRaw);
 
     // Calculate the 'handedness', aka if the bi-tangent needs to be flipped.
     orthoTan.w = (geo_vector_dot(geo_vector_cross3(n, t), b) < 0) ? 1.f : -1.f;
