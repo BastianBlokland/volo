@@ -19,7 +19,7 @@
   _X_(AssetFormat_MeshBin,          mesh_bin,           1  )                                       \
   _X_(AssetFormat_MeshGlb,          mesh_glb,           3  )                                       \
   _X_(AssetFormat_MeshGltf,         mesh_gltf,          8  )                                       \
-  _X_(AssetFormat_MeshObj,          mesh_obj,           3  )                                       \
+  _X_(AssetFormat_MeshObj,          mesh_obj,           4  )                                       \
   _X_(AssetFormat_MeshProc,         mesh_proc,          1  )                                       \
   _X_(AssetFormat_Prefabs,          prefabs,            1  )                                       \
   _X_(AssetFormat_Products,         products,           1  )                                       \
