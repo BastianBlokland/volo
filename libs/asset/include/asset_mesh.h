@@ -36,6 +36,12 @@ ecs_comp_extern_public(AssetMeshComp) {
 };
 
 typedef enum {
+  AssetMeshAnimFlags_Loop    = 1 << 0,
+  AssetMeshAnimFlags_FadeIn  = 1 << 1,
+  AssetMeshAnimFlags_FadeOut = 1 << 2,
+} AssetMeshAnimFlags;
+
+typedef enum {
   AssetMeshAnimTarget_Translation,
   AssetMeshAnimTarget_Rotation,
   AssetMeshAnimTarget_Scale,
@@ -51,6 +57,7 @@ typedef struct {
 
 typedef struct {
   String               name; // Interned.
+  AssetMeshAnimFlags   flags;
   f32                  duration, time, speed, weight;
   AssetMeshAnimChannel joints[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
 } AssetMeshAnim;
