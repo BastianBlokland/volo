@@ -24,7 +24,7 @@
   _X_(AssetFormat_Prefabs,          prefabs,            1  )                                       \
   _X_(AssetFormat_Products,         products,           1  )                                       \
   _X_(AssetFormat_Raw,              raw,                0  ) /* Raw cannot be versioned. */        \
-  _X_(AssetFormat_Script,           script,             17 )                                       \
+  _X_(AssetFormat_Script,           script,             18 )                                       \
   _X_(AssetFormat_ScriptBin,        script_bin,         1  )                                       \
   _X_(AssetFormat_ShaderBin,        shader_bin,         1  )                                       \
   _X_(AssetFormat_ShaderGlslFrag,   shader_glsl_frag,   1  )                                       \
