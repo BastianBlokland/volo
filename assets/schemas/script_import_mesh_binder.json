@@ -91,6 +91,19 @@
       }
     },
     {
+      "name": "vertex_rotation",
+      "doc": "Set the vertex import rotation.",
+      "sig": {
+        "ret": [ "null", "quat" ],
+        "args": [
+          {
+            "name": "rotation",
+            "mask": [ "null", "quat" ]
+          }
+        ]
+      }
+    },
+    {
       "name": "anim_name",
       "doc": "Query or change the name of the animation at the given index.",
       "sig": {
@@ -207,6 +220,19 @@
       "sig": {
         "ret": "str",
         "args": []
+      }
+    },
+    {
+      "name": "vertex_translation",
+      "doc": "Set the vertex import translation.",
+      "sig": {
+        "ret": [ "null", "vec3" ],
+        "args": [
+          {
+            "name": "translation",
+            "mask": [ "null", "vec3" ]
+          }
+        ]
       }
     },
     {

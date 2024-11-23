@@ -17,9 +17,9 @@
   _X_(AssetFormat_Level,            level,              1  )                                       \
   _X_(AssetFormat_LevelBin,         level,              1  )                                       \
   _X_(AssetFormat_MeshBin,          mesh_bin,           1  )                                       \
-  _X_(AssetFormat_MeshGlb,          mesh_glb,           3  )                                       \
-  _X_(AssetFormat_MeshGltf,         mesh_gltf,          9  )                                       \
-  _X_(AssetFormat_MeshObj,          mesh_obj,           5  )                                       \
+  _X_(AssetFormat_MeshGlb,          mesh_glb,           10 )                                       \
+  _X_(AssetFormat_MeshGltf,         mesh_gltf,          10 )                                       \
+  _X_(AssetFormat_MeshObj,          mesh_obj,           6  )                                       \
   _X_(AssetFormat_MeshProc,         mesh_proc,          1  )                                       \
   _X_(AssetFormat_Prefabs,          prefabs,            1  )                                       \
   _X_(AssetFormat_Products,         products,           1  )                                       \
