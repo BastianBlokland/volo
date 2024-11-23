@@ -56,8 +56,8 @@ static AssetMeshSnapshot asset_mesh_snapshot(const AssetMeshBuilder* builder, Al
   };
 }
 
-void asset_mesh_vertex_scale(AssetMeshVertex* vert, f32 scale) {
-  vert->position = geo_vector_mul(vert->position, scale);
+void asset_mesh_vertex_scale(AssetMeshVertex* vert, const GeoVector scale) {
+  vert->position = geo_vector_mul_comps(vert->position, scale);
 }
 
 void asset_mesh_vertex_quantize(AssetMeshVertex* vert) {

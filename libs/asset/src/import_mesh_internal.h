@@ -16,11 +16,13 @@ typedef struct {
 } AssetImportAnim;
 
 typedef struct {
-  f32              vertexScale;
+  GeoVector vertexScale;
+
   AssetImportJoint joints[asset_mesh_joints_max];
   u32              jointCount;
-  AssetImportAnim  anims[asset_mesh_anims_max];
-  u32              animCount;
+
+  AssetImportAnim anims[asset_mesh_anims_max];
+  u32             animCount;
 } AssetImportMesh;
 
 bool asset_import_mesh(const AssetImportEnvComp*, String id, AssetImportMesh*);

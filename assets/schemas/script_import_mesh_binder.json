@@ -172,11 +172,11 @@
       "name": "vertex_scale",
       "doc": "Set the vertex import scale.",
       "sig": {
-        "ret": [ "null", "num" ],
+        "ret": [ "null", "vec3" ],
         "args": [
           {
             "name": "scale",
-            "mask": [ "null", "num" ]
+            "mask": [ "null", "num", "vec3" ]
           }
         ]
       }

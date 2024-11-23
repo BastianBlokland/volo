@@ -426,7 +426,7 @@ static bool obj_import(
     AssetImportMesh*          out) {
   (void)data;
 
-  out->vertexScale = 1.0f;
+  out->vertexScale = geo_vector(1.0f, 1.0f, 1.0f);
   out->jointCount  = 0;
   out->animCount   = 0;
 

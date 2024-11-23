@@ -1588,7 +1588,7 @@ Error:
 static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, AssetImportMesh* out) {
   diag_assert(ld->jointCount <= asset_mesh_joints_max);
 
-  out->vertexScale = 1.0f;
+  out->vertexScale = geo_vector(1.0f, 1.0f, 1.0f);
 
   out->jointCount = ld->jointCount;
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
