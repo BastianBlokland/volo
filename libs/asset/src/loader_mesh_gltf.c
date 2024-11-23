@@ -1528,6 +1528,7 @@ static void gltf_build_skeleton(
         }
       }
     }
+    resAnim->flags    = importAnim->flags;
     resAnim->duration = importAnim->duration;
     resAnim->time     = math_clamp_f32(importAnim->time, 0.0f, importAnim->duration);
     resAnim->speed    = importAnim->speed;
@@ -1601,6 +1602,7 @@ static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, Asset
 
     out->anims[animIndex].index = animIndex;
     out->anims[animIndex].layer = (i32)animIndex;
+    out->anims[animIndex].flags = 0;
 
     diag_assert(!string_is_empty(anim->name));
     out->anims[animIndex].nameHash = string_hash(anim->name);
