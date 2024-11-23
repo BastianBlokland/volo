@@ -359,7 +359,8 @@ static GeoVector obj_get_texcoord(const ObjData* data, const ObjVertex* vertex) 
 static void
 obj_triangulate(const ObjData* data, const AssetImportMesh* importData, AssetMeshBuilder* builder) {
 
-  const GeoMatrix vertexImportTrans = geo_matrix_scale(importData->vertexScale);
+  const GeoMatrix vertexImportTrans = geo_matrix_trs(
+      importData->vertexTranslation, importData->vertexRotation, importData->vertexScale);
 
   dynarray_for_t(&data->faces, ObjFace, face) {
     const GeoVector* positions = dynarray_begin_t(&data->positions, GeoVector);
@@ -430,9 +431,12 @@ static bool obj_import(
     AssetImportMesh*          out) {
   (void)data;
 
-  out->vertexScale = geo_vector(1.0f, 1.0f, 1.0f);
-  out->jointCount  = 0;
-  out->animCount   = 0;
+  out->vertexTranslation = geo_vector(0);
+  out->vertexRotation    = geo_quat_ident;
+  out->vertexScale       = geo_vector(1.0f, 1.0f, 1.0f);
+
+  out->jointCount = 0;
+  out->animCount  = 0;
 
   return asset_import_mesh(importEnv, assetId, out);
 }

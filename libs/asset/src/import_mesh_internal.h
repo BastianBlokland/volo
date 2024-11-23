@@ -16,6 +16,8 @@ typedef struct {
 } AssetImportAnim;
 
 typedef struct {
+  GeoVector vertexTranslation;
+  GeoQuat   vertexRotation;
   GeoVector vertexScale;
 
   AssetImportJoint joints[asset_mesh_joints_max];

@@ -1206,7 +1206,8 @@ static void gltf_build_mesh(
   }
   AssetMeshBuilder* builder = asset_mesh_builder_create(g_allocHeap, meta.vertexCount);
 
-  const GeoMatrix vertexImportTrans = geo_matrix_scale(importData->vertexScale);
+  const GeoMatrix vertexImportTrans = geo_matrix_trs(
+      importData->vertexTranslation, importData->vertexRotation, importData->vertexScale);
 
   typedef const f32* AccessorF32;
   AccessorF32        positions, texcoords, normals, tangents;
@@ -1590,7 +1591,9 @@ Error:
 static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, AssetImportMesh* out) {
   diag_assert(ld->jointCount <= asset_mesh_joints_max);
 
-  out->vertexScale = geo_vector(1.0f, 1.0f, 1.0f);
+  out->vertexTranslation = geo_vector(0);
+  out->vertexRotation    = geo_quat_ident;
+  out->vertexScale       = geo_vector(1.0f, 1.0f, 1.0f);
 
   out->jointCount = ld->jointCount;
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
