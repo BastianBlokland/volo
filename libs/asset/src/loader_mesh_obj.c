@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "ecs_world.h"
+#include "geo_matrix.h"
 #include "log_logger.h"
 
 #include "import_mesh_internal.h"
@@ -357,6 +358,9 @@ static GeoVector obj_get_texcoord(const ObjData* data, const ObjVertex* vertex) 
 
 static void
 obj_triangulate(const ObjData* data, const AssetImportMesh* importData, AssetMeshBuilder* builder) {
+
+  const GeoMatrix vertexImportTrans = geo_matrix_scale(importData->vertexScale);
+
   dynarray_for_t(&data->faces, ObjFace, face) {
     const GeoVector* positions = dynarray_begin_t(&data->positions, GeoVector);
     const GeoVector* normals   = dynarray_begin_t(&data->normals, GeoVector);
@@ -377,7 +381,7 @@ obj_triangulate(const ObjData* data, const AssetImportMesh* importData, AssetMes
          .normal   = face->useFaceNormal ? faceNrm : normals[inA->normalIndex],
          .texcoord = obj_get_texcoord(data, inA),
     };
-    asset_mesh_vertex_scale(&vertA, importData->vertexScale);
+    asset_mesh_vertex_transform(&vertA, &vertexImportTrans);
     asset_mesh_vertex_quantize(&vertA);
 
     for (u32 i = 2; i < face->vertexCount; ++i) {
@@ -387,7 +391,7 @@ obj_triangulate(const ObjData* data, const AssetImportMesh* importData, AssetMes
            .normal   = face->useFaceNormal ? faceNrm : normals[inB->normalIndex],
            .texcoord = obj_get_texcoord(data, inB),
       };
-      asset_mesh_vertex_scale(&vertB, importData->vertexScale);
+      asset_mesh_vertex_transform(&vertB, &vertexImportTrans);
       asset_mesh_vertex_quantize(&vertB);
 
       const ObjVertex* inC   = &vertices[face->vertexIndex + i];
@@ -396,7 +400,7 @@ obj_triangulate(const ObjData* data, const AssetImportMesh* importData, AssetMes
            .normal   = face->useFaceNormal ? faceNrm : normals[inC->normalIndex],
            .texcoord = obj_get_texcoord(data, inC),
       };
-      asset_mesh_vertex_scale(&vertC, importData->vertexScale);
+      asset_mesh_vertex_transform(&vertC, &vertexImportTrans);
       asset_mesh_vertex_quantize(&vertC);
 
       /**

@@ -4,6 +4,7 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "core_sentinel.h"
+#include "geo_matrix.h"
 
 #include "mesh_utils_internal.h"
 
@@ -56,8 +57,8 @@ static AssetMeshSnapshot asset_mesh_snapshot(const AssetMeshBuilder* builder, Al
   };
 }
 
-void asset_mesh_vertex_scale(AssetMeshVertex* vert, const GeoVector scale) {
-  vert->position = geo_vector_mul_comps(vert->position, scale);
+void asset_mesh_vertex_transform(AssetMeshVertex* vert, const GeoMatrix* mat) {
+  vert->position = geo_matrix_transform3_point(mat, vert->position);
 }
 
 void asset_mesh_vertex_quantize(AssetMeshVertex* vert) {

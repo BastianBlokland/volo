@@ -1206,6 +1206,8 @@ static void gltf_build_mesh(
   }
   AssetMeshBuilder* builder = asset_mesh_builder_create(g_allocHeap, meta.vertexCount);
 
+  const GeoMatrix vertexImportTrans = geo_matrix_scale(importData->vertexScale);
+
   typedef const f32* AccessorF32;
   AccessorF32        positions, texcoords, normals, tangents;
   u32                attrCount, vertexCount;
@@ -1262,7 +1264,7 @@ static void gltf_build_mesh(
           .tangent  = geo_vector(vertTan[0], vertTan[1], vertTan[2] * -1.0f, vertTan[3]),
           .texcoord = geo_vector(vertTex[0], 1.0f - vertTex[1]),
       };
-      asset_mesh_vertex_scale(&vertex, importData->vertexScale);
+      asset_mesh_vertex_transform(&vertex, &vertexImportTrans);
       asset_mesh_vertex_quantize(&vertex);
 
       const AssetMeshIndex vertexIdx = asset_mesh_builder_push(builder, &vertex);
