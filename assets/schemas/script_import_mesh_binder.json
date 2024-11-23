@@ -62,6 +62,21 @@
       }
     },
     {
+      "name": "anim_flag",
+      "doc": "Query or change an animation flag.\n\nSupported flags:\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`",
+      "sig": {
+        "ret": [ "null", "bool" ],
+        "args": [
+          { "name": "index", "mask": "num" },
+          { "name": "flag", "mask": "str" },
+          {
+            "name": "enable",
+            "mask": [ "null", "bool" ]
+          }
+        ]
+      }
+    },
+    {
       "name": "anim_weight",
       "doc": "Query or change the initial animation weight.",
       "sig": {

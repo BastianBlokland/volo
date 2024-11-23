@@ -49,6 +49,7 @@ typedef struct {
 
 typedef struct {
   StringHash           nameHash;
+  AssetMeshAnimFlags   flags;
   f32                  duration, time, speed, weight;
   SceneSkeletonChannel joints[scene_skeleton_joints_max][AssetMeshAnimTarget_Count];
 } SceneSkeletonAnim;
@@ -123,6 +124,20 @@ ecs_view_define(MeshView) {
 
 ecs_view_define(SkeletonTemplView) { ecs_access_read(SceneSkeletonTemplComp); }
 
+static SceneAnimFlags scene_skeleton_init_flags(const SceneSkeletonAnim* anim) {
+  SceneAnimFlags ret = SceneAnimFlags_None;
+  if (anim->flags & AssetMeshAnimFlags_Loop) {
+    ret |= SceneAnimFlags_Loop;
+  }
+  if (anim->flags & AssetMeshAnimFlags_FadeIn) {
+    ret |= SceneAnimFlags_AutoFadeIn;
+  }
+  if (anim->flags & AssetMeshAnimFlags_FadeOut) {
+    ret |= SceneAnimFlags_AutoFadeOut;
+  }
+  return ret;
+}
+
 static void
 scene_skeleton_init(EcsWorld* world, const EcsEntityId entity, const SceneSkeletonTemplComp* tl) {
   if (!tl->jointCount) {
@@ -146,12 +161,12 @@ scene_skeleton_init(EcsWorld* world, const EcsEntityId entity, const SceneSkelet
   SceneAnimLayer* layers = alloc_array_t(g_allocHeap, SceneAnimLayer, tl->animCount);
   for (u32 i = 0; i != tl->animCount; ++i) {
     layers[i] = (SceneAnimLayer){
+        .flags    = scene_skeleton_init_flags(&tl->anims[i]),
         .nameHash = tl->anims[i].nameHash,
         .duration = tl->anims[i].duration,
         .time     = tl->anims[i].time,
         .speed    = tl->anims[i].speed,
         .weight   = tl->anims[i].weight,
-        .flags    = SceneAnimFlags_Loop,
     };
     scene_skeleton_mask_set_rec(&layers[i].mask, tl, 0);
   }
@@ -208,6 +223,7 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
   tl->animCount = (u32)asset->anims.count;
   for (u32 animIndex = 0; animIndex != asset->anims.count; ++animIndex) {
     const AssetMeshAnim* assetAnim = &asset->anims.values[animIndex];
+    tl->anims[animIndex].flags     = assetAnim->flags;
     tl->anims[animIndex].nameHash  = string_hash(assetAnim->name);
     tl->anims[animIndex].duration  = assetAnim->duration;
     tl->anims[animIndex].time      = assetAnim->time;
