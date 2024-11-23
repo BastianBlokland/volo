@@ -2,8 +2,11 @@
  * Generic mesh import rules applicable to all meshes.
  */
 
-// Assign starting weight for animations.
-for (var animIndex = 0; animIndex != anim_count(); animIndex += 1) {
-  var isLowestLayer = animIndex == anim_count() - 1
+// Configure default animation settings.
+var animCount = anim_count()
+for (var animIndex = 0; animIndex != animCount; animIndex += 1) {
+  var isLowestLayer = animIndex == animCount - 1
+
+  anim_flag(animIndex, "Loop", true)
   anim_weight(animIndex, isLowestLayer ? 1.0 : 0.0)
 }
