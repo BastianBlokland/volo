@@ -167,7 +167,6 @@ scene_skeleton_init(EcsWorld* world, const EcsEntityId entity, const SceneSkelet
         .time     = tl->anims[i].time,
         .speed    = tl->anims[i].speed,
         .weight   = tl->anims[i].weight,
-        .flags    = SceneAnimFlags_Loop,
     };
     scene_skeleton_mask_set_rec(&layers[i].mask, tl, 0);
   }
