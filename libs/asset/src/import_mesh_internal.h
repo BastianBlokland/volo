@@ -22,6 +22,10 @@ typedef struct {
   GeoQuat   vertexRotation;
   GeoVector vertexScale;
 
+  GeoVector rootTranslation;
+  GeoQuat   rootRotation;
+  GeoVector rootScale;
+
   AssetImportJoint joints[asset_mesh_joints_max];
   u32              jointCount;
 

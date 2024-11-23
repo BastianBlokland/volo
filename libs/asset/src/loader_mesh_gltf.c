@@ -1561,7 +1561,12 @@ static void gltf_build_skeleton(
   }
 
   // Create the root-transform output.
-  AssetMeshDataPtr resRootTransform = gltf_data_push_trans(ld, ld->sceneTrans);
+  const GltfTransform rootTrans = {
+      .t = importData->rootTranslation,
+      .r = importData->rootRotation,
+      .s = importData->rootScale,
+  };
+  AssetMeshDataPtr resRootTransform = gltf_data_push_trans(ld, rootTrans);
 
   // Pad animData so the size is always a multiple of 16.
   mem_set(dynarray_push(&ld->animData, bits_padding(ld->animData.size, 16)), 0);
@@ -1596,6 +1601,10 @@ static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, Asset
   out->vertexTranslation = geo_vector(0);
   out->vertexRotation    = geo_quat_ident;
   out->vertexScale       = geo_vector(1.0f, 1.0f, 1.0f);
+
+  out->rootTranslation = ld->sceneTrans.t;
+  out->rootRotation    = ld->sceneTrans.r;
+  out->rootScale       = ld->sceneTrans.s;
 
   out->jointCount = ld->jointCount;
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
