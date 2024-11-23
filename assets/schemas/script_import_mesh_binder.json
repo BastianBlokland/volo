@@ -19,6 +19,19 @@
       }
     },
     {
+      "name": "root_scale",
+      "doc": "Set the bone root import scale (only valid for skinned meshes).",
+      "sig": {
+        "ret": [ "null", "vec3" ],
+        "args": [
+          {
+            "name": "scale",
+            "mask": [ "null", "num", "vec3" ]
+          }
+        ]
+      }
+    },
+    {
       "name": "fail_if",
       "doc": "Fail the import if the given value is truthy.",
       "sig": {
@@ -86,6 +99,19 @@
           {
             "name": "newWeight",
             "mask": [ "null", "num" ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "root_rotation",
+      "doc": "Set the bone root import rotation (only valid for skinned meshes).",
+      "sig": {
+        "ret": [ "null", "quat" ],
+        "args": [
+          {
+            "name": "rotation",
+            "mask": [ "null", "quat" ]
           }
         ]
       }
@@ -233,6 +259,19 @@
       "sig": {
         "ret": "str",
         "args": []
+      }
+    },
+    {
+      "name": "root_translation",
+      "doc": "Set the bone root import translation (only valid for skinned meshes).",
+      "sig": {
+        "ret": [ "null", "vec3" ],
+        "args": [
+          {
+            "name": "translation",
+            "mask": [ "null", "vec3" ]
+          }
+        ]
       }
     },
     {

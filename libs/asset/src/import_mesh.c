@@ -82,6 +82,46 @@ static ScriptVal import_eval_vertex_scale(AssetImportContext* ctx, ScriptBinderC
   return script_null();
 }
 
+static ScriptVal import_eval_root_translation(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data = ctx->data;
+  if (call->argCount < 1) {
+    return script_vec3(data->rootTranslation);
+  }
+  const GeoVector translation = script_arg_vec3(call, 0);
+  if (!script_call_panicked(call)) {
+    data->rootTranslation = translation;
+  }
+  return script_null();
+}
+
+static ScriptVal import_eval_root_rotation(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data = ctx->data;
+  if (call->argCount < 1) {
+    return script_quat(data->rootRotation);
+  }
+  const GeoQuat rotation = script_arg_quat(call, 0);
+  if (!script_call_panicked(call)) {
+    data->rootRotation = rotation;
+  }
+  return script_null();
+}
+
+static ScriptVal import_eval_root_scale(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data = ctx->data;
+  if (call->argCount < 1) {
+    return script_vec3(data->rootScale);
+  }
+  if (script_arg_check(call, 0, script_mask_num | script_mask_vec3)) {
+    if (script_type(call->args[0]) == ScriptType_Num) {
+      const f32 scale = (f32)script_arg_num_range(call, 0, 1e-3, 1e+6);
+      data->rootScale = geo_vector(scale, scale, scale);
+    } else {
+      data->rootScale = script_arg_vec3(call, 0);
+    }
+  }
+  return script_null();
+}
+
 static ScriptVal import_eval_joint_count(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)call;
   AssetImportMesh* data = ctx->data;
@@ -330,6 +370,33 @@ void asset_data_init_import_mesh(void) {
         {string_lit("scale"), script_mask_vec3 | script_mask_num | script_mask_null},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_vertex_scale);
+  }
+  {
+    const String       name   = string_lit("root_translation");
+    const String       doc    = fmt_write_scratch("Set the bone root import translation (only valid for skinned meshes).");
+    const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("translation"), script_mask_vec3 | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_root_translation);
+  }
+  {
+    const String       name   = string_lit("root_rotation");
+    const String       doc    = fmt_write_scratch("Set the bone root import rotation (only valid for skinned meshes).");
+    const ScriptMask   ret    = script_mask_quat | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("rotation"), script_mask_quat | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_root_rotation);
+  }
+  {
+    const String       name   = string_lit("root_scale");
+    const String       doc    = fmt_write_scratch("Set the bone root import scale (only valid for skinned meshes).");
+    const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("scale"), script_mask_vec3 | script_mask_num | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_root_scale);
   }
   {
     const String       name   = string_lit("joint_count");
