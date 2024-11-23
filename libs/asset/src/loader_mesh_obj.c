@@ -4,8 +4,10 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "ecs_world.h"
+#include "geo_matrix.h"
 #include "log_logger.h"
 
+#include "import_mesh_internal.h"
 #include "loader_mesh_internal.h"
 #include "manager_internal.h"
 #include "mesh_utils_internal.h"
@@ -59,6 +61,7 @@ typedef enum {
   ObjError_FaceTooFewVertices,
   ObjError_TooManyVertices,
   ObjError_NoFaces,
+  ObjError_ImportFailed,
 
   ObjError_Count,
 } ObjError;
@@ -71,6 +74,7 @@ static String obj_error_str(const ObjError err) {
       string_static("Face contains too few vertices (minimum is 3)"),
       string_static("Mesh contains too many vertices"),
       string_static("At least one mesh face is required"),
+      string_static("Import failed"),
   };
   ASSERT(array_elems(g_msgs) == ObjError_Count, "Incorrect number of obj-error messages");
   return g_msgs[err];
@@ -352,14 +356,19 @@ static GeoVector obj_get_texcoord(const ObjData* data, const ObjVertex* vertex) 
   return *dynarray_at_t(&data->texcoords, vertex->texcoordIndex, GeoVector);
 }
 
-static void obj_triangulate(const ObjData* data, AssetMeshBuilder* builder) {
+static void
+obj_triangulate(const ObjData* data, const AssetImportMesh* importData, AssetMeshBuilder* builder) {
+
+  const GeoMatrix vertexImportTrans = geo_matrix_trs(
+      importData->vertexTranslation, importData->vertexRotation, importData->vertexScale);
+
   dynarray_for_t(&data->faces, ObjFace, face) {
     const GeoVector* positions = dynarray_begin_t(&data->positions, GeoVector);
     const GeoVector* normals   = dynarray_begin_t(&data->normals, GeoVector);
     const ObjVertex* vertices  = dynarray_begin_t(&data->vertices, ObjVertex);
 
     GeoVector faceNrm;
-    if (face->useFaceNormal) {
+    if (face->useFaceNormal || importData->flatNormals) {
       faceNrm = asset_mesh_tri_norm(
           positions[vertices[face->vertexIndex].positionIndex],
           positions[vertices[face->vertexIndex + 1].positionIndex],
@@ -369,27 +378,30 @@ static void obj_triangulate(const ObjData* data, AssetMeshBuilder* builder) {
     // Create a triangle fan around the first vertex.
     const ObjVertex* inA   = &vertices[face->vertexIndex];
     AssetMeshVertex  vertA = {
-        .position = positions[inA->positionIndex],
-        .normal   = face->useFaceNormal ? faceNrm : normals[inA->normalIndex],
-        .texcoord = obj_get_texcoord(data, inA),
+         .position = positions[inA->positionIndex],
+         .normal   = face->useFaceNormal ? faceNrm : normals[inA->normalIndex],
+         .texcoord = obj_get_texcoord(data, inA),
     };
+    asset_mesh_vertex_transform(&vertA, &vertexImportTrans);
     asset_mesh_vertex_quantize(&vertA);
 
     for (u32 i = 2; i < face->vertexCount; ++i) {
       const ObjVertex* inB   = &vertices[face->vertexIndex + i - 1];
       AssetMeshVertex  vertB = {
-          .position = positions[inB->positionIndex],
-          .normal   = face->useFaceNormal ? faceNrm : normals[inB->normalIndex],
-          .texcoord = obj_get_texcoord(data, inB),
+           .position = positions[inB->positionIndex],
+           .normal   = face->useFaceNormal ? faceNrm : normals[inB->normalIndex],
+           .texcoord = obj_get_texcoord(data, inB),
       };
+      asset_mesh_vertex_transform(&vertB, &vertexImportTrans);
       asset_mesh_vertex_quantize(&vertB);
 
       const ObjVertex* inC   = &vertices[face->vertexIndex + i];
       AssetMeshVertex  vertC = {
-          .position = positions[inC->positionIndex],
-          .normal   = face->useFaceNormal ? faceNrm : normals[inC->normalIndex],
-          .texcoord = obj_get_texcoord(data, inC),
+           .position = positions[inC->positionIndex],
+           .normal   = face->useFaceNormal ? faceNrm : normals[inC->normalIndex],
+           .texcoord = obj_get_texcoord(data, inC),
       };
+      asset_mesh_vertex_transform(&vertC, &vertexImportTrans);
       asset_mesh_vertex_quantize(&vertC);
 
       /**
@@ -410,6 +422,25 @@ obj_load_fail(EcsWorld* world, const EcsEntityId entity, const String id, const 
       log_param("entity", ecs_entity_fmt(entity)),
       log_param("error", fmt_text(obj_error_str(err))));
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
+}
+
+static bool obj_import(
+    const AssetImportEnvComp* importEnv,
+    ObjData*                  data,
+    const String              assetId,
+    AssetImportMesh*          out) {
+  (void)data;
+
+  out->flatNormals = false;
+
+  out->vertexTranslation = geo_vector(0);
+  out->vertexRotation    = geo_quat_ident;
+  out->vertexScale       = geo_vector(1.0f, 1.0f, 1.0f);
+
+  out->jointCount = 0;
+  out->animCount  = 0;
+
+  return asset_import_mesh(importEnv, assetId, out);
 }
 
 void asset_load_mesh_obj(
@@ -447,8 +478,15 @@ void asset_load_mesh_obj(
     obj_load_fail(world, entity, id, ObjError_TooManyVertices);
     goto Done;
   }
+
+  AssetImportMesh importData;
+  if (!obj_import(importEnv, &data, id, &importData)) {
+    obj_load_fail(world, entity, id, ObjError_ImportFailed);
+    goto Done;
+  }
+
   builder = asset_mesh_builder_create(g_allocHeap, numVerts);
-  obj_triangulate(&data, builder);
+  obj_triangulate(&data, &importData, builder);
   asset_mesh_compute_tangents(builder);
 
   AssetMeshBundle meshBundle = {0};

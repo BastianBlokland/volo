@@ -53,6 +53,7 @@ static void ecs_destruct_import_env_comp(void* data) {
 static AssetImportType import_type_for_format(const AssetFormat format) {
   switch (format) {
   case AssetFormat_MeshGltf:
+  case AssetFormat_MeshObj:
     return AssetImportType_Mesh;
   case AssetFormat_TexHeight16:
   case AssetFormat_TexHeight32:

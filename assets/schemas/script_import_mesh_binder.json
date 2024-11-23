@@ -91,6 +91,19 @@
       }
     },
     {
+      "name": "vertex_rotation",
+      "doc": "Set the vertex import rotation.",
+      "sig": {
+        "ret": [ "null", "quat" ],
+        "args": [
+          {
+            "name": "rotation",
+            "mask": [ "null", "quat" ]
+          }
+        ]
+      }
+    },
+    {
       "name": "anim_name",
       "doc": "Query or change the name of the animation at the given index.",
       "sig": {
@@ -128,6 +141,19 @@
           {
             "name": "newSpeed",
             "mask": [ "null", "num" ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "flat_normals",
+      "doc": "Import flat (per face) normals (ignore per-vertex normals).",
+      "sig": {
+        "ret": [ "null", "bool" ],
+        "args": [
+          {
+            "name": "flatNormals",
+            "mask": [ "null", "bool" ]
           }
         ]
       }
@@ -172,11 +198,11 @@
       "name": "vertex_scale",
       "doc": "Set the vertex import scale.",
       "sig": {
-        "ret": [ "null", "num" ],
+        "ret": [ "null", "vec3" ],
         "args": [
           {
             "name": "scale",
-            "mask": [ "null", "num" ]
+            "mask": [ "null", "num", "vec3" ]
           }
         ]
       }
@@ -207,6 +233,19 @@
       "sig": {
         "ret": "str",
         "args": []
+      }
+    },
+    {
+      "name": "vertex_translation",
+      "doc": "Set the vertex import translation.",
+      "sig": {
+        "ret": [ "null", "vec3" ],
+        "args": [
+          {
+            "name": "translation",
+            "mask": [ "null", "vec3" ]
+          }
+        ]
       }
     },
     {

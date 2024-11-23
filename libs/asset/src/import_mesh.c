@@ -30,14 +30,54 @@ static i8 import_compare_anim_layer(const void* a, const void* b) {
   return compare_i32(field_ptr(a, AssetImportAnim, layer), field_ptr(b, AssetImportAnim, layer));
 }
 
+static ScriptVal import_eval_flat_normals(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data = ctx->data;
+  if (call->argCount < 1) {
+    return script_bool(data->flatNormals);
+  }
+  const bool flatNormals = script_arg_bool(call, 0);
+  if (!script_call_panicked(call)) {
+    data->flatNormals = flatNormals;
+  }
+  return script_null();
+}
+
+static ScriptVal import_eval_vertex_translation(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data = ctx->data;
+  if (call->argCount < 1) {
+    return script_vec3(data->vertexTranslation);
+  }
+  const GeoVector translation = script_arg_vec3(call, 0);
+  if (!script_call_panicked(call)) {
+    data->vertexTranslation = translation;
+  }
+  return script_null();
+}
+
+static ScriptVal import_eval_vertex_rotation(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data = ctx->data;
+  if (call->argCount < 1) {
+    return script_quat(data->vertexRotation);
+  }
+  const GeoQuat rotation = script_arg_quat(call, 0);
+  if (!script_call_panicked(call)) {
+    data->vertexRotation = rotation;
+  }
+  return script_null();
+}
+
 static ScriptVal import_eval_vertex_scale(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data = ctx->data;
   if (call->argCount < 1) {
-    return script_num(data->vertexScale);
+    return script_vec3(data->vertexScale);
   }
-  const f64 scale = script_arg_num_range(call, 0, 1e-3, 1e+6);
-  if (!script_call_panicked(call)) {
-    data->vertexScale = (f32)scale;
+  if (script_arg_check(call, 0, script_mask_num | script_mask_vec3)) {
+    if (script_type(call->args[0]) == ScriptType_Num) {
+      const f32 scale   = (f32)script_arg_num_range(call, 0, 1e-3, 1e+6);
+      data->vertexScale = geo_vector(scale, scale, scale);
+    } else {
+      data->vertexScale = script_arg_vec3(call, 0);
+    }
   }
   return script_null();
 }
@@ -256,11 +296,38 @@ void asset_data_init_import_mesh(void) {
   // clang-format off
   static const String g_animFlagsDoc = string_static("Supported flags:\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`");
   {
+    const String       name   = string_lit("flat_normals");
+    const String       doc    = fmt_write_scratch("Import flat (per face) normals (ignore per-vertex normals).");
+    const ScriptMask   ret    = script_mask_bool | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("flatNormals"), script_mask_bool | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_flat_normals);
+  }
+  {
+    const String       name   = string_lit("vertex_translation");
+    const String       doc    = fmt_write_scratch("Set the vertex import translation.");
+    const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("translation"), script_mask_vec3 | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_vertex_translation);
+  }
+  {
+    const String       name   = string_lit("vertex_rotation");
+    const String       doc    = fmt_write_scratch("Set the vertex import rotation.");
+    const ScriptMask   ret    = script_mask_quat | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("rotation"), script_mask_quat | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_vertex_rotation);
+  }
+  {
     const String       name   = string_lit("vertex_scale");
     const String       doc    = fmt_write_scratch("Set the vertex import scale.");
-    const ScriptMask   ret    = script_mask_num | script_mask_null;
+    const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
     const ScriptSigArg args[] = {
-        {string_lit("scale"), script_mask_num | script_mask_null},
+        {string_lit("scale"), script_mask_vec3 | script_mask_num | script_mask_null},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_vertex_scale);
   }

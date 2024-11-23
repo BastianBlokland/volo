@@ -1206,6 +1206,9 @@ static void gltf_build_mesh(
   }
   AssetMeshBuilder* builder = asset_mesh_builder_create(g_allocHeap, meta.vertexCount);
 
+  const GeoMatrix vertexImportTrans = geo_matrix_trs(
+      importData->vertexTranslation, importData->vertexRotation, importData->vertexScale);
+
   typedef const f32* AccessorF32;
   AccessorF32        positions, texcoords, normals, tangents;
   u32                attrCount, vertexCount;
@@ -1262,7 +1265,7 @@ static void gltf_build_mesh(
           .tangent  = geo_vector(vertTan[0], vertTan[1], vertTan[2] * -1.0f, vertTan[3]),
           .texcoord = geo_vector(vertTex[0], 1.0f - vertTex[1]),
       };
-      asset_mesh_vertex_scale(&vertex, importData->vertexScale);
+      asset_mesh_vertex_transform(&vertex, &vertexImportTrans);
       asset_mesh_vertex_quantize(&vertex);
 
       const AssetMeshIndex vertexIdx = asset_mesh_builder_push(builder, &vertex);
@@ -1278,10 +1281,10 @@ static void gltf_build_mesh(
       }
     }
   }
-  if (!(meta.features & GltfFeature_Normals)) {
+  if (!(meta.features & GltfFeature_Normals) || importData->flatNormals) {
     asset_mesh_compute_flat_normals(builder);
   }
-  if (!(meta.features & GltfFeature_Tangents)) {
+  if (!(meta.features & GltfFeature_Tangents) || importData->flatNormals) {
     asset_mesh_compute_tangents(builder);
   }
   *out = asset_mesh_create(builder);
@@ -1588,7 +1591,11 @@ Error:
 static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, AssetImportMesh* out) {
   diag_assert(ld->jointCount <= asset_mesh_joints_max);
 
-  out->vertexScale = 1.0f;
+  out->flatNormals = false;
+
+  out->vertexTranslation = geo_vector(0);
+  out->vertexRotation    = geo_quat_ident;
+  out->vertexScale       = geo_vector(1.0f, 1.0f, 1.0f);
 
   out->jointCount = ld->jointCount;
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {

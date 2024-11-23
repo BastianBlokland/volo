@@ -2,6 +2,9 @@
 #include "asset_mesh.h"
 #include "core_alloc.h"
 
+// Forward declare from 'geo_matrix.h'.
+typedef union uGeoMatrix GeoMatrix;
+
 typedef struct sAssetMeshBuilder AssetMeshBuilder;
 
 typedef struct {
@@ -16,7 +19,7 @@ typedef struct {
   GeoVector weights;   // joint weights.
 } AssetMeshSkin;
 
-void asset_mesh_vertex_scale(AssetMeshVertex*, f32 scale);
+void asset_mesh_vertex_transform(AssetMeshVertex*, const GeoMatrix*);
 void asset_mesh_vertex_quantize(AssetMeshVertex*);
 
 AssetMeshBuilder* asset_mesh_builder_create(Allocator*, u32 maxVertexCount);
