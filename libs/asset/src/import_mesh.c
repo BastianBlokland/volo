@@ -6,11 +6,25 @@
 #include "core_stringtable.h"
 #include "script_args.h"
 #include "script_binder.h"
+#include "script_enum.h"
 #include "script_sig.h"
 
 #include "import_mesh_internal.h"
 
 ScriptBinder* g_assetScriptImportMeshBinder;
+
+static ScriptEnum g_importAnimFlags;
+
+static void import_init_enum_anim_flags(void) {
+#define ENUM_PUSH(_ENUM_, _NAME_)                                                                  \
+  script_enum_push((_ENUM_), string_lit(#_NAME_), AssetMeshAnimFlags_##_NAME_);
+
+  ENUM_PUSH(&g_importAnimFlags, Loop);
+  ENUM_PUSH(&g_importAnimFlags, FadeIn);
+  ENUM_PUSH(&g_importAnimFlags, FadeOut);
+
+#undef ENUM_PUSH
+}
 
 static i8 import_compare_anim_layer(const void* a, const void* b) {
   return compare_i32(field_ptr(a, AssetImportAnim, layer), field_ptr(b, AssetImportAnim, layer));
@@ -127,6 +141,26 @@ static ScriptVal import_eval_anim_layer(AssetImportContext* ctx, ScriptBinderCal
   return script_null();
 }
 
+static ScriptVal import_eval_anim_flag(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data  = ctx->data;
+  const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  if (script_call_panicked(call)) {
+    return script_null();
+  }
+  diag_assert(index < data->animCount);
+  const i32 flag = script_arg_enum(call, 1, &g_importAnimFlags);
+  if (!script_call_panicked(call)) {
+    if (call->argCount < 3) {
+      return script_bool((data->anims[index].flags & flag) != 0);
+    }
+    const bool enabled = script_arg_bool(call, 2);
+    if (!script_call_panicked(call) && enabled != !!(data->anims[index].flags & flag)) {
+      data->anims[index].flags ^= flag;
+    }
+  }
+  return script_null();
+}
+
 static ScriptVal import_eval_anim_name(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data  = ctx->data;
   const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
@@ -213,11 +247,14 @@ static ScriptVal import_eval_anim_weight(AssetImportContext* ctx, ScriptBinderCa
 }
 
 void asset_data_init_import_mesh(void) {
+  import_init_enum_anim_flags();
+
   const ScriptBinderFlags flags = ScriptBinderFlags_DisallowMemoryAccess;
   ScriptBinder* binder = script_binder_create(g_allocPersist, string_lit("import-mesh"), flags);
   script_binder_filter_set(binder, string_lit("import/mesh/*.script"));
 
   // clang-format off
+  static const String g_animFlagsDoc = string_static("Supported flags:\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`");
   {
     const String       name   = string_lit("vertex_scale");
     const String       doc    = fmt_write_scratch("Set the vertex import scale.");
@@ -287,6 +324,17 @@ void asset_data_init_import_mesh(void) {
         {string_lit("newLayer"), script_mask_num | script_mask_null},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_layer);
+  }
+  {
+    const String       name   = string_lit("anim_flag");
+    const String       doc    = fmt_write_scratch("Query or change an animation flag.\n\n{}", fmt_text(g_animFlagsDoc));
+    const ScriptMask   ret    = script_mask_bool | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("flag"), script_mask_str},
+        {string_lit("enable"), script_mask_bool | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_flag);
   }
   {
     const String       name   = string_lit("anim_name");
