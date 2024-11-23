@@ -30,6 +30,18 @@ static i8 import_compare_anim_layer(const void* a, const void* b) {
   return compare_i32(field_ptr(a, AssetImportAnim, layer), field_ptr(b, AssetImportAnim, layer));
 }
 
+static ScriptVal import_eval_flat_normals(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data = ctx->data;
+  if (call->argCount < 1) {
+    return script_bool(data->flatNormals);
+  }
+  const bool flatNormals = script_arg_bool(call, 0);
+  if (!script_call_panicked(call)) {
+    data->flatNormals = flatNormals;
+  }
+  return script_null();
+}
+
 static ScriptVal import_eval_vertex_translation(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data = ctx->data;
   if (call->argCount < 1) {
@@ -283,6 +295,15 @@ void asset_data_init_import_mesh(void) {
 
   // clang-format off
   static const String g_animFlagsDoc = string_static("Supported flags:\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`");
+  {
+    const String       name   = string_lit("flat_normals");
+    const String       doc    = fmt_write_scratch("Import flat (per face) normals (ignore per-vertex normals).");
+    const ScriptMask   ret    = script_mask_bool | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("flatNormals"), script_mask_bool | script_mask_null},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_flat_normals);
+  }
   {
     const String       name   = string_lit("vertex_translation");
     const String       doc    = fmt_write_scratch("Set the vertex import translation.");

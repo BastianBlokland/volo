@@ -146,6 +146,19 @@
       }
     },
     {
+      "name": "flat_normals",
+      "doc": "Import flat (per face) normals (ignore per-vertex normals).",
+      "sig": {
+        "ret": [ "null", "bool" ],
+        "args": [
+          {
+            "name": "flatNormals",
+            "mask": [ "null", "bool" ]
+          }
+        ]
+      }
+    },
+    {
       "name": "asset_id",
       "doc": "Lookup the identifier of the importing asset.",
       "sig": {

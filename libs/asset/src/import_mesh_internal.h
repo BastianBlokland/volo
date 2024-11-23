@@ -16,6 +16,8 @@ typedef struct {
 } AssetImportAnim;
 
 typedef struct {
+  bool flatNormals;
+
   GeoVector vertexTranslation;
   GeoQuat   vertexRotation;
   GeoVector vertexScale;

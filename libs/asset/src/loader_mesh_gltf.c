@@ -1281,10 +1281,10 @@ static void gltf_build_mesh(
       }
     }
   }
-  if (!(meta.features & GltfFeature_Normals)) {
+  if (!(meta.features & GltfFeature_Normals) || importData->flatNormals) {
     asset_mesh_compute_flat_normals(builder);
   }
-  if (!(meta.features & GltfFeature_Tangents)) {
+  if (!(meta.features & GltfFeature_Tangents) || importData->flatNormals) {
     asset_mesh_compute_tangents(builder);
   }
   *out = asset_mesh_create(builder);
@@ -1590,6 +1590,8 @@ Error:
 
 static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, AssetImportMesh* out) {
   diag_assert(ld->jointCount <= asset_mesh_joints_max);
+
+  out->flatNormals = false;
 
   out->vertexTranslation = geo_vector(0);
   out->vertexRotation    = geo_quat_ident;

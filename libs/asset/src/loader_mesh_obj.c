@@ -368,7 +368,7 @@ obj_triangulate(const ObjData* data, const AssetImportMesh* importData, AssetMes
     const ObjVertex* vertices  = dynarray_begin_t(&data->vertices, ObjVertex);
 
     GeoVector faceNrm;
-    if (face->useFaceNormal) {
+    if (face->useFaceNormal || importData->flatNormals) {
       faceNrm = asset_mesh_tri_norm(
           positions[vertices[face->vertexIndex].positionIndex],
           positions[vertices[face->vertexIndex + 1].positionIndex],
@@ -430,6 +430,8 @@ static bool obj_import(
     const String              assetId,
     AssetImportMesh*          out) {
   (void)data;
+
+  out->flatNormals = false;
 
   out->vertexTranslation = geo_vector(0);
   out->vertexRotation    = geo_quat_ident;
