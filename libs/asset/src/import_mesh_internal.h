@@ -14,6 +14,7 @@ typedef struct {
   i32                layer;    // Sort order; sorting wil be applied after importing.
   AssetMeshAnimFlags flags;
   f32                duration, time, speed, weight;
+  f32                mask[asset_mesh_joints_max];
 } AssetImportAnim;
 
 typedef struct {

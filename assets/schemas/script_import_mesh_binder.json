@@ -298,6 +298,21 @@
       }
     },
     {
+      "name": "anim_mask",
+      "doc": "Query or change the mask weight for a specific joint.",
+      "sig": {
+        "ret": [ "null", "num" ],
+        "args": [
+          { "name": "index", "mask": "num" },
+          { "name": "jointIndex", "mask": "num" },
+          {
+            "name": "newWeight",
+            "mask": [ "null", "num" ]
+          }
+        ]
+      }
+    },
+    {
       "name": "failed",
       "doc": "Check if the import has failed.",
       "sig": {

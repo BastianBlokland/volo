@@ -1502,6 +1502,12 @@ static void gltf_build_skeleton(
   // Create the animation output structures.
   AssetMeshAnim* resAnims =
       ld->animCount ? alloc_array_t(g_allocHeap, AssetMeshAnim, ld->animCount) : null;
+
+  if (resAnims) {
+    // Zero init to avoid having garbage in the unused joint slots.
+    mem_set(mem_create(resAnims, sizeof(AssetMeshAnim) * ld->animCount), 0);
+  }
+
   for (u32 i = 0; i != importData->animCount; ++i) {
     AssetMeshAnim*         resAnim    = &resAnims[i];
     const AssetImportAnim* importAnim = &importData->anims[i];
@@ -1512,6 +1518,7 @@ static void gltf_build_skeleton(
     const f32 durationOrg = anim->duration;
 
     for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+      bool anyTargetAnimated = false;
       for (AssetMeshAnimTarget target = 0; target != AssetMeshAnimTarget_Count; ++target) {
         const GltfAnimChannel* srcChannel = &anim->channels[jointIndex][target];
         AssetMeshAnimChannel*  resChannel = &resAnim->joints[jointIndex][target];
@@ -1526,9 +1533,13 @@ static void gltf_build_skeleton(
             gltf_process_anim_channel_rot(ld, resChannel);
           }
           gltf_process_anim_channel(ld, resChannel, target, durationOrg);
+          anyTargetAnimated |= resChannel->frameCount > 0;
         } else {
           *resChannel = (AssetMeshAnimChannel){0};
         }
+      }
+      if (anyTargetAnimated) {
+        resAnim->mask[jointIndex] = math_clamp_f32(importAnim->mask[jointIndex], 0.0f, 1.0f);
       }
     }
     resAnim->flags    = importAnim->flags;
@@ -1630,6 +1641,11 @@ static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, Asset
     out->anims[animIndex].time   = 0.0f;
     out->anims[animIndex].speed  = 1.0f;
     out->anims[animIndex].weight = 1.0f;
+
+    for (u32 jointIndex = 0; jointIndex != asset_mesh_joints_max; ++jointIndex) {
+      const bool slotUsed                    = jointIndex < ld->jointCount;
+      out->anims[animIndex].mask[jointIndex] = slotUsed ? 1.0f : 0.0f;
+    }
   }
 
   return asset_import_mesh(importEnv, ld->assetId, out);

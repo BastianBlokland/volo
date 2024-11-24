@@ -52,6 +52,7 @@ typedef struct {
   AssetMeshAnimFlags   flags;
   f32                  duration, time, speed, weight;
   SceneSkeletonChannel joints[scene_skeleton_joints_max][AssetMeshAnimTarget_Count];
+  f32                  mask[scene_skeleton_joints_max];
 } SceneSkeletonAnim;
 
 /**
@@ -241,6 +242,9 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
         };
       }
     }
+
+    const usize maskSize = sizeof(f32) * scene_skeleton_joints_max;
+    mem_cpy(mem_create(tl->anims[animIndex].mask, maskSize), mem_create(assetAnim->mask, maskSize));
   }
 
   tl->bindMatInv     = (const GeoMatrix*)mem_at_u8(tl->data, asset->bindMatInv);
@@ -437,6 +441,8 @@ static void anim_sample_layer(
       continue; // Layer is disabled for this joint.
     }
 
+    const f32 sampleWeight = layerWeight * anim->mask[j];
+
     f32* weightT = &weights[j * AssetMeshAnimTarget_Count + AssetMeshAnimTarget_Translation];
     f32* weightR = &weights[j * AssetMeshAnimTarget_Count + AssetMeshAnimTarget_Rotation];
     f32* weightS = &weights[j * AssetMeshAnimTarget_Count + AssetMeshAnimTarget_Scale];
@@ -446,13 +452,13 @@ static void anim_sample_layer(
     const SceneSkeletonChannel* chS = &anim->joints[j][AssetMeshAnimTarget_Scale];
 
     if (chT->frameCount && *weightT < scene_weight_max) {
-      anim_blend_vec(anim_channel_get_vec(chT, tNorm16), layerWeight, weightT, &out[j].t);
+      anim_blend_vec(anim_channel_get_vec(chT, tNorm16), sampleWeight, weightT, &out[j].t);
     }
     if (chR->frameCount && *weightR < scene_weight_max) {
-      anim_blend_quat(anim_channel_get_quat(chR, tNorm16), layerWeight, weightR, &out[j].r);
+      anim_blend_quat(anim_channel_get_quat(chR, tNorm16), sampleWeight, weightR, &out[j].r);
     }
     if (chS->frameCount && *weightS < scene_weight_max) {
-      anim_blend_vec(anim_channel_get_vec(chS, tNorm16), layerWeight, weightS, &out[j].s);
+      anim_blend_vec(anim_channel_get_vec(chS, tNorm16), sampleWeight, weightS, &out[j].s);
     }
   }
 }
