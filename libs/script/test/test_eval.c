@@ -282,8 +282,10 @@ spec(eval) {
                           "  for(var j = 0; j != 10; j += 1) {"
                           "    if(j == 2) { continue };"
                           "    k += 1;"
-                          "  }"
-                          "}"),
+                          "    continue"
+                          "  };"
+                          "  continue"
+                          "}; k"),
             script_num(81),
         },
 
