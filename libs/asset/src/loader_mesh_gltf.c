@@ -365,6 +365,9 @@ static bool gltf_json_field_quat(GltfLoad* ld, const JsonVal v, const String nam
   for (u32 i = 0; i != 4; ++i) {
     success &= gltf_json_elem_f32(ld, jField, i, &out->comps[i]);
   }
+  if (success) {
+    *out = geo_quat_norm_or_ident(*out);
+  }
   return success;
 }
 
@@ -1523,7 +1526,7 @@ static void gltf_build_skeleton(
         const GltfAnimChannel* srcChannel = &anim->channels[jointIndex][target];
         AssetMeshAnimChannel*  resChannel = &resAnim->joints[jointIndex][target];
 
-        if (!sentinel_check(srcChannel->accInput)) {
+        if (!sentinel_check(srcChannel->accInput) && importAnim->mask[jointIndex] > f32_epsilon) {
           *resChannel = (AssetMeshAnimChannel){
               .frameCount = ld->access[srcChannel->accInput].count,
               .timeData   = gltf_data_push_access_norm16(ld, srcChannel->accInput, durationOrg),
