@@ -52,6 +52,7 @@ typedef struct {
   AssetMeshAnimFlags   flags;
   f32                  duration, time, speed, weight;
   SceneSkeletonChannel joints[scene_skeleton_joints_max][AssetMeshAnimTarget_Count];
+  f32                  mask[scene_skeleton_joints_max];
 } SceneSkeletonAnim;
 
 /**
@@ -241,6 +242,9 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
         };
       }
     }
+
+    const usize maskSize = sizeof(f32) * scene_skeleton_joints_max;
+    mem_cpy(mem_create(tl->anims[animIndex].mask, maskSize), mem_create(assetAnim->mask, maskSize));
   }
 
   tl->bindMatInv     = (const GeoMatrix*)mem_at_u8(tl->data, asset->bindMatInv);

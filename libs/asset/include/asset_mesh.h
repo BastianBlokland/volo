@@ -60,6 +60,7 @@ typedef struct {
   AssetMeshAnimFlags   flags;
   f32                  duration, time, speed, weight;
   AssetMeshAnimChannel joints[asset_mesh_joints_max][AssetMeshAnimTarget_Count];
+  f32                  mask[asset_mesh_joints_max];
 } AssetMeshAnim;
 
 ecs_comp_extern_public(AssetMeshSkeletonComp) {
