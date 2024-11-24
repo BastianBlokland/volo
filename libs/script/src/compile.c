@@ -633,14 +633,14 @@ compile_intr_loop(Context* ctx, const Target tgt, const ScriptExpr* args) {
       return err;
     }
   }
-  const LabelId labelCond = label_alloc(ctx);
-  ctx->loopLabelIncrement = label_alloc(ctx);
-  ctx->loopLabelEnd       = label_alloc(ctx);
+  const LabelId labelCond      = label_alloc(ctx);
+  const LabelId labelIncrement = label_alloc(ctx);
+  const LabelId labelEnd       = label_alloc(ctx);
 
   // Condition expression.
   if (expr_is_null(ctx, args[2])) {
     // NOTE: Loop is not using a increment expression; we can skip straight to the condition.
-    label_link(ctx, ctx->loopLabelIncrement);
+    label_link(ctx, labelIncrement);
   }
   label_link(ctx, labelCond);
   if (!expr_is_true(ctx, args[1])) {
@@ -652,32 +652,40 @@ compile_intr_loop(Context* ctx, const Target tgt, const ScriptExpr* args) {
       if ((err = compile_expr(ctx, target_reg_jump_cond(tmpReg), invertArgs[0]))) {
         return err;
       }
-      emit_jump_if_truthy(ctx, tmpReg, ctx->loopLabelEnd);
+      emit_jump_if_truthy(ctx, tmpReg, labelEnd);
     } else {
       if ((err = compile_expr(ctx, target_reg_jump_cond(tmpReg), args[1]))) {
         return err;
       }
-      emit_jump_if_falsy(ctx, tmpReg, ctx->loopLabelEnd);
+      emit_jump_if_falsy(ctx, tmpReg, labelEnd);
     }
   }
+
+  const LabelId prevLabelIncrement = ctx->loopLabelIncrement;
+  const LabelId prevLabelEnd       = ctx->loopLabelEnd;
+
+  ctx->loopLabelIncrement = labelIncrement;
+  ctx->loopLabelEnd       = labelEnd;
 
   // Body expression.
   if ((err = compile_expr(ctx, tgt, args[3]))) {
     return err;
   }
 
+  ctx->loopLabelIncrement = prevLabelIncrement;
+  ctx->loopLabelEnd       = prevLabelEnd;
+
   // Increment expression.
   if (!expr_is_null(ctx, args[2])) {
-    label_link(ctx, ctx->loopLabelIncrement);
+    label_link(ctx, labelIncrement);
     if ((err = compile_expr(ctx, target_reg_opt(tmpReg), args[2]))) {
       return err;
     }
   }
   emit_jump(ctx, labelCond);
 
-  label_link(ctx, ctx->loopLabelEnd);
+  label_link(ctx, labelEnd);
 
-  ctx->loopLabelIncrement = ctx->loopLabelEnd = sentinel_u32;
   reg_free(ctx, tmpReg);
   return err;
 }
@@ -923,13 +931,15 @@ ScriptCompileError script_compile(
     Allocator*          outAlloc,
     ScriptProgram*      out) {
   Context ctx = {
-      .doc          = doc,
-      .lookup       = lookup,
-      .outCode      = dynstring_create(g_allocHeap, 64),
-      .outLiterals  = dynarray_create_t(g_allocHeap, ScriptVal, 0),
-      .outLocations = dynarray_create_t(g_allocHeap, ScriptProgramLoc, 16),
-      .labels       = dynarray_create_t(g_allocHeap, Label, 0),
-      .labelPatches = dynarray_create_t(g_allocHeap, LabelPatch, 0),
+      .doc                = doc,
+      .lookup             = lookup,
+      .outCode            = dynstring_create(g_allocHeap, 64),
+      .outLiterals        = dynarray_create_t(g_allocHeap, ScriptVal, 0),
+      .outLocations       = dynarray_create_t(g_allocHeap, ScriptProgramLoc, 16),
+      .labels             = dynarray_create_t(g_allocHeap, Label, 0),
+      .labelPatches       = dynarray_create_t(g_allocHeap, LabelPatch, 0),
+      .loopLabelIncrement = sentinel_u32,
+      .loopLabelEnd       = sentinel_u32,
   };
   mem_set(array_mem(ctx.varRegisters), 0xFF);
 

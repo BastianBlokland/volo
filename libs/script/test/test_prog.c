@@ -259,6 +259,19 @@ spec(prog) {
                           "}; j"),
             script_num(5),
         },
+        {
+            string_static("var k = 0;"
+                          "for(var i = 0; i != 10; i += 1) {"
+                          "  if(i == 2) { continue };"
+                          "  for(var j = 0; j != 10; j += 1) {"
+                          "    if(j == 2) { continue };"
+                          "    k += 1;"
+                          "    continue"
+                          "  };"
+                          "  continue"
+                          "}; k"),
+            script_num(81),
+        },
 
         // Other.
         {string_static("assert(1)"), script_null()},

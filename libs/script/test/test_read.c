@@ -1110,6 +1110,12 @@ spec(read) {
         {string_static("break"), ScriptDiag_OnlyValidInLoop},
         {string_static("while(continue) {}"), ScriptDiag_OnlyValidInLoop},
         {string_static("while(break) {}"), ScriptDiag_OnlyValidInLoop},
+        {string_static("for(break;;) {}"), ScriptDiag_OnlyValidInLoop},
+        {string_static("for(continue;;) {}"), ScriptDiag_OnlyValidInLoop},
+        {string_static("for(;break;) {}"), ScriptDiag_OnlyValidInLoop},
+        {string_static("for(;continue;) {}"), ScriptDiag_OnlyValidInLoop},
+        {string_static("for(;;break) {}"), ScriptDiag_OnlyValidInLoop},
+        {string_static("for(;;continue) {}"), ScriptDiag_OnlyValidInLoop},
     };
 
     for (u32 i = 0; i != array_elems(g_testData); ++i) {
