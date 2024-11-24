@@ -1539,7 +1539,7 @@ static void gltf_build_skeleton(
         }
       }
       if (anyTargetAnimated) {
-        resAnim->mask[jointIndex] = 1.0f;
+        resAnim->mask[jointIndex] = math_clamp_f32(importAnim->mask[jointIndex], 0.0f, 1.0f);
       }
     }
     resAnim->flags    = importAnim->flags;
@@ -1641,6 +1641,11 @@ static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, Asset
     out->anims[animIndex].time   = 0.0f;
     out->anims[animIndex].speed  = 1.0f;
     out->anims[animIndex].weight = 1.0f;
+
+    for (u32 jointIndex = 0; jointIndex != asset_mesh_joints_max; ++jointIndex) {
+      const bool slotUsed                    = jointIndex < ld->jointCount;
+      out->anims[animIndex].mask[jointIndex] = slotUsed ? 1.0f : 0.0f;
+    }
   }
 
   return asset_import_mesh(importEnv, ld->assetId, out);
