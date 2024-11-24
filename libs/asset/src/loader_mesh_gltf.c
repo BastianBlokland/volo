@@ -848,6 +848,20 @@ Error:
   *err = GltfError_MalformedSkin;
 }
 
+static bool gltf_skeleton_is_topologically_sorted(GltfLoad* ld) {
+  if (!ld->jointCount) {
+    return true;
+  }
+  u8 processed[bits_to_bytes(asset_mesh_joints_max) + 1] = {0};
+  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
+    bitset_set(bitset_from_var(processed), jointIndex);
+    if (!bitset_test(bitset_from_var(processed), ld->joints[jointIndex].parentIndex)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
   const JsonVal nodes = json_field_lit(ld->jDoc, ld->jRoot, "nodes");
   if (!gltf_json_elem_count(ld, nodes)) {
@@ -883,6 +897,11 @@ static void gltf_parse_skeleton_nodes(GltfLoad* ld, GltfError* err) {
 
   Next:
     ++nodeIndex;
+  }
+
+  // Verify that the joint parents appear earlier then their children.
+  if (!gltf_skeleton_is_topologically_sorted(ld)) {
+    goto Error;
   }
 
   *err = GltfError_None;
@@ -1312,20 +1331,6 @@ static f32 gltf_anim_duration(GltfLoad* ld, const GltfAnim* anim) {
   return duration;
 }
 
-static bool gltf_skeleton_is_topologically_sorted(GltfLoad* ld) {
-  if (!ld->jointCount) {
-    return true;
-  }
-  u8 processed[bits_to_bytes(asset_mesh_joints_max) + 1] = {0};
-  for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
-    bitset_set(bitset_from_var(processed), jointIndex);
-    if (!bitset_test(bitset_from_var(processed), ld->joints[jointIndex].parentIndex)) {
-      return false;
-    }
-  }
-  return true;
-}
-
 static void gltf_process_remove_frame(GltfLoad* ld, AssetMeshAnimChannel* ch, const u32 frame) {
   const usize toMove = --ch->frameCount - frame;
   if (toMove) {
@@ -1460,11 +1465,6 @@ static void gltf_build_skeleton(
         }
       }
     }
-  }
-
-  // Verify that the joint parents appear earlier then their children.
-  if (!gltf_skeleton_is_topologically_sorted(ld)) {
-    goto Error;
   }
 
   // Output the joint parent indices.
@@ -1609,7 +1609,8 @@ static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, Asset
   out->jointCount = ld->jointCount;
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
     diag_assert(!string_is_empty(ld->joints[jointIndex].name));
-    out->joints[jointIndex].nameHash = string_hash(ld->joints[jointIndex].name);
+    out->joints[jointIndex].nameHash    = string_hash(ld->joints[jointIndex].name);
+    out->joints[jointIndex].parentIndex = ld->joints[jointIndex].parentIndex;
   }
 
   out->animCount = ld->animCount;
