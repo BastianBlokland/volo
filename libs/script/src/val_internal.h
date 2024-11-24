@@ -122,7 +122,7 @@ MAYBE_UNUSED INLINE_HINT static GeoVector val_as_vec3(const ScriptVal value) {
 MAYBE_UNUSED INLINE_HINT static GeoQuat val_as_quat(const ScriptVal value) {
   GeoQuat   result = *(GeoQuat*)value.bytes;
   const f32 sum    = result.x * result.x + result.y * result.y + result.z * result.z;
-  result.w         = intrinsic_sqrt_f32(1.0f - sum);
+  result.w         = sum >= 1.0f ? 0.0f : intrinsic_sqrt_f32(1.0f - sum);
   return result;
 }
 
