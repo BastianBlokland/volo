@@ -245,7 +245,7 @@ static AssetRepoQueryResult asset_repo_fs_query(
   static const String g_globChars = string_static("*?");
   if (UNLIKELY(!sentinel_check(string_find_first_any(directory, g_globChars)))) {
     /**
-     * Filtering in the directory part part is not supported at the moment.
+     * Filtering in the directory part is not supported at the moment.
      * Supporting this would require recursing from the first non-filtered directory.
      */
     log_w("Unsupported file query pattern");
