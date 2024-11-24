@@ -365,6 +365,9 @@ static bool gltf_json_field_quat(GltfLoad* ld, const JsonVal v, const String nam
   for (u32 i = 0; i != 4; ++i) {
     success &= gltf_json_elem_f32(ld, jField, i, &out->comps[i]);
   }
+  if (success) {
+    *out = geo_quat_norm_or_ident(*out);
+  }
   return success;
 }
 
