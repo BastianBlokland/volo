@@ -1398,7 +1398,16 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
   }
   diag_assert(argCount < u8_max);
 
-  const ScriptRange callRange = read_range_to_current(ctx, idRange.start);
+  ScriptRange callRange = read_range_to_current(ctx, idRange.start);
+  if (argCount) {
+    /**
+     * In case of the last argument being a missing expression and the closing parenthesis being
+     * missing; the last argument's range can actually exceed the current read head. Thus we expand
+     * the call range to always include the last argument completely.
+     */
+    const ScriptRange lastArgRange = script_expr_range(ctx->doc, args[argCount - 1]);
+    callRange.end                  = math_max(callRange.end, lastArgRange.end);
+  }
 
   const ScriptBuiltinFunc* builtin = script_builtin_func_lookup(id);
   if (builtin) {
