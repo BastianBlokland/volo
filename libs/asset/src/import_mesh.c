@@ -128,6 +128,16 @@ static ScriptVal import_eval_joint_count(AssetImportContext* ctx, ScriptBinderCa
   return script_num(data->jointCount);
 }
 
+static ScriptVal import_eval_joint_parent(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data  = ctx->data;
+  const u32        index = (u32)script_arg_num_range(call, 0, 0, data->jointCount - 1);
+  if (script_call_panicked(call)) {
+    return script_null();
+  }
+  diag_assert(index < data->jointCount);
+  return script_num(data->joints[index].parentIndex);
+}
+
 static ScriptVal import_eval_joint_find(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data      = ctx->data;
   const StringHash jointName = script_arg_str(call, 0);
@@ -400,9 +410,18 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("joint_count");
-    const String       doc    = fmt_write_scratch("Query the amount of joints in the mesh.");
+    const String       doc    = fmt_write_scratch("Query the amount of joints in the mesh.\nThe joints are topologically sorted so the root is always at index 0.");
     const ScriptMask   ret    = script_mask_num | script_mask_null;
     asset_import_bind(binder, name, doc, ret, null, 0, import_eval_joint_count);
+  }
+  {
+    const String       name   = string_lit("joint_parent");
+    const String       doc    = fmt_write_scratch("Query the index of the joint's parent (same as the input for the root).");
+    const ScriptMask   ret    = script_mask_num;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_joint_parent);
   }
   {
     const String       name   = string_lit("joint_find");

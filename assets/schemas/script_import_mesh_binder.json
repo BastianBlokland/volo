@@ -32,6 +32,16 @@
       }
     },
     {
+      "name": "joint_parent",
+      "doc": "Query the index of the joint's parent (same as the input for the root).",
+      "sig": {
+        "ret": "num",
+        "args": [
+          { "name": "index", "mask": "num" }
+        ]
+      }
+    },
+    {
       "name": "fail_if",
       "doc": "Fail the import if the given value is truthy.",
       "sig": {
@@ -194,7 +204,7 @@
     },
     {
       "name": "joint_count",
-      "doc": "Query the amount of joints in the mesh.",
+      "doc": "Query the amount of joints in the mesh.\nThe joints are topologically sorted so the root is always at index 0.",
       "sig": {
         "ret": [ "null", "num" ],
         "args": []
