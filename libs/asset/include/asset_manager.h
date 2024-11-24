@@ -96,6 +96,7 @@ bool asset_save(AssetManagerComp*, String id, String data);
 
 /**
  * Query for assets that match the given id pattern.
+ * NOTE: Order is non deterministic.
  *
  * Supported pattern syntax:
  * '?' matches any single character.

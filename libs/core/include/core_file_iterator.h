@@ -51,6 +51,7 @@ void file_iterator_destroy(FileIterator*);
 /**
  * Retrieve the next entry from the file-iterator.
  * NOTE: Invalidates 'FileIteratorEntry' results from previous calls to this function.
+ * NOTE: Order is non deterministic.
  *
  * Returns:
  * 'Found': An entry was found and written to the out pointer.

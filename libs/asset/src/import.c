@@ -32,6 +32,7 @@ typedef struct {
 
 typedef struct {
   u32      importHash;
+  bool     initialized;
   bool     ready;
   DynArray scripts; // AssetImportScript[]
 } AssetImportHandler;
@@ -48,6 +49,11 @@ static void ecs_destruct_import_env_comp(void* data) {
   for (AssetImportType type = 0; type != AssetImportType_Count; ++type) {
     dynarray_destroy(&comp->handlers[type].scripts);
   }
+}
+
+static i8 asset_import_compare_script(const void* a, const void* b) {
+  return compare_string(
+      field_ptr(a, AssetImportScript, assetId), field_ptr(b, AssetImportScript, assetId));
 }
 
 static AssetImportType import_type_for_format(const AssetFormat format) {
@@ -112,11 +118,12 @@ ecs_view_define(InitGlobalView) {
   ecs_access_write(AssetManagerComp);
 }
 
+ecs_view_define(InitAssetView) { ecs_access_read(AssetComp); }
+
 ecs_view_define(InitScriptView) {
   ecs_access_with(AssetLoadedComp);
   ecs_access_without(AssetFailedComp);
   ecs_access_read(AssetScriptComp);
-  ecs_access_read(AssetComp);
 }
 
 static void import_reload_all(EcsWorld* world, const AssetImportType type) {
@@ -130,10 +137,27 @@ static void import_reload_all(EcsWorld* world, const AssetImportType type) {
   }
 }
 
+static void import_handler_ensure_initialized(AssetImportHandler* handler, EcsIterator* assetItr) {
+  if (handler->initialized) {
+    return; // Already initialized (new import scripts cannot be loaded at runtime atm).
+  }
+  dynarray_for_t(&handler->scripts, AssetImportScript, script) {
+    if (ecs_view_maybe_jump(assetItr, script->asset)) {
+      const AssetComp* assetComp = ecs_view_read_t(assetItr, AssetComp);
+      script->assetId            = asset_id(assetComp);
+    } else {
+      return; // Script asset not ready; retry next tick.
+    }
+  }
+  dynarray_sort(&handler->scripts, asset_import_compare_script);
+  handler->initialized = true;
+}
+
 static void import_init_handler(
     EcsWorld*             world,
     const AssetImportType type,
     AssetImportHandler*   handler,
+    EcsIterator*          assetItr,
     EcsIterator*          scriptItr) {
   /**
    * Update the import scripts.
@@ -143,6 +167,8 @@ static void import_init_handler(
    * data around during flushes.
    */
   const bool canUnload = !handler->importHash || !ecs_utils_any(world, LoadingAssetsView);
+
+  import_handler_ensure_initialized(handler, assetItr);
 
   u32  importHash = 0;
   bool ready      = true;
@@ -159,16 +185,13 @@ static void import_init_handler(
     }
 
     if (!isFailed && !script->reloading && ecs_view_maybe_jump(scriptItr, script->asset)) {
-      const AssetComp*       assetComp  = ecs_view_read_t(scriptItr, AssetComp);
       const AssetScriptComp* scriptComp = ecs_view_read_t(scriptItr, AssetScriptComp);
       diag_assert(type == import_type_for_domain(scriptComp->domain));
 
       importHash      = bits_hash_32_combine(importHash, scriptComp->hash);
       script->program = &scriptComp->prog;
-      script->assetId = asset_id(assetComp);
     } else {
       script->program = null;
-      script->assetId = string_empty;
       ready           = false;
     }
 
@@ -197,11 +220,14 @@ ecs_system_define(AssetImportInitSys) {
     importEnv = import_env_init(world, manager);
   }
 
+  EcsView*     assetView = ecs_world_view_t(world, InitAssetView);
+  EcsIterator* assetItr  = ecs_view_itr(assetView);
+
   EcsView*     scriptView = ecs_world_view_t(world, InitScriptView);
   EcsIterator* scriptItr  = ecs_view_itr(scriptView);
 
   for (AssetImportType type = 0; type != AssetImportType_Count; ++type) {
-    import_init_handler(world, type, &importEnv->handlers[type], scriptItr);
+    import_init_handler(world, type, &importEnv->handlers[type], assetItr, scriptItr);
   }
 }
 
@@ -231,6 +257,7 @@ ecs_module_init(asset_import_module) {
   ecs_register_view(LoadingAssetsView);
   ecs_register_view(AssetReloadView);
   ecs_register_view(InitGlobalView);
+  ecs_register_view(InitAssetView);
   ecs_register_view(InitScriptView);
   ecs_register_view(DeinitGlobalView);
 
@@ -239,6 +266,7 @@ ecs_module_init(asset_import_module) {
       ecs_view_id(LoadingAssetsView),
       ecs_view_id(AssetReloadView),
       ecs_view_id(InitGlobalView),
+      ecs_view_id(InitAssetView),
       ecs_view_id(InitScriptView));
   ecs_order(AssetImportInitSys, AssetOrder_Init);
 
