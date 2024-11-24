@@ -4,7 +4,8 @@
 #include "import_internal.h"
 
 typedef struct {
-  StringHash nameHash; // Interned in the global string table.
+  StringHash nameHash;    // Interned in the global string table.
+  u32        parentIndex; // Same as own index for the root joint.
 } AssetImportJoint;
 
 typedef struct {
@@ -26,7 +27,7 @@ typedef struct {
   GeoQuat   rootRotation;
   GeoVector rootScale;
 
-  AssetImportJoint joints[asset_mesh_joints_max];
+  AssetImportJoint joints[asset_mesh_joints_max]; // Guaranteed to be topologically sorted.
   u32              jointCount;
 
   AssetImportAnim anims[asset_mesh_anims_max];

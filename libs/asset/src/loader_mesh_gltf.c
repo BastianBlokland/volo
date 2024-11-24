@@ -1609,7 +1609,8 @@ static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, Asset
   out->jointCount = ld->jointCount;
   for (u32 jointIndex = 0; jointIndex != ld->jointCount; ++jointIndex) {
     diag_assert(!string_is_empty(ld->joints[jointIndex].name));
-    out->joints[jointIndex].nameHash = string_hash(ld->joints[jointIndex].name);
+    out->joints[jointIndex].nameHash    = string_hash(ld->joints[jointIndex].name);
+    out->joints[jointIndex].parentIndex = ld->joints[jointIndex].parentIndex;
   }
 
   out->animCount = ld->animCount;
