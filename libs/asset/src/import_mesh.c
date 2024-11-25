@@ -399,7 +399,7 @@ static ScriptVal import_eval_anim_mask_fade(AssetImportContext* ctx, ScriptBinde
   anim->mask[jointIdx] = import_mesh_clamp01(anim->mask[jointIdx] + deltaWeight);
 
   // Apply weight delta to children.
-  const i32 parent                             = jointIdx ? joints[jointIdx].parentIndex : -1;
+  const i32 parent                             = jointIdx ? (i32)joints[jointIdx].parentIndex : -1;
   u32       depthLookup[asset_mesh_joints_max] = {1};
   for (u32 i = jointIdx + 1; i != data->jointCount && (i32)joints[i].parentIndex > parent; ++i) {
     const u32 depth = depthLookup[i] = depthLookup[joints[i].parentIndex] + 1;
