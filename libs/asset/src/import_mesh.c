@@ -55,6 +55,20 @@ static bool import_mesh_joint_find_duplicate(AssetImportMesh* data, StringHash* 
   return false;
 }
 
+static bool import_mesh_anim_find_duplicate(AssetImportMesh* data, StringHash* outDuplicate) {
+  if (!data->animCount) {
+    return false;
+  }
+  for (u32 i = 0; i != data->animCount - 1; ++i) {
+    for (u32 j = i + 1; j != data->animCount; ++j) {
+      if (data->anims[i].nameHash == data->anims[j].nameHash) {
+        return *outDuplicate = data->anims[i].nameHash, true; // Duplicate found.
+      }
+    }
+  }
+  return false;
+}
+
 static ScriptVal import_eval_flat_normals(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data = ctx->data;
   if (call->argCount < 1) {
@@ -725,7 +739,21 @@ bool asset_import_mesh(const AssetImportEnvComp* env, const String id, AssetImpo
     return false;
   }
 
-  // Apply layer sorting.
+  // Check for duplicate animation names.
+  StringHash duplicateAnimNameHash;
+  if (import_mesh_anim_find_duplicate(data, &duplicateAnimNameHash)) {
+    String duplicateAnimName = string_lit("< unknown >");
+    if (duplicateAnimNameHash) {
+      duplicateAnimName = stringtable_lookup(g_stringtable, duplicateAnimNameHash);
+    }
+    log_e(
+        "Duplicate animation name found in mesh",
+        log_param("asset", fmt_text(id)),
+        log_param("anim-name", fmt_text(duplicateAnimName)));
+    return false;
+  }
+
+  // Apply animation layer sorting.
   sort_quicksort_t(
       data->anims, data->anims + data->animCount, AssetImportAnim, import_compare_anim_layer);
 
