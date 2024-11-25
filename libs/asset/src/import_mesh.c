@@ -4,6 +4,7 @@
 #include "core_format.h"
 #include "core_sort.h"
 #include "core_stringtable.h"
+#include "log_logger.h"
 #include "script_args.h"
 #include "script_binder.h"
 #include "script_enum.h"
@@ -38,6 +39,20 @@ static f32 import_mesh_clamp01(const f32 val) {
     return 1.0f;
   }
   return val;
+}
+
+static bool import_mesh_joint_find_duplicate(AssetImportMesh* data, StringHash* outDuplicate) {
+  if (!data->jointCount) {
+    return false;
+  }
+  for (u32 i = 0; i != data->jointCount - 1; ++i) {
+    for (u32 j = i + 1; j != data->jointCount; ++j) {
+      if (data->joints[i].nameHash == data->joints[j].nameHash) {
+        return *outDuplicate = data->joints[i].nameHash, true; // Duplicate found.
+      }
+    }
+  }
+  return false;
 }
 
 static ScriptVal import_eval_flat_normals(AssetImportContext* ctx, ScriptBinderCall* call) {
@@ -691,7 +706,22 @@ void asset_data_init_import_mesh(void) {
 }
 
 bool asset_import_mesh(const AssetImportEnvComp* env, const String id, AssetImportMesh* data) {
+  // Run import scripts.
   if (!asset_import_eval(env, g_assetScriptImportMeshBinder, id, data)) {
+    return false;
+  }
+
+  // Check for duplicate joint names.
+  StringHash duplicateJointNameHash;
+  if (import_mesh_joint_find_duplicate(data, &duplicateJointNameHash)) {
+    String duplicateJointName = string_lit("< unknown >");
+    if (duplicateJointNameHash) {
+      duplicateJointName = stringtable_lookup(g_stringtable, duplicateJointNameHash);
+    }
+    log_e(
+        "Duplicate joint name found in mesh",
+        log_param("asset", fmt_text(id)),
+        log_param("joint-name", fmt_text(duplicateJointName)));
     return false;
   }
 
