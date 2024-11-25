@@ -85,6 +85,18 @@
       }
     },
     {
+      "name": "anim_mask_fade",
+      "doc": "Recursively apply the weight delta to all joints starting from the given root.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "index", "mask": "num" },
+          { "name": "jointIndex", "mask": "num" },
+          { "name": "deltaWeight", "mask": "num" }
+        ]
+      }
+    },
+    {
       "name": "anim_flag",
       "doc": "Query or change an animation flag.\n\nSupported flags:\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`",
       "sig": {

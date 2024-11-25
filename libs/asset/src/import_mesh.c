@@ -30,6 +30,16 @@ static i8 import_compare_anim_layer(const void* a, const void* b) {
   return compare_i32(field_ptr(a, AssetImportAnim, layer), field_ptr(b, AssetImportAnim, layer));
 }
 
+static f32 import_mesh_clamp01(const f32 val) {
+  if (val <= 0.0f) {
+    return 0.0f;
+  }
+  if (val >= 1.0f) {
+    return 1.0f;
+  }
+  return val;
+}
+
 static ScriptVal import_eval_flat_normals(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data = ctx->data;
   if (call->argCount < 1) {
@@ -337,16 +347,13 @@ static ScriptVal import_eval_anim_weight(AssetImportContext* ctx, ScriptBinderCa
 }
 
 static ScriptVal import_eval_anim_mask(AssetImportContext* ctx, ScriptBinderCall* call) {
-  AssetImportMesh* data      = ctx->data;
-  const u32        animIndex = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  AssetImportMesh* data       = ctx->data;
+  const u32        animIndex  = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  const u32        jointIndex = (u32)script_arg_num_range(call, 1, 0, data->jointCount - 1);
   if (script_call_panicked(call)) {
     return script_null();
   }
   diag_assert(animIndex < data->animCount);
-  const u32 jointIndex = (u32)script_arg_num_range(call, 1, 0, data->jointCount - 1);
-  if (script_call_panicked(call)) {
-    return script_null();
-  }
   diag_assert(jointIndex < data->jointCount);
   if (call->argCount < 3) {
     return script_num(data->anims[animIndex].mask[jointIndex]);
@@ -361,16 +368,44 @@ static ScriptVal import_eval_anim_mask(AssetImportContext* ctx, ScriptBinderCall
 static ScriptVal import_eval_anim_mask_all(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data      = ctx->data;
   const u32        animIndex = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  const f32        newWeight = (f32)script_arg_num_range(call, 1, 0.0, 1.0);
   if (script_call_panicked(call)) {
     return script_null();
   }
   diag_assert(animIndex < data->animCount);
-  const f32 newWeight = (f32)script_arg_num_range(call, 1, 0.0, 1.0);
-  if (!script_call_panicked(call)) {
-    for (u32 jointIndex = 0; jointIndex != data->jointCount; ++jointIndex) {
-      data->anims[animIndex].mask[jointIndex] = newWeight;
-    }
+
+  for (u32 jointIndex = 0; jointIndex != data->jointCount; ++jointIndex) {
+    data->anims[animIndex].mask[jointIndex] = newWeight;
   }
+
+  return script_null();
+}
+
+static ScriptVal import_eval_anim_mask_fade(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data        = ctx->data;
+  const u32        animIdx     = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  const u32        jointIdx    = (u32)script_arg_num_range(call, 1, 0, data->jointCount - 1);
+  const f32        deltaWeight = (f32)script_arg_num_range(call, 2, -1.0, +1.0);
+  if (script_call_panicked(call)) {
+    return script_null();
+  }
+  diag_assert(animIdx < data->animCount);
+  diag_assert(jointIdx < data->jointCount);
+
+  AssetImportAnim*  anim   = &data->anims[animIdx];
+  AssetImportJoint* joints = data->joints;
+
+  // Apply weight delta to root.
+  anim->mask[jointIdx] = import_mesh_clamp01(anim->mask[jointIdx] + deltaWeight);
+
+  // Apply weight delta to children.
+  const i32 parent                             = jointIdx ? joints[jointIdx].parentIndex : -1;
+  u32       depthLookup[asset_mesh_joints_max] = {1};
+  for (u32 i = jointIdx + 1; i != data->jointCount && (i32)joints[i].parentIndex > parent; ++i) {
+    const u32 depth = depthLookup[i] = depthLookup[joints[i].parentIndex] + 1;
+    anim->mask[i]                    = import_mesh_clamp01(anim->mask[i] + deltaWeight * depth);
+  }
+
   return script_null();
 }
 
@@ -597,6 +632,17 @@ void asset_data_init_import_mesh(void) {
         {string_lit("newWeight"), script_mask_num},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_mask_all);
+  }
+  {
+    const String       name   = string_lit("anim_mask_fade");
+    const String       doc    = fmt_write_scratch("Recursively apply the weight delta to all joints starting from the given root.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("jointIndex"), script_mask_num},
+        {string_lit("deltaWeight"), script_mask_num},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_mask_fade);
   }
   // clang-format on
 
