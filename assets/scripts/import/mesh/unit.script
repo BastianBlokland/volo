@@ -1,8 +1,0 @@
-/**
- * Unit mesh import rules.
- */
-
-// Clean up joint names.
-for (var jointIdx = 0; jointIdx != joint_count(); jointIdx += 1) {
-  joint_name_trim(jointIdx, "mixamorig:", "_End") // Mixamo joint naming convention.
-}

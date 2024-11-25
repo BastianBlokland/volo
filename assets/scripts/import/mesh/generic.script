@@ -2,11 +2,43 @@
  * Generic mesh import rules applicable to all meshes.
  */
 
-// Configure default animation settings.
-var animCount = anim_count()
-for (var animIdx = 0; animIdx != animCount; animIdx += 1) {
-  var isLowestLayer = animIdx == animCount - 1
+// Clean up joint names.
+for (var jointIdx = 0; jointIdx != joint_count(); jointIdx += 1) {
+  joint_name_trim(jointIdx, "mixamorig:", "_End") // Mixamo joint naming convention.
+}
 
-  anim_flag(animIdx, "Loop", true)
-  anim_weight(animIdx, isLowestLayer ? 1.0 : 0.0)
+// Animation settings.
+for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
+  var animName = anim_name(animIdx)
+  if (animName == "death") {
+    anim_layer(animIdx, 0)
+    anim_weight(animIdx, 0.0)
+  } else if (animName == "hit") {
+    anim_layer(animIdx, 1)
+    anim_weight(animIdx, 0.0)
+  } else if (animName == "fire") {
+    anim_layer(animIdx, 2)
+    anim_weight(animIdx, 0.0)
+  } else if (animName == "melee") {
+    anim_layer(animIdx, 3)
+    anim_weight(animIdx, 0.0)
+  } else if (animName == "aim") {
+    anim_layer(animIdx, 4)
+    anim_weight(animIdx, 0.0)
+  } else if (animName == "run") {
+    anim_flag(animIdx, "Loop", true)
+    anim_weight(animIdx, 0.0)
+    anim_layer(animIdx, 5)
+  } else if (animName == "walk") {
+    anim_flag(animIdx, "Loop", true)
+    anim_weight(animIdx, 0.0)
+    anim_layer(animIdx, 6)
+  } else if (animName == "idle") {
+    anim_flag(animIdx, "Loop", true)
+    anim_weight(animIdx, 1.0)
+    anim_layer(animIdx, 7)
+  } else /* other */ {
+    anim_flag(animIdx, "Loop", true)
+    anim_weight(animIdx, 1.0)
+  }
 }
