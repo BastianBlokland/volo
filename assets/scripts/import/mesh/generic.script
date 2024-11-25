@@ -4,9 +4,9 @@
 
 // Configure default animation settings.
 var animCount = anim_count()
-for (var animIndex = 0; animIndex != animCount; animIndex += 1) {
-  var isLowestLayer = animIndex == animCount - 1
+for (var animIdx = 0; animIdx != animCount; animIdx += 1) {
+  var isLowestLayer = animIdx == animCount - 1
 
-  anim_flag(animIndex, "Loop", true)
-  anim_weight(animIndex, isLowestLayer ? 1.0 : 0.0)
+  anim_flag(animIdx, "Loop", true)
+  anim_weight(animIdx, isLowestLayer ? 1.0 : 0.0)
 }
