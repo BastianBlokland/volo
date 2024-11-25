@@ -58,6 +58,7 @@ static i8 asset_import_compare_script(const void* a, const void* b) {
 
 static AssetImportType import_type_for_format(const AssetFormat format) {
   switch (format) {
+  case AssetFormat_MeshGlb:
   case AssetFormat_MeshGltf:
   case AssetFormat_MeshObj:
     return AssetImportType_Mesh;
