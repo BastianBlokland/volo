@@ -807,6 +807,12 @@ scene_skeleton_info(const SceneSkeletonTemplComp* tl, const u32 layer, const u32
   };
 }
 
+f32 scene_skeleton_mask(const SceneSkeletonTemplComp* tl, const u32 layer, const u32 joint) {
+  diag_assert(layer < tl->animCount);
+  diag_assert(joint < tl->jointCount);
+  return tl->anims[layer].mask[joint];
+}
+
 SceneJointPose scene_skeleton_sample(
     const SceneSkeletonTemplComp* tl, const u32 layer, const u32 joint, const f32 time) {
   diag_assert(layer < tl->animCount);

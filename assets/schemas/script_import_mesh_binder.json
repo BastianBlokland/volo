@@ -77,6 +77,18 @@
       }
     },
     {
+      "name": "anim_mask_fade_up",
+      "doc": "Recursively apply the weight delta to all joints up the hierarchy starting from the given joint.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "index", "mask": "num" },
+          { "name": "jointIndex", "mask": "num" },
+          { "name": "deltaWeight", "mask": "num" }
+        ]
+      }
+    },
+    {
       "name": "anim_count",
       "doc": "Query the amount of animations in the mesh.",
       "sig": {
@@ -264,6 +276,18 @@
       }
     },
     {
+      "name": "anim_mask_fade_down",
+      "doc": "Recursively apply the weight delta to all joints down the hierarchy starting from the given joint.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "index", "mask": "num" },
+          { "name": "jointIndex", "mask": "num" },
+          { "name": "deltaWeight", "mask": "num" }
+        ]
+      }
+    },
+    {
       "name": "asset_format",
       "doc": "Lookup the format of the importing asset.",
       "sig": {
@@ -309,6 +333,17 @@
             "name": "newWeight",
             "mask": [ "null", "num" ]
           }
+        ]
+      }
+    },
+    {
+      "name": "anim_mask_all",
+      "doc": "Change the mask weight for all joints.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "index", "mask": "num" },
+          { "name": "newWeight", "mask": "num" }
         ]
       }
     },

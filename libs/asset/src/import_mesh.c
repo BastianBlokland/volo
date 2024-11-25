@@ -4,6 +4,7 @@
 #include "core_format.h"
 #include "core_sort.h"
 #include "core_stringtable.h"
+#include "log_logger.h"
 #include "script_args.h"
 #include "script_binder.h"
 #include "script_enum.h"
@@ -28,6 +29,44 @@ static void import_init_enum_anim_flags(void) {
 
 static i8 import_compare_anim_layer(const void* a, const void* b) {
   return compare_i32(field_ptr(a, AssetImportAnim, layer), field_ptr(b, AssetImportAnim, layer));
+}
+
+static f32 import_mesh_clamp01(const f32 val) {
+  if (val <= 0.0f) {
+    return 0.0f;
+  }
+  if (val >= 1.0f) {
+    return 1.0f;
+  }
+  return val;
+}
+
+static bool import_mesh_joint_find_duplicate(AssetImportMesh* data, StringHash* outDuplicate) {
+  if (!data->jointCount) {
+    return false;
+  }
+  for (u32 i = 0; i != data->jointCount - 1; ++i) {
+    for (u32 j = i + 1; j != data->jointCount; ++j) {
+      if (data->joints[i].nameHash == data->joints[j].nameHash) {
+        return *outDuplicate = data->joints[i].nameHash, true; // Duplicate found.
+      }
+    }
+  }
+  return false;
+}
+
+static bool import_mesh_anim_find_duplicate(AssetImportMesh* data, StringHash* outDuplicate) {
+  if (!data->animCount) {
+    return false;
+  }
+  for (u32 i = 0; i != data->animCount - 1; ++i) {
+    for (u32 j = i + 1; j != data->animCount; ++j) {
+      if (data->anims[i].nameHash == data->anims[j].nameHash) {
+        return *outDuplicate = data->anims[i].nameHash, true; // Duplicate found.
+      }
+    }
+  }
+  return false;
 }
 
 static ScriptVal import_eval_flat_normals(AssetImportContext* ctx, ScriptBinderCall* call) {
@@ -337,16 +376,13 @@ static ScriptVal import_eval_anim_weight(AssetImportContext* ctx, ScriptBinderCa
 }
 
 static ScriptVal import_eval_anim_mask(AssetImportContext* ctx, ScriptBinderCall* call) {
-  AssetImportMesh* data      = ctx->data;
-  const u32        animIndex = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  AssetImportMesh* data       = ctx->data;
+  const u32        animIndex  = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  const u32        jointIndex = (u32)script_arg_num_range(call, 1, 0, data->jointCount - 1);
   if (script_call_panicked(call)) {
     return script_null();
   }
   diag_assert(animIndex < data->animCount);
-  const u32 jointIndex = (u32)script_arg_num_range(call, 1, 0, data->jointCount - 1);
-  if (script_call_panicked(call)) {
-    return script_null();
-  }
   diag_assert(jointIndex < data->jointCount);
   if (call->argCount < 3) {
     return script_num(data->anims[animIndex].mask[jointIndex]);
@@ -355,6 +391,77 @@ static ScriptVal import_eval_anim_mask(AssetImportContext* ctx, ScriptBinderCall
   if (!script_call_panicked(call)) {
     data->anims[animIndex].mask[jointIndex] = newWeight;
   }
+  return script_null();
+}
+
+static ScriptVal import_eval_anim_mask_all(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data      = ctx->data;
+  const u32        animIndex = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  const f32        newWeight = (f32)script_arg_num_range(call, 1, 0.0, 1.0);
+  if (script_call_panicked(call)) {
+    return script_null();
+  }
+  diag_assert(animIndex < data->animCount);
+
+  for (u32 jointIndex = 0; jointIndex != data->jointCount; ++jointIndex) {
+    data->anims[animIndex].mask[jointIndex] = newWeight;
+  }
+
+  return script_null();
+}
+
+static ScriptVal import_eval_anim_mask_fade_up(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data        = ctx->data;
+  const u32        animIdx     = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  const u32        jointIdx    = (u32)script_arg_num_range(call, 1, 0, data->jointCount - 1);
+  const f32        deltaWeight = (f32)script_arg_num_range(call, 2, -1.0, +1.0);
+  if (script_call_panicked(call)) {
+    return script_null();
+  }
+  diag_assert(animIdx < data->animCount);
+  diag_assert(jointIdx < data->jointCount);
+
+  AssetImportAnim*  anim   = &data->anims[animIdx];
+  AssetImportJoint* joints = data->joints;
+
+  // Apply weight delta to jointIdx and all parents.
+  f32 deltaSum = deltaWeight;
+  for (u32 i = jointIdx;; i = joints[i].parentIndex) {
+    anim->mask[i] = import_mesh_clamp01(anim->mask[i] + deltaSum);
+    deltaSum += deltaWeight;
+    if (joints[i].parentIndex == i) {
+      break; // Reached the root.
+    }
+  }
+
+  return script_null();
+}
+
+static ScriptVal import_eval_anim_mask_fade_down(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data        = ctx->data;
+  const u32        animIdx     = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  const u32        jointIdx    = (u32)script_arg_num_range(call, 1, 0, data->jointCount - 1);
+  const f32        deltaWeight = (f32)script_arg_num_range(call, 2, -1.0, +1.0);
+  if (script_call_panicked(call)) {
+    return script_null();
+  }
+  diag_assert(animIdx < data->animCount);
+  diag_assert(jointIdx < data->jointCount);
+
+  AssetImportAnim*  anim   = &data->anims[animIdx];
+  AssetImportJoint* joints = data->joints;
+
+  // Apply weight delta to root.
+  anim->mask[jointIdx] = import_mesh_clamp01(anim->mask[jointIdx] + deltaWeight);
+
+  // Apply weight delta to children.
+  const i32 parent                             = jointIdx ? (i32)joints[jointIdx].parentIndex : -1;
+  u32       depthLookup[asset_mesh_joints_max] = {1};
+  for (u32 i = jointIdx + 1; i != data->jointCount && (i32)joints[i].parentIndex > parent; ++i) {
+    const u32 depth = depthLookup[i] = depthLookup[joints[i].parentIndex] + 1;
+    anim->mask[i]                    = import_mesh_clamp01(anim->mask[i] + deltaWeight * depth);
+  }
+
   return script_null();
 }
 
@@ -572,6 +679,38 @@ void asset_data_init_import_mesh(void) {
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_mask);
   }
+  {
+    const String       name   = string_lit("anim_mask_all");
+    const String       doc    = fmt_write_scratch("Change the mask weight for all joints.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("newWeight"), script_mask_num},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_mask_all);
+  }
+  {
+    const String       name   = string_lit("anim_mask_fade_up");
+    const String       doc    = fmt_write_scratch("Recursively apply the weight delta to all joints up the hierarchy starting from the given joint.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("jointIndex"), script_mask_num},
+        {string_lit("deltaWeight"), script_mask_num},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_mask_fade_up);
+  }
+  {
+    const String       name   = string_lit("anim_mask_fade_down");
+    const String       doc    = fmt_write_scratch("Recursively apply the weight delta to all joints down the hierarchy starting from the given joint.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("jointIndex"), script_mask_num},
+        {string_lit("deltaWeight"), script_mask_num},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_mask_fade_down);
+  }
   // clang-format on
 
   asset_import_register(binder);
@@ -581,11 +720,40 @@ void asset_data_init_import_mesh(void) {
 }
 
 bool asset_import_mesh(const AssetImportEnvComp* env, const String id, AssetImportMesh* data) {
+  // Run import scripts.
   if (!asset_import_eval(env, g_assetScriptImportMeshBinder, id, data)) {
     return false;
   }
 
-  // Apply layer sorting.
+  // Check for duplicate joint names.
+  StringHash duplicateJointNameHash;
+  if (import_mesh_joint_find_duplicate(data, &duplicateJointNameHash)) {
+    String duplicateJointName = string_lit("< unknown >");
+    if (duplicateJointNameHash) {
+      duplicateJointName = stringtable_lookup(g_stringtable, duplicateJointNameHash);
+    }
+    log_e(
+        "Duplicate joint name found in mesh",
+        log_param("asset", fmt_text(id)),
+        log_param("joint-name", fmt_text(duplicateJointName)));
+    return false;
+  }
+
+  // Check for duplicate animation names.
+  StringHash duplicateAnimNameHash;
+  if (import_mesh_anim_find_duplicate(data, &duplicateAnimNameHash)) {
+    String duplicateAnimName = string_lit("< unknown >");
+    if (duplicateAnimNameHash) {
+      duplicateAnimName = stringtable_lookup(g_stringtable, duplicateAnimNameHash);
+    }
+    log_e(
+        "Duplicate animation name found in mesh",
+        log_param("asset", fmt_text(id)),
+        log_param("anim-name", fmt_text(duplicateAnimName)));
+    return false;
+  }
+
+  // Apply animation layer sorting.
   sort_quicksort_t(
       data->anims, data->anims + data->animCount, AssetImportAnim, import_compare_anim_layer);
 
