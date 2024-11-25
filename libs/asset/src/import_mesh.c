@@ -358,6 +358,22 @@ static ScriptVal import_eval_anim_mask(AssetImportContext* ctx, ScriptBinderCall
   return script_null();
 }
 
+static ScriptVal import_eval_anim_mask_all(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data      = ctx->data;
+  const u32        animIndex = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  if (script_call_panicked(call)) {
+    return script_null();
+  }
+  diag_assert(animIndex < data->animCount);
+  const f32 newWeight = (f32)script_arg_num_range(call, 1, 0.0, 1.0);
+  if (!script_call_panicked(call)) {
+    for (u32 jointIndex = 0; jointIndex != data->jointCount; ++jointIndex) {
+      data->anims[animIndex].mask[jointIndex] = newWeight;
+    }
+  }
+  return script_null();
+}
+
 void asset_data_init_import_mesh(void) {
   import_init_enum_anim_flags();
 
@@ -571,6 +587,16 @@ void asset_data_init_import_mesh(void) {
         {string_lit("newWeight"), script_mask_num | script_mask_null},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_mask);
+  }
+  {
+    const String       name   = string_lit("anim_mask_all");
+    const String       doc    = fmt_write_scratch("Change the mask weight for all joints.");
+    const ScriptMask   ret    = script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("newWeight"), script_mask_num},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_mask_all);
   }
   // clang-format on
 

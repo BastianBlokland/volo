@@ -313,6 +313,17 @@
       }
     },
     {
+      "name": "anim_mask_all",
+      "doc": "Change the mask weight for all joints.",
+      "sig": {
+        "ret": "null",
+        "args": [
+          { "name": "index", "mask": "num" },
+          { "name": "newWeight", "mask": "num" }
+        ]
+      }
+    },
+    {
       "name": "failed",
       "doc": "Check if the import has failed.",
       "sig": {
