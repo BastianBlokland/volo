@@ -176,6 +176,14 @@ static void skel_draw_joints_layer(
     const SceneJointPose pose = scene_skeleton_sample(skelTempl, layerIdx, joint, layer->time);
     skel_draw_pose_animated(canvas, table, pose, info);
     ui_table_next_column(canvas, table);
+
+    const f32 maskWeight = scene_skeleton_mask(skelTempl, layerIdx, joint);
+    ui_label(
+        canvas,
+        fmt_write_scratch("{}", fmt_float(maskWeight, .minDecDigits = 2, .maxDecDigits = 2)),
+        .fontSize = 12,
+        .tooltip  = string_lit("Mask weight."));
+    ui_table_next_column(canvas, table);
   }
 
   ui_style_pop(canvas);
