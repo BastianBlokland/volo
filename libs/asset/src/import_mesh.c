@@ -381,7 +381,7 @@ static ScriptVal import_eval_anim_mask_all(AssetImportContext* ctx, ScriptBinder
   return script_null();
 }
 
-static ScriptVal import_eval_anim_mask_fade(AssetImportContext* ctx, ScriptBinderCall* call) {
+static ScriptVal import_eval_anim_mask_fade_down(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data        = ctx->data;
   const u32        animIdx     = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
   const u32        jointIdx    = (u32)script_arg_num_range(call, 1, 0, data->jointCount - 1);
@@ -634,15 +634,15 @@ void asset_data_init_import_mesh(void) {
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_mask_all);
   }
   {
-    const String       name   = string_lit("anim_mask_fade");
-    const String       doc    = fmt_write_scratch("Recursively apply the weight delta to all joints starting from the given root.");
+    const String       name   = string_lit("anim_mask_fade_down");
+    const String       doc    = fmt_write_scratch("Recursively apply the weight delta to all joints down the hierarchy starting from the given root.");
     const ScriptMask   ret    = script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("index"), script_mask_num},
         {string_lit("jointIndex"), script_mask_num},
         {string_lit("deltaWeight"), script_mask_num},
     };
-    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_mask_fade);
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_mask_fade_down);
   }
   // clang-format on
 
