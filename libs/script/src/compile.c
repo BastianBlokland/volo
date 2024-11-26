@@ -38,14 +38,15 @@ typedef struct {
 
 typedef struct {
   RegId reg;
-  bool  optional, jumpCondition;
+  bool  optional;  // Value is not needed but the register can be used as a temporary.
+  bool  condition; // Value is used as a condition, only truthy vs falsy matters.
 } Target;
 
 #define target_reg(_REG_)                                                                          \
   (Target) { .reg = (_REG_) }
 
-#define target_reg_jump_cond(_REG_)                                                                \
-  (Target) { .reg = (_REG_), .jumpCondition = true }
+#define target_reg_cond(_REG_)                                                                     \
+  (Target) { .reg = (_REG_), .condition = true }
 
 #define target_reg_opt(_REG_)                                                                      \
   (Target) { .reg = (_REG_), .optional = true }
@@ -541,11 +542,11 @@ compile_intr_select(Context* ctx, const Target tgt, const ScriptExpr* args) {
     // Fast path for inverted conditions; we can skip the invert expr and instead invert the jump.
     const ScriptExprIntrinsic* invertData = &expr_data(ctx->doc, args[0])->intrinsic;
     const ScriptExpr*          invertArgs = expr_set_data(ctx->doc, invertData->argSet);
-    if ((err = compile_expr(ctx, target_reg_jump_cond(tgt.reg), invertArgs[0]))) {
+    if ((err = compile_expr(ctx, target_reg_cond(tgt.reg), invertArgs[0]))) {
       return err;
     }
   } else {
-    if ((err = compile_expr(ctx, target_reg_jump_cond(tgt.reg), args[0]))) {
+    if ((err = compile_expr(ctx, target_reg_cond(tgt.reg), args[0]))) {
       return err;
     }
   }
@@ -607,7 +608,7 @@ compile_intr_logic_and(Context* ctx, const Target tgt, const ScriptExpr* args) {
   }
 
   label_link(ctx, retLabel);
-  if (!tgt.jumpCondition) {
+  if (!tgt.condition) {
     emit_unary(ctx, ScriptOp_Truthy, tgt.reg); // Convert the result to boolean.
   }
   return err;
@@ -627,7 +628,7 @@ compile_intr_logic_or(Context* ctx, const Target tgt, const ScriptExpr* args) {
   }
 
   label_link(ctx, retLabel);
-  if (!tgt.jumpCondition) {
+  if (!tgt.condition) {
     emit_unary(ctx, ScriptOp_Truthy, tgt.reg); // Convert the result to boolean.
   }
   return err;
@@ -669,12 +670,12 @@ compile_intr_loop(Context* ctx, const Target tgt, const ScriptExpr* args) {
       // Fast path for inverted conditions; we can skip the invert expr and instead invert the jump.
       const ScriptExprIntrinsic* invertData = &expr_data(ctx->doc, args[1])->intrinsic;
       const ScriptExpr*          invertArgs = expr_set_data(ctx->doc, invertData->argSet);
-      if ((err = compile_expr(ctx, target_reg_jump_cond(tmpReg), invertArgs[0]))) {
+      if ((err = compile_expr(ctx, target_reg_cond(tmpReg), invertArgs[0]))) {
         return err;
       }
       emit_jump_if_truthy(ctx, tmpReg, labelEnd);
     } else {
-      if ((err = compile_expr(ctx, target_reg_jump_cond(tmpReg), args[1]))) {
+      if ((err = compile_expr(ctx, target_reg_cond(tmpReg), args[1]))) {
         return err;
       }
       emit_jump_if_falsy(ctx, tmpReg, labelEnd);
