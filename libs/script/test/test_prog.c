@@ -293,7 +293,7 @@ spec(prog) {
 
       check_require(script_prog_validate(&prog, binder));
       const ScriptProgResult res = script_prog_eval(&prog, &mem, binder, bindCtxNull);
-      check(!res.panic.kind);
+      check_msg(!res.panic.kind, "!panic ({})", fmt_text(testData[i].input));
       check_msg(
           script_val_equal(res.val, testData[i].expected),
           "{} == {} ({})",
