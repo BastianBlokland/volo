@@ -533,7 +533,7 @@ static bool compile_expr_prefer_invert(Context* ctx, const ScriptExpr e) {
 static ScriptCompileError compile_expr_invert(Context* ctx, const Target tgt, const ScriptExpr e) {
 
   // Fast path: '!a' -> 'a'.
-  if (expr_is_intrinsic(ctx, e, ScriptIntrinsic_Invert)) {
+  if (tgt.condition && expr_is_intrinsic(ctx, e, ScriptIntrinsic_Invert)) {
     const ScriptExprIntrinsic* intrData = &expr_data(ctx->doc, e)->intrinsic;
     const ScriptExpr*          intrArgs = expr_set_data(ctx->doc, intrData->argSet);
     return compile_expr(ctx, tgt, intrArgs[0]);
