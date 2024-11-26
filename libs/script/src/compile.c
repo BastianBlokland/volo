@@ -335,7 +335,7 @@ static ScriptCompileError compile_expr_invert(Context* ctx, const Target tgt, co
   }
 
   // Generic invert path.
-  if ((err = compile_expr(ctx, target_reg(tgt.reg), e))) {
+  if ((err = compile_expr(ctx, target_reg_cond(tgt.reg), e))) {
     return err;
   }
   if (!tgt.optional) {
@@ -525,7 +525,7 @@ compile_intr_quaternary(Context* ctx, const Target tgt, const ScriptOp op, const
 static ScriptCompileError
 compile_assert(Context* ctx, const Target tgt, const ScriptExpr expr, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
+  if ((err = compile_expr(ctx, target_reg_cond(tgt.reg), args[0]))) {
     return err;
   }
   emit_location(ctx, expr);
@@ -724,6 +724,7 @@ static ScriptCompileError compile_intr_break(Context* ctx) {
 }
 
 static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const ScriptExpr e) {
+  ScriptCompileError         err  = ScriptCompileError_None;
   const ScriptExprIntrinsic* data = &expr_data(ctx->doc, e)->intrinsic;
   const ScriptExpr*          args = expr_set_data(ctx->doc, data->argSet);
   switch (data->intrinsic) {
@@ -767,8 +768,8 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
     if (expr_is_null(ctx, args[1])) {
       return compile_intr_unary(ctx, tgt, ScriptOp_NonNull, &args[0]);
     }
-    const ScriptCompileError err = compile_intr_binary(ctx, tgt, ScriptOp_Equal, args);
-    if (!err) {
+    err = compile_intr_binary(ctx, target_reg_cond(tgt.reg), ScriptOp_Equal, args);
+    if (!err && !tgt.optional) {
       emit_unary(ctx, ScriptOp_Invert, tgt.reg);
     }
     return err;
@@ -776,8 +777,8 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
   case ScriptIntrinsic_Less:
     return compile_intr_binary(ctx, tgt, ScriptOp_Less, args);
   case ScriptIntrinsic_LessOrEqual: {
-    const ScriptCompileError err = compile_intr_binary(ctx, tgt, ScriptOp_Greater, args);
-    if (!err) {
+    err = compile_intr_binary(ctx, target_reg_cond(tgt.reg), ScriptOp_Greater, args);
+    if (!err && !tgt.optional) {
       emit_unary(ctx, ScriptOp_Invert, tgt.reg);
     }
     return err;
@@ -785,8 +786,8 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
   case ScriptIntrinsic_Greater:
     return compile_intr_binary(ctx, tgt, ScriptOp_Greater, args);
   case ScriptIntrinsic_GreaterOrEqual: {
-    const ScriptCompileError err = compile_intr_binary(ctx, tgt, ScriptOp_Less, args);
-    if (!err) {
+    err = compile_intr_binary(ctx, target_reg_cond(tgt.reg), ScriptOp_Less, args);
+    if (!err && !tgt.optional) {
       emit_unary(ctx, ScriptOp_Invert, tgt.reg);
     }
     return err;
