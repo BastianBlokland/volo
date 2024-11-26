@@ -323,6 +323,26 @@ static bool expr_is_intrinsic(Context* ctx, const ScriptExpr e, const ScriptIntr
 
 static ScriptCompileError compile_expr(Context*, Target, ScriptExpr);
 
+static ScriptCompileError compile_expr_invert(Context* ctx, const Target tgt, const ScriptExpr e) {
+  ScriptCompileError err = ScriptCompileError_None;
+
+  // When inverting an invert we can simply remove the invert.
+  if (expr_is_intrinsic(ctx, e, ScriptIntrinsic_Invert)) {
+    const ScriptExprIntrinsic* invertData = &expr_data(ctx->doc, e)->intrinsic;
+    const ScriptExpr*          invertArgs = expr_set_data(ctx->doc, invertData->argSet);
+    return compile_expr(ctx, tgt, invertArgs[0]);
+  }
+
+  // Generic invert path.
+  if ((err = compile_expr(ctx, target_reg(tgt.reg), e))) {
+    return err;
+  }
+  if (!tgt.optional) {
+    emit_unary(ctx, ScriptOp_Invert, tgt.reg);
+  }
+  return err;
+}
+
 static ScriptCompileError compile_value(Context* ctx, const Target tgt, const ScriptExpr e) {
   if (tgt.optional) {
     return ScriptCompileError_None;
@@ -783,7 +803,7 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
   case ScriptIntrinsic_Negate:
     return compile_intr_unary(ctx, tgt, ScriptOp_Negate, args);
   case ScriptIntrinsic_Invert:
-    return compile_intr_unary(ctx, tgt, ScriptOp_Invert, args);
+    return compile_expr_invert(ctx, tgt, args[0]);
   case ScriptIntrinsic_Distance:
     return compile_intr_binary(ctx, tgt, ScriptOp_Distance, args);
   case ScriptIntrinsic_Angle:
