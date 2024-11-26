@@ -94,6 +94,10 @@ spec(prog) {
         {string_static("var i; i"), script_null()},
         {string_static("var i = 42; i"), script_num(42)},
         {string_static("{var i = 42}; var i = 1; i"), script_num(1)},
+        {string_static("type(var i)"), script_str(string_hash_lit("null"))},
+        {string_static("var i; type(i)"), script_str(string_hash_lit("null"))},
+        {string_static("type(var i = 42)"), script_str(string_hash_lit("num"))},
+        {string_static("var i = 42; type(i)"), script_str(string_hash_lit("num"))},
 
         // Memory access.
         {string_static("$v1"), script_bool(true)},
@@ -106,11 +110,16 @@ spec(prog) {
         {string_static("mem_load(\"v3\")"), script_null()},
         {string_static("mem_load(\"non_existent\")"), script_null()},
         {string_static("mem_store(\"v4\", true)"), script_bool(true)},
+        {string_static("type($v1)"), script_str(string_hash_lit("bool"))},
+        {string_static("type($non_existent)"), script_str(string_hash_lit("null"))},
 
         // Arithmetic.
         {string_static("-42"), script_num(-42)},
         {string_static("--42"), script_num(42)},
         {string_static("---42"), script_num(-42)},
+        {string_static("type(-42)"), script_str(string_hash_lit("num"))},
+        {string_static("type(--42)"), script_str(string_hash_lit("num"))},
+        {string_static("type(---42)"), script_str(string_hash_lit("num"))},
         {string_static("-42 + -41"), script_num(-83)},
         {string_static("1 + 2"), script_num(3)},
         {string_static("1 + 2 + 3"), script_num(6)},
@@ -124,6 +133,14 @@ spec(prog) {
         {string_static("1 + $v2"), script_num(1338)},
         {string_static("!true"), script_bool(false)},
         {string_static("!false"), script_bool(true)},
+        {string_static("!1"), script_bool(false)},
+        {string_static("!!1"), script_bool(true)},
+        {string_static("!!!1"), script_bool(false)},
+        {string_static("!!\"hello\""), script_bool(true)},
+        {string_static("type(!1)"), script_str(string_hash_lit("bool"))},
+        {string_static("type(!!1)"), script_str(string_hash_lit("bool"))},
+        {string_static("type(!!!1)"), script_str(string_hash_lit("bool"))},
+        {string_static("type(!!\"hello\")"), script_str(string_hash_lit("bool"))},
         {string_static("magnitude(1)"), script_num(1)},
         {string_static("magnitude(-1)"), script_num(1)},
         {string_static("distance(0, 0)"), script_num(0)},
@@ -150,12 +167,18 @@ spec(prog) {
         {string_static("true == false"), script_bool(false)},
         {string_static("1 != 2"), script_bool(true)},
         {string_static("true != true"), script_bool(false)},
+        {string_static("!(1 != 2)"), script_bool(false)},
+        {string_static("type(1 != 2)"), script_str(string_hash_lit("bool"))},
+        {string_static("type(1 == 2)"), script_str(string_hash_lit("bool"))},
+        {string_static("type(!(1 != 2))"), script_str(string_hash_lit("bool"))},
 
         // Comparisons.
         {string_static("2 > 1"), script_bool(true)},
         {string_static("2 < 1"), script_bool(false)},
         {string_static("2 >= 2"), script_bool(true)},
         {string_static("2 <= 2"), script_bool(true)},
+        {string_static("type(2 > 1)"), script_str(string_hash_lit("bool"))},
+        {string_static("type(2 >= 1)"), script_str(string_hash_lit("bool"))},
 
         // Logic.
         {string_static("false && false"), script_bool(false)},
@@ -171,13 +194,22 @@ spec(prog) {
         {string_static("false || {$c = 3; false}; $c"), script_num(3)},
         {string_static("true || {$d = 4; false}; $d"), script_null()},
         {string_static("1 || 1"), script_bool(true)},
+        {string_static("!1 || !1"), script_bool(false)},
         {string_static("1 && 1"), script_bool(true)},
+        {string_static("!1 && !1"), script_bool(false)},
+        {string_static("type(1 || 1)"), script_str(string_hash_lit("bool"))},
+        {string_static("type(1 && 1)"), script_str(string_hash_lit("bool"))},
+        {string_static("type(!1 || !1)"), script_str(string_hash_lit("bool"))},
+        {string_static("type(!1 && !1)"), script_str(string_hash_lit("bool"))},
 
         // Condition expressions.
         {string_static("null ?? null"), script_null()},
         {string_static("null ?? true"), script_bool(true)},
         {string_static("false ?? true"), script_bool(false)},
         {string_static("null ?? {$i = 10; false}; $i"), script_num(10)},
+        {string_static("1 ?? 2"), script_num(1)},
+        {string_static("type(1 ?? 2)"), script_str(string_hash_lit("num"))},
+        {string_static("type(null ?? 2)"), script_str(string_hash_lit("num"))},
         {string_static("1 ?? {$j = 11; false}; $j"), script_null()},
         {string_static("true ? 42 : 1337"), script_num(42)},
         {string_static("false ? 42 : 1337"), script_num(1337)},
@@ -293,7 +325,7 @@ spec(prog) {
 
       check_require(script_prog_validate(&prog, binder));
       const ScriptProgResult res = script_prog_eval(&prog, &mem, binder, bindCtxNull);
-      check(!res.panic.kind);
+      check_msg(!res.panic.kind, "!panic ({})", fmt_text(testData[i].input));
       check_msg(
           script_val_equal(res.val, testData[i].expected),
           "{} == {} ({})",

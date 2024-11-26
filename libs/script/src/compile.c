@@ -38,14 +38,15 @@ typedef struct {
 
 typedef struct {
   RegId reg;
-  bool  optional, jumpCondition;
+  bool  optional;  // Value is not needed but the register can be used as a temporary.
+  bool  condition; // Value is used as a condition, only truthy vs falsy matters.
 } Target;
 
 #define target_reg(_REG_)                                                                          \
   (Target) { .reg = (_REG_) }
 
-#define target_reg_jump_cond(_REG_)                                                                \
-  (Target) { .reg = (_REG_), .jumpCondition = true }
+#define target_reg_cond(_REG_)                                                                     \
+  (Target) { .reg = (_REG_), .condition = true }
 
 #define target_reg_opt(_REG_)                                                                      \
   (Target) { .reg = (_REG_), .optional = true }
@@ -71,11 +72,6 @@ static i8 script_compare_loc(const void* a, const void* b) {
   const ScriptProgramLoc* posA = a;
   const ScriptProgramLoc* posB = b;
   return compare_u16(&posA->instruction, &posB->instruction);
-}
-
-static Target target_required(Target tgt) {
-  tgt.optional = false;
-  return tgt;
 }
 
 MAYBE_UNUSED static u32 reg_available(Context* ctx) { return bits_popcnt_64(ctx->regAvailability); }
@@ -504,7 +500,7 @@ compile_intr_quaternary(Context* ctx, const Target tgt, const ScriptOp op, const
 static ScriptCompileError
 compile_assert(Context* ctx, const Target tgt, const ScriptExpr expr, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, target_reg(tgt.reg), args[0]))) {
+  if ((err = compile_expr(ctx, target_reg_cond(tgt.reg), args[0]))) {
     return err;
   }
   emit_location(ctx, expr);
@@ -512,20 +508,77 @@ compile_assert(Context* ctx, const Target tgt, const ScriptExpr expr, const Scri
   return err;
 }
 
+/**
+ * Check if the inverse of the given expression would be cheaper to compute then the regular value.
+ */
+static bool compile_expr_prefer_invert(Context* ctx, const ScriptExpr e) {
+  static const ScriptIntrinsic g_preferInvertIntrs[] = {
+      ScriptIntrinsic_Invert,
+      ScriptIntrinsic_NotEqual,
+      ScriptIntrinsic_LessOrEqual,
+      ScriptIntrinsic_GreaterOrEqual,
+  };
+  for (u32 i = 0; i != array_elems(g_preferInvertIntrs); ++i) {
+    if (expr_is_intrinsic(ctx, e, g_preferInvertIntrs[i])) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Produce the inverted value of the given expression.
+ * For various expressions this can be encoded more efficiently then just a naive invert at the end.
+ */
+static ScriptCompileError compile_expr_invert(Context* ctx, const Target tgt, const ScriptExpr e) {
+
+  // Fast path: '!a' -> 'a'.
+  if (tgt.condition && expr_is_intrinsic(ctx, e, ScriptIntrinsic_Invert)) {
+    const ScriptExprIntrinsic* intrData = &expr_data(ctx->doc, e)->intrinsic;
+    const ScriptExpr*          intrArgs = expr_set_data(ctx->doc, intrData->argSet);
+    return compile_expr(ctx, tgt, intrArgs[0]);
+  }
+
+  static const struct {
+    ScriptIntrinsic intr;
+    ScriptOp        op;
+  } g_inverseBinaryOps[] = {
+      {ScriptIntrinsic_NotEqual, ScriptOp_Equal},      // 'a != b' -> 'a == b'.
+      {ScriptIntrinsic_LessOrEqual, ScriptOp_Greater}, // 'a <= b' -> 'a > b'.
+      {ScriptIntrinsic_GreaterOrEqual, ScriptOp_Less}, // 'a >= b' -> 'a < b'.
+  };
+
+  // Fast path: Inverse binary operations.
+  for (u32 i = 0; i != array_elems(g_inverseBinaryOps); ++i) {
+    if (expr_is_intrinsic(ctx, e, g_inverseBinaryOps[i].intr)) {
+      const ScriptExprIntrinsic* intrData = &expr_data(ctx->doc, e)->intrinsic;
+      const ScriptExpr*          intrArgs = expr_set_data(ctx->doc, intrData->argSet);
+      return compile_intr_binary(ctx, tgt, g_inverseBinaryOps[i].op, intrArgs);
+    }
+  }
+
+  // Generic path: 'a' -> '!a'.
+  ScriptCompileError err = ScriptCompileError_None;
+  if ((err = compile_expr(ctx, target_reg_cond(tgt.reg), e))) {
+    return err;
+  }
+  if (!tgt.optional) {
+    emit_unary(ctx, ScriptOp_Invert, tgt.reg);
+  }
+  return err;
+}
+
 static ScriptCompileError
 compile_intr_select(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
   // Condition.
-  const bool invert = expr_is_intrinsic(ctx, args[0], ScriptIntrinsic_Invert);
+  const bool invert = compile_expr_prefer_invert(ctx, args[0]);
   if (invert) {
-    // Fast path for inverted conditions; we can skip the invert expr and instead invert the jump.
-    const ScriptExprIntrinsic* invertData = &expr_data(ctx->doc, args[0])->intrinsic;
-    const ScriptExpr*          invertArgs = expr_set_data(ctx->doc, invertData->argSet);
-    if ((err = compile_expr(ctx, target_reg_jump_cond(tgt.reg), invertArgs[0]))) {
+    if ((err = compile_expr_invert(ctx, target_reg_cond(tgt.reg), args[0]))) {
       return err;
     }
   } else {
-    if ((err = compile_expr(ctx, target_reg_jump_cond(tgt.reg), args[0]))) {
+    if ((err = compile_expr(ctx, target_reg_cond(tgt.reg), args[0]))) {
       return err;
     }
   }
@@ -576,18 +629,18 @@ compile_intr_null_coalescing(Context* ctx, const Target tgt, const ScriptExpr* a
 static ScriptCompileError
 compile_intr_logic_and(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, target_required(tgt), args[0]))) {
+  if ((err = compile_expr(ctx, target_reg_cond(tgt.reg), args[0]))) {
     return err;
   }
   const LabelId retLabel = label_alloc(ctx);
   emit_jump_if_falsy(ctx, tgt.reg, retLabel);
 
-  if ((err = compile_expr(ctx, target_required(tgt), args[1]))) {
+  if ((err = compile_expr(ctx, target_reg_cond(tgt.reg), args[1]))) {
     return err;
   }
 
   label_link(ctx, retLabel);
-  if (!tgt.jumpCondition) {
+  if (!tgt.condition && !tgt.optional) {
     emit_unary(ctx, ScriptOp_Truthy, tgt.reg); // Convert the result to boolean.
   }
   return err;
@@ -596,18 +649,18 @@ compile_intr_logic_and(Context* ctx, const Target tgt, const ScriptExpr* args) {
 static ScriptCompileError
 compile_intr_logic_or(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
-  if ((err = compile_expr(ctx, target_required(tgt), args[0]))) {
+  if ((err = compile_expr(ctx, target_reg_cond(tgt.reg), args[0]))) {
     return err;
   }
   const LabelId retLabel = label_alloc(ctx);
   emit_jump_if_truthy(ctx, tgt.reg, retLabel);
 
-  if ((err = compile_expr(ctx, target_required(tgt), args[1]))) {
+  if ((err = compile_expr(ctx, target_reg_cond(tgt.reg), args[1]))) {
     return err;
   }
 
   label_link(ctx, retLabel);
-  if (!tgt.jumpCondition) {
+  if (!tgt.condition && !tgt.optional) {
     emit_unary(ctx, ScriptOp_Truthy, tgt.reg); // Convert the result to boolean.
   }
   return err;
@@ -644,17 +697,14 @@ compile_intr_loop(Context* ctx, const Target tgt, const ScriptExpr* args) {
   }
   label_link(ctx, labelCond);
   if (!expr_is_true(ctx, args[1])) {
-    const bool invert = expr_is_intrinsic(ctx, args[1], ScriptIntrinsic_Invert);
+    const bool invert = compile_expr_prefer_invert(ctx, args[1]);
     if (invert) {
-      // Fast path for inverted conditions; we can skip the invert expr and instead invert the jump.
-      const ScriptExprIntrinsic* invertData = &expr_data(ctx->doc, args[1])->intrinsic;
-      const ScriptExpr*          invertArgs = expr_set_data(ctx->doc, invertData->argSet);
-      if ((err = compile_expr(ctx, target_reg_jump_cond(tmpReg), invertArgs[0]))) {
+      if ((err = compile_expr_invert(ctx, target_reg_cond(tmpReg), args[1]))) {
         return err;
       }
       emit_jump_if_truthy(ctx, tmpReg, labelEnd);
     } else {
-      if ((err = compile_expr(ctx, target_reg_jump_cond(tmpReg), args[1]))) {
+      if ((err = compile_expr(ctx, target_reg_cond(tmpReg), args[1]))) {
         return err;
       }
       emit_jump_if_falsy(ctx, tmpReg, labelEnd);
@@ -703,6 +753,7 @@ static ScriptCompileError compile_intr_break(Context* ctx) {
 }
 
 static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const ScriptExpr e) {
+  ScriptCompileError         err  = ScriptCompileError_None;
   const ScriptExprIntrinsic* data = &expr_data(ctx->doc, e)->intrinsic;
   const ScriptExpr*          args = expr_set_data(ctx->doc, data->argSet);
   switch (data->intrinsic) {
@@ -746,8 +797,8 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
     if (expr_is_null(ctx, args[1])) {
       return compile_intr_unary(ctx, tgt, ScriptOp_NonNull, &args[0]);
     }
-    const ScriptCompileError err = compile_intr_binary(ctx, tgt, ScriptOp_Equal, args);
-    if (!err) {
+    err = compile_intr_binary(ctx, target_reg_cond(tgt.reg), ScriptOp_Equal, args);
+    if (!err && !tgt.optional) {
       emit_unary(ctx, ScriptOp_Invert, tgt.reg);
     }
     return err;
@@ -755,8 +806,8 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
   case ScriptIntrinsic_Less:
     return compile_intr_binary(ctx, tgt, ScriptOp_Less, args);
   case ScriptIntrinsic_LessOrEqual: {
-    const ScriptCompileError err = compile_intr_binary(ctx, tgt, ScriptOp_Greater, args);
-    if (!err) {
+    err = compile_intr_binary(ctx, target_reg_cond(tgt.reg), ScriptOp_Greater, args);
+    if (!err && !tgt.optional) {
       emit_unary(ctx, ScriptOp_Invert, tgt.reg);
     }
     return err;
@@ -764,8 +815,8 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
   case ScriptIntrinsic_Greater:
     return compile_intr_binary(ctx, tgt, ScriptOp_Greater, args);
   case ScriptIntrinsic_GreaterOrEqual: {
-    const ScriptCompileError err = compile_intr_binary(ctx, tgt, ScriptOp_Less, args);
-    if (!err) {
+    err = compile_intr_binary(ctx, target_reg_cond(tgt.reg), ScriptOp_Less, args);
+    if (!err && !tgt.optional) {
       emit_unary(ctx, ScriptOp_Invert, tgt.reg);
     }
     return err;
@@ -783,7 +834,7 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
   case ScriptIntrinsic_Negate:
     return compile_intr_unary(ctx, tgt, ScriptOp_Negate, args);
   case ScriptIntrinsic_Invert:
-    return compile_intr_unary(ctx, tgt, ScriptOp_Invert, args);
+    return compile_expr_invert(ctx, tgt, args[0]);
   case ScriptIntrinsic_Distance:
     return compile_intr_binary(ctx, tgt, ScriptOp_Distance, args);
   case ScriptIntrinsic_Angle:
