@@ -508,11 +508,29 @@ compile_assert(Context* ctx, const Target tgt, const ScriptExpr expr, const Scri
   return err;
 }
 
+/**
+ * Check if the inverse of the given expression would be cheaper to compute then the regular value.
+ */
+static bool compile_expr_prefer_invert(Context* ctx, const ScriptExpr e) {
+  static const ScriptIntrinsic g_preferInvertIntrs[] = {
+      ScriptIntrinsic_Invert,
+      ScriptIntrinsic_NotEqual,
+      ScriptIntrinsic_LessOrEqual,
+      ScriptIntrinsic_GreaterOrEqual,
+  };
+  for (u32 i = 0; i != array_elems(g_preferInvertIntrs); ++i) {
+    if (expr_is_intrinsic(ctx, e, g_preferInvertIntrs[i])) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Produce the inverted value of the given expression.
+ * For various expressions this can be encoded more efficiently then just a naive invert at the end.
+ */
 static ScriptCompileError compile_expr_invert(Context* ctx, const Target tgt, const ScriptExpr e) {
-  /**
-   * For various expressions we can emit an alternative op instead of just inverting the result at
-   * the end.
-   */
 
   // Fast path: '!a' -> 'a'.
   if (expr_is_intrinsic(ctx, e, ScriptIntrinsic_Invert)) {
@@ -554,12 +572,9 @@ static ScriptCompileError
 compile_intr_select(Context* ctx, const Target tgt, const ScriptExpr* args) {
   ScriptCompileError err = ScriptCompileError_None;
   // Condition.
-  const bool invert = expr_is_intrinsic(ctx, args[0], ScriptIntrinsic_Invert);
+  const bool invert = compile_expr_prefer_invert(ctx, args[0]);
   if (invert) {
-    // Fast path for inverted conditions; we can skip the invert expr and instead invert the jump.
-    const ScriptExprIntrinsic* invertData = &expr_data(ctx->doc, args[0])->intrinsic;
-    const ScriptExpr*          invertArgs = expr_set_data(ctx->doc, invertData->argSet);
-    if ((err = compile_expr(ctx, target_reg_cond(tgt.reg), invertArgs[0]))) {
+    if ((err = compile_expr_invert(ctx, target_reg_cond(tgt.reg), args[0]))) {
       return err;
     }
   } else {
@@ -682,12 +697,9 @@ compile_intr_loop(Context* ctx, const Target tgt, const ScriptExpr* args) {
   }
   label_link(ctx, labelCond);
   if (!expr_is_true(ctx, args[1])) {
-    const bool invert = expr_is_intrinsic(ctx, args[1], ScriptIntrinsic_Invert);
+    const bool invert = compile_expr_prefer_invert(ctx, args[1]);
     if (invert) {
-      // Fast path for inverted conditions; we can skip the invert expr and instead invert the jump.
-      const ScriptExprIntrinsic* invertData = &expr_data(ctx->doc, args[1])->intrinsic;
-      const ScriptExpr*          invertArgs = expr_set_data(ctx->doc, invertData->argSet);
-      if ((err = compile_expr(ctx, target_reg_cond(tmpReg), invertArgs[0]))) {
+      if ((err = compile_expr_invert(ctx, target_reg_cond(tmpReg), args[1]))) {
         return err;
       }
       emit_jump_if_truthy(ctx, tmpReg, labelEnd);
