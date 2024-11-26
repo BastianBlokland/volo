@@ -319,26 +319,6 @@ static bool expr_is_intrinsic(Context* ctx, const ScriptExpr e, const ScriptIntr
 
 static ScriptCompileError compile_expr(Context*, Target, ScriptExpr);
 
-static ScriptCompileError compile_expr_invert(Context* ctx, const Target tgt, const ScriptExpr e) {
-  ScriptCompileError err = ScriptCompileError_None;
-
-  // When inverting an invert we can simply remove the invert.
-  if (expr_is_intrinsic(ctx, e, ScriptIntrinsic_Invert)) {
-    const ScriptExprIntrinsic* invertData = &expr_data(ctx->doc, e)->intrinsic;
-    const ScriptExpr*          invertArgs = expr_set_data(ctx->doc, invertData->argSet);
-    return compile_expr(ctx, tgt, invertArgs[0]);
-  }
-
-  // Generic invert path.
-  if ((err = compile_expr(ctx, target_reg_cond(tgt.reg), e))) {
-    return err;
-  }
-  if (!tgt.optional) {
-    emit_unary(ctx, ScriptOp_Invert, tgt.reg);
-  }
-  return err;
-}
-
 static ScriptCompileError compile_value(Context* ctx, const Target tgt, const ScriptExpr e) {
   if (tgt.optional) {
     return ScriptCompileError_None;
@@ -525,6 +505,48 @@ compile_assert(Context* ctx, const Target tgt, const ScriptExpr expr, const Scri
   }
   emit_location(ctx, expr);
   emit_unary(ctx, ScriptOp_Assert, tgt.reg);
+  return err;
+}
+
+static ScriptCompileError compile_expr_invert(Context* ctx, const Target tgt, const ScriptExpr e) {
+  /**
+   * For various expressions we can emit an alternative op instead of just inverting the result at
+   * the end.
+   */
+
+  // Fast path: '!a' -> 'a'.
+  if (expr_is_intrinsic(ctx, e, ScriptIntrinsic_Invert)) {
+    const ScriptExprIntrinsic* intrData = &expr_data(ctx->doc, e)->intrinsic;
+    const ScriptExpr*          intrArgs = expr_set_data(ctx->doc, intrData->argSet);
+    return compile_expr(ctx, tgt, intrArgs[0]);
+  }
+
+  static const struct {
+    ScriptIntrinsic intr;
+    ScriptOp        op;
+  } g_inverseBinaryOps[] = {
+      {ScriptIntrinsic_NotEqual, ScriptOp_Equal},      // 'a != b' -> 'a == b'.
+      {ScriptIntrinsic_LessOrEqual, ScriptOp_Greater}, // 'a <= b' -> 'a > b'.
+      {ScriptIntrinsic_GreaterOrEqual, ScriptOp_Less}, // 'a >= b' -> 'a < b'.
+  };
+
+  // Fast path: Inverse binary operations.
+  for (u32 i = 0; i != array_elems(g_inverseBinaryOps); ++i) {
+    if (expr_is_intrinsic(ctx, e, g_inverseBinaryOps[i].intr)) {
+      const ScriptExprIntrinsic* intrData = &expr_data(ctx->doc, e)->intrinsic;
+      const ScriptExpr*          intrArgs = expr_set_data(ctx->doc, intrData->argSet);
+      return compile_intr_binary(ctx, tgt, g_inverseBinaryOps[i].op, intrArgs);
+    }
+  }
+
+  // Generic path: 'a' -> '!a'.
+  ScriptCompileError err = ScriptCompileError_None;
+  if ((err = compile_expr(ctx, target_reg_cond(tgt.reg), e))) {
+    return err;
+  }
+  if (!tgt.optional) {
+    emit_unary(ctx, ScriptOp_Invert, tgt.reg);
+  }
   return err;
 }
 
