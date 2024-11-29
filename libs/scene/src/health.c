@@ -26,7 +26,6 @@ ecs_comp_define_public(SceneHealthComp);
 ecs_comp_define_public(SceneHealthRequestComp);
 ecs_comp_define_public(SceneHealthStatsComp);
 ecs_comp_define_public(SceneDeadComp);
-ecs_comp_define(SceneHealthAnimComp) { SceneSkeletonMask hitAnimMask; };
 
 static SceneHealthMod* mod_storage_push(SceneHealthModStorage* storage) {
   if (UNLIKELY(storage->count == storage->capacity)) {
@@ -82,39 +81,6 @@ static void ecs_combine_stats(void* dataA, void* dataB) {
   }
 }
 
-ecs_view_define(HealthAnimInitView) {
-  ecs_access_read(SceneRenderableComp);
-  ecs_access_with(SceneAnimationComp);
-  ecs_access_with(SceneHealthComp);
-  ecs_access_without(SceneHealthAnimComp);
-}
-
-ecs_view_define(HealthGraphicView) { ecs_access_read(SceneSkeletonTemplComp); }
-
-ecs_system_define(SceneHealthInitSys) {
-  EcsIterator* graphicItr = ecs_view_itr(ecs_world_view_t(world, HealthGraphicView));
-
-  EcsView* initView = ecs_world_view_t(world, HealthAnimInitView);
-  for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
-    const EcsEntityId          entity     = ecs_view_entity(itr);
-    const SceneRenderableComp* renderable = ecs_view_read_t(itr, SceneRenderableComp);
-
-    if (ecs_view_maybe_jump(graphicItr, renderable->graphic)) {
-      const SceneSkeletonTemplComp* skelTempl = ecs_view_read_t(graphicItr, SceneSkeletonTemplComp);
-      SceneHealthAnimComp*          animComp  = ecs_world_add_t(world, entity, SceneHealthAnimComp);
-
-      /**
-       * TODO: Define this skeleton mask in content instead of hard-coding it here.
-       */
-      const u32 neckJoint = scene_skeleton_joint_by_name(skelTempl, string_hash_lit("Spine"));
-      if (!sentinel_check(neckJoint)) {
-        scene_skeleton_mask_clear_rec(&animComp->hitAnimMask, skelTempl, 0);
-        scene_skeleton_mask_set_rec(&animComp->hitAnimMask, skelTempl, neckJoint);
-      }
-    }
-  }
-}
-
 static f32 health_normalize(const SceneHealthComp* health, const f32 amount) {
   return LIKELY(health->max > 0.0f) ? (amount / health->max) : 1.0f;
 }
@@ -135,14 +101,13 @@ static void health_clear_damaged(EcsWorld* world, const EcsEntityId entity, Scen
   }
 }
 
-static void health_anim_play_hit(SceneAnimationComp* anim, const SceneHealthAnimComp* healthAnim) {
+static void health_anim_play_hit(SceneAnimationComp* anim) {
   SceneAnimLayer* hitAnimLayer;
   if ((hitAnimLayer = scene_animation_layer_mut(anim, g_healthHitAnimHash))) {
     hitAnimLayer->weight = 0.5f; // TODO: Weight should be defined in content.
     hitAnimLayer->speed  = 2.0f; // TODO: Speed should be defined in content.
     hitAnimLayer->flags &= ~SceneAnimFlags_Loop;
     hitAnimLayer->flags |= SceneAnimFlags_AutoFade;
-    hitAnimLayer->mask = healthAnim->hitAnimMask;
 
     // Restart the animation if it has reached the end, don't rewind if its already playing.
     if (hitAnimLayer->time == hitAnimLayer->duration) {
@@ -242,7 +207,6 @@ static void health_death_disable(EcsWorld* world, const EcsEntityId entity) {
 ecs_view_define(GlobalView) { ecs_access_read(SceneTimeComp); }
 
 ecs_view_define(HealthView) {
-  ecs_access_maybe_read(SceneHealthAnimComp);
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_write(SceneAnimationComp);
   ecs_access_maybe_write(SceneBarkComp);
@@ -267,14 +231,13 @@ ecs_system_define(SceneHealthUpdateSys) {
   EcsIterator* statsItr = ecs_view_itr(statsView);
 
   for (EcsIterator* itr = ecs_view_itr(healthView); ecs_view_walk(itr);) {
-    const EcsEntityId          entity     = ecs_view_entity(itr);
-    const SceneHealthAnimComp* healthAnim = ecs_view_read_t(itr, SceneHealthAnimComp);
-    const SceneTransformComp*  trans      = ecs_view_read_t(itr, SceneTransformComp);
-    SceneAnimationComp*        anim       = ecs_view_write_t(itr, SceneAnimationComp);
-    SceneHealthRequestComp*    request    = ecs_view_write_t(itr, SceneHealthRequestComp);
-    SceneHealthComp*           health     = ecs_view_write_t(itr, SceneHealthComp);
-    SceneTagComp*              tag        = ecs_view_write_t(itr, SceneTagComp);
-    SceneBarkComp*             bark       = ecs_view_write_t(itr, SceneBarkComp);
+    const EcsEntityId         entity  = ecs_view_entity(itr);
+    const SceneTransformComp* trans   = ecs_view_read_t(itr, SceneTransformComp);
+    SceneAnimationComp*       anim    = ecs_view_write_t(itr, SceneAnimationComp);
+    SceneHealthRequestComp*   request = ecs_view_write_t(itr, SceneHealthRequestComp);
+    SceneHealthComp*          health  = ecs_view_write_t(itr, SceneHealthComp);
+    SceneTagComp*             tag     = ecs_view_write_t(itr, SceneTagComp);
+    SceneBarkComp*            bark    = ecs_view_write_t(itr, SceneBarkComp);
 
     const bool       wasDead = (health->flags & SceneHealthFlags_Dead) != 0;
     HealthModContext modCtx  = {.health = health, .statsItr = statsItr};
@@ -295,8 +258,8 @@ ecs_system_define(SceneHealthUpdateSys) {
     if (modCtx.totalDamage > 0.0f && (health->flags & SceneHealthFlags_Dead) == 0) {
       health->lastDamagedTime = time->time;
       health_set_damaged(world, entity, tag);
-      if (anim && healthAnim && modCtx.totalDamage > g_healthMinNormDamageForAnim) {
-        health_anim_play_hit(anim, healthAnim);
+      if (anim && modCtx.totalDamage > g_healthMinNormDamageForAnim) {
+        health_anim_play_hit(anim);
       }
     } else if ((time->time - health->lastDamagedTime) > time_milliseconds(100)) {
       health_clear_damaged(world, entity, tag);
@@ -308,7 +271,7 @@ ecs_system_define(SceneHealthUpdateSys) {
       health->norm = 0.0f;
 
       health_death_disable(world, entity);
-      if (anim && healthAnim) {
+      if (anim) {
         health_anim_play_death(anim);
       }
       if (trans && health->deathEffectPrefab) {
@@ -344,14 +307,8 @@ ecs_module_init(scene_health_module) {
       .destructor = ecs_destruct_request);
   ecs_register_comp(SceneHealthStatsComp, .combinator = ecs_combine_stats);
   ecs_register_comp_empty(SceneDeadComp);
-  ecs_register_comp(SceneHealthAnimComp);
 
   ecs_register_view(GlobalView);
-
-  ecs_register_system(
-      SceneHealthInitSys,
-      ecs_register_view(HealthAnimInitView),
-      ecs_register_view(HealthGraphicView));
 
   ecs_register_system(
       SceneHealthUpdateSys,

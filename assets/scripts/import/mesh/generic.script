@@ -16,6 +16,12 @@ for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
   } else if (animName == "hit") {
     anim_layer(animIdx, 1)
     anim_weight(animIdx, 0.0)
+    anim_mask_all(animIdx, 0)
+    if (var spineIdx = joint_find("Spine")) {
+      anim_mask_fade_down(animIdx, spineIdx, 0.25)
+    } else {
+      fail("Spine joint missing")
+    }
   } else if (animName == "fire") {
     anim_layer(animIdx, 2)
     anim_weight(animIdx, 0.0)
