@@ -2,13 +2,10 @@
 #include "asset_manager.h"
 #include "asset_mesh.h"
 #include "core_alloc.h"
-#include "core_bits.h"
-#include "core_bitset.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "ecs_utils.h"
-#include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_bounds.h"
 #include "scene_renderable.h"
@@ -169,7 +166,6 @@ scene_skeleton_init(EcsWorld* world, const EcsEntityId entity, const SceneSkelet
         .speed    = tl->anims[i].speed,
         .weight   = tl->anims[i].weight,
     };
-    scene_skeleton_mask_set_rec(&layers[i].mask, tl, 0);
   }
   ecs_world_add_t(world, entity, SceneAnimationComp, .layers = layers, .layerCount = tl->animCount);
 }
@@ -428,7 +424,6 @@ static void anim_blend_quat(GeoQuat q, const f32 weight, f32* outWeight, GeoQuat
 
 static void anim_sample_layer(
     const SceneSkeletonTemplComp* tl,
-    const SceneAnimLayer*         layer,
     const u32                     layerIndex,
     const f32                     layerWeight,
     const f32                     layerTimeNorm,
@@ -437,10 +432,6 @@ static void anim_sample_layer(
   const u16                tNorm16 = (u16)(layerTimeNorm * u16_max);
   const SceneSkeletonAnim* anim    = &tl->anims[layerIndex];
   for (u32 j = 0; j != tl->jointCount; ++j) {
-    if (!scene_skeleton_mask_test(&layer->mask, j)) {
-      continue; // Layer is disabled for this joint.
-    }
-
     const f32 sampleWeight = layerWeight * anim->mask[j];
 
     f32* weightT = &weights[j * AssetMeshAnimTarget_Count + AssetMeshAnimTarget_Translation];
@@ -605,7 +596,7 @@ ecs_system_define(SceneSkeletonUpdateSys) {
         layerWeight *= anim_compute_fade(layerTimeNorm, layer->flags);
       }
       if (layerWeight > scene_weight_min) {
-        anim_sample_layer(tl, layer, i, layerWeight, layerTimeNorm, weights, poses);
+        anim_sample_layer(tl, i, layerWeight, layerTimeNorm, weights, poses);
       }
     }
     anim_sample_def(tl, weights, poses);
@@ -840,54 +831,6 @@ SceneJointPose scene_skeleton_sample_def(const SceneSkeletonTemplComp* tl, const
 }
 
 SceneJointPose scene_skeleton_root(const SceneSkeletonTemplComp* tl) { return *tl->rootPose; }
-
-void scene_skeleton_mask_set(SceneSkeletonMask* mask, const u32 joint) {
-  bitset_set(bitset_from_array(mask->jointBits), joint);
-}
-
-void scene_skeleton_mask_set_rec(
-    SceneSkeletonMask* mask, const SceneSkeletonTemplComp* tl, const u32 joint) {
-  const BitSet bitset     = bitset_from_array(mask->jointBits);
-  const u32    jointCount = scene_skeleton_joint_count(tl);
-  if (joint == 0) {
-    bitset_set_all(bitset, jointCount);
-    return;
-  }
-  const u32 parentIndex = tl->parentIndices[joint];
-
-  diag_assert(joint < jointCount);
-
-  bitset_set(bitset, joint);
-  for (u32 i = joint + 1; i != jointCount && tl->parentIndices[i] > parentIndex; ++i) {
-    bitset_set(bitset, i);
-  }
-}
-
-void scene_skeleton_mask_clear(SceneSkeletonMask* mask, const u32 joint) {
-  bitset_clear(bitset_from_array(mask->jointBits), joint);
-}
-
-void scene_skeleton_mask_clear_rec(
-    SceneSkeletonMask* mask, const SceneSkeletonTemplComp* tl, const u32 joint) {
-  const BitSet bitset = bitset_from_array(mask->jointBits);
-  if (joint == 0) {
-    bitset_clear_all(bitset);
-    return;
-  }
-  const u32 jointCount  = scene_skeleton_joint_count(tl);
-  const u32 parentIndex = tl->parentIndices[joint];
-
-  diag_assert(joint < jointCount);
-
-  bitset_clear(bitset, joint);
-  for (u32 i = joint + 1; i != jointCount && tl->parentIndices[i] > parentIndex; ++i) {
-    bitset_clear(bitset, i);
-  }
-}
-
-bool scene_skeleton_mask_test(const SceneSkeletonMask* mask, const u32 joint) {
-  return (mask->jointBits[bits_to_bytes(joint)] & (1u << bit_in_byte(joint))) != 0;
-}
 
 void scene_skeleton_delta(
     const SceneSkeletonComp* sk, const SceneSkeletonTemplComp* tl, GeoMatrix* restrict out) {
