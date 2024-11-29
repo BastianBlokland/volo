@@ -32,17 +32,17 @@ for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
     anim_layer(animIdx, 4)
     anim_weight(animIdx, 0.0)
   } else if (animName == "run") {
-    anim_flag(animIdx, "Loop", true)
-    anim_weight(animIdx, 0.0)
     anim_layer(animIdx, 5)
-  } else if (animName == "walk") {
     anim_flag(animIdx, "Loop", true)
     anim_weight(animIdx, 0.0)
+  } else if (animName == "walk") {
     anim_layer(animIdx, 6)
+    anim_flag(animIdx, "Loop", true)
+    anim_weight(animIdx, 0.0)
   } else if (animName == "idle") {
+    anim_layer(animIdx, 7)
     anim_flag(animIdx, "Loop", true)
     anim_weight(animIdx, 1.0)
-    anim_layer(animIdx, 7)
   } else /* other */ {
     anim_flag(animIdx, "Loop", true)
     anim_weight(animIdx, 1.0)
