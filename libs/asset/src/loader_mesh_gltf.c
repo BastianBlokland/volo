@@ -1548,7 +1548,8 @@ static void gltf_build_skeleton(
     resAnim->flags    = importAnim->flags;
     resAnim->duration = importAnim->duration;
     resAnim->time     = math_clamp_f32(importAnim->time, 0.0f, importAnim->duration);
-    resAnim->speed    = importAnim->speed;
+    resAnim->speedMin = math_max(importAnim->speed - importAnim->speedVariance * 0.5f, 0.0f);
+    resAnim->speedMax = importAnim->speed + importAnim->speedVariance * 0.5f;
     resAnim->weight   = importAnim->weight;
   }
 
@@ -1641,9 +1642,10 @@ static bool gltf_import(const AssetImportEnvComp* importEnv, GltfLoad* ld, Asset
     anim->duration                 = gltf_anim_duration(ld, anim);
     out->anims[animIndex].duration = anim->duration;
 
-    out->anims[animIndex].time   = 0.0f;
-    out->anims[animIndex].speed  = 1.0f;
-    out->anims[animIndex].weight = 1.0f;
+    out->anims[animIndex].time          = 0.0f;
+    out->anims[animIndex].speed         = 1.0f;
+    out->anims[animIndex].speedVariance = 0.0f;
+    out->anims[animIndex].weight        = 1.0f;
 
     for (u32 jointIndex = 0; jointIndex != asset_mesh_joints_max; ++jointIndex) {
       const bool slotUsed                    = jointIndex < ld->jointCount;
