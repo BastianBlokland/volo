@@ -485,6 +485,9 @@ static EffectResult effect_update_anim(
     return EffectResult_Running;
   }
 
+  // NOTE: Make sure the animation is always active while running, important for hot-loading.
+  animLayer->flags |= SceneAnimFlags_Active;
+
   if (interrupt) {
     animLayer->flags &= ~SceneAnimFlags_Loop; // Disable animation looping.
     if (def->allowEarlyInterrupt) {

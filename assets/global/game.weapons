@@ -163,7 +163,7 @@
         {
           "$type": "AssetWeaponEffect_Damage",
           "originJoint": "RightHandMiddle1",
-          "delay": 0.375,
+          "delay": 0.35,
           "damage": 25,
           "radius": 1.25,
           "impactPrefab": "ImpactMelee"
