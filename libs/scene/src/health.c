@@ -104,17 +104,12 @@ static void health_clear_damaged(EcsWorld* world, const EcsEntityId entity, Scen
 static void health_anim_play_hit(SceneAnimationComp* anim) {
   SceneAnimLayer* hitAnimLayer;
   if ((hitAnimLayer = scene_animation_layer_mut(anim, g_healthHitAnimHash))) {
-    hitAnimLayer->weight = 0.5f; // TODO: Weight should be defined in content.
-    hitAnimLayer->speed  = 2.0f; // TODO: Speed should be defined in content.
-    hitAnimLayer->flags &= ~SceneAnimFlags_Loop;
-    hitAnimLayer->flags |= SceneAnimFlags_AutoFade;
-
     // Restart the animation if it has reached the end, don't rewind if its already playing.
     if (hitAnimLayer->time == hitAnimLayer->duration) {
       hitAnimLayer->time = 0;
 
       // Randomize the speed to avoid multiple units playing the same animation completely in sync.
-      hitAnimLayer->speed *= rng_sample_range(g_rng, 0.8f, 1.2f);
+      hitAnimLayer->speed = rng_sample_range(g_rng, 0.8f, 1.2f);
     }
   }
 }
@@ -122,14 +117,10 @@ static void health_anim_play_hit(SceneAnimationComp* anim) {
 static void health_anim_play_death(SceneAnimationComp* anim) {
   SceneAnimLayer* deathAnimLayer;
   if ((deathAnimLayer = scene_animation_layer_mut(anim, g_healthDeathAnimHash))) {
-    deathAnimLayer->time   = 0;
-    deathAnimLayer->weight = 1.0f;
-    deathAnimLayer->speed  = 1.5f; // TODO: Speed should be defined in content.
-    deathAnimLayer->flags &= ~SceneAnimFlags_Loop;
-    deathAnimLayer->flags |= SceneAnimFlags_AutoFadeIn;
+    deathAnimLayer->time = 0;
 
     // Randomize the speed to avoid multiple units playing the same animation completely in sync.
-    deathAnimLayer->speed *= rng_sample_range(g_rng, 0.8f, 1.2f);
+    deathAnimLayer->speed = rng_sample_range(g_rng, 0.8f, 1.2f);
   }
 }
 
