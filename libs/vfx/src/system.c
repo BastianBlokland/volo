@@ -100,9 +100,9 @@ INLINE_HINT static f32 vfx_mod1(const f32 val) { return val - (u32)val; }
 INLINE_HINT static f32 vfx_pow_approx(const f32 base, const f32 exp) {
   union {
     f32 valF32;
-    u32 valU32;
+    i32 valI32;
   } conv      = {base};
-  conv.valU32 = (u32)(exp * (conv.valU32 - u32_lit(1064631197)) + 1065353216.0f);
+  conv.valI32 = (i32)(exp * (conv.valI32 - i32_lit(1064631197)) + 1065353216.0f);
   return conv.valF32;
 }
 
