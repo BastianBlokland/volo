@@ -15,7 +15,7 @@ for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
     anim_layer(animIdx, 0)
     anim_flag(animIdx, "FadeIn", true)
     anim_speed(animIdx, 1.0, 0.3)
-    anim_duration(animIdx, 1.25)
+    anim_duration(animIdx, 1.5)
 
   } else if (animName == "hit") {
 
@@ -43,7 +43,7 @@ for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
     anim_layer(animIdx, 3)
     anim_flag(animIdx, "FadeIn", true)
     anim_flag(animIdx, "FadeOut", true)
-    anim_duration(animIdx, 1.1)
+    anim_duration(animIdx, 1.3)
 
   } else if (animName == "aim") {
 
