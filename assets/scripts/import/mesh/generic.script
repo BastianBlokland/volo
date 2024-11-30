@@ -49,21 +49,27 @@ for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
     anim_layer(animIdx, 4)
     anim_weight(animIdx, 0.0)
 
-  } else if (animName == "run") {
+  } else if (animName == "move") {
 
     anim_layer(animIdx, 5)
     anim_flag(animIdx, "Loop", true)
     anim_weight(animIdx, 0.0)
 
-  } else if (animName == "walk") {
+  } else if (animName == "run") {
 
     anim_layer(animIdx, 6)
     anim_flag(animIdx, "Loop", true)
     anim_weight(animIdx, 0.0)
 
-  } else if (animName == "idle") {
+  } else if (animName == "walk") {
 
     anim_layer(animIdx, 7)
+    anim_flag(animIdx, "Loop", true)
+    anim_weight(animIdx, 0.0)
+
+  } else if (animName == "idle") {
+
+    anim_layer(animIdx, 8)
     anim_flag(animIdx, "Loop", true)
 
   } else /* other */ {
