@@ -24,7 +24,6 @@ for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
     anim_flag(animIdx, "FadeOut", true)
     anim_weight(animIdx, 0.65)
     anim_duration(animIdx, 0.4)
-    anim_time(animIdx, 0.4)
 
     anim_mask_all(animIdx, 0)
     if (var spineIdx = joint_find("Spine")) {
