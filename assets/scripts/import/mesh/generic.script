@@ -50,6 +50,7 @@ for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
 
     anim_layer(animIdx, 4)
     anim_flag(animIdx, "Active", true)
+    anim_flag(animIdx, "Loop", true)
     anim_weight(animIdx, 0.0)
 
   } else if (animName == "move") {
