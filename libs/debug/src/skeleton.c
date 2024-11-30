@@ -233,6 +233,11 @@ static void skel_panel_drag_flags(UiCanvasComp* canvas, SceneAnimLayer* layer) {
     String         tooltip;
   } g_flagMeta[] = {
       {
+          .flag    = SceneAnimFlags_Active,
+          .label   = string_static("A"),
+          .tooltip = string_static("Activate layer"),
+      },
+      {
           .flag    = SceneAnimFlags_Loop,
           .label   = string_static("L"),
           .tooltip = string_static("Looping playback"),
@@ -307,7 +312,7 @@ static void skel_panel_draw(
 
   if (subject.valid) {
     UiTable table = ui_table(.spacing = ui_vector(10, 5));
-    ui_table_add_column(&table, UiTableColumn_Fixed, 300);
+    ui_table_add_column(&table, UiTableColumn_Fixed, 270);
     ui_table_add_column(&table, UiTableColumn_Fixed, 140);
     ui_table_add_column(&table, UiTableColumn_Fixed, 150);
     ui_table_add_column(&table, UiTableColumn_Fixed, 140);
