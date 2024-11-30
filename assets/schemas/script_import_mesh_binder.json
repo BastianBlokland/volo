@@ -189,6 +189,10 @@
           {
             "name": "newSpeed",
             "mask": [ "null", "num" ]
+          },
+          {
+            "name": "newVariance",
+            "mask": [ "null", "num" ]
           }
         ]
       }
