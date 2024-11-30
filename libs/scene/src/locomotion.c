@@ -15,16 +15,12 @@
 
 #define loco_arrive_threshold 0.1f
 #define loco_rot_turbulence_freq 5.0f
-#define loco_anim_idle_speed_min 0.8f
-#define loco_anim_idle_speed_max 1.2f
 #define loco_anim_speed_threshold 0.2f
 #define loco_anim_speed_ease 2.0f
 #define loco_anim_weight_ease 3.0f
 #define loco_move_weight_multiplier 4.0f
 #define loco_face_threshold 0.8f
 #define loco_wheeled_deceleration 15.0f
-
-static StringHash g_sceneLocoAnimIdle;
 
 ecs_comp_define_public(SceneLocomotionComp);
 ecs_comp_define_public(SceneLocomotionWheeledComp);
@@ -34,15 +30,6 @@ static void loco_validate_pos(MAYBE_UNUSED const GeoVector vec) {
       geo_vector_mag_sqr(vec) <= (1e5f * 1e5f),
       "Position ({}) is out of bounds",
       geo_vector_fmt(vec));
-}
-
-static void loco_anim_init(SceneLocomotionComp* loco, SceneAnimationComp* anim) {
-  SceneAnimLayer* layerIdle = scene_animation_layer_mut(anim, g_sceneLocoAnimIdle);
-  if (layerIdle) {
-    layerIdle->time  = rng_sample_range(g_rng, 0, layerIdle->duration);
-    layerIdle->speed = rng_sample_range(g_rng, loco_anim_idle_speed_min, loco_anim_idle_speed_max);
-  }
-  loco->flags |= SceneLocomotion_AnimInit;
 }
 
 static bool loco_is_facing(const SceneLocomotionComp* loco, const SceneTransformComp* trans) {
@@ -138,10 +125,6 @@ ecs_system_define(SceneLocomotionMoveSys) {
     const SceneStatusComp*      status    = ecs_view_read_t(itr, SceneStatusComp);
     const SceneScaleComp*       scaleComp = ecs_view_read_t(itr, SceneScaleComp);
 
-    if ((loco->flags & SceneLocomotion_AnimInit) == 0 && anim) {
-      loco_anim_init(loco, anim);
-    }
-
     const f32 scale       = scaleComp ? scaleComp->scale : 1.0f;
     const f32 maxSpeedOrg = loco->maxSpeed * scale;
     const f32 maxSpeedMod = maxSpeedOrg * (status ? scene_status_move_speed(status) : 1.0f);
@@ -215,6 +198,7 @@ ecs_system_define(SceneLocomotionMoveSys) {
       const f32 targetSpeed  = posDeltaMag / (maxSpeedOrg * dt);
       const f32 targetWeight = targetSpeed >= loco_anim_speed_threshold ? 1.0 : 0.0f;
 
+      layerMove->flags |= SceneAnimFlags_Active;
       math_towards_f32(&layerMove->speed, targetSpeed, loco_anim_speed_ease * dt);
       math_towards_f32(&layerMove->weight, targetWeight, loco_anim_weight_ease * dt);
     }
@@ -222,8 +206,6 @@ ecs_system_define(SceneLocomotionMoveSys) {
 }
 
 ecs_module_init(scene_locomotion_module) {
-  g_sceneLocoAnimIdle = string_hash_lit("idle");
-
   ecs_register_comp(SceneLocomotionComp);
   ecs_register_comp(SceneLocomotionWheeledComp);
 

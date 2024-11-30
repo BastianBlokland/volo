@@ -20,9 +20,11 @@ static void import_init_enum_anim_flags(void) {
 #define ENUM_PUSH(_ENUM_, _NAME_)                                                                  \
   script_enum_push((_ENUM_), string_lit(#_NAME_), AssetMeshAnimFlags_##_NAME_);
 
+  ENUM_PUSH(&g_importAnimFlags, Active);
   ENUM_PUSH(&g_importAnimFlags, Loop);
   ENUM_PUSH(&g_importAnimFlags, FadeIn);
   ENUM_PUSH(&g_importAnimFlags, FadeOut);
+  ENUM_PUSH(&g_importAnimFlags, RandomTime);
 
 #undef ENUM_PUSH
 }
@@ -351,9 +353,11 @@ static ScriptVal import_eval_anim_speed(AssetImportContext* ctx, ScriptBinderCal
   if (call->argCount < 2) {
     return script_num(data->anims[index].speed);
   }
-  const f32 newSpeed = (f32)script_arg_num_range(call, 1, 0.0, 1e3);
+  const f32 newSpeed    = (f32)script_arg_num_range(call, 1, 0.0, 1e3);
+  const f32 newVariance = (f32)script_arg_opt_num_range(call, 2, 0.0, 1e3, 0.0);
   if (!script_call_panicked(call)) {
-    data->anims[index].speed = newSpeed;
+    data->anims[index].speed         = newSpeed;
+    data->anims[index].speedVariance = newVariance;
   }
   return script_null();
 }
@@ -473,7 +477,7 @@ void asset_data_init_import_mesh(void) {
   script_binder_filter_set(binder, string_lit("import/mesh/*.script"));
 
   // clang-format off
-  static const String g_animFlagsDoc = string_static("Supported flags:\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`");
+  static const String g_animFlagsDoc = string_static("Supported flags:\n\n-`Active`\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`\n\n-`RandomTime`");
   {
     const String       name   = string_lit("flat_normals");
     const String       doc    = fmt_write_scratch("Import flat (per face) normals (ignore per-vertex normals).");
@@ -655,6 +659,7 @@ void asset_data_init_import_mesh(void) {
     const ScriptSigArg args[] = {
         {string_lit("index"), script_mask_num},
         {string_lit("newSpeed"), script_mask_num | script_mask_null},
+        {string_lit("newVariance"), script_mask_num | script_mask_null},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_speed);
   }

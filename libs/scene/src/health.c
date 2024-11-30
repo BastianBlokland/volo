@@ -18,7 +18,9 @@
 #include "scene_transform.h"
 #include "scene_vfx.h"
 
-static const f32 g_healthMinNormDamageForAnim = 0.05f;
+#define health_anim_min_norm_dmg 0.05f
+#define health_anim_speed_min 0.8f
+#define health_anim_speed_max 1.2f
 
 static StringHash g_healthHitAnimHash, g_healthDeathAnimHash;
 
@@ -104,17 +106,11 @@ static void health_clear_damaged(EcsWorld* world, const EcsEntityId entity, Scen
 static void health_anim_play_hit(SceneAnimationComp* anim) {
   SceneAnimLayer* hitAnimLayer;
   if ((hitAnimLayer = scene_animation_layer_mut(anim, g_healthHitAnimHash))) {
-    hitAnimLayer->weight = 0.5f; // TODO: Weight should be defined in content.
-    hitAnimLayer->speed  = 2.0f; // TODO: Speed should be defined in content.
-    hitAnimLayer->flags &= ~SceneAnimFlags_Loop;
-    hitAnimLayer->flags |= SceneAnimFlags_AutoFade;
-
-    // Restart the animation if it has reached the end, don't rewind if its already playing.
+    // Restart the animation if it has reached the end but don't rewind if its already playing.
     if (hitAnimLayer->time == hitAnimLayer->duration) {
-      hitAnimLayer->time = 0;
-
-      // Randomize the speed to avoid multiple units playing the same animation completely in sync.
-      hitAnimLayer->speed *= rng_sample_range(g_rng, 0.8f, 1.2f);
+      hitAnimLayer->flags |= SceneAnimFlags_Active;
+      hitAnimLayer->time  = 0;
+      hitAnimLayer->speed = rng_sample_range(g_rng, health_anim_speed_min, health_anim_speed_max);
     }
   }
 }
@@ -122,14 +118,7 @@ static void health_anim_play_hit(SceneAnimationComp* anim) {
 static void health_anim_play_death(SceneAnimationComp* anim) {
   SceneAnimLayer* deathAnimLayer;
   if ((deathAnimLayer = scene_animation_layer_mut(anim, g_healthDeathAnimHash))) {
-    deathAnimLayer->time   = 0;
-    deathAnimLayer->weight = 1.0f;
-    deathAnimLayer->speed  = 1.5f; // TODO: Speed should be defined in content.
-    deathAnimLayer->flags &= ~SceneAnimFlags_Loop;
-    deathAnimLayer->flags |= SceneAnimFlags_AutoFadeIn;
-
-    // Randomize the speed to avoid multiple units playing the same animation completely in sync.
-    deathAnimLayer->speed *= rng_sample_range(g_rng, 0.8f, 1.2f);
+    deathAnimLayer->flags |= SceneAnimFlags_Active;
   }
 }
 
@@ -258,7 +247,7 @@ ecs_system_define(SceneHealthUpdateSys) {
     if (modCtx.totalDamage > 0.0f && (health->flags & SceneHealthFlags_Dead) == 0) {
       health->lastDamagedTime = time->time;
       health_set_damaged(world, entity, tag);
-      if (anim && modCtx.totalDamage > g_healthMinNormDamageForAnim) {
+      if (anim && modCtx.totalDamage > health_anim_min_norm_dmg) {
         health_anim_play_hit(anim);
       }
     } else if ((time->time - health->lastDamagedTime) > time_milliseconds(100)) {

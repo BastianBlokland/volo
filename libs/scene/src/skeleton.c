@@ -4,6 +4,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "core_stringtable.h"
 #include "ecs_utils.h"
 #include "log_logger.h"
@@ -47,7 +48,7 @@ typedef struct {
 typedef struct {
   StringHash           nameHash;
   AssetMeshAnimFlags   flags;
-  f32                  duration, time, speed, weight;
+  f32                  duration, time, speedMin, speedMax, weight;
   SceneSkeletonChannel joints[scene_skeleton_joints_max][AssetMeshAnimTarget_Count];
   f32                  mask[scene_skeleton_joints_max];
 } SceneSkeletonAnim;
@@ -124,6 +125,9 @@ ecs_view_define(SkeletonTemplView) { ecs_access_read(SceneSkeletonTemplComp); }
 
 static SceneAnimFlags scene_skeleton_init_flags(const SceneSkeletonAnim* anim) {
   SceneAnimFlags ret = SceneAnimFlags_None;
+  if (anim->flags & AssetMeshAnimFlags_Active) {
+    ret |= SceneAnimFlags_Active;
+  }
   if (anim->flags & AssetMeshAnimFlags_Loop) {
     ret |= SceneAnimFlags_Loop;
   }
@@ -163,9 +167,13 @@ scene_skeleton_init(EcsWorld* world, const EcsEntityId entity, const SceneSkelet
         .nameHash = tl->anims[i].nameHash,
         .duration = tl->anims[i].duration,
         .time     = tl->anims[i].time,
-        .speed    = tl->anims[i].speed,
+        .speed    = rng_sample_range(g_rng, tl->anims[i].speedMin, tl->anims[i].speedMax),
         .weight   = tl->anims[i].weight,
     };
+
+    if (tl->anims[i].flags & AssetMeshAnimFlags_RandomTime) {
+      layers[i].time = rng_sample_range(g_rng, 0, layers[i].duration);
+    }
   }
   ecs_world_add_t(world, entity, SceneAnimationComp, .layers = layers, .layerCount = tl->animCount);
 }
@@ -224,7 +232,8 @@ static void scene_asset_templ_init(SceneSkeletonTemplComp* tl, const AssetMeshSk
     tl->anims[animIndex].nameHash  = string_hash(assetAnim->name);
     tl->anims[animIndex].duration  = assetAnim->duration;
     tl->anims[animIndex].time      = assetAnim->time;
-    tl->anims[animIndex].speed     = assetAnim->speed;
+    tl->anims[animIndex].speedMin  = assetAnim->speedMin;
+    tl->anims[animIndex].speedMax  = assetAnim->speedMax;
     tl->anims[animIndex].weight    = assetAnim->weight;
 
     for (u32 joint = 0; joint != asset->jointCount; ++joint) {
@@ -579,6 +588,9 @@ ecs_system_define(SceneSkeletonUpdateSys) {
 
     for (u32 i = 0; i != anim->layerCount; ++i) {
       SceneAnimLayer* layer = &anim->layers[i];
+      if (!(layer->flags & SceneAnimFlags_Active)) {
+        continue;
+      }
       if (LIKELY(layer->duration > scene_anim_duration_min)) {
         layer->time += deltaSeconds * layer->speed;
         if (layer->flags & SceneAnimFlags_Loop) {

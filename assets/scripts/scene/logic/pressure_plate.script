@@ -12,6 +12,7 @@ var triggeringEntities = query_box(detectionCenter, detectionSize, detectionRot,
 var triggered          = query_pop(triggeringEntities) != null
 
 if (capable(me, "Animation")) {
+  anim_param(me, "pressed", "Active", true)
   anim_param(me, "pressed", "Weight", triggered ? 1 : 0)
 }
 

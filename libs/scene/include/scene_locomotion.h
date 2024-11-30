@@ -3,9 +3,8 @@
 #include "geo_vector.h"
 
 typedef enum {
-  SceneLocomotion_Moving   = 1 << 0,
-  SceneLocomotion_Stop     = 1 << 1,
-  SceneLocomotion_AnimInit = 1 << 2,
+  SceneLocomotion_Moving = 1 << 0,
+  SceneLocomotion_Stop   = 1 << 1,
 } SceneLocomotionFlags;
 
 ecs_comp_extern_public(SceneLocomotionComp) {

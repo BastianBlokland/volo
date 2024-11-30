@@ -479,15 +479,9 @@ static EffectResult effect_update_anim(
     } else {
       animLayer->flags &= ~SceneAnimFlags_Loop; // Don't loop animation.
     }
-    animLayer->flags |= SceneAnimFlags_AutoFade; // Automatically blend-in and out.
-    animLayer->time   = 0.0f;                    // Restart the animation.
-    animLayer->weight = 1.0f;
-    animLayer->speed  = def->speed;
-
-    // NOTE: The ability to reduce the duration here is sketchy and should be replaced by a
-    // configuration option on the animation side.
-    animLayer->duration = math_min(animLayer->duration, def->durationMax / (f32)time_second);
-
+    animLayer->flags |= SceneAnimFlags_Active;
+    animLayer->time  = 0.0f; // Restart the animation.
+    animLayer->speed = def->speed;
     return EffectResult_Running;
   }
 

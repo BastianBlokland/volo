@@ -7,44 +7,76 @@ for (var jointIdx = 0; jointIdx != joint_count(); jointIdx += 1) {
   joint_name_trim(jointIdx, "mixamorig:", "_End") // Mixamo joint naming convention.
 }
 
-// Animation settings.
+// Configure basic animations.
 for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
   var animName = anim_name(animIdx)
   if (animName == "death") {
+
     anim_layer(animIdx, 0)
-    anim_weight(animIdx, 0.0)
+    anim_flag(animIdx, "FadeIn", true)
+    anim_speed(animIdx, 1.0, 0.3)
+    anim_duration(animIdx, 1.25)
+
   } else if (animName == "hit") {
+
     anim_layer(animIdx, 1)
-    anim_weight(animIdx, 0.0)
+    anim_flag(animIdx, "FadeIn", true)
+    anim_flag(animIdx, "FadeOut", true)
+    anim_weight(animIdx, 0.65)
+    anim_duration(animIdx, 0.4)
+
     anim_mask_all(animIdx, 0)
     if (var spineIdx = joint_find("Spine")) {
       anim_mask_fade_down(animIdx, spineIdx, 0.25)
     } else {
       fail("Spine joint missing")
     }
+
   } else if (animName == "fire") {
+
     anim_layer(animIdx, 2)
-    anim_weight(animIdx, 0.0)
+    anim_flag(animIdx, "FadeIn")
+    anim_flag(animIdx, "FadeOut")
+
   } else if (animName == "melee") {
+
     anim_layer(animIdx, 3)
-    anim_weight(animIdx, 0.0)
+    anim_flag(animIdx, "FadeIn")
+    anim_flag(animIdx, "FadeOut")
+    anim_duration(animIdx, 0.85)
+
   } else if (animName == "aim") {
+
     anim_layer(animIdx, 4)
-    anim_weight(animIdx, 0.0)
-  } else if (animName == "run") {
+    anim_flag(animIdx, "Active", true)
     anim_flag(animIdx, "Loop", true)
     anim_weight(animIdx, 0.0)
+
+  } else if (animName == "move") {
+
     anim_layer(animIdx, 5)
-  } else if (animName == "walk") {
     anim_flag(animIdx, "Loop", true)
     anim_weight(animIdx, 0.0)
+
+  } else if (animName == "run") {
+
     anim_layer(animIdx, 6)
-  } else if (animName == "idle") {
     anim_flag(animIdx, "Loop", true)
-    anim_weight(animIdx, 1.0)
+    anim_weight(animIdx, 0.0)
+
+  } else if (animName == "walk") {
+
     anim_layer(animIdx, 7)
-  } else /* other */ {
     anim_flag(animIdx, "Loop", true)
-    anim_weight(animIdx, 1.0)
+    anim_weight(animIdx, 0.0)
+
+  } else if (animName == "idle") {
+
+    anim_layer(animIdx, 8)
+    anim_flag(animIdx, "Active", true)
+    anim_flag(animIdx, "Loop", true)
+    anim_flag(animIdx, "RandomTime", true)
+    anim_speed(animIdx, 1.0, 0.3)
+
   }
 }
