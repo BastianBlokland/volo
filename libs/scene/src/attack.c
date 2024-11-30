@@ -479,6 +479,7 @@ static EffectResult effect_update_anim(
     } else {
       animLayer->flags &= ~SceneAnimFlags_Loop; // Don't loop animation.
     }
+    animLayer->flags |= SceneAnimFlags_Active;
     animLayer->flags |= SceneAnimFlags_AutoFade; // Automatically blend-in and out.
     animLayer->time   = 0.0f;                    // Restart the animation.
     animLayer->weight = 1.0f;

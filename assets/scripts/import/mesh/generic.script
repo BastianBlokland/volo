@@ -36,13 +36,11 @@ for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
   } else if (animName == "fire") {
 
     anim_layer(animIdx, 2)
-    anim_flag(animIdx, "Active", true)
     anim_weight(animIdx, 0.0)
 
   } else if (animName == "melee") {
 
     anim_layer(animIdx, 3)
-    anim_flag(animIdx, "Active", true)
     anim_weight(animIdx, 0.0)
 
   } else if (animName == "aim") {
