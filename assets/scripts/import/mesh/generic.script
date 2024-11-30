@@ -9,6 +9,9 @@ for (var jointIdx = 0; jointIdx != joint_count(); jointIdx += 1) {
 
 // Configure basic animations.
 for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
+
+  anim_flag(animIdx, "Active", true)
+
   var animName = anim_name(animIdx)
   if (animName == "death") {
 
