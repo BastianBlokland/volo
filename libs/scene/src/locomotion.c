@@ -198,6 +198,7 @@ ecs_system_define(SceneLocomotionMoveSys) {
       const f32 targetSpeed  = posDeltaMag / (maxSpeedOrg * dt);
       const f32 targetWeight = targetSpeed >= loco_anim_speed_threshold ? 1.0 : 0.0f;
 
+      layerMove->flags |= SceneAnimFlags_Active;
       math_towards_f32(&layerMove->speed, targetSpeed, loco_anim_speed_ease * dt);
       math_towards_f32(&layerMove->weight, targetWeight, loco_anim_weight_ease * dt);
     }
