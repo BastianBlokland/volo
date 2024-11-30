@@ -159,6 +159,7 @@ typedef enum {
   SceneActionAnimParam_TimeNorm,
   SceneActionAnimParam_Speed,
   SceneActionAnimParam_Weight,
+  SceneActionAnimParam_Active,
   SceneActionAnimParam_Loop,
   SceneActionAnimParam_FadeIn,
   SceneActionAnimParam_FadeOut,

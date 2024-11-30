@@ -356,6 +356,9 @@ static void action_update_anim_param(ActionContext* ctx, const SceneActionUpdate
       case SceneActionAnimParam_Weight:
         layer->weight = a->value_f32;
         break;
+      case SceneActionAnimParam_Active:
+        layer->flags = action_update_flag(layer->flags, SceneAnimFlags_Active, a->value_bool);
+        break;
       case SceneActionAnimParam_Loop:
         layer->flags = action_update_flag(layer->flags, SceneAnimFlags_Loop, a->value_bool);
         break;

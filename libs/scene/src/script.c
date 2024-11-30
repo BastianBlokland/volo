@@ -1060,9 +1060,9 @@ static ScriptVal eval_nav_travel(EvalContext* ctx, ScriptBinderCall* call) {
     }
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_NavTravel);
     act->navTravel   = (SceneActionNavTravel){
-        .entity         = entity,
-        .targetEntity   = script_arg_maybe_entity(call, 1, ecs_entity_invalid),
-        .targetPosition = script_arg_maybe_vec3(call, 1, geo_vector(0)),
+          .entity         = entity,
+          .targetEntity   = script_arg_maybe_entity(call, 1, ecs_entity_invalid),
+          .targetPosition = script_arg_maybe_vec3(call, 1, geo_vector(0)),
     };
   }
   return script_null();
@@ -1128,8 +1128,8 @@ static ScriptVal eval_damage(EvalContext* ctx, ScriptBinderCall* call) {
   if (LIKELY(entity) && amount > f32_epsilon) {
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_HealthMod);
     act->healthMod   = (SceneActionHealthMod){
-        .entity = entity,
-        .amount = -amount /* negate for damage */,
+          .entity = entity,
+          .amount = -amount /* negate for damage */,
     };
   }
   return script_null();
@@ -1566,6 +1566,8 @@ static ScriptVal eval_anim_param(EvalContext* ctx, ScriptBinderCall* call) {
           return script_num(layer->speed);
         case SceneActionAnimParam_Weight:
           return script_num(layer->weight);
+        case SceneActionAnimParam_Active:
+          return script_bool((layer->flags & SceneAnimFlags_Active) != 0);
         case SceneActionAnimParam_Loop:
           return script_bool((layer->flags & SceneAnimFlags_Loop) != 0);
         case SceneActionAnimParam_FadeIn:
@@ -1590,24 +1592,25 @@ static ScriptVal eval_anim_param(EvalContext* ctx, ScriptBinderCall* call) {
   update.layerName = layerName;
   update.param     = param;
   switch (param) {
-  case 0 /* Time */:
+  case SceneActionAnimParam_Time:
     update.value_f32 = (f32)script_arg_num_range(call, 3, 0.0, 1000.0);
     break;
-  case 1 /* TimeNorm */:
+  case SceneActionAnimParam_TimeNorm:
     update.value_f32 = (f32)script_arg_num_range(call, 3, 0.0, 1.0);
     break;
-  case 2 /* Speed */:
+  case SceneActionAnimParam_Speed:
     update.value_f32 = (f32)script_arg_num_range(call, 3, -1000.0, 1000.0);
     break;
-  case 3 /* Weight */:
+  case SceneActionAnimParam_Weight:
     update.value_f32 = (f32)script_arg_num_range(call, 3, 0.0, 1.0);
     break;
-  case 4 /* Loop */:
-  case 5 /* FadeIn */:
-  case 6 /* FadeOut */:
+  case SceneActionAnimParam_Active:
+  case SceneActionAnimParam_Loop:
+  case SceneActionAnimParam_FadeIn:
+  case SceneActionAnimParam_FadeOut:
     update.value_bool = script_arg_bool(call, 3);
     break;
-  case 7 /* Duration */:
+  case SceneActionAnimParam_Duration:
     call->panic = (ScriptPanic){ScriptPanic_ReadonlyParam, .argIndex = 3};
     return script_null();
   }
