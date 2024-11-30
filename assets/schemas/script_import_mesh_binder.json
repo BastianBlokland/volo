@@ -98,7 +98,7 @@
     },
     {
       "name": "anim_flag",
-      "doc": "Query or change an animation flag.\n\nSupported flags:\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`",
+      "doc": "Query or change an animation flag.\n\nSupported flags:\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`\n\n-`RandomTime`",
       "sig": {
         "ret": [ "null", "bool" ],
         "args": [

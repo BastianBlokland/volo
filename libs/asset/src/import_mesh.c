@@ -23,6 +23,7 @@ static void import_init_enum_anim_flags(void) {
   ENUM_PUSH(&g_importAnimFlags, Loop);
   ENUM_PUSH(&g_importAnimFlags, FadeIn);
   ENUM_PUSH(&g_importAnimFlags, FadeOut);
+  ENUM_PUSH(&g_importAnimFlags, RandomTime);
 
 #undef ENUM_PUSH
 }
@@ -473,7 +474,7 @@ void asset_data_init_import_mesh(void) {
   script_binder_filter_set(binder, string_lit("import/mesh/*.script"));
 
   // clang-format off
-  static const String g_animFlagsDoc = string_static("Supported flags:\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`");
+  static const String g_animFlagsDoc = string_static("Supported flags:\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`\n\n-`RandomTime`");
   {
     const String       name   = string_lit("flat_normals");
     const String       doc    = fmt_write_scratch("Import flat (per face) normals (ignore per-vertex normals).");

@@ -4,6 +4,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_rng.h"
 #include "core_stringtable.h"
 #include "ecs_utils.h"
 #include "log_logger.h"
@@ -166,6 +167,10 @@ scene_skeleton_init(EcsWorld* world, const EcsEntityId entity, const SceneSkelet
         .speed    = tl->anims[i].speed,
         .weight   = tl->anims[i].weight,
     };
+
+    if (tl->anims[i].flags & AssetMeshAnimFlags_RandomTime) {
+      layers[i].time = rng_sample_range(g_rng, 0, layers[i].duration);
+    }
   }
   ecs_world_add_t(world, entity, SceneAnimationComp, .layers = layers, .layerCount = tl->animCount);
 }

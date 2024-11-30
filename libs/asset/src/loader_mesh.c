@@ -79,6 +79,7 @@ void asset_data_init_mesh(void) {
   data_reg_const_t(g_dataReg, AssetMeshAnimFlags, Loop);
   data_reg_const_t(g_dataReg, AssetMeshAnimFlags, FadeIn);
   data_reg_const_t(g_dataReg, AssetMeshAnimFlags, FadeOut);
+  data_reg_const_t(g_dataReg, AssetMeshAnimFlags, RandomTime);
 
   data_reg_enum_t(g_dataReg, AssetMeshAnimTarget);
   data_reg_const_t(g_dataReg, AssetMeshAnimTarget, Translation);
