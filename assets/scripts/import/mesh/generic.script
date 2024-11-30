@@ -36,12 +36,14 @@ for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
   } else if (animName == "fire") {
 
     anim_layer(animIdx, 2)
-    anim_weight(animIdx, 0.0)
+    anim_flag(animIdx, "FadeIn")
+    anim_flag(animIdx, "FadeOut")
 
   } else if (animName == "melee") {
 
     anim_layer(animIdx, 3)
-    anim_weight(animIdx, 0.0)
+    anim_flag(animIdx, "FadeIn")
+    anim_flag(animIdx, "FadeOut")
 
   } else if (animName == "aim") {
 
