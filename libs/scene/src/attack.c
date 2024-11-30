@@ -482,11 +482,6 @@ static EffectResult effect_update_anim(
     animLayer->flags |= SceneAnimFlags_Active;
     animLayer->time  = 0.0f; // Restart the animation.
     animLayer->speed = def->speed;
-
-    // NOTE: The ability to reduce the duration here is sketchy and should be replaced by a
-    // configuration option on the animation side.
-    animLayer->duration = math_min(animLayer->duration, def->durationMax / (f32)time_second);
-
     return EffectResult_Running;
   }
 

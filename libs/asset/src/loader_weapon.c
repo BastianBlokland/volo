@@ -44,7 +44,6 @@ typedef struct {
   String layer;
   f32    delay;
   f32    speed;
-  f32    durationMax;
 } AssetWeaponEffectAnimDef;
 
 typedef struct {
@@ -178,8 +177,6 @@ static void weapon_effect_anim_build(
       .layer               = string_hash(def->layer),
       .delay               = (TimeDuration)time_seconds(def->delay),
       .speed               = def->speed,
-      .durationMax =
-          def->durationMax <= 0 ? time_hour : (TimeDuration)time_seconds(def->durationMax),
   };
   *err = WeaponError_None;
 }
@@ -462,7 +459,6 @@ void asset_data_init_weapon(void) {
   data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, layer, data_prim_t(String), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, delay, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, durationMax, data_prim_t(f32), .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetWeaponEffectVfxDef);
   data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);

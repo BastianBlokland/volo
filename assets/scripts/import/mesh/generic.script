@@ -44,6 +44,7 @@ for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
     anim_layer(animIdx, 3)
     anim_flag(animIdx, "FadeIn")
     anim_flag(animIdx, "FadeOut")
+    anim_duration(animIdx, 0.85)
 
   } else if (animName == "aim") {
 
