@@ -1,13 +1,7 @@
 /**
- * Generic mesh import rules applicable to all meshes.
+ * Animation import rules.
  */
 
-// Clean up joint names.
-for (var jointIdx = 0; jointIdx != joint_count(); jointIdx += 1) {
-  joint_name_trim(jointIdx, "mixamorig:", "_End") // Mixamo joint naming convention.
-}
-
-// Configure basic animations.
 for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
   var animName = anim_name(animIdx)
   if (animName == "death") {
