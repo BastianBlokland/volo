@@ -69,7 +69,7 @@ if (requireLos) {
     attack(me, target)
   } else {
     // Not in line-of-sight.
-    if (canMove && (!isAutoTarget || $cfgAllowAutoMove)) {
+    if (canMove && (!isAutoTarget || $cfgAllowAutoMove) && !active(me, "Firing")) {
       nav_travel(me, target) // Not an automatic target, so we are allowed to move when not in range.
     }
     attack(me, null)
