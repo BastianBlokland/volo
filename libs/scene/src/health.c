@@ -108,6 +108,7 @@ static void health_anim_play_hit(SceneAnimationComp* anim) {
   if ((hitAnimLayer = scene_animation_layer_mut(anim, g_healthHitAnimHash))) {
     // Restart the animation if it has reached the end but don't rewind if its already playing.
     if (hitAnimLayer->time == hitAnimLayer->duration) {
+      hitAnimLayer->flags |= SceneAnimFlags_Active;
       hitAnimLayer->time  = 0;
       hitAnimLayer->speed = rng_sample_range(g_rng, health_anim_speed_min, health_anim_speed_max);
     }
@@ -117,8 +118,7 @@ static void health_anim_play_hit(SceneAnimationComp* anim) {
 static void health_anim_play_death(SceneAnimationComp* anim) {
   SceneAnimLayer* deathAnimLayer;
   if ((deathAnimLayer = scene_animation_layer_mut(anim, g_healthDeathAnimHash))) {
-    deathAnimLayer->time  = 0;
-    deathAnimLayer->speed = rng_sample_range(g_rng, health_anim_speed_min, health_anim_speed_max);
+    deathAnimLayer->flags |= SceneAnimFlags_Active;
   }
 }
 

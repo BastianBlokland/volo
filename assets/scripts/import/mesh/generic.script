@@ -9,15 +9,12 @@ for (var jointIdx = 0; jointIdx != joint_count(); jointIdx += 1) {
 
 // Configure basic animations.
 for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
-
-  anim_flag(animIdx, "Active", true)
-
   var animName = anim_name(animIdx)
   if (animName == "death") {
 
     anim_layer(animIdx, 0)
     anim_flag(animIdx, "FadeIn", true)
-    anim_speed(animIdx, 0.0)
+    anim_speed(animIdx, 1.0, 0.3)
     anim_duration(animIdx, 1.25)
 
   } else if (animName == "hit") {
@@ -26,7 +23,6 @@ for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
     anim_flag(animIdx, "FadeIn", true)
     anim_flag(animIdx, "FadeOut", true)
     anim_weight(animIdx, 0.65)
-    anim_speed(animIdx, 0.0)
     anim_duration(animIdx, 0.4)
     anim_time(animIdx, 0.4)
 
@@ -39,44 +35,52 @@ for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
 
   } else if (animName == "fire") {
 
+    anim_flag(animIdx, "Active", true)
     anim_layer(animIdx, 2)
     anim_weight(animIdx, 0.0)
 
   } else if (animName == "melee") {
 
+    anim_flag(animIdx, "Active", true)
     anim_layer(animIdx, 3)
     anim_weight(animIdx, 0.0)
 
   } else if (animName == "aim") {
 
+    anim_flag(animIdx, "Active", true)
     anim_layer(animIdx, 4)
     anim_weight(animIdx, 0.0)
 
   } else if (animName == "move") {
 
+    anim_flag(animIdx, "Active", true)
     anim_layer(animIdx, 5)
     anim_flag(animIdx, "Loop", true)
     anim_weight(animIdx, 0.0)
 
   } else if (animName == "run") {
 
+    anim_flag(animIdx, "Active", true)
     anim_layer(animIdx, 6)
     anim_flag(animIdx, "Loop", true)
     anim_weight(animIdx, 0.0)
 
   } else if (animName == "walk") {
 
+    anim_flag(animIdx, "Active", true)
     anim_layer(animIdx, 7)
     anim_flag(animIdx, "Loop", true)
     anim_weight(animIdx, 0.0)
 
   } else if (animName == "idle") {
 
+    anim_flag(animIdx, "Active", true)
     anim_layer(animIdx, 8)
     anim_flag(animIdx, "Loop", true)
 
   } else /* other */ {
 
+    anim_flag(animIdx, "Active", true)
     anim_flag(animIdx, "Loop", true)
 
   }
