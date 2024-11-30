@@ -25,6 +25,5 @@ var shouldOpen = $cfgGateOpen ?? false
 
 if (capable(me, "Animation")) {
   anim_param(me, "open", "Active", true)
-  anim_param(me, "open", "Loop", false)
   anim_param(me, "open", "Speed", shouldOpen ? openSpeed : -openSpeed)
 }

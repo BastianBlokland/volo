@@ -77,10 +77,5 @@ for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
     anim_flag(animIdx, "RandomTime", true)
     anim_speed(animIdx, 1.0, 0.3)
 
-  } else /* other */ {
-
-    anim_flag(animIdx, "Active", true)
-    anim_flag(animIdx, "Loop", true)
-
   }
 }
