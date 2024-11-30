@@ -125,6 +125,9 @@ ecs_view_define(SkeletonTemplView) { ecs_access_read(SceneSkeletonTemplComp); }
 
 static SceneAnimFlags scene_skeleton_init_flags(const SceneSkeletonAnim* anim) {
   SceneAnimFlags ret = SceneAnimFlags_None;
+  if (anim->flags & AssetMeshAnimFlags_Active) {
+    ret |= SceneAnimFlags_Active;
+  }
   if (anim->flags & AssetMeshAnimFlags_Loop) {
     ret |= SceneAnimFlags_Loop;
   }
@@ -160,7 +163,7 @@ scene_skeleton_init(EcsWorld* world, const EcsEntityId entity, const SceneSkelet
   SceneAnimLayer* layers = alloc_array_t(g_allocHeap, SceneAnimLayer, tl->animCount);
   for (u32 i = 0; i != tl->animCount; ++i) {
     layers[i] = (SceneAnimLayer){
-        .flags    = scene_skeleton_init_flags(&tl->anims[i]) | SceneAnimFlags_Active,
+        .flags    = scene_skeleton_init_flags(&tl->anims[i]),
         .nameHash = tl->anims[i].nameHash,
         .duration = tl->anims[i].duration,
         .time     = tl->anims[i].time,

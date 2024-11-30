@@ -36,10 +36,11 @@ ecs_comp_extern_public(AssetMeshComp) {
 };
 
 typedef enum {
-  AssetMeshAnimFlags_Loop       = 1 << 0,
-  AssetMeshAnimFlags_FadeIn     = 1 << 1,
-  AssetMeshAnimFlags_FadeOut    = 1 << 2,
-  AssetMeshAnimFlags_RandomTime = 1 << 3,
+  AssetMeshAnimFlags_Active     = 1 << 0,
+  AssetMeshAnimFlags_Loop       = 1 << 1,
+  AssetMeshAnimFlags_FadeIn     = 1 << 2,
+  AssetMeshAnimFlags_FadeOut    = 1 << 3,
+  AssetMeshAnimFlags_RandomTime = 1 << 4,
 } AssetMeshAnimFlags;
 
 typedef enum {

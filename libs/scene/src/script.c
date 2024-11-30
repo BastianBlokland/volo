@@ -193,6 +193,7 @@ static void eval_enum_init_anim_param(void) {
   PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, TimeNorm);
   PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, Speed);
   PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, Weight);
+  PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, Active);
   PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, Loop);
   PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, FadeIn);
   PUSH_ANIM_PARAM(&g_scriptEnumAnimParam, FadeOut);

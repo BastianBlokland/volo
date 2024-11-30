@@ -76,6 +76,7 @@ void asset_data_init_mesh(void) {
   data_reg_field_t(g_dataReg, AssetMeshComp, bounds, g_assetGeoBoxType);
 
   data_reg_enum_multi_t(g_dataReg, AssetMeshAnimFlags);
+  data_reg_const_t(g_dataReg, AssetMeshAnimFlags, Active);
   data_reg_const_t(g_dataReg, AssetMeshAnimFlags, Loop);
   data_reg_const_t(g_dataReg, AssetMeshAnimFlags, FadeIn);
   data_reg_const_t(g_dataReg, AssetMeshAnimFlags, FadeOut);
