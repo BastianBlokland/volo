@@ -35,48 +35,50 @@ for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
 
   } else if (animName == "fire") {
 
-    anim_flag(animIdx, "Active", true)
     anim_layer(animIdx, 2)
+    anim_flag(animIdx, "Active", true)
     anim_weight(animIdx, 0.0)
 
   } else if (animName == "melee") {
 
-    anim_flag(animIdx, "Active", true)
     anim_layer(animIdx, 3)
+    anim_flag(animIdx, "Active", true)
     anim_weight(animIdx, 0.0)
 
   } else if (animName == "aim") {
 
-    anim_flag(animIdx, "Active", true)
     anim_layer(animIdx, 4)
+    anim_flag(animIdx, "Active", true)
     anim_weight(animIdx, 0.0)
 
   } else if (animName == "move") {
 
-    anim_flag(animIdx, "Active", true)
     anim_layer(animIdx, 5)
+    anim_flag(animIdx, "Active", true)
     anim_flag(animIdx, "Loop", true)
     anim_weight(animIdx, 0.0)
 
   } else if (animName == "run") {
 
-    anim_flag(animIdx, "Active", true)
     anim_layer(animIdx, 6)
+    anim_flag(animIdx, "Active", true)
     anim_flag(animIdx, "Loop", true)
     anim_weight(animIdx, 0.0)
 
   } else if (animName == "walk") {
 
-    anim_flag(animIdx, "Active", true)
     anim_layer(animIdx, 7)
+    anim_flag(animIdx, "Active", true)
     anim_flag(animIdx, "Loop", true)
     anim_weight(animIdx, 0.0)
 
   } else if (animName == "idle") {
 
-    anim_flag(animIdx, "Active", true)
     anim_layer(animIdx, 8)
+    anim_flag(animIdx, "Active", true)
     anim_flag(animIdx, "Loop", true)
+    anim_flag(animIdx, "RandomTime", true)
+    anim_speed(animIdx, 1.0, 0.3)
 
   } else /* other */ {
 

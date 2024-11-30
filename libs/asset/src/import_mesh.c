@@ -354,7 +354,7 @@ static ScriptVal import_eval_anim_speed(AssetImportContext* ctx, ScriptBinderCal
     return script_num(data->anims[index].speed);
   }
   const f32 newSpeed    = (f32)script_arg_num_range(call, 1, 0.0, 1e3);
-  const f32 newVariance = (f32)script_arg_opt_num_range(call, 1, 0.0, 1e3, 0.0);
+  const f32 newVariance = (f32)script_arg_opt_num_range(call, 2, 0.0, 1e3, 0.0);
   if (!script_call_panicked(call)) {
     data->anims[index].speed         = newSpeed;
     data->anims[index].speedVariance = newVariance;
