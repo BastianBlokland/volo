@@ -13,17 +13,19 @@ for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
   if (animName == "death") {
 
     anim_layer(animIdx, 0)
-    anim_flag(animIdx, "Loop", false)
     anim_flag(animIdx, "FadeIn", true)
-    anim_weight(animIdx, 0.0)
+    anim_speed(animIdx, 0.0)
+    anim_duration(animIdx, 1.25)
 
   } else if (animName == "hit") {
 
     anim_layer(animIdx, 1)
-    anim_flag(animIdx, "Loop", false)
     anim_flag(animIdx, "FadeIn", true)
     anim_flag(animIdx, "FadeOut", true)
-    anim_weight(animIdx, 0.0)
+    anim_weight(animIdx, 0.65)
+    anim_speed(animIdx, 0.0)
+    anim_duration(animIdx, 0.4)
+    anim_time(animIdx, 0.4)
 
     anim_mask_all(animIdx, 0)
     if (var spineIdx = joint_find("Spine")) {
@@ -63,12 +65,10 @@ for (var animIdx = 0; animIdx != anim_count(); animIdx += 1) {
 
     anim_layer(animIdx, 7)
     anim_flag(animIdx, "Loop", true)
-    anim_weight(animIdx, 1.0)
 
   } else /* other */ {
 
     anim_flag(animIdx, "Loop", true)
-    anim_weight(animIdx, 1.0)
 
   }
 }
