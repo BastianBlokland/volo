@@ -240,7 +240,7 @@
             "scripts/scene/behavior/unit_promotion.script"
           ],
           "knowledge": [
-            { "$type": "AssetPrefabValue_Number", "$name": "cfgAttackRange", "$data": 1.75 },
+            { "$type": "AssetPrefabValue_Number", "$name": "cfgAttackRange", "$data": 1.5 },
             { "$type": "AssetPrefabValue_Bool", "$name": "cfgAllowAutoMove", "$data": true },
             { "$type": "AssetPrefabValue_Number", "$name": "cfgLosRadius", "$data": 0.2 }
           ]
