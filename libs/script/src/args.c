@@ -2,29 +2,40 @@
 #include "script_args.h"
 #include "script_binder.h"
 #include "script_enum.h"
+#include "script_panic.h"
 #include "script_val.h"
 
 #include "val_internal.h"
 
-INLINE_HINT static bool arg_type_check(ScriptBinderCall* c, const u16 i, const ScriptMask mask) {
-  if (UNLIKELY(c->argCount <= i)) {
-    c->panic = (ScriptPanic){ScriptPanic_ArgumentMissing, .argIndex = i};
-    return false;
-  }
-  if (UNLIKELY(!val_type_check(c->args[i], mask))) {
-    c->panic = (ScriptPanic){
-        ScriptPanic_ArgumentTypeMismatch,
-        .argIndex   = i,
-        .typeMask   = mask,
-        .typeActual = script_type(c->args[i]),
-    };
-    return false;
-  }
-  return true;
+static void arg_type_error(ScriptBinderCall* c, const u16 i, const ScriptMask mask) {
+  script_panic_raise(
+      c->panicHandler,
+      (ScriptPanic){
+          ScriptPanic_ArgumentTypeMismatch,
+          .argIndex   = i,
+          .typeMask   = mask,
+          .typeActual = script_type(c->args[i]),
+      });
 }
 
-bool script_arg_check(ScriptBinderCall* c, const u16 i, const ScriptMask mask) {
-  return arg_type_check(c, i, mask);
+INLINE_HINT static void arg_type_check(ScriptBinderCall* c, const u16 i, const ScriptMask mask) {
+  if (UNLIKELY(c->argCount <= i)) {
+    script_panic_raise(c->panicHandler, (ScriptPanic){ScriptPanic_ArgumentMissing, .argIndex = i});
+  }
+  if (UNLIKELY(!val_type_check(c->args[i], mask))) {
+    script_panic_raise(
+        c->panicHandler,
+        (ScriptPanic){
+            ScriptPanic_ArgumentTypeMismatch,
+            .argIndex   = i,
+            .typeMask   = mask,
+            .typeActual = script_type(c->args[i]),
+        });
+  }
+}
+
+void script_arg_check(ScriptBinderCall* c, const u16 i, const ScriptMask mask) {
+  arg_type_check(c, i, mask);
 }
 
 bool script_arg_has(ScriptBinderCall* c, const u16 i) {
@@ -39,88 +50,63 @@ void script_arg_shift(ScriptBinderCall* c) {
 
 ScriptVal script_arg_any(ScriptBinderCall* c, const u16 i) {
   if (UNLIKELY(c->argCount <= i)) {
-    c->panic = (ScriptPanic){ScriptPanic_ArgumentMissing, .argIndex = i};
-    return val_null();
+    script_panic_raise(c->panicHandler, (ScriptPanic){ScriptPanic_ArgumentMissing, .argIndex = i});
   }
   return c->args[i];
 }
 
 f64 script_arg_num(ScriptBinderCall* c, const u16 i) {
-  if (LIKELY(arg_type_check(c, i, script_mask_num))) {
-    return val_as_num(c->args[i]);
-  }
-  return 0.0f;
+  arg_type_check(c, i, script_mask_num);
+  return val_as_num(c->args[i]);
 }
 
 f64 script_arg_num_range(ScriptBinderCall* c, const u16 i, const f64 min, const f64 max) {
-  if (LIKELY(arg_type_check(c, i, script_mask_num))) {
-    const f64 res = val_as_num(c->args[i]);
-    if (LIKELY(res >= min && res <= max)) {
-      return res;
-    }
-    return c->panic = (ScriptPanic){ScriptPanic_ArgumentOutOfRange, .argIndex = i}, 0.0;
+  arg_type_check(c, i, script_mask_num);
+  const f64 res = val_as_num(c->args[i]);
+  if (LIKELY(res >= min && res <= max)) {
+    return res;
   }
-  return 0.0;
+  script_panic_raise(c->panicHandler, (ScriptPanic){ScriptPanic_ArgumentOutOfRange, .argIndex = i});
 }
 
 bool script_arg_bool(ScriptBinderCall* c, const u16 i) {
-  if (LIKELY(arg_type_check(c, i, script_mask_bool))) {
-    return val_as_bool(c->args[i]);
-  }
-  return false;
+  arg_type_check(c, i, script_mask_bool);
+  return val_as_bool(c->args[i]);
 }
 
 GeoVector script_arg_vec3(ScriptBinderCall* c, const u16 i) {
-  if (LIKELY(arg_type_check(c, i, script_mask_vec3))) {
-    return val_as_vec3(c->args[i]);
-  }
-  return geo_vector(0);
+  arg_type_check(c, i, script_mask_vec3);
+  return val_as_vec3(c->args[i]);
 }
 
 GeoQuat script_arg_quat(ScriptBinderCall* c, const u16 i) {
-  if (LIKELY(arg_type_check(c, i, script_mask_quat))) {
-    return val_as_quat(c->args[i]);
-  }
-  return geo_quat_ident;
+  arg_type_check(c, i, script_mask_quat);
+  return val_as_quat(c->args[i]);
 }
 
 GeoColor script_arg_color(ScriptBinderCall* c, const u16 i) {
-  if (LIKELY(arg_type_check(c, i, script_mask_color))) {
-    return val_as_color(c->args[i]);
-  }
-  return geo_color_clear;
+  arg_type_check(c, i, script_mask_color);
+  return val_as_color(c->args[i]);
 }
 
 EcsEntityId script_arg_entity(ScriptBinderCall* c, const u16 i) {
-  if (LIKELY(arg_type_check(c, i, script_mask_entity))) {
-    return val_as_entity(c->args[i]);
-  }
-  return 0;
+  arg_type_check(c, i, script_mask_entity);
+  return val_as_entity(c->args[i]);
 }
 
 StringHash script_arg_str(ScriptBinderCall* c, const u16 i) {
-  if (LIKELY(arg_type_check(c, i, script_mask_str))) {
-    return val_as_str(c->args[i]);
-  }
-  return 0;
+  arg_type_check(c, i, script_mask_str);
+  return val_as_str(c->args[i]);
 }
 
 TimeDuration script_arg_time(ScriptBinderCall* c, const u16 i) {
-  if (LIKELY(arg_type_check(c, i, script_mask_num))) {
-    return (TimeDuration)time_seconds(val_as_num(c->args[i]));
-  }
-  return 0;
+  arg_type_check(c, i, script_mask_num);
+  return (TimeDuration)time_seconds(val_as_num(c->args[i]));
 }
 
 i32 script_arg_enum(ScriptBinderCall* c, const u16 i, const ScriptEnum* e) {
-  if (LIKELY(arg_type_check(c, i, script_mask_str))) {
-    const i32 res = script_enum_lookup_value(e, val_as_str(c->args[i]), &c->panic);
-    if (UNLIKELY(script_call_panicked(c))) {
-      c->panic.argIndex = i; // Preserve argument index.
-    }
-    return res;
-  }
-  return 0;
+  arg_type_check(c, i, script_mask_str);
+  return script_enum_lookup_value_at_index(e, val_as_str(c->args[i]), i, c->panicHandler);
 }
 
 ScriptType script_arg_opt_type(ScriptBinderCall* c, const u16 i) {
@@ -138,7 +124,7 @@ f64 script_arg_opt_num(ScriptBinderCall* c, const u16 i, const f64 def) {
     if (val_type(c->args[i]) == ScriptType_Null) {
       return def;
     }
-    return arg_type_check(c, i, script_mask_num | script_mask_null), 0.0f;
+    arg_type_error(c, i, script_mask_num | script_mask_null);
   }
   return def;
 }
@@ -151,12 +137,13 @@ f64 script_arg_opt_num_range(
       if (LIKELY(res >= min && res <= max)) {
         return res;
       }
-      return c->panic = (ScriptPanic){ScriptPanic_ArgumentOutOfRange, .argIndex = i}, 0.0;
+      script_panic_raise(
+          c->panicHandler, (ScriptPanic){ScriptPanic_ArgumentOutOfRange, .argIndex = i});
     }
     if (val_type(c->args[i]) == ScriptType_Null) {
       return def;
     }
-    return arg_type_check(c, i, script_mask_num | script_mask_null), 0.0f;
+    arg_type_error(c, i, script_mask_num | script_mask_null);
   }
   return def;
 }
@@ -169,7 +156,7 @@ bool script_arg_opt_bool(ScriptBinderCall* c, const u16 i, const bool def) {
     if (val_type(c->args[i]) == ScriptType_Null) {
       return def;
     }
-    return arg_type_check(c, i, script_mask_bool | script_mask_null), false;
+    arg_type_error(c, i, script_mask_bool | script_mask_null);
   }
   return def;
 }
@@ -182,7 +169,7 @@ GeoVector script_arg_opt_vec3(ScriptBinderCall* c, const u16 i, const GeoVector 
     if (val_type(c->args[i]) == ScriptType_Null) {
       return def;
     }
-    return arg_type_check(c, i, script_mask_vec3 | script_mask_null), geo_vector(0);
+    arg_type_error(c, i, script_mask_vec3 | script_mask_null);
   }
   return def;
 }
@@ -195,7 +182,7 @@ GeoQuat script_arg_opt_quat(ScriptBinderCall* c, const u16 i, const GeoQuat def)
     if (val_type(c->args[i]) == ScriptType_Null) {
       return def;
     }
-    return arg_type_check(c, i, script_mask_quat | script_mask_null), geo_quat_ident;
+    arg_type_error(c, i, script_mask_quat | script_mask_null);
   }
   return def;
 }
@@ -208,7 +195,7 @@ GeoColor script_arg_opt_color(ScriptBinderCall* c, const u16 i, const GeoColor d
     if (val_type(c->args[i]) == ScriptType_Null) {
       return def;
     }
-    return arg_type_check(c, i, script_mask_color | script_mask_null), geo_color_clear;
+    arg_type_error(c, i, script_mask_color | script_mask_null);
   }
   return def;
 }
@@ -221,7 +208,7 @@ EcsEntityId script_arg_opt_entity(ScriptBinderCall* c, const u16 i, const EcsEnt
     if (val_type(c->args[i]) == ScriptType_Null) {
       return def;
     }
-    return arg_type_check(c, i, script_mask_entity | script_mask_null), 0;
+    arg_type_error(c, i, script_mask_entity | script_mask_null);
   }
   return def;
 }
@@ -234,7 +221,7 @@ StringHash script_arg_opt_str(ScriptBinderCall* c, const u16 i, const StringHash
     if (val_type(c->args[i]) == ScriptType_Null) {
       return def;
     }
-    return arg_type_check(c, i, script_mask_str | script_mask_null), 0;
+    arg_type_error(c, i, script_mask_str | script_mask_null);
   }
   return def;
 }
@@ -247,7 +234,7 @@ TimeDuration script_arg_opt_time(ScriptBinderCall* c, const u16 i, const TimeDur
     if (val_type(c->args[i]) == ScriptType_Null) {
       return def;
     }
-    return arg_type_check(c, i, script_mask_num | script_mask_null), 0;
+    arg_type_error(c, i, script_mask_num | script_mask_null);
   }
   return def;
 }
@@ -255,12 +242,12 @@ TimeDuration script_arg_opt_time(ScriptBinderCall* c, const u16 i, const TimeDur
 i32 script_arg_opt_enum(ScriptBinderCall* c, const u16 i, const ScriptEnum* e, const i32 def) {
   if (c->argCount > i) {
     if (val_type(c->args[i]) == ScriptType_Str) {
-      return script_enum_lookup_value(e, val_as_str(c->args[i]), &c->panic);
+      return script_enum_lookup_value(e, val_as_str(c->args[i]), c->panicHandler);
     }
     if (val_type(c->args[i]) == ScriptType_Null) {
       return def;
     }
-    return arg_type_check(c, i, script_mask_str | script_mask_null), 0;
+    arg_type_error(c, i, script_mask_str | script_mask_null);
   }
   return def;
 }
