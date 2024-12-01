@@ -16,7 +16,6 @@ typedef enum {
   ScriptEvalSignal_Continue = 1 << 0,
   ScriptEvalSignal_Break    = 1 << 1,
   ScriptEvalSignal_Return   = 1 << 2,
-  ScriptEvalSignal_Panic    = 1 << 3,
 } ScriptEvalSignal;
 
 typedef struct {
@@ -26,8 +25,7 @@ typedef struct {
   const ScriptBinder* binder;
   void*               bindCtx;
   ScriptEvalSignal    signal;
-  ScriptPanic         panic;
-  ScriptExpr          panicCurrentExpr;
+  ScriptExpr          panicHandlerExpr;
   ScriptPanicHandler  panicHandler;
   u32                 executedOps;
   ScriptVal           vars[script_var_count];
@@ -103,11 +101,8 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     return script_val_hash(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_Assert: {
     if (script_falsy(eval_expr(ctx, args[0]))) {
-      ctx->panic = (ScriptPanic){
-          .kind  = ScriptPanic_AssertionFailed,
-          .range = eval_source_range(ctx, e),
-      };
-      ctx->signal |= ScriptEvalSignal_Panic;
+      ctx->panicHandlerExpr = e; // Set to provide source-range info in the panic handler.
+      script_panic_raise(&ctx->panicHandler, (ScriptPanic){.kind = ScriptPanic_AssertionFailed});
     }
     return val_null();
   }
@@ -338,18 +333,15 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
       .callId       = e,
       .panicHandler = &ctx->panicHandler,
   };
-  ctx->panicCurrentExpr = e; // Set to provide source-range info in the panic handler.
+  ctx->panicHandlerExpr = e; // Set to provide source-range info in the panic handler.
   return script_binder_exec(ctx->binder, data->func, ctx->bindCtx, &call);
 }
 
 NO_INLINE_HINT static ScriptVal eval_expr(ScriptEvalContext* ctx, const ScriptExpr e) {
   if (UNLIKELY(ctx->executedOps++ == script_executed_ops_max)) {
-    ctx->panic = (ScriptPanic){
-        .kind  = ScriptPanic_ExecutionLimitExceeded,
-        .range = eval_source_range(ctx, e),
-    };
-    ctx->signal |= ScriptEvalSignal_Panic;
-    return val_null();
+    ctx->panicHandlerExpr = e; // Set to provide source-range info in the panic handler.
+    script_panic_raise(
+        &ctx->panicHandler, (ScriptPanic){.kind = ScriptPanic_ExecutionLimitExceeded});
   }
   switch (expr_kind(ctx->doc, e)) {
   case ScriptExprKind_Value:
@@ -397,17 +389,16 @@ ScriptEvalResult script_eval(
     ScriptEvalResult res;
     res.val         = script_null();
     res.panic       = ctx.panicHandler.result;
-    res.panic.range = eval_source_range(&ctx, ctx.panicCurrentExpr);
+    res.panic.range = eval_source_range(&ctx, ctx.panicHandlerExpr);
     res.executedOps = ctx.executedOps;
     return res;
   }
 
   ScriptEvalResult res;
   res.val         = eval_expr(&ctx, expr);
-  res.panic       = ctx.panic;
+  res.panic       = (ScriptPanic){0};
   res.executedOps = ctx.executedOps;
 
-  diag_assert(((ctx.signal & ScriptEvalSignal_Panic) != 0) == (ctx.panic.kind != ScriptPanic_None));
   diag_assert(!(ctx.signal & ScriptEvalSignal_Break));
   diag_assert(!(ctx.signal & ScriptEvalSignal_Continue));
 
