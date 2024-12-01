@@ -153,18 +153,16 @@ ScriptProgResult script_prog_eval(
 
   const u8* const ipBegin = mem_begin(prog->code);
 
-  ScriptProgResult res                    = {0};
-  ScriptVal        regs[script_prog_regs] = {0};
-
-  register u32       counter = 0;
-  register const u8* ip      = ipBegin;
+  register u32       counter                = 0;
+  register const u8* ip                     = ipBegin;
+  ScriptVal          regs[script_prog_regs] = {0};
 
   // clang-format off
 
 #define VM_NEXT(_OP_SIZE_) { ip += (_OP_SIZE_); goto Dispatch; }
 #define VM_JUMP(_INSTRUCTION_) { ip = ipBegin + (_INSTRUCTION_); goto Dispatch; }
-#define VM_RETURN(_VALUE_) { res.val = (_VALUE_); res.executedOps = counter; return res; }
-#define VM_PANIC(_PANIC_) { res.panic = (_PANIC_); res.executedOps = counter; return res; }
+#define VM_RETURN(_VALUE_) return (ScriptProgResult){ .val = (_VALUE_), .executedOps = counter }
+#define VM_PANIC(_PANIC_) return (ScriptProgResult){ .panic = (_PANIC_), .executedOps = counter }
 
   if (UNLIKELY(setjmp(panicHandler.anchor))) {
     /**
