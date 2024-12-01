@@ -1,7 +1,5 @@
 #pragma once
-#include "core_annotation.h"
 #include "core_string.h"
-#include "script_panic.h"
 
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;
@@ -9,11 +7,10 @@ typedef struct sAllocator Allocator;
 // Forward declare from 'core_dynstring.h'.
 typedef struct sDynArray DynString;
 
-// Forward declare from 'script_val.h'.
-typedef struct sScriptVal ScriptVal;
-
-// Forward declare from 'script_sig.h'.
-typedef struct sScriptSig ScriptSig;
+// Internal forward declarations:
+typedef struct sScriptPanicHandler ScriptPanicHandler;
+typedef struct sScriptSig          ScriptSig;
+typedef struct sScriptVal          ScriptVal;
 
 #define script_binder_max_funcs 96
 #define script_binder_slot_sentinel sentinel_u16
@@ -22,10 +19,10 @@ typedef u16 ScriptBinderSlot;
 typedef u64 ScriptBinderHash;
 
 typedef struct sScriptBinderCall {
-  const ScriptVal* args;
-  u32              argCount;
-  u32              callId;
-  ScriptPanic      panic;
+  const ScriptVal*    args;
+  u32                 argCount;
+  u32                 callId;
+  ScriptPanicHandler* panicHandler;
 } ScriptBinderCall;
 
 typedef ScriptVal (*ScriptBinderFunc)(void* ctx, ScriptBinderCall*);
@@ -52,13 +49,6 @@ ScriptBinderFlags script_binder_flags(const ScriptBinder*);
 void   script_binder_filter_set(ScriptBinder*, String globPattern);
 String script_binder_filter_get(const ScriptBinder*);
 bool   script_binder_match(const ScriptBinder*, String fileIdentifier);
-
-/**
- * Check if a panic has occurred during the given call.
- */
-MAYBE_UNUSED static bool script_call_panicked(const ScriptBinderCall* call) {
-  return call->panic.kind != ScriptPanic_None;
-}
 
 /**
  * Declare a new function.
