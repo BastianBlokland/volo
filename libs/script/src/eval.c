@@ -27,6 +27,8 @@ typedef struct {
   void*               bindCtx;
   ScriptEvalSignal    signal;
   ScriptPanic         panic;
+  ScriptExpr          panicCurrentExpr;
+  ScriptPanicHandler  panicHandler;
   u32                 executedOps;
   ScriptVal           vars[script_var_count];
 } ScriptEvalContext;
@@ -331,17 +333,13 @@ INLINE_HINT static ScriptVal eval_extern(ScriptEvalContext* ctx, const ScriptExp
     }
   }
   ScriptBinderCall call = {
-      .args     = argValues,
-      .argCount = data->argCount,
-      .callId   = e,
+      .args         = argValues,
+      .argCount     = data->argCount,
+      .callId       = e,
+      .panicHandler = &ctx->panicHandler,
   };
-  const ScriptVal ret = script_binder_exec(ctx->binder, data->func, ctx->bindCtx, &call);
-  if (UNLIKELY(script_call_panicked(&call))) {
-    call.panic.range = eval_source_range(ctx, e);
-    ctx->panic       = call.panic;
-    ctx->signal |= ScriptEvalSignal_Panic;
-  }
-  return ret;
+  ctx->panicCurrentExpr = e; // Set to provide source-range info in the panic handler.
+  return script_binder_exec(ctx->binder, data->func, ctx->bindCtx, &call);
 }
 
 NO_INLINE_HINT static ScriptVal eval_expr(ScriptEvalContext* ctx, const ScriptExpr e) {
@@ -395,11 +393,11 @@ ScriptEvalResult script_eval(
       .bindCtx = bindCtx,
   };
 
-  ScriptPanicHandler panicHandler;
-  if (UNLIKELY(setjmp(panicHandler.anchor))) {
+  if (UNLIKELY(setjmp(ctx.panicHandler.anchor))) {
     ScriptEvalResult res;
     res.val         = script_null();
-    res.panic       = panicHandler.result;
+    res.panic       = ctx.panicHandler.result;
+    res.panic.range = eval_source_range(&ctx, ctx.panicCurrentExpr);
     res.executedOps = ctx.executedOps;
     return res;
   }
