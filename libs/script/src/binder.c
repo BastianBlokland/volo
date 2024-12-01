@@ -9,6 +9,7 @@
 #include "json_read.h"
 #include "json_write.h"
 #include "script_binder.h"
+#include "script_panic.h"
 #include "script_sig.h"
 #include "script_val.h"
 
@@ -61,8 +62,7 @@ static ScriptBinderHash binder_hash_compute(const ScriptBinder* binder) {
 
 static ScriptVal binder_func_fallback(void* ctx, ScriptBinderCall* call) {
   (void)ctx;
-  call->panic = (ScriptPanic){ScriptPanic_UnimplementedBinding};
-  return script_null();
+  script_panic_raise(call->panicHandler, (ScriptPanic){ScriptPanic_UnimplementedBinding});
 }
 
 ScriptBinder*
