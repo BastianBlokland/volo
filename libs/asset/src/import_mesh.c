@@ -8,6 +8,7 @@
 #include "script_args.h"
 #include "script_binder.h"
 #include "script_enum.h"
+#include "script_panic.h"
 #include "script_sig.h"
 
 #include "import_mesh_internal.h"
@@ -76,10 +77,7 @@ static ScriptVal import_eval_flat_normals(AssetImportContext* ctx, ScriptBinderC
   if (call->argCount < 1) {
     return script_bool(data->flatNormals);
   }
-  const bool flatNormals = script_arg_bool(call, 0);
-  if (!script_call_panicked(call)) {
-    data->flatNormals = flatNormals;
-  }
+  data->flatNormals = script_arg_bool(call, 0);
   return script_null();
 }
 
@@ -88,10 +86,7 @@ static ScriptVal import_eval_vertex_translation(AssetImportContext* ctx, ScriptB
   if (call->argCount < 1) {
     return script_vec3(data->vertexTranslation);
   }
-  const GeoVector translation = script_arg_vec3(call, 0);
-  if (!script_call_panicked(call)) {
-    data->vertexTranslation = translation;
-  }
+  data->vertexTranslation = script_arg_vec3(call, 0);
   return script_null();
 }
 
@@ -100,10 +95,7 @@ static ScriptVal import_eval_vertex_rotation(AssetImportContext* ctx, ScriptBind
   if (call->argCount < 1) {
     return script_quat(data->vertexRotation);
   }
-  const GeoQuat rotation = script_arg_quat(call, 0);
-  if (!script_call_panicked(call)) {
-    data->vertexRotation = rotation;
-  }
+  data->vertexRotation = script_arg_quat(call, 0);
   return script_null();
 }
 
@@ -112,13 +104,12 @@ static ScriptVal import_eval_vertex_scale(AssetImportContext* ctx, ScriptBinderC
   if (call->argCount < 1) {
     return script_vec3(data->vertexScale);
   }
-  if (script_arg_check(call, 0, script_mask_num | script_mask_vec3)) {
-    if (script_type(call->args[0]) == ScriptType_Num) {
-      const f32 scale   = (f32)script_arg_num_range(call, 0, 1e-3, 1e+6);
-      data->vertexScale = geo_vector(scale, scale, scale);
-    } else {
-      data->vertexScale = script_arg_vec3(call, 0);
-    }
+  script_arg_check(call, 0, script_mask_num | script_mask_vec3);
+  if (script_type(call->args[0]) == ScriptType_Num) {
+    const f32 scale   = (f32)script_arg_num_range(call, 0, 1e-3, 1e+6);
+    data->vertexScale = geo_vector(scale, scale, scale);
+  } else {
+    data->vertexScale = script_arg_vec3(call, 0);
   }
   return script_null();
 }
@@ -128,10 +119,7 @@ static ScriptVal import_eval_root_translation(AssetImportContext* ctx, ScriptBin
   if (call->argCount < 1) {
     return script_vec3(data->rootTranslation);
   }
-  const GeoVector translation = script_arg_vec3(call, 0);
-  if (!script_call_panicked(call)) {
-    data->rootTranslation = translation;
-  }
+  data->rootTranslation = script_arg_vec3(call, 0);
   return script_null();
 }
 
@@ -140,10 +128,7 @@ static ScriptVal import_eval_root_rotation(AssetImportContext* ctx, ScriptBinder
   if (call->argCount < 1) {
     return script_quat(data->rootRotation);
   }
-  const GeoQuat rotation = script_arg_quat(call, 0);
-  if (!script_call_panicked(call)) {
-    data->rootRotation = rotation;
-  }
+  data->rootRotation = script_arg_quat(call, 0);
   return script_null();
 }
 
@@ -152,13 +137,12 @@ static ScriptVal import_eval_root_scale(AssetImportContext* ctx, ScriptBinderCal
   if (call->argCount < 1) {
     return script_vec3(data->rootScale);
   }
-  if (script_arg_check(call, 0, script_mask_num | script_mask_vec3)) {
-    if (script_type(call->args[0]) == ScriptType_Num) {
-      const f32 scale = (f32)script_arg_num_range(call, 0, 1e-3, 1e+6);
-      data->rootScale = geo_vector(scale, scale, scale);
-    } else {
-      data->rootScale = script_arg_vec3(call, 0);
-    }
+  script_arg_check(call, 0, script_mask_num | script_mask_vec3);
+  if (script_type(call->args[0]) == ScriptType_Num) {
+    const f32 scale = (f32)script_arg_num_range(call, 0, 1e-3, 1e+6);
+    data->rootScale = geo_vector(scale, scale, scale);
+  } else {
+    data->rootScale = script_arg_vec3(call, 0);
   }
   return script_null();
 }
@@ -172,9 +156,6 @@ static ScriptVal import_eval_joint_count(AssetImportContext* ctx, ScriptBinderCa
 static ScriptVal import_eval_joint_parent(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data  = ctx->data;
   const u32        index = (u32)script_arg_num_range(call, 0, 0, data->jointCount - 1);
-  if (script_call_panicked(call)) {
-    return script_null();
-  }
   diag_assert(index < data->jointCount);
   return script_num(data->joints[index].parentIndex);
 }
@@ -182,11 +163,9 @@ static ScriptVal import_eval_joint_parent(AssetImportContext* ctx, ScriptBinderC
 static ScriptVal import_eval_joint_find(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data      = ctx->data;
   const StringHash jointName = script_arg_str(call, 0);
-  if (!script_call_panicked(call)) {
-    for (u32 jointIndex = 0; jointIndex != data->jointCount; ++jointIndex) {
-      if (data->joints[jointIndex].nameHash == jointName) {
-        return script_num(jointIndex);
-      }
+  for (u32 jointIndex = 0; jointIndex != data->jointCount; ++jointIndex) {
+    if (data->joints[jointIndex].nameHash == jointName) {
+      return script_num(jointIndex);
     }
   }
   return script_null();
@@ -195,17 +174,11 @@ static ScriptVal import_eval_joint_find(AssetImportContext* ctx, ScriptBinderCal
 static ScriptVal import_eval_joint_name(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data  = ctx->data;
   const u32        index = (u32)script_arg_num_range(call, 0, 0, data->jointCount - 1);
-  if (script_call_panicked(call)) {
-    return script_null();
-  }
   diag_assert(index < data->jointCount);
   if (call->argCount < 2) {
     return script_str(data->joints[index].nameHash);
   }
-  const StringHash newName = script_arg_str(call, 1);
-  if (!script_call_panicked(call)) {
-    data->joints[index].nameHash = newName;
-  }
+  data->joints[index].nameHash = script_arg_str(call, 1);
   return script_null();
 }
 
@@ -214,9 +187,6 @@ static ScriptVal import_eval_joint_name_trim(AssetImportContext* ctx, ScriptBind
   const u32        index      = (u32)script_arg_num_range(call, 0, 0, data->jointCount - 1);
   const StringHash prefixHash = script_arg_str(call, 1);
   const StringHash suffixHash = script_arg_opt_str(call, 2, 0);
-  if (script_call_panicked(call)) {
-    return script_null();
-  }
   if (!data->joints[index].nameHash) {
     return script_str(string_hash_lit(""));
   }
@@ -245,11 +215,9 @@ static ScriptVal import_eval_anim_count(AssetImportContext* ctx, ScriptBinderCal
 static ScriptVal import_eval_anim_find(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data     = ctx->data;
   const StringHash animName = script_arg_str(call, 0);
-  if (!script_call_panicked(call)) {
-    for (u32 animIndex = 0; animIndex != data->animCount; ++animIndex) {
-      if (data->anims[animIndex].nameHash == animName) {
-        return script_num(animIndex);
-      }
+  for (u32 animIndex = 0; animIndex != data->animCount; ++animIndex) {
+    if (data->anims[animIndex].nameHash == animName) {
+      return script_num(animIndex);
     }
   }
   return script_null();
@@ -258,36 +226,25 @@ static ScriptVal import_eval_anim_find(AssetImportContext* ctx, ScriptBinderCall
 static ScriptVal import_eval_anim_layer(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data  = ctx->data;
   const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
-  if (script_call_panicked(call)) {
-    return script_null();
-  }
   diag_assert(index < data->animCount);
   if (call->argCount < 2) {
     return script_num(data->anims[index].layer);
   }
-  const i32 newLayer = (i32)script_arg_num(call, 1);
-  if (!script_call_panicked(call)) {
-    data->anims[index].layer = newLayer;
-  }
+  data->anims[index].layer = (i32)script_arg_num(call, 1);
   return script_null();
 }
 
 static ScriptVal import_eval_anim_flag(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data  = ctx->data;
   const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
-  if (script_call_panicked(call)) {
-    return script_null();
-  }
   diag_assert(index < data->animCount);
   const i32 flag = script_arg_enum(call, 1, &g_importAnimFlags);
-  if (!script_call_panicked(call)) {
-    if (call->argCount < 3) {
-      return script_bool((data->anims[index].flags & flag) != 0);
-    }
-    const bool enabled = script_arg_bool(call, 2);
-    if (!script_call_panicked(call) && enabled != !!(data->anims[index].flags & flag)) {
-      data->anims[index].flags ^= flag;
-    }
+  if (call->argCount < 3) {
+    return script_bool((data->anims[index].flags & flag) != 0);
+  }
+  const bool enabled = script_arg_bool(call, 2);
+  if (enabled != !!(data->anims[index].flags & flag)) {
+    data->anims[index].flags ^= flag;
   }
   return script_null();
 }
@@ -295,87 +252,56 @@ static ScriptVal import_eval_anim_flag(AssetImportContext* ctx, ScriptBinderCall
 static ScriptVal import_eval_anim_name(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data  = ctx->data;
   const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
-  if (script_call_panicked(call)) {
-    return script_null();
-  }
   diag_assert(index < data->animCount);
   if (call->argCount < 2) {
     return script_str(data->anims[index].nameHash);
   }
-  const StringHash newName = script_arg_str(call, 1);
-  if (!script_call_panicked(call)) {
-    data->anims[index].nameHash = newName;
-  }
+  data->anims[index].nameHash = script_arg_str(call, 1);
   return script_null();
 }
 
 static ScriptVal import_eval_anim_duration(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data  = ctx->data;
   const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
-  if (script_call_panicked(call)) {
-    return script_null();
-  }
   diag_assert(index < data->animCount);
   if (call->argCount < 2) {
     return script_num(data->anims[index].duration);
   }
-  const f32 newDuration = (f32)script_arg_num_range(call, 1, 1e-4, 1e+4);
-  if (!script_call_panicked(call)) {
-    data->anims[index].duration = newDuration;
-  }
+  data->anims[index].duration = (f32)script_arg_num_range(call, 1, 1e-4, 1e+4);
   return script_null();
 }
 
 static ScriptVal import_eval_anim_time(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data  = ctx->data;
   const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
-  if (script_call_panicked(call)) {
-    return script_null();
-  }
   diag_assert(index < data->animCount);
   if (call->argCount < 2) {
     return script_num(data->anims[index].time);
   }
-  const f32 newTime = (f32)script_arg_num_range(call, 1, 0.0, 1e+4);
-  if (!script_call_panicked(call)) {
-    data->anims[index].time = newTime;
-  }
+  data->anims[index].time = (f32)script_arg_num_range(call, 1, 0.0, 1e+4);
   return script_null();
 }
 
 static ScriptVal import_eval_anim_speed(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data  = ctx->data;
   const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
-  if (script_call_panicked(call)) {
-    return script_null();
-  }
   diag_assert(index < data->animCount);
   if (call->argCount < 2) {
     return script_num(data->anims[index].speed);
   }
-  const f32 newSpeed    = (f32)script_arg_num_range(call, 1, 0.0, 1e3);
-  const f32 newVariance = (f32)script_arg_opt_num_range(call, 2, 0.0, 1e3, 0.0);
-  if (!script_call_panicked(call)) {
-    data->anims[index].speed         = newSpeed;
-    data->anims[index].speedVariance = newVariance;
-  }
+  data->anims[index].speed         = (f32)script_arg_num_range(call, 1, 0.0, 1e3);
+  data->anims[index].speedVariance = (f32)script_arg_opt_num_range(call, 2, 0.0, 1e3, 0.0);
   return script_null();
 }
 
 static ScriptVal import_eval_anim_weight(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data  = ctx->data;
   const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
-  if (script_call_panicked(call)) {
-    return script_null();
-  }
   diag_assert(index < data->animCount);
   if (call->argCount < 2) {
     return script_num(data->anims[index].weight);
   }
-  const f32 newWeight = (f32)script_arg_num_range(call, 1, 0.0, 1.0);
-  if (!script_call_panicked(call)) {
-    data->anims[index].weight = newWeight;
-  }
+  data->anims[index].weight = (f32)script_arg_num_range(call, 1, 0.0, 1.0);
   return script_null();
 }
 
@@ -383,18 +309,12 @@ static ScriptVal import_eval_anim_mask(AssetImportContext* ctx, ScriptBinderCall
   AssetImportMesh* data       = ctx->data;
   const u32        animIndex  = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
   const u32        jointIndex = (u32)script_arg_num_range(call, 1, 0, data->jointCount - 1);
-  if (script_call_panicked(call)) {
-    return script_null();
-  }
   diag_assert(animIndex < data->animCount);
   diag_assert(jointIndex < data->jointCount);
   if (call->argCount < 3) {
     return script_num(data->anims[animIndex].mask[jointIndex]);
   }
-  const f32 newWeight = (f32)script_arg_num_range(call, 2, 0.0, 1.0);
-  if (!script_call_panicked(call)) {
-    data->anims[animIndex].mask[jointIndex] = newWeight;
-  }
+  data->anims[animIndex].mask[jointIndex] = (f32)script_arg_num_range(call, 2, 0.0, 1.0);
   return script_null();
 }
 
@@ -402,9 +322,6 @@ static ScriptVal import_eval_anim_mask_all(AssetImportContext* ctx, ScriptBinder
   AssetImportMesh* data      = ctx->data;
   const u32        animIndex = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
   const f32        newWeight = (f32)script_arg_num_range(call, 1, 0.0, 1.0);
-  if (script_call_panicked(call)) {
-    return script_null();
-  }
   diag_assert(animIndex < data->animCount);
 
   for (u32 jointIndex = 0; jointIndex != data->jointCount; ++jointIndex) {
@@ -419,9 +336,6 @@ static ScriptVal import_eval_anim_mask_fade_up(AssetImportContext* ctx, ScriptBi
   const u32        animIdx     = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
   const u32        jointIdx    = (u32)script_arg_num_range(call, 1, 0, data->jointCount - 1);
   const f32        deltaWeight = (f32)script_arg_num_range(call, 2, -1.0, +1.0);
-  if (script_call_panicked(call)) {
-    return script_null();
-  }
   diag_assert(animIdx < data->animCount);
   diag_assert(jointIdx < data->jointCount);
 
@@ -446,9 +360,6 @@ static ScriptVal import_eval_anim_mask_fade_down(AssetImportContext* ctx, Script
   const u32        animIdx     = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
   const u32        jointIdx    = (u32)script_arg_num_range(call, 1, 0, data->jointCount - 1);
   const f32        deltaWeight = (f32)script_arg_num_range(call, 2, -1.0, +1.0);
-  if (script_call_panicked(call)) {
-    return script_null();
-  }
   diag_assert(animIdx < data->animCount);
   diag_assert(jointIdx < data->jointCount);
 
