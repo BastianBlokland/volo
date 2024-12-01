@@ -1,7 +1,8 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
-#include "script_panic.h"
+
+#include "panic_internal.h"
 
 // clang-format off
 static const String g_panicStrs[] = {
@@ -66,6 +67,11 @@ static bool panic_replacement_find(String str, PanicRepl* result) {
       .kind  = panic_replacement_parse(string_slice(str, startIdx + 1, len - 1)),
   };
   return true;
+}
+
+NORETURN void script_panic_raise(ScriptPanicHandler* handler, const ScriptPanic panic) {
+  handler->result = panic;
+  longjmp(handler->anchor, true /* hasPanic */);
 }
 
 void script_panic_write(

@@ -6,6 +6,7 @@
 #include "script_val.h"
 
 #include "doc_internal.h"
+#include "panic_internal.h"
 #include "val_internal.h"
 
 #define script_executed_ops_max 25000
@@ -393,6 +394,15 @@ ScriptEvalResult script_eval(
       .binder  = binder,
       .bindCtx = bindCtx,
   };
+
+  ScriptPanicHandler panicHandler;
+  if (UNLIKELY(setjmp(panicHandler.anchor))) {
+    ScriptEvalResult res;
+    res.val         = script_null();
+    res.panic       = panicHandler.result;
+    res.executedOps = ctx.executedOps;
+    return res;
+  }
 
   ScriptEvalResult res;
   res.val         = eval_expr(&ctx, expr);

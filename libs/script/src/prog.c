@@ -6,6 +6,7 @@
 #include "script_mem.h"
 #include "script_prog.h"
 
+#include "panic_internal.h"
 #include "val_internal.h"
 
 #define script_prog_ops_max 25000
@@ -147,10 +148,15 @@ ScriptProgResult script_prog_eval(
 
   diag_assert(prog->binderHash == (binder ? script_binder_hash(binder) : 0));
 
-  const u8* ip = mem_begin(prog->code);
+  ScriptPanicHandler panicHandler;
+  ScriptProgResult   res                    = {0};
+  ScriptVal          regs[script_prog_regs] = {0};
+  const u8*          ip                     = mem_begin(prog->code);
 
-  ScriptProgResult res                    = {0};
-  ScriptVal        regs[script_prog_regs] = {0};
+  if (UNLIKELY(setjmp(panicHandler.anchor))) {
+    res.panic = panicHandler.result;
+    return res;
+  }
 
   // clang-format off
 
