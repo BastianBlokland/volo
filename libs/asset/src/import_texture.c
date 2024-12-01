@@ -6,6 +6,7 @@
 #include "script_args.h"
 #include "script_binder.h"
 #include "script_enum.h"
+#include "script_panic.h"
 #include "script_sig.h"
 
 #include "import_internal.h"
@@ -88,18 +89,12 @@ typedef struct {
 static ScriptVal import_eval_pow2_test(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)ctx;
   const f64 val = script_arg_num(call, 0);
-  if (script_call_panicked(call)) {
-    return script_null();
-  }
   return script_bool(bits_ispow2_64((u64)val));
 }
 
 static ScriptVal import_eval_pow2_next(AssetImportContext* ctx, ScriptBinderCall* call) {
   (void)ctx;
   const f64 val = script_arg_num_range(call, 0, 1.0, 9223372036854775807.0);
-  if (script_call_panicked(call)) {
-    return script_null();
-  }
   return script_num(bits_nextpow2_64((u64)val));
 }
 
@@ -109,24 +104,20 @@ static ScriptVal import_eval_texture_channels(AssetImportContext* ctx, ScriptBin
     return script_num(data->channels);
   }
   const u32 newChannels = (u32)script_arg_num_range(call, 0, 1, 4);
-  if (!script_call_panicked(call)) {
-    diag_assert(newChannels >= 1 && newChannels <= 4);
-    data->channels = newChannels;
-  }
+  diag_assert(newChannels >= 1 && newChannels <= 4);
+  data->channels = newChannels;
   return script_null();
 }
 
 static ScriptVal import_eval_texture_flag(AssetImportContext* ctx, ScriptBinderCall* call) {
-  const i32 flag = script_arg_enum(call, 0, &g_importTextureFlags);
-  if (!script_call_panicked(call)) {
-    AssetImportTexture* data = ctx->data;
-    if (call->argCount < 2) {
-      return script_bool((data->flags & flag) != 0);
-    }
-    const bool enabled = script_arg_bool(call, 1);
-    if (!script_call_panicked(call) && enabled != !!(data->flags & flag)) {
-      data->flags ^= flag;
-    }
+  const i32           flag = script_arg_enum(call, 0, &g_importTextureFlags);
+  AssetImportTexture* data = ctx->data;
+  if (call->argCount < 2) {
+    return script_bool((data->flags & flag) != 0);
+  }
+  const bool enabled = script_arg_bool(call, 1);
+  if (enabled != !!(data->flags & flag)) {
+    data->flags ^= flag;
   }
   return script_null();
 }
@@ -196,13 +187,9 @@ static ScriptVal import_eval_texture_flip_y(AssetImportContext* ctx, ScriptBinde
 }
 
 static ScriptVal import_eval_texture_resize(AssetImportContext* ctx, ScriptBinderCall* call) {
-  const u32 width  = (u32)script_arg_num_range(call, 0, 1, 1024 * 16);
-  const u32 height = (u32)script_arg_num_range(call, 1, 1, 1024 * 16);
-  if (!script_call_panicked(call)) {
-    AssetImportTexture* data = ctx->data;
-    data->width              = width;
-    data->height             = height;
-  }
+  AssetImportTexture* data = ctx->data;
+  data->width              = (u32)script_arg_num_range(call, 0, 1, 1024 * 16);
+  data->height             = (u32)script_arg_num_range(call, 1, 1, 1024 * 16);
   return script_null();
 }
 
@@ -212,18 +199,16 @@ static GeoColor tex_trans_mul(const void* ctx, const GeoColor color) {
 }
 
 static ScriptVal import_eval_texture_trans_mul(AssetImportContext* ctx, ScriptBinderCall* call) {
-  const GeoColor color = script_arg_color(call, 0);
-  if (!script_call_panicked(call)) {
-    AssetImportTexture* data = ctx->data;
-    asset_texture_transform(
-        data->data,
-        data->dataWidth,
-        data->dataHeight,
-        data->dataChannels,
-        data->dataType,
-        tex_trans_mul,
-        &color);
-  }
+  const GeoColor      color = script_arg_color(call, 0);
+  AssetImportTexture* data  = ctx->data;
+  asset_texture_transform(
+      data->data,
+      data->dataWidth,
+      data->dataHeight,
+      data->dataChannels,
+      data->dataType,
+      tex_trans_mul,
+      &color);
   return script_null();
 }
 
@@ -233,18 +218,16 @@ static GeoColor tex_trans_add(const void* ctx, const GeoColor color) {
 }
 
 static ScriptVal import_eval_texture_trans_add(AssetImportContext* ctx, ScriptBinderCall* call) {
-  const GeoColor color = script_arg_color(call, 0);
-  if (!script_call_panicked(call)) {
-    AssetImportTexture* data = ctx->data;
-    asset_texture_transform(
-        data->data,
-        data->dataWidth,
-        data->dataHeight,
-        data->dataChannels,
-        data->dataType,
-        tex_trans_add,
-        &color);
-  }
+  const GeoColor      color = script_arg_color(call, 0);
+  AssetImportTexture* data  = ctx->data;
+  asset_texture_transform(
+      data->data,
+      data->dataWidth,
+      data->dataHeight,
+      data->dataChannels,
+      data->dataType,
+      tex_trans_add,
+      &color);
   return script_null();
 }
 
@@ -254,18 +237,16 @@ static GeoColor tex_trans_sub(const void* ctx, const GeoColor color) {
 }
 
 static ScriptVal import_eval_texture_trans_sub(AssetImportContext* ctx, ScriptBinderCall* call) {
-  const GeoColor color = script_arg_color(call, 0);
-  if (!script_call_panicked(call)) {
-    AssetImportTexture* data = ctx->data;
-    asset_texture_transform(
-        data->data,
-        data->dataWidth,
-        data->dataHeight,
-        data->dataChannels,
-        data->dataType,
-        tex_trans_sub,
-        &color);
-  }
+  const GeoColor      color = script_arg_color(call, 0);
+  AssetImportTexture* data  = ctx->data;
+  asset_texture_transform(
+      data->data,
+      data->dataWidth,
+      data->dataHeight,
+      data->dataChannels,
+      data->dataType,
+      tex_trans_sub,
+      &color);
   return script_null();
 }
 
@@ -315,17 +296,15 @@ static ScriptVal import_eval_texture_trans_shift(AssetImportContext* ctx, Script
       .value      = (f32)script_arg_opt_num(call, 2, 0.0),
       .alpha      = (f32)script_arg_opt_num(call, 3, 0.0),
   };
-  if (!script_call_panicked(call)) {
-    AssetImportTexture* data = ctx->data;
-    asset_texture_transform(
-        data->data,
-        data->dataWidth,
-        data->dataHeight,
-        data->dataChannels,
-        data->dataType,
-        tex_trans_shift,
-        &shiftCtx);
-  }
+  AssetImportTexture* data = ctx->data;
+  asset_texture_transform(
+      data->data,
+      data->dataWidth,
+      data->dataHeight,
+      data->dataChannels,
+      data->dataType,
+      tex_trans_shift,
+      &shiftCtx);
   return script_null();
 }
 
@@ -357,19 +336,17 @@ import_eval_texture_trans_replace(AssetImportContext* ctx, ScriptBinderCall* cal
       .new       = (f32)script_arg_num(call, 1),
       .threshold = (f32)script_arg_opt_num_range(call, 2, 1e-3, 1.0, 0.1),
   };
-  if (!script_call_panicked(call)) {
-    replaceCtx.thresholdInv = 1.0f / replaceCtx.threshold;
+  replaceCtx.thresholdInv = 1.0f / replaceCtx.threshold;
 
-    AssetImportTexture* data = ctx->data;
-    asset_texture_transform(
-        data->data,
-        data->dataWidth,
-        data->dataHeight,
-        data->dataChannels,
-        data->dataType,
-        tex_trans_replace_hue,
-        &replaceCtx);
-  }
+  AssetImportTexture* data = ctx->data;
+  asset_texture_transform(
+      data->data,
+      data->dataWidth,
+      data->dataHeight,
+      data->dataChannels,
+      data->dataType,
+      tex_trans_replace_hue,
+      &replaceCtx);
   return script_null();
 }
 

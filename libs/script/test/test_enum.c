@@ -33,15 +33,9 @@ spec(enum_) {
     script_enum_push(&e, string_lit("b"), 42);
     script_enum_push(&e, string_lit("c"), 1337);
 
-    ScriptPanic panic = {0};
-    check_eq_int(script_enum_lookup_value(&e, string_hash_lit("a"), &panic), 1);
-    check_eq_int(panic.kind, ScriptPanic_None);
-
-    check_eq_int(script_enum_lookup_value(&e, string_hash_lit("b"), &panic), 42);
-    check_eq_int(panic.kind, ScriptPanic_None);
-
-    check_eq_int(script_enum_lookup_value(&e, string_hash_lit("c"), &panic), 1337);
-    check_eq_int(panic.kind, ScriptPanic_None);
+    check_eq_int(script_enum_lookup_value(&e, string_hash_lit("a"), null), 1);
+    check_eq_int(script_enum_lookup_value(&e, string_hash_lit("b"), null), 42);
+    check_eq_int(script_enum_lookup_value(&e, string_hash_lit("c"), null), 1337);
   }
 
   it("can optionally lookup a value") {
@@ -54,17 +48,6 @@ spec(enum_) {
     check_eq_int(script_enum_lookup_maybe_value(&e, string_hash_lit("b"), -1), 42);
     check_eq_int(script_enum_lookup_maybe_value(&e, string_hash_lit("c"), -1), 1337);
     check_eq_int(script_enum_lookup_maybe_value(&e, string_hash_lit("d"), -1), -1);
-  }
-
-  it("fails when looking up a non-existing value") {
-    ScriptEnum e = {0};
-    script_enum_push(&e, string_lit("a"), 1);
-    script_enum_push(&e, string_lit("b"), 42);
-    script_enum_push(&e, string_lit("c"), 1337);
-
-    ScriptPanic panic = {0};
-    script_enum_lookup_value(&e, string_hash_lit("d"), &panic);
-    check_eq_int(panic.kind, ScriptPanic_EnumInvalidEntry);
   }
 
   it("can lookup names") {

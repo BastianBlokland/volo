@@ -6,6 +6,7 @@
 #include "script_mem.h"
 #include "script_prog.h"
 
+#include "panic_internal.h"
 #include "val_internal.h"
 
 #define script_prog_ops_max 25000
@@ -147,10 +148,12 @@ ScriptProgResult script_prog_eval(
 
   diag_assert(prog->binderHash == (binder ? script_binder_hash(binder) : 0));
 
-  const u8* ip = mem_begin(prog->code);
+  ScriptPanicHandler panicHandler;
+  const u8* volatile panicHandlerIp; // Forced to live on the stack.
 
   ScriptProgResult res                    = {0};
   ScriptVal        regs[script_prog_regs] = {0};
+  const u8*        ip                     = mem_begin(prog->code);
 
   // clang-format off
 
@@ -158,6 +161,15 @@ ScriptProgResult script_prog_eval(
 #define VM_JUMP(_INSTRUCTION_) { ip = mem_begin(prog->code) + (_INSTRUCTION_); goto Dispatch; }
 #define VM_RETURN(_VALUE_) { res.val = (_VALUE_); return res; }
 #define VM_PANIC(_PANIC_) { res.panic = (_PANIC_); return res; }
+
+  if (UNLIKELY(setjmp(panicHandler.anchor))) {
+    /**
+     * NOTE: Its important to use 'panicHandlerIp' instead of the regular 'ip' as 'ip' is likely to
+     * be stored in a register by the compiler (and thus reset in case of a long-jmp).
+     */
+    panicHandler.result.range = prog_loc_from_ip(prog, panicHandlerIp);
+    VM_PANIC(panicHandler.result);
+  }
 
 Dispatch:
   if (UNLIKELY(res.executedOps++ == script_prog_ops_max)) {
@@ -231,15 +243,13 @@ Dispatch:
     VM_NEXT(3);
   case ScriptOp_Extern: {
     ScriptBinderCall call = {
-      .args     = &regs[ip[4]],
-      .argCount = ip[5],
-      .callId   = (u32)(ip - mem_begin(prog->code)),
+      .args         = &regs[ip[4]],
+      .argCount     = ip[5],
+      .callId       = (u32)(ip - mem_begin(prog->code)),
+      .panicHandler = &panicHandler,
     };
+    panicHandlerIp = ip; // Store the ip for diagnostic info incase a panic happens.
     regs[ip[1]] = script_binder_exec(binder, prog_read_u16(&ip[2]), bindCtx, &call);
-  if (UNLIKELY(script_call_panicked(&call))) {
-      call.panic.range = prog_loc_from_ip(prog, ip);
-      VM_PANIC(call.panic);
-    }
     VM_NEXT(6);
   }
 #define VM_OP_SIMPLE_ZERO(_OP_, _FUNC_)                                                            \

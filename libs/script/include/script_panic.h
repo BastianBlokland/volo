@@ -39,5 +39,9 @@ typedef enum {
   ScriptPanicOutput_IncludeRange = 1 << 0,
 } ScriptPanicOutputFlags;
 
+typedef struct sScriptPanicHandler ScriptPanicHandler;
+
+NORETURN void script_panic_raise(ScriptPanicHandler*, ScriptPanic);
+
 void   script_panic_write(DynString*, const ScriptPanic*, ScriptPanicOutputFlags);
 String script_panic_scratch(const ScriptPanic*, ScriptPanicOutputFlags);

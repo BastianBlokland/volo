@@ -342,10 +342,7 @@ static ScriptVal import_eval_asset_id(AssetImportContext* ctx, ScriptBinderCall*
 
 static ScriptVal import_eval_asset_id_match(AssetImportContext* ctx, ScriptBinderCall* call) {
   const StringHash patternHash = script_arg_str(call, 0);
-  if (UNLIKELY(script_call_panicked(call))) {
-    return script_bool(false);
-  }
-  const String patternStr = stringtable_lookup(g_stringtable, patternHash);
+  const String     patternStr  = stringtable_lookup(g_stringtable, patternHash);
   return script_bool(string_match_glob(ctx->assetId, patternStr, StringMatchFlags_IgnoreCase));
 }
 
@@ -374,7 +371,7 @@ static ScriptVal import_eval_fail(AssetImportContext* ctx, ScriptBinderCall* cal
 
 static ScriptVal import_eval_fail_if(AssetImportContext* ctx, ScriptBinderCall* call) {
   const ScriptVal cond = script_arg_any(call, 0);
-  if (!script_call_panicked(call) && script_truthy(cond)) {
+  if (script_truthy(cond)) {
     script_arg_shift(call);
     import_log(ctx, call, LogLevel_Error);
     ctx->failed = true;

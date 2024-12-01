@@ -12,18 +12,19 @@ typedef union uGeoColor GeoColor;
 // Forward declare from 'geo_vector.h'.
 typedef union uGeoVector GeoVector;
 
-// Forward declare from 'script_val.h'.
-typedef struct sScriptVal ScriptVal;
-typedef enum eScriptType  ScriptType;
-typedef u16               ScriptMask;
-
-// Forward declare from 'script_enum.h'.
-typedef struct sScriptEnum ScriptEnum;
-
-// Forward declare from 'script_binder.h'.
+// Internal forward declarations:
+typedef enum eScriptType         ScriptType;
 typedef struct sScriptBinderCall ScriptBinderCall;
+typedef struct sScriptEnum       ScriptEnum;
+typedef struct sScriptVal        ScriptVal;
+typedef u16                      ScriptMask;
 
-bool script_arg_check(ScriptBinderCall*, u16 i, ScriptMask);
+/**
+ * Argument check utilities.
+ * NOTE: On failure the functions will not return, control-flow returns back to the script runtime.
+ */
+
+void script_arg_check(ScriptBinderCall*, u16 i, ScriptMask);
 bool script_arg_has(ScriptBinderCall*, u16 i);
 
 void script_arg_shift(ScriptBinderCall*);
