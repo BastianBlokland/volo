@@ -151,16 +151,18 @@ ScriptProgResult script_prog_eval(
   ScriptPanicHandler panicHandler;
   const u8* volatile panicHandlerIp; // Forced to live on the stack.
 
+  const u8* const ipBegin = mem_begin(prog->code);
+
   ScriptProgResult res                    = {0};
   ScriptVal        regs[script_prog_regs] = {0};
 
   register u32       counter = 0;
-  register const u8* ip      = mem_begin(prog->code);
+  register const u8* ip      = ipBegin;
 
   // clang-format off
 
 #define VM_NEXT(_OP_SIZE_) { ip += (_OP_SIZE_); goto Dispatch; }
-#define VM_JUMP(_INSTRUCTION_) { ip = mem_begin(prog->code) + (_INSTRUCTION_); goto Dispatch; }
+#define VM_JUMP(_INSTRUCTION_) { ip = ipBegin + (_INSTRUCTION_); goto Dispatch; }
 #define VM_RETURN(_VALUE_) { res.val = (_VALUE_); res.executedOps = counter; return res; }
 #define VM_PANIC(_PANIC_) { res.panic = (_PANIC_); res.executedOps = counter; return res; }
 
@@ -247,7 +249,7 @@ Dispatch:
     ScriptBinderCall call = {
       .args         = &regs[ip[4]],
       .argCount     = ip[5],
-      .callId       = (u32)(ip - mem_begin(prog->code)),
+      .callId       = (u32)(ip - ipBegin),
       .panicHandler = &panicHandler,
     };
     panicHandlerIp = ip; // Store the ip for diagnostic info incase a panic happens.
