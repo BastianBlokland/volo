@@ -67,12 +67,13 @@ bool script_enum_contains_name(const ScriptEnum* e, const StringHash nameHash) {
   return !sentinel_check(index);
 }
 
-i32 script_enum_lookup_value(const ScriptEnum* e, const StringHash nameHash, ScriptPanic* panic) {
-  const u32 index = script_enum_find_name(e, nameHash);
+StringHash script_enum_lookup_name(const ScriptEnum* e, const i32 value) {
+  const u32 index = script_enum_find_value(e, value);
   if (sentinel_check(index)) {
-    return *panic = (ScriptPanic){ScriptPanic_EnumInvalidEntry}, 0;
+    return 0;
   }
-  return e->values[index];
+  // NOTE: Index can point to an unused entry but in that case nameHashes will always be zero.
+  return e->nameHashes[index];
 }
 
 i32 script_enum_lookup_maybe_value(const ScriptEnum* e, const StringHash nameHash, const i32 def) {
@@ -83,11 +84,28 @@ i32 script_enum_lookup_maybe_value(const ScriptEnum* e, const StringHash nameHas
   return e->values[index];
 }
 
-StringHash script_enum_lookup_name(const ScriptEnum* e, const i32 value) {
-  const u32 index = script_enum_find_value(e, value);
+i32 script_enum_lookup_value(
+    const ScriptEnum* e, const StringHash nameHash, ScriptPanicHandler* panicHandler) {
+  const u32 index = script_enum_find_name(e, nameHash);
   if (sentinel_check(index)) {
-    return 0;
+    script_panic_raise(panicHandler, (ScriptPanic){ScriptPanic_EnumInvalidEntry});
   }
-  // NOTE: Index can point to an unused entry but in that case nameHashes will always be zero.
-  return e->nameHashes[index];
+  return e->values[index];
+}
+
+i32 script_enum_lookup_value_at_index(
+    const ScriptEnum*   e,
+    const StringHash    nameHash,
+    const u16           argIndex,
+    ScriptPanicHandler* panicHandler) {
+  const u32 index = script_enum_find_name(e, nameHash);
+  if (sentinel_check(index)) {
+    script_panic_raise(
+        panicHandler,
+        (ScriptPanic){
+            .kind     = ScriptPanic_EnumInvalidEntry,
+            .argIndex = argIndex,
+        });
+  }
+  return e->values[index];
 }
