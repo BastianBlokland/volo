@@ -153,14 +153,16 @@ ScriptProgResult script_prog_eval(
 
   ScriptProgResult res                    = {0};
   ScriptVal        regs[script_prog_regs] = {0};
-  const u8*        ip                     = mem_begin(prog->code);
+
+  register u32       counter = 0;
+  register const u8* ip      = mem_begin(prog->code);
 
   // clang-format off
 
 #define VM_NEXT(_OP_SIZE_) { ip += (_OP_SIZE_); goto Dispatch; }
 #define VM_JUMP(_INSTRUCTION_) { ip = mem_begin(prog->code) + (_INSTRUCTION_); goto Dispatch; }
-#define VM_RETURN(_VALUE_) { res.val = (_VALUE_); return res; }
-#define VM_PANIC(_PANIC_) { res.panic = (_PANIC_); return res; }
+#define VM_RETURN(_VALUE_) { res.val = (_VALUE_); res.executedOps = counter; return res; }
+#define VM_PANIC(_PANIC_) { res.panic = (_PANIC_); res.executedOps = counter; return res; }
 
   if (UNLIKELY(setjmp(panicHandler.anchor))) {
     /**
@@ -172,7 +174,7 @@ ScriptProgResult script_prog_eval(
   }
 
 Dispatch:
-  if (UNLIKELY(res.executedOps++ == script_prog_ops_max)) {
+  if (UNLIKELY(counter++ == script_prog_ops_max)) {
     VM_PANIC(((ScriptPanic){ScriptPanic_ExecutionLimitExceeded, .range = prog_loc_from_ip(prog, ip)}));
   }
   switch ((ScriptOp)ip[0]) {
