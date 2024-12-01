@@ -154,7 +154,8 @@ ScriptProgResult script_prog_eval(
   const u8*          ip                     = mem_begin(prog->code);
 
   if (UNLIKELY(setjmp(panicHandler.anchor))) {
-    res.panic = panicHandler.result;
+    res.panic       = panicHandler.result;
+    res.panic.range = prog_loc_from_ip(prog, ip);
     return res;
   }
 
@@ -237,15 +238,12 @@ Dispatch:
     VM_NEXT(3);
   case ScriptOp_Extern: {
     ScriptBinderCall call = {
-      .args     = &regs[ip[4]],
-      .argCount = ip[5],
-      .callId   = (u32)(ip - mem_begin(prog->code)),
+      .args         = &regs[ip[4]],
+      .argCount     = ip[5],
+      .callId       = (u32)(ip - mem_begin(prog->code)),
+      .panicHandler = &panicHandler,
     };
     regs[ip[1]] = script_binder_exec(binder, prog_read_u16(&ip[2]), bindCtx, &call);
-  if (UNLIKELY(script_call_panicked(&call))) {
-      call.panic.range = prog_loc_from_ip(prog, ip);
-      VM_PANIC(call.panic);
-    }
     VM_NEXT(6);
   }
 #define VM_OP_SIMPLE_ZERO(_OP_, _FUNC_)                                                            \
