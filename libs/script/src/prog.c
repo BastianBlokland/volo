@@ -149,15 +149,11 @@ ScriptProgResult script_prog_eval(
   diag_assert(prog->binderHash == (binder ? script_binder_hash(binder) : 0));
 
   ScriptPanicHandler panicHandler;
-  ScriptProgResult   res                    = {0};
-  ScriptVal          regs[script_prog_regs] = {0};
-  const u8*          ip                     = mem_begin(prog->code);
+  const u8* volatile panicHandlerIp; // Forced to live on the stack.
 
-  if (UNLIKELY(setjmp(panicHandler.anchor))) {
-    res.panic       = panicHandler.result;
-    res.panic.range = prog_loc_from_ip(prog, ip);
-    return res;
-  }
+  ScriptProgResult res                    = {0};
+  ScriptVal        regs[script_prog_regs] = {0};
+  const u8*        ip                     = mem_begin(prog->code);
 
   // clang-format off
 
@@ -165,6 +161,15 @@ ScriptProgResult script_prog_eval(
 #define VM_JUMP(_INSTRUCTION_) { ip = mem_begin(prog->code) + (_INSTRUCTION_); goto Dispatch; }
 #define VM_RETURN(_VALUE_) { res.val = (_VALUE_); return res; }
 #define VM_PANIC(_PANIC_) { res.panic = (_PANIC_); return res; }
+
+  if (UNLIKELY(setjmp(panicHandler.anchor))) {
+    /**
+     * NOTE: Its important to use 'panicHandlerIp' instead of the regular 'ip' as 'ip' is likely to
+     * be stored in a register by the compiler (and thus reset in case of a long-jmp).
+     */
+    panicHandler.result.range = prog_loc_from_ip(prog, panicHandlerIp);
+    VM_PANIC(panicHandler.result);
+  }
 
 Dispatch:
   if (UNLIKELY(res.executedOps++ == script_prog_ops_max)) {
@@ -243,6 +248,7 @@ Dispatch:
       .callId       = (u32)(ip - mem_begin(prog->code)),
       .panicHandler = &panicHandler,
     };
+    panicHandlerIp = ip; // Store the ip for diagnostic info incase a panic happens.
     regs[ip[1]] = script_binder_exec(binder, prog_read_u16(&ip[2]), bindCtx, &call);
     VM_NEXT(6);
   }
