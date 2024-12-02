@@ -272,6 +272,18 @@ static ScriptVal import_eval_anim_name(AssetImportContext* ctx, ScriptBinderCall
   return script_null();
 }
 
+static ScriptVal import_eval_anim_name_match(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data  = ctx->data;
+  const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
+  diag_assert(index < data->animCount);
+
+  const String name = stringtable_lookup(g_stringtable, data->anims[index].nameHash);
+
+  const StringHash patternHash = script_arg_str(call, 1);
+  const String     patternStr  = stringtable_lookup(g_stringtable, patternHash);
+  return script_bool(string_match_glob(name, patternStr, StringMatchFlags_IgnoreCase));
+}
+
 static ScriptVal import_eval_anim_duration(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data  = ctx->data;
   const u32        index = (u32)script_arg_num_range(call, 0, 0, data->animCount - 1);
@@ -565,6 +577,16 @@ void asset_data_init_import_mesh(void) {
         {string_lit("newName"), script_mask_str | script_mask_null},
     };
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_name);
+  }
+  {
+    const String       name   = string_lit("anim_name_match");
+    const String       doc    = fmt_write_scratch("Check if the animation name matches the given pattern.\n\n{}", fmt_text(g_globPatternDoc));
+    const ScriptMask   ret    = script_mask_bool;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("pattern"), script_mask_str},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_anim_name_match);
   }
   {
     const String       name   = string_lit("anim_duration");
