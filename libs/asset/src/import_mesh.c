@@ -182,6 +182,18 @@ static ScriptVal import_eval_joint_name(AssetImportContext* ctx, ScriptBinderCal
   return script_null();
 }
 
+static ScriptVal import_eval_joint_name_match(AssetImportContext* ctx, ScriptBinderCall* call) {
+  AssetImportMesh* data  = ctx->data;
+  const u32        index = (u32)script_arg_num_range(call, 0, 0, data->jointCount - 1);
+  diag_assert(index < data->jointCount);
+
+  const String name = stringtable_lookup(g_stringtable, data->joints[index].nameHash);
+
+  const StringHash patternHash = script_arg_str(call, 1);
+  const String     patternStr  = stringtable_lookup(g_stringtable, patternHash);
+  return script_bool(string_match_glob(name, patternStr, StringMatchFlags_IgnoreCase));
+}
+
 static ScriptVal import_eval_joint_name_trim(AssetImportContext* ctx, ScriptBinderCall* call) {
   AssetImportMesh* data       = ctx->data;
   const u32        index      = (u32)script_arg_num_range(call, 0, 0, data->jointCount - 1);
@@ -388,10 +400,11 @@ void asset_data_init_import_mesh(void) {
   script_binder_filter_set(binder, string_lit("import/mesh/*.script"));
 
   // clang-format off
-  static const String g_animFlagsDoc = string_static("Supported flags:\n\n-`Active`\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`\n\n-`RandomTime`");
+  static const String g_animFlagsDoc   = string_static("Supported flags:\n\n-`Active`\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`\n\n-`RandomTime`");
+  static const String g_globPatternDoc = string_static("Supported pattern syntax:\n- '?' matches any single character.\n- '*' matches any number of any characters including none.\n- '!' inverts the entire match (not per segment and cannot be disabled after enabling).");
   {
     const String       name   = string_lit("flat_normals");
-    const String       doc    = fmt_write_scratch("Import flat (per face) normals (ignore per-vertex normals).");
+    const String       doc    = string_lit("Import flat (per face) normals (ignore per-vertex normals).");
     const ScriptMask   ret    = script_mask_bool | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("flatNormals"), script_mask_bool | script_mask_null},
@@ -400,7 +413,7 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("vertex_translation");
-    const String       doc    = fmt_write_scratch("Set the vertex import translation.");
+    const String       doc    = string_lit("Set the vertex import translation.");
     const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("translation"), script_mask_vec3 | script_mask_null},
@@ -409,7 +422,7 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("vertex_rotation");
-    const String       doc    = fmt_write_scratch("Set the vertex import rotation.");
+    const String       doc    = string_lit("Set the vertex import rotation.");
     const ScriptMask   ret    = script_mask_quat | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("rotation"), script_mask_quat | script_mask_null},
@@ -418,7 +431,7 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("vertex_scale");
-    const String       doc    = fmt_write_scratch("Set the vertex import scale.");
+    const String       doc    = string_lit("Set the vertex import scale.");
     const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("scale"), script_mask_vec3 | script_mask_num | script_mask_null},
@@ -427,7 +440,7 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("root_translation");
-    const String       doc    = fmt_write_scratch("Set the bone root import translation (only valid for skinned meshes).");
+    const String       doc    = string_lit("Set the bone root import translation (only valid for skinned meshes).");
     const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("translation"), script_mask_vec3 | script_mask_null},
@@ -436,7 +449,7 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("root_rotation");
-    const String       doc    = fmt_write_scratch("Set the bone root import rotation (only valid for skinned meshes).");
+    const String       doc    = string_lit("Set the bone root import rotation (only valid for skinned meshes).");
     const ScriptMask   ret    = script_mask_quat | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("rotation"), script_mask_quat | script_mask_null},
@@ -445,7 +458,7 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("root_scale");
-    const String       doc    = fmt_write_scratch("Set the bone root import scale (only valid for skinned meshes).");
+    const String       doc    = string_lit("Set the bone root import scale (only valid for skinned meshes).");
     const ScriptMask   ret    = script_mask_vec3 | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("scale"), script_mask_vec3 | script_mask_num | script_mask_null},
@@ -454,13 +467,13 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("joint_count");
-    const String       doc    = fmt_write_scratch("Query the amount of joints in the mesh.\nThe joints are topologically sorted so the root is always at index 0.");
+    const String       doc    = string_lit("Query the amount of joints in the mesh.\nThe joints are topologically sorted so the root is always at index 0.");
     const ScriptMask   ret    = script_mask_num | script_mask_null;
     asset_import_bind(binder, name, doc, ret, null, 0, import_eval_joint_count);
   }
   {
     const String       name   = string_lit("joint_parent");
-    const String       doc    = fmt_write_scratch("Query the index of the joint's parent (same as the input for the root).");
+    const String       doc    = string_lit("Query the index of the joint's parent (same as the input for the root).");
     const ScriptMask   ret    = script_mask_num;
     const ScriptSigArg args[] = {
         {string_lit("index"), script_mask_num},
@@ -469,7 +482,7 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("joint_find");
-    const String       doc    = fmt_write_scratch("Find a joint with the given name, returns the index of the joint or null if none was found.");
+    const String       doc    = string_lit("Find a joint with the given name, returns the index of the joint or null if none was found.");
     const ScriptMask   ret    = script_mask_num | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("jointName"), script_mask_str},
@@ -478,7 +491,7 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("joint_name");
-    const String       doc    = fmt_write_scratch("Query or change the name of the joint at the given index.");
+    const String       doc    = string_lit("Query or change the name of the joint at the given index.");
     const ScriptMask   ret    = script_mask_str | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("index"), script_mask_num},
@@ -487,8 +500,18 @@ void asset_data_init_import_mesh(void) {
     asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_joint_name);
   }
   {
+    const String       name   = string_lit("joint_name_match");
+    const String       doc    = fmt_write_scratch("Check if the joint name matches the given pattern.\n\n{}", fmt_text(g_globPatternDoc));
+    const ScriptMask   ret    = script_mask_bool;
+    const ScriptSigArg args[] = {
+        {string_lit("index"), script_mask_num},
+        {string_lit("pattern"), script_mask_str},
+    };
+    asset_import_bind(binder, name, doc, ret, args, array_elems(args), import_eval_joint_name_match);
+  }
+  {
     const String       name   = string_lit("joint_name_trim");
-    const String       doc    = fmt_write_scratch("Remove a prefix (and optionally suffix) from the joint name at the given index. Returns the new name.");
+    const String       doc    = string_lit("Remove a prefix (and optionally suffix) from the joint name at the given index. Returns the new name.");
     const ScriptMask   ret    = script_mask_str;
     const ScriptSigArg args[] = {
         {string_lit("index"), script_mask_num},
@@ -499,13 +522,13 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("anim_count");
-    const String       doc    = fmt_write_scratch("Query the amount of animations in the mesh.");
+    const String       doc    = string_lit("Query the amount of animations in the mesh.");
     const ScriptMask   ret    = script_mask_num | script_mask_null;
     asset_import_bind(binder, name, doc, ret, null, 0, import_eval_anim_count);
   }
   {
     const String       name   = string_lit("anim_find");
-    const String       doc    = fmt_write_scratch("Find an animation with the given name, returns the index of the animation or null if none was found.");
+    const String       doc    = string_lit("Find an animation with the given name, returns the index of the animation or null if none was found.");
     const ScriptMask   ret    = script_mask_num | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("animName"), script_mask_str},
@@ -514,7 +537,7 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("anim_layer");
-    const String       doc    = fmt_write_scratch("Query or change the layer (sorting index) of the animation at the given index.");
+    const String       doc    = string_lit("Query or change the layer (sorting index) of the animation at the given index.");
     const ScriptMask   ret    = script_mask_num | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("index"), script_mask_num},
@@ -535,7 +558,7 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("anim_name");
-    const String       doc    = fmt_write_scratch("Query or change the name of the animation at the given index.");
+    const String       doc    = string_lit("Query or change the name of the animation at the given index.");
     const ScriptMask   ret    = script_mask_str | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("index"), script_mask_num},
@@ -545,7 +568,7 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("anim_duration");
-    const String       doc    = fmt_write_scratch("Query or change the animation duration.");
+    const String       doc    = string_lit("Query or change the animation duration.");
     const ScriptMask   ret    = script_mask_num | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("index"), script_mask_num},
@@ -555,7 +578,7 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("anim_time");
-    const String       doc    = fmt_write_scratch("Query or change the initial animation time (in seconds).");
+    const String       doc    = string_lit("Query or change the initial animation time (in seconds).");
     const ScriptMask   ret    = script_mask_num | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("index"), script_mask_num},
@@ -565,7 +588,7 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("anim_speed");
-    const String       doc    = fmt_write_scratch("Query or change the initial animation speed.");
+    const String       doc    = string_lit("Query or change the initial animation speed.");
     const ScriptMask   ret    = script_mask_num | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("index"), script_mask_num},
@@ -576,7 +599,7 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("anim_weight");
-    const String       doc    = fmt_write_scratch("Query or change the initial animation weight.");
+    const String       doc    = string_lit("Query or change the initial animation weight.");
     const ScriptMask   ret    = script_mask_num | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("index"), script_mask_num},
@@ -586,7 +609,7 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("anim_mask");
-    const String       doc    = fmt_write_scratch("Query or change the mask weight for a specific joint.");
+    const String       doc    = string_lit("Query or change the mask weight for a specific joint.");
     const ScriptMask   ret    = script_mask_num | script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("index"), script_mask_num},
@@ -597,7 +620,7 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("anim_mask_all");
-    const String       doc    = fmt_write_scratch("Change the mask weight for all joints.");
+    const String       doc    = string_lit("Change the mask weight for all joints.");
     const ScriptMask   ret    = script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("index"), script_mask_num},
@@ -607,7 +630,7 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("anim_mask_fade_up");
-    const String       doc    = fmt_write_scratch("Recursively apply the weight delta to all joints up the hierarchy starting from the given joint.");
+    const String       doc    = string_lit("Recursively apply the weight delta to all joints up the hierarchy starting from the given joint.");
     const ScriptMask   ret    = script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("index"), script_mask_num},
@@ -618,7 +641,7 @@ void asset_data_init_import_mesh(void) {
   }
   {
     const String       name   = string_lit("anim_mask_fade_down");
-    const String       doc    = fmt_write_scratch("Recursively apply the weight delta to all joints down the hierarchy starting from the given joint.");
+    const String       doc    = string_lit("Recursively apply the weight delta to all joints down the hierarchy starting from the given joint.");
     const ScriptMask   ret    = script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("index"), script_mask_num},
