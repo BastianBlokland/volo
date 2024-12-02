@@ -102,8 +102,7 @@
             "allowEarlyInterrupt": { "title": "bool", "type": "boolean" },
             "layer": { "title": "String", "type": "string", "minLength": 1 },
             "delay": { "title": "f32", "type": "number" },
-            "speed": { "title": "f32", "type": "number" },
-            "durationMax": { "title": "f32", "type": "number" }
+            "speed": { "title": "f32", "type": "number" }
           },
           "required": [ "$type", "layer", "delay", "speed" ]
         },

@@ -77,6 +77,17 @@
       }
     },
     {
+      "name": "joint_name_match",
+      "doc": "Check if the joint name matches the given pattern.\n\nSupported pattern syntax:\n- '?' matches any single character.\n- '*' matches any number of any characters including none.\n- '!' inverts the entire match (not per segment and cannot be disabled after enabling).",
+      "sig": {
+        "ret": "bool",
+        "args": [
+          { "name": "index", "mask": "num" },
+          { "name": "pattern", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "anim_mask_fade_up",
       "doc": "Recursively apply the weight delta to all joints up the hierarchy starting from the given joint.",
       "sig": {
@@ -98,7 +109,7 @@
     },
     {
       "name": "anim_flag",
-      "doc": "Query or change an animation flag.\n\nSupported flags:\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`\n\n-`RandomTime`",
+      "doc": "Query or change an animation flag.\n\nSupported flags:\n\n-`Active`\n\n-`Loop`\n\n-`FadeIn`\n\n-`FadeOut`\n\n-`RandomTime`",
       "sig": {
         "ret": [ "null", "bool" ],
         "args": [
