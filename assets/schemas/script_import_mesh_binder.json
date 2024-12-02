@@ -100,6 +100,17 @@
       }
     },
     {
+      "name": "anim_name_match",
+      "doc": "Check if the animation name matches the given pattern.\n\nSupported pattern syntax:\n- '?' matches any single character.\n- '*' matches any number of any characters including none.\n- '!' inverts the entire match (not per segment and cannot be disabled after enabling).",
+      "sig": {
+        "ret": "bool",
+        "args": [
+          { "name": "index", "mask": "num" },
+          { "name": "pattern", "mask": "str" }
+        ]
+      }
+    },
+    {
       "name": "anim_count",
       "doc": "Query the amount of animations in the mesh.",
       "sig": {
