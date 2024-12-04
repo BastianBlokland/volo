@@ -243,11 +243,11 @@ static void eval_enum_init_health_stat(void) {
 ecs_view_define(EvalGlobalView) {
   ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneNavEnvComp);
-  ecs_access_read(SceneScriptEnvComp);
   ecs_access_read(SceneSetEnvComp);
   ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_read(SceneVisibilityEnvComp);
+  ecs_access_maybe_read(SceneDebugEnvComp);
 }
 
 ecs_view_define(EvalTransformView) { ecs_access_read(SceneTransformComp); }
@@ -1931,8 +1931,6 @@ typedef struct {
   ScriptPanic      panic;
 } SceneScriptData;
 
-ecs_comp_define(SceneScriptEnvComp) { GeoRay debugRay; };
-
 ecs_comp_define(SceneScriptComp) {
   SceneScriptFlags flags : 8;
   u8               slotCount;
@@ -1953,13 +1951,6 @@ static void ecs_combine_script_resource(void* dataA, void* dataB) {
   SceneScriptResourceComp* a = dataA;
   SceneScriptResourceComp* b = dataB;
   a->flags |= b->flags;
-}
-
-ecs_system_define(SceneScriptEnvInitSys) {
-  const EcsEntityId global = ecs_world_global(world);
-  if (!ecs_world_has_t(world, global, SceneScriptEnvComp)) {
-    ecs_world_add_t(world, global, SceneScriptEnvComp, .debugRay = {.dir = geo_forward});
-  }
 }
 
 ecs_view_define(ScriptUpdateView) {
@@ -2062,7 +2053,7 @@ ecs_system_define(SceneScriptUpdateSys) {
   if (!globalItr) {
     return; // Global dependency not yet initialized.
   }
-  const SceneScriptEnvComp* scriptEnv = ecs_view_read_t(globalItr, SceneScriptEnvComp);
+  const SceneDebugEnvComp* debugEnv = ecs_view_read_t(globalItr, SceneDebugEnvComp);
 
   EcsView* scriptView        = ecs_world_view_t(world, ScriptUpdateView);
   EcsView* resourceAssetView = ecs_world_view_t(world, ResourceAssetView);
@@ -2096,7 +2087,7 @@ ecs_system_define(SceneScriptUpdateSys) {
       .lineOfSightItr   = ecs_view_itr(ecs_world_view_t(world, EvalLineOfSightView)),
       .skeletonItr      = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonView)),
       .skeletonTemplItr = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonTemplView)),
-      .debugRay         = scriptEnv->debugRay,
+      .debugRay         = debugEnv ? scene_debug_ray(debugEnv) : (GeoRay){.dir = geo_forward},
       .queries          = queries,
   };
 
@@ -2149,7 +2140,6 @@ ecs_system_define(SceneScriptUpdateSys) {
 ecs_module_init(scene_script_module) {
   eval_binder_init();
 
-  ecs_register_comp(SceneScriptEnvComp);
   ecs_register_comp(SceneScriptComp, .destructor = ecs_destruct_script_instance);
   ecs_register_comp(SceneScriptResourceComp, .combinator = ecs_combine_script_resource);
 
@@ -2157,7 +2147,6 @@ ecs_module_init(scene_script_module) {
   ecs_register_view(ResourceLoadView);
   ecs_register_view(ScriptUpdateView);
 
-  ecs_register_system(SceneScriptEnvInitSys);
   ecs_register_system(SceneScriptResourceLoadSys, ecs_view_id(ResourceLoadView));
   ecs_register_system(SceneScriptResourceUnloadChangedSys, ecs_view_id(ResourceLoadView));
 
@@ -2225,10 +2214,6 @@ const SceneScriptStats*
 scene_script_stats(const SceneScriptComp* script, const SceneScriptSlot slot) {
   diag_assert(slot < script->slotCount);
   return &script->slots[slot].stats;
-}
-
-void scene_script_debug_ray_update(SceneScriptEnvComp* env, const GeoRay ray) {
-  env->debugRay = ray;
 }
 
 SceneScriptComp* scene_script_add(

@@ -1,7 +1,6 @@
 #pragma once
 #include "ecs_entity.h"
 #include "ecs_module.h"
-#include "geo_ray.h"
 
 // Forward declare from 'core_time.h'.
 typedef i64 TimeDuration;
@@ -26,7 +25,6 @@ typedef struct {
  */
 typedef u8 SceneScriptSlot;
 
-ecs_comp_extern(SceneScriptEnvComp);
 ecs_comp_extern(SceneScriptComp);
 
 /**
@@ -44,8 +42,6 @@ u32                     scene_script_count(const SceneScriptComp*);
 EcsEntityId             scene_script_asset(const SceneScriptComp*, SceneScriptSlot);
 const ScriptPanic*      scene_script_panic(const SceneScriptComp*, SceneScriptSlot);
 const SceneScriptStats* scene_script_stats(const SceneScriptComp*, SceneScriptSlot);
-
-void scene_script_debug_ray_update(SceneScriptEnvComp*, GeoRay);
 
 /**
  * Setup a script on the given entity.
