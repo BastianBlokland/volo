@@ -11,6 +11,7 @@
 #include "scene_action.h"
 #include "scene_attack.h"
 #include "scene_collision.h"
+#include "scene_debug.h"
 #include "scene_health.h"
 #include "scene_knowledge.h"
 #include "scene_level.h"
@@ -37,7 +38,6 @@
 #include "script_args.h"
 #include "script_binder.h"
 #include "script_enum.h"
-#include "script_prog.h"
 
 #define scene_script_max_asset_loads 8
 #define scene_script_line_of_sight_min 1.0f
@@ -242,11 +242,11 @@ static void eval_enum_init_health_stat(void) {
 ecs_view_define(EvalGlobalView) {
   ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneNavEnvComp);
-  ecs_access_read(SceneScriptEnvComp);
   ecs_access_read(SceneSetEnvComp);
   ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_read(SceneVisibilityEnvComp);
+  ecs_access_maybe_read(SceneDebugEnvComp);
 }
 
 ecs_view_define(EvalTransformView) { ecs_access_read(SceneTransformComp); }
@@ -330,13 +330,11 @@ typedef struct {
   const ScriptProgram*  scriptProgram;
   String                scriptId;
   SceneActionQueueComp* actions;
-  DynArray*             debug; // SceneScriptDebug[].
+  SceneDebugComp*       debug;
   GeoRay                debugRay;
 
   EvalQuery* queries; // EvalQuery[scene_script_query_max]
   u32        usedQueries;
-
-  Mem (*transientDup)(SceneScriptComp*, Mem src, usize align);
 } EvalContext;
 
 static bool
@@ -1020,9 +1018,9 @@ static ScriptVal eval_nav_travel(EvalContext* ctx, ScriptBinderCall* call) {
   }
   SceneAction* act = scene_action_push(ctx->actions, SceneActionType_NavTravel);
   act->navTravel   = (SceneActionNavTravel){
-        .entity         = entity,
-        .targetEntity   = script_arg_maybe_entity(call, 1, ecs_entity_invalid),
-        .targetPosition = script_arg_maybe_vec3(call, 1, geo_vector(0)),
+      .entity         = entity,
+      .targetEntity   = script_arg_maybe_entity(call, 1, ecs_entity_invalid),
+      .targetPosition = script_arg_maybe_vec3(call, 1, geo_vector(0)),
   };
   return script_null();
 }
@@ -1080,8 +1078,8 @@ static ScriptVal eval_damage(EvalContext* ctx, ScriptBinderCall* call) {
   if (amount > f32_epsilon) {
     SceneAction* act = scene_action_push(ctx->actions, SceneActionType_HealthMod);
     act->healthMod   = (SceneActionHealthMod){
-          .entity = entity,
-          .amount = -amount /* negate for damage */,
+        .entity = entity,
+        .amount = -amount /* negate for damage */,
     };
   }
   return script_null();
@@ -1622,85 +1620,77 @@ static ScriptVal eval_debug_log(EvalContext* ctx, ScriptBinderCall* call) {
   return script_null();
 }
 
+static SceneDebugSource eval_debug_source(EvalContext* ctx, ScriptBinderCall* call) {
+  return (SceneDebugSource){
+      .scriptSlot = ctx->slot,
+      .scriptPos  = script_prog_location(ctx->scriptProgram, call->callId),
+  };
+}
+
 static ScriptVal eval_debug_line(EvalContext* ctx, ScriptBinderCall* call) {
-  SceneScriptDebugLine data;
+  SceneDebugLine data;
   data.start = script_arg_vec3(call, 0);
   data.end   = script_arg_vec3(call, 1);
   data.color = script_arg_opt_color(call, 2, geo_color_white);
 
-  *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
-      .type      = SceneScriptDebugType_Line,
-      .slot      = ctx->slot,
-      .range     = script_prog_location(ctx->scriptProgram, call->callId),
-      .data_line = data,
-  };
+  if (ctx->debug) {
+    scene_debug_line(ctx->debug, data, eval_debug_source(ctx, call));
+  }
   return script_null();
 }
 
 static ScriptVal eval_debug_sphere(EvalContext* ctx, ScriptBinderCall* call) {
-  SceneScriptDebugSphere data;
+  SceneDebugSphere data;
   data.pos    = script_arg_vec3(call, 0);
   data.radius = (f32)script_arg_opt_num_range(call, 1, 0.01f, 100.0f, 0.25f);
   data.color  = script_arg_opt_color(call, 2, geo_color_white);
 
-  *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
-      .type        = SceneScriptDebugType_Sphere,
-      .slot        = ctx->slot,
-      .range       = script_prog_location(ctx->scriptProgram, call->callId),
-      .data_sphere = data,
-  };
+  if (ctx->debug) {
+    scene_debug_sphere(ctx->debug, data, eval_debug_source(ctx, call));
+  }
   return script_null();
 }
 
 static ScriptVal eval_debug_box(EvalContext* ctx, ScriptBinderCall* call) {
-  SceneScriptDebugBox data;
+  SceneDebugBox data;
   data.pos   = script_arg_vec3(call, 0);
   data.size  = script_arg_vec3(call, 1);
   data.rot   = script_arg_opt_quat(call, 2, geo_quat_ident);
   data.color = script_arg_opt_color(call, 3, geo_color_white);
 
-  *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
-      .type     = SceneScriptDebugType_Box,
-      .slot     = ctx->slot,
-      .range    = script_prog_location(ctx->scriptProgram, call->callId),
-      .data_box = data,
-  };
+  if (ctx->debug) {
+    scene_debug_box(ctx->debug, data, eval_debug_source(ctx, call));
+  }
   return script_null();
 }
 
 static ScriptVal eval_debug_arrow(EvalContext* ctx, ScriptBinderCall* call) {
-  SceneScriptDebugArrow data;
+  SceneDebugArrow data;
   data.start  = script_arg_vec3(call, 0);
   data.end    = script_arg_vec3(call, 1);
   data.radius = (f32)script_arg_opt_num_range(call, 2, 0.01f, 10.0f, 0.25f);
   data.color  = script_arg_opt_color(call, 3, geo_color_white);
 
-  *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
-      .type       = SceneScriptDebugType_Arrow,
-      .slot       = ctx->slot,
-      .range      = script_prog_location(ctx->scriptProgram, call->callId),
-      .data_arrow = data,
-  };
+  if (ctx->debug) {
+    scene_debug_arrow(ctx->debug, data, eval_debug_source(ctx, call));
+  }
   return script_null();
 }
 
 static ScriptVal eval_debug_orientation(EvalContext* ctx, ScriptBinderCall* call) {
-  SceneScriptDebugOrientation data;
+  SceneDebugOrientation data;
   data.pos  = script_arg_vec3(call, 0);
   data.rot  = script_arg_quat(call, 1);
   data.size = (f32)script_arg_opt_num_range(call, 2, 0.01f, 10.0f, 1.0f);
 
-  *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
-      .type             = SceneScriptDebugType_Orientation,
-      .slot             = ctx->slot,
-      .range            = script_prog_location(ctx->scriptProgram, call->callId),
-      .data_orientation = data,
-  };
+  if (ctx->debug) {
+    scene_debug_orientation(ctx->debug, data, eval_debug_source(ctx, call));
+  }
   return script_null();
 }
 
 static ScriptVal eval_debug_text(EvalContext* ctx, ScriptBinderCall* call) {
-  SceneScriptDebugText data;
+  SceneDebugText data;
   data.pos      = script_arg_vec3(call, 0);
   data.color    = script_arg_color(call, 1);
   data.fontSize = (u16)script_arg_num_range(call, 2, 6.0, 30.0);
@@ -1712,20 +1702,17 @@ static ScriptVal eval_debug_text(EvalContext* ctx, ScriptBinderCall* call) {
     }
     script_val_write(call->args[i], &buffer);
   }
-  if (UNLIKELY(!buffer.size)) {
-    return script_null();
+  data.text = dynstring_view(&buffer);
+
+  if (ctx->debug) {
+    scene_debug_text(ctx->debug, data, eval_debug_source(ctx, call));
   }
-  data.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1);
-  *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
-      .type      = SceneScriptDebugType_Text,
-      .slot      = ctx->slot,
-      .range     = script_prog_location(ctx->scriptProgram, call->callId),
-      .data_text = data,
-  };
   return script_null();
 }
 
 static ScriptVal eval_debug_trace(EvalContext* ctx, ScriptBinderCall* call) {
+  SceneDebugTrace data;
+
   DynString buffer = dynstring_create_over(alloc_alloc(g_allocScratch, usize_kibibyte, 1));
   for (u16 i = 0; i < call->argCount; ++i) {
     if (i) {
@@ -1733,13 +1720,10 @@ static ScriptVal eval_debug_trace(EvalContext* ctx, ScriptBinderCall* call) {
     }
     script_val_write(call->args[i], &buffer);
   }
-  if (buffer.size) {
-    *dynarray_push_t(ctx->debug, SceneScriptDebug) = (SceneScriptDebug){
-        .type            = SceneScriptDebugType_Trace,
-        .slot            = ctx->slot,
-        .range           = script_prog_location(ctx->scriptProgram, call->callId),
-        .data_trace.text = ctx->transientDup(ctx->scriptInstance, dynstring_view(&buffer), 1),
-    };
+  data.text = dynstring_view(&buffer);
+
+  if (ctx->debug) {
+    scene_debug_trace(ctx->debug, data, eval_debug_source(ctx, call));
   }
   return script_null();
 }
@@ -1946,14 +1930,10 @@ typedef struct {
   ScriptPanic      panic;
 } SceneScriptData;
 
-ecs_comp_define(SceneScriptEnvComp) { GeoRay debugRay; };
-
 ecs_comp_define(SceneScriptComp) {
   SceneScriptFlags flags : 8;
   u8               slotCount;
   SceneScriptData* slots; // SceneScriptData[slotCount].
-  Allocator*       allocTransient;
-  DynArray         debug; // SceneScriptDebug[].
 };
 
 ecs_comp_define(SceneScriptResourceComp) {
@@ -1964,10 +1944,6 @@ ecs_comp_define(SceneScriptResourceComp) {
 static void ecs_destruct_script_instance(void* data) {
   SceneScriptComp* scriptInstance = data;
   alloc_free_array_t(g_allocHeap, scriptInstance->slots, scriptInstance->slotCount);
-  if (scriptInstance->allocTransient) {
-    alloc_chunked_destroy(scriptInstance->allocTransient);
-  }
-  dynarray_destroy(&scriptInstance->debug);
 }
 
 static void ecs_combine_script_resource(void* dataA, void* dataB) {
@@ -1976,17 +1952,11 @@ static void ecs_combine_script_resource(void* dataA, void* dataB) {
   a->flags |= b->flags;
 }
 
-ecs_system_define(SceneScriptEnvInitSys) {
-  const EcsEntityId global = ecs_world_global(world);
-  if (!ecs_world_has_t(world, global, SceneScriptEnvComp)) {
-    ecs_world_add_t(world, global, SceneScriptEnvComp, .debugRay = {.dir = geo_forward});
-  }
-}
-
 ecs_view_define(ScriptUpdateView) {
   ecs_access_write(SceneScriptComp);
   ecs_access_write(SceneKnowledgeComp);
   ecs_access_write(SceneActionQueueComp);
+  ecs_access_maybe_write(SceneDebugComp);
   ecs_access_maybe_read(SceneFactionComp);
 }
 
@@ -2076,21 +2046,13 @@ static void scene_script_eval(EvalContext* ctx) {
   data->stats.executedDur = time_steady_duration(startTime, time_steady_clock());
 }
 
-static Mem scene_script_transient_dup(SceneScriptComp* inst, const Mem mem, const usize align) {
-  if (!inst->allocTransient) {
-    const usize chunkSize = 4 * usize_kibibyte;
-    inst->allocTransient  = alloc_chunked_create(g_allocHeap, alloc_bump_create, chunkSize);
-  }
-  return alloc_dup(inst->allocTransient, mem, align);
-}
-
 ecs_system_define(SceneScriptUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, EvalGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return; // Global dependency not yet initialized.
   }
-  const SceneScriptEnvComp* scriptEnv = ecs_view_read_t(globalItr, SceneScriptEnvComp);
+  const SceneDebugEnvComp* debugEnv = ecs_view_read_t(globalItr, SceneDebugEnvComp);
 
   EcsView* scriptView        = ecs_world_view_t(world, ScriptUpdateView);
   EcsView* resourceAssetView = ecs_world_view_t(world, ResourceAssetView);
@@ -2124,9 +2086,8 @@ ecs_system_define(SceneScriptUpdateSys) {
       .lineOfSightItr   = ecs_view_itr(ecs_world_view_t(world, EvalLineOfSightView)),
       .skeletonItr      = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonView)),
       .skeletonTemplItr = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonTemplView)),
-      .debugRay         = scriptEnv->debugRay,
+      .debugRay         = debugEnv ? scene_debug_ray(debugEnv) : (GeoRay){.dir = geo_forward},
       .queries          = queries,
-      .transientDup     = &scene_script_transient_dup,
   };
 
   u32 startedAssetLoads = 0;
@@ -2138,13 +2099,7 @@ ecs_system_define(SceneScriptUpdateSys) {
     ctx.scriptInstance    = ecs_view_write_t(itr, SceneScriptComp);
     ctx.scriptKnowledge   = ecs_view_write_t(itr, SceneKnowledgeComp);
     ctx.actions           = ecs_view_write_t(itr, SceneActionQueueComp);
-    ctx.debug             = &ctx.scriptInstance->debug;
-
-    // Clear the previous frame transient data.
-    if (ctx.scriptInstance->allocTransient) {
-      alloc_reset(ctx.scriptInstance->allocTransient);
-    }
-    dynarray_clear(ctx.debug);
+    ctx.debug             = ecs_view_write_t(itr, SceneDebugComp);
 
     for (SceneScriptSlot slot = 0; slot != ctx.scriptInstance->slotCount; ++slot) {
       SceneScriptData* data = &ctx.scriptInstance->slots[slot];
@@ -2184,7 +2139,6 @@ ecs_system_define(SceneScriptUpdateSys) {
 ecs_module_init(scene_script_module) {
   eval_binder_init();
 
-  ecs_register_comp(SceneScriptEnvComp);
   ecs_register_comp(SceneScriptComp, .destructor = ecs_destruct_script_instance);
   ecs_register_comp(SceneScriptResourceComp, .combinator = ecs_combine_script_resource);
 
@@ -2192,7 +2146,6 @@ ecs_module_init(scene_script_module) {
   ecs_register_view(ResourceLoadView);
   ecs_register_view(ScriptUpdateView);
 
-  ecs_register_system(SceneScriptEnvInitSys);
   ecs_register_system(SceneScriptResourceLoadSys, ecs_view_id(ResourceLoadView));
   ecs_register_system(SceneScriptResourceUnloadChangedSys, ecs_view_id(ResourceLoadView));
 
@@ -2262,16 +2215,6 @@ scene_script_stats(const SceneScriptComp* script, const SceneScriptSlot slot) {
   return &script->slots[slot].stats;
 }
 
-const SceneScriptDebug* scene_script_debug_data(const SceneScriptComp* script) {
-  return dynarray_begin_t(&script->debug, SceneScriptDebug);
-}
-
-usize scene_script_debug_count(const SceneScriptComp* script) { return script->debug.size; }
-
-void scene_script_debug_ray_update(SceneScriptEnvComp* env, const GeoRay ray) {
-  env->debugRay = ray;
-}
-
 SceneScriptComp* scene_script_add(
     EcsWorld*         world,
     const EcsEntityId entity,
@@ -2280,8 +2223,7 @@ SceneScriptComp* scene_script_add(
   diag_assert(scriptAssetCount <= u8_max); // We represent slot indices as 8bit integers.
   diag_assert(scriptAssetCount);           // Need at least one script asset.
 
-  SceneScriptComp* script = ecs_world_add_t(
-      world, entity, SceneScriptComp, .debug = dynarray_create_t(g_allocHeap, SceneScriptDebug, 0));
+  SceneScriptComp* script = ecs_world_add_t(world, entity, SceneScriptComp);
 
   script->slotCount = (u8)scriptAssetCount;
   script->slots     = alloc_array_t(g_allocHeap, SceneScriptData, scriptAssetCount);

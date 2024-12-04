@@ -10,6 +10,7 @@
 #include "scene_attack.h"
 #include "scene_bark.h"
 #include "scene_collision.h"
+#include "scene_debug.h"
 #include "scene_footstep.h"
 #include "scene_health.h"
 #include "scene_knowledge.h"
@@ -601,6 +602,7 @@ static bool setup_prefab(
   ecs_world_add_t(w, e, SceneTransformComp, .position = spawnPos, .rotation = spec->rotation);
   ecs_world_add_t(w, e, SceneVelocityComp);
   ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
+  scene_debug_init(w, e);
 
   if (prefab->flags & AssetPrefabFlags_Unit) {
     ecs_world_add_t(w, e, SceneVisibilityComp);
