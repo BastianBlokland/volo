@@ -4,6 +4,8 @@
 #include "scene_debug.h"
 #include "scene_register.h"
 
+ecs_comp_define(SceneDebugEnvComp) { GeoRay debugRay; };
+
 ecs_comp_define(SceneDebugComp) {
   Allocator* allocTransient;
   DynArray   data; // SceneDebug[].
@@ -34,6 +36,11 @@ static Mem debug_transient_dup(SceneDebugComp* comp, const Mem mem, const usize 
 ecs_view_define(DebugEntryView) { ecs_access_write(SceneDebugComp); }
 
 ecs_system_define(SceneDebugInitSys) {
+  const EcsEntityId global = ecs_world_global(world);
+  if (!ecs_world_has_t(world, global, SceneDebugEnvComp)) {
+    ecs_world_add_t(world, global, SceneDebugEnvComp, .debugRay = {.dir = geo_forward});
+  }
+
   EcsView* entryView = ecs_world_view_t(world, DebugEntryView);
   for (EcsIterator* itr = ecs_view_itr(entryView); ecs_view_walk(itr);) {
     SceneDebugComp* comp = ecs_view_write_t(itr, SceneDebugComp);
@@ -47,6 +54,7 @@ ecs_system_define(SceneDebugInitSys) {
 }
 
 ecs_module_init(scene_debug_module) {
+  ecs_register_comp(SceneDebugEnvComp);
   ecs_register_comp(
       SceneDebugComp, .destructor = ecs_destruct_debug, .combinator = ecs_combine_debug);
 
@@ -56,6 +64,9 @@ ecs_module_init(scene_debug_module) {
 
   ecs_order(SceneDebugInitSys, SceneOrder_DebugInit);
 }
+
+GeoRay scene_debug_ray(const SceneDebugEnvComp* env) { return env->debugRay; }
+void   scene_debug_ray_update(SceneDebugEnvComp* env, const GeoRay ray) { env->debugRay = ray; }
 
 void scene_debug_line(
     SceneDebugComp* comp, const SceneDebugLine params, const SceneDebugSource src) {

@@ -79,7 +79,11 @@ typedef struct {
   };
 } SceneDebug;
 
+ecs_comp_extern(SceneDebugEnvComp);
 ecs_comp_extern(SceneDebugComp);
+
+GeoRay scene_debug_ray(const SceneDebugEnvComp*);
+void   scene_debug_ray_update(SceneDebugEnvComp*, GeoRay);
 
 void scene_debug_line(SceneDebugComp*, SceneDebugLine, SceneDebugSource);
 void scene_debug_sphere(SceneDebugComp*, SceneDebugSphere, SceneDebugSource);
