@@ -81,7 +81,7 @@ ecs_comp_extern(SceneDebugComp);
 void scene_debug_line(SceneDebugComp*, SceneDebugLine, SceneDebugSource);
 void scene_debug_sphere(SceneDebugComp*, SceneDebugSphere, SceneDebugSource);
 void scene_debug_box(SceneDebugComp*, SceneDebugBox, SceneDebugSource);
-void scene_debug_array(SceneDebugComp*, SceneDebugArrow, SceneDebugSource);
+void scene_debug_arrow(SceneDebugComp*, SceneDebugArrow, SceneDebugSource);
 void scene_debug_orientation(SceneDebugComp*, SceneDebugOrientation, SceneDebugSource);
 void scene_debug_text(SceneDebugComp*, SceneDebugText, SceneDebugSource);
 void scene_debug_trace(SceneDebugComp*, SceneDebugTrace, SceneDebugSource);

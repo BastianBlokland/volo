@@ -83,7 +83,7 @@ void scene_debug_box(SceneDebugComp* comp, const SceneDebugBox params, const Sce
   };
 }
 
-void scene_debug_array(
+void scene_debug_arrow(
     SceneDebugComp* comp, const SceneDebugArrow params, const SceneDebugSource src) {
   *dynarray_push_t(&comp->data, SceneDebug) = (SceneDebug){
       .type       = SceneDebugType_Arrow,
