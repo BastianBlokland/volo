@@ -57,42 +57,52 @@ ecs_module_init(scene_debug_module) {
   ecs_order(SceneDebugInitSys, SceneOrder_DebugInit);
 }
 
-void scene_debug_line(SceneDebugComp* comp, const SceneDebugLine params) {
+void scene_debug_line(
+    SceneDebugComp* comp, const SceneDebugLine params, const SceneDebugSource src) {
   *dynarray_push_t(&comp->data, SceneDebug) = (SceneDebug){
       .type      = SceneDebugType_Line,
+      .src       = src,
       .data_line = params,
   };
 }
 
-void scene_debug_sphere(SceneDebugComp* comp, const SceneDebugSphere params) {
+void scene_debug_sphere(
+    SceneDebugComp* comp, const SceneDebugSphere params, const SceneDebugSource src) {
   *dynarray_push_t(&comp->data, SceneDebug) = (SceneDebug){
       .type        = SceneDebugType_Sphere,
+      .src         = src,
       .data_sphere = params,
   };
 }
 
-void scene_debug_box(SceneDebugComp* comp, const SceneDebugBox params) {
+void scene_debug_box(SceneDebugComp* comp, const SceneDebugBox params, const SceneDebugSource src) {
   *dynarray_push_t(&comp->data, SceneDebug) = (SceneDebug){
       .type     = SceneDebugType_Box,
+      .src      = src,
       .data_box = params,
   };
 }
 
-void scene_debug_array(SceneDebugComp* comp, const SceneDebugArrow params) {
+void scene_debug_array(
+    SceneDebugComp* comp, const SceneDebugArrow params, const SceneDebugSource src) {
   *dynarray_push_t(&comp->data, SceneDebug) = (SceneDebug){
       .type       = SceneDebugType_Arrow,
+      .src        = src,
       .data_arrow = params,
   };
 }
 
-void scene_debug_orientation(SceneDebugComp* comp, const SceneDebugOrientation params) {
+void scene_debug_orientation(
+    SceneDebugComp* comp, const SceneDebugOrientation params, const SceneDebugSource src) {
   *dynarray_push_t(&comp->data, SceneDebug) = (SceneDebug){
       .type             = SceneDebugType_Orientation,
+      .src              = src,
       .data_orientation = params,
   };
 }
 
-void scene_debug_text(SceneDebugComp* comp, const SceneDebugText params) {
+void scene_debug_text(
+    SceneDebugComp* comp, const SceneDebugText params, const SceneDebugSource src) {
   if (!params.text.size) {
     return;
   }
@@ -103,6 +113,7 @@ void scene_debug_text(SceneDebugComp* comp, const SceneDebugText params) {
   }
   *dynarray_push_t(&comp->data, SceneDebug) = (SceneDebug){
       .type = SceneDebugType_Text,
+      .src  = src,
       .data_text =
           {
               .pos      = params.pos,
@@ -113,7 +124,8 @@ void scene_debug_text(SceneDebugComp* comp, const SceneDebugText params) {
   };
 }
 
-void scene_debug_trace(SceneDebugComp* comp, const SceneDebugTrace params) {
+void scene_debug_trace(
+    SceneDebugComp* comp, const SceneDebugTrace params, const SceneDebugSource src) {
   if (!params.text.size) {
     return;
   }
@@ -124,6 +136,7 @@ void scene_debug_trace(SceneDebugComp* comp, const SceneDebugTrace params) {
   }
   *dynarray_push_t(&comp->data, SceneDebug) = (SceneDebug){
       .type       = SceneDebugType_Trace,
+      .src        = src,
       .data_trace = {.text = textDup},
   };
 }

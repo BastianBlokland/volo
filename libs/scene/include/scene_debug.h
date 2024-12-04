@@ -4,6 +4,7 @@
 #include "geo_color.h"
 #include "geo_quat.h"
 #include "geo_ray.h"
+#include "script_pos.h"
 
 typedef enum {
   SceneDebugType_Line,
@@ -57,7 +58,13 @@ typedef struct {
 } SceneDebugTrace;
 
 typedef struct {
-  SceneDebugType type;
+  EcsEntityId        scriptAsset;
+  ScriptRangeLineCol scriptPos;
+} SceneDebugSource;
+
+typedef struct {
+  SceneDebugType   type;
+  SceneDebugSource src;
   union {
     SceneDebugLine        data_line;
     SceneDebugSphere      data_sphere;
@@ -71,13 +78,13 @@ typedef struct {
 
 ecs_comp_extern(SceneDebugComp);
 
-void scene_debug_line(SceneDebugComp*, SceneDebugLine);
-void scene_debug_sphere(SceneDebugComp*, SceneDebugSphere);
-void scene_debug_box(SceneDebugComp*, SceneDebugBox);
-void scene_debug_array(SceneDebugComp*, SceneDebugArrow);
-void scene_debug_orientation(SceneDebugComp*, SceneDebugOrientation);
-void scene_debug_text(SceneDebugComp*, SceneDebugText);
-void scene_debug_trace(SceneDebugComp*, SceneDebugTrace);
+void scene_debug_line(SceneDebugComp*, SceneDebugLine, SceneDebugSource);
+void scene_debug_sphere(SceneDebugComp*, SceneDebugSphere, SceneDebugSource);
+void scene_debug_box(SceneDebugComp*, SceneDebugBox, SceneDebugSource);
+void scene_debug_array(SceneDebugComp*, SceneDebugArrow, SceneDebugSource);
+void scene_debug_orientation(SceneDebugComp*, SceneDebugOrientation, SceneDebugSource);
+void scene_debug_text(SceneDebugComp*, SceneDebugText, SceneDebugSource);
+void scene_debug_trace(SceneDebugComp*, SceneDebugTrace, SceneDebugSource);
 
 SceneDebugComp*   scene_debug_init(EcsWorld*, EcsEntityId);
 const SceneDebug* scene_debug_data(const SceneDebugComp*);
