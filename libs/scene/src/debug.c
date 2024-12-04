@@ -21,8 +21,8 @@ static void ecs_destruct_debug(void* data) {
 
 static void ecs_combine_debug(void* dataA, void* dataB) {
   (void)dataA;
-  (void)dataB;
   // NOTE: No need to copy the entries as all entries are cleared at the next frame anyway.
+  ecs_destruct_debug(dataB);
 }
 
 static Mem debug_transient_dup(SceneDebugComp* comp, const Mem mem, const usize align) {
