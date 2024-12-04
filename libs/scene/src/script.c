@@ -329,7 +329,6 @@ typedef struct {
   SceneScriptComp*      scriptInstance;
   SceneKnowledgeComp*   scriptKnowledge;
   const ScriptProgram*  scriptProgram;
-  EcsEntityId           scriptAsset;
   String                scriptId;
   SceneActionQueueComp* actions;
   SceneDebugComp*       debug;
@@ -1624,8 +1623,8 @@ static ScriptVal eval_debug_log(EvalContext* ctx, ScriptBinderCall* call) {
 
 static SceneDebugSource eval_debug_source(EvalContext* ctx, ScriptBinderCall* call) {
   return (SceneDebugSource){
-      .scriptAsset = ctx->scriptAsset,
-      .scriptPos   = script_prog_location(ctx->scriptProgram, call->callId),
+      .scriptSlot = ctx->slot,
+      .scriptPos  = script_prog_location(ctx->scriptProgram, call->callId),
   };
 }
 
@@ -2119,7 +2118,6 @@ ecs_system_define(SceneScriptUpdateSys) {
 
       // Evaluate the script if the asset is loaded.
       if (ecs_view_maybe_jump(resourceAssetItr, data->asset)) {
-        ctx.scriptAsset                    = data->asset,
         ctx.scriptId                       = asset_id(ecs_view_read_t(resourceAssetItr, AssetComp));
         const AssetScriptComp* scriptAsset = ecs_view_read_t(resourceAssetItr, AssetScriptComp);
         if (UNLIKELY(scriptAsset->domain != AssetScriptDomain_Scene)) {

@@ -6,6 +6,9 @@
 #include "geo_ray.h"
 #include "script_pos.h"
 
+// Forward declare from 'scene_script.h'.
+typedef u8 SceneScriptSlot;
+
 typedef enum {
   SceneDebugType_Line,
   SceneDebugType_Sphere,
@@ -58,7 +61,7 @@ typedef struct {
 } SceneDebugTrace;
 
 typedef struct {
-  EcsEntityId        scriptAsset;
+  SceneScriptSlot    scriptSlot;
   ScriptRangeLineCol scriptPos;
 } SceneDebugSource;
 
