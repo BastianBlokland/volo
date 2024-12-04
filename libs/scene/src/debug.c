@@ -49,6 +49,41 @@ SceneDebugComp* scene_debug_init(EcsWorld* world, const EcsEntityId entity) {
       world, entity, SceneDebugComp, .data = dynarray_create_t(g_allocHeap, SceneDebug, 0));
 }
 
+void scene_debug_line(SceneDebugComp* comp, const SceneDebugLine line) {
+  *dynarray_push_t(&comp->data, SceneDebug) = (SceneDebug){
+      .type      = SceneDebugType_Line,
+      .data_line = line,
+  };
+}
+
+void scene_debug_sphere(SceneDebugComp* comp, const SceneDebugSphere sphere) {
+  *dynarray_push_t(&comp->data, SceneDebug) = (SceneDebug){
+      .type        = SceneDebugType_Sphere,
+      .data_sphere = sphere,
+  };
+}
+
+void scene_debug_box(SceneDebugComp* comp, const SceneDebugBox box) {
+  *dynarray_push_t(&comp->data, SceneDebug) = (SceneDebug){
+      .type     = SceneDebugType_Box,
+      .data_box = box,
+  };
+}
+
+void scene_debug_array(SceneDebugComp* comp, const SceneDebugArrow arrow) {
+  *dynarray_push_t(&comp->data, SceneDebug) = (SceneDebug){
+      .type       = SceneDebugType_Arrow,
+      .data_arrow = arrow,
+  };
+}
+
+void scene_debug_orientation(SceneDebugComp* comp, const SceneDebugOrientation orientation) {
+  *dynarray_push_t(&comp->data, SceneDebug) = (SceneDebug){
+      .type             = SceneDebugType_Orientation,
+      .data_orientation = orientation,
+  };
+}
+
 void scene_debug_push(SceneDebugComp* comp, const SceneDebug entry) {
   *dynarray_push_t(&comp->data, SceneDebug) = entry;
 }
