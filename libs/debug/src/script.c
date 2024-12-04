@@ -961,7 +961,7 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
 
 ecs_view_define(RayUpdateGlobalView) {
   ecs_access_read(InputManagerComp);
-  ecs_access_write(SceneScriptEnvComp);
+  ecs_access_write(SceneDebugEnvComp);
 }
 
 ecs_view_define(RayUpdateWindowView) {
@@ -976,8 +976,8 @@ ecs_system_define(DebugScriptUpdateRaySys) {
   if (!globalItr) {
     return;
   }
-  SceneScriptEnvComp*     scriptEnv = ecs_view_write_t(globalItr, SceneScriptEnvComp);
-  const InputManagerComp* input     = ecs_view_read_t(globalItr, InputManagerComp);
+  SceneDebugEnvComp*      debugEnv = ecs_view_write_t(globalItr, SceneDebugEnvComp);
+  const InputManagerComp* input    = ecs_view_read_t(globalItr, InputManagerComp);
 
   EcsView*     camView = ecs_world_view_t(world, RayUpdateWindowView);
   EcsIterator* camItr  = ecs_view_maybe_at(camView, input_active_window(input));
@@ -992,7 +992,7 @@ ecs_system_define(DebugScriptUpdateRaySys) {
   const f32       inputAspect  = input_cursor_aspect(input);
   const GeoRay    inputRay     = scene_camera_ray(cam, camTrans, inputAspect, inputNormPos);
 
-  scene_script_debug_ray_update(scriptEnv, inputRay);
+  scene_debug_ray_update(debugEnv, inputRay);
 }
 
 ecs_module_init(debug_script_module) {
