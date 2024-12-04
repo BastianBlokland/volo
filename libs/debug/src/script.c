@@ -13,6 +13,7 @@
 #include "input_manager.h"
 #include "log_logger.h"
 #include "scene_camera.h"
+#include "scene_debug.h"
 #include "scene_knowledge.h"
 #include "scene_register.h"
 #include "scene_script.h"
@@ -127,6 +128,7 @@ static void ecs_destroy_script_panel(void* data) {
 ecs_view_define(SubjectView) {
   ecs_access_write(SceneKnowledgeComp);
   ecs_access_maybe_write(SceneScriptComp);
+  ecs_access_maybe_read(SceneDebugComp);
 }
 
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
@@ -526,11 +528,12 @@ static void tracker_query(
   for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
     const EcsEntityId      entity         = ecs_view_entity(itr);
     const SceneScriptComp* scriptInstance = ecs_view_read_t(itr, SceneScriptComp);
+    const SceneDebugComp*  debug          = ecs_view_read_t(itr, SceneDebugComp);
     if (!scriptInstance) {
       continue;
     }
     const bool  didPanic   = (scene_script_flags(scriptInstance) & SceneScriptFlags_DidPanic) != 0;
-    const usize debugCount = scene_script_debug_count(scriptInstance);
+    const usize debugCount = debug ? scene_debug_count(debug) : 0;
     if (!(flags & TrackerQueryFlags_QueryAssets) && !didPanic && !debugCount) {
       continue; // Early out when we don't need to query assets and there was no output.
     }
@@ -558,14 +561,17 @@ static void tracker_query(
     }
 
     // Output traces.
-    const SceneScriptDebug* debugData = scene_script_debug_data(scriptInstance);
-    for (usize i = 0; i != debugCount; ++i) {
-      if (debugData[i].type == SceneScriptDebugType_Trace) {
-        const String                scriptId = asset_id(assetComps[debugData[i].slot]);
-        const String                msg      = debugData[i].data_trace.text;
-        const ScriptRangeLineCol    range    = debugData[i].range;
-        const DebugScriptOutputType type     = DebugScriptOutputType_Trace;
-        tracker_output_add(tracker, type, entity, now, debugData[i].slot, scriptId, msg, range);
+    if (debug) {
+      const SceneDebug* debugData = scene_debug_data(debug);
+      for (usize i = 0; i != debugCount; ++i) {
+        if (debugData[i].type == SceneDebugType_Trace) {
+          const SceneScriptSlot       scriptSlot = debugData[i].src.scriptSlot;
+          const String                scriptId   = asset_id(assetComps[scriptSlot]);
+          const String                msg        = debugData[i].data_trace.text;
+          const ScriptRangeLineCol    range      = debugData[i].src.scriptPos;
+          const DebugScriptOutputType type       = DebugScriptOutputType_Trace;
+          tracker_output_add(tracker, type, entity, now, scriptSlot, scriptId, msg, range);
+        }
       }
     }
   }
