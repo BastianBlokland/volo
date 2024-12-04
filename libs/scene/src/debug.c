@@ -4,6 +4,8 @@
 #include "scene_debug.h"
 #include "scene_register.h"
 
+#define scene_debug_transient_chunk_size (4 * usize_kibibyte)
+
 ecs_comp_define(SceneDebugEnvComp) { GeoRay debugRay; };
 
 ecs_comp_define(SceneDebugComp) {
@@ -27,8 +29,8 @@ static void ecs_combine_debug(void* dataA, void* dataB) {
 
 static Mem debug_transient_dup(SceneDebugComp* comp, const Mem mem, const usize align) {
   if (!comp->allocTransient) {
-    const usize chunkSize = 4 * usize_kibibyte;
-    comp->allocTransient  = alloc_chunked_create(g_allocHeap, alloc_bump_create, chunkSize);
+    comp->allocTransient =
+        alloc_chunked_create(g_allocHeap, alloc_bump_create, scene_debug_transient_chunk_size);
   }
   return alloc_dup(comp->allocTransient, mem, align);
 }
