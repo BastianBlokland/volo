@@ -2,6 +2,7 @@
 #include "core_dynarray.h"
 #include "ecs_world.h"
 #include "scene_debug.h"
+#include "scene_register.h"
 
 ecs_comp_define(SceneDebugComp) {
   DynArray data; // SceneDebug[].
@@ -20,9 +21,27 @@ static void ecs_combine_debug(void* dataA, void* dataB) {
   dynarray_destroy(&b->data);
 }
 
+ecs_view_define(DebugEntryView) { ecs_access_write(SceneDebugComp); }
+
+ecs_system_define(SceneDebugInitSys) {
+  EcsView* entryView = ecs_world_view_t(world, DebugEntryView);
+  for (EcsIterator* itr = ecs_view_itr(entryView); ecs_view_walk(itr);) {
+    SceneDebugComp* comp = ecs_view_write_t(itr, SceneDebugComp);
+
+    // Clear last frame's data.
+    dynarray_clear(&comp->data);
+  }
+}
+
 ecs_module_init(scene_debug_module) {
   ecs_register_comp(
       SceneDebugComp, .destructor = ecs_destruct_debug, .combinator = ecs_combine_debug);
+
+  ecs_register_view(DebugEntryView);
+
+  ecs_register_system(SceneDebugInitSys, ecs_view_id(DebugEntryView));
+
+  ecs_order(SceneDebugInitSys, SceneOrder_DebugInit);
 }
 
 SceneDebugComp* scene_debug_init(EcsWorld* world, const EcsEntityId entity) {

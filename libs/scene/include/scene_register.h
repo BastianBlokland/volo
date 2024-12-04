@@ -6,6 +6,7 @@ enum {
   SceneOrder_NavInit          = -50,
   SceneOrder_SetInit          = -50,
   SceneOrder_CollisionInit    = -50,
+  SceneOrder_DebugInit        = -50,
   SceneOrder_ScriptUpdate     = -41,
   SceneOrder_ActionUpdate     = -40,
   SceneOrder_AttachmentUpdate = 25,
