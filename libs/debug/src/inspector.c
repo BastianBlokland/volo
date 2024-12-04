@@ -22,6 +22,7 @@
 #include "scene_bounds.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
+#include "scene_debug.h"
 #include "scene_faction.h"
 #include "scene_health.h"
 #include "scene_light.h"
@@ -65,7 +66,7 @@ typedef enum {
 
 typedef enum {
   DebugInspectorVis_Icon,
-  DebugInspectorVis_Script,
+  DebugInspectorVis_Explicit,
   DebugInspectorVis_Origin,
   DebugInspectorVis_Name,
   DebugInspectorVis_Locomotion,
@@ -109,7 +110,7 @@ ASSERT(array_elems(g_toolNames) == DebugInspectorTool_Count, "Missing tool name"
 
 static const String g_visNames[] = {
     [DebugInspectorVis_Icon]            = string_static("Icon"),
-    [DebugInspectorVis_Script]          = string_static("Script"),
+    [DebugInspectorVis_Explicit]        = string_static("Explicit"),
     [DebugInspectorVis_Origin]          = string_static("Origin"),
     [DebugInspectorVis_Name]            = string_static("Name"),
     [DebugInspectorVis_Locomotion]      = string_static("Locomotion"),
@@ -1024,7 +1025,7 @@ static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* wo
   }
   u32 defaultVisFlags = 0;
   defaultVisFlags |= 1 << DebugInspectorVis_Icon;
-  defaultVisFlags |= 1 << DebugInspectorVis_Script;
+  defaultVisFlags |= 1 << DebugInspectorVis_Explicit;
   defaultVisFlags |= 1 << DebugInspectorVis_Light;
   defaultVisFlags |= 1 << DebugInspectorVis_Collision;
   defaultVisFlags |= 1 << DebugInspectorVis_Locomotion;
@@ -1587,37 +1588,37 @@ static void inspector_vis_draw_location(
   }
 }
 
-static void inspector_vis_draw_script(
-    DebugShapeComp* shape, DebugTextComp* text, const SceneScriptComp* script) {
-  const SceneScriptDebug* debugData  = scene_script_debug_data(script);
-  const usize             debugCount = scene_script_debug_count(script);
+static void inspector_vis_draw_explicit(
+    DebugShapeComp* shape, DebugTextComp* text, const SceneDebugComp* comp) {
+  const SceneDebug* debugData  = scene_debug_data(comp);
+  const usize       debugCount = scene_debug_count(comp);
   for (usize i = 0; i != debugCount; ++i) {
     switch (debugData[i].type) {
-    case SceneScriptDebugType_Line: {
-      const SceneScriptDebugLine* data = &debugData[i].data_line;
+    case SceneDebugType_Line: {
+      const SceneDebugLine* data = &debugData[i].data_line;
       debug_line(shape, data->start, data->end, data->color);
     } break;
-    case SceneScriptDebugType_Sphere: {
-      const SceneScriptDebugSphere* data = &debugData[i].data_sphere;
+    case SceneDebugType_Sphere: {
+      const SceneDebugSphere* data = &debugData[i].data_sphere;
       debug_sphere(shape, data->pos, data->radius, data->color, DebugShape_Overlay);
     } break;
-    case SceneScriptDebugType_Box: {
-      const SceneScriptDebugBox* data = &debugData[i].data_box;
+    case SceneDebugType_Box: {
+      const SceneDebugBox* data = &debugData[i].data_box;
       debug_box(shape, data->pos, data->rot, data->size, data->color, DebugShape_Overlay);
     } break;
-    case SceneScriptDebugType_Arrow: {
-      const SceneScriptDebugArrow* data = &debugData[i].data_arrow;
+    case SceneDebugType_Arrow: {
+      const SceneDebugArrow* data = &debugData[i].data_arrow;
       debug_arrow(shape, data->start, data->end, data->radius, data->color);
     } break;
-    case SceneScriptDebugType_Orientation: {
-      const SceneScriptDebugOrientation* data = &debugData[i].data_orientation;
+    case SceneDebugType_Orientation: {
+      const SceneDebugOrientation* data = &debugData[i].data_orientation;
       debug_orientation(shape, data->pos, data->rot, data->size);
     } break;
-    case SceneScriptDebugType_Text: {
-      const SceneScriptDebugText* data = &debugData[i].data_text;
+    case SceneDebugType_Text: {
+      const SceneDebugText* data = &debugData[i].data_text;
       debug_text(text, data->pos, data->text, .color = data->color, .fontSize = data->fontSize);
     } break;
-    case SceneScriptDebugType_Trace:
+    case SceneDebugType_Trace:
       break;
     }
   }
@@ -1641,7 +1642,6 @@ static void inspector_vis_draw_subject(
   const SceneNavAgentComp*    navAgentComp    = ecs_view_read_t(subject, SceneNavAgentComp);
   const SceneNavPathComp*     navPathComp     = ecs_view_read_t(subject, SceneNavPathComp);
   const SceneScaleComp*       scaleComp       = ecs_view_read_t(subject, SceneScaleComp);
-  const SceneScriptComp*      scriptComp      = ecs_view_read_t(subject, SceneScriptComp);
   const SceneTransformComp*   transformComp   = ecs_view_read_t(subject, SceneTransformComp);
   const SceneVelocityComp*    veloComp        = ecs_view_read_t(subject, SceneVelocityComp);
   const SceneVisionComp*      visionComp      = ecs_view_read_t(subject, SceneVisionComp);
@@ -1698,9 +1698,6 @@ static void inspector_vis_draw_subject(
   }
   if (locationComp && transformComp && set->visFlags & (1 << DebugInspectorVis_Location)) {
     inspector_vis_draw_location(shape, locationComp, transformComp, scaleComp);
-  }
-  if (scriptComp && set->visFlags & (1 << DebugInspectorVis_Script)) {
-    inspector_vis_draw_script(shape, text, scriptComp);
   }
 }
 
@@ -1930,11 +1927,11 @@ ecs_system_define(DebugInspectorVisDrawSys) {
     }
     trace_end();
   }
-  if (set->visFlags & (1 << DebugInspectorVis_Script)) {
+  if (set->visFlags & (1 << DebugInspectorVis_Explicit)) {
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
-      const SceneScriptComp* scriptComp = ecs_view_read_t(itr, SceneScriptComp);
-      if (scriptComp) {
-        inspector_vis_draw_script(shape, text, scriptComp);
+      const SceneDebugComp* debugComp = ecs_view_read_t(itr, SceneDebugComp);
+      if (debugComp) {
+        inspector_vis_draw_explicit(shape, text, debugComp);
       }
     }
   }
