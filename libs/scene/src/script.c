@@ -38,7 +38,6 @@
 #include "script_args.h"
 #include "script_binder.h"
 #include "script_enum.h"
-#include "script_prog.h"
 
 #define scene_script_max_asset_loads 8
 #define scene_script_line_of_sight_min 1.0f
