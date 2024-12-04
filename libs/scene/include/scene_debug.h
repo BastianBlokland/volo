@@ -71,15 +71,14 @@ typedef struct {
 
 ecs_comp_extern(SceneDebugComp);
 
-SceneDebugComp* scene_debug_init(EcsWorld*, EcsEntityId);
-
 void scene_debug_line(SceneDebugComp*, SceneDebugLine);
 void scene_debug_sphere(SceneDebugComp*, SceneDebugSphere);
 void scene_debug_box(SceneDebugComp*, SceneDebugBox);
 void scene_debug_array(SceneDebugComp*, SceneDebugArrow);
 void scene_debug_orientation(SceneDebugComp*, SceneDebugOrientation);
+void scene_debug_text(SceneDebugComp*, SceneDebugText);
+void scene_debug_trace(SceneDebugComp*, SceneDebugTrace);
 
-void scene_debug_push(SceneDebugComp*, SceneDebug);
-
+SceneDebugComp*   scene_debug_init(EcsWorld*, EcsEntityId);
 const SceneDebug* scene_debug_data(const SceneDebugComp*);
 usize             scene_debug_count(const SceneDebugComp*);
