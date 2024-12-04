@@ -196,6 +196,7 @@ ecs_view_define(GlobalVisDrawView) {
 
 ecs_view_define(SubjectView) {
   ecs_access_maybe_read(SceneAttackTraceComp);
+  ecs_access_maybe_read(SceneDebugComp);
   ecs_access_maybe_read(SceneLocomotionComp);
   ecs_access_maybe_read(SceneNameComp);
   ecs_access_maybe_read(SceneNavAgentComp);
