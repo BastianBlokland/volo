@@ -21,6 +21,7 @@
 #include "scene_locomotion.h"
 #include "scene_name.h"
 #include "scene_nav.h"
+#include "scene_prefab.h"
 #include "scene_register.h"
 #include "scene_renderable.h"
 #include "scene_script.h"
@@ -249,24 +250,25 @@ ecs_view_define(EvalGlobalView) {
   ecs_access_maybe_read(SceneDebugEnvComp);
 }
 
+ecs_view_define(EvalAnimView) { ecs_access_read(SceneAnimationComp); }
+ecs_view_define(EvalFactionView) { ecs_access_read(SceneFactionComp); }
+ecs_view_define(EvalHealthStatsView) { ecs_access_read(SceneHealthStatsComp); }
+ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
+ecs_view_define(EvalLightDirView) { ecs_access_read(SceneLightDirComp); }
+ecs_view_define(EvalLightPointView) { ecs_access_read(SceneLightPointComp); }
+ecs_view_define(EvalLocoView) { ecs_access_read(SceneLocomotionComp); }
+ecs_view_define(EvalNameView) { ecs_access_read(SceneNameComp); }
+ecs_view_define(EvalNavAgentView) { ecs_access_read(SceneNavAgentComp); }
+ecs_view_define(EvalPrefabInstanceView) { ecs_access_read(ScenePrefabInstanceComp); }
+ecs_view_define(EvalRenderableView) { ecs_access_read(SceneRenderableComp); }
+ecs_view_define(EvalScaleView) { ecs_access_read(SceneScaleComp); }
+ecs_view_define(EvalSoundView) { ecs_access_read(SceneSoundComp); }
+ecs_view_define(EvalStatusView) { ecs_access_read(SceneStatusComp); }
 ecs_view_define(EvalTransformView) { ecs_access_read(SceneTransformComp); }
 ecs_view_define(EvalVelocityView) { ecs_access_read(SceneVelocityComp); }
-ecs_view_define(EvalScaleView) { ecs_access_read(SceneScaleComp); }
-ecs_view_define(EvalNameView) { ecs_access_read(SceneNameComp); }
-ecs_view_define(EvalFactionView) { ecs_access_read(SceneFactionComp); }
-ecs_view_define(EvalHealthView) { ecs_access_read(SceneHealthComp); }
-ecs_view_define(EvalHealthStatsView) { ecs_access_read(SceneHealthStatsComp); }
-ecs_view_define(EvalVisionView) { ecs_access_read(SceneVisionComp); }
-ecs_view_define(EvalStatusView) { ecs_access_read(SceneStatusComp); }
-ecs_view_define(EvalRenderableView) { ecs_access_read(SceneRenderableComp); }
-ecs_view_define(EvalVfxSysView) { ecs_access_read(SceneVfxSystemComp); }
 ecs_view_define(EvalVfxDecalView) { ecs_access_read(SceneVfxDecalComp); }
-ecs_view_define(EvalLightPointView) { ecs_access_read(SceneLightPointComp); }
-ecs_view_define(EvalLightDirView) { ecs_access_read(SceneLightDirComp); }
-ecs_view_define(EvalSoundView) { ecs_access_read(SceneSoundComp); }
-ecs_view_define(EvalAnimView) { ecs_access_read(SceneAnimationComp); }
-ecs_view_define(EvalNavAgentView) { ecs_access_read(SceneNavAgentComp); }
-ecs_view_define(EvalLocoView) { ecs_access_read(SceneLocomotionComp); }
+ecs_view_define(EvalVfxSysView) { ecs_access_read(SceneVfxSystemComp); }
+ecs_view_define(EvalVisionView) { ecs_access_read(SceneVisionComp); }
 
 ecs_view_define(EvalAttackView) {
   ecs_access_read(SceneAttackComp);
@@ -297,30 +299,31 @@ typedef struct {
 
 typedef struct {
   EcsWorld*    world;
-  EcsIterator* globalItr;
-  EcsIterator* transformItr;
-  EcsIterator* veloItr;
-  EcsIterator* scaleItr;
-  EcsIterator* nameItr;
+  EcsIterator* animItr;
+  EcsIterator* attackItr;
   EcsIterator* factionItr;
+  EcsIterator* globalItr;
   EcsIterator* healthItr;
   EcsIterator* healthStatsItr;
-  EcsIterator* visionItr;
-  EcsIterator* statusItr;
-  EcsIterator* renderableItr;
-  EcsIterator* vfxSysItr;
-  EcsIterator* vfxDecalItr;
-  EcsIterator* lightPointItr;
   EcsIterator* lightDirItr;
-  EcsIterator* soundItr;
-  EcsIterator* animItr;
-  EcsIterator* navAgentItr;
-  EcsIterator* locoItr;
-  EcsIterator* attackItr;
-  EcsIterator* targetItr;
+  EcsIterator* lightPointItr;
   EcsIterator* lineOfSightItr;
+  EcsIterator* locoItr;
+  EcsIterator* nameItr;
+  EcsIterator* navAgentItr;
+  EcsIterator* prefabInstanceItr;
+  EcsIterator* renderableItr;
+  EcsIterator* scaleItr;
   EcsIterator* skeletonItr;
   EcsIterator* skeletonTemplItr;
+  EcsIterator* soundItr;
+  EcsIterator* statusItr;
+  EcsIterator* targetItr;
+  EcsIterator* transformItr;
+  EcsIterator* veloItr;
+  EcsIterator* vfxDecalItr;
+  EcsIterator* vfxSysItr;
+  EcsIterator* visionItr;
 
   EcsEntityId           instigator;
   SceneFaction          instigatorFaction;
@@ -945,6 +948,14 @@ static ScriptVal eval_prefab_spawn(EvalContext* ctx, ScriptBinderCall* call) {
   };
 
   return script_entity(result);
+}
+
+static ScriptVal eval_prefab_id(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId e = script_arg_entity(call, 0);
+  if (ecs_view_maybe_jump(ctx->prefabInstanceItr, e)) {
+    return script_str(ecs_view_read_t(ctx->prefabInstanceItr, ScenePrefabInstanceComp)->prefabId);
+  }
+  return script_null();
 }
 
 static bool eval_destroy_allowed(EvalContext* ctx, const EcsEntityId e) {
@@ -1871,6 +1882,7 @@ static void eval_binder_init(void) {
     eval_bind(b, string_lit("tell"),                   eval_tell);
     eval_bind(b, string_lit("ask"),                    eval_ask);
     eval_bind(b, string_lit("prefab_spawn"),           eval_prefab_spawn);
+    eval_bind(b, string_lit("prefab_id"),              eval_prefab_id);
     eval_bind(b, string_lit("destroy"),                eval_destroy);
     eval_bind(b, string_lit("destroy_after"),          eval_destroy_after);
     eval_bind(b, string_lit("teleport"),               eval_teleport);
@@ -2061,33 +2073,34 @@ ecs_system_define(SceneScriptUpdateSys) {
 
   EvalQuery   queries[scene_script_query_max];
   EvalContext ctx = {
-      .world            = world,
-      .globalItr        = globalItr,
-      .transformItr     = ecs_view_itr(ecs_world_view_t(world, EvalTransformView)),
-      .veloItr          = ecs_view_itr(ecs_world_view_t(world, EvalVelocityView)),
-      .scaleItr         = ecs_view_itr(ecs_world_view_t(world, EvalScaleView)),
-      .nameItr          = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
-      .factionItr       = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
-      .healthItr        = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
-      .healthStatsItr   = ecs_view_itr(ecs_world_view_t(world, EvalHealthStatsView)),
-      .visionItr        = ecs_view_itr(ecs_world_view_t(world, EvalVisionView)),
-      .statusItr        = ecs_view_itr(ecs_world_view_t(world, EvalStatusView)),
-      .renderableItr    = ecs_view_itr(ecs_world_view_t(world, EvalRenderableView)),
-      .vfxSysItr        = ecs_view_itr(ecs_world_view_t(world, EvalVfxSysView)),
-      .vfxDecalItr      = ecs_view_itr(ecs_world_view_t(world, EvalVfxDecalView)),
-      .lightPointItr    = ecs_view_itr(ecs_world_view_t(world, EvalLightPointView)),
-      .lightDirItr      = ecs_view_itr(ecs_world_view_t(world, EvalLightDirView)),
-      .soundItr         = ecs_view_itr(ecs_world_view_t(world, EvalSoundView)),
-      .animItr          = ecs_view_itr(ecs_world_view_t(world, EvalAnimView)),
-      .navAgentItr      = ecs_view_itr(ecs_world_view_t(world, EvalNavAgentView)),
-      .locoItr          = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
-      .attackItr        = ecs_view_itr(ecs_world_view_t(world, EvalAttackView)),
-      .targetItr        = ecs_view_itr(ecs_world_view_t(world, EvalTargetView)),
-      .lineOfSightItr   = ecs_view_itr(ecs_world_view_t(world, EvalLineOfSightView)),
-      .skeletonItr      = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonView)),
-      .skeletonTemplItr = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonTemplView)),
-      .debugRay         = debugEnv ? scene_debug_ray(debugEnv) : (GeoRay){.dir = geo_forward},
-      .queries          = queries,
+      .world             = world,
+      .globalItr         = globalItr,
+      .animItr           = ecs_view_itr(ecs_world_view_t(world, EvalAnimView)),
+      .attackItr         = ecs_view_itr(ecs_world_view_t(world, EvalAttackView)),
+      .factionItr        = ecs_view_itr(ecs_world_view_t(world, EvalFactionView)),
+      .healthItr         = ecs_view_itr(ecs_world_view_t(world, EvalHealthView)),
+      .healthStatsItr    = ecs_view_itr(ecs_world_view_t(world, EvalHealthStatsView)),
+      .lightDirItr       = ecs_view_itr(ecs_world_view_t(world, EvalLightDirView)),
+      .lightPointItr     = ecs_view_itr(ecs_world_view_t(world, EvalLightPointView)),
+      .lineOfSightItr    = ecs_view_itr(ecs_world_view_t(world, EvalLineOfSightView)),
+      .locoItr           = ecs_view_itr(ecs_world_view_t(world, EvalLocoView)),
+      .nameItr           = ecs_view_itr(ecs_world_view_t(world, EvalNameView)),
+      .navAgentItr       = ecs_view_itr(ecs_world_view_t(world, EvalNavAgentView)),
+      .prefabInstanceItr = ecs_view_itr(ecs_world_view_t(world, EvalPrefabInstanceView)),
+      .renderableItr     = ecs_view_itr(ecs_world_view_t(world, EvalRenderableView)),
+      .scaleItr          = ecs_view_itr(ecs_world_view_t(world, EvalScaleView)),
+      .skeletonItr       = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonView)),
+      .skeletonTemplItr  = ecs_view_itr(ecs_world_view_t(world, EvalSkeletonTemplView)),
+      .soundItr          = ecs_view_itr(ecs_world_view_t(world, EvalSoundView)),
+      .statusItr         = ecs_view_itr(ecs_world_view_t(world, EvalStatusView)),
+      .targetItr         = ecs_view_itr(ecs_world_view_t(world, EvalTargetView)),
+      .transformItr      = ecs_view_itr(ecs_world_view_t(world, EvalTransformView)),
+      .veloItr           = ecs_view_itr(ecs_world_view_t(world, EvalVelocityView)),
+      .vfxDecalItr       = ecs_view_itr(ecs_world_view_t(world, EvalVfxDecalView)),
+      .vfxSysItr         = ecs_view_itr(ecs_world_view_t(world, EvalVfxSysView)),
+      .visionItr         = ecs_view_itr(ecs_world_view_t(world, EvalVisionView)),
+      .debugRay          = debugEnv ? scene_debug_ray(debugEnv) : (GeoRay){.dir = geo_forward},
+      .queries           = queries,
   };
 
   u32 startedAssetLoads = 0;
@@ -2153,30 +2166,31 @@ ecs_module_init(scene_script_module) {
       SceneScriptUpdateSys,
       ecs_view_id(ScriptUpdateView),
       ecs_view_id(ResourceAssetView),
+      ecs_register_view(EvalAnimView),
+      ecs_register_view(EvalAttackView),
+      ecs_register_view(EvalFactionView),
       ecs_register_view(EvalGlobalView),
+      ecs_register_view(EvalHealthStatsView),
+      ecs_register_view(EvalHealthView),
+      ecs_register_view(EvalLightDirView),
+      ecs_register_view(EvalLightPointView),
+      ecs_register_view(EvalLineOfSightView),
+      ecs_register_view(EvalLocoView),
+      ecs_register_view(EvalNameView),
+      ecs_register_view(EvalNavAgentView),
+      ecs_register_view(EvalPrefabInstanceView),
+      ecs_register_view(EvalRenderableView),
+      ecs_register_view(EvalScaleView),
+      ecs_register_view(EvalSkeletonTemplView),
+      ecs_register_view(EvalSkeletonView),
+      ecs_register_view(EvalSoundView),
+      ecs_register_view(EvalStatusView),
+      ecs_register_view(EvalTargetView),
       ecs_register_view(EvalTransformView),
       ecs_register_view(EvalVelocityView),
-      ecs_register_view(EvalScaleView),
-      ecs_register_view(EvalNameView),
-      ecs_register_view(EvalFactionView),
-      ecs_register_view(EvalHealthView),
-      ecs_register_view(EvalHealthStatsView),
-      ecs_register_view(EvalVisionView),
-      ecs_register_view(EvalStatusView),
-      ecs_register_view(EvalRenderableView),
-      ecs_register_view(EvalVfxSysView),
       ecs_register_view(EvalVfxDecalView),
-      ecs_register_view(EvalLightPointView),
-      ecs_register_view(EvalLightDirView),
-      ecs_register_view(EvalSoundView),
-      ecs_register_view(EvalAnimView),
-      ecs_register_view(EvalNavAgentView),
-      ecs_register_view(EvalLocoView),
-      ecs_register_view(EvalAttackView),
-      ecs_register_view(EvalTargetView),
-      ecs_register_view(EvalLineOfSightView),
-      ecs_register_view(EvalSkeletonView),
-      ecs_register_view(EvalSkeletonTemplView));
+      ecs_register_view(EvalVfxSysView),
+      ecs_register_view(EvalVisionView));
 
   ecs_order(SceneScriptUpdateSys, SceneOrder_ScriptUpdate);
   ecs_parallel(SceneScriptUpdateSys, g_jobsWorkerCount);
