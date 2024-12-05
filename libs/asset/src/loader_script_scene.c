@@ -345,6 +345,15 @@ void asset_data_init_script_scene(void) {
     bind(binder, name, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("prefab_id");
+    const String       doc    = string_lit("Lookup the prefab identifier of the given instance, returns null if the entity is not a prefab instance.");
+    const ScriptMask   ret    = script_mask_str | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("destroy");
     const String       doc    = string_lit("Destroy the given entity.");
     const ScriptMask   ret    = script_mask_null;

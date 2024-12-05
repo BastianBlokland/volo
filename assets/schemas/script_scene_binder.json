@@ -123,6 +123,16 @@
       }
     },
     {
+      "name": "prefab_id",
+      "doc": "Lookup the prefab id of the given instance, returns null if the entity is not a prefab instance.",
+      "sig": {
+        "ret": [ "null", "str" ],
+        "args": [
+          { "name": "v", "mask": "entity" }
+        ]
+      }
+    },
+    {
       "name": "target_range_min",
       "doc": "Lookup the minimum targeting range of the given entity.",
       "sig": {
