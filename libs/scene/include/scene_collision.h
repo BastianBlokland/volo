@@ -72,9 +72,11 @@ typedef enum {
 } SceneCollisionType;
 
 typedef enum {
-  SceneCollision_Up,
-  SceneCollision_Forward,
-  SceneCollision_Right,
+  SceneCollisionDir_Up,
+  SceneCollisionDir_Forward,
+  SceneCollisionDir_Right,
+
+  SceneCollisionDir_Count,
 } SceneCollisionDir;
 
 typedef struct {

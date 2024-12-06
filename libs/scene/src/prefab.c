@@ -349,7 +349,7 @@ static void setup_collision(
   case AssetPrefabShape_Capsule: {
     const SceneCollisionCapsule capsule = {
         .offset = t->shape.data_capsule.offset,
-        .dir    = SceneCollision_Up, // TODO: Make this configurable.
+        .dir    = SceneCollisionDir_Up, // TODO: Make this configurable.
         .radius = t->shape.data_capsule.radius,
         .height = t->shape.data_capsule.height,
     };

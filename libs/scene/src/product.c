@@ -413,7 +413,7 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
     const GeoVector         offset         = shape->data_capsule.offset;
     const f32               height         = shape->data_capsule.height;
     const f32               radius         = shape->data_capsule.radius;
-    const SceneCollisionDir dir            = SceneCollision_Up; // TODO: Make this configurable.
+    const SceneCollisionDir dir            = SceneCollisionDir_Up; // TODO: Make this configurable.
     const GeoVector         dirVec         = geo_quat_rotate(placementRot, g_capsuleDir[dir]);
     const GeoVector bottom = geo_vector_add(placementPos, geo_quat_rotate(placementRot, offset));
     const GeoVector top    = geo_vector_add(bottom, geo_vector_mul(dirVec, height));
