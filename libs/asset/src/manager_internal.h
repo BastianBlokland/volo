@@ -1,13 +1,8 @@
 #include "asset_manager.h"
 #include "data_registry.h"
+#include "internal.h"
 
 #include "format_internal.h"
-
-// Forward declare from 'repo_internal.h'.
-typedef struct sAssetSource AssetSource;
-
-// Forward declare from 'import_internal.h'.
-typedef struct sAssetImportEnvComp AssetImportEnvComp;
 
 /**
  * Register a dependency between the two assets.
