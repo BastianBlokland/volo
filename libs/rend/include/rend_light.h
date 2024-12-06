@@ -1,8 +1,6 @@
 #pragma once
-#include "ecs_entity.h"
 #include "ecs_module.h"
-#include "geo_color.h"
-#include "geo_quat.h"
+#include "geo.h"
 
 typedef enum {
   RendLightFlags_None         = 0,

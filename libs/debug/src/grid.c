@@ -6,6 +6,7 @@
 #include "debug_stats.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
+#include "geo_box.h"
 #include "input_manager.h"
 #include "rend_object.h"
 #include "scene_lifetime.h"

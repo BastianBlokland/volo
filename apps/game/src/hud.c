@@ -11,6 +11,7 @@
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "gap_input.h"
+#include "geo_box.h"
 #include "geo_color.h"
 #include "geo_matrix.h"
 #include "input_manager.h"

@@ -5,6 +5,7 @@
 #include "core_dynarray.h"
 #include "core_math.h"
 #include "core_thread.h"
+#include "geo_color.h"
 #include "log_logger.h"
 
 #include "buffer_internal.h"

@@ -4,6 +4,7 @@
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
+#include "geo_box.h"
 #include "rend_object.h"
 #include "scene_tag.h"
 #include "scene_terrain.h"
