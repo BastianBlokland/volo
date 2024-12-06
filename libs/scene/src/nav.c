@@ -6,6 +6,7 @@
 #include "core_math.h"
 #include "core_rng.h"
 #include "core_sentinel.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "geo_capsule.h"
 #include "geo_sphere.h"

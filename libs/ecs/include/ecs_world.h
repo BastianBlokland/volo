@@ -1,10 +1,6 @@
 #pragma once
 #include "core_memory.h"
 #include "ecs.h"
-#include "ecs_archetype.h"
-#include "ecs_entity.h"
-#include "ecs_module.h"
-#include "ecs_view.h"
 
 // Forward declare from 'core_alloc.h'.
 typedef struct sAllocator Allocator;

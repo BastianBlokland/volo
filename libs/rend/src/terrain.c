@@ -2,6 +2,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "rend_object.h"
 #include "scene_tag.h"
@@ -89,8 +90,8 @@ static void rend_terrain_obj_update(const SceneTerrainComp* sceneTerrain, RendOb
       };
       const GeoVector patchCenter = {.x = patchData.posX, .y = 0, .z = patchData.posZ};
       const GeoBox    patchBounds = {
-          .min = geo_vector_sub(patchCenter, geo_vector(patchHalfSize, 0, patchHalfSize)),
-          .max = geo_vector_add(patchCenter, geo_vector(patchHalfSize, heightScale, patchHalfSize)),
+             .min = geo_vector_sub(patchCenter, geo_vector(patchHalfSize, 0, patchHalfSize)),
+             .max = geo_vector_add(patchCenter, geo_vector(patchHalfSize, heightScale, patchHalfSize)),
       };
       *rend_object_add_instance_t(obj, RendTerrainPatchData, patchTags, patchBounds) = patchData;
     }

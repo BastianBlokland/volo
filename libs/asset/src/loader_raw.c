@@ -1,5 +1,6 @@
 #include "asset_raw.h"
 #include "core_alloc.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 
 #include "import_internal.h"

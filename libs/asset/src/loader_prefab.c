@@ -8,6 +8,7 @@
 #include "core_stringtable.h"
 #include "data.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "log_logger.h"
 
 #include "data_internal.h"

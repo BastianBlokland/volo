@@ -3,6 +3,7 @@
 #include "core_file.h"
 #include "core_path.h"
 #include "data.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 

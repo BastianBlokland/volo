@@ -9,6 +9,7 @@
 #include "debug_register.h"
 #include "debug_script.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "gap_window.h"
 #include "input_manager.h"
 #include "log_logger.h"

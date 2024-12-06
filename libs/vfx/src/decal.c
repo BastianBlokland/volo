@@ -7,6 +7,7 @@
 #include "core_math.h"
 #include "core_rng.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "rend_object.h"

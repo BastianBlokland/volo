@@ -3,6 +3,7 @@
 #include "core_bitset.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene_attachment.h"
 #include "scene_health.h"

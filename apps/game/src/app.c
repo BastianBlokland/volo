@@ -5,6 +5,7 @@
 #include "core_math.h"
 #include "debug.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "gap.h"
 #include "input.h"

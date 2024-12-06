@@ -1,6 +1,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "ecs_def.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 
 ecs_comp_define(CombineCompA) { u64 state; };

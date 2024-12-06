@@ -4,6 +4,7 @@
 #include "core_math.h"
 #include "core_thread.h"
 #include "core_time.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "log_sink.h"
 #include "scene_time.h"

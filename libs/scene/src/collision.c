@@ -3,6 +3,7 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "geo_box_rotated.h"
 #include "geo_capsule.h"

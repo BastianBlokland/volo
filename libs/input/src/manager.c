@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "input_manager.h"

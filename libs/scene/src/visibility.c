@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "geo_vector.h"
 #include "log_logger.h"

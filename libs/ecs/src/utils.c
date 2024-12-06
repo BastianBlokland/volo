@@ -1,4 +1,5 @@
 #include "ecs_utils.h"
+#include "ecs_view.h"
 
 bool ecs_utils_any_raw(EcsView* view) { return ecs_view_first(view) != null; }
 

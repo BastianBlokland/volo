@@ -6,6 +6,7 @@
 #include "data_registry.h"
 #include "ecs_entity.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "geo_color.h"
 #include "geo_quat.h"

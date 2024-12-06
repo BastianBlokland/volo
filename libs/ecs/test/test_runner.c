@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "ecs_def.h"
 #include "ecs_runner.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 
 ecs_comp_define(RunnerCompA) { u32 f1; };

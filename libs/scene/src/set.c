@@ -6,6 +6,7 @@
 #include "core_sentinel.h"
 #include "core_stringtable.h"
 #include "core_thread.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_register.h"

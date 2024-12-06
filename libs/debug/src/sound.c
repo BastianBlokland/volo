@@ -5,6 +5,7 @@
 #include "core_math.h"
 #include "core_path.h"
 #include "debug_sound.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "snd.h"
 #include "ui.h"
@@ -166,7 +167,7 @@ static void sound_draw_time_stats(UiCanvasComp* c, const SndBufferView buf, cons
   const f32    rmsFraction  = sound_db_to_fraction(rmsDb);
   const String levelText    = fmt_write_scratch(
       "Level: \a|02\ab{}{<5}\ar Peak\n"
-      "Level: \a|02\ab{}{<5}\ar  RMS",
+         "Level: \a|02\ab{}{<5}\ar  RMS",
       fmt_ui_color(sound_color_from_fraction(peakFraction)),
       fmt_float(peakDb, .plusSign = true, .minIntDigits = 2, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_ui_color(sound_color_from_fraction(rmsFraction)),

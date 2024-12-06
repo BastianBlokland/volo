@@ -8,6 +8,7 @@
 #include "data.h"
 #include "data_registry.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 

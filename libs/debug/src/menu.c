@@ -21,6 +21,7 @@
 #include "debug_trace.h"
 #include "debug_vfx.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "input.h"

@@ -5,6 +5,7 @@
 #include "core_stringtable.h"
 #include "data.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "script_binder.h"

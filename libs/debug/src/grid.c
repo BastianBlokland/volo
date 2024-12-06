@@ -4,6 +4,7 @@
 #include "core_math.h"
 #include "debug_grid.h"
 #include "debug_stats.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "input_manager.h"

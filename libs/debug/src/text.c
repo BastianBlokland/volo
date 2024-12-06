@@ -4,6 +4,7 @@
 #include "debug_register.h"
 #include "debug_text.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "log_logger.h"
 #include "scene_camera.h"
 #include "scene_transform.h"

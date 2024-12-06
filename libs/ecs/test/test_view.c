@@ -3,6 +3,8 @@
 #include "core_array.h"
 #include "core_dynbitset.h"
 #include "ecs_def.h"
+#include "ecs_entity.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 
 ecs_comp_define(ViewCompA) { u32 f1; };

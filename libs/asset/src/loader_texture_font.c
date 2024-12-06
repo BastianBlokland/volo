@@ -9,6 +9,7 @@
 #include "core_utf8.h"
 #include "data.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 

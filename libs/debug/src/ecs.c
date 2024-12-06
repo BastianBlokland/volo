@@ -5,6 +5,7 @@
 #include "debug_ecs.h"
 #include "debug_register.h"
 #include "ecs_runner.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "jobs_dot.h"
 #include "jobs_executor.h"

@@ -13,6 +13,7 @@
 #include "debug_shape.h"
 #include "debug_stats.h"
 #include "debug_text.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "geo_capsule.h"

@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_attachment.h"

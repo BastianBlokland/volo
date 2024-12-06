@@ -5,6 +5,7 @@
 #include "core_math.h"
 #include "core_rng.h"
 #include "core_stringtable.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_faction.h"

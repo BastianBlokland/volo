@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "debug_asset.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "ui.h"
 

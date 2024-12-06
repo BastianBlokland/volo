@@ -3,6 +3,7 @@
 #include "core_search.h"
 #include "core_stringtable.h"
 #include "data.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 

@@ -9,6 +9,7 @@
 #include "data_registry.h"
 #include "debug_stats.h"
 #include "ecs_runner.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "gap_window.h"
 #include "geo_query.h"

@@ -3,7 +3,6 @@
 #include "core_macro.h"
 #include "core_string.h"
 #include "ecs.h"
-#include "ecs_comp.h"
 
 // Forward declare from 'jobs_executor.h'.
 extern u16 g_jobsWorkerCount;

@@ -5,6 +5,7 @@
 #include "core_path.h"
 #include "core_time.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "rend_register.h"

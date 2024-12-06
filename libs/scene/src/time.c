@@ -2,6 +2,7 @@
 #include "core_math.h"
 #include "core_time.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene_register.h"
 #include "scene_time.h"

@@ -4,6 +4,7 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "core_rng.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene_attack.h"
 #include "scene_collision.h"
