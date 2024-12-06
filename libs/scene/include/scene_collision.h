@@ -3,10 +3,7 @@
 #include "ecs_module.h"
 #include "geo.h"
 #include "geo_vector.h"
-
-// Forward declare from 'scene_transform.h'.
-ecs_comp_extern(SceneTransformComp);
-ecs_comp_extern(SceneScaleComp);
+#include "scene.h"
 
 /**
  * Maximum number of entities that can be hit using a single query, additional entities are ignored.

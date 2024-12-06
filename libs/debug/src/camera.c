@@ -12,6 +12,7 @@
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "gap_window.h"
+#include "geo_matrix.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
 #include "scene_name.h"

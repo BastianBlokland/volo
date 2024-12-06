@@ -10,6 +10,7 @@
 #include "scene_product.h"
 #include "scene_set.h"
 #include "scene_transform.h"
+#include "script_val.h"
 
 #include "cmd_internal.h"
 

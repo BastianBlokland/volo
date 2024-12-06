@@ -6,6 +6,8 @@
 #include "core_math.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
+#include "geo_box.h"
+#include "geo_plane.h"
 #include "log_logger.h"
 #include "scene_level.h"
 #include "scene_terrain.h"

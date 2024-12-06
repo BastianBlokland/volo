@@ -2,6 +2,7 @@
 #include "core_float.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
+#include "geo_matrix.h"
 #include "scene_register.h"
 #include "scene_time.h"
 #include "scene_transform.h"

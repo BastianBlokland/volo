@@ -36,6 +36,7 @@
 #include "scene_transform.h"
 #include "scene_vfx.h"
 #include "scene_visibility.h"
+#include "script_val.h"
 
 typedef enum {
   PrefabResource_MapAcquired  = 1 << 0,

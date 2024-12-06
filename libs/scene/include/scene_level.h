@@ -1,6 +1,5 @@
 #pragma once
 #include "asset_level.h"
-#include "ecs_entity.h"
 #include "ecs_module.h"
 
 ecs_comp_extern(SceneLevelManagerComp);

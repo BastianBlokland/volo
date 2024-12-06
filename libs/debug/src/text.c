@@ -5,6 +5,7 @@
 #include "debug_text.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
+#include "geo_matrix.h"
 #include "log_logger.h"
 #include "scene_camera.h"
 #include "scene_transform.h"
@@ -121,8 +122,8 @@ ecs_system_define(DebugTextRenderSys) {
         }
         const UiVector canvasSize = ui_vector(0.2f, 0.1f);
         const UiRect   canvasRect = {
-              ui_vector(canvasPos.x - canvasSize.x * 0.5f, canvasPos.y - canvasSize.y * 0.5f),
-              canvasSize,
+            ui_vector(canvasPos.x - canvasSize.x * 0.5f, canvasPos.y - canvasSize.y * 0.5f),
+            canvasSize,
         };
         ui_style_color(canvas, debug_text_to_ui_color(entry->color));
         ui_layout_set(canvas, canvasRect, UiBase_Canvas);

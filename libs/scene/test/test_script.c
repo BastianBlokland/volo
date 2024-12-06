@@ -8,6 +8,7 @@
 #include "scene_knowledge.h"
 #include "scene_register.h"
 #include "scene_script.h"
+#include "script_val.h"
 
 static const AssetMemRecord g_testScriptAssets[] = {
     {

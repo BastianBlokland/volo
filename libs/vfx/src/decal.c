@@ -9,6 +9,7 @@
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
+#include "geo_matrix.h"
 #include "log_logger.h"
 #include "rend_object.h"
 #include "scene_lifetime.h"
@@ -437,22 +438,22 @@ static void vfx_decal_single_update(
   const f32      fadeOut = math_min(timeRemSec * inst->fadeOutTimeInv, 1.0f);
   const f32      alpha   = decal->alpha * inst->alpha * fadeIn * fadeOut;
   const VfxStamp stamp   = {
-        .pos              = pos,
-        .rot              = rot,
-        .width            = inst->width * scale,
-        .height           = inst->height * scale,
-        .thickness        = inst->thickness,
-        .flags            = inst->stampFlags,
-        .excludeTags      = inst->excludeTags,
-        .atlasColorIndex  = inst->atlasColorIndex,
-        .atlasNormalIndex = inst->atlasNormalIndex,
-        .alphaBegin       = alpha,
-        .alphaEnd         = alpha,
-        .roughness        = inst->roughness,
-        .texOffsetY       = 0.0f,
-        .texScaleY        = 1.0f,
-        .warpScale        = {1.0f, 1.0f},
-        .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
+      .pos              = pos,
+      .rot              = rot,
+      .width            = inst->width * scale,
+      .height           = inst->height * scale,
+      .thickness        = inst->thickness,
+      .flags            = inst->stampFlags,
+      .excludeTags      = inst->excludeTags,
+      .atlasColorIndex  = inst->atlasColorIndex,
+      .atlasNormalIndex = inst->atlasNormalIndex,
+      .alphaBegin       = alpha,
+      .alphaEnd         = alpha,
+      .roughness        = inst->roughness,
+      .texOffsetY       = 0.0f,
+      .texScaleY        = 1.0f,
+      .warpScale        = {1.0f, 1.0f},
+      .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
   };
 
   vfx_stamp_output(rendObjNormal, &stamp);

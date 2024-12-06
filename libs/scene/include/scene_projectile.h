@@ -3,9 +3,7 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo_vector.h"
-
-// Forward declare from 'scene_status.h'.
-typedef u8 SceneStatusMask;
+#include "scene.h"
 
 typedef enum {
   SceneProjectile_Seek = 1 << 0,

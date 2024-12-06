@@ -1,6 +1,6 @@
 #pragma once
 #include "ecs_module.h"
-#include "geo_vector.h"
+#include "geo.h"
 #include "scene_faction.h"
 
 typedef enum {

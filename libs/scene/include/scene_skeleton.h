@@ -1,10 +1,7 @@
 #pragma once
 #include "ecs_module.h"
 #include "geo_matrix.h"
-
-// Forward declare from 'scene_transform.h'
-ecs_comp_extern_public(SceneTransformComp);
-ecs_comp_extern_public(SceneScaleComp);
+#include "scene.h"
 
 #define scene_skeleton_joints_max 75
 
