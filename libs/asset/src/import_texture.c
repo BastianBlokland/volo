@@ -7,8 +7,8 @@
 #include "script_args.h"
 #include "script_binder.h"
 #include "script_enum.h"
-#include "script_panic.h"
 #include "script_sig.h"
+#include "script_val.h"
 
 #include "import_internal.h"
 #include "import_texture_internal.h"

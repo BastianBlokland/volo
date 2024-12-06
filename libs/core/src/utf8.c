@@ -1,6 +1,7 @@
 #include "core.h"
 #include "core_bits.h"
 #include "core_dynstring.h"
+#include "core_string.h"
 #include "core_utf8.h"
 
 #define utf8_cp_max ((Unicode)0x10FFFF)

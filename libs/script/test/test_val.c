@@ -1,7 +1,7 @@
 #include "check_spec.h"
 #include "core_array.h"
-#include "core_bits.h"
 #include "core_float.h"
+#include "core_math.h"
 #include "core_stringtable.h"
 #include "core_time.h"
 #include "geo_color.h"

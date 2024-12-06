@@ -1,5 +1,6 @@
 #include "check_spec.h"
 #include "core_array.h"
+#include "core_dynstring.h"
 #include "script_format.h"
 
 spec(format) {

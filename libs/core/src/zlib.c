@@ -1,6 +1,5 @@
 #include "core.h"
 #include "core_array.h"
-#include "core_bits.h"
 #include "core_deflate.h"
 #include "core_diag.h"
 #include "core_dynstring.h"

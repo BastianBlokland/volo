@@ -18,7 +18,6 @@
 #include "cli_app.h"
 #include "cli_help.h"
 #include "cli_parse.h"
-#include "cli_validate.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_file.h"

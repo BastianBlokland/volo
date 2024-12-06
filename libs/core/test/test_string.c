@@ -1,7 +1,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "core_dynarray.h"
 #include "core_sentinel.h"
-#include "core_sort.h"
 #include "core_string.h"
 
 spec(string) {

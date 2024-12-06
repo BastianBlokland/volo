@@ -1,6 +1,5 @@
 #include "core_alloc.h"
 #include "core_diag.h"
-#include "data.h"
 #include "data_read.h"
 #include "data_utils.h"
 #include "ecs_utils.h"

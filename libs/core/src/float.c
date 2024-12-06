@@ -1,4 +1,3 @@
-#include "core.h"
 #include "core_float.h"
 
 #include <fenv.h>

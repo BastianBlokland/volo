@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_process.h"
+#include "core_signal.h"
 #include "core_winutils.h"
 
 #include "file_internal.h"

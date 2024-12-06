@@ -1,3 +1,4 @@
+#include "core_dynstring.h"
 #include "core_file.h"
 #include "core_math.h"
 #include "core_path.h"

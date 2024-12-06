@@ -1,5 +1,4 @@
 #include "core_bits.h"
-#include "core_math.h"
 #include "core_thread.h"
 
 #include "alloc_internal.h"

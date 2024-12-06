@@ -1,11 +1,9 @@
 #include "core_alloc.h"
-#include "core_diag.h"
 #include "data_read.h"
 #include "data_utils.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
-#include "geo_matrix.h"
 #include "log_logger.h"
 
 #include "data_internal.h"

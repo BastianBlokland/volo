@@ -6,11 +6,9 @@
 #include "cli_help.h"
 #include "cli_parse.h"
 #include "cli_read.h"
-#include "cli_validate.h"
 #include "core_alloc.h"
 #include "core_file.h"
 #include "jobs_init.h"
-#include "log_sink.h"
 #include "log_sink_json.h"
 #include "trace_init.h"
 

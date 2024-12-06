@@ -1,6 +1,6 @@
 #pragma once
+#include "core.h"
 #include "core_dynarray.h"
-#include "core_string.h"
 
 /**
  * Owning array of characters.

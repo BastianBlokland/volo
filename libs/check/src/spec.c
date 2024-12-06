@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "core_math.h"
 #include "core_time.h"
 
 #include "spec_internal.h"

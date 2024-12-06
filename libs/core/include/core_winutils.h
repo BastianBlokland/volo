@@ -1,5 +1,5 @@
 #pragma once
-#include "core_string.h"
+#include "core.h"
 
 #if defined(VOLO_WIN32)
 

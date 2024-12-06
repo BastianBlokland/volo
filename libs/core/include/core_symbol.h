@@ -1,5 +1,5 @@
 #pragma once
-#include "core_string.h"
+#include "core.h"
 
 typedef void* Symbol;
 typedef uptr  SymbolAddr;

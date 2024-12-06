@@ -3,6 +3,7 @@
 #include "core_base64.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_dynstring.h"
 #include "core_float.h"
 #include "core_math.h"
 #include "core_stringtable.h"

@@ -3,7 +3,6 @@
 #include "core_dynarray.h"
 #include "core_float.h"
 #include "core_math.h"
-#include "core_sentinel.h"
 #include "geo_matrix.h"
 
 #include "mesh_utils_internal.h"

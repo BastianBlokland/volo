@@ -1,5 +1,6 @@
 #include "asset_inputmap.h"
 #include "core_alloc.h"
+#include "core_dynarray.h"
 #include "core_search.h"
 #include "core_stringtable.h"
 #include "data_read.h"
@@ -61,10 +62,10 @@ static void asset_inputmap_build(
   heap_array_for_t(def->actions, AssetInputActionDef, actionDef) {
     const usize            bindingCount = actionDef->bindings.count;
     const AssetInputAction action       = {
-        .nameHash     = stringtable_add(g_stringtable, actionDef->name),
-        .blockerBits  = actionDef->blockers,
-        .bindingIndex = (u16)outBindings->size,
-        .bindingCount = (u16)bindingCount,
+              .nameHash     = stringtable_add(g_stringtable, actionDef->name),
+              .blockerBits  = actionDef->blockers,
+              .bindingIndex = (u16)outBindings->size,
+              .bindingCount = (u16)bindingCount,
     };
     if (dynarray_search_binary(outActions, asset_inputmap_compare_action, &action)) {
       *err = InputMapError_DuplicateAction;

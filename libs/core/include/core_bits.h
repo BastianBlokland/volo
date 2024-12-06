@@ -1,6 +1,5 @@
 #pragma once
 #include "core.h"
-#include "core_memory.h"
 
 /**
  * Convert number of bits to number of bytes. Divide by 8.
@@ -20,7 +19,7 @@
 /**
  * Convert number of bytes to bits. Multiply by 8.
  */
-#define bytes_to_bits(_BYTES_) ((_BYTES_)*8)
+#define bytes_to_bits(_BYTES_) ((_BYTES_) * 8)
 
 /**
  * Convert number of bytes to words (32 bit values). Divide by 4.
@@ -30,27 +29,27 @@
 /**
  * Convert number of words (32 bit values) to bits. Multiply by 32.
  */
-#define words_to_bits(_WORDS_) ((_WORDS_)*32)
+#define words_to_bits(_WORDS_) ((_WORDS_) * 32)
 
 /**
  * Convert number of dwords (64 bit values) to bits. Multiply by 64.
  */
-#define dwords_to_bits(_DWORDS_) ((_DWORDS_)*64)
+#define dwords_to_bits(_DWORDS_) ((_DWORDS_) * 64)
 
 /**
  * Retrieve the index of the given bit in its byte. Modulo 8.
  */
-#define bit_in_byte(_BIT_) ((_BIT_)&0b111)
+#define bit_in_byte(_BIT_) ((_BIT_) & 0b111)
 
 /**
  * Retrieve the index of the given bit in its word (32 bit value). Modulo 32.
  */
-#define bit_in_word(_BIT_) ((_BIT_)&0b11111)
+#define bit_in_word(_BIT_) ((_BIT_) & 0b11111)
 
 /**
  * Retrieve the index of the given bit in its dword (64 bit value). Modulo 64.
  */
-#define bit_in_dword(_BIT_) ((_BIT_)&0b111111)
+#define bit_in_dword(_BIT_) ((_BIT_) & 0b111111)
 
 /**
  * Create a 32 bit mask with a range of bits set.

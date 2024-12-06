@@ -1,5 +1,5 @@
 #pragma once
-#include "core_rng.h"
+#include "core.h"
 
 /**
  * Shuffle elements according using the given RandomNumberGenerator

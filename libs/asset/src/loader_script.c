@@ -4,7 +4,6 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_stringtable.h"
-#include "data.h"
 #include "data_read.h"
 #include "data_utils.h"
 #include "ecs_utils.h"
@@ -17,7 +16,6 @@
 #include "script_doc.h"
 #include "script_optimize.h"
 #include "script_read.h"
-#include "script_sig.h"
 
 #include "manager_internal.h"
 #include "repo_internal.h"

@@ -1,4 +1,3 @@
-#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 
@@ -9,10 +8,10 @@
 #include <sanitizer/asan_interface.h>
 #endif
 
-Allocator*   g_allocHeap;
-Allocator*   g_allocPage;
-Allocator*   g_allocPageCache;
-Allocator*   g_allocPersist;
+Allocator*              g_allocHeap;
+Allocator*              g_allocPage;
+Allocator*              g_allocPageCache;
+Allocator*              g_allocPersist;
 THREAD_LOCAL Allocator* g_allocScratch;
 
 static void alloc_verify_allocator(const Allocator* allocator) {

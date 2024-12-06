@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_dynstring.h"
 #include "core_file.h"
 #include "core_sentinel.h"
 #include "core_winutils.h"

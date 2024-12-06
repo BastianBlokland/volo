@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "core_rng.h"
 #include "core_shuffle.h"
 
 INLINE_HINT static void shuffle_swap(u8* a, u8* b, u16 bytes) {

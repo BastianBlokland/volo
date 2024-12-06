@@ -1,5 +1,5 @@
 #pragma once
-#include "core.h"
+#include "core_types.h"
 
 /**
  * Check if the given byte is a valid ascii character.

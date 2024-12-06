@@ -5,7 +5,6 @@
 #include "core_dynarray.h"
 #include "core_math.h"
 #include "core_path.h"
-#include "core_search.h"
 #include "core_time.h"
 #include "data_write.h"
 #include "ecs_utils.h"

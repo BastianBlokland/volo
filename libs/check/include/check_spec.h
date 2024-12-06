@@ -1,7 +1,6 @@
 #pragma once
 #include "core.h"
 #include "core_format.h"
-#include "core_math.h"
 #include "core_sourceloc.h"
 #include "core_string.h"
 

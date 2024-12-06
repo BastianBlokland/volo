@@ -1,3 +1,4 @@
+#include "core_dynstring.h"
 #include "core_format.h"
 #include "core_path.h"
 #include "core_sentinel.h"

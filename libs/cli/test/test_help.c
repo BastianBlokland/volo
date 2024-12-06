@@ -2,6 +2,7 @@
 #include "cli_app.h"
 #include "cli_help.h"
 #include "core_alloc.h"
+#include "core_dynstring.h"
 
 spec(help) {
 

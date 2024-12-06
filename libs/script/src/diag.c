@@ -1,7 +1,8 @@
 #include "core_alloc.h"
 #include "core_array.h"
-#include "core_diag.h"
+#include "core_dynstring.h"
 #include "core_format.h"
+#include "core_string.h"
 #include "script_diag.h"
 
 // clang-format off

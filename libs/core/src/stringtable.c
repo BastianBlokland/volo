@@ -1,7 +1,6 @@
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
-#include "core_dynarray.h"
 #include "core_stringtable.h"
 #include "core_thread.h"
 

@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_format.h"
+#include "core_math.h"
 #include "core_path.h"
 #include "core_thread.h"
 #include "core_time.h"
@@ -211,24 +212,24 @@ CheckOutput* check_output_mocha(Allocator* alloc, File* file) {
 
   CheckOutputMocha* mochaOut = alloc_alloc_t(alloc, CheckOutputMocha);
   *mochaOut                  = (CheckOutputMocha){
-      .api =
+                       .api =
           {
-              .runStarted      = output_run_started,
-              .testsDiscovered = output_tests_discovered,
-              .testSkipped     = output_test_skipped,
-              .testFinished    = output_test_finished,
-              .runFinished     = output_run_finished,
-              .destroy         = output_destroy,
+                               .runStarted      = output_run_started,
+                               .testsDiscovered = output_tests_discovered,
+                               .testSkipped     = output_test_skipped,
+                               .testFinished    = output_test_finished,
+                               .runFinished     = output_run_finished,
+                               .destroy         = output_destroy,
           },
-      .alloc       = alloc,
-      .mutex       = thread_mutex_create(alloc),
-      .doc         = doc,
-      .rootObj     = rootObj,
-      .statsObj    = statsObj,
-      .passesArr   = passesArr,
-      .failuresArr = failuresArr,
-      .pendingArr  = pendingArr,
-      .file        = file,
+                       .alloc       = alloc,
+                       .mutex       = thread_mutex_create(alloc),
+                       .doc         = doc,
+                       .rootObj     = rootObj,
+                       .statsObj    = statsObj,
+                       .passesArr   = passesArr,
+                       .failuresArr = failuresArr,
+                       .pendingArr  = pendingArr,
+                       .file        = file,
   };
   return (CheckOutput*)mochaOut;
 }

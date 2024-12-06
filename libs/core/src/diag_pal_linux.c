@@ -1,4 +1,5 @@
 #include "core_array.h"
+#include "core_dynstring.h"
 #include "core_symbol.h"
 #include "core_thread.h"
 

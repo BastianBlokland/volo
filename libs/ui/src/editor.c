@@ -1,6 +1,7 @@
 #include "core_array.h"
 #include "core_ascii.h"
 #include "core_diag.h"
+#include "core_dynstring.h"
 #include "core_math.h"
 #include "core_sort.h"
 #include "core_time.h"

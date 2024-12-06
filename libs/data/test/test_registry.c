@@ -1,6 +1,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_dynarray.h"
 #include "data_registry.h"
 
 spec(registry) {
@@ -9,21 +10,21 @@ spec(registry) {
 
   setup() { reg = data_reg_create(g_allocHeap); }
 
-  it("can lookup a primitive type's name") {
+  it("can lookup a primitive type's name"){
 #define X(_T_) check_eq_string(data_name(reg, data_prim_t(_T_)), string_lit(#_T_));
-    DATA_PRIMS
+      DATA_PRIMS
 #undef X
   }
 
-  it("can lookup a primitive type's size") {
+  it("can lookup a primitive type's size"){
 #define X(_T_) check_eq_int(data_size(reg, data_prim_t(_T_)), sizeof(_T_));
-    DATA_PRIMS
+      DATA_PRIMS
 #undef X
   }
 
-  it("can lookup a primitive type's alignment requirement") {
+  it("can lookup a primitive type's alignment requirement"){
 #define X(_T_) check_eq_int(data_align(reg, data_prim_t(_T_)), alignof(_T_));
-    DATA_PRIMS
+      DATA_PRIMS
 #undef X
   }
 

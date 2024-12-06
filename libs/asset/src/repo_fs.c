@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_dynstring.h"
 #include "core_file.h"
 #include "core_file_iterator.h"
 #include "core_file_monitor.h"
