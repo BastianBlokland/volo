@@ -1,6 +1,4 @@
 #pragma once
-#include "core.h"
-#include "ecs_module.h"
 #include "gap.h"
 
 /**
