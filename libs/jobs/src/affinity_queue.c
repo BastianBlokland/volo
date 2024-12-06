@@ -1,4 +1,4 @@
-#include "core_annotation.h"
+#include "core.h"
 #include "core_diag.h"
 #include "core_thread.h"
 
@@ -28,8 +28,8 @@ void affqueue_push(AffQueue* aq, Job* job, const JobTaskId task) {
   const i64     idx  = thread_atomic_add_i64(&aq->top, 1);
   AffQueueItem* item = aq->items + item_wrap(idx);
   item->work         = (WorkItem){
-      .job  = job,
-      .task = task,
+              .job  = job,
+              .task = task,
   };
   thread_atomic_store_i64(&item->hasData, true);
 }

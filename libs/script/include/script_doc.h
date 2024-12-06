@@ -1,6 +1,6 @@
 #pragma once
+#include "core.h"
 #include "core_dynstring.h"
-#include "core_types.h"
 #include "script_intrinsic.h"
 #include "script_val.h"
 

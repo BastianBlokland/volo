@@ -1,5 +1,5 @@
 #pragma once
-#include "core_types.h"
+#include "core.h"
 
 /**
  * 3d perlin noise.

@@ -1,5 +1,5 @@
 #pragma once
-#include "core_types.h"
+#include "core.h"
 
 /**
  * Identifier for an Entity, unique throughout application lifetime.

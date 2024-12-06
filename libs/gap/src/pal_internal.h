@@ -1,7 +1,7 @@
 #pragma once
 #include "asset_icon.h"
+#include "core.h"
 #include "core_alloc.h"
-#include "core_annotation.h"
 #include "core_string.h"
 #include "core_time.h"
 #include "gap_icon.h"

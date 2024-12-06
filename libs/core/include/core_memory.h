@@ -1,5 +1,5 @@
 #pragma once
-#include "core_types.h"
+#include "core.h"
 
 /**
  * Non-owning view over a memory block.

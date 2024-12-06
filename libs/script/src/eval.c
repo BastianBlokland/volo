@@ -1,4 +1,4 @@
-#include "core_annotation.h"
+#include "core.h"
 #include "core_diag.h"
 #include "script_binder.h"
 #include "script_eval.h"

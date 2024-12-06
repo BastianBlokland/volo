@@ -1,5 +1,5 @@
 #include "check_spec.h"
-#include "core_annotation.h"
+#include "core.h"
 #include "core_symbol.h"
 
 static volatile i32 g_preserveFunc;

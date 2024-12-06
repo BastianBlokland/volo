@@ -1,5 +1,5 @@
 #pragma once
-#include "core_annotation.h"
+#include "core.h"
 #include "core_macro.h"
 #include "core_string.h"
 #include "ecs_comp.h"

@@ -1,8 +1,8 @@
+#include "core.h"
 #include "core_alloc.h"
 #include "core_dynlib.h"
 #include "core_file.h"
 #include "core_path.h"
-#include "core_types.h"
 
 #include "file_internal.h"
 #include "symbol_internal.h"

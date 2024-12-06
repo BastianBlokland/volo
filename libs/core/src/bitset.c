@@ -1,9 +1,9 @@
+#include "core.h"
 #include "core_bits.h"
 #include "core_bitset.h"
 #include "core_diag.h"
 #include "core_intrinsic.h"
 #include "core_math.h"
-#include "core_types.h"
 
 usize bitset_size(const BitSet bits) { return bytes_to_bits(bits.size); }
 

@@ -1,5 +1,5 @@
 #pragma once
-#include "core_annotation.h"
+#include "core.h"
 #include "core_string.h"
 
 // Forward declare from 'script_panic.h'.

@@ -1,5 +1,5 @@
 #include "check_spec.h"
-#include "core_annotation.h"
+#include "core.h"
 #include "core_macro.h"
 
 spec(macro) {

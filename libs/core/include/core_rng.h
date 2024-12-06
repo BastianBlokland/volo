@@ -1,6 +1,5 @@
 #pragma once
-#include "core_annotation.h"
-#include "core_types.h"
+#include "core.h"
 
 /**
  * Get the next value in the random sequence.

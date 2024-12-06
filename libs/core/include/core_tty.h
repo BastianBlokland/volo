@@ -1,6 +1,6 @@
 #pragma once
+#include "core.h"
 #include "core_dynstring.h"
-#include "core_types.h"
 #include "core_unicode.h"
 
 // Forward declare from 'core_file.h'.

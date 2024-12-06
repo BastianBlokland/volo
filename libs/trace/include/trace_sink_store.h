@@ -1,5 +1,5 @@
 #pragma once
-#include "core_annotation.h"
+#include "core.h"
 #include "trace_tracer.h"
 
 // Forward declare from 'core_time.h'.

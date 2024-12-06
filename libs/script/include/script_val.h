@@ -1,5 +1,5 @@
 #pragma once
-#include "core_annotation.h"
+#include "core.h"
 #include "core_bits.h"
 #include "core_string.h"
 #include "geo.h"

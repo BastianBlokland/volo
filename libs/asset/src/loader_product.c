@@ -1,6 +1,6 @@
 #include "asset_product.h"
+#include "core.h"
 #include "core_alloc.h"
-#include "core_annotation.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_search.h"

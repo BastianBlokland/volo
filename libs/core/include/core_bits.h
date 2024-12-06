@@ -1,6 +1,6 @@
 #pragma once
+#include "core.h"
 #include "core_memory.h"
-#include "core_types.h"
 
 /**
  * Convert number of bits to number of bytes. Divide by 8.

@@ -1,5 +1,5 @@
 #pragma once
-#include "core_annotation.h"
+#include "core.h"
 #include "core_memory.h"
 
 // Forward declare from 'jobs_graph.h'.

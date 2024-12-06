@@ -1,5 +1,5 @@
+#include "core.h"
 #include "core_alloc.h"
-#include "core_annotation.h"
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"

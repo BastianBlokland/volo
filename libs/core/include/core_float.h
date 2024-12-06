@@ -1,5 +1,5 @@
 #pragma once
-#include "core_types.h"
+#include "core.h"
 
 #define f16_mantissa_bits 10
 #define f32_mantissa_bits 23

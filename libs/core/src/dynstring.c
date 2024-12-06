@@ -1,4 +1,4 @@
-#include "core_annotation.h"
+#include "core.h"
 #include "core_dynstring.h"
 
 DynString dynstring_create(Allocator* alloc, usize capacity) {

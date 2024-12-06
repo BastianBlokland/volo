@@ -1,5 +1,5 @@
 #pragma once
-#include "core_types.h"
+#include "core.h"
 
 #define uni_zws "\u200B"
 #define uni_esc "\33"

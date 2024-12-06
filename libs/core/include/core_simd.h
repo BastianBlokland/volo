@@ -1,7 +1,6 @@
 #pragma once
-#include "core_annotation.h"
+#include "core.h"
 #include "core_intrinsic.h"
-#include "core_types.h"
 
 #ifndef VOLO_SIMD
 #error SIMD support not enabled

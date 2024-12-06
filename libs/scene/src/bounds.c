@@ -1,7 +1,7 @@
 #include "asset_graphic.h"
 #include "asset_manager.h"
 #include "asset_mesh.h"
-#include "core_annotation.h"
+#include "core.h"
 #include "core_diag.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
