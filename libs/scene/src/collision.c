@@ -89,17 +89,18 @@ ecs_system_define(SceneCollisionInitSys) {
       continue;
     }
 
-    const u64           userId     = (u64)ecs_view_entity(itr);
-    const GeoQueryLayer queryLayer = (GeoQueryLayer)collision->layer;
+    const u64                  userId     = (u64)ecs_view_entity(itr);
+    const GeoQueryLayer        queryLayer = (GeoQueryLayer)collision->layer;
+    const SceneCollisionShape* shape      = &collision->shape;
 
-    switch (collision->type) {
+    switch (shape->type) {
     case SceneCollisionType_Sphere: {
-      const GeoSphere sphere = scene_collision_world_sphere(&collision->sphere, trans, scale);
+      const GeoSphere sphere = scene_collision_world_sphere(&shape->sphere, trans, scale);
       geo_query_insert_sphere(env->queryEnv, sphere, userId, queryLayer);
     } break;
     case SceneCollisionType_Capsule: {
-      const GeoCapsule capsule = scene_collision_world_capsule(&collision->capsule, trans, scale);
-      if (collision->capsule.height <= f32_epsilon) {
+      const GeoCapsule capsule = scene_collision_world_capsule(&shape->capsule, trans, scale);
+      if (shape->capsule.height <= f32_epsilon) {
         const GeoSphere sphere = {.point = capsule.line.a, .radius = capsule.radius};
         geo_query_insert_sphere(env->queryEnv, sphere, userId, queryLayer);
       } else {
@@ -107,7 +108,7 @@ ecs_system_define(SceneCollisionInitSys) {
       }
     } break;
     case SceneCollisionType_Box: {
-      const GeoBoxRotated boxRotated = scene_collision_world_box(&collision->box, trans, scale);
+      const GeoBoxRotated boxRotated = scene_collision_world_box(&shape->box, trans, scale);
       geo_query_insert_box_rotated(env->queryEnv, boxRotated, userId, queryLayer);
     } break;
     default:
@@ -239,9 +240,9 @@ void scene_collision_add_sphere(
       world,
       entity,
       SceneCollisionComp,
-      .type   = SceneCollisionType_Sphere,
-      .layer  = layer,
-      .sphere = sphere);
+      .layer        = layer,
+      .shape.type   = SceneCollisionType_Sphere,
+      .shape.sphere = sphere);
 }
 
 void scene_collision_add_capsule(
@@ -255,9 +256,9 @@ void scene_collision_add_capsule(
       world,
       entity,
       SceneCollisionComp,
-      .type    = SceneCollisionType_Capsule,
-      .layer   = layer,
-      .capsule = capsule);
+      .layer         = layer,
+      .shape.type    = SceneCollisionType_Capsule,
+      .shape.capsule = capsule);
 }
 
 void scene_collision_add_box(
@@ -271,9 +272,9 @@ void scene_collision_add_box(
       world,
       entity,
       SceneCollisionComp,
-      .type  = SceneCollisionType_Box,
-      .layer = layer,
-      .box   = box);
+      .layer      = layer,
+      .shape.type = SceneCollisionType_Box,
+      .shape.box  = box);
 }
 
 f32 scene_collision_intersect_ray(
@@ -281,17 +282,25 @@ f32 scene_collision_intersect_ray(
     const SceneTransformComp* trans,
     const SceneScaleComp*     scale,
     const GeoRay*             ray) {
-  switch (collision->type) {
+  return scene_collision_intersect_ray_shape(&collision->shape, trans, scale, ray);
+}
+
+f32 scene_collision_intersect_ray_shape(
+    const SceneCollisionShape* shape,
+    const SceneTransformComp*  trans,
+    const SceneScaleComp*      scale,
+    const GeoRay*              ray) {
+  switch (shape->type) {
   case SceneCollisionType_Sphere: {
-    const GeoSphere sphere = scene_collision_world_sphere(&collision->sphere, trans, scale);
+    const GeoSphere sphere = scene_collision_world_sphere(&shape->sphere, trans, scale);
     return geo_sphere_intersect_ray(&sphere, ray);
   } break;
   case SceneCollisionType_Capsule: {
-    const GeoCapsule capsule = scene_collision_world_capsule(&collision->capsule, trans, scale);
+    const GeoCapsule capsule = scene_collision_world_capsule(&shape->capsule, trans, scale);
     return geo_capsule_intersect_ray(&capsule, ray);
   } break;
   case SceneCollisionType_Box: {
-    const GeoBoxRotated boxRotated = scene_collision_world_box(&collision->box, trans, scale);
+    const GeoBoxRotated boxRotated = scene_collision_world_box(&shape->box, trans, scale);
     return geo_box_rotated_intersect_ray(&boxRotated, ray);
   } break;
   default:
@@ -441,19 +450,21 @@ GeoBoxRotated scene_collision_world_box(
   return geo_box_rotated(&localBox, basePos, baseRot, baseScale);
 }
 
-GeoBox scene_collision_world_bounds(
-    const SceneCollisionComp* comp, const SceneTransformComp* trans, const SceneScaleComp* scale) {
-  switch (comp->type) {
+GeoBox scene_collision_world_shape(
+    const SceneCollisionShape* shape,
+    const SceneTransformComp*  trans,
+    const SceneScaleComp*      scale) {
+  switch (shape->type) {
   case SceneCollisionType_Sphere: {
-    const GeoSphere worldSphere = scene_collision_world_sphere(&comp->sphere, trans, scale);
+    const GeoSphere worldSphere = scene_collision_world_sphere(&shape->sphere, trans, scale);
     return geo_box_from_sphere(worldSphere.point, worldSphere.radius);
   }
   case SceneCollisionType_Capsule: {
-    const GeoCapsule worldCapsule = scene_collision_world_capsule(&comp->capsule, trans, scale);
+    const GeoCapsule worldCapsule = scene_collision_world_capsule(&shape->capsule, trans, scale);
     return geo_box_from_capsule(worldCapsule.line.a, worldCapsule.line.b, worldCapsule.radius);
   }
   case SceneCollisionType_Box: {
-    const GeoBox    localBox  = {.min = comp->box.min, .max = comp->box.max};
+    const GeoBox    localBox  = {.min = shape->box.min, .max = shape->box.max};
     const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
     const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
     const f32       baseScale = scale ? scale->scale : 1.0f;
@@ -463,6 +474,11 @@ GeoBox scene_collision_world_bounds(
     break;
   }
   UNREACHABLE
+}
+
+GeoBox scene_collision_world_bounds(
+    const SceneCollisionComp* comp, const SceneTransformComp* trans, const SceneScaleComp* scale) {
+  return scene_collision_world_shape(&comp->shape, trans, scale);
 }
 
 const GeoQueryEnv* scene_collision_query_env(const SceneCollisionEnvComp* env) {

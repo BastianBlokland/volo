@@ -204,10 +204,11 @@ static void nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView) {
       continue; // Blocker is not enabled on this layer.
     }
 
-    const u64 userId = (u64)ecs_view_entity(itr);
-    switch (collision->type) {
+    const u64                  userId = (u64)ecs_view_entity(itr);
+    const SceneCollisionShape* shape  = &collision->shape;
+    switch (shape->type) {
     case SceneCollisionType_Sphere: {
-      const GeoSphere s        = scene_collision_world_sphere(&collision->sphere, trans, scale);
+      const GeoSphere s        = scene_collision_world_sphere(&shape->sphere, trans, scale);
       blocker->ids[ctx->layer] = geo_nav_blocker_add_sphere(ctx->grid, userId, &s);
     } break;
     case SceneCollisionType_Capsule: {
@@ -215,12 +216,12 @@ static void nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView) {
        * NOTE: Uses the capsule bounds at the moment, if more accurate capsule blockers are
        * needed then capsule support should be added to GeoNavGrid.
        */
-      const GeoCapsule    c = scene_collision_world_capsule(&collision->capsule, trans, scale);
+      const GeoCapsule    c       = scene_collision_world_capsule(&shape->capsule, trans, scale);
       const GeoBoxRotated cBounds = geo_box_rotated_from_capsule(c.line.a, c.line.b, c.radius);
       blocker->ids[ctx->layer]    = nav_block_box_rotated(ctx->grid, userId, &cBounds);
     } break;
     case SceneCollisionType_Box: {
-      const GeoBoxRotated b    = scene_collision_world_box(&collision->box, trans, scale);
+      const GeoBoxRotated b    = scene_collision_world_box(&shape->box, trans, scale);
       blocker->ids[ctx->layer] = nav_block_box_rotated(ctx->grid, userId, &b);
     } break;
     case SceneCollisionType_Count:

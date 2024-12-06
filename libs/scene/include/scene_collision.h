@@ -96,14 +96,18 @@ typedef struct {
   GeoVector max;
 } SceneCollisionBox;
 
-ecs_comp_extern_public(SceneCollisionComp) {
+typedef struct {
   SceneCollisionType type;
-  SceneLayer         layer;
   union {
     SceneCollisionSphere  sphere;
     SceneCollisionCapsule capsule;
     SceneCollisionBox     box;
   };
+} SceneCollisionShape;
+
+ecs_comp_extern_public(SceneCollisionComp) {
+  SceneLayer          layer;
+  SceneCollisionShape shape;
 };
 
 /**
@@ -137,6 +141,8 @@ void scene_collision_add_box(EcsWorld*, EcsEntityId, SceneCollisionBox, SceneLay
 
 f32 scene_collision_intersect_ray(
     const SceneCollisionComp*, const SceneTransformComp*, const SceneScaleComp*, const GeoRay*);
+f32 scene_collision_intersect_ray_shape(
+    const SceneCollisionShape*, const SceneTransformComp*, const SceneScaleComp*, const GeoRay*);
 
 /**
  * Query apis.
@@ -206,6 +212,8 @@ GeoCapsule scene_collision_world_capsule(
     const SceneCollisionCapsule*, const SceneTransformComp*, const SceneScaleComp*);
 GeoBoxRotated scene_collision_world_box(
     const SceneCollisionBox*, const SceneTransformComp*, const SceneScaleComp*);
+GeoBox scene_collision_world_shape(
+    const SceneCollisionShape*, const SceneTransformComp*, const SceneScaleComp*);
 
 /**
  * Compute the world axis-aligned bounds for the given collision component.

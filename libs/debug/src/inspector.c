@@ -706,11 +706,12 @@ static void inspector_panel_draw_collision(
   if (collision) {
     inspector_panel_next(canvas, panelComp, table);
     if (inspector_panel_section(canvas, string_lit("Collision"))) {
+      SceneCollisionShape* collisionShape = &collision->shape;
 
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Type"));
       ui_table_next_column(canvas, table);
-      inspector_panel_draw_value_string(canvas, scene_collision_type_name(collision->type));
+      inspector_panel_draw_value_string(canvas, scene_collision_type_name(collisionShape->type));
 
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Layer"));
@@ -721,51 +722,51 @@ static void inspector_panel_draw_collision(
         inspector_panel_draw_value_string(canvas, string_lit("< Multiple >"));
       }
 
-      switch (collision->type) {
+      switch (collisionShape->type) {
       case SceneCollisionType_Sphere: {
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Offset"));
         ui_table_next_column(canvas, table);
-        debug_widget_editor_vec3(canvas, &collision->sphere.offset, UiWidget_Default);
+        debug_widget_editor_vec3(canvas, &collisionShape->sphere.offset, UiWidget_Default);
 
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Radius"));
         ui_table_next_column(canvas, table);
-        debug_widget_editor_f32(canvas, &collision->sphere.radius, UiWidget_Default);
+        debug_widget_editor_f32(canvas, &collisionShape->sphere.radius, UiWidget_Default);
       } break;
       case SceneCollisionType_Capsule: {
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Offset"));
         ui_table_next_column(canvas, table);
-        debug_widget_editor_vec3(canvas, &collision->capsule.offset, UiWidget_Default);
+        debug_widget_editor_vec3(canvas, &collisionShape->capsule.offset, UiWidget_Default);
 
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Direction"));
         ui_table_next_column(canvas, table);
         static const String g_collisionDirNames[] = {
             string_static("Up"), string_static("Forward"), string_static("Right")};
-        ui_select(canvas, (i32*)&collision->capsule.dir, g_collisionDirNames, 3);
+        ui_select(canvas, (i32*)&collisionShape->capsule.dir, g_collisionDirNames, 3);
 
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Radius"));
         ui_table_next_column(canvas, table);
-        debug_widget_editor_f32(canvas, &collision->capsule.radius, UiWidget_Default);
+        debug_widget_editor_f32(canvas, &collisionShape->capsule.radius, UiWidget_Default);
 
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Height"));
         ui_table_next_column(canvas, table);
-        debug_widget_editor_f32(canvas, &collision->capsule.height, UiWidget_Default);
+        debug_widget_editor_f32(canvas, &collisionShape->capsule.height, UiWidget_Default);
       } break;
       case SceneCollisionType_Box: {
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Min"));
         ui_table_next_column(canvas, table);
-        debug_widget_editor_vec3(canvas, &collision->box.min, UiWidget_Default);
+        debug_widget_editor_vec3(canvas, &collisionShape->box.min, UiWidget_Default);
 
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Max"));
         ui_table_next_column(canvas, table);
-        debug_widget_editor_vec3(canvas, &collision->box.max, UiWidget_Default);
+        debug_widget_editor_vec3(canvas, &collisionShape->box.max, UiWidget_Default);
       } break;
       case SceneCollisionType_Count:
         UNREACHABLE
@@ -1403,27 +1404,27 @@ static void inspector_vis_draw_locomotion(
   }
 }
 
-static void inspector_vis_draw_collision(
-    DebugShapeComp*           shape,
-    const SceneCollisionComp* collision,
-    const SceneTransformComp* transform,
-    const SceneScaleComp*     scale) {
+static void inspector_vis_draw_collision_shape(
+    DebugShapeComp*            shape,
+    const SceneCollisionShape* collisionShape,
+    const SceneTransformComp*  transform,
+    const SceneScaleComp*      scale) {
   static const GeoColor g_colorFill = {1, 0, 0, 0.2f};
   static const GeoColor g_colorWire = {1, 0, 0, 1};
 
-  switch (collision->type) {
+  switch (collisionShape->type) {
   case SceneCollisionType_Sphere: {
-    const GeoSphere c = scene_collision_world_sphere(&collision->sphere, transform, scale);
+    const GeoSphere c = scene_collision_world_sphere(&collisionShape->sphere, transform, scale);
     debug_sphere(shape, c.point, c.radius, g_colorFill, DebugShape_Fill);
     debug_sphere(shape, c.point, c.radius, g_colorWire, DebugShape_Wire);
   } break;
   case SceneCollisionType_Capsule: {
-    const GeoCapsule c = scene_collision_world_capsule(&collision->capsule, transform, scale);
+    const GeoCapsule c = scene_collision_world_capsule(&collisionShape->capsule, transform, scale);
     debug_capsule(shape, c.line.a, c.line.b, c.radius, g_colorFill, DebugShape_Fill);
     debug_capsule(shape, c.line.a, c.line.b, c.radius, g_colorWire, DebugShape_Wire);
   } break;
   case SceneCollisionType_Box: {
-    const GeoBoxRotated b      = scene_collision_world_box(&collision->box, transform, scale);
+    const GeoBoxRotated b      = scene_collision_world_box(&collisionShape->box, transform, scale);
     const GeoVector     center = geo_box_center(&b.box);
     const GeoVector     size   = geo_box_size(&b.box);
     debug_box(shape, center, b.rotation, size, g_colorFill, DebugShape_Fill);
@@ -1432,6 +1433,14 @@ static void inspector_vis_draw_collision(
   case SceneCollisionType_Count:
     UNREACHABLE
   }
+}
+
+static void inspector_vis_draw_collision(
+    DebugShapeComp*           shape,
+    const SceneCollisionComp* collision,
+    const SceneTransformComp* transform,
+    const SceneScaleComp*     scale) {
+  inspector_vis_draw_collision_shape(shape, &collision->shape, transform, scale);
 }
 
 static void inspector_vis_draw_bounds_local(
