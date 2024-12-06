@@ -6,7 +6,7 @@
 
 #define rend_ao_kernel_size 16
 
-typedef enum {
+typedef enum eRendFlags {
   RendFlags_FrustumCulling       = 1 << 0,
   RendFlags_AmbientOcclusion     = 1 << 1,
   RendFlags_AmbientOcclusionBlur = 1 << 2,
@@ -25,7 +25,7 @@ typedef enum {
   RendFlags_DebugOverlay = RendFlags_DebugFog | RendFlags_DebugShadow | RendFlags_DebugDistortion,
 } RendFlags;
 
-typedef enum {
+typedef enum eRendPresentMode {
   /**
    * Don't wait for a vblank but immediately output the new image.
    * NOTE: This mode may result in visible tearing.
@@ -53,7 +53,7 @@ typedef enum {
 
 } RendPresentMode;
 
-typedef enum {
+typedef enum eRendAmbientMode {
   RendAmbientMode_Solid,
   RendAmbientMode_DiffuseIrradiance,
   RendAmbientMode_SpecularIrradiance,
@@ -72,13 +72,13 @@ typedef enum {
   RendAmbientMode_DebugSpecularIrradiance,
 } RendAmbientMode;
 
-typedef enum {
+typedef enum eRendSkyMode {
   RendSkyMode_None,
   RendSkyMode_Gradient,
   RendSkyMode_CubeMap,
 } RendSkyMode;
 
-typedef enum {
+typedef enum eRendTonemapper {
   RendTonemapper_Linear,
   RendTonemapper_LinearSmooth,
   RendTonemapper_Reinhard,
@@ -114,7 +114,7 @@ ecs_comp_extern_public(RendSettingsComp) {
   RendDebugViewerFlags debugViewerFlags;    // Flags to use for the debug-viewer.
 };
 
-typedef enum {
+typedef enum eRendGlobalFlags {
   RendGlobalFlags_Validation = 1 << 0,
   RendGlobalFlags_Verbose    = 1 << 1,
   RendGlobalFlags_DebugGpu   = 1 << 2,

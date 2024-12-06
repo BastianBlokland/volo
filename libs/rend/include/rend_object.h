@@ -4,7 +4,7 @@
 #include "geo_box.h"
 #include "scene.h"
 
-typedef enum {
+typedef enum eRendObjectFlags {
   RendObjectFlags_None                = 0,
   RendObjectFlags_Preload             = 1 << 0, // Load resources even if not drawn.
   RendObjectFlags_NoAutoClear         = 1 << 1,
@@ -15,7 +15,7 @@ typedef enum {
   RendObjectFlags_Sorted = RendObjectFlags_SortBackToFront | RendObjectFlags_SortFrontToBack,
 } RendObjectFlags;
 
-typedef enum {
+typedef enum eRendObjectRes {
   RendObjectRes_Graphic,
   RendObjectRes_GraphicShadow,
   RendObjectRes_GraphicDebugSkinning,

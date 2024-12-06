@@ -5,9 +5,7 @@
 #include "geo_color.h"
 #include "geo_quat.h"
 #include "geo_vector.h"
-
-// Forward declare from 'rend_object.h'.
-ecs_comp_extern(RendObjectComp);
+#include "rend.h"
 
 /**
  * NOTE: Flag values are used in GLSL, update the GLSL side when changing these.

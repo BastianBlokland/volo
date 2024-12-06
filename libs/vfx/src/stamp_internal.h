@@ -4,10 +4,8 @@
 #include "ecs_module.h"
 #include "geo_quat.h"
 #include "geo_vector.h"
+#include "rend.h"
 #include "vfx_warp.h"
-
-// Forward declare from 'rend_object.h'.
-ecs_comp_extern(RendObjectComp);
 
 /**
  * NOTE: Flag values are used in GLSL, update the GLSL side when changing these.
