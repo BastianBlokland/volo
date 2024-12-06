@@ -79,6 +79,7 @@ ScriptVal script_color(GeoColor);
 ScriptVal script_entity(EcsEntityId);
 ScriptVal script_entity_or_null(EcsEntityId);
 ScriptVal script_str(StringHash);
+ScriptVal script_str_or_null(StringHash);
 ScriptVal script_time(TimeDuration); // Stored as seconds in a number value.
 
 /**
