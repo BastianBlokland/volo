@@ -13,6 +13,7 @@
 #include "gap_window.h"
 #include "geo_box_rotated.h"
 #include "geo_capsule.h"
+#include "geo_color.h"
 #include "geo_query.h"
 #include "input.h"
 #include "scene_camera.h"

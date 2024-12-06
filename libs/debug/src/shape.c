@@ -8,6 +8,9 @@
 #include "debug_register.h"
 #include "debug_shape.h"
 #include "ecs_world.h"
+#include "geo_color.h"
+#include "geo_matrix.h"
+#include "geo_quat.h"
 #include "rend_object.h"
 #include "scene_tag.h"
 

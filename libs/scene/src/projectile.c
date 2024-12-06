@@ -13,6 +13,7 @@
 #include "scene_status.h"
 #include "scene_terrain.h"
 #include "scene_time.h"
+#include "geo_sphere.h"
 #include "scene_transform.h"
 #include "scene_vfx.h"
 

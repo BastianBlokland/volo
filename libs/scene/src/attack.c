@@ -6,6 +6,7 @@
 #include "core_math.h"
 #include "core_rng.h"
 #include "ecs_world.h"
+#include "geo_sphere.h"
 #include "log_logger.h"
 #include "scene_attachment.h"
 #include "scene_attack.h"
