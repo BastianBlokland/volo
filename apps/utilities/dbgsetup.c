@@ -10,7 +10,9 @@
 #include "core_sort.h"
 #include "json_doc.h"
 #include "json_write.h"
-#include "log.h"
+#include "log_logger.h"
+#include "log_sink_json.h"
+#include "log_sink_pretty.h"
 
 /**
  * DebugSetup - Utility to generate debugger configuration files for a set of executables.

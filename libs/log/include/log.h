@@ -1,5 +1,8 @@
 #pragma once
-#include "log_init.h"
-#include "log_logger.h"
-#include "log_sink_json.h"
-#include "log_sink_pretty.h"
+#include "core.h"
+
+typedef enum eLogLevel   LogLevel;
+typedef enum eLogMask    LogMask;
+typedef struct eLogParam LogParam;
+typedef struct sLogger   Logger;
+typedef struct sLogSink  LogSink;

@@ -10,7 +10,8 @@
 #include "core_alloc.h"
 #include "core_file.h"
 #include "jobs_init.h"
-#include "log.h"
+#include "log_sink.h"
+#include "log_sink_json.h"
 #include "trace.h"
 
 static CliId g_optOutputPassingTests, g_optJobWorkers, g_optHelp;

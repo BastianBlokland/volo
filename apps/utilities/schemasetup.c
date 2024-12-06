@@ -24,7 +24,9 @@
 #include "core_file.h"
 #include "core_path.h"
 #include "data_schema.h"
-#include "log.h"
+#include "log_logger.h"
+#include "log_sink_json.h"
+#include "log_sink_pretty.h"
 #include "script_binder.h"
 
 /**

@@ -8,7 +8,9 @@
 #include "core_gzip.h"
 #include "core_path.h"
 #include "core_zlib.h"
-#include "log.h"
+#include "log_logger.h"
+#include "log_sink_json.h"
+#include "log_sink_pretty.h"
 
 /**
  * ZipUtility - Utility to test gzip/zlib decoding.

@@ -2,7 +2,7 @@
 #include "core_format.h"
 #include "core_sourceloc.h"
 
-typedef enum {
+typedef enum eLogLevel {
   LogLevel_Debug,
   LogLevel_Info,
   LogLevel_Warn,
@@ -11,7 +11,7 @@ typedef enum {
   LogLevel_Count,
 } LogLevel;
 
-typedef enum {
+typedef enum eLogMask {
   LogMask_None  = 0,
   LogMask_Debug = 1 << LogLevel_Debug,
   LogMask_Info  = 1 << LogLevel_Info,
@@ -23,7 +23,7 @@ typedef enum {
 /**
  * Structured logging parameter (key-value pair).
  */
-typedef struct {
+typedef struct eLogParam {
   String    name;
   FormatArg arg;
 } LogParam;
