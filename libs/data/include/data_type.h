@@ -1,6 +1,6 @@
 #pragma once
 #include "core.h"
-#include "core_string.h"
+#include "core_memory.h"
 
 /**
  * Largest supported alignment for mem data-type allocations.

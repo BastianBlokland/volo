@@ -20,6 +20,7 @@
 #include "cli_parse.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_dynstring.h"
 #include "core_file.h"
 #include "core_path.h"
 #include "data_schema.h"

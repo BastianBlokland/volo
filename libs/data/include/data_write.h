@@ -1,6 +1,6 @@
 #pragma once
-#include "core_dynstring.h"
-#include "data_registry.h"
+#include "core.h"
+#include "data.h"
 
 typedef struct {
   u8   numberMaxDecDigits;
