@@ -1,5 +1,5 @@
 #pragma once
-#include "trace_tracer.h"
+#include "trace.h"
 
 /**
  * SuperluminalSink - sink that outputs trace events to a running Superluminal profiler instance.

@@ -1,6 +1,6 @@
 #pragma once
 #include "core.h"
-#include "trace_tracer.h"
+#include "trace.h"
 
 /**
  * Store Sink - sink that outputs events to in-memory buffers for later inspection / dumping.

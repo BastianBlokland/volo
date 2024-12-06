@@ -8,6 +8,7 @@
 #include "log_logger.h"
 #include "trace_dump.h"
 #include "trace_sink_store.h"
+#include "trace_tracer.h"
 
 /**
  * Dump all trace events in the Google EventTrace format.
