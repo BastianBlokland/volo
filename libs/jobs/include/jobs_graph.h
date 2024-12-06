@@ -9,7 +9,7 @@
  */
 typedef u16 JobTaskId;
 
-typedef enum {
+typedef enum eJobTaskFlags {
   JobTaskFlags_None = 0,
 
   /**

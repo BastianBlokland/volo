@@ -1,4 +1,10 @@
 #pragma once
-#include "jobs_executor.h"
-#include "jobs_init.h"
-#include "jobs_scheduler.h"
+#include "core.h"
+
+typedef enum eJobTaskFlags JobTaskFlags;
+typedef struct sJobGraph   JobGraph;
+typedef struct sJobsConfig JobsConfig;
+typedef u16                JobTaskId;
+typedef u16                JobTaskId;
+typedef u16                JobWorkerId;
+typedef u64                JobId;

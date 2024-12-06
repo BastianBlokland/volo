@@ -1,7 +1,7 @@
 #pragma once
 #include "core.h"
 
-typedef struct {
+typedef struct sJobsConfig {
   /**
    * Amount of workers.
    * If set higher then one (main-thread) additional threads are spawned to help out.

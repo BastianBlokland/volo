@@ -1,9 +1,6 @@
 #pragma once
-#include "core.h"
 #include "core_memory.h"
-
-// Forward declare from 'jobs_graph.h'.
-typedef u16 JobTaskId;
+#include "jobs.h"
 
 /**
  * Identifier for a worker in the job system.
