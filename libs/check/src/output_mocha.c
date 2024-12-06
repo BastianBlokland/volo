@@ -4,7 +4,8 @@
 #include "core_path.h"
 #include "core_thread.h"
 #include "core_time.h"
-#include "json.h"
+#include "json_doc.h"
+#include "json_write.h"
 
 #include "output_mocha_internal.h"
 
@@ -210,24 +211,24 @@ CheckOutput* check_output_mocha(Allocator* alloc, File* file) {
 
   CheckOutputMocha* mochaOut = alloc_alloc_t(alloc, CheckOutputMocha);
   *mochaOut                  = (CheckOutputMocha){
-                       .api =
-                           {
-                               .runStarted      = output_run_started,
-                               .testsDiscovered = output_tests_discovered,
-                               .testSkipped     = output_test_skipped,
-                               .testFinished    = output_test_finished,
-                               .runFinished     = output_run_finished,
-                               .destroy         = output_destroy,
+      .api =
+          {
+              .runStarted      = output_run_started,
+              .testsDiscovered = output_tests_discovered,
+              .testSkipped     = output_test_skipped,
+              .testFinished    = output_test_finished,
+              .runFinished     = output_run_finished,
+              .destroy         = output_destroy,
           },
-                       .alloc       = alloc,
-                       .mutex       = thread_mutex_create(alloc),
-                       .doc         = doc,
-                       .rootObj     = rootObj,
-                       .statsObj    = statsObj,
-                       .passesArr   = passesArr,
-                       .failuresArr = failuresArr,
-                       .pendingArr  = pendingArr,
-                       .file        = file,
+      .alloc       = alloc,
+      .mutex       = thread_mutex_create(alloc),
+      .doc         = doc,
+      .rootObj     = rootObj,
+      .statsObj    = statsObj,
+      .passesArr   = passesArr,
+      .failuresArr = failuresArr,
+      .pendingArr  = pendingArr,
+      .file        = file,
   };
   return (CheckOutput*)mochaOut;
 }

@@ -8,7 +8,8 @@
 #include "core_file.h"
 #include "core_path.h"
 #include "core_sort.h"
-#include "json.h"
+#include "json_doc.h"
+#include "json_write.h"
 #include "log.h"
 
 /**
