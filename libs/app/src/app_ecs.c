@@ -9,6 +9,7 @@
 #include "ecs_runner.h"
 #include "ecs_world.h"
 #include "jobs_init.h"
+#include "log_logger.h"
 #include "log_sink_json.h"
 #include "log_sink_pretty.h"
 #include "trace_init.h"

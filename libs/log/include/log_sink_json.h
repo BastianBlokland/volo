@@ -1,5 +1,5 @@
 #pragma once
-#include "log_logger.h"
+#include "log.h"
 
 typedef enum {
   LogSinkJsonFlags_None        = 0,
