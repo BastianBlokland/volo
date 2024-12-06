@@ -6,9 +6,20 @@
 #include "core_math.h"
 #include "debug_register.h"
 #include "debug_trace.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
-#include "trace.h"
-#include "ui.h"
+#include "jobs.h"
+#include "trace_dump.h"
+#include "trace_sink_store.h"
+#include "trace_tracer.h"
+#include "ui_canvas.h"
+#include "ui_layout.h"
+#include "ui_panel.h"
+#include "ui_scrollview.h"
+#include "ui_shape.h"
+#include "ui_style.h"
+#include "ui_table.h"
+#include "ui_widget.h"
 
 // clang-format off
 
@@ -410,8 +421,8 @@ static void trace_data_events_draw(
     const f64      fracWidth = fracRightClamped - fracLeftClamped;
     const UiVector size      = {.width = (f32)fracWidth, .height = eventHeight};
     const UiVector pos       = {
-              .x = (f32)fracLeftClamped,
-              .y = 1.0f - size.height * (evt->stackDepth + 1),
+        .x = (f32)fracLeftClamped,
+        .y = 1.0f - size.height * (evt->stackDepth + 1),
     };
     ui_layout_set(c, ui_rect(pos, size), UiBase_Container);
 

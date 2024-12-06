@@ -2,7 +2,8 @@
 #include "core_alloc.h"
 #include "core_file.h"
 #include "core_time.h"
-#include "log.h"
+#include "log_logger.h"
+#include "log_sink_pretty.h"
 
 spec(sink_pretty) {
 

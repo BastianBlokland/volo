@@ -1,6 +1,5 @@
 #pragma once
-#include "core_annotation.h"
-#include "core_types.h"
+#include "core.h"
 
 /**
  * Sentinel values can be used to mark a value as being special. For example a function returning a

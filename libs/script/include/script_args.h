@@ -1,23 +1,7 @@
 #pragma once
-#include "core_string.h"
-#include "core_time.h"
-#include "ecs_entity.h"
-
-// Forward declare from 'geo_quat.h'.
-typedef union uGeoQuat GeoQuat;
-
-// Forward declare from 'geo_color.h'.
-typedef union uGeoColor GeoColor;
-
-// Forward declare from 'geo_vector.h'.
-typedef union uGeoVector GeoVector;
-
-// Internal forward declarations:
-typedef enum eScriptType         ScriptType;
-typedef struct sScriptBinderCall ScriptBinderCall;
-typedef struct sScriptEnum       ScriptEnum;
-typedef struct sScriptVal        ScriptVal;
-typedef u16                      ScriptMask;
+#include "ecs.h"
+#include "geo.h"
+#include "script.h"
 
 /**
  * Argument check utilities.

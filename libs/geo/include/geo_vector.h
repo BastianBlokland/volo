@@ -1,9 +1,5 @@
 #pragma once
-#include "core_annotation.h"
-#include "core_types.h"
-
-// Forward declare from 'core_rng.h'.
-typedef struct sRng Rng;
+#include "core.h"
 
 /**
  * 4 component geometric spacial Vector.

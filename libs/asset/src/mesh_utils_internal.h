@@ -1,9 +1,7 @@
 #pragma once
 #include "asset_mesh.h"
 #include "core_alloc.h"
-
-// Forward declare from 'geo_matrix.h'.
-typedef union uGeoMatrix GeoMatrix;
+#include "geo.h"
 
 typedef struct sAssetMeshBuilder AssetMeshBuilder;
 

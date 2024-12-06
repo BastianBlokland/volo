@@ -3,9 +3,6 @@
 #include "ecs_module.h"
 #include "script_prog.h"
 
-// Forward declare from 'script_binder.h'.
-typedef struct sScriptBinder ScriptBinder;
-
 typedef enum {
   AssetScriptDomain_ImportMesh,
   AssetScriptDomain_ImportTexture,

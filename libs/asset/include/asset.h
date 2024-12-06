@@ -1,23 +1,14 @@
 #pragma once
-#include "asset_atlas.h"
-#include "asset_data.h"
-#include "asset_decal.h"
-#include "asset_font.h"
-#include "asset_fonttex.h"
-#include "asset_graphic.h"
-#include "asset_icon.h"
-#include "asset_inputmap.h"
-#include "asset_level.h"
-#include "asset_manager.h"
-#include "asset_mesh.h"
-#include "asset_prefab.h"
-#include "asset_product.h"
-#include "asset_raw.h"
-#include "asset_register.h"
-#include "asset_script.h"
-#include "asset_shader.h"
-#include "asset_sound.h"
-#include "asset_terrain.h"
-#include "asset_texture.h"
-#include "asset_vfx.h"
-#include "asset_weapon.h"
+#include "core.h"
+#include "ecs_module.h"
+
+/**
+ * Forward header for the asset library.
+ */
+
+ecs_comp_extern(AssetAtlasComp);
+ecs_comp_extern(AssetManagerComp);
+
+typedef enum eAssetGraphicPass       AssetGraphicPass;
+typedef struct sAssetGraphicOverride AssetGraphicOverride;
+typedef struct sAssetProduct         AssetProduct;

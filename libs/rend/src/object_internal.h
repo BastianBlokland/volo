@@ -2,9 +2,7 @@
 #include "ecs_module.h"
 #include "rend_object.h"
 
-// Internal forward declarations:
-typedef struct sRendBuilder RendBuilder;
-typedef struct sRendView    RendView;
+#include "forward_internal.h"
 
 ecs_comp_extern(RendSettingsComp);
 

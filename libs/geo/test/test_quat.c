@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_float.h"
 #include "core_math.h"
+#include "geo_matrix.h"
 #include "geo_quat.h"
 
 #include "utils_internal.h"

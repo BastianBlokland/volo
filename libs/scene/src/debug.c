@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_dynarray.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene_debug.h"
 #include "scene_register.h"

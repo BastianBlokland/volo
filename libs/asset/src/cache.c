@@ -5,7 +5,9 @@
 #include "core_math.h"
 #include "core_path.h"
 #include "core_thread.h"
-#include "data.h"
+#include "data_read.h"
+#include "data_utils.h"
+#include "data_write.h"
 #include "log_logger.h"
 #include "trace_tracer.h"
 

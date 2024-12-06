@@ -1,9 +1,11 @@
 #include "asset_manager.h"
 #include "asset_prefab.h"
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_rng.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_attachment.h"
@@ -34,6 +36,7 @@
 #include "scene_transform.h"
 #include "scene_vfx.h"
 #include "scene_visibility.h"
+#include "script_val.h"
 
 typedef enum {
   PrefabResource_MapAcquired  = 1 << 0,

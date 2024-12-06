@@ -2,11 +2,17 @@
 #include "app_cli.h"
 #include "check_def.h"
 #include "check_runner.h"
+#include "cli_app.h"
+#include "cli_help.h"
+#include "cli_parse.h"
+#include "cli_read.h"
+#include "cli_validate.h"
 #include "core_alloc.h"
 #include "core_file.h"
 #include "jobs_init.h"
-#include "log.h"
-#include "trace.h"
+#include "log_sink.h"
+#include "log_sink_json.h"
+#include "trace_init.h"
 
 static CliId g_optOutputPassingTests, g_optJobWorkers, g_optHelp;
 

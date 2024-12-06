@@ -1,6 +1,16 @@
 #pragma once
-#include "snd_buffer.h"
-#include "snd_channel.h"
-#include "snd_mixer.h"
-#include "snd_register.h"
-#include "snd_result.h"
+#include "core.h"
+#include "ecs_module.h"
+
+/**
+ * Forward header for the snd library.
+ */
+
+ecs_comp_extern(SndMixerComp);
+
+typedef enum eSndChannel       SndChannel;
+typedef enum eSndResult        SndResult;
+typedef struct sSndBuffer      SndBuffer;
+typedef struct sSndBufferFrame SndBufferFrame;
+typedef struct sSndBufferView  SndBufferView;
+typedef u32                    SndObjectId;

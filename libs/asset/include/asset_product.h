@@ -5,9 +5,6 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
-// Forward declare from 'core_time.h'.
-typedef i64 TimeDuration;
-
 /**
  * Product database.
  */

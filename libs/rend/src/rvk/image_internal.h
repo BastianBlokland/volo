@@ -1,13 +1,9 @@
 #pragma once
+#include "geo.h"
 
+#include "forward_internal.h"
 #include "mem_internal.h"
 #include "types_internal.h"
-
-// Forward declare from 'geo_color.h'.
-typedef union uGeoColor GeoColor;
-
-// Internal forward declarations:
-typedef struct sRvkDevice RvkDevice;
 
 typedef enum eRvkImagePhase {
   RvkImagePhase_Undefined,

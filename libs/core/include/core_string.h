@@ -1,9 +1,6 @@
 #pragma once
 #include "core_memory.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
 /**
  * Non-owning view over memory containing characters.
  * Encoding is assumed to be utf8.

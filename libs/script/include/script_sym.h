@@ -1,34 +1,13 @@
 #pragma once
-#include "script_intrinsic.h"
+#include "script.h"
 #include "script_pos.h"
-
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
-// Forward declare from 'script_doc.h'.
-typedef struct sScriptDoc ScriptDoc;
-typedef u32               ScriptExpr;
-typedef u8                ScriptVarId;
-typedef u32               ScriptScopeId;
-
-// Forward declare from 'script_val.h'.
-typedef struct sScriptVal ScriptVal;
-
-// Forward declare from 'script_sig.h'.
-typedef struct sScriptSig ScriptSig;
-
-// Forward declare from 'script_binder.h'.
-typedef u16 ScriptBinderSlot;
 
 #define script_syms_max 4096
 #define script_sym_sentinel sentinel_u16
 
 typedef u16 ScriptSym;
 
-typedef enum {
+typedef enum eScriptSymKind {
   ScriptSymKind_Keyword,
   ScriptSymKind_BuiltinConstant,
   ScriptSymKind_BuiltinFunction,
@@ -39,13 +18,13 @@ typedef enum {
   ScriptSymKind_Count,
 } ScriptSymKind;
 
-typedef enum {
+typedef enum eScriptSymRefKind {
   ScriptSymRefKind_Read,
   ScriptSymRefKind_Write,
   ScriptSymRefKind_Call,
 } ScriptSymRefKind;
 
-typedef struct {
+typedef struct sScriptSymRef {
   ScriptSym        sym;
   ScriptSymRefKind kind : 16;
   ScriptRange      location;

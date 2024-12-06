@@ -4,8 +4,10 @@
 #include "core_array.h"
 #include "core_float.h"
 #include "core_math.h"
-#include "data.h"
+#include "data_read.h"
+#include "data_utils.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "log_logger.h"
 
 #include "data_internal.h"

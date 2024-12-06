@@ -1,7 +1,7 @@
 #pragma once
-#include "core_types.h"
+#include "core.h"
 
-typedef struct {
+typedef struct sComplex {
   f64 real, imaginary;
 } Complex;
 

@@ -1,25 +1,8 @@
 #pragma once
-#include "core_annotation.h"
+#include "core.h"
 #include "core_bits.h"
-#include "core_string.h"
-
-// Forward declare from 'core_time.h'.
-typedef i64 TimeDuration;
-
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
-// Forward declare from 'geo_quat.h'.
-typedef union uGeoQuat GeoQuat;
-
-// Forward declare from 'geo_color.h'.
-typedef union uGeoColor GeoColor;
-
-// Forward declare from 'geo_vector.h'.
-typedef union uGeoVector GeoVector;
-
-// Forward declare from 'ecs_entity.h'.
-typedef u64 EcsEntityId;
+#include "ecs.h"
+#include "geo.h"
 
 typedef enum eScriptType {
   ScriptType_Null,

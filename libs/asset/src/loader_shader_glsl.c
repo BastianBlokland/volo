@@ -3,6 +3,7 @@
 #include "core_env.h"
 #include "core_path.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "log_logger.h"
 #include "trace_tracer.h"
 

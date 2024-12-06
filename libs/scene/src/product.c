@@ -6,6 +6,7 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "geo_box_rotated.h"
 #include "geo_sphere.h"

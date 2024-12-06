@@ -1,13 +1,7 @@
 #pragma once
+#include "core.h"
 #include "core_compare.h"
 #include "core_memory.h"
-#include "core_types.h"
-
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
-// Forward declare from 'core_rng.h'.
-typedef struct sRng Rng;
 
 /**
  * Owning array of items.

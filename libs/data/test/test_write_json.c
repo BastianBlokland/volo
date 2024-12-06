@@ -3,7 +3,9 @@
 #include "core_array.h"
 #include "core_float.h"
 #include "core_stringtable.h"
-#include "data.h"
+#include "data_read.h"
+#include "data_utils.h"
+#include "data_write.h"
 
 static void test_write(
     CheckTestContext* _testCtx,

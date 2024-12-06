@@ -1,7 +1,10 @@
 #include "asset_level.h"
 #include "core_alloc.h"
 #include "core_path.h"
-#include "data.h"
+#include "data_read.h"
+#include "data_utils.h"
+#include "data_write.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 

@@ -1,12 +1,7 @@
 #pragma once
+#include "cli.h"
 #include "core_array.h"
 #include "core_string.h"
-
-// Forward declare from 'cli_parse.h'.
-typedef struct sCliInvocation CliInvocation;
-
-// Forward declare from 'cli_app.h'.
-typedef u16 CliId;
 
 /**
  * Read a string that was provided to the given option.

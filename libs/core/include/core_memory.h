@@ -1,10 +1,10 @@
 #pragma once
-#include "core_types.h"
+#include "core.h"
 
 /**
  * Non-owning view over a memory block.
  */
-typedef struct {
+typedef struct sMem {
   void* ptr;
   usize size;
 } Mem;

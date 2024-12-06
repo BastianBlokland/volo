@@ -1,7 +1,7 @@
 #pragma once
 #include "core_string.h"
 
-typedef enum {
+typedef enum eSndChannel {
   SndChannel_Left,
   SndChannel_Right,
 

@@ -1,7 +1,6 @@
 #pragma once
 #include "core_memory.h"
-#include "ecs_comp.h"
-#include "ecs_entity.h"
+#include "ecs.h"
 
 typedef struct sEcsView     EcsView;
 typedef struct sEcsIterator EcsIterator;

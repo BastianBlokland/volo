@@ -1,13 +1,9 @@
 #pragma once
+#include "asset.h"
 #include "asset_shader.h"
 
 #include "desc_internal.h"
-
-// Forward declare from 'asset_graphic.h'.
-typedef struct sAssetGraphicOverride AssetGraphicOverride;
-
-// Internal forward declarations:
-typedef struct sRvkDevice RvkDevice;
+#include "forward_internal.h"
 
 #define rvk_shader_desc_max 5
 

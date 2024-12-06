@@ -2,15 +2,9 @@
 #include "asset_graphic.h"
 
 #include "desc_internal.h"
+#include "forward_internal.h"
 #include "sampler_internal.h"
 #include "vulkan_internal.h"
-
-// Internal forward declarations:
-typedef struct sRvkMesh           RvkMesh;
-typedef struct sRvkPass           RvkPass;
-typedef struct sRvkShader         RvkShader;
-typedef struct sRvkShaderOverride RvkShaderOverride;
-typedef struct sRvkTexture        RvkTexture;
 
 enum {
   RvkGraphicSet_Global   = 0,

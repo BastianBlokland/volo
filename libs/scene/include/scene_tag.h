@@ -20,7 +20,7 @@ typedef enum eSceneTags {
   SceneTags_Default = SceneTags_Geometry | SceneTags_ShadowCaster | SceneTags_Emit,
 } SceneTags;
 
-typedef struct {
+typedef struct sSceneTagFilter {
   SceneTags required, illegal;
 } SceneTagFilter;
 

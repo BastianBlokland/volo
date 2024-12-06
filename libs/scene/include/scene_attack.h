@@ -3,9 +3,7 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo_quat.h"
-
-// Forward declare from 'scene_transform.h'.
-ecs_comp_extern(SceneTransformComp);
+#include "scene.h"
 
 typedef enum {
   SceneAttackFlags_Firing   = 1 << 0,

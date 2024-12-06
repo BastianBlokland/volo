@@ -2,15 +2,8 @@
 #include "core_thread.h"
 #include "rend_settings.h"
 
+#include "forward_internal.h"
 #include "vulkan_internal.h"
-
-// Internal forward declarations:
-typedef struct sRvkDebug       RvkDebug;
-typedef struct sRvkDescPool    RvkDescPool;
-typedef struct sRvkMemPool     RvkMemPool;
-typedef struct sRvkRepository  RvkRepository;
-typedef struct sRvkSamplerPool RvkSamplerPool;
-typedef struct sRvkTransferer  RvkTransferer;
 
 typedef enum {
   RvkDeviceFlags_Validation               = 1 << 0,

@@ -10,7 +10,7 @@ typedef struct sJsonDoc JsonDoc;
 /**
  * Type of a json value.
  */
-typedef enum {
+typedef enum eJsonType {
   JsonType_Array,
   JsonType_Object,
   JsonType_String,
@@ -24,7 +24,7 @@ typedef enum {
 /**
  * Parent kind of a json value.
  */
-typedef enum {
+typedef enum eJsonParent {
   JsonParent_None,
   JsonParent_Array,
   JsonParent_Object,

@@ -1,19 +1,14 @@
 #pragma once
 #include "ecs_entity.h"
 #include "ecs_module.h"
-
-// Forward declare from 'core_time.h'.
-typedef i64 TimeDuration;
-
-// Forward declare from 'gap_input.h'.
-typedef enum eGapKey GapKey;
+#include "gap.h"
 
 /**
  * Controls the cursor behavior:
  * - Normal:  Cursor is visible and can be moved freely.
  * - Locked:  Cursor is hidden and kept centered, NOTE: Delta position values are still produced.
  */
-typedef enum {
+typedef enum eInputCursorMode {
   InputCursorMode_Normal,
   InputCursorMode_Locked,
 } InputCursorMode;
@@ -29,7 +24,7 @@ ecs_comp_extern(InputManagerComp);
  */
 EcsEntityId input_active_window(const InputManagerComp*);
 
-typedef enum {
+typedef enum eInputBlocker {
   InputBlocker_TextInput        = 1 << 0,
   InputBlocker_HoveringUi       = 1 << 1,
   InputBlocker_HoveringGizmo    = 1 << 2,
@@ -42,7 +37,7 @@ typedef enum {
 InputBlocker input_blockers(const InputManagerComp*);
 void         input_blocker_update(InputManagerComp*, InputBlocker, bool value);
 
-typedef enum {
+typedef enum eInputModifier {
   InputModifier_Shift   = 1 << 0,
   InputModifier_Control = 1 << 1,
   InputModifier_Alt     = 1 << 2,

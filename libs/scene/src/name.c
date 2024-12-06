@@ -1,6 +1,7 @@
 #include "asset_manager.h"
 #include "core_path.h"
 #include "core_stringtable.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene_level.h"
 #include "scene_name.h"

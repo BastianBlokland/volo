@@ -2,9 +2,6 @@
 #include "script_pos.h"
 #include "script_val.h"
 
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
 typedef enum eScriptPanicKind {
   ScriptPanic_None,
   ScriptPanic_AssertionFailed,

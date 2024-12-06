@@ -4,6 +4,7 @@
 #include "core_dynarray.h"
 #include "core_float.h"
 #include "core_rng.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene_attachment.h"
 #include "scene_bark.h"

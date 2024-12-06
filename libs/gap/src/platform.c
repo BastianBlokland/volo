@@ -1,4 +1,5 @@
 #include "asset_manager.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "gap_register.h"
 #include "log_logger.h"

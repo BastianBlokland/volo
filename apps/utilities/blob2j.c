@@ -1,9 +1,16 @@
 #include "app_cli.h"
-#include "asset.h"
+#include "asset_data.h"
+#include "cli_app.h"
+#include "cli_help.h"
+#include "cli_parse.h"
+#include "cli_read.h"
+#include "cli_validate.h"
 #include "core_alloc.h"
 #include "core_file.h"
 #include "core_format.h"
-#include "data.h"
+#include "data_read.h"
+#include "data_utils.h"
+#include "data_write.h"
 
 /**
  * Blob2J - Utility to convert Volo binary blobs to json.

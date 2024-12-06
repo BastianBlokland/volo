@@ -3,6 +3,7 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "core_rng.h"
+#include "geo_vector.h"
 
 #include "utils_internal.h"
 

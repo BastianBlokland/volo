@@ -1,15 +1,6 @@
 #pragma once
+#include "geo.h"
 #include "geo_vector.h"
-
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
-// Shape forward declares.
-typedef struct sGeoBox        GeoBox;
-typedef struct sGeoBoxRotated GeoBoxRotated;
-typedef struct sGeoCapsule    GeoCapsule;
-typedef struct sGeoRay        GeoRay;
-typedef struct sGeoSphere     GeoSphere;
 
 /**
  * Maximum number of objects that can be hit using a single query, additional objects are ignored.

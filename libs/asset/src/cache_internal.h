@@ -4,15 +4,6 @@
 
 #include "repo_internal.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
-// Forward declare from 'core_file.h'.
-typedef struct sFile File;
-
-// Forward declare from 'core_time.h'.
-typedef i64 TimeReal;
-
 typedef struct sAssetCache AssetCache;
 
 extern DataMeta g_assetCacheMeta;

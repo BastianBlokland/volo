@@ -1,7 +1,7 @@
 #pragma once
-#include "core_dynstring.h"
+#include "core.h"
 
-typedef struct {
+typedef struct sScriptFormatSettings {
   u32 indentSize;
 } ScriptFormatSettings;
 

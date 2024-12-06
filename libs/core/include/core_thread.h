@@ -1,13 +1,6 @@
 #pragma once
-#include "core_annotation.h"
+#include "core.h"
 #include "core_string.h"
-#include "core_types.h"
-
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
-// Forward declare from 'core_time.h'.
-typedef i64 TimeDuration;
 
 /**
  * Unique identifier for a thread.

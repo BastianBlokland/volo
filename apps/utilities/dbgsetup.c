@@ -1,10 +1,18 @@
 #include "app_cli.h"
+#include "cli_app.h"
+#include "cli_help.h"
+#include "cli_parse.h"
+#include "cli_read.h"
+#include "cli_validate.h"
 #include "core_alloc.h"
 #include "core_file.h"
 #include "core_path.h"
 #include "core_sort.h"
-#include "json.h"
-#include "log.h"
+#include "json_doc.h"
+#include "json_write.h"
+#include "log_logger.h"
+#include "log_sink_json.h"
+#include "log_sink_pretty.h"
 
 /**
  * DebugSetup - Utility to generate debugger configuration files for a set of executables.

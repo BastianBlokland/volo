@@ -1,13 +1,20 @@
 #include "app_cli.h"
 #include "app_ecs.h"
+#include "cli_app.h"
+#include "cli_parse.h"
+#include "cli_read.h"
 #include "core_alloc.h"
 #include "core_signal.h"
 #include "core_thread.h"
 #include "ecs_runner.h"
 #include "ecs_world.h"
 #include "jobs_init.h"
-#include "log.h"
-#include "trace.h"
+#include "log_sink.h"
+#include "log_sink_json.h"
+#include "log_sink_pretty.h"
+#include "trace_init.h"
+#include "trace_sink_store.h"
+#include "trace_sink_superluminal.h"
 
 static CliId              g_optJobWorkers;
 static CliId              g_optNoEcsReplan;

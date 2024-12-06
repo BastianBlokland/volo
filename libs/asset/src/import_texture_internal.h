@@ -1,8 +1,6 @@
 #pragma once
+#include "forward_internal.h"
 #include "loader_texture_internal.h"
-
-// Forward declare from 'import_internal.h'.
-typedef struct sAssetImportEnvComp AssetImportEnvComp;
 
 typedef enum {
   AssetImportTextureFlags_None     = 0,

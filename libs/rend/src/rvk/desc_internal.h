@@ -1,11 +1,6 @@
 #pragma once
+#include "forward_internal.h"
 #include "vulkan_internal.h"
-
-// Internal forward declarations:
-typedef struct sRvkBuffer      RvkBuffer;
-typedef struct sRvkDevice      RvkDevice;
-typedef struct sRvkImage       RvkImage;
-typedef struct sRvkSamplerSpec RvkSamplerSpec;
 
 #define rvk_desc_bindings_max 8
 

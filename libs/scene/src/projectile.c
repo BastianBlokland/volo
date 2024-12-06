@@ -2,7 +2,9 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
+#include "geo_sphere.h"
 #include "scene_collision.h"
 #include "scene_faction.h"
 #include "scene_health.h"
@@ -202,9 +204,9 @@ ecs_system_define(SceneProjectileSys) {
     const GeoRay           ray       = {.point = trans->position, .dir = dir};
     const QueryFilterCtx   filterCtx = {.instigator = entity};
     const SceneQueryFilter filter    = {
-        .context   = &filterCtx,
-        .callback  = &projectile_query_filter,
-        .layerMask = projectile_query_layer_mask(faction),
+           .context   = &filterCtx,
+           .callback  = &projectile_query_filter,
+           .layerMask = projectile_query_layer_mask(faction),
     };
 
     // Test collisions with other entities.

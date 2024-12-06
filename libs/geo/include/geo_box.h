@@ -1,10 +1,7 @@
 #pragma once
+#include "geo.h"
 #include "geo_plane.h"
-#include "geo_quat.h"
 #include "geo_vector.h"
-
-// Forward declare from 'geo_sphere.h'.
-typedef struct sGeoSphere GeoSphere;
 
 /**
  * Geometric 3d axis-aligned box.

@@ -1,7 +1,7 @@
 #pragma once
-#include "core_string.h"
+#include "core.h"
 
-typedef enum {
+typedef enum eScriptIntrinsic {
   ScriptIntrinsic_Continue,          // Args: none.
   ScriptIntrinsic_Break,             // Args: none.
   ScriptIntrinsic_Return,            // Args: value.

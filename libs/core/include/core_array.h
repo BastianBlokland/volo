@@ -23,7 +23,7 @@
        _VAR_ != _VAR_##_end;                                                                       \
        ++_VAR_)
 
-typedef struct {
+typedef struct sHeapArray {
   void* values;
   usize count;
 } HeapArray;

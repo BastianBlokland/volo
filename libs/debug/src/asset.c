@@ -3,8 +3,16 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "debug_asset.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
-#include "ui.h"
+#include "ui_canvas.h"
+#include "ui_layout.h"
+#include "ui_panel.h"
+#include "ui_scrollview.h"
+#include "ui_shape.h"
+#include "ui_style.h"
+#include "ui_table.h"
+#include "ui_widget.h"
 
 // clang-format off
 

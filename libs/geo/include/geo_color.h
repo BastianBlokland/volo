@@ -1,6 +1,5 @@
 #pragma once
-#include "core_annotation.h"
-#include "core_types.h"
+#include "core.h"
 
 typedef union uGeoColor {
   struct {

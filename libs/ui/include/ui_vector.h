@@ -1,11 +1,10 @@
 #pragma once
-#include "core_annotation.h"
-#include "core_types.h"
+#include "core.h"
 
 /**
  * 2D Vector.
  */
-typedef union {
+typedef union uUiVector {
   struct {
     f32 x, y;
   };

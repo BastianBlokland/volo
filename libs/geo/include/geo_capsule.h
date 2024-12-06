@@ -1,9 +1,6 @@
 #pragma once
+#include "geo.h"
 #include "geo_line.h"
-#include "geo_ray.h"
-
-// Forward declare from 'geo_sphere.h'.
-typedef struct sGeoSphere GeoSphere;
 
 /**
  * Capsule in 3 dimensional space.

@@ -5,6 +5,7 @@
 #include "core_dynstring.h"
 #include "core_math.h"
 #include "script_compile.h"
+#include "script_intrinsic.h"
 #include "script_prog.h"
 
 #include "doc_internal.h"

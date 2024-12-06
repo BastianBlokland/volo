@@ -1,11 +1,8 @@
 #pragma once
 #include "ecs_module.h"
-#include "geo_matrix.h"
+#include "geo.h"
 #include "geo_quat.h"
 #include "geo_vector.h"
-
-// Forward declare from 'core_time.h'.
-typedef i64 TimeDuration;
 
 ecs_comp_extern_public(SceneTransformComp) {
   GeoVector position;

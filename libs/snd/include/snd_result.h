@@ -1,7 +1,7 @@
 #pragma once
 #include "core_string.h"
 
-typedef enum {
+typedef enum eSndResult {
   SndResult_Success,
   SndResult_FailedToAcquireObject,
   SndResult_InvalidObject,

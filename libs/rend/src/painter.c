@@ -3,6 +3,7 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "log_logger.h"
 #include "rend_register.h"
 #include "scene_camera.h"
@@ -747,8 +748,8 @@ static bool rend_canvas_paint_3d(
     const GeoMatrix* shadTrans  = rend_light_shadow_trans(light);
     const GeoMatrix* shadProj   = rend_light_shadow_proj(light);
     SceneTagFilter   shadFilter = {
-        .required = cam->filter.required | SceneTags_ShadowCaster,
-        .illegal  = cam->filter.illegal,
+          .required = cam->filter.required | SceneTags_ShadowCaster,
+          .illegal  = cam->filter.illegal,
     };
     if (!(set->flags & RendFlags_VfxShadows)) {
       shadFilter.illegal |= SceneTags_Vfx;

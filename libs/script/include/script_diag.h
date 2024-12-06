@@ -1,15 +1,9 @@
 #pragma once
 #include "script_pos.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
 #define script_diag_max 16
 
-typedef enum {
+typedef enum eScriptDiagKind {
   ScriptDiag_InvalidChar,
   ScriptDiag_InvalidUtf8,
   ScriptDiag_InvalidCharInNumber,
@@ -59,19 +53,19 @@ typedef enum {
   ScriptDiagKind_Count,
 } ScriptDiagKind;
 
-typedef enum {
+typedef enum eScriptDiagSeverity {
   ScriptDiagSeverity_Error,
   ScriptDiagSeverity_Warning,
 } ScriptDiagSeverity;
 
-typedef enum {
+typedef enum eScriptDiagFilter {
   ScriptDiagFilter_None    = 0,
   ScriptDiagFilter_Error   = 1 << 0,
   ScriptDiagFilter_Warning = 1 << 1,
   ScriptDiagFilter_All     = ~0,
 } ScriptDiagFilter;
 
-typedef struct {
+typedef struct sScriptDiag {
   ScriptDiagSeverity severity : 8;
   ScriptDiagKind     kind : 8;
   ScriptRange        range;

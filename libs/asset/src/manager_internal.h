@@ -2,15 +2,7 @@
 #include "data_registry.h"
 
 #include "format_internal.h"
-
-// Forward declare from 'core_time.h'.
-typedef i64 TimeReal;
-
-// Forward declare from 'repo_internal.h'.
-typedef struct sAssetSource AssetSource;
-
-// Forward declare from 'import_internal.h'.
-typedef struct sAssetImportEnvComp AssetImportEnvComp;
+#include "forward_internal.h"
 
 /**
  * Register a dependency between the two assets.

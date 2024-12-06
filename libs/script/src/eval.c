@@ -1,7 +1,8 @@
-#include "core_annotation.h"
+#include "core.h"
 #include "core_diag.h"
 #include "script_binder.h"
 #include "script_eval.h"
+#include "script_intrinsic.h"
 #include "script_mem.h"
 #include "script_val.h"
 

@@ -10,6 +10,7 @@
 #include "debug_shape.h"
 #include "debug_stats.h"
 #include "ecs_module.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "input_manager.h"
 #include "scene_camera.h"
@@ -21,7 +22,14 @@
 #include "scene_transform.h"
 #include "scene_vfx.h"
 #include "trace_tracer.h"
-#include "ui.h"
+#include "ui_canvas.h"
+#include "ui_layout.h"
+#include "ui_panel.h"
+#include "ui_scrollview.h"
+#include "ui_shape.h"
+#include "ui_style.h"
+#include "ui_table.h"
+#include "ui_widget.h"
 
 #include "widget_internal.h"
 

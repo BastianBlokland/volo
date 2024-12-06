@@ -1,11 +1,10 @@
 #pragma once
-#include "core_annotation.h"
-#include "core_types.h"
+#include "core.h"
 
 /**
  * UI Color, 8 bits per channel.
  */
-typedef union {
+typedef union uUiColor {
   struct {
     u8 r, g, b, a;
   };

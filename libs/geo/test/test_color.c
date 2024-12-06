@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_float.h"
 #include "core_rng.h"
+#include "geo_color.h"
 
 #include "utils_internal.h"
 

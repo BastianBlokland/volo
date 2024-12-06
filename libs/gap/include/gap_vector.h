@@ -1,11 +1,10 @@
 #pragma once
-#include "core_annotation.h"
-#include "core_types.h"
+#include "core.h"
 
 /**
  * Tuple representing a 2d position or size.
  */
-typedef union {
+typedef union uGapVector {
   struct {
     i32 x, y;
   };

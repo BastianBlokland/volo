@@ -4,7 +4,7 @@
 /**
  * 2D Rectangle.
  */
-typedef union {
+typedef union uUiRect {
   struct {
     UiVector pos, size;
   };

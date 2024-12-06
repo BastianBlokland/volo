@@ -4,6 +4,7 @@
 #include "core_format.h"
 #include "core_sort.h"
 #include "core_stringtable.h"
+#include "geo_quat.h"
 #include "log_logger.h"
 #include "script_args.h"
 #include "script_binder.h"

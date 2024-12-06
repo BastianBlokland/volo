@@ -1,9 +1,6 @@
 #pragma once
+#include "core.h"
 #include "core_string.h"
-#include "core_types.h"
-
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
 
 /**
  * Opaque identifier to a task in a job.
@@ -12,7 +9,7 @@ typedef struct sAllocator Allocator;
  */
 typedef u16 JobTaskId;
 
-typedef enum {
+typedef enum eJobTaskFlags {
   JobTaskFlags_None = 0,
 
   /**

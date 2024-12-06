@@ -4,8 +4,7 @@
 #include "ui_canvas.h"
 #include "ui_settings.h"
 
-// Internal forward declarations:
-typedef struct sUiCmdBuffer UiCmdBuffer;
+#include "forward_internal.h"
 
 typedef enum {
   UiAtomType_Glyph,

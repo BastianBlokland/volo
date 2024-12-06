@@ -1,13 +1,8 @@
 #pragma once
 #include "core_memory.h"
 
+#include "forward_internal.h"
 #include "vulkan_internal.h"
-
-// Internal forward declarations:
-typedef struct sRvkBuffer   RvkBuffer;
-typedef struct sRvkDescMeta RvkDescMeta;
-typedef struct sRvkDevice   RvkDevice;
-typedef struct sRvkDescSet  RvkDescSet;
 
 typedef struct sRvkUniformPool RvkUniformPool;
 

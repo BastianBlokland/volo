@@ -1,8 +1,10 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_file.h"
-#include "json.h"
-#include "log.h"
+#include "json_doc.h"
+#include "json_read.h"
+#include "log_logger.h"
+#include "log_sink_json.h"
 
 spec(sink_json) {
 
@@ -37,7 +39,7 @@ spec(sink_json) {
         string_lit("Hello World"));
     check_eq_string(
         json_string(jsonDoc, json_field_lit(jsonDoc, result.val, "level")), string_lit("inf"));
-    check_eq_float(json_number(jsonDoc, json_field_lit(jsonDoc, result.val, "line")), 26, 1e-6);
+    check_eq_float(json_number(jsonDoc, json_field_lit(jsonDoc, result.val, "line")), 28, 1e-6);
   }
 
   it("supports log messages with parameters") {

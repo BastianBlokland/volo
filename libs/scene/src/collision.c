@@ -3,15 +3,17 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_float.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
+#include "geo_box_rotated.h"
+#include "geo_capsule.h"
 #include "geo_query.h"
+#include "geo_sphere.h"
+#include "scene.h"
 #include "scene_collision.h"
 #include "scene_register.h"
 #include "scene_transform.h"
 #include "trace_tracer.h"
-
-// Forward declare from 'scene_camera.h'.
-ecs_comp_extern(SceneCameraComp);
 
 ASSERT(sizeof(EcsEntityId) == sizeof(u64), "EntityId's have to be interpretable as 64bit integers");
 ASSERT(geo_query_max_hits == scene_query_max_hits, "Mismatching maximum query hits");

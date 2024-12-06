@@ -1,9 +1,7 @@
 #pragma once
 #include "core_sentinel.h"
 #include "ecs_module.h"
-
-// Forward declare from 'scene_collision.h'.
-typedef enum eSceneLayer SceneLayer;
+#include "scene.h"
 
 typedef enum eSceneFaction {
   SceneFaction_A,

@@ -1,9 +1,5 @@
 #pragma once
-#include "core_annotation.h"
-#include "core_string.h"
-
-// Forward declare from 'script_panic.h'.
-typedef struct sScriptPanicHandler ScriptPanicHandler;
+#include "script.h"
 
 #define script_enum_max_entries 16
 

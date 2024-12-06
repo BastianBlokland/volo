@@ -1,4 +1,9 @@
 #include "app_cli.h"
+#include "cli_app.h"
+#include "cli_help.h"
+#include "cli_parse.h"
+#include "cli_read.h"
+#include "cli_validate.h"
 #include "core_alloc.h"
 #include "core_bc.h"
 #include "core_bits.h"
@@ -7,7 +12,9 @@
 #include "core_math.h"
 #include "core_path.h"
 #include "core_time.h"
-#include "log.h"
+#include "log_logger.h"
+#include "log_sink_json.h"
+#include "log_sink_pretty.h"
 
 /**
  * BlockCompressionUtility - Utility to test texture block compression.

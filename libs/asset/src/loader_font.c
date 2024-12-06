@@ -7,6 +7,7 @@
 #include "core_search.h"
 #include "core_utf8.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 
 #include "repo_internal.h"

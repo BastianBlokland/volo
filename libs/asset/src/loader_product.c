@@ -1,6 +1,6 @@
 #include "asset_product.h"
+#include "core.h"
 #include "core_alloc.h"
-#include "core_annotation.h"
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_search.h"
@@ -8,7 +8,10 @@
 #include "core_time.h"
 #include "core_utf8.h"
 #include "data.h"
+#include "data_read.h"
+#include "data_utils.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "log_logger.h"
 
 #include "import_internal.h"

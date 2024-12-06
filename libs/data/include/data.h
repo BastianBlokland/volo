@@ -1,6 +1,9 @@
 #pragma once
-#include "data_read.h"
-#include "data_registry.h"
-#include "data_type.h"
-#include "data_utils.h"
-#include "data_write.h"
+#include "core.h"
+
+/**
+ * Forward header for the data library.
+ */
+
+typedef enum eDataKind  DataKind;
+typedef struct sDataReg DataReg;

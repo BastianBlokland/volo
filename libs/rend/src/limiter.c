@@ -1,4 +1,5 @@
 #include "core_thread.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "rend_register.h"
 #include "rend_settings.h"

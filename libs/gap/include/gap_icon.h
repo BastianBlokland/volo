@@ -1,13 +1,13 @@
 #pragma once
 
-typedef enum {
+typedef enum eGapIcon {
   GapIcon_Main,
   GapIcon_Tool,
 
   GapIcon_Count,
 } GapIcon;
 
-typedef enum {
+typedef enum eGapCursor {
   GapCursor_Normal,
   GapCursor_Text,
   GapCursor_Click,

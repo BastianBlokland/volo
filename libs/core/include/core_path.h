@@ -2,9 +2,6 @@
 #include "core_dynstring.h"
 #include "core_macro.h"
 
-// Forward declare from 'core_rng.h'.
-typedef struct sRng Rng;
-
 /**
  * Build an absolute path by combining the given segment strings.
  * If the first segment does not start from a filesystem root then the working dir is prepended.

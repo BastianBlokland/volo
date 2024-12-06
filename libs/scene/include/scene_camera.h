@@ -1,11 +1,9 @@
 #pragma once
 #include "ecs_module.h"
-#include "geo_matrix.h"
-#include "geo_ray.h"
+#include "geo.h"
+#include "geo_plane.h"
+#include "scene.h"
 #include "scene_tag.h"
-
-// Forward declare from 'scene_transform.h'.
-ecs_comp_extern(SceneTransformComp);
 
 typedef enum {
   SceneCameraFlags_None                  = 0,

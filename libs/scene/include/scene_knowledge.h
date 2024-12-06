@@ -1,9 +1,6 @@
 #pragma once
 #include "ecs_module.h"
-#include "script_val.h"
-
-// Forward declare from 'script_mem.h'.
-typedef struct sScriptMem ScriptMem;
+#include "script.h"
 
 ecs_comp_extern(SceneKnowledgeComp);
 

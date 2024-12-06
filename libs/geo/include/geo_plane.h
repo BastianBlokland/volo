@@ -6,7 +6,7 @@
  * Geometric 3d plane.
  */
 
-typedef struct {
+typedef struct sGeoPlane {
   GeoVector normal; // NOTE: Unit vector.
   f32       distance;
 } GeoPlane;

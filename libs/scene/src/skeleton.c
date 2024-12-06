@@ -7,6 +7,7 @@
 #include "core_rng.h"
 #include "core_stringtable.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "log_logger.h"
 #include "scene_bounds.h"
 #include "scene_renderable.h"

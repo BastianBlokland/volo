@@ -1,3 +1,4 @@
+#include "core.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_ascii.h"
@@ -7,7 +8,6 @@
 #include "core_rng.h"
 #include "core_sentinel.h"
 #include "core_time.h"
-#include "core_types.h"
 
 #include "init_internal.h"
 #include "path_internal.h"

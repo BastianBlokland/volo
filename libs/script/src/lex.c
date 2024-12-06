@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "core_stringtable.h"
 #include "core_thread.h"
 #include "core_utf8.h"
 #include "script_lex.h"

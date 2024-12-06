@@ -1,25 +1,7 @@
 #pragma once
-#include "core_annotation.h"
-#include "core_types.h"
-
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
-// Forward declare from 'core_time.h'.
-typedef i64 TimeDuration;
-
-// Forward declare from 'ecs_world.h'.
-typedef struct sEcsWorld EcsWorld;
-
-// Forward declare from 'ecs_module.h'.
-typedef u16 EcsSystemId;
-
-// Forward declare from 'jobs_scheduler.h'.
-typedef u64 JobId;
-
-// Forward declare from 'jobs_graph.h'.
-typedef struct sJobGraph JobGraph;
-typedef u16              JobTaskId;
+#include "core.h"
+#include "ecs.h"
+#include "jobs.h"
 
 typedef struct sEcsRunner EcsRunner;
 
@@ -37,8 +19,8 @@ typedef enum {
 /**
  * True while the current thread is running an ecs system.
  */
-extern THREAD_LOCAL bool             g_ecsRunningSystem;
-extern THREAD_LOCAL EcsSystemId      g_ecsRunningSystemId;
+extern THREAD_LOCAL bool        g_ecsRunningSystem;
+extern THREAD_LOCAL EcsSystemId g_ecsRunningSystemId;
 extern THREAD_LOCAL const EcsRunner* g_ecsRunningRunner;
 
 /**

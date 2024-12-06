@@ -1,17 +1,5 @@
 #pragma once
-#include "script_doc.h"
-
-// Forward declare from 'core_stringtable.h'.
-typedef struct sStringTable StringTable;
-
-// Forward declare from 'script_binder.h'.
-typedef struct sScriptBinder ScriptBinder;
-
-// Forward declare from 'script_diag.h'.
-typedef struct sScriptDiagBag ScriptDiagBag;
-
-// Forward declare from 'script_sym.h'.
-typedef struct sScriptSymBag ScriptSymBag;
+#include "script.h"
 
 /**
  * Read a script expression.

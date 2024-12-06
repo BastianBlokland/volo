@@ -2,9 +2,6 @@
 #include "geo_box_rotated.h"
 #include "geo_vector.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
 /**
  * Navigation grid.
  */

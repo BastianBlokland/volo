@@ -4,10 +4,8 @@
 #include "geo_color.h"
 #include "geo_quat.h"
 #include "geo_ray.h"
+#include "scene.h"
 #include "script_pos.h"
-
-// Forward declare from 'scene_script.h'.
-typedef u8 SceneScriptSlot;
 
 typedef enum {
   SceneDebugType_Line,

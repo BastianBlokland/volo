@@ -1,5 +1,5 @@
 #pragma once
-#include "core_annotation.h"
+#include "core.h"
 #include "core_format.h"
 #include "core_sourceloc.h"
 

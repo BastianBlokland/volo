@@ -4,6 +4,7 @@
 #include "core_signal.h"
 #include "core_thread.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "gap_register.h"
 #include "gap_window.h"

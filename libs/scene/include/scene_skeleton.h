@@ -1,10 +1,7 @@
 #pragma once
 #include "ecs_module.h"
 #include "geo_matrix.h"
-
-// Forward declare from 'scene_transform.h'
-ecs_comp_extern_public(SceneTransformComp);
-ecs_comp_extern_public(SceneScaleComp);
+#include "scene.h"
 
 #define scene_skeleton_joints_max 75
 
@@ -29,7 +26,7 @@ typedef enum {
   SceneAnimFlags_AutoFade    = SceneAnimFlags_AutoFadeOut | SceneAnimFlags_AutoFadeIn,
 } SceneAnimFlags;
 
-typedef struct {
+typedef struct sSceneAnimLayer {
   f32            time; // Not normalized.
   f32            duration;
   f32            speed;
@@ -38,7 +35,7 @@ typedef struct {
   SceneAnimFlags flags : 8;
 } SceneAnimLayer;
 
-typedef struct {
+typedef struct sSceneJointPose {
   GeoVector t;
   GeoQuat   r;
   GeoVector s;

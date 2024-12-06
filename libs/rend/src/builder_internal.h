@@ -1,23 +1,10 @@
 #pragma once
 #include "core_memory.h"
+#include "geo.h"
 #include "rend_settings.h"
 
+#include "rvk/forward_internal.h"
 #include "rvk/types_internal.h"
-
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
-// Forward declare from 'geo_color.h'.
-typedef union uGeoColor GeoColor;
-
-// Internal forward declarations:
-typedef struct sRvkCanvas      RvkCanvas;
-typedef struct sRvkGraphic     RvkGraphic;
-typedef struct sRvkImage       RvkImage;
-typedef struct sRvkMesh        RvkMesh;
-typedef struct sRvkPass        RvkPass;
-typedef struct sRvkRepository  RvkRepository;
-typedef struct sRvkSamplerSpec RvkSamplerSpec;
 
 /**
  * Utility to submit draws.

@@ -1,8 +1,11 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_diag.h"
-#include "json.h"
-#include "trace.h"
+#include "json_doc.h"
+#include "json_read.h"
+#include "trace_dump.h"
+#include "trace_sink_store.h"
+#include "trace_tracer.h"
 
 static JsonVal test_find_event_by_name(const JsonDoc* jDoc, const JsonVal arr, const String name) {
   json_for_elems(jDoc, arr, evt) {

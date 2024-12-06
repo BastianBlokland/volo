@@ -1,9 +1,6 @@
 #pragma once
 #include "core_string.h"
 
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
 typedef enum {
   ZlibError_None,
   ZlibError_Truncated,

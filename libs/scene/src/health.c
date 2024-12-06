@@ -6,6 +6,7 @@
 #include "core_math.h"
 #include "core_rng.h"
 #include "ecs_utils.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene_bark.h"
 #include "scene_health.h"

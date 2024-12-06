@@ -1,5 +1,5 @@
+#include "core.h"
 #include "core_thread.h"
-#include "core_types.h"
 #include "geo_box_rotated.h"
 #include "geo_capsule.h"
 #include "geo_color.h"

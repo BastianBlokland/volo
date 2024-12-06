@@ -1,5 +1,5 @@
 #pragma once
-#include "core_annotation.h"
+#include "core.h"
 #include "core_format.h"
 #include "core_math.h"
 #include "core_sourceloc.h"
@@ -16,7 +16,7 @@ typedef u32 CheckTestId;
 typedef struct sCheckSpecContext CheckSpecContext;
 typedef struct sCheckTestContext CheckTestContext;
 
-typedef struct {
+typedef struct sCheckTest {
   CheckTestId    id;
   String         description;
   SourceLoc      source;

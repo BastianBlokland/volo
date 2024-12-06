@@ -1,5 +1,5 @@
 #pragma once
-#include "core_annotation.h"
+#include "core.h"
 #include "jobs_graph.h"
 
 // Padded to 64 bytes to avoid false-sharing of cachelines.

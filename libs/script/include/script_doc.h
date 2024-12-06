@@ -1,19 +1,5 @@
 #pragma once
-#include "core_dynstring.h"
-#include "core_types.h"
-#include "script_intrinsic.h"
-#include "script_val.h"
-
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
-// Forward declare from 'script_pos.h'.
-typedef u32                        ScriptPos;
-typedef struct sScriptRange        ScriptRange;
-typedef struct sScriptRangeLineCol ScriptRangeLineCol;
-
-// Forward declare from 'script_binder.h'.
-typedef u16 ScriptBinderSlot;
+#include "script.h"
 
 #define script_var_count 16
 #define script_var_sentinel sentinel_u8
@@ -28,7 +14,7 @@ typedef u32 ScriptScopeId;
  */
 typedef struct sScriptDoc ScriptDoc;
 
-typedef enum {
+typedef enum eScriptExprKind {
   ScriptExprKind_Value,
   ScriptExprKind_VarLoad,
   ScriptExprKind_VarStore,

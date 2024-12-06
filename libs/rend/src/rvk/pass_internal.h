@@ -2,6 +2,7 @@
 #include "core_time.h"
 #include "geo_color.h"
 
+#include "forward_internal.h"
 #include "sampler_internal.h"
 #include "types_internal.h"
 #include "uniform_internal.h"
@@ -10,17 +11,6 @@
 #define rvk_pass_global_data_max 1
 #define rvk_pass_global_image_max 5
 #define rvk_pass_draw_image_max 5
-
-// Internal forward declarations:
-typedef enum eRvkJobPhase     RvkJobPhase;
-typedef enum eRvkStat         RvkStat;
-typedef struct sRvkAttachSpec RvkAttachSpec;
-typedef struct sRvkDescMeta   RvkDescMeta;
-typedef struct sRvkDevice     RvkDevice;
-typedef struct sRvkGraphic    RvkGraphic;
-typedef struct sRvkImage      RvkImage;
-typedef struct sRvkJob        RvkJob;
-typedef struct sRvkMesh       RvkMesh;
 
 typedef u8 RvkPassHandle;
 

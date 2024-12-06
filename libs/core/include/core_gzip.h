@@ -1,12 +1,6 @@
 #pragma once
 #include "core_string.h"
 
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
-// Forward declare from 'core_time.h'.
-typedef i64 TimeReal;
-
 typedef enum {
   GzipError_None,
   GzipError_Truncated,

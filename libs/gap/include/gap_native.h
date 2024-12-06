@@ -1,13 +1,11 @@
 #pragma once
-#include "core_types.h"
+#include "core.h"
 #include "ecs_module.h"
+#include "gap.h"
 
 /**
  * Header for retrieving platform specific handles window-manager components.
  */
-
-// Forward declare from 'gap_window.h'.
-ecs_comp_extern(GapWindowComp);
 
 /**
  * Identifier of a Window-Manager connection.

@@ -6,7 +6,7 @@
  * Line in 3 dimensional space.
  */
 
-typedef struct {
+typedef struct sGeoLine {
   GeoVector a, b;
 } GeoLine;
 

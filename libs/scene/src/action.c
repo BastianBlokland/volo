@@ -1,5 +1,7 @@
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_diag.h"
+#include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene_action.h"
 #include "scene_attachment.h"

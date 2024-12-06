@@ -1,9 +1,9 @@
 #include "cli_parse.h"
+#include "core.h"
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_string.h"
-#include "core_types.h"
 
 #include "app_internal.h"
 
@@ -324,9 +324,9 @@ CliInvocation* cli_parse(const CliApp* app, const int argc, const char** argv) {
 
   CliInvocation* invoc = alloc_alloc_t(app->alloc, CliInvocation);
   *invoc               = (CliInvocation){
-      .alloc   = app->alloc,
-      .errors  = ctx.errors,
-      .options = ctx.options,
+                    .alloc   = app->alloc,
+                    .errors  = ctx.errors,
+                    .options = ctx.options,
   };
   return invoc;
 }

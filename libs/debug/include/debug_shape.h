@@ -1,8 +1,8 @@
 #pragma once
 #include "ecs_entity.h"
 #include "ecs_module.h"
-#include "geo_color.h"
-#include "geo_matrix.h"
+#include "geo.h"
+#include "geo_vector.h"
 
 typedef enum {
   DebugShape_Fill,

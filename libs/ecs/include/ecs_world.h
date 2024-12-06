@@ -1,21 +1,6 @@
 #pragma once
 #include "core_memory.h"
-#include "ecs_archetype.h"
-#include "ecs_entity.h"
-#include "ecs_module.h"
-#include "ecs_view.h"
-
-// Forward declare from 'ecs_def.h'.
-typedef struct sEcsDef EcsDef;
-
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
-// Forward declare from 'core_bitset.h'
-typedef Mem BitSet;
-
-// Forward declare from 'job_executor.h'.
-typedef u16 JobWorkerId;
+#include "ecs.h"
 
 typedef struct sEcsWorld EcsWorld;
 

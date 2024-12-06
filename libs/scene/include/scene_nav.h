@@ -3,10 +3,7 @@
 #include "ecs_module.h"
 #include "geo_nav.h"
 
-// Forward declare from 'core_time.h'.
-typedef i64 TimeDuration;
-
-typedef enum {
+typedef enum eSceneNavLayer {
   SceneNavLayer_Normal,
   SceneNavLayer_Large,
 

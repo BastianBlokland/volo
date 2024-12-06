@@ -1,10 +1,6 @@
 #pragma once
+#include "forward_internal.h"
 #include "vulkan_internal.h"
-
-// Internal forward declarations:
-typedef struct sRvkBuffer RvkBuffer;
-typedef struct sRvkDevice RvkDevice;
-typedef struct sRvkImage  RvkImage;
 
 /**
  * Transferer for uploading data from the CPU to the GPU.

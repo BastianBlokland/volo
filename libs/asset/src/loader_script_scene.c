@@ -1,5 +1,6 @@
 #include "asset_script.h"
 #include "core_alloc.h"
+#include "core_bits.h"
 #include "core_format.h"
 #include "script_binder.h"
 #include "script_sig.h"
