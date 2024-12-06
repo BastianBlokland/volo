@@ -3,6 +3,6 @@
 
 typedef enum eLogLevel   LogLevel;
 typedef enum eLogMask    LogMask;
-typedef struct eLogParam LogParam;
 typedef struct sLogger   Logger;
+typedef struct sLogParam LogParam;
 typedef struct sLogSink  LogSink;

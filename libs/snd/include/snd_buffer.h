@@ -2,16 +2,16 @@
 #include "core_time.h"
 #include "snd_channel.h"
 
-typedef struct {
+typedef struct sSndBufferFrame {
   f32 samples[SndChannel_Count];
 } SndBufferFrame;
 
-typedef struct {
+typedef struct sSndBuffer {
   SndBufferFrame* frames;
   u32             frameCount, frameRate;
 } SndBuffer;
 
-typedef struct {
+typedef struct sSndBufferView {
   const SndBufferFrame* frames;
   u32                   frameCount, frameRate;
 } SndBufferView;

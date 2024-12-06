@@ -23,7 +23,7 @@ typedef enum eLogMask {
 /**
  * Structured logging parameter (key-value pair).
  */
-typedef struct eLogParam {
+typedef struct sLogParam {
   String    name;
   FormatArg arg;
 } LogParam;
