@@ -1,10 +1,7 @@
 #pragma once
 #include "core.h"
 
-// Internal forward declarations:
-typedef struct sRvkGraphic RvkGraphic;
-typedef struct sRvkMesh    RvkMesh;
-typedef struct sRvkTexture RvkTexture;
+#include "forward_internal.h"
 
 typedef enum {
   RvkRepositoryId_AmbientDebugGraphic,

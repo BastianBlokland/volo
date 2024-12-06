@@ -1,8 +1,8 @@
 #include "asset_manager.h"
 #include "data_registry.h"
-#include "internal.h"
 
 #include "format_internal.h"
+#include "forward_internal.h"
 
 /**
  * Register a dependency between the two assets.

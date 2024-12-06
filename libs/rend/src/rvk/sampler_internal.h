@@ -1,8 +1,6 @@
 #pragma once
+#include "forward_internal.h"
 #include "vulkan_internal.h"
-
-// Internal forward declarations:
-typedef struct sRvkDevice RvkDevice;
 
 typedef enum {
   RvkSamplerFlags_None           = 0,

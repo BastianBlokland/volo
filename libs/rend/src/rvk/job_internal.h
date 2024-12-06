@@ -2,15 +2,8 @@
 #include "core_time.h"
 #include "geo.h"
 
+#include "forward_internal.h"
 #include "uniform_internal.h"
-
-// Internal forward declarations:
-typedef enum eRvkImagePhase     RvkImagePhase;
-typedef struct sRvkDevice       RvkDevice;
-typedef struct sRvkImage        RvkImage;
-typedef struct sRvkStatRecorder RvkStatRecorder;
-typedef struct sRvkStopwatch    RvkStopwatch;
-typedef struct sRvkUniformPool  RvkUniformPool;
 
 typedef enum eRvkJobPhase {
   RvkJobPhase_Main,

@@ -1,6 +1,5 @@
 #pragma once
-#include "internal.h"
-
+#include "forward_internal.h"
 #include "loader_texture_internal.h"
 
 typedef enum {

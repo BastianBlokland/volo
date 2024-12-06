@@ -2,10 +2,8 @@
 #include "asset_mesh.h"
 
 #include "buffer_internal.h"
+#include "forward_internal.h"
 #include "transfer_internal.h"
-
-// Internal forward declarations:
-typedef struct sRvkDevice RvkDevice;
 
 typedef struct sRvkMesh {
   u32           vertexCount, indexCount;

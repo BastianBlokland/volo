@@ -1,11 +1,9 @@
 #pragma once
 #include "geo.h"
 
+#include "forward_internal.h"
 #include "mem_internal.h"
 #include "types_internal.h"
-
-// Internal forward declarations:
-typedef struct sRvkDevice RvkDevice;
 
 typedef enum eRvkImagePhase {
   RvkImagePhase_Undefined,

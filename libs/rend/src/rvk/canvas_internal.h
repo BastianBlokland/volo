@@ -4,19 +4,10 @@
 #include "rend_settings.h"
 #include "rend_stats.h"
 
+#include "forward_internal.h"
 #include "types_internal.h"
 
 #define rvk_canvas_max_passes 16
-
-// Internal forward declarations:
-typedef enum eRvkJobPhase         RvkJobPhase;
-typedef struct sRvkAttachPool     RvkAttachPool;
-typedef struct sRvkDevice         RvkDevice;
-typedef struct sRvkImage          RvkImage;
-typedef struct sRvkJob            RvkJob;
-typedef struct sRvkPass           RvkPass;
-typedef struct sRvkRepository     RvkRepository;
-typedef struct sRvkSwapchainStats RvkSwapchainStats;
 
 typedef struct sRvkCanvasStats {
   TimeDuration  waitForGpuDur; // Time the cpu was blocked waiting for the gpu.

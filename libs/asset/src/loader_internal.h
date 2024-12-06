@@ -1,6 +1,5 @@
 #pragma once
-#include "internal.h"
-
+#include "forward_internal.h"
 #include "repo_internal.h"
 
 typedef void (*AssetLoader)(
