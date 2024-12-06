@@ -1,11 +1,5 @@
 #pragma once
-#include "core.h"
-
-// Forward declare from 'cli_app.h'.
-typedef struct sCliApp CliApp;
-
-// Forward declare from 'cli_parse.h'.
-typedef struct sCliInvocation CliInvocation;
+#include "cli.h"
 
 typedef enum {
   CliFailureFlags_None  = 0,

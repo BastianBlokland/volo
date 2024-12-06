@@ -1,5 +1,8 @@
 #include "app_cli.h"
 #include "app_ecs.h"
+#include "cli_app.h"
+#include "cli_parse.h"
+#include "cli_read.h"
 #include "core_alloc.h"
 #include "core_signal.h"
 #include "core_thread.h"

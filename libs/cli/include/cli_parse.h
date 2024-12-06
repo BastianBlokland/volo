@@ -1,24 +1,18 @@
 #pragma once
-#include "core.h"
+#include "cli.h"
 #include "core_string.h"
-
-// Forward declare from 'cli_app.h'.
-typedef struct sCliApp CliApp;
-
-// Forward declare from 'cli_app.h'.
-typedef u16 CliId;
 
 typedef enum {
   CliParseResult_Success = 0,
   CliParseResult_Fail    = 1,
 } CliParseResult;
 
-typedef struct {
+typedef struct sCliParseErrors {
   String* values;
   usize   count;
 } CliParseErrors;
 
-typedef struct {
+typedef struct sCliParseValues {
   String* values;
   usize   count;
 } CliParseValues;
