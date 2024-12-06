@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_dynstring.h"
 #include "core_file.h"
 #include "core_math.h"
 #include "core_rng.h"
@@ -682,10 +683,10 @@ static void runner_plan_formulate(EcsRunner* runner, const u32 planIndex, const 
   const u32       depStrideBits   = bits_align_32(runner->taskCount, 64);
   const u32       depStrideChunks = bits_to_dwords(depStrideBits);
   RunnerDepMatrix depMatrix       = {
-      .chunks       = mem_stack(runner->taskCount * depStrideChunks * sizeof(u64)).ptr,
-      .strideBits   = depStrideBits,
-      .strideChunks = depStrideChunks,
-      .count        = runner->taskCount,
+            .chunks       = mem_stack(runner->taskCount * depStrideChunks * sizeof(u64)).ptr,
+            .strideBits   = depStrideBits,
+            .strideChunks = depStrideChunks,
+            .count        = runner->taskCount,
   };
   runner_dep_clear(&depMatrix);
 

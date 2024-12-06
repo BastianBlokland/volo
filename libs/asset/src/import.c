@@ -4,6 +4,8 @@
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_dynarray.h"
+#include "core_dynstring.h"
 #include "core_path.h"
 #include "core_stringtable.h"
 #include "ecs_utils.h"

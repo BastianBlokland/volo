@@ -1,7 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
-#include "core_diag.h"
+#include "core_dynarray.h"
 #include "core_float.h"
 #include "ecs_world.h"
 #include "geo_matrix.h"
@@ -378,9 +378,9 @@ obj_triangulate(const ObjData* data, const AssetImportMesh* importData, AssetMes
     // Create a triangle fan around the first vertex.
     const ObjVertex* inA   = &vertices[face->vertexIndex];
     AssetMeshVertex  vertA = {
-        .position = positions[inA->positionIndex],
-        .normal   = face->useFaceNormal ? faceNrm : normals[inA->normalIndex],
-        .texcoord = obj_get_texcoord(data, inA),
+         .position = positions[inA->positionIndex],
+         .normal   = face->useFaceNormal ? faceNrm : normals[inA->normalIndex],
+         .texcoord = obj_get_texcoord(data, inA),
     };
     asset_mesh_vertex_transform(&vertA, &vertexImportTrans);
     asset_mesh_vertex_quantize(&vertA);
@@ -388,18 +388,18 @@ obj_triangulate(const ObjData* data, const AssetImportMesh* importData, AssetMes
     for (u32 i = 2; i < face->vertexCount; ++i) {
       const ObjVertex* inB   = &vertices[face->vertexIndex + i - 1];
       AssetMeshVertex  vertB = {
-          .position = positions[inB->positionIndex],
-          .normal   = face->useFaceNormal ? faceNrm : normals[inB->normalIndex],
-          .texcoord = obj_get_texcoord(data, inB),
+           .position = positions[inB->positionIndex],
+           .normal   = face->useFaceNormal ? faceNrm : normals[inB->normalIndex],
+           .texcoord = obj_get_texcoord(data, inB),
       };
       asset_mesh_vertex_transform(&vertB, &vertexImportTrans);
       asset_mesh_vertex_quantize(&vertB);
 
       const ObjVertex* inC   = &vertices[face->vertexIndex + i];
       AssetMeshVertex  vertC = {
-          .position = positions[inC->positionIndex],
-          .normal   = face->useFaceNormal ? faceNrm : normals[inC->normalIndex],
-          .texcoord = obj_get_texcoord(data, inC),
+           .position = positions[inC->positionIndex],
+           .normal   = face->useFaceNormal ? faceNrm : normals[inC->normalIndex],
+           .texcoord = obj_get_texcoord(data, inC),
       };
       asset_mesh_vertex_transform(&vertC, &vertexImportTrans);
       asset_mesh_vertex_quantize(&vertC);

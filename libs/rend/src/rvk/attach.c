@@ -1,8 +1,6 @@
-#include "core_array.h"
 #include "core_bits.h"
 #include "core_bitset.h"
 #include "core_diag.h"
-#include "log_logger.h"
 
 #include "attach_internal.h"
 #include "debug_internal.h"

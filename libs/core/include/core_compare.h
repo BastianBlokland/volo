@@ -1,6 +1,5 @@
 #pragma once
 #include "core.h"
-#include "core_string.h"
 
 /**
  * Determine the order between two values.

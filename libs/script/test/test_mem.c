@@ -1,5 +1,4 @@
 #include "check_spec.h"
-#include "core_alloc.h"
 #include "core_bits.h"
 #include "script_mem.h"
 #include "script_val.h"

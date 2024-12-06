@@ -1,5 +1,5 @@
 #pragma once
-#include "core_signal.h"
+#include "core.h"
 #include "core_string.h"
 
 /**

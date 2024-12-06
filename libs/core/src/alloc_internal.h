@@ -1,5 +1,6 @@
 #pragma once
 #include "core_alloc.h"
+#include "core_dynstring.h"
 #include "core_symbol.h"
 
 #include "diag_internal.h"

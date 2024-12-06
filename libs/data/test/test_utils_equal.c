@@ -1,6 +1,8 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_dynarray.h"
+#include "data_registry.h"
 #include "data_utils.h"
 
 spec(utils_equal) {

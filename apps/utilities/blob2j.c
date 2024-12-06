@@ -6,6 +6,7 @@
 #include "cli_read.h"
 #include "cli_validate.h"
 #include "core_alloc.h"
+#include "core_dynstring.h"
 #include "core_file.h"
 #include "core_format.h"
 #include "data_read.h"

@@ -1,6 +1,5 @@
 #pragma once
 #include "core.h"
-#include "core_dynstring.h"
 
 /**
  * MIME Base64 encoding uses 64 'safe' ascii characters to represent 6 bits of data.

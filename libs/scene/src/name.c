@@ -3,7 +3,6 @@
 #include "core_stringtable.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
-#include "scene_level.h"
 #include "scene_name.h"
 #include "scene_prefab.h"
 #include "scene_renderable.h"

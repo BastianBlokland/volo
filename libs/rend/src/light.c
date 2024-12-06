@@ -9,6 +9,7 @@
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "gap_window.h"
+#include "geo_box_rotated.h"
 #include "geo_matrix.h"
 #include "log_logger.h"
 #include "rend_light.h"

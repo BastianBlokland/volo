@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_deflate.h"
+#include "core_dynstring.h"
 
 static String test_data_scratch(const String bitString) {
   Mem       scratchMem = alloc_alloc(g_allocScratch, bits_to_bytes(bitString.size) + 1, 1);

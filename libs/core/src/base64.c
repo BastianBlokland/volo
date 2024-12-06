@@ -1,7 +1,8 @@
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_base64.h"
 #include "core_bits.h"
+#include "core_dynstring.h"
+#include "core_string.h"
 
 /**
  * Table of Base64 characters.

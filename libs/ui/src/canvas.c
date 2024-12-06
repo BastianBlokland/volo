@@ -1,12 +1,13 @@
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_dynarray.h"
 #include "core_math.h"
 #include "core_sort.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
-#include "gap_register.h"
 #include "gap_window.h"
+#include "geo_box.h"
 #include "input_manager.h"
 #include "rend_object.h"
 #include "scene_lifetime.h"
@@ -523,13 +524,13 @@ ecs_system_define(UiRenderSys) {
     const f32      scale       = ui_window_scale(window, settings);
     const UiVector canvasSize  = ui_vector(winSize.x / scale, winSize.y / scale);
     UiRenderState  renderState = {
-        .settings      = settings,
-        .atlasFont     = atlasFont,
-        .atlasImage    = atlasImage,
-        .renderer      = renderer,
-        .rendObj       = rendObj,
-        .clipRects[0]  = {.size = canvasSize},
-        .clipRectCount = 1,
+         .settings      = settings,
+         .atlasFont     = atlasFont,
+         .atlasImage    = atlasImage,
+         .renderer      = renderer,
+         .rendObj       = rendObj,
+         .clipRects[0]  = {.size = canvasSize},
+         .clipRectCount = 1,
     };
 
     UiCanvasPtr canvasses[ui_canvas_canvasses_max];

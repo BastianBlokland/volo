@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "geo_color.h"
 
 #include "device_internal.h"
 #include "image_internal.h"
@@ -658,7 +659,7 @@ void rvk_image_clear_color(const RvkImage* img, const GeoColor color, VkCommandB
 
   const VkClearColorValue       clearColor = rvk_rend_clear_color(color);
   const VkImageSubresourceRange ranges[]   = {
-        {
+      {
             .aspectMask     = rvk_image_vkaspect(img->type),
             .baseMipLevel   = 0,
             .levelCount     = img->mipLevels,
@@ -682,7 +683,7 @@ void rvk_image_clear_depth(const RvkImage* img, const f32 depth, VkCommandBuffer
 
   const VkClearDepthStencilValue clearValue = {.depth = depth};
   const VkImageSubresourceRange  ranges[]   = {
-         {
+      {
              .aspectMask     = rvk_image_vkaspect(img->type),
              .baseMipLevel   = 0,
              .levelCount     = img->mipLevels,

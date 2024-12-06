@@ -1,5 +1,5 @@
 #pragma once
-#include "core_time.h"
+#include "core.h"
 #include "snd_channel.h"
 
 typedef struct sSndBufferFrame {

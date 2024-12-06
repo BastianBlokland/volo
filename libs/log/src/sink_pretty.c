@@ -1,5 +1,5 @@
 #include "core_alloc.h"
-#include "core_diag.h"
+#include "core_dynstring.h"
 #include "core_file.h"
 #include "core_format.h"
 #include "core_math.h"

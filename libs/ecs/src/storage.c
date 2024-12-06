@@ -1,6 +1,4 @@
-#include "core_bits.h"
 #include "core_diag.h"
-#include "ecs_runner.h"
 
 #include "archetype_internal.h"
 #include "def_internal.h"

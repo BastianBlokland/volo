@@ -1,6 +1,5 @@
 #include "core_array.h"
 #include "core_diag.h"
-#include "ecs_world.h"
 #include "scene_collision.h"
 #include "scene_faction.h"
 

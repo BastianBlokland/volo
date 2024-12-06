@@ -1,5 +1,3 @@
-#include "core.h"
-#include "core_diag.h"
 #include "core_math.h"
 #include "ecs_view.h"
 #include "ecs_world.h"

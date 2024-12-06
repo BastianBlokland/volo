@@ -1,9 +1,9 @@
+#if defined(VOLO_WIN32)
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_sentinel.h"
+#include "core_string.h"
 #include "core_winutils.h"
-
-#if defined(VOLO_WIN32)
 
 #include <Windows.h>
 

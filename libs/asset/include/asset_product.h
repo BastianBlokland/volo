@@ -1,6 +1,5 @@
 #pragma once
 #include "core_array.h"
-#include "core_unicode.h"
 #include "data_registry.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"

@@ -1,6 +1,5 @@
 #include "check_spec.h"
 #include "core_array.h"
-#include "core_math.h"
 #include "geo_box_rotated.h"
 #include "geo_sphere.h"
 

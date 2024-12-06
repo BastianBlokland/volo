@@ -1,7 +1,7 @@
 #pragma once
-#include "core_string.h"
-#include "ui_color.h"
-#include "ui_units.h"
+#include "core.h"
+#include "core_format.h"
+#include "ui.h"
 
 /**
  * Escape sequences can be used to control various aspects of text rendering.

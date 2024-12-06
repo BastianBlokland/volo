@@ -1,5 +1,4 @@
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_diag.h"
 #include "core_thread.h"
 #include "log_logger.h"

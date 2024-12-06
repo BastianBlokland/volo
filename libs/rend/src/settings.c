@@ -2,7 +2,7 @@
 #include "core_math.h"
 #include "core_rng.h"
 #include "ecs_world.h"
-#include "rend_register.h"
+#include "geo_vector.h"
 #include "rend_settings.h"
 
 #define VOLO_REND_GPU_DEBUG 0

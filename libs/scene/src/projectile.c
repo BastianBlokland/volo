@@ -11,12 +11,10 @@
 #include "scene_lifetime.h"
 #include "scene_prefab.h"
 #include "scene_projectile.h"
-#include "scene_sound.h"
 #include "scene_status.h"
 #include "scene_terrain.h"
 #include "scene_time.h"
 #include "scene_transform.h"
-#include "scene_vfx.h"
 
 #define proj_seek_angle_max (210.0f * math_deg_to_rad)
 #define proj_seek_buildup_time (time_second)

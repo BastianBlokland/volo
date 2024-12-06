@@ -1,6 +1,8 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_dynarray.h"
+#include "data_registry.h"
 #include "data_utils.h"
 
 spec(utils_destroy) {
@@ -136,9 +138,9 @@ spec(utils_destroy) {
 
     DestroyStructB* ptr = alloc_alloc_t(g_allocHeap, DestroyStructB);
     *ptr                = (DestroyStructB){
-        .a = string_dup(g_allocHeap, string_lit("Some")),
-        .b = string_dup(g_allocHeap, string_lit("New")),
-        .c = string_dup(g_allocHeap, string_lit("Values")),
+                       .a = string_dup(g_allocHeap, string_lit("Some")),
+                       .b = string_dup(g_allocHeap, string_lit("New")),
+                       .c = string_dup(g_allocHeap, string_lit("Values")),
     };
 
     const usize     arrayCount  = 4;

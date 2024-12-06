@@ -17,7 +17,6 @@
 #include "scene_tag.h"
 #include "scene_time.h"
 #include "scene_transform.h"
-#include "scene_vfx.h"
 
 #define health_anim_min_norm_dmg 0.025f
 #define health_anim_speed_min 0.8f

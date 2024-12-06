@@ -1,7 +1,5 @@
 #pragma once
 #include "cli.h"
-#include "core.h"
-#include "core_string.h"
 
 /**
  * Apis to be implemented by cli applications.

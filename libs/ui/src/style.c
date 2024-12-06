@@ -1,5 +1,3 @@
-#include "core_diag.h"
-#include "core_math.h"
 #include "ui_style.h"
 
 #include "canvas_internal.h"

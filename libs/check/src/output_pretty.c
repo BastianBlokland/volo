@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_dynstring.h"
 #include "core_path.h"
 #include "core_thread.h"
 #include "core_tty.h"
@@ -162,7 +163,7 @@ CheckOutput* check_output_pretty(Allocator* alloc, File* file, const CheckRunFla
   CheckOutputPretty* prettyOut = alloc_alloc_t(alloc, CheckOutputPretty);
   *prettyOut                   = (CheckOutputPretty){
                         .api =
-                            {
+          {
                                 .runStarted      = output_run_started,
                                 .testsDiscovered = output_tests_discovered,
                                 .testSkipped     = output_test_skipped,

@@ -1,7 +1,5 @@
-#include "core_array.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
-#include "rend_register.h"
 #include "rend_stats.h"
 #include "scene_camera.h"
 

@@ -6,7 +6,6 @@
 #include "core_math.h"
 #include "core_search.h"
 #include "core_utf8.h"
-#include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
 

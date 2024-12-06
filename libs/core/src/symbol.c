@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_dynarray.h"
+#include "core_dynstring.h"
 #include "core_file.h"
 #include "core_format.h"
 #include "core_math.h"

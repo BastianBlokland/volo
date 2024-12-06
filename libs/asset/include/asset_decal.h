@@ -1,5 +1,4 @@
 #pragma once
-#include "core_time.h"
 #include "data_registry.h"
 #include "ecs_module.h"
 

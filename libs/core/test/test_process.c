@@ -1,9 +1,11 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_dynstring.h"
 #include "core_file.h"
 #include "core_path.h"
 #include "core_process.h"
+#include "core_signal.h"
 #include "core_thread.h"
 #include "core_time.h"
 

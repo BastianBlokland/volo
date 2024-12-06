@@ -1,5 +1,6 @@
 #include "asset_level.h"
 #include "core_alloc.h"
+#include "core_dynstring.h"
 #include "core_path.h"
 #include "data_read.h"
 #include "data_utils.h"

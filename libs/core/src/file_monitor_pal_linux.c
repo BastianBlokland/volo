@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_dynarray.h"
 #include "core_file.h"
 #include "core_file_monitor.h"
 #include "core_path.h"

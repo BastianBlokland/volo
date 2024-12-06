@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_dynarray.h"
 #include "core_math.h"
 #include "core_search.h"
 #include "core_utf8.h"

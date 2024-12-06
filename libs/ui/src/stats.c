@@ -1,4 +1,3 @@
-#include "ecs_world.h"
 #include "ui_stats.h"
 
 ecs_comp_define_public(UiStatsComp);

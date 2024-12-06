@@ -9,7 +9,6 @@
 #include "scene_attack.h"
 #include "scene_collision.h"
 #include "scene_faction.h"
-#include "scene_health.h"
 #include "scene_location.h"
 #include "scene_nav.h"
 #include "scene_set.h"

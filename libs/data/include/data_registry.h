@@ -27,7 +27,7 @@ typedef enum {
  * Meta information for a data value.
  * Combination of a type and properties of a specific instance (for example if its a pointer).
  */
-typedef union {
+typedef union uDataMeta {
   struct {
     DataType      type;
     DataFlags     flags : 8;

@@ -1,5 +1,4 @@
 #include "core_diag.h"
-#include "core_math.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
 #include "ui_panel.h"

@@ -1,4 +1,3 @@
-#include "core.h"
 #include "core_init.h"
 #include "core_thread.h"
 

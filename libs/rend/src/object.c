@@ -14,7 +14,6 @@
 #include "object_internal.h"
 #include "reset_internal.h"
 #include "resource_internal.h"
-#include "rvk/texture_internal.h"
 #include "view_internal.h"
 
 #ifdef VOLO_SIMD

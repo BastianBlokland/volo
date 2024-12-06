@@ -6,6 +6,7 @@
  * Forward header for the core library.
  */
 
+typedef enum eSignal         Signal;
 typedef enum eUnicode        Unicode;
 typedef i16                  TimeZone;
 typedef i32                  ThreadId;

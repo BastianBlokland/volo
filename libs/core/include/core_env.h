@@ -1,5 +1,5 @@
 #pragma once
-#include "core_dynstring.h"
+#include "core.h"
 
 /**
  * Read an envrionment variable from the process environment.

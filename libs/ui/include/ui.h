@@ -27,6 +27,7 @@ typedef enum eUiSoundType          UiSoundType;
 typedef enum eUiStatus             UiStatus;
 typedef enum eUiTextFilter         UiTextFilter;
 typedef enum eUiWeight             UiWeight;
+typedef enum eUiWidgetFlags        UiWidgetFlags;
 typedef struct sUiPanel            UiPanel;
 typedef struct sUiScrollview       UiScrollview;
 typedef struct sUiTable            UiTable;

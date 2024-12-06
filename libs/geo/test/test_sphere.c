@@ -2,8 +2,6 @@
 #include "core_array.h"
 #include "geo_sphere.h"
 
-#include "utils_internal.h"
-
 spec(sphere) {
 
   it("can test the intersection with a ray") {

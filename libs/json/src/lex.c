@@ -2,6 +2,7 @@
 #include "core_ascii.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_dynstring.h"
 #include "core_format.h"
 #include "core_utf8.h"
 

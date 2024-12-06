@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_dynstring.h"
 #include "core_search.h"
 #include "core_stringtable.h"
 #include "script_binder.h"

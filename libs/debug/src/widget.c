@@ -1,8 +1,10 @@
 #include "core_array.h"
 #include "core_float.h"
+#include "geo_vector.h"
 #include "scene_faction.h"
 #include "ui_layout.h"
 #include "ui_shape.h"
+#include "ui_widget.h"
 
 #include "widget_internal.h"
 

@@ -1,15 +1,13 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
-#include "core_search.h"
+#include "core_dynarray.h"
 #include "core_thread.h"
-#include "log_logger.h"
 
 #include "buffer_internal.h"
 #include "desc_internal.h"
 #include "device_internal.h"
 #include "image_internal.h"
-#include "mem_internal.h"
 #include "sampler_internal.h"
 
 // #define VOLO_RVK_DESC_LOGGING

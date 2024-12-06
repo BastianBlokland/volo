@@ -1,8 +1,7 @@
 #include "asset_atlas.h"
 #include "core_diag.h"
-#include "core_float.h"
 #include "core_math.h"
-#include "ecs_world.h"
+#include "geo_box.h"
 #include "rend_object.h"
 #include "scene_tag.h"
 

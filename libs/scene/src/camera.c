@@ -1,6 +1,5 @@
 #include "core_diag.h"
 #include "core_math.h"
-#include "ecs_world.h"
 #include "geo_matrix.h"
 #include "scene_camera.h"
 #include "scene_transform.h"

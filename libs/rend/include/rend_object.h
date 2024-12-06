@@ -1,7 +1,6 @@
 #pragma once
-#include "ecs_entity.h"
 #include "ecs_module.h"
-#include "geo_box.h"
+#include "geo.h"
 #include "scene.h"
 
 typedef enum eRendObjectFlags {

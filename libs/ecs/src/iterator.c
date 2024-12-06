@@ -1,4 +1,3 @@
-#include "core_bits.h"
 #include "core_diag.h"
 
 #include "iterator_internal.h"

@@ -1,15 +1,11 @@
 #pragma once
-#include "core_dynstring.h"
-#include "ecs_entity.h"
-#include "ecs_module.h"
+#include "ecs.h"
 #include "ui.h"
 #include "ui_color.h"
-#include "ui_rect.h"
 #include "ui_units.h"
+#include "ui_vector.h"
 
-ecs_comp_extern(UiCanvasComp);
-
-typedef enum {
+typedef enum eUiWidgetFlags {
   UiWidget_Default           = 0,
   UiWidget_Disabled          = 1 << 0,
   UiWidget_DirtyWhileEditing = 1 << 1, // Always dirty during edit even if no changes occurred.

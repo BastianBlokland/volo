@@ -1,5 +1,5 @@
 #include "core_compare.h"
-#include "core_math.h"
+#include "core_string.h"
 
 #define COMPARE_DEFINE_ARITHMETIC_WITH_NAME(_TYPE_, _NAME_)                                        \
   i8 compare_##_NAME_(const void* a, const void* b) {                                              \

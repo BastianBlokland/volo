@@ -10,6 +10,7 @@
 #include "scene_camera.h"
 #include "scene_transform.h"
 #include "ui_canvas.h"
+#include "ui_color.h"
 #include "ui_layout.h"
 #include "ui_style.h"
 

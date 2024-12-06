@@ -1,5 +1,7 @@
 #include "core_alloc.h"
+#include "core_dynstring.h"
 #include "core_float.h"
+#include "core_math.h"
 #include "geo_color.h"
 #include "geo_matrix.h"
 

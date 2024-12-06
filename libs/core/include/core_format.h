@@ -1,7 +1,6 @@
 #pragma once
 #include "core.h"
 #include "core_bitset.h"
-#include "core_dynstring.h"
 #include "core_macro.h"
 #include "core_tty.h"
 

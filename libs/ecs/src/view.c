@@ -6,6 +6,7 @@
 #include "ecs_def.h"
 #include "ecs_runner.h"
 
+#include "module_internal.h"
 #include "storage_internal.h"
 #include "view_internal.h"
 

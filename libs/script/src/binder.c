@@ -6,6 +6,7 @@
 #include "core_search.h"
 #include "core_sort.h"
 #include "core_stringtable.h"
+#include "json_doc.h"
 #include "json_read.h"
 #include "json_write.h"
 #include "script_binder.h"

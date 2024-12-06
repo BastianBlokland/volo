@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "core_thread.h"
+#include "geo_color.h"
 
 #include "debug_internal.h"
 #include "device_internal.h"

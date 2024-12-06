@@ -1,5 +1,5 @@
 #pragma once
-#include "core_dynstring.h"
+#include "core.h"
 #include "core_macro.h"
 
 /**

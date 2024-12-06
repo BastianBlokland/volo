@@ -1,10 +1,10 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_dynstring.h"
 #include "core_float.h"
 #include "core_stringtable.h"
-#include "data_read.h"
-#include "data_utils.h"
+#include "data_registry.h"
 #include "data_write.h"
 
 static void test_write(

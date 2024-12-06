@@ -1,6 +1,4 @@
-#include "asset_manager.h"
 #include "core_array.h"
-#include "core_diag.h"
 #include "core_format.h"
 #include "debug_interface.h"
 #include "ecs_view.h"

@@ -1,6 +1,5 @@
 #pragma once
 #include "core.h"
-#include "core_dynstring.h"
 #include "core_unicode.h"
 
 #define tty_esc "\33"

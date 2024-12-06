@@ -1,9 +1,10 @@
 #include "core_alloc.h"
 #include "core_dynlib.h"
+#include "core_dynstring.h"
 #include "core_env.h"
 #include "core_path.h"
-#include "ecs_utils.h"
 #include "ecs_view.h"
+#include "ecs_world.h"
 #include "log_logger.h"
 #include "trace_tracer.h"
 

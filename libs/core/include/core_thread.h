@@ -1,6 +1,5 @@
 #pragma once
 #include "core.h"
-#include "core_string.h"
 
 /**
  * Unique identifier for a thread.

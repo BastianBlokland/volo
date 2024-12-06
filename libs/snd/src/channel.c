@@ -1,5 +1,6 @@
 #include "core.h"
 #include "core_array.h"
+#include "core_string.h"
 #include "snd_channel.h"
 
 String snd_channel_str(const SndChannel channel) {

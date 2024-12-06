@@ -1,5 +1,4 @@
 #pragma once
-#include "core_dynstring.h"
 #include "core_string.h"
 
 /**

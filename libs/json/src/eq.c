@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "json_doc.h"
 #include "json_eq.h"
 
 static bool json_eq_array(JsonDoc* doc, JsonVal x, JsonVal y) {

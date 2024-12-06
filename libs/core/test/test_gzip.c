@@ -1,6 +1,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_base64.h"
+#include "core_dynstring.h"
 #include "core_gzip.h"
 
 spec(gzip) {

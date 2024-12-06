@@ -1,6 +1,7 @@
 #pragma once
 #include "asset_fonttex.h"
 #include "ui_canvas.h"
+#include "ui_color.h"
 #include "ui_rect.h"
 
 typedef struct {

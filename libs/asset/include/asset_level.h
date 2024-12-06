@@ -1,7 +1,6 @@
 #pragma once
 #include "asset.h"
 #include "core_array.h"
-#include "core_sentinel.h"
 #include "data_registry.h"
 #include "ecs_module.h"
 #include "geo_quat.h"

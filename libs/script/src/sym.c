@@ -1,7 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
-#include "core_dynarray.h"
+#include "core_dynstring.h"
 #include "core_search.h"
 #include "script_intrinsic.h"
 #include "script_sig.h"

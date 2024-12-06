@@ -3,7 +3,6 @@
 #include "ecs_module.h"
 #include "rend_resource.h"
 
-#include "forward_internal.h"
 #include "rvk/forward_internal.h"
 
 ecs_comp_extern_public(RendResGraphicComp) {

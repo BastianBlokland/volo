@@ -1,6 +1,7 @@
 #include "check_spec.h"
 #include "core_array.h"
 #include "core_bc.h"
+#include "core_math.h"
 
 #define test_threshold_color8888 15
 

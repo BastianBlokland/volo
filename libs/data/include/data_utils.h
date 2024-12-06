@@ -1,5 +1,5 @@
 #pragma once
-#include "data_registry.h"
+#include "data.h"
 
 /**
  * Perform a deep equality comparision of the given values.

@@ -3,6 +3,7 @@
 #include "asset_vfx.h"
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_dynarray.h"
 #include "core_float.h"
 #include "core_math.h"
 #include "core_noise.h"

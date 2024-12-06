@@ -1,6 +1,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_dynstring.h"
 #include "core_stringtable.h"
 #include "script_binder.h"
 #include "script_diag.h"

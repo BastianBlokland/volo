@@ -1,3 +1,4 @@
+#pragma once
 #include "asset_data.h"
 #include "data_registry.h"
 

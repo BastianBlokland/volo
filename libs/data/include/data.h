@@ -7,3 +7,4 @@
 
 typedef enum eDataKind  DataKind;
 typedef struct sDataReg DataReg;
+typedef union uDataMeta DataMeta;

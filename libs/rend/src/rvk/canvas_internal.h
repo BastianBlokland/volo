@@ -1,6 +1,5 @@
 #pragma once
 #include "gap_window.h"
-#include "geo.h"
 #include "rend_settings.h"
 #include "rend_stats.h"
 

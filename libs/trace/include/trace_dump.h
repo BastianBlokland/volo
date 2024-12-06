@@ -1,5 +1,5 @@
 #pragma once
-#include "trace_tracer.h"
+#include "trace.h"
 
 /**
  * Dump all the events from the store in the Google EventTrace format.

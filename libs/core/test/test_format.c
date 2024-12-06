@@ -1,8 +1,10 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_dynstring.h"
 #include "core_float.h"
 #include "core_format.h"
+#include "core_math.h"
 #include "core_time.h"
 
 spec(format) {
@@ -328,16 +330,16 @@ spec(format) {
       usize  val;
       String expected;
     } const data[] = {
-      {42, string_lit("42B")},
-      {42 * usize_kibibyte, string_lit("42KiB")},
-      {42 * usize_mebibyte, string_lit("42MiB")},
-      {3 * usize_gibibyte, string_lit("3GiB")},
+        {42, string_lit("42B")},
+        {42 * usize_kibibyte, string_lit("42KiB")},
+        {42 * usize_mebibyte, string_lit("42MiB")},
+        {3 * usize_gibibyte, string_lit("3GiB")},
 #if uptr_max == u64_max // 64 bit only sizes.
-      {42 * usize_gibibyte, string_lit("42GiB")},
-      {42 * usize_tebibyte, string_lit("42TiB")},
-      {42 * usize_pebibyte, string_lit("42PiB")},
-      {42 * usize_mebibyte + 200 * usize_kibibyte, string_lit("42.2MiB")},
-      {2048 * usize_pebibyte, string_lit("2048PiB")},
+        {42 * usize_gibibyte, string_lit("42GiB")},
+        {42 * usize_tebibyte, string_lit("42TiB")},
+        {42 * usize_pebibyte, string_lit("42PiB")},
+        {42 * usize_mebibyte + 200 * usize_kibibyte, string_lit("42.2MiB")},
+        {2048 * usize_pebibyte, string_lit("2048PiB")},
 #endif
     };
 
