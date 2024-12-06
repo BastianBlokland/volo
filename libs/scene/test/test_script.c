@@ -3,7 +3,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
-#include "ecs.h"
+#include "ecs_runner.h"
 #include "ecs_utils.h"
 #include "scene_knowledge.h"
 #include "scene_register.h"

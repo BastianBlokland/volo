@@ -2,7 +2,8 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_base64.h"
-#include "ecs.h"
+#include "ecs_utils.h"
+#include "ecs_world.h"
 
 #include "utils_internal.h"
 

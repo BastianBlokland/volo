@@ -2,6 +2,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "ecs.h"
+#include "ecs_utils.h"
 
 #include "utils_internal.h"
 

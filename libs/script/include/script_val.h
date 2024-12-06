@@ -2,6 +2,7 @@
 #include "core.h"
 #include "core_bits.h"
 #include "core_string.h"
+#include "ecs.h"
 #include "geo.h"
 
 // Forward declare from 'core_time.h'.
@@ -9,9 +10,6 @@ typedef i64 TimeDuration;
 
 // Forward declare from 'core_dynstring.h'.
 typedef struct sDynArray DynString;
-
-// Forward declare from 'ecs_entity.h'.
-typedef u64 EcsEntityId;
 
 typedef enum eScriptType {
   ScriptType_Null,
