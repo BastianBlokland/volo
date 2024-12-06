@@ -1,10 +1,8 @@
 #pragma once
+#include "asset.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo_vector.h"
-
-// Forward declare from 'asset_product.h'.
-typedef struct sAssetProduct AssetProduct;
 
 typedef enum {
   SceneProductRequest_EnqueueSingle   = 1 << 0,

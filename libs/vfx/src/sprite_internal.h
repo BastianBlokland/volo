@@ -1,4 +1,5 @@
 #pragma once
+#include "asset.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo_color.h"
@@ -7,9 +8,6 @@
 
 // Forward declare from 'rend_object.h'.
 ecs_comp_extern(RendObjectComp);
-
-// Forward declare from 'asset_atlas.h'.
-ecs_comp_extern(AssetAtlasComp);
 
 /**
  * NOTE: Flag values are used in GLSL, update the GLSL side when changing these.

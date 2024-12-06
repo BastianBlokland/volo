@@ -1,9 +1,6 @@
 #pragma once
-#include "ecs_entity.h"
+#include "asset.h"
 #include "ecs_module.h"
-
-// Forward declare from 'asset_atlas.h'.
-ecs_comp_extern(AssetAtlasComp);
 
 typedef enum {
   VfxAtlasType_Sprite,

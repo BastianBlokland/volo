@@ -1,9 +1,7 @@
 #pragma once
+#include "asset.h"
 #include "ecs_module.h"
 #include "geo.h"
-
-// Forward declare from 'asset_manager.h'.
-typedef enum eAssetGraphicPass AssetGraphicPass;
 
 /**
  * Renderer resource.

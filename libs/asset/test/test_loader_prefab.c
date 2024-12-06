@@ -1,5 +1,6 @@
-#include "asset.h"
+#include "asset_manager.h"
 #include "asset_prefab.h"
+#include "asset_register.h"
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "ecs_utils.h"

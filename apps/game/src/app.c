@@ -1,5 +1,6 @@
 #include "app_ecs.h"
-#include "asset.h"
+#include "asset_manager.h"
+#include "asset_register.h"
 #include "core_file.h"
 #include "core_float.h"
 #include "core_math.h"

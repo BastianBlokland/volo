@@ -1,6 +1,9 @@
-#include "asset.h"
+#include "asset_manager.h"
+#include "asset_register.h"
+#include "asset_texture.h"
 #include "check_spec.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 

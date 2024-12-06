@@ -1,5 +1,5 @@
 #include "app_cli.h"
-#include "asset.h"
+#include "asset_data.h"
 #include "core_alloc.h"
 #include "core_file.h"
 #include "core_format.h"
