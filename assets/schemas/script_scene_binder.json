@@ -67,6 +67,16 @@
       }
     },
     {
+      "name": "attack_weapon",
+      "doc": "Query the current weapon of the given entity.",
+      "sig": {
+        "ret": [ "null", "str" ],
+        "args": [
+          { "name": "v", "mask": "entity" }
+        ]
+      }
+    },
+    {
       "name": "collision_sphere_spawn",
       "doc": "Spawn a collision sphere.\n\n*Note*: Resulting entity is not automatically destroyed.",
       "sig": {
@@ -124,7 +134,7 @@
     },
     {
       "name": "prefab_id",
-      "doc": "Lookup the prefab id of the given instance, returns null if the entity is not a prefab instance.",
+      "doc": "Lookup the prefab identifier of the given instance, returns null if the entity is not a prefab instance.",
       "sig": {
         "ret": [ "null", "str" ],
         "args": [
