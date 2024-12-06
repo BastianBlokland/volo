@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_dynstring.h"
 #include "core_float.h"
 #include "debug_level.h"
 #include "ecs_view.h"

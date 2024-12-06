@@ -1,10 +1,7 @@
 #pragma once
-#include "ecs_module.h"
-#include "ui_color.h"
-#include "ui_rect.h"
+#include "ui.h"
 #include "ui_units.h"
-
-ecs_comp_extern(UiCanvasComp);
+#include "ui_vector.h"
 
 #define ui_table_max_columns 16
 

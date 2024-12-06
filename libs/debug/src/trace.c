@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_dynstring.h"
 #include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
@@ -421,8 +422,8 @@ static void trace_data_events_draw(
     const f64      fracWidth = fracRightClamped - fracLeftClamped;
     const UiVector size      = {.width = (f32)fracWidth, .height = eventHeight};
     const UiVector pos       = {
-        .x = (f32)fracLeftClamped,
-        .y = 1.0f - size.height * (evt->stackDepth + 1),
+              .x = (f32)fracLeftClamped,
+              .y = 1.0f - size.height * (evt->stackDepth + 1),
     };
     ui_layout_set(c, ui_rect(pos, size), UiBase_Container);
 

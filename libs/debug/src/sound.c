@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_dynstring.h"
 #include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
@@ -175,7 +176,7 @@ static void sound_draw_time_stats(UiCanvasComp* c, const SndBufferView buf, cons
   const f32    rmsFraction  = sound_db_to_fraction(rmsDb);
   const String levelText    = fmt_write_scratch(
       "Level: \a|02\ab{}{<5}\ar Peak\n"
-      "Level: \a|02\ab{}{<5}\ar  RMS",
+         "Level: \a|02\ab{}{<5}\ar  RMS",
       fmt_ui_color(sound_color_from_fraction(peakFraction)),
       fmt_float(peakDb, .plusSign = true, .minIntDigits = 2, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_ui_color(sound_color_from_fraction(rmsFraction)),

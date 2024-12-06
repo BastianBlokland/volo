@@ -1,9 +1,5 @@
 #pragma once
-#include "ecs_module.h"
-#include "ui_rect.h"
-#include "ui_units.h"
-
-ecs_comp_extern(UiCanvasComp);
+#include "ui.h"
 
 /**
  * Push / Pop an element to / from the rectangle stack.

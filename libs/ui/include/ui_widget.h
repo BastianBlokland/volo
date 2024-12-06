@@ -1,13 +1,9 @@
 #pragma once
-#include "core_dynstring.h"
-#include "ecs_entity.h"
-#include "ecs_module.h"
+#include "ecs.h"
 #include "ui.h"
 #include "ui_color.h"
-#include "ui_rect.h"
 #include "ui_units.h"
-
-ecs_comp_extern(UiCanvasComp);
+#include "ui_vector.h"
 
 typedef enum eUiWidgetFlags {
   UiWidget_Default           = 0,

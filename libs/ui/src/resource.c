@@ -1,7 +1,6 @@
 #include "asset_manager.h"
 #include "core_array.h"
 #include "core_diag.h"
-#include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "log_logger.h"

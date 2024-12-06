@@ -1,7 +1,5 @@
 #pragma once
-#include "ecs_module.h"
-#include "ui_color.h"
-#include "ui_units.h"
+#include "ui.h"
 
 /**
  * Certain variations that have special meaning by convention.
@@ -10,8 +8,6 @@ enum {
   UiVariation_Normal    = 0,
   UiVariation_Monospace = 1,
 };
-
-ecs_comp_extern(UiCanvasComp);
 
 /**
  * Push / Pop an element to / from the style stack.

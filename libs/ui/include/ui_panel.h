@@ -1,9 +1,7 @@
 #pragma once
-#include "ecs_module.h"
+#include "ui.h"
 #include "ui_color.h"
-#include "ui_rect.h"
-
-ecs_comp_extern(UiCanvasComp);
+#include "ui_vector.h"
 
 typedef enum eUiPanelFlags {
   UiPanelFlags_Close     = 1 << 0,

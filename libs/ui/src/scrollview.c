@@ -1,6 +1,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "ui_canvas.h"
+#include "ui_color.h"
 #include "ui_layout.h"
 #include "ui_scrollview.h"
 #include "ui_shape.h"

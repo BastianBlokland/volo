@@ -2,6 +2,8 @@
 #include "asset_manager.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_compare.h"
+#include "core_dynstring.h"
 #include "core_format.h"
 #include "core_math.h"
 #include "debug_register.h"

@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_dynlib.h"
+#include "core_dynstring.h"
 #include "core_file.h"
 #include "core_float.h"
 #include "core_format.h"

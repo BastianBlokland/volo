@@ -1,8 +1,5 @@
 #pragma once
-#include "ecs_module.h"
 #include "ui.h"
-
-ecs_comp_extern(UiCanvasComp);
 
 typedef enum eUiScrollviewFlags {
   UiScrollviewFlags_BlockInput = 1 << 0,

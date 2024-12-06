@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_unicode.h"
 #include "ui_canvas.h"
+#include "ui_color.h"
 
 typedef enum {
   UiCmd_RectPush,
