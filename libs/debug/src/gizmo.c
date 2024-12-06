@@ -16,7 +16,7 @@
 #include "geo_capsule.h"
 #include "geo_color.h"
 #include "geo_query.h"
-#include "input.h"
+#include "input_manager.h"
 #include "scene_camera.h"
 #include "scene_transform.h"
 

@@ -24,7 +24,7 @@
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "gap_window.h"
-#include "input.h"
+#include "input_manager.h"
 #include "rend_settings.h"
 #include "scene_lifetime.h"
 #include "ui.h"
