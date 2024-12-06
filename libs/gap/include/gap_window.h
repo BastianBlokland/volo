@@ -8,7 +8,7 @@
 /**
  * Notification flags for events that occurred this tick.
  */
-typedef enum {
+typedef enum eGapWindowEvents {
   GapWindowEvents_Initializing       = 1 << 0,
   GapWindowEvents_Resized            = 1 << 1,
   GapWindowEvents_KeyPressed         = 1 << 2,
@@ -26,7 +26,7 @@ typedef enum {
 /**
  * Configuration flags for setting up the desired window behavior.
  */
-typedef enum {
+typedef enum eGapWindowFlags {
   GapWindowFlags_None             = 0,
   GapWindowFlags_CloseOnInterrupt = 1 << 0,
   GapWindowFlags_CloseOnRequest   = 1 << 1,
@@ -39,7 +39,7 @@ typedef enum {
       GapWindowFlags_CloseOnInterrupt | GapWindowFlags_CloseOnRequest | GapWindowFlags_DefaultTitle,
 } GapWindowFlags;
 
-typedef enum {
+typedef enum eGapWindowMode {
   GapWindowMode_Windowed   = 0,
   GapWindowMode_Fullscreen = 1,
 } GapWindowMode;

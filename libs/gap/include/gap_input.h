@@ -92,7 +92,7 @@ typedef enum eGapKey {
   GapKey_Count,
 } GapKey;
 
-typedef enum {
+typedef enum eGapParam {
   GapParam_None       = -1,
   GapParam_WindowSize = 0,
   GapParam_WindowSizePreFullscreen, // Last window-size before entering fullscreen.
