@@ -1,5 +1,6 @@
 #include "core.h"
 #include "core_array.h"
+#include "core_string.h"
 #include "snd_result.h"
 
 String snd_result_str(const SndResult result) {

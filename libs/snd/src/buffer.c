@@ -3,6 +3,7 @@
 #include "core_complex.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_time.h"
 #include "snd_buffer.h"
 
 /**
