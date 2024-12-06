@@ -1,8 +1,9 @@
 #pragma once
-#include "core_stringtable.h"
+#include "core.h"
+#include "core_string.h"
 #include "script_diag.h"
 
-typedef enum {
+typedef enum eScriptTokenKind {
   ScriptTokenKind_ParenOpen,    // (
   ScriptTokenKind_ParenClose,   // )
   ScriptTokenKind_CurlyOpen,    // {
@@ -52,7 +53,7 @@ typedef enum {
   ScriptTokenKind_End,          // \0
 } ScriptTokenKind;
 
-typedef struct {
+typedef struct sScriptToken {
   ScriptTokenKind kind;
   union {
     f64            val_number;
@@ -63,14 +64,14 @@ typedef struct {
   };
 } ScriptToken;
 
-typedef enum {
+typedef enum eScriptLexFlags {
   ScriptLexFlags_None,
   ScriptLexFlags_IncludeNewlines = 1 << 0,
   ScriptLexFlags_IncludeComments = 1 << 1,
   ScriptLexFlags_NoWhitespace    = 1 << 2,
 } ScriptLexFlags;
 
-typedef struct {
+typedef struct sScriptLexKeyword {
   String          id;
   StringHash      idHash;
   ScriptTokenKind token;

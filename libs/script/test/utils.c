@@ -1,3 +1,5 @@
+#include "script_val.h"
+
 #include "utils_internal.h"
 
 void check_eq_tok_impl(

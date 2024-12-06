@@ -1,14 +1,7 @@
 #pragma once
 #include "core_array.h"
+#include "script.h"
 #include "script_panic.h"
-#include "script_val.h"
-
-// Forward declare from 'script_mem.h'.
-typedef struct sScriptMem ScriptMem;
-
-// Forward declare from 'script_binder.h'.
-typedef u64                  ScriptBinderHash;
-typedef struct sScriptBinder ScriptBinder;
 
 #define script_prog_regs 32
 
@@ -36,7 +29,7 @@ typedef struct sScriptBinder ScriptBinder;
  * NOTE: There is no alignment requirement for operation data.
  * NOTE: Instruction values are 2 byte offsets from the start of the code memory.
  */
-typedef enum {
+typedef enum eScriptOp {
   ScriptOp_Fail              = 0,  // [       ] (       ) -> ( ) Terminate the execution.
   ScriptOp_Assert            = 1,  // [s      ] (s      ) -> ( ) Terminate the execution if register 's' is falsy.
   ScriptOp_Return            = 2,  // [s      ] (s      ) -> ( ) Return register 's'.

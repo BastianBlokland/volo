@@ -1,5 +1,5 @@
 #pragma once
-#include "script_val.h"
+#include "script.h"
 
 /**
  * Memory instance for storing values.

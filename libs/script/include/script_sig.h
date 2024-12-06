@@ -1,8 +1,6 @@
 #pragma once
 #include "core_string.h"
-
-// Forward declare from 'script_val.h'.
-typedef u16 ScriptMask;
+#include "script.h"
 
 #define script_sig_arg_count_max 10
 #define script_sig_arg_name_max 64

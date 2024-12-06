@@ -5,6 +5,7 @@
 #include "geo_quat.h"
 #include "script_binder.h"
 #include "script_compile.h"
+#include "script_doc.h"
 #include "script_mem.h"
 #include "script_prog.h"
 #include "script_read.h"

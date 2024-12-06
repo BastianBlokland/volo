@@ -3,8 +3,10 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_search.h"
+#include "script_intrinsic.h"
 #include "script_sig.h"
 #include "script_sym.h"
+#include "script_val.h"
 
 #include "doc_internal.h"
 

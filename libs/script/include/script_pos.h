@@ -1,5 +1,5 @@
 #pragma once
-#include "core_string.h"
+#include "core.h"
 
 typedef u32 ScriptPos; // Bytes into the source text.
 

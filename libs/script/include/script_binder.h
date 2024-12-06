@@ -1,10 +1,5 @@
 #pragma once
-#include "core_string.h"
-
-// Internal forward declarations:
-typedef struct sScriptPanicHandler ScriptPanicHandler;
-typedef struct sScriptSig          ScriptSig;
-typedef struct sScriptVal          ScriptVal;
+#include "script.h"
 
 #define script_binder_max_funcs 96
 #define script_binder_slot_sentinel sentinel_u16

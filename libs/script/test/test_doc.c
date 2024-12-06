@@ -2,7 +2,9 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "script_doc.h"
+#include "script_intrinsic.h"
 #include "script_read.h"
+#include "script_val.h"
 
 #include "utils_internal.h"
 

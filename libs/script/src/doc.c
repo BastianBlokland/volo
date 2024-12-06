@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "script_eval.h"
+#include "script_intrinsic.h"
 #include "script_pos.h"
 
 #include "doc_internal.h"

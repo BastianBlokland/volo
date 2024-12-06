@@ -2,6 +2,7 @@
 #include "ecs_module.h"
 #include "ecs_world.h"
 #include "script_mem.h"
+#include "script_val.h"
 
 ecs_comp_define(SceneKnowledgeComp) { ScriptMem memory; };
 

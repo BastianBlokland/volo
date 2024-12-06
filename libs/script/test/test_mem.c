@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "script_mem.h"
+#include "script_val.h"
 
 #include "utils_internal.h"
 

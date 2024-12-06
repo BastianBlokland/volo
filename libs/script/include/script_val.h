@@ -1,7 +1,6 @@
 #pragma once
 #include "core.h"
 #include "core_bits.h"
-#include "core_string.h"
 #include "ecs.h"
 #include "geo.h"
 

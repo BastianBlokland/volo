@@ -1,15 +1,7 @@
 #pragma once
-#include "core_string.h"
-#include "core_time.h"
-#include "ecs_entity.h"
+#include "ecs.h"
 #include "geo.h"
-
-// Internal forward declarations:
-typedef enum eScriptType         ScriptType;
-typedef struct sScriptBinderCall ScriptBinderCall;
-typedef struct sScriptEnum       ScriptEnum;
-typedef struct sScriptVal        ScriptVal;
-typedef u16                      ScriptMask;
+#include "script.h"
 
 /**
  * Argument check utilities.

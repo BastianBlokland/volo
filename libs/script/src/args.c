@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "core_time.h"
 #include "script_args.h"
 #include "script_binder.h"
 #include "script_enum.h"

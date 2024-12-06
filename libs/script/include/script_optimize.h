@@ -1,5 +1,5 @@
 #pragma once
-#include "script_doc.h"
+#include "script.h"
 
 /**
  * Perform various optimization passes on the given expression.
