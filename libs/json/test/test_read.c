@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_dynstring.h"
+#include "json_doc.h"
 #include "json_eq.h"
 #include "json_read.h"
 

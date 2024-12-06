@@ -8,6 +8,7 @@
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "data_read.h"
+#include "json_doc.h"
 #include "json_read.h"
 
 #include "registry_internal.h"

@@ -1,6 +1,6 @@
 #pragma once
-#include "core_dynstring.h"
-#include "json_doc.h"
+#include "core_string.h"
+#include "json.h"
 
 typedef enum {
   JsonWriteMode_Minimal,

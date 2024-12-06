@@ -13,6 +13,7 @@
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "geo_matrix.h"
+#include "json_doc.h"
 #include "json_read.h"
 #include "log_logger.h"
 #include "trace_tracer.h"
