@@ -1,5 +1,4 @@
 #include "core_alloc.h"
-#include "core_bits.h"
 #include "core_diag.h"
 #include "core_time.h"
 #include "ecs_runner.h"
@@ -205,12 +204,12 @@ EcsWorld* ecs_world_create(Allocator* alloc, const EcsDef* def) {
 
   EcsWorld* world = alloc_alloc_t(alloc, EcsWorld);
   *world          = (EcsWorld){
-      .def       = def,
-      .finalizer = ecs_finalizer_create(alloc, def),
-      .storage   = ecs_storage_create(alloc, def),
-      .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
-      .buffer    = ecs_buffer_create(alloc, def),
-      .alloc     = alloc,
+               .def       = def,
+               .finalizer = ecs_finalizer_create(alloc, def),
+               .storage   = ecs_storage_create(alloc, def),
+               .views     = dynarray_create_t(alloc, EcsView, ecs_def_view_count(def)),
+               .buffer    = ecs_buffer_create(alloc, def),
+               .alloc     = alloc,
   };
   world->globalEntity = ecs_storage_entity_create(&world->storage);
 

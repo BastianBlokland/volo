@@ -2,6 +2,7 @@
 
 #include "comp_internal.h"
 #include "def_internal.h"
+#include "module_internal.h"
 
 struct sEcsModuleBuilder {
   EcsDef*       def;

@@ -4,6 +4,7 @@
 #include "core_string.h"
 #include "ecs.h"
 #include "jobs.h"
+
 typedef u16 EcsModuleId;
 typedef u16 EcsViewId;
 typedef u16 EcsSystemId;

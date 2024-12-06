@@ -2,8 +2,6 @@
 #include "core_dynarray.h"
 #include "ecs_def.h"
 
-#include "module_internal.h"
-
 typedef struct {
   EcsModuleId       moduleId;
   String            name;

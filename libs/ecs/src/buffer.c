@@ -2,7 +2,6 @@
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
-#include "log_logger.h"
 
 #include "buffer_internal.h"
 #include "comp_internal.h"
