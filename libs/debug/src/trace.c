@@ -8,6 +8,7 @@
 #include "debug_trace.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
+#include "jobs.h"
 #include "trace_dump.h"
 #include "trace_sink_store.h"
 #include "trace_tracer.h"

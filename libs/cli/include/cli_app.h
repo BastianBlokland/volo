@@ -1,10 +1,8 @@
 #pragma once
+#include "cli.h"
 #include "core_array.h"
 #include "core_macro.h"
 #include "core_string.h"
-
-// Forward declare from 'cli_validate.h'.
-typedef bool (*CliValidateFunc)(const String input);
 
 typedef u16 CliId;
 

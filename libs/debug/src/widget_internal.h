@@ -1,10 +1,8 @@
 #pragma once
 #include "geo_color.h"
 #include "geo_vector.h"
+#include "scene.h"
 #include "ui_widget.h"
-
-// Forward declare from 'scene_faction.h'.
-typedef enum eSceneFaction SceneFaction;
 
 bool debug_widget_editor_f32(UiCanvasComp*, f32* val, UiWidgetFlags);
 bool debug_widget_editor_u16(UiCanvasComp*, u16* val, UiWidgetFlags);

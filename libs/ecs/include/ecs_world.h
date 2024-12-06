@@ -2,9 +2,6 @@
 #include "core_memory.h"
 #include "ecs.h"
 
-// Forward declare from 'job_executor.h'.
-typedef u16 JobWorkerId;
-
 typedef struct sEcsWorld EcsWorld;
 
 /**

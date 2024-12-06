@@ -21,8 +21,8 @@ add_library(lib_ecs STATIC
   src/world.c
   )
 target_include_directories(lib_ecs PUBLIC include)
-target_link_libraries(lib_ecs PUBLIC lib_core)
-target_link_libraries(lib_ecs PRIVATE lib_jobs lib_log lib_trace)
+target_link_libraries(lib_ecs PUBLIC lib_core lib_jobs)
+target_link_libraries(lib_ecs PRIVATE lib_log lib_trace)
 
 add_executable(test_lib_ecs
   test/config.c
@@ -38,7 +38,7 @@ add_executable(test_lib_ecs
   test/test_view.c
   test/test_world.c
   )
-target_link_libraries(test_lib_ecs PRIVATE lib_app_check lib_ecs lib_jobs)
+target_link_libraries(test_lib_ecs PRIVATE lib_app_check lib_ecs)
 
 configure_test(test_lib_ecs SHORT_NAME ecs)
 configure_debuggable(test_lib_ecs)

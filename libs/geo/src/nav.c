@@ -8,7 +8,7 @@
 #include "core_rng.h"
 #include "geo_nav.h"
 #include "geo_sphere.h"
-#include "jobs_executor.h"
+#include "jobs.h"
 #include "log_logger.h"
 
 #define geo_nav_workers_max 8

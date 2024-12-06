@@ -3,10 +3,7 @@
 #include "core_macro.h"
 #include "core_string.h"
 #include "ecs.h"
-
-// Forward declare from 'jobs_executor.h'.
-extern u16 g_jobsWorkerCount;
-
+#include "jobs.h"
 typedef u16 EcsModuleId;
 typedef u16 EcsViewId;
 typedef u16 EcsSystemId;

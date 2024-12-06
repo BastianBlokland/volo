@@ -1,13 +1,7 @@
 #pragma once
 #include "core.h"
 #include "ecs.h"
-
-// Forward declare from 'jobs_scheduler.h'.
-typedef u64 JobId;
-
-// Forward declare from 'jobs_graph.h'.
-typedef struct sJobGraph JobGraph;
-typedef u16              JobTaskId;
+#include "jobs.h"
 
 typedef struct sEcsRunner EcsRunner;
 
