@@ -16,7 +16,7 @@ typedef u32 CheckTestId;
 typedef struct sCheckSpecContext CheckSpecContext;
 typedef struct sCheckTestContext CheckTestContext;
 
-typedef struct {
+typedef struct sCheckTest {
   CheckTestId    id;
   String         description;
   SourceLoc      source;
