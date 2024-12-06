@@ -2,6 +2,10 @@
 #include "core.h"
 #include "ecs_module.h"
 
+/**
+ * Forward header for the ui library.
+ */
+
 ecs_comp_extern(UiCanvasComp);
 ecs_comp_extern(UiSettingsGlobalComp);
 ecs_comp_extern(UiStatsComp);

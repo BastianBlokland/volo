@@ -1,6 +1,10 @@
 #pragma once
 #include "core.h"
 
+/**
+ * Forward header for the ecs library.
+ */
+
 typedef struct sEcsDef      EcsDef;
 typedef struct sEcsDef      EcsDef;
 typedef struct sEcsIterator EcsIterator;

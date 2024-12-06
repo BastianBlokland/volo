@@ -1,4 +1,9 @@
 #pragma once
+#include "core.h"
+
+/**
+ * Forward header for the geo library.
+ */
 
 typedef struct sGeoBox        GeoBox;
 typedef struct sGeoBoxRotated GeoBoxRotated;

@@ -2,6 +2,10 @@
 #include "core.h"
 #include "ecs_module.h"
 
+/**
+ * Forward header for the snd library.
+ */
+
 ecs_comp_extern(SndMixerComp);
 
 typedef enum eSndChannel       SndChannel;

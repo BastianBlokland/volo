@@ -1,5 +1,10 @@
 #pragma once
+#include "core.h"
 #include "ecs_module.h"
+
+/**
+ * Forward header for the input library.
+ */
 
 ecs_comp_extern(InputManagerComp);
 ecs_comp_extern(InputResourceComp);

@@ -2,6 +2,10 @@
 #include "core_annotation.h"
 #include "core_types.h"
 
+/**
+ * Forward header for the core library.
+ */
+
 typedef enum eUnicode        Unicode;
 typedef i16                  TimeZone;
 typedef i32                  ThreadId;
