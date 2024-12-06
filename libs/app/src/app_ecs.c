@@ -12,7 +12,9 @@
 #include "log_sink.h"
 #include "log_sink_json.h"
 #include "log_sink_pretty.h"
-#include "trace.h"
+#include "trace_init.h"
+#include "trace_sink_store.h"
+#include "trace_sink_superluminal.h"
 
 static CliId              g_optJobWorkers;
 static CliId              g_optNoEcsReplan;

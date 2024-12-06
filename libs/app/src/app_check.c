@@ -12,7 +12,7 @@
 #include "jobs_init.h"
 #include "log_sink.h"
 #include "log_sink_json.h"
-#include "trace.h"
+#include "trace_init.h"
 
 static CliId g_optOutputPassingTests, g_optJobWorkers, g_optHelp;
 

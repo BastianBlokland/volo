@@ -11,7 +11,7 @@ typedef struct sTraceSink TraceSink;
  */
 typedef struct sTracer Tracer;
 
-typedef enum {
+typedef enum eTraceColor {
   TraceColor_Default,
   TraceColor_White,
   TraceColor_Gray,

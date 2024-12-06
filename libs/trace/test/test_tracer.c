@@ -1,7 +1,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
-#include "trace.h"
 #include "trace_sink.h"
+#include "trace_tracer.h"
 
 typedef struct {
   String     id;
@@ -38,12 +38,12 @@ spec(tracer) {
   setup() {
     tracer = trace_create(g_allocHeap);
     sink   = (SinkTest){
-          .api =
-              (TraceSink){
-                  .eventBegin = trace_sink_test_event_begin,
-                  .eventEnd   = trace_sink_test_event_end,
+        .api =
+            (TraceSink){
+                .eventBegin = trace_sink_test_event_begin,
+                .eventEnd   = trace_sink_test_event_end,
             },
-          .events = dynarray_create_t(g_allocHeap, SinkTestEvt, 8),
+        .events = dynarray_create_t(g_allocHeap, SinkTestEvt, 8),
     };
     trace_add_sink(tracer, (TraceSink*)&sink);
   }

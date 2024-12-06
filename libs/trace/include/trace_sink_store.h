@@ -10,7 +10,7 @@
  * that the trail of the data might look odd as some threads will have data while others wont.
  */
 
-typedef struct {
+typedef struct sTraceStoreEvent {
   ALIGNAS(64) // Align to cacheline on x66.
   ThreadSpinLock lock;
   u32            timeDur;    // Duration in nano-seconds (limits the max event dur to 4 seconds).

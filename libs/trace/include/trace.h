@@ -1,6 +1,7 @@
 #pragma once
-#include "trace_init.h"
-#include "trace_sink_store.h"
-#include "trace_sink_superluminal.h"
-#include "trace_tracer.h"
-#include "trace_dump.h"
+#include "core.h"
+
+typedef enum eTraceColor        TraceColor;
+typedef struct sTracer          Tracer;
+typedef struct sTraceSink       TraceSink;
+typedef struct sTraceStoreEvent TraceStoreEvent;
