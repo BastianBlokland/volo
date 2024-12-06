@@ -1125,10 +1125,14 @@ static ScriptVal eval_attack_target(EvalContext* ctx, ScriptBinderCall* call) {
   const EcsEntityId      entity = script_arg_entity(call, 0);
   const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, entity);
   const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
-  if (attack) {
-    return script_entity_or_null(attack->targetCurrent);
-  }
-  return script_null();
+  return attack ? script_entity_or_null(attack->targetCurrent) : script_null();
+}
+
+static ScriptVal eval_attack_weapon(EvalContext* ctx, ScriptBinderCall* call) {
+  const EcsEntityId      entity = script_arg_entity(call, 0);
+  const EcsIterator*     itr    = ecs_view_maybe_jump(ctx->attackItr, entity);
+  const SceneAttackComp* attack = itr ? ecs_view_read_t(itr, SceneAttackComp) : null;
+  return attack ? script_str_or_null(attack->weaponName) : script_null();
 }
 
 static ScriptVal eval_bark(EvalContext* ctx, ScriptBinderCall* call) {
@@ -1894,6 +1898,7 @@ static void eval_binder_init(void) {
     eval_bind(b, string_lit("heal"),                   eval_heal);
     eval_bind(b, string_lit("attack"),                 eval_attack);
     eval_bind(b, string_lit("attack_target"),          eval_attack_target);
+    eval_bind(b, string_lit("attack_weapon"),          eval_attack_weapon);
     eval_bind(b, string_lit("bark"),                   eval_bark);
     eval_bind(b, string_lit("status"),                 eval_status);
     eval_bind(b, string_lit("renderable_spawn"),       eval_renderable_spawn);

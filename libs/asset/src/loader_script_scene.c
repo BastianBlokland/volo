@@ -474,6 +474,15 @@ void asset_data_init_script_scene(void) {
     bind(binder, name, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("attack_weapon");
+    const String       doc    = string_lit("Query the current weapon of the given entity.");
+    const ScriptMask   ret    = script_mask_str | script_mask_null;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_entity},
+    };
+    bind(binder, name, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("bark");
     const String       doc    = fmt_write_scratch("Request a bark to be played.\n\nRequired capability: 'Bark'\n\n{}", fmt_text(g_barkDoc));
     const ScriptMask   ret    = script_mask_null;
