@@ -4,6 +4,8 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "data.h"
+#include "data_read.h"
+#include "data_utils.h"
 #include "ecs_world.h"
 #include "geo_matrix.h"
 #include "log_logger.h"

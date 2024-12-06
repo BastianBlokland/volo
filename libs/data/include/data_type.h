@@ -34,7 +34,7 @@ typedef struct {
 
 // clang-format off
 
-typedef enum {
+typedef enum eDataKind {
   DataKind_Invalid,
 #define X(_T_) DataKind_##_T_,
   DATA_PRIMS

@@ -1,7 +1,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
-#include "data.h"
+#include "data_registry.h"
 
 spec(registry) {
 

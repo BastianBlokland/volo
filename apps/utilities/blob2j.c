@@ -8,7 +8,9 @@
 #include "core_alloc.h"
 #include "core_file.h"
 #include "core_format.h"
-#include "data.h"
+#include "data_read.h"
+#include "data_utils.h"
+#include "data_write.h"
 
 /**
  * Blob2J - Utility to convert Volo binary blobs to json.

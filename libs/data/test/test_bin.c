@@ -2,7 +2,9 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_float.h"
-#include "data.h"
+#include "data_read.h"
+#include "data_utils.h"
+#include "data_write.h"
 
 static void test_bin_roundtrip(
     CheckTestContext* _testCtx, const DataReg* reg, const DataMeta meta, const Mem data) {
