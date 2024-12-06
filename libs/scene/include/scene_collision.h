@@ -5,11 +5,7 @@
 #include "geo_vector.h"
 #include "scene.h"
 
-/**
- * Maximum number of entities that can be hit using a single query, additional entities are ignored.
- */
-#define scene_query_max_hits 512
-
+#define scene_query_max_hits 512 // Maximum number of entities that can be hit using a single query.
 #define scene_query_stat_count 10
 
 // clang-format off
