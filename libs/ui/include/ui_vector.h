@@ -4,7 +4,7 @@
 /**
  * 2D Vector.
  */
-typedef union {
+typedef union uUiVector {
   struct {
     f32 x, y;
   };

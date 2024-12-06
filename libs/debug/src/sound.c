@@ -8,7 +8,15 @@
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "snd_mixer.h"
-#include "ui.h"
+#include "ui_canvas.h"
+#include "ui_escape.h"
+#include "ui_layout.h"
+#include "ui_panel.h"
+#include "ui_scrollview.h"
+#include "ui_shape.h"
+#include "ui_style.h"
+#include "ui_table.h"
+#include "ui_widget.h"
 
 static const String g_tooltipMixerGain = string_static("Mixer output gain.");
 

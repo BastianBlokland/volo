@@ -5,14 +5,14 @@
 
 ecs_comp_extern(UiCanvasComp);
 
-typedef enum {
+typedef enum eUiPanelFlags {
   UiPanelFlags_Close     = 1 << 0,
   UiPanelFlags_Active    = 1 << 1,
   UiPanelFlags_Pinned    = 1 << 2,
   UiPanelFlags_Maximized = 1 << 3,
 } UiPanelFlags;
 
-typedef struct {
+typedef struct sUiPanel {
   UiVector     position; // In fractions of the canvas size.
   UiVector     size;     // In ui-pixels.
   UiVector     minSize;  // In ui-pixels.

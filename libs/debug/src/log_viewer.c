@@ -8,7 +8,14 @@
 #include "ecs_world.h"
 #include "log_sink.h"
 #include "scene_time.h"
-#include "ui.h"
+#include "ui_canvas.h"
+#include "ui_layout.h"
+#include "ui_panel.h"
+#include "ui_scrollview.h"
+#include "ui_shape.h"
+#include "ui_style.h"
+#include "ui_table.h"
+#include "ui_widget.h"
 
 #define log_tracker_mask (LogMask_Info | LogMask_Warn | LogMask_Error)
 #define log_tracker_buffer_size (32 * usize_kibibyte)

@@ -14,7 +14,7 @@
  */
 typedef u64 UiId;
 
-typedef enum {
+typedef enum eUiStatus {
   UiStatus_Idle,
   UiStatus_Hovered,
   UiStatus_Pressed,
@@ -26,7 +26,7 @@ typedef enum {
  * Indicates the possible user interaction.
  * NOTE: Ordered by priority.
  */
-typedef enum {
+typedef enum eUiInteractType {
   UiInteractType_None,
   UiInteractType_Text,
   UiInteractType_Action,
@@ -39,19 +39,19 @@ typedef enum {
   UiInteractType_Count
 } UiInteractType;
 
-typedef enum {
+typedef enum eUiSoundType {
   UiSoundType_Click,
   UiSoundType_ClickAlt,
 
   UiSoundType_Count
 } UiSoundType;
 
-typedef enum {
+typedef enum eUiTextFilter {
   UiTextFilter_Readonly   = 1 << 0,
   UiTextFilter_DigitsOnly = 1 << 1,
 } UiTextFilter;
 
-typedef enum {
+typedef enum eUiFlags {
   UiFlags_None                = 0,
   UiFlags_Interactable        = 1 << 0,
   UiFlags_InteractOnPress     = 1 << 1, // Activate on 'Press' instead of 'Release'.
@@ -64,12 +64,12 @@ typedef enum {
   UiFlags_TightTextRect       = 1 << 8, // Clamp the rectangle to the text size.
 } UiFlags;
 
-typedef enum {
+typedef enum eUiPersistentFlags {
   UiPersistentFlags_Open     = 1 << 0,
   UiPersistentFlags_Dragging = 1 << 1,
 } UiPersistentFlags;
 
-typedef enum {
+typedef enum eUiCanvasCreateFlags {
   UiCanvasCreateFlags_None    = 0,
   UiCanvasCreateFlags_ToFront = 1 << 0,
   UiCanvasCreateFlags_ToBack  = 1 << 1,

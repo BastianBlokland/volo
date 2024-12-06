@@ -22,7 +22,7 @@ typedef struct {
   String label, tooltip;
 } UiTableColumnName;
 
-typedef struct {
+typedef struct sUiTable {
   UiBase        parent;
   UiAlign       align;
   f32           rowHeight;

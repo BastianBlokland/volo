@@ -10,7 +10,14 @@
 #include "scene_camera.h"
 #include "scene_level.h"
 #include "scene_transform.h"
-#include "ui.h"
+#include "ui_canvas.h"
+#include "ui_layout.h"
+#include "ui_panel.h"
+#include "ui_scrollview.h"
+#include "ui_shape.h"
+#include "ui_style.h"
+#include "ui_table.h"
+#include "ui_widget.h"
 
 #include "widget_internal.h"
 

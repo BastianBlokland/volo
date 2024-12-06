@@ -3,7 +3,7 @@
 #include "ui_color.h"
 #include "ui_units.h"
 
-typedef enum {
+typedef enum eUiSettingGlobalFlags {
   UiSettingGlobal_DpiScaling     = 1 << 0,
   UiSettingGlobal_DebugShading   = 1 << 1,
   UiSettingGlobal_DebugInspector = 1 << 2,
