@@ -3,7 +3,7 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
-typedef enum {
+typedef enum eSceneStatusType {
   SceneStatusType_Burning,
   SceneStatusType_Bleeding,
   SceneStatusType_Healing,

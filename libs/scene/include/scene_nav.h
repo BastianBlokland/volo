@@ -3,7 +3,7 @@
 #include "ecs_module.h"
 #include "geo_nav.h"
 
-typedef enum {
+typedef enum eSceneNavLayer {
   SceneNavLayer_Normal,
   SceneNavLayer_Large,
 
