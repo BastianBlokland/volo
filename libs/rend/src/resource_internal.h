@@ -3,12 +3,8 @@
 #include "ecs_module.h"
 #include "rend_resource.h"
 
-// Internal forward declarations:
-typedef struct sRvkDevice  RvkDevice;
-typedef struct sRvkGraphic RvkGraphic;
-typedef struct sRvkMesh    RvkMesh;
-typedef struct sRvkShader  RvkShader;
-typedef struct sRvkTexture RvkTexture;
+#include "forward_internal.h"
+#include "rvk/forward_internal.h"
 
 ecs_comp_extern_public(RendResGraphicComp) {
   RvkDevice*        device;

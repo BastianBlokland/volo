@@ -2,10 +2,8 @@
 #include "asset_graphic.h"
 #include "ecs_module.h"
 
-// Internal forward declarations:
-typedef struct sRvkDevice            RvkDevice;
-typedef struct sRvkPass              RvkPass;
-typedef struct sRendBuilderContainer RendBuilderContainer;
+#include "forward_internal.h"
+#include "rvk/forward_internal.h"
 
 ecs_comp_extern_public(RendPlatformComp) {
   RvkDevice*            device;
