@@ -1,4 +1,3 @@
-#include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
 #include "geo_line.h"

@@ -2,8 +2,6 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
-#include "core_dynarray.h"
-#include "core_float.h"
 #include "core_math.h"
 #include "core_thread.h"
 #include "geo_box_rotated.h"
@@ -132,8 +130,8 @@ static void prim_copy(QueryPrim* dst, const QueryPrim* src, const QueryPrimType 
 
 #define cpy_entry_field(_FIELD_, _SIZE_)                                                           \
   mem_cpy(                                                                                         \
-      mem_create(dst->_FIELD_, (_SIZE_)*dst->capacity),                                            \
-      mem_create(src->_FIELD_, (_SIZE_)*src->count))
+      mem_create(dst->_FIELD_, (_SIZE_) * dst->capacity),                                          \
+      mem_create(src->_FIELD_, (_SIZE_) * src->count))
 
   cpy_entry_field(userIds, sizeof(u64));
   cpy_entry_field(layers, sizeof(GeoQueryLayer));

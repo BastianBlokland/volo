@@ -1,4 +1,3 @@
-#include "core_math.h"
 #include "geo_capsule.h"
 #include "geo_sphere.h"
 
