@@ -5,7 +5,6 @@
 #include "geo_matrix.h"
 #include "log_logger.h"
 #include "scene_footstep.h"
-#include "scene_level.h"
 #include "scene_lifetime.h"
 #include "scene_renderable.h"
 #include "scene_skeleton.h"

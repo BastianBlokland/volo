@@ -1,6 +1,5 @@
 #include "core_array.h"
 #include "core_diag.h"
-#include "ecs_world.h"
 #include "geo_box_rotated.h"
 #include "scene_location.h"
 #include "scene_transform.h"
