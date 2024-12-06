@@ -5,7 +5,6 @@
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "core_thread.h"
-#include "core_utf8.h"
 #include "script_binder.h"
 #include "script_diag.h"
 #include "script_intrinsic.h"
@@ -987,9 +986,9 @@ read_emit_unreachable(ScriptReadContext* ctx, const ScriptExpr exprs[], const u3
       const ScriptPos  unreachableStart = expr_range(ctx->doc, exprs[i + 1]).start;
       const ScriptPos  unreachableEnd   = expr_range(ctx->doc, exprs[exprCount - 1]).end;
       const ScriptDiag unreachableDiag  = {
-          .severity = ScriptDiagSeverity_Warning,
-          .kind     = ScriptDiag_ExprUnreachable,
-          .range    = script_range(unreachableStart, unreachableEnd),
+           .severity = ScriptDiagSeverity_Warning,
+           .kind     = ScriptDiag_ExprUnreachable,
+           .range    = script_range(unreachableStart, unreachableEnd),
       };
       script_diag_push(ctx->diags, &unreachableDiag);
       break;
@@ -2091,14 +2090,14 @@ ScriptExpr script_read(
 
   ScriptScope       scopeRoot = {0};
   ScriptReadContext ctx       = {
-      .doc         = doc,
-      .binder      = binder,
-      .stringtable = stringtable,
-      .diags       = diags,
-      .syms        = syms,
-      .input       = src,
-      .inputTotal  = src,
-      .scopeRoot   = &scopeRoot,
+            .doc         = doc,
+            .binder      = binder,
+            .stringtable = stringtable,
+            .diags       = diags,
+            .syms        = syms,
+            .input       = src,
+            .inputTotal  = src,
+            .scopeRoot   = &scopeRoot,
   };
   read_var_free_all(&ctx);
 

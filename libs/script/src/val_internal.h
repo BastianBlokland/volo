@@ -1,5 +1,4 @@
 #pragma once
-#include "core_float.h"
 #include "core_intrinsic.h"
 #include "geo_color.h"
 #include "geo_quat.h"

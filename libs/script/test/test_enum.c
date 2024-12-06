@@ -1,6 +1,5 @@
 #include "check_spec.h"
 #include "script_enum.h"
-#include "script_panic.h"
 
 spec(enum_) {
   it("can check if it contains a name") {
