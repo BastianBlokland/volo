@@ -1,9 +1,8 @@
 #pragma once
+#include "core_dynarray.h"
 #include "script_doc.h"
+#include "script_intrinsic.h"
 #include "script_pos.h"
-
-// Forward declare from 'script_binder.h'.
-typedef u64 ScriptBinderHash;
 
 typedef u32 ScriptValId;
 typedef u32 ScriptExprSet;

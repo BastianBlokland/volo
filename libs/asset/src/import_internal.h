@@ -1,19 +1,6 @@
 #pragma once
 #include "ecs_module.h"
-
-// Forward declare from 'script_binder.h'.
-typedef struct sScriptBinder     ScriptBinder;
-typedef struct sScriptBinderCall ScriptBinderCall;
-
-// Forward declare from 'script_val.h'.
-typedef struct sScriptVal ScriptVal;
-typedef u16               ScriptMask;
-
-// Forward declare from 'script_sig.h'.
-typedef struct sScriptSigArg ScriptSigArg;
-
-// Forward declare from 'script_prog.h'.
-typedef struct sScriptProgram ScriptProgram;
+#include "script.h"
 
 /**
  * Global asset import environment.

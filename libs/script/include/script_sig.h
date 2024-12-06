@@ -5,7 +5,7 @@
 #define script_sig_arg_count_max 10
 #define script_sig_arg_name_max 64
 
-typedef enum {
+typedef enum eScriptSigArgFlags {
   ScriptSigArgFlags_None  = 0,
   ScriptSigArgFlags_Multi = 1 << 0,
 } ScriptSigArgFlags;

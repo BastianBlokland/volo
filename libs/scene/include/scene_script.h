@@ -1,9 +1,7 @@
 #pragma once
 #include "ecs_entity.h"
 #include "ecs_module.h"
-
-// Forward declare from 'script_panic.h'.
-typedef struct sScriptPanic ScriptPanic;
+#include "script.h"
 
 typedef enum {
   SceneScriptFlags_None            = 0,
