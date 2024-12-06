@@ -2,9 +2,7 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo_box.h"
-
-// Forward declare from 'scene_tag.h'.
-typedef enum eSceneTags SceneTags;
+#include "scene.h"
 
 typedef enum {
   RendObjectFlags_None                = 0,

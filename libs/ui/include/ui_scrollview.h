@@ -1,8 +1,6 @@
 #pragma once
 #include "ecs_module.h"
-
-// Forward declare from 'ui_canvas.h'.
-typedef u64 UiId;
+#include "ui.h"
 
 ecs_comp_extern(UiCanvasComp);
 

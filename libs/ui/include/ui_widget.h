@@ -2,12 +2,10 @@
 #include "core_dynstring.h"
 #include "ecs_entity.h"
 #include "ecs_module.h"
+#include "ui.h"
 #include "ui_color.h"
 #include "ui_rect.h"
 #include "ui_units.h"
-
-// Forward declare from 'ui_canvas.h'.
-typedef u64 UiId;
 
 ecs_comp_extern(UiCanvasComp);
 
