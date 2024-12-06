@@ -1,8 +1,7 @@
 #pragma once
-#include "geo_color.h"
-#include "geo_vector.h"
+#include "geo.h"
 #include "scene.h"
-#include "ui_widget.h"
+#include "ui.h"
 
 bool debug_widget_editor_f32(UiCanvasComp*, f32* val, UiWidgetFlags);
 bool debug_widget_editor_u16(UiCanvasComp*, u16* val, UiWidgetFlags);

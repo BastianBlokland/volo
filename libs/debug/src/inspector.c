@@ -1,9 +1,11 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
+#include "core_dynstring.h"
 #include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "core_string.h"
 #include "core_stringtable.h"
 #include "core_utf8.h"
 #include "debug_gizmo.h"
@@ -37,7 +39,6 @@
 #include "scene_renderable.h"
 #include "scene_script.h"
 #include "scene_set.h"
-#include "scene_sound.h"
 #include "scene_status.h"
 #include "scene_tag.h"
 #include "scene_target.h"
@@ -54,6 +55,7 @@
 #include "ui_shape.h"
 #include "ui_style.h"
 #include "ui_table.h"
+#include "ui_widget.h"
 
 #include "widget_internal.h"
 

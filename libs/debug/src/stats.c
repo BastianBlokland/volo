@@ -16,7 +16,6 @@
 #include "geo_query.h"
 #include "rend_settings.h"
 #include "rend_stats.h"
-#include "scene_camera.h"
 #include "scene_collision.h"
 #include "scene_nav.h"
 #include "scene_time.h"

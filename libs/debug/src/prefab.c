@@ -6,7 +6,6 @@
 #include "core_stringtable.h"
 #include "debug_grid.h"
 #include "debug_prefab.h"
-#include "debug_register.h"
 #include "debug_shape.h"
 #include "debug_stats.h"
 #include "ecs_module.h"
