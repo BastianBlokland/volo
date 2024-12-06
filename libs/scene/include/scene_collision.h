@@ -1,13 +1,8 @@
 #pragma once
 #include "ecs_entity.h"
 #include "ecs_module.h"
-#include "geo_box_rotated.h"
-#include "geo_capsule.h"
-#include "geo_ray.h"
-#include "geo_sphere.h"
-
-// Forward declare from 'geo_query.h'.
-typedef struct sGeoQueryEnv GeoQueryEnv;
+#include "geo.h"
+#include "geo_vector.h"
 
 // Forward declare from 'scene_transform.h'.
 ecs_comp_extern(SceneTransformComp);

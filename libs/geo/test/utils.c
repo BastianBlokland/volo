@@ -1,5 +1,7 @@
 #include "core_alloc.h"
 #include "core_float.h"
+#include "geo_color.h"
+#include "geo_matrix.h"
 
 #include "utils_internal.h"
 

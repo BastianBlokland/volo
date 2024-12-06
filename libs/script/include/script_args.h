@@ -2,15 +2,7 @@
 #include "core_string.h"
 #include "core_time.h"
 #include "ecs_entity.h"
-
-// Forward declare from 'geo_quat.h'.
-typedef union uGeoQuat GeoQuat;
-
-// Forward declare from 'geo_color.h'.
-typedef union uGeoColor GeoColor;
-
-// Forward declare from 'geo_vector.h'.
-typedef union uGeoVector GeoVector;
+#include "geo.h"
 
 // Internal forward declarations:
 typedef enum eScriptType         ScriptType;

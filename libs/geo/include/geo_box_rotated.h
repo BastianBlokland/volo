@@ -2,9 +2,6 @@
 #include "geo_box.h"
 #include "geo_quat.h"
 
-// Forward declare from 'geo_sphere.h'.
-typedef struct sGeoSphere GeoSphere;
-
 /**
  * Geometric 3d rotated box.
  */

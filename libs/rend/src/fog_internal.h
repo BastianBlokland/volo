@@ -1,8 +1,6 @@
 #pragma once
 #include "ecs_module.h"
-
-// Forward declare from 'geo_matrix.h'.
-typedef union uGeoMatrix GeoMatrix;
+#include "geo.h"
 
 ecs_comp_extern(RendFogComp);
 

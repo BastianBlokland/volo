@@ -1,11 +1,9 @@
 #pragma once
 #include "ecs_module.h"
+#include "geo.h"
 
 // Forward declare from 'asset_manager.h'.
 typedef enum eAssetGraphicPass AssetGraphicPass;
-
-// Forward declare from 'geo_box.h'.
-typedef struct sGeoBox GeoBox;
 
 /**
  * Renderer resource.

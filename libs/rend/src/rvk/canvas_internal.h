@@ -1,14 +1,12 @@
 #pragma once
 #include "gap_window.h"
+#include "geo.h"
 #include "rend_settings.h"
 #include "rend_stats.h"
 
 #include "types_internal.h"
 
 #define rvk_canvas_max_passes 16
-
-// Forward declare from 'geo_color.h'.
-typedef union uGeoColor GeoColor;
 
 // Internal forward declarations:
 typedef enum eRvkJobPhase         RvkJobPhase;

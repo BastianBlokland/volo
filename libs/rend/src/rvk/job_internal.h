@@ -1,10 +1,8 @@
 #pragma once
 #include "core_time.h"
+#include "geo.h"
 
 #include "uniform_internal.h"
-
-// Forward declare from 'geo_color.h'.
-typedef union uGeoColor GeoColor;
 
 // Internal forward declarations:
 typedef enum eRvkImagePhase     RvkImagePhase;
