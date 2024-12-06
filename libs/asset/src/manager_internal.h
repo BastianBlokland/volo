@@ -3,9 +3,6 @@
 
 #include "format_internal.h"
 
-// Forward declare from 'core_time.h'.
-typedef i64 TimeReal;
-
 // Forward declare from 'repo_internal.h'.
 typedef struct sAssetSource AssetSource;
 

@@ -9,9 +9,6 @@
 #define rng_sample_range(_RNG_, _MIN_, _MAX_)                                                      \
   ((_MIN_) + ((_MAX_) - (_MIN_)) * rng_sample_f32(_RNG_))
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
 /**
  * Random Number Generator.
  */

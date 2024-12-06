@@ -2,9 +2,6 @@
 #include "core.h"
 #include "core_string.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
 /**
  * Opaque identifier to a task in a job.
  * NOTE: Are assigned starting from 0.

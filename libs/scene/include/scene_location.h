@@ -7,9 +7,6 @@ ecs_comp_extern(SceneTransformComp);
 ecs_comp_extern(SceneScaleComp);
 ecs_comp_extern(SceneVelocityComp);
 
-// Forward declare from 'core_time.h'.
-typedef i64 TimeDuration;
-
 typedef enum {
   SceneLocationType_AimTarget,
 

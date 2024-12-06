@@ -4,7 +4,7 @@
 /**
  * Information to identify a location in the source-code.
  */
-typedef struct {
+typedef struct sSourceLoc {
   String file;
   u32    line;
 } SourceLoc;

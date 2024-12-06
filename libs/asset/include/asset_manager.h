@@ -3,9 +3,6 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
 #define asset_query_max_results 512
 
 typedef struct {

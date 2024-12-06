@@ -2,12 +2,6 @@
 #include "core_memory.h"
 #include "ecs.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
-// Forward declare from 'core_bitset.h'
-typedef Mem BitSet;
-
 // Forward declare from 'job_executor.h'.
 typedef u16 JobWorkerId;
 

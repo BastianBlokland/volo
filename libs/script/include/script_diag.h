@@ -1,12 +1,6 @@
 #pragma once
 #include "script_pos.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
 #define script_diag_max 16
 
 typedef enum {

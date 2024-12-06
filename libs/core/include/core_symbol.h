@@ -1,9 +1,6 @@
 #pragma once
 #include "core_string.h"
 
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
 typedef void* Symbol;
 typedef uptr  SymbolAddr;
 typedef u32   SymbolAddrRel; // Relative to program base (limits executable size to 4 GiB).

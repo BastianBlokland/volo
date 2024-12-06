@@ -4,9 +4,6 @@
 #include "geo_quat.h"
 #include "geo_vector.h"
 
-// Forward declare from 'core_time.h'.
-typedef i64 TimeDuration;
-
 ecs_comp_extern_public(SceneTransformComp) {
   GeoVector position;
   GeoQuat   rotation;

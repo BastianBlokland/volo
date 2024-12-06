@@ -6,9 +6,6 @@
 #include "ui_rect.h"
 #include "ui_units.h"
 
-// Forward declare from 'core_time.h'.
-typedef i64 TimeDuration;
-
 // Forward declare from 'ui_canvas.h'.
 typedef u64 UiId;
 

@@ -1,9 +1,6 @@
 #pragma once
 #include "core.h"
 
-// Forward declare from 'core_rng.h'.
-typedef struct sRng Rng;
-
 /**
  * 4 component geometric spacial Vector.
  * For describing a position / offset in 2 / 3 / 4 dimensions.

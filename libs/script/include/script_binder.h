@@ -1,12 +1,6 @@
 #pragma once
 #include "core_string.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
 // Internal forward declarations:
 typedef struct sScriptPanicHandler ScriptPanicHandler;
 typedef struct sScriptSig          ScriptSig;

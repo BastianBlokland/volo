@@ -2,12 +2,6 @@
 #include "core_signal.h"
 #include "core_string.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
-// Forward declare from 'core_file.h'.
-typedef struct sFile File;
-
 /**
  * Process handle.
  */

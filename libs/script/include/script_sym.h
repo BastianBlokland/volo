@@ -2,12 +2,6 @@
 #include "script_intrinsic.h"
 #include "script_pos.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
 // Forward declare from 'script_doc.h'.
 typedef struct sScriptDoc ScriptDoc;
 typedef u32               ScriptExpr;

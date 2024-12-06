@@ -6,7 +6,7 @@
 // Forward declare from 'script_mem.h'.
 typedef struct sScriptMem ScriptMem;
 
-// Forward declare from 'core_binder.h'.
+// Forward declare from 'script_binder.h'.
 typedef u64                  ScriptBinderHash;
 typedef struct sScriptBinder ScriptBinder;
 

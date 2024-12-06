@@ -3,12 +3,6 @@
 #include "core_compare.h"
 #include "core_memory.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
-// Forward declare from 'core_rng.h'.
-typedef struct sRng Rng;
-
 /**
  * Owning array of items.
  * Dynamically allocates memory when more items get added.

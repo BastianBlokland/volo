@@ -5,12 +5,6 @@
 #include "ecs.h"
 #include "geo.h"
 
-// Forward declare from 'core_time.h'.
-typedef i64 TimeDuration;
-
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
 typedef enum eScriptType {
   ScriptType_Null,
   ScriptType_Num,

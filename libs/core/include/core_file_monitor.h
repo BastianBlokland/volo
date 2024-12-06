@@ -1,9 +1,6 @@
 #pragma once
 #include "core_string.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
 /**
  * File Monitor.
  * Can watch for file modifications.

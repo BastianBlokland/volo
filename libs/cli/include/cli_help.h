@@ -1,8 +1,5 @@
 #pragma once
-#include "core_dynstring.h"
-
-// Forward declare from 'core_file.h'.
-typedef struct sFile File;
+#include "core.h"
 
 // Forward declare from 'cli_app.h'.
 typedef struct sCliApp CliApp;

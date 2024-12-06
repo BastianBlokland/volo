@@ -2,12 +2,6 @@
 #include "core.h"
 #include "core_string.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
-// Forward declare from 'core_time.h'.
-typedef i64 TimeDuration;
-
 /**
  * Unique identifier for a thread.
  * NOTE: Thread-ids can be recycled by the kernel so a new thread might be created with the same id.

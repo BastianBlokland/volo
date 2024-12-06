@@ -5,15 +5,6 @@
 #include "core_macro.h"
 #include "core_tty.h"
 
-// Forward declare from 'core_time.h'.
-typedef i64 TimeDuration;
-
-// Forward declare from 'core_time.h'.
-typedef i64 TimeReal;
-
-// Forward declare from 'core_time.h'.
-typedef i16 TimeZone;
-
 typedef enum {
   FormatArgType_End = 0,
   FormatArgType_Nop,

@@ -1,12 +1,6 @@
 #pragma once
 #include "core_string.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
-// Forward declare from 'core_sym.h'.
-typedef void* Symbol;
-
 /**
  * Handle to a loaded dynamic-library (.so / .dll).
  */

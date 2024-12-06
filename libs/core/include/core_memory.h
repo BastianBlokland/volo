@@ -4,7 +4,7 @@
 /**
  * Non-owning view over a memory block.
  */
-typedef struct {
+typedef struct sMem {
   void* ptr;
   usize size;
 } Mem;

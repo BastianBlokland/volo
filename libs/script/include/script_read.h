@@ -1,9 +1,6 @@
 #pragma once
 #include "script_doc.h"
 
-// Forward declare from 'core_stringtable.h'.
-typedef struct sStringTable StringTable;
-
 // Forward declare from 'script_binder.h'.
 typedef struct sScriptBinder ScriptBinder;
 

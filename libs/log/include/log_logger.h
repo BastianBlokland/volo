@@ -2,9 +2,6 @@
 #include "core_format.h"
 #include "core_sourceloc.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
 typedef enum {
   LogLevel_Debug,
   LogLevel_Info,

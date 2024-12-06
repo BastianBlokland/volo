@@ -4,9 +4,6 @@
 
 #include "format_internal.h"
 
-// Forward declare from 'core_time.h'.
-typedef i64 TimeReal;
-
 #define asset_repo_cache_deps_max 256
 
 typedef struct sAssetRepo   AssetRepo;

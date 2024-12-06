@@ -1,9 +1,6 @@
 #pragma once
 #include "geo_vector.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
 // Shape forward declares.
 typedef struct sGeoBox        GeoBox;
 typedef struct sGeoBoxRotated GeoBoxRotated;

@@ -1,9 +1,6 @@
 #pragma once
 #include "trace_tracer.h"
 
-// Forward declare from 'core_dynstring.h'.
-typedef struct sDynArray DynString;
-
 /**
  * Dump all the events from the store in the Google EventTrace format.
  *

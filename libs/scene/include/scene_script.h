@@ -2,9 +2,6 @@
 #include "ecs_entity.h"
 #include "ecs_module.h"
 
-// Forward declare from 'core_time.h'.
-typedef i64 TimeDuration;
-
 // Forward declare from 'script_panic.h'.
 typedef struct sScriptPanic ScriptPanic;
 

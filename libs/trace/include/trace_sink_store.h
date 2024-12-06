@@ -2,13 +2,6 @@
 #include "core.h"
 #include "trace_tracer.h"
 
-// Forward declare from 'core_time.h'.
-typedef i64 TimeSteady;
-
-// Forward declare from 'core_thread.h'.
-typedef i32 ThreadId;
-typedef i32 ThreadSpinLock;
-
 /**
  * Store Sink - sink that outputs events to in-memory buffers for later inspection / dumping.
  *

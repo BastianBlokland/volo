@@ -3,9 +3,6 @@
 #include "core_dynstring.h"
 #include "core_unicode.h"
 
-// Forward declare from 'core_file.h'.
-typedef struct sFile File;
-
 #define tty_esc "\33"
 
 /**

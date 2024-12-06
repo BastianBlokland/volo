@@ -5,9 +5,6 @@
 
 #include "rvk/types_internal.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
 // Internal forward declarations:
 typedef struct sRvkCanvas      RvkCanvas;
 typedef struct sRvkGraphic     RvkGraphic;

@@ -5,9 +5,6 @@
 #include "gap_input.h"
 #include "gap_vector.h"
 
-// Forward declare from 'core_time.h'.
-typedef i64 TimeDuration;
-
 /**
  * Notification flags for events that occurred this tick.
  */

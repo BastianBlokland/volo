@@ -4,9 +4,6 @@
 #include "script_intrinsic.h"
 #include "script_val.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
 // Forward declare from 'script_pos.h'.
 typedef u32                        ScriptPos;
 typedef struct sScriptRange        ScriptRange;

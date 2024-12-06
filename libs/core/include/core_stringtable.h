@@ -1,9 +1,6 @@
 #pragma once
 #include "core_string.h"
 
-// Forward declare from 'core_alloc.h'.
-typedef struct sAllocator Allocator;
-
 /**
  * Table for storing strings.
  * NOTE: Meant for storing short strings, preferably less then 128 bytes.
