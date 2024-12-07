@@ -1364,7 +1364,7 @@ static ScriptVal eval_collision_sphere_spawn(EvalContext* ctx, ScriptBinderCall*
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
 
-  const SceneCollisionSphere sphere = {.radius = radius};
+  const GeoSphere sphere = {.radius = radius};
   scene_collision_add_sphere(ctx->world, result, sphere, layer);
 
   if (navBlocker) {

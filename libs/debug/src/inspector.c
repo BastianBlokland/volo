@@ -727,7 +727,7 @@ static void inspector_panel_draw_collision(
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Offset"));
         ui_table_next_column(canvas, table);
-        debug_widget_editor_vec3(canvas, &collisionShape->sphere.offset, UiWidget_Default);
+        debug_widget_editor_vec3(canvas, &collisionShape->sphere.point, UiWidget_Default);
 
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Radius"));

@@ -1,8 +1,8 @@
 #pragma once
 #include "ecs_module.h"
 #include "geo.h"
-#include "geo_box_rotated.h"
-#include "geo_vector.h"
+#include "geo_box.h"
+#include "geo_sphere.h"
 #include "scene.h"
 
 #define scene_query_max_hits 512 // Maximum number of entities that can be hit using a single query.
@@ -80,11 +80,6 @@ typedef enum {
 } SceneCollisionDir;
 
 typedef struct {
-  GeoVector offset;
-  f32       radius;
-} SceneCollisionSphere;
-
-typedef struct {
   GeoVector         offset;
   SceneCollisionDir dir;
   f32               radius;
@@ -94,7 +89,7 @@ typedef struct {
 typedef struct {
   SceneCollisionType type;
   union {
-    SceneCollisionSphere  sphere;
+    GeoSphere             sphere;
     SceneCollisionCapsule capsule;
     GeoBox                box;
   };
@@ -126,7 +121,7 @@ void       scene_collision_ignore_mask_set(SceneCollisionEnvComp*, SceneLayer);
  * Add a collision shape to the given entity.
  */
 
-void scene_collision_add_sphere(EcsWorld*, EcsEntityId, SceneCollisionSphere, SceneLayer);
+void scene_collision_add_sphere(EcsWorld*, EcsEntityId, GeoSphere, SceneLayer);
 void scene_collision_add_capsule(EcsWorld*, EcsEntityId, SceneCollisionCapsule, SceneLayer);
 void scene_collision_add_box(EcsWorld*, EcsEntityId, GeoBox, SceneLayer);
 
@@ -201,8 +196,8 @@ u32 scene_query_frustum_all(
  * NOTE: SceneTransformComp and SceneScaleComp are optional.
  */
 
-GeoSphere scene_collision_world_sphere(
-    const SceneCollisionSphere*, const SceneTransformComp*, const SceneScaleComp*);
+GeoSphere
+scene_collision_world_sphere(const GeoSphere*, const SceneTransformComp*, const SceneScaleComp*);
 GeoCapsule scene_collision_world_capsule(
     const SceneCollisionCapsule*, const SceneTransformComp*, const SceneScaleComp*);
 GeoBoxRotated

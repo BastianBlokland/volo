@@ -230,10 +230,7 @@ void scene_collision_ignore_mask_set(SceneCollisionEnvComp* env, const SceneLaye
 }
 
 void scene_collision_add_sphere(
-    EcsWorld*                  world,
-    const EcsEntityId          entity,
-    const SceneCollisionSphere sphere,
-    const SceneLayer           layer) {
+    EcsWorld* world, const EcsEntityId entity, const GeoSphere sphere, const SceneLayer layer) {
   diag_assert_msg(bits_popcnt((u32)layer) == 1, "Collider can only be in 1 layer");
 
   ecs_world_add_t(
@@ -406,14 +403,12 @@ u32 scene_query_frustum_all(
 }
 
 GeoSphere scene_collision_world_sphere(
-    const SceneCollisionSphere* sphere,
-    const SceneTransformComp*   trans,
-    const SceneScaleComp*       scale) {
+    const GeoSphere* sphere, const SceneTransformComp* trans, const SceneScaleComp* scale) {
   const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
   const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
   const f32       baseScale = scale ? scale->scale : 1.0f;
 
-  const GeoVector offset = geo_quat_rotate(baseRot, geo_vector_mul(sphere->offset, baseScale));
+  const GeoVector offset = geo_quat_rotate(baseRot, geo_vector_mul(sphere->point, baseScale));
   const GeoVector point  = geo_vector_add(basePos, offset);
 
   return (GeoSphere){.point = point, .radius = sphere->radius * baseScale};

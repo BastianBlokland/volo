@@ -341,8 +341,8 @@ static void setup_collision(
   const SceneLayer layer = prefab_instance_layer(s->faction, p->flags);
   switch (t->shape.type) {
   case AssetPrefabShape_Sphere: {
-    const SceneCollisionSphere sphere = {
-        .offset = t->shape.data_sphere.offset,
+    const GeoSphere sphere = {
+        .point  = t->shape.data_sphere.offset,
         .radius = t->shape.data_sphere.radius,
     };
     scene_collision_add_sphere(w, e, sphere, layer);
