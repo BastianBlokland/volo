@@ -82,8 +82,9 @@ typedef struct {
 } SceneCollisionShape;
 
 ecs_comp_extern_public(SceneCollisionComp) {
-  SceneLayer          layer;
-  SceneCollisionShape shape;
+  SceneLayer           layer;
+  u32                  shapeCount;
+  SceneCollisionShape* shapes;
 };
 
 /**
@@ -106,7 +107,7 @@ void       scene_collision_ignore_mask_set(SceneCollisionEnvComp*, SceneLayer);
 /**
  * Add a collision shape to the given entity.
  */
-void scene_collision_add(EcsWorld*, EcsEntityId, SceneCollisionShape, SceneLayer);
+SceneCollisionComp* scene_collision_add(EcsWorld*, EcsEntityId, SceneCollisionShape, SceneLayer);
 
 /**
  * Intersection apis.

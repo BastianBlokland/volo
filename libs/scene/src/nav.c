@@ -204,8 +204,10 @@ static void nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView) {
       continue; // Blocker is not enabled on this layer.
     }
 
-    const u64                 userId = (u64)ecs_view_entity(itr);
-    const SceneCollisionShape shape  = scene_collision_shape_world(&collision->shape, trans, scale);
+    const u64 userId = (u64)ecs_view_entity(itr);
+    // TODO: Support multiple shapes.
+    const SceneCollisionShape shape =
+        scene_collision_shape_world(&collision->shapes[0], trans, scale);
     switch (shape.type) {
     case SceneCollisionType_Sphere:
       blocker->ids[ctx->layer] = geo_nav_blocker_add_sphere(ctx->grid, userId, &shape.sphere);

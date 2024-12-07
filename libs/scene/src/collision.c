@@ -31,6 +31,11 @@ static void ecs_destruct_collision_env_comp(void* data) {
   geo_query_env_destroy(env->queryEnv);
 }
 
+static void ecs_destruct_collision(void* data) {
+  SceneCollisionComp* comp = data;
+  alloc_free_array_t(g_allocHeap, comp->shapes, comp->shapeCount);
+}
+
 ecs_view_define(InitGlobalView) { ecs_access_write(SceneCollisionEnvComp); }
 
 ecs_view_define(CollisionView) {
@@ -89,27 +94,29 @@ ecs_system_define(SceneCollisionInitSys) {
       continue;
     }
 
-    const u64                 userId     = (u64)ecs_view_entity(itr);
-    const GeoQueryLayer       queryLayer = (GeoQueryLayer)collision->layer;
-    const SceneCollisionShape shape = scene_collision_shape_world(&collision->shape, trans, scale);
-
-    switch (shape.type) {
-    case SceneCollisionType_Sphere:
-      geo_query_insert_sphere(env->queryEnv, shape.sphere, userId, queryLayer);
-      break;
-    case SceneCollisionType_Capsule: {
-      if (geo_line_length_sqr(&shape.capsule.line) <= 1e-2f) {
-        const GeoSphere sphere = {.point = shape.capsule.line.a, .radius = shape.capsule.radius};
-        geo_query_insert_sphere(env->queryEnv, sphere, userId, queryLayer);
-      } else {
-        geo_query_insert_capsule(env->queryEnv, shape.capsule, userId, queryLayer);
+    const u64           userId     = (u64)ecs_view_entity(itr);
+    const GeoQueryLayer queryLayer = (GeoQueryLayer)collision->layer;
+    for (u32 i = 0; i != collision->shapeCount; ++i) {
+      const SceneCollisionShape* shapeLocal = &collision->shapes[i];
+      const SceneCollisionShape  shape      = scene_collision_shape_world(shapeLocal, trans, scale);
+      switch (shape.type) {
+      case SceneCollisionType_Sphere:
+        geo_query_insert_sphere(env->queryEnv, shape.sphere, userId, queryLayer);
+        break;
+      case SceneCollisionType_Capsule: {
+        if (geo_line_length_sqr(&shape.capsule.line) <= 1e-2f) {
+          const GeoSphere sphere = {.point = shape.capsule.line.a, .radius = shape.capsule.radius};
+          geo_query_insert_sphere(env->queryEnv, sphere, userId, queryLayer);
+        } else {
+          geo_query_insert_capsule(env->queryEnv, shape.capsule, userId, queryLayer);
+        }
+      } break;
+      case SceneCollisionType_Box:
+        geo_query_insert_box_rotated(env->queryEnv, shape.box, userId, queryLayer);
+        break;
+      default:
+        UNREACHABLE
       }
-    } break;
-    case SceneCollisionType_Box:
-      geo_query_insert_box_rotated(env->queryEnv, shape.box, userId, queryLayer);
-      break;
-    default:
-      UNREACHABLE
     }
   }
 
@@ -159,7 +166,7 @@ ecs_system_define(SceneCollisionStatsSys) {
 ecs_module_init(scene_collision_module) {
   ecs_register_comp(SceneCollisionEnvComp, .destructor = ecs_destruct_collision_env_comp);
   ecs_register_comp(SceneCollisionStatsComp);
-  ecs_register_comp(SceneCollisionComp);
+  ecs_register_comp(SceneCollisionComp, .destructor = ecs_destruct_collision);
 
   ecs_register_view(InitGlobalView);
   ecs_register_view(CollisionView);
@@ -226,14 +233,21 @@ void scene_collision_ignore_mask_set(SceneCollisionEnvComp* env, const SceneLaye
   env->ignoreMask = mask;
 }
 
-void scene_collision_add(
+SceneCollisionComp* scene_collision_add(
     EcsWorld*                 world,
     const EcsEntityId         entity,
     const SceneCollisionShape shape,
     const SceneLayer          layer) {
   diag_assert_msg(bits_popcnt((u32)layer) == 1, "Collider can only be in 1 layer");
 
-  ecs_world_add_t(world, entity, SceneCollisionComp, .layer = layer, .shape = shape);
+  SceneCollisionComp* comp = ecs_world_add_t(world, entity, SceneCollisionComp, .layer = layer);
+
+  comp->shapeCount = 1;
+  comp->shapes     = alloc_array_t(g_allocHeap, SceneCollisionShape, comp->shapeCount);
+
+  comp->shapes[0] = shape;
+
+  return comp;
 }
 
 f32 scene_collision_shape_intersect_ray(
@@ -261,7 +275,19 @@ f32 scene_collision_intersect_ray(
     const SceneTransformComp* trans,
     const SceneScaleComp*     scale,
     const GeoRay*             ray) {
-  return scene_collision_shape_intersect_ray(&collision->shape, trans, scale, ray);
+
+  f32  dist = f32_max;
+  bool hit  = false;
+  for (u32 i = 0; i != collision->shapeCount; ++i) {
+    const SceneCollisionShape* shape = &collision->shapes[i];
+    const f32 shapeDist = scene_collision_shape_intersect_ray(shape, trans, scale, ray);
+
+    if (shapeDist >= 0.0f && shapeDist < dist) {
+      dist = shapeDist;
+      hit  = true;
+    }
+  }
+  return hit ? dist : -1.0f;
 }
 
 bool scene_query_ray(
@@ -412,7 +438,14 @@ GeoBox scene_collision_shape_bounds(
 
 GeoBox scene_collision_bounds(
     const SceneCollisionComp* comp, const SceneTransformComp* trans, const SceneScaleComp* scale) {
-  return scene_collision_shape_bounds(&comp->shape, trans, scale);
+  diag_assert(comp->shapeCount);
+
+  GeoBox result = scene_collision_shape_bounds(&comp->shapes[0], trans, scale);
+  for (u32 i = 1; i != comp->shapeCount; ++i) {
+    const GeoBox shapeBounds = scene_collision_shape_bounds(&comp->shapes[i], trans, scale);
+    result                   = geo_box_encapsulate_box(&result, &shapeBounds);
+  }
+  return result;
 }
 
 const GeoQueryEnv* scene_collision_query_env(const SceneCollisionEnvComp* env) {

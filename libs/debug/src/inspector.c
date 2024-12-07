@@ -706,7 +706,8 @@ static void inspector_panel_draw_collision(
   if (collision) {
     inspector_panel_next(canvas, panelComp, table);
     if (inspector_panel_section(canvas, string_lit("Collision"))) {
-      SceneCollisionShape* collisionShape = &collision->shape;
+      // TODO: Support multiple shapes.
+      SceneCollisionShape* collisionShape = &collision->shapes[0];
 
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Type"));
@@ -1397,34 +1398,30 @@ static void inspector_vis_draw_locomotion(
   }
 }
 
-static void inspector_vis_draw_collision_shape(
-    DebugShapeComp*            shape,
-    const SceneCollisionShape* collisionShape,
-    const SceneTransformComp*  transform,
-    const SceneScaleComp*      scale) {
-
-  const SceneCollisionShape world = scene_collision_shape_world(collisionShape, transform, scale);
-  switch (world.type) {
-  case SceneCollisionType_Sphere:
-    debug_world_sphere(shape, &world.sphere, geo_color(1, 0, 0, 0.75f));
-    break;
-  case SceneCollisionType_Capsule:
-    debug_world_capsule(shape, &world.capsule, geo_color(1, 0, 0, 0.75f));
-    break;
-  case SceneCollisionType_Box:
-    debug_world_box_rotated(shape, &world.box, geo_color(1, 0, 0, 0.75f));
-    break;
-  case SceneCollisionType_Count:
-    UNREACHABLE
-  }
-}
-
 static void inspector_vis_draw_collision(
     DebugShapeComp*           shape,
     const SceneCollisionComp* collision,
     const SceneTransformComp* transform,
     const SceneScaleComp*     scale) {
-  inspector_vis_draw_collision_shape(shape, &collision->shape, transform, scale);
+
+  for (u32 i = 0; i != collision->shapeCount; ++i) {
+    const SceneCollisionShape* local = &collision->shapes[i];
+    const SceneCollisionShape  world = scene_collision_shape_world(local, transform, scale);
+
+    switch (world.type) {
+    case SceneCollisionType_Sphere:
+      debug_world_sphere(shape, &world.sphere, geo_color(1, 0, 0, 0.75f));
+      break;
+    case SceneCollisionType_Capsule:
+      debug_world_capsule(shape, &world.capsule, geo_color(1, 0, 0, 0.75f));
+      break;
+    case SceneCollisionType_Box:
+      debug_world_box_rotated(shape, &world.box, geo_color(1, 0, 0, 0.75f));
+      break;
+    case SceneCollisionType_Count:
+      UNREACHABLE
+    }
+  }
 }
 
 static void inspector_vis_draw_bounds_local(
