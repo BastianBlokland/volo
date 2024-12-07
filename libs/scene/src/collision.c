@@ -245,6 +245,9 @@ SceneCollisionComp* scene_collision_add(
   comp->shapeCount = 1;
   comp->shapes     = alloc_array_t(g_allocHeap, SceneCollisionShape, comp->shapeCount);
 
+  // NOTE: Make sure we initialize padding to zero as its included in a hash.
+  mem_set(mem_create(comp->shapes, sizeof(SceneCollisionShape) * comp->shapeCount), 0);
+
   comp->shapes[0] = shape;
 
   return comp;
