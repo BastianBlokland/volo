@@ -357,9 +357,10 @@ static void setup_collision(
     scene_collision_add_capsule(w, e, capsule, layer);
   } break;
   case AssetPrefabShape_Box: {
-    const GeoBox box = {
-        .min = t->shape.data_box.min,
-        .max = t->shape.data_box.max,
+    const GeoBoxRotated box = {
+        .box.min  = t->shape.data_box.min,
+        .box.max  = t->shape.data_box.max,
+        .rotation = geo_quat_ident,
     };
     scene_collision_add_box(w, e, box, layer);
   } break;

@@ -259,7 +259,7 @@ void scene_collision_add_capsule(
 }
 
 void scene_collision_add_box(
-    EcsWorld* world, const EcsEntityId entity, const GeoBox box, const SceneLayer layer) {
+    EcsWorld* world, const EcsEntityId entity, const GeoBoxRotated box, const SceneLayer layer) {
   diag_assert_msg(bits_popcnt((u32)layer) == 1, "Collider can only be in 1 layer");
 
   ecs_world_add_t(
@@ -431,12 +431,12 @@ GeoCapsule scene_collision_world_capsule(
 }
 
 GeoBoxRotated scene_collision_world_box(
-    const GeoBox* box, const SceneTransformComp* trans, const SceneScaleComp* scale) {
+    const GeoBoxRotated* box, const SceneTransformComp* trans, const SceneScaleComp* scale) {
   const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
   const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
   const f32       baseScale = scale ? scale->scale : 1.0f;
-  const GeoBox    localBox  = {.min = box->min, .max = box->max};
-  return geo_box_rotated(&localBox, basePos, baseRot, baseScale);
+
+  return geo_box_rotated_transform3(box, basePos, baseRot, baseScale);
 }
 
 GeoBox scene_collision_world_shape(
@@ -453,11 +453,8 @@ GeoBox scene_collision_world_shape(
     return geo_box_from_capsule(worldCapsule.line.a, worldCapsule.line.b, worldCapsule.radius);
   }
   case SceneCollisionType_Box: {
-    const GeoBox    localBox  = {.min = shape->box.min, .max = shape->box.max};
-    const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
-    const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
-    const f32       baseScale = scale ? scale->scale : 1.0f;
-    return geo_box_transform3(&localBox, basePos, baseRot, baseScale);
+    const GeoBoxRotated worldBox = scene_collision_world_box(&shape->box, trans, scale);
+    return geo_box_from_rotated(&worldBox.box, worldBox.rotation);
   }
   case SceneCollisionType_Count:
     break;

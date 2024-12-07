@@ -761,12 +761,12 @@ static void inspector_panel_draw_collision(
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Min"));
         ui_table_next_column(canvas, table);
-        debug_widget_editor_vec3(canvas, &collisionShape->box.min, UiWidget_Default);
+        debug_widget_editor_vec3(canvas, &collisionShape->box.box.min, UiWidget_Default);
 
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Max"));
         ui_table_next_column(canvas, table);
-        debug_widget_editor_vec3(canvas, &collisionShape->box.max, UiWidget_Default);
+        debug_widget_editor_vec3(canvas, &collisionShape->box.box.max, UiWidget_Default);
       } break;
       case SceneCollisionType_Count:
         UNREACHABLE
