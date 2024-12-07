@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "ecs_entity.h"
 
 #include "archetype_internal.h"
 #include "def_internal.h"

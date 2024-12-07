@@ -1,6 +1,5 @@
 #pragma once
 #include "asset.h"
-#include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo_vector.h"
 

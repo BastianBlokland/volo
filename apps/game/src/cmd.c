@@ -2,6 +2,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_stringtable.h"
+#include "ecs_entity.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene_faction.h"

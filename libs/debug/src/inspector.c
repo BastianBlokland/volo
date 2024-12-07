@@ -702,73 +702,74 @@ static void inspector_panel_draw_collision(
     DebugInspectorPanelComp* panelComp,
     UiTable*                 table,
     EcsIterator*             subject) {
-  SceneCollisionComp* collision = subject ? ecs_view_write_t(subject, SceneCollisionComp) : null;
-  if (collision) {
+  SceneCollisionComp* col = subject ? ecs_view_write_t(subject, SceneCollisionComp) : null;
+  if (col) {
     inspector_panel_next(canvas, panelComp, table);
     if (inspector_panel_section(canvas, string_lit("Collision"))) {
-
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Type"));
-      ui_table_next_column(canvas, table);
-      inspector_panel_draw_value_string(canvas, scene_collision_type_name(collision->type));
-
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Layer"));
       ui_table_next_column(canvas, table);
-      if (bits_popcnt((u32)collision->layer) == 1) {
-        inspector_panel_draw_value_string(canvas, scene_layer_name(collision->layer));
+      if (bits_popcnt((u32)col->layer) == 1) {
+        inspector_panel_draw_value_string(canvas, scene_layer_name(col->layer));
       } else {
         inspector_panel_draw_value_string(canvas, string_lit("< Multiple >"));
       }
 
-      switch (collision->type) {
-      case SceneCollisionType_Sphere: {
-        inspector_panel_next(canvas, panelComp, table);
-        ui_label(canvas, string_lit("Offset"));
-        ui_table_next_column(canvas, table);
-        debug_widget_editor_vec3(canvas, &collision->sphere.offset, UiWidget_Default);
+      inspector_panel_next(canvas, panelComp, table);
+      ui_label(canvas, string_lit("Shapes"));
+      ui_table_next_column(canvas, table);
+      inspector_panel_draw_value_string(canvas, fmt_write_scratch("{}", fmt_int(col->shapeCount)));
+
+      for (u32 i = 0; i != col->shapeCount; ++i) {
+        SceneCollisionShape* shape = &col->shapes[i];
 
         inspector_panel_next(canvas, panelComp, table);
-        ui_label(canvas, string_lit("Radius"));
+        ui_label(canvas, fmt_write_scratch("[{}]\tType", fmt_int(i)));
         ui_table_next_column(canvas, table);
-        debug_widget_editor_f32(canvas, &collision->sphere.radius, UiWidget_Default);
-      } break;
-      case SceneCollisionType_Capsule: {
-        inspector_panel_next(canvas, panelComp, table);
-        ui_label(canvas, string_lit("Offset"));
-        ui_table_next_column(canvas, table);
-        debug_widget_editor_vec3(canvas, &collision->capsule.offset, UiWidget_Default);
+        inspector_panel_draw_value_string(canvas, scene_collision_type_name(shape->type));
 
-        inspector_panel_next(canvas, panelComp, table);
-        ui_label(canvas, string_lit("Direction"));
-        ui_table_next_column(canvas, table);
-        static const String g_collisionDirNames[] = {
-            string_static("Up"), string_static("Forward"), string_static("Right")};
-        ui_select(canvas, (i32*)&collision->capsule.dir, g_collisionDirNames, 3);
+        switch (shape->type) {
+        case SceneCollisionType_Sphere: {
+          inspector_panel_next(canvas, panelComp, table);
+          ui_label(canvas, string_lit("\tOffset"));
+          ui_table_next_column(canvas, table);
+          debug_widget_editor_vec3(canvas, &shape->sphere.point, UiWidget_Default);
 
-        inspector_panel_next(canvas, panelComp, table);
-        ui_label(canvas, string_lit("Radius"));
-        ui_table_next_column(canvas, table);
-        debug_widget_editor_f32(canvas, &collision->capsule.radius, UiWidget_Default);
+          inspector_panel_next(canvas, panelComp, table);
+          ui_label(canvas, string_lit("\tRadius"));
+          ui_table_next_column(canvas, table);
+          debug_widget_editor_f32(canvas, &shape->sphere.radius, UiWidget_Default);
+        } break;
+        case SceneCollisionType_Capsule: {
+          inspector_panel_next(canvas, panelComp, table);
+          ui_label(canvas, string_lit("\tA"));
+          ui_table_next_column(canvas, table);
+          debug_widget_editor_vec3(canvas, &shape->capsule.line.a, UiWidget_Default);
 
-        inspector_panel_next(canvas, panelComp, table);
-        ui_label(canvas, string_lit("Height"));
-        ui_table_next_column(canvas, table);
-        debug_widget_editor_f32(canvas, &collision->capsule.height, UiWidget_Default);
-      } break;
-      case SceneCollisionType_Box: {
-        inspector_panel_next(canvas, panelComp, table);
-        ui_label(canvas, string_lit("Min"));
-        ui_table_next_column(canvas, table);
-        debug_widget_editor_vec3(canvas, &collision->box.min, UiWidget_Default);
+          inspector_panel_next(canvas, panelComp, table);
+          ui_label(canvas, string_lit("\tB"));
+          ui_table_next_column(canvas, table);
+          debug_widget_editor_vec3(canvas, &shape->capsule.line.b, UiWidget_Default);
 
-        inspector_panel_next(canvas, panelComp, table);
-        ui_label(canvas, string_lit("Max"));
-        ui_table_next_column(canvas, table);
-        debug_widget_editor_vec3(canvas, &collision->box.max, UiWidget_Default);
-      } break;
-      case SceneCollisionType_Count:
-        UNREACHABLE
+          inspector_panel_next(canvas, panelComp, table);
+          ui_label(canvas, string_lit("\tRadius"));
+          ui_table_next_column(canvas, table);
+          debug_widget_editor_f32(canvas, &shape->capsule.radius, UiWidget_Default);
+        } break;
+        case SceneCollisionType_Box: {
+          inspector_panel_next(canvas, panelComp, table);
+          ui_label(canvas, string_lit("\tMin"));
+          ui_table_next_column(canvas, table);
+          debug_widget_editor_vec3(canvas, &shape->box.box.min, UiWidget_Default);
+
+          inspector_panel_next(canvas, panelComp, table);
+          ui_label(canvas, string_lit("\tMax"));
+          ui_table_next_column(canvas, table);
+          debug_widget_editor_vec3(canvas, &shape->box.box.max, UiWidget_Default);
+        } break;
+        case SceneCollisionType_Count:
+          UNREACHABLE
+        }
       }
     }
   }
@@ -1408,29 +1409,24 @@ static void inspector_vis_draw_collision(
     const SceneCollisionComp* collision,
     const SceneTransformComp* transform,
     const SceneScaleComp*     scale) {
-  static const GeoColor g_colorFill = {1, 0, 0, 0.2f};
-  static const GeoColor g_colorWire = {1, 0, 0, 1};
 
-  switch (collision->type) {
-  case SceneCollisionType_Sphere: {
-    const GeoSphere c = scene_collision_world_sphere(&collision->sphere, transform, scale);
-    debug_sphere(shape, c.point, c.radius, g_colorFill, DebugShape_Fill);
-    debug_sphere(shape, c.point, c.radius, g_colorWire, DebugShape_Wire);
-  } break;
-  case SceneCollisionType_Capsule: {
-    const GeoCapsule c = scene_collision_world_capsule(&collision->capsule, transform, scale);
-    debug_capsule(shape, c.line.a, c.line.b, c.radius, g_colorFill, DebugShape_Fill);
-    debug_capsule(shape, c.line.a, c.line.b, c.radius, g_colorWire, DebugShape_Wire);
-  } break;
-  case SceneCollisionType_Box: {
-    const GeoBoxRotated b      = scene_collision_world_box(&collision->box, transform, scale);
-    const GeoVector     center = geo_box_center(&b.box);
-    const GeoVector     size   = geo_box_size(&b.box);
-    debug_box(shape, center, b.rotation, size, g_colorFill, DebugShape_Fill);
-    debug_box(shape, center, b.rotation, size, g_colorWire, DebugShape_Wire);
-  } break;
-  case SceneCollisionType_Count:
-    UNREACHABLE
+  for (u32 i = 0; i != collision->shapeCount; ++i) {
+    const SceneCollisionShape* local = &collision->shapes[i];
+    const SceneCollisionShape  world = scene_collision_shape_world(local, transform, scale);
+
+    switch (world.type) {
+    case SceneCollisionType_Sphere:
+      debug_world_sphere(shape, &world.sphere, geo_color(1, 0, 0, 0.75f));
+      break;
+    case SceneCollisionType_Capsule:
+      debug_world_capsule(shape, &world.capsule, geo_color(1, 0, 0, 0.75f));
+      break;
+    case SceneCollisionType_Box:
+      debug_world_box_rotated(shape, &world.box, geo_color(1, 0, 0, 0.75f));
+      break;
+    case SceneCollisionType_Count:
+      UNREACHABLE
+    }
   }
 }
 
@@ -1439,11 +1435,8 @@ static void inspector_vis_draw_bounds_local(
     const SceneBoundsComp*    bounds,
     const SceneTransformComp* transform,
     const SceneScaleComp*     scale) {
-  const GeoBoxRotated b      = scene_bounds_world_rotated(bounds, transform, scale);
-  const GeoVector     center = geo_box_center(&b.box);
-  const GeoVector     size   = geo_box_size(&b.box);
-  debug_box(shape, center, b.rotation, size, geo_color(0, 1, 0, 0.2f), DebugShape_Fill);
-  debug_box(shape, center, b.rotation, size, geo_color(0, 1, 0, 0.5f), DebugShape_Wire);
+  const GeoBoxRotated b = scene_bounds_world_rotated(bounds, transform, scale);
+  debug_world_box_rotated(shape, &b, geo_color(0, 1, 0, 1.0f));
 }
 
 static void inspector_vis_draw_bounds_global(
@@ -1451,11 +1444,8 @@ static void inspector_vis_draw_bounds_global(
     const SceneBoundsComp*    bounds,
     const SceneTransformComp* transform,
     const SceneScaleComp*     scale) {
-  const GeoBox    b      = scene_bounds_world(bounds, transform, scale);
-  const GeoVector center = geo_box_center(&b);
-  const GeoVector size   = geo_box_size(&b);
-  debug_box(shape, center, geo_quat_ident, size, geo_color(0, 0, 1, 0.2f), DebugShape_Fill);
-  debug_box(shape, center, geo_quat_ident, size, geo_color(0, 0, 1, 0.5f), DebugShape_Wire);
+  const GeoBox b = scene_bounds_world(bounds, transform, scale);
+  debug_world_box(shape, &b, geo_color(0, 0, 1, 1.0f));
 }
 
 static void inspector_vis_draw_navigation_path(

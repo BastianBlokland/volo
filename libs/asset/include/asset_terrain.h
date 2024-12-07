@@ -1,6 +1,5 @@
 #pragma once
 #include "data_registry.h"
-#include "ecs_entity.h"
 #include "ecs_module.h"
 
 /**

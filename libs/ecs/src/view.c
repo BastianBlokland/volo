@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_math.h"
 #include "ecs_def.h"
+#include "ecs_entity.h"
 #include "ecs_runner.h"
 
 #include "module_internal.h"

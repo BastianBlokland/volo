@@ -1,7 +1,6 @@
 #pragma once
 #include "core_array.h"
 #include "data_registry.h"
-#include "ecs_entity.h"
 #include "ecs_module.h"
 
 typedef enum eAssetGraphicPass {

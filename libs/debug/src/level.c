@@ -5,6 +5,7 @@
 #include "core_dynstring.h"
 #include "core_float.h"
 #include "debug_level.h"
+#include "ecs_entity.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "input_manager.h"

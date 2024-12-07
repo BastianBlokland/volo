@@ -136,6 +136,48 @@ geo_box_rotated_from_capsule(const GeoVector bottom, const GeoVector top, const 
   };
 }
 
+GeoBoxRotated geo_box_rotated_transform3(
+    const GeoBoxRotated* box, const GeoVector offset, const GeoQuat rotation, const f32 scale) {
+#ifdef VOLO_SIMD
+  const SimdVec minVec   = simd_vec_load(box->box.min.comps);
+  const SimdVec maxVec   = simd_vec_load(box->box.max.comps);
+  const SimdVec halfVec  = simd_vec_broadcast(0.5f);
+  const SimdVec scaleVec = simd_vec_broadcast(scale);
+
+  SimdVec rotVec = simd_vec_load(rotation.comps);
+
+  SimdVec centerVec = simd_vec_mul(simd_vec_add(minVec, maxVec), halfVec);
+  centerVec         = simd_vec_mul(centerVec, scaleVec);
+  centerVec         = simd_quat_rotate(rotVec, centerVec);
+  centerVec         = simd_vec_add(centerVec, simd_vec_load(offset.comps));
+
+  SimdVec sizeVec = simd_vec_sub(maxVec, minVec);
+  sizeVec         = simd_vec_mul(sizeVec, scaleVec);
+
+  const SimdVec halfSizeVec = simd_vec_mul(sizeVec, halfVec);
+
+  rotVec = simd_quat_mul(rotVec, simd_vec_load(box->rotation.comps));
+
+  GeoBoxRotated res;
+  simd_vec_store(simd_vec_sub(centerVec, halfSizeVec), res.box.min.comps);
+  simd_vec_store(simd_vec_add(centerVec, halfSizeVec), res.box.max.comps);
+  simd_vec_store(rotVec, res.rotation.comps);
+  return res;
+#else
+  GeoVector center = geo_box_center(&box->box);
+  center           = geo_vector_mul(center, scale);
+  center           = geo_quat_rotate(rotation, center);
+  center           = geo_vector_add(center, offset);
+
+  const GeoVector size = geo_vector_mul(geo_box_size(&box->box), scale);
+
+  return (GeoBoxRotated){
+      .box      = geo_box_from_center(center, size),
+      .rotation = geo_quat_mul(rotation, box->rotation),
+  };
+#endif
+}
+
 MAYBE_UNUSED static GeoVector
 geo_box_rotated_world_point(const GeoBoxRotated* box, const GeoVector localPoint) {
 #ifdef VOLO_SIMD

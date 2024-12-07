@@ -1,7 +1,6 @@
 #pragma once
 #include "core_time.h"
 #include "core_unicode.h"
-#include "ecs_entity.h"
 #include "ecs_module.h"
 #include "ui_rect.h"
 #include "ui_units.h"

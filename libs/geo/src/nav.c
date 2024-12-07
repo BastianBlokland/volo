@@ -6,6 +6,7 @@
 #include "core_intrinsic.h"
 #include "core_math.h"
 #include "core_rng.h"
+#include "geo_box_rotated.h"
 #include "geo_nav.h"
 #include "geo_sphere.h"
 #include "jobs.h"
@@ -1391,31 +1392,8 @@ u32 geo_nav_path(
   return 0;
 }
 
-NO_INLINE_HINT static void geo_nav_report_blocker_too_big(const GeoNavRegion blockerRegion) {
-  log_e(
-      "Navigation blocker cell limit reached",
-      log_param("cells", fmt_int(nav_region_size(blockerRegion))),
-      log_param("limit", fmt_int(geo_nav_blocker_max_cells)));
-}
-
-GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 userId, const GeoBox* box) {
-  const GeoNavRegion region = nav_cell_map_box(grid, box);
-  if (UNLIKELY(nav_region_size(region) > geo_nav_blocker_max_cells)) {
-    geo_nav_report_blocker_too_big(region);
-    return geo_blocker_invalid; // TODO: Switch to a heap allocation for big blockers?
-  }
-
-  const GeoNavBlockerId blockerId = nav_blocker_acquire(grid);
-  if (UNLIKELY(sentinel_check(blockerId))) {
-    return geo_blocker_invalid;
-  }
-  GeoNavBlocker* blocker = &grid->blockers[blockerId];
-  blocker->userId        = userId;
-  blocker->region        = region;
-
-  const BitSet blockedInRegion = bitset_from_array(blocker->blockedInRegion);
-  bitset_clear_all(blockedInRegion);
-
+static void geo_nav_block_box(
+    GeoNavGrid* grid, const GeoNavRegion region, BitSet regionBits, const GeoBox* box) {
   u16 indexInRegion = 0;
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
@@ -1423,74 +1401,32 @@ GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid* grid, const u64 userId, cons
       const f32 cellY = grid->cellY[cellIndex];
       if (box->max.y > cellY && box->min.y < (cellY + grid->cellHeight)) {
         nav_cell_block(grid, cellIndex);
-        nav_bit_set(blockedInRegion, indexInRegion);
+        nav_bit_set(regionBits, indexInRegion);
       }
       ++indexInRegion;
     }
   }
-
-  ++grid->stats[GeoNavStat_BlockerAddCount]; // Track amount of blocker additions.
-  return blockerId;
 }
 
-GeoNavBlockerId geo_nav_blocker_add_box_rotated(
-    GeoNavGrid* grid, const u64 userId, const GeoBoxRotated* boxRotated) {
-  const GeoBox       bounds = geo_box_from_rotated(&boxRotated->box, boxRotated->rotation);
-  const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
-  if (UNLIKELY(nav_region_size(region) > geo_nav_blocker_max_cells)) {
-    geo_nav_report_blocker_too_big(region);
-    return geo_blocker_invalid; // TODO: Switch to a heap allocation for big blockers?
-  }
-
-  const GeoNavBlockerId blockerId = nav_blocker_acquire(grid);
-  if (UNLIKELY(sentinel_check(blockerId))) {
-    return geo_blocker_invalid;
-  }
-  GeoNavBlocker* blocker = &grid->blockers[blockerId];
-  blocker->userId        = userId;
-  blocker->region        = region;
-
-  const BitSet blockedInRegion = bitset_from_array(blocker->blockedInRegion);
-  bitset_clear_all(blockedInRegion);
-
+static void geo_nav_block_box_rotated(
+    GeoNavGrid* grid, const GeoNavRegion region, BitSet regionBits, const GeoBoxRotated* box) {
   u16 indexInRegion = 0;
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
     for (u32 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
       const GeoNavCell cell    = {.x = x, .y = y};
       const GeoBox     cellBox = nav_cell_box(grid, cell);
-      if (geo_box_rotated_overlap_box(boxRotated, &cellBox)) {
+      if (geo_box_rotated_overlap_box(box, &cellBox)) {
         nav_cell_block(grid, cellIndex);
-        nav_bit_set(blockedInRegion, indexInRegion);
+        nav_bit_set(regionBits, indexInRegion);
       }
       ++indexInRegion;
     }
   }
-
-  ++grid->stats[GeoNavStat_BlockerAddCount]; // Track amount of blocker additions.
-  return blockerId;
 }
 
-GeoNavBlockerId
-geo_nav_blocker_add_sphere(GeoNavGrid* grid, const u64 userId, const GeoSphere* sphere) {
-  const GeoBox       bounds = geo_box_from_sphere(sphere->point, sphere->radius);
-  const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
-  if (UNLIKELY(nav_region_size(region) > geo_nav_blocker_max_cells)) {
-    geo_nav_report_blocker_too_big(region);
-    return geo_blocker_invalid; // TODO: Switch to a heap allocation for big blockers?
-  }
-
-  const GeoNavBlockerId blockerId = nav_blocker_acquire(grid);
-  if (UNLIKELY(sentinel_check(blockerId))) {
-    return geo_blocker_invalid;
-  }
-  GeoNavBlocker* blocker = &grid->blockers[blockerId];
-  blocker->userId        = userId;
-  blocker->region        = region;
-
-  const BitSet blockedInRegion = bitset_from_array(blocker->blockedInRegion);
-  bitset_clear_all(blockedInRegion);
-
+static void geo_nav_block_sphere(
+    GeoNavGrid* grid, const GeoNavRegion region, BitSet regionBits, const GeoSphere* sphere) {
   u16 indexInRegion = 0;
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     u32 cellIndex = nav_cell_index(grid, (GeoNavCell){.x = region.min.x, .y = y});
@@ -1499,10 +1435,78 @@ geo_nav_blocker_add_sphere(GeoNavGrid* grid, const u64 userId, const GeoSphere* 
       const GeoBox     cellBox = nav_cell_box(grid, cell);
       if (geo_sphere_overlap_box(sphere, &cellBox)) {
         nav_cell_block(grid, cellIndex);
-        nav_bit_set(blockedInRegion, indexInRegion);
+        nav_bit_set(regionBits, indexInRegion);
       }
       ++indexInRegion;
     }
+  }
+}
+
+static void geo_nav_block_shape(
+    GeoNavGrid* grid, const GeoNavRegion region, BitSet regionBits, const GeoBlockerShape* shape) {
+  switch (shape->type) {
+  case GeoBlockerType_Box:
+    geo_nav_block_box(grid, region, regionBits, shape->box);
+    return;
+  case GeoBlockerType_BoxRotated:
+    geo_nav_block_box_rotated(grid, region, regionBits, shape->boxRotated);
+    return;
+  case GeoBlockerType_Sphere:
+    geo_nav_block_sphere(grid, region, regionBits, shape->sphere);
+    return;
+  }
+  UNREACHABLE
+}
+
+static GeoBox geo_nav_block_bounds_shape(const GeoBlockerShape* shape) {
+  switch (shape->type) {
+  case GeoBlockerType_Box:
+    return *shape->box;
+  case GeoBlockerType_BoxRotated:
+    return geo_box_from_rotated(&shape->boxRotated->box, shape->boxRotated->rotation);
+  case GeoBlockerType_Sphere:
+    return geo_box_from_sphere(shape->sphere->point, shape->sphere->radius);
+  }
+  UNREACHABLE
+}
+
+NO_INLINE_HINT static void geo_nav_report_blocker_too_big(const GeoNavRegion blockerRegion) {
+  log_e(
+      "Navigation blocker cell limit reached",
+      log_param("cells", fmt_int(nav_region_size(blockerRegion))),
+      log_param("limit", fmt_int(geo_nav_blocker_max_cells)));
+}
+
+GeoNavBlockerId geo_nav_blocker_add(
+    GeoNavGrid* grid, const u64 userId, const GeoBlockerShape* shapes, const u32 shapeCnt) {
+  if (UNLIKELY(!shapeCnt)) {
+    return geo_blocker_invalid;
+  }
+
+  GeoBox bounds = geo_nav_block_bounds_shape(&shapes[0]);
+  for (u32 i = 1; i != shapeCnt; ++i) {
+    const GeoBox shapeBounds = geo_nav_block_bounds_shape(&shapes[i]);
+    bounds                   = geo_box_encapsulate_box(&bounds, &shapeBounds);
+  }
+  const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
+  if (UNLIKELY(nav_region_size(region) > geo_nav_blocker_max_cells)) {
+    geo_nav_report_blocker_too_big(region);
+    return geo_blocker_invalid; // TODO: Switch to a heap allocation for big blockers?
+  }
+
+  const GeoNavBlockerId blockerId = nav_blocker_acquire(grid);
+  if (UNLIKELY(sentinel_check(blockerId))) {
+    return geo_blocker_invalid;
+  }
+  GeoNavBlocker* blocker = &grid->blockers[blockerId];
+  blocker->userId        = userId;
+  blocker->region        = region;
+
+  const BitSet blockedInRegion = bitset_from_array(blocker->blockedInRegion);
+  bitset_clear_all(blockedInRegion);
+
+  for (u32 i = 0; i != shapeCnt; ++i) {
+    geo_nav_block_shape(grid, region, blockedInRegion, &shapes[i]);
   }
 
   ++grid->stats[GeoNavStat_BlockerAddCount]; // Track amount of blocker additions.

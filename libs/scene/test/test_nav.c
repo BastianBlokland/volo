@@ -27,9 +27,13 @@ static EcsEntityId test_create_agent(EcsWorld* world, const GeoVector pos, const
 }
 
 static EcsEntityId test_create_blocker(EcsWorld* world, const GeoVector pos) {
-  const EcsEntityId e = ecs_world_entity_create(world);
+  const EcsEntityId         e     = ecs_world_entity_create(world);
+  const SceneCollisionShape shape = {
+      .type   = SceneCollisionType_Sphere,
+      .sphere = {.radius = 0.25f},
+  };
   ecs_world_add_t(world, e, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
-  scene_collision_add_sphere(world, e, (SceneCollisionSphere){.radius = .25f}, SceneLayer_Debug);
+  scene_collision_add(world, e, SceneLayer_Debug, &shape, 1 /* shapeCount */);
   scene_nav_add_blocker(world, e, SceneNavBlockerMask_All);
   return e;
 }

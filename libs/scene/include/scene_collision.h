@@ -1,15 +1,12 @@
 #pragma once
-#include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo.h"
-#include "geo_vector.h"
+#include "geo_box_rotated.h"
+#include "geo_capsule.h"
+#include "geo_sphere.h"
 #include "scene.h"
 
-/**
- * Maximum number of entities that can be hit using a single query, additional entities are ignored.
- */
-#define scene_query_max_hits 512
-
+#define scene_query_max_hits 512 // Maximum number of entities that can be hit using a single query.
 #define scene_query_stat_count 10
 
 // clang-format off
@@ -75,37 +72,19 @@ typedef enum {
   SceneCollisionType_Count,
 } SceneCollisionType;
 
-typedef enum {
-  SceneCollision_Up,
-  SceneCollision_Forward,
-  SceneCollision_Right,
-} SceneCollisionDir;
-
 typedef struct {
-  GeoVector offset;
-  f32       radius;
-} SceneCollisionSphere;
-
-typedef struct {
-  GeoVector         offset;
-  SceneCollisionDir dir;
-  f32               radius;
-  f32               height;
-} SceneCollisionCapsule;
-
-typedef struct {
-  GeoVector min;
-  GeoVector max;
-} SceneCollisionBox;
+  SceneCollisionType type;
+  union {
+    GeoSphere     sphere;
+    GeoCapsule    capsule;
+    GeoBoxRotated box;
+  };
+} SceneCollisionShape;
 
 ecs_comp_extern_public(SceneCollisionComp) {
-  SceneCollisionType type;
-  SceneLayer         layer;
-  union {
-    SceneCollisionSphere  sphere;
-    SceneCollisionCapsule capsule;
-    SceneCollisionBox     box;
-  };
+  SceneLayer           layer;
+  u32                  shapeCount;
+  SceneCollisionShape* shapes;
 };
 
 /**
@@ -126,17 +105,17 @@ SceneLayer scene_collision_ignore_mask(const SceneCollisionEnvComp*);
 void       scene_collision_ignore_mask_set(SceneCollisionEnvComp*, SceneLayer);
 
 /**
- * Add a collision shape to the given entity.
+ * Add collision shapes to the given entity.
  */
-
-void scene_collision_add_sphere(EcsWorld*, EcsEntityId, SceneCollisionSphere, SceneLayer);
-void scene_collision_add_capsule(EcsWorld*, EcsEntityId, SceneCollisionCapsule, SceneLayer);
-void scene_collision_add_box(EcsWorld*, EcsEntityId, SceneCollisionBox, SceneLayer);
+SceneCollisionComp* scene_collision_add(
+    EcsWorld*, EcsEntityId, SceneLayer, const SceneCollisionShape* shapes, u32 shapeCount);
 
 /**
  * Intersection apis.
  */
 
+f32 scene_collision_shape_intersect_ray(
+    const SceneCollisionShape*, const SceneTransformComp*, const SceneScaleComp*, const GeoRay*);
 f32 scene_collision_intersect_ray(
     const SceneCollisionComp*, const SceneTransformComp*, const SceneScaleComp*, const GeoRay*);
 
@@ -198,23 +177,25 @@ u32 scene_query_frustum_all(
     EcsEntityId out[PARAM_ARRAY_SIZE(scene_query_max_hits)]);
 
 /**
- * Compute geometric shapes for the given collision shapes.
- * NOTE: SceneTransformComp and SceneScaleComp are optional.
+ * Convert the given shape to world-space.
+ * NOTE: SceneScaleComp is optional.
  */
-
-GeoSphere scene_collision_world_sphere(
-    const SceneCollisionSphere*, const SceneTransformComp*, const SceneScaleComp*);
-GeoCapsule scene_collision_world_capsule(
-    const SceneCollisionCapsule*, const SceneTransformComp*, const SceneScaleComp*);
-GeoBoxRotated scene_collision_world_box(
-    const SceneCollisionBox*, const SceneTransformComp*, const SceneScaleComp*);
+SceneCollisionShape scene_collision_shape_world(
+    const SceneCollisionShape*, const SceneTransformComp*, const SceneScaleComp*);
 
 /**
- * Compute the world axis-aligned bounds for the given collision component.
- * NOTE: SceneTransformComp and SceneScaleComp are optional.
+ * Compute the world-space bounding box of give shape.
+ * NOTE: SceneScaleComp is optional.
  */
-GeoBox scene_collision_world_bounds(
-    const SceneCollisionComp*, const SceneTransformComp*, const SceneScaleComp*);
+GeoBox scene_collision_shape_bounds(
+    const SceneCollisionShape*, const SceneTransformComp*, const SceneScaleComp*);
+
+/**
+ * Compute the world-space bounds.
+ * NOTE: SceneScaleComp is optional.
+ */
+GeoBox
+scene_collision_bounds(const SceneCollisionComp*, const SceneTransformComp*, const SceneScaleComp*);
 
 /**
  * Retrieve the query-environment for debug purposes.

@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_dynarray.h"
+#include "ecs_entity.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 

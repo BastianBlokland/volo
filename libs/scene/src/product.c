@@ -5,6 +5,7 @@
 #include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
+#include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
@@ -409,12 +410,10 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
     return geo_nav_check_sphere(grid, &sphereWorld, GeoNavCond_Blocked);
   }
   case AssetPrefabShape_Capsule: {
-    static const GeoVector  g_capsuleDir[] = {{0, 1, 0}, {0, 0, 1}, {1, 0, 0}};
-    const GeoVector         offset         = shape->data_capsule.offset;
-    const f32               height         = shape->data_capsule.height;
-    const f32               radius         = shape->data_capsule.radius;
-    const SceneCollisionDir dir            = SceneCollision_Up; // TODO: Make this configurable.
-    const GeoVector         dirVec         = geo_quat_rotate(placementRot, g_capsuleDir[dir]);
+    const GeoVector offset = shape->data_capsule.offset;
+    const f32       height = shape->data_capsule.height;
+    const f32       radius = shape->data_capsule.radius;
+    const GeoVector dirVec = geo_quat_rotate(placementRot, geo_up);
     const GeoVector bottom = geo_vector_add(placementPos, geo_quat_rotate(placementRot, offset));
     const GeoVector top    = geo_vector_add(bottom, geo_vector_mul(dirVec, height));
     const GeoBoxRotated boxWorld = geo_box_rotated_from_capsule(bottom, top, radius);

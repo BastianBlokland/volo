@@ -1,4 +1,5 @@
 #include "core_diag.h"
+#include "ecs_entity.h"
 
 #include "entity_allocator_internal.h"
 

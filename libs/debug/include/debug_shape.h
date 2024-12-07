@@ -1,5 +1,4 @@
 #pragma once
-#include "ecs_entity.h"
 #include "ecs_module.h"
 #include "geo.h"
 #include "geo_vector.h"
@@ -35,5 +34,10 @@ void debug_orientation(DebugShapeComp*, GeoVector pos, GeoQuat, f32 size);
 void debug_plane(DebugShapeComp*, GeoVector pos, GeoQuat, GeoColor);
 void debug_frustum_points(DebugShapeComp*, const GeoVector points[PARAM_ARRAY_SIZE(8)], GeoColor);
 void debug_frustum_matrix(DebugShapeComp*, const GeoMatrix* viewProj, GeoColor);
+
+void debug_world_box(DebugShapeComp*, const GeoBox*, GeoColor);
+void debug_world_box_rotated(DebugShapeComp*, const GeoBoxRotated*, GeoColor);
+void debug_world_sphere(DebugShapeComp*, const GeoSphere*, GeoColor);
+void debug_world_capsule(DebugShapeComp*, const GeoCapsule*, GeoColor);
 
 // clang-format on

@@ -1,6 +1,7 @@
 #include "asset_texture.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "ecs_entity.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 
