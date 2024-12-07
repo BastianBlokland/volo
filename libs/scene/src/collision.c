@@ -439,7 +439,7 @@ GeoBox scene_collision_shape_bounds(
   UNREACHABLE
 }
 
-GeoBox scene_collision_world_bounds(
+GeoBox scene_collision_bounds(
     const SceneCollisionComp* comp, const SceneTransformComp* trans, const SceneScaleComp* scale) {
   return scene_collision_shape_bounds(&comp->shape, trans, scale);
 }

@@ -192,11 +192,11 @@ GeoBox scene_collision_shape_bounds(
     const SceneCollisionShape*, const SceneTransformComp*, const SceneScaleComp*);
 
 /**
- * Compute the world axis-aligned bounds for the given collision component.
+ * Compute the world-space bounds.
  * NOTE: SceneScaleComp is optional.
  */
-GeoBox scene_collision_world_bounds(
-    const SceneCollisionComp*, const SceneTransformComp*, const SceneScaleComp*);
+GeoBox
+scene_collision_bounds(const SceneCollisionComp*, const SceneTransformComp*, const SceneScaleComp*);
 
 /**
  * Retrieve the query-environment for debug purposes.

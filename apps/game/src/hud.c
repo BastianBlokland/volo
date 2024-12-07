@@ -253,7 +253,7 @@ static GeoVector hud_entity_world_pos_top(
     const SceneScaleComp*     scale,
     const SceneCollisionComp* collision) {
   if (collision) {
-    const GeoBox worldBounds = scene_collision_world_bounds(collision, trans, scale);
+    const GeoBox worldBounds = scene_collision_bounds(collision, trans, scale);
     return geo_vector(
         (worldBounds.min.x + worldBounds.max.x) * 0.5f,
         worldBounds.max.y,
