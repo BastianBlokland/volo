@@ -265,15 +265,7 @@ void scene_collision_add_box(
       .shape.box  = box);
 }
 
-f32 scene_collision_intersect_ray(
-    const SceneCollisionComp* collision,
-    const SceneTransformComp* trans,
-    const SceneScaleComp*     scale,
-    const GeoRay*             ray) {
-  return scene_collision_intersect_ray_shape(&collision->shape, trans, scale, ray);
-}
-
-f32 scene_collision_intersect_ray_shape(
+f32 scene_collision_shape_intersect_ray(
     const SceneCollisionShape* shape,
     const SceneTransformComp*  trans,
     const SceneScaleComp*      scale,
@@ -291,6 +283,14 @@ f32 scene_collision_intersect_ray_shape(
     break;
   }
   UNREACHABLE
+}
+
+f32 scene_collision_intersect_ray(
+    const SceneCollisionComp* collision,
+    const SceneTransformComp* trans,
+    const SceneScaleComp*     scale,
+    const GeoRay*             ray) {
+  return scene_collision_shape_intersect_ray(&collision->shape, trans, scale, ray);
 }
 
 bool scene_query_ray(

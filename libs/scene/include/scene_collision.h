@@ -115,10 +115,10 @@ void scene_collision_add_box(EcsWorld*, EcsEntityId, GeoBoxRotated, SceneLayer);
  * Intersection apis.
  */
 
+f32 scene_collision_shape_intersect_ray(
+    const SceneCollisionShape*, const SceneTransformComp*, const SceneScaleComp*, const GeoRay*);
 f32 scene_collision_intersect_ray(
     const SceneCollisionComp*, const SceneTransformComp*, const SceneScaleComp*, const GeoRay*);
-f32 scene_collision_intersect_ray_shape(
-    const SceneCollisionShape*, const SceneTransformComp*, const SceneScaleComp*, const GeoRay*);
 
 /**
  * Query apis.
