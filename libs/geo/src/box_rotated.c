@@ -139,20 +139,16 @@ geo_box_rotated_from_capsule(const GeoVector bottom, const GeoVector top, const 
 GeoBoxRotated geo_box_rotated_transform3(
     const GeoBoxRotated* box, const GeoVector offset, const GeoQuat rotation, const f32 scale) {
 
-  GeoVector min;
-  min = geo_vector_mul(box->box.min, scale);
-  min = geo_quat_rotate(rotation, min);
-  min = geo_vector_add(min, offset);
+  GeoVector center = geo_box_center(&box->box);
+  center           = geo_vector_mul(center, scale);
+  center           = geo_quat_rotate(rotation, center);
+  center           = geo_vector_add(center, offset);
 
-  GeoVector max;
-  max = geo_vector_mul(box->box.max, scale);
-  max = geo_quat_rotate(rotation, max);
-  max = geo_vector_add(max, offset);
+  const GeoVector size = geo_vector_mul(geo_box_size(&box->box), scale);
 
   return (GeoBoxRotated){
-      .box.min  = min,
-      .box.max  = max,
-      .rotation = geo_quat_mul(box->rotation, rotation),
+      .box      = geo_box_from_center(center, size),
+      .rotation = geo_quat_mul(rotation, box->rotation),
   };
 }
 
