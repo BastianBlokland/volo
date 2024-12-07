@@ -262,10 +262,7 @@ void scene_collision_add_capsule(
 }
 
 void scene_collision_add_box(
-    EcsWorld*               world,
-    const EcsEntityId       entity,
-    const SceneCollisionBox box,
-    const SceneLayer        layer) {
+    EcsWorld* world, const EcsEntityId entity, const GeoBox box, const SceneLayer layer) {
   diag_assert_msg(bits_popcnt((u32)layer) == 1, "Collider can only be in 1 layer");
 
   ecs_world_add_t(
@@ -442,7 +439,7 @@ GeoCapsule scene_collision_world_capsule(
 }
 
 GeoBoxRotated scene_collision_world_box(
-    const SceneCollisionBox* box, const SceneTransformComp* trans, const SceneScaleComp* scale) {
+    const GeoBox* box, const SceneTransformComp* trans, const SceneScaleComp* scale) {
   const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
   const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
   const f32       baseScale = scale ? scale->scale : 1.0f;

@@ -1,6 +1,7 @@
 #pragma once
 #include "ecs_module.h"
 #include "geo.h"
+#include "geo_box_rotated.h"
 #include "geo_vector.h"
 #include "scene.h"
 
@@ -91,16 +92,11 @@ typedef struct {
 } SceneCollisionCapsule;
 
 typedef struct {
-  GeoVector min;
-  GeoVector max;
-} SceneCollisionBox;
-
-typedef struct {
   SceneCollisionType type;
   union {
     SceneCollisionSphere  sphere;
     SceneCollisionCapsule capsule;
-    SceneCollisionBox     box;
+    GeoBox                box;
   };
 } SceneCollisionShape;
 
@@ -132,7 +128,7 @@ void       scene_collision_ignore_mask_set(SceneCollisionEnvComp*, SceneLayer);
 
 void scene_collision_add_sphere(EcsWorld*, EcsEntityId, SceneCollisionSphere, SceneLayer);
 void scene_collision_add_capsule(EcsWorld*, EcsEntityId, SceneCollisionCapsule, SceneLayer);
-void scene_collision_add_box(EcsWorld*, EcsEntityId, SceneCollisionBox, SceneLayer);
+void scene_collision_add_box(EcsWorld*, EcsEntityId, GeoBox, SceneLayer);
 
 /**
  * Intersection apis.
@@ -209,8 +205,8 @@ GeoSphere scene_collision_world_sphere(
     const SceneCollisionSphere*, const SceneTransformComp*, const SceneScaleComp*);
 GeoCapsule scene_collision_world_capsule(
     const SceneCollisionCapsule*, const SceneTransformComp*, const SceneScaleComp*);
-GeoBoxRotated scene_collision_world_box(
-    const SceneCollisionBox*, const SceneTransformComp*, const SceneScaleComp*);
+GeoBoxRotated
+       scene_collision_world_box(const GeoBox*, const SceneTransformComp*, const SceneScaleComp*);
 GeoBox scene_collision_world_shape(
     const SceneCollisionShape*, const SceneTransformComp*, const SceneScaleComp*);
 

@@ -357,7 +357,7 @@ static void setup_collision(
     scene_collision_add_capsule(w, e, capsule, layer);
   } break;
   case AssetPrefabShape_Box: {
-    const SceneCollisionBox box = {
+    const GeoBox box = {
         .min = t->shape.data_box.min,
         .max = t->shape.data_box.max,
     };
