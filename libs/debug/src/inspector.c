@@ -736,26 +736,19 @@ static void inspector_panel_draw_collision(
       } break;
       case SceneCollisionType_Capsule: {
         inspector_panel_next(canvas, panelComp, table);
-        ui_label(canvas, string_lit("Offset"));
+        ui_label(canvas, string_lit("A"));
         ui_table_next_column(canvas, table);
-        debug_widget_editor_vec3(canvas, &collisionShape->capsule.offset, UiWidget_Default);
+        debug_widget_editor_vec3(canvas, &collisionShape->capsule.line.a, UiWidget_Default);
 
         inspector_panel_next(canvas, panelComp, table);
-        ui_label(canvas, string_lit("Direction"));
+        ui_label(canvas, string_lit("B"));
         ui_table_next_column(canvas, table);
-        static const String g_collisionDirNames[] = {
-            string_static("Up"), string_static("Forward"), string_static("Right")};
-        ui_select(canvas, (i32*)&collisionShape->capsule.dir, g_collisionDirNames, 3);
+        debug_widget_editor_vec3(canvas, &collisionShape->capsule.line.b, UiWidget_Default);
 
         inspector_panel_next(canvas, panelComp, table);
         ui_label(canvas, string_lit("Radius"));
         ui_table_next_column(canvas, table);
         debug_widget_editor_f32(canvas, &collisionShape->capsule.radius, UiWidget_Default);
-
-        inspector_panel_next(canvas, panelComp, table);
-        ui_label(canvas, string_lit("Height"));
-        ui_table_next_column(canvas, table);
-        debug_widget_editor_f32(canvas, &collisionShape->capsule.height, UiWidget_Default);
       } break;
       case SceneCollisionType_Box: {
         inspector_panel_next(canvas, panelComp, table);

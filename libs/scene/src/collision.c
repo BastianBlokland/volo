@@ -100,7 +100,7 @@ ecs_system_define(SceneCollisionInitSys) {
     } break;
     case SceneCollisionType_Capsule: {
       const GeoCapsule capsule = scene_collision_world_capsule(&shape->capsule, trans, scale);
-      if (shape->capsule.height <= f32_epsilon) {
+      if (geo_line_length_sqr(&capsule.line) <= 1e-2f) {
         const GeoSphere sphere = {.point = capsule.line.a, .radius = capsule.radius};
         geo_query_insert_sphere(env->queryEnv, sphere, userId, queryLayer);
       } else {
@@ -243,10 +243,7 @@ void scene_collision_add_sphere(
 }
 
 void scene_collision_add_capsule(
-    EcsWorld*                   world,
-    const EcsEntityId           entity,
-    const SceneCollisionCapsule capsule,
-    const SceneLayer            layer) {
+    EcsWorld* world, const EcsEntityId entity, const GeoCapsule capsule, const SceneLayer layer) {
   diag_assert_msg(bits_popcnt((u32)layer) == 1, "Collider can only be in 1 layer");
 
   ecs_world_add_t(
@@ -412,22 +409,12 @@ GeoSphere scene_collision_world_sphere(
 }
 
 GeoCapsule scene_collision_world_capsule(
-    const SceneCollisionCapsule* capsule,
-    const SceneTransformComp*    trans,
-    const SceneScaleComp*        scale) {
+    const GeoCapsule* capsule, const SceneTransformComp* trans, const SceneScaleComp* scale) {
   const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
   const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
   const f32       baseScale = scale ? scale->scale : 1.0f;
 
-  static const GeoVector g_capsuleDir[] = {{0, 1, 0}, {0, 0, 1}, {1, 0, 0}};
-
-  const GeoVector offset = geo_quat_rotate(baseRot, geo_vector_mul(capsule->offset, baseScale));
-  const GeoVector dir    = geo_quat_rotate(baseRot, g_capsuleDir[capsule->dir]);
-
-  const GeoVector bottom = geo_vector_add(basePos, offset);
-  const GeoVector top    = geo_vector_add(bottom, geo_vector_mul(dir, capsule->height * baseScale));
-
-  return (GeoCapsule){.line = {bottom, top}, .radius = capsule->radius * baseScale};
+  return geo_capsule_transform3(capsule, basePos, baseRot, baseScale);
 }
 
 GeoBoxRotated scene_collision_world_box(

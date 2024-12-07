@@ -2,6 +2,7 @@
 #include "ecs_module.h"
 #include "geo.h"
 #include "geo_box_rotated.h"
+#include "geo_capsule.h"
 #include "geo_sphere.h"
 #include "scene.h"
 
@@ -71,27 +72,12 @@ typedef enum {
   SceneCollisionType_Count,
 } SceneCollisionType;
 
-typedef enum {
-  SceneCollisionDir_Up,
-  SceneCollisionDir_Forward,
-  SceneCollisionDir_Right,
-
-  SceneCollisionDir_Count,
-} SceneCollisionDir;
-
-typedef struct {
-  GeoVector         offset;
-  SceneCollisionDir dir;
-  f32               radius;
-  f32               height;
-} SceneCollisionCapsule;
-
 typedef struct {
   SceneCollisionType type;
   union {
-    GeoSphere             sphere;
-    SceneCollisionCapsule capsule;
-    GeoBoxRotated         box;
+    GeoSphere     sphere;
+    GeoCapsule    capsule;
+    GeoBoxRotated box;
   };
 } SceneCollisionShape;
 
@@ -122,7 +108,7 @@ void       scene_collision_ignore_mask_set(SceneCollisionEnvComp*, SceneLayer);
  */
 
 void scene_collision_add_sphere(EcsWorld*, EcsEntityId, GeoSphere, SceneLayer);
-void scene_collision_add_capsule(EcsWorld*, EcsEntityId, SceneCollisionCapsule, SceneLayer);
+void scene_collision_add_capsule(EcsWorld*, EcsEntityId, GeoCapsule, SceneLayer);
 void scene_collision_add_box(EcsWorld*, EcsEntityId, GeoBoxRotated, SceneLayer);
 
 /**
@@ -198,8 +184,8 @@ u32 scene_query_frustum_all(
 
 GeoSphere
 scene_collision_world_sphere(const GeoSphere*, const SceneTransformComp*, const SceneScaleComp*);
-GeoCapsule scene_collision_world_capsule(
-    const SceneCollisionCapsule*, const SceneTransformComp*, const SceneScaleComp*);
+GeoCapsule
+scene_collision_world_capsule(const GeoCapsule*, const SceneTransformComp*, const SceneScaleComp*);
 GeoBoxRotated
 scene_collision_world_box(const GeoBoxRotated*, const SceneTransformComp*, const SceneScaleComp*);
 GeoBox scene_collision_world_shape(

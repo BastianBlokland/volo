@@ -348,11 +348,12 @@ static void setup_collision(
     scene_collision_add_sphere(w, e, sphere, layer);
   } break;
   case AssetPrefabShape_Capsule: {
-    const SceneCollisionCapsule capsule = {
-        .offset = t->shape.data_capsule.offset,
-        .dir    = SceneCollisionDir_Up, // TODO: Make this configurable.
+    const GeoVector  bottom = t->shape.data_capsule.offset;
+    const GeoVector  top = geo_vector_add(bottom, geo_vector(0, t->shape.data_capsule.height, 0));
+    const GeoCapsule capsule = {
+        .line.a = bottom,
+        .line.b = top,
         .radius = t->shape.data_capsule.radius,
-        .height = t->shape.data_capsule.height,
     };
     scene_collision_add_capsule(w, e, capsule, layer);
   } break;
