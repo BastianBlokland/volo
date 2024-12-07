@@ -1,5 +1,5 @@
 #pragma once
-#include "geo_ray.h"
+#include "geo.h"
 #include "geo_vector.h"
 
 /**
@@ -9,6 +9,11 @@
 typedef struct sGeoLine {
   GeoVector a, b;
 } GeoLine;
+
+/**
+ * Transform the given line.
+ */
+GeoLine geo_line_transform3(const GeoLine*, GeoVector offset, GeoQuat rotation, f32 scale);
 
 /**
  * Compute the length of the line.

@@ -1,6 +1,24 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "geo_line.h"
+#include "geo_quat.h"
+#include "geo_ray.h"
+
+static GeoVector geo_line_point_transform3(
+    GeoVector p, const GeoVector offset, const GeoQuat rotation, const f32 scale) {
+  p = geo_vector_mul(p, scale);
+  p = geo_quat_rotate(rotation, p);
+  p = geo_vector_add(p, offset);
+  return p;
+}
+
+GeoLine geo_line_transform3(
+    const GeoLine* line, const GeoVector offset, const GeoQuat rotation, const f32 scale) {
+  return (GeoLine){
+      .a = geo_line_point_transform3(line->a, offset, rotation, scale),
+      .b = geo_line_point_transform3(line->b, offset, rotation, scale),
+  };
+}
 
 f32 geo_line_length(const GeoLine* line) {
   const GeoVector delta = geo_vector_sub(line->b, line->a);
