@@ -36,7 +36,8 @@ void debug_plane(DebugShapeComp*, GeoVector pos, GeoQuat, GeoColor);
 void debug_frustum_points(DebugShapeComp*, const GeoVector points[PARAM_ARRAY_SIZE(8)], GeoColor);
 void debug_frustum_matrix(DebugShapeComp*, const GeoMatrix* viewProj, GeoColor);
 
-void debug_world_box(DebugShapeComp*, const GeoBoxRotated*, GeoColor);
+void debug_world_box(DebugShapeComp*, const GeoBox*, GeoColor);
+void debug_world_box_rotated(DebugShapeComp*, const GeoBoxRotated*, GeoColor);
 void debug_world_sphere(DebugShapeComp*, const GeoSphere*, GeoColor);
 void debug_world_capsule(DebugShapeComp*, const GeoCapsule*, GeoColor);
 

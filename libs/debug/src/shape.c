@@ -645,7 +645,16 @@ void debug_frustum_matrix(DebugShapeComp* comp, const GeoMatrix* viewProj, const
   debug_frustum_points(comp, points, color);
 }
 
-void debug_world_box(DebugShapeComp* shape, const GeoBoxRotated* b, const GeoColor color) {
+void debug_world_box(DebugShapeComp* shape, const GeoBox* b, const GeoColor color) {
+  const GeoColor  colorDimmed = geo_color_mul_comps(color, geo_color(0.75f, 0.75f, 0.75f, 0.5f));
+  const GeoVector center      = geo_box_center(b);
+  const GeoVector size        = geo_box_size(b);
+
+  debug_box(shape, center, geo_quat_ident, size, colorDimmed, DebugShape_Fill);
+  debug_box(shape, center, geo_quat_ident, size, color, DebugShape_Wire);
+}
+
+void debug_world_box_rotated(DebugShapeComp* shape, const GeoBoxRotated* b, const GeoColor color) {
   const GeoColor  colorDimmed = geo_color_mul_comps(color, geo_color(0.75f, 0.75f, 0.75f, 0.5f));
   const GeoVector center      = geo_box_center(&b->box);
   const GeoVector size        = geo_box_size(&b->box);
