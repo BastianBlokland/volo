@@ -646,7 +646,7 @@ void debug_frustum_matrix(DebugShapeComp* comp, const GeoMatrix* viewProj, const
 }
 
 void debug_world_box(DebugShapeComp* shape, const GeoBox* b, const GeoColor color) {
-  const GeoColor  colorDimmed = geo_color_mul_comps(color, geo_color(0.75f, 0.75f, 0.75f, 0.5f));
+  const GeoColor  colorDimmed = geo_color_mul_comps(color, geo_color(0.75f, 0.75f, 0.75f, 0.4f));
   const GeoVector center      = geo_box_center(b);
   const GeoVector size        = geo_box_size(b);
 
@@ -655,7 +655,7 @@ void debug_world_box(DebugShapeComp* shape, const GeoBox* b, const GeoColor colo
 }
 
 void debug_world_box_rotated(DebugShapeComp* shape, const GeoBoxRotated* b, const GeoColor color) {
-  const GeoColor  colorDimmed = geo_color_mul_comps(color, geo_color(0.75f, 0.75f, 0.75f, 0.5f));
+  const GeoColor  colorDimmed = geo_color_mul_comps(color, geo_color(0.75f, 0.75f, 0.75f, 0.4f));
   const GeoVector center      = geo_box_center(&b->box);
   const GeoVector size        = geo_box_size(&b->box);
   const GeoQuat   rotation    = b->rotation;
@@ -665,14 +665,14 @@ void debug_world_box_rotated(DebugShapeComp* shape, const GeoBoxRotated* b, cons
 }
 
 void debug_world_sphere(DebugShapeComp* shape, const GeoSphere* s, const GeoColor color) {
-  const GeoColor colorDimmed = geo_color_mul_comps(color, geo_color(0.75f, 0.75f, 0.75f, 0.5f));
+  const GeoColor colorDimmed = geo_color_mul_comps(color, geo_color(0.75f, 0.75f, 0.75f, 0.4f));
 
   debug_sphere(shape, s->point, s->radius, colorDimmed, DebugShape_Fill);
   debug_sphere(shape, s->point, s->radius, color, DebugShape_Wire);
 }
 
 void debug_world_capsule(DebugShapeComp* shape, const GeoCapsule* c, const GeoColor color) {
-  const GeoColor colorDimmed = geo_color_mul_comps(color, geo_color(0.75f, 0.75f, 0.75f, 0.5f));
+  const GeoColor colorDimmed = geo_color_mul_comps(color, geo_color(0.75f, 0.75f, 0.75f, 0.4f));
 
   debug_capsule(shape, c->line.a, c->line.b, c->radius, colorDimmed, DebugShape_Fill);
   debug_capsule(shape, c->line.a, c->line.b, c->radius, color, DebugShape_Wire);

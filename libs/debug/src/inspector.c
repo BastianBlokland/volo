@@ -1409,26 +1409,19 @@ static void inspector_vis_draw_collision_shape(
     const SceneCollisionShape* collisionShape,
     const SceneTransformComp*  transform,
     const SceneScaleComp*      scale) {
-  static const GeoColor g_colorFill = {1, 0, 0, 0.2f};
-  static const GeoColor g_colorWire = {1, 0, 0, 1};
 
   switch (collisionShape->type) {
   case SceneCollisionType_Sphere: {
-    const GeoSphere c = scene_collision_world_sphere(&collisionShape->sphere, transform, scale);
-    debug_sphere(shape, c.point, c.radius, g_colorFill, DebugShape_Fill);
-    debug_sphere(shape, c.point, c.radius, g_colorWire, DebugShape_Wire);
+    const GeoSphere s = scene_collision_world_sphere(&collisionShape->sphere, transform, scale);
+    debug_world_sphere(shape, &s, geo_color(1, 0, 0, 0.75f));
   } break;
   case SceneCollisionType_Capsule: {
     const GeoCapsule c = scene_collision_world_capsule(&collisionShape->capsule, transform, scale);
-    debug_capsule(shape, c.line.a, c.line.b, c.radius, g_colorFill, DebugShape_Fill);
-    debug_capsule(shape, c.line.a, c.line.b, c.radius, g_colorWire, DebugShape_Wire);
+    debug_world_capsule(shape, &c, geo_color(1, 0, 0, 0.75f));
   } break;
   case SceneCollisionType_Box: {
-    const GeoBoxRotated b      = scene_collision_world_box(&collisionShape->box, transform, scale);
-    const GeoVector     center = geo_box_center(&b.box);
-    const GeoVector     size   = geo_box_size(&b.box);
-    debug_box(shape, center, b.rotation, size, g_colorFill, DebugShape_Fill);
-    debug_box(shape, center, b.rotation, size, g_colorWire, DebugShape_Wire);
+    const GeoBoxRotated b = scene_collision_world_box(&collisionShape->box, transform, scale);
+    debug_world_box_rotated(shape, &b, geo_color(1, 0, 0, 0.75f));
   } break;
   case SceneCollisionType_Count:
     UNREACHABLE
@@ -1448,11 +1441,8 @@ static void inspector_vis_draw_bounds_local(
     const SceneBoundsComp*    bounds,
     const SceneTransformComp* transform,
     const SceneScaleComp*     scale) {
-  const GeoBoxRotated b      = scene_bounds_world_rotated(bounds, transform, scale);
-  const GeoVector     center = geo_box_center(&b.box);
-  const GeoVector     size   = geo_box_size(&b.box);
-  debug_box(shape, center, b.rotation, size, geo_color(0, 1, 0, 0.2f), DebugShape_Fill);
-  debug_box(shape, center, b.rotation, size, geo_color(0, 1, 0, 0.5f), DebugShape_Wire);
+  const GeoBoxRotated b = scene_bounds_world_rotated(bounds, transform, scale);
+  debug_world_box_rotated(shape, &b, geo_color(0, 1, 0, 1.0f));
 }
 
 static void inspector_vis_draw_bounds_global(
@@ -1460,11 +1450,8 @@ static void inspector_vis_draw_bounds_global(
     const SceneBoundsComp*    bounds,
     const SceneTransformComp* transform,
     const SceneScaleComp*     scale) {
-  const GeoBox    b      = scene_bounds_world(bounds, transform, scale);
-  const GeoVector center = geo_box_center(&b);
-  const GeoVector size   = geo_box_size(&b);
-  debug_box(shape, center, geo_quat_ident, size, geo_color(0, 0, 1, 0.2f), DebugShape_Fill);
-  debug_box(shape, center, geo_quat_ident, size, geo_color(0, 0, 1, 0.5f), DebugShape_Wire);
+  const GeoBox b = scene_bounds_world(bounds, transform, scale);
+  debug_world_box(shape, &b, geo_color(0, 0, 1, 1.0f));
 }
 
 static void inspector_vis_draw_navigation_path(
