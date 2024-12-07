@@ -27,6 +27,12 @@ GeoBoxRotated geo_box_rotated_dilate(const GeoBoxRotated*, GeoVector size);
 GeoBoxRotated geo_box_rotated_from_capsule(GeoVector bottom, GeoVector top, f32 radius);
 
 /**
+ * Transform the given rotated box.
+ */
+GeoBoxRotated
+geo_box_rotated_transform3(const GeoBoxRotated*, GeoVector offset, GeoQuat rotation, f32 scale);
+
+/**
  * Compute the intersection of the rotated box with the given ray.
  * Returns the time along the ray at which the intersection occurred or negative if no intersection
  * occurred.

@@ -136,6 +136,26 @@ geo_box_rotated_from_capsule(const GeoVector bottom, const GeoVector top, const 
   };
 }
 
+GeoBoxRotated geo_box_rotated_transform3(
+    const GeoBoxRotated* box, const GeoVector offset, const GeoQuat rotation, const f32 scale) {
+
+  GeoVector min;
+  min = geo_vector_mul(box->box.min, scale);
+  min = geo_quat_rotate(rotation, min);
+  min = geo_vector_add(min, offset);
+
+  GeoVector max;
+  max = geo_vector_mul(box->box.max, scale);
+  max = geo_quat_rotate(rotation, max);
+  max = geo_vector_add(max, offset);
+
+  return (GeoBoxRotated){
+      .box.min  = min,
+      .box.max  = max,
+      .rotation = geo_quat_mul(box->rotation, rotation),
+  };
+}
+
 MAYBE_UNUSED static GeoVector
 geo_box_rotated_world_point(const GeoBoxRotated* box, const GeoVector localPoint) {
 #ifdef VOLO_SIMD
