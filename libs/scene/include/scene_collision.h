@@ -181,8 +181,8 @@ u32 scene_query_frustum_all(
  * Compute the world-space collision shape.
  * NOTE: SceneScaleComp is optional.
  */
-SceneCollisionShape
-scene_collision_world(const SceneCollisionShape*, const SceneTransformComp*, const SceneScaleComp*);
+SceneCollisionShape scene_collision_shape_world(
+    const SceneCollisionShape*, const SceneTransformComp*, const SceneScaleComp*);
 
 GeoBox scene_collision_world_shape(
     const SceneCollisionShape*, const SceneTransformComp*, const SceneScaleComp*);

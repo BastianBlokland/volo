@@ -1403,7 +1403,7 @@ static void inspector_vis_draw_collision_shape(
     const SceneTransformComp*  transform,
     const SceneScaleComp*      scale) {
 
-  const SceneCollisionShape world = scene_collision_world(collisionShape, transform, scale);
+  const SceneCollisionShape world = scene_collision_shape_world(collisionShape, transform, scale);
   switch (world.type) {
   case SceneCollisionType_Sphere:
     debug_world_sphere(shape, &world.sphere, geo_color(1, 0, 0, 0.75f));

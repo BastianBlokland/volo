@@ -91,7 +91,7 @@ ecs_system_define(SceneCollisionInitSys) {
 
     const u64                 userId     = (u64)ecs_view_entity(itr);
     const GeoQueryLayer       queryLayer = (GeoQueryLayer)collision->layer;
-    const SceneCollisionShape shape      = scene_collision_world(&collision->shape, trans, scale);
+    const SceneCollisionShape shape = scene_collision_shape_world(&collision->shape, trans, scale);
 
     switch (shape.type) {
     case SceneCollisionType_Sphere:
@@ -271,7 +271,7 @@ f32 scene_collision_shape_intersect_ray(
     const SceneScaleComp*      scale,
     const GeoRay*              ray) {
 
-  const SceneCollisionShape world = scene_collision_world(shape, trans, scale);
+  const SceneCollisionShape world = scene_collision_shape_world(shape, trans, scale);
   switch (world.type) {
   case SceneCollisionType_Sphere:
     return geo_sphere_intersect_ray(&world.sphere, ray);
@@ -393,7 +393,7 @@ u32 scene_query_frustum_all(
   return geo_query_frustum_all(env->queryEnv, frustum, &geoFilter, (u64*)out);
 }
 
-SceneCollisionShape scene_collision_world(
+SceneCollisionShape scene_collision_shape_world(
     const SceneCollisionShape* shape,
     const SceneTransformComp*  trans,
     const SceneScaleComp*      scale) {
@@ -425,7 +425,7 @@ GeoBox scene_collision_world_shape(
     const SceneTransformComp*  trans,
     const SceneScaleComp*      scale) {
 
-  const SceneCollisionShape world = scene_collision_world(shape, trans, scale);
+  const SceneCollisionShape world = scene_collision_shape_world(shape, trans, scale);
   switch (world.type) {
   case SceneCollisionType_Sphere:
     return geo_box_from_sphere(world.sphere.point, world.sphere.radius);
