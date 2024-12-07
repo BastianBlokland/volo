@@ -3,6 +3,7 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "core_sentinel.h"
+#include "ecs_entity.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
 #include "ui_shape.h"

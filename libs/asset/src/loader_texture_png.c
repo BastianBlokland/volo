@@ -5,6 +5,7 @@
 #include "core_dynstring.h"
 #include "core_math.h"
 #include "core_zlib.h"
+#include "ecs_entity.h"
 #include "ecs_world.h"
 #include "log_logger.h"
 

@@ -1,5 +1,4 @@
 #pragma once
-#include "ecs_entity.h"
 #include "input_resource.h"
 
 #define input_resource_max_maps 3

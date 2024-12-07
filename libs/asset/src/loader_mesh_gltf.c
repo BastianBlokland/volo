@@ -10,6 +10,7 @@
 #include "core_math.h"
 #include "core_path.h"
 #include "core_stringtable.h"
+#include "ecs_entity.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "geo_matrix.h"

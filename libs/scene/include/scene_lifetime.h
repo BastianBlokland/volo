@@ -1,6 +1,5 @@
 #pragma once
 #include "core_time.h"
-#include "ecs_entity.h"
 #include "ecs_module.h"
 
 #define scene_lifetime_owners_max 2

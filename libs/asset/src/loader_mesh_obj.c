@@ -3,6 +3,7 @@
 #include "core_bits.h"
 #include "core_dynarray.h"
 #include "core_float.h"
+#include "ecs_entity.h"
 #include "ecs_world.h"
 #include "geo_matrix.h"
 #include "log_logger.h"

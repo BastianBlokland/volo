@@ -2,7 +2,6 @@
 #include "core_bitset.h"
 #include "core_dynarray.h"
 #include "ecs_def.h"
-#include "ecs_entity.h"
 
 #include "finalizer_internal.h"
 

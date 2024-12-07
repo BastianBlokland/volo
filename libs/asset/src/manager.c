@@ -8,6 +8,7 @@
 #include "core_path.h"
 #include "core_time.h"
 #include "data_write.h"
+#include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"

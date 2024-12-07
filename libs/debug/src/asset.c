@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_dynstring.h"
 #include "debug_asset.h"
+#include "ecs_entity.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "ui_canvas.h"

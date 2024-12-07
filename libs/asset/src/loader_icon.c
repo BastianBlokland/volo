@@ -6,6 +6,7 @@
 #include "core_math.h"
 #include "data_read.h"
 #include "data_utils.h"
+#include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "log_logger.h"

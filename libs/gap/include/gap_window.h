@@ -1,5 +1,4 @@
 #pragma once
-#include "ecs_entity.h"
 #include "ecs_module.h"
 #include "gap_icon.h"
 #include "gap_input.h"

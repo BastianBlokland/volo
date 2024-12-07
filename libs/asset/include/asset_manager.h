@@ -1,6 +1,5 @@
 #pragma once
 #include "core_string.h"
-#include "ecs_entity.h"
 #include "ecs_module.h"
 
 #define asset_query_max_results 512

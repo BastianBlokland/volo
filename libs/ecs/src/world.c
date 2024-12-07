@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_time.h"
+#include "ecs_entity.h"
 #include "ecs_runner.h"
 #include "log_logger.h"
 #include "trace_tracer.h"

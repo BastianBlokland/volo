@@ -8,6 +8,7 @@
 #include "core_math.h"
 #include "core_noise.h"
 #include "core_rng.h"
+#include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "ecs_world.h"

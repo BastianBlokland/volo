@@ -2,7 +2,6 @@
 #include "core_array.h"
 #include "core_time.h"
 #include "data_registry.h"
-#include "ecs_entity.h"
 #include "ecs_module.h"
 
 /**

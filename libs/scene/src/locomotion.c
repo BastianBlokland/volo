@@ -2,6 +2,7 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "core_noise.h"
+#include "ecs_entity.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "scene_locomotion.h"

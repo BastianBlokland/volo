@@ -8,6 +8,7 @@
 #include "core_process.h"
 #include "core_stringtable.h"
 #include "debug_script.h"
+#include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
 #include "input_manager.h"

@@ -5,6 +5,7 @@
 #include "data_read.h"
 #include "data_utils.h"
 #include "data_write.h"
+#include "ecs_entity.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "log_logger.h"
