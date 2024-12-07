@@ -1340,12 +1340,16 @@ static ScriptVal eval_collision_box_spawn(EvalContext* ctx, ScriptBinderCall* ca
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
 
-  const GeoBoxRotated box = {
-      .box.min  = geo_vector_mul(size, -0.5f),
-      .box.max  = geo_vector_mul(size, 0.5f),
-      .rotation = geo_quat_ident,
+  const SceneCollisionShape shape = {
+      .type = SceneCollisionType_Box,
+      .box =
+          {
+              .box.min  = geo_vector_mul(size, -0.5f),
+              .box.max  = geo_vector_mul(size, 0.5f),
+              .rotation = geo_quat_ident,
+          },
   };
-  scene_collision_add_box(ctx->world, result, box, layer);
+  scene_collision_add(ctx->world, result, shape, layer);
 
   if (navBlocker) {
     scene_nav_add_blocker(ctx->world, result, SceneNavBlockerMask_All);
@@ -1365,8 +1369,11 @@ static ScriptVal eval_collision_sphere_spawn(EvalContext* ctx, ScriptBinderCall*
   ecs_world_add_t(ctx->world, result, SceneTransformComp, .position = pos, .rotation = rot);
   ecs_world_add_empty_t(ctx->world, result, SceneLevelInstanceComp);
 
-  const GeoSphere sphere = {.radius = radius};
-  scene_collision_add_sphere(ctx->world, result, sphere, layer);
+  const SceneCollisionShape shape = {
+      .type   = SceneCollisionType_Sphere,
+      .sphere = {.radius = radius},
+  };
+  scene_collision_add(ctx->world, result, shape, layer);
 
   if (navBlocker) {
     scene_nav_add_blocker(ctx->world, result, SceneNavBlockerMask_All);

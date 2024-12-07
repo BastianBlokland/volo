@@ -106,10 +106,7 @@ void       scene_collision_ignore_mask_set(SceneCollisionEnvComp*, SceneLayer);
 /**
  * Add a collision shape to the given entity.
  */
-
-void scene_collision_add_sphere(EcsWorld*, EcsEntityId, GeoSphere, SceneLayer);
-void scene_collision_add_capsule(EcsWorld*, EcsEntityId, GeoCapsule, SceneLayer);
-void scene_collision_add_box(EcsWorld*, EcsEntityId, GeoBoxRotated, SceneLayer);
+void scene_collision_add(EcsWorld*, EcsEntityId, SceneCollisionShape, SceneLayer);
 
 /**
  * Intersection apis.

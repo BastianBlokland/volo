@@ -339,33 +339,37 @@ static void setup_collision(
     scene_nav_add_blocker(w, e, SceneNavBlockerMask_All);
   }
   const SceneLayer layer = prefab_instance_layer(s->faction, p->flags);
+
+  SceneCollisionShape collisionShape;
   switch (t->shape.type) {
-  case AssetPrefabShape_Sphere: {
-    const GeoSphere sphere = {
+  case AssetPrefabShape_Sphere:
+    collisionShape.type   = SceneCollisionType_Sphere;
+    collisionShape.sphere = (GeoSphere){
         .point  = t->shape.data_sphere.offset,
         .radius = t->shape.data_sphere.radius,
     };
-    scene_collision_add_sphere(w, e, sphere, layer);
-  } break;
+    break;
   case AssetPrefabShape_Capsule: {
-    const GeoVector  bottom = t->shape.data_capsule.offset;
-    const GeoVector  top = geo_vector_add(bottom, geo_vector(0, t->shape.data_capsule.height, 0));
-    const GeoCapsule capsule = {
+    const GeoVector bottom = t->shape.data_capsule.offset;
+    const GeoVector top    = geo_vector_add(bottom, geo_vector(0, t->shape.data_capsule.height, 0));
+
+    collisionShape.type    = SceneCollisionType_Capsule;
+    collisionShape.capsule = (GeoCapsule){
         .line.a = bottom,
         .line.b = top,
         .radius = t->shape.data_capsule.radius,
     };
-    scene_collision_add_capsule(w, e, capsule, layer);
   } break;
-  case AssetPrefabShape_Box: {
-    const GeoBoxRotated box = {
-        .box.min  = t->shape.data_box.min,
-        .box.max  = t->shape.data_box.max,
-        .rotation = geo_quat_ident,
+  case AssetPrefabShape_Box:
+    collisionShape.type = SceneCollisionType_Box;
+    collisionShape.box  = (GeoBoxRotated){
+         .box.min  = t->shape.data_box.min,
+         .box.max  = t->shape.data_box.max,
+         .rotation = geo_quat_ident,
     };
-    scene_collision_add_box(w, e, box, layer);
-  } break;
+    break;
   }
+  scene_collision_add(w, e, collisionShape, layer);
 }
 
 static void setup_script(

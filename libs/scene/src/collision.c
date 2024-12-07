@@ -226,43 +226,14 @@ void scene_collision_ignore_mask_set(SceneCollisionEnvComp* env, const SceneLaye
   env->ignoreMask = mask;
 }
 
-void scene_collision_add_sphere(
-    EcsWorld* world, const EcsEntityId entity, const GeoSphere sphere, const SceneLayer layer) {
+void scene_collision_add(
+    EcsWorld*                 world,
+    const EcsEntityId         entity,
+    const SceneCollisionShape shape,
+    const SceneLayer          layer) {
   diag_assert_msg(bits_popcnt((u32)layer) == 1, "Collider can only be in 1 layer");
 
-  ecs_world_add_t(
-      world,
-      entity,
-      SceneCollisionComp,
-      .layer        = layer,
-      .shape.type   = SceneCollisionType_Sphere,
-      .shape.sphere = sphere);
-}
-
-void scene_collision_add_capsule(
-    EcsWorld* world, const EcsEntityId entity, const GeoCapsule capsule, const SceneLayer layer) {
-  diag_assert_msg(bits_popcnt((u32)layer) == 1, "Collider can only be in 1 layer");
-
-  ecs_world_add_t(
-      world,
-      entity,
-      SceneCollisionComp,
-      .layer         = layer,
-      .shape.type    = SceneCollisionType_Capsule,
-      .shape.capsule = capsule);
-}
-
-void scene_collision_add_box(
-    EcsWorld* world, const EcsEntityId entity, const GeoBoxRotated box, const SceneLayer layer) {
-  diag_assert_msg(bits_popcnt((u32)layer) == 1, "Collider can only be in 1 layer");
-
-  ecs_world_add_t(
-      world,
-      entity,
-      SceneCollisionComp,
-      .layer      = layer,
-      .shape.type = SceneCollisionType_Box,
-      .shape.box  = box);
+  ecs_world_add_t(world, entity, SceneCollisionComp, .layer = layer, .shape = shape);
 }
 
 f32 scene_collision_shape_intersect_ray(
