@@ -8,7 +8,7 @@
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "geo_capsule.h"
-#include "geo_sphere.h"
+#include "geo_nav.h"
 #include "log_logger.h"
 #include "scene_collision.h"
 #include "scene_locomotion.h"
@@ -98,14 +98,19 @@ static void nav_env_create(EcsWorld* world) {
 
 static GeoNavBlockerId
 nav_block_box_rotated(GeoNavGrid* grid, const u64 id, const GeoBoxRotated* boxRot) {
+  GeoBlockerShape shape;
   if (math_abs(geo_quat_dot(boxRot->rotation, geo_quat_ident)) > 1.0f - 1e-4f) {
     /**
      * Substitute rotated-boxes with a (near) identity rotation with axis-aligned boxes which are
      * much faster to insert.
      */
-    return geo_nav_blocker_add_box(grid, id, &boxRot->box);
+    shape.type = GeoBlockerType_Box;
+    shape.box  = &boxRot->box;
+  } else {
+    shape.type       = GeoBlockerType_BoxRotated;
+    shape.boxRotated = boxRot;
   }
-  return geo_nav_blocker_add_box_rotated(grid, id, boxRot);
+  return geo_nav_blocker_add(grid, id, shape);
 }
 
 static bool nav_blocker_remove_pred(const void* ctx, const u64 userId) {
@@ -209,9 +214,11 @@ static void nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView) {
     const SceneCollisionShape shape =
         scene_collision_shape_world(&collision->shapes[0], trans, scale);
     switch (shape.type) {
-    case SceneCollisionType_Sphere:
-      blocker->ids[ctx->layer] = geo_nav_blocker_add_sphere(ctx->grid, userId, &shape.sphere);
+    case SceneCollisionType_Sphere: {
+      const GeoBlockerShape blockerShape = {.type = GeoBlockerType_Sphere, .sphere = &shape.sphere};
+      blocker->ids[ctx->layer]           = geo_nav_blocker_add(ctx->grid, userId, blockerShape);
       break;
+    }
     case SceneCollisionType_Capsule: {
       /**
        * NOTE: Uses the capsule bounds at the moment, if more accurate capsule blockers are

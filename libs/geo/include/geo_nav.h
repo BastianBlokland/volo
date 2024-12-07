@@ -106,9 +106,22 @@ typedef bool (*GeoNavBlockerPredicate)(const void* context, u64 id);
 
 #define geo_blocker_invalid sentinel_u16
 
-GeoNavBlockerId geo_nav_blocker_add_box(GeoNavGrid*, u64 userId, const GeoBox*);
-GeoNavBlockerId geo_nav_blocker_add_box_rotated(GeoNavGrid*, u64 userId, const GeoBoxRotated*);
-GeoNavBlockerId geo_nav_blocker_add_sphere(GeoNavGrid*, u64 userId, const GeoSphere*);
+typedef enum {
+  GeoBlockerType_Box,
+  GeoBlockerType_BoxRotated,
+  GeoBlockerType_Sphere,
+} GeoBlockerType;
+
+typedef struct {
+  GeoBlockerType type;
+  union {
+    const GeoBox*        box;
+    const GeoBoxRotated* boxRotated;
+    const GeoSphere*     sphere;
+  };
+} GeoBlockerShape;
+
+GeoNavBlockerId geo_nav_blocker_add(GeoNavGrid*, u64 userId, GeoBlockerShape);
 bool            geo_nav_blocker_remove(GeoNavGrid*, GeoNavBlockerId);
 bool            geo_nav_blocker_remove_pred(GeoNavGrid*, GeoNavBlockerPredicate, void* ctx);
 bool            geo_nav_blocker_remove_all(GeoNavGrid*);
