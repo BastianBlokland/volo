@@ -18,6 +18,11 @@ typedef struct sGeoSphere {
 GeoSphere geo_sphere_dilate(const GeoSphere*, f32 radius);
 
 /**
+ * Transform the given sphere.
+ */
+GeoSphere geo_sphere_transform3(const GeoSphere*, GeoVector offset, GeoQuat rotation, f32 scale);
+
+/**
  * Compute the intersection of the sphere with the given ray.
  * Returns the time along the ray at which the intersection occurred or negative if no intersection
  * occurred.

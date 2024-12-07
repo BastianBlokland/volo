@@ -1,10 +1,25 @@
 #include "core_array.h"
 #include "core_float.h"
 #include "core_intrinsic.h"
+#include "geo_quat.h"
 #include "geo_sphere.h"
 
 GeoSphere geo_sphere_dilate(const GeoSphere* sphere, const f32 radius) {
   return (GeoSphere){.point = sphere->point, .radius = sphere->radius + radius};
+}
+
+GeoSphere geo_sphere_transform3(
+    const GeoSphere* sphere, const GeoVector offset, const GeoQuat rotation, const f32 scale) {
+
+  GeoVector point;
+  point = geo_vector_mul(sphere->point, scale);
+  point = geo_quat_rotate(rotation, point);
+  point = geo_vector_add(point, offset);
+
+  return (GeoSphere){
+      .point  = point,
+      .radius = sphere->radius * scale,
+  };
 }
 
 f32 geo_sphere_intersect_ray(const GeoSphere* sphere, const GeoRay* ray) {
