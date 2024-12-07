@@ -178,13 +178,17 @@ u32 scene_query_frustum_all(
     EcsEntityId out[PARAM_ARRAY_SIZE(scene_query_max_hits)]);
 
 /**
- * Compute the world-space collision shape.
+ * Convert the given shape to world-space.
  * NOTE: SceneScaleComp is optional.
  */
 SceneCollisionShape scene_collision_shape_world(
     const SceneCollisionShape*, const SceneTransformComp*, const SceneScaleComp*);
 
-GeoBox scene_collision_world_shape(
+/**
+ * Compute the world-space bounding box of give shape.
+ * NOTE: SceneScaleComp is optional.
+ */
+GeoBox scene_collision_shape_bounds(
     const SceneCollisionShape*, const SceneTransformComp*, const SceneScaleComp*);
 
 /**

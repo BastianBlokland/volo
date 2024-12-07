@@ -420,7 +420,7 @@ SceneCollisionShape scene_collision_shape_world(
   UNREACHABLE
 }
 
-GeoBox scene_collision_world_shape(
+GeoBox scene_collision_shape_bounds(
     const SceneCollisionShape* shape,
     const SceneTransformComp*  trans,
     const SceneScaleComp*      scale) {
@@ -441,7 +441,7 @@ GeoBox scene_collision_world_shape(
 
 GeoBox scene_collision_world_bounds(
     const SceneCollisionComp* comp, const SceneTransformComp* trans, const SceneScaleComp* scale) {
-  return scene_collision_world_shape(&comp->shape, trans, scale);
+  return scene_collision_shape_bounds(&comp->shape, trans, scale);
 }
 
 const GeoQueryEnv* scene_collision_query_env(const SceneCollisionEnvComp* env) {
