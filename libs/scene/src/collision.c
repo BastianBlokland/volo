@@ -408,10 +408,7 @@ GeoSphere scene_collision_world_sphere(
   const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
   const f32       baseScale = scale ? scale->scale : 1.0f;
 
-  const GeoVector offset = geo_quat_rotate(baseRot, geo_vector_mul(sphere->point, baseScale));
-  const GeoVector point  = geo_vector_add(basePos, offset);
-
-  return (GeoSphere){.point = point, .radius = sphere->radius * baseScale};
+  return geo_sphere_transform3(sphere, basePos, baseRot, baseScale);
 }
 
 GeoCapsule scene_collision_world_capsule(
