@@ -1,6 +1,5 @@
 #pragma once
-#include "geo_box_rotated.h"
-#include "geo_vector.h"
+#include "geo.h"
 
 /**
  * Navigation grid.

@@ -6,6 +6,7 @@
 #include "core_intrinsic.h"
 #include "core_math.h"
 #include "core_rng.h"
+#include "geo_box_rotated.h"
 #include "geo_nav.h"
 #include "geo_sphere.h"
 #include "jobs.h"
