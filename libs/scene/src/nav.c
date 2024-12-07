@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
+#include "core_diag.h"
 #include "core_float.h"
 #include "core_math.h"
 #include "core_rng.h"
@@ -327,10 +328,14 @@ ecs_view_define(OccupantView) {
 ecs_view_define(PathView) { ecs_access_write(SceneNavPathComp); }
 
 static u32 nav_blocker_hash(
-    const SceneCollisionComp* collision,
-    const SceneTransformComp* trans,
-    const SceneScaleComp*     scale) {
-  u32 hash = bits_hash_32(mem_create(collision, sizeof(SceneCollisionComp)));
+    const SceneCollisionComp* col, const SceneTransformComp* trans, const SceneScaleComp* scale) {
+  diag_assert(col->shapeCount);
+
+  u32 hash = bits_hash_32(mem_create(&col->shapes[0], sizeof(SceneCollisionShape)));
+  for (u32 i = 1; i != col->shapeCount; ++i) {
+    const u32 shapeHash = bits_hash_32(mem_create(&col->shapes[i], sizeof(SceneCollisionShape)));
+    hash                = bits_hash_32_combine(hash, shapeHash);
+  }
   if (trans) {
     const u32 transHash = bits_hash_32(mem_create(trans, sizeof(SceneTransformComp)));
     hash                = bits_hash_32_combine(hash, transHash);
