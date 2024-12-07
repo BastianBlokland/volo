@@ -17,6 +17,11 @@ typedef struct sGeoCapsule {
 GeoCapsule geo_capsule_dilate(const GeoCapsule*, f32 radius);
 
 /**
+ * Transform the given capsule.
+ */
+GeoCapsule geo_capsule_transform3(const GeoCapsule*, GeoVector offset, GeoQuat rotation, f32 scale);
+
+/**
  * Compute the intersection of the capsule with the given ray.
  * Returns the time along the ray at which the intersection occurred or negative if no intersection
  * occurred.

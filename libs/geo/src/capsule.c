@@ -1,8 +1,18 @@
 #include "geo_capsule.h"
+#include "geo_quat.h"
 #include "geo_sphere.h"
 
 GeoCapsule geo_capsule_dilate(const GeoCapsule* capsule, const f32 radius) {
   return (GeoCapsule){.line = capsule->line, .radius = capsule->radius + radius};
+}
+
+GeoCapsule geo_capsule_transform3(
+    const GeoCapsule* capsule, const GeoVector offset, const GeoQuat rotation, const f32 scale) {
+
+  return (GeoCapsule){
+      .line   = geo_line_transform3(&capsule->line, offset, rotation, scale),
+      .radius = capsule->radius * scale,
+  };
 }
 
 f32 geo_capsule_intersect_ray(const GeoCapsule* capsule, const GeoRay* ray) {
