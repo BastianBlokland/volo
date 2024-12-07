@@ -369,7 +369,7 @@ static void setup_collision(
     };
     break;
   }
-  scene_collision_add(w, e, collisionShape, layer);
+  scene_collision_add(w, e, layer, &collisionShape, 1 /* shapeCount */);
 }
 
 static void setup_script(

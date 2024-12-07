@@ -234,23 +234,26 @@ void scene_collision_ignore_mask_set(SceneCollisionEnvComp* env, const SceneLaye
 }
 
 SceneCollisionComp* scene_collision_add(
-    EcsWorld*                 world,
-    const EcsEntityId         entity,
-    const SceneCollisionShape shape,
-    const SceneLayer          layer) {
+    EcsWorld*                  world,
+    const EcsEntityId          entity,
+    const SceneLayer           layer,
+    const SceneCollisionShape* shapes,
+    const u32                  shapeCount) {
   diag_assert_msg(bits_popcnt((u32)layer) == 1, "Collider can only be in 1 layer");
+  diag_assert_msg(shapeCount, "Collider needs at least 1 shape");
 
-  SceneCollisionComp* comp = ecs_world_add_t(world, entity, SceneCollisionComp, .layer = layer);
+  const Mem shapesMem = alloc_dup(
+      g_allocHeap,
+      mem_create(shapes, sizeof(SceneCollisionShape) * shapeCount),
+      alignof(SceneCollisionShape));
 
-  comp->shapeCount = 1;
-  comp->shapes     = alloc_array_t(g_allocHeap, SceneCollisionShape, comp->shapeCount);
-
-  // NOTE: Make sure we initialize padding to zero as its included in a hash.
-  mem_set(mem_create(comp->shapes, sizeof(SceneCollisionShape) * comp->shapeCount), 0);
-
-  comp->shapes[0] = shape;
-
-  return comp;
+  return ecs_world_add_t(
+      world,
+      entity,
+      SceneCollisionComp,
+      .layer      = layer,
+      .shapes     = shapesMem.ptr,
+      .shapeCount = shapeCount);
 }
 
 f32 scene_collision_shape_intersect_ray(

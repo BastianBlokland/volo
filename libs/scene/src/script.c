@@ -1349,7 +1349,7 @@ static ScriptVal eval_collision_box_spawn(EvalContext* ctx, ScriptBinderCall* ca
               .rotation = geo_quat_ident,
           },
   };
-  scene_collision_add(ctx->world, result, shape, layer);
+  scene_collision_add(ctx->world, result, layer, &shape, 1 /* shapeCount */);
 
   if (navBlocker) {
     scene_nav_add_blocker(ctx->world, result, SceneNavBlockerMask_All);
@@ -1373,7 +1373,7 @@ static ScriptVal eval_collision_sphere_spawn(EvalContext* ctx, ScriptBinderCall*
       .type   = SceneCollisionType_Sphere,
       .sphere = {.radius = radius},
   };
-  scene_collision_add(ctx->world, result, shape, layer);
+  scene_collision_add(ctx->world, result, layer, &shape, 1 /* shapeCount */);
 
   if (navBlocker) {
     scene_nav_add_blocker(ctx->world, result, SceneNavBlockerMask_All);

@@ -105,9 +105,10 @@ SceneLayer scene_collision_ignore_mask(const SceneCollisionEnvComp*);
 void       scene_collision_ignore_mask_set(SceneCollisionEnvComp*, SceneLayer);
 
 /**
- * Add a collision shape to the given entity.
+ * Add collision shapes to the given entity.
  */
-SceneCollisionComp* scene_collision_add(EcsWorld*, EcsEntityId, SceneCollisionShape, SceneLayer);
+SceneCollisionComp* scene_collision_add(
+    EcsWorld*, EcsEntityId, SceneLayer, const SceneCollisionShape* shapes, u32 shapeCount);
 
 /**
  * Intersection apis.
