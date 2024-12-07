@@ -121,7 +121,7 @@ typedef struct {
   };
 } GeoBlockerShape;
 
-GeoNavBlockerId geo_nav_blocker_add(GeoNavGrid*, u64 userId, GeoBlockerShape);
+GeoNavBlockerId geo_nav_blocker_add(GeoNavGrid*, u64 userId, const GeoBlockerShape*, u32 shapeCnt);
 bool            geo_nav_blocker_remove(GeoNavGrid*, GeoNavBlockerId);
 bool            geo_nav_blocker_remove_pred(GeoNavGrid*, GeoNavBlockerPredicate, void* ctx);
 bool            geo_nav_blocker_remove_all(GeoNavGrid*);

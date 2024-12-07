@@ -1443,29 +1443,29 @@ static void geo_nav_block_sphere(
 }
 
 static void geo_nav_block_shape(
-    GeoNavGrid* grid, const GeoNavRegion region, BitSet regionBits, const GeoBlockerShape s) {
-  switch (s.type) {
+    GeoNavGrid* grid, const GeoNavRegion region, BitSet regionBits, const GeoBlockerShape* shape) {
+  switch (shape->type) {
   case GeoBlockerType_Box:
-    geo_nav_block_box(grid, region, regionBits, s.box);
+    geo_nav_block_box(grid, region, regionBits, shape->box);
     return;
   case GeoBlockerType_BoxRotated:
-    geo_nav_block_box_rotated(grid, region, regionBits, s.boxRotated);
+    geo_nav_block_box_rotated(grid, region, regionBits, shape->boxRotated);
     return;
   case GeoBlockerType_Sphere:
-    geo_nav_block_sphere(grid, region, regionBits, s.sphere);
+    geo_nav_block_sphere(grid, region, regionBits, shape->sphere);
     return;
   }
   UNREACHABLE
 }
 
-static GeoBox geo_nav_block_bounds(const GeoBlockerShape s) {
-  switch (s.type) {
+static GeoBox geo_nav_block_bounds_shape(const GeoBlockerShape* shape) {
+  switch (shape->type) {
   case GeoBlockerType_Box:
-    return *s.box;
+    return *shape->box;
   case GeoBlockerType_BoxRotated:
-    return geo_box_from_rotated(&s.boxRotated->box, s.boxRotated->rotation);
+    return geo_box_from_rotated(&shape->boxRotated->box, shape->boxRotated->rotation);
   case GeoBlockerType_Sphere:
-    return geo_box_from_sphere(s.sphere->point, s.sphere->radius);
+    return geo_box_from_sphere(shape->sphere->point, shape->sphere->radius);
   }
   UNREACHABLE
 }
@@ -1477,8 +1477,17 @@ NO_INLINE_HINT static void geo_nav_report_blocker_too_big(const GeoNavRegion blo
       log_param("limit", fmt_int(geo_nav_blocker_max_cells)));
 }
 
-GeoNavBlockerId geo_nav_blocker_add(GeoNavGrid* grid, const u64 userId, const GeoBlockerShape s) {
-  const GeoBox       bounds = geo_nav_block_bounds(s);
+GeoNavBlockerId geo_nav_blocker_add(
+    GeoNavGrid* grid, const u64 userId, const GeoBlockerShape* shapes, const u32 shapeCnt) {
+  if (UNLIKELY(!shapeCnt)) {
+    return geo_blocker_invalid;
+  }
+
+  GeoBox bounds = geo_nav_block_bounds_shape(&shapes[0]);
+  for (u32 i = 1; i != shapeCnt; ++i) {
+    const GeoBox shapeBounds = geo_nav_block_bounds_shape(&shapes[i]);
+    bounds                   = geo_box_encapsulate_box(&bounds, &shapeBounds);
+  }
   const GeoNavRegion region = nav_cell_map_box(grid, &bounds);
   if (UNLIKELY(nav_region_size(region) > geo_nav_blocker_max_cells)) {
     geo_nav_report_blocker_too_big(region);
@@ -1496,7 +1505,9 @@ GeoNavBlockerId geo_nav_blocker_add(GeoNavGrid* grid, const u64 userId, const Ge
   const BitSet blockedInRegion = bitset_from_array(blocker->blockedInRegion);
   bitset_clear_all(blockedInRegion);
 
-  geo_nav_block_shape(grid, region, blockedInRegion, s);
+  for (u32 i = 0; i != shapeCnt; ++i) {
+    geo_nav_block_shape(grid, region, blockedInRegion, &shapes[i]);
+  }
 
   ++grid->stats[GeoNavStat_BlockerAddCount]; // Track amount of blocker additions.
   return blockerId;

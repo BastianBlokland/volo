@@ -110,7 +110,7 @@ nav_block_box_rotated(GeoNavGrid* grid, const u64 id, const GeoBoxRotated* boxRo
     shape.type       = GeoBlockerType_BoxRotated;
     shape.boxRotated = boxRot;
   }
-  return geo_nav_blocker_add(grid, id, shape);
+  return geo_nav_blocker_add(grid, id, &shape, 1);
 }
 
 static bool nav_blocker_remove_pred(const void* ctx, const u64 userId) {
@@ -216,7 +216,7 @@ static void nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView) {
     switch (shape.type) {
     case SceneCollisionType_Sphere: {
       const GeoBlockerShape blockerShape = {.type = GeoBlockerType_Sphere, .sphere = &shape.sphere};
-      blocker->ids[ctx->layer]           = geo_nav_blocker_add(ctx->grid, userId, blockerShape);
+      blocker->ids[ctx->layer]           = geo_nav_blocker_add(ctx->grid, userId, &blockerShape, 1);
       break;
     }
     case SceneCollisionType_Capsule: {

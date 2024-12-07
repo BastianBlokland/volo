@@ -71,7 +71,7 @@ spec(nav) {
         .type = GeoBlockerType_Box,
         .box  = &box,
     };
-    geo_nav_blocker_add(grid, 42, shape);
+    geo_nav_blocker_add(grid, 42, &shape, 1);
 
     check(geo_nav_check(grid, cell, GeoNavCond_Blocked));
     check(!geo_nav_check(grid, (GeoNavCell){.x = 3, .y = 2}, GeoNavCond_Blocked));
@@ -90,7 +90,7 @@ spec(nav) {
         .type = GeoBlockerType_Box,
         .box  = &box,
     };
-    geo_nav_blocker_add(grid, 42, shape);
+    geo_nav_blocker_add(grid, 42, &shape, 1);
 
     check(!geo_nav_check(grid, cell, GeoNavCond_Blocked));
   }
@@ -105,7 +105,7 @@ spec(nav) {
         .type = GeoBlockerType_Box,
         .box  = &box,
     };
-    geo_nav_blocker_add(grid, 42, shape);
+    geo_nav_blocker_add(grid, 42, &shape, 1);
 
     check(!geo_nav_check(grid, cell, GeoNavCond_Blocked));
   }
@@ -138,7 +138,7 @@ spec(nav) {
         .type = GeoBlockerType_Box,
         .box  = &box,
     };
-    geo_nav_blocker_add(grid, 42, shape);
+    geo_nav_blocker_add(grid, 42, &shape, 1);
 
     check(geo_nav_check(grid, cell, GeoNavCond_Blocked));
     check(geo_nav_check(grid, (GeoNavCell){.x = 3, .y = 2}, GeoNavCond_Blocked));
