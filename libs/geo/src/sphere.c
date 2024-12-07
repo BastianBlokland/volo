@@ -4,6 +4,10 @@
 #include "geo_quat.h"
 #include "geo_sphere.h"
 
+#ifdef VOLO_SIMD
+#include "core_simd.h"
+#endif
+
 GeoSphere geo_sphere_dilate(const GeoSphere* sphere, const f32 radius) {
   return (GeoSphere){.point = sphere->point, .radius = sphere->radius + radius};
 }
@@ -11,6 +15,22 @@ GeoSphere geo_sphere_dilate(const GeoSphere* sphere, const f32 radius) {
 GeoSphere geo_sphere_transform3(
     const GeoSphere* sphere, const GeoVector offset, const GeoQuat rotation, const f32 scale) {
 
+#ifdef VOLO_SIMD
+  const SimdVec scaleVec = simd_vec_broadcast(scale);
+
+  SimdVec radiusVec = simd_vec_broadcast(sphere->radius);
+  simd_vec_mul(radiusVec, scaleVec);
+
+  SimdVec pointVec = simd_vec_load(sphere->point.comps);
+  pointVec         = simd_vec_mul(pointVec, scaleVec);
+  pointVec         = simd_quat_rotate(simd_vec_load(rotation.comps), pointVec);
+  pointVec         = simd_vec_add(pointVec, simd_vec_load(offset.comps));
+
+  GeoSphere res;
+  simd_vec_store(pointVec, res.point.comps);
+  res.radius = simd_vec_x(radiusVec);
+  return res;
+#else
   GeoVector point;
   point = geo_vector_mul(sphere->point, scale);
   point = geo_quat_rotate(rotation, point);
@@ -20,6 +40,7 @@ GeoSphere geo_sphere_transform3(
       .point  = point,
       .radius = sphere->radius * scale,
   };
+#endif
 }
 
 f32 geo_sphere_intersect_ray(const GeoSphere* sphere, const GeoRay* ray) {
