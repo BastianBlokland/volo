@@ -89,30 +89,27 @@ ecs_system_define(SceneCollisionInitSys) {
       continue;
     }
 
-    const u64                  userId     = (u64)ecs_view_entity(itr);
-    const GeoQueryLayer        queryLayer = (GeoQueryLayer)collision->layer;
-    const SceneCollisionShape* shape      = &collision->shape;
+    const u64                 userId     = (u64)ecs_view_entity(itr);
+    const GeoQueryLayer       queryLayer = (GeoQueryLayer)collision->layer;
+    const SceneCollisionShape shape      = scene_collision_world(&collision->shape, trans, scale);
 
-    switch (shape->type) {
-    case SceneCollisionType_Sphere: {
-      const GeoSphere sphere = scene_collision_world_sphere(&shape->sphere, trans, scale);
-      geo_query_insert_sphere(env->queryEnv, sphere, userId, queryLayer);
-    } break;
+    switch (shape.type) {
+    case SceneCollisionType_Sphere:
+      geo_query_insert_sphere(env->queryEnv, shape.sphere, userId, queryLayer);
+      break;
     case SceneCollisionType_Capsule: {
-      const GeoCapsule capsule = scene_collision_world_capsule(&shape->capsule, trans, scale);
-      if (geo_line_length_sqr(&capsule.line) <= 1e-2f) {
-        const GeoSphere sphere = {.point = capsule.line.a, .radius = capsule.radius};
+      if (geo_line_length_sqr(&shape.capsule.line) <= 1e-2f) {
+        const GeoSphere sphere = {.point = shape.capsule.line.a, .radius = shape.capsule.radius};
         geo_query_insert_sphere(env->queryEnv, sphere, userId, queryLayer);
       } else {
-        geo_query_insert_capsule(env->queryEnv, capsule, userId, queryLayer);
+        geo_query_insert_capsule(env->queryEnv, shape.capsule, userId, queryLayer);
       }
     } break;
-    case SceneCollisionType_Box: {
-      const GeoBoxRotated boxRotated = scene_collision_world_box(&shape->box, trans, scale);
-      geo_query_insert_box_rotated(env->queryEnv, boxRotated, userId, queryLayer);
-    } break;
+    case SceneCollisionType_Box:
+      geo_query_insert_box_rotated(env->queryEnv, shape.box, userId, queryLayer);
+      break;
     default:
-      diag_crash();
+      UNREACHABLE
     }
   }
 
@@ -281,22 +278,19 @@ f32 scene_collision_intersect_ray_shape(
     const SceneTransformComp*  trans,
     const SceneScaleComp*      scale,
     const GeoRay*              ray) {
-  switch (shape->type) {
-  case SceneCollisionType_Sphere: {
-    const GeoSphere sphere = scene_collision_world_sphere(&shape->sphere, trans, scale);
-    return geo_sphere_intersect_ray(&sphere, ray);
-  } break;
-  case SceneCollisionType_Capsule: {
-    const GeoCapsule capsule = scene_collision_world_capsule(&shape->capsule, trans, scale);
-    return geo_capsule_intersect_ray(&capsule, ray);
-  } break;
-  case SceneCollisionType_Box: {
-    const GeoBoxRotated boxRotated = scene_collision_world_box(&shape->box, trans, scale);
-    return geo_box_rotated_intersect_ray(&boxRotated, ray);
-  } break;
+
+  const SceneCollisionShape world = scene_collision_world(shape, trans, scale);
+  switch (world.type) {
+  case SceneCollisionType_Sphere:
+    return geo_sphere_intersect_ray(&world.sphere, ray);
+  case SceneCollisionType_Capsule:
+    return geo_capsule_intersect_ray(&world.capsule, ray);
+  case SceneCollisionType_Box:
+    return geo_box_rotated_intersect_ray(&world.box, ray);
   default:
-    diag_crash();
+    break;
   }
+  UNREACHABLE
 }
 
 bool scene_query_ray(
@@ -399,50 +393,46 @@ u32 scene_query_frustum_all(
   return geo_query_frustum_all(env->queryEnv, frustum, &geoFilter, (u64*)out);
 }
 
-GeoSphere scene_collision_world_sphere(
-    const GeoSphere* sphere, const SceneTransformComp* trans, const SceneScaleComp* scale) {
-  const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
-  const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
+SceneCollisionShape scene_collision_world(
+    const SceneCollisionShape* shape,
+    const SceneTransformComp*  trans,
+    const SceneScaleComp*      scale) {
+  const GeoVector basePos   = trans->position;
+  const GeoQuat   baseRot   = trans->rotation;
   const f32       baseScale = scale ? scale->scale : 1.0f;
 
-  return geo_sphere_transform3(sphere, basePos, baseRot, baseScale);
-}
+  SceneCollisionShape res;
+  res.type = shape->type;
 
-GeoCapsule scene_collision_world_capsule(
-    const GeoCapsule* capsule, const SceneTransformComp* trans, const SceneScaleComp* scale) {
-  const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
-  const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
-  const f32       baseScale = scale ? scale->scale : 1.0f;
-
-  return geo_capsule_transform3(capsule, basePos, baseRot, baseScale);
-}
-
-GeoBoxRotated scene_collision_world_box(
-    const GeoBoxRotated* box, const SceneTransformComp* trans, const SceneScaleComp* scale) {
-  const GeoVector basePos   = LIKELY(trans) ? trans->position : geo_vector(0);
-  const GeoQuat   baseRot   = LIKELY(trans) ? trans->rotation : geo_quat_ident;
-  const f32       baseScale = scale ? scale->scale : 1.0f;
-
-  return geo_box_rotated_transform3(box, basePos, baseRot, baseScale);
+  switch (shape->type) {
+  case SceneCollisionType_Sphere:
+    res.sphere = geo_sphere_transform3(&shape->sphere, basePos, baseRot, baseScale);
+    return res;
+  case SceneCollisionType_Capsule:
+    res.capsule = geo_capsule_transform3(&shape->capsule, basePos, baseRot, baseScale);
+    return res;
+  case SceneCollisionType_Box:
+    res.box = geo_box_rotated_transform3(&shape->box, basePos, baseRot, baseScale);
+    return res;
+  case SceneCollisionType_Count:
+    break;
+  }
+  UNREACHABLE
 }
 
 GeoBox scene_collision_world_shape(
     const SceneCollisionShape* shape,
     const SceneTransformComp*  trans,
     const SceneScaleComp*      scale) {
-  switch (shape->type) {
-  case SceneCollisionType_Sphere: {
-    const GeoSphere worldSphere = scene_collision_world_sphere(&shape->sphere, trans, scale);
-    return geo_box_from_sphere(worldSphere.point, worldSphere.radius);
-  }
-  case SceneCollisionType_Capsule: {
-    const GeoCapsule worldCapsule = scene_collision_world_capsule(&shape->capsule, trans, scale);
-    return geo_box_from_capsule(worldCapsule.line.a, worldCapsule.line.b, worldCapsule.radius);
-  }
-  case SceneCollisionType_Box: {
-    const GeoBoxRotated worldBox = scene_collision_world_box(&shape->box, trans, scale);
-    return geo_box_from_rotated(&worldBox.box, worldBox.rotation);
-  }
+
+  const SceneCollisionShape world = scene_collision_world(shape, trans, scale);
+  switch (world.type) {
+  case SceneCollisionType_Sphere:
+    return geo_box_from_sphere(world.sphere.point, world.sphere.radius);
+  case SceneCollisionType_Capsule:
+    return geo_box_from_capsule(world.capsule.line.a, world.capsule.line.b, world.capsule.radius);
+  case SceneCollisionType_Box:
+    return geo_box_from_rotated(&world.box.box, world.box.rotation);
   case SceneCollisionType_Count:
     break;
   }

@@ -1403,19 +1403,17 @@ static void inspector_vis_draw_collision_shape(
     const SceneTransformComp*  transform,
     const SceneScaleComp*      scale) {
 
-  switch (collisionShape->type) {
-  case SceneCollisionType_Sphere: {
-    const GeoSphere s = scene_collision_world_sphere(&collisionShape->sphere, transform, scale);
-    debug_world_sphere(shape, &s, geo_color(1, 0, 0, 0.75f));
-  } break;
-  case SceneCollisionType_Capsule: {
-    const GeoCapsule c = scene_collision_world_capsule(&collisionShape->capsule, transform, scale);
-    debug_world_capsule(shape, &c, geo_color(1, 0, 0, 0.75f));
-  } break;
-  case SceneCollisionType_Box: {
-    const GeoBoxRotated b = scene_collision_world_box(&collisionShape->box, transform, scale);
-    debug_world_box_rotated(shape, &b, geo_color(1, 0, 0, 0.75f));
-  } break;
+  const SceneCollisionShape world = scene_collision_world(collisionShape, transform, scale);
+  switch (world.type) {
+  case SceneCollisionType_Sphere:
+    debug_world_sphere(shape, &world.sphere, geo_color(1, 0, 0, 0.75f));
+    break;
+  case SceneCollisionType_Capsule:
+    debug_world_capsule(shape, &world.capsule, geo_color(1, 0, 0, 0.75f));
+    break;
+  case SceneCollisionType_Box:
+    debug_world_box_rotated(shape, &world.box, geo_color(1, 0, 0, 0.75f));
+    break;
   case SceneCollisionType_Count:
     UNREACHABLE
   }

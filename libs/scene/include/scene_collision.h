@@ -178,22 +178,18 @@ u32 scene_query_frustum_all(
     EcsEntityId out[PARAM_ARRAY_SIZE(scene_query_max_hits)]);
 
 /**
- * Compute geometric shapes for the given collision shapes.
- * NOTE: SceneTransformComp and SceneScaleComp are optional.
+ * Compute the world-space collision shape.
+ * NOTE: SceneScaleComp is optional.
  */
+SceneCollisionShape
+scene_collision_world(const SceneCollisionShape*, const SceneTransformComp*, const SceneScaleComp*);
 
-GeoSphere
-scene_collision_world_sphere(const GeoSphere*, const SceneTransformComp*, const SceneScaleComp*);
-GeoCapsule
-scene_collision_world_capsule(const GeoCapsule*, const SceneTransformComp*, const SceneScaleComp*);
-GeoBoxRotated
-scene_collision_world_box(const GeoBoxRotated*, const SceneTransformComp*, const SceneScaleComp*);
 GeoBox scene_collision_world_shape(
     const SceneCollisionShape*, const SceneTransformComp*, const SceneScaleComp*);
 
 /**
  * Compute the world axis-aligned bounds for the given collision component.
- * NOTE: SceneTransformComp and SceneScaleComp are optional.
+ * NOTE: SceneScaleComp is optional.
  */
 GeoBox scene_collision_world_bounds(
     const SceneCollisionComp*, const SceneTransformComp*, const SceneScaleComp*);
