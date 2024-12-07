@@ -97,23 +97,6 @@ static void nav_env_create(EcsWorld* world) {
   env->pathAlloc       = alloc_block_create(g_allocHeap, pathSize, alignof(GeoNavCell));
 }
 
-static GeoNavBlockerId
-nav_block_box_rotated(GeoNavGrid* grid, const u64 id, const GeoBoxRotated* boxRot) {
-  GeoBlockerShape shape;
-  if (math_abs(geo_quat_dot(boxRot->rotation, geo_quat_ident)) > 1.0f - 1e-4f) {
-    /**
-     * Substitute rotated-boxes with a (near) identity rotation with axis-aligned boxes which are
-     * much faster to insert.
-     */
-    shape.type = GeoBlockerType_Box;
-    shape.box  = &boxRot->box;
-  } else {
-    shape.type       = GeoBlockerType_BoxRotated;
-    shape.boxRotated = boxRot;
-  }
-  return geo_nav_blocker_add(grid, id, &shape, 1);
-}
-
 static bool nav_blocker_remove_pred(const void* ctx, const u64 userId) {
   const EcsView* blockerView = ctx;
   return !ecs_view_contains(blockerView, (EcsEntityId)userId);
@@ -179,6 +162,22 @@ static void nav_refresh_terrain(NavInitContext* ctx) {
   }
 }
 
+static GeoBlockerShape nav_blocker_shape_box(const GeoBoxRotated* box) {
+  GeoBlockerShape res;
+  if (math_abs(geo_quat_dot(box->rotation, geo_quat_ident)) > 1.0f - 1e-4f) {
+    /**
+     * Substitute rotated-boxes with a (near) identity rotation with axis-aligned boxes which are
+     * much faster to insert.
+     */
+    res.type = GeoBlockerType_Box;
+    res.box  = &box->box;
+  } else {
+    res.type       = GeoBlockerType_BoxRotated;
+    res.boxRotated = box;
+  }
+  return res;
+}
+
 static void nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView) {
   const bool reinit = (ctx->change & NavChange_Reinit) != 0;
   if (reinit) {
@@ -190,6 +189,8 @@ static void nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView) {
       ctx->change |= NavChange_BlockerRemoved;
     }
   }
+
+  GeoBlockerShape blockerShapes[16];
 
   for (EcsIterator* itr = ecs_view_itr(blockerView); ecs_view_walk(itr);) {
     const SceneCollisionComp* collision = ecs_view_read_t(itr, SceneCollisionComp);
@@ -210,31 +211,38 @@ static void nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView) {
       continue; // Blocker is not enabled on this layer.
     }
 
-    const u64 userId = (u64)ecs_view_entity(itr);
-    // TODO: Support multiple shapes.
-    const SceneCollisionShape shape =
-        scene_collision_shape_world(&collision->shapes[0], trans, scale);
-    switch (shape.type) {
-    case SceneCollisionType_Sphere: {
-      const GeoBlockerShape blockerShape = {.type = GeoBlockerType_Sphere, .sphere = &shape.sphere};
-      blocker->ids[ctx->layer]           = geo_nav_blocker_add(ctx->grid, userId, &blockerShape, 1);
-      break;
+    const u32 blockerCount = math_min(collision->shapeCount, array_elems(blockerShapes));
+    for (u32 i = 0; i != blockerCount; ++i) {
+      const SceneCollisionShape* shapeLocal = &collision->shapes[i];
+      const SceneCollisionShape  shapeWorld = scene_collision_shape_world(shapeLocal, trans, scale);
+
+      switch (shapeWorld.type) {
+      case SceneCollisionType_Sphere:
+        blockerShapes[i] = (GeoBlockerShape){
+            .type   = GeoBlockerType_Sphere,
+            .sphere = &shapeWorld.sphere,
+        };
+        break;
+      case SceneCollisionType_Capsule: {
+        /**
+         * NOTE: Uses the capsule bounds at the moment, if more accurate capsule blockers are
+         * needed then capsule support should be added to GeoNavGrid.
+         */
+        const GeoCapsule*   c       = &shapeWorld.capsule;
+        const GeoBoxRotated cBounds = geo_box_rotated_from_capsule(c->line.a, c->line.b, c->radius);
+        blockerShapes[i]            = nav_blocker_shape_box(&cBounds);
+      } break;
+      case SceneCollisionType_Box:
+        blockerShapes[i] = nav_blocker_shape_box(&shapeWorld.box);
+        break;
+      case SceneCollisionType_Count:
+        UNREACHABLE
+      }
     }
-    case SceneCollisionType_Capsule: {
-      /**
-       * NOTE: Uses the capsule bounds at the moment, if more accurate capsule blockers are
-       * needed then capsule support should be added to GeoNavGrid.
-       */
-      const GeoCapsule*   c       = &shape.capsule;
-      const GeoBoxRotated cBounds = geo_box_rotated_from_capsule(c->line.a, c->line.b, c->radius);
-      blocker->ids[ctx->layer]    = nav_block_box_rotated(ctx->grid, userId, &cBounds);
-    } break;
-    case SceneCollisionType_Box:
-      blocker->ids[ctx->layer] = nav_block_box_rotated(ctx->grid, userId, &shape.box);
-      break;
-    case SceneCollisionType_Count:
-      UNREACHABLE
-    }
+
+    const u64 userId         = (u64)ecs_view_entity(itr);
+    blocker->ids[ctx->layer] = geo_nav_blocker_add(ctx->grid, userId, blockerShapes, blockerCount);
+
     if (!sentinel_check(blocker->ids[ctx->layer])) {
       /**
        * A new blocker was registered.
