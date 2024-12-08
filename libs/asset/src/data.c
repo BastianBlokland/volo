@@ -54,6 +54,13 @@ DataType g_assetGeoCapsuleType;
 DataType g_assetGeoMatrixType;
 DataType g_assetGeoPlaneType;
 
+static bool asset_data_normalizer_quat(const DataMeta meta, const Mem data) {
+  (void)meta;
+  GeoQuat* quat = mem_as_t(data, GeoQuat);
+  *quat         = geo_quat_norm_or_ident(*quat);
+  return true;
+}
+
 static void asset_data_init_types(void) {
   // clang-format off
   data_reg_struct_t(g_dataReg, GeoColor);
@@ -86,6 +93,7 @@ static void asset_data_init_types(void) {
   data_reg_field_t(g_dataReg, GeoQuat, y, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, GeoQuat, z, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, GeoQuat, w, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_normalizer_t(g_dataReg, GeoQuat, asset_data_normalizer_quat);
   data_reg_comment_t(g_dataReg, GeoQuat, "Quaternion");
 
   data_reg_struct_t(g_dataReg, GeoBox);
