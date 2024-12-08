@@ -205,7 +205,7 @@ void data_reg_comment(DataReg*, DataType, String comment);
 /**
  * Callback to perform normalization of the given data post reading from a user-editable source.
  */
-typedef void (*DataNormalizer)(void* data, DataMeta);
+typedef void (*DataNormalizer)(DataMeta, Mem data);
 
 /**
  * Register a data normalizer to the given type.
