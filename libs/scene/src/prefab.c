@@ -344,29 +344,15 @@ static void setup_collision(
   switch (t->shape.type) {
   case AssetPrefabShape_Sphere:
     collisionShape.type   = SceneCollisionType_Sphere;
-    collisionShape.sphere = (GeoSphere){
-        .point  = t->shape.data_sphere.offset,
-        .radius = t->shape.data_sphere.radius,
-    };
+    collisionShape.sphere = t->shape.data_sphere;
     break;
   case AssetPrefabShape_Capsule: {
-    const GeoVector bottom = t->shape.data_capsule.offset;
-    const GeoVector top    = geo_vector_add(bottom, geo_vector(0, t->shape.data_capsule.height, 0));
-
     collisionShape.type    = SceneCollisionType_Capsule;
-    collisionShape.capsule = (GeoCapsule){
-        .line.a = bottom,
-        .line.b = top,
-        .radius = t->shape.data_capsule.radius,
-    };
+    collisionShape.capsule = t->shape.data_capsule;
   } break;
   case AssetPrefabShape_Box:
     collisionShape.type = SceneCollisionType_Box;
-    collisionShape.box  = (GeoBoxRotated){
-         .box.min  = t->shape.data_box.min,
-         .box.max  = t->shape.data_box.max,
-         .rotation = geo_quat_ident,
-    };
+    collisionShape.box  = t->shape.data_box;
     break;
   }
   scene_collision_add(w, e, layer, &collisionShape, 1 /* shapeCount */);
@@ -429,9 +415,8 @@ static void setup_location(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
 
   SceneLocationComp* loc = ecs_world_add_t(w, e, SceneLocationComp);
   for (u32 i = 0; i != array_elems(g_mappings); ++i) {
-    const AssetPrefabShapeBox* box       = bits_ptr_offset(t, g_mappings[i].traitOffset);
-    loc->volumes[g_mappings[i].type].min = box->min;
-    loc->volumes[g_mappings[i].type].max = box->max;
+    const GeoBox* box                = bits_ptr_offset(t, g_mappings[i].traitOffset);
+    loc->volumes[g_mappings[i].type] = *box;
   }
 }
 

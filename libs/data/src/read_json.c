@@ -62,6 +62,17 @@ static bool data_check_type(const ReadCtx* ctx, const JsonType jsonType, DataRea
   return true;
 }
 
+static void data_normalize(const ReadCtx* ctx, DataReadResult* res) {
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  if (!decl->normalizer) {
+    return; // Type has no normalizer.
+  }
+  const bool success = decl->normalizer(ctx->meta, ctx->data);
+  if (UNLIKELY(!success)) {
+    *res = result_fail(DataReadError_NormalizationFailed, "Normalizer failed for Value");
+  }
+}
+
 /**
  * Get the minimal representable number for the given DataKind.
  */
@@ -276,26 +287,29 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res, u32 f
   mem_set(ctx->data, 0);
 
   dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
-    const JsonVal fieldVal = json_field(ctx->doc, ctx->val, fieldDecl->id.hash);
-
-    if (sentinel_check(fieldVal)) {
+    const ReadCtx fieldCtx = {
+        .reg         = ctx->reg,
+        .alloc       = ctx->alloc,
+        .allocations = ctx->allocations,
+        .doc         = ctx->doc,
+        .val         = json_field(ctx->doc, ctx->val, fieldDecl->id.hash),
+        .meta        = fieldDecl->meta,
+        .data        = data_field_mem(ctx->reg, fieldDecl, ctx->data),
+    };
+    if (sentinel_check(fieldCtx.val)) {
       if (fieldDecl->meta.flags & DataFlags_Opt) {
-        continue;
+        // NOTE: For optional fields we need to manually invoke the normalization step.
+        data_normalize(&fieldCtx, res);
+        if (UNLIKELY(res->error)) {
+          return;
+        }
+        continue; // Field is optional, skip reading.
       }
       *res = result_fail(
           DataReadError_FieldNotFound, "Field '{}' not found", fmt_text(fieldDecl->id.name));
       return;
     }
 
-    const ReadCtx fieldCtx = {
-        .reg         = ctx->reg,
-        .alloc       = ctx->alloc,
-        .allocations = ctx->allocations,
-        .doc         = ctx->doc,
-        .val         = fieldVal,
-        .meta        = fieldDecl->meta,
-        .data        = data_field_mem(ctx->reg, fieldDecl, ctx->data),
-    };
     data_read_json_val(&fieldCtx, res);
     if (UNLIKELY(res->error)) {
       *res = result_fail(
@@ -411,6 +425,9 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
       };
       const u32 fieldsRead = sentinel_check(nameVal) ? 1 : 2;
       data_read_json_struct(&choiceCtx, res, fieldsRead);
+      if (LIKELY(!res->error)) {
+        data_normalize(&choiceCtx, res);
+      }
     } break;
     default: {
       const JsonVal dataVal = json_field_lit(ctx->doc, ctx->val, "$data");
@@ -604,8 +621,7 @@ static void data_read_json_opaque(const ReadCtx* ctx, DataReadResult* res) {
 }
 
 static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
-  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
-  switch (decl->kind) {
+  switch (data_decl(ctx->reg, ctx->meta.type)->kind) {
   case DataKind_bool:
     data_read_json_bool(ctx, res);
     goto End;
@@ -652,12 +668,10 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
   diag_crash();
 
 End:
-  if (LIKELY(!res->error) && decl->normalizer) {
-    const bool success = decl->normalizer(ctx->meta, ctx->data);
-    if (UNLIKELY(!success)) {
-      *res = result_fail(DataReadError_NormalizationFailed, "Normalizer failed for Value");
-    }
+  if (UNLIKELY(res->error)) {
+    return;
   }
+  data_normalize(ctx, res);
 }
 
 static void data_read_json_val_pointer(const ReadCtx* ctx, DataReadResult* res) {

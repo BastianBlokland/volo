@@ -3,8 +3,10 @@
 #include "core_time.h"
 #include "data_registry.h"
 #include "ecs_module.h"
+#include "geo_box_rotated.h"
+#include "geo_capsule.h"
 #include "geo_color.h"
-#include "geo_vector.h"
+#include "geo_sphere.h"
 
 /**
  * Prefab database.
@@ -19,25 +21,11 @@ typedef enum {
 } AssetPrefabShapeType;
 
 typedef struct {
-  GeoVector offset;
-  f32       radius;
-} AssetPrefabShapeSphere;
-
-typedef struct {
-  GeoVector offset;
-  f32       radius, height;
-} AssetPrefabShapeCapsule;
-
-typedef struct {
-  GeoVector min, max;
-} AssetPrefabShapeBox;
-
-typedef struct {
   AssetPrefabShapeType type;
   union {
-    AssetPrefabShapeSphere  data_sphere;
-    AssetPrefabShapeCapsule data_capsule;
-    AssetPrefabShapeBox     data_box;
+    GeoSphere     data_sphere;
+    GeoCapsule    data_capsule;
+    GeoBoxRotated data_box;
   };
 } AssetPrefabShape;
 
@@ -163,7 +151,7 @@ typedef struct {
 } AssetPrefabTraitBark;
 
 typedef struct {
-  AssetPrefabShapeBox aimTarget;
+  GeoBox aimTarget;
 } AssetPrefabTraitLocation;
 
 typedef struct {
@@ -223,7 +211,7 @@ typedef struct {
  * Sanity check that we are not making the trait's very big.
  * NOTE: This is not a hard limit but when making this bigger consider changing this to SOA storage.
  */
-ASSERT(sizeof(AssetPrefabTrait) <= 80, "AssetPrefabTrait too big");
+ASSERT(sizeof(AssetPrefabTrait) <= 96, "AssetPrefabTrait too big");
 
 typedef enum {
   AssetPrefabFlags_Infantry     = 1 << 0,

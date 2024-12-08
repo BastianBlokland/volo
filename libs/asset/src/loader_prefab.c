@@ -49,29 +49,6 @@ static AssetPrefabFlags prefab_set_flags(const StringHash set) {
 }
 
 typedef struct {
-  GeoVector offset;
-  f32       radius;
-} AssetPrefabShapeSphereDef;
-
-typedef struct {
-  GeoVector offset;
-  f32       radius, height;
-} AssetPrefabShapeCapsuleDef;
-
-typedef struct {
-  GeoVector min, max;
-} AssetPrefabShapeBoxDef;
-
-typedef struct {
-  AssetPrefabShapeType type;
-  union {
-    AssetPrefabShapeSphereDef  data_sphere;
-    AssetPrefabShapeCapsuleDef data_capsule;
-    AssetPrefabShapeBoxDef     data_box;
-  };
-} AssetPrefabShapeDef;
-
-typedef struct {
   String assetId;
   bool   persistent;
 } AssetPrefabValueSoundDef;
@@ -167,8 +144,8 @@ typedef struct {
 } AssetPrefabTraitAttackDef;
 
 typedef struct {
-  bool                navBlocker;
-  AssetPrefabShapeDef shape;
+  bool             navBlocker;
+  AssetPrefabShape shape;
 } AssetPrefabTraitCollisionDef;
 
 typedef struct {
@@ -183,7 +160,7 @@ typedef struct {
 } AssetPrefabTraitBarkDef;
 
 typedef struct {
-  AssetPrefabShapeBoxDef aimTarget;
+  GeoBox aimTarget;
 } AssetPrefabTraitLocationDef;
 
 typedef struct {
@@ -284,34 +261,6 @@ typedef struct {
   EcsWorld*         world;
   AssetManagerComp* assetManager;
 } BuildCtx;
-
-static AssetPrefabShape prefab_build_shape(const AssetPrefabShapeDef* def) {
-  switch (def->type) {
-  case AssetPrefabShape_Sphere:
-    return (AssetPrefabShape){
-        .type               = AssetPrefabShape_Sphere,
-        .data_sphere.offset = def->data_sphere.offset,
-        .data_sphere.radius = def->data_sphere.radius,
-    };
-    break;
-  case AssetPrefabShape_Capsule:
-    return (AssetPrefabShape){
-        .type                = AssetPrefabShape_Capsule,
-        .data_capsule.offset = def->data_capsule.offset,
-        .data_capsule.radius = def->data_capsule.radius,
-        .data_capsule.height = def->data_capsule.height,
-    };
-    break;
-  case AssetPrefabShape_Box:
-    return (AssetPrefabShape){
-        .type         = AssetPrefabShape_Box,
-        .data_box.min = def->data_box.min,
-        .data_box.max = def->data_box.max,
-    };
-    break;
-  }
-  diag_crash_msg("Unsupported prefab shape");
-}
 
 static AssetPrefabValue prefab_build_value(BuildCtx* ctx, const AssetPrefabValueDef* def) {
   AssetPrefabValue res;
@@ -509,7 +458,7 @@ static void prefab_build(
     case AssetPrefabTrait_Collision:
       outTrait->data_collision = (AssetPrefabTraitCollision){
           .navBlocker = traitDef->data_collision.navBlocker,
-          .shape      = prefab_build_shape(&traitDef->data_collision.shape),
+          .shape      = traitDef->data_collision.shape,
       };
       break;
     case AssetPrefabTrait_Script: {
@@ -792,23 +741,10 @@ void asset_data_init_prefab(void) {
   data_reg_const_custom(g_dataReg, AssetPrefabNavLayer, Normal,  0);
   data_reg_const_custom(g_dataReg, AssetPrefabNavLayer, Large, 1);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabShapeSphereDef);
-  data_reg_field_t(g_dataReg, AssetPrefabShapeSphereDef, offset, g_assetGeoVec3Type, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabShapeSphereDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-
-  data_reg_struct_t(g_dataReg, AssetPrefabShapeCapsuleDef);
-  data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, offset, g_assetGeoVec3Type, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, height, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-
-  data_reg_struct_t(g_dataReg, AssetPrefabShapeBoxDef);
-  data_reg_field_t(g_dataReg, AssetPrefabShapeBoxDef, min, g_assetGeoVec3Type);
-  data_reg_field_t(g_dataReg, AssetPrefabShapeBoxDef, max, g_assetGeoVec3Type);
-
-  data_reg_union_t(g_dataReg, AssetPrefabShapeDef, type);
-  data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Sphere, data_sphere, t_AssetPrefabShapeSphereDef);
-  data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Capsule, data_capsule, t_AssetPrefabShapeCapsuleDef);
-  data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Box, data_box, t_AssetPrefabShapeBoxDef);
+  data_reg_union_t(g_dataReg, AssetPrefabShape, type);
+  data_reg_choice_t(g_dataReg, AssetPrefabShape, AssetPrefabShape_Sphere, data_sphere, g_assetGeoSphereType);
+  data_reg_choice_t(g_dataReg, AssetPrefabShape, AssetPrefabShape_Capsule, data_capsule, g_assetGeoCapsuleType);
+  data_reg_choice_t(g_dataReg, AssetPrefabShape, AssetPrefabShape_Box, data_box, g_assetGeoBoxRotatedType);
 
   data_reg_struct_t(g_dataReg, AssetPrefabValueSoundDef);
   data_reg_field_t(g_dataReg, AssetPrefabValueSoundDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -895,7 +831,7 @@ void asset_data_init_prefab(void) {
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitCollisionDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, navBlocker, data_prim_t(bool));
-  data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, shape, t_AssetPrefabShapeDef);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, shape, t_AssetPrefabShape);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitScriptDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, scriptIds, data_prim_t(String),  .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
@@ -907,7 +843,7 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitBarkDef, barkConfirmPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitLocationDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitLocationDef, aimTarget, t_AssetPrefabShapeBoxDef, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitLocationDef, aimTarget, g_assetGeoBoxType, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitStatusDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitStatusDef, supportedStatus, t_AssetPrefabStatusMask, .flags = DataFlags_Opt);
