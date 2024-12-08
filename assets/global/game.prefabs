@@ -30,7 +30,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Attack",
-          "weaponId": "Rifle",
+          "weapon": "Rifle",
           "targetRangeMax": 25,
           "targetExcludeObscured": true
         },
@@ -91,7 +91,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Attack",
-          "weaponId": "RocketLauncher",
+          "weapon": "RocketLauncher",
           "targetRangeMax": 30,
           "targetExcludeObscured": true
         },
@@ -152,7 +152,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Attack",
-          "weaponId": "FlameThrower",
+          "weapon": "FlameThrower",
           "targetRangeMax": 12.5,
           "targetExcludeObscured": true
         },
@@ -218,7 +218,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Attack",
-          "weaponId": "Melee",
+          "weapon": "Melee",
           "targetRangeMax": 150,
           "targetExcludeUnreachable": true
         },
@@ -328,7 +328,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Attack",
-          "weaponId": "TankTurret",
+          "weapon": "TankTurret",
           "aimJoint": "turret",
           "aimSpeed": 50,
           "targetRangeMax": 50,
@@ -387,7 +387,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Attack",
-          "weaponId": "TurretGun",
+          "weapon": "TurretGun",
           "aimJoint": "turret",
           "aimSpeed": 120,
           "targetRangeMax": 35,
@@ -432,7 +432,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Attack",
-          "weaponId": "TurretMissile",
+          "weapon": "TurretMissile",
           "aimJoint": "turret",
           "aimSpeed": 90,
           "targetRangeMin": 20,

@@ -105,10 +105,10 @@ typedef struct {
 
 typedef struct {
   f32        speed;
-  f32        rotationSpeedRad; // Radians per second.
+  f32        rotationSpeed; // Radians per second.
   f32        radius, weight;
   StringHash moveAnimation; // Optional: 0 to disable.
-  u8         navLayer;
+  u32        navLayer;
   bool       wheeled;
   f32        wheeledAcceleration;
 } AssetPrefabTraitMovement;
@@ -127,7 +127,7 @@ typedef struct {
 typedef struct {
   StringHash weapon;
   StringHash aimJoint;
-  f32        aimSpeedRad; // Radians per second.
+  f32        aimSpeed; // Radians per second.
   f32        targetRangeMin, targetRangeMax;
   bool       targetExcludeUnreachable;
   bool       targetExcludeObscured;
