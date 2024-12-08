@@ -360,6 +360,11 @@ void data_reg_comment(DataReg* reg, const DataType type, const String comment) {
   decl->comment = string_maybe_dup(reg->alloc, comment);
 }
 
+void data_reg_normalizer(DataReg* reg, const DataType type, const DataNormalizer normalizer) {
+  DataDecl* decl   = data_decl_mutable(reg, type);
+  decl->normalizer = normalizer;
+}
+
 DataMeta data_meta_base(const DataMeta meta) {
   return (DataMeta){.type = meta.type, .flags = meta.flags & DataFlags_TransferToBase};
 }
