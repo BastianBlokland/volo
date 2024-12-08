@@ -363,8 +363,7 @@ static void setup_collision(
   case AssetPrefabShape_Box:
     collisionShape.type = SceneCollisionType_Box;
     collisionShape.box  = (GeoBoxRotated){
-         .box.min  = t->shape.data_box.min,
-         .box.max  = t->shape.data_box.max,
+         .box      = t->shape.data_box,
          .rotation = geo_quat_ident,
     };
     break;
@@ -429,9 +428,8 @@ static void setup_location(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
 
   SceneLocationComp* loc = ecs_world_add_t(w, e, SceneLocationComp);
   for (u32 i = 0; i != array_elems(g_mappings); ++i) {
-    const AssetPrefabShapeBox* box       = bits_ptr_offset(t, g_mappings[i].traitOffset);
-    loc->volumes[g_mappings[i].type].min = box->min;
-    loc->volumes[g_mappings[i].type].max = box->max;
+    const GeoBox* box                = bits_ptr_offset(t, g_mappings[i].traitOffset);
+    loc->volumes[g_mappings[i].type] = *box;
   }
 }
 

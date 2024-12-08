@@ -59,15 +59,11 @@ typedef struct {
 } AssetPrefabShapeCapsuleDef;
 
 typedef struct {
-  GeoVector min, max;
-} AssetPrefabShapeBoxDef;
-
-typedef struct {
   AssetPrefabShapeType type;
   union {
     AssetPrefabShapeSphereDef  data_sphere;
     AssetPrefabShapeCapsuleDef data_capsule;
-    AssetPrefabShapeBoxDef     data_box;
+    GeoBox                     data_box;
   };
 } AssetPrefabShapeDef;
 
@@ -183,7 +179,7 @@ typedef struct {
 } AssetPrefabTraitBarkDef;
 
 typedef struct {
-  AssetPrefabShapeBoxDef aimTarget;
+  GeoBox aimTarget;
 } AssetPrefabTraitLocationDef;
 
 typedef struct {
@@ -801,14 +797,10 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, height, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabShapeBoxDef);
-  data_reg_field_t(g_dataReg, AssetPrefabShapeBoxDef, min, g_assetGeoVec3Type);
-  data_reg_field_t(g_dataReg, AssetPrefabShapeBoxDef, max, g_assetGeoVec3Type);
-
   data_reg_union_t(g_dataReg, AssetPrefabShapeDef, type);
   data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Sphere, data_sphere, t_AssetPrefabShapeSphereDef);
   data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Capsule, data_capsule, t_AssetPrefabShapeCapsuleDef);
-  data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Box, data_box, t_AssetPrefabShapeBoxDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Box, data_box, g_assetGeoBoxType);
 
   data_reg_struct_t(g_dataReg, AssetPrefabValueSoundDef);
   data_reg_field_t(g_dataReg, AssetPrefabValueSoundDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -907,7 +899,7 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitBarkDef, barkConfirmPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitLocationDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitLocationDef, aimTarget, t_AssetPrefabShapeBoxDef, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitLocationDef, aimTarget, g_assetGeoBoxType, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitStatusDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitStatusDef, supportedStatus, t_AssetPrefabStatusMask, .flags = DataFlags_Opt);

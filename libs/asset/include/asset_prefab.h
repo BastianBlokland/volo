@@ -3,6 +3,7 @@
 #include "core_time.h"
 #include "data_registry.h"
 #include "ecs_module.h"
+#include "geo_box.h"
 #include "geo_color.h"
 #include "geo_vector.h"
 
@@ -29,15 +30,11 @@ typedef struct {
 } AssetPrefabShapeCapsule;
 
 typedef struct {
-  GeoVector min, max;
-} AssetPrefabShapeBox;
-
-typedef struct {
   AssetPrefabShapeType type;
   union {
     AssetPrefabShapeSphere  data_sphere;
     AssetPrefabShapeCapsule data_capsule;
-    AssetPrefabShapeBox     data_box;
+    GeoBox                  data_box;
   };
 } AssetPrefabShape;
 
@@ -163,7 +160,7 @@ typedef struct {
 } AssetPrefabTraitBark;
 
 typedef struct {
-  AssetPrefabShapeBox aimTarget;
+  GeoBox aimTarget;
 } AssetPrefabTraitLocation;
 
 typedef struct {
