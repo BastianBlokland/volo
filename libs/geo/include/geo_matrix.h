@@ -60,7 +60,14 @@ GeoVector geo_matrix_transform3_point(const GeoMatrix*, GeoVector);
 GeoMatrix geo_matrix_transpose(const GeoMatrix*);
 
 /**
+ * Compute the determinant of the given matrix.
+ * NOTE: When the determinant is non-zero it means the matrix has one solution (and is invertible).
+ */
+f32 geo_matrix_determinant(const GeoMatrix*);
+
+/**
  * Return a new matrix that is the inverse of the given matrix.
+ * Pre-condition: geo_matrix_determinant() != 0
  */
 GeoMatrix geo_matrix_inverse(const GeoMatrix*);
 
