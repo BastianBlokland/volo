@@ -240,8 +240,8 @@
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Bark" },
             "priority": { "title": "i32", "type": "integer", "minimum": -2147483648, "maximum": 2147483647 },
-            "barkDeathPrefab": { "title": "String", "type": "string", "minLength": 1 },
-            "barkConfirmPrefab": { "title": "String", "type": "string", "minLength": 1 }
+            "barkDeathPrefab": { "title": "StringHash", "type": "string", "minLength": 1 },
+            "barkConfirmPrefab": { "title": "StringHash", "type": "string", "minLength": 1 }
           },
           "required": [ "$type" ]
         },

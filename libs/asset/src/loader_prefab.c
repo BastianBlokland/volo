@@ -136,12 +136,6 @@ typedef struct {
 } AssetPrefabTraitScriptDef;
 
 typedef struct {
-  i32    priority;
-  String barkDeathPrefab;   // Optional, empty if unused.
-  String barkConfirmPrefab; // Optional, empty if unused.
-} AssetPrefabTraitBarkDef;
-
-typedef struct {
   GeoBox aimTarget;
 } AssetPrefabTraitLocationDef;
 
@@ -189,7 +183,7 @@ typedef struct {
     AssetPrefabTraitAttackDef     data_attack;
     AssetPrefabTraitCollisionDef  data_collision;
     AssetPrefabTraitScriptDef     data_script;
-    AssetPrefabTraitBarkDef       data_bark;
+    AssetPrefabTraitBark          data_bark;
     AssetPrefabTraitLocationDef   data_location;
     AssetPrefabTraitStatusDef     data_status;
     AssetPrefabTraitVisionDef     data_vision;
@@ -453,11 +447,7 @@ static void prefab_build(
       }
     } break;
     case AssetPrefabTrait_Bark:
-      outTrait->data_bark = (AssetPrefabTraitBark){
-          .priority          = traitDef->data_bark.priority,
-          .barkDeathPrefab   = string_maybe_hash(traitDef->data_bark.barkDeathPrefab),
-          .barkConfirmPrefab = string_maybe_hash(traitDef->data_bark.barkConfirmPrefab),
-      };
+      outTrait->data_bark = traitDef->data_bark;
       break;
     case AssetPrefabTrait_Location:
       outTrait->data_location = (AssetPrefabTraitLocation){
@@ -815,10 +805,10 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, scriptIds, data_prim_t(String),  .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, knowledge, t_AssetPrefabValueDef, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitBarkDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitBarkDef, priority, data_prim_t(i32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitBarkDef, barkDeathPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitBarkDef, barkConfirmPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitBark);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitBark, priority, data_prim_t(i32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitBark, barkDeathPrefab, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitBark, barkConfirmPrefab, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitLocationDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitLocationDef, aimTarget, g_assetGeoBoxType, .flags = DataFlags_Opt);
@@ -862,7 +852,7 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Attack, data_attack, t_AssetPrefabTraitAttackDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Collision, data_collision, t_AssetPrefabTraitCollisionDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Script, data_script, t_AssetPrefabTraitScriptDef);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Bark, data_bark, t_AssetPrefabTraitBarkDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Bark, data_bark, t_AssetPrefabTraitBark);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Location, data_location, t_AssetPrefabTraitLocationDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Status, data_status, t_AssetPrefabTraitStatusDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Vision, data_vision, t_AssetPrefabTraitVisionDef);
