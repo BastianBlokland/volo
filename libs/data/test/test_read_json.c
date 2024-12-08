@@ -42,7 +42,7 @@ static void test_read_fail(
   check_eq_int(res.error, err);
 }
 
-static void test_normalizer_enum(const DataMeta meta, const Mem data) {
+static bool test_normalizer_enum(const DataMeta meta, const Mem data) {
   (void)meta;
   diag_assert(data.size == sizeof(i32));
 
@@ -50,6 +50,13 @@ static void test_normalizer_enum(const DataMeta meta, const Mem data) {
   if (*val < 0) {
     *val = 42;
   }
+  return true;
+}
+
+static bool test_normalizer_fail(const DataMeta meta, const Mem data) {
+  (void)meta;
+  (void)data;
+  return false;
 }
 
 spec(read_json) {
@@ -778,6 +785,20 @@ spec(read_json) {
 
     test_read_success(_testCtx, reg, string_lit("\"C\""), meta, mem_var(val));
     check_eq_int(val, ReadJsonTestEnum_C);
+  }
+
+  it("fails the read if a normalizer fails") {
+    enum {
+      ReadJsonTestEnum_A = 42,
+    };
+
+    data_reg_enum_t(reg, ReadJsonTestEnum);
+    data_reg_const_t(reg, ReadJsonTestEnum, A);
+    data_reg_normalizer_t(reg, ReadJsonTestEnum, test_normalizer_fail);
+
+    const DataMeta meta = data_meta_t(t_ReadJsonTestEnum);
+
+    test_read_fail(_testCtx, reg, string_lit("\"A\""), meta, DataReadError_NormalizationFailed);
   }
 
   it("can read opaque types") {

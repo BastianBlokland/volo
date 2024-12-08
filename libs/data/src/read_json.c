@@ -653,7 +653,10 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
 
 End:
   if (LIKELY(!res->error) && decl->normalizer) {
-    decl->normalizer(ctx->meta, ctx->data);
+    const bool success = decl->normalizer(ctx->meta, ctx->data);
+    if (UNLIKELY(!success)) {
+      *res = result_fail(DataReadError_NormalizationFailed, "Normalizer failed for Value");
+    }
   }
 }
 
