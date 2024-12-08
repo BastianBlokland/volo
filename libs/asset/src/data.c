@@ -70,6 +70,15 @@ static bool asset_data_normalizer_box(const DataMeta meta, const Mem data) {
   return true;
 }
 
+static bool asset_data_normalizer_box_rotated(const DataMeta meta, const Mem data) {
+  (void)meta;
+  GeoBoxRotated* boxRot = mem_as_t(data, GeoBoxRotated);
+  boxRot->box.min       = geo_vector_min(boxRot->box.min, boxRot->box.max);
+  boxRot->box.max       = geo_vector_max(boxRot->box.min, boxRot->box.max);
+  boxRot->rotation      = geo_quat_norm_or_ident(boxRot->rotation);
+  return true;
+}
+
 static bool asset_data_normalizer_sphere(const DataMeta meta, const Mem data) {
   (void)meta;
   GeoSphere* sphere = mem_as_t(data, GeoSphere);
@@ -143,6 +152,7 @@ static void asset_data_init_types(void) {
   data_reg_field_t(g_dataReg, GeoBoxRotated, box.min, t_GeoVector3);
   data_reg_field_t(g_dataReg, GeoBoxRotated, box.max, t_GeoVector3);
   data_reg_field_t(g_dataReg, GeoBoxRotated, rotation, t_GeoQuat, .flags = DataFlags_Opt);
+  data_reg_normalizer_t(g_dataReg, GeoBoxRotated, asset_data_normalizer_box_rotated);
   data_reg_comment_t(g_dataReg, GeoBoxRotated, "3D Rotated Box");
 
   data_reg_struct_t(g_dataReg, GeoLine);
