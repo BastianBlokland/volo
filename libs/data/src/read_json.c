@@ -287,26 +287,29 @@ static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res, u32 f
   mem_set(ctx->data, 0);
 
   dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
-    const JsonVal fieldVal = json_field(ctx->doc, ctx->val, fieldDecl->id.hash);
-
-    if (sentinel_check(fieldVal)) {
+    const ReadCtx fieldCtx = {
+        .reg         = ctx->reg,
+        .alloc       = ctx->alloc,
+        .allocations = ctx->allocations,
+        .doc         = ctx->doc,
+        .val         = json_field(ctx->doc, ctx->val, fieldDecl->id.hash),
+        .meta        = fieldDecl->meta,
+        .data        = data_field_mem(ctx->reg, fieldDecl, ctx->data),
+    };
+    if (sentinel_check(fieldCtx.val)) {
       if (fieldDecl->meta.flags & DataFlags_Opt) {
-        continue;
+        // NOTE: For optional fields we need to manually invoke the normalization step.
+        data_normalize(&fieldCtx, res);
+        if (UNLIKELY(res->error)) {
+          return;
+        }
+        continue; // Field is optional, skip reading.
       }
       *res = result_fail(
           DataReadError_FieldNotFound, "Field '{}' not found", fmt_text(fieldDecl->id.name));
       return;
     }
 
-    const ReadCtx fieldCtx = {
-        .reg         = ctx->reg,
-        .alloc       = ctx->alloc,
-        .allocations = ctx->allocations,
-        .doc         = ctx->doc,
-        .val         = fieldVal,
-        .meta        = fieldDecl->meta,
-        .data        = data_field_mem(ctx->reg, fieldDecl, ctx->data),
-    };
     data_read_json_val(&fieldCtx, res);
     if (UNLIKELY(res->error)) {
       *res = result_fail(
