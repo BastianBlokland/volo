@@ -1,6 +1,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_float.h"
 #include "core_stringtable.h"
@@ -39,6 +40,16 @@ static void test_read_fail(
 
   check_eq_string(remaining, string_empty);
   check_eq_int(res.error, err);
+}
+
+static void test_normalizer_enum(const DataMeta meta, const Mem data) {
+  (void)meta;
+  diag_assert(data.size == sizeof(i32));
+
+  i32* val = data.ptr;
+  if (*val < 0) {
+    *val = 42;
+  }
 }
 
 spec(read_json) {
@@ -741,6 +752,32 @@ spec(read_json) {
                    "}"),
         meta,
         DataReadError_UnionInvalidName);
+  }
+
+  it("will invoke a normalizer if registered") {
+    typedef enum {
+      ReadJsonTestEnum_A = -42,
+      ReadJsonTestEnum_B = 42,
+      ReadJsonTestEnum_C = 1337,
+    } ReadJsonTestEnum;
+
+    data_reg_enum_t(reg, ReadJsonTestEnum);
+    data_reg_const_t(reg, ReadJsonTestEnum, A);
+    data_reg_const_t(reg, ReadJsonTestEnum, B);
+    data_reg_const_t(reg, ReadJsonTestEnum, C);
+    data_reg_normalizer_t(reg, ReadJsonTestEnum, test_normalizer_enum);
+
+    const DataMeta meta = data_meta_t(t_ReadJsonTestEnum);
+
+    ReadJsonTestEnum val;
+    test_read_success(_testCtx, reg, string_lit("\"A\""), meta, mem_var(val));
+    check_eq_int(val, ReadJsonTestEnum_B);
+
+    test_read_success(_testCtx, reg, string_lit("\"B\""), meta, mem_var(val));
+    check_eq_int(val, ReadJsonTestEnum_B);
+
+    test_read_success(_testCtx, reg, string_lit("\"C\""), meta, mem_var(val));
+    check_eq_int(val, ReadJsonTestEnum_C);
   }
 
   it("can read opaque types") {
