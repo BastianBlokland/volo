@@ -107,15 +107,6 @@ typedef struct {
 } AssetPrefabTraitFootstepDef;
 
 typedef struct {
-  String weaponId;
-  String aimJoint;
-  f32    aimSpeed; // Degrees per second.
-  f32    targetRangeMin, targetRangeMax;
-  bool   targetExcludeUnreachable;
-  bool   targetExcludeObscured;
-} AssetPrefabTraitAttackDef;
-
-typedef struct {
   bool             navBlocker;
   AssetPrefabShape shape;
 } AssetPrefabTraitCollisionDef;
@@ -149,7 +140,7 @@ typedef struct {
     AssetPrefabTraitMovementDef   data_movement;
     AssetPrefabTraitFootstepDef   data_footstep;
     AssetPrefabTraitHealth        data_health;
-    AssetPrefabTraitAttackDef     data_attack;
+    AssetPrefabTraitAttack        data_attack;
     AssetPrefabTraitCollisionDef  data_collision;
     AssetPrefabTraitScriptDef     data_script;
     AssetPrefabTraitBark          data_bark;
@@ -373,15 +364,7 @@ static void prefab_build(
       outTrait->data_health = traitDef->data_health;
       break;
     case AssetPrefabTrait_Attack:
-      outTrait->data_attack = (AssetPrefabTraitAttack){
-          .weapon                   = string_hash(traitDef->data_attack.weaponId),
-          .aimJoint                 = string_maybe_hash(traitDef->data_attack.aimJoint),
-          .aimSpeedRad              = traitDef->data_attack.aimSpeed * math_deg_to_rad,
-          .targetRangeMin           = traitDef->data_attack.targetRangeMin,
-          .targetRangeMax           = traitDef->data_attack.targetRangeMax,
-          .targetExcludeUnreachable = traitDef->data_attack.targetExcludeUnreachable,
-          .targetExcludeObscured    = traitDef->data_attack.targetExcludeObscured,
-      };
+      outTrait->data_attack = traitDef->data_attack;
       break;
     case AssetPrefabTrait_Collision:
       outTrait->data_collision = (AssetPrefabTraitCollision){
@@ -740,14 +723,14 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitHealth, deathDestroyDelay, data_prim_t(TimeDuration));
   data_reg_field_t(g_dataReg, AssetPrefabTraitHealth, deathEffectPrefab, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitAttackDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, weaponId, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, aimJoint, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, aimSpeed, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetRangeMin, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetRangeMax, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetExcludeUnreachable, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, targetExcludeObscured, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitAttack);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitAttack, weapon, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitAttack, aimJoint, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitAttack, aimSpeed, data_prim_t(Angle), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitAttack, targetRangeMin, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitAttack, targetRangeMax, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitAttack, targetExcludeUnreachable, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitAttack, targetExcludeObscured, data_prim_t(bool), .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitCollisionDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, navBlocker, data_prim_t(bool));
@@ -802,7 +785,7 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Movement, data_movement, t_AssetPrefabTraitMovementDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Footstep, data_footstep, t_AssetPrefabTraitFootstepDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Health, data_health, t_AssetPrefabTraitHealth);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Attack, data_attack, t_AssetPrefabTraitAttackDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Attack, data_attack, t_AssetPrefabTraitAttack);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Collision, data_collision, t_AssetPrefabTraitCollisionDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Script, data_script, t_AssetPrefabTraitScriptDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Bark, data_bark, t_AssetPrefabTraitBark);
