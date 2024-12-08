@@ -190,6 +190,19 @@ static void data_read_json_duration(const ReadCtx* ctx, DataReadResult* res) {
   *mem_as_t(ctx->data, TimeDuration) = dur;
 }
 
+static void data_read_json_angle(const ReadCtx* ctx, DataReadResult* res) {
+  if (UNLIKELY(!data_check_type(ctx, JsonType_Number, res))) {
+    return;
+  }
+  const f64 degrees = json_number(ctx->doc, ctx->val);
+  if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty && degrees == 0.0)) {
+    *res = result_fail(DataReadError_ZeroIsInvalid, "Angle cannot be zero");
+  } else {
+    *res = result_success();
+  }
+  *mem_as_t(ctx->data, Angle) = (f32)(degrees * math_deg_to_rad);
+}
+
 static void data_read_json_string(const ReadCtx* ctx, DataReadResult* res) {
   if (UNLIKELY(!data_check_type(ctx, JsonType_String, res))) {
     return;
@@ -656,6 +669,9 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
     goto End;
   case DataKind_TimeDuration:
     data_read_json_duration(ctx, res);
+    goto End;
+  case DataKind_Angle:
+    data_read_json_angle(ctx, res);
     goto End;
   case DataKind_String:
     data_read_json_string(ctx, res);
