@@ -39,7 +39,7 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Name" },
-            "name": { "title": "String", "type": "string", "minLength": 1 }
+            "name": { "title": "StringHash", "type": "string", "minLength": 1 }
           },
           "required": [ "$type", "name" ]
         },
