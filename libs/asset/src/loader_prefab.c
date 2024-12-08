@@ -68,10 +68,6 @@ typedef struct {
 } AssetPrefabValueDef;
 
 typedef struct {
-  String name;
-} AssetPrefabTraitNameDef;
-
-typedef struct {
   HeapArray_t(String) sets;
 } AssetPrefabTraitSetMemberDef;
 
@@ -191,7 +187,7 @@ typedef struct {
 typedef struct {
   AssetPrefabTraitType type;
   union {
-    AssetPrefabTraitNameDef         data_name;
+    AssetPrefabTraitName            data_name;
     AssetPrefabTraitSetMemberDef    data_setMember;
     AssetPrefabTraitRenderableDef   data_renderable;
     AssetPrefabTraitVfxDef          data_vfx;
@@ -340,9 +336,7 @@ static void prefab_build(
 
     switch (traitDef->type) {
     case AssetPrefabTrait_Name:
-      outTrait->data_name = (AssetPrefabTraitName){
-          .name = stringtable_add(g_stringtable, traitDef->data_name.name),
-      };
+      outTrait->data_name = traitDef->data_name;
       break;
     case AssetPrefabTrait_SetMember: {
       const AssetPrefabTraitSetMemberDef* setMemberDef = &traitDef->data_setMember;
@@ -760,8 +754,8 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Asset, data_asset, data_prim_t(String));
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Sound, data_sound, t_AssetPrefabValueSoundDef);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitNameDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitNameDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitName);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitName, name, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitSetMemberDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitSetMemberDef, sets, data_prim_t(String), .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty | DataFlags_Intern);
@@ -868,7 +862,7 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitProductionDef, placementRadius, data_prim_t(f32), .flags = DataFlags_Opt);
 
   data_reg_union_t(g_dataReg, AssetPrefabTraitDef, type);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Name, data_name, t_AssetPrefabTraitNameDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Name, data_name, t_AssetPrefabTraitName);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_SetMember, data_setMember, t_AssetPrefabTraitSetMemberDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Vfx, data_vfx, t_AssetPrefabTraitVfxDef);
