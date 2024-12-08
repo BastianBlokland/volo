@@ -140,8 +140,9 @@ static void asset_data_init_types(void) {
   data_reg_comment_t(g_dataReg, GeoBox, "3D Axis-Aligned Box");
 
   data_reg_struct_t(g_dataReg, GeoBoxRotated);
-  data_reg_field_t(g_dataReg, GeoBoxRotated, box, t_GeoBox);
-  data_reg_field_t(g_dataReg, GeoBoxRotated, rotation, t_GeoQuat);
+  data_reg_field_t(g_dataReg, GeoBoxRotated, box.min, t_GeoVector3);
+  data_reg_field_t(g_dataReg, GeoBoxRotated, box.max, t_GeoVector3);
+  data_reg_field_t(g_dataReg, GeoBoxRotated, rotation, t_GeoQuat, .flags = DataFlags_Opt);
   data_reg_comment_t(g_dataReg, GeoBoxRotated, "3D Rotated Box");
 
   data_reg_struct_t(g_dataReg, GeoLine);
