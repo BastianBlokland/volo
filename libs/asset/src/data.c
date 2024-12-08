@@ -1,4 +1,5 @@
 #include "core.h"
+#include "core_math.h"
 #include "core_string.h"
 #include "core_thread.h"
 #include "data_registry.h"
@@ -69,6 +70,27 @@ static bool asset_data_normalizer_box(const DataMeta meta, const Mem data) {
   return true;
 }
 
+static bool asset_data_normalizer_sphere(const DataMeta meta, const Mem data) {
+  (void)meta;
+  GeoSphere* sphere = mem_as_t(data, GeoSphere);
+  sphere->radius    = math_max(sphere->radius, 0.0f);
+  return true;
+}
+
+static bool asset_data_normalizer_capsule(const DataMeta meta, const Mem data) {
+  (void)meta;
+  GeoCapsule* capsule = mem_as_t(data, GeoCapsule);
+  capsule->radius     = math_max(capsule->radius, 0.0f);
+  return true;
+}
+
+static bool asset_data_normalizer_plane(const DataMeta meta, const Mem data) {
+  (void)meta;
+  GeoPlane* plane = mem_as_t(data, GeoPlane);
+  plane->normal   = geo_vector_norm_or(plane->normal, geo_up);
+  return true;
+}
+
 static void asset_data_init_types(void) {
   // clang-format off
   data_reg_struct_t(g_dataReg, GeoColor);
@@ -123,11 +145,13 @@ static void asset_data_init_types(void) {
   data_reg_struct_t(g_dataReg, GeoSphere);
   data_reg_field_t(g_dataReg, GeoSphere, point, t_GeoVector3);
   data_reg_field_t(g_dataReg, GeoSphere, radius, data_prim_t(f32));
+  data_reg_normalizer_t(g_dataReg, GeoSphere, asset_data_normalizer_sphere);
   data_reg_comment_t(g_dataReg, GeoSphere, "3D Sphere");
 
   data_reg_struct_t(g_dataReg, GeoCapsule);
   data_reg_field_t(g_dataReg, GeoCapsule, line, t_GeoLine);
   data_reg_field_t(g_dataReg, GeoCapsule, radius, data_prim_t(f32));
+  data_reg_normalizer_t(g_dataReg, GeoCapsule, asset_data_normalizer_capsule);
   data_reg_comment_t(g_dataReg, GeoCapsule, "3D Capsule");
 
   data_reg_struct_t(g_dataReg, GeoMatrix);
@@ -137,6 +161,7 @@ static void asset_data_init_types(void) {
   data_reg_struct_t(g_dataReg, GeoPlane);
   data_reg_field_t(g_dataReg, GeoPlane, normal, t_GeoVector3);
   data_reg_field_t(g_dataReg, GeoPlane, distance, data_prim_t(f32));
+  data_reg_normalizer_t(g_dataReg, GeoPlane, asset_data_normalizer_plane);
   data_reg_comment_t(g_dataReg, GeoPlane, "3D Plane");
 
   // clang-format on
