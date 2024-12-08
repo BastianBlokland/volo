@@ -279,9 +279,9 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Attachment" },
-            "attachmentPrefab": { "title": "String", "type": "string", "minLength": 1 },
+            "attachmentPrefab": { "title": "StringHash", "type": "string", "minLength": 1 },
             "attachmentScale": { "title": "f32", "type": "number" },
-            "joint": { "title": "String", "type": "string" },
+            "joint": { "title": "StringHash", "type": "string", "minLength": 1 },
             "offset": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" }
           },
           "required": [ "$type", "attachmentPrefab" ]
