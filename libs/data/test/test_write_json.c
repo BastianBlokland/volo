@@ -4,6 +4,7 @@
 #include "core_dynstring.h"
 #include "core_float.h"
 #include "core_stringtable.h"
+#include "core_time.h"
 #include "data_registry.h"
 #include "data_write.h"
 
@@ -58,6 +59,12 @@ spec(write_json) {
     const DataMeta metaF16 = data_meta_t(data_prim_t(f16));
     f16            valF16  = float_f32_to_f16(42);
     test_write(_testCtx, reg, metaF16, mem_var(valF16), string_lit("42"));
+  }
+
+  it("can write a duration") {
+    const DataMeta     meta = data_meta_t(data_prim_t(TimeDuration));
+    const TimeDuration val  = time_seconds(42);
+    test_write(_testCtx, reg, meta, mem_var(val), string_lit("42"));
   }
 
   it("can write numbers with a configurable amount of digits after the decimal point") {
