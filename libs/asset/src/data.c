@@ -84,6 +84,13 @@ static bool asset_data_normalizer_capsule(const DataMeta meta, const Mem data) {
   return true;
 }
 
+static bool asset_data_normalizer_matrix(const DataMeta meta, const Mem data) {
+  (void)meta;
+  GeoMatrix* matrix      = mem_as_t(data, GeoMatrix);
+  const f32  determinant = geo_matrix_determinant(matrix);
+  return determinant != 0.0f;
+}
+
 static bool asset_data_normalizer_plane(const DataMeta meta, const Mem data) {
   (void)meta;
   GeoPlane* plane = mem_as_t(data, GeoPlane);
@@ -156,6 +163,7 @@ static void asset_data_init_types(void) {
 
   data_reg_struct_t(g_dataReg, GeoMatrix);
   data_reg_field_t(g_dataReg, GeoMatrix, columns, t_GeoVector4, .container = DataContainer_InlineArray, .fixedCount = 4);
+  data_reg_normalizer_t(g_dataReg, GeoMatrix, asset_data_normalizer_matrix);
   data_reg_comment_t(g_dataReg, GeoMatrix, "3D Matrix");
 
   data_reg_struct_t(g_dataReg, GeoPlane);
