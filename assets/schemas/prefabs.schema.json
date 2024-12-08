@@ -137,7 +137,7 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Lifetime" },
-            "duration": { "title": "f32", "type": "number" }
+            "duration": { "title": "TimeDuration", "type": "number" }
           },
           "required": [ "$type", "duration" ]
         },
@@ -187,8 +187,8 @@
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Health" },
             "amount": { "title": "f32", "type": "number" },
-            "deathDestroyDelay": { "title": "f32", "type": "number" },
-            "deathEffectPrefab": { "title": "String", "type": "string", "minLength": 1 }
+            "deathDestroyDelay": { "title": "TimeDuration", "type": "number" },
+            "deathEffectPrefab": { "title": "StringHash", "type": "string", "minLength": 1 }
           },
           "required": [ "$type", "amount", "deathDestroyDelay" ]
         },
