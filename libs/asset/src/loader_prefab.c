@@ -107,12 +107,6 @@ typedef struct {
 } AssetPrefabTraitFootstepDef;
 
 typedef struct {
-  f32    amount;
-  f32    deathDestroyDelay;
-  String deathEffectPrefab; // Optional, empty if unused.
-} AssetPrefabTraitHealthDef;
-
-typedef struct {
   String weaponId;
   String aimJoint;
   f32    aimSpeed; // Degrees per second.
@@ -154,7 +148,7 @@ typedef struct {
     AssetPrefabTraitLifetime      data_lifetime;
     AssetPrefabTraitMovementDef   data_movement;
     AssetPrefabTraitFootstepDef   data_footstep;
-    AssetPrefabTraitHealthDef     data_health;
+    AssetPrefabTraitHealth        data_health;
     AssetPrefabTraitAttackDef     data_attack;
     AssetPrefabTraitCollisionDef  data_collision;
     AssetPrefabTraitScriptDef     data_script;
@@ -376,11 +370,7 @@ static void prefab_build(
       };
       break;
     case AssetPrefabTrait_Health:
-      outTrait->data_health = (AssetPrefabTraitHealth){
-          .amount            = traitDef->data_health.amount,
-          .deathDestroyDelay = (TimeDuration)time_seconds(traitDef->data_health.deathDestroyDelay),
-          .deathEffectPrefab = string_maybe_hash(traitDef->data_health.deathEffectPrefab),
-      };
+      outTrait->data_health = traitDef->data_health;
       break;
     case AssetPrefabTrait_Attack:
       outTrait->data_attack = (AssetPrefabTraitAttack){
@@ -745,10 +735,10 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitFootstepDef, decalIdA, data_prim_t(String), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabTraitFootstepDef, decalIdB, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitHealthDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitHealthDef, amount, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitHealthDef, deathDestroyDelay, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, AssetPrefabTraitHealthDef, deathEffectPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitHealth);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitHealth, amount, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitHealth, deathDestroyDelay, data_prim_t(TimeDuration));
+  data_reg_field_t(g_dataReg, AssetPrefabTraitHealth, deathEffectPrefab, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitAttackDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitAttackDef, weaponId, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
@@ -811,7 +801,7 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Lifetime, data_lifetime, t_AssetPrefabTraitLifetime);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Movement, data_movement, t_AssetPrefabTraitMovementDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Footstep, data_footstep, t_AssetPrefabTraitFootstepDef);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Health, data_health, t_AssetPrefabTraitHealthDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Health, data_health, t_AssetPrefabTraitHealth);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Attack, data_attack, t_AssetPrefabTraitAttackDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Collision, data_collision, t_AssetPrefabTraitCollisionDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Script, data_script, t_AssetPrefabTraitScriptDef);
