@@ -5,6 +5,7 @@
 #include "core_dynstring.h"
 #include "core_float.h"
 #include "core_stringtable.h"
+#include "core_time.h"
 #include "data_write.h"
 #include "json_doc.h"
 #include "json_write.h"
@@ -37,7 +38,7 @@ static JsonVal data_write_json_number(const WriteCtx* ctx) {
 
 #define RET_ADD_NUM(_T_)                                                                           \
   case DataKind_##_T_:                                                                             \
-    return json_add_number(ctx->doc, (f64) * mem_as_t(ctx->data, _T_))
+    return json_add_number(ctx->doc, (f64)*mem_as_t(ctx->data, _T_))
 
   switch (data_decl(ctx->reg, ctx->meta.type)->kind) {
     RET_ADD_NUM(i8);
@@ -59,6 +60,16 @@ static JsonVal data_write_json_number(const WriteCtx* ctx) {
   }
 
 #undef RET_ADD_NUM
+}
+
+static JsonVal data_write_json_duration(const WriteCtx* ctx) {
+  const TimeDuration dur = *mem_as_t(ctx->data, TimeDuration);
+  if (ctx->skipOptional && ctx->meta.flags & DataFlags_Opt && !dur) {
+    return sentinel_u32;
+  }
+  static const f64 g_toSecMul = 1.0 / (f64)time_second;
+  const f64        seconds    = (f64)dur * g_toSecMul;
+  return json_add_number(ctx->doc, seconds);
 }
 
 static JsonVal data_write_json_string(const WriteCtx* ctx) {
@@ -241,6 +252,8 @@ static JsonVal data_write_json_val_single(const WriteCtx* ctx) {
   case DataKind_f32:
   case DataKind_f64:
     return data_write_json_number(ctx);
+  case DataKind_TimeDuration:
+    return data_write_json_duration(ctx);
   case DataKind_String:
     return data_write_json_string(ctx);
   case DataKind_StringHash:

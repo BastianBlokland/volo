@@ -67,6 +67,7 @@ spec(bin) {
     X(u64)
     X(f32)
     X(f64)
+    X(TimeDuration)
 #undef X
 
     const DataMeta metaF16 = data_meta_t(data_prim_t(f16));

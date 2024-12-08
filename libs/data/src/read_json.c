@@ -7,6 +7,7 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "core_stringtable.h"
+#include "core_time.h"
 #include "data_read.h"
 #include "json_doc.h"
 #include "json_read.h"
@@ -172,6 +173,21 @@ static void data_read_json_bool(const ReadCtx* ctx, DataReadResult* res) {
   }
   *mem_as_t(ctx->data, bool) = json_bool(ctx->doc, ctx->val);
   *res                       = result_success();
+}
+
+static void data_read_json_duration(const ReadCtx* ctx, DataReadResult* res) {
+  if (UNLIKELY(!data_check_type(ctx, JsonType_Number, res))) {
+    return;
+  }
+  const f64          seconds = json_number(ctx->doc, ctx->val);
+  const TimeDuration dur     = (TimeDuration)time_seconds(seconds);
+
+  if (UNLIKELY(ctx->meta.flags & DataFlags_NotEmpty && !dur)) {
+    *res = result_fail(DataReadError_ZeroIsInvalid, "Duration cannot be zero");
+  } else {
+    *res = result_success();
+  }
+  *mem_as_t(ctx->data, TimeDuration) = dur;
 }
 
 static void data_read_json_string(const ReadCtx* ctx, DataReadResult* res) {
@@ -637,6 +653,9 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
   case DataKind_f32:
   case DataKind_f64:
     data_read_json_number(ctx, res);
+    goto End;
+  case DataKind_TimeDuration:
+    data_read_json_duration(ctx, res);
     goto End;
   case DataKind_String:
     data_read_json_string(ctx, res);

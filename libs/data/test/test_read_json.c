@@ -5,6 +5,7 @@
 #include "core_dynarray.h"
 #include "core_float.h"
 #include "core_stringtable.h"
+#include "core_time.h"
 #include "data_read.h"
 #include "data_utils.h"
 
@@ -147,6 +148,19 @@ spec(read_json) {
       const DataMeta meta = data_meta_t((DataType)g_data[i].prim, .flags = DataFlags_NotEmpty);
       test_read_fail(_testCtx, reg, g_data[i].input, meta, DataReadError_ZeroIsInvalid);
     }
+  }
+
+  it("can read a duration") {
+    const DataMeta meta = data_meta_t(data_prim_t(TimeDuration));
+
+    TimeDuration val;
+    test_read_success(_testCtx, reg, string_lit("1.5"), meta, mem_var(val));
+    check_eq_int(val, time_seconds(1.5));
+
+    test_read_success(_testCtx, reg, string_lit("0"), meta, mem_var(val));
+    check_eq_int(val, time_seconds(0));
+
+    test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
   }
 
   it("can read a string") {

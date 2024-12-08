@@ -93,6 +93,7 @@ static bool data_equal_single(const EqualCtx* ctx) {
   case DataKind_f16:
   case DataKind_f32:
   case DataKind_f64:
+  case DataKind_TimeDuration:
   case DataKind_Enum:
   case DataKind_StringHash:
   case DataKind_Opaque:

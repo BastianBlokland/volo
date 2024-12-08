@@ -20,6 +20,7 @@
   X(f16)                                                                                           \
   X(f32)                                                                                           \
   X(f64)                                                                                           \
+  X(TimeDuration)                                                                                  \
   X(String)                                                                                        \
   X(StringHash)                                                                                    \
   X(DataMem)

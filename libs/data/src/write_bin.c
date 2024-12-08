@@ -171,6 +171,7 @@ static void data_write_bin_val_single(const WriteCtx* ctx) {
     return;
   case DataKind_i64:
   case DataKind_u64:
+  case DataKind_TimeDuration:
     bin_push_u64(ctx, *mem_as_t(ctx->data, u64));
     return;
   case DataKind_f16:

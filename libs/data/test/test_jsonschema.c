@@ -73,6 +73,7 @@ spec(jsonschema) {
     X(f16)
     X(f32)
     X(f64)
+    X(TimeDuration)
 #undef X
   }
 
