@@ -75,7 +75,6 @@ static bool asset_data_normalizer_box_rotated(const DataMeta meta, const Mem dat
   GeoBoxRotated* boxRot = mem_as_t(data, GeoBoxRotated);
   boxRot->box.min       = geo_vector_min(boxRot->box.min, boxRot->box.max);
   boxRot->box.max       = geo_vector_max(boxRot->box.min, boxRot->box.max);
-  boxRot->rotation      = geo_quat_norm_or_ident(boxRot->rotation);
   return true;
 }
 
