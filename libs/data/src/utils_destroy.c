@@ -30,6 +30,7 @@ static bool data_destroy_needed_single(const DataReg* reg, const DataMeta meta) 
   case DataKind_f32:
   case DataKind_f64:
   case DataKind_TimeDuration:
+  case DataKind_Angle:
   case DataKind_Enum:
   case DataKind_StringHash:
   case DataKind_Opaque:
@@ -153,6 +154,7 @@ static void data_destroy_single(const DestroyCtx* ctx) {
   case DataKind_f32:
   case DataKind_f64:
   case DataKind_TimeDuration:
+  case DataKind_Angle:
   case DataKind_Enum:
   case DataKind_StringHash:
   case DataKind_Opaque:

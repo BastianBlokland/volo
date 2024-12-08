@@ -21,13 +21,14 @@
   X(f32)                                                                                           \
   X(f64)                                                                                           \
   X(TimeDuration)                                                                                  \
+  X(Angle)                                                                                         \
   X(String)                                                                                        \
   X(StringHash)                                                                                    \
   X(DataMem)
 
 typedef u32 DataType;
 
-typedef struct {
+typedef struct sDataMem {
   bool  external; // Allocation is not managed by the data library.
   void* ptr;
   usize size;

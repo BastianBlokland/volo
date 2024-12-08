@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_dynstring.h"
 #include "core_float.h"
+#include "core_math.h"
 #include "core_stringtable.h"
 #include "core_time.h"
 #include "data_write.h"
@@ -70,6 +71,14 @@ static JsonVal data_write_json_duration(const WriteCtx* ctx) {
   static const f64 g_toSecMul = 1.0 / (f64)time_second;
   const f64        seconds    = (f64)dur * g_toSecMul;
   return json_add_number(ctx->doc, seconds);
+}
+
+static JsonVal data_write_json_angle(const WriteCtx* ctx) {
+  const Angle angle = *mem_as_t(ctx->data, Angle);
+  if (ctx->skipOptional && ctx->meta.flags & DataFlags_Opt && angle == 0.0f) {
+    return sentinel_u32;
+  }
+  return json_add_number(ctx->doc, angle * math_rad_to_deg);
 }
 
 static JsonVal data_write_json_string(const WriteCtx* ctx) {
@@ -254,6 +263,8 @@ static JsonVal data_write_json_val_single(const WriteCtx* ctx) {
     return data_write_json_number(ctx);
   case DataKind_TimeDuration:
     return data_write_json_duration(ctx);
+  case DataKind_Angle:
+    return data_write_json_angle(ctx);
   case DataKind_String:
     return data_write_json_string(ctx);
   case DataKind_StringHash:

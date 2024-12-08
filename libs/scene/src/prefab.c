@@ -253,7 +253,7 @@ static void setup_movement(
       e,
       SceneLocomotionComp,
       .maxSpeed         = t->speed,
-      .rotationSpeedRad = t->rotationSpeedRad,
+      .rotationSpeedRad = t->rotationSpeed,
       .radius           = t->radius,
       .weight           = t->weight,
       .moveAnimation    = t->moveAnimation);
@@ -309,7 +309,7 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
         e,
         SceneAttackAimComp,
         .aimJoint       = t->aimJoint,
-        .aimSpeedRad    = t->aimSpeedRad,
+        .aimSpeedRad    = t->aimSpeed,
         .aimLocalActual = geo_quat_ident,
         .aimLocalTarget = geo_quat_ident);
   }

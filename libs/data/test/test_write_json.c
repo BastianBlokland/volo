@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_dynstring.h"
 #include "core_float.h"
+#include "core_math.h"
 #include "core_stringtable.h"
 #include "core_time.h"
 #include "data_registry.h"
@@ -65,6 +66,12 @@ spec(write_json) {
     const DataMeta     meta = data_meta_t(data_prim_t(TimeDuration));
     const TimeDuration val  = time_seconds(42);
     test_write(_testCtx, reg, meta, mem_var(val), string_lit("42"));
+  }
+
+  it("can write an angle") {
+    const DataMeta meta = data_meta_t(data_prim_t(Angle));
+    const Angle    val  = math_pi_f32;
+    test_write(_testCtx, reg, meta, mem_var(val), string_lit("180"));
   }
 
   it("can write numbers with a configurable amount of digits after the decimal point") {

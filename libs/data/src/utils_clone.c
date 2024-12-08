@@ -111,6 +111,7 @@ static void data_clone_single(const CloneCtx* ctx) {
   case DataKind_f32:
   case DataKind_f64:
   case DataKind_TimeDuration:
+  case DataKind_Angle:
   case DataKind_Enum:
   case DataKind_StringHash:
   case DataKind_Opaque:

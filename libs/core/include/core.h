@@ -8,6 +8,7 @@
 
 typedef enum eSignal         Signal;
 typedef enum eUnicode        Unicode;
+typedef f32                  Angle;
 typedef i16                  TimeZone;
 typedef i32                  ThreadId;
 typedef i32                  ThreadSpinLock;

@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_float.h"
+#include "core_math.h"
 #include "core_stringtable.h"
 #include "core_time.h"
 #include "data_read.h"
@@ -159,6 +160,19 @@ spec(read_json) {
 
     test_read_success(_testCtx, reg, string_lit("0"), meta, mem_var(val));
     check_eq_int(val, time_seconds(0));
+
+    test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
+  }
+
+  it("can read an angle") {
+    const DataMeta meta = data_meta_t(data_prim_t(Angle));
+
+    Angle val;
+    test_read_success(_testCtx, reg, string_lit("180"), meta, mem_var(val));
+    check_eq_float(val, math_pi_f32, 1e-4f);
+
+    test_read_success(_testCtx, reg, string_lit("0"), meta, mem_var(val));
+    check_eq_float(val, 0.0f, 1e-4f);
 
     test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
   }

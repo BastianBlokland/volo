@@ -178,6 +178,7 @@ static void data_write_bin_val_single(const WriteCtx* ctx) {
     bin_push_f16(ctx, *mem_as_t(ctx->data, f16));
     return;
   case DataKind_f32:
+  case DataKind_Angle:
     bin_push_f32(ctx, *mem_as_t(ctx->data, f32));
     return;
   case DataKind_f64:

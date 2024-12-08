@@ -74,6 +74,7 @@ spec(jsonschema) {
     X(f32)
     X(f64)
     X(TimeDuration)
+    X(Angle)
 #undef X
   }
 

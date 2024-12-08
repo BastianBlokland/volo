@@ -50,6 +50,8 @@
 #define math_deg_to_rad 0.0174532924f
 #define math_rad_to_deg 57.29578f
 
+typedef f32 Angle;
+
 /**
  * Raise the given value to the power of 10.
  */

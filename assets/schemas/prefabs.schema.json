@@ -197,15 +197,15 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Attack" },
-            "weaponId": { "title": "String", "type": "string", "minLength": 1 },
-            "aimJoint": { "title": "String", "type": "string", "minLength": 1 },
-            "aimSpeed": { "title": "f32", "type": "number" },
+            "weapon": { "title": "StringHash", "type": "string", "minLength": 1 },
+            "aimJoint": { "title": "StringHash", "type": "string", "minLength": 1 },
+            "aimSpeed": { "title": "Angle", "type": "number" },
             "targetRangeMin": { "title": "f32", "type": "number" },
             "targetRangeMax": { "title": "f32", "type": "number" },
             "targetExcludeUnreachable": { "title": "bool", "type": "boolean" },
             "targetExcludeObscured": { "title": "bool", "type": "boolean" }
           },
-          "required": [ "$type", "weaponId", "targetRangeMax" ]
+          "required": [ "$type", "weapon", "targetRangeMax" ]
         },
         {
           "type": "object",
@@ -323,7 +323,7 @@
         { "label": "New AssetPrefabTrait_Movement", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Movement\",\n  \"speed\": 1,\n  \"rotationSpeed\": 1,\n  \"radius\": 1,\n  \"weight\": 1\n}" },
         { "label": "New AssetPrefabTrait_Footstep", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Footstep\",\n  \"jointA\": \"placeholder\",\n  \"jointB\": \"placeholder\",\n  \"decalIdA\": \"placeholder\",\n  \"decalIdB\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Health", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Health\",\n  \"amount\": 1,\n  \"deathDestroyDelay\": 0\n}" },
-        { "label": "New AssetPrefabTrait_Attack", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Attack\",\n  \"weaponId\": \"placeholder\",\n  \"targetRangeMax\": 1\n}" },
+        { "label": "New AssetPrefabTrait_Attack", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Attack\",\n  \"weapon\": \"placeholder\",\n  \"targetRangeMax\": 1\n}" },
         { "label": "New AssetPrefabTrait_Collision", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Collision\",\n  \"navBlocker\": false,\n  \"shape\": {\n    \"\\$type\": \"AssetPrefabShape_Sphere\",\n    \"point\": {},\n    \"radius\": 0\n  }\n}" },
         { "label": "New AssetPrefabTrait_Script", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Script\",\n  \"scriptIds\": [\n    \"\"\n  ]\n}" },
         { "label": "New AssetPrefabTrait_Bark", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Bark\"\n}" },

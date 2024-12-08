@@ -240,6 +240,7 @@ NO_INLINE_HINT static void data_read_bin_number(ReadCtx* ctx, DataReadResult* re
   case DataKind_f16:
     if (LIKELY(bin_pop_f16(ctx, ctx->data.ptr))) { goto Success; } else { goto Trunc; }
   case DataKind_f32:
+  case DataKind_Angle:
     if (LIKELY(bin_pop_f32(ctx, ctx->data.ptr))) { goto Success; } else { goto Trunc; }
   case DataKind_f64:
     if (LIKELY(bin_pop_f64(ctx, ctx->data.ptr))) { goto Success; } else { goto Trunc; }
@@ -484,6 +485,7 @@ INLINE_HINT static void data_read_bin_val_single(ReadCtx* ctx, DataReadResult* r
   case DataKind_f32:
   case DataKind_f64:
   case DataKind_TimeDuration:
+  case DataKind_Angle:
     data_read_bin_number(ctx, res);
     return;
   case DataKind_String:
