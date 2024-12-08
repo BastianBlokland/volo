@@ -49,16 +49,11 @@ static AssetPrefabFlags prefab_set_flags(const StringHash set) {
 }
 
 typedef struct {
-  GeoVector offset;
-  f32       radius, height;
-} AssetPrefabShapeCapsuleDef;
-
-typedef struct {
   AssetPrefabShapeType type;
   union {
-    GeoSphere                  data_sphere;
-    AssetPrefabShapeCapsuleDef data_capsule;
-    GeoBoxRotated              data_box;
+    GeoSphere     data_sphere;
+    GeoCapsule    data_capsule;
+    GeoBoxRotated data_box;
   };
 } AssetPrefabShapeDef;
 
@@ -286,10 +281,8 @@ static AssetPrefabShape prefab_build_shape(const AssetPrefabShapeDef* def) {
     break;
   case AssetPrefabShape_Capsule:
     return (AssetPrefabShape){
-        .type                = AssetPrefabShape_Capsule,
-        .data_capsule.offset = def->data_capsule.offset,
-        .data_capsule.radius = def->data_capsule.radius,
-        .data_capsule.height = def->data_capsule.height,
+        .type         = AssetPrefabShape_Capsule,
+        .data_capsule = def->data_capsule,
     };
     break;
   case AssetPrefabShape_Box:
@@ -781,14 +774,9 @@ void asset_data_init_prefab(void) {
   data_reg_const_custom(g_dataReg, AssetPrefabNavLayer, Normal,  0);
   data_reg_const_custom(g_dataReg, AssetPrefabNavLayer, Large, 1);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabShapeCapsuleDef);
-  data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, offset, g_assetGeoVec3Type, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabShapeCapsuleDef, height, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-
   data_reg_union_t(g_dataReg, AssetPrefabShapeDef, type);
   data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Sphere, data_sphere, g_assetGeoSphereType);
-  data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Capsule, data_capsule, t_AssetPrefabShapeCapsuleDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Capsule, data_capsule, g_assetGeoCapsuleType);
   data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Box, data_box, g_assetGeoBoxRotatedType);
 
   data_reg_struct_t(g_dataReg, AssetPrefabValueSoundDef);

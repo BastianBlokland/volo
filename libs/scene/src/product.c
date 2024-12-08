@@ -404,24 +404,21 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
   const AssetPrefabShape* shape = &collisionTrait->data_collision.shape;
   switch (shape->type) {
   case AssetPrefabShape_Sphere: {
-    const GeoSphere sphereWorld =
+    const GeoSphere sphere =
         geo_sphere_transform3(&shape->data_sphere, placementPos, placementRot, 1.0f);
-    return geo_nav_check_sphere(grid, &sphereWorld, GeoNavCond_Blocked);
+    return geo_nav_check_sphere(grid, &sphere, GeoNavCond_Blocked);
   }
   case AssetPrefabShape_Capsule: {
-    const GeoVector offset = shape->data_capsule.offset;
-    const f32       height = shape->data_capsule.height;
-    const f32       radius = shape->data_capsule.radius;
-    const GeoVector dirVec = geo_quat_rotate(placementRot, geo_up);
-    const GeoVector bottom = geo_vector_add(placementPos, geo_quat_rotate(placementRot, offset));
-    const GeoVector top    = geo_vector_add(bottom, geo_vector_mul(dirVec, height));
-    const GeoBoxRotated boxWorld = geo_box_rotated_from_capsule(bottom, top, radius);
-    return geo_nav_check_box_rotated(grid, &boxWorld, GeoNavCond_Blocked);
+    const GeoCapsule capsule =
+        geo_capsule_transform3(&shape->data_capsule, placementPos, placementRot, 1.0f);
+    const GeoBoxRotated box =
+        geo_box_rotated_from_capsule(capsule.line.a, capsule.line.b, capsule.radius);
+    return geo_nav_check_box_rotated(grid, &box, GeoNavCond_Blocked);
   }
   case AssetPrefabShape_Box: {
-    const GeoBoxRotated boxWorld =
+    const GeoBoxRotated box =
         geo_box_rotated_transform3(&shape->data_box, placementPos, placementRot, 1.0f);
-    return geo_nav_check_box_rotated(grid, &boxWorld, GeoNavCond_Blocked);
+    return geo_nav_check_box_rotated(grid, &box, GeoNavCond_Blocked);
   }
   }
   diag_crash_msg("Unsupported product collision shape");

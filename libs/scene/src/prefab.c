@@ -347,15 +347,8 @@ static void setup_collision(
     collisionShape.sphere = t->shape.data_sphere;
     break;
   case AssetPrefabShape_Capsule: {
-    const GeoVector bottom = t->shape.data_capsule.offset;
-    const GeoVector top    = geo_vector_add(bottom, geo_vector(0, t->shape.data_capsule.height, 0));
-
     collisionShape.type    = SceneCollisionType_Capsule;
-    collisionShape.capsule = (GeoCapsule){
-        .line.a = bottom,
-        .line.b = top,
-        .radius = t->shape.data_capsule.radius,
-    };
+    collisionShape.capsule = t->shape.data_capsule;
   } break;
   case AssetPrefabShape_Box:
     collisionShape.type = SceneCollisionType_Box;

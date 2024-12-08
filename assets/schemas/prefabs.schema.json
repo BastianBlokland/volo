@@ -369,11 +369,11 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabShape_Capsule" },
-            "offset": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
-            "radius": { "title": "f32", "type": "number" },
-            "height": { "title": "f32", "type": "number" }
+            "a": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
+            "b": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
+            "radius": { "title": "f32", "type": "number" }
           },
-          "required": [ "$type", "radius", "height" ]
+          "required": [ "$type", "a", "b", "radius" ]
         },
         {
           "type": "object",
@@ -389,7 +389,7 @@
       ],
       "defaultSnippets": [
         { "label": "New AssetPrefabShape_Sphere", "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Sphere\",\n  \"point\": {},\n  \"radius\": 0\n}" },
-        { "label": "New AssetPrefabShape_Capsule", "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Capsule\",\n  \"radius\": 1,\n  \"height\": 1\n}" },
+        { "label": "New AssetPrefabShape_Capsule", "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Capsule\",\n  \"a\": {},\n  \"b\": {},\n  \"radius\": 0\n}" },
         { "label": "New AssetPrefabShape_Box", "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Box\",\n  \"min\": {},\n  \"max\": {}\n}" }
       ]
     },

@@ -39,9 +39,9 @@
           "navBlocker": false,
           "shape": {
             "$type": "AssetPrefabShape_Capsule",
-            "offset": { "y": 0.3 },
-            "radius": 0.3,
-            "height": 1.2
+            "a": { "y": 0.3 },
+            "b": { "y": 1.5 },
+            "radius": 0.3
           }
         },
         {
@@ -100,9 +100,9 @@
           "navBlocker": false,
           "shape": {
             "$type": "AssetPrefabShape_Capsule",
-            "offset": { "y": 0.3 },
-            "radius": 0.3,
-            "height": 1.2
+            "a": { "y": 0.3 },
+            "b": { "y": 1.5 },
+            "radius": 0.3
           }
         },
         {
@@ -161,9 +161,9 @@
           "navBlocker": false,
           "shape": {
             "$type": "AssetPrefabShape_Capsule",
-            "offset": { "y": 0.3 },
-            "radius": 0.3,
-            "height": 1.2
+            "a": { "y": 0.3 },
+            "b": { "y": 1.5 },
+            "radius": 0.3
           }
         },
         {
@@ -227,9 +227,9 @@
           "navBlocker": false,
           "shape": {
             "$type": "AssetPrefabShape_Capsule",
-            "offset": { "y": 0.3 },
-            "radius": 0.3,
-            "height": 1.1
+            "a": { "y": 0.3 },
+            "b": { "y": 1.4 },
+            "radius": 0.3
           }
         },
         {
@@ -286,9 +286,9 @@
           "navBlocker": false,
           "shape": {
             "$type": "AssetPrefabShape_Capsule",
-            "offset": { "y": 0.3 },
-            "radius": 0.3,
-            "height": 1.2
+            "a": { "y": 0.3 },
+            "b": { "y": 1.5 },
+            "radius": 0.3
           }
         },
         {
@@ -605,9 +605,9 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Capsule",
-            "offset": { "y": 0.25 },
-            "radius": 0.35,
-            "height": 0.6
+            "a": { "y": 0.25 },
+            "b": { "y": 1.2 },
+            "radius": 0.35
           }
         },
         { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/fire_barrel.vfx" },
@@ -631,9 +631,9 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Capsule",
-            "offset": { "y": 0.25 },
-            "radius": 0.35,
-            "height": 0.6
+            "a": { "y": 0.25 },
+            "b": { "y": 1.2 },
+            "radius": 0.35
           }
         },
         {
@@ -685,9 +685,9 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Capsule",
-            "offset": { "y": 0.25 },
-            "radius": 0.3,
-            "height": 2
+            "a": { "y": 0.25 },
+            "b": { "y": 2.55 },
+            "radius": 0.3
           }
         }
       ]
