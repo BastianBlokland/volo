@@ -68,6 +68,7 @@ spec(bin) {
     X(f32)
     X(f64)
     X(TimeDuration)
+    X(Angle)
 #undef X
 
     const DataMeta metaF16 = data_meta_t(data_prim_t(f16));
