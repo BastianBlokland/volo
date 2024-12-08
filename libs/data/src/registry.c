@@ -51,6 +51,19 @@ static bool data_struct_has_hole(const DataReg* reg, DataDecl* decl) {
   return bitset_count(filledSet) != decl->size;
 }
 
+/**
+ * To support field-names that are stored in a nested struct we only preserve the last name.
+ * For example: 'container.myField' turns into 'myField'.
+ */
+static String data_reg_trim_field_name(const String fieldName) {
+  static const String g_separators  = string_static(".");
+  const usize         lastSeparator = string_find_last_any(fieldName, g_separators);
+  if (sentinel_check(lastSeparator)) {
+    return fieldName; // Does not contain any separators.
+  }
+  return string_consume(fieldName, lastSeparator + 1 /* separatorLength */);
+}
+
 DataReg* g_dataReg;
 
 void data_reg_global_init(void) { g_dataReg = data_reg_create(g_allocHeap); }
@@ -214,13 +227,20 @@ DataType data_reg_struct(DataReg* reg, const String name, const usize size, cons
 void data_reg_field(
     DataReg*       reg,
     const DataType parent,
-    const String   name,
+    String         name,
     const usize    size,
     const usize    offset,
     const DataMeta meta) {
   DataDecl* parentDecl = data_decl_mutable(reg, parent);
 
   (void)size;
+
+  /**
+   * Support field registrations that are contained in a container struct.
+   * For example: You can register 'container.myField'; in this case we ignore the container struct
+   * completely (and the name will become 'myField').
+   */
+  name = data_reg_trim_field_name(name);
 
   diag_assert_msg(name.size, "Field name cannot be empty");
   diag_assert_msg(parentDecl->kind == DataKind_Struct, "Field parent has to be a Struct");
