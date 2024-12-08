@@ -61,6 +61,14 @@ static bool asset_data_normalizer_quat(const DataMeta meta, const Mem data) {
   return true;
 }
 
+static bool asset_data_normalizer_box(const DataMeta meta, const Mem data) {
+  (void)meta;
+  GeoBox* box = mem_as_t(data, GeoBox);
+  box->min    = geo_vector_min(box->min, box->max);
+  box->max    = geo_vector_max(box->min, box->max);
+  return true;
+}
+
 static void asset_data_init_types(void) {
   // clang-format off
   data_reg_struct_t(g_dataReg, GeoColor);
@@ -99,6 +107,7 @@ static void asset_data_init_types(void) {
   data_reg_struct_t(g_dataReg, GeoBox);
   data_reg_field_t(g_dataReg, GeoBox, min, t_GeoVector3);
   data_reg_field_t(g_dataReg, GeoBox, max, t_GeoVector3);
+  data_reg_normalizer_t(g_dataReg, GeoBox, asset_data_normalizer_box);
   data_reg_comment_t(g_dataReg, GeoBox, "3D Axis-Aligned Box");
 
   data_reg_struct_t(g_dataReg, GeoBoxRotated);
