@@ -1,4 +1,5 @@
 #pragma once
+#include "core_string.h"
 #include "data_type.h"
 
 /**

@@ -1,6 +1,5 @@
 #include "core.h"
 #include "core_math.h"
-#include "core_string.h"
 #include "core_thread.h"
 #include "data_registry.h"
 #include "geo_box_rotated.h"
