@@ -253,7 +253,7 @@ static void setup_movement(
       e,
       SceneLocomotionComp,
       .maxSpeed         = t->speed,
-      .rotationSpeedRad = t->rotationSpeedRad,
+      .rotationSpeedRad = t->rotationSpeed,
       .radius           = t->radius,
       .weight           = t->weight,
       .moveAnimation    = t->moveAnimation);

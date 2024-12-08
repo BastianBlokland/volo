@@ -92,16 +92,6 @@ typedef struct {
 } AssetPrefabTraitSoundDef;
 
 typedef struct {
-  f32    speed;
-  f32    rotationSpeed; // Degrees per second.
-  f32    radius, weight;
-  String moveAnimation;
-  u32    navLayer;
-  bool   wheeled;
-  f32    wheeledAcceleration;
-} AssetPrefabTraitMovementDef;
-
-typedef struct {
   String jointA, jointB;
   String decalIdA, decalIdB;
 } AssetPrefabTraitFootstepDef;
@@ -137,7 +127,7 @@ typedef struct {
     AssetPrefabTraitLightDir      data_lightDir;
     AssetPrefabTraitLightAmbient  data_lightAmbient;
     AssetPrefabTraitLifetime      data_lifetime;
-    AssetPrefabTraitMovementDef   data_movement;
+    AssetPrefabTraitMovement      data_movement;
     AssetPrefabTraitFootstepDef   data_footstep;
     AssetPrefabTraitHealth        data_health;
     AssetPrefabTraitAttack        data_attack;
@@ -341,16 +331,7 @@ static void prefab_build(
       outTrait->data_lifetime = traitDef->data_lifetime;
       break;
     case AssetPrefabTrait_Movement:
-      outTrait->data_movement = (AssetPrefabTraitMovement){
-          .speed            = traitDef->data_movement.speed,
-          .rotationSpeedRad = traitDef->data_movement.rotationSpeed * math_deg_to_rad,
-          .radius           = traitDef->data_movement.radius,
-          .weight           = math_max(traitDef->data_movement.weight, trait_movement_weight_min),
-          .moveAnimation    = string_maybe_hash(traitDef->data_movement.moveAnimation),
-          .navLayer         = (u8)traitDef->data_movement.navLayer,
-          .wheeled          = traitDef->data_movement.wheeled,
-          .wheeledAcceleration = traitDef->data_movement.wheeledAcceleration,
-      };
+      outTrait->data_movement = traitDef->data_movement;
       break;
     case AssetPrefabTrait_Footstep:
       outTrait->data_footstep = (AssetPrefabTraitFootstep){
@@ -620,6 +601,12 @@ static bool prefab_data_normalizer_attachment(const Mem data) {
   return true;
 }
 
+static bool prefab_data_normalizer_movement(const Mem data) {
+  AssetPrefabTraitMovement* movement = mem_as_t(data, AssetPrefabTraitMovement);
+  movement->weight                   = math_max(movement->weight, trait_movement_weight_min);
+  return true;
+}
+
 void asset_data_init_prefab(void) {
   prefab_set_flags_init();
 
@@ -702,15 +689,16 @@ void asset_data_init_prefab(void) {
   data_reg_struct_t(g_dataReg, AssetPrefabTraitLifetime);
   data_reg_field_t(g_dataReg, AssetPrefabTraitLifetime, duration, data_prim_t(TimeDuration), .flags = DataFlags_NotEmpty);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitMovementDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitMovementDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitMovementDef, rotationSpeed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitMovementDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitMovementDef, weight, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitMovementDef, moveAnimation, data_prim_t(String), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitMovementDef, navLayer, t_AssetPrefabNavLayer, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitMovementDef, wheeled, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitMovementDef, wheeledAcceleration, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitMovement);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitMovement, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitMovement, rotationSpeed, data_prim_t(Angle), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitMovement, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitMovement, weight, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitMovement, moveAnimation, data_prim_t(StringHash), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitMovement, navLayer, t_AssetPrefabNavLayer, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitMovement, wheeled, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitMovement, wheeledAcceleration, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_normalizer_t(g_dataReg, AssetPrefabTraitMovement, prefab_data_normalizer_movement);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitFootstepDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitFootstepDef, jointA, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -782,7 +770,7 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_LightDir, data_lightDir, t_AssetPrefabTraitLightDir);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_LightAmbient, data_lightAmbient, t_AssetPrefabTraitLightAmbient);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Lifetime, data_lifetime, t_AssetPrefabTraitLifetime);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Movement, data_movement, t_AssetPrefabTraitMovementDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Movement, data_movement, t_AssetPrefabTraitMovement);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Footstep, data_footstep, t_AssetPrefabTraitFootstepDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Health, data_health, t_AssetPrefabTraitHealth);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Attack, data_attack, t_AssetPrefabTraitAttack);
