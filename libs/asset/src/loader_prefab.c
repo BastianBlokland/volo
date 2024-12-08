@@ -136,11 +136,6 @@ typedef struct {
 } AssetPrefabTraitScriptDef;
 
 typedef struct {
-  f32  radius;
-  bool showInHud;
-} AssetPrefabTraitVisionDef;
-
-typedef struct {
   String    attachmentPrefab;
   f32       attachmentScale;
   String    joint;
@@ -177,7 +172,7 @@ typedef struct {
     AssetPrefabTraitBark          data_bark;
     AssetPrefabTraitLocation      data_location;
     AssetPrefabTraitStatus        data_status;
-    AssetPrefabTraitVisionDef     data_vision;
+    AssetPrefabTraitVision        data_vision;
     AssetPrefabTraitAttachmentDef data_attachment;
     AssetPrefabTraitProductionDef data_production;
   };
@@ -447,10 +442,7 @@ static void prefab_build(
       outTrait->data_status = traitDef->data_status;
       break;
     case AssetPrefabTrait_Vision:
-      outTrait->data_vision = (AssetPrefabTraitVision){
-          .radius    = traitDef->data_vision.radius,
-          .showInHud = traitDef->data_vision.showInHud,
-      };
+      outTrait->data_vision = traitDef->data_vision;
       break;
     case AssetPrefabTrait_Attachment:
       outTrait->data_attachment = (AssetPrefabTraitAttachment){
@@ -802,9 +794,9 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitStatus, supportedStatus, t_AssetPrefabStatusMask, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetPrefabTraitStatus, effectJoint, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitVisionDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitVisionDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitVisionDef, showInHud, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitVision);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitVision, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitVision, showInHud, data_prim_t(bool), .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitAttachmentDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitAttachmentDef, attachmentPrefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -840,7 +832,7 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Bark, data_bark, t_AssetPrefabTraitBark);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Location, data_location, t_AssetPrefabTraitLocation);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Status, data_status, t_AssetPrefabTraitStatus);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Vision, data_vision, t_AssetPrefabTraitVisionDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Vision, data_vision, t_AssetPrefabTraitVision);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Attachment, data_attachment, t_AssetPrefabTraitAttachmentDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Production, data_production, t_AssetPrefabTraitProductionDef);
   data_reg_choice_empty(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Scalable);
