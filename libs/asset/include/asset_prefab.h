@@ -155,7 +155,7 @@ typedef struct {
 } AssetPrefabTraitLocation;
 
 typedef struct {
-  u8         supportedStatusMask; // Mask of status-effects that can be applied to this entity.
+  u32        supportedStatus; // Mask of status-effects that can be applied to this entity.
   StringHash effectJoint;
 } AssetPrefabTraitStatus;
 
