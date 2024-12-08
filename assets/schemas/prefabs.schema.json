@@ -213,7 +213,7 @@
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Collision" },
             "navBlocker": { "title": "bool", "type": "boolean" },
-            "shape": { "title": "AssetPrefabShapeDef", "$ref": "#/$defs/AssetPrefabShapeDef" }
+            "shape": { "title": "AssetPrefabShape", "$ref": "#/$defs/AssetPrefabShape" }
           },
           "required": [ "$type", "navBlocker", "shape" ]
         },
@@ -352,7 +352,7 @@
     "AssetPrefabNavLayer": {
       "enum": [ "Normal", "Large" ]
     },
-    "AssetPrefabShapeDef": {
+    "AssetPrefabShape": {
       "anyOf": [
         {
           "type": "object",
