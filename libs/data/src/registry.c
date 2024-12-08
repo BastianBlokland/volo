@@ -356,12 +356,16 @@ DataType data_reg_opaque(DataReg* reg, const String name, const usize size, cons
 
 void data_reg_comment(DataReg* reg, const DataType type, const String comment) {
   DataDecl* decl = data_decl_mutable(reg, type);
-  string_maybe_free(reg->alloc, decl->comment);
+  diag_assert_msg(
+      !decl->comment.size, "Comment already registered for type '{}'", fmt_text(decl->id.name));
+  string_maybe_free(reg->alloc, decl->comment); // Don't leak when compiling without asserts.
   decl->comment = string_maybe_dup(reg->alloc, comment);
 }
 
 void data_reg_normalizer(DataReg* reg, const DataType type, const DataNormalizer normalizer) {
-  DataDecl* decl   = data_decl_mutable(reg, type);
+  DataDecl* decl = data_decl_mutable(reg, type);
+  diag_assert_msg(
+      !decl->normalizer, "Normalizer already registered for type '{}'", fmt_text(decl->id.name));
   decl->normalizer = normalizer;
 }
 
