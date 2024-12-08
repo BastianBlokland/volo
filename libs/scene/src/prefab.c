@@ -362,10 +362,7 @@ static void setup_collision(
   } break;
   case AssetPrefabShape_Box:
     collisionShape.type = SceneCollisionType_Box;
-    collisionShape.box  = (GeoBoxRotated){
-         .box      = t->shape.data_box,
-         .rotation = geo_quat_ident,
-    };
+    collisionShape.box  = t->shape.data_box;
     break;
   }
   scene_collision_add(w, e, layer, &collisionShape, 1 /* shapeCount */);

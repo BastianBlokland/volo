@@ -250,7 +250,7 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Location" },
-            "aimTarget": { "title": "AssetPrefabShapeBoxDef", "$ref": "#/$defs/AssetPrefabShapeBoxDef" }
+            "aimTarget": { "title": "GeoBox", "description": "3D Axis-Aligned Box", "$ref": "#/$defs/GeoBox" }
           },
           "required": [ "$type" ]
         },
@@ -381,7 +381,8 @@
           "properties": {
             "$type": { "const": "AssetPrefabShape_Box" },
             "min": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
-            "max": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" }
+            "max": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
+            "rotation": { "title": "GeoQuat", "description": "Quaternion", "$ref": "#/$defs/GeoQuat" }
           },
           "required": [ "$type", "min", "max" ]
         }
@@ -399,6 +400,20 @@
         "x": { "title": "f32", "type": "number" },
         "y": { "title": "f32", "type": "number" },
         "z": { "title": "f32", "type": "number" }
+      },
+      "required": [],
+      "defaultSnippets": [
+        { "label": "New", "body": "^{}" }
+      ]
+    },
+    "GeoQuat": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x": { "title": "f32", "type": "number" },
+        "y": { "title": "f32", "type": "number" },
+        "z": { "title": "f32", "type": "number" },
+        "w": { "title": "f32", "type": "number" }
       },
       "required": [],
       "defaultSnippets": [
@@ -494,7 +509,7 @@
         { "label": "New AssetPrefabValue_Sound", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Sound\",\n  \"\\$name\": \"MyUnion\",\n  \"assetId\": \"placeholder\"\n}" }
       ]
     },
-    "AssetPrefabShapeBoxDef": {
+    "GeoBox": {
       "type": "object",
       "additionalProperties": false,
       "properties": {

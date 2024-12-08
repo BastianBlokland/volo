@@ -420,8 +420,8 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
     return geo_nav_check_box_rotated(grid, &boxWorld, GeoNavCond_Blocked);
   }
   case AssetPrefabShape_Box: {
-    const GeoBox        boxLocal = {.min = shape->data_box.min, .max = shape->data_box.max};
-    const GeoBoxRotated boxWorld = geo_box_rotated(&boxLocal, placementPos, placementRot, 1.0f);
+    const GeoBoxRotated boxWorld =
+        geo_box_rotated_transform3(&shape->data_box, placementPos, placementRot, 1.0f);
     return geo_nav_check_box_rotated(grid, &boxWorld, GeoNavCond_Blocked);
   }
   }

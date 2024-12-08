@@ -3,7 +3,7 @@
 #include "core_time.h"
 #include "data_registry.h"
 #include "ecs_module.h"
-#include "geo_box.h"
+#include "geo_box_rotated.h"
 #include "geo_color.h"
 #include "geo_vector.h"
 
@@ -34,7 +34,7 @@ typedef struct {
   union {
     AssetPrefabShapeSphere  data_sphere;
     AssetPrefabShapeCapsule data_capsule;
-    GeoBox                  data_box;
+    GeoBoxRotated           data_box;
   };
 } AssetPrefabShape;
 
@@ -220,7 +220,7 @@ typedef struct {
  * Sanity check that we are not making the trait's very big.
  * NOTE: This is not a hard limit but when making this bigger consider changing this to SOA storage.
  */
-ASSERT(sizeof(AssetPrefabTrait) <= 80, "AssetPrefabTrait too big");
+ASSERT(sizeof(AssetPrefabTrait) <= 96, "AssetPrefabTrait too big");
 
 typedef enum {
   AssetPrefabFlags_Infantry     = 1 << 0,

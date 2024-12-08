@@ -63,7 +63,7 @@ typedef struct {
   union {
     AssetPrefabShapeSphereDef  data_sphere;
     AssetPrefabShapeCapsuleDef data_capsule;
-    GeoBox                     data_box;
+    GeoBoxRotated              data_box;
   };
 } AssetPrefabShapeDef;
 
@@ -300,9 +300,8 @@ static AssetPrefabShape prefab_build_shape(const AssetPrefabShapeDef* def) {
     break;
   case AssetPrefabShape_Box:
     return (AssetPrefabShape){
-        .type         = AssetPrefabShape_Box,
-        .data_box.min = def->data_box.min,
-        .data_box.max = def->data_box.max,
+        .type     = AssetPrefabShape_Box,
+        .data_box = def->data_box,
     };
     break;
   }
@@ -800,7 +799,7 @@ void asset_data_init_prefab(void) {
   data_reg_union_t(g_dataReg, AssetPrefabShapeDef, type);
   data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Sphere, data_sphere, t_AssetPrefabShapeSphereDef);
   data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Capsule, data_capsule, t_AssetPrefabShapeCapsuleDef);
-  data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Box, data_box, g_assetGeoBoxType);
+  data_reg_choice_t(g_dataReg, AssetPrefabShapeDef, AssetPrefabShape_Box, data_box, g_assetGeoBoxRotatedType);
 
   data_reg_struct_t(g_dataReg, AssetPrefabValueSoundDef);
   data_reg_field_t(g_dataReg, AssetPrefabValueSoundDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
