@@ -422,7 +422,7 @@ static void setup_location(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
 
 static void setup_status(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitStatus* t) {
   ecs_world_add_t(
-      w, e, SceneStatusComp, .supported = t->supportedStatusMask, .effectJoint = t->effectJoint);
+      w, e, SceneStatusComp, .supported = (u8)t->supportedStatus, .effectJoint = t->effectJoint);
   ecs_world_add_t(w, e, SceneStatusRequestComp);
 }
 

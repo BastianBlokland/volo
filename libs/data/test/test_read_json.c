@@ -42,8 +42,7 @@ static void test_read_fail(
   check_eq_int(res.error, err);
 }
 
-static bool test_normalizer_enum(const DataMeta meta, const Mem data) {
-  (void)meta;
+static bool test_normalizer_enum(const Mem data) {
   diag_assert(data.size == sizeof(i32));
 
   i32* val = data.ptr;
@@ -53,8 +52,7 @@ static bool test_normalizer_enum(const DataMeta meta, const Mem data) {
   return true;
 }
 
-static bool test_normalizer_fail(const DataMeta meta, const Mem data) {
-  (void)meta;
+static bool test_normalizer_fail(const Mem data) {
   (void)data;
   return false;
 }

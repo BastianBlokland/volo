@@ -39,7 +39,7 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Name" },
-            "name": { "title": "String", "type": "string", "minLength": 1 }
+            "name": { "title": "StringHash", "type": "string", "minLength": 1 }
           },
           "required": [ "$type", "name" ]
         },
@@ -240,8 +240,8 @@
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Bark" },
             "priority": { "title": "i32", "type": "integer", "minimum": -2147483648, "maximum": 2147483647 },
-            "barkDeathPrefab": { "title": "String", "type": "string", "minLength": 1 },
-            "barkConfirmPrefab": { "title": "String", "type": "string", "minLength": 1 }
+            "barkDeathPrefab": { "title": "StringHash", "type": "string", "minLength": 1 },
+            "barkConfirmPrefab": { "title": "StringHash", "type": "string", "minLength": 1 }
           },
           "required": [ "$type" ]
         },
@@ -260,7 +260,7 @@
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Status" },
             "supportedStatus": { "title": "AssetPrefabStatusMask", "$ref": "#/$defs/AssetPrefabStatusMask" },
-            "effectJoint": { "title": "String", "type": "string", "minLength": 1 }
+            "effectJoint": { "title": "StringHash", "type": "string", "minLength": 1 }
           },
           "required": [ "$type" ]
         },
@@ -279,9 +279,9 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Attachment" },
-            "attachmentPrefab": { "title": "String", "type": "string", "minLength": 1 },
+            "attachmentPrefab": { "title": "StringHash", "type": "string", "minLength": 1 },
             "attachmentScale": { "title": "f32", "type": "number" },
-            "joint": { "title": "String", "type": "string" },
+            "joint": { "title": "StringHash", "type": "string", "minLength": 1 },
             "offset": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" }
           },
           "required": [ "$type", "attachmentPrefab" ]

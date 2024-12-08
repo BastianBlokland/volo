@@ -67,7 +67,7 @@ static void data_normalize(const ReadCtx* ctx, DataReadResult* res) {
   if (!decl->normalizer) {
     return; // Type has no normalizer.
   }
-  const bool success = decl->normalizer(ctx->meta, ctx->data);
+  const bool success = decl->normalizer(ctx->data);
   if (UNLIKELY(!success)) {
     *res = result_fail(DataReadError_NormalizationFailed, "Normalizer failed for Value");
   }

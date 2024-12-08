@@ -68,10 +68,6 @@ typedef struct {
 } AssetPrefabValueDef;
 
 typedef struct {
-  String name;
-} AssetPrefabTraitNameDef;
-
-typedef struct {
   HeapArray_t(String) sets;
 } AssetPrefabTraitSetMemberDef;
 
@@ -94,20 +90,6 @@ typedef struct {
   bool looping;
   bool persistent;
 } AssetPrefabTraitSoundDef;
-
-typedef struct {
-  GeoColor radiance;
-  f32      radius;
-} AssetPrefabTraitLightPointDef;
-
-typedef struct {
-  GeoColor radiance;
-  bool     shadows, coverage;
-} AssetPrefabTraitLightDirDef;
-
-typedef struct {
-  f32 intensity;
-} AssetPrefabTraitLightAmbientDef;
 
 typedef struct {
   f32 duration;
@@ -154,33 +136,6 @@ typedef struct {
 } AssetPrefabTraitScriptDef;
 
 typedef struct {
-  i32    priority;
-  String barkDeathPrefab;   // Optional, empty if unused.
-  String barkConfirmPrefab; // Optional, empty if unused.
-} AssetPrefabTraitBarkDef;
-
-typedef struct {
-  GeoBox aimTarget;
-} AssetPrefabTraitLocationDef;
-
-typedef struct {
-  u32    supportedStatus;
-  String effectJoint;
-} AssetPrefabTraitStatusDef;
-
-typedef struct {
-  f32  radius;
-  bool showInHud;
-} AssetPrefabTraitVisionDef;
-
-typedef struct {
-  String    attachmentPrefab;
-  f32       attachmentScale;
-  String    joint;
-  GeoVector offset;
-} AssetPrefabTraitAttachmentDef;
-
-typedef struct {
   GeoVector spawnPos, rallyPos;
   String    rallySoundId;
   f32       rallySoundGain;
@@ -191,28 +146,28 @@ typedef struct {
 typedef struct {
   AssetPrefabTraitType type;
   union {
-    AssetPrefabTraitNameDef         data_name;
-    AssetPrefabTraitSetMemberDef    data_setMember;
-    AssetPrefabTraitRenderableDef   data_renderable;
-    AssetPrefabTraitVfxDef          data_vfx;
-    AssetPrefabTraitDecalDef        data_decal;
-    AssetPrefabTraitSoundDef        data_sound;
-    AssetPrefabTraitLightPointDef   data_lightPoint;
-    AssetPrefabTraitLightDirDef     data_lightDir;
-    AssetPrefabTraitLightAmbientDef data_lightAmbient;
-    AssetPrefabTraitLifetimeDef     data_lifetime;
-    AssetPrefabTraitMovementDef     data_movement;
-    AssetPrefabTraitFootstepDef     data_footstep;
-    AssetPrefabTraitHealthDef       data_health;
-    AssetPrefabTraitAttackDef       data_attack;
-    AssetPrefabTraitCollisionDef    data_collision;
-    AssetPrefabTraitScriptDef       data_script;
-    AssetPrefabTraitBarkDef         data_bark;
-    AssetPrefabTraitLocationDef     data_location;
-    AssetPrefabTraitStatusDef       data_status;
-    AssetPrefabTraitVisionDef       data_vision;
-    AssetPrefabTraitAttachmentDef   data_attachment;
-    AssetPrefabTraitProductionDef   data_production;
+    AssetPrefabTraitName          data_name;
+    AssetPrefabTraitSetMemberDef  data_setMember;
+    AssetPrefabTraitRenderableDef data_renderable;
+    AssetPrefabTraitVfxDef        data_vfx;
+    AssetPrefabTraitDecalDef      data_decal;
+    AssetPrefabTraitSoundDef      data_sound;
+    AssetPrefabTraitLightPoint    data_lightPoint;
+    AssetPrefabTraitLightDir      data_lightDir;
+    AssetPrefabTraitLightAmbient  data_lightAmbient;
+    AssetPrefabTraitLifetimeDef   data_lifetime;
+    AssetPrefabTraitMovementDef   data_movement;
+    AssetPrefabTraitFootstepDef   data_footstep;
+    AssetPrefabTraitHealthDef     data_health;
+    AssetPrefabTraitAttackDef     data_attack;
+    AssetPrefabTraitCollisionDef  data_collision;
+    AssetPrefabTraitScriptDef     data_script;
+    AssetPrefabTraitBark          data_bark;
+    AssetPrefabTraitLocation      data_location;
+    AssetPrefabTraitStatus        data_status;
+    AssetPrefabTraitVision        data_vision;
+    AssetPrefabTraitAttachment    data_attachment;
+    AssetPrefabTraitProductionDef data_production;
   };
 } AssetPrefabTraitDef;
 
@@ -340,9 +295,7 @@ static void prefab_build(
 
     switch (traitDef->type) {
     case AssetPrefabTrait_Name:
-      outTrait->data_name = (AssetPrefabTraitName){
-          .name = stringtable_add(g_stringtable, traitDef->data_name.name),
-      };
+      outTrait->data_name = traitDef->data_name;
       break;
     case AssetPrefabTrait_SetMember: {
       const AssetPrefabTraitSetMemberDef* setMemberDef = &traitDef->data_setMember;
@@ -395,22 +348,13 @@ static void prefab_build(
       break;
     }
     case AssetPrefabTrait_LightPoint:
-      outTrait->data_lightPoint = (AssetPrefabTraitLightPoint){
-          .radiance = traitDef->data_lightPoint.radiance,
-          .radius   = math_max(0.01f, traitDef->data_lightPoint.radius),
-      };
+      outTrait->data_lightPoint = traitDef->data_lightPoint;
       break;
     case AssetPrefabTrait_LightDir:
-      outTrait->data_lightDir = (AssetPrefabTraitLightDir){
-          .radiance = traitDef->data_lightDir.radiance,
-          .shadows  = traitDef->data_lightDir.shadows,
-          .coverage = traitDef->data_lightDir.coverage,
-      };
+      outTrait->data_lightDir = traitDef->data_lightDir;
       break;
     case AssetPrefabTrait_LightAmbient:
-      outTrait->data_lightAmbient = (AssetPrefabTraitLightAmbient){
-          .intensity = traitDef->data_lightAmbient.intensity,
-      };
+      outTrait->data_lightAmbient = traitDef->data_lightAmbient;
       break;
     case AssetPrefabTrait_Lifetime:
       outTrait->data_lifetime = (AssetPrefabTraitLifetime){
@@ -482,40 +426,19 @@ static void prefab_build(
       }
     } break;
     case AssetPrefabTrait_Bark:
-      outTrait->data_bark = (AssetPrefabTraitBark){
-          .priority          = traitDef->data_bark.priority,
-          .barkDeathPrefab   = string_maybe_hash(traitDef->data_bark.barkDeathPrefab),
-          .barkConfirmPrefab = string_maybe_hash(traitDef->data_bark.barkConfirmPrefab),
-      };
+      outTrait->data_bark = traitDef->data_bark;
       break;
     case AssetPrefabTrait_Location:
-      outTrait->data_location = (AssetPrefabTraitLocation){
-          .aimTarget.min = traitDef->data_location.aimTarget.min,
-          .aimTarget.max = traitDef->data_location.aimTarget.max,
-      };
+      outTrait->data_location = traitDef->data_location;
       break;
     case AssetPrefabTrait_Status:
-      outTrait->data_status = (AssetPrefabTraitStatus){
-          .supportedStatusMask = traitDef->data_status.supportedStatus,
-          .effectJoint         = string_maybe_hash(traitDef->data_status.effectJoint),
-      };
+      outTrait->data_status = traitDef->data_status;
       break;
     case AssetPrefabTrait_Vision:
-      outTrait->data_vision = (AssetPrefabTraitVision){
-          .radius    = traitDef->data_vision.radius,
-          .showInHud = traitDef->data_vision.showInHud,
-      };
+      outTrait->data_vision = traitDef->data_vision;
       break;
     case AssetPrefabTrait_Attachment:
-      outTrait->data_attachment = (AssetPrefabTraitAttachment){
-          .attachmentPrefab = string_hash(traitDef->data_attachment.attachmentPrefab),
-          .attachmentScale  = traitDef->data_attachment.attachmentScale < f32_epsilon
-                                  ? 1.0f
-                                  : traitDef->data_attachment.attachmentScale,
-
-          .joint  = string_maybe_hash(traitDef->data_attachment.joint),
-          .offset = traitDef->data_attachment.offset,
-      };
+      outTrait->data_attachment = traitDef->data_attachment;
       break;
     case AssetPrefabTrait_Production: {
       const String rallySoundId   = traitDef->data_production.rallySoundId;
@@ -718,6 +641,18 @@ ecs_module_init(asset_prefab_module) {
   ecs_register_system(UnloadPrefabAssetSys, ecs_view_id(UnloadView));
 }
 
+static bool prefab_data_normalizer_light_point(const Mem data) {
+  AssetPrefabTraitLightPoint* light = mem_as_t(data, AssetPrefabTraitLightPoint);
+  light->radius                     = math_max(0.01f, light->radius);
+  return true;
+}
+
+static bool prefab_data_normalizer_attachment(const Mem data) {
+  AssetPrefabTraitAttachment* attach = mem_as_t(data, AssetPrefabTraitAttachment);
+  attach->attachmentScale = attach->attachmentScale < f32_epsilon ? 1.0f : attach->attachmentScale;
+  return true;
+}
+
 void asset_data_init_prefab(void) {
   prefab_set_flags_init();
 
@@ -760,8 +695,8 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Asset, data_asset, data_prim_t(String));
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Sound, data_sound, t_AssetPrefabValueSoundDef);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitNameDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitNameDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitName);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitName, name, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitSetMemberDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitSetMemberDef, sets, data_prim_t(String), .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty | DataFlags_Intern);
@@ -784,17 +719,18 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitSoundDef, looping, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetPrefabTraitSoundDef, persistent, data_prim_t(bool), .flags = DataFlags_Opt);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitLightPointDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitLightPointDef, radiance, g_assetGeoColorType, .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitLightPointDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitLightPoint);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitLightPoint, radiance, g_assetGeoColorType, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitLightPoint, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_normalizer_t(g_dataReg, AssetPrefabTraitLightPoint, prefab_data_normalizer_light_point);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitLightDirDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitLightDirDef, radiance, g_assetGeoColorType, .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitLightDirDef, shadows, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitLightDirDef, coverage, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitLightDir);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitLightDir, radiance, g_assetGeoColorType, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitLightDir, shadows, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitLightDir, coverage, data_prim_t(bool), .flags = DataFlags_Opt);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitLightAmbientDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitLightAmbientDef, intensity, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitLightAmbient);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitLightAmbient, intensity, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitLifetimeDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitLifetimeDef, duration, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -837,27 +773,28 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, scriptIds, data_prim_t(String),  .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, knowledge, t_AssetPrefabValueDef, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitBarkDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitBarkDef, priority, data_prim_t(i32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitBarkDef, barkDeathPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitBarkDef, barkConfirmPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitBark);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitBark, priority, data_prim_t(i32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitBark, barkDeathPrefab, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitBark, barkConfirmPrefab, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitLocationDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitLocationDef, aimTarget, g_assetGeoBoxType, .flags = DataFlags_Opt);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitLocation);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitLocation, aimTarget, g_assetGeoBoxType, .flags = DataFlags_Opt);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitStatusDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitStatusDef, supportedStatus, t_AssetPrefabStatusMask, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitStatusDef, effectJoint, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitStatus);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitStatus, supportedStatus, t_AssetPrefabStatusMask, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitStatus, effectJoint, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitVisionDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitVisionDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitVisionDef, showInHud, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitVision);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitVision, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitVision, showInHud, data_prim_t(bool), .flags = DataFlags_Opt);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitAttachmentDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitAttachmentDef, attachmentPrefab, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitAttachmentDef, attachmentScale, data_prim_t(f32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitAttachmentDef, joint, data_prim_t(String), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitAttachmentDef, offset, g_assetGeoVec3Type, .flags = DataFlags_Opt);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitAttachment);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitAttachment, attachmentPrefab, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitAttachment, attachmentScale, data_prim_t(f32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitAttachment, joint, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitAttachment, offset, g_assetGeoVec3Type, .flags = DataFlags_Opt);
+  data_reg_normalizer_t(g_dataReg, AssetPrefabTraitAttachment, prefab_data_normalizer_attachment);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitProductionDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitProductionDef, spawnPos, g_assetGeoVec3Type, .flags = DataFlags_Opt);
@@ -868,15 +805,15 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitProductionDef, placementRadius, data_prim_t(f32), .flags = DataFlags_Opt);
 
   data_reg_union_t(g_dataReg, AssetPrefabTraitDef, type);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Name, data_name, t_AssetPrefabTraitNameDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Name, data_name, t_AssetPrefabTraitName);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_SetMember, data_setMember, t_AssetPrefabTraitSetMemberDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Vfx, data_vfx, t_AssetPrefabTraitVfxDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Decal, data_decal, t_AssetPrefabTraitDecalDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Sound, data_sound, t_AssetPrefabTraitSoundDef);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_LightPoint, data_lightPoint, t_AssetPrefabTraitLightPointDef);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_LightDir, data_lightDir, t_AssetPrefabTraitLightDirDef);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_LightAmbient, data_lightAmbient, t_AssetPrefabTraitLightAmbientDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_LightPoint, data_lightPoint, t_AssetPrefabTraitLightPoint);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_LightDir, data_lightDir, t_AssetPrefabTraitLightDir);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_LightAmbient, data_lightAmbient, t_AssetPrefabTraitLightAmbient);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Lifetime, data_lifetime, t_AssetPrefabTraitLifetimeDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Movement, data_movement, t_AssetPrefabTraitMovementDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Footstep, data_footstep, t_AssetPrefabTraitFootstepDef);
@@ -884,11 +821,11 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Attack, data_attack, t_AssetPrefabTraitAttackDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Collision, data_collision, t_AssetPrefabTraitCollisionDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Script, data_script, t_AssetPrefabTraitScriptDef);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Bark, data_bark, t_AssetPrefabTraitBarkDef);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Location, data_location, t_AssetPrefabTraitLocationDef);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Status, data_status, t_AssetPrefabTraitStatusDef);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Vision, data_vision, t_AssetPrefabTraitVisionDef);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Attachment, data_attachment, t_AssetPrefabTraitAttachmentDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Bark, data_bark, t_AssetPrefabTraitBark);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Location, data_location, t_AssetPrefabTraitLocation);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Status, data_status, t_AssetPrefabTraitStatus);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Vision, data_vision, t_AssetPrefabTraitVision);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Attachment, data_attachment, t_AssetPrefabTraitAttachment);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Production, data_production, t_AssetPrefabTraitProductionDef);
   data_reg_choice_empty(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Scalable);
 

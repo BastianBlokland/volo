@@ -1,6 +1,5 @@
 #include "core.h"
 #include "core_math.h"
-#include "core_string.h"
 #include "core_thread.h"
 #include "data_registry.h"
 #include "geo_box_rotated.h"
@@ -55,52 +54,45 @@ DataType g_assetGeoCapsuleType;
 DataType g_assetGeoMatrixType;
 DataType g_assetGeoPlaneType;
 
-static bool asset_data_normalizer_quat(const DataMeta meta, const Mem data) {
-  (void)meta;
+static bool asset_data_normalizer_quat(const Mem data) {
   GeoQuat* quat = mem_as_t(data, GeoQuat);
   *quat         = geo_quat_norm_or_ident(*quat);
   return true;
 }
 
-static bool asset_data_normalizer_box(const DataMeta meta, const Mem data) {
-  (void)meta;
+static bool asset_data_normalizer_box(const Mem data) {
   GeoBox* box = mem_as_t(data, GeoBox);
   box->min    = geo_vector_min(box->min, box->max);
   box->max    = geo_vector_max(box->min, box->max);
   return true;
 }
 
-static bool asset_data_normalizer_box_rotated(const DataMeta meta, const Mem data) {
-  (void)meta;
+static bool asset_data_normalizer_box_rotated(const Mem data) {
   GeoBoxRotated* boxRot = mem_as_t(data, GeoBoxRotated);
   boxRot->box.min       = geo_vector_min(boxRot->box.min, boxRot->box.max);
   boxRot->box.max       = geo_vector_max(boxRot->box.min, boxRot->box.max);
   return true;
 }
 
-static bool asset_data_normalizer_sphere(const DataMeta meta, const Mem data) {
-  (void)meta;
+static bool asset_data_normalizer_sphere(const Mem data) {
   GeoSphere* sphere = mem_as_t(data, GeoSphere);
   sphere->radius    = math_max(sphere->radius, 0.0f);
   return true;
 }
 
-static bool asset_data_normalizer_capsule(const DataMeta meta, const Mem data) {
-  (void)meta;
+static bool asset_data_normalizer_capsule(const Mem data) {
   GeoCapsule* capsule = mem_as_t(data, GeoCapsule);
   capsule->radius     = math_max(capsule->radius, 0.0f);
   return true;
 }
 
-static bool asset_data_normalizer_matrix(const DataMeta meta, const Mem data) {
-  (void)meta;
+static bool asset_data_normalizer_matrix(const Mem data) {
   GeoMatrix* matrix      = mem_as_t(data, GeoMatrix);
   const f32  determinant = geo_matrix_determinant(matrix);
   return determinant != 0.0f;
 }
 
-static bool asset_data_normalizer_plane(const DataMeta meta, const Mem data) {
-  (void)meta;
+static bool asset_data_normalizer_plane(const Mem data) {
   GeoPlane* plane = mem_as_t(data, GeoPlane);
   plane->normal   = geo_vector_norm_or(plane->normal, geo_up);
   return true;
