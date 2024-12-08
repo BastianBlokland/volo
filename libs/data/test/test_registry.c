@@ -10,21 +10,21 @@ spec(registry) {
 
   setup() { reg = data_reg_create(g_allocHeap); }
 
-  it("can lookup a primitive type's name"){
+  it("can lookup a primitive type's name") {
 #define X(_T_) check_eq_string(data_name(reg, data_prim_t(_T_)), string_lit(#_T_));
-      DATA_PRIMS
+    DATA_PRIMS
 #undef X
   }
 
-  it("can lookup a primitive type's size"){
+  it("can lookup a primitive type's size") {
 #define X(_T_) check_eq_int(data_size(reg, data_prim_t(_T_)), sizeof(_T_));
-      DATA_PRIMS
+    DATA_PRIMS
 #undef X
   }
 
-  it("can lookup a primitive type's alignment requirement"){
+  it("can lookup a primitive type's alignment requirement") {
 #define X(_T_) check_eq_int(data_align(reg, data_prim_t(_T_)), alignof(_T_));
-      DATA_PRIMS
+    DATA_PRIMS
 #undef X
   }
 
@@ -258,11 +258,11 @@ spec(registry) {
     check_eq_string(
         data_comment(reg, data_prim_t(f32)), string_lit("A 32 bit floating-point number"));
 
-    data_reg_comment(reg, data_prim_t(f32), string_lit("Hello"));
-    check_eq_string(data_comment(reg, data_prim_t(f32)), string_lit("Hello"));
+    data_reg_comment(reg, data_prim_t(bool), string_lit("Hello"));
+    check_eq_string(data_comment(reg, data_prim_t(bool)), string_lit("Hello"));
 
-    data_reg_comment(reg, data_prim_t(f32), string_empty);
-    check_eq_string(data_comment(reg, data_prim_t(f32)), string_empty);
+    data_reg_comment(reg, data_prim_t(i32), string_empty);
+    check_eq_string(data_comment(reg, data_prim_t(i32)), string_empty);
   }
 
   it("can lookup a type by name") {

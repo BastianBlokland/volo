@@ -43,10 +43,11 @@ typedef struct {
 } DataDeclEnum;
 
 typedef struct {
-  DataId   id;
-  DataKind kind;
-  usize    size, align;
-  String   comment;
+  DataId         id;
+  DataKind       kind;
+  usize          size, align;
+  String         comment;
+  DataNormalizer normalizer;
   union {
     DataDeclStruct val_struct;
     DataDeclUnion  val_union;

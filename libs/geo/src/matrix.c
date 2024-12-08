@@ -163,6 +163,29 @@ GeoMatrix geo_matrix_transpose(const GeoMatrix* m) {
 #endif
 }
 
+f32 geo_matrix_determinant(const GeoMatrix* m) {
+  /**
+   * 4x4 Matrix determinant routine generated using 'N-Matrix-Programmer' by: 'willnode'.
+   * Repository: https://github.com/willnode/N-Matrix-Programmer
+   */
+  const f32 a2323 = m->columns[2].z * m->columns[3].w - m->columns[3].z * m->columns[2].w;
+  const f32 a1323 = m->columns[1].z * m->columns[3].w - m->columns[3].z * m->columns[1].w;
+  const f32 a1223 = m->columns[1].z * m->columns[2].w - m->columns[2].z * m->columns[1].w;
+  const f32 a0323 = m->columns[0].z * m->columns[3].w - m->columns[3].z * m->columns[0].w;
+  const f32 a0223 = m->columns[0].z * m->columns[2].w - m->columns[2].z * m->columns[0].w;
+  const f32 a0123 = m->columns[0].z * m->columns[1].w - m->columns[1].z * m->columns[0].w;
+
+  return (
+      m->columns[0].x *
+          (m->columns[1].y * a2323 - m->columns[2].y * a1323 + m->columns[3].y * a1223) -
+      m->columns[1].x *
+          (m->columns[0].y * a2323 - m->columns[2].y * a0323 + m->columns[3].y * a0223) +
+      m->columns[2].x *
+          (m->columns[0].y * a1323 - m->columns[1].y * a0323 + m->columns[3].y * a0123) -
+      m->columns[3].x *
+          (m->columns[0].y * a1223 - m->columns[1].y * a0223 + m->columns[2].y * a0123));
+}
+
 GeoMatrix geo_matrix_inverse(const GeoMatrix* m) {
   /**
    * 4x4 Matrix inverse routine generated using 'N-Matrix-Programmer' by: 'willnode'.

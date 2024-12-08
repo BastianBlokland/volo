@@ -136,7 +136,7 @@ static void scene_level_process_load(
             .id       = obj->id,
             .prefabId = obj->prefab,
             .position = obj->position,
-            .rotation = geo_quat_norm_or_ident(obj->rotation),
+            .rotation = obj->rotation,
             .scale    = obj->scale,
             .faction  = scene_from_asset_faction(obj->faction),
         });

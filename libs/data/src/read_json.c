@@ -604,10 +604,11 @@ static void data_read_json_opaque(const ReadCtx* ctx, DataReadResult* res) {
 }
 
 static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
-  switch (data_decl(ctx->reg, ctx->meta.type)->kind) {
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  switch (decl->kind) {
   case DataKind_bool:
     data_read_json_bool(ctx, res);
-    return;
+    goto End;
   case DataKind_i8:
   case DataKind_i16:
   case DataKind_i32:
@@ -620,35 +621,43 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
   case DataKind_f32:
   case DataKind_f64:
     data_read_json_number(ctx, res);
-    return;
+    goto End;
   case DataKind_String:
     data_read_json_string(ctx, res);
-    return;
+    goto End;
   case DataKind_StringHash:
     data_read_json_string_hash(ctx, res);
-    return;
+    goto End;
   case DataKind_DataMem:
     data_read_json_mem(ctx, res);
-    return;
+    goto End;
   case DataKind_Struct: {
     const u32 fieldsRead = 0;
     data_read_json_struct(ctx, res, fieldsRead);
-    return;
+    goto End;
   }
   case DataKind_Union:
     data_read_json_union(ctx, res);
-    return;
+    goto End;
   case DataKind_Enum:
     data_read_json_enum(ctx, res);
-    return;
+    goto End;
   case DataKind_Opaque:
     data_read_json_opaque(ctx, res);
-    return;
+    goto End;
   case DataKind_Invalid:
   case DataKind_Count:
     break;
   }
   diag_crash();
+
+End:
+  if (LIKELY(!res->error) && decl->normalizer) {
+    const bool success = decl->normalizer(ctx->meta, ctx->data);
+    if (UNLIKELY(!success)) {
+      *res = result_fail(DataReadError_NormalizationFailed, "Normalizer failed for Value");
+    }
+  }
 }
 
 static void data_read_json_val_pointer(const ReadCtx* ctx, DataReadResult* res) {

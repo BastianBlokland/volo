@@ -13,7 +13,7 @@
   _X_(AssetFormat_Icon,             icon,               1  )                                       \
   _X_(AssetFormat_IconBin,          icon_bin,           1  )                                       \
   _X_(AssetFormat_Inputs,           inputs,             1  )                                       \
-  _X_(AssetFormat_Level,            level,              1  )                                       \
+  _X_(AssetFormat_Level,            level,              2  )                                       \
   _X_(AssetFormat_LevelBin,         level,              1  )                                       \
   _X_(AssetFormat_MeshBin,          mesh_bin,           1  )                                       \
   _X_(AssetFormat_MeshGlb,          mesh_glb,           23 )                                       \

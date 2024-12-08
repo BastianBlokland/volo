@@ -27,6 +27,7 @@ typedef enum {
   DataReadError_NullIsInvalid,
   DataReadError_EmptyArrayIsInvalid,
   DataReadError_MismatchedInlineArrayCount,
+  DataReadError_NormalizationFailed,
 } DataReadError;
 
 /**

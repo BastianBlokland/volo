@@ -201,3 +201,20 @@ DataType data_reg_opaque(DataReg*, String name, usize size, usize align);
   data_reg_comment((_REG_), t_##_DATA_TYPE_, string_lit(_COMMENT_LIT_))
 
 void data_reg_comment(DataReg*, DataType, String comment);
+
+/**
+ * Callback to perform normalization of the given data post reading from a user-editable source.
+ * Return value indicates if the normalization succeeded.
+ */
+typedef bool (*DataNormalizer)(DataMeta, Mem data);
+
+/**
+ * Register a data normalizer to the given type.
+ * Normalizers are invoked after reading from a user-editable source (for example json) and allow
+ * enforcing additional invariants for the type.
+ * Pre-condition: Type is declared in the registry.
+ */
+#define data_reg_normalizer_t(_REG_, _DATA_TYPE_, _NORMALIZER_FUNC_)                               \
+  data_reg_normalizer((_REG_), t_##_DATA_TYPE_, _NORMALIZER_FUNC_)
+
+void data_reg_normalizer(DataReg*, DataType, DataNormalizer);

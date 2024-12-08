@@ -1,4 +1,5 @@
 #include "core.h"
+#include "core_math.h"
 #include "core_string.h"
 #include "core_thread.h"
 #include "data_registry.h"
@@ -54,6 +55,49 @@ DataType g_assetGeoCapsuleType;
 DataType g_assetGeoMatrixType;
 DataType g_assetGeoPlaneType;
 
+static bool asset_data_normalizer_quat(const DataMeta meta, const Mem data) {
+  (void)meta;
+  GeoQuat* quat = mem_as_t(data, GeoQuat);
+  *quat         = geo_quat_norm_or_ident(*quat);
+  return true;
+}
+
+static bool asset_data_normalizer_box(const DataMeta meta, const Mem data) {
+  (void)meta;
+  GeoBox* box = mem_as_t(data, GeoBox);
+  box->min    = geo_vector_min(box->min, box->max);
+  box->max    = geo_vector_max(box->min, box->max);
+  return true;
+}
+
+static bool asset_data_normalizer_sphere(const DataMeta meta, const Mem data) {
+  (void)meta;
+  GeoSphere* sphere = mem_as_t(data, GeoSphere);
+  sphere->radius    = math_max(sphere->radius, 0.0f);
+  return true;
+}
+
+static bool asset_data_normalizer_capsule(const DataMeta meta, const Mem data) {
+  (void)meta;
+  GeoCapsule* capsule = mem_as_t(data, GeoCapsule);
+  capsule->radius     = math_max(capsule->radius, 0.0f);
+  return true;
+}
+
+static bool asset_data_normalizer_matrix(const DataMeta meta, const Mem data) {
+  (void)meta;
+  GeoMatrix* matrix      = mem_as_t(data, GeoMatrix);
+  const f32  determinant = geo_matrix_determinant(matrix);
+  return determinant != 0.0f;
+}
+
+static bool asset_data_normalizer_plane(const DataMeta meta, const Mem data) {
+  (void)meta;
+  GeoPlane* plane = mem_as_t(data, GeoPlane);
+  plane->normal   = geo_vector_norm_or(plane->normal, geo_up);
+  return true;
+}
+
 static void asset_data_init_types(void) {
   // clang-format off
   data_reg_struct_t(g_dataReg, GeoColor);
@@ -86,11 +130,13 @@ static void asset_data_init_types(void) {
   data_reg_field_t(g_dataReg, GeoQuat, y, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, GeoQuat, z, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, GeoQuat, w, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_normalizer_t(g_dataReg, GeoQuat, asset_data_normalizer_quat);
   data_reg_comment_t(g_dataReg, GeoQuat, "Quaternion");
 
   data_reg_struct_t(g_dataReg, GeoBox);
   data_reg_field_t(g_dataReg, GeoBox, min, t_GeoVector3);
   data_reg_field_t(g_dataReg, GeoBox, max, t_GeoVector3);
+  data_reg_normalizer_t(g_dataReg, GeoBox, asset_data_normalizer_box);
   data_reg_comment_t(g_dataReg, GeoBox, "3D Axis-Aligned Box");
 
   data_reg_struct_t(g_dataReg, GeoBoxRotated);
@@ -106,20 +152,24 @@ static void asset_data_init_types(void) {
   data_reg_struct_t(g_dataReg, GeoSphere);
   data_reg_field_t(g_dataReg, GeoSphere, point, t_GeoVector3);
   data_reg_field_t(g_dataReg, GeoSphere, radius, data_prim_t(f32));
+  data_reg_normalizer_t(g_dataReg, GeoSphere, asset_data_normalizer_sphere);
   data_reg_comment_t(g_dataReg, GeoSphere, "3D Sphere");
 
   data_reg_struct_t(g_dataReg, GeoCapsule);
   data_reg_field_t(g_dataReg, GeoCapsule, line, t_GeoLine);
   data_reg_field_t(g_dataReg, GeoCapsule, radius, data_prim_t(f32));
+  data_reg_normalizer_t(g_dataReg, GeoCapsule, asset_data_normalizer_capsule);
   data_reg_comment_t(g_dataReg, GeoCapsule, "3D Capsule");
 
   data_reg_struct_t(g_dataReg, GeoMatrix);
   data_reg_field_t(g_dataReg, GeoMatrix, columns, t_GeoVector4, .container = DataContainer_InlineArray, .fixedCount = 4);
+  data_reg_normalizer_t(g_dataReg, GeoMatrix, asset_data_normalizer_matrix);
   data_reg_comment_t(g_dataReg, GeoMatrix, "3D Matrix");
 
   data_reg_struct_t(g_dataReg, GeoPlane);
   data_reg_field_t(g_dataReg, GeoPlane, normal, t_GeoVector3);
   data_reg_field_t(g_dataReg, GeoPlane, distance, data_prim_t(f32));
+  data_reg_normalizer_t(g_dataReg, GeoPlane, asset_data_normalizer_plane);
   data_reg_comment_t(g_dataReg, GeoPlane, "3D Plane");
 
   // clang-format on
