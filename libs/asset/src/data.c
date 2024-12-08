@@ -157,7 +157,8 @@ static void asset_data_init_types(void) {
   data_reg_comment_t(g_dataReg, GeoSphere, "3D Sphere");
 
   data_reg_struct_t(g_dataReg, GeoCapsule);
-  data_reg_field_t(g_dataReg, GeoCapsule, line, t_GeoLine);
+  data_reg_field_t(g_dataReg, GeoCapsule, line.a, t_GeoVector3);
+  data_reg_field_t(g_dataReg, GeoCapsule, line.b, t_GeoVector3);
   data_reg_field_t(g_dataReg, GeoCapsule, radius, data_prim_t(f32));
   data_reg_normalizer_t(g_dataReg, GeoCapsule, asset_data_normalizer_capsule);
   data_reg_comment_t(g_dataReg, GeoCapsule, "3D Capsule");
