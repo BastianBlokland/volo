@@ -404,9 +404,8 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
   const AssetPrefabShape* shape = &collisionTrait->data_collision.shape;
   switch (shape->type) {
   case AssetPrefabShape_Sphere: {
-    const GeoVector offset = shape->data_sphere.offset;
-    const GeoVector point  = geo_vector_add(placementPos, geo_quat_rotate(placementRot, offset));
-    const GeoSphere sphereWorld = {.point = point, .radius = shape->data_sphere.radius};
+    const GeoSphere sphereWorld =
+        geo_sphere_transform3(&shape->data_sphere, placementPos, placementRot, 1.0f);
     return geo_nav_check_sphere(grid, &sphereWorld, GeoNavCond_Blocked);
   }
   case AssetPrefabShape_Capsule: {

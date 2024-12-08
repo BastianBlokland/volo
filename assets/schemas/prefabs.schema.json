@@ -324,7 +324,7 @@
         { "label": "New AssetPrefabTrait_Footstep", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Footstep\",\n  \"jointA\": \"placeholder\",\n  \"jointB\": \"placeholder\",\n  \"decalIdA\": \"placeholder\",\n  \"decalIdB\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Health", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Health\",\n  \"amount\": 1,\n  \"deathDestroyDelay\": 0\n}" },
         { "label": "New AssetPrefabTrait_Attack", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Attack\",\n  \"weaponId\": \"placeholder\",\n  \"targetRangeMax\": 1\n}" },
-        { "label": "New AssetPrefabTrait_Collision", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Collision\",\n  \"navBlocker\": false,\n  \"shape\": {\n    \"\\$type\": \"AssetPrefabShape_Sphere\",\n    \"radius\": 1\n  }\n}" },
+        { "label": "New AssetPrefabTrait_Collision", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Collision\",\n  \"navBlocker\": false,\n  \"shape\": {\n    \"\\$type\": \"AssetPrefabShape_Sphere\",\n    \"point\": {},\n    \"radius\": 0\n  }\n}" },
         { "label": "New AssetPrefabTrait_Script", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Script\",\n  \"scriptIds\": [\n    \"\"\n  ]\n}" },
         { "label": "New AssetPrefabTrait_Bark", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Bark\"\n}" },
         { "label": "New AssetPrefabTrait_Location", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Location\"\n}" },
@@ -359,10 +359,10 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabShape_Sphere" },
-            "offset": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
+            "point": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
             "radius": { "title": "f32", "type": "number" }
           },
-          "required": [ "$type", "radius" ]
+          "required": [ "$type", "point", "radius" ]
         },
         {
           "type": "object",
@@ -388,7 +388,7 @@
         }
       ],
       "defaultSnippets": [
-        { "label": "New AssetPrefabShape_Sphere", "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Sphere\",\n  \"radius\": 1\n}" },
+        { "label": "New AssetPrefabShape_Sphere", "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Sphere\",\n  \"point\": {},\n  \"radius\": 0\n}" },
         { "label": "New AssetPrefabShape_Capsule", "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Capsule\",\n  \"radius\": 1,\n  \"height\": 1\n}" },
         { "label": "New AssetPrefabShape_Box", "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Box\",\n  \"min\": {},\n  \"max\": {}\n}" }
       ]

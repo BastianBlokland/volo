@@ -398,7 +398,7 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Sphere",
-            "offset": { "y": 0.7 },
+            "point": { "y": 0.7 },
             "radius": 0.95
           }
         },
@@ -443,7 +443,7 @@
           "navBlocker": true,
           "shape": {
             "$type": "AssetPrefabShape_Sphere",
-            "offset": { "y": 0.7 },
+            "point": { "y": 0.7 },
             "radius": 0.95
           }
         },

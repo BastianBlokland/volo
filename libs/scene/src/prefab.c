@@ -344,10 +344,7 @@ static void setup_collision(
   switch (t->shape.type) {
   case AssetPrefabShape_Sphere:
     collisionShape.type   = SceneCollisionType_Sphere;
-    collisionShape.sphere = (GeoSphere){
-        .point  = t->shape.data_sphere.offset,
-        .radius = t->shape.data_sphere.radius,
-    };
+    collisionShape.sphere = t->shape.data_sphere;
     break;
   case AssetPrefabShape_Capsule: {
     const GeoVector bottom = t->shape.data_capsule.offset;

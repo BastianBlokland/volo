@@ -5,7 +5,7 @@
 #include "ecs_module.h"
 #include "geo_box_rotated.h"
 #include "geo_color.h"
-#include "geo_vector.h"
+#include "geo_sphere.h"
 
 /**
  * Prefab database.
@@ -21,18 +21,13 @@ typedef enum {
 
 typedef struct {
   GeoVector offset;
-  f32       radius;
-} AssetPrefabShapeSphere;
-
-typedef struct {
-  GeoVector offset;
   f32       radius, height;
 } AssetPrefabShapeCapsule;
 
 typedef struct {
   AssetPrefabShapeType type;
   union {
-    AssetPrefabShapeSphere  data_sphere;
+    GeoSphere               data_sphere;
     AssetPrefabShapeCapsule data_capsule;
     GeoBoxRotated           data_box;
   };
