@@ -62,6 +62,17 @@ static bool data_check_type(const ReadCtx* ctx, const JsonType jsonType, DataRea
   return true;
 }
 
+static void data_normalize(const ReadCtx* ctx, DataReadResult* res) {
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  if (!decl->normalizer) {
+    return; // Type has no normalizer.
+  }
+  const bool success = decl->normalizer(ctx->meta, ctx->data);
+  if (UNLIKELY(!success)) {
+    *res = result_fail(DataReadError_NormalizationFailed, "Normalizer failed for Value");
+  }
+}
+
 /**
  * Get the minimal representable number for the given DataKind.
  */
@@ -411,6 +422,9 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
       };
       const u32 fieldsRead = sentinel_check(nameVal) ? 1 : 2;
       data_read_json_struct(&choiceCtx, res, fieldsRead);
+      if (LIKELY(!res->error)) {
+        data_normalize(&choiceCtx, res);
+      }
     } break;
     default: {
       const JsonVal dataVal = json_field_lit(ctx->doc, ctx->val, "$data");
@@ -604,8 +618,7 @@ static void data_read_json_opaque(const ReadCtx* ctx, DataReadResult* res) {
 }
 
 static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
-  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
-  switch (decl->kind) {
+  switch (data_decl(ctx->reg, ctx->meta.type)->kind) {
   case DataKind_bool:
     data_read_json_bool(ctx, res);
     goto End;
@@ -652,12 +665,10 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
   diag_crash();
 
 End:
-  if (LIKELY(!res->error) && decl->normalizer) {
-    const bool success = decl->normalizer(ctx->meta, ctx->data);
-    if (UNLIKELY(!success)) {
-      *res = result_fail(DataReadError_NormalizationFailed, "Normalizer failed for Value");
-    }
+  if (UNLIKELY(res->error)) {
+    return;
   }
+  data_normalize(ctx, res);
 }
 
 static void data_read_json_val_pointer(const ReadCtx* ctx, DataReadResult* res) {
