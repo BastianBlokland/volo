@@ -281,6 +281,8 @@ static void data_destroy_internal(const DestroyCtx* ctx) {
 }
 
 void data_destroy(const DataReg* reg, Allocator* alloc, const DataMeta meta, const Mem data) {
+  diag_assert(data.size == data_meta_size(reg, meta));
+
   const DestroyCtx ctx = {
       .reg   = reg,
       .alloc = alloc,

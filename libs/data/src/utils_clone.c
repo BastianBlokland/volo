@@ -252,6 +252,8 @@ void data_clone(
     const DataMeta meta,
     const Mem      original,
     const Mem      clone) {
+  diag_assert(original.size == data_meta_size(reg, meta));
+  diag_assert(clone.size == data_meta_size(reg, meta));
 
   const CloneCtx ctx = {
       .reg      = reg,

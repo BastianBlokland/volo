@@ -220,6 +220,9 @@ static bool data_equal_internal(const EqualCtx* ctx) {
 }
 
 bool data_equal(const DataReg* reg, const DataMeta meta, const Mem a, const Mem b) {
+  diag_assert(a.size == data_meta_size(reg, meta));
+  diag_assert(b.size == data_meta_size(reg, meta));
+
   const EqualCtx ctx = {
       .reg  = reg,
       .meta = meta,
