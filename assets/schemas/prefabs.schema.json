@@ -147,10 +147,10 @@
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Movement" },
             "speed": { "title": "f32", "type": "number" },
-            "rotationSpeed": { "title": "f32", "type": "number" },
+            "rotationSpeed": { "title": "Angle", "type": "number" },
             "radius": { "title": "f32", "type": "number" },
             "weight": { "title": "f32", "type": "number" },
-            "moveAnimation": { "title": "String", "type": "string" },
+            "moveAnimation": { "title": "StringHash", "type": "string" },
             "navLayer": { "title": "AssetPrefabNavLayer", "$ref": "#/$defs/AssetPrefabNavLayer" },
             "wheeled": { "title": "bool", "type": "boolean" },
             "wheeledAcceleration": { "title": "f32", "type": "number" }
