@@ -26,7 +26,7 @@ typedef enum {
   DataReadError_Base64DataInvalid,
   DataReadError_NullIsInvalid,
   DataReadError_EmptyArrayIsInvalid,
-  DataReadError_MismatchedInlineArrayCount,
+  DataReadError_ArrayLimitExceeded,
   DataReadError_NormalizationFailed,
 } DataReadError;
 

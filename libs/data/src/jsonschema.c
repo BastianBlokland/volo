@@ -474,11 +474,11 @@ static void schema_add_pointer(const JsonSchemaCtx* ctx, const JsonVal obj, cons
 static void schema_add_array(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
   json_add_field_lit(ctx->doc, obj, "type", json_add_string_lit(ctx->doc, "array"));
 
-  if (meta.fixedCount) {
-    json_add_field_lit(ctx->doc, obj, "minItems", json_add_number(ctx->doc, meta.fixedCount));
-    json_add_field_lit(ctx->doc, obj, "maxItems", json_add_number(ctx->doc, meta.fixedCount));
-  } else if (meta.flags & DataFlags_NotEmpty) {
+  if (meta.flags & DataFlags_NotEmpty) {
     json_add_field_lit(ctx->doc, obj, "minItems", json_add_number(ctx->doc, 1));
+  }
+  if (meta.fixedCount) {
+    json_add_field_lit(ctx->doc, obj, "maxItems", json_add_number(ctx->doc, meta.fixedCount));
   }
 
   const JsonVal itemsObj = json_add_object(ctx->doc);
