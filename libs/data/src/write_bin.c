@@ -310,6 +310,8 @@ static void data_write_bin_val(const WriteCtx* ctx) {
 }
 
 void data_write_bin(const DataReg* reg, DynString* str, const DataMeta meta, const Mem data) {
+  diag_assert(data.size == data_meta_size(reg, meta));
+
   WriteCtx ctx = {
       .reg  = reg,
       .out  = str,

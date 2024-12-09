@@ -9,8 +9,8 @@
 typedef struct {
   const DataReg* reg;
   Allocator*     alloc;
-  const DataMeta meta;
-  const Mem      original, clone;
+  DataMeta       meta;
+  Mem            original, clone;
 } CloneCtx;
 
 static void data_clone_internal(const CloneCtx*);
@@ -252,6 +252,8 @@ void data_clone(
     const DataMeta meta,
     const Mem      original,
     const Mem      clone) {
+  diag_assert(original.size == data_meta_size(reg, meta));
+  diag_assert(clone.size == data_meta_size(reg, meta));
 
   const CloneCtx ctx = {
       .reg      = reg,

@@ -399,6 +399,8 @@ void data_write_json(
     const DataMeta           meta,
     const Mem                data,
     const DataWriteJsonOpts* opts) {
+  diag_assert(data.size == data_meta_size(reg, meta));
+
   JsonDoc*       doc = json_create(g_allocHeap, 512);
   const WriteCtx ctx = {
       .opts = opts,
