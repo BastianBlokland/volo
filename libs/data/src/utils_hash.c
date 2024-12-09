@@ -5,9 +5,9 @@
 #include "registry_internal.h"
 
 typedef struct {
-  const DataReg*      reg;
-  const DataHashFlags flags;
-  const DataMeta      meta;
+  const DataReg* reg;
+  DataHashFlags  flags;
+  DataMeta       meta;
 } HashCtx;
 
 static u32 data_hash_internal(const HashCtx*);

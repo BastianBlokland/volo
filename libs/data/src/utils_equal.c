@@ -7,7 +7,7 @@
 typedef struct {
   const DataReg* reg;
   const DataMeta meta;
-  const Mem      a, b;
+  Mem            a, b;
 } EqualCtx;
 
 static bool data_equal_internal(const EqualCtx*);

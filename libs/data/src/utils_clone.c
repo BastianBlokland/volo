@@ -9,8 +9,8 @@
 typedef struct {
   const DataReg* reg;
   Allocator*     alloc;
-  const DataMeta meta;
-  const Mem      original, clone;
+  DataMeta       meta;
+  Mem            original, clone;
 } CloneCtx;
 
 static void data_clone_internal(const CloneCtx*);

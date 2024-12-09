@@ -8,8 +8,8 @@
 typedef struct {
   const DataReg* reg;
   Allocator*     alloc;
-  const DataMeta meta;
-  const Mem      data;
+  DataMeta       meta;
+  Mem            data;
 } DestroyCtx;
 
 static bool data_destroy_needed(const DataReg*, DataMeta);

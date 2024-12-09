@@ -41,3 +41,11 @@ typedef enum {
  * Pre-condition: DataMeta definition is not modified in parallel with this call.
  */
 u32 data_hash(const DataReg*, DataMeta, DataHashFlags);
+
+typedef void (*DataVisitor)(void* ctx, Mem data);
+
+/**
+ * Visit all instances of a specific data-type in the given data.
+ * Can either be used to post-process the data or gather statistics.
+ */
+void data_visit(const DataReg*, DataMeta, Mem data, DataType, void* ctx, DataVisitor);
