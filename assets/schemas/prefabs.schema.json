@@ -51,7 +51,8 @@
             "sets": {
               "type": "array",
               "minItems": 1,
-              "items": { "title": "String", "type": "string" }
+              "maxItems": 8,
+              "items": { "title": "StringHash", "type": "string" }
             }
           },
           "required": [ "$type", "sets" ]
@@ -147,10 +148,10 @@
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Movement" },
             "speed": { "title": "f32", "type": "number" },
-            "rotationSpeed": { "title": "f32", "type": "number" },
+            "rotationSpeed": { "title": "Angle", "type": "number" },
             "radius": { "title": "f32", "type": "number" },
             "weight": { "title": "f32", "type": "number" },
-            "moveAnimation": { "title": "String", "type": "string" },
+            "moveAnimation": { "title": "StringHash", "type": "string" },
             "navLayer": { "title": "AssetPrefabNavLayer", "$ref": "#/$defs/AssetPrefabNavLayer" },
             "wheeled": { "title": "bool", "type": "boolean" },
             "wheeledAcceleration": { "title": "f32", "type": "number" }
@@ -311,7 +312,7 @@
       ],
       "defaultSnippets": [
         { "label": "New AssetPrefabTrait_Name", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Name\",\n  \"name\": \"placeholder\"\n}" },
-        { "label": "New AssetPrefabTrait_SetMember", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_SetMember\",\n  \"sets\": [\n    \"\"\n  ]\n}" },
+        { "label": "New AssetPrefabTrait_SetMember", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_SetMember\",\n  \"sets\": [\n    \"\",\n    \"\",\n    \"\",\n    \"\",\n    \"\",\n    \"\",\n    \"\",\n    \"\"\n  ]\n}" },
         { "label": "New AssetPrefabTrait_Renderable", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Renderable\",\n  \"graphicId\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Vfx", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Vfx\",\n  \"assetId\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Decal", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Decal\",\n  \"assetId\": \"placeholder\"\n}" },

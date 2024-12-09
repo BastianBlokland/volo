@@ -273,7 +273,7 @@ spec(read_json) {
     const DataMeta meta =
         data_meta_t(data_prim_t(u32), .container = DataContainer_InlineArray, .fixedCount = 4);
 
-    u32 val[4];
+    u32 val[4] = {42, 43, 44, 45};
 
     test_read_success(_testCtx, reg, string_lit("[1, 2, 3, 4]"), meta, mem_var(val));
     check_eq_int(val[0], 1);
@@ -281,9 +281,38 @@ spec(read_json) {
     check_eq_int(val[2], 3);
     check_eq_int(val[3], 4);
 
-    test_read_fail(_testCtx, reg, string_lit("[]"), meta, DataReadError_MismatchedInlineArrayCount);
+    test_read_success(_testCtx, reg, string_lit("[1, 2]"), meta, mem_var(val));
+    check_eq_int(val[0], 1);
+    check_eq_int(val[1], 2);
+    check_eq_int(val[2], 0);
+    check_eq_int(val[3], 0);
+
+    test_read_success(_testCtx, reg, string_lit("[1]"), meta, mem_var(val));
+    check_eq_int(val[0], 1);
+    check_eq_int(val[1], 0);
+    check_eq_int(val[2], 0);
+    check_eq_int(val[3], 0);
+
+    test_read_success(_testCtx, reg, string_lit("[]"), meta, mem_var(val));
+    check_eq_int(val[0], 0);
+    check_eq_int(val[1], 0);
+    check_eq_int(val[2], 0);
+    check_eq_int(val[3], 0);
+
+    test_read_fail(
+        _testCtx, reg, string_lit("[1,2,3,4,5]"), meta, DataReadError_ArrayLimitExceeded);
     test_read_fail(_testCtx, reg, string_lit("42"), meta, DataReadError_MismatchedType);
     test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
+  }
+
+  it("fails when an inline-array value cannot be empty") {
+    const DataMeta meta = data_meta_t(
+        data_prim_t(u32),
+        .container  = DataContainer_InlineArray,
+        .fixedCount = 4,
+        .flags      = DataFlags_NotEmpty);
+
+    test_read_fail(_testCtx, reg, string_lit("[]"), meta, DataReadError_EmptyArrayIsInvalid);
   }
 
   it("can read a heap-array") {

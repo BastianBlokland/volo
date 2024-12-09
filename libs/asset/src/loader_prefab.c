@@ -68,10 +68,6 @@ typedef struct {
 } AssetPrefabValueDef;
 
 typedef struct {
-  HeapArray_t(String) sets;
-} AssetPrefabTraitSetMemberDef;
-
-typedef struct {
   String graphicId;
 } AssetPrefabTraitRenderableDef;
 
@@ -118,7 +114,7 @@ typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitName          data_name;
-    AssetPrefabTraitSetMemberDef  data_setMember;
+    AssetPrefabTraitSetMember     data_setMember;
     AssetPrefabTraitRenderableDef data_renderable;
     AssetPrefabTraitVfxDef        data_vfx;
     AssetPrefabTraitDecalDef      data_decal;
@@ -162,7 +158,6 @@ typedef enum {
   PrefabError_DuplicatePrefab,
   PrefabError_DuplicateTrait,
   PrefabError_PrefabCountExceedsMax,
-  PrefabError_SetCountExceedsMax,
   PrefabError_SoundAssetCountExceedsMax,
   PrefabError_ScriptAssetCountExceedsMax,
 
@@ -175,7 +170,6 @@ static String prefab_error_str(const PrefabError err) {
       string_static("Multiple prefabs with the same name"),
       string_static("Prefab defines the same trait more then once"),
       string_static("Prefab count exceeds the maximum"),
-      string_static("Set count exceeds the maximum"),
       string_static("Sound asset count exceeds the maximum"),
       string_static("Script asset count exceeds the maximum"),
   };
@@ -268,19 +262,15 @@ static void prefab_build(
     case AssetPrefabTrait_Name:
       outTrait->data_name = traitDef->data_name;
       break;
-    case AssetPrefabTrait_SetMember: {
-      const AssetPrefabTraitSetMemberDef* setMemberDef = &traitDef->data_setMember;
-      AssetPrefabTraitSetMember*          outSetMember = &outTrait->data_setMember;
-      if (UNLIKELY(setMemberDef->sets.count > array_elems(outSetMember->sets))) {
-        *err = PrefabError_SetCountExceedsMax;
-        return;
+    case AssetPrefabTrait_SetMember:
+      outTrait->data_setMember = traitDef->data_setMember;
+      for (u32 i = 0; i != asset_prefab_sets_max; ++i) {
+        const StringHash set = outTrait->data_setMember.sets[i];
+        if (set) {
+          outPrefab->flags |= prefab_set_flags(set);
+        }
       }
-      *outSetMember = (AssetPrefabTraitSetMember){0};
-      for (u32 i = 0; i != setMemberDef->sets.count; ++i) {
-        outSetMember->sets[i] = stringtable_add(g_stringtable, setMemberDef->sets.values[i]);
-        outPrefab->flags |= prefab_set_flags(outSetMember->sets[i]);
-      }
-    } break;
+      break;
     case AssetPrefabTrait_Renderable:
       outTrait->data_renderable = (AssetPrefabTraitRenderable){
           .graphic = asset_lookup(ctx->world, manager, traitDef->data_renderable.graphicId),
@@ -652,8 +642,8 @@ void asset_data_init_prefab(void) {
   data_reg_struct_t(g_dataReg, AssetPrefabTraitName);
   data_reg_field_t(g_dataReg, AssetPrefabTraitName, name, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitSetMemberDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitSetMemberDef, sets, data_prim_t(String), .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty | DataFlags_Intern);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitSetMember);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitSetMember, sets, data_prim_t(StringHash), .container = DataContainer_InlineArray, .fixedCount = asset_prefab_sets_max, .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitRenderableDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitRenderableDef, graphicId, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -761,7 +751,7 @@ void asset_data_init_prefab(void) {
 
   data_reg_union_t(g_dataReg, AssetPrefabTraitDef, type);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Name, data_name, t_AssetPrefabTraitName);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_SetMember, data_setMember, t_AssetPrefabTraitSetMemberDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_SetMember, data_setMember, t_AssetPrefabTraitSetMember);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderableDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Vfx, data_vfx, t_AssetPrefabTraitVfxDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Decal, data_decal, t_AssetPrefabTraitDecalDef);

@@ -164,7 +164,6 @@ spec(jsonschema) {
         meta,
         string_lit("{\n"
                    "  \"type\": \"array\",\n"
-                   "  \"minItems\": 42,\n"
                    "  \"maxItems\": 42,\n"
                    "  \"items\": {\n"
                    "    \"title\": \"String\",\n"

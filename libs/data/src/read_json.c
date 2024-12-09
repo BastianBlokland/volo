@@ -771,13 +771,20 @@ static void data_read_json_val_inline_array(const ReadCtx* ctx, DataReadResult* 
     return;
   }
   const usize count = json_elem_count(ctx->doc, ctx->val);
-  if (UNLIKELY(count != ctx->meta.fixedCount)) {
+  if (UNLIKELY(count > ctx->meta.fixedCount)) {
     *res = result_fail(
-        DataReadError_MismatchedInlineArrayCount,
-        "Inline-array expects {} entries, got: {}",
+        DataReadError_ArrayLimitExceeded,
+        "Inline-array has a capacity of {} entries, got: {}",
         fmt_int(ctx->meta.fixedCount),
         fmt_int(count));
     return;
+  }
+  if (count != ctx->meta.fixedCount) {
+    if (UNLIKELY(!count && ctx->meta.flags & DataFlags_NotEmpty)) {
+      *res = result_fail(DataReadError_EmptyArrayIsInvalid, "Value cannot be an empty array");
+      return;
+    }
+    mem_set(ctx->data, 0); // TODO: Only clear the unused entries.
   }
   data_read_json_val_elems(ctx, ctx->data.ptr, res);
 }

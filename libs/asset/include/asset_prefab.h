@@ -13,6 +13,7 @@
  */
 
 #define asset_prefab_scripts_max 7
+#define asset_prefab_sets_max 8
 
 typedef enum {
   AssetPrefabShape_Sphere,
@@ -62,7 +63,7 @@ typedef struct {
 } AssetPrefabTraitName;
 
 typedef struct {
-  StringHash sets[8];
+  StringHash sets[asset_prefab_sets_max];
 } AssetPrefabTraitSetMember;
 
 typedef struct {
