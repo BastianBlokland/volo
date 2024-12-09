@@ -20,8 +20,8 @@ typedef struct {
   const DataReg* reg;
   DynString*     out;
   usize          checksumOffset;
-  const DataMeta meta;
-  const Mem      data;
+  DataMeta       meta;
+  Mem            data;
 } WriteCtx;
 
 static void bin_push_u8(const WriteCtx* ctx, const u8 val) {

@@ -17,7 +17,7 @@ typedef struct {
   const DataWriteJsonOpts* opts;
   const DataReg*           reg;
   JsonDoc*                 doc;
-  const DataMeta           meta;
+  DataMeta                 meta;
   Mem                      data;
   bool                     skipOptional;
 } WriteCtx;
@@ -311,16 +311,34 @@ static JsonVal data_write_json_val_inline_array(const WriteCtx* ctx) {
   const JsonVal   jsonArray = json_add_array(ctx->doc);
   const DataDecl* decl      = data_decl(ctx->reg, ctx->meta.type);
 
+  // Determine which entries from the end can be skipped.
+  u16 nonDefaultCount = ctx->meta.fixedCount;
+  for (; nonDefaultCount; --nonDefaultCount) {
+    const u16 idx      = nonDefaultCount - 1;
+    const Mem entryMem = mem_create(bits_ptr_offset(ctx->data.ptr, decl->size * idx), decl->size);
+    if (!mem_all(entryMem, 0)) {
+      break;
+    }
+  }
+
+  // Output entries.
   for (u16 i = 0; i != ctx->meta.fixedCount; ++i) {
-    const WriteCtx elemCtx = {
+    WriteCtx elemCtx = {
         .reg  = ctx->reg,
         .doc  = ctx->doc,
         .meta = data_meta_base(ctx->meta),
         .data = mem_create(bits_ptr_offset(ctx->data.ptr, decl->size * i), decl->size),
     };
+    if (i >= nonDefaultCount) {
+      elemCtx.skipOptional = true;
+      elemCtx.meta.flags |= DataFlags_Opt;
+    }
     const JsonVal elemVal = data_write_json_val_single(&elemCtx);
-    json_add_elem(ctx->doc, jsonArray, elemVal);
+    if (!sentinel_check(elemVal)) {
+      json_add_elem(ctx->doc, jsonArray, elemVal);
+    }
   }
+
   return jsonArray;
 }
 

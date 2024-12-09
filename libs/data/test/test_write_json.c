@@ -163,6 +163,17 @@ spec(write_json) {
         string_lit("[\n  1,\n  2,\n  3,\n  4,\n  5,\n  6,\n  7,\n  8\n]"));
   }
 
+  it("skips default primitive values in an inline-array") {
+    const DataMeta meta =
+        data_meta_t(data_prim_t(i32), .container = DataContainer_InlineArray, .fixedCount = 8);
+
+    i32 val1[8] = {0};
+    test_write(_testCtx, reg, meta, mem_var(val1), string_lit("[]"));
+
+    i32 val2[8] = {1, 0, 3, 4, 0, 0, 0, 0};
+    test_write(_testCtx, reg, meta, mem_var(val2), string_lit("[\n  1,\n  0,\n  3,\n  4\n]"));
+  }
+
   it("can write a heap-array") {
     const DataMeta meta = data_meta_t(data_prim_t(i32), .container = DataContainer_HeapArray);
 
