@@ -9,5 +9,6 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, utils_destroy);
   register_spec(check, utils_equal);
   register_spec(check, utils_hash);
+  register_spec(check, utils_visit);
   register_spec(check, write_json);
 }

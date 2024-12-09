@@ -32,6 +32,7 @@ add_executable(test_lib_data
   test/test_utils_destroy.c
   test/test_utils_equal.c
   test/test_utils_hash.c
+  test/test_utils_visit.c
   test/test_write_json.c
   )
 target_link_libraries(test_lib_data PRIVATE lib_app_check lib_data)
