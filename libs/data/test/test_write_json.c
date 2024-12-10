@@ -346,6 +346,19 @@ spec(write_json) {
     test_write(_testCtx, reg, data_meta_t(t_WriteJsonTestStruct), mem_var(val), string_lit("{}"));
   }
 
+  it("can write an inlined structure") {
+    typedef struct {
+      i32 val;
+    } WriteJsonTestStruct;
+
+    data_reg_struct_t(reg, WriteJsonTestStruct);
+    data_reg_field_t(
+        reg, WriteJsonTestStruct, val, data_prim_t(i32), .flags = DataFlags_InlineField);
+
+    const WriteJsonTestStruct val = {.val = 42};
+    test_write(_testCtx, reg, data_meta_t(t_WriteJsonTestStruct), mem_var(val), string_lit("42"));
+  }
+
   it("can write a union of primitive types") {
     typedef enum {
       WriteJsonUnionTag_Int,
