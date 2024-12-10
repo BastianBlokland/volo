@@ -152,6 +152,19 @@ static void data_write_json_struct_to_obj(const WriteCtx* ctx, const JsonVal jso
 }
 
 static JsonVal data_write_json_struct(const WriteCtx* ctx) {
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+
+  const DataDeclField* inlineField = data_struct_inline_field(&decl->val_struct);
+  if (inlineField) {
+    const WriteCtx fieldCtx = {
+        .reg  = ctx->reg,
+        .doc  = ctx->doc,
+        .meta = inlineField->meta,
+        .data = data_field_mem(ctx->reg, inlineField, ctx->data),
+    };
+    return data_write_json_val(&fieldCtx);
+  }
+
   const JsonVal jsonObj = json_add_object(ctx->doc);
   data_write_json_struct_to_obj(ctx, jsonObj);
   return jsonObj;

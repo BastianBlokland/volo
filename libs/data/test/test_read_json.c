@@ -511,6 +511,35 @@ spec(read_json) {
     test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
   }
 
+  it("can read a inlined structure") {
+    typedef struct {
+      i32 val;
+    } ReadJsonTestStruct;
+
+    data_reg_struct_t(reg, ReadJsonTestStruct);
+    data_reg_field_t(
+        reg, ReadJsonTestStruct, val, data_prim_t(i32), .flags = DataFlags_InlineField);
+
+    const DataMeta meta = data_meta_t(t_ReadJsonTestStruct);
+
+    ReadJsonTestStruct val;
+    test_read_success(_testCtx, reg, string_lit("42"), meta, mem_var(val));
+
+    check_eq_int(val.val, 42);
+
+    test_read_fail(_testCtx, reg, string_lit("{}"), meta, DataReadError_MismatchedType);
+    test_read_fail(_testCtx, reg, string_lit("\"\""), meta, DataReadError_MismatchedType);
+    test_read_fail(
+        _testCtx,
+        reg,
+        string_lit("{"
+                   "\"val\": 42"
+                   "}"),
+        meta,
+        DataReadError_MismatchedType);
+    test_read_fail(_testCtx, reg, string_lit("null"), meta, DataReadError_MismatchedType);
+  }
+
   it("can read a union of primitive types") {
     typedef enum {
       ReadJsonUnionTag_Int,

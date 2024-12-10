@@ -40,6 +40,11 @@ static JsonVal schema_default_struct(const JsonSchemaCtx* ctx, const DataMeta me
   const DataDecl* decl = data_decl(ctx->reg, meta.type);
   diag_assert(decl->kind == DataKind_Struct);
 
+  const DataDeclField* inlineField = data_struct_inline_field(&decl->val_struct);
+  if (inlineField) {
+    return schema_default_type(ctx, inlineField->meta);
+  }
+
   const JsonVal obj = json_add_object(ctx->doc);
   dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
     if (fieldDecl->meta.flags & DataFlags_Opt) {
@@ -321,6 +326,12 @@ static void schema_add_mem(const JsonSchemaCtx* ctx, const JsonVal obj, const Da
 static void schema_add_struct(const JsonSchemaCtx* ctx, const JsonVal obj, const DataMeta meta) {
   const DataDecl* decl = data_decl(ctx->reg, meta.type);
   diag_assert(decl->kind == DataKind_Struct);
+
+  const DataDeclField* inlineField = data_struct_inline_field(&decl->val_struct);
+  if (inlineField) {
+    schema_add_type(ctx, obj, inlineField->meta);
+    return;
+  }
 
   json_add_field_lit(ctx->doc, obj, "type", json_add_string_lit(ctx->doc, "object"));
   json_add_field_lit(ctx->doc, obj, "additionalProperties", json_add_bool(ctx->doc, false));
