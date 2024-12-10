@@ -19,8 +19,8 @@
           "$type": "AssetPrefabTrait_Footstep",
           "jointA": "LeftToeBase",
           "jointB": "RightToeBase",
-          "decalIdA": "vfx/game/footstep_left.decal",
-          "decalIdB": "vfx/game/footstep_right.decal"
+          "decalA": "vfx/game/footstep_left.decal",
+          "decalB": "vfx/game/footstep_right.decal"
         },
         {
           "$type": "AssetPrefabTrait_Health",
@@ -80,8 +80,8 @@
           "$type": "AssetPrefabTrait_Footstep",
           "jointA": "LeftToeBase",
           "jointB": "RightToeBase",
-          "decalIdA": "vfx/game/footstep_left.decal",
-          "decalIdB": "vfx/game/footstep_right.decal"
+          "decalA": "vfx/game/footstep_left.decal",
+          "decalB": "vfx/game/footstep_right.decal"
         },
         {
           "$type": "AssetPrefabTrait_Health",
@@ -141,8 +141,8 @@
           "$type": "AssetPrefabTrait_Footstep",
           "jointA": "LeftToeBase",
           "jointB": "RightToeBase",
-          "decalIdA": "vfx/game/footstep_left.decal",
-          "decalIdB": "vfx/game/footstep_right.decal"
+          "decalA": "vfx/game/footstep_left.decal",
+          "decalB": "vfx/game/footstep_right.decal"
         },
         {
           "$type": "AssetPrefabTrait_Health",
@@ -207,8 +207,8 @@
           "$type": "AssetPrefabTrait_Footstep",
           "jointA": "LeftToeBase",
           "jointB": "RightToeBase",
-          "decalIdA": "vfx/game/footstep_left.decal",
-          "decalIdB": "vfx/game/footstep_right.decal"
+          "decalA": "vfx/game/footstep_left.decal",
+          "decalB": "vfx/game/footstep_right.decal"
         },
         {
           "$type": "AssetPrefabTrait_Health",
@@ -272,8 +272,8 @@
           "$type": "AssetPrefabTrait_Footstep",
           "jointA": "LeftToeBase",
           "jointB": "RightToeBase",
-          "decalIdA": "vfx/game/footstep_left.decal",
-          "decalIdB": "vfx/game/footstep_right.decal"
+          "decalA": "vfx/game/footstep_left.decal",
+          "decalB": "vfx/game/footstep_right.decal"
         },
         {
           "$type": "AssetPrefabTrait_Health",
@@ -610,7 +610,7 @@
             "radius": 0.35
           }
         },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/fire_barrel.vfx" },
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/fire_barrel.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/burning-01.wav" ],
@@ -889,63 +889,63 @@
     {
       "name": "DecalTextVolo",
       "traits": [
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/text_volo.decal" },
+        { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/text_volo.decal" },
         { "$type": "AssetPrefabTrait_Scalable" }
       ]
     },
     {
       "name": "DecalSignRadioactive",
       "traits": [
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/sign_radioactive.decal" },
+        { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/sign_radioactive.decal" },
         { "$type": "AssetPrefabTrait_Scalable" }
       ]
     },
     {
       "name": "DecalRust",
       "traits": [
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/rust.decal" },
+        { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/rust.decal" },
         { "$type": "AssetPrefabTrait_Scalable" }
       ]
     },
     {
       "name": "DecalOilSplatter",
       "traits": [
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/oil_splatter.decal" },
+        { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/oil_splatter.decal" },
         { "$type": "AssetPrefabTrait_Scalable" }
       ]
     },
     {
       "name": "DecalBloodSplatter",
       "traits": [
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/blood_splatter.decal" },
+        { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/blood_splatter.decal" },
         { "$type": "AssetPrefabTrait_Scalable" }
       ]
     },
     {
       "name": "DecalSand",
       "traits": [
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/sand.decal" },
+        { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/sand.decal" },
         { "$type": "AssetPrefabTrait_Scalable" }
       ]
     },
     {
       "name": "DecalScorch",
       "traits": [
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/scorch.decal" },
+        { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/scorch.decal" },
         { "$type": "AssetPrefabTrait_Scalable" }
       ]
     },
     {
       "name": "DecalTarp",
       "traits": [
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/tarp.decal" },
+        { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/tarp.decal" },
         { "$type": "AssetPrefabTrait_Scalable" }
       ]
     },
     {
       "name": "DecalDirt",
       "traits": [
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/dirt.decal" },
+        { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/dirt.decal" },
         { "$type": "AssetPrefabTrait_Scalable" }
       ]
     },
@@ -999,8 +999,8 @@
       "name": "ExplosionMedium", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 10 },
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_medium.decal" },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_medium.vfx" },
+        { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/explosion_medium.decal" },
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/explosion_medium.vfx" },
         {
           "$type": "AssetPrefabTrait_Script",
           "scriptIds": [ "scripts/scene/logic/explosive.script" ],
@@ -1022,8 +1022,8 @@
       "name": "ImpactMissile", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 },
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_medium.decal" },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_medium.vfx" },
+        { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/explosion_medium.decal" },
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/explosion_medium.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/explosion-01.wav" ],
@@ -1036,7 +1036,7 @@
       "name": "ImpactRocket", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 5 },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_small.vfx" },
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/explosion_small.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/explosion-01.wav" ],
@@ -1049,7 +1049,7 @@
       "name": "ImpactShell", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 5 },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_shell.vfx" },
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/explosion_shell.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/explosion-03.wav" ],
@@ -1061,14 +1061,14 @@
     {
       "name": "ImpactRifle", "isVolatile": true,
       "traits": [
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/impact.vfx" },
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/impact.vfx" },
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 1 }
       ]
     },
     {
       "name": "ImpactMelee", "isVolatile": true,
       "traits": [
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/melee_impact.vfx" },
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/melee_impact.vfx" },
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 0.5 },
         {
           "$type": "AssetPrefabTrait_Sound",
@@ -1081,7 +1081,7 @@
     {
       "name": "ImpactTurretGun", "isVolatile": true,
       "traits": [
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/impact.vfx" },
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/impact.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/impact-01.wav" ],
@@ -1095,15 +1095,15 @@
       "name": "DeathInfantry", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 4.5 },
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/blood_splatter.decal" }
+        { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/blood_splatter.decal" }
       ]
     },
     {
       "name": "DeathTurret", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_medium.vfx" },
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_medium.decal" },
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/explosion_medium.vfx" },
+        { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/explosion_medium.decal" },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/explosion-02.wav" ],
@@ -1116,8 +1116,8 @@
       "name": "DeathVehicle", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_big.vfx" },
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_big.decal" },
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/explosion_big.vfx" },
+        { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/explosion_big.decal" },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/explosion-02.wav" ],
@@ -1130,8 +1130,8 @@
       "name": "DeathStructure", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 25 },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/explosion_big.vfx" },
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/explosion_big.decal" },
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/explosion_big.vfx" },
+        { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/explosion_big.decal" },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/explosion-02.wav" ],
@@ -1185,21 +1185,21 @@
       "name": "ProjectileBullet", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 1.5 },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/projectile.vfx" }
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/projectile.vfx" }
       ]
     },
     {
       "name": "ProjectileShell", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 1.5 },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/projectile_shell.vfx" }
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/projectile_shell.vfx" }
       ]
     },
     {
       "name": "ProjectileMissile", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 7 },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/projectile_missile.vfx" },
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/projectile_missile.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/projectile-loop-01.wav" ],
@@ -1213,7 +1213,7 @@
       "name": "ProjectileRocket", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 5 },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/projectile_rocket.vfx" },
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/projectile_rocket.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/projectile-loop-01.wav" ],
@@ -1227,7 +1227,7 @@
       "name": "EffectIndicatorMove", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 1 },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/indicator_move.vfx" },
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/indicator_move.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound", "persistent": true,
           "assetIds": [ "external/sound/indicator-01.wav" ],
@@ -1239,7 +1239,7 @@
       "name": "EffectIndicatorAttack", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 1 },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/indicator_attack.vfx" },
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/indicator_attack.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound", "persistent": true,
           "assetIds": [ "external/sound/indicator-02.wav" ],
@@ -1250,7 +1250,7 @@
     {
       "name": "EffectBurning", "isVolatile": true,
       "traits": [
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/fire_status.vfx" },
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/fire_status.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
           "assetIds": [ "external/sound/burning-03.wav" ],
@@ -1263,15 +1263,15 @@
     {
       "name": "EffectBleeding", "isVolatile": true,
       "traits": [
-        { "$type": "AssetPrefabTrait_Decal", "assetId": "vfx/game/blood_trail.decal" },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/blood_status.vfx" }
+        { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/blood_trail.decal" },
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/blood_status.vfx" }
       ]
     },
     {
       "name": "EffectVeteran", "isVolatile": true,
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 1.25 },
-        { "$type": "AssetPrefabTrait_Vfx", "assetId": "vfx/game/veteran_promote.vfx" },
+        { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/veteran_promote.vfx" },
         { "$type": "AssetPrefabTrait_Sound", "assetIds": [ "external/sound/rank-up-01.wav" ], "gainMin": 2.0 }
       ]
     },
