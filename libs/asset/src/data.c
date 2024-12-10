@@ -1,7 +1,10 @@
+#include "asset_manager.h"
+#include "asset_ref.h"
 #include "core.h"
 #include "core_math.h"
 #include "core_thread.h"
 #include "data_registry.h"
+#include "data_utils.h"
 #include "geo_box_rotated.h"
 #include "geo_capsule.h"
 #include "geo_color.h"
@@ -44,6 +47,7 @@ typedef union {
 ASSERT(sizeof(GeoVector4) == sizeof(GeoVector), "Invalid vector size")
 ASSERT(alignof(GeoVector4) == alignof(GeoVector), "Invalid vector alignment")
 
+DataType g_assetRefType;
 DataType g_assetGeoColorType;
 DataType g_assetGeoVec2Type, g_assetGeoVec3Type, g_assetGeoVec4Type;
 DataType g_assetGeoQuatType;
@@ -100,6 +104,10 @@ static bool asset_data_normalizer_plane(const Mem data) {
 
 static void asset_data_init_types(void) {
   // clang-format off
+  data_reg_struct_t(g_dataReg, AssetRef);
+  data_reg_field_t(g_dataReg, AssetRef, id, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_InlineField);
+  data_reg_comment_t(g_dataReg, AssetRef, "Asset reference");
+
   data_reg_struct_t(g_dataReg, GeoColor);
   data_reg_field_t(g_dataReg, GeoColor, r, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, GeoColor, g, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -177,6 +185,7 @@ static void asset_data_init_types(void) {
 
   // clang-format on
 
+  g_assetRefType           = t_AssetRef;
   g_assetGeoColorType      = t_GeoColor;
   g_assetGeoVec2Type       = t_GeoVector2;
   g_assetGeoVec3Type       = t_GeoVector3;
@@ -233,4 +242,24 @@ void asset_data_init(void) {
     g_init = true;
   }
   thread_spinlock_unlock(&g_initLock);
+}
+
+typedef struct {
+  EcsWorld*         world;
+  AssetManagerComp* manager;
+} AssetDataPatchCtx;
+
+static void asset_data_patch_refs_visitor(void* ctx, const Mem data) {
+  AssetDataPatchCtx* patchCtx = ctx;
+  AssetRef*          refData  = mem_as_t(data, AssetRef);
+  refData->entity             = asset_maybe_lookup(patchCtx->world, patchCtx->manager, refData->id);
+}
+
+void asset_data_patch_refs(
+    EcsWorld* world, AssetManagerComp* manager, const DataMeta meta, const Mem data) {
+  AssetDataPatchCtx ctx = {
+      .world   = world,
+      .manager = manager,
+  };
+  data_visit(g_dataReg, meta, data, g_assetRefType, &ctx, asset_data_patch_refs_visitor);
 }

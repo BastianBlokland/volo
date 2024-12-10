@@ -193,16 +193,17 @@ static void setup_set_member(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitS
 }
 
 static void setup_renderable(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitRenderable* t) {
-  ecs_world_add_t(w, e, SceneRenderableComp, .graphic = t->graphic, .color = geo_color_white);
+  ecs_world_add_t(
+      w, e, SceneRenderableComp, .graphic = t->graphic.entity, .color = geo_color_white);
 }
 
 static void setup_vfx_system(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitVfx* t) {
   ecs_world_add_t(
-      w, e, SceneVfxSystemComp, .asset = t->asset, .alpha = 1.0f, .emitMultiplier = 1.0f);
+      w, e, SceneVfxSystemComp, .asset = t->asset.entity, .alpha = 1.0f, .emitMultiplier = 1.0f);
 }
 
 static void setup_vfx_decal(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitDecal* t) {
-  ecs_world_add_t(w, e, SceneVfxDecalComp, .asset = t->asset, .alpha = 1.0f);
+  ecs_world_add_t(w, e, SceneVfxDecalComp, .asset = t->asset.entity, .alpha = 1.0f);
 }
 
 static void setup_sound(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitSound* t) {
@@ -278,8 +279,8 @@ static void setup_footstep(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
       SceneFootstepComp,
       .jointNames[0]  = t->jointA,
       .jointNames[1]  = t->jointB,
-      .decalAssets[0] = t->decalAssetA,
-      .decalAssets[1] = t->decalAssetB);
+      .decalAssets[0] = t->decalA.entity,
+      .decalAssets[1] = t->decalB.entity);
 }
 
 static void setup_health(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitHealth* t) {
@@ -468,7 +469,7 @@ setup_production(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitProduct
       SceneProductionComp,
       .productSetId    = t->productSetId,
       .flags           = SceneProductFlags_RallyLocalSpace,
-      .rallySoundAsset = t->rallySoundAsset,
+      .rallySoundAsset = t->rallySound.entity,
       .rallySoundGain  = t->rallySoundGain,
       .placementRadius = t->placementRadius,
       .spawnPos        = t->spawnPos,

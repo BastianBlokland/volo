@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_ref.h"
 #include "core_array.h"
 #include "core_time.h"
 #include "data_registry.h"
@@ -67,15 +68,15 @@ typedef struct {
 } AssetPrefabTraitSetMember;
 
 typedef struct {
-  EcsEntityId graphic;
+  AssetRef graphic;
 } AssetPrefabTraitRenderable;
 
 typedef struct {
-  EcsEntityId asset;
+  AssetRef asset;
 } AssetPrefabTraitVfx;
 
 typedef struct {
-  EcsEntityId asset;
+  AssetRef asset;
 } AssetPrefabTraitDecal;
 
 typedef struct {
@@ -115,8 +116,8 @@ typedef struct {
 } AssetPrefabTraitMovement;
 
 typedef struct {
-  StringHash  jointA, jointB;
-  EcsEntityId decalAssetA, decalAssetB;
+  StringHash jointA, jointB;
+  AssetRef   decalA, decalB;
 } AssetPrefabTraitFootstep;
 
 typedef struct {
@@ -173,11 +174,11 @@ typedef struct {
 } AssetPrefabTraitAttachment;
 
 typedef struct {
-  GeoVector   spawnPos, rallyPos;
-  EcsEntityId rallySoundAsset;
-  f32         rallySoundGain;
-  StringHash  productSetId;
-  f32         placementRadius;
+  GeoVector  spawnPos, rallyPos;
+  AssetRef   rallySound;
+  f32        rallySoundGain;
+  StringHash productSetId;
+  f32        placementRadius;
 } AssetPrefabTraitProduction;
 
 typedef struct {
