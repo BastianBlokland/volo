@@ -114,3 +114,9 @@ Mem data_elem_mem(const DataDecl*, const HeapArray*, usize index);
  */
 const DataDeclConst* data_const_from_id(const DataDeclEnum*, StringHash id);
 const DataDeclConst* data_const_from_val(const DataDeclEnum*, i32 val);
+
+/**
+ * Check if the given struct can be inlined into its parent.
+ * NOTE: When struct can be inlined the field to inline is returned, otherwise null is returned.
+ */
+const DataDeclField* data_struct_inline_field(const DataDeclStruct*);

@@ -455,3 +455,14 @@ const DataDeclConst* data_const_from_val(const DataDeclEnum* decl, const i32 val
   }
   return null;
 }
+
+const DataDeclField* data_struct_inline_field(const DataDeclStruct* decl) {
+  if (decl->fields.size != 1) {
+    return null; // Only structs with one field can be inlined.
+  }
+  const DataDeclField* field = dynarray_begin_t(&decl->fields, DataDeclField);
+  if (field->meta.flags & DataFlags_InlineField) {
+    return field;
+  }
+  return null; // Field was not marked as inlinable.
+}
