@@ -1,3 +1,4 @@
+#include "asset_ref.h"
 #include "core.h"
 #include "core_math.h"
 #include "core_thread.h"
@@ -44,6 +45,7 @@ typedef union {
 ASSERT(sizeof(GeoVector4) == sizeof(GeoVector), "Invalid vector size")
 ASSERT(alignof(GeoVector4) == alignof(GeoVector), "Invalid vector alignment")
 
+DataType g_assetRefType;
 DataType g_assetGeoColorType;
 DataType g_assetGeoVec2Type, g_assetGeoVec3Type, g_assetGeoVec4Type;
 DataType g_assetGeoQuatType;
@@ -100,6 +102,10 @@ static bool asset_data_normalizer_plane(const Mem data) {
 
 static void asset_data_init_types(void) {
   // clang-format off
+  data_reg_struct_t(g_dataReg, AssetRef);
+  data_reg_field_t(g_dataReg, AssetRef, id, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_comment_t(g_dataReg, AssetRef, "Asset reference");
+
   data_reg_struct_t(g_dataReg, GeoColor);
   data_reg_field_t(g_dataReg, GeoColor, r, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, GeoColor, g, data_prim_t(f32), .flags = DataFlags_Opt);

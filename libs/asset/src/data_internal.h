@@ -1,6 +1,5 @@
 #pragma once
-#include "asset_data.h"
-#include "data_registry.h"
+#include "data.h"
 
 void asset_data_init_arraytex(void);
 void asset_data_init_atlas(void);
@@ -27,6 +26,7 @@ void asset_data_init_tex(void);
 void asset_data_init_vfx(void);
 void asset_data_init_weapon(void);
 
+extern DataType g_assetRefType;
 extern DataType g_assetGeoColorType;
 extern DataType g_assetGeoVec2Type, g_assetGeoVec3Type, g_assetGeoVec4Type;
 extern DataType g_assetGeoQuatType;
