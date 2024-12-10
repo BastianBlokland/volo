@@ -349,6 +349,32 @@ spec(jsonschema) {
     // clang-format on
   }
 
+  it("supports inline structures") {
+    typedef struct {
+      bool val;
+    } TestStruct;
+
+    data_reg_struct_t(reg, TestStruct);
+    data_reg_field_t(reg, TestStruct, val, data_prim_t(bool), .flags = DataFlags_InlineField);
+
+    const DataMeta meta = data_meta_t(t_TestStruct);
+
+    test_jsonschema_write(
+        _testCtx,
+        reg,
+        meta,
+        string_lit("{\n"
+                   "  \"title\": \"TestStruct\",\n"
+                   "  \"$ref\": \"#/$defs/TestStruct\",\n"
+                   "  \"$defs\": {\n"
+                   "    \"TestStruct\": {\n"
+                   "      \"title\": \"bool\",\n"
+                   "      \"type\": \"boolean\"\n"
+                   "    }\n"
+                   "  }\n"
+                   "}"));
+  }
+
   it("supports opaque types") {
     typedef struct {
       ALIGNAS(16)
