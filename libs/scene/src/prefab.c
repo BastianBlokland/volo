@@ -279,8 +279,8 @@ static void setup_footstep(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
       SceneFootstepComp,
       .jointNames[0]  = t->jointA,
       .jointNames[1]  = t->jointB,
-      .decalAssets[0] = t->decalAssetA,
-      .decalAssets[1] = t->decalAssetB);
+      .decalAssets[0] = t->decalA.entity,
+      .decalAssets[1] = t->decalB.entity);
 }
 
 static void setup_health(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitHealth* t) {

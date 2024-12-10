@@ -116,8 +116,8 @@ typedef struct {
 } AssetPrefabTraitMovement;
 
 typedef struct {
-  StringHash  jointA, jointB;
-  EcsEntityId decalAssetA, decalAssetB;
+  StringHash jointA, jointB;
+  AssetRef   decalA, decalB;
 } AssetPrefabTraitFootstep;
 
 typedef struct {

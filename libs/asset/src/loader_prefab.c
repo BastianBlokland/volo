@@ -76,11 +76,6 @@ typedef struct {
 } AssetPrefabTraitSoundDef;
 
 typedef struct {
-  String jointA, jointB;
-  String decalIdA, decalIdB;
-} AssetPrefabTraitFootstepDef;
-
-typedef struct {
   bool             navBlocker;
   AssetPrefabShape shape;
 } AssetPrefabTraitCollisionDef;
@@ -112,7 +107,7 @@ typedef struct {
     AssetPrefabTraitLightAmbient  data_lightAmbient;
     AssetPrefabTraitLifetime      data_lifetime;
     AssetPrefabTraitMovement      data_movement;
-    AssetPrefabTraitFootstepDef   data_footstep;
+    AssetPrefabTraitFootstep      data_footstep;
     AssetPrefabTraitHealth        data_health;
     AssetPrefabTraitAttack        data_attack;
     AssetPrefabTraitCollisionDef  data_collision;
@@ -306,12 +301,7 @@ static void prefab_build(
       outTrait->data_movement = traitDef->data_movement;
       break;
     case AssetPrefabTrait_Footstep:
-      outTrait->data_footstep = (AssetPrefabTraitFootstep){
-          .jointA      = stringtable_add(g_stringtable, traitDef->data_footstep.jointA),
-          .jointB      = stringtable_add(g_stringtable, traitDef->data_footstep.jointB),
-          .decalAssetA = asset_lookup(ctx->world, manager, traitDef->data_footstep.decalIdA),
-          .decalAssetB = asset_lookup(ctx->world, manager, traitDef->data_footstep.decalIdB),
-      };
+      outTrait->data_footstep = traitDef->data_footstep;
       break;
     case AssetPrefabTrait_Health:
       outTrait->data_health = traitDef->data_health;
@@ -675,11 +665,11 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitMovement, wheeledAcceleration, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_normalizer_t(g_dataReg, AssetPrefabTraitMovement, prefab_data_normalizer_movement);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitFootstepDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitFootstepDef, jointA, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitFootstepDef, jointB, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitFootstepDef, decalIdA, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitFootstepDef, decalIdB, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitFootstep);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitFootstep, jointA, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitFootstep, jointB, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitFootstep, decalA, g_assetRefType);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitFootstep, decalB, g_assetRefType);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitHealth);
   data_reg_field_t(g_dataReg, AssetPrefabTraitHealth, amount, data_prim_t(f32), .flags = DataFlags_NotEmpty);
@@ -746,7 +736,7 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_LightAmbient, data_lightAmbient, t_AssetPrefabTraitLightAmbient);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Lifetime, data_lifetime, t_AssetPrefabTraitLifetime);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Movement, data_movement, t_AssetPrefabTraitMovement);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Footstep, data_footstep, t_AssetPrefabTraitFootstepDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Footstep, data_footstep, t_AssetPrefabTraitFootstep);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Health, data_health, t_AssetPrefabTraitHealth);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Attack, data_attack, t_AssetPrefabTraitAttack);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Collision, data_collision, t_AssetPrefabTraitCollisionDef);
