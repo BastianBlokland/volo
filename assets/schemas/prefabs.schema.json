@@ -62,9 +62,9 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Renderable" },
-            "graphicId": { "title": "String", "type": "string", "minLength": 1 }
+            "graphic": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" }
           },
-          "required": [ "$type", "graphicId" ]
+          "required": [ "$type", "graphic" ]
         },
         {
           "type": "object",
@@ -313,7 +313,7 @@
       "defaultSnippets": [
         { "label": "New AssetPrefabTrait_Name", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Name\",\n  \"name\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_SetMember", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_SetMember\",\n  \"sets\": [\n    \"\",\n    \"\",\n    \"\",\n    \"\",\n    \"\",\n    \"\",\n    \"\",\n    \"\"\n  ]\n}" },
-        { "label": "New AssetPrefabTrait_Renderable", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Renderable\",\n  \"graphicId\": \"placeholder\"\n}" },
+        { "label": "New AssetPrefabTrait_Renderable", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Renderable\",\n  \"graphic\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Vfx", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Vfx\",\n  \"assetId\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Decal", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Decal\",\n  \"assetId\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Sound", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Sound\",\n  \"assetIds\": [\n    \"\"\n  ]\n}" },
@@ -336,6 +336,7 @@
         { "label": "New AssetPrefabTrait_Scalable", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Scalable\"\n}" }
       ]
     },
+    "AssetRef": { "title": "String", "type": "string", "minLength": 1 },
     "GeoColor": {
       "type": "object",
       "additionalProperties": false,

@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_ref.h"
 #include "core_array.h"
 #include "core_time.h"
 #include "data_registry.h"
@@ -67,7 +68,7 @@ typedef struct {
 } AssetPrefabTraitSetMember;
 
 typedef struct {
-  EcsEntityId graphic;
+  AssetRef graphic;
 } AssetPrefabTraitRenderable;
 
 typedef struct {

@@ -5,7 +5,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Assault Ranger" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_rifle.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/infantry_rifle.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
         {
           "$type": "AssetPrefabTrait_Movement",
@@ -66,7 +66,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Rocket Ranger" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_rocket.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/infantry_rocket.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
         {
           "$type": "AssetPrefabTrait_Movement",
@@ -127,7 +127,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Flame Ranger" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_flame.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/infantry_flame.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
         {
           "$type": "AssetPrefabTrait_Movement",
@@ -193,7 +193,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "V'ato Soldier" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_monster.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/infantry_monster.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 10 },
         {
           "$type": "AssetPrefabTrait_Movement",
@@ -258,7 +258,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Test Infantry" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/infantry_rifle.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/infantry_rifle.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
         {
           "$type": "AssetPrefabTrait_Movement",
@@ -307,7 +307,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Sheppard" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "vehicle" ] },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/vehicle_tank.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/vehicle_tank.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 40 },
         {
           "$type": "AssetPrefabTrait_Movement",
@@ -377,7 +377,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Guardian" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "structure" ] },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/structure_turret_gun.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/structure_turret_gun.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
         {
           "$type": "AssetPrefabTrait_Health",
@@ -422,7 +422,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Hawk" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "structure" ] },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/structure_turret_missile.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/structure_turret_missile.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
         {
           "$type": "AssetPrefabTrait_Health",
@@ -467,7 +467,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Barracks" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "structure" ] },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/structure_barracks.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/structure_barracks.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 20 },
         {
           "$type": "AssetPrefabTrait_Production",
@@ -505,7 +505,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Factory" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "structure" ] },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/structure_factory.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/structure_factory.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
         {
           "$type": "AssetPrefabTrait_Production",
@@ -544,7 +544,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Medic Tent" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "structure" ] },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/structure_hospital.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/structure_hospital.graphic" },
         { "$type": "AssetPrefabTrait_Vision", "radius": 10, "showInHud": true },
         {
           "$type": "AssetPrefabTrait_Health",
@@ -577,13 +577,13 @@
     {
       "name": "PropFloor",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_floor_panel.graphic" }
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_floor_panel.graphic" }
       ]
     },
     {
       "name": "PropFence",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_fence.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_fence.graphic" },
         { "$type": "AssetPrefabTrait_Scalable" },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -599,7 +599,7 @@
     {
       "name": "PropBarrel",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_barrel.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_barrel.graphic" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -625,7 +625,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Barrel" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible" ] },
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_barrel_explosive.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_barrel_explosive.graphic" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -649,7 +649,7 @@
     {
       "name": "PropGate",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_gate.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_gate.graphic" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "gate" ] },
         {
           "$type": "AssetPrefabTrait_Script",
@@ -663,7 +663,7 @@
     {
       "name": "PropPressurePlate",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_pressure_plate.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_pressure_plate.graphic" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "switch" ] },
         { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/scene/logic/pressure_plate.script" ] }
       ]
@@ -671,7 +671,7 @@
     {
       "name": "PropFloorLight",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_floor_light.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_floor_light.graphic" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "light" ] },
         { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/scene/logic/light.script" ] }
       ]
@@ -679,7 +679,7 @@
     {
       "name": "PropTree",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_tree.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_tree.graphic" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -695,13 +695,13 @@
     {
       "name": "PropPlant",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_plant.graphic" }
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_plant.graphic" }
       ]
     },
     {
       "name": "PropWreck",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_wreck.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_wreck.graphic" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -716,7 +716,7 @@
     {
       "name": "PropTower",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_tower.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_tower.graphic" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -731,7 +731,7 @@
     {
       "name": "PropContainer",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_container.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_container.graphic" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -746,7 +746,7 @@
     {
       "name": "PropCrate",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_crate.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_crate.graphic" },
         { "$type": "AssetPrefabTrait_Scalable" },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -762,7 +762,7 @@
     {
       "name": "PropTent",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_tent.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_tent.graphic" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -777,7 +777,7 @@
     {
       "name": "PropGasTank",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_gas_tank.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_gas_tank.graphic" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -792,7 +792,7 @@
     {
       "name": "PropTires",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_tires.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_tires.graphic" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -807,7 +807,7 @@
     {
       "name": "PropRock",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_rock.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_rock.graphic" },
         { "$type": "AssetPrefabTrait_Scalable" },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -823,7 +823,7 @@
     {
       "name": "PropAlarm",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_alarm.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_alarm.graphic" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -844,7 +844,7 @@
     {
       "name": "PropTrafficSignStop",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_traffic_sign_stop.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_traffic_sign_stop.graphic" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -859,7 +859,7 @@
     {
       "name": "PropTrafficCone",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_traffic_cone.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_traffic_cone.graphic" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
@@ -874,7 +874,7 @@
     {
       "name": "PropTrafficBlockade",
       "traits": [
-        { "$type": "AssetPrefabTrait_Renderable", "graphicId": "graphics/game/prop_traffic_blockade.graphic" },
+        { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_traffic_blockade.graphic" },
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
