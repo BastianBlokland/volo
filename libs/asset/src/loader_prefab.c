@@ -69,10 +69,6 @@ typedef struct {
 
 typedef struct {
   String assetId;
-} AssetPrefabTraitVfxDef;
-
-typedef struct {
-  String assetId;
 } AssetPrefabTraitDecalDef;
 
 typedef struct {
@@ -112,7 +108,7 @@ typedef struct {
     AssetPrefabTraitName          data_name;
     AssetPrefabTraitSetMember     data_setMember;
     AssetPrefabTraitRenderable    data_renderable;
-    AssetPrefabTraitVfxDef        data_vfx;
+    AssetPrefabTraitVfx           data_vfx;
     AssetPrefabTraitDecalDef      data_decal;
     AssetPrefabTraitSoundDef      data_sound;
     AssetPrefabTraitLightPoint    data_lightPoint;
@@ -271,9 +267,7 @@ static void prefab_build(
       outTrait->data_renderable = traitDef->data_renderable;
       break;
     case AssetPrefabTrait_Vfx:
-      outTrait->data_vfx = (AssetPrefabTraitVfx){
-          .asset = asset_lookup(ctx->world, manager, traitDef->data_vfx.assetId),
-      };
+      outTrait->data_vfx = traitDef->data_vfx;
       break;
     case AssetPrefabTrait_Decal:
       outTrait->data_decal = (AssetPrefabTraitDecal){
@@ -645,8 +639,8 @@ void asset_data_init_prefab(void) {
   data_reg_struct_t(g_dataReg, AssetPrefabTraitRenderable);
   data_reg_field_t(g_dataReg, AssetPrefabTraitRenderable, graphic, g_assetRefType);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitVfxDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitVfxDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitVfx);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitVfx, asset, g_assetRefType);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitDecalDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitDecalDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
@@ -750,7 +744,7 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Name, data_name, t_AssetPrefabTraitName);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_SetMember, data_setMember, t_AssetPrefabTraitSetMember);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderable);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Vfx, data_vfx, t_AssetPrefabTraitVfxDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Vfx, data_vfx, t_AssetPrefabTraitVfx);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Decal, data_decal, t_AssetPrefabTraitDecalDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Sound, data_sound, t_AssetPrefabTraitSoundDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_LightPoint, data_lightPoint, t_AssetPrefabTraitLightPoint);

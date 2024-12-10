@@ -199,7 +199,7 @@ static void setup_renderable(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitR
 
 static void setup_vfx_system(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitVfx* t) {
   ecs_world_add_t(
-      w, e, SceneVfxSystemComp, .asset = t->asset, .alpha = 1.0f, .emitMultiplier = 1.0f);
+      w, e, SceneVfxSystemComp, .asset = t->asset.entity, .alpha = 1.0f, .emitMultiplier = 1.0f);
 }
 
 static void setup_vfx_decal(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitDecal* t) {

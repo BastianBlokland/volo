@@ -72,7 +72,7 @@ typedef struct {
 } AssetPrefabTraitRenderable;
 
 typedef struct {
-  EcsEntityId asset;
+  AssetRef asset;
 } AssetPrefabTraitVfx;
 
 typedef struct {
