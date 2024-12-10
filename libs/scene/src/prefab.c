@@ -469,7 +469,7 @@ setup_production(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitProduct
       SceneProductionComp,
       .productSetId    = t->productSetId,
       .flags           = SceneProductFlags_RallyLocalSpace,
-      .rallySoundAsset = t->rallySoundAsset,
+      .rallySoundAsset = t->rallySound.entity,
       .rallySoundGain  = t->rallySoundGain,
       .placementRadius = t->placementRadius,
       .spawnPos        = t->spawnPos,

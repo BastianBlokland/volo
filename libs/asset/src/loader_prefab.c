@@ -86,38 +86,30 @@ typedef struct {
 } AssetPrefabTraitScriptDef;
 
 typedef struct {
-  GeoVector spawnPos, rallyPos;
-  String    rallySoundId;
-  f32       rallySoundGain;
-  String    productSetId;
-  f32       placementRadius;
-} AssetPrefabTraitProductionDef;
-
-typedef struct {
   AssetPrefabTraitType type;
   union {
-    AssetPrefabTraitName          data_name;
-    AssetPrefabTraitSetMember     data_setMember;
-    AssetPrefabTraitRenderable    data_renderable;
-    AssetPrefabTraitVfx           data_vfx;
-    AssetPrefabTraitDecal         data_decal;
-    AssetPrefabTraitSoundDef      data_sound;
-    AssetPrefabTraitLightPoint    data_lightPoint;
-    AssetPrefabTraitLightDir      data_lightDir;
-    AssetPrefabTraitLightAmbient  data_lightAmbient;
-    AssetPrefabTraitLifetime      data_lifetime;
-    AssetPrefabTraitMovement      data_movement;
-    AssetPrefabTraitFootstep      data_footstep;
-    AssetPrefabTraitHealth        data_health;
-    AssetPrefabTraitAttack        data_attack;
-    AssetPrefabTraitCollisionDef  data_collision;
-    AssetPrefabTraitScriptDef     data_script;
-    AssetPrefabTraitBark          data_bark;
-    AssetPrefabTraitLocation      data_location;
-    AssetPrefabTraitStatus        data_status;
-    AssetPrefabTraitVision        data_vision;
-    AssetPrefabTraitAttachment    data_attachment;
-    AssetPrefabTraitProductionDef data_production;
+    AssetPrefabTraitName         data_name;
+    AssetPrefabTraitSetMember    data_setMember;
+    AssetPrefabTraitRenderable   data_renderable;
+    AssetPrefabTraitVfx          data_vfx;
+    AssetPrefabTraitDecal        data_decal;
+    AssetPrefabTraitSoundDef     data_sound;
+    AssetPrefabTraitLightPoint   data_lightPoint;
+    AssetPrefabTraitLightDir     data_lightDir;
+    AssetPrefabTraitLightAmbient data_lightAmbient;
+    AssetPrefabTraitLifetime     data_lifetime;
+    AssetPrefabTraitMovement     data_movement;
+    AssetPrefabTraitFootstep     data_footstep;
+    AssetPrefabTraitHealth       data_health;
+    AssetPrefabTraitAttack       data_attack;
+    AssetPrefabTraitCollisionDef data_collision;
+    AssetPrefabTraitScriptDef    data_script;
+    AssetPrefabTraitBark         data_bark;
+    AssetPrefabTraitLocation     data_location;
+    AssetPrefabTraitStatus       data_status;
+    AssetPrefabTraitVision       data_vision;
+    AssetPrefabTraitAttachment   data_attachment;
+    AssetPrefabTraitProduction   data_production;
   };
 } AssetPrefabTraitDef;
 
@@ -350,18 +342,9 @@ static void prefab_build(
     case AssetPrefabTrait_Attachment:
       outTrait->data_attachment = traitDef->data_attachment;
       break;
-    case AssetPrefabTrait_Production: {
-      const String rallySoundId   = traitDef->data_production.rallySoundId;
-      const f32    rallySoundGain = traitDef->data_production.rallySoundGain;
-      outTrait->data_production   = (AssetPrefabTraitProduction){
-            .spawnPos        = traitDef->data_production.spawnPos,
-            .rallyPos        = traitDef->data_production.rallyPos,
-            .productSetId    = string_hash(traitDef->data_production.productSetId),
-            .rallySoundAsset = asset_maybe_lookup(ctx->world, ctx->assetManager, rallySoundId),
-            .rallySoundGain  = rallySoundGain <= 0 ? 1 : rallySoundGain,
-            .placementRadius = traitDef->data_production.placementRadius,
-      };
-    } break;
+    case AssetPrefabTrait_Production:
+      outTrait->data_production = traitDef->data_production;
+      break;
     case AssetPrefabTrait_Scalable:
     case AssetPrefabTrait_Count:
       break;
@@ -572,6 +555,12 @@ static bool prefab_data_normalizer_movement(const Mem data) {
   return true;
 }
 
+static bool prefab_data_normalizer_production(const Mem data) {
+  AssetPrefabTraitProduction* prod = mem_as_t(data, AssetPrefabTraitProduction);
+  prod->rallySoundGain             = prod->rallySoundGain <= 0.0f ? 1.0f : prod->rallySoundGain;
+  return true;
+}
+
 void asset_data_init_prefab(void) {
   prefab_set_flags_init();
 
@@ -716,13 +705,14 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitAttachment, offset, g_assetGeoVec3Type, .flags = DataFlags_Opt);
   data_reg_normalizer_t(g_dataReg, AssetPrefabTraitAttachment, prefab_data_normalizer_attachment);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitProductionDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitProductionDef, spawnPos, g_assetGeoVec3Type, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitProductionDef, rallyPos, g_assetGeoVec3Type, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitProductionDef, rallySoundId, data_prim_t(String), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitProductionDef, rallySoundGain, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitProductionDef, productSetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitProductionDef, placementRadius, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitProduction);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitProduction, spawnPos, g_assetGeoVec3Type, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitProduction, rallyPos, g_assetGeoVec3Type, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitProduction, rallySound, g_assetRefType, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitProduction, rallySoundGain, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitProduction, productSetId, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitProduction, placementRadius, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_normalizer_t(g_dataReg, AssetPrefabTraitProduction, prefab_data_normalizer_production);
 
   data_reg_union_t(g_dataReg, AssetPrefabTraitDef, type);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Name, data_name, t_AssetPrefabTraitName);
@@ -746,7 +736,7 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Status, data_status, t_AssetPrefabTraitStatus);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Vision, data_vision, t_AssetPrefabTraitVision);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Attachment, data_attachment, t_AssetPrefabTraitAttachment);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Production, data_production, t_AssetPrefabTraitProductionDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Production, data_production, t_AssetPrefabTraitProduction);
   data_reg_choice_empty(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Scalable);
 
   data_reg_struct_t(g_dataReg, AssetPrefabDef);
