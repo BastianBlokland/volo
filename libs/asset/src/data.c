@@ -105,7 +105,7 @@ static bool asset_data_normalizer_plane(const Mem data) {
 static void asset_data_init_types(void) {
   // clang-format off
   data_reg_struct_t(g_dataReg, AssetRef);
-  data_reg_field_t(g_dataReg, AssetRef, id, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetRef, id, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_InlineField);
   data_reg_comment_t(g_dataReg, AssetRef, "Asset reference");
 
   data_reg_struct_t(g_dataReg, GeoColor);
@@ -185,6 +185,7 @@ static void asset_data_init_types(void) {
 
   // clang-format on
 
+  g_assetRefType           = t_AssetRef;
   g_assetGeoColorType      = t_GeoColor;
   g_assetGeoVec2Type       = t_GeoVector2;
   g_assetGeoVec3Type       = t_GeoVector3;
