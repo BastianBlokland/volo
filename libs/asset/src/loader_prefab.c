@@ -508,6 +508,9 @@ ecs_system_define(LoadPrefabAssetSys) {
       goto Error;
     }
 
+    // Resolve asset references.
+    asset_data_patch_refs(world, manager, g_assetPrefabDefMeta, mem_var(def));
+
     BuildCtx buildCtx = {
         .world        = world,
         .assetManager = manager,
