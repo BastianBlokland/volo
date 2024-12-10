@@ -76,7 +76,7 @@ typedef struct {
 } AssetPrefabTraitVfx;
 
 typedef struct {
-  EcsEntityId asset;
+  AssetRef asset;
 } AssetPrefabTraitDecal;
 
 typedef struct {

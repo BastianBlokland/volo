@@ -80,9 +80,9 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Decal" },
-            "assetId": { "title": "String", "type": "string", "minLength": 1 }
+            "asset": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" }
           },
-          "required": [ "$type", "assetId" ]
+          "required": [ "$type", "asset" ]
         },
         {
           "type": "object",
@@ -315,7 +315,7 @@
         { "label": "New AssetPrefabTrait_SetMember", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_SetMember\",\n  \"sets\": [\n    \"\",\n    \"\",\n    \"\",\n    \"\",\n    \"\",\n    \"\",\n    \"\",\n    \"\"\n  ]\n}" },
         { "label": "New AssetPrefabTrait_Renderable", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Renderable\",\n  \"graphic\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Vfx", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Vfx\",\n  \"asset\": \"placeholder\"\n}" },
-        { "label": "New AssetPrefabTrait_Decal", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Decal\",\n  \"assetId\": \"placeholder\"\n}" },
+        { "label": "New AssetPrefabTrait_Decal", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Decal\",\n  \"asset\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Sound", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Sound\",\n  \"assetIds\": [\n    \"\"\n  ]\n}" },
         { "label": "New AssetPrefabTrait_LightPoint", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightPoint\",\n  \"radiance\": {},\n  \"radius\": 1\n}" },
         { "label": "New AssetPrefabTrait_LightDir", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightDir\",\n  \"radiance\": {}\n}" },

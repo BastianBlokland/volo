@@ -218,7 +218,7 @@ static void prefab_create_preview(const PrefabPanelContext* ctx, const GeoVector
     ecs_world_add_t(ctx->world, e, SceneRenderableComp, .graphic = graphic, .color = color);
   }
   if (decal) {
-    const EcsEntityId asset = decal->data_decal.asset;
+    const EcsEntityId asset = decal->data_decal.asset.entity;
     ecs_world_add_t(ctx->world, e, SceneVfxDecalComp, .asset = asset, .alpha = 0.5f);
   }
 

@@ -203,7 +203,7 @@ static void setup_vfx_system(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitV
 }
 
 static void setup_vfx_decal(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitDecal* t) {
-  ecs_world_add_t(w, e, SceneVfxDecalComp, .asset = t->asset, .alpha = 1.0f);
+  ecs_world_add_t(w, e, SceneVfxDecalComp, .asset = t->asset.entity, .alpha = 1.0f);
 }
 
 static void setup_sound(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitSound* t) {
