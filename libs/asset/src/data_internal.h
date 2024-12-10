@@ -1,4 +1,5 @@
 #pragma once
+#include "asset.h"
 #include "data.h"
 
 void asset_data_init_arraytex(void);
@@ -36,3 +37,5 @@ extern DataType g_assetGeoSphereType;
 extern DataType g_assetGeoCapsuleType;
 extern DataType g_assetGeoMatrixType;
 extern DataType g_assetGeoPlaneType;
+
+void asset_data_patch_refs(EcsWorld*, AssetManagerComp*, DataMeta, Mem data);

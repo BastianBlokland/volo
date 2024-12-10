@@ -1,8 +1,10 @@
+#include "asset_manager.h"
 #include "asset_ref.h"
 #include "core.h"
 #include "core_math.h"
 #include "core_thread.h"
 #include "data_registry.h"
+#include "data_utils.h"
 #include "geo_box_rotated.h"
 #include "geo_capsule.h"
 #include "geo_color.h"
@@ -239,4 +241,24 @@ void asset_data_init(void) {
     g_init = true;
   }
   thread_spinlock_unlock(&g_initLock);
+}
+
+typedef struct {
+  EcsWorld*         world;
+  AssetManagerComp* manager;
+} AssetDataPatchCtx;
+
+static void asset_data_patch_refs_visitor(void* ctx, const Mem data) {
+  AssetDataPatchCtx* patchCtx = ctx;
+  AssetRef*          refData  = mem_as_t(data, AssetRef);
+  refData->entity             = asset_maybe_lookup(patchCtx->world, patchCtx->manager, refData->id);
+}
+
+void asset_data_patch_refs(
+    EcsWorld* world, AssetManagerComp* manager, const DataMeta meta, const Mem data) {
+  AssetDataPatchCtx ctx = {
+      .world   = world,
+      .manager = manager,
+  };
+  data_visit(g_dataReg, meta, data, g_assetRefType, &ctx, asset_data_patch_refs_visitor);
 }
