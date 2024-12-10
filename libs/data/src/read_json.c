@@ -305,22 +305,6 @@ static void data_read_json_mem(const ReadCtx* ctx, DataReadResult* res) {
 
 static void data_read_json_struct(const ReadCtx* ctx, DataReadResult* res, u32 fieldsRead) {
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
-
-  const DataDeclField* inlineField = data_struct_inline_field(&decl->val_struct);
-  if (inlineField) {
-    const ReadCtx inlineCtx = {
-        .reg         = ctx->reg,
-        .alloc       = ctx->alloc,
-        .allocations = ctx->allocations,
-        .doc         = ctx->doc,
-        .val         = ctx->val,
-        .meta        = inlineField->meta,
-        .data        = data_field_mem(ctx->reg, inlineField, ctx->data),
-    };
-    data_read_json_val(&inlineCtx, res);
-    return;
-  }
-
   if (UNLIKELY(!data_check_type(ctx, JsonType_Object, res))) {
     return;
   }
@@ -666,7 +650,8 @@ static void data_read_json_opaque(const ReadCtx* ctx, DataReadResult* res) {
 }
 
 static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
-  switch (data_decl(ctx->reg, ctx->meta.type)->kind) {
+  const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
+  switch (decl->kind) {
   case DataKind_bool:
     data_read_json_bool(ctx, res);
     goto End;
@@ -699,6 +684,20 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
     data_read_json_mem(ctx, res);
     goto End;
   case DataKind_Struct: {
+    const DataDeclField* inlineField = data_struct_inline_field(&decl->val_struct);
+    if (inlineField) {
+      const ReadCtx inlineCtx = {
+          .reg         = ctx->reg,
+          .alloc       = ctx->alloc,
+          .allocations = ctx->allocations,
+          .doc         = ctx->doc,
+          .val         = ctx->val,
+          .meta        = inlineField->meta,
+          .data        = data_field_mem(ctx->reg, inlineField, ctx->data),
+      };
+      data_read_json_val(&inlineCtx, res);
+      return;
+    }
     const u32 fieldsRead = 0;
     data_read_json_struct(ctx, res, fieldsRead);
     goto End;
