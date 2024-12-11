@@ -49,21 +49,16 @@ static AssetPrefabFlags prefab_set_flags(const StringHash set) {
 }
 
 typedef struct {
-  String assetId;
-  bool   persistent;
-} AssetPrefabValueSoundDef;
-
-typedef struct {
   String               name;
   AssetPrefabValueType type;
   union {
-    f64                      data_number;
-    bool                     data_bool;
-    GeoVector                data_vector3;
-    GeoColor                 data_color;
-    String                   data_string;
-    String                   data_asset;
-    AssetPrefabValueSoundDef data_sound;
+    f64                   data_number;
+    bool                  data_bool;
+    GeoVector             data_vector3;
+    GeoColor              data_color;
+    String                data_string;
+    String                data_asset;
+    AssetPrefabValueSound data_sound;
   };
 } AssetPrefabValueDef;
 
@@ -177,9 +172,8 @@ static AssetPrefabValue prefab_build_value(BuildCtx* ctx, const AssetPrefabValue
     res.data_asset = asset_lookup(ctx->world, ctx->assetManager, def->data_asset);
     break;
   case AssetPrefabValue_Sound:
-    res.type             = AssetPrefabValue_Sound;
-    res.data_sound.asset = asset_lookup(ctx->world, ctx->assetManager, def->data_sound.assetId);
-    res.data_sound.persistent = def->data_sound.persistent;
+    res.type       = AssetPrefabValue_Sound;
+    res.data_sound = def->data_sound;
     break;
   default:
     diag_crash_msg("Unsupported prefab value");
@@ -572,9 +566,9 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabShape, AssetPrefabShape_Capsule, data_capsule, g_assetGeoCapsuleType);
   data_reg_choice_t(g_dataReg, AssetPrefabShape, AssetPrefabShape_Box, data_box, g_assetGeoBoxRotatedType);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabValueSoundDef);
-  data_reg_field_t(g_dataReg, AssetPrefabValueSoundDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabValueSoundDef, persistent, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_struct_t(g_dataReg, AssetPrefabValueSound);
+  data_reg_field_t(g_dataReg, AssetPrefabValueSound, asset, g_assetRefType, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabValueSound, persistent, data_prim_t(bool), .flags = DataFlags_Opt);
 
   data_reg_union_t(g_dataReg, AssetPrefabValueDef, type);
   data_reg_union_name_t(g_dataReg, AssetPrefabValueDef, name);
@@ -584,7 +578,7 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Color, data_color, g_assetGeoColorType);
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_String, data_string, data_prim_t(String), .flags = DataFlags_Intern);
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Asset, data_asset, data_prim_t(String));
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Sound, data_sound, t_AssetPrefabValueSoundDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Sound, data_sound, t_AssetPrefabValueSound);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitName);
   data_reg_field_t(g_dataReg, AssetPrefabTraitName, name, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);

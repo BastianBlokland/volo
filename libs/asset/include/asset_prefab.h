@@ -244,8 +244,8 @@ typedef enum {
 } AssetPrefabValueType;
 
 typedef struct {
-  EcsEntityId asset;
-  bool        persistent; // Pre-load the asset and keep it in memory.
+  AssetRef asset;
+  bool     persistent; // Pre-load the asset and keep it in memory.
 } AssetPrefabValueSound;
 
 typedef struct {

@@ -496,10 +496,10 @@
           "properties": {
             "$type": { "const": "AssetPrefabValue_Sound" },
             "$name": { "type": "string" },
-            "assetId": { "title": "String", "type": "string", "minLength": 1 },
+            "asset": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" },
             "persistent": { "title": "bool", "type": "boolean" }
           },
-          "required": [ "$type", "$name", "assetId" ]
+          "required": [ "$type", "$name", "asset" ]
         }
       ],
       "defaultSnippets": [
@@ -509,7 +509,7 @@
         { "label": "New AssetPrefabValue_Color", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Color\",\n  \"\\$name\": \"MyUnion\"\n}" },
         { "label": "New AssetPrefabValue_String", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_String\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}" },
         { "label": "New AssetPrefabValue_Asset", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Asset\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}" },
-        { "label": "New AssetPrefabValue_Sound", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Sound\",\n  \"\\$name\": \"MyUnion\",\n  \"assetId\": \"placeholder\"\n}" }
+        { "label": "New AssetPrefabValue_Sound", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Sound\",\n  \"\\$name\": \"MyUnion\",\n  \"asset\": \"placeholder\"\n}" }
       ]
     },
     "GeoBox": {

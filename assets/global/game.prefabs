@@ -175,7 +175,7 @@
             "scripts/scene/effects/unit_flame.script"
           ],
           "knowledge": [
-            { "$name": "assetSndBurning", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/burning-02.wav" },
+            { "$name": "assetSndBurning", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/burning-02.wav" },
             { "$name": "assetVfxFire", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/fire_force.vfx" }
           ]
         },
@@ -354,9 +354,9 @@
           ],
           "knowledge": [
             { "$name": "cfgAttackWhileMoving", "$type": "AssetPrefabValue_Bool", "$data": true },
-            { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-turret-01.wav" },
-            { "$name": "assetSndIdle", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-idle-01.wav" },
-            { "$name": "assetSndMove", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-move-01.wav" },
+            { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/tank-turret-01.wav" },
+            { "$name": "assetSndIdle", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/tank-idle-01.wav" },
+            { "$name": "assetSndMove", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/tank-move-01.wav" },
             { "$name": "assetVfxDust", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/vehicle_dust.vfx" },
             { "$name": "assetVfxHeat", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/vehicle_heat.vfx" },
             { "$name": "assetDecalTrail", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/tank_track.decal" }
@@ -410,7 +410,7 @@
             "scripts/scene/effects/unit_aim.script"
           ],
           "knowledge": [
-            { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/electric-motor-01.wav" }
+            { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/electric-motor-01.wav" }
           ]
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1 }, "max": { "y": 1 } } },
@@ -455,7 +455,7 @@
             "scripts/scene/effects/unit_aim.script"
           ],
           "knowledge": [
-            { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/electric-motor-01.wav" }
+            { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/electric-motor-01.wav" }
           ]
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1 }, "max": { "y": 1 } } },
@@ -836,7 +836,7 @@
         { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/scene/effects/prop_alarm.script" ],
           "knowledge": [
             { "$name": "cfgAlarmFrequency", "$type": "AssetPrefabValue_Number", "$data": 0.5 },
-            { "$name": "assetSndAlarm", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/alarm-01.wav", "persistent": true }
+            { "$name": "assetSndAlarm", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/alarm-01.wav", "persistent": true }
           ]
         }
       ]
@@ -966,7 +966,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/scene/effects/ambiance.script" ],
           "knowledge": [
-            { "$name": "assetSndAmbiance", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/ambiance-01.wav" }
+            { "$name": "assetSndAmbiance", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/ambiance-01.wav" }
           ]
         }
       ]

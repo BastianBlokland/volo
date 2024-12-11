@@ -197,7 +197,7 @@ static void snd_source_preload_prefabs(SndMixerComp* m, const AssetPrefabMapComp
     switch ((u32)val->type) {
     case AssetPrefabValue_Sound:
       if (val->data_sound.persistent) {
-        snd_mixer_persistent_asset(m, val->data_sound.asset);
+        snd_mixer_persistent_asset(m, val->data_sound.asset.entity);
       }
       break;
     }
