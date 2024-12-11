@@ -385,7 +385,7 @@ static void setup_script(
       scene_knowledge_store(knowledge, val->name, script_str(val->data_string));
       break;
     case AssetPrefabValue_Asset:
-      scene_knowledge_store(knowledge, val->name, script_entity(val->data_asset));
+      scene_knowledge_store(knowledge, val->name, script_entity(val->data_asset.entity));
       break;
     case AssetPrefabValue_Sound:
       scene_knowledge_store(knowledge, val->name, script_entity(val->data_sound.asset.entity));

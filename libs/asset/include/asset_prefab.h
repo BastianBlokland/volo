@@ -257,7 +257,7 @@ typedef struct {
     GeoVector             data_vector3;
     GeoColor              data_color;
     StringHash            data_string;
-    EcsEntityId           data_asset;
+    AssetRef              data_asset;
     AssetPrefabValueSound data_sound;
   };
 } AssetPrefabValue;
