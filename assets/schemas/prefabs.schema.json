@@ -336,7 +336,7 @@
         { "label": "New AssetPrefabTrait_Scalable", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Scalable\"\n}" }
       ]
     },
-    "AssetRef": { "title": "String", "type": "string", "minLength": 1 },
+    "AssetRef": { "title": "StringHash", "type": "string", "minLength": 1 },
     "GeoColor": {
       "type": "object",
       "additionalProperties": false,
