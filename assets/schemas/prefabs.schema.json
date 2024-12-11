@@ -89,10 +89,11 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Sound" },
-            "assetIds": {
+            "assets": {
               "type": "array",
               "minItems": 1,
-              "items": { "title": "String", "type": "string" }
+              "maxItems": 4,
+              "items": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" }
             },
             "gainMin": { "title": "f32", "type": "number" },
             "gainMax": { "title": "f32", "type": "number" },
@@ -101,7 +102,7 @@
             "looping": { "title": "bool", "type": "boolean" },
             "persistent": { "title": "bool", "type": "boolean" }
           },
-          "required": [ "$type", "assetIds" ]
+          "required": [ "$type", "assets" ]
         },
         {
           "type": "object",
@@ -316,7 +317,7 @@
         { "label": "New AssetPrefabTrait_Renderable", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Renderable\",\n  \"graphic\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Vfx", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Vfx\",\n  \"asset\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Decal", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Decal\",\n  \"asset\": \"placeholder\"\n}" },
-        { "label": "New AssetPrefabTrait_Sound", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Sound\",\n  \"assetIds\": [\n    \"\"\n  ]\n}" },
+        { "label": "New AssetPrefabTrait_Sound", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Sound\",\n  \"assets\": [\n    \"placeholder\",\n    \"placeholder\",\n    \"placeholder\",\n    \"placeholder\"\n  ]\n}" },
         { "label": "New AssetPrefabTrait_LightPoint", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightPoint\",\n  \"radiance\": {},\n  \"radius\": 1\n}" },
         { "label": "New AssetPrefabTrait_LightDir", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightDir\",\n  \"radiance\": {}\n}" },
         { "label": "New AssetPrefabTrait_LightAmbient", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightAmbient\",\n  \"intensity\": 1\n}" },

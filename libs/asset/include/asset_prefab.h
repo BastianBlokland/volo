@@ -15,6 +15,7 @@
 
 #define asset_prefab_scripts_max 7
 #define asset_prefab_sets_max 8
+#define asset_prefab_sounds_max 4
 
 typedef enum {
   AssetPrefabShape_Sphere,
@@ -80,11 +81,11 @@ typedef struct {
 } AssetPrefabTraitDecal;
 
 typedef struct {
-  EcsEntityId assets[4]; // Random asset will be selected when spawned, 0 for an empty slot.
-  f32         gainMin, gainMax;
-  f32         pitchMin, pitchMax;
-  bool        looping;
-  bool        persistent; // Pre-load the asset and keep it in memory.
+  AssetRef assets[asset_prefab_sounds_max]; // Random asset will be selected when spawned.
+  f32      gainMin, gainMax;
+  f32      pitchMin, pitchMax;
+  bool     looping;
+  bool     persistent; // Pre-load the asset and keep it in memory.
 } AssetPrefabTraitSound;
 
 typedef struct {
@@ -213,7 +214,7 @@ typedef struct {
  * Sanity check that we are not making the trait's very big.
  * NOTE: This is not a hard limit but when making this bigger consider changing this to SOA storage.
  */
-ASSERT(sizeof(AssetPrefabTrait) <= 96, "AssetPrefabTrait too big");
+ASSERT(sizeof(AssetPrefabTrait) <= 128, "AssetPrefabTrait too big");
 
 typedef enum {
   AssetPrefabFlags_Infantry     = 1 << 0,
