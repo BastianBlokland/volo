@@ -1,11 +1,10 @@
 #pragma once
-#include "core_string.h"
 #include "ecs.h"
 
 /**
  * Asset reference.
  */
 typedef struct sAssetRef {
-  String      id;
+  StringHash  id;
   EcsEntityId entity;
 } AssetRef;
