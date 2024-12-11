@@ -89,10 +89,11 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Sound" },
-            "assetIds": {
+            "assets": {
               "type": "array",
               "minItems": 1,
-              "items": { "title": "String", "type": "string" }
+              "maxItems": 4,
+              "items": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" }
             },
             "gainMin": { "title": "f32", "type": "number" },
             "gainMax": { "title": "f32", "type": "number" },
@@ -101,7 +102,7 @@
             "looping": { "title": "bool", "type": "boolean" },
             "persistent": { "title": "bool", "type": "boolean" }
           },
-          "required": [ "$type", "assetIds" ]
+          "required": [ "$type", "assets" ]
         },
         {
           "type": "object",
@@ -316,7 +317,7 @@
         { "label": "New AssetPrefabTrait_Renderable", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Renderable\",\n  \"graphic\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Vfx", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Vfx\",\n  \"asset\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Decal", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Decal\",\n  \"asset\": \"placeholder\"\n}" },
-        { "label": "New AssetPrefabTrait_Sound", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Sound\",\n  \"assetIds\": [\n    \"\"\n  ]\n}" },
+        { "label": "New AssetPrefabTrait_Sound", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Sound\",\n  \"assets\": [\n    \"placeholder\",\n    \"placeholder\",\n    \"placeholder\",\n    \"placeholder\"\n  ]\n}" },
         { "label": "New AssetPrefabTrait_LightPoint", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightPoint\",\n  \"radiance\": {},\n  \"radius\": 1\n}" },
         { "label": "New AssetPrefabTrait_LightDir", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightDir\",\n  \"radiance\": {}\n}" },
         { "label": "New AssetPrefabTrait_LightAmbient", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_LightAmbient\",\n  \"intensity\": 1\n}" },
@@ -336,7 +337,7 @@
         { "label": "New AssetPrefabTrait_Scalable", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Scalable\"\n}" }
       ]
     },
-    "AssetRef": { "title": "String", "type": "string", "minLength": 1 },
+    "AssetRef": { "title": "StringHash", "type": "string", "minLength": 1 },
     "GeoColor": {
       "type": "object",
       "additionalProperties": false,
@@ -485,9 +486,9 @@
           "properties": {
             "$type": { "const": "AssetPrefabValue_Asset" },
             "$name": { "type": "string" },
-            "$data": { "title": "String", "type": "string" }
+            "id": { "title": "StringHash", "type": "string", "minLength": 1 }
           },
-          "required": [ "$type", "$name", "$data" ]
+          "required": [ "$type", "$name", "id" ]
         },
         {
           "type": "object",
@@ -495,10 +496,10 @@
           "properties": {
             "$type": { "const": "AssetPrefabValue_Sound" },
             "$name": { "type": "string" },
-            "assetId": { "title": "String", "type": "string", "minLength": 1 },
+            "asset": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" },
             "persistent": { "title": "bool", "type": "boolean" }
           },
-          "required": [ "$type", "$name", "assetId" ]
+          "required": [ "$type", "$name", "asset" ]
         }
       ],
       "defaultSnippets": [
@@ -507,8 +508,8 @@
         { "label": "New AssetPrefabValue_Vector3", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Vector3\",\n  \"\\$name\": \"MyUnion\"\n}" },
         { "label": "New AssetPrefabValue_Color", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Color\",\n  \"\\$name\": \"MyUnion\"\n}" },
         { "label": "New AssetPrefabValue_String", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_String\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}" },
-        { "label": "New AssetPrefabValue_Asset", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Asset\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}" },
-        { "label": "New AssetPrefabValue_Sound", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Sound\",\n  \"\\$name\": \"MyUnion\",\n  \"assetId\": \"placeholder\"\n}" }
+        { "label": "New AssetPrefabValue_Asset", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Asset\",\n  \"\\$name\": \"MyUnion\",\n  \"id\": \"placeholder\"\n}" },
+        { "label": "New AssetPrefabValue_Sound", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Sound\",\n  \"\\$name\": \"MyUnion\",\n  \"asset\": \"placeholder\"\n}" }
       ]
     },
     "GeoBox": {

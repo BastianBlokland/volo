@@ -207,18 +207,16 @@ static void setup_vfx_decal(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitDe
 }
 
 static void setup_sound(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitSound* t) {
-  u32 assetCount = 0;
-  array_for_t(t->assets, EcsEntityId, asset) {
-    if (ecs_entity_valid(*asset)) {
-      ++assetCount;
-    }
-  }
-  if (LIKELY(assetCount)) {
+  u32 count = 0;
+  for (; count != array_elems(t->assets) && ecs_entity_valid(t->assets[count].entity); ++count)
+    ;
+
+  if (LIKELY(count)) {
     ecs_world_add_t(
         w,
         e,
         SceneSoundComp,
-        .asset   = t->assets[(u32)(assetCount * rng_sample_f32(g_rng))],
+        .asset   = t->assets[(u32)(count * rng_sample_f32(g_rng))].entity,
         .gain    = rng_sample_range(g_rng, t->gainMin, t->gainMax),
         .pitch   = rng_sample_range(g_rng, t->pitchMin, t->pitchMax),
         .looping = t->looping);
@@ -387,10 +385,10 @@ static void setup_script(
       scene_knowledge_store(knowledge, val->name, script_str(val->data_string));
       break;
     case AssetPrefabValue_Asset:
-      scene_knowledge_store(knowledge, val->name, script_entity(val->data_asset));
+      scene_knowledge_store(knowledge, val->name, script_entity(val->data_asset.entity));
       break;
     case AssetPrefabValue_Sound:
-      scene_knowledge_store(knowledge, val->name, script_entity(val->data_sound.asset));
+      scene_knowledge_store(knowledge, val->name, script_entity(val->data_sound.asset.entity));
       break;
     }
   }

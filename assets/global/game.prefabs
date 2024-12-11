@@ -175,8 +175,8 @@
             "scripts/scene/effects/unit_flame.script"
           ],
           "knowledge": [
-            { "$name": "assetSndBurning", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/burning-02.wav" },
-            { "$name": "assetVfxFire", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/fire_force.vfx" }
+            { "$name": "assetSndBurning", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/burning-02.wav" },
+            { "$name": "assetVfxFire", "$type": "AssetPrefabValue_Asset", "id": "vfx/game/fire_force.vfx" }
           ]
         },
         {
@@ -354,12 +354,12 @@
           ],
           "knowledge": [
             { "$name": "cfgAttackWhileMoving", "$type": "AssetPrefabValue_Bool", "$data": true },
-            { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-turret-01.wav" },
-            { "$name": "assetSndIdle", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-idle-01.wav" },
-            { "$name": "assetSndMove", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/tank-move-01.wav" },
-            { "$name": "assetVfxDust", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/vehicle_dust.vfx" },
-            { "$name": "assetVfxHeat", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/vehicle_heat.vfx" },
-            { "$name": "assetDecalTrail", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/tank_track.decal" }
+            { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/tank-turret-01.wav" },
+            { "$name": "assetSndIdle", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/tank-idle-01.wav" },
+            { "$name": "assetSndMove", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/tank-move-01.wav" },
+            { "$name": "assetVfxDust", "$type": "AssetPrefabValue_Asset", "id": "vfx/game/vehicle_dust.vfx" },
+            { "$name": "assetVfxHeat", "$type": "AssetPrefabValue_Asset", "id": "vfx/game/vehicle_heat.vfx" },
+            { "$name": "assetDecalTrail", "$type": "AssetPrefabValue_Asset", "id": "vfx/game/tank_track.decal" }
           ]
         },
         {
@@ -410,7 +410,7 @@
             "scripts/scene/effects/unit_aim.script"
           ],
           "knowledge": [
-            { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/electric-motor-01.wav" }
+            { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/electric-motor-01.wav" }
           ]
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1 }, "max": { "y": 1 } } },
@@ -455,7 +455,7 @@
             "scripts/scene/effects/unit_aim.script"
           ],
           "knowledge": [
-            { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/electric-motor-01.wav" }
+            { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/electric-motor-01.wav" }
           ]
         },
         { "$type": "AssetPrefabTrait_Location", "aimTarget": { "min": { "y": 1 }, "max": { "y": 1 } } },
@@ -613,7 +613,7 @@
         { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/fire_barrel.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetIds": [ "external/sound/burning-01.wav" ],
+          "assets": [ "external/sound/burning-01.wav" ],
           "gainMin": 0.4, "gainMax": 0.5,
           "pitchMin": 0.95, "pitchMax": 1.05,
           "looping": true
@@ -836,7 +836,7 @@
         { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/scene/effects/prop_alarm.script" ],
           "knowledge": [
             { "$name": "cfgAlarmFrequency", "$type": "AssetPrefabValue_Number", "$data": 0.5 },
-            { "$name": "assetSndAlarm", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/alarm-01.wav", "persistent": true }
+            { "$name": "assetSndAlarm", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/alarm-01.wav", "persistent": true }
           ]
         }
       ]
@@ -966,7 +966,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/scene/effects/ambiance.script" ],
           "knowledge": [
-            { "$name": "assetSndAmbiance", "$type": "AssetPrefabValue_Sound", "assetId": "external/sound/ambiance-01.wav" }
+            { "$name": "assetSndAmbiance", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/ambiance-01.wav" }
           ]
         }
       ]
@@ -1012,7 +1012,7 @@
         },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetIds": [ "external/sound/explosion-01.wav" ],
+          "assets": [ "external/sound/explosion-01.wav" ],
           "gainMin": 1.5, "gainMax": 1.75,
           "pitchMin": 0.85, "pitchMax": 1.05
         }
@@ -1026,7 +1026,7 @@
         { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/explosion_medium.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetIds": [ "external/sound/explosion-01.wav" ],
+          "assets": [ "external/sound/explosion-01.wav" ],
           "gainMin": 1.5, "gainMax": 1.75,
           "pitchMin": 0.85, "pitchMax": 1.05
         }
@@ -1039,7 +1039,7 @@
         { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/explosion_small.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetIds": [ "external/sound/explosion-01.wav" ],
+          "assets": [ "external/sound/explosion-01.wav" ],
           "gainMin": 1.3, "gainMax": 1.6,
           "pitchMin": 1.75, "pitchMax": 2.0
         }
@@ -1052,7 +1052,7 @@
         { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/explosion_shell.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetIds": [ "external/sound/explosion-03.wav" ],
+          "assets": [ "external/sound/explosion-03.wav" ],
           "gainMin": 1.4, "gainMax": 1.5,
           "pitchMin": 0.8, "pitchMax": 0.9
         }
@@ -1072,7 +1072,7 @@
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 0.5 },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetIds": [ "external/sound/impact-02.wav" ],
+          "assets": [ "external/sound/impact-02.wav" ],
           "gainMin": 0.3, "gainMax": 0.4,
           "pitchMin": 0.75, "pitchMax": 1.25
         }
@@ -1084,7 +1084,7 @@
         { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/impact.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetIds": [ "external/sound/impact-01.wav" ],
+          "assets": [ "external/sound/impact-01.wav" ],
           "gainMin": 0.2, "gainMax": 0.4,
           "pitchMin": 0.75, "pitchMax": 1
         },
@@ -1106,7 +1106,7 @@
         { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/explosion_medium.decal" },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetIds": [ "external/sound/explosion-02.wav" ],
+          "assets": [ "external/sound/explosion-02.wav" ],
           "gainMin": 1.1, "gainMax": 1.5,
           "pitchMin": 1.0, "pitchMax": 1.1
         }
@@ -1120,7 +1120,7 @@
         { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/explosion_big.decal" },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetIds": [ "external/sound/explosion-02.wav" ],
+          "assets": [ "external/sound/explosion-02.wav" ],
           "gainMin": 1.1, "gainMax": 1.5,
           "pitchMin": 1.0, "pitchMax": 1.1
         }
@@ -1134,7 +1134,7 @@
         { "$type": "AssetPrefabTrait_Decal", "asset": "vfx/game/explosion_big.decal" },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetIds": [ "external/sound/explosion-02.wav" ],
+          "assets": [ "external/sound/explosion-02.wav" ],
           "gainMin": 1.1, "gainMax": 1.5,
           "pitchMin": 1.0, "pitchMax": 1.1
         }
@@ -1146,7 +1146,7 @@
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 1.5 },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetIds": [ "external/sound/death-03.wav" ],
+          "assets": [ "external/sound/death-03.wav" ],
           "gainMin": 0.8, "gainMax": 1.0,
           "pitchMin": 0.9, "pitchMax": 1.2
         }
@@ -1158,7 +1158,7 @@
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 0.5 },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetIds": [
+          "assets": [
             "external/sound/confirm-01.wav",
             "external/sound/confirm-02.wav",
             "external/sound/confirm-03.wav",
@@ -1175,7 +1175,7 @@
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 2 },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetIds": [ "external/sound/death-02.wav" ],
+          "assets": [ "external/sound/death-02.wav" ],
           "gainMin": 0.6, "gainMax": 0.7,
           "pitchMin": 0.75, "pitchMax": 1.6
         }
@@ -1202,7 +1202,7 @@
         { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/projectile_missile.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetIds": [ "external/sound/projectile-loop-01.wav" ],
+          "assets": [ "external/sound/projectile-loop-01.wav" ],
           "gainMin": 0.4, "gainMax": 0.5,
           "pitchMin": 0.9, "pitchMax": 1.1,
           "looping": true
@@ -1216,7 +1216,7 @@
         { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/projectile_rocket.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetIds": [ "external/sound/projectile-loop-01.wav" ],
+          "assets": [ "external/sound/projectile-loop-01.wav" ],
           "gainMin": 0.35, "gainMax": 0.4,
           "pitchMin": 1.0, "pitchMax": 1.2,
           "looping": true
@@ -1230,7 +1230,7 @@
         { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/indicator_move.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound", "persistent": true,
-          "assetIds": [ "external/sound/indicator-01.wav" ],
+          "assets": [ "external/sound/indicator-01.wav" ],
           "gainMin": 0.6
         }
       ]
@@ -1242,7 +1242,7 @@
         { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/indicator_attack.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound", "persistent": true,
-          "assetIds": [ "external/sound/indicator-02.wav" ],
+          "assets": [ "external/sound/indicator-02.wav" ],
           "gainMin": 0.6
         }
       ]
@@ -1253,7 +1253,7 @@
         { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/fire_status.vfx" },
         {
           "$type": "AssetPrefabTrait_Sound",
-          "assetIds": [ "external/sound/burning-03.wav" ],
+          "assets": [ "external/sound/burning-03.wav" ],
           "gainMin": 1.8, "gainMax": 1.9,
           "pitchMin": 1.5, "pitchMax": 1.6,
           "looping": true
@@ -1272,7 +1272,7 @@
       "traits": [
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 1.25 },
         { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/veteran_promote.vfx" },
-        { "$type": "AssetPrefabTrait_Sound", "assetIds": [ "external/sound/rank-up-01.wav" ], "gainMin": 2.0 }
+        { "$type": "AssetPrefabTrait_Sound", "assets": [ "external/sound/rank-up-01.wav" ], "gainMin": 2.0 }
       ]
     },
     {
@@ -1281,7 +1281,7 @@
         {
           "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/scene/effects/test_trail.script" ],
           "knowledge": [
-            { "$name": "assetDecalTrail", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/test_trail.decal" }
+            { "$name": "assetDecalTrail", "$type": "AssetPrefabValue_Asset", "id": "vfx/game/test_trail.decal" }
           ]
         }
       ]
@@ -1292,7 +1292,7 @@
         {
           "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/scene/logic/test_pacing.script" ],
           "knowledge": [
-            { "$name": "assetGraphic", "$type": "AssetPrefabValue_Asset", "$data": "graphics/scene/sphere.graphic" }
+            { "$name": "assetGraphic", "$type": "AssetPrefabValue_Asset", "id": "graphics/scene/sphere.graphic" }
           ]
         }
       ]

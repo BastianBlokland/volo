@@ -2,6 +2,7 @@
 #include "asset_ref.h"
 #include "core.h"
 #include "core_math.h"
+#include "core_stringtable.h"
 #include "core_thread.h"
 #include "data_registry.h"
 #include "data_utils.h"
@@ -105,7 +106,7 @@ static bool asset_data_normalizer_plane(const Mem data) {
 static void asset_data_init_types(void) {
   // clang-format off
   data_reg_struct_t(g_dataReg, AssetRef);
-  data_reg_field_t(g_dataReg, AssetRef, id, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_InlineField);
+  data_reg_field_t(g_dataReg, AssetRef, id, data_prim_t(StringHash), .flags = DataFlags_NotEmpty | DataFlags_InlineField);
   data_reg_comment_t(g_dataReg, AssetRef, "Asset reference");
 
   data_reg_struct_t(g_dataReg, GeoColor);
@@ -252,7 +253,13 @@ typedef struct {
 static void asset_data_patch_refs_visitor(void* ctx, const Mem data) {
   AssetDataPatchCtx* patchCtx = ctx;
   AssetRef*          refData  = mem_as_t(data, AssetRef);
-  refData->entity             = asset_maybe_lookup(patchCtx->world, patchCtx->manager, refData->id);
+
+  if (refData->id) {
+    const String idStr = stringtable_lookup(g_stringtable, refData->id);
+    refData->entity    = asset_maybe_lookup(patchCtx->world, patchCtx->manager, idStr);
+  } else {
+    refData->entity = 0;
+  }
 }
 
 void asset_data_patch_refs(

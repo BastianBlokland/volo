@@ -49,31 +49,18 @@ static AssetPrefabFlags prefab_set_flags(const StringHash set) {
 }
 
 typedef struct {
-  String assetId;
-  bool   persistent;
-} AssetPrefabValueSoundDef;
-
-typedef struct {
   String               name;
   AssetPrefabValueType type;
   union {
-    f64                      data_number;
-    bool                     data_bool;
-    GeoVector                data_vector3;
-    GeoColor                 data_color;
-    String                   data_string;
-    String                   data_asset;
-    AssetPrefabValueSoundDef data_sound;
+    f64                   data_number;
+    bool                  data_bool;
+    GeoVector             data_vector3;
+    GeoColor              data_color;
+    String                data_string;
+    AssetRef              data_asset;
+    AssetPrefabValueSound data_sound;
   };
 } AssetPrefabValueDef;
-
-typedef struct {
-  HeapArray_t(String) assetIds;
-  f32  gainMin, gainMax;
-  f32  pitchMin, pitchMax;
-  bool looping;
-  bool persistent;
-} AssetPrefabTraitSoundDef;
 
 typedef struct {
   bool             navBlocker;
@@ -93,7 +80,7 @@ typedef struct {
     AssetPrefabTraitRenderable   data_renderable;
     AssetPrefabTraitVfx          data_vfx;
     AssetPrefabTraitDecal        data_decal;
-    AssetPrefabTraitSoundDef     data_sound;
+    AssetPrefabTraitSound        data_sound;
     AssetPrefabTraitLightPoint   data_lightPoint;
     AssetPrefabTraitLightDir     data_lightDir;
     AssetPrefabTraitLightAmbient data_lightAmbient;
@@ -133,7 +120,6 @@ typedef enum {
   PrefabError_DuplicatePrefab,
   PrefabError_DuplicateTrait,
   PrefabError_PrefabCountExceedsMax,
-  PrefabError_SoundAssetCountExceedsMax,
   PrefabError_ScriptAssetCountExceedsMax,
 
   PrefabError_Count,
@@ -145,7 +131,6 @@ static String prefab_error_str(const PrefabError err) {
       string_static("Multiple prefabs with the same name"),
       string_static("Prefab defines the same trait more then once"),
       string_static("Prefab count exceeds the maximum"),
-      string_static("Sound asset count exceeds the maximum"),
       string_static("Script asset count exceeds the maximum"),
   };
   ASSERT(array_elems(g_msgs) == PrefabError_Count, "Incorrect number of error messages");
@@ -157,7 +142,7 @@ typedef struct {
   AssetManagerComp* assetManager;
 } BuildCtx;
 
-static AssetPrefabValue prefab_build_value(BuildCtx* ctx, const AssetPrefabValueDef* def) {
+static AssetPrefabValue prefab_build_value(const AssetPrefabValueDef* def) {
   AssetPrefabValue res;
   res.name = stringtable_add(g_stringtable, def->name);
 
@@ -184,12 +169,11 @@ static AssetPrefabValue prefab_build_value(BuildCtx* ctx, const AssetPrefabValue
     break;
   case AssetPrefabValue_Asset:
     res.type       = AssetPrefabValue_Asset;
-    res.data_asset = asset_lookup(ctx->world, ctx->assetManager, def->data_asset);
+    res.data_asset = def->data_asset;
     break;
   case AssetPrefabValue_Sound:
-    res.type             = AssetPrefabValue_Sound;
-    res.data_sound.asset = asset_lookup(ctx->world, ctx->assetManager, def->data_sound.assetId);
-    res.data_sound.persistent = def->data_sound.persistent;
+    res.type       = AssetPrefabValue_Sound;
+    res.data_sound = def->data_sound;
     break;
   default:
     diag_crash_msg("Unsupported prefab value");
@@ -255,28 +239,9 @@ static void prefab_build(
     case AssetPrefabTrait_Decal:
       outTrait->data_decal = traitDef->data_decal;
       break;
-    case AssetPrefabTrait_Sound: {
-      const AssetPrefabTraitSoundDef* soundDef = &traitDef->data_sound;
-      if (UNLIKELY(soundDef->assetIds.count > array_elems(outTrait->data_sound.assets))) {
-        *err = PrefabError_SoundAssetCountExceedsMax;
-        return;
-      }
-      const f32 gainMin    = soundDef->gainMin < f32_epsilon ? 1.0f : soundDef->gainMin;
-      const f32 pitchMin   = soundDef->pitchMin < f32_epsilon ? 1.0f : soundDef->pitchMin;
-      outTrait->data_sound = (AssetPrefabTraitSound){
-          .gainMin    = gainMin,
-          .gainMax    = math_max(gainMin, soundDef->gainMax),
-          .pitchMin   = pitchMin,
-          .pitchMax   = math_max(pitchMin, soundDef->pitchMax),
-          .looping    = soundDef->looping,
-          .persistent = soundDef->persistent,
-      };
-      for (u32 i = 0; i != soundDef->assetIds.count; ++i) {
-        const EcsEntityId asset = asset_lookup(ctx->world, manager, soundDef->assetIds.values[i]);
-        outTrait->data_sound.assets[i] = asset;
-      }
+    case AssetPrefabTrait_Sound:
+      outTrait->data_sound = traitDef->data_sound;
       break;
-    }
     case AssetPrefabTrait_LightPoint:
       outTrait->data_lightPoint = traitDef->data_lightPoint;
       break;
@@ -324,7 +289,7 @@ static void prefab_build(
         outTrait->data_script.scriptAssets[i] = asset_lookup(ctx->world, manager, assetId);
       }
       heap_array_for_t(scriptDef->knowledge, AssetPrefabValueDef, valDef) {
-        *dynarray_push_t(outValues, AssetPrefabValue) = prefab_build_value(ctx, valDef);
+        *dynarray_push_t(outValues, AssetPrefabValue) = prefab_build_value(valDef);
       }
     } break;
     case AssetPrefabTrait_Bark:
@@ -561,6 +526,18 @@ static bool prefab_data_normalizer_production(const Mem data) {
   return true;
 }
 
+static bool prefab_data_normalizer_sound(const Mem data) {
+  AssetPrefabTraitSound* sound = mem_as_t(data, AssetPrefabTraitSound);
+
+  sound->gainMin = sound->gainMin < f32_epsilon ? 1.0f : sound->gainMin;
+  sound->gainMax = math_max(sound->gainMin, sound->gainMax);
+
+  sound->pitchMin = sound->pitchMin < f32_epsilon ? 1.0f : sound->pitchMin;
+  sound->pitchMax = math_max(sound->pitchMin, sound->pitchMax);
+
+  return true;
+}
+
 void asset_data_init_prefab(void) {
   prefab_set_flags_init();
 
@@ -589,9 +566,9 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabShape, AssetPrefabShape_Capsule, data_capsule, g_assetGeoCapsuleType);
   data_reg_choice_t(g_dataReg, AssetPrefabShape, AssetPrefabShape_Box, data_box, g_assetGeoBoxRotatedType);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabValueSoundDef);
-  data_reg_field_t(g_dataReg, AssetPrefabValueSoundDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabValueSoundDef, persistent, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_struct_t(g_dataReg, AssetPrefabValueSound);
+  data_reg_field_t(g_dataReg, AssetPrefabValueSound, asset, g_assetRefType);
+  data_reg_field_t(g_dataReg, AssetPrefabValueSound, persistent, data_prim_t(bool), .flags = DataFlags_Opt);
 
   data_reg_union_t(g_dataReg, AssetPrefabValueDef, type);
   data_reg_union_name_t(g_dataReg, AssetPrefabValueDef, name);
@@ -600,8 +577,8 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Vector3, data_vector3, g_assetGeoVec3Type);
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Color, data_color, g_assetGeoColorType);
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_String, data_string, data_prim_t(String), .flags = DataFlags_Intern);
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Asset, data_asset, data_prim_t(String));
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Sound, data_sound, t_AssetPrefabValueSoundDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Asset, data_asset, g_assetRefType);
+  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Sound, data_sound, t_AssetPrefabValueSound);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitName);
   data_reg_field_t(g_dataReg, AssetPrefabTraitName, name, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
@@ -618,14 +595,15 @@ void asset_data_init_prefab(void) {
   data_reg_struct_t(g_dataReg, AssetPrefabTraitDecal);
   data_reg_field_t(g_dataReg, AssetPrefabTraitDecal, asset, g_assetRefType);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabTraitSoundDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitSoundDef, assetIds, data_prim_t(String), .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitSoundDef, gainMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitSoundDef, gainMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitSoundDef, pitchMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitSoundDef, pitchMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitSoundDef, looping, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitSoundDef, persistent, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitSound);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitSound, assets, g_assetRefType, .container = DataContainer_InlineArray, .fixedCount = asset_prefab_sounds_max, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitSound, gainMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitSound, gainMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitSound, pitchMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitSound, pitchMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitSound, looping, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitSound, persistent, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_normalizer_t(g_dataReg, AssetPrefabTraitSound, prefab_data_normalizer_sound);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitLightPoint);
   data_reg_field_t(g_dataReg, AssetPrefabTraitLightPoint, radiance, g_assetGeoColorType, .flags = DataFlags_NotEmpty);
@@ -720,7 +698,7 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderable);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Vfx, data_vfx, t_AssetPrefabTraitVfx);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Decal, data_decal, t_AssetPrefabTraitDecal);
-  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Sound, data_sound, t_AssetPrefabTraitSoundDef);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Sound, data_sound, t_AssetPrefabTraitSound);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_LightPoint, data_lightPoint, t_AssetPrefabTraitLightPoint);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_LightDir, data_lightDir, t_AssetPrefabTraitLightDir);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_LightAmbient, data_lightAmbient, t_AssetPrefabTraitLightAmbient);
