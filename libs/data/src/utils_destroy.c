@@ -48,7 +48,7 @@ static bool data_destroy_needed_single(const DataReg* reg, const DataMeta meta) 
     return false;
   }
   case DataKind_Union: {
-    if (decl->val_union.nameOffset) {
+    if (!sentinel_check(decl->val_union.nameOffset)) {
       return true;
     }
     dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choice) {
