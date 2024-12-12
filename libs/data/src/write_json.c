@@ -194,16 +194,14 @@ static JsonVal data_write_json_union(const WriteCtx* ctx) {
         .meta = choice->meta,
         .data = data_choice_mem(ctx->reg, choice, ctx->data),
     };
-    switch (data_decl(ctx->reg, choice->meta.type)->kind) {
-    case DataKind_Struct:
+    const DataDecl* choiceDecl = data_decl(ctx->reg, choice->meta.type);
+    if (choiceDecl->kind == DataKind_Struct && !data_struct_inline_field(&choiceDecl->val_struct)) {
       /**
        * Inline the struct fields into the current json object.
        */
       data_write_json_struct_to_obj(&choiceCtx, jsonObj);
-      break;
-    default:
+    } else {
       json_add_field_lit(ctx->doc, jsonObj, "$data", data_write_json_val(&choiceCtx));
-      break;
     }
   }
   return jsonObj;

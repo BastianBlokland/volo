@@ -438,8 +438,8 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
 
   const bool emptyChoice = choice->meta.type == 0;
   if (!emptyChoice) {
-    switch (data_decl(ctx->reg, choice->meta.type)->kind) {
-    case DataKind_Struct: {
+    const DataDecl* choiceDecl = data_decl(ctx->reg, choice->meta.type);
+    if (choiceDecl->kind == DataKind_Struct && !data_struct_inline_field(&choiceDecl->val_struct)) {
       /**
        * Struct fields are inlined into the current json object.
        */
@@ -457,8 +457,7 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
       if (LIKELY(!res->error)) {
         data_normalize(&choiceCtx, res);
       }
-    } break;
-    default: {
+    } else {
       const JsonVal dataVal = json_field_lit(ctx->doc, ctx->val, "$data");
       if (UNLIKELY(sentinel_check(dataVal))) {
         *res = result_fail(DataReadError_UnionDataMissing, "Union is missing a '$data' field");
@@ -487,7 +486,6 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
         *res = result_fail(DataReadError_UnionUnknownField, "Unknown field in union");
         return;
       }
-    } break;
     }
   }
 }

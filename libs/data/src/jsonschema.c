@@ -70,7 +70,7 @@ static JsonVal schema_default_union_choice(
 
   if (choice->meta.type) {
     const DataDecl* choiceDecl = data_decl(ctx->reg, choice->meta.type);
-    if (choiceDecl->kind == DataKind_Struct) {
+    if (choiceDecl->kind == DataKind_Struct && !data_struct_inline_field(&choiceDecl->val_struct)) {
       /**
        * Struct fields are inlined into the current json object.
        */
@@ -392,7 +392,7 @@ static void schema_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const 
       continue; // Empty choice doesn't have any data.
     }
     const DataDecl* choiceDecl = data_decl(ctx->reg, choice->meta.type);
-    if (choiceDecl->kind == DataKind_Struct) {
+    if (choiceDecl->kind == DataKind_Struct && !data_struct_inline_field(&choiceDecl->val_struct)) {
       /**
        * Struct fields are inlined into the current json object.
        */
