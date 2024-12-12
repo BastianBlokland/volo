@@ -176,7 +176,7 @@
           ],
           "knowledge": [
             { "$name": "assetSndBurning", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/burning-02.wav" },
-            { "$name": "assetVfxFire", "$type": "AssetPrefabValue_Asset", "id": "vfx/game/fire_force.vfx" }
+            { "$name": "assetVfxFire", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/fire_force.vfx" }
           ]
         },
         {
@@ -357,9 +357,9 @@
             { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/tank-turret-01.wav" },
             { "$name": "assetSndIdle", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/tank-idle-01.wav" },
             { "$name": "assetSndMove", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/tank-move-01.wav" },
-            { "$name": "assetVfxDust", "$type": "AssetPrefabValue_Asset", "id": "vfx/game/vehicle_dust.vfx" },
-            { "$name": "assetVfxHeat", "$type": "AssetPrefabValue_Asset", "id": "vfx/game/vehicle_heat.vfx" },
-            { "$name": "assetDecalTrail", "$type": "AssetPrefabValue_Asset", "id": "vfx/game/tank_track.decal" }
+            { "$name": "assetVfxDust", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/vehicle_dust.vfx" },
+            { "$name": "assetVfxHeat", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/vehicle_heat.vfx" },
+            { "$name": "assetDecalTrail", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/tank_track.decal" }
           ]
         },
         {
@@ -1281,7 +1281,7 @@
         {
           "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/scene/effects/test_trail.script" ],
           "knowledge": [
-            { "$name": "assetDecalTrail", "$type": "AssetPrefabValue_Asset", "id": "vfx/game/test_trail.decal" }
+            { "$name": "assetDecalTrail", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/test_trail.decal" }
           ]
         }
       ]
@@ -1292,7 +1292,7 @@
         {
           "$type": "AssetPrefabTrait_Script", "scriptIds": [ "scripts/scene/logic/test_pacing.script" ],
           "knowledge": [
-            { "$name": "assetGraphic", "$type": "AssetPrefabValue_Asset", "id": "graphics/scene/sphere.graphic" }
+            { "$name": "assetGraphic", "$type": "AssetPrefabValue_Asset", "$data": "graphics/scene/sphere.graphic" }
           ]
         }
       ]

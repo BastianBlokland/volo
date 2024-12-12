@@ -486,9 +486,9 @@
           "properties": {
             "$type": { "const": "AssetPrefabValue_Asset" },
             "$name": { "type": "string" },
-            "id": { "title": "StringHash", "type": "string", "minLength": 1 }
+            "$data": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" }
           },
-          "required": [ "$type", "$name", "id" ]
+          "required": [ "$type", "$name", "$data" ]
         },
         {
           "type": "object",
@@ -508,7 +508,7 @@
         { "label": "New AssetPrefabValue_Vector3", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Vector3\",\n  \"\\$name\": \"MyUnion\"\n}" },
         { "label": "New AssetPrefabValue_Color", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Color\",\n  \"\\$name\": \"MyUnion\"\n}" },
         { "label": "New AssetPrefabValue_String", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_String\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}" },
-        { "label": "New AssetPrefabValue_Asset", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Asset\",\n  \"\\$name\": \"MyUnion\",\n  \"id\": \"placeholder\"\n}" },
+        { "label": "New AssetPrefabValue_Asset", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Asset\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabValue_Sound", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Sound\",\n  \"\\$name\": \"MyUnion\",\n  \"asset\": \"placeholder\"\n}" }
       ]
     },
