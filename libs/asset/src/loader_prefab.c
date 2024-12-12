@@ -571,7 +571,7 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabValueSound, persistent, data_prim_t(bool), .flags = DataFlags_Opt);
 
   data_reg_union_t(g_dataReg, AssetPrefabValueDef, type);
-  data_reg_union_name_t(g_dataReg, AssetPrefabValueDef, name);
+  data_reg_union_name_t(g_dataReg, AssetPrefabValueDef, name, DataUnionNameType_String);
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Number, data_number, data_prim_t(f64));
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Bool, data_bool, data_prim_t(bool));
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Vector3, data_vector3, g_assetGeoVec3Type);

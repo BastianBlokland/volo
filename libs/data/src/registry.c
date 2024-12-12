@@ -76,8 +76,8 @@ void data_reg_global_teardown(void) {
 DataReg* data_reg_create(Allocator* alloc) {
   DataReg* reg = alloc_alloc_t(alloc, DataReg);
   *reg         = (DataReg){
-      .types = dynarray_create_t(alloc, DataDecl, 64),
-      .alloc = alloc,
+              .types = dynarray_create_t(alloc, DataDecl, 64),
+              .alloc = alloc,
   };
 
 #define X(_T_)                                                                                     \
@@ -288,12 +288,15 @@ DataType data_reg_union(
   return type;
 }
 
-void data_reg_union_name(DataReg* reg, const DataType parent, usize nameOffset) {
+void data_reg_union_name(
+    DataReg* reg, const DataType parent, const usize nameOffset, const DataUnionNameType nameType) {
   diag_assert(!sentinel_check(nameOffset));
+  diag_assert(nameType != DataUnionNameType_None);
 
   DataDecl* parentDecl = data_decl_mutable(reg, parent);
   diag_assert_msg(parentDecl->kind == DataKind_Union, "Union name parent has to be a Union");
 
+  parentDecl->val_union.nameType   = nameType;
   parentDecl->val_union.nameOffset = nameOffset;
 }
 

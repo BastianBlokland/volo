@@ -775,7 +775,7 @@ spec(read_json) {
     } ReadJsonUnion;
 
     data_reg_union_t(reg, ReadJsonUnion, tag);
-    data_reg_union_name_t(reg, ReadJsonUnion, name);
+    data_reg_union_name_t(reg, ReadJsonUnion, name, DataUnionNameType_String);
     data_reg_choice_t(reg, ReadJsonUnion, ReadJsonUnionTag_Int, data_int, data_prim_t(i32));
     data_reg_choice_t(reg, ReadJsonUnion, ReadJsonUnionTag_Float, data_float, data_prim_t(f32));
 

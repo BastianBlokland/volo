@@ -25,6 +25,12 @@ typedef enum {
   DataFlags_TransferToBase = DataFlags_Intern | DataFlags_ExternalMemory,
 } DataFlags;
 
+typedef enum {
+  DataUnionNameType_None,
+  DataUnionNameType_String,
+  DataUnionNameType_StringHash,
+} DataUnionNameType;
+
 /**
  * Meta information for a data value.
  * Combination of a type and properties of a specific instance (for example if its a pointer).
@@ -140,10 +146,10 @@ DataType data_reg_union(DataReg*, String name, usize size, usize align, usize ta
 /**
  * Register a name field for the given union type.
  */
-#define data_reg_union_name_t(_REG_, _PARENT_, _NAME_FIELD_)                                       \
-  data_reg_union_name((_REG_), t_##_PARENT_, offsetof(_PARENT_, _NAME_FIELD_))
+#define data_reg_union_name_t(_REG_, _PARENT_, _NAME_FIELD_, _NAME_TYPE_)                          \
+  data_reg_union_name((_REG_), t_##_PARENT_, offsetof(_PARENT_, _NAME_FIELD_), (_NAME_TYPE_))
 
-void data_reg_union_name(DataReg*, DataType, usize nameOffset);
+void data_reg_union_name(DataReg*, DataType, usize nameOffset, DataUnionNameType);
 
 /**
  * Register a new choice for a Union,

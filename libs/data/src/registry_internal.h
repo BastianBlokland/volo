@@ -27,9 +27,10 @@ typedef struct {
 } DataDeclChoice;
 
 typedef struct {
-  usize    tagOffset;
-  usize    nameOffset; // (Optional) Set if the union has a name field, otherwise sentinel_usize.
-  DynArray choices;    // DataDeclChoice[]
+  usize             tagOffset;
+  DataUnionNameType nameType;
+  usize             nameOffset;
+  DynArray          choices; // DataDeclChoice[]
 } DataDeclUnion;
 
 typedef struct {
