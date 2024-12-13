@@ -52,10 +52,23 @@ static bool data_equal_union(const EqualCtx* ctx) {
     return false;
   }
 
-  const String* nameA = data_union_name(&decl->val_union, ctx->a);
-  const String* nameB = data_union_name(&decl->val_union, ctx->b);
-  if (nameA && !string_eq(*nameA, *nameB)) {
-    return false;
+  switch (data_union_name_type(&decl->val_union)) {
+  case DataUnionNameType_None:
+    break;
+  case DataUnionNameType_String: {
+    const String* nameA = data_union_name_string(&decl->val_union, ctx->a);
+    const String* nameB = data_union_name_string(&decl->val_union, ctx->b);
+    if (!string_eq(*nameA, *nameB)) {
+      return false;
+    }
+  } break;
+  case DataUnionNameType_StringHash: {
+    const StringHash* nameA = data_union_name_hash(&decl->val_union, ctx->a);
+    const StringHash* nameB = data_union_name_hash(&decl->val_union, ctx->b);
+    if (*nameA != *nameB) {
+      return false;
+    }
+  } break;
   }
 
   const DataDeclChoice* choice = data_choice_from_tag(&decl->val_union, tagA);
