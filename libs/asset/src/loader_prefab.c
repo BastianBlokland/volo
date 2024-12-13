@@ -49,7 +49,7 @@ static AssetPrefabFlags prefab_set_flags(const StringHash set) {
 }
 
 typedef struct {
-  String               name;
+  StringHash           name;
   AssetPrefabValueType type;
   union {
     f64                   data_number;
@@ -144,7 +144,7 @@ typedef struct {
 
 static AssetPrefabValue prefab_build_value(const AssetPrefabValueDef* def) {
   AssetPrefabValue res;
-  res.name = stringtable_add(g_stringtable, def->name);
+  res.name = def->name;
 
   switch (def->type) {
   case AssetPrefabValue_Number:
@@ -571,7 +571,7 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabValueSound, persistent, data_prim_t(bool), .flags = DataFlags_Opt);
 
   data_reg_union_t(g_dataReg, AssetPrefabValueDef, type);
-  data_reg_union_name_t(g_dataReg, AssetPrefabValueDef, name, DataUnionNameType_String);
+  data_reg_union_name_t(g_dataReg, AssetPrefabValueDef, name, DataUnionNameType_StringHash);
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Number, data_number, data_prim_t(f64));
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Bool, data_bool, data_prim_t(bool));
   data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Vector3, data_vector3, g_assetGeoVec3Type);
