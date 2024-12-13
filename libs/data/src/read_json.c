@@ -428,13 +428,13 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
     case DataUnionNameType_None:
       *res = result_fail(DataReadError_UnionNameNotSupported, "'$name' field unsupported");
       return;
-    case DataUnionNameType_String: {
+    case DataUnionNameType_String:
       if (!string_is_empty(jsonName)) {
         const String name = string_dup(ctx->alloc, jsonName);
         data_register_alloc(ctx, name);
         *data_union_name_string(&decl->val_union, ctx->data) = name;
       }
-    } break;
+      break;
     case DataUnionNameType_StringHash:
       if (!string_is_empty(jsonName)) {
         const StringHash nameHash = stringtable_add(g_stringtable, jsonName);

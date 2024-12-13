@@ -404,17 +404,29 @@ NO_INLINE_HINT static void data_read_bin_union(ReadCtx* ctx, DataReadResult* res
 
   *data_union_tag(&decl->val_union, ctx->data) = choice->tag;
 
-  String* unionNamePtr = data_union_name(&decl->val_union, ctx->data);
-  if (unionNamePtr) {
+  const DataUnionNameType nameType = data_union_name_type(&decl->val_union);
+  if (nameType) {
     Mem nameMem;
     if (UNLIKELY(!bin_pop_mem(ctx, &nameMem))) {
       *res = result_fail_truncated();
       return;
     }
-    if (!string_is_empty(nameMem)) {
-      const String name = string_dup(ctx->alloc, nameMem);
-      data_register_alloc(ctx, name);
-      *unionNamePtr = name;
+    switch (nameType) {
+    case DataUnionNameType_None:
+      UNREACHABLE
+    case DataUnionNameType_String:
+      if (!string_is_empty(nameMem)) {
+        const String name = string_dup(ctx->alloc, nameMem);
+        data_register_alloc(ctx, name);
+        *data_union_name_string(&decl->val_union, ctx->data) = name;
+      }
+      break;
+    case DataUnionNameType_StringHash:
+      if (!string_is_empty(nameMem)) {
+        const StringHash nameHash = stringtable_add(g_stringtable, nameMem);
+        *data_union_name_hash(&decl->val_union, ctx->data) = nameHash;
+      }
+      break;
     }
   }
 
