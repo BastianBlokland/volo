@@ -181,9 +181,20 @@ static JsonVal data_write_json_union(const WriteCtx* ctx) {
   const JsonVal typeStr = json_add_string(ctx->doc, choice->id.name);
   json_add_field_lit(ctx->doc, jsonObj, "$type", typeStr);
 
-  const String* name = data_union_name(&decl->val_union, ctx->data);
-  if (name) {
-    json_add_field_lit(ctx->doc, jsonObj, "$name", json_add_string(ctx->doc, *name));
+  String name;
+  switch (data_union_name_type(&decl->val_union)) {
+  case DataUnionNameType_None:
+    name = string_empty;
+    break;
+  case DataUnionNameType_String:
+    name = *data_union_name_string(&decl->val_union, ctx->data);
+    break;
+  case DataUnionNameType_StringHash:
+    name = stringtable_lookup(g_stringtable, *data_union_name_hash(&decl->val_union, ctx->data));
+    break;
+  }
+  if (!string_is_empty(name)) {
+    json_add_field_lit(ctx->doc, jsonObj, "$name", json_add_string(ctx->doc, name));
   }
 
   const bool emptyChoice = choice->meta.type == 0;
