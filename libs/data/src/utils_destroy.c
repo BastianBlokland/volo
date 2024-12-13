@@ -48,7 +48,7 @@ static bool data_destroy_needed_single(const DataReg* reg, const DataMeta meta) 
     return false;
   }
   case DataKind_Union: {
-    if (data_union_has_name(&decl->val_union)) {
+    if (data_union_name_type(&decl->val_union) == DataUnionNameType_String) {
       return true;
     }
     dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choice) {

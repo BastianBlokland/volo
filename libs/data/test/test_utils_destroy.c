@@ -226,7 +226,7 @@ spec(utils_destroy) {
     } CloneUnionA;
 
     data_reg_union_t(reg, CloneUnionA, tag);
-    data_reg_union_name_t(reg, CloneUnionA, name);
+    data_reg_union_name_t(reg, CloneUnionA, name, DataUnionNameType_String);
     data_reg_choice_t(reg, CloneUnionA, CloneUnionTag_Int, data_int, data_prim_t(i32));
     data_reg_choice_t(reg, CloneUnionA, CloneUnionTag_Float, data_float, data_prim_t(f32));
 

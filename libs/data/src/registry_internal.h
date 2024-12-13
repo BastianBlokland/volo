@@ -92,8 +92,8 @@ i32* data_union_tag(const DataDeclUnion*, Mem unionMem);
  * Create a pointer to the union name.
  * NOTE: Returns null if the union has no name.
  */
-String* data_union_name(const DataDeclUnion*, Mem unionMem);
-bool    data_union_has_name(const DataDeclUnion*);
+String*           data_union_name(const DataDeclUnion*, Mem unionMem);
+DataUnionNameType data_union_name_type(const DataDeclUnion*);
 
 /**
  * Find a choice with the given tag.

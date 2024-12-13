@@ -416,12 +416,7 @@ String* data_union_name(const DataDeclUnion* decl, const Mem unionMem) {
              : (String*)bits_ptr_offset(unionMem.ptr, decl->nameOffset);
 }
 
-bool data_union_has_name(const DataDeclUnion* decl) {
-  if (sentinel_check(decl->nameOffset)) {
-    return false;
-  }
-  return true;
-}
+DataUnionNameType data_union_name_type(const DataDeclUnion* decl) { return decl->nameType; }
 
 const DataDeclChoice* data_choice_from_tag(const DataDeclUnion* unionDecl, const i32 tag) {
   dynarray_for_t(&unionDecl->choices, DataDeclChoice, choice) {
