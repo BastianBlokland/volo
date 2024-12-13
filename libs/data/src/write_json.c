@@ -181,20 +181,22 @@ static JsonVal data_write_json_union(const WriteCtx* ctx) {
   const JsonVal typeStr = json_add_string(ctx->doc, choice->id.name);
   json_add_field_lit(ctx->doc, jsonObj, "$type", typeStr);
 
-  String name;
   switch (data_union_name_type(&decl->val_union)) {
   case DataUnionNameType_None:
-    name = string_empty;
     break;
-  case DataUnionNameType_String:
-    name = *data_union_name_string(&decl->val_union, ctx->data);
-    break;
-  case DataUnionNameType_StringHash:
-    name = stringtable_lookup(g_stringtable, *data_union_name_hash(&decl->val_union, ctx->data));
-    break;
-  }
-  if (!string_is_empty(name)) {
+  case DataUnionNameType_String: {
+    const String name = *data_union_name_string(&decl->val_union, ctx->data);
     json_add_field_lit(ctx->doc, jsonObj, "$name", json_add_string(ctx->doc, name));
+  } break;
+  case DataUnionNameType_StringHash: {
+    const StringHash nameHash = *data_union_name_hash(&decl->val_union, ctx->data);
+    const String     name = nameHash ? stringtable_lookup(g_stringtable, nameHash) : string_empty;
+    if (nameHash && string_is_empty(name)) {
+      json_add_field_lit(ctx->doc, jsonObj, "$name", json_add_number(ctx->doc, (f64)nameHash));
+    } else {
+      json_add_field_lit(ctx->doc, jsonObj, "$name", json_add_string(ctx->doc, name));
+    }
+  } break;
   }
 
   const bool emptyChoice = choice->meta.type == 0;
