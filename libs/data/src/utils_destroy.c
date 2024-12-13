@@ -48,7 +48,7 @@ static bool data_destroy_needed_single(const DataReg* reg, const DataMeta meta) 
     return false;
   }
   case DataKind_Union: {
-    if (!sentinel_check(decl->val_union.nameOffset)) {
+    if (data_union_name_type(&decl->val_union) == DataUnionNameType_String) {
       return true;
     }
     dynarray_for_t(&decl->val_union.choices, DataDeclChoice, choice) {
@@ -117,9 +117,9 @@ static void data_destroy_union(const DestroyCtx* ctx) {
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
   const i32       tag  = *data_union_tag(&decl->val_union, ctx->data);
 
-  const String* name = data_union_name(&decl->val_union, ctx->data);
-  if (name) {
-    string_maybe_free(ctx->alloc, *name);
+  const String* nameStr = data_union_name_string(&decl->val_union, ctx->data);
+  if (nameStr) {
+    string_maybe_free(ctx->alloc, *nameStr);
   }
 
   const DataDeclChoice* choice = data_choice_from_tag(&decl->val_union, tag);

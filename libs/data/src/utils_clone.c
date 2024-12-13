@@ -72,9 +72,17 @@ static void data_clone_union(const CloneCtx* ctx) {
 
   *data_union_tag(&decl->val_union, ctx->clone) = tag;
 
-  const String* name = data_union_name(&decl->val_union, ctx->original);
-  if (name) {
-    *data_union_name(&decl->val_union, ctx->clone) = string_maybe_dup(ctx->alloc, *name);
+  switch (data_union_name_type(&decl->val_union)) {
+  case DataUnionNameType_None:
+    break;
+  case DataUnionNameType_String: {
+    const String* nameStr = data_union_name_string(&decl->val_union, ctx->original);
+    *data_union_name_string(&decl->val_union, ctx->clone) = string_maybe_dup(ctx->alloc, *nameStr);
+  } break;
+  case DataUnionNameType_StringHash: {
+    const StringHash* nameHash = data_union_name_hash(&decl->val_union, ctx->original);
+    *data_union_name_hash(&decl->val_union, ctx->clone) = *nameHash;
+  } break;
   }
 
   const DataDeclChoice* choice = data_choice_from_tag(&decl->val_union, tag);

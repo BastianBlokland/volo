@@ -63,7 +63,7 @@ static JsonVal schema_default_union_choice(
   const JsonVal typeStr = json_add_string(ctx->doc, choice->id.name);
   json_add_field_lit(ctx->doc, obj, "$type", typeStr);
 
-  if (!sentinel_check(data->nameOffset)) {
+  if (data_union_name_type(data)) {
     const JsonVal defaultName = json_add_string(ctx->doc, string_lit("MyUnion"));
     json_add_field_lit(ctx->doc, obj, "$name", defaultName);
   }
@@ -381,7 +381,7 @@ static void schema_add_union(const JsonSchemaCtx* ctx, const JsonVal obj, const 
     json_add_elem(ctx->doc, reqArr, json_add_string_lit(ctx->doc, "$type"));
     json_add_field_lit(ctx->doc, typeObj, "const", json_add_string(ctx->doc, choice->id.name));
 
-    if (!sentinel_check(decl->val_union.nameOffset)) {
+    if (data_union_name_type(&decl->val_union)) {
       const JsonVal nameObj = json_add_object(ctx->doc);
       json_add_field_lit(ctx->doc, propObj, "$name", nameObj);
       json_add_field_lit(ctx->doc, nameObj, "type", json_add_string_lit(ctx->doc, "string"));

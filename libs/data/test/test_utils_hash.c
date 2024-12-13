@@ -93,7 +93,7 @@ spec(utils_hash) {
     } HashUnionA;
 
     data_reg_union_t(reg, HashUnionA, tag);
-    data_reg_union_name_t(reg, HashUnionA, name);
+    data_reg_union_name_t(reg, HashUnionA, name, DataUnionNameType_String);
     data_reg_choice_t(reg, HashUnionA, HashUnionTag_One, data_one, data_prim_t(u32));
 
     typedef struct {

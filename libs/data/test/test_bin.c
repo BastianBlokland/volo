@@ -321,7 +321,7 @@ spec(bin) {
     } WriteJsonUnion;
 
     data_reg_union_t(reg, WriteJsonUnion, tag);
-    data_reg_union_name_t(reg, WriteJsonUnion, name);
+    data_reg_union_name_t(reg, WriteJsonUnion, name, DataUnionNameType_String);
     data_reg_choice_t(reg, WriteJsonUnion, WriteJsonUnionTag_Int, data_int, data_prim_t(i32));
     data_reg_choice_t(reg, WriteJsonUnion, WriteJsonUnionTag_Float, data_float, data_prim_t(f32));
 

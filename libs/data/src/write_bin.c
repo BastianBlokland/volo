@@ -2,6 +2,7 @@
 #include "core_diag.h"
 #include "core_dynstring.h"
 #include "core_math.h"
+#include "core_stringtable.h"
 #include "data_utils.h"
 #include "data_write.h"
 
@@ -122,9 +123,18 @@ static void data_write_bin_union(const WriteCtx* ctx) {
   const DataDeclChoice* choice = data_choice_from_tag(&decl->val_union, tag);
   diag_assert(choice);
 
-  const String* name = data_union_name(&decl->val_union, ctx->data);
-  if (name) {
-    bin_push_mem(ctx, *name);
+  switch (data_union_name_type(&decl->val_union)) {
+  case DataUnionNameType_None:
+    break;
+  case DataUnionNameType_String: {
+    const String name = *data_union_name_string(&decl->val_union, ctx->data);
+    bin_push_mem(ctx, name);
+  } break;
+  case DataUnionNameType_StringHash: {
+    const StringHash nameHash = *data_union_name_hash(&decl->val_union, ctx->data);
+    const String     name     = stringtable_lookup(g_stringtable, nameHash);
+    bin_push_mem(ctx, name);
+  } break;
   }
 
   const bool emptyChoice = choice->meta.type == 0;

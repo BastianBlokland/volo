@@ -76,8 +76,8 @@ void data_reg_global_teardown(void) {
 DataReg* data_reg_create(Allocator* alloc) {
   DataReg* reg = alloc_alloc_t(alloc, DataReg);
   *reg         = (DataReg){
-      .types = dynarray_create_t(alloc, DataDecl, 64),
-      .alloc = alloc,
+              .types = dynarray_create_t(alloc, DataDecl, 64),
+              .alloc = alloc,
   };
 
 #define X(_T_)                                                                                     \
@@ -288,12 +288,15 @@ DataType data_reg_union(
   return type;
 }
 
-void data_reg_union_name(DataReg* reg, const DataType parent, usize nameOffset) {
+void data_reg_union_name(
+    DataReg* reg, const DataType parent, const usize nameOffset, const DataUnionNameType nameType) {
   diag_assert(!sentinel_check(nameOffset));
+  diag_assert(nameType != DataUnionNameType_None);
 
   DataDecl* parentDecl = data_decl_mutable(reg, parent);
   diag_assert_msg(parentDecl->kind == DataKind_Union, "Union name parent has to be a Union");
 
+  parentDecl->val_union.nameType   = nameType;
   parentDecl->val_union.nameOffset = nameOffset;
 }
 
@@ -407,18 +410,23 @@ i32* data_union_tag(const DataDeclUnion* decl, const Mem unionMem) {
   return (i32*)bits_ptr_offset(unionMem.ptr, decl->tagOffset);
 }
 
-String* data_union_name(const DataDeclUnion* decl, const Mem unionMem) {
-  return sentinel_check(decl->nameOffset)
-             ? null
-             : (String*)bits_ptr_offset(unionMem.ptr, decl->nameOffset);
+String* data_union_name_string(const DataDeclUnion* decl, const Mem unionMem) {
+  if (decl->nameType == DataUnionNameType_String) {
+    diag_assert(!sentinel_check(decl->nameOffset));
+    return (String*)bits_ptr_offset(unionMem.ptr, decl->nameOffset);
+  }
+  return null;
 }
 
-bool data_union_has_name(const DataDeclUnion* decl) {
-  if (sentinel_check(decl->nameOffset)) {
-    return false;
+StringHash* data_union_name_hash(const DataDeclUnion* decl, const Mem unionMem) {
+  if (decl->nameType == DataUnionNameType_StringHash) {
+    diag_assert(!sentinel_check(decl->nameOffset));
+    return (StringHash*)bits_ptr_offset(unionMem.ptr, decl->nameOffset);
   }
-  return true;
+  return null;
 }
+
+DataUnionNameType data_union_name_type(const DataDeclUnion* decl) { return decl->nameType; }
 
 const DataDeclChoice* data_choice_from_tag(const DataDeclUnion* unionDecl, const i32 tag) {
   dynarray_for_t(&unionDecl->choices, DataDeclChoice, choice) {

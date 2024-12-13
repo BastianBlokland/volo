@@ -10,21 +10,21 @@ spec(registry) {
 
   setup() { reg = data_reg_create(g_allocHeap); }
 
-  it("can lookup a primitive type's name") {
+  it("can lookup a primitive type's name"){
 #define X(_T_) check_eq_string(data_name(reg, data_prim_t(_T_)), string_lit(#_T_));
-    DATA_PRIMS
+      DATA_PRIMS
 #undef X
   }
 
-  it("can lookup a primitive type's size") {
+  it("can lookup a primitive type's size"){
 #define X(_T_) check_eq_int(data_size(reg, data_prim_t(_T_)), sizeof(_T_));
-    DATA_PRIMS
+      DATA_PRIMS
 #undef X
   }
 
-  it("can lookup a primitive type's alignment requirement") {
+  it("can lookup a primitive type's alignment requirement"){
 #define X(_T_) check_eq_int(data_align(reg, data_prim_t(_T_)), alignof(_T_));
-    DATA_PRIMS
+      DATA_PRIMS
 #undef X
   }
 
@@ -184,7 +184,7 @@ spec(registry) {
     } RegUnionA;
 
     data_reg_union_t(reg, RegUnionA, tag);
-    data_reg_union_name_t(reg, RegUnionA, name);
+    data_reg_union_name_t(reg, RegUnionA, name, DataUnionNameType_String);
     data_reg_choice_t(reg, RegUnionA, RegUnionTag_Int, data_int, data_prim_t(i32));
     data_reg_choice_t(reg, RegUnionA, RegUnionTag_Float, data_float, data_prim_t(f32));
   }
