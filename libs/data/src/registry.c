@@ -410,10 +410,20 @@ i32* data_union_tag(const DataDeclUnion* decl, const Mem unionMem) {
   return (i32*)bits_ptr_offset(unionMem.ptr, decl->tagOffset);
 }
 
-String* data_union_name(const DataDeclUnion* decl, const Mem unionMem) {
-  return sentinel_check(decl->nameOffset)
-             ? null
-             : (String*)bits_ptr_offset(unionMem.ptr, decl->nameOffset);
+String* data_union_name_string(const DataDeclUnion* decl, const Mem unionMem) {
+  if (decl->nameType == DataUnionNameType_String) {
+    diag_assert(!sentinel_check(decl->nameOffset));
+    return (String*)bits_ptr_offset(unionMem.ptr, decl->nameOffset);
+  }
+  return null;
+}
+
+StringHash* data_union_name_hash(const DataDeclUnion* decl, const Mem unionMem) {
+  if (decl->nameType == DataUnionNameType_StringHash) {
+    diag_assert(!sentinel_check(decl->nameOffset));
+    return (StringHash*)bits_ptr_offset(unionMem.ptr, decl->nameOffset);
+  }
+  return null;
 }
 
 DataUnionNameType data_union_name_type(const DataDeclUnion* decl) { return decl->nameType; }

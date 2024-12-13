@@ -90,9 +90,10 @@ i32* data_union_tag(const DataDeclUnion*, Mem unionMem);
 
 /**
  * Create a pointer to the union name.
- * NOTE: Returns null if the union has no name.
+ * NOTE: Returns null if the union has no name or the name is not of the right type.
  */
-String*           data_union_name(const DataDeclUnion*, Mem unionMem);
+String*           data_union_name_string(const DataDeclUnion*, Mem unionMem);
+StringHash*       data_union_name_hash(const DataDeclUnion*, Mem unionMem);
 DataUnionNameType data_union_name_type(const DataDeclUnion*);
 
 /**
