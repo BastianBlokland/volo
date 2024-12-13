@@ -423,16 +423,24 @@ static void data_read_json_union(const ReadCtx* ctx, DataReadResult* res) {
       *res = result_fail(DataReadError_UnionInvalidName, "'$name' field has to be a string");
       return;
     }
-    String* unionNamePtr = data_union_name(&decl->val_union, ctx->data);
-    if (UNLIKELY(!unionNamePtr)) {
+    const String jsonName = json_string(ctx->doc, nameVal);
+    switch (data_union_name_type(&decl->val_union)) {
+    case DataUnionNameType_None:
       *res = result_fail(DataReadError_UnionNameNotSupported, "'$name' field unsupported");
       return;
-    }
-    const String jsonName = json_string(ctx->doc, nameVal);
-    if (!string_is_empty(jsonName)) {
-      const String name = string_dup(ctx->alloc, jsonName);
-      data_register_alloc(ctx, name);
-      *unionNamePtr = name;
+    case DataUnionNameType_String: {
+      if (!string_is_empty(jsonName)) {
+        const String name = string_dup(ctx->alloc, jsonName);
+        data_register_alloc(ctx, name);
+        *data_union_name_string(&decl->val_union, ctx->data) = name;
+      }
+    } break;
+    case DataUnionNameType_StringHash:
+      if (!string_is_empty(jsonName)) {
+        const StringHash nameHash = stringtable_add(g_stringtable, jsonName);
+        *data_union_name_hash(&decl->val_union, ctx->data) = nameHash;
+      }
+      break;
     }
   }
 
