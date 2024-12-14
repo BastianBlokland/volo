@@ -213,12 +213,16 @@ static JsonVal data_write_json_struct(const WriteCtx* ctx) {
 
   const DataDeclField* inlineField = data_struct_inline_field(&decl->val_struct);
   if (inlineField) {
-    const WriteCtx fieldCtx = {
-        .reg  = ctx->reg,
-        .doc  = ctx->doc,
-        .meta = inlineField->meta,
-        .data = data_field_mem(ctx->reg, inlineField, ctx->data),
+    WriteCtx fieldCtx = {
+        .reg          = ctx->reg,
+        .doc          = ctx->doc,
+        .meta         = inlineField->meta,
+        .data         = data_field_mem(ctx->reg, inlineField, ctx->data),
+        .skipOptional = ctx->skipOptional,
     };
+    if (ctx->meta.flags & DataFlags_Opt) {
+      fieldCtx.meta.flags |= DataFlags_Opt;
+    }
     return data_write_json_val(&fieldCtx);
   }
 
