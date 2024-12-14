@@ -9,11 +9,11 @@
 
 #include "registry_internal.h"
 
-static const String g_dataBinMagic   = string_static("VOLO");
-static const u32    g_dataBinVersion = 3;
+static const String g_dataBinMagic           = string_static("VOLO");
+static const u32    g_dataBinProtocolVersion = 3;
 
 /**
- * Format version history:
+ * Protocol version history:
  * 1: Initial version.
  * 2: Added crc32 checksum.
  * 3: Support string-hash values.
@@ -88,7 +88,7 @@ static void bin_push_padding(const WriteCtx* ctx, const usize offset, const usiz
 
 static void data_write_bin_header(WriteCtx* ctx) {
   mem_cpy(dynstring_push(ctx->out, g_dataBinMagic.size), g_dataBinMagic);
-  bin_push_u32(ctx, g_dataBinVersion);
+  bin_push_u32(ctx, g_dataBinProtocolVersion);
 
   /**
    * Write a placeholder for the checksum field. The actual checksum will only be filled in after
