@@ -222,9 +222,12 @@ static void prefab_build(
       for (u32 i = 0; i != asset_prefab_scripts_max; ++i) {
         outTrait->data_script.scripts[i] = scriptDef->scripts[i].entity;
       }
-      heap_array_for_t(scriptDef->knowledge, AssetPrefabValue, valDef) {
-        *dynarray_push_t(outValues, AssetPrefabValue) = *valDef;
-      }
+
+      const AssetPrefabValue* knowledgeValues = scriptDef->knowledge.values;
+      const usize             knowledgeCount  = scriptDef->knowledge.count;
+      mem_cpy(
+          dynarray_push(outValues, knowledgeCount),
+          mem_create(knowledgeValues, sizeof(AssetPrefabValue) * knowledgeCount));
     } break;
     case AssetPrefabTrait_Bark:
       outTrait->data_bark = traitDef->data_bark;
