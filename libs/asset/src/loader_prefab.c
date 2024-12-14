@@ -368,7 +368,9 @@ ecs_system_define(LoadPrefabAssetSys) {
         .traits.values   = dynarray_copy_as_new(&traits, g_allocHeap),
         .traits.count    = traits.size,
         .values.values   = dynarray_copy_as_new(&values, g_allocHeap),
-        .values.count    = values.size);
+        .values.count    = values.size,
+        .shapes.values   = dynarray_copy_as_new(&shapes, g_allocHeap),
+        .shapes.count    = shapes.size);
 
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
     goto Cleanup;
