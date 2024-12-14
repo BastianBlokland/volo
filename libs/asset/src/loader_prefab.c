@@ -6,7 +6,6 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "core_search.h"
-#include "core_stringtable.h"
 #include "data_read.h"
 #include "data_utils.h"
 #include "ecs_entity.h"
@@ -280,7 +279,7 @@ static void prefabmap_build_user_index_lookup(
 }
 
 ecs_comp_define_public(AssetPrefabMapComp);
-ecs_comp_define(AssetPrefabLoadComp) { AssetSource* src; };
+ecs_comp_define(AssetPrefabLoadComp) { AssetPrefabMapDef def; };
 
 static void ecs_destruct_prefabmap_comp(void* data) {
   AssetPrefabMapComp* comp = data;
@@ -301,7 +300,7 @@ static void ecs_destruct_prefabmap_comp(void* data) {
 
 static void ecs_destruct_prefab_load_comp(void* data) {
   AssetPrefabLoadComp* comp = data;
-  asset_repo_source_close(comp->src);
+  data_destroy(g_dataReg, g_allocHeap, g_assetPrefabDefMeta, mem_var(comp->def));
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -327,34 +326,27 @@ ecs_system_define(LoadPrefabAssetSys) {
 
   EcsView* loadView = ecs_world_view_t(world, LoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
-    const EcsEntityId  entity = ecs_view_entity(itr);
-    const String       id     = asset_id(ecs_view_read_t(itr, AssetComp));
-    const AssetSource* src    = ecs_view_read_t(itr, AssetPrefabLoadComp)->src;
+    const EcsEntityId          entity = ecs_view_entity(itr);
+    const String               id     = asset_id(ecs_view_read_t(itr, AssetComp));
+    const AssetPrefabLoadComp* load   = ecs_view_read_t(itr, AssetPrefabLoadComp);
 
     DynArray prefabs = dynarray_create_t(g_allocHeap, AssetPrefab, 64);
     DynArray traits  = dynarray_create_t(g_allocHeap, AssetPrefabTrait, 64);
     DynArray values  = dynarray_create_t(g_allocHeap, AssetPrefabValue, 64);
     DynArray shapes  = dynarray_create_t(g_allocHeap, AssetPrefabShape, 64);
 
-    AssetPrefabMapDef def;
-    String            errMsg;
-    DataReadResult    readRes;
-    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetPrefabDefMeta, mem_var(def), &readRes);
-    if (UNLIKELY(readRes.error)) {
-      errMsg = readRes.errorMsg;
-      goto Error;
-    }
-    if (UNLIKELY(def.prefabs.count > u16_max)) {
+    String errMsg;
+    if (UNLIKELY(load->def.prefabs.count > u16_max)) {
       errMsg = prefab_error_str(PrefabError_PrefabCountExceedsMax);
       goto Error;
     }
-    if (UNLIKELY(!asset_data_patch_refs(world, manager, g_assetPrefabDefMeta, mem_var(def)))) {
+    if (!asset_data_patch_refs(world, manager, g_assetPrefabDefMeta, mem_var(load->def))) {
       errMsg = prefab_error_str(PrefabError_InvalidAssetReference);
       goto Error;
     }
 
     PrefabError buildErr;
-    prefabmap_build(&def, &prefabs, &traits, &values, &shapes, &buildErr);
+    prefabmap_build(&load->def, &prefabs, &traits, &values, &shapes, &buildErr);
     if (buildErr) {
       errMsg = prefab_error_str(buildErr);
       goto Error;
@@ -362,7 +354,7 @@ ecs_system_define(LoadPrefabAssetSys) {
 
     u16* userIndexLookup = prefabs.size ? alloc_array_t(g_allocHeap, u16, prefabs.size) : null;
     prefabmap_build_user_index_lookup(
-        &def, dynarray_begin_t(&prefabs, AssetPrefab), userIndexLookup);
+        &load->def, dynarray_begin_t(&prefabs, AssetPrefab), userIndexLookup);
 
     ecs_world_add_t(
         world,
@@ -379,6 +371,10 @@ ecs_system_define(LoadPrefabAssetSys) {
         .shapes.count    = shapes.size);
 
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+
+    // TODO: Instead of caching the definition it would be more optional to cache the resulting map.
+    asset_cache(world, entity, g_assetPrefabDefMeta, mem_var(load->def));
+
     goto Cleanup;
 
   Error:
@@ -390,7 +386,6 @@ ecs_system_define(LoadPrefabAssetSys) {
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
   Cleanup:
-    data_destroy(g_dataReg, g_allocHeap, g_assetPrefabDefMeta, mem_var(def));
     dynarray_destroy(&prefabs);
     dynarray_destroy(&traits);
     dynarray_destroy(&values);
@@ -658,7 +653,29 @@ void asset_load_prefabs(
   (void)importEnv;
   (void)id;
 
-  ecs_world_add_t(world, entity, AssetPrefabLoadComp, .src = src);
+  AssetPrefabMapDef def;
+  DataReadResult    result;
+  if (src->format == AssetFormat_PrefabsBin) {
+    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetPrefabDefMeta, mem_var(def), &result);
+  } else {
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetPrefabDefMeta, mem_var(def), &result);
+  }
+
+  if (UNLIKELY(result.error)) {
+    log_e(
+        "Failed to load prefab-map",
+        log_param("id", fmt_text(id)),
+        log_param("entity", ecs_entity_fmt(entity)),
+        log_param("error-code", fmt_int(result.error)),
+        log_param("error", fmt_text(result.errorMsg)));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    goto Ret;
+  }
+
+  ecs_world_add_t(world, entity, AssetPrefabLoadComp, .def = def);
+
+Ret:
+  asset_repo_source_close(src);
 }
 
 const AssetPrefab* asset_prefab_get(const AssetPrefabMapComp* map, const StringHash name) {

@@ -17,6 +17,7 @@ typedef enum eAssetFormat {
   AssetFormat_MeshObj,
   AssetFormat_MeshProc,
   AssetFormat_Prefabs,
+  AssetFormat_PrefabsBin,
   AssetFormat_Products,
   AssetFormat_Raw,
   AssetFormat_Script,

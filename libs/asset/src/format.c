@@ -3,6 +3,7 @@
 #include "asset_icon.h"
 #include "asset_level.h"
 #include "asset_mesh.h"
+#include "asset_prefab.h"
 #include "asset_script.h"
 #include "asset_shader.h"
 #include "asset_sound.h"
@@ -59,6 +60,7 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_MeshObj]        = string_static("MeshObj"),
     [AssetFormat_MeshProc]       = string_static("MeshProc"),
     [AssetFormat_Prefabs]        = string_static("Prefabs"),
+    [AssetFormat_PrefabsBin]     = string_static("PrefabsBin"),
     [AssetFormat_Products]       = string_static("Products"),
     [AssetFormat_Raw]            = string_static("Raw"),
     [AssetFormat_Script]         = string_static("Script"),
@@ -91,6 +93,7 @@ static const DataMeta* g_assetFormatBinMeta[AssetFormat_Count] = {
     [AssetFormat_IconBin]     = &g_assetIconMeta,
     [AssetFormat_LevelBin]    = &g_assetLevelDefMeta,
     [AssetFormat_MeshBin]     = &g_assetMeshBundleMeta,
+    [AssetFormat_PrefabsBin]  = &g_assetPrefabDefMeta,
     [AssetFormat_ScriptBin]   = &g_assetScriptMeta,
     [AssetFormat_ShaderBin]   = &g_assetShaderMeta,
     [AssetFormat_SoundBin]    = &g_assetSoundMeta,
