@@ -161,19 +161,18 @@ static void data_read_bin_header_internal(ReadCtx* ctx, DataBinHeader* out, Data
     *res = result_fail(DataReadError_Malformed, "Input mismatched magic");
     return;
   }
-  u32 inFormatVersion = 0;
-  if (!bin_pop_u32(ctx, &inFormatVersion)) {
+  if (!bin_pop_u32(ctx, &out->protocolVersion)) {
     goto Truncated;
   }
-  if (!inFormatVersion || inFormatVersion > 2) {
+  if (!out->protocolVersion || out->protocolVersion > 2) {
     *res = result_fail(
         DataReadError_Incompatible,
-        "Input format version {} is unsupported",
-        fmt_int(inFormatVersion));
+        "Input protocol version {} is unsupported",
+        fmt_int(out->protocolVersion));
     return;
   }
 
-  if (inFormatVersion == 1) {
+  if (out->protocolVersion == 1) {
     out->checksum = 0; // Version 1 had no checksum.
   } else if (!bin_pop_u32(ctx, &out->checksum)) {
     goto Truncated;
