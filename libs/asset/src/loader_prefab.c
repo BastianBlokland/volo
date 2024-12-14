@@ -371,6 +371,10 @@ ecs_system_define(LoadPrefabAssetSys) {
         .shapes.count    = shapes.size);
 
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
+
+    // TODO: Instead of caching the definition it would be more optional to cache the resulting map.
+    asset_cache(world, entity, g_assetPrefabDefMeta, mem_var(load->def));
+
     goto Cleanup;
 
   Error:
@@ -652,9 +656,9 @@ void asset_load_prefabs(
   AssetPrefabMapDef def;
   DataReadResult    result;
   if (src->format == AssetFormat_PrefabsBin) {
-    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetPrefabDefMeta, mem_var(def), &result);
-  } else {
     data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetPrefabDefMeta, mem_var(def), &result);
+  } else {
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetPrefabDefMeta, mem_var(def), &result);
   }
 
   if (UNLIKELY(result.error)) {
