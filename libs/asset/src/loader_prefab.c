@@ -49,26 +49,12 @@ static AssetPrefabFlags prefab_set_flags(const StringHash set) {
 }
 
 typedef struct {
-  StringHash           name;
-  AssetPrefabValueType type;
-  union {
-    f64                   data_number;
-    bool                  data_bool;
-    GeoVector             data_vector3;
-    GeoColor              data_color;
-    String                data_string;
-    AssetRef              data_asset;
-    AssetPrefabValueSound data_sound;
-  };
-} AssetPrefabValueDef;
-
-typedef struct {
   bool             navBlocker;
   AssetPrefabShape shape;
 } AssetPrefabTraitCollisionDef;
 
 typedef struct {
-  HeapArray_t(String) scriptIds;
+  AssetRef scripts[asset_prefab_scripts_max];
   HeapArray_t(AssetPrefabValue) knowledge;
 } AssetPrefabTraitScriptDef;
 
@@ -101,8 +87,8 @@ typedef struct {
 } AssetPrefabTraitDef;
 
 typedef struct {
-  String name;
-  bool   isVolatile;
+  StringHash name;
+  bool       isVolatile;
   HeapArray_t(AssetPrefabTraitDef) traits;
 } AssetPrefabDef;
 
@@ -111,8 +97,7 @@ typedef struct {
 } AssetPrefabMapDef;
 
 static i8 prefab_compare(const void* a, const void* b) {
-  return compare_stringhash(
-      field_ptr(a, AssetPrefab, nameHash), field_ptr(b, AssetPrefab, nameHash));
+  return compare_stringhash(field_ptr(a, AssetPrefab, name), field_ptr(b, AssetPrefab, name));
 }
 
 typedef enum {
@@ -120,7 +105,6 @@ typedef enum {
   PrefabError_DuplicatePrefab,
   PrefabError_DuplicateTrait,
   PrefabError_PrefabCountExceedsMax,
-  PrefabError_ScriptAssetCountExceedsMax,
   PrefabError_InvalidAssetReference,
 
   PrefabError_Count,
@@ -132,55 +116,10 @@ static String prefab_error_str(const PrefabError err) {
       string_static("Multiple prefabs with the same name"),
       string_static("Prefab defines the same trait more then once"),
       string_static("Prefab count exceeds the maximum"),
-      string_static("Script asset count exceeds the maximum"),
       string_static("Unable to resolve asset-reference"),
   };
   ASSERT(array_elems(g_msgs) == PrefabError_Count, "Incorrect number of error messages");
   return g_msgs[err];
-}
-
-typedef struct {
-  EcsWorld*         world;
-  AssetManagerComp* assetManager;
-} BuildCtx;
-
-static AssetPrefabValue prefab_build_value(const AssetPrefabValueDef* def) {
-  AssetPrefabValue res;
-  res.name = def->name;
-
-  switch (def->type) {
-  case AssetPrefabValue_Number:
-    res.type        = AssetPrefabValue_Number;
-    res.data_number = def->data_number;
-    break;
-  case AssetPrefabValue_Bool:
-    res.type      = AssetPrefabValue_Bool;
-    res.data_bool = def->data_bool;
-    break;
-  case AssetPrefabValue_Vector3:
-    res.type         = AssetPrefabValue_Vector3;
-    res.data_vector3 = def->data_vector3;
-    break;
-  case AssetPrefabValue_Color:
-    res.type       = AssetPrefabValue_Color;
-    res.data_color = def->data_color;
-    break;
-  case AssetPrefabValue_String:
-    res.type        = AssetPrefabValue_String;
-    res.data_string = stringtable_add(g_stringtable, def->data_string);
-    break;
-  case AssetPrefabValue_Asset:
-    res.type       = AssetPrefabValue_Asset;
-    res.data_asset = def->data_asset;
-    break;
-  case AssetPrefabValue_Sound:
-    res.type       = AssetPrefabValue_Sound;
-    res.data_sound = def->data_sound;
-    break;
-  default:
-    diag_crash_msg("Unsupported prefab value");
-  }
-  return res;
 }
 
 static AssetPrefabFlags prefab_build_flags(const AssetPrefabDef* def) {
@@ -190,7 +129,6 @@ static AssetPrefabFlags prefab_build_flags(const AssetPrefabDef* def) {
 }
 
 static void prefab_build(
-    BuildCtx*             ctx,
     const AssetPrefabDef* def,
     DynArray*             outTraits, // AssetPrefabTrait[], needs to be already initialized.
     DynArray*             outValues, // AssetPrefabValue[], needs to be already initialized.
@@ -199,7 +137,7 @@ static void prefab_build(
 
   *err       = PrefabError_None;
   *outPrefab = (AssetPrefab){
-      .nameHash   = stringtable_add(g_stringtable, def->name),
+      .name       = def->name,
       .flags      = prefab_build_flags(def),
       .traitIndex = (u16)outTraits->size,
       .traitCount = (u16)def->traits.count,
@@ -208,7 +146,6 @@ static void prefab_build(
   const u8     addedTraitsBits[bits_to_bytes(AssetPrefabTrait_Count) + 1] = {0};
   const BitSet addedTraits = bitset_from_array(addedTraitsBits);
 
-  AssetManagerComp* manager = ctx->assetManager;
   heap_array_for_t(def->traits, AssetPrefabTraitDef, traitDef) {
     if (bitset_test(addedTraits, traitDef->type)) {
       *err = PrefabError_DuplicateTrait;
@@ -219,55 +156,36 @@ static void prefab_build(
     AssetPrefabTrait* outTrait = dynarray_push_t(outTraits, AssetPrefabTrait);
     outTrait->type             = traitDef->type;
 
+#define TRAIT_EMPTY(_NAME_)                                                                        \
+  case AssetPrefabTrait_##_NAME_:                                                                  \
+    break
+#define TRAIT_COPY(_NAME_, _MEMBER_)                                                               \
+  case AssetPrefabTrait_##_NAME_:                                                                  \
+    outTrait->_MEMBER_ = traitDef->_MEMBER_;                                                       \
+    break
+
     switch (traitDef->type) {
-    case AssetPrefabTrait_Name:
-      outTrait->data_name = traitDef->data_name;
-      break;
-    case AssetPrefabTrait_SetMember:
-      outTrait->data_setMember = traitDef->data_setMember;
-      for (u32 i = 0; i != asset_prefab_sets_max; ++i) {
-        const StringHash set = outTrait->data_setMember.sets[i];
-        if (set) {
-          outPrefab->flags |= prefab_set_flags(set);
-        }
-      }
-      break;
-    case AssetPrefabTrait_Renderable:
-      outTrait->data_renderable = traitDef->data_renderable;
-      break;
-    case AssetPrefabTrait_Vfx:
-      outTrait->data_vfx = traitDef->data_vfx;
-      break;
-    case AssetPrefabTrait_Decal:
-      outTrait->data_decal = traitDef->data_decal;
-      break;
-    case AssetPrefabTrait_Sound:
-      outTrait->data_sound = traitDef->data_sound;
-      break;
-    case AssetPrefabTrait_LightPoint:
-      outTrait->data_lightPoint = traitDef->data_lightPoint;
-      break;
-    case AssetPrefabTrait_LightDir:
-      outTrait->data_lightDir = traitDef->data_lightDir;
-      break;
-    case AssetPrefabTrait_LightAmbient:
-      outTrait->data_lightAmbient = traitDef->data_lightAmbient;
-      break;
-    case AssetPrefabTrait_Lifetime:
-      outTrait->data_lifetime = traitDef->data_lifetime;
-      break;
-    case AssetPrefabTrait_Movement:
-      outTrait->data_movement = traitDef->data_movement;
-      break;
-    case AssetPrefabTrait_Footstep:
-      outTrait->data_footstep = traitDef->data_footstep;
-      break;
-    case AssetPrefabTrait_Health:
-      outTrait->data_health = traitDef->data_health;
-      break;
-    case AssetPrefabTrait_Attack:
-      outTrait->data_attack = traitDef->data_attack;
-      break;
+      TRAIT_EMPTY(Scalable);
+      TRAIT_COPY(Name, data_name);
+      TRAIT_COPY(SetMember, data_setMember);
+      TRAIT_COPY(Renderable, data_renderable);
+      TRAIT_COPY(Vfx, data_vfx);
+      TRAIT_COPY(Decal, data_decal);
+      TRAIT_COPY(Sound, data_sound);
+      TRAIT_COPY(LightPoint, data_lightPoint);
+      TRAIT_COPY(LightDir, data_lightDir);
+      TRAIT_COPY(LightAmbient, data_lightAmbient);
+      TRAIT_COPY(Lifetime, data_lifetime);
+      TRAIT_COPY(Movement, data_movement);
+      TRAIT_COPY(Footstep, data_footstep);
+      TRAIT_COPY(Health, data_health);
+      TRAIT_COPY(Attack, data_attack);
+      TRAIT_COPY(Bark, data_bark);
+      TRAIT_COPY(Location, data_location);
+      TRAIT_COPY(Status, data_status);
+      TRAIT_COPY(Vision, data_vision);
+      TRAIT_COPY(Attachment, data_attachment);
+      TRAIT_COPY(Production, data_production);
     case AssetPrefabTrait_Collision:
       outTrait->data_collision = (AssetPrefabTraitCollision){
           .navBlocker = traitDef->data_collision.navBlocker,
@@ -275,55 +193,42 @@ static void prefab_build(
       };
       break;
     case AssetPrefabTrait_Script: {
-      const AssetPrefabTraitScriptDef* scriptDef   = &traitDef->data_script;
-      const u32                        scriptCount = (u32)scriptDef->scriptIds.count;
-      if (UNLIKELY(scriptCount > asset_prefab_scripts_max)) {
-        *err = PrefabError_ScriptAssetCountExceedsMax;
-        return;
-      }
       outTrait->data_script = (AssetPrefabTraitScript){
-          .scriptAssetCount = (u8)scriptCount,
-          .knowledgeIndex   = (u16)outValues->size,
-          .knowledgeCount   = (u16)scriptDef->knowledge.count,
+          .knowledgeIndex = (u16)outValues->size,
+          .knowledgeCount = (u16)traitDef->data_script.knowledge.count,
       };
-      for (u32 i = 0; i != scriptCount; ++i) {
-        const String assetId                  = scriptDef->scriptIds.values[i];
-        outTrait->data_script.scriptAssets[i] = asset_lookup(ctx->world, manager, assetId);
+      for (u32 i = 0; i != asset_prefab_scripts_max; ++i) {
+        outTrait->data_script.scripts[i] = traitDef->data_script.scripts[i].entity;
       }
-      heap_array_for_t(scriptDef->knowledge, AssetPrefabValueDef, valDef) {
-        *dynarray_push_t(outValues, AssetPrefabValue) = prefab_build_value(valDef);
-      }
+      const AssetPrefabValue* knowledgeValues = traitDef->data_script.knowledge.values;
+      const usize             knowledgeCount  = traitDef->data_script.knowledge.count;
+      mem_cpy(
+          dynarray_push(outValues, knowledgeCount),
+          mem_create(knowledgeValues, sizeof(AssetPrefabValue) * knowledgeCount));
     } break;
-    case AssetPrefabTrait_Bark:
-      outTrait->data_bark = traitDef->data_bark;
-      break;
-    case AssetPrefabTrait_Location:
-      outTrait->data_location = traitDef->data_location;
-      break;
-    case AssetPrefabTrait_Status:
-      outTrait->data_status = traitDef->data_status;
-      break;
-    case AssetPrefabTrait_Vision:
-      outTrait->data_vision = traitDef->data_vision;
-      break;
-    case AssetPrefabTrait_Attachment:
-      outTrait->data_attachment = traitDef->data_attachment;
-      break;
-    case AssetPrefabTrait_Production:
-      outTrait->data_production = traitDef->data_production;
-      break;
-    case AssetPrefabTrait_Scalable:
     case AssetPrefabTrait_Count:
       break;
     }
+
     if (*err) {
       return; // Failed to build trait.
     }
+
+    // Set prefab flags based on the sets this prefab is a member of.
+    if (traitDef->type == AssetPrefabTrait_SetMember) {
+      for (u32 i = 0; i != asset_prefab_sets_max; ++i) {
+        const StringHash set = outTrait->data_setMember.sets[i];
+        if (set) {
+          outPrefab->flags |= prefab_set_flags(set);
+        }
+      }
+    }
+#undef TRAIT_EMPTY
+#undef TRAIT_COPY
   }
 }
 
 static void prefabmap_build(
-    BuildCtx*                ctx,
     const AssetPrefabMapDef* def,
     DynArray*                outPrefabs, // AssetPrefab[], needs to be already initialized.
     DynArray*                outTraits,  // AssetPrefabTrait[], needs to be already initialized.
@@ -332,7 +237,7 @@ static void prefabmap_build(
 
   heap_array_for_t(def->prefabs, AssetPrefabDef, prefabDef) {
     AssetPrefab prefab;
-    prefab_build(ctx, prefabDef, outTraits, outValues, &prefab, err);
+    prefab_build(prefabDef, outTraits, outValues, &prefab, err);
     if (*err) {
       return;
     }
@@ -356,10 +261,10 @@ static void prefabmap_build_user_index_lookup(
   const u16          prefabCount = (u16)def->prefabs.count;
   const AssetPrefab* prefabsEnd  = prefabs + prefabCount;
   for (u16 userIndex = 0; userIndex != prefabCount; ++userIndex) {
-    const StringHash   nameHash = string_hash(def->prefabs.values[userIndex].name);
-    const AssetPrefab* prefab   = search_binary_t(
-        prefabs, prefabsEnd, AssetPrefab, prefab_compare, &(AssetPrefab){.nameHash = nameHash});
-    diag_assert(prefab && prefab->nameHash == nameHash);
+    const StringHash   name   = def->prefabs.values[userIndex].name;
+    const AssetPrefab* prefab = search_binary_t(
+        prefabs, prefabsEnd, AssetPrefab, prefab_compare, &(AssetPrefab){.name = name});
+    diag_assert(prefab && prefab->name == name);
     outUserIndexLookup[userIndex] = (u16)(prefab - prefabs);
   }
 }
@@ -434,13 +339,8 @@ ecs_system_define(LoadPrefabAssetSys) {
       goto Error;
     }
 
-    BuildCtx buildCtx = {
-        .world        = world,
-        .assetManager = manager,
-    };
-
     PrefabError buildErr;
-    prefabmap_build(&buildCtx, &def, &prefabs, &traits, &values, &buildErr);
+    prefabmap_build(&def, &prefabs, &traits, &values, &buildErr);
     if (buildErr) {
       errMsg = prefab_error_str(buildErr);
       goto Error;
@@ -573,15 +473,15 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabValueSound, asset, g_assetRefType);
   data_reg_field_t(g_dataReg, AssetPrefabValueSound, persistent, data_prim_t(bool), .flags = DataFlags_Opt);
 
-  data_reg_union_t(g_dataReg, AssetPrefabValueDef, type);
-  data_reg_union_name_t(g_dataReg, AssetPrefabValueDef, name, DataUnionNameType_StringHash);
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Number, data_number, data_prim_t(f64));
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Bool, data_bool, data_prim_t(bool));
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Vector3, data_vector3, g_assetGeoVec3Type);
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Color, data_color, g_assetGeoColorType);
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_String, data_string, data_prim_t(String), .flags = DataFlags_Intern);
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Asset, data_asset, g_assetRefType);
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Sound, data_sound, t_AssetPrefabValueSound);
+  data_reg_union_t(g_dataReg, AssetPrefabValue, type);
+  data_reg_union_name_t(g_dataReg, AssetPrefabValue, name, DataUnionNameType_StringHash);
+  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Number, data_number, data_prim_t(f64));
+  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Bool, data_bool, data_prim_t(bool));
+  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Vector3, data_vector3, g_assetGeoVec3Type);
+  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Color, data_color, g_assetGeoColorType);
+  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_String, data_string, data_prim_t(StringHash));
+  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Asset, data_asset, g_assetRefType);
+  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Sound, data_sound, t_AssetPrefabValueSound);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitName);
   data_reg_field_t(g_dataReg, AssetPrefabTraitName, name, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
@@ -660,8 +560,8 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, shape, t_AssetPrefabShape);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitScriptDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, scriptIds, data_prim_t(String),  .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, knowledge, t_AssetPrefabValueDef, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, scripts, g_assetRefType,  .container = DataContainer_InlineArray, .fixedCount = asset_prefab_scripts_max, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, knowledge, t_AssetPrefabValue, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitBark);
   data_reg_field_t(g_dataReg, AssetPrefabTraitBark, priority, data_prim_t(i32), .flags = DataFlags_Opt);
@@ -721,7 +621,7 @@ void asset_data_init_prefab(void) {
   data_reg_choice_empty(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Scalable);
 
   data_reg_struct_t(g_dataReg, AssetPrefabDef);
-  data_reg_field_t(g_dataReg, AssetPrefabDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
+  data_reg_field_t(g_dataReg, AssetPrefabDef, name, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabDef, isVolatile, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetPrefabDef, traits, t_AssetPrefabTraitDef, .container = DataContainer_HeapArray);
 
@@ -744,17 +644,17 @@ void asset_load_prefabs(
   ecs_world_add_t(world, entity, AssetPrefabLoadComp, .src = src);
 }
 
-const AssetPrefab* asset_prefab_get(const AssetPrefabMapComp* map, const StringHash nameHash) {
+const AssetPrefab* asset_prefab_get(const AssetPrefabMapComp* map, const StringHash name) {
   return search_binary_t(
       map->prefabs,
       map->prefabs + map->prefabCount,
       AssetPrefab,
       prefab_compare,
-      mem_struct(AssetPrefab, .nameHash = nameHash).ptr);
+      mem_struct(AssetPrefab, .name = name).ptr);
 }
 
-u16 asset_prefab_get_index(const AssetPrefabMapComp* map, const StringHash nameHash) {
-  const AssetPrefab* prefab = asset_prefab_get(map, nameHash);
+u16 asset_prefab_get_index(const AssetPrefabMapComp* map, const StringHash name) {
+  const AssetPrefab* prefab = asset_prefab_get(map, name);
   if (UNLIKELY(!prefab)) {
     return sentinel_u16;
   }

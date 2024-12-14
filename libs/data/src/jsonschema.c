@@ -140,11 +140,7 @@ static JsonVal schema_default_opaque(const JsonSchemaCtx* ctx, const DataMeta me
 
 static JsonVal schema_default_array(const JsonSchemaCtx* ctx, const DataMeta meta) {
   const JsonVal arr = json_add_array(ctx->doc);
-  if (meta.fixedCount) {
-    for (u16 i = 0; i != meta.fixedCount; ++i) {
-      json_add_elem(ctx->doc, arr, schema_default_type(ctx, data_meta_base(meta)));
-    }
-  } else if (meta.flags & DataFlags_NotEmpty) {
+  if (meta.flags & DataFlags_NotEmpty) {
     json_add_elem(ctx->doc, arr, schema_default_type(ctx, data_meta_base(meta)));
   }
   return arr;

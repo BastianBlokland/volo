@@ -417,9 +417,9 @@ static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelCont
   for (u16 userIndex = 0; userIndex != ctx->prefabMap->prefabCount; ++userIndex) {
     const u16    prefabIdx = asset_prefab_get_index_from_user(ctx->prefabMap, userIndex);
     AssetPrefab* prefab    = &ctx->prefabMap->prefabs[prefabIdx];
-    const String name      = stringtable_lookup(g_stringtable, prefab->nameHash);
+    const String nameStr   = stringtable_lookup(g_stringtable, prefab->name);
 
-    if (!prefab_filter(ctx, name)) {
+    if (!prefab_filter(ctx, nameStr)) {
       continue;
     }
     ++ctx->panelComp->totalRows;
@@ -428,9 +428,9 @@ static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelCont
     ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
 
     const String nameTooltip = fmt_write_scratch(
-        "Index: {}\nId (hash): {}", fmt_int(prefabIdx), string_hash_fmt(string_hash(name)));
+        "Index: {}\nId (hash): {}", fmt_int(prefabIdx), string_hash_fmt(string_hash(nameStr)));
 
-    ui_label(canvas, name, .selectable = true, .tooltip = nameTooltip);
+    ui_label(canvas, nameStr, .selectable = true, .tooltip = nameTooltip);
     ui_table_next_column(canvas, &table);
 
     const u32 count = prefabIdx < array_elems(instanceCounts) ? instanceCounts[prefabIdx] : 0;
@@ -444,7 +444,7 @@ static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelCont
             .fontSize   = 18,
             .frameColor = ui_color(255, 16, 0, 192),
             .tooltip    = string_lit("Destroy all instances."))) {
-      prefab_destroy_all(ctx, prefab->nameHash);
+      prefab_destroy_all(ctx, prefab->name);
     }
     ui_layout_next(canvas, Ui_Right, 10);
     if (ui_button(
@@ -453,7 +453,7 @@ static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelCont
             .fontSize   = 18,
             .frameColor = ui_color(0, 16, 255, 192),
             .tooltip    = string_lit("Select all instances."))) {
-      prefab_select_all(ctx, prefab->nameHash);
+      prefab_select_all(ctx, prefab->name);
     }
     ui_layout_next(canvas, Ui_Right, 10);
     if (ui_button(
@@ -463,7 +463,7 @@ static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelCont
             .fontSize   = 18,
             .frameColor = disableCreate ? ui_color(64, 64, 64, 192) : ui_color(16, 192, 0, 192),
             .tooltip    = string_lit("Create a new instance."))) {
-      prefab_create_start(ctx, prefab->nameHash);
+      prefab_create_start(ctx, prefab->name);
     }
   }
 
