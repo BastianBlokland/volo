@@ -11,11 +11,11 @@
   _X_(AssetFormat_FontTtf,          font_ttf,           1  )                                       \
   _X_(AssetFormat_Graphic,          graphic,            1  )                                       \
   _X_(AssetFormat_Icon,             icon,               1  )                                       \
-  _X_(AssetFormat_IconBin,          icon_bin,           1  )                                       \
+  _X_(AssetFormat_IconBin,          icon_bin,           2  )                                       \
   _X_(AssetFormat_Inputs,           inputs,             1  )                                       \
   _X_(AssetFormat_Level,            level,              2  )                                       \
-  _X_(AssetFormat_LevelBin,         level,              1  )                                       \
-  _X_(AssetFormat_MeshBin,          mesh_bin,           1  )                                       \
+  _X_(AssetFormat_LevelBin,         level,              2  )                                       \
+  _X_(AssetFormat_MeshBin,          mesh_bin,           2  )                                       \
   _X_(AssetFormat_MeshGlb,          mesh_glb,           23 )                                       \
   _X_(AssetFormat_MeshGltf,         mesh_gltf,          23 )                                       \
   _X_(AssetFormat_MeshObj,          mesh_obj,           6  )                                       \
@@ -24,20 +24,20 @@
   _X_(AssetFormat_Products,         products,           1  )                                       \
   _X_(AssetFormat_Raw,              raw,                0  ) /* Raw cannot be versioned. */        \
   _X_(AssetFormat_Script,           script,             34 )                                       \
-  _X_(AssetFormat_ScriptBin,        script_bin,         1  )                                       \
-  _X_(AssetFormat_ShaderBin,        shader_bin,         1  )                                       \
+  _X_(AssetFormat_ScriptBin,        script_bin,         2  )                                       \
+  _X_(AssetFormat_ShaderBin,        shader_bin,         2  )                                       \
   _X_(AssetFormat_ShaderGlslFrag,   shader_glsl_frag,   1  )                                       \
   _X_(AssetFormat_ShaderGlslVert,   shader_glsl_vert,   1  )                                       \
   _X_(AssetFormat_ShaderSpv,        shader_spv,         1  )                                       \
-  _X_(AssetFormat_SoundBin,         sound_bin,          1  )                                       \
+  _X_(AssetFormat_SoundBin,         sound_bin,          2  )                                       \
   _X_(AssetFormat_SoundWav,         sound_wav,          1  )                                       \
   _X_(AssetFormat_Terrain,          terrain,            1  )                                       \
   _X_(AssetFormat_TexArray,         tex_array,          1  )                                       \
   _X_(AssetFormat_TexAtlas,         tex_atlas,          1  )                                       \
-  _X_(AssetFormat_TexAtlasBin,      tex_atlas_bin,      1  )                                       \
-  _X_(AssetFormat_TexBin,           tex_bin,            1  )                                       \
+  _X_(AssetFormat_TexAtlasBin,      tex_atlas_bin,      2  )                                       \
+  _X_(AssetFormat_TexBin,           tex_bin,            2  )                                       \
   _X_(AssetFormat_TexFont,          tex_font,           1  )                                       \
-  _X_(AssetFormat_TexFontBin,       tex_font_bin,       1  )                                       \
+  _X_(AssetFormat_TexFontBin,       tex_font_bin,       2  )                                       \
   _X_(AssetFormat_TexHeight16,      tex_height16,       2  )                                       \
   _X_(AssetFormat_TexHeight32,      tex_height32,       2  )                                       \
   _X_(AssetFormat_TexPng,           tex_png,            2  )                                       \
