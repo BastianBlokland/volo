@@ -162,12 +162,6 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_SetMember:
       outTrait->data_setMember = traitDef->data_setMember;
-      for (u32 i = 0; i != asset_prefab_sets_max; ++i) {
-        const StringHash set = outTrait->data_setMember.sets[i];
-        if (set) {
-          outPrefab->flags |= prefab_set_flags(set);
-        }
-      }
       break;
     case AssetPrefabTrait_Renderable:
       outTrait->data_renderable = traitDef->data_renderable;
@@ -250,8 +244,19 @@ static void prefab_build(
     case AssetPrefabTrait_Count:
       break;
     }
+
     if (*err) {
       return; // Failed to build trait.
+    }
+
+    // Set prefab flags based on the sets this prefab is a member of.
+    if (traitDef->type == AssetPrefabTrait_SetMember) {
+      for (u32 i = 0; i != asset_prefab_sets_max; ++i) {
+        const StringHash set = outTrait->data_setMember.sets[i];
+        if (set) {
+          outPrefab->flags |= prefab_set_flags(set);
+        }
+      }
     }
   }
 }
