@@ -248,25 +248,33 @@ void asset_data_init(void) {
 typedef struct {
   EcsWorld*         world;
   AssetManagerComp* manager;
+  bool              success;
 } AssetDataPatchCtx;
 
 static void asset_data_patch_refs_visitor(void* ctx, const Mem data) {
   AssetDataPatchCtx* patchCtx = ctx;
   AssetRef*          refData  = mem_as_t(data, AssetRef);
 
-  if (refData->id) {
-    const String idStr = stringtable_lookup(g_stringtable, refData->id);
-    refData->entity    = asset_maybe_lookup(patchCtx->world, patchCtx->manager, idStr);
-  } else {
-    refData->entity = 0;
+  if (!refData->id) {
+    refData->entity = 0; // Unset optional asset-ref.
+    return;
   }
+  const String idStr = stringtable_lookup(g_stringtable, refData->id);
+  if (UNLIKELY(string_is_empty(idStr))) {
+    refData->entity   = 0; // String missing from the global string-table.
+    patchCtx->success = false;
+    return;
+  }
+  refData->entity = asset_lookup(patchCtx->world, patchCtx->manager, idStr);
 }
 
-void asset_data_patch_refs(
+bool asset_data_patch_refs(
     EcsWorld* world, AssetManagerComp* manager, const DataMeta meta, const Mem data) {
   AssetDataPatchCtx ctx = {
       .world   = world,
       .manager = manager,
+      .success = true,
   };
   data_visit(g_dataReg, meta, data, g_assetRefType, &ctx, asset_data_patch_refs_visitor);
+  return ctx.success;
 }

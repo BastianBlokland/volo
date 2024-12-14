@@ -38,4 +38,4 @@ extern DataType g_assetGeoCapsuleType;
 extern DataType g_assetGeoMatrixType;
 extern DataType g_assetGeoPlaneType;
 
-void asset_data_patch_refs(EcsWorld*, AssetManagerComp*, DataMeta, Mem data);
+bool asset_data_patch_refs(EcsWorld*, AssetManagerComp*, DataMeta, Mem data);
