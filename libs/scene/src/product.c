@@ -382,17 +382,17 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
   if (!prefab) {
     return true; // TODO: Report error?
   }
-  const GeoVector placementOrigin = transComp ? transComp->position : geo_vector(0);
-  const GeoVector placementPos    = ctx->production->placementPos;
-  const GeoQuat   placementRot    = geo_quat_angle_axis(ctx->production->placementAngle, geo_up);
+  const GeoVector placeOrigin = transComp ? transComp->position : geo_vector(0);
+  const GeoVector placePos    = ctx->production->placementPos;
+  const GeoQuat   placeRot    = geo_quat_angle_axis(ctx->production->placementAngle, geo_up);
 
-  const f32 placementRadiusMax = ctx->production->placementRadius;
-  const f32 placementDist      = geo_vector_mag(geo_vector_sub(placementPos, placementOrigin));
-  if (placementRadiusMax > f32_epsilon && placementDist > ctx->production->placementRadius) {
+  const f32 placeRadiusMax = ctx->production->placementRadius;
+  const f32 placeDist      = geo_vector_mag(geo_vector_sub(placePos, placeOrigin));
+  if (placeRadiusMax > f32_epsilon && placeDist > ctx->production->placementRadius) {
     return true; // Position out of placement radius.
   }
 
-  if (!scene_visible_pos(ctx->visiblityEnv, faction, placementPos)) {
+  if (!scene_visible_pos(ctx->visiblityEnv, faction, placePos)) {
     return true; // Position not visible.
   }
 
@@ -401,27 +401,36 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
   if (!collisionTrait) {
     return false;
   }
-  const AssetPrefabShape* shape = &collisionTrait->data_collision.shape;
-  switch (shape->type) {
-  case AssetPrefabShape_Sphere: {
-    const GeoSphere sphere =
-        geo_sphere_transform3(&shape->data_sphere, placementPos, placementRot, 1.0f);
-    return geo_nav_check_sphere(grid, &sphere, GeoNavCond_Blocked);
+  const u16 shapeIndex = collisionTrait->data_collision.shapeIndex;
+  const u16 shapeCount = collisionTrait->data_collision.shapeCount;
+  for (u32 i = 0; i != shapeCount; ++i) {
+    const AssetPrefabShape* shape = &ctx->prefabMap->shapes.values[shapeIndex + i];
+    switch (shape->type) {
+    case AssetPrefabShape_Sphere: {
+      const GeoSphere s = geo_sphere_transform3(&shape->data_sphere, placePos, placeRot, 1);
+      if (geo_nav_check_sphere(grid, &s, GeoNavCond_Blocked)) {
+        return true;
+      }
+      break;
+    }
+    case AssetPrefabShape_Capsule: {
+      const GeoCapsule    c   = geo_capsule_transform3(&shape->data_capsule, placePos, placeRot, 1);
+      const GeoBoxRotated box = geo_box_rotated_from_capsule(c.line.a, c.line.b, c.radius);
+      if (geo_nav_check_box_rotated(grid, &box, GeoNavCond_Blocked)) {
+        return true;
+      }
+      break;
+    }
+    case AssetPrefabShape_Box: {
+      const GeoBoxRotated b = geo_box_rotated_transform3(&shape->data_box, placePos, placeRot, 1);
+      if (geo_nav_check_box_rotated(grid, &b, GeoNavCond_Blocked)) {
+        return true;
+      }
+      break;
+    }
+    }
   }
-  case AssetPrefabShape_Capsule: {
-    const GeoCapsule capsule =
-        geo_capsule_transform3(&shape->data_capsule, placementPos, placementRot, 1.0f);
-    const GeoBoxRotated box =
-        geo_box_rotated_from_capsule(capsule.line.a, capsule.line.b, capsule.radius);
-    return geo_nav_check_box_rotated(grid, &box, GeoNavCond_Blocked);
-  }
-  case AssetPrefabShape_Box: {
-    const GeoBoxRotated box =
-        geo_box_rotated_transform3(&shape->data_box, placementPos, placementRot, 1.0f);
-    return geo_nav_check_box_rotated(grid, &box, GeoNavCond_Blocked);
-  }
-  }
-  diag_crash_msg("Unsupported product collision shape");
+  return false;
 }
 
 static ProductResult product_queue_process_active_placeable(ProductQueueContext* ctx) {
