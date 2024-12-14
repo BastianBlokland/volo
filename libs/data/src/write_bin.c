@@ -158,8 +158,8 @@ static void data_write_bin_union(const WriteCtx* ctx) {
   } break;
   case DataUnionNameType_StringHash: {
     const StringHash nameHash = *data_union_name_hash(&decl->val_union, ctx->data);
-    const String     name     = stringtable_lookup(g_stringtable, nameHash);
-    bin_push_mem(ctx, name);
+    bin_track_stringhash(ctx, nameHash);
+    bin_push_u32(ctx, nameHash);
   } break;
   }
 
