@@ -22,6 +22,63 @@ typedef struct {
   bool                     skipOptional;
 } WriteCtx;
 
+static bool data_is_default(const DataReg*, DataMeta, Mem data);
+
+static bool data_is_default_single(const DataReg* reg, const DataMeta meta, const Mem data) {
+  const DataDecl* decl = data_decl(reg, meta.type);
+  switch (decl->kind) {
+  case DataKind_bool:
+  case DataKind_i8:
+  case DataKind_i16:
+  case DataKind_i32:
+  case DataKind_i64:
+  case DataKind_u8:
+  case DataKind_u16:
+  case DataKind_u32:
+  case DataKind_u64:
+  case DataKind_f16:
+  case DataKind_f32:
+  case DataKind_f64:
+  case DataKind_TimeDuration:
+  case DataKind_Angle:
+  case DataKind_Enum:
+  case DataKind_StringHash:
+  case DataKind_Opaque:
+    return mem_all(data, 0);
+  case DataKind_String:
+    return mem_as_t(data, String)->size == 0;
+  case DataKind_DataMem:
+    return mem_as_t(data, DataMem)->size == 0;
+  case DataKind_Struct: {
+    dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
+      if (!data_is_default(reg, fieldDecl->meta, data_field_mem(reg, fieldDecl, data))) {
+        return false;
+      }
+    }
+    return true;
+  }
+  case DataKind_Union:
+    return false; // TODO: Implement default check for unions.
+  case DataKind_Invalid:
+  case DataKind_Count:
+    break;
+  }
+  diag_crash();
+}
+
+static bool data_is_default(const DataReg* reg, const DataMeta meta, const Mem data) {
+  switch (meta.container) {
+  case DataContainer_None:
+    return data_is_default_single(reg, meta, data);
+  case DataContainer_InlineArray:
+  case DataContainer_Pointer:
+  case DataContainer_HeapArray:
+  case DataContainer_DynArray:
+    return false; // TODO: Implement default check for containers.
+  }
+  diag_crash();
+}
+
 static JsonVal data_write_json_val(const WriteCtx*);
 
 static JsonVal data_write_json_bool(const WriteCtx* ctx) {
@@ -156,12 +213,16 @@ static JsonVal data_write_json_struct(const WriteCtx* ctx) {
 
   const DataDeclField* inlineField = data_struct_inline_field(&decl->val_struct);
   if (inlineField) {
-    const WriteCtx fieldCtx = {
-        .reg  = ctx->reg,
-        .doc  = ctx->doc,
-        .meta = inlineField->meta,
-        .data = data_field_mem(ctx->reg, inlineField, ctx->data),
+    WriteCtx fieldCtx = {
+        .reg          = ctx->reg,
+        .doc          = ctx->doc,
+        .meta         = inlineField->meta,
+        .data         = data_field_mem(ctx->reg, inlineField, ctx->data),
+        .skipOptional = ctx->skipOptional,
     };
+    if (ctx->meta.flags & DataFlags_Opt) {
+      fieldCtx.meta.flags |= DataFlags_Opt;
+    }
     return data_write_json_val(&fieldCtx);
   }
 
@@ -334,13 +395,14 @@ static JsonVal data_write_json_val_inline_array(const WriteCtx* ctx) {
   }
   const JsonVal   jsonArray = json_add_array(ctx->doc);
   const DataDecl* decl      = data_decl(ctx->reg, ctx->meta.type);
+  const DataMeta  baseMeta  = data_meta_base(ctx->meta);
 
   // Determine which entries from the end can be skipped.
   u16 nonDefaultCount = ctx->meta.fixedCount;
   for (; nonDefaultCount; --nonDefaultCount) {
     const u16 idx      = nonDefaultCount - 1;
     const Mem entryMem = mem_create(bits_ptr_offset(ctx->data.ptr, decl->size * idx), decl->size);
-    if (!mem_all(entryMem, 0)) {
+    if (!data_is_default(ctx->reg, baseMeta, entryMem)) {
       break;
     }
   }
@@ -350,7 +412,7 @@ static JsonVal data_write_json_val_inline_array(const WriteCtx* ctx) {
     WriteCtx elemCtx = {
         .reg  = ctx->reg,
         .doc  = ctx->doc,
-        .meta = data_meta_base(ctx->meta),
+        .meta = baseMeta,
         .data = mem_create(bits_ptr_offset(ctx->data.ptr, decl->size * i), decl->size),
     };
     if (i >= nonDefaultCount) {
@@ -370,12 +432,13 @@ static JsonVal data_write_json_val_heap_array(const WriteCtx* ctx) {
   const JsonVal    jsonArray = json_add_array(ctx->doc);
   const DataDecl*  decl      = data_decl(ctx->reg, ctx->meta.type);
   const HeapArray* array     = mem_as_t(ctx->data, HeapArray);
+  const DataMeta   baseMeta  = data_meta_base(ctx->meta);
 
   for (usize i = 0; i != array->count; ++i) {
     const WriteCtx elemCtx = {
         .reg  = ctx->reg,
         .doc  = ctx->doc,
-        .meta = data_meta_base(ctx->meta),
+        .meta = baseMeta,
         .data = data_elem_mem(decl, array, i),
     };
     const JsonVal elemVal = data_write_json_val_single(&elemCtx);
@@ -387,12 +450,13 @@ static JsonVal data_write_json_val_heap_array(const WriteCtx* ctx) {
 static JsonVal data_write_json_val_dynarray(const WriteCtx* ctx) {
   const JsonVal   jsonArray = json_add_array(ctx->doc);
   const DynArray* array     = mem_as_t(ctx->data, DynArray);
+  const DataMeta  baseMeta  = data_meta_base(ctx->meta);
 
   for (usize i = 0; i != array->size; ++i) {
     const WriteCtx elemCtx = {
         .reg  = ctx->reg,
         .doc  = ctx->doc,
-        .meta = data_meta_base(ctx->meta),
+        .meta = baseMeta,
         .data = dynarray_at(array, i, 1),
     };
     const JsonVal elemVal = data_write_json_val_single(&elemCtx);

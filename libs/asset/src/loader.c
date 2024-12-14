@@ -20,7 +20,7 @@
   _X_(AssetFormat_MeshGltf,         mesh_gltf,          23 )                                       \
   _X_(AssetFormat_MeshObj,          mesh_obj,           6  )                                       \
   _X_(AssetFormat_MeshProc,         mesh_proc,          1  )                                       \
-  _X_(AssetFormat_Prefabs,          prefabs,            1  )                                       \
+  _X_(AssetFormat_Prefabs,          prefabs,            2  )                                       \
   _X_(AssetFormat_PrefabsBin,       prefabs,            1  )                                       \
   _X_(AssetFormat_Products,         products,           1  )                                       \
   _X_(AssetFormat_Raw,              raw,                0  ) /* Raw cannot be versioned. */        \
