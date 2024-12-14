@@ -156,49 +156,36 @@ static void prefab_build(
     AssetPrefabTrait* outTrait = dynarray_push_t(outTraits, AssetPrefabTrait);
     outTrait->type             = traitDef->type;
 
+#define TRAIT_EMPTY(_NAME_)                                                                        \
+  case AssetPrefabTrait_##_NAME_:                                                                  \
+    break
+#define TRAIT_COPY(_NAME_, _MEMBER_)                                                               \
+  case AssetPrefabTrait_##_NAME_:                                                                  \
+    outTrait->_MEMBER_ = traitDef->_MEMBER_;                                                       \
+    break
+
     switch (traitDef->type) {
-    case AssetPrefabTrait_Name:
-      outTrait->data_name = traitDef->data_name;
-      break;
-    case AssetPrefabTrait_SetMember:
-      outTrait->data_setMember = traitDef->data_setMember;
-      break;
-    case AssetPrefabTrait_Renderable:
-      outTrait->data_renderable = traitDef->data_renderable;
-      break;
-    case AssetPrefabTrait_Vfx:
-      outTrait->data_vfx = traitDef->data_vfx;
-      break;
-    case AssetPrefabTrait_Decal:
-      outTrait->data_decal = traitDef->data_decal;
-      break;
-    case AssetPrefabTrait_Sound:
-      outTrait->data_sound = traitDef->data_sound;
-      break;
-    case AssetPrefabTrait_LightPoint:
-      outTrait->data_lightPoint = traitDef->data_lightPoint;
-      break;
-    case AssetPrefabTrait_LightDir:
-      outTrait->data_lightDir = traitDef->data_lightDir;
-      break;
-    case AssetPrefabTrait_LightAmbient:
-      outTrait->data_lightAmbient = traitDef->data_lightAmbient;
-      break;
-    case AssetPrefabTrait_Lifetime:
-      outTrait->data_lifetime = traitDef->data_lifetime;
-      break;
-    case AssetPrefabTrait_Movement:
-      outTrait->data_movement = traitDef->data_movement;
-      break;
-    case AssetPrefabTrait_Footstep:
-      outTrait->data_footstep = traitDef->data_footstep;
-      break;
-    case AssetPrefabTrait_Health:
-      outTrait->data_health = traitDef->data_health;
-      break;
-    case AssetPrefabTrait_Attack:
-      outTrait->data_attack = traitDef->data_attack;
-      break;
+      TRAIT_EMPTY(Scalable);
+      TRAIT_COPY(Name, data_name);
+      TRAIT_COPY(SetMember, data_setMember);
+      TRAIT_COPY(Renderable, data_renderable);
+      TRAIT_COPY(Vfx, data_vfx);
+      TRAIT_COPY(Decal, data_decal);
+      TRAIT_COPY(Sound, data_sound);
+      TRAIT_COPY(LightPoint, data_lightPoint);
+      TRAIT_COPY(LightDir, data_lightDir);
+      TRAIT_COPY(LightAmbient, data_lightAmbient);
+      TRAIT_COPY(Lifetime, data_lifetime);
+      TRAIT_COPY(Movement, data_movement);
+      TRAIT_COPY(Footstep, data_footstep);
+      TRAIT_COPY(Health, data_health);
+      TRAIT_COPY(Attack, data_attack);
+      TRAIT_COPY(Bark, data_bark);
+      TRAIT_COPY(Location, data_location);
+      TRAIT_COPY(Status, data_status);
+      TRAIT_COPY(Vision, data_vision);
+      TRAIT_COPY(Attachment, data_attachment);
+      TRAIT_COPY(Production, data_production);
     case AssetPrefabTrait_Collision:
       outTrait->data_collision = (AssetPrefabTraitCollision){
           .navBlocker = traitDef->data_collision.navBlocker,
@@ -219,25 +206,6 @@ static void prefab_build(
           dynarray_push(outValues, knowledgeCount),
           mem_create(knowledgeValues, sizeof(AssetPrefabValue) * knowledgeCount));
     } break;
-    case AssetPrefabTrait_Bark:
-      outTrait->data_bark = traitDef->data_bark;
-      break;
-    case AssetPrefabTrait_Location:
-      outTrait->data_location = traitDef->data_location;
-      break;
-    case AssetPrefabTrait_Status:
-      outTrait->data_status = traitDef->data_status;
-      break;
-    case AssetPrefabTrait_Vision:
-      outTrait->data_vision = traitDef->data_vision;
-      break;
-    case AssetPrefabTrait_Attachment:
-      outTrait->data_attachment = traitDef->data_attachment;
-      break;
-    case AssetPrefabTrait_Production:
-      outTrait->data_production = traitDef->data_production;
-      break;
-    case AssetPrefabTrait_Scalable:
     case AssetPrefabTrait_Count:
       break;
     }
@@ -255,6 +223,8 @@ static void prefab_build(
         }
       }
     }
+#undef TRAIT_EMPTY
+#undef TRAIT_COPY
   }
 }
 
