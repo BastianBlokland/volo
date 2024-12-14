@@ -54,7 +54,7 @@ typedef struct {
 } AssetPrefabTraitCollisionDef;
 
 typedef struct {
-  HeapArray_t(String) scriptIds;
+  HeapArray_t(AssetRef) scripts;
   HeapArray_t(AssetPrefabValue) knowledge;
 } AssetPrefabTraitScriptDef;
 
@@ -125,11 +125,6 @@ static String prefab_error_str(const PrefabError err) {
   return g_msgs[err];
 }
 
-typedef struct {
-  EcsWorld*         world;
-  AssetManagerComp* assetManager;
-} BuildCtx;
-
 static AssetPrefabFlags prefab_build_flags(const AssetPrefabDef* def) {
   AssetPrefabFlags result = 0;
   result |= def->isVolatile ? AssetPrefabFlags_Volatile : 0;
@@ -137,7 +132,6 @@ static AssetPrefabFlags prefab_build_flags(const AssetPrefabDef* def) {
 }
 
 static void prefab_build(
-    BuildCtx*             ctx,
     const AssetPrefabDef* def,
     DynArray*             outTraits, // AssetPrefabTrait[], needs to be already initialized.
     DynArray*             outValues, // AssetPrefabValue[], needs to be already initialized.
@@ -155,7 +149,6 @@ static void prefab_build(
   const u8     addedTraitsBits[bits_to_bytes(AssetPrefabTrait_Count) + 1] = {0};
   const BitSet addedTraits = bitset_from_array(addedTraitsBits);
 
-  AssetManagerComp* manager = ctx->assetManager;
   heap_array_for_t(def->traits, AssetPrefabTraitDef, traitDef) {
     if (bitset_test(addedTraits, traitDef->type)) {
       *err = PrefabError_DuplicateTrait;
@@ -223,7 +216,7 @@ static void prefab_build(
       break;
     case AssetPrefabTrait_Script: {
       const AssetPrefabTraitScriptDef* scriptDef   = &traitDef->data_script;
-      const u32                        scriptCount = (u32)scriptDef->scriptIds.count;
+      const u32                        scriptCount = (u32)scriptDef->scripts.count;
       if (UNLIKELY(scriptCount > asset_prefab_scripts_max)) {
         *err = PrefabError_ScriptAssetCountExceedsMax;
         return;
@@ -234,8 +227,7 @@ static void prefab_build(
           .knowledgeCount   = (u16)scriptDef->knowledge.count,
       };
       for (u32 i = 0; i != scriptCount; ++i) {
-        const String assetId                  = scriptDef->scriptIds.values[i];
-        outTrait->data_script.scriptAssets[i] = asset_lookup(ctx->world, manager, assetId);
+        outTrait->data_script.scriptAssets[i] = scriptDef->scripts.values[i].entity;
       }
       heap_array_for_t(scriptDef->knowledge, AssetPrefabValue, valDef) {
         *dynarray_push_t(outValues, AssetPrefabValue) = *valDef;
@@ -270,7 +262,6 @@ static void prefab_build(
 }
 
 static void prefabmap_build(
-    BuildCtx*                ctx,
     const AssetPrefabMapDef* def,
     DynArray*                outPrefabs, // AssetPrefab[], needs to be already initialized.
     DynArray*                outTraits,  // AssetPrefabTrait[], needs to be already initialized.
@@ -279,7 +270,7 @@ static void prefabmap_build(
 
   heap_array_for_t(def->prefabs, AssetPrefabDef, prefabDef) {
     AssetPrefab prefab;
-    prefab_build(ctx, prefabDef, outTraits, outValues, &prefab, err);
+    prefab_build(prefabDef, outTraits, outValues, &prefab, err);
     if (*err) {
       return;
     }
@@ -381,13 +372,8 @@ ecs_system_define(LoadPrefabAssetSys) {
       goto Error;
     }
 
-    BuildCtx buildCtx = {
-        .world        = world,
-        .assetManager = manager,
-    };
-
     PrefabError buildErr;
-    prefabmap_build(&buildCtx, &def, &prefabs, &traits, &values, &buildErr);
+    prefabmap_build(&def, &prefabs, &traits, &values, &buildErr);
     if (buildErr) {
       errMsg = prefab_error_str(buildErr);
       goto Error;
@@ -607,7 +593,7 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, shape, t_AssetPrefabShape);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitScriptDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, scriptIds, data_prim_t(String),  .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, scripts, g_assetRefType,  .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, knowledge, t_AssetPrefabValue, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitBark);
