@@ -32,10 +32,7 @@ static void bin_track_stringhash(const WriteCtx* ctx, const StringHash val) {
   if (!val) {
     return; // Unset.
   }
-  if (dynarray_search_binary(ctx->stringHashes, compare_stringhash, &val)) {
-    return; // Already tracked.
-  }
-  *dynarray_insert_sorted_t(ctx->stringHashes, StringHash, compare_stringhash, &val) = val;
+  *(StringHash*)dynarray_find_or_insert_sorted(ctx->stringHashes, compare_stringhash, &val) = val;
 }
 
 static void bin_push_u8(const WriteCtx* ctx, const u8 val) {
