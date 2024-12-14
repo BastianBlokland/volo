@@ -37,12 +37,12 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": false,
-          "shape": {
-            "$type": "AssetPrefabShape_Capsule",
-            "a": { "y": 0.3 },
-            "b": { "y": 1.5 },
-            "radius": 0.3
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Capsule",
+              "a": { "y": 0.3 },
+              "b": { "y": 1.5 },
+              "radius": 0.3
+            } ]
         },
         {
           "$type": "AssetPrefabTrait_Script",
@@ -98,12 +98,12 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": false,
-          "shape": {
-            "$type": "AssetPrefabShape_Capsule",
-            "a": { "y": 0.3 },
-            "b": { "y": 1.5 },
-            "radius": 0.3
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Capsule",
+              "a": { "y": 0.3 },
+              "b": { "y": 1.5 },
+              "radius": 0.3
+            } ]
         },
         {
           "$type": "AssetPrefabTrait_Script",
@@ -159,12 +159,12 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": false,
-          "shape": {
-            "$type": "AssetPrefabShape_Capsule",
-            "a": { "y": 0.3 },
-            "b": { "y": 1.5 },
-            "radius": 0.3
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Capsule",
+              "a": { "y": 0.3 },
+              "b": { "y": 1.5 },
+              "radius": 0.3
+            } ]
         },
         {
           "$type": "AssetPrefabTrait_Script",
@@ -225,12 +225,12 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": false,
-          "shape": {
-            "$type": "AssetPrefabShape_Capsule",
-            "a": { "y": 0.3 },
-            "b": { "y": 1.4 },
-            "radius": 0.3
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Capsule",
+              "a": { "y": 0.3 },
+              "b": { "y": 1.4 },
+              "radius": 0.3
+            } ]
         },
         {
           "$type": "AssetPrefabTrait_Script",
@@ -284,12 +284,12 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": false,
-          "shape": {
-            "$type": "AssetPrefabShape_Capsule",
-            "a": { "y": 0.3 },
-            "b": { "y": 1.5 },
-            "radius": 0.3
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Capsule",
+              "a": { "y": 0.3 },
+              "b": { "y": 1.5 },
+              "radius": 0.3
+            } ]
         },
         {
           "$type": "AssetPrefabTrait_Script",
@@ -337,11 +337,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Box",
-            "min": { "x": -1.35, "y": 0, "z": -2.8 },
-            "max": { "x": 1.35, "y": 1.9, "z": 2.8 }
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -1.35, "y": 0, "z": -2.8 },
+              "max": { "x": 1.35, "y": 1.9, "z": 2.8 }
+            } ]
         },
         {
           "$type": "AssetPrefabTrait_Script",
@@ -396,11 +396,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Sphere",
-            "point": { "y": 0.7 },
-            "radius": 0.95
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Sphere",
+              "point": { "y": 0.7 },
+              "radius": 0.95
+            } ]
         },
         {
           "$type": "AssetPrefabTrait_Script",
@@ -441,11 +441,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Sphere",
-            "point": { "y": 0.7 },
-            "radius": 0.95
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Sphere",
+              "point": { "y": 0.7 },
+              "radius": 0.95
+            } ]
         },
         {
           "$type": "AssetPrefabTrait_Script",
@@ -485,11 +485,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Box",
-            "min": { "x": -5.5, "y": 0, "z": -2.4 },
-            "max": { "x": 5.5, "y": 2.5, "z": 2.4 }
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -5.5, "y": 0, "z": -2.4 },
+              "max": { "x": 5.5, "y": 2.5, "z": 2.4 }
+            } ]
         },
         {
           "$type": "AssetPrefabTrait_Location", "aimTarget": {
@@ -524,11 +524,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Box",
-            "min": { "x": -4.7, "y": 0, "z": -4 },
-            "max": { "x": 4.7, "y": 7.1, "z": 3.4 }
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -4.7, "y": 0, "z": -4 },
+              "max": { "x": 4.7, "y": 7.1, "z": 3.4 }
+            } ]
         },
         {
           "$type": "AssetPrefabTrait_Location", "aimTarget": {
@@ -555,11 +555,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Box",
-            "min": { "x": -1.75, "y": 0, "z": -2.5 },
-            "max": { "x": 1.75, "y": 1.75, "z": 2.5 }
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -1.75, "y": 0, "z": -2.5 },
+              "max": { "x": 1.75, "y": 1.75, "z": 2.5 }
+            } ]
         },
         {
           "$type": "AssetPrefabTrait_Location", "aimTarget": {
@@ -588,11 +588,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Box",
-            "min": { "x": -0.15, "y": 0, "z": -1.5 },
-            "max": { "x": 0.1, "y": 2, "z": 1.5 }
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -0.15, "y": 0, "z": -1.5 },
+              "max": { "x": 0.1, "y": 2, "z": 1.5 }
+            } ]
         }
       ]
     },
@@ -603,12 +603,12 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Capsule",
-            "a": { "y": 0.25 },
-            "b": { "y": 1.2 },
-            "radius": 0.35
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Capsule",
+              "a": { "y": 0.25 },
+              "b": { "y": 1.2 },
+              "radius": 0.35
+            } ]
         },
         { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/fire_barrel.vfx" },
         {
@@ -629,12 +629,12 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Capsule",
-            "a": { "y": 0.25 },
-            "b": { "y": 1.2 },
-            "radius": 0.35
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Capsule",
+              "a": { "y": 0.25 },
+              "b": { "y": 1.2 },
+              "radius": 0.35
+            } ]
         },
         {
           "$type": "AssetPrefabTrait_Health",
@@ -683,12 +683,12 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Capsule",
-            "a": { "y": 0.25 },
-            "b": { "y": 2.55 },
-            "radius": 0.3
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Capsule",
+              "a": { "y": 0.25 },
+              "b": { "y": 2.55 },
+              "radius": 0.3
+            } ]
         }
       ]
     },
@@ -705,11 +705,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Box",
-            "min": { "x": -1, "y": 0, "z": -2.5 },
-            "max": { "x": 1, "y": 1.5, "z": 2.5 }
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -1, "y": 0, "z": -2.5 },
+              "max": { "x": 1, "y": 1.5, "z": 2.5 }
+            } ]
         }
       ]
     },
@@ -720,11 +720,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Box",
-            "min": { "x": -1, "y": 0, "z": -1 },
-            "max": { "x": 1, "y": 6, "z": 1 }
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -1, "y": 0, "z": -1 },
+              "max": { "x": 1, "y": 6, "z": 1 }
+            } ]
         }
       ]
     },
@@ -735,11 +735,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Box",
-            "min": { "x": -1.25, "y": 0, "z": -3 },
-            "max": { "x": 1.25, "y": 2.5, "z": 3 }
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -1.25, "y": 0, "z": -3 },
+              "max": { "x": 1.25, "y": 2.5, "z": 3 }
+            } ]
         }
       ]
     },
@@ -751,11 +751,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Box",
-            "min": { "x": -0.5, "y": 0, "z": -0.5 },
-            "max": { "x": 0.5, "y": 1.15, "z": 0.5 }
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -0.5, "y": 0, "z": -0.5 },
+              "max": { "x": 0.5, "y": 1.15, "z": 0.5 }
+            } ]
         }
       ]
     },
@@ -766,11 +766,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Box",
-            "min": { "x": -1.75, "y": 0, "z": -2.5 },
-            "max": { "x": 1.75, "y": 1.75, "z": 2.5 }
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -1.75, "y": 0, "z": -2.5 },
+              "max": { "x": 1.75, "y": 1.75, "z": 2.5 }
+            } ]
         }
       ]
     },
@@ -781,11 +781,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Box",
-            "min": { "x": -0.9, "y": 0, "z": -2.2 },
-            "max": { "x": 0.9, "y": 1.5, "z": 2.2 }
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -0.9, "y": 0, "z": -2.2 },
+              "max": { "x": 0.9, "y": 1.5, "z": 2.2 }
+            } ]
         }
       ]
     },
@@ -796,11 +796,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Box",
-            "min": { "x": -0.4, "y": 0, "z": -0.8 },
-            "max": { "x": 0.4, "y": 1, "z": 0.4 }
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -0.4, "y": 0, "z": -0.8 },
+              "max": { "x": 0.4, "y": 1, "z": 0.4 }
+            } ]
         }
       ]
     },
@@ -812,11 +812,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Box",
-            "min": { "x": -1.2, "y": 0, "z": -0.9 },
-            "max": { "x": 1.2, "y": 1, "z": 0.75 }
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -1.2, "y": 0, "z": -0.9 },
+              "max": { "x": 1.2, "y": 1, "z": 0.75 }
+            } ]
         }
       ]
     },
@@ -827,11 +827,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Box",
-            "min": { "x": -0.1, "y": 0, "z": -0.1 },
-            "max": { "x": 0.1, "y": 3.7, "z": 0.1 }
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -0.1, "y": 0, "z": -0.1 },
+              "max": { "x": 0.1, "y": 3.7, "z": 0.1 }
+            } ]
         },
         { "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/effects/prop_alarm.script" ],
           "knowledge": [
@@ -848,11 +848,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Box",
-            "min": { "x": -0.1, "y": 0, "z": -0.2 },
-            "max": { "x": 0.1, "y": 1.8, "z": 0.2 }
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -0.1, "y": 0, "z": -0.2 },
+              "max": { "x": 0.1, "y": 1.8, "z": 0.2 }
+            } ]
         }
       ]
     },
@@ -863,11 +863,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Box",
-            "min": { "x": -0.2, "y": 0, "z": -0.2 },
-            "max": { "x": 0.2, "y": 0.75, "z": 0.2 }
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -0.2, "y": 0, "z": -0.2 },
+              "max": { "x": 0.2, "y": 0.75, "z": 0.2 }
+            } ]
         }
       ]
     },
@@ -878,11 +878,11 @@
         {
           "$type": "AssetPrefabTrait_Collision",
           "navBlocker": true,
-          "shape": {
-            "$type": "AssetPrefabShape_Box",
-            "min": { "x": -0.1, "y": 0, "z": -0.6 },
-            "max": { "x": 0.1, "y": 1, "z": 0.6 }
-          }
+          "shapes": [ {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -0.1, "y": 0, "z": -0.6 },
+              "max": { "x": 0.1, "y": 1, "z": 0.6 }
+            } ]
         }
       ]
     },

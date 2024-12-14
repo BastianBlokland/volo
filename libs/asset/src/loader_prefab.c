@@ -49,8 +49,8 @@ static AssetPrefabFlags prefab_set_flags(const StringHash set) {
 }
 
 typedef struct {
-  bool             navBlocker;
-  AssetPrefabShape shape;
+  bool navBlocker;
+  HeapArray_t(AssetPrefabShape) shapes;
 } AssetPrefabTraitCollisionDef;
 
 typedef struct {
@@ -187,27 +187,33 @@ static void prefab_build(
       TRAIT_COPY(Vision, data_vision);
       TRAIT_COPY(Attachment, data_attachment);
       TRAIT_COPY(Production, data_production);
-    case AssetPrefabTrait_Collision:
+    case AssetPrefabTrait_Collision: {
+      const AssetPrefabTraitCollisionDef* colDef     = &traitDef->data_collision;
+      const u16                           shapeCount = (u16)colDef->shapes.count;
+
       outTrait->data_collision = (AssetPrefabTraitCollision){
-          .navBlocker = traitDef->data_collision.navBlocker,
+          .navBlocker = colDef->navBlocker,
           .shapeIndex = (u16)outShapes->size,
-          .shapeCount = 1,
+          .shapeCount = shapeCount,
       };
-      mem_cpy(dynarray_push(outShapes, 1), mem_var(traitDef->data_collision.shape));
-      break;
+      mem_cpy(
+          dynarray_push(outShapes, shapeCount),
+          mem_create(colDef->shapes.values, sizeof(AssetPrefabShape) * shapeCount));
+    } break;
     case AssetPrefabTrait_Script: {
+      const AssetPrefabTraitScriptDef* scriptDef      = &traitDef->data_script;
+      const u16                        knowledgeCount = (u16)scriptDef->knowledge.count;
+
       outTrait->data_script = (AssetPrefabTraitScript){
           .knowledgeIndex = (u16)outValues->size,
-          .knowledgeCount = (u16)traitDef->data_script.knowledge.count,
+          .knowledgeCount = knowledgeCount,
       };
       for (u32 i = 0; i != asset_prefab_scripts_max; ++i) {
-        outTrait->data_script.scripts[i] = traitDef->data_script.scripts[i].entity;
+        outTrait->data_script.scripts[i] = scriptDef->scripts[i].entity;
       }
-      const AssetPrefabValue* knowledgeValues = traitDef->data_script.knowledge.values;
-      const usize             knowledgeCount  = traitDef->data_script.knowledge.count;
       mem_cpy(
           dynarray_push(outValues, knowledgeCount),
-          mem_create(knowledgeValues, sizeof(AssetPrefabValue) * knowledgeCount));
+          mem_create(scriptDef->knowledge.values, sizeof(AssetPrefabValue) * knowledgeCount));
     } break;
     case AssetPrefabTrait_Count:
       break;
@@ -568,7 +574,7 @@ void asset_data_init_prefab(void) {
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitCollisionDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, navBlocker, data_prim_t(bool));
-  data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, shape, t_AssetPrefabShape);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, shapes, t_AssetPrefabShape, .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitScriptDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, scripts, g_assetRefType,  .container = DataContainer_InlineArray, .fixedCount = asset_prefab_scripts_max, .flags = DataFlags_NotEmpty);
