@@ -231,7 +231,7 @@
             },
             "knowledge": {
               "type": "array",
-              "items": { "title": "AssetPrefabValueDef", "$ref": "#/$defs/AssetPrefabValueDef" }
+              "items": { "title": "AssetPrefabValue", "$ref": "#/$defs/AssetPrefabValue" }
             }
           },
           "required": [ "$type", "scriptIds" ]
@@ -423,7 +423,7 @@
         { "label": "New", "body": "^{}" }
       ]
     },
-    "AssetPrefabValueDef": {
+    "AssetPrefabValue": {
       "anyOf": [
         {
           "type": "object",
@@ -476,7 +476,7 @@
           "properties": {
             "$type": { "const": "AssetPrefabValue_String" },
             "$name": { "type": "string" },
-            "$data": { "title": "String", "type": "string" }
+            "$data": { "title": "StringHash", "type": "string" }
           },
           "required": [ "$type", "$name", "$data" ]
         },

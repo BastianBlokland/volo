@@ -49,20 +49,6 @@ static AssetPrefabFlags prefab_set_flags(const StringHash set) {
 }
 
 typedef struct {
-  StringHash           name;
-  AssetPrefabValueType type;
-  union {
-    f64                   data_number;
-    bool                  data_bool;
-    GeoVector             data_vector3;
-    GeoColor              data_color;
-    String                data_string;
-    AssetRef              data_asset;
-    AssetPrefabValueSound data_sound;
-  };
-} AssetPrefabValueDef;
-
-typedef struct {
   bool             navBlocker;
   AssetPrefabShape shape;
 } AssetPrefabTraitCollisionDef;
@@ -143,45 +129,6 @@ typedef struct {
   EcsWorld*         world;
   AssetManagerComp* assetManager;
 } BuildCtx;
-
-static AssetPrefabValue prefab_build_value(const AssetPrefabValueDef* def) {
-  AssetPrefabValue res;
-  res.name = def->name;
-
-  switch (def->type) {
-  case AssetPrefabValue_Number:
-    res.type        = AssetPrefabValue_Number;
-    res.data_number = def->data_number;
-    break;
-  case AssetPrefabValue_Bool:
-    res.type      = AssetPrefabValue_Bool;
-    res.data_bool = def->data_bool;
-    break;
-  case AssetPrefabValue_Vector3:
-    res.type         = AssetPrefabValue_Vector3;
-    res.data_vector3 = def->data_vector3;
-    break;
-  case AssetPrefabValue_Color:
-    res.type       = AssetPrefabValue_Color;
-    res.data_color = def->data_color;
-    break;
-  case AssetPrefabValue_String:
-    res.type        = AssetPrefabValue_String;
-    res.data_string = stringtable_add(g_stringtable, def->data_string);
-    break;
-  case AssetPrefabValue_Asset:
-    res.type       = AssetPrefabValue_Asset;
-    res.data_asset = def->data_asset;
-    break;
-  case AssetPrefabValue_Sound:
-    res.type       = AssetPrefabValue_Sound;
-    res.data_sound = def->data_sound;
-    break;
-  default:
-    diag_crash_msg("Unsupported prefab value");
-  }
-  return res;
-}
 
 static AssetPrefabFlags prefab_build_flags(const AssetPrefabDef* def) {
   AssetPrefabFlags result = 0;
@@ -290,8 +237,8 @@ static void prefab_build(
         const String assetId                  = scriptDef->scriptIds.values[i];
         outTrait->data_script.scriptAssets[i] = asset_lookup(ctx->world, manager, assetId);
       }
-      heap_array_for_t(scriptDef->knowledge, AssetPrefabValueDef, valDef) {
-        *dynarray_push_t(outValues, AssetPrefabValue) = prefab_build_value(valDef);
+      heap_array_for_t(scriptDef->knowledge, AssetPrefabValue, valDef) {
+        *dynarray_push_t(outValues, AssetPrefabValue) = *valDef;
       }
     } break;
     case AssetPrefabTrait_Bark:
@@ -573,15 +520,15 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabValueSound, asset, g_assetRefType);
   data_reg_field_t(g_dataReg, AssetPrefabValueSound, persistent, data_prim_t(bool), .flags = DataFlags_Opt);
 
-  data_reg_union_t(g_dataReg, AssetPrefabValueDef, type);
-  data_reg_union_name_t(g_dataReg, AssetPrefabValueDef, name, DataUnionNameType_StringHash);
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Number, data_number, data_prim_t(f64));
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Bool, data_bool, data_prim_t(bool));
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Vector3, data_vector3, g_assetGeoVec3Type);
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Color, data_color, g_assetGeoColorType);
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_String, data_string, data_prim_t(String), .flags = DataFlags_Intern);
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Asset, data_asset, g_assetRefType);
-  data_reg_choice_t(g_dataReg, AssetPrefabValueDef, AssetPrefabValue_Sound, data_sound, t_AssetPrefabValueSound);
+  data_reg_union_t(g_dataReg, AssetPrefabValue, type);
+  data_reg_union_name_t(g_dataReg, AssetPrefabValue, name, DataUnionNameType_StringHash);
+  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Number, data_number, data_prim_t(f64));
+  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Bool, data_bool, data_prim_t(bool));
+  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Vector3, data_vector3, g_assetGeoVec3Type);
+  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Color, data_color, g_assetGeoColorType);
+  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_String, data_string, data_prim_t(StringHash));
+  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Asset, data_asset, g_assetRefType);
+  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Sound, data_sound, t_AssetPrefabValueSound);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitName);
   data_reg_field_t(g_dataReg, AssetPrefabTraitName, name, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
@@ -661,7 +608,7 @@ void asset_data_init_prefab(void) {
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitScriptDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, scriptIds, data_prim_t(String),  .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, knowledge, t_AssetPrefabValueDef, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, knowledge, t_AssetPrefabValue, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitBark);
   data_reg_field_t(g_dataReg, AssetPrefabTraitBark, priority, data_prim_t(i32), .flags = DataFlags_Opt);
