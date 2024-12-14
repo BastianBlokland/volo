@@ -1,3 +1,4 @@
+#include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
@@ -8,13 +9,14 @@
 
 #include "registry_internal.h"
 
-static const String g_dataBinMagic   = string_static("VOLO");
-static const u32    g_dataBinVersion = 2;
+static const String g_dataBinMagic           = string_static("VOLO");
+static const u32    g_dataBinProtocolVersion = 3;
 
 /**
- * Format version history:
+ * Protocol version history:
  * 1: Initial version.
  * 2: Added crc32 checksum.
+ * 3: Support string-hash values.
  */
 
 typedef struct {
@@ -23,7 +25,15 @@ typedef struct {
   usize          checksumOffset;
   DataMeta       meta;
   Mem            data;
+  DynArray*      stringHashes; // StringHash[]
 } WriteCtx;
+
+static void bin_track_stringhash(const WriteCtx* ctx, const StringHash val) {
+  if (!val) {
+    return; // Unset.
+  }
+  *(StringHash*)dynarray_find_or_insert_sorted(ctx->stringHashes, compare_stringhash, &val) = val;
+}
 
 static void bin_push_u8(const WriteCtx* ctx, const u8 val) {
   mem_write_u8(dynstring_push(ctx->out, sizeof(u8)), val);
@@ -75,7 +85,7 @@ static void bin_push_padding(const WriteCtx* ctx, const usize offset, const usiz
 
 static void data_write_bin_header(WriteCtx* ctx) {
   mem_cpy(dynstring_push(ctx->out, g_dataBinMagic.size), g_dataBinMagic);
-  bin_push_u32(ctx, g_dataBinVersion);
+  bin_push_u32(ctx, g_dataBinProtocolVersion);
 
   /**
    * Write a placeholder for the checksum field. The actual checksum will only be filled in after
@@ -92,6 +102,18 @@ static void data_write_bin_header(WriteCtx* ctx) {
   bin_push_u16(ctx, ctx->meta.fixedCount);
 }
 
+static void data_write_bin_stringhash_values(const WriteCtx* ctx) {
+  const u32 count = (u32)math_min(ctx->stringHashes->size, u32_max);
+  bin_push_u32(ctx, count);
+  for (u32 i = 0; i != count; ++i) {
+    const StringHash strHash = *dynarray_at_t(ctx->stringHashes, i, StringHash);
+    const String     str     = stringtable_lookup(g_stringtable, strHash);
+    const u8         length  = (u8)math_min(str.size, u8_max);
+    bin_push_u8(ctx, length);
+    mem_cpy(dynstring_push(ctx->out, length), mem_slice(str, 0, length));
+  }
+}
+
 static void data_write_bin_checksum(const WriteCtx* ctx) {
   const Mem data = dynstring_view(ctx->out);
   const u32 crc  = bits_crc_32(0, mem_consume(data, ctx->checksumOffset + sizeof(u32)));
@@ -105,10 +127,11 @@ static void data_write_bin_struct(const WriteCtx* ctx) {
 
   dynarray_for_t(&decl->val_struct.fields, DataDeclField, fieldDecl) {
     const WriteCtx fieldCtx = {
-        .reg  = ctx->reg,
-        .out  = ctx->out,
-        .meta = fieldDecl->meta,
-        .data = data_field_mem(ctx->reg, fieldDecl, ctx->data),
+        .reg          = ctx->reg,
+        .out          = ctx->out,
+        .meta         = fieldDecl->meta,
+        .data         = data_field_mem(ctx->reg, fieldDecl, ctx->data),
+        .stringHashes = ctx->stringHashes,
     };
     data_write_bin_val(&fieldCtx);
   }
@@ -132,18 +155,19 @@ static void data_write_bin_union(const WriteCtx* ctx) {
   } break;
   case DataUnionNameType_StringHash: {
     const StringHash nameHash = *data_union_name_hash(&decl->val_union, ctx->data);
-    const String     name     = stringtable_lookup(g_stringtable, nameHash);
-    bin_push_mem(ctx, name);
+    bin_track_stringhash(ctx, nameHash);
+    bin_push_u32(ctx, nameHash);
   } break;
   }
 
   const bool emptyChoice = choice->meta.type == 0;
   if (!emptyChoice) {
     const WriteCtx choiceCtx = {
-        .reg  = ctx->reg,
-        .out  = ctx->out,
-        .meta = choice->meta,
-        .data = data_choice_mem(ctx->reg, choice, ctx->data),
+        .reg          = ctx->reg,
+        .out          = ctx->out,
+        .meta         = choice->meta,
+        .data         = data_choice_mem(ctx->reg, choice, ctx->data),
+        .stringHashes = ctx->stringHashes,
     };
     data_write_bin_val(&choiceCtx);
   }
@@ -197,9 +221,12 @@ static void data_write_bin_val_single(const WriteCtx* ctx) {
   case DataKind_String:
     bin_push_mem(ctx, *mem_as_t(ctx->data, Mem));
     return;
-  case DataKind_StringHash:
-    bin_push_u32(ctx, *mem_as_t(ctx->data, StringHash));
+  case DataKind_StringHash: {
+    const StringHash val = *mem_as_t(ctx->data, StringHash);
+    bin_track_stringhash(ctx, val);
+    bin_push_u32(ctx, val);
     return;
+  }
   case DataKind_DataMem: {
     const DataMem dataMem = *mem_as_t(ctx->data, DataMem);
     if (ctx->meta.flags & DataFlags_ExternalMemory) {
@@ -237,10 +264,11 @@ static void data_write_bin_val_pointer(const WriteCtx* ctx) {
   if (ptr) {
     const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
     const WriteCtx  subCtx = {
-         .reg  = ctx->reg,
-         .out  = ctx->out,
-         .meta = data_meta_base(ctx->meta),
-         .data = mem_create(ptr, decl->size),
+         .reg          = ctx->reg,
+         .out          = ctx->out,
+         .meta         = data_meta_base(ctx->meta),
+         .data         = mem_create(ptr, decl->size),
+         .stringHashes = ctx->stringHashes,
     };
     data_write_bin_val_single(&subCtx);
   }
@@ -256,10 +284,11 @@ static void data_write_bin_val_inline_array(const WriteCtx* ctx) {
   const DataDecl* decl = data_decl(ctx->reg, ctx->meta.type);
   for (u16 i = 0; i != ctx->meta.fixedCount; ++i) {
     const WriteCtx elemCtx = {
-        .reg  = ctx->reg,
-        .out  = ctx->out,
-        .meta = data_meta_base(ctx->meta),
-        .data = mem_create(bits_ptr_offset(ctx->data.ptr, decl->size * i), decl->size),
+        .reg          = ctx->reg,
+        .out          = ctx->out,
+        .meta         = data_meta_base(ctx->meta),
+        .data         = mem_create(bits_ptr_offset(ctx->data.ptr, decl->size * i), decl->size),
+        .stringHashes = ctx->stringHashes,
     };
     data_write_bin_val_single(&elemCtx);
   }
@@ -273,10 +302,11 @@ static void data_write_bin_val_heap_array(const WriteCtx* ctx) {
 
   for (usize i = 0; i != array->count; ++i) {
     const WriteCtx elemCtx = {
-        .reg  = ctx->reg,
-        .out  = ctx->out,
-        .meta = data_meta_base(ctx->meta),
-        .data = data_elem_mem(decl, array, i),
+        .reg          = ctx->reg,
+        .out          = ctx->out,
+        .meta         = data_meta_base(ctx->meta),
+        .data         = data_elem_mem(decl, array, i),
+        .stringHashes = ctx->stringHashes,
     };
     data_write_bin_val_single(&elemCtx);
   }
@@ -289,10 +319,11 @@ static void data_write_bin_val_dynarray(const WriteCtx* ctx) {
 
   for (usize i = 0; i != array->size; ++i) {
     const WriteCtx elemCtx = {
-        .reg  = ctx->reg,
-        .out  = ctx->out,
-        .meta = data_meta_base(ctx->meta),
-        .data = dynarray_at(array, i, 1),
+        .reg          = ctx->reg,
+        .out          = ctx->out,
+        .meta         = data_meta_base(ctx->meta),
+        .data         = dynarray_at(array, i, 1),
+        .stringHashes = ctx->stringHashes,
     };
     data_write_bin_val_single(&elemCtx);
   }
@@ -322,13 +353,17 @@ static void data_write_bin_val(const WriteCtx* ctx) {
 void data_write_bin(const DataReg* reg, DynString* str, const DataMeta meta, const Mem data) {
   diag_assert(data.size == data_meta_size(reg, meta));
 
+  DynArray stringHashes = dynarray_create_t(g_allocScratch, StringHash, 1024);
+
   WriteCtx ctx = {
-      .reg  = reg,
-      .out  = str,
-      .meta = meta,
-      .data = data,
+      .reg          = reg,
+      .out          = str,
+      .meta         = meta,
+      .data         = data,
+      .stringHashes = &stringHashes,
   };
   data_write_bin_header(&ctx);
   data_write_bin_val(&ctx);
+  data_write_bin_stringhash_values(&ctx);
   data_write_bin_checksum(&ctx);
 }

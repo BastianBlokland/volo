@@ -359,7 +359,7 @@ spec(bin) {
     DataReadResult headerRes;
     const String   data = data_read_bin_header(dynstring_view(&writeStr), &header, &headerRes);
 
-    check_eq_int(data.size, sizeof(bool));
+    check(data.size >= sizeof(bool));
 
     check_require(!headerRes.error);
     check_eq_int(header.metaTypeNameHash, data_name_hash(reg, meta.type));

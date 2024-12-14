@@ -161,19 +161,18 @@ static void data_read_bin_header_internal(ReadCtx* ctx, DataBinHeader* out, Data
     *res = result_fail(DataReadError_Malformed, "Input mismatched magic");
     return;
   }
-  u32 inFormatVersion = 0;
-  if (!bin_pop_u32(ctx, &inFormatVersion)) {
+  if (!bin_pop_u32(ctx, &out->protocolVersion)) {
     goto Truncated;
   }
-  if (!inFormatVersion || inFormatVersion > 2) {
+  if (!out->protocolVersion || out->protocolVersion > 3) {
     *res = result_fail(
         DataReadError_Incompatible,
-        "Input format version {} is unsupported",
-        fmt_int(inFormatVersion));
+        "Input protocol version {} is unsupported",
+        fmt_int(out->protocolVersion));
     return;
   }
 
-  if (inFormatVersion == 1) {
+  if (out->protocolVersion == 1) {
     out->checksum = 0; // Version 1 had no checksum.
   } else if (!bin_pop_u32(ctx, &out->checksum)) {
     goto Truncated;
@@ -404,30 +403,28 @@ NO_INLINE_HINT static void data_read_bin_union(ReadCtx* ctx, DataReadResult* res
 
   *data_union_tag(&decl->val_union, ctx->data) = choice->tag;
 
-  const DataUnionNameType nameType = data_union_name_type(&decl->val_union);
-  if (nameType) {
+  switch (data_union_name_type(&decl->val_union)) {
+  case DataUnionNameType_None:
+    break;
+  case DataUnionNameType_String: {
     Mem nameMem;
     if (UNLIKELY(!bin_pop_mem(ctx, &nameMem))) {
       *res = result_fail_truncated();
       return;
     }
-    switch (nameType) {
-    case DataUnionNameType_None:
-      UNREACHABLE
-    case DataUnionNameType_String:
-      if (!string_is_empty(nameMem)) {
-        const String name = string_dup(ctx->alloc, nameMem);
-        data_register_alloc(ctx, name);
-        *data_union_name_string(&decl->val_union, ctx->data) = name;
-      }
-      break;
-    case DataUnionNameType_StringHash:
-      if (!string_is_empty(nameMem)) {
-        const StringHash nameHash = stringtable_add(g_stringtable, nameMem);
-        *data_union_name_hash(&decl->val_union, ctx->data) = nameHash;
-      }
-      break;
+    if (!string_is_empty(nameMem)) {
+      const String name = string_dup(ctx->alloc, nameMem);
+      data_register_alloc(ctx, name);
+      *data_union_name_string(&decl->val_union, ctx->data) = name;
     }
+  } break;
+  case DataUnionNameType_StringHash: {
+    StringHash* out = data_union_name_hash(&decl->val_union, ctx->data);
+    if (UNLIKELY(!bin_pop_u32(ctx, out))) {
+      *res = result_fail_truncated();
+      return;
+    }
+  } break;
   }
 
   const bool emptyChoice = choice->meta.type == 0;
@@ -657,6 +654,29 @@ static void data_read_bin_val(ReadCtx* ctx, DataReadResult* res) {
   diag_crash();
 }
 
+static void data_read_bin_stringhash_values(ReadCtx* ctx, DataReadResult* res) {
+  u32 count;
+  if (!bin_pop_u32(ctx, &count)) {
+    goto Truncated;
+  }
+  for (u32 i = 0; i != count; ++i) {
+    u8 length;
+    if (!bin_pop_u8(ctx, &length)) {
+      goto Truncated;
+    }
+    String str;
+    if (!bin_pop_bytes(ctx, length, &str)) {
+      goto Truncated;
+    }
+    stringtable_add(g_stringtable, str);
+  }
+  *res = result_success();
+  return;
+
+Truncated:
+  *res = result_fail_truncated();
+}
+
 String data_read_bin(
     const DataReg*  reg,
     const String    input,
@@ -703,6 +723,10 @@ String data_read_bin(
     goto Ret;
   }
   data_read_bin_val(&ctx, res);
+
+  if (header.protocolVersion >= 3) {
+    data_read_bin_stringhash_values(&ctx, res);
+  }
 
 Ret:
   if (res->error) {

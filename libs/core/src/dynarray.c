@@ -53,7 +53,9 @@ NO_INLINE_HINT static void dynarray_resize_grow(DynArray* a, const usize capacit
   diag_assert_msg(a->alloc, "DynArray without an allocator ran out of memory");
 
   const Mem newMem = alloc_alloc(a->alloc, bits_nextpow2_64(capacity * a->stride), a->align);
-  diag_assert_msg(mem_valid(newMem), "Allocation failed");
+  if (UNLIKELY(!mem_valid(newMem))) {
+    diag_crash_msg("Dynamic array allocation failed");
+  }
 
   if (LIKELY(mem_valid(a->data))) {
     mem_cpy(newMem, a->data);
