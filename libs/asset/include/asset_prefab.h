@@ -227,7 +227,7 @@ typedef enum {
 } AssetPrefabFlags;
 
 typedef struct {
-  StringHash       nameHash;
+  StringHash       name;
   AssetPrefabFlags flags;
   u16              traitIndex, traitCount; // Stored in the traits array.
 } AssetPrefab;

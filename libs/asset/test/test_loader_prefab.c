@@ -180,7 +180,7 @@ spec(loader_prefab) {
         const AssetPrefab*    actualPrefab   = &map->prefabs[a];
         const TestPrefabData* expectedPrefab = &g_testData[i].prefabs[a];
 
-        check_eq_int(actualPrefab->nameHash, string_hash(expectedPrefab->name));
+        check_eq_int(actualPrefab->name, string_hash(expectedPrefab->name));
         check_eq_int(actualPrefab->flags, expectedPrefab->flags);
       }
     }

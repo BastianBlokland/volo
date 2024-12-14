@@ -87,8 +87,8 @@ typedef struct {
 } AssetPrefabTraitDef;
 
 typedef struct {
-  String name;
-  bool   isVolatile;
+  StringHash name;
+  bool       isVolatile;
   HeapArray_t(AssetPrefabTraitDef) traits;
 } AssetPrefabDef;
 
@@ -97,8 +97,7 @@ typedef struct {
 } AssetPrefabMapDef;
 
 static i8 prefab_compare(const void* a, const void* b) {
-  return compare_stringhash(
-      field_ptr(a, AssetPrefab, nameHash), field_ptr(b, AssetPrefab, nameHash));
+  return compare_stringhash(field_ptr(a, AssetPrefab, name), field_ptr(b, AssetPrefab, name));
 }
 
 typedef enum {
@@ -138,7 +137,7 @@ static void prefab_build(
 
   *err       = PrefabError_None;
   *outPrefab = (AssetPrefab){
-      .nameHash   = stringtable_add(g_stringtable, def->name),
+      .name       = def->name,
       .flags      = prefab_build_flags(def),
       .traitIndex = (u16)outTraits->size,
       .traitCount = (u16)def->traits.count,
@@ -290,10 +289,10 @@ static void prefabmap_build_user_index_lookup(
   const u16          prefabCount = (u16)def->prefabs.count;
   const AssetPrefab* prefabsEnd  = prefabs + prefabCount;
   for (u16 userIndex = 0; userIndex != prefabCount; ++userIndex) {
-    const StringHash   nameHash = string_hash(def->prefabs.values[userIndex].name);
-    const AssetPrefab* prefab   = search_binary_t(
-        prefabs, prefabsEnd, AssetPrefab, prefab_compare, &(AssetPrefab){.nameHash = nameHash});
-    diag_assert(prefab && prefab->nameHash == nameHash);
+    const StringHash   name   = def->prefabs.values[userIndex].name;
+    const AssetPrefab* prefab = search_binary_t(
+        prefabs, prefabsEnd, AssetPrefab, prefab_compare, &(AssetPrefab){.name = name});
+    diag_assert(prefab && prefab->name == name);
     outUserIndexLookup[userIndex] = (u16)(prefab - prefabs);
   }
 }
@@ -650,7 +649,7 @@ void asset_data_init_prefab(void) {
   data_reg_choice_empty(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Scalable);
 
   data_reg_struct_t(g_dataReg, AssetPrefabDef);
-  data_reg_field_t(g_dataReg, AssetPrefabDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
+  data_reg_field_t(g_dataReg, AssetPrefabDef, name, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabDef, isVolatile, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetPrefabDef, traits, t_AssetPrefabTraitDef, .container = DataContainer_HeapArray);
 
@@ -673,17 +672,17 @@ void asset_load_prefabs(
   ecs_world_add_t(world, entity, AssetPrefabLoadComp, .src = src);
 }
 
-const AssetPrefab* asset_prefab_get(const AssetPrefabMapComp* map, const StringHash nameHash) {
+const AssetPrefab* asset_prefab_get(const AssetPrefabMapComp* map, const StringHash name) {
   return search_binary_t(
       map->prefabs,
       map->prefabs + map->prefabCount,
       AssetPrefab,
       prefab_compare,
-      mem_struct(AssetPrefab, .nameHash = nameHash).ptr);
+      mem_struct(AssetPrefab, .name = name).ptr);
 }
 
-u16 asset_prefab_get_index(const AssetPrefabMapComp* map, const StringHash nameHash) {
-  const AssetPrefab* prefab = asset_prefab_get(map, nameHash);
+u16 asset_prefab_get_index(const AssetPrefabMapComp* map, const StringHash name) {
+  const AssetPrefab* prefab = asset_prefab_get(map, name);
   if (UNLIKELY(!prefab)) {
     return sentinel_u16;
   }
