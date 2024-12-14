@@ -54,7 +54,7 @@ typedef struct {
 } AssetPrefabTraitCollisionDef;
 
 typedef struct {
-  HeapArray_t(AssetRef) scripts;
+  AssetRef scripts[asset_prefab_scripts_max];
   HeapArray_t(AssetPrefabValue) knowledge;
 } AssetPrefabTraitScriptDef;
 
@@ -106,7 +106,6 @@ typedef enum {
   PrefabError_DuplicatePrefab,
   PrefabError_DuplicateTrait,
   PrefabError_PrefabCountExceedsMax,
-  PrefabError_ScriptAssetCountExceedsMax,
   PrefabError_InvalidAssetReference,
 
   PrefabError_Count,
@@ -118,7 +117,6 @@ static String prefab_error_str(const PrefabError err) {
       string_static("Multiple prefabs with the same name"),
       string_static("Prefab defines the same trait more then once"),
       string_static("Prefab count exceeds the maximum"),
-      string_static("Script asset count exceeds the maximum"),
       string_static("Unable to resolve asset-reference"),
   };
   ASSERT(array_elems(g_msgs) == PrefabError_Count, "Incorrect number of error messages");
@@ -215,19 +213,14 @@ static void prefab_build(
       };
       break;
     case AssetPrefabTrait_Script: {
-      const AssetPrefabTraitScriptDef* scriptDef   = &traitDef->data_script;
-      const u32                        scriptCount = (u32)scriptDef->scripts.count;
-      if (UNLIKELY(scriptCount > asset_prefab_scripts_max)) {
-        *err = PrefabError_ScriptAssetCountExceedsMax;
-        return;
-      }
+      const AssetPrefabTraitScriptDef* scriptDef = &traitDef->data_script;
+
       outTrait->data_script = (AssetPrefabTraitScript){
-          .scriptAssetCount = (u8)scriptCount,
-          .knowledgeIndex   = (u16)outValues->size,
-          .knowledgeCount   = (u16)scriptDef->knowledge.count,
+          .knowledgeIndex = (u16)outValues->size,
+          .knowledgeCount = (u16)scriptDef->knowledge.count,
       };
-      for (u32 i = 0; i != scriptCount; ++i) {
-        outTrait->data_script.scriptAssets[i] = scriptDef->scripts.values[i].entity;
+      for (u32 i = 0; i != asset_prefab_scripts_max; ++i) {
+        outTrait->data_script.scripts[i] = scriptDef->scripts[i].entity;
       }
       heap_array_for_t(scriptDef->knowledge, AssetPrefabValue, valDef) {
         *dynarray_push_t(outValues, AssetPrefabValue) = *valDef;
@@ -593,7 +586,7 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, shape, t_AssetPrefabShape);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitScriptDef);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, scripts, g_assetRefType,  .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, scripts, g_assetRefType,  .container = DataContainer_InlineArray, .fixedCount = asset_prefab_scripts_max, .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, knowledge, t_AssetPrefabValue, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitBark);

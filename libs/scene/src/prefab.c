@@ -363,7 +363,11 @@ static void setup_script(
     const AssetPrefabMapComp*     m,
     const AssetPrefabTraitScript* t) {
 
-  scene_script_add(w, e, t->scriptAssets, t->scriptAssetCount);
+  u32 scriptCount = 0;
+  for (; scriptCount != array_elems(t->scripts) && t->scripts[scriptCount]; ++scriptCount)
+    ;
+
+  scene_script_add(w, e, t->scripts, scriptCount);
 
   SceneKnowledgeComp* knowledge = scene_knowledge_add(w, e);
   for (u16 i = 0; i != t->knowledgeCount; ++i) {

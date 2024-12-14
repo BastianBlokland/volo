@@ -227,6 +227,7 @@
             "scripts": {
               "type": "array",
               "minItems": 1,
+              "maxItems": 7,
               "items": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" }
             },
             "knowledge": {
@@ -327,7 +328,7 @@
         { "label": "New AssetPrefabTrait_Health", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Health\",\n  \"amount\": 1,\n  \"deathDestroyDelay\": 0\n}" },
         { "label": "New AssetPrefabTrait_Attack", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Attack\",\n  \"weapon\": \"placeholder\",\n  \"targetRangeMax\": 1\n}" },
         { "label": "New AssetPrefabTrait_Collision", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Collision\",\n  \"navBlocker\": false,\n  \"shape\": {\n    \"\\$type\": \"AssetPrefabShape_Sphere\",\n    \"point\": {},\n    \"radius\": 0\n  }\n}" },
-        { "label": "New AssetPrefabTrait_Script", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Script\",\n  \"scripts\": [\n    \"placeholder\"\n  ]\n}" },
+        { "label": "New AssetPrefabTrait_Script", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Script\",\n  \"scripts\": [\n    \"placeholder\",\n    \"placeholder\",\n    \"placeholder\",\n    \"placeholder\",\n    \"placeholder\",\n    \"placeholder\",\n    \"placeholder\"\n  ]\n}" },
         { "label": "New AssetPrefabTrait_Bark", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Bark\"\n}" },
         { "label": "New AssetPrefabTrait_Location", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Location\"\n}" },
         { "label": "New AssetPrefabTrait_Status", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Status\"\n}" },
