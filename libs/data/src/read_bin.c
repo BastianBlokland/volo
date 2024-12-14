@@ -164,7 +164,7 @@ static void data_read_bin_header_internal(ReadCtx* ctx, DataBinHeader* out, Data
   if (!bin_pop_u32(ctx, &out->protocolVersion)) {
     goto Truncated;
   }
-  if (!out->protocolVersion || out->protocolVersion > 2) {
+  if (!out->protocolVersion || out->protocolVersion > 3) {
     *res = result_fail(
         DataReadError_Incompatible,
         "Input protocol version {} is unsupported",
@@ -656,6 +656,29 @@ static void data_read_bin_val(ReadCtx* ctx, DataReadResult* res) {
   diag_crash();
 }
 
+static void data_read_bin_stringhash_values(ReadCtx* ctx, DataReadResult* res) {
+  u32 count;
+  if (!bin_pop_u32(ctx, &count)) {
+    goto Truncated;
+  }
+  for (u32 i = 0; i != count; ++i) {
+    u8 length;
+    if (!bin_pop_u8(ctx, &length)) {
+      goto Truncated;
+    }
+    String str;
+    if (!bin_pop_bytes(ctx, length, &str)) {
+      goto Truncated;
+    }
+    stringtable_add(g_stringtable, str);
+  }
+  *res = result_success();
+  return;
+
+Truncated:
+  *res = result_fail_truncated();
+}
+
 String data_read_bin(
     const DataReg*  reg,
     const String    input,
@@ -702,6 +725,10 @@ String data_read_bin(
     goto Ret;
   }
   data_read_bin_val(&ctx, res);
+
+  if (header.protocolVersion >= 3) {
+    data_read_bin_stringhash_values(&ctx, res);
+  }
 
 Ret:
   if (res->error) {
