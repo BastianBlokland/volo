@@ -650,14 +650,20 @@ void asset_load_prefabs(
   (void)id;
 
   AssetPrefabMapDef def;
-  DataReadResult    readRes;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetPrefabDefMeta, mem_var(def), &readRes);
-  if (UNLIKELY(readRes.error)) {
+  DataReadResult    result;
+  if (src->format == AssetFormat_PrefabsBin) {
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetPrefabDefMeta, mem_var(def), &result);
+  } else {
+    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetPrefabDefMeta, mem_var(def), &result);
+  }
+
+  if (UNLIKELY(result.error)) {
     log_e(
         "Failed to load prefab-map",
         log_param("id", fmt_text(id)),
         log_param("entity", ecs_entity_fmt(entity)),
-        log_param("error", fmt_text(readRes.errorMsg)));
+        log_param("error-code", fmt_int(result.error)),
+        log_param("error", fmt_text(result.errorMsg)));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
     goto Ret;
   }
