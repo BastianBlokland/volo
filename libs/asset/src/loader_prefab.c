@@ -206,18 +206,15 @@ static void prefab_build(
       };
       break;
     case AssetPrefabTrait_Script: {
-      const AssetPrefabTraitScriptDef* scriptDef = &traitDef->data_script;
-
       outTrait->data_script = (AssetPrefabTraitScript){
           .knowledgeIndex = (u16)outValues->size,
-          .knowledgeCount = (u16)scriptDef->knowledge.count,
+          .knowledgeCount = (u16)traitDef->data_script.knowledge.count,
       };
       for (u32 i = 0; i != asset_prefab_scripts_max; ++i) {
-        outTrait->data_script.scripts[i] = scriptDef->scripts[i].entity;
+        outTrait->data_script.scripts[i] = traitDef->data_script.scripts[i].entity;
       }
-
-      const AssetPrefabValue* knowledgeValues = scriptDef->knowledge.values;
-      const usize             knowledgeCount  = scriptDef->knowledge.count;
+      const AssetPrefabValue* knowledgeValues = traitDef->data_script.knowledge.values;
+      const usize             knowledgeCount  = traitDef->data_script.knowledge.count;
       mem_cpy(
           dynarray_push(outValues, knowledgeCount),
           mem_create(knowledgeValues, sizeof(AssetPrefabValue) * knowledgeCount));
