@@ -132,6 +132,7 @@ static void prefab_build(
     const AssetPrefabDef* def,
     DynArray*             outTraits, // AssetPrefabTrait[], needs to be already initialized.
     DynArray*             outValues, // AssetPrefabValue[], needs to be already initialized.
+    DynArray*             outShapes, // AssetPrefabShape[], needs to be already initialized.
     AssetPrefab*          outPrefab,
     PrefabError*          err) {
 
@@ -189,8 +190,10 @@ static void prefab_build(
     case AssetPrefabTrait_Collision:
       outTrait->data_collision = (AssetPrefabTraitCollision){
           .navBlocker = traitDef->data_collision.navBlocker,
-          .shape      = traitDef->data_collision.shape,
+          .shapeIndex = (u16)outShapes->size,
+          .shapeCount = 1,
       };
+      mem_cpy(dynarray_push(outShapes, 1), mem_var(traitDef->data_collision.shape));
       break;
     case AssetPrefabTrait_Script: {
       outTrait->data_script = (AssetPrefabTraitScript){
@@ -233,11 +236,12 @@ static void prefabmap_build(
     DynArray*                outPrefabs, // AssetPrefab[], needs to be already initialized.
     DynArray*                outTraits,  // AssetPrefabTrait[], needs to be already initialized.
     DynArray*                outValues,  // AssetPrefabValue[], needs to be already initialized.
+    DynArray*                outShapes,  // AssetPrefabShape[], needs to be already initialized.
     PrefabError*             err) {
 
   heap_array_for_t(def->prefabs, AssetPrefabDef, prefabDef) {
     AssetPrefab prefab;
-    prefab_build(prefabDef, outTraits, outValues, &prefab, err);
+    prefab_build(prefabDef, outTraits, outValues, outShapes, &prefab, err);
     if (*err) {
       return;
     }
@@ -284,6 +288,9 @@ static void ecs_destruct_prefabmap_comp(void* data) {
   if (comp->values.values) {
     alloc_free_array_t(g_allocHeap, comp->values.values, comp->values.count);
   }
+  if (comp->shapes.values) {
+    alloc_free_array_t(g_allocHeap, comp->shapes.values, comp->shapes.count);
+  }
 }
 
 static void ecs_destruct_prefab_load_comp(void* data) {
@@ -320,7 +327,8 @@ ecs_system_define(LoadPrefabAssetSys) {
 
     DynArray prefabs = dynarray_create_t(g_allocHeap, AssetPrefab, 64);
     DynArray traits  = dynarray_create_t(g_allocHeap, AssetPrefabTrait, 64);
-    DynArray values  = dynarray_create_t(g_allocHeap, AssetPrefabValue, 32);
+    DynArray values  = dynarray_create_t(g_allocHeap, AssetPrefabValue, 64);
+    DynArray shapes  = dynarray_create_t(g_allocHeap, AssetPrefabShape, 64);
 
     AssetPrefabMapDef def;
     String            errMsg;
@@ -340,7 +348,7 @@ ecs_system_define(LoadPrefabAssetSys) {
     }
 
     PrefabError buildErr;
-    prefabmap_build(&def, &prefabs, &traits, &values, &buildErr);
+    prefabmap_build(&def, &prefabs, &traits, &values, &shapes, &buildErr);
     if (buildErr) {
       errMsg = prefab_error_str(buildErr);
       goto Error;
@@ -378,6 +386,7 @@ ecs_system_define(LoadPrefabAssetSys) {
     dynarray_destroy(&prefabs);
     dynarray_destroy(&traits);
     dynarray_destroy(&values);
+    dynarray_destroy(&shapes);
     ecs_world_remove_t(world, entity, AssetPrefabLoadComp);
   }
 }

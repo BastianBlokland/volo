@@ -5,6 +5,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_float.h"
+#include "core_math.h"
 #include "core_rng.h"
 #include "ecs_entity.h"
 #include "ecs_view.h"
@@ -332,6 +333,7 @@ static void setup_collision(
     EcsWorld*                        w,
     const EcsEntityId                e,
     const ScenePrefabSpec*           s,
+    const AssetPrefabMapComp*        m,
     const AssetPrefab*               p,
     const AssetPrefabTraitCollision* t) {
   if (t->navBlocker) {
@@ -339,22 +341,27 @@ static void setup_collision(
   }
   const SceneLayer layer = prefab_instance_layer(s->faction, p->flags);
 
-  SceneCollisionShape collisionShape;
-  switch (t->shape.type) {
-  case AssetPrefabShape_Sphere:
-    collisionShape.type   = SceneCollisionType_Sphere;
-    collisionShape.sphere = t->shape.data_sphere;
-    break;
-  case AssetPrefabShape_Capsule: {
-    collisionShape.type    = SceneCollisionType_Capsule;
-    collisionShape.capsule = t->shape.data_capsule;
-  } break;
-  case AssetPrefabShape_Box:
-    collisionShape.type = SceneCollisionType_Box;
-    collisionShape.box  = t->shape.data_box;
-    break;
+  SceneCollisionShape collisionShapes[32];
+  const u32           shapeCount = math_min(array_elems(collisionShapes), t->shapeCount);
+
+  for (u32 i = 0; i != shapeCount; ++i) {
+    AssetPrefabShape* prefabShape = &m->shapes.values[t->shapeIndex + i];
+    switch (prefabShape->type) {
+    case AssetPrefabShape_Sphere:
+      collisionShapes[i].type   = SceneCollisionType_Sphere;
+      collisionShapes[i].sphere = prefabShape->data_sphere;
+      break;
+    case AssetPrefabShape_Capsule: {
+      collisionShapes[i].type    = SceneCollisionType_Capsule;
+      collisionShapes[i].capsule = prefabShape->data_capsule;
+    } break;
+    case AssetPrefabShape_Box:
+      collisionShapes[i].type = SceneCollisionType_Box;
+      collisionShapes[i].box  = prefabShape->data_box;
+      break;
+    }
   }
-  scene_collision_add(w, e, layer, &collisionShape, 1 /* shapeCount */);
+  scene_collision_add(w, e, layer, collisionShapes, shapeCount);
 }
 
 static void setup_script(
@@ -534,7 +541,7 @@ static void setup_trait(
     setup_attack(w, e, &t->data_attack);
     return;
   case AssetPrefabTrait_Collision:
-    setup_collision(w, e, s, p, &t->data_collision);
+    setup_collision(w, e, s, m, p, &t->data_collision);
     return;
   case AssetPrefabTrait_Script:
     setup_script(w, e, m, &t->data_script);
