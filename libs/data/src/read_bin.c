@@ -403,30 +403,28 @@ NO_INLINE_HINT static void data_read_bin_union(ReadCtx* ctx, DataReadResult* res
 
   *data_union_tag(&decl->val_union, ctx->data) = choice->tag;
 
-  const DataUnionNameType nameType = data_union_name_type(&decl->val_union);
-  if (nameType) {
+  switch (data_union_name_type(&decl->val_union)) {
+  case DataUnionNameType_None:
+    break;
+  case DataUnionNameType_String: {
     Mem nameMem;
     if (UNLIKELY(!bin_pop_mem(ctx, &nameMem))) {
       *res = result_fail_truncated();
       return;
     }
-    switch (nameType) {
-    case DataUnionNameType_None:
-      UNREACHABLE
-    case DataUnionNameType_String:
-      if (!string_is_empty(nameMem)) {
-        const String name = string_dup(ctx->alloc, nameMem);
-        data_register_alloc(ctx, name);
-        *data_union_name_string(&decl->val_union, ctx->data) = name;
-      }
-      break;
-    case DataUnionNameType_StringHash:
-      if (!string_is_empty(nameMem)) {
-        const StringHash nameHash = stringtable_add(g_stringtable, nameMem);
-        *data_union_name_hash(&decl->val_union, ctx->data) = nameHash;
-      }
-      break;
+    if (!string_is_empty(nameMem)) {
+      const String name = string_dup(ctx->alloc, nameMem);
+      data_register_alloc(ctx, name);
+      *data_union_name_string(&decl->val_union, ctx->data) = name;
     }
+  } break;
+  case DataUnionNameType_StringHash: {
+    StringHash* out = data_union_name_hash(&decl->val_union, ctx->data);
+    if (UNLIKELY(!bin_pop_u32(ctx, out))) {
+      *res = result_fail_truncated();
+      return;
+    }
+  } break;
   }
 
   const bool emptyChoice = choice->meta.type == 0;
