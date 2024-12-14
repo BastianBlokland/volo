@@ -10,12 +10,13 @@
 #include "registry_internal.h"
 
 static const String g_dataBinMagic   = string_static("VOLO");
-static const u32    g_dataBinVersion = 2;
+static const u32    g_dataBinVersion = 3;
 
 /**
  * Format version history:
  * 1: Initial version.
  * 2: Added crc32 checksum.
+ * 3: Support string-hash values.
  */
 
 typedef struct {
@@ -28,6 +29,9 @@ typedef struct {
 } WriteCtx;
 
 static void bin_track_stringhash(const WriteCtx* ctx, const StringHash val) {
+  if (!val) {
+    return; // Unset.
+  }
   if (dynarray_search_binary(ctx->stringHashes, compare_stringhash, &val)) {
     return; // Already tracked.
   }
@@ -99,6 +103,18 @@ static void data_write_bin_header(WriteCtx* ctx) {
   bin_push_u8(ctx, (u8)ctx->meta.container);
   bin_push_u8(ctx, (u8)ctx->meta.flags);
   bin_push_u16(ctx, ctx->meta.fixedCount);
+}
+
+static void data_write_bin_stringhash_values(const WriteCtx* ctx) {
+  const u32 count = (u32)math_min(ctx->stringHashes->size, u32_max);
+  bin_push_u32(ctx, count);
+  for (u32 i = 0; i != count; ++i) {
+    const StringHash strHash = *dynarray_at_t(ctx->stringHashes, i, StringHash);
+    const String     str     = stringtable_lookup(g_stringtable, strHash);
+    const u8         length  = (u8)math_min(str.size, u8_max);
+    bin_push_u8(ctx, length);
+    mem_cpy(dynstring_push(ctx->out, length), mem_slice(str, 0, length));
+  }
 }
 
 static void data_write_bin_checksum(const WriteCtx* ctx) {
@@ -351,5 +367,6 @@ void data_write_bin(const DataReg* reg, DynString* str, const DataMeta meta, con
   };
   data_write_bin_header(&ctx);
   data_write_bin_val(&ctx);
+  data_write_bin_stringhash_values(&ctx);
   data_write_bin_checksum(&ctx);
 }
