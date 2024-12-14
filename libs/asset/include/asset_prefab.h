@@ -18,21 +18,6 @@
 #define asset_prefab_sounds_max 4
 
 typedef enum {
-  AssetPrefabShape_Sphere,
-  AssetPrefabShape_Capsule,
-  AssetPrefabShape_Box,
-} AssetPrefabShapeType;
-
-typedef struct {
-  AssetPrefabShapeType type;
-  union {
-    GeoSphere     data_sphere;
-    GeoCapsule    data_capsule;
-    GeoBoxRotated data_box;
-  };
-} AssetPrefabShape;
-
-typedef enum {
   AssetPrefabTrait_Name,
   AssetPrefabTrait_SetMember,
   AssetPrefabTrait_Renderable,
@@ -137,8 +122,8 @@ typedef struct {
 } AssetPrefabTraitAttack;
 
 typedef struct {
-  bool             navBlocker;
-  AssetPrefabShape shape;
+  bool navBlocker;
+  u16  shapeIndex, shapeCount; // Stored in the shapes array.
 } AssetPrefabTraitCollision;
 
 typedef struct {
@@ -261,12 +246,28 @@ typedef struct {
   };
 } AssetPrefabValue;
 
+typedef enum {
+  AssetPrefabShape_Sphere,
+  AssetPrefabShape_Capsule,
+  AssetPrefabShape_Box,
+} AssetPrefabShapeType;
+
+typedef struct {
+  AssetPrefabShapeType type;
+  union {
+    GeoSphere     data_sphere;
+    GeoCapsule    data_capsule;
+    GeoBoxRotated data_box;
+  };
+} AssetPrefabShape;
+
 ecs_comp_extern_public(AssetPrefabMapComp) {
   AssetPrefab* prefabs;         // AssetPrefab[prefabCount]. Sorted on the nameHash.
   u16*         userIndexLookup; // u16[prefabCount], lookup from user-index to prefab-index.
   usize        prefabCount;
   HeapArray_t(AssetPrefabTrait) traits;
   HeapArray_t(AssetPrefabValue) values;
+  HeapArray_t(AssetPrefabShape) shapes;
 };
 
 extern DataMeta g_assetPrefabDefMeta;

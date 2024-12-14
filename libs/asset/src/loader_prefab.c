@@ -49,8 +49,8 @@ static AssetPrefabFlags prefab_set_flags(const StringHash set) {
 }
 
 typedef struct {
-  bool             navBlocker;
-  AssetPrefabShape shape;
+  bool navBlocker;
+  HeapArray_t(AssetPrefabShape) shapes;
 } AssetPrefabTraitCollisionDef;
 
 typedef struct {
@@ -132,6 +132,7 @@ static void prefab_build(
     const AssetPrefabDef* def,
     DynArray*             outTraits, // AssetPrefabTrait[], needs to be already initialized.
     DynArray*             outValues, // AssetPrefabValue[], needs to be already initialized.
+    DynArray*             outShapes, // AssetPrefabShape[], needs to be already initialized.
     AssetPrefab*          outPrefab,
     PrefabError*          err) {
 
@@ -186,25 +187,33 @@ static void prefab_build(
       TRAIT_COPY(Vision, data_vision);
       TRAIT_COPY(Attachment, data_attachment);
       TRAIT_COPY(Production, data_production);
-    case AssetPrefabTrait_Collision:
+    case AssetPrefabTrait_Collision: {
+      const AssetPrefabTraitCollisionDef* colDef     = &traitDef->data_collision;
+      const u16                           shapeCount = (u16)colDef->shapes.count;
+
       outTrait->data_collision = (AssetPrefabTraitCollision){
-          .navBlocker = traitDef->data_collision.navBlocker,
-          .shape      = traitDef->data_collision.shape,
+          .navBlocker = colDef->navBlocker,
+          .shapeIndex = (u16)outShapes->size,
+          .shapeCount = shapeCount,
       };
-      break;
+      mem_cpy(
+          dynarray_push(outShapes, shapeCount),
+          mem_create(colDef->shapes.values, sizeof(AssetPrefabShape) * shapeCount));
+    } break;
     case AssetPrefabTrait_Script: {
+      const AssetPrefabTraitScriptDef* scriptDef      = &traitDef->data_script;
+      const u16                        knowledgeCount = (u16)scriptDef->knowledge.count;
+
       outTrait->data_script = (AssetPrefabTraitScript){
           .knowledgeIndex = (u16)outValues->size,
-          .knowledgeCount = (u16)traitDef->data_script.knowledge.count,
+          .knowledgeCount = knowledgeCount,
       };
       for (u32 i = 0; i != asset_prefab_scripts_max; ++i) {
-        outTrait->data_script.scripts[i] = traitDef->data_script.scripts[i].entity;
+        outTrait->data_script.scripts[i] = scriptDef->scripts[i].entity;
       }
-      const AssetPrefabValue* knowledgeValues = traitDef->data_script.knowledge.values;
-      const usize             knowledgeCount  = traitDef->data_script.knowledge.count;
       mem_cpy(
           dynarray_push(outValues, knowledgeCount),
-          mem_create(knowledgeValues, sizeof(AssetPrefabValue) * knowledgeCount));
+          mem_create(scriptDef->knowledge.values, sizeof(AssetPrefabValue) * knowledgeCount));
     } break;
     case AssetPrefabTrait_Count:
       break;
@@ -233,11 +242,12 @@ static void prefabmap_build(
     DynArray*                outPrefabs, // AssetPrefab[], needs to be already initialized.
     DynArray*                outTraits,  // AssetPrefabTrait[], needs to be already initialized.
     DynArray*                outValues,  // AssetPrefabValue[], needs to be already initialized.
+    DynArray*                outShapes,  // AssetPrefabShape[], needs to be already initialized.
     PrefabError*             err) {
 
   heap_array_for_t(def->prefabs, AssetPrefabDef, prefabDef) {
     AssetPrefab prefab;
-    prefab_build(prefabDef, outTraits, outValues, &prefab, err);
+    prefab_build(prefabDef, outTraits, outValues, outShapes, &prefab, err);
     if (*err) {
       return;
     }
@@ -284,6 +294,9 @@ static void ecs_destruct_prefabmap_comp(void* data) {
   if (comp->values.values) {
     alloc_free_array_t(g_allocHeap, comp->values.values, comp->values.count);
   }
+  if (comp->shapes.values) {
+    alloc_free_array_t(g_allocHeap, comp->shapes.values, comp->shapes.count);
+  }
 }
 
 static void ecs_destruct_prefab_load_comp(void* data) {
@@ -320,7 +333,8 @@ ecs_system_define(LoadPrefabAssetSys) {
 
     DynArray prefabs = dynarray_create_t(g_allocHeap, AssetPrefab, 64);
     DynArray traits  = dynarray_create_t(g_allocHeap, AssetPrefabTrait, 64);
-    DynArray values  = dynarray_create_t(g_allocHeap, AssetPrefabValue, 32);
+    DynArray values  = dynarray_create_t(g_allocHeap, AssetPrefabValue, 64);
+    DynArray shapes  = dynarray_create_t(g_allocHeap, AssetPrefabShape, 64);
 
     AssetPrefabMapDef def;
     String            errMsg;
@@ -340,7 +354,7 @@ ecs_system_define(LoadPrefabAssetSys) {
     }
 
     PrefabError buildErr;
-    prefabmap_build(&def, &prefabs, &traits, &values, &buildErr);
+    prefabmap_build(&def, &prefabs, &traits, &values, &shapes, &buildErr);
     if (buildErr) {
       errMsg = prefab_error_str(buildErr);
       goto Error;
@@ -360,7 +374,9 @@ ecs_system_define(LoadPrefabAssetSys) {
         .traits.values   = dynarray_copy_as_new(&traits, g_allocHeap),
         .traits.count    = traits.size,
         .values.values   = dynarray_copy_as_new(&values, g_allocHeap),
-        .values.count    = values.size);
+        .values.count    = values.size,
+        .shapes.values   = dynarray_copy_as_new(&shapes, g_allocHeap),
+        .shapes.count    = shapes.size);
 
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
     goto Cleanup;
@@ -378,6 +394,7 @@ ecs_system_define(LoadPrefabAssetSys) {
     dynarray_destroy(&prefabs);
     dynarray_destroy(&traits);
     dynarray_destroy(&values);
+    dynarray_destroy(&shapes);
     ecs_world_remove_t(world, entity, AssetPrefabLoadComp);
   }
 }
@@ -557,7 +574,7 @@ void asset_data_init_prefab(void) {
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitCollisionDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, navBlocker, data_prim_t(bool));
-  data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, shape, t_AssetPrefabShape);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitCollisionDef, shapes, t_AssetPrefabShape, .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitScriptDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, scripts, g_assetRefType,  .container = DataContainer_InlineArray, .fixedCount = asset_prefab_scripts_max, .flags = DataFlags_NotEmpty);
