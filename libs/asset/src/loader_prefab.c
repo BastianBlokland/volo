@@ -121,6 +121,7 @@ typedef enum {
   PrefabError_DuplicateTrait,
   PrefabError_PrefabCountExceedsMax,
   PrefabError_ScriptAssetCountExceedsMax,
+  PrefabError_InvalidAssetReference,
 
   PrefabError_Count,
 } PrefabError;
@@ -132,6 +133,7 @@ static String prefab_error_str(const PrefabError err) {
       string_static("Prefab defines the same trait more then once"),
       string_static("Prefab count exceeds the maximum"),
       string_static("Script asset count exceeds the maximum"),
+      string_static("Unable to resolve asset-reference"),
   };
   ASSERT(array_elems(g_msgs) == PrefabError_Count, "Incorrect number of error messages");
   return g_msgs[err];
@@ -427,9 +429,10 @@ ecs_system_define(LoadPrefabAssetSys) {
       errMsg = prefab_error_str(PrefabError_PrefabCountExceedsMax);
       goto Error;
     }
-
-    // Resolve asset references.
-    asset_data_patch_refs(world, manager, g_assetPrefabDefMeta, mem_var(def));
+    if (UNLIKELY(!asset_data_patch_refs(world, manager, g_assetPrefabDefMeta, mem_var(def)))) {
+      errMsg = prefab_error_str(PrefabError_InvalidAssetReference);
+      goto Error;
+    }
 
     BuildCtx buildCtx = {
         .world        = world,

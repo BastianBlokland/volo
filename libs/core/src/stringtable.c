@@ -215,7 +215,7 @@ StringTableArray stringtable_clone_strings(const StringTable* table, Allocator* 
   thread_spinlock_lock(&tableMutable->slotsLock);
   u32 i = 0;
   for (StringTableSlot* slot = table->slots; slot != (table->slots + table->slotCount); ++slot) {
-    if (slot->hash) {
+    if (slot->hash && i != count) {
       res.values[i++] = slot->data;
     }
   }
