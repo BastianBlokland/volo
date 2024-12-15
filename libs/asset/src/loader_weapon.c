@@ -86,7 +86,7 @@ static void weaponmap_build(
     DynArray*                outWeapons, // AssetWeapon[], needs to be already initialized.
     DynArray*                outEffects, // AssetWeaponEffect[], needs to be already initialized.
     WeaponError*             err) {
-
+  *err = WeaponError_None;
   heap_array_for_t(def->weapons, AssetWeaponDef, weaponDef) {
     AssetWeapon weapon;
     weapon_build(weaponDef, outEffects, &weapon);
@@ -99,11 +99,10 @@ static void weaponmap_build(
     }
     *dynarray_insert_sorted_t(outWeapons, AssetWeapon, asset_weapon_compare, &weapon) = weapon;
   }
-  *err = WeaponError_None;
 }
 
 ecs_comp_define_public(AssetWeaponMapComp);
-ecs_comp_define(AssetWeaponLoadComp) { AssetSource* src; };
+ecs_comp_define(AssetWeaponLoadComp) { AssetWeaponMapDef def; };
 
 static void ecs_destruct_weaponmap_comp(void* data) {
   AssetWeaponMapComp* comp = data;
@@ -117,14 +116,14 @@ static void ecs_destruct_weaponmap_comp(void* data) {
 
 static void ecs_destruct_weapon_load_comp(void* data) {
   AssetWeaponLoadComp* comp = data;
-  asset_repo_source_close(comp->src);
+  data_destroy(g_dataReg, g_allocHeap, g_assetWeaponDefMeta, mem_var(comp->def));
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 
 ecs_view_define(LoadView) {
   ecs_access_read(AssetComp);
-  ecs_access_read(AssetWeaponLoadComp);
+  ecs_access_write(AssetWeaponLoadComp);
 }
 
 ecs_view_define(UnloadView) {
@@ -143,29 +142,22 @@ ecs_system_define(LoadWeaponAssetSys) {
 
   EcsView* loadView = ecs_world_view_t(world, LoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
-    const EcsEntityId  entity = ecs_view_entity(itr);
-    const String       id     = asset_id(ecs_view_read_t(itr, AssetComp));
-    const AssetSource* src    = ecs_view_read_t(itr, AssetWeaponLoadComp)->src;
+    const EcsEntityId    entity = ecs_view_entity(itr);
+    const String         id     = asset_id(ecs_view_read_t(itr, AssetComp));
+    AssetWeaponLoadComp* load   = ecs_view_write_t(itr, AssetWeaponLoadComp);
+    const DataMeta       meta   = g_assetWeaponDefMeta;
 
     DynArray weapons = dynarray_create_t(g_allocHeap, AssetWeapon, 64);
     DynArray effects = dynarray_create_t(g_allocHeap, AssetWeaponEffect, 64);
 
-    AssetWeaponMapDef def;
-    String            errMsg;
-    DataReadResult    readRes;
-    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetWeaponDefMeta, mem_var(def), &readRes);
-    if (UNLIKELY(readRes.error)) {
-      errMsg = readRes.errorMsg;
-      goto Error;
-    }
-    if (UNLIKELY(!asset_data_patch_refs(world, manager, g_assetWeaponDefMeta, mem_var(def)))) {
+    String errMsg;
+    if (UNLIKELY(!asset_data_patch_refs(world, manager, meta, mem_var(load->def)))) {
       errMsg = weapon_error_str(WeaponError_InvalidAssetReference);
       goto Error;
     }
 
     WeaponError buildErr;
-    weaponmap_build(&def, &weapons, &effects, &buildErr);
-    data_destroy(g_dataReg, g_allocHeap, g_assetWeaponDefMeta, mem_var(def));
+    weaponmap_build(&load->def, &weapons, &effects, &buildErr);
     if (buildErr) {
       errMsg = weapon_error_str(buildErr);
       goto Error;
@@ -346,7 +338,34 @@ void asset_load_weapons(
   (void)importEnv;
   (void)id;
 
-  ecs_world_add_t(world, entity, AssetWeaponLoadComp, .src = src);
+  AssetWeaponMapDef def;
+  DataReadResult    result;
+  if (src->format == AssetFormat_WeaponsBin) {
+    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetWeaponDefMeta, mem_var(def), &result);
+  } else {
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetWeaponDefMeta, mem_var(def), &result);
+  }
+
+  if (UNLIKELY(result.error)) {
+    log_e(
+        "Failed to load weapon-map",
+        log_param("id", fmt_text(id)),
+        log_param("entity", ecs_entity_fmt(entity)),
+        log_param("error-code", fmt_int(result.error)),
+        log_param("error", fmt_text(result.errorMsg)));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    goto Ret;
+  }
+
+  if (src->format != AssetFormat_WeaponsBin) {
+    // TODO: Instead of caching the definition it would be more optional to cache the resulting map.
+    asset_cache(world, entity, g_assetWeaponDefMeta, mem_var(def));
+  }
+
+  ecs_world_add_t(world, entity, AssetWeaponLoadComp, .def = def);
+
+Ret:
+  asset_repo_source_close(src);
 }
 
 f32 asset_weapon_damage(const AssetWeaponMapComp* map, const AssetWeapon* weapon) {

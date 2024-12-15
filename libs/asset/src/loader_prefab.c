@@ -307,7 +307,7 @@ ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 
 ecs_view_define(LoadView) {
   ecs_access_read(AssetComp);
-  ecs_access_read(AssetPrefabLoadComp);
+  ecs_access_write(AssetPrefabLoadComp);
 }
 
 ecs_view_define(UnloadView) {
@@ -326,9 +326,9 @@ ecs_system_define(LoadPrefabAssetSys) {
 
   EcsView* loadView = ecs_world_view_t(world, LoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
-    const EcsEntityId          entity = ecs_view_entity(itr);
-    const String               id     = asset_id(ecs_view_read_t(itr, AssetComp));
-    const AssetPrefabLoadComp* load   = ecs_view_read_t(itr, AssetPrefabLoadComp);
+    const EcsEntityId    entity = ecs_view_entity(itr);
+    const String         id     = asset_id(ecs_view_read_t(itr, AssetComp));
+    AssetPrefabLoadComp* load   = ecs_view_write_t(itr, AssetPrefabLoadComp);
 
     DynArray prefabs = dynarray_create_t(g_allocHeap, AssetPrefab, 64);
     DynArray traits  = dynarray_create_t(g_allocHeap, AssetPrefabTrait, 64);

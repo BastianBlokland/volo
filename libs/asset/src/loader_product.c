@@ -209,7 +209,7 @@ ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 
 ecs_view_define(LoadView) {
   ecs_access_read(AssetComp);
-  ecs_access_read(AssetProductLoadComp);
+  ecs_access_write(AssetProductLoadComp);
 }
 
 ecs_view_define(UnloadView) {
@@ -228,9 +228,9 @@ ecs_system_define(LoadProductAssetSys) {
 
   EcsView* loadView = ecs_world_view_t(world, LoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
-    const EcsEntityId           entity = ecs_view_entity(itr);
-    const String                id     = asset_id(ecs_view_read_t(itr, AssetComp));
-    const AssetProductLoadComp* load   = ecs_view_read_t(itr, AssetProductLoadComp);
+    const EcsEntityId     entity = ecs_view_entity(itr);
+    const String          id     = asset_id(ecs_view_read_t(itr, AssetComp));
+    AssetProductLoadComp* load   = ecs_view_write_t(itr, AssetProductLoadComp);
 
     DynArray sets     = dynarray_create_t(g_allocHeap, AssetProductSet, 64);
     DynArray products = dynarray_create_t(g_allocHeap, AssetProduct, 64);
