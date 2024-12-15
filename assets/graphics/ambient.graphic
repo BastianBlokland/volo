@@ -2,18 +2,18 @@
   "pass": "Forward",
   "passOrder": -100,
   "shaders": [
-    { "shaderId": "shaders/fullscreen.vert" },
+    { "program": "shaders/fullscreen.vert" },
     {
-      "shaderId": "shaders/ambient.frag",
+      "program": "shaders/ambient.frag",
       "overrides": [
         { "name": "specIrradianceMips", "binding": 1, "value": 5 }
       ]
     }
   ],
   "samplers": [
-    { "textureId": "textures/game/env_diff_irradiance.arraytex" },
-    { "textureId": "textures/game/env_spec_irradiance.arraytex", "mipBlending": true },
-    { "textureId": "textures/game/env_brdf_integration.proctex" }
+    { "texture": "textures/game/env_diff_irradiance.arraytex" },
+    { "texture": "textures/game/env_spec_irradiance.arraytex", "mipBlending": true },
+    { "texture": "textures/game/env_brdf_integration.proctex" }
   ],
   "vertexCount": 3,
   "depth": "GreaterNoWrite",

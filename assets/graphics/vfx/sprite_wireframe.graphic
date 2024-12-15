@@ -2,8 +2,8 @@
   "pass": "Forward",
   "passOrder": 101,
   "shaders": [
-    { "shaderId": "shaders/vfx/sprite.vert" },
-    { "shaderId": "shaders/solid_white3.frag" }
+    { "program": "shaders/vfx/sprite.vert" },
+    { "program": "shaders/solid_white3.frag" }
   ],
   "vertexCount": 6,
   "rasterizer": "Lines",

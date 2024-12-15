@@ -323,18 +323,18 @@ static bool rend_res_dependencies_acquire(EcsWorld* world, EcsIterator* resource
     const RendResFlags depFlags = resComp->flags; // Transfer the flags down to the dependencies.
 
     heap_array_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
-      rend_res_request_internal(world, ptr->shader, depFlags);
-      rend_res_add_dependency(resComp, ptr->shader);
+      rend_res_request_internal(world, ptr->program.entity, depFlags);
+      rend_res_add_dependency(resComp, ptr->program.entity);
     }
 
-    if (maybeAssetGraphic->mesh) {
-      rend_res_request_internal(world, maybeAssetGraphic->mesh, depFlags);
-      rend_res_add_dependency(resComp, maybeAssetGraphic->mesh);
+    if (maybeAssetGraphic->mesh.entity) {
+      rend_res_request_internal(world, maybeAssetGraphic->mesh.entity, depFlags);
+      rend_res_add_dependency(resComp, maybeAssetGraphic->mesh.entity);
     }
 
     heap_array_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
-      rend_res_request_internal(world, ptr->texture, depFlags);
-      rend_res_add_dependency(resComp, ptr->texture);
+      rend_res_request_internal(world, ptr->texture.entity, depFlags);
+      rend_res_add_dependency(resComp, ptr->texture.entity);
     }
   }
   return true;
@@ -410,36 +410,36 @@ static bool rend_res_create(const RendPlatformComp* plat, EcsWorld* world, EcsIt
     // Add shaders.
     EcsView* shaderView = ecs_world_view_t(world, ShaderReadView);
     heap_array_for_t(maybeAssetGraphic->shaders, AssetGraphicShader, ptr) {
-      if (!ecs_view_contains(shaderView, ptr->shader)) {
+      if (!ecs_view_contains(shaderView, ptr->program.entity)) {
         log_e("Invalid shader reference", log_param("graphic", fmt_text(id)));
         resComp->state = RendResLoadState_FinishedFailure;
         return false;
       }
-      EcsIterator* shaderItr = ecs_view_at(shaderView, ptr->shader);
+      EcsIterator* shaderItr = ecs_view_at(shaderView, ptr->program.entity);
       rvk_graphic_add_shader(graphic, ecs_view_read_t(shaderItr, RendResShaderComp)->shader);
     }
 
     // Add mesh.
-    if (maybeAssetGraphic->mesh) {
+    if (maybeAssetGraphic->mesh.entity) {
       EcsView* meshView = ecs_world_view_t(world, MeshReadView);
-      if (!ecs_view_contains(meshView, maybeAssetGraphic->mesh)) {
+      if (!ecs_view_contains(meshView, maybeAssetGraphic->mesh.entity)) {
         log_e("Invalid mesh reference", log_param("graphic", fmt_text(id)));
         resComp->state = RendResLoadState_FinishedFailure;
         return false;
       }
-      EcsIterator* meshItr = ecs_view_at(meshView, maybeAssetGraphic->mesh);
+      EcsIterator* meshItr = ecs_view_at(meshView, maybeAssetGraphic->mesh.entity);
       rvk_graphic_add_mesh(graphic, ecs_view_read_t(meshItr, RendResMeshComp)->mesh);
     }
 
     // Add samplers.
     EcsView* textureView = ecs_world_view_t(world, TextureReadView);
     heap_array_for_t(maybeAssetGraphic->samplers, AssetGraphicSampler, ptr) {
-      if (!ecs_view_contains(textureView, ptr->texture)) {
+      if (!ecs_view_contains(textureView, ptr->texture.entity)) {
         log_e("Invalid texture reference", log_param("graphic", fmt_text(id)));
         resComp->state = RendResLoadState_FinishedFailure;
         return false;
       }
-      EcsIterator*              textureItr  = ecs_view_at(textureView, ptr->texture);
+      EcsIterator*              textureItr  = ecs_view_at(textureView, ptr->texture.entity);
       const RendResTextureComp* textureComp = ecs_view_read_t(textureItr, RendResTextureComp);
       rvk_graphic_add_sampler(graphic, maybeAssetGraphic, textureComp->texture, ptr);
     }

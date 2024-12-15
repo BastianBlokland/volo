@@ -17,7 +17,7 @@
           "type": "array",
           "items": { "title": "AssetGraphicSampler", "$ref": "#/$defs/AssetGraphicSampler" }
         },
-        "meshId": { "title": "String", "type": "string", "minLength": 1 },
+        "mesh": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" },
         "vertexCount": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
         "topology": { "title": "AssetGraphicTopology", "$ref": "#/$defs/AssetGraphicTopology" },
         "rasterizer": { "title": "AssetGraphicRasterizer", "$ref": "#/$defs/AssetGraphicRasterizer" },
@@ -33,7 +33,7 @@
       },
       "required": [ "pass", "shaders" ],
       "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"pass\": \"Geometry\",\n  \"shaders\": [\n    {\n      \"shaderId\": \"placeholder\"\n    }\n  ]\n}" }
+        { "label": "New", "body": "^{\n  \"pass\": \"Geometry\",\n  \"shaders\": [\n    {\n      \"program\": \"placeholder\"\n    }\n  ]\n}" }
       ]
     },
     "AssetGraphicPass": {
@@ -54,17 +54,18 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "shaderId": { "title": "String", "type": "string", "minLength": 1 },
+        "program": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" },
         "overrides": {
           "type": "array",
           "items": { "title": "AssetGraphicOverride", "$ref": "#/$defs/AssetGraphicOverride" }
         }
       },
-      "required": [ "shaderId" ],
+      "required": [ "program" ],
       "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"shaderId\": \"placeholder\"\n}" }
+        { "label": "New", "body": "^{\n  \"program\": \"placeholder\"\n}" }
       ]
     },
+    "AssetRef": { "title": "StringHash", "type": "string", "minLength": 1 },
     "AssetGraphicOverride": {
       "type": "object",
       "additionalProperties": false,
@@ -82,15 +83,15 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "textureId": { "title": "String", "type": "string", "minLength": 1 },
+        "texture": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" },
         "wrap": { "title": "AssetGraphicWrap", "$ref": "#/$defs/AssetGraphicWrap" },
         "filter": { "title": "AssetGraphicFilter", "$ref": "#/$defs/AssetGraphicFilter" },
         "anisotropy": { "title": "AssetGraphicAniso", "$ref": "#/$defs/AssetGraphicAniso" },
         "mipBlending": { "title": "bool", "type": "boolean" }
       },
-      "required": [ "textureId" ],
+      "required": [ "texture" ],
       "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"textureId\": \"placeholder\"\n}" }
+        { "label": "New", "body": "^{\n  \"texture\": \"placeholder\"\n}" }
       ]
     },
     "AssetGraphicWrap": {

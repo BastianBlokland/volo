@@ -1,14 +1,14 @@
 {
   "pass": "Decal",
   "shaders": [
-    { "shaderId": "shaders/vfx/stamp.vert" },
-    { "shaderId": "shaders/vfx/stamp.frag" }
+    { "program": "shaders/vfx/stamp.vert" },
+    { "program": "shaders/vfx/stamp.frag" }
   ],
   "samplers": [
-    { "textureId": "textures/vfx/stamp_color.atlas", "anisotropy": "x4", "mipBlending": true },
-    { "textureId": "textures/vfx/stamp_normal.atlas", "anisotropy": "x4", "mipBlending": true }
+    { "texture": "textures/vfx/stamp_color.atlas", "anisotropy": "x4", "mipBlending": true },
+    { "texture": "textures/vfx/stamp_normal.atlas", "anisotropy": "x4", "mipBlending": true }
   ],
-  "meshId": "meshes/vfx/stamp_box.procmesh",
+  "mesh": "meshes/vfx/stamp_box.procmesh",
   "blend": "AlphaConstant",
   "blendConstant": 0,
   "blendAux": "Alpha",

@@ -1,8 +1,8 @@
 {
   "pass": "Bloom",
   "shaders": [
-    { "shaderId": "shaders/fullscreen.vert" },
-    { "shaderId": "shaders/bloom_down.frag" }
+    { "program": "shaders/fullscreen.vert" },
+    { "program": "shaders/bloom_down.frag" }
   ],
   "vertexCount": 3,
   "depth": "AlwaysNoWrite",

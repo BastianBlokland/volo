@@ -2,10 +2,10 @@
   "pass": "Forward",
   "passOrder": 76,
   "shaders": [
-    { "shaderId": "shaders/vfx/stamp.vert" },
-    { "shaderId": "shaders/solid_white3.frag" }
+    { "program": "shaders/vfx/stamp.vert" },
+    { "program": "shaders/solid_white3.frag" }
   ],
-  "meshId": "meshes/vfx/stamp_box.procmesh",
+  "mesh": "meshes/vfx/stamp_box.procmesh",
   "rasterizer": "Lines",
   "lineWidth": 1,
   "depth": "LessOrEqualNoWrite",

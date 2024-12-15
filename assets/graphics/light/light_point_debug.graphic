@@ -2,10 +2,10 @@
   "pass": "Forward",
   "passOrder": -90,
   "shaders": [
-    { "shaderId": "shaders/light/light_point.vert" },
-    { "shaderId": "shaders/light/light_point_debug.frag" }
+    { "program": "shaders/light/light_point.vert" },
+    { "program": "shaders/light/light_point_debug.frag" }
   ],
-  "meshId": "meshes/light/light_point.procmesh",
+  "mesh": "meshes/light/light_point.procmesh",
   "depth": "AlwaysNoWrite",
   "cull": "Front"
 }

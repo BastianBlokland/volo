@@ -2,8 +2,8 @@
   "pass": "Forward",
   "passOrder": 5,
   "shaders": [
-    { "shaderId": "shaders/debug/skinning.vert" },
-    { "shaderId": "shaders/debug/skinning.frag" }
+    { "program": "shaders/debug/skinning.vert" },
+    { "program": "shaders/debug/skinning.frag" }
   ],
   "blend": "Alpha",
   "depth": "LessOrEqualNoWrite"

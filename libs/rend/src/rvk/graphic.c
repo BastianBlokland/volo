@@ -1,8 +1,8 @@
 #include "asset_graphic.h"
 #include "core_alloc.h"
-#include "core_bits.h"
 #include "core_diag.h"
 #include "core_math.h"
+#include "core_stringtable.h"
 #include "log_logger.h"
 #include "trace_tracer.h"
 
@@ -527,8 +527,8 @@ static void rvk_graphic_set_missing_sampler(
 
   graphic->samplerTextures[samplerIndex] = rvk_repository_texture_get(repo, repoId);
   graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
-      .wrap   = RvkSamplerWrap_Repeat,
-      .filter = RvkSamplerFilter_Nearest,
+         .wrap   = RvkSamplerWrap_Repeat,
+         .filter = RvkSamplerFilter_Nearest,
   };
 }
 
@@ -563,7 +563,6 @@ static bool rvk_graphic_validate_shaders(
     if (!shader) {
       break;
     }
-    MAYBE_UNUSED const String shaderId = asset->shaders.values[shaderIdx].shaderId;
 
     // Validate stage.
     if (UNLIKELY(foundStages & shader->vkStage)) {
@@ -587,6 +586,9 @@ static bool rvk_graphic_validate_shaders(
     for (u32 set = 0; set != rvk_shader_desc_max; ++set) {
       const bool supported = mem_contains(mem_var(g_rendSupportedShaderSets), set);
       if (UNLIKELY(!supported && rvk_shader_set_used(shader, set))) {
+        const StringHash          shaderIdHash = asset->shaders.values[shaderIdx].program.id;
+        MAYBE_UNUSED const String shaderId     = stringtable_lookup(g_stringtable, shaderIdHash);
+
         log_e(
             "Shader uses unsupported set",
             log_param("graphic", fmt_text(graphic->dbgName)),
@@ -762,10 +764,10 @@ void rvk_graphic_add_sampler(
       graphic->samplerMask |= 1 << samplerIndex;
       graphic->samplerTextures[samplerIndex] = tex;
       graphic->samplerSpecs[samplerIndex]    = (RvkSamplerSpec){
-          .flags  = samplerFlags,
-          .wrap   = rvk_graphic_wrap(sampler->wrap),
-          .filter = rvk_graphic_filter(sampler->filter),
-          .aniso  = rvk_graphic_aniso(sampler->anisotropy),
+             .flags  = samplerFlags,
+             .wrap   = rvk_graphic_wrap(sampler->wrap),
+             .filter = rvk_graphic_filter(sampler->filter),
+             .aniso  = rvk_graphic_aniso(sampler->anisotropy),
       };
       return;
     }

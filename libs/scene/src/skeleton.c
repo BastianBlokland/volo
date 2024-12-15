@@ -308,12 +308,12 @@ ecs_system_define(SceneSkeletonTemplLoadSys) {
         scene_skeleton_templ_load_done(world, itr, false /* failure */);
         break; // Graphic failed to load, or was of unexpected type.
       }
-      if (!graphic->mesh) {
+      if (!graphic->mesh.entity) {
         scene_skeleton_templ_load_done(world, itr, false /* failure */);
         break; // Graphic did not have a mesh.
       }
-      tl->mesh = graphic->mesh;
-      asset_acquire(world, graphic->mesh);
+      tl->mesh = graphic->mesh.entity;
+      asset_acquire(world, graphic->mesh.entity);
       ++tl->state;
       break; // Wait for the asset to be acquired.
     }

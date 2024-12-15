@@ -1,17 +1,17 @@
 {
   "pass": "Post",
   "shaders": [
-    { "shaderId": "shaders/ui/canvas.vert" },
+    { "program": "shaders/ui/canvas.vert" },
     {
-      "shaderId": "shaders/ui/canvas.frag",
+      "program": "shaders/ui/canvas.frag",
       "overrides": [
         { "name": "debug", "binding": 0, "value": 1 }
       ]
     }
   ],
   "samplers": [
-    { "textureId": "fonts/ui.fonttex" },
-    { "textureId": "textures/ui/image.atlas" }
+    { "texture": "fonts/ui.fonttex" },
+    { "texture": "textures/ui/image.atlas" }
   ],
   "vertexCount": 6,
   "blend": "Alpha",

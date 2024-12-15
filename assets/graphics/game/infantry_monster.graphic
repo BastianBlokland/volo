@@ -1,17 +1,17 @@
 {
   "pass": "Geometry",
   "shaders": [
-    { "shaderId": "shaders/standard_skinned.vert" },
+    { "program": "shaders/standard_skinned.vert" },
     {
-      "shaderId": "shaders/standard.frag",
+      "program": "shaders/standard.frag",
       "overrides": [
         { "name": "normalMap", "binding": 0, "value": 1 }
       ]
     }
   ],
   "samplers": [
-    { "textureId": "external/maynard/maynard_3_color_rough.tga", "anisotropy": "x2" },
-    { "textureId": "external/maynard/maynard_3_nrm.tga", "anisotropy": "x2" }
+    { "texture": "external/maynard/maynard_3_color_rough.tga", "anisotropy": "x2" },
+    { "texture": "external/maynard/maynard_3_nrm.tga", "anisotropy": "x2" }
   ],
-  "meshId": "external/maynard/maynard_3.gltf"
+  "mesh": "external/maynard/maynard_3.gltf"
 }

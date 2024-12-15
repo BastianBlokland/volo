@@ -372,9 +372,6 @@ ecs_system_define(LoadPrefabAssetSys) {
 
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 
-    // TODO: Instead of caching the definition it would be more optional to cache the resulting map.
-    asset_cache(world, entity, g_assetPrefabDefMeta, mem_var(load->def));
-
     goto Cleanup;
 
   Error:
@@ -670,6 +667,11 @@ void asset_load_prefabs(
         log_param("error", fmt_text(result.errorMsg)));
     ecs_world_add_empty_t(world, entity, AssetFailedComp);
     goto Ret;
+  }
+
+  if (src->format != AssetFormat_PrefabsBin) {
+    // TODO: Instead of caching the definition it would be more optional to cache the resulting map.
+    asset_cache(world, entity, g_assetPrefabDefMeta, mem_var(def));
   }
 
   ecs_world_add_t(world, entity, AssetPrefabLoadComp, .def = def);

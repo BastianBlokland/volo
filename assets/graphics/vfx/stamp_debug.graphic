@@ -2,10 +2,10 @@
   "pass": "Forward",
   "passOrder": 75,
   "shaders": [
-    { "shaderId": "shaders/vfx/stamp.vert" },
-    { "shaderId": "shaders/vfx/stamp_debug.frag" }
+    { "program": "shaders/vfx/stamp.vert" },
+    { "program": "shaders/vfx/stamp_debug.frag" }
   ],
-  "meshId": "meshes/vfx/stamp_box.procmesh",
+  "mesh": "meshes/vfx/stamp_box.procmesh",
   "blend": "Alpha",
   "depth": "LessNoWrite"
 }

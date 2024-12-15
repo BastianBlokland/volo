@@ -2,8 +2,8 @@
   "pass": "Forward",
   "passOrder": 1000,
   "shaders": [
-    { "shaderId": "shaders/fullscreen.vert" },
-    { "shaderId": "shaders/fog.frag" }
+    { "program": "shaders/fullscreen.vert" },
+    { "program": "shaders/fog.frag" }
   ],
   "vertexCount": 3,
   "blend": "Alpha",

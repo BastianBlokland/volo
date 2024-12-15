@@ -2,8 +2,8 @@
   "pass": "Post",
   "passOrder": -100,
   "shaders": [
-    { "shaderId": "shaders/fullscreen.vert" },
-    { "shaderId": "shaders/tonemapper.frag" }
+    { "program": "shaders/fullscreen.vert" },
+    { "program": "shaders/tonemapper.frag" }
   ],
   "vertexCount": 3,
   "depth": "AlwaysNoWrite",

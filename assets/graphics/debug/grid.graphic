@@ -2,8 +2,8 @@
   "pass": "Forward",
   "passOrder": 50,
   "shaders": [
-    { "shaderId": "shaders/debug/grid.vert" },
-    { "shaderId": "shaders/debug/grid.frag" }
+    { "program": "shaders/debug/grid.vert" },
+    { "program": "shaders/debug/grid.frag" }
   ],
   "topology": "Lines",
   "lineWidth": 2,

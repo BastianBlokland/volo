@@ -1,8 +1,8 @@
 {
   "pass": "Bloom",
   "shaders": [
-    { "shaderId": "shaders/fullscreen.vert" },
-    { "shaderId": "shaders/bloom_up.frag" }
+    { "program": "shaders/fullscreen.vert" },
+    { "program": "shaders/bloom_up.frag" }
   ],
   "vertexCount": 3,
   "blend": "Additive",

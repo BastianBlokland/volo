@@ -1,17 +1,17 @@
 {
   "pass": "Geometry",
   "shaders": [
-    { "shaderId": "shaders/standard_skinned.vert" },
+    { "program": "shaders/standard_skinned.vert" },
     {
-      "shaderId": "shaders/standard.frag",
+      "program": "shaders/standard.frag",
       "overrides": [
         { "name": "normalMap", "binding": 0, "value": 1 }
       ]
     }
   ],
   "samplers": [
-    { "textureId": "external/turret/turret_5_color_rough.tga", "anisotropy": "x2" },
-    { "textureId": "external/turret/turret_3_nrm.tga", "anisotropy": "x2" }
+    { "texture": "external/turret/turret_5_color_rough.tga", "anisotropy": "x2" },
+    { "texture": "external/turret/turret_3_nrm.tga", "anisotropy": "x2" }
   ],
-  "meshId": "external/turret/turret_missile_2.gltf"
+  "mesh": "external/turret/turret_missile_2.gltf"
 }

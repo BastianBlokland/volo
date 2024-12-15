@@ -1,11 +1,11 @@
 {
   "pass": "AmbientOcclusion",
   "shaders": [
-    { "shaderId": "shaders/fullscreen.vert" },
-    { "shaderId": "shaders/ambient_occlusion.frag" }
+    { "program": "shaders/fullscreen.vert" },
+    { "program": "shaders/ambient_occlusion.frag" }
   ],
   "samplers": [
-    { "textureId": "textures/ambient_occlusion_rot_noise.proctex", "wrap": "Repeat", "filter": "Nearest" }
+    { "texture": "textures/ambient_occlusion_rot_noise.proctex", "wrap": "Repeat", "filter": "Nearest" }
   ],
   "vertexCount": 3,
   "depth": "AlwaysNoWrite",
