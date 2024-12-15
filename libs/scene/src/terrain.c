@@ -105,11 +105,6 @@ typedef enum {
   TerrainLoadResult_Error,
 } TerrainLoadResult;
 
-static GeoColor terrain_color_load(const AssetTerrainColor* color) {
-  const GeoColor colorSrgb = {color->r, color->g, color->b, 1.0};
-  return geo_color_srgb_to_linear(colorSrgb);
-}
-
 static TerrainLoadResult terrain_asset_load(TerrainLoadContext* ctx) {
   if (ecs_world_has_t(ctx->world, ctx->terrain->terrainAsset, AssetFailedComp)) {
     log_e("Failed to load terrain asset");
@@ -132,8 +127,8 @@ static TerrainLoadResult terrain_asset_load(TerrainLoadContext* ctx) {
   ctx->terrain->playSize         = (f32)asset->playSize;
   ctx->terrain->playSizeHalf     = (f32)asset->playSize * 0.5f;
   ctx->terrain->heightMax        = asset->heightMax;
-  ctx->terrain->minimapColorLow  = terrain_color_load(&asset->minimapColorLow);
-  ctx->terrain->minimapColorHigh = terrain_color_load(&asset->minimapColorHigh);
+  ctx->terrain->minimapColorLow  = geo_color_srgb_to_linear(asset->minimapColorLow);
+  ctx->terrain->minimapColorHigh = geo_color_srgb_to_linear(asset->minimapColorHigh);
 
   return TerrainLoadResult_Done;
 }

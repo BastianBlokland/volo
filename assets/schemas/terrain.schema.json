@@ -11,8 +11,8 @@
         "size": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 },
         "playSize": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 },
         "heightMax": { "title": "f32", "type": "number" },
-        "minimapColorLow": { "title": "AssetTerrainColor", "description": "Srgb encoded color value", "$ref": "#/$defs/AssetTerrainColor" },
-        "minimapColorHigh": { "title": "AssetTerrainColor", "description": "Srgb encoded color value", "$ref": "#/$defs/AssetTerrainColor" }
+        "minimapColorLow": { "title": "GeoColor3Norm", "description": "Color (rgb)", "$ref": "#/$defs/GeoColor3Norm" },
+        "minimapColorHigh": { "title": "GeoColor3Norm", "description": "Color (rgb)", "$ref": "#/$defs/GeoColor3Norm" }
       },
       "required": [
         "graphicId",
@@ -25,7 +25,7 @@
         { "label": "New", "body": "^{\n  \"graphicId\": \"placeholder\",\n  \"heightmapId\": \"placeholder\",\n  \"size\": 0,\n  \"playSize\": 0,\n  \"heightMax\": 0\n}" }
       ]
     },
-    "AssetTerrainColor": {
+    "GeoColor3Norm": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -33,9 +33,9 @@
         "g": { "title": "f32", "type": "number" },
         "b": { "title": "f32", "type": "number" }
       },
-      "required": [ "r", "g", "b" ],
+      "required": [],
       "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"r\": 0,\n  \"g\": 0,\n  \"b\": 0\n}" }
+        { "label": "New", "body": "^{}" }
       ]
     }
   }
