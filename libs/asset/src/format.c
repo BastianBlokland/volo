@@ -1,5 +1,6 @@
 #include "asset_atlas.h"
 #include "asset_fonttex.h"
+#include "asset_graphic.h"
 #include "asset_icon.h"
 #include "asset_level.h"
 #include "asset_mesh.h"
@@ -49,6 +50,7 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_Decal]          = string_static("Decal"),
     [AssetFormat_FontTtf]        = string_static("FontTtf"),
     [AssetFormat_Graphic]        = string_static("Graphic"),
+    [AssetFormat_GraphicBin]     = string_static("GraphicBin"),
     [AssetFormat_Icon]           = string_static("Icon"),
     [AssetFormat_IconBin]        = string_static("IconBin"),
     [AssetFormat_Inputs]         = string_static("Inputs"),
@@ -90,6 +92,7 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
 };
 
 static const DataMeta* g_assetFormatBinMeta[AssetFormat_Count] = {
+    [AssetFormat_GraphicBin]  = &g_assetGraphicDefMeta,
     [AssetFormat_IconBin]     = &g_assetIconMeta,
     [AssetFormat_LevelBin]    = &g_assetLevelDefMeta,
     [AssetFormat_MeshBin]     = &g_assetMeshBundleMeta,

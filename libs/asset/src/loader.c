@@ -10,6 +10,7 @@
   _X_(AssetFormat_Decal,            decal,              1  )                                       \
   _X_(AssetFormat_FontTtf,          font_ttf,           1  )                                       \
   _X_(AssetFormat_Graphic,          graphic,            1  )                                       \
+  _X_(AssetFormat_GraphicBin,       graphic,            1  )                                       \
   _X_(AssetFormat_Icon,             icon,               1  )                                       \
   _X_(AssetFormat_IconBin,          icon_bin,           2  )                                       \
   _X_(AssetFormat_Inputs,           inputs,             1  )                                       \
