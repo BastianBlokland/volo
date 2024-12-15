@@ -86,13 +86,14 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "assetId": { "title": "String", "type": "string", "minLength": 1 },
+        "asset": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" },
         "gain": { "title": "f32", "type": "number" }
       },
-      "required": [ "assetId" ],
+      "required": [ "asset" ],
       "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"assetId\": \"placeholder\"\n}" }
+        { "label": "New", "body": "^{\n  \"asset\": \"placeholder\"\n}" }
       ]
-    }
+    },
+    "AssetRef": { "title": "StringHash", "type": "string", "minLength": 1 }
   }
 }

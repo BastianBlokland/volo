@@ -6,7 +6,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "layer": { "title": "String", "type": "string", "minLength": 1 },
+        "layer": { "title": "StringHash", "type": "string", "minLength": 1 },
         "actions": {
           "type": "array",
           "items": { "title": "AssetInputActionDef", "$ref": "#/$defs/AssetInputActionDef" }
@@ -21,12 +21,12 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "name": { "title": "String", "type": "string", "minLength": 1 },
+        "name": { "title": "StringHash", "type": "string", "minLength": 1 },
         "blockers": { "title": "AssetInputBlocker", "$ref": "#/$defs/AssetInputBlocker" },
         "bindings": {
           "type": "array",
           "minItems": 1,
-          "items": { "title": "AssetInputBindingDef", "$ref": "#/$defs/AssetInputBindingDef" }
+          "items": { "title": "AssetInputBinding", "$ref": "#/$defs/AssetInputBinding" }
         }
       },
       "required": [ "name", "bindings" ],
@@ -49,7 +49,7 @@
         ]
       }
     },
-    "AssetInputBindingDef": {
+    "AssetInputBinding": {
       "type": "object",
       "additionalProperties": false,
       "properties": {

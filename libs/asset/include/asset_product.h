@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_ref.h"
 #include "core_array.h"
 #include "data_registry.h"
 #include "ecs_module.h"
@@ -8,8 +9,8 @@
  */
 
 typedef struct {
-  EcsEntityId asset;
-  f32         gain;
+  AssetRef asset;
+  f32      gain;
 } AssetProductSound;
 
 typedef enum {

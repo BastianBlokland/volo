@@ -13,14 +13,15 @@
 #include "ecs_view.h"
 #include "log_logger.h"
 
+#include "data_internal.h"
 #include "import_internal.h"
 #include "repo_internal.h"
 
 DataMeta g_assetProductDefMeta;
 
 typedef struct {
-  String assetId;
-  f32    gain;
+  AssetRef asset;
+  f32      gain;
 } AssetProductSoundDef;
 
 typedef struct {
@@ -68,9 +69,10 @@ static i8 asset_productset_compare(const void* a, const void* b) {
 }
 
 typedef enum {
-  ProductError_None                = 0,
-  ProductError_DuplicateProductSet = 1,
-  ProductError_EmptyProductSet     = 2,
+  ProductError_None,
+  ProductError_DuplicateProductSet,
+  ProductError_EmptyProductSet,
+  ProductError_InvalidAssetReference,
 
   ProductError_Count,
 } ProductError;
@@ -80,6 +82,7 @@ static String product_error_str(const ProductError err) {
       string_static("None"),
       string_static("Multiple product-sets with the same name"),
       string_static("Product-set cannot be empty"),
+      string_static("Unable to resolve asset-reference"),
   };
   ASSERT(array_elems(g_msgs) == ProductError_Count, "Incorrect number of error messages");
   return g_msgs[err];
@@ -92,7 +95,8 @@ typedef struct {
 
 static void
 product_build_sound(BuildCtx* ctx, const AssetProductSoundDef* def, AssetProductSound* out) {
-  out->asset = asset_maybe_lookup(ctx->world, ctx->assetManager, def->assetId);
+  (void)ctx;
+  out->asset = def->asset;
   out->gain  = def->gain <= 0 ? 1 : def->gain;
 }
 
@@ -240,6 +244,10 @@ ecs_system_define(LoadProductAssetSys) {
       errMsg = readRes.errorMsg;
       goto Error;
     }
+    if (!asset_data_patch_refs(world, manager, g_assetProductDefMeta, mem_var(def))) {
+      errMsg = product_error_str(ProductError_InvalidAssetReference);
+      goto Error;
+    }
 
     BuildCtx buildCtx = {
         .world        = world,
@@ -308,7 +316,7 @@ ecs_module_init(asset_product_module) {
 void asset_data_init_product(void) {
   // clang-format off
   data_reg_struct_t(g_dataReg, AssetProductSoundDef);
-  data_reg_field_t(g_dataReg, AssetProductSoundDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetProductSoundDef, asset, g_assetRefType);
   data_reg_field_t(g_dataReg, AssetProductSoundDef, gain, data_prim_t(f32), .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetProductMetaDef);
