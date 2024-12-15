@@ -117,17 +117,8 @@ static String weapon_error_str(const WeaponError err) {
   return g_msgs[err];
 }
 
-typedef struct {
-  EcsWorld*         world;
-  AssetManagerComp* assetManager;
-} BuildCtx;
-
 static void weapon_effect_proj_build(
-    BuildCtx*                       ctx,
-    const AssetWeaponEffectProjDef* def,
-    AssetWeaponEffectProj*          out,
-    WeaponError*                    err) {
-  (void)ctx;
+    const AssetWeaponEffectProjDef* def, AssetWeaponEffectProj* out, WeaponError* err) {
   *out = (AssetWeaponEffectProj){
       .originJoint         = def->originJoint,
       .launchTowardsTarget = def->launchTowardsTarget,
@@ -146,11 +137,7 @@ static void weapon_effect_proj_build(
 }
 
 static void weapon_effect_dmg_build(
-    BuildCtx*                      ctx,
-    const AssetWeaponEffectDmgDef* def,
-    AssetWeaponEffectDmg*          out,
-    WeaponError*                   err) {
-  (void)ctx;
+    const AssetWeaponEffectDmgDef* def, AssetWeaponEffectDmg* out, WeaponError* err) {
   *out = (AssetWeaponEffectDmg){
       .continuous      = def->continuous,
       .originJoint     = def->originJoint,
@@ -167,12 +154,7 @@ static void weapon_effect_dmg_build(
 }
 
 static void weapon_effect_anim_build(
-    BuildCtx*                       ctx,
-    const AssetWeaponEffectAnimDef* def,
-    AssetWeaponEffectAnim*          out,
-    WeaponError*                    err) {
-  (void)ctx;
-
+    const AssetWeaponEffectAnimDef* def, AssetWeaponEffectAnim* out, WeaponError* err) {
   if (UNLIKELY(def->speed < 1e-4f || def->speed > 1e+4f)) {
     *err = WeaponError_OutOfBoundsAnimationSpeed;
     return;
@@ -188,11 +170,7 @@ static void weapon_effect_anim_build(
 }
 
 static void weapon_effect_vfx_build(
-    BuildCtx*                      ctx,
-    const AssetWeaponEffectVfxDef* def,
-    AssetWeaponEffectVfx*          out,
-    WeaponError*                   err) {
-  (void)ctx;
+    const AssetWeaponEffectVfxDef* def, AssetWeaponEffectVfx* out, WeaponError* err) {
   *out = (AssetWeaponEffectVfx){
       .originJoint       = def->originJoint,
       .scale             = math_abs(def->scale) < f32_epsilon ? 1.0f : def->scale,
@@ -205,11 +183,7 @@ static void weapon_effect_vfx_build(
 }
 
 static void weapon_effect_sound_build(
-    BuildCtx*                        ctx,
-    const AssetWeaponEffectSoundDef* def,
-    AssetWeaponEffectSound*          out,
-    WeaponError*                     err) {
-  (void)ctx;
+    const AssetWeaponEffectSoundDef* def, AssetWeaponEffectSound* out, WeaponError* err) {
   const f32 gainMin  = def->gainMin < f32_epsilon ? 1.0f : def->gainMin;
   const f32 pitchMin = def->pitchMin < f32_epsilon ? 1.0f : def->pitchMin;
 
@@ -227,7 +201,6 @@ static void weapon_effect_sound_build(
 }
 
 static void weapon_build(
-    BuildCtx*             ctx,
     const AssetWeaponDef* def,
     DynArray*             outEffects, // AssetWeaponEffect[], needs to be already initialized.
     AssetWeapon*          outWeapon,
@@ -258,19 +231,19 @@ static void weapon_build(
 
     switch (effectDef->type) {
     case AssetWeaponEffect_Projectile:
-      weapon_effect_proj_build(ctx, &effectDef->data_proj, &outEffect->data_proj, err);
+      weapon_effect_proj_build(&effectDef->data_proj, &outEffect->data_proj, err);
       break;
     case AssetWeaponEffect_Damage:
-      weapon_effect_dmg_build(ctx, &effectDef->data_dmg, &outEffect->data_dmg, err);
+      weapon_effect_dmg_build(&effectDef->data_dmg, &outEffect->data_dmg, err);
       break;
     case AssetWeaponEffect_Animation:
-      weapon_effect_anim_build(ctx, &effectDef->data_anim, &outEffect->data_anim, err);
+      weapon_effect_anim_build(&effectDef->data_anim, &outEffect->data_anim, err);
       break;
     case AssetWeaponEffect_Vfx:
-      weapon_effect_vfx_build(ctx, &effectDef->data_vfx, &outEffect->data_vfx, err);
+      weapon_effect_vfx_build(&effectDef->data_vfx, &outEffect->data_vfx, err);
       break;
     case AssetWeaponEffect_Sound:
-      weapon_effect_sound_build(ctx, &effectDef->data_sound, &outEffect->data_sound, err);
+      weapon_effect_sound_build(&effectDef->data_sound, &outEffect->data_sound, err);
       break;
     }
     if (*err) {
@@ -280,7 +253,6 @@ static void weapon_build(
 }
 
 static void weaponmap_build(
-    BuildCtx*                ctx,
     const AssetWeaponMapDef* def,
     DynArray*                outWeapons, // AssetWeapon[], needs to be already initialized.
     DynArray*                outEffects, // AssetWeaponEffect[], needs to be already initialized.
@@ -288,7 +260,7 @@ static void weaponmap_build(
 
   heap_array_for_t(def->weapons, AssetWeaponDef, weaponDef) {
     AssetWeapon weapon;
-    weapon_build(ctx, weaponDef, outEffects, &weapon, err);
+    weapon_build(weaponDef, outEffects, &weapon, err);
     if (*err) {
       return;
     }
@@ -362,13 +334,8 @@ ecs_system_define(LoadWeaponAssetSys) {
       goto Error;
     }
 
-    BuildCtx buildCtx = {
-        .world        = world,
-        .assetManager = manager,
-    };
-
     WeaponError buildErr;
-    weaponmap_build(&buildCtx, &def, &weapons, &effects, &buildErr);
+    weaponmap_build(&def, &weapons, &effects, &buildErr);
     data_destroy(g_dataReg, g_allocHeap, g_assetWeaponDefMeta, mem_var(def));
     if (buildErr) {
       errMsg = weapon_error_str(buildErr);
