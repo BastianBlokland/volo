@@ -435,8 +435,8 @@ static EffectResult effect_update_dmg(
     }
 
     // Apply status.
-    if (def->applyStatusMask && ecs_world_has_t(ctx->world, hits[i], SceneStatusComp)) {
-      scene_status_add_many(ctx->world, hits[i], def->applyStatusMask, ctx->instigator);
+    if (def->applyStatus && ecs_world_has_t(ctx->world, hits[i], SceneStatusComp)) {
+      scene_status_add_many(ctx->world, hits[i], def->applyStatus, ctx->instigator);
     }
 
     // Spawn impact.

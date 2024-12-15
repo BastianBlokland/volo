@@ -34,7 +34,7 @@ typedef struct {
   f32          radius, radiusEnd;
   f32          length;
   f32          damage;
-  u8           applyStatusMask; // Mask of status-effects to apply.
+  u32          applyStatus; // Mask of status-effects to apply.
   TimeDuration lengthGrowTime;
   TimeDuration delay;
   StringHash   impactPrefab; // Optional, 0 if unused.

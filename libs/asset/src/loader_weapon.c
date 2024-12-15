@@ -19,18 +19,6 @@
 DataMeta g_assetWeaponDefMeta;
 
 typedef struct {
-  bool         continuous;
-  StringHash   originJoint;
-  TimeDuration delay;
-  f32          radius, radiusEnd;
-  f32          length;
-  TimeDuration lengthGrowTime;
-  f32          damage;
-  u32          applyStatus;
-  StringHash   impactPrefab; // Optional, empty if unused.
-} AssetWeaponEffectDmgDef;
-
-typedef struct {
   bool         continuous, allowEarlyInterrupt;
   StringHash   layer;
   TimeDuration delay;
@@ -57,7 +45,7 @@ typedef struct {
   AssetWeaponEffectType type;
   union {
     AssetWeaponEffectProj     data_proj;
-    AssetWeaponEffectDmgDef   data_dmg;
+    AssetWeaponEffectDmg      data_dmg;
     AssetWeaponEffectAnimDef  data_anim;
     AssetWeaponEffectVfxDef   data_vfx;
     AssetWeaponEffectSoundDef data_sound;
@@ -102,23 +90,6 @@ static String weapon_error_str(const WeaponError err) {
   };
   ASSERT(array_elems(g_msgs) == WeaponError_Count, "Incorrect number of error messages");
   return g_msgs[err];
-}
-
-static void weapon_effect_dmg_build(
-    const AssetWeaponEffectDmgDef* def, AssetWeaponEffectDmg* out, WeaponError* err) {
-  *out = (AssetWeaponEffectDmg){
-      .continuous      = def->continuous,
-      .originJoint     = def->originJoint,
-      .delay           = def->delay,
-      .damage          = def->damage,
-      .radius          = def->radius,
-      .radiusEnd       = def->radiusEnd,
-      .length          = def->length,
-      .lengthGrowTime  = def->lengthGrowTime,
-      .applyStatusMask = (u8)def->applyStatus,
-      .impactPrefab    = def->impactPrefab,
-  };
-  *err = WeaponError_None;
 }
 
 static void weapon_effect_anim_build(
@@ -202,7 +173,7 @@ static void weapon_build(
       outEffect->data_proj = effectDef->data_proj;
       break;
     case AssetWeaponEffect_Damage:
-      weapon_effect_dmg_build(&effectDef->data_dmg, &outEffect->data_dmg, err);
+      outEffect->data_dmg = effectDef->data_dmg;
       break;
     case AssetWeaponEffect_Animation:
       weapon_effect_anim_build(&effectDef->data_anim, &outEffect->data_anim, err);
@@ -388,17 +359,17 @@ void asset_data_init_weapon(void) {
   data_reg_field_t(g_dataReg, AssetWeaponEffectProj, projectilePrefab, data_prim_t(StringHash), .flags = DataFlags_NotEmpty | DataFlags_Intern);
   data_reg_field_t(g_dataReg, AssetWeaponEffectProj, impactPrefab, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
 
-  data_reg_struct_t(g_dataReg, AssetWeaponEffectDmgDef);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, continuous, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, originJoint, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, delay, data_prim_t(TimeDuration));
-  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, radiusEnd, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, length, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, lengthGrowTime, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, damage, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, applyStatus, t_AssetWeaponStatusMask, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, impactPrefab, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
+  data_reg_struct_t(g_dataReg, AssetWeaponEffectDmg);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmg, continuous, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmg, originJoint, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmg, delay, data_prim_t(TimeDuration));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmg, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmg, radiusEnd, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmg, length, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmg, lengthGrowTime, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmg, damage, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmg, applyStatus, t_AssetWeaponStatusMask, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmg, impactPrefab, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
 
   data_reg_struct_t(g_dataReg, AssetWeaponEffectAnimDef);
   data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, continuous, data_prim_t(bool), .flags = DataFlags_Opt);
@@ -427,7 +398,7 @@ void asset_data_init_weapon(void) {
 
   data_reg_union_t(g_dataReg, AssetWeaponEffectDef, type);
   data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Projectile, data_proj, t_AssetWeaponEffectProj);
-  data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Damage, data_dmg, t_AssetWeaponEffectDmgDef);
+  data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Damage, data_dmg, t_AssetWeaponEffectDmg);
   data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Animation, data_anim, t_AssetWeaponEffectAnimDef);
   data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Vfx, data_vfx, t_AssetWeaponEffectVfxDef);
   data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Sound, data_sound, t_AssetWeaponEffectSoundDef);
@@ -488,7 +459,7 @@ u8 asset_weapon_applies_status(const AssetWeaponMapComp* map, const AssetWeapon*
     const AssetWeaponEffect* effect = &map->effects.values[weapon->effectIndex + i];
     switch (effect->type) {
     case AssetWeaponEffect_Damage:
-      result |= effect->data_dmg.applyStatusMask;
+      result |= effect->data_dmg.applyStatus;
       break;
     case AssetWeaponEffect_Projectile:
       result |= effect->data_proj.applyStatus;
