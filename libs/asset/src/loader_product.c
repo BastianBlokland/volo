@@ -31,13 +31,13 @@ typedef struct {
 
 typedef struct {
   AssetProductMetaDef meta;
-  String              unitPrefab;
+  StringHash          unitPrefab;
   u32                 unitCount;
 } AssetProductUnitDef;
 
 typedef struct {
   AssetProductMetaDef meta;
-  String              prefab;
+  StringHash          prefab;
   AssetProductSound   soundBlocked;
 } AssetProductPlacableDef;
 
@@ -122,7 +122,7 @@ static void productset_build(
     case AssetProduct_Unit:
       product_build_meta(&productDef->data_unit.meta, outProduct);
       outProduct->data_unit = (AssetProductUnit){
-          .unitPrefab = string_hash(productDef->data_unit.unitPrefab),
+          .unitPrefab = productDef->data_unit.unitPrefab,
           .unitCount  = math_max(1, productDef->data_unit.unitCount),
       };
       break;
@@ -130,7 +130,7 @@ static void productset_build(
       const AssetProductPlacableDef* placeDef = &productDef->data_placable;
       product_build_meta(&placeDef->meta, outProduct);
       outProduct->data_placable = (AssetProductPlaceable){
-          .prefab       = string_hash(placeDef->prefab),
+          .prefab       = placeDef->prefab,
           .soundBlocked = placeDef->soundBlocked,
       };
     } break;
@@ -313,12 +313,12 @@ void asset_data_init_product(void) {
 
   data_reg_struct_t(g_dataReg, AssetProductUnitDef);
   data_reg_field_t(g_dataReg, AssetProductUnitDef, meta, t_AssetProductMetaDef, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetProductUnitDef, unitPrefab, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
+  data_reg_field_t(g_dataReg, AssetProductUnitDef, unitPrefab, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetProductUnitDef, unitCount, data_prim_t(u32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetProductPlacableDef);
   data_reg_field_t(g_dataReg, AssetProductPlacableDef, meta, t_AssetProductMetaDef, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetProductPlacableDef, prefab, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
+  data_reg_field_t(g_dataReg, AssetProductPlacableDef, prefab, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetProductPlacableDef, soundBlocked, t_AssetProductSound, .flags = DataFlags_Opt);
 
   data_reg_union_t(g_dataReg, AssetProductDef, type);
