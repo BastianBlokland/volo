@@ -20,51 +20,51 @@
 DataMeta g_assetWeaponDefMeta;
 
 typedef struct {
-  String originJoint;
-  bool   launchTowardsTarget, seekTowardsTarget;
-  u32    applyStatus;
-  f32    delay;
-  f32    spreadAngle;
-  f32    speed;
-  f32    damage, damageRadius;
-  f32    destroyDelay;
-  String projectilePrefab;
-  String impactPrefab; // Optional, empty if unused.
+  String       originJoint;
+  bool         launchTowardsTarget, seekTowardsTarget;
+  u32          applyStatus;
+  TimeDuration delay;
+  f32          spreadAngle;
+  f32          speed;
+  f32          damage, damageRadius;
+  TimeDuration destroyDelay;
+  String       projectilePrefab;
+  String       impactPrefab; // Optional, empty if unused.
 } AssetWeaponEffectProjDef;
 
 typedef struct {
-  bool   continuous;
-  String originJoint;
-  f32    delay;
-  f32    radius, radiusEnd;
-  f32    length;
-  f32    lengthGrowTime;
-  f32    damage;
-  u32    applyStatus;
-  String impactPrefab; // Optional, empty if unused.
+  bool         continuous;
+  String       originJoint;
+  TimeDuration delay;
+  f32          radius, radiusEnd;
+  f32          length;
+  TimeDuration lengthGrowTime;
+  f32          damage;
+  u32          applyStatus;
+  String       impactPrefab; // Optional, empty if unused.
 } AssetWeaponEffectDmgDef;
 
 typedef struct {
-  bool   continuous, allowEarlyInterrupt;
-  String layer;
-  f32    delay;
-  f32    speed;
+  bool         continuous, allowEarlyInterrupt;
+  String       layer;
+  TimeDuration delay;
+  f32          speed;
 } AssetWeaponEffectAnimDef;
 
 typedef struct {
-  String   originJoint;
-  f32      scale;
-  bool     waitUntilFinished;
-  f32      delay, duration;
-  AssetRef asset;
+  String       originJoint;
+  f32          scale;
+  bool         waitUntilFinished;
+  TimeDuration delay, duration;
+  AssetRef     asset;
 } AssetWeaponEffectVfxDef;
 
 typedef struct {
-  String   originJoint;
-  f32      delay, duration;
-  AssetRef asset;
-  f32      gainMin, gainMax;
-  f32      pitchMin, pitchMax;
+  String       originJoint;
+  TimeDuration delay, duration;
+  AssetRef     asset;
+  f32          gainMin, gainMax;
+  f32          pitchMin, pitchMax;
 } AssetWeaponEffectSoundDef;
 
 typedef struct {
@@ -79,13 +79,13 @@ typedef struct {
 } AssetWeaponEffectDef;
 
 typedef struct {
-  String name;
-  f32    intervalMin, intervalMax;
-  f32    readySpeed;
-  bool   readyWhileMoving;
-  f32    readyMinTime;
-  String readyAnim;
-  bool   predictiveAim;
+  String       name;
+  TimeDuration intervalMin, intervalMax;
+  f32          readySpeed;
+  bool         readyWhileMoving;
+  TimeDuration readyMinTime;
+  String       readyAnim;
+  bool         predictiveAim;
   HeapArray_t(AssetWeaponEffectDef) effects;
 } AssetWeaponDef;
 
@@ -134,12 +134,12 @@ static void weapon_effect_proj_build(
       .launchTowardsTarget = def->launchTowardsTarget,
       .seekTowardsTarget   = def->seekTowardsTarget,
       .applyStatusMask     = (u8)def->applyStatus,
-      .delay               = (TimeDuration)time_seconds(def->delay),
+      .delay               = def->delay,
       .spreadAngle         = def->spreadAngle,
       .speed               = def->speed,
       .damage              = def->damage,
       .damageRadius        = def->damageRadius,
-      .destroyDelay        = (TimeDuration)time_seconds(def->destroyDelay),
+      .destroyDelay        = def->destroyDelay,
       .projectilePrefab    = string_maybe_hash(def->projectilePrefab),
       .impactPrefab        = string_maybe_hash(def->impactPrefab),
   };
@@ -155,12 +155,12 @@ static void weapon_effect_dmg_build(
   *out = (AssetWeaponEffectDmg){
       .continuous      = def->continuous,
       .originJoint     = string_hash(def->originJoint),
-      .delay           = (TimeDuration)time_seconds(def->delay),
+      .delay           = def->delay,
       .damage          = def->damage,
       .radius          = def->radius,
       .radiusEnd       = def->radiusEnd,
       .length          = def->length,
-      .lengthGrowTime  = (TimeDuration)time_seconds(def->lengthGrowTime),
+      .lengthGrowTime  = def->lengthGrowTime,
       .applyStatusMask = (u8)def->applyStatus,
       .impactPrefab    = string_maybe_hash(def->impactPrefab),
   };
@@ -182,7 +182,7 @@ static void weapon_effect_anim_build(
       .continuous          = def->continuous,
       .allowEarlyInterrupt = def->allowEarlyInterrupt,
       .layer               = string_hash(def->layer),
-      .delay               = (TimeDuration)time_seconds(def->delay),
+      .delay               = def->delay,
       .speed               = def->speed,
   };
   *err = WeaponError_None;
@@ -198,8 +198,8 @@ static void weapon_effect_vfx_build(
       .originJoint       = string_hash(def->originJoint),
       .scale             = math_abs(def->scale) < f32_epsilon ? 1.0f : def->scale,
       .waitUntilFinished = def->waitUntilFinished,
-      .delay             = (TimeDuration)time_seconds(def->delay),
-      .duration          = (TimeDuration)time_seconds(def->duration),
+      .delay             = def->delay,
+      .duration          = def->duration,
       .asset             = def->asset,
   };
   *err = WeaponError_None;
@@ -216,8 +216,8 @@ static void weapon_effect_sound_build(
 
   *out = (AssetWeaponEffectSound){
       .originJoint = string_hash(def->originJoint),
-      .delay       = (TimeDuration)time_seconds(def->delay),
-      .duration    = (TimeDuration)time_seconds(def->duration),
+      .delay       = def->delay,
+      .duration    = def->duration,
       .asset       = def->asset,
       .gainMin     = gainMin,
       .gainMax     = math_max(gainMin, def->gainMax),
@@ -243,11 +243,11 @@ static void weapon_build(
   *outWeapon = (AssetWeapon){
       .nameHash         = stringtable_add(g_stringtable, def->name),
       .flags            = flags,
-      .intervalMin      = (TimeDuration)time_seconds(def->intervalMin),
-      .intervalMax      = (TimeDuration)time_seconds(def->intervalMax),
+      .intervalMin      = def->intervalMin,
+      .intervalMax      = def->intervalMax,
       .readySpeed       = def->readySpeed,
       .readyWhileMoving = def->readyWhileMoving,
-      .readyMinTime     = (TimeDuration)time_seconds(def->readyMinTime),
+      .readyMinTime     = def->readyMinTime,
       .readyAnim        = string_is_empty(def->readyAnim) ? 0 : string_hash(def->readyAnim),
       .effectIndex      = (u16)outEffects->size,
       .effectCount      = (u16)def->effects.count,
@@ -445,23 +445,23 @@ void asset_data_init_weapon(void) {
   data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, launchTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, seekTowardsTarget, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, applyStatus, t_AssetWeaponStatusMask, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, delay, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, delay, data_prim_t(TimeDuration));
   data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, spreadAngle, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, damage, data_prim_t(f32), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, damageRadius, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, destroyDelay, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, destroyDelay, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, projectilePrefab, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
   data_reg_field_t(g_dataReg, AssetWeaponEffectProjDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
 
   data_reg_struct_t(g_dataReg, AssetWeaponEffectDmgDef);
   data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, continuous, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, delay, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, delay, data_prim_t(TimeDuration));
   data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, radiusEnd, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, length, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, lengthGrowTime, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, lengthGrowTime, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, damage, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, applyStatus, t_AssetWeaponStatusMask, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponEffectDmgDef, impactPrefab, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
@@ -470,21 +470,21 @@ void asset_data_init_weapon(void) {
   data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, continuous, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, allowEarlyInterrupt, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, layer, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, delay, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, delay, data_prim_t(TimeDuration));
   data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetWeaponEffectVfxDef);
   data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, asset, g_assetRefType);
   data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, scale, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, waitUntilFinished, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, delay, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, duration, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, delay, data_prim_t(TimeDuration));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, duration, data_prim_t(TimeDuration));
   data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetWeaponEffectSoundDef);
   data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, asset, g_assetRefType);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, delay, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, duration, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, delay, data_prim_t(TimeDuration));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, duration, data_prim_t(TimeDuration));
   data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, gainMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, gainMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
@@ -500,11 +500,11 @@ void asset_data_init_weapon(void) {
 
   data_reg_struct_t(g_dataReg, AssetWeaponDef);
   data_reg_field_t(g_dataReg, AssetWeaponDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetWeaponDef, intervalMin, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, AssetWeaponDef, intervalMax, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponDef, intervalMin, data_prim_t(TimeDuration));
+  data_reg_field_t(g_dataReg, AssetWeaponDef, intervalMax, data_prim_t(TimeDuration));
   data_reg_field_t(g_dataReg, AssetWeaponDef, readySpeed, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetWeaponDef, readyWhileMoving, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetWeaponDef, readyMinTime, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetWeaponDef, readyMinTime, data_prim_t(TimeDuration));
   data_reg_field_t(g_dataReg, AssetWeaponDef, readyAnim, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponDef, predictiveAim, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponDef, effects, t_AssetWeaponEffectDef, .container = DataContainer_HeapArray);
