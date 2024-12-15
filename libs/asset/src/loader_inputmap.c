@@ -258,10 +258,19 @@ void asset_load_inputs(
   AssetInputMapDef def;
   String           errMsg;
   DataReadResult   readRes;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetInputDefMeta, mem_var(def), &readRes);
+  if (src->format == AssetFormat_InputsBin) {
+    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetInputDefMeta, mem_var(def), &readRes);
+  } else {
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetInputDefMeta, mem_var(def), &readRes);
+  }
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
     goto Error;
+  }
+
+  if (src->format != AssetFormat_InputsBin) {
+    // TODO: Instead of caching the definition it would be more optional to cache the resulting map.
+    asset_cache(world, entity, g_assetInputDefMeta, mem_var(def));
   }
 
   InputMapError buildErr;
