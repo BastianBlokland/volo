@@ -52,7 +52,6 @@ static i8 asset_weapon_compare(const void* a, const void* b) {
 typedef enum {
   WeaponError_None,
   WeaponError_DuplicateWeapon,
-  WeaponError_OutOfBoundsAnimationSpeed,
   WeaponError_InvalidAssetReference,
 
   WeaponError_Count,
@@ -62,21 +61,10 @@ static String weapon_error_str(const WeaponError err) {
   static const String g_msgs[] = {
       string_static("None"),
       string_static("Multiple weapons with the same name"),
-      string_static("Out of bounds animation speed"),
       string_static("Unable to resolve asset-reference"),
   };
   ASSERT(array_elems(g_msgs) == WeaponError_Count, "Incorrect number of error messages");
   return g_msgs[err];
-}
-
-static void weapon_effect_anim_build(
-    const AssetWeaponEffectAnim* def, AssetWeaponEffectAnim* out, WeaponError* err) {
-  if (UNLIKELY(def->speed < 1e-4f || def->speed > 1e+4f)) {
-    *err = WeaponError_OutOfBoundsAnimationSpeed;
-    return;
-  }
-  *out = *def;
-  *err = WeaponError_None;
 }
 
 static void weapon_build(
@@ -116,7 +104,7 @@ static void weapon_build(
       outEffect->data_dmg = effectDef->data_dmg;
       break;
     case AssetWeaponEffect_Animation:
-      weapon_effect_anim_build(&effectDef->data_anim, &outEffect->data_anim, err);
+      outEffect->data_anim = effectDef->data_anim;
       break;
     case AssetWeaponEffect_Vfx:
       outEffect->data_vfx = effectDef->data_vfx;
@@ -271,6 +259,14 @@ ecs_module_init(asset_weapon_module) {
   ecs_register_system(UnloadWeaponAssetSys, ecs_view_id(UnloadView));
 }
 
+static bool weapon_data_normalizer_effect_anim(const Mem data) {
+  AssetWeaponEffectAnim* effect = mem_as_t(data, AssetWeaponEffectAnim);
+  if (UNLIKELY(effect->speed < 1e-4f || effect->speed > 1e+4f)) {
+    return false;
+  }
+  return true;
+}
+
 static bool weapon_data_normalizer_effect_vfx(const Mem data) {
   AssetWeaponEffectVfx* effect = mem_as_t(data, AssetWeaponEffectVfx);
   effect->scale                = math_abs(effect->scale) < f32_epsilon ? 1.0f : effect->scale;
@@ -332,6 +328,7 @@ void asset_data_init_weapon(void) {
   data_reg_field_t(g_dataReg, AssetWeaponEffectAnim, layer, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetWeaponEffectAnim, delay, data_prim_t(TimeDuration));
   data_reg_field_t(g_dataReg, AssetWeaponEffectAnim, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_normalizer_t(g_dataReg, AssetWeaponEffectAnim, weapon_data_normalizer_effect_anim);
 
   data_reg_struct_t(g_dataReg, AssetWeaponEffectVfx);
   data_reg_field_t(g_dataReg, AssetWeaponEffectVfx, asset, g_assetRefType);
