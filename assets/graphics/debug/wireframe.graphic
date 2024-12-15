@@ -2,8 +2,8 @@
   "pass": "Forward",
   "passOrder": 10,
   "shaders": [
-    { "shaderId": "shaders/dyn_depth_standard.vert" },
-    { "shaderId": "shaders/solid_white3.frag" }
+    { "program": "shaders/dyn_depth_standard.vert" },
+    { "program": "shaders/solid_white3.frag" }
   ],
   "rasterizer": "Lines",
   "lineWidth": 1,

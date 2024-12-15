@@ -1,9 +1,9 @@
 {
   "pass": "Geometry",
   "shaders": [
-    { "shaderId": "shaders/standard.vert" },
+    { "program": "shaders/standard.vert" },
     {
-      "shaderId": "shaders/standard.frag",
+      "program": "shaders/standard.frag",
       "overrides": [
         { "name": "normalMap", "binding": 0, "value": 1 },
         { "name": "emissiveMap", "binding": 2, "value": 1 }
@@ -11,8 +11,8 @@
     }
   ],
   "samplers": [
-    { "textureId": "external/alarm/alarm_color_rough.tga", "anisotropy": "x2" },
-    { "textureId": "external/alarm/alarm_normal_emissive.tga", "anisotropy": "x2" }
+    { "texture": "external/alarm/alarm_color_rough.tga", "anisotropy": "x2" },
+    { "texture": "external/alarm/alarm_normal_emissive.tga", "anisotropy": "x2" }
   ],
-  "meshId": "external/alarm/alarm.gltf"
+  "mesh": "external/alarm/alarm.gltf"
 }

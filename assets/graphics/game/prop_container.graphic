@@ -1,17 +1,17 @@
 {
   "pass": "Geometry",
   "shaders": [
-    { "shaderId": "shaders/standard.vert" },
+    { "program": "shaders/standard.vert" },
     {
-      "shaderId": "shaders/standard.frag",
+      "program": "shaders/standard.frag",
       "overrides": [
         { "name": "normalMap", "binding": 0, "value": 1 }
       ]
     }
   ],
   "samplers": [
-    { "textureId": "external/container/container_4_color_rough.tga", "anisotropy": "x2" },
-    { "textureId": "external/container/container_2_normal.tga", "anisotropy": "x2" }
+    { "texture": "external/container/container_4_color_rough.tga", "anisotropy": "x2" },
+    { "texture": "external/container/container_2_normal.tga", "anisotropy": "x2" }
   ],
-  "meshId": "external/container/container.gltf"
+  "mesh": "external/container/container.gltf"
 }

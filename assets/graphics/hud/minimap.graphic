@@ -2,8 +2,8 @@
   "pass": "Post",
   "passOrder": -10,
   "shaders": [
-    { "shaderId": "shaders/hud/minimap.vert" },
-    { "shaderId": "shaders/hud/minimap.frag" }
+    { "program": "shaders/hud/minimap.vert" },
+    { "program": "shaders/hud/minimap.frag" }
   ],
   "vertexCount": 6,
   "blend": "Alpha",

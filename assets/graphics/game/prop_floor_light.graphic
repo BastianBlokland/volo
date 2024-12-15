@@ -1,9 +1,9 @@
 {
   "pass": "Geometry",
   "shaders": [
-    { "shaderId": "shaders/standard.vert" },
+    { "program": "shaders/standard.vert" },
     {
-      "shaderId": "shaders/standard.frag",
+      "program": "shaders/standard.frag",
       "overrides": [
         { "name": "normalMap", "binding": 0, "value": 1 },
         { "name": "emissiveMap", "binding": 2, "value": 1 },
@@ -12,10 +12,10 @@
     }
   ],
   "samplers": [
-    { "textureId": "external/floor_light/floor_light_color_rough.tga", "anisotropy": "x2" },
-    { "textureId": "external/floor_light/floor_light_normal_emissive.tga", "anisotropy": "x2" },
-    { "textureId": "textures/zero.proctex" },
-    { "textureId": "external/floor_light/floor_light_mask.tga", "anisotropy": "x2" }
+    { "texture": "external/floor_light/floor_light_color_rough.tga", "anisotropy": "x2" },
+    { "texture": "external/floor_light/floor_light_normal_emissive.tga", "anisotropy": "x2" },
+    { "texture": "textures/zero.proctex" },
+    { "texture": "external/floor_light/floor_light_mask.tga", "anisotropy": "x2" }
   ],
-  "meshId": "external/floor_light/floor_light.gltf"
+  "mesh": "external/floor_light/floor_light.gltf"
 }

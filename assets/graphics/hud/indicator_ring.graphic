@@ -2,8 +2,8 @@
   "pass": "Forward",
   "passOrder": 1100,
   "shaders": [
-    { "shaderId": "shaders/hud/indicator_ring.vert" },
-    { "shaderId": "shaders/hud/indicator.frag" }
+    { "program": "shaders/hud/indicator_ring.vert" },
+    { "program": "shaders/hud/indicator.frag" }
   ],
   "topology": "TriangleStrip",
   "blend": "Alpha",

@@ -1,8 +1,8 @@
 {
   "pass": "Shadow",
   "shaders": [
-    { "shaderId": "shaders/dyn_depth_standard_skinned.vert" },
-    { "shaderId": "shaders/dyn_depth.frag" }
+    { "program": "shaders/dyn_depth_standard_skinned.vert" },
+    { "program": "shaders/dyn_depth.frag" }
   ],
   "depthClamp": true,
   "depthBiasConstant": -1,

@@ -1,11 +1,11 @@
 {
   "pass": "Geometry",
   "shaders": [
-    { "shaderId": "shaders/standard.vert" },
-    { "shaderId": "shaders/standard.frag" }
+    { "program": "shaders/standard.vert" },
+    { "program": "shaders/standard.frag" }
   ],
   "samplers": [
-    { "textureId": "textures/white.proctex" }
+    { "texture": "textures/white.proctex" }
   ],
-  "meshId": "meshes/sphere.procmesh"
+  "mesh": "meshes/sphere.procmesh"
 }

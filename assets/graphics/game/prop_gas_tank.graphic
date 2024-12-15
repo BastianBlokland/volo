@@ -1,17 +1,17 @@
 {
   "pass": "Geometry",
   "shaders": [
-    { "shaderId": "shaders/standard.vert" },
+    { "program": "shaders/standard.vert" },
     {
-      "shaderId": "shaders/standard.frag",
+      "program": "shaders/standard.frag",
       "overrides": [
         { "name": "normalMap", "binding": 0, "value": 1 }
       ]
     }
   ],
   "samplers": [
-    { "textureId": "external/gas_tank/gas_tank_2_color_rough.tga", "anisotropy": "x2" },
-    { "textureId": "external/gas_tank/gas_tank_2_normal.tga", "anisotropy": "x2" }
+    { "texture": "external/gas_tank/gas_tank_2_color_rough.tga", "anisotropy": "x2" },
+    { "texture": "external/gas_tank/gas_tank_2_normal.tga", "anisotropy": "x2" }
   ],
-  "meshId": "external/gas_tank/gas_tank.gltf"
+  "mesh": "external/gas_tank/gas_tank.gltf"
 }

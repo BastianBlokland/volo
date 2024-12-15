@@ -2,8 +2,8 @@
   "pass": "Forward",
   "passOrder": 1100,
   "shaders": [
-    { "shaderId": "shaders/fullscreen.vert" },
-    { "shaderId": "shaders/outline.frag" }
+    { "program": "shaders/fullscreen.vert" },
+    { "program": "shaders/outline.frag" }
   ],
   "vertexCount": 3,
   "blend": "Additive",

@@ -2,9 +2,9 @@
   "pass": "Geometry",
   "passOrder": 1,
   "shaders": [
-    { "shaderId": "shaders/scene/terrain.vert" },
+    { "program": "shaders/scene/terrain.vert" },
     {
-      "shaderId": "shaders/scene/terrain.frag",
+      "program": "shaders/scene/terrain.frag",
       "overrides": [
         { "name": "splat1UvScale", "binding": 1, "value": 250 },
         { "name": "splat2UvScale", "binding": 2, "value": 75 }
@@ -12,11 +12,11 @@
     }
   ],
   "samplers": [
-    { "textureId": "external/terrain/terrain_3_splat.tga" },
-    { "textureId": "external/tiling/sand_2_color_rough.tga", "wrap": "Repeat" },
-    { "textureId": "external/tiling/sand_4_normal.tga", "wrap": "Repeat" },
-    { "textureId": "external/tiling/dirt_2_color_rough.tga", "wrap": "Repeat" },
-    { "textureId": "external/tiling/dirt_2_normal.tga", "wrap": "Repeat" }
+    { "texture": "external/terrain/terrain_3_splat.tga" },
+    { "texture": "external/tiling/sand_2_color_rough.tga", "wrap": "Repeat" },
+    { "texture": "external/tiling/sand_4_normal.tga", "wrap": "Repeat" },
+    { "texture": "external/tiling/dirt_2_color_rough.tga", "wrap": "Repeat" },
+    { "texture": "external/tiling/dirt_2_normal.tga", "wrap": "Repeat" }
   ],
-  "meshId": "meshes/scene/terrain_patch.procmesh"
+  "mesh": "meshes/scene/terrain_patch.procmesh"
 }

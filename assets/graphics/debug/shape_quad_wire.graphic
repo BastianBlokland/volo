@@ -2,10 +2,10 @@
   "pass": "Forward",
   "passOrder": 153,
   "shaders": [
-    { "shaderId": "shaders/debug/shape_mesh.vert" },
-    { "shaderId": "shaders/debug/shape.frag" }
+    { "program": "shaders/debug/shape_mesh.vert" },
+    { "program": "shaders/debug/shape.frag" }
   ],
-  "meshId": "meshes/debug/shape_quad.procmesh",
+  "mesh": "meshes/debug/shape_quad.procmesh",
   "rasterizer": "Lines",
   "lineWidth": 1,
   "blend": "Alpha",

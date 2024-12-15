@@ -2,9 +2,9 @@
   "pass": "Forward",
   "passOrder": 150,
   "shaders": [
-    { "shaderId": "shaders/debug/shape_mesh.vert" },
-    { "shaderId": "shaders/debug/shape.frag" }
+    { "program": "shaders/debug/shape_mesh.vert" },
+    { "program": "shaders/debug/shape.frag" }
   ],
-  "meshId": "meshes/debug/shape_sphere.procmesh",
+  "mesh": "meshes/debug/shape_sphere.procmesh",
   "blend": "Alpha"
 }

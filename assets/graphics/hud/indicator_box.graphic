@@ -2,8 +2,8 @@
   "pass": "Forward",
   "passOrder": 1100,
   "shaders": [
-    { "shaderId": "shaders/hud/indicator_box.vert" },
-    { "shaderId": "shaders/hud/indicator.frag" }
+    { "program": "shaders/hud/indicator_box.vert" },
+    { "program": "shaders/hud/indicator.frag" }
   ],
   "vertexCount": 10,
   "topology": "TriangleStrip",

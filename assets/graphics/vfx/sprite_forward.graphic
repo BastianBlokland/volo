@@ -2,11 +2,11 @@
   "pass": "Forward",
   "passOrder": 100,
   "shaders": [
-    { "shaderId": "shaders/vfx/sprite.vert" },
-    { "shaderId": "shaders/vfx/sprite_forward.frag" }
+    { "program": "shaders/vfx/sprite.vert" },
+    { "program": "shaders/vfx/sprite_forward.frag" }
   ],
   "samplers": [
-    { "textureId": "textures/vfx/sprite.atlas" }
+    { "texture": "textures/vfx/sprite.atlas" }
   ],
   "vertexCount": 6,
   "blend": "PreMultiplied",

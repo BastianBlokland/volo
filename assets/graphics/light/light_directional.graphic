@@ -2,9 +2,9 @@
   "pass": "Forward",
   "passOrder": -90,
   "shaders": [
-    { "shaderId": "shaders/light/light_directional.vert" },
+    { "program": "shaders/light/light_directional.vert" },
     {
-      "shaderId": "shaders/light/light_directional.frag",
+      "program": "shaders/light/light_directional.frag",
       "overrides": [
         { "name": "coverageScale", "binding": 0, "value": 100 },
         { "name": "coveragePanSpeedX", "binding": 1, "value": 1.5 },
@@ -13,7 +13,7 @@
     }
   ],
   "samplers": [
-    { "textureId": "external/tiling/clouds_2.tga", "wrap": "Repeat" }
+    { "texture": "external/tiling/clouds_2.tga", "wrap": "Repeat" }
   ],
   "vertexCount": 3,
   "blend": "Additive",

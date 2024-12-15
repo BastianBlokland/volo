@@ -2,8 +2,8 @@
   "pass": "Forward",
   "passOrder": -1,
   "shaders": [
-    { "shaderId": "shaders/scene/sky.vert" },
-    { "shaderId": "shaders/scene/sky_gradient.frag" }
+    { "program": "shaders/scene/sky.vert" },
+    { "program": "shaders/scene/sky_gradient.frag" }
   ],
   "vertexCount": 3,
   "depth": "EqualNoWrite",

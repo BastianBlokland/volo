@@ -1,9 +1,9 @@
 {
   "pass": "FogBlur",
   "shaders": [
-    { "shaderId": "shaders/fullscreen.vert" },
+    { "program": "shaders/fullscreen.vert" },
     {
-      "shaderId": "shaders/fog_blur.frag",
+      "program": "shaders/fog_blur.frag",
       "overrides": [
         { "name": "horizontal", "binding": 0, "value": 1 }
       ]
