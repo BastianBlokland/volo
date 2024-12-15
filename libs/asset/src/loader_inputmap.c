@@ -23,13 +23,13 @@ typedef struct {
 } AssetInputBindingDef;
 
 typedef struct {
-  String name;
-  u32    blockers;
+  StringHash name;
+  u32        blockers;
   HeapArray_t(AssetInputBindingDef) bindings;
 } AssetInputActionDef;
 
 typedef struct {
-  String layer;
+  StringHash layer;
   HeapArray_t(AssetInputActionDef) actions;
 } AssetInputMapDef;
 
@@ -63,7 +63,7 @@ static void asset_inputmap_build(
   heap_array_for_t(def->actions, AssetInputActionDef, actionDef) {
     const usize            bindingCount = actionDef->bindings.count;
     const AssetInputAction action       = {
-              .nameHash     = stringtable_add(g_stringtable, actionDef->name),
+              .nameHash     = actionDef->name,
               .blockerBits  = actionDef->blockers,
               .bindingIndex = (u16)outBindings->size,
               .bindingCount = (u16)bindingCount,
@@ -243,12 +243,12 @@ void asset_data_init_inputmap(void) {
   data_reg_field_t(g_dataReg, AssetInputBindingDef, illegalModifiers, t_AssetInputModifier, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetInputActionDef);
-  data_reg_field_t(g_dataReg, AssetInputActionDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetInputActionDef, name, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetInputActionDef, blockers, t_AssetInputBlocker, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetInputActionDef, bindings, t_AssetInputBindingDef, .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetInputMapDef);
-  data_reg_field_t(g_dataReg, AssetInputMapDef, layer, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetInputMapDef, layer, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetInputMapDef, actions, t_AssetInputActionDef, .container = DataContainer_HeapArray);
   // clang-format on
 
@@ -275,8 +275,6 @@ void asset_load_inputs(
     goto Error;
   }
 
-  const StringHash layer = string_is_empty(def.layer) ? 0 : string_hash(def.layer);
-
   InputMapError buildErr;
   asset_inputmap_build(&def, &actions, &bindings, &buildErr);
   data_destroy(g_dataReg, g_allocHeap, g_assetInputDefMeta, mem_var(def));
@@ -289,7 +287,7 @@ void asset_load_inputs(
       world,
       entity,
       AssetInputMapComp,
-      .layer           = layer,
+      .layer           = def.layer,
       .actions.values  = dynarray_copy_as_new(&actions, g_allocHeap),
       .actions.count   = actions.size,
       .bindings.values = dynarray_copy_as_new(&bindings, g_allocHeap),
