@@ -79,7 +79,7 @@ typedef enum {
 } AssetWeaponFlags;
 
 typedef struct {
-  StringHash       nameHash;
+  StringHash       name;
   AssetWeaponFlags flags;
   u16              effectIndex, effectCount; // Stored in the effects array.
   f32              readySpeed; // Speed to increase the ready amount, when reaches 1.0 we can fire.

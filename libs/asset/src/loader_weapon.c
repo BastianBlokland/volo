@@ -34,8 +34,7 @@ typedef struct {
 } AssetWeaponMapDef;
 
 static i8 asset_weapon_compare(const void* a, const void* b) {
-  return compare_stringhash(
-      field_ptr(a, AssetWeapon, nameHash), field_ptr(b, AssetWeapon, nameHash));
+  return compare_stringhash(field_ptr(a, AssetWeapon, name), field_ptr(b, AssetWeapon, name));
 }
 
 typedef enum {
@@ -66,7 +65,7 @@ static void weapon_build(
     flags |= AssetWeapon_PredictiveAim;
   }
   *outWeapon = (AssetWeapon){
-      .nameHash         = def->name,
+      .name             = def->name,
       .flags            = flags,
       .intervalMin      = def->intervalMin,
       .intervalMax      = def->intervalMax,
@@ -396,5 +395,5 @@ const AssetWeapon* asset_weapon_get(const AssetWeaponMapComp* map, const StringH
       map->weapons.values + map->weapons.count,
       AssetWeapon,
       asset_weapon_compare,
-      mem_struct(AssetWeapon, .nameHash = nameHash).ptr);
+      mem_struct(AssetWeapon, .name = nameHash).ptr);
 }

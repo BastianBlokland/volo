@@ -188,7 +188,7 @@ spec(loader_weapon) {
         const AssetWeapon*    actualWeapon   = &map->weapons.values[a];
         const TestWeaponData* expectedWeapon = &g_testData[i].weapons[a];
 
-        check_eq_int(actualWeapon->nameHash, string_hash(expectedWeapon->name));
+        check_eq_int(actualWeapon->name, string_hash(expectedWeapon->name));
         check_eq_int(actualWeapon->intervalMin, expectedWeapon->intervalMin);
         check_eq_int(actualWeapon->intervalMax, expectedWeapon->intervalMax);
       }
