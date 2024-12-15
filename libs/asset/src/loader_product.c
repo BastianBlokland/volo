@@ -20,18 +20,13 @@
 DataMeta g_assetProductDefMeta;
 
 typedef struct {
-  AssetRef asset;
-  f32      gain;
-} AssetProductSoundDef;
-
-typedef struct {
-  String               name;
-  String               iconImage;
-  f32                  costTime;
-  u16                  queueMax;
-  u16                  queueBulkSize;
-  f32                  cooldown;
-  AssetProductSoundDef soundBuilding, soundReady, soundCancel, soundSuccess;
+  String            name;
+  String            iconImage;
+  f32               costTime;
+  u16               queueMax;
+  u16               queueBulkSize;
+  f32               cooldown;
+  AssetProductSound soundBuilding, soundReady, soundCancel, soundSuccess;
 } AssetProductMetaDef;
 
 typedef struct {
@@ -41,9 +36,9 @@ typedef struct {
 } AssetProductUnitDef;
 
 typedef struct {
-  AssetProductMetaDef  meta;
-  String               prefab;
-  AssetProductSoundDef soundBlocked;
+  AssetProductMetaDef meta;
+  String              prefab;
+  AssetProductSound   soundBlocked;
 } AssetProductPlacableDef;
 
 typedef struct {
@@ -93,14 +88,8 @@ typedef struct {
   AssetManagerComp* assetManager;
 } BuildCtx;
 
-static void
-product_build_sound(BuildCtx* ctx, const AssetProductSoundDef* def, AssetProductSound* out) {
-  (void)ctx;
-  out->asset = def->asset;
-  out->gain  = def->gain <= 0 ? 1 : def->gain;
-}
-
 static void product_build_meta(BuildCtx* ctx, const AssetProductMetaDef* def, AssetProduct* out) {
+  (void)ctx;
   const TimeDuration costTimeRaw = (TimeDuration)time_seconds(def->costTime);
   const TimeDuration cooldownRaw = (TimeDuration)time_seconds(def->cooldown);
 
@@ -110,10 +99,10 @@ static void product_build_meta(BuildCtx* ctx, const AssetProductMetaDef* def, As
   out->queueMax      = def->queueMax ? def->queueMax : u16_max;
   out->queueBulkSize = def->queueBulkSize ? def->queueBulkSize : 5;
   out->cooldown      = math_max(cooldownRaw, time_millisecond);
-  product_build_sound(ctx, &def->soundBuilding, &out->soundBuilding);
-  product_build_sound(ctx, &def->soundReady, &out->soundReady);
-  product_build_sound(ctx, &def->soundCancel, &out->soundCancel);
-  product_build_sound(ctx, &def->soundSuccess, &out->soundSuccess);
+  out->soundBuilding = def->soundBuilding;
+  out->soundReady    = def->soundReady;
+  out->soundCancel   = def->soundCancel;
+  out->soundSuccess  = def->soundSuccess;
 }
 
 static void productset_build(
@@ -151,9 +140,9 @@ static void productset_build(
       const AssetProductPlacableDef* placeDef = &productDef->data_placable;
       product_build_meta(ctx, &placeDef->meta, outProduct);
       outProduct->data_placable = (AssetProductPlaceable){
-          .prefab = string_hash(placeDef->prefab),
+          .prefab       = string_hash(placeDef->prefab),
+          .soundBlocked = placeDef->soundBlocked,
       };
-      product_build_sound(ctx, &placeDef->soundBlocked, &outProduct->data_placable.soundBlocked);
     } break;
     }
     if (*err) {
@@ -203,6 +192,12 @@ static void ecs_destruct_productmap_comp(void* data) {
 static void ecs_destruct_product_load_comp(void* data) {
   AssetProductLoadComp* comp = data;
   asset_repo_source_close(comp->src);
+}
+
+static bool product_data_normalizer_sound(const Mem data) {
+  AssetProductSound* snd = mem_as_t(data, AssetProductSound);
+  snd->gain              = snd->gain <= 0.0f ? 1.0f : snd->gain;
+  return true;
 }
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
@@ -315,9 +310,10 @@ ecs_module_init(asset_product_module) {
 
 void asset_data_init_product(void) {
   // clang-format off
-  data_reg_struct_t(g_dataReg, AssetProductSoundDef);
-  data_reg_field_t(g_dataReg, AssetProductSoundDef, asset, g_assetRefType);
-  data_reg_field_t(g_dataReg, AssetProductSoundDef, gain, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_struct_t(g_dataReg, AssetProductSound);
+  data_reg_field_t(g_dataReg, AssetProductSound, asset, g_assetRefType);
+  data_reg_field_t(g_dataReg, AssetProductSound, gain, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_normalizer_t(g_dataReg, AssetProductSound, product_data_normalizer_sound);
 
   data_reg_struct_t(g_dataReg, AssetProductMetaDef);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, name, data_prim_t(String), .flags = DataFlags_Opt);
@@ -326,10 +322,10 @@ void asset_data_init_product(void) {
   data_reg_field_t(g_dataReg, AssetProductMetaDef, queueMax, data_prim_t(u16), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, queueBulkSize, data_prim_t(u16), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, cooldown, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetProductMetaDef, soundBuilding, t_AssetProductSoundDef, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetProductMetaDef, soundReady, t_AssetProductSoundDef, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetProductMetaDef, soundCancel, t_AssetProductSoundDef, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetProductMetaDef, soundSuccess, t_AssetProductSoundDef, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetProductMetaDef, soundBuilding, t_AssetProductSound, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetProductMetaDef, soundReady, t_AssetProductSound, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetProductMetaDef, soundCancel, t_AssetProductSound, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetProductMetaDef, soundSuccess, t_AssetProductSound, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetProductUnitDef);
   data_reg_field_t(g_dataReg, AssetProductUnitDef, meta, t_AssetProductMetaDef, .flags = DataFlags_Opt);
@@ -339,7 +335,7 @@ void asset_data_init_product(void) {
   data_reg_struct_t(g_dataReg, AssetProductPlacableDef);
   data_reg_field_t(g_dataReg, AssetProductPlacableDef, meta, t_AssetProductMetaDef, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetProductPlacableDef, prefab, data_prim_t(String), .flags = DataFlags_NotEmpty | DataFlags_Intern);
-  data_reg_field_t(g_dataReg, AssetProductPlacableDef, soundBlocked, t_AssetProductSoundDef, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetProductPlacableDef, soundBlocked, t_AssetProductSound, .flags = DataFlags_Opt);
 
   data_reg_union_t(g_dataReg, AssetProductDef, type);
   data_reg_choice_t(g_dataReg, AssetProductDef, AssetProduct_Unit, data_unit, t_AssetProductUnitDef);

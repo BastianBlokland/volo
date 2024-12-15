@@ -52,7 +52,7 @@
             "$type": { "const": "AssetProduct_Placable" },
             "meta": { "title": "AssetProductMetaDef", "$ref": "#/$defs/AssetProductMetaDef" },
             "prefab": { "title": "String", "type": "string", "minLength": 1 },
-            "soundBlocked": { "title": "AssetProductSoundDef", "$ref": "#/$defs/AssetProductSoundDef" }
+            "soundBlocked": { "title": "AssetProductSound", "$ref": "#/$defs/AssetProductSound" }
           },
           "required": [ "$type", "prefab" ]
         }
@@ -72,17 +72,17 @@
         "queueMax": { "title": "u16", "type": "integer", "minimum": 0, "maximum": 65535 },
         "queueBulkSize": { "title": "u16", "type": "integer", "minimum": 0, "maximum": 65535 },
         "cooldown": { "title": "f32", "type": "number" },
-        "soundBuilding": { "title": "AssetProductSoundDef", "$ref": "#/$defs/AssetProductSoundDef" },
-        "soundReady": { "title": "AssetProductSoundDef", "$ref": "#/$defs/AssetProductSoundDef" },
-        "soundCancel": { "title": "AssetProductSoundDef", "$ref": "#/$defs/AssetProductSoundDef" },
-        "soundSuccess": { "title": "AssetProductSoundDef", "$ref": "#/$defs/AssetProductSoundDef" }
+        "soundBuilding": { "title": "AssetProductSound", "$ref": "#/$defs/AssetProductSound" },
+        "soundReady": { "title": "AssetProductSound", "$ref": "#/$defs/AssetProductSound" },
+        "soundCancel": { "title": "AssetProductSound", "$ref": "#/$defs/AssetProductSound" },
+        "soundSuccess": { "title": "AssetProductSound", "$ref": "#/$defs/AssetProductSound" }
       },
       "required": [],
       "defaultSnippets": [
         { "label": "New", "body": "^{}" }
       ]
     },
-    "AssetProductSoundDef": {
+    "AssetProductSound": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
