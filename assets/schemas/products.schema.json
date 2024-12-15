@@ -20,7 +20,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "name": { "title": "String", "type": "string", "minLength": 1 },
+        "name": { "title": "StringHash", "type": "string", "minLength": 1 },
         "products": {
           "type": "array",
           "minItems": 1,
@@ -40,7 +40,7 @@
           "properties": {
             "$type": { "const": "AssetProduct_Unit" },
             "meta": { "title": "AssetProductMetaDef", "$ref": "#/$defs/AssetProductMetaDef" },
-            "unitPrefab": { "title": "String", "type": "string", "minLength": 1 },
+            "unitPrefab": { "title": "StringHash", "type": "string", "minLength": 1 },
             "unitCount": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 }
           },
           "required": [ "$type", "unitPrefab" ]
@@ -51,8 +51,8 @@
           "properties": {
             "$type": { "const": "AssetProduct_Placable" },
             "meta": { "title": "AssetProductMetaDef", "$ref": "#/$defs/AssetProductMetaDef" },
-            "prefab": { "title": "String", "type": "string", "minLength": 1 },
-            "soundBlocked": { "title": "AssetProductSoundDef", "$ref": "#/$defs/AssetProductSoundDef" }
+            "prefab": { "title": "StringHash", "type": "string", "minLength": 1 },
+            "soundBlocked": { "title": "AssetProductSound", "$ref": "#/$defs/AssetProductSound" }
           },
           "required": [ "$type", "prefab" ]
         }
@@ -67,32 +67,33 @@
       "additionalProperties": false,
       "properties": {
         "name": { "title": "String", "type": "string" },
-        "iconImage": { "title": "String", "type": "string" },
-        "costTime": { "title": "f32", "type": "number" },
+        "iconImage": { "title": "StringHash", "type": "string" },
+        "costTime": { "title": "TimeDuration", "type": "number" },
         "queueMax": { "title": "u16", "type": "integer", "minimum": 0, "maximum": 65535 },
         "queueBulkSize": { "title": "u16", "type": "integer", "minimum": 0, "maximum": 65535 },
-        "cooldown": { "title": "f32", "type": "number" },
-        "soundBuilding": { "title": "AssetProductSoundDef", "$ref": "#/$defs/AssetProductSoundDef" },
-        "soundReady": { "title": "AssetProductSoundDef", "$ref": "#/$defs/AssetProductSoundDef" },
-        "soundCancel": { "title": "AssetProductSoundDef", "$ref": "#/$defs/AssetProductSoundDef" },
-        "soundSuccess": { "title": "AssetProductSoundDef", "$ref": "#/$defs/AssetProductSoundDef" }
+        "cooldown": { "title": "TimeDuration", "type": "number" },
+        "soundBuilding": { "title": "AssetProductSound", "$ref": "#/$defs/AssetProductSound" },
+        "soundReady": { "title": "AssetProductSound", "$ref": "#/$defs/AssetProductSound" },
+        "soundCancel": { "title": "AssetProductSound", "$ref": "#/$defs/AssetProductSound" },
+        "soundSuccess": { "title": "AssetProductSound", "$ref": "#/$defs/AssetProductSound" }
       },
       "required": [],
       "defaultSnippets": [
         { "label": "New", "body": "^{}" }
       ]
     },
-    "AssetProductSoundDef": {
+    "AssetProductSound": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "assetId": { "title": "String", "type": "string", "minLength": 1 },
+        "asset": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" },
         "gain": { "title": "f32", "type": "number" }
       },
-      "required": [ "assetId" ],
+      "required": [ "asset" ],
       "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"assetId\": \"placeholder\"\n}" }
+        { "label": "New", "body": "^{\n  \"asset\": \"placeholder\"\n}" }
       ]
-    }
+    },
+    "AssetRef": { "title": "StringHash", "type": "string", "minLength": 1 }
   }
 }

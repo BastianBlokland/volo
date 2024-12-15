@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_ref.h"
 #include "core_array.h"
 #include "data_registry.h"
 #include "ecs_module.h"
@@ -8,8 +9,8 @@
  */
 
 typedef struct {
-  EcsEntityId asset;
-  f32         gain;
+  AssetRef asset;
+  f32      gain;
 } AssetProductSound;
 
 typedef enum {
@@ -43,12 +44,12 @@ typedef struct sAssetProduct {
 } AssetProduct;
 
 typedef struct {
-  StringHash nameHash;
+  StringHash name;
   u16        productIndex, productCount; // Stored in the product array.
 } AssetProductSet;
 
 ecs_comp_extern_public(AssetProductMapComp) {
-  HeapArray_t(AssetProductSet) sets; // Sorted on the nameHash.
+  HeapArray_t(AssetProductSet) sets; // Sorted on the name.
   HeapArray_t(AssetProduct) products;
 };
 

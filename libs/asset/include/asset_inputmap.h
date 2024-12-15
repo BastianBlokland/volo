@@ -16,14 +16,14 @@ typedef enum {
 
 typedef struct {
   AssetInputType type;
-  u32            key; // Key identifier, matches the 'GapKey' values in 'gap_input.h'.
-  u32            requiredModifierBits; // Matches the 'InputModifier' enum in 'input_manager.h'.
-  u32            illegalModifierBits;  // Matches the 'InputModifier' enum in 'input_manager.h'.
+  u32            key;               // Key identifier, matches the 'GapKey' values in 'gap_input.h'.
+  u32            requiredModifiers; // Matches the 'InputModifier' enum in 'input_manager.h'.
+  u32            illegalModifiers;  // Matches the 'InputModifier' enum in 'input_manager.h'.
 } AssetInputBinding;
 
 typedef struct {
-  StringHash nameHash;
-  u32        blockerBits;                // Matches the 'InputBlocker' enum in 'input_manager.h'.
+  StringHash name;
+  u32        blockers;                   // Matches the 'InputBlocker' enum in 'input_manager.h'.
   u16        bindingIndex, bindingCount; // Stored in the bindings array.
 } AssetInputAction;
 

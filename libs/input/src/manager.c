@@ -72,12 +72,12 @@ static bool input_binding_satisfied(
     const InputManagerComp* manager, const AssetInputBinding* binding, const GapWindowComp* win) {
 
   // Check that all required modifiers are active.
-  if ((binding->requiredModifierBits & manager->modifiers) != binding->requiredModifierBits) {
+  if ((binding->requiredModifiers & manager->modifiers) != binding->requiredModifiers) {
     return false;
   }
 
   // Check that none of the illegal modifiers are active.
-  if (binding->illegalModifierBits & manager->modifiers) {
+  if (binding->illegalModifiers & manager->modifiers) {
     return false;
   }
 
@@ -189,11 +189,11 @@ static void input_update_triggered(
 
   for (usize i = 0; i != map->actions.count; ++i) {
     const AssetInputAction* action = &map->actions.values[i];
-    if (manager->blockers & action->blockerBits) {
+    if (manager->blockers & action->blockers) {
       continue;
     }
     if (input_action_satisfied(manager, map, action, win)) {
-      *dynarray_push_t(&manager->triggeredActions, StringHash) = action->nameHash;
+      *dynarray_push_t(&manager->triggeredActions, StringHash) = action->name;
     }
   }
 }
@@ -205,7 +205,7 @@ static void input_update_key_info(InputManagerComp* manager, const AssetInputMap
       continue;
     }
     const AssetInputBinding* primaryBinding = &map->bindings.values[action->bindingIndex];
-    const InputActionInfo info = {.nameHash = action->nameHash, .primarykey = primaryBinding->key};
+    const InputActionInfo    info = {.nameHash = action->name, .primarykey = primaryBinding->key};
     *dynarray_insert_sorted_t(
         &manager->actionInfos, InputActionInfo, input_compare_action_info, &info) = info;
   }

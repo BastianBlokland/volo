@@ -141,9 +141,9 @@ static const struct {
                 {
                     .name         = string_static("Jump"),
                     .bindings     = {{
-                            .type                 = AssetInputType_Pressed,
-                            .key                  = 15,
-                            .requiredModifierBits = 0b11,
+                            .type              = AssetInputType_Pressed,
+                            .key               = 15,
+                            .requiredModifiers = 0b11,
                     }},
                     .bindingCount = 1,
                 },
@@ -166,9 +166,9 @@ static const struct {
                 {
                     .name         = string_static("Jump"),
                     .bindings     = {{
-                            .type                = AssetInputType_Pressed,
-                            .key                 = 15,
-                            .illegalModifierBits = 0b11,
+                            .type             = AssetInputType_Pressed,
+                            .key              = 15,
+                            .illegalModifiers = 0b11,
                     }},
                     .bindingCount = 1,
                 },
@@ -260,8 +260,8 @@ spec(loader_inputmap) {
         const AssetInputAction* actualAction   = &map->actions.values[a];
         const TestActionData*   expectedAction = &g_testData[i].actions[a];
 
-        check_eq_int(actualAction->nameHash, string_hash(expectedAction->name));
-        check_eq_int(actualAction->blockerBits, expectedAction->blockerBits);
+        check_eq_int(actualAction->name, string_hash(expectedAction->name));
+        check_eq_int(actualAction->blockers, expectedAction->blockerBits);
         check_require(actualAction->bindingCount == expectedAction->bindingCount);
         for (usize b = 0; b != expectedAction->bindingCount; ++b) {
           const AssetInputBinding* actualBinding =
@@ -270,7 +270,7 @@ spec(loader_inputmap) {
 
           check_eq_int(actualBinding->type, expectedBinding->type);
           check_eq_int(actualBinding->key, expectedBinding->key);
-          check_eq_int(actualBinding->requiredModifierBits, expectedBinding->requiredModifierBits);
+          check_eq_int(actualBinding->requiredModifiers, expectedBinding->requiredModifiers);
         }
       }
     }

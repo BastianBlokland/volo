@@ -14,6 +14,7 @@
   _X_(AssetFormat_Icon,             icon,               1  )                                       \
   _X_(AssetFormat_IconBin,          icon_bin,           2  )                                       \
   _X_(AssetFormat_Inputs,           inputs,             1  )                                       \
+  _X_(AssetFormat_InputsBin,        inputs,             1  )                                       \
   _X_(AssetFormat_Level,            level,              2  )                                       \
   _X_(AssetFormat_LevelBin,         level,              2  )                                       \
   _X_(AssetFormat_MeshBin,          mesh_bin,           2  )                                       \
@@ -24,6 +25,7 @@
   _X_(AssetFormat_Prefabs,          prefabs,            2  )                                       \
   _X_(AssetFormat_PrefabsBin,       prefabs,            1  )                                       \
   _X_(AssetFormat_Products,         products,           1  )                                       \
+  _X_(AssetFormat_ProductsBin,      products,           1  )                                       \
   _X_(AssetFormat_Raw,              raw,                0  ) /* Raw cannot be versioned. */        \
   _X_(AssetFormat_Script,           script,             34 )                                       \
   _X_(AssetFormat_ScriptBin,        script_bin,         2  )                                       \
