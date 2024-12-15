@@ -260,8 +260,8 @@ spec(loader_inputmap) {
         const AssetInputAction* actualAction   = &map->actions.values[a];
         const TestActionData*   expectedAction = &g_testData[i].actions[a];
 
-        check_eq_int(actualAction->nameHash, string_hash(expectedAction->name));
-        check_eq_int(actualAction->blockerBits, expectedAction->blockerBits);
+        check_eq_int(actualAction->name, string_hash(expectedAction->name));
+        check_eq_int(actualAction->blockers, expectedAction->blockerBits);
         check_require(actualAction->bindingCount == expectedAction->bindingCount);
         for (usize b = 0; b != expectedAction->bindingCount; ++b) {
           const AssetInputBinding* actualBinding =

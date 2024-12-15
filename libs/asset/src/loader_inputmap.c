@@ -28,7 +28,7 @@ typedef struct {
 
 static i8 asset_inputmap_compare_action(const void* a, const void* b) {
   return compare_stringhash(
-      field_ptr(a, AssetInputAction, nameHash), field_ptr(b, AssetInputAction, nameHash));
+      field_ptr(a, AssetInputAction, name), field_ptr(b, AssetInputAction, name));
 }
 
 typedef enum {
@@ -57,8 +57,8 @@ static void asset_inputmap_build(
     const AssetInputBinding* bindings     = actionDef->bindings.values;
     const usize              bindingCount = actionDef->bindings.count;
     const AssetInputAction   action       = {
-                .nameHash     = actionDef->name,
-                .blockerBits  = actionDef->blockers,
+                .name         = actionDef->name,
+                .blockers     = actionDef->blockers,
                 .bindingIndex = (u16)outBindings->size,
                 .bindingCount = (u16)bindingCount,
     };
@@ -300,11 +300,11 @@ Cleanup:
 }
 
 const AssetInputAction*
-asset_inputmap_get(const AssetInputMapComp* inputMap, const StringHash nameHash) {
+asset_inputmap_get(const AssetInputMapComp* inputMap, const StringHash name) {
   return search_binary_t(
       inputMap->actions.values,
       inputMap->actions.values + inputMap->actions.count,
       AssetInputAction,
       asset_inputmap_compare_action,
-      mem_struct(AssetInputAction, .nameHash = nameHash).ptr);
+      mem_struct(AssetInputAction, .name = name).ptr);
 }

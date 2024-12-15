@@ -22,8 +22,8 @@ typedef struct {
 } AssetInputBinding;
 
 typedef struct {
-  StringHash nameHash;
-  u32        blockerBits;                // Matches the 'InputBlocker' enum in 'input_manager.h'.
+  StringHash name;
+  u32        blockers;                   // Matches the 'InputBlocker' enum in 'input_manager.h'.
   u16        bindingIndex, bindingCount; // Stored in the bindings array.
 } AssetInputAction;
 
