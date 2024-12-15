@@ -141,9 +141,9 @@ static const struct {
                 {
                     .name         = string_static("Jump"),
                     .bindings     = {{
-                            .type                 = AssetInputType_Pressed,
-                            .key                  = 15,
-                            .requiredModifierBits = 0b11,
+                            .type              = AssetInputType_Pressed,
+                            .key               = 15,
+                            .requiredModifiers = 0b11,
                     }},
                     .bindingCount = 1,
                 },
@@ -166,9 +166,9 @@ static const struct {
                 {
                     .name         = string_static("Jump"),
                     .bindings     = {{
-                            .type                = AssetInputType_Pressed,
-                            .key                 = 15,
-                            .illegalModifierBits = 0b11,
+                            .type             = AssetInputType_Pressed,
+                            .key              = 15,
+                            .illegalModifiers = 0b11,
                     }},
                     .bindingCount = 1,
                 },
@@ -270,7 +270,7 @@ spec(loader_inputmap) {
 
           check_eq_int(actualBinding->type, expectedBinding->type);
           check_eq_int(actualBinding->key, expectedBinding->key);
-          check_eq_int(actualBinding->requiredModifierBits, expectedBinding->requiredModifierBits);
+          check_eq_int(actualBinding->requiredModifiers, expectedBinding->requiredModifiers);
         }
       }
     }

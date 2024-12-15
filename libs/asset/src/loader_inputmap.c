@@ -16,16 +16,9 @@
 DataMeta g_assetInputDefMeta;
 
 typedef struct {
-  AssetInputType type;
-  u32            key;
-  u32            requiredModifiers;
-  u32            illegalModifiers;
-} AssetInputBindingDef;
-
-typedef struct {
   StringHash name;
   u32        blockers;
-  HeapArray_t(AssetInputBindingDef) bindings;
+  HeapArray_t(AssetInputBinding) bindings;
 } AssetInputActionDef;
 
 typedef struct {
@@ -61,12 +54,13 @@ static void asset_inputmap_build(
     InputMapError*          err) {
 
   heap_array_for_t(def->actions, AssetInputActionDef, actionDef) {
-    const usize            bindingCount = actionDef->bindings.count;
-    const AssetInputAction action       = {
-              .nameHash     = actionDef->name,
-              .blockerBits  = actionDef->blockers,
-              .bindingIndex = (u16)outBindings->size,
-              .bindingCount = (u16)bindingCount,
+    const AssetInputBinding* bindings     = actionDef->bindings.values;
+    const usize              bindingCount = actionDef->bindings.count;
+    const AssetInputAction   action       = {
+                .nameHash     = actionDef->name,
+                .blockerBits  = actionDef->blockers,
+                .bindingIndex = (u16)outBindings->size,
+                .bindingCount = (u16)bindingCount,
     };
     if (dynarray_search_binary(outActions, asset_inputmap_compare_action, &action)) {
       *err = InputMapError_DuplicateAction;
@@ -75,14 +69,9 @@ static void asset_inputmap_build(
     *dynarray_insert_sorted_t(
         outActions, AssetInputAction, asset_inputmap_compare_action, &action) = action;
 
-    heap_array_for_t(actionDef->bindings, AssetInputBindingDef, bindingDef) {
-      *dynarray_push_t(outBindings, AssetInputBinding) = (AssetInputBinding){
-          .type                 = bindingDef->type,
-          .key                  = bindingDef->key,
-          .requiredModifierBits = bindingDef->requiredModifiers,
-          .illegalModifierBits  = bindingDef->illegalModifiers,
-      };
-    }
+    mem_cpy(
+        dynarray_push(outBindings, bindingCount),
+        mem_create(bindings, sizeof(AssetInputBinding) * bindingCount));
   }
   *err = InputMapError_None;
 }
@@ -236,16 +225,16 @@ void asset_data_init_inputmap(void) {
   data_reg_const_t(g_dataReg, AssetInputType, Released);
   data_reg_const_t(g_dataReg, AssetInputType, Down);
 
-  data_reg_struct_t(g_dataReg, AssetInputBindingDef);
-  data_reg_field_t(g_dataReg, AssetInputBindingDef, type, t_AssetInputType);
-  data_reg_field_t(g_dataReg, AssetInputBindingDef, key, t_AssetInputKey);
-  data_reg_field_t(g_dataReg, AssetInputBindingDef, requiredModifiers, t_AssetInputModifier, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetInputBindingDef, illegalModifiers, t_AssetInputModifier, .flags = DataFlags_Opt);
+  data_reg_struct_t(g_dataReg, AssetInputBinding);
+  data_reg_field_t(g_dataReg, AssetInputBinding, type, t_AssetInputType);
+  data_reg_field_t(g_dataReg, AssetInputBinding, key, t_AssetInputKey);
+  data_reg_field_t(g_dataReg, AssetInputBinding, requiredModifiers, t_AssetInputModifier, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetInputBinding, illegalModifiers, t_AssetInputModifier, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetInputActionDef);
   data_reg_field_t(g_dataReg, AssetInputActionDef, name, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetInputActionDef, blockers, t_AssetInputBlocker, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetInputActionDef, bindings, t_AssetInputBindingDef, .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetInputActionDef, bindings, t_AssetInputBinding, .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetInputMapDef);
   data_reg_field_t(g_dataReg, AssetInputMapDef, layer, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty);

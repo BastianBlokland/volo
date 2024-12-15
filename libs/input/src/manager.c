@@ -72,12 +72,12 @@ static bool input_binding_satisfied(
     const InputManagerComp* manager, const AssetInputBinding* binding, const GapWindowComp* win) {
 
   // Check that all required modifiers are active.
-  if ((binding->requiredModifierBits & manager->modifiers) != binding->requiredModifierBits) {
+  if ((binding->requiredModifiers & manager->modifiers) != binding->requiredModifiers) {
     return false;
   }
 
   // Check that none of the illegal modifiers are active.
-  if (binding->illegalModifierBits & manager->modifiers) {
+  if (binding->illegalModifiers & manager->modifiers) {
     return false;
   }
 
