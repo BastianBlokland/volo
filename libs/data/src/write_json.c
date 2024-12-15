@@ -374,6 +374,9 @@ static JsonVal data_write_json_val_single(const WriteCtx* ctx) {
 static JsonVal data_write_json_val_pointer(const WriteCtx* ctx) {
   void* ptr = *mem_as_t(ctx->data, void*);
   if (!ptr) {
+    if (ctx->skipOptional && ctx->meta.flags & DataFlags_Opt) {
+      return sentinel_u32;
+    }
     return json_add_null(ctx->doc);
   }
   const DataDecl* decl   = data_decl(ctx->reg, ctx->meta.type);
@@ -434,6 +437,10 @@ static JsonVal data_write_json_val_heap_array(const WriteCtx* ctx) {
   const HeapArray* array     = mem_as_t(ctx->data, HeapArray);
   const DataMeta   baseMeta  = data_meta_base(ctx->meta);
 
+  if (ctx->skipOptional && ctx->meta.flags & DataFlags_Opt && !array->count) {
+    return sentinel_u32;
+  }
+
   for (usize i = 0; i != array->count; ++i) {
     const WriteCtx elemCtx = {
         .reg  = ctx->reg,
@@ -451,6 +458,10 @@ static JsonVal data_write_json_val_dynarray(const WriteCtx* ctx) {
   const JsonVal   jsonArray = json_add_array(ctx->doc);
   const DynArray* array     = mem_as_t(ctx->data, DynArray);
   const DataMeta  baseMeta  = data_meta_base(ctx->meta);
+
+  if (ctx->skipOptional && ctx->meta.flags & DataFlags_Opt && !array->size) {
+    return sentinel_u32;
+  }
 
   for (usize i = 0; i != array->size; ++i) {
     const WriteCtx elemCtx = {
