@@ -19,7 +19,7 @@ typedef enum {
 typedef struct {
   StringHash   originJoint;
   bool         launchTowardsTarget, seekTowardsTarget;
-  u8           applyStatusMask; // Mask of status-effects to apply on hit.
+  u32          applyStatus; // Mask of status-effects to apply on hit.
   f32          spreadAngle;
   f32          speed;
   f32          damage, damageRadius;

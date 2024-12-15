@@ -328,7 +328,7 @@ static EffectResult effect_update_proj(
       projectileEntity,
       SceneProjectileComp,
       .flags        = projectileFlags,
-      .applyStatus  = def->applyStatusMask,
+      .applyStatus  = def->applyStatus,
       .speed        = def->speed,
       .damage       = def->damage * damageMult,
       .damageRadius = def->damageRadius,
