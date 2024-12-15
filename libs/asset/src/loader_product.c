@@ -50,7 +50,7 @@ typedef struct {
 } AssetProductDef;
 
 typedef struct {
-  String name;
+  StringHash name;
   HeapArray_t(AssetProductDef) products;
 } AssetProductSetDef;
 
@@ -60,7 +60,7 @@ typedef struct {
 
 static i8 asset_productset_compare(const void* a, const void* b) {
   return compare_stringhash(
-      field_ptr(a, AssetProductSet, nameHash), field_ptr(b, AssetProductSet, nameHash));
+      field_ptr(a, AssetProductSet, name), field_ptr(b, AssetProductSet, name));
 }
 
 typedef enum {
@@ -109,7 +109,7 @@ static void productset_build(
 
   *err    = ProductError_None;
   *outSet = (AssetProductSet){
-      .nameHash     = stringtable_add(g_stringtable, def->name),
+      .name         = def->name,
       .productIndex = (u16)outProducts->size,
       .productCount = (u16)def->products.count,
   };
@@ -343,7 +343,7 @@ void asset_data_init_product(void) {
   data_reg_choice_t(g_dataReg, AssetProductDef, AssetProduct_Placable, data_placable, t_AssetProductPlacableDef);
 
   data_reg_struct_t(g_dataReg, AssetProductSetDef);
-  data_reg_field_t(g_dataReg, AssetProductSetDef, name, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetProductSetDef, name, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetProductSetDef, products, t_AssetProductDef, .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetProductMapDef);
@@ -372,5 +372,5 @@ asset_productset_get(const AssetProductMapComp* map, const StringHash nameHash) 
       map->sets.values + map->sets.count,
       AssetProductSet,
       asset_productset_compare,
-      mem_struct(AssetProductSet, .nameHash = nameHash).ptr);
+      mem_struct(AssetProductSet, .name = nameHash).ptr);
 }
