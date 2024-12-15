@@ -10,6 +10,7 @@ typedef enum eAssetFormat {
   AssetFormat_Icon,
   AssetFormat_IconBin,
   AssetFormat_Inputs,
+  AssetFormat_InputsBin,
   AssetFormat_Level,
   AssetFormat_LevelBin,
   AssetFormat_MeshBin,

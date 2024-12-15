@@ -2,6 +2,7 @@
 #include "asset_fonttex.h"
 #include "asset_graphic.h"
 #include "asset_icon.h"
+#include "asset_inputmap.h"
 #include "asset_level.h"
 #include "asset_mesh.h"
 #include "asset_prefab.h"
@@ -54,6 +55,7 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_Icon]           = string_static("Icon"),
     [AssetFormat_IconBin]        = string_static("IconBin"),
     [AssetFormat_Inputs]         = string_static("Inputs"),
+    [AssetFormat_InputsBin]      = string_static("InputsBin"),
     [AssetFormat_Level]          = string_static("Level"),
     [AssetFormat_LevelBin]       = string_static("LevelBin"),
     [AssetFormat_MeshBin]        = string_static("MeshBin"),
@@ -94,6 +96,7 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
 static const DataMeta* g_assetFormatBinMeta[AssetFormat_Count] = {
     [AssetFormat_GraphicBin]  = &g_assetGraphicDefMeta,
     [AssetFormat_IconBin]     = &g_assetIconMeta,
+    [AssetFormat_InputsBin]   = &g_assetInputDefMeta,
     [AssetFormat_LevelBin]    = &g_assetLevelDefMeta,
     [AssetFormat_MeshBin]     = &g_assetMeshBundleMeta,
     [AssetFormat_PrefabsBin]  = &g_assetPrefabDefMeta,
