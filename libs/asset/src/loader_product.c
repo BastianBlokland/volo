@@ -21,7 +21,7 @@ DataMeta g_assetProductDefMeta;
 
 typedef struct {
   String            name;
-  String            iconImage;
+  StringHash        iconImage;
   TimeDuration      costTime;
   u16               queueMax;
   u16               queueBulkSize;
@@ -90,7 +90,7 @@ typedef struct {
 
 static void product_build_meta(BuildCtx* ctx, const AssetProductMetaDef* def, AssetProduct* out) {
   (void)ctx;
-  out->iconImage     = string_maybe_hash(def->iconImage);
+  out->iconImage     = def->iconImage;
   out->name          = string_maybe_dup(g_allocHeap, def->name);
   out->costTime      = math_max(def->costTime, time_millisecond);
   out->queueMax      = def->queueMax ? def->queueMax : u16_max;
@@ -314,7 +314,7 @@ void asset_data_init_product(void) {
 
   data_reg_struct_t(g_dataReg, AssetProductMetaDef);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, name, data_prim_t(String), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetProductMetaDef, iconImage, data_prim_t(String), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetProductMetaDef, iconImage, data_prim_t(StringHash), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, costTime, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, queueMax, data_prim_t(u16), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, queueBulkSize, data_prim_t(u16), .flags = DataFlags_Opt);
