@@ -36,6 +36,12 @@ DataType g_assetGeoCapsuleType;
 DataType g_assetGeoMatrixType;
 DataType g_assetGeoPlaneType;
 
+static bool asset_data_normalizer_color3(const Mem data) {
+  GeoColor3* color = mem_as_t(data, GeoColor3);
+  color->a         = 1.0f;
+  return true;
+}
+
 static bool asset_data_normalizer_quat(const Mem data) {
   GeoQuat* quat = mem_as_t(data, GeoQuat);
   *quat         = geo_quat_norm_or_ident(*quat);
@@ -91,6 +97,7 @@ static void asset_data_init_types(void) {
   data_reg_field_t(g_dataReg, GeoColor3, g, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, GeoColor3, b, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_comment_t(g_dataReg, GeoColor3, "HDR Color (rgb)");
+  data_reg_normalizer_t(g_dataReg, GeoColor3, asset_data_normalizer_color3);
 
   data_reg_struct_t(g_dataReg, GeoColor4);
   data_reg_field_t(g_dataReg, GeoColor4, r, data_prim_t(f32), .flags = DataFlags_Opt);
