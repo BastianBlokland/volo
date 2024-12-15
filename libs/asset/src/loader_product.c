@@ -22,10 +22,10 @@ DataMeta g_assetProductDefMeta;
 typedef struct {
   String            name;
   String            iconImage;
-  f32               costTime;
+  TimeDuration      costTime;
   u16               queueMax;
   u16               queueBulkSize;
-  f32               cooldown;
+  TimeDuration      cooldown;
   AssetProductSound soundBuilding, soundReady, soundCancel, soundSuccess;
 } AssetProductMetaDef;
 
@@ -90,15 +90,12 @@ typedef struct {
 
 static void product_build_meta(BuildCtx* ctx, const AssetProductMetaDef* def, AssetProduct* out) {
   (void)ctx;
-  const TimeDuration costTimeRaw = (TimeDuration)time_seconds(def->costTime);
-  const TimeDuration cooldownRaw = (TimeDuration)time_seconds(def->cooldown);
-
   out->iconImage     = string_maybe_hash(def->iconImage);
   out->name          = string_maybe_dup(g_allocHeap, def->name);
-  out->costTime      = math_max(costTimeRaw, time_millisecond);
+  out->costTime      = math_max(def->costTime, time_millisecond);
   out->queueMax      = def->queueMax ? def->queueMax : u16_max;
   out->queueBulkSize = def->queueBulkSize ? def->queueBulkSize : 5;
-  out->cooldown      = math_max(cooldownRaw, time_millisecond);
+  out->cooldown      = math_max(def->cooldown, time_millisecond);
   out->soundBuilding = def->soundBuilding;
   out->soundReady    = def->soundReady;
   out->soundCancel   = def->soundCancel;
@@ -318,10 +315,10 @@ void asset_data_init_product(void) {
   data_reg_struct_t(g_dataReg, AssetProductMetaDef);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, name, data_prim_t(String), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, iconImage, data_prim_t(String), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetProductMetaDef, costTime, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetProductMetaDef, costTime, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, queueMax, data_prim_t(u16), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, queueBulkSize, data_prim_t(u16), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetProductMetaDef, cooldown, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetProductMetaDef, cooldown, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, soundBuilding, t_AssetProductSound, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, soundReady, t_AssetProductSound, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, soundCancel, t_AssetProductSound, .flags = DataFlags_Opt);
