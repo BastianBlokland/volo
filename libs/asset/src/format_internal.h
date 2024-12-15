@@ -21,6 +21,7 @@ typedef enum eAssetFormat {
   AssetFormat_Prefabs,
   AssetFormat_PrefabsBin,
   AssetFormat_Products,
+  AssetFormat_ProductsBin,
   AssetFormat_Raw,
   AssetFormat_Script,
   AssetFormat_ScriptBin,
