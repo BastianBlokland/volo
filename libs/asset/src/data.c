@@ -132,6 +132,7 @@ static void asset_data_init_types(void) {
   data_reg_field_t(g_dataReg, GeoColor3, r, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, GeoColor3, g, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, GeoColor3, b, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor3, a, data_prim_t(f32), .flags = DataFlags_Opt); // HACK: Needed as alpha 1.0 needs to be written to the binary data.
   data_reg_comment_t(g_dataReg, GeoColor3, "HDR Color (rgb)");
   data_reg_normalizer_t(g_dataReg, GeoColor3, asset_data_normalizer_color3);
 
@@ -146,6 +147,7 @@ static void asset_data_init_types(void) {
   data_reg_field_t(g_dataReg, GeoColor3Norm, r, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, GeoColor3Norm, g, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, GeoColor3Norm, b, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor3Norm, a, data_prim_t(f32), .flags = DataFlags_Opt); // HACK: Needed as alpha 1.0 needs to be written to the binary data.
   data_reg_comment_t(g_dataReg, GeoColor3Norm, "Color (rgb)");
   data_reg_normalizer_t(g_dataReg, GeoColor3Norm, asset_data_normalizer_color3norm);
 
