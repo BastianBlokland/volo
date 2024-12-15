@@ -19,13 +19,6 @@
 DataMeta g_assetWeaponDefMeta;
 
 typedef struct {
-  bool         continuous, allowEarlyInterrupt;
-  StringHash   layer;
-  TimeDuration delay;
-  f32          speed;
-} AssetWeaponEffectAnimDef;
-
-typedef struct {
   StringHash   originJoint;
   f32          scale;
   bool         waitUntilFinished;
@@ -46,7 +39,7 @@ typedef struct {
   union {
     AssetWeaponEffectProj     data_proj;
     AssetWeaponEffectDmg      data_dmg;
-    AssetWeaponEffectAnimDef  data_anim;
+    AssetWeaponEffectAnim     data_anim;
     AssetWeaponEffectVfxDef   data_vfx;
     AssetWeaponEffectSoundDef data_sound;
   };
@@ -93,18 +86,12 @@ static String weapon_error_str(const WeaponError err) {
 }
 
 static void weapon_effect_anim_build(
-    const AssetWeaponEffectAnimDef* def, AssetWeaponEffectAnim* out, WeaponError* err) {
+    const AssetWeaponEffectAnim* def, AssetWeaponEffectAnim* out, WeaponError* err) {
   if (UNLIKELY(def->speed < 1e-4f || def->speed > 1e+4f)) {
     *err = WeaponError_OutOfBoundsAnimationSpeed;
     return;
   }
-  *out = (AssetWeaponEffectAnim){
-      .continuous          = def->continuous,
-      .allowEarlyInterrupt = def->allowEarlyInterrupt,
-      .layer               = def->layer,
-      .delay               = def->delay,
-      .speed               = def->speed,
-  };
+  *out = *def;
   *err = WeaponError_None;
 }
 
@@ -371,12 +358,12 @@ void asset_data_init_weapon(void) {
   data_reg_field_t(g_dataReg, AssetWeaponEffectDmg, applyStatus, t_AssetWeaponStatusMask, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponEffectDmg, impactPrefab, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty | DataFlags_Intern);
 
-  data_reg_struct_t(g_dataReg, AssetWeaponEffectAnimDef);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, continuous, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, allowEarlyInterrupt, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, layer, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, delay, data_prim_t(TimeDuration));
-  data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
+  data_reg_struct_t(g_dataReg, AssetWeaponEffectAnim);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectAnim, continuous, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectAnim, allowEarlyInterrupt, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectAnim, layer, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectAnim, delay, data_prim_t(TimeDuration));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectAnim, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetWeaponEffectVfxDef);
   data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, asset, g_assetRefType);
@@ -399,7 +386,7 @@ void asset_data_init_weapon(void) {
   data_reg_union_t(g_dataReg, AssetWeaponEffectDef, type);
   data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Projectile, data_proj, t_AssetWeaponEffectProj);
   data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Damage, data_dmg, t_AssetWeaponEffectDmg);
-  data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Animation, data_anim, t_AssetWeaponEffectAnimDef);
+  data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Animation, data_anim, t_AssetWeaponEffectAnim);
   data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Vfx, data_vfx, t_AssetWeaponEffectVfxDef);
   data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Sound, data_sound, t_AssetWeaponEffectSoundDef);
 
