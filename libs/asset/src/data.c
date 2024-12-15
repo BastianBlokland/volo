@@ -20,6 +20,26 @@
 
 typedef union {
   struct {
+    f32 r, g, b;
+  };
+  ALIGNAS(16) f32 comps[4];
+} GeoColor3;
+
+ASSERT(sizeof(GeoColor3) == sizeof(GeoColor), "Invalid color size")
+ASSERT(alignof(GeoColor3) == alignof(GeoColor), "Invalid color alignment")
+
+typedef union {
+  struct {
+    f32 r, g, b, a;
+  };
+  ALIGNAS(16) f32 comps[4];
+} GeoColor4;
+
+ASSERT(sizeof(GeoColor4) == sizeof(GeoColor), "Invalid color size")
+ASSERT(alignof(GeoColor4) == alignof(GeoColor), "Invalid color alignment")
+
+typedef union {
+  struct {
     f32 x, y;
   };
   ALIGNAS(16) f32 comps[4];
@@ -49,7 +69,7 @@ ASSERT(sizeof(GeoVector4) == sizeof(GeoVector), "Invalid vector size")
 ASSERT(alignof(GeoVector4) == alignof(GeoVector), "Invalid vector alignment")
 
 DataType g_assetRefType;
-DataType g_assetGeoColorType;
+DataType g_assetGeoColor3Type, g_assetGeoColor4Type;
 DataType g_assetGeoVec2Type, g_assetGeoVec3Type, g_assetGeoVec4Type;
 DataType g_assetGeoQuatType;
 DataType g_assetGeoBoxType, g_assetGeoBoxRotatedType;
@@ -109,12 +129,18 @@ static void asset_data_init_types(void) {
   data_reg_field_t(g_dataReg, AssetRef, id, data_prim_t(StringHash), .flags = DataFlags_NotEmpty | DataFlags_InlineField);
   data_reg_comment_t(g_dataReg, AssetRef, "Asset reference");
 
-  data_reg_struct_t(g_dataReg, GeoColor);
-  data_reg_field_t(g_dataReg, GeoColor, r, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, GeoColor, g, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, GeoColor, b, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, GeoColor, a, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_comment_t(g_dataReg, GeoColor, "HDR Color");
+  data_reg_struct_t(g_dataReg, GeoColor3);
+  data_reg_field_t(g_dataReg, GeoColor3, r, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor3, g, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor3, b, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_comment_t(g_dataReg, GeoColor3, "HDR Color (rgb)");
+
+  data_reg_struct_t(g_dataReg, GeoColor4);
+  data_reg_field_t(g_dataReg, GeoColor4, r, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor4, g, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor4, b, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor4, a, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_comment_t(g_dataReg, GeoColor4, "HDR Color (rgba)");
 
   data_reg_struct_t(g_dataReg, GeoVector2);
   data_reg_field_t(g_dataReg, GeoVector2, x, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -187,7 +213,8 @@ static void asset_data_init_types(void) {
   // clang-format on
 
   g_assetRefType           = t_AssetRef;
-  g_assetGeoColorType      = t_GeoColor;
+  g_assetGeoColor3Type     = t_GeoColor3;
+  g_assetGeoColor4Type     = t_GeoColor4;
   g_assetGeoVec2Type       = t_GeoVector2;
   g_assetGeoVec3Type       = t_GeoVector3;
   g_assetGeoVec4Type       = t_GeoVector4;

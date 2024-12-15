@@ -487,7 +487,7 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Number, data_number, data_prim_t(f64));
   data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Bool, data_bool, data_prim_t(bool));
   data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Vector3, data_vector3, g_assetGeoVec3Type);
-  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Color, data_color, g_assetGeoColorType);
+  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Color, data_color, g_assetGeoColor4Type);
   data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_String, data_string, data_prim_t(StringHash));
   data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Asset, data_asset, g_assetRefType);
   data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Sound, data_sound, t_AssetPrefabValueSound);
@@ -518,12 +518,12 @@ void asset_data_init_prefab(void) {
   data_reg_normalizer_t(g_dataReg, AssetPrefabTraitSound, prefab_data_normalizer_sound);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitLightPoint);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitLightPoint, radiance, g_assetGeoColorType, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitLightPoint, radiance, g_assetGeoColor4Type, .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabTraitLightPoint, radius, data_prim_t(f32), .flags = DataFlags_NotEmpty);
   data_reg_normalizer_t(g_dataReg, AssetPrefabTraitLightPoint, prefab_data_normalizer_light_point);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitLightDir);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitLightDir, radiance, g_assetGeoColorType, .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitLightDir, radiance, g_assetGeoColor4Type, .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabTraitLightDir, shadows, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetPrefabTraitLightDir, coverage, data_prim_t(bool), .flags = DataFlags_Opt);
 
