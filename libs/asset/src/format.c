@@ -11,6 +11,7 @@
 #include "asset_shader.h"
 #include "asset_sound.h"
 #include "asset_texture.h"
+#include "asset_weapon.h"
 #include "core_diag.h"
 
 #include "format_internal.h"
@@ -93,6 +94,7 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_TexTga]         = string_static("TexTga"),
     [AssetFormat_Vfx]            = string_static("Vfx"),
     [AssetFormat_Weapons]        = string_static("Weapons"),
+    [AssetFormat_WeaponsBin]     = string_static("WeaponsBin"),
 };
 
 static const DataMeta* g_assetFormatBinMeta[AssetFormat_Count] = {
@@ -109,6 +111,7 @@ static const DataMeta* g_assetFormatBinMeta[AssetFormat_Count] = {
     [AssetFormat_TexAtlasBin] = &g_assetAtlasBundleMeta,
     [AssetFormat_TexBin]      = &g_assetTexMeta,
     [AssetFormat_TexFontBin]  = &g_assetFontTexBundleMeta,
+    [AssetFormat_WeaponsBin]  = &g_assetWeaponDefMeta,
 };
 
 String asset_format_str(const AssetFormat fmt) {

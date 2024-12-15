@@ -328,7 +328,7 @@ static EffectResult effect_update_proj(
       projectileEntity,
       SceneProjectileComp,
       .flags        = projectileFlags,
-      .applyStatus  = def->applyStatusMask,
+      .applyStatus  = def->applyStatus,
       .speed        = def->speed,
       .damage       = def->damage * damageMult,
       .damageRadius = def->damageRadius,
@@ -435,8 +435,8 @@ static EffectResult effect_update_dmg(
     }
 
     // Apply status.
-    if (def->applyStatusMask && ecs_world_has_t(ctx->world, hits[i], SceneStatusComp)) {
-      scene_status_add_many(ctx->world, hits[i], def->applyStatusMask, ctx->instigator);
+    if (def->applyStatus && ecs_world_has_t(ctx->world, hits[i], SceneStatusComp)) {
+      scene_status_add_many(ctx->world, hits[i], def->applyStatus, ctx->instigator);
     }
 
     // Spawn impact.
@@ -535,7 +535,12 @@ static EffectResult effect_update_vfx(
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
   ecs_world_add_t(ctx->world, e, SceneVisibilityComp); // Seeing attacks requires visibility.
   ecs_world_add_t(
-      ctx->world, e, SceneVfxSystemComp, .asset = def->asset, .alpha = 1.0f, .emitMultiplier = 1.0);
+      ctx->world,
+      e,
+      SceneVfxSystemComp,
+      .asset          = def->asset.entity,
+      .alpha          = 1.0f,
+      .emitMultiplier = 1.0);
   scene_attach_to_joint(ctx->world, e, inst, jointOriginIdx);
 
   return EffectResult_Done;
@@ -569,7 +574,8 @@ static EffectResult effect_update_sound(
   ecs_world_add_empty_t(ctx->world, e, SceneLevelInstanceComp);
   ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = pos, .rotation = geo_quat_ident);
   ecs_world_add_t(ctx->world, e, SceneLifetimeDurationComp, .duration = def->duration);
-  ecs_world_add_t(ctx->world, e, SceneSoundComp, .asset = def->asset, .gain = gain, .pitch = pitch);
+  ecs_world_add_t(
+      ctx->world, e, SceneSoundComp, .asset = def->asset.entity, .gain = gain, .pitch = pitch);
   ecs_world_add_t(ctx->world, e, SceneVisibilityComp); // Hearing attacks requires visibility.
 
   return EffectResult_Done;

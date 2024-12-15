@@ -30,14 +30,14 @@
           "originJoint": "muzzle",
           "delay": 0,
           "duration": 0.5,
-          "assetId": "vfx/game/muzzleflash.vfx"
+          "asset": "vfx/game/muzzleflash.vfx"
         },
         {
           "$type": "AssetWeaponEffect_Sound",
           "originJoint": "muzzle",
           "delay": 0,
           "duration": 0.75,
-          "assetId": "external/sound/gun-05.wav",
+          "asset": "external/sound/gun-05.wav",
           "gainMin": 0.15, "gainMax": 0.2,
           "pitchMin": 0.9, "pitchMax": 1.1
         }
@@ -99,14 +99,14 @@
           "originJoint": "muzzle",
           "delay": 0,
           "duration": 1.0,
-          "assetId": "vfx/game/launch_rocket.vfx"
+          "asset": "vfx/game/launch_rocket.vfx"
         },
         {
           "$type": "AssetWeaponEffect_Sound",
           "originJoint": "muzzle",
           "delay": 0,
           "duration": 1.75,
-          "assetId": "external/sound/launch-02.wav",
+          "asset": "external/sound/launch-02.wav",
           "gainMin": 0.25, "gainMax": 0.3,
           "pitchMin": 0.6, "pitchMax": 0.8
         }
@@ -142,14 +142,14 @@
           "originJoint": "muzzle",
           "delay": 0,
           "duration": 2.1,
-          "assetId": "vfx/game/muzzleflash_tank.vfx"
+          "asset": "vfx/game/muzzleflash_tank.vfx"
         },
         {
           "$type": "AssetWeaponEffect_Sound",
           "originJoint": "muzzle",
           "delay": 0,
           "duration": 1.0,
-          "assetId": "external/sound/tank-shot-01.wav",
+          "asset": "external/sound/tank-shot-01.wav",
           "gainMin": 1.5, "gainMax": 1.5,
           "pitchMin": 0.85, "pitchMax": 0.9
         }
@@ -180,14 +180,14 @@
           "scale": 1,
           "delay": 0.3,
           "duration": 1,
-          "assetId": "vfx/game/melee_dust.vfx"
+          "asset": "vfx/game/melee_dust.vfx"
         },
         {
           "$type": "AssetWeaponEffect_Sound",
           "originJoint": "RightHandMiddle1",
           "delay": 0.35,
           "duration": 0.5,
-          "assetId": "external/sound/swoosh-01.wav",
+          "asset": "external/sound/swoosh-01.wav",
           "gainMin": 0.2, "gainMax": 0.3,
           "pitchMin": 0.6, "pitchMax": 1.1
         }
@@ -224,14 +224,14 @@
           "scale": 4,
           "delay": 0,
           "duration": 0.5,
-          "assetId": "vfx/game/muzzleflash.vfx"
+          "asset": "vfx/game/muzzleflash.vfx"
         },
         {
           "$type": "AssetWeaponEffect_Sound",
           "originJoint": "muzzle",
           "delay": 0,
           "duration": 0.65,
-          "assetId": "external/sound/gun-04.wav",
+          "asset": "external/sound/gun-04.wav",
           "gainMin": 0.15, "gainMax": 0.2,
           "pitchMin": 0.95, "pitchMax": 1.05
         }
@@ -267,14 +267,14 @@
           "scale": 1,
           "delay": 0,
           "duration": 2,
-          "assetId": "vfx/game/launch_missile.vfx"
+          "asset": "vfx/game/launch_missile.vfx"
         },
         {
           "$type": "AssetWeaponEffect_Sound",
           "originJoint": "muzzle",
           "delay": 0,
           "duration": 1.75,
-          "assetId": "external/sound/launch-01.wav",
+          "asset": "external/sound/launch-01.wav",
           "gainMin": 0.15, "gainMax": 0.2,
           "pitchMin": 0.6, "pitchMax": 0.8
         }

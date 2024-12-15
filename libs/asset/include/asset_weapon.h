@@ -1,6 +1,6 @@
 #pragma once
+#include "asset_ref.h"
 #include "core_array.h"
-#include "core_time.h"
 #include "data_registry.h"
 #include "ecs_module.h"
 
@@ -19,7 +19,7 @@ typedef enum {
 typedef struct {
   StringHash   originJoint;
   bool         launchTowardsTarget, seekTowardsTarget;
-  u8           applyStatusMask; // Mask of status-effects to apply on hit.
+  u32          applyStatus; // Mask of status-effects to apply on hit.
   f32          spreadAngle;
   f32          speed;
   f32          damage, damageRadius;
@@ -34,7 +34,7 @@ typedef struct {
   f32          radius, radiusEnd;
   f32          length;
   f32          damage;
-  u8           applyStatusMask; // Mask of status-effects to apply.
+  u32          applyStatus; // Mask of status-effects to apply.
   TimeDuration lengthGrowTime;
   TimeDuration delay;
   StringHash   impactPrefab; // Optional, 0 if unused.
@@ -52,13 +52,13 @@ typedef struct {
   f32          scale;
   bool         waitUntilFinished;
   TimeDuration delay, duration;
-  EcsEntityId  asset;
+  AssetRef     asset;
 } AssetWeaponEffectVfx;
 
 typedef struct {
   StringHash   originJoint;
   TimeDuration delay, duration;
-  EcsEntityId  asset;
+  AssetRef     asset;
   f32          gainMin, gainMax;
   f32          pitchMin, pitchMax;
 } AssetWeaponEffectSound;
@@ -79,7 +79,7 @@ typedef enum {
 } AssetWeaponFlags;
 
 typedef struct {
-  StringHash       nameHash;
+  StringHash       name;
   AssetWeaponFlags flags;
   u16              effectIndex, effectCount; // Stored in the effects array.
   f32              readySpeed; // Speed to increase the ready amount, when reaches 1.0 we can fire.

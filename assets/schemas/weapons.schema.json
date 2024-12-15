@@ -20,17 +20,17 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "name": { "title": "String", "type": "string", "minLength": 1 },
-        "intervalMin": { "title": "f32", "type": "number" },
-        "intervalMax": { "title": "f32", "type": "number" },
+        "name": { "title": "StringHash", "type": "string", "minLength": 1 },
+        "intervalMin": { "title": "TimeDuration", "type": "number" },
+        "intervalMax": { "title": "TimeDuration", "type": "number" },
         "readySpeed": { "title": "f32", "type": "number" },
         "readyWhileMoving": { "title": "bool", "type": "boolean" },
-        "readyMinTime": { "title": "f32", "type": "number" },
-        "readyAnim": { "title": "String", "type": "string", "minLength": 1 },
+        "readyMinTime": { "title": "TimeDuration", "type": "number" },
+        "readyAnim": { "title": "StringHash", "type": "string", "minLength": 1 },
         "predictiveAim": { "title": "bool", "type": "boolean" },
         "effects": {
           "type": "array",
-          "items": { "title": "AssetWeaponEffectDef", "$ref": "#/$defs/AssetWeaponEffectDef" }
+          "items": { "title": "AssetWeaponEffect", "$ref": "#/$defs/AssetWeaponEffect" }
         }
       },
       "required": [
@@ -45,25 +45,25 @@
         { "label": "New", "body": "^{\n  \"name\": \"placeholder\",\n  \"intervalMin\": 0,\n  \"intervalMax\": 0,\n  \"readySpeed\": 0,\n  \"readyMinTime\": 0,\n  \"effects\": []\n}" }
       ]
     },
-    "AssetWeaponEffectDef": {
+    "AssetWeaponEffect": {
       "anyOf": [
         {
           "type": "object",
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetWeaponEffect_Projectile" },
-            "originJoint": { "title": "String", "type": "string", "minLength": 1 },
+            "originJoint": { "title": "StringHash", "type": "string", "minLength": 1 },
             "launchTowardsTarget": { "title": "bool", "type": "boolean" },
             "seekTowardsTarget": { "title": "bool", "type": "boolean" },
             "applyStatus": { "title": "AssetWeaponStatusMask", "$ref": "#/$defs/AssetWeaponStatusMask" },
-            "delay": { "title": "f32", "type": "number" },
+            "delay": { "title": "TimeDuration", "type": "number" },
             "spreadAngle": { "title": "f32", "type": "number" },
             "speed": { "title": "f32", "type": "number" },
             "damage": { "title": "f32", "type": "number" },
             "damageRadius": { "title": "f32", "type": "number" },
-            "destroyDelay": { "title": "f32", "type": "number" },
-            "projectilePrefab": { "title": "String", "type": "string", "minLength": 1 },
-            "impactPrefab": { "title": "String", "type": "string", "minLength": 1 }
+            "destroyDelay": { "title": "TimeDuration", "type": "number" },
+            "projectilePrefab": { "title": "StringHash", "type": "string", "minLength": 1 },
+            "impactPrefab": { "title": "StringHash", "type": "string", "minLength": 1 }
           },
           "required": [
             "$type",
@@ -81,15 +81,15 @@
           "properties": {
             "$type": { "const": "AssetWeaponEffect_Damage" },
             "continuous": { "title": "bool", "type": "boolean" },
-            "originJoint": { "title": "String", "type": "string", "minLength": 1 },
-            "delay": { "title": "f32", "type": "number" },
+            "originJoint": { "title": "StringHash", "type": "string", "minLength": 1 },
+            "delay": { "title": "TimeDuration", "type": "number" },
             "radius": { "title": "f32", "type": "number" },
             "radiusEnd": { "title": "f32", "type": "number" },
             "length": { "title": "f32", "type": "number" },
-            "lengthGrowTime": { "title": "f32", "type": "number" },
+            "lengthGrowTime": { "title": "TimeDuration", "type": "number" },
             "damage": { "title": "f32", "type": "number" },
             "applyStatus": { "title": "AssetWeaponStatusMask", "$ref": "#/$defs/AssetWeaponStatusMask" },
-            "impactPrefab": { "title": "String", "type": "string", "minLength": 1 }
+            "impactPrefab": { "title": "StringHash", "type": "string", "minLength": 1 }
           },
           "required": [ "$type", "originJoint", "delay", "radius" ]
         },
@@ -100,8 +100,8 @@
             "$type": { "const": "AssetWeaponEffect_Animation" },
             "continuous": { "title": "bool", "type": "boolean" },
             "allowEarlyInterrupt": { "title": "bool", "type": "boolean" },
-            "layer": { "title": "String", "type": "string", "minLength": 1 },
-            "delay": { "title": "f32", "type": "number" },
+            "layer": { "title": "StringHash", "type": "string", "minLength": 1 },
+            "delay": { "title": "TimeDuration", "type": "number" },
             "speed": { "title": "f32", "type": "number" }
           },
           "required": [ "$type", "layer", "delay", "speed" ]
@@ -111,16 +111,16 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetWeaponEffect_Vfx" },
-            "assetId": { "title": "String", "type": "string", "minLength": 1 },
+            "asset": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" },
             "scale": { "title": "f32", "type": "number" },
             "waitUntilFinished": { "title": "bool", "type": "boolean" },
-            "delay": { "title": "f32", "type": "number" },
-            "duration": { "title": "f32", "type": "number" },
-            "originJoint": { "title": "String", "type": "string", "minLength": 1 }
+            "delay": { "title": "TimeDuration", "type": "number" },
+            "duration": { "title": "TimeDuration", "type": "number" },
+            "originJoint": { "title": "StringHash", "type": "string", "minLength": 1 }
           },
           "required": [
             "$type",
-            "assetId",
+            "asset",
             "delay",
             "duration",
             "originJoint"
@@ -131,10 +131,10 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetWeaponEffect_Sound" },
-            "assetId": { "title": "String", "type": "string", "minLength": 1 },
-            "delay": { "title": "f32", "type": "number" },
-            "duration": { "title": "f32", "type": "number" },
-            "originJoint": { "title": "String", "type": "string", "minLength": 1 },
+            "asset": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" },
+            "delay": { "title": "TimeDuration", "type": "number" },
+            "duration": { "title": "TimeDuration", "type": "number" },
+            "originJoint": { "title": "StringHash", "type": "string", "minLength": 1 },
             "gainMin": { "title": "f32", "type": "number" },
             "gainMax": { "title": "f32", "type": "number" },
             "pitchMin": { "title": "f32", "type": "number" },
@@ -142,7 +142,7 @@
           },
           "required": [
             "$type",
-            "assetId",
+            "asset",
             "delay",
             "duration",
             "originJoint"
@@ -153,8 +153,8 @@
         { "label": "New AssetWeaponEffect_Projectile", "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Projectile\",\n  \"originJoint\": \"placeholder\",\n  \"delay\": 0,\n  \"spreadAngle\": 0,\n  \"speed\": 1,\n  \"damage\": 1,\n  \"projectilePrefab\": \"placeholder\"\n}" },
         { "label": "New AssetWeaponEffect_Damage", "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Damage\",\n  \"originJoint\": \"placeholder\",\n  \"delay\": 0,\n  \"radius\": 1\n}" },
         { "label": "New AssetWeaponEffect_Animation", "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Animation\",\n  \"layer\": \"placeholder\",\n  \"delay\": 0,\n  \"speed\": 1\n}" },
-        { "label": "New AssetWeaponEffect_Vfx", "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Vfx\",\n  \"assetId\": \"placeholder\",\n  \"delay\": 0,\n  \"duration\": 0,\n  \"originJoint\": \"placeholder\"\n}" },
-        { "label": "New AssetWeaponEffect_Sound", "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Sound\",\n  \"assetId\": \"placeholder\",\n  \"delay\": 0,\n  \"duration\": 0,\n  \"originJoint\": \"placeholder\"\n}" }
+        { "label": "New AssetWeaponEffect_Vfx", "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Vfx\",\n  \"asset\": \"placeholder\",\n  \"delay\": 0,\n  \"duration\": 0,\n  \"originJoint\": \"placeholder\"\n}" },
+        { "label": "New AssetWeaponEffect_Sound", "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Sound\",\n  \"asset\": \"placeholder\",\n  \"delay\": 0,\n  \"duration\": 0,\n  \"originJoint\": \"placeholder\"\n}" }
       ]
     },
     "AssetWeaponStatusMask": {
@@ -163,6 +163,7 @@
       "items": {
         "enum": [ "Burning", "Bleeding", "Healing", "Veteran" ]
       }
-    }
+    },
+    "AssetRef": { "title": "StringHash", "type": "string", "minLength": 1 }
   }
 }
