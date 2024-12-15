@@ -5,6 +5,7 @@
 #include "core_math.h"
 #include "core_search.h"
 #include "core_stringtable.h"
+#include "core_time.h"
 #include "data_read.h"
 #include "data_utils.h"
 #include "ecs_entity.h"
@@ -12,6 +13,7 @@
 #include "ecs_view.h"
 #include "log_logger.h"
 
+#include "data_internal.h"
 #include "manager_internal.h"
 #include "repo_internal.h"
 
@@ -50,19 +52,19 @@ typedef struct {
 } AssetWeaponEffectAnimDef;
 
 typedef struct {
-  String originJoint;
-  f32    scale;
-  bool   waitUntilFinished;
-  f32    delay, duration;
-  String assetId;
+  String   originJoint;
+  f32      scale;
+  bool     waitUntilFinished;
+  f32      delay, duration;
+  AssetRef asset;
 } AssetWeaponEffectVfxDef;
 
 typedef struct {
-  String originJoint;
-  f32    delay, duration;
-  String assetId;
-  f32    gainMin, gainMax;
-  f32    pitchMin, pitchMax;
+  String   originJoint;
+  f32      delay, duration;
+  AssetRef asset;
+  f32      gainMin, gainMax;
+  f32      pitchMin, pitchMax;
 } AssetWeaponEffectSoundDef;
 
 typedef struct {
@@ -97,9 +99,10 @@ static i8 asset_weapon_compare(const void* a, const void* b) {
 }
 
 typedef enum {
-  WeaponError_None                      = 0,
-  WeaponError_DuplicateWeapon           = 1,
-  WeaponError_OutOfBoundsAnimationSpeed = 2,
+  WeaponError_None,
+  WeaponError_DuplicateWeapon,
+  WeaponError_OutOfBoundsAnimationSpeed,
+  WeaponError_InvalidAssetReference,
 
   WeaponError_Count,
 } WeaponError;
@@ -109,6 +112,7 @@ static String weapon_error_str(const WeaponError err) {
       string_static("None"),
       string_static("Multiple weapons with the same name"),
       string_static("Out of bounds animation speed"),
+      string_static("Unable to resolve asset-reference"),
   };
   ASSERT(array_elems(g_msgs) == WeaponError_Count, "Incorrect number of error messages");
   return g_msgs[err];
@@ -189,13 +193,14 @@ static void weapon_effect_vfx_build(
     const AssetWeaponEffectVfxDef* def,
     AssetWeaponEffectVfx*          out,
     WeaponError*                   err) {
+  (void)ctx;
   *out = (AssetWeaponEffectVfx){
       .originJoint       = string_hash(def->originJoint),
       .scale             = math_abs(def->scale) < f32_epsilon ? 1.0f : def->scale,
       .waitUntilFinished = def->waitUntilFinished,
       .delay             = (TimeDuration)time_seconds(def->delay),
       .duration          = (TimeDuration)time_seconds(def->duration),
-      .asset             = asset_lookup(ctx->world, ctx->assetManager, def->assetId),
+      .asset             = def->asset,
   };
   *err = WeaponError_None;
 }
@@ -205,6 +210,7 @@ static void weapon_effect_sound_build(
     const AssetWeaponEffectSoundDef* def,
     AssetWeaponEffectSound*          out,
     WeaponError*                     err) {
+  (void)ctx;
   const f32 gainMin  = def->gainMin < f32_epsilon ? 1.0f : def->gainMin;
   const f32 pitchMin = def->pitchMin < f32_epsilon ? 1.0f : def->pitchMin;
 
@@ -212,7 +218,7 @@ static void weapon_effect_sound_build(
       .originJoint = string_hash(def->originJoint),
       .delay       = (TimeDuration)time_seconds(def->delay),
       .duration    = (TimeDuration)time_seconds(def->duration),
-      .asset       = asset_lookup(ctx->world, ctx->assetManager, def->assetId),
+      .asset       = def->asset,
       .gainMin     = gainMin,
       .gainMax     = math_max(gainMin, def->gainMax),
       .pitchMin    = pitchMin,
@@ -352,6 +358,10 @@ ecs_system_define(LoadWeaponAssetSys) {
       errMsg = readRes.errorMsg;
       goto Error;
     }
+    if (UNLIKELY(!asset_data_patch_refs(world, manager, g_assetWeaponDefMeta, mem_var(def)))) {
+      errMsg = weapon_error_str(WeaponError_InvalidAssetReference);
+      goto Error;
+    }
 
     BuildCtx buildCtx = {
         .world        = world,
@@ -464,7 +474,7 @@ void asset_data_init_weapon(void) {
   data_reg_field_t(g_dataReg, AssetWeaponEffectAnimDef, speed, data_prim_t(f32), .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetWeaponEffectVfxDef);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, asset, g_assetRefType);
   data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, scale, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, waitUntilFinished, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, delay, data_prim_t(f32));
@@ -472,7 +482,7 @@ void asset_data_init_weapon(void) {
   data_reg_field_t(g_dataReg, AssetWeaponEffectVfxDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, AssetWeaponEffectSoundDef);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, assetId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, asset, g_assetRefType);
   data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, delay, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, duration, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, originJoint, data_prim_t(String), .flags = DataFlags_NotEmpty);

@@ -4,6 +4,7 @@
 #include "check_spec.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_time.h"
 #include "ecs_utils.h"
 #include "ecs_world.h"
 
@@ -90,7 +91,7 @@ static const struct {
                                      "      \"readyMinTime\": 3,"
                                      "      \"effects\": [ {"
                                      "        \"$type\": \"AssetWeaponEffect_Vfx\","
-                                     "        \"assetId\": \"test1\","
+                                     "        \"asset\": \"test1\","
                                      "        \"originJoint\": \"test2\","
                                      "        \"delay\": 0,"
                                      "        \"duration\": 1"

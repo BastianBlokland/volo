@@ -111,7 +111,7 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetWeaponEffect_Vfx" },
-            "assetId": { "title": "String", "type": "string", "minLength": 1 },
+            "asset": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" },
             "scale": { "title": "f32", "type": "number" },
             "waitUntilFinished": { "title": "bool", "type": "boolean" },
             "delay": { "title": "f32", "type": "number" },
@@ -120,7 +120,7 @@
           },
           "required": [
             "$type",
-            "assetId",
+            "asset",
             "delay",
             "duration",
             "originJoint"
@@ -131,7 +131,7 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetWeaponEffect_Sound" },
-            "assetId": { "title": "String", "type": "string", "minLength": 1 },
+            "asset": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" },
             "delay": { "title": "f32", "type": "number" },
             "duration": { "title": "f32", "type": "number" },
             "originJoint": { "title": "String", "type": "string", "minLength": 1 },
@@ -142,7 +142,7 @@
           },
           "required": [
             "$type",
-            "assetId",
+            "asset",
             "delay",
             "duration",
             "originJoint"
@@ -153,8 +153,8 @@
         { "label": "New AssetWeaponEffect_Projectile", "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Projectile\",\n  \"originJoint\": \"placeholder\",\n  \"delay\": 0,\n  \"spreadAngle\": 0,\n  \"speed\": 1,\n  \"damage\": 1,\n  \"projectilePrefab\": \"placeholder\"\n}" },
         { "label": "New AssetWeaponEffect_Damage", "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Damage\",\n  \"originJoint\": \"placeholder\",\n  \"delay\": 0,\n  \"radius\": 1\n}" },
         { "label": "New AssetWeaponEffect_Animation", "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Animation\",\n  \"layer\": \"placeholder\",\n  \"delay\": 0,\n  \"speed\": 1\n}" },
-        { "label": "New AssetWeaponEffect_Vfx", "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Vfx\",\n  \"assetId\": \"placeholder\",\n  \"delay\": 0,\n  \"duration\": 0,\n  \"originJoint\": \"placeholder\"\n}" },
-        { "label": "New AssetWeaponEffect_Sound", "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Sound\",\n  \"assetId\": \"placeholder\",\n  \"delay\": 0,\n  \"duration\": 0,\n  \"originJoint\": \"placeholder\"\n}" }
+        { "label": "New AssetWeaponEffect_Vfx", "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Vfx\",\n  \"asset\": \"placeholder\",\n  \"delay\": 0,\n  \"duration\": 0,\n  \"originJoint\": \"placeholder\"\n}" },
+        { "label": "New AssetWeaponEffect_Sound", "body": "^{\n  \"\\$type\": \"AssetWeaponEffect_Sound\",\n  \"asset\": \"placeholder\",\n  \"delay\": 0,\n  \"duration\": 0,\n  \"originJoint\": \"placeholder\"\n}" }
       ]
     },
     "AssetWeaponStatusMask": {
@@ -163,6 +163,7 @@
       "items": {
         "enum": [ "Burning", "Bleeding", "Healing", "Veteran" ]
       }
-    }
+    },
+    "AssetRef": { "title": "StringHash", "type": "string", "minLength": 1 }
   }
 }

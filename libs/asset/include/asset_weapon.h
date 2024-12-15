@@ -1,6 +1,6 @@
 #pragma once
+#include "asset_ref.h"
 #include "core_array.h"
-#include "core_time.h"
 #include "data_registry.h"
 #include "ecs_module.h"
 
@@ -52,13 +52,13 @@ typedef struct {
   f32          scale;
   bool         waitUntilFinished;
   TimeDuration delay, duration;
-  EcsEntityId  asset;
+  AssetRef     asset;
 } AssetWeaponEffectVfx;
 
 typedef struct {
   StringHash   originJoint;
   TimeDuration delay, duration;
-  EcsEntityId  asset;
+  AssetRef     asset;
   f32          gainMin, gainMax;
   f32          pitchMin, pitchMax;
 } AssetWeaponEffectSound;
