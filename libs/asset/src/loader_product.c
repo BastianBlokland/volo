@@ -123,7 +123,7 @@ static void productset_build(
       product_build_meta(&productDef->data_unit.meta, outProduct);
       outProduct->data_unit = (AssetProductUnit){
           .unitPrefab = productDef->data_unit.unitPrefab,
-          .unitCount  = math_max(1, productDef->data_unit.unitCount),
+          .unitCount  = productDef->data_unit.unitCount,
       };
       break;
     case AssetProduct_Placable: {
@@ -189,6 +189,12 @@ static bool product_data_normalizer_metadef(const Mem data) {
   meta->queueMax            = meta->queueMax ? meta->queueMax : u16_max;
   meta->queueBulkSize       = meta->queueBulkSize ? meta->queueBulkSize : 5;
   meta->cooldown            = math_max(meta->cooldown, time_millisecond);
+  return true;
+}
+
+static bool product_data_normalizer_unit(const Mem data) {
+  AssetProductUnitDef* unit = mem_as_t(data, AssetProductUnitDef);
+  unit->unitCount           = math_max(1, unit->unitCount);
   return true;
 }
 
@@ -325,6 +331,7 @@ void asset_data_init_product(void) {
   data_reg_field_t(g_dataReg, AssetProductUnitDef, meta, t_AssetProductMetaDef, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetProductUnitDef, unitPrefab, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetProductUnitDef, unitCount, data_prim_t(u32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
+  data_reg_normalizer_t(g_dataReg, AssetProductUnitDef, product_data_normalizer_unit);
 
   data_reg_struct_t(g_dataReg, AssetProductPlacableDef);
   data_reg_field_t(g_dataReg, AssetProductPlacableDef, meta, t_AssetProductMetaDef, .flags = DataFlags_Opt);
