@@ -15,17 +15,12 @@
 DataMeta g_assetGraphicDefMeta;
 
 ecs_comp_define_public(AssetGraphicComp);
-ecs_comp_define(AssetGraphicLoadComp) { AssetSource* src; };
+ecs_comp_define(AssetGraphicInitComp);
 
 static void ecs_destruct_graphic_comp(void* data) {
   AssetGraphicComp* comp = data;
   data_destroy(
       g_dataReg, g_allocHeap, g_assetGraphicDefMeta, mem_create(comp, sizeof(AssetGraphicComp)));
-}
-
-static void ecs_destruct_graphic_load_comp(void* data) {
-  AssetGraphicLoadComp* comp = data;
-  asset_repo_source_close(comp->src);
 }
 
 static void graphic_load_fail(
@@ -40,38 +35,33 @@ static void graphic_load_fail(
 
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 
-ecs_view_define(LoadView) {
+ecs_view_define(InitView) {
+  ecs_access_with(AssetGraphicInitComp);
+  ecs_access_write(AssetGraphicComp);
   ecs_access_read(AssetComp);
-  ecs_access_read(AssetGraphicLoadComp);
 }
 
 ecs_view_define(UnloadView) {
   ecs_access_read(AssetGraphicComp);
+  ecs_access_without(AssetGraphicInitComp);
   ecs_access_without(AssetLoadedComp);
 }
 
 /**
- * Load graphic-assets.
+ * Initialize graphic-assets.
  */
-ecs_system_define(LoadGraphicAssetSys) {
+ecs_system_define(InitGraphicAssetSys) {
   AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
   if (!manager) {
     return;
   }
-  EcsView* loadView = ecs_world_view_t(world, LoadView);
-  for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
-    const EcsEntityId  entity      = ecs_view_entity(itr);
-    const String       id          = asset_id(ecs_view_read_t(itr, AssetComp));
-    const AssetSource* src         = ecs_view_read_t(itr, AssetGraphicLoadComp)->src;
-    AssetGraphicComp*  graphicComp = ecs_world_add_t(world, entity, AssetGraphicComp);
-    const Mem          graphicMem  = mem_create(graphicComp, sizeof(AssetGraphicComp));
+  EcsView* initView = ecs_world_view_t(world, InitView);
+  for (EcsIterator* itr = ecs_view_itr(initView); ecs_view_walk(itr);) {
+    const EcsEntityId entity      = ecs_view_entity(itr);
+    const String      id          = asset_id(ecs_view_read_t(itr, AssetComp));
+    AssetGraphicComp* graphicComp = ecs_view_write_t(itr, AssetGraphicComp);
+    const Mem         graphicMem  = mem_create(graphicComp, sizeof(AssetGraphicComp));
 
-    DataReadResult result;
-    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetGraphicDefMeta, graphicMem, &result);
-    if (result.error) {
-      graphic_load_fail(world, entity, id, result.errorMsg);
-      goto Error;
-    }
     if (!asset_data_patch_refs(world, manager, g_assetGraphicDefMeta, graphicMem)) {
       graphic_load_fail(world, entity, id, string_lit("Unable to resolve asset-reference"));
       goto Error;
@@ -82,13 +72,13 @@ ecs_system_define(LoadGraphicAssetSys) {
       goto Error;
     }
 
-    ecs_world_remove_t(world, entity, AssetGraphicLoadComp);
+    ecs_world_remove_t(world, entity, AssetGraphicInitComp);
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
     continue;
 
   Error:
     // NOTE: 'AssetGraphicComp' will be cleaned up by 'UnloadGraphicAssetSys'.
-    ecs_world_remove_t(world, entity, AssetGraphicLoadComp);
+    ecs_world_remove_t(world, entity, AssetGraphicInitComp);
   }
 }
 
@@ -105,13 +95,13 @@ ecs_system_define(UnloadGraphicAssetSys) {
 
 ecs_module_init(asset_graphic_module) {
   ecs_register_comp(AssetGraphicComp, .destructor = ecs_destruct_graphic_comp);
-  ecs_register_comp(AssetGraphicLoadComp, .destructor = ecs_destruct_graphic_load_comp);
+  ecs_register_comp_empty(AssetGraphicInitComp);
 
   ecs_register_view(ManagerView);
-  ecs_register_view(LoadView);
+  ecs_register_view(InitView);
   ecs_register_view(UnloadView);
 
-  ecs_register_system(LoadGraphicAssetSys, ecs_view_id(ManagerView), ecs_view_id(LoadView));
+  ecs_register_system(InitGraphicAssetSys, ecs_view_id(ManagerView), ecs_view_id(InitView));
   ecs_register_system(UnloadGraphicAssetSys, ecs_view_id(UnloadView));
 }
 
@@ -232,7 +222,29 @@ void asset_load_graphic(
   (void)importEnv;
   (void)id;
 
-  ecs_world_add_t(world, entity, AssetGraphicLoadComp, .src = src);
+  AssetGraphicComp* graphicComp = ecs_world_add_t(world, entity, AssetGraphicComp);
+  const Mem         graphicMem  = mem_create(graphicComp, sizeof(AssetGraphicComp));
+
+  DataReadResult result;
+  if (src->format == AssetFormat_GraphicBin) {
+    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetGraphicDefMeta, graphicMem, &result);
+  } else {
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetGraphicDefMeta, graphicMem, &result);
+  }
+  if (result.error) {
+    graphic_load_fail(world, entity, id, result.errorMsg);
+    goto Ret;
+    // NOTE: 'AssetGraphicComp' will be cleaned up by 'UnloadGraphicAssetSys'.
+  }
+
+  if (src->format != AssetFormat_GraphicBin) {
+    asset_cache(world, entity, g_assetGraphicDefMeta, graphicMem);
+  }
+
+  ecs_world_add_empty_t(world, entity, AssetGraphicInitComp);
+
+Ret:
+  asset_repo_source_close(src);
 }
 
 String asset_graphic_pass_name(const AssetGraphicPass pass) {
