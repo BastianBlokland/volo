@@ -32,7 +32,8 @@
       "properties": {
         "r": { "title": "f32", "type": "number" },
         "g": { "title": "f32", "type": "number" },
-        "b": { "title": "f32", "type": "number" }
+        "b": { "title": "f32", "type": "number" },
+        "a": { "title": "f32", "type": "number" }
       },
       "required": [],
       "defaultSnippets": [
