@@ -6,6 +6,7 @@
 #include "core_dynstring.h"
 #include "core_math.h"
 #include "core_path.h"
+#include "core_stringtable.h"
 #include "core_time.h"
 #include "data_write.h"
 #include "ecs_entity.h"
@@ -25,7 +26,6 @@
 #define asset_max_load_time_per_task time_millisecond
 #define asset_num_load_tasks 2
 #define asset_id_max_size 256
-#define asset_id_chunk_size (16 * usize_kibibyte)
 
 /**
  * Amount of frames to delay unloading of assets.
@@ -49,7 +49,6 @@ typedef enum {
 
 ecs_comp_define(AssetManagerComp) {
   AssetRepo*        repo;
-  Allocator*        idAlloc; // (chunked) bump allocator for asset ids.
   AssetManagerFlags flags;
   DynArray          lookup; // AssetEntry[], kept sorted on the idHash.
 };
@@ -165,7 +164,6 @@ static void asset_dep_mark(const AssetDepStorage* storage, EcsWorld* world, cons
 static void ecs_destruct_manager_comp(void* data) {
   AssetManagerComp* comp = data;
   asset_repo_destroy(comp->repo);
-  alloc_chunked_destroy(comp->idAlloc);
   dynarray_destroy(&comp->lookup);
 }
 
@@ -213,18 +211,17 @@ asset_manager_create_internal(EcsWorld* world, AssetRepo* repo, const AssetManag
       world,
       ecs_world_global(world),
       AssetManagerComp,
-      .repo    = repo,
-      .idAlloc = alloc_chunked_create(g_allocHeap, alloc_bump_create, asset_id_chunk_size),
-      .flags   = flags,
-      .lookup  = dynarray_create_t(g_allocHeap, AssetEntry, 128));
+      .repo   = repo,
+      .flags  = flags,
+      .lookup = dynarray_create_t(g_allocHeap, AssetEntry, 128));
 }
 
-static EcsEntityId asset_entity_create(EcsWorld* world, Allocator* idAlloc, const String id) {
+static EcsEntityId asset_entity_create(EcsWorld* world, StringTable* stringTable, const String id) {
   diag_assert_msg(!string_is_empty(id), "Empty asset-id is invalid");
 
-  const String idDup = string_dup(idAlloc, id);
+  const String idDup = stringtable_intern(stringTable, id);
   if (UNLIKELY(!idDup.ptr)) {
-    diag_crash_msg("Asset id allocator ran out of space");
+    diag_crash_msg("Asset id string-table ran out of space");
   }
 
   const EcsEntityId entity = ecs_world_entity_create(world);
@@ -716,7 +713,7 @@ EcsEntityId asset_lookup(EcsWorld* world, AssetManagerComp* manager, const Strin
   if (entry->idHash != tgt.idHash) {
     diag_assert(!entry->idHash && !entry->asset);
     entry->idHash = tgt.idHash;
-    entry->asset  = asset_entity_create(world, manager->idAlloc, id);
+    entry->asset  = asset_entity_create(world, g_stringtable, id);
   }
   return entry->asset;
 }
