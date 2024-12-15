@@ -49,7 +49,8 @@
   _X_(AssetFormat_TexProc,          tex_proc,           1  )                                       \
   _X_(AssetFormat_TexTga,           tex_tga,            2  )                                       \
   _X_(AssetFormat_Vfx,              vfx,                1  )                                       \
-  _X_(AssetFormat_Weapons,          weapons,            1  )
+  _X_(AssetFormat_Weapons,          weapons,            1  )                                       \
+  _X_(AssetFormat_WeaponsBin,       weapons,            1  )
 
 #define ASSET_LOADER_ITR(_FORMAT_, _NAME_, _VERSION_) \
   void asset_load_##_NAME_(EcsWorld*, const AssetImportEnvComp*, String, EcsEntityId, AssetSource*);

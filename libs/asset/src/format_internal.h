@@ -47,6 +47,7 @@ typedef enum eAssetFormat {
   AssetFormat_TexTga,
   AssetFormat_Vfx,
   AssetFormat_Weapons,
+  AssetFormat_WeaponsBin,
 
   AssetFormat_Count,
 } AssetFormat;
