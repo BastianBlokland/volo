@@ -19,21 +19,13 @@
 DataMeta g_assetWeaponDefMeta;
 
 typedef struct {
-  StringHash   originJoint;
-  TimeDuration delay, duration;
-  AssetRef     asset;
-  f32          gainMin, gainMax;
-  f32          pitchMin, pitchMax;
-} AssetWeaponEffectSoundDef;
-
-typedef struct {
   AssetWeaponEffectType type;
   union {
-    AssetWeaponEffectProj     data_proj;
-    AssetWeaponEffectDmg      data_dmg;
-    AssetWeaponEffectAnim     data_anim;
-    AssetWeaponEffectVfx      data_vfx;
-    AssetWeaponEffectSoundDef data_sound;
+    AssetWeaponEffectProj  data_proj;
+    AssetWeaponEffectDmg   data_dmg;
+    AssetWeaponEffectAnim  data_anim;
+    AssetWeaponEffectVfx   data_vfx;
+    AssetWeaponEffectSound data_sound;
   };
 } AssetWeaponEffectDef;
 
@@ -87,24 +79,6 @@ static void weapon_effect_anim_build(
   *err = WeaponError_None;
 }
 
-static void weapon_effect_sound_build(
-    const AssetWeaponEffectSoundDef* def, AssetWeaponEffectSound* out, WeaponError* err) {
-  const f32 gainMin  = def->gainMin < f32_epsilon ? 1.0f : def->gainMin;
-  const f32 pitchMin = def->pitchMin < f32_epsilon ? 1.0f : def->pitchMin;
-
-  *out = (AssetWeaponEffectSound){
-      .originJoint = def->originJoint,
-      .delay       = def->delay,
-      .duration    = def->duration,
-      .asset       = def->asset,
-      .gainMin     = gainMin,
-      .gainMax     = math_max(gainMin, def->gainMax),
-      .pitchMin    = pitchMin,
-      .pitchMax    = math_max(pitchMin, def->pitchMax),
-  };
-  *err = WeaponError_None;
-}
-
 static void weapon_build(
     const AssetWeaponDef* def,
     DynArray*             outEffects, // AssetWeaponEffect[], needs to be already initialized.
@@ -148,7 +122,7 @@ static void weapon_build(
       outEffect->data_vfx = effectDef->data_vfx;
       break;
     case AssetWeaponEffect_Sound:
-      weapon_effect_sound_build(&effectDef->data_sound, &outEffect->data_sound, err);
+      outEffect->data_sound = effectDef->data_sound;
       break;
     }
     if (*err) {
@@ -298,8 +272,17 @@ ecs_module_init(asset_weapon_module) {
 }
 
 static bool weapon_data_normalizer_effect_vfx(const Mem data) {
-  AssetWeaponEffectVfx* def = mem_as_t(data, AssetWeaponEffectVfx);
-  def->scale                = math_abs(def->scale) < f32_epsilon ? 1.0f : def->scale;
+  AssetWeaponEffectVfx* effect = mem_as_t(data, AssetWeaponEffectVfx);
+  effect->scale                = math_abs(effect->scale) < f32_epsilon ? 1.0f : effect->scale;
+  return true;
+}
+
+static bool weapon_data_normalizer_effect_sound(const Mem data) {
+  AssetWeaponEffectSound* effect = mem_as_t(data, AssetWeaponEffectSound);
+  effect->gainMin                = effect->gainMin < f32_epsilon ? 1.0f : effect->gainMin;
+  effect->pitchMin               = effect->pitchMin < f32_epsilon ? 1.0f : effect->pitchMin;
+  effect->gainMax                = math_max(effect->gainMin, effect->gainMax);
+  effect->pitchMax               = math_max(effect->pitchMin, effect->pitchMax);
   return true;
 }
 
@@ -359,22 +342,23 @@ void asset_data_init_weapon(void) {
   data_reg_field_t(g_dataReg, AssetWeaponEffectVfx, originJoint, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_normalizer_t(g_dataReg, AssetWeaponEffectVfx, weapon_data_normalizer_effect_vfx);
 
-  data_reg_struct_t(g_dataReg, AssetWeaponEffectSoundDef);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, asset, g_assetRefType);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, delay, data_prim_t(TimeDuration));
-  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, duration, data_prim_t(TimeDuration));
-  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, originJoint, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, gainMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, gainMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, pitchMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetWeaponEffectSoundDef, pitchMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_struct_t(g_dataReg, AssetWeaponEffectSound);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSound, asset, g_assetRefType);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSound, delay, data_prim_t(TimeDuration));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSound, duration, data_prim_t(TimeDuration));
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSound, originJoint, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSound, gainMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSound, gainMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSound, pitchMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetWeaponEffectSound, pitchMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_normalizer_t(g_dataReg, AssetWeaponEffectSound, weapon_data_normalizer_effect_sound);
 
   data_reg_union_t(g_dataReg, AssetWeaponEffectDef, type);
   data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Projectile, data_proj, t_AssetWeaponEffectProj);
   data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Damage, data_dmg, t_AssetWeaponEffectDmg);
   data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Animation, data_anim, t_AssetWeaponEffectAnim);
   data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Vfx, data_vfx, t_AssetWeaponEffectVfx);
-  data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Sound, data_sound, t_AssetWeaponEffectSoundDef);
+  data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Sound, data_sound, t_AssetWeaponEffectSound);
 
   data_reg_struct_t(g_dataReg, AssetWeaponDef);
   data_reg_field_t(g_dataReg, AssetWeaponDef, name, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
