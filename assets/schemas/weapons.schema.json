@@ -20,13 +20,13 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "name": { "title": "String", "type": "string", "minLength": 1 },
+        "name": { "title": "StringHash", "type": "string", "minLength": 1 },
         "intervalMin": { "title": "TimeDuration", "type": "number" },
         "intervalMax": { "title": "TimeDuration", "type": "number" },
         "readySpeed": { "title": "f32", "type": "number" },
         "readyWhileMoving": { "title": "bool", "type": "boolean" },
         "readyMinTime": { "title": "TimeDuration", "type": "number" },
-        "readyAnim": { "title": "String", "type": "string", "minLength": 1 },
+        "readyAnim": { "title": "StringHash", "type": "string", "minLength": 1 },
         "predictiveAim": { "title": "bool", "type": "boolean" },
         "effects": {
           "type": "array",
@@ -52,7 +52,7 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetWeaponEffect_Projectile" },
-            "originJoint": { "title": "String", "type": "string", "minLength": 1 },
+            "originJoint": { "title": "StringHash", "type": "string", "minLength": 1 },
             "launchTowardsTarget": { "title": "bool", "type": "boolean" },
             "seekTowardsTarget": { "title": "bool", "type": "boolean" },
             "applyStatus": { "title": "AssetWeaponStatusMask", "$ref": "#/$defs/AssetWeaponStatusMask" },
@@ -62,8 +62,8 @@
             "damage": { "title": "f32", "type": "number" },
             "damageRadius": { "title": "f32", "type": "number" },
             "destroyDelay": { "title": "TimeDuration", "type": "number" },
-            "projectilePrefab": { "title": "String", "type": "string", "minLength": 1 },
-            "impactPrefab": { "title": "String", "type": "string", "minLength": 1 }
+            "projectilePrefab": { "title": "StringHash", "type": "string", "minLength": 1 },
+            "impactPrefab": { "title": "StringHash", "type": "string", "minLength": 1 }
           },
           "required": [
             "$type",
@@ -81,7 +81,7 @@
           "properties": {
             "$type": { "const": "AssetWeaponEffect_Damage" },
             "continuous": { "title": "bool", "type": "boolean" },
-            "originJoint": { "title": "String", "type": "string", "minLength": 1 },
+            "originJoint": { "title": "StringHash", "type": "string", "minLength": 1 },
             "delay": { "title": "TimeDuration", "type": "number" },
             "radius": { "title": "f32", "type": "number" },
             "radiusEnd": { "title": "f32", "type": "number" },
@@ -89,7 +89,7 @@
             "lengthGrowTime": { "title": "TimeDuration", "type": "number" },
             "damage": { "title": "f32", "type": "number" },
             "applyStatus": { "title": "AssetWeaponStatusMask", "$ref": "#/$defs/AssetWeaponStatusMask" },
-            "impactPrefab": { "title": "String", "type": "string", "minLength": 1 }
+            "impactPrefab": { "title": "StringHash", "type": "string", "minLength": 1 }
           },
           "required": [ "$type", "originJoint", "delay", "radius" ]
         },
@@ -100,7 +100,7 @@
             "$type": { "const": "AssetWeaponEffect_Animation" },
             "continuous": { "title": "bool", "type": "boolean" },
             "allowEarlyInterrupt": { "title": "bool", "type": "boolean" },
-            "layer": { "title": "String", "type": "string", "minLength": 1 },
+            "layer": { "title": "StringHash", "type": "string", "minLength": 1 },
             "delay": { "title": "TimeDuration", "type": "number" },
             "speed": { "title": "f32", "type": "number" }
           },
@@ -116,7 +116,7 @@
             "waitUntilFinished": { "title": "bool", "type": "boolean" },
             "delay": { "title": "TimeDuration", "type": "number" },
             "duration": { "title": "TimeDuration", "type": "number" },
-            "originJoint": { "title": "String", "type": "string", "minLength": 1 }
+            "originJoint": { "title": "StringHash", "type": "string", "minLength": 1 }
           },
           "required": [
             "$type",
@@ -134,7 +134,7 @@
             "asset": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" },
             "delay": { "title": "TimeDuration", "type": "number" },
             "duration": { "title": "TimeDuration", "type": "number" },
-            "originJoint": { "title": "String", "type": "string", "minLength": 1 },
+            "originJoint": { "title": "StringHash", "type": "string", "minLength": 1 },
             "gainMin": { "title": "f32", "type": "number" },
             "gainMax": { "title": "f32", "type": "number" },
             "pitchMin": { "title": "f32", "type": "number" },
