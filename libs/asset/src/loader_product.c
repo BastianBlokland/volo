@@ -83,13 +83,7 @@ static String product_error_str(const ProductError err) {
   return g_msgs[err];
 }
 
-typedef struct {
-  EcsWorld*         world;
-  AssetManagerComp* assetManager;
-} BuildCtx;
-
-static void product_build_meta(BuildCtx* ctx, const AssetProductMetaDef* def, AssetProduct* out) {
-  (void)ctx;
+static void product_build_meta(const AssetProductMetaDef* def, AssetProduct* out) {
   out->iconImage     = def->iconImage;
   out->name          = string_maybe_dup(g_allocHeap, def->name);
   out->costTime      = math_max(def->costTime, time_millisecond);
@@ -103,7 +97,6 @@ static void product_build_meta(BuildCtx* ctx, const AssetProductMetaDef* def, As
 }
 
 static void productset_build(
-    BuildCtx*                 ctx,
     const AssetProductSetDef* def,
     DynArray*                 outProducts, // AssetProduct[], needs to be already initialized.
     AssetProductSet*          outSet,
@@ -127,7 +120,7 @@ static void productset_build(
 
     switch (productDef->type) {
     case AssetProduct_Unit:
-      product_build_meta(ctx, &productDef->data_unit.meta, outProduct);
+      product_build_meta(&productDef->data_unit.meta, outProduct);
       outProduct->data_unit = (AssetProductUnit){
           .unitPrefab = string_hash(productDef->data_unit.unitPrefab),
           .unitCount  = math_max(1, productDef->data_unit.unitCount),
@@ -135,7 +128,7 @@ static void productset_build(
       break;
     case AssetProduct_Placable: {
       const AssetProductPlacableDef* placeDef = &productDef->data_placable;
-      product_build_meta(ctx, &placeDef->meta, outProduct);
+      product_build_meta(&placeDef->meta, outProduct);
       outProduct->data_placable = (AssetProductPlaceable){
           .prefab       = string_hash(placeDef->prefab),
           .soundBlocked = placeDef->soundBlocked,
@@ -149,7 +142,6 @@ static void productset_build(
 }
 
 static void productmap_build(
-    BuildCtx*                 ctx,
     const AssetProductMapDef* def,
     DynArray*                 outSets,     // AssetProductSet[], needs to be already initialized.
     DynArray*                 outProducts, // AssetProduct[], needs to be already initialized.
@@ -157,7 +149,7 @@ static void productmap_build(
 
   heap_array_for_t(def->sets, AssetProductSetDef, setDef) {
     AssetProductSet set;
-    productset_build(ctx, setDef, outProducts, &set, err);
+    productset_build(setDef, outProducts, &set, err);
     if (*err) {
       return;
     }
@@ -241,13 +233,8 @@ ecs_system_define(LoadProductAssetSys) {
       goto Error;
     }
 
-    BuildCtx buildCtx = {
-        .world        = world,
-        .assetManager = manager,
-    };
-
     ProductError buildErr;
-    productmap_build(&buildCtx, &def, &sets, &products, &buildErr);
+    productmap_build(&def, &sets, &products, &buildErr);
     data_destroy(g_dataReg, g_allocHeap, g_assetProductDefMeta, mem_var(def));
     if (buildErr) {
       errMsg = product_error_str(buildErr);
