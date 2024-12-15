@@ -1,11 +1,11 @@
 #pragma once
+#include "asset_ref.h"
 #include "data_registry.h"
 #include "ecs_module.h"
 #include "geo_color.h"
 
 ecs_comp_extern_public(AssetTerrainComp) {
-  String      graphicId, heightmapId;
-  EcsEntityId graphic, heightmap;
+  AssetRef graphic, heightmap;
 
   u32 size;
   u32 playSize;

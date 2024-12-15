@@ -80,7 +80,14 @@ ecs_system_define(LoadTerrainAssetSys) {
       terrain_load_fail(world, entity, id, result.errorMsg);
       goto Error;
     }
-
+    if (!asset_data_patch_refs(
+            world,
+            manager,
+            g_assetTerrainDefMeta,
+            mem_create(terrainComp, sizeof(AssetTerrainComp)))) {
+      terrain_load_fail(world, entity, id, string_lit("Unable to resolve asset-reference"));
+      goto Error;
+    }
     if (!terrainComp->size || terrainComp->size > terrain_max_size) {
       terrain_load_fail(world, entity, id, string_lit("Invalid terrain size"));
       goto Error;
@@ -98,10 +105,6 @@ ecs_system_define(LoadTerrainAssetSys) {
       terrain_load_fail(world, entity, id, string_lit("Invalid terrain maximum height"));
       goto Error;
     }
-
-    // Resolve asset references.
-    terrainComp->graphic   = asset_lookup(world, manager, terrainComp->graphicId);
-    terrainComp->heightmap = asset_lookup(world, manager, terrainComp->heightmapId);
 
     ecs_world_remove_t(world, entity, AssetTerrainLoadComp);
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
@@ -139,8 +142,8 @@ ecs_module_init(asset_terrain_module) {
 void asset_data_init_terrain(void) {
   // clang-format off
   data_reg_struct_t(g_dataReg, AssetTerrainComp);
-  data_reg_field_t(g_dataReg, AssetTerrainComp, graphicId, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetTerrainComp, heightmapId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetTerrainComp, graphic, g_assetRefType);
+  data_reg_field_t(g_dataReg, AssetTerrainComp, heightmap, g_assetRefType);
   data_reg_field_t(g_dataReg, AssetTerrainComp, size, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetTerrainComp, playSize, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetTerrainComp, heightMax, data_prim_t(f32));

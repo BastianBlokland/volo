@@ -119,8 +119,8 @@ static TerrainLoadResult terrain_asset_load(TerrainLoadContext* ctx) {
     return TerrainLoadResult_Error;
   }
   const AssetTerrainComp* asset  = ecs_view_read_t(assetItr, AssetTerrainComp);
-  ctx->terrain->graphicAsset     = asset->graphic;
-  ctx->terrain->heightmapAsset   = asset->heightmap;
+  ctx->terrain->graphicAsset     = asset->graphic.entity;
+  ctx->terrain->heightmapAsset   = asset->heightmap.entity;
   ctx->terrain->size             = asset->size;
   ctx->terrain->sizeHalf         = asset->size * 0.5f;
   ctx->terrain->sizeInv          = 1.0f / asset->size;

@@ -6,8 +6,8 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "graphicId": { "title": "String", "type": "string", "minLength": 1 },
-        "heightmapId": { "title": "String", "type": "string", "minLength": 1 },
+        "graphic": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" },
+        "heightmap": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" },
         "size": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 },
         "playSize": { "title": "u32", "type": "integer", "minimum": 0, "maximum": 4294967295 },
         "heightMax": { "title": "f32", "type": "number" },
@@ -15,16 +15,17 @@
         "minimapColorHigh": { "title": "GeoColor3Norm", "description": "Color (rgb)", "$ref": "#/$defs/GeoColor3Norm" }
       },
       "required": [
-        "graphicId",
-        "heightmapId",
+        "graphic",
+        "heightmap",
         "size",
         "playSize",
         "heightMax"
       ],
       "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"graphicId\": \"placeholder\",\n  \"heightmapId\": \"placeholder\",\n  \"size\": 0,\n  \"playSize\": 0,\n  \"heightMax\": 0\n}" }
+        { "label": "New", "body": "^{\n  \"graphic\": \"placeholder\",\n  \"heightmap\": \"placeholder\",\n  \"size\": 0,\n  \"playSize\": 0,\n  \"heightMax\": 0\n}" }
       ]
     },
+    "AssetRef": { "title": "StringHash", "type": "string", "minLength": 1 },
     "GeoColor3Norm": {
       "type": "object",
       "additionalProperties": false,
