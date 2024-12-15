@@ -18,55 +18,12 @@
 
 #include "data_internal.h"
 
-typedef union {
-  struct {
-    f32 r, g, b;
-  };
-  ALIGNAS(16) f32 comps[4];
-} GeoColor3;
+typedef GeoColor GeoColor3;
+typedef GeoColor GeoColor4;
 
-ASSERT(sizeof(GeoColor3) == sizeof(GeoColor), "Invalid color size")
-ASSERT(alignof(GeoColor3) == alignof(GeoColor), "Invalid color alignment")
-
-typedef union {
-  struct {
-    f32 r, g, b, a;
-  };
-  ALIGNAS(16) f32 comps[4];
-} GeoColor4;
-
-ASSERT(sizeof(GeoColor4) == sizeof(GeoColor), "Invalid color size")
-ASSERT(alignof(GeoColor4) == alignof(GeoColor), "Invalid color alignment")
-
-typedef union {
-  struct {
-    f32 x, y;
-  };
-  ALIGNAS(16) f32 comps[4];
-} GeoVector2;
-
-ASSERT(sizeof(GeoVector2) == sizeof(GeoVector), "Invalid vector size")
-ASSERT(alignof(GeoVector2) == alignof(GeoVector), "Invalid vector alignment")
-
-typedef union {
-  struct {
-    f32 x, y, z;
-  };
-  ALIGNAS(16) f32 comps[4];
-} GeoVector3;
-
-ASSERT(sizeof(GeoVector3) == sizeof(GeoVector), "Invalid vector size")
-ASSERT(alignof(GeoVector3) == alignof(GeoVector), "Invalid vector alignment")
-
-typedef union {
-  struct {
-    f32 x, y, z, w;
-  };
-  ALIGNAS(16) f32 comps[4];
-} GeoVector4;
-
-ASSERT(sizeof(GeoVector4) == sizeof(GeoVector), "Invalid vector size")
-ASSERT(alignof(GeoVector4) == alignof(GeoVector), "Invalid vector alignment")
+typedef GeoVector GeoVector2;
+typedef GeoVector GeoVector3;
+typedef GeoVector GeoVector4;
 
 DataType g_assetRefType;
 DataType g_assetGeoColor3Type, g_assetGeoColor4Type;
