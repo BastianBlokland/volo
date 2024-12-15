@@ -10,6 +10,7 @@
 #include "asset_script.h"
 #include "asset_shader.h"
 #include "asset_sound.h"
+#include "asset_terrain.h"
 #include "asset_texture.h"
 #include "asset_weapon.h"
 #include "core_diag.h"
@@ -80,6 +81,7 @@ static const String g_assetFormatNames[AssetFormat_Count] = {
     [AssetFormat_SoundBin]       = string_static("SoundBin"),
     [AssetFormat_SoundWav]       = string_static("SoundWav"),
     [AssetFormat_Terrain]        = string_static("Terrain"),
+    [AssetFormat_TerrainBin]     = string_static("TerrainBin"),
     [AssetFormat_TexArray]       = string_static("TexArray"),
     [AssetFormat_TexAtlas]       = string_static("TexAtlas"),
     [AssetFormat_TexAtlasBin]    = string_static("TexAtlasBin"),
@@ -108,6 +110,7 @@ static const DataMeta* g_assetFormatBinMeta[AssetFormat_Count] = {
     [AssetFormat_ScriptBin]   = &g_assetScriptMeta,
     [AssetFormat_ShaderBin]   = &g_assetShaderMeta,
     [AssetFormat_SoundBin]    = &g_assetSoundMeta,
+    [AssetFormat_TerrainBin]  = &g_assetTerrainDefMeta,
     [AssetFormat_TexAtlasBin] = &g_assetAtlasBundleMeta,
     [AssetFormat_TexBin]      = &g_assetTexMeta,
     [AssetFormat_TexFontBin]  = &g_assetFontTexBundleMeta,

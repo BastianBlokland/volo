@@ -13,8 +13,8 @@ static const AssetMemRecord g_testData[] = {
     {
         .id   = string_static("test.terrain"),
         .data = string_static("{"
-                              "  \"graphicId\": \"test.graphic\","
-                              "  \"heightmapId\": \"height.r16\","
+                              "  \"graphic\": \"test.graphic\","
+                              "  \"heightmap\": \"height.r16\","
                               "  \"size\": 100.0,"
                               "  \"playSize\": 50.0,"
                               "  \"heightMax\": 1.0"
@@ -67,8 +67,8 @@ spec(loader_terrain) {
     check_require(ecs_world_has_t(world, asset, AssetLoadedComp));
     const AssetTerrainComp* terrain = ecs_utils_read_t(world, AssetView, asset, AssetTerrainComp);
 
-    check_eq_string(terrain->graphicId, string_lit("test.graphic"));
-    check_eq_string(terrain->heightmapId, string_lit("height.r16"));
+    check_eq_int(terrain->graphic.id, string_hash_lit("test.graphic"));
+    check_eq_int(terrain->heightmap.id, string_hash_lit("height.r16"));
   }
 
   it("can unload terrain assets") {

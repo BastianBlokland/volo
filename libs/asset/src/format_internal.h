@@ -33,6 +33,7 @@ typedef enum eAssetFormat {
   AssetFormat_SoundBin,
   AssetFormat_SoundWav,
   AssetFormat_Terrain,
+  AssetFormat_TerrainBin,
   AssetFormat_TexArray,
   AssetFormat_TexAtlas,
   AssetFormat_TexAtlasBin,

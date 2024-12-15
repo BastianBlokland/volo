@@ -249,7 +249,7 @@ void asset_data_init_icon(void) {
   data_reg_field_t(g_dataReg, IconDef, hotspotX, data_prim_t(u32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, IconDef, hotspotY, data_prim_t(u32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, IconDef, scale, data_prim_t(f32), .flags = DataFlags_NotEmpty | DataFlags_Opt);
-  data_reg_field_t(g_dataReg, IconDef, color, g_assetGeoColorType, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, IconDef, color, g_assetGeoColor4Type, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetIconComp);
   data_reg_field_t(g_dataReg, AssetIconComp, width, data_prim_t(u32));

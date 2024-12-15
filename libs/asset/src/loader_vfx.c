@@ -318,7 +318,7 @@ void asset_data_init_vfx(void) {
 
   data_reg_struct_t(g_dataReg, VfxSpriteDef);
   data_reg_field_t(g_dataReg, VfxSpriteDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, color, g_assetGeoColorType, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, VfxSpriteDef, color, g_assetGeoColor4Type, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxSpriteDef, blend, t_AssetVfxBlend, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxSpriteDef, facing, t_AssetVfxFacing, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxSpriteDef, flipbookCount, data_prim_t(u16), .flags = DataFlags_Opt);
@@ -334,7 +334,7 @@ void asset_data_init_vfx(void) {
   data_reg_comment_t(g_dataReg, VfxSpriteDef, "Optional sprite to render for each particle.");
 
   data_reg_struct_t(g_dataReg, VfxLightDef);
-  data_reg_field_t(g_dataReg, VfxLightDef, radiance, g_assetGeoColorType, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, VfxLightDef, radiance, g_assetGeoColor4Type, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxLightDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxLightDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxLightDef, radius, data_prim_t(f32), .flags = DataFlags_Opt);

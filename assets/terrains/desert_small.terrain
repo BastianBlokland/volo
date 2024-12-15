@@ -1,6 +1,6 @@
 {
-  "graphicId": "graphics/scene/terrain_desert.graphic",
-  "heightmapId": "external/terrain/terrain_3_height.r16",
+  "graphic": "graphics/scene/terrain_desert.graphic",
+  "heightmap": "external/terrain/terrain_3_height.r16",
   "size": 400,
   "playSize": 230,
   "heightMax": 3.0,

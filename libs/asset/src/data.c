@@ -18,38 +18,19 @@
 
 #include "data_internal.h"
 
-typedef union {
-  struct {
-    f32 x, y;
-  };
-  ALIGNAS(16) f32 comps[4];
-} GeoVector2;
+typedef GeoColor GeoColor3;
+typedef GeoColor GeoColor4;
 
-ASSERT(sizeof(GeoVector2) == sizeof(GeoVector), "Invalid vector size")
-ASSERT(alignof(GeoVector2) == alignof(GeoVector), "Invalid vector alignment")
+typedef GeoColor GeoColor3Norm;
+typedef GeoColor GeoColor4Norm;
 
-typedef union {
-  struct {
-    f32 x, y, z;
-  };
-  ALIGNAS(16) f32 comps[4];
-} GeoVector3;
-
-ASSERT(sizeof(GeoVector3) == sizeof(GeoVector), "Invalid vector size")
-ASSERT(alignof(GeoVector3) == alignof(GeoVector), "Invalid vector alignment")
-
-typedef union {
-  struct {
-    f32 x, y, z, w;
-  };
-  ALIGNAS(16) f32 comps[4];
-} GeoVector4;
-
-ASSERT(sizeof(GeoVector4) == sizeof(GeoVector), "Invalid vector size")
-ASSERT(alignof(GeoVector4) == alignof(GeoVector), "Invalid vector alignment")
+typedef GeoVector GeoVector2;
+typedef GeoVector GeoVector3;
+typedef GeoVector GeoVector4;
 
 DataType g_assetRefType;
-DataType g_assetGeoColorType;
+DataType g_assetGeoColor3Type, g_assetGeoColor4Type;
+DataType g_assetGeoColor3NormType, g_assetGeoColor4NormType;
 DataType g_assetGeoVec2Type, g_assetGeoVec3Type, g_assetGeoVec4Type;
 DataType g_assetGeoQuatType;
 DataType g_assetGeoBoxType, g_assetGeoBoxRotatedType;
@@ -58,6 +39,44 @@ DataType g_assetGeoSphereType;
 DataType g_assetGeoCapsuleType;
 DataType g_assetGeoMatrixType;
 DataType g_assetGeoPlaneType;
+
+static bool asset_data_normalizer_color3(const Mem data) {
+  GeoColor3* color = mem_as_t(data, GeoColor3);
+  color->a         = 1.0f;
+  return true;
+}
+
+static bool asset_data_normalizer_color3norm(const Mem data) {
+  GeoColor3* color = mem_as_t(data, GeoColor3);
+  if (UNLIKELY(color->r < 0.0f || color->r > 1.0f)) {
+    return false;
+  }
+  if (UNLIKELY(color->g < 0.0f || color->g > 1.0f)) {
+    return false;
+  }
+  if (UNLIKELY(color->b < 0.0f || color->b > 1.0f)) {
+    return false;
+  }
+  color->a = 1.0f;
+  return true;
+}
+
+static bool asset_data_normalizer_color4norm(const Mem data) {
+  GeoColor4* color = mem_as_t(data, GeoColor4);
+  if (UNLIKELY(color->r < 0.0f || color->r > 1.0f)) {
+    return false;
+  }
+  if (UNLIKELY(color->g < 0.0f || color->g > 1.0f)) {
+    return false;
+  }
+  if (UNLIKELY(color->b < 0.0f || color->b > 1.0f)) {
+    return false;
+  }
+  if (UNLIKELY(color->a < 0.0f || color->a > 1.0f)) {
+    return false;
+  }
+  return true;
+}
 
 static bool asset_data_normalizer_quat(const Mem data) {
   GeoQuat* quat = mem_as_t(data, GeoQuat);
@@ -109,12 +128,34 @@ static void asset_data_init_types(void) {
   data_reg_field_t(g_dataReg, AssetRef, id, data_prim_t(StringHash), .flags = DataFlags_NotEmpty | DataFlags_InlineField);
   data_reg_comment_t(g_dataReg, AssetRef, "Asset reference");
 
-  data_reg_struct_t(g_dataReg, GeoColor);
-  data_reg_field_t(g_dataReg, GeoColor, r, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, GeoColor, g, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, GeoColor, b, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, GeoColor, a, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_comment_t(g_dataReg, GeoColor, "HDR Color");
+  data_reg_struct_t(g_dataReg, GeoColor3);
+  data_reg_field_t(g_dataReg, GeoColor3, r, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor3, g, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor3, b, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_comment_t(g_dataReg, GeoColor3, "HDR Color (rgb)");
+  data_reg_normalizer_t(g_dataReg, GeoColor3, asset_data_normalizer_color3);
+
+  data_reg_struct_t(g_dataReg, GeoColor4);
+  data_reg_field_t(g_dataReg, GeoColor4, r, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor4, g, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor4, b, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor4, a, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_comment_t(g_dataReg, GeoColor4, "HDR Color (rgba)");
+
+  data_reg_struct_t(g_dataReg, GeoColor3Norm);
+  data_reg_field_t(g_dataReg, GeoColor3Norm, r, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor3Norm, g, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor3Norm, b, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_comment_t(g_dataReg, GeoColor3Norm, "Color (rgb)");
+  data_reg_normalizer_t(g_dataReg, GeoColor3Norm, asset_data_normalizer_color3norm);
+
+  data_reg_struct_t(g_dataReg, GeoColor4Norm);
+  data_reg_field_t(g_dataReg, GeoColor4Norm, r, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor4Norm, g, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor4Norm, b, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, GeoColor4Norm, a, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_comment_t(g_dataReg, GeoColor4Norm, "Color (rgba)");
+  data_reg_normalizer_t(g_dataReg, GeoColor4Norm, asset_data_normalizer_color4norm);
 
   data_reg_struct_t(g_dataReg, GeoVector2);
   data_reg_field_t(g_dataReg, GeoVector2, x, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -187,7 +228,10 @@ static void asset_data_init_types(void) {
   // clang-format on
 
   g_assetRefType           = t_AssetRef;
-  g_assetGeoColorType      = t_GeoColor;
+  g_assetGeoColor3Type     = t_GeoColor3;
+  g_assetGeoColor4Type     = t_GeoColor4;
+  g_assetGeoColor3NormType = t_GeoColor3Norm;
+  g_assetGeoColor4NormType = t_GeoColor4Norm;
   g_assetGeoVec2Type       = t_GeoVector2;
   g_assetGeoVec3Type       = t_GeoVector3;
   g_assetGeoVec4Type       = t_GeoVector4;

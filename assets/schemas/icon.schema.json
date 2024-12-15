@@ -12,8 +12,8 @@
         "scale": { "title": "f32", "type": "number" },
         "color": {
           "anyOf": [
-            { "title": "GeoColor", "description": "HDR Color", "$ref": "#/$defs/GeoColor" },
-            { "const": null, "title": "GeoColor" }
+            { "title": "GeoColor4", "description": "HDR Color (rgba)", "$ref": "#/$defs/GeoColor4" },
+            { "const": null, "title": "GeoColor4" }
           ]
         }
       },
@@ -22,7 +22,7 @@
         { "label": "New", "body": "^{\n  \"texture\": \"placeholder\"\n}" }
       ]
     },
-    "GeoColor": {
+    "GeoColor4": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
