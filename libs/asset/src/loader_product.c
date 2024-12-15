@@ -86,10 +86,10 @@ static String product_error_str(const ProductError err) {
 static void product_build_meta(const AssetProductMetaDef* def, AssetProduct* out) {
   out->iconImage     = def->iconImage;
   out->name          = string_maybe_dup(g_allocHeap, def->name);
-  out->costTime      = math_max(def->costTime, time_millisecond);
-  out->queueMax      = def->queueMax ? def->queueMax : u16_max;
-  out->queueBulkSize = def->queueBulkSize ? def->queueBulkSize : 5;
-  out->cooldown      = math_max(def->cooldown, time_millisecond);
+  out->costTime      = def->costTime;
+  out->queueMax      = def->queueMax;
+  out->queueBulkSize = def->queueBulkSize;
+  out->cooldown      = def->cooldown;
   out->soundBuilding = def->soundBuilding;
   out->soundReady    = def->soundReady;
   out->soundCancel   = def->soundCancel;
@@ -181,6 +181,15 @@ static void ecs_destruct_productmap_comp(void* data) {
 static void ecs_destruct_product_load_comp(void* data) {
   AssetProductLoadComp* comp = data;
   asset_repo_source_close(comp->src);
+}
+
+static bool product_data_normalizer_metadef(const Mem data) {
+  AssetProductMetaDef* meta = mem_as_t(data, AssetProductMetaDef);
+  meta->costTime            = math_max(meta->costTime, time_millisecond);
+  meta->queueMax            = meta->queueMax ? meta->queueMax : u16_max;
+  meta->queueBulkSize       = meta->queueBulkSize ? meta->queueBulkSize : 5;
+  meta->cooldown            = math_max(meta->cooldown, time_millisecond);
+  return true;
 }
 
 static bool product_data_normalizer_sound(const Mem data) {
@@ -310,6 +319,7 @@ void asset_data_init_product(void) {
   data_reg_field_t(g_dataReg, AssetProductMetaDef, soundReady, t_AssetProductSound, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, soundCancel, t_AssetProductSound, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetProductMetaDef, soundSuccess, t_AssetProductSound, .flags = DataFlags_Opt);
+  data_reg_normalizer_t(g_dataReg, AssetProductMetaDef, product_data_normalizer_metadef);
 
   data_reg_struct_t(g_dataReg, AssetProductUnitDef);
   data_reg_field_t(g_dataReg, AssetProductUnitDef, meta, t_AssetProductMetaDef, .flags = DataFlags_Opt);
