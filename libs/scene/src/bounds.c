@@ -128,12 +128,12 @@ ecs_system_define(SceneBoundsTemplateLoadSys) {
         scene_bounds_template_load_done(world, itr);
         break; // Graphic failed to load, or was of unexpected type.
       }
-      if (!graphic->mesh) {
+      if (!graphic->mesh.entity) {
         scene_bounds_template_load_done(world, itr);
         break; // Graphic did not have a mesh.
       }
-      templateComp->mesh = graphic->mesh;
-      asset_acquire(world, graphic->mesh);
+      templateComp->mesh = graphic->mesh.entity;
+      asset_acquire(world, graphic->mesh.entity);
       ++templateComp->state;
       break; // Wait for the acquire to take effect.
     }

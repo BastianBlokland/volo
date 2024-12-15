@@ -14,7 +14,7 @@ static const AssetMemRecord g_testData[] = {
         .data = string_static("{"
                               "  \"pass\": \"Forward\","
                               "  \"shaders\": [{ "
-                              "    \"shaderId\": \"test.glsl\","
+                              "    \"program\": \"test.glsl\","
                               "    \"overrides\": [{ "
                               "      \"name\": \"Test\","
                               "      \"binding\": 42,"
@@ -23,19 +23,19 @@ static const AssetMemRecord g_testData[] = {
                               "  }],"
                               "  \"samplers\": ["
                               "    {"
-                              "      \"textureId\": \"a.ppm\","
+                              "      \"texture\": \"a.ppm\","
                               "      \"wrap\": \"Clamp\","
                               "      \"filter\": \"Nearest\","
                               "      \"anisotropy\": \"x4\","
                               "    },"
                               "    {"
-                              "      \"textureId\": \"b.ppm\","
+                              "      \"texture\": \"b.ppm\","
                               "      \"wrap\": \"Repeat\","
                               "      \"filter\": \"Linear\","
                               "      \"anisotropy\": \"None\","
                               "    },"
                               "  ],"
-                              "  \"meshId\": \"a.obj\","
+                              "  \"mesh\": \"a.obj\","
                               "  \"topology\": \"Triangles\","
                               "  \"rasterizer\": \"Fill\","
                               "  \"lineWidth\": 42,"
@@ -122,24 +122,28 @@ spec(loader_graphic) {
       const AssetGraphicComp* gra = ecs_utils_read_t(world, AssetView, asset, AssetGraphicComp);
 
       check_require(gra->shaders.count == 1);
-      check(gra->shaders.values[0].shader == asset_lookup(world, manager, string_lit("test.glsl")));
-      check_require(gra->shaders.values[0].overrides.count == 1);
-      check_eq_string(gra->shaders.values[0].overrides.values[0].name, string_lit("Test"));
-      check_eq_int(gra->shaders.values[0].overrides.values[0].binding, 42);
-      check_eq_float(gra->shaders.values[0].overrides.values[0].value, 1337.1337, 1e-8);
+      const AssetGraphicShader* shader = &gra->shaders.values[0];
+      check(shader->program.entity == asset_lookup(world, manager, string_lit("test.glsl")));
+      check_require(shader->overrides.count == 1);
+      check_eq_string(shader->overrides.values[0].name, string_lit("Test"));
+      check_eq_int(shader->overrides.values[0].binding, 42);
+      check_eq_float(shader->overrides.values[0].value, 1337.1337, 1e-8);
 
       check_require(gra->samplers.count == 2);
-      check(gra->samplers.values[0].texture == asset_lookup(world, manager, string_lit("a.ppm")));
-      check_eq_int(gra->samplers.values[0].wrap, AssetGraphicWrap_Clamp);
-      check_eq_int(gra->samplers.values[0].filter, AssetGraphicFilter_Nearest);
-      check_eq_int(gra->samplers.values[0].anisotropy, AssetGraphicAniso_x4);
+      const AssetGraphicSampler* sampler0 = &gra->samplers.values[0];
+      const AssetGraphicSampler* sampler1 = &gra->samplers.values[1];
 
-      check(gra->samplers.values[1].texture == asset_lookup(world, manager, string_lit("b.ppm")));
-      check_eq_int(gra->samplers.values[1].wrap, AssetGraphicWrap_Repeat);
-      check_eq_int(gra->samplers.values[1].filter, AssetGraphicFilter_Linear);
-      check_eq_int(gra->samplers.values[1].anisotropy, AssetGraphicAniso_None);
+      check(sampler0->texture.entity == asset_lookup(world, manager, string_lit("a.ppm")));
+      check_eq_int(sampler0->wrap, AssetGraphicWrap_Clamp);
+      check_eq_int(sampler0->filter, AssetGraphicFilter_Nearest);
+      check_eq_int(sampler0->anisotropy, AssetGraphicAniso_x4);
 
-      check(gra->mesh == asset_lookup(world, manager, string_lit("a.obj")));
+      check(sampler1->texture.entity == asset_lookup(world, manager, string_lit("b.ppm")));
+      check_eq_int(sampler1->wrap, AssetGraphicWrap_Repeat);
+      check_eq_int(sampler1->filter, AssetGraphicFilter_Linear);
+      check_eq_int(sampler1->anisotropy, AssetGraphicAniso_None);
+
+      check(gra->mesh.entity == asset_lookup(world, manager, string_lit("a.obj")));
       check_eq_int(gra->topology, AssetGraphicTopology_Triangles);
       check_eq_int(gra->rasterizer, AssetGraphicRasterizer_Fill);
       check_eq_int(gra->lineWidth, 42);

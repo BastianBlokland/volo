@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_ref.h"
 #include "core_array.h"
 #include "data_registry.h"
 #include "ecs_module.h"
@@ -99,14 +100,12 @@ typedef struct sAssetGraphicOverride {
 } AssetGraphicOverride;
 
 typedef struct {
-  String      shaderId;
-  EcsEntityId shader;
+  AssetRef program;
   HeapArray_t(AssetGraphicOverride) overrides;
 } AssetGraphicShader;
 
 typedef struct {
-  String             textureId;
-  EcsEntityId        texture;
+  AssetRef           texture;
   AssetGraphicWrap   wrap;
   AssetGraphicFilter filter;
   AssetGraphicAniso  anisotropy;
@@ -118,8 +117,7 @@ ecs_comp_extern_public(AssetGraphicComp) {
   i32              passOrder;
   HeapArray_t(AssetGraphicShader) shaders;
   HeapArray_t(AssetGraphicSampler) samplers;
-  String                 meshId; // Mutually exclusive with 'vertexCount'.
-  EcsEntityId            mesh;
+  AssetRef               mesh;        // Mutually exclusive with 'vertexCount'.
   u32                    vertexCount; // Mutually exclusive with 'mesh'.
   AssetGraphicTopology   topology;
   AssetGraphicRasterizer rasterizer;

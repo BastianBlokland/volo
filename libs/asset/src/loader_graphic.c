@@ -8,6 +8,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
+#include "data_internal.h"
 #include "manager_internal.h"
 #include "repo_internal.h"
 
@@ -63,38 +64,22 @@ ecs_system_define(LoadGraphicAssetSys) {
     const String       id          = asset_id(ecs_view_read_t(itr, AssetComp));
     const AssetSource* src         = ecs_view_read_t(itr, AssetGraphicLoadComp)->src;
     AssetGraphicComp*  graphicComp = ecs_world_add_t(world, entity, AssetGraphicComp);
+    const Mem          graphicMem  = mem_create(graphicComp, sizeof(AssetGraphicComp));
 
     DataReadResult result;
-    data_read_json(
-        g_dataReg,
-        src->data,
-        g_allocHeap,
-        g_assetGraphicDefMeta,
-        mem_create(graphicComp, sizeof(AssetGraphicComp)),
-        &result);
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetGraphicDefMeta, graphicMem, &result);
     if (result.error) {
       graphic_load_fail(world, entity, id, result.errorMsg);
       goto Error;
     }
-
-    // Resolve shader references.
-    heap_array_for_t(graphicComp->shaders, AssetGraphicShader, ptr) {
-      ptr->shader = asset_lookup(world, manager, ptr->shaderId);
-    }
-
-    // Resolve texture references.
-    heap_array_for_t(graphicComp->samplers, AssetGraphicSampler, ptr) {
-      ptr->texture = asset_lookup(world, manager, ptr->textureId);
-    }
-
-    // Resolve mesh reference.
-    if (!string_is_empty(graphicComp->meshId) && graphicComp->vertexCount) {
-      graphic_load_fail(
-          world, entity, id, string_lit("'meshId' can't be combined with 'vertexCount'"));
+    if (!asset_data_patch_refs(world, manager, g_assetGraphicDefMeta, graphicMem)) {
+      graphic_load_fail(world, entity, id, string_lit("Unable to resolve asset-reference"));
       goto Error;
     }
-    if (!string_is_empty(graphicComp->meshId)) {
-      graphicComp->mesh = asset_lookup(world, manager, graphicComp->meshId);
+    if (graphicComp->mesh.id && graphicComp->vertexCount) {
+      graphic_load_fail(
+          world, entity, id, string_lit("'mesh' can't be combined with 'vertexCount'"));
+      goto Error;
     }
 
     ecs_world_remove_t(world, entity, AssetGraphicLoadComp);
@@ -205,11 +190,11 @@ void asset_data_init_graphic(void) {
   data_reg_field_t(g_dataReg, AssetGraphicOverride, value, data_prim_t(f64));
 
   data_reg_struct_t(g_dataReg, AssetGraphicShader);
-  data_reg_field_t(g_dataReg, AssetGraphicShader, shaderId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetGraphicShader, program, g_assetRefType);
   data_reg_field_t(g_dataReg, AssetGraphicShader, overrides, t_AssetGraphicOverride, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetGraphicSampler);
-  data_reg_field_t(g_dataReg, AssetGraphicSampler, textureId, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetGraphicSampler, texture, g_assetRefType);
   data_reg_field_t(g_dataReg, AssetGraphicSampler, wrap, t_AssetGraphicWrap, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicSampler, filter, t_AssetGraphicFilter, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicSampler, anisotropy, t_AssetGraphicAniso, .flags = DataFlags_Opt);
@@ -220,7 +205,7 @@ void asset_data_init_graphic(void) {
   data_reg_field_t(g_dataReg, AssetGraphicComp, passOrder, data_prim_t(i32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicComp, shaders, t_AssetGraphicShader, .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetGraphicComp, samplers, t_AssetGraphicSampler, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetGraphicComp, meshId, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetGraphicComp, mesh, g_assetRefType, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicComp, vertexCount, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetGraphicComp, topology, t_AssetGraphicTopology, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetGraphicComp, rasterizer, t_AssetGraphicRasterizer, .flags = DataFlags_Opt);
