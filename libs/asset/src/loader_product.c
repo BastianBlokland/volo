@@ -15,6 +15,7 @@
 
 #include "data_internal.h"
 #include "import_internal.h"
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 DataMeta g_assetProductDefMeta;
@@ -163,7 +164,7 @@ static void productmap_build(
 }
 
 ecs_comp_define_public(AssetProductMapComp);
-ecs_comp_define(AssetProductLoadComp) { AssetSource* src; };
+ecs_comp_define(AssetProductLoadComp) { AssetProductMapDef def; };
 
 static void ecs_destruct_productmap_comp(void* data) {
   AssetProductMapComp* comp = data;
@@ -180,7 +181,7 @@ static void ecs_destruct_productmap_comp(void* data) {
 
 static void ecs_destruct_product_load_comp(void* data) {
   AssetProductLoadComp* comp = data;
-  asset_repo_source_close(comp->src);
+  data_destroy(g_dataReg, g_allocHeap, g_assetProductDefMeta, mem_var(comp->def));
 }
 
 static bool product_data_normalizer_metadef(const Mem data) {
@@ -227,30 +228,21 @@ ecs_system_define(LoadProductAssetSys) {
 
   EcsView* loadView = ecs_world_view_t(world, LoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
-    const EcsEntityId  entity = ecs_view_entity(itr);
-    const String       id     = asset_id(ecs_view_read_t(itr, AssetComp));
-    const AssetSource* src    = ecs_view_read_t(itr, AssetProductLoadComp)->src;
+    const EcsEntityId           entity = ecs_view_entity(itr);
+    const String                id     = asset_id(ecs_view_read_t(itr, AssetComp));
+    const AssetProductLoadComp* load   = ecs_view_read_t(itr, AssetProductLoadComp);
 
     DynArray sets     = dynarray_create_t(g_allocHeap, AssetProductSet, 64);
     DynArray products = dynarray_create_t(g_allocHeap, AssetProduct, 64);
 
-    AssetProductMapDef def;
-    String             errMsg;
-    DataReadResult     readRes;
-    data_read_json(
-        g_dataReg, src->data, g_allocHeap, g_assetProductDefMeta, mem_var(def), &readRes);
-    if (UNLIKELY(readRes.error)) {
-      errMsg = readRes.errorMsg;
-      goto Error;
-    }
-    if (!asset_data_patch_refs(world, manager, g_assetProductDefMeta, mem_var(def))) {
+    String errMsg;
+    if (!asset_data_patch_refs(world, manager, g_assetProductDefMeta, mem_var(load->def))) {
       errMsg = product_error_str(ProductError_InvalidAssetReference);
       goto Error;
     }
 
     ProductError buildErr;
-    productmap_build(&def, &sets, &products, &buildErr);
-    data_destroy(g_dataReg, g_allocHeap, g_assetProductDefMeta, mem_var(def));
+    productmap_build(&load->def, &sets, &products, &buildErr);
     if (buildErr) {
       errMsg = product_error_str(buildErr);
       goto Error;
@@ -362,7 +354,34 @@ void asset_load_products(
   (void)importEnv;
   (void)id;
 
-  ecs_world_add_t(world, entity, AssetProductLoadComp, .src = src);
+  AssetProductMapDef def;
+  DataReadResult     result;
+  if (src->format == AssetFormat_ProductsBin) {
+    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetProductDefMeta, mem_var(def), &result);
+  } else {
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetProductDefMeta, mem_var(def), &result);
+  }
+
+  if (UNLIKELY(result.error)) {
+    log_e(
+        "Failed to load product-map",
+        log_param("id", fmt_text(id)),
+        log_param("entity", ecs_entity_fmt(entity)),
+        log_param("error-code", fmt_int(result.error)),
+        log_param("error", fmt_text(result.errorMsg)));
+    ecs_world_add_empty_t(world, entity, AssetFailedComp);
+    goto Ret;
+  }
+
+  if (src->format != AssetFormat_ProductsBin) {
+    // TODO: Instead of caching the definition it would be more optional to cache the resulting map.
+    asset_cache(world, entity, g_assetProductDefMeta, mem_var(def));
+  }
+
+  ecs_world_add_t(world, entity, AssetProductLoadComp, .def = def);
+
+Ret:
+  asset_repo_source_close(src);
 }
 
 const AssetProductSet*
