@@ -19,17 +19,6 @@
 DataMeta g_assetWeaponDefMeta;
 
 typedef struct {
-  AssetWeaponEffectType type;
-  union {
-    AssetWeaponEffectProj  data_proj;
-    AssetWeaponEffectDmg   data_dmg;
-    AssetWeaponEffectAnim  data_anim;
-    AssetWeaponEffectVfx   data_vfx;
-    AssetWeaponEffectSound data_sound;
-  };
-} AssetWeaponEffectDef;
-
-typedef struct {
   StringHash   name;
   TimeDuration intervalMin, intervalMax;
   f32          readySpeed;
@@ -37,7 +26,7 @@ typedef struct {
   TimeDuration readyMinTime;
   StringHash   readyAnim;
   bool         predictiveAim;
-  HeapArray_t(AssetWeaponEffectDef) effects;
+  HeapArray_t(AssetWeaponEffect) effects;
 } AssetWeaponDef;
 
 typedef struct {
@@ -70,15 +59,12 @@ static String weapon_error_str(const WeaponError err) {
 static void weapon_build(
     const AssetWeaponDef* def,
     DynArray*             outEffects, // AssetWeaponEffect[], needs to be already initialized.
-    AssetWeapon*          outWeapon,
-    WeaponError*          err) {
+    AssetWeapon*          outWeapon) {
 
   AssetWeaponFlags flags = 0;
   if (def->predictiveAim) {
     flags |= AssetWeapon_PredictiveAim;
   }
-
-  *err       = WeaponError_None;
   *outWeapon = (AssetWeapon){
       .nameHash         = def->name,
       .flags            = flags,
@@ -91,32 +77,9 @@ static void weapon_build(
       .effectIndex      = (u16)outEffects->size,
       .effectCount      = (u16)def->effects.count,
   };
-
-  heap_array_for_t(def->effects, AssetWeaponEffectDef, effectDef) {
-    AssetWeaponEffect* outEffect = dynarray_push_t(outEffects, AssetWeaponEffect);
-    outEffect->type              = effectDef->type;
-
-    switch (effectDef->type) {
-    case AssetWeaponEffect_Projectile:
-      outEffect->data_proj = effectDef->data_proj;
-      break;
-    case AssetWeaponEffect_Damage:
-      outEffect->data_dmg = effectDef->data_dmg;
-      break;
-    case AssetWeaponEffect_Animation:
-      outEffect->data_anim = effectDef->data_anim;
-      break;
-    case AssetWeaponEffect_Vfx:
-      outEffect->data_vfx = effectDef->data_vfx;
-      break;
-    case AssetWeaponEffect_Sound:
-      outEffect->data_sound = effectDef->data_sound;
-      break;
-    }
-    if (*err) {
-      return; // Failed to build effect.
-    }
-  }
+  mem_cpy(
+      dynarray_push(outEffects, def->effects.count),
+      mem_create(def->effects.values, sizeof(AssetWeaponEffect) * def->effects.count));
 }
 
 static void weaponmap_build(
@@ -127,7 +90,7 @@ static void weaponmap_build(
 
   heap_array_for_t(def->weapons, AssetWeaponDef, weaponDef) {
     AssetWeapon weapon;
-    weapon_build(weaponDef, outEffects, &weapon, err);
+    weapon_build(weaponDef, outEffects, &weapon);
     if (*err) {
       return;
     }
@@ -350,12 +313,12 @@ void asset_data_init_weapon(void) {
   data_reg_field_t(g_dataReg, AssetWeaponEffectSound, pitchMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_normalizer_t(g_dataReg, AssetWeaponEffectSound, weapon_data_normalizer_effect_sound);
 
-  data_reg_union_t(g_dataReg, AssetWeaponEffectDef, type);
-  data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Projectile, data_proj, t_AssetWeaponEffectProj);
-  data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Damage, data_dmg, t_AssetWeaponEffectDmg);
-  data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Animation, data_anim, t_AssetWeaponEffectAnim);
-  data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Vfx, data_vfx, t_AssetWeaponEffectVfx);
-  data_reg_choice_t(g_dataReg, AssetWeaponEffectDef, AssetWeaponEffect_Sound, data_sound, t_AssetWeaponEffectSound);
+  data_reg_union_t(g_dataReg, AssetWeaponEffect, type);
+  data_reg_choice_t(g_dataReg, AssetWeaponEffect, AssetWeaponEffect_Projectile, data_proj, t_AssetWeaponEffectProj);
+  data_reg_choice_t(g_dataReg, AssetWeaponEffect, AssetWeaponEffect_Damage, data_dmg, t_AssetWeaponEffectDmg);
+  data_reg_choice_t(g_dataReg, AssetWeaponEffect, AssetWeaponEffect_Animation, data_anim, t_AssetWeaponEffectAnim);
+  data_reg_choice_t(g_dataReg, AssetWeaponEffect, AssetWeaponEffect_Vfx, data_vfx, t_AssetWeaponEffectVfx);
+  data_reg_choice_t(g_dataReg, AssetWeaponEffect, AssetWeaponEffect_Sound, data_sound, t_AssetWeaponEffectSound);
 
   data_reg_struct_t(g_dataReg, AssetWeaponDef);
   data_reg_field_t(g_dataReg, AssetWeaponDef, name, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
@@ -366,7 +329,7 @@ void asset_data_init_weapon(void) {
   data_reg_field_t(g_dataReg, AssetWeaponDef, readyMinTime, data_prim_t(TimeDuration));
   data_reg_field_t(g_dataReg, AssetWeaponDef, readyAnim, data_prim_t(StringHash), .flags = DataFlags_NotEmpty | DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetWeaponDef, predictiveAim, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetWeaponDef, effects, t_AssetWeaponEffectDef, .container = DataContainer_HeapArray);
+  data_reg_field_t(g_dataReg, AssetWeaponDef, effects, t_AssetWeaponEffect, .container = DataContainer_HeapArray);
 
   data_reg_struct_t(g_dataReg, AssetWeaponMapDef);
   data_reg_field_t(g_dataReg, AssetWeaponMapDef, weapons, t_AssetWeaponDef, .container = DataContainer_HeapArray);

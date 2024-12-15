@@ -30,7 +30,7 @@
         "predictiveAim": { "title": "bool", "type": "boolean" },
         "effects": {
           "type": "array",
-          "items": { "title": "AssetWeaponEffectDef", "$ref": "#/$defs/AssetWeaponEffectDef" }
+          "items": { "title": "AssetWeaponEffect", "$ref": "#/$defs/AssetWeaponEffect" }
         }
       },
       "required": [
@@ -45,7 +45,7 @@
         { "label": "New", "body": "^{\n  \"name\": \"placeholder\",\n  \"intervalMin\": 0,\n  \"intervalMax\": 0,\n  \"readySpeed\": 0,\n  \"readyMinTime\": 0,\n  \"effects\": []\n}" }
       ]
     },
-    "AssetWeaponEffectDef": {
+    "AssetWeaponEffect": {
       "anyOf": [
         {
           "type": "object",
