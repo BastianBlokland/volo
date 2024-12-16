@@ -27,14 +27,6 @@ typedef struct {
 } VfxConeDef;
 
 typedef struct {
-  f32 min, max;
-} VfxRangeScalarDef;
-
-typedef struct {
-  TimeDuration min, max;
-} VfxRangeDurationDef;
-
-typedef struct {
   GeoVector base, random;
 } VfxRangeRotationDef;
 
@@ -59,19 +51,19 @@ typedef struct {
 } VfxLightDef;
 
 typedef struct {
-  VfxConeDef          cone;
-  GeoVector           force;
-  f32                 friction;
-  AssetVfxSpace       space;
-  VfxSpriteDef        sprite;
-  VfxLightDef         light;
-  VfxRangeScalarDef   speed;
-  f32                 expandForce;
-  u16                 count;
-  TimeDuration        interval;
-  VfxRangeScalarDef   scale;
-  VfxRangeDurationDef lifetime;
-  VfxRangeRotationDef rotation;
+  VfxConeDef            cone;
+  GeoVector             force;
+  f32                   friction;
+  AssetVfxSpace         space;
+  VfxSpriteDef          sprite;
+  VfxLightDef           light;
+  AssetVfxRangeScalar   speed;
+  f32                   expandForce;
+  u16                   count;
+  TimeDuration          interval;
+  AssetVfxRangeScalar   scale;
+  AssetVfxRangeDuration lifetime;
+  VfxRangeRotationDef   rotation;
 } VfxEmitterDef;
 
 typedef struct {
@@ -127,20 +119,6 @@ static AssetVfxCone vfx_build_cone(const VfxConeDef* def) {
   };
 }
 
-static AssetVfxRangeScalar vfx_build_range_scalar(const VfxRangeScalarDef* def) {
-  return (AssetVfxRangeScalar){
-      .min = def->min,
-      .max = math_max(def->min, def->max),
-  };
-}
-
-static AssetVfxRangeDuration vfx_build_range_duration(const VfxRangeDurationDef* def) {
-  return (AssetVfxRangeDuration){
-      .min = def->min,
-      .max = math_max(def->min, def->max),
-  };
-}
-
 static AssetVfxRangeRotation vfx_build_range_rotation(const VfxRangeRotationDef* def) {
   return (AssetVfxRangeRotation){
       .base              = geo_quat_from_euler(geo_vector_mul(def->base, math_deg_to_rad)),
@@ -191,17 +169,17 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   vfx_build_sprite(&def->sprite, &out->sprite);
   vfx_build_light(&def->light, &out->light);
 
-  out->speed       = vfx_build_range_scalar(&def->speed);
+  out->speed       = def->speed;
   out->expandForce = def->expandForce;
   out->count       = def->count;
   out->interval    = def->interval;
 
-  out->scale = vfx_build_range_scalar(&def->scale);
+  out->scale = def->scale;
   if (out->scale.max <= 0) {
     out->scale.min = out->scale.max = 1.0f;
   }
 
-  out->lifetime = vfx_build_range_duration(&def->lifetime);
+  out->lifetime = def->lifetime;
   if (out->lifetime.max <= 0) {
     out->lifetime.min = out->lifetime.max = vfx_max_time;
   }
@@ -233,6 +211,18 @@ ecs_module_init(asset_vfx_module) {
   ecs_register_system(VfxUnloadAssetSys, ecs_view_id(VfxUnloadView));
 }
 
+static bool vfx_data_normalizer_range_scalar(const Mem data) {
+  AssetVfxRangeScalar* range = mem_as_t(data, AssetVfxRangeScalar);
+  range->max                 = math_max(range->min, range->max);
+  return true;
+}
+
+static bool vfx_data_normalizer_range_duration(const Mem data) {
+  AssetVfxRangeDuration* range = mem_as_t(data, AssetVfxRangeDuration);
+  range->max                   = math_max(range->min, range->max);
+  return true;
+}
+
 void asset_data_init_vfx(void) {
   // clang-format off
   data_reg_struct_t(g_dataReg, VfxConeDef);
@@ -242,13 +232,15 @@ void asset_data_init_vfx(void) {
   data_reg_field_t(g_dataReg, VfxConeDef, rotation, g_assetGeoVec3Type, .flags = DataFlags_Opt);
   data_reg_comment_t(g_dataReg, VfxConeDef, "3D Cone shape");
 
-  data_reg_struct_t(g_dataReg, VfxRangeScalarDef);
-  data_reg_field_t(g_dataReg, VfxRangeScalarDef, min, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxRangeScalarDef, max, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_struct_t(g_dataReg, AssetVfxRangeScalar);
+  data_reg_field_t(g_dataReg, AssetVfxRangeScalar, min, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxRangeScalar, max, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_normalizer_t(g_dataReg, AssetVfxRangeScalar, vfx_data_normalizer_range_scalar);
 
-  data_reg_struct_t(g_dataReg, VfxRangeDurationDef);
-  data_reg_field_t(g_dataReg, VfxRangeDurationDef, min, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxRangeDurationDef, max, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
+  data_reg_struct_t(g_dataReg, AssetVfxRangeDuration);
+  data_reg_field_t(g_dataReg, AssetVfxRangeDuration, min, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxRangeDuration, max, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
+  data_reg_normalizer_t(g_dataReg, AssetVfxRangeDuration, vfx_data_normalizer_range_duration);
 
   data_reg_struct_t(g_dataReg, VfxRangeRotationDef);
   data_reg_field_t(g_dataReg, VfxRangeRotationDef, base, g_assetGeoVec3Type, .flags = DataFlags_Opt);
@@ -309,12 +301,12 @@ void asset_data_init_vfx(void) {
   data_reg_field_t(g_dataReg, VfxEmitterDef, space, t_AssetVfxSpace, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxEmitterDef, sprite, t_VfxSpriteDef, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxEmitterDef, light, t_VfxLightDef, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxEmitterDef, speed, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, VfxEmitterDef, speed, t_AssetVfxRangeScalar, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxEmitterDef, expandForce, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u16), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxEmitterDef, interval, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxEmitterDef, scale, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxEmitterDef, lifetime, t_VfxRangeDurationDef, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, VfxEmitterDef, scale, t_AssetVfxRangeScalar, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, VfxEmitterDef, lifetime, t_AssetVfxRangeDuration, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxEmitterDef, rotation, t_VfxRangeRotationDef, .flags = DataFlags_Opt);
   data_reg_comment_t(g_dataReg, VfxEmitterDef, "Particle emitter settings.");
 
