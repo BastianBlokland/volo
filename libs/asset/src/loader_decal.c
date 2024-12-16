@@ -9,7 +9,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
-#include "import_internal.h"
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 #define decal_default_size 1.0f
@@ -22,8 +22,8 @@ typedef struct {
   bool             trail;
   f32              spacing;
   AssetDecalAxis   projectionAxis;
-  String           colorAtlasEntry;
-  String           normalAtlasEntry; // Optional, empty if unused.
+  StringHash       colorAtlasEntry;
+  StringHash       normalAtlasEntry; // Optional, empty if unused.
   AssetDecalNormal baseNormal;
   bool             fadeUsingDepthNormal;
   bool             noColorOutput;
@@ -69,8 +69,8 @@ static AssetDecalFlags decal_build_flags(const DecalDef* def) {
 static void decal_build_def(const DecalDef* def, AssetDecalComp* out) {
   out->spacing          = def->spacing < f32_epsilon ? decal_default_spacing : def->spacing;
   out->projectionAxis   = def->projectionAxis;
-  out->atlasColorEntry  = string_hash(def->colorAtlasEntry);
-  out->atlasNormalEntry = string_maybe_hash(def->normalAtlasEntry);
+  out->atlasColorEntry  = def->colorAtlasEntry;
+  out->atlasNormalEntry = def->normalAtlasEntry;
   out->baseNormal       = def->baseNormal;
   out->flags            = decal_build_flags(def);
   out->excludeMask      = def->excludeMask;
@@ -115,8 +115,8 @@ void asset_data_init_decal(void) {
   data_reg_field_t(g_dataReg, DecalDef, trail, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, DecalDef, spacing, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, DecalDef, projectionAxis, t_AssetDecalAxis);
-  data_reg_field_t(g_dataReg, DecalDef, colorAtlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, DecalDef, normalAtlasEntry, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, DecalDef, colorAtlasEntry, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, DecalDef, normalAtlasEntry, data_prim_t(StringHash), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, DecalDef, baseNormal, t_AssetDecalNormal, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, DecalDef, fadeUsingDepthNormal, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, DecalDef, noColorOutput, data_prim_t(bool), .flags = DataFlags_Opt);
@@ -147,23 +147,31 @@ void asset_load_decal(
   (void)importEnv;
   (void)id;
 
-  DecalDef       decalDef;
+  DecalDef       def;
   String         errMsg;
-  DataReadResult readRes;
-  data_read_json(
-      g_dataReg, src->data, g_allocHeap, g_assetDecalDefMeta, mem_var(decalDef), &readRes);
-  if (UNLIKELY(readRes.error)) {
-    errMsg = readRes.errorMsg;
+  DataReadResult result;
+  if (src->format == AssetFormat_DecalBin) {
+    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetDecalDefMeta, mem_var(def), &result);
+  } else {
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetDecalDefMeta, mem_var(def), &result);
+  }
+  if (UNLIKELY(result.error)) {
+    errMsg = result.errorMsg;
     goto Error;
   }
 
-  if (UNLIKELY(decalDef.trail && decalDef.projectionAxis != AssetDecalAxis_WorldY)) {
+  if (UNLIKELY(def.trail && def.projectionAxis != AssetDecalAxis_WorldY)) {
     errMsg = string_lit("Trail decals only support 'WorldY' projection");
     goto Error;
   }
 
-  AssetDecalComp* result = ecs_world_add_t(world, entity, AssetDecalComp);
-  decal_build_def(&decalDef, result);
+  AssetDecalComp* decal = ecs_world_add_t(world, entity, AssetDecalComp);
+  decal_build_def(&def, decal);
+
+  if (src->format != AssetFormat_DecalBin) {
+    // TODO: Instead of caching the definition it would be more optimal to cache the result decal.
+    asset_cache(world, entity, g_assetDecalDefMeta, mem_var(def));
+  }
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   goto Cleanup;
@@ -177,6 +185,6 @@ Error:
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:
-  data_destroy(g_dataReg, g_allocHeap, g_assetDecalDefMeta, mem_var(decalDef));
+  data_destroy(g_dataReg, g_allocHeap, g_assetDecalDefMeta, mem_var(def));
   asset_repo_source_close(src);
 }

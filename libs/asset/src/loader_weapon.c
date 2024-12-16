@@ -358,7 +358,7 @@ void asset_load_weapons(
   }
 
   if (src->format != AssetFormat_WeaponsBin) {
-    // TODO: Instead of caching the definition it would be more optional to cache the resulting map.
+    // TODO: Instead of caching the definition it would be more optimal to cache the resulting map.
     asset_cache(world, entity, g_assetWeaponDefMeta, mem_var(def));
   }
 

@@ -8,6 +8,7 @@
 
 #define ASSET_FOREACH_LOADER(_X_)                                                                  \
   _X_(AssetFormat_Decal,            decal,              1  )                                       \
+  _X_(AssetFormat_DecalBin,         decal,              1  )                                       \
   _X_(AssetFormat_FontTtf,          font_ttf,           1  )                                       \
   _X_(AssetFormat_Graphic,          graphic,            1  )                                       \
   _X_(AssetFormat_GraphicBin,       graphic,            1  )                                       \
