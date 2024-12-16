@@ -2,7 +2,6 @@
 #include "core_alloc.h"
 #include "core_dynarray.h"
 #include "core_search.h"
-#include "core_stringtable.h"
 #include "data_read.h"
 #include "data_utils.h"
 #include "ecs_entity.h"
