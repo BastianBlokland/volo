@@ -1,15 +1,15 @@
 {
-  "title": "VfxDef",
-  "$ref": "#/$defs/VfxDef",
+  "title": "AssetVfxDef",
+  "$ref": "#/$defs/AssetVfxDef",
   "$defs": {
-    "VfxDef": {
+    "AssetVfxDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "ignoreTransformRotation": { "title": "bool", "type": "boolean" },
         "emitters": {
           "type": "array",
-          "items": { "title": "VfxEmitterDef", "description": "Particle emitter settings.", "$ref": "#/$defs/VfxEmitterDef" }
+          "items": { "title": "AssetVfxEmitterDef", "description": "Particle emitter settings.", "$ref": "#/$defs/AssetVfxEmitterDef" }
         }
       },
       "required": [ "emitters" ],
@@ -17,30 +17,30 @@
         { "label": "New", "body": "^{\n  \"emitters\": []\n}" }
       ]
     },
-    "VfxEmitterDef": {
+    "AssetVfxEmitterDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "cone": { "title": "VfxConeDef", "description": "3D Cone shape", "$ref": "#/$defs/VfxConeDef" },
+        "cone": { "title": "AssetVfxConeDef", "description": "3D Cone shape", "$ref": "#/$defs/AssetVfxConeDef" },
         "force": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
         "friction": { "title": "f32", "type": "number" },
         "space": { "title": "AssetVfxSpace", "description": "* Local: Particles are simulated relative to the entity transform.\n* World: Particles are simulated in world-space.", "$ref": "#/$defs/AssetVfxSpace" },
-        "sprite": { "title": "VfxSpriteDef", "description": "Optional sprite to render for each particle.", "$ref": "#/$defs/VfxSpriteDef" },
-        "light": { "title": "VfxLightDef", "description": "Optional point light to render for each particle.", "$ref": "#/$defs/VfxLightDef" },
+        "sprite": { "title": "AssetVfxSpriteDef", "description": "Optional sprite to render for each particle.", "$ref": "#/$defs/AssetVfxSpriteDef" },
+        "light": { "title": "AssetVfxLightDef", "description": "Optional point light to render for each particle.", "$ref": "#/$defs/AssetVfxLightDef" },
         "speed": { "title": "AssetVfxRangeScalar", "$ref": "#/$defs/AssetVfxRangeScalar" },
         "expandForce": { "title": "f32", "type": "number" },
         "count": { "title": "u16", "type": "integer", "minimum": 0, "maximum": 65535 },
         "interval": { "title": "TimeDuration", "type": "number" },
         "scale": { "title": "AssetVfxRangeScalar", "$ref": "#/$defs/AssetVfxRangeScalar" },
         "lifetime": { "title": "AssetVfxRangeDuration", "$ref": "#/$defs/AssetVfxRangeDuration" },
-        "rotation": { "title": "VfxRangeRotationDef", "$ref": "#/$defs/VfxRangeRotationDef" }
+        "rotation": { "title": "AssetVfxRangeRotationDef", "$ref": "#/$defs/AssetVfxRangeRotationDef" }
       },
       "required": [],
       "defaultSnippets": [
         { "label": "New", "body": "^{}" }
       ]
     },
-    "VfxConeDef": {
+    "AssetVfxConeDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -70,7 +70,7 @@
     "AssetVfxSpace": {
       "enum": [ "Local", "World" ]
     },
-    "VfxSpriteDef": {
+    "AssetVfxSpriteDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -131,7 +131,7 @@
         { "label": "New", "body": "^{}" }
       ]
     },
-    "VfxLightDef": {
+    "AssetVfxLightDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -170,7 +170,7 @@
         { "label": "New", "body": "^{}" }
       ]
     },
-    "VfxRangeRotationDef": {
+    "AssetVfxRangeRotationDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
