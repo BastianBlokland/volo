@@ -20,76 +20,56 @@
 DataMeta g_assetVfxDefMeta;
 
 typedef struct {
-  f32 x, y;
-} VfxVec2Def;
+  f32       angle;
+  f32       radius;
+  GeoVector position;
+  GeoVector rotation;
+} AssetVfxConeDef;
 
 typedef struct {
-  f32 x, y, z;
-} VfxVec3Def;
+  GeoVector base, random;
+} AssetVfxRangeRotationDef;
 
 typedef struct {
-  f32 x, y, z;
-} VfxRotDef;
-
-typedef struct {
-  f32        angle;
-  f32        radius;
-  VfxVec3Def position;
-  VfxRotDef  rotation;
-} VfxConeDef;
-
-typedef struct {
-  f32 min, max;
-} VfxRangeScalarDef;
-
-typedef struct {
-  f32 min, max;
-} VfxRangeDurationDef;
-
-typedef struct {
-  VfxRotDef base, random;
-} VfxRangeRotationDef;
-
-typedef struct {
-  String         atlasEntry;
+  StringHash     atlasEntry;
   GeoColor*      color;
   AssetVfxBlend  blend;
   AssetVfxFacing facing;
   u16            flipbookCount;
   f32            flipbookTime;
-  VfxVec2Def     size;
+  GeoVector      size;
   f32            fadeInTime, fadeOutTime;
   f32            scaleInTime, scaleOutTime;
   bool           geometryFade, shadowCaster, distortion;
-} VfxSpriteDef;
+} AssetVfxSpriteDef;
 
 typedef struct {
   GeoColor radiance;
   f32      fadeInTime, fadeOutTime;
   f32      radius;
   f32      turbulenceFrequency;
-} VfxLightDef;
+} AssetVfxLightDef;
 
 typedef struct {
-  VfxConeDef          cone;
-  VfxVec3Def          force;
-  f32                 friction;
-  AssetVfxSpace       space;
-  VfxSpriteDef        sprite;
-  VfxLightDef         light;
-  VfxRangeScalarDef   speed;
-  f32                 expandForce;
-  u16                 count;
-  f32                 interval;
-  VfxRangeScalarDef   scale;
-  VfxRangeDurationDef lifetime;
-  VfxRangeRotationDef rotation;
-} VfxEmitterDef;
+  AssetVfxConeDef          cone;
+  GeoVector                force;
+  f32                      friction;
+  AssetVfxSpace            space;
+  AssetVfxSpriteDef        sprite;
+  AssetVfxLightDef         light;
+  AssetVfxRangeScalar      speed;
+  f32                      expandForce;
+  u16                      count;
+  TimeDuration             interval;
+  AssetVfxRangeScalar      scale;
+  AssetVfxRangeDuration    lifetime;
+  AssetVfxRangeRotationDef rotation;
+} AssetVfxEmitterDef;
 
 typedef struct {
   bool ignoreTransformRotation;
-  HeapArray_t(VfxEmitterDef) emitters;
-} VfxDef;
+  HeapArray_t(AssetVfxEmitterDef) emitters;
+} AssetVfxDef;
 
 typedef enum {
   VfxError_None            = 0,
@@ -130,52 +110,28 @@ ecs_system_define(VfxUnloadAssetSys) {
   }
 }
 
-static GeoVector vfx_build_vec3(const VfxVec3Def* def) {
-  return geo_vector(def->x, def->y, def->z);
-}
-
-static GeoQuat vfx_build_rot(const VfxRotDef* def) {
-  const GeoVector eulerAnglesDeg = geo_vector(def->x, def->y, def->z);
-  return geo_quat_from_euler(geo_vector_mul(eulerAnglesDeg, math_deg_to_rad));
-}
-
-static AssetVfxCone vfx_build_cone(const VfxConeDef* def) {
+static AssetVfxCone vfx_build_cone(const AssetVfxConeDef* def) {
   return (AssetVfxCone){
-      .angle    = def->angle * math_deg_to_rad,
+      .angle    = def->angle,
       .radius   = def->radius,
-      .position = vfx_build_vec3(&def->position),
-      .rotation = vfx_build_rot(&def->rotation),
+      .position = def->position,
+      .rotation = geo_quat_from_euler(geo_vector_mul(def->rotation, math_deg_to_rad)),
   };
 }
 
-static AssetVfxRangeScalar vfx_build_range_scalar(const VfxRangeScalarDef* def) {
-  return (AssetVfxRangeScalar){
-      .min = def->min,
-      .max = math_max(def->min, def->max),
-  };
-}
-
-static AssetVfxRangeDuration vfx_build_range_duration(const VfxRangeDurationDef* def) {
-  return (AssetVfxRangeDuration){
-      .min = (TimeDuration)time_seconds(def->min),
-      .max = (TimeDuration)time_seconds(math_max(def->min, def->max)),
-  };
-}
-
-static AssetVfxRangeRotation vfx_build_range_rotation(const VfxRangeRotationDef* def) {
-  const GeoVector randomEulerAnglesDeg = geo_vector(def->random.x, def->random.y, def->random.z);
+static AssetVfxRangeRotation vfx_build_range_rotation(const AssetVfxRangeRotationDef* def) {
   return (AssetVfxRangeRotation){
-      .base              = vfx_build_rot(&def->base),
-      .randomEulerAngles = geo_vector_mul(randomEulerAnglesDeg, math_deg_to_rad),
+      .base              = geo_quat_from_euler(geo_vector_mul(def->base, math_deg_to_rad)),
+      .randomEulerAngles = geo_vector_mul(def->random, math_deg_to_rad),
   };
 }
 
-static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
-  if (string_is_empty(def->atlasEntry)) {
+static void vfx_build_sprite(const AssetVfxSpriteDef* def, AssetVfxSprite* out) {
+  if (!def->atlasEntry) {
     *out = (AssetVfxSprite){0};
     return; // Sprites are optional.
   }
-  out->atlasEntry      = string_hash(def->atlasEntry);
+  out->atlasEntry      = def->atlasEntry;
   out->color           = def->color ? *def->color : geo_color_white;
   out->blend           = def->blend;
   out->facing          = def->facing;
@@ -192,7 +148,7 @@ static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
   out->distortion      = def->distortion;
 }
 
-static void vfx_build_light(const VfxLightDef* def, AssetVfxLight* out) {
+static void vfx_build_light(const AssetVfxLightDef* def, AssetVfxLight* out) {
   if (def->radiance.a <= f32_epsilon) {
     *out = (AssetVfxLight){0};
     return; // Lights are optional.
@@ -204,26 +160,26 @@ static void vfx_build_light(const VfxLightDef* def, AssetVfxLight* out) {
   out->turbulenceFrequency = def->turbulenceFrequency;
 }
 
-static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
+static void vfx_build_emitter(const AssetVfxEmitterDef* def, AssetVfxEmitter* out) {
   out->cone     = vfx_build_cone(&def->cone);
-  out->force    = vfx_build_vec3(&def->force);
+  out->force    = def->force;
   out->friction = def->friction > f32_epsilon ? def->friction : 1.0f;
   out->space    = def->space;
 
   vfx_build_sprite(&def->sprite, &out->sprite);
   vfx_build_light(&def->light, &out->light);
 
-  out->speed       = vfx_build_range_scalar(&def->speed);
+  out->speed       = def->speed;
   out->expandForce = def->expandForce;
   out->count       = def->count;
-  out->interval    = (TimeDuration)time_seconds(def->interval);
+  out->interval    = def->interval;
 
-  out->scale = vfx_build_range_scalar(&def->scale);
+  out->scale = def->scale;
   if (out->scale.max <= 0) {
     out->scale.min = out->scale.max = 1.0f;
   }
 
-  out->lifetime = vfx_build_range_duration(&def->lifetime);
+  out->lifetime = def->lifetime;
   if (out->lifetime.max <= 0) {
     out->lifetime.min = out->lifetime.max = vfx_max_time;
   }
@@ -231,7 +187,7 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->rotation = vfx_build_range_rotation(&def->rotation);
 }
 
-static void vfx_build_def(const VfxDef* def, AssetVfxComp* out) {
+static void vfx_build_def(const AssetVfxDef* def, AssetVfxComp* out) {
   diag_assert(def->emitters.count <= asset_vfx_max_emitters);
 
   AssetVfxFlags flags = 0;
@@ -255,43 +211,40 @@ ecs_module_init(asset_vfx_module) {
   ecs_register_system(VfxUnloadAssetSys, ecs_view_id(VfxUnloadView));
 }
 
+static bool vfx_data_normalizer_range_scalar(const Mem data) {
+  AssetVfxRangeScalar* range = mem_as_t(data, AssetVfxRangeScalar);
+  range->max                 = math_max(range->min, range->max);
+  return true;
+}
+
+static bool vfx_data_normalizer_range_duration(const Mem data) {
+  AssetVfxRangeDuration* range = mem_as_t(data, AssetVfxRangeDuration);
+  range->max                   = math_max(range->min, range->max);
+  return true;
+}
+
 void asset_data_init_vfx(void) {
   // clang-format off
-  data_reg_struct_t(g_dataReg, VfxVec2Def);
-  data_reg_field_t(g_dataReg, VfxVec2Def, x, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxVec2Def, y, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_comment_t(g_dataReg, VfxVec2Def, "2D Vector (components default to 0)");
+  data_reg_struct_t(g_dataReg, AssetVfxConeDef);
+  data_reg_field_t(g_dataReg, AssetVfxConeDef, angle, data_prim_t(Angle), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxConeDef, radius, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxConeDef, position, g_assetGeoVec3Type, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxConeDef, rotation, g_assetGeoVec3Type, .flags = DataFlags_Opt);
+  data_reg_comment_t(g_dataReg, AssetVfxConeDef, "3D Cone shape");
 
-  data_reg_struct_t(g_dataReg, VfxVec3Def);
-  data_reg_field_t(g_dataReg, VfxVec3Def, x, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxVec3Def, y, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxVec3Def, z, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_comment_t(g_dataReg, VfxVec3Def, "3D Vector (components default to 0)");
+  data_reg_struct_t(g_dataReg, AssetVfxRangeScalar);
+  data_reg_field_t(g_dataReg, AssetVfxRangeScalar, min, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxRangeScalar, max, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_normalizer_t(g_dataReg, AssetVfxRangeScalar, vfx_data_normalizer_range_scalar);
 
-  data_reg_struct_t(g_dataReg, VfxRotDef);
-  data_reg_field_t(g_dataReg, VfxRotDef, x, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxRotDef, y, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxRotDef, z, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_comment_t(g_dataReg, VfxRotDef, "3D Rotation (components default to 0)");
+  data_reg_struct_t(g_dataReg, AssetVfxRangeDuration);
+  data_reg_field_t(g_dataReg, AssetVfxRangeDuration, min, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxRangeDuration, max, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
+  data_reg_normalizer_t(g_dataReg, AssetVfxRangeDuration, vfx_data_normalizer_range_duration);
 
-  data_reg_struct_t(g_dataReg, VfxConeDef);
-  data_reg_field_t(g_dataReg, VfxConeDef, angle, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxConeDef, radius, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxConeDef, position, t_VfxVec3Def, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxConeDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
-  data_reg_comment_t(g_dataReg, VfxConeDef, "3D Cone shape");
-
-  data_reg_struct_t(g_dataReg, VfxRangeScalarDef);
-  data_reg_field_t(g_dataReg, VfxRangeScalarDef, min, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxRangeScalarDef, max, data_prim_t(f32), .flags = DataFlags_Opt);
-
-  data_reg_struct_t(g_dataReg, VfxRangeDurationDef);
-  data_reg_field_t(g_dataReg, VfxRangeDurationDef, min, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxRangeDurationDef, max, data_prim_t(f32), .flags = DataFlags_Opt);
-
-  data_reg_struct_t(g_dataReg, VfxRangeRotationDef);
-  data_reg_field_t(g_dataReg, VfxRangeRotationDef, base, t_VfxRotDef, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxRangeRotationDef, random, t_VfxRotDef, .flags = DataFlags_Opt);
+  data_reg_struct_t(g_dataReg, AssetVfxRangeRotationDef);
+  data_reg_field_t(g_dataReg, AssetVfxRangeRotationDef, base, g_assetGeoVec3Type, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxRangeRotationDef, random, g_assetGeoVec3Type, .flags = DataFlags_Opt);
 
   data_reg_enum_t(g_dataReg, AssetVfxSpace);
   data_reg_const_t(g_dataReg, AssetVfxSpace, Local);
@@ -316,53 +269,53 @@ void asset_data_init_vfx(void) {
                                           "* BillboardCylinder: Sprites are camera facing on the Y axis.");
 
 
-  data_reg_struct_t(g_dataReg, VfxSpriteDef);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, color, g_assetGeoColor4Type, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, blend, t_AssetVfxBlend, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, facing, t_AssetVfxFacing, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, flipbookCount, data_prim_t(u16), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, flipbookTime, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, size, t_VfxVec2Def);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, scaleInTime, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, scaleOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, geometryFade, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, shadowCaster, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, distortion, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_comment_t(g_dataReg, VfxSpriteDef, "Optional sprite to render for each particle.");
+  data_reg_struct_t(g_dataReg, AssetVfxSpriteDef);
+  data_reg_field_t(g_dataReg, AssetVfxSpriteDef, atlasEntry, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetVfxSpriteDef, color, g_assetGeoColor4Type, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxSpriteDef, blend, t_AssetVfxBlend, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxSpriteDef, facing, t_AssetVfxFacing, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxSpriteDef, flipbookCount, data_prim_t(u16), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxSpriteDef, flipbookTime, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxSpriteDef, size, g_assetGeoVec2Type);
+  data_reg_field_t(g_dataReg, AssetVfxSpriteDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxSpriteDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxSpriteDef, scaleInTime, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxSpriteDef, scaleOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxSpriteDef, geometryFade, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxSpriteDef, shadowCaster, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxSpriteDef, distortion, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_comment_t(g_dataReg, AssetVfxSpriteDef, "Optional sprite to render for each particle.");
 
-  data_reg_struct_t(g_dataReg, VfxLightDef);
-  data_reg_field_t(g_dataReg, VfxLightDef, radiance, g_assetGeoColor4Type, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxLightDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxLightDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxLightDef, radius, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxLightDef, turbulenceFrequency, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_comment_t(g_dataReg, VfxLightDef, "Optional point light to render for each particle.");
+  data_reg_struct_t(g_dataReg, AssetVfxLightDef);
+  data_reg_field_t(g_dataReg, AssetVfxLightDef, radiance, g_assetGeoColor4Type, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxLightDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxLightDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxLightDef, radius, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxLightDef, turbulenceFrequency, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_comment_t(g_dataReg, AssetVfxLightDef, "Optional point light to render for each particle.");
 
-  data_reg_struct_t(g_dataReg, VfxEmitterDef);
-  data_reg_field_t(g_dataReg, VfxEmitterDef, cone, t_VfxConeDef, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxEmitterDef, force, t_VfxVec3Def, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxEmitterDef, friction, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, VfxEmitterDef, space, t_AssetVfxSpace, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxEmitterDef, sprite, t_VfxSpriteDef, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxEmitterDef, light, t_VfxLightDef, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxEmitterDef, speed, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxEmitterDef, expandForce, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u16), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxEmitterDef, interval, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxEmitterDef, scale, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxEmitterDef, lifetime, t_VfxRangeDurationDef, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxEmitterDef, rotation, t_VfxRangeRotationDef, .flags = DataFlags_Opt);
-  data_reg_comment_t(g_dataReg, VfxEmitterDef, "Particle emitter settings.");
+  data_reg_struct_t(g_dataReg, AssetVfxEmitterDef);
+  data_reg_field_t(g_dataReg, AssetVfxEmitterDef, cone, t_AssetVfxConeDef, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxEmitterDef, force, g_assetGeoVec3Type, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxEmitterDef, friction, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetVfxEmitterDef, space, t_AssetVfxSpace, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxEmitterDef, sprite, t_AssetVfxSpriteDef, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxEmitterDef, light, t_AssetVfxLightDef, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxEmitterDef, speed, t_AssetVfxRangeScalar, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxEmitterDef, expandForce, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxEmitterDef, count, data_prim_t(u16), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxEmitterDef, interval, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxEmitterDef, scale, t_AssetVfxRangeScalar, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxEmitterDef, lifetime, t_AssetVfxRangeDuration, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxEmitterDef, rotation, t_AssetVfxRangeRotationDef, .flags = DataFlags_Opt);
+  data_reg_comment_t(g_dataReg, AssetVfxEmitterDef, "Particle emitter settings.");
 
-  data_reg_struct_t(g_dataReg, VfxDef);
-  data_reg_field_t(g_dataReg, VfxDef, ignoreTransformRotation, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxDef, emitters, t_VfxEmitterDef, .container = DataContainer_HeapArray);
+  data_reg_struct_t(g_dataReg, AssetVfxDef);
+  data_reg_field_t(g_dataReg, AssetVfxDef, ignoreTransformRotation, data_prim_t(bool), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetVfxDef, emitters, t_AssetVfxEmitterDef, .container = DataContainer_HeapArray);
   // clang-format on
 
-  g_assetVfxDefMeta = data_meta_t(t_VfxDef);
+  g_assetVfxDefMeta = data_meta_t(t_AssetVfxDef);
 }
 
 void asset_load_vfx(
@@ -373,21 +326,30 @@ void asset_load_vfx(
     AssetSource*              src) {
   (void)importEnv;
 
-  VfxDef         vfxDef;
+  AssetVfxDef    def;
   String         errMsg;
-  DataReadResult readRes;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetVfxDefMeta, mem_var(vfxDef), &readRes);
-  if (UNLIKELY(readRes.error)) {
-    errMsg = readRes.errorMsg;
+  DataReadResult result;
+  if (src->format == AssetFormat_VfxBin) {
+    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetVfxDefMeta, mem_var(def), &result);
+  } else {
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetVfxDefMeta, mem_var(def), &result);
+  }
+  if (UNLIKELY(result.error)) {
+    errMsg = result.errorMsg;
     goto Error;
   }
-  if (UNLIKELY(vfxDef.emitters.count > asset_vfx_max_emitters)) {
+  if (UNLIKELY(def.emitters.count > asset_vfx_max_emitters)) {
     errMsg = vfx_error_str(VfxError_TooManyEmitters);
     goto Error;
   }
 
-  AssetVfxComp* result = ecs_world_add_t(world, entity, AssetVfxComp);
-  vfx_build_def(&vfxDef, result);
+  AssetVfxComp* vfx = ecs_world_add_t(world, entity, AssetVfxComp);
+  vfx_build_def(&def, vfx);
+
+  if (src->format != AssetFormat_VfxBin) {
+    // TODO: Instead of caching the definition it would be more optimal to cache the result vfx.
+    asset_cache(world, entity, g_assetVfxDefMeta, mem_var(def));
+  }
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   goto Cleanup;
@@ -401,6 +363,6 @@ Error:
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:
-  data_destroy(g_dataReg, g_allocHeap, g_assetVfxDefMeta, mem_var(vfxDef));
+  data_destroy(g_dataReg, g_allocHeap, g_assetVfxDefMeta, mem_var(def));
   asset_repo_source_close(src);
 }

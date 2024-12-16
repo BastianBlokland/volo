@@ -1,15 +1,15 @@
 {
-  "title": "VfxDef",
-  "$ref": "#/$defs/VfxDef",
+  "title": "AssetVfxDef",
+  "$ref": "#/$defs/AssetVfxDef",
   "$defs": {
-    "VfxDef": {
+    "AssetVfxDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "ignoreTransformRotation": { "title": "bool", "type": "boolean" },
         "emitters": {
           "type": "array",
-          "items": { "title": "VfxEmitterDef", "description": "Particle emitter settings.", "$ref": "#/$defs/VfxEmitterDef" }
+          "items": { "title": "AssetVfxEmitterDef", "description": "Particle emitter settings.", "$ref": "#/$defs/AssetVfxEmitterDef" }
         }
       },
       "required": [ "emitters" ],
@@ -17,57 +17,44 @@
         { "label": "New", "body": "^{\n  \"emitters\": []\n}" }
       ]
     },
-    "VfxEmitterDef": {
+    "AssetVfxEmitterDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "cone": { "title": "VfxConeDef", "description": "3D Cone shape", "$ref": "#/$defs/VfxConeDef" },
-        "force": { "title": "VfxVec3Def", "description": "3D Vector (components default to 0)", "$ref": "#/$defs/VfxVec3Def" },
+        "cone": { "title": "AssetVfxConeDef", "description": "3D Cone shape", "$ref": "#/$defs/AssetVfxConeDef" },
+        "force": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
         "friction": { "title": "f32", "type": "number" },
         "space": { "title": "AssetVfxSpace", "description": "* Local: Particles are simulated relative to the entity transform.\n* World: Particles are simulated in world-space.", "$ref": "#/$defs/AssetVfxSpace" },
-        "sprite": { "title": "VfxSpriteDef", "description": "Optional sprite to render for each particle.", "$ref": "#/$defs/VfxSpriteDef" },
-        "light": { "title": "VfxLightDef", "description": "Optional point light to render for each particle.", "$ref": "#/$defs/VfxLightDef" },
-        "speed": { "title": "VfxRangeScalarDef", "$ref": "#/$defs/VfxRangeScalarDef" },
+        "sprite": { "title": "AssetVfxSpriteDef", "description": "Optional sprite to render for each particle.", "$ref": "#/$defs/AssetVfxSpriteDef" },
+        "light": { "title": "AssetVfxLightDef", "description": "Optional point light to render for each particle.", "$ref": "#/$defs/AssetVfxLightDef" },
+        "speed": { "title": "AssetVfxRangeScalar", "$ref": "#/$defs/AssetVfxRangeScalar" },
         "expandForce": { "title": "f32", "type": "number" },
         "count": { "title": "u16", "type": "integer", "minimum": 0, "maximum": 65535 },
-        "interval": { "title": "f32", "type": "number" },
-        "scale": { "title": "VfxRangeScalarDef", "$ref": "#/$defs/VfxRangeScalarDef" },
-        "lifetime": { "title": "VfxRangeDurationDef", "$ref": "#/$defs/VfxRangeDurationDef" },
-        "rotation": { "title": "VfxRangeRotationDef", "$ref": "#/$defs/VfxRangeRotationDef" }
+        "interval": { "title": "TimeDuration", "type": "number" },
+        "scale": { "title": "AssetVfxRangeScalar", "$ref": "#/$defs/AssetVfxRangeScalar" },
+        "lifetime": { "title": "AssetVfxRangeDuration", "$ref": "#/$defs/AssetVfxRangeDuration" },
+        "rotation": { "title": "AssetVfxRangeRotationDef", "$ref": "#/$defs/AssetVfxRangeRotationDef" }
       },
       "required": [],
       "defaultSnippets": [
         { "label": "New", "body": "^{}" }
       ]
     },
-    "VfxConeDef": {
+    "AssetVfxConeDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "angle": { "title": "f32", "type": "number" },
+        "angle": { "title": "Angle", "type": "number" },
         "radius": { "title": "f32", "type": "number" },
-        "position": { "title": "VfxVec3Def", "description": "3D Vector (components default to 0)", "$ref": "#/$defs/VfxVec3Def" },
-        "rotation": { "title": "VfxRotDef", "description": "3D Rotation (components default to 0)", "$ref": "#/$defs/VfxRotDef" }
+        "position": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
+        "rotation": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" }
       },
       "required": [],
       "defaultSnippets": [
         { "label": "New", "body": "^{}" }
       ]
     },
-    "VfxVec3Def": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "x": { "title": "f32", "type": "number" },
-        "y": { "title": "f32", "type": "number" },
-        "z": { "title": "f32", "type": "number" }
-      },
-      "required": [],
-      "defaultSnippets": [
-        { "label": "New", "body": "^{}" }
-      ]
-    },
-    "VfxRotDef": {
+    "GeoVector3": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -83,11 +70,11 @@
     "AssetVfxSpace": {
       "enum": [ "Local", "World" ]
     },
-    "VfxSpriteDef": {
+    "AssetVfxSpriteDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "atlasEntry": { "title": "String", "type": "string", "minLength": 1 },
+        "atlasEntry": { "title": "StringHash", "type": "string", "minLength": 1 },
         "color": {
           "anyOf": [
             { "title": "GeoColor4", "description": "HDR Color (rgba)", "$ref": "#/$defs/GeoColor4" },
@@ -98,7 +85,7 @@
         "facing": { "title": "AssetVfxFacing", "description": "* Local: Sprites are facing in the particle orientation.\n* BillboardSphere: Sprites are camera facing.\n* BillboardCylinder: Sprites are camera facing on the Y axis.", "$ref": "#/$defs/AssetVfxFacing" },
         "flipbookCount": { "title": "u16", "type": "integer", "minimum": 0, "maximum": 65535 },
         "flipbookTime": { "title": "f32", "type": "number" },
-        "size": { "title": "VfxVec2Def", "description": "2D Vector (components default to 0)", "$ref": "#/$defs/VfxVec2Def" },
+        "size": { "title": "GeoVector2", "description": "2D Vector", "$ref": "#/$defs/GeoVector2" },
         "fadeInTime": { "title": "f32", "type": "number" },
         "fadeOutTime": { "title": "f32", "type": "number" },
         "scaleInTime": { "title": "f32", "type": "number" },
@@ -132,7 +119,7 @@
     "AssetVfxFacing": {
       "enum": [ "Local", "BillboardSphere", "BillboardCylinder" ]
     },
-    "VfxVec2Def": {
+    "GeoVector2": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -144,7 +131,7 @@
         { "label": "New", "body": "^{}" }
       ]
     },
-    "VfxLightDef": {
+    "AssetVfxLightDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -159,7 +146,7 @@
         { "label": "New", "body": "^{}" }
       ]
     },
-    "VfxRangeScalarDef": {
+    "AssetVfxRangeScalar": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -171,24 +158,24 @@
         { "label": "New", "body": "^{}" }
       ]
     },
-    "VfxRangeDurationDef": {
+    "AssetVfxRangeDuration": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "min": { "title": "f32", "type": "number" },
-        "max": { "title": "f32", "type": "number" }
+        "min": { "title": "TimeDuration", "type": "number" },
+        "max": { "title": "TimeDuration", "type": "number" }
       },
       "required": [],
       "defaultSnippets": [
         { "label": "New", "body": "^{}" }
       ]
     },
-    "VfxRangeRotationDef": {
+    "AssetVfxRangeRotationDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "base": { "title": "VfxRotDef", "description": "3D Rotation (components default to 0)", "$ref": "#/$defs/VfxRotDef" },
-        "random": { "title": "VfxRotDef", "description": "3D Rotation (components default to 0)", "$ref": "#/$defs/VfxRotDef" }
+        "base": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
+        "random": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" }
       },
       "required": [],
       "defaultSnippets": [
