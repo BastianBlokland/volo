@@ -43,7 +43,7 @@ typedef struct {
 } VfxRangeRotationDef;
 
 typedef struct {
-  String         atlasEntry;
+  StringHash     atlasEntry;
   GeoColor*      color;
   AssetVfxBlend  blend;
   AssetVfxFacing facing;
@@ -159,11 +159,11 @@ static AssetVfxRangeRotation vfx_build_range_rotation(const VfxRangeRotationDef*
 }
 
 static void vfx_build_sprite(const VfxSpriteDef* def, AssetVfxSprite* out) {
-  if (string_is_empty(def->atlasEntry)) {
+  if (!def->atlasEntry) {
     *out = (AssetVfxSprite){0};
     return; // Sprites are optional.
   }
-  out->atlasEntry      = string_hash(def->atlasEntry);
+  out->atlasEntry      = def->atlasEntry;
   out->color           = def->color ? *def->color : geo_color_white;
   out->blend           = def->blend;
   out->facing          = def->facing;
@@ -294,7 +294,7 @@ void asset_data_init_vfx(void) {
 
 
   data_reg_struct_t(g_dataReg, VfxSpriteDef);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, atlasEntry, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, VfxSpriteDef, atlasEntry, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, VfxSpriteDef, color, g_assetGeoColor4Type, .container = DataContainer_Pointer, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxSpriteDef, blend, t_AssetVfxBlend, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxSpriteDef, facing, t_AssetVfxFacing, .flags = DataFlags_Opt);
