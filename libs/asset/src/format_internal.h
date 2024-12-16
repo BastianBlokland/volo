@@ -4,6 +4,7 @@
 
 typedef enum eAssetFormat {
   AssetFormat_Decal,
+  AssetFormat_DecalBin,
   AssetFormat_FontTtf,
   AssetFormat_Graphic,
   AssetFormat_GraphicBin,
