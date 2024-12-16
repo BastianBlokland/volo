@@ -326,21 +326,30 @@ void asset_load_vfx(
     AssetSource*              src) {
   (void)importEnv;
 
-  AssetVfxDef    vfxDef;
+  AssetVfxDef    def;
   String         errMsg;
-  DataReadResult readRes;
-  data_read_json(g_dataReg, src->data, g_allocHeap, g_assetVfxDefMeta, mem_var(vfxDef), &readRes);
-  if (UNLIKELY(readRes.error)) {
-    errMsg = readRes.errorMsg;
+  DataReadResult result;
+  if (src->format == AssetFormat_VfxBin) {
+    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetVfxDefMeta, mem_var(def), &result);
+  } else {
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetVfxDefMeta, mem_var(def), &result);
+  }
+  if (UNLIKELY(result.error)) {
+    errMsg = result.errorMsg;
     goto Error;
   }
-  if (UNLIKELY(vfxDef.emitters.count > asset_vfx_max_emitters)) {
+  if (UNLIKELY(def.emitters.count > asset_vfx_max_emitters)) {
     errMsg = vfx_error_str(VfxError_TooManyEmitters);
     goto Error;
   }
 
-  AssetVfxComp* result = ecs_world_add_t(world, entity, AssetVfxComp);
-  vfx_build_def(&vfxDef, result);
+  AssetVfxComp* vfx = ecs_world_add_t(world, entity, AssetVfxComp);
+  vfx_build_def(&def, vfx);
+
+  if (src->format != AssetFormat_VfxBin) {
+    // TODO: Instead of caching the definition it would be more optimal to cache the result vfx.
+    asset_cache(world, entity, g_assetVfxDefMeta, mem_var(def));
+  }
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   goto Cleanup;
@@ -354,6 +363,6 @@ Error:
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:
-  data_destroy(g_dataReg, g_allocHeap, g_assetVfxDefMeta, mem_var(vfxDef));
+  data_destroy(g_dataReg, g_allocHeap, g_assetVfxDefMeta, mem_var(def));
   asset_repo_source_close(src);
 }
