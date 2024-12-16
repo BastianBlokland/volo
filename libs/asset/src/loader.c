@@ -51,6 +51,7 @@
   _X_(AssetFormat_TexProc,          tex_proc,           1  )                                       \
   _X_(AssetFormat_TexTga,           tex_tga,            2  )                                       \
   _X_(AssetFormat_Vfx,              vfx,                1  )                                       \
+  _X_(AssetFormat_VfxBin,           vfx,                1  )                                       \
   _X_(AssetFormat_Weapons,          weapons,            1  )                                       \
   _X_(AssetFormat_WeaponsBin,       weapons,            1  )
 
