@@ -226,6 +226,11 @@ static JsonVal data_write_json_struct(const WriteCtx* ctx) {
     return data_write_json_val(&fieldCtx);
   }
 
+  const bool isOpt = (ctx->meta.flags & DataFlags_Opt) != 0;
+  if (ctx->skipOptional && isOpt && data_is_default(ctx->reg, ctx->meta, ctx->data)) {
+    return sentinel_u32;
+  }
+
   const JsonVal jsonObj = json_add_object(ctx->doc);
   data_write_json_struct_to_obj(ctx, jsonObj);
   return jsonObj;
