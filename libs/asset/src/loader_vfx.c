@@ -20,10 +20,6 @@
 DataMeta g_assetVfxDefMeta;
 
 typedef struct {
-  f32 x, y;
-} VfxVec2Def;
-
-typedef struct {
   f32 x, y, z;
 } VfxVec3Def;
 
@@ -57,7 +53,7 @@ typedef struct {
   AssetVfxFacing facing;
   u16            flipbookCount;
   f32            flipbookTime;
-  VfxVec2Def     size;
+  GeoVector      size;
   f32            fadeInTime, fadeOutTime;
   f32            scaleInTime, scaleOutTime;
   bool           geometryFade, shadowCaster, distortion;
@@ -257,11 +253,6 @@ ecs_module_init(asset_vfx_module) {
 
 void asset_data_init_vfx(void) {
   // clang-format off
-  data_reg_struct_t(g_dataReg, VfxVec2Def);
-  data_reg_field_t(g_dataReg, VfxVec2Def, x, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxVec2Def, y, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_comment_t(g_dataReg, VfxVec2Def, "2D Vector (components default to 0)");
-
   data_reg_struct_t(g_dataReg, VfxVec3Def);
   data_reg_field_t(g_dataReg, VfxVec3Def, x, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxVec3Def, y, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -323,7 +314,7 @@ void asset_data_init_vfx(void) {
   data_reg_field_t(g_dataReg, VfxSpriteDef, facing, t_AssetVfxFacing, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxSpriteDef, flipbookCount, data_prim_t(u16), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxSpriteDef, flipbookTime, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxSpriteDef, size, t_VfxVec2Def);
+  data_reg_field_t(g_dataReg, VfxSpriteDef, size, g_assetGeoVec2Type);
   data_reg_field_t(g_dataReg, VfxSpriteDef, fadeInTime, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxSpriteDef, fadeOutTime, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxSpriteDef, scaleInTime, data_prim_t(f32), .flags = DataFlags_Opt);

@@ -98,7 +98,7 @@
         "facing": { "title": "AssetVfxFacing", "description": "* Local: Sprites are facing in the particle orientation.\n* BillboardSphere: Sprites are camera facing.\n* BillboardCylinder: Sprites are camera facing on the Y axis.", "$ref": "#/$defs/AssetVfxFacing" },
         "flipbookCount": { "title": "u16", "type": "integer", "minimum": 0, "maximum": 65535 },
         "flipbookTime": { "title": "f32", "type": "number" },
-        "size": { "title": "VfxVec2Def", "description": "2D Vector (components default to 0)", "$ref": "#/$defs/VfxVec2Def" },
+        "size": { "title": "GeoVector2", "description": "2D Vector", "$ref": "#/$defs/GeoVector2" },
         "fadeInTime": { "title": "f32", "type": "number" },
         "fadeOutTime": { "title": "f32", "type": "number" },
         "scaleInTime": { "title": "f32", "type": "number" },
@@ -132,7 +132,7 @@
     "AssetVfxFacing": {
       "enum": [ "Local", "BillboardSphere", "BillboardCylinder" ]
     },
-    "VfxVec2Def": {
+    "GeoVector2": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
