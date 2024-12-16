@@ -22,7 +22,7 @@
       "additionalProperties": false,
       "properties": {
         "cone": { "title": "VfxConeDef", "description": "3D Cone shape", "$ref": "#/$defs/VfxConeDef" },
-        "force": { "title": "VfxVec3Def", "description": "3D Vector (components default to 0)", "$ref": "#/$defs/VfxVec3Def" },
+        "force": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
         "friction": { "title": "f32", "type": "number" },
         "space": { "title": "AssetVfxSpace", "description": "* Local: Particles are simulated relative to the entity transform.\n* World: Particles are simulated in world-space.", "$ref": "#/$defs/AssetVfxSpace" },
         "sprite": { "title": "VfxSpriteDef", "description": "Optional sprite to render for each particle.", "$ref": "#/$defs/VfxSpriteDef" },
@@ -46,7 +46,7 @@
       "properties": {
         "angle": { "title": "f32", "type": "number" },
         "radius": { "title": "f32", "type": "number" },
-        "position": { "title": "VfxVec3Def", "description": "3D Vector (components default to 0)", "$ref": "#/$defs/VfxVec3Def" },
+        "position": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
         "rotation": { "title": "VfxRotDef", "description": "3D Rotation (components default to 0)", "$ref": "#/$defs/VfxRotDef" }
       },
       "required": [],
@@ -54,7 +54,7 @@
         { "label": "New", "body": "^{}" }
       ]
     },
-    "VfxVec3Def": {
+    "GeoVector3": {
       "type": "object",
       "additionalProperties": false,
       "properties": {

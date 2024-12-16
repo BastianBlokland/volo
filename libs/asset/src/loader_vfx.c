@@ -21,17 +21,13 @@ DataMeta g_assetVfxDefMeta;
 
 typedef struct {
   f32 x, y, z;
-} VfxVec3Def;
-
-typedef struct {
-  f32 x, y, z;
 } VfxRotDef;
 
 typedef struct {
-  f32        angle;
-  f32        radius;
-  VfxVec3Def position;
-  VfxRotDef  rotation;
+  f32       angle;
+  f32       radius;
+  GeoVector position;
+  VfxRotDef rotation;
 } VfxConeDef;
 
 typedef struct {
@@ -68,7 +64,7 @@ typedef struct {
 
 typedef struct {
   VfxConeDef          cone;
-  VfxVec3Def          force;
+  GeoVector           force;
   f32                 friction;
   AssetVfxSpace       space;
   VfxSpriteDef        sprite;
@@ -126,10 +122,6 @@ ecs_system_define(VfxUnloadAssetSys) {
   }
 }
 
-static GeoVector vfx_build_vec3(const VfxVec3Def* def) {
-  return geo_vector(def->x, def->y, def->z);
-}
-
 static GeoQuat vfx_build_rot(const VfxRotDef* def) {
   const GeoVector eulerAnglesDeg = geo_vector(def->x, def->y, def->z);
   return geo_quat_from_euler(geo_vector_mul(eulerAnglesDeg, math_deg_to_rad));
@@ -139,7 +131,7 @@ static AssetVfxCone vfx_build_cone(const VfxConeDef* def) {
   return (AssetVfxCone){
       .angle    = def->angle * math_deg_to_rad,
       .radius   = def->radius,
-      .position = vfx_build_vec3(&def->position),
+      .position = def->position,
       .rotation = vfx_build_rot(&def->rotation),
   };
 }
@@ -202,7 +194,7 @@ static void vfx_build_light(const VfxLightDef* def, AssetVfxLight* out) {
 
 static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->cone     = vfx_build_cone(&def->cone);
-  out->force    = vfx_build_vec3(&def->force);
+  out->force    = def->force;
   out->friction = def->friction > f32_epsilon ? def->friction : 1.0f;
   out->space    = def->space;
 
@@ -253,12 +245,6 @@ ecs_module_init(asset_vfx_module) {
 
 void asset_data_init_vfx(void) {
   // clang-format off
-  data_reg_struct_t(g_dataReg, VfxVec3Def);
-  data_reg_field_t(g_dataReg, VfxVec3Def, x, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxVec3Def, y, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxVec3Def, z, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_comment_t(g_dataReg, VfxVec3Def, "3D Vector (components default to 0)");
-
   data_reg_struct_t(g_dataReg, VfxRotDef);
   data_reg_field_t(g_dataReg, VfxRotDef, x, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxRotDef, y, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -268,7 +254,7 @@ void asset_data_init_vfx(void) {
   data_reg_struct_t(g_dataReg, VfxConeDef);
   data_reg_field_t(g_dataReg, VfxConeDef, angle, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxConeDef, radius, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxConeDef, position, t_VfxVec3Def, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, VfxConeDef, position, g_assetGeoVec3Type, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxConeDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
   data_reg_comment_t(g_dataReg, VfxConeDef, "3D Cone shape");
 
@@ -334,7 +320,7 @@ void asset_data_init_vfx(void) {
 
   data_reg_struct_t(g_dataReg, VfxEmitterDef);
   data_reg_field_t(g_dataReg, VfxEmitterDef, cone, t_VfxConeDef, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxEmitterDef, force, t_VfxVec3Def, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, VfxEmitterDef, force, g_assetGeoVec3Type, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxEmitterDef, friction, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, VfxEmitterDef, space, t_AssetVfxSpace, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxEmitterDef, sprite, t_VfxSpriteDef, .flags = DataFlags_Opt);
