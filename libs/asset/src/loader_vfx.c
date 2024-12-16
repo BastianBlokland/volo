@@ -129,7 +129,7 @@ static GeoQuat vfx_build_rot(const VfxRotDef* def) {
 
 static AssetVfxCone vfx_build_cone(const VfxConeDef* def) {
   return (AssetVfxCone){
-      .angle    = def->angle * math_deg_to_rad,
+      .angle    = def->angle,
       .radius   = def->radius,
       .position = def->position,
       .rotation = vfx_build_rot(&def->rotation),
@@ -252,7 +252,7 @@ void asset_data_init_vfx(void) {
   data_reg_comment_t(g_dataReg, VfxRotDef, "3D Rotation (components default to 0)");
 
   data_reg_struct_t(g_dataReg, VfxConeDef);
-  data_reg_field_t(g_dataReg, VfxConeDef, angle, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, VfxConeDef, angle, data_prim_t(Angle), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxConeDef, radius, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxConeDef, position, g_assetGeoVec3Type, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxConeDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
