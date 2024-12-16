@@ -374,7 +374,7 @@ void asset_load_products(
   }
 
   if (src->format != AssetFormat_ProductsBin) {
-    // TODO: Instead of caching the definition it would be more optional to cache the resulting map.
+    // TODO: Instead of caching the definition it would be more optimal to cache the resulting map.
     asset_cache(world, entity, g_assetProductDefMeta, mem_var(def));
   }
 

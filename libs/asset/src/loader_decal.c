@@ -9,7 +9,7 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 
-#include "import_internal.h"
+#include "manager_internal.h"
 #include "repo_internal.h"
 
 #define decal_default_size 1.0f
@@ -147,23 +147,31 @@ void asset_load_decal(
   (void)importEnv;
   (void)id;
 
-  DecalDef       decalDef;
+  DecalDef       def;
   String         errMsg;
-  DataReadResult readRes;
-  data_read_json(
-      g_dataReg, src->data, g_allocHeap, g_assetDecalDefMeta, mem_var(decalDef), &readRes);
-  if (UNLIKELY(readRes.error)) {
-    errMsg = readRes.errorMsg;
+  DataReadResult result;
+  if (src->format == AssetFormat_DecalBin) {
+    data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetDecalDefMeta, mem_var(def), &result);
+  } else {
+    data_read_json(g_dataReg, src->data, g_allocHeap, g_assetDecalDefMeta, mem_var(def), &result);
+  }
+  if (UNLIKELY(result.error)) {
+    errMsg = result.errorMsg;
     goto Error;
   }
 
-  if (UNLIKELY(decalDef.trail && decalDef.projectionAxis != AssetDecalAxis_WorldY)) {
+  if (UNLIKELY(def.trail && def.projectionAxis != AssetDecalAxis_WorldY)) {
     errMsg = string_lit("Trail decals only support 'WorldY' projection");
     goto Error;
   }
 
-  AssetDecalComp* result = ecs_world_add_t(world, entity, AssetDecalComp);
-  decal_build_def(&decalDef, result);
+  AssetDecalComp* decal = ecs_world_add_t(world, entity, AssetDecalComp);
+  decal_build_def(&def, decal);
+
+  if (src->format != AssetFormat_DecalBin) {
+    // TODO: Instead of caching the definition it would be more optimal to cache the result decal.
+    asset_cache(world, entity, g_assetDecalDefMeta, mem_var(def));
+  }
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
   goto Cleanup;
@@ -177,6 +185,6 @@ Error:
   ecs_world_add_empty_t(world, entity, AssetFailedComp);
 
 Cleanup:
-  data_destroy(g_dataReg, g_allocHeap, g_assetDecalDefMeta, mem_var(decalDef));
+  data_destroy(g_dataReg, g_allocHeap, g_assetDecalDefMeta, mem_var(def));
   asset_repo_source_close(src);
 }
