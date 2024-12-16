@@ -35,7 +35,7 @@ typedef struct {
 } VfxRangeScalarDef;
 
 typedef struct {
-  f32 min, max;
+  TimeDuration min, max;
 } VfxRangeDurationDef;
 
 typedef struct {
@@ -72,7 +72,7 @@ typedef struct {
   VfxRangeScalarDef   speed;
   f32                 expandForce;
   u16                 count;
-  f32                 interval;
+  TimeDuration        interval;
   VfxRangeScalarDef   scale;
   VfxRangeDurationDef lifetime;
   VfxRangeRotationDef rotation;
@@ -145,8 +145,8 @@ static AssetVfxRangeScalar vfx_build_range_scalar(const VfxRangeScalarDef* def) 
 
 static AssetVfxRangeDuration vfx_build_range_duration(const VfxRangeDurationDef* def) {
   return (AssetVfxRangeDuration){
-      .min = (TimeDuration)time_seconds(def->min),
-      .max = (TimeDuration)time_seconds(math_max(def->min, def->max)),
+      .min = def->min,
+      .max = math_max(def->min, def->max),
   };
 }
 
@@ -204,7 +204,7 @@ static void vfx_build_emitter(const VfxEmitterDef* def, AssetVfxEmitter* out) {
   out->speed       = vfx_build_range_scalar(&def->speed);
   out->expandForce = def->expandForce;
   out->count       = def->count;
-  out->interval    = (TimeDuration)time_seconds(def->interval);
+  out->interval    = def->interval;
 
   out->scale = vfx_build_range_scalar(&def->scale);
   if (out->scale.max <= 0) {
@@ -263,8 +263,8 @@ void asset_data_init_vfx(void) {
   data_reg_field_t(g_dataReg, VfxRangeScalarDef, max, data_prim_t(f32), .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, VfxRangeDurationDef);
-  data_reg_field_t(g_dataReg, VfxRangeDurationDef, min, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxRangeDurationDef, max, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, VfxRangeDurationDef, min, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, VfxRangeDurationDef, max, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, VfxRangeRotationDef);
   data_reg_field_t(g_dataReg, VfxRangeRotationDef, base, t_VfxRotDef, .flags = DataFlags_Opt);
@@ -328,7 +328,7 @@ void asset_data_init_vfx(void) {
   data_reg_field_t(g_dataReg, VfxEmitterDef, speed, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxEmitterDef, expandForce, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxEmitterDef, count, data_prim_t(u16), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxEmitterDef, interval, data_prim_t(f32), .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, VfxEmitterDef, interval, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxEmitterDef, scale, t_VfxRangeScalarDef, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxEmitterDef, lifetime, t_VfxRangeDurationDef, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxEmitterDef, rotation, t_VfxRangeRotationDef, .flags = DataFlags_Opt);
