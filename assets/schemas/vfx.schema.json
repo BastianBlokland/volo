@@ -47,7 +47,7 @@
         "angle": { "title": "Angle", "type": "number" },
         "radius": { "title": "f32", "type": "number" },
         "position": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
-        "rotation": { "title": "VfxRotDef", "description": "3D Rotation (components default to 0)", "$ref": "#/$defs/VfxRotDef" }
+        "rotation": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" }
       },
       "required": [],
       "defaultSnippets": [
@@ -55,19 +55,6 @@
       ]
     },
     "GeoVector3": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "x": { "title": "f32", "type": "number" },
-        "y": { "title": "f32", "type": "number" },
-        "z": { "title": "f32", "type": "number" }
-      },
-      "required": [],
-      "defaultSnippets": [
-        { "label": "New", "body": "^{}" }
-      ]
-    },
-    "VfxRotDef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -187,8 +174,8 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "base": { "title": "VfxRotDef", "description": "3D Rotation (components default to 0)", "$ref": "#/$defs/VfxRotDef" },
-        "random": { "title": "VfxRotDef", "description": "3D Rotation (components default to 0)", "$ref": "#/$defs/VfxRotDef" }
+        "base": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
+        "random": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" }
       },
       "required": [],
       "defaultSnippets": [

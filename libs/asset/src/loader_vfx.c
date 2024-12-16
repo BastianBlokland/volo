@@ -20,14 +20,10 @@
 DataMeta g_assetVfxDefMeta;
 
 typedef struct {
-  f32 x, y, z;
-} VfxRotDef;
-
-typedef struct {
   f32       angle;
   f32       radius;
   GeoVector position;
-  VfxRotDef rotation;
+  GeoVector rotation;
 } VfxConeDef;
 
 typedef struct {
@@ -39,7 +35,7 @@ typedef struct {
 } VfxRangeDurationDef;
 
 typedef struct {
-  VfxRotDef base, random;
+  GeoVector base, random;
 } VfxRangeRotationDef;
 
 typedef struct {
@@ -122,17 +118,12 @@ ecs_system_define(VfxUnloadAssetSys) {
   }
 }
 
-static GeoQuat vfx_build_rot(const VfxRotDef* def) {
-  const GeoVector eulerAnglesDeg = geo_vector(def->x, def->y, def->z);
-  return geo_quat_from_euler(geo_vector_mul(eulerAnglesDeg, math_deg_to_rad));
-}
-
 static AssetVfxCone vfx_build_cone(const VfxConeDef* def) {
   return (AssetVfxCone){
       .angle    = def->angle,
       .radius   = def->radius,
       .position = def->position,
-      .rotation = vfx_build_rot(&def->rotation),
+      .rotation = geo_quat_from_euler(geo_vector_mul(def->rotation, math_deg_to_rad)),
   };
 }
 
@@ -151,10 +142,9 @@ static AssetVfxRangeDuration vfx_build_range_duration(const VfxRangeDurationDef*
 }
 
 static AssetVfxRangeRotation vfx_build_range_rotation(const VfxRangeRotationDef* def) {
-  const GeoVector randomEulerAnglesDeg = geo_vector(def->random.x, def->random.y, def->random.z);
   return (AssetVfxRangeRotation){
-      .base              = vfx_build_rot(&def->base),
-      .randomEulerAngles = geo_vector_mul(randomEulerAnglesDeg, math_deg_to_rad),
+      .base              = geo_quat_from_euler(geo_vector_mul(def->base, math_deg_to_rad)),
+      .randomEulerAngles = geo_vector_mul(def->random, math_deg_to_rad),
   };
 }
 
@@ -245,17 +235,11 @@ ecs_module_init(asset_vfx_module) {
 
 void asset_data_init_vfx(void) {
   // clang-format off
-  data_reg_struct_t(g_dataReg, VfxRotDef);
-  data_reg_field_t(g_dataReg, VfxRotDef, x, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxRotDef, y, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxRotDef, z, data_prim_t(f32), .flags = DataFlags_Opt);
-  data_reg_comment_t(g_dataReg, VfxRotDef, "3D Rotation (components default to 0)");
-
   data_reg_struct_t(g_dataReg, VfxConeDef);
   data_reg_field_t(g_dataReg, VfxConeDef, angle, data_prim_t(Angle), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxConeDef, radius, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, VfxConeDef, position, g_assetGeoVec3Type, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxConeDef, rotation, t_VfxRotDef, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, VfxConeDef, rotation, g_assetGeoVec3Type, .flags = DataFlags_Opt);
   data_reg_comment_t(g_dataReg, VfxConeDef, "3D Cone shape");
 
   data_reg_struct_t(g_dataReg, VfxRangeScalarDef);
@@ -267,8 +251,8 @@ void asset_data_init_vfx(void) {
   data_reg_field_t(g_dataReg, VfxRangeDurationDef, max, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, VfxRangeRotationDef);
-  data_reg_field_t(g_dataReg, VfxRangeRotationDef, base, t_VfxRotDef, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, VfxRangeRotationDef, random, t_VfxRotDef, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, VfxRangeRotationDef, base, g_assetGeoVec3Type, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, VfxRangeRotationDef, random, g_assetGeoVec3Type, .flags = DataFlags_Opt);
 
   data_reg_enum_t(g_dataReg, AssetVfxSpace);
   data_reg_const_t(g_dataReg, AssetVfxSpace, Local);
