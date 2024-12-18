@@ -586,8 +586,13 @@ static bool setup_prefab(
   }
 
   diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", string_hash_fmt(spec->prefabId));
-  ScenePrefabInstanceComp* instanceComp =
-      ecs_world_add_t(w, e, ScenePrefabInstanceComp, .id = spec->id, .prefabId = spec->prefabId);
+  ScenePrefabInstanceComp* instanceComp = ecs_world_add_t(
+      w,
+      e,
+      ScenePrefabInstanceComp,
+      .id       = spec->id,
+      .prefabId = spec->prefabId,
+      .variant  = spec->variant);
 
   const AssetPrefab* prefab = asset_prefab_get(map, spec->prefabId);
   if (UNLIKELY(!prefab)) {

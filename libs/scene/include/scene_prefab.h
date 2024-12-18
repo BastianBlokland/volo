@@ -3,6 +3,11 @@
 #include "geo_quat.h"
 #include "scene_faction.h"
 
+typedef enum {
+  ScenePrefabVariant_Normal,
+  ScenePrefabVariant_Preview,
+} ScenePrefabVariant;
+
 /**
  * Global prefab resources.
  */
@@ -12,10 +17,11 @@ ecs_comp_extern(ScenePrefabEnvComp);
  * Component on a prefab instance.
  */
 ecs_comp_extern_public(ScenePrefabInstanceComp) {
-  u32        id; // Optional persistent id.
-  StringHash prefabId;
-  u16        assetFlags; // AssetPrefabFlags.
-  bool       isVolatile; // Prefab should not be persisted.
+  u32                id; // Optional persistent id.
+  StringHash         prefabId;
+  ScenePrefabVariant variant : 8;
+  bool               isVolatile; // Prefab should not be persisted.
+  u16                assetFlags; // AssetPrefabFlags.
 };
 
 /**
@@ -45,13 +51,14 @@ typedef enum {
 } ScenePrefabFlags;
 
 typedef struct {
-  u32              id; // Optional persistent id.
-  StringHash       prefabId;
-  SceneFaction     faction;
-  ScenePrefabFlags flags;
-  f32              scale;
-  GeoVector        position;
-  GeoQuat          rotation;
+  u32                id; // Optional persistent id.
+  StringHash         prefabId;
+  ScenePrefabVariant variant;
+  SceneFaction       faction;
+  ScenePrefabFlags   flags;
+  f32                scale;
+  GeoVector          position;
+  GeoQuat            rotation;
 } ScenePrefabSpec;
 
 EcsEntityId scene_prefab_spawn(EcsWorld*, const ScenePrefabSpec*);
