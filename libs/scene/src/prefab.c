@@ -51,6 +51,7 @@ static const u64 g_prefabVariantTraitMask[ScenePrefabVariant_Count] = {
                                    (u64_lit(1) << AssetPrefabTrait_LightPoint)   |
                                    (u64_lit(1) << AssetPrefabTrait_LightDir)     |
                                    (u64_lit(1) << AssetPrefabTrait_LightAmbient) |
+                                   (u64_lit(1) << AssetPrefabTrait_Attachment)   |
                                    (u64_lit(1) << AssetPrefabTrait_Scalable),
 };
 
@@ -501,6 +502,7 @@ static void setup_attachment(
       &(ScenePrefabSpec){
           .flags    = ScenePrefabFlags_Volatile,
           .prefabId = t->attachmentPrefab,
+          .variant  = s->variant,
           .faction  = s->faction,
           .position = s->position,
           .rotation = s->rotation,
