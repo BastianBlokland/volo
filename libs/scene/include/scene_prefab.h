@@ -6,6 +6,8 @@
 typedef enum {
   ScenePrefabVariant_Normal,
   ScenePrefabVariant_Preview,
+
+  ScenePrefabVariant_Count,
 } ScenePrefabVariant;
 
 /**

@@ -40,6 +40,13 @@
 #include "scene_visibility.h"
 #include "script_val.h"
 
+ASSERT(AssetPrefabTrait_Count < 64, "Prefab trait masks need to be representable with 64 bits")
+
+static const u64 g_prefabVariantTraitMask[ScenePrefabVariant_Count] = {
+    [ScenePrefabVariant_Normal]  = ~u64_lit(0),
+    [ScenePrefabVariant_Preview] = 0,
+};
+
 typedef enum {
   PrefabResource_MapAcquired  = 1 << 0,
   PrefabResource_MapUnloading = 1 << 1,
@@ -623,9 +630,12 @@ static bool setup_prefab(
     ecs_world_add_t(w, e, SceneFactionComp, .id = spec->faction);
   }
 
+  const u64 traitMask = g_prefabVariantTraitMask[spec->variant];
   for (u16 i = 0; i != prefab->traitCount; ++i) {
     const AssetPrefabTrait* trait = &map->traits.values[prefab->traitIndex + i];
-    setup_trait(w, navEnv, e, spec, map, prefab, trait);
+    if (traitMask & (u64_lit(1) << trait->type)) {
+      setup_trait(w, navEnv, e, spec, map, prefab, trait);
+    }
   }
 
   return true; // Prefab done processing.
