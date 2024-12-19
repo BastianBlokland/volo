@@ -990,6 +990,16 @@
       ]
     },
     {
+      "name": "Light",
+      "traits": [
+        {
+          "$type": "AssetPrefabTrait_LightPoint",
+          "radiance": { "r": 1, "g": 1, "b": 1, "a": 25 },
+          "radius": 10
+        }
+      ]
+    },
+    {
       "name": "LogicSwitch",
       "traits": [
         { "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/logic/gate_switch.script" ] }
