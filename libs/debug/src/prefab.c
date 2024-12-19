@@ -182,7 +182,7 @@ static void prefab_create_preview(const PrefabPanelContext* ctx, const GeoVector
   if (ctx->panelComp->createPreview) {
     EcsView*     previewView = ecs_world_view_t(ctx->world, PrefabPreviewView);
     EcsIterator* previewItr  = ecs_view_maybe_at(previewView, ctx->panelComp->createPreview);
-    if (previewView) {
+    if (previewItr) {
       SceneTransformComp* transComp = ecs_view_write_t(previewItr, SceneTransformComp);
       SceneScaleComp*     scaleComp = ecs_view_write_t(previewItr, SceneScaleComp);
 
@@ -194,37 +194,18 @@ static void prefab_create_preview(const PrefabPanelContext* ctx, const GeoVector
     }
     return;
   }
-  const AssetPrefabMapComp* pMap = ctx->prefabMap;
-  const AssetPrefab*        p    = asset_prefab_get(pMap, ctx->panelComp->createPrefabId);
 
-  const AssetPrefabTrait* renderable = asset_prefab_trait_get(pMap, p, AssetPrefabTrait_Renderable);
-  const AssetPrefabTrait* decal      = asset_prefab_trait_get(pMap, p, AssetPrefabTrait_Decal);
+  ctx->panelComp->createPreview = scene_prefab_spawn(
+      ctx->world,
+      &(ScenePrefabSpec){
+          .prefabId = ctx->panelComp->createPrefabId,
+          .variant  = ScenePrefabVariant_Preview,
+          .position = pos,
+          .rotation = geo_quat_angle_axis(ctx->panelComp->createAngle, geo_up),
+          .scale    = ctx->panelComp->createScale,
+      });
 
-  if (!renderable && !decal) {
-    return;
-  }
-
-  const EcsEntityId e = ecs_world_entity_create(ctx->world);
-  ecs_world_add_empty_t(ctx->world, e, DebugPrefabPreviewComp);
-
-  const GeoQuat rot = geo_quat_angle_axis(ctx->panelComp->createAngle, geo_up);
-  ecs_world_add_t(ctx->world, e, SceneTransformComp, .position = pos, .rotation = rot);
-
-  if (asset_prefab_trait_get(pMap, p, AssetPrefabTrait_Scalable)) {
-    ecs_world_add_t(ctx->world, e, SceneScaleComp, .scale = ctx->panelComp->createScale);
-  }
-
-  if (renderable) {
-    const EcsEntityId graphic = renderable->data_renderable.graphic.entity;
-    const GeoColor    color   = geo_color(1, 1, 1, 0.5f);
-    ecs_world_add_t(ctx->world, e, SceneRenderableComp, .graphic = graphic, .color = color);
-  }
-  if (decal) {
-    const EcsEntityId asset = decal->data_decal.asset.entity;
-    ecs_world_add_t(ctx->world, e, SceneVfxDecalComp, .asset = asset, .alpha = 0.5f);
-  }
-
-  ctx->panelComp->createPreview = e;
+  ecs_world_add_empty_t(ctx->world, ctx->panelComp->createPreview, DebugPrefabPreviewComp);
 }
 
 static void prefab_create_preview_stop(const PrefabPanelContext* ctx) {
