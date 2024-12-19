@@ -126,6 +126,9 @@ static void prefab_instance_counts(const PrefabPanelContext* ctx, u32 out[], con
   EcsView* prefabInstanceView = ecs_world_view_t(ctx->world, PrefabInstanceView);
   for (EcsIterator* itr = ecs_view_itr(prefabInstanceView); ecs_view_walk(itr);) {
     const ScenePrefabInstanceComp* instComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
+    if (instComp->variant == ScenePrefabVariant_Preview) {
+      continue;
+    }
 
     const u16 prefabIndex = asset_prefab_get_index(ctx->prefabMap, instComp->prefabId);
     // NOTE: PrefabIndex can be sentinel_u16 if the prefabMap was hot-loaded after spawning.
@@ -144,7 +147,7 @@ static void prefab_destroy_all(const PrefabPanelContext* ctx, const StringHash p
   for (EcsIterator* itr = ecs_view_itr(prefabInstanceView); ecs_view_walk(itr);) {
     const ScenePrefabInstanceComp* instComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
 
-    if (instComp->prefabId == prefabId) {
+    if (instComp->prefabId == prefabId && instComp->variant != ScenePrefabVariant_Preview) {
       ecs_world_entity_destroy(ctx->world, ecs_view_entity(itr));
     }
   }
@@ -161,7 +164,7 @@ static void prefab_select_all(const PrefabPanelContext* ctx, const StringHash pr
   for (EcsIterator* itr = ecs_view_itr(prefabInstanceView); ecs_view_walk(itr);) {
     const ScenePrefabInstanceComp* instComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
 
-    if (instComp->prefabId == prefabId) {
+    if (instComp->prefabId == prefabId && instComp->variant != ScenePrefabVariant_Preview) {
       scene_set_add(ctx->setEnv, g_sceneSetSelected, ecs_view_entity(itr), SceneSetFlags_None);
     }
   }

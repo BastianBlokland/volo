@@ -1139,14 +1139,15 @@ static void debug_inspector_tool_duplicate(EcsWorld* world, SceneSetEnvComp* set
     const SceneScaleComp*          scaleComp      = ecs_view_read_t(itr, SceneScaleComp);
     const SceneFactionComp*        factionComp    = ecs_view_read_t(itr, SceneFactionComp);
     const ScenePrefabInstanceComp* prefabInstComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
-    if (!prefabInstComp) {
-      continue; // Only prefab instances can be duplicated.
+    if (!prefabInstComp || prefabInstComp->variant != ScenePrefabVariant_Preview) {
+      continue; // Only non-preview prefab instances can be duplicated.
     }
     const EcsEntityId duplicatedEntity = scene_prefab_spawn(
         world,
         &(ScenePrefabSpec){
             .id       = prefabInstComp->id,
             .prefabId = prefabInstComp->prefabId,
+            .variant  = prefabInstComp->variant,
             .faction  = factionComp ? factionComp->id : SceneFaction_None,
             .scale    = scaleComp ? scaleComp->scale : 1.0f,
             .position = transComp->position,
