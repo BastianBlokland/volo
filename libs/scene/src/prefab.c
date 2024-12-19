@@ -46,9 +46,11 @@ ASSERT(AssetPrefabTrait_Count < 64, "Prefab trait masks need to be representable
 
 static const u64 g_prefabVariantTraitMask[ScenePrefabVariant_Count] = {
     [ScenePrefabVariant_Normal]  = ~u64_lit(0),
-    [ScenePrefabVariant_Preview] = (u64_lit(1) << AssetPrefabTrait_Renderable) |
-                                   (u64_lit(1) << AssetPrefabTrait_Decal)      |
-                                   (u64_lit(1) << AssetPrefabTrait_LightPoint) |
+    [ScenePrefabVariant_Preview] = (u64_lit(1) << AssetPrefabTrait_Renderable)   |
+                                   (u64_lit(1) << AssetPrefabTrait_Decal)        |
+                                   (u64_lit(1) << AssetPrefabTrait_LightPoint)   |
+                                   (u64_lit(1) << AssetPrefabTrait_LightDir)     |
+                                   (u64_lit(1) << AssetPrefabTrait_LightAmbient) |
                                    (u64_lit(1) << AssetPrefabTrait_Scalable),
 };
 
