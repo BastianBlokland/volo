@@ -674,17 +674,17 @@ static bool setup_prefab(
     ecs_world_add_t(w, e, SceneVelocityComp);
     ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
     scene_debug_init(w, e);
+
+    if (prefab->flags & AssetPrefabFlags_Unit) {
+      ecs_world_add_t(w, e, SceneVisibilityComp);
+      ecs_world_add_t(w, e, SceneHealthStatsComp);
+    }
     break;
   case ScenePrefabVariant_Edit:
     ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
     break;
   default:
     break;
-  }
-
-  if (prefab->flags & AssetPrefabFlags_Unit) {
-    ecs_world_add_t(w, e, SceneVisibilityComp);
-    ecs_world_add_t(w, e, SceneHealthStatsComp);
   }
 
   if (spec->faction != SceneFaction_None) {
