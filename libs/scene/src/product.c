@@ -12,7 +12,6 @@
 #include "geo_box_rotated.h"
 #include "geo_sphere.h"
 #include "log_logger.h"
-#include "scene_collision.h"
 #include "scene_faction.h"
 #include "scene_lifetime.h"
 #include "scene_nav.h"
@@ -342,26 +341,17 @@ static EcsEntityId product_placement_preview_create(ProductQueueContext* ctx) {
   diag_assert(ctx->queue->product->type == AssetProduct_Placable);
   const EcsEntityId instigator = ecs_view_entity(ctx->itr);
 
-  const EcsEntityId e = ecs_world_entity_create(ctx->world);
-  ecs_world_add_t(ctx->world, e, SceneProductPreviewComp, .instigator = instigator);
-  ecs_world_add_t(
+  const EcsEntityId e = scene_prefab_spawn(
       ctx->world,
-      e,
-      SceneTransformComp,
-      .position = ctx->production->placementPos,
-      .rotation = geo_quat_angle_axis(ctx->production->placementAngle, geo_up));
+      &(ScenePrefabSpec){
+          .prefabId = ctx->queue->product->data_placable.prefab,
+          .variant  = ScenePrefabVariant_Preview,
+          .position = ctx->production->placementPos,
+          .rotation = geo_quat_angle_axis(ctx->production->placementAngle, geo_up),
+      });
 
-  const StringHash   prefabId = ctx->queue->product->data_placable.prefab;
-  const AssetPrefab* prefab   = asset_prefab_get(ctx->prefabMap, prefabId);
-  if (prefab) {
-    const AssetPrefabTrait* renderableTrait =
-        asset_prefab_trait_get(ctx->prefabMap, prefab, AssetPrefabTrait_Renderable);
-    if (renderableTrait) {
-      const EcsEntityId graphic = renderableTrait->data_renderable.graphic.entity;
-      const GeoColor    color   = geo_color(1, 1, 1, 0.5f);
-      ecs_world_add_t(ctx->world, e, SceneRenderableComp, .graphic = graphic, .color = color);
-    }
-  }
+  ecs_world_add_t(ctx->world, e, SceneProductPreviewComp, .instigator = instigator);
+
   return e;
 }
 
