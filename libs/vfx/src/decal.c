@@ -235,7 +235,7 @@ static void vfx_decal_create_single(
       .alpha            = alpha,
       .fadeInTimeInv    = asset->fadeInTimeInv,
       .fadeOutTimeInv   = asset->fadeOutTimeInv,
-      .creationTime     = timeComp->time,
+      .creationTime     = timeComp->time - time_millisecond /* Avoid starting the age at 0 */,
       .width            = asset->width * scale,
       .height           = asset->height * scale,
       .thickness        = asset->thickness);
@@ -268,7 +268,7 @@ static void vfx_decal_create_trail(
       .alpha            = alpha,
       .fadeInTimeInv    = asset->fadeInTimeInv,
       .fadeOutTimeInv   = asset->fadeOutTimeInv,
-      .creationTime     = timeComp->time,
+      .creationTime     = timeComp->time - time_millisecond /* Avoid starting the age at 0 */,
       .width            = asset->width * scale,
       .height           = asset->height * scale,
       .thickness        = asset->thickness);
@@ -438,22 +438,22 @@ static void vfx_decal_single_update(
   const f32      fadeOut = math_min(timeRemSec * inst->fadeOutTimeInv, 1.0f);
   const f32      alpha   = decal->alpha * inst->alpha * fadeIn * fadeOut;
   const VfxStamp stamp   = {
-      .pos              = pos,
-      .rot              = rot,
-      .width            = inst->width * scale,
-      .height           = inst->height * scale,
-      .thickness        = inst->thickness,
-      .flags            = inst->stampFlags,
-      .excludeTags      = inst->excludeTags,
-      .atlasColorIndex  = inst->atlasColorIndex,
-      .atlasNormalIndex = inst->atlasNormalIndex,
-      .alphaBegin       = alpha,
-      .alphaEnd         = alpha,
-      .roughness        = inst->roughness,
-      .texOffsetY       = 0.0f,
-      .texScaleY        = 1.0f,
-      .warpScale        = {1.0f, 1.0f},
-      .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
+        .pos              = pos,
+        .rot              = rot,
+        .width            = inst->width * scale,
+        .height           = inst->height * scale,
+        .thickness        = inst->thickness,
+        .flags            = inst->stampFlags,
+        .excludeTags      = inst->excludeTags,
+        .atlasColorIndex  = inst->atlasColorIndex,
+        .atlasNormalIndex = inst->atlasNormalIndex,
+        .alphaBegin       = alpha,
+        .alphaEnd         = alpha,
+        .roughness        = inst->roughness,
+        .texOffsetY       = 0.0f,
+        .texScaleY        = 1.0f,
+        .warpScale        = {1.0f, 1.0f},
+        .warpPoints       = {{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}},
   };
 
   vfx_stamp_output(rendObjNormal, &stamp);
