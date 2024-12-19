@@ -47,7 +47,9 @@ ASSERT(AssetPrefabTrait_Count < 64, "Prefab trait masks need to be representable
 static const u64 g_prefabVariantTraitMask[ScenePrefabVariant_Count] = {
     [ScenePrefabVariant_Normal]  = ~u64_lit(0),
     [ScenePrefabVariant_Preview] = (u64_lit(1) << AssetPrefabTrait_Renderable) |
-                                   (u64_lit(1) << AssetPrefabTrait_Decal),
+                                   (u64_lit(1) << AssetPrefabTrait_Decal)      |
+                                   (u64_lit(1) << AssetPrefabTrait_LightPoint) |
+                                   (u64_lit(1) << AssetPrefabTrait_Scalable),
 };
 
 // clang-format on
@@ -126,6 +128,19 @@ static SceneLayer prefab_instance_layer(const SceneFaction faction, const AssetP
     return SceneLayer_Destructible;
   }
   return SceneLayer_Environment;
+}
+
+static bool prefab_is_volatile(const AssetPrefab* prefab, const ScenePrefabSpec* spec) {
+  if (prefab->flags & AssetPrefabFlags_Volatile) {
+    return true;
+  }
+  if (spec->flags & ScenePrefabFlags_Volatile) {
+    return true;
+  }
+  if (spec->variant == ScenePrefabVariant_Preview) {
+    return true;
+  }
+  return false;
 }
 
 ecs_system_define(ScenePrefabResourceInitSys) {
@@ -630,7 +645,7 @@ static bool setup_prefab(
     return true; // No point in retrying; mark the prefab as done.
   }
   instanceComp->assetFlags = prefab->flags;
-  if ((spec->flags & ScenePrefabFlags_Volatile) || (prefab->flags & AssetPrefabFlags_Volatile)) {
+  if (prefab_is_volatile(prefab, spec)) {
     instanceComp->isVolatile = true;
   }
   GeoVector spawnPos = spec->position;
@@ -640,9 +655,17 @@ static bool setup_prefab(
   prefab_validate_pos(spawnPos);
   ecs_world_add_empty_t(w, e, SceneLevelInstanceComp);
   ecs_world_add_t(w, e, SceneTransformComp, .position = spawnPos, .rotation = spec->rotation);
-  ecs_world_add_t(w, e, SceneVelocityComp);
-  ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
-  scene_debug_init(w, e);
+
+  switch (spec->variant) {
+  case ScenePrefabVariant_Normal:
+    ecs_world_add_t(w, e, SceneVelocityComp);
+    ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
+    scene_debug_init(w, e);
+    break;
+  case ScenePrefabVariant_Preview:
+  case ScenePrefabVariant_Count:
+    break;
+  }
 
   if (prefab->flags & AssetPrefabFlags_Unit) {
     ecs_world_add_t(w, e, SceneVisibilityComp);
