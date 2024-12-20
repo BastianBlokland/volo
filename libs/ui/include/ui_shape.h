@@ -4,6 +4,7 @@
 #define UI_SHAPES                                                                                  \
   X(0x0020, Empty)                                                                                 \
   X(0xE034, Pause)                                                                                 \
+  X(0xE037, Play)                                                                                  \
   X(0xE04F, VolumeOff)                                                                             \
   X(0xE050, VolumeUp)                                                                              \
   X(0xE069, WebAsset)                                                                              \
@@ -16,6 +17,7 @@
   X(0xE322, Memory)                                                                                \
   X(0xE338, VideogameAsset)                                                                        \
   X(0xE3AE, Brush)                                                                                 \
+  X(0xE3C9, Edit)                                                                                  \
   X(0xE3EA, Grain)                                                                                 \
   X(0xE3F4, Image)                                                                                 \
   X(0xE405, MusicNote)                                                                             \
