@@ -25,7 +25,8 @@
 
 // clang-format off
 
-static const String g_tooltipReload       = string_static("Reload the current level.");
+static const String g_tooltipEdit         = string_static("Start editing the current level.");
+static const String g_tooltipPlay         = string_static("Start playing the current level.");
 static const String g_tooltipUnload       = string_static("Unload the current level.");
 static const String g_tooltipSave         = string_static("Save the current level.");
 static const String g_tooltipFilter       = string_static("Filter levels by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
@@ -36,9 +37,10 @@ static const String g_queryPatternTerrain = string_static("terrains/*.terrain");
 
 typedef enum {
   DebugLevelFlags_RefreshAssets = 1 << 0,
-  DebugLevelFlags_Reload        = 1 << 1,
-  DebugLevelFlags_Unload        = 1 << 2,
-  DebugLevelFlags_Save          = 1 << 3,
+  DebugLevelFlags_Edit          = 1 << 1,
+  DebugLevelFlags_Play          = 1 << 2,
+  DebugLevelFlags_Unload        = 1 << 3,
+  DebugLevelFlags_Save          = 1 << 4,
 
   DebugLevelFlags_None    = 0,
   DebugLevelFlags_Default = DebugLevelFlags_RefreshAssets,
@@ -167,6 +169,7 @@ static void manage_panel_options_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   ui_table_add_column(&table, UiTableColumn_Fixed, 30);
   ui_table_add_column(&table, UiTableColumn_Fixed, 30);
   ui_table_add_column(&table, UiTableColumn_Fixed, 30);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 30);
   ui_table_add_column(&table, UiTableColumn_Fixed, 60);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
@@ -175,8 +178,12 @@ static void manage_panel_options_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   const bool          isLoaded = ecs_entity_valid(scene_level_asset(ctx->levelManager));
   const UiWidgetFlags btnFlags = isLoaded ? 0 : UiWidget_Disabled;
 
-  if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE5D5"), .tooltip = g_tooltipReload)) {
-    ctx->panelComp->flags |= DebugLevelFlags_Reload;
+  if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE3C9"), .tooltip = g_tooltipEdit)) {
+    ctx->panelComp->flags |= DebugLevelFlags_Edit;
+  }
+  ui_table_next_column(c, &table);
+  if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE037"), .tooltip = g_tooltipPlay)) {
+    ctx->panelComp->flags |= DebugLevelFlags_Play;
   }
   ui_table_next_column(c, &table);
   if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE161"), .tooltip = g_tooltipSave)) {
@@ -402,9 +409,13 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
       level_assets_refresh(&ctx, g_queryPatternTerrain, &panelComp->assetsTerrain);
       panelComp->flags &= ~DebugLevelFlags_RefreshAssets;
     }
-    if (panelComp->flags & DebugLevelFlags_Reload) {
-      scene_level_reload(world, scene_level_mode(levelManager));
-      panelComp->flags &= ~DebugLevelFlags_Reload;
+    if (panelComp->flags & DebugLevelFlags_Edit) {
+      scene_level_reload(world, SceneLevelMode_Edit);
+      panelComp->flags &= ~DebugLevelFlags_Edit;
+    }
+    if (panelComp->flags & DebugLevelFlags_Play) {
+      scene_level_reload(world, SceneLevelMode_Play);
+      panelComp->flags &= ~DebugLevelFlags_Play;
     }
     if (panelComp->flags & DebugLevelFlags_Unload) {
       scene_level_unload(world);
