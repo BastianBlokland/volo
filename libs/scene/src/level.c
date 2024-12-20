@@ -108,6 +108,7 @@ scene_level_process_unload(EcsWorld* world, SceneLevelManagerComp* manager, EcsV
 
   string_maybe_free(g_allocHeap, manager->levelName);
 
+  manager->levelMode       = SceneLevelMode_Play;
   manager->levelAsset      = 0;
   manager->levelName       = string_empty;
   manager->levelTerrain    = 0;
