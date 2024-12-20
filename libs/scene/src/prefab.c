@@ -38,7 +38,6 @@
 #include "scene_transform.h"
 #include "scene_vfx.h"
 #include "scene_visibility.h"
-#include "script_val.h"
 
 ASSERT(AssetPrefabTrait_Count < 64, "Prefab trait masks need to be representable with 64 bits")
 
@@ -225,53 +224,63 @@ ecs_system_define(ScenePrefabInstanceLayerUpdateSys) {
   }
 }
 
-static void setup_name(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitName* t) {
-  ecs_world_add_t(w, e, SceneNameComp, .name = t->name);
+typedef struct {
+  EcsWorld*                 world;
+  SceneNavEnvComp*          navEnv;
+  const AssetPrefabMapComp* prefabMap;
+  const AssetPrefab*        prefab;
+  EcsEntityId               entity;
+  const ScenePrefabSpec*    spec;
+  SceneKnowledgeComp*       knowledge; // Added on-demand to the resulting entity.
+} PrefabSetupContext;
+
+static void setup_name(PrefabSetupContext* ctx, const AssetPrefabTraitName* t) {
+  ecs_world_add_t(ctx->world, ctx->entity, SceneNameComp, .name = t->name);
 }
 
-static void setup_set_member(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitSetMember* t) {
-  scene_set_member_create(w, e, t->sets, array_elems(t->sets));
+static void setup_set_member(PrefabSetupContext* ctx, const AssetPrefabTraitSetMember* t) {
+  scene_set_member_create(ctx->world, ctx->entity, t->sets, array_elems(t->sets));
 }
 
-static void setup_renderable(
-    EcsWorld*                         w,
-    const EcsEntityId                 e,
-    const ScenePrefabSpec*            s,
-    const AssetPrefabTraitRenderable* t) {
+static void setup_renderable(PrefabSetupContext* ctx, const AssetPrefabTraitRenderable* t) {
   GeoColor color;
-  if (s->variant == ScenePrefabVariant_Preview) {
+  if (ctx->spec->variant == ScenePrefabVariant_Preview) {
     color = geo_color(1, 1, 1, 0.5f);
   } else {
     color = geo_color_white;
   }
-  ecs_world_add_t(w, e, SceneRenderableComp, .graphic = t->graphic.entity, .color = color);
+  ecs_world_add_t(
+      ctx->world, ctx->entity, SceneRenderableComp, .graphic = t->graphic.entity, .color = color);
 }
 
-static void setup_vfx_system(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitVfx* t) {
+static void setup_vfx_system(PrefabSetupContext* ctx, const AssetPrefabTraitVfx* t) {
   ecs_world_add_t(
-      w, e, SceneVfxSystemComp, .asset = t->asset.entity, .alpha = 1.0f, .emitMultiplier = 1.0f);
+      ctx->world,
+      ctx->entity,
+      SceneVfxSystemComp,
+      .asset          = t->asset.entity,
+      .alpha          = 1.0f,
+      .emitMultiplier = 1.0f);
 }
 
-static void setup_vfx_decal(
-    EcsWorld* w, const EcsEntityId e, const ScenePrefabSpec* s, const AssetPrefabTraitDecal* t) {
-
+static void setup_vfx_decal(PrefabSetupContext* ctx, const AssetPrefabTraitDecal* t) {
   ecs_world_add_t(
-      w,
-      e,
+      ctx->world,
+      ctx->entity,
       SceneVfxDecalComp,
       .asset = t->asset.entity,
-      .alpha = s->variant == ScenePrefabVariant_Preview ? 0.5f : 1.0f);
+      .alpha = ctx->spec->variant == ScenePrefabVariant_Preview ? 0.5f : 1.0f);
 }
 
-static void setup_sound(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitSound* t) {
+static void setup_sound(PrefabSetupContext* ctx, const AssetPrefabTraitSound* t) {
   u32 count = 0;
   for (; count != array_elems(t->assets) && ecs_entity_valid(t->assets[count].entity); ++count)
     ;
 
   if (LIKELY(count)) {
     ecs_world_add_t(
-        w,
-        e,
+        ctx->world,
+        ctx->entity,
         SceneSoundComp,
         .asset   = t->assets[(u32)(count * rng_sample_f32(g_rng))].entity,
         .gain    = rng_sample_range(g_rng, t->gainMin, t->gainMax),
@@ -280,35 +289,33 @@ static void setup_sound(EcsWorld* w, EcsEntityId e, const AssetPrefabTraitSound*
   }
 }
 
-static void
-setup_light_point(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitLightPoint* t) {
-  ecs_world_add_t(w, e, SceneLightPointComp, .radiance = t->radiance, .radius = t->radius);
+static void setup_light_point(PrefabSetupContext* ctx, const AssetPrefabTraitLightPoint* t) {
+  ecs_world_add_t(
+      ctx->world, ctx->entity, SceneLightPointComp, .radiance = t->radiance, .radius = t->radius);
 }
 
-static void setup_light_dir(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitLightDir* t) {
+static void setup_light_dir(PrefabSetupContext* ctx, const AssetPrefabTraitLightDir* t) {
   ecs_world_add_t(
-      w,
-      e,
+      ctx->world,
+      ctx->entity,
       SceneLightDirComp,
       .radiance = t->radiance,
       .shadows  = t->shadows,
       .coverage = t->coverage);
 }
 
-static void
-setup_light_ambient(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitLightAmbient* t) {
-  ecs_world_add_t(w, e, SceneLightAmbientComp, .intensity = t->intensity);
+static void setup_light_ambient(PrefabSetupContext* ctx, const AssetPrefabTraitLightAmbient* t) {
+  ecs_world_add_t(ctx->world, ctx->entity, SceneLightAmbientComp, .intensity = t->intensity);
 }
 
-static void setup_lifetime(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitLifetime* t) {
-  ecs_world_add_t(w, e, SceneLifetimeDurationComp, .duration = t->duration);
+static void setup_lifetime(PrefabSetupContext* ctx, const AssetPrefabTraitLifetime* t) {
+  ecs_world_add_t(ctx->world, ctx->entity, SceneLifetimeDurationComp, .duration = t->duration);
 }
 
-static void setup_movement(
-    EcsWorld* w, SceneNavEnvComp* navEnv, const EcsEntityId e, const AssetPrefabTraitMovement* t) {
+static void setup_movement(PrefabSetupContext* ctx, const AssetPrefabTraitMovement* t) {
   ecs_world_add_t(
-      w,
-      e,
+      ctx->world,
+      ctx->entity,
       SceneLocomotionComp,
       .maxSpeed         = t->speed,
       .rotationSpeedRad = t->rotationSpeed,
@@ -318,21 +325,21 @@ static void setup_movement(
 
   if (t->wheeled) {
     ecs_world_add_t(
-        w,
-        e,
+        ctx->world,
+        ctx->entity,
         SceneLocomotionWheeledComp,
         .acceleration  = t->wheeledAcceleration,
         .terrainNormal = geo_up);
   }
 
   diag_assert(t->navLayer < SceneNavLayer_Count);
-  scene_nav_add_agent(w, navEnv, e, (SceneNavLayer)t->navLayer);
+  scene_nav_add_agent(ctx->world, ctx->navEnv, ctx->entity, (SceneNavLayer)t->navLayer);
 }
 
-static void setup_footstep(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitFootstep* t) {
+static void setup_footstep(PrefabSetupContext* ctx, const AssetPrefabTraitFootstep* t) {
   ecs_world_add_t(
-      w,
-      e,
+      ctx->world,
+      ctx->entity,
       SceneFootstepComp,
       .jointNames[0]  = t->jointA,
       .jointNames[1]  = t->jointB,
@@ -340,31 +347,31 @@ static void setup_footstep(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
       .decalAssets[1] = t->decalB.entity);
 }
 
-static void setup_health(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitHealth* t) {
+static void setup_health(PrefabSetupContext* ctx, const AssetPrefabTraitHealth* t) {
   ecs_world_add_t(
-      w,
-      e,
+      ctx->world,
+      ctx->entity,
       SceneHealthComp,
       .norm              = 1.0f,
       .max               = t->amount,
       .deathDestroyDelay = t->deathDestroyDelay,
       .deathEffectPrefab = t->deathEffectPrefab);
 
-  ecs_world_add_t(w, e, SceneHealthRequestComp);
+  ecs_world_add_t(ctx->world, ctx->entity, SceneHealthRequestComp);
 }
 
-static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitAttack* t) {
+static void setup_attack(PrefabSetupContext* ctx, const AssetPrefabTraitAttack* t) {
   ecs_world_add_t(
-      w,
-      e,
+      ctx->world,
+      ctx->entity,
       SceneAttackComp,
       .weaponName        = t->weapon,
       .lastHasTargetTime = -time_hour,
       .lastFireTime      = -time_hour);
   if (t->aimJoint) {
     ecs_world_add_t(
-        w,
-        e,
+        ctx->world,
+        ctx->entity,
         SceneAttackAimComp,
         .aimJoint       = t->aimJoint,
         .aimSpeedRad    = t->aimSpeed,
@@ -379,31 +386,25 @@ static void setup_attack(EcsWorld* w, const EcsEntityId e, const AssetPrefabTrai
     config |= SceneTargetConfig_ExcludeObscured;
   }
   ecs_world_add_t(
-      w,
-      e,
+      ctx->world,
+      ctx->entity,
       SceneTargetFinderComp,
       .config   = config,
       .rangeMin = t->targetRangeMin,
       .rangeMax = t->targetRangeMax);
 }
 
-static void setup_collision(
-    EcsWorld*                        w,
-    const EcsEntityId                e,
-    const ScenePrefabSpec*           s,
-    const AssetPrefabMapComp*        m,
-    const AssetPrefab*               p,
-    const AssetPrefabTraitCollision* t) {
+static void setup_collision(PrefabSetupContext* ctx, const AssetPrefabTraitCollision* t) {
   if (t->navBlocker) {
-    scene_nav_add_blocker(w, e, SceneNavBlockerMask_All);
+    scene_nav_add_blocker(ctx->world, ctx->entity, SceneNavBlockerMask_All);
   }
-  const SceneLayer layer = prefab_instance_layer(s->faction, p->flags);
+  const SceneLayer layer = prefab_instance_layer(ctx->spec->faction, ctx->prefab->flags);
 
   SceneCollisionShape collisionShapes[32];
   const u32           shapeCount = math_min(array_elems(collisionShapes), t->shapeCount);
 
   for (u32 i = 0; i != shapeCount; ++i) {
-    AssetPrefabShape* prefabShape = &m->shapes.values[t->shapeIndex + i];
+    AssetPrefabShape* prefabShape = &ctx->prefabMap->shapes.values[t->shapeIndex + i];
     switch (prefabShape->type) {
     case AssetPrefabShape_Sphere:
       collisionShapes[i].type   = SceneCollisionType_Sphere;
@@ -419,61 +420,58 @@ static void setup_collision(
       break;
     }
   }
-  scene_collision_add(w, e, layer, collisionShapes, shapeCount);
+  scene_collision_add(ctx->world, ctx->entity, layer, collisionShapes, shapeCount);
 }
 
-static void setup_script(
-    EcsWorld*                     w,
-    const EcsEntityId             e,
-    const AssetPrefabMapComp*     m,
-    const AssetPrefabTraitScript* t) {
-
+static void setup_script(PrefabSetupContext* ctx, const AssetPrefabTraitScript* t) {
   u32 scriptCount = 0;
   for (; scriptCount != array_elems(t->scripts) && t->scripts[scriptCount]; ++scriptCount)
     ;
 
-  scene_script_add(w, e, t->scripts, scriptCount);
+  scene_script_add(ctx->world, ctx->entity, t->scripts, scriptCount);
 
-  SceneKnowledgeComp* knowledge = scene_knowledge_add(w, e);
+  if (!ctx->knowledge) {
+    ctx->knowledge = scene_knowledge_add(ctx->world, ctx->entity);
+  }
   for (u16 i = 0; i != t->knowledgeCount; ++i) {
-    const AssetPrefabValue* val = &m->values.values[t->knowledgeIndex + i];
+    const AssetPrefabValue* val = &ctx->prefabMap->values.values[t->knowledgeIndex + i];
     switch (val->type) {
     case AssetPrefabValue_Number:
-      scene_knowledge_store(knowledge, val->name, script_num(val->data_number));
+      scene_knowledge_store(ctx->knowledge, val->name, script_num(val->data_number));
       break;
     case AssetPrefabValue_Bool:
-      scene_knowledge_store(knowledge, val->name, script_bool(val->data_bool));
+      scene_knowledge_store(ctx->knowledge, val->name, script_bool(val->data_bool));
       break;
     case AssetPrefabValue_Vector3:
-      scene_knowledge_store(knowledge, val->name, script_vec3(val->data_vector3));
+      scene_knowledge_store(ctx->knowledge, val->name, script_vec3(val->data_vector3));
       break;
     case AssetPrefabValue_Color:
-      scene_knowledge_store(knowledge, val->name, script_color(val->data_color));
+      scene_knowledge_store(ctx->knowledge, val->name, script_color(val->data_color));
       break;
     case AssetPrefabValue_String:
-      scene_knowledge_store(knowledge, val->name, script_str(val->data_string));
+      scene_knowledge_store(ctx->knowledge, val->name, script_str(val->data_string));
       break;
     case AssetPrefabValue_Asset:
-      scene_knowledge_store(knowledge, val->name, script_entity(val->data_asset.entity));
+      scene_knowledge_store(ctx->knowledge, val->name, script_entity(val->data_asset.entity));
       break;
     case AssetPrefabValue_Sound:
-      scene_knowledge_store(knowledge, val->name, script_entity(val->data_sound.asset.entity));
+      scene_knowledge_store(ctx->knowledge, val->name, script_entity(val->data_sound.asset.entity));
       break;
     }
   }
 }
 
-static void setup_bark(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitBark* t) {
+static void setup_bark(PrefabSetupContext* ctx, const AssetPrefabTraitBark* t) {
   ecs_world_add_t(
-      w,
-      e,
+      ctx->world,
+      ctx->entity,
       SceneBarkComp,
       .priority                           = t->priority,
       .barkPrefabs[SceneBarkType_Death]   = t->barkDeathPrefab,
       .barkPrefabs[SceneBarkType_Confirm] = t->barkConfirmPrefab);
 }
 
-static void setup_location(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitLocation* t) {
+static void setup_location(PrefabSetupContext* ctx, const AssetPrefabTraitLocation* t) {
   static const struct {
     SceneLocationType type;
     u32               traitOffset;
@@ -481,59 +479,58 @@ static void setup_location(EcsWorld* w, const EcsEntityId e, const AssetPrefabTr
       {SceneLocationType_AimTarget, offsetof(AssetPrefabTraitLocation, aimTarget)},
   };
 
-  SceneLocationComp* loc = ecs_world_add_t(w, e, SceneLocationComp);
+  SceneLocationComp* loc = ecs_world_add_t(ctx->world, ctx->entity, SceneLocationComp);
   for (u32 i = 0; i != array_elems(g_mappings); ++i) {
     const GeoBox* box                = bits_ptr_offset(t, g_mappings[i].traitOffset);
     loc->volumes[g_mappings[i].type] = *box;
   }
 }
 
-static void setup_status(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitStatus* t) {
+static void setup_status(PrefabSetupContext* ctx, const AssetPrefabTraitStatus* t) {
   ecs_world_add_t(
-      w, e, SceneStatusComp, .supported = (u8)t->supportedStatus, .effectJoint = t->effectJoint);
-  ecs_world_add_t(w, e, SceneStatusRequestComp);
+      ctx->world,
+      ctx->entity,
+      SceneStatusComp,
+      .supported   = (u8)t->supportedStatus,
+      .effectJoint = t->effectJoint);
+  ecs_world_add_t(ctx->world, ctx->entity, SceneStatusRequestComp);
 }
 
-static void setup_vision(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitVision* t) {
+static void setup_vision(PrefabSetupContext* ctx, const AssetPrefabTraitVision* t) {
   SceneVisionFlags flags = 0;
   flags |= t->showInHud ? SceneVisionFlags_ShowInHud : 0;
 
-  ecs_world_add_t(w, e, SceneVisionComp, .flags = flags, .radius = t->radius);
+  ecs_world_add_t(ctx->world, ctx->entity, SceneVisionComp, .flags = flags, .radius = t->radius);
 }
 
-static void setup_attachment(
-    EcsWorld*                         w,
-    const EcsEntityId                 e,
-    const ScenePrefabSpec*            s,
-    const AssetPrefabTraitAttachment* t) {
+static void setup_attachment(PrefabSetupContext* ctx, const AssetPrefabTraitAttachment* t) {
 
   const EcsEntityId attachEntity = scene_prefab_spawn(
-      w,
+      ctx->world,
       &(ScenePrefabSpec){
           .flags    = ScenePrefabFlags_Volatile,
           .prefabId = t->attachmentPrefab,
-          .variant  = s->variant,
-          .faction  = s->faction,
-          .position = s->position,
-          .rotation = s->rotation,
+          .variant  = ctx->spec->variant,
+          .faction  = ctx->spec->faction,
+          .position = ctx->spec->position,
+          .rotation = ctx->spec->rotation,
           .scale    = t->attachmentScale});
 
-  ecs_world_add_t(w, attachEntity, SceneLifetimeOwnerComp, .owners[0] = e);
+  ecs_world_add_t(ctx->world, attachEntity, SceneLifetimeOwnerComp, .owners[0] = ctx->entity);
   ecs_world_add_t(
-      w,
+      ctx->world,
       attachEntity,
       SceneAttachmentComp,
-      .target     = e,
+      .target     = ctx->entity,
       .jointIndex = sentinel_u32,
       .jointName  = t->joint,
       .offset     = t->offset);
 }
 
-static void
-setup_production(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitProduction* t) {
+static void setup_production(PrefabSetupContext* ctx, const AssetPrefabTraitProduction* t) {
   ecs_world_add_t(
-      w,
-      e,
+      ctx->world,
+      ctx->entity,
       SceneProductionComp,
       .productSetId    = t->productSetId,
       .flags           = SceneProductFlags_RallyLocalSpace,
@@ -544,87 +541,81 @@ setup_production(EcsWorld* w, const EcsEntityId e, const AssetPrefabTraitProduct
       .rallyPos        = t->rallyPos);
 }
 
-static void setup_scale(EcsWorld* w, const EcsEntityId e, const f32 scale) {
-  ecs_world_add_t(w, e, SceneScaleComp, .scale = scale < f32_epsilon ? 1.0 : scale);
+static void setup_scale(PrefabSetupContext* ctx, const f32 scale) {
+  ecs_world_add_t(
+      ctx->world, ctx->entity, SceneScaleComp, .scale = scale < f32_epsilon ? 1.0 : scale);
 }
 
-static void setup_trait(
-    EcsWorld*                 w,
-    SceneNavEnvComp*          navEnv,
-    const EcsEntityId         e,
-    const ScenePrefabSpec*    s,
-    const AssetPrefabMapComp* m,
-    const AssetPrefab*        p,
-    const AssetPrefabTrait*   t) {
+static void setup_trait(PrefabSetupContext* ctx, const AssetPrefabTrait* t) {
   switch (t->type) {
   case AssetPrefabTrait_Name:
-    setup_name(w, e, &t->data_name);
+    setup_name(ctx, &t->data_name);
     return;
   case AssetPrefabTrait_SetMember:
-    setup_set_member(w, e, &t->data_setMember);
+    setup_set_member(ctx, &t->data_setMember);
     return;
   case AssetPrefabTrait_Renderable:
-    setup_renderable(w, e, s, &t->data_renderable);
+    setup_renderable(ctx, &t->data_renderable);
     return;
   case AssetPrefabTrait_Vfx:
-    setup_vfx_system(w, e, &t->data_vfx);
+    setup_vfx_system(ctx, &t->data_vfx);
     return;
   case AssetPrefabTrait_Decal:
-    setup_vfx_decal(w, e, s, &t->data_decal);
+    setup_vfx_decal(ctx, &t->data_decal);
     return;
   case AssetPrefabTrait_Sound:
-    setup_sound(w, e, &t->data_sound);
+    setup_sound(ctx, &t->data_sound);
     return;
   case AssetPrefabTrait_LightPoint:
-    setup_light_point(w, e, &t->data_lightPoint);
+    setup_light_point(ctx, &t->data_lightPoint);
     return;
   case AssetPrefabTrait_LightDir:
-    setup_light_dir(w, e, &t->data_lightDir);
+    setup_light_dir(ctx, &t->data_lightDir);
     return;
   case AssetPrefabTrait_LightAmbient:
-    setup_light_ambient(w, e, &t->data_lightAmbient);
+    setup_light_ambient(ctx, &t->data_lightAmbient);
     return;
   case AssetPrefabTrait_Lifetime:
-    setup_lifetime(w, e, &t->data_lifetime);
+    setup_lifetime(ctx, &t->data_lifetime);
     return;
   case AssetPrefabTrait_Movement:
-    setup_movement(w, navEnv, e, &t->data_movement);
+    setup_movement(ctx, &t->data_movement);
     return;
   case AssetPrefabTrait_Footstep:
-    setup_footstep(w, e, &t->data_footstep);
+    setup_footstep(ctx, &t->data_footstep);
     return;
   case AssetPrefabTrait_Health:
-    setup_health(w, e, &t->data_health);
+    setup_health(ctx, &t->data_health);
     return;
   case AssetPrefabTrait_Attack:
-    setup_attack(w, e, &t->data_attack);
+    setup_attack(ctx, &t->data_attack);
     return;
   case AssetPrefabTrait_Collision:
-    setup_collision(w, e, s, m, p, &t->data_collision);
+    setup_collision(ctx, &t->data_collision);
     return;
   case AssetPrefabTrait_Script:
-    setup_script(w, e, m, &t->data_script);
+    setup_script(ctx, &t->data_script);
     return;
   case AssetPrefabTrait_Bark:
-    setup_bark(w, e, &t->data_bark);
+    setup_bark(ctx, &t->data_bark);
     return;
   case AssetPrefabTrait_Location:
-    setup_location(w, e, &t->data_location);
+    setup_location(ctx, &t->data_location);
     return;
   case AssetPrefabTrait_Status:
-    setup_status(w, e, &t->data_status);
+    setup_status(ctx, &t->data_status);
     return;
   case AssetPrefabTrait_Vision:
-    setup_vision(w, e, &t->data_vision);
+    setup_vision(ctx, &t->data_vision);
     return;
   case AssetPrefabTrait_Attachment:
-    setup_attachment(w, e, s, &t->data_attachment);
+    setup_attachment(ctx, &t->data_attachment);
     return;
   case AssetPrefabTrait_Production:
-    setup_production(w, e, &t->data_production);
+    setup_production(ctx, &t->data_production);
     return;
   case AssetPrefabTrait_Scalable:
-    setup_scale(w, e, s->scale);
+    setup_scale(ctx, ctx->spec->scale);
     return;
   case AssetPrefabTrait_Count:
     break;
@@ -633,12 +624,12 @@ static void setup_trait(
 }
 
 static bool setup_prefab(
-    EcsWorld*                 w,
+    EcsWorld*                 world,
+    const AssetPrefabMapComp* prefabMap,
     SceneNavEnvComp*          navEnv,
     const SceneTerrainComp*   terrain,
     const EcsEntityId         e,
-    const ScenePrefabSpec*    spec,
-    const AssetPrefabMapComp* map) {
+    const ScenePrefabSpec*    spec) {
 
   if ((spec->flags & ScenePrefabFlags_SnapToTerrain) && !scene_terrain_loaded(terrain)) {
     return false; // Wait until the terrain is loaded.
@@ -646,14 +637,14 @@ static bool setup_prefab(
 
   diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", string_hash_fmt(spec->prefabId));
   ScenePrefabInstanceComp* instanceComp = ecs_world_add_t(
-      w,
+      world,
       e,
       ScenePrefabInstanceComp,
       .id       = spec->id,
       .prefabId = spec->prefabId,
       .variant  = spec->variant);
 
-  const AssetPrefab* prefab = asset_prefab_get(map, spec->prefabId);
+  const AssetPrefab* prefab = asset_prefab_get(prefabMap, spec->prefabId);
   if (UNLIKELY(!prefab)) {
     log_e("Prefab not found", log_param("entity", ecs_entity_fmt(e)));
     return true; // No point in retrying; mark the prefab as done.
@@ -667,36 +658,56 @@ static bool setup_prefab(
     scene_terrain_snap(terrain, &spawnPos);
   }
   prefab_validate_pos(spawnPos);
-  ecs_world_add_empty_t(w, e, SceneLevelInstanceComp);
-  ecs_world_add_t(w, e, SceneTransformComp, .position = spawnPos, .rotation = spec->rotation);
+  ecs_world_add_empty_t(world, e, SceneLevelInstanceComp);
+  ecs_world_add_t(world, e, SceneTransformComp, .position = spawnPos, .rotation = spec->rotation);
 
   switch (spec->variant) {
   case ScenePrefabVariant_Normal:
-    ecs_world_add_t(w, e, SceneVelocityComp);
-    ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
-    scene_debug_init(w, e);
+    ecs_world_add_t(world, e, SceneVelocityComp);
+    ecs_world_add_t(world, e, SceneTagComp, .tags = SceneTags_Default);
+    scene_debug_init(world, e);
 
     if (prefab->flags & AssetPrefabFlags_Unit) {
-      ecs_world_add_t(w, e, SceneVisibilityComp);
-      ecs_world_add_t(w, e, SceneHealthStatsComp);
+      ecs_world_add_t(world, e, SceneVisibilityComp);
+      ecs_world_add_t(world, e, SceneHealthStatsComp);
     }
     break;
   case ScenePrefabVariant_Edit:
-    ecs_world_add_t(w, e, SceneTagComp, .tags = SceneTags_Default);
+    ecs_world_add_t(world, e, SceneTagComp, .tags = SceneTags_Default);
     break;
   default:
     break;
   }
 
   if (spec->faction != SceneFaction_None) {
-    ecs_world_add_t(w, e, SceneFactionComp, .id = spec->faction);
+    ecs_world_add_t(world, e, SceneFactionComp, .id = spec->faction);
   }
+
+  PrefabSetupContext ctx = {
+      .world     = world,
+      .navEnv    = navEnv,
+      .prefabMap = prefabMap,
+      .prefab    = prefab,
+      .entity    = e,
+      .spec      = spec,
+  };
 
   const u64 traitMask = g_prefabVariantTraitMask[spec->variant];
   for (u16 i = 0; i != prefab->traitCount; ++i) {
-    const AssetPrefabTrait* trait = &map->traits.values[prefab->traitIndex + i];
+    const AssetPrefabTrait* trait = &prefabMap->traits.values[prefab->traitIndex + i];
     if (traitMask & (u64_lit(1) << trait->type)) {
-      setup_trait(w, navEnv, e, spec, map, prefab, trait);
+      setup_trait(&ctx, trait);
+    }
+  }
+
+  // NOTE: Set instance knowledge after the traits as it should override in case of conflicts.
+  if (spec->knowledgeCount) {
+    diag_assert(spec->knowledge);
+    if (!ctx.knowledge) {
+      ctx.knowledge = scene_knowledge_add(world, e);
+    }
+    for (usize i = 0; i != spec->knowledgeCount; ++i) {
+      scene_knowledge_store(ctx.knowledge, spec->knowledge[i].key, spec->knowledge[i].value);
     }
   }
 
@@ -723,7 +734,7 @@ ecs_system_define(ScenePrefabSpawnSys) {
   // Process global requests.
   for (usize i = prefabEnv->requests.size; i-- != 0;) {
     const ScenePrefabRequest* req = dynarray_at_t(&prefabEnv->requests, i, ScenePrefabRequest);
-    if (setup_prefab(world, navEnv, terrain, req->entity, &req->spec, map)) {
+    if (setup_prefab(world, map, navEnv, terrain, req->entity, &req->spec)) {
       dynarray_remove_unordered(&prefabEnv->requests, i, 1);
     }
   }
@@ -734,7 +745,7 @@ ecs_system_define(ScenePrefabSpawnSys) {
     const EcsEntityId             entity  = ecs_view_entity(itr);
     const ScenePrefabRequestComp* request = ecs_view_read_t(itr, ScenePrefabRequestComp);
 
-    if (setup_prefab(world, navEnv, terrain, entity, &request->spec, map)) {
+    if (setup_prefab(world, map, navEnv, terrain, entity, &request->spec)) {
       ecs_world_remove_t(world, entity, ScenePrefabRequestComp);
     }
   }
