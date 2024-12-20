@@ -2,6 +2,7 @@
 #include "ecs_module.h"
 #include "geo_quat.h"
 #include "scene_faction.h"
+#include "script_val.h"
 
 typedef enum {
   ScenePrefabVariant_Normal,
@@ -54,14 +55,21 @@ typedef enum {
 } ScenePrefabFlags;
 
 typedef struct {
-  u32                id; // Optional persistent id.
-  StringHash         prefabId;
-  ScenePrefabVariant variant;
-  SceneFaction       faction;
-  ScenePrefabFlags   flags;
-  f32                scale;
-  GeoVector          position;
-  GeoQuat            rotation;
+  StringHash key;
+  ScriptVal  value;
+} ScenePrefabKnowledge;
+
+typedef struct {
+  u32                         id; // Optional persistent id.
+  StringHash                  prefabId;
+  ScenePrefabVariant          variant;
+  SceneFaction                faction;
+  ScenePrefabFlags            flags;
+  f32                         scale;
+  GeoVector                   position;
+  GeoQuat                     rotation;
+  const ScenePrefabKnowledge* knowledge;
+  usize                       knowledgeCount;
 } ScenePrefabSpec;
 
 EcsEntityId scene_prefab_spawn(EcsWorld*, const ScenePrefabSpec*);
