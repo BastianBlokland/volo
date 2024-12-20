@@ -218,7 +218,7 @@ static void manage_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   }
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
-  ui_table_add_column(&table, UiTableColumn_Fixed, 325);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 375);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -252,12 +252,12 @@ static void manage_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
     ui_label(c, id, .selectable = true);
     ui_table_next_column(c, &table);
 
-    ui_layout_resize(c, UiAlign_MiddleLeft, ui_vector(60, 0), UiBase_Absolute, Ui_X);
-    if (ui_button(c, .flags = disabled ? UiWidget_Disabled : 0, .label = string_lit("Edit"))) {
+    ui_layout_resize(c, UiAlign_MiddleLeft, ui_vector(30, 0), UiBase_Absolute, Ui_X);
+    if (ui_button(c, .flags = disabled ? UiWidget_Disabled : 0, .label = string_lit("\uE3C9"))) {
       scene_level_load(ctx->world, SceneLevelMode_Edit, *levelAsset);
     }
     ui_layout_next(c, Ui_Right, 10);
-    if (ui_button(c, .flags = disabled ? UiWidget_Disabled : 0, .label = string_lit("Play"))) {
+    if (ui_button(c, .flags = disabled ? UiWidget_Disabled : 0, .label = string_lit("\uE037"))) {
       scene_level_load(ctx->world, SceneLevelMode_Play, *levelAsset);
     }
   }
