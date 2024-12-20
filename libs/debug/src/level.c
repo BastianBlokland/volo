@@ -345,6 +345,10 @@ static void level_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
       ui_label(c, string_lit("< No loaded level >"), .align = UiAlign_MiddleCenter);
       break;
     }
+    if (scene_level_mode(ctx->levelManager) != SceneLevelMode_Edit) {
+      ui_label(c, string_lit("< Level not open for edit >"), .align = UiAlign_MiddleCenter);
+      break;
+    }
     settings_panel_draw(c, ctx);
     break;
   }
