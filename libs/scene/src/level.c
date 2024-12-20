@@ -23,18 +23,20 @@ typedef enum {
 } LevelLoadState;
 
 ecs_comp_define(SceneLevelManagerComp) {
-  bool          isLoading;
-  u32           loadCounter;
-  EcsEntityId   levelAsset;
-  String        levelName;
-  EcsEntityId   levelTerrain;
-  AssetLevelFog levelFog;
-  GeoVector     levelStartpoint;
+  bool           isLoading;
+  u32            loadCounter;
+  SceneLevelMode levelMode;
+  EcsEntityId    levelAsset;
+  String         levelName;
+  EcsEntityId    levelTerrain;
+  AssetLevelFog  levelFog;
+  GeoVector      levelStartpoint;
 };
 
 ecs_comp_define_public(SceneLevelInstanceComp);
 
 ecs_comp_define(SceneLevelRequestLoadComp) {
+  SceneLevelMode levelMode;
   EcsEntityId    levelAsset; // 0 indicates reloading the current level.
   LevelLoadState state;
 };
@@ -117,10 +119,21 @@ scene_level_process_unload(EcsWorld* world, SceneLevelManagerComp* manager, EcsV
   log_i("Level unloaded", log_param("objects", fmt_int(unloadedObjectCount)));
 }
 
+static ScenePrefabVariant scene_level_prefab_variant(const SceneLevelMode levelMode) {
+  switch (levelMode) {
+  case SceneLevelMode_Play:
+    return ScenePrefabVariant_Normal;
+  case SceneLevelMode_Edit:
+    return SceneLevelMode_Edit;
+  }
+  diag_crash();
+}
+
 static void scene_level_process_load(
     EcsWorld*              world,
     SceneLevelManagerComp* manager,
     AssetManagerComp*      assets,
+    const SceneLevelMode   levelMode,
     const EcsEntityId      levelAsset,
     const AssetLevel*      level) {
   diag_assert(!ecs_entity_valid(manager->levelAsset));
@@ -129,12 +142,14 @@ static void scene_level_process_load(
 
   trace_begin("level_load", TraceColor_White);
 
+  const ScenePrefabVariant prefabVariant = scene_level_prefab_variant(levelMode);
   heap_array_for_t(level->objects, AssetLevelObject, obj) {
     scene_prefab_spawn(
         world,
         &(ScenePrefabSpec){
             .id       = obj->id,
             .prefabId = obj->prefab,
+            .variant  = prefabVariant,
             .position = obj->position,
             .rotation = obj->rotation,
             .scale    = obj->scale,
@@ -142,6 +157,7 @@ static void scene_level_process_load(
         });
   }
 
+  manager->levelMode       = levelMode;
   manager->levelAsset      = levelAsset;
   manager->levelName       = string_maybe_dup(g_allocHeap, level->name);
   manager->levelStartpoint = level->startpoint;
@@ -236,7 +252,8 @@ ecs_system_define(SceneLevelLoadSys) {
         manager->isLoading = false;
         goto Done;
       }
-      scene_level_process_load(world, manager, assets, req->levelAsset, &levelComp->level);
+      scene_level_process_load(
+          world, manager, assets, req->levelMode, req->levelAsset, &levelComp->level);
       manager->isLoading = false;
       ++manager->loadCounter;
       goto Done;
@@ -414,9 +431,10 @@ bool scene_level_loaded(const SceneLevelManagerComp* m) {
   return m->levelAsset != 0 && !m->isLoading;
 }
 
-EcsEntityId scene_level_asset(const SceneLevelManagerComp* m) { return m->levelAsset; }
-u32         scene_level_counter(const SceneLevelManagerComp* m) { return m->loadCounter; }
-String      scene_level_name(const SceneLevelManagerComp* m) { return m->levelName; }
+SceneLevelMode scene_level_mode(const SceneLevelManagerComp* m) { return m->levelMode; }
+EcsEntityId    scene_level_asset(const SceneLevelManagerComp* m) { return m->levelAsset; }
+u32            scene_level_counter(const SceneLevelManagerComp* m) { return m->loadCounter; }
+String         scene_level_name(const SceneLevelManagerComp* m) { return m->levelName; }
 
 void scene_level_name_update(SceneLevelManagerComp* manager, const String name) {
   diag_assert_msg(manager->levelAsset, "Unable to update name: No level loaded");
@@ -451,16 +469,17 @@ void scene_level_fog_update(SceneLevelManagerComp* manager, const AssetLevelFog 
   manager->levelFog = fog;
 }
 
-void scene_level_load(EcsWorld* world, const EcsEntityId levelAsset) {
+void scene_level_load(EcsWorld* world, const SceneLevelMode mode, const EcsEntityId levelAsset) {
   diag_assert(ecs_entity_valid(levelAsset));
 
   const EcsEntityId reqEntity = ecs_world_entity_create(world);
-  ecs_world_add_t(world, reqEntity, SceneLevelRequestLoadComp, .levelAsset = levelAsset);
+  ecs_world_add_t(
+      world, reqEntity, SceneLevelRequestLoadComp, .levelMode = mode, .levelAsset = levelAsset);
 }
 
-void scene_level_reload(EcsWorld* world) {
+void scene_level_reload(EcsWorld* world, const SceneLevelMode mode) {
   const EcsEntityId reqEntity = ecs_world_entity_create(world);
-  ecs_world_add_t(world, reqEntity, SceneLevelRequestLoadComp, .levelAsset = 0);
+  ecs_world_add_t(world, reqEntity, SceneLevelRequestLoadComp, .levelMode = mode, .levelAsset = 0);
 }
 
 void scene_level_unload(EcsWorld* world) {

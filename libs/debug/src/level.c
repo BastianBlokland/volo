@@ -244,7 +244,7 @@ static void manage_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
 
     ui_layout_resize(c, UiAlign_MiddleLeft, ui_vector(60, 0), UiBase_Absolute, Ui_X);
     if (ui_button(c, .flags = disabled ? UiWidget_Disabled : 0, .label = string_lit("Load"))) {
-      scene_level_load(ctx->world, *levelAsset);
+      scene_level_load(ctx->world, SceneLevelMode_Play, *levelAsset);
     }
   }
 
@@ -399,7 +399,7 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
       panelComp->flags &= ~DebugLevelFlags_RefreshAssets;
     }
     if (panelComp->flags & DebugLevelFlags_Reload) {
-      scene_level_reload(world);
+      scene_level_reload(world, scene_level_mode(levelManager));
       panelComp->flags &= ~DebugLevelFlags_Reload;
     }
     if (panelComp->flags & DebugLevelFlags_Unload) {
