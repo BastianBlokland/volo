@@ -132,6 +132,8 @@ static ScenePrefabVariant scene_level_prefab_variant(const SceneLevelMode levelM
     return ScenePrefabVariant_Normal;
   case SceneLevelMode_Edit:
     return ScenePrefabVariant_Edit;
+  case SceneLevelMode_Count:
+    break;
   }
   diag_crash();
 }
