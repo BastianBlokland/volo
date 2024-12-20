@@ -1813,7 +1813,7 @@ static void inspector_vis_draw_icon(EcsWorld* world, DebugTextComp* text, EcsIte
     color = geo_color(1.0f, 0, 0, 0.75f);
     size  = 25;
   } else {
-    if (scriptComp) {
+    if (scriptComp || ecs_world_has_t(world, e, SceneKnowledgeComp)) {
       icon = UiShape_Description;
     } else if (ecs_world_has_t(world, e, DebugPrefabPreviewComp)) {
       icon = 0; // No icon for previews.

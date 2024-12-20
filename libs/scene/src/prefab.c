@@ -60,6 +60,7 @@ static const u64 g_prefabVariantTraitMask[ScenePrefabVariant_Count] = {
                                    (u64_lit(1) << AssetPrefabTrait_LightDir)     |
                                    (u64_lit(1) << AssetPrefabTrait_LightAmbient) |
                                    (u64_lit(1) << AssetPrefabTrait_Collision)    |
+                                   (u64_lit(1) << AssetPrefabTrait_Script)       |
                                    (u64_lit(1) << AssetPrefabTrait_Attachment)   |
                                    (u64_lit(1) << AssetPrefabTrait_Scalable),
 };
@@ -424,6 +425,17 @@ static void setup_collision(PrefabSetupContext* ctx, const AssetPrefabTraitColli
 }
 
 static void setup_script(PrefabSetupContext* ctx, const AssetPrefabTraitScript* t) {
+  if (ctx->spec->variant == ScenePrefabVariant_Edit) {
+    /**
+     * For edit variants add a knowledge component even though we will not be executing the scripts,
+     * this indicates that knowledge can be configured for the prefab.
+     */
+    if (!ctx->knowledge) {
+      ctx->knowledge = scene_knowledge_add(ctx->world, ctx->entity);
+    }
+    return; // Do not execute scripts on edit prefab instances.
+  }
+
   u32 scriptCount = 0;
   for (; scriptCount != array_elems(t->scripts) && t->scripts[scriptCount]; ++scriptCount)
     ;
