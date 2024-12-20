@@ -382,7 +382,7 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
 
   if (input_triggered_lit(input, "SaveLevel")) {
     const EcsEntityId currentLevelAsset = scene_level_asset(levelManager);
-    if (currentLevelAsset) {
+    if (currentLevelAsset && scene_level_mode(levelManager) == SceneLevelMode_Edit) {
       scene_level_save(world, currentLevelAsset);
     }
   }
