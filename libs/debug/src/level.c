@@ -175,8 +175,11 @@ static void manage_panel_options_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
 
   ui_table_next_row(c, &table);
 
-  const bool          isLoaded = ecs_entity_valid(scene_level_asset(ctx->levelManager));
-  const UiWidgetFlags btnFlags = isLoaded ? 0 : UiWidget_Disabled;
+  const bool isLoaded   = ecs_entity_valid(scene_level_asset(ctx->levelManager));
+  const bool isEditMode = isLoaded && scene_level_mode(ctx->levelManager) == SceneLevelMode_Edit;
+
+  const UiWidgetFlags btnFlags  = isLoaded ? 0 : UiWidget_Disabled;
+  const UiWidgetFlags editFlags = isEditMode ? 0 : UiWidget_Disabled;
 
   if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE3C9"), .tooltip = g_tooltipEdit)) {
     ctx->panelComp->flags |= DebugLevelFlags_Edit;
@@ -186,7 +189,7 @@ static void manage_panel_options_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
     ctx->panelComp->flags |= DebugLevelFlags_Play;
   }
   ui_table_next_column(c, &table);
-  if (ui_button(c, .flags = btnFlags, .label = string_lit("\uE161"), .tooltip = g_tooltipSave)) {
+  if (ui_button(c, .flags = editFlags, .label = string_lit("\uE161"), .tooltip = g_tooltipSave)) {
     ctx->panelComp->flags |= DebugLevelFlags_Save;
   }
   ui_table_next_column(c, &table);
