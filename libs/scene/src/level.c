@@ -44,6 +44,12 @@ ecs_comp_define(SceneLevelRequestLoadComp) {
 ecs_comp_define(SceneLevelRequestUnloadComp);
 ecs_comp_define(SceneLevelRequestSaveComp) { EcsEntityId levelAsset; };
 
+static const String g_levelModeNames[] = {
+    string_static("Play"),
+    string_static("Edit"),
+};
+ASSERT(array_elems(g_levelModeNames) == SceneLevelMode_Count, "Incorrect number of names");
+
 static void ecs_destruct_level_manager_comp(void* data) {
   SceneLevelManagerComp* comp = data;
   string_maybe_free(g_allocHeap, comp->levelName);
@@ -171,6 +177,7 @@ static void scene_level_process_load(
 
   log_i(
       "Level loaded",
+      log_param("mode", fmt_text(g_levelModeNames[levelMode])),
       log_param("name", fmt_text(level->name)),
       log_param("terrain", fmt_text(level->terrainId)),
       log_param("objects", fmt_int(level->objects.count)));

@@ -5,6 +5,8 @@
 typedef enum {
   SceneLevelMode_Play,
   SceneLevelMode_Edit,
+
+  SceneLevelMode_Count,
 } SceneLevelMode;
 
 ecs_comp_extern(SceneLevelManagerComp);
