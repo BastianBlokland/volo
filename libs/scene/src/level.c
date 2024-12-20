@@ -299,8 +299,8 @@ static void scene_level_object_push(
     EcsIterator* instanceItr) {
 
   const ScenePrefabInstanceComp* prefabInst = ecs_view_read_t(instanceItr, ScenePrefabInstanceComp);
-  if (!prefabInst || prefabInst != ScenePrefabVariant_Normal) {
-    return; // Only normal prefab instances are persisted.
+  if (!prefabInst || prefabInst->variant != ScenePrefabVariant_Edit) {
+    return; // Only edit prefab instances are persisted.
   }
   if (prefabInst->isVolatile) {
     return; // Volatile prefabs should not be persisted.
@@ -386,6 +386,8 @@ ecs_system_define(SceneLevelSaveSys) {
     const SceneLevelRequestSaveComp* req = ecs_view_read_t(itr, SceneLevelRequestSaveComp);
     if (manager->isLoading) {
       log_e("Level save failed; load in progress");
+    } else if (manager->levelMode != SceneLevelMode_Edit) {
+      log_e("Level save failed; level not loaded for edit");
     } else {
       ecs_view_jump(assetItr, req->levelAsset);
       const String assetId = asset_id(ecs_view_read_t(assetItr, AssetComp));
