@@ -213,6 +213,7 @@ typedef enum {
 
 typedef struct {
   StringHash       name;
+  u32              hash; // Hash of prefab content. NOTE: Non deterministic across sessions.
   AssetPrefabFlags flags;
   u16              traitIndex, traitCount; // Stored in the traits array.
 } AssetPrefab;
