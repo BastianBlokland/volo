@@ -161,6 +161,11 @@ void ecs_buffer_queue_finalize_all(EcsBuffer* buffer, EcsFinalizer* finalizer) {
   }
 }
 
+void ecs_buffer_reset_entity(EcsBuffer* buffer, const EcsEntityId entityId) {
+  EcsBufferEntity* entity = ecs_buffer_entity_get(buffer, entityId);
+  entity->flags |= EcsBufferEntityFlags_Reset;
+}
+
 void ecs_buffer_destroy_entity(EcsBuffer* buffer, const EcsEntityId entityId) {
   EcsBufferEntity* entity = ecs_buffer_entity_get(buffer, entityId);
   entity->flags |= EcsBufferEntityFlags_Destroy;
