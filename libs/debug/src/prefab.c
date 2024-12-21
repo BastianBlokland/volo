@@ -15,6 +15,7 @@
 #include "input_manager.h"
 #include "scene_camera.h"
 #include "scene_collision.h"
+#include "scene_level.h"
 #include "scene_prefab.h"
 #include "scene_set.h"
 #include "scene_terrain.h"
@@ -84,6 +85,7 @@ static void ecs_destruct_prefab_panel(void* data) {
 typedef struct {
   EcsWorld*                    world;
   const AssetPrefabMapComp*    prefabMap;
+  const SceneLevelManagerComp* levelManager;
   const SceneCollisionEnvComp* collision;
   const SceneTerrainComp*      terrain;
   DebugPrefabPanelComp*        panelComp;
@@ -228,6 +230,18 @@ static void prefab_create_cancel(const PrefabPanelContext* ctx) {
   prefab_create_preview_stop(ctx);
 }
 
+static ScenePrefabVariant prefab_create_variant(const PrefabPanelContext* ctx) {
+  switch (scene_level_mode(ctx->levelManager)) {
+  case SceneLevelMode_Play:
+    return ScenePrefabVariant_Normal;
+  case SceneLevelMode_Edit:
+    return ScenePrefabVariant_Edit;
+  case SceneLevelMode_Count:
+    break;
+  }
+  diag_crash();
+}
+
 static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector pos) {
   debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Create accept"));
 
@@ -240,6 +254,7 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
       ctx->world,
       &(ScenePrefabSpec){
           .prefabId = ctx->panelComp->createPrefabId,
+          .variant  = prefab_create_variant(ctx),
           .flags    = prefabFlags,
           .position = pos,
           .rotation = geo_quat_angle_axis(ctx->panelComp->createAngle, geo_up),
@@ -316,6 +331,10 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
     prefab_create_cancel(ctx); // Cancel requested.
     return;
   }
+  if (!scene_level_loaded(ctx->levelManager)) {
+    prefab_create_cancel(ctx); // No loaded level anymore.
+    return;
+  }
   if (!cameraItr || (input_blockers(ctx->input) & g_createInputBlockers) != 0) {
     prefab_create_preview_stop(ctx);
     return; // Input blocked.
@@ -344,6 +363,24 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
   }
 }
 
+static bool prefab_allow_create(const PrefabPanelContext* ctx) {
+  if (!scene_level_loaded(ctx->levelManager)) {
+    /**
+     * NOTE: Disable creating when there's no loaded level, reason is that without a level we do not
+     * know what prefab variant to spawn.
+     */
+    return false;
+  }
+  if (!input_layer_active(ctx->input, string_hash_lit("Debug"))) {
+    /**
+     * NOTE: Disable creating when debug input is not active, reason is placing prefabs uses debug
+     * input to detect place accept / cancel. This can happen when pinning the window.
+     */
+    return false;
+  }
+  return true;
+}
+
 static void prefab_panel_normal_options_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
   ui_layout_push(canvas);
 
@@ -368,11 +405,7 @@ static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelCont
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None);
 
-  /**
-   * NOTE: Disable creating when debug input is not active, reason is placing prefabs uses debug
-   * input to detect place accept / cancel. This can happen when pinning the window.
-   */
-  const bool disableCreate = !input_layer_active(ctx->input, string_hash_lit("Debug"));
+  const bool allowCreate = prefab_allow_create(ctx);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 225);
@@ -439,10 +472,10 @@ static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelCont
     ui_layout_next(canvas, Ui_Right, 10);
     if (ui_button(
             canvas,
-            .flags      = disableCreate ? UiWidget_Disabled : 0,
+            .flags      = allowCreate ? 0 : UiWidget_Disabled,
             .label      = ui_shape_scratch(UiShape_Add),
             .fontSize   = 18,
-            .frameColor = disableCreate ? ui_color(64, 64, 64, 192) : ui_color(16, 192, 0, 192),
+            .frameColor = allowCreate ? ui_color(16, 192, 0, 192) : ui_color(64, 64, 64, 192),
             .tooltip    = string_lit("Create a new instance."))) {
       prefab_create_start(ctx, prefab->name);
     }
@@ -545,6 +578,7 @@ static void prefab_panel_draw(UiCanvasComp* canvas, const PrefabPanelContext* ct
 
 ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_maybe_read(SceneCollisionEnvComp);
+  ecs_access_read(SceneLevelManagerComp);
   ecs_access_read(ScenePrefabEnvComp);
   ecs_access_read(SceneTerrainComp);
   ecs_access_write(DebugShapeComp);
@@ -567,10 +601,11 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  const ScenePrefabEnvComp*    prefabEnv = ecs_view_read_t(globalItr, ScenePrefabEnvComp);
-  const SceneCollisionEnvComp* collision = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
-  const SceneTerrainComp*      terrain   = ecs_view_read_t(globalItr, SceneTerrainComp);
-  InputManagerComp*            input     = ecs_view_write_t(globalItr, InputManagerComp);
+  const ScenePrefabEnvComp*    prefabEnv    = ecs_view_read_t(globalItr, ScenePrefabEnvComp);
+  const SceneLevelManagerComp* levelManager = ecs_view_read_t(globalItr, SceneLevelManagerComp);
+  const SceneCollisionEnvComp* collision    = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  const SceneTerrainComp*      terrain      = ecs_view_read_t(globalItr, SceneTerrainComp);
+  InputManagerComp*            input        = ecs_view_write_t(globalItr, InputManagerComp);
 
   EcsView*     mapView = ecs_world_view_t(world, PrefabMapView);
   EcsIterator* mapItr  = ecs_view_maybe_at(mapView, scene_prefab_map(prefabEnv));
@@ -587,15 +622,16 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
     UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     const PrefabPanelContext ctx = {
-        .world       = world,
-        .prefabMap   = prefabMap,
-        .collision   = collision,
-        .terrain     = terrain,
-        .panelComp   = panelComp,
-        .input       = input,
-        .shape       = ecs_view_write_t(globalItr, DebugShapeComp),
-        .globalStats = ecs_view_write_t(globalItr, DebugStatsGlobalComp),
-        .setEnv      = ecs_view_write_t(globalItr, SceneSetEnvComp),
+        .world        = world,
+        .prefabMap    = prefabMap,
+        .levelManager = levelManager,
+        .collision    = collision,
+        .terrain      = terrain,
+        .panelComp    = panelComp,
+        .input        = input,
+        .shape        = ecs_view_write_t(globalItr, DebugShapeComp),
+        .globalStats  = ecs_view_write_t(globalItr, DebugStatsGlobalComp),
+        .setEnv       = ecs_view_write_t(globalItr, SceneSetEnvComp),
     };
 
     ui_canvas_reset(canvas);
