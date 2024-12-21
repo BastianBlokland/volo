@@ -1,13 +1,16 @@
 #include "core_alloc.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "ecs_entity.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
+#include "log_logger.h"
 #include "scene_action.h"
 #include "scene_attachment.h"
 #include "scene_attack.h"
 #include "scene_health.h"
 #include "scene_knowledge.h"
+#include "scene_level.h"
 #include "scene_light.h"
 #include "scene_nav.h"
 #include "scene_prefab.h"
@@ -97,6 +100,7 @@ NO_INLINE_HINT static void action_queue_grow(SceneActionQueueComp* q) {
 ecs_view_define(ActionGlobalView) {
   ecs_access_write(ScenePrefabEnvComp);
   ecs_access_write(SceneSetEnvComp);
+  ecs_access_read(SceneLevelManagerComp);
 }
 
 ecs_view_define(ActionKnowledgeView) { ecs_access_write(SceneKnowledgeComp); }
@@ -407,6 +411,9 @@ ecs_system_define(SceneActionUpdateSys) {
       .animItr       = ecs_view_itr(ecs_world_view_t(world, ActionAnimView)),
   };
 
+  const SceneLevelManagerComp* levelManager = ecs_view_read_t(globalItr, SceneLevelManagerComp);
+  const SceneLevelMode         levelMode    = scene_level_mode(levelManager);
+
   EcsView* entityView = ecs_world_view_t(world, ActionQueueView);
   for (EcsIterator* itr = ecs_view_itr(entityView); ecs_view_walk(itr);) {
     SceneActionQueueComp* q = ecs_view_write_t(itr, SceneActionQueueComp);
@@ -414,6 +421,14 @@ ecs_system_define(SceneActionUpdateSys) {
       continue; // Empty queue.
     }
     ctx.instigator = ecs_view_entity(itr);
+
+    if (UNLIKELY(levelMode != SceneLevelMode_Play)) {
+      log_w(
+          "Unable to execute action",
+          log_param("reason", fmt_text_lit("Level not open in play-mode")),
+          log_param("instigator", ecs_entity_fmt(ctx.instigator)));
+      continue;
+    }
 
     ActionTypeStorage* types = action_queue_types(q->data, q->cap).ptr;
     SceneAction*       defs  = action_queue_defs(q->data, q->cap).ptr;
