@@ -211,6 +211,21 @@ void ecs_storage_entity_move(
   }
 }
 
+void ecs_storage_entity_reset(EcsStorage* storage, const EcsEntityId id) {
+  EcsEntityInfo* info = ecs_storage_entity_info_ptr(storage, id);
+  diag_assert_msg(info, "Missing entity-info for entity '{}'", ecs_entity_fmt(id));
+
+  EcsArchetype* archetype = ecs_storage_archetype_ptr(storage, info->archetype);
+  if (archetype) {
+    const EcsEntityId moved = ecs_archetype_remove(archetype, info->archetypeIndex);
+    if (ecs_entity_valid(moved)) {
+      ecs_storage_entity_info_ptr_unsafe(storage, moved)->archetypeIndex = info->archetypeIndex;
+    }
+  }
+
+  info->archetype = sentinel_u32;
+}
+
 void ecs_storage_entity_destroy(EcsStorage* storage, const EcsEntityId id) {
   EcsEntityInfo* info = ecs_storage_entity_info_ptr(storage, id);
   diag_assert_msg(info, "Missing entity-info for entity '{}'", ecs_entity_fmt(id));
