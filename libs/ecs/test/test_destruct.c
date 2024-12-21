@@ -119,6 +119,38 @@ spec(destruct) {
     check_require(g_destructCount == 4);
   }
 
+  it("destroys pending component additions for a reset entity") {
+    EcsWorld*         world   = ecs_world_create(g_allocHeap, def);
+    const EcsEntityId entity1 = ecs_world_entity_create(world);
+    const EcsEntityId entity2 = ecs_world_entity_create(world);
+
+    g_destructCount = 0;
+
+    ecs_world_add_t(world, entity1, DestructCompA, .state = CompDataState_Normal);
+
+    ecs_world_add_t(world, entity2, DestructCompA, .state = CompDataState_Normal);
+    ecs_world_add_t(world, entity2, DestructCompB, .state = CompDataState_Normal);
+    ecs_world_add_t(world, entity2, DestructCompC, .state = CompDataState_Normal);
+
+    ecs_world_entity_reset(world, entity1);
+    ecs_world_entity_reset(world, entity2);
+
+    ecs_world_flush(world);
+
+    check_require(g_destructCount == 4);
+    /**
+     * Verify that destruction order is respected globally.
+     */
+    check_eq_int(g_destructs[0], ecs_comp_id(DestructCompB));
+    check_eq_int(g_destructs[1], ecs_comp_id(DestructCompA));
+    check_eq_int(g_destructs[2], ecs_comp_id(DestructCompA));
+    check_eq_int(g_destructs[3], ecs_comp_id(DestructCompC));
+
+    ecs_world_destroy(world);
+
+    check_require(g_destructCount == 4);
+  }
+
   it("destroys stored components when the world is destroyed") {
     EcsWorld*         world   = ecs_world_create(g_allocHeap, def);
     const EcsEntityId entity1 = ecs_world_entity_create(world);
@@ -185,6 +217,38 @@ spec(destruct) {
 
     ecs_world_entity_destroy(world, entity1);
     ecs_world_entity_destroy(world, entity2);
+
+    ecs_world_flush(world);
+
+    check_require(g_destructCount == 4);
+    /**
+     * Verify that destruction order is respected globally.
+     */
+    check_eq_int(g_destructs[0], ecs_comp_id(DestructCompB));
+    check_eq_int(g_destructs[1], ecs_comp_id(DestructCompA));
+    check_eq_int(g_destructs[2], ecs_comp_id(DestructCompA));
+    check_eq_int(g_destructs[3], ecs_comp_id(DestructCompC));
+
+    ecs_world_destroy(world);
+  }
+
+  it("destroys components when resetting entities") {
+    EcsWorld*         world   = ecs_world_create(g_allocHeap, def);
+    const EcsEntityId entity1 = ecs_world_entity_create(world);
+    const EcsEntityId entity2 = ecs_world_entity_create(world);
+
+    g_destructCount = 0;
+
+    ecs_world_add_t(world, entity1, DestructCompA, .state = CompDataState_Normal);
+
+    ecs_world_add_t(world, entity2, DestructCompA, .state = CompDataState_Normal);
+    ecs_world_add_t(world, entity2, DestructCompB, .state = CompDataState_Normal);
+    ecs_world_add_t(world, entity2, DestructCompC, .state = CompDataState_Normal);
+
+    ecs_world_flush(world);
+
+    ecs_world_entity_reset(world, entity1);
+    ecs_world_entity_reset(world, entity2);
 
     ecs_world_flush(world);
 
