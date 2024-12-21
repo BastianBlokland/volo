@@ -282,6 +282,21 @@ EcsEntityId ecs_world_entity_create(EcsWorld* world) {
 void ecs_world_entity_destroy(EcsWorld* world, const EcsEntityId entity) {
   diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", ecs_entity_fmt(entity));
+  diag_assert_msg(entity != world->globalEntity, "The global entity cannot be reset");
+
+  diag_assert_msg(
+      ecs_world_exists(world, entity),
+      "Unable to enqueue reset of entity {}, reason: entity does not exist",
+      ecs_entity_fmt(entity));
+
+  thread_spinlock_lock(&world->bufferLock);
+  ecs_buffer_reset_entity(&world->buffer, entity);
+  thread_spinlock_unlock(&world->bufferLock);
+}
+
+void ecs_world_entity_destroy(EcsWorld* world, const EcsEntityId entity) {
+  diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
+  diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", ecs_entity_fmt(entity));
   diag_assert_msg(entity != world->globalEntity, "The global entity cannot be destroyed");
 
   diag_assert_msg(
