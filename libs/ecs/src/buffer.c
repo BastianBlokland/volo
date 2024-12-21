@@ -83,14 +83,14 @@ static EcsBufferEntity* ecs_buffer_entity_get(EcsBuffer* buffer, const EcsEntity
 /**
  * Calculate the required alignment for the 'EcsBufferCompData' header + component payload.
  */
-static usize ecs_buffer_compdata_align(usize compAlign) {
+static usize ecs_buffer_compdata_align(const usize compAlign) {
   return math_max(alignof(EcsBufferCompData), compAlign);
 }
 
 /**
  * Calculate the padding between the 'EcsBufferCompData' header and the component payload.
  */
-static usize ecs_buffer_compdata_padding(usize compAlign) {
+static usize ecs_buffer_compdata_padding(const usize compAlign) {
   if (compAlign > sizeof(EcsBufferCompData)) {
     return compAlign - sizeof(EcsBufferCompData);
   }
