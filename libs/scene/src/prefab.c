@@ -96,10 +96,37 @@ ecs_comp_define(ScenePrefabEnvComp) {
 ecs_comp_define(ScenePrefabRequestComp) { ScenePrefabSpec spec; };
 ecs_comp_define_public(ScenePrefabInstanceComp);
 
+static ScenePrefabSpec prefab_spec_dup(const ScenePrefabSpec* spec, Allocator* alloc) {
+  ScenePrefabSpec res = *spec;
+  if (spec->knowledgeCount) {
+    diag_assert(spec->knowledge);
+    const usize knowledgeSize = sizeof(ScenePrefabKnowledge) * spec->knowledgeCount;
+    const Mem   knowledgeDup  = alloc_alloc(alloc, knowledgeSize, alignof(ScenePrefabKnowledge));
+    mem_cpy(knowledgeDup, mem_create(spec->knowledge, knowledgeSize));
+    res.knowledge = knowledgeDup.ptr;
+  }
+  return res;
+}
+
+static void prefab_spec_destroy(const ScenePrefabSpec* spec, Allocator* alloc) {
+  if (spec->knowledgeCount) {
+    const usize knowledgeSize = sizeof(ScenePrefabKnowledge) * spec->knowledgeCount;
+    alloc_free(alloc, mem_create(spec->knowledge, knowledgeSize));
+  }
+}
+
 static void ecs_destruct_prefab_env(void* data) {
   ScenePrefabEnvComp* comp = data;
   string_free(g_allocHeap, comp->mapId);
+  dynarray_for_t(&comp->requests, ScenePrefabRequest, req) {
+    prefab_spec_destroy(&req->spec, g_allocHeap);
+  }
   dynarray_destroy(&comp->requests);
+}
+
+static void ecs_destruct_prefab_request(void* data) {
+  ScenePrefabRequestComp* comp = data;
+  prefab_spec_destroy(&comp->spec, g_allocHeap);
 }
 
 ecs_view_define(GlobalResourceUpdateView) {
@@ -720,7 +747,7 @@ static bool setup_prefab(
     if (!ctx.knowledge) {
       ctx.knowledge = scene_knowledge_add(world, e);
     }
-    for (usize i = 0; i != spec->knowledgeCount; ++i) {
+    for (u16 i = 0; i != spec->knowledgeCount; ++i) {
       scene_knowledge_store(ctx.knowledge, spec->knowledge[i].key, spec->knowledge[i].value);
     }
   }
@@ -754,6 +781,7 @@ ecs_system_define(ScenePrefabSpawnSys) {
       continue; // Wait for the reset to take effect.
     }
     if (setup_prefab(world, map, navEnv, terrain, req->entity, &req->spec)) {
+      prefab_spec_destroy(&req->spec, g_allocHeap);
       dynarray_remove_unordered(&prefabEnv->requests, i, 1);
     }
   }
@@ -772,7 +800,7 @@ ecs_system_define(ScenePrefabSpawnSys) {
 
 ecs_module_init(scene_prefab_module) {
   ecs_register_comp(ScenePrefabEnvComp, .destructor = ecs_destruct_prefab_env);
-  ecs_register_comp(ScenePrefabRequestComp);
+  ecs_register_comp(ScenePrefabRequestComp, .destructor = ecs_destruct_prefab_request);
   ecs_register_comp(ScenePrefabInstanceComp);
 
   ecs_register_view(GlobalResourceUpdateView);
@@ -812,7 +840,7 @@ EcsEntityId scene_prefab_spawn(EcsWorld* world, const ScenePrefabSpec* spec) {
   diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", string_hash_fmt(spec->prefabId));
 
   const EcsEntityId e = ecs_world_entity_create(world);
-  ecs_world_add_t(world, e, ScenePrefabRequestComp, .spec = *spec);
+  ecs_world_add_t(world, e, ScenePrefabRequestComp, .spec = prefab_spec_dup(spec, g_allocHeap));
   return e;
 }
 
@@ -821,7 +849,7 @@ void scene_prefab_spawn_onto(
   diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", string_hash_fmt(spec->prefabId));
 
   *dynarray_push_t(&env->requests, ScenePrefabRequest) = (ScenePrefabRequest){
-      .spec   = *spec,
+      .spec   = prefab_spec_dup(spec, g_allocHeap),
       .entity = e,
   };
 }
@@ -831,7 +859,7 @@ void scene_prefab_spawn_replace(
   diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", string_hash_fmt(spec->prefabId));
 
   *dynarray_push_t(&env->requests, ScenePrefabRequest) = (ScenePrefabRequest){
-      .spec        = *spec,
+      .spec        = prefab_spec_dup(spec, g_allocHeap),
       .entityReset = true,
       .entity      = e,
   };

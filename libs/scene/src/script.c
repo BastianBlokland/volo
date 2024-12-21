@@ -1978,6 +1978,7 @@ static void ecs_combine_script_resource(void* dataA, void* dataB) {
   SceneScriptResourceComp* a = dataA;
   SceneScriptResourceComp* b = dataB;
   a->flags |= b->flags;
+  a->resVersion = math_max(a->resVersion, b->resVersion);
 }
 
 ecs_view_define(ScriptUpdateView) {

@@ -62,14 +62,14 @@ typedef struct {
 typedef struct {
   u32                         id; // Optional persistent id.
   StringHash                  prefabId;
-  ScenePrefabVariant          variant;
   SceneFaction                faction;
-  ScenePrefabFlags            flags;
   f32                         scale;
+  ScenePrefabVariant          variant : 8;
+  ScenePrefabFlags            flags : 8;
+  u16                         knowledgeCount;
+  const ScenePrefabKnowledge* knowledge;
   GeoVector                   position;
   GeoQuat                     rotation;
-  const ScenePrefabKnowledge* knowledge;
-  usize                       knowledgeCount;
 } ScenePrefabSpec;
 
 EcsEntityId scene_prefab_spawn(EcsWorld*, const ScenePrefabSpec*);
