@@ -279,7 +279,7 @@ EcsEntityId ecs_world_entity_create(EcsWorld* world) {
   return ecs_storage_entity_create(&world->storage);
 }
 
-void ecs_world_entity_destroy(EcsWorld* world, const EcsEntityId entity) {
+void ecs_world_entity_reset(EcsWorld* world, const EcsEntityId entity) {
   diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", ecs_entity_fmt(entity));
   diag_assert_msg(entity != world->globalEntity, "The global entity cannot be reset");
