@@ -54,6 +54,14 @@ EcsView* ecs_world_view(EcsWorld*, EcsViewId);
 EcsEntityId ecs_world_entity_create(EcsWorld*);
 
 /**
+ * Schedule all components on the entity to be removed at the next flush.
+ *
+ * Pre-condition: ecs_world_exists(world, entity)
+ * Pre-condition: !ecs_world_busy() || g_ecsRunningSystem
+ */
+void ecs_world_entity_reset(EcsWorld*, EcsEntityId);
+
+/**
  * Schedule an entity to be destroyed at the next flush.
  *
  * Pre-condition: ecs_world_exists(world, entity)

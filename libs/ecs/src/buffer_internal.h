@@ -11,7 +11,8 @@
 
 typedef enum {
   EcsBufferEntityFlags_None    = 0,
-  EcsBufferEntityFlags_Destroy = 1 << 0,
+  EcsBufferEntityFlags_Reset   = 1 << 0,
+  EcsBufferEntityFlags_Destroy = 1 << 1,
 } EcsBufferEntityFlags;
 
 typedef struct {
@@ -29,6 +30,7 @@ void      ecs_buffer_clear(EcsBuffer*);
 
 void ecs_buffer_queue_finalize_all(EcsBuffer*, EcsFinalizer*);
 
+void  ecs_buffer_reset_entity(EcsBuffer*, EcsEntityId);
 void  ecs_buffer_destroy_entity(EcsBuffer*, EcsEntityId);
 void* ecs_buffer_comp_add(EcsBuffer*, EcsEntityId, EcsCompId, Mem data);
 void  ecs_buffer_comp_remove(EcsBuffer*, EcsEntityId, EcsCompId);

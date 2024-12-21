@@ -80,6 +80,20 @@ spec(world) {
     check(!ecs_world_exists(world, entity)); // No longer exists.
   }
 
+  it("reports reset entities as existing") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
+
+    check(ecs_world_exists(world, entity)); // Exists before resetting,
+
+    ecs_world_entity_reset(world, entity);
+
+    check(ecs_world_exists(world, entity)); // Still exists after resetting.
+
+    ecs_world_flush(world);
+
+    check(ecs_world_exists(world, entity)); // Still exists after resetting and a flush.
+  }
+
   it("zero initializes new components") {
     const EcsEntityId entity = ecs_world_entity_create(world);
 
@@ -184,6 +198,52 @@ spec(world) {
     check(!ecs_world_has_t(world, entity, WorldCompA));
     check(!ecs_world_has_t(world, entity, WorldCompB));
     check(!ecs_world_has_t(world, entity, WorldCompC));
+  }
+
+  it("removes all components when resetting") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
+
+    ecs_world_add_t(world, entity, WorldCompA);
+    ecs_world_flush(world);
+
+    check(ecs_world_has_t(world, entity, WorldCompA));
+
+    ecs_world_entity_reset(world, entity);
+
+    ecs_world_flush(world);
+    check(!ecs_world_has_t(world, entity, WorldCompA));
+  }
+
+  it("removes queued additions when resetting") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
+
+    ecs_world_add_t(world, entity, WorldCompA);
+    ecs_world_flush(world);
+
+    check(ecs_world_has_t(world, entity, WorldCompA));
+
+    ecs_world_entity_reset(world, entity);
+    ecs_world_add_t(world, entity, WorldCompA);
+    ecs_world_add_t(world, entity, WorldCompB);
+
+    ecs_world_flush(world);
+    check(!ecs_world_has_t(world, entity, WorldCompA));
+    check(!ecs_world_has_t(world, entity, WorldCompB));
+  }
+
+  it("supports queued removals when resetting") {
+    const EcsEntityId entity = ecs_world_entity_create(world);
+
+    ecs_world_add_t(world, entity, WorldCompA);
+    ecs_world_flush(world);
+
+    check(ecs_world_has_t(world, entity, WorldCompA));
+
+    ecs_world_remove_t(world, entity, WorldCompA);
+    ecs_world_entity_reset(world, entity);
+
+    ecs_world_flush(world);
+    check(!ecs_world_has_t(world, entity, WorldCompA));
   }
 
   it("supports duplicate additions for empty components") {

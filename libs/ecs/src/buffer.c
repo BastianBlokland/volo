@@ -11,7 +11,7 @@
 /**
  * Modifications are stored per entity. Entity data is kept sorted so a binary-search can be
  * performed to find the data. At the time of writing this seems like a reasonable space / time
- * tradeof, but in the future alternatives like hashed lookups could be explored.
+ * tradeoff, but in the future alternatives like hashed lookups could be explored.
  *
  * Component additions are currently stored in a chunked memory allocator with pointers to the next
  * added component (for that same entity) to form an intrusive linked-list.
@@ -83,14 +83,14 @@ static EcsBufferEntity* ecs_buffer_entity_get(EcsBuffer* buffer, const EcsEntity
 /**
  * Calculate the required alignment for the 'EcsBufferCompData' header + component payload.
  */
-static usize ecs_buffer_compdata_align(usize compAlign) {
+static usize ecs_buffer_compdata_align(const usize compAlign) {
   return math_max(alignof(EcsBufferCompData), compAlign);
 }
 
 /**
  * Calculate the padding between the 'EcsBufferCompData' header and the component payload.
  */
-static usize ecs_buffer_compdata_padding(usize compAlign) {
+static usize ecs_buffer_compdata_padding(const usize compAlign) {
   if (compAlign > sizeof(EcsBufferCompData)) {
     return compAlign - sizeof(EcsBufferCompData);
   }
@@ -159,6 +159,11 @@ void ecs_buffer_queue_finalize_all(EcsBuffer* buffer, EcsFinalizer* finalizer) {
       ecs_finalizer_push(finalizer, bufferItr->id, compData);
     }
   }
+}
+
+void ecs_buffer_reset_entity(EcsBuffer* buffer, const EcsEntityId entityId) {
+  EcsBufferEntity* entity = ecs_buffer_entity_get(buffer, entityId);
+  entity->flags |= EcsBufferEntityFlags_Reset;
 }
 
 void ecs_buffer_destroy_entity(EcsBuffer* buffer, const EcsEntityId entityId) {

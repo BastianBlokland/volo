@@ -279,6 +279,21 @@ EcsEntityId ecs_world_entity_create(EcsWorld* world) {
   return ecs_storage_entity_create(&world->storage);
 }
 
+void ecs_world_entity_reset(EcsWorld* world, const EcsEntityId entity) {
+  diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
+  diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", ecs_entity_fmt(entity));
+  diag_assert_msg(entity != world->globalEntity, "The global entity cannot be reset");
+
+  diag_assert_msg(
+      ecs_world_exists(world, entity),
+      "Unable to enqueue reset of entity {}, reason: entity does not exist",
+      ecs_entity_fmt(entity));
+
+  thread_spinlock_lock(&world->bufferLock);
+  ecs_buffer_reset_entity(&world->buffer, entity);
+  thread_spinlock_unlock(&world->bufferLock);
+}
+
 void ecs_world_entity_destroy(EcsWorld* world, const EcsEntityId entity) {
   diag_assert(!ecs_world_busy(world) || g_ecsRunningSystem);
   diag_assert_msg(ecs_entity_valid(entity), "{} is an invalid entity", ecs_entity_fmt(entity));
@@ -405,9 +420,10 @@ void ecs_world_flush_internal(EcsWorld* world) {
    */
   trace_begin("ecs_flush_finalize", TraceColor_White);
   for (usize i = 0; i != bufferCount; ++i) {
-    const EcsEntityId entity = ecs_buffer_entity(&world->buffer, i);
+    const EcsEntityId          entity = ecs_buffer_entity(&world->buffer, i);
+    const EcsBufferEntityFlags flags  = ecs_buffer_entity_flags(&world->buffer, i);
 
-    if (ecs_buffer_entity_flags(&world->buffer, i) & EcsBufferEntityFlags_Destroy) {
+    if (flags & (EcsBufferEntityFlags_Reset | EcsBufferEntityFlags_Destroy)) {
       const BitSet mask = ecs_storage_entity_mask(&world->storage, entity);
       ecs_storage_queue_finalize(&world->storage, &world->finalizer, entity, mask);
       // NOTE: Discard any component additions for the same entity in the buffer.
@@ -426,10 +442,15 @@ void ecs_world_flush_internal(EcsWorld* world) {
    */
   trace_begin("ecs_flush_move", TraceColor_White);
   for (usize i = 0; i != bufferCount; ++i) {
-    const EcsEntityId entity = ecs_buffer_entity(&world->buffer, i);
+    const EcsEntityId          entity = ecs_buffer_entity(&world->buffer, i);
+    const EcsBufferEntityFlags flags  = ecs_buffer_entity_flags(&world->buffer, i);
 
-    if (ecs_buffer_entity_flags(&world->buffer, i) & EcsBufferEntityFlags_Destroy) {
+    if (flags & EcsBufferEntityFlags_Destroy) {
       ecs_storage_entity_destroy(&world->storage, entity);
+      continue;
+    }
+    if (flags & EcsBufferEntityFlags_Reset) {
+      ecs_storage_entity_reset(&world->storage, entity);
       continue;
     }
     const BitSet curCompMask = ecs_storage_entity_mask(&world->storage, entity);

@@ -73,13 +73,15 @@ typedef enum {
 } PrefabResourceFlags;
 
 /**
- * Two kinds of different spawn requests are supported:
+ * Different kinds of spawn requests are supported:
  * - 'scene_prefab_spawn()': Does not require a global write but will be processed next frame.
  * - 'scene_prefab_spawn_onto()': Requires a global write but can be processed this frame.
+ * - 'scene_prefab_spawn_replace()': Resets the entity before spawn, takes an additional frame.
  */
 
 typedef struct {
   ScenePrefabSpec spec;
+  bool            entityReset; // Remove all entity components before setting up the prefab.
   EcsEntityId     entity;
 } ScenePrefabRequest;
 
@@ -745,7 +747,12 @@ ecs_system_define(ScenePrefabSpawnSys) {
 
   // Process global requests.
   for (usize i = prefabEnv->requests.size; i-- != 0;) {
-    const ScenePrefabRequest* req = dynarray_at_t(&prefabEnv->requests, i, ScenePrefabRequest);
+    ScenePrefabRequest* req = dynarray_at_t(&prefabEnv->requests, i, ScenePrefabRequest);
+    if (req->entityReset) {
+      ecs_world_entity_reset(world, req->entity);
+      req->entityReset = false;
+      continue; // Wait for the reset to take effect.
+    }
     if (setup_prefab(world, map, navEnv, terrain, req->entity, &req->spec)) {
       dynarray_remove_unordered(&prefabEnv->requests, i, 1);
     }
@@ -816,5 +823,16 @@ void scene_prefab_spawn_onto(
   *dynarray_push_t(&env->requests, ScenePrefabRequest) = (ScenePrefabRequest){
       .spec   = *spec,
       .entity = e,
+  };
+}
+
+void scene_prefab_spawn_replace(
+    ScenePrefabEnvComp* env, const ScenePrefabSpec* spec, const EcsEntityId e) {
+  diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", string_hash_fmt(spec->prefabId));
+
+  *dynarray_push_t(&env->requests, ScenePrefabRequest) = (ScenePrefabRequest){
+      .spec        = *spec,
+      .entityReset = true,
+      .entity      = e,
   };
 }
