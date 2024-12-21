@@ -11,7 +11,7 @@
 /**
  * Modifications are stored per entity. Entity data is kept sorted so a binary-search can be
  * performed to find the data. At the time of writing this seems like a reasonable space / time
- * tradeof, but in the future alternatives like hashed lookups could be explored.
+ * tradeoff, but in the future alternatives like hashed lookups could be explored.
  *
  * Component additions are currently stored in a chunked memory allocator with pointers to the next
  * added component (for that same entity) to form an intrusive linked-list.
