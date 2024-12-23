@@ -260,12 +260,16 @@ static void prefabmap_build(
 }
 
 /**
- * Build a lookup from the user-index (index in the source asset array) and the prefab index.
+ * Build lookups from user-index (index in the source asset array) to prefab-index (and vice versa).
+ *
+ * Both lookup directions are stored in the same array:
+ *  [0 .. prefab-count]                = prefab-index to user-index.
+ *  [prefab-count .. prefab-count * 2] = user-index to prefab-index.
  */
-static void prefabmap_build_user_index_lookup(
+static void prefabmap_build_lookups(
     const AssetPrefabMapDef* def,
-    const AssetPrefab*       prefabs,           // AssetPrefab[def->prefabs.count]
-    u16*                     outUserIndexLookup // u16[def->prefabs.count]
+    const AssetPrefab*       prefabs,        // AssetPrefab[def->prefabs.count]
+    u16*                     outIndexLookups // u16[def->prefabs.count * 2]
 ) {
   const u16          prefabCount = (u16)def->prefabs.count;
   const AssetPrefab* prefabsEnd  = prefabs + prefabCount;
@@ -274,7 +278,9 @@ static void prefabmap_build_user_index_lookup(
     const AssetPrefab* prefab = search_binary_t(
         prefabs, prefabsEnd, AssetPrefab, prefab_compare, &(AssetPrefab){.name = name});
     diag_assert(prefab && prefab->name == name);
-    outUserIndexLookup[userIndex] = (u16)(prefab - prefabs);
+    const u16 prefabIndex                    = (u16)(prefab - prefabs);
+    outIndexLookups[prefabIndex]             = userIndex;
+    outIndexLookups[prefabCount + userIndex] = prefabIndex;
   }
 }
 
@@ -285,7 +291,7 @@ static void ecs_destruct_prefabmap_comp(void* data) {
   AssetPrefabMapComp* comp = data;
   if (comp->prefabs) {
     alloc_free_array_t(g_allocHeap, comp->prefabs, comp->prefabCount);
-    alloc_free_array_t(g_allocHeap, comp->userIndexLookup, comp->prefabCount);
+    alloc_free_array_t(g_allocHeap, comp->indexLookups, comp->prefabCount * 2);
   }
   if (comp->traits.values) {
     alloc_free_array_t(g_allocHeap, comp->traits.values, comp->traits.count);
@@ -352,23 +358,22 @@ ecs_system_define(LoadPrefabAssetSys) {
       goto Error;
     }
 
-    u16* userIndexLookup = prefabs.size ? alloc_array_t(g_allocHeap, u16, prefabs.size) : null;
-    prefabmap_build_user_index_lookup(
-        &load->def, dynarray_begin_t(&prefabs, AssetPrefab), userIndexLookup);
+    u16* indexLookups = prefabs.size ? alloc_array_t(g_allocHeap, u16, prefabs.size * 2) : null;
+    prefabmap_build_lookups(&load->def, dynarray_begin_t(&prefabs, AssetPrefab), indexLookups);
 
     ecs_world_add_t(
         world,
         entity,
         AssetPrefabMapComp,
-        .prefabs         = dynarray_copy_as_new(&prefabs, g_allocHeap),
-        .userIndexLookup = userIndexLookup,
-        .prefabCount     = prefabs.size,
-        .traits.values   = dynarray_copy_as_new(&traits, g_allocHeap),
-        .traits.count    = traits.size,
-        .values.values   = dynarray_copy_as_new(&values, g_allocHeap),
-        .values.count    = values.size,
-        .shapes.values   = dynarray_copy_as_new(&shapes, g_allocHeap),
-        .shapes.count    = shapes.size);
+        .prefabs       = dynarray_copy_as_new(&prefabs, g_allocHeap),
+        .indexLookups  = indexLookups,
+        .prefabCount   = prefabs.size,
+        .traits.values = dynarray_copy_as_new(&traits, g_allocHeap),
+        .traits.count  = traits.size,
+        .values.values = dynarray_copy_as_new(&values, g_allocHeap),
+        .values.count  = values.size,
+        .shapes.values = dynarray_copy_as_new(&shapes, g_allocHeap),
+        .shapes.count  = shapes.size);
 
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 
@@ -680,7 +685,7 @@ Ret:
   asset_repo_source_close(src);
 }
 
-const AssetPrefab* asset_prefab_get(const AssetPrefabMapComp* map, const StringHash name) {
+const AssetPrefab* asset_prefab_find(const AssetPrefabMapComp* map, const StringHash name) {
   return search_binary_t(
       map->prefabs,
       map->prefabs + map->prefabCount,
@@ -689,20 +694,25 @@ const AssetPrefab* asset_prefab_get(const AssetPrefabMapComp* map, const StringH
       mem_struct(AssetPrefab, .name = name).ptr);
 }
 
-u16 asset_prefab_get_index(const AssetPrefabMapComp* map, const StringHash name) {
-  const AssetPrefab* prefab = asset_prefab_get(map, name);
+u16 asset_prefab_find_index(const AssetPrefabMapComp* map, const StringHash name) {
+  const AssetPrefab* prefab = asset_prefab_find(map, name);
   if (UNLIKELY(!prefab)) {
     return sentinel_u16;
   }
   return (u16)(prefab - map->prefabs);
 }
 
-u16 asset_prefab_get_index_from_user(const AssetPrefabMapComp* map, const u16 userIndex) {
-  diag_assert(userIndex < map->prefabCount);
-  return map->userIndexLookup[userIndex];
+u16 asset_prefab_index_to_user(const AssetPrefabMapComp* map, const u16 prefabIndex) {
+  diag_assert(prefabIndex < map->prefabCount);
+  return map->indexLookups[prefabIndex];
 }
 
-const AssetPrefabTrait* asset_prefab_trait_get(
+u16 asset_prefab_index_from_user(const AssetPrefabMapComp* map, const u16 userIndex) {
+  diag_assert(userIndex < map->prefabCount);
+  return map->indexLookups[map->prefabCount + userIndex];
+}
+
+const AssetPrefabTrait* asset_prefab_trait(
     const AssetPrefabMapComp* map, const AssetPrefab* prefab, const AssetPrefabTraitType type) {
   for (u16 i = 0; i != prefab->traitCount; ++i) {
     const AssetPrefabTrait* trait = &map->traits.values[prefab->traitIndex + i];

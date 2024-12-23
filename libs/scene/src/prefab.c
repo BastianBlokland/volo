@@ -685,7 +685,7 @@ static bool setup_prefab(
       .prefabId = spec->prefabId,
       .variant  = spec->variant);
 
-  const AssetPrefab* prefab = asset_prefab_get(prefabMap, spec->prefabId);
+  const AssetPrefab* prefab = asset_prefab_find(prefabMap, spec->prefabId);
   if (UNLIKELY(!prefab)) {
     log_e("Prefab not found", log_param("entity", ecs_entity_fmt(e)));
     return true; // No point in retrying; mark the prefab as done.

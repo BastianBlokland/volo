@@ -99,7 +99,7 @@ static GeoVector product_rally_pos(EcsIterator* itr) {
 }
 
 static SceneNavLayer product_nav_layer(const AssetPrefabMapComp* map, const AssetPrefab* prefab) {
-  const AssetPrefabTrait* t = asset_prefab_trait_get(map, prefab, AssetPrefabTrait_Movement);
+  const AssetPrefabTrait* t = asset_prefab_trait(map, prefab, AssetPrefabTrait_Movement);
   if (t) {
     diag_assert(t->data_movement.navLayer < SceneNavLayer_Count);
     return (SceneNavLayer)t->data_movement.navLayer;
@@ -287,7 +287,7 @@ static ProductResult product_queue_process_active_unit(ProductQueueContext* ctx)
   diag_assert(product->type == AssetProduct_Unit);
 
   const StringHash   prefabId = product->data_unit.unitPrefab;
-  const AssetPrefab* prefab   = asset_prefab_get(ctx->prefabMap, prefabId);
+  const AssetPrefab* prefab   = asset_prefab_find(ctx->prefabMap, prefabId);
   if (!prefab) {
     return true; // TODO: Report error?
   }
@@ -372,7 +372,7 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
   const GeoNavGrid* grid = scene_nav_grid(ctx->nav, SceneNavLayer_Normal);
 
   const StringHash   prefabId = ctx->queue->product->data_placable.prefab;
-  const AssetPrefab* prefab   = asset_prefab_get(ctx->prefabMap, prefabId);
+  const AssetPrefab* prefab   = asset_prefab_find(ctx->prefabMap, prefabId);
   if (!prefab) {
     return true; // TODO: Report error?
   }
@@ -391,7 +391,7 @@ static bool product_placement_blocked(ProductQueueContext* ctx) {
   }
 
   const AssetPrefabTrait* collisionTrait =
-      asset_prefab_trait_get(ctx->prefabMap, prefab, AssetPrefabTrait_Collision);
+      asset_prefab_trait(ctx->prefabMap, prefab, AssetPrefabTrait_Collision);
   if (!collisionTrait) {
     return false;
   }
