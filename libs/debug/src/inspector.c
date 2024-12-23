@@ -173,6 +173,7 @@ ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp
 
 ecs_view_define(GlobalPanelUpdateView) {
   ecs_access_read(SceneTimeComp);
+  ecs_access_read(ScenePrefabEnvComp);
   ecs_access_write(DebugStatsGlobalComp);
   ecs_access_write(SceneSetEnvComp);
 }
@@ -212,7 +213,6 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_read(SceneNameComp);
   ecs_access_maybe_read(SceneNavAgentComp);
   ecs_access_maybe_read(SceneNavPathComp);
-  ecs_access_maybe_read(ScenePrefabInstanceComp);
   ecs_access_maybe_read(SceneScriptComp);
   ecs_access_maybe_read(SceneSetMemberComp);
   ecs_access_maybe_read(SceneStatusComp);
@@ -229,6 +229,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneLightDirComp);
   ecs_access_maybe_write(SceneLightPointComp);
   ecs_access_maybe_write(SceneLocationComp);
+  ecs_access_maybe_write(ScenePrefabInstanceComp);
   ecs_access_maybe_write(SceneRenderableComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
@@ -244,6 +245,8 @@ ecs_view_define(CameraView) {
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
 }
+
+ecs_view_define(PrefabMapView) { ecs_access_read(AssetPrefabMapComp); }
 
 static void inspector_notify_vis(
     DebugInspectorSettingsComp* set, DebugStatsGlobalComp* stats, const DebugInspectorVis vis) {
@@ -348,12 +351,13 @@ static void inspector_panel_draw_entity_info(
 }
 
 static void inspector_panel_draw_prefab_instance(
-    UiCanvasComp*            canvas,
-    DebugInspectorPanelComp* panelComp,
-    UiTable*                 table,
-    EcsIterator*             subject) {
-  const ScenePrefabInstanceComp* instance =
-      subject ? ecs_view_read_t(subject, ScenePrefabInstanceComp) : null;
+    UiCanvasComp*             canvas,
+    DebugInspectorPanelComp*  panelComp,
+    const AssetPrefabMapComp* prefabMap,
+    UiTable*                  table,
+    EcsIterator*              subject) {
+  ScenePrefabInstanceComp* instance =
+      subject ? ecs_view_write_t(subject, ScenePrefabInstanceComp) : null;
   if (instance) {
     inspector_panel_next(canvas, panelComp, table);
     if (inspector_panel_section(canvas, string_lit("Prefab"))) {
@@ -362,11 +366,12 @@ static void inspector_panel_draw_prefab_instance(
       ui_table_next_column(canvas, table);
       inspector_panel_draw_value_string(canvas, fmt_write_scratch("{}", fmt_int(instance->id)));
 
-      const String prefabName = stringtable_lookup(g_stringtable, instance->prefabId);
-      inspector_panel_next(canvas, panelComp, table);
-      ui_label(canvas, string_lit("Prefab"));
-      ui_table_next_column(canvas, table);
-      inspector_panel_draw_value_string(canvas, prefabName);
+      if (prefabMap) {
+        inspector_panel_next(canvas, panelComp, table);
+        ui_label(canvas, string_lit("Prefab"));
+        ui_table_next_column(canvas, table);
+        debug_widget_editor_prefab(canvas, prefabMap, &instance->prefabId);
+      }
     }
   }
 }
@@ -947,6 +952,7 @@ static void inspector_panel_draw(
     DebugStatsGlobalComp*       stats,
     const SceneTimeComp*        time,
     SceneSetEnvComp*            setEnv,
+    const AssetPrefabMapComp*   prefabMap,
     UiCanvasComp*               canvas,
     DebugInspectorPanelComp*    panelComp,
     DebugInspectorSettingsComp* settings,
@@ -971,7 +977,7 @@ static void inspector_panel_draw(
   inspector_panel_draw_entity_info(world, canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
-  inspector_panel_draw_prefab_instance(canvas, panelComp, &table, subject);
+  inspector_panel_draw_prefab_instance(canvas, panelComp, prefabMap, &table, subject);
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_transform(canvas, panelComp, &table, subject);
@@ -1055,6 +1061,16 @@ static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* wo
       .toolRotation = geo_quat_ident);
 }
 
+static const AssetPrefabMapComp*
+inspector_prefab_map(EcsWorld* world, const ScenePrefabEnvComp* prefabEnv) {
+  EcsView*     mapView = ecs_world_view_t(world, PrefabMapView);
+  EcsIterator* mapItr  = ecs_view_maybe_at(mapView, scene_prefab_map(prefabEnv));
+  if (mapItr) {
+    return ecs_view_read_t(mapItr, AssetPrefabMapComp);
+  }
+  return null;
+}
+
 ecs_system_define(DebugInspectorUpdatePanelSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalPanelUpdateView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -1065,6 +1081,9 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   SceneSetEnvComp*            setEnv   = ecs_view_write_t(globalItr, SceneSetEnvComp);
   DebugInspectorSettingsComp* settings = inspector_settings_get_or_create(world);
   DebugStatsGlobalComp*       stats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+
+  const ScenePrefabEnvComp* prefabEnv = ecs_view_read_t(globalItr, ScenePrefabEnvComp);
+  const AssetPrefabMapComp* prefabMap = inspector_prefab_map(world, prefabEnv);
 
   const StringHash selectedSet = g_sceneSetSelected;
 
@@ -1082,7 +1101,8 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
     if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       continue;
     }
-    inspector_panel_draw(world, stats, time, setEnv, canvas, panelComp, settings, subjectItr);
+    inspector_panel_draw(
+        world, stats, time, setEnv, prefabMap, canvas, panelComp, settings, subjectItr);
 
     if (ui_panel_closed(&panelComp->panel)) {
       ecs_world_entity_destroy(world, entity);
@@ -1982,13 +2002,15 @@ ecs_module_init(debug_inspector_module) {
   ecs_register_view(SubjectView);
   ecs_register_view(TransformView);
   ecs_register_view(CameraView);
+  ecs_register_view(PrefabMapView);
 
   ecs_register_system(
       DebugInspectorUpdatePanelSys,
       ecs_view_id(GlobalPanelUpdateView),
       ecs_view_id(SettingsWriteView),
       ecs_view_id(PanelUpdateView),
-      ecs_view_id(SubjectView));
+      ecs_view_id(SubjectView),
+      ecs_view_id(PrefabMapView));
 
   ecs_register_system(
       DebugInspectorToolUpdateSys, ecs_view_id(GlobalToolUpdateView), ecs_view_id(SubjectView));
