@@ -6,6 +6,7 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "core_search.h"
+#include "core_stringtable.h"
 #include "data_read.h"
 #include "data_utils.h"
 #include "ecs_entity.h"
@@ -291,6 +292,7 @@ static void ecs_destruct_prefabmap_comp(void* data) {
   AssetPrefabMapComp* comp = data;
   if (comp->prefabs) {
     alloc_free_array_t(g_allocHeap, comp->prefabs, comp->prefabCount);
+    alloc_free_array_t(g_allocHeap, comp->userNames, comp->prefabCount); // Strings are interned.
     alloc_free_array_t(g_allocHeap, comp->userLookup, comp->prefabCount * 2);
   }
   if (comp->traits.values) {
@@ -358,6 +360,12 @@ ecs_system_define(LoadPrefabAssetSys) {
       goto Error;
     }
 
+    String* userNames = prefabs.size ? alloc_array_t(g_allocHeap, String, prefabs.size) : null;
+    for (u16 userIndex = 0; userIndex != prefabs.size; ++userIndex) {
+      const StringHash nameHash = load->def.prefabs.values[userIndex].name;
+      userNames[userIndex]      = stringtable_lookup(g_stringtable, nameHash);
+    }
+
     u16* userLookup = prefabs.size ? alloc_array_t(g_allocHeap, u16, prefabs.size * 2) : null;
     prefabmap_build_lookups(&load->def, dynarray_begin_t(&prefabs, AssetPrefab), userLookup);
 
@@ -366,6 +374,7 @@ ecs_system_define(LoadPrefabAssetSys) {
         entity,
         AssetPrefabMapComp,
         .prefabs       = dynarray_copy_as_new(&prefabs, g_allocHeap),
+        .userNames     = userNames,
         .userLookup    = userLookup,
         .prefabCount   = prefabs.size,
         .traits.values = dynarray_copy_as_new(&traits, g_allocHeap),

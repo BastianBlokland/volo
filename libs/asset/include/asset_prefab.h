@@ -264,6 +264,7 @@ typedef struct {
 ecs_comp_extern_public(AssetPrefabMapComp) {
   AssetPrefab* prefabs; // AssetPrefab[prefabCount]. Sorted on the nameHash.
   usize        prefabCount;
+  String*      userNames;  // String[prefabCount]. Interned, NOTE: In user-index order.
   u16*         userLookup; // u16[prefabCount * 2], Lookups from prefab <-> user indices.
   HeapArray_t(AssetPrefabTrait) traits;
   HeapArray_t(AssetPrefabValue) values;
