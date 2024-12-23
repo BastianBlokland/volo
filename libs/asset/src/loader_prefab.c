@@ -268,8 +268,8 @@ static void prefabmap_build(
  */
 static void prefabmap_build_lookups(
     const AssetPrefabMapDef* def,
-    const AssetPrefab*       prefabs,        // AssetPrefab[def->prefabs.count]
-    u16*                     outIndexLookups // u16[def->prefabs.count * 2]
+    const AssetPrefab*       prefabs,      // AssetPrefab[def->prefabs.count]
+    u16*                     outUserLookup // u16[def->prefabs.count * 2]
 ) {
   const u16          prefabCount = (u16)def->prefabs.count;
   const AssetPrefab* prefabsEnd  = prefabs + prefabCount;
@@ -278,9 +278,9 @@ static void prefabmap_build_lookups(
     const AssetPrefab* prefab = search_binary_t(
         prefabs, prefabsEnd, AssetPrefab, prefab_compare, &(AssetPrefab){.name = name});
     diag_assert(prefab && prefab->name == name);
-    const u16 prefabIndex                    = (u16)(prefab - prefabs);
-    outIndexLookups[prefabIndex]             = userIndex;
-    outIndexLookups[prefabCount + userIndex] = prefabIndex;
+    const u16 prefabIndex                  = (u16)(prefab - prefabs);
+    outUserLookup[prefabIndex]             = userIndex;
+    outUserLookup[prefabCount + userIndex] = prefabIndex;
   }
 }
 
@@ -291,7 +291,7 @@ static void ecs_destruct_prefabmap_comp(void* data) {
   AssetPrefabMapComp* comp = data;
   if (comp->prefabs) {
     alloc_free_array_t(g_allocHeap, comp->prefabs, comp->prefabCount);
-    alloc_free_array_t(g_allocHeap, comp->indexLookups, comp->prefabCount * 2);
+    alloc_free_array_t(g_allocHeap, comp->userLookup, comp->prefabCount * 2);
   }
   if (comp->traits.values) {
     alloc_free_array_t(g_allocHeap, comp->traits.values, comp->traits.count);
@@ -358,15 +358,15 @@ ecs_system_define(LoadPrefabAssetSys) {
       goto Error;
     }
 
-    u16* indexLookups = prefabs.size ? alloc_array_t(g_allocHeap, u16, prefabs.size * 2) : null;
-    prefabmap_build_lookups(&load->def, dynarray_begin_t(&prefabs, AssetPrefab), indexLookups);
+    u16* userLookup = prefabs.size ? alloc_array_t(g_allocHeap, u16, prefabs.size * 2) : null;
+    prefabmap_build_lookups(&load->def, dynarray_begin_t(&prefabs, AssetPrefab), userLookup);
 
     ecs_world_add_t(
         world,
         entity,
         AssetPrefabMapComp,
         .prefabs       = dynarray_copy_as_new(&prefabs, g_allocHeap),
-        .indexLookups  = indexLookups,
+        .userLookup    = userLookup,
         .prefabCount   = prefabs.size,
         .traits.values = dynarray_copy_as_new(&traits, g_allocHeap),
         .traits.count  = traits.size,
@@ -704,12 +704,12 @@ u16 asset_prefab_find_index(const AssetPrefabMapComp* map, const StringHash name
 
 u16 asset_prefab_index_to_user(const AssetPrefabMapComp* map, const u16 prefabIndex) {
   diag_assert(prefabIndex < map->prefabCount);
-  return map->indexLookups[prefabIndex];
+  return map->userLookup[prefabIndex];
 }
 
 u16 asset_prefab_index_from_user(const AssetPrefabMapComp* map, const u16 userIndex) {
   diag_assert(userIndex < map->prefabCount);
-  return map->indexLookups[map->prefabCount + userIndex];
+  return map->userLookup[map->prefabCount + userIndex];
 }
 
 const AssetPrefabTrait* asset_prefab_trait(
