@@ -8,6 +8,7 @@
 
 ecs_comp_extern(AssetAtlasComp);
 ecs_comp_extern(AssetManagerComp);
+ecs_comp_extern(AssetPrefabMapComp);
 
 typedef enum eAssetGraphicPass       AssetGraphicPass;
 typedef struct sAssetGraphicOverride AssetGraphicOverride;
