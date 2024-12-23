@@ -411,8 +411,8 @@ static UiSelectFlags ui_select_dropdown(
     const u32 optionIndex = opts->dir == Ui_Up ? (optionCount - 1 - i) : i;
 
     ui_layout_next(canvas, opts->dir, 2);
-    const UiId id     = ui_canvas_id_peek(canvas);
-    UiStatus   status = ui_canvas_elem_status(canvas, id);
+    const UiId     id     = ui_canvas_id_peek(canvas);
+    const UiStatus status = ui_canvas_elem_status(canvas, id);
 
     ui_style_push(canvas);
     ui_style_outline(canvas, 3);
