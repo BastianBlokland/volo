@@ -6,6 +6,7 @@
 #include "ecs_entity.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
+#include "ui_scrollview.h"
 #include "ui_shape.h"
 #include "ui_style.h"
 #include "ui_widget.h"
@@ -373,9 +374,10 @@ static void ui_select_header(
   if (isOpen) {
     ui_style_outline(canvas, 3);
   }
-  const UiFlags flags =
-      isOpen ? (UiFlags_Interactable | UiFlags_InteractAllowSwitch)
-             : (UiFlags_Interactable | UiFlags_InteractOnPress | UiFlags_InteractAllowSwitch);
+  UiFlags flags = UiFlags_Interactable | UiFlags_TrackRect | UiFlags_InteractAllowSwitch;
+  if (!isOpen) {
+    flags |= UiFlags_InteractOnPress;
+  }
   ui_canvas_draw_glyph(canvas, UiShape_Square, 0, flags);
   ui_style_pop(canvas);
 
@@ -400,23 +402,35 @@ typedef enum {
 
 static UiSelectFlags ui_select_dropdown(
     UiCanvasComp*       canvas,
+    const UiId          id,
     i32*                input,
     const String*       options,
     const u32           optionCount,
     const UiSelectOpts* opts) {
 
+  static const f32 g_spacing = 2;
+
+  UiScrollview* scrollview = ui_canvas_persistent_scrollview(canvas, id);
+  if (ui_canvas_elem_status(canvas, id) == UiStatus_Activated) {
+    *scrollview = (UiScrollview){0}; // Reset the scrollview on open.
+  }
+  const UiRect lastRect    = ui_canvas_elem_rect(canvas, id);
+  const f32    totalHeight = (lastRect.height + g_spacing) * optionCount;
   ui_layout_push(canvas);
+  ui_scrollview_begin(canvas, scrollview, totalHeight);
+
+  // ui_layout_push(canvas);
   UiSelectFlags selectFlags = 0;
   for (u32 i = 0; i != optionCount; ++i) {
     const u32 optionIndex = opts->dir == Ui_Up ? (optionCount - 1 - i) : i;
 
-    ui_layout_next(canvas, opts->dir, 2);
-    const UiId     id     = ui_canvas_id_peek(canvas);
-    const UiStatus status = ui_canvas_elem_status(canvas, id);
+    ui_layout_next(canvas, opts->dir, g_spacing);
+    const UiId     optionId     = ui_canvas_id_peek(canvas);
+    const UiStatus optionStatus = ui_canvas_elem_status(canvas, optionId);
 
     ui_style_push(canvas);
     ui_style_outline(canvas, 3);
-    switch (status) {
+    switch (optionStatus) {
     case UiStatus_Hovered:
       ui_style_color_with_mult(canvas, opts->dropFrameColor, 2);
       break;
@@ -437,24 +451,25 @@ static UiSelectFlags ui_select_dropdown(
     ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
 
     ui_style_push(canvas);
-    ui_interactable_text_style(canvas, status);
+    ui_interactable_text_style(canvas, optionStatus);
     ui_canvas_draw_text(canvas, options[optionIndex], opts->fontSize, UiAlign_MiddleLeft, 0);
     ui_style_pop(canvas);
 
     ui_layout_pop(canvas);
 
-    if (status >= UiStatus_Hovered) {
+    if (optionStatus >= UiStatus_Hovered) {
       selectFlags |= UiSelectFlags_Hovered;
     }
-    if (status == UiStatus_Activated) {
+    if (optionStatus == UiStatus_Activated) {
       *input = optionIndex;
       selectFlags |= UiSelectFlags_Changed;
     }
 
-    if (status >= UiStatus_Hovered) {
+    if (optionStatus >= UiStatus_Hovered) {
       ui_canvas_interact_type(canvas, UiInteractType_Action);
     }
   }
+  ui_scrollview_end(canvas, scrollview);
   ui_layout_pop(canvas);
   return selectFlags;
 }
@@ -475,7 +490,7 @@ bool ui_select_with_opts(
     selectFlags |= UiSelectFlags_Hovered;
   }
   if (headerStatus == UiStatus_Activated) {
-    ui_canvas_persistent_flags_toggle(canvas, headerId, UiPersistentFlags_Open);
+    ui_canvas_persistent_flags_set(canvas, headerId, UiPersistentFlags_Open);
   }
   const bool isOpen = (ui_canvas_persistent_flags(canvas, headerId) & UiPersistentFlags_Open) != 0;
   const bool outOfBounds   = *input < 0 || *input >= (i32)optionCount;
@@ -492,15 +507,15 @@ bool ui_select_with_opts(
   ui_select_header(canvas, headerLabel, headerStatus, isOpen, opts);
 
   if (isOpen) {
-    selectFlags |= ui_select_dropdown(canvas, input, options, optionCount, opts);
+    selectFlags |= ui_select_dropdown(canvas, headerId, input, options, optionCount, opts);
   } else {
     ui_canvas_id_skip(canvas, optionCount * 2);
   }
   if (selectFlags & UiSelectFlags_Changed || disabled) {
-    ui_canvas_persistent_flags_unset(canvas, headerId, UiPersistentFlags_Open);
+    // ui_canvas_persistent_flags_unset(canvas, headerId, UiPersistentFlags_Open);
   }
   if (!(selectFlags & UiSelectFlags_Hovered) && ui_canvas_input_any(canvas)) {
-    ui_canvas_persistent_flags_unset(canvas, headerId, UiPersistentFlags_Open);
+    // ui_canvas_persistent_flags_unset(canvas, headerId, UiPersistentFlags_Open);
   }
 
   if (!string_is_empty(opts->tooltip)) {
