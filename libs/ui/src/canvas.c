@@ -14,6 +14,7 @@
 #include "scene_tag.h"
 #include "snd_mixer.h"
 #include "ui_register.h"
+#include "ui_scrollview.h"
 #include "ui_settings.h"
 #include "ui_stats.h"
 
@@ -50,6 +51,7 @@ typedef struct {
 typedef struct {
   UiId              id;
   UiPersistentFlags flags;
+  UiScrollview      scrollView;
 } UiPersistentElem;
 
 typedef enum {
@@ -826,6 +828,10 @@ void ui_canvas_persistent_flags_unset(
 void ui_canvas_persistent_flags_toggle(
     UiCanvasComp* comp, const UiId id, const UiPersistentFlags flags) {
   ui_canvas_persistent(comp, id)->flags ^= flags;
+}
+
+UiScrollview* ui_canvas_persistent_scrollview(UiCanvasComp* comp, const UiId id) {
+  return &ui_canvas_persistent(comp, id)->scrollView;
 }
 
 void ui_canvas_sound(UiCanvasComp* comp, const UiSoundType type) {
