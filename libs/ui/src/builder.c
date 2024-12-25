@@ -448,7 +448,7 @@ static void ui_build_debug_inspector(
     const UiAtomType atomType) {
   const UiRect           rect      = *ui_build_rect_current(state);
   const UiBuildStyle     style     = *ui_build_style_current(state);
-  const UiBuildContainer container = *ui_build_container_current(state, UiLayer_Normal);
+  const UiBuildContainer container = *ui_build_container_current(state, style.layer);
 
   const UiBuildStyle styleShape          = {.color = {255, 0, 0, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleContainerLogic = {.color = {0, 0, 255, 178}, .layer = UiLayer_Overlay};
