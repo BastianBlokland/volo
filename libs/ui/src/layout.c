@@ -15,7 +15,7 @@ void ui_layout_pop(UiCanvasComp* canvas) {
 
 void ui_layout_container_push(UiCanvasComp* canvas, const UiClip clip) {
   UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);
-  ui_cmd_push_container_push(cmdBuffer, clip);
+  ui_cmd_push_container_push(cmdBuffer, clip, UiLayer_Normal);
 }
 
 void ui_layout_container_pop(UiCanvasComp* canvas) {

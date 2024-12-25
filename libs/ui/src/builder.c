@@ -32,8 +32,9 @@ typedef struct {
   /**
    * Logic rectangle is not clipped by the parent container, clipRect however is.
    */
-  UiRect logicRect, clipRect;
-  u8     clipId;
+  UiRect  logicRect, clipRect;
+  u8      clipId;
+  UiLayer clipLayer : 8;
 } UiBuildContainer;
 
 typedef struct {
@@ -49,18 +50,6 @@ typedef struct {
   UiBuildHover            hover;
 } UiBuildState;
 
-static bool ui_is_overlay(const UiLayer layer) {
-  switch (layer) {
-  case UiLayer_Normal:
-  case UiLayer_Invisible:
-    return false;
-  case UiLayer_Overlay:
-  case UiLayer_OverlayInvisible:
-    return true;
-  }
-  UNREACHABLE
-}
-
 static UiRect* ui_build_rect_current(UiBuildState* state) {
   diag_assert(state->rectStackCount);
   return &state->rectStack[state->rectStackCount - 1];
@@ -71,14 +60,13 @@ static UiBuildStyle* ui_build_style_current(UiBuildState* state) {
   return &state->styleStack[state->styleStackCount - 1];
 }
 
-static UiBuildContainer* ui_build_container_current(UiBuildState* state) {
-  diag_assert(state->containerStackCount);
-  return &state->containerStack[state->containerStackCount - 1];
-}
-
-static UiBuildContainer* ui_build_container_active(UiBuildState* state) {
-  const UiBuildStyle style = *ui_build_style_current(state);
-  return ui_is_overlay(style.layer) ? &state->containerStack[0] : ui_build_container_current(state);
+static UiBuildContainer* ui_build_container_current(UiBuildState* state, const UiLayer layer) {
+  for (u32 i = state->containerStackCount; i--;) {
+    if (state->containerStack[i].clipLayer >= layer) {
+      return &state->containerStack[i];
+    }
+  }
+  return &state->containerStack[0]; // All elements are affected by the root container.
 }
 
 INLINE_HINT static UiVector
@@ -91,7 +79,7 @@ ui_resolve_vec(UiBuildState* state, const UiVector vec, const UiBase units) {
     return ui_vector(vec.x * currentRect.width, vec.y * currentRect.height);
   }
   case UiBase_Container: {
-    const UiBuildContainer container = *ui_build_container_current(state);
+    const UiBuildContainer container = *ui_build_container_current(state, UiLayer_Normal);
     return ui_vector(vec.x * container.logicRect.width, vec.y * container.logicRect.height);
   }
   case UiBase_Canvas: {
@@ -112,7 +100,7 @@ static UiVector ui_resolve_origin(UiBuildState* state, const UiBase origin) {
     return ui_vector(currentRect.x, currentRect.y);
   }
   case UiBase_Container: {
-    const UiBuildContainer container = *ui_build_container_current(state);
+    const UiBuildContainer container = *ui_build_container_current(state, UiLayer_Normal);
     return ui_vector(container.logicRect.x, container.logicRect.y);
   }
   case UiBase_Canvas:
@@ -245,10 +233,11 @@ static void ui_build_atom_image(
 static void ui_build_atom_text_char(void* userCtx, const UiTextCharInfo* info) {
   UiBuildState* state = userCtx;
 
-  const u8  clipId   = ui_is_overlay(info->layer) ? 0 : ui_build_container_current(state)->clipId;
-  const f32 border   = info->ch->border * info->size;
-  const f32 size     = (info->ch->size + info->ch->border * 2.0f) * info->size;
-  const UiVector pos = {
+  const UiLayer  layer  = ui_build_style_current(state)->layer;
+  const u8       clipId = ui_build_container_current(state, layer)->clipId;
+  const f32      border = info->ch->border * info->size;
+  const f32      size   = (info->ch->size + info->ch->border * 2.0f) * info->size;
+  const UiVector pos    = {
       info->pos.x + info->ch->offsetX * info->size - border,
       info->pos.y + info->ch->offsetY * info->size - border,
   };
@@ -272,11 +261,12 @@ static void ui_build_atom_text_char(void* userCtx, const UiTextCharInfo* info) {
 static void ui_build_atom_text_background(void* userCtx, const UiTextBackgroundInfo* info) {
   UiBuildState* state = userCtx;
 
-  const u8 clipId = ui_is_overlay(info->layer) ? 0 : ui_build_container_current(state)->clipId;
-  const UiBuildStyle style = {
-      .color  = info->color,
-      .weight = UiWeight_Normal,
-      .layer  = info->layer,
+  const UiLayer      layer  = ui_build_style_current(state)->layer;
+  const u8           clipId = ui_build_container_current(state, layer)->clipId;
+  const UiBuildStyle style  = {
+       .color  = info->color,
+       .weight = UiWeight_Normal,
+       .layer  = info->layer,
   };
   const u8  maxCorner = 4; // Roundedness of the backgrounds.
   const f32 angleRad  = 0.0f;
@@ -324,7 +314,7 @@ static bool ui_build_is_hovered(
 static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
   UiRect                 rect      = *ui_build_rect_current(state);
   const UiBuildStyle     style     = *ui_build_style_current(state);
-  const UiBuildContainer container = *ui_build_container_active(state);
+  const UiBuildContainer container = *ui_build_container_current(state, style.layer);
 
   if (ui_build_cull(container, rect, style)) {
     return;
@@ -380,7 +370,7 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
 static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
   const UiRect           rect      = *ui_build_rect_current(state);
   const UiBuildStyle     style     = *ui_build_style_current(state);
-  const UiBuildContainer container = *ui_build_container_active(state);
+  const UiBuildContainer container = *ui_build_container_current(state, style.layer);
 
   const bool rotated = math_abs(cmd->angleRad) > f32_epsilon;
   // TODO: Support culling for rotated glyphs.
@@ -410,7 +400,7 @@ static void ui_build_draw_glyph(UiBuildState* state, const UiDrawGlyph* cmd) {
 static void ui_build_draw_image(UiBuildState* state, const UiDrawImage* cmd) {
   const UiRect           rect      = *ui_build_rect_current(state);
   const UiBuildStyle     style     = *ui_build_style_current(state);
-  const UiBuildContainer container = *ui_build_container_active(state);
+  const UiBuildContainer container = *ui_build_container_current(state, style.layer);
   const u8               clipId    = container.clipId;
 
   const bool rotated = math_abs(cmd->angleRad) > f32_epsilon;
@@ -458,7 +448,7 @@ static void ui_build_debug_inspector(
     const UiAtomType atomType) {
   const UiRect           rect      = *ui_build_rect_current(state);
   const UiBuildStyle     style     = *ui_build_style_current(state);
-  const UiBuildContainer container = *ui_build_container_active(state);
+  const UiBuildContainer container = *ui_build_container_current(state, UiLayer_Normal);
 
   const UiBuildStyle styleShape          = {.color = {255, 0, 0, 178}, .layer = UiLayer_Overlay};
   const UiBuildStyle styleContainerLogic = {.color = {0, 0, 255, 178}, .layer = UiLayer_Overlay};
@@ -563,7 +553,8 @@ INLINE_HINT static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
   } break;
   case UiCmd_ContainerPush: {
     diag_assert(state->containerStackCount < ui_build_container_stack_max);
-    const UiBuildContainer currentContainer = *ui_build_container_active(state);
+    const UiLayer          layer            = cmd->containerPush.layer;
+    const UiBuildContainer currentContainer = *ui_build_container_current(state, layer);
     const UiRect           logicRect        = *ui_build_rect_current(state);
     UiRect                 clipRect;
     u8                     clipId;
@@ -581,6 +572,7 @@ INLINE_HINT static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
         .logicRect = logicRect,
         .clipRect  = clipRect,
         .clipId    = clipId,
+        .clipLayer = layer,
     };
   } break;
   case UiCmd_ContainerPop:
@@ -667,6 +659,7 @@ UiBuildResult ui_build(const UiCmdBuffer* cmdBuffer, const UiBuildCtx* ctx) {
               .logicRect.size = {ctx->canvasRes.width, ctx->canvasRes.height},
               .clipRect.size  = {ctx->canvasRes.width, ctx->canvasRes.height},
               .clipId         = 0,
+              .clipLayer      = UiLayer_Normal,
           },
       .containerStackCount = 1,
       .hover               = {.id = sentinel_u64},

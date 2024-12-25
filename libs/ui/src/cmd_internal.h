@@ -53,7 +53,8 @@ typedef struct {
 } UiRectSizeGrow;
 
 typedef struct {
-  UiClip clip;
+  UiClip  clip;
+  UiLayer layer;
 } UiContainerPush;
 
 typedef struct {
@@ -138,7 +139,7 @@ void ui_cmd_push_rect_pos(UiCmdBuffer*, UiBase origin, UiVector offset, UiBase u
 void ui_cmd_push_rect_size(UiCmdBuffer*, UiVector size, UiBase units, UiAxis);
 void ui_cmd_push_rect_size_to(UiCmdBuffer*, UiBase origin, UiVector offset, UiBase units, UiAxis);
 void ui_cmd_push_rect_size_grow(UiCmdBuffer*, UiVector delta, UiBase units, UiAxis);
-void ui_cmd_push_container_push(UiCmdBuffer*, UiClip);
+void ui_cmd_push_container_push(UiCmdBuffer*, UiClip, UiLayer);
 void ui_cmd_push_container_pop(UiCmdBuffer*);
 void ui_cmd_push_style_push(UiCmdBuffer*);
 void ui_cmd_push_style_pop(UiCmdBuffer*);

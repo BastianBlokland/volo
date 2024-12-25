@@ -109,11 +109,12 @@ void ui_cmd_push_rect_size_grow(
   };
 }
 
-void ui_cmd_push_container_push(UiCmdBuffer* buffer, const UiClip clip) {
+void ui_cmd_push_container_push(UiCmdBuffer* buffer, const UiClip clip, const UiLayer layer) {
   UiCmd* cmd         = ui_cmdbuffer_push(buffer);
   cmd->type          = UiCmd_ContainerPush;
   cmd->containerPush = (UiContainerPush){
-      .clip = clip,
+      .clip  = clip,
+      .layer = layer,
   };
 }
 
