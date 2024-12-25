@@ -233,8 +233,7 @@ static void ui_build_atom_image(
 static void ui_build_atom_text_char(void* userCtx, const UiTextCharInfo* info) {
   UiBuildState* state = userCtx;
 
-  const UiLayer  layer  = ui_build_style_current(state)->layer;
-  const u8       clipId = ui_build_container_current(state, layer)->clipId;
+  const u8       clipId = ui_build_container_current(state, info->layer)->clipId;
   const f32      border = info->ch->border * info->size;
   const f32      size   = (info->ch->size + info->ch->border * 2.0f) * info->size;
   const UiVector pos    = {
@@ -261,8 +260,7 @@ static void ui_build_atom_text_char(void* userCtx, const UiTextCharInfo* info) {
 static void ui_build_atom_text_background(void* userCtx, const UiTextBackgroundInfo* info) {
   UiBuildState* state = userCtx;
 
-  const UiLayer      layer  = ui_build_style_current(state)->layer;
-  const u8           clipId = ui_build_container_current(state, layer)->clipId;
+  const u8           clipId = ui_build_container_current(state, info->layer)->clipId;
   const UiBuildStyle style  = {
        .color  = info->color,
        .weight = UiWeight_Normal,
