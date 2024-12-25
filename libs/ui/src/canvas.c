@@ -564,7 +564,7 @@ ecs_system_define(UiRenderSys) {
 
     bool     textEditActive = false;
     UiStatus status         = UiStatus_Idle;
-    for (u32 i = canvasCount; i-- > 0;) { // Iterate from the top canvas to the bottom canvas.
+    for (u32 i = canvasCount; i--;) { // Iterate from the top canvas to the bottom canvas.
       UiCanvasComp* canvas    = canvasses[i];
       const bool    isHovered = hoveredCanvasIndex == i && hover.layer >= canvas->minInteractLayer;
       const UiId    hoveredElem = isHovered ? hover.id : sentinel_u64;

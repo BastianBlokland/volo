@@ -135,7 +135,7 @@ static DebugStatsNotification* debug_notify_get(DebugStatsGlobalComp* comp, cons
 }
 
 static void debug_notify_prune_older(DebugStatsGlobalComp* comp, const TimeReal timestamp) {
-  for (usize i = comp->notifications.size; i-- > 0;) {
+  for (usize i = comp->notifications.size; i--;) {
     DebugStatsNotification* notif = dynarray_at_t(&comp->notifications, i, DebugStatsNotification);
     if (notif->timestamp < timestamp) {
       dynarray_remove(&comp->notifications, i, 1);
