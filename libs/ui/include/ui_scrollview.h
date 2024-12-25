@@ -23,5 +23,5 @@ typedef struct sUiScrollview {
  * the content is based on the current rectangle.
  * Pre-condition: height > 0.
  */
-void ui_scrollview_begin(UiCanvasComp*, UiScrollview*, f32 height);
+void ui_scrollview_begin(UiCanvasComp*, UiScrollview*, UiLayer, f32 height);
 void ui_scrollview_end(UiCanvasComp*, UiScrollview*);

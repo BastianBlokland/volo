@@ -425,7 +425,7 @@ static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelCont
   prefab_instance_counts(ctx, instanceCounts, array_elems(instanceCounts));
 
   const f32 totalHeight = ui_table_height(&table, ctx->panelComp->totalRows);
-  ui_scrollview_begin(canvas, &ctx->panelComp->scrollview, totalHeight);
+  ui_scrollview_begin(canvas, &ctx->panelComp->scrollview, UiLayer_Normal, totalHeight);
   ctx->panelComp->totalRows = 0;
 
   for (u16 userIndex = 0; userIndex != ctx->prefabMap->prefabCount; ++userIndex) {

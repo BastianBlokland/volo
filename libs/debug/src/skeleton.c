@@ -339,7 +339,7 @@ static void skel_panel_draw(
         });
 
     const f32 totalHeight = ui_table_height(&table, panelComp->totalRows);
-    ui_scrollview_begin(canvas, &panelComp->scrollview, totalHeight);
+    ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, totalHeight);
     panelComp->totalRows = 1; // Always draws the default layer.
 
     for (u32 layerIdx = 0; layerIdx != subject.animation->layerCount; ++layerIdx) {

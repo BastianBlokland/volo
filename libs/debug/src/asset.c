@@ -274,7 +274,8 @@ asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelComp, EcsWorld*
       });
 
   const u32 numAssets = (u32)panelComp->assets.size;
-  ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numAssets));
+  const f32 height    = ui_table_height(&table, numAssets);
+  ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of assets on its own id block.
   dynarray_for_t(&panelComp->assets, DebugAssetInfo, asset) {

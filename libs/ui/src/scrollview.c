@@ -142,7 +142,8 @@ static void ui_scrollview_draw_bar(UiCanvasComp* canvas, const UiScrollviewStatu
   ui_layout_pop(canvas);
 }
 
-void ui_scrollview_begin(UiCanvasComp* canvas, UiScrollview* scrollview, const f32 height) {
+void ui_scrollview_begin(
+    UiCanvasComp* canvas, UiScrollview* scrollview, const UiLayer layer, const f32 height) {
   diag_assert_msg(
       !(scrollview->flags & UiScrollviewFlags_Active), "The given scrollview is already active");
   diag_assert(height >= 0);
@@ -159,7 +160,7 @@ void ui_scrollview_begin(UiCanvasComp* canvas, UiScrollview* scrollview, const f
   // Push a container with the viewport rect to clip the content within the viewport.
   ui_layout_grow(
       canvas, UiAlign_MiddleLeft, ui_vector(-g_scrollBarWidth, 0), UiBase_Absolute, Ui_X);
-  ui_layout_container_push(canvas, UiClip_Rect, UiLayer_Normal);
+  ui_layout_container_push(canvas, UiClip_Rect, layer);
 
   // Push a container with the content rect.
   ui_layout_move_dir(canvas, Ui_Up, scrollview->offset, UiBase_Absolute);
@@ -167,7 +168,7 @@ void ui_scrollview_begin(UiCanvasComp* canvas, UiScrollview* scrollview, const f
     ui_layout_grow(
         canvas, UiAlign_TopCenter, ui_vector(0, status.offscreenHeight), UiBase_Absolute, Ui_Y);
   }
-  ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
+  ui_layout_container_push(canvas, UiClip_None, layer);
 }
 
 void ui_scrollview_end(UiCanvasComp* canvas, UiScrollview* scrollview) {

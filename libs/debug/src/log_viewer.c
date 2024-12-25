@@ -362,7 +362,7 @@ static void debug_log_inspect_draw(UiCanvasComp* c, DebugLogViewerComp* viewer) 
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   const f32 totalHeight = ui_table_height(&table, 3 /* builtin params */ + entry->paramCount);
-  ui_scrollview_begin(c, &viewer->inspectScrollView, totalHeight);
+  ui_scrollview_begin(c, &viewer->inspectScrollView, UiLayer_Normal, totalHeight);
 
   DebugLogStr* strItr = debug_log_msg(entry);
   debug_log_inspect_param(c, &table, string_lit("message"), debug_log_text(strItr));

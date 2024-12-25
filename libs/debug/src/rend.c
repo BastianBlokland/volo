@@ -710,7 +710,8 @@ static void rend_obj_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelCom
       });
 
   const u32 numObjects = (u32)panelComp->objects.size;
-  ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numObjects));
+  const f32 height     = ui_table_height(&table, numObjects);
+  ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of objects on its own id block.
   dynarray_for_t(&panelComp->objects, DebugObjInfo, objInfo) {
@@ -898,7 +899,8 @@ static void rend_resource_tab_draw(
       });
 
   const u32 numResources = (u32)panelComp->resources.size;
-  ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numResources));
+  const f32 height       = ui_table_height(&table, numResources);
+  ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of resources on its own id block.
   dynarray_for_t(&panelComp->resources, DebugResourceInfo, resInfo) {
