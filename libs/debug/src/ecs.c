@@ -323,7 +323,7 @@ static void comp_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp
 static void comp_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
   comp_options_draw(canvas, panelComp);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(canvas, UiClip_None);
+  ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
@@ -423,7 +423,7 @@ static void view_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp
 static void view_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
   view_options_draw(canvas, panelComp);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(canvas, UiClip_None);
+  ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
@@ -547,7 +547,7 @@ static void
 arch_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const EcsDef* ecsDef) {
   arch_options_draw(canvas, panelComp);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(canvas, UiClip_None);
+  ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);
@@ -711,7 +711,7 @@ static void
 sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const EcsDef* ecsDef) {
   sys_options_draw(canvas, panelComp);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(canvas, UiClip_None);
+  ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 50);

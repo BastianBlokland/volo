@@ -403,7 +403,7 @@ static void prefab_panel_normal_options_draw(UiCanvasComp* canvas, const PrefabP
 static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
   prefab_panel_normal_options_draw(canvas, ctx);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(canvas, UiClip_None);
+  ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
 
   const bool allowCreate = prefab_allow_create(ctx);
 

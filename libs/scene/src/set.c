@@ -149,7 +149,7 @@ static void set_storage_prune(SetStorage* s, EcsWorld* world, const SetStoragePr
     }
     DynArray* members    = &s->members[setIdx];
     bool      removedAny = false;
-    for (usize i = members->size; i-- > 0;) {
+    for (usize i = members->size; i--;) {
       const EcsEntityId e = dynarray_begin_t(members, EcsEntityId)[i];
       if (!pred(world, e)) {
         dynarray_remove(members, i, 1);

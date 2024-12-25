@@ -690,7 +690,7 @@ static void hud_minimap_draw(
   const UiCircleOpts circleOpts = {.base = UiBase_Container, .radius = g_hudMinimapDotRadius};
   const UiLineOpts   lineOpts   = {.base = UiBase_Container, .width = g_hudMinimapLineWidth};
 
-  ui_layout_container_push(c, UiClip_Rect);
+  ui_layout_container_push(c, UiClip_Rect, UiLayer_Normal);
 
   // Collect markers.
   HudMinimapMarker markers[hud_minimap_marker_max];

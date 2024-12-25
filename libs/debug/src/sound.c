@@ -257,7 +257,7 @@ static void sound_draw_spectrum_stats(UiCanvasComp* c, const SndBufferView buf) 
 
 static void sound_draw_mixer_stats(UiCanvasComp* c, SndMixerComp* m) {
   ui_layout_push(c);
-  ui_layout_container_push(c, UiClip_None);
+  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
@@ -285,7 +285,7 @@ static void sound_draw_mixer_stats(UiCanvasComp* c, SndMixerComp* m) {
 
 static void sound_draw_mixer_controls(UiCanvasComp* c, SndMixerComp* m) {
   ui_layout_push(c);
-  ui_layout_container_push(c, UiClip_Rect);
+  ui_layout_container_push(c, UiClip_Rect, UiLayer_Normal);
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
@@ -361,7 +361,7 @@ static void sound_objects_options_draw(UiCanvasComp* c, DebugSoundPanelComp* pan
 static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, SndMixerComp* m) {
   sound_objects_options_draw(c, panelComp);
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(c, UiClip_None);
+  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 200);

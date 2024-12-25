@@ -454,7 +454,7 @@ static void repl_edit_insert(const ReplEditor* editor, const Unicode cp) {
 static void repl_edit_delete(const ReplEditor* editor) {
   // Delete the last utf8 code-point.
   String str = dynstring_view(editor->editBuffer);
-  for (usize i = str.size; i-- > 0;) {
+  for (usize i = str.size; i--;) {
     if (!utf8_contchar(*string_at(str, i))) {
       dynstring_erase_chars(editor->editBuffer, i, str.size - i);
       return;

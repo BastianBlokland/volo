@@ -152,7 +152,7 @@ static usize editor_next_index(UiEditor* editor, const usize index) {
 
 static usize editor_prev_index(UiEditor* editor, const usize index) {
   String str = dynstring_view(&editor->text);
-  for (usize i = index; i-- > 0;) {
+  for (usize i = index; i--;) {
     if (!utf8_contchar(*string_at(str, i))) {
       return i;
     }

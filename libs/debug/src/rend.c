@@ -419,7 +419,7 @@ static void debug_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsVi
   debug_overlay_bg(c);
   ui_layout_grow(c, UiAlign_MiddleCenter, g_inset, UiBase_Absolute, Ui_XY);
   ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(0.5f, 0), UiBase_Current, Ui_X);
-  ui_layout_container_push(c, UiClip_None);
+  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
   UiTable table = ui_table(.spacing = {4, 4}, .rowHeight = 17);
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
@@ -455,7 +455,7 @@ static void debug_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsVi
 
   // Settings section (right side of panel).
   ui_layout_move_dir(c, Ui_Right, 1.0f, UiBase_Current);
-  ui_layout_container_push(c, UiClip_None);
+  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
   ui_table_reset(&table);
 
   if (lodMax > 0.0f) {
@@ -687,7 +687,7 @@ static void rend_obj_info_query(DebugRendPanelComp* panelComp, EcsWorld* world) 
 static void rend_obj_tab_draw(UiCanvasComp* canvas, DebugRendPanelComp* panelComp) {
   rend_obj_options_draw(canvas, panelComp);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(canvas, UiClip_None);
+  ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 300);
@@ -875,7 +875,7 @@ static void rend_resource_tab_draw(
     UiCanvasComp* canvas, DebugRendPanelComp* panelComp, RendSettingsComp* settings) {
   rend_resource_options_draw(canvas, panelComp);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(canvas, UiClip_None);
+  ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 270);

@@ -135,7 +135,7 @@ static DebugStatsNotification* debug_notify_get(DebugStatsGlobalComp* comp, cons
 }
 
 static void debug_notify_prune_older(DebugStatsGlobalComp* comp, const TimeReal timestamp) {
-  for (usize i = comp->notifications.size; i-- > 0;) {
+  for (usize i = comp->notifications.size; i--;) {
     DebugStatsNotification* notif = dynarray_at_t(&comp->notifications, i, DebugStatsNotification);
     if (notif->timestamp < timestamp) {
       dynarray_remove(&comp->notifications, i, 1);
@@ -371,7 +371,7 @@ static void stats_draw_plot(
   ui_layout_push(c);
   ui_layout_move_dir(c, Ui_Down, g_statRows - 1.0f, UiBase_Current);
   ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(0, g_statRows), UiBase_Current, Ui_Y);
-  ui_layout_container_push(c, UiClip_None);
+  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
   // Draw background.
   stats_draw_bg(c, DebugBgFlags_None);

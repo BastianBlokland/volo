@@ -221,6 +221,7 @@ static void ui_canvas_output_atom(void* userCtx, const UiAtomData data, const Ui
   case UiLayer_OverlayInvisible:
     break;
   case UiLayer_Overlay:
+  case UiLayer_Debug: // NOTE: 'Debug' only affects clipping, not render-order at this time.
     *dynarray_push_t(&state->renderer->overlayAtoms, UiAtomData) = data;
     break;
   }
@@ -564,7 +565,7 @@ ecs_system_define(UiRenderSys) {
 
     bool     textEditActive = false;
     UiStatus status         = UiStatus_Idle;
-    for (u32 i = canvasCount; i-- > 0;) { // Iterate from the top canvas to the bottom canvas.
+    for (u32 i = canvasCount; i--;) { // Iterate from the top canvas to the bottom canvas.
       UiCanvasComp* canvas    = canvasses[i];
       const bool    isHovered = hoveredCanvasIndex == i && hover.layer >= canvas->minInteractLayer;
       const UiId    hoveredElem = isHovered ? hover.id : sentinel_u64;

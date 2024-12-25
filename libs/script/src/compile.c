@@ -135,7 +135,7 @@ static void label_link(Context* ctx, const LabelId labelId) {
   label->instruction = (u16)ctx->outCode.size;
 
   // If there are any outstanding patches for this label then apply them now.
-  for (usize i = ctx->labelPatches.size; i-- > 0;) {
+  for (usize i = ctx->labelPatches.size; i--;) {
     LabelPatch* patch = dynarray_at_t(&ctx->labelPatches, i, LabelPatch);
     if (patch->label == labelId) {
       const String patchCode = mem_slice(dynstring_view(&ctx->outCode), patch->offset, 2);
