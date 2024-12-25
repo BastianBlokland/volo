@@ -22,6 +22,7 @@ typedef enum eUiLayer              UiLayer;
 typedef enum eUiPanelFlags         UiPanelFlags;
 typedef enum eUiPersistentFlags    UiPersistentFlags;
 typedef enum eUiScrollviewFlags    UiScrollviewFlags;
+typedef enum eUiScrollviewOutput   UiScrollviewOutput;
 typedef enum eUiSettingGlobalFlags UiSettingGlobalFlags;
 typedef enum eUiSoundType          UiSoundType;
 typedef enum eUiStatus             UiStatus;

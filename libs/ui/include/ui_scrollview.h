@@ -12,6 +12,11 @@ typedef struct sUiScrollview {
   UiId              lastContentId;
 } UiScrollview;
 
+typedef enum eUiScrollviewOutput {
+  UiScrollviewOutput_None     = 0,
+  UiScrollviewOutput_Hovering = 1 << 0,
+} UiScrollviewOutput;
+
 /**
  * Create a layout scrollview.
  */
@@ -23,5 +28,5 @@ typedef struct sUiScrollview {
  * the content is based on the current rectangle.
  * Pre-condition: height > 0.
  */
-void ui_scrollview_begin(UiCanvasComp*, UiScrollview*, UiLayer, f32 height);
-void ui_scrollview_end(UiCanvasComp*, UiScrollview*);
+UiScrollviewOutput ui_scrollview_begin(UiCanvasComp*, UiScrollview*, UiLayer, f32 height);
+void               ui_scrollview_end(UiCanvasComp*, UiScrollview*);

@@ -142,7 +142,7 @@ static void ui_scrollview_draw_bar(UiCanvasComp* canvas, const UiScrollviewStatu
   ui_layout_pop(canvas);
 }
 
-void ui_scrollview_begin(
+UiScrollviewOutput ui_scrollview_begin(
     UiCanvasComp* canvas, UiScrollview* scrollview, const UiLayer layer, const f32 height) {
   diag_assert_msg(
       !(scrollview->flags & UiScrollviewFlags_Active), "The given scrollview is already active");
@@ -173,6 +173,12 @@ void ui_scrollview_begin(
         canvas, UiAlign_TopCenter, ui_vector(0, status.offscreenHeight), UiBase_Absolute, Ui_Y);
   }
   ui_layout_container_push(canvas, UiClip_None, layer);
+
+  UiScrollviewOutput output = 0;
+  if (status.flags & UiScrollviewStatus_HoveringViewport) {
+    output |= UiScrollviewOutput_Hovering;
+  }
+  return output;
 }
 
 void ui_scrollview_end(UiCanvasComp* canvas, UiScrollview* scrollview) {
