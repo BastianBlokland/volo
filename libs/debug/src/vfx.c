@@ -222,7 +222,7 @@ vfx_panel_draw(UiCanvasComp* canvas, DebugVfxPanelComp* panelComp, SceneSetEnvCo
   vfx_options_draw(canvas, panelComp);
 
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(canvas, UiClip_None);
+  ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 175);

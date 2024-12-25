@@ -337,7 +337,7 @@ static void app_action_quality_draw(UiCanvasComp* canvas, const AppActionContext
     ui_style_pop(canvas);
 
     // Settings.
-    ui_layout_container_push(canvas, UiClip_None);
+    ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
 
     UiTable table = ui_table();
     ui_table_add_column(&table, UiTableColumn_Fixed, 125);

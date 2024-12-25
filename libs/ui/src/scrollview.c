@@ -159,7 +159,7 @@ void ui_scrollview_begin(UiCanvasComp* canvas, UiScrollview* scrollview, const f
   // Push a container with the viewport rect to clip the content within the viewport.
   ui_layout_grow(
       canvas, UiAlign_MiddleLeft, ui_vector(-g_scrollBarWidth, 0), UiBase_Absolute, Ui_X);
-  ui_layout_container_push(canvas, UiClip_Rect);
+  ui_layout_container_push(canvas, UiClip_Rect, UiLayer_Normal);
 
   // Push a container with the content rect.
   ui_layout_move_dir(canvas, Ui_Up, scrollview->offset, UiBase_Absolute);
@@ -167,7 +167,7 @@ void ui_scrollview_begin(UiCanvasComp* canvas, UiScrollview* scrollview, const f
     ui_layout_grow(
         canvas, UiAlign_TopCenter, ui_vector(0, status.offscreenHeight), UiBase_Absolute, Ui_Y);
   }
-  ui_layout_container_push(canvas, UiClip_None);
+  ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
 }
 
 void ui_scrollview_end(UiCanvasComp* canvas, UiScrollview* scrollview) {

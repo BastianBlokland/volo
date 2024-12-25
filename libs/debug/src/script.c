@@ -370,7 +370,7 @@ memory_panel_tab_draw(UiCanvasComp* c, DebugScriptPanelComp* panelComp, EcsItera
 
   memory_options_draw(c, panelComp);
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(c, UiClip_None);
+  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 200);
@@ -626,7 +626,7 @@ static void output_panel_tab_draw(
     EcsIterator*            subjectItr) {
   output_options_draw(c, panelComp, tracker);
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(c, UiClip_None);
+  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 215);
@@ -732,7 +732,7 @@ static void global_panel_tab_draw(
     UiCanvasComp* c, DebugScriptPanelComp* panelComp, DebugScriptTrackerComp* tracker) {
   global_options_draw(c, tracker);
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(c, UiClip_None);
+  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 350);

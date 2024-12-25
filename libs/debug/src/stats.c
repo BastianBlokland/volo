@@ -371,7 +371,7 @@ static void stats_draw_plot(
   ui_layout_push(c);
   ui_layout_move_dir(c, Ui_Down, g_statRows - 1.0f, UiBase_Current);
   ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(0, g_statRows), UiBase_Current, Ui_Y);
-  ui_layout_container_push(c, UiClip_None);
+  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
   // Draw background.
   stats_draw_bg(c, DebugBgFlags_None);

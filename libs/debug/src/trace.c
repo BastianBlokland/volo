@@ -199,7 +199,7 @@ static void trace_options_trigger_draw(
     ui_style_pop(c);
 
     // Popup content.
-    ui_layout_container_push(c, UiClip_None);
+    ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
     UiTable table = ui_table();
     ui_table_add_column(&table, UiTableColumn_Fixed, 90);
@@ -379,7 +379,7 @@ static void trace_data_events_draw(
     const DebugTraceData* data,
     const TraceSink*      sinkStore) {
   ui_layout_push(c);
-  ui_layout_container_push(c, UiClip_None);
+  ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
   ui_style_push(c);
 
   ui_canvas_id_block_next(c); // Start events on their own id-block.
@@ -489,7 +489,7 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* s
   if (sinkStore) {
     trace_options_draw(c, panel, sinkStore);
     ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-    ui_layout_container_push(c, UiClip_None);
+    ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
     static const UiVector g_tablePadding = {10, 5};
     UiTable table = ui_table(.spacing = g_tablePadding, .rowHeight = 20 * panel->eventDepth);
@@ -504,7 +504,7 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* s
             {string_lit("Events"), string_lit("Traced events on the thread.")},
         });
 
-    ui_layout_container_push(c, UiClip_None);
+    ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
     if (ui_canvas_status(c) < UiStatus_Pressed) {
       panel->panAny = false;

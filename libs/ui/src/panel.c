@@ -205,7 +205,7 @@ static void ui_panel_tabs(UiCanvasComp* c, UiPanel* panel, const UiPanelOpts* op
   static const f32     g_spacing          = 2;
   static const UiColor g_tabInactiveColor = {32, 32, 32, 230};
 
-  ui_layout_container_push(c, UiClip_Rect);
+  ui_layout_container_push(c, UiClip_Rect, UiLayer_Normal);
 
   ui_layout_push(c);
   ui_layout_move_to(c, UiBase_Current, UiAlign_TopLeft, Ui_XY);
@@ -301,7 +301,7 @@ void ui_panel_begin_with_opts(UiCanvasComp* c, UiPanel* panel, const UiPanelOpts
     ui_panel_tabs(c, panel, opts);
   }
 
-  ui_layout_container_push(c, UiClip_Rect);
+  ui_layout_container_push(c, UiClip_Rect, UiLayer_Normal);
 }
 
 void ui_panel_end(UiCanvasComp* c, UiPanel* panel) {

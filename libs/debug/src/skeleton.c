@@ -315,7 +315,7 @@ static void skel_panel_draw(
 
   skel_panel_options_draw(canvas, settings);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
-  ui_layout_container_push(canvas, UiClip_None);
+  ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
 
   if (subject.valid) {
     UiTable table = ui_table(.spacing = ui_vector(10, 5));
