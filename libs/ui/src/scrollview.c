@@ -152,10 +152,14 @@ void ui_scrollview_begin(
   const UiScrollviewStatus status = ui_scrollview_query_status(canvas, scrollview, height);
   ui_scrollview_update(canvas, scrollview, &status);
 
+  ui_style_push(canvas);
+  ui_style_layer(canvas, layer);
+
   // Draw an invisible element over the whole viewport to act as a hover target and track the rect.
   ui_canvas_draw_glyph(canvas, UiShape_Empty, 0, UiFlags_Interactable | UiFlags_TrackRect);
 
   ui_scrollview_draw_bar(canvas, &status);
+  ui_style_pop(canvas);
 
   // Push a container with the viewport rect to clip the content within the viewport.
   ui_layout_grow(
