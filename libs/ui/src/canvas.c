@@ -221,6 +221,7 @@ static void ui_canvas_output_atom(void* userCtx, const UiAtomData data, const Ui
   case UiLayer_OverlayInvisible:
     break;
   case UiLayer_Overlay:
+  case UiLayer_Debug: // NOTE: 'Debug' only affects clipping, not render-order at this time.
     *dynarray_push_t(&state->renderer->overlayAtoms, UiAtomData) = data;
     break;
   }

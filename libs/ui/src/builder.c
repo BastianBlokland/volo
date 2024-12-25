@@ -448,16 +448,16 @@ static void ui_build_debug_inspector(
   const UiBuildStyle     style     = *ui_build_style_current(state);
   const UiBuildContainer container = *ui_build_container_current(state, style.layer);
 
-  const UiBuildStyle styleShape          = {.color = {255, 0, 0, 178}, .layer = UiLayer_Overlay};
-  const UiBuildStyle styleContainerLogic = {.color = {0, 0, 255, 178}, .layer = UiLayer_Overlay};
-  const UiBuildStyle styleContainerClip  = {.color = {0, 255, 0, 178}, .layer = UiLayer_Overlay};
+  const UiBuildStyle styleShape          = {.color = {255, 0, 0, 178}, .layer = UiLayer_Debug};
+  const UiBuildStyle styleContainerLogic = {.color = {0, 0, 255, 178}, .layer = UiLayer_Debug};
+  const UiBuildStyle styleContainerClip  = {.color = {0, 255, 0, 178}, .layer = UiLayer_Debug};
 
   const UiBuildStyle styleText = {
       .color     = ui_color_white,
       .outline   = 3,
       .variation = 1,
       .weight    = UiWeight_Bold,
-      .layer     = UiLayer_Overlay,
+      .layer     = UiLayer_Debug,
   };
 
   ui_build_atom_glyph(state, UiShape_Square, container.logicRect, styleContainerLogic, 5, 0.0f, 0);

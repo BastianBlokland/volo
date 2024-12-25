@@ -54,6 +54,7 @@ typedef enum eUiLayer {
   UiLayer_Invisible,
   UiLayer_Overlay,
   UiLayer_OverlayInvisible,
+  UiLayer_Debug,
 } UiLayer;
 
 /**
