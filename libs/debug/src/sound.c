@@ -69,7 +69,7 @@ static void sound_draw_bg(UiCanvasComp* c) {
   ui_style_push(c);
   ui_style_color(c, ui_color(0, 0, 0, 64));
   ui_style_outline(c, 2);
-  ui_canvas_draw_glyph(c, UiShape_Square, 0, UiFlags_None);
+  ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_None);
   ui_style_pop(c);
 }
 

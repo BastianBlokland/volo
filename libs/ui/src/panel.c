@@ -234,7 +234,7 @@ static void ui_panel_tabs(UiCanvasComp* c, UiPanel* panel, const UiPanelOpts* op
         break;
       }
       ui_style_outline(c, 2);
-      ui_canvas_draw_glyph(c, UiShape_Square, 0, UiFlags_Interactable);
+      ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_Interactable);
       ui_style_pop(c);
 
       if (status >= UiStatus_Hovered) {
@@ -255,7 +255,7 @@ static void ui_panel_tabs(UiCanvasComp* c, UiPanel* panel, const UiPanelOpts* op
   ui_style_push(c);
   ui_style_color(c, ui_color(16, 16, 16, 210));
   ui_style_outline(c, 2);
-  ui_canvas_draw_glyph(c, UiShape_Square, 0, UiFlags_None);
+  ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_None);
   ui_style_pop(c);
 
   ui_layout_pop(c);

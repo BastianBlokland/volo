@@ -122,7 +122,7 @@ static void ui_scrollview_draw_bar(UiCanvasComp* canvas, const UiScrollviewStatu
     ui_style_color(canvas, barColor);
   }
   ui_style_outline(canvas, 0);
-  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable);
 
   // Draw bar handle.
   const f32 offscreenFrac = 1.0f - status->viewportFrac;

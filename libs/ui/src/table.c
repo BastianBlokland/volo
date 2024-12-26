@@ -177,7 +177,7 @@ void ui_table_draw_bg(
 
   ui_style_color(canvas, color);
   ui_style_outline(canvas, g_outline);
-  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
 
   ui_style_pop(canvas);
   ui_layout_pop(canvas);
@@ -228,7 +228,7 @@ void ui_table_draw_header(
   ui_style_push(canvas);
   ui_style_color(canvas, ui_color(16, 16, 16, 192));
   ui_style_outline(canvas, g_outline);
-  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
   ui_style_pop(canvas);
 
   ui_table_draw_header_names(canvas, table, names);
@@ -265,7 +265,7 @@ void ui_table_draw_row_bg(UiCanvasComp* canvas, const UiTable* table, const UiCo
     }
 
     ui_style_color_with_mult(canvas, color, table->row % 2 ? 0.85f : 1.0f);
-    ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
+    ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
   }
   ui_style_pop(canvas);
   ui_layout_pop(canvas);

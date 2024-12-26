@@ -268,7 +268,7 @@ static void stats_draw_bg(UiCanvasComp* c, const DebugBgFlags flags) {
   ui_style_push(c);
   const u8 alpha = flags & DebugBgFlags_Section ? g_statsSectionBgAlpha : g_statsBgAlpha;
   ui_style_color(c, ui_color(0, 0, 0, alpha));
-  ui_canvas_draw_glyph(c, UiShape_Square, 0, UiFlags_None);
+  ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_None);
   ui_style_pop(c);
 }
 
@@ -383,7 +383,7 @@ static void stats_draw_plot(
   ui_style_color(c, ui_color(128, 128, 128, 128));
   ui_layout_move_to(c, UiBase_Container, UiAlign_MiddleCenter, Ui_Y);
   ui_layout_resize(c, UiAlign_MiddleCenter, ui_vector(0, 2), UiBase_Absolute, Ui_Y);
-  ui_canvas_draw_glyph(c, UiShape_Square, 0, UiFlags_None);
+  ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_None);
 
   // Draw values.
   const u32 newestIndex = (plot->cur + stats_plot_size - 1) % stats_plot_size;
@@ -402,7 +402,7 @@ static void stats_draw_plot(
     ui_layout_resize(c, UiAlign_MiddleLeft, ui_vector(g_stepX, 0), UiBase_Container, Ui_X);
     ui_layout_resize(c, UiAlign_MiddleCenter, ui_vector(0, height), UiBase_Absolute, Ui_Y);
 
-    ui_canvas_draw_glyph(c, UiShape_Square, 0, UiFlags_None);
+    ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_None);
   }
 
   ui_layout_inner(c, UiBase_Container, UiAlign_BottomLeft, ui_vector(1, 1), UiBase_Container);
