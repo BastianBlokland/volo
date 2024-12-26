@@ -563,15 +563,12 @@ ecs_system_define(UiRenderSys) {
       hoveredCanvasIndex = sentinel_u32;
     }
 
-    bool     textEditActive = false;
-    UiStatus status         = UiStatus_Idle;
+    bool textEditActive = false;
     for (u32 i = canvasCount; i--;) { // Iterate from the top canvas to the bottom canvas.
       UiCanvasComp* canvas    = canvasses[i];
       const bool    isHovered = hoveredCanvasIndex == i && hover.layer >= canvas->minInteractLayer;
       const UiId    hoveredElem = isHovered ? hover.id : sentinel_u64;
       ui_canvas_update_interaction(canvas, settings, window, hoveredElem, hover.flags);
-
-      status = math_max(status, canvas->activeStatus);
 
       if (ui_editor_active(canvas->textEditor)) {
         if (textEditActive) { // A text editor on a higher canvas is already active.
@@ -590,7 +587,7 @@ ecs_system_define(UiRenderSys) {
     const bool activeWindow = !input || input_active_window(input) == windowEntity;
     if (input && activeWindow) {
       input_blocker_update(input, InputBlocker_TextInput, textEditActive);
-      input_blocker_update(input, InputBlocker_HoveringUi, status > UiStatus_Idle);
+      input_blocker_update(input, InputBlocker_HoveringUi, !sentinel_check(hoveredCanvasIndex));
     }
     ui_canvas_cursor_update(window, interactType);
 
