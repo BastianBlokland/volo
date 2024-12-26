@@ -224,7 +224,6 @@ static void fonttex_generate_font(
         .offsetX    = inputChars[i].glyph->offsetX,
         .offsetY    = inputChars[i].glyph->offsetY + font.yOffset,
         .advance    = inputChars[i].glyph->advance + font.spacing,
-        .border     = def->border / (f32)def->glyphSize,
     };
     if (inputChars[i].glyph->segmentCount) {
       if (UNLIKELY(*nextGlyphIndex >= maxGlyphs || *nextGlyphIndex == u16_max)) {
@@ -282,6 +281,7 @@ static void fonttex_generate(
       .glyphsPerDim      = glyphsPerDim,
       .lineSpacing       = def->lineSpacing,
       .baseline          = def->baseline,
+      .border            = def->border / (f32)def->glyphSize,
       .characters.values = dynarray_copy_as_new(&chars, g_allocHeap),
       .characters.count  = chars.size,
   };
@@ -451,12 +451,12 @@ void asset_data_init_fonttex(void) {
   data_reg_field_t(g_dataReg, AssetFontTexChar, offsetX, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetFontTexChar, offsetY, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetFontTexChar, advance, data_prim_t(f32));
-  data_reg_field_t(g_dataReg, AssetFontTexChar, border, data_prim_t(f32));
 
   data_reg_struct_t(g_dataReg, AssetFontTexComp);
   data_reg_field_t(g_dataReg, AssetFontTexComp, glyphsPerDim, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetFontTexComp, lineSpacing, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetFontTexComp, baseline, data_prim_t(f32));
+  data_reg_field_t(g_dataReg, AssetFontTexComp, border, data_prim_t(f32));
   data_reg_field_t(g_dataReg, AssetFontTexComp, characters, t_AssetFontTexChar, .container = DataContainer_HeapArray);
 
   data_reg_struct_t(g_dataReg, FontTexBundle);

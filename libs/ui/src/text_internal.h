@@ -5,6 +5,7 @@
 #include "ui_rect.h"
 
 typedef struct {
+  const AssetFontTexComp* font;
   const AssetFontTexChar* ch;
   UiVector                pos;
   UiColor                 color;

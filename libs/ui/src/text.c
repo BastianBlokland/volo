@@ -305,6 +305,7 @@ static void ui_text_build_char(
     state->buildChar(
         state->userCtx,
         &(UiTextCharInfo){
+            .font    = state->font,
             .ch      = ch,
             .pos     = pos,
             .size    = state->fontSize,
@@ -323,6 +324,7 @@ static void ui_text_build_cursor(UiTextBuildState* state, const UiTextLine* line
     state->buildChar(
         state->userCtx,
         &(UiTextCharInfo){
+            .font    = state->font,
             .ch      = ch,
             .pos     = ui_text_char_pos(state, line, state->cursor),
             .size    = state->fontSize,
@@ -418,8 +420,8 @@ static void ui_text_build_background(UiTextBuildState* state, const UiTextBackgr
   const UiVector endPos         = ui_text_char_pos(state, bg->line, bg->end);
   const f32      yBottomPadding = state->fontSize * state->font->baseline;
   const UiRect   rect           = {
-      .pos  = ui_vector(startPos.x, startPos.y - yBottomPadding),
-      .size = ui_vector(endPos.x - startPos.x, bg->line->size.y + yBottomPadding),
+                  .pos  = ui_vector(startPos.x, startPos.y - yBottomPadding),
+                  .size = ui_vector(endPos.x - startPos.x, bg->line->size.y + yBottomPadding),
   };
   state->buildBackground(
       state->userCtx,
