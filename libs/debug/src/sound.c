@@ -84,6 +84,7 @@ static void sound_draw_progress(UiCanvasComp* c, const f32 progress) {
   ui_style_color(c, ui_color(0, 255, 0, 128));
 
   ui_layout_push(c);
+  ui_layout_grow(c, UiAlign_MiddleCenter, ui_vector(-3, -3), UiBase_Absolute, Ui_XY);
   ui_layout_set(c, ui_rect(ui_vector(0, 0), ui_vector(progress, 1)), UiBase_Current);
   ui_canvas_draw_glyph(c, UiShape_Square, 5, UiFlags_None);
   ui_layout_pop(c);
@@ -368,7 +369,7 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
   ui_table_add_column(&table, UiTableColumn_Fixed, 80);
   ui_table_add_column(&table, UiTableColumn_Fixed, 80);
   ui_table_add_column(&table, UiTableColumn_Fixed, 80);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 80);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 100);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_draw_header(
@@ -425,8 +426,8 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
 
     const String gainText = fmt_write_scratch(
         "{} / {}",
-        fmt_float(gainLeft, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0),
-        fmt_float(gainRight, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0));
+        fmt_float(gainLeft, .minDecDigits = 2, .maxDecDigits = 2, .expThresholdNeg = 0),
+        fmt_float(gainRight, .minDecDigits = 2, .maxDecDigits = 2, .expThresholdNeg = 0));
     ui_label(c, gainText);
     ui_table_next_column(c, &table);
 

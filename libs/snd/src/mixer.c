@@ -87,6 +87,7 @@ ecs_comp_define(SndMixerComp) {
   u16        limiterClosedFrames;
 
   u16          deviceRequestedFrames; // How many frames to render this tick.
+  u16          deviceRenderedFrames;  // How many frames are rendered in the buffer.
   TimeDuration deviceTimeHead;        // Timestamp of last rendered sound.
 
   SndObject*   objects;        // SndObject[snd_mixer_objects_max]
@@ -648,7 +649,8 @@ ecs_system_define(SndMixerRenderEndSys) {
   snd_mixer_write_to_device(m, devicePeriod, result);
   snd_device_end(m->device);
 
-  m->deviceTimeHead = devicePeriod.timeBegin + resultDur;
+  m->deviceTimeHead       = devicePeriod.timeBegin + resultDur;
+  m->deviceRenderedFrames = m->deviceRequestedFrames;
 }
 
 ecs_module_init(snd_mixer_module) {
@@ -907,6 +909,6 @@ SndBufferView snd_mixer_history(const SndMixerComp* m) {
   /**
    * Output sound is merged into buffer 0, so that can be used as the output history.
    */
-  const SndBuffer soundBuffer0 = snd_mixer_buffer((SndMixerComp*)m, 0, snd_frame_count_max);
+  const SndBuffer soundBuffer0 = snd_mixer_buffer((SndMixerComp*)m, 0, m->deviceRenderedFrames);
   return snd_buffer_view(soundBuffer0);
 }
