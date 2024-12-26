@@ -84,6 +84,7 @@ static void sound_draw_progress(UiCanvasComp* c, const f32 progress) {
   ui_style_color(c, ui_color(0, 255, 0, 128));
 
   ui_layout_push(c);
+  ui_layout_grow(c, UiAlign_MiddleCenter, ui_vector(-3, -3), UiBase_Absolute, Ui_XY);
   ui_layout_set(c, ui_rect(ui_vector(0, 0), ui_vector(progress, 1)), UiBase_Current);
   ui_canvas_draw_glyph(c, UiShape_Square, 5, UiFlags_None);
   ui_layout_pop(c);
