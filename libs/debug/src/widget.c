@@ -1,6 +1,7 @@
 #include "asset_prefab.h"
 #include "core_array.h"
 #include "core_float.h"
+#include "core_stringtable.h"
 #include "geo_vector.h"
 #include "scene_faction.h"
 #include "ui_layout.h"
@@ -128,22 +129,22 @@ bool debug_widget_editor_faction(UiCanvasComp* c, SceneFaction* val) {
 }
 
 bool debug_widget_editor_prefab(UiCanvasComp* c, const AssetPrefabMapComp* map, StringHash* val) {
+  if (!map) {
+    const String name = stringtable_lookup(g_stringtable, *val);
+    if (string_is_empty(name)) {
+      ui_label(c, string_lit("< unknown >"));
+    } else {
+      ui_label(c, name, .selectable = true);
+    }
+    return false;
+  }
+
   const u16 currentPrefabIndex = asset_prefab_find_index(map, *val);
 
   i32 userIndex = -1;
   if (!sentinel_check(currentPrefabIndex)) {
     userIndex = asset_prefab_index_to_user(map, currentPrefabIndex);
   }
-
-  if (!map) {
-    if (userIndex < 0) {
-      ui_label(c, string_lit("< unknown >"));
-    } else {
-      ui_label(c, map->userNames[userIndex], .selectable = true);
-    }
-    return false;
-  }
-
   if (ui_select(c, &userIndex, map->userNames, (u32)map->prefabCount)) {
     *val = map->prefabs[asset_prefab_index_from_user(map, userIndex)].name;
     return true;
