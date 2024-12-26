@@ -6,6 +6,7 @@
 #include "ecs_entity.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
+#include "ui_scrollview.h"
 #include "ui_shape.h"
 #include "ui_style.h"
 #include "ui_widget.h"
@@ -373,9 +374,10 @@ static void ui_select_header(
   if (isOpen) {
     ui_style_outline(canvas, 3);
   }
-  const UiFlags flags =
-      isOpen ? (UiFlags_Interactable | UiFlags_InteractAllowSwitch)
-             : (UiFlags_Interactable | UiFlags_InteractOnPress | UiFlags_InteractAllowSwitch);
+  UiFlags flags = UiFlags_Interactable | UiFlags_TrackRect | UiFlags_InteractAllowSwitch;
+  if (!isOpen) {
+    flags |= UiFlags_InteractOnPress;
+  }
   ui_canvas_draw_glyph(canvas, UiShape_Square, 10, flags);
   ui_style_pop(canvas);
 
@@ -400,35 +402,55 @@ typedef enum {
 
 static UiSelectFlags ui_select_dropdown(
     UiCanvasComp*       canvas,
+    const UiId          id,
     i32*                input,
     const String*       options,
     const u32           optionCount,
     const UiSelectOpts* opts) {
+  if (!optionCount) {
+    return 0;
+  }
+  static const f32 g_spacing = 2;
 
-  ui_layout_push(canvas);
+  UiScrollview* scrollview = ui_canvas_persistent_scrollview(canvas, id);
+  if (ui_canvas_elem_status(canvas, id) == UiStatus_Activated) {
+    *scrollview = (UiScrollview){0}; // Reset the scrollview on open.
+  }
+
   UiSelectFlags selectFlags = 0;
+  const UiRect  lastRect    = ui_canvas_elem_rect(canvas, id);
+  const f32     totalHeight = optionCount * lastRect.height + (optionCount - 1) * g_spacing;
+  const f32     height      = math_min(totalHeight, opts->maxHeight);
+  ui_layout_push(canvas);
+
+  // Set the size of the dropdown.
+  ui_layout_next(canvas, opts->dir, g_spacing);
+  const UiAlign anchor = opts->dir == Ui_Up ? UiAlign_BottomCenter : UiAlign_TopCenter;
+  ui_layout_move_to(canvas, UiBase_Current, anchor, Ui_Y);
+  ui_layout_resize(canvas, anchor, ui_vector(0, height), UiBase_Absolute, Ui_Y);
+
+  // Draw background.
+  ui_style_push(canvas);
+  ui_style_outline(canvas, 2);
+  ui_style_color(canvas, opts->dropFrameColor);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
+  ui_style_pop(canvas);
+
+  if (ui_scrollview_begin(canvas, scrollview, UiLayer_Overlay, totalHeight)) {
+    selectFlags |= UiSelectFlags_Hovered;
+  }
+
+  ui_layout_move_to(canvas, UiBase_Current, anchor, Ui_Y);
+  ui_layout_resize(canvas, anchor, ui_vector(0, lastRect.height), UiBase_Absolute, Ui_Y);
+
   for (u32 i = 0; i != optionCount; ++i) {
     const u32 optionIndex = opts->dir == Ui_Up ? (optionCount - 1 - i) : i;
 
-    ui_layout_next(canvas, opts->dir, 2);
-    const UiId id     = ui_canvas_id_peek(canvas);
-    UiStatus   status = ui_canvas_elem_status(canvas, id);
+    const UiId     optionId     = ui_canvas_id_peek(canvas);
+    const UiStatus optionStatus = ui_canvas_elem_status(canvas, optionId);
 
     ui_style_push(canvas);
-    ui_style_outline(canvas, 3);
-    switch (status) {
-    case UiStatus_Hovered:
-      ui_style_color_with_mult(canvas, opts->dropFrameColor, 2);
-      break;
-    case UiStatus_Pressed:
-    case UiStatus_Activated:
-    case UiStatus_ActivatedAlt:
-      ui_style_color_with_mult(canvas, opts->dropFrameColor, 3);
-      break;
-    case UiStatus_Idle:
-      ui_style_color(canvas, opts->dropFrameColor);
-      break;
-    }
+    ui_interactable_frame_style(canvas, opts->dropFrameColor, optionStatus);
     ui_canvas_draw_glyph(
         canvas, UiShape_Square, 10, UiFlags_Interactable | UiFlags_InteractAllowSwitch);
     ui_style_pop(canvas);
@@ -437,24 +459,25 @@ static UiSelectFlags ui_select_dropdown(
     ui_layout_grow(canvas, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
 
     ui_style_push(canvas);
-    ui_interactable_text_style(canvas, status);
+    ui_interactable_text_style(canvas, optionStatus);
     ui_canvas_draw_text(canvas, options[optionIndex], opts->fontSize, UiAlign_MiddleLeft, 0);
     ui_style_pop(canvas);
 
     ui_layout_pop(canvas);
 
-    if (status >= UiStatus_Hovered) {
+    if (optionStatus >= UiStatus_Hovered) {
       selectFlags |= UiSelectFlags_Hovered;
     }
-    if (status == UiStatus_Activated) {
+    if (optionStatus == UiStatus_Activated) {
       *input = optionIndex;
       selectFlags |= UiSelectFlags_Changed;
     }
-
-    if (status >= UiStatus_Hovered) {
+    if (optionStatus >= UiStatus_Hovered) {
       ui_canvas_interact_type(canvas, UiInteractType_Action);
     }
+    ui_layout_next(canvas, opts->dir, g_spacing);
   }
+  ui_scrollview_end(canvas, scrollview);
   ui_layout_pop(canvas);
   return selectFlags;
 }
@@ -465,6 +488,8 @@ bool ui_select_with_opts(
     const String*       options,
     const u32           optionCount,
     const UiSelectOpts* opts) {
+
+  diag_assert(opts->dir == Ui_Up || opts->dir == Ui_Down);
 
   const UiId     headerId     = ui_canvas_id_peek(canvas);
   const bool     disabled     = (opts->flags & UiWidget_Disabled) != 0;
@@ -492,7 +517,7 @@ bool ui_select_with_opts(
   ui_select_header(canvas, headerLabel, headerStatus, isOpen, opts);
 
   if (isOpen) {
-    selectFlags |= ui_select_dropdown(canvas, input, options, optionCount, opts);
+    selectFlags |= ui_select_dropdown(canvas, headerId, input, options, optionCount, opts);
   } else {
     ui_canvas_id_skip(canvas, optionCount * 2);
   }

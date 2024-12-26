@@ -960,7 +960,7 @@ static void inspector_panel_draw(
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   const f32 totalHeight = ui_table_height(&table, panelComp->totalRows);
-  ui_scrollview_begin(canvas, &panelComp->scrollview, totalHeight);
+  ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, totalHeight);
   panelComp->totalRows = 0;
 
   /**

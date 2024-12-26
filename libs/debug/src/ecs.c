@@ -348,7 +348,8 @@ static void comp_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCo
       });
 
   const u32 numComps = (u32)panelComp->components.size;
-  ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numComps));
+  const f32 height   = ui_table_height(&table, numComps);
+  ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of components on its own id block.
   dynarray_for_t(&panelComp->components, DebugEcsCompInfo, compInfo) {
@@ -444,7 +445,8 @@ static void view_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCo
       });
 
   const u32 numViews = (u32)panelComp->views.size;
-  ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numViews));
+  const f32 height   = ui_table_height(&table, numViews);
+  ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of views on its own id block.
   dynarray_for_t(&panelComp->views, DebugEcsViewInfo, viewInfo) {
@@ -570,7 +572,8 @@ arch_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ec
       });
 
   const u32 numArchetypes = (u32)panelComp->archetypes.size;
-  ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numArchetypes));
+  const f32 height        = ui_table_height(&table, numArchetypes);
+  ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of archetypes on its own id block.
   dynarray_for_t(&panelComp->archetypes, DebugEcsArchetypeInfo, archInfo) {
@@ -734,7 +737,8 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
       });
 
   const u32 numSystems = (u32)panelComp->systems.size;
-  ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numSystems));
+  const f32 height     = ui_table_height(&table, numSystems);
+  ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   const bool hasMultipleWorkers = g_jobsWorkerCount > 1;
 

@@ -401,7 +401,7 @@ memory_panel_tab_draw(UiCanvasComp* c, DebugScriptPanelComp* panelComp, EcsItera
   dynarray_sort(&entries, memory_compare_entry_name);
 
   const f32 totalHeight = ui_table_height(&table, (u32)entries.size);
-  ui_scrollview_begin(c, &panelComp->scrollview, totalHeight);
+  ui_scrollview_begin(c, &panelComp->scrollview, UiLayer_Normal, totalHeight);
 
   if (entries.size) {
     dynarray_for_t(&entries, DebugMemoryEntry, entry) {
@@ -643,7 +643,8 @@ static void output_panel_tab_draw(
       });
 
   const u32 numEntries = panelComp->lastRowCount;
-  ui_scrollview_begin(c, &panelComp->scrollview, ui_table_height(&table, numEntries));
+  const f32 height     = ui_table_height(&table, numEntries);
+  ui_scrollview_begin(c, &panelComp->scrollview, UiLayer_Normal, height);
 
   if (!numEntries) {
     ui_label(c, string_lit("No output entries."), .align = UiAlign_MiddleCenter);
@@ -753,7 +754,8 @@ static void global_panel_tab_draw(
       });
 
   const u32 numScripts = (u32)tracker->assetEntries.size;
-  ui_scrollview_begin(c, &panelComp->scrollview, ui_table_height(&table, numScripts));
+  const f32 height     = ui_table_height(&table, numScripts);
+  ui_scrollview_begin(c, &panelComp->scrollview, UiLayer_Normal, height);
 
   if (!numScripts) {
     ui_label(c, string_lit("No active scripts."), .align = UiAlign_MiddleCenter);

@@ -245,7 +245,8 @@ vfx_panel_draw(UiCanvasComp* canvas, DebugVfxPanelComp* panelComp, SceneSetEnvCo
       });
 
   const u32 numObjects = (u32)panelComp->objects.size;
-  ui_scrollview_begin(canvas, &panelComp->scrollview, ui_table_height(&table, numObjects));
+  const f32 height     = ui_table_height(&table, numObjects);
+  ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of objects on its own id block.
   dynarray_for_t(&panelComp->objects, DebugVfxInfo, info) {

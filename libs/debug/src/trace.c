@@ -510,7 +510,8 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* s
       panel->panAny = false;
     }
 
-    ui_scrollview_begin(c, &panel->scrollview, ui_table_height(&table, g_jobsWorkerCount));
+    const f32 height = ui_table_height(&table, g_jobsWorkerCount);
+    ui_scrollview_begin(c, &panel->scrollview, UiLayer_Normal, height);
 
     const UiId threadsBeginId = ui_canvas_id_peek(c);
 

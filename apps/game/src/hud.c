@@ -988,7 +988,7 @@ static void hud_production_draw(
   }
 
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -33), UiBase_Absolute, Ui_Y);
-  ui_scrollview_begin(c, &hud->productionScrollView, height);
+  ui_scrollview_begin(c, &hud->productionScrollView, UiLayer_Normal, height);
 
   ui_layout_move_to(c, UiBase_Current, UiAlign_TopLeft, Ui_XY);
   ui_layout_resize(c, UiAlign_TopLeft, entrySizeVec, UiBase_Absolute, Ui_XY);

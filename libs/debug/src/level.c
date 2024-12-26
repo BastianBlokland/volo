@@ -230,7 +230,7 @@ static void manage_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
       });
 
   const f32 totalHeight = ui_table_height(&table, ctx->panelComp->totalRows);
-  ui_scrollview_begin(c, &ctx->panelComp->scrollview, totalHeight);
+  ui_scrollview_begin(c, &ctx->panelComp->scrollview, UiLayer_Normal, totalHeight);
   ctx->panelComp->totalRows = 0;
 
   EcsIterator* assetItr = ecs_view_itr(ctx->assetView);

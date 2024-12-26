@@ -56,6 +56,7 @@ typedef struct {
   UiWidgetFlags flags : 8;
   UiDir         dir : 8;
   u16           fontSize;
+  f32           maxHeight;
   UiColor       frameColor, dropFrameColor;
   String        tooltip;
 } UiSelectOpts;
@@ -178,6 +179,7 @@ typedef struct {
   ui_select_with_opts((_CANVAS_), (_VALUE_), (_OPT_LABELS_), (_OPT_COUNT_), &((UiSelectOpts){      \
     .dir            = Ui_Down,                                                                     \
     .fontSize       = 16,                                                                          \
+    .maxHeight      = 150,                                                                         \
     .frameColor     = ui_color(32, 32, 32, 192),                                                   \
     .dropFrameColor = ui_color(64, 64, 64, 235),                                                   \
     __VA_ARGS__}))

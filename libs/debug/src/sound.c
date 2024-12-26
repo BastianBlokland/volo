@@ -387,7 +387,8 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
   const u32 lastObjectRows  = panelComp->lastObjectRows;
   panelComp->lastObjectRows = 0;
 
-  ui_scrollview_begin(c, &panelComp->scrollview, ui_table_height(&table, lastObjectRows));
+  const f32 height = ui_table_height(&table, lastObjectRows);
+  ui_scrollview_begin(c, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(c); // Start the list of objects on its own id block.
   for (SndObjectId obj = sentinel_u32; obj = snd_object_next(m, obj), !sentinel_check(obj);) {

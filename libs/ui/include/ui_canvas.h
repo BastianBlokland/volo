@@ -2,6 +2,7 @@
 #include "core_time.h"
 #include "core_unicode.h"
 #include "ecs_module.h"
+#include "ui.h"
 #include "ui_rect.h"
 #include "ui_units.h"
 
@@ -136,11 +137,13 @@ bool     ui_canvas_group_block_inactive(const UiCanvasComp*);
 
 /**
  * Get or set persistent element state.
+ * NOTE: Pointers to persistent data are invalidated when accessing new persistent items.
  */
 UiPersistentFlags ui_canvas_persistent_flags(const UiCanvasComp*, UiId);
 void              ui_canvas_persistent_flags_set(UiCanvasComp*, UiId, UiPersistentFlags);
 void              ui_canvas_persistent_flags_unset(UiCanvasComp*, UiId, UiPersistentFlags);
 void              ui_canvas_persistent_flags_toggle(UiCanvasComp*, UiId, UiPersistentFlags);
+UiScrollview*     ui_canvas_persistent_scrollview(UiCanvasComp*, UiId);
 
 /**
  * Play a sound effect.
