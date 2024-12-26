@@ -130,7 +130,7 @@ static void prefab_instance_counts(const PrefabPanelContext* ctx, u32 out[], con
       continue;
     }
 
-    const u16 prefabIndex = asset_prefab_get_index(ctx->prefabMap, instComp->prefabId);
+    const u16 prefabIndex = asset_prefab_find_index(ctx->prefabMap, instComp->prefabId);
     // NOTE: PrefabIndex can be sentinel_u16 if the prefabMap was hot-loaded after spawning.
     if (prefabIndex < maxCount) {
       ++out[prefabIndex];
@@ -429,7 +429,7 @@ static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelCont
   ctx->panelComp->totalRows = 0;
 
   for (u16 userIndex = 0; userIndex != ctx->prefabMap->prefabCount; ++userIndex) {
-    const u16    prefabIdx = asset_prefab_get_index_from_user(ctx->prefabMap, userIndex);
+    const u16    prefabIdx = asset_prefab_index_from_user(ctx->prefabMap, userIndex);
     AssetPrefab* prefab    = &ctx->prefabMap->prefabs[prefabIdx];
     const String nameStr   = stringtable_lookup(g_stringtable, prefab->name);
 
@@ -488,7 +488,7 @@ static void prefab_panel_normal_draw(UiCanvasComp* canvas, const PrefabPanelCont
 static void prefab_panel_create_draw(UiCanvasComp* canvas, const PrefabPanelContext* ctx) {
   ui_layout_push(canvas);
 
-  const AssetPrefab* prefab = asset_prefab_get(ctx->prefabMap, ctx->panelComp->createPrefabId);
+  const AssetPrefab* prefab = asset_prefab_find(ctx->prefabMap, ctx->panelComp->createPrefabId);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 200);
@@ -514,9 +514,9 @@ static void prefab_panel_create_draw(UiCanvasComp* canvas, const PrefabPanelCont
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Faction"));
   ui_table_next_column(canvas, &table);
-  debug_widget_editor_faction(canvas, &ctx->panelComp->createFaction);
+  debug_widget_editor_faction(canvas, &ctx->panelComp->createFaction, UiWidget_Default);
 
-  if (asset_prefab_trait_get(ctx->prefabMap, prefab, AssetPrefabTrait_Scalable)) {
+  if (asset_prefab_trait(ctx->prefabMap, prefab, AssetPrefabTrait_Scalable)) {
     ui_table_next_row(canvas, &table);
     ui_label(canvas, string_lit("Scale"));
     ui_table_next_column(canvas, &table);

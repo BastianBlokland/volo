@@ -262,9 +262,10 @@ typedef struct {
 } AssetPrefabShape;
 
 ecs_comp_extern_public(AssetPrefabMapComp) {
-  AssetPrefab* prefabs;         // AssetPrefab[prefabCount]. Sorted on the nameHash.
-  u16*         userIndexLookup; // u16[prefabCount], lookup from user-index to prefab-index.
+  AssetPrefab* prefabs; // AssetPrefab[prefabCount]. Sorted on the nameHash.
   usize        prefabCount;
+  String*      userNames;  // String[prefabCount]. Interned, NOTE: In user-index order.
+  u16*         userLookup; // u16[prefabCount * 2], Lookups from prefab <-> user indices.
   HeapArray_t(AssetPrefabTrait) traits;
   HeapArray_t(AssetPrefabValue) values;
   HeapArray_t(AssetPrefabShape) shapes;
@@ -272,9 +273,11 @@ ecs_comp_extern_public(AssetPrefabMapComp) {
 
 extern DataMeta g_assetPrefabDefMeta;
 
-const AssetPrefab* asset_prefab_get(const AssetPrefabMapComp*, StringHash nameHash);
-u16                asset_prefab_get_index(const AssetPrefabMapComp*, StringHash nameHash);
-u16                asset_prefab_get_index_from_user(const AssetPrefabMapComp*, u16 userIndex);
+const AssetPrefab* asset_prefab_find(const AssetPrefabMapComp*, StringHash nameHash);
+u16                asset_prefab_find_index(const AssetPrefabMapComp*, StringHash nameHash);
+
+u16 asset_prefab_index_to_user(const AssetPrefabMapComp*, u16 prefabIndex);
+u16 asset_prefab_index_from_user(const AssetPrefabMapComp*, u16 userIndex);
 
 const AssetPrefabTrait*
-asset_prefab_trait_get(const AssetPrefabMapComp*, const AssetPrefab*, AssetPrefabTraitType);
+asset_prefab_trait(const AssetPrefabMapComp*, const AssetPrefab*, AssetPrefabTraitType);
