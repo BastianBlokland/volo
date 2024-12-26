@@ -306,9 +306,29 @@ static bool memory_draw_color(UiCanvasComp* c, ScriptVal* value) {
   return false;
 }
 
-static bool memory_draw_entity(UiCanvasComp* c, ScriptVal* value) {
+static bool memory_draw_entity(UiCanvasComp* c, EcsIterator* assetItr, ScriptVal* value) {
   const EcsEntityId valEntity = script_get_entity(*value, ecs_entity_invalid);
-  ui_label_entity(c, valEntity);
+
+  const u32    index  = ecs_entity_id_index(valEntity);
+  const u32    serial = ecs_entity_id_serial(valEntity);
+  const String tooltip =
+      fmt_write_scratch("Index: {}\nSerial: {}", fmt_int(index), fmt_int(serial));
+
+  String msg;
+  if (assetItr = ecs_view_maybe_jump(assetItr, valEntity)) {
+    const AssetComp* assetComp = ecs_view_read_t(assetItr, AssetComp);
+    const String     assetId   = asset_id(assetComp);
+
+    msg = fmt_write_scratch("{} (asset: {})", ecs_entity_fmt(valEntity), fmt_text(assetId));
+  } else {
+    msg = fmt_write_scratch("{}", ecs_entity_fmt(valEntity));
+  }
+
+  ui_style_push(c);
+  ui_style_variation(c, UiVariation_Monospace);
+  ui_label(c, msg, .selectable = true, .tooltip = tooltip);
+  ui_style_pop(c);
+
   return false;
 }
 
@@ -317,7 +337,7 @@ static bool memory_draw_str(UiCanvasComp* c, ScriptVal* value) {
   return false;
 }
 
-static bool memory_draw_val(UiCanvasComp* c, ScriptVal* value) {
+static bool memory_draw_val(UiCanvasComp* c, EcsIterator* assetItr, ScriptVal* value) {
   switch (script_type(*value)) {
   case ScriptType_Null:
     ui_label(c, string_lit("< null >"));
@@ -333,7 +353,7 @@ static bool memory_draw_val(UiCanvasComp* c, ScriptVal* value) {
   case ScriptType_Color:
     return memory_draw_color(c, value);
   case ScriptType_Entity:
-    return memory_draw_entity(c, value);
+    return memory_draw_entity(c, assetItr, value);
   case ScriptType_Str:
     return memory_draw_str(c, value);
   case ScriptType_Count:
@@ -361,8 +381,8 @@ static i8 memory_compare_entry_name(const void* a, const void* b) {
   return compare_string(field_ptr(a, DebugMemoryEntry, name), field_ptr(b, DebugMemoryEntry, name));
 }
 
-static void
-memory_panel_tab_draw(UiCanvasComp* c, DebugScriptPanelComp* panelComp, EcsIterator* subject) {
+static void memory_panel_tab_draw(
+    UiCanvasComp* c, DebugScriptPanelComp* panelComp, EcsIterator* assetItr, EcsIterator* subject) {
   diag_assert(subject);
 
   SceneKnowledgeComp* knowledge = ecs_view_write_t(subject, SceneKnowledgeComp);
@@ -416,7 +436,7 @@ memory_panel_tab_draw(UiCanvasComp* c, DebugScriptPanelComp* panelComp, EcsItera
       ui_label(c, script_val_type_str(script_type(value)));
       ui_table_next_column(c, &table);
 
-      if (memory_draw_val(c, &value)) {
+      if (memory_draw_val(c, assetItr, &value)) {
         script_mem_store(memory, entry->key, value);
       }
     }
@@ -812,7 +832,7 @@ static void script_panel_draw(
     break;
   case DebugScriptTab_Memory:
     if (subjectItr) {
-      memory_panel_tab_draw(c, panelComp, subjectItr);
+      memory_panel_tab_draw(c, panelComp, assetItr, subjectItr);
     } else {
       ui_label(c, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
     }
