@@ -447,7 +447,7 @@ static void debug_log_notif_draw_entry(
 
   ui_style_push(c);
   ui_style_color(c, debug_log_notif_bg_color(entry->lvl));
-  const UiId bgId = ui_canvas_draw_glyph(c, UiShape_Square, 0, UiFlags_Interactable);
+  const UiId bgId = ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_Interactable);
   ui_style_pop(c);
 
   ui_layout_push(c);

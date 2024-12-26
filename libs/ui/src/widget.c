@@ -164,7 +164,7 @@ static void ui_slider_bar(UiCanvasComp* canvas, const UiStatus status, const UiS
     ui_style_color(canvas, opts->barColor);
     break;
   }
-  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_Interactable | UiFlags_TrackRect);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_Interactable | UiFlags_TrackRect);
 
   ui_style_pop(canvas);
   ui_layout_pop(canvas);
@@ -376,7 +376,7 @@ static void ui_select_header(
   const UiFlags flags =
       isOpen ? (UiFlags_Interactable | UiFlags_InteractAllowSwitch)
              : (UiFlags_Interactable | UiFlags_InteractOnPress | UiFlags_InteractAllowSwitch);
-  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, flags);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 10, flags);
   ui_style_pop(canvas);
 
   ui_style_push(canvas);
@@ -430,7 +430,7 @@ static UiSelectFlags ui_select_dropdown(
       break;
     }
     ui_canvas_draw_glyph(
-        canvas, UiShape_Square, 0, UiFlags_Interactable | UiFlags_InteractAllowSwitch);
+        canvas, UiShape_Square, 10, UiFlags_Interactable | UiFlags_InteractAllowSwitch);
     ui_style_pop(canvas);
 
     ui_layout_push(canvas);
@@ -682,7 +682,7 @@ bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextbox
     ui_style_color(canvas, opts->frameColor);
     ui_style_outline(canvas, 2);
   }
-  ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
+  ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
   ui_style_pop(canvas);
 
   // Start editing on press.

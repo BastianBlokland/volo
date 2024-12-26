@@ -269,7 +269,7 @@ static bool inspector_panel_section(UiCanvasComp* canvas, const String label) {
     {
       ui_style_color(canvas, ui_color(0, 0, 0, 128));
       ui_style_outline(canvas, 2);
-      ui_canvas_draw_glyph(canvas, UiShape_Square, 0, UiFlags_None);
+      ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
     }
     ui_style_pop(canvas);
 
