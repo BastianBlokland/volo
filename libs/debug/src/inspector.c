@@ -370,7 +370,7 @@ static void inspector_panel_draw_prefab_instance(
       ui_label(canvas, string_lit("Prefab"));
       ui_table_next_column(canvas, table);
       StringHash prefabId = instance->prefabId; // TODO: Support switching prefabs.
-      debug_widget_editor_prefab(canvas, prefabMap, &prefabId);
+      debug_widget_editor_prefab(canvas, prefabMap, &prefabId, UiWidget_Default);
     }
   }
 }
@@ -539,7 +539,7 @@ static void inspector_panel_draw_faction(
       inspector_panel_next(canvas, panelComp, table);
       ui_label(canvas, string_lit("Id"));
       ui_table_next_column(canvas, table);
-      debug_widget_editor_faction(canvas, &faction->id);
+      debug_widget_editor_faction(canvas, &faction->id, UiWidget_Default);
     }
   }
 }

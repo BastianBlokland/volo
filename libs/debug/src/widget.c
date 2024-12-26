@@ -97,7 +97,7 @@ bool debug_widget_editor_color(UiCanvasComp* canvas, GeoColor* val, const UiWidg
   return debug_widget_editor_vec_internal(canvas, (GeoVector*)val, 4, flags);
 }
 
-bool debug_widget_editor_faction(UiCanvasComp* c, SceneFaction* val) {
+bool debug_widget_editor_faction(UiCanvasComp* c, SceneFaction* val, const UiWidgetFlags flags) {
   static const String g_names[] = {
       string_static("None"),
       string_static("A"),
@@ -121,14 +121,15 @@ bool debug_widget_editor_faction(UiCanvasComp* c, SceneFaction* val) {
       break;
     }
   }
-  if (ui_select(c, &index, g_names, array_elems(g_values))) {
+  if (ui_select(c, &index, g_names, array_elems(g_values), .flags = flags)) {
     *val = g_values[index];
     return true;
   }
   return false;
 }
 
-bool debug_widget_editor_prefab(UiCanvasComp* c, const AssetPrefabMapComp* map, StringHash* val) {
+bool debug_widget_editor_prefab(
+    UiCanvasComp* c, const AssetPrefabMapComp* map, StringHash* val, const UiWidgetFlags flags) {
   if (!map) {
     const String name = stringtable_lookup(g_stringtable, *val);
     if (string_is_empty(name)) {
@@ -145,7 +146,7 @@ bool debug_widget_editor_prefab(UiCanvasComp* c, const AssetPrefabMapComp* map, 
   if (!sentinel_check(currentPrefabIndex)) {
     userIndex = asset_prefab_index_to_user(map, currentPrefabIndex);
   }
-  if (ui_select(c, &userIndex, map->userNames, (u32)map->prefabCount)) {
+  if (ui_select(c, &userIndex, map->userNames, (u32)map->prefabCount, .flags = flags)) {
     *val = map->prefabs[asset_prefab_index_from_user(map, userIndex)].name;
     return true;
   }
