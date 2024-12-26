@@ -489,6 +489,17 @@ static void ui_build_debug_inspector(
       fmt_float(angleRad, .minDecDigits = 2, .maxDecDigits = 2),
       fmt_float(angleRad * math_rad_to_deg, .maxDecDigits = 0));
 
+  fmt_write(&str, "Containers\n");
+  for (u32 i = state->containerStackCount; i--;) {
+    const UiBuildContainer* entry = &state->containerStack[i];
+    fmt_write(
+        &str,
+        " [{}] ClipId: {}, ClipLayer: {}\n",
+        fmt_int(i),
+        fmt_int(entry->clipId),
+        fmt_int(entry->clipLayer));
+  }
+
   const f32    textSize = 500;
   const u16    fontSize = 20;
   const UiRect textRect = {

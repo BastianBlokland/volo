@@ -301,7 +301,7 @@ void ui_panel_begin_with_opts(UiCanvasComp* c, UiPanel* panel, const UiPanelOpts
     ui_panel_tabs(c, panel, opts);
   }
 
-  ui_layout_container_push(c, UiClip_Rect, UiLayer_Overlay);
+  ui_layout_container_push(c, UiClip_Rect, UiLayer_Normal);
 }
 
 void ui_panel_end(UiCanvasComp* c, UiPanel* panel) {
