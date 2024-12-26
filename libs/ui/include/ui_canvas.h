@@ -110,6 +110,7 @@ void ui_canvas_id_block_string(UiCanvasComp*, String);   // Set explicit idx bas
  * Query general canvas information.
  */
 UiStatus ui_canvas_status(const UiCanvasComp*);
+UiLayer  ui_canvas_active_layer(const UiCanvasComp*);
 UiVector ui_canvas_resolution(const UiCanvasComp*);
 bool     ui_canvas_input_any(const UiCanvasComp*);
 UiVector ui_canvas_input_delta(const UiCanvasComp*);
