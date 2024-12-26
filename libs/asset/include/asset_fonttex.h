@@ -22,13 +22,13 @@ typedef struct {
   f32     size;
   f32     offsetX, offsetY;
   f32     advance;
-  f32     border; // Size of the sdf border.
 } AssetFontTexChar;
 
 ecs_comp_extern_public(AssetFontTexComp) {
   u32 glyphsPerDim;
   f32 lineSpacing;
   f32 baseline;                             // How far glyphs can extend below the rectangle.
+  f32 border;                               // Size of the sdf border.
   HeapArray_t(AssetFontTexChar) characters; // Sorted on the unicode codepoint.
 };
 

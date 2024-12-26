@@ -168,7 +168,7 @@ static void ui_build_atom_glyph(
   }
   const f32    halfMinDim = math_min(rect.width, rect.height) * 0.5f;
   const f32    corner     = maxCorner ? math_min(maxCorner, halfMinDim) : halfMinDim;
-  const f32    border     = ch->border * corner * 2.0f;
+  const f32    border     = state->atlasFont->border * corner * 2.0f;
   const UiRect outputRect = {
       .pos  = {rect.x - border, rect.y - border},
       .size = {rect.width + border * 2, rect.height + border * 2},
@@ -234,8 +234,8 @@ static void ui_build_atom_text_char(void* userCtx, const UiTextCharInfo* info) {
   UiBuildState* state = userCtx;
 
   const u8       clipId = ui_build_container_current(state, info->layer)->clipId;
-  const f32      border = info->ch->border * info->size;
-  const f32      size   = (info->ch->size + info->ch->border * 2.0f) * info->size;
+  const f32      border = info->font->border * info->size;
+  const f32      size   = (info->ch->size + info->font->border * 2.0f) * info->size;
   const UiVector pos    = {
       info->pos.x + info->ch->offsetX * info->size - border,
       info->pos.y + info->ch->offsetY * info->size - border,
