@@ -135,6 +135,15 @@ bool debug_widget_editor_prefab(UiCanvasComp* c, const AssetPrefabMapComp* map, 
     userIndex = asset_prefab_index_to_user(map, currentPrefabIndex);
   }
 
+  if (!map) {
+    if (userIndex < 0) {
+      ui_label(c, string_lit("< unknown >"));
+    } else {
+      ui_label(c, map->userNames[userIndex], .selectable = true);
+    }
+    return false;
+  }
+
   if (ui_select(c, &userIndex, map->userNames, (u32)map->prefabCount)) {
     *val = map->prefabs[asset_prefab_index_from_user(map, userIndex)].name;
     return true;
