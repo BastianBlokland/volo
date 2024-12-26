@@ -69,12 +69,16 @@ ui_scrollview_query_status(UiCanvasComp* canvas, const UiScrollview* scrollview,
 }
 
 static void ui_scrollview_update(
-    UiCanvasComp* canvas, UiScrollview* scrollview, const UiScrollviewStatus* status) {
+    UiCanvasComp*             canvas,
+    UiScrollview*             scrollview,
+    const UiScrollviewStatus* status,
+    const UiLayer             layer) {
   /**
    * Allow scrolling when hovering over the viewport.
    */
-  const bool blockInput = (scrollview->flags & UiScrollviewFlags_BlockInput) != 0;
-  if (!blockInput && status->flags & UiScrollviewStatus_HoveringViewport) {
+  const bool blockInput       = (scrollview->flags & UiScrollviewFlags_BlockInput) != 0;
+  const bool hoveringViewport = (status->flags & UiScrollviewStatus_HoveringViewport) != 0;
+  if (!blockInput && hoveringViewport && ui_canvas_active_layer(canvas) <= layer) {
     scrollview->offset -= status->inputScroll.y * g_scrollSensitivity;
   }
 
@@ -150,7 +154,7 @@ UiScrollviewOutput ui_scrollview_begin(
   scrollview->flags |= UiScrollviewFlags_Active;
 
   const UiScrollviewStatus status = ui_scrollview_query_status(canvas, scrollview, height);
-  ui_scrollview_update(canvas, scrollview, &status);
+  ui_scrollview_update(canvas, scrollview, &status, layer);
 
   ui_style_push(canvas);
   ui_style_layer(canvas, layer);

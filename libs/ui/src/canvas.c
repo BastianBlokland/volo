@@ -77,6 +77,7 @@ ecs_comp_define(UiCanvasComp) {
   UiLayer        minInteractLayer;
   UiVector       inputDelta, inputPos, inputScroll;
   UiId           activeId;
+  UiLayer        activeLayer : 8;
   UiStatus       activeStatus : 8;
   UiFlags        activeElemFlags : 16;
   TimeSteady     activeStatusStart;
@@ -253,6 +254,7 @@ static void ui_canvas_update_interaction(
     UiSettingsGlobalComp* settings,
     const GapWindowComp*  window,
     const UiId            hoveredId,
+    const UiLayer         hoveredLayer,
     const UiFlags         hoveredFlags) {
 
   const bool inputDown     = gap_window_key_down(window, GapKey_MouseLeft);
@@ -301,6 +303,7 @@ static void ui_canvas_update_interaction(
   // Select a new active element.
   ui_canvas_set_active(
       canvas, hoveredId, sentinel_check(hoveredId) ? UiStatus_Idle : UiStatus_Hovered);
+  canvas->activeLayer     = hoveredLayer;
   canvas->activeElemFlags = hoveredFlags;
 }
 
@@ -571,7 +574,7 @@ ecs_system_define(UiRenderSys) {
       UiCanvasComp* canvas    = canvasses[i];
       const bool    isHovered = hoveredCanvasIndex == i && hover.layer >= canvas->minInteractLayer;
       const UiId    hoveredElem = isHovered ? hover.id : sentinel_u64;
-      ui_canvas_update_interaction(canvas, settings, window, hoveredElem, hover.flags);
+      ui_canvas_update_interaction(canvas, settings, window, hoveredElem, hover.layer, hover.flags);
 
       if (canvas->activeStatus > UiStatus_Idle) {
         hoveringUi = true; // NOTE: Happens when dragging outside of the UI while interacting.
@@ -802,6 +805,7 @@ bool ui_canvas_group_block_inactive(const UiCanvasComp* comp) {
 }
 
 UiStatus ui_canvas_status(const UiCanvasComp* comp) { return comp->activeStatus; }
+UiLayer  ui_canvas_active_layer(const UiCanvasComp* comp) { return comp->activeLayer; }
 UiVector ui_canvas_resolution(const UiCanvasComp* comp) { return comp->resolution; }
 bool     ui_canvas_input_any(const UiCanvasComp* comp) {
   return (comp->flags & UiCanvasFlags_InputAny) != 0;
