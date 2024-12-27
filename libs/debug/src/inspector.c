@@ -344,18 +344,6 @@ static void inspector_panel_draw_entity_info(InspectorContext* ctx, UiTable* tab
   } else {
     inspector_panel_draw_value_none(ctx);
   }
-
-  inspector_panel_next(ctx, table);
-  ui_label(ctx->canvas, string_lit("Entity archetype"));
-  ui_table_next_column(ctx->canvas, table);
-  if (ctx->subject) {
-    const EcsArchetypeId archetype = ecs_world_entity_archetype(ctx->world, ctx->subjectEntity);
-    if (!(sentinel_check(archetype))) {
-      inspector_panel_draw_value_string(ctx, fmt_write_scratch("{}", fmt_int(archetype)));
-    }
-  } else {
-    inspector_panel_draw_value_none(ctx);
-  }
 }
 
 static void inspector_panel_draw_prefab_instance(InspectorContext* ctx, UiTable* table) {
@@ -821,16 +809,16 @@ static void inspector_panel_draw_attachment(InspectorContext* ctx, UiTable* tabl
   }
 }
 
-static void inspector_panel_draw_components(InspectorContext* ctx, UiTable* table) {
+static void inspector_panel_draw_archetype(InspectorContext* ctx, UiTable* table) {
   if (!ctx->subject) {
     return;
   }
   const EcsArchetypeId archetype = ecs_world_entity_archetype(ctx->world, ctx->subjectEntity);
   const BitSet         compMask  = ecs_world_component_mask(ctx->world, archetype);
-  const u32            compCount = (u32)bitset_count(compMask);
+  const String         title     = fmt_write_scratch("Archetype (id: {})", fmt_int(archetype));
 
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, fmt_write_scratch("Components ({})", fmt_int(compCount)))) {
+  if (inspector_panel_section(ctx, title)) {
     const EcsDef* def = ecs_world_def(ctx->world);
     bitset_for(compMask, compId) {
       const String compName = ecs_def_comp_name(def, (EcsCompId)compId);
@@ -963,7 +951,7 @@ static void inspector_panel_draw(InspectorContext* ctx) {
   inspector_panel_draw_bounds(ctx, &table);
   ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_components(ctx, &table);
+  inspector_panel_draw_archetype(ctx, &table);
   ui_canvas_id_block_next(ctx->canvas);
 
   inspector_panel_draw_settings(ctx, &table);
