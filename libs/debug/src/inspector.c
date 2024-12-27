@@ -261,208 +261,213 @@ inspector_notify_vis_mode(DebugStatsGlobalComp* stats, const DebugInspectorVisMo
   debug_stats_notify(stats, string_lit("Visualize"), g_visModeNames[visMode]);
 }
 
-static bool inspector_panel_section(UiCanvasComp* c, const String label) {
+typedef struct {
+  EcsWorld*                   world;
+  UiCanvasComp*               canvas;
+  DebugInspectorPanelComp*    panel;
+  const SceneTimeComp*        time;
+  const AssetPrefabMapComp*   prefabMap;
+  SceneSetEnvComp*            setEnv;
+  DebugStatsGlobalComp*       stats;
+  DebugInspectorSettingsComp* settings;
+  EcsIterator*                subject;
+} InspectorContext;
+
+static bool inspector_panel_section(InspectorContext* ctx, const String label) {
   bool open;
-  ui_layout_push(c);
+  ui_layout_push(ctx->canvas);
   {
-    ui_layout_move_to(c, UiBase_Container, UiAlign_MiddleLeft, Ui_X);
-    ui_layout_resize_to(c, UiBase_Container, UiAlign_MiddleRight, Ui_X);
+    ui_layout_move_to(ctx->canvas, UiBase_Container, UiAlign_MiddleLeft, Ui_X);
+    ui_layout_resize_to(ctx->canvas, UiBase_Container, UiAlign_MiddleRight, Ui_X);
 
-    ui_style_push(c);
+    ui_style_push(ctx->canvas);
     {
-      ui_style_color(c, ui_color(0, 0, 0, 128));
-      ui_style_outline(c, 2);
-      ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_None);
+      ui_style_color(ctx->canvas, ui_color(0, 0, 0, 128));
+      ui_style_outline(ctx->canvas, 2);
+      ui_canvas_draw_glyph(ctx->canvas, UiShape_Square, 10, UiFlags_None);
     }
-    ui_style_pop(c);
+    ui_style_pop(ctx->canvas);
 
-    ui_layout_grow(c, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
-    open = ui_section(c, .label = label);
+    ui_layout_grow(ctx->canvas, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
+    open = ui_section(ctx->canvas, .label = label);
   }
-  ui_layout_pop(c);
+  ui_layout_pop(ctx->canvas);
   return open;
 }
 
-static void inspector_panel_next(UiCanvasComp* cv, DebugInspectorPanelComp* panel, UiTable* table) {
-  ui_table_next_row(cv, table);
-  ++panel->totalRows;
+static void inspector_panel_next(InspectorContext* ctx, UiTable* table) {
+  ui_table_next_row(ctx->canvas, table);
+  ++ctx->panel->totalRows;
 }
 
-static void inspector_panel_draw_value_string(UiCanvasComp* c, const String value) {
-  ui_style_push(c);
-  ui_style_variation(c, UiVariation_Monospace);
-  ui_label(c, value, .selectable = true);
-  ui_style_pop(c);
+static void inspector_panel_draw_value_string(InspectorContext* ctx, const String value) {
+  ui_style_push(ctx->canvas);
+  ui_style_variation(ctx->canvas, UiVariation_Monospace);
+  ui_label(ctx->canvas, value, .selectable = true);
+  ui_style_pop(ctx->canvas);
 }
 
-static void inspector_panel_draw_value_entity(UiCanvasComp* c, const EcsEntityId value) {
-  ui_style_push(c);
-  ui_style_variation(c, UiVariation_Monospace);
-  ui_label_entity(c, value);
-  ui_style_pop(c);
+static void inspector_panel_draw_value_entity(InspectorContext* ctx, const EcsEntityId value) {
+  ui_style_push(ctx->canvas);
+  ui_style_variation(ctx->canvas, UiVariation_Monospace);
+  ui_label_entity(ctx->canvas, value);
+  ui_style_pop(ctx->canvas);
 }
 
-static void inspector_panel_draw_value_none(UiCanvasComp* c) {
-  ui_style_push(c);
-  ui_style_color_mult(c, 0.75f);
-  inspector_panel_draw_value_string(c, string_lit("< None >"));
-  ui_style_pop(c);
+static void inspector_panel_draw_value_none(InspectorContext* ctx) {
+  ui_style_push(ctx->canvas);
+  ui_style_color_mult(ctx->canvas, 0.75f);
+  inspector_panel_draw_value_string(ctx, string_lit("< None >"));
+  ui_style_pop(ctx->canvas);
 }
 
-static void inspector_panel_draw_entity_info(
-    EcsWorld*                w,
-    UiCanvasComp*            c,
-    DebugInspectorPanelComp* panelComp,
-    UiTable*                 table,
-    EcsIterator*             subject) {
-  inspector_panel_next(c, panelComp, table);
-  ui_label(c, string_lit("Entity identifier"));
-  ui_table_next_column(c, table);
-  if (subject) {
-    const EcsEntityId entity = ecs_view_entity(subject);
-    inspector_panel_draw_value_entity(c, entity);
+static void inspector_panel_draw_entity_info(InspectorContext* ctx, UiTable* table) {
+  inspector_panel_next(ctx, table);
+  ui_label(ctx->canvas, string_lit("Entity identifier"));
+  ui_table_next_column(ctx->canvas, table);
+  if (ctx->subject) {
+    const EcsEntityId entity = ecs_view_entity(ctx->subject);
+    inspector_panel_draw_value_entity(ctx, entity);
   } else {
-    inspector_panel_draw_value_none(c);
+    inspector_panel_draw_value_none(ctx);
   }
 
-  inspector_panel_next(c, panelComp, table);
-  ui_label(c, string_lit("Entity name"));
-  ui_table_next_column(c, table);
-  if (subject) {
-    const SceneNameComp* nameComp = ecs_view_read_t(subject, SceneNameComp);
+  inspector_panel_next(ctx, table);
+  ui_label(ctx->canvas, string_lit("Entity name"));
+  ui_table_next_column(ctx->canvas, table);
+  if (ctx->subject) {
+    const SceneNameComp* nameComp = ecs_view_read_t(ctx->subject, SceneNameComp);
     if (nameComp) {
-      inspector_panel_draw_value_string(c, stringtable_lookup(g_stringtable, nameComp->name));
+      const String name = stringtable_lookup(g_stringtable, nameComp->name);
+      inspector_panel_draw_value_string(ctx, name);
     }
   } else {
-    inspector_panel_draw_value_none(c);
+    inspector_panel_draw_value_none(ctx);
   }
 
-  inspector_panel_next(c, panelComp, table);
-  ui_label(c, string_lit("Entity archetype"));
-  ui_table_next_column(c, table);
-  if (subject) {
-    const EcsArchetypeId archetype = ecs_world_entity_archetype(w, ecs_view_entity(subject));
+  inspector_panel_next(ctx, table);
+  ui_label(ctx->canvas, string_lit("Entity archetype"));
+  ui_table_next_column(ctx->canvas, table);
+  if (ctx->subject) {
+    const EcsEntityId    entity    = ecs_view_entity(ctx->subject);
+    const EcsArchetypeId archetype = ecs_world_entity_archetype(ctx->world, entity);
     if (!(sentinel_check(archetype))) {
-      inspector_panel_draw_value_string(c, fmt_write_scratch("{}", fmt_int(archetype)));
+      inspector_panel_draw_value_string(ctx, fmt_write_scratch("{}", fmt_int(archetype)));
     }
   } else {
-    inspector_panel_draw_value_none(c);
+    inspector_panel_draw_value_none(ctx);
   }
 }
 
-static void inspector_panel_draw_prefab_instance(
-    UiCanvasComp*             c,
-    DebugInspectorPanelComp*  panelComp,
-    const AssetPrefabMapComp* prefabMap,
-    UiTable*                  table,
-    EcsIterator*              subject) {
+static void inspector_panel_draw_prefab_instance(InspectorContext* ctx, UiTable* table) {
   const ScenePrefabInstanceComp* instance =
-      subject ? ecs_view_read_t(subject, ScenePrefabInstanceComp) : null;
+      ctx->subject ? ecs_view_read_t(ctx->subject, ScenePrefabInstanceComp) : null;
   if (instance) {
-    inspector_panel_next(c, panelComp, table);
-    if (inspector_panel_section(c, string_lit("Prefab"))) {
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Id"));
-      ui_table_next_column(c, table);
-      inspector_panel_draw_value_string(c, fmt_write_scratch("{}", fmt_int(instance->id)));
+    inspector_panel_next(ctx, table);
+    if (inspector_panel_section(ctx, string_lit("Prefab"))) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Id"));
+      ui_table_next_column(ctx->canvas, table);
+      inspector_panel_draw_value_string(ctx, fmt_write_scratch("{}", fmt_int(instance->id)));
 
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Prefab"));
-      ui_table_next_column(c, table);
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Prefab"));
+      ui_table_next_column(ctx->canvas, table);
       StringHash prefabId = instance->prefabId; // TODO: Support switching prefabs.
-      debug_widget_editor_prefab(c, prefabMap, &prefabId, UiWidget_Default);
+      debug_widget_editor_prefab(ctx->canvas, ctx->prefabMap, &prefabId, UiWidget_Default);
     }
   }
 }
 
-static void inspector_panel_draw_transform(
-    UiCanvasComp* c, DebugInspectorPanelComp* panelComp, UiTable* table, EcsIterator* subject) {
-  SceneTransformComp* transform = subject ? ecs_view_write_t(subject, SceneTransformComp) : null;
-  SceneScaleComp*     scale     = subject ? ecs_view_write_t(subject, SceneScaleComp) : null;
+static void inspector_panel_draw_transform(InspectorContext* ctx, UiTable* table) {
+  SceneTransformComp* transform =
+      ctx->subject ? ecs_view_write_t(ctx->subject, SceneTransformComp) : null;
+  SceneScaleComp* scale = ctx->subject ? ecs_view_write_t(ctx->subject, SceneScaleComp) : null;
   if (!transform && !scale) {
     return;
   }
-  inspector_panel_next(c, panelComp, table);
-  if (!inspector_panel_section(c, string_lit("Transform"))) {
+  inspector_panel_next(ctx, table);
+  if (!inspector_panel_section(ctx, string_lit("Transform"))) {
     return;
   }
   if (transform) {
-    inspector_panel_next(c, panelComp, table);
-    ui_label(c, string_lit("Position"));
-    ui_table_next_column(c, table);
-    if (debug_widget_editor_vec3_resettable(c, &transform->position, UiWidget_Default)) {
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Position"));
+    ui_table_next_column(ctx->canvas, table);
+    if (debug_widget_editor_vec3_resettable(ctx->canvas, &transform->position, UiWidget_Default)) {
       // Clamp the position to a sane value.
       transform->position = geo_vector_clamp(transform->position, 1e3f);
     }
 
-    inspector_panel_next(c, panelComp, table);
-    ui_label(c, string_lit("Rotation"));
-    ui_table_next_column(c, table);
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Rotation"));
+    ui_table_next_column(ctx->canvas, table);
     if (debug_widget_editor_vec3_resettable(
-            c, &panelComp->transformRotEulerDeg, UiWidget_DirtyWhileEditing)) {
-      const GeoVector eulerRad = geo_vector_mul(panelComp->transformRotEulerDeg, math_deg_to_rad);
+            ctx->canvas, &ctx->panel->transformRotEulerDeg, UiWidget_DirtyWhileEditing)) {
+      const GeoVector eulerRad = geo_vector_mul(ctx->panel->transformRotEulerDeg, math_deg_to_rad);
       transform->rotation      = geo_quat_from_euler(eulerRad);
     } else {
-      const GeoVector eulerRad        = geo_quat_to_euler(transform->rotation);
-      panelComp->transformRotEulerDeg = geo_vector_mul(eulerRad, math_rad_to_deg);
+      const GeoVector eulerRad         = geo_quat_to_euler(transform->rotation);
+      ctx->panel->transformRotEulerDeg = geo_vector_mul(eulerRad, math_rad_to_deg);
     }
   }
   if (scale) {
-    inspector_panel_next(c, panelComp, table);
-    ui_label(c, string_lit("Scale"));
-    ui_table_next_column(c, table);
-    if (debug_widget_editor_f32(c, &scale->scale, UiWidget_Default)) {
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Scale"));
+    ui_table_next_column(ctx->canvas, table);
+    if (debug_widget_editor_f32(ctx->canvas, &scale->scale, UiWidget_Default)) {
       // Clamp the scale to a sane value.
       scale->scale = math_clamp_f32(scale->scale, 1e-2f, 1e2f);
     }
   }
 }
 
-static void inspector_panel_draw_light(
-    UiCanvasComp* c, DebugInspectorPanelComp* panelComp, UiTable* table, EcsIterator* subject) {
-  SceneLightPointComp*   point = subject ? ecs_view_write_t(subject, SceneLightPointComp) : null;
-  SceneLightDirComp*     dir   = subject ? ecs_view_write_t(subject, SceneLightDirComp) : null;
-  SceneLightAmbientComp* amb   = subject ? ecs_view_write_t(subject, SceneLightAmbientComp) : null;
+static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
+  SceneLightPointComp* point =
+      ctx->subject ? ecs_view_write_t(ctx->subject, SceneLightPointComp) : null;
+  SceneLightDirComp* dir = ctx->subject ? ecs_view_write_t(ctx->subject, SceneLightDirComp) : null;
+  SceneLightAmbientComp* amb =
+      ctx->subject ? ecs_view_write_t(ctx->subject, SceneLightAmbientComp) : null;
   if (!point && !dir && !amb) {
     return;
   }
-  inspector_panel_next(c, panelComp, table);
-  if (inspector_panel_section(c, string_lit("Light"))) {
+  inspector_panel_next(ctx, table);
+  if (inspector_panel_section(ctx, string_lit("Light"))) {
     if (point) {
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Radiance"));
-      ui_table_next_column(c, table);
-      debug_widget_editor_color(c, &point->radiance, UiWidget_Default);
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Radiance"));
+      ui_table_next_column(ctx->canvas, table);
+      debug_widget_editor_color(ctx->canvas, &point->radiance, UiWidget_Default);
 
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Radius"));
-      ui_table_next_column(c, table);
-      if (debug_widget_editor_f32(c, &point->radius, UiWidget_Default)) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Radius"));
+      ui_table_next_column(ctx->canvas, table);
+      if (debug_widget_editor_f32(ctx->canvas, &point->radius, UiWidget_Default)) {
         // Clamp the radius to a sane value.
         point->radius = math_clamp_f32(point->radius, 1e-3f, 1e3f);
       }
     }
     if (dir) {
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Radiance"));
-      ui_table_next_column(c, table);
-      debug_widget_editor_color(c, &dir->radiance, UiWidget_Default);
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Radiance"));
+      ui_table_next_column(ctx->canvas, table);
+      debug_widget_editor_color(ctx->canvas, &dir->radiance, UiWidget_Default);
 
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Shadows"));
-      ui_table_next_column(c, table);
-      ui_toggle(c, &dir->shadows);
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Shadows"));
+      ui_table_next_column(ctx->canvas, table);
+      ui_toggle(ctx->canvas, &dir->shadows);
 
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Coverage"));
-      ui_table_next_column(c, table);
-      ui_toggle(c, &dir->coverage);
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Coverage"));
+      ui_table_next_column(ctx->canvas, table);
+      ui_toggle(ctx->canvas, &dir->coverage);
     }
     if (amb) {
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Ambient"));
-      ui_table_next_column(c, table);
-      if (debug_widget_editor_f32(c, &amb->intensity, UiWidget_Default)) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Ambient"));
+      ui_table_next_column(ctx->canvas, table);
+      if (debug_widget_editor_f32(ctx->canvas, &amb->intensity, UiWidget_Default)) {
         // Clamp the ambient intensity to a sane value.
         amb->intensity = math_clamp_f32(amb->intensity, 0.0f, 10.0f);
       }
@@ -470,47 +475,42 @@ static void inspector_panel_draw_light(
   }
 }
 
-static void inspector_panel_draw_health(
-    UiCanvasComp* c, DebugInspectorPanelComp* panelComp, UiTable* table, EcsIterator* subject) {
-  SceneHealthComp* health = subject ? ecs_view_write_t(subject, SceneHealthComp) : null;
+static void inspector_panel_draw_health(InspectorContext* ctx, UiTable* table) {
+  SceneHealthComp* health = ctx->subject ? ecs_view_write_t(ctx->subject, SceneHealthComp) : null;
   if (health) {
-    inspector_panel_next(c, panelComp, table);
-    if (inspector_panel_section(c, string_lit("Health"))) {
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Amount"));
-      ui_table_next_column(c, table);
-      ui_slider(c, &health->norm);
+    inspector_panel_next(ctx, table);
+    if (inspector_panel_section(ctx, string_lit("Health"))) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Amount"));
+      ui_table_next_column(ctx->canvas, table);
+      ui_slider(ctx->canvas, &health->norm);
 
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Max"));
-      ui_table_next_column(c, table);
-      debug_widget_editor_f32(c, &health->max, UiWidget_Default);
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Max"));
+      ui_table_next_column(ctx->canvas, table);
+      debug_widget_editor_f32(ctx->canvas, &health->max, UiWidget_Default);
     }
   }
 }
 
-static void inspector_panel_draw_status(
-    EcsWorld*                w,
-    UiCanvasComp*            c,
-    DebugInspectorPanelComp* panelComp,
-    UiTable*                 table,
-    EcsIterator*             subject) {
-  const SceneStatusComp* status = subject ? ecs_view_read_t(subject, SceneStatusComp) : null;
+static void inspector_panel_draw_status(InspectorContext* ctx, UiTable* table) {
+  const SceneStatusComp* status =
+      ctx->subject ? ecs_view_read_t(ctx->subject, SceneStatusComp) : null;
   if (status) {
-    inspector_panel_next(c, panelComp, table);
+    inspector_panel_next(ctx, table);
     const u32 activeCount = bits_popcnt((u32)status->active);
-    if (inspector_panel_section(c, fmt_write_scratch("Status ({})", fmt_int(activeCount)))) {
+    if (inspector_panel_section(ctx, fmt_write_scratch("Status ({})", fmt_int(activeCount)))) {
       for (SceneStatusType type = 0; type != SceneStatusType_Count; ++type) {
-        inspector_panel_next(c, panelComp, table);
-        ui_label(c, scene_status_name(type));
-        ui_table_next_column(c, table);
+        inspector_panel_next(ctx, table);
+        ui_label(ctx->canvas, scene_status_name(type));
+        ui_table_next_column(ctx->canvas, table);
         bool active = scene_status_active(status, type);
-        if (ui_toggle(c, &active)) {
+        if (ui_toggle(ctx->canvas, &active)) {
           if (active) {
             const EcsEntityId instigator = 0;
-            scene_status_add(w, ecs_view_entity(subject), type, instigator);
+            scene_status_add(ctx->world, ecs_view_entity(ctx->subject), type, instigator);
           } else {
-            scene_status_remove(w, ecs_view_entity(subject), type);
+            scene_status_remove(ctx->world, ecs_view_entity(ctx->subject), type);
           }
         }
       }
@@ -518,231 +518,222 @@ static void inspector_panel_draw_status(
   }
 }
 
-static void inspector_panel_draw_faction(
-    UiCanvasComp* c, DebugInspectorPanelComp* panelComp, UiTable* table, EcsIterator* subject) {
-  SceneFactionComp* faction = subject ? ecs_view_write_t(subject, SceneFactionComp) : null;
+static void inspector_panel_draw_faction(InspectorContext* ctx, UiTable* table) {
+  SceneFactionComp* faction =
+      ctx->subject ? ecs_view_write_t(ctx->subject, SceneFactionComp) : null;
   if (faction) {
-    inspector_panel_next(c, panelComp, table);
-    if (inspector_panel_section(c, string_lit("Faction"))) {
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Id"));
-      ui_table_next_column(c, table);
-      debug_widget_editor_faction(c, &faction->id, UiWidget_Default);
+    inspector_panel_next(ctx, table);
+    if (inspector_panel_section(ctx, string_lit("Faction"))) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Id"));
+      ui_table_next_column(ctx->canvas, table);
+      debug_widget_editor_faction(ctx->canvas, &faction->id, UiWidget_Default);
     }
   }
 }
 
-static void inspector_panel_draw_target(
-    const SceneTimeComp*     time,
-    UiCanvasComp*            c,
-    DebugInspectorPanelComp* panelComp,
-    UiTable*                 table,
-    EcsIterator*             subject) {
+static void inspector_panel_draw_target(InspectorContext* ctx, UiTable* table) {
   const SceneTargetFinderComp* finder =
-      subject ? ecs_view_read_t(subject, SceneTargetFinderComp) : null;
+      ctx->subject ? ecs_view_read_t(ctx->subject, SceneTargetFinderComp) : null;
   if (finder) {
-    inspector_panel_next(c, panelComp, table);
-    if (inspector_panel_section(c, string_lit("Target"))) {
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Entity"));
-      ui_table_next_column(c, table);
-      inspector_panel_draw_value_entity(c, scene_target_primary(finder));
+    inspector_panel_next(ctx, table);
+    if (inspector_panel_section(ctx, string_lit("Target"))) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Entity"));
+      ui_table_next_column(ctx->canvas, table);
+      inspector_panel_draw_value_entity(ctx, scene_target_primary(finder));
 
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Time until refresh"));
-      ui_table_next_column(c, table);
-      ui_label(c, fmt_write_scratch("{}", fmt_duration(finder->nextRefreshTime - time->time)));
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Time until refresh"));
+      ui_table_next_column(ctx->canvas, table);
+      ui_label(
+          ctx->canvas,
+          fmt_write_scratch("{}", fmt_duration(finder->nextRefreshTime - ctx->time->time)));
     }
   }
 }
 
-static void inspector_panel_draw_nav_agent(
-    UiCanvasComp* c, DebugInspectorPanelComp* panelComp, UiTable* table, EcsIterator* subject) {
-  const SceneNavAgentComp* agent = subject ? ecs_view_read_t(subject, SceneNavAgentComp) : null;
+static void inspector_panel_draw_nav_agent(InspectorContext* ctx, UiTable* table) {
+  const SceneNavAgentComp* agent =
+      ctx->subject ? ecs_view_read_t(ctx->subject, SceneNavAgentComp) : null;
   if (agent) {
-    inspector_panel_next(c, panelComp, table);
-    if (inspector_panel_section(c, string_lit("Navigation Agent"))) {
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Layer"));
-      ui_table_next_column(c, table);
-      ui_select(c, (i32*)&agent->layer, g_sceneNavLayerNames, SceneNavLayer_Count);
+    inspector_panel_next(ctx, table);
+    if (inspector_panel_section(ctx, string_lit("Navigation Agent"))) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Layer"));
+      ui_table_next_column(ctx->canvas, table);
+      ui_select(ctx->canvas, (i32*)&agent->layer, g_sceneNavLayerNames, SceneNavLayer_Count);
     }
   }
 }
 
-static void inspector_panel_draw_renderable(
-    UiCanvasComp* c, DebugInspectorPanelComp* panelComp, UiTable* table, EcsIterator* subject) {
-  SceneRenderableComp* renderable = subject ? ecs_view_write_t(subject, SceneRenderableComp) : null;
+static void inspector_panel_draw_renderable(InspectorContext* ctx, UiTable* table) {
+  SceneRenderableComp* renderable =
+      ctx->subject ? ecs_view_write_t(ctx->subject, SceneRenderableComp) : null;
   if (renderable) {
-    inspector_panel_next(c, panelComp, table);
-    if (inspector_panel_section(c, string_lit("Renderable"))) {
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Graphic"));
-      ui_table_next_column(c, table);
-      inspector_panel_draw_value_entity(c, renderable->graphic);
+    inspector_panel_next(ctx, table);
+    if (inspector_panel_section(ctx, string_lit("Renderable"))) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Graphic"));
+      ui_table_next_column(ctx->canvas, table);
+      inspector_panel_draw_value_entity(ctx, renderable->graphic);
 
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Color"));
-      ui_table_next_column(c, table);
-      debug_widget_editor_color(c, &renderable->color, UiWidget_Default);
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Color"));
+      ui_table_next_column(ctx->canvas, table);
+      debug_widget_editor_color(ctx->canvas, &renderable->color, UiWidget_Default);
 
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Emissive"));
-      ui_table_next_column(c, table);
-      ui_slider(c, &renderable->emissive);
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Emissive"));
+      ui_table_next_column(ctx->canvas, table);
+      ui_slider(ctx->canvas, &renderable->emissive);
     }
   }
 }
 
-static void inspector_panel_draw_decal(
-    UiCanvasComp* c, DebugInspectorPanelComp* panelComp, UiTable* table, EcsIterator* subject) {
-  SceneVfxDecalComp* decal = subject ? ecs_view_write_t(subject, SceneVfxDecalComp) : null;
+static void inspector_panel_draw_decal(InspectorContext* ctx, UiTable* table) {
+  SceneVfxDecalComp* decal =
+      ctx->subject ? ecs_view_write_t(ctx->subject, SceneVfxDecalComp) : null;
   if (decal) {
-    inspector_panel_next(c, panelComp, table);
-    if (inspector_panel_section(c, string_lit("Decal"))) {
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Alpha"));
-      ui_table_next_column(c, table);
-      ui_slider(c, &decal->alpha);
+    inspector_panel_next(ctx, table);
+    if (inspector_panel_section(ctx, string_lit("Decal"))) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Alpha"));
+      ui_table_next_column(ctx->canvas, table);
+      ui_slider(ctx->canvas, &decal->alpha);
     }
   }
 }
 
-static void inspector_panel_draw_sets(
-    SceneSetEnvComp*         setEnv,
-    UiCanvasComp*            c,
-    DebugInspectorPanelComp* panelComp,
-    UiTable*                 table,
-    EcsIterator*             subject) {
-  if (!subject) {
+static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
+  if (!ctx->subject) {
     return;
   }
-  const SceneSetMemberComp* setMember = ecs_view_read_t(subject, SceneSetMemberComp);
+  const SceneSetMemberComp* setMember = ecs_view_read_t(ctx->subject, SceneSetMemberComp);
 
   StringHash sets[scene_set_member_max_sets];
   const u32  setCount = setMember ? scene_set_member_all(setMember, sets) : 0;
 
-  inspector_panel_next(c, panelComp, table);
-  if (inspector_panel_section(c, fmt_write_scratch("Sets ({})", fmt_int(setCount)))) {
+  inspector_panel_next(ctx, table);
+  if (inspector_panel_section(ctx, fmt_write_scratch("Sets ({})", fmt_int(setCount)))) {
     for (u32 i = 0; i != setCount; ++i) {
-      inspector_panel_next(c, panelComp, table);
+      inspector_panel_next(ctx, table);
       const String setName = stringtable_lookup(g_stringtable, sets[i]);
-      ui_label(c, string_is_empty(setName) ? string_lit("< unknown >") : setName);
-      ui_table_next_column(c, table);
-      ui_layout_resize(c, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
+      ui_label(ctx->canvas, string_is_empty(setName) ? string_lit("< unknown >") : setName);
+      ui_table_next_column(ctx->canvas, table);
+      ui_layout_resize(ctx->canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
       if (ui_button(
-              c,
+              ctx->canvas,
               .label      = ui_shape_scratch(UiShape_Delete),
               .fontSize   = 18,
               .frameColor = ui_color(255, 16, 0, 192),
               .tooltip    = string_lit("Remove this entity from the set."))) {
-        scene_set_remove(setEnv, sets[i], ecs_view_entity(subject));
+        scene_set_remove(ctx->setEnv, sets[i], ecs_view_entity(ctx->subject));
       }
     }
 
-    inspector_panel_next(c, panelComp, table);
-    ui_textbox(c, &panelComp->setNameBuffer, .placeholder = string_lit("Set name..."));
-    ui_table_next_column(c, table);
-    ui_layout_resize(c, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
+    inspector_panel_next(ctx, table);
+    ui_textbox(ctx->canvas, &ctx->panel->setNameBuffer, .placeholder = string_lit("Set name..."));
+    ui_table_next_column(ctx->canvas, table);
+    ui_layout_resize(ctx->canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
     if (ui_button(
-            c,
-            .flags      = panelComp->setNameBuffer.size == 0 ? UiWidget_Disabled : 0,
+            ctx->canvas,
+            .flags      = ctx->panel->setNameBuffer.size == 0 ? UiWidget_Disabled : 0,
             .label      = ui_shape_scratch(UiShape_Add),
             .fontSize   = 18,
             .frameColor = ui_color(16, 192, 0, 192),
             .tooltip    = string_lit("Add this entity to the specified set."))) {
-      const String     setName = dynstring_view(&panelComp->setNameBuffer);
+      const String     setName = dynstring_view(&ctx->panel->setNameBuffer);
       const StringHash set     = stringtable_add(g_stringtable, setName);
-      scene_set_add(setEnv, set, ecs_view_entity(subject), SceneSetFlags_None);
-      dynstring_clear(&panelComp->setNameBuffer);
+      scene_set_add(ctx->setEnv, set, ecs_view_entity(ctx->subject), SceneSetFlags_None);
+      dynstring_clear(&ctx->panel->setNameBuffer);
     }
   }
 }
 
-static void inspector_panel_draw_tags(
-    UiCanvasComp* c, DebugInspectorPanelComp* panelComp, UiTable* table, EcsIterator* subject) {
-  SceneTagComp* tagComp = subject ? ecs_view_write_t(subject, SceneTagComp) : null;
+static void inspector_panel_draw_tags(InspectorContext* ctx, UiTable* table) {
+  SceneTagComp* tagComp = ctx->subject ? ecs_view_write_t(ctx->subject, SceneTagComp) : null;
   if (tagComp) {
     const u32 tagCount = bits_popcnt((u32)tagComp->tags);
-    inspector_panel_next(c, panelComp, table);
-    if (inspector_panel_section(c, fmt_write_scratch("Tags ({})", fmt_int(tagCount)))) {
+    inspector_panel_next(ctx, table);
+    if (inspector_panel_section(ctx, fmt_write_scratch("Tags ({})", fmt_int(tagCount)))) {
       for (u32 i = 0; i != SceneTags_Count; ++i) {
         const SceneTags tag = 1 << i;
-        inspector_panel_next(c, panelComp, table);
-        ui_label(c, scene_tag_name(tag));
-        ui_table_next_column(c, table);
-        ui_toggle_flag(c, (u32*)&tagComp->tags, tag);
+        inspector_panel_next(ctx, table);
+        ui_label(ctx->canvas, scene_tag_name(tag));
+        ui_table_next_column(ctx->canvas, table);
+        ui_toggle_flag(ctx->canvas, (u32*)&tagComp->tags, tag);
       }
     }
   }
 }
 
-static void inspector_panel_draw_collision(
-    UiCanvasComp* c, DebugInspectorPanelComp* panelComp, UiTable* table, EcsIterator* subject) {
-  SceneCollisionComp* col = subject ? ecs_view_write_t(subject, SceneCollisionComp) : null;
+static void inspector_panel_draw_collision(InspectorContext* ctx, UiTable* table) {
+  SceneCollisionComp* col =
+      ctx->subject ? ecs_view_write_t(ctx->subject, SceneCollisionComp) : null;
   if (col) {
-    inspector_panel_next(c, panelComp, table);
-    if (inspector_panel_section(c, string_lit("Collision"))) {
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Layer"));
-      ui_table_next_column(c, table);
+    inspector_panel_next(ctx, table);
+    if (inspector_panel_section(ctx, string_lit("Collision"))) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Layer"));
+      ui_table_next_column(ctx->canvas, table);
       if (bits_popcnt((u32)col->layer) == 1) {
-        inspector_panel_draw_value_string(c, scene_layer_name(col->layer));
+        inspector_panel_draw_value_string(ctx, scene_layer_name(col->layer));
       } else {
-        inspector_panel_draw_value_string(c, string_lit("< Multiple >"));
+        inspector_panel_draw_value_string(ctx, string_lit("< Multiple >"));
       }
 
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Shapes"));
-      ui_table_next_column(c, table);
-      inspector_panel_draw_value_string(c, fmt_write_scratch("{}", fmt_int(col->shapeCount)));
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Shapes"));
+      ui_table_next_column(ctx->canvas, table);
+      inspector_panel_draw_value_string(ctx, fmt_write_scratch("{}", fmt_int(col->shapeCount)));
 
       for (u32 i = 0; i != col->shapeCount; ++i) {
         SceneCollisionShape* shape = &col->shapes[i];
 
-        inspector_panel_next(c, panelComp, table);
-        ui_label(c, fmt_write_scratch("[{}]\tType", fmt_int(i)));
-        ui_table_next_column(c, table);
-        inspector_panel_draw_value_string(c, scene_collision_type_name(shape->type));
+        inspector_panel_next(ctx, table);
+        ui_label(ctx->canvas, fmt_write_scratch("[{}]\tType", fmt_int(i)));
+        ui_table_next_column(ctx->canvas, table);
+        inspector_panel_draw_value_string(ctx, scene_collision_type_name(shape->type));
 
         switch (shape->type) {
         case SceneCollisionType_Sphere: {
-          inspector_panel_next(c, panelComp, table);
-          ui_label(c, string_lit("\tOffset"));
-          ui_table_next_column(c, table);
-          debug_widget_editor_vec3(c, &shape->sphere.point, UiWidget_Default);
+          inspector_panel_next(ctx, table);
+          ui_label(ctx->canvas, string_lit("\tOffset"));
+          ui_table_next_column(ctx->canvas, table);
+          debug_widget_editor_vec3(ctx->canvas, &shape->sphere.point, UiWidget_Default);
 
-          inspector_panel_next(c, panelComp, table);
-          ui_label(c, string_lit("\tRadius"));
-          ui_table_next_column(c, table);
-          debug_widget_editor_f32(c, &shape->sphere.radius, UiWidget_Default);
+          inspector_panel_next(ctx, table);
+          ui_label(ctx->canvas, string_lit("\tRadius"));
+          ui_table_next_column(ctx->canvas, table);
+          debug_widget_editor_f32(ctx->canvas, &shape->sphere.radius, UiWidget_Default);
         } break;
         case SceneCollisionType_Capsule: {
-          inspector_panel_next(c, panelComp, table);
-          ui_label(c, string_lit("\tA"));
-          ui_table_next_column(c, table);
-          debug_widget_editor_vec3(c, &shape->capsule.line.a, UiWidget_Default);
+          inspector_panel_next(ctx, table);
+          ui_label(ctx->canvas, string_lit("\tA"));
+          ui_table_next_column(ctx->canvas, table);
+          debug_widget_editor_vec3(ctx->canvas, &shape->capsule.line.a, UiWidget_Default);
 
-          inspector_panel_next(c, panelComp, table);
-          ui_label(c, string_lit("\tB"));
-          ui_table_next_column(c, table);
-          debug_widget_editor_vec3(c, &shape->capsule.line.b, UiWidget_Default);
+          inspector_panel_next(ctx, table);
+          ui_label(ctx->canvas, string_lit("\tB"));
+          ui_table_next_column(ctx->canvas, table);
+          debug_widget_editor_vec3(ctx->canvas, &shape->capsule.line.b, UiWidget_Default);
 
-          inspector_panel_next(c, panelComp, table);
-          ui_label(c, string_lit("\tRadius"));
-          ui_table_next_column(c, table);
-          debug_widget_editor_f32(c, &shape->capsule.radius, UiWidget_Default);
+          inspector_panel_next(ctx, table);
+          ui_label(ctx->canvas, string_lit("\tRadius"));
+          ui_table_next_column(ctx->canvas, table);
+          debug_widget_editor_f32(ctx->canvas, &shape->capsule.radius, UiWidget_Default);
         } break;
         case SceneCollisionType_Box: {
-          inspector_panel_next(c, panelComp, table);
-          ui_label(c, string_lit("\tMin"));
-          ui_table_next_column(c, table);
-          debug_widget_editor_vec3(c, &shape->box.box.min, UiWidget_Default);
+          inspector_panel_next(ctx, table);
+          ui_label(ctx->canvas, string_lit("\tMin"));
+          ui_table_next_column(ctx->canvas, table);
+          debug_widget_editor_vec3(ctx->canvas, &shape->box.box.min, UiWidget_Default);
 
-          inspector_panel_next(c, panelComp, table);
-          ui_label(c, string_lit("\tMax"));
-          ui_table_next_column(c, table);
-          debug_widget_editor_vec3(c, &shape->box.box.max, UiWidget_Default);
+          inspector_panel_next(ctx, table);
+          ui_label(ctx->canvas, string_lit("\tMax"));
+          ui_table_next_column(ctx->canvas, table);
+          debug_widget_editor_vec3(ctx->canvas, &shape->box.box.max, UiWidget_Default);
         } break;
         case SceneCollisionType_Count:
           UNREACHABLE
@@ -752,25 +743,25 @@ static void inspector_panel_draw_collision(
   }
 }
 
-static void inspector_panel_draw_bounds(
-    UiCanvasComp* c, DebugInspectorPanelComp* panelComp, UiTable* table, EcsIterator* subject) {
-  SceneBoundsComp* boundsComp = subject ? ecs_view_write_t(subject, SceneBoundsComp) : null;
+static void inspector_panel_draw_bounds(InspectorContext* ctx, UiTable* table) {
+  SceneBoundsComp* boundsComp =
+      ctx->subject ? ecs_view_write_t(ctx->subject, SceneBoundsComp) : null;
   if (boundsComp) {
-    inspector_panel_next(c, panelComp, table);
-    if (inspector_panel_section(c, string_lit("Bounds"))) {
+    inspector_panel_next(ctx, table);
+    if (inspector_panel_section(ctx, string_lit("Bounds"))) {
       GeoVector center = geo_box_center(&boundsComp->local);
       GeoVector size   = geo_box_size(&boundsComp->local);
       bool      dirty  = false;
 
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Center"));
-      ui_table_next_column(c, table);
-      dirty |= debug_widget_editor_vec3(c, &center, UiWidget_Default);
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Center"));
+      ui_table_next_column(ctx->canvas, table);
+      dirty |= debug_widget_editor_vec3(ctx->canvas, &center, UiWidget_Default);
 
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Size"));
-      ui_table_next_column(c, table);
-      dirty |= debug_widget_editor_vec3(c, &size, UiWidget_Default);
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Size"));
+      ui_table_next_column(ctx->canvas, table);
+      dirty |= debug_widget_editor_vec3(ctx->canvas, &size, UiWidget_Default);
 
       if (dirty) {
         boundsComp->local = geo_box_from_center(center, size);
@@ -779,223 +770,209 @@ static void inspector_panel_draw_bounds(
   }
 }
 
-static void inspector_panel_draw_location(
-    UiCanvasComp* c, DebugInspectorPanelComp* panelComp, UiTable* table, EcsIterator* subject) {
-  SceneLocationComp* location = subject ? ecs_view_write_t(subject, SceneLocationComp) : null;
+static void inspector_panel_draw_location(InspectorContext* ctx, UiTable* table) {
+  SceneLocationComp* location =
+      ctx->subject ? ecs_view_write_t(ctx->subject, SceneLocationComp) : null;
   if (location) {
-    inspector_panel_next(c, panelComp, table);
-    if (inspector_panel_section(c, string_lit("Location"))) {
+    inspector_panel_next(ctx, table);
+    if (inspector_panel_section(ctx, string_lit("Location"))) {
 
       for (SceneLocationType type = 0; type != SceneLocationType_Count; ++type) {
         const String typeName = scene_location_type_name(type);
 
-        inspector_panel_next(c, panelComp, table);
-        ui_label(c, fmt_write_scratch("{} Min", fmt_text(typeName)));
-        ui_table_next_column(c, table);
-        debug_widget_editor_vec3(c, &location->volumes[type].min, UiWidget_Default);
+        inspector_panel_next(ctx, table);
+        ui_label(ctx->canvas, fmt_write_scratch("{} Min", fmt_text(typeName)));
+        ui_table_next_column(ctx->canvas, table);
+        debug_widget_editor_vec3(ctx->canvas, &location->volumes[type].min, UiWidget_Default);
 
-        inspector_panel_next(c, panelComp, table);
-        ui_label(c, fmt_write_scratch("{} Max", fmt_text(typeName)));
-        ui_table_next_column(c, table);
-        debug_widget_editor_vec3(c, &location->volumes[type].max, UiWidget_Default);
+        inspector_panel_next(ctx, table);
+        ui_label(ctx->canvas, fmt_write_scratch("{} Max", fmt_text(typeName)));
+        ui_table_next_column(ctx->canvas, table);
+        debug_widget_editor_vec3(ctx->canvas, &location->volumes[type].max, UiWidget_Default);
       }
     }
   }
 }
 
-static void inspector_panel_draw_attachment(
-    UiCanvasComp* c, DebugInspectorPanelComp* panelComp, UiTable* table, EcsIterator* subject) {
-  SceneAttachmentComp* attach = subject ? ecs_view_write_t(subject, SceneAttachmentComp) : null;
+static void inspector_panel_draw_attachment(InspectorContext* ctx, UiTable* table) {
+  SceneAttachmentComp* attach =
+      ctx->subject ? ecs_view_write_t(ctx->subject, SceneAttachmentComp) : null;
   if (attach) {
-    inspector_panel_next(c, panelComp, table);
-    if (inspector_panel_section(c, string_lit("Attachment"))) {
+    inspector_panel_next(ctx, table);
+    if (inspector_panel_section(ctx, string_lit("Attachment"))) {
 
       DynString jointName = dynstring_create(g_allocScratch, 64);
       if (attach->jointName) {
         dynstring_append(&jointName, stringtable_lookup(g_stringtable, attach->jointName));
       }
 
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Joint"));
-      ui_table_next_column(c, table);
-      if (ui_textbox(c, &jointName, .maxTextLength = 64)) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Joint"));
+      ui_table_next_column(ctx->canvas, table);
+      if (ui_textbox(ctx->canvas, &jointName, .maxTextLength = 64)) {
         attach->jointIndex = sentinel_u32;
         attach->jointName  = string_maybe_hash(dynstring_view(&jointName));
       }
 
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, string_lit("Offset"));
-      ui_table_next_column(c, table);
-      debug_widget_editor_vec3(c, &attach->offset, UiWidget_Default);
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Offset"));
+      ui_table_next_column(ctx->canvas, table);
+      debug_widget_editor_vec3(ctx->canvas, &attach->offset, UiWidget_Default);
     }
   }
 }
 
-static void inspector_panel_draw_components(
-    EcsWorld*                w,
-    UiCanvasComp*            c,
-    DebugInspectorPanelComp* panelComp,
-    UiTable*                 table,
-    EcsIterator*             subject) {
-  if (!subject) {
+static void inspector_panel_draw_components(InspectorContext* ctx, UiTable* table) {
+  if (!ctx->subject) {
     return;
   }
-  const EcsArchetypeId archetype = ecs_world_entity_archetype(w, ecs_view_entity(subject));
-  const BitSet         compMask  = ecs_world_component_mask(w, archetype);
-  const u32            compCount = (u32)bitset_count(compMask);
+  const EcsArchetypeId archetype =
+      ecs_world_entity_archetype(ctx->world, ecs_view_entity(ctx->subject));
+  const BitSet compMask  = ecs_world_component_mask(ctx->world, archetype);
+  const u32    compCount = (u32)bitset_count(compMask);
 
-  inspector_panel_next(c, panelComp, table);
-  if (inspector_panel_section(c, fmt_write_scratch("Components ({})", fmt_int(compCount)))) {
-    const EcsDef* def = ecs_world_def(w);
+  inspector_panel_next(ctx, table);
+  if (inspector_panel_section(ctx, fmt_write_scratch("Components ({})", fmt_int(compCount)))) {
+    const EcsDef* def = ecs_world_def(ctx->world);
     bitset_for(compMask, compId) {
       const String compName = ecs_def_comp_name(def, (EcsCompId)compId);
       const usize  compSize = ecs_def_comp_size(def, (EcsCompId)compId);
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, compName);
-      ui_table_next_column(c, table);
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, compName);
+      ui_table_next_column(ctx->canvas, table);
       inspector_panel_draw_value_string(
-          c, fmt_write_scratch("id: {<3} size: {}", fmt_int(compId), fmt_size(compSize)));
+          ctx, fmt_write_scratch("id: {<3} size: {}", fmt_int(compId), fmt_size(compSize)));
     }
   }
 }
 
-static void inspector_panel_draw_settings(
-    UiCanvasComp*               c,
-    DebugStatsGlobalComp*       stats,
-    DebugInspectorPanelComp*    panelComp,
-    UiTable*                    table,
-    DebugInspectorSettingsComp* settings) {
-  inspector_panel_next(c, panelComp, table);
-  if (inspector_panel_section(c, string_lit("Settings"))) {
-    inspector_panel_next(c, panelComp, table);
-    ui_label(c, string_lit("Space"));
-    ui_table_next_column(c, table);
-    if (ui_select(c, (i32*)&settings->space, g_spaceNames, array_elems(g_spaceNames))) {
-      debug_stats_notify(stats, string_lit("Space"), g_spaceNames[settings->space]);
+static void inspector_panel_draw_settings(InspectorContext* ctx, UiTable* table) {
+  inspector_panel_next(ctx, table);
+  if (inspector_panel_section(ctx, string_lit("Settings"))) {
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Space"));
+    ui_table_next_column(ctx->canvas, table);
+    if (ui_select(
+            ctx->canvas, (i32*)&ctx->settings->space, g_spaceNames, array_elems(g_spaceNames))) {
+      debug_stats_notify(ctx->stats, string_lit("Space"), g_spaceNames[ctx->settings->space]);
     }
 
-    inspector_panel_next(c, panelComp, table);
-    ui_label(c, string_lit("Tool"));
-    ui_table_next_column(c, table);
-    if (ui_select(c, (i32*)&settings->tool, g_toolNames, array_elems(g_toolNames))) {
-      debug_stats_notify(stats, string_lit("Tool"), g_toolNames[settings->tool]);
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Tool"));
+    ui_table_next_column(ctx->canvas, table);
+    if (ui_select(ctx->canvas, (i32*)&ctx->settings->tool, g_toolNames, array_elems(g_toolNames))) {
+      debug_stats_notify(ctx->stats, string_lit("Tool"), g_toolNames[ctx->settings->tool]);
     }
 
-    inspector_panel_next(c, panelComp, table);
-    ui_label(c, string_lit("Visualize In Game"));
-    ui_table_next_column(c, table);
-    ui_toggle(c, &settings->drawVisInGame);
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Visualize In Game"));
+    ui_table_next_column(ctx->canvas, table);
+    ui_toggle(ctx->canvas, &ctx->settings->drawVisInGame);
 
-    inspector_panel_next(c, panelComp, table);
-    ui_label(c, string_lit("Navigation Layer"));
-    ui_table_next_column(c, table);
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Navigation Layer"));
+    ui_table_next_column(ctx->canvas, table);
     const String* layerNames = g_sceneNavLayerNames;
-    if (ui_select(c, (i32*)&settings->visNavLayer, layerNames, SceneNavLayer_Count)) {
-      debug_stats_notify(stats, string_lit("Navigation Layer"), layerNames[settings->visNavLayer]);
+    if (ui_select(
+            ctx->canvas, (i32*)&ctx->settings->visNavLayer, layerNames, SceneNavLayer_Count)) {
+      debug_stats_notify(
+          ctx->stats, string_lit("Navigation Layer"), layerNames[ctx->settings->visNavLayer]);
     }
 
-    inspector_panel_next(c, panelComp, table);
-    ui_label(c, string_lit("Visualize Mode"));
-    ui_table_next_column(c, table);
-    ui_select(c, (i32*)&settings->visMode, g_visModeNames, array_elems(g_visModeNames));
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Visualize Mode"));
+    ui_table_next_column(ctx->canvas, table);
+    ui_select(
+        ctx->canvas, (i32*)&ctx->settings->visMode, g_visModeNames, array_elems(g_visModeNames));
 
     for (DebugInspectorVis vis = 0; vis != DebugInspectorVis_Count; ++vis) {
-      inspector_panel_next(c, panelComp, table);
-      ui_label(c, fmt_write_scratch("Visualize {}", fmt_text(g_visNames[vis])));
-      ui_table_next_column(c, table);
-      if (ui_toggle_flag(c, (u32*)&settings->visFlags, 1 << vis)) {
-        inspector_notify_vis(settings, stats, vis);
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, fmt_write_scratch("Visualize {}", fmt_text(g_visNames[vis])));
+      ui_table_next_column(ctx->canvas, table);
+      if (ui_toggle_flag(ctx->canvas, (u32*)&ctx->settings->visFlags, 1 << vis)) {
+        inspector_notify_vis(ctx->settings, ctx->stats, vis);
       }
     }
   }
 }
 
-static void inspector_panel_draw(
-    EcsWorld*                   w,
-    DebugStatsGlobalComp*       stats,
-    const SceneTimeComp*        time,
-    SceneSetEnvComp*            setEnv,
-    const AssetPrefabMapComp*   prefabMap,
-    UiCanvasComp*               canvas,
-    DebugInspectorPanelComp*    panelComp,
-    DebugInspectorSettingsComp* settings,
-    EcsIterator*                subject) {
+static void inspector_panel_draw(InspectorContext* ctx) {
   const String title = fmt_write_scratch("{} Inspector Panel", fmt_ui_shape(ViewInAr));
   ui_panel_begin(
-      canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
+      ctx->canvas, &ctx->panel->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 215);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  const f32 totalHeight = ui_table_height(&table, panelComp->totalRows);
-  ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, totalHeight);
-  panelComp->totalRows = 0;
+  const f32 totalHeight = ui_table_height(&table, ctx->panel->totalRows);
+  ui_scrollview_begin(ctx->canvas, &ctx->panel->scrollview, UiLayer_Normal, totalHeight);
+  ctx->panel->totalRows = 0;
 
   /**
    * NOTE: The sections draw a variable amount of elements, thus we jump to the next id block
    * afterwards to keep consistent ids.
    */
 
-  inspector_panel_draw_entity_info(w, canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_entity_info(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_prefab_instance(canvas, panelComp, prefabMap, &table, subject);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_prefab_instance(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_transform(canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_transform(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_light(canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_light(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_health(canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_health(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_status(w, canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_status(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_faction(canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_faction(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_target(time, canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_target(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_nav_agent(canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_nav_agent(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_renderable(canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_renderable(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_decal(canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_decal(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_sets(setEnv, canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_sets(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_tags(canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_tags(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_collision(canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_collision(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_location(canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_location(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_attachment(canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_attachment(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_bounds(canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_bounds(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_components(w, canvas, panelComp, &table, subject);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_components(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_settings(canvas, stats, panelComp, &table, settings);
-  ui_canvas_id_block_next(canvas);
+  inspector_panel_draw_settings(ctx, &table);
+  ui_canvas_id_block_next(ctx->canvas);
 
-  ui_scrollview_end(canvas, &panelComp->scrollview);
-  ui_panel_end(canvas, &panelComp->panel);
+  ui_scrollview_end(ctx->canvas, &ctx->panel->scrollview);
+  ui_panel_end(ctx->canvas, &ctx->panel->panel);
 }
 
 static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* w) {
@@ -1060,8 +1037,18 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
     if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       continue;
     }
-    inspector_panel_draw(
-        world, stats, time, setEnv, prefabMap, canvas, panelComp, settings, subjectItr);
+    InspectorContext ctx = {
+        .world     = world,
+        .canvas    = canvas,
+        .panel     = panelComp,
+        .time      = time,
+        .prefabMap = prefabMap,
+        .setEnv    = setEnv,
+        .stats     = stats,
+        .settings  = settings,
+        .subject   = subjectItr,
+    };
+    inspector_panel_draw(&ctx);
 
     if (ui_panel_closed(&panelComp->panel)) {
       ecs_world_entity_destroy(world, entity);
