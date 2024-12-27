@@ -310,7 +310,7 @@ static void inspector_panel_draw_value_none(UiCanvasComp* c) {
 }
 
 static void inspector_panel_draw_entity_info(
-    EcsWorld*                world,
+    EcsWorld*                w,
     UiCanvasComp*            c,
     DebugInspectorPanelComp* panelComp,
     UiTable*                 table,
@@ -341,7 +341,7 @@ static void inspector_panel_draw_entity_info(
   ui_label(c, string_lit("Entity archetype"));
   ui_table_next_column(c, table);
   if (subject) {
-    const EcsArchetypeId archetype = ecs_world_entity_archetype(world, ecs_view_entity(subject));
+    const EcsArchetypeId archetype = ecs_world_entity_archetype(w, ecs_view_entity(subject));
     if (!(sentinel_check(archetype))) {
       inspector_panel_draw_value_string(c, fmt_write_scratch("{}", fmt_int(archetype)));
     }
@@ -490,7 +490,7 @@ static void inspector_panel_draw_health(
 }
 
 static void inspector_panel_draw_status(
-    EcsWorld*                world,
+    EcsWorld*                w,
     UiCanvasComp*            c,
     DebugInspectorPanelComp* panelComp,
     UiTable*                 table,
@@ -508,9 +508,9 @@ static void inspector_panel_draw_status(
         if (ui_toggle(c, &active)) {
           if (active) {
             const EcsEntityId instigator = 0;
-            scene_status_add(world, ecs_view_entity(subject), type, instigator);
+            scene_status_add(w, ecs_view_entity(subject), type, instigator);
           } else {
-            scene_status_remove(world, ecs_view_entity(subject), type);
+            scene_status_remove(w, ecs_view_entity(subject), type);
           }
         }
       }
@@ -832,7 +832,7 @@ static void inspector_panel_draw_attachment(
 }
 
 static void inspector_panel_draw_components(
-    EcsWorld*                world,
+    EcsWorld*                w,
     UiCanvasComp*            c,
     DebugInspectorPanelComp* panelComp,
     UiTable*                 table,
@@ -840,13 +840,13 @@ static void inspector_panel_draw_components(
   if (!subject) {
     return;
   }
-  const EcsArchetypeId archetype = ecs_world_entity_archetype(world, ecs_view_entity(subject));
-  const BitSet         compMask  = ecs_world_component_mask(world, archetype);
+  const EcsArchetypeId archetype = ecs_world_entity_archetype(w, ecs_view_entity(subject));
+  const BitSet         compMask  = ecs_world_component_mask(w, archetype);
   const u32            compCount = (u32)bitset_count(compMask);
 
   inspector_panel_next(c, panelComp, table);
   if (inspector_panel_section(c, fmt_write_scratch("Components ({})", fmt_int(compCount)))) {
-    const EcsDef* def = ecs_world_def(world);
+    const EcsDef* def = ecs_world_def(w);
     bitset_for(compMask, compId) {
       const String compName = ecs_def_comp_name(def, (EcsCompId)compId);
       const usize  compSize = ecs_def_comp_size(def, (EcsCompId)compId);
@@ -911,7 +911,7 @@ static void inspector_panel_draw_settings(
 }
 
 static void inspector_panel_draw(
-    EcsWorld*                   world,
+    EcsWorld*                   w,
     DebugStatsGlobalComp*       stats,
     const SceneTimeComp*        time,
     SceneSetEnvComp*            setEnv,
@@ -937,7 +937,7 @@ static void inspector_panel_draw(
    * afterwards to keep consistent ids.
    */
 
-  inspector_panel_draw_entity_info(world, canvas, panelComp, &table, subject);
+  inspector_panel_draw_entity_info(w, canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_prefab_instance(canvas, panelComp, prefabMap, &table, subject);
@@ -952,7 +952,7 @@ static void inspector_panel_draw(
   inspector_panel_draw_health(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
-  inspector_panel_draw_status(world, canvas, panelComp, &table, subject);
+  inspector_panel_draw_status(w, canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_faction(canvas, panelComp, &table, subject);
@@ -988,7 +988,7 @@ static void inspector_panel_draw(
   inspector_panel_draw_bounds(canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
-  inspector_panel_draw_components(world, canvas, panelComp, &table, subject);
+  inspector_panel_draw_components(w, canvas, panelComp, &table, subject);
   ui_canvas_id_block_next(canvas);
 
   inspector_panel_draw_settings(canvas, stats, panelComp, &table, settings);
