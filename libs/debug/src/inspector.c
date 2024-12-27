@@ -271,6 +271,7 @@ typedef struct {
   DebugStatsGlobalComp*       stats;
   DebugInspectorSettingsComp* settings;
   EcsIterator*                subject;
+  EcsEntityId                 subjectEntity;
 } InspectorContext;
 
 static bool inspector_panel_section(InspectorContext* ctx, const String label) {
@@ -326,8 +327,7 @@ static void inspector_panel_draw_entity_info(InspectorContext* ctx, UiTable* tab
   ui_label(ctx->canvas, string_lit("Entity identifier"));
   ui_table_next_column(ctx->canvas, table);
   if (ctx->subject) {
-    const EcsEntityId entity = ecs_view_entity(ctx->subject);
-    inspector_panel_draw_value_entity(ctx, entity);
+    inspector_panel_draw_value_entity(ctx, ctx->subjectEntity);
   } else {
     inspector_panel_draw_value_none(ctx);
   }
@@ -349,8 +349,7 @@ static void inspector_panel_draw_entity_info(InspectorContext* ctx, UiTable* tab
   ui_label(ctx->canvas, string_lit("Entity archetype"));
   ui_table_next_column(ctx->canvas, table);
   if (ctx->subject) {
-    const EcsEntityId    entity    = ecs_view_entity(ctx->subject);
-    const EcsArchetypeId archetype = ecs_world_entity_archetype(ctx->world, entity);
+    const EcsArchetypeId archetype = ecs_world_entity_archetype(ctx->world, ctx->subjectEntity);
     if (!(sentinel_check(archetype))) {
       inspector_panel_draw_value_string(ctx, fmt_write_scratch("{}", fmt_int(archetype)));
     }
@@ -508,9 +507,9 @@ static void inspector_panel_draw_status(InspectorContext* ctx, UiTable* table) {
         if (ui_toggle(ctx->canvas, &active)) {
           if (active) {
             const EcsEntityId instigator = 0;
-            scene_status_add(ctx->world, ecs_view_entity(ctx->subject), type, instigator);
+            scene_status_add(ctx->world, ctx->subjectEntity, type, instigator);
           } else {
-            scene_status_remove(ctx->world, ecs_view_entity(ctx->subject), type);
+            scene_status_remove(ctx->world, ctx->subjectEntity, type);
           }
         }
       }
@@ -628,7 +627,7 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
               .fontSize   = 18,
               .frameColor = ui_color(255, 16, 0, 192),
               .tooltip    = string_lit("Remove this entity from the set."))) {
-        scene_set_remove(ctx->setEnv, sets[i], ecs_view_entity(ctx->subject));
+        scene_set_remove(ctx->setEnv, sets[i], ctx->subjectEntity);
       }
     }
 
@@ -645,7 +644,7 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
             .tooltip    = string_lit("Add this entity to the specified set."))) {
       const String     setName = dynstring_view(&ctx->panel->setNameBuffer);
       const StringHash set     = stringtable_add(g_stringtable, setName);
-      scene_set_add(ctx->setEnv, set, ecs_view_entity(ctx->subject), SceneSetFlags_None);
+      scene_set_add(ctx->setEnv, set, ctx->subjectEntity, SceneSetFlags_None);
       dynstring_clear(&ctx->panel->setNameBuffer);
     }
   }
@@ -826,10 +825,9 @@ static void inspector_panel_draw_components(InspectorContext* ctx, UiTable* tabl
   if (!ctx->subject) {
     return;
   }
-  const EcsArchetypeId archetype =
-      ecs_world_entity_archetype(ctx->world, ecs_view_entity(ctx->subject));
-  const BitSet compMask  = ecs_world_component_mask(ctx->world, archetype);
-  const u32    compCount = (u32)bitset_count(compMask);
+  const EcsArchetypeId archetype = ecs_world_entity_archetype(ctx->world, ctx->subjectEntity);
+  const BitSet         compMask  = ecs_world_component_mask(ctx->world, archetype);
+  const u32            compCount = (u32)bitset_count(compMask);
 
   inspector_panel_next(ctx, table);
   if (inspector_panel_section(ctx, fmt_write_scratch("Components ({})", fmt_int(compCount)))) {
@@ -1038,15 +1036,16 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
       continue;
     }
     InspectorContext ctx = {
-        .world     = world,
-        .canvas    = canvas,
-        .panel     = panelComp,
-        .time      = time,
-        .prefabMap = prefabMap,
-        .setEnv    = setEnv,
-        .stats     = stats,
-        .settings  = settings,
-        .subject   = subjectItr,
+        .world         = world,
+        .canvas        = canvas,
+        .panel         = panelComp,
+        .time          = time,
+        .prefabMap     = prefabMap,
+        .setEnv        = setEnv,
+        .stats         = stats,
+        .settings      = settings,
+        .subject       = subjectItr,
+        .subjectEntity = subjectItr ? ecs_view_entity(subjectItr) : 0,
     };
     inspector_panel_draw(&ctx);
 
