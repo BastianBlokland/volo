@@ -344,25 +344,19 @@ static void inspector_panel_draw_entity_info(InspectorContext* ctx, UiTable* tab
   } else {
     inspector_panel_draw_value_none(ctx);
   }
-}
 
-static void inspector_panel_draw_prefab_instance(InspectorContext* ctx, UiTable* table) {
-  const ScenePrefabInstanceComp* instance = ecs_view_read_t(ctx->subject, ScenePrefabInstanceComp);
-  if (!instance) {
-    return;
-  }
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Prefab"))) {
-    inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Id"));
-    ui_table_next_column(ctx->canvas, table);
-    inspector_panel_draw_value_string(ctx, fmt_write_scratch("{}", fmt_int(instance->id)));
-
-    inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Prefab"));
-    ui_table_next_column(ctx->canvas, table);
-    StringHash prefabId = instance->prefabId; // TODO: Support switching prefabs.
+  ui_label(ctx->canvas, string_lit("Prefab"));
+  ui_table_next_column(ctx->canvas, table);
+  const ScenePrefabInstanceComp* prefabInstance = null;
+  if (ctx->subject) {
+    prefabInstance = ecs_view_read_t(ctx->subject, ScenePrefabInstanceComp);
+  }
+  if (prefabInstance) {
+    StringHash prefabId = prefabInstance->prefabId; // TODO: Support switching prefabs.
     debug_widget_editor_prefab(ctx->canvas, ctx->prefabMap, &prefabId, UiWidget_Default);
+  } else {
+    inspector_panel_draw_value_none(ctx);
   }
 }
 
@@ -899,9 +893,6 @@ static void inspector_panel_draw(InspectorContext* ctx) {
   ui_canvas_id_block_next(ctx->canvas);
 
   if (ctx->subject) {
-    inspector_panel_draw_prefab_instance(ctx, &table);
-    ui_canvas_id_block_next(ctx->canvas);
-
     inspector_panel_draw_transform(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
 
