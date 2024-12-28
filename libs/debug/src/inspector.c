@@ -347,8 +347,7 @@ static void inspector_panel_draw_entity_info(InspectorContext* ctx, UiTable* tab
 }
 
 static void inspector_panel_draw_prefab_instance(InspectorContext* ctx, UiTable* table) {
-  const ScenePrefabInstanceComp* instance =
-      ctx->subject ? ecs_view_read_t(ctx->subject, ScenePrefabInstanceComp) : null;
+  const ScenePrefabInstanceComp* instance = ecs_view_read_t(ctx->subject, ScenePrefabInstanceComp);
   if (instance) {
     inspector_panel_next(ctx, table);
     if (inspector_panel_section(ctx, string_lit("Prefab"))) {
@@ -367,9 +366,8 @@ static void inspector_panel_draw_prefab_instance(InspectorContext* ctx, UiTable*
 }
 
 static void inspector_panel_draw_transform(InspectorContext* ctx, UiTable* table) {
-  SceneTransformComp* transform =
-      ctx->subject ? ecs_view_write_t(ctx->subject, SceneTransformComp) : null;
-  SceneScaleComp* scale = ctx->subject ? ecs_view_write_t(ctx->subject, SceneScaleComp) : null;
+  SceneTransformComp* transform = ecs_view_write_t(ctx->subject, SceneTransformComp);
+  SceneScaleComp*     scale     = ecs_view_write_t(ctx->subject, SceneScaleComp);
   if (!transform && !scale) {
     return;
   }
@@ -410,11 +408,9 @@ static void inspector_panel_draw_transform(InspectorContext* ctx, UiTable* table
 }
 
 static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
-  SceneLightPointComp* point =
-      ctx->subject ? ecs_view_write_t(ctx->subject, SceneLightPointComp) : null;
-  SceneLightDirComp* dir = ctx->subject ? ecs_view_write_t(ctx->subject, SceneLightDirComp) : null;
-  SceneLightAmbientComp* amb =
-      ctx->subject ? ecs_view_write_t(ctx->subject, SceneLightAmbientComp) : null;
+  SceneLightPointComp*   point = ecs_view_write_t(ctx->subject, SceneLightPointComp);
+  SceneLightDirComp*     dir   = ecs_view_write_t(ctx->subject, SceneLightDirComp);
+  SceneLightAmbientComp* amb   = ecs_view_write_t(ctx->subject, SceneLightAmbientComp);
   if (!point && !dir && !amb) {
     return;
   }
@@ -463,7 +459,7 @@ static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
 }
 
 static void inspector_panel_draw_health(InspectorContext* ctx, UiTable* table) {
-  SceneHealthComp* health = ctx->subject ? ecs_view_write_t(ctx->subject, SceneHealthComp) : null;
+  SceneHealthComp* health = ecs_view_write_t(ctx->subject, SceneHealthComp);
   if (health) {
     inspector_panel_next(ctx, table);
     if (inspector_panel_section(ctx, string_lit("Health"))) {
@@ -481,8 +477,7 @@ static void inspector_panel_draw_health(InspectorContext* ctx, UiTable* table) {
 }
 
 static void inspector_panel_draw_status(InspectorContext* ctx, UiTable* table) {
-  const SceneStatusComp* status =
-      ctx->subject ? ecs_view_read_t(ctx->subject, SceneStatusComp) : null;
+  const SceneStatusComp* status = ecs_view_read_t(ctx->subject, SceneStatusComp);
   if (status) {
     inspector_panel_next(ctx, table);
     const u32 activeCount = bits_popcnt((u32)status->active);
@@ -506,8 +501,7 @@ static void inspector_panel_draw_status(InspectorContext* ctx, UiTable* table) {
 }
 
 static void inspector_panel_draw_faction(InspectorContext* ctx, UiTable* table) {
-  SceneFactionComp* faction =
-      ctx->subject ? ecs_view_write_t(ctx->subject, SceneFactionComp) : null;
+  SceneFactionComp* faction = ecs_view_write_t(ctx->subject, SceneFactionComp);
   if (faction) {
     inspector_panel_next(ctx, table);
     if (inspector_panel_section(ctx, string_lit("Faction"))) {
@@ -520,8 +514,7 @@ static void inspector_panel_draw_faction(InspectorContext* ctx, UiTable* table) 
 }
 
 static void inspector_panel_draw_target(InspectorContext* ctx, UiTable* table) {
-  const SceneTargetFinderComp* finder =
-      ctx->subject ? ecs_view_read_t(ctx->subject, SceneTargetFinderComp) : null;
+  const SceneTargetFinderComp* finder = ecs_view_read_t(ctx->subject, SceneTargetFinderComp);
   if (finder) {
     inspector_panel_next(ctx, table);
     if (inspector_panel_section(ctx, string_lit("Target"))) {
@@ -541,8 +534,7 @@ static void inspector_panel_draw_target(InspectorContext* ctx, UiTable* table) {
 }
 
 static void inspector_panel_draw_nav_agent(InspectorContext* ctx, UiTable* table) {
-  const SceneNavAgentComp* agent =
-      ctx->subject ? ecs_view_read_t(ctx->subject, SceneNavAgentComp) : null;
+  const SceneNavAgentComp* agent = ecs_view_read_t(ctx->subject, SceneNavAgentComp);
   if (agent) {
     inspector_panel_next(ctx, table);
     if (inspector_panel_section(ctx, string_lit("Navigation Agent"))) {
@@ -555,8 +547,7 @@ static void inspector_panel_draw_nav_agent(InspectorContext* ctx, UiTable* table
 }
 
 static void inspector_panel_draw_renderable(InspectorContext* ctx, UiTable* table) {
-  SceneRenderableComp* renderable =
-      ctx->subject ? ecs_view_write_t(ctx->subject, SceneRenderableComp) : null;
+  SceneRenderableComp* renderable = ecs_view_write_t(ctx->subject, SceneRenderableComp);
   if (renderable) {
     inspector_panel_next(ctx, table);
     if (inspector_panel_section(ctx, string_lit("Renderable"))) {
@@ -579,8 +570,7 @@ static void inspector_panel_draw_renderable(InspectorContext* ctx, UiTable* tabl
 }
 
 static void inspector_panel_draw_decal(InspectorContext* ctx, UiTable* table) {
-  SceneVfxDecalComp* decal =
-      ctx->subject ? ecs_view_write_t(ctx->subject, SceneVfxDecalComp) : null;
+  SceneVfxDecalComp* decal = ecs_view_write_t(ctx->subject, SceneVfxDecalComp);
   if (decal) {
     inspector_panel_next(ctx, table);
     if (inspector_panel_section(ctx, string_lit("Decal"))) {
@@ -593,9 +583,6 @@ static void inspector_panel_draw_decal(InspectorContext* ctx, UiTable* table) {
 }
 
 static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
-  if (!ctx->subject) {
-    return;
-  }
   const SceneSetMemberComp* setMember = ecs_view_read_t(ctx->subject, SceneSetMemberComp);
 
   StringHash sets[scene_set_member_max_sets];
@@ -639,7 +626,7 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
 }
 
 static void inspector_panel_draw_tags(InspectorContext* ctx, UiTable* table) {
-  SceneTagComp* tagComp = ctx->subject ? ecs_view_write_t(ctx->subject, SceneTagComp) : null;
+  SceneTagComp* tagComp = ecs_view_write_t(ctx->subject, SceneTagComp);
   if (tagComp) {
     const u32 tagCount = bits_popcnt((u32)tagComp->tags);
     inspector_panel_next(ctx, table);
@@ -656,8 +643,7 @@ static void inspector_panel_draw_tags(InspectorContext* ctx, UiTable* table) {
 }
 
 static void inspector_panel_draw_collision(InspectorContext* ctx, UiTable* table) {
-  SceneCollisionComp* col =
-      ctx->subject ? ecs_view_write_t(ctx->subject, SceneCollisionComp) : null;
+  SceneCollisionComp* col = ecs_view_write_t(ctx->subject, SceneCollisionComp);
   if (col) {
     inspector_panel_next(ctx, table);
     if (inspector_panel_section(ctx, string_lit("Collision"))) {
@@ -731,8 +717,7 @@ static void inspector_panel_draw_collision(InspectorContext* ctx, UiTable* table
 }
 
 static void inspector_panel_draw_bounds(InspectorContext* ctx, UiTable* table) {
-  SceneBoundsComp* boundsComp =
-      ctx->subject ? ecs_view_write_t(ctx->subject, SceneBoundsComp) : null;
+  SceneBoundsComp* boundsComp = ecs_view_write_t(ctx->subject, SceneBoundsComp);
   if (boundsComp) {
     inspector_panel_next(ctx, table);
     if (inspector_panel_section(ctx, string_lit("Bounds"))) {
@@ -758,8 +743,7 @@ static void inspector_panel_draw_bounds(InspectorContext* ctx, UiTable* table) {
 }
 
 static void inspector_panel_draw_location(InspectorContext* ctx, UiTable* table) {
-  SceneLocationComp* location =
-      ctx->subject ? ecs_view_write_t(ctx->subject, SceneLocationComp) : null;
+  SceneLocationComp* location = ecs_view_write_t(ctx->subject, SceneLocationComp);
   if (location) {
     inspector_panel_next(ctx, table);
     if (inspector_panel_section(ctx, string_lit("Location"))) {
@@ -782,8 +766,7 @@ static void inspector_panel_draw_location(InspectorContext* ctx, UiTable* table)
 }
 
 static void inspector_panel_draw_attachment(InspectorContext* ctx, UiTable* table) {
-  SceneAttachmentComp* attach =
-      ctx->subject ? ecs_view_write_t(ctx->subject, SceneAttachmentComp) : null;
+  SceneAttachmentComp* attach = ecs_view_write_t(ctx->subject, SceneAttachmentComp);
   if (attach) {
     inspector_panel_next(ctx, table);
     if (inspector_panel_section(ctx, string_lit("Attachment"))) {
@@ -810,9 +793,6 @@ static void inspector_panel_draw_attachment(InspectorContext* ctx, UiTable* tabl
 }
 
 static void inspector_panel_draw_archetype(InspectorContext* ctx, UiTable* table) {
-  if (!ctx->subject) {
-    return;
-  }
   const EcsArchetypeId archetype = ecs_world_entity_archetype(ctx->world, ctx->subjectEntity);
   const BitSet         compMask  = ecs_world_component_mask(ctx->world, archetype);
   const String         title     = fmt_write_scratch("Archetype (id: {})", fmt_int(archetype));
@@ -903,55 +883,58 @@ static void inspector_panel_draw(InspectorContext* ctx) {
   inspector_panel_draw_entity_info(ctx, &table);
   ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_prefab_instance(ctx, &table);
-  ui_canvas_id_block_next(ctx->canvas);
+  if (ctx->subject) {
+    inspector_panel_draw_prefab_instance(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_transform(ctx, &table);
-  ui_canvas_id_block_next(ctx->canvas);
+    inspector_panel_draw_transform(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_light(ctx, &table);
-  ui_canvas_id_block_next(ctx->canvas);
+    inspector_panel_draw_light(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_health(ctx, &table);
-  ui_canvas_id_block_next(ctx->canvas);
+    inspector_panel_draw_health(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_status(ctx, &table);
-  ui_canvas_id_block_next(ctx->canvas);
+    inspector_panel_draw_status(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_faction(ctx, &table);
-  ui_canvas_id_block_next(ctx->canvas);
+    inspector_panel_draw_faction(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_target(ctx, &table);
-  ui_canvas_id_block_next(ctx->canvas);
+    inspector_panel_draw_target(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_nav_agent(ctx, &table);
-  ui_canvas_id_block_next(ctx->canvas);
+    inspector_panel_draw_nav_agent(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_renderable(ctx, &table);
-  ui_canvas_id_block_next(ctx->canvas);
+    inspector_panel_draw_renderable(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_decal(ctx, &table);
-  ui_canvas_id_block_next(ctx->canvas);
+    inspector_panel_draw_decal(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_sets(ctx, &table);
-  ui_canvas_id_block_next(ctx->canvas);
+    inspector_panel_draw_sets(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_tags(ctx, &table);
-  ui_canvas_id_block_next(ctx->canvas);
+    inspector_panel_draw_tags(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_collision(ctx, &table);
-  ui_canvas_id_block_next(ctx->canvas);
+    inspector_panel_draw_collision(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_location(ctx, &table);
-  ui_canvas_id_block_next(ctx->canvas);
+    inspector_panel_draw_location(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_attachment(ctx, &table);
-  ui_canvas_id_block_next(ctx->canvas);
+    inspector_panel_draw_attachment(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_bounds(ctx, &table);
-  ui_canvas_id_block_next(ctx->canvas);
+    inspector_panel_draw_bounds(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
 
-  inspector_panel_draw_archetype(ctx, &table);
+    inspector_panel_draw_archetype(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
+  }
   ui_canvas_id_block_next(ctx->canvas);
 
   inspector_panel_draw_settings(ctx, &table);
