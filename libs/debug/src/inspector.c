@@ -593,11 +593,13 @@ static void inspector_panel_draw_decal(InspectorContext* ctx, UiTable* table) {
 static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
   const SceneSetMemberComp* setMember = ecs_view_read_t(ctx->subject, SceneSetMemberComp);
 
-  StringHash sets[scene_set_member_max_sets];
-  const u32  setCount = setMember ? scene_set_member_all(setMember, sets) : 0;
+  StringHash   sets[scene_set_member_max_sets];
+  const u32    setCount    = setMember ? scene_set_member_all(setMember, sets) : 0;
+  const u32    setCountMax = scene_set_member_max_sets;
+  const String title = fmt_write_scratch("Sets ({} / {})", fmt_int(setCount), fmt_int(setCountMax));
 
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, fmt_write_scratch("Sets ({})", fmt_int(setCount)))) {
+  if (inspector_panel_section(ctx, title)) {
     for (u32 i = 0; i != setCount; ++i) {
       inspector_panel_next(ctx, table);
       const String setName = stringtable_lookup(g_stringtable, sets[i]);
@@ -614,21 +616,23 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
       }
     }
 
-    inspector_panel_next(ctx, table);
-    ui_textbox(ctx->canvas, &ctx->panel->setNameBuffer, .placeholder = string_lit("Set name..."));
-    ui_table_next_column(ctx->canvas, table);
-    ui_layout_resize(ctx->canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
-    if (ui_button(
-            ctx->canvas,
-            .flags      = ctx->panel->setNameBuffer.size == 0 ? UiWidget_Disabled : 0,
-            .label      = ui_shape_scratch(UiShape_Add),
-            .fontSize   = 18,
-            .frameColor = ui_color(16, 192, 0, 192),
-            .tooltip    = string_lit("Add this entity to the specified set."))) {
-      const String     setName = dynstring_view(&ctx->panel->setNameBuffer);
-      const StringHash set     = stringtable_add(g_stringtable, setName);
-      scene_set_add(ctx->setEnv, set, ctx->subjectEntity, SceneSetFlags_None);
-      dynstring_clear(&ctx->panel->setNameBuffer);
+    if (setCount != setCountMax) {
+      inspector_panel_next(ctx, table);
+      ui_textbox(ctx->canvas, &ctx->panel->setNameBuffer, .placeholder = string_lit("Set name..."));
+      ui_table_next_column(ctx->canvas, table);
+      ui_layout_resize(ctx->canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
+      if (ui_button(
+              ctx->canvas,
+              .flags      = ctx->panel->setNameBuffer.size == 0 ? UiWidget_Disabled : 0,
+              .label      = ui_shape_scratch(UiShape_Add),
+              .fontSize   = 18,
+              .frameColor = ui_color(16, 192, 0, 192),
+              .tooltip    = string_lit("Add this entity to the specified set."))) {
+        const String     setName = dynstring_view(&ctx->panel->setNameBuffer);
+        const StringHash set     = stringtable_add(g_stringtable, setName);
+        scene_set_add(ctx->setEnv, set, ctx->subjectEntity, SceneSetFlags_None);
+        dynstring_clear(&ctx->panel->setNameBuffer);
+      }
     }
   }
 }
