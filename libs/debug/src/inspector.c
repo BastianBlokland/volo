@@ -275,17 +275,21 @@ static EcsEntityId inspector_prefab_duplicate(EcsWorld* world, EcsIterator* subj
     log_e("Unable to duplicate prefab.", log_param("entity", ecs_entity_fmt(entity)));
     return ecs_entity_invalid;
   }
-  return scene_prefab_spawn(
-      world,
-      &(ScenePrefabSpec){
-          .id       = 0 /* Entity will get a new id on level save */,
-          .prefabId = prefabInstComp->prefabId,
-          .variant  = prefabInstComp->variant,
-          .faction  = factionComp ? factionComp->id : SceneFaction_None,
-          .scale    = scaleComp ? scaleComp->scale : 1.0f,
-          .position = transComp->position,
-          .rotation = transComp->rotation,
-      });
+  ScenePrefabSpec spec = {
+      .id       = 0 /* Entity will get a new id on level save */,
+      .prefabId = prefabInstComp->prefabId,
+      .variant  = prefabInstComp->variant,
+      .faction  = factionComp ? factionComp->id : SceneFaction_None,
+      .scale    = scaleComp ? scaleComp->scale : 1.0f,
+      .position = transComp->position,
+      .rotation = transComp->rotation,
+  };
+  const SceneSetMemberComp* setMember = ecs_view_read_t(subject, SceneSetMemberComp);
+  if (setMember) {
+    ASSERT(array_elems(spec.sets) >= scene_set_member_max_sets, "Insufficient set storage");
+    scene_set_member_all(setMember, spec.sets);
+  }
+  return scene_prefab_spawn(world, &spec);
 }
 
 static void inspector_prefab_replace(
@@ -300,18 +304,21 @@ static void inspector_prefab_replace(
     log_e("Unable to replace prefab.", log_param("entity", ecs_entity_fmt(entity)));
     return;
   }
-  scene_prefab_spawn_replace(
-      prefabEnv,
-      &(ScenePrefabSpec){
-          .id       = prefabInstComp->id,
-          .prefabId = prefabId,
-          .variant  = ScenePrefabVariant_Edit,
-          .faction  = factionComp ? factionComp->id : SceneFaction_None,
-          .scale    = scaleComp ? scaleComp->scale : 1.0f,
-          .position = transComp->position,
-          .rotation = transComp->rotation,
-      },
-      entity);
+  ScenePrefabSpec spec = {
+      .id       = prefabInstComp->id,
+      .prefabId = prefabId,
+      .variant  = ScenePrefabVariant_Edit,
+      .faction  = factionComp ? factionComp->id : SceneFaction_None,
+      .scale    = scaleComp ? scaleComp->scale : 1.0f,
+      .position = transComp->position,
+      .rotation = transComp->rotation,
+  };
+  const SceneSetMemberComp* setMember = ecs_view_read_t(subject, SceneSetMemberComp);
+  if (setMember) {
+    ASSERT(array_elems(spec.sets) >= scene_set_member_max_sets, "Insufficient set storage");
+    scene_set_member_all(setMember, spec.sets);
+  }
+  scene_prefab_spawn_replace(prefabEnv, &spec, entity);
 }
 
 typedef struct {
