@@ -295,7 +295,8 @@ static void inspector_prefab_replace(
   const SceneScaleComp*          scaleComp      = ecs_view_read_t(subject, SceneScaleComp);
   const SceneFactionComp*        factionComp    = ecs_view_read_t(subject, SceneFactionComp);
   const ScenePrefabInstanceComp* prefabInstComp = ecs_view_read_t(subject, ScenePrefabInstanceComp);
-  if (UNLIKELY(!prefabInstComp || prefabInstComp->variant == ScenePrefabVariant_Preview)) {
+  if (UNLIKELY(!prefabInstComp || prefabInstComp->variant != ScenePrefabVariant_Edit)) {
+    // NOTE: Play-variant instances cannot be replaced due to incompatible trait data.
     log_e("Unable to replace prefab.", log_param("entity", ecs_entity_fmt(entity)));
     return;
   }
