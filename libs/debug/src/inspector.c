@@ -215,7 +215,6 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_read(SceneNameComp);
   ecs_access_maybe_read(SceneNavAgentComp);
   ecs_access_maybe_read(SceneNavPathComp);
-  ecs_access_maybe_read(ScenePrefabInstanceComp);
   ecs_access_maybe_read(SceneScriptComp);
   ecs_access_maybe_read(SceneSetMemberComp);
   ecs_access_maybe_read(SceneStatusComp);
@@ -232,6 +231,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneLightDirComp);
   ecs_access_maybe_write(SceneLightPointComp);
   ecs_access_maybe_write(SceneLocationComp);
+  ecs_access_maybe_write(ScenePrefabInstanceComp);
   ecs_access_maybe_write(SceneRenderableComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
@@ -351,17 +351,18 @@ static void inspector_panel_draw_entity_info(InspectorContext* ctx, UiTable* tab
   inspector_panel_next(ctx, table);
   ui_label(ctx->canvas, string_lit("Entity prefab"));
   ui_table_next_column(ctx->canvas, table);
-  const ScenePrefabInstanceComp* prefabInstance = null;
+  ScenePrefabInstanceComp* prefabInst = null;
   if (ctx->subject) {
-    prefabInstance = ecs_view_read_t(ctx->subject, ScenePrefabInstanceComp);
+    prefabInst = ecs_view_write_t(ctx->subject, ScenePrefabInstanceComp);
   }
-  if (prefabInstance) {
-    StringHash    prefabId          = prefabInstance->prefabId; // TODO: Support switching prefabs.
-    UiWidgetFlags prefabWidgetFlags = UiWidget_Default;
+  if (prefabInst) {
+    UiWidgetFlags flags = UiWidget_Default;
     if (scene_level_mode(ctx->level) != SceneLevelMode_Edit) {
-      prefabWidgetFlags |= UiWidget_Disabled;
+      flags |= UiWidget_Disabled;
     }
-    debug_widget_editor_prefab(ctx->canvas, ctx->prefabMap, &prefabId, prefabWidgetFlags);
+    if (debug_widget_editor_prefab(ctx->canvas, ctx->prefabMap, &prefabInst->prefabId, flags)) {
+      // TODO: Apply prefab change.
+    }
   } else {
     inspector_panel_draw_value_none(ctx);
   }
