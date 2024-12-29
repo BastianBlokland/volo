@@ -136,10 +136,18 @@ static void prefab_build(
     AssetPrefab*          outPrefab,
     PrefabError*          err) {
 
+  /**
+   * Create in-memory data-structures for a prefab.
+   * NOTE: The prefab-hash is not deterministic across sessions as it contains EcsEntityIds.
+   */
+
+  const AssetPrefabFlags flags = prefab_build_flags(def);
+
   *err       = PrefabError_None;
   *outPrefab = (AssetPrefab){
       .name       = def->name,
-      .flags      = prefab_build_flags(def),
+      .hash       = bits_hash_32_val(outPrefab->flags),
+      .flags      = flags,
       .traitIndex = (u16)outTraits->size,
       .traitCount = (u16)def->traits.count,
   };
@@ -154,14 +162,19 @@ static void prefab_build(
     }
     bitset_set(addedTraits, traitDef->type);
 
+#define TRAIT_HASH_ADD(_HASH_) outPrefab->hash = bits_hash_32_combine(outPrefab->hash, _HASH_)
+
     AssetPrefabTrait* outTrait = dynarray_push_t(outTraits, AssetPrefabTrait);
     outTrait->type             = traitDef->type;
+    TRAIT_HASH_ADD(bits_hash_32_val(traitDef->type));
 
 #define TRAIT_EMPTY(_NAME_)                                                                        \
   case AssetPrefabTrait_##_NAME_:                                                                  \
     break
+
 #define TRAIT_COPY(_NAME_, _MEMBER_)                                                               \
   case AssetPrefabTrait_##_NAME_:                                                                  \
+    TRAIT_HASH_ADD(bits_hash_32(mem_var(traitDef->_MEMBER_)));                                     \
     outTrait->_MEMBER_ = traitDef->_MEMBER_;                                                       \
     break
 
@@ -188,32 +201,37 @@ static void prefab_build(
       TRAIT_COPY(Attachment, data_attachment);
       TRAIT_COPY(Production, data_production);
     case AssetPrefabTrait_Collision: {
-      const AssetPrefabTraitCollisionDef* colDef     = &traitDef->data_collision;
-      const u16                           shapeCount = (u16)colDef->shapes.count;
+      const AssetPrefabTraitCollisionDef* colDef = &traitDef->data_collision;
+
+      const u16 shapeCount = (u16)colDef->shapes.count;
+      const Mem shapeMem = mem_create(colDef->shapes.values, sizeof(AssetPrefabShape) * shapeCount);
 
       outTrait->data_collision = (AssetPrefabTraitCollision){
           .navBlocker = colDef->navBlocker,
           .shapeIndex = (u16)outShapes->size,
           .shapeCount = shapeCount,
       };
-      mem_cpy(
-          dynarray_push(outShapes, shapeCount),
-          mem_create(colDef->shapes.values, sizeof(AssetPrefabShape) * shapeCount));
+      mem_cpy(dynarray_push(outShapes, shapeCount), shapeMem);
+
+      TRAIT_HASH_ADD(bits_hash_32_val(colDef->navBlocker));
+      TRAIT_HASH_ADD(bits_hash_32(shapeMem));
     } break;
     case AssetPrefabTrait_Script: {
       const AssetPrefabTraitScriptDef* scriptDef      = &traitDef->data_script;
       const u16                        knowledgeCount = (u16)scriptDef->knowledge.count;
+      const Mem                        knowledgeMem =
+          mem_create(scriptDef->knowledge.values, sizeof(AssetPrefabValue) * knowledgeCount);
 
       outTrait->data_script = (AssetPrefabTraitScript){
           .knowledgeIndex = (u16)outValues->size,
           .knowledgeCount = knowledgeCount,
       };
       for (u32 i = 0; i != asset_prefab_scripts_max; ++i) {
+        TRAIT_HASH_ADD(scriptDef->scripts[i].id);
         outTrait->data_script.scripts[i] = scriptDef->scripts[i].entity;
       }
-      mem_cpy(
-          dynarray_push(outValues, knowledgeCount),
-          mem_create(scriptDef->knowledge.values, sizeof(AssetPrefabValue) * knowledgeCount));
+      mem_cpy(dynarray_push(outValues, knowledgeCount), knowledgeMem);
+      TRAIT_HASH_ADD(bits_hash_32(knowledgeMem));
     } break;
     case AssetPrefabTrait_Count:
       break;
@@ -228,10 +246,13 @@ static void prefab_build(
       for (u32 i = 0; i != asset_prefab_sets_max; ++i) {
         const StringHash set = outTrait->data_setMember.sets[i];
         if (set) {
-          outPrefab->flags |= prefab_set_flags(set);
+          const AssetPrefabFlags setFlags = prefab_set_flags(set);
+          outPrefab->flags |= setFlags;
+          TRAIT_HASH_ADD(bits_hash_32_val(setFlags));
         }
       }
     }
+#undef TRAIT_HASH_ADD
 #undef TRAIT_EMPTY
 #undef TRAIT_COPY
   }
