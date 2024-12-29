@@ -675,6 +675,7 @@ static bool setup_prefab(
     log_e("Prefab not found", log_param("entity", ecs_entity_fmt(e)));
     return true; // No point in retrying; mark the prefab as done.
   }
+  instanceComp->assetHash  = prefab->hash;
   instanceComp->assetFlags = prefab->flags;
   if (prefab_is_volatile(prefab, spec)) {
     instanceComp->isVolatile = true;
