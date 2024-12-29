@@ -1140,24 +1140,19 @@ static void debug_inspector_tool_drop(
 }
 
 static void debug_inspector_tool_duplicate(EcsWorld* w, SceneSetEnvComp* setEnv) {
-  const StringHash s = g_sceneSetSelected;
+  EcsIterator* itr = ecs_view_itr(ecs_world_view_t(w, SubjectView));
 
-  DynArray     newEntities = dynarray_create_t(g_allocHeap, EcsEntityId, 64);
-  EcsIterator* itr         = ecs_view_itr(ecs_world_view_t(w, SubjectView));
+  const StringHash s = g_sceneSetSelected;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
-    if (!ecs_view_maybe_jump(itr, *e)) {
-      continue; // Selected entity is missing required components.
-    }
-    const EcsEntityId duplicatedEntity = inspector_prefab_duplicate(w, itr);
-    if (ecs_entity_valid(duplicatedEntity)) {
-      *dynarray_push_t(&newEntities, EcsEntityId) = duplicatedEntity;
+    if (ecs_view_maybe_jump(itr, *e)) {
+      inspector_prefab_duplicate(w, itr);
     }
   }
-
-  // Select the newly created entities.
+  /**
+   * Clear the old selection (the newly created entities will be automatically selected due to
+   * duplicating the sets of the original entities).
+   */
   scene_set_clear(setEnv, s);
-  dynarray_for_t(&newEntities, EcsEntityId, e) { scene_set_add(setEnv, s, *e, SceneSetFlags_None); }
-  dynarray_destroy(&newEntities);
 }
 
 static void debug_inspector_tool_select_all(EcsWorld* w, SceneSetEnvComp* setEnv) {
