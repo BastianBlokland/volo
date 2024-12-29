@@ -70,6 +70,7 @@ typedef struct {
   const ScenePrefabKnowledge* knowledge;
   GeoVector                   position;
   GeoQuat                     rotation;
+  StringHash                  sets[8];
 } ScenePrefabSpec;
 
 EcsEntityId scene_prefab_spawn(EcsWorld*, const ScenePrefabSpec*);
