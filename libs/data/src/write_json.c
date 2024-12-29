@@ -401,9 +401,8 @@ static JsonVal data_write_json_val_inline_array(const WriteCtx* ctx) {
   if (UNLIKELY(ctx->data.size != data_meta_size(ctx->reg, ctx->meta))) {
     diag_crash_msg("Unexpected data-size for inline array");
   }
-  const JsonVal   jsonArray = json_add_array(ctx->doc);
-  const DataDecl* decl      = data_decl(ctx->reg, ctx->meta.type);
-  const DataMeta  baseMeta  = data_meta_base(ctx->meta);
+  const DataDecl* decl     = data_decl(ctx->reg, ctx->meta.type);
+  const DataMeta  baseMeta = data_meta_base(ctx->meta);
 
   // Determine which entries from the end can be skipped.
   u16 nonDefaultCount = ctx->meta.fixedCount;
@@ -415,7 +414,12 @@ static JsonVal data_write_json_val_inline_array(const WriteCtx* ctx) {
     }
   }
 
+  if (ctx->skipOptional && ctx->meta.flags & DataFlags_Opt && !nonDefaultCount) {
+    return sentinel_u32;
+  }
+
   // Output entries.
+  const JsonVal jsonArray = json_add_array(ctx->doc);
   for (u16 i = 0; i != ctx->meta.fixedCount; ++i) {
     WriteCtx elemCtx = {
         .reg  = ctx->reg,
@@ -432,7 +436,6 @@ static JsonVal data_write_json_val_inline_array(const WriteCtx* ctx) {
       json_add_elem(ctx->doc, jsonArray, elemVal);
     }
   }
-
   return jsonArray;
 }
 
