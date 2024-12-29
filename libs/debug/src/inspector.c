@@ -30,6 +30,7 @@
 #include "scene_debug.h"
 #include "scene_faction.h"
 #include "scene_health.h"
+#include "scene_level.h"
 #include "scene_light.h"
 #include "scene_location.h"
 #include "scene_locomotion.h"
@@ -172,8 +173,9 @@ static void ecs_destruct_panel_comp(void* data) {
 ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp); }
 
 ecs_view_define(GlobalPanelUpdateView) {
-  ecs_access_read(SceneTimeComp);
+  ecs_access_read(SceneLevelManagerComp);
   ecs_access_read(ScenePrefabEnvComp);
+  ecs_access_read(SceneTimeComp);
   ecs_access_write(DebugStatsGlobalComp);
   ecs_access_write(SceneSetEnvComp);
 }
@@ -262,16 +264,17 @@ inspector_notify_vis_mode(DebugStatsGlobalComp* stats, const DebugInspectorVisMo
 }
 
 typedef struct {
-  EcsWorld*                   world;
-  UiCanvasComp*               canvas;
-  DebugInspectorPanelComp*    panel;
-  const SceneTimeComp*        time;
-  const AssetPrefabMapComp*   prefabMap;
-  SceneSetEnvComp*            setEnv;
-  DebugStatsGlobalComp*       stats;
-  DebugInspectorSettingsComp* settings;
-  EcsIterator*                subject;
-  EcsEntityId                 subjectEntity;
+  EcsWorld*                    world;
+  UiCanvasComp*                canvas;
+  DebugInspectorPanelComp*     panel;
+  const SceneTimeComp*         time;
+  const SceneLevelManagerComp* level;
+  const AssetPrefabMapComp*    prefabMap;
+  SceneSetEnvComp*             setEnv;
+  DebugStatsGlobalComp*        stats;
+  DebugInspectorSettingsComp*  settings;
+  EcsIterator*                 subject;
+  EcsEntityId                  subjectEntity;
 } InspectorContext;
 
 static bool inspector_panel_section(InspectorContext* ctx, const String label) {
@@ -346,15 +349,19 @@ static void inspector_panel_draw_entity_info(InspectorContext* ctx, UiTable* tab
   }
 
   inspector_panel_next(ctx, table);
-  ui_label(ctx->canvas, string_lit("Prefab"));
+  ui_label(ctx->canvas, string_lit("Entity prefab"));
   ui_table_next_column(ctx->canvas, table);
   const ScenePrefabInstanceComp* prefabInstance = null;
   if (ctx->subject) {
     prefabInstance = ecs_view_read_t(ctx->subject, ScenePrefabInstanceComp);
   }
   if (prefabInstance) {
-    StringHash prefabId = prefabInstance->prefabId; // TODO: Support switching prefabs.
-    debug_widget_editor_prefab(ctx->canvas, ctx->prefabMap, &prefabId, UiWidget_Default);
+    StringHash    prefabId          = prefabInstance->prefabId; // TODO: Support switching prefabs.
+    UiWidgetFlags prefabWidgetFlags = UiWidget_Default;
+    if (scene_level_mode(ctx->level) != SceneLevelMode_Edit) {
+      prefabWidgetFlags |= UiWidget_Disabled;
+    }
+    debug_widget_editor_prefab(ctx->canvas, ctx->prefabMap, &prefabId, prefabWidgetFlags);
   } else {
     inspector_panel_draw_value_none(ctx);
   }
@@ -993,6 +1000,8 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   DebugInspectorSettingsComp* settings = inspector_settings_get_or_create(world);
   DebugStatsGlobalComp*       stats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
+  const SceneLevelManagerComp* level = ecs_view_read_t(globalItr, SceneLevelManagerComp);
+
   const ScenePrefabEnvComp* prefabEnv = ecs_view_read_t(globalItr, ScenePrefabEnvComp);
   const AssetPrefabMapComp* prefabMap = inspector_prefab_map(world, prefabEnv);
 
@@ -1017,6 +1026,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
         .canvas        = canvas,
         .panel         = panelComp,
         .time          = time,
+        .level         = level,
         .prefabMap     = prefabMap,
         .setEnv        = setEnv,
         .stats         = stats,
