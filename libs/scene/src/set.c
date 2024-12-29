@@ -258,6 +258,15 @@ static SceneTags set_wellknown_tags(const StringHash set) {
   return 0;
 }
 
+static bool set_is_volatile(const StringHash set) {
+  for (u32 i = 0; i != array_elems(g_setWellknownTagEntries); ++i) {
+    if (*g_setWellknownTagEntries[i].setPtr == set) {
+      return (g_setWellknownTagEntries[i].flags & SetFlags_Volatile) != 0;
+    }
+  }
+  return false;
+}
+
 typedef enum {
   SetRequestType_Add,
   SetRequestType_Remove,
@@ -601,6 +610,17 @@ u32 scene_set_member_all(
   return count;
 }
 
+u32 scene_set_member_all_non_volatile(
+    const SceneSetMemberComp* member, StringHash out[PARAM_ARRAY_SIZE(scene_set_member_max_sets)]) {
+  u32 count = 0;
+  for (u32 i = 0; i != array_elems(member->sets); ++i) {
+    if (member->sets[i] && !set_is_volatile(member->sets[i])) {
+      out[count++] = member->sets[i];
+    }
+  }
+  return count;
+}
+
 bool scene_set_contains(const SceneSetEnvComp* env, const StringHash set, const EcsEntityId e) {
   return set_storage_contains(env->storage, set, e);
 }
@@ -619,16 +639,6 @@ const EcsEntityId* scene_set_begin(const SceneSetEnvComp* env, const StringHash 
 
 const EcsEntityId* scene_set_end(const SceneSetEnvComp* env, const StringHash set) {
   return set_storage_end(env->storage, set);
-}
-
-bool scene_set_is_volatile(const SceneSetEnvComp* env, const StringHash set) {
-  (void)env;
-  for (u32 i = 0; i != array_elems(g_setWellknownTagEntries); ++i) {
-    if (*g_setWellknownTagEntries[i].setPtr == set) {
-      return (g_setWellknownTagEntries[i].flags & SetFlags_Volatile) != 0;
-    }
-  }
-  return false;
 }
 
 void scene_set_add(
