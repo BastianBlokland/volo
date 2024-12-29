@@ -15,6 +15,7 @@
 #include "debug_shape.h"
 #include "debug_stats.h"
 #include "debug_text.h"
+#include "ecs_entity.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
 #include "gap_window.h"
@@ -22,6 +23,7 @@
 #include "geo_query.h"
 #include "geo_sphere.h"
 #include "input_manager.h"
+#include "log_logger.h"
 #include "scene_attachment.h"
 #include "scene_attack.h"
 #include "scene_bounds.h"
@@ -174,9 +176,9 @@ ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp
 
 ecs_view_define(GlobalPanelUpdateView) {
   ecs_access_read(SceneLevelManagerComp);
-  ecs_access_read(ScenePrefabEnvComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_write(DebugStatsGlobalComp);
+  ecs_access_write(ScenePrefabEnvComp);
   ecs_access_write(SceneSetEnvComp);
 }
 
@@ -263,12 +265,61 @@ inspector_notify_vis_mode(DebugStatsGlobalComp* stats, const DebugInspectorVisMo
   debug_stats_notify(stats, string_lit("Visualize"), g_visModeNames[visMode]);
 }
 
+static EcsEntityId inspector_prefab_duplicate(EcsWorld* world, EcsIterator* subject) {
+  const EcsEntityId              entity         = ecs_view_entity(subject);
+  const SceneTransformComp*      transComp      = ecs_view_read_t(subject, SceneTransformComp);
+  const SceneScaleComp*          scaleComp      = ecs_view_read_t(subject, SceneScaleComp);
+  const SceneFactionComp*        factionComp    = ecs_view_read_t(subject, SceneFactionComp);
+  const ScenePrefabInstanceComp* prefabInstComp = ecs_view_read_t(subject, ScenePrefabInstanceComp);
+  if (UNLIKELY(!prefabInstComp || prefabInstComp->variant == ScenePrefabVariant_Preview)) {
+    log_e("Unable to duplicate prefab.", log_param("entity", ecs_entity_fmt(entity)));
+    return ecs_entity_invalid;
+  }
+  return scene_prefab_spawn(
+      world,
+      &(ScenePrefabSpec){
+          .id       = 0 /* Entity will get a new id on level save */,
+          .prefabId = prefabInstComp->prefabId,
+          .variant  = prefabInstComp->variant,
+          .faction  = factionComp ? factionComp->id : SceneFaction_None,
+          .scale    = scaleComp ? scaleComp->scale : 1.0f,
+          .position = transComp->position,
+          .rotation = transComp->rotation,
+      });
+}
+
+static void inspector_prefab_replace(
+    ScenePrefabEnvComp* prefabEnv, EcsIterator* subject, const StringHash prefabId) {
+  const EcsEntityId              entity         = ecs_view_entity(subject);
+  const SceneTransformComp*      transComp      = ecs_view_read_t(subject, SceneTransformComp);
+  const SceneScaleComp*          scaleComp      = ecs_view_read_t(subject, SceneScaleComp);
+  const SceneFactionComp*        factionComp    = ecs_view_read_t(subject, SceneFactionComp);
+  const ScenePrefabInstanceComp* prefabInstComp = ecs_view_read_t(subject, ScenePrefabInstanceComp);
+  if (UNLIKELY(!prefabInstComp || prefabInstComp->variant == ScenePrefabVariant_Preview)) {
+    log_e("Unable to replace prefab.", log_param("entity", ecs_entity_fmt(entity)));
+    return;
+  }
+  scene_prefab_spawn_replace(
+      prefabEnv,
+      &(ScenePrefabSpec){
+          .id       = prefabInstComp->id,
+          .prefabId = prefabId,
+          .variant  = prefabInstComp->variant,
+          .faction  = factionComp ? factionComp->id : SceneFaction_None,
+          .scale    = scaleComp ? scaleComp->scale : 1.0f,
+          .position = transComp->position,
+          .rotation = transComp->rotation,
+      },
+      entity);
+}
+
 typedef struct {
   EcsWorld*                    world;
   UiCanvasComp*                canvas;
   DebugInspectorPanelComp*     panel;
   const SceneTimeComp*         time;
   const SceneLevelManagerComp* level;
+  ScenePrefabEnvComp*          prefabEnv;
   const AssetPrefabMapComp*    prefabMap;
   SceneSetEnvComp*             setEnv;
   DebugStatsGlobalComp*        stats;
@@ -361,7 +412,7 @@ static void inspector_panel_draw_entity_info(InspectorContext* ctx, UiTable* tab
       flags |= UiWidget_Disabled;
     }
     if (debug_widget_editor_prefab(ctx->canvas, ctx->prefabMap, &prefabInst->prefabId, flags)) {
-      // TODO: Apply prefab change.
+      inspector_prefab_replace(ctx->prefabEnv, ctx->subject, prefabInst->prefabId);
     }
   } else {
     inspector_panel_draw_value_none(ctx);
@@ -1003,7 +1054,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
 
   const SceneLevelManagerComp* level = ecs_view_read_t(globalItr, SceneLevelManagerComp);
 
-  const ScenePrefabEnvComp* prefabEnv = ecs_view_read_t(globalItr, ScenePrefabEnvComp);
+  ScenePrefabEnvComp*       prefabEnv = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
   const AssetPrefabMapComp* prefabMap = inspector_prefab_map(world, prefabEnv);
 
   const StringHash selectedSet = g_sceneSetSelected;
@@ -1028,6 +1079,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
         .panel         = panelComp,
         .time          = time,
         .level         = level,
+        .prefabEnv     = prefabEnv,
         .prefabMap     = prefabMap,
         .setEnv        = setEnv,
         .stats         = stats,
@@ -1088,25 +1140,10 @@ static void debug_inspector_tool_duplicate(EcsWorld* w, SceneSetEnvComp* setEnv)
     if (!ecs_view_maybe_jump(itr, *e)) {
       continue; // Selected entity is missing required components.
     }
-    const SceneTransformComp*      transComp      = ecs_view_read_t(itr, SceneTransformComp);
-    const SceneScaleComp*          scaleComp      = ecs_view_read_t(itr, SceneScaleComp);
-    const SceneFactionComp*        factionComp    = ecs_view_read_t(itr, SceneFactionComp);
-    const ScenePrefabInstanceComp* prefabInstComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
-    if (!prefabInstComp || prefabInstComp->variant != ScenePrefabVariant_Preview) {
-      continue; // Only non-preview prefab instances can be duplicated.
+    const EcsEntityId duplicatedEntity = inspector_prefab_duplicate(w, itr);
+    if (ecs_entity_valid(duplicatedEntity)) {
+      *dynarray_push_t(&newEntities, EcsEntityId) = duplicatedEntity;
     }
-    const EcsEntityId duplicatedEntity = scene_prefab_spawn(
-        w,
-        &(ScenePrefabSpec){
-            .id       = prefabInstComp->id,
-            .prefabId = prefabInstComp->prefabId,
-            .variant  = prefabInstComp->variant,
-            .faction  = factionComp ? factionComp->id : SceneFaction_None,
-            .scale    = scaleComp ? scaleComp->scale : 1.0f,
-            .position = transComp->position,
-            .rotation = transComp->rotation,
-        });
-    *dynarray_push_t(&newEntities, EcsEntityId) = duplicatedEntity;
   }
 
   // Select the newly created entities.
