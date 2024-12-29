@@ -305,7 +305,7 @@ static void inspector_prefab_replace(
       &(ScenePrefabSpec){
           .id       = prefabInstComp->id,
           .prefabId = prefabId,
-          .variant  = prefabInstComp->variant,
+          .variant  = ScenePrefabVariant_Edit,
           .faction  = factionComp ? factionComp->id : SceneFaction_None,
           .scale    = scaleComp ? scaleComp->scale : 1.0f,
           .position = transComp->position,
@@ -409,7 +409,7 @@ static void inspector_panel_draw_entity_info(InspectorContext* ctx, UiTable* tab
   }
   if (prefabInst) {
     UiWidgetFlags flags = UiWidget_Default;
-    if (scene_level_mode(ctx->level) != SceneLevelMode_Edit) {
+    if (prefabInst->variant != ScenePrefabVariant_Edit) {
       flags |= UiWidget_Disabled;
     }
     if (debug_widget_editor_prefab(ctx->canvas, ctx->prefabMap, &prefabInst->prefabId, flags)) {
