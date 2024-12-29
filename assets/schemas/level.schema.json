@@ -45,7 +45,12 @@
         "faction": { "title": "AssetLevelFaction", "$ref": "#/$defs/AssetLevelFaction" },
         "position": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
         "rotation": { "title": "GeoQuat", "description": "Quaternion", "$ref": "#/$defs/GeoQuat" },
-        "scale": { "title": "f32", "type": "number" }
+        "scale": { "title": "f32", "type": "number" },
+        "sets": {
+          "type": "array",
+          "maxItems": 8,
+          "items": { "title": "StringHash", "type": "string" }
+        }
       },
       "required": [ "prefab", "position", "rotation" ],
       "defaultSnippets": [

@@ -11,6 +11,7 @@
 #include "scene_faction.h"
 #include "scene_level.h"
 #include "scene_prefab.h"
+#include "scene_set.h"
 #include "scene_transform.h"
 #include "trace_tracer.h"
 
@@ -99,6 +100,7 @@ ecs_view_define(InstanceView) {
   ecs_access_maybe_read(SceneTransformComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(ScenePrefabInstanceComp);
+  ecs_access_maybe_read(SceneSetMemberComp);
 }
 
 static void
@@ -153,17 +155,17 @@ static void scene_level_process_load(
 
   const ScenePrefabVariant prefabVariant = scene_level_prefab_variant(levelMode);
   heap_array_for_t(level->objects, AssetLevelObject, obj) {
-    scene_prefab_spawn(
-        world,
-        &(ScenePrefabSpec){
-            .id       = obj->id,
-            .prefabId = obj->prefab,
-            .variant  = prefabVariant,
-            .position = obj->position,
-            .rotation = obj->rotation,
-            .scale    = obj->scale,
-            .faction  = scene_from_asset_faction(obj->faction),
-        });
+    ScenePrefabSpec spec = {
+        .id       = obj->id,
+        .prefabId = obj->prefab,
+        .variant  = prefabVariant,
+        .position = obj->position,
+        .rotation = obj->rotation,
+        .scale    = obj->scale,
+        .faction  = scene_from_asset_faction(obj->faction),
+    };
+    mem_cpy(mem_var(spec.sets), mem_var(obj->sets));
+    scene_prefab_spawn(world, &spec);
   }
 
   manager->levelMode       = levelMode;
@@ -315,10 +317,11 @@ static void scene_level_object_push(
     return; // Volatile prefabs should not be persisted.
   }
 
-  const SceneTransformComp* maybeTrans   = ecs_view_read_t(instanceItr, SceneTransformComp);
-  const SceneScaleComp*     maybeScale   = ecs_view_read_t(instanceItr, SceneScaleComp);
-  const SceneFactionComp*   maybeFaction = ecs_view_read_t(instanceItr, SceneFactionComp);
-  const f32                 scaleVal     = maybeScale ? maybeScale->scale : 1.0f;
+  const SceneTransformComp* maybeTrans     = ecs_view_read_t(instanceItr, SceneTransformComp);
+  const SceneScaleComp*     maybeScale     = ecs_view_read_t(instanceItr, SceneScaleComp);
+  const SceneFactionComp*   maybeFaction   = ecs_view_read_t(instanceItr, SceneFactionComp);
+  const SceneSetMemberComp* maybeSetMember = ecs_view_read_t(instanceItr, SceneSetMemberComp);
+  const f32                 scaleVal       = maybeScale ? maybeScale->scale : 1.0f;
 
   AssetLevelObject obj = {
       .id       = prefabInst->id ? prefabInst->id : rng_sample_u32(g_rng),
@@ -328,6 +331,10 @@ static void scene_level_object_push(
       .scale    = scaleVal == 1.0f ? 0.0 : scaleVal, // Scale 0 is treated as unscaled (eg 1.0).
       .faction  = maybeFaction ? scene_to_asset_faction(maybeFaction->id) : AssetLevelFaction_None,
   };
+  if (maybeSetMember) {
+    ASSERT(array_elems(obj.sets) >= scene_set_member_max_sets, "Insufficient set storage");
+    scene_set_member_all_non_volatile(maybeSetMember, obj.sets);
+  }
 
   // Guarantee unique object id.
   while (dynarray_search_binary(objects, level_compare_object_id, &obj)) {

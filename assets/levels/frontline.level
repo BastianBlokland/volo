@@ -1,7 +1,6 @@
 {
   "terrainId": "terrains/desert_big.terrain",
   "fogMode": "VisibilityBased",
-  "startpoint": {},
   "objects": [
     {
       "id": 732732,

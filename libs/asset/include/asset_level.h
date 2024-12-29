@@ -5,6 +5,8 @@
 #include "ecs_module.h"
 #include "geo_quat.h"
 
+#define asset_level_sets_max 8
+
 typedef enum {
   AssetLevelFaction_None,
   AssetLevelFaction_A,
@@ -27,6 +29,7 @@ typedef struct {
   f32               scale;
   GeoVector         position;
   GeoQuat           rotation;
+  StringHash        sets[asset_level_sets_max];
 } AssetLevelObject;
 
 typedef struct {

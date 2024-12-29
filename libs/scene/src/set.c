@@ -21,6 +21,11 @@
 #define scene_set_wellknown_names 1
 #define scene_set_max 64
 
+typedef enum {
+  SetFlags_None     = 0,
+  SetFlags_Volatile = 1 << 0,
+} SetFlags;
+
 typedef struct {
   ALIGNAS(16) StringHash ids[scene_set_max];
   DynArray    members[scene_set_max]; // EcsEntityId[][scene_set_max], Entities sorted on their id.
@@ -214,9 +219,10 @@ static struct {
   String      setName;
   StringHash* setPtr;
   SceneTags   tags;
+  SetFlags    flags;
 } g_setWellknownTagEntries[] = {
-    {string_static("unit"), &g_sceneSetUnit, SceneTags_Unit},
-    {string_static("selected"), &g_sceneSetSelected, SceneTags_Selected},
+    {string_static("unit"), &g_sceneSetUnit, SceneTags_Unit, SetFlags_None},
+    {string_static("selected"), &g_sceneSetSelected, SceneTags_Selected, SetFlags_Volatile},
 };
 
 static void set_wellknown_tags_init_locked(void) {
@@ -250,6 +256,15 @@ static SceneTags set_wellknown_tags(const StringHash set) {
     }
   }
   return 0;
+}
+
+static bool set_is_volatile(const StringHash set) {
+  for (u32 i = 0; i != array_elems(g_setWellknownTagEntries); ++i) {
+    if (*g_setWellknownTagEntries[i].setPtr == set) {
+      return (g_setWellknownTagEntries[i].flags & SetFlags_Volatile) != 0;
+    }
+  }
+  return false;
 }
 
 typedef enum {
@@ -589,6 +604,17 @@ u32 scene_set_member_all(
   u32 count = 0;
   for (u32 i = 0; i != array_elems(member->sets); ++i) {
     if (member->sets[i]) {
+      out[count++] = member->sets[i];
+    }
+  }
+  return count;
+}
+
+u32 scene_set_member_all_non_volatile(
+    const SceneSetMemberComp* member, StringHash out[PARAM_ARRAY_SIZE(scene_set_member_max_sets)]) {
+  u32 count = 0;
+  for (u32 i = 0; i != array_elems(member->sets); ++i) {
+    if (member->sets[i] && !set_is_volatile(member->sets[i])) {
       out[count++] = member->sets[i];
     }
   }
