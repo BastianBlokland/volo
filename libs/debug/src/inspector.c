@@ -275,17 +275,21 @@ static EcsEntityId inspector_prefab_duplicate(EcsWorld* world, EcsIterator* subj
     log_e("Unable to duplicate prefab.", log_param("entity", ecs_entity_fmt(entity)));
     return ecs_entity_invalid;
   }
-  return scene_prefab_spawn(
-      world,
-      &(ScenePrefabSpec){
-          .id       = 0 /* Entity will get a new id on level save */,
-          .prefabId = prefabInstComp->prefabId,
-          .variant  = prefabInstComp->variant,
-          .faction  = factionComp ? factionComp->id : SceneFaction_None,
-          .scale    = scaleComp ? scaleComp->scale : 1.0f,
-          .position = transComp->position,
-          .rotation = transComp->rotation,
-      });
+  ScenePrefabSpec spec = {
+      .id       = 0 /* Entity will get a new id on level save */,
+      .prefabId = prefabInstComp->prefabId,
+      .variant  = prefabInstComp->variant,
+      .faction  = factionComp ? factionComp->id : SceneFaction_None,
+      .scale    = scaleComp ? scaleComp->scale : 1.0f,
+      .position = transComp->position,
+      .rotation = transComp->rotation,
+  };
+  const SceneSetMemberComp* setMember = ecs_view_read_t(subject, SceneSetMemberComp);
+  if (setMember) {
+    ASSERT(array_elems(spec.sets) >= scene_set_member_max_sets, "Insufficient set storage");
+    scene_set_member_all(setMember, spec.sets);
+  }
+  return scene_prefab_spawn(world, &spec);
 }
 
 static void inspector_prefab_replace(
@@ -295,22 +299,26 @@ static void inspector_prefab_replace(
   const SceneScaleComp*          scaleComp      = ecs_view_read_t(subject, SceneScaleComp);
   const SceneFactionComp*        factionComp    = ecs_view_read_t(subject, SceneFactionComp);
   const ScenePrefabInstanceComp* prefabInstComp = ecs_view_read_t(subject, ScenePrefabInstanceComp);
-  if (UNLIKELY(!prefabInstComp || prefabInstComp->variant == ScenePrefabVariant_Preview)) {
+  if (UNLIKELY(!prefabInstComp || prefabInstComp->variant != ScenePrefabVariant_Edit)) {
+    // NOTE: Play-variant instances cannot be replaced due to incompatible trait data.
     log_e("Unable to replace prefab.", log_param("entity", ecs_entity_fmt(entity)));
     return;
   }
-  scene_prefab_spawn_replace(
-      prefabEnv,
-      &(ScenePrefabSpec){
-          .id       = prefabInstComp->id,
-          .prefabId = prefabId,
-          .variant  = prefabInstComp->variant,
-          .faction  = factionComp ? factionComp->id : SceneFaction_None,
-          .scale    = scaleComp ? scaleComp->scale : 1.0f,
-          .position = transComp->position,
-          .rotation = transComp->rotation,
-      },
-      entity);
+  ScenePrefabSpec spec = {
+      .id       = prefabInstComp->id,
+      .prefabId = prefabId,
+      .variant  = ScenePrefabVariant_Edit,
+      .faction  = factionComp ? factionComp->id : SceneFaction_None,
+      .scale    = scaleComp ? scaleComp->scale : 1.0f,
+      .position = transComp->position,
+      .rotation = transComp->rotation,
+  };
+  const SceneSetMemberComp* setMember = ecs_view_read_t(subject, SceneSetMemberComp);
+  if (setMember) {
+    ASSERT(array_elems(spec.sets) >= scene_set_member_max_sets, "Insufficient set storage");
+    scene_set_member_all(setMember, spec.sets);
+  }
+  scene_prefab_spawn_replace(prefabEnv, &spec, entity);
 }
 
 typedef struct {
@@ -408,7 +416,7 @@ static void inspector_panel_draw_entity_info(InspectorContext* ctx, UiTable* tab
   }
   if (prefabInst) {
     UiWidgetFlags flags = UiWidget_Default;
-    if (scene_level_mode(ctx->level) != SceneLevelMode_Edit) {
+    if (prefabInst->variant != ScenePrefabVariant_Edit) {
       flags |= UiWidget_Disabled;
     }
     if (debug_widget_editor_prefab(ctx->canvas, ctx->prefabMap, &prefabInst->prefabId, flags)) {
@@ -1132,24 +1140,19 @@ static void debug_inspector_tool_drop(
 }
 
 static void debug_inspector_tool_duplicate(EcsWorld* w, SceneSetEnvComp* setEnv) {
-  const StringHash s = g_sceneSetSelected;
+  EcsIterator* itr = ecs_view_itr(ecs_world_view_t(w, SubjectView));
 
-  DynArray     newEntities = dynarray_create_t(g_allocHeap, EcsEntityId, 64);
-  EcsIterator* itr         = ecs_view_itr(ecs_world_view_t(w, SubjectView));
+  const StringHash s = g_sceneSetSelected;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
-    if (!ecs_view_maybe_jump(itr, *e)) {
-      continue; // Selected entity is missing required components.
-    }
-    const EcsEntityId duplicatedEntity = inspector_prefab_duplicate(w, itr);
-    if (ecs_entity_valid(duplicatedEntity)) {
-      *dynarray_push_t(&newEntities, EcsEntityId) = duplicatedEntity;
+    if (ecs_view_maybe_jump(itr, *e)) {
+      inspector_prefab_duplicate(w, itr);
     }
   }
-
-  // Select the newly created entities.
+  /**
+   * Clear the old selection (the newly created entities will be automatically selected due to
+   * duplicating the sets of the original entities).
+   */
   scene_set_clear(setEnv, s);
-  dynarray_for_t(&newEntities, EcsEntityId, e) { scene_set_add(setEnv, s, *e, SceneSetFlags_None); }
-  dynarray_destroy(&newEntities);
 }
 
 static void debug_inspector_tool_select_all(EcsWorld* w, SceneSetEnvComp* setEnv) {

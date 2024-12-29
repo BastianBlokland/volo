@@ -723,6 +723,9 @@ static bool setup_prefab(
   if (spec->faction != SceneFaction_None) {
     ecs_world_add_t(world, e, SceneFactionComp, .id = spec->faction);
   }
+  if (!mem_all(mem_var(spec->sets), 0)) {
+    scene_set_member_create(world, e, spec->sets, array_elems(spec->sets));
+  }
 
   PrefabSetupContext ctx = {
       .world     = world,
