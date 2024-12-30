@@ -156,6 +156,16 @@ static void prefab_validate_pos(MAYBE_UNUSED const GeoVector vec) {
       geo_vector_fmt(vec));
 }
 
+static const ScenePrefabRequest*
+prefab_request_find(const ScenePrefabEnvComp* env, const EcsEntityId entity) {
+  dynarray_for_t(&env->requests, ScenePrefabRequest, req) {
+    if (req->entity == entity) {
+      return req;
+    }
+  }
+  return null;
+}
+
 static SceneLayer prefab_instance_layer(const SceneFaction faction, const AssetPrefabFlags flags) {
   if (flags & AssetPrefabFlags_Infantry) {
     return SceneLayer_Infantry & scene_faction_layers(faction);
@@ -836,6 +846,11 @@ void scene_prefab_spawn_onto(
     ScenePrefabEnvComp* env, const ScenePrefabSpec* spec, const EcsEntityId e) {
   diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", string_hash_fmt(spec->prefabId));
 
+  if (prefab_request_find(env, e)) {
+    log_w("Duplicate prefab request", log_param("entity", ecs_entity_fmt(e)));
+    return;
+  }
+
   *dynarray_push_t(&env->requests, ScenePrefabRequest) = (ScenePrefabRequest){
       .spec   = prefab_spec_dup(spec, g_allocHeap),
       .entity = e,
@@ -845,6 +860,11 @@ void scene_prefab_spawn_onto(
 void scene_prefab_spawn_replace(
     ScenePrefabEnvComp* env, const ScenePrefabSpec* spec, const EcsEntityId e) {
   diag_assert_msg(spec->prefabId, "Invalid prefab id: {}", string_hash_fmt(spec->prefabId));
+
+  if (prefab_request_find(env, e)) {
+    log_w("Duplicate prefab request", log_param("entity", ecs_entity_fmt(e)));
+    return;
+  }
 
   *dynarray_push_t(&env->requests, ScenePrefabRequest) = (ScenePrefabRequest){
       .spec        = prefab_spec_dup(spec, g_allocHeap),
