@@ -40,11 +40,12 @@ typedef struct {
 } AssetEntry;
 
 typedef enum {
-  AssetFlags_Loading = 1 << 0,
-  AssetFlags_Loaded  = 1 << 1,
-  AssetFlags_Failed  = 1 << 2,
-  AssetFlags_Cleanup = 1 << 3,
-  AssetFlags_Active  = AssetFlags_Loading | AssetFlags_Loaded | AssetFlags_Failed,
+  AssetFlags_Loading        = 1 << 0,
+  AssetFlags_Loaded         = 1 << 1,
+  AssetFlags_Failed         = 1 << 2,
+  AssetFlags_Cleanup        = 1 << 3,
+  AssetFlags_LoadedOrFailed = AssetFlags_Loaded | AssetFlags_Failed,
+  AssetFlags_Active         = AssetFlags_Loading | AssetFlags_Loaded | AssetFlags_Failed,
 } AssetFlags;
 
 ecs_comp_define(AssetManagerComp) {
@@ -358,18 +359,10 @@ ecs_system_define(AssetUpdateDirtySys) {
     // Loading assets should be continuously updated to track their progress.
     bool updateRequired = true;
 
-    if (assetComp->refCount && assetComp->flags & AssetFlags_Failed) {
-      /**
-       * This asset failed before (but was now acquired again); clear the state to retry.
-       */
-      assetComp->flags &= ~AssetFlags_Failed;
-      ecs_world_remove_t(world, entity, AssetFailedComp);
-      goto AssetUpdateDone;
-    }
-
     if (assetComp->flags & AssetFlags_Cleanup) {
       /**
        * Actual data cleanup will be performed by the loader responsible for this asset-type.
+       * NOTE: Early out as the asset cannot be loaded again in the same frame as the cleanup.
        */
       assetComp->flags &= ~AssetFlags_Cleanup;
       updateRequired = assetComp->refCount > 0;
@@ -391,11 +384,11 @@ ecs_system_define(AssetUpdateDirtySys) {
         {
           if (asset_manager_load(world, manager, importEnv, assetComp, entity)) {
             loadTime += time_steady_duration(loadStart, time_steady_clock());
+            ecs_utils_maybe_remove_t(world, entity, AssetInstantUnloadComp);
           } else {
             ecs_world_add_empty_t(world, entity, AssetFailedComp);
           }
           ecs_utils_maybe_remove_t(world, entity, AssetChangedComp);
-          ecs_utils_maybe_remove_t(world, entity, AssetInstantUnloadComp);
         }
         trace_end();
       }
@@ -406,52 +399,40 @@ ecs_system_define(AssetUpdateDirtySys) {
       /**
        * Asset has failed loading.
        */
-      if (dependencyComp) {
-        /*
-         * Mark the assets that depend on this asset to be instantly unloaded (instead of waiting
-         * for the unload delay). Reason is that if this asset fails to load most likely the asset
-         * that depends on this one should be reloaded as well.
-         */
-        asset_dep_mark(&dependencyComp->dependents, world, ecs_comp_id(AssetInstantUnloadComp));
-      }
       assetComp->flags &= ~AssetFlags_Loading;
       assetComp->flags |= AssetFlags_Failed;
-      updateRequired = false;
       goto AssetUpdateDone;
     }
-
     if (assetComp->flags & AssetFlags_Loading && ecs_world_has_t(world, entity, AssetLoadedComp)) {
       /**
        * Asset has finished loading.
        */
       assetComp->flags &= ~AssetFlags_Loading;
       assetComp->flags |= AssetFlags_Loaded;
-      updateRequired = false;
       goto AssetUpdateDone;
     }
 
     const u32  unloadDelay = asset_unload_delay(world, manager, entity);
     const bool unload      = !assetComp->refCount && ++assetComp->unloadTicks >= unloadDelay;
+    if (unload && assetComp->flags & AssetFlags_Failed) {
+      /**
+       * Asset was failed and should now be unloaded.
+       */
+      ecs_world_remove_t(world, entity, AssetFailedComp);
+      assetComp->flags &= ~AssetFlags_Failed;
+      goto AssetUpdateDone;
+    }
     if (unload && assetComp->flags & AssetFlags_Loaded) {
       /**
-       * Asset should be unloaded.
+       * Asset was loaded and should now be unloaded.
        */
       ecs_world_remove_t(world, entity, AssetLoadedComp);
-      ecs_utils_maybe_remove_t(world, entity, AssetInstantUnloadComp);
       assetComp->flags &= ~AssetFlags_Loaded;
-      assetComp->flags |= AssetFlags_Cleanup;
-
-#if VOLO_ASSET_LOGGING
-      log_d(
-          "Asset unload",
-          log_param("id", fmt_path(assetComp->id)),
-          log_param("entity", ecs_entity_fmt(entity)));
-#endif
-
+      assetComp->flags |= AssetFlags_Cleanup; // Mark this asset as cleaning up (will take a frame).
       goto AssetUpdateDone;
     }
 
-    if (!!assetComp->refCount == !!(assetComp->flags & AssetFlags_Loaded)) {
+    if (!!assetComp->refCount == !!(assetComp->flags & AssetFlags_LoadedOrFailed)) {
       /**
        * Asset load state matches required state, no need for further updates.
        */
