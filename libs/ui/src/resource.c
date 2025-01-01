@@ -48,7 +48,7 @@ static UiGlobalResourcesComp* ui_global_resources(EcsWorld* world) {
   return globalItr ? ecs_view_write_t(globalItr, UiGlobalResourcesComp) : null;
 }
 
-ecs_system_define(UiResourceInitSys) {
+ecs_system_define(UiResourceUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalInitView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -70,12 +70,22 @@ ecs_system_define(UiResourceInitSys) {
       globalResources->sounds[res] = asset_lookup(world, assets, g_uiSoundIds[res]);
       snd_mixer_persistent_asset(soundMixer, globalResources->sounds[res]);
     }
-    return;
   }
 
   for (UiAtlasRes res = 0; res != UiAtlasRes_Count; ++res) {
-    const bool isAcquired  = (globalResources->acquiredAtlases & (1 << res)) != 0;
-    const bool isUnloading = (globalResources->unloadingAtlases & (1 << res)) != 0;
+    const EcsEntityId atlas       = globalResources->atlases[res];
+    const bool        isAcquired  = (globalResources->acquiredAtlases & (1 << res)) != 0;
+    const bool        isUnloading = (globalResources->unloadingAtlases & (1 << res)) != 0;
+    const bool        isLoaded    = ecs_world_has_t(world, atlas, AssetLoadedComp);
+    const bool        isFailed    = ecs_world_has_t(world, atlas, AssetFailedComp);
+    const bool        hasChanged  = ecs_world_has_t(world, atlas, AssetChangedComp);
+
+    if (isFailed) {
+      log_e(
+          "Failed to load ui {} atlas",
+          log_param("type", fmt_text(g_uiAtlasResNames[res])),
+          log_param("id", fmt_text(g_uiAtlasIds[res])));
+    }
     if (!isAcquired && !isUnloading) {
       log_i(
           "Acquiring ui {} atlas",
@@ -84,35 +94,12 @@ ecs_system_define(UiResourceInitSys) {
       asset_acquire(world, globalResources->atlases[res]);
       globalResources->acquiredAtlases |= 1 << res;
     }
-  }
-}
-
-ecs_system_define(UiResourceUnloadChangedAtlasSys) {
-  UiGlobalResourcesComp* globalResources = ui_global_resources(world);
-  if (!globalResources) {
-    return;
-  }
-  for (UiAtlasRes res = 0; res != UiAtlasRes_Count; ++res) {
-    const EcsEntityId atlas      = globalResources->atlases[res];
-    const bool        isAcquired = (globalResources->acquiredAtlases & (1 << res)) != 0;
-    const bool        isLoaded   = ecs_world_has_t(world, atlas, AssetLoadedComp);
-    const bool        isFailed   = ecs_world_has_t(world, atlas, AssetFailedComp);
-    const bool        hasChanged = ecs_world_has_t(world, atlas, AssetChangedComp);
-
     if (isAcquired && (isLoaded || isFailed) && hasChanged) {
-      log_i(
-          "Unloading ui {} atlas",
-          log_param("type", fmt_text(g_uiAtlasResNames[res])),
-          log_param("id", fmt_text(g_uiAtlasIds[res])),
-          log_param("reason", fmt_text_lit("Asset changed")));
-
       asset_release(world, atlas);
       globalResources->acquiredAtlases &= ~(1 << res);
       globalResources->unloadingAtlases |= 1 << res;
     }
-
-    const bool isUnloading = (globalResources->unloadingAtlases & (1 << res)) != 0;
-    if (isUnloading && !isLoaded) {
+    if (isUnloading && !(isLoaded || isFailed)) {
       globalResources->unloadingAtlases &= ~(1 << res);
     }
   }
@@ -125,8 +112,7 @@ ecs_module_init(ui_resource_module) {
   ecs_register_view(GlobalResourcesView);
 
   ecs_register_system(
-      UiResourceInitSys, ecs_view_id(GlobalInitView), ecs_view_id(GlobalResourcesView));
-  ecs_register_system(UiResourceUnloadChangedAtlasSys, ecs_view_id(GlobalResourcesView));
+      UiResourceUpdateSys, ecs_view_id(GlobalInitView), ecs_view_id(GlobalResourcesView));
 }
 
 EcsEntityId ui_resource_atlas(const UiGlobalResourcesComp* comp, const UiAtlasRes res) {
