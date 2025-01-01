@@ -163,13 +163,13 @@ ecs_comp_define(DebugInspectorPanelComp) {
   UiPanel      panel;
   UiScrollview scrollview;
   u32          totalRows;
-  DynString    setNameBuffer;
+  DynString    textBuffer;
   GeoVector    transformRotEulerDeg; // Local copy of rotation as euler angles to use while editing.
 };
 
 static void ecs_destruct_panel_comp(void* data) {
   DebugInspectorPanelComp* panel = data;
-  dynstring_destroy(&panel->setNameBuffer);
+  dynstring_destroy(&panel->textBuffer);
 }
 
 ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp); }
@@ -679,20 +679,20 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
 
     if (setCount != setCountMax) {
       inspector_panel_next(ctx, table);
-      ui_textbox(ctx->canvas, &ctx->panel->setNameBuffer, .placeholder = string_lit("Set name..."));
+      ui_textbox(ctx->canvas, &ctx->panel->textBuffer, .placeholder = string_lit("Set name..."));
       ui_table_next_column(ctx->canvas, table);
       ui_layout_resize(ctx->canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
       if (ui_button(
               ctx->canvas,
-              .flags      = ctx->panel->setNameBuffer.size == 0 ? UiWidget_Disabled : 0,
+              .flags      = ctx->panel->textBuffer.size == 0 ? UiWidget_Disabled : 0,
               .label      = ui_shape_scratch(UiShape_Add),
               .fontSize   = 18,
               .frameColor = ui_color(16, 192, 0, 192),
               .tooltip    = string_lit("Add this entity to the specified set."))) {
-        const String     setName = dynstring_view(&ctx->panel->setNameBuffer);
+        const String     setName = dynstring_view(&ctx->panel->textBuffer);
         const StringHash set     = stringtable_add(g_stringtable, setName);
         scene_set_add(ctx->setEnv, set, ctx->subjectEntity, SceneSetFlags_None);
-        dynstring_clear(&ctx->panel->setNameBuffer);
+        dynstring_clear(&ctx->panel->textBuffer);
       }
     }
   }
@@ -2006,8 +2006,8 @@ debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window, const Debu
       world,
       panelEntity,
       DebugInspectorPanelComp,
-      .panel         = ui_panel(.position = ui_vector(0.0f, 0.0f), .size = ui_vector(500, 500)),
-      .setNameBuffer = dynstring_create(g_allocHeap, 0));
+      .panel      = ui_panel(.position = ui_vector(0.0f, 0.0f), .size = ui_vector(500, 500)),
+      .textBuffer = dynstring_create(g_allocHeap, 0));
 
   if (type == DebugPanelType_Detached) {
     ui_panel_maximize(&inspectorPanel->panel);
