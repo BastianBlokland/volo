@@ -176,7 +176,7 @@ ecs_system_define(SceneProductResUpdateSys) {
   const bool hasChanged = ecs_world_has_t(world, resource->mapEntity, AssetChangedComp);
 
   if (isFailed) {
-    log_e("Failed to load product-map");
+    log_e("Failed to load product-map", log_param("id", fmt_text(resource->mapId)));
   }
   if (!(resource->flags & (ProductRes_MapAcquired | ProductRes_MapUnloading))) {
     log_i("Acquiring product-map", log_param("id", fmt_text(resource->mapId)));
@@ -196,7 +196,7 @@ ecs_system_define(SceneProductResUpdateSys) {
     scene_production_reset_all_queues(world);
   }
   if (resource->flags & ProductRes_MapUnloading && !(isLoaded || isFailed)) {
-    resource->flags &= ~ProductRes_MapUnloading;
+    resource->flags &= ~ProductRes_MapUnloading; // Unload finished.
   }
 }
 

@@ -75,7 +75,7 @@ ecs_system_define(InputResourceUpdateSys) {
       map->flags |= InputResMap_Unloading;
     }
     if (map->flags & InputResMap_Unloading && !(isLoaded || isFailed)) {
-      map->flags &= ~InputResMap_Unloading;
+      map->flags &= ~InputResMap_Unloading; // Unload finished.
     }
   }
 }

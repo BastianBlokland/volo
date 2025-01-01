@@ -100,7 +100,7 @@ ecs_system_define(UiResourceUpdateSys) {
       globalResources->unloadingAtlases |= 1 << res;
     }
     if (isUnloading && !(isLoaded || isFailed)) {
-      globalResources->unloadingAtlases &= ~(1 << res);
+      globalResources->unloadingAtlases &= ~(1 << res); // Unload finished.
     }
   }
 }

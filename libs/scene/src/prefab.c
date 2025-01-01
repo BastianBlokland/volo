@@ -203,7 +203,7 @@ ecs_system_define(ScenePrefabResourceUpdateSys) {
   const bool hasChanged = ecs_world_has_t(world, env->mapEntity, AssetChangedComp);
 
   if (isFailed) {
-    log_e("Failed to load prefab-map");
+    log_e("Failed to load prefab-map", log_param("id", fmt_text(env->mapId)));
   }
   if (!(env->flags & (PrefabResource_MapAcquired | PrefabResource_MapUnloading))) {
     asset_acquire(world, env->mapEntity);
@@ -221,7 +221,7 @@ ecs_system_define(ScenePrefabResourceUpdateSys) {
     env->flags |= PrefabResource_MapUnloading;
   }
   if (env->flags & PrefabResource_MapUnloading && !(isLoaded || isFailed)) {
-    env->flags &= ~PrefabResource_MapUnloading;
+    env->flags &= ~PrefabResource_MapUnloading; // Unload finished.
   }
 }
 

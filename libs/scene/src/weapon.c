@@ -54,7 +54,7 @@ ecs_system_define(SceneWeaponMapLoadSys) {
   const bool hasChanged = ecs_world_has_t(world, resource->mapEntity, AssetChangedComp);
 
   if (isFailed) {
-    log_e("Failed to load weapon-map");
+    log_e("Failed to load weapon-map", log_param("id", fmt_text(resource->mapId)));
   }
   if (!(resource->flags & (WeaponRes_MapAcquired | WeaponRes_MapUnloading))) {
     log_i("Acquiring weapon-map", log_param("id", fmt_text(resource->mapId)));
@@ -67,7 +67,7 @@ ecs_system_define(SceneWeaponMapLoadSys) {
     resource->flags |= WeaponRes_MapUnloading;
   }
   if (resource->flags & WeaponRes_MapUnloading && !(isLoaded || isFailed)) {
-    resource->flags &= ~WeaponRes_MapUnloading;
+    resource->flags &= ~WeaponRes_MapUnloading; // Unload finished.
   }
 }
 
