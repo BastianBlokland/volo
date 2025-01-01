@@ -126,6 +126,17 @@ ecs_view_define(MeshView) {
 
 ecs_view_define(SkeletonTemplView) { ecs_access_read(SceneSkeletonTemplComp); }
 
+static bool scene_skeleton_templ_dirty(
+    EcsWorld* world, const EcsEntityId graphic, const SceneSkeletonTemplComp* templ) {
+  if (ecs_world_has_t(world, graphic, AssetChangedComp)) {
+    return true;
+  }
+  if (templ->mesh && ecs_world_has_t(world, templ->mesh, AssetChangedComp)) {
+    return true;
+  }
+  return false;
+}
+
 static SceneAnimFlags scene_skeleton_init_flags(const SceneSkeletonAnim* anim) {
   SceneAnimFlags ret = SceneAnimFlags_None;
   if (anim->flags & AssetMeshAnimFlags_Active) {
@@ -202,10 +213,14 @@ ecs_system_define(SceneSkeletonInitSys) {
 
     if (ecs_view_maybe_jump(templItr, graphic)) {
       const SceneSkeletonTemplComp* tl = ecs_view_read_t(templItr, SceneSkeletonTemplComp);
-      if (tl->state == SkeletonTemplState_FinishedSuccess) {
-        scene_skeleton_init(world, entity, tl);
-        ecs_world_add_empty_t(world, entity, SceneSkeletonLoadedComp);
+      if (tl->state != SkeletonTemplState_FinishedSuccess) {
+        continue; // Template is still loading (or failed to load).
       }
+      if (scene_skeleton_templ_dirty(world, graphic, tl)) {
+        continue; // Template is dirty (and will be unloaded this frame).
+      }
+      scene_skeleton_init(world, entity, tl);
+      ecs_world_add_empty_t(world, entity, SceneSkeletonLoadedComp);
       continue;
     }
 
@@ -325,6 +340,9 @@ ecs_system_define(SceneSkeletonTemplLoadSys) {
         scene_asset_templ_init(tl, ecs_view_read_t(meshItr, AssetMeshSkeletonComp));
       }
       const bool meshLoadFailure = ecs_world_has_t(world, tl->mesh, AssetFailedComp);
+      if (meshLoadFailure) {
+        log_e("Invalid graphic mesh asset", log_param("entity", ecs_entity_fmt(entity)));
+      }
       scene_skeleton_templ_load_done(world, itr, meshLoadFailure);
       break;
     }
@@ -638,17 +656,6 @@ ecs_view_define(DirtyRenderableView) {
   ecs_access_with(SceneSkeletonLoadedComp);
 }
 
-static bool scene_skeleton_templ_dirty(
-    EcsWorld* world, const EcsEntityId entity, const SceneSkeletonTemplComp* templ) {
-  if (ecs_world_has_t(world, entity, AssetChangedComp)) {
-    return true;
-  }
-  if (templ->mesh && ecs_world_has_t(world, templ->mesh, AssetChangedComp)) {
-    return true;
-  }
-  return false;
-}
-
 ecs_system_define(SceneSkeletonClearDirtyTemplateSys) {
   EcsView* dirtyTemplateView   = ecs_world_view_t(world, DirtyTemplateView);
   EcsView* dirtyRenderableView = ecs_world_view_t(world, DirtyRenderableView);
@@ -656,7 +663,7 @@ ecs_system_define(SceneSkeletonClearDirtyTemplateSys) {
   /**
    * Clear skeleton templates for changed graphic / mesh assets.
    */
-  DynArray clearedTemplates = dynarray_create_t(g_allocScratch, EcsEntityId, 0);
+  DynArray clearedTemplates = dynarray_create_t(g_allocScratch, EcsEntityId, 32);
   for (EcsIterator* itr = ecs_view_itr(dirtyTemplateView); ecs_view_walk(itr);) {
     const EcsEntityId             entity = ecs_view_entity(itr);
     const SceneSkeletonTemplComp* templ  = ecs_view_read_t(itr, SceneSkeletonTemplComp);
