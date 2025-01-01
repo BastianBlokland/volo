@@ -143,8 +143,8 @@ ecs_system_define(VfxDecalLoadSys) {
       request->loadFlags &= ~VfxLoad_Acquired;
       request->loadFlags |= VfxLoad_Unloading;
     }
-    if (request->loadFlags & VfxLoad_Unloading && !isLoaded) {
-      request->loadFlags &= ~VfxLoad_Unloading;
+    if (request->loadFlags & VfxLoad_Unloading && !(isLoaded || isFailed)) {
+      request->loadFlags &= ~VfxLoad_Unloading; // Unload finished.
       vfx_decal_reset_all(world, entity);
     }
     if (!(request->loadFlags & (VfxLoad_Acquired | VfxLoad_Unloading))) {
