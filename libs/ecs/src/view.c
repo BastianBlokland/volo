@@ -232,7 +232,7 @@ EcsView ecs_view_create(
       .viewDef    = viewDef,
       .storage    = storage,
       .masks      = masksMem,
-      .archetypes = dynarray_create_t(alloc, EcsArchetypeId, 128),
+      .archetypes = dynarray_create_t(alloc, EcsArchetypeId, 32),
 #ifndef VOLO_FAST
       .exclusiveEntities = dynarray_create_t(alloc, EcsEntityId, 0),
 #endif

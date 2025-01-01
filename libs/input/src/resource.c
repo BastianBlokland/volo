@@ -43,7 +43,7 @@ static InputResourceComp* input_resource(EcsWorld* world) {
   return globalItr ? ecs_view_write_t(globalItr, InputResourceComp) : null;
 }
 
-ecs_system_define(InputResourceInitSys) {
+ecs_system_define(InputResourceUpdateSys) {
   AssetManagerComp*  assets   = input_asset_manager(world);
   InputResourceComp* resource = input_resource(world);
   if (!assets || !resource) {
@@ -57,40 +57,25 @@ ecs_system_define(InputResourceInitSys) {
     if (!map->asset) {
       map->asset = asset_lookup(world, assets, map->id);
     }
+    const bool isLoaded   = ecs_world_has_t(world, map->asset, AssetLoadedComp);
+    const bool isFailed   = ecs_world_has_t(world, map->asset, AssetFailedComp);
+    const bool hasChanged = ecs_world_has_t(world, map->asset, AssetChangedComp);
+
+    if (isFailed) {
+      log_e("Failed to load input-map", log_param("id", fmt_text(map->id)));
+    }
     if (!(map->flags & (InputResMap_Acquired | InputResMap_Unloading))) {
       log_i("Acquiring input-map", log_param("id", fmt_text(map->id)));
       asset_acquire(world, map->asset);
       map->flags |= InputResMap_Acquired;
     }
-  }
-}
-
-ecs_system_define(InputResourceUnloadChangedMapSys) {
-  InputResourceComp* resource = input_resource(world);
-  if (!resource) {
-    return;
-  }
-  for (u32 i = 0; i != input_resource_max_maps; ++i) {
-    InputResMap* map = &resource->maps[i];
-    if (!ecs_entity_valid(map->asset)) {
-      continue;
-    }
-    const bool isLoaded   = ecs_world_has_t(world, map->asset, AssetLoadedComp);
-    const bool isFailed   = ecs_world_has_t(world, map->asset, AssetFailedComp);
-    const bool hasChanged = ecs_world_has_t(world, map->asset, AssetChangedComp);
-
     if (map->flags & InputResMap_Acquired && (isLoaded || isFailed) && hasChanged) {
-      log_i(
-          "Unloading input-map",
-          log_param("id", fmt_text(map->id)),
-          log_param("reason", fmt_text_lit("Asset changed")));
-
       asset_release(world, map->asset);
       map->flags &= ~InputResMap_Acquired;
       map->flags |= InputResMap_Unloading;
     }
-    if (map->flags & InputResMap_Unloading && !isLoaded) {
-      map->flags &= ~InputResMap_Unloading;
+    if (map->flags & InputResMap_Unloading && !(isLoaded || isFailed)) {
+      map->flags &= ~InputResMap_Unloading; // Unload finished.
     }
   }
 }
@@ -102,8 +87,7 @@ ecs_module_init(input_resource_module) {
   ecs_register_view(GlobalResourceView);
 
   ecs_register_system(
-      InputResourceInitSys, ecs_view_id(GlobalAssetsView), ecs_view_id(GlobalResourceView));
-  ecs_register_system(InputResourceUnloadChangedMapSys, ecs_view_id(GlobalResourceView));
+      InputResourceUpdateSys, ecs_view_id(GlobalAssetsView), ecs_view_id(GlobalResourceView));
 }
 
 InputResourceComp* input_resource_init(EcsWorld* world) {

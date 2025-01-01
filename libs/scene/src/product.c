@@ -141,29 +141,9 @@ ecs_view_define(ProductionView) {
 
 ecs_view_define(PrefabMapView) { ecs_access_read(AssetPrefabMapComp); }
 
-ecs_view_define(ResInitGlobalView) {
+ecs_view_define(ResUpdateGlobalView) {
   ecs_access_write(AssetManagerComp);
   ecs_access_write(SceneProductResourceComp);
-}
-
-ecs_system_define(SceneProductResInitSys) {
-  EcsView*     globalView = ecs_world_view_t(world, ResInitGlobalView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (!globalItr) {
-    return;
-  }
-  AssetManagerComp*         assets   = ecs_view_write_t(globalItr, AssetManagerComp);
-  SceneProductResourceComp* resource = ecs_view_write_t(globalItr, SceneProductResourceComp);
-
-  if (!resource->mapEntity) {
-    resource->mapEntity = asset_lookup(world, assets, resource->mapId);
-  }
-
-  if (!(resource->flags & (ProductRes_MapAcquired | ProductRes_MapUnloading))) {
-    log_i("Acquiring product-map", log_param("id", fmt_text(resource->mapId)));
-    asset_acquire(world, resource->mapEntity);
-    resource->flags |= ProductRes_MapAcquired;
-  }
 }
 
 static void scene_production_reset_all_queues(EcsWorld* world) {
@@ -178,28 +158,32 @@ static void scene_production_reset_all_queues(EcsWorld* world) {
   }
 }
 
-ecs_view_define(ResUnloadGlobalView) { ecs_access_write(SceneProductResourceComp); }
-
-ecs_system_define(SceneProductResUnloadChangedSys) {
-  EcsView*     globalView = ecs_world_view_t(world, ResUnloadGlobalView);
+ecs_system_define(SceneProductResUpdateSys) {
+  EcsView*     globalView = ecs_world_view_t(world, ResUpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
+  AssetManagerComp*         assets   = ecs_view_write_t(globalItr, AssetManagerComp);
   SceneProductResourceComp* resource = ecs_view_write_t(globalItr, SceneProductResourceComp);
-  if (!ecs_entity_valid(resource->mapEntity)) {
-    return;
+
+  if (!resource->mapEntity) {
+    resource->mapEntity = asset_lookup(world, assets, resource->mapId);
   }
+
   const bool isLoaded   = ecs_world_has_t(world, resource->mapEntity, AssetLoadedComp);
   const bool isFailed   = ecs_world_has_t(world, resource->mapEntity, AssetFailedComp);
   const bool hasChanged = ecs_world_has_t(world, resource->mapEntity, AssetChangedComp);
 
+  if (isFailed) {
+    log_e("Failed to load product-map", log_param("id", fmt_text(resource->mapId)));
+  }
+  if (!(resource->flags & (ProductRes_MapAcquired | ProductRes_MapUnloading))) {
+    log_i("Acquiring product-map", log_param("id", fmt_text(resource->mapId)));
+    asset_acquire(world, resource->mapEntity);
+    resource->flags |= ProductRes_MapAcquired;
+  }
   if (resource->flags & ProductRes_MapAcquired && (isLoaded || isFailed) && hasChanged) {
-    log_i(
-        "Unloading product-map",
-        log_param("id", fmt_text(resource->mapId)),
-        log_param("reason", fmt_text_lit("Asset changed")));
-
     asset_release(world, resource->mapEntity);
     resource->flags &= ~ProductRes_MapAcquired;
     resource->flags |= ProductRes_MapUnloading;
@@ -211,8 +195,8 @@ ecs_system_define(SceneProductResUnloadChangedSys) {
      */
     scene_production_reset_all_queues(world);
   }
-  if (resource->flags & ProductRes_MapUnloading && !isLoaded) {
-    resource->flags &= ~ProductRes_MapUnloading;
+  if (resource->flags & ProductRes_MapUnloading && !(isLoaded || isFailed)) {
+    resource->flags &= ~ProductRes_MapUnloading; // Unload finished.
   }
 }
 
@@ -663,11 +647,9 @@ ecs_module_init(scene_product_module) {
   ecs_register_view(ProductionView);
   ecs_register_view(PrefabMapView);
 
-  ecs_register_system(SceneProductResInitSys, ecs_register_view(ResInitGlobalView));
-
   ecs_register_system(
-      SceneProductResUnloadChangedSys,
-      ecs_register_view(ResUnloadGlobalView),
+      SceneProductResUpdateSys,
+      ecs_register_view(ResUpdateGlobalView),
       ecs_view_id(ProductionView));
 
   ecs_register_system(
