@@ -421,10 +421,11 @@ static void memory_panel_tab_draw(
 
   DynArray entries = dynarray_create_t(g_allocScratch, DebugMemoryEntry, 256);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
-    const String name = stringtable_lookup(g_stringtable, itr.key);
     if (panelComp->hideNullMemory && !script_non_null(script_mem_load(memory, itr.key))) {
       continue;
     }
+    const String name = stringtable_lookup(g_stringtable, itr.key);
+
     *dynarray_push_t(&entries, DebugMemoryEntry) = (DebugMemoryEntry){
         .key  = itr.key,
         .name = string_is_empty(name) ? string_lit("< unnamed >") : name,
