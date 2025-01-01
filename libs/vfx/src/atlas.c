@@ -38,7 +38,7 @@ ecs_view_define(InitGlobalView) {
   ecs_access_write(AssetManagerComp);
 }
 
-ecs_system_define(VfxAtlasInitSys) {
+ecs_system_define(VfxAtlasLoadSys) {
   EcsView*     globalView = ecs_world_view_t(world, InitGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (UNLIKELY(!globalItr)) {
@@ -55,7 +55,17 @@ ecs_system_define(VfxAtlasInitSys) {
   }
 
   for (VfxAtlasType type = 0; type != VfxAtlasType_Count; ++type) {
-    VfxAtlasData* atlas = &manager->atlases[type];
+    VfxAtlasData* atlas      = &manager->atlases[type];
+    const bool    isLoaded   = ecs_world_has_t(world, atlas->entity, AssetLoadedComp);
+    const bool    isFailed   = ecs_world_has_t(world, atlas->entity, AssetFailedComp);
+    const bool    hasChanged = ecs_world_has_t(world, atlas->entity, AssetChangedComp);
+
+    if (isFailed) {
+      log_e(
+          "Failed to load vfx {} atlas",
+          log_param("type", fmt_text(g_vfxAtlasTypeNames[type])),
+          log_param("id", fmt_text(g_vfxAtlasAssets[type])));
+    }
     if (!(atlas->flags & (VfxAtlas_Acquired | VfxAtlas_Unloading))) {
       log_i(
           "Acquiring vfx {} atlas",
@@ -64,38 +74,13 @@ ecs_system_define(VfxAtlasInitSys) {
       asset_acquire(world, atlas->entity);
       atlas->flags |= VfxAtlas_Acquired;
     }
-  }
-}
-
-ecs_view_define(UnloadChangedGlobalView) { ecs_access_write(VfxAtlasManagerComp); }
-
-ecs_system_define(VfxAtlasUnloadChangedSys) {
-  EcsView*     globalView = ecs_world_view_t(world, UnloadChangedGlobalView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (UNLIKELY(!globalItr)) {
-    return;
-  }
-  VfxAtlasManagerComp* manager = ecs_view_write_t(globalItr, VfxAtlasManagerComp);
-
-  for (VfxAtlasType type = 0; type != VfxAtlasType_Count; ++type) {
-    VfxAtlasData* atlas      = &manager->atlases[type];
-    const bool    isLoaded   = ecs_world_has_t(world, atlas->entity, AssetLoadedComp);
-    const bool    isFailed   = ecs_world_has_t(world, atlas->entity, AssetFailedComp);
-    const bool    hasChanged = ecs_world_has_t(world, atlas->entity, AssetChangedComp);
-
     if (atlas->flags & VfxAtlas_Acquired && (isLoaded || isFailed) && hasChanged) {
-      log_i(
-          "Unloading vfx {} atlas",
-          log_param("type", fmt_text(g_vfxAtlasTypeNames[type])),
-          log_param("id", fmt_text(g_vfxAtlasAssets[type])),
-          log_param("reason", fmt_text_lit("Asset changed")));
-
       asset_release(world, atlas->entity);
       atlas->flags &= ~VfxAtlas_Acquired;
       atlas->flags |= VfxAtlas_Unloading;
     }
-    if (atlas->flags & VfxAtlas_Unloading && !isLoaded) {
-      atlas->flags &= ~VfxAtlas_Unloading;
+    if (atlas->flags & VfxAtlas_Unloading && !(isLoaded || isFailed)) {
+      atlas->flags &= ~VfxAtlas_Unloading; // Unload finished.
     }
   }
 }
@@ -103,8 +88,7 @@ ecs_system_define(VfxAtlasUnloadChangedSys) {
 ecs_module_init(vfx_atlas_module) {
   ecs_register_comp(VfxAtlasManagerComp);
 
-  ecs_register_system(VfxAtlasInitSys, ecs_register_view(InitGlobalView));
-  ecs_register_system(VfxAtlasUnloadChangedSys, ecs_register_view(UnloadChangedGlobalView));
+  ecs_register_system(VfxAtlasLoadSys, ecs_register_view(InitGlobalView));
 }
 
 EcsEntityId vfx_atlas_entity(const VfxAtlasManagerComp* manager, const VfxAtlasType type) {
