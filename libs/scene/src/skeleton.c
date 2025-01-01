@@ -340,6 +340,9 @@ ecs_system_define(SceneSkeletonTemplLoadSys) {
         scene_asset_templ_init(tl, ecs_view_read_t(meshItr, AssetMeshSkeletonComp));
       }
       const bool meshLoadFailure = ecs_world_has_t(world, tl->mesh, AssetFailedComp);
+      if (meshLoadFailure) {
+        log_e("Invalid graphic mesh asset", log_param("entity", ecs_entity_fmt(entity)));
+      }
       scene_skeleton_templ_load_done(world, itr, meshLoadFailure);
       break;
     }
