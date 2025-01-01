@@ -599,7 +599,7 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
   EcsView*     globalView = ecs_world_view_t(world, PanelUpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
-    return;
+    return; // Global dependencies not ready.
   }
   const ScenePrefabEnvComp*    prefabEnv    = ecs_view_read_t(globalItr, ScenePrefabEnvComp);
   const SceneLevelManagerComp* levelManager = ecs_view_read_t(globalItr, SceneLevelManagerComp);
@@ -610,7 +610,7 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
   EcsView*     mapView = ecs_world_view_t(world, PrefabMapView);
   EcsIterator* mapItr  = ecs_view_maybe_at(mapView, scene_prefab_map(prefabEnv));
   if (!mapItr) {
-    return;
+    return; // Map still loading (or failed to load).
   }
   const AssetPrefabMapComp* prefabMap = ecs_view_read_t(mapItr, AssetPrefabMapComp);
 
