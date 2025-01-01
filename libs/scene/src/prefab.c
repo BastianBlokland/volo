@@ -185,11 +185,11 @@ static bool prefab_is_volatile(const AssetPrefab* prefab, const ScenePrefabSpec*
   return false;
 }
 
-ecs_system_define(ScenePrefabResourceInitSys) {
+ecs_system_define(ScenePrefabResourceUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalResourceUpdateView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
-    return;
+    return; // Global dependencies not ready.
   }
   AssetManagerComp*   assets = ecs_view_write_t(globalItr, AssetManagerComp);
   ScenePrefabEnvComp* env    = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
@@ -198,6 +198,13 @@ ecs_system_define(ScenePrefabResourceInitSys) {
     env->mapEntity = asset_lookup(world, assets, env->mapId);
   }
 
+  const bool isLoaded   = ecs_world_has_t(world, env->mapEntity, AssetLoadedComp);
+  const bool isFailed   = ecs_world_has_t(world, env->mapEntity, AssetFailedComp);
+  const bool hasChanged = ecs_world_has_t(world, env->mapEntity, AssetChangedComp);
+
+  if (isFailed) {
+    log_e("Failed to load prefab-map");
+  }
   if (!(env->flags & (PrefabResource_MapAcquired | PrefabResource_MapUnloading))) {
     asset_acquire(world, env->mapEntity);
     env->flags |= PrefabResource_MapAcquired;
@@ -208,34 +215,12 @@ ecs_system_define(ScenePrefabResourceInitSys) {
         log_param("id", fmt_text(env->mapId)),
         log_param("version", fmt_int(env->mapVersion)));
   }
-}
-
-ecs_system_define(ScenePrefabResourceUnloadChangedSys) {
-  EcsView*     globalView = ecs_world_view_t(world, GlobalResourceUpdateView);
-  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  if (!globalItr) {
-    return;
-  }
-  ScenePrefabEnvComp* env = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
-  if (!env->mapEntity) {
-    return;
-  }
-
-  const bool isLoaded   = ecs_world_has_t(world, env->mapEntity, AssetLoadedComp);
-  const bool isFailed   = ecs_world_has_t(world, env->mapEntity, AssetFailedComp);
-  const bool hasChanged = ecs_world_has_t(world, env->mapEntity, AssetChangedComp);
-
   if (env->flags & PrefabResource_MapAcquired && (isLoaded || isFailed) && hasChanged) {
-    log_i(
-        "Unloading prefab-map",
-        log_param("id", fmt_text(env->mapId)),
-        log_param("reason", fmt_text_lit("Asset changed")));
-
     asset_release(world, env->mapEntity);
     env->flags &= ~PrefabResource_MapAcquired;
     env->flags |= PrefabResource_MapUnloading;
   }
-  if (env->flags & PrefabResource_MapUnloading && !isLoaded) {
+  if (env->flags & PrefabResource_MapUnloading && !(isLoaded || isFailed)) {
     env->flags &= ~PrefabResource_MapUnloading;
   }
 }
@@ -812,8 +797,7 @@ ecs_module_init(scene_prefab_module) {
   ecs_register_view(PrefabMapAssetView);
   ecs_register_view(PrefabSpawnView);
 
-  ecs_register_system(ScenePrefabResourceInitSys, ecs_view_id(GlobalResourceUpdateView));
-  ecs_register_system(ScenePrefabResourceUnloadChangedSys, ecs_view_id(GlobalResourceUpdateView));
+  ecs_register_system(ScenePrefabResourceUpdateSys, ecs_view_id(GlobalResourceUpdateView));
 
   ecs_register_system(ScenePrefabInstanceLayerUpdateSys, ecs_view_id(InstanceLayerUpdateView));
 
