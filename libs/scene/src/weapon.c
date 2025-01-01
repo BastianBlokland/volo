@@ -38,7 +38,7 @@ static SceneWeaponResourceComp* weapon_resource(EcsWorld* world) {
   return globalItr ? ecs_view_write_t(globalItr, SceneWeaponResourceComp) : null;
 }
 
-ecs_system_define(SceneWeaponInitMapSys) {
+ecs_system_define(SceneWeaponMapLoadSys) {
   AssetManagerComp*        assets   = weapon_asset_manager(world);
   SceneWeaponResourceComp* resource = weapon_resource(world);
   if (!assets || !resource) {
@@ -49,33 +49,24 @@ ecs_system_define(SceneWeaponInitMapSys) {
     resource->mapEntity = asset_lookup(world, assets, resource->mapId);
   }
 
+  const bool isLoaded   = ecs_world_has_t(world, resource->mapEntity, AssetLoadedComp);
+  const bool isFailed   = ecs_world_has_t(world, resource->mapEntity, AssetFailedComp);
+  const bool hasChanged = ecs_world_has_t(world, resource->mapEntity, AssetChangedComp);
+
+  if (isFailed) {
+    log_e("Failed to load weapon-map");
+  }
   if (!(resource->flags & (WeaponRes_MapAcquired | WeaponRes_MapUnloading))) {
     log_i("Acquiring weapon-map", log_param("id", fmt_text(resource->mapId)));
     asset_acquire(world, resource->mapEntity);
     resource->flags |= WeaponRes_MapAcquired;
   }
-}
-
-ecs_system_define(SceneWeaponUnloadChangedMapSys) {
-  SceneWeaponResourceComp* resource = weapon_resource(world);
-  if (!resource || !ecs_entity_valid(resource->mapEntity)) {
-    return;
-  }
-  const bool isLoaded   = ecs_world_has_t(world, resource->mapEntity, AssetLoadedComp);
-  const bool isFailed   = ecs_world_has_t(world, resource->mapEntity, AssetFailedComp);
-  const bool hasChanged = ecs_world_has_t(world, resource->mapEntity, AssetChangedComp);
-
   if (resource->flags & WeaponRes_MapAcquired && (isLoaded || isFailed) && hasChanged) {
-    log_i(
-        "Unloading weapon-map",
-        log_param("id", fmt_text(resource->mapId)),
-        log_param("reason", fmt_text_lit("Asset changed")));
-
     asset_release(world, resource->mapEntity);
     resource->flags &= ~WeaponRes_MapAcquired;
     resource->flags |= WeaponRes_MapUnloading;
   }
-  if (resource->flags & WeaponRes_MapUnloading && !isLoaded) {
+  if (resource->flags & WeaponRes_MapUnloading && !(isLoaded || isFailed)) {
     resource->flags &= ~WeaponRes_MapUnloading;
   }
 }
@@ -87,8 +78,7 @@ ecs_module_init(scene_weapon_module) {
   ecs_register_view(GlobalResourceView);
 
   ecs_register_system(
-      SceneWeaponInitMapSys, ecs_view_id(GlobalAssetsView), ecs_view_id(GlobalResourceView));
-  ecs_register_system(SceneWeaponUnloadChangedMapSys, ecs_view_id(GlobalResourceView));
+      SceneWeaponMapLoadSys, ecs_view_id(GlobalAssetsView), ecs_view_id(GlobalResourceView));
 }
 
 void scene_weapon_init(EcsWorld* world, const String weaponMapId) {
