@@ -303,7 +303,6 @@ ecs_view_define(GlobalUpdateView) {
 ecs_view_define(DirtyAssetView) {
   ecs_access_write(AssetComp);
   ecs_access_write(AssetDirtyComp);
-  ecs_access_maybe_read(AssetDependencyComp);
 }
 
 ecs_view_define(AssetDependencyView) { ecs_access_read(AssetDependencyComp); }
@@ -347,10 +346,9 @@ ecs_system_define(AssetUpdateDirtySys) {
   EcsView*     assetsView = ecs_world_view_t(world, DirtyAssetView);
 
   for (EcsIterator* itr = ecs_view_itr_step(assetsView, parCount, parIndex); ecs_view_walk(itr);) {
-    const EcsEntityId          entity         = ecs_view_entity(itr);
-    AssetComp*                 assetComp      = ecs_view_write_t(itr, AssetComp);
-    AssetDirtyComp*            dirtyComp      = ecs_view_write_t(itr, AssetDirtyComp);
-    const AssetDependencyComp* dependencyComp = ecs_view_read_t(itr, AssetDependencyComp);
+    const EcsEntityId entity    = ecs_view_entity(itr);
+    AssetComp*        assetComp = ecs_view_write_t(itr, AssetComp);
+    AssetDirtyComp*   dirtyComp = ecs_view_write_t(itr, AssetDirtyComp);
 
     assetComp->refCount += dirtyComp->numAcquire;
     diag_assert_msg(assetComp->refCount >= dirtyComp->numRelease, "Unbalanced Acquire / Release");
