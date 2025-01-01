@@ -1997,20 +1997,7 @@ ecs_view_define(ResourceAssetView) {
 
 ecs_view_define(ResourceLoadView) { ecs_access_write(SceneScriptResourceComp); }
 
-ecs_system_define(SceneScriptResourceLoadSys) {
-  EcsView* loadView = ecs_world_view_t(world, ResourceLoadView);
-  for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
-    SceneScriptResourceComp* res = ecs_view_write_t(itr, SceneScriptResourceComp);
-
-    if (!(res->flags & (SceneScriptRes_ResourceAcquired | SceneScriptRes_ResourceUnloading))) {
-      asset_acquire(world, ecs_view_entity(itr));
-      res->flags |= SceneScriptRes_ResourceAcquired;
-      ++res->resVersion;
-    }
-  }
-}
-
-ecs_system_define(SceneScriptResourceUnloadChangedSys) {
+ecs_system_define(SceneScriptResourceUpdateSys) {
   EcsView* loadView = ecs_world_view_t(world, ResourceLoadView);
   for (EcsIterator* itr = ecs_view_itr(loadView); ecs_view_walk(itr);) {
     const EcsEntityId        entity = ecs_view_entity(itr);
@@ -2020,6 +2007,11 @@ ecs_system_define(SceneScriptResourceUnloadChangedSys) {
     const bool isFailed   = ecs_world_has_t(world, entity, AssetFailedComp);
     const bool hasChanged = ecs_world_has_t(world, entity, AssetChangedComp);
 
+    if (!(res->flags & (SceneScriptRes_ResourceAcquired | SceneScriptRes_ResourceUnloading))) {
+      asset_acquire(world, entity);
+      res->flags |= SceneScriptRes_ResourceAcquired;
+      ++res->resVersion;
+    }
     if (res->flags & SceneScriptRes_ResourceAcquired && (isLoaded || isFailed) && hasChanged) {
       log_i("Unloading script asset", log_param("reason", fmt_text_lit("Asset changed")));
 
@@ -2027,8 +2019,8 @@ ecs_system_define(SceneScriptResourceUnloadChangedSys) {
       res->flags &= ~SceneScriptRes_ResourceAcquired;
       res->flags |= SceneScriptRes_ResourceUnloading;
     }
-    if (res->flags & SceneScriptRes_ResourceUnloading && !isLoaded) {
-      res->flags &= ~SceneScriptRes_ResourceUnloading;
+    if (res->flags & SceneScriptRes_ResourceUnloading && !(isLoaded || isFailed)) {
+      res->flags &= ~SceneScriptRes_ResourceUnloading; // Unload finished.
     }
   }
 }
@@ -2176,8 +2168,7 @@ ecs_module_init(scene_script_module) {
   ecs_register_view(ResourceLoadView);
   ecs_register_view(ScriptUpdateView);
 
-  ecs_register_system(SceneScriptResourceLoadSys, ecs_view_id(ResourceLoadView));
-  ecs_register_system(SceneScriptResourceUnloadChangedSys, ecs_view_id(ResourceLoadView));
+  ecs_register_system(SceneScriptResourceUpdateSys, ecs_view_id(ResourceLoadView));
 
   ecs_register_system(
       SceneScriptUpdateSys,
