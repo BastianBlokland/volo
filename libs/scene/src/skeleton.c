@@ -656,7 +656,7 @@ ecs_system_define(SceneSkeletonClearDirtyTemplateSys) {
   /**
    * Clear skeleton templates for changed graphic / mesh assets.
    */
-  DynArray clearedTemplates = dynarray_create_t(g_allocScratch, EcsEntityId, 0);
+  DynArray clearedTemplates = dynarray_create_t(g_allocScratch, EcsEntityId, 32);
   for (EcsIterator* itr = ecs_view_itr(dirtyTemplateView); ecs_view_walk(itr);) {
     const EcsEntityId             entity = ecs_view_entity(itr);
     const SceneSkeletonTemplComp* templ  = ecs_view_read_t(itr, SceneSkeletonTemplComp);
