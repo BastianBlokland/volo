@@ -177,6 +177,7 @@ ecs_system_define(SceneClearDirtyBoundsSys) {
 
   /**
    * Clear computed bounds on renderable entities when their graphic asset has changed.
+   * TODO: Clear computed bounds also when the mesh (but not the graphic) has changed.
    */
   EcsView* renderablesView = ecs_world_view_t(world, RenderablesWithBoundsView);
   for (EcsIterator* itr = ecs_view_itr(renderablesView); ecs_view_walk(itr);) {
