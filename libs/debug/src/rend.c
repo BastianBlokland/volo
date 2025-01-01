@@ -880,9 +880,9 @@ static void rend_resource_tab_draw(
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5));
   ui_table_add_column(&table, UiTableColumn_Fixed, 270);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 115);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 110);
   ui_table_add_column(&table, UiTableColumn_Fixed, 90);
-  ui_table_add_column(&table, UiTableColumn_Fixed, 90);
+  ui_table_add_column(&table, UiTableColumn_Fixed, 95);
   ui_table_add_column(&table, UiTableColumn_Fixed, 90);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 

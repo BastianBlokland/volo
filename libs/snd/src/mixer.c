@@ -868,8 +868,7 @@ void snd_mixer_persistent_asset(SndMixerComp* m, const EcsEntityId asset) {
 
   // Check if this was the first time this asset was marked persistent.
   if (!ecs_entity_valid(*slot)) {
-    *slot                                                        = asset;
-    *dynarray_push_t(&m->persistentAssetsToAcquire, EcsEntityId) = asset;
+    *dynarray_push_t(&m->persistentAssetsToAcquire, EcsEntityId) = *slot = asset;
   }
 }
 
