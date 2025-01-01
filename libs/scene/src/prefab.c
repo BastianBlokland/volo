@@ -89,7 +89,7 @@ ecs_comp_define(ScenePrefabEnvComp) {
   PrefabResourceFlags flags;
   String              mapId;
   EcsEntityId         mapEntity;
-  u32                 mapVersion;
+  u32                 mapVersion, mapVersionApplied;
   DynArray            requests; // ScenePrefabRequest[]
 };
 
@@ -134,10 +134,20 @@ ecs_view_define(GlobalResourceUpdateView) {
   ecs_access_write(AssetManagerComp);
 }
 
+ecs_view_define(GlobalRefreshView) { ecs_access_write(ScenePrefabEnvComp); }
+
 ecs_view_define(GlobalSpawnView) {
   ecs_access_read(SceneTerrainComp);
   ecs_access_write(SceneNavEnvComp);
   ecs_access_write(ScenePrefabEnvComp);
+}
+
+ecs_view_define(InstanceRefreshView) {
+  ecs_access_read(ScenePrefabInstanceComp);
+  ecs_access_read(SceneTransformComp);
+  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneFactionComp);
+  ecs_access_maybe_read(SceneSetMemberComp);
 }
 
 ecs_view_define(InstanceLayerUpdateView) {
@@ -233,6 +243,67 @@ ecs_system_define(ScenePrefabResourceUpdateSys) {
   if (env->flags & PrefabResource_MapUnloading && !(isLoaded || isFailed)) {
     env->flags &= ~PrefabResource_MapUnloading; // Unload finished.
   }
+}
+
+static void prefab_refresh(ScenePrefabEnvComp* prefabEnv, EcsIterator* itr) {
+  const EcsEntityId              entity         = ecs_view_entity(itr);
+  const SceneTransformComp*      transComp      = ecs_view_read_t(itr, SceneTransformComp);
+  const SceneScaleComp*          scaleComp      = ecs_view_read_t(itr, SceneScaleComp);
+  const SceneFactionComp*        factionComp    = ecs_view_read_t(itr, SceneFactionComp);
+  const ScenePrefabInstanceComp* prefabInstComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
+  diag_assert(prefabInstComp && prefabInstComp->variant == ScenePrefabVariant_Edit);
+
+  ScenePrefabSpec spec = {
+      .id       = prefabInstComp->id,
+      .prefabId = prefabInstComp->prefabId,
+      .variant  = ScenePrefabVariant_Edit,
+      .faction  = factionComp ? factionComp->id : SceneFaction_None,
+      .scale    = scaleComp ? scaleComp->scale : 1.0f,
+      .position = transComp->position,
+      .rotation = transComp->rotation,
+  };
+  const SceneSetMemberComp* setMember = ecs_view_read_t(itr, SceneSetMemberComp);
+  if (setMember) {
+    ASSERT(array_elems(spec.sets) >= scene_set_member_max_sets, "Insufficient set storage");
+    scene_set_member_all(setMember, spec.sets);
+  }
+  scene_prefab_spawn_replace(prefabEnv, &spec, entity);
+}
+
+ecs_system_define(ScenePrefabInstanceRefreshSys) {
+  EcsView*     globalView = ecs_world_view_t(world, GlobalRefreshView);
+  EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
+  if (!globalItr) {
+    return; // Global dependencies not ready.
+  }
+  ScenePrefabEnvComp* prefabEnv = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
+
+  EcsView*     mapAssetView = ecs_world_view_t(world, PrefabMapAssetView);
+  EcsIterator* mapAssetItr  = ecs_view_maybe_at(mapAssetView, prefabEnv->mapEntity);
+  if (!mapAssetItr) {
+    return; // Map asset is being loaded.
+  }
+  const AssetPrefabMapComp* map = ecs_view_read_t(mapAssetItr, AssetPrefabMapComp);
+  if (prefabEnv->mapVersion == prefabEnv->mapVersionApplied) {
+    return; // No need to refresh.
+  }
+
+  EcsView* instanceView = ecs_world_view_t(world, InstanceRefreshView);
+  for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
+    const ScenePrefabInstanceComp* prefabInstComp = ecs_view_read_t(itr, ScenePrefabInstanceComp);
+    if (prefabInstComp->variant != ScenePrefabVariant_Edit) {
+      continue; // Not a edit variant; do nothing.
+    }
+    const AssetPrefab* prefab = asset_prefab_find(map, prefabInstComp->prefabId);
+    if (!prefab) {
+      continue; // Prefab has been removed from the map; do nothing.
+    }
+    if (prefabInstComp->assetHash != prefab->hash) {
+      log_d("Refreshing prefab", log_param("entity", ecs_entity_fmt(ecs_view_entity(itr))));
+      prefab_refresh(prefabEnv, itr);
+    }
+  }
+  prefabEnv->mapVersionApplied = prefabEnv->mapVersion;
 }
 
 ecs_system_define(ScenePrefabInstanceLayerUpdateSys) {
@@ -758,7 +829,7 @@ ecs_system_define(ScenePrefabSpawnSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalSpawnView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
-    return;
+    return; // Global dependencies not ready.
   }
   ScenePrefabEnvComp*     prefabEnv = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
   SceneNavEnvComp*        navEnv    = ecs_view_write_t(globalItr, SceneNavEnvComp);
@@ -767,7 +838,7 @@ ecs_system_define(ScenePrefabSpawnSys) {
   EcsView*     mapAssetView = ecs_world_view_t(world, PrefabMapAssetView);
   EcsIterator* mapAssetItr  = ecs_view_maybe_at(mapAssetView, prefabEnv->mapEntity);
   if (!mapAssetItr) {
-    return;
+    return; // Map asset is being loaded.
   }
   const AssetPrefabMapComp* map = ecs_view_read_t(mapAssetItr, AssetPrefabMapComp);
 
@@ -803,13 +874,20 @@ ecs_module_init(scene_prefab_module) {
   ecs_register_comp(ScenePrefabInstanceComp);
 
   ecs_register_view(GlobalResourceUpdateView);
+  ecs_register_view(GlobalRefreshView);
   ecs_register_view(GlobalSpawnView);
+  ecs_register_view(InstanceRefreshView);
   ecs_register_view(InstanceLayerUpdateView);
   ecs_register_view(PrefabMapAssetView);
   ecs_register_view(PrefabSpawnView);
 
   ecs_register_system(ScenePrefabResourceUpdateSys, ecs_view_id(GlobalResourceUpdateView));
 
+  ecs_register_system(
+      ScenePrefabInstanceRefreshSys,
+      ecs_view_id(GlobalRefreshView),
+      ecs_view_id(PrefabMapAssetView),
+      ecs_view_id(InstanceRefreshView));
   ecs_register_system(ScenePrefabInstanceLayerUpdateSys, ecs_view_id(InstanceLayerUpdateView));
 
   ecs_register_system(
