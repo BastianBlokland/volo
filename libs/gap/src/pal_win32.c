@@ -80,13 +80,22 @@ static void pal_check_thread_ownership(GapPal* pal) {
   }
 }
 
-static void pal_crash_with_win32_err(String api) {
+static void pal_crash_with_win32_err(const String api) {
   const DWORD err = GetLastError();
   diag_crash_msg(
       "Win32 api call failed, api: {}, error: {}, {}",
       fmt_text(api),
       fmt_int((u64)err),
       fmt_text(winutils_error_msg_scratch(err)));
+}
+
+static void pal_error_with_win32_err(const String api) {
+  const DWORD err = GetLastError();
+  log_e(
+      "Win32 api call {} failed",
+      log_param("api", fmt_text(api)),
+      log_param("error-code", fmt_int((u64)err)),
+      log_param("error", fmt_text(winutils_error_msg_scratch(err))));
 }
 
 static GapPalWindow* pal_maybe_window(GapPal* pal, const GapWindowId id) {
@@ -851,7 +860,9 @@ void gap_pal_update(GapPal* pal) {
   // Delete any old resources.
   for (GapIcon icon = 0; icon != GapIcon_Count; ++icon) {
     if (pal->iconsOld[icon]) {
-      DestroyIcon(pal->iconsOld[icon]);
+      if (UNLIKELY(!DestroyIcon(pal->iconsOld[icon]))) {
+        pal_error_with_win32_err(string_lit("DestroyIcon"));
+      }
       pal->iconsOld[icon] = null;
     }
   }
@@ -932,8 +943,8 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
     if (cursorInUse) {
       SetCursor(null);
     }
-    if (!DestroyIcon(pal->cursors[id])) {
-      pal_crash_with_win32_err(string_lit("DestroyIcon"));
+    if (UNLIKELY(!DestroyIcon(pal->cursors[id]))) {
+      pal_error_with_win32_err(string_lit("DestroyIcon"));
     }
   }
   pal->cursors[id] = cursor;
