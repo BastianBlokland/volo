@@ -20,7 +20,8 @@ static const String g_tooltipDpiScaling     = string_static("Should the display'
 static const String g_tooltipDebugInspector = string_static("Enable the debug inspector.\n\n"
                                                             "Meaning:\n"
                                                             "- \a|01\a~red\a.bRed\ar: Element's rectangle.\n"
-                                                            "- \a|01\a~blue\a.bBlue\ar: Element's container rectangle.\n");
+                                                            "- \a|01\a~green\a.bGreen\ar: Element's container's logic rectangle.\n"
+                                                            "- \a|01\a~blue\a.bBlue\ar: Element's container's clip rectangle.\n");
 static const String g_tooltipDebugShading   = string_static("Enable the debug shading.\n\n"
                                                             "Meaning:\n"
                                                             "- \a#001CFFFF\a|01\a.bBlue\ar: Dark is fully inside the shape and light is on the shape's outer edge.\n"
@@ -46,6 +47,13 @@ static const String g_defaultColorNames[] = {
     string_static("\a#E8E8E8C0Silver"),
 };
 ASSERT(array_elems(g_defaultColors) == array_elems(g_defaultColorNames), "Missing names");
+
+static const String g_inspectorModeNames[] = {
+    string_static("None"),
+    string_static("DebugInteractables"),
+    string_static("DebugAll"),
+};
+ASSERT(array_elems(g_inspectorModeNames) == UiInspectorMode_Count, "Missing inspector names");
 
 ecs_comp_define(DebugInterfacePanelComp) {
   UiPanel     panel;
@@ -99,10 +107,11 @@ static void interface_panel_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Debug inspector"));
   ui_table_next_column(canvas, &table);
-  ui_toggle_flag(
+  ui_select(
       canvas,
-      (u32*)&settings->flags,
-      UiSettingGlobal_DebugInspector,
+      (i32*)&settings->inspectorMode,
+      g_inspectorModeNames,
+      array_elems(g_inspectorModeNames),
       .tooltip = g_tooltipDebugInspector);
 
   ui_table_next_row(canvas, &table);
@@ -157,7 +166,8 @@ ecs_system_define(DebugInterfaceUpdatePanelSys) {
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
     if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
-      settings->flags &= ~(UiSettingGlobal_DebugInspector | UiSettingGlobal_DebugShading);
+      settings->flags &= ~UiSettingGlobal_DebugShading;
+      settings->inspectorMode = UiInspectorMode_None;
       continue;
     }
     interface_panel_draw(canvas, panelComp, settings);
