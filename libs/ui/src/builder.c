@@ -24,9 +24,9 @@ typedef struct {
   UiColor  color;
   u8       outline;
   u8       variation;
-  UiWeight weight : 8;
   UiLayer  layer : 8;
   UiMode   mode : 8;
+  UiWeight weight : 8;
 } UiBuildStyle;
 
 typedef struct {
@@ -329,6 +329,7 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
       style.color,
       style.outline,
       style.layer,
+      style.mode,
       style.variation,
       style.weight,
       cmd->align,
@@ -517,6 +518,7 @@ static void ui_build_debug_inspector(
       styleText.color,
       styleText.outline,
       styleText.layer,
+      styleText.mode,
       styleText.variation,
       styleText.weight,
       UiAlign_TopLeft,

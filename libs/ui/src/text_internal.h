@@ -9,10 +9,10 @@ typedef struct {
   const AssetFontTexChar* ch;
   UiVector                pos;
   UiColor                 color;
-  UiLayer                 layer;
-  UiWeight                weight;
-  f32                     size;
+  UiLayer                 layer : 8;
+  UiWeight                weight : 8;
   u8                      outline;
+  f32                     size;
 } UiTextCharInfo;
 
 typedef void (*UiTextBuildCharFunc)(void* userCtx, const UiTextCharInfo*);
@@ -46,6 +46,7 @@ UiTextBuildResult ui_text_build(
     UiColor  fontColor,
     u8       fontOutline,
     UiLayer  fontLayer,
+    UiMode   fontMode,
     u8       fontVariation,
     UiWeight fontWeight,
     UiAlign  align,
