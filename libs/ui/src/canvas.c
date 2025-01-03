@@ -261,9 +261,9 @@ static void ui_canvas_update_interaction(
   const bool inputPressed  = gap_window_key_pressed(window, GapKey_MouseLeft);
   const bool inputReleased = gap_window_key_released(window, GapKey_MouseLeft);
 
-  if (UNLIKELY(settings->flags & UiSettingGlobal_DebugInspector)) {
+  if (UNLIKELY(settings->inspectorMode != UiInspectorMode_None)) {
     if (inputReleased) {
-      settings->flags ^= UiSettingGlobal_DebugInspector;
+      settings->inspectorMode = UiInspectorMode_None;
     }
     ui_canvas_set_active(canvas, hoveredId, UiStatus_Idle);
     return; // Normal input is disabled while using the debug inspector.
@@ -445,7 +445,7 @@ static void ui_renderer_create(EcsWorld* world, const EcsEntityId window) {
 }
 
 static UiId ui_canvas_debug_elem(UiCanvasComp* canvas, const UiSettingsGlobalComp* settings) {
-  if (UNLIKELY(settings->flags & UiSettingGlobal_DebugInspector)) {
+  if (UNLIKELY(settings->inspectorMode != UiInspectorMode_None)) {
     return canvas->activeId;
   }
   return sentinel_u64;

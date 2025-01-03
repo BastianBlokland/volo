@@ -17,6 +17,7 @@ typedef enum eUiCanvasCreateFlags  UiCanvasCreateFlags;
 typedef enum eUiClip               UiClip;
 typedef enum eUiDir                UiDir;
 typedef enum eUiFlags              UiFlags;
+typedef enum eUiInspectorMode      UiInspectorMode;
 typedef enum eUiInteractType       UiInteractType;
 typedef enum eUiLayer              UiLayer;
 typedef enum eUiPanelFlags         UiPanelFlags;
