@@ -24,8 +24,9 @@ typedef struct {
   UiColor  color;
   u8       outline;
   u8       variation;
-  UiWeight weight;
-  UiLayer  layer;
+  UiLayer  layer : 8;
+  UiMode   mode : 8;
+  UiWeight weight : 8;
 } UiBuildStyle;
 
 typedef struct {
@@ -162,6 +163,9 @@ static void ui_build_atom_glyph(
     const u16          maxCorner,
     const f32          angleRad,
     const u8           clipId) {
+  if (style.mode == UiMode_Invisible) {
+    return; // Invisible.
+  }
   const AssetFontTexChar* ch = asset_fonttex_lookup(state->atlasFont, cp, style.variation);
   if (sentinel_check(ch->glyphIndex)) {
     return; // No glyph for the given codepoint.
@@ -203,6 +207,9 @@ static void ui_build_atom_image(
     const u16          maxCorner,
     const f32          angleRad,
     const u8           clipId) {
+  if (style.mode == UiMode_Invisible) {
+    return; // Invisible.
+  }
   if (UNLIKELY(rect.size.width < f32_epsilon || rect.size.height < f32_epsilon)) {
     return; // Image too small.
   }
@@ -328,6 +335,7 @@ static void ui_build_draw_text(UiBuildState* state, const UiDrawText* cmd) {
       style.color,
       style.outline,
       style.layer,
+      style.mode,
       style.variation,
       style.weight,
       cmd->align,
@@ -516,6 +524,7 @@ static void ui_build_debug_inspector(
       styleText.color,
       styleText.outline,
       styleText.layer,
+      styleText.mode,
       styleText.variation,
       styleText.weight,
       UiAlign_TopLeft,
@@ -613,6 +622,9 @@ INLINE_HINT static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
     break;
   case UiCmd_StyleLayer:
     ui_build_style_current(state)->layer = cmd->styleLayer.value;
+    break;
+  case UiCmd_StyleMode:
+    ui_build_style_current(state)->mode = cmd->styleMode.value;
     break;
   case UiCmd_StyleVariation:
     ui_build_style_current(state)->variation = cmd->styleVariation.value;

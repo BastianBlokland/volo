@@ -104,14 +104,14 @@ bool ui_button_with_opts(UiCanvasComp* canvas, const UiButtonOpts* opts) {
   const bool     disabled = (opts->flags & UiWidget_Disabled) != 0;
   const UiStatus status   = disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, id);
 
-  ui_style_push(canvas);
   if (opts->noFrame) {
-    ui_style_layer(canvas, UiLayer_Invisible);
+    ui_canvas_draw_glyph(canvas, UiShape_Empty, 0, UiFlags_Interactable);
   } else {
+    ui_style_push(canvas);
     ui_interactable_frame_style(canvas, opts->frameColor, status);
+    ui_canvas_draw_glyph(canvas, UiShape_Circle, 10, UiFlags_Interactable);
+    ui_style_pop(canvas);
   }
-  ui_canvas_draw_glyph(canvas, UiShape_Circle, 10, UiFlags_Interactable);
-  ui_style_pop(canvas);
 
   ui_style_push(canvas);
   if (disabled) {
@@ -638,8 +638,10 @@ bool ui_tooltip_with_opts(
    * the text rectangle of the last frame. If this is the first frame that we're drawing the tooltip
    * then we skip the background and draw the text invisible.
    */
-
-  ui_style_layer(canvas, firstFrame ? UiLayer_OverlayInvisible : UiLayer_Overlay);
+  if (firstFrame) {
+    ui_style_mode(canvas, UiMode_Invisible);
+  }
+  ui_style_layer(canvas, UiLayer_Overlay);
   if (firstFrame) {
     ui_canvas_id_skip(canvas, 1);
   } else {

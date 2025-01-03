@@ -290,7 +290,7 @@ static void ui_panel_resize_handle(UiCanvasComp* c) {
   ui_layout_push(c);
   ui_style_push(c);
   ui_layout_inner(c, UiBase_Current, UiAlign_BottomRight, ui_vector(25, 25), UiBase_Absolute);
-  ui_style_layer(c, UiLayer_Invisible);
+  ui_style_layer(c, UiLayer_Overlay); // Resize interaction is above normal panel contents.
   const UiId handleId = ui_canvas_draw_glyph(c, UiShape_Empty, 0, UiFlags_Interactable);
   ui_layout_pop(c);
   ui_style_pop(c);

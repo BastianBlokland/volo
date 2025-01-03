@@ -19,7 +19,8 @@ typedef struct {
   const f32                 fontSize;
   UiColor                   fontColor, fontColorDefault;
   u8                        fontOutline, fontOutlineDefault;
-  const UiLayer             fontLayer;
+  const UiLayer             fontLayer : 8;
+  const UiMode              fontMode : 8;
   const u8                  fontVariation;
   UiWeight                  fontWeight, fontWeightDefault;
   const UiAlign             align;
@@ -301,7 +302,7 @@ static void ui_text_build_char(
   const f32               advance = ch->advance * state->fontSize;
   ui_text_update_hover(state, pos, advance, charIndex, nextCharIndex);
 
-  if (!sentinel_check(ch->glyphIndex)) {
+  if (!sentinel_check(ch->glyphIndex) && state->fontMode != UiMode_Invisible) {
     state->buildChar(
         state->userCtx,
         &(UiTextCharInfo){
@@ -442,6 +443,7 @@ UiTextBuildResult ui_text_build(
     const UiColor                   fontColor,
     const u8                        fontOutline,
     const UiLayer                   fontLayer,
+    const UiMode                    fontMode,
     const u8                        fontVariation,
     const UiWeight                  fontWeight,
     const UiAlign                   align,
@@ -502,6 +504,7 @@ UiTextBuildResult ui_text_build(
       .fontOutline        = fontOutline,
       .fontOutlineDefault = fontOutline,
       .fontLayer          = fontLayer,
+      .fontMode           = fontMode,
       .fontVariation      = fontVariation,
       .fontWeight         = fontWeight,
       .fontWeightDefault  = fontWeight,
@@ -516,8 +519,10 @@ UiTextBuildResult ui_text_build(
   /**
    * Draw all backgrounds.
    */
-  for (usize i = 0; i != bgCollector.count; ++i) {
-    ui_text_build_background(&state, &bgCollector.values[i]);
+  if (fontMode != UiMode_Invisible) {
+    for (usize i = 0; i != bgCollector.count; ++i) {
+      ui_text_build_background(&state, &bgCollector.values[i]);
+    }
   }
 
   /**

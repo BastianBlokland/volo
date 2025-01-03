@@ -24,5 +24,6 @@ void ui_style_color_with_mult(UiCanvasComp*, UiColor, f32 mult);
 void ui_style_color_mult(UiCanvasComp*, f32 mult);
 void ui_style_outline(UiCanvasComp*, u8 outline);
 void ui_style_layer(UiCanvasComp*, UiLayer);
+void ui_style_mode(UiCanvasComp*, UiMode);
 void ui_style_variation(UiCanvasComp*, u8 variation);
 void ui_style_weight(UiCanvasComp*, UiWeight);

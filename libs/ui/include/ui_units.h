@@ -51,11 +51,17 @@ typedef enum eUiAxis {
  */
 typedef enum eUiLayer {
   UiLayer_Normal,
-  UiLayer_Invisible,
   UiLayer_Overlay,
-  UiLayer_OverlayInvisible,
   UiLayer_Debug,
 } UiLayer;
+
+/**
+ * Ui Glyph Mode.
+ */
+typedef enum eUiMode {
+  UiMode_Normal,
+  UiMode_Invisible,
+} UiMode;
 
 /**
  * Ui Font Weight.
