@@ -220,9 +220,6 @@ static void ui_canvas_output_atom(void* userCtx, const UiAtomData data, const Ui
     const GeoBox bounds = geo_box_inverted3();
     *rend_object_add_instance_t(state->rendObj, UiAtomData, SceneTags_None, bounds) = data;
   } break;
-  case UiLayer_Invisible:
-  case UiLayer_OverlayInvisible:
-    break;
   case UiLayer_Overlay:
   case UiLayer_Debug: // NOTE: 'Debug' only affects clipping, not render-order at this time.
     *dynarray_push_t(&state->renderer->overlayAtoms, UiAtomData) = data;
