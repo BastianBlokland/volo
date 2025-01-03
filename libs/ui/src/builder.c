@@ -24,8 +24,8 @@ typedef struct {
   UiColor  color;
   u8       outline;
   u8       variation;
-  UiWeight weight;
-  UiLayer  layer;
+  UiWeight weight : 8;
+  UiLayer  layer : 8;
 } UiBuildStyle;
 
 typedef struct {
