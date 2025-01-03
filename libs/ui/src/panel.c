@@ -80,10 +80,7 @@ static void ui_panel_update_drag_and_resize(
  */
 
 static void ui_panel_hitbox_maximized(UiCanvasComp* c) {
-  ui_style_push(c);
-  ui_style_layer(c, UiLayer_Invisible);
   ui_canvas_draw_glyph(c, UiShape_Empty, 0, UiFlags_Interactable);
-  ui_style_pop(c);
 }
 
 static void ui_panel_hitbox_with_topbar(UiCanvasComp* c) {
@@ -95,11 +92,7 @@ static void ui_panel_hitbox_with_topbar(UiCanvasComp* c) {
       UiBase_Absolute,
       Ui_Y);
 
-  ui_style_push(c);
-  ui_style_layer(c, UiLayer_Invisible);
   ui_canvas_draw_glyph(c, UiShape_Empty, 0, UiFlags_Interactable);
-  ui_style_pop(c);
-
   ui_layout_pop(c);
 }
 
