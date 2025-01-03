@@ -163,6 +163,9 @@ static void ui_build_atom_glyph(
     const u16          maxCorner,
     const f32          angleRad,
     const u8           clipId) {
+  if (style.mode == UiMode_Invisible) {
+    return; // Invisible.
+  }
   const AssetFontTexChar* ch = asset_fonttex_lookup(state->atlasFont, cp, style.variation);
   if (sentinel_check(ch->glyphIndex)) {
     return; // No glyph for the given codepoint.
@@ -204,6 +207,9 @@ static void ui_build_atom_image(
     const u16          maxCorner,
     const f32          angleRad,
     const u8           clipId) {
+  if (style.mode == UiMode_Invisible) {
+    return; // Invisible.
+  }
   if (UNLIKELY(rect.size.width < f32_epsilon || rect.size.height < f32_epsilon)) {
     return; // Image too small.
   }
