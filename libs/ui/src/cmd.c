@@ -165,6 +165,14 @@ void ui_cmd_push_style_layer(UiCmdBuffer* buffer, const UiLayer layer) {
   };
 }
 
+void ui_cmd_push_style_mode(UiCmdBuffer* buffer, const UiMode mode) {
+  UiCmd* cmd     = ui_cmdbuffer_push(buffer);
+  cmd->type      = UiCmd_StyleMode;
+  cmd->styleMode = (UiStyleMode){
+      .value = mode,
+  };
+}
+
 void ui_cmd_push_style_variation(UiCmdBuffer* buffer, const u8 variation) {
   UiCmd* cmd          = ui_cmdbuffer_push(buffer);
   cmd->type           = UiCmd_StyleVariation;

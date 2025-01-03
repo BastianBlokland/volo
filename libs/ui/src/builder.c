@@ -26,6 +26,7 @@ typedef struct {
   u8       variation;
   UiWeight weight : 8;
   UiLayer  layer : 8;
+  UiMode   mode : 8;
 } UiBuildStyle;
 
 typedef struct {
@@ -613,6 +614,9 @@ INLINE_HINT static void ui_build_cmd(UiBuildState* state, const UiCmd* cmd) {
     break;
   case UiCmd_StyleLayer:
     ui_build_style_current(state)->layer = cmd->styleLayer.value;
+    break;
+  case UiCmd_StyleMode:
+    ui_build_style_current(state)->mode = cmd->styleMode.value;
     break;
   case UiCmd_StyleVariation:
     ui_build_style_current(state)->variation = cmd->styleVariation.value;

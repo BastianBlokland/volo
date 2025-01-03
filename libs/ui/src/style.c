@@ -38,6 +38,11 @@ void ui_style_layer(UiCanvasComp* canvas, const UiLayer layer) {
   ui_cmd_push_style_layer(cmdBuffer, layer);
 }
 
+void ui_style_mode(UiCanvasComp* canvas, const UiMode mode) {
+  UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);
+  ui_cmd_push_style_mode(cmdBuffer, mode);
+}
+
 void ui_style_variation(UiCanvasComp* canvas, const u8 variation) {
   UiCmdBuffer* cmdBuffer = ui_canvas_cmd_buffer(canvas);
   ui_cmd_push_style_variation(cmdBuffer, variation);

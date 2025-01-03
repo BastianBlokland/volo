@@ -20,6 +20,7 @@ typedef enum eUiFlags              UiFlags;
 typedef enum eUiInspectorMode      UiInspectorMode;
 typedef enum eUiInteractType       UiInteractType;
 typedef enum eUiLayer              UiLayer;
+typedef enum eUiMode               UiMode;
 typedef enum eUiPanelFlags         UiPanelFlags;
 typedef enum eUiPersistentFlags    UiPersistentFlags;
 typedef enum eUiScrollviewFlags    UiScrollviewFlags;

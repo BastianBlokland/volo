@@ -58,6 +58,14 @@ typedef enum eUiLayer {
 } UiLayer;
 
 /**
+ * Ui Glyph Mode.
+ */
+typedef enum eUiMode {
+  UiMode_Normal,
+  UiMode_Invisible,
+} UiMode;
+
+/**
  * Ui Font Weight.
  * NOTE: These values are depended upon by the renderer.
  */
