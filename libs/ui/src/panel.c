@@ -73,6 +73,36 @@ static void ui_panel_update_drag_and_resize(
   }
 }
 
+/**
+ * Draw an invisible hitbox behind the panel.
+ * Reason for an extra element instead of making the panel background and topbar's themselves
+ * interactable is that this avoids a small gap between the topbar and the background.
+ */
+
+static void ui_panel_hitbox_maximized(UiCanvasComp* c) {
+  ui_style_push(c);
+  ui_style_layer(c, UiLayer_Invisible);
+  ui_canvas_draw_glyph(c, UiShape_Empty, 0, UiFlags_Interactable);
+  ui_style_pop(c);
+}
+
+static void ui_panel_hitbox_with_topbar(UiCanvasComp* c) {
+  ui_layout_push(c);
+  ui_layout_grow(
+      c,
+      UiAlign_BottomLeft,
+      ui_vector(0, g_panelOutline + g_panelTopbarHeight),
+      UiBase_Absolute,
+      Ui_Y);
+
+  ui_style_push(c);
+  ui_style_layer(c, UiLayer_Invisible);
+  ui_canvas_draw_glyph(c, UiShape_Empty, 0, UiFlags_Interactable);
+  ui_style_pop(c);
+
+  ui_layout_pop(c);
+}
+
 static void ui_panel_topbar_title(UiCanvasComp* c, const UiPanelOpts* opts) {
   ui_layout_push(c);
 
@@ -152,8 +182,7 @@ static void ui_panel_topbar(UiCanvasComp* c, UiPanel* panel, const UiPanelOpts* 
 
   ui_layout_move_dir(c, Ui_Up, 1, UiBase_Current);
   ui_layout_move_dir(c, Ui_Up, g_panelOutline, UiBase_Absolute);
-  ui_layout_resize(
-      c, UiAlign_BottomCenter, ui_vector(0, g_panelTopbarHeight), UiBase_Absolute, Ui_Y);
+  ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(0, g_panelTopbarHeight), UiBase_Absolute, Ui_Y);
 
   ui_panel_topbar_background(c, opts);
   ui_panel_topbar_title(c, opts);
@@ -194,7 +223,7 @@ static void ui_panel_background(UiCanvasComp* c) {
   ui_style_color(c, ui_color(64, 64, 64, 220));
   ui_style_outline(c, g_panelOutline);
 
-  ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_Interactable);
+  ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_None);
 
   ui_style_pop(c);
 }
@@ -284,14 +313,17 @@ void ui_panel_begin_with_opts(UiCanvasComp* c, UiPanel* panel, const UiPanelOpts
 
   if (panel->flags & UiPanelFlags_Maximized) {
     ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(1, 1), UiBase_Canvas, Ui_XY);
+    ui_panel_hitbox_maximized(c);
   } else {
-    const UiId resizeHandleId = ui_canvas_id_peek(c);
+    const UiId hitboxId       = ui_canvas_id_peek(c);
+    const UiId resizeHandleId = hitboxId + 1;
     const UiId dragHandleId   = resizeHandleId + 1;
     ui_panel_update_drag_and_resize(c, panel, dragHandleId, resizeHandleId);
 
     ui_layout_set_pos(c, UiBase_Canvas, panel->position, UiBase_Canvas);
     ui_layout_resize(c, UiAlign_MiddleCenter, panel->size, UiBase_Absolute, Ui_XY);
 
+    ui_panel_hitbox_with_topbar(c);
     ui_panel_resize_handle(c);
     ui_panel_topbar(c, panel, opts);
   }
