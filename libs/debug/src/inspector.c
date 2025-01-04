@@ -673,7 +673,8 @@ static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table
       ui_label(
           ctx->canvas,
           string_is_empty(name) ? string_lit("< unknown >") : name,
-          .selectable = true);
+          .selectable = true,
+          .tooltip    = fmt_write_scratch("Hash: {}", fmt_int(itr.key)));
       ui_table_next_column(ctx->canvas, table);
       ui_label(ctx->canvas, script_val_scratch(val));
     }
@@ -696,7 +697,8 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
       ui_label(
           ctx->canvas,
           string_is_empty(setName) ? string_lit("< unknown >") : setName,
-          .selectable = true);
+          .selectable = true,
+          .tooltip    = fmt_write_scratch("Hash: {}", fmt_int(sets[i])));
       ui_table_next_column(ctx->canvas, table);
       ui_layout_resize(ctx->canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
       if (ui_button(
