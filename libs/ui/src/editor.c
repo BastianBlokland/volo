@@ -75,6 +75,19 @@ static i8 ui_visual_slice_compare(const void* a, const void* b) {
       field_ptr(a, UiEditorVisualSlice, index), field_ptr(b, UiEditorVisualSlice, index));
 }
 
+static bool editor_allow_tab(const UiTextFilter filter) {
+  if (filter & UiTextFilter_DigitsOnly) {
+    return false;
+  }
+  if (filter & UiTextFilter_NoWhitespace) {
+    return false;
+  }
+  if (filter & UiTextFilter_SingleWord) {
+    return false;
+  }
+  return true;
+}
+
 static bool editor_cp_is_separator(const Unicode cp) {
   switch ((u32)cp) {
   case Unicode_Space:
@@ -595,11 +608,9 @@ void ui_editor_update(
     return;
   }
 
-  const bool       readonly     = (editor->filter & UiTextFilter_Readonly) != 0;
-  const bool       digitsOnly   = (editor->filter & UiTextFilter_DigitsOnly) != 0;
-  const bool       noWhitespace = (editor->filter & UiTextFilter_NoWhitespace) != 0;
-  const bool       isHovering   = hover.id == editor->textElement;
-  const bool       dragging = gap_window_key_down(win, GapKey_MouseLeft) && !editor->click.repeat;
+  const bool       readonly   = (editor->filter & UiTextFilter_Readonly) != 0;
+  const bool       isHovering = hover.id == editor->textElement;
+  const bool       dragging   = gap_window_key_down(win, GapKey_MouseLeft) && !editor->click.repeat;
   const bool       firstUpdate = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
   const TimeSteady timeNow     = time_steady_clock();
 
@@ -664,7 +675,7 @@ void ui_editor_update(
     editor_insert_text(editor, gap_window_clip_paste_result(win), UiEditorSource_Clipboard);
   }
 
-  if (gap_window_key_pressed(win, GapKey_Tab) && !readonly && !digitsOnly && !noWhitespace) {
+  if (gap_window_key_pressed(win, GapKey_Tab) && !readonly && editor_allow_tab(editor->filter)) {
     editor_insert_cp(editor, Unicode_HorizontalTab);
   }
   if (gap_window_key_pressed_with_repeat(win, GapKey_Backspace) && !readonly) {
