@@ -688,6 +688,24 @@ static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table
         script_mem_store(memory, itr.key, script_null());
       }
     }
+
+    inspector_panel_next(ctx, table);
+    ui_textbox(ctx->canvas, &ctx->panel->textBuffer, .placeholder = string_lit("Entry key..."));
+    ui_table_next_column(ctx->canvas, table);
+    ui_layout_inner(
+        ctx->canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 22), UiBase_Absolute);
+    if (ui_button(
+            ctx->canvas,
+            .flags      = ctx->panel->textBuffer.size == 0 ? UiWidget_Disabled : 0,
+            .label      = ui_shape_scratch(UiShape_Add),
+            .fontSize   = 18,
+            .frameColor = ui_color(16, 192, 0, 192),
+            .tooltip    = string_lit("Add a new knowledge entry with the given key."))) {
+      const String     keyName = dynstring_view(&ctx->panel->textBuffer);
+      const StringHash key     = stringtable_add(g_stringtable, keyName);
+      script_mem_store(memory, key, script_bool(false));
+      dynstring_clear(&ctx->panel->textBuffer);
+    }
   }
 }
 
