@@ -706,13 +706,20 @@ static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table
       if (script_type(val) == ScriptType_Null) {
         continue;
       }
-      const String name = stringtable_lookup(g_stringtable, itr.key);
+      const String keyStr  = stringtable_lookup(g_stringtable, itr.key);
+      const String name    = string_is_empty(keyStr) ? string_lit("< unknown >") : keyStr;
+      const String tooltip = fmt_write_scratch(
+          "Key name:\a>15{}\n"
+          "Key hash:\a>15{}\n"
+          "Type:\a>15{}\n"
+          "Value:\a>15{}\n",
+          fmt_text(name),
+          fmt_int(itr.key),
+          fmt_text(script_val_type_str(script_type(val))),
+          fmt_text(script_val_scratch(val)));
+
       inspector_panel_next(ctx, table);
-      ui_label(
-          ctx->canvas,
-          string_is_empty(name) ? string_lit("< unknown >") : name,
-          .selectable = true,
-          .tooltip    = fmt_write_scratch("Hash: {}", fmt_int(itr.key)));
+      ui_label(ctx->canvas, keyStr, .selectable = true, .tooltip = tooltip);
       ui_table_next_column(ctx->canvas, table);
       ui_label(ctx->canvas, script_val_scratch(val));
       ui_layout_inner(
