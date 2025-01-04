@@ -80,12 +80,36 @@ static bool editor_cp_is_separator(const Unicode cp) {
   case Unicode_Space:
   case Unicode_ZeroWidthSpace:
   case Unicode_HorizontalTab:
-  case '.':
+  case '!':
+  case '"':
+  case '#':
+  case '$':
+  case '%':
+  case '&':
+  case '(':
+  case ')':
+  case '*':
+  case '+':
   case ',':
+  case '-':
+  case '.':
+  case '/':
   case ':':
   case ';':
-  case '/':
+  case '<':
+  case '=':
+  case '>':
+  case '?':
+  case '@':
+  case '[':
   case '\\':
+  case ']':
+  case '^':
+  case '`':
+  case '{':
+  case '|':
+  case '}':
+  case '~':
     return true;
   default:
     return false;
