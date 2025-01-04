@@ -110,6 +110,16 @@ typedef enum {
   DebugInspectorVisMode_Default = DebugInspectorVisMode_SelectedOnly,
 } DebugInspectorVisMode;
 
+typedef enum {
+  DebugKnowledgeType_Num,
+  DebugKnowledgeType_Bool,
+  DebugKnowledgeType_Vec3,
+  DebugKnowledgeType_Quat,
+  DebugKnowledgeType_Color,
+
+  DebugKnowledgeType_Count,
+} DebugKnowledgeType;
+
 static const String g_spaceNames[] = {
     [DebugInspectorSpace_Local] = string_static("Local"),
     [DebugInspectorSpace_World] = string_static("World"),
@@ -151,6 +161,15 @@ static const String g_visModeNames[] = {
 };
 ASSERT(array_elems(g_visModeNames) == DebugInspectorVisMode_Count, "Missing vis mode name");
 
+static const String g_knowledgeTypeNames[] = {
+    [DebugKnowledgeType_Num]   = string_static("Num"),
+    [DebugKnowledgeType_Bool]  = string_static("Bool"),
+    [DebugKnowledgeType_Vec3]  = string_static("Vec3"),
+    [DebugKnowledgeType_Quat]  = string_static("Quat"),
+    [DebugKnowledgeType_Color] = string_static("Color"),
+};
+ASSERT(array_elems(g_knowledgeTypeNames) == DebugKnowledgeType_Count, "Missing type name");
+
 ecs_comp_define(DebugInspectorSettingsComp) {
   DebugInspectorSpace   space;
   DebugInspectorTool    tool;
@@ -162,11 +181,12 @@ ecs_comp_define(DebugInspectorSettingsComp) {
 };
 
 ecs_comp_define(DebugInspectorPanelComp) {
-  UiPanel      panel;
-  UiScrollview scrollview;
-  u32          totalRows;
-  DynString    textBuffer;
-  GeoVector    transformRotEulerDeg; // Local copy of rotation as euler angles to use while editing.
+  UiPanel            panel;
+  UiScrollview       scrollview;
+  u32                totalRows;
+  DebugKnowledgeType knowledgeType;
+  DynString          textBuffer;
+  GeoVector transformRotEulerDeg; // Local copy of rotation as euler angles to use while editing.
 };
 
 static void ecs_destruct_panel_comp(void* data) {
@@ -654,6 +674,24 @@ static void inspector_panel_draw_decal(InspectorContext* ctx, UiTable* table) {
   }
 }
 
+static ScriptVal inspector_panel_knowledge_default(const DebugKnowledgeType type) {
+  switch (type) {
+  case DebugKnowledgeType_Num:
+    return script_num(0);
+  case DebugKnowledgeType_Bool:
+    return script_bool(false);
+  case DebugKnowledgeType_Vec3:
+    return script_vec3_lit(0, 0, 0);
+  case DebugKnowledgeType_Quat:
+    return script_quat(geo_quat_ident);
+  case DebugKnowledgeType_Color:
+    return script_color(geo_color_white);
+  case DebugKnowledgeType_Count:
+    break;
+  }
+  UNREACHABLE
+}
+
 static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table) {
   SceneKnowledgeComp* knowledge = ecs_view_write_t(ctx->subject, SceneKnowledgeComp);
   if (!knowledge) {
@@ -692,18 +730,24 @@ static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table
     inspector_panel_next(ctx, table);
     ui_textbox(ctx->canvas, &ctx->panel->textBuffer, .placeholder = string_lit("Entry key..."));
     ui_table_next_column(ctx->canvas, table);
-    ui_layout_inner(
-        ctx->canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 22), UiBase_Absolute);
+    ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
+    ui_select(
+        ctx->canvas,
+        (i32*)&ctx->panel->knowledgeType,
+        g_knowledgeTypeNames,
+        array_elems(g_knowledgeTypeNames));
+    ui_layout_next(ctx->canvas, Ui_Right, 10);
+    ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
     if (ui_button(
             ctx->canvas,
             .flags      = ctx->panel->textBuffer.size == 0 ? UiWidget_Disabled : 0,
             .label      = ui_shape_scratch(UiShape_Add),
             .fontSize   = 18,
             .frameColor = ui_color(16, 192, 0, 192),
-            .tooltip    = string_lit("Add a new knowledge entry with the given key."))) {
+            .tooltip    = string_lit("Add a new knowledge entry with the given key and type."))) {
       const String     keyName = dynstring_view(&ctx->panel->textBuffer);
       const StringHash key     = stringtable_add(g_stringtable, keyName);
-      script_mem_store(memory, key, script_bool(false));
+      script_mem_store(memory, key, inspector_panel_knowledge_default(ctx->panel->knowledgeType));
       dynstring_clear(&ctx->panel->textBuffer);
     }
   }
