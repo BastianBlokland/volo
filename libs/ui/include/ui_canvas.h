@@ -50,6 +50,7 @@ typedef enum eUiTextFilter {
   UiTextFilter_DigitsOnly   = 1 << 1,
   UiTextFilter_AsciiOnly    = 1 << 2,
   UiTextFilter_NoWhitespace = 1 << 3,
+  UiTextFilter_SingleWord   = 1 << 4,
 } UiTextFilter;
 
 typedef enum eUiFlags {

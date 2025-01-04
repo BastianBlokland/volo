@@ -75,6 +75,23 @@ static i8 ui_visual_slice_compare(const void* a, const void* b) {
       field_ptr(a, UiEditorVisualSlice, index), field_ptr(b, UiEditorVisualSlice, index));
 }
 
+static bool editor_cp_is_separator(const Unicode cp) {
+  switch ((u32)cp) {
+  case Unicode_Space:
+  case Unicode_ZeroWidthSpace:
+  case Unicode_HorizontalTab:
+  case '.':
+  case ',':
+  case ':':
+  case ';':
+  case '/':
+  case '\\':
+    return true;
+  default:
+    return false;
+  }
+}
+
 static bool
 editor_cp_is_valid(const Unicode cp, const UiTextFilter filter, const UiEditorSource source) {
   /**
@@ -90,6 +107,9 @@ editor_cp_is_valid(const Unicode cp, const UiTextFilter filter, const UiEditorSo
     return false;
   }
   if (filter & UiTextFilter_NoWhitespace && ascii_is_whitespace(cp)) {
+    return false;
+  }
+  if (filter & UiTextFilter_SingleWord && editor_cp_is_separator(cp)) {
     return false;
   }
   /**
@@ -118,23 +138,6 @@ editor_cp_is_valid(const Unicode cp, const UiTextFilter filter, const UiEditorSo
     return false; // Invisible characters (which also do not advance the cursor) are not supported.
   }
   return true;
-}
-
-static bool editor_cp_is_separator(const Unicode cp) {
-  switch ((u32)cp) {
-  case Unicode_Space:
-  case Unicode_ZeroWidthSpace:
-  case Unicode_HorizontalTab:
-  case '.':
-  case ',':
-  case ':':
-  case ';':
-  case '/':
-  case '\\':
-    return true;
-  default:
-    return false;
-  }
 }
 
 static Unicode editor_cp_at(UiEditor* editor, const usize index) {
@@ -174,9 +177,9 @@ static usize editor_word_end_index(UiEditor* editor, usize index) {
       return editor->text.size; // Return the end index when no more characters are found.
     }
     const Unicode nextCp      = editor_cp_at(editor, nextIndex);
-    const bool    isseparator = editor_cp_is_separator(nextCp);
-    foundStartingWord |= !isseparator;
-    if (isseparator && foundStartingWord) {
+    const bool    isSeparator = editor_cp_is_separator(nextCp);
+    foundStartingWord |= !isSeparator;
+    if (isSeparator && foundStartingWord) {
       return nextIndex;
     }
     index = nextIndex;
