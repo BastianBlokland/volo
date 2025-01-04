@@ -692,6 +692,49 @@ static ScriptVal inspector_panel_knowledge_default(const DebugKnowledgeType type
   UNREACHABLE
 }
 
+static void inspector_panel_knowledge_value_edit(
+    InspectorContext* ctx, ScriptMem* mem, const StringHash key, const ScriptVal val) {
+  switch (script_type(val)) {
+  case ScriptType_Num: {
+    f64 valNum = script_get_num(val, 0);
+    if (ui_numbox(ctx->canvas, &valNum, .min = f64_min, .max = f64_max)) {
+      script_mem_store(mem, key, script_num(valNum));
+    }
+  } break;
+  case ScriptType_Bool: {
+    bool valBool = script_get_bool(val, false);
+    if (ui_toggle(ctx->canvas, &valBool)) {
+      script_mem_store(mem, key, script_bool(valBool));
+    }
+  } break;
+  case ScriptType_Vec3: {
+    GeoVector valVec3 = script_get_vec3(val, geo_vector(0));
+    if (debug_widget_editor_vec3(ctx->canvas, &valVec3, UiWidget_Default)) {
+      script_mem_store(mem, key, script_vec3(valVec3));
+    }
+  } break;
+  case ScriptType_Quat: {
+    GeoQuat valQuat = script_get_quat(val, geo_quat_ident);
+    if (debug_widget_editor_quat(ctx->canvas, &valQuat, UiWidget_Default)) {
+      script_mem_store(mem, key, script_quat(valQuat));
+    }
+  } break;
+  case ScriptType_Color: {
+    GeoColor valColor = script_get_color(val, geo_color_white);
+    if (debug_widget_editor_color(ctx->canvas, &valColor, UiWidget_Default)) {
+      script_mem_store(mem, key, script_color(valColor));
+    }
+  } break;
+  case ScriptType_Entity:
+  case ScriptType_Str:
+  case ScriptType_Null:
+    ui_label(ctx->canvas, script_val_scratch(val));
+    break;
+  case ScriptType_Count:
+    UNREACHABLE;
+  }
+}
+
 static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table) {
   SceneKnowledgeComp* knowledge = ecs_view_write_t(ctx->subject, SceneKnowledgeComp);
   if (!knowledge) {
@@ -721,9 +764,10 @@ static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, keyStr, .selectable = true, .tooltip = tooltip);
       ui_table_next_column(ctx->canvas, table);
-      ui_label(ctx->canvas, script_val_scratch(val));
-      ui_layout_inner(
-          ctx->canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 22), UiBase_Absolute);
+      ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
+      inspector_panel_knowledge_value_edit(ctx, memory, itr.key, val);
+      ui_layout_next(ctx->canvas, Ui_Right, 10);
+      ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
       if (ui_button(
               ctx->canvas,
               .label      = ui_shape_scratch(UiShape_Delete),
