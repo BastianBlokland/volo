@@ -677,6 +677,16 @@ static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table
           .tooltip    = fmt_write_scratch("Hash: {}", fmt_int(itr.key)));
       ui_table_next_column(ctx->canvas, table);
       ui_label(ctx->canvas, script_val_scratch(val));
+      ui_layout_inner(
+          ctx->canvas, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 22), UiBase_Absolute);
+      if (ui_button(
+              ctx->canvas,
+              .label      = ui_shape_scratch(UiShape_Delete),
+              .fontSize   = 18,
+              .frameColor = ui_color(255, 16, 0, 192),
+              .tooltip    = string_lit("Remove this knowledge entry."))) {
+        script_mem_store(memory, itr.key, script_null());
+      }
     }
   }
 }
@@ -700,7 +710,8 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
           .selectable = true,
           .tooltip    = fmt_write_scratch("Hash: {}", fmt_int(sets[i])));
       ui_table_next_column(ctx->canvas, table);
-      ui_layout_resize(ctx->canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
+      ui_layout_inner(
+          ctx->canvas, UiBase_Current, UiAlign_MiddleLeft, ui_vector(25, 22), UiBase_Absolute);
       if (ui_button(
               ctx->canvas,
               .label      = ui_shape_scratch(UiShape_Delete),
@@ -715,7 +726,8 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
       inspector_panel_next(ctx, table);
       ui_textbox(ctx->canvas, &ctx->panel->textBuffer, .placeholder = string_lit("Set name..."));
       ui_table_next_column(ctx->canvas, table);
-      ui_layout_resize(ctx->canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
+      ui_layout_inner(
+          ctx->canvas, UiBase_Current, UiAlign_MiddleLeft, ui_vector(25, 22), UiBase_Absolute);
       if (ui_button(
               ctx->canvas,
               .flags      = ctx->panel->textBuffer.size == 0 ? UiWidget_Disabled : 0,
