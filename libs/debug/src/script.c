@@ -31,6 +31,8 @@
 #include "ui_table.h"
 #include "ui_widget.h"
 
+#include "widget_internal.h"
+
 #define output_max_age time_seconds(60)
 #define output_max_message_size 64
 
@@ -264,30 +266,9 @@ static bool memory_draw_num(UiCanvasComp* c, ScriptVal* value) {
   return false;
 }
 
-static bool memory_draw_f32_values(UiCanvasComp* c, f32* values, const u32 valueCount) {
-  static const f32 g_spacing = 10.0f;
-  const UiAlign    align     = UiAlign_MiddleLeft;
-  ui_layout_push(c);
-  ui_layout_resize(c, align, ui_vector(1.0f / valueCount, 0), UiBase_Current, Ui_X);
-  ui_layout_grow(c, align, ui_vector(2 * -g_spacing / valueCount, 0), UiBase_Absolute, Ui_X);
-
-  bool dirty = false;
-  for (u32 i = 0; i != valueCount; ++i) {
-    f64 compVal = values[i];
-    if (ui_numbox(c, &compVal, .min = f32_min, .max = f32_max)) {
-      values[i] = (f32)compVal;
-      dirty     = true;
-    }
-    ui_layout_next(c, Ui_Right, g_spacing);
-  }
-  ui_layout_pop(c);
-
-  return dirty;
-}
-
 static bool memory_draw_vec3(UiCanvasComp* c, ScriptVal* value) {
   GeoVector vec3 = script_get_vec3(*value, geo_vector(0));
-  if (memory_draw_f32_values(c, vec3.comps, 3)) {
+  if (debug_widget_editor_vec3(c, &vec3, UiWidget_Default)) {
     *value = script_vec3(vec3);
     return true;
   }
@@ -296,7 +277,7 @@ static bool memory_draw_vec3(UiCanvasComp* c, ScriptVal* value) {
 
 static bool memory_draw_quat(UiCanvasComp* c, ScriptVal* value) {
   GeoQuat quat = script_get_quat(*value, geo_quat_ident);
-  if (memory_draw_f32_values(c, quat.comps, 4)) {
+  if (debug_widget_editor_quat(c, &quat, UiWidget_Default)) {
     *value = script_quat(quat);
     return true;
   }
@@ -305,7 +286,7 @@ static bool memory_draw_quat(UiCanvasComp* c, ScriptVal* value) {
 
 static bool memory_draw_color(UiCanvasComp* c, ScriptVal* value) {
   GeoColor col = script_get_color(*value, geo_color_clear);
-  if (memory_draw_f32_values(c, col.data, 4)) {
+  if (debug_widget_editor_color(c, &col, UiWidget_Default)) {
     *value = script_color(col);
     return true;
   }
