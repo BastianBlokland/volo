@@ -728,7 +728,11 @@ static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table
     }
 
     inspector_panel_next(ctx, table);
-    ui_textbox(ctx->canvas, &ctx->panel->textBuffer, .placeholder = string_lit("Entry key..."));
+    ui_textbox(
+        ctx->canvas,
+        &ctx->panel->textBuffer,
+        .placeholder = string_lit("Entry key..."),
+        .type        = UiTextbox_Word);
     ui_table_next_column(ctx->canvas, table);
     ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
     ui_select(
@@ -786,7 +790,11 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
 
     if (setCount != setCountMax) {
       inspector_panel_next(ctx, table);
-      ui_textbox(ctx->canvas, &ctx->panel->textBuffer, .placeholder = string_lit("Set name..."));
+      ui_textbox(
+          ctx->canvas,
+          &ctx->panel->textBuffer,
+          .placeholder = string_lit("Set name..."),
+          .type        = UiTextbox_Word);
       ui_table_next_column(ctx->canvas, table);
       ui_layout_inner(
           ctx->canvas, UiBase_Current, UiAlign_MiddleLeft, ui_vector(25, 22), UiBase_Absolute);
@@ -964,7 +972,7 @@ static void inspector_panel_draw_attachment(InspectorContext* ctx, UiTable* tabl
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Joint"));
     ui_table_next_column(ctx->canvas, table);
-    if (ui_textbox(ctx->canvas, &jointName, .maxTextLength = 64)) {
+    if (ui_textbox(ctx->canvas, &jointName, .maxTextLength = 64, .type = UiTextbox_Word)) {
       attach->jointIndex = sentinel_u32;
       attach->jointName  = string_maybe_hash(dynstring_view(&jointName));
     }
