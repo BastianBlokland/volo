@@ -48,7 +48,8 @@ typedef enum eUiSoundType {
 typedef enum eUiTextFilter {
   UiTextFilter_Readonly     = 1 << 0,
   UiTextFilter_DigitsOnly   = 1 << 1,
-  UiTextFilter_NoWhitespace = 1 << 2,
+  UiTextFilter_AsciiOnly    = 1 << 2,
+  UiTextFilter_NoWhitespace = 1 << 3,
 } UiTextFilter;
 
 typedef enum eUiFlags {

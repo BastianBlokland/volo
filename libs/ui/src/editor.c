@@ -86,6 +86,9 @@ editor_cp_is_valid(const Unicode cp, const UiTextFilter filter, const UiEditorSo
       return false;
     }
   }
+  if (filter & UiTextFilter_AsciiOnly && !unicode_is_ascii(cp)) {
+    return false;
+  }
   if (filter & UiTextFilter_NoWhitespace && ascii_is_whitespace(cp)) {
     return false;
   }
