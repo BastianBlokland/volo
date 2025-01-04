@@ -32,6 +32,7 @@
 #include "scene_debug.h"
 #include "scene_faction.h"
 #include "scene_health.h"
+#include "scene_knowledge.h"
 #include "scene_level.h"
 #include "scene_light.h"
 #include "scene_location.h"
@@ -50,6 +51,7 @@
 #include "scene_transform.h"
 #include "scene_vfx.h"
 #include "scene_visibility.h"
+#include "script_mem.h"
 #include "trace_tracer.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
@@ -229,6 +231,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneFactionComp);
   ecs_access_maybe_write(SceneHealthComp);
+  ecs_access_maybe_write(SceneKnowledgeComp);
   ecs_access_maybe_write(SceneLightAmbientComp);
   ecs_access_maybe_write(SceneLightDirComp);
   ecs_access_maybe_write(SceneLightPointComp);
@@ -651,6 +654,30 @@ static void inspector_panel_draw_decal(InspectorContext* ctx, UiTable* table) {
   }
 }
 
+static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table) {
+  SceneKnowledgeComp* knowledge = ecs_view_write_t(ctx->subject, SceneKnowledgeComp);
+  if (!knowledge) {
+    return;
+  }
+  ScriptMem* memory = scene_knowledge_memory_mut(knowledge);
+
+  inspector_panel_next(ctx, table);
+  if (inspector_panel_section(ctx, string_lit("Knowledge"))) {
+    for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
+      const ScriptVal val = script_mem_load(memory, itr.key);
+      if (script_type(val) == ScriptType_Null) {
+        continue;
+      }
+      const String name = stringtable_lookup(g_stringtable, itr.key);
+      inspector_panel_next(ctx, table);
+
+      ui_label(ctx->canvas, string_is_empty(name) ? string_lit("< unknown >") : name);
+      ui_table_next_column(ctx->canvas, table);
+      ui_label(ctx->canvas, script_val_scratch(val));
+    }
+  }
+}
+
 static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
   const SceneSetMemberComp* setMember = ecs_view_read_t(ctx->subject, SceneSetMemberComp);
 
@@ -985,6 +1012,9 @@ static void inspector_panel_draw(InspectorContext* ctx) {
     ui_canvas_id_block_next(ctx->canvas);
 
     inspector_panel_draw_decal(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
+
+    inspector_panel_draw_knowledge(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
 
     inspector_panel_draw_sets(ctx, &table);
