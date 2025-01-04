@@ -670,8 +670,10 @@ static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table
       }
       const String name = stringtable_lookup(g_stringtable, itr.key);
       inspector_panel_next(ctx, table);
-
-      ui_label(ctx->canvas, string_is_empty(name) ? string_lit("< unknown >") : name);
+      ui_label(
+          ctx->canvas,
+          string_is_empty(name) ? string_lit("< unknown >") : name,
+          .selectable = true);
       ui_table_next_column(ctx->canvas, table);
       ui_label(ctx->canvas, script_val_scratch(val));
     }
@@ -691,7 +693,10 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
     for (u32 i = 0; i != setCount; ++i) {
       inspector_panel_next(ctx, table);
       const String setName = stringtable_lookup(g_stringtable, sets[i]);
-      ui_label(ctx->canvas, string_is_empty(setName) ? string_lit("< unknown >") : setName);
+      ui_label(
+          ctx->canvas,
+          string_is_empty(setName) ? string_lit("< unknown >") : setName,
+          .selectable = true);
       ui_table_next_column(ctx->canvas, table);
       ui_layout_resize(ctx->canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
       if (ui_button(
