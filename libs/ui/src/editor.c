@@ -81,10 +81,13 @@ editor_cp_is_valid(const Unicode cp, const UiTextFilter filter, const UiEditorSo
    * Filter rules.
    */
   if (filter & UiTextFilter_DigitsOnly) {
-    if (!unicode_is_ascii(cp)) {
+    const bool isValid = ascii_is_digit(cp) || cp == '.' || cp == '-' || cp == '+' || cp == 'e';
+    if (!isValid) {
       return false;
     }
-    return ascii_is_digit(cp) || cp == '.' || cp == '-' || cp == '+' || cp == 'e';
+  }
+  if (filter & UiTextFilter_NoWhitespace && ascii_is_whitespace(cp)) {
+    return false;
   }
   /**
    * Source specific rules.
@@ -102,10 +105,10 @@ editor_cp_is_valid(const Unicode cp, const UiTextFilter filter, const UiEditorSo
   /**
    * Generic rules.
    */
-  if (unicode_is_ascii(cp) && ascii_is_control(cp)) {
+  if (ascii_is_control(cp)) {
     return false; // Control characters like delete / backspace are handled separately.
   }
-  if (unicode_is_ascii(cp) && ascii_is_newline(cp)) {
+  if (ascii_is_newline(cp)) {
     return false; // Multi line editing is not supported at this time.
   }
   if (cp == Unicode_ZeroWidthSpace) {
@@ -562,10 +565,11 @@ void ui_editor_update(
     return;
   }
 
-  const bool       readonly   = (editor->filter & UiTextFilter_Readonly) != 0;
-  const bool       digitsOnly = (editor->filter & UiTextFilter_DigitsOnly) != 0;
-  const bool       isHovering = hover.id == editor->textElement;
-  const bool       dragging   = gap_window_key_down(win, GapKey_MouseLeft) && !editor->click.repeat;
+  const bool       readonly     = (editor->filter & UiTextFilter_Readonly) != 0;
+  const bool       digitsOnly   = (editor->filter & UiTextFilter_DigitsOnly) != 0;
+  const bool       noWhitespace = (editor->filter & UiTextFilter_NoWhitespace) != 0;
+  const bool       isHovering   = hover.id == editor->textElement;
+  const bool       dragging = gap_window_key_down(win, GapKey_MouseLeft) && !editor->click.repeat;
   const bool       firstUpdate = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
   const TimeSteady timeNow     = time_steady_clock();
 
@@ -630,7 +634,7 @@ void ui_editor_update(
     editor_insert_text(editor, gap_window_clip_paste_result(win), UiEditorSource_Clipboard);
   }
 
-  if (gap_window_key_pressed(win, GapKey_Tab) && !readonly && !digitsOnly) {
+  if (gap_window_key_pressed(win, GapKey_Tab) && !readonly && !digitsOnly && !noWhitespace) {
     editor_insert_cp(editor, Unicode_HorizontalTab);
   }
   if (gap_window_key_pressed_with_repeat(win, GapKey_Backspace) && !readonly) {
