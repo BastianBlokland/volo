@@ -1365,9 +1365,9 @@ static void gltf_process_anim_channel(
   const EqFunc eq = target == AssetMeshAnimTarget_Rotation ? geo_vector_equal : geo_vector_equal3;
   const f32    eqThres = gltf_eq_threshold;
 
-  static const f32 g_minTimeSec   = 1.0f / 30.0f; // A single frame at 30hz.
-  const f32        minTimeFrac    = math_min(g_minTimeSec / duration, 1.0f);
-  const u16        minTimeFracU16 = math_max((u16)(u16_max * minTimeFrac), 1);
+  static const f32 g_minTimeSec = 1.0f / 30.0f; // A single frame at 30hz.
+  const f32 minTimeFrac = duration > f32_epsilon ? math_min(g_minTimeSec / duration, 1.0f) : 0.0f;
+  const u16 minTimeFracU16 = math_max((u16)(u16_max * minTimeFrac), 1);
 
   GeoVector* vData = dynarray_at(&ld->animData, ch->valueData, sizeof(GeoVector)).ptr;
   u16*       tData = dynarray_at(&ld->animData, ch->timeData, sizeof(u16)).ptr;

@@ -1,5 +1,7 @@
 #pragma once
 #include "geo.h"
+#include "geo_box_rotated.h"
+#include "geo_sphere.h"
 
 /**
  * Navigation grid.
@@ -115,9 +117,9 @@ typedef enum {
 typedef struct {
   GeoBlockerType type;
   union {
-    const GeoBox*        box;
-    const GeoBoxRotated* boxRotated;
-    const GeoSphere*     sphere;
+    GeoBox        box;
+    GeoBoxRotated boxRotated;
+    GeoSphere     sphere;
   };
 } GeoBlockerShape;
 

@@ -152,8 +152,8 @@ macro(set_clang_compile_options)
 
   # Enable various clang sanitizers on supported platforms.
   if(${SANITIZE} AND ${VOLO_PLATFORM} STREQUAL "linux")
-    set(SANITIZERS "address,alignment,builtin,bounds,integer-divide-by-zero,undefined")
-    set(SANITIZERS_DISABLED "pointer-overflow,shift-base,shift-exponent")
+    set(SANITIZERS "address,alignment,builtin,bounds,integer-divide-by-zero,float-divide-by-zero,undefined,unreachable")
+    set(SANITIZERS_DISABLED "pointer-overflow,shift-base,shift-exponent,function")
 
     message(STATUS "Configuring clang sanitizers: ${SANITIZERS}")
     add_compile_options(-fsanitize=${SANITIZERS} -fno-sanitize=${SANITIZERS_DISABLED})

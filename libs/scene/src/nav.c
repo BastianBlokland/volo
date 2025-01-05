@@ -170,10 +170,10 @@ static GeoBlockerShape nav_blocker_shape_box(const GeoBoxRotated* box) {
      * much faster to insert.
      */
     res.type = GeoBlockerType_Box;
-    res.box  = &box->box;
+    res.box  = box->box;
   } else {
     res.type       = GeoBlockerType_BoxRotated;
-    res.boxRotated = box;
+    res.boxRotated = *box;
   }
   return res;
 }
@@ -220,7 +220,7 @@ static void nav_refresh_blockers(NavInitContext* ctx, EcsView* blockerView) {
       case SceneCollisionType_Sphere:
         blockerShapes[i] = (GeoBlockerShape){
             .type   = GeoBlockerType_Sphere,
-            .sphere = &shapeWorld.sphere,
+            .sphere = shapeWorld.sphere,
         };
         break;
       case SceneCollisionType_Capsule: {

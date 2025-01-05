@@ -1446,13 +1446,13 @@ static void geo_nav_block_shape(
     GeoNavGrid* grid, const GeoNavRegion region, BitSet regionBits, const GeoBlockerShape* shape) {
   switch (shape->type) {
   case GeoBlockerType_Box:
-    geo_nav_block_box(grid, region, regionBits, shape->box);
+    geo_nav_block_box(grid, region, regionBits, &shape->box);
     return;
   case GeoBlockerType_BoxRotated:
-    geo_nav_block_box_rotated(grid, region, regionBits, shape->boxRotated);
+    geo_nav_block_box_rotated(grid, region, regionBits, &shape->boxRotated);
     return;
   case GeoBlockerType_Sphere:
-    geo_nav_block_sphere(grid, region, regionBits, shape->sphere);
+    geo_nav_block_sphere(grid, region, regionBits, &shape->sphere);
     return;
   }
   UNREACHABLE
@@ -1461,11 +1461,11 @@ static void geo_nav_block_shape(
 static GeoBox geo_nav_block_bounds_shape(const GeoBlockerShape* shape) {
   switch (shape->type) {
   case GeoBlockerType_Box:
-    return *shape->box;
+    return shape->box;
   case GeoBlockerType_BoxRotated:
-    return geo_box_from_rotated(&shape->boxRotated->box, shape->boxRotated->rotation);
+    return geo_box_from_rotated(&shape->boxRotated.box, shape->boxRotated.rotation);
   case GeoBlockerType_Sphere:
-    return geo_box_from_sphere(shape->sphere->point, shape->sphere->radius);
+    return geo_box_from_sphere(shape->sphere.point, shape->sphere.radius);
   }
   UNREACHABLE
 }

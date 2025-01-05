@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_dynarray.h"
+#include "core_float.h"
 #include "core_math.h"
 #include "debug_register.h"
 #include "debug_text.h"
@@ -56,9 +57,8 @@ ecs_view_define(CanvasView) {
 }
 
 static GeoMatrix debug_text_view_proj(
-    const SceneCameraComp* cam, const SceneTransformComp* trans, const UiCanvasComp* canvas) {
-  const UiVector res    = ui_canvas_resolution(canvas);
-  const f32      aspect = (f32)res.width / (f32)res.height;
+    const SceneCameraComp* cam, const SceneTransformComp* trans, const UiVector res) {
+  const f32 aspect = res.width / res.height;
   return scene_camera_view_proj(cam, trans, aspect);
 }
 
@@ -108,11 +108,15 @@ ecs_system_define(DebugTextRenderSys) {
     const SceneCameraComp*       camera    = ecs_view_read_t(rendererItr, SceneCameraComp);
     const SceneTransformComp*    transform = ecs_view_read_t(rendererItr, SceneTransformComp);
 
-    UiCanvasComp*   canvas   = ecs_utils_write_t(world, CanvasView, renderer->canvas, UiCanvasComp);
-    const GeoMatrix viewProj = debug_text_view_proj(camera, transform, canvas);
-
+    UiCanvasComp* canvas = ecs_utils_write_t(world, CanvasView, renderer->canvas, UiCanvasComp);
     ui_canvas_reset(canvas);
     ui_canvas_to_back(canvas);
+
+    const UiVector res = ui_canvas_resolution(canvas);
+    if (UNLIKELY(res.width < f32_epsilon || res.height < f32_epsilon)) {
+      continue;
+    }
+    const GeoMatrix viewProj = debug_text_view_proj(camera, transform, res);
 
     for (ecs_view_itr_reset(textItr); ecs_view_walk(textItr);) {
       DebugTextComp* textComp = ecs_view_write_t(textItr, DebugTextComp);

@@ -14,6 +14,17 @@ Allocator*              g_allocPageCache;
 Allocator*              g_allocPersist;
 THREAD_LOCAL Allocator* g_allocScratch;
 
+#if defined(VOLO_ASAN)
+const char* __asan_default_options() {
+  /**
+   * Disable the address-sanitizer leak detection.
+   * Reason is we get allot of hits within proprietary graphics drivers which we cannot change and
+   * for our own allocations we have a custom leak detector.
+   */
+  return "detect_leaks=0";
+}
+#endif
+
 static void alloc_verify_allocator(const Allocator* allocator) {
   if (UNLIKELY(allocator == null)) {
     alloc_crash_with_msg("Allocator is not initialized");

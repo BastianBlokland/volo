@@ -193,7 +193,7 @@ void alloc_block_destroy(Allocator* allocator) {
 
   if (allocBlock->allocatedBlocks) {
     alloc_crash_with_msg(
-        "alloc: {} blocks of size {} leaked during in block-allocator",
+        "alloc: {} blocks of size {} leaked in block-allocator",
         fmt_int(allocBlock->allocatedBlocks),
         fmt_size(allocBlock->blockSize));
   }

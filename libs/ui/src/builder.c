@@ -152,7 +152,8 @@ static void ui_build_set_size_to(UiBuildState* state, const UiVector val, const 
 
 static f32 ui_build_angle_rad_to_frac(const f32 angle) {
   static const f32 g_radToFrac = 1.0f / (math_pi_f32 * 2.0f);
-  return math_mod_f32(angle * g_radToFrac, 1.0f);
+  const f32        frac        = math_mod_f32(angle * g_radToFrac, 1.0f);
+  return frac < 0.0f ? (1.0f + frac) : frac;
 }
 
 static void ui_build_atom_glyph(
