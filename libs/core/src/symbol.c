@@ -206,7 +206,7 @@ INLINE_HINT MAYBE_UNUSED static bool sym_is_stack_ptr(const void* ptr) {
 }
 #endif
 
-NO_INLINE_HINT FLATTEN_HINT SymbolStack symbol_stack_walk(void) {
+NO_INLINE_HINT FLATTEN_HINT NO_ASAN SymbolStack symbol_stack_walk(void) {
   ASSERT(sizeof(uptr) == 8, "Only 64 bit architectures are supported at the moment")
 
   SymbolStack stack;
