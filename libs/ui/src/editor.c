@@ -75,16 +75,79 @@ static i8 ui_visual_slice_compare(const void* a, const void* b) {
       field_ptr(a, UiEditorVisualSlice, index), field_ptr(b, UiEditorVisualSlice, index));
 }
 
+static bool editor_allow_tab(const UiTextFilter filter) {
+  if (filter & UiTextFilter_DigitsOnly) {
+    return false;
+  }
+  if (filter & UiTextFilter_NoWhitespace) {
+    return false;
+  }
+  if (filter & UiTextFilter_SingleWord) {
+    return false;
+  }
+  return true;
+}
+
+static bool editor_cp_is_separator(const Unicode cp) {
+  switch ((u32)cp) {
+  case Unicode_Space:
+  case Unicode_ZeroWidthSpace:
+  case Unicode_HorizontalTab:
+  case '!':
+  case '"':
+  case '#':
+  case '$':
+  case '%':
+  case '&':
+  case '(':
+  case ')':
+  case '*':
+  case '+':
+  case ',':
+  case '-':
+  case '.':
+  case '/':
+  case ':':
+  case ';':
+  case '<':
+  case '=':
+  case '>':
+  case '?':
+  case '@':
+  case '[':
+  case '\\':
+  case ']':
+  case '^':
+  case '`':
+  case '{':
+  case '|':
+  case '}':
+  case '~':
+    return true;
+  default:
+    return false;
+  }
+}
+
 static bool
 editor_cp_is_valid(const Unicode cp, const UiTextFilter filter, const UiEditorSource source) {
   /**
    * Filter rules.
    */
   if (filter & UiTextFilter_DigitsOnly) {
-    if (!unicode_is_ascii(cp)) {
+    const bool isValid = ascii_is_digit(cp) || cp == '.' || cp == '-' || cp == '+' || cp == 'e';
+    if (!isValid) {
       return false;
     }
-    return ascii_is_digit(cp) || cp == '.' || cp == '-' || cp == '+' || cp == 'e';
+  }
+  if (filter & UiTextFilter_AsciiOnly && !unicode_is_ascii(cp)) {
+    return false;
+  }
+  if (filter & UiTextFilter_NoWhitespace && ascii_is_whitespace(cp)) {
+    return false;
+  }
+  if (filter & UiTextFilter_SingleWord && editor_cp_is_separator(cp)) {
+    return false;
   }
   /**
    * Source specific rules.
@@ -102,33 +165,16 @@ editor_cp_is_valid(const Unicode cp, const UiTextFilter filter, const UiEditorSo
   /**
    * Generic rules.
    */
-  if (unicode_is_ascii(cp) && ascii_is_control(cp)) {
+  if (ascii_is_control(cp)) {
     return false; // Control characters like delete / backspace are handled separately.
   }
-  if (unicode_is_ascii(cp) && ascii_is_newline(cp)) {
+  if (ascii_is_newline(cp)) {
     return false; // Multi line editing is not supported at this time.
   }
   if (cp == Unicode_ZeroWidthSpace) {
     return false; // Invisible characters (which also do not advance the cursor) are not supported.
   }
   return true;
-}
-
-static bool editor_cp_is_separator(const Unicode cp) {
-  switch ((u32)cp) {
-  case Unicode_Space:
-  case Unicode_ZeroWidthSpace:
-  case Unicode_HorizontalTab:
-  case '.':
-  case ',':
-  case ':':
-  case ';':
-  case '/':
-  case '\\':
-    return true;
-  default:
-    return false;
-  }
 }
 
 static Unicode editor_cp_at(UiEditor* editor, const usize index) {
@@ -168,9 +214,9 @@ static usize editor_word_end_index(UiEditor* editor, usize index) {
       return editor->text.size; // Return the end index when no more characters are found.
     }
     const Unicode nextCp      = editor_cp_at(editor, nextIndex);
-    const bool    isseparator = editor_cp_is_separator(nextCp);
-    foundStartingWord |= !isseparator;
-    if (isseparator && foundStartingWord) {
+    const bool    isSeparator = editor_cp_is_separator(nextCp);
+    foundStartingWord |= !isSeparator;
+    if (isSeparator && foundStartingWord) {
       return nextIndex;
     }
     index = nextIndex;
@@ -563,7 +609,6 @@ void ui_editor_update(
   }
 
   const bool       readonly   = (editor->filter & UiTextFilter_Readonly) != 0;
-  const bool       digitsOnly = (editor->filter & UiTextFilter_DigitsOnly) != 0;
   const bool       isHovering = hover.id == editor->textElement;
   const bool       dragging   = gap_window_key_down(win, GapKey_MouseLeft) && !editor->click.repeat;
   const bool       firstUpdate = (editor->flags & UiEditorFlags_FirstUpdate) != 0;
@@ -630,7 +675,7 @@ void ui_editor_update(
     editor_insert_text(editor, gap_window_clip_paste_result(win), UiEditorSource_Clipboard);
   }
 
-  if (gap_window_key_pressed(win, GapKey_Tab) && !readonly && !digitsOnly) {
+  if (gap_window_key_pressed(win, GapKey_Tab) && !readonly && editor_allow_tab(editor->filter)) {
     editor_insert_cp(editor, Unicode_HorizontalTab);
   }
   if (gap_window_key_pressed_with_repeat(win, GapKey_Backspace) && !readonly) {

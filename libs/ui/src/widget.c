@@ -715,7 +715,17 @@ bool ui_textbox_with_opts(UiCanvasComp* canvas, DynString* text, const UiTextbox
 
   // Start editing on press.
   if (!editing && status == UiStatus_Activated) {
-    const UiTextFilter filter = opts->type == UiTextbox_Digits ? UiTextFilter_DigitsOnly : 0;
+    UiTextFilter filter = 0;
+    switch (opts->type) {
+    case UiTextbox_Normal:
+      break;
+    case UiTextbox_Word:
+      filter |= UiTextFilter_SingleWord;
+      break;
+    case UiTextbox_Digits:
+      filter |= UiTextFilter_DigitsOnly;
+      break;
+    }
     ui_canvas_text_editor_start(canvas, dynstring_view(text), textId, opts->maxTextLength, filter);
     ui_canvas_sound(canvas, UiSoundType_Click);
     editing = true;

@@ -32,6 +32,7 @@
 #include "scene_debug.h"
 #include "scene_faction.h"
 #include "scene_health.h"
+#include "scene_knowledge.h"
 #include "scene_level.h"
 #include "scene_light.h"
 #include "scene_location.h"
@@ -50,6 +51,7 @@
 #include "scene_transform.h"
 #include "scene_vfx.h"
 #include "scene_visibility.h"
+#include "script_mem.h"
 #include "trace_tracer.h"
 #include "ui_canvas.h"
 #include "ui_layout.h"
@@ -108,6 +110,22 @@ typedef enum {
   DebugInspectorVisMode_Default = DebugInspectorVisMode_SelectedOnly,
 } DebugInspectorVisMode;
 
+typedef enum {
+  DebugKnowledgeType_Num,
+  DebugKnowledgeType_Bool,
+  DebugKnowledgeType_Vec3,
+  DebugKnowledgeType_Quat,
+  DebugKnowledgeType_Color,
+
+  DebugKnowledgeType_Count,
+} DebugKnowledgeType;
+
+typedef struct {
+  String     name;
+  StringHash key;
+  ScriptVal  val;
+} DebugKnowledgeEntry;
+
 static const String g_spaceNames[] = {
     [DebugInspectorSpace_Local] = string_static("Local"),
     [DebugInspectorSpace_World] = string_static("World"),
@@ -149,6 +167,15 @@ static const String g_visModeNames[] = {
 };
 ASSERT(array_elems(g_visModeNames) == DebugInspectorVisMode_Count, "Missing vis mode name");
 
+static const String g_knowledgeTypeNames[] = {
+    [DebugKnowledgeType_Num]   = string_static("Num"),
+    [DebugKnowledgeType_Bool]  = string_static("Bool"),
+    [DebugKnowledgeType_Vec3]  = string_static("Vec3"),
+    [DebugKnowledgeType_Quat]  = string_static("Quat"),
+    [DebugKnowledgeType_Color] = string_static("Color"),
+};
+ASSERT(array_elems(g_knowledgeTypeNames) == DebugKnowledgeType_Count, "Missing type name");
+
 ecs_comp_define(DebugInspectorSettingsComp) {
   DebugInspectorSpace   space;
   DebugInspectorTool    tool;
@@ -160,16 +187,22 @@ ecs_comp_define(DebugInspectorSettingsComp) {
 };
 
 ecs_comp_define(DebugInspectorPanelComp) {
-  UiPanel      panel;
-  UiScrollview scrollview;
-  u32          totalRows;
-  DynString    setNameBuffer;
-  GeoVector    transformRotEulerDeg; // Local copy of rotation as euler angles to use while editing.
+  UiPanel            panel;
+  UiScrollview       scrollview;
+  u32                totalRows;
+  DebugKnowledgeType knowledgeType;
+  DynString          textBuffer;
+  GeoVector transformRotEulerDeg; // Local copy of rotation as euler angles to use while editing.
 };
 
 static void ecs_destruct_panel_comp(void* data) {
   DebugInspectorPanelComp* panel = data;
-  dynstring_destroy(&panel->setNameBuffer);
+  dynstring_destroy(&panel->textBuffer);
+}
+
+static i8 debug_knowledge_compare_entry(const void* a, const void* b) {
+  return compare_string(
+      field_ptr(a, DebugKnowledgeEntry, name), field_ptr(b, DebugKnowledgeEntry, name));
 }
 
 ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp); }
@@ -229,6 +262,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneFactionComp);
   ecs_access_maybe_write(SceneHealthComp);
+  ecs_access_maybe_write(SceneKnowledgeComp);
   ecs_access_maybe_write(SceneLightAmbientComp);
   ecs_access_maybe_write(SceneLightDirComp);
   ecs_access_maybe_write(SceneLightPointComp);
@@ -651,6 +685,155 @@ static void inspector_panel_draw_decal(InspectorContext* ctx, UiTable* table) {
   }
 }
 
+static ScriptVal inspector_panel_knowledge_default(const DebugKnowledgeType type) {
+  switch (type) {
+  case DebugKnowledgeType_Num:
+    return script_num(0);
+  case DebugKnowledgeType_Bool:
+    return script_bool(false);
+  case DebugKnowledgeType_Vec3:
+    return script_vec3_lit(0, 0, 0);
+  case DebugKnowledgeType_Quat:
+    return script_quat(geo_quat_ident);
+  case DebugKnowledgeType_Color:
+    return script_color(geo_color_white);
+  case DebugKnowledgeType_Count:
+    break;
+  }
+  UNREACHABLE
+}
+
+static void inspector_panel_knowledge_value_edit(
+    InspectorContext* ctx, ScriptMem* mem, const StringHash key, const ScriptVal val) {
+  switch (script_type(val)) {
+  case ScriptType_Num: {
+    f64 valNum = script_get_num(val, 0);
+    if (ui_numbox(ctx->canvas, &valNum, .min = f64_min, .max = f64_max)) {
+      script_mem_store(mem, key, script_num(valNum));
+    }
+  } break;
+  case ScriptType_Bool: {
+    bool valBool = script_get_bool(val, false);
+    if (ui_toggle(ctx->canvas, &valBool)) {
+      script_mem_store(mem, key, script_bool(valBool));
+    }
+  } break;
+  case ScriptType_Vec3: {
+    GeoVector valVec3 = script_get_vec3(val, geo_vector(0));
+    if (debug_widget_editor_vec3(ctx->canvas, &valVec3, UiWidget_Default)) {
+      script_mem_store(mem, key, script_vec3(valVec3));
+    }
+  } break;
+  case ScriptType_Quat: {
+    GeoQuat valQuat = script_get_quat(val, geo_quat_ident);
+    if (debug_widget_editor_quat(ctx->canvas, &valQuat, UiWidget_Default)) {
+      script_mem_store(mem, key, script_quat(valQuat));
+    }
+  } break;
+  case ScriptType_Color: {
+    GeoColor valColor = script_get_color(val, geo_color_white);
+    if (debug_widget_editor_color(ctx->canvas, &valColor, UiWidget_Default)) {
+      script_mem_store(mem, key, script_color(valColor));
+    }
+  } break;
+  case ScriptType_Entity:
+  case ScriptType_Str:
+  case ScriptType_Null:
+    ui_label(ctx->canvas, script_val_scratch(val));
+    break;
+  case ScriptType_Count:
+    UNREACHABLE;
+  }
+}
+
+static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table) {
+  SceneKnowledgeComp* knowledge = ecs_view_write_t(ctx->subject, SceneKnowledgeComp);
+  if (!knowledge) {
+    return;
+  }
+  ScriptMem* memory = scene_knowledge_memory_mut(knowledge);
+
+  inspector_panel_next(ctx, table);
+  if (!inspector_panel_section(ctx, string_lit("Knowledge"))) {
+    return;
+  }
+  DynArray entries = dynarray_create_t(g_allocScratch, DebugKnowledgeEntry, 256);
+
+  // Collect entries.
+  for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
+    const ScriptVal val = script_mem_load(memory, itr.key);
+    if (script_type(val) == ScriptType_Null) {
+      continue;
+    }
+    const String keyStr                             = stringtable_lookup(g_stringtable, itr.key);
+    *dynarray_push_t(&entries, DebugKnowledgeEntry) = (DebugKnowledgeEntry){
+        .name = string_is_empty(keyStr) ? string_lit("< unnamed >") : keyStr,
+        .key  = itr.key,
+        .val  = val,
+    };
+  }
+  dynarray_sort(&entries, debug_knowledge_compare_entry);
+
+  // Draw entries.
+  dynarray_for_t(&entries, DebugKnowledgeEntry, entry) {
+    const String tooltip = fmt_write_scratch(
+        "Key name:\a>15{}\n"
+        "Key hash:\a>15{}\n"
+        "Type:\a>15{}\n"
+        "Value:\a>15{}\n",
+        fmt_text(entry->name),
+        fmt_int(entry->key),
+        fmt_text(script_val_type_str(script_type(entry->val))),
+        fmt_text(script_val_scratch(entry->val)));
+
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, entry->name, .selectable = true, .tooltip = tooltip);
+    ui_table_next_column(ctx->canvas, table);
+    ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
+    inspector_panel_knowledge_value_edit(ctx, memory, entry->key, entry->val);
+    ui_layout_next(ctx->canvas, Ui_Right, 10);
+    ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
+    if (ui_button(
+            ctx->canvas,
+            .label      = ui_shape_scratch(UiShape_Delete),
+            .fontSize   = 18,
+            .frameColor = ui_color(255, 16, 0, 192),
+            .tooltip    = string_lit("Remove this knowledge entry."))) {
+      script_mem_store(memory, entry->key, script_null());
+    }
+  }
+  dynarray_destroy(&entries);
+
+  // Draw entry creation Ui.
+  inspector_panel_next(ctx, table);
+  ui_textbox(
+      ctx->canvas,
+      &ctx->panel->textBuffer,
+      .placeholder = string_lit("Entry key..."),
+      .type        = UiTextbox_Word);
+  ui_table_next_column(ctx->canvas, table);
+  ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
+  ui_select(
+      ctx->canvas,
+      (i32*)&ctx->panel->knowledgeType,
+      g_knowledgeTypeNames,
+      array_elems(g_knowledgeTypeNames));
+  ui_layout_next(ctx->canvas, Ui_Right, 10);
+  ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
+  if (ui_button(
+          ctx->canvas,
+          .flags      = ctx->panel->textBuffer.size == 0 ? UiWidget_Disabled : 0,
+          .label      = ui_shape_scratch(UiShape_Add),
+          .fontSize   = 18,
+          .frameColor = ui_color(16, 192, 0, 192),
+          .tooltip    = string_lit("Add a new knowledge entry with the given key and type."))) {
+    const String     keyName = dynstring_view(&ctx->panel->textBuffer);
+    const StringHash key     = stringtable_add(g_stringtable, keyName);
+    script_mem_store(memory, key, inspector_panel_knowledge_default(ctx->panel->knowledgeType));
+    dynstring_clear(&ctx->panel->textBuffer);
+  }
+}
+
 static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
   const SceneSetMemberComp* setMember = ecs_view_read_t(ctx->subject, SceneSetMemberComp);
 
@@ -664,9 +847,14 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
     for (u32 i = 0; i != setCount; ++i) {
       inspector_panel_next(ctx, table);
       const String setName = stringtable_lookup(g_stringtable, sets[i]);
-      ui_label(ctx->canvas, string_is_empty(setName) ? string_lit("< unknown >") : setName);
+      ui_label(
+          ctx->canvas,
+          string_is_empty(setName) ? string_lit("< unknown >") : setName,
+          .selectable = true,
+          .tooltip    = fmt_write_scratch("Hash: {}", fmt_int(sets[i])));
       ui_table_next_column(ctx->canvas, table);
-      ui_layout_resize(ctx->canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
+      ui_layout_inner(
+          ctx->canvas, UiBase_Current, UiAlign_MiddleLeft, ui_vector(25, 22), UiBase_Absolute);
       if (ui_button(
               ctx->canvas,
               .label      = ui_shape_scratch(UiShape_Delete),
@@ -679,20 +867,25 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
 
     if (setCount != setCountMax) {
       inspector_panel_next(ctx, table);
-      ui_textbox(ctx->canvas, &ctx->panel->setNameBuffer, .placeholder = string_lit("Set name..."));
+      ui_textbox(
+          ctx->canvas,
+          &ctx->panel->textBuffer,
+          .placeholder = string_lit("Set name..."),
+          .type        = UiTextbox_Word);
       ui_table_next_column(ctx->canvas, table);
-      ui_layout_resize(ctx->canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
+      ui_layout_inner(
+          ctx->canvas, UiBase_Current, UiAlign_MiddleLeft, ui_vector(25, 22), UiBase_Absolute);
       if (ui_button(
               ctx->canvas,
-              .flags      = ctx->panel->setNameBuffer.size == 0 ? UiWidget_Disabled : 0,
+              .flags      = ctx->panel->textBuffer.size == 0 ? UiWidget_Disabled : 0,
               .label      = ui_shape_scratch(UiShape_Add),
               .fontSize   = 18,
               .frameColor = ui_color(16, 192, 0, 192),
               .tooltip    = string_lit("Add this entity to the specified set."))) {
-        const String     setName = dynstring_view(&ctx->panel->setNameBuffer);
+        const String     setName = dynstring_view(&ctx->panel->textBuffer);
         const StringHash set     = stringtable_add(g_stringtable, setName);
         scene_set_add(ctx->setEnv, set, ctx->subjectEntity, SceneSetFlags_None);
-        dynstring_clear(&ctx->panel->setNameBuffer);
+        dynstring_clear(&ctx->panel->textBuffer);
       }
     }
   }
@@ -856,7 +1049,7 @@ static void inspector_panel_draw_attachment(InspectorContext* ctx, UiTable* tabl
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Joint"));
     ui_table_next_column(ctx->canvas, table);
-    if (ui_textbox(ctx->canvas, &jointName, .maxTextLength = 64)) {
+    if (ui_textbox(ctx->canvas, &jointName, .maxTextLength = 64, .type = UiTextbox_Word)) {
       attach->jointIndex = sentinel_u32;
       attach->jointName  = string_maybe_hash(dynstring_view(&jointName));
     }
@@ -985,6 +1178,9 @@ static void inspector_panel_draw(InspectorContext* ctx) {
     ui_canvas_id_block_next(ctx->canvas);
 
     inspector_panel_draw_decal(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
+
+    inspector_panel_draw_knowledge(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
 
     inspector_panel_draw_sets(ctx, &table);
@@ -2006,8 +2202,8 @@ debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window, const Debu
       world,
       panelEntity,
       DebugInspectorPanelComp,
-      .panel         = ui_panel(.position = ui_vector(0.0f, 0.0f), .size = ui_vector(500, 500)),
-      .setNameBuffer = dynstring_create(g_allocHeap, 0));
+      .panel      = ui_panel(.position = ui_vector(0.0f, 0.0f), .size = ui_vector(500, 500)),
+      .textBuffer = dynstring_create(g_allocHeap, 0));
 
   if (type == DebugPanelType_Detached) {
     ui_panel_maximize(&inspectorPanel->panel);

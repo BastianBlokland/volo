@@ -12,8 +12,9 @@ typedef enum eUiWidgetFlags {
 } UiWidgetFlags;
 
 typedef enum {
-  UiTextbox_Normal,
-  UiTextbox_Digits,
+  UiTextbox_Normal, // Entire sentence.
+  UiTextbox_Word,   // Single word only.
+  UiTextbox_Digits, // Digits only.
 } UiTextboxType;
 
 typedef struct {

@@ -90,7 +90,15 @@ bool debug_widget_editor_vec3_resettable(
 
 bool debug_widget_editor_vec4_resettable(
     UiCanvasComp* canvas, GeoVector* val, const UiWidgetFlags flags) {
-  return debug_widget_editor_vec_resettable_internal(canvas, val, 3, flags);
+  return debug_widget_editor_vec_resettable_internal(canvas, val, 4, flags);
+}
+
+bool debug_widget_editor_quat(UiCanvasComp* canvas, GeoQuat* val, const UiWidgetFlags flags) {
+  if (debug_widget_editor_vec_resettable_internal(canvas, (GeoVector*)val, 4, flags)) {
+    *val = geo_quat_norm_or_ident(*val);
+    return true;
+  }
+  return false;
 }
 
 bool debug_widget_editor_color(UiCanvasComp* canvas, GeoColor* val, const UiWidgetFlags flags) {
