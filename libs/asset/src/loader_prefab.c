@@ -146,7 +146,7 @@ static void prefab_build(
   *err       = PrefabError_None;
   *outPrefab = (AssetPrefab){
       .name       = def->name,
-      .hash       = bits_hash_32_val(outPrefab->flags),
+      .hash       = bits_hash_32_val(flags),
       .flags      = flags,
       .traitIndex = (u16)outTraits->size,
       .traitCount = (u16)def->traits.count,
