@@ -120,6 +120,12 @@ typedef enum {
   DebugKnowledgeType_Count,
 } DebugKnowledgeType;
 
+typedef struct {
+  String     name;
+  StringHash key;
+  ScriptVal  val;
+} DebugKnowledgeEntry;
+
 static const String g_spaceNames[] = {
     [DebugInspectorSpace_Local] = string_static("Local"),
     [DebugInspectorSpace_World] = string_static("World"),
@@ -192,6 +198,11 @@ ecs_comp_define(DebugInspectorPanelComp) {
 static void ecs_destruct_panel_comp(void* data) {
   DebugInspectorPanelComp* panel = data;
   dynstring_destroy(&panel->textBuffer);
+}
+
+static i8 debug_knowledge_compare_entry(const void* a, const void* b) {
+  return compare_string(
+      field_ptr(a, DebugKnowledgeEntry, name), field_ptr(b, DebugKnowledgeEntry, name));
 }
 
 ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp); }
@@ -743,68 +754,83 @@ static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table
   ScriptMem* memory = scene_knowledge_memory_mut(knowledge);
 
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Knowledge"))) {
-    for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
-      const ScriptVal val = script_mem_load(memory, itr.key);
-      if (script_type(val) == ScriptType_Null) {
-        continue;
-      }
-      const String keyStr  = stringtable_lookup(g_stringtable, itr.key);
-      const String name    = string_is_empty(keyStr) ? string_lit("< unknown >") : keyStr;
-      const String tooltip = fmt_write_scratch(
-          "Key name:\a>15{}\n"
-          "Key hash:\a>15{}\n"
-          "Type:\a>15{}\n"
-          "Value:\a>15{}\n",
-          fmt_text(name),
-          fmt_int(itr.key),
-          fmt_text(script_val_type_str(script_type(val))),
-          fmt_text(script_val_scratch(val)));
+  if (!inspector_panel_section(ctx, string_lit("Knowledge"))) {
+    return;
+  }
+  DynArray entries = dynarray_create_t(g_allocScratch, DebugKnowledgeEntry, 256);
 
-      inspector_panel_next(ctx, table);
-      ui_label(ctx->canvas, keyStr, .selectable = true, .tooltip = tooltip);
-      ui_table_next_column(ctx->canvas, table);
-      ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
-      inspector_panel_knowledge_value_edit(ctx, memory, itr.key, val);
-      ui_layout_next(ctx->canvas, Ui_Right, 10);
-      ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
-      if (ui_button(
-              ctx->canvas,
-              .label      = ui_shape_scratch(UiShape_Delete),
-              .fontSize   = 18,
-              .frameColor = ui_color(255, 16, 0, 192),
-              .tooltip    = string_lit("Remove this knowledge entry."))) {
-        script_mem_store(memory, itr.key, script_null());
-      }
+  // Collect entries.
+  for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
+    const ScriptVal val = script_mem_load(memory, itr.key);
+    if (script_type(val) == ScriptType_Null) {
+      continue;
     }
+    const String keyStr                             = stringtable_lookup(g_stringtable, itr.key);
+    *dynarray_push_t(&entries, DebugKnowledgeEntry) = (DebugKnowledgeEntry){
+        .name = string_is_empty(keyStr) ? string_lit("< unnamed >") : keyStr,
+        .key  = itr.key,
+        .val  = val,
+    };
+  }
+  dynarray_sort(&entries, debug_knowledge_compare_entry);
+
+  // Draw entries.
+  dynarray_for_t(&entries, DebugKnowledgeEntry, entry) {
+    const String tooltip = fmt_write_scratch(
+        "Key name:\a>15{}\n"
+        "Key hash:\a>15{}\n"
+        "Type:\a>15{}\n"
+        "Value:\a>15{}\n",
+        fmt_text(entry->name),
+        fmt_int(entry->key),
+        fmt_text(script_val_type_str(script_type(entry->val))),
+        fmt_text(script_val_scratch(entry->val)));
 
     inspector_panel_next(ctx, table);
-    ui_textbox(
-        ctx->canvas,
-        &ctx->panel->textBuffer,
-        .placeholder = string_lit("Entry key..."),
-        .type        = UiTextbox_Word);
+    ui_label(ctx->canvas, entry->name, .selectable = true, .tooltip = tooltip);
     ui_table_next_column(ctx->canvas, table);
     ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
-    ui_select(
-        ctx->canvas,
-        (i32*)&ctx->panel->knowledgeType,
-        g_knowledgeTypeNames,
-        array_elems(g_knowledgeTypeNames));
+    inspector_panel_knowledge_value_edit(ctx, memory, entry->key, entry->val);
     ui_layout_next(ctx->canvas, Ui_Right, 10);
     ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
     if (ui_button(
             ctx->canvas,
-            .flags      = ctx->panel->textBuffer.size == 0 ? UiWidget_Disabled : 0,
-            .label      = ui_shape_scratch(UiShape_Add),
+            .label      = ui_shape_scratch(UiShape_Delete),
             .fontSize   = 18,
-            .frameColor = ui_color(16, 192, 0, 192),
-            .tooltip    = string_lit("Add a new knowledge entry with the given key and type."))) {
-      const String     keyName = dynstring_view(&ctx->panel->textBuffer);
-      const StringHash key     = stringtable_add(g_stringtable, keyName);
-      script_mem_store(memory, key, inspector_panel_knowledge_default(ctx->panel->knowledgeType));
-      dynstring_clear(&ctx->panel->textBuffer);
+            .frameColor = ui_color(255, 16, 0, 192),
+            .tooltip    = string_lit("Remove this knowledge entry."))) {
+      script_mem_store(memory, entry->key, script_null());
     }
+  }
+  dynarray_destroy(&entries);
+
+  // Draw entry creation Ui.
+  inspector_panel_next(ctx, table);
+  ui_textbox(
+      ctx->canvas,
+      &ctx->panel->textBuffer,
+      .placeholder = string_lit("Entry key..."),
+      .type        = UiTextbox_Word);
+  ui_table_next_column(ctx->canvas, table);
+  ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
+  ui_select(
+      ctx->canvas,
+      (i32*)&ctx->panel->knowledgeType,
+      g_knowledgeTypeNames,
+      array_elems(g_knowledgeTypeNames));
+  ui_layout_next(ctx->canvas, Ui_Right, 10);
+  ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
+  if (ui_button(
+          ctx->canvas,
+          .flags      = ctx->panel->textBuffer.size == 0 ? UiWidget_Disabled : 0,
+          .label      = ui_shape_scratch(UiShape_Add),
+          .fontSize   = 18,
+          .frameColor = ui_color(16, 192, 0, 192),
+          .tooltip    = string_lit("Add a new knowledge entry with the given key and type."))) {
+    const String     keyName = dynstring_view(&ctx->panel->textBuffer);
+    const StringHash key     = stringtable_add(g_stringtable, keyName);
+    script_mem_store(memory, key, inspector_panel_knowledge_default(ctx->panel->knowledgeType));
+    dynstring_clear(&ctx->panel->textBuffer);
   }
 }
 
