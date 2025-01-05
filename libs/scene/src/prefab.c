@@ -38,6 +38,7 @@
 #include "scene_transform.h"
 #include "scene_vfx.h"
 #include "scene_visibility.h"
+#include "script_mem.h"
 
 ASSERT(AssetPrefabTrait_Count < 64, "Prefab trait masks need to be representable with 64 bits")
 
@@ -147,6 +148,7 @@ ecs_view_define(InstanceRefreshView) {
   ecs_access_read(SceneTransformComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneFactionComp);
+  ecs_access_maybe_read(SceneKnowledgeComp);
   ecs_access_maybe_read(SceneSetMemberComp);
 }
 
@@ -245,6 +247,30 @@ ecs_system_define(ScenePrefabResourceUpdateSys) {
   }
 }
 
+static void prefab_extract_knowledge(const SceneKnowledgeComp* comp, ScenePrefabSpec* out) {
+  enum { MaxResults = 128 };
+
+  ScenePrefabKnowledge* res      = alloc_array_t(g_allocScratch, ScenePrefabKnowledge, MaxResults);
+  u16                   resCount = 0;
+
+  const ScriptMem* memory = scene_knowledge_memory(comp);
+  for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
+    const ScriptVal val = script_mem_load(memory, itr.key);
+    if (script_type(val) != ScriptType_Null) {
+      if (resCount == MaxResults) {
+        break; // Maximum knowledge reached. TODO: Should this be an error?
+      }
+      res[resCount++] = (ScenePrefabKnowledge){
+          .key   = itr.key,
+          .value = val,
+      };
+    }
+  }
+
+  out->knowledge      = res;
+  out->knowledgeCount = resCount;
+}
+
 static void prefab_refresh(ScenePrefabEnvComp* prefabEnv, EcsIterator* itr) {
   const EcsEntityId              entity         = ecs_view_entity(itr);
   const SceneTransformComp*      transComp      = ecs_view_read_t(itr, SceneTransformComp);
@@ -262,6 +288,10 @@ static void prefab_refresh(ScenePrefabEnvComp* prefabEnv, EcsIterator* itr) {
       .position = transComp->position,
       .rotation = transComp->rotation,
   };
+  const SceneKnowledgeComp* knowledge = ecs_view_read_t(itr, SceneKnowledgeComp);
+  if (knowledge) {
+    prefab_extract_knowledge(knowledge, &spec);
+  }
   const SceneSetMemberComp* setMember = ecs_view_read_t(itr, SceneSetMemberComp);
   if (setMember) {
     ASSERT(array_elems(spec.sets) >= scene_set_member_max_sets, "Insufficient set storage");
