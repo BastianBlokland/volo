@@ -347,6 +347,14 @@ static EcsEntityId inspector_prefab_duplicate(EcsWorld* world, EcsIterator* subj
       .position = transComp->position,
       .rotation = transComp->rotation,
   };
+  const SceneKnowledgeComp* knowledge = ecs_view_read_t(subject, SceneKnowledgeComp);
+  if (knowledge && prefabInstComp->variant == ScenePrefabVariant_Edit) {
+    /**
+     * Preserve knowledge for edit variants, runtime variants shouldn't preserve knowledge as it
+     * could lead to inconsistent script state.
+     */
+    inspector_extract_knowledge(knowledge, &spec);
+  }
   const SceneSetMemberComp* setMember = ecs_view_read_t(subject, SceneSetMemberComp);
   if (setMember) {
     inspector_extract_sets(setMember, &spec);
