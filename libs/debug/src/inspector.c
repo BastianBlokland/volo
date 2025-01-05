@@ -299,6 +299,35 @@ inspector_notify_vis_mode(DebugStatsGlobalComp* stats, const DebugInspectorVisMo
   debug_stats_notify(stats, string_lit("Visualize"), g_visModeNames[visMode]);
 }
 
+static void inspector_extract_knowledge(const SceneKnowledgeComp* comp, ScenePrefabSpec* out) {
+  enum { MaxResults = 128 };
+
+  ScenePrefabKnowledge* res      = alloc_array_t(g_allocScratch, ScenePrefabKnowledge, MaxResults);
+  u16                   resCount = 0;
+
+  const ScriptMem* memory = scene_knowledge_memory(comp);
+  for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
+    const ScriptVal val = script_mem_load(memory, itr.key);
+    if (script_type(val) != ScriptType_Null) {
+      if (resCount == MaxResults) {
+        break; // Maximum knowledge reached. TODO: Should this be an error?
+      }
+      res[resCount++] = (ScenePrefabKnowledge){
+          .key   = itr.key,
+          .value = val,
+      };
+    }
+  }
+
+  out->knowledge      = res;
+  out->knowledgeCount = resCount;
+}
+
+static void inspector_extract_sets(const SceneSetMemberComp* comp, ScenePrefabSpec* out) {
+  ASSERT(array_elems(out->sets) >= scene_set_member_max_sets, "Insufficient set storage");
+  scene_set_member_all(comp, out->sets);
+}
+
 static EcsEntityId inspector_prefab_duplicate(EcsWorld* world, EcsIterator* subject) {
   const EcsEntityId              entity         = ecs_view_entity(subject);
   const SceneTransformComp*      transComp      = ecs_view_read_t(subject, SceneTransformComp);
@@ -320,8 +349,7 @@ static EcsEntityId inspector_prefab_duplicate(EcsWorld* world, EcsIterator* subj
   };
   const SceneSetMemberComp* setMember = ecs_view_read_t(subject, SceneSetMemberComp);
   if (setMember) {
-    ASSERT(array_elems(spec.sets) >= scene_set_member_max_sets, "Insufficient set storage");
-    scene_set_member_all(setMember, spec.sets);
+    inspector_extract_sets(setMember, &spec);
   }
   return scene_prefab_spawn(world, &spec);
 }
@@ -347,10 +375,13 @@ static void inspector_prefab_replace(
       .position = transComp->position,
       .rotation = transComp->rotation,
   };
+  const SceneKnowledgeComp* knowledge = ecs_view_read_t(subject, SceneKnowledgeComp);
+  if (knowledge) {
+    inspector_extract_knowledge(knowledge, &spec);
+  }
   const SceneSetMemberComp* setMember = ecs_view_read_t(subject, SceneSetMemberComp);
   if (setMember) {
-    ASSERT(array_elems(spec.sets) >= scene_set_member_max_sets, "Insufficient set storage");
-    scene_set_member_all(setMember, spec.sets);
+    inspector_extract_sets(setMember, &spec);
   }
   scene_prefab_spawn_replace(prefabEnv, &spec, entity);
 }
