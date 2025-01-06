@@ -55,7 +55,7 @@ typedef struct {
 
 typedef struct {
   AssetRef scripts[asset_prefab_scripts_max];
-  HeapArray_t(AssetPrefabValue) knowledge;
+  HeapArray_t(AssetPrefabValue) properties;
 } AssetPrefabTraitScriptDef;
 
 typedef struct {
@@ -217,21 +217,21 @@ static void prefab_build(
       TRAIT_HASH_ADD(bits_hash_32(shapeMem));
     } break;
     case AssetPrefabTrait_Script: {
-      const AssetPrefabTraitScriptDef* scriptDef      = &traitDef->data_script;
-      const u16                        knowledgeCount = (u16)scriptDef->knowledge.count;
-      const Mem                        knowledgeMem =
-          mem_create(scriptDef->knowledge.values, sizeof(AssetPrefabValue) * knowledgeCount);
+      const AssetPrefabTraitScriptDef* scriptDef = &traitDef->data_script;
+      const u16                        propCount = (u16)scriptDef->properties.count;
+      const Mem                        propMem =
+          mem_create(scriptDef->properties.values, sizeof(AssetPrefabValue) * propCount);
 
       outTrait->data_script = (AssetPrefabTraitScript){
-          .knowledgeIndex = (u16)outValues->size,
-          .knowledgeCount = knowledgeCount,
+          .propIndex = (u16)outValues->size,
+          .propCount = propCount,
       };
       for (u32 i = 0; i != asset_prefab_scripts_max; ++i) {
         TRAIT_HASH_ADD(scriptDef->scripts[i].id);
         outTrait->data_script.scripts[i] = scriptDef->scripts[i].entity;
       }
-      mem_cpy(dynarray_push(outValues, knowledgeCount), knowledgeMem);
-      TRAIT_HASH_ADD(bits_hash_32(knowledgeMem));
+      mem_cpy(dynarray_push(outValues, propCount), propMem);
+      TRAIT_HASH_ADD(bits_hash_32(propMem));
     } break;
     case AssetPrefabTrait_Count:
       break;
@@ -605,7 +605,7 @@ void asset_data_init_prefab(void) {
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitScriptDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, scripts, g_assetRefType,  .container = DataContainer_InlineArray, .fixedCount = asset_prefab_scripts_max, .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, knowledge, t_AssetPrefabValue, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, properties, t_AssetPrefabValue, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitBark);
   data_reg_field_t(g_dataReg, AssetPrefabTraitBark, priority, data_prim_t(i32), .flags = DataFlags_Opt);

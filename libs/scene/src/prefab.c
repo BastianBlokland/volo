@@ -567,8 +567,8 @@ static void setup_script(PrefabSetupContext* ctx, const AssetPrefabTraitScript* 
   if (!ctx->propComp) {
     ctx->propComp = scene_prop_add(ctx->world, ctx->entity);
   }
-  for (u16 i = 0; i != t->knowledgeCount; ++i) {
-    const AssetPrefabValue* val = &ctx->prefabMap->values.values[t->knowledgeIndex + i];
+  for (u16 i = 0; i != t->propCount; ++i) {
+    const AssetPrefabValue* val = &ctx->prefabMap->values.values[t->propIndex + i];
     switch (val->type) {
     case AssetPrefabValue_Number:
       scene_prop_store(ctx->propComp, val->name, script_num(val->data_number));
