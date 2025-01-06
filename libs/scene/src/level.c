@@ -104,10 +104,10 @@ static bool scene_knowledge_is_persistable(const ScriptVal val) {
   case ScriptType_Vec3:
   case ScriptType_Quat:
   case ScriptType_Color:
+  case ScriptType_Str:
     return true;
   case ScriptType_Null:
   case ScriptType_Entity:
-  case ScriptType_Str:
     return false;
   case ScriptType_Count:
     break;
@@ -206,6 +206,9 @@ static void scene_level_process_load(
         continue;
       case AssetPropertyType_Color:
         knowledge[i].value = script_color(prop->data_color);
+        continue;
+      case AssetPropertyType_Str:
+        knowledge[i].value = script_str(prop->data_str);
         continue;
       case AssetPropertyType_Count:
         break;
@@ -401,9 +404,12 @@ static void scene_level_object_push_knowledge(
       prop->type       = AssetPropertyType_Color;
       prop->data_color = script_get_color(val, geo_color_white);
       continue;
+    case ScriptType_Str:
+      prop->type     = AssetPropertyType_Str;
+      prop->data_str = script_get_str(val, 0);
+      continue;
     case ScriptType_Null:
     case ScriptType_Entity:
-    case ScriptType_Str:
     case ScriptType_Count:
       break;
     }
