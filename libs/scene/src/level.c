@@ -186,29 +186,29 @@ static void scene_level_process_load(
 
   const ScenePrefabVariant prefabVariant = scene_level_prefab_variant(levelMode);
   heap_array_for_t(level->objects, AssetLevelObject, obj) {
-    ScenePrefabProperty knowledge[128];
-    const u16 knowledgeCount = (u16)math_min(obj->properties.count, array_elems(knowledge));
-    for (u16 i = 0; i != knowledgeCount; ++i) {
+    ScenePrefabProperty props[128];
+    const u16           propCount = (u16)math_min(obj->properties.count, array_elems(props));
+    for (u16 i = 0; i != propCount; ++i) {
       const AssetProperty* levelProp = &obj->properties.values[i];
-      knowledge[i].key               = levelProp->name;
+      props[i].key                   = levelProp->name;
       switch (levelProp->type) {
       case AssetPropertyType_Num:
-        knowledge[i].value = script_num(levelProp->data_num);
+        props[i].value = script_num(levelProp->data_num);
         continue;
       case AssetPropertyType_Bool:
-        knowledge[i].value = script_bool(levelProp->data_bool);
+        props[i].value = script_bool(levelProp->data_bool);
         continue;
       case AssetPropertyType_Vec3:
-        knowledge[i].value = script_vec3(levelProp->data_vec3);
+        props[i].value = script_vec3(levelProp->data_vec3);
         continue;
       case AssetPropertyType_Quat:
-        knowledge[i].value = script_quat(levelProp->data_quat);
+        props[i].value = script_quat(levelProp->data_quat);
         continue;
       case AssetPropertyType_Color:
-        knowledge[i].value = script_color(levelProp->data_color);
+        props[i].value = script_color(levelProp->data_color);
         continue;
       case AssetPropertyType_Str:
-        knowledge[i].value = script_str_or_null(levelProp->data_str);
+        props[i].value = script_str_or_null(levelProp->data_str);
         continue;
       case AssetPropertyType_Count:
         break;
@@ -223,8 +223,8 @@ static void scene_level_process_load(
         .rotation      = obj->rotation,
         .scale         = obj->scale,
         .faction       = scene_from_asset_faction(obj->faction),
-        .properties    = knowledge,
-        .propertyCount = knowledgeCount,
+        .properties    = props,
+        .propertyCount = propCount,
     };
     mem_cpy(mem_var(spec.sets), mem_var(obj->sets));
     scene_prefab_spawn(world, &spec);
@@ -367,7 +367,7 @@ ecs_system_define(SceneLevelUnloadSys) {
   }
 }
 
-static void scene_level_object_push_knowledge(
+static void scene_level_object_push_properties(
     AssetLevelObject* obj, Allocator* alloc, const ScenePropertyComp* c) {
   const u32 count = scene_prop_count_persistable(c);
   if (!count) {
@@ -440,12 +440,12 @@ static void scene_level_object_push(
     return; // Volatile prefabs should not be persisted.
   }
 
-  const SceneTransformComp* maybeTrans     = ecs_view_read_t(instanceItr, SceneTransformComp);
-  const SceneScaleComp*     maybeScale     = ecs_view_read_t(instanceItr, SceneScaleComp);
-  const SceneFactionComp*   maybeFaction   = ecs_view_read_t(instanceItr, SceneFactionComp);
-  const ScenePropertyComp*  maybeKnowledge = ecs_view_read_t(instanceItr, ScenePropertyComp);
-  const SceneSetMemberComp* maybeSetMember = ecs_view_read_t(instanceItr, SceneSetMemberComp);
-  const f32                 scaleVal       = maybeScale ? maybeScale->scale : 1.0f;
+  const SceneTransformComp* maybeTrans      = ecs_view_read_t(instanceItr, SceneTransformComp);
+  const SceneScaleComp*     maybeScale      = ecs_view_read_t(instanceItr, SceneScaleComp);
+  const SceneFactionComp*   maybeFaction    = ecs_view_read_t(instanceItr, SceneFactionComp);
+  const ScenePropertyComp*  maybeProperties = ecs_view_read_t(instanceItr, ScenePropertyComp);
+  const SceneSetMemberComp* maybeSetMember  = ecs_view_read_t(instanceItr, SceneSetMemberComp);
+  const f32                 scaleVal        = maybeScale ? maybeScale->scale : 1.0f;
 
   AssetLevelObject obj = {
       .id       = prefabInst->id ? prefabInst->id : rng_sample_u32(g_rng),
@@ -455,8 +455,8 @@ static void scene_level_object_push(
       .scale    = scaleVal == 1.0f ? 0.0 : scaleVal, // Scale 0 is treated as unscaled (eg 1.0).
       .faction  = maybeFaction ? scene_to_asset_faction(maybeFaction->id) : AssetLevelFaction_None,
   };
-  if (maybeKnowledge) {
-    scene_level_object_push_knowledge(&obj, alloc, maybeKnowledge);
+  if (maybeProperties) {
+    scene_level_object_push_properties(&obj, alloc, maybeProperties);
   }
   if (maybeSetMember) {
     scene_level_object_push_sets(&obj, maybeSetMember);
