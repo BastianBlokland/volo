@@ -5,12 +5,12 @@
 
 ecs_comp_define(ScenePropertyComp) { ScriptMem memory; };
 
-static void ecs_destruct_knowledge_comp(void* data) {
-  ScenePropertyComp* k = data;
-  script_mem_destroy(&k->memory);
+static void ecs_destruct_prop_comp(void* data) {
+  ScenePropertyComp* comp = data;
+  script_mem_destroy(&comp->memory);
 }
 
-static void ecs_combine_knowledge_comp(void* dataA, void* dataB) {
+static void ecs_combine_prop_comp(void* dataA, void* dataB) {
   ScenePropertyComp* compA = dataA;
   ScenePropertyComp* compB = dataB;
 
@@ -25,9 +25,7 @@ static void ecs_combine_knowledge_comp(void* dataA, void* dataB) {
 
 ecs_module_init(scene_property_module) {
   ecs_register_comp(
-      ScenePropertyComp,
-      .destructor = ecs_destruct_knowledge_comp,
-      .combinator = ecs_combine_knowledge_comp);
+      ScenePropertyComp, .destructor = ecs_destruct_prop_comp, .combinator = ecs_combine_prop_comp);
 }
 
 ScriptVal scene_prop_load(const ScenePropertyComp* k, const StringHash key) {
