@@ -12,7 +12,7 @@
 
 static const AssetMemRecord g_testScriptAssets[] = {
     {
-        .id   = string_static("scene/set_knowledge.script"),
+        .id   = string_static("scene/set_property.script"),
         .data = string_static("$test = 42"),
     },
 };
@@ -56,11 +56,11 @@ spec(script) {
     scene_test_wait(runner);
   }
 
-  it("can set knowledge") {
+  it("can set properties") {
     EcsEntityId scriptAssets[1];
     {
       AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-      scriptAssets[0] = asset_lookup(world, manager, string_lit("scene/set_knowledge.script"));
+      scriptAssets[0] = asset_lookup(world, manager, string_lit("scene/set_property.script"));
     }
 
     const EcsEntityId e = ecs_world_entity_create(world);
@@ -69,9 +69,9 @@ spec(script) {
 
     scene_test_wait(runner);
 
-    const ScenePropertyComp* know = ecs_utils_read_t(world, ScriptView, e, ScenePropertyComp);
+    const ScenePropertyComp* propComp = ecs_utils_read_t(world, ScriptView, e, ScenePropertyComp);
 
-    const ScriptVal value = scene_prop_load(know, string_hash_lit("test"));
+    const ScriptVal value = scene_prop_load(propComp, string_hash_lit("test"));
     check(script_val_equal(value, script_num(42)));
   }
 

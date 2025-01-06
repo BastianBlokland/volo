@@ -332,7 +332,7 @@ typedef struct {
   SceneFaction          instigatorFaction;
   SceneScriptSlot       slot;
   SceneScriptComp*      scriptInstance;
-  ScenePropertyComp*    scriptKnowledge;
+  ScenePropertyComp*    scriptProperties;
   const ScriptProgram*  scriptProgram;
   String                scriptId;
   SceneActionQueueComp* actions;
@@ -2032,7 +2032,7 @@ static void scene_script_eval(EvalContext* ctx) {
     return;
   }
 
-  ScriptMem* mem = scene_prop_memory_mut(ctx->scriptKnowledge);
+  ScriptMem* mem = scene_prop_memory_mut(ctx->scriptProperties);
 
   // Eval.
   const TimeSteady       startTime = time_steady_clock();
@@ -2118,7 +2118,7 @@ ecs_system_define(SceneScriptUpdateSys) {
     ctx.instigator        = ecs_view_entity(itr);
     ctx.instigatorFaction = factionComp ? factionComp->id : SceneFaction_None;
     ctx.scriptInstance    = ecs_view_write_t(itr, SceneScriptComp);
-    ctx.scriptKnowledge   = ecs_view_write_t(itr, ScenePropertyComp);
+    ctx.scriptProperties  = ecs_view_write_t(itr, ScenePropertyComp);
     ctx.actions           = ecs_view_write_t(itr, SceneActionQueueComp);
     ctx.debug             = ecs_view_write_t(itr, SceneDebugComp);
 
