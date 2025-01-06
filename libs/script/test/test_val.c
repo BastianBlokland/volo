@@ -64,6 +64,10 @@ spec(val) {
     const ScriptVal str = script_str(string_hash_lit("Hello World"));
     check_eq_int(script_type(str), ScriptType_Str);
     check(script_get_str(str, 0) == string_hash_lit("Hello World"));
+
+    const ScriptVal str2 = script_str_empty();
+    check_eq_int(script_type(str2), ScriptType_Str);
+    check(script_get_str(str2, 0) == string_hash_lit(""));
   }
 
   it("clears the w component of vector3's") {

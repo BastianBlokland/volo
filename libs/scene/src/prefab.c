@@ -586,7 +586,7 @@ static void setup_script(PrefabSetupContext* ctx, const AssetPrefabTraitScript* 
       scene_knowledge_store(ctx->knowledge, val->name, script_color(val->data_color));
       break;
     case AssetPrefabValue_String:
-      scene_knowledge_store(ctx->knowledge, val->name, script_str(val->data_string));
+      scene_knowledge_store(ctx->knowledge, val->name, script_str_or_null(val->data_string));
       break;
     case AssetPrefabValue_Asset:
       scene_knowledge_store(ctx->knowledge, val->name, script_entity(val->data_asset.entity));

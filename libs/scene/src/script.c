@@ -469,7 +469,7 @@ static ScriptVal eval_scale(EvalContext* ctx, ScriptBinderCall* call) {
 static ScriptVal eval_name(EvalContext* ctx, ScriptBinderCall* call) {
   const EcsEntityId  e   = script_arg_entity(call, 0);
   const EcsIterator* itr = ecs_view_maybe_jump(ctx->nameItr, e);
-  return itr ? script_str(ecs_view_read_t(itr, SceneNameComp)->name) : script_null();
+  return itr ? script_str_or_null(ecs_view_read_t(itr, SceneNameComp)->name) : script_null();
 }
 
 static ScriptVal eval_faction(EvalContext* ctx, ScriptBinderCall* call) {
@@ -477,8 +477,7 @@ static ScriptVal eval_faction(EvalContext* ctx, ScriptBinderCall* call) {
   if (call->argCount == 1) {
     if (ecs_view_maybe_jump(ctx->factionItr, e)) {
       const SceneFactionComp* factionComp = ecs_view_read_t(ctx->factionItr, SceneFactionComp);
-      const StringHash factionName = script_enum_lookup_name(&g_scriptEnumFaction, factionComp->id);
-      return factionName ? script_str(factionName) : script_null();
+      return script_str_or_null(script_enum_lookup_name(&g_scriptEnumFaction, factionComp->id));
     }
     return script_null();
   }
