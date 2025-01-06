@@ -2,7 +2,7 @@
 /**
  * Move to random locations.
  *
- * Supports the following input knowledge:
+ * Supports the following input properties:
  * - "cfgLocationRadius": Radius around the origin to pick locations in.
  */
 

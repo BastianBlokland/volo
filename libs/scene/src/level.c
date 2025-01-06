@@ -10,9 +10,9 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_faction.h"
-#include "scene_knowledge.h"
 #include "scene_level.h"
 #include "scene_prefab.h"
+#include "scene_property.h"
 #include "scene_set.h"
 #include "scene_transform.h"
 #include "script_mem.h"
@@ -97,7 +97,7 @@ static SceneFaction scene_from_asset_faction(const AssetLevelFaction assetFactio
   }
 }
 
-static bool scene_knowledge_is_persistable(const ScriptVal val) {
+static bool scene_prop_is_persistable(const ScriptVal val) {
   switch (script_type(val)) {
   case ScriptType_Num:
   case ScriptType_Bool:
@@ -115,11 +115,11 @@ static bool scene_knowledge_is_persistable(const ScriptVal val) {
   UNREACHABLE
 }
 
-static u32 scene_knowledge_count_persistable(const SceneKnowledgeComp* c) {
-  const ScriptMem* memory = scene_knowledge_memory(c);
+static u32 scene_prop_count_persistable(const ScenePropertyComp* c) {
+  const ScriptMem* memory = scene_prop_memory(c);
   u32              res    = 0;
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
-    res += scene_knowledge_is_persistable(script_mem_load(memory, itr.key));
+    res += scene_prop_is_persistable(script_mem_load(memory, itr.key));
   }
   return res;
 }
@@ -127,8 +127,8 @@ static u32 scene_knowledge_count_persistable(const SceneKnowledgeComp* c) {
 ecs_view_define(InstanceView) {
   ecs_access_with(SceneLevelInstanceComp);
   ecs_access_maybe_read(SceneFactionComp);
-  ecs_access_maybe_read(SceneKnowledgeComp);
   ecs_access_maybe_read(ScenePrefabInstanceComp);
+  ecs_access_maybe_read(ScenePropertyComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneSetMemberComp);
   ecs_access_maybe_read(SceneTransformComp);
@@ -186,29 +186,29 @@ static void scene_level_process_load(
 
   const ScenePrefabVariant prefabVariant = scene_level_prefab_variant(levelMode);
   heap_array_for_t(level->objects, AssetLevelObject, obj) {
-    ScenePrefabKnowledge knowledge[128];
-    const u16 knowledgeCount = (u16)math_min(obj->properties.count, array_elems(knowledge));
-    for (u16 i = 0; i != knowledgeCount; ++i) {
-      const AssetProperty* prop = &obj->properties.values[i];
-      knowledge[i].key          = prop->name;
-      switch (prop->type) {
+    ScenePrefabProperty props[128];
+    const u16           propCount = (u16)math_min(obj->properties.count, array_elems(props));
+    for (u16 i = 0; i != propCount; ++i) {
+      const AssetProperty* levelProp = &obj->properties.values[i];
+      props[i].key                   = levelProp->name;
+      switch (levelProp->type) {
       case AssetPropertyType_Num:
-        knowledge[i].value = script_num(prop->data_num);
+        props[i].value = script_num(levelProp->data_num);
         continue;
       case AssetPropertyType_Bool:
-        knowledge[i].value = script_bool(prop->data_bool);
+        props[i].value = script_bool(levelProp->data_bool);
         continue;
       case AssetPropertyType_Vec3:
-        knowledge[i].value = script_vec3(prop->data_vec3);
+        props[i].value = script_vec3(levelProp->data_vec3);
         continue;
       case AssetPropertyType_Quat:
-        knowledge[i].value = script_quat(prop->data_quat);
+        props[i].value = script_quat(levelProp->data_quat);
         continue;
       case AssetPropertyType_Color:
-        knowledge[i].value = script_color(prop->data_color);
+        props[i].value = script_color(levelProp->data_color);
         continue;
       case AssetPropertyType_Str:
-        knowledge[i].value = script_str_or_null(prop->data_str);
+        props[i].value = script_str_or_null(levelProp->data_str);
         continue;
       case AssetPropertyType_Count:
         break;
@@ -216,15 +216,15 @@ static void scene_level_process_load(
       UNREACHABLE
     }
     ScenePrefabSpec spec = {
-        .id             = obj->id,
-        .prefabId       = obj->prefab,
-        .variant        = prefabVariant,
-        .position       = obj->position,
-        .rotation       = obj->rotation,
-        .scale          = obj->scale,
-        .faction        = scene_from_asset_faction(obj->faction),
-        .knowledge      = knowledge,
-        .knowledgeCount = knowledgeCount,
+        .id            = obj->id,
+        .prefabId      = obj->prefab,
+        .variant       = prefabVariant,
+        .position      = obj->position,
+        .rotation      = obj->rotation,
+        .scale         = obj->scale,
+        .faction       = scene_from_asset_faction(obj->faction),
+        .properties    = props,
+        .propertyCount = propCount,
     };
     mem_cpy(mem_var(spec.sets), mem_var(obj->sets));
     scene_prefab_spawn(world, &spec);
@@ -367,20 +367,20 @@ ecs_system_define(SceneLevelUnloadSys) {
   }
 }
 
-static void scene_level_object_push_knowledge(
-    AssetLevelObject* obj, Allocator* alloc, const SceneKnowledgeComp* c) {
-  const u32 count = scene_knowledge_count_persistable(c);
+static void scene_level_object_push_properties(
+    AssetLevelObject* obj, Allocator* alloc, const ScenePropertyComp* c) {
+  const u32 count = scene_prop_count_persistable(c);
   if (!count) {
     return;
   }
   obj->properties.values = alloc_array_t(alloc, AssetProperty, count);
   obj->properties.count  = count;
 
-  const ScriptMem* memory      = scene_knowledge_memory(c);
+  const ScriptMem* memory      = scene_prop_memory(c);
   u32              propertyIdx = 0;
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const ScriptVal val = script_mem_load(memory, itr.key);
-    if (!scene_knowledge_is_persistable(val)) {
+    if (!scene_prop_is_persistable(val)) {
       continue;
     }
     AssetProperty* prop = &obj->properties.values[propertyIdx++];
@@ -440,12 +440,12 @@ static void scene_level_object_push(
     return; // Volatile prefabs should not be persisted.
   }
 
-  const SceneTransformComp* maybeTrans     = ecs_view_read_t(instanceItr, SceneTransformComp);
-  const SceneScaleComp*     maybeScale     = ecs_view_read_t(instanceItr, SceneScaleComp);
-  const SceneFactionComp*   maybeFaction   = ecs_view_read_t(instanceItr, SceneFactionComp);
-  const SceneKnowledgeComp* maybeKnowledge = ecs_view_read_t(instanceItr, SceneKnowledgeComp);
-  const SceneSetMemberComp* maybeSetMember = ecs_view_read_t(instanceItr, SceneSetMemberComp);
-  const f32                 scaleVal       = maybeScale ? maybeScale->scale : 1.0f;
+  const SceneTransformComp* maybeTrans      = ecs_view_read_t(instanceItr, SceneTransformComp);
+  const SceneScaleComp*     maybeScale      = ecs_view_read_t(instanceItr, SceneScaleComp);
+  const SceneFactionComp*   maybeFaction    = ecs_view_read_t(instanceItr, SceneFactionComp);
+  const ScenePropertyComp*  maybeProperties = ecs_view_read_t(instanceItr, ScenePropertyComp);
+  const SceneSetMemberComp* maybeSetMember  = ecs_view_read_t(instanceItr, SceneSetMemberComp);
+  const f32                 scaleVal        = maybeScale ? maybeScale->scale : 1.0f;
 
   AssetLevelObject obj = {
       .id       = prefabInst->id ? prefabInst->id : rng_sample_u32(g_rng),
@@ -455,8 +455,8 @@ static void scene_level_object_push(
       .scale    = scaleVal == 1.0f ? 0.0 : scaleVal, // Scale 0 is treated as unscaled (eg 1.0).
       .faction  = maybeFaction ? scene_to_asset_faction(maybeFaction->id) : AssetLevelFaction_None,
   };
-  if (maybeKnowledge) {
-    scene_level_object_push_knowledge(&obj, alloc, maybeKnowledge);
+  if (maybeProperties) {
+    scene_level_object_push_properties(&obj, alloc, maybeProperties);
   }
   if (maybeSetMember) {
     scene_level_object_push_sets(&obj, maybeSetMember);

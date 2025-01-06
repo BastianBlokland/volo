@@ -174,7 +174,7 @@
             "scripts/scene/behavior/unit_promotion.script",
             "scripts/scene/effects/unit_flame.script"
           ],
-          "knowledge": [
+          "properties": [
             { "$name": "assetSndBurning", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/burning-02.wav" },
             { "$name": "assetVfxFire", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/fire_force.vfx" }
           ]
@@ -239,7 +239,7 @@
             "scripts/scene/behavior/unit_attack.script",
             "scripts/scene/behavior/unit_promotion.script"
           ],
-          "knowledge": [
+          "properties": [
             { "$type": "AssetPrefabValue_Number", "$name": "cfgAttackRange", "$data": 1.5 },
             { "$type": "AssetPrefabValue_Bool", "$name": "cfgAllowAutoMove", "$data": true },
             { "$type": "AssetPrefabValue_Number", "$name": "cfgLosRadius", "$data": 0.2 }
@@ -294,7 +294,7 @@
         {
           "$type": "AssetPrefabTrait_Script",
           "scripts": [ "scripts/scene/behavior/unit_move_random.script" ],
-          "knowledge": [
+          "properties": [
             { "$type": "AssetPrefabValue_Number", "$name": "cfgLocationRadius", "$data": 200 }
           ]
         },
@@ -352,7 +352,7 @@
             "scripts/scene/effects/unit_aim.script",
             "scripts/scene/effects/unit_vehicle.script"
           ],
-          "knowledge": [
+          "properties": [
             { "$name": "cfgAttackWhileMoving", "$type": "AssetPrefabValue_Bool", "$data": true },
             { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/tank-turret-01.wav" },
             { "$name": "assetSndIdle", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/tank-idle-01.wav" },
@@ -409,7 +409,7 @@
             "scripts/scene/behavior/unit_promotion.script",
             "scripts/scene/effects/unit_aim.script"
           ],
-          "knowledge": [
+          "properties": [
             { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/electric-motor-01.wav" }
           ]
         },
@@ -454,7 +454,7 @@
             "scripts/scene/behavior/unit_promotion.script",
             "scripts/scene/effects/unit_aim.script"
           ],
-          "knowledge": [
+          "properties": [
             { "$name": "assetSndAim", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/electric-motor-01.wav" }
           ]
         },
@@ -654,7 +654,7 @@
         {
           "$type": "AssetPrefabTrait_Script",
           "scripts": [ "scripts/scene/logic/gate.script" ],
-          "knowledge": [
+          "properties": [
             { "$name": "cfgGateOpen", "$type": "AssetPrefabValue_Bool", "$data": false }
           ]
         }
@@ -834,7 +834,7 @@
             } ]
         },
         { "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/effects/prop_alarm.script" ],
-          "knowledge": [
+          "properties": [
             { "$name": "cfgAlarmFrequency", "$type": "AssetPrefabValue_Number", "$data": 0.5 },
             { "$name": "assetSndAlarm", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/alarm-01.wav", "persistent": true }
           ]
@@ -955,7 +955,7 @@
         {
           "$type": "AssetPrefabTrait_Script",
           "scripts": [ "scripts/scene/logic/spawner.script" ],
-          "knowledge": [
+          "properties": [
             { "$name": "cfgSpawnerPrefab", "$type": "AssetPrefabValue_String", "$data": "InfantryMonster" }
           ]
         }
@@ -965,7 +965,7 @@
       "name": "Ambiance",
       "traits": [
         { "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/effects/ambiance.script" ],
-          "knowledge": [
+          "properties": [
             { "$name": "assetSndAmbiance", "$type": "AssetPrefabValue_Sound", "asset": "external/sound/ambiance-01.wav" }
           ]
         }
@@ -1014,7 +1014,7 @@
         {
           "$type": "AssetPrefabTrait_Script",
           "scripts": [ "scripts/scene/logic/explosive.script" ],
-          "knowledge": [
+          "properties": [
             { "$name": "cfgExplodeDelay", "$type": "AssetPrefabValue_Number", "$data": 0.1 },
             { "$name": "cfgExplodeRadius", "$type": "AssetPrefabValue_Number", "$data": 4 },
             { "$name": "cfgExplodeDamage", "$type": "AssetPrefabValue_Number", "$data": 75 }
@@ -1290,7 +1290,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/effects/test_trail.script" ],
-          "knowledge": [
+          "properties": [
             { "$name": "assetDecalTrail", "$type": "AssetPrefabValue_Asset", "$data": "vfx/game/test_trail.decal" }
           ]
         }
@@ -1301,7 +1301,7 @@
       "traits": [
         {
           "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/logic/test_pacing.script" ],
-          "knowledge": [
+          "properties": [
             { "$name": "assetGraphic", "$type": "AssetPrefabValue_Asset", "$data": "graphics/scene/sphere.graphic" }
           ]
         }

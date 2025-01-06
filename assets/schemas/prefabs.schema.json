@@ -234,7 +234,7 @@
               "maxItems": 7,
               "items": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" }
             },
-            "knowledge": {
+            "properties": {
               "type": "array",
               "items": { "title": "AssetPrefabValue", "$ref": "#/$defs/AssetPrefabValue" }
             }

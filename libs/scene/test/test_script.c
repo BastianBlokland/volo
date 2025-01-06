@@ -5,14 +5,14 @@
 #include "core_array.h"
 #include "ecs_runner.h"
 #include "ecs_utils.h"
-#include "scene_knowledge.h"
+#include "scene_property.h"
 #include "scene_register.h"
 #include "scene_script.h"
 #include "script_val.h"
 
 static const AssetMemRecord g_testScriptAssets[] = {
     {
-        .id   = string_static("scene/set_knowledge.script"),
+        .id   = string_static("scene/set_property.script"),
         .data = string_static("$test = 42"),
     },
 };
@@ -26,7 +26,7 @@ static void scene_test_wait(EcsRunner* runner) {
 
 ecs_view_define(ScriptView) {
   ecs_access_write(SceneScriptComp);
-  ecs_access_write(SceneKnowledgeComp);
+  ecs_access_write(ScenePropertyComp);
 }
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 
@@ -56,22 +56,22 @@ spec(script) {
     scene_test_wait(runner);
   }
 
-  it("can set knowledge") {
+  it("can set properties") {
     EcsEntityId scriptAssets[1];
     {
       AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
-      scriptAssets[0] = asset_lookup(world, manager, string_lit("scene/set_knowledge.script"));
+      scriptAssets[0] = asset_lookup(world, manager, string_lit("scene/set_property.script"));
     }
 
     const EcsEntityId e = ecs_world_entity_create(world);
     scene_script_add(world, e, scriptAssets, array_elems(scriptAssets));
-    scene_knowledge_add(world, e);
+    scene_prop_add(world, e);
 
     scene_test_wait(runner);
 
-    const SceneKnowledgeComp* know = ecs_utils_read_t(world, ScriptView, e, SceneKnowledgeComp);
+    const ScenePropertyComp* propComp = ecs_utils_read_t(world, ScriptView, e, ScenePropertyComp);
 
-    const ScriptVal value = scene_knowledge_load(know, string_hash_lit("test"));
+    const ScriptVal value = scene_prop_load(propComp, string_hash_lit("test"));
     check(script_val_equal(value, script_num(42)));
   }
 

@@ -2,7 +2,7 @@
 /**
  * Graphic that steadily moves back and forth based on time-delta to test frame pacing.
  *
- * Supports the following input knowledge:
+ * Supports the following input properties:
  * - "assetGraphic": Graphic to use.
  */
 

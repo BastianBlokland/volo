@@ -1,6 +1,6 @@
 
 /**
- * Trigger plate, sets the "triggered" knowledge when triggered.
+ * Trigger plate, sets the "triggered" property when triggered.
  */
 
 var me              = self()

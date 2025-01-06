@@ -32,7 +32,6 @@
 #include "scene_debug.h"
 #include "scene_faction.h"
 #include "scene_health.h"
-#include "scene_knowledge.h"
 #include "scene_level.h"
 #include "scene_light.h"
 #include "scene_location.h"
@@ -40,6 +39,7 @@
 #include "scene_name.h"
 #include "scene_nav.h"
 #include "scene_prefab.h"
+#include "scene_property.h"
 #include "scene_renderable.h"
 #include "scene_script.h"
 #include "scene_set.h"
@@ -111,21 +111,21 @@ typedef enum {
 } DebugInspectorVisMode;
 
 typedef enum {
-  DebugKnowledgeType_Num,
-  DebugKnowledgeType_Bool,
-  DebugKnowledgeType_Vec3,
-  DebugKnowledgeType_Quat,
-  DebugKnowledgeType_Color,
-  DebugKnowledgeType_Str,
+  DebugPropType_Num,
+  DebugPropType_Bool,
+  DebugPropType_Vec3,
+  DebugPropType_Quat,
+  DebugPropType_Color,
+  DebugPropType_Str,
 
-  DebugKnowledgeType_Count,
-} DebugKnowledgeType;
+  DebugPropType_Count,
+} DebugPropType;
 
 typedef struct {
   String     name;
   StringHash key;
   ScriptVal  val;
-} DebugKnowledgeEntry;
+} DebugPropEntry;
 
 static const String g_spaceNames[] = {
     [DebugInspectorSpace_Local] = string_static("Local"),
@@ -168,15 +168,15 @@ static const String g_visModeNames[] = {
 };
 ASSERT(array_elems(g_visModeNames) == DebugInspectorVisMode_Count, "Missing vis mode name");
 
-static const String g_knowledgeTypeNames[] = {
-    [DebugKnowledgeType_Num]   = string_static("Num"),
-    [DebugKnowledgeType_Bool]  = string_static("Bool"),
-    [DebugKnowledgeType_Vec3]  = string_static("Vec3"),
-    [DebugKnowledgeType_Quat]  = string_static("Quat"),
-    [DebugKnowledgeType_Color] = string_static("Color"),
-    [DebugKnowledgeType_Str]   = string_static("Str"),
+static const String g_propTypeNames[] = {
+    [DebugPropType_Num]   = string_static("Num"),
+    [DebugPropType_Bool]  = string_static("Bool"),
+    [DebugPropType_Vec3]  = string_static("Vec3"),
+    [DebugPropType_Quat]  = string_static("Quat"),
+    [DebugPropType_Color] = string_static("Color"),
+    [DebugPropType_Str]   = string_static("Str"),
 };
-ASSERT(array_elems(g_knowledgeTypeNames) == DebugKnowledgeType_Count, "Missing type name");
+ASSERT(array_elems(g_propTypeNames) == DebugPropType_Count, "Missing type name");
 
 ecs_comp_define(DebugInspectorSettingsComp) {
   DebugInspectorSpace   space;
@@ -189,22 +189,22 @@ ecs_comp_define(DebugInspectorSettingsComp) {
 };
 
 ecs_comp_define(DebugInspectorPanelComp) {
-  UiPanel            panel;
-  UiScrollview       scrollview;
-  u32                totalRows;
-  DebugKnowledgeType knowledgeType;
-  DynString          textBuffer;
+  UiPanel       panel;
+  UiScrollview  scrollview;
+  u32           totalRows;
+  DebugPropType propType;
+  DynString     newSetBuffer, newPropBuffer;
   GeoVector transformRotEulerDeg; // Local copy of rotation as euler angles to use while editing.
 };
 
 static void ecs_destruct_panel_comp(void* data) {
   DebugInspectorPanelComp* panel = data;
-  dynstring_destroy(&panel->textBuffer);
+  dynstring_destroy(&panel->newSetBuffer);
+  dynstring_destroy(&panel->newPropBuffer);
 }
 
-static i8 debug_knowledge_compare_entry(const void* a, const void* b) {
-  return compare_string(
-      field_ptr(a, DebugKnowledgeEntry, name), field_ptr(b, DebugKnowledgeEntry, name));
+static i8 debug_prop_compare_entry(const void* a, const void* b) {
+  return compare_string(field_ptr(a, DebugPropEntry, name), field_ptr(b, DebugPropEntry, name));
 }
 
 ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp); }
@@ -264,12 +264,12 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneFactionComp);
   ecs_access_maybe_write(SceneHealthComp);
-  ecs_access_maybe_write(SceneKnowledgeComp);
   ecs_access_maybe_write(SceneLightAmbientComp);
   ecs_access_maybe_write(SceneLightDirComp);
   ecs_access_maybe_write(SceneLightPointComp);
   ecs_access_maybe_write(SceneLocationComp);
   ecs_access_maybe_write(ScenePrefabInstanceComp);
+  ecs_access_maybe_write(ScenePropertyComp);
   ecs_access_maybe_write(SceneRenderableComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
@@ -301,28 +301,25 @@ inspector_notify_vis_mode(DebugStatsGlobalComp* stats, const DebugInspectorVisMo
   debug_stats_notify(stats, string_lit("Visualize"), g_visModeNames[visMode]);
 }
 
-static void inspector_extract_knowledge(const SceneKnowledgeComp* comp, ScenePrefabSpec* out) {
+static void inspector_extract_props(const ScenePropertyComp* comp, ScenePrefabSpec* out) {
   enum { MaxResults = 128 };
 
-  ScenePrefabKnowledge* res      = alloc_array_t(g_allocScratch, ScenePrefabKnowledge, MaxResults);
-  u16                   resCount = 0;
+  ScenePrefabProperty* res      = alloc_array_t(g_allocScratch, ScenePrefabProperty, MaxResults);
+  u16                  resCount = 0;
 
-  const ScriptMem* memory = scene_knowledge_memory(comp);
+  const ScriptMem* memory = scene_prop_memory(comp);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const ScriptVal val = script_mem_load(memory, itr.key);
     if (script_type(val) != ScriptType_Null) {
       if (resCount == MaxResults) {
-        break; // Maximum knowledge reached. TODO: Should this be an error?
+        break; // Maximum properties reached. TODO: Should this be an error?
       }
-      res[resCount++] = (ScenePrefabKnowledge){
-          .key   = itr.key,
-          .value = val,
-      };
+      res[resCount++] = (ScenePrefabProperty){.key = itr.key, .value = val};
     }
   }
 
-  out->knowledge      = res;
-  out->knowledgeCount = resCount;
+  out->properties    = res;
+  out->propertyCount = resCount;
 }
 
 static void inspector_extract_sets(const SceneSetMemberComp* comp, ScenePrefabSpec* out) {
@@ -349,13 +346,13 @@ static EcsEntityId inspector_prefab_duplicate(EcsWorld* world, EcsIterator* subj
       .position = transComp->position,
       .rotation = transComp->rotation,
   };
-  const SceneKnowledgeComp* knowledge = ecs_view_read_t(subject, SceneKnowledgeComp);
-  if (knowledge && prefabInstComp->variant == ScenePrefabVariant_Edit) {
+  const ScenePropertyComp* propComp = ecs_view_read_t(subject, ScenePropertyComp);
+  if (propComp && prefabInstComp->variant == ScenePrefabVariant_Edit) {
     /**
-     * Preserve knowledge for edit variants, runtime variants shouldn't preserve knowledge as it
+     * Preserve properties for edit variants, runtime variants shouldn't preserve properties as it
      * could lead to inconsistent script state.
      */
-    inspector_extract_knowledge(knowledge, &spec);
+    inspector_extract_props(propComp, &spec);
   }
   const SceneSetMemberComp* setMember = ecs_view_read_t(subject, SceneSetMemberComp);
   if (setMember) {
@@ -385,9 +382,9 @@ static void inspector_prefab_replace(
       .position = transComp->position,
       .rotation = transComp->rotation,
   };
-  const SceneKnowledgeComp* knowledge = ecs_view_read_t(subject, SceneKnowledgeComp);
-  if (knowledge) {
-    inspector_extract_knowledge(knowledge, &spec);
+  const ScenePropertyComp* propComp = ecs_view_read_t(subject, ScenePropertyComp);
+  if (propComp) {
+    inspector_extract_props(propComp, &spec);
   }
   const SceneSetMemberComp* setMember = ecs_view_read_t(subject, SceneSetMemberComp);
   if (setMember) {
@@ -726,27 +723,27 @@ static void inspector_panel_draw_decal(InspectorContext* ctx, UiTable* table) {
   }
 }
 
-static ScriptVal inspector_panel_knowledge_default(const DebugKnowledgeType type) {
+static ScriptVal inspector_panel_prop_default(const DebugPropType type) {
   switch (type) {
-  case DebugKnowledgeType_Num:
+  case DebugPropType_Num:
     return script_num(0);
-  case DebugKnowledgeType_Bool:
+  case DebugPropType_Bool:
     return script_bool(false);
-  case DebugKnowledgeType_Vec3:
+  case DebugPropType_Vec3:
     return script_vec3_lit(0, 0, 0);
-  case DebugKnowledgeType_Quat:
+  case DebugPropType_Quat:
     return script_quat(geo_quat_ident);
-  case DebugKnowledgeType_Color:
+  case DebugPropType_Color:
     return script_color(geo_color_white);
-  case DebugKnowledgeType_Str:
+  case DebugPropType_Str:
     return script_str_empty();
-  case DebugKnowledgeType_Count:
+  case DebugPropType_Count:
     break;
   }
   UNREACHABLE
 }
 
-static void inspector_panel_knowledge_value_edit(
+static void inspector_panel_prop_value_edit(
     InspectorContext* ctx, ScriptMem* mem, const StringHash key, const ScriptVal val) {
   switch (script_type(val)) {
   case ScriptType_Num: {
@@ -801,18 +798,18 @@ static void inspector_panel_knowledge_value_edit(
   }
 }
 
-static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table) {
-  SceneKnowledgeComp* knowledge = ecs_view_write_t(ctx->subject, SceneKnowledgeComp);
-  if (!knowledge) {
+static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* table) {
+  ScenePropertyComp* propComp = ecs_view_write_t(ctx->subject, ScenePropertyComp);
+  if (!propComp) {
     return;
   }
-  ScriptMem* memory = scene_knowledge_memory_mut(knowledge);
+  ScriptMem* memory = scene_prop_memory_mut(propComp);
 
   inspector_panel_next(ctx, table);
-  if (!inspector_panel_section(ctx, string_lit("Knowledge"))) {
+  if (!inspector_panel_section(ctx, string_lit("Properties"))) {
     return;
   }
-  DynArray entries = dynarray_create_t(g_allocScratch, DebugKnowledgeEntry, 256);
+  DynArray entries = dynarray_create_t(g_allocScratch, DebugPropEntry, 256);
 
   // Collect entries.
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
@@ -820,17 +817,17 @@ static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table
     if (script_type(val) == ScriptType_Null) {
       continue;
     }
-    const String keyStr                             = stringtable_lookup(g_stringtable, itr.key);
-    *dynarray_push_t(&entries, DebugKnowledgeEntry) = (DebugKnowledgeEntry){
+    const String keyStr                        = stringtable_lookup(g_stringtable, itr.key);
+    *dynarray_push_t(&entries, DebugPropEntry) = (DebugPropEntry){
         .name = string_is_empty(keyStr) ? string_lit("< unnamed >") : keyStr,
         .key  = itr.key,
         .val  = val,
     };
   }
-  dynarray_sort(&entries, debug_knowledge_compare_entry);
+  dynarray_sort(&entries, debug_prop_compare_entry);
 
   // Draw entries.
-  dynarray_for_t(&entries, DebugKnowledgeEntry, entry) {
+  dynarray_for_t(&entries, DebugPropEntry, entry) {
     const String tooltip = fmt_write_scratch(
         "Key name:\a>15{}\n"
         "Key hash:\a>15{}\n"
@@ -845,7 +842,7 @@ static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table
     ui_label(ctx->canvas, entry->name, .selectable = true, .tooltip = tooltip);
     ui_table_next_column(ctx->canvas, table);
     ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
-    inspector_panel_knowledge_value_edit(ctx, memory, entry->key, entry->val);
+    inspector_panel_prop_value_edit(ctx, memory, entry->key, entry->val);
     ui_layout_next(ctx->canvas, Ui_Right, 10);
     ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
     if (ui_button(
@@ -853,7 +850,7 @@ static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table
             .label      = ui_shape_scratch(UiShape_Delete),
             .fontSize   = 18,
             .frameColor = ui_color(255, 16, 0, 192),
-            .tooltip    = string_lit("Remove this knowledge entry."))) {
+            .tooltip    = string_lit("Remove this property entry."))) {
       script_mem_store(memory, entry->key, script_null());
     }
   }
@@ -863,30 +860,27 @@ static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table
   inspector_panel_next(ctx, table);
   ui_textbox(
       ctx->canvas,
-      &ctx->panel->textBuffer,
-      .placeholder   = string_lit("Entry key..."),
+      &ctx->panel->newPropBuffer,
+      .placeholder   = string_lit("New key..."),
       .type          = UiTextbox_Word,
       .maxTextLength = 32);
   ui_table_next_column(ctx->canvas, table);
   ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
   ui_select(
-      ctx->canvas,
-      (i32*)&ctx->panel->knowledgeType,
-      g_knowledgeTypeNames,
-      array_elems(g_knowledgeTypeNames));
+      ctx->canvas, (i32*)&ctx->panel->propType, g_propTypeNames, array_elems(g_propTypeNames));
   ui_layout_next(ctx->canvas, Ui_Right, 10);
   ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
   if (ui_button(
           ctx->canvas,
-          .flags      = ctx->panel->textBuffer.size == 0 ? UiWidget_Disabled : 0,
+          .flags      = ctx->panel->newPropBuffer.size == 0 ? UiWidget_Disabled : 0,
           .label      = ui_shape_scratch(UiShape_Add),
           .fontSize   = 18,
           .frameColor = ui_color(16, 192, 0, 192),
-          .tooltip    = string_lit("Add a new knowledge entry with the given key and type."))) {
-    const String     keyName = dynstring_view(&ctx->panel->textBuffer);
+          .tooltip    = string_lit("Add a new property entry with the given key and type."))) {
+    const String     keyName = dynstring_view(&ctx->panel->newPropBuffer);
     const StringHash key     = stringtable_add(g_stringtable, keyName);
-    script_mem_store(memory, key, inspector_panel_knowledge_default(ctx->panel->knowledgeType));
-    dynstring_clear(&ctx->panel->textBuffer);
+    script_mem_store(memory, key, inspector_panel_prop_default(ctx->panel->propType));
+    dynstring_clear(&ctx->panel->newPropBuffer);
   }
 }
 
@@ -925,8 +919,8 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
       inspector_panel_next(ctx, table);
       ui_textbox(
           ctx->canvas,
-          &ctx->panel->textBuffer,
-          .placeholder   = string_lit("Set name..."),
+          &ctx->panel->newSetBuffer,
+          .placeholder   = string_lit("New set..."),
           .type          = UiTextbox_Word,
           .maxTextLength = 32);
       ui_table_next_column(ctx->canvas, table);
@@ -934,15 +928,15 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
           ctx->canvas, UiBase_Current, UiAlign_MiddleLeft, ui_vector(25, 22), UiBase_Absolute);
       if (ui_button(
               ctx->canvas,
-              .flags      = ctx->panel->textBuffer.size == 0 ? UiWidget_Disabled : 0,
+              .flags      = ctx->panel->newSetBuffer.size == 0 ? UiWidget_Disabled : 0,
               .label      = ui_shape_scratch(UiShape_Add),
               .fontSize   = 18,
               .frameColor = ui_color(16, 192, 0, 192),
               .tooltip    = string_lit("Add this entity to the specified set."))) {
-        const String     setName = dynstring_view(&ctx->panel->textBuffer);
+        const String     setName = dynstring_view(&ctx->panel->newSetBuffer);
         const StringHash set     = stringtable_add(g_stringtable, setName);
         scene_set_add(ctx->setEnv, set, ctx->subjectEntity, SceneSetFlags_None);
-        dynstring_clear(&ctx->panel->textBuffer);
+        dynstring_clear(&ctx->panel->newSetBuffer);
       }
     }
   }
@@ -1237,7 +1231,7 @@ static void inspector_panel_draw(InspectorContext* ctx) {
     inspector_panel_draw_decal(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
 
-    inspector_panel_draw_knowledge(ctx, &table);
+    inspector_panel_draw_properties(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
 
     inspector_panel_draw_sets(ctx, &table);
@@ -2059,7 +2053,7 @@ static void inspector_vis_draw_icon(EcsWorld* w, DebugTextComp* text, EcsIterato
     color = geo_color(1.0f, 0, 0, 0.75f);
     size  = 25;
   } else {
-    if (scriptComp || ecs_world_has_t(w, e, SceneKnowledgeComp)) {
+    if (scriptComp || ecs_world_has_t(w, e, ScenePropertyComp)) {
       icon = UiShape_Description;
     } else if (ecs_world_has_t(w, e, DebugPrefabPreviewComp)) {
       icon = 0; // No icon for previews.
@@ -2259,8 +2253,9 @@ debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window, const Debu
       world,
       panelEntity,
       DebugInspectorPanelComp,
-      .panel      = ui_panel(.position = ui_vector(0.0f, 0.0f), .size = ui_vector(500, 500)),
-      .textBuffer = dynstring_create(g_allocHeap, 0));
+      .panel         = ui_panel(.position = ui_vector(0.0f, 0.0f), .size = ui_vector(500, 500)),
+      .newSetBuffer  = dynstring_create(g_allocHeap, 0),
+      .newPropBuffer = dynstring_create(g_allocHeap, 0));
 
   if (type == DebugPanelType_Detached) {
     ui_panel_maximize(&inspectorPanel->panel);

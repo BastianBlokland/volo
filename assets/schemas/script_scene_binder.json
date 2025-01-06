@@ -748,7 +748,7 @@
     },
     {
       "name": "ask",
-      "doc": "Ask a target entity for a knowledge value.\n\n*Note*: The result value is visible to this entity under the same key in the next frame.",
+      "doc": "Ask a target entity for a property value.\n\n*Note*: The result value is visible to this entity under the same key in the next frame.",
       "sig": {
         "ret": "null",
         "args": [
@@ -1005,7 +1005,7 @@
     },
     {
       "name": "tell",
-      "doc": "Set a knowledge value for the given entity.\n\n*Note*: The updated knowledge is visible to scripts in the next frame.",
+      "doc": "Set a property value for the given entity.\n\n*Note*: The updated property is visible to scripts in the next frame.",
       "sig": {
         "ret": "null",
         "args": [

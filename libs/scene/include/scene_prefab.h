@@ -58,20 +58,20 @@ typedef enum {
 typedef struct {
   StringHash key;
   ScriptVal  value;
-} ScenePrefabKnowledge;
+} ScenePrefabProperty;
 
 typedef struct {
-  u32                         id; // Optional persistent id.
-  StringHash                  prefabId;
-  SceneFaction                faction;
-  f32                         scale;
-  ScenePrefabVariant          variant : 8;
-  ScenePrefabFlags            flags : 8;
-  u16                         knowledgeCount;
-  const ScenePrefabKnowledge* knowledge;
-  GeoVector                   position;
-  GeoQuat                     rotation;
-  StringHash                  sets[8];
+  u32                        id; // Optional persistent id.
+  StringHash                 prefabId;
+  SceneFaction               faction;
+  f32                        scale;
+  ScenePrefabVariant         variant : 8;
+  ScenePrefabFlags           flags : 8;
+  u16                        propertyCount;
+  const ScenePrefabProperty* properties;
+  GeoVector                  position;
+  GeoQuat                    rotation;
+  StringHash                 sets[8];
 } ScenePrefabSpec;
 
 EcsEntityId scene_prefab_spawn(EcsWorld*, const ScenePrefabSpec*);

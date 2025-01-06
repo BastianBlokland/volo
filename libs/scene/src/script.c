@@ -17,7 +17,6 @@
 #include "scene_collision.h"
 #include "scene_debug.h"
 #include "scene_health.h"
-#include "scene_knowledge.h"
 #include "scene_lifetime.h"
 #include "scene_light.h"
 #include "scene_location.h"
@@ -25,6 +24,7 @@
 #include "scene_name.h"
 #include "scene_nav.h"
 #include "scene_prefab.h"
+#include "scene_property.h"
 #include "scene_register.h"
 #include "scene_renderable.h"
 #include "scene_script.h"
@@ -332,7 +332,7 @@ typedef struct {
   SceneFaction          instigatorFaction;
   SceneScriptSlot       slot;
   SceneScriptComp*      scriptInstance;
-  SceneKnowledgeComp*   scriptKnowledge;
+  ScenePropertyComp*    scriptProperties;
   const ScriptProgram*  scriptProgram;
   String                scriptId;
   SceneActionQueueComp* actions;
@@ -919,7 +919,7 @@ static ScriptVal eval_tell(EvalContext* ctx, ScriptBinderCall* call) {
   const ScriptVal   value = script_arg_any(call, 2);
 
   SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Tell);
-  act->tell        = (SceneActionTell){.entity = e, .memKey = key, .value = value};
+  act->tell        = (SceneActionTell){.entity = e, .prop = key, .value = value};
   return script_null();
 }
 
@@ -929,7 +929,7 @@ static ScriptVal eval_ask(EvalContext* ctx, ScriptBinderCall* call) {
   const StringHash  key    = script_arg_str(call, 2);
 
   SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Ask);
-  act->ask         = (SceneActionAsk){.entity = e, .target = target, .memKey = key};
+  act->ask         = (SceneActionAsk){.entity = e, .target = target, .prop = key};
   return script_null();
 }
 
@@ -1981,9 +1981,9 @@ static void ecs_combine_script_resource(void* dataA, void* dataB) {
 }
 
 ecs_view_define(ScriptUpdateView) {
-  ecs_access_write(SceneScriptComp);
-  ecs_access_write(SceneKnowledgeComp);
   ecs_access_write(SceneActionQueueComp);
+  ecs_access_write(ScenePropertyComp);
+  ecs_access_write(SceneScriptComp);
   ecs_access_maybe_write(SceneDebugComp);
   ecs_access_maybe_read(SceneFactionComp);
 }
@@ -2032,7 +2032,7 @@ static void scene_script_eval(EvalContext* ctx) {
     return;
   }
 
-  ScriptMem* mem = scene_knowledge_memory_mut(ctx->scriptKnowledge);
+  ScriptMem* mem = scene_prop_memory_mut(ctx->scriptProperties);
 
   // Eval.
   const TimeSteady       startTime = time_steady_clock();
@@ -2118,7 +2118,7 @@ ecs_system_define(SceneScriptUpdateSys) {
     ctx.instigator        = ecs_view_entity(itr);
     ctx.instigatorFaction = factionComp ? factionComp->id : SceneFaction_None;
     ctx.scriptInstance    = ecs_view_write_t(itr, SceneScriptComp);
-    ctx.scriptKnowledge   = ecs_view_write_t(itr, SceneKnowledgeComp);
+    ctx.scriptProperties  = ecs_view_write_t(itr, ScenePropertyComp);
     ctx.actions           = ecs_view_write_t(itr, SceneActionQueueComp);
     ctx.debug             = ecs_view_write_t(itr, SceneDebugComp);
 

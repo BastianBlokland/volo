@@ -2,7 +2,7 @@
 /**
  * Move (if capable) to and attack requested targets and automatically attack in-range targets.
  *
- * Supports the following input knowledge:
+ * Supports the following input properties:
  * - "cmdAttackTarget"     : Start attacking the given entity.
  * - "cfgAttackRange"      : Maximum range for attacks.
  * - "cfgAllowAutoMove"    : Allow automatically moving when target is out of range.

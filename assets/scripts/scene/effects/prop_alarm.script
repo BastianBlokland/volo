@@ -2,7 +2,7 @@
 /**
  * Alarm prop effects.
  *
- * Supports the following input knowledge:
+ * Supports the following input properties:
  * - "cfgAlarmFrequency": Frequency of the alarm blinking.
  * - "assetSndAlarm": Sound effect to play when blinking.
  */

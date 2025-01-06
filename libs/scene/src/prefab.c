@@ -18,7 +18,6 @@
 #include "scene_debug.h"
 #include "scene_footstep.h"
 #include "scene_health.h"
-#include "scene_knowledge.h"
 #include "scene_lifetime.h"
 #include "scene_light.h"
 #include "scene_location.h"
@@ -27,6 +26,7 @@
 #include "scene_nav.h"
 #include "scene_prefab.h"
 #include "scene_product.h"
+#include "scene_property.h"
 #include "scene_renderable.h"
 #include "scene_script.h"
 #include "scene_set.h"
@@ -99,20 +99,20 @@ ecs_comp_define_public(ScenePrefabInstanceComp);
 
 static ScenePrefabSpec prefab_spec_dup(const ScenePrefabSpec* spec, Allocator* alloc) {
   ScenePrefabSpec res = *spec;
-  if (spec->knowledgeCount) {
-    diag_assert(spec->knowledge);
-    const usize knowledgeSize = sizeof(ScenePrefabKnowledge) * spec->knowledgeCount;
-    const Mem   knowledgeDup  = alloc_alloc(alloc, knowledgeSize, alignof(ScenePrefabKnowledge));
-    mem_cpy(knowledgeDup, mem_create(spec->knowledge, knowledgeSize));
-    res.knowledge = knowledgeDup.ptr;
+  if (spec->propertyCount) {
+    diag_assert(spec->properties);
+    const usize propertyMemSize = sizeof(ScenePrefabProperty) * spec->propertyCount;
+    const Mem   propertyMemDup  = alloc_alloc(alloc, propertyMemSize, alignof(ScenePrefabProperty));
+    mem_cpy(propertyMemDup, mem_create(spec->properties, propertyMemSize));
+    res.properties = propertyMemDup.ptr;
   }
   return res;
 }
 
 static void prefab_spec_destroy(const ScenePrefabSpec* spec, Allocator* alloc) {
-  if (spec->knowledgeCount) {
-    const usize knowledgeSize = sizeof(ScenePrefabKnowledge) * spec->knowledgeCount;
-    alloc_free(alloc, mem_create(spec->knowledge, knowledgeSize));
+  if (spec->propertyCount) {
+    const usize propertyMemSize = sizeof(ScenePrefabProperty) * spec->propertyCount;
+    alloc_free(alloc, mem_create(spec->properties, propertyMemSize));
   }
 }
 
@@ -146,9 +146,9 @@ ecs_view_define(GlobalSpawnView) {
 ecs_view_define(InstanceRefreshView) {
   ecs_access_read(ScenePrefabInstanceComp);
   ecs_access_read(SceneTransformComp);
-  ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneFactionComp);
-  ecs_access_maybe_read(SceneKnowledgeComp);
+  ecs_access_maybe_read(ScenePropertyComp);
+  ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneSetMemberComp);
 }
 
@@ -247,28 +247,25 @@ ecs_system_define(ScenePrefabResourceUpdateSys) {
   }
 }
 
-static void prefab_extract_knowledge(const SceneKnowledgeComp* comp, ScenePrefabSpec* out) {
+static void prefab_extract_props(const ScenePropertyComp* comp, ScenePrefabSpec* out) {
   enum { MaxResults = 128 };
 
-  ScenePrefabKnowledge* res      = alloc_array_t(g_allocScratch, ScenePrefabKnowledge, MaxResults);
-  u16                   resCount = 0;
+  ScenePrefabProperty* res      = alloc_array_t(g_allocScratch, ScenePrefabProperty, MaxResults);
+  u16                  resCount = 0;
 
-  const ScriptMem* memory = scene_knowledge_memory(comp);
+  const ScriptMem* memory = scene_prop_memory(comp);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const ScriptVal val = script_mem_load(memory, itr.key);
     if (script_type(val) != ScriptType_Null) {
       if (resCount == MaxResults) {
-        break; // Maximum knowledge reached. TODO: Should this be an error?
+        break; // Maximum properties reached. TODO: Should this be an error?
       }
-      res[resCount++] = (ScenePrefabKnowledge){
-          .key   = itr.key,
-          .value = val,
-      };
+      res[resCount++] = (ScenePrefabProperty){.key = itr.key, .value = val};
     }
   }
 
-  out->knowledge      = res;
-  out->knowledgeCount = resCount;
+  out->properties    = res;
+  out->propertyCount = resCount;
 }
 
 static void prefab_refresh(ScenePrefabEnvComp* prefabEnv, EcsIterator* itr) {
@@ -288,9 +285,9 @@ static void prefab_refresh(ScenePrefabEnvComp* prefabEnv, EcsIterator* itr) {
       .position = transComp->position,
       .rotation = transComp->rotation,
   };
-  const SceneKnowledgeComp* knowledge = ecs_view_read_t(itr, SceneKnowledgeComp);
-  if (knowledge) {
-    prefab_extract_knowledge(knowledge, &spec);
+  const ScenePropertyComp* propComp = ecs_view_read_t(itr, ScenePropertyComp);
+  if (propComp) {
+    prefab_extract_props(propComp, &spec);
   }
   const SceneSetMemberComp* setMember = ecs_view_read_t(itr, SceneSetMemberComp);
   if (setMember) {
@@ -357,7 +354,7 @@ typedef struct {
   const AssetPrefab*        prefab;
   EcsEntityId               entity;
   const ScenePrefabSpec*    spec;
-  SceneKnowledgeComp*       knowledge; // Added on-demand to the resulting entity.
+  ScenePropertyComp*        propComp; // Added on-demand to the resulting entity.
 } PrefabSetupContext;
 
 static void setup_name(PrefabSetupContext* ctx, const AssetPrefabTraitName* t) {
@@ -552,11 +549,11 @@ static void setup_collision(PrefabSetupContext* ctx, const AssetPrefabTraitColli
 static void setup_script(PrefabSetupContext* ctx, const AssetPrefabTraitScript* t) {
   if (ctx->spec->variant == ScenePrefabVariant_Edit) {
     /**
-     * For edit variants add a knowledge component even though we will not be executing the scripts,
-     * this indicates that knowledge can be configured for the prefab.
+     * For edit variants add a property component even though we will not be executing the scripts,
+     * this indicates that properties can be configured for the prefab.
      */
-    if (!ctx->knowledge) {
-      ctx->knowledge = scene_knowledge_add(ctx->world, ctx->entity);
+    if (!ctx->propComp) {
+      ctx->propComp = scene_prop_add(ctx->world, ctx->entity);
     }
     return; // Do not execute scripts on edit prefab instances.
   }
@@ -567,32 +564,32 @@ static void setup_script(PrefabSetupContext* ctx, const AssetPrefabTraitScript* 
 
   scene_script_add(ctx->world, ctx->entity, t->scripts, scriptCount);
 
-  if (!ctx->knowledge) {
-    ctx->knowledge = scene_knowledge_add(ctx->world, ctx->entity);
+  if (!ctx->propComp) {
+    ctx->propComp = scene_prop_add(ctx->world, ctx->entity);
   }
-  for (u16 i = 0; i != t->knowledgeCount; ++i) {
-    const AssetPrefabValue* val = &ctx->prefabMap->values.values[t->knowledgeIndex + i];
+  for (u16 i = 0; i != t->propCount; ++i) {
+    const AssetPrefabValue* val = &ctx->prefabMap->values.values[t->propIndex + i];
     switch (val->type) {
     case AssetPrefabValue_Number:
-      scene_knowledge_store(ctx->knowledge, val->name, script_num(val->data_number));
+      scene_prop_store(ctx->propComp, val->name, script_num(val->data_number));
       break;
     case AssetPrefabValue_Bool:
-      scene_knowledge_store(ctx->knowledge, val->name, script_bool(val->data_bool));
+      scene_prop_store(ctx->propComp, val->name, script_bool(val->data_bool));
       break;
     case AssetPrefabValue_Vector3:
-      scene_knowledge_store(ctx->knowledge, val->name, script_vec3(val->data_vector3));
+      scene_prop_store(ctx->propComp, val->name, script_vec3(val->data_vector3));
       break;
     case AssetPrefabValue_Color:
-      scene_knowledge_store(ctx->knowledge, val->name, script_color(val->data_color));
+      scene_prop_store(ctx->propComp, val->name, script_color(val->data_color));
       break;
     case AssetPrefabValue_String:
-      scene_knowledge_store(ctx->knowledge, val->name, script_str_or_null(val->data_string));
+      scene_prop_store(ctx->propComp, val->name, script_str_or_null(val->data_string));
       break;
     case AssetPrefabValue_Asset:
-      scene_knowledge_store(ctx->knowledge, val->name, script_entity(val->data_asset.entity));
+      scene_prop_store(ctx->propComp, val->name, script_entity(val->data_asset.entity));
       break;
     case AssetPrefabValue_Sound:
-      scene_knowledge_store(ctx->knowledge, val->name, script_entity(val->data_sound.asset.entity));
+      scene_prop_store(ctx->propComp, val->name, script_entity(val->data_sound.asset.entity));
       break;
     }
   }
@@ -841,14 +838,14 @@ static bool setup_prefab(
     }
   }
 
-  // NOTE: Set instance knowledge after the traits as it should override in case of conflicts.
-  if (spec->knowledgeCount) {
-    diag_assert(spec->knowledge);
-    if (!ctx.knowledge) {
-      ctx.knowledge = scene_knowledge_add(world, e);
+  // NOTE: Set instance properties after the traits as it should override in case of conflicts.
+  if (spec->propertyCount) {
+    diag_assert(spec->properties);
+    if (!ctx.propComp) {
+      ctx.propComp = scene_prop_add(world, e);
     }
-    for (u16 i = 0; i != spec->knowledgeCount; ++i) {
-      scene_knowledge_store(ctx.knowledge, spec->knowledge[i].key, spec->knowledge[i].value);
+    for (u16 i = 0; i != spec->propertyCount; ++i) {
+      scene_prop_store(ctx.propComp, spec->properties[i].key, spec->properties[i].value);
     }
   }
 

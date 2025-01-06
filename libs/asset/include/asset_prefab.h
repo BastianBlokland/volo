@@ -128,7 +128,7 @@ typedef struct {
 
 typedef struct {
   EcsEntityId scripts[asset_prefab_scripts_max];
-  u16         knowledgeIndex, knowledgeCount; // Stored in the values array.
+  u16         propIndex, propCount; // Stored in the values array.
 } AssetPrefabTraitScript;
 
 typedef struct {

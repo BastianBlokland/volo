@@ -2,7 +2,7 @@
 /**
  * Ambiance effects.
  *
- * Supports the following input knowledge:
+ * Supports the following input properties:
  * - "assetSndAmbiance": Looping ambiance sound effect.
  */
 

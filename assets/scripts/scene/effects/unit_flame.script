@@ -2,7 +2,7 @@
 /**
  * Unit flamethrower effects.
  *
- * Supports the following input knowledge:
+ * Supports the following input properties:
  * - "assetSndBurning": Looping sound effect to play while the flamethrower is active.
  * - "assetVfxFire": Looping fire particle system to play while the flamethrower is active.
  */

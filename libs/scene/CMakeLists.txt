@@ -16,7 +16,6 @@ add_library(lib_scene STATIC
   src/faction.c
   src/footstep.c
   src/health.c
-  src/knowledge.c
   src/level.c
   src/lifetime.c
   src/light.c
@@ -27,6 +26,7 @@ add_library(lib_scene STATIC
   src/prefab.c
   src/product.c
   src/projectile.c
+  src/property.c
   src/register.c
   src/renderable.c
   src/script.c
