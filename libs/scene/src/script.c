@@ -919,7 +919,7 @@ static ScriptVal eval_tell(EvalContext* ctx, ScriptBinderCall* call) {
   const ScriptVal   value = script_arg_any(call, 2);
 
   SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Tell);
-  act->tell        = (SceneActionTell){.entity = e, .memKey = key, .value = value};
+  act->tell        = (SceneActionTell){.entity = e, .prop = key, .value = value};
   return script_null();
 }
 
@@ -929,7 +929,7 @@ static ScriptVal eval_ask(EvalContext* ctx, ScriptBinderCall* call) {
   const StringHash  key    = script_arg_str(call, 2);
 
   SceneAction* act = scene_action_push(ctx->actions, SceneActionType_Ask);
-  act->ask         = (SceneActionAsk){.entity = e, .target = target, .memKey = key};
+  act->ask         = (SceneActionAsk){.entity = e, .target = target, .prop = key};
   return script_null();
 }
 

@@ -34,14 +34,14 @@ typedef enum {
 
 typedef struct {
   EcsEntityId entity;
-  StringHash  memKey;
+  StringHash  prop;
   ScriptVal   value;
 } SceneActionTell;
 
 typedef struct {
   EcsEntityId entity;
   EcsEntityId target;
-  StringHash  memKey;
+  StringHash  prop;
 } SceneActionAsk;
 
 typedef struct {
