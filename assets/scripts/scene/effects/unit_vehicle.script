@@ -2,7 +2,7 @@
 /**
  * Vehicle effects.
  *
- * Supports the following input knowledge:
+ * Supports the following input properties:
  * - "assetSndIdle"   : Looping sound effect to play while stationary.
  * - "assetSndMove"   : Looping sound effect to play while moving.
  * - "assetVfxDust"   : Looping dust particle system.

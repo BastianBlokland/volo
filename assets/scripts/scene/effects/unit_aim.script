@@ -2,7 +2,7 @@
 /**
  * Aim effects.
  *
- * Supports the following input knowledge:
+ * Supports the following input properties:
  * - "assetSndAim": Looping sound effect to play while aiming.
  */
 

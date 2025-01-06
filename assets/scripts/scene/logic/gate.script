@@ -2,7 +2,7 @@
 /**
  * Openable gate.
  *
- * Supports the following input knowledge:
+ * Supports the following input properties:
  * - "cfgGateOpen": Should the gate be currently open?
  */
 

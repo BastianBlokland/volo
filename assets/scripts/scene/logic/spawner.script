@@ -1,7 +1,7 @@
 /**
  * Every x seconds spawn a wave of enemies around this entity.
  *
- * Supports the following input knowledge:
+ * Supports the following input properties:
  * - "cfgSpawnerPrefab": Prefab to spawn.
  */
 

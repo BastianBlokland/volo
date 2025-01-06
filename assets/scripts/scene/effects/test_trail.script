@@ -2,7 +2,7 @@
 /**
  * Script for testing trail decals, uses the input position as the trail head.
  *
- * Supports the following input knowledge:
+ * Supports the following input properties:
  * - "assetDecalTrail": Trail decal asset.
  */
 

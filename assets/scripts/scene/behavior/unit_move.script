@@ -2,7 +2,7 @@
 /**
  * Move to requested positions.
  *
- * Supports the following input knowledge:
+ * Supports the following input properties:
  * - "cmdStop"      : Stop moving.
  * - "cmdMoveTarget": Start moving to given location.
  */

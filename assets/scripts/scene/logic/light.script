@@ -2,7 +2,7 @@
 /**
  * Light that can dynamically change colors.
  *
- * Supports the following input knowledge:
+ * Supports the following input properties:
  * - "cfgColor": Current color.
  */
 

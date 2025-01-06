@@ -2,7 +2,7 @@
 /**
  * Damage all entities in a radius.
  *
- * Supports the following input knowledge:
+ * Supports the following input properties:
  * - "cfgExplodeDelay" : Delay in seconds until the explosion happens.
  * - "cfgExplodeRadius": Radius of the explosion.
  * - "cfgExplodeDamage": Damage of the explosion.

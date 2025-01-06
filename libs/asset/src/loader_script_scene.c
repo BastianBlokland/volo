@@ -311,7 +311,7 @@ void asset_data_init_script_scene(void) {
   }
   {
     const String       name   = string_lit("tell");
-    const String       doc    = string_lit("Set a knowledge value for the given entity.\n\n*Note*: The updated knowledge is visible to scripts in the next frame.");
+    const String       doc    = string_lit("Set a property value for the given entity.\n\n*Note*: The updated property is visible to scripts in the next frame.");
     const ScriptMask   ret    = script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("target"), script_mask_entity},
@@ -322,7 +322,7 @@ void asset_data_init_script_scene(void) {
   }
   {
     const String       name   = string_lit("ask");
-    const String       doc    = string_lit("Ask a target entity for a knowledge value.\n\n*Note*: The result value is visible to this entity under the same key in the next frame.");
+    const String       doc    = string_lit("Ask a target entity for a property value.\n\n*Note*: The result value is visible to this entity under the same key in the next frame.");
     const ScriptMask   ret    = script_mask_null;
     const ScriptSigArg args[] = {
         {string_lit("this"), script_mask_entity},
