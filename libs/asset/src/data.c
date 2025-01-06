@@ -259,6 +259,7 @@ void asset_data_init(void) {
     asset_data_init_types();
 
     // Shared types (need to be first as other types can depend on these).
+    asset_data_init_property();
     asset_data_init_tex();
 
     // Other types (order does not matter).
