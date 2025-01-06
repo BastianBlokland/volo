@@ -32,7 +32,6 @@
 #include "scene_debug.h"
 #include "scene_faction.h"
 #include "scene_health.h"
-#include "scene_level.h"
 #include "scene_light.h"
 #include "scene_location.h"
 #include "scene_locomotion.h"
@@ -210,7 +209,6 @@ static i8 debug_prop_compare_entry(const void* a, const void* b) {
 ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp); }
 
 ecs_view_define(GlobalPanelUpdateView) {
-  ecs_access_read(SceneLevelManagerComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_write(DebugStatsGlobalComp);
   ecs_access_write(ScenePrefabEnvComp);
@@ -394,18 +392,17 @@ static void inspector_prefab_replace(
 }
 
 typedef struct {
-  EcsWorld*                    world;
-  UiCanvasComp*                canvas;
-  DebugInspectorPanelComp*     panel;
-  const SceneTimeComp*         time;
-  const SceneLevelManagerComp* level;
-  ScenePrefabEnvComp*          prefabEnv;
-  const AssetPrefabMapComp*    prefabMap;
-  SceneSetEnvComp*             setEnv;
-  DebugStatsGlobalComp*        stats;
-  DebugInspectorSettingsComp*  settings;
-  EcsIterator*                 subject;
-  EcsEntityId                  subjectEntity;
+  EcsWorld*                   world;
+  UiCanvasComp*               canvas;
+  DebugInspectorPanelComp*    panel;
+  const SceneTimeComp*        time;
+  ScenePrefabEnvComp*         prefabEnv;
+  const AssetPrefabMapComp*   prefabMap;
+  SceneSetEnvComp*            setEnv;
+  DebugStatsGlobalComp*       stats;
+  DebugInspectorSettingsComp* settings;
+  EcsIterator*                subject;
+  EcsEntityId                 subjectEntity;
 } InspectorContext;
 
 static bool inspector_panel_section(InspectorContext* ctx, const String label) {
@@ -1307,8 +1304,6 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   DebugInspectorSettingsComp* settings = inspector_settings_get_or_create(world);
   DebugStatsGlobalComp*       stats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
-  const SceneLevelManagerComp* level = ecs_view_read_t(globalItr, SceneLevelManagerComp);
-
   ScenePrefabEnvComp*       prefabEnv = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
   const AssetPrefabMapComp* prefabMap = inspector_prefab_map(world, prefabEnv);
 
@@ -1333,7 +1328,6 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
         .canvas        = canvas,
         .panel         = panelComp,
         .time          = time,
-        .level         = level,
         .prefabEnv     = prefabEnv,
         .prefabMap     = prefabMap,
         .setEnv        = setEnv,
