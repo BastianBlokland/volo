@@ -304,8 +304,8 @@ inspector_notify_vis_mode(DebugStatsGlobalComp* stats, const DebugInspectorVisMo
 static void inspector_extract_knowledge(const ScenePropertyComp* comp, ScenePrefabSpec* out) {
   enum { MaxResults = 128 };
 
-  ScenePrefabKnowledge* res      = alloc_array_t(g_allocScratch, ScenePrefabKnowledge, MaxResults);
-  u16                   resCount = 0;
+  ScenePrefabProperty* res      = alloc_array_t(g_allocScratch, ScenePrefabProperty, MaxResults);
+  u16                  resCount = 0;
 
   const ScriptMem* memory = scene_prop_memory(comp);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
@@ -314,15 +314,15 @@ static void inspector_extract_knowledge(const ScenePropertyComp* comp, ScenePref
       if (resCount == MaxResults) {
         break; // Maximum knowledge reached. TODO: Should this be an error?
       }
-      res[resCount++] = (ScenePrefabKnowledge){
+      res[resCount++] = (ScenePrefabProperty){
           .key   = itr.key,
           .value = val,
       };
     }
   }
 
-  out->knowledge      = res;
-  out->knowledgeCount = resCount;
+  out->properties    = res;
+  out->propertyCount = resCount;
 }
 
 static void inspector_extract_sets(const SceneSetMemberComp* comp, ScenePrefabSpec* out) {
