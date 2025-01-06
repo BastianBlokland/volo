@@ -379,10 +379,13 @@ static void scene_level_object_push_knowledge(
   const ScriptMem* memory      = scene_knowledge_memory(c);
   u32              propertyIdx = 0;
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
+    const ScriptVal val = script_mem_load(memory, itr.key);
+    if (!scene_knowledge_is_persistable(val)) {
+      continue;
+    }
     AssetProperty* prop = &obj->properties.values[propertyIdx++];
     prop->name          = itr.key;
 
-    const ScriptVal val = script_mem_load(memory, itr.key);
     switch (script_type(val)) {
     case ScriptType_Num:
       prop->type     = AssetPropertyType_Num;
@@ -414,6 +417,7 @@ static void scene_level_object_push_knowledge(
       break;
     }
     diag_assert_fail("Unsupported property");
+    UNREACHABLE
   }
   diag_assert(propertyIdx == count);
 }
