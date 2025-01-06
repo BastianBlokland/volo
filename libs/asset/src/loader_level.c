@@ -137,7 +137,7 @@ bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLev
     return false;
   }
 
-  DynString dataBuffer = dynstring_create(g_allocHeap, 1 * usize_kibibyte);
+  DynString dataBuffer = dynstring_create(g_allocHeap, 512 * usize_kibibyte);
 
   const DataWriteJsonOpts jOpts = data_write_json_opts(.numberMaxDecDigits = 4, .compact = true);
   const Mem               levelData = mem_create(level, sizeof(AssetLevel));
