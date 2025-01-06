@@ -46,6 +46,10 @@
         "position": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
         "rotation": { "title": "GeoQuat", "description": "Quaternion", "$ref": "#/$defs/GeoQuat" },
         "scale": { "title": "f32", "type": "number" },
+        "properties": {
+          "type": "array",
+          "items": { "title": "AssetProperty", "$ref": "#/$defs/AssetProperty" }
+        },
         "sets": {
           "type": "array",
           "maxItems": 8,
@@ -78,6 +82,75 @@
       "required": [],
       "defaultSnippets": [
         { "label": "New", "body": "^{}" }
+      ]
+    },
+    "AssetProperty": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": { "const": "AssetPropertyType_Num" },
+            "$name": { "type": "string" },
+            "$data": { "title": "f64", "type": "number" }
+          },
+          "required": [ "$type", "$name", "$data" ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": { "const": "AssetPropertyType_Bool" },
+            "$name": { "type": "string" },
+            "$data": { "title": "bool", "type": "boolean" }
+          },
+          "required": [ "$type", "$name", "$data" ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": { "const": "AssetPropertyType_Vec3" },
+            "$name": { "type": "string" },
+            "x": { "title": "f32", "type": "number" },
+            "y": { "title": "f32", "type": "number" },
+            "z": { "title": "f32", "type": "number" }
+          },
+          "required": [ "$type", "$name" ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": { "const": "AssetPropertyType_Quat" },
+            "$name": { "type": "string" },
+            "x": { "title": "f32", "type": "number" },
+            "y": { "title": "f32", "type": "number" },
+            "z": { "title": "f32", "type": "number" },
+            "w": { "title": "f32", "type": "number" }
+          },
+          "required": [ "$type", "$name" ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": { "const": "AssetPropertyType_Color" },
+            "$name": { "type": "string" },
+            "r": { "title": "f32", "type": "number" },
+            "g": { "title": "f32", "type": "number" },
+            "b": { "title": "f32", "type": "number" },
+            "a": { "title": "f32", "type": "number" }
+          },
+          "required": [ "$type", "$name" ]
+        }
+      ],
+      "defaultSnippets": [
+        { "label": "New AssetPropertyType_Num", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Num\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": 0\n}" },
+        { "label": "New AssetPropertyType_Bool", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Bool\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": false\n}" },
+        { "label": "New AssetPropertyType_Vec3", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Vec3\",\n  \"\\$name\": \"MyUnion\"\n}" },
+        { "label": "New AssetPropertyType_Quat", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Quat\",\n  \"\\$name\": \"MyUnion\"\n}" },
+        { "label": "New AssetPropertyType_Color", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Color\",\n  \"\\$name\": \"MyUnion\"\n}" }
       ]
     }
   }

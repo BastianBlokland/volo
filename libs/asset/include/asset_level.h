@@ -1,5 +1,6 @@
 #pragma once
 #include "asset.h"
+#include "asset_property.h"
 #include "core_array.h"
 #include "data_registry.h"
 #include "ecs_module.h"
@@ -29,7 +30,8 @@ typedef struct {
   f32               scale;
   GeoVector         position;
   GeoQuat           rotation;
-  StringHash        sets[asset_level_sets_max];
+  HeapArray_t(AssetProperty) properties;
+  StringHash sets[asset_level_sets_max];
 } AssetLevelObject;
 
 typedef struct {
