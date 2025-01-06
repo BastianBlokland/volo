@@ -14,7 +14,7 @@ typedef enum eAssetPropertyType {
   AssetPropertyType_Count,
 } AssetPropertyType;
 
-typedef union uAssetProperty {
+typedef struct sAssetProperty {
   StringHash        name;
   AssetPropertyType type;
   union {
