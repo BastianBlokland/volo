@@ -349,6 +349,15 @@ void geo_color_to_hsv(
   }
 }
 
+GeoColor geo_color_quantize(const GeoColor v, const u8 maxMantissaBits) {
+  return (GeoColor){
+      .r = float_quantize_f32(v.r, maxMantissaBits),
+      .g = float_quantize_f32(v.g, maxMantissaBits),
+      .b = float_quantize_f32(v.b, maxMantissaBits),
+      .a = float_quantize_f32(v.a, maxMantissaBits),
+  };
+}
+
 void geo_color_pack_f16(const GeoColor color, f16 out[PARAM_ARRAY_SIZE(4)]) {
 #ifdef VOLO_SIMD
   const SimdVec vecF32 = simd_vec_load(color.data);
