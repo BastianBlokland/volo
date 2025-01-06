@@ -9,10 +9,12 @@
 #include "ecs_world.h"
 #include "log_logger.h"
 #include "scene_faction.h"
+#include "scene_knowledge.h"
 #include "scene_level.h"
 #include "scene_prefab.h"
 #include "scene_set.h"
 #include "scene_transform.h"
+#include "script_mem.h"
 #include "trace_tracer.h"
 
 typedef enum {
@@ -94,13 +96,41 @@ static SceneFaction scene_from_asset_faction(const AssetLevelFaction assetFactio
   }
 }
 
+static bool scene_knowledge_is_persistable(const ScriptVal val) {
+  switch (script_type(val)) {
+  case ScriptType_Num:
+  case ScriptType_Bool:
+  case ScriptType_Vec3:
+  case ScriptType_Quat:
+  case ScriptType_Color:
+    return true;
+  case ScriptType_Null:
+  case ScriptType_Entity:
+  case ScriptType_Str:
+    return false;
+  case ScriptType_Count:
+    break;
+  }
+  UNREACHABLE
+}
+
+static u32 scene_knowledge_count_persistable(const SceneKnowledgeComp* c) {
+  const ScriptMem* memory = scene_knowledge_memory(c);
+  u32              res    = 0;
+  for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
+    res += scene_knowledge_is_persistable(script_mem_load(memory, itr.key));
+  }
+  return res;
+}
+
 ecs_view_define(InstanceView) {
   ecs_access_with(SceneLevelInstanceComp);
   ecs_access_maybe_read(SceneFactionComp);
-  ecs_access_maybe_read(SceneTransformComp);
-  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneKnowledgeComp);
   ecs_access_maybe_read(ScenePrefabInstanceComp);
+  ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneSetMemberComp);
+  ecs_access_maybe_read(SceneTransformComp);
 }
 
 static void
@@ -305,8 +335,62 @@ ecs_system_define(SceneLevelUnloadSys) {
   }
 }
 
+static void scene_level_object_push_knowledge(
+    AssetLevelObject* obj, Allocator* alloc, const SceneKnowledgeComp* c) {
+  const u32 count = scene_knowledge_count_persistable(c);
+  if (!count) {
+    return;
+  }
+  obj->properties.values = alloc_array_t(alloc, AssetProperty, count);
+  obj->properties.count  = count;
+
+  const ScriptMem* memory      = scene_knowledge_memory(c);
+  u32              propertyIdx = 0;
+  for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
+    AssetProperty* prop = &obj->properties.values[propertyIdx++];
+    prop->name          = itr.key;
+
+    const ScriptVal val = script_mem_load(memory, itr.key);
+    switch (script_type(val)) {
+    case ScriptType_Num:
+      prop->type     = AssetPropertyType_Num;
+      prop->data_num = script_get_num(val, 0);
+      continue;
+    case ScriptType_Bool:
+      prop->type      = AssetPropertyType_Bool;
+      prop->data_bool = script_get_bool(val, false);
+      continue;
+    case ScriptType_Vec3:
+      prop->type      = AssetPropertyType_Vec3;
+      prop->data_vec3 = script_get_vec3(val, geo_vector(0));
+      continue;
+    case ScriptType_Quat:
+      prop->type      = AssetPropertyType_Quat;
+      prop->data_quat = script_get_quat(val, geo_quat_ident);
+      continue;
+    case ScriptType_Color:
+      prop->type       = AssetPropertyType_Color;
+      prop->data_color = script_get_color(val, geo_color_white);
+      continue;
+    case ScriptType_Null:
+    case ScriptType_Entity:
+    case ScriptType_Str:
+    case ScriptType_Count:
+      break;
+    }
+    diag_assert_fail("Unsupported property");
+  }
+  diag_assert(propertyIdx == count);
+}
+
+static void scene_level_object_push_sets(AssetLevelObject* obj, const SceneSetMemberComp* c) {
+  ASSERT(array_elems(obj->sets) >= scene_set_member_max_sets, "Insufficient set storage");
+  scene_set_member_all_non_volatile(c, obj->sets);
+}
+
 static void scene_level_object_push(
     DynArray*    objects, // AssetLevelObject[], sorted on id.
+    Allocator*   alloc,
     EcsIterator* instanceItr) {
 
   const ScenePrefabInstanceComp* prefabInst = ecs_view_read_t(instanceItr, ScenePrefabInstanceComp);
@@ -320,6 +404,7 @@ static void scene_level_object_push(
   const SceneTransformComp* maybeTrans     = ecs_view_read_t(instanceItr, SceneTransformComp);
   const SceneScaleComp*     maybeScale     = ecs_view_read_t(instanceItr, SceneScaleComp);
   const SceneFactionComp*   maybeFaction   = ecs_view_read_t(instanceItr, SceneFactionComp);
+  const SceneKnowledgeComp* maybeKnowledge = ecs_view_read_t(instanceItr, SceneKnowledgeComp);
   const SceneSetMemberComp* maybeSetMember = ecs_view_read_t(instanceItr, SceneSetMemberComp);
   const f32                 scaleVal       = maybeScale ? maybeScale->scale : 1.0f;
 
@@ -331,9 +416,11 @@ static void scene_level_object_push(
       .scale    = scaleVal == 1.0f ? 0.0 : scaleVal, // Scale 0 is treated as unscaled (eg 1.0).
       .faction  = maybeFaction ? scene_to_asset_faction(maybeFaction->id) : AssetLevelFaction_None,
   };
+  if (maybeKnowledge) {
+    scene_level_object_push_knowledge(&obj, alloc, maybeKnowledge);
+  }
   if (maybeSetMember) {
-    ASSERT(array_elems(obj.sets) >= scene_set_member_max_sets, "Insufficient set storage");
-    scene_set_member_all_non_volatile(maybeSetMember, obj.sets);
+    scene_level_object_push_sets(&obj, maybeSetMember);
   }
 
   // Guarantee unique object id.
@@ -356,9 +443,11 @@ static void scene_level_process_save(
     EcsView*                     assetView,
     const String                 id,
     EcsView*                     instanceView) {
+  Allocator* tempAlloc = alloc_chunked_create(g_allocHeap, alloc_bump_create, usize_mebibyte);
+
   DynArray objects = dynarray_create_t(g_allocHeap, AssetLevelObject, 1024);
   for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
-    scene_level_object_push(&objects, itr);
+    scene_level_object_push(&objects, tempAlloc, itr);
   }
 
   const AssetLevel level = {
@@ -374,6 +463,7 @@ static void scene_level_process_save(
   log_i("Level saved", log_param("id", fmt_text(id)), log_param("objects", fmt_int(objects.size)));
 
   dynarray_destroy(&objects);
+  alloc_chunked_destroy(tempAlloc);
 }
 
 ecs_view_define(SaveGlobalView) {
