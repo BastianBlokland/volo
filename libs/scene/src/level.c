@@ -3,6 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
+#include "core_math.h"
 #include "core_rng.h"
 #include "ecs_entity.h"
 #include "ecs_view.h"
@@ -185,14 +186,42 @@ static void scene_level_process_load(
 
   const ScenePrefabVariant prefabVariant = scene_level_prefab_variant(levelMode);
   heap_array_for_t(level->objects, AssetLevelObject, obj) {
+    ScenePrefabKnowledge knowledge[128];
+    const u16            knowledgeCount = math_min(obj->properties.count, array_elems(knowledge));
+    for (u16 i = 0; i != knowledgeCount; ++i) {
+      const AssetProperty* prop = &obj->properties.values[i];
+      knowledge[i].key          = prop->name;
+      switch (prop->type) {
+      case AssetPropertyType_Num:
+        knowledge[i].value = script_num(prop->data_num);
+        continue;
+      case AssetPropertyType_Bool:
+        knowledge[i].value = script_bool(prop->data_bool);
+        continue;
+      case AssetPropertyType_Vec3:
+        knowledge[i].value = script_vec3(prop->data_vec3);
+        continue;
+      case AssetPropertyType_Quat:
+        knowledge[i].value = script_quat(prop->data_quat);
+        continue;
+      case AssetPropertyType_Color:
+        knowledge[i].value = script_color(prop->data_color);
+        continue;
+      case AssetPropertyType_Count:
+        break;
+      }
+      UNREACHABLE
+    }
     ScenePrefabSpec spec = {
-        .id       = obj->id,
-        .prefabId = obj->prefab,
-        .variant  = prefabVariant,
-        .position = obj->position,
-        .rotation = obj->rotation,
-        .scale    = obj->scale,
-        .faction  = scene_from_asset_faction(obj->faction),
+        .id             = obj->id,
+        .prefabId       = obj->prefab,
+        .variant        = prefabVariant,
+        .position       = obj->position,
+        .rotation       = obj->rotation,
+        .scale          = obj->scale,
+        .faction        = scene_from_asset_faction(obj->faction),
+        .knowledge      = knowledge,
+        .knowledgeCount = knowledgeCount,
     };
     mem_cpy(mem_var(spec.sets), mem_var(obj->sets));
     scene_prefab_spawn(world, &spec);
