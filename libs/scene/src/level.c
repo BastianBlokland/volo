@@ -187,7 +187,7 @@ static void scene_level_process_load(
   const ScenePrefabVariant prefabVariant = scene_level_prefab_variant(levelMode);
   heap_array_for_t(level->objects, AssetLevelObject, obj) {
     ScenePrefabKnowledge knowledge[128];
-    const u16            knowledgeCount = math_min(obj->properties.count, array_elems(knowledge));
+    const u16 knowledgeCount = (u16)math_min(obj->properties.count, array_elems(knowledge));
     for (u16 i = 0; i != knowledgeCount; ++i) {
       const AssetProperty* prop = &obj->properties.values[i];
       knowledge[i].key          = prop->name;
