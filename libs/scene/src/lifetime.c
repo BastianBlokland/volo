@@ -63,7 +63,16 @@ ecs_view_define(LifetimeDurationView) { ecs_access_write(SceneLifetimeDurationCo
 
 static bool scene_lifetime_owners_exist(EcsWorld* world, const SceneLifetimeOwnerComp* lifetime) {
   for (u32 ownerIdx = 0; ownerIdx != scene_lifetime_owners_max; ++ownerIdx) {
-    if (lifetime->owners[ownerIdx] && !ecs_world_exists(world, lifetime->owners[ownerIdx])) {
+    if (!lifetime->owners[ownerIdx]) {
+      continue; // Slot unused.
+    }
+    /**
+     * Instead of checking if the entity exists we check if its part of an archetype, this means
+     * when an entity loses all of its components (for example because its reset) its lifetime
+     * children will be destroyed.
+     */
+    const EcsArchetypeId archetype = ecs_world_entity_archetype(world, lifetime->owners[ownerIdx]);
+    if (sentinel_check(archetype)) {
       return false;
     }
   }
