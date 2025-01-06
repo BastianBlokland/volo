@@ -26,7 +26,7 @@ static void scene_test_wait(EcsRunner* runner) {
 
 ecs_view_define(ScriptView) {
   ecs_access_write(SceneScriptComp);
-  ecs_access_write(SceneKnowledgeComp);
+  ecs_access_write(ScenePropertyComp);
 }
 ecs_view_define(ManagerView) { ecs_access_write(AssetManagerComp); }
 
@@ -69,7 +69,7 @@ spec(script) {
 
     scene_test_wait(runner);
 
-    const SceneKnowledgeComp* know = ecs_utils_read_t(world, ScriptView, e, SceneKnowledgeComp);
+    const ScenePropertyComp* know = ecs_utils_read_t(world, ScriptView, e, ScenePropertyComp);
 
     const ScriptVal value = scene_knowledge_load(know, string_hash_lit("test"));
     check(script_val_equal(value, script_num(42)));

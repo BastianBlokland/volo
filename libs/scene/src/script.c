@@ -332,7 +332,7 @@ typedef struct {
   SceneFaction          instigatorFaction;
   SceneScriptSlot       slot;
   SceneScriptComp*      scriptInstance;
-  SceneKnowledgeComp*   scriptKnowledge;
+  ScenePropertyComp*    scriptKnowledge;
   const ScriptProgram*  scriptProgram;
   String                scriptId;
   SceneActionQueueComp* actions;
@@ -1981,9 +1981,9 @@ static void ecs_combine_script_resource(void* dataA, void* dataB) {
 }
 
 ecs_view_define(ScriptUpdateView) {
-  ecs_access_write(SceneScriptComp);
-  ecs_access_write(SceneKnowledgeComp);
   ecs_access_write(SceneActionQueueComp);
+  ecs_access_write(ScenePropertyComp);
+  ecs_access_write(SceneScriptComp);
   ecs_access_maybe_write(SceneDebugComp);
   ecs_access_maybe_read(SceneFactionComp);
 }
@@ -2118,7 +2118,7 @@ ecs_system_define(SceneScriptUpdateSys) {
     ctx.instigator        = ecs_view_entity(itr);
     ctx.instigatorFaction = factionComp ? factionComp->id : SceneFaction_None;
     ctx.scriptInstance    = ecs_view_write_t(itr, SceneScriptComp);
-    ctx.scriptKnowledge   = ecs_view_write_t(itr, SceneKnowledgeComp);
+    ctx.scriptKnowledge   = ecs_view_write_t(itr, ScenePropertyComp);
     ctx.actions           = ecs_view_write_t(itr, SceneActionQueueComp);
     ctx.debug             = ecs_view_write_t(itr, SceneDebugComp);
 

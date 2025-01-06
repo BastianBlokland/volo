@@ -137,7 +137,7 @@ static void ecs_destroy_script_panel(void* data) {
 }
 
 ecs_view_define(SubjectView) {
-  ecs_access_write(SceneKnowledgeComp);
+  ecs_access_write(ScenePropertyComp);
   ecs_access_maybe_write(SceneScriptComp);
   ecs_access_maybe_read(SceneDebugComp);
 }
@@ -379,8 +379,8 @@ static void memory_panel_tab_draw(
     EcsIterator*          subject) {
   diag_assert(subject);
 
-  SceneKnowledgeComp* knowledge = ecs_view_write_t(subject, SceneKnowledgeComp);
-  ScriptMem*          memory    = scene_knowledge_memory_mut(knowledge);
+  ScenePropertyComp* knowledge = ecs_view_write_t(subject, ScenePropertyComp);
+  ScriptMem*         memory    = scene_knowledge_memory_mut(knowledge);
 
   memory_options_draw(c, panelComp);
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);

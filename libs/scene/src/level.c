@@ -115,7 +115,7 @@ static bool scene_knowledge_is_persistable(const ScriptVal val) {
   UNREACHABLE
 }
 
-static u32 scene_knowledge_count_persistable(const SceneKnowledgeComp* c) {
+static u32 scene_knowledge_count_persistable(const ScenePropertyComp* c) {
   const ScriptMem* memory = scene_knowledge_memory(c);
   u32              res    = 0;
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
@@ -127,8 +127,8 @@ static u32 scene_knowledge_count_persistable(const SceneKnowledgeComp* c) {
 ecs_view_define(InstanceView) {
   ecs_access_with(SceneLevelInstanceComp);
   ecs_access_maybe_read(SceneFactionComp);
-  ecs_access_maybe_read(SceneKnowledgeComp);
   ecs_access_maybe_read(ScenePrefabInstanceComp);
+  ecs_access_maybe_read(ScenePropertyComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneSetMemberComp);
   ecs_access_maybe_read(SceneTransformComp);
@@ -368,7 +368,7 @@ ecs_system_define(SceneLevelUnloadSys) {
 }
 
 static void scene_level_object_push_knowledge(
-    AssetLevelObject* obj, Allocator* alloc, const SceneKnowledgeComp* c) {
+    AssetLevelObject* obj, Allocator* alloc, const ScenePropertyComp* c) {
   const u32 count = scene_knowledge_count_persistable(c);
   if (!count) {
     return;
@@ -443,7 +443,7 @@ static void scene_level_object_push(
   const SceneTransformComp* maybeTrans     = ecs_view_read_t(instanceItr, SceneTransformComp);
   const SceneScaleComp*     maybeScale     = ecs_view_read_t(instanceItr, SceneScaleComp);
   const SceneFactionComp*   maybeFaction   = ecs_view_read_t(instanceItr, SceneFactionComp);
-  const SceneKnowledgeComp* maybeKnowledge = ecs_view_read_t(instanceItr, SceneKnowledgeComp);
+  const ScenePropertyComp*  maybeKnowledge = ecs_view_read_t(instanceItr, ScenePropertyComp);
   const SceneSetMemberComp* maybeSetMember = ecs_view_read_t(instanceItr, SceneSetMemberComp);
   const f32                 scaleVal       = maybeScale ? maybeScale->scale : 1.0f;
 

@@ -146,9 +146,9 @@ ecs_view_define(GlobalSpawnView) {
 ecs_view_define(InstanceRefreshView) {
   ecs_access_read(ScenePrefabInstanceComp);
   ecs_access_read(SceneTransformComp);
-  ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneFactionComp);
-  ecs_access_maybe_read(SceneKnowledgeComp);
+  ecs_access_maybe_read(ScenePropertyComp);
+  ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneSetMemberComp);
 }
 
@@ -247,7 +247,7 @@ ecs_system_define(ScenePrefabResourceUpdateSys) {
   }
 }
 
-static void prefab_extract_knowledge(const SceneKnowledgeComp* comp, ScenePrefabSpec* out) {
+static void prefab_extract_knowledge(const ScenePropertyComp* comp, ScenePrefabSpec* out) {
   enum { MaxResults = 128 };
 
   ScenePrefabKnowledge* res      = alloc_array_t(g_allocScratch, ScenePrefabKnowledge, MaxResults);
@@ -288,7 +288,7 @@ static void prefab_refresh(ScenePrefabEnvComp* prefabEnv, EcsIterator* itr) {
       .position = transComp->position,
       .rotation = transComp->rotation,
   };
-  const SceneKnowledgeComp* knowledge = ecs_view_read_t(itr, SceneKnowledgeComp);
+  const ScenePropertyComp* knowledge = ecs_view_read_t(itr, ScenePropertyComp);
   if (knowledge) {
     prefab_extract_knowledge(knowledge, &spec);
   }
@@ -357,7 +357,7 @@ typedef struct {
   const AssetPrefab*        prefab;
   EcsEntityId               entity;
   const ScenePrefabSpec*    spec;
-  SceneKnowledgeComp*       knowledge; // Added on-demand to the resulting entity.
+  ScenePropertyComp*        knowledge; // Added on-demand to the resulting entity.
 } PrefabSetupContext;
 
 static void setup_name(PrefabSetupContext* ctx, const AssetPrefabTraitName* t) {

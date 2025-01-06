@@ -103,7 +103,7 @@ ecs_view_define(ActionGlobalView) {
   ecs_access_read(SceneLevelManagerComp);
 }
 
-ecs_view_define(ActionKnowledgeView) { ecs_access_write(SceneKnowledgeComp); }
+ecs_view_define(ActionKnowledgeView) { ecs_access_write(ScenePropertyComp); }
 ecs_view_define(ActionTransformView) { ecs_access_write(SceneTransformComp); }
 ecs_view_define(ActionNavAgentView) { ecs_access_write(SceneNavAgentComp); }
 ecs_view_define(ActionAttachmentView) { ecs_access_write(SceneAttachmentComp); }
@@ -151,16 +151,16 @@ static u32 action_update_flag(u32 mask, const u32 flag, const bool enable) {
 
 static void action_tell(ActionContext* ctx, const SceneActionTell* a) {
   if (ecs_view_maybe_jump(ctx->knowledgeItr, a->entity)) {
-    SceneKnowledgeComp* knowledge = ecs_view_write_t(ctx->knowledgeItr, SceneKnowledgeComp);
+    ScenePropertyComp* knowledge = ecs_view_write_t(ctx->knowledgeItr, ScenePropertyComp);
     scene_knowledge_store(knowledge, a->memKey, a->value);
   }
 }
 
 static void action_ask(ActionContext* ctx, const SceneActionAsk* a) {
   if (ecs_view_maybe_jump(ctx->knowledgeItr, a->entity)) {
-    SceneKnowledgeComp* knowledge = ecs_view_write_t(ctx->knowledgeItr, SceneKnowledgeComp);
+    ScenePropertyComp* knowledge = ecs_view_write_t(ctx->knowledgeItr, ScenePropertyComp);
     if (ecs_view_maybe_jump(ctx->knowledgeItr, a->target)) {
-      const SceneKnowledgeComp* target = ecs_view_read_t(ctx->knowledgeItr, SceneKnowledgeComp);
+      const ScenePropertyComp* target = ecs_view_read_t(ctx->knowledgeItr, ScenePropertyComp);
       scene_knowledge_store(knowledge, a->memKey, scene_knowledge_load(target, a->memKey));
     }
   }

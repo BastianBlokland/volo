@@ -264,12 +264,12 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneCollisionComp);
   ecs_access_maybe_write(SceneFactionComp);
   ecs_access_maybe_write(SceneHealthComp);
-  ecs_access_maybe_write(SceneKnowledgeComp);
   ecs_access_maybe_write(SceneLightAmbientComp);
   ecs_access_maybe_write(SceneLightDirComp);
   ecs_access_maybe_write(SceneLightPointComp);
   ecs_access_maybe_write(SceneLocationComp);
   ecs_access_maybe_write(ScenePrefabInstanceComp);
+  ecs_access_maybe_write(ScenePropertyComp);
   ecs_access_maybe_write(SceneRenderableComp);
   ecs_access_maybe_write(SceneScaleComp);
   ecs_access_maybe_write(SceneTagComp);
@@ -301,7 +301,7 @@ inspector_notify_vis_mode(DebugStatsGlobalComp* stats, const DebugInspectorVisMo
   debug_stats_notify(stats, string_lit("Visualize"), g_visModeNames[visMode]);
 }
 
-static void inspector_extract_knowledge(const SceneKnowledgeComp* comp, ScenePrefabSpec* out) {
+static void inspector_extract_knowledge(const ScenePropertyComp* comp, ScenePrefabSpec* out) {
   enum { MaxResults = 128 };
 
   ScenePrefabKnowledge* res      = alloc_array_t(g_allocScratch, ScenePrefabKnowledge, MaxResults);
@@ -349,7 +349,7 @@ static EcsEntityId inspector_prefab_duplicate(EcsWorld* world, EcsIterator* subj
       .position = transComp->position,
       .rotation = transComp->rotation,
   };
-  const SceneKnowledgeComp* knowledge = ecs_view_read_t(subject, SceneKnowledgeComp);
+  const ScenePropertyComp* knowledge = ecs_view_read_t(subject, ScenePropertyComp);
   if (knowledge && prefabInstComp->variant == ScenePrefabVariant_Edit) {
     /**
      * Preserve knowledge for edit variants, runtime variants shouldn't preserve knowledge as it
@@ -385,7 +385,7 @@ static void inspector_prefab_replace(
       .position = transComp->position,
       .rotation = transComp->rotation,
   };
-  const SceneKnowledgeComp* knowledge = ecs_view_read_t(subject, SceneKnowledgeComp);
+  const ScenePropertyComp* knowledge = ecs_view_read_t(subject, ScenePropertyComp);
   if (knowledge) {
     inspector_extract_knowledge(knowledge, &spec);
   }
@@ -802,7 +802,7 @@ static void inspector_panel_knowledge_value_edit(
 }
 
 static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table) {
-  SceneKnowledgeComp* knowledge = ecs_view_write_t(ctx->subject, SceneKnowledgeComp);
+  ScenePropertyComp* knowledge = ecs_view_write_t(ctx->subject, ScenePropertyComp);
   if (!knowledge) {
     return;
   }
@@ -2059,7 +2059,7 @@ static void inspector_vis_draw_icon(EcsWorld* w, DebugTextComp* text, EcsIterato
     color = geo_color(1.0f, 0, 0, 0.75f);
     size  = 25;
   } else {
-    if (scriptComp || ecs_world_has_t(w, e, SceneKnowledgeComp)) {
+    if (scriptComp || ecs_world_has_t(w, e, ScenePropertyComp)) {
       icon = UiShape_Description;
     } else if (ecs_world_has_t(w, e, DebugPrefabPreviewComp)) {
       icon = 0; // No icon for previews.
