@@ -5,7 +5,7 @@
 #include "core_array.h"
 #include "ecs_runner.h"
 #include "ecs_utils.h"
-#include "scene_knowledge.h"
+#include "scene_property.h"
 #include "scene_register.h"
 #include "scene_script.h"
 #include "script_val.h"
