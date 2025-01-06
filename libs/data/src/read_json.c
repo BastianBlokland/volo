@@ -239,12 +239,8 @@ static void data_read_json_string_hash(const ReadCtx* ctx, DataReadResult* res) 
       return;
     }
 
-    if (string_is_empty(jsonStr)) {
-      *mem_as_t(ctx->data, StringHash) = 0;
-    } else {
-      *mem_as_t(ctx->data, StringHash) = stringtable_add(g_stringtable, jsonStr);
-    }
-    *res = result_success();
+    *mem_as_t(ctx->data, StringHash) = stringtable_add(g_stringtable, jsonStr);
+    *res                             = result_success();
   } break;
   case JsonType_Number: {
     const u32 jsonNum = (u32)json_number(ctx->doc, ctx->val);

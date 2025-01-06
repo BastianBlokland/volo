@@ -14,6 +14,7 @@ void asset_data_init_property(void) {
   data_reg_choice_t(g_dataReg, AssetProperty, AssetPropertyType_Vec3, data_vec3, g_assetGeoVec3Type);
   data_reg_choice_t(g_dataReg, AssetProperty, AssetPropertyType_Quat, data_quat, g_assetGeoQuatType);
   data_reg_choice_t(g_dataReg, AssetProperty, AssetPropertyType_Color, data_color, g_assetGeoColor4Type);
+  data_reg_choice_t(g_dataReg, AssetProperty, AssetPropertyType_Str, data_str, data_prim_t(StringHash));
   // clang-format on
 
   g_assetPropertyType = t_AssetProperty;

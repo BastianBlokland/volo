@@ -125,8 +125,11 @@ spec(write_json) {
     const StringHash val2 = string_hash_lit("Unknown test string 42");
     test_write(_testCtx, reg, meta, mem_var(val2), fmt_write_scratch("{}", fmt_int(val2)));
 
-    const StringHash val3 = 0;
+    const StringHash val3 = string_hash_lit("");
     test_write(_testCtx, reg, meta, mem_var(val3), string_lit("\"\""));
+
+    const StringHash val4 = 0;
+    test_write(_testCtx, reg, meta, mem_var(val4), string_lit("\"\""));
   }
 
   it("can write memory as base64") {

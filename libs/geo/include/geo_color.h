@@ -136,6 +136,12 @@ GeoColor geo_color_from_hsv(f32 hue, f32 saturation, f32 value, f32 alpha);
 void     geo_color_to_hsv(GeoColor, f32* outHue, f32* outSaturation, f32* outValue, f32* outAlpha);
 
 /**
+ * Quantize a color to use a limited number of mantissa bits.
+ * Pre-condition: maxMantissaBits > 0 && maxMantissaBits <= 23
+ */
+GeoColor geo_color_quantize(GeoColor, u8 maxMantissaBits);
+
+/**
  * Pack a color to 16 bit floats.
  */
 void     geo_color_pack_f16(GeoColor, f16 out[PARAM_ARRAY_SIZE(4)]);

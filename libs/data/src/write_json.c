@@ -155,7 +155,7 @@ static JsonVal data_write_json_string_hash(const WriteCtx* ctx) {
     return json_add_string(ctx->doc, string_empty);
   }
   const String valStr = stringtable_lookup(g_stringtable, val);
-  if (!string_is_empty(valStr)) {
+  if (!string_is_empty(valStr) || val == string_hash_lit("")) {
     return json_add_string(ctx->doc, valStr);
   }
   return json_add_number(ctx->doc, (f64)val);

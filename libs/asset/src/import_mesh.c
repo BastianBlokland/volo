@@ -200,7 +200,7 @@ static ScriptVal import_eval_joint_name_trim(AssetImportContext* ctx, ScriptBind
   const StringHash prefixHash = script_arg_str(call, 1);
   const StringHash suffixHash = script_arg_opt_str(call, 2, 0);
   if (!data->joints[index].nameHash) {
-    return script_str(string_hash_lit(""));
+    return script_str_empty();
   }
   String name = stringtable_lookup(g_stringtable, data->joints[index].nameHash);
 

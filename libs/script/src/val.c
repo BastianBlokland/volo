@@ -17,6 +17,21 @@
 
 #include "val_internal.h"
 
+static StringHash g_valStrEmpty;
+
+static void val_str_empty_init(void) {
+  static bool           g_emptyInit;
+  static ThreadSpinLock g_emptyInitLock;
+  if (UNLIKELY(!g_emptyInit)) {
+    thread_spinlock_lock(&g_emptyInitLock);
+    if (!g_emptyInit) {
+      g_valStrEmpty = stringtable_add(g_stringtable, string_lit(""));
+      g_emptyInit   = true;
+    }
+    thread_spinlock_unlock(&g_emptyInitLock);
+  }
+}
+
 ScriptType script_type(const ScriptVal value) { return val_type(value); }
 
 bool script_type_check(const ScriptVal value, const ScriptMask mask) {
@@ -40,6 +55,10 @@ ScriptVal script_entity_or_null(const EcsEntityId entity) {
   return ecs_entity_valid(entity) ? val_entity(entity) : val_null();
 }
 ScriptVal script_str(const StringHash str) { return val_str(str); }
+ScriptVal script_str_empty(void) {
+  val_str_empty_init();
+  return val_str(g_valStrEmpty);
+}
 ScriptVal script_str_or_null(const StringHash str) { return str ? val_str(str) : val_null(); }
 
 ScriptVal script_time(const TimeDuration value) { return val_num(value / (f64)time_second); }

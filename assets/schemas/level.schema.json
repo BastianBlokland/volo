@@ -143,6 +143,16 @@
             "a": { "title": "f32", "type": "number" }
           },
           "required": [ "$type", "$name" ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": { "const": "AssetPropertyType_Str" },
+            "$name": { "type": "string" },
+            "$data": { "title": "StringHash", "type": "string" }
+          },
+          "required": [ "$type", "$name", "$data" ]
         }
       ],
       "defaultSnippets": [
@@ -150,7 +160,8 @@
         { "label": "New AssetPropertyType_Bool", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Bool\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": false\n}" },
         { "label": "New AssetPropertyType_Vec3", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Vec3\",\n  \"\\$name\": \"MyUnion\"\n}" },
         { "label": "New AssetPropertyType_Quat", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Quat\",\n  \"\\$name\": \"MyUnion\"\n}" },
-        { "label": "New AssetPropertyType_Color", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Color\",\n  \"\\$name\": \"MyUnion\"\n}" }
+        { "label": "New AssetPropertyType_Color", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Color\",\n  \"\\$name\": \"MyUnion\"\n}" },
+        { "label": "New AssetPropertyType_Str", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Str\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}" }
       ]
     }
   }

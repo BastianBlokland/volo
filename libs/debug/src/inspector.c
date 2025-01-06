@@ -116,6 +116,7 @@ typedef enum {
   DebugKnowledgeType_Vec3,
   DebugKnowledgeType_Quat,
   DebugKnowledgeType_Color,
+  DebugKnowledgeType_Str,
 
   DebugKnowledgeType_Count,
 } DebugKnowledgeType;
@@ -173,6 +174,7 @@ static const String g_knowledgeTypeNames[] = {
     [DebugKnowledgeType_Vec3]  = string_static("Vec3"),
     [DebugKnowledgeType_Quat]  = string_static("Quat"),
     [DebugKnowledgeType_Color] = string_static("Color"),
+    [DebugKnowledgeType_Str]   = string_static("Str"),
 };
 ASSERT(array_elems(g_knowledgeTypeNames) == DebugKnowledgeType_Count, "Missing type name");
 
@@ -736,6 +738,8 @@ static ScriptVal inspector_panel_knowledge_default(const DebugKnowledgeType type
     return script_quat(geo_quat_ident);
   case DebugKnowledgeType_Color:
     return script_color(geo_color_white);
+  case DebugKnowledgeType_Str:
+    return script_str_empty();
   case DebugKnowledgeType_Count:
     break;
   }
@@ -775,8 +779,20 @@ static void inspector_panel_knowledge_value_edit(
       script_mem_store(mem, key, script_color(valColor));
     }
   } break;
+  case ScriptType_Str: {
+    const String valStr = stringtable_lookup(g_stringtable, script_get_str(val, 0));
+
+    u8        editBuffer[64];
+    DynString editStr = dynstring_create_over(mem_var(editBuffer));
+    dynstring_append(&editStr, string_slice(valStr, 0, math_min(valStr.size, sizeof(editBuffer))));
+
+    if (ui_textbox(ctx->canvas, &editStr, .maxTextLength = sizeof(editBuffer))) {
+      // TODO: This hashes on every character typed which unnecessary fills the string-table.
+      const StringHash newStrHash = stringtable_add(g_stringtable, dynstring_view(&editStr));
+      script_mem_store(mem, key, script_str(newStrHash));
+    }
+  } break;
   case ScriptType_Entity:
-  case ScriptType_Str:
   case ScriptType_Null:
     ui_label(ctx->canvas, script_val_scratch(val));
     break;
