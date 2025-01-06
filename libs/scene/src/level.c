@@ -208,7 +208,7 @@ static void scene_level_process_load(
         knowledge[i].value = script_color(prop->data_color);
         continue;
       case AssetPropertyType_Str:
-        knowledge[i].value = script_str(prop->data_str);
+        knowledge[i].value = script_str_or_null(prop->data_str);
         continue;
       case AssetPropertyType_Count:
         break;
