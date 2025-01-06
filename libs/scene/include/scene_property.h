@@ -5,14 +5,14 @@
 ecs_comp_extern(ScenePropertyComp);
 
 /**
- * Query and update knowledge.
+ * Query and update properties.
  */
-ScriptVal        scene_knowledge_load(const ScenePropertyComp*, StringHash key);
-void             scene_knowledge_store(ScenePropertyComp*, StringHash key, ScriptVal);
-const ScriptMem* scene_knowledge_memory(const ScenePropertyComp*);
-ScriptMem*       scene_knowledge_memory_mut(ScenePropertyComp*);
+ScriptVal        scene_prop_load(const ScenePropertyComp*, StringHash key);
+void             scene_prop_store(ScenePropertyComp*, StringHash key, ScriptVal);
+const ScriptMem* scene_prop_memory(const ScenePropertyComp*);
+ScriptMem*       scene_prop_memory_mut(ScenePropertyComp*);
 
 /**
- * Add a knowledge component to the given entity.
+ * Add a property component to the given entity.
  */
-ScenePropertyComp* scene_knowledge_add(EcsWorld*, EcsEntityId);
+ScenePropertyComp* scene_prop_add(EcsWorld*, EcsEntityId);

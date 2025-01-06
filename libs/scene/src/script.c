@@ -2032,7 +2032,7 @@ static void scene_script_eval(EvalContext* ctx) {
     return;
   }
 
-  ScriptMem* mem = scene_knowledge_memory_mut(ctx->scriptKnowledge);
+  ScriptMem* mem = scene_prop_memory_mut(ctx->scriptKnowledge);
 
   // Eval.
   const TimeSteady       startTime = time_steady_clock();

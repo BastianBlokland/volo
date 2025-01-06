@@ -307,7 +307,7 @@ static void inspector_extract_knowledge(const ScenePropertyComp* comp, ScenePref
   ScenePrefabKnowledge* res      = alloc_array_t(g_allocScratch, ScenePrefabKnowledge, MaxResults);
   u16                   resCount = 0;
 
-  const ScriptMem* memory = scene_knowledge_memory(comp);
+  const ScriptMem* memory = scene_prop_memory(comp);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const ScriptVal val = script_mem_load(memory, itr.key);
     if (script_type(val) != ScriptType_Null) {
@@ -806,7 +806,7 @@ static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table
   if (!knowledge) {
     return;
   }
-  ScriptMem* memory = scene_knowledge_memory_mut(knowledge);
+  ScriptMem* memory = scene_prop_memory_mut(knowledge);
 
   inspector_panel_next(ctx, table);
   if (!inspector_panel_section(ctx, string_lit("Knowledge"))) {

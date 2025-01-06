@@ -380,7 +380,7 @@ static void memory_panel_tab_draw(
   diag_assert(subject);
 
   ScenePropertyComp* knowledge = ecs_view_write_t(subject, ScenePropertyComp);
-  ScriptMem*         memory    = scene_knowledge_memory_mut(knowledge);
+  ScriptMem*         memory    = scene_prop_memory_mut(knowledge);
 
   memory_options_draw(c, panelComp);
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);

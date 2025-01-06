@@ -97,7 +97,7 @@ static SceneFaction scene_from_asset_faction(const AssetLevelFaction assetFactio
   }
 }
 
-static bool scene_knowledge_is_persistable(const ScriptVal val) {
+static bool scene_prop_is_persistable(const ScriptVal val) {
   switch (script_type(val)) {
   case ScriptType_Num:
   case ScriptType_Bool:
@@ -115,11 +115,11 @@ static bool scene_knowledge_is_persistable(const ScriptVal val) {
   UNREACHABLE
 }
 
-static u32 scene_knowledge_count_persistable(const ScenePropertyComp* c) {
-  const ScriptMem* memory = scene_knowledge_memory(c);
+static u32 scene_prop_count_persistable(const ScenePropertyComp* c) {
+  const ScriptMem* memory = scene_prop_memory(c);
   u32              res    = 0;
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
-    res += scene_knowledge_is_persistable(script_mem_load(memory, itr.key));
+    res += scene_prop_is_persistable(script_mem_load(memory, itr.key));
   }
   return res;
 }
@@ -369,18 +369,18 @@ ecs_system_define(SceneLevelUnloadSys) {
 
 static void scene_level_object_push_knowledge(
     AssetLevelObject* obj, Allocator* alloc, const ScenePropertyComp* c) {
-  const u32 count = scene_knowledge_count_persistable(c);
+  const u32 count = scene_prop_count_persistable(c);
   if (!count) {
     return;
   }
   obj->properties.values = alloc_array_t(alloc, AssetProperty, count);
   obj->properties.count  = count;
 
-  const ScriptMem* memory      = scene_knowledge_memory(c);
+  const ScriptMem* memory      = scene_prop_memory(c);
   u32              propertyIdx = 0;
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const ScriptVal val = script_mem_load(memory, itr.key);
-    if (!scene_knowledge_is_persistable(val)) {
+    if (!scene_prop_is_persistable(val)) {
       continue;
     }
     AssetProperty* prop = &obj->properties.values[propertyIdx++];

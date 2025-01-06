@@ -253,7 +253,7 @@ static void prefab_extract_knowledge(const ScenePropertyComp* comp, ScenePrefabS
   ScenePrefabKnowledge* res      = alloc_array_t(g_allocScratch, ScenePrefabKnowledge, MaxResults);
   u16                   resCount = 0;
 
-  const ScriptMem* memory = scene_knowledge_memory(comp);
+  const ScriptMem* memory = scene_prop_memory(comp);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const ScriptVal val = script_mem_load(memory, itr.key);
     if (script_type(val) != ScriptType_Null) {
@@ -556,7 +556,7 @@ static void setup_script(PrefabSetupContext* ctx, const AssetPrefabTraitScript* 
      * this indicates that knowledge can be configured for the prefab.
      */
     if (!ctx->knowledge) {
-      ctx->knowledge = scene_knowledge_add(ctx->world, ctx->entity);
+      ctx->knowledge = scene_prop_add(ctx->world, ctx->entity);
     }
     return; // Do not execute scripts on edit prefab instances.
   }
@@ -568,31 +568,31 @@ static void setup_script(PrefabSetupContext* ctx, const AssetPrefabTraitScript* 
   scene_script_add(ctx->world, ctx->entity, t->scripts, scriptCount);
 
   if (!ctx->knowledge) {
-    ctx->knowledge = scene_knowledge_add(ctx->world, ctx->entity);
+    ctx->knowledge = scene_prop_add(ctx->world, ctx->entity);
   }
   for (u16 i = 0; i != t->knowledgeCount; ++i) {
     const AssetPrefabValue* val = &ctx->prefabMap->values.values[t->knowledgeIndex + i];
     switch (val->type) {
     case AssetPrefabValue_Number:
-      scene_knowledge_store(ctx->knowledge, val->name, script_num(val->data_number));
+      scene_prop_store(ctx->knowledge, val->name, script_num(val->data_number));
       break;
     case AssetPrefabValue_Bool:
-      scene_knowledge_store(ctx->knowledge, val->name, script_bool(val->data_bool));
+      scene_prop_store(ctx->knowledge, val->name, script_bool(val->data_bool));
       break;
     case AssetPrefabValue_Vector3:
-      scene_knowledge_store(ctx->knowledge, val->name, script_vec3(val->data_vector3));
+      scene_prop_store(ctx->knowledge, val->name, script_vec3(val->data_vector3));
       break;
     case AssetPrefabValue_Color:
-      scene_knowledge_store(ctx->knowledge, val->name, script_color(val->data_color));
+      scene_prop_store(ctx->knowledge, val->name, script_color(val->data_color));
       break;
     case AssetPrefabValue_String:
-      scene_knowledge_store(ctx->knowledge, val->name, script_str_or_null(val->data_string));
+      scene_prop_store(ctx->knowledge, val->name, script_str_or_null(val->data_string));
       break;
     case AssetPrefabValue_Asset:
-      scene_knowledge_store(ctx->knowledge, val->name, script_entity(val->data_asset.entity));
+      scene_prop_store(ctx->knowledge, val->name, script_entity(val->data_asset.entity));
       break;
     case AssetPrefabValue_Sound:
-      scene_knowledge_store(ctx->knowledge, val->name, script_entity(val->data_sound.asset.entity));
+      scene_prop_store(ctx->knowledge, val->name, script_entity(val->data_sound.asset.entity));
       break;
     }
   }
@@ -845,10 +845,10 @@ static bool setup_prefab(
   if (spec->knowledgeCount) {
     diag_assert(spec->knowledge);
     if (!ctx.knowledge) {
-      ctx.knowledge = scene_knowledge_add(world, e);
+      ctx.knowledge = scene_prop_add(world, e);
     }
     for (u16 i = 0; i != spec->knowledgeCount; ++i) {
-      scene_knowledge_store(ctx.knowledge, spec->knowledge[i].key, spec->knowledge[i].value);
+      scene_prop_store(ctx.knowledge, spec->knowledge[i].key, spec->knowledge[i].value);
     }
   }
 

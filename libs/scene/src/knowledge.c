@@ -23,25 +23,25 @@ static void ecs_combine_knowledge_comp(void* dataA, void* dataB) {
   script_mem_destroy(&compB->memory);
 }
 
-ecs_module_init(scene_knowledge_module) {
+ecs_module_init(scene_property_module) {
   ecs_register_comp(
       ScenePropertyComp,
       .destructor = ecs_destruct_knowledge_comp,
       .combinator = ecs_combine_knowledge_comp);
 }
 
-ScriptVal scene_knowledge_load(const ScenePropertyComp* k, const StringHash key) {
+ScriptVal scene_prop_load(const ScenePropertyComp* k, const StringHash key) {
   return script_mem_load(&k->memory, key);
 }
 
-void scene_knowledge_store(ScenePropertyComp* k, const StringHash key, const ScriptVal value) {
+void scene_prop_store(ScenePropertyComp* k, const StringHash key, const ScriptVal value) {
   script_mem_store(&k->memory, key, value);
 }
 
-const ScriptMem* scene_knowledge_memory(const ScenePropertyComp* k) { return &k->memory; }
+const ScriptMem* scene_prop_memory(const ScenePropertyComp* k) { return &k->memory; }
 
-ScriptMem* scene_knowledge_memory_mut(ScenePropertyComp* k) { return &k->memory; }
+ScriptMem* scene_prop_memory_mut(ScenePropertyComp* k) { return &k->memory; }
 
-ScenePropertyComp* scene_knowledge_add(EcsWorld* world, const EcsEntityId entity) {
+ScenePropertyComp* scene_prop_add(EcsWorld* world, const EcsEntityId entity) {
   return ecs_world_add_t(world, entity, ScenePropertyComp, .memory = script_mem_create());
 }

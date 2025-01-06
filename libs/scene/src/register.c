@@ -13,7 +13,6 @@ void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_faction_module);
   ecs_register_module(def, scene_footstep_module);
   ecs_register_module(def, scene_health_module);
-  ecs_register_module(def, scene_knowledge_module);
   ecs_register_module(def, scene_level_module);
   ecs_register_module(def, scene_lifetime_module);
   ecs_register_module(def, scene_light_module);
@@ -24,6 +23,7 @@ void scene_register(EcsDef* def) {
   ecs_register_module(def, scene_prefab_module);
   ecs_register_module(def, scene_product_module);
   ecs_register_module(def, scene_projectile_module);
+  ecs_register_module(def, scene_property_module);
   ecs_register_module(def, scene_renderable_module);
   ecs_register_module(def, scene_script_module);
   ecs_register_module(def, scene_set_module);

@@ -65,13 +65,13 @@ spec(script) {
 
     const EcsEntityId e = ecs_world_entity_create(world);
     scene_script_add(world, e, scriptAssets, array_elems(scriptAssets));
-    scene_knowledge_add(world, e);
+    scene_prop_add(world, e);
 
     scene_test_wait(runner);
 
     const ScenePropertyComp* know = ecs_utils_read_t(world, ScriptView, e, ScenePropertyComp);
 
-    const ScriptVal value = scene_knowledge_load(know, string_hash_lit("test"));
+    const ScriptVal value = scene_prop_load(know, string_hash_lit("test"));
     check(script_val_equal(value, script_num(42)));
   }
 

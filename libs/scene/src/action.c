@@ -152,7 +152,7 @@ static u32 action_update_flag(u32 mask, const u32 flag, const bool enable) {
 static void action_tell(ActionContext* ctx, const SceneActionTell* a) {
   if (ecs_view_maybe_jump(ctx->knowledgeItr, a->entity)) {
     ScenePropertyComp* knowledge = ecs_view_write_t(ctx->knowledgeItr, ScenePropertyComp);
-    scene_knowledge_store(knowledge, a->memKey, a->value);
+    scene_prop_store(knowledge, a->memKey, a->value);
   }
 }
 
@@ -161,7 +161,7 @@ static void action_ask(ActionContext* ctx, const SceneActionAsk* a) {
     ScenePropertyComp* knowledge = ecs_view_write_t(ctx->knowledgeItr, ScenePropertyComp);
     if (ecs_view_maybe_jump(ctx->knowledgeItr, a->target)) {
       const ScenePropertyComp* target = ecs_view_read_t(ctx->knowledgeItr, ScenePropertyComp);
-      scene_knowledge_store(knowledge, a->memKey, scene_knowledge_load(target, a->memKey));
+      scene_prop_store(knowledge, a->memKey, scene_prop_load(target, a->memKey));
     }
   }
 }
