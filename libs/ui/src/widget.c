@@ -412,9 +412,11 @@ static UiSelectFlags ui_select_dropdown(
   }
   static const f32 g_spacing = 2;
 
+  UiScrollview scrollview;
   if (ui_canvas_elem_status(canvas, id) == UiStatus_Activated) {
-    // Reset the scrollview on open.
-    *ui_canvas_persistent_scrollview(canvas, id) = (UiScrollview){0};
+    scrollview = (UiScrollview){0}; // Reset the scrollview on open.
+  } else {
+    scrollview = *ui_canvas_persistent_scrollview(canvas, id);
   }
 
   UiSelectFlags selectFlags = 0;
@@ -436,8 +438,7 @@ static UiSelectFlags ui_select_dropdown(
   ui_canvas_draw_glyph(canvas, UiShape_Square, 10, UiFlags_None);
   ui_style_pop(canvas);
 
-  if (ui_scrollview_begin(
-          canvas, ui_canvas_persistent_scrollview(canvas, id), UiLayer_Overlay, totalHeight)) {
+  if (ui_scrollview_begin(canvas, &scrollview, UiLayer_Overlay, totalHeight)) {
     selectFlags |= UiSelectFlags_Hovered;
   }
 
@@ -478,7 +479,8 @@ static UiSelectFlags ui_select_dropdown(
     }
     ui_layout_next(canvas, opts->dir, g_spacing);
   }
-  ui_scrollview_end(canvas, ui_canvas_persistent_scrollview(canvas, id));
+  ui_scrollview_end(canvas, &scrollview);
+  *ui_canvas_persistent_scrollview(canvas, id) = scrollview; // Store scrollview state.
   ui_layout_pop(canvas);
   return selectFlags;
 }
