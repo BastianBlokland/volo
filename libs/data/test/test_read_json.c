@@ -214,7 +214,7 @@ spec(read_json) {
     check_eq_int(val, string_hash_lit("Hello World"));
 
     test_read_success(_testCtx, reg, string_lit("\"\""), meta, mem_var(val));
-    check_eq_int(val, 0);
+    check_eq_int(val, string_hash_lit(""));
 
     test_read_success(_testCtx, reg, string_lit("1337"), meta, mem_var(val));
     check_eq_int(val, 1337);
