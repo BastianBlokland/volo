@@ -15,7 +15,7 @@
 #include "cmd_internal.h"
 
 static const SceneFaction g_playerFaction = SceneFaction_A;
-static StringHash         g_knowledgeKeyMoveTarget, g_knowledgeKeyStop, g_knowledgeKeyAttackTarget;
+static StringHash         g_propMoveTarget, g_propStop, g_propAttackTarget;
 
 typedef enum {
   Cmd_Select,
@@ -168,10 +168,10 @@ static void
 cmd_execute_move(EcsWorld* world, const SceneSetEnvComp* setEnv, const CmdMove* cmdMove) {
   EcsIterator* unitItr = ecs_view_maybe_at(ecs_world_view_t(world, UnitView), cmdMove->object);
   if (unitItr && cmd_is_player_owned(unitItr)) {
-    ScenePropertyComp* knowledge = ecs_view_write_t(unitItr, ScenePropertyComp);
-    scene_prop_store(knowledge, g_knowledgeKeyMoveTarget, script_vec3(cmdMove->position));
-    scene_prop_store(knowledge, g_knowledgeKeyAttackTarget, script_null());
-    scene_prop_store(knowledge, g_knowledgeKeyStop, script_null());
+    ScenePropertyComp* propComp = ecs_view_write_t(unitItr, ScenePropertyComp);
+    scene_prop_store(propComp, g_propMoveTarget, script_vec3(cmdMove->position));
+    scene_prop_store(propComp, g_propAttackTarget, script_null());
+    scene_prop_store(propComp, g_propStop, script_null());
     return;
   }
 
@@ -188,22 +188,20 @@ cmd_execute_move(EcsWorld* world, const SceneSetEnvComp* setEnv, const CmdMove* 
 static void cmd_execute_stop(EcsWorld* world, const CmdStop* cmdStop) {
   EcsIterator* unitItr = ecs_view_maybe_at(ecs_world_view_t(world, UnitView), cmdStop->object);
   if (unitItr && cmd_is_player_owned(unitItr)) {
-    ScenePropertyComp* knowledge = ecs_view_write_t(unitItr, ScenePropertyComp);
-
-    scene_prop_store(knowledge, g_knowledgeKeyStop, script_bool(true));
-    scene_prop_store(knowledge, g_knowledgeKeyMoveTarget, script_null());
-    scene_prop_store(knowledge, g_knowledgeKeyAttackTarget, script_null());
+    ScenePropertyComp* propCOmp = ecs_view_write_t(unitItr, ScenePropertyComp);
+    scene_prop_store(propCOmp, g_propStop, script_bool(true));
+    scene_prop_store(propCOmp, g_propMoveTarget, script_null());
+    scene_prop_store(propCOmp, g_propAttackTarget, script_null());
   }
 }
 
 static void cmd_execute_attack(EcsWorld* world, const CmdAttack* cmdAttack) {
   EcsIterator* unitItr = ecs_view_maybe_at(ecs_world_view_t(world, UnitView), cmdAttack->object);
   if (unitItr && cmd_is_player_owned(unitItr)) {
-    ScenePropertyComp* knowledge = ecs_view_write_t(unitItr, ScenePropertyComp);
-
-    scene_prop_store(knowledge, g_knowledgeKeyAttackTarget, script_entity(cmdAttack->target));
-    scene_prop_store(knowledge, g_knowledgeKeyMoveTarget, script_null());
-    scene_prop_store(knowledge, g_knowledgeKeyStop, script_null());
+    ScenePropertyComp* propComp = ecs_view_write_t(unitItr, ScenePropertyComp);
+    scene_prop_store(propComp, g_propAttackTarget, script_entity(cmdAttack->target));
+    scene_prop_store(propComp, g_propMoveTarget, script_null());
+    scene_prop_store(propComp, g_propStop, script_null());
   }
 }
 
@@ -272,9 +270,9 @@ ecs_system_define(CmdControllerUpdateSys) {
 }
 
 ecs_module_init(game_cmd_module) {
-  g_knowledgeKeyMoveTarget   = stringtable_add(g_stringtable, string_lit("cmdMoveTarget"));
-  g_knowledgeKeyStop         = stringtable_add(g_stringtable, string_lit("cmdStop"));
-  g_knowledgeKeyAttackTarget = stringtable_add(g_stringtable, string_lit("cmdAttackTarget"));
+  g_propMoveTarget   = stringtable_add(g_stringtable, string_lit("cmdMoveTarget"));
+  g_propStop         = stringtable_add(g_stringtable, string_lit("cmdStop"));
+  g_propAttackTarget = stringtable_add(g_stringtable, string_lit("cmdAttackTarget"));
 
   ecs_register_comp(CmdControllerComp, .destructor = ecs_destruct_controller);
 
