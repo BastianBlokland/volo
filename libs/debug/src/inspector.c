@@ -193,13 +193,14 @@ ecs_comp_define(DebugInspectorPanelComp) {
   UiScrollview  scrollview;
   u32           totalRows;
   DebugPropType propType;
-  DynString     textBuffer;
+  DynString     newSetBuffer, newPropBuffer;
   GeoVector transformRotEulerDeg; // Local copy of rotation as euler angles to use while editing.
 };
 
 static void ecs_destruct_panel_comp(void* data) {
   DebugInspectorPanelComp* panel = data;
-  dynstring_destroy(&panel->textBuffer);
+  dynstring_destroy(&panel->newSetBuffer);
+  dynstring_destroy(&panel->newPropBuffer);
 }
 
 static i8 debug_prop_compare_entry(const void* a, const void* b) {
@@ -859,7 +860,7 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   inspector_panel_next(ctx, table);
   ui_textbox(
       ctx->canvas,
-      &ctx->panel->textBuffer,
+      &ctx->panel->newPropBuffer,
       .placeholder   = string_lit("New key..."),
       .type          = UiTextbox_Word,
       .maxTextLength = 32);
@@ -871,15 +872,15 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
   if (ui_button(
           ctx->canvas,
-          .flags      = ctx->panel->textBuffer.size == 0 ? UiWidget_Disabled : 0,
+          .flags      = ctx->panel->newPropBuffer.size == 0 ? UiWidget_Disabled : 0,
           .label      = ui_shape_scratch(UiShape_Add),
           .fontSize   = 18,
           .frameColor = ui_color(16, 192, 0, 192),
           .tooltip    = string_lit("Add a new property entry with the given key and type."))) {
-    const String     keyName = dynstring_view(&ctx->panel->textBuffer);
+    const String     keyName = dynstring_view(&ctx->panel->newPropBuffer);
     const StringHash key     = stringtable_add(g_stringtable, keyName);
     script_mem_store(memory, key, inspector_panel_prop_default(ctx->panel->propType));
-    dynstring_clear(&ctx->panel->textBuffer);
+    dynstring_clear(&ctx->panel->newPropBuffer);
   }
 }
 
@@ -918,7 +919,7 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
       inspector_panel_next(ctx, table);
       ui_textbox(
           ctx->canvas,
-          &ctx->panel->textBuffer,
+          &ctx->panel->newSetBuffer,
           .placeholder   = string_lit("New set..."),
           .type          = UiTextbox_Word,
           .maxTextLength = 32);
@@ -927,15 +928,15 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
           ctx->canvas, UiBase_Current, UiAlign_MiddleLeft, ui_vector(25, 22), UiBase_Absolute);
       if (ui_button(
               ctx->canvas,
-              .flags      = ctx->panel->textBuffer.size == 0 ? UiWidget_Disabled : 0,
+              .flags      = ctx->panel->newSetBuffer.size == 0 ? UiWidget_Disabled : 0,
               .label      = ui_shape_scratch(UiShape_Add),
               .fontSize   = 18,
               .frameColor = ui_color(16, 192, 0, 192),
               .tooltip    = string_lit("Add this entity to the specified set."))) {
-        const String     setName = dynstring_view(&ctx->panel->textBuffer);
+        const String     setName = dynstring_view(&ctx->panel->newSetBuffer);
         const StringHash set     = stringtable_add(g_stringtable, setName);
         scene_set_add(ctx->setEnv, set, ctx->subjectEntity, SceneSetFlags_None);
-        dynstring_clear(&ctx->panel->textBuffer);
+        dynstring_clear(&ctx->panel->newSetBuffer);
       }
     }
   }
@@ -2252,8 +2253,9 @@ debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window, const Debu
       world,
       panelEntity,
       DebugInspectorPanelComp,
-      .panel      = ui_panel(.position = ui_vector(0.0f, 0.0f), .size = ui_vector(500, 500)),
-      .textBuffer = dynstring_create(g_allocHeap, 0));
+      .panel         = ui_panel(.position = ui_vector(0.0f, 0.0f), .size = ui_vector(500, 500)),
+      .newSetBuffer  = dynstring_create(g_allocHeap, 0),
+      .newPropBuffer = dynstring_create(g_allocHeap, 0));
 
   if (type == DebugPanelType_Detached) {
     ui_panel_maximize(&inspectorPanel->panel);
