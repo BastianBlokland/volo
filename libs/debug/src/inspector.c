@@ -848,8 +848,9 @@ static void inspector_panel_draw_knowledge(InspectorContext* ctx, UiTable* table
   ui_textbox(
       ctx->canvas,
       &ctx->panel->textBuffer,
-      .placeholder = string_lit("Entry key..."),
-      .type        = UiTextbox_Word);
+      .placeholder   = string_lit("Entry key..."),
+      .type          = UiTextbox_Word,
+      .maxTextLength = 32);
   ui_table_next_column(ctx->canvas, table);
   ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
   ui_select(
@@ -909,8 +910,9 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
       ui_textbox(
           ctx->canvas,
           &ctx->panel->textBuffer,
-          .placeholder = string_lit("Set name..."),
-          .type        = UiTextbox_Word);
+          .placeholder   = string_lit("Set name..."),
+          .type          = UiTextbox_Word,
+          .maxTextLength = 32);
       ui_table_next_column(ctx->canvas, table);
       ui_layout_inner(
           ctx->canvas, UiBase_Current, UiAlign_MiddleLeft, ui_vector(25, 22), UiBase_Absolute);

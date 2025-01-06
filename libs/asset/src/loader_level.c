@@ -68,6 +68,7 @@ void asset_data_init_level(void) {
   data_reg_field_t(g_dataReg, AssetLevelObject, position, g_assetGeoVec3Type);
   data_reg_field_t(g_dataReg, AssetLevelObject, rotation, g_assetGeoQuatType);
   data_reg_field_t(g_dataReg, AssetLevelObject, scale, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, AssetLevelObject, properties, g_assetPropertyType, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetLevelObject, sets, data_prim_t(StringHash), .container = DataContainer_InlineArray, .fixedCount = asset_level_sets_max, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetLevel);
@@ -136,7 +137,7 @@ bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLev
     return false;
   }
 
-  DynString dataBuffer = dynstring_create(g_allocHeap, 1 * usize_kibibyte);
+  DynString dataBuffer = dynstring_create(g_allocHeap, 512 * usize_kibibyte);
 
   const DataWriteJsonOpts jOpts = data_write_json_opts(.numberMaxDecDigits = 4, .compact = true);
   const Mem               levelData = mem_create(level, sizeof(AssetLevel));
