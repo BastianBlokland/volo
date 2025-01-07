@@ -17,6 +17,7 @@
 #include "script_doc.h"
 #include "script_optimize.h"
 #include "script_read.h"
+#include "script_sym.h"
 
 #include "manager_internal.h"
 #include "repo_internal.h"
@@ -144,12 +145,10 @@ void asset_load_script(
     AssetSource*              src) {
   (void)importEnv;
 
-  Allocator* tempAlloc = alloc_bump_create_stack(2 * usize_kibibyte);
-
   ScriptDoc*     doc         = script_create(g_allocHeap);
   StringTable*   stringtable = stringtable_create(g_allocHeap);
-  ScriptDiagBag* diags       = script_diag_bag_create(tempAlloc, ScriptDiagFilter_Error);
-  ScriptSymBag*  symsNull    = null;
+  ScriptDiagBag* diags       = script_diag_bag_create(g_allocHeap, ScriptDiagFilter_Error);
+  ScriptSymBag*  syms        = script_sym_bag_create(g_allocHeap);
 
   ScriptLookup* lookup = script_lookup_create(g_allocHeap);
   script_lookup_update(lookup, src->data);
@@ -165,7 +164,7 @@ void asset_load_script(
   const ScriptBinder* domainBinder = asset_script_domain_binder(domain);
 
   // Parse the script.
-  ScriptExpr expr = script_read(doc, domainBinder, src->data, stringtable, diags, symsNull);
+  ScriptExpr expr = script_read(doc, domainBinder, src->data, stringtable, diags, syms);
 
   const u32 diagCount = script_diag_count(diags, ScriptDiagFilter_All);
   for (u32 i = 0; i != diagCount; ++i) {
@@ -230,6 +229,7 @@ Error:
 Cleanup:
   script_destroy(doc);
   stringtable_destroy(stringtable);
+  script_sym_bag_destroy(syms);
   script_lookup_destroy(lookup);
   asset_repo_source_close(src);
 }
