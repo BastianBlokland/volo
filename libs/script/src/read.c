@@ -697,10 +697,10 @@ static void read_sym_set_var_valid_ranges(ScriptReadContext* ctx, const ScriptSc
   }
   for (u32 i = 0; i != script_var_count; ++i) {
     if (scope->vars[i].id) {
-      diag_assert(!sentinel_check(scope->vars[i].sym));
-
       const ScriptRange validRange = read_range_to_next(ctx, scope->vars[i].validRangeStart);
-      script_sym_set_valid_range(ctx->syms, scope->vars[i].sym, validRange);
+      if (!sentinel_check(scope->vars[i].sym)) {
+        script_sym_set_valid_range(ctx->syms, scope->vars[i].sym, validRange);
+      }
     }
   }
 }
@@ -834,7 +834,7 @@ static bool read_track_mem_access(
   for (u32 i = 0; i != script_tracked_mem_keys_max; ++i) {
     ScriptReadMemKey* trackedKey = &ctx->trackedMemKeys[i];
     if (trackedKey->key == key) {
-      if (ctx->syms) {
+      if (!sentinel_check(trackedKey->sym)) {
         script_sym_push_ref(ctx->syms, trackedKey->sym, refKind, range);
       }
       return true; // Already tracked.
@@ -852,7 +852,9 @@ static bool read_track_mem_access(
       if (!string_is_empty(keyStr)) {
         const String label = fmt_write_scratch("${}", fmt_text(keyStr));
         trackedKey->sym    = script_sym_push_mem_key(ctx->syms, label, key);
-        script_sym_push_ref(ctx->syms, trackedKey->sym, refKind, range);
+        if (!sentinel_check(trackedKey->sym)) {
+          script_sym_push_ref(ctx->syms, trackedKey->sym, refKind, range);
+        }
       }
     }
     return true; // Key inserted.
@@ -1216,8 +1218,8 @@ read_expr_var_lookup(ScriptReadContext* ctx, const StringHash id, const ScriptPo
   const ScriptRange         range   = read_range_to_current(ctx, start);
   const ScriptBuiltinConst* builtin = script_builtin_const_lookup(id);
   if (builtin) {
-    if (ctx->syms) {
-      const ScriptSym builtinSym = ctx->builtinConstSyms[builtin - g_scriptBuiltinConsts];
+    const ScriptSym builtinSym = ctx->builtinConstSyms[builtin - g_scriptBuiltinConsts];
+    if (!sentinel_check(builtinSym)) {
       script_sym_push_ref(ctx->syms, builtinSym, ScriptSymRefKind_Read, range);
     }
     return script_add_value(ctx->doc, range, builtin->val);
@@ -1225,7 +1227,7 @@ read_expr_var_lookup(ScriptReadContext* ctx, const StringHash id, const ScriptPo
   ScriptVarMeta* var = read_var_lookup(ctx, id);
   if (var) {
     var->used = true;
-    if (ctx->syms) {
+    if (!sentinel_check(var->sym)) {
       script_sym_push_ref(ctx->syms, var->sym, ScriptSymRefKind_Read, range);
     }
     return script_add_var_load(ctx->doc, range, var->scopeId, var->varSlot);
@@ -1248,7 +1250,7 @@ read_expr_var_assign(ScriptReadContext* ctx, const StringHash id, const ScriptRa
     return read_emit_err(ctx, ScriptDiag_NoVarFoundForId, idRange), read_fail_semantic(ctx, range);
   }
 
-  if (ctx->syms) {
+  if (!sentinel_check(var->sym)) {
     script_sym_push_ref(ctx->syms, var->sym, ScriptSymRefKind_Write, idRange);
   }
   return script_add_var_store(ctx->doc, range, var->scopeId, var->varSlot, expr);
@@ -1277,7 +1279,7 @@ static ScriptExpr read_expr_var_modify(
 
   var->used = true;
 
-  if (ctx->syms) {
+  if (!sentinel_check(var->sym)) {
     script_sym_push_ref(ctx->syms, var->sym, ScriptSymRefKind_Write, varRange);
   }
 
@@ -1432,8 +1434,8 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
       // Correct number of arguments; validate value types and emit warnings if needed.
       read_emit_invalid_args(ctx, args, (u8)argCount, builtin->sig, callRange);
     }
-    if (ctx->syms) {
-      const ScriptSym builtinSym = ctx->builtinFuncSyms[builtin - g_scriptBuiltinFuncs];
+    const ScriptSym builtinSym = ctx->builtinFuncSyms[builtin - g_scriptBuiltinFuncs];
+    if (!sentinel_check(builtinSym)) {
       script_sym_push_ref(ctx->syms, builtinSym, ScriptSymRefKind_Call, idRange);
     }
     if (script_builtin_is_mem_access(builtin) && read_mem_access_disallowed(ctx)) {
@@ -1450,7 +1452,7 @@ read_expr_call(ScriptReadContext* ctx, const StringHash id, const ScriptRange id
       if (sig) {
         read_emit_invalid_args(ctx, args, (u8)argCount, sig, callRange);
       }
-      if (ctx->syms) {
+      if (!sentinel_check(ctx->externSyms[externFunc])) {
         script_sym_push_ref(ctx->syms, ctx->externSyms[externFunc], ScriptSymRefKind_Call, idRange);
       }
       return script_add_extern(ctx->doc, callRange, externFunc, args, (u16)argCount);
