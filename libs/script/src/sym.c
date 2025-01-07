@@ -55,7 +55,7 @@ typedef struct {
 struct sScriptSymBag {
   Allocator* alloc;
   Allocator* allocTransient;
-  DynArray   symbols;    // ScriptSym[]
+  DynArray   symbols;    // ScriptSymData[]
   DynArray   references; // ScriptSymRef[], kept sorted on 'sym'.
 };
 
