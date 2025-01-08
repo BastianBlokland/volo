@@ -190,7 +190,7 @@ void asset_load_script(
   ScriptDoc*     doc         = script_create(g_allocHeap);
   StringTable*   stringtable = stringtable_create(g_allocHeap);
   ScriptDiagBag* diags       = script_diag_bag_create(g_allocHeap, ScriptDiagFilter_Error);
-  ScriptSymBag*  syms        = script_sym_bag_create(g_allocHeap);
+  ScriptSymBag*  syms        = script_sym_bag_create(g_allocHeap, script_sym_mask_mem_key);
 
   ScriptLookup* lookup = script_lookup_create(g_allocHeap);
   script_lookup_update(lookup, src->data);

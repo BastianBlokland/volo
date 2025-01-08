@@ -280,7 +280,7 @@ static LspDocument* lsp_doc_open(LspContext* ctx, const String identifier, const
       .scriptDoc    = script_create(g_allocHeap),
       .scriptBinder = scriptBinder,
       .scriptDiags  = script_diag_bag_create(g_allocHeap, ScriptDiagFilter_All),
-      .scriptSyms   = script_sym_bag_create(g_allocHeap),
+      .scriptSyms   = script_sym_bag_create(g_allocHeap, script_sym_mask_any),
   };
 
   script_lookup_update(res->scriptLookup, text);
