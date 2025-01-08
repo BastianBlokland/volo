@@ -131,7 +131,7 @@ void asset_data_init_script(void) {
   data_reg_field_t(g_dataReg, AssetScriptComp, domain, t_AssetScriptDomain);
   data_reg_field_t(g_dataReg, AssetScriptComp, hash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetScriptComp, prog, t_ScriptProgram);
-  data_reg_field_t(g_dataReg, AssetScriptComp, stringLiterals, data_prim_t(String), .container = DataContainer_HeapArray, .flags = DataFlags_Intern);
+  data_reg_field_t(g_dataReg, AssetScriptComp, strings, data_prim_t(StringHash), .container = DataContainer_HeapArray);
   // clang-format on
 
   g_assetScriptMeta = data_meta_t(t_AssetScriptComp);
@@ -200,20 +200,23 @@ void asset_load_script(
 
   diag_assert(script_prog_validate(&prog, domainBinder));
 
-  const StringTableArray strings = stringtable_clone_strings(stringtable, g_allocHeap);
+  const StringTableArray strs = stringtable_clone_strings(stringtable, g_allocScratch);
+  StringHash* strHashes = strs.count ? alloc_array_t(g_allocHeap, StringHash, strs.count) : null;
 
-  // Register string-literals to the global string-table.
-  heap_array_for_t(strings, String, str) { stringtable_add(g_stringtable, *str); }
+  // Register the strings to the global string-table.
+  for (u32 i = 0; i != strs.count; ++i) {
+    strHashes[i] = stringtable_add(g_stringtable, strs.values[i]);
+  }
 
   AssetScriptComp* scriptAsset = ecs_world_add_t(
       world,
       entity,
       AssetScriptComp,
-      .domain                = domain,
-      .hash                  = asset_script_prog_hash(&prog),
-      .prog                  = prog,
-      .stringLiterals.values = strings.values,
-      .stringLiterals.count  = strings.count);
+      .domain         = domain,
+      .hash           = asset_script_prog_hash(&prog),
+      .prog           = prog,
+      .strings.values = strHashes,
+      .strings.count  = strs.count);
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 
