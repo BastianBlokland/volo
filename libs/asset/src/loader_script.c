@@ -1,6 +1,5 @@
 #include "asset_script.h"
 #include "core_alloc.h"
-#include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
 #include "core_stringtable.h"
@@ -21,6 +20,8 @@
 
 #include "manager_internal.h"
 #include "repo_internal.h"
+
+#define asset_script_input_keys_max 128
 
 DataMeta g_assetScriptMeta;
 
@@ -58,6 +59,46 @@ static u32 asset_script_prog_hash(const ScriptProgram* prog) {
     hash = bits_hash_32_combine(hash, script_hash(prog->literals.values[i]));
   }
   return hash;
+}
+
+static bool asset_script_is_input_key(const ScriptSymBag* bag, const ScriptSym sym) {
+  const ScriptSymKind symKind = script_sym_kind(bag, sym);
+  if (symKind != ScriptSymKind_MemoryKey) {
+    return false; // Incorrect sym kind.
+  }
+  bool                  anyRead = false, anyWrite = false;
+  const ScriptSymRefSet symRefs = script_sym_refs(bag, sym);
+  for (const ScriptSymRef* ref = symRefs.begin; ref != symRefs.end; ++ref) {
+    switch (ref->kind) {
+    case ScriptSymRefKind_Read:
+      anyRead = true;
+      break;
+    case ScriptSymRefKind_Write:
+      anyWrite = true;
+      break;
+    case ScriptSymRefKind_Call:
+      break;
+    }
+  }
+  return anyRead && !anyWrite;
+}
+
+static u32 asset_script_input_keys(
+    const ScriptSymBag* bag, StringHash out[PARAM_ARRAY_SIZE(asset_script_input_keys_max)]) {
+  u32       count = 0;
+  ScriptSym itr   = script_sym_first(bag, script_pos_sentinel);
+  for (; !sentinel_check(itr); itr = script_sym_next(bag, script_pos_sentinel, itr)) {
+    if (asset_script_is_input_key(bag, itr)) {
+      if (UNLIKELY(count == asset_script_input_keys_max)) {
+        log_e("Script input memory keys exceeds max", log_param("limit", fmt_int(count)));
+        break;
+      }
+      const String keyLabel = script_sym_label(bag, itr);
+      const String key      = string_consume(keyLabel, 1); // Remove the leading '$'.
+      out[count++]          = string_hash(key);
+    }
+  }
+  return count;
 }
 
 ecs_comp_define_public(AssetScriptComp);
@@ -131,6 +172,7 @@ void asset_data_init_script(void) {
   data_reg_field_t(g_dataReg, AssetScriptComp, domain, t_AssetScriptDomain);
   data_reg_field_t(g_dataReg, AssetScriptComp, hash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, AssetScriptComp, prog, t_ScriptProgram);
+  data_reg_field_t(g_dataReg, AssetScriptComp, inputKeys, data_prim_t(StringHash), .container = DataContainer_HeapArray);
   data_reg_field_t(g_dataReg, AssetScriptComp, strings, data_prim_t(StringHash), .container = DataContainer_HeapArray);
   // clang-format on
 
@@ -208,15 +250,21 @@ void asset_load_script(
     strHashes[i] = stringtable_add(g_stringtable, strs.values[i]);
   }
 
+  StringHash inputKeys[asset_script_input_keys_max];
+  const u32  inputKeysCount = asset_script_input_keys(syms, inputKeys);
+  const Mem  inputKeysMem   = mem_create(inputKeys, sizeof(StringHash) * inputKeysCount);
+
   AssetScriptComp* scriptAsset = ecs_world_add_t(
       world,
       entity,
       AssetScriptComp,
-      .domain         = domain,
-      .hash           = asset_script_prog_hash(&prog),
-      .prog           = prog,
-      .strings.values = strHashes,
-      .strings.count  = strs.count);
+      .domain           = domain,
+      .hash             = asset_script_prog_hash(&prog),
+      .prog             = prog,
+      .inputKeys.values = alloc_maybe_dup(g_allocHeap, inputKeysMem, alignof(StringHash)).ptr,
+      .inputKeys.count  = inputKeysCount,
+      .strings.values   = strHashes,
+      .strings.count    = strs.count);
 
   ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 

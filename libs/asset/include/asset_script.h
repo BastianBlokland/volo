@@ -16,7 +16,8 @@ ecs_comp_extern_public(AssetScriptComp) {
   AssetScriptDomain domain;
   u32               hash;
   ScriptProgram     prog;
-  HeapArray_t(StringHash) strings; // All strings used by the script.
+  HeapArray_t(StringHash) inputKeys; // Input memory keys.
+  HeapArray_t(StringHash) strings;   // All strings used by the script.
 };
 
 extern ScriptBinder* g_assetScriptImportMeshBinder;
