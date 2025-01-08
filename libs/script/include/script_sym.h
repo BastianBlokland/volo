@@ -18,6 +18,14 @@ typedef enum eScriptSymKind {
   ScriptSymKind_Count,
 } ScriptSymKind;
 
+typedef u16 ScriptSymMask;
+ASSERT(ScriptSymKind_Count < 16, "ScriptSymKind's have to be indexable with 16 bits");
+
+#define script_sym_mask(_KIND_) ((ScriptSymMask)(1 << _KIND_))
+#define script_sym_mask_none ((ScriptSymMask)0)
+#define script_sym_mask_any ((ScriptSymMask)bit_range_32(0, ScriptSymKind_Count))
+#define script_sym_mask_mem_key script_sym_mask(ScriptSymKind_MemoryKey)
+
 typedef enum eScriptSymRefKind {
   ScriptSymRefKind_Read,
   ScriptSymRefKind_Write,
@@ -32,7 +40,7 @@ typedef struct sScriptSymRef {
 
 typedef struct sScriptSymBag ScriptSymBag;
 
-ScriptSymBag* script_sym_bag_create(Allocator*);
+ScriptSymBag* script_sym_bag_create(Allocator*, ScriptSymMask);
 void          script_sym_bag_destroy(ScriptSymBag*);
 void          script_sym_bag_clear(ScriptSymBag*);
 

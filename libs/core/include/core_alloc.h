@@ -117,12 +117,14 @@ Mem alloc_alloc(Allocator*, usize size, usize align);
  * Pre-condition: Given memory was allocated from the same allocator.
  */
 void alloc_free(Allocator*, Mem);
+void alloc_maybe_free(Allocator*, Mem);
 
 /**
  * Duplicate the given memory with memory alloced from the given allocator.
  * NOTE: Has to be explicitly freed using 'alloc_free'.
  */
 Mem alloc_dup(Allocator*, Mem, usize align);
+Mem alloc_maybe_dup(Allocator*, Mem, usize align);
 
 /**
  * Return the maximum allocation size (in bytes) for this allocator.

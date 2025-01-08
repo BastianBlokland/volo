@@ -1101,11 +1101,7 @@ void gap_pal_destroy(GapPal* pal) {
   if (pal->xkbState) {
     xkb_state_unref(pal->xkbState);
   }
-  array_for_t(pal->icons, Mem, icon) {
-    if (mem_valid(*icon)) {
-      alloc_free(pal->alloc, *icon);
-    }
-  }
+  array_for_t(pal->icons, Mem, icon) { alloc_maybe_free(pal->alloc, *icon); }
   array_for_t(pal->cursors, xcb_cursor_t, cursor) {
     if (*cursor != XCB_NONE) {
       xcb_free_cursor(pal->xcbCon, *cursor);

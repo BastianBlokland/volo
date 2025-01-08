@@ -354,7 +354,10 @@ static void repl_exec(
   ScriptProgram  prog   = {0};
   ScriptDoc*     script = script_create(g_allocHeap);
   ScriptDiagBag* diags  = script_diag_bag_create(tempAlloc, ScriptDiagFilter_All);
-  ScriptSymBag*  syms = (flags & ReplFlags_OutputSymbols) ? script_sym_bag_create(g_allocHeap) : 0;
+  ScriptSymBag*  syms   = null;
+  if (flags & ReplFlags_OutputSymbols) {
+    syms = script_sym_bag_create(g_allocHeap, script_sym_mask_any);
+  }
 
   ScriptLookup* lookup = script_lookup_create(g_allocHeap);
   script_lookup_update(lookup, input);

@@ -289,8 +289,6 @@ void asset_load_sound_wav(
 
 End:
   dynarray_destroy(&chunks);
-  if (mem_valid(sampleMem)) {
-    alloc_free(g_allocHeap, sampleMem);
-  }
+  alloc_maybe_free(g_allocHeap, sampleMem);
   asset_repo_source_close(src);
 }

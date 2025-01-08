@@ -67,7 +67,7 @@ static void asset_repo_mem_destroy(AssetRepo* repo) {
 
   dynarray_for_t(&repoMem->entries, RepoEntry, entry) {
     string_free(g_allocHeap, entry->id);
-    string_free(g_allocHeap, entry->data);
+    string_maybe_free(g_allocHeap, entry->data);
   };
   dynarray_destroy(&repoMem->entries);
 
@@ -94,7 +94,7 @@ AssetRepo* asset_repo_create_mem(const AssetMemRecord* records, const usize reco
     RepoEntry entry = {
         .idHash = string_hash(records[i].id),
         .id     = string_dup(g_allocHeap, records[i].id),
-        .data   = string_dup(g_allocHeap, records[i].data),
+        .data   = string_maybe_dup(g_allocHeap, records[i].data),
     };
     *dynarray_insert_sorted_t(&repo->entries, RepoEntry, asset_compare_entry, &entry) = entry;
   }

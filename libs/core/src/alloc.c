@@ -83,7 +83,7 @@ Mem alloc_alloc(Allocator* allocator, const usize size, const usize align) {
   return allocator->alloc(allocator, size, align);
 }
 
-void alloc_free(Allocator* allocator, Mem mem) {
+void alloc_free(Allocator* allocator, const Mem mem) {
   alloc_verify_allocator(allocator);
   diag_assert_msg(mem.size, "alloc_free: 0 byte allocations are not valid");
 
@@ -92,13 +92,26 @@ void alloc_free(Allocator* allocator, Mem mem) {
   }
 }
 
-Mem alloc_dup(Allocator* alloc, Mem mem, usize align) {
-  const Mem newMem = alloc_alloc(alloc, mem.size, align);
+void alloc_maybe_free(Allocator* allocator, const Mem mem) {
+  if (mem_valid(mem) && mem.size) {
+    alloc_free(allocator, mem);
+  }
+}
+
+Mem alloc_dup(Allocator* allocator, const Mem mem, const usize align) {
+  const Mem newMem = alloc_alloc(allocator, mem.size, align);
   if (UNLIKELY(!mem_valid(newMem))) {
     return newMem; // Allocation failed.
   }
   mem_cpy(newMem, mem);
   return newMem;
+}
+
+Mem alloc_maybe_dup(Allocator* allocator, const Mem mem, const usize align) {
+  if (mem_valid(mem) && mem.size) {
+    return alloc_dup(allocator, mem, align);
+  }
+  return mem;
 }
 
 usize alloc_max_size(Allocator* allocator) {

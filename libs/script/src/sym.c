@@ -53,10 +53,11 @@ typedef struct {
 } ScriptSymData;
 
 struct sScriptSymBag {
-  Allocator* alloc;
-  Allocator* allocTransient;
-  DynArray   symbols;    // ScriptSym[]
-  DynArray   references; // ScriptSymRef[], kept sorted on 'sym'.
+  Allocator*    alloc;
+  Allocator*    allocTransient;
+  ScriptSymMask mask;
+  DynArray      symbols;    // ScriptSymData[]
+  DynArray      references; // ScriptSymRef[], kept sorted on 'sym'.
 };
 
 static i8 sym_compare_ref(const void* a, const void* b) {
@@ -178,12 +179,13 @@ static ScriptSym sym_find_mem_key(const ScriptSymBag* b, const StringHash memKey
   return script_sym_sentinel;
 }
 
-ScriptSymBag* script_sym_bag_create(Allocator* alloc) {
+ScriptSymBag* script_sym_bag_create(Allocator* alloc, const ScriptSymMask mask) {
   ScriptSymBag* bag = alloc_alloc_t(alloc, ScriptSymBag);
 
   *bag = (ScriptSymBag){
       .alloc          = alloc,
       .allocTransient = alloc_chunked_create(alloc, alloc_bump_create, sym_transient_chunk_size),
+      .mask           = mask,
       .symbols        = dynarray_create_t(alloc, ScriptSymData, 128),
       .references     = dynarray_create_t(alloc, ScriptSymRef, 128),
   };
@@ -207,6 +209,10 @@ void script_sym_bag_clear(ScriptSymBag* bag) {
 ScriptSym script_sym_push_keyword(ScriptSymBag* bag, const String label) {
   diag_assert(!string_is_empty(label));
 
+  if (!(bag->mask & script_sym_mask(ScriptSymKind_Keyword))) {
+    return script_sym_sentinel;
+  }
+
   // TODO: Report error when the transient allocator runs out of space.
   return sym_push(
       bag,
@@ -219,6 +225,10 @@ ScriptSym script_sym_push_keyword(ScriptSymBag* bag, const String label) {
 
 ScriptSym script_sym_push_builtin_const(ScriptSymBag* bag, const String label, const ScriptVal v) {
   diag_assert(!string_is_empty(label));
+
+  if (!(bag->mask & script_sym_mask(ScriptSymKind_BuiltinConstant))) {
+    return script_sym_sentinel;
+  }
 
   // TODO: Report error when the transient allocator runs out of space.
   return sym_push(
@@ -238,6 +248,10 @@ ScriptSym script_sym_push_builtin_func(
     const ScriptIntrinsic intr,
     const ScriptSig*      sig) {
   diag_assert(!string_is_empty(label));
+
+  if (!(bag->mask & script_sym_mask(ScriptSymKind_BuiltinFunction))) {
+    return script_sym_sentinel;
+  }
 
   // TODO: Report error when the transient allocator runs out of space.
   return sym_push(
@@ -260,6 +274,10 @@ ScriptSym script_sym_push_extern_func(
     const ScriptSig*       sig) {
   diag_assert(!string_is_empty(label));
 
+  if (!(bag->mask & script_sym_mask(ScriptSymKind_ExternFunction))) {
+    return script_sym_sentinel;
+  }
+
   // TODO: Report error when the transient allocator runs out of space.
   return sym_push(
       bag,
@@ -281,6 +299,10 @@ ScriptSym script_sym_push_var(
     const ScriptRange   location) {
   diag_assert(!string_is_empty(label));
 
+  if (!(bag->mask & script_sym_mask(ScriptSymKind_Variable))) {
+    return script_sym_sentinel;
+  }
+
   // TODO: Report error when the transient allocator runs out of space.
   return sym_push(
       bag,
@@ -296,6 +318,10 @@ ScriptSym script_sym_push_var(
 
 ScriptSym script_sym_push_mem_key(ScriptSymBag* bag, const String label, const StringHash key) {
   diag_assert(!string_is_empty(label));
+
+  if (!(bag->mask & script_sym_mask(ScriptSymKind_MemoryKey))) {
+    return script_sym_sentinel;
+  }
 
   // TODO: Report error when the transient allocator runs out of space.
   return sym_push(

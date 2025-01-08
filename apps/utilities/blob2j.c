@@ -83,9 +83,7 @@ static i32 blob2j_run(File* inputFile, File* outputFile) {
   }
 
 Ret:
-  if (mem_valid(data)) {
-    alloc_free(g_allocHeap, data);
-  }
+  alloc_maybe_free(g_allocHeap, data);
   dynstring_destroy(&buffer);
   return exitCode;
 }

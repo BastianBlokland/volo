@@ -780,9 +780,7 @@ void ecs_runner_destroy(EcsRunner* runner) {
       alloc_free_array_t(runner->alloc, plan->systemTasks, systemCount);
     }
   }
-  if (mem_valid(runner->sysConflicts)) {
-    alloc_free(runner->alloc, runner->sysConflicts);
-  }
+  alloc_maybe_free(runner->alloc, runner->sysConflicts);
   if (runner->sysStats) {
     alloc_free_array_t(runner->alloc, runner->sysStats, systemCount);
   }

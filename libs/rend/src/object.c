@@ -63,18 +63,10 @@ INLINE_HINT static void rend_object_memcpy(u8* dst, const u8* src, const usize s
 
 static void ecs_destruct_object(void* data) {
   RendObjectComp* comp = data;
-  if (mem_valid(comp->dataMem)) {
-    alloc_free(g_allocHeap, comp->dataMem);
-  }
-  if (mem_valid(comp->instDataMem)) {
-    alloc_free(g_allocHeap, comp->instDataMem);
-  }
-  if (mem_valid(comp->instTagsMem)) {
-    alloc_free(g_allocHeap, comp->instTagsMem);
-  }
-  if (mem_valid(comp->instAabbMem)) {
-    alloc_free(g_allocHeap, comp->instAabbMem);
-  }
+  alloc_maybe_free(g_allocHeap, comp->dataMem);
+  alloc_maybe_free(g_allocHeap, comp->instDataMem);
+  alloc_maybe_free(g_allocHeap, comp->instTagsMem);
+  alloc_maybe_free(g_allocHeap, comp->instAabbMem);
 }
 
 static void ecs_combine_object(void* dataA, void* dataB) {
