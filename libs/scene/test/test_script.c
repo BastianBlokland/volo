@@ -12,6 +12,10 @@
 
 static const AssetMemRecord g_testScriptAssets[] = {
     {
+        .id   = string_static("scene/empty.script"),
+        .data = string_empty,
+    },
+    {
         .id   = string_static("scene/set_property.script"),
         .data = string_static("$test = 42"),
     },
@@ -54,6 +58,24 @@ spec(script) {
         world, AssetManagerFlags_None, g_testScriptAssets, array_elems(g_testScriptAssets));
 
     scene_test_wait(runner);
+  }
+
+  it("can run an empty script") {
+    EcsEntityId scriptAssets[1];
+    {
+      AssetManagerComp* manager = ecs_utils_write_first_t(world, ManagerView, AssetManagerComp);
+      scriptAssets[0]           = asset_lookup(world, manager, string_lit("scene/empty.script"));
+    }
+
+    const EcsEntityId e = ecs_world_entity_create(world);
+    scene_script_add(world, e, scriptAssets, array_elems(scriptAssets));
+    scene_prop_add(world, e);
+
+    scene_test_wait(runner);
+
+    const SceneScriptComp* script = ecs_utils_read_t(world, ScriptView, e, SceneScriptComp);
+    check(scene_script_panic(script, 0) == null);
+    check(scene_script_stats(script, 0)->executedOps >= 1);
   }
 
   it("can set properties") {
