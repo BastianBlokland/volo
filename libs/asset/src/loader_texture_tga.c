@@ -443,8 +443,6 @@ void asset_load_tex_tga(
   asset_cache(world, entity, g_assetTexMeta, mem_var(tex));
 
 Ret:
-  if (mem_valid(pixels)) {
-    alloc_free(g_allocHeap, pixels);
-  }
+  alloc_maybe_free(g_allocHeap, pixels);
   asset_repo_source_close(src);
 }
