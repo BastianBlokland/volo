@@ -93,7 +93,7 @@ void alloc_free(Allocator* allocator, const Mem mem) {
 }
 
 void alloc_maybe_free(Allocator* allocator, const Mem mem) {
-  if (mem_valid(mem)) {
+  if (mem_valid(mem) && mem.size) {
     alloc_free(allocator, mem);
   }
 }
@@ -108,7 +108,7 @@ Mem alloc_dup(Allocator* allocator, const Mem mem, const usize align) {
 }
 
 Mem alloc_maybe_dup(Allocator* allocator, const Mem mem, const usize align) {
-  if (mem_valid(mem)) {
+  if (mem_valid(mem) && mem.size) {
     return alloc_dup(allocator, mem, align);
   }
   return mem;
