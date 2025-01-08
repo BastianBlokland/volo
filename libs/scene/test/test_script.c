@@ -13,7 +13,7 @@
 static const AssetMemRecord g_testScriptAssets[] = {
     {
         .id   = string_static("scene/empty.script"),
-        .data = string_empty,
+        .data = {0},
     },
     {
         .id   = string_static("scene/set_property.script"),
