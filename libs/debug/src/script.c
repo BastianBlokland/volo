@@ -192,10 +192,10 @@ static void info_panel_tab_script_draw(
       ui_style_pop(c);
     } else {
       String label;
-      if (scene_script_flags(scriptInstance) & SceneScriptFlags_PauseEvaluation) {
-        label = string_lit("Paused");
-      } else if (scriptAssetLoaded) {
+      if (scene_script_flags(scriptInstance) & SceneScriptFlags_Enabled) {
         label = string_lit("Running");
+      } else if (scriptAssetLoaded) {
+        label = string_lit("Idle");
       } else {
         label = string_lit("Loading script");
       }
@@ -235,11 +235,11 @@ static void info_panel_tab_draw(
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(c, &table);
-  bool pauseEval = (scene_script_flags(scriptInstance) & SceneScriptFlags_PauseEvaluation) != 0;
-  ui_label(c, string_lit("Pause"));
+  bool enabled = (scene_script_flags(scriptInstance) & SceneScriptFlags_Enabled) != 0;
+  ui_label(c, string_lit("Enabled"));
   ui_table_next_column(c, &table);
-  if (ui_toggle(c, &pauseEval)) {
-    scene_script_flags_toggle(scriptInstance, SceneScriptFlags_PauseEvaluation);
+  if (ui_toggle(c, &enabled)) {
+    scene_script_flags_toggle(scriptInstance, SceneScriptFlags_Enabled);
   }
 
   const u32 scriptCount = scene_script_count(scriptInstance);

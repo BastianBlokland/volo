@@ -3,9 +3,9 @@
 #include "script.h"
 
 typedef enum {
-  SceneScriptFlags_None            = 0,
-  SceneScriptFlags_DidPanic        = 1 << 0,
-  SceneScriptFlags_PauseEvaluation = 1 << 1,
+  SceneScriptFlags_None     = 0,
+  SceneScriptFlags_DidPanic = 1 << 0,
+  SceneScriptFlags_Enabled  = 1 << 1,
 } SceneScriptFlags;
 
 typedef struct {
