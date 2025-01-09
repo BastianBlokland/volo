@@ -1,3 +1,4 @@
+#include "asset_script.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_bits.h"
@@ -277,6 +278,11 @@ ecs_view_define(SubjectView) {
 }
 
 ecs_view_define(TransformView) { ecs_access_read(SceneTransformComp); }
+
+ecs_view_define(ScriptAssetView) {
+  ecs_access_with(AssetLoadedComp);
+  ecs_access_read(AssetScriptComp);
+}
 
 ecs_view_define(CameraView) {
   ecs_access_read(GapWindowAspectComp);
@@ -2215,6 +2221,7 @@ ecs_module_init(debug_inspector_module) {
   ecs_register_view(GlobalVisDrawView);
   ecs_register_view(SubjectView);
   ecs_register_view(TransformView);
+  ecs_register_view(ScriptAssetView);
   ecs_register_view(CameraView);
   ecs_register_view(PrefabMapView);
 
@@ -2224,6 +2231,7 @@ ecs_module_init(debug_inspector_module) {
       ecs_view_id(SettingsWriteView),
       ecs_view_id(PanelUpdateView),
       ecs_view_id(SubjectView),
+      ecs_view_id(ScriptAssetView),
       ecs_view_id(PrefabMapView));
 
   ecs_register_system(
