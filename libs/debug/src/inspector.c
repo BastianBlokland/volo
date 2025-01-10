@@ -869,7 +869,10 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
 
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, entry->name, .selectable = true, .tooltip = tooltip);
-    if (dynarray_search_binary(&inputKeys, compare_string, &entry->name)) {
+    String* inputEntry = dynarray_search_binary(&inputKeys, compare_string, &entry->name);
+    if (inputEntry) {
+      dynarray_remove_ptr(&inputKeys, inputEntry); // Remove the used inputs from the preset list.
+
       ui_layout_push(ctx->canvas);
       ui_layout_next(ctx->canvas, Ui_Right, 0);
       ui_layout_resize(ctx->canvas, UiAlign_BottomRight, ui_vector(20, 20), UiBase_Absolute, Ui_XY);
