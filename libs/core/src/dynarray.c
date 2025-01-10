@@ -111,6 +111,11 @@ void dynarray_remove(DynArray* a, const usize idx, const usize count) {
   a->size = newSize;
 }
 
+void dynarray_remove_ptr(DynArray* a, const void* entryPtr) {
+  const usize idx = ((u8*)entryPtr - mem_begin(a->data)) / a->stride;
+  dynarray_remove(a, idx, 1);
+}
+
 void dynarray_remove_unordered(DynArray* a, const usize idx, const usize count) {
   diag_assert(a->size >= idx + count);
 
