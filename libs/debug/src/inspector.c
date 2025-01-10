@@ -397,6 +397,29 @@ static void inspector_prefab_replace(
   scene_prefab_spawn_replace(prefabEnv, &spec, entity);
 }
 
+static void inspector_properties_get_input_keys(
+    EcsIterator* subject, EcsView* scriptAssetView, DynArray* outProperties /* String[] */) {
+  const SceneScriptComp* scriptComp = ecs_view_read_t(subject, SceneScriptComp);
+  if (!scriptComp) {
+    return;
+  }
+  EcsIterator* assetItr = ecs_view_itr(scriptAssetView);
+
+  const u32 scriptCount = scene_script_count(scriptComp);
+  for (SceneScriptSlot scriptSlot = 0; scriptSlot != scriptCount; ++scriptSlot) {
+    if (!ecs_view_maybe_jump(assetItr, scene_script_asset(scriptComp, scriptSlot))) {
+      continue; // Script is not loaded yet or failed to load.
+    }
+    const AssetScriptComp* scriptAsset = ecs_view_read_t(assetItr, AssetScriptComp);
+    heap_array_for_t(scriptAsset->inputKeys, StringHash, key) {
+      const String name = stringtable_lookup(g_stringtable, *key);
+      if (LIKELY(!string_is_empty(name))) {
+        *(String*)dynarray_find_or_insert_sorted(outProperties, compare_string, &name) = name;
+      }
+    }
+  }
+}
+
 typedef struct {
   EcsWorld*                   world;
   UiCanvasComp*               canvas;
@@ -407,6 +430,7 @@ typedef struct {
   SceneSetEnvComp*            setEnv;
   DebugStatsGlobalComp*       stats;
   DebugInspectorSettingsComp* settings;
+  EcsView*                    scriptAssetView;
   EcsIterator*                subject;
   EcsEntityId                 subjectEntity;
 } InspectorContext;
@@ -812,9 +836,11 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   if (!inspector_panel_section(ctx, string_lit("Properties"))) {
     return;
   }
-  DynArray entries = dynarray_create_t(g_allocScratch, DebugPropEntry, 256);
+  DynArray inputKeys = dynarray_create_t(g_allocScratch, String, 128);
+  inspector_properties_get_input_keys(ctx->subject, ctx->scriptAssetView, &inputKeys);
 
   // Collect entries.
+  DynArray entries = dynarray_create_t(g_allocScratch, DebugPropEntry, 128);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const ScriptVal val = script_mem_load(memory, itr.key);
     if (script_type(val) == ScriptType_Null) {
@@ -1330,17 +1356,18 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
       continue;
     }
     InspectorContext ctx = {
-        .world         = world,
-        .canvas        = canvas,
-        .panel         = panelComp,
-        .time          = time,
-        .prefabEnv     = prefabEnv,
-        .prefabMap     = prefabMap,
-        .setEnv        = setEnv,
-        .stats         = stats,
-        .settings      = settings,
-        .subject       = subjectItr,
-        .subjectEntity = subjectItr ? ecs_view_entity(subjectItr) : 0,
+        .world           = world,
+        .canvas          = canvas,
+        .panel           = panelComp,
+        .time            = time,
+        .prefabEnv       = prefabEnv,
+        .prefabMap       = prefabMap,
+        .setEnv          = setEnv,
+        .stats           = stats,
+        .settings        = settings,
+        .scriptAssetView = ecs_world_view_t(world, ScriptAssetView),
+        .subject         = subjectItr,
+        .subjectEntity   = subjectItr ? ecs_view_entity(subjectItr) : 0,
     };
     inspector_panel_draw(&ctx);
 
