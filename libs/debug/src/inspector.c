@@ -869,6 +869,19 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
 
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, entry->name, .selectable = true, .tooltip = tooltip);
+    if (dynarray_search_binary(&inputKeys, compare_string, &entry->name)) {
+      ui_layout_push(ctx->canvas);
+      ui_layout_next(ctx->canvas, Ui_Right, 0);
+      ui_layout_resize(ctx->canvas, UiAlign_BottomRight, ui_vector(20, 20), UiBase_Absolute, Ui_XY);
+      ui_style_push(ctx->canvas);
+      ui_style_color(ctx->canvas, ui_color(255, 255, 255, 128));
+      const UiId id = ui_canvas_draw_glyph(ctx->canvas, UiShape_Input, 0, UiFlags_Interactable);
+      ui_tooltip(ctx->canvas, id, string_lit("This property is used as a script input."));
+      ui_style_pop(ctx->canvas);
+      ui_layout_pop(ctx->canvas);
+    } else {
+      ui_canvas_id_skip(ctx->canvas, 3 /* 1 for the glyph and 2 for the tooltip*/);
+    }
     ui_table_next_column(ctx->canvas, table);
     ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
     inspector_panel_prop_value_edit(ctx, memory, entry->key, entry->val);
