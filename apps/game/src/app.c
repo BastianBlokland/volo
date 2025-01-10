@@ -358,7 +358,7 @@ static void app_action_quality_draw(UiCanvasComp* canvas, const AppActionContext
     ui_label(canvas, string_lit("Quality"));
     ui_table_next_column(canvas, &table);
     i32* quality = (i32*)&ctx->prefs->quality;
-    if (ui_select(canvas, quality, g_gameQualityLabels, GameQuality_Count, .dir = Ui_Up)) {
+    if (ui_select(canvas, quality, g_gameQualityLabels, GameQuality_Count)) {
       app_action_notify(
           ctx, fmt_write_scratch("Quality {}", fmt_text(g_gameQualityLabels[*quality])));
 
