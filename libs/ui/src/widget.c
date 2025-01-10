@@ -425,7 +425,7 @@ static UiSelectFlags ui_select_dropdown(
   const f32     height      = math_min(totalHeight, opts->maxHeight);
   ui_layout_push(canvas);
 
-  const UiDir dir = Ui_Down; // TODO: Compute if the dropdown should go up or down.
+  const UiDir dir = (lastRect.y - height) > 0.0f ? Ui_Down : Ui_Up;
 
   // Set the size of the dropdown.
   ui_layout_next(canvas, dir, g_spacing);
