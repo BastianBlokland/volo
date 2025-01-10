@@ -425,9 +425,11 @@ static UiSelectFlags ui_select_dropdown(
   const f32     height      = math_min(totalHeight, opts->maxHeight);
   ui_layout_push(canvas);
 
+  const UiDir dir = Ui_Down; // TODO: Compute if the dropdown should go up or down.
+
   // Set the size of the dropdown.
-  ui_layout_next(canvas, opts->dir, g_spacing);
-  const UiAlign anchor = opts->dir == Ui_Up ? UiAlign_BottomCenter : UiAlign_TopCenter;
+  ui_layout_next(canvas, dir, g_spacing);
+  const UiAlign anchor = dir == Ui_Up ? UiAlign_BottomCenter : UiAlign_TopCenter;
   ui_layout_move_to(canvas, UiBase_Current, anchor, Ui_Y);
   ui_layout_resize(canvas, anchor, ui_vector(0, height), UiBase_Absolute, Ui_Y);
 
@@ -446,7 +448,7 @@ static UiSelectFlags ui_select_dropdown(
   ui_layout_resize(canvas, anchor, ui_vector(0, lastRect.height), UiBase_Absolute, Ui_Y);
 
   for (u32 i = 0; i != optionCount; ++i) {
-    const u32 optionIndex = opts->dir == Ui_Up ? (optionCount - 1 - i) : i;
+    const u32 optionIndex = dir == Ui_Up ? (optionCount - 1 - i) : i;
 
     const UiId     optionId     = ui_canvas_id_peek(canvas);
     const UiStatus optionStatus = ui_canvas_elem_status(canvas, optionId);
@@ -477,7 +479,7 @@ static UiSelectFlags ui_select_dropdown(
     if (optionStatus >= UiStatus_Hovered) {
       ui_canvas_interact_type(canvas, UiInteractType_Action);
     }
-    ui_layout_next(canvas, opts->dir, g_spacing);
+    ui_layout_next(canvas, dir, g_spacing);
   }
   ui_scrollview_end(canvas, &scrollview);
   *ui_canvas_persistent_scrollview(canvas, id) = scrollview; // Store scrollview state.
@@ -491,8 +493,6 @@ bool ui_select_with_opts(
     const String*       options,
     const u32           optionCount,
     const UiSelectOpts* opts) {
-
-  diag_assert(opts->dir == Ui_Up || opts->dir == Ui_Down);
 
   const UiId     headerId     = ui_canvas_id_peek(canvas);
   const bool     disabled     = (opts->flags & UiWidget_Disabled) != 0 || !optionCount;
