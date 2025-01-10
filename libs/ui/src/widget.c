@@ -495,7 +495,7 @@ bool ui_select_with_opts(
   diag_assert(opts->dir == Ui_Up || opts->dir == Ui_Down);
 
   const UiId     headerId     = ui_canvas_id_peek(canvas);
-  const bool     disabled     = (opts->flags & UiWidget_Disabled) != 0;
+  const bool     disabled     = (opts->flags & UiWidget_Disabled) != 0 || !optionCount;
   const UiStatus headerStatus = disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, headerId);
   UiSelectFlags  selectFlags  = 0;
 

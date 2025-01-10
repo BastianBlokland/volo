@@ -16,6 +16,7 @@
 #include "scene_camera.h"
 #include "scene_debug.h"
 #include "scene_name.h"
+#include "scene_prefab.h"
 #include "scene_property.h"
 #include "scene_register.h"
 #include "scene_script.h"
@@ -140,6 +141,7 @@ ecs_view_define(SubjectView) {
   ecs_access_write(ScenePropertyComp);
   ecs_access_maybe_write(SceneScriptComp);
   ecs_access_maybe_read(SceneDebugComp);
+  ecs_access_maybe_read(ScenePrefabInstanceComp);
 }
 
 ecs_view_define(EntityRefView) {
@@ -149,6 +151,11 @@ ecs_view_define(EntityRefView) {
 
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 ecs_view_define(WindowView) { ecs_access_with(GapWindowComp); }
+
+static bool debug_script_is_readonly(EcsIterator* subjectItr) {
+  const ScenePrefabInstanceComp* prefabInst = ecs_view_read_t(subjectItr, ScenePrefabInstanceComp);
+  return prefabInst && prefabInst->variant != ScenePrefabVariant_Normal;
+}
 
 static void info_panel_tab_script_draw(
     EcsWorld*             world,
@@ -192,10 +199,10 @@ static void info_panel_tab_script_draw(
       ui_style_pop(c);
     } else {
       String label;
-      if (scene_script_flags(scriptInstance) & SceneScriptFlags_PauseEvaluation) {
-        label = string_lit("Paused");
-      } else if (scriptAssetLoaded) {
+      if (scene_script_flags(scriptInstance) & SceneScriptFlags_Enabled) {
         label = string_lit("Running");
+      } else if (scriptAssetLoaded) {
+        label = string_lit("Idle");
       } else {
         label = string_lit("Loading script");
       }
@@ -229,17 +236,20 @@ static void info_panel_tab_draw(
     ui_label(c, string_lit("No script statistics available."), .align = UiAlign_MiddleCenter);
     return;
   }
+  const bool isReadonly = debug_script_is_readonly(subjectItr);
+
+  const UiWidgetFlags widgetFlags = isReadonly ? UiWidget_Disabled : 0;
 
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   ui_table_next_row(c, &table);
-  bool pauseEval = (scene_script_flags(scriptInstance) & SceneScriptFlags_PauseEvaluation) != 0;
-  ui_label(c, string_lit("Pause"));
+  bool enabled = (scene_script_flags(scriptInstance) & SceneScriptFlags_Enabled) != 0;
+  ui_label(c, string_lit("Enabled"));
   ui_table_next_column(c, &table);
-  if (ui_toggle(c, &pauseEval)) {
-    scene_script_flags_toggle(scriptInstance, SceneScriptFlags_PauseEvaluation);
+  if (ui_toggle(c, &enabled, .flags = widgetFlags)) {
+    scene_script_flags_toggle(scriptInstance, SceneScriptFlags_Enabled);
   }
 
   const u32 scriptCount = scene_script_count(scriptInstance);

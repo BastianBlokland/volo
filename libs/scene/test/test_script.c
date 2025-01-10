@@ -68,14 +68,19 @@ spec(script) {
     }
 
     const EcsEntityId e = ecs_world_entity_create(world);
-    scene_script_add(world, e, scriptAssets, array_elems(scriptAssets));
-    scene_prop_add(world, e);
+    {
+      SceneScriptComp* script = scene_script_add(world, e, scriptAssets, array_elems(scriptAssets));
+      scene_script_flags_set(script, SceneScriptFlags_Enabled);
+      scene_prop_add(world, e);
+    }
 
     scene_test_wait(runner);
 
-    const SceneScriptComp* script = ecs_utils_read_t(world, ScriptView, e, SceneScriptComp);
-    check(scene_script_panic(script, 0) == null);
-    check(scene_script_stats(script, 0)->executedOps >= 1);
+    {
+      const SceneScriptComp* script = ecs_utils_read_t(world, ScriptView, e, SceneScriptComp);
+      check(scene_script_panic(script, 0) == null);
+      check(scene_script_stats(script, 0)->executedOps >= 1);
+    }
   }
 
   it("can set properties") {
@@ -86,15 +91,19 @@ spec(script) {
     }
 
     const EcsEntityId e = ecs_world_entity_create(world);
-    scene_script_add(world, e, scriptAssets, array_elems(scriptAssets));
-    scene_prop_add(world, e);
+    {
+      SceneScriptComp* script = scene_script_add(world, e, scriptAssets, array_elems(scriptAssets));
+      scene_script_flags_set(script, SceneScriptFlags_Enabled);
+      scene_prop_add(world, e);
+    }
 
     scene_test_wait(runner);
 
-    const ScenePropertyComp* propComp = ecs_utils_read_t(world, ScriptView, e, ScenePropertyComp);
-
-    const ScriptVal value = scene_prop_load(propComp, string_hash_lit("test"));
-    check(script_val_equal(value, script_num(42)));
+    {
+      const ScenePropertyComp* propComp = ecs_utils_read_t(world, ScriptView, e, ScenePropertyComp);
+      const ScriptVal          value    = scene_prop_load(propComp, string_hash_lit("test"));
+      check(script_val_equal(value, script_num(42)));
+    }
   }
 
   teardown() {

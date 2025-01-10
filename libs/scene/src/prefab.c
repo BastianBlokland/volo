@@ -547,50 +547,44 @@ static void setup_collision(PrefabSetupContext* ctx, const AssetPrefabTraitColli
 }
 
 static void setup_script(PrefabSetupContext* ctx, const AssetPrefabTraitScript* t) {
-  if (ctx->spec->variant == ScenePrefabVariant_Edit) {
-    /**
-     * For edit variants add a property component even though we will not be executing the scripts,
-     * this indicates that properties can be configured for the prefab.
-     */
-    if (!ctx->propComp) {
-      ctx->propComp = scene_prop_add(ctx->world, ctx->entity);
-    }
-    return; // Do not execute scripts on edit prefab instances.
-  }
-
   u32 scriptCount = 0;
   for (; scriptCount != array_elems(t->scripts) && t->scripts[scriptCount]; ++scriptCount)
     ;
 
-  scene_script_add(ctx->world, ctx->entity, t->scripts, scriptCount);
+  SceneScriptComp* comp = scene_script_add(ctx->world, ctx->entity, t->scripts, scriptCount);
 
   if (!ctx->propComp) {
     ctx->propComp = scene_prop_add(ctx->world, ctx->entity);
   }
-  for (u16 i = 0; i != t->propCount; ++i) {
-    const AssetPrefabValue* val = &ctx->prefabMap->values.values[t->propIndex + i];
-    switch (val->type) {
-    case AssetPrefabValue_Number:
-      scene_prop_store(ctx->propComp, val->name, script_num(val->data_number));
-      break;
-    case AssetPrefabValue_Bool:
-      scene_prop_store(ctx->propComp, val->name, script_bool(val->data_bool));
-      break;
-    case AssetPrefabValue_Vector3:
-      scene_prop_store(ctx->propComp, val->name, script_vec3(val->data_vector3));
-      break;
-    case AssetPrefabValue_Color:
-      scene_prop_store(ctx->propComp, val->name, script_color(val->data_color));
-      break;
-    case AssetPrefabValue_String:
-      scene_prop_store(ctx->propComp, val->name, script_str_or_null(val->data_string));
-      break;
-    case AssetPrefabValue_Asset:
-      scene_prop_store(ctx->propComp, val->name, script_entity(val->data_asset.entity));
-      break;
-    case AssetPrefabValue_Sound:
-      scene_prop_store(ctx->propComp, val->name, script_entity(val->data_sound.asset.entity));
-      break;
+
+  if (ctx->spec->variant == ScenePrefabVariant_Normal) {
+    scene_script_flags_set(comp, SceneScriptFlags_Enabled);
+
+    for (u16 i = 0; i != t->propCount; ++i) {
+      const AssetPrefabValue* val = &ctx->prefabMap->values.values[t->propIndex + i];
+      switch (val->type) {
+      case AssetPrefabValue_Number:
+        scene_prop_store(ctx->propComp, val->name, script_num(val->data_number));
+        break;
+      case AssetPrefabValue_Bool:
+        scene_prop_store(ctx->propComp, val->name, script_bool(val->data_bool));
+        break;
+      case AssetPrefabValue_Vector3:
+        scene_prop_store(ctx->propComp, val->name, script_vec3(val->data_vector3));
+        break;
+      case AssetPrefabValue_Color:
+        scene_prop_store(ctx->propComp, val->name, script_color(val->data_color));
+        break;
+      case AssetPrefabValue_String:
+        scene_prop_store(ctx->propComp, val->name, script_str_or_null(val->data_string));
+        break;
+      case AssetPrefabValue_Asset:
+        scene_prop_store(ctx->propComp, val->name, script_entity(val->data_asset.entity));
+        break;
+      case AssetPrefabValue_Sound:
+        scene_prop_store(ctx->propComp, val->name, script_entity(val->data_sound.asset.entity));
+        break;
+      }
     }
   }
 }

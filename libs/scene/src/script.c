@@ -2026,13 +2026,7 @@ ecs_system_define(SceneScriptResourceUpdateSys) {
 
 static void scene_script_eval(EvalContext* ctx) {
   SceneScriptData* data = &ctx->scriptInstance->slots[ctx->slot];
-  if (UNLIKELY(ctx->scriptInstance->flags & SceneScriptFlags_PauseEvaluation)) {
-    data->stats = (SceneScriptStats){0};
-    data->panic = (ScriptPanic){0};
-    return;
-  }
-
-  ScriptMem* mem = scene_prop_memory_mut(ctx->scriptProperties);
+  ScriptMem*       mem  = scene_prop_memory_mut(ctx->scriptProperties);
 
   // Eval.
   const TimeSteady       startTime = time_steady_clock();
@@ -2142,7 +2136,12 @@ ecs_system_define(SceneScriptUpdateSys) {
           ctx.scriptInstance->flags &= ~SceneScriptFlags_DidPanic;
           data->resVersion = version;
         }
-        scene_script_eval(&ctx);
+        if (ctx.scriptInstance->flags & SceneScriptFlags_Enabled) {
+          scene_script_eval(&ctx);
+        } else {
+          data->stats = (SceneScriptStats){0};
+          data->panic = (ScriptPanic){0};
+        }
       } else {
         // Script asset not loaded; clear any previous stats and start loading it.
         data->stats = (SceneScriptStats){0};

@@ -7,6 +7,9 @@
  */
 
 ecs_comp_extern(AssetAtlasComp);
+ecs_comp_extern(AssetComp);
+ecs_comp_extern(AssetFailedComp);
+ecs_comp_extern(AssetLoadedComp);
 ecs_comp_extern(AssetManagerComp);
 ecs_comp_extern(AssetPrefabMapComp);
 

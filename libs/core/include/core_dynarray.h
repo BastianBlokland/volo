@@ -153,6 +153,7 @@ void dynarray_pop(DynArray*, usize count);
  * Pre-condition: idx + count < array.size
  */
 void dynarray_remove(DynArray*, usize idx, usize count);
+void dynarray_remove_ptr(DynArray*, const void* entryPtr);
 
 /**
  * Remove 'count' items at index 'idx' from the dynamic-array.
