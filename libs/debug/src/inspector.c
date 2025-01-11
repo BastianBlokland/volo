@@ -11,6 +11,7 @@
 #include "core_utf8.h"
 #include "debug_gizmo.h"
 #include "debug_inspector.h"
+#include "debug_panel.h"
 #include "debug_prefab.h"
 #include "debug_register.h"
 #include "debug_shape.h"

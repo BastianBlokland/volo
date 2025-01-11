@@ -3,6 +3,7 @@
 #include "core_format.h"
 #include "core_math.h"
 #include "core_stringtable.h"
+#include "debug_panel.h"
 #include "debug_register.h"
 #include "debug_shape.h"
 #include "debug_skeleton.h"

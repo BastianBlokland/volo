@@ -3,6 +3,7 @@
 #include "core_dynstring.h"
 #include "core_format.h"
 #include "core_stringtable.h"
+#include "debug_panel.h"
 #include "debug_vfx.h"
 #include "ecs_entity.h"
 #include "ecs_view.h"

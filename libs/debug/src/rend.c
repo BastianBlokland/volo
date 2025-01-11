@@ -14,6 +14,7 @@
 #include "ecs_world.h"
 #include "geo_box.h"
 #include "rend_object.h"
+#include "debug_panel.h"
 #include "rend_register.h"
 #include "rend_reset.h"
 #include "rend_resource.h"

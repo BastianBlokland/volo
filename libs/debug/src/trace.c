@@ -5,6 +5,7 @@
 #include "core_float.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "debug_panel.h"
 #include "debug_register.h"
 #include "debug_trace.h"
 #include "ecs_view.h"

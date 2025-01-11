@@ -3,6 +3,7 @@
 #include "core_float.h"
 #include "core_math.h"
 #include "debug_grid.h"
+#include "debug_panel.h"
 #include "debug_stats.h"
 #include "ecs_view.h"
 #include "ecs_world.h"

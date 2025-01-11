@@ -3,6 +3,7 @@
 #include "core_format.h"
 #include "core_path.h"
 #include "debug_ecs.h"
+#include "debug_panel.h"
 #include "ecs_def.h"
 #include "ecs_module.h"
 #include "ecs_runner.h"
