@@ -5,6 +5,7 @@ void debug_register(EcsDef* def) {
   ecs_register_module(def, debug_asset_module);
   ecs_register_module(def, debug_camera_module);
   ecs_register_module(def, debug_ecs_module);
+  ecs_register_module(def, debug_finder_module);
   ecs_register_module(def, debug_gizmo_module);
   ecs_register_module(def, debug_grid_module);
   ecs_register_module(def, debug_inspector_module);
