@@ -865,7 +865,7 @@ static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
     }
     return false;
   }
-  case ScriptType_Entity:
+  case ScriptType_Entity: {
     const EcsEntityId entity = script_get_entity(*val, 0);
     String            label  = fmt_write_scratch("{}", ecs_entity_fmt(entity));
     if (ecs_view_maybe_jump(ctx->entityRefItr, entity)) {
@@ -880,6 +880,7 @@ static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
     }
     ui_label(ctx->canvas, label, .selectable = true);
     return false;
+  }
   case ScriptType_Null:
     ui_label(ctx->canvas, string_lit("< null >"));
     return false;
