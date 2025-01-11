@@ -2,8 +2,8 @@
 #include "debug.h"
 
 typedef enum eDebugFinderCategory {
-  DebugFinderCategory_Level,
-  DebugFinderCategory_Terrain,
+  DebugFinder_Level,
+  DebugFinder_Terrain,
 
   DebugFinderCategory_Count,
 } DebugFinderCategory;
