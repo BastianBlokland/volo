@@ -279,7 +279,7 @@ static bool memory_draw_num(UiCanvasComp* c, ScriptVal* value) {
 
 static bool memory_draw_vec3(UiCanvasComp* c, ScriptVal* value) {
   GeoVector vec3 = script_get_vec3(*value, geo_vector(0));
-  if (debug_widget_editor_vec3(c, &vec3, UiWidget_Default)) {
+  if (debug_widget_vec3(c, &vec3, UiWidget_Default)) {
     *value = script_vec3(vec3);
     return true;
   }
@@ -288,7 +288,7 @@ static bool memory_draw_vec3(UiCanvasComp* c, ScriptVal* value) {
 
 static bool memory_draw_quat(UiCanvasComp* c, ScriptVal* value) {
   GeoQuat quat = script_get_quat(*value, geo_quat_ident);
-  if (debug_widget_editor_quat(c, &quat, UiWidget_Default)) {
+  if (debug_widget_quat(c, &quat, UiWidget_Default)) {
     *value = script_quat(quat);
     return true;
   }
@@ -297,7 +297,7 @@ static bool memory_draw_quat(UiCanvasComp* c, ScriptVal* value) {
 
 static bool memory_draw_color(UiCanvasComp* c, ScriptVal* value) {
   GeoColor col = script_get_color(*value, geo_color_clear);
-  if (debug_widget_editor_color(c, &col, UiWidget_Default)) {
+  if (debug_widget_color(c, &col, UiWidget_Default)) {
     *value = script_color(col);
     return true;
   }

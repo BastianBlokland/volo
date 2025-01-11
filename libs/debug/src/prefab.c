@@ -515,7 +515,7 @@ static void prefab_panel_create_draw(UiCanvasComp* canvas, const PrefabPanelCont
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Faction"));
   ui_table_next_column(canvas, &table);
-  debug_widget_editor_faction(canvas, &ctx->panelComp->createFaction, UiWidget_Default);
+  debug_widget_faction(canvas, &ctx->panelComp->createFaction, UiWidget_Default);
 
   if (asset_prefab_trait(ctx->prefabMap, prefab, AssetPrefabTrait_Scalable)) {
     ui_table_next_row(canvas, &table);

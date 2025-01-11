@@ -243,7 +243,7 @@ static void settings_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   ui_table_next_column(c, &table);
 
   EcsEntityId terrain = scene_level_terrain(ctx->levelManager);
-  if (debug_widget_editor_asset(c, ctx->finder, DebugFinder_Terrain, &terrain, UiWidget_Default)) {
+  if (debug_widget_asset(c, ctx->finder, DebugFinder_Terrain, &terrain, UiWidget_Default)) {
     scene_level_terrain_update(ctx->levelManager, terrain);
   }
 
@@ -260,7 +260,7 @@ static void settings_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   ui_table_next_column(c, &table);
 
   GeoVector startpoint = scene_level_startpoint(ctx->levelManager);
-  if (debug_widget_editor_vec3_resettable(c, &startpoint, UiWidget_Default)) {
+  if (debug_widget_vec3_resettable(c, &startpoint, UiWidget_Default)) {
     scene_level_startpoint_update(ctx->levelManager, startpoint);
   }
 
