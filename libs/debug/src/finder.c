@@ -86,7 +86,8 @@ ecs_system_define(DebugFinderUpdateSys) {
     }
 
     // Ready.
-    state->status = DebugFinderStatus_Ready;
+    state->status        = DebugFinderStatus_Ready;
+    state->executedQuery = false;
   }
 }
 
