@@ -507,7 +507,7 @@ bool ui_select_with_opts(
   }
   const bool isOpen = (ui_canvas_persistent_flags(canvas, headerId) & UiPersistentFlags_Open) != 0;
   const bool outOfBounds   = *input < 0 || *input >= (i32)optionCount;
-  const String headerLabel = outOfBounds ? string_lit("- Select -") : options[*input];
+  const String headerLabel = outOfBounds ? opts->placeholder : options[*input];
 
   ui_style_push(canvas);
   if (isOpen) {
