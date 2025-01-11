@@ -8,23 +8,21 @@
 #include "ecs_world.h"
 
 static const String g_queryPatterns[DebugFinderCategory_Count] = {
-    [DebugFinder_Decal]       = string_static("vfx/*.decal"),
-    [DebugFinder_Graphic]     = string_static("graphics/*.graphic"),
-    [DebugFinder_Level]       = string_static("levels/*.level"),
-    [DebugFinder_ScriptScene] = string_static("scripts/scene/*.script"),
-    [DebugFinder_Sound]       = string_static("external/sound/*.wav"),
-    [DebugFinder_Terrain]     = string_static("terrains/*.terrain"),
-    [DebugFinder_Vfx]         = string_static("vfx/*.vfx"),
+    [DebugFinder_Decal]   = string_static("vfx/*.decal"),
+    [DebugFinder_Graphic] = string_static("graphics/*.graphic"),
+    [DebugFinder_Level]   = string_static("levels/*.level"),
+    [DebugFinder_Sound]   = string_static("external/sound/*.wav"),
+    [DebugFinder_Terrain] = string_static("terrains/*.terrain"),
+    [DebugFinder_Vfx]     = string_static("vfx/*.vfx"),
 };
 
 const String g_debugFinderCategoryNames[] = {
-    [DebugFinder_Decal]       = string_static("Decal"),
-    [DebugFinder_Graphic]     = string_static("Graphic"),
-    [DebugFinder_Level]       = string_static("Level"),
-    [DebugFinder_ScriptScene] = string_static("ScriptScene"),
-    [DebugFinder_Sound]       = string_static("Sound"),
-    [DebugFinder_Terrain]     = string_static("Terrain"),
-    [DebugFinder_Vfx]         = string_static("Vfx"),
+    [DebugFinder_Decal]   = string_static("Decal"),
+    [DebugFinder_Graphic] = string_static("Graphic"),
+    [DebugFinder_Level]   = string_static("Level"),
+    [DebugFinder_Sound]   = string_static("Sound"),
+    [DebugFinder_Terrain] = string_static("Terrain"),
+    [DebugFinder_Vfx]     = string_static("Vfx"),
 };
 ASSERT(array_elems(g_debugFinderCategoryNames) == DebugFinderCategory_Count, "Missing names");
 
