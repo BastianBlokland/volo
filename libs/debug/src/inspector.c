@@ -903,22 +903,12 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
 
   // Draw entry creation Ui.
   inspector_panel_next(ctx, table);
-  ui_layout_push(ctx->canvas);
-  ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-100, 0), UiBase_Absolute, Ui_X);
   ui_textbox(
       ctx->canvas,
       &ctx->panel->newPropBuffer,
       .placeholder   = string_lit("New key..."),
       .type          = UiTextbox_Word,
       .maxTextLength = 32);
-  ui_layout_next(ctx->canvas, Ui_Right, 10);
-  ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(90, 0), UiBase_Absolute, Ui_X);
-  i32 preset = -1;
-  if (ui_select(ctx->canvas, &preset, dynarray_begin_t(&inputKeys, String), (u32)inputKeys.size)) {
-    dynstring_clear(&ctx->panel->newPropBuffer);
-    dynstring_append(&ctx->panel->newPropBuffer, *dynarray_at_t(&inputKeys, preset, String));
-  }
-  ui_layout_pop(ctx->canvas);
   ui_table_next_column(ctx->canvas, table);
   ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
   ui_select(
@@ -936,6 +926,12 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
     const StringHash key     = stringtable_add(g_stringtable, keyName);
     script_mem_store(memory, key, inspector_panel_prop_default(ctx->panel->propType));
     dynstring_clear(&ctx->panel->newPropBuffer);
+  }
+  inspector_panel_next(ctx, table);
+  i32 preset = -1;
+  if (ui_select(ctx->canvas, &preset, dynarray_begin_t(&inputKeys, String), (u32)inputKeys.size)) {
+    dynstring_clear(&ctx->panel->newPropBuffer);
+    dynstring_append(&ctx->panel->newPropBuffer, *dynarray_at_t(&inputKeys, preset, String));
   }
 }
 
