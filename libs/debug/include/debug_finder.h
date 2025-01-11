@@ -13,6 +13,8 @@ typedef enum eDebugFinderCategory {
   DebugFinderCategory_Count,
 } DebugFinderCategory;
 
+extern const String g_debugFinderCategoryNames[DebugFinderCategory_Count];
+
 typedef enum {
   DebugFinderStatus_Idle,
   DebugFinderStatus_Loading,

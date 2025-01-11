@@ -1,5 +1,6 @@
 #include "asset_manager.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "debug_finder.h"
@@ -15,6 +16,17 @@ static const String g_queryPatterns[DebugFinderCategory_Count] = {
     [DebugFinder_Terrain]     = string_static("terrains/*.terrain"),
     [DebugFinder_Vfx]         = string_static("vfx/*.vfx"),
 };
+
+const String g_debugFinderCategoryNames[] = {
+    [DebugFinder_Decal]       = string_static("Decal"),
+    [DebugFinder_Graphic]     = string_static("Graphic"),
+    [DebugFinder_Level]       = string_static("Level"),
+    [DebugFinder_ScriptScene] = string_static("ScriptScene"),
+    [DebugFinder_Sound]       = string_static("Sound"),
+    [DebugFinder_Terrain]     = string_static("Terrain"),
+    [DebugFinder_Vfx]         = string_static("Vfx"),
+};
+ASSERT(array_elems(g_debugFinderCategoryNames) == DebugFinderCategory_Count, "Missing names");
 
 typedef struct {
   DebugFinderStatus status;
