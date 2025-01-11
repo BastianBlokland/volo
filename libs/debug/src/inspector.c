@@ -929,7 +929,12 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   }
   inspector_panel_next(ctx, table);
   i32 preset = -1;
-  if (ui_select(ctx->canvas, &preset, dynarray_begin_t(&inputKeys, String), (u32)inputKeys.size)) {
+  if (ui_select(
+          ctx->canvas,
+          &preset,
+          dynarray_begin_t(&inputKeys, String),
+          (u32)inputKeys.size,
+          .placeholder = string_lit("- Preset -"))) {
     dynstring_clear(&ctx->panel->newPropBuffer);
     dynstring_append(&ctx->panel->newPropBuffer, *dynarray_at_t(&inputKeys, preset, String));
   }
