@@ -99,7 +99,8 @@ ecs_module_init(debug_finder_module) {
   ecs_register_system(DebugFinderUpdateSys, ecs_view_id(GlobalView), ecs_view_id(AssetView));
 }
 
-void debug_asset_query(DebugFinderComp* finder, const DebugFinderCategory cat, const bool refresh) {
+void debug_finder_query(
+    DebugFinderComp* finder, const DebugFinderCategory cat, const bool refresh) {
   diag_assert(cat < DebugFinderCategory_Count);
 
   DebugFinderState* state = &finder->states[cat];
