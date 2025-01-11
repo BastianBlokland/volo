@@ -6,7 +6,7 @@
  * Forward header for the debug library.
  */
 
-ecs_comp_extern(DebugAssetFinderComp);
+ecs_comp_extern(DebugFinderComp);
 ecs_comp_extern(DebugGizmoComp);
 ecs_comp_extern(DebugGridComp);
 ecs_comp_extern(DebugLogViewerComp);

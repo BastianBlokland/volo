@@ -21,7 +21,7 @@ typedef struct {
   const String*      ids;
 } DebugFinderResult;
 
-ecs_comp_extern(DebugAssetFinderComp);
+ecs_comp_extern(DebugFinderComp);
 
-void              debug_asset_query(DebugAssetFinderComp*, DebugFinderCategory, bool refresh);
-DebugFinderResult debug_finder_get(DebugAssetFinderComp*, DebugFinderCategory);
+void              debug_asset_query(DebugFinderComp*, DebugFinderCategory, bool refresh);
+DebugFinderResult debug_finder_get(DebugFinderComp*, DebugFinderCategory);
