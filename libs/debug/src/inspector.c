@@ -9,6 +9,7 @@
 #include "core_string.h"
 #include "core_stringtable.h"
 #include "core_utf8.h"
+#include "debug_finder.h"
 #include "debug_gizmo.h"
 #include "debug_inspector.h"
 #include "debug_panel.h"
@@ -215,6 +216,7 @@ ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp
 
 ecs_view_define(GlobalPanelUpdateView) {
   ecs_access_read(SceneTimeComp);
+  ecs_access_write(DebugFinderComp);
   ecs_access_write(DebugStatsGlobalComp);
   ecs_access_write(ScenePrefabEnvComp);
   ecs_access_write(SceneSetEnvComp);
@@ -455,6 +457,7 @@ typedef struct {
   SceneSetEnvComp*            setEnv;
   DebugStatsGlobalComp*       stats;
   DebugInspectorSettingsComp* settings;
+  DebugFinderComp*            finder;
   EcsView*                    scriptAssetView;
   EcsIterator*                subject;
   EcsEntityId                 subjectEntity;
@@ -797,7 +800,7 @@ static ScriptVal inspector_panel_prop_default(const DebugPropType type) {
   UNREACHABLE
 }
 
-static bool inspector_panel_prop_value_edit(InspectorContext* ctx, ScriptVal* val) {
+static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
   switch (script_type(*val)) {
   case ScriptType_Num: {
     f64 valNum = script_get_num(*val, 0);
@@ -864,6 +867,16 @@ static bool inspector_panel_prop_value_edit(InspectorContext* ctx, ScriptVal* va
   UNREACHABLE;
 }
 
+static bool inspector_panel_prop_edit_asset(
+    InspectorContext* ctx, ScriptVal* val, const DebugFinderCategory assetCat) {
+  EcsEntityId entity = script_get_entity(*val, 0);
+  if (debug_widget_editor_asset(ctx->canvas, ctx->finder, assetCat, &entity, UiWidget_Default)) {
+    *val = script_entity_or_null(entity);
+    return true;
+  }
+  return false;
+}
+
 static String inspector_panel_prop_tooltip_scratch(const DebugPropEntry* entry) {
   return fmt_write_scratch(
       "Key name:\a>15{}\n"
@@ -923,7 +936,7 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
 
     ui_table_next_column(ctx->canvas, table);
     ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
-    if (inspector_panel_prop_value_edit(ctx, &entry->val)) {
+    if (inspector_panel_prop_edit(ctx, &entry->val)) {
       script_mem_store(memory, entry->key, entry->val);
     }
     ui_layout_next(ctx->canvas, Ui_Right, 10);
@@ -987,7 +1000,14 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   }
   ui_table_next_column(ctx->canvas, table);
   ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
-  inspector_panel_prop_value_edit(ctx, &ctx->panel->newPropVal);
+  switch (ctx->panel->newPropType) {
+  case DebugPropType_Sound:
+    inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DebugFinder_Sound);
+    break;
+  default:
+    inspector_panel_prop_edit(ctx, &ctx->panel->newPropVal);
+    break;
+  }
 }
 
 static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
@@ -1412,6 +1432,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   SceneSetEnvComp*            setEnv   = ecs_view_write_t(globalItr, SceneSetEnvComp);
   DebugInspectorSettingsComp* settings = inspector_settings_get_or_create(world);
   DebugStatsGlobalComp*       stats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  DebugFinderComp*            finder   = ecs_view_write_t(globalItr, DebugFinderComp);
 
   ScenePrefabEnvComp*       prefabEnv = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
   const AssetPrefabMapComp* prefabMap = inspector_prefab_map(world, prefabEnv);
@@ -1442,6 +1463,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
         .setEnv          = setEnv,
         .stats           = stats,
         .settings        = settings,
+        .finder          = finder,
         .scriptAssetView = ecs_world_view_t(world, ScriptAssetView),
         .subject         = subjectItr,
         .subjectEntity   = subjectItr ? ecs_view_entity(subjectItr) : 0,
