@@ -17,6 +17,7 @@ ecs_comp_extern(DebugStatsComp);
 ecs_comp_extern(DebugStatsGlobalComp);
 ecs_comp_extern(DebugTextComp);
 
-typedef enum eDebugPanelType DebugPanelType;
-typedef enum eDebugShapeMode DebugShapeMode;
-typedef u64                  DebugGizmoId;
+typedef enum eDebugFinderCategory DebugFinderCategory;
+typedef enum eDebugPanelType      DebugPanelType;
+typedef enum eDebugShapeMode      DebugShapeMode;
+typedef u64                       DebugGizmoId;

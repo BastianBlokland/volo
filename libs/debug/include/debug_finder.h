@@ -1,7 +1,7 @@
 #pragma once
 #include "debug.h"
 
-typedef enum {
+typedef enum eDebugFinderCategory {
   DebugFinderCategory_Level,
   DebugFinderCategory_Terrain,
 
