@@ -33,7 +33,7 @@ typedef struct {
   DynArray          ids;      // Strings[].
 } DebugFinderState;
 
-ecs_comp_define(DebugFinderComp) { DebugFinderState states[DebugFinderCategory_Count]; };
+ecs_comp_define(DebugFinderComp) { DebugFinderState* states; };
 
 ecs_view_define(GlobalView) {
   ecs_access_write(AssetManagerComp);
@@ -48,10 +48,12 @@ static void ecs_destruct_finder(void* data) {
     dynarray_destroy(&comp->states[cat].entities);
     dynarray_destroy(&comp->states[cat].ids);
   }
+  alloc_free_array_t(g_allocHeap, comp->states, DebugFinderCategory_Count);
 }
 
 static DebugFinderComp* finder_init(EcsWorld* world, const EcsEntityId entity) {
   DebugFinderComp* finder = ecs_world_add_t(world, entity, DebugFinderComp);
+  finder->states          = alloc_array_t(g_allocHeap, DebugFinderState, DebugFinderCategory_Count);
   for (DebugFinderCategory cat = 0; cat != DebugFinderCategory_Count; ++cat) {
     finder->states[cat].entities = dynarray_create_t(g_allocHeap, EcsEntityId, 0);
     finder->states[cat].ids      = dynarray_create_t(g_allocHeap, String, 0);
