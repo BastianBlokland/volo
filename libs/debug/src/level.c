@@ -41,8 +41,10 @@ typedef enum {
   DebugLevelFlags_Unload        = 1 << 3,
   DebugLevelFlags_Save          = 1 << 4,
 
-  DebugLevelFlags_None    = 0,
-  DebugLevelFlags_Default = DebugLevelFlags_RefreshLevels,
+  DebugLevelFlags_None     = 0,
+  DebugLevelFlags_Default  = DebugLevelFlags_RefreshLevels,
+  DebugLevelFlags_Volatile = DebugLevelFlags_RefreshLevels | DebugLevelFlags_Edit |
+                             DebugLevelFlags_Play | DebugLevelFlags_Unload | DebugLevelFlags_Save,
 } DebugLevelFlags;
 
 typedef enum {
@@ -363,26 +365,20 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
       ctx.cameraTrans = ecs_view_read_t(cameraItr, SceneTransformComp);
     }
 
-    if (panelComp->flags & DebugLevelFlags_RefreshLevels) {
-      refreshLevels = true;
-      panelComp->flags &= ~DebugLevelFlags_RefreshLevels;
-    }
+    refreshLevels |= (panelComp->flags & DebugLevelFlags_RefreshLevels) != 0;
     if (panelComp->flags & DebugLevelFlags_Edit) {
       scene_level_reload(world, SceneLevelMode_Edit);
-      panelComp->flags &= ~DebugLevelFlags_Edit;
     }
     if (panelComp->flags & DebugLevelFlags_Play) {
       scene_level_reload(world, SceneLevelMode_Play);
-      panelComp->flags &= ~DebugLevelFlags_Play;
     }
     if (panelComp->flags & DebugLevelFlags_Unload) {
       scene_level_unload(world);
-      panelComp->flags &= ~DebugLevelFlags_Unload;
     }
     if (panelComp->flags & DebugLevelFlags_Save) {
       scene_level_save(world, scene_level_asset(levelManager));
-      panelComp->flags &= ~DebugLevelFlags_Save;
     }
+    panelComp->flags &= ~DebugLevelFlags_Volatile;
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
