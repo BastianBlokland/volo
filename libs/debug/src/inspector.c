@@ -192,7 +192,8 @@ ecs_comp_define(DebugInspectorPanelComp) {
   UiPanel       panel;
   UiScrollview  scrollview;
   u32           totalRows;
-  DebugPropType propType;
+  DebugPropType newPropType;
+  ScriptVal     newPropVal;
   DynString     newSetBuffer, newPropBuffer;
   GeoVector transformRotEulerDeg; // Local copy of rotation as euler angles to use while editing.
 };
@@ -930,8 +931,13 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
       .maxTextLength = 32);
   ui_table_next_column(ctx->canvas, table);
   ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
-  ui_select(
-      ctx->canvas, (i32*)&ctx->panel->propType, g_propTypeNames, array_elems(g_propTypeNames));
+  if (ui_select(
+          ctx->canvas,
+          (i32*)&ctx->panel->newPropType,
+          g_propTypeNames,
+          array_elems(g_propTypeNames))) {
+    ctx->panel->newPropVal = inspector_panel_prop_default(ctx->panel->newPropType);
+  }
   ui_layout_next(ctx->canvas, Ui_Right, 10);
   ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
   if (ui_button(
@@ -943,7 +949,7 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
           .tooltip    = string_lit("Add a new property entry with the given key and type."))) {
     const String     keyName = dynstring_view(&ctx->panel->newPropBuffer);
     const StringHash key     = stringtable_add(g_stringtable, keyName);
-    script_mem_store(memory, key, inspector_panel_prop_default(ctx->panel->propType));
+    script_mem_store(memory, key, ctx->panel->newPropVal);
     dynstring_clear(&ctx->panel->newPropBuffer);
   }
   inspector_panel_next(ctx, table);
@@ -2332,6 +2338,8 @@ debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window, const Debu
       .panel         = ui_panel(.position = ui_vector(0.0f, 0.0f), .size = ui_vector(500, 500)),
       .newSetBuffer  = dynstring_create(g_allocHeap, 0),
       .newPropBuffer = dynstring_create(g_allocHeap, 0));
+
+  inspectorPanel->newPropVal = inspector_panel_prop_default(inspectorPanel->newPropType);
 
   if (type == DebugPanelType_Detached) {
     ui_panel_maximize(&inspectorPanel->panel);
