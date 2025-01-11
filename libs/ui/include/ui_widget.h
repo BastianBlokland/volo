@@ -58,6 +58,7 @@ typedef struct {
   u16           fontSize;
   f32           maxHeight;
   UiColor       frameColor, dropFrameColor;
+  String        placeholder;
   String        tooltip;
 } UiSelectOpts;
 
@@ -181,6 +182,7 @@ typedef struct {
     .maxHeight      = 150,                                                                         \
     .frameColor     = ui_color(32, 32, 32, 192),                                                   \
     .dropFrameColor = ui_color(64, 64, 64, 235),                                                   \
+    .placeholder    = string_lit("- Select -"),                                                    \
     __VA_ARGS__}))
 
 /**

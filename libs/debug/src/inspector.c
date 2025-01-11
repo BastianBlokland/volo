@@ -192,7 +192,8 @@ ecs_comp_define(DebugInspectorPanelComp) {
   UiPanel       panel;
   UiScrollview  scrollview;
   u32           totalRows;
-  DebugPropType propType;
+  DebugPropType newPropType;
+  ScriptVal     newPropVal;
   DynString     newSetBuffer, newPropBuffer;
   GeoVector transformRotEulerDeg; // Local copy of rotation as euler angles to use while editing.
 };
@@ -397,8 +398,8 @@ static void inspector_prefab_replace(
   scene_prefab_spawn_replace(prefabEnv, &spec, entity);
 }
 
-static void inspector_properties_get_input_keys(
-    EcsIterator* subject, EcsView* scriptAssetView, DynArray* outProperties /* String[] */) {
+static void inspector_prop_find_inputs(
+    EcsIterator* subject, EcsView* scriptAssetView, DynArray* outInputKeys /* String[] */) {
   const SceneScriptComp* scriptComp = ecs_view_read_t(subject, SceneScriptComp);
   if (!scriptComp) {
     return;
@@ -414,10 +415,31 @@ static void inspector_properties_get_input_keys(
     heap_array_for_t(scriptAsset->inputKeys, StringHash, key) {
       const String name = stringtable_lookup(g_stringtable, *key);
       if (LIKELY(!string_is_empty(name))) {
-        *(String*)dynarray_find_or_insert_sorted(outProperties, compare_string, &name) = name;
+        *(String*)dynarray_find_or_insert_sorted(outInputKeys, compare_string, &name) = name;
       }
     }
   }
+}
+
+static void
+inspector_prop_collect(EcsIterator* subject, DynArray* outEntries /* DebugPropEntry[] */) {
+  const ScenePropertyComp* propComp = ecs_view_read_t(subject, ScenePropertyComp);
+  if (!propComp) {
+    return;
+  }
+  const ScriptMem* memory = scene_prop_memory(propComp);
+  for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
+    const ScriptVal val = script_mem_load(memory, itr.key);
+    if (script_type(val) != ScriptType_Null) {
+      const String keyStr                          = stringtable_lookup(g_stringtable, itr.key);
+      *dynarray_push_t(outEntries, DebugPropEntry) = (DebugPropEntry){
+          .name = string_is_empty(keyStr) ? string_lit("< unnamed >") : keyStr,
+          .key  = itr.key,
+          .val  = val,
+      };
+    }
+  }
+  dynarray_sort(outEntries, debug_prop_compare_entry);
 }
 
 typedef struct {
@@ -770,41 +792,50 @@ static ScriptVal inspector_panel_prop_default(const DebugPropType type) {
   UNREACHABLE
 }
 
-static void inspector_panel_prop_value_edit(
-    InspectorContext* ctx, ScriptMem* mem, const StringHash key, const ScriptVal val) {
-  switch (script_type(val)) {
+static bool inspector_panel_prop_value_edit(InspectorContext* ctx, ScriptVal* val) {
+  switch (script_type(*val)) {
   case ScriptType_Num: {
-    f64 valNum = script_get_num(val, 0);
+    f64 valNum = script_get_num(*val, 0);
     if (ui_numbox(ctx->canvas, &valNum, .min = f64_min, .max = f64_max)) {
-      script_mem_store(mem, key, script_num(valNum));
+      *val = script_num(valNum);
+      return true;
     }
-  } break;
+    return false;
+  }
   case ScriptType_Bool: {
-    bool valBool = script_get_bool(val, false);
+    bool valBool = script_get_bool(*val, false);
     if (ui_toggle(ctx->canvas, &valBool)) {
-      script_mem_store(mem, key, script_bool(valBool));
+      *val = script_bool(valBool);
+      return true;
     }
-  } break;
+    return false;
+  }
   case ScriptType_Vec3: {
-    GeoVector valVec3 = script_get_vec3(val, geo_vector(0));
+    GeoVector valVec3 = script_get_vec3(*val, geo_vector(0));
     if (debug_widget_editor_vec3(ctx->canvas, &valVec3, UiWidget_Default)) {
-      script_mem_store(mem, key, script_vec3(valVec3));
+      *val = script_vec3(valVec3);
+      return true;
     }
-  } break;
+    return false;
+  }
   case ScriptType_Quat: {
-    GeoQuat valQuat = script_get_quat(val, geo_quat_ident);
+    GeoQuat valQuat = script_get_quat(*val, geo_quat_ident);
     if (debug_widget_editor_quat(ctx->canvas, &valQuat, UiWidget_Default)) {
-      script_mem_store(mem, key, script_quat(valQuat));
+      *val = script_quat(valQuat);
+      return true;
     }
-  } break;
+    return false;
+  }
   case ScriptType_Color: {
-    GeoColor valColor = script_get_color(val, geo_color_white);
+    GeoColor valColor = script_get_color(*val, geo_color_white);
     if (debug_widget_editor_color(ctx->canvas, &valColor, UiWidget_Default)) {
-      script_mem_store(mem, key, script_color(valColor));
+      *val = script_color(valColor);
+      return true;
     }
-  } break;
+    return false;
+  }
   case ScriptType_Str: {
-    const String valStr = stringtable_lookup(g_stringtable, script_get_str(val, 0));
+    const String valStr = stringtable_lookup(g_stringtable, script_get_str(*val, 0));
 
     u8        editBuffer[64];
     DynString editStr = dynstring_create_over(mem_var(editBuffer));
@@ -813,15 +844,46 @@ static void inspector_panel_prop_value_edit(
     if (ui_textbox(ctx->canvas, &editStr, .maxTextLength = sizeof(editBuffer))) {
       // TODO: This hashes on every character typed which unnecessary fills the string-table.
       const StringHash newStrHash = stringtable_add(g_stringtable, dynstring_view(&editStr));
-      script_mem_store(mem, key, script_str(newStrHash));
+      *val                        = script_str(newStrHash);
+      return true;
     }
-  } break;
+    return false;
+  }
   case ScriptType_Entity:
   case ScriptType_Null:
-    ui_label(ctx->canvas, script_val_scratch(val));
-    break;
+    ui_label(ctx->canvas, script_val_scratch(*val));
+    return false;
   case ScriptType_Count:
-    UNREACHABLE;
+    break;
+  }
+  UNREACHABLE;
+}
+
+static String inspector_panel_prop_tooltip_scratch(const DebugPropEntry* entry) {
+  return fmt_write_scratch(
+      "Key name:\a>15{}\n"
+      "Key hash:\a>15{}\n"
+      "Type:\a>15{}\n"
+      "Value:\a>15{}\n",
+      fmt_text(entry->name),
+      fmt_int(entry->key),
+      fmt_text(script_val_type_str(script_type(entry->val))),
+      fmt_text(script_val_scratch(entry->val)));
+}
+
+static void inspector_panel_prop_labels(UiCanvasComp* canvas, const String* inputEntry) {
+  if (inputEntry) {
+    ui_layout_push(canvas);
+    ui_layout_next(canvas, Ui_Right, 0);
+    ui_layout_resize(canvas, UiAlign_BottomRight, ui_vector(20, 20), UiBase_Absolute, Ui_XY);
+    ui_style_push(canvas);
+    ui_style_color(canvas, ui_color(255, 255, 255, 128));
+    const UiId id = ui_canvas_draw_glyph(canvas, UiShape_Input, 0, UiFlags_Interactable);
+    ui_tooltip(canvas, id, string_lit("This property is used as a script input."));
+    ui_style_pop(canvas);
+    ui_layout_pop(canvas);
+  } else {
+    ui_canvas_id_skip(canvas, 3 /* 1 for the glyph and 2 for the tooltip*/);
   }
 }
 
@@ -836,58 +898,29 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   if (!inspector_panel_section(ctx, string_lit("Properties"))) {
     return;
   }
-  DynArray inputKeys = dynarray_create_t(g_allocScratch, String, 128);
-  inspector_properties_get_input_keys(ctx->subject, ctx->scriptAssetView, &inputKeys);
-
-  // Collect entries.
   DynArray entries = dynarray_create_t(g_allocScratch, DebugPropEntry, 128);
-  for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
-    const ScriptVal val = script_mem_load(memory, itr.key);
-    if (script_type(val) == ScriptType_Null) {
-      continue;
-    }
-    const String keyStr                        = stringtable_lookup(g_stringtable, itr.key);
-    *dynarray_push_t(&entries, DebugPropEntry) = (DebugPropEntry){
-        .name = string_is_empty(keyStr) ? string_lit("< unnamed >") : keyStr,
-        .key  = itr.key,
-        .val  = val,
-    };
-  }
-  dynarray_sort(&entries, debug_prop_compare_entry);
+  inspector_prop_collect(ctx->subject, &entries);
 
-  // Draw entries.
+  DynArray inputKeys = dynarray_create_t(g_allocScratch, String, 128);
+  inspector_prop_find_inputs(ctx->subject, ctx->scriptAssetView, &inputKeys);
+
   dynarray_for_t(&entries, DebugPropEntry, entry) {
-    const String tooltip = fmt_write_scratch(
-        "Key name:\a>15{}\n"
-        "Key hash:\a>15{}\n"
-        "Type:\a>15{}\n"
-        "Value:\a>15{}\n",
-        fmt_text(entry->name),
-        fmt_int(entry->key),
-        fmt_text(script_val_type_str(script_type(entry->val))),
-        fmt_text(script_val_scratch(entry->val)));
-
     inspector_panel_next(ctx, table);
+
+    const String tooltip = inspector_panel_prop_tooltip_scratch(entry);
     ui_label(ctx->canvas, entry->name, .selectable = true, .tooltip = tooltip);
+
     String* inputEntry = dynarray_search_binary(&inputKeys, compare_string, &entry->name);
     if (inputEntry) {
       dynarray_remove_ptr(&inputKeys, inputEntry); // Remove the used inputs from the preset list.
-
-      ui_layout_push(ctx->canvas);
-      ui_layout_next(ctx->canvas, Ui_Right, 0);
-      ui_layout_resize(ctx->canvas, UiAlign_BottomRight, ui_vector(20, 20), UiBase_Absolute, Ui_XY);
-      ui_style_push(ctx->canvas);
-      ui_style_color(ctx->canvas, ui_color(255, 255, 255, 128));
-      const UiId id = ui_canvas_draw_glyph(ctx->canvas, UiShape_Input, 0, UiFlags_Interactable);
-      ui_tooltip(ctx->canvas, id, string_lit("This property is used as a script input."));
-      ui_style_pop(ctx->canvas);
-      ui_layout_pop(ctx->canvas);
-    } else {
-      ui_canvas_id_skip(ctx->canvas, 3 /* 1 for the glyph and 2 for the tooltip*/);
     }
+    inspector_panel_prop_labels(ctx->canvas, inputEntry);
+
     ui_table_next_column(ctx->canvas, table);
     ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
-    inspector_panel_prop_value_edit(ctx, memory, entry->key, entry->val);
+    if (inspector_panel_prop_value_edit(ctx, &entry->val)) {
+      script_mem_store(memory, entry->key, entry->val);
+    }
     ui_layout_next(ctx->canvas, Ui_Right, 10);
     ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
     if (ui_button(
@@ -901,28 +934,24 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   }
   dynarray_destroy(&entries);
 
-  // Draw entry creation Ui.
+  // Entry creation Ui.
   inspector_panel_next(ctx, table);
-  ui_layout_push(ctx->canvas);
-  ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-100, 0), UiBase_Absolute, Ui_X);
   ui_textbox(
       ctx->canvas,
       &ctx->panel->newPropBuffer,
       .placeholder   = string_lit("New key..."),
+      .tooltip       = string_lit("Key for a new property entry."),
       .type          = UiTextbox_Word,
       .maxTextLength = 32);
-  ui_layout_next(ctx->canvas, Ui_Right, 10);
-  ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(90, 0), UiBase_Absolute, Ui_X);
-  i32 preset = -1;
-  if (ui_select(ctx->canvas, &preset, dynarray_begin_t(&inputKeys, String), (u32)inputKeys.size)) {
-    dynstring_clear(&ctx->panel->newPropBuffer);
-    dynstring_append(&ctx->panel->newPropBuffer, *dynarray_at_t(&inputKeys, preset, String));
-  }
-  ui_layout_pop(ctx->canvas);
   ui_table_next_column(ctx->canvas, table);
   ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
-  ui_select(
-      ctx->canvas, (i32*)&ctx->panel->propType, g_propTypeNames, array_elems(g_propTypeNames));
+  if (ui_select(
+          ctx->canvas,
+          (i32*)&ctx->panel->newPropType,
+          g_propTypeNames,
+          array_elems(g_propTypeNames))) {
+    ctx->panel->newPropVal = inspector_panel_prop_default(ctx->panel->newPropType);
+  }
   ui_layout_next(ctx->canvas, Ui_Right, 10);
   ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
   if (ui_button(
@@ -934,9 +963,25 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
           .tooltip    = string_lit("Add a new property entry with the given key and type."))) {
     const String     keyName = dynstring_view(&ctx->panel->newPropBuffer);
     const StringHash key     = stringtable_add(g_stringtable, keyName);
-    script_mem_store(memory, key, inspector_panel_prop_default(ctx->panel->propType));
+    script_mem_store(memory, key, ctx->panel->newPropVal);
     dynstring_clear(&ctx->panel->newPropBuffer);
+    ctx->panel->newPropVal = inspector_panel_prop_default(ctx->panel->newPropType);
   }
+  inspector_panel_next(ctx, table);
+  i32 preset = -1;
+  if (ui_select(
+          ctx->canvas,
+          &preset,
+          dynarray_begin_t(&inputKeys, String),
+          (u32)inputKeys.size,
+          .placeholder = string_lit("- Preset -"),
+          .tooltip     = string_lit("Pick a key name from the script inputs."))) {
+    dynstring_clear(&ctx->panel->newPropBuffer);
+    dynstring_append(&ctx->panel->newPropBuffer, *dynarray_at_t(&inputKeys, preset, String));
+  }
+  ui_table_next_column(ctx->canvas, table);
+  ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
+  inspector_panel_prop_value_edit(ctx, &ctx->panel->newPropVal);
 }
 
 static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
@@ -2311,6 +2356,8 @@ debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window, const Debu
       .panel         = ui_panel(.position = ui_vector(0.0f, 0.0f), .size = ui_vector(500, 500)),
       .newSetBuffer  = dynstring_create(g_allocHeap, 0),
       .newPropBuffer = dynstring_create(g_allocHeap, 0));
+
+  inspectorPanel->newPropVal = inspector_panel_prop_default(inspectorPanel->newPropType);
 
   if (type == DebugPanelType_Detached) {
     ui_panel_maximize(&inspectorPanel->panel);
