@@ -965,6 +965,7 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
     const StringHash key     = stringtable_add(g_stringtable, keyName);
     script_mem_store(memory, key, ctx->panel->newPropVal);
     dynstring_clear(&ctx->panel->newPropBuffer);
+    ctx->panel->newPropVal = inspector_panel_prop_default(ctx->panel->newPropType);
   }
   inspector_panel_next(ctx, table);
   i32 preset = -1;
@@ -978,6 +979,9 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
     dynstring_clear(&ctx->panel->newPropBuffer);
     dynstring_append(&ctx->panel->newPropBuffer, *dynarray_at_t(&inputKeys, preset, String));
   }
+  ui_table_next_column(ctx->canvas, table);
+  ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
+  inspector_panel_prop_value_edit(ctx, &ctx->panel->newPropVal);
 }
 
 static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
