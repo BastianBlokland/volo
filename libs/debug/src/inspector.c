@@ -1,3 +1,4 @@
+#include "asset_manager.h"
 #include "asset_script.h"
 #include "core_alloc.h"
 #include "core_array.h"
@@ -296,6 +297,11 @@ ecs_view_define(ScriptAssetView) {
   ecs_access_read(AssetScriptComp);
 }
 
+ecs_view_define(EntityRefView) {
+  ecs_access_maybe_read(AssetComp);
+  ecs_access_maybe_read(SceneNameComp);
+}
+
 ecs_view_define(CameraView) {
   ecs_access_read(GapWindowAspectComp);
   ecs_access_read(SceneCameraComp);
@@ -410,19 +416,17 @@ static void inspector_prefab_replace(
 }
 
 static void inspector_prop_find_inputs(
-    EcsIterator* subject, EcsView* scriptAssetView, DynArray* outInputKeys /* String[] */) {
+    EcsIterator* subject, EcsIterator* scriptAssetItr, DynArray* outInputKeys /* String[] */) {
   const SceneScriptComp* scriptComp = ecs_view_read_t(subject, SceneScriptComp);
   if (!scriptComp) {
     return;
   }
-  EcsIterator* assetItr = ecs_view_itr(scriptAssetView);
-
   const u32 scriptCount = scene_script_count(scriptComp);
   for (SceneScriptSlot scriptSlot = 0; scriptSlot != scriptCount; ++scriptSlot) {
-    if (!ecs_view_maybe_jump(assetItr, scene_script_asset(scriptComp, scriptSlot))) {
+    if (!ecs_view_maybe_jump(scriptAssetItr, scene_script_asset(scriptComp, scriptSlot))) {
       continue; // Script is not loaded yet or failed to load.
     }
-    const AssetScriptComp* scriptAsset = ecs_view_read_t(assetItr, AssetScriptComp);
+    const AssetScriptComp* scriptAsset = ecs_view_read_t(scriptAssetItr, AssetScriptComp);
     heap_array_for_t(scriptAsset->inputKeys, StringHash, key) {
       const String name = stringtable_lookup(g_stringtable, *key);
       if (LIKELY(!string_is_empty(name))) {
@@ -464,7 +468,8 @@ typedef struct {
   DebugStatsGlobalComp*       stats;
   DebugInspectorSettingsComp* settings;
   DebugFinderComp*            finder;
-  EcsView*                    scriptAssetView;
+  EcsIterator*                scriptAssetItr;
+  EcsIterator*                entityRefItr;
   EcsIterator*                subject;
   EcsEntityId                 subjectEntity;
 } InspectorContext;
@@ -862,7 +867,17 @@ static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
   }
   case ScriptType_Entity:
     const EcsEntityId entity = script_get_entity(*val, 0);
-    const String      label  = fmt_write_scratch("{}", ecs_entity_fmt(entity));
+    String            label  = fmt_write_scratch("{}", ecs_entity_fmt(entity));
+    if (ecs_view_maybe_jump(ctx->entityRefItr, entity)) {
+      const AssetComp*     assetComp = ecs_view_read_t(ctx->entityRefItr, AssetComp);
+      const SceneNameComp* nameComp  = ecs_view_read_t(ctx->entityRefItr, SceneNameComp);
+      if (nameComp) {
+        const String name = stringtable_lookup(g_stringtable, nameComp->name);
+        label             = string_is_empty(name) ? string_lit("< Unnamed >") : name;
+      } else if (assetComp) {
+        label = asset_id(assetComp);
+      }
+    }
     ui_label(ctx->canvas, label, .selectable = true);
     return false;
   case ScriptType_Null:
@@ -927,7 +942,7 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   inspector_prop_collect(ctx->subject, &entries);
 
   DynArray inputKeys = dynarray_create_t(g_allocScratch, String, 128);
-  inspector_prop_find_inputs(ctx->subject, ctx->scriptAssetView, &inputKeys);
+  inspector_prop_find_inputs(ctx->subject, ctx->scriptAssetItr, &inputKeys);
 
   dynarray_for_t(&entries, DebugPropEntry, entry) {
     inspector_panel_next(ctx, table);
@@ -1470,19 +1485,20 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
       continue;
     }
     InspectorContext ctx = {
-        .world           = world,
-        .canvas          = canvas,
-        .panel           = panelComp,
-        .time            = time,
-        .prefabEnv       = prefabEnv,
-        .prefabMap       = prefabMap,
-        .setEnv          = setEnv,
-        .stats           = stats,
-        .settings        = settings,
-        .finder          = finder,
-        .scriptAssetView = ecs_world_view_t(world, ScriptAssetView),
-        .subject         = subjectItr,
-        .subjectEntity   = subjectItr ? ecs_view_entity(subjectItr) : 0,
+        .world          = world,
+        .canvas         = canvas,
+        .panel          = panelComp,
+        .time           = time,
+        .prefabEnv      = prefabEnv,
+        .prefabMap      = prefabMap,
+        .setEnv         = setEnv,
+        .stats          = stats,
+        .settings       = settings,
+        .finder         = finder,
+        .scriptAssetItr = ecs_view_itr(ecs_world_view_t(world, ScriptAssetView)),
+        .entityRefItr   = ecs_view_itr(ecs_world_view_t(world, EntityRefView)),
+        .subject        = subjectItr,
+        .subjectEntity  = subjectItr ? ecs_view_entity(subjectItr) : 0,
     };
     inspector_panel_draw(&ctx);
 
@@ -2364,6 +2380,7 @@ ecs_module_init(debug_inspector_module) {
   ecs_register_view(SubjectView);
   ecs_register_view(TransformView);
   ecs_register_view(ScriptAssetView);
+  ecs_register_view(EntityRefView);
   ecs_register_view(CameraView);
   ecs_register_view(PrefabMapView);
 
@@ -2374,6 +2391,7 @@ ecs_module_init(debug_inspector_module) {
       ecs_view_id(PanelUpdateView),
       ecs_view_id(SubjectView),
       ecs_view_id(ScriptAssetView),
+      ecs_view_id(EntityRefView),
       ecs_view_id(PrefabMapView));
 
   ecs_register_system(
