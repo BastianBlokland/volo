@@ -407,7 +407,8 @@ static UiSelectFlags ui_select_dropdown(
     const String*       options,
     const u32           optionCount,
     const UiSelectOpts* opts) {
-  if (!optionCount) {
+  const u32 entryCount = optionCount + opts->allowNone;
+  if (!entryCount) {
     return 0;
   }
   static const f32 g_spacing = 2;
@@ -421,7 +422,7 @@ static UiSelectFlags ui_select_dropdown(
 
   UiSelectFlags selectFlags = 0;
   const UiRect  lastRect    = ui_canvas_elem_rect(canvas, id);
-  const f32     totalHeight = optionCount * lastRect.height + (optionCount - 1) * g_spacing;
+  const f32     totalHeight = entryCount * lastRect.height + (entryCount - 1) * g_spacing;
   const f32     height      = math_min(totalHeight, opts->maxHeight);
   ui_layout_push(canvas);
 
@@ -447,8 +448,8 @@ static UiSelectFlags ui_select_dropdown(
   ui_layout_move_to(canvas, UiBase_Current, anchor, Ui_Y);
   ui_layout_resize(canvas, anchor, ui_vector(0, lastRect.height), UiBase_Absolute, Ui_Y);
 
-  for (u32 i = 0; i != optionCount; ++i) {
-    const u32 optionIndex = dir == Ui_Up ? (optionCount - 1 - i) : i;
+  for (i32 i = 0; i != (i32)entryCount; ++i) {
+    const i32 optionIndex = (dir == Ui_Up ? entryCount - 1 - i : i) - (i32)opts->allowNone;
 
     const UiId     optionId     = ui_canvas_id_peek(canvas);
     const UiStatus optionStatus = ui_canvas_elem_status(canvas, optionId);
@@ -464,7 +465,8 @@ static UiSelectFlags ui_select_dropdown(
 
     ui_style_push(canvas);
     ui_interactable_text_style(canvas, optionStatus);
-    ui_canvas_draw_text(canvas, options[optionIndex], opts->fontSize, UiAlign_MiddleLeft, 0);
+    const String label = optionIndex < 0 ? opts->placeholder : options[optionIndex];
+    ui_canvas_draw_text(canvas, label, opts->fontSize, UiAlign_MiddleLeft, 0);
     ui_style_pop(canvas);
 
     ui_layout_pop(canvas);
@@ -494,8 +496,9 @@ bool ui_select_with_opts(
     const u32           optionCount,
     const UiSelectOpts* opts) {
 
+  const u32      entryCount   = optionCount + opts->allowNone;
   const UiId     headerId     = ui_canvas_id_peek(canvas);
-  const bool     disabled     = (opts->flags & UiWidget_Disabled) != 0 || !optionCount;
+  const bool     disabled     = (opts->flags & UiWidget_Disabled) != 0 || !entryCount;
   const UiStatus headerStatus = disabled ? UiStatus_Idle : ui_canvas_elem_status(canvas, headerId);
   UiSelectFlags  selectFlags  = 0;
 

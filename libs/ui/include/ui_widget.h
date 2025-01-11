@@ -55,6 +55,7 @@ typedef struct {
 
 typedef struct {
   UiWidgetFlags flags : 8;
+  bool          allowNone;
   u16           fontSize;
   f32           maxHeight;
   UiColor       frameColor, dropFrameColor;
