@@ -310,16 +310,16 @@ static bool memory_draw_entity(UiCanvasComp* c, EcsIterator* entityRefItr, Scrip
   const u32 index  = ecs_entity_id_index(valEntity);
   const u32 serial = ecs_entity_id_serial(valEntity);
 
-  String msg = fmt_write_scratch("{}", ecs_entity_fmt(valEntity));
+  String label = fmt_write_scratch("{}", ecs_entity_fmt(valEntity));
   if (ecs_view_maybe_jump(entityRefItr, valEntity)) {
     const AssetComp*     assetComp = ecs_view_read_t(entityRefItr, AssetComp);
     const SceneNameComp* nameComp  = ecs_view_read_t(entityRefItr, SceneNameComp);
 
     if (nameComp) {
       const String name = stringtable_lookup(g_stringtable, nameComp->name);
-      msg               = string_is_empty(name) ? string_lit("< Unnamed >") : name;
+      label             = string_is_empty(name) ? string_lit("< Unnamed >") : name;
     } else if (assetComp) {
-      msg = asset_id(assetComp);
+      label = asset_id(assetComp);
     }
   }
 
@@ -333,7 +333,7 @@ static bool memory_draw_entity(UiCanvasComp* c, EcsIterator* entityRefItr, Scrip
 
   ui_style_push(c);
   ui_style_variation(c, UiVariation_Monospace);
-  ui_label(c, msg, .selectable = true, .tooltip = tooltip);
+  ui_label(c, label, .selectable = true, .tooltip = tooltip);
   ui_style_pop(c);
 
   return false;

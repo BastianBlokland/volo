@@ -861,8 +861,12 @@ static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
     return false;
   }
   case ScriptType_Entity:
+    const EcsEntityId entity = script_get_entity(*val, 0);
+    const String      label  = fmt_write_scratch("{}", ecs_entity_fmt(entity));
+    ui_label(ctx->canvas, label, .selectable = true);
+    return false;
   case ScriptType_Null:
-    ui_label(ctx->canvas, script_val_scratch(*val));
+    ui_label(ctx->canvas, string_lit("< null >"));
     return false;
   case ScriptType_Count:
     break;
