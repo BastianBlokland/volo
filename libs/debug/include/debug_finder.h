@@ -2,8 +2,13 @@
 #include "debug.h"
 
 typedef enum eDebugFinderCategory {
+  DebugFinder_Decal,
+  DebugFinder_Graphic,
   DebugFinder_Level,
+  DebugFinder_ScriptScene,
+  DebugFinder_Sound,
   DebugFinder_Terrain,
+  DebugFinder_Vfx,
 
   DebugFinderCategory_Count,
 } DebugFinderCategory;

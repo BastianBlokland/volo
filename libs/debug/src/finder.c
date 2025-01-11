@@ -7,8 +7,13 @@
 #include "ecs_world.h"
 
 static const String g_queryPatterns[DebugFinderCategory_Count] = {
-    [DebugFinder_Level]   = string_static("levels/*.level"),
-    [DebugFinder_Terrain] = string_static("terrains/*.terrain"),
+    [DebugFinder_Decal]       = string_static("vfx/*.decal"),
+    [DebugFinder_Graphic]     = string_static("graphics/*.graphic"),
+    [DebugFinder_Level]       = string_static("levels/*.level"),
+    [DebugFinder_ScriptScene] = string_static("scripts/scene/*.script"),
+    [DebugFinder_Sound]       = string_static("external/sound/*.wav"),
+    [DebugFinder_Terrain]     = string_static("terrains/*.terrain"),
+    [DebugFinder_Vfx]         = string_static("vfx/*.vfx"),
 };
 
 typedef struct {
