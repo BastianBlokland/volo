@@ -13,6 +13,7 @@ static const String g_queryPatterns[DebugFinderCategory_Count] = {
 
 typedef struct {
   DebugFinderStatus status;
+  bool              executedQuery;
   DynArray          entities; // EcsEntityId[].
   DynArray          ids;      // Strings[].
 } DebugFinderState;
@@ -23,6 +24,8 @@ ecs_view_define(GlobalView) {
   ecs_access_write(AssetManagerComp);
   ecs_access_maybe_write(DebugAssetFinderComp);
 }
+
+ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 
 static void ecs_destruct_finder(void* data) {
   DebugAssetFinderComp* comp = data;
@@ -52,34 +55,80 @@ ecs_system_define(DebugFinderUpdateSys) {
   if (!finder) {
     finder = finder_init(world, ecs_world_global(world));
   }
-  (void)assets;
-  (void)g_queryPatterns;
+
+  EcsView*     assetView = ecs_world_view_t(world, AssetView);
+  EcsIterator* assetItr  = ecs_view_itr(assetView);
+
+  EcsEntityId assetBuffer[asset_query_max_results];
+
+  for (DebugFinderCategory cat = 0; cat != DebugFinderCategory_Count; ++cat) {
+    DebugFinderState* state = &finder->states[cat];
+    if (state->status != DebugFinderStatus_Loading) {
+      continue; // No need to refresh.
+    }
+
+    // Query the asset entities.
+    if (!state->executedQuery) {
+      const u32 count = asset_query(world, assets, g_queryPatterns[cat], assetBuffer);
+      dynarray_clear(&state->entities);
+      mem_cpy(
+          dynarray_push(&state->entities, count),
+          mem_create(assetBuffer, count * sizeof(EcsEntityId)));
+      state->executedQuery = true;
+      continue; // Wait a frame before fetching the ids.
+    }
+
+    // Fetch the ids of the assets.
+    dynarray_clear(&state->ids);
+    dynarray_for_t(&state->entities, EcsEntityId, asset) {
+      ecs_view_jump(assetItr, *asset);
+      *dynarray_push_t(&state->ids, String) = asset_id(ecs_view_read_t(assetItr, AssetComp));
+    }
+
+    // Ready.
+    state->status = DebugFinderStatus_Ready;
+  }
 }
 
 ecs_module_init(debug_finder_module) {
   ecs_register_comp(DebugAssetFinderComp, .destructor = ecs_destruct_finder);
 
   ecs_register_view(GlobalView);
+  ecs_register_view(AssetView);
 
-  ecs_register_system(DebugFinderUpdateSys, ecs_view_id(GlobalView));
+  ecs_register_system(DebugFinderUpdateSys, ecs_view_id(GlobalView), ecs_view_id(AssetView));
 }
 
 void debug_asset_query(
     DebugAssetFinderComp* finder, const DebugFinderCategory cat, const bool refresh) {
   diag_assert(cat < DebugFinderCategory_Count);
 
-  if (finder->states[cat].status == DebugFinderStatus_Idle || refresh) {
-    finder->states[cat].status = DebugFinderStatus_Loading;
+  DebugFinderState* state = &finder->states[cat];
+  switch (state->status) {
+  case DebugFinderStatus_Idle:
+    state->status = DebugFinderStatus_Loading;
+    break;
+  case DebugFinderStatus_Loading:
+    break;
+  case DebugFinderStatus_Ready:
+    if (refresh) {
+      state->status = DebugFinderStatus_Loading;
+    }
+    break;
   }
 }
 
 DebugFinderResult debug_finder_get(DebugAssetFinderComp* finder, const DebugFinderCategory cat) {
   diag_assert(cat < DebugFinderCategory_Count);
 
+  DebugFinderState* state = &finder->states[cat];
+  if (state->status != DebugFinderStatus_Ready) {
+    return (DebugFinderResult){.status = state->status};
+  }
   return (DebugFinderResult){
-      .status   = finder->states[cat].status,
-      .count    = (u32)finder->states[cat].entities.size,
-      .entities = dynarray_begin_t(&finder->states[cat].entities, EcsEntityId),
-      .ids      = dynarray_begin_t(&finder->states[cat].ids, String),
+      .status   = DebugFinderStatus_Ready,
+      .count    = (u32)state->entities.size,
+      .entities = dynarray_begin_t(&state->entities, EcsEntityId),
+      .ids      = dynarray_begin_t(&state->ids, String),
   };
 }
