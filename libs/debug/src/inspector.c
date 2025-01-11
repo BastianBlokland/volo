@@ -974,7 +974,7 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
           &preset,
           dynarray_begin_t(&inputKeys, String),
           (u32)inputKeys.size,
-          .placeholder = string_lit("- Preset -"),
+          .placeholder = string_lit("< Preset >"),
           .tooltip     = string_lit("Pick a key name from the script inputs."))) {
     dynstring_clear(&ctx->panel->newPropBuffer);
     dynstring_append(&ctx->panel->newPropBuffer, *dynarray_at_t(&inputKeys, preset, String));

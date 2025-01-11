@@ -128,26 +128,25 @@ static void level_assets_refresh(DebugLevelContext* ctx, const String pattern, D
 
 static bool level_asset_select(
     UiCanvasComp* c, DebugLevelContext* ctx, EcsEntityId* val, const DynArray* options) {
-  EcsIterator* assetItr     = ecs_view_itr(ctx->assetView);
-  String       names[32]    = {[0] = string_lit("< None >")};
-  EcsEntityId  entities[32] = {[0] = 0};
-  u32          count        = 1;
-  i32          index        = 0;
+  EcsIterator* assetItr = ecs_view_itr(ctx->assetView);
+  String       names[64];
+  i32          index = -1;
   for (usize i = 0; i != options->size; ++i) {
-    if (count == array_elems(names)) {
+    if (i == array_elems(names)) {
       break; // Max option count exceeded; Should we log a warning?
     }
     const EcsEntityId asset = *dynarray_at_t(options, i, EcsEntityId);
     if (ecs_view_maybe_jump(assetItr, asset)) {
       if (asset == *val) {
-        index = count;
+        index = (i32)i;
       }
-      entities[count] = asset;
-      names[count++]  = asset_id(ecs_view_read_t(assetItr, AssetComp));
+      names[i] = asset_id(ecs_view_read_t(assetItr, AssetComp));
+    } else {
+      names[i] = string_lit("< Unknown >");
     }
   }
-  if (ui_select(c, &index, names, count)) {
-    *val = entities[index];
+  if (ui_select(c, &index, names, (u32)options->size, .allowNone = true)) {
+    *val = index < 0 ? 0 : *dynarray_at_t(options, index, EcsEntityId);
     return true;
   }
   return false;
