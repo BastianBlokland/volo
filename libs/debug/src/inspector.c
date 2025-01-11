@@ -792,41 +792,50 @@ static ScriptVal inspector_panel_prop_default(const DebugPropType type) {
   UNREACHABLE
 }
 
-static void inspector_panel_prop_value_edit(
-    InspectorContext* ctx, ScriptMem* mem, const StringHash key, const ScriptVal val) {
-  switch (script_type(val)) {
+static bool inspector_panel_prop_value_edit(InspectorContext* ctx, ScriptVal* val) {
+  switch (script_type(*val)) {
   case ScriptType_Num: {
-    f64 valNum = script_get_num(val, 0);
+    f64 valNum = script_get_num(*val, 0);
     if (ui_numbox(ctx->canvas, &valNum, .min = f64_min, .max = f64_max)) {
-      script_mem_store(mem, key, script_num(valNum));
+      *val = script_num(valNum);
+      return true;
     }
-  } break;
+    return false;
+  }
   case ScriptType_Bool: {
-    bool valBool = script_get_bool(val, false);
+    bool valBool = script_get_bool(*val, false);
     if (ui_toggle(ctx->canvas, &valBool)) {
-      script_mem_store(mem, key, script_bool(valBool));
+      *val = script_bool(valBool);
+      return true;
     }
-  } break;
+    return false;
+  }
   case ScriptType_Vec3: {
-    GeoVector valVec3 = script_get_vec3(val, geo_vector(0));
+    GeoVector valVec3 = script_get_vec3(*val, geo_vector(0));
     if (debug_widget_editor_vec3(ctx->canvas, &valVec3, UiWidget_Default)) {
-      script_mem_store(mem, key, script_vec3(valVec3));
+      *val = script_vec3(valVec3);
+      return true;
     }
-  } break;
+    return false;
+  }
   case ScriptType_Quat: {
-    GeoQuat valQuat = script_get_quat(val, geo_quat_ident);
+    GeoQuat valQuat = script_get_quat(*val, geo_quat_ident);
     if (debug_widget_editor_quat(ctx->canvas, &valQuat, UiWidget_Default)) {
-      script_mem_store(mem, key, script_quat(valQuat));
+      *val = script_quat(valQuat);
+      return true;
     }
-  } break;
+    return false;
+  }
   case ScriptType_Color: {
-    GeoColor valColor = script_get_color(val, geo_color_white);
+    GeoColor valColor = script_get_color(*val, geo_color_white);
     if (debug_widget_editor_color(ctx->canvas, &valColor, UiWidget_Default)) {
-      script_mem_store(mem, key, script_color(valColor));
+      *val = script_color(valColor);
+      return true;
     }
-  } break;
+    return false;
+  }
   case ScriptType_Str: {
-    const String valStr = stringtable_lookup(g_stringtable, script_get_str(val, 0));
+    const String valStr = stringtable_lookup(g_stringtable, script_get_str(*val, 0));
 
     u8        editBuffer[64];
     DynString editStr = dynstring_create_over(mem_var(editBuffer));
@@ -835,16 +844,19 @@ static void inspector_panel_prop_value_edit(
     if (ui_textbox(ctx->canvas, &editStr, .maxTextLength = sizeof(editBuffer))) {
       // TODO: This hashes on every character typed which unnecessary fills the string-table.
       const StringHash newStrHash = stringtable_add(g_stringtable, dynstring_view(&editStr));
-      script_mem_store(mem, key, script_str(newStrHash));
+      *val                        = script_str(newStrHash);
+      return true;
     }
-  } break;
+    return false;
+  }
   case ScriptType_Entity:
   case ScriptType_Null:
-    ui_label(ctx->canvas, script_val_scratch(val));
-    break;
+    ui_label(ctx->canvas, script_val_scratch(*val));
+    return false;
   case ScriptType_Count:
-    UNREACHABLE;
+    break;
   }
+  UNREACHABLE;
 }
 
 static String inspector_panel_prop_tooltip_scratch(const DebugPropEntry* entry) {
@@ -906,7 +918,9 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
 
     ui_table_next_column(ctx->canvas, table);
     ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
-    inspector_panel_prop_value_edit(ctx, memory, entry->key, entry->val);
+    if (inspector_panel_prop_value_edit(ctx, &entry->val)) {
+      script_mem_store(memory, entry->key, entry->val);
+    }
     ui_layout_next(ctx->canvas, Ui_Right, 10);
     ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
     if (ui_button(
