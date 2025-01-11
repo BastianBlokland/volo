@@ -6,6 +6,7 @@
 #include "core_dynstring.h"
 #include "core_format.h"
 #include "core_math.h"
+#include "debug_panel.h"
 #include "debug_register.h"
 #include "debug_rend.h"
 #include "ecs_entity.h"
@@ -14,7 +15,6 @@
 #include "ecs_world.h"
 #include "geo_box.h"
 #include "rend_object.h"
-#include "debug_panel.h"
 #include "rend_register.h"
 #include "rend_reset.h"
 #include "rend_resource.h"
@@ -963,7 +963,7 @@ static void rend_light_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Shadow resolution"));
   ui_table_next_column(canvas, &table);
-  if (debug_widget_editor_u16(canvas, &settings->shadowResolution, UiWidget_Default)) {
+  if (debug_widget_u16(canvas, &settings->shadowResolution, UiWidget_Default)) {
     if (settings->shadowResolution == 0) {
       settings->shadowResolution = 512;
     } else if (settings->shadowResolution > 16384) {
@@ -1141,7 +1141,7 @@ static void rend_post_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Fog resolution"));
   ui_table_next_column(canvas, &table);
-  if (debug_widget_editor_u16(canvas, &settings->fogResolution, UiWidget_Default)) {
+  if (debug_widget_u16(canvas, &settings->fogResolution, UiWidget_Default)) {
     if (settings->fogResolution == 0) {
       settings->fogResolution = 128;
     } else if (settings->fogResolution > 16384) {

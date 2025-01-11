@@ -9,6 +9,7 @@
 #include "core_string.h"
 #include "core_stringtable.h"
 #include "core_utf8.h"
+#include "debug_finder.h"
 #include "debug_gizmo.h"
 #include "debug_inspector.h"
 #include "debug_panel.h"
@@ -118,6 +119,10 @@ typedef enum {
   DebugPropType_Quat,
   DebugPropType_Color,
   DebugPropType_Str,
+  DebugPropType_Decal,
+  DebugPropType_Graphic,
+  DebugPropType_Sound,
+  DebugPropType_Vfx,
 
   DebugPropType_Count,
 } DebugPropType;
@@ -170,12 +175,16 @@ static const String g_visModeNames[] = {
 ASSERT(array_elems(g_visModeNames) == DebugInspectorVisMode_Count, "Missing vis mode name");
 
 static const String g_propTypeNames[] = {
-    [DebugPropType_Num]   = string_static("Num"),
-    [DebugPropType_Bool]  = string_static("Bool"),
-    [DebugPropType_Vec3]  = string_static("Vec3"),
-    [DebugPropType_Quat]  = string_static("Quat"),
-    [DebugPropType_Color] = string_static("Color"),
-    [DebugPropType_Str]   = string_static("Str"),
+    [DebugPropType_Num]     = string_static("Num"),
+    [DebugPropType_Bool]    = string_static("Bool"),
+    [DebugPropType_Vec3]    = string_static("Vec3"),
+    [DebugPropType_Quat]    = string_static("Quat"),
+    [DebugPropType_Color]   = string_static("Color"),
+    [DebugPropType_Str]     = string_static("Str"),
+    [DebugPropType_Decal]   = string_static("Decal"),
+    [DebugPropType_Graphic] = string_static("Graphic"),
+    [DebugPropType_Sound]   = string_static("Sound"),
+    [DebugPropType_Vfx]     = string_static("Vfx"),
 };
 ASSERT(array_elems(g_propTypeNames) == DebugPropType_Count, "Missing type name");
 
@@ -213,6 +222,7 @@ ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp
 
 ecs_view_define(GlobalPanelUpdateView) {
   ecs_access_read(SceneTimeComp);
+  ecs_access_write(DebugFinderComp);
   ecs_access_write(DebugStatsGlobalComp);
   ecs_access_write(ScenePrefabEnvComp);
   ecs_access_write(SceneSetEnvComp);
@@ -453,6 +463,7 @@ typedef struct {
   SceneSetEnvComp*            setEnv;
   DebugStatsGlobalComp*       stats;
   DebugInspectorSettingsComp* settings;
+  DebugFinderComp*            finder;
   EcsView*                    scriptAssetView;
   EcsIterator*                subject;
   EcsEntityId                 subjectEntity;
@@ -541,7 +552,7 @@ static void inspector_panel_draw_entity_info(InspectorContext* ctx, UiTable* tab
     if (prefabInst->variant != ScenePrefabVariant_Edit) {
       flags |= UiWidget_Disabled;
     }
-    if (debug_widget_editor_prefab(ctx->canvas, ctx->prefabMap, &prefabInst->prefabId, flags)) {
+    if (debug_widget_prefab(ctx->canvas, ctx->prefabMap, &prefabInst->prefabId, flags)) {
       inspector_prefab_replace(ctx->prefabEnv, ctx->subject, prefabInst->prefabId);
     }
   } else {
@@ -563,7 +574,7 @@ static void inspector_panel_draw_transform(InspectorContext* ctx, UiTable* table
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Position"));
     ui_table_next_column(ctx->canvas, table);
-    if (debug_widget_editor_vec3_resettable(ctx->canvas, &transform->position, UiWidget_Default)) {
+    if (debug_widget_vec3_resettable(ctx->canvas, &transform->position, UiWidget_Default)) {
       // Clamp the position to a sane value.
       transform->position = geo_vector_clamp(transform->position, 1e3f);
     }
@@ -571,7 +582,7 @@ static void inspector_panel_draw_transform(InspectorContext* ctx, UiTable* table
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Rotation"));
     ui_table_next_column(ctx->canvas, table);
-    if (debug_widget_editor_vec3_resettable(
+    if (debug_widget_vec3_resettable(
             ctx->canvas, &ctx->panel->transformRotEulerDeg, UiWidget_DirtyWhileEditing)) {
       const GeoVector eulerRad = geo_vector_mul(ctx->panel->transformRotEulerDeg, math_deg_to_rad);
       transform->rotation      = geo_quat_from_euler(eulerRad);
@@ -584,7 +595,7 @@ static void inspector_panel_draw_transform(InspectorContext* ctx, UiTable* table
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Scale"));
     ui_table_next_column(ctx->canvas, table);
-    if (debug_widget_editor_f32(ctx->canvas, &scale->scale, UiWidget_Default)) {
+    if (debug_widget_f32(ctx->canvas, &scale->scale, UiWidget_Default)) {
       // Clamp the scale to a sane value.
       scale->scale = math_clamp_f32(scale->scale, 1e-2f, 1e2f);
     }
@@ -604,12 +615,12 @@ static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Radiance"));
       ui_table_next_column(ctx->canvas, table);
-      debug_widget_editor_color(ctx->canvas, &point->radiance, UiWidget_Default);
+      debug_widget_color(ctx->canvas, &point->radiance, UiWidget_Default);
 
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Radius"));
       ui_table_next_column(ctx->canvas, table);
-      if (debug_widget_editor_f32(ctx->canvas, &point->radius, UiWidget_Default)) {
+      if (debug_widget_f32(ctx->canvas, &point->radius, UiWidget_Default)) {
         // Clamp the radius to a sane value.
         point->radius = math_clamp_f32(point->radius, 1e-3f, 1e3f);
       }
@@ -618,7 +629,7 @@ static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Radiance"));
       ui_table_next_column(ctx->canvas, table);
-      debug_widget_editor_color(ctx->canvas, &dir->radiance, UiWidget_Default);
+      debug_widget_color(ctx->canvas, &dir->radiance, UiWidget_Default);
 
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Shadows"));
@@ -634,7 +645,7 @@ static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Ambient"));
       ui_table_next_column(ctx->canvas, table);
-      if (debug_widget_editor_f32(ctx->canvas, &amb->intensity, UiWidget_Default)) {
+      if (debug_widget_f32(ctx->canvas, &amb->intensity, UiWidget_Default)) {
         // Clamp the ambient intensity to a sane value.
         amb->intensity = math_clamp_f32(amb->intensity, 0.0f, 10.0f);
       }
@@ -657,7 +668,7 @@ static void inspector_panel_draw_health(InspectorContext* ctx, UiTable* table) {
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Max"));
     ui_table_next_column(ctx->canvas, table);
-    debug_widget_editor_f32(ctx->canvas, &health->max, UiWidget_Default);
+    debug_widget_f32(ctx->canvas, &health->max, UiWidget_Default);
   }
 }
 
@@ -696,7 +707,7 @@ static void inspector_panel_draw_faction(InspectorContext* ctx, UiTable* table) 
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Id"));
     ui_table_next_column(ctx->canvas, table);
-    debug_widget_editor_faction(ctx->canvas, &faction->id, UiWidget_Default);
+    debug_widget_faction(ctx->canvas, &faction->id, UiWidget_Default);
   }
 }
 
@@ -750,7 +761,7 @@ static void inspector_panel_draw_renderable(InspectorContext* ctx, UiTable* tabl
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Color"));
     ui_table_next_column(ctx->canvas, table);
-    debug_widget_editor_color(ctx->canvas, &renderable->color, UiWidget_Default);
+    debug_widget_color(ctx->canvas, &renderable->color, UiWidget_Default);
 
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Emissive"));
@@ -787,13 +798,12 @@ static ScriptVal inspector_panel_prop_default(const DebugPropType type) {
     return script_color(geo_color_white);
   case DebugPropType_Str:
     return script_str_empty();
-  case DebugPropType_Count:
-    break;
+  default:
+    return script_null();
   }
-  UNREACHABLE
 }
 
-static bool inspector_panel_prop_value_edit(InspectorContext* ctx, ScriptVal* val) {
+static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
   switch (script_type(*val)) {
   case ScriptType_Num: {
     f64 valNum = script_get_num(*val, 0);
@@ -813,7 +823,7 @@ static bool inspector_panel_prop_value_edit(InspectorContext* ctx, ScriptVal* va
   }
   case ScriptType_Vec3: {
     GeoVector valVec3 = script_get_vec3(*val, geo_vector(0));
-    if (debug_widget_editor_vec3(ctx->canvas, &valVec3, UiWidget_Default)) {
+    if (debug_widget_vec3(ctx->canvas, &valVec3, UiWidget_Default)) {
       *val = script_vec3(valVec3);
       return true;
     }
@@ -821,7 +831,7 @@ static bool inspector_panel_prop_value_edit(InspectorContext* ctx, ScriptVal* va
   }
   case ScriptType_Quat: {
     GeoQuat valQuat = script_get_quat(*val, geo_quat_ident);
-    if (debug_widget_editor_quat(ctx->canvas, &valQuat, UiWidget_Default)) {
+    if (debug_widget_quat(ctx->canvas, &valQuat, UiWidget_Default)) {
       *val = script_quat(valQuat);
       return true;
     }
@@ -829,7 +839,7 @@ static bool inspector_panel_prop_value_edit(InspectorContext* ctx, ScriptVal* va
   }
   case ScriptType_Color: {
     GeoColor valColor = script_get_color(*val, geo_color_white);
-    if (debug_widget_editor_color(ctx->canvas, &valColor, UiWidget_Default)) {
+    if (debug_widget_color(ctx->canvas, &valColor, UiWidget_Default)) {
       *val = script_color(valColor);
       return true;
     }
@@ -858,6 +868,16 @@ static bool inspector_panel_prop_value_edit(InspectorContext* ctx, ScriptVal* va
     break;
   }
   UNREACHABLE;
+}
+
+static bool inspector_panel_prop_edit_asset(
+    InspectorContext* ctx, ScriptVal* val, const DebugFinderCategory assetCat) {
+  EcsEntityId entity = script_get_entity(*val, 0);
+  if (debug_widget_asset(ctx->canvas, ctx->finder, assetCat, &entity, UiWidget_Default)) {
+    *val = script_entity_or_null(entity);
+    return true;
+  }
+  return false;
 }
 
 static String inspector_panel_prop_tooltip_scratch(const DebugPropEntry* entry) {
@@ -919,7 +939,7 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
 
     ui_table_next_column(ctx->canvas, table);
     ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
-    if (inspector_panel_prop_value_edit(ctx, &entry->val)) {
+    if (inspector_panel_prop_edit(ctx, &entry->val)) {
       script_mem_store(memory, entry->key, entry->val);
     }
     ui_layout_next(ctx->canvas, Ui_Right, 10);
@@ -955,9 +975,10 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   }
   ui_layout_next(ctx->canvas, Ui_Right, 10);
   ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
+  const bool valid = ctx->panel->newPropBuffer.size != 0 && script_non_null(ctx->panel->newPropVal);
   if (ui_button(
           ctx->canvas,
-          .flags      = ctx->panel->newPropBuffer.size == 0 ? UiWidget_Disabled : 0,
+          .flags      = valid ? 0 : UiWidget_Disabled,
           .label      = ui_shape_scratch(UiShape_Add),
           .fontSize   = 18,
           .frameColor = ui_color(16, 192, 0, 192),
@@ -982,7 +1003,23 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   }
   ui_table_next_column(ctx->canvas, table);
   ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
-  inspector_panel_prop_value_edit(ctx, &ctx->panel->newPropVal);
+  switch (ctx->panel->newPropType) {
+  case DebugPropType_Decal:
+    inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DebugFinder_Decal);
+    break;
+  case DebugPropType_Graphic:
+    inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DebugFinder_Graphic);
+    break;
+  case DebugPropType_Sound:
+    inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DebugFinder_Sound);
+    break;
+  case DebugPropType_Vfx:
+    inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DebugFinder_Vfx);
+    break;
+  default:
+    inspector_panel_prop_edit(ctx, &ctx->panel->newPropVal);
+    break;
+  }
 }
 
 static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
@@ -1095,39 +1132,39 @@ static void inspector_panel_draw_collision(InspectorContext* ctx, UiTable* table
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tOffset"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_editor_vec3(ctx->canvas, &shape->sphere.point, UiWidget_Default);
+        debug_widget_vec3(ctx->canvas, &shape->sphere.point, UiWidget_Default);
 
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tRadius"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_editor_f32(ctx->canvas, &shape->sphere.radius, UiWidget_Default);
+        debug_widget_f32(ctx->canvas, &shape->sphere.radius, UiWidget_Default);
       } break;
       case SceneCollisionType_Capsule: {
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tA"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_editor_vec3(ctx->canvas, &shape->capsule.line.a, UiWidget_Default);
+        debug_widget_vec3(ctx->canvas, &shape->capsule.line.a, UiWidget_Default);
 
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tB"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_editor_vec3(ctx->canvas, &shape->capsule.line.b, UiWidget_Default);
+        debug_widget_vec3(ctx->canvas, &shape->capsule.line.b, UiWidget_Default);
 
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tRadius"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_editor_f32(ctx->canvas, &shape->capsule.radius, UiWidget_Default);
+        debug_widget_f32(ctx->canvas, &shape->capsule.radius, UiWidget_Default);
       } break;
       case SceneCollisionType_Box: {
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tMin"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_editor_vec3(ctx->canvas, &shape->box.box.min, UiWidget_Default);
+        debug_widget_vec3(ctx->canvas, &shape->box.box.min, UiWidget_Default);
 
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tMax"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_editor_vec3(ctx->canvas, &shape->box.box.max, UiWidget_Default);
+        debug_widget_vec3(ctx->canvas, &shape->box.box.max, UiWidget_Default);
       } break;
       case SceneCollisionType_Count:
         UNREACHABLE
@@ -1150,12 +1187,12 @@ static void inspector_panel_draw_bounds(InspectorContext* ctx, UiTable* table) {
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Center"));
     ui_table_next_column(ctx->canvas, table);
-    dirty |= debug_widget_editor_vec3(ctx->canvas, &center, UiWidget_Default);
+    dirty |= debug_widget_vec3(ctx->canvas, &center, UiWidget_Default);
 
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Size"));
     ui_table_next_column(ctx->canvas, table);
-    dirty |= debug_widget_editor_vec3(ctx->canvas, &size, UiWidget_Default);
+    dirty |= debug_widget_vec3(ctx->canvas, &size, UiWidget_Default);
 
     if (dirty) {
       boundsComp->local = geo_box_from_center(center, size);
@@ -1176,12 +1213,12 @@ static void inspector_panel_draw_location(InspectorContext* ctx, UiTable* table)
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, fmt_write_scratch("{} Min", fmt_text(typeName)));
       ui_table_next_column(ctx->canvas, table);
-      debug_widget_editor_vec3(ctx->canvas, &location->volumes[type].min, UiWidget_Default);
+      debug_widget_vec3(ctx->canvas, &location->volumes[type].min, UiWidget_Default);
 
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, fmt_write_scratch("{} Max", fmt_text(typeName)));
       ui_table_next_column(ctx->canvas, table);
-      debug_widget_editor_vec3(ctx->canvas, &location->volumes[type].max, UiWidget_Default);
+      debug_widget_vec3(ctx->canvas, &location->volumes[type].max, UiWidget_Default);
     }
   }
 }
@@ -1209,7 +1246,7 @@ static void inspector_panel_draw_attachment(InspectorContext* ctx, UiTable* tabl
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Offset"));
     ui_table_next_column(ctx->canvas, table);
-    debug_widget_editor_vec3(ctx->canvas, &attach->offset, UiWidget_Default);
+    debug_widget_vec3(ctx->canvas, &attach->offset, UiWidget_Default);
   }
 }
 
@@ -1407,6 +1444,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   SceneSetEnvComp*            setEnv   = ecs_view_write_t(globalItr, SceneSetEnvComp);
   DebugInspectorSettingsComp* settings = inspector_settings_get_or_create(world);
   DebugStatsGlobalComp*       stats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  DebugFinderComp*            finder   = ecs_view_write_t(globalItr, DebugFinderComp);
 
   ScenePrefabEnvComp*       prefabEnv = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
   const AssetPrefabMapComp* prefabMap = inspector_prefab_map(world, prefabEnv);
@@ -1437,6 +1475,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
         .setEnv          = setEnv,
         .stats           = stats,
         .settings        = settings,
+        .finder          = finder,
         .scriptAssetView = ecs_world_view_t(world, ScriptAssetView),
         .subject         = subjectItr,
         .subjectEntity   = subjectItr ? ecs_view_entity(subjectItr) : 0,

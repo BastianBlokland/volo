@@ -55,8 +55,10 @@ static DebugFinderComp* finder_init(EcsWorld* world, const EcsEntityId entity) {
   DebugFinderComp* finder = ecs_world_add_t(world, entity, DebugFinderComp);
   finder->states          = alloc_array_t(g_allocHeap, DebugFinderState, DebugFinderCategory_Count);
   for (DebugFinderCategory cat = 0; cat != DebugFinderCategory_Count; ++cat) {
-    finder->states[cat].entities = dynarray_create_t(g_allocHeap, EcsEntityId, 0);
-    finder->states[cat].ids      = dynarray_create_t(g_allocHeap, String, 0);
+    finder->states[cat] = (DebugFinderState){
+        .entities = dynarray_create_t(g_allocHeap, EcsEntityId, 0),
+        .ids      = dynarray_create_t(g_allocHeap, String, 0),
+    };
   }
   return finder;
 }
