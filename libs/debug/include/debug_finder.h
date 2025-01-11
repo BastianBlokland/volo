@@ -1,5 +1,5 @@
 #pragma once
-#include "ecs_module.h"
+#include "debug.h"
 
 typedef enum {
   DebugFinderCategory_Level,

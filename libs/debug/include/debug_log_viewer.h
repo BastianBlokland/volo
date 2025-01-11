@@ -1,5 +1,5 @@
 #pragma once
-#include "ecs_module.h"
+#include "debug.h"
 #include "log_logger.h"
 
 ecs_comp_extern(DebugLogViewerComp);
