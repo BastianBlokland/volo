@@ -1,6 +1,7 @@
 #include "asset_prefab.h"
 #include "core_array.h"
 #include "core_float.h"
+#include "core_format.h"
 #include "core_stringtable.h"
 #include "debug_finder.h"
 #include "ecs_entity.h"
@@ -185,7 +186,20 @@ bool debug_widget_asset(
         break;
       }
     }
-    if (ui_select(c, &index, entries.ids, entries.count, .allowNone = true, .flags = flags)) {
+    const String tooltip = fmt_write_scratch(
+        "Id:\a>0B{}\n"
+        "Entity:\a>0B{}\n",
+        fmt_text(index < 0 ? string_lit("< None >") : entries.ids[index]),
+        ecs_entity_fmt(*val));
+
+    if (ui_select(
+            c,
+            &index,
+            entries.ids,
+            entries.count,
+            .allowNone = true,
+            .flags     = flags,
+            .tooltip   = tooltip)) {
       *val    = index < 0 ? ecs_entity_invalid : entries.entities[index];
       changed = true;
     }
