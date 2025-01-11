@@ -846,6 +846,34 @@ static void inspector_panel_prop_value_edit(
   }
 }
 
+static String inspector_panel_prop_tooltip_scratch(const DebugPropEntry* entry) {
+  return fmt_write_scratch(
+      "Key name:\a>15{}\n"
+      "Key hash:\a>15{}\n"
+      "Type:\a>15{}\n"
+      "Value:\a>15{}\n",
+      fmt_text(entry->name),
+      fmt_int(entry->key),
+      fmt_text(script_val_type_str(script_type(entry->val))),
+      fmt_text(script_val_scratch(entry->val)));
+}
+
+static void inspector_panel_prop_labels(UiCanvasComp* canvas, const String* inputEntry) {
+  if (inputEntry) {
+    ui_layout_push(canvas);
+    ui_layout_next(canvas, Ui_Right, 0);
+    ui_layout_resize(canvas, UiAlign_BottomRight, ui_vector(20, 20), UiBase_Absolute, Ui_XY);
+    ui_style_push(canvas);
+    ui_style_color(canvas, ui_color(255, 255, 255, 128));
+    const UiId id = ui_canvas_draw_glyph(canvas, UiShape_Input, 0, UiFlags_Interactable);
+    ui_tooltip(canvas, id, string_lit("This property is used as a script input."));
+    ui_style_pop(canvas);
+    ui_layout_pop(canvas);
+  } else {
+    ui_canvas_id_skip(canvas, 3 /* 1 for the glyph and 2 for the tooltip*/);
+  }
+}
+
 static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* table) {
   ScenePropertyComp* propComp = ecs_view_write_t(ctx->subject, ScenePropertyComp);
   if (!propComp) {
@@ -863,36 +891,18 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   DynArray inputKeys = dynarray_create_t(g_allocScratch, String, 128);
   inspector_prop_find_inputs(ctx->subject, ctx->scriptAssetView, &inputKeys);
 
-  // Draw entries.
   dynarray_for_t(&entries, DebugPropEntry, entry) {
-    const String tooltip = fmt_write_scratch(
-        "Key name:\a>15{}\n"
-        "Key hash:\a>15{}\n"
-        "Type:\a>15{}\n"
-        "Value:\a>15{}\n",
-        fmt_text(entry->name),
-        fmt_int(entry->key),
-        fmt_text(script_val_type_str(script_type(entry->val))),
-        fmt_text(script_val_scratch(entry->val)));
-
     inspector_panel_next(ctx, table);
+
+    const String tooltip = inspector_panel_prop_tooltip_scratch(entry);
     ui_label(ctx->canvas, entry->name, .selectable = true, .tooltip = tooltip);
+
     String* inputEntry = dynarray_search_binary(&inputKeys, compare_string, &entry->name);
     if (inputEntry) {
       dynarray_remove_ptr(&inputKeys, inputEntry); // Remove the used inputs from the preset list.
-
-      ui_layout_push(ctx->canvas);
-      ui_layout_next(ctx->canvas, Ui_Right, 0);
-      ui_layout_resize(ctx->canvas, UiAlign_BottomRight, ui_vector(20, 20), UiBase_Absolute, Ui_XY);
-      ui_style_push(ctx->canvas);
-      ui_style_color(ctx->canvas, ui_color(255, 255, 255, 128));
-      const UiId id = ui_canvas_draw_glyph(ctx->canvas, UiShape_Input, 0, UiFlags_Interactable);
-      ui_tooltip(ctx->canvas, id, string_lit("This property is used as a script input."));
-      ui_style_pop(ctx->canvas);
-      ui_layout_pop(ctx->canvas);
-    } else {
-      ui_canvas_id_skip(ctx->canvas, 3 /* 1 for the glyph and 2 for the tooltip*/);
     }
+    inspector_panel_prop_labels(ctx->canvas, inputEntry);
+
     ui_table_next_column(ctx->canvas, table);
     ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
     inspector_panel_prop_value_edit(ctx, memory, entry->key, entry->val);
@@ -909,7 +919,7 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   }
   dynarray_destroy(&entries);
 
-  // Draw entry creation Ui.
+  // Entry creation Ui.
   inspector_panel_next(ctx, table);
   ui_textbox(
       ctx->canvas,
