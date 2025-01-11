@@ -397,8 +397,8 @@ static void inspector_prefab_replace(
   scene_prefab_spawn_replace(prefabEnv, &spec, entity);
 }
 
-static void inspector_properties_get_input_keys(
-    EcsIterator* subject, EcsView* scriptAssetView, DynArray* outProperties /* String[] */) {
+static void inspector_prop_find_inputs(
+    EcsIterator* subject, EcsView* scriptAssetView, DynArray* outInputKeys /* String[] */) {
   const SceneScriptComp* scriptComp = ecs_view_read_t(subject, SceneScriptComp);
   if (!scriptComp) {
     return;
@@ -414,10 +414,31 @@ static void inspector_properties_get_input_keys(
     heap_array_for_t(scriptAsset->inputKeys, StringHash, key) {
       const String name = stringtable_lookup(g_stringtable, *key);
       if (LIKELY(!string_is_empty(name))) {
-        *(String*)dynarray_find_or_insert_sorted(outProperties, compare_string, &name) = name;
+        *(String*)dynarray_find_or_insert_sorted(outInputKeys, compare_string, &name) = name;
       }
     }
   }
+}
+
+static void
+inspector_prop_collect(EcsIterator* subject, DynArray* outEntries /* DebugPropEntry[] */) {
+  const ScenePropertyComp* propComp = ecs_view_read_t(subject, ScenePropertyComp);
+  if (!propComp) {
+    return;
+  }
+  const ScriptMem* memory = scene_prop_memory(propComp);
+  for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
+    const ScriptVal val = script_mem_load(memory, itr.key);
+    if (script_type(val) != ScriptType_Null) {
+      const String keyStr                          = stringtable_lookup(g_stringtable, itr.key);
+      *dynarray_push_t(outEntries, DebugPropEntry) = (DebugPropEntry){
+          .name = string_is_empty(keyStr) ? string_lit("< unnamed >") : keyStr,
+          .key  = itr.key,
+          .val  = val,
+      };
+    }
+  }
+  dynarray_sort(outEntries, debug_prop_compare_entry);
 }
 
 typedef struct {
@@ -836,24 +857,11 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   if (!inspector_panel_section(ctx, string_lit("Properties"))) {
     return;
   }
-  DynArray inputKeys = dynarray_create_t(g_allocScratch, String, 128);
-  inspector_properties_get_input_keys(ctx->subject, ctx->scriptAssetView, &inputKeys);
-
-  // Collect entries.
   DynArray entries = dynarray_create_t(g_allocScratch, DebugPropEntry, 128);
-  for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
-    const ScriptVal val = script_mem_load(memory, itr.key);
-    if (script_type(val) == ScriptType_Null) {
-      continue;
-    }
-    const String keyStr                        = stringtable_lookup(g_stringtable, itr.key);
-    *dynarray_push_t(&entries, DebugPropEntry) = (DebugPropEntry){
-        .name = string_is_empty(keyStr) ? string_lit("< unnamed >") : keyStr,
-        .key  = itr.key,
-        .val  = val,
-    };
-  }
-  dynarray_sort(&entries, debug_prop_compare_entry);
+  inspector_prop_collect(ctx->subject, &entries);
+
+  DynArray inputKeys = dynarray_create_t(g_allocScratch, String, 128);
+  inspector_prop_find_inputs(ctx->subject, ctx->scriptAssetView, &inputKeys);
 
   // Draw entries.
   dynarray_for_t(&entries, DebugPropEntry, entry) {
