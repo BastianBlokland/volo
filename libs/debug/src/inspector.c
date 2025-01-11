@@ -119,7 +119,10 @@ typedef enum {
   DebugPropType_Quat,
   DebugPropType_Color,
   DebugPropType_Str,
+  DebugPropType_Decal,
+  DebugPropType_Graphic,
   DebugPropType_Sound,
+  DebugPropType_Vfx,
 
   DebugPropType_Count,
 } DebugPropType;
@@ -172,13 +175,16 @@ static const String g_visModeNames[] = {
 ASSERT(array_elems(g_visModeNames) == DebugInspectorVisMode_Count, "Missing vis mode name");
 
 static const String g_propTypeNames[] = {
-    [DebugPropType_Num]   = string_static("Num"),
-    [DebugPropType_Bool]  = string_static("Bool"),
-    [DebugPropType_Vec3]  = string_static("Vec3"),
-    [DebugPropType_Quat]  = string_static("Quat"),
-    [DebugPropType_Color] = string_static("Color"),
-    [DebugPropType_Str]   = string_static("Str"),
-    [DebugPropType_Sound] = string_static("Sound"),
+    [DebugPropType_Num]     = string_static("Num"),
+    [DebugPropType_Bool]    = string_static("Bool"),
+    [DebugPropType_Vec3]    = string_static("Vec3"),
+    [DebugPropType_Quat]    = string_static("Quat"),
+    [DebugPropType_Color]   = string_static("Color"),
+    [DebugPropType_Str]     = string_static("Str"),
+    [DebugPropType_Decal]   = string_static("Decal"),
+    [DebugPropType_Graphic] = string_static("Graphic"),
+    [DebugPropType_Sound]   = string_static("Sound"),
+    [DebugPropType_Vfx]     = string_static("Vfx"),
 };
 ASSERT(array_elems(g_propTypeNames) == DebugPropType_Count, "Missing type name");
 
@@ -792,12 +798,9 @@ static ScriptVal inspector_panel_prop_default(const DebugPropType type) {
     return script_color(geo_color_white);
   case DebugPropType_Str:
     return script_str_empty();
-  case DebugPropType_Sound:
+  default:
     return script_null();
-  case DebugPropType_Count:
-    break;
   }
-  UNREACHABLE
 }
 
 static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
@@ -1001,8 +1004,17 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   ui_table_next_column(ctx->canvas, table);
   ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
   switch (ctx->panel->newPropType) {
+  case DebugPropType_Decal:
+    inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DebugFinder_Decal);
+    break;
+  case DebugPropType_Graphic:
+    inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DebugFinder_Graphic);
+    break;
   case DebugPropType_Sound:
     inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DebugFinder_Sound);
+    break;
+  case DebugPropType_Vfx:
+    inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DebugFinder_Vfx);
     break;
   default:
     inspector_panel_prop_edit(ctx, &ctx->panel->newPropVal);
