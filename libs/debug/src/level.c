@@ -1,10 +1,11 @@
-#include "asset_manager.h"
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
 #include "core_float.h"
+#include "debug_finder.h"
 #include "debug_level.h"
+#include "debug_panel.h"
 #include "ecs_entity.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
@@ -25,25 +26,25 @@
 
 // clang-format off
 
-static const String g_tooltipEdit         = string_static("Start editing the current level.");
-static const String g_tooltipPlay         = string_static("Start playing the current level.");
-static const String g_tooltipUnload       = string_static("Unload the current level.");
-static const String g_tooltipSave         = string_static("Save the current level.");
-static const String g_tooltipFilter       = string_static("Filter levels by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
-static const String g_queryPatternLevel   = string_static("levels/*.level");
-static const String g_queryPatternTerrain = string_static("terrains/*.terrain");
+static const String g_tooltipEdit   = string_static("Start editing the current level.");
+static const String g_tooltipPlay   = string_static("Start playing the current level.");
+static const String g_tooltipUnload = string_static("Unload the current level.");
+static const String g_tooltipSave   = string_static("Save the current level.");
+static const String g_tooltipFilter = string_static("Filter levels by identifier.\nSupports glob characters \a.b*\ar and \a.b?\ar (\a.b!\ar prefix to invert).");
 
 // clang-format on
 
 typedef enum {
-  DebugLevelFlags_RefreshAssets = 1 << 0,
+  DebugLevelFlags_RefreshLevels = 1 << 0,
   DebugLevelFlags_Edit          = 1 << 1,
   DebugLevelFlags_Play          = 1 << 2,
   DebugLevelFlags_Unload        = 1 << 3,
   DebugLevelFlags_Save          = 1 << 4,
 
-  DebugLevelFlags_None    = 0,
-  DebugLevelFlags_Default = DebugLevelFlags_RefreshAssets,
+  DebugLevelFlags_None     = 0,
+  DebugLevelFlags_Default  = DebugLevelFlags_RefreshLevels,
+  DebugLevelFlags_Volatile = DebugLevelFlags_RefreshLevels | DebugLevelFlags_Edit |
+                             DebugLevelFlags_Play | DebugLevelFlags_Unload | DebugLevelFlags_Save,
 } DebugLevelFlags;
 
 typedef enum {
@@ -70,8 +71,6 @@ ecs_comp_define(DebugLevelPanelComp) {
   EcsEntityId     window;
   DynString       idFilter;
   DynString       nameBuffer;
-  DynArray        assetsLevel;   // EcsEntityId[]
-  DynArray        assetsTerrain; // EcsEntityId[]
   UiPanel         panel;
   UiScrollview    scrollview;
   u32             totalRows;
@@ -81,11 +80,7 @@ static void ecs_destruct_level_panel(void* data) {
   DebugLevelPanelComp* comp = data;
   dynstring_destroy(&comp->idFilter);
   dynstring_destroy(&comp->nameBuffer);
-  dynarray_destroy(&comp->assetsLevel);
-  dynarray_destroy(&comp->assetsTerrain);
 }
-
-ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 
 ecs_view_define(CameraView) {
   ecs_access_with(SceneCameraComp);
@@ -96,8 +91,7 @@ typedef struct {
   EcsWorld*                 world;
   DebugLevelPanelComp*      panelComp;
   SceneLevelManagerComp*    levelManager;
-  AssetManagerComp*         assets;
-  EcsView*                  assetView;
+  DebugFinderComp*          finder;
   const SceneTransformComp* cameraTrans;
 } DebugLevelContext;
 
@@ -114,42 +108,6 @@ static GeoVector level_camera_center(const DebugLevelContext* ctx) {
     }
   }
   return geo_vector(0);
-}
-
-static void level_assets_refresh(DebugLevelContext* ctx, const String pattern, DynString* out) {
-  EcsEntityId assetEntities[asset_query_max_results];
-  const u32   assetCount = asset_query(ctx->world, ctx->assets, pattern, assetEntities);
-
-  dynarray_clear(out);
-  for (u32 i = 0; i != assetCount; ++i) {
-    *dynarray_push_t(out, EcsEntityId) = assetEntities[i];
-  }
-}
-
-static bool level_asset_select(
-    UiCanvasComp* c, DebugLevelContext* ctx, EcsEntityId* val, const DynArray* options) {
-  EcsIterator* assetItr = ecs_view_itr(ctx->assetView);
-  String       names[64];
-  i32          index = -1;
-  for (usize i = 0; i != options->size; ++i) {
-    if (i == array_elems(names)) {
-      break; // Max option count exceeded; Should we log a warning?
-    }
-    const EcsEntityId asset = *dynarray_at_t(options, i, EcsEntityId);
-    if (ecs_view_maybe_jump(assetItr, asset)) {
-      if (asset == *val) {
-        index = (i32)i;
-      }
-      names[i] = asset_id(ecs_view_read_t(assetItr, AssetComp));
-    } else {
-      names[i] = string_lit("< Unknown >");
-    }
-  }
-  if (ui_select(c, &index, names, (u32)options->size, .allowNone = true)) {
-    *val = index < 0 ? 0 : *dynarray_at_t(options, index, EcsEntityId);
-    return true;
-  }
-  return false;
 }
 
 static bool level_id_filter(DebugLevelContext* ctx, const String levelId) {
@@ -232,14 +190,11 @@ static void manage_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   ui_scrollview_begin(c, &ctx->panelComp->scrollview, UiLayer_Normal, totalHeight);
   ctx->panelComp->totalRows = 0;
 
-  EcsIterator* assetItr = ecs_view_itr(ctx->assetView);
-  dynarray_for_t(&ctx->panelComp->assetsLevel, EcsEntityId, levelAsset) {
-    if (!ecs_view_maybe_jump(assetItr, *levelAsset)) {
-      continue;
-    }
-    const String id     = asset_id(ecs_view_read_t(assetItr, AssetComp));
-    const bool   loaded = scene_level_asset(ctx->levelManager) == *levelAsset;
-
+  const DebugFinderResult levels = debug_finder_get(ctx->finder, DebugFinder_Level);
+  for (u32 i = 0; i != levels.count; ++i) {
+    const EcsEntityId asset  = levels.entities[i];
+    const String      id     = levels.ids[i];
+    const bool        loaded = scene_level_asset(ctx->levelManager) == asset;
     if (!level_id_filter(ctx, id)) {
       continue;
     }
@@ -253,11 +208,11 @@ static void manage_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
 
     ui_layout_resize(c, UiAlign_MiddleLeft, ui_vector(30, 0), UiBase_Absolute, Ui_X);
     if (ui_button(c, .flags = disabled ? UiWidget_Disabled : 0, .label = string_lit("\uE3C9"))) {
-      scene_level_load(ctx->world, SceneLevelMode_Edit, *levelAsset);
+      scene_level_load(ctx->world, SceneLevelMode_Edit, asset);
     }
     ui_layout_next(c, Ui_Right, 10);
     if (ui_button(c, .flags = disabled ? UiWidget_Disabled : 0, .label = string_lit("\uE037"))) {
-      scene_level_load(ctx->world, SceneLevelMode_Play, *levelAsset);
+      scene_level_load(ctx->world, SceneLevelMode_Play, asset);
     }
   }
 
@@ -288,7 +243,7 @@ static void settings_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   ui_table_next_column(c, &table);
 
   EcsEntityId terrain = scene_level_terrain(ctx->levelManager);
-  if (level_asset_select(c, ctx, &terrain, &ctx->panelComp->assetsTerrain)) {
+  if (debug_widget_editor_asset(c, ctx->finder, DebugFinder_Terrain, &terrain, UiWidget_Default)) {
     scene_level_terrain_update(ctx->levelManager, terrain);
   }
 
@@ -357,7 +312,7 @@ static void level_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
 
 ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_read(InputManagerComp);
-  ecs_access_write(AssetManagerComp);
+  ecs_access_write(DebugFinderComp);
   ecs_access_write(SceneLevelManagerComp);
 }
 
@@ -376,10 +331,9 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
     return;
   }
   SceneLevelManagerComp*  levelManager = ecs_view_write_t(globalItr, SceneLevelManagerComp);
-  AssetManagerComp*       assets       = ecs_view_write_t(globalItr, AssetManagerComp);
+  DebugFinderComp*        finder       = ecs_view_write_t(globalItr, DebugFinderComp);
   const InputManagerComp* input        = ecs_view_read_t(globalItr, InputManagerComp);
 
-  EcsView* assetView  = ecs_world_view_t(world, AssetView);
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
   EcsView* panelView  = ecs_world_view_t(world, PanelUpdateView);
 
@@ -390,6 +344,8 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
     }
   }
 
+  bool refreshLevels = false;
+
   EcsIterator* cameraItr = ecs_view_itr(cameraView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     DebugLevelPanelComp* panelComp = ecs_view_write_t(itr, DebugLevelPanelComp);
@@ -399,8 +355,7 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
         .world        = world,
         .panelComp    = panelComp,
         .levelManager = levelManager,
-        .assets       = assets,
-        .assetView    = assetView,
+        .finder       = finder,
     };
 
     ecs_view_itr_reset(cameraItr);
@@ -410,27 +365,20 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
       ctx.cameraTrans = ecs_view_read_t(cameraItr, SceneTransformComp);
     }
 
-    if (panelComp->flags & DebugLevelFlags_RefreshAssets) {
-      level_assets_refresh(&ctx, g_queryPatternLevel, &panelComp->assetsLevel);
-      level_assets_refresh(&ctx, g_queryPatternTerrain, &panelComp->assetsTerrain);
-      panelComp->flags &= ~DebugLevelFlags_RefreshAssets;
-    }
+    refreshLevels |= (panelComp->flags & DebugLevelFlags_RefreshLevels) != 0;
     if (panelComp->flags & DebugLevelFlags_Edit) {
       scene_level_reload(world, SceneLevelMode_Edit);
-      panelComp->flags &= ~DebugLevelFlags_Edit;
     }
     if (panelComp->flags & DebugLevelFlags_Play) {
       scene_level_reload(world, SceneLevelMode_Play);
-      panelComp->flags &= ~DebugLevelFlags_Play;
     }
     if (panelComp->flags & DebugLevelFlags_Unload) {
       scene_level_unload(world);
-      panelComp->flags &= ~DebugLevelFlags_Unload;
     }
     if (panelComp->flags & DebugLevelFlags_Save) {
       scene_level_save(world, scene_level_asset(levelManager));
-      panelComp->flags &= ~DebugLevelFlags_Save;
     }
+    panelComp->flags &= ~DebugLevelFlags_Volatile;
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
@@ -446,19 +394,19 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
       ui_canvas_to_front(canvas);
     }
   }
+
+  debug_finder_query(finder, DebugFinder_Level, refreshLevels);
 }
 
 ecs_module_init(debug_level_module) {
   ecs_register_comp(DebugLevelPanelComp, .destructor = ecs_destruct_level_panel);
 
-  ecs_register_view(AssetView);
   ecs_register_view(CameraView);
   ecs_register_view(PanelUpdateGlobalView);
   ecs_register_view(PanelUpdateView);
 
   ecs_register_system(
       DebugLevelUpdatePanelSys,
-      ecs_view_id(AssetView),
       ecs_view_id(CameraView),
       ecs_view_id(PanelUpdateGlobalView),
       ecs_view_id(PanelUpdateView));
@@ -471,13 +419,11 @@ debug_level_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPan
       world,
       panelEntity,
       DebugLevelPanelComp,
-      .flags         = DebugLevelFlags_Default,
-      .window        = window,
-      .idFilter      = dynstring_create(g_allocHeap, 32),
-      .nameBuffer    = dynstring_create(g_allocHeap, 32),
-      .assetsLevel   = dynarray_create_t(g_allocHeap, EcsEntityId, 8),
-      .assetsTerrain = dynarray_create_t(g_allocHeap, EcsEntityId, 8),
-      .panel         = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 300)));
+      .flags      = DebugLevelFlags_Default,
+      .window     = window,
+      .idFilter   = dynstring_create(g_allocHeap, 32),
+      .nameBuffer = dynstring_create(g_allocHeap, 32),
+      .panel      = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 300)));
 
   if (type == DebugPanelType_Detached) {
     ui_panel_maximize(&levelPanel->panel);

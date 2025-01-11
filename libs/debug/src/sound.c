@@ -5,6 +5,7 @@
 #include "core_format.h"
 #include "core_math.h"
 #include "core_path.h"
+#include "debug_panel.h"
 #include "debug_sound.h"
 #include "ecs_view.h"
 #include "ecs_world.h"

@@ -1,7 +1,7 @@
 #pragma once
-#include "ecs_module.h"
+#include "debug.h"
 
-typedef enum {
+typedef enum eDebugPanelType {
   DebugPanelType_Normal,
   DebugPanelType_Detached,
 } DebugPanelType;

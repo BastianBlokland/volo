@@ -7,6 +7,7 @@
 #include "core_math.h"
 #include "core_process.h"
 #include "core_stringtable.h"
+#include "debug_panel.h"
 #include "debug_script.h"
 #include "ecs_entity.h"
 #include "ecs_utils.h"

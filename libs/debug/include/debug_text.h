@@ -1,5 +1,5 @@
 #pragma once
-#include "ecs_module.h"
+#include "debug.h"
 #include "geo_color.h"
 #include "geo_vector.h"
 

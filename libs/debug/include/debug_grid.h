@@ -1,6 +1,5 @@
 #pragma once
-#include "debug_panel.h"
-#include "ecs_module.h"
+#include "debug.h"
 #include "geo_vector.h"
 
 /**

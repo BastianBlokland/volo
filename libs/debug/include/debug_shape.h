@@ -3,7 +3,7 @@
 #include "geo.h"
 #include "geo_vector.h"
 
-typedef enum {
+typedef enum eDebugShapeMode {
   DebugShape_Fill,
   DebugShape_Wire,
   DebugShape_Overlay,

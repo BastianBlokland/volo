@@ -1,6 +1,5 @@
 #pragma once
-#include "debug_panel.h"
-#include "ecs_module.h"
+#include "debug.h"
 
 ecs_comp_extern(DebugPrefabPreviewComp);
 

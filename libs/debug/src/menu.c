@@ -11,6 +11,7 @@
 #include "debug_interface.h"
 #include "debug_level.h"
 #include "debug_menu.h"
+#include "debug_panel.h"
 #include "debug_prefab.h"
 #include "debug_rend.h"
 #include "debug_script.h"
