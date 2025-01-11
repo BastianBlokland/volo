@@ -118,6 +118,7 @@ typedef enum {
   DebugPropType_Quat,
   DebugPropType_Color,
   DebugPropType_Str,
+  DebugPropType_Sound,
 
   DebugPropType_Count,
 } DebugPropType;
@@ -176,6 +177,7 @@ static const String g_propTypeNames[] = {
     [DebugPropType_Quat]  = string_static("Quat"),
     [DebugPropType_Color] = string_static("Color"),
     [DebugPropType_Str]   = string_static("Str"),
+    [DebugPropType_Sound] = string_static("Sound"),
 };
 ASSERT(array_elems(g_propTypeNames) == DebugPropType_Count, "Missing type name");
 
@@ -787,6 +789,8 @@ static ScriptVal inspector_panel_prop_default(const DebugPropType type) {
     return script_color(geo_color_white);
   case DebugPropType_Str:
     return script_str_empty();
+  case DebugPropType_Sound:
+    return script_null();
   case DebugPropType_Count:
     break;
   }
@@ -955,9 +959,10 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   }
   ui_layout_next(ctx->canvas, Ui_Right, 10);
   ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
+  const bool valid = ctx->panel->newPropBuffer.size != 0 && script_non_null(ctx->panel->newPropVal);
   if (ui_button(
           ctx->canvas,
-          .flags      = ctx->panel->newPropBuffer.size == 0 ? UiWidget_Disabled : 0,
+          .flags      = valid ? 0 : UiWidget_Disabled,
           .label      = ui_shape_scratch(UiShape_Add),
           .fontSize   = 18,
           .frameColor = ui_color(16, 192, 0, 192),
