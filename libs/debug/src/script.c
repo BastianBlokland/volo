@@ -307,28 +307,33 @@ static bool memory_draw_color(UiCanvasComp* c, ScriptVal* value) {
 static bool memory_draw_entity(UiCanvasComp* c, EcsIterator* entityRefItr, ScriptVal* value) {
   const EcsEntityId valEntity = script_get_entity(*value, ecs_entity_invalid);
 
-  const u32    index  = ecs_entity_id_index(valEntity);
-  const u32    serial = ecs_entity_id_serial(valEntity);
-  const String tooltip =
-      fmt_write_scratch("Index: {}\nSerial: {}", fmt_int(index), fmt_int(serial));
+  const u32 index  = ecs_entity_id_index(valEntity);
+  const u32 serial = ecs_entity_id_serial(valEntity);
 
-  String msg = fmt_write_scratch("{}", ecs_entity_fmt(valEntity));
+  String label = fmt_write_scratch("{}", ecs_entity_fmt(valEntity));
   if (ecs_view_maybe_jump(entityRefItr, valEntity)) {
     const AssetComp*     assetComp = ecs_view_read_t(entityRefItr, AssetComp);
     const SceneNameComp* nameComp  = ecs_view_read_t(entityRefItr, SceneNameComp);
 
     if (nameComp) {
       const String name = stringtable_lookup(g_stringtable, nameComp->name);
-      msg = fmt_write_scratch("{} (level: {})", ecs_entity_fmt(valEntity), fmt_text(name));
+      label             = string_is_empty(name) ? string_lit("< Unnamed >") : name;
     } else if (assetComp) {
-      const String assetId = asset_id(assetComp);
-      msg = fmt_write_scratch("{} (asset: {})", ecs_entity_fmt(valEntity), fmt_text(assetId));
+      label = asset_id(assetComp);
     }
   }
 
+  const String tooltip = fmt_write_scratch(
+      "Entity:\a>0C{}\n"
+      "Index:\a>0C{}\n"
+      "Serial:\a>0C{}\n",
+      ecs_entity_fmt(valEntity),
+      fmt_int(index),
+      fmt_int(serial));
+
   ui_style_push(c);
   ui_style_variation(c, UiVariation_Monospace);
-  ui_label(c, msg, .selectable = true, .tooltip = tooltip);
+  ui_label(c, label, .selectable = true, .tooltip = tooltip);
   ui_style_pop(c);
 
   return false;
