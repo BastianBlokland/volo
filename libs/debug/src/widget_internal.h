@@ -1,5 +1,6 @@
 #pragma once
 #include "asset.h"
+#include "debug.h"
 #include "geo.h"
 #include "scene.h"
 #include "ui.h"
@@ -17,5 +18,6 @@ bool debug_widget_editor_quat(UiCanvasComp*, GeoQuat* val, UiWidgetFlags);
 bool debug_widget_editor_color(UiCanvasComp*, GeoColor* val, UiWidgetFlags);
 bool debug_widget_editor_faction(UiCanvasComp*, SceneFaction*, UiWidgetFlags);
 bool debug_widget_editor_prefab(UiCanvasComp*, const AssetPrefabMapComp*, StringHash*, UiWidgetFlags);
+bool debug_widget_editor_asset(UiCanvasComp*, DebugFinderComp*, DebugFinderCategory, EcsEntityId*, UiWidgetFlags);
 
 // clang-format on

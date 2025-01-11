@@ -2,8 +2,11 @@
 #include "core_array.h"
 #include "core_float.h"
 #include "core_stringtable.h"
+#include "debug_finder.h"
+#include "ecs_entity.h"
 #include "geo_vector.h"
 #include "scene_faction.h"
+#include "ui_canvas.h"
 #include "ui_layout.h"
 #include "ui_shape.h"
 #include "ui_widget.h"
@@ -159,4 +162,35 @@ bool debug_widget_editor_prefab(
     return true;
   }
   return false;
+}
+
+bool debug_widget_editor_asset(
+    UiCanvasComp*             c,
+    DebugFinderComp*          finder,
+    const DebugFinderCategory cat,
+    EcsEntityId*              val,
+    const UiWidgetFlags       flags) {
+
+  debug_finder_query(finder, cat, false /* refresh */);
+  const DebugFinderResult entries = debug_finder_get(finder, cat);
+
+  bool changed = false;
+  if (entries.status != DebugFinderStatus_Ready) {
+    ui_label(c, string_lit("Loading..."));
+  } else {
+    i32 index = -1;
+    for (u32 i = 0; i != entries.count; ++i) {
+      if (entries.entities[i] == *val) {
+        index = (i32)i;
+        break;
+      }
+    }
+    if (ui_select(c, &index, entries.ids, entries.count, .allowNone = true, .flags = flags)) {
+      *val    = index < 0 ? ecs_entity_invalid : entries.entities[index];
+      changed = true;
+    }
+  }
+
+  ui_canvas_id_block_next(c); // End on a consistent id.
+  return changed;
 }
