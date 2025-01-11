@@ -9,12 +9,13 @@ typedef enum {
 } DebugFinderCategory;
 
 typedef enum {
-  DebugFinderState_Pending,
-  DebugFinderState_Ready,
-} DebugFinderState;
+  DebugFinderStatus_Idle,
+  DebugFinderStatus_Loading,
+  DebugFinderStatus_Ready,
+} DebugFinderStatus;
 
 typedef struct {
-  DebugFinderState   state;
+  DebugFinderStatus  status;
   u32                count;
   const EcsEntityId* entities;
   const String*      ids;
