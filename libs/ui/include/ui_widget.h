@@ -182,7 +182,7 @@ typedef struct {
     .maxHeight      = 150,                                                                         \
     .frameColor     = ui_color(32, 32, 32, 192),                                                   \
     .dropFrameColor = ui_color(64, 64, 64, 235),                                                   \
-    .placeholder    = string_lit("- Select -"),                                                    \
+    .placeholder    = string_lit("< None >"),                                                      \
     __VA_ARGS__}))
 
 /**
