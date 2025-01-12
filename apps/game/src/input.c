@@ -578,10 +578,13 @@ static void update_camera_hover(
     const SceneTimeComp*         time,
     const GeoRay*                inputRay) {
 
-  const bool hoveringUi = (input_blockers(input) & InputBlocker_HoveringUi) != 0;
+  static const InputBlocker g_hoverBlockers =
+      InputBlocker_HoveringUi | InputBlocker_PrefabCreate | InputBlocker_EntityPicker;
+
+  const bool isBlocked = (input_blockers(input) & g_hoverBlockers) != 0;
   for (InputQueryType type = 0; type != InputQuery_Count; ++type) {
     EcsEntityId newHover = 0;
-    if (!hoveringUi) {
+    if (!isBlocked) {
       newHover = input_query_ray(collisionEnv, input, type, inputRay);
     }
     if (newHover && state->hoveredEntity[type] == newHover) {
