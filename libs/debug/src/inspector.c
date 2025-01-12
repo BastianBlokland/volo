@@ -79,6 +79,7 @@ typedef enum {
   DebugInspectorTool_Translation,
   DebugInspectorTool_Rotation,
   DebugInspectorTool_Scale,
+  DebugInspectorTool_Picker,
 
   DebugInspectorTool_Count,
 } DebugInspectorTool;
@@ -146,6 +147,7 @@ static const String g_toolNames[] = {
     [DebugInspectorTool_Translation] = string_static("Translation"),
     [DebugInspectorTool_Rotation]    = string_static("Rotation"),
     [DebugInspectorTool_Scale]       = string_static("Scale"),
+    [DebugInspectorTool_Picker]      = string_static("Picker"),
 };
 ASSERT(array_elems(g_toolNames) == DebugInspectorTool_Count, "Missing tool name");
 
