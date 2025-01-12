@@ -866,16 +866,18 @@ static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
     return false;
   }
   case ScriptType_Entity: {
-    const EcsEntityId entity = script_get_entity(*val, 0);
-    String            label  = fmt_write_scratch("{}", ecs_entity_fmt(entity));
+    const EcsEntityId entity     = script_get_entity(*val, 0);
+    String            label      = fmt_write_scratch("{}", ecs_entity_fmt(entity));
+    bool              selectable = false;
     if (ecs_view_maybe_jump(ctx->entityRefItr, entity)) {
       const AssetComp*     assetComp = ecs_view_read_t(ctx->entityRefItr, AssetComp);
       const SceneNameComp* nameComp  = ecs_view_read_t(ctx->entityRefItr, SceneNameComp);
-      if (nameComp) {
+      if (assetComp) {
+        label = asset_id(assetComp);
+      } else if (nameComp) {
         const String name = stringtable_lookup(g_stringtable, nameComp->name);
         label             = string_is_empty(name) ? string_lit("< Unnamed >") : name;
-      } else if (assetComp) {
-        label = asset_id(assetComp);
+        selectable        = true;
       }
     }
 
@@ -887,10 +889,28 @@ static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
         fmt_int(ecs_entity_id_index(entity)),
         fmt_int(ecs_entity_id_serial(entity)));
 
+    ui_layout_push(ctx->canvas);
     ui_style_push(ctx->canvas);
     ui_style_variation(ctx->canvas, UiVariation_Monospace);
+    if (selectable) {
+      ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
+    }
     ui_label(ctx->canvas, label, .selectable = true, .tooltip = tooltip);
+    if (selectable) {
+      ui_layout_next(ctx->canvas, Ui_Right, 10);
+      ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
+      if (ui_button(
+              ctx->canvas,
+              .label      = ui_shape_scratch(UiShape_SelectAll),
+              .fontSize   = 18,
+              .frameColor = ui_color(0, 16, 255, 192),
+              .tooltip    = string_lit("Select entity."))) {
+        scene_set_clear(ctx->setEnv, g_sceneSetSelected);
+        scene_set_add(ctx->setEnv, g_sceneSetSelected, entity, SceneSetFlags_None);
+      }
+    }
     ui_style_pop(ctx->canvas);
+    ui_layout_pop(ctx->canvas);
     return false;
   }
   case ScriptType_Null:
