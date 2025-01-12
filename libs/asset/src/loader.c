@@ -16,8 +16,8 @@
   _X_(AssetFormat_IconBin,          icon_bin,           2  )                                       \
   _X_(AssetFormat_Inputs,           inputs,             1  )                                       \
   _X_(AssetFormat_InputsBin,        inputs,             1  )                                       \
-  _X_(AssetFormat_Level,            level,              2  )                                       \
-  _X_(AssetFormat_LevelBin,         level,              2  )                                       \
+  _X_(AssetFormat_Level,            level,              3  )                                       \
+  _X_(AssetFormat_LevelBin,         level,              3  )                                       \
   _X_(AssetFormat_MeshBin,          mesh_bin,           2  )                                       \
   _X_(AssetFormat_MeshGlb,          mesh_glb,           23 )                                       \
   _X_(AssetFormat_MeshGltf,         mesh_gltf,          23 )                                       \

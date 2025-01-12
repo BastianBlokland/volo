@@ -1,6 +1,6 @@
 {
   "name": "Dark",
-  "terrainId": "terrains/desert_small.terrain",
+  "terrain": "terrains/desert_small.terrain",
   "startpoint": { "x": 2.1844, "z": 2.8413 },
   "objects": [
     {

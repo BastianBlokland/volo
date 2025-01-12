@@ -7,7 +7,7 @@
       "additionalProperties": false,
       "properties": {
         "name": { "title": "String", "type": "string" },
-        "terrainId": { "title": "String", "type": "string" },
+        "terrain": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" },
         "fogMode": { "title": "AssetLevelFog", "$ref": "#/$defs/AssetLevelFog" },
         "startpoint": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
         "objects": {
@@ -20,6 +20,7 @@
         { "label": "New", "body": "^{\n  \"objects\": []\n}" }
       ]
     },
+    "AssetRef": { "title": "StringHash", "type": "string", "minLength": 1 },
     "AssetLevelFog": {
       "enum": [ "Disabled", "VisibilityBased" ]
     },
@@ -174,7 +175,6 @@
         { "label": "New AssetPropertyType_Str", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Str\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}" },
         { "label": "New AssetPropertyType_Asset", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Asset\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"placeholder\"\n}" }
       ]
-    },
-    "AssetRef": { "title": "StringHash", "type": "string", "minLength": 1 }
+    }
   }
 }

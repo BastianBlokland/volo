@@ -1,5 +1,5 @@
 {
-  "terrainId": "terrains/desert_big.terrain",
+  "terrain": "terrains/desert_big.terrain",
   "objects": [
     {
       "id": 732732,

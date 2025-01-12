@@ -1,6 +1,6 @@
 {
   "name": "Defend",
-  "terrainId": "terrains/desert_small.terrain",
+  "terrain": "terrains/desert_small.terrain",
   "fogMode": "VisibilityBased",
   "startpoint": { "z": -5.0162 },
   "objects": [

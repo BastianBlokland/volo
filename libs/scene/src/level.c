@@ -215,9 +215,7 @@ static void scene_level_process_load(
   manager->levelName       = string_maybe_dup(g_allocHeap, level->name);
   manager->levelStartpoint = level->startpoint;
   manager->levelFog        = level->fogMode;
-  if (!string_is_empty(level->terrainId)) {
-    manager->levelTerrain = asset_lookup(world, assets, level->terrainId);
-  }
+  manager->levelTerrain    = asset_ref_resolve(world, assets, &level->terrain);
 
   trace_end();
 
@@ -225,7 +223,6 @@ static void scene_level_process_load(
       "Level loaded",
       log_param("mode", fmt_text(g_levelModeNames[levelMode])),
       log_param("name", fmt_text(level->name)),
-      log_param("terrain", fmt_text(level->terrainId)),
       log_param("objects", fmt_int(level->objects.count)));
 }
 
@@ -477,9 +474,9 @@ static void scene_level_object_push(
   *dynarray_insert_sorted_t(objects, AssetLevelObject, level_compare_object_id, &obj) = obj;
 }
 
-static String scene_asset_id(EcsView* assetView, const EcsEntityId assetEntity) {
+static StringHash scene_asset_id_hash(EcsView* assetView, const EcsEntityId assetEntity) {
   EcsIterator* itr = ecs_view_maybe_at(assetView, assetEntity);
-  return itr ? asset_id(ecs_view_read_t(itr, AssetComp)) : string_empty;
+  return itr ? asset_id_hash(ecs_view_read_t(itr, AssetComp)) : 0;
 }
 
 static void scene_level_process_save(
@@ -496,9 +493,14 @@ static void scene_level_process_save(
     scene_level_object_push(&objects, tempAlloc, itr, entityRefItr);
   }
 
+  const AssetRef terrainRef = {
+      .entity = manager->levelTerrain,
+      .id     = scene_asset_id_hash(assetView, manager->levelTerrain),
+  };
+
   const AssetLevel level = {
       .name           = manager->levelName,
-      .terrainId      = scene_asset_id(assetView, manager->levelTerrain),
+      .terrain        = terrainRef,
       .startpoint     = manager->levelStartpoint,
       .fogMode        = manager->levelFog,
       .objects.values = dynarray_begin_t(&objects, AssetLevelObject),
