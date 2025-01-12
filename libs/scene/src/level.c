@@ -107,6 +107,8 @@ ecs_view_define(InstanceView) {
   ecs_access_maybe_read(SceneTransformComp);
 }
 
+ecs_view_define(EntityRefView) { ecs_access_maybe_read(AssetComp); }
+
 static void
 scene_level_process_unload(EcsWorld* world, SceneLevelManagerComp* manager, EcsView* instanceView) {
   trace_begin("level_unload", TraceColor_White);
@@ -346,7 +348,10 @@ ecs_system_define(SceneLevelUnloadSys) {
 }
 
 static void scene_level_object_push_properties(
-    AssetLevelObject* obj, Allocator* alloc, const ScenePropertyComp* c) {
+    AssetLevelObject*        obj,
+    Allocator*               alloc,
+    const ScenePropertyComp* c,
+    EcsIterator*             entityRefItr) {
 
   AssetProperty props[64];
   u32           propCount = 0;
@@ -388,8 +393,18 @@ static void scene_level_object_push_properties(
       goto Accept;
     case ScriptType_Null:
       goto Reject; // Null properties do not need to be persisted.
-    case ScriptType_Entity:
-      goto Reject; // Entities cannot be persisted.
+    case ScriptType_Entity: {
+      const EcsEntityId entity = script_get_entity(val, 0);
+      if (ecs_view_maybe_jump(entityRefItr, entity)) {
+        const AssetComp* assetComp = ecs_view_read_t(entityRefItr, AssetComp);
+        if (assetComp) {
+          prop->type       = AssetPropertyType_Asset;
+          prop->data_asset = (AssetRef){.entity = entity, .id = asset_id_hash(assetComp)};
+          goto Accept;
+        }
+      }
+      goto Reject; // Unsupported entity reference.
+    }
     case ScriptType_Count:
       break;
     }
@@ -420,7 +435,8 @@ static void scene_level_object_push_sets(AssetLevelObject* obj, const SceneSetMe
 static void scene_level_object_push(
     DynArray*    objects, // AssetLevelObject[], sorted on id.
     Allocator*   alloc,
-    EcsIterator* instanceItr) {
+    EcsIterator* instanceItr,
+    EcsIterator* entityRefItr) {
 
   const ScenePrefabInstanceComp* prefabInst = ecs_view_read_t(instanceItr, ScenePrefabInstanceComp);
   if (!prefabInst || prefabInst->variant != ScenePrefabVariant_Edit) {
@@ -446,7 +462,7 @@ static void scene_level_object_push(
       .faction  = maybeFaction ? scene_to_asset_faction(maybeFaction->id) : AssetLevelFaction_None,
   };
   if (maybeProperties) {
-    scene_level_object_push_properties(&obj, alloc, maybeProperties);
+    scene_level_object_push_properties(&obj, alloc, maybeProperties, entityRefItr);
   }
   if (maybeSetMember) {
     scene_level_object_push_sets(&obj, maybeSetMember);
@@ -471,12 +487,13 @@ static void scene_level_process_save(
     AssetManagerComp*            assets,
     EcsView*                     assetView,
     const String                 id,
-    EcsView*                     instanceView) {
+    EcsView*                     instanceView,
+    EcsIterator*                 entityRefItr) {
   Allocator* tempAlloc = alloc_chunked_create(g_allocHeap, alloc_bump_create, usize_mebibyte);
 
   DynArray objects = dynarray_create_t(g_allocHeap, AssetLevelObject, 1024);
   for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
-    scene_level_object_push(&objects, tempAlloc, itr);
+    scene_level_object_push(&objects, tempAlloc, itr, entityRefItr);
   }
 
   const AssetLevel level = {
@@ -515,7 +532,8 @@ ecs_system_define(SceneLevelSaveSys) {
   EcsView* assetView    = ecs_world_view_t(world, SaveAssetView);
   EcsView* instanceView = ecs_world_view_t(world, InstanceView);
 
-  EcsIterator* assetItr = ecs_view_itr(assetView);
+  EcsIterator* assetItr     = ecs_view_itr(assetView);
+  EcsIterator* entityRefItr = ecs_view_itr(ecs_world_view_t(world, EntityRefView));
 
   for (EcsIterator* itr = ecs_view_itr(requestView); ecs_view_walk(itr);) {
     const SceneLevelRequestSaveComp* req = ecs_view_read_t(itr, SceneLevelRequestSaveComp);
@@ -527,7 +545,7 @@ ecs_system_define(SceneLevelSaveSys) {
       ecs_view_jump(assetItr, req->levelAsset);
       const String assetId = asset_id(ecs_view_read_t(assetItr, AssetComp));
 
-      scene_level_process_save(manager, assets, assetView, assetId, instanceView);
+      scene_level_process_save(manager, assets, assetView, assetId, instanceView, entityRefItr);
     }
     ecs_world_entity_destroy(world, ecs_view_entity(itr));
   }
@@ -541,6 +559,7 @@ ecs_module_init(scene_level_module) {
   ecs_register_comp(SceneLevelRequestSaveComp);
 
   ecs_register_view(InstanceView);
+  ecs_register_view(EntityRefView);
 
   ecs_register_system(
       SceneLevelLoadSys,
@@ -558,6 +577,7 @@ ecs_module_init(scene_level_module) {
   ecs_register_system(
       SceneLevelSaveSys,
       ecs_view_id(InstanceView),
+      ecs_view_id(EntityRefView),
       ecs_register_view(SaveGlobalView),
       ecs_register_view(SaveAssetView),
       ecs_register_view(SaveRequestView));
