@@ -659,7 +659,8 @@ ecs_module_init(asset_manager_module) {
       ecs_view_id(GlobalWriteView));
 }
 
-String asset_id(const AssetComp* comp) { return comp->id; }
+String     asset_id(const AssetComp* comp) { return comp->id; }
+StringHash asset_id_hash(const AssetComp* comp) { return string_hash(comp->id); }
 
 bool asset_path(const AssetManagerComp* manager, const AssetComp* asset, DynString* out) {
   return asset_repo_path(manager->repo, asset->id, out);

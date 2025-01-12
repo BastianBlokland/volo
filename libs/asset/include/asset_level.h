@@ -30,7 +30,7 @@ typedef struct {
   f32               scale;
   GeoVector         position;
   GeoQuat           rotation;
-  HeapArray_t(AssetProperty) properties;
+  HeapArray_t(AssetProperty) properties; // NOTE: Asset properties are not automatically resolved.
   StringHash sets[asset_level_sets_max];
 } AssetLevelObject;
 

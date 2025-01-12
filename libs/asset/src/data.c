@@ -1,11 +1,10 @@
-#include "asset_manager.h"
 #include "asset_ref.h"
 #include "core.h"
 #include "core_math.h"
-#include "core_stringtable.h"
 #include "core_thread.h"
 #include "data_registry.h"
 #include "data_utils.h"
+#include "ecs_entity.h"
 #include "geo_box_rotated.h"
 #include "geo_capsule.h"
 #include "geo_color.h"
@@ -302,17 +301,10 @@ static void asset_data_patch_refs_visitor(void* ctx, const Mem data) {
   AssetDataPatchCtx* patchCtx = ctx;
   AssetRef*          refData  = mem_as_t(data, AssetRef);
 
-  if (!refData->id) {
-    refData->entity = 0; // Unset optional asset-ref.
-    return;
-  }
-  const String idStr = stringtable_lookup(g_stringtable, refData->id);
-  if (UNLIKELY(string_is_empty(idStr))) {
-    refData->entity   = 0; // String missing from the global string-table.
+  refData->entity = asset_ref_resolve(patchCtx->world, patchCtx->manager, refData);
+  if (!ecs_entity_valid(refData->entity) && refData->id) {
     patchCtx->success = false;
-    return;
   }
-  refData->entity = asset_lookup(patchCtx->world, patchCtx->manager, idStr);
 }
 
 bool asset_data_patch_refs(

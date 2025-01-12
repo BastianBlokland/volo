@@ -32,7 +32,8 @@ ecs_comp_extern(AssetDirtyComp);
 /**
  * Retrieve the identifier for the given asset.
  */
-String asset_id(const AssetComp*);
+String     asset_id(const AssetComp*);
+StringHash asset_id_hash(const AssetComp*);
 
 /**
  * Retrieve the absolute path for the given asset.
