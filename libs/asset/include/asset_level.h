@@ -36,7 +36,7 @@ typedef struct {
 
 typedef struct {
   String        name;
-  AssetRef      terrain;
+  AssetRef      terrain; // NOTE: Reference is not automatically resolved.
   AssetLevelFog fogMode;
   GeoVector     startpoint;
   HeapArray_t(AssetLevelObject) objects;
