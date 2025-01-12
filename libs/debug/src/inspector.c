@@ -887,7 +887,10 @@ static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
         fmt_int(ecs_entity_id_index(entity)),
         fmt_int(ecs_entity_id_serial(entity)));
 
+    ui_style_push(ctx->canvas);
+    ui_style_variation(ctx->canvas, UiVariation_Monospace);
     ui_label(ctx->canvas, label, .selectable = true, .tooltip = tooltip);
+    ui_style_pop(ctx->canvas);
     return false;
   }
   case ScriptType_Null:
