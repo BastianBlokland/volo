@@ -1798,7 +1798,24 @@ static void debug_inspector_tool_individual_update(
   }
 }
 
+typedef struct {
+  EcsWorld* world;
+} ToolPickerQueryContext;
+
+static bool tool_picker_query_filter(const void* ctx, const EcsEntityId entity, const u32 layer) {
+  (void)layer;
+  const ToolPickerQueryContext* pickerCtx = ctx;
+  if (!ecs_world_has_t(pickerCtx->world, entity, SceneLevelInstanceComp)) {
+    return false;
+  }
+  if (!ecs_world_has_t(pickerCtx->world, entity, ScenePrefabInstanceComp)) {
+    return false;
+  }
+  return true;
+}
+
 static void debug_inspector_tool_picker_update(
+    EcsWorld*                    world,
     DebugInspectorSettingsComp*  set,
     DebugStatsGlobalComp*        stats,
     DebugShapeComp*              shape,
@@ -1826,11 +1843,15 @@ static void debug_inspector_tool_picker_update(
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
 
   SceneRayHit            hit;
-  const SceneQueryFilter filter  = {.layerMask = SceneLayer_AllIncludingDebug};
-  const f32              maxDist = 1e5f;
+  ToolPickerQueryContext filterCtx = {.world = world};
+  const SceneQueryFilter filter    = {
+         .context   = &filterCtx,
+         .callback  = &tool_picker_query_filter,
+         .layerMask = SceneLayer_AllIncludingDebug,
+  };
 
   String hitName = string_lit("< None >");
-  if (scene_query_ray(collisionEnv, &inputRay, maxDist, &filter, &hit)) {
+  if (scene_query_ray(collisionEnv, &inputRay, 1e5f /* maxDist */, &filter, &hit)) {
     if (ecs_view_maybe_jump(entityRefItr, hit.entity)) {
       set->toolPickerResult = hit.entity;
 
@@ -1944,7 +1965,7 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     break;
   case DebugInspectorTool_Picker:
     debug_inspector_tool_picker_update(
-        set, stats, shape, text, input, collisionEnv, cameraItr, entityRefItr);
+        world, set, stats, shape, text, input, collisionEnv, cameraItr, entityRefItr);
     break;
   }
 }
