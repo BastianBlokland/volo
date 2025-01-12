@@ -1795,7 +1795,8 @@ static void debug_inspector_tool_picker_update(
     DebugStatsGlobalComp*        stats,
     const InputManagerComp*      input,
     const SceneCollisionEnvComp* collisionEnv,
-    EcsIterator*                 cameraItr) {
+    EcsIterator*                 cameraItr,
+    EcsIterator*                 entityRefItr) {
 
   bool shouldClose = false;
   shouldClose |= cameraItr == null;
@@ -1818,19 +1819,20 @@ static void debug_inspector_tool_picker_update(
   const SceneQueryFilter filter  = {.layerMask = SceneLayer_AllIncludingDebug};
   const f32              maxDist = 1e5f;
 
+  String hitName = string_lit("< None >");
   if (scene_query_ray(collisionEnv, &inputRay, maxDist, &filter, &hit)) {
-    set->toolPickerResult = hit.entity;
+    if (ecs_view_maybe_jump(entityRefItr, hit.entity)) {
+      set->toolPickerResult = hit.entity;
+
+      const SceneNameComp* nameComp = ecs_view_read_t(entityRefItr, SceneNameComp);
+      hitName                       = stringtable_lookup(g_stringtable, nameComp->name);
+    } else {
+      set->toolPickerResult = ecs_entity_invalid;
+    }
   } else {
     set->toolPickerResult = ecs_entity_invalid;
   }
-
-  const String statKey = string_lit("Picker entity");
-  if (set->toolPickerResult) {
-    debug_stats_notify(
-        stats, statKey, fmt_write_scratch("{}", ecs_entity_fmt(set->toolPickerResult)));
-  } else {
-    debug_stats_notify(stats, statKey, string_lit("None"));
-  }
+  debug_stats_notify(stats, string_lit("Picker entity"), hitName);
 }
 
 ecs_system_define(DebugInspectorToolUpdateSys) {
@@ -1893,8 +1895,9 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
 
   input_blocker_update(input, InputBlocker_EntityPicker, set->tool == DebugInspectorTool_Picker);
 
-  EcsView*     cameraView = ecs_world_view_t(world, CameraView);
-  EcsIterator* cameraItr  = ecs_view_maybe_at(cameraView, input_active_window(input));
+  EcsView*     cameraView   = ecs_world_view_t(world, CameraView);
+  EcsIterator* cameraItr    = ecs_view_maybe_at(cameraView, input_active_window(input));
+  EcsIterator* entityRefItr = ecs_view_itr(ecs_world_view_t(world, EntityRefView));
 
   switch (set->tool) {
   case DebugInspectorTool_None:
@@ -1910,7 +1913,7 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     }
     break;
   case DebugInspectorTool_Picker:
-    debug_inspector_tool_picker_update(set, stats, input, collisionEnv, cameraItr);
+    debug_inspector_tool_picker_update(set, stats, input, collisionEnv, cameraItr, entityRefItr);
     break;
   }
 }
@@ -2533,7 +2536,8 @@ ecs_module_init(debug_inspector_module) {
       DebugInspectorToolUpdateSys,
       ecs_view_id(GlobalToolUpdateView),
       ecs_view_id(SubjectView),
-      ecs_view_id(CameraView));
+      ecs_view_id(CameraView),
+      ecs_view_id(EntityRefView));
 
   ecs_register_system(
       DebugInspectorVisDrawSys,
