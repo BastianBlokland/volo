@@ -1796,6 +1796,14 @@ static void debug_inspector_tool_picker_update(
     debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
     return;
   }
+
+  const String statKey = string_lit("Picker entity");
+  if (set->toolPickerResult) {
+    debug_stats_notify(
+        stats, statKey, fmt_write_scratch("{}", ecs_entity_fmt(set->toolPickerResult)));
+  } else {
+    debug_stats_notify(stats, statKey, string_lit("None"));
+  }
 }
 
 ecs_system_define(DebugInspectorToolUpdateSys) {
