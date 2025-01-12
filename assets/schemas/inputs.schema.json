@@ -42,7 +42,8 @@
           "TextInput",
           "HoveringUi",
           "HoveringGizmo",
-          "PrefabCreateMode",
+          "PrefabCreate",
+          "EntityPicker",
           "CursorLocked",
           "CursorConfined",
           "WindowFullscreen"

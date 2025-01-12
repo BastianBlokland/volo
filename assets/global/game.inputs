@@ -3,14 +3,14 @@
   "actions": [
     {
       "name": "Select",
-      "blockers": [ "TextInput", "CursorLocked", "PrefabCreateMode" ],
+      "blockers": [ "TextInput", "CursorLocked", "PrefabCreate", "EntityPicker" ],
       "bindings": [
         { "type": "Down", "key": "MouseLeft" }
       ]
     },
     {
       "name": "Order",
-      "blockers": [ "TextInput", "HoveringUi", "HoveringGizmo", "PrefabCreateMode", "CursorLocked" ],
+      "blockers": [ "TextInput", "HoveringUi", "HoveringGizmo", "PrefabCreate", "EntityPicker", "CursorLocked" ],
       "bindings": [
         { "type": "Pressed", "key": "MouseRight" }
       ]
@@ -77,14 +77,14 @@
 
     {
       "name": "PlacementAccept",
-      "blockers": [ "TextInput", "HoveringUi", "HoveringGizmo", "PrefabCreateMode", "CursorLocked" ],
+      "blockers": [ "TextInput", "HoveringUi", "HoveringGizmo", "PrefabCreate", "EntityPicker", "CursorLocked" ],
       "bindings": [
         { "type": "Released", "key": "MouseLeft" }
       ]
     },
     {
       "name": "PlacementCancel",
-      "blockers": [ "TextInput", "HoveringUi", "HoveringGizmo", "PrefabCreateMode", "CursorLocked" ],
+      "blockers": [ "TextInput", "HoveringUi", "HoveringGizmo", "PrefabCreate", "EntityPicker", "CursorLocked" ],
       "bindings": [
         { "type": "Pressed", "key": "MouseRight" }
       ]

@@ -28,9 +28,10 @@ typedef enum eInputBlocker {
   InputBlocker_HoveringUi       = 1 << 1,
   InputBlocker_HoveringGizmo    = 1 << 2,
   InputBlocker_PrefabCreate     = 1 << 3,
-  InputBlocker_CursorLocked     = 1 << 4, // Managed by the input library.
-  InputBlocker_CursorConfined   = 1 << 5, // Managed by the input library.
-  InputBlocker_WindowFullscreen = 1 << 6, // Managed by the input library.
+  InputBlocker_EntityPicker     = 1 << 4,
+  InputBlocker_CursorLocked     = 1 << 5, // Managed by the input library.
+  InputBlocker_CursorConfined   = 1 << 6, // Managed by the input library.
+  InputBlocker_WindowFullscreen = 1 << 7, // Managed by the input library.
 } InputBlocker;
 
 InputBlocker input_blockers(const InputManagerComp*);

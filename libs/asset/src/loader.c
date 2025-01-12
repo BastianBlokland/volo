@@ -14,7 +14,7 @@
   _X_(AssetFormat_GraphicBin,       graphic,            1  )                                       \
   _X_(AssetFormat_Icon,             icon,               1  )                                       \
   _X_(AssetFormat_IconBin,          icon_bin,           2  )                                       \
-  _X_(AssetFormat_Inputs,           inputs,             1  )                                       \
+  _X_(AssetFormat_Inputs,           inputs,             2  )                                       \
   _X_(AssetFormat_InputsBin,        inputs,             1  )                                       \
   _X_(AssetFormat_Level,            level,              3  )                                       \
   _X_(AssetFormat_LevelBin,         level,              3  )                                       \

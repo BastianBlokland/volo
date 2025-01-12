@@ -3,7 +3,7 @@
   "actions": [
     {
       "name": "Select",
-      "blockers": [ "TextInput", "CursorLocked", "PrefabCreateMode" ],
+      "blockers": [ "TextInput", "CursorLocked", "PrefabCreate", "EntityPicker" ],
       "bindings": [
         { "type": "Down", "key": "MouseLeft" }
       ]
