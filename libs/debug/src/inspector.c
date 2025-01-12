@@ -1700,7 +1700,7 @@ static void debug_inspector_tool_group_update(
   case DebugInspectorTool_Scale:
     /**
      * Disable scaling if the main selected entity has no scale, reason is in that case we have no
-     * reference for the delta computation and the editing wont be stable across frames.
+     * reference for the delta computation and the editing won't be stable across frames.
      */
     if (mainScale) {
       scaleDirty |= debug_gizmo_scale_uniform(gizmo, g_groupGizmoId, pos, &scaleEdit);
@@ -1801,7 +1801,7 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   DebugStatsGlobalComp*       stats   = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
   if (!input_layer_active(input, string_hash_lit("Debug"))) {
-    return; // Gizmos are only active in debug mode.
+    return; // Tools are only active in debug mode.
   }
   if (input_triggered_lit(input, "DebugInspectorToolTranslation")) {
     debug_inspector_tool_toggle(set, DebugInspectorTool_Translation);
@@ -1840,12 +1840,20 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     debug_stats_notify(stats, string_lit("Tool"), string_lit("Select all"));
   }
 
-  if (set->tool != DebugInspectorTool_None) {
+  switch (set->tool) {
+  case DebugInspectorTool_None:
+    break;
+  case DebugInspectorTool_Translation:
+  case DebugInspectorTool_Rotation:
+  case DebugInspectorTool_Scale:
     if (input_modifiers(input) & InputModifier_Control) {
       debug_inspector_tool_individual_update(world, set, setEnv, gizmo);
     } else {
       debug_inspector_tool_group_update(world, set, setEnv, gizmo);
     }
+    break;
+  case DebugInspectorTool_Picker:
+    break;
   }
 }
 
