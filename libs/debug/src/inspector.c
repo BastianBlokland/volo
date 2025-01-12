@@ -924,6 +924,26 @@ static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
   UNREACHABLE;
 }
 
+static bool inspector_panel_prop_edit_level_entity(InspectorContext* ctx, ScriptVal* val) {
+  EcsEntityId entity     = script_get_entity(*val, 0);
+  String      entityName = string_lit("< None >");
+  if (ecs_view_maybe_jump(ctx->entityRefItr, entity)) {
+    const SceneNameComp* nameComp = ecs_view_read_t(ctx->entityRefItr, SceneNameComp);
+    if (nameComp) {
+      entityName = stringtable_lookup(g_stringtable, nameComp->name);
+      if (string_is_empty(entityName)) {
+        entityName = string_lit("< Unnamed >");
+      }
+    }
+  }
+  if (ui_button(ctx->canvas, .label = fmt_write_scratch("Pick ({})", fmt_text(entityName)))) {
+    // TODO: Implement entity picker.
+    *val = script_entity_or_null(ctx->subjectEntity);
+    return true;
+  }
+  return false;
+}
+
 static bool inspector_panel_prop_edit_asset(
     InspectorContext* ctx, ScriptVal* val, const DebugFinderCategory assetCat) {
   EcsEntityId entity = script_get_entity(*val, 0);
@@ -1058,6 +1078,9 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   ui_table_next_column(ctx->canvas, table);
   ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
   switch (ctx->panel->newPropType) {
+  case DebugPropType_LevelEntity:
+    inspector_panel_prop_edit_level_entity(ctx, &ctx->panel->newPropVal);
+    break;
   case DebugPropType_Decal:
     inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DebugFinder_Decal);
     break;
