@@ -4,6 +4,9 @@
 #include "ecs_entity.h"
 
 EcsEntityId asset_ref_resolve(EcsWorld* world, AssetManagerComp* manager, const AssetRef* ref) {
+  if (ecs_entity_valid(ref->entity)) {
+    return ref->entity;
+  }
   if (!ref->id) {
     return ecs_entity_invalid; // Unset optional asset-ref.
   }
