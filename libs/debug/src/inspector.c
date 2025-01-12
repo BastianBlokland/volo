@@ -308,10 +308,11 @@ ecs_view_define(ScriptAssetView) {
 
 ecs_view_define(EntityRefView) {
   ecs_access_maybe_read(AssetComp);
-  ecs_access_maybe_read(SceneNameComp);
-  ecs_access_maybe_read(SceneTransformComp);
-  ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneBoundsComp);
+  ecs_access_maybe_read(SceneNameComp);
+  ecs_access_maybe_read(ScenePrefabInstanceComp);
+  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneTransformComp);
 }
 
 ecs_view_define(CameraView) {
@@ -1799,16 +1800,19 @@ static void debug_inspector_tool_individual_update(
 }
 
 typedef struct {
-  EcsWorld* world;
+  EcsWorld*    world;
+  EcsIterator* entityRefItr;
 } ToolPickerQueryContext;
 
 static bool tool_picker_query_filter(const void* ctx, const EcsEntityId entity, const u32 layer) {
   (void)layer;
-  const ToolPickerQueryContext* pickerCtx = ctx;
-  if (!ecs_world_has_t(pickerCtx->world, entity, SceneLevelInstanceComp)) {
+  const ToolPickerQueryContext* c = ctx;
+  if (!ecs_world_has_t(c->world, entity, SceneLevelInstanceComp)) {
     return false;
   }
-  if (!ecs_world_has_t(pickerCtx->world, entity, ScenePrefabInstanceComp)) {
+  ecs_view_jump(c->entityRefItr, entity);
+  const ScenePrefabInstanceComp* inst = ecs_view_read_t(c->entityRefItr, ScenePrefabInstanceComp);
+  if (!inst || inst->isVolatile) {
     return false;
   }
   return true;
@@ -1842,15 +1846,15 @@ static void debug_inspector_tool_picker_update(
   const f32       inputAspect  = input_cursor_aspect(input);
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
 
-  SceneRayHit            hit;
-  ToolPickerQueryContext filterCtx = {.world = world};
-  const SceneQueryFilter filter    = {
-         .context   = &filterCtx,
-         .callback  = &tool_picker_query_filter,
-         .layerMask = SceneLayer_AllIncludingDebug,
+  const ToolPickerQueryContext filterCtx = {.world = world, .entityRefItr = entityRefItr};
+  const SceneQueryFilter       filter    = {
+               .context   = &filterCtx,
+               .callback  = &tool_picker_query_filter,
+               .layerMask = SceneLayer_AllIncludingDebug,
   };
 
-  String hitName = string_lit("< None >");
+  String      hitName = string_lit("< None >");
+  SceneRayHit hit;
   if (scene_query_ray(collisionEnv, &inputRay, 1e5f /* maxDist */, &filter, &hit)) {
     if (ecs_view_maybe_jump(entityRefItr, hit.entity)) {
       set->toolPickerResult = hit.entity;
