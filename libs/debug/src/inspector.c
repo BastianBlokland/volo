@@ -120,6 +120,7 @@ typedef enum {
   DebugPropType_Quat,
   DebugPropType_Color,
   DebugPropType_Str,
+  DebugPropType_LevelEntity,
   DebugPropType_Decal,
   DebugPropType_Graphic,
   DebugPropType_Sound,
@@ -176,16 +177,17 @@ static const String g_visModeNames[] = {
 ASSERT(array_elems(g_visModeNames) == DebugInspectorVisMode_Count, "Missing vis mode name");
 
 static const String g_propTypeNames[] = {
-    [DebugPropType_Num]     = string_static("Num"),
-    [DebugPropType_Bool]    = string_static("Bool"),
-    [DebugPropType_Vec3]    = string_static("Vec3"),
-    [DebugPropType_Quat]    = string_static("Quat"),
-    [DebugPropType_Color]   = string_static("Color"),
-    [DebugPropType_Str]     = string_static("Str"),
-    [DebugPropType_Decal]   = string_static("Decal"),
-    [DebugPropType_Graphic] = string_static("Graphic"),
-    [DebugPropType_Sound]   = string_static("Sound"),
-    [DebugPropType_Vfx]     = string_static("Vfx"),
+    [DebugPropType_Num]         = string_static("Num"),
+    [DebugPropType_Bool]        = string_static("Bool"),
+    [DebugPropType_Vec3]        = string_static("Vec3"),
+    [DebugPropType_Quat]        = string_static("Quat"),
+    [DebugPropType_Color]       = string_static("Color"),
+    [DebugPropType_Str]         = string_static("Str"),
+    [DebugPropType_LevelEntity] = string_static("LevelEntity"),
+    [DebugPropType_Decal]       = string_static("Decal"),
+    [DebugPropType_Graphic]     = string_static("Graphic"),
+    [DebugPropType_Sound]       = string_static("Sound"),
+    [DebugPropType_Vfx]         = string_static("Vfx"),
 };
 ASSERT(array_elems(g_propTypeNames) == DebugPropType_Count, "Missing type name");
 
