@@ -1,6 +1,6 @@
 {
   "name": "Gate",
-  "terrainId": "terrains/desert_small.terrain",
+  "terrain": "terrains/desert_small.terrain",
   "fogMode": "VisibilityBased",
   "startpoint": { "x": 25.1386, "z": -39.5714 },
   "objects": [
