@@ -878,7 +878,16 @@ static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
         label = asset_id(assetComp);
       }
     }
-    ui_label(ctx->canvas, label, .selectable = true);
+
+    const String tooltip = fmt_write_scratch(
+        "Entity:\a>0C{}\n"
+        "Index:\a>0C{}\n"
+        "Serial:\a>0C{}\n",
+        ecs_entity_fmt(entity),
+        fmt_int(ecs_entity_id_index(entity)),
+        fmt_int(ecs_entity_id_serial(entity)));
+
+    ui_label(ctx->canvas, label, .selectable = true, .tooltip = tooltip);
     return false;
   }
   case ScriptType_Null:
