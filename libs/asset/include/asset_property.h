@@ -12,6 +12,7 @@ typedef enum eAssetPropertyType {
   AssetPropertyType_Quat,
   AssetPropertyType_Color,
   AssetPropertyType_Str,
+  AssetPropertyType_LevelEntity,
   AssetPropertyType_Asset,
 
   AssetPropertyType_Count,
@@ -21,13 +22,14 @@ typedef struct sAssetProperty {
   StringHash        name;
   AssetPropertyType type;
   union {
-    f64        data_num;
-    bool       data_bool;
-    GeoVector  data_vec3;
-    GeoQuat    data_quat;
-    GeoColor   data_color;
-    StringHash data_str;
-    AssetRef   data_asset;
+    f64           data_num;
+    bool          data_bool;
+    GeoVector     data_vec3;
+    GeoQuat       data_quat;
+    GeoColor      data_color;
+    StringHash    data_str;
+    AssetLevelRef data_levelEntity;
+    AssetRef      data_asset;
   };
 } AssetProperty;
 
