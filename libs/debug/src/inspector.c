@@ -79,6 +79,7 @@ typedef enum {
   DebugInspectorTool_Translation,
   DebugInspectorTool_Rotation,
   DebugInspectorTool_Scale,
+  DebugInspectorTool_Picker,
 
   DebugInspectorTool_Count,
 } DebugInspectorTool;
@@ -120,6 +121,7 @@ typedef enum {
   DebugPropType_Quat,
   DebugPropType_Color,
   DebugPropType_Str,
+  DebugPropType_LevelEntity,
   DebugPropType_Decal,
   DebugPropType_Graphic,
   DebugPropType_Sound,
@@ -145,6 +147,7 @@ static const String g_toolNames[] = {
     [DebugInspectorTool_Translation] = string_static("Translation"),
     [DebugInspectorTool_Rotation]    = string_static("Rotation"),
     [DebugInspectorTool_Scale]       = string_static("Scale"),
+    [DebugInspectorTool_Picker]      = string_static("Picker"),
 };
 ASSERT(array_elems(g_toolNames) == DebugInspectorTool_Count, "Missing tool name");
 
@@ -176,16 +179,17 @@ static const String g_visModeNames[] = {
 ASSERT(array_elems(g_visModeNames) == DebugInspectorVisMode_Count, "Missing vis mode name");
 
 static const String g_propTypeNames[] = {
-    [DebugPropType_Num]     = string_static("Num"),
-    [DebugPropType_Bool]    = string_static("Bool"),
-    [DebugPropType_Vec3]    = string_static("Vec3"),
-    [DebugPropType_Quat]    = string_static("Quat"),
-    [DebugPropType_Color]   = string_static("Color"),
-    [DebugPropType_Str]     = string_static("Str"),
-    [DebugPropType_Decal]   = string_static("Decal"),
-    [DebugPropType_Graphic] = string_static("Graphic"),
-    [DebugPropType_Sound]   = string_static("Sound"),
-    [DebugPropType_Vfx]     = string_static("Vfx"),
+    [DebugPropType_Num]         = string_static("Num"),
+    [DebugPropType_Bool]        = string_static("Bool"),
+    [DebugPropType_Vec3]        = string_static("Vec3"),
+    [DebugPropType_Quat]        = string_static("Quat"),
+    [DebugPropType_Color]       = string_static("Color"),
+    [DebugPropType_Str]         = string_static("Str"),
+    [DebugPropType_LevelEntity] = string_static("LevelEntity"),
+    [DebugPropType_Decal]       = string_static("Decal"),
+    [DebugPropType_Graphic]     = string_static("Graphic"),
+    [DebugPropType_Sound]       = string_static("Sound"),
+    [DebugPropType_Vfx]         = string_static("Vfx"),
 };
 ASSERT(array_elems(g_propTypeNames) == DebugPropType_Count, "Missing type name");
 
@@ -196,6 +200,8 @@ ecs_comp_define(DebugInspectorSettingsComp) {
   SceneNavLayer         visNavLayer;
   u32                   visFlags;
   bool                  drawVisInGame;
+  DebugInspectorTool    toolPickerPrevTool;
+  EcsEntityId           toolPickerResult;
   GeoQuat               toolRotation; // Cached rotation to support world-space rotation tools.
 };
 
@@ -238,11 +244,14 @@ ecs_view_define(PanelUpdateView) {
 }
 
 ecs_view_define(GlobalToolUpdateView) {
-  ecs_access_read(InputManagerComp);
+  ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneTerrainComp);
   ecs_access_write(DebugGizmoComp);
   ecs_access_write(DebugInspectorSettingsComp);
+  ecs_access_write(DebugShapeComp);
   ecs_access_write(DebugStatsGlobalComp);
+  ecs_access_write(DebugTextComp);
+  ecs_access_write(InputManagerComp);
   ecs_access_write(SceneSetEnvComp);
 }
 
@@ -300,6 +309,9 @@ ecs_view_define(ScriptAssetView) {
 ecs_view_define(EntityRefView) {
   ecs_access_maybe_read(AssetComp);
   ecs_access_maybe_read(SceneNameComp);
+  ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneBoundsComp);
 }
 
 ecs_view_define(CameraView) {
@@ -922,6 +934,35 @@ static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
   UNREACHABLE;
 }
 
+static bool inspector_panel_prop_edit_level_entity(InspectorContext* ctx, ScriptVal* val) {
+  EcsEntityId entity     = script_get_entity(*val, 0);
+  String      entityName = string_lit("< None >");
+  if (ecs_view_maybe_jump(ctx->entityRefItr, entity)) {
+    const SceneNameComp* nameComp = ecs_view_read_t(ctx->entityRefItr, SceneNameComp);
+    if (nameComp) {
+      entityName = stringtable_lookup(g_stringtable, nameComp->name);
+      if (string_is_empty(entityName)) {
+        entityName = string_lit("< Unnamed >");
+      }
+    }
+  }
+  bool changed = false;
+  if (ctx->settings->tool == DebugInspectorTool_Picker) {
+    ui_label(ctx->canvas, string_lit("[Picker active]"));
+    if (entity != ctx->settings->toolPickerResult) {
+      *val    = script_entity_or_null(ctx->settings->toolPickerResult);
+      changed = true;
+    }
+  } else {
+    if (ui_button(ctx->canvas, .label = fmt_write_scratch("Pick ({})", fmt_text(entityName)))) {
+      ctx->settings->toolPickerPrevTool = ctx->settings->tool;
+      ctx->settings->tool               = DebugInspectorTool_Picker;
+      debug_stats_notify(ctx->stats, string_lit("Tool"), g_toolNames[DebugInspectorTool_Picker]);
+    }
+  }
+  return changed;
+}
+
 static bool inspector_panel_prop_edit_asset(
     InspectorContext* ctx, ScriptVal* val, const DebugFinderCategory assetCat) {
   EcsEntityId entity = script_get_entity(*val, 0);
@@ -1056,6 +1097,9 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   ui_table_next_column(ctx->canvas, table);
   ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
   switch (ctx->panel->newPropType) {
+  case DebugPropType_LevelEntity:
+    inspector_panel_prop_edit_level_entity(ctx, &ctx->panel->newPropVal);
+    break;
   case DebugPropType_Decal:
     inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DebugFinder_Decal);
     break;
@@ -1664,7 +1708,7 @@ static void debug_inspector_tool_group_update(
   case DebugInspectorTool_Scale:
     /**
      * Disable scaling if the main selected entity has no scale, reason is in that case we have no
-     * reference for the delta computation and the editing wont be stable across frames.
+     * reference for the delta computation and the editing won't be stable across frames.
      */
     if (mainScale) {
       scaleDirty |= debug_gizmo_scale_uniform(gizmo, g_groupGizmoId, pos, &scaleEdit);
@@ -1751,21 +1795,93 @@ static void debug_inspector_tool_individual_update(
   }
 }
 
+static void debug_inspector_tool_picker_update(
+    DebugInspectorSettingsComp*  set,
+    DebugStatsGlobalComp*        stats,
+    DebugShapeComp*              shape,
+    DebugTextComp*               text,
+    const InputManagerComp*      input,
+    const SceneCollisionEnvComp* collisionEnv,
+    EcsIterator*                 cameraItr,
+    EcsIterator*                 entityRefItr) {
+
+  bool shouldClose = false;
+  shouldClose |= cameraItr == null;
+  shouldClose |= input_triggered_lit(input, "DebugInspectorPickerClose");
+
+  if (shouldClose) {
+    set->tool = set->toolPickerPrevTool;
+    debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
+    return;
+  }
+
+  const SceneCameraComp*    camera      = ecs_view_read_t(cameraItr, SceneCameraComp);
+  const SceneTransformComp* cameraTrans = ecs_view_read_t(cameraItr, SceneTransformComp);
+
+  const GeoVector inputNormPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
+  const f32       inputAspect  = input_cursor_aspect(input);
+  const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
+
+  SceneRayHit            hit;
+  const SceneQueryFilter filter  = {.layerMask = SceneLayer_AllIncludingDebug};
+  const f32              maxDist = 1e5f;
+
+  String hitName = string_lit("< None >");
+  if (scene_query_ray(collisionEnv, &inputRay, maxDist, &filter, &hit)) {
+    if (ecs_view_maybe_jump(entityRefItr, hit.entity)) {
+      set->toolPickerResult = hit.entity;
+
+      const SceneNameComp*      nameComp   = ecs_view_read_t(entityRefItr, SceneNameComp);
+      const SceneBoundsComp*    boundsComp = ecs_view_read_t(entityRefItr, SceneBoundsComp);
+      const SceneTransformComp* transComp  = ecs_view_read_t(entityRefItr, SceneTransformComp);
+      const SceneScaleComp*     scaleComp  = ecs_view_read_t(entityRefItr, SceneScaleComp);
+      if (nameComp) {
+        hitName = stringtable_lookup(g_stringtable, nameComp->name);
+        if (transComp) {
+          debug_text(text, transComp->position, hitName, .fontSize = 16);
+        }
+      }
+      const GeoColor shapeColor = geo_color(0, 0.5f, 0, 0.6f);
+      if (boundsComp) {
+        const GeoBoxRotated b      = scene_bounds_world_rotated(boundsComp, transComp, scaleComp);
+        const GeoVector     center = geo_box_center(&b.box);
+        const GeoVector     size   = geo_box_size(&b.box);
+        const GeoVector     sizeDilated = geo_vector_add(size, geo_vector(0.1f, 0.1f, 0.1f));
+        debug_box(shape, center, b.rotation, sizeDilated, shapeColor, DebugShape_Fill);
+      } else if (transComp) {
+        debug_sphere(shape, transComp->position, 1.0f /* radius */, shapeColor, DebugShape_Fill);
+      }
+    } else {
+      set->toolPickerResult = ecs_entity_invalid;
+    }
+  } else {
+    set->toolPickerResult = ecs_entity_invalid;
+  }
+  debug_stats_notify(stats, string_lit("Picker entity"), hitName);
+}
+
 ecs_system_define(DebugInspectorToolUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalToolUpdateView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
     return;
   }
-  const InputManagerComp*     input   = ecs_view_read_t(globalItr, InputManagerComp);
-  const SceneTerrainComp*     terrain = ecs_view_read_t(globalItr, SceneTerrainComp);
-  SceneSetEnvComp*            setEnv  = ecs_view_write_t(globalItr, SceneSetEnvComp);
-  DebugGizmoComp*             gizmo   = ecs_view_write_t(globalItr, DebugGizmoComp);
-  DebugInspectorSettingsComp* set     = ecs_view_write_t(globalItr, DebugInspectorSettingsComp);
-  DebugStatsGlobalComp*       stats   = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  InputManagerComp*            input        = ecs_view_write_t(globalItr, InputManagerComp);
+  const SceneTerrainComp*      terrain      = ecs_view_read_t(globalItr, SceneTerrainComp);
+  const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  SceneSetEnvComp*             setEnv       = ecs_view_write_t(globalItr, SceneSetEnvComp);
+  DebugShapeComp*              shape        = ecs_view_write_t(globalItr, DebugShapeComp);
+  DebugTextComp*               text         = ecs_view_write_t(globalItr, DebugTextComp);
+  DebugGizmoComp*              gizmo        = ecs_view_write_t(globalItr, DebugGizmoComp);
+  DebugInspectorSettingsComp*  set   = ecs_view_write_t(globalItr, DebugInspectorSettingsComp);
+  DebugStatsGlobalComp*        stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
   if (!input_layer_active(input, string_hash_lit("Debug"))) {
-    return; // Gizmos are only active in debug mode.
+    if (set->tool == DebugInspectorTool_Picker) {
+      set->tool = set->toolPickerPrevTool;
+      input_blocker_update(input, InputBlocker_EntityPicker, false);
+    }
+    return; // Tools are only active in debug mode.
   }
   if (input_triggered_lit(input, "DebugInspectorToolTranslation")) {
     debug_inspector_tool_toggle(set, DebugInspectorTool_Translation);
@@ -1804,12 +1920,29 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     debug_stats_notify(stats, string_lit("Tool"), string_lit("Select all"));
   }
 
-  if (set->tool != DebugInspectorTool_None) {
+  input_blocker_update(input, InputBlocker_EntityPicker, set->tool == DebugInspectorTool_Picker);
+
+  EcsView*     cameraView   = ecs_world_view_t(world, CameraView);
+  EcsIterator* cameraItr    = ecs_view_maybe_at(cameraView, input_active_window(input));
+  EcsIterator* entityRefItr = ecs_view_itr(ecs_world_view_t(world, EntityRefView));
+
+  switch (set->tool) {
+  case DebugInspectorTool_None:
+  case DebugInspectorTool_Count:
+    break;
+  case DebugInspectorTool_Translation:
+  case DebugInspectorTool_Rotation:
+  case DebugInspectorTool_Scale:
     if (input_modifiers(input) & InputModifier_Control) {
       debug_inspector_tool_individual_update(world, set, setEnv, gizmo);
     } else {
       debug_inspector_tool_group_update(world, set, setEnv, gizmo);
     }
+    break;
+  case DebugInspectorTool_Picker:
+    debug_inspector_tool_picker_update(
+        set, stats, shape, text, input, collisionEnv, cameraItr, entityRefItr);
+    break;
   }
 }
 
@@ -2428,7 +2561,11 @@ ecs_module_init(debug_inspector_module) {
       ecs_view_id(PrefabMapView));
 
   ecs_register_system(
-      DebugInspectorToolUpdateSys, ecs_view_id(GlobalToolUpdateView), ecs_view_id(SubjectView));
+      DebugInspectorToolUpdateSys,
+      ecs_view_id(GlobalToolUpdateView),
+      ecs_view_id(SubjectView),
+      ecs_view_id(CameraView),
+      ecs_view_id(EntityRefView));
 
   ecs_register_system(
       DebugInspectorVisDrawSys,

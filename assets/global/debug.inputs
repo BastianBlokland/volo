@@ -3,7 +3,7 @@
   "actions": [
     {
       "name": "Select",
-      "blockers": [ "TextInput", "CursorLocked", "PrefabCreateMode" ],
+      "blockers": [ "TextInput", "CursorLocked", "PrefabCreate", "EntityPicker" ],
       "bindings": [
         { "type": "Down", "key": "MouseLeft" }
       ]
@@ -251,6 +251,14 @@
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "Alpha3" }
+      ]
+    },
+    {
+      "name": "DebugInspectorPickerClose",
+      "blockers": [ "TextInput", "HoveringUi", "PrefabCreate", "CursorLocked" ],
+      "bindings": [
+        { "type": "Released", "key": "MouseLeft" },
+        { "type": "Released", "key": "MouseRight" }
       ]
     },
     {
