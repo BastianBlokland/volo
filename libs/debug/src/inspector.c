@@ -200,6 +200,7 @@ ecs_comp_define(DebugInspectorSettingsComp) {
   SceneNavLayer         visNavLayer;
   u32                   visFlags;
   bool                  drawVisInGame;
+  DebugInspectorTool    toolPickerPrevTool;
   EcsEntityId           toolPickerResult;
   GeoQuat               toolRotation; // Cached rotation to support world-space rotation tools.
 };
@@ -948,7 +949,8 @@ static bool inspector_panel_prop_edit_level_entity(InspectorContext* ctx, Script
     }
   } else {
     if (ui_button(ctx->canvas, .label = fmt_write_scratch("Pick ({})", fmt_text(entityName)))) {
-      ctx->settings->tool = DebugInspectorTool_Picker;
+      ctx->settings->toolPickerPrevTool = ctx->settings->tool;
+      ctx->settings->tool               = DebugInspectorTool_Picker;
       debug_stats_notify(ctx->stats, string_lit("Tool"), g_toolNames[DebugInspectorTool_Picker]);
     }
   }
@@ -1801,7 +1803,10 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   DebugStatsGlobalComp*       stats   = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
   if (!input_layer_active(input, string_hash_lit("Debug"))) {
-    input_blocker_update(input, InputBlocker_EntityPicker, false);
+    if (set->tool == DebugInspectorTool_Picker) {
+      set->tool = set->toolPickerPrevTool;
+      input_blocker_update(input, InputBlocker_EntityPicker, false);
+    }
     return; // Tools are only active in debug mode.
   }
   if (input_triggered_lit(input, "DebugInspectorToolTranslation")) {
@@ -1845,6 +1850,7 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
 
   switch (set->tool) {
   case DebugInspectorTool_None:
+  case DebugInspectorTool_Count:
     break;
   case DebugInspectorTool_Translation:
   case DebugInspectorTool_Rotation:
