@@ -315,11 +315,11 @@ static bool memory_draw_entity(UiCanvasComp* c, EcsIterator* entityRefItr, Scrip
     const AssetComp*     assetComp = ecs_view_read_t(entityRefItr, AssetComp);
     const SceneNameComp* nameComp  = ecs_view_read_t(entityRefItr, SceneNameComp);
 
-    if (nameComp) {
+    if (assetComp) {
+      label = asset_id(assetComp);
+    } else if (nameComp) {
       const String name = stringtable_lookup(g_stringtable, nameComp->name);
       label             = string_is_empty(name) ? string_lit("< Unnamed >") : name;
-    } else if (assetComp) {
-      label = asset_id(assetComp);
     }
   }
 
