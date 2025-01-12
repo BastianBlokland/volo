@@ -210,6 +210,11 @@ static void scene_level_process_load(
       case AssetPropertyType_Str:
         props[i].value = script_str_or_null(levelProp->data_str);
         continue;
+      case AssetPropertyType_Asset: {
+        const EcsEntityId asset = asset_ref_resolve(world, assets, &levelProp->data_asset);
+        props[i].value          = script_entity_or_null(asset);
+        continue;
+      }
       case AssetPropertyType_Count:
         break;
       }
