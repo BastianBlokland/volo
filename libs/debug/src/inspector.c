@@ -243,11 +243,11 @@ ecs_view_define(PanelUpdateView) {
 }
 
 ecs_view_define(GlobalToolUpdateView) {
-  ecs_access_read(InputManagerComp);
   ecs_access_read(SceneTerrainComp);
   ecs_access_write(DebugGizmoComp);
   ecs_access_write(DebugInspectorSettingsComp);
   ecs_access_write(DebugStatsGlobalComp);
+  ecs_access_write(InputManagerComp);
   ecs_access_write(SceneSetEnvComp);
 }
 
@@ -1793,7 +1793,7 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   if (!globalItr) {
     return;
   }
-  const InputManagerComp*     input   = ecs_view_read_t(globalItr, InputManagerComp);
+  InputManagerComp*           input   = ecs_view_write_t(globalItr, InputManagerComp);
   const SceneTerrainComp*     terrain = ecs_view_read_t(globalItr, SceneTerrainComp);
   SceneSetEnvComp*            setEnv  = ecs_view_write_t(globalItr, SceneSetEnvComp);
   DebugGizmoComp*             gizmo   = ecs_view_write_t(globalItr, DebugGizmoComp);
@@ -1801,6 +1801,7 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   DebugStatsGlobalComp*       stats   = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
   if (!input_layer_active(input, string_hash_lit("Debug"))) {
+    input_blocker_update(input, InputBlocker_EntityPicker, false);
     return; // Tools are only active in debug mode.
   }
   if (input_triggered_lit(input, "DebugInspectorToolTranslation")) {
@@ -1839,6 +1840,8 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     debug_inspector_tool_select_all(world, setEnv);
     debug_stats_notify(stats, string_lit("Tool"), string_lit("Select all"));
   }
+
+  input_blocker_update(input, InputBlocker_EntityPicker, set->tool == DebugInspectorTool_Picker);
 
   switch (set->tool) {
   case DebugInspectorTool_None:
