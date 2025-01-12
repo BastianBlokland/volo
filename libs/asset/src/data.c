@@ -127,6 +127,10 @@ static void asset_data_init_types(void) {
   data_reg_field_t(g_dataReg, AssetRef, id, data_prim_t(StringHash), .flags = DataFlags_NotEmpty | DataFlags_InlineField);
   data_reg_comment_t(g_dataReg, AssetRef, "Asset reference");
 
+  data_reg_struct_t(g_dataReg, AssetLevelRef);
+  data_reg_field_t(g_dataReg, AssetLevelRef, persistentId, data_prim_t(u32), .flags = DataFlags_NotEmpty | DataFlags_InlineField);
+  data_reg_comment_t(g_dataReg, AssetLevelRef, "Asset level reference");
+
   data_reg_struct_t(g_dataReg, GeoColor3);
   data_reg_field_t(g_dataReg, GeoColor3, r, data_prim_t(f32), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, GeoColor3, g, data_prim_t(f32), .flags = DataFlags_Opt);
@@ -229,6 +233,7 @@ static void asset_data_init_types(void) {
   // clang-format on
 
   g_assetRefType           = t_AssetRef;
+  g_assetLevelRefType      = t_AssetLevelRef;
   g_assetGeoColor3Type     = t_GeoColor3;
   g_assetGeoColor4Type     = t_GeoColor4;
   g_assetGeoColor3NormType = t_GeoColor3Norm;
