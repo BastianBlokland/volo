@@ -1789,6 +1789,15 @@ static void debug_inspector_tool_individual_update(
   }
 }
 
+static void debug_inspector_tool_picker_update(
+    DebugInspectorSettingsComp* set, DebugStatsGlobalComp* stats, const InputManagerComp* input) {
+  if (input_triggered_lit(input, "DebugInspectorPickerClose")) {
+    set->tool = set->toolPickerPrevTool;
+    debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
+    return;
+  }
+}
+
 ecs_system_define(DebugInspectorToolUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalToolUpdateView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
@@ -1862,6 +1871,7 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     }
     break;
   case DebugInspectorTool_Picker:
+    debug_inspector_tool_picker_update(set, stats, input);
     break;
   }
 }

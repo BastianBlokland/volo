@@ -254,6 +254,14 @@
       ]
     },
     {
+      "name": "DebugInspectorPickerClose",
+      "blockers": [ "TextInput", "HoveringUi", "PrefabCreate", "CursorLocked" ],
+      "bindings": [
+        { "type": "Released", "key": "MouseLeft" },
+        { "type": "Released", "key": "MouseRight" }
+      ]
+    },
+    {
       "name": "DebugInspectorToggleSpace",
       "blockers": [ "TextInput" ],
       "bindings": [
