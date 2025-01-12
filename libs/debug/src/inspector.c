@@ -200,6 +200,7 @@ ecs_comp_define(DebugInspectorSettingsComp) {
   SceneNavLayer         visNavLayer;
   u32                   visFlags;
   bool                  drawVisInGame;
+  EcsEntityId           toolPickerResult;
   GeoQuat               toolRotation; // Cached rotation to support world-space rotation tools.
 };
 
@@ -938,12 +939,20 @@ static bool inspector_panel_prop_edit_level_entity(InspectorContext* ctx, Script
       }
     }
   }
-  if (ui_button(ctx->canvas, .label = fmt_write_scratch("Pick ({})", fmt_text(entityName)))) {
-    // TODO: Implement entity picker.
-    *val = script_entity_or_null(ctx->subjectEntity);
-    return true;
+  bool changed = false;
+  if (ctx->settings->tool == DebugInspectorTool_Picker) {
+    ui_label(ctx->canvas, string_lit("[Picker active]"));
+    if (entity != ctx->settings->toolPickerResult) {
+      *val    = script_entity_or_null(ctx->settings->toolPickerResult);
+      changed = true;
+    }
+  } else {
+    if (ui_button(ctx->canvas, .label = fmt_write_scratch("Pick ({})", fmt_text(entityName)))) {
+      ctx->settings->tool = DebugInspectorTool_Picker;
+      debug_stats_notify(ctx->stats, string_lit("Tool"), g_toolNames[DebugInspectorTool_Picker]);
+    }
   }
-  return false;
+  return changed;
 }
 
 static bool inspector_panel_prop_edit_asset(
