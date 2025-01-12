@@ -244,6 +244,7 @@ ecs_view_define(PanelUpdateView) {
 }
 
 ecs_view_define(GlobalToolUpdateView) {
+  ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneTerrainComp);
   ecs_access_write(DebugGizmoComp);
   ecs_access_write(DebugInspectorSettingsComp);
@@ -1790,11 +1791,37 @@ static void debug_inspector_tool_individual_update(
 }
 
 static void debug_inspector_tool_picker_update(
-    DebugInspectorSettingsComp* set, DebugStatsGlobalComp* stats, const InputManagerComp* input) {
-  if (input_triggered_lit(input, "DebugInspectorPickerClose")) {
+    DebugInspectorSettingsComp*  set,
+    DebugStatsGlobalComp*        stats,
+    const InputManagerComp*      input,
+    const SceneCollisionEnvComp* collisionEnv,
+    EcsIterator*                 cameraItr) {
+
+  bool shouldClose = false;
+  shouldClose |= cameraItr == null;
+  shouldClose |= input_triggered_lit(input, "DebugInspectorPickerClose");
+
+  if (shouldClose) {
     set->tool = set->toolPickerPrevTool;
     debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
     return;
+  }
+
+  const SceneCameraComp*    camera      = ecs_view_read_t(cameraItr, SceneCameraComp);
+  const SceneTransformComp* cameraTrans = ecs_view_read_t(cameraItr, SceneTransformComp);
+
+  const GeoVector inputNormPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
+  const f32       inputAspect  = input_cursor_aspect(input);
+  const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
+
+  SceneRayHit            hit;
+  const SceneQueryFilter filter  = {.layerMask = SceneLayer_AllIncludingDebug};
+  const f32              maxDist = 1e5f;
+
+  if (scene_query_ray(collisionEnv, &inputRay, maxDist, &filter, &hit)) {
+    set->toolPickerResult = hit.entity;
+  } else {
+    set->toolPickerResult = ecs_entity_invalid;
   }
 
   const String statKey = string_lit("Picker entity");
@@ -1812,12 +1839,13 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   if (!globalItr) {
     return;
   }
-  InputManagerComp*           input   = ecs_view_write_t(globalItr, InputManagerComp);
-  const SceneTerrainComp*     terrain = ecs_view_read_t(globalItr, SceneTerrainComp);
-  SceneSetEnvComp*            setEnv  = ecs_view_write_t(globalItr, SceneSetEnvComp);
-  DebugGizmoComp*             gizmo   = ecs_view_write_t(globalItr, DebugGizmoComp);
-  DebugInspectorSettingsComp* set     = ecs_view_write_t(globalItr, DebugInspectorSettingsComp);
-  DebugStatsGlobalComp*       stats   = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  InputManagerComp*            input        = ecs_view_write_t(globalItr, InputManagerComp);
+  const SceneTerrainComp*      terrain      = ecs_view_read_t(globalItr, SceneTerrainComp);
+  const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
+  SceneSetEnvComp*             setEnv       = ecs_view_write_t(globalItr, SceneSetEnvComp);
+  DebugGizmoComp*              gizmo        = ecs_view_write_t(globalItr, DebugGizmoComp);
+  DebugInspectorSettingsComp*  set   = ecs_view_write_t(globalItr, DebugInspectorSettingsComp);
+  DebugStatsGlobalComp*        stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
 
   if (!input_layer_active(input, string_hash_lit("Debug"))) {
     if (set->tool == DebugInspectorTool_Picker) {
@@ -1865,6 +1893,9 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
 
   input_blocker_update(input, InputBlocker_EntityPicker, set->tool == DebugInspectorTool_Picker);
 
+  EcsView*     cameraView = ecs_world_view_t(world, CameraView);
+  EcsIterator* cameraItr  = ecs_view_maybe_at(cameraView, input_active_window(input));
+
   switch (set->tool) {
   case DebugInspectorTool_None:
   case DebugInspectorTool_Count:
@@ -1879,7 +1910,7 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     }
     break;
   case DebugInspectorTool_Picker:
-    debug_inspector_tool_picker_update(set, stats, input);
+    debug_inspector_tool_picker_update(set, stats, input, collisionEnv, cameraItr);
     break;
   }
 }
@@ -2499,7 +2530,10 @@ ecs_module_init(debug_inspector_module) {
       ecs_view_id(PrefabMapView));
 
   ecs_register_system(
-      DebugInspectorToolUpdateSys, ecs_view_id(GlobalToolUpdateView), ecs_view_id(SubjectView));
+      DebugInspectorToolUpdateSys,
+      ecs_view_id(GlobalToolUpdateView),
+      ecs_view_id(SubjectView),
+      ecs_view_id(CameraView));
 
   ecs_register_system(
       DebugInspectorVisDrawSys,
