@@ -27,7 +27,7 @@ typedef GeoVector GeoVector2;
 typedef GeoVector GeoVector3;
 typedef GeoVector GeoVector4;
 
-DataType g_assetRefType;
+DataType g_assetRefType, g_assetLevelRefType;
 DataType g_assetGeoColor3Type, g_assetGeoColor4Type;
 DataType g_assetGeoColor3NormType, g_assetGeoColor4NormType;
 DataType g_assetGeoVec2Type, g_assetGeoVec3Type, g_assetGeoVec4Type;
