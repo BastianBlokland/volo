@@ -308,10 +308,11 @@ ecs_view_define(ScriptAssetView) {
 
 ecs_view_define(EntityRefView) {
   ecs_access_maybe_read(AssetComp);
-  ecs_access_maybe_read(SceneNameComp);
-  ecs_access_maybe_read(SceneTransformComp);
-  ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneBoundsComp);
+  ecs_access_maybe_read(SceneNameComp);
+  ecs_access_maybe_read(ScenePrefabInstanceComp);
+  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneTransformComp);
 }
 
 ecs_view_define(CameraView) {
@@ -948,7 +949,10 @@ static bool inspector_panel_prop_edit_level_entity(InspectorContext* ctx, Script
   }
   bool changed = false;
   if (ctx->settings->tool == DebugInspectorTool_Picker) {
-    ui_label(ctx->canvas, string_lit("[Picker active]"));
+    if (ui_button(ctx->canvas, .label = string_lit("Cancel picking"))) {
+      ctx->settings->tool = ctx->settings->toolPickerPrevTool;
+      debug_stats_notify(ctx->stats, string_lit("Tool"), g_toolNames[ctx->settings->tool]);
+    }
     if (entity != ctx->settings->toolPickerResult) {
       *val    = script_entity_or_null(ctx->settings->toolPickerResult);
       changed = true;
@@ -1795,7 +1799,27 @@ static void debug_inspector_tool_individual_update(
   }
 }
 
+typedef struct {
+  EcsWorld*    world;
+  EcsIterator* entityRefItr;
+} ToolPickerQueryContext;
+
+static bool tool_picker_query_filter(const void* ctx, const EcsEntityId entity, const u32 layer) {
+  (void)layer;
+  const ToolPickerQueryContext* c = ctx;
+  if (!ecs_world_has_t(c->world, entity, SceneLevelInstanceComp)) {
+    return false;
+  }
+  ecs_view_jump(c->entityRefItr, entity);
+  const ScenePrefabInstanceComp* inst = ecs_view_read_t(c->entityRefItr, ScenePrefabInstanceComp);
+  if (!inst || inst->isVolatile) {
+    return false;
+  }
+  return true;
+}
+
 static void debug_inspector_tool_picker_update(
+    EcsWorld*                    world,
     DebugInspectorSettingsComp*  set,
     DebugStatsGlobalComp*        stats,
     DebugShapeComp*              shape,
@@ -1822,12 +1846,16 @@ static void debug_inspector_tool_picker_update(
   const f32       inputAspect  = input_cursor_aspect(input);
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
 
-  SceneRayHit            hit;
-  const SceneQueryFilter filter  = {.layerMask = SceneLayer_AllIncludingDebug};
-  const f32              maxDist = 1e5f;
+  const ToolPickerQueryContext filterCtx = {.world = world, .entityRefItr = entityRefItr};
+  const SceneQueryFilter       filter    = {
+               .context   = &filterCtx,
+               .callback  = &tool_picker_query_filter,
+               .layerMask = SceneLayer_AllIncludingDebug,
+  };
 
-  String hitName = string_lit("< None >");
-  if (scene_query_ray(collisionEnv, &inputRay, maxDist, &filter, &hit)) {
+  String      hitName = string_lit("< None >");
+  SceneRayHit hit;
+  if (scene_query_ray(collisionEnv, &inputRay, 1e5f /* maxDist */, &filter, &hit)) {
     if (ecs_view_maybe_jump(entityRefItr, hit.entity)) {
       set->toolPickerResult = hit.entity;
 
@@ -1941,7 +1969,7 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     break;
   case DebugInspectorTool_Picker:
     debug_inspector_tool_picker_update(
-        set, stats, shape, text, input, collisionEnv, cameraItr, entityRefItr);
+        world, set, stats, shape, text, input, collisionEnv, cameraItr, entityRefItr);
     break;
   }
 }
