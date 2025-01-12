@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_ref.h"
 #include "data.h"
 #include "geo_color.h"
 #include "geo_quat.h"
@@ -11,6 +12,7 @@ typedef enum eAssetPropertyType {
   AssetPropertyType_Quat,
   AssetPropertyType_Color,
   AssetPropertyType_Str,
+  AssetPropertyType_Asset,
 
   AssetPropertyType_Count,
 } AssetPropertyType;
@@ -25,6 +27,7 @@ typedef struct sAssetProperty {
     GeoQuat    data_quat;
     GeoColor   data_color;
     StringHash data_str;
+    AssetRef   data_asset;
   };
 } AssetProperty;
 
