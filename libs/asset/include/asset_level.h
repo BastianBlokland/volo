@@ -36,7 +36,7 @@ typedef struct {
 
 typedef struct {
   String        name;
-  String        terrainId;
+  AssetRef      terrain;
   AssetLevelFog fogMode;
   GeoVector     startpoint;
   HeapArray_t(AssetLevelObject) objects;
