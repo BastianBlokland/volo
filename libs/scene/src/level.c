@@ -97,33 +97,6 @@ static SceneFaction scene_from_asset_faction(const AssetLevelFaction assetFactio
   }
 }
 
-static bool scene_prop_is_persistable(const ScriptVal val) {
-  switch (script_type(val)) {
-  case ScriptType_Num:
-  case ScriptType_Bool:
-  case ScriptType_Vec3:
-  case ScriptType_Quat:
-  case ScriptType_Color:
-  case ScriptType_Str:
-    return true;
-  case ScriptType_Null:
-  case ScriptType_Entity:
-    return false;
-  case ScriptType_Count:
-    break;
-  }
-  UNREACHABLE
-}
-
-static u32 scene_prop_count_persistable(const ScenePropertyComp* c) {
-  const ScriptMem* memory = scene_prop_memory(c);
-  u32              res    = 0;
-  for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
-    res += scene_prop_is_persistable(script_mem_load(memory, itr.key));
-  }
-  return res;
-}
-
 ecs_view_define(InstanceView) {
   ecs_access_with(SceneLevelInstanceComp);
   ecs_access_maybe_read(SceneFactionComp);
@@ -374,57 +347,69 @@ ecs_system_define(SceneLevelUnloadSys) {
 
 static void scene_level_object_push_properties(
     AssetLevelObject* obj, Allocator* alloc, const ScenePropertyComp* c) {
-  const u32 count = scene_prop_count_persistable(c);
-  if (!count) {
-    return;
-  }
-  obj->properties.values = alloc_array_t(alloc, AssetProperty, count);
-  obj->properties.count  = count;
 
-  const ScriptMem* memory      = scene_prop_memory(c);
-  u32              propertyIdx = 0;
+  AssetProperty props[64];
+  u32           propCount = 0;
+
+  const ScriptMem* memory = scene_prop_memory(c);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const ScriptVal val = script_mem_load(memory, itr.key);
-    if (!scene_prop_is_persistable(val)) {
-      continue;
+    if (UNLIKELY(propCount == array_elems(props))) {
+      log_w("Object property count exceeds max", log_param("max", fmt_int(array_elems(props))));
+      break;
     }
-    AssetProperty* prop = &obj->properties.values[propertyIdx++];
+    AssetProperty* prop = &props[propCount];
     prop->name          = itr.key;
 
     switch (script_type(val)) {
     case ScriptType_Num:
       prop->type     = AssetPropertyType_Num;
       prop->data_num = script_get_num(val, 0);
-      continue;
+      goto Accept;
     case ScriptType_Bool:
       prop->type      = AssetPropertyType_Bool;
       prop->data_bool = script_get_bool(val, false);
-      continue;
+      goto Accept;
     case ScriptType_Vec3:
       prop->type      = AssetPropertyType_Vec3;
       prop->data_vec3 = script_get_vec3(val, geo_vector(0));
-      continue;
+      goto Accept;
     case ScriptType_Quat:
       prop->type      = AssetPropertyType_Quat;
       prop->data_quat = script_get_quat(val, geo_quat_ident);
-      continue;
+      goto Accept;
     case ScriptType_Color:
       prop->type       = AssetPropertyType_Color;
       prop->data_color = script_get_color(val, geo_color_white);
-      continue;
+      goto Accept;
     case ScriptType_Str:
       prop->type     = AssetPropertyType_Str;
       prop->data_str = script_get_str(val, 0);
-      continue;
+      goto Accept;
     case ScriptType_Null:
+      goto Reject; // Null properties do not need to be persisted.
     case ScriptType_Entity:
+      goto Reject; // Entities cannot be persisted.
     case ScriptType_Count:
       break;
     }
     diag_assert_fail("Unsupported property");
     UNREACHABLE
+
+  Reject:
+    continue;
+  Accept:
+    ++propCount;
   }
-  diag_assert(propertyIdx == count);
+
+  // Copy the properties into the object.
+  if (propCount) {
+    obj->properties.values = alloc_array_t(alloc, AssetProperty, propCount);
+    obj->properties.count  = propCount;
+
+    const usize propMemSize = sizeof(AssetProperty) * propCount;
+    mem_cpy(mem_create(obj->properties.values, propMemSize), mem_create(props, propMemSize));
+  }
 }
 
 static void scene_level_object_push_sets(AssetLevelObject* obj, const SceneSetMemberComp* c) {
