@@ -948,7 +948,10 @@ static bool inspector_panel_prop_edit_level_entity(InspectorContext* ctx, Script
   }
   bool changed = false;
   if (ctx->settings->tool == DebugInspectorTool_Picker) {
-    ui_label(ctx->canvas, string_lit("[Picker active]"));
+    if (ui_button(ctx->canvas, .label = string_lit("Cancel picking"))) {
+      ctx->settings->tool = ctx->settings->toolPickerPrevTool;
+      debug_stats_notify(ctx->stats, string_lit("Tool"), g_toolNames[ctx->settings->tool]);
+    }
     if (entity != ctx->settings->toolPickerResult) {
       *val    = script_entity_or_null(ctx->settings->toolPickerResult);
       changed = true;
