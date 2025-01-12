@@ -248,7 +248,9 @@ ecs_view_define(GlobalToolUpdateView) {
   ecs_access_read(SceneTerrainComp);
   ecs_access_write(DebugGizmoComp);
   ecs_access_write(DebugInspectorSettingsComp);
+  ecs_access_write(DebugShapeComp);
   ecs_access_write(DebugStatsGlobalComp);
+  ecs_access_write(DebugTextComp);
   ecs_access_write(InputManagerComp);
   ecs_access_write(SceneSetEnvComp);
 }
@@ -307,6 +309,9 @@ ecs_view_define(ScriptAssetView) {
 ecs_view_define(EntityRefView) {
   ecs_access_maybe_read(AssetComp);
   ecs_access_maybe_read(SceneNameComp);
+  ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_maybe_read(SceneScaleComp);
+  ecs_access_maybe_read(SceneBoundsComp);
 }
 
 ecs_view_define(CameraView) {
@@ -1793,6 +1798,8 @@ static void debug_inspector_tool_individual_update(
 static void debug_inspector_tool_picker_update(
     DebugInspectorSettingsComp*  set,
     DebugStatsGlobalComp*        stats,
+    DebugShapeComp*              shape,
+    DebugTextComp*               text,
     const InputManagerComp*      input,
     const SceneCollisionEnvComp* collisionEnv,
     EcsIterator*                 cameraItr,
@@ -1824,8 +1831,26 @@ static void debug_inspector_tool_picker_update(
     if (ecs_view_maybe_jump(entityRefItr, hit.entity)) {
       set->toolPickerResult = hit.entity;
 
-      const SceneNameComp* nameComp = ecs_view_read_t(entityRefItr, SceneNameComp);
-      hitName                       = stringtable_lookup(g_stringtable, nameComp->name);
+      const SceneNameComp*      nameComp   = ecs_view_read_t(entityRefItr, SceneNameComp);
+      const SceneBoundsComp*    boundsComp = ecs_view_read_t(entityRefItr, SceneBoundsComp);
+      const SceneTransformComp* transComp  = ecs_view_read_t(entityRefItr, SceneTransformComp);
+      const SceneScaleComp*     scaleComp  = ecs_view_read_t(entityRefItr, SceneScaleComp);
+      if (nameComp) {
+        hitName = stringtable_lookup(g_stringtable, nameComp->name);
+        if (transComp) {
+          debug_text(text, transComp->position, hitName, .fontSize = 16);
+        }
+      }
+      const GeoColor shapeColor = geo_color(0, 0.5f, 0, 0.6f);
+      if (boundsComp) {
+        const GeoBoxRotated b      = scene_bounds_world_rotated(boundsComp, transComp, scaleComp);
+        const GeoVector     center = geo_box_center(&b.box);
+        const GeoVector     size   = geo_box_size(&b.box);
+        const GeoVector     sizeDilated = geo_vector_add(size, geo_vector(0.1f, 0.1f, 0.1f));
+        debug_box(shape, center, b.rotation, sizeDilated, shapeColor, DebugShape_Fill);
+      } else if (transComp) {
+        debug_sphere(shape, transComp->position, 1.0f /* radius */, shapeColor, DebugShape_Fill);
+      }
     } else {
       set->toolPickerResult = ecs_entity_invalid;
     }
@@ -1845,6 +1870,8 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   const SceneTerrainComp*      terrain      = ecs_view_read_t(globalItr, SceneTerrainComp);
   const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
   SceneSetEnvComp*             setEnv       = ecs_view_write_t(globalItr, SceneSetEnvComp);
+  DebugShapeComp*              shape        = ecs_view_write_t(globalItr, DebugShapeComp);
+  DebugTextComp*               text         = ecs_view_write_t(globalItr, DebugTextComp);
   DebugGizmoComp*              gizmo        = ecs_view_write_t(globalItr, DebugGizmoComp);
   DebugInspectorSettingsComp*  set   = ecs_view_write_t(globalItr, DebugInspectorSettingsComp);
   DebugStatsGlobalComp*        stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
@@ -1913,7 +1940,8 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     }
     break;
   case DebugInspectorTool_Picker:
-    debug_inspector_tool_picker_update(set, stats, input, collisionEnv, cameraItr, entityRefItr);
+    debug_inspector_tool_picker_update(
+        set, stats, shape, text, input, collisionEnv, cameraItr, entityRefItr);
     break;
   }
 }
