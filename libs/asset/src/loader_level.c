@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_dynstring.h"
 #include "core_path.h"
+#include "core_search.h"
 #include "core_sort.h"
 #include "data_read.h"
 #include "data_utils.h"
@@ -137,6 +138,23 @@ Error:
 
 Cleanup:
   asset_repo_source_close(src);
+}
+
+const AssetLevelObject* asset_level_find(const AssetLevel* lvl, const u32 persistentId) {
+  return search_binary_t(
+      lvl->objects.values,
+      lvl->objects.values + lvl->objects.count,
+      AssetLevelObject,
+      level_compare_object_id,
+      &(AssetLevelObject){.id = persistentId});
+}
+
+u32 asset_level_find_index(const AssetLevel* lvl, const u32 persistentId) {
+  const AssetLevelObject* obj = asset_level_find(lvl, persistentId);
+  if (!obj) {
+    return sentinel_u32;
+  }
+  return (u32)(obj - lvl->objects.values);
 }
 
 bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLevel* level) {

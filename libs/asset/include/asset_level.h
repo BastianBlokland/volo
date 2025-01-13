@@ -46,4 +46,7 @@ ecs_comp_extern_public(AssetLevelComp) { AssetLevel level; };
 
 extern DataMeta g_assetLevelDefMeta;
 
+const AssetLevelObject* asset_level_find(const AssetLevel*, u32 persistentId);
+u32                     asset_level_find_index(const AssetLevel*, u32 persistentId);
+
 bool asset_level_save(AssetManagerComp*, String id, const AssetLevel*);
