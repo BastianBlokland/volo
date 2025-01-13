@@ -175,6 +175,7 @@ bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLev
   const DataWriteJsonOpts jOpts = data_write_json_opts(.numberMaxDecDigits = 4, .compact = true);
   const Mem               levelData = mem_create(level, sizeof(AssetLevel));
   data_write_json(g_dataReg, &dataBuffer, g_assetLevelDefMeta, levelData, &jOpts);
+  dynstring_append_char(&dataBuffer, '\n'); // End the file with a new-line.
 
   const bool res = asset_save(manager, idWithExtScratch, dynstring_view(&dataBuffer));
 
