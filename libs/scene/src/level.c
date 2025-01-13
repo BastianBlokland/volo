@@ -196,9 +196,12 @@ static void scene_level_process_load(
       case AssetPropertyType_Str:
         props[propIdx].value = script_str_or_null(levelProp->data_str);
         continue;
-      case AssetPropertyType_LevelEntity:
-        props[propIdx].value = script_null(); // TODO: Resolve level entities.
+      case AssetPropertyType_LevelEntity: {
+        const u32 refIdx = asset_level_find_index(level, levelProp->data_levelEntity.persistentId);
+        const EcsEntityId refEntity = sentinel_check(refIdx) ? 0 : objectEntities[refIdx];
+        props[propIdx].value        = script_entity_or_null(refEntity);
         continue;
+      }
       case AssetPropertyType_Asset: {
         const EcsEntityId asset = asset_ref_resolve(world, assets, &levelProp->data_asset);
         props[propIdx].value    = script_entity_or_null(asset);
