@@ -430,6 +430,7 @@ static bool level_obj_should_persist(const ScenePrefabInstanceComp* prefabInst) 
 }
 
 static void level_obj_push_properties(
+    const LevelIdMap*        idMap,
     AssetLevelObject*        obj,
     Allocator*               alloc,
     const ScenePropertyComp* c,
@@ -483,6 +484,13 @@ static void level_obj_push_properties(
           prop->type       = AssetPropertyType_Asset;
           prop->data_asset = (AssetRef){.entity = entity, .id = asset_id_hash(assetComp)};
           goto Accept;
+        } else {
+          const u32 persistentId = level_id_lookup(idMap, entity);
+          if (!sentinel_check(persistentId)) {
+            prop->type             = AssetPropertyType_LevelEntity;
+            prop->data_levelEntity = (AssetLevelRef){.persistentId = persistentId};
+            goto Accept;
+          }
         }
       }
       goto Reject; // Unsupported entity reference.
@@ -542,7 +550,7 @@ static void level_obj_push(
       .faction  = maybeFaction ? level_to_asset_faction(maybeFaction->id) : AssetLevelFaction_None,
   };
   if (maybeProperties) {
-    level_obj_push_properties(&obj, alloc, maybeProperties, entityRefItr);
+    level_obj_push_properties(idMap, &obj, alloc, maybeProperties, entityRefItr);
   }
   if (maybeSetMember) {
     level_obj_push_sets(&obj, maybeSetMember);
