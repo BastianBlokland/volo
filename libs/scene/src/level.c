@@ -363,6 +363,72 @@ ecs_system_define(SceneLevelUnloadSys) {
   }
 }
 
+typedef struct {
+  EcsEntityId entity;
+  u32         persistentId;
+} LevelIdEntry;
+
+typedef struct {
+  DynArray entries; // LevelIdEntry[], sorted on entity.
+  DynArray ids;     // u32[], sorted.
+} LevelIdMap;
+
+static i8 level_id_compare(const void* a, const void* b) {
+  return ecs_compare_entity(field_ptr(a, LevelIdEntry, entity), field_ptr(b, LevelIdEntry, entity));
+}
+
+static LevelIdMap level_id_map_create(Allocator* alloc) {
+  return (LevelIdMap){
+      .entries = dynarray_create_t(alloc, LevelIdEntry, 1024),
+      .ids     = dynarray_create_t(alloc, u32, 1024),
+  };
+}
+
+static void level_id_map_destroy(LevelIdMap* map) {
+  dynarray_destroy(&map->entries);
+  dynarray_destroy(&map->ids);
+}
+
+static u32 level_id_push(LevelIdMap* map, const EcsEntityId entity, const u32 persistentId) {
+  // Allocate a persistent id.
+  u32 id = persistentId ? persistentId : rng_sample_u32(g_rng);
+  for (;; id = rng_sample_u32(g_rng)) {
+    u32* entry = dynarray_find_or_insert_sorted(&map->ids, compare_u32, &id);
+    if (!*entry) /* Check if slot is unused. */ {
+      *entry = id;
+      break;
+    }
+    // Id already used; pick a new one.
+  }
+
+  // Save the entry for future lookups.
+  const LevelIdEntry entry = {
+      .entity       = entity,
+      .persistentId = id,
+  };
+  *dynarray_insert_sorted_t(&map->entries, LevelIdEntry, level_id_compare, &entry) = entry;
+
+  return id;
+}
+
+static u32 level_id_lookup(const LevelIdMap* map, const EcsEntityId entity) {
+  const LevelIdEntry* entry = dynarray_search_binary(
+      (DynArray*)&map->entries, level_id_compare, &(LevelIdEntry){.entity = entity});
+
+  diag_assert(entry);
+  return entry->persistentId;
+}
+
+static bool level_obj_should_persist(const ScenePrefabInstanceComp* prefabInst) {
+  if (prefabInst->variant != ScenePrefabVariant_Edit) {
+    return false; // Only edit prefab instances are persisted.
+  }
+  if (prefabInst->isVolatile) {
+    return false; // Volatile prefabs should not be persisted.
+  }
+  return true;
+}
+
 static void level_obj_push_properties(
     AssetLevelObject*        obj,
     Allocator*               alloc,
@@ -449,17 +515,15 @@ static void level_obj_push_sets(AssetLevelObject* obj, const SceneSetMemberComp*
 }
 
 static void level_obj_push(
-    DynArray*    objects, // AssetLevelObject[], sorted on id.
-    Allocator*   alloc,
-    EcsIterator* instanceItr,
-    EcsIterator* entityRefItr) {
+    const LevelIdMap* idMap,
+    DynArray*         objects, // AssetLevelObject[], sorted on id.
+    Allocator*        alloc,
+    EcsIterator*      instanceItr,
+    EcsIterator*      entityRefItr) {
 
   const ScenePrefabInstanceComp* prefabInst = ecs_view_read_t(instanceItr, ScenePrefabInstanceComp);
-  if (!prefabInst || prefabInst->variant != ScenePrefabVariant_Edit) {
-    return; // Only edit prefab instances are persisted.
-  }
-  if (prefabInst->isVolatile) {
-    return; // Volatile prefabs should not be persisted.
+  if (!prefabInst || !level_obj_should_persist(prefabInst)) {
+    return;
   }
 
   const SceneTransformComp* maybeTrans      = ecs_view_read_t(instanceItr, SceneTransformComp);
@@ -470,7 +534,7 @@ static void level_obj_push(
   const f32                 scaleVal        = maybeScale ? maybeScale->scale : 1.0f;
 
   AssetLevelObject obj = {
-      .id       = prefabInst->id ? prefabInst->id : rng_sample_u32(g_rng),
+      .id       = level_id_lookup(idMap, ecs_view_entity(instanceItr)),
       .prefab   = prefabInst->prefabId,
       .position = maybeTrans ? maybeTrans->position : geo_vector(0),
       .rotation = maybeTrans ? geo_quat_norm(maybeTrans->rotation) : geo_quat_ident,
@@ -483,13 +547,6 @@ static void level_obj_push(
   if (maybeSetMember) {
     level_obj_push_sets(&obj, maybeSetMember);
   }
-
-  // Guarantee unique object id.
-  while (dynarray_search_binary(objects, level_compare_object_id, &obj)) {
-    obj.id = rng_sample_u32(g_rng);
-  }
-
-  // Insert sorted on object id.
   *dynarray_insert_sorted_t(objects, AssetLevelObject, level_compare_object_id, &obj) = obj;
 }
 
@@ -506,10 +563,20 @@ static void level_process_save(
     EcsView*                     instanceView,
     EcsIterator*                 entityRefItr) {
   Allocator* tempAlloc = alloc_chunked_create(g_allocHeap, alloc_bump_create, usize_mebibyte);
+  LevelIdMap idMap     = level_id_map_create(g_allocHeap);
 
+  // Allocate ids for all objects.
+  for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
+    const ScenePrefabInstanceComp* prefabInst = ecs_view_read_t(itr, ScenePrefabInstanceComp);
+    if (prefabInst && level_obj_should_persist(prefabInst)) {
+      level_id_push(&idMap, ecs_view_entity(itr), prefabInst->id);
+    }
+  }
+
+  // Add objects to the level.
   DynArray objects = dynarray_create_t(g_allocHeap, AssetLevelObject, 1024);
   for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
-    level_obj_push(&objects, tempAlloc, itr, entityRefItr);
+    level_obj_push(&idMap, &objects, tempAlloc, itr, entityRefItr);
   }
 
   const AssetRef terrainRef = {
@@ -530,6 +597,7 @@ static void level_process_save(
   log_i("Level saved", log_param("id", fmt_text(id)), log_param("objects", fmt_int(objects.size)));
 
   dynarray_destroy(&objects);
+  level_id_map_destroy(&idMap);
   alloc_chunked_destroy(tempAlloc);
 }
 
