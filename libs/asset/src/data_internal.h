@@ -28,7 +28,7 @@ void asset_data_init_tex(void);
 void asset_data_init_vfx(void);
 void asset_data_init_weapon(void);
 
-extern DataType g_assetRefType;
+extern DataType g_assetRefType, g_assetLevelRefType;
 extern DataType g_assetGeoColor3Type, g_assetGeoColor4Type;
 extern DataType g_assetGeoColor3NormType, g_assetGeoColor4NormType;
 extern DataType g_assetGeoVec2Type, g_assetGeoVec3Type, g_assetGeoVec4Type;

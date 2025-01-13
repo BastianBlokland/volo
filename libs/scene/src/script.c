@@ -244,13 +244,13 @@ static void eval_enum_init_health_stat(void) {
 }
 
 ecs_view_define(EvalGlobalView) {
+  ecs_access_maybe_read(SceneDebugEnvComp);
+  ecs_access_maybe_read(SceneTerrainComp);
   ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneSetEnvComp);
-  ecs_access_read(SceneTerrainComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_read(SceneVisibilityEnvComp);
-  ecs_access_maybe_read(SceneDebugEnvComp);
 }
 
 ecs_view_define(EvalAnimView) { ecs_access_read(SceneAnimationComp); }
@@ -1773,7 +1773,7 @@ static bool eval_debug_input_hit(EvalContext* ctx, const SceneQueryFilter* f, De
   static const f32 g_maxDist = 1e4f;
 
   f32 terrainHitT = f32_max;
-  if (scene_terrain_loaded(terrain)) {
+  if (terrain && scene_terrain_loaded(terrain)) {
     terrainHitT = scene_terrain_intersect_ray(terrain, &ctx->debugRay, g_maxDist);
   }
   SceneRayHit hit;

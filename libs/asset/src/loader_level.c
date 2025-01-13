@@ -2,6 +2,8 @@
 #include "core_alloc.h"
 #include "core_dynstring.h"
 #include "core_path.h"
+#include "core_search.h"
+#include "core_sort.h"
 #include "data_read.h"
 #include "data_utils.h"
 #include "data_write.h"
@@ -22,6 +24,10 @@ static void ecs_destruct_level_comp(void* data) {
   AssetLevelComp* comp  = data;
   AssetLevel*     level = &comp->level;
   data_destroy(g_dataReg, g_allocHeap, g_assetLevelDefMeta, mem_create(level, sizeof(AssetLevel)));
+}
+
+static i8 level_compare_object_id(const void* a, const void* b) {
+  return compare_u32(field_ptr(a, AssetLevelObject, id), field_ptr(b, AssetLevelObject, id));
 }
 
 ecs_view_define(LevelUnloadView) {
@@ -65,8 +71,8 @@ void asset_data_init_level(void) {
   data_reg_field_t(g_dataReg, AssetLevelObject, id, data_prim_t(u32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetLevelObject, prefab, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetLevelObject, faction, t_AssetLevelFaction, .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetLevelObject, position, g_assetGeoVec3Type);
-  data_reg_field_t(g_dataReg, AssetLevelObject, rotation, g_assetGeoQuatType);
+  data_reg_field_t(g_dataReg, AssetLevelObject, position, g_assetGeoVec3Type, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetLevelObject, rotation, g_assetGeoQuatType, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetLevelObject, scale, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetLevelObject, properties, g_assetPropertyType, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, AssetLevelObject, sets, data_prim_t(StringHash), .container = DataContainer_InlineArray, .fixedCount = asset_level_sets_max, .flags = DataFlags_Opt);
@@ -97,6 +103,16 @@ void asset_load_level(
     data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetLevelDefMeta, mem_var(lvl), &readRes);
   } else {
     data_read_json(g_dataReg, src->data, g_allocHeap, g_assetLevelDefMeta, mem_var(lvl), &readRes);
+
+    /**
+     * Ensure the objects are sorted on their id. The editor always produces json files with sorted
+     * objects but external edits (for example source control merges) can cause non-sorted files.
+     */
+    sort_quicksort_t(
+        lvl.objects.values,
+        lvl.objects.values + lvl.objects.count,
+        AssetLevelObject,
+        level_compare_object_id);
   }
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;
@@ -124,6 +140,23 @@ Cleanup:
   asset_repo_source_close(src);
 }
 
+const AssetLevelObject* asset_level_find(const AssetLevel* lvl, const u32 persistentId) {
+  return search_binary_t(
+      lvl->objects.values,
+      lvl->objects.values + lvl->objects.count,
+      AssetLevelObject,
+      level_compare_object_id,
+      &(AssetLevelObject){.id = persistentId});
+}
+
+u32 asset_level_find_index(const AssetLevel* lvl, const u32 persistentId) {
+  const AssetLevelObject* obj = asset_level_find(lvl, persistentId);
+  if (!obj) {
+    return sentinel_u32;
+  }
+  return (u32)(obj - lvl->objects.values);
+}
+
 bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLevel* level) {
   String       idWithExtScratch = id;
   const String ext              = path_extension(id);
@@ -142,6 +175,7 @@ bool asset_level_save(AssetManagerComp* manager, const String id, const AssetLev
   const DataWriteJsonOpts jOpts = data_write_json_opts(.numberMaxDecDigits = 4, .compact = true);
   const Mem               levelData = mem_create(level, sizeof(AssetLevel));
   data_write_json(g_dataReg, &dataBuffer, g_assetLevelDefMeta, levelData, &jOpts);
+  dynstring_append_char(&dataBuffer, '\n'); // End the file with a new-line.
 
   const bool res = asset_save(manager, idWithExtScratch, dynstring_view(&dataBuffer));
 

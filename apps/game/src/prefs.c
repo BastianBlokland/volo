@@ -69,6 +69,7 @@ static void prefs_save(const GamePrefsComp* prefs) {
   // Serialize the preferences to json.
   const DataWriteJsonOpts writeOpts = data_write_json_opts();
   data_write_json(g_dataReg, &dataBuffer, g_gamePrefsMeta, mem_var(*prefs), &writeOpts);
+  dynstring_append_char(&dataBuffer, '\n'); // End the file with a new-line.
 
   // Save the data to disk.
   const String     filePath = prefs_path_scratch();
