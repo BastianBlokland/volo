@@ -98,13 +98,13 @@ static SceneFaction level_from_asset_faction(const AssetLevelFaction assetFactio
 }
 
 ecs_view_define(InstanceView) {
-  ecs_access_with(SceneLevelInstanceComp);
   ecs_access_maybe_read(SceneFactionComp);
-  ecs_access_maybe_read(ScenePrefabInstanceComp);
   ecs_access_maybe_read(ScenePropertyComp);
   ecs_access_maybe_read(SceneScaleComp);
   ecs_access_maybe_read(SceneSetMemberComp);
   ecs_access_maybe_read(SceneTransformComp);
+  ecs_access_maybe_write(ScenePrefabInstanceComp);
+  ecs_access_with(SceneLevelInstanceComp);
 }
 
 ecs_view_define(EntityRefView) { ecs_access_maybe_read(AssetComp); }
@@ -567,9 +567,10 @@ static void level_process_save(
 
   // Allocate ids for all objects.
   for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
-    const ScenePrefabInstanceComp* prefabInst = ecs_view_read_t(itr, ScenePrefabInstanceComp);
+    ScenePrefabInstanceComp* prefabInst = ecs_view_write_t(itr, ScenePrefabInstanceComp);
     if (prefabInst && level_obj_should_persist(prefabInst)) {
-      level_id_push(&idMap, ecs_view_entity(itr), prefabInst->id);
+      // Allocate an unique persistent id. NOTE: Save the id for consistent ids across saves.
+      prefabInst->id = level_id_push(&idMap, ecs_view_entity(itr), prefabInst->id);
     }
   }
 
