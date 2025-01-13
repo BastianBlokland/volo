@@ -63,7 +63,7 @@ static i8 level_compare_object_id(const void* a, const void* b) {
   return compare_u32(field_ptr(a, AssetLevelObject, id), field_ptr(b, AssetLevelObject, id));
 }
 
-static AssetLevelFaction scene_to_asset_faction(const SceneFaction sceneFaction) {
+static AssetLevelFaction level_to_asset_faction(const SceneFaction sceneFaction) {
   switch (sceneFaction) {
   case SceneFaction_A:
     return AssetLevelFaction_A;
@@ -80,7 +80,7 @@ static AssetLevelFaction scene_to_asset_faction(const SceneFaction sceneFaction)
   }
 }
 
-static SceneFaction scene_from_asset_faction(const AssetLevelFaction assetFaction) {
+static SceneFaction level_from_asset_faction(const AssetLevelFaction assetFaction) {
   switch (assetFaction) {
   case AssetLevelFaction_A:
     return SceneFaction_A;
@@ -110,7 +110,7 @@ ecs_view_define(InstanceView) {
 ecs_view_define(EntityRefView) { ecs_access_maybe_read(AssetComp); }
 
 static void
-scene_level_process_unload(EcsWorld* world, SceneLevelManagerComp* manager, EcsView* instanceView) {
+level_process_unload(EcsWorld* world, SceneLevelManagerComp* manager, EcsView* instanceView) {
   trace_begin("level_unload", TraceColor_White);
 
   u32 unloadedObjectCount = 0;
@@ -134,7 +134,7 @@ scene_level_process_unload(EcsWorld* world, SceneLevelManagerComp* manager, EcsV
   log_i("Level unloaded", log_param("objects", fmt_int(unloadedObjectCount)));
 }
 
-static ScenePrefabVariant scene_level_prefab_variant(const SceneLevelMode levelMode) {
+static ScenePrefabVariant level_prefab_variant(const SceneLevelMode levelMode) {
   switch (levelMode) {
   case SceneLevelMode_Play:
     return ScenePrefabVariant_Normal;
@@ -146,7 +146,7 @@ static ScenePrefabVariant scene_level_prefab_variant(const SceneLevelMode levelM
   diag_crash();
 }
 
-static void scene_level_process_load(
+static void level_process_load(
     EcsWorld*              world,
     SceneLevelManagerComp* manager,
     AssetManagerComp*      assets,
@@ -168,7 +168,7 @@ static void scene_level_process_load(
     }
   }
 
-  const ScenePrefabVariant prefabVariant = scene_level_prefab_variant(levelMode);
+  const ScenePrefabVariant prefabVariant = level_prefab_variant(levelMode);
   for (u32 objIdx = 0; objIdx != level->objects.count; ++objIdx) {
     const AssetLevelObject* obj = &level->objects.values[objIdx];
 
@@ -219,7 +219,7 @@ static void scene_level_process_load(
         .position      = obj->position,
         .rotation      = obj->rotation,
         .scale         = obj->scale,
-        .faction       = scene_from_asset_faction(obj->faction),
+        .faction       = level_from_asset_faction(obj->faction),
         .properties    = props,
         .propertyCount = propCount,
     };
@@ -293,7 +293,7 @@ ecs_system_define(SceneLevelLoadSys) {
       ++req->state;
       // Fallthrough.
     case LevelLoadState_Unload:
-      scene_level_process_unload(world, manager, instanceView);
+      level_process_unload(world, manager, instanceView);
       ++req->state;
       // Fallthrough.
     case LevelLoadState_AssetAcquire:
@@ -322,7 +322,7 @@ ecs_system_define(SceneLevelLoadSys) {
         manager->isLoading = false;
         goto Done;
       }
-      scene_level_process_load(
+      level_process_load(
           world, manager, assets, prefabEnv, req->levelMode, req->levelAsset, &levelComp->level);
       manager->isLoading = false;
       ++manager->loadCounter;
@@ -357,13 +357,13 @@ ecs_system_define(SceneLevelUnloadSys) {
     if (manager->isLoading) {
       log_e("Level unload failed; load in progress");
     } else if (manager->levelAsset) {
-      scene_level_process_unload(world, manager, instanceView);
+      level_process_unload(world, manager, instanceView);
     }
     ecs_world_entity_destroy(world, ecs_view_entity(itr));
   }
 }
 
-static void scene_level_object_push_properties(
+static void level_obj_push_properties(
     AssetLevelObject*        obj,
     Allocator*               alloc,
     const ScenePropertyComp* c,
@@ -443,12 +443,12 @@ static void scene_level_object_push_properties(
   }
 }
 
-static void scene_level_object_push_sets(AssetLevelObject* obj, const SceneSetMemberComp* c) {
+static void level_obj_push_sets(AssetLevelObject* obj, const SceneSetMemberComp* c) {
   ASSERT(array_elems(obj->sets) >= scene_set_member_max_sets, "Insufficient set storage");
   scene_set_member_all_non_volatile(c, obj->sets);
 }
 
-static void scene_level_object_push(
+static void level_obj_push(
     DynArray*    objects, // AssetLevelObject[], sorted on id.
     Allocator*   alloc,
     EcsIterator* instanceItr,
@@ -475,13 +475,13 @@ static void scene_level_object_push(
       .position = maybeTrans ? maybeTrans->position : geo_vector(0),
       .rotation = maybeTrans ? geo_quat_norm(maybeTrans->rotation) : geo_quat_ident,
       .scale    = scaleVal == 1.0f ? 0.0 : scaleVal, // Scale 0 is treated as unscaled (eg 1.0).
-      .faction  = maybeFaction ? scene_to_asset_faction(maybeFaction->id) : AssetLevelFaction_None,
+      .faction  = maybeFaction ? level_to_asset_faction(maybeFaction->id) : AssetLevelFaction_None,
   };
   if (maybeProperties) {
-    scene_level_object_push_properties(&obj, alloc, maybeProperties, entityRefItr);
+    level_obj_push_properties(&obj, alloc, maybeProperties, entityRefItr);
   }
   if (maybeSetMember) {
-    scene_level_object_push_sets(&obj, maybeSetMember);
+    level_obj_push_sets(&obj, maybeSetMember);
   }
 
   // Guarantee unique object id.
@@ -493,12 +493,12 @@ static void scene_level_object_push(
   *dynarray_insert_sorted_t(objects, AssetLevelObject, level_compare_object_id, &obj) = obj;
 }
 
-static StringHash scene_asset_id_hash(EcsView* assetView, const EcsEntityId assetEntity) {
+static StringHash level_asset_id_hash(EcsView* assetView, const EcsEntityId assetEntity) {
   EcsIterator* itr = ecs_view_maybe_at(assetView, assetEntity);
   return itr ? asset_id_hash(ecs_view_read_t(itr, AssetComp)) : 0;
 }
 
-static void scene_level_process_save(
+static void level_process_save(
     const SceneLevelManagerComp* manager,
     AssetManagerComp*            assets,
     EcsView*                     assetView,
@@ -509,12 +509,12 @@ static void scene_level_process_save(
 
   DynArray objects = dynarray_create_t(g_allocHeap, AssetLevelObject, 1024);
   for (EcsIterator* itr = ecs_view_itr(instanceView); ecs_view_walk(itr);) {
-    scene_level_object_push(&objects, tempAlloc, itr, entityRefItr);
+    level_obj_push(&objects, tempAlloc, itr, entityRefItr);
   }
 
   const AssetRef terrainRef = {
       .entity = manager->levelTerrain,
-      .id     = scene_asset_id_hash(assetView, manager->levelTerrain),
+      .id     = level_asset_id_hash(assetView, manager->levelTerrain),
   };
 
   const AssetLevel level = {
@@ -566,7 +566,7 @@ ecs_system_define(SceneLevelSaveSys) {
       ecs_view_jump(assetItr, req->levelAsset);
       const String assetId = asset_id(ecs_view_read_t(assetItr, AssetComp));
 
-      scene_level_process_save(manager, assets, assetView, assetId, instanceView, entityRefItr);
+      level_process_save(manager, assets, assetView, assetId, instanceView, entityRefItr);
     }
     ecs_world_entity_destroy(world, ecs_view_entity(itr));
   }
