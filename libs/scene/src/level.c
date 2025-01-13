@@ -160,38 +160,48 @@ static void scene_level_process_load(
 
   trace_begin("level_load", TraceColor_White);
 
+  EcsEntityId* objectEntities = null;
+  if (level->objects.count) {
+    objectEntities = alloc_array_t(g_allocScratch, EcsEntityId, level->objects.count);
+    for (u32 i = 0; i != level->objects.count; ++i) {
+      objectEntities[i] = ecs_world_entity_create(world);
+    }
+  }
+
   const ScenePrefabVariant prefabVariant = scene_level_prefab_variant(levelMode);
-  heap_array_for_t(level->objects, AssetLevelObject, obj) {
+  for (u32 objIdx = 0; objIdx != level->objects.count; ++objIdx) {
+    const AssetLevelObject* obj = &level->objects.values[objIdx];
+
     ScenePrefabProperty props[128];
     const u16           propCount = (u16)math_min(obj->properties.count, array_elems(props));
-    for (u16 i = 0; i != propCount; ++i) {
-      const AssetProperty* levelProp = &obj->properties.values[i];
-      props[i].key                   = levelProp->name;
+    for (u16 propIdx = 0; propIdx != propCount; ++propIdx) {
+      const AssetProperty* levelProp = &obj->properties.values[propIdx];
+      props[propIdx].key             = levelProp->name;
       switch (levelProp->type) {
       case AssetPropertyType_Num:
-        props[i].value = script_num(levelProp->data_num);
+        props[propIdx].value = script_num(levelProp->data_num);
         continue;
       case AssetPropertyType_Bool:
-        props[i].value = script_bool(levelProp->data_bool);
+        props[propIdx].value = script_bool(levelProp->data_bool);
         continue;
       case AssetPropertyType_Vec3:
-        props[i].value = script_vec3(levelProp->data_vec3);
+        props[propIdx].value = script_vec3(levelProp->data_vec3);
         continue;
       case AssetPropertyType_Quat:
-        props[i].value = script_quat(levelProp->data_quat);
+        props[propIdx].value = script_quat(levelProp->data_quat);
         continue;
       case AssetPropertyType_Color:
-        props[i].value = script_color(levelProp->data_color);
+        props[propIdx].value = script_color(levelProp->data_color);
         continue;
       case AssetPropertyType_Str:
-        props[i].value = script_str_or_null(levelProp->data_str);
+        props[propIdx].value = script_str_or_null(levelProp->data_str);
         continue;
       case AssetPropertyType_LevelEntity:
-        props[i].value = script_null(); // TODO: Resolve level entities.
+        props[propIdx].value = script_null(); // TODO: Resolve level entities.
         continue;
       case AssetPropertyType_Asset: {
         const EcsEntityId asset = asset_ref_resolve(world, assets, &levelProp->data_asset);
-        props[i].value          = script_entity_or_null(asset);
+        props[propIdx].value    = script_entity_or_null(asset);
         continue;
       }
       case AssetPropertyType_Count:
@@ -211,7 +221,7 @@ static void scene_level_process_load(
         .propertyCount = propCount,
     };
     mem_cpy(mem_var(spec.sets), mem_var(obj->sets));
-    scene_prefab_spawn_onto(prefabEnv, &spec, ecs_world_entity_create(world));
+    scene_prefab_spawn_onto(prefabEnv, &spec, objectEntities[objIdx]);
   }
 
   manager->levelMode       = levelMode;
