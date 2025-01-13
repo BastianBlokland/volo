@@ -2,6 +2,7 @@
 #include "core_alloc.h"
 #include "core_dynstring.h"
 #include "core_path.h"
+#include "core_sort.h"
 #include "data_read.h"
 #include "data_utils.h"
 #include "data_write.h"
@@ -22,6 +23,10 @@ static void ecs_destruct_level_comp(void* data) {
   AssetLevelComp* comp  = data;
   AssetLevel*     level = &comp->level;
   data_destroy(g_dataReg, g_allocHeap, g_assetLevelDefMeta, mem_create(level, sizeof(AssetLevel)));
+}
+
+static i8 level_compare_object_id(const void* a, const void* b) {
+  return compare_u32(field_ptr(a, AssetLevelObject, id), field_ptr(b, AssetLevelObject, id));
 }
 
 ecs_view_define(LevelUnloadView) {
@@ -97,6 +102,16 @@ void asset_load_level(
     data_read_bin(g_dataReg, src->data, g_allocHeap, g_assetLevelDefMeta, mem_var(lvl), &readRes);
   } else {
     data_read_json(g_dataReg, src->data, g_allocHeap, g_assetLevelDefMeta, mem_var(lvl), &readRes);
+
+    /**
+     * Ensure the objects are sorted on their id. The editor always produces json files with sorted
+     * objects but external edits (for example source control merges) can cause non-sorted files.
+     */
+    sort_quicksort_t(
+        lvl.objects.values,
+        lvl.objects.values + lvl.objects.count,
+        AssetLevelObject,
+        level_compare_object_id);
   }
   if (UNLIKELY(readRes.error)) {
     errMsg = readRes.errorMsg;

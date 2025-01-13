@@ -24,7 +24,7 @@ typedef enum {
 } AssetLevelFog;
 
 typedef struct {
-  u32               id; // Optional unique persistent object id.
+  u32               id; // Persistent object id.
   StringHash        prefab;
   AssetLevelFaction faction;
   f32               scale;
@@ -39,7 +39,7 @@ typedef struct {
   AssetRef      terrain; // NOTE: Reference is not automatically resolved.
   AssetLevelFog fogMode;
   GeoVector     startpoint;
-  HeapArray_t(AssetLevelObject) objects;
+  HeapArray_t(AssetLevelObject) objects; // Sorted on persistent id.
 } AssetLevel;
 
 ecs_comp_extern_public(AssetLevelComp) { AssetLevel level; };
