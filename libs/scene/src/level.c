@@ -150,6 +150,7 @@ static void scene_level_process_load(
     EcsWorld*              world,
     SceneLevelManagerComp* manager,
     AssetManagerComp*      assets,
+    ScenePrefabEnvComp*    prefabEnv,
     const SceneLevelMode   levelMode,
     const EcsEntityId      levelAsset,
     const AssetLevel*      level) {
@@ -210,7 +211,7 @@ static void scene_level_process_load(
         .propertyCount = propCount,
     };
     mem_cpy(mem_var(spec.sets), mem_var(obj->sets));
-    scene_prefab_spawn(world, &spec);
+    scene_prefab_spawn_onto(prefabEnv, &spec, ecs_world_entity_create(world));
   }
 
   manager->levelMode       = levelMode;
@@ -232,6 +233,7 @@ static void scene_level_process_load(
 ecs_view_define(LoadGlobalView) {
   ecs_access_maybe_write(SceneLevelManagerComp);
   ecs_access_write(AssetManagerComp);
+  ecs_access_write(ScenePrefabEnvComp);
 }
 ecs_view_define(LoadAssetView) {
   ecs_access_read(AssetComp);
@@ -245,8 +247,9 @@ ecs_system_define(SceneLevelLoadSys) {
   if (!globalItr) {
     return;
   }
-  AssetManagerComp*      assets  = ecs_view_write_t(globalItr, AssetManagerComp);
-  SceneLevelManagerComp* manager = ecs_view_write_t(globalItr, SceneLevelManagerComp);
+  AssetManagerComp*      assets    = ecs_view_write_t(globalItr, AssetManagerComp);
+  ScenePrefabEnvComp*    prefabEnv = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
+  SceneLevelManagerComp* manager   = ecs_view_write_t(globalItr, SceneLevelManagerComp);
   if (!manager) {
     manager = ecs_world_add_t(world, ecs_world_global(world), SceneLevelManagerComp);
   }
@@ -307,7 +310,7 @@ ecs_system_define(SceneLevelLoadSys) {
         goto Done;
       }
       scene_level_process_load(
-          world, manager, assets, req->levelMode, req->levelAsset, &levelComp->level);
+          world, manager, assets, prefabEnv, req->levelMode, req->levelAsset, &levelComp->level);
       manager->isLoading = false;
       ++manager->loadCounter;
       goto Done;
