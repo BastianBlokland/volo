@@ -863,6 +863,8 @@ SndObjectId snd_object_next(const SndMixerComp* m, const SndObjectId previousId)
 }
 
 void snd_mixer_persistent_asset(SndMixerComp* m, const EcsEntityId asset) {
+  diag_assert(ecs_entity_valid(asset));
+
   DynArray*    arr  = &m->persistentAssets;
   EcsEntityId* slot = dynarray_find_or_insert_sorted(arr, ecs_compare_entity, &asset);
 
