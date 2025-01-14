@@ -80,7 +80,13 @@ Mem alloc_alloc(Allocator* allocator, const usize size, const usize align) {
       fmt_size(size),
       fmt_size(alloc_max_alloc_size));
 
-  return allocator->alloc(allocator, size, align);
+  const Mem res = allocator->alloc(allocator, size, align);
+#ifndef VOLO_FAST
+  if (mem_valid(res)) {
+    alloc_tag_new(res);
+  }
+#endif
+  return res;
 }
 
 void alloc_free(Allocator* allocator, const Mem mem) {
@@ -137,7 +143,14 @@ AllocStats alloc_stats_query(void) {
   };
 }
 
-void alloc_tag_free(Mem mem, const AllocMemType type) {
+void alloc_tag_new(const Mem mem) {
+  (void)mem;
+#ifndef VOLO_FAST
+  mem_set(mem, 0xCD);
+#endif
+}
+
+void alloc_tag_free(const Mem mem, const AllocMemType type) {
   (void)mem;
   (void)type;
 #ifndef VOLO_FAST
@@ -146,7 +159,7 @@ void alloc_tag_free(Mem mem, const AllocMemType type) {
 #endif
 }
 
-void alloc_tag_guard(Mem mem, const AllocMemType type) {
+void alloc_tag_guard(const Mem mem, const AllocMemType type) {
   (void)mem;
   (void)type;
 #ifndef VOLO_FAST
@@ -155,14 +168,14 @@ void alloc_tag_guard(Mem mem, const AllocMemType type) {
 #endif
 }
 
-void alloc_poison(Mem mem) {
+void alloc_poison(const Mem mem) {
   (void)mem;
 #if defined(VOLO_ASAN)
   __asan_poison_memory_region(mem.ptr, mem.size);
 #endif
 }
 
-void alloc_unpoison(Mem mem) {
+void alloc_unpoison(const Mem mem) {
   (void)mem;
 #if defined(VOLO_ASAN)
   __asan_unpoison_memory_region(mem.ptr, mem.size);

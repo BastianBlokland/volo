@@ -68,6 +68,7 @@ usize alloc_block_allocated_blocks(Allocator*);
  * Diagnostic apis that write tag values to memory locations.
  * The tags are a low-tech solution for detecting UAF and buffer-overflows.
  */
+void alloc_tag_new(Mem);
 void alloc_tag_free(Mem, AllocMemType);
 void alloc_tag_guard(Mem, AllocMemType);
 
