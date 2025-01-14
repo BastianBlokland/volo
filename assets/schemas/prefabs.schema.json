@@ -103,8 +103,7 @@
             "gainMax": { "title": "f32", "type": "number" },
             "pitchMin": { "title": "f32", "type": "number" },
             "pitchMax": { "title": "f32", "type": "number" },
-            "looping": { "title": "bool", "type": "boolean" },
-            "persistent": { "title": "bool", "type": "boolean" }
+            "looping": { "title": "bool", "type": "boolean" }
           },
           "required": [ "$type", "assets" ]
         },

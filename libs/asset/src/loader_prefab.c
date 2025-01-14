@@ -541,7 +541,6 @@ void asset_data_init_prefab(void) {
   data_reg_field_t(g_dataReg, AssetPrefabTraitSound, pitchMin, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabTraitSound, pitchMax, data_prim_t(f32), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, AssetPrefabTraitSound, looping, data_prim_t(bool), .flags = DataFlags_Opt);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitSound, persistent, data_prim_t(bool), .flags = DataFlags_Opt);
   data_reg_normalizer_t(g_dataReg, AssetPrefabTraitSound, prefab_data_normalizer_sound);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitLightPoint);
