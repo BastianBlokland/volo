@@ -9,11 +9,15 @@
         "prefabs": {
           "type": "array",
           "items": { "title": "AssetPrefabDef", "$ref": "#/$defs/AssetPrefabDef" }
+        },
+        "persistentSounds": {
+          "type": "array",
+          "items": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" }
         }
       },
-      "required": [ "prefabs" ],
+      "required": [ "prefabs", "persistentSounds" ],
       "defaultSnippets": [
-        { "label": "New", "body": "^{\n  \"prefabs\": []\n}" }
+        { "label": "New", "body": "^{\n  \"prefabs\": [],\n  \"persistentSounds\": []\n}" }
       ]
     },
     "AssetPrefabDef": {

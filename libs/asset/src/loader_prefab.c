@@ -94,6 +94,7 @@ typedef struct {
 
 typedef struct {
   HeapArray_t(AssetPrefabDef) prefabs;
+  HeapArray_t(AssetRef) persistentSounds;
 } AssetPrefabMapDef;
 
 static i8 prefab_compare(const void* a, const void* b) {
@@ -390,7 +391,7 @@ ecs_system_define(LoadPrefabAssetSys) {
     u16* userLookup = prefabs.size ? alloc_array_t(g_allocHeap, u16, prefabs.size * 2) : null;
     prefabmap_build_lookups(&load->def, dynarray_begin_t(&prefabs, AssetPrefab), userLookup);
 
-    ecs_world_add_t(
+    AssetPrefabMapComp* map = ecs_world_add_t(
         world,
         entity,
         AssetPrefabMapComp,
@@ -404,6 +405,8 @@ ecs_system_define(LoadPrefabAssetSys) {
         .values.count  = values.size,
         .shapes.values = dynarray_copy_as_new(&shapes, g_allocHeap),
         .shapes.count  = shapes.size);
+
+    mem_swap(mem_var(load->def.persistentSounds), mem_var(map->persistentSounds));
 
     ecs_world_add_empty_t(world, entity, AssetLoadedComp);
 
@@ -671,6 +674,7 @@ void asset_data_init_prefab(void) {
 
   data_reg_struct_t(g_dataReg, AssetPrefabMapDef);
   data_reg_field_t(g_dataReg, AssetPrefabMapDef, prefabs, t_AssetPrefabDef, .container = DataContainer_HeapArray);
+  data_reg_field_t(g_dataReg, AssetPrefabMapDef, persistentSounds, g_assetRefType, .container = DataContainer_HeapArray);
   // clang-format on
 
   g_assetPrefabDefMeta = data_meta_t(t_AssetPrefabMapDef);

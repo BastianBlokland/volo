@@ -270,6 +270,7 @@ ecs_comp_extern_public(AssetPrefabMapComp) {
   HeapArray_t(AssetPrefabTrait) traits;
   HeapArray_t(AssetPrefabValue) values;
   HeapArray_t(AssetPrefabShape) shapes;
+  HeapArray_t(AssetRef) persistentSounds;
 };
 
 extern DataMeta g_assetPrefabDefMeta;
