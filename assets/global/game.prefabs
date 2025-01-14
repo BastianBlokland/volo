@@ -1307,5 +1307,10 @@
         }
       ]
     }
+  ],
+  "persistentSounds": [
+    "external/sound/alarm-01.wav",
+    "external/sound/indicator-01.wav",
+    "external/sound/indicator-02.wav"
   ]
 }
