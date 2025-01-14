@@ -9,6 +9,10 @@
         "prefabs": {
           "type": "array",
           "items": { "title": "AssetPrefabDef", "$ref": "#/$defs/AssetPrefabDef" }
+        },
+        "persistentSounds": {
+          "type": "array",
+          "items": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" }
         }
       },
       "required": [ "prefabs" ],
@@ -99,8 +103,7 @@
             "gainMax": { "title": "f32", "type": "number" },
             "pitchMin": { "title": "f32", "type": "number" },
             "pitchMax": { "title": "f32", "type": "number" },
-            "looping": { "title": "bool", "type": "boolean" },
-            "persistent": { "title": "bool", "type": "boolean" }
+            "looping": { "title": "bool", "type": "boolean" }
           },
           "required": [ "$type", "assets" ]
         },
@@ -236,7 +239,7 @@
             },
             "properties": {
               "type": "array",
-              "items": { "title": "AssetPrefabValue", "$ref": "#/$defs/AssetPrefabValue" }
+              "items": { "title": "AssetProperty", "$ref": "#/$defs/AssetProperty" }
             }
           },
           "required": [ "$type", "scripts" ]
@@ -428,13 +431,13 @@
         { "label": "New", "body": "^{}" }
       ]
     },
-    "AssetPrefabValue": {
+    "AssetProperty": {
       "anyOf": [
         {
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": { "const": "AssetPrefabValue_Number" },
+            "$type": { "const": "AssetPropertyType_Num" },
             "$name": { "type": "string" },
             "$data": { "title": "f64", "type": "number" }
           },
@@ -444,7 +447,7 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": { "const": "AssetPrefabValue_Bool" },
+            "$type": { "const": "AssetPropertyType_Bool" },
             "$name": { "type": "string" },
             "$data": { "title": "bool", "type": "boolean" }
           },
@@ -454,7 +457,7 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": { "const": "AssetPrefabValue_Vector3" },
+            "$type": { "const": "AssetPropertyType_Vec3" },
             "$name": { "type": "string" },
             "x": { "title": "f32", "type": "number" },
             "y": { "title": "f32", "type": "number" },
@@ -466,7 +469,20 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": { "const": "AssetPrefabValue_Color" },
+            "$type": { "const": "AssetPropertyType_Quat" },
+            "$name": { "type": "string" },
+            "x": { "title": "f32", "type": "number" },
+            "y": { "title": "f32", "type": "number" },
+            "z": { "title": "f32", "type": "number" },
+            "w": { "title": "f32", "type": "number" }
+          },
+          "required": [ "$type", "$name" ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": { "const": "AssetPropertyType_Color" },
             "$name": { "type": "string" },
             "r": { "title": "f32", "type": "number" },
             "g": { "title": "f32", "type": "number" },
@@ -479,7 +495,7 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": { "const": "AssetPrefabValue_String" },
+            "$type": { "const": "AssetPropertyType_Str" },
             "$name": { "type": "string" },
             "$data": { "title": "StringHash", "type": "string" }
           },
@@ -489,9 +505,9 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": { "const": "AssetPrefabValue_Asset" },
+            "$type": { "const": "AssetPropertyType_LevelEntity" },
             "$name": { "type": "string" },
-            "$data": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" }
+            "$data": { "title": "AssetLevelRef", "description": "Asset level reference", "$ref": "#/$defs/AssetLevelRef" }
           },
           "required": [ "$type", "$name", "$data" ]
         },
@@ -499,24 +515,25 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": { "const": "AssetPrefabValue_Sound" },
+            "$type": { "const": "AssetPropertyType_Asset" },
             "$name": { "type": "string" },
-            "asset": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" },
-            "persistent": { "title": "bool", "type": "boolean" }
+            "$data": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" }
           },
-          "required": [ "$type", "$name", "asset" ]
+          "required": [ "$type", "$name", "$data" ]
         }
       ],
       "defaultSnippets": [
-        { "label": "New AssetPrefabValue_Number", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Number\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": 0\n}" },
-        { "label": "New AssetPrefabValue_Bool", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Bool\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": false\n}" },
-        { "label": "New AssetPrefabValue_Vector3", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Vector3\",\n  \"\\$name\": \"MyUnion\"\n}" },
-        { "label": "New AssetPrefabValue_Color", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Color\",\n  \"\\$name\": \"MyUnion\"\n}" },
-        { "label": "New AssetPrefabValue_String", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_String\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}" },
-        { "label": "New AssetPrefabValue_Asset", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Asset\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"placeholder\"\n}" },
-        { "label": "New AssetPrefabValue_Sound", "body": "^{\n  \"\\$type\": \"AssetPrefabValue_Sound\",\n  \"\\$name\": \"MyUnion\",\n  \"asset\": \"placeholder\"\n}" }
+        { "label": "New AssetPropertyType_Num", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Num\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": 0\n}" },
+        { "label": "New AssetPropertyType_Bool", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Bool\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": false\n}" },
+        { "label": "New AssetPropertyType_Vec3", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Vec3\",\n  \"\\$name\": \"MyUnion\"\n}" },
+        { "label": "New AssetPropertyType_Quat", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Quat\",\n  \"\\$name\": \"MyUnion\"\n}" },
+        { "label": "New AssetPropertyType_Color", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Color\",\n  \"\\$name\": \"MyUnion\"\n}" },
+        { "label": "New AssetPropertyType_Str", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Str\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}" },
+        { "label": "New AssetPropertyType_LevelEntity", "body": "^{\n  \"\\$type\": \"AssetPropertyType_LevelEntity\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": 1\n}" },
+        { "label": "New AssetPropertyType_Asset", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Asset\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"placeholder\"\n}" }
       ]
     },
+    "AssetLevelRef": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
     "GeoBox": {
       "type": "object",
       "additionalProperties": false,

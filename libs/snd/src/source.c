@@ -176,31 +176,8 @@ ecs_view_define(UpdateView) {
  * Preload the persistent sounds in the given prefab-map.
  */
 static void snd_source_preload_prefabs(SndMixerComp* m, const AssetPrefabMapComp* prefabMap) {
-  // Check for persistent sound assets on the traits.
-  for (usize traitIndex = 0; traitIndex != prefabMap->traits.count; ++traitIndex) {
-    const AssetPrefabTrait* trait = &prefabMap->traits.values[traitIndex];
-    switch ((u32)trait->type) {
-    case AssetPrefabTrait_Sound:
-      if (trait->data_sound.persistent) {
-        array_for_t(trait->data_sound.assets, EcsEntityId, asset) {
-          if (ecs_entity_valid(*asset)) {
-            snd_mixer_persistent_asset(m, *asset);
-          }
-        }
-      }
-      break;
-    }
-  }
-  // Check for persistent sound assets on the values.
-  for (usize valueIndex = 0; valueIndex != prefabMap->values.count; ++valueIndex) {
-    const AssetPrefabValue* val = &prefabMap->values.values[valueIndex];
-    switch ((u32)val->type) {
-    case AssetPrefabValue_Sound:
-      if (val->data_sound.persistent) {
-        snd_mixer_persistent_asset(m, val->data_sound.asset.entity);
-      }
-      break;
-    }
+  heap_array_for_t(prefabMap->persistentSounds, AssetRef, ref) {
+    snd_mixer_persistent_asset(m, ref->entity);
   }
 }
 

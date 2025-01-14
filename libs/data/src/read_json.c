@@ -688,6 +688,8 @@ static void data_read_json_val_single(const ReadCtx* ctx, DataReadResult* res) {
   case DataKind_Struct: {
     const DataDeclField* inlineField = data_struct_inline_field(&decl->val_struct);
     if (inlineField) {
+      mem_set(ctx->data, 0); // Initialize non-specified memory to zero.
+
       const ReadCtx inlineCtx = {
           .reg         = ctx->reg,
           .alloc       = ctx->alloc,

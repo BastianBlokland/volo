@@ -561,29 +561,34 @@ static void setup_script(PrefabSetupContext* ctx, const AssetPrefabTraitScript* 
     scene_script_flags_set(comp, SceneScriptFlags_Enabled);
 
     for (u16 i = 0; i != t->propCount; ++i) {
-      const AssetPrefabValue* val = &ctx->prefabMap->values.values[t->propIndex + i];
-      switch (val->type) {
-      case AssetPrefabValue_Number:
-        scene_prop_store(ctx->propComp, val->name, script_num(val->data_number));
+      const AssetProperty* p = &ctx->prefabMap->properties.values[t->propIndex + i];
+      switch (p->type) {
+      case AssetPropertyType_Num:
+        scene_prop_store(ctx->propComp, p->name, script_num(p->data_num));
         break;
-      case AssetPrefabValue_Bool:
-        scene_prop_store(ctx->propComp, val->name, script_bool(val->data_bool));
+      case AssetPropertyType_Bool:
+        scene_prop_store(ctx->propComp, p->name, script_bool(p->data_bool));
         break;
-      case AssetPrefabValue_Vector3:
-        scene_prop_store(ctx->propComp, val->name, script_vec3(val->data_vector3));
+      case AssetPropertyType_Vec3:
+        scene_prop_store(ctx->propComp, p->name, script_vec3(p->data_vec3));
         break;
-      case AssetPrefabValue_Color:
-        scene_prop_store(ctx->propComp, val->name, script_color(val->data_color));
+      case AssetPropertyType_Quat:
+        scene_prop_store(ctx->propComp, p->name, script_quat(p->data_quat));
         break;
-      case AssetPrefabValue_String:
-        scene_prop_store(ctx->propComp, val->name, script_str_or_null(val->data_string));
+      case AssetPropertyType_Color:
+        scene_prop_store(ctx->propComp, p->name, script_color(p->data_color));
         break;
-      case AssetPrefabValue_Asset:
-        scene_prop_store(ctx->propComp, val->name, script_entity(val->data_asset.entity));
+      case AssetPropertyType_Str:
+        scene_prop_store(ctx->propComp, p->name, script_str_or_null(p->data_str));
         break;
-      case AssetPrefabValue_Sound:
-        scene_prop_store(ctx->propComp, val->name, script_entity(val->data_sound.asset.entity));
+      case AssetPropertyType_LevelEntity:
+        log_e("Level references are not supported in prefabs");
         break;
+      case AssetPropertyType_Asset:
+        scene_prop_store(ctx->propComp, p->name, script_entity(p->data_asset.entity));
+        break;
+      case AssetPropertyType_Count:
+        UNREACHABLE
       }
     }
   }
