@@ -326,6 +326,9 @@ static void ecs_destruct_prefabmap_comp(void* data) {
   if (comp->shapes.values) {
     alloc_free_array_t(g_allocHeap, comp->shapes.values, comp->shapes.count);
   }
+  if (comp->persistentSounds.values) {
+    alloc_free_array_t(g_allocHeap, comp->persistentSounds.values, comp->persistentSounds.count);
+  }
 }
 
 static void ecs_destruct_prefab_load_comp(void* data) {
