@@ -561,31 +561,31 @@ static void setup_script(PrefabSetupContext* ctx, const AssetPrefabTraitScript* 
     scene_script_flags_set(comp, SceneScriptFlags_Enabled);
 
     for (u16 i = 0; i != t->propCount; ++i) {
-      const AssetProperty* val = &ctx->prefabMap->properties.values[t->propIndex + i];
-      switch (val->type) {
+      const AssetProperty* p = &ctx->prefabMap->properties.values[t->propIndex + i];
+      switch (p->type) {
       case AssetPropertyType_Num:
-        scene_prop_store(ctx->propComp, val->name, script_num(val->data_num));
+        scene_prop_store(ctx->propComp, p->name, script_num(p->data_num));
         break;
       case AssetPropertyType_Bool:
-        scene_prop_store(ctx->propComp, val->name, script_bool(val->data_bool));
+        scene_prop_store(ctx->propComp, p->name, script_bool(p->data_bool));
         break;
       case AssetPropertyType_Vec3:
-        scene_prop_store(ctx->propComp, val->name, script_vec3(val->data_vec3));
+        scene_prop_store(ctx->propComp, p->name, script_vec3(p->data_vec3));
         break;
       case AssetPropertyType_Quat:
-        scene_prop_store(ctx->propComp, val->name, script_quat(val->data_quat));
+        scene_prop_store(ctx->propComp, p->name, script_quat(p->data_quat));
         break;
       case AssetPropertyType_Color:
-        scene_prop_store(ctx->propComp, val->name, script_color(val->data_color));
+        scene_prop_store(ctx->propComp, p->name, script_color(p->data_color));
         break;
       case AssetPropertyType_Str:
-        scene_prop_store(ctx->propComp, val->name, script_str_or_null(val->data_str));
+        scene_prop_store(ctx->propComp, p->name, script_str_or_null(p->data_str));
         break;
       case AssetPropertyType_LevelEntity:
         log_e("Level references are not supported in prefabs");
         break;
       case AssetPropertyType_Asset:
-        scene_prop_store(ctx->propComp, val->name, script_entity(val->data_asset.entity));
+        scene_prop_store(ctx->propComp, p->name, script_entity(p->data_asset.entity));
         break;
       case AssetPropertyType_Count:
         UNREACHABLE
