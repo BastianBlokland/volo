@@ -674,7 +674,7 @@ void asset_data_init_prefab(void) {
 
   data_reg_struct_t(g_dataReg, AssetPrefabMapDef);
   data_reg_field_t(g_dataReg, AssetPrefabMapDef, prefabs, t_AssetPrefabDef, .container = DataContainer_HeapArray);
-  data_reg_field_t(g_dataReg, AssetPrefabMapDef, persistentSounds, g_assetRefType, .container = DataContainer_HeapArray);
+  data_reg_field_t(g_dataReg, AssetPrefabMapDef, persistentSounds, g_assetRefType, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
   // clang-format on
 
   g_assetPrefabDefMeta = data_meta_t(t_AssetPrefabMapDef);
