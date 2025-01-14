@@ -1,4 +1,5 @@
 #pragma once
+#include "asset_property.h"
 #include "asset_ref.h"
 #include "core_array.h"
 #include "core_time.h"
@@ -6,7 +7,6 @@
 #include "ecs_module.h"
 #include "geo_box_rotated.h"
 #include "geo_capsule.h"
-#include "geo_color.h"
 #include "geo_sphere.h"
 
 /**
@@ -128,7 +128,7 @@ typedef struct {
 
 typedef struct {
   EcsEntityId scripts[asset_prefab_scripts_max];
-  u16         propIndex, propCount; // Stored in the values array.
+  u16         propIndex, propCount; // Stored in the properties array.
 } AssetPrefabTraitScript;
 
 typedef struct {
@@ -219,35 +219,6 @@ typedef struct {
 } AssetPrefab;
 
 typedef enum {
-  AssetPrefabValue_Number,
-  AssetPrefabValue_Bool,
-  AssetPrefabValue_Vector3,
-  AssetPrefabValue_Color,
-  AssetPrefabValue_String,
-  AssetPrefabValue_Asset,
-  AssetPrefabValue_Sound,
-} AssetPrefabValueType;
-
-typedef struct {
-  AssetRef asset;
-  bool     persistent; // Pre-load the asset and keep it in memory.
-} AssetPrefabValueSound;
-
-typedef struct {
-  StringHash           name;
-  AssetPrefabValueType type;
-  union {
-    f64                   data_number;
-    bool                  data_bool;
-    GeoVector             data_vector3;
-    GeoColor              data_color;
-    StringHash            data_string;
-    AssetRef              data_asset;
-    AssetPrefabValueSound data_sound;
-  };
-} AssetPrefabValue;
-
-typedef enum {
   AssetPrefabShape_Sphere,
   AssetPrefabShape_Capsule,
   AssetPrefabShape_Box,
@@ -268,7 +239,7 @@ ecs_comp_extern_public(AssetPrefabMapComp) {
   String*      userNames;  // String[prefabCount]. Interned, NOTE: In user-index order.
   u16*         userLookup; // u16[prefabCount * 2], Lookups from prefab <-> user indices.
   HeapArray_t(AssetPrefabTrait) traits;
-  HeapArray_t(AssetPrefabValue) values;
+  HeapArray_t(AssetProperty) properties;
   HeapArray_t(AssetPrefabShape) shapes;
   HeapArray_t(AssetRef) persistentSounds;
 };

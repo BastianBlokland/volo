@@ -55,7 +55,7 @@ typedef struct {
 
 typedef struct {
   AssetRef scripts[asset_prefab_scripts_max];
-  HeapArray_t(AssetPrefabValue) properties;
+  HeapArray_t(AssetProperty) properties;
 } AssetPrefabTraitScriptDef;
 
 typedef struct {
@@ -131,9 +131,9 @@ static AssetPrefabFlags prefab_build_flags(const AssetPrefabDef* def) {
 
 static void prefab_build(
     const AssetPrefabDef* def,
-    DynArray*             outTraits, // AssetPrefabTrait[], needs to be already initialized.
-    DynArray*             outValues, // AssetPrefabValue[], needs to be already initialized.
-    DynArray*             outShapes, // AssetPrefabShape[], needs to be already initialized.
+    DynArray*             outTraits,     // AssetPrefabTrait[], needs to be already initialized.
+    DynArray*             outProperties, // AssetProperty[], needs to be already initialized.
+    DynArray*             outShapes,     // AssetPrefabShape[], needs to be already initialized.
     AssetPrefab*          outPrefab,
     PrefabError*          err) {
 
@@ -221,17 +221,17 @@ static void prefab_build(
       const AssetPrefabTraitScriptDef* scriptDef = &traitDef->data_script;
       const u16                        propCount = (u16)scriptDef->properties.count;
       const Mem                        propMem =
-          mem_create(scriptDef->properties.values, sizeof(AssetPrefabValue) * propCount);
+          mem_create(scriptDef->properties.values, sizeof(AssetProperty) * propCount);
 
       outTrait->data_script = (AssetPrefabTraitScript){
-          .propIndex = (u16)outValues->size,
+          .propIndex = (u16)outProperties->size,
           .propCount = propCount,
       };
       for (u32 i = 0; i != asset_prefab_scripts_max; ++i) {
         TRAIT_HASH_ADD(scriptDef->scripts[i].id);
         outTrait->data_script.scripts[i] = scriptDef->scripts[i].entity;
       }
-      mem_cpy(dynarray_push(outValues, propCount), propMem);
+      mem_cpy(dynarray_push(outProperties, propCount), propMem);
       TRAIT_HASH_ADD(bits_hash_32(propMem));
     } break;
     case AssetPrefabTrait_Count:
@@ -261,15 +261,15 @@ static void prefab_build(
 
 static void prefabmap_build(
     const AssetPrefabMapDef* def,
-    DynArray*                outPrefabs, // AssetPrefab[], needs to be already initialized.
-    DynArray*                outTraits,  // AssetPrefabTrait[], needs to be already initialized.
-    DynArray*                outValues,  // AssetPrefabValue[], needs to be already initialized.
-    DynArray*                outShapes,  // AssetPrefabShape[], needs to be already initialized.
+    DynArray*                outPrefabs,    // AssetPrefab[], needs to be already initialized.
+    DynArray*                outTraits,     // AssetPrefabTrait[], needs to be already initialized.
+    DynArray*                outProperties, // AssetProperty[], needs to be already initialized.
+    DynArray*                outShapes,     // AssetPrefabShape[], needs to be already initialized.
     PrefabError*             err) {
 
   heap_array_for_t(def->prefabs, AssetPrefabDef, prefabDef) {
     AssetPrefab prefab;
-    prefab_build(prefabDef, outTraits, outValues, outShapes, &prefab, err);
+    prefab_build(prefabDef, outTraits, outProperties, outShapes, &prefab, err);
     if (*err) {
       return;
     }
@@ -320,8 +320,8 @@ static void ecs_destruct_prefabmap_comp(void* data) {
   if (comp->traits.values) {
     alloc_free_array_t(g_allocHeap, comp->traits.values, comp->traits.count);
   }
-  if (comp->values.values) {
-    alloc_free_array_t(g_allocHeap, comp->values.values, comp->values.count);
+  if (comp->properties.values) {
+    alloc_free_array_t(g_allocHeap, comp->properties.values, comp->properties.count);
   }
   if (comp->shapes.values) {
     alloc_free_array_t(g_allocHeap, comp->shapes.values, comp->shapes.count);
@@ -363,10 +363,10 @@ ecs_system_define(LoadPrefabAssetSys) {
     const String         id     = asset_id(ecs_view_read_t(itr, AssetComp));
     AssetPrefabLoadComp* load   = ecs_view_write_t(itr, AssetPrefabLoadComp);
 
-    DynArray prefabs = dynarray_create_t(g_allocHeap, AssetPrefab, 64);
-    DynArray traits  = dynarray_create_t(g_allocHeap, AssetPrefabTrait, 64);
-    DynArray values  = dynarray_create_t(g_allocHeap, AssetPrefabValue, 64);
-    DynArray shapes  = dynarray_create_t(g_allocHeap, AssetPrefabShape, 64);
+    DynArray prefabs    = dynarray_create_t(g_allocHeap, AssetPrefab, 64);
+    DynArray traits     = dynarray_create_t(g_allocHeap, AssetPrefabTrait, 64);
+    DynArray properties = dynarray_create_t(g_allocHeap, AssetProperty, 64);
+    DynArray shapes     = dynarray_create_t(g_allocHeap, AssetPrefabShape, 64);
 
     String errMsg;
     if (UNLIKELY(load->def.prefabs.count > u16_max)) {
@@ -379,7 +379,7 @@ ecs_system_define(LoadPrefabAssetSys) {
     }
 
     PrefabError buildErr;
-    prefabmap_build(&load->def, &prefabs, &traits, &values, &shapes, &buildErr);
+    prefabmap_build(&load->def, &prefabs, &traits, &properties, &shapes, &buildErr);
     if (buildErr) {
       errMsg = prefab_error_str(buildErr);
       goto Error;
@@ -398,16 +398,16 @@ ecs_system_define(LoadPrefabAssetSys) {
         world,
         entity,
         AssetPrefabMapComp,
-        .prefabs       = dynarray_copy_as_new(&prefabs, g_allocHeap),
-        .userNames     = userNames,
-        .userLookup    = userLookup,
-        .prefabCount   = prefabs.size,
-        .traits.values = dynarray_copy_as_new(&traits, g_allocHeap),
-        .traits.count  = traits.size,
-        .values.values = dynarray_copy_as_new(&values, g_allocHeap),
-        .values.count  = values.size,
-        .shapes.values = dynarray_copy_as_new(&shapes, g_allocHeap),
-        .shapes.count  = shapes.size);
+        .prefabs           = dynarray_copy_as_new(&prefabs, g_allocHeap),
+        .userNames         = userNames,
+        .userLookup        = userLookup,
+        .prefabCount       = prefabs.size,
+        .traits.values     = dynarray_copy_as_new(&traits, g_allocHeap),
+        .traits.count      = traits.size,
+        .properties.values = dynarray_copy_as_new(&properties, g_allocHeap),
+        .properties.count  = properties.size,
+        .shapes.values     = dynarray_copy_as_new(&shapes, g_allocHeap),
+        .shapes.count      = shapes.size);
 
     mem_swap(mem_var(load->def.persistentSounds), mem_var(map->persistentSounds));
 
@@ -426,7 +426,7 @@ ecs_system_define(LoadPrefabAssetSys) {
   Cleanup:
     dynarray_destroy(&prefabs);
     dynarray_destroy(&traits);
-    dynarray_destroy(&values);
+    dynarray_destroy(&properties);
     dynarray_destroy(&shapes);
     ecs_world_remove_t(world, entity, AssetPrefabLoadComp);
   }
@@ -519,20 +519,6 @@ void asset_data_init_prefab(void) {
   data_reg_choice_t(g_dataReg, AssetPrefabShape, AssetPrefabShape_Capsule, data_capsule, g_assetGeoCapsuleType);
   data_reg_choice_t(g_dataReg, AssetPrefabShape, AssetPrefabShape_Box, data_box, g_assetGeoBoxRotatedType);
 
-  data_reg_struct_t(g_dataReg, AssetPrefabValueSound);
-  data_reg_field_t(g_dataReg, AssetPrefabValueSound, asset, g_assetRefType);
-  data_reg_field_t(g_dataReg, AssetPrefabValueSound, persistent, data_prim_t(bool), .flags = DataFlags_Opt);
-
-  data_reg_union_t(g_dataReg, AssetPrefabValue, type);
-  data_reg_union_name_t(g_dataReg, AssetPrefabValue, name, DataUnionNameType_StringHash);
-  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Number, data_number, data_prim_t(f64));
-  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Bool, data_bool, data_prim_t(bool));
-  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Vector3, data_vector3, g_assetGeoVec3Type);
-  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Color, data_color, g_assetGeoColor4Type);
-  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_String, data_string, data_prim_t(StringHash));
-  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Asset, data_asset, g_assetRefType);
-  data_reg_choice_t(g_dataReg, AssetPrefabValue, AssetPrefabValue_Sound, data_sound, t_AssetPrefabValueSound);
-
   data_reg_struct_t(g_dataReg, AssetPrefabTraitName);
   data_reg_field_t(g_dataReg, AssetPrefabTraitName, name, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
 
@@ -611,7 +597,7 @@ void asset_data_init_prefab(void) {
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitScriptDef);
   data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, scripts, g_assetRefType,  .container = DataContainer_InlineArray, .fixedCount = asset_prefab_scripts_max, .flags = DataFlags_NotEmpty);
-  data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, properties, t_AssetPrefabValue, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitScriptDef, properties, g_assetPropertyType, .container = DataContainer_HeapArray, .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitBark);
   data_reg_field_t(g_dataReg, AssetPrefabTraitBark, priority, data_prim_t(i32), .flags = DataFlags_Opt);
