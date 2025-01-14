@@ -1239,7 +1239,7 @@
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 1 },
         { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/indicator_move.vfx" },
         {
-          "$type": "AssetPrefabTrait_Sound", "persistent": true,
+          "$type": "AssetPrefabTrait_Sound",
           "assets": [ "external/sound/indicator-01.wav" ],
           "gainMin": 0.6
         }
@@ -1251,7 +1251,7 @@
         { "$type": "AssetPrefabTrait_Lifetime", "duration": 1 },
         { "$type": "AssetPrefabTrait_Vfx", "asset": "vfx/game/indicator_attack.vfx" },
         {
-          "$type": "AssetPrefabTrait_Sound", "persistent": true,
+          "$type": "AssetPrefabTrait_Sound",
           "assets": [ "external/sound/indicator-02.wav" ],
           "gainMin": 0.6
         }
