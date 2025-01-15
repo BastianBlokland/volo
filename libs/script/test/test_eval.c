@@ -105,6 +105,10 @@ spec(eval) {
         {string_static("vec_x(vec3(1, true, 3))"), script_null()},
         {string_static("vec_y(vec3(1, true, 3))"), script_null()},
         {string_static("vec_z(vec3(1, true, 3))"), script_null()},
+        {string_static("color_r(color(1, 2, 3, 4))"), script_num(1)},
+        {string_static("color_g(color(1, 2, 3, 4))"), script_num(2)},
+        {string_static("color_b(color(1, 2, 3, 4))"), script_num(3)},
+        {string_static("color_a(color(1, 2, 3, 4))"), script_num(4)},
 
         // Variable access.
         {string_static("var i"), script_null()},

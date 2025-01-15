@@ -42,6 +42,10 @@
   VM_OP_SIMPLE_TERNARY(     Vec3Compose,        script_val_vec3_compose         )\
   VM_OP_SIMPLE_TERNARY(     QuatFromEuler,      script_val_quat_from_euler      )\
   VM_OP_SIMPLE_BINARY(      QuatFromAngleAxis,  script_val_quat_from_angle_axis )\
+  VM_OP_SIMPLE_UNARY(       ColorR,             script_val_color_r              )\
+  VM_OP_SIMPLE_UNARY(       ColorG,             script_val_color_g              )\
+  VM_OP_SIMPLE_UNARY(       ColorB,             script_val_color_b              )\
+  VM_OP_SIMPLE_UNARY(       ColorA,             script_val_color_a              )\
   VM_OP_SIMPLE_QUATERNARY(  ColorCompose,       script_val_color_compose        )\
   VM_OP_SIMPLE_QUATERNARY(  ColorComposeHsv,    script_val_color_compose_hsv    )\
   VM_OP_SIMPLE_UNARY(       ColorFor,           script_val_color_for_val        )\

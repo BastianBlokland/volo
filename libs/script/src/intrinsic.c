@@ -28,6 +28,10 @@ u32 script_intrinsic_arg_count(const ScriptIntrinsic i) {
   case ScriptIntrinsic_VecX:
   case ScriptIntrinsic_VecY:
   case ScriptIntrinsic_VecZ:
+  case ScriptIntrinsic_ColorR:
+  case ScriptIntrinsic_ColorG:
+  case ScriptIntrinsic_ColorB:
+  case ScriptIntrinsic_ColorA:
   case ScriptIntrinsic_ColorFor:
   case ScriptIntrinsic_Perlin3:
     return 1;
@@ -144,6 +148,10 @@ String script_intrinsic_str(const ScriptIntrinsic i) {
       [ScriptIntrinsic_Vec3Compose]       = string_static("vec3-compose"),
       [ScriptIntrinsic_QuatFromEuler]     = string_static("quat-from-euler"),
       [ScriptIntrinsic_QuatFromAngleAxis] = string_static("quat-from-angle-axis"),
+      [ScriptIntrinsic_ColorR]            = string_static("color-r"),
+      [ScriptIntrinsic_ColorG]            = string_static("color-g"),
+      [ScriptIntrinsic_ColorB]            = string_static("color-b"),
+      [ScriptIntrinsic_ColorA]            = string_static("color-a"),
       [ScriptIntrinsic_ColorCompose]      = string_static("color-compose"),
       [ScriptIntrinsic_ColorComposeHsv]   = string_static("color-compose-hsv"),
       [ScriptIntrinsic_ColorFor]          = string_static("color-for"),

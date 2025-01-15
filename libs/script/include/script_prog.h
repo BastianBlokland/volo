@@ -76,21 +76,25 @@ typedef enum eScriptOp {
   ScriptOp_Vec3Compose       = 43, // [x,y,z  ] (x,y,z  ) -> (x) Compose a vector from 'x', 'y', 'z' and store in register 'x'.
   ScriptOp_QuatFromEuler     = 44, // [x,y,z  ] (x,y,z  ) -> (x) Compose a quaternion from 'x', 'y', 'z' angles and store in register 'x'.
   ScriptOp_QuatFromAngleAxis = 45, // [x,y    ] (x,y    ) -> (x) Compose a quaternion from angle 'x' and axis 'y' and store in register 'x'.
-  ScriptOp_ColorCompose      = 46, // [x,y,z,w] (x,y,z,w) -> (x) Compose a color from 'x', 'y', 'z', 'w' and store in register 'x'.
-  ScriptOp_ColorComposeHsv   = 47, // [x,y,z,w] (x,y,z,w) -> (x) Compose a hsv color from 'x', 'y', 'z', 'w' and store in register 'x'.
-  ScriptOp_ColorFor          = 48, // [d      ] (d      ) -> (d) Compute a color for register 'd'.
-  ScriptOp_Random            = 49, // [d      ] (       ) -> (d) Compute a random value (0 - 1) in register 'd'.
-  ScriptOp_RandomSphere      = 50, // [d      ] (       ) -> (d) Compute a random vector on a unit sphere in register 'd'.
-  ScriptOp_RandomCircleXZ    = 51, // [d      ] (       ) -> (d) Compute a random vector on a unit circle in register 'd'.
-  ScriptOp_RandomBetween     = 52, // [x,y    ] (x,y    ) -> (x) Compute a random value between 'x' and 'y' and store in register 'x'.
-  ScriptOp_RoundDown         = 53, // [d      ] (d      ) -> (d) Round register 'd' down.
-  ScriptOp_RoundNearest      = 54, // [d      ] (d      ) -> (d) Round register 'd' to nearest.
-  ScriptOp_RoundUp           = 55, // [d      ] (d      ) -> (d) Round register 'd' up.
-  ScriptOp_Clamp             = 56, // [x,y,z  ] (x,y,z  ) -> (x) Clamp register 'x' between 'y' and 'z' and store in register 'x'.
-  ScriptOp_Lerp              = 57, // [x,y,z  ] (x,y,z  ) -> (x) Compute a linearly interpolated value from 'x' to 'y' at time 'z' and store in register 'x'.
-  ScriptOp_Min               = 58, // [x,y    ] (x,y    ) -> (x) Store the minimum value of 'x' and 'y' in register 'x'.
-  ScriptOp_Max               = 59, // [x,y    ] (x,y    ) -> (x) Store the maximum value of 'x' and 'y' in register 'x'.
-  ScriptOp_Perlin3           = 60, // [d      ] (       ) -> (d) Compute a 3d perlin noise in register 'd'.
+  ScriptOp_ColorR            = 46, // [d      ] (d      ) -> (d) Retrieve the r component of a color in register 'd'.
+  ScriptOp_ColorG            = 47, // [d      ] (d      ) -> (d) Retrieve the g component of a color in register 'd'.
+  ScriptOp_ColorB            = 48, // [d      ] (d      ) -> (d) Retrieve the b component of a color in register 'd'.
+  ScriptOp_ColorA            = 49, // [d      ] (d      ) -> (d) Retrieve the a component of a color in register 'd'.
+  ScriptOp_ColorCompose      = 50, // [x,y,z,w] (x,y,z,w) -> (x) Compose a color from 'x', 'y', 'z', 'w' and store in register 'x'.
+  ScriptOp_ColorComposeHsv   = 51, // [x,y,z,w] (x,y,z,w) -> (x) Compose a hsv color from 'x', 'y', 'z', 'w' and store in register 'x'.
+  ScriptOp_ColorFor          = 52, // [d      ] (d      ) -> (d) Compute a color for register 'd'.
+  ScriptOp_Random            = 53, // [d      ] (       ) -> (d) Compute a random value (0 - 1) in register 'd'.
+  ScriptOp_RandomSphere      = 54, // [d      ] (       ) -> (d) Compute a random vector on a unit sphere in register 'd'.
+  ScriptOp_RandomCircleXZ    = 55, // [d      ] (       ) -> (d) Compute a random vector on a unit circle in register 'd'.
+  ScriptOp_RandomBetween     = 56, // [x,y    ] (x,y    ) -> (x) Compute a random value between 'x' and 'y' and store in register 'x'.
+  ScriptOp_RoundDown         = 57, // [d      ] (d      ) -> (d) Round register 'd' down.
+  ScriptOp_RoundNearest      = 58, // [d      ] (d      ) -> (d) Round register 'd' to nearest.
+  ScriptOp_RoundUp           = 59, // [d      ] (d      ) -> (d) Round register 'd' up.
+  ScriptOp_Clamp             = 60, // [x,y,z  ] (x,y,z  ) -> (x) Clamp register 'x' between 'y' and 'z' and store in register 'x'.
+  ScriptOp_Lerp              = 61, // [x,y,z  ] (x,y,z  ) -> (x) Compute a linearly interpolated value from 'x' to 'y' at time 'z' and store in register 'x'.
+  ScriptOp_Min               = 62, // [x,y    ] (x,y    ) -> (x) Store the minimum value of 'x' and 'y' in register 'x'.
+  ScriptOp_Max               = 63, // [x,y    ] (x,y    ) -> (x) Store the maximum value of 'x' and 'y' in register 'x'.
+  ScriptOp_Perlin3           = 64, // [d      ] (       ) -> (d) Compute a 3d perlin noise in register 'd'.
 } ScriptOp;
 
 // clang-format on

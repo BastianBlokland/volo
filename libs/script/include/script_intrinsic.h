@@ -41,6 +41,10 @@ typedef enum eScriptIntrinsic {
   ScriptIntrinsic_Vec3Compose,       // Args: x, y, z.
   ScriptIntrinsic_QuatFromEuler,     // Args: x, y, z.
   ScriptIntrinsic_QuatFromAngleAxis, // Args: angle, axis.
+  ScriptIntrinsic_ColorR,            // Args: value.
+  ScriptIntrinsic_ColorG,            // Args: value.
+  ScriptIntrinsic_ColorB,            // Args: value.
+  ScriptIntrinsic_ColorA,            // Args: value.
   ScriptIntrinsic_ColorCompose,      // Args: r, g, b, a.
   ScriptIntrinsic_ColorComposeHsv,   // Args: h, s, v, a.
   ScriptIntrinsic_ColorFor,          // Args: value.

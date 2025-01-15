@@ -862,6 +862,14 @@ static ScriptCompileError compile_intr(Context* ctx, const Target tgt, const Scr
     return compile_intr_ternary(ctx, tgt, ScriptOp_QuatFromEuler, args);
   case ScriptIntrinsic_QuatFromAngleAxis:
     return compile_intr_binary(ctx, tgt, ScriptOp_QuatFromAngleAxis, args);
+  case ScriptIntrinsic_ColorR:
+    return compile_intr_unary(ctx, tgt, ScriptOp_ColorR, args);
+  case ScriptIntrinsic_ColorG:
+    return compile_intr_unary(ctx, tgt, ScriptOp_ColorG, args);
+  case ScriptIntrinsic_ColorB:
+    return compile_intr_unary(ctx, tgt, ScriptOp_ColorB, args);
+  case ScriptIntrinsic_ColorA:
+    return compile_intr_unary(ctx, tgt, ScriptOp_ColorA, args);
   case ScriptIntrinsic_ColorCompose:
     return compile_intr_quaternary(ctx, tgt, ScriptOp_ColorCompose, args);
   case ScriptIntrinsic_ColorComposeHsv:
