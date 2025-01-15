@@ -109,6 +109,26 @@ spec(read) {
                           "  [value: 1]"),
         },
         {
+            string_static("color_r(1)"),
+            string_static("[intrinsic: color-r]\n"
+                          "  [value: 1]"),
+        },
+        {
+            string_static("color_g(1)"),
+            string_static("[intrinsic: color-g]\n"
+                          "  [value: 1]"),
+        },
+        {
+            string_static("color_b(1)"),
+            string_static("[intrinsic: color-b]\n"
+                          "  [value: 1]"),
+        },
+        {
+            string_static("color_a(1)"),
+            string_static("[intrinsic: color-a]\n"
+                          "  [value: 1]"),
+        },
+        {
             string_static("euler(1,2,3)"),
             string_static("[intrinsic: quat-from-euler]\n"
                           "  [value: 1]\n"
