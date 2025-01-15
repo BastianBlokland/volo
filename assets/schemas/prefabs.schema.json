@@ -51,6 +51,18 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
+            "$type": { "const": "AssetPrefabTrait_Property" },
+            "properties": {
+              "type": "array",
+              "items": { "title": "AssetProperty", "$ref": "#/$defs/AssetProperty" }
+            }
+          },
+          "required": [ "$type", "properties" ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
             "$type": { "const": "AssetPrefabTrait_SetMember" },
             "sets": {
               "type": "array",
@@ -321,6 +333,7 @@
       ],
       "defaultSnippets": [
         { "label": "New AssetPrefabTrait_Name", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Name\",\n  \"name\": \"placeholder\"\n}" },
+        { "label": "New AssetPrefabTrait_Property", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Property\",\n  \"properties\": []\n}" },
         { "label": "New AssetPrefabTrait_SetMember", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_SetMember\",\n  \"sets\": [\n    \"\"\n  ]\n}" },
         { "label": "New AssetPrefabTrait_Renderable", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Renderable\",\n  \"graphic\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Vfx", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Vfx\",\n  \"asset\": \"placeholder\"\n}" },
@@ -343,92 +356,6 @@
         { "label": "New AssetPrefabTrait_Attachment", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Attachment\",\n  \"attachmentPrefab\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Production", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Production\",\n  \"productSetId\": \"placeholder\"\n}" },
         { "label": "New AssetPrefabTrait_Scalable", "body": "^{\n  \"\\$type\": \"AssetPrefabTrait_Scalable\"\n}" }
-      ]
-    },
-    "AssetRef": { "title": "StringHash", "type": "string", "minLength": 1 },
-    "GeoColor4": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "r": { "title": "f32", "type": "number" },
-        "g": { "title": "f32", "type": "number" },
-        "b": { "title": "f32", "type": "number" },
-        "a": { "title": "f32", "type": "number" }
-      },
-      "required": [],
-      "defaultSnippets": [
-        { "label": "New", "body": "^{}" }
-      ]
-    },
-    "AssetPrefabNavLayer": {
-      "enum": [ "Normal", "Large" ]
-    },
-    "AssetPrefabShape": {
-      "anyOf": [
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "$type": { "const": "AssetPrefabShape_Sphere" },
-            "point": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
-            "radius": { "title": "f32", "type": "number" }
-          },
-          "required": [ "$type", "point", "radius" ]
-        },
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "$type": { "const": "AssetPrefabShape_Capsule" },
-            "a": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
-            "b": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
-            "radius": { "title": "f32", "type": "number" }
-          },
-          "required": [ "$type", "a", "b", "radius" ]
-        },
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "$type": { "const": "AssetPrefabShape_Box" },
-            "min": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
-            "max": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
-            "rotation": { "title": "GeoQuat", "description": "Quaternion", "$ref": "#/$defs/GeoQuat" }
-          },
-          "required": [ "$type", "min", "max" ]
-        }
-      ],
-      "defaultSnippets": [
-        { "label": "New AssetPrefabShape_Sphere", "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Sphere\",\n  \"point\": {},\n  \"radius\": 0\n}" },
-        { "label": "New AssetPrefabShape_Capsule", "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Capsule\",\n  \"a\": {},\n  \"b\": {},\n  \"radius\": 0\n}" },
-        { "label": "New AssetPrefabShape_Box", "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Box\",\n  \"min\": {},\n  \"max\": {}\n}" }
-      ]
-    },
-    "GeoVector3": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "x": { "title": "f32", "type": "number" },
-        "y": { "title": "f32", "type": "number" },
-        "z": { "title": "f32", "type": "number" }
-      },
-      "required": [],
-      "defaultSnippets": [
-        { "label": "New", "body": "^{}" }
-      ]
-    },
-    "GeoQuat": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "x": { "title": "f32", "type": "number" },
-        "y": { "title": "f32", "type": "number" },
-        "z": { "title": "f32", "type": "number" },
-        "w": { "title": "f32", "type": "number" }
-      },
-      "required": [],
-      "defaultSnippets": [
-        { "label": "New", "body": "^{}" }
       ]
     },
     "AssetProperty": {
@@ -534,6 +461,92 @@
       ]
     },
     "AssetLevelRef": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
+    "AssetRef": { "title": "StringHash", "type": "string", "minLength": 1 },
+    "GeoColor4": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "r": { "title": "f32", "type": "number" },
+        "g": { "title": "f32", "type": "number" },
+        "b": { "title": "f32", "type": "number" },
+        "a": { "title": "f32", "type": "number" }
+      },
+      "required": [],
+      "defaultSnippets": [
+        { "label": "New", "body": "^{}" }
+      ]
+    },
+    "AssetPrefabNavLayer": {
+      "enum": [ "Normal", "Large" ]
+    },
+    "AssetPrefabShape": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": { "const": "AssetPrefabShape_Sphere" },
+            "point": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
+            "radius": { "title": "f32", "type": "number" }
+          },
+          "required": [ "$type", "point", "radius" ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": { "const": "AssetPrefabShape_Capsule" },
+            "a": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
+            "b": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
+            "radius": { "title": "f32", "type": "number" }
+          },
+          "required": [ "$type", "a", "b", "radius" ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": { "const": "AssetPrefabShape_Box" },
+            "min": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
+            "max": { "title": "GeoVector3", "description": "3D Vector", "$ref": "#/$defs/GeoVector3" },
+            "rotation": { "title": "GeoQuat", "description": "Quaternion", "$ref": "#/$defs/GeoQuat" }
+          },
+          "required": [ "$type", "min", "max" ]
+        }
+      ],
+      "defaultSnippets": [
+        { "label": "New AssetPrefabShape_Sphere", "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Sphere\",\n  \"point\": {},\n  \"radius\": 0\n}" },
+        { "label": "New AssetPrefabShape_Capsule", "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Capsule\",\n  \"a\": {},\n  \"b\": {},\n  \"radius\": 0\n}" },
+        { "label": "New AssetPrefabShape_Box", "body": "^{\n  \"\\$type\": \"AssetPrefabShape_Box\",\n  \"min\": {},\n  \"max\": {}\n}" }
+      ]
+    },
+    "GeoVector3": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x": { "title": "f32", "type": "number" },
+        "y": { "title": "f32", "type": "number" },
+        "z": { "title": "f32", "type": "number" }
+      },
+      "required": [],
+      "defaultSnippets": [
+        { "label": "New", "body": "^{}" }
+      ]
+    },
+    "GeoQuat": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x": { "title": "f32", "type": "number" },
+        "y": { "title": "f32", "type": "number" },
+        "z": { "title": "f32", "type": "number" },
+        "w": { "title": "f32", "type": "number" }
+      },
+      "required": [],
+      "defaultSnippets": [
+        { "label": "New", "body": "^{}" }
+      ]
+    },
     "GeoBox": {
       "type": "object",
       "additionalProperties": false,

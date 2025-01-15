@@ -49,6 +49,10 @@ static AssetPrefabFlags prefab_set_flags(const StringHash set) {
 }
 
 typedef struct {
+  HeapArray_t(AssetProperty) properties;
+} AssetPrefabTraitPropertyDef;
+
+typedef struct {
   bool navBlocker;
   HeapArray_t(AssetPrefabShape) shapes;
 } AssetPrefabTraitCollisionDef;
@@ -62,6 +66,7 @@ typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitName         data_name;
+    AssetPrefabTraitPropertyDef  data_property;
     AssetPrefabTraitSetMember    data_setMember;
     AssetPrefabTraitRenderable   data_renderable;
     AssetPrefabTraitVfx          data_vfx;
@@ -201,6 +206,18 @@ static void prefab_build(
       TRAIT_COPY(Vision, data_vision);
       TRAIT_COPY(Attachment, data_attachment);
       TRAIT_COPY(Production, data_production);
+    case AssetPrefabTrait_Property: {
+      const AssetPrefabTraitPropertyDef* propDef   = &traitDef->data_property;
+      const u16                          propCount = (u16)propDef->properties.count;
+      const Mem propMem = mem_create(propDef->properties.values, sizeof(AssetProperty) * propCount);
+
+      outTrait->data_property = (AssetPrefabTraitProperty){
+          .index = (u16)outProperties->size,
+          .count = propCount,
+      };
+      mem_cpy(dynarray_push(outProperties, propCount), propMem);
+      TRAIT_HASH_ADD(bits_hash_32(propMem));
+    } break;
     case AssetPrefabTrait_Collision: {
       const AssetPrefabTraitCollisionDef* colDef = &traitDef->data_collision;
 
@@ -522,6 +539,9 @@ void asset_data_init_prefab(void) {
   data_reg_struct_t(g_dataReg, AssetPrefabTraitName);
   data_reg_field_t(g_dataReg, AssetPrefabTraitName, name, data_prim_t(StringHash), .flags = DataFlags_NotEmpty);
 
+  data_reg_struct_t(g_dataReg, AssetPrefabTraitPropertyDef);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitPropertyDef, properties, g_assetPropertyType, .container = DataContainer_HeapArray);
+
   data_reg_struct_t(g_dataReg, AssetPrefabTraitSetMember);
   data_reg_field_t(g_dataReg, AssetPrefabTraitSetMember, sets, data_prim_t(StringHash), .container = DataContainer_InlineArray, .fixedCount = asset_prefab_sets_max, .flags = DataFlags_NotEmpty);
 
@@ -632,6 +652,7 @@ void asset_data_init_prefab(void) {
 
   data_reg_union_t(g_dataReg, AssetPrefabTraitDef, type);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Name, data_name, t_AssetPrefabTraitName);
+  data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Property, data_property, t_AssetPrefabTraitPropertyDef);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_SetMember, data_setMember, t_AssetPrefabTraitSetMember);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Renderable, data_renderable, t_AssetPrefabTraitRenderable);
   data_reg_choice_t(g_dataReg, AssetPrefabTraitDef, AssetPrefabTrait_Vfx, data_vfx, t_AssetPrefabTraitVfx);
