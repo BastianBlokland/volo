@@ -97,10 +97,11 @@ static RendMat3x4 rend_transpose_to_3x4(const GeoMatrix* m) {
 }
 
 static u32 rend_color_pack(const GeoColor color) {
-  const u32 r = (u8)(color.r * 255.999f);
-  const u32 g = (u8)(color.g * 255.999f);
-  const u32 b = (u8)(color.b * 255.999f);
-  const u32 a = (u8)(color.a * 255.999f);
+  const GeoColor clamped = geo_color_clamp01(color); // HDR colors are not supported atm.
+  const u32      r       = (u8)(clamped.r * 255.999f);
+  const u32      g       = (u8)(clamped.g * 255.999f);
+  const u32      b       = (u8)(clamped.b * 255.999f);
+  const u32      a       = (u8)(clamped.a * 255.999f);
   return r | (g << 8) | (b << 16) | (a << 24);
 }
 
