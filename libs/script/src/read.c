@@ -237,6 +237,42 @@ static void script_builtin_init(void) {
     script_builtin_func_add(name, ScriptIntrinsic_ColorCompose, doc, ret, args, array_elems(args));
   }
   {
+    const String       name   = string_lit("color_r");
+    const String       doc    = string_lit("Retrieve the r component of a color.");
+    const ScriptMask   ret    = script_mask_num;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_color},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_ColorR, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("color_g");
+    const String       doc    = string_lit("Retrieve the g component of a color.");
+    const ScriptMask   ret    = script_mask_num;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_color},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_ColorG, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("color_b");
+    const String       doc    = string_lit("Retrieve the b component of a color.");
+    const ScriptMask   ret    = script_mask_num;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_color},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_ColorB, doc, ret, args, array_elems(args));
+  }
+  {
+    const String       name   = string_lit("color_a");
+    const String       doc    = string_lit("Retrieve the a component of a color.");
+    const ScriptMask   ret    = script_mask_num;
+    const ScriptSigArg args[] = {
+        {string_lit("v"), script_mask_color},
+    };
+    script_builtin_func_add(name, ScriptIntrinsic_ColorA, doc, ret, args, array_elems(args));
+  }
+  {
     const String       name   = string_lit("color_hsv");
     const String       doc    = string_lit("Construct a new color from hue-saturation-value numbers.");
     const ScriptMask   ret    = script_mask_color;
