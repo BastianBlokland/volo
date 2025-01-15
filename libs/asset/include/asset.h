@@ -14,7 +14,6 @@ ecs_comp_extern(AssetManagerComp);
 ecs_comp_extern(AssetPrefabMapComp);
 
 typedef enum eAssetGraphicPass       AssetGraphicPass;
-typedef enum eAssetPropertyType      AssetPropertyType;
 typedef struct sAssetGraphicOverride AssetGraphicOverride;
 typedef struct sAssetLevelRef        AssetLevelRef;
 typedef struct sAssetProduct         AssetProduct;

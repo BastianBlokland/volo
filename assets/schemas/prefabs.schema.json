@@ -437,7 +437,7 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": { "const": "AssetPropertyType_Num" },
+            "$type": { "const": "AssetProperty_Num" },
             "$name": { "type": "string" },
             "$data": { "title": "f64", "type": "number" }
           },
@@ -447,7 +447,7 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": { "const": "AssetPropertyType_Bool" },
+            "$type": { "const": "AssetProperty_Bool" },
             "$name": { "type": "string" },
             "$data": { "title": "bool", "type": "boolean" }
           },
@@ -457,7 +457,7 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": { "const": "AssetPropertyType_Vec3" },
+            "$type": { "const": "AssetProperty_Vec3" },
             "$name": { "type": "string" },
             "x": { "title": "f32", "type": "number" },
             "y": { "title": "f32", "type": "number" },
@@ -469,7 +469,7 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": { "const": "AssetPropertyType_Quat" },
+            "$type": { "const": "AssetProperty_Quat" },
             "$name": { "type": "string" },
             "x": { "title": "f32", "type": "number" },
             "y": { "title": "f32", "type": "number" },
@@ -482,7 +482,7 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": { "const": "AssetPropertyType_Color" },
+            "$type": { "const": "AssetProperty_Color" },
             "$name": { "type": "string" },
             "r": { "title": "f32", "type": "number" },
             "g": { "title": "f32", "type": "number" },
@@ -495,7 +495,7 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": { "const": "AssetPropertyType_Str" },
+            "$type": { "const": "AssetProperty_Str" },
             "$name": { "type": "string" },
             "$data": { "title": "StringHash", "type": "string" }
           },
@@ -505,7 +505,7 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": { "const": "AssetPropertyType_LevelEntity" },
+            "$type": { "const": "AssetProperty_LevelEntity" },
             "$name": { "type": "string" },
             "$data": { "title": "AssetLevelRef", "description": "Asset level reference", "$ref": "#/$defs/AssetLevelRef" }
           },
@@ -515,7 +515,7 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": { "const": "AssetPropertyType_Asset" },
+            "$type": { "const": "AssetProperty_Asset" },
             "$name": { "type": "string" },
             "$data": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" }
           },
@@ -523,14 +523,14 @@
         }
       ],
       "defaultSnippets": [
-        { "label": "New AssetPropertyType_Num", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Num\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": 0\n}" },
-        { "label": "New AssetPropertyType_Bool", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Bool\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": false\n}" },
-        { "label": "New AssetPropertyType_Vec3", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Vec3\",\n  \"\\$name\": \"MyUnion\"\n}" },
-        { "label": "New AssetPropertyType_Quat", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Quat\",\n  \"\\$name\": \"MyUnion\"\n}" },
-        { "label": "New AssetPropertyType_Color", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Color\",\n  \"\\$name\": \"MyUnion\"\n}" },
-        { "label": "New AssetPropertyType_Str", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Str\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}" },
-        { "label": "New AssetPropertyType_LevelEntity", "body": "^{\n  \"\\$type\": \"AssetPropertyType_LevelEntity\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": 1\n}" },
-        { "label": "New AssetPropertyType_Asset", "body": "^{\n  \"\\$type\": \"AssetPropertyType_Asset\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"placeholder\"\n}" }
+        { "label": "New AssetProperty_Num", "body": "^{\n  \"\\$type\": \"AssetProperty_Num\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": 0\n}" },
+        { "label": "New AssetProperty_Bool", "body": "^{\n  \"\\$type\": \"AssetProperty_Bool\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": false\n}" },
+        { "label": "New AssetProperty_Vec3", "body": "^{\n  \"\\$type\": \"AssetProperty_Vec3\",\n  \"\\$name\": \"MyUnion\"\n}" },
+        { "label": "New AssetProperty_Quat", "body": "^{\n  \"\\$type\": \"AssetProperty_Quat\",\n  \"\\$name\": \"MyUnion\"\n}" },
+        { "label": "New AssetProperty_Color", "body": "^{\n  \"\\$type\": \"AssetProperty_Color\",\n  \"\\$name\": \"MyUnion\"\n}" },
+        { "label": "New AssetProperty_Str", "body": "^{\n  \"\\$type\": \"AssetProperty_Str\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}" },
+        { "label": "New AssetProperty_LevelEntity", "body": "^{\n  \"\\$type\": \"AssetProperty_LevelEntity\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": 1\n}" },
+        { "label": "New AssetProperty_Asset", "body": "^{\n  \"\\$type\": \"AssetProperty_Asset\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"placeholder\"\n}" }
       ]
     },
     "AssetLevelRef": { "title": "u32", "type": "integer", "exclusiveMinimum": 0, "maximum": 4294967295 },
