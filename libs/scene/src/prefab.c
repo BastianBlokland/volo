@@ -391,6 +391,9 @@ static void setup_property(PrefabSetupContext* ctx, const AssetPrefabTraitProper
     case AssetProperty_Str:
       scene_prop_store(ctx->propComp, p->name, script_str_or_null(p->data_str));
       break;
+    case AssetProperty_EntitySelf:
+      scene_prop_store(ctx->propComp, p->name, script_entity(ctx->entity));
+      break;
     case AssetProperty_EntityLevel:
       log_e("Level references are not supported in prefabs");
       break;

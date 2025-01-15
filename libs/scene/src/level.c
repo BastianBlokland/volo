@@ -196,6 +196,9 @@ static void level_process_load(
       case AssetProperty_Str:
         props[propIdx].value = script_str_or_null(levelProp->data_str);
         continue;
+      case AssetProperty_EntitySelf:
+        props[propIdx].value = script_entity(objectEntities[objIdx]);
+        continue;
       case AssetProperty_EntityLevel: {
         const u32 refIdx = asset_level_find_index(level, levelProp->data_levelEntity.persistentId);
         const EcsEntityId refEntity = sentinel_check(refIdx) ? 0 : objectEntities[refIdx];
@@ -431,6 +434,7 @@ static bool level_obj_should_persist(const ScenePrefabInstanceComp* prefabInst) 
 
 static void level_obj_push_properties(
     const LevelIdMap*        idMap,
+    const EcsEntityId        entitySelf,
     AssetLevelObject*        obj,
     Allocator*               alloc,
     const ScenePropertyComp* c,
@@ -478,7 +482,9 @@ static void level_obj_push_properties(
       goto Reject; // Null properties do not need to be persisted.
     case ScriptType_Entity: {
       const EcsEntityId entity = script_get_entity(val, 0);
-      if (ecs_view_maybe_jump(entityRefItr, entity)) {
+      if (entity == entitySelf) {
+        prop->type = AssetProperty_EntitySelf;
+      } else if (ecs_view_maybe_jump(entityRefItr, entity)) {
         const AssetComp* assetComp = ecs_view_read_t(entityRefItr, AssetComp);
         if (assetComp) {
           prop->type       = AssetProperty_Asset;
@@ -534,6 +540,7 @@ static void level_obj_push(
     return;
   }
 
+  const EcsEntityId         entitySelf      = ecs_view_entity(instanceItr);
   const SceneTransformComp* maybeTrans      = ecs_view_read_t(instanceItr, SceneTransformComp);
   const SceneScaleComp*     maybeScale      = ecs_view_read_t(instanceItr, SceneScaleComp);
   const SceneFactionComp*   maybeFaction    = ecs_view_read_t(instanceItr, SceneFactionComp);
@@ -542,7 +549,7 @@ static void level_obj_push(
   const f32                 scaleVal        = maybeScale ? maybeScale->scale : 1.0f;
 
   AssetLevelObject obj = {
-      .id       = level_id_lookup(idMap, ecs_view_entity(instanceItr)),
+      .id       = level_id_lookup(idMap, entitySelf),
       .prefab   = prefabInst->prefabId,
       .position = maybeTrans ? maybeTrans->position : geo_vector(0),
       .rotation = maybeTrans ? geo_quat_norm(maybeTrans->rotation) : geo_quat_ident,
@@ -550,7 +557,7 @@ static void level_obj_push(
       .faction  = maybeFaction ? level_to_asset_faction(maybeFaction->id) : AssetLevelFaction_None,
   };
   if (maybeProperties) {
-    level_obj_push_properties(idMap, &obj, alloc, maybeProperties, entityRefItr);
+    level_obj_push_properties(idMap, entitySelf, &obj, alloc, maybeProperties, entityRefItr);
   }
   if (maybeSetMember) {
     level_obj_push_sets(&obj, maybeSetMember);
