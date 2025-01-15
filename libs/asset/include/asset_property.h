@@ -12,6 +12,7 @@ typedef enum {
   AssetProperty_Quat,
   AssetProperty_Color,
   AssetProperty_Str,
+  AssetProperty_EntitySelf,
   AssetProperty_EntityLevel,
   AssetProperty_Asset,
 
