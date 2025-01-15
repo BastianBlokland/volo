@@ -2614,7 +2614,7 @@
       "position": { "x": 18.4996, "y": 0.7126, "z": -30.0693 },
       "rotation": { "y": -0.7674, "w": 0.6411 },
       "properties": [
-        { "$type": "AssetProperty_LevelEntity", "$name": "cfgTrigger", "$data": 3585854945 }
+        { "$type": "AssetProperty_EntityLevel", "$name": "cfgTrigger", "$data": 3585854945 }
       ]
     },
     {
@@ -3592,7 +3592,7 @@
       "position": { "x": 21.569, "y": 1.3476, "z": -30.1002 },
       "rotation": { "x": -0.5417, "y": -0.5417, "z": 0.4545, "w": 0.4545 },
       "properties": [
-        { "$type": "AssetProperty_LevelEntity", "$name": "cfgTrigger", "$data": 3585854945 }
+        { "$type": "AssetProperty_EntityLevel", "$name": "cfgTrigger", "$data": 3585854945 }
       ]
     },
     {

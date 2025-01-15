@@ -196,7 +196,7 @@ static void level_process_load(
       case AssetProperty_Str:
         props[propIdx].value = script_str_or_null(levelProp->data_str);
         continue;
-      case AssetProperty_LevelEntity: {
+      case AssetProperty_EntityLevel: {
         const u32 refIdx = asset_level_find_index(level, levelProp->data_levelEntity.persistentId);
         const EcsEntityId refEntity = sentinel_check(refIdx) ? 0 : objectEntities[refIdx];
         props[propIdx].value        = script_entity_or_null(refEntity);
@@ -487,7 +487,7 @@ static void level_obj_push_properties(
         } else {
           const u32 persistentId = level_id_lookup(idMap, entity);
           if (!sentinel_check(persistentId)) {
-            prop->type             = AssetProperty_LevelEntity;
+            prop->type             = AssetProperty_EntityLevel;
             prop->data_levelEntity = (AssetLevelRef){.persistentId = persistentId};
             goto Accept;
           }
