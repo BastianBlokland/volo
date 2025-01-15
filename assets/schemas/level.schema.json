@@ -159,7 +159,16 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "$type": { "const": "AssetProperty_LevelEntity" },
+            "$type": { "const": "AssetProperty_EntitySelf" },
+            "$name": { "type": "string" }
+          },
+          "required": [ "$type", "$name" ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "$type": { "const": "AssetProperty_EntityLevel" },
             "$name": { "type": "string" },
             "$data": { "title": "AssetLevelRef", "description": "Asset level reference", "$ref": "#/$defs/AssetLevelRef" }
           },
@@ -183,7 +192,8 @@
         { "label": "New AssetProperty_Quat", "body": "^{\n  \"\\$type\": \"AssetProperty_Quat\",\n  \"\\$name\": \"MyUnion\"\n}" },
         { "label": "New AssetProperty_Color", "body": "^{\n  \"\\$type\": \"AssetProperty_Color\",\n  \"\\$name\": \"MyUnion\"\n}" },
         { "label": "New AssetProperty_Str", "body": "^{\n  \"\\$type\": \"AssetProperty_Str\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"\"\n}" },
-        { "label": "New AssetProperty_LevelEntity", "body": "^{\n  \"\\$type\": \"AssetProperty_LevelEntity\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": 1\n}" },
+        { "label": "New AssetProperty_EntitySelf", "body": "^{\n  \"\\$type\": \"AssetProperty_EntitySelf\",\n  \"\\$name\": \"MyUnion\"\n}" },
+        { "label": "New AssetProperty_EntityLevel", "body": "^{\n  \"\\$type\": \"AssetProperty_EntityLevel\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": 1\n}" },
         { "label": "New AssetProperty_Asset", "body": "^{\n  \"\\$type\": \"AssetProperty_Asset\",\n  \"\\$name\": \"MyUnion\",\n  \"\\$data\": \"placeholder\"\n}" }
       ]
     },
