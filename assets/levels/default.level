@@ -294,13 +294,6 @@
       "rotation": { "y": 0.347, "w": 0.9379 }
     },
     {
-      "id": 150723686,
-      "prefab": "PropFence",
-      "faction": "A",
-      "position": { "x": 26, "y": 0.7378, "z": -9 },
-      "rotation": { "y": -1 }
-    },
-    {
       "id": 151812269,
       "prefab": "PropWreck",
       "position": { "x": -30.0361, "y": 1.1296, "z": 129.9224 },
@@ -828,7 +821,7 @@
       "id": 520161433,
       "prefab": "PropFence",
       "faction": "A",
-      "position": { "x": 26, "y": 0.9584, "z": -15 },
+      "position": { "x": 26, "y": 0.9584, "z": -14 },
       "rotation": { "y": -1 }
     },
     {
@@ -2010,6 +2003,16 @@
       "rotation": { "y": -0.6059, "w": 0.7956 }
     },
     {
+      "id": 1264308031,
+      "prefab": "PropFloorLight",
+      "faction": "A",
+      "position": { "x": 26.959, "y": 0.9148, "z": -10.6213 },
+      "rotation": { "x": -4.2147e-8, "y": 6.2023e-23, "z": -4.2147e-8, "w": 1 },
+      "properties": [
+        { "$type": "AssetProperty_LevelEntity", "$name": "cfgTrigger", "$data": 4128576319 }
+      ]
+    },
+    {
       "id": 1265083432,
       "prefab": "PropTree",
       "position": { "x": -32.0291, "y": 0.9508, "z": 8.3969 },
@@ -2667,7 +2670,10 @@
       "prefab": "PropFloorLight",
       "faction": "A",
       "position": { "x": 7.4015, "y": 1.4299, "z": -19.8512 },
-      "rotation": { "x": -0.5, "y": -0.5, "z": 0.5, "w": 0.5 }
+      "rotation": { "x": -0.5, "y": -0.5, "z": 0.5, "w": 0.5 },
+      "properties": [
+        { "$type": "AssetProperty_LevelEntity", "$name": "cfgTrigger", "$data": 2176869707 }
+      ]
     },
     {
       "id": 1733453794,
@@ -3194,13 +3200,6 @@
       "prefab": "PropWreck",
       "position": { "x": -98.2251, "y": 0.3578, "z": 27.0506 },
       "rotation": { "y": 0.4087, "w": 0.9127 }
-    },
-    {
-      "id": 2093996692,
-      "prefab": "LogicSwitch",
-      "faction": "A",
-      "position": { "x": 0.448, "y": 0.7636, "z": -21.5103 },
-      "rotation": { "w": 1 }
     },
     {
       "id": 2094852526,
@@ -4376,7 +4375,10 @@
       "prefab": "PropGate",
       "faction": "A",
       "position": { "x": 4.5412, "y": 0.4629, "z": -19.3119 },
-      "rotation": { "y": -0.7071, "w": 0.7071 }
+      "rotation": { "y": -0.7071, "w": 0.7071 },
+      "properties": [
+        { "$type": "AssetProperty_LevelEntity", "$name": "cfgTrigger", "$data": 2176869707 }
+      ]
     },
     {
       "id": 2734812485,
@@ -4635,13 +4637,6 @@
       "rotation": { "y": -0.0048, "w": 1 }
     },
     {
-      "id": 2883209089,
-      "prefab": "PropFence",
-      "faction": "A",
-      "position": { "x": 26, "y": 0.582, "z": -6 },
-      "rotation": { "y": -1 }
-    },
-    {
       "id": 2894832916,
       "prefab": "PropPlant",
       "position": { "x": -94.4574, "y": 0.1884, "z": -115.4403 },
@@ -4712,7 +4707,7 @@
       "id": 2930954255,
       "prefab": "PropFence",
       "faction": "A",
-      "position": { "x": 26, "y": 0.9307, "z": -12 },
+      "position": { "x": 26, "y": 0.9307, "z": -11 },
       "rotation": { "y": -1 }
     },
     {
@@ -6649,6 +6644,13 @@
       "rotation": { "y": 0.4005, "w": 0.9163 }
     },
     {
+      "id": 4128576319,
+      "prefab": "PropPressurePlate",
+      "faction": "A",
+      "position": { "x": 29.8577, "y": 1.0537, "z": -10.8405 },
+      "rotation": { "x": 0.0078, "y": 0.0001, "z": -0.0107, "w": 0.9999 }
+    },
+    {
       "id": 4132670301,
       "prefab": "PropPlant",
       "position": { "x": 32.7678, "y": 0.5467, "z": 76.4454 },
@@ -6789,6 +6791,16 @@
       "faction": "A",
       "position": { "x": -18, "y": 0.5225, "z": -3 },
       "rotation": { "w": 1 }
+    },
+    {
+      "id": 4205311062,
+      "prefab": "PropGate",
+      "faction": "A",
+      "position": { "x": 25.8489, "y": 0.72, "z": -7.0346 },
+      "rotation": { "y": -1, "w": -4.3711e-8 },
+      "properties": [
+        { "$type": "AssetProperty_LevelEntity", "$name": "cfgTrigger", "$data": 4128576319 }
+      ]
     },
     {
       "id": 4209259987,

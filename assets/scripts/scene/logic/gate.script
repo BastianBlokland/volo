@@ -3,7 +3,8 @@
  * Openable gate.
  *
  * Supports the following input properties:
- * - "cfgGateOpen": Should the gate be currently open?
+ * - "cfgGateOpen": Should the gate be opened by default.
+ * - "cfgTrigger": Entity to ask if we are triggered (will be asked for a 'triggered' property).
  */
 
 var me = self()
@@ -20,8 +21,12 @@ if (!$colGate) {
   $colGate = colEntity
 }
 
+if ($cfgTrigger) {
+  ask(me, $cfgTrigger, "triggered")
+}
+
 var openSpeed  = 2.5
-var shouldOpen = $cfgGateOpen ?? false
+var shouldOpen = $triggered ? (!$cfgGateOpen ?? true) : ($cfgGateOpen ?? false)
 
 if (capable(me, "Animation")) {
   anim_param(me, "open", "Active", true)

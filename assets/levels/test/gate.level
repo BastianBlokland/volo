@@ -2612,7 +2612,10 @@
       "prefab": "PropGate",
       "faction": "A",
       "position": { "x": 18.4996, "y": 0.7126, "z": -30.0693 },
-      "rotation": { "y": -0.7674, "w": 0.6411 }
+      "rotation": { "y": -0.7674, "w": 0.6411 },
+      "properties": [
+        { "$type": "AssetProperty_LevelEntity", "$name": "cfgTrigger", "$data": 3585854945 }
+      ]
     },
     {
       "id": 1681329994,
@@ -3587,7 +3590,10 @@
       "prefab": "PropFloorLight",
       "faction": "A",
       "position": { "x": 21.569, "y": 1.3476, "z": -30.1002 },
-      "rotation": { "x": -0.5417, "y": -0.5417, "z": 0.4545, "w": 0.4545 }
+      "rotation": { "x": -0.5417, "y": -0.5417, "z": 0.4545, "w": 0.4545 },
+      "properties": [
+        { "$type": "AssetProperty_LevelEntity", "$name": "cfgTrigger", "$data": 3585854945 }
+      ]
     },
     {
       "id": 2299812967,
@@ -4465,13 +4471,6 @@
       "prefab": "PropPlant",
       "position": { "x": 134.376, "y": 0.6725, "z": 125.6214 },
       "rotation": { "y": 0.1074, "w": 0.9942 }
-    },
-    {
-      "id": 2785665147,
-      "prefab": "LogicSwitch",
-      "faction": "A",
-      "position": { "x": 16.8337, "y": 0.756, "z": -35.0054 },
-      "rotation": { "w": 1 }
     },
     {
       "id": 2795933875,
