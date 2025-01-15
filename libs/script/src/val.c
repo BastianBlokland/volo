@@ -1062,6 +1062,22 @@ ScriptVal script_val_quat_from_angle_axis(const ScriptVal angle, const ScriptVal
   return val_quat(geo_quat_angle_axis((f32)val_as_num(angle), axisNorm));
 }
 
+ScriptVal script_val_color_r(const ScriptVal val) {
+  return val_type(val) == ScriptType_Color ? val_num(val_as_color(val).r) : val_null();
+}
+
+ScriptVal script_val_color_g(const ScriptVal val) {
+  return val_type(val) == ScriptType_Color ? val_num(val_as_color(val).g) : val_null();
+}
+
+ScriptVal script_val_color_b(const ScriptVal val) {
+  return val_type(val) == ScriptType_Color ? val_num(val_as_color(val).b) : val_null();
+}
+
+ScriptVal script_val_color_a(const ScriptVal val) {
+  return val_type(val) == ScriptType_Color ? val_num(val_as_color(val).a) : val_null();
+}
+
 ScriptVal script_val_color_compose(
     const ScriptVal r, const ScriptVal g, const ScriptVal b, const ScriptVal a) {
   const ScriptType nT = ScriptType_Num;
