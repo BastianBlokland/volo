@@ -10,12 +10,23 @@
 #include "ui_canvas.h"
 #include "ui_layout.h"
 #include "ui_shape.h"
+#include "ui_style.h"
 #include "ui_widget.h"
 
 #include "widget_internal.h"
 
 static const String g_tooltipReset        = string_static("Reset the value to default.");
 static const String g_tooltipAssetRefresh = string_static("Refresh the asset query.");
+
+static UiColor debug_geo_to_ui_color(const GeoColor color) {
+  const GeoColor clamped = geo_color_clamp01(color);
+  return (UiColor){
+      .r = (u8)(clamped.r * 255.999f),
+      .g = (u8)(clamped.g * 255.999f),
+      .b = (u8)(clamped.b * 255.999f),
+      .a = (u8)(clamped.a * 255.999f),
+  };
+}
 
 bool debug_widget_f32(UiCanvasComp* canvas, f32* val, const UiWidgetFlags flags) {
   f64 v = *val;
@@ -115,7 +126,21 @@ bool debug_widget_quat(UiCanvasComp* canvas, GeoQuat* val, const UiWidgetFlags f
 }
 
 bool debug_widget_color(UiCanvasComp* canvas, GeoColor* val, const UiWidgetFlags flags) {
-  return debug_widget_f32_many(canvas, val->data, 4, flags);
+  ui_layout_push(canvas);
+  ui_layout_grow(canvas, UiAlign_MiddleLeft, ui_vector(-30, 0), UiBase_Absolute, Ui_X);
+  bool isDirty = debug_widget_f32_many(canvas, val->data, 4 /* count */, flags);
+  ui_layout_next(canvas, Ui_Right, 8);
+  ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(22, 0), UiBase_Absolute, Ui_X);
+
+  ui_style_push(canvas);
+  ui_style_outline(canvas, 4);
+  ui_style_color(canvas, debug_geo_to_ui_color(*val));
+  const UiId preview = ui_canvas_draw_glyph(canvas, UiShape_Circle, 0, UiFlags_Interactable);
+  ui_tooltip(canvas, preview, string_lit("Color preview."));
+  ui_style_pop(canvas);
+
+  ui_layout_pop(canvas);
+  return isDirty;
 }
 
 bool debug_widget_faction(UiCanvasComp* c, SceneFaction* val, const UiWidgetFlags flags) {
