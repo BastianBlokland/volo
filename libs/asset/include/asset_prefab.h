@@ -19,6 +19,7 @@
 
 typedef enum {
   AssetPrefabTrait_Name,
+  AssetPrefabTrait_Property,
   AssetPrefabTrait_SetMember,
   AssetPrefabTrait_Renderable,
   AssetPrefabTrait_Vfx,
@@ -48,6 +49,10 @@ typedef enum {
 typedef struct {
   StringHash name;
 } AssetPrefabTraitName;
+
+typedef struct {
+  u16 index, count; // Stored in the properties array.
+} AssetPrefabTraitProperty;
 
 typedef struct {
   StringHash sets[asset_prefab_sets_max];
@@ -128,7 +133,6 @@ typedef struct {
 
 typedef struct {
   EcsEntityId scripts[asset_prefab_scripts_max];
-  u16         propIndex, propCount; // Stored in the properties array.
 } AssetPrefabTraitScript;
 
 typedef struct {
@@ -170,6 +174,7 @@ typedef struct {
   AssetPrefabTraitType type;
   union {
     AssetPrefabTraitName         data_name;
+    AssetPrefabTraitProperty     data_property;
     AssetPrefabTraitSetMember    data_setMember;
     AssetPrefabTraitRenderable   data_renderable;
     AssetPrefabTraitVfx          data_vfx;

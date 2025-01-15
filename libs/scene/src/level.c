@@ -178,36 +178,36 @@ static void level_process_load(
       const AssetProperty* levelProp = &obj->properties.values[propIdx];
       props[propIdx].key             = levelProp->name;
       switch (levelProp->type) {
-      case AssetPropertyType_Num:
+      case AssetProperty_Num:
         props[propIdx].value = script_num(levelProp->data_num);
         continue;
-      case AssetPropertyType_Bool:
+      case AssetProperty_Bool:
         props[propIdx].value = script_bool(levelProp->data_bool);
         continue;
-      case AssetPropertyType_Vec3:
+      case AssetProperty_Vec3:
         props[propIdx].value = script_vec3(levelProp->data_vec3);
         continue;
-      case AssetPropertyType_Quat:
+      case AssetProperty_Quat:
         props[propIdx].value = script_quat(levelProp->data_quat);
         continue;
-      case AssetPropertyType_Color:
+      case AssetProperty_Color:
         props[propIdx].value = script_color(levelProp->data_color);
         continue;
-      case AssetPropertyType_Str:
+      case AssetProperty_Str:
         props[propIdx].value = script_str_or_null(levelProp->data_str);
         continue;
-      case AssetPropertyType_LevelEntity: {
+      case AssetProperty_LevelEntity: {
         const u32 refIdx = asset_level_find_index(level, levelProp->data_levelEntity.persistentId);
         const EcsEntityId refEntity = sentinel_check(refIdx) ? 0 : objectEntities[refIdx];
         props[propIdx].value        = script_entity_or_null(refEntity);
         continue;
       }
-      case AssetPropertyType_Asset: {
+      case AssetProperty_Asset: {
         const EcsEntityId asset = asset_ref_resolve(world, assets, &levelProp->data_asset);
         props[propIdx].value    = script_entity_or_null(asset);
         continue;
       }
-      case AssetPropertyType_Count:
+      case AssetProperty_Count:
         break;
       }
       UNREACHABLE
@@ -451,27 +451,27 @@ static void level_obj_push_properties(
 
     switch (script_type(val)) {
     case ScriptType_Num:
-      prop->type     = AssetPropertyType_Num;
+      prop->type     = AssetProperty_Num;
       prop->data_num = script_get_num(val, 0);
       goto Accept;
     case ScriptType_Bool:
-      prop->type      = AssetPropertyType_Bool;
+      prop->type      = AssetProperty_Bool;
       prop->data_bool = script_get_bool(val, false);
       goto Accept;
     case ScriptType_Vec3:
-      prop->type      = AssetPropertyType_Vec3;
+      prop->type      = AssetProperty_Vec3;
       prop->data_vec3 = script_get_vec3(val, geo_vector(0));
       goto Accept;
     case ScriptType_Quat:
-      prop->type      = AssetPropertyType_Quat;
+      prop->type      = AssetProperty_Quat;
       prop->data_quat = script_get_quat(val, geo_quat_ident);
       goto Accept;
     case ScriptType_Color:
-      prop->type       = AssetPropertyType_Color;
+      prop->type       = AssetProperty_Color;
       prop->data_color = script_get_color(val, geo_color_white);
       goto Accept;
     case ScriptType_Str:
-      prop->type     = AssetPropertyType_Str;
+      prop->type     = AssetProperty_Str;
       prop->data_str = script_get_str(val, 0);
       goto Accept;
     case ScriptType_Null:
@@ -481,13 +481,13 @@ static void level_obj_push_properties(
       if (ecs_view_maybe_jump(entityRefItr, entity)) {
         const AssetComp* assetComp = ecs_view_read_t(entityRefItr, AssetComp);
         if (assetComp) {
-          prop->type       = AssetPropertyType_Asset;
+          prop->type       = AssetProperty_Asset;
           prop->data_asset = (AssetRef){.entity = entity, .id = asset_id_hash(assetComp)};
           goto Accept;
         } else {
           const u32 persistentId = level_id_lookup(idMap, entity);
           if (!sentinel_check(persistentId)) {
-            prop->type             = AssetPropertyType_LevelEntity;
+            prop->type             = AssetProperty_LevelEntity;
             prop->data_levelEntity = (AssetLevelRef){.persistentId = persistentId};
             goto Accept;
           }

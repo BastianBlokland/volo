@@ -5,17 +5,17 @@
 #include "geo_quat.h"
 #include "geo_vector.h"
 
-typedef enum eAssetPropertyType {
-  AssetPropertyType_Num,
-  AssetPropertyType_Bool,
-  AssetPropertyType_Vec3,
-  AssetPropertyType_Quat,
-  AssetPropertyType_Color,
-  AssetPropertyType_Str,
-  AssetPropertyType_LevelEntity,
-  AssetPropertyType_Asset,
+typedef enum {
+  AssetProperty_Num,
+  AssetProperty_Bool,
+  AssetProperty_Vec3,
+  AssetProperty_Quat,
+  AssetProperty_Color,
+  AssetProperty_Str,
+  AssetProperty_LevelEntity,
+  AssetProperty_Asset,
 
-  AssetPropertyType_Count,
+  AssetProperty_Count,
 } AssetPropertyType;
 
 typedef struct sAssetProperty {

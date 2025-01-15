@@ -56,6 +56,7 @@ static const u64 g_prefabVariantTraitMask[ScenePrefabVariant_Count] = {
                                    (u64_lit(1) << AssetPrefabTrait_Scalable),
 
     [ScenePrefabVariant_Edit]    = (u64_lit(1) << AssetPrefabTrait_Renderable)   |
+                                   (u64_lit(1) << AssetPrefabTrait_Property)     |
                                    (u64_lit(1) << AssetPrefabTrait_Decal)        |
                                    (u64_lit(1) << AssetPrefabTrait_LightPoint)   |
                                    (u64_lit(1) << AssetPrefabTrait_LightDir)     |
@@ -361,6 +362,47 @@ static void setup_name(PrefabSetupContext* ctx, const AssetPrefabTraitName* t) {
   ecs_world_add_t(ctx->world, ctx->entity, SceneNameComp, .name = t->name);
 }
 
+static void setup_property(PrefabSetupContext* ctx, const AssetPrefabTraitProperty* t) {
+  if (!ctx->propComp) {
+    ctx->propComp = scene_prop_add(ctx->world, ctx->entity);
+  }
+  if (ctx->spec->variant != ScenePrefabVariant_Normal) {
+    return; // Properties are not loaded for edit variants.
+  }
+
+  for (u16 i = 0; i != t->count; ++i) {
+    const AssetProperty* p = &ctx->prefabMap->properties.values[t->index + i];
+    switch (p->type) {
+    case AssetProperty_Num:
+      scene_prop_store(ctx->propComp, p->name, script_num(p->data_num));
+      break;
+    case AssetProperty_Bool:
+      scene_prop_store(ctx->propComp, p->name, script_bool(p->data_bool));
+      break;
+    case AssetProperty_Vec3:
+      scene_prop_store(ctx->propComp, p->name, script_vec3(p->data_vec3));
+      break;
+    case AssetProperty_Quat:
+      scene_prop_store(ctx->propComp, p->name, script_quat(p->data_quat));
+      break;
+    case AssetProperty_Color:
+      scene_prop_store(ctx->propComp, p->name, script_color(p->data_color));
+      break;
+    case AssetProperty_Str:
+      scene_prop_store(ctx->propComp, p->name, script_str_or_null(p->data_str));
+      break;
+    case AssetProperty_LevelEntity:
+      log_e("Level references are not supported in prefabs");
+      break;
+    case AssetProperty_Asset:
+      scene_prop_store(ctx->propComp, p->name, script_entity(p->data_asset.entity));
+      break;
+    case AssetProperty_Count:
+      UNREACHABLE
+    }
+  }
+}
+
 static void setup_set_member(PrefabSetupContext* ctx, const AssetPrefabTraitSetMember* t) {
   scene_set_member_create(ctx->world, ctx->entity, t->sets, array_elems(t->sets));
 }
@@ -552,45 +594,12 @@ static void setup_script(PrefabSetupContext* ctx, const AssetPrefabTraitScript* 
     ;
 
   SceneScriptComp* comp = scene_script_add(ctx->world, ctx->entity, t->scripts, scriptCount);
-
-  if (!ctx->propComp) {
-    ctx->propComp = scene_prop_add(ctx->world, ctx->entity);
-  }
-
   if (ctx->spec->variant == ScenePrefabVariant_Normal) {
     scene_script_flags_set(comp, SceneScriptFlags_Enabled);
+  }
 
-    for (u16 i = 0; i != t->propCount; ++i) {
-      const AssetProperty* p = &ctx->prefabMap->properties.values[t->propIndex + i];
-      switch (p->type) {
-      case AssetPropertyType_Num:
-        scene_prop_store(ctx->propComp, p->name, script_num(p->data_num));
-        break;
-      case AssetPropertyType_Bool:
-        scene_prop_store(ctx->propComp, p->name, script_bool(p->data_bool));
-        break;
-      case AssetPropertyType_Vec3:
-        scene_prop_store(ctx->propComp, p->name, script_vec3(p->data_vec3));
-        break;
-      case AssetPropertyType_Quat:
-        scene_prop_store(ctx->propComp, p->name, script_quat(p->data_quat));
-        break;
-      case AssetPropertyType_Color:
-        scene_prop_store(ctx->propComp, p->name, script_color(p->data_color));
-        break;
-      case AssetPropertyType_Str:
-        scene_prop_store(ctx->propComp, p->name, script_str_or_null(p->data_str));
-        break;
-      case AssetPropertyType_LevelEntity:
-        log_e("Level references are not supported in prefabs");
-        break;
-      case AssetPropertyType_Asset:
-        scene_prop_store(ctx->propComp, p->name, script_entity(p->data_asset.entity));
-        break;
-      case AssetPropertyType_Count:
-        UNREACHABLE
-      }
-    }
+  if (!ctx->propComp) {
+    ctx->propComp = scene_prop_add(ctx->world, ctx->entity); // Scripts require property storage.
   }
 }
 
@@ -683,6 +692,9 @@ static void setup_trait(PrefabSetupContext* ctx, const AssetPrefabTrait* t) {
   switch (t->type) {
   case AssetPrefabTrait_Name:
     setup_name(ctx, &t->data_name);
+    return;
+  case AssetPrefabTrait_Property:
+    setup_property(ctx, &t->data_property);
     return;
   case AssetPrefabTrait_SetMember:
     setup_set_member(ctx, &t->data_setMember);
