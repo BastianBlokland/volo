@@ -484,6 +484,7 @@ static void level_obj_push_properties(
       const EcsEntityId entity = script_get_entity(val, 0);
       if (entity == entitySelf) {
         prop->type = AssetProperty_EntitySelf;
+        goto Accept;
       } else if (ecs_view_maybe_jump(entityRefItr, entity)) {
         const AssetComp* assetComp = ecs_view_read_t(entityRefItr, AssetComp);
         if (assetComp) {
