@@ -8,6 +8,8 @@
 // clang-format off
 
 bool debug_widget_f32(UiCanvasComp*, f32* val, UiWidgetFlags);
+bool debug_widget_f32_many(UiCanvasComp*, f32* val, u32 count, UiWidgetFlags);
+bool debug_widget_f32_many_resettable(UiCanvasComp*, f32* val, u32 count, f32 defaultVal, UiWidgetFlags);
 bool debug_widget_u16(UiCanvasComp*, u16* val, UiWidgetFlags);
 bool debug_widget_u32(UiCanvasComp*, u32* val, UiWidgetFlags);
 bool debug_widget_vec3(UiCanvasComp*, GeoVector* val, UiWidgetFlags);

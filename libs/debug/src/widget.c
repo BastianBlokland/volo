@@ -26,6 +26,52 @@ bool debug_widget_f32(UiCanvasComp* canvas, f32* val, const UiWidgetFlags flags)
   return false;
 }
 
+bool debug_widget_f32_many(
+    UiCanvasComp* canvas, f32* val, const u32 count, const UiWidgetFlags flags) {
+  if (!count) {
+    return false;
+  }
+  if (count == 1) {
+    return debug_widget_f32(canvas, val, flags);
+  }
+  static const f32 g_spacing   = 10.0f;
+  const u8         numSpacings = count - 1;
+  const UiAlign    align       = UiAlign_MiddleLeft;
+  ui_layout_push(canvas);
+  ui_layout_resize(canvas, align, ui_vector(1.0f / count, 0), UiBase_Current, Ui_X);
+  ui_layout_grow(
+      canvas, align, ui_vector(numSpacings * -g_spacing / count, 0), UiBase_Absolute, Ui_X);
+
+  bool isDirty = false;
+  for (u32 i = 0; i != count; ++i) {
+    isDirty |= debug_widget_f32(canvas, val + i, flags);
+    ui_layout_next(canvas, Ui_Right, g_spacing);
+  }
+  ui_layout_pop(canvas);
+  return isDirty;
+}
+
+bool debug_widget_f32_many_resettable(
+    UiCanvasComp*       canvas,
+    f32*                val,
+    const u32           count,
+    const f32           defaultVal,
+    const UiWidgetFlags flags) {
+  ui_layout_push(canvas);
+  ui_layout_grow(canvas, UiAlign_MiddleLeft, ui_vector(-30, 0), UiBase_Absolute, Ui_X);
+  bool isDirty = debug_widget_f32_many(canvas, val, count, flags);
+  ui_layout_next(canvas, Ui_Right, 8);
+  ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(22, 0), UiBase_Absolute, Ui_X);
+  if (ui_button(canvas, .label = ui_shape_scratch(UiShape_Default), .tooltip = g_tooltipReset)) {
+    for (u32 i = 0; i != count; ++i) {
+      val[i] = defaultVal;
+    }
+    isDirty = true;
+  }
+  ui_layout_pop(canvas);
+  return isDirty;
+}
+
 bool debug_widget_u16(UiCanvasComp* canvas, u16* val, const UiWidgetFlags flags) {
   f64 v = *val;
   if (ui_numbox(canvas, &v, .max = u16_max, .step = 1, .flags = flags)) {
@@ -44,60 +90,24 @@ bool debug_widget_u32(UiCanvasComp* canvas, u32* val, const UiWidgetFlags flags)
   return false;
 }
 
-static bool debug_widget_vec_internal(
-    UiCanvasComp* canvas, GeoVector* val, const u8 numComps, const UiWidgetFlags flags) {
-  static const f32 g_spacing   = 10.0f;
-  const u8         numSpacings = numComps - 1;
-  const UiAlign    align       = UiAlign_MiddleLeft;
-  ui_layout_push(canvas);
-  ui_layout_resize(canvas, align, ui_vector(1.0f / numComps, 0), UiBase_Current, Ui_X);
-  ui_layout_grow(
-      canvas, align, ui_vector(numSpacings * -g_spacing / numComps, 0), UiBase_Absolute, Ui_X);
-
-  bool isDirty = false;
-  for (u8 comp = 0; comp != numComps; ++comp) {
-    isDirty |= debug_widget_f32(canvas, &val->comps[comp], flags);
-    ui_layout_next(canvas, Ui_Right, g_spacing);
-  }
-  ui_layout_pop(canvas);
-  return isDirty;
-}
-
 bool debug_widget_vec3(UiCanvasComp* canvas, GeoVector* val, const UiWidgetFlags flags) {
-  return debug_widget_vec_internal(canvas, val, 3, flags);
+  return debug_widget_f32_many(canvas, val->comps, 3, flags);
 }
 
 bool debug_widget_vec4(UiCanvasComp* canvas, GeoVector* val, const UiWidgetFlags flags) {
-  return debug_widget_vec_internal(canvas, val, 4, flags);
-}
-
-static bool debug_widget_vec_resettable_internal(
-    UiCanvasComp* canvas, GeoVector* val, const u8 numComps, const UiWidgetFlags flags) {
-  ui_layout_push(canvas);
-  ui_layout_grow(canvas, UiAlign_MiddleLeft, ui_vector(-30, 0), UiBase_Absolute, Ui_X);
-  bool isDirty = debug_widget_vec_internal(canvas, val, numComps, flags);
-  ui_layout_next(canvas, Ui_Right, 8);
-  ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(22, 0), UiBase_Absolute, Ui_X);
-  if (ui_button(canvas, .label = ui_shape_scratch(UiShape_Default), .tooltip = g_tooltipReset)) {
-    for (u8 comp = 0; comp != numComps; ++comp) {
-      val->comps[comp] = 0;
-    }
-    isDirty = true;
-  }
-  ui_layout_pop(canvas);
-  return isDirty;
+  return debug_widget_f32_many(canvas, val->comps, 4, flags);
 }
 
 bool debug_widget_vec3_resettable(UiCanvasComp* canvas, GeoVector* val, const UiWidgetFlags flags) {
-  return debug_widget_vec_resettable_internal(canvas, val, 3, flags);
+  return debug_widget_f32_many_resettable(canvas, val->comps, 3, 0.0f /* default */, flags);
 }
 
 bool debug_widget_vec4_resettable(UiCanvasComp* canvas, GeoVector* val, const UiWidgetFlags flags) {
-  return debug_widget_vec_resettable_internal(canvas, val, 4, flags);
+  return debug_widget_f32_many_resettable(canvas, val->comps, 4, 0.0f /* default */, flags);
 }
 
 bool debug_widget_quat(UiCanvasComp* canvas, GeoQuat* val, const UiWidgetFlags flags) {
-  if (debug_widget_vec_resettable_internal(canvas, (GeoVector*)val, 4, flags)) {
+  if (debug_widget_f32_many_resettable(canvas, val->comps, 4, 0.0f /* default */, flags)) {
     *val = geo_quat_norm_or_ident(*val);
     return true;
   }
@@ -105,7 +115,7 @@ bool debug_widget_quat(UiCanvasComp* canvas, GeoQuat* val, const UiWidgetFlags f
 }
 
 bool debug_widget_color(UiCanvasComp* canvas, GeoColor* val, const UiWidgetFlags flags) {
-  return debug_widget_vec_internal(canvas, (GeoVector*)val, 4, flags);
+  return debug_widget_f32_many(canvas, val->data, 4, flags);
 }
 
 bool debug_widget_faction(UiCanvasComp* c, SceneFaction* val, const UiWidgetFlags flags) {
