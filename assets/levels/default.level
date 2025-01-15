@@ -2667,7 +2667,10 @@
       "prefab": "PropFloorLight",
       "faction": "A",
       "position": { "x": 7.4015, "y": 1.4299, "z": -19.8512 },
-      "rotation": { "x": -0.5, "y": -0.5, "z": 0.5, "w": 0.5 }
+      "rotation": { "x": -0.5, "y": -0.5, "z": 0.5, "w": 0.5 },
+      "properties": [
+        { "$type": "AssetProperty_LevelEntity", "$name": "cfgTrigger", "$data": 2176869707 }
+      ]
     },
     {
       "id": 1733453794,
@@ -3194,13 +3197,6 @@
       "prefab": "PropWreck",
       "position": { "x": -98.2251, "y": 0.3578, "z": 27.0506 },
       "rotation": { "y": 0.4087, "w": 0.9127 }
-    },
-    {
-      "id": 2093996692,
-      "prefab": "LogicSwitch",
-      "faction": "A",
-      "position": { "x": 0.448, "y": 0.7636, "z": -21.5103 },
-      "rotation": { "w": 1 }
     },
     {
       "id": 2094852526,
@@ -4376,7 +4372,10 @@
       "prefab": "PropGate",
       "faction": "A",
       "position": { "x": 4.5412, "y": 0.4629, "z": -19.3119 },
-      "rotation": { "y": -0.7071, "w": 0.7071 }
+      "rotation": { "y": -0.7071, "w": 0.7071 },
+      "properties": [
+        { "$type": "AssetProperty_LevelEntity", "$name": "cfgTrigger", "$data": 2176869707 }
+      ]
     },
     {
       "id": 2734812485,

@@ -3,7 +3,9 @@
  * Light that can dynamically change colors.
  *
  * Supports the following input properties:
- * - "cfgColor": Current color.
+ * - "cfgColor": Normal color.
+ * - "cfgColorTrigger": Triggered color.
+ * - "cfgTrigger": Entity to ask if we are triggered (will be asked for a 'triggered' property).
  */
 
 var fixture         = self()
@@ -12,11 +14,19 @@ var lightRadius     = 5
 var lightIntensity  = 3.5
 var lightOffset     = vec3(0.25, 0.5, 0)
 
-renderable_param(fixture, "Emissive", $cfgColor ? fixtureEmissive : 0.0)
-renderable_param(fixture, "Color", $cfgColor ?? white)
+if ($cfgTrigger) {
+  ask(fixture, $cfgTrigger, "triggered")
+}
+var activeColor = $triggered ? $cfgColorTrigger : $cfgColor
+
+var radiance    = (activeColor ?? black) * lightIntensity
+var radianceRgb = color(color_r(radiance), color_g(radiance), color_b(radiance), 0.0)
+
+renderable_param(fixture, "Emissive", magnitude(radianceRgb) > 0.01 ? fixtureEmissive : 0.0)
+renderable_param(fixture, "Color", activeColor ?? white)
 
 if ($light) {
-  light_param($light, "Radiance", ($cfgColor ?? black) * lightIntensity)
+  light_param($light, "Radiance", radiance)
 } else {
   var e = light_point_spawn(vec3(0, 0, 0), black, lightRadius)
   attach(e, fixture, null, lightOffset)

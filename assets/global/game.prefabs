@@ -665,21 +665,13 @@
       "name": "PropGate",
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_gate.graphic" },
-        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "gate" ] },
-        { "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/logic/gate.script" ] },
-        {
-          "$type": "AssetPrefabTrait_Property",
-          "properties": [
-            { "$name": "cfgGateOpen", "$type": "AssetProperty_Bool", "$data": false }
-          ]
-        }
+        { "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/logic/gate.script" ] }
       ]
     },
     {
       "name": "PropPressurePlate",
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_pressure_plate.graphic" },
-        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "switch" ] },
         { "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/logic/pressure_plate.script" ] }
       ]
     },
@@ -687,8 +679,14 @@
       "name": "PropFloorLight",
       "traits": [
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/prop_floor_light.graphic" },
-        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "light" ] },
-        { "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/logic/light.script" ] }
+        { "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/logic/light.script" ] },
+        {
+          "$type": "AssetPrefabTrait_Property",
+          "properties": [
+            { "$type": "AssetProperty_Color", "$name": "cfgColor", "r": 1, "g": 0, "b": 0, "a": 1 },
+            { "$type": "AssetProperty_Color", "$name": "cfgColorTrigger", "r": 0, "g": 1, "b": 0, "a": 1 }
+          ]
+        }
       ]
     },
     {
@@ -1016,12 +1014,6 @@
           "radiance": { "r": 1, "g": 1, "b": 1, "a": 25 },
           "radius": 10
         }
-      ]
-    },
-    {
-      "name": "LogicSwitch",
-      "traits": [
-        { "$type": "AssetPrefabTrait_Script", "scripts": [ "scripts/scene/logic/gate_switch.script" ] }
       ]
     },
     {
