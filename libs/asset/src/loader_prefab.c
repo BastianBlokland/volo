@@ -236,20 +236,12 @@ static void prefab_build(
     } break;
     case AssetPrefabTrait_Script: {
       const AssetPrefabTraitScriptDef* scriptDef = &traitDef->data_script;
-      const u16                        propCount = (u16)scriptDef->properties.count;
-      const Mem                        propMem =
-          mem_create(scriptDef->properties.values, sizeof(AssetProperty) * propCount);
 
-      outTrait->data_script = (AssetPrefabTraitScript){
-          .propIndex = (u16)outProperties->size,
-          .propCount = propCount,
-      };
+      outTrait->data_script = (AssetPrefabTraitScript){0};
       for (u32 i = 0; i != asset_prefab_scripts_max; ++i) {
         TRAIT_HASH_ADD(scriptDef->scripts[i].id);
         outTrait->data_script.scripts[i] = scriptDef->scripts[i].entity;
       }
-      mem_cpy(dynarray_push(outProperties, propCount), propMem);
-      TRAIT_HASH_ADD(bits_hash_32(propMem));
     } break;
     case AssetPrefabTrait_Count:
       break;
