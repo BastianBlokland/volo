@@ -243,6 +243,14 @@ INLINE_HINT static ScriptVal eval_intr(ScriptEvalContext* ctx, const ScriptExpr 
     EVAL_ARG_WITH_INTERRUPT(0);
     return script_val_quat_from_angle_axis(arg0, eval_expr(ctx, args[1]));
   }
+  case ScriptIntrinsic_ColorR:
+    return script_val_color_r(eval_expr(ctx, args[0]));
+  case ScriptIntrinsic_ColorG:
+    return script_val_color_g(eval_expr(ctx, args[0]));
+  case ScriptIntrinsic_ColorB:
+    return script_val_color_b(eval_expr(ctx, args[0]));
+  case ScriptIntrinsic_ColorA:
+    return script_val_color_a(eval_expr(ctx, args[0]));
   case ScriptIntrinsic_ColorCompose: {
     EVAL_ARG_WITH_INTERRUPT(0);
     EVAL_ARG_WITH_INTERRUPT(1);
