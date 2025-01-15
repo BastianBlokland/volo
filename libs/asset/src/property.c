@@ -15,7 +15,8 @@ void asset_data_init_property(void) {
   data_reg_choice_t(g_dataReg, AssetProperty, AssetProperty_Quat, data_quat, g_assetGeoQuatType);
   data_reg_choice_t(g_dataReg, AssetProperty, AssetProperty_Color, data_color, g_assetGeoColor4Type);
   data_reg_choice_t(g_dataReg, AssetProperty, AssetProperty_Str, data_str, data_prim_t(StringHash));
-  data_reg_choice_t(g_dataReg, AssetProperty, AssetProperty_LevelEntity, data_levelEntity, g_assetLevelRefType);
+  data_reg_choice_empty(g_dataReg, AssetProperty, AssetProperty_EntitySelf);
+  data_reg_choice_t(g_dataReg, AssetProperty, AssetProperty_EntityLevel, data_levelEntity, g_assetLevelRefType);
   data_reg_choice_t(g_dataReg, AssetProperty, AssetProperty_Asset, data_asset, g_assetRefType);
   // clang-format on
 
