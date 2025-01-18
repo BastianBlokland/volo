@@ -1,0 +1,10 @@
+{
+  "pass": "Forward",
+  "passOrder": 5,
+  "shaders": [
+    { "program": "shaders/dev/skinning.vert" },
+    { "program": "shaders/dev/skinning.frag" }
+  ],
+  "blend": "Alpha",
+  "depth": "LessOrEqualNoWrite"
+}

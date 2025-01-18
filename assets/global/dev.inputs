@@ -1,0 +1,363 @@
+{
+  "layer": "Dev",
+  "actions": [
+    {
+      "name": "Select",
+      "blockers": [ "TextInput", "CursorLocked", "PrefabCreate", "EntityPicker" ],
+      "bindings": [
+        { "type": "Down", "key": "MouseLeft" }
+      ]
+    },
+    {
+      "name": "CameraPanForward",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Down", "key": "ArrowUp" },
+        { "type": "Down", "key": "W", "illegalModifiers": [ "Control" ] }
+      ]
+    },
+    {
+      "name": "CameraPanBackward",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Down", "key": "ArrowDown" },
+        { "type": "Down", "key": "S", "illegalModifiers": [ "Control" ] }
+      ]
+    },
+    {
+      "name": "CameraPanRight",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Down", "key": "ArrowRight" },
+        { "type": "Down", "key": "D", "illegalModifiers": [ "Control" ] }
+      ]
+    },
+    {
+      "name": "CameraPanLeft",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Down", "key": "ArrowLeft" },
+        { "type": "Down", "key": "A", "illegalModifiers": [ "Control" ] }
+      ]
+    },
+    {
+      "name": "CameraRotate",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Down", "key": "Alt" },
+        { "type": "Down", "key": "MouseExtra1" }
+      ]
+    },
+    {
+      "name": "SaveLevel",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "S", "requiredModifiers": [ "Control" ] }
+      ]
+    },
+    {
+      "name": "DevTimePauseToggle",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "P" }
+      ]
+    },
+    {
+      "name": "DevTimeScaleUp",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Plus" }
+      ]
+    },
+    {
+      "name": "DevTimeScaleDown",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Minus" }
+      ]
+    },
+    {
+      "name": "DevTimeStep",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "O" }
+      ]
+    },
+    {
+      "name": "DevGridShow",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "G" }
+      ]
+    },
+    {
+      "name": "DevGridScaleUp",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "BracketRight" }
+      ]
+    },
+    {
+      "name": "DevGridScaleDown",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "BracketLeft" }
+      ]
+    },
+    {
+      "name": "DevPrefabCreate",
+      "blockers": [ "TextInput", "HoveringUi", "HoveringGizmo", "CursorLocked" ],
+      "bindings": [
+        { "type": "Released", "key": "MouseLeft" }
+      ]
+    },
+    {
+      "name": "DevPrefabCreateCancel",
+      "blockers": [ "TextInput", "HoveringUi", "HoveringGizmo", "CursorLocked" ],
+      "bindings": [
+        { "type": "Pressed", "key": "MouseRight" },
+        { "type": "Pressed", "key": "Escape" }
+      ]
+    },
+    {
+      "name": "DevPanelInspector",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "F1" }
+      ]
+    },
+    {
+      "name": "DevPanelPrefab",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "F2" }
+      ]
+    },
+    {
+      "name": "DevPanelLevel",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "F3" }
+      ]
+    },
+    {
+      "name": "DevPanelSound",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "F4" }
+      ]
+    },
+    {
+      "name": "DevPanelTime",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "F5" }
+      ]
+    },
+    {
+      "name": "DevPanelSkeleton",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "F6" }
+      ]
+    },
+    {
+      "name": "DevPanelScript",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "F7" }
+      ]
+    },
+    {
+      "name": "DevPanelAsset",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "F8" }
+      ]
+    },
+    {
+      "name": "DevPanelEcs",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "F9" }
+      ]
+    },
+    {
+      "name": "DevPanelTrace",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "F10" }
+      ]
+    },
+    {
+      "name": "DevPanelRenderer",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "F11" }
+      ]
+    },
+    {
+      "name": "DevPanelClose",
+      "blockers": [ "TextInput", "HoveringGizmo" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Escape" }
+      ]
+    },
+    {
+      "name": "DevInspectorDestroy",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Delete" }
+      ]
+    },
+    {
+      "name": "DevInspectorDrop",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "PageDown" },
+        { "type": "Pressed", "key": "F", "requiredModifiers": [ "Control" ] }
+      ]
+    },
+    {
+      "name": "DevInspectorDuplicate",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "D", "requiredModifiers": [ "Control" ] }
+      ]
+    },
+    {
+      "name": "DevInspectorSelectAll",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "A", "requiredModifiers": [ "Control" ] }
+      ]
+    },
+    {
+      "name": "DevInspectorToolTranslation",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Alpha1" }
+      ]
+    },
+    {
+      "name": "DevInspectorToolRotation",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Alpha2" }
+      ]
+    },
+    {
+      "name": "DevInspectorToolScale",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Alpha3" }
+      ]
+    },
+    {
+      "name": "DevInspectorPickerClose",
+      "blockers": [ "TextInput", "HoveringUi", "PrefabCreate", "CursorLocked" ],
+      "bindings": [
+        { "type": "Released", "key": "MouseLeft" },
+        { "type": "Released", "key": "MouseRight" }
+      ]
+    },
+    {
+      "name": "DevInspectorToggleSpace",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Alpha4" }
+      ]
+    },
+    {
+      "name": "DevInspectorToggleNavLayer",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Alpha5" }
+      ]
+    },
+    {
+      "name": "DevInspectorVisCollision",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Alpha6" }
+      ]
+    },
+    {
+      "name": "DevInspectorVisLocomotion",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Alpha7" }
+      ]
+    },
+    {
+      "name": "DevInspectorVisNavigationPath",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Alpha8" }
+      ]
+    },
+    {
+      "name": "DevInspectorVisNavigationGrid",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Alpha9" }
+      ]
+    },
+    {
+      "name": "DevInspectorVisAttack",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Alpha0" }
+      ]
+    },
+    {
+      "name": "DevInspectorVisTarget",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "T" }
+      ]
+    },
+    {
+      "name": "DevInspectorVisMode",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "Tab" }
+      ]
+    },
+    {
+      "name": "DevInspectorVisIcon",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "I" }
+      ]
+    },
+    {
+      "name": "DevInspectorVisName",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "N" }
+      ]
+    },
+    {
+      "name": "DevInspectorVisLight",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "L" }
+      ]
+    },
+    {
+      "name": "DevInspectorVisVision",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "V" }
+      ]
+    },
+    {
+      "name": "DevInspectorVisHealth",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "H" }
+      ]
+    }
+  ]
+}

@@ -1052,7 +1052,7 @@ ecs_system_define(HudDrawSys) {
     const GeoMatrix viewProj = hud_ui_view_proj(cam, camTrans, c);
 
     ui_canvas_reset(c);
-    if (input_layer_active(input, string_hash_lit("Debug"))) {
+    if (input_layer_active(input, string_hash_lit("Dev"))) {
       continue;
     }
     const UiVector res = ui_canvas_resolution(c);

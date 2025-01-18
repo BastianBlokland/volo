@@ -1,0 +1,12 @@
+{
+  "pass": "Post",
+  "passOrder": 1,
+  "shaders": [
+    { "program": "shaders/dev/dyn_mesh_viewer.vert" },
+    { "program": "shaders/solid_white4.frag" }
+  ],
+  "rasterizer": "Lines",
+  "lineWidth": 1,
+  "depth": "AlwaysNoWrite",
+  "cull": "None"
+}
