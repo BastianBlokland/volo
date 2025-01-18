@@ -106,7 +106,7 @@ static AssetManagerComp* dev_grid_asset_manager(EcsWorld* world) {
 }
 
 static void dev_grid_create(EcsWorld* world, const EcsEntityId entity, AssetManagerComp* assets) {
-  static const String g_graphic = string_static("graphics/debug/grid.graphic");
+  static const String g_graphic = string_static("graphics/dev/grid.graphic");
 
   const EcsEntityId rendObjEntity = ecs_world_entity_create(world);
   ecs_world_add_t(world, rendObjEntity, SceneLifetimeOwnerComp, .owners[0] = entity);
