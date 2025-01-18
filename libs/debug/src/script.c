@@ -236,20 +236,18 @@ static void info_panel_tab_draw(
     ui_label(c, string_lit("No script statistics available."), .align = UiAlign_MiddleCenter);
     return;
   }
-  const bool isReadonly = debug_script_is_readonly(subjectItr);
-
-  const UiWidgetFlags widgetFlags = isReadonly ? UiWidget_Disabled : 0;
-
   UiTable table = ui_table();
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  ui_table_next_row(c, &table);
-  bool enabled = (scene_script_flags(scriptInstance) & SceneScriptFlags_Enabled) != 0;
-  ui_label(c, string_lit("Enabled"));
-  ui_table_next_column(c, &table);
-  if (ui_toggle(c, &enabled, .flags = widgetFlags)) {
-    scene_script_flags_toggle(scriptInstance, SceneScriptFlags_Enabled);
+  if (!debug_script_is_readonly(subjectItr)) {
+    ui_table_next_row(c, &table);
+    bool enabled = (scene_script_flags(scriptInstance) & SceneScriptFlags_Enabled) != 0;
+    ui_label(c, string_lit("Enabled"));
+    ui_table_next_column(c, &table);
+    if (ui_toggle(c, &enabled)) {
+      scene_script_flags_toggle(scriptInstance, SceneScriptFlags_Enabled);
+    }
   }
 
   const u32 scriptCount = scene_script_count(scriptInstance);
