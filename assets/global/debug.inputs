@@ -1,5 +1,5 @@
 {
-  "layer": "Debug",
+  "layer": "Dev",
   "actions": [
     {
       "name": "Select",
@@ -56,63 +56,63 @@
       ]
     },
     {
-      "name": "DebugTimePauseToggle",
+      "name": "DevTimePauseToggle",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "P" }
       ]
     },
     {
-      "name": "DebugTimeScaleUp",
+      "name": "DevTimeScaleUp",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "Plus" }
       ]
     },
     {
-      "name": "DebugTimeScaleDown",
+      "name": "DevTimeScaleDown",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "Minus" }
       ]
     },
     {
-      "name": "DebugTimeStep",
+      "name": "DevTimeStep",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "O" }
       ]
     },
     {
-      "name": "DebugGridShow",
+      "name": "DevGridShow",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "G" }
       ]
     },
     {
-      "name": "DebugGridScaleUp",
+      "name": "DevGridScaleUp",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "BracketRight" }
       ]
     },
     {
-      "name": "DebugGridScaleDown",
+      "name": "DevGridScaleDown",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "BracketLeft" }
       ]
     },
     {
-      "name": "DebugPrefabCreate",
+      "name": "DevPrefabCreate",
       "blockers": [ "TextInput", "HoveringUi", "HoveringGizmo", "CursorLocked" ],
       "bindings": [
         { "type": "Released", "key": "MouseLeft" }
       ]
     },
     {
-      "name": "DebugPrefabCreateCancel",
+      "name": "DevPrefabCreateCancel",
       "blockers": [ "TextInput", "HoveringUi", "HoveringGizmo", "CursorLocked" ],
       "bindings": [
         { "type": "Pressed", "key": "MouseRight" },
@@ -204,14 +204,14 @@
       ]
     },
     {
-      "name": "DebugInspectorDestroy",
+      "name": "DevInspectorDestroy",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "Delete" }
       ]
     },
     {
-      "name": "DebugInspectorDrop",
+      "name": "DevInspectorDrop",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "PageDown" },
@@ -219,42 +219,42 @@
       ]
     },
     {
-      "name": "DebugInspectorDuplicate",
+      "name": "DevInspectorDuplicate",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "D", "requiredModifiers": [ "Control" ] }
       ]
     },
     {
-      "name": "DebugInspectorSelectAll",
+      "name": "DevInspectorSelectAll",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "A", "requiredModifiers": [ "Control" ] }
       ]
     },
     {
-      "name": "DebugInspectorToolTranslation",
+      "name": "DevInspectorToolTranslation",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "Alpha1" }
       ]
     },
     {
-      "name": "DebugInspectorToolRotation",
+      "name": "DevInspectorToolRotation",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "Alpha2" }
       ]
     },
     {
-      "name": "DebugInspectorToolScale",
+      "name": "DevInspectorToolScale",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "Alpha3" }
       ]
     },
     {
-      "name": "DebugInspectorPickerClose",
+      "name": "DevInspectorPickerClose",
       "blockers": [ "TextInput", "HoveringUi", "PrefabCreate", "CursorLocked" ],
       "bindings": [
         { "type": "Released", "key": "MouseLeft" },
@@ -262,98 +262,98 @@
       ]
     },
     {
-      "name": "DebugInspectorToggleSpace",
+      "name": "DevInspectorToggleSpace",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "Alpha4" }
       ]
     },
     {
-      "name": "DebugInspectorToggleNavLayer",
+      "name": "DevInspectorToggleNavLayer",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "Alpha5" }
       ]
     },
     {
-      "name": "DebugInspectorVisCollision",
+      "name": "DevInspectorVisCollision",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "Alpha6" }
       ]
     },
     {
-      "name": "DebugInspectorVisLocomotion",
+      "name": "DevInspectorVisLocomotion",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "Alpha7" }
       ]
     },
     {
-      "name": "DebugInspectorVisNavigationPath",
+      "name": "DevInspectorVisNavigationPath",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "Alpha8" }
       ]
     },
     {
-      "name": "DebugInspectorVisNavigationGrid",
+      "name": "DevInspectorVisNavigationGrid",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "Alpha9" }
       ]
     },
     {
-      "name": "DebugInspectorVisAttack",
+      "name": "DevInspectorVisAttack",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "Alpha0" }
       ]
     },
     {
-      "name": "DebugInspectorVisTarget",
+      "name": "DevInspectorVisTarget",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "T" }
       ]
     },
     {
-      "name": "DebugInspectorVisMode",
+      "name": "DevInspectorVisMode",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "Tab" }
       ]
     },
     {
-      "name": "DebugInspectorVisIcon",
+      "name": "DevInspectorVisIcon",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "I" }
       ]
     },
     {
-      "name": "DebugInspectorVisName",
+      "name": "DevInspectorVisName",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "N" }
       ]
     },
     {
-      "name": "DebugInspectorVisLight",
+      "name": "DevInspectorVisLight",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "L" }
       ]
     },
     {
-      "name": "DebugInspectorVisVision",
+      "name": "DevInspectorVisVision",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "V" }
       ]
     },
     {
-      "name": "DebugInspectorVisHealth",
+      "name": "DevInspectorVisHealth",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "H" }
