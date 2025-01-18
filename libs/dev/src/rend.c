@@ -92,14 +92,14 @@ static const String g_tooltipResourcePreview  = string_static("Preview this reso
 // clang-format on
 
 typedef enum {
-  DebugRendTab_Settings,
-  DebugRendTab_Objects,
-  DebugRendTab_Resources,
-  DebugRendTab_Light,
-  DebugRendTab_Post,
+  DevRendTab_Settings,
+  DevRendTab_Objects,
+  DevRendTab_Resources,
+  DevRendTab_Light,
+  DevRendTab_Post,
 
-  DebugRendTab_Count,
-} DebugRendTab;
+  DevRendTab_Count,
+} DevRendTab;
 
 static const String g_rendTabNames[] = {
     string_static("\uE8B8 Settings"),
@@ -108,16 +108,16 @@ static const String g_rendTabNames[] = {
     string_static("\uE518 Light"),
     string_static("\uE429 Post"),
 };
-ASSERT(array_elems(g_rendTabNames) == DebugRendTab_Count, "Incorrect number of names");
+ASSERT(array_elems(g_rendTabNames) == DevRendTab_Count, "Incorrect number of names");
 
 typedef enum {
-  DebugRendObjectSort_Graphic,
-  DebugRendObjectSort_Order,
-  DebugRendObjectSort_Instances,
-  DebugRendObjectSort_Size,
+  DevRendObjectSort_Graphic,
+  DevRendObjectSort_Order,
+  DevRendObjectSort_Instances,
+  DevRendObjectSort_Size,
 
-  DebugRendObjectSort_Count,
-} DebugRendObjectSort;
+  DevRendObjectSort_Count,
+} DevRendObjectSort;
 
 static const String g_objectSortNames[] = {
     string_static("Graphic"),
@@ -125,33 +125,33 @@ static const String g_objectSortNames[] = {
     string_static("Instances"),
     string_static("Size"),
 };
-ASSERT(array_elems(g_objectSortNames) == DebugRendObjectSort_Count, "Incorrect number of names");
+ASSERT(array_elems(g_objectSortNames) == DevRendObjectSort_Count, "Incorrect number of names");
 
 typedef enum {
-  DebugRendResSort_Name,
-  DebugRendResSort_Type,
-  DebugRendResSort_Size,
+  DevRendResSort_Name,
+  DevRendResSort_Type,
+  DevRendResSort_Size,
 
-  DebugRendResSort_Count,
-} DebugRendResSort;
+  DevRendResSort_Count,
+} DevRendResSort;
 
 static const String g_resSortNames[] = {
     string_static("Name"),
     string_static("Type"),
     string_static("Size"),
 };
-ASSERT(array_elems(g_resSortNames) == DebugRendResSort_Count, "Incorrect number of names");
+ASSERT(array_elems(g_resSortNames) == DevRendResSort_Count, "Incorrect number of names");
 
 typedef enum {
-  DebugRendResType_Unknown,
-  DebugRendResType_Graphic,
-  DebugRendResType_Shader,
-  DebugRendResType_Mesh,
-  DebugRendResType_Texture,
-  DebugRendResType_TextureCube,
+  DevRendResType_Unknown,
+  DevRendResType_Graphic,
+  DevRendResType_Shader,
+  DevRendResType_Mesh,
+  DevRendResType_Texture,
+  DevRendResType_TextureCube,
 
-  DebugRendResType_Count,
-} DebugRendResType;
+  DevRendResType_Count,
+} DevRendResType;
 
 static const String g_resTypeNames[] = {
     string_static("Unknown"),
@@ -161,7 +161,7 @@ static const String g_resTypeNames[] = {
     string_static("Texture"),
     string_static("TextureCube"),
 };
-ASSERT(array_elems(g_resTypeNames) == DebugRendResType_Count, "Incorrect number of names");
+ASSERT(array_elems(g_resTypeNames) == DevRendResType_Count, "Incorrect number of names");
 
 static const String g_presentOptions[] = {
     string_static("Immediate"),
@@ -206,35 +206,35 @@ typedef struct {
   i32              passOrder;
   u32              instanceCount;
   u32              dataSize, dataInstSize;
-} DebugObjInfo;
+} DevObjInfo;
 
 typedef enum {
-  DebugRendResFlags_IsLoading    = 1 << 0,
-  DebugRendResFlags_IsFailed     = 1 << 1,
-  DebugRendResFlags_IsUnused     = 1 << 2,
-  DebugRendResFlags_IsPersistent = 1 << 3,
-} DebugRendResFlags;
+  DevRendResFlags_IsLoading    = 1 << 0,
+  DevRendResFlags_IsFailed     = 1 << 1,
+  DevRendResFlags_IsUnused     = 1 << 2,
+  DevRendResFlags_IsPersistent = 1 << 3,
+} DevRendResFlags;
 
 typedef struct {
-  EcsEntityId       entity;
-  String            name;
-  DebugRendResType  type : 8;
-  DebugRendResFlags flags : 8;
-  u32               ticksTillUnload;
-  usize             memory;
-} DebugResourceInfo;
+  EcsEntityId     entity;
+  String          name;
+  DevRendResType  type : 8;
+  DevRendResFlags flags : 8;
+  u32             ticksTillUnload;
+  usize           memory;
+} DevResourceInfo;
 
 ecs_comp_define(DevRendPanelComp) {
-  UiPanel             panel;
-  EcsEntityId         window;
-  UiScrollview        scrollview;
-  DynString           nameFilter;
-  DebugRendObjectSort objSortMode;
-  DebugRendResSort    resSortMode;
-  DynArray            objects;   // DebugObjInfo[]
-  DynArray            resources; // DebugResourceInfo[]
-  bool                freeze;
-  bool                hideEmptyObjects;
+  UiPanel           panel;
+  EcsEntityId       window;
+  UiScrollview      scrollview;
+  DynString         nameFilter;
+  DevRendObjectSort objSortMode;
+  DevRendResSort    resSortMode;
+  DynArray          objects;   // DevObjInfo[]
+  DynArray          resources; // DevResourceInfo[]
+  bool              freeze;
+  bool              hideEmptyObjects;
 };
 
 ecs_view_define(RendObjView) { ecs_access_read(RendObjectComp); }
@@ -262,13 +262,13 @@ static void ecs_destruct_rend_panel(void* data) {
 
 static i8 rend_obj_compare_name(const void* a, const void* b) {
   return compare_string(
-      field_ptr(a, DebugObjInfo, graphicName), field_ptr(b, DebugObjInfo, graphicName));
+      field_ptr(a, DevObjInfo, graphicName), field_ptr(b, DevObjInfo, graphicName));
 }
 
 static i8 rend_obj_compare_order(const void* a, const void* b) {
-  const DebugObjInfo* objA  = a;
-  const DebugObjInfo* objB  = b;
-  i8                  order = compare_u32(&objA->pass, &objB->pass);
+  const DevObjInfo* objA  = a;
+  const DevObjInfo* objB  = b;
+  i8                order = compare_u32(&objA->pass, &objB->pass);
   if (!order) {
     order = compare_i32(&objA->passOrder, &objB->passOrder);
   }
@@ -279,9 +279,9 @@ static i8 rend_obj_compare_order(const void* a, const void* b) {
 }
 
 static i8 rend_obj_compare_instances(const void* a, const void* b) {
-  const DebugObjInfo* objA  = a;
-  const DebugObjInfo* objB  = b;
-  i8                  order = compare_i32_reverse(&objA->instanceCount, &objB->instanceCount);
+  const DevObjInfo* objA  = a;
+  const DevObjInfo* objB  = b;
+  i8                order = compare_i32_reverse(&objA->instanceCount, &objB->instanceCount);
   if (!order) {
     order = compare_string(&objA->graphicName, &objB->graphicName);
   }
@@ -289,10 +289,10 @@ static i8 rend_obj_compare_instances(const void* a, const void* b) {
 }
 
 static i8 rend_obj_compare_size(const void* a, const void* b) {
-  const DebugObjInfo* objA     = a;
-  const DebugObjInfo* objB     = b;
-  const usize         objASize = objA->dataSize + objA->dataInstSize * objA->instanceCount;
-  const usize         objBSize = objB->dataSize + objB->dataInstSize * objB->instanceCount;
+  const DevObjInfo* objA     = a;
+  const DevObjInfo* objB     = b;
+  const usize       objASize = objA->dataSize + objA->dataInstSize * objA->instanceCount;
+  const usize       objBSize = objB->dataSize + objB->dataInstSize * objB->instanceCount;
 
   i8 order = compare_usize_reverse(&objASize, &objBSize);
   if (!order) {
@@ -302,14 +302,13 @@ static i8 rend_obj_compare_size(const void* a, const void* b) {
 }
 
 static i8 rend_resource_compare_name(const void* a, const void* b) {
-  return compare_string(
-      field_ptr(a, DebugResourceInfo, name), field_ptr(b, DebugResourceInfo, name));
+  return compare_string(field_ptr(a, DevResourceInfo, name), field_ptr(b, DevResourceInfo, name));
 }
 
 static i8 rend_resource_compare_type(const void* a, const void* b) {
-  const DebugResourceInfo* resA  = a;
-  const DebugResourceInfo* resB  = b;
-  i8                       order = resA->type < resB->type ? -1 : resA->type > resB->type ? 1 : 0;
+  const DevResourceInfo* resA  = a;
+  const DevResourceInfo* resB  = b;
+  i8                     order = resA->type < resB->type ? -1 : resA->type > resB->type ? 1 : 0;
   if (!order) {
     order = compare_string(&resA->name, &resB->name);
   }
@@ -317,9 +316,9 @@ static i8 rend_resource_compare_type(const void* a, const void* b) {
 }
 
 static i8 rend_resource_compare_size(const void* a, const void* b) {
-  const DebugResourceInfo* resA  = a;
-  const DebugResourceInfo* resB  = b;
-  i8                       order = compare_usize_reverse(&resA->memory, &resB->memory);
+  const DevResourceInfo* resA  = a;
+  const DevResourceInfo* resB  = b;
+  i8                     order = compare_usize_reverse(&resA->memory, &resB->memory);
   if (!order) {
     order = compare_string(&resA->name, &resB->name);
   }
@@ -600,7 +599,7 @@ static void rend_settings_tab_draw(
   }
 }
 
-static UiColor rend_obj_bg_color(const DebugObjInfo* objInfo) {
+static UiColor rend_obj_bg_color(const DevObjInfo* objInfo) {
   return objInfo->instanceCount ? ui_color(16, 64, 16, 192) : ui_color(48, 48, 48, 192);
 }
 
@@ -618,7 +617,7 @@ static void rend_obj_options_draw(UiCanvasComp* canvas, DevRendPanelComp* panelC
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Sort:"));
   ui_table_next_column(canvas, &table);
-  ui_select(canvas, (i32*)&panelComp->objSortMode, g_objectSortNames, DebugRendObjectSort_Count);
+  ui_select(canvas, (i32*)&panelComp->objSortMode, g_objectSortNames, DevRendObjectSort_Count);
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Freeze:"));
   ui_table_next_column(canvas, &table);
@@ -655,7 +654,7 @@ static void rend_obj_info_query(DevRendPanelComp* panelComp, EcsWorld* world) {
           passOrder = rend_res_pass_order(graphicComp);
         }
       }
-      *dynarray_push_t(&panelComp->objects, DebugObjInfo) = (DebugObjInfo){
+      *dynarray_push_t(&panelComp->objects, DevObjInfo) = (DevObjInfo){
           .graphicName   = graphicName,
           .instanceCount = rend_object_instance_count(obj),
           .dataSize      = rend_object_data_size(obj),
@@ -667,19 +666,19 @@ static void rend_obj_info_query(DevRendPanelComp* panelComp, EcsWorld* world) {
   }
 
   switch (panelComp->objSortMode) {
-  case DebugRendObjectSort_Graphic:
+  case DevRendObjectSort_Graphic:
     dynarray_sort(&panelComp->objects, rend_obj_compare_name);
     break;
-  case DebugRendObjectSort_Order:
+  case DevRendObjectSort_Order:
     dynarray_sort(&panelComp->objects, rend_obj_compare_order);
     break;
-  case DebugRendObjectSort_Instances:
+  case DevRendObjectSort_Instances:
     dynarray_sort(&panelComp->objects, rend_obj_compare_instances);
     break;
-  case DebugRendObjectSort_Size:
+  case DevRendObjectSort_Size:
     dynarray_sort(&panelComp->objects, rend_obj_compare_size);
     break;
-  case DebugRendObjectSort_Count:
+  case DevRendObjectSort_Count:
     break;
   }
 }
@@ -714,7 +713,7 @@ static void rend_obj_tab_draw(UiCanvasComp* canvas, DevRendPanelComp* panelComp)
   ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of objects on its own id block.
-  dynarray_for_t(&panelComp->objects, DebugObjInfo, objInfo) {
+  dynarray_for_t(&panelComp->objects, DevObjInfo, objInfo) {
     ui_table_next_row(canvas, &table);
     ui_table_draw_row_bg(canvas, &table, rend_obj_bg_color(objInfo));
 
@@ -766,7 +765,7 @@ static void rend_resource_options_draw(UiCanvasComp* canvas, DevRendPanelComp* p
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Sort:"));
   ui_table_next_column(canvas, &table);
-  ui_select(canvas, (i32*)&panelComp->resSortMode, g_resSortNames, DebugRendResSort_Count);
+  ui_select(canvas, (i32*)&panelComp->resSortMode, g_resSortNames, DevRendResSort_Count);
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Freeze:"));
   ui_table_next_column(canvas, &table);
@@ -791,27 +790,27 @@ static void rend_resource_info_query(DevRendPanelComp* panelComp, EcsWorld* worl
       const RendResMeshComp*    mesh    = ecs_view_read_t(itr, RendResMeshComp);
       const RendResTextureComp* texture = ecs_view_read_t(itr, RendResTextureComp);
 
-      DebugRendResType type   = DebugRendResType_Unknown;
-      usize            memory = 0;
+      DevRendResType type   = DevRendResType_Unknown;
+      usize          memory = 0;
       if (graphic) {
-        type = DebugRendResType_Graphic;
+        type = DevRendResType_Graphic;
       } else if (shader) {
-        type = DebugRendResType_Shader;
+        type = DevRendResType_Shader;
       } else if (mesh) {
-        type   = DebugRendResType_Mesh;
+        type   = DevRendResType_Mesh;
         memory = rend_res_mesh_memory(mesh);
       } else if (texture) {
-        type   = rend_res_texture_is_cube(texture) ? DebugRendResType_TextureCube
-                                                   : DebugRendResType_Texture;
+        type =
+            rend_res_texture_is_cube(texture) ? DevRendResType_TextureCube : DevRendResType_Texture;
         memory = rend_res_texture_memory(texture);
       }
-      DebugRendResFlags flags = 0;
-      flags |= rend_res_is_loading(resComp) ? DebugRendResFlags_IsLoading : 0;
-      flags |= rend_res_is_failed(resComp) ? DebugRendResFlags_IsFailed : 0;
-      flags |= rend_res_is_unused(resComp) ? DebugRendResFlags_IsUnused : 0;
-      flags |= rend_res_is_persistent(resComp) ? DebugRendResFlags_IsPersistent : 0;
+      DevRendResFlags flags = 0;
+      flags |= rend_res_is_loading(resComp) ? DevRendResFlags_IsLoading : 0;
+      flags |= rend_res_is_failed(resComp) ? DevRendResFlags_IsFailed : 0;
+      flags |= rend_res_is_unused(resComp) ? DevRendResFlags_IsUnused : 0;
+      flags |= rend_res_is_persistent(resComp) ? DevRendResFlags_IsPersistent : 0;
 
-      *dynarray_push_t(&panelComp->resources, DebugResourceInfo) = (DebugResourceInfo){
+      *dynarray_push_t(&panelComp->resources, DevResourceInfo) = (DevResourceInfo){
           .entity          = ecs_view_entity(itr),
           .name            = name,
           .type            = type,
@@ -823,41 +822,41 @@ static void rend_resource_info_query(DevRendPanelComp* panelComp, EcsWorld* worl
   }
 
   switch (panelComp->resSortMode) {
-  case DebugRendResSort_Name:
+  case DevRendResSort_Name:
     dynarray_sort(&panelComp->resources, rend_resource_compare_name);
     break;
-  case DebugRendResSort_Type:
+  case DevRendResSort_Type:
     dynarray_sort(&panelComp->resources, rend_resource_compare_type);
     break;
-  case DebugRendResSort_Size:
+  case DevRendResSort_Size:
     dynarray_sort(&panelComp->resources, rend_resource_compare_size);
     break;
-  case DebugRendResSort_Count:
+  case DevRendResSort_Count:
     break;
   }
 }
 
-static UiColor rend_resource_bg_color(const DebugResourceInfo* resInfo) {
-  if (resInfo->flags & DebugRendResFlags_IsLoading) {
+static UiColor rend_resource_bg_color(const DevResourceInfo* resInfo) {
+  if (resInfo->flags & DevRendResFlags_IsLoading) {
     return ui_color(16, 64, 64, 192);
   }
-  if (resInfo->flags & DebugRendResFlags_IsFailed) {
+  if (resInfo->flags & DevRendResFlags_IsFailed) {
     return ui_color(64, 16, 16, 192);
   }
-  if (resInfo->flags & DebugRendResFlags_IsUnused) {
+  if (resInfo->flags & DevRendResFlags_IsUnused) {
     return ui_color(16, 16, 64, 192);
   }
   return ui_color(48, 48, 48, 192);
 }
 
 static void rend_resource_actions_draw(
-    UiCanvasComp* canvas, RendSettingsComp* settings, const DebugResourceInfo* resInfo) {
+    UiCanvasComp* canvas, RendSettingsComp* settings, const DevResourceInfo* resInfo) {
   ui_layout_resize(canvas, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
 
   const bool previewActive   = ecs_entity_valid(settings->debugViewerResource);
-  const bool supportsPreview = resInfo->type == DebugRendResType_Texture ||
-                               resInfo->type == DebugRendResType_TextureCube ||
-                               resInfo->type == DebugRendResType_Mesh;
+  const bool supportsPreview = resInfo->type == DevRendResType_Texture ||
+                               resInfo->type == DevRendResType_TextureCube ||
+                               resInfo->type == DevRendResType_Mesh;
 
   if (supportsPreview &&
       ui_button(
@@ -903,7 +902,7 @@ static void rend_resource_tab_draw(
   ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of resources on its own id block.
-  dynarray_for_t(&panelComp->resources, DebugResourceInfo, resInfo) {
+  dynarray_for_t(&panelComp->resources, DevResourceInfo, resInfo) {
     ui_table_next_row(canvas, &table);
     ui_table_draw_row_bg(canvas, &table, rend_resource_bg_color(resInfo));
 
@@ -913,7 +912,7 @@ static void rend_resource_tab_draw(
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_text(g_resTypeNames[resInfo->type])));
     ui_table_next_column(canvas, &table);
-    if (resInfo->flags & DebugRendResFlags_IsUnused) {
+    if (resInfo->flags & DevRendResFlags_IsUnused) {
       ui_label(canvas, fmt_write_scratch("{}", fmt_int(resInfo->ticksTillUnload)));
     }
     ui_table_next_column(canvas, &table);
@@ -921,7 +920,7 @@ static void rend_resource_tab_draw(
       ui_label(canvas, fmt_write_scratch("{}", fmt_size(resInfo->memory)));
     }
     ui_table_next_column(canvas, &table);
-    const bool isPersistent = (resInfo->flags & DebugRendResFlags_IsPersistent) != 0;
+    const bool isPersistent = (resInfo->flags & DevRendResFlags_IsPersistent) != 0;
     ui_label(canvas, fmt_write_scratch("{}", fmt_bool(isPersistent)));
 
     ui_table_next_column(canvas, &table);
@@ -1162,25 +1161,25 @@ static void rend_panel_draw(
       &panelComp->panel,
       .title       = title,
       .tabNames    = g_rendTabNames,
-      .tabCount    = DebugRendTab_Count,
+      .tabCount    = DevRendTab_Count,
       .topBarColor = ui_color(100, 0, 0, 192));
 
   switch (panelComp->panel.activeTab) {
-  case DebugRendTab_Settings:
+  case DevRendTab_Settings:
     rend_settings_tab_draw(world, canvas, settings, settingsGlobal);
     break;
-  case DebugRendTab_Objects:
+  case DevRendTab_Objects:
     rend_obj_info_query(panelComp, world);
     rend_obj_tab_draw(canvas, panelComp);
     break;
-  case DebugRendTab_Resources:
+  case DevRendTab_Resources:
     rend_resource_info_query(panelComp, world);
     rend_resource_tab_draw(canvas, panelComp, settings);
     break;
-  case DebugRendTab_Light:
+  case DevRendTab_Light:
     rend_light_tab_draw(canvas, settings, settingsGlobal);
     break;
-  case DebugRendTab_Post:
+  case DevRendTab_Post:
     rend_post_tab_draw(canvas, settings, settingsGlobal);
     break;
   }
@@ -1203,7 +1202,7 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
-ecs_system_define(DebugRendUpdatePanelSys) {
+ecs_system_define(DevRendUpdatePanelSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -1279,7 +1278,7 @@ ecs_module_init(dev_rend_module) {
   ecs_register_view(PanelUpdateView);
 
   ecs_register_system(
-      DebugRendUpdatePanelSys,
+      DevRendUpdatePanelSys,
       ecs_view_id(RendObjView),
       ecs_view_id(GraphicView),
       ecs_view_id(ResourceView),
@@ -1288,8 +1287,8 @@ ecs_module_init(dev_rend_module) {
       ecs_view_id(GlobalView));
 
   // NOTE: Update the panel before clearing the objects so we can inspect the last frame's objects.
-  ASSERT((u32)DebugOrder_RendUpdate < (u32)RendOrder_ObjectClear, "Invalid update order");
-  ecs_order(DebugRendUpdatePanelSys, DebugOrder_RendUpdate);
+  ASSERT((u32)DevOrder_RendUpdate < (u32)RendOrder_ObjectClear, "Invalid update order");
+  ecs_order(DevRendUpdatePanelSys, DevOrder_RendUpdate);
 }
 
 EcsEntityId
@@ -1303,10 +1302,10 @@ dev_rend_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelTyp
       .window           = window,
       .scrollview       = ui_scrollview(),
       .nameFilter       = dynstring_create(g_allocHeap, 32),
-      .objSortMode      = DebugRendObjectSort_Order,
-      .resSortMode      = DebugRendResSort_Size,
-      .objects          = dynarray_create_t(g_allocHeap, DebugObjInfo, 256),
-      .resources        = dynarray_create_t(g_allocHeap, DebugResourceInfo, 256),
+      .objSortMode      = DevRendObjectSort_Order,
+      .resSortMode      = DevRendResSort_Size,
+      .objects          = dynarray_create_t(g_allocHeap, DevObjInfo, 256),
+      .resources        = dynarray_create_t(g_allocHeap, DevResourceInfo, 256),
       .hideEmptyObjects = true);
 
   if (type == DevPanelType_Detached) {

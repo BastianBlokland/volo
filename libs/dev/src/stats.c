@@ -60,30 +60,30 @@ static const UiColor g_statsChartColors[] = {
 #define stats_notify_max_age time_seconds(3)
 
 typedef enum {
-  DebugBgFlags_None    = 0,
-  DebugBgFlags_Section = 1 << 0,
-} DebugBgFlags;
+  DevBgFlags_None    = 0,
+  DevBgFlags_Section = 1 << 0,
+} DevBgFlags;
 
 typedef struct {
   ALIGNAS(16) f32 values[stats_plot_size];
   u32  cur;
   bool initialized;
-} DebugStatPlot;
+} DevStatPlot;
 
 typedef struct {
   TimeReal timestamp;
   u8       keyLength, valueLength;
   u8       key[stats_notify_max_key_size];
   u8       value[stats_notify_max_value_size];
-} DebugStatsNotification;
+} DevStatsNotification;
 
 ecs_comp_define(DevStatsComp) {
-  DebugStatShow show;
-  EcsEntityId   canvas;
+  DevStatShow show;
+  EcsEntityId canvas;
 
-  DebugStatPlot* frameDurPlot; // In microseconds.
-  TimeDuration   frameDurDesired;
-  DebugStatPlot* gpuExecDurPlot; // In microseconds.
+  DevStatPlot* frameDurPlot; // In microseconds.
+  TimeDuration frameDurDesired;
+  DevStatPlot* gpuExecDurPlot; // In microseconds.
 
   u32           inspectPassIndex; // Pass to show stats for.
   SceneNavLayer inspectNavLayer;  // Navigation layer to show stats for.
@@ -97,14 +97,14 @@ ecs_comp_define(DevStatsComp) {
 };
 
 ecs_comp_define(DevStatsGlobalComp) {
-  DynArray notifications; // DebugStatsNotification[].
+  DynArray notifications; // DevStatsNotification[].
 
   u64   allocPrevPageCounter, allocPrevHeapCounter, allocPrevPersistCounter;
   u32   fileCount, dynlibCount;
   usize fileMappingSize;
   u32   globalStringCount;
 
-  DebugStatPlot* ecsFlushDurPlot; // In microseconds.
+  DevStatPlot* ecsFlushDurPlot; // In microseconds.
 };
 
 static void ecs_destruct_stats(void* data) {
@@ -119,37 +119,37 @@ static void ecs_destruct_stats_global(void* data) {
   alloc_free_t(g_allocHeap, comp->ecsFlushDurPlot);
 }
 
-static DebugStatsNotification* dev_notify_get(DevStatsGlobalComp* comp, const String key) {
+static DevStatsNotification* dev_notify_get(DevStatsGlobalComp* comp, const String key) {
   // Find an existing notification with the same key.
-  dynarray_for_t(&comp->notifications, DebugStatsNotification, notif) {
+  dynarray_for_t(&comp->notifications, DevStatsNotification, notif) {
     if (string_eq(mem_create(notif->key, notif->keyLength), key)) {
       return notif;
     }
   }
 
   // If none was found; create a new notification for this key.
-  DebugStatsNotification* notif = dynarray_push_t(&comp->notifications, DebugStatsNotification);
-  notif->keyLength              = math_min((u8)key.size, stats_notify_max_key_size);
+  DevStatsNotification* notif = dynarray_push_t(&comp->notifications, DevStatsNotification);
+  notif->keyLength            = math_min((u8)key.size, stats_notify_max_key_size);
   mem_cpy(mem_create(notif->key, notif->keyLength), string_slice(key, 0, notif->keyLength));
   return notif;
 }
 
 static void dev_notify_prune_older(DevStatsGlobalComp* comp, const TimeReal timestamp) {
   for (usize i = comp->notifications.size; i--;) {
-    DebugStatsNotification* notif = dynarray_at_t(&comp->notifications, i, DebugStatsNotification);
+    DevStatsNotification* notif = dynarray_at_t(&comp->notifications, i, DevStatsNotification);
     if (notif->timestamp < timestamp) {
       dynarray_remove(&comp->notifications, i, 1);
     }
   }
 }
 
-static DebugStatPlot* dev_plot_alloc(Allocator* alloc) {
-  DebugStatPlot* plot = alloc_alloc_t(alloc, DebugStatPlot);
-  mem_set(mem_create(plot, sizeof(DebugStatPlot)), 0);
+static DevStatPlot* dev_plot_alloc(Allocator* alloc) {
+  DevStatPlot* plot = alloc_alloc_t(alloc, DevStatPlot);
+  mem_set(mem_create(plot, sizeof(DevStatPlot)), 0);
   return plot;
 }
 
-static void dev_plot_set(DebugStatPlot* plot, const f32 value) {
+static void dev_plot_set(DevStatPlot* plot, const f32 value) {
 #ifdef VOLO_SIMD
   ASSERT((stats_plot_size % 4) == 0, "Only multiple of 4 plot sizes are supported");
   const SimdVec valueVec = simd_vec_broadcast(value);
@@ -163,7 +163,7 @@ static void dev_plot_set(DebugStatPlot* plot, const f32 value) {
 #endif
 }
 
-static void dev_plot_add(DebugStatPlot* plot, const f32 value) {
+static void dev_plot_add(DevStatPlot* plot, const f32 value) {
   if (UNLIKELY(!plot->initialized)) {
     dev_plot_set(plot, value);
     plot->initialized = true;
@@ -172,16 +172,16 @@ static void dev_plot_add(DebugStatPlot* plot, const f32 value) {
   plot->cur               = (plot->cur + 1) % stats_plot_size;
 }
 
-static void dev_plot_add_dur(DebugStatPlot* plot, const TimeDuration value) {
+static void dev_plot_add_dur(DevStatPlot* plot, const TimeDuration value) {
   dev_plot_add(plot, (f32)(value / (f64)time_microsecond));
 }
 
-static f32 dev_plot_newest(const DebugStatPlot* plot) {
+static f32 dev_plot_newest(const DevStatPlot* plot) {
   const u32 newestIndex = (plot->cur + stats_plot_size - 1) % stats_plot_size;
   return plot->values[newestIndex];
 }
 
-static f32 dev_plot_min(const DebugStatPlot* plot) {
+static f32 dev_plot_min(const DevStatPlot* plot) {
 #ifdef VOLO_SIMD
   ASSERT((stats_plot_size % 4) == 0, "Only multiple of 4 plot sizes are supported");
   SimdVec min = simd_vec_broadcast(plot->values[0]);
@@ -200,7 +200,7 @@ static f32 dev_plot_min(const DebugStatPlot* plot) {
 #endif
 }
 
-static f32 dev_plot_max(const DebugStatPlot* plot) {
+static f32 dev_plot_max(const DevStatPlot* plot) {
 #ifdef VOLO_SIMD
   ASSERT((stats_plot_size % 4) == 0, "Only multiple of 4 plot sizes are supported");
   SimdVec max = simd_vec_broadcast(plot->values[0]);
@@ -219,11 +219,9 @@ static f32 dev_plot_max(const DebugStatPlot* plot) {
 #endif
 }
 
-static f32 dev_plot_var(const DebugStatPlot* plot) {
-  return dev_plot_max(plot) - dev_plot_min(plot);
-}
+static f32 dev_plot_var(const DevStatPlot* plot) { return dev_plot_max(plot) - dev_plot_min(plot); }
 
-static f32 dev_plot_sum(const DebugStatPlot* plot) {
+static f32 dev_plot_sum(const DevStatPlot* plot) {
 #ifdef VOLO_SIMD
   ASSERT((stats_plot_size % 4) == 0, "Only multiple of 4 plot sizes are supported");
   SimdVec accum = simd_vec_zero();
@@ -240,19 +238,19 @@ static f32 dev_plot_sum(const DebugStatPlot* plot) {
 #endif
 }
 
-static f32 dev_plot_avg(const DebugStatPlot* plot) {
+static f32 dev_plot_avg(const DevStatPlot* plot) {
   return dev_plot_sum(plot) / (f32)stats_plot_size;
 }
 
-static TimeDuration dev_plot_max_dur(const DebugStatPlot* plot) {
+static TimeDuration dev_plot_max_dur(const DevStatPlot* plot) {
   return (TimeDuration)(dev_plot_max(plot) * (f64)time_microsecond);
 }
 
-static TimeDuration dev_plot_var_dur(const DebugStatPlot* plot) {
+static TimeDuration dev_plot_var_dur(const DevStatPlot* plot) {
   return (TimeDuration)(dev_plot_var(plot) * (f64)time_microsecond);
 }
 
-static TimeDuration dev_plot_avg_dur(const DebugStatPlot* plot) {
+static TimeDuration dev_plot_avg_dur(const DevStatPlot* plot) {
   return (TimeDuration)(dev_plot_avg(plot) * (f64)time_microsecond);
 }
 
@@ -264,9 +262,9 @@ static f32 dev_frame_frac(const TimeDuration whole, const TimeDuration part) {
   return math_clamp_f32(part / (f32)whole, 0, 1);
 }
 
-static void stats_draw_bg(UiCanvasComp* c, const DebugBgFlags flags) {
+static void stats_draw_bg(UiCanvasComp* c, const DevBgFlags flags) {
   ui_style_push(c);
-  const u8 alpha = flags & DebugBgFlags_Section ? g_statsSectionBgAlpha : g_statsBgAlpha;
+  const u8 alpha = flags & DevBgFlags_Section ? g_statsSectionBgAlpha : g_statsBgAlpha;
   ui_style_color(c, ui_color(0, 0, 0, alpha));
   ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_None);
   ui_style_pop(c);
@@ -310,14 +308,14 @@ static bool stats_draw_button(UiCanvasComp* c, const String value) {
 }
 
 static void stats_draw_val_entry(UiCanvasComp* c, const String label, const String value) {
-  stats_draw_bg(c, DebugBgFlags_None);
+  stats_draw_bg(c, DevBgFlags_None);
   stats_draw_label(c, label);
   stats_draw_value(c, value);
   ui_layout_next(c, Ui_Down, 0);
 }
 
 static bool stats_draw_button_entry(UiCanvasComp* c, const String label, const String value) {
-  stats_draw_bg(c, DebugBgFlags_None);
+  stats_draw_bg(c, DevBgFlags_None);
   stats_draw_label(c, label);
   const bool pressed = stats_draw_button(c, value);
   ui_layout_next(c, Ui_Down, 0);
@@ -326,7 +324,7 @@ static bool stats_draw_button_entry(UiCanvasComp* c, const String label, const S
 
 static bool stats_draw_section(UiCanvasComp* c, const String label) {
   ui_canvas_id_block_next(c);
-  stats_draw_bg(c, DebugBgFlags_Section);
+  stats_draw_bg(c, DevBgFlags_Section);
   const bool isOpen = ui_section(c, .label = label);
   ui_layout_next(c, Ui_Down, 0);
   return isOpen;
@@ -334,8 +332,8 @@ static bool stats_draw_section(UiCanvasComp* c, const String label) {
 
 typedef void (*PlotValueWriter)(DynString*, f32 value);
 
-static void stats_draw_plot_tooltip(
-    UiCanvasComp* c, const DebugStatPlot* plot, const PlotValueWriter valWriter) {
+static void
+stats_draw_plot_tooltip(UiCanvasComp* c, const DevStatPlot* plot, const PlotValueWriter valWriter) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
@@ -361,7 +359,7 @@ static void stats_draw_plot_tooltip(
 
 static void stats_draw_plot(
     UiCanvasComp*         c,
-    const DebugStatPlot*  plot,
+    const DevStatPlot*    plot,
     const f32             minVal,
     const f32             maxVal,
     const PlotValueWriter valWriter) {
@@ -374,7 +372,7 @@ static void stats_draw_plot(
   ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
 
   // Draw background.
-  stats_draw_bg(c, DebugBgFlags_None);
+  stats_draw_bg(c, DevBgFlags_None);
 
   ui_style_push(c);
   ui_style_outline(c, 0);
@@ -420,7 +418,7 @@ static void stats_dur_val_writer(DynString* str, const f32 value) {
 }
 
 static void stats_draw_plot_dur(
-    UiCanvasComp* c, const DebugStatPlot* plot, const TimeDuration min, const TimeDuration max) {
+    UiCanvasComp* c, const DevStatPlot* plot, const TimeDuration min, const TimeDuration max) {
   const f32 minUs = (f32)(min / (f64)time_microsecond);
   const f32 maxUs = (f32)(max / (f64)time_microsecond);
   stats_draw_plot(c, plot, minUs, maxUs, stats_dur_val_writer);
@@ -492,7 +490,7 @@ static void stats_draw_chart(
 
 static void
 stats_draw_cpu_chart(UiCanvasComp* c, const DevStatsComp* st, const RendStatsComp* rendSt) {
-  stats_draw_bg(c, DebugBgFlags_None);
+  stats_draw_bg(c, DevBgFlags_None);
   stats_draw_label(c, string_lit("CPU"));
 
   ui_layout_push(c);
@@ -539,7 +537,7 @@ stats_draw_cpu_chart(UiCanvasComp* c, const DevStatsComp* st, const RendStatsCom
 
 static void
 stats_draw_gpu_chart(UiCanvasComp* c, const DevStatsComp* st, const RendStatsComp* rendSt) {
-  stats_draw_bg(c, DebugBgFlags_None);
+  stats_draw_bg(c, DevBgFlags_None);
   stats_draw_label(c, string_lit("GPU"));
 
   ui_layout_push(c);
@@ -596,7 +594,7 @@ stats_draw_gpu_chart(UiCanvasComp* c, const DevStatsComp* st, const RendStatsCom
 
 static void stats_draw_renderer_pass_dropdown(
     UiCanvasComp* c, DevStatsComp* stats, const RendStatsComp* rendStats) {
-  stats_draw_bg(c, DebugBgFlags_None);
+  stats_draw_bg(c, DevBgFlags_None);
   stats_draw_label(c, string_lit("Pass select"));
   {
     ui_layout_push(c);
@@ -625,7 +623,7 @@ static void stats_draw_renderer_pass_dropdown(
 }
 
 static void stats_draw_nav_layer_dropdown(UiCanvasComp* c, const DevStatsComp* stats) {
-  stats_draw_bg(c, DebugBgFlags_None);
+  stats_draw_bg(c, DevBgFlags_None);
   stats_draw_label(c, string_lit("Layer"));
   {
     ui_layout_push(c);
@@ -648,7 +646,7 @@ static void stats_draw_nav_layer_dropdown(UiCanvasComp* c, const DevStatsComp* s
 }
 
 static void stats_draw_notifications(UiCanvasComp* c, const DevStatsGlobalComp* statsGlobal) {
-  dynarray_for_t(&statsGlobal->notifications, DebugStatsNotification, notif) {
+  dynarray_for_t(&statsGlobal->notifications, DevStatsNotification, notif) {
     const String key   = mem_create(notif->key, notif->keyLength);
     const String value = mem_create(notif->value, notif->valueLength);
     stats_draw_val_entry(c, key, value);
@@ -680,7 +678,7 @@ static void dev_stats_draw_interface(
   stats_draw_gpu_chart(c, stats, rendStats);
   stats_draw_notifications(c, statsGlobal);
 
-  if(stats->show != DebugStatShow_Full) {
+  if(stats->show != DevStatShow_Full) {
     return;
   }
 
@@ -880,14 +878,14 @@ ecs_view_define(CanvasWriteView) {
   ecs_access_write(UiCanvasComp);
 }
 
-ecs_system_define(DebugStatsCreateSys) {
+ecs_system_define(DevStatsCreateSys) {
   // Create a single global stats component.
   if (!ecs_world_has_t(world, ecs_world_global(world), DevStatsGlobalComp)) {
     ecs_world_add_t(
         world,
         ecs_world_global(world),
         DevStatsGlobalComp,
-        .notifications   = dynarray_create_t(g_allocHeap, DebugStatsNotification, 8),
+        .notifications   = dynarray_create_t(g_allocHeap, DevStatsNotification, 8),
         .ecsFlushDurPlot = dev_plot_alloc(g_allocHeap));
   }
 
@@ -903,7 +901,7 @@ ecs_system_define(DebugStatsCreateSys) {
   }
 }
 
-ecs_system_define(DebugStatsUpdateSys) {
+ecs_system_define(DevStatsUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -935,9 +933,9 @@ ecs_system_define(DebugStatsUpdateSys) {
     dev_stats_update(stats, window, rendStats, rendGlobalSet, time);
 
     // Create or destroy the interface canvas as needed.
-    if (stats->show != DebugStatShow_None && !stats->canvas) {
+    if (stats->show != DevStatShow_None && !stats->canvas) {
       stats->canvas = ui_canvas_create(world, ecs_view_entity(itr), UiCanvasCreateFlags_ToBack);
-    } else if (stats->show == DebugStatShow_None && stats->canvas) {
+    } else if (stats->show == DevStatShow_None && stats->canvas) {
       ecs_world_entity_destroy(world, stats->canvas);
       stats->canvas = 0;
     }
@@ -977,21 +975,21 @@ ecs_module_init(dev_stats_module) {
   ecs_register_view(StatsUpdateView);
   ecs_register_view(CanvasWriteView);
 
-  ecs_register_system(DebugStatsCreateSys, ecs_view_id(StatsCreateView));
+  ecs_register_system(DevStatsCreateSys, ecs_view_id(StatsCreateView));
   ecs_register_system(
-      DebugStatsUpdateSys,
+      DevStatsUpdateSys,
       ecs_view_id(GlobalView),
       ecs_view_id(StatsUpdateView),
       ecs_view_id(CanvasWriteView));
 }
 
 void dev_stats_notify(DevStatsGlobalComp* comp, const String key, const String value) {
-  DebugStatsNotification* notif = dev_notify_get(comp, key);
-  notif->timestamp              = time_real_clock();
-  notif->valueLength            = math_min((u8)value.size, stats_notify_max_value_size);
+  DevStatsNotification* notif = dev_notify_get(comp, key);
+  notif->timestamp            = time_real_clock();
+  notif->valueLength          = math_min((u8)value.size, stats_notify_max_value_size);
   mem_cpy(mem_create(notif->value, notif->valueLength), string_slice(value, 0, notif->valueLength));
 }
 
-DebugStatShow dev_stats_show(const DevStatsComp* comp) { return comp->show; }
+DevStatShow dev_stats_show(const DevStatsComp* comp) { return comp->show; }
 
-void dev_stats_show_set(DevStatsComp* comp, const DebugStatShow show) { comp->show = show; }
+void dev_stats_show_set(DevStatsComp* comp, const DevStatShow show) { comp->show = show; }

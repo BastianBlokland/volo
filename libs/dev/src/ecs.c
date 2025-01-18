@@ -41,7 +41,7 @@ typedef struct {
   String    name;
   String    moduleName;
   u32       entityCount, chunkCount;
-} DebugEcsViewInfo;
+} DevEcsViewInfo;
 
 typedef struct {
   EcsArchetypeId id;
@@ -49,7 +49,7 @@ typedef struct {
   usize          size;
   BitSet         compMask;
   u32            compCount;
-} DebugEcsArchetypeInfo;
+} DevEcsArchetypeInfo;
 
 typedef struct {
   String         name;
@@ -60,16 +60,16 @@ typedef struct {
   u16            parallelCount;
   EcsSystemFlags flags : 16;
   TimeDuration   duration;
-} DebugEcsSysInfo;
+} DevEcsSysInfo;
 
 typedef enum {
   DevEcsTab_Components,
-  DebugEcsTab_Views,
-  DebugEcsTab_Archetypes,
-  DebugEcsTab_Systems,
+  DevEcsTab_Views,
+  DevEcsTab_Archetypes,
+  DevEcsTab_Systems,
 
-  DebugEcsTab_Count,
-} DebugEcsTab;
+  DevEcsTab_Count,
+} DevEcsTab;
 
 static const String g_ecsTabNames[] = {
     string_static("Components"),
@@ -77,18 +77,18 @@ static const String g_ecsTabNames[] = {
     string_static("Archetypes"),
     string_static("Systems"),
 };
-ASSERT(array_elems(g_ecsTabNames) == DebugEcsTab_Count, "Incorrect number of names");
+ASSERT(array_elems(g_ecsTabNames) == DevEcsTab_Count, "Incorrect number of names");
 
 typedef enum {
-  DebugCompSortMode_Id,
-  DebugCompSortMode_Name,
-  DebugCompSortMode_Size,
-  DebugCompSortMode_SizeTotal,
-  DebugCompSortMode_Archetypes,
-  DebugCompSortMode_Entities,
+  DevCompSortMode_Id,
+  DevCompSortMode_Name,
+  DevCompSortMode_Size,
+  DevCompSortMode_SizeTotal,
+  DevCompSortMode_Archetypes,
+  DevCompSortMode_Entities,
 
-  DebugCompSortMode_Count,
-} DebugCompSortMode;
+  DevCompSortMode_Count,
+} DevCompSortMode;
 
 static const String g_compSortModeNames[] = {
     string_static("Id"),
@@ -98,16 +98,16 @@ static const String g_compSortModeNames[] = {
     string_static("Archetypes"),
     string_static("Entities"),
 };
-ASSERT(array_elems(g_compSortModeNames) == DebugCompSortMode_Count, "Incorrect number of names");
+ASSERT(array_elems(g_compSortModeNames) == DevCompSortMode_Count, "Incorrect number of names");
 
 typedef enum {
-  DebugArchSortMode_Id,
+  DevArchSortMode_Id,
   DevArchSortMode_ComponentCount,
-  DebugArchSortMode_EntityCount,
-  DebugArchSortMode_ChunkCount,
+  DevArchSortMode_EntityCount,
+  DevArchSortMode_ChunkCount,
 
-  DebugArchSortMode_Count,
-} DebugArchSortMode;
+  DevArchSortMode_Count,
+} DevArchSortMode;
 
 static const String g_archSortModeNames[] = {
     string_static("Id"),
@@ -115,16 +115,16 @@ static const String g_archSortModeNames[] = {
     string_static("Entities"),
     string_static("Chunks"),
 };
-ASSERT(array_elems(g_archSortModeNames) == DebugArchSortMode_Count, "Incorrect number of names");
+ASSERT(array_elems(g_archSortModeNames) == DevArchSortMode_Count, "Incorrect number of names");
 
 typedef enum {
-  DebugSysSortMode_Id,
-  DebugSysSortMode_Name,
-  DebugSysSortMode_Duration,
-  DebugSysSortMode_Order,
+  DevSysSortMode_Id,
+  DevSysSortMode_Name,
+  DevSysSortMode_Duration,
+  DevSysSortMode_Order,
 
-  DebugSysSortMode_Count,
-} DebugSysSortMode;
+  DevSysSortMode_Count,
+} DevSysSortMode;
 
 static const String g_sysSortModeNames[] = {
     string_static("Id"),
@@ -132,20 +132,20 @@ static const String g_sysSortModeNames[] = {
     string_static("Duration"),
     string_static("Order"),
 };
-ASSERT(array_elems(g_sysSortModeNames) == DebugSysSortMode_Count, "Incorrect number of names");
+ASSERT(array_elems(g_sysSortModeNames) == DevSysSortMode_Count, "Incorrect number of names");
 
 ecs_comp_define(DevEcsPanelComp) {
-  UiPanel           panel;
-  UiScrollview      scrollview;
-  DynString         nameFilter;
-  DebugCompSortMode compSortMode;
-  DebugArchSortMode archSortMode;
-  DebugSysSortMode  sysSortMode;
-  bool              freeze, hideEmptyArchetypes;
-  DynArray          components; // DevEcsCompInfo[]
-  DynArray          views;      // DebugEcsViewInfo[]
-  DynArray          archetypes; // DebugEcsArchetypeInfo[]
-  DynArray          systems;    // DebugEcsSysInfo[]
+  UiPanel         panel;
+  UiScrollview    scrollview;
+  DynString       nameFilter;
+  DevCompSortMode compSortMode;
+  DevArchSortMode archSortMode;
+  DevSysSortMode  sysSortMode;
+  bool            freeze, hideEmptyArchetypes;
+  DynArray        components; // DevEcsCompInfo[]
+  DynArray        views;      // DevEcsViewInfo[]
+  DynArray        archetypes; // DevEcsArchetypeInfo[]
+  DynArray        systems;    // DevEcsSysInfo[]
 };
 
 static void ecs_destruct_ecs_panel(void* data) {
@@ -186,45 +186,45 @@ static i8 comp_compare_info_entities(const void* a, const void* b) {
 }
 
 static i8 arch_compare_info_components(const void* a, const void* b) {
-  const DebugEcsArchetypeInfo* archA = a;
-  const DebugEcsArchetypeInfo* archB = b;
-  const i8                     c     = compare_u32_reverse(&archA->compCount, &archB->compCount);
+  const DevEcsArchetypeInfo* archA = a;
+  const DevEcsArchetypeInfo* archB = b;
+  const i8                   c     = compare_u32_reverse(&archA->compCount, &archB->compCount);
   return c ? c : compare_u32(&archA->id, &archB->id);
 }
 
 static i8 arch_compare_info_entities(const void* a, const void* b) {
-  const DebugEcsArchetypeInfo* archA = a;
-  const DebugEcsArchetypeInfo* archB = b;
-  const i8                     c = compare_u32_reverse(&archA->entityCount, &archB->entityCount);
+  const DevEcsArchetypeInfo* archA = a;
+  const DevEcsArchetypeInfo* archB = b;
+  const i8                   c     = compare_u32_reverse(&archA->entityCount, &archB->entityCount);
   return c ? c : compare_u32(&archA->id, &archB->id);
 }
 
 static i8 arch_compare_info_chunks(const void* a, const void* b) {
-  const DebugEcsArchetypeInfo* archA = a;
-  const DebugEcsArchetypeInfo* archB = b;
-  const i8                     c     = compare_u32_reverse(&archA->chunkCount, &archB->chunkCount);
+  const DevEcsArchetypeInfo* archA = a;
+  const DevEcsArchetypeInfo* archB = b;
+  const i8                   c     = compare_u32_reverse(&archA->chunkCount, &archB->chunkCount);
   return c ? c : compare_u32(&archA->id, &archB->id);
 }
 
 static i8 sys_compare_info_id(const void* a, const void* b) {
-  return compare_u32(field_ptr(a, DebugEcsSysInfo, id), field_ptr(b, DebugEcsSysInfo, id));
+  return compare_u32(field_ptr(a, DevEcsSysInfo, id), field_ptr(b, DevEcsSysInfo, id));
 }
 
 static i8 sys_compare_info_name(const void* a, const void* b) {
-  return compare_string(field_ptr(a, DebugEcsSysInfo, name), field_ptr(b, DebugEcsSysInfo, name));
+  return compare_string(field_ptr(a, DevEcsSysInfo, name), field_ptr(b, DevEcsSysInfo, name));
 }
 
 static i8 sys_compare_info_duration(const void* a, const void* b) {
-  const DebugEcsSysInfo* infoA = a;
-  const DebugEcsSysInfo* infoB = b;
-  const i8               comp  = compare_u64_reverse(&infoA->duration, &infoB->duration);
+  const DevEcsSysInfo* infoA = a;
+  const DevEcsSysInfo* infoB = b;
+  const i8             comp  = compare_u64_reverse(&infoA->duration, &infoB->duration);
   return comp ? comp : compare_u32(&infoA->id, &infoB->id);
 }
 
 static i8 sys_compare_info_order(const void* a, const void* b) {
-  const DebugEcsSysInfo* infoA = a;
-  const DebugEcsSysInfo* infoB = b;
-  const i8               comp  = compare_i32(&infoA->definedOrder, &infoB->definedOrder);
+  const DevEcsSysInfo* infoA = a;
+  const DevEcsSysInfo* infoB = b;
+  const i8             comp  = compare_i32(&infoA->definedOrder, &infoB->definedOrder);
   return comp ? comp : compare_u32(&infoA->id, &infoB->id);
 }
 
@@ -274,23 +274,23 @@ static void comp_info_query(DevEcsPanelComp* panelComp, EcsWorld* world) {
   }
 
   switch (panelComp->compSortMode) {
-  case DebugCompSortMode_Name:
+  case DevCompSortMode_Name:
     dynarray_sort(&panelComp->components, comp_compare_info_name);
     break;
-  case DebugCompSortMode_Size:
+  case DevCompSortMode_Size:
     dynarray_sort(&panelComp->components, comp_compare_info_size);
     break;
-  case DebugCompSortMode_SizeTotal:
+  case DevCompSortMode_SizeTotal:
     dynarray_sort(&panelComp->components, comp_compare_info_size_total);
     break;
-  case DebugCompSortMode_Archetypes:
+  case DevCompSortMode_Archetypes:
     dynarray_sort(&panelComp->components, comp_compare_info_archetypes);
     break;
-  case DebugCompSortMode_Entities:
+  case DevCompSortMode_Entities:
     dynarray_sort(&panelComp->components, comp_compare_info_entities);
     break;
-  case DebugCompSortMode_Id:
-  case DebugCompSortMode_Count:
+  case DevCompSortMode_Id:
+  case DevCompSortMode_Count:
     break;
   }
 }
@@ -316,7 +316,7 @@ static void comp_options_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp) 
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Sort:"));
   ui_table_next_column(canvas, &table);
-  ui_select(canvas, (i32*)&panelComp->compSortMode, g_compSortModeNames, DebugCompSortMode_Count);
+  ui_select(canvas, (i32*)&panelComp->compSortMode, g_compSortModeNames, DevCompSortMode_Count);
 
   ui_layout_pop(canvas);
 }
@@ -389,7 +389,7 @@ static void view_info_query(DevEcsPanelComp* panelComp, EcsWorld* world) {
         continue;
       }
 
-      *dynarray_push_t(&panelComp->views, DebugEcsViewInfo) = (DebugEcsViewInfo){
+      *dynarray_push_t(&panelComp->views, DevEcsViewInfo) = (DevEcsViewInfo){
           .id          = id,
           .name        = ecs_def_view_name(def, id),
           .moduleName  = ecs_def_module_name(def, ecs_def_view_module(def, id)),
@@ -450,7 +450,7 @@ static void view_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp
   ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of views on its own id block.
-  dynarray_for_t(&panelComp->views, DebugEcsViewInfo, viewInfo) {
+  dynarray_for_t(&panelComp->views, DevEcsViewInfo, viewInfo) {
     ui_table_next_row(canvas, &table);
     ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
 
@@ -480,7 +480,7 @@ static void arch_info_query(DevEcsPanelComp* panelComp, EcsWorld* world) {
         continue;
       }
       const BitSet compMask = ecs_world_component_mask(world, id);
-      *dynarray_push_t(&panelComp->archetypes, DebugEcsArchetypeInfo) = (DebugEcsArchetypeInfo){
+      *dynarray_push_t(&panelComp->archetypes, DevEcsArchetypeInfo) = (DevEcsArchetypeInfo){
           .id               = id,
           .entityCount      = ecs_world_archetype_entities(world, id),
           .chunkCount       = ecs_world_archetype_chunks(world, id),
@@ -496,14 +496,14 @@ static void arch_info_query(DevEcsPanelComp* panelComp, EcsWorld* world) {
   case DevArchSortMode_ComponentCount:
     dynarray_sort(&panelComp->archetypes, arch_compare_info_components);
     break;
-  case DebugArchSortMode_EntityCount:
+  case DevArchSortMode_EntityCount:
     dynarray_sort(&panelComp->archetypes, arch_compare_info_entities);
     break;
-  case DebugArchSortMode_ChunkCount:
+  case DevArchSortMode_ChunkCount:
     dynarray_sort(&panelComp->archetypes, arch_compare_info_chunks);
     break;
-  case DebugArchSortMode_Id:
-  case DebugArchSortMode_Count:
+  case DevArchSortMode_Id:
+  case DevArchSortMode_Count:
     break;
   }
 }
@@ -522,7 +522,7 @@ static void arch_options_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp) 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Sort:"));
   ui_table_next_column(canvas, &table);
-  ui_select(canvas, (i32*)&panelComp->archSortMode, g_archSortModeNames, DebugArchSortMode_Count);
+  ui_select(canvas, (i32*)&panelComp->archSortMode, g_archSortModeNames, DevArchSortMode_Count);
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Freeze:"));
   ui_table_next_column(canvas, &table);
@@ -577,7 +577,7 @@ arch_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp, const EcsD
   ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of archetypes on its own id block.
-  dynarray_for_t(&panelComp->archetypes, DebugEcsArchetypeInfo, archInfo) {
+  dynarray_for_t(&panelComp->archetypes, DevEcsArchetypeInfo, archInfo) {
     ui_table_next_row(canvas, &table);
     ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
 
@@ -616,7 +616,7 @@ static void sys_info_query(DevEcsPanelComp* panelComp, EcsWorld* world) {
       if (!ecs_panel_filter(panelComp, ecs_def_system_name(def, id))) {
         continue;
       }
-      *dynarray_push_t(&panelComp->systems, DebugEcsSysInfo) = (DebugEcsSysInfo){
+      *dynarray_push_t(&panelComp->systems, DevEcsSysInfo) = (DevEcsSysInfo){
           .id            = id,
           .name          = ecs_def_system_name(def, id),
           .definedOrder  = ecs_def_system_order(def, id),
@@ -630,24 +630,24 @@ static void sys_info_query(DevEcsPanelComp* panelComp, EcsWorld* world) {
   }
 
   switch (panelComp->sysSortMode) {
-  case DebugSysSortMode_Id:
+  case DevSysSortMode_Id:
     dynarray_sort(&panelComp->systems, sys_compare_info_id);
     break;
-  case DebugSysSortMode_Name:
+  case DevSysSortMode_Name:
     dynarray_sort(&panelComp->systems, sys_compare_info_name);
     break;
-  case DebugSysSortMode_Duration:
+  case DevSysSortMode_Duration:
     dynarray_sort(&panelComp->systems, sys_compare_info_duration);
     break;
-  case DebugSysSortMode_Order:
+  case DevSysSortMode_Order:
     dynarray_sort(&panelComp->systems, sys_compare_info_order);
     break;
-  case DebugSysSortMode_Count:
+  case DevSysSortMode_Count:
     break;
   }
 }
 
-static UiColor sys_info_bg_color(const DebugEcsSysInfo* compInfo) {
+static UiColor sys_info_bg_color(const DevEcsSysInfo* compInfo) {
   if (compInfo->duration >= time_millisecond) {
     return ui_color(64, 16, 16, 192);
   }
@@ -677,7 +677,7 @@ static void sys_options_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp) {
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Sort:"));
   ui_table_next_column(canvas, &table);
-  ui_select(canvas, (i32*)&panelComp->sysSortMode, g_sysSortModeNames, DebugSysSortMode_Count);
+  ui_select(canvas, (i32*)&panelComp->sysSortMode, g_sysSortModeNames, DevSysSortMode_Count);
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Freeze:"));
   ui_table_next_column(canvas, &table);
@@ -691,7 +691,7 @@ static void sys_options_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp) {
   ui_layout_pop(canvas);
 }
 
-static String sys_views_tooltip_scratch(const EcsDef* ecsDef, const DebugEcsSysInfo* sysInfo) {
+static String sys_views_tooltip_scratch(const EcsDef* ecsDef, const DevEcsSysInfo* sysInfo) {
   DynString str = dynstring_create_over(alloc_alloc(g_allocScratch, 2 * usize_kibibyte, 1));
   dynstring_append(&str, string_lit("Views:\n"));
   for (u32 i = 0; i != sysInfo->viewCount; ++i) {
@@ -701,7 +701,7 @@ static String sys_views_tooltip_scratch(const EcsDef* ecsDef, const DebugEcsSysI
   return dynstring_view(&str);
 }
 
-static UiColor sys_defined_order_color(const DebugEcsSysInfo* sysInfo) {
+static UiColor sys_defined_order_color(const DevEcsSysInfo* sysInfo) {
   if (sysInfo->flags & EcsSystemFlags_ThreadAffinity) {
     return ui_color_teal;
   }
@@ -744,7 +744,7 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp, const EcsDe
   const bool hasMultipleWorkers = g_jobsWorkerCount > 1;
 
   ui_canvas_id_block_next(canvas); // Start the list of systems on its own id block.
-  dynarray_for_t(&panelComp->systems, DebugEcsSysInfo, sysInfo) {
+  dynarray_for_t(&panelComp->systems, DevEcsSysInfo, sysInfo) {
     ui_table_next_row(canvas, &table);
     ui_table_draw_row_bg(canvas, &table, sys_info_bg_color(sysInfo));
 
@@ -790,7 +790,7 @@ static void ecs_panel_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp, Ecs
       &panelComp->panel,
       .title       = title,
       .tabNames    = g_ecsTabNames,
-      .tabCount    = DebugEcsTab_Count,
+      .tabCount    = DevEcsTab_Count,
       .topBarColor = ui_color(100, 0, 0, 192));
 
   switch (panelComp->panel.activeTab) {
@@ -798,15 +798,15 @@ static void ecs_panel_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp, Ecs
     comp_info_query(panelComp, world);
     comp_panel_tab_draw(canvas, panelComp);
     break;
-  case DebugEcsTab_Views:
+  case DevEcsTab_Views:
     view_info_query(panelComp, world);
     view_panel_tab_draw(canvas, panelComp);
     break;
-  case DebugEcsTab_Archetypes:
+  case DevEcsTab_Archetypes:
     arch_info_query(panelComp, world);
     arch_panel_tab_draw(canvas, panelComp, ecs_world_def(world));
     break;
-  case DebugEcsTab_Systems:
+  case DevEcsTab_Systems:
     sys_info_query(panelComp, world);
     sys_panel_tab_draw(canvas, panelComp, ecs_world_def(world));
     break;
@@ -823,7 +823,7 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
-ecs_system_define(DebugEcsUpdatePanelSys) {
+ecs_system_define(DevEcsUpdatePanelSys) {
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     const EcsEntityId entity    = ecs_view_entity(itr);
@@ -851,7 +851,7 @@ ecs_module_init(dev_ecs_module) {
 
   ecs_register_view(PanelUpdateView);
 
-  ecs_register_system(DebugEcsUpdatePanelSys, ecs_view_id(PanelUpdateView));
+  ecs_register_system(DevEcsUpdatePanelSys, ecs_view_id(PanelUpdateView));
 }
 
 EcsEntityId dev_ecs_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
@@ -863,13 +863,13 @@ EcsEntityId dev_ecs_panel_open(EcsWorld* world, const EcsEntityId window, const 
       .panel        = ui_panel(.size = ui_vector(800, 500)),
       .scrollview   = ui_scrollview(),
       .nameFilter   = dynstring_create(g_allocHeap, 32),
-      .compSortMode = DebugCompSortMode_Archetypes,
-      .archSortMode = DebugArchSortMode_ChunkCount,
-      .sysSortMode  = DebugSysSortMode_Duration,
+      .compSortMode = DevCompSortMode_Archetypes,
+      .archSortMode = DevArchSortMode_ChunkCount,
+      .sysSortMode  = DevSysSortMode_Duration,
       .components   = dynarray_create_t(g_allocHeap, DevEcsCompInfo, 256),
-      .views        = dynarray_create_t(g_allocHeap, DebugEcsViewInfo, 256),
-      .archetypes   = dynarray_create_t(g_allocHeap, DebugEcsArchetypeInfo, 256),
-      .systems      = dynarray_create_t(g_allocHeap, DebugEcsSysInfo, 256));
+      .views        = dynarray_create_t(g_allocHeap, DevEcsViewInfo, 256),
+      .archetypes   = dynarray_create_t(g_allocHeap, DevEcsArchetypeInfo, 256),
+      .systems      = dynarray_create_t(g_allocHeap, DevEcsSysInfo, 256));
 
   if (type == DevPanelType_Detached) {
     ui_panel_maximize(&ecsPanel->panel);

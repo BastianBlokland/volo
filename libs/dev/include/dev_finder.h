@@ -1,33 +1,33 @@
 #pragma once
 #include "dev.h"
 
-typedef enum eDebugFinderCategory {
-  DebugFinder_Decal,
-  DebugFinder_Graphic,
-  DebugFinder_Level,
-  DebugFinder_Sound,
-  DebugFinder_Terrain,
-  DebugFinder_Vfx,
+typedef enum eDevFinderCategory {
+  DevFinder_Decal,
+  DevFinder_Graphic,
+  DevFinder_Level,
+  DevFinder_Sound,
+  DevFinder_Terrain,
+  DevFinder_Vfx,
 
-  DebugFinderCategory_Count,
-} DebugFinderCategory;
+  DevFinderCategory_Count,
+} DevFinderCategory;
 
-extern const String g_debugFinderCategoryNames[DebugFinderCategory_Count];
+extern const String g_debugFinderCategoryNames[DevFinderCategory_Count];
 
 typedef enum {
-  DebugFinderStatus_Idle,
-  DebugFinderStatus_Loading,
-  DebugFinderStatus_Ready,
-} DebugFinderStatus;
+  DevFinderStatus_Idle,
+  DevFinderStatus_Loading,
+  DevFinderStatus_Ready,
+} DevFinderStatus;
 
 typedef struct {
-  DebugFinderStatus  status;
+  DevFinderStatus    status;
   u32                count;
   const EcsEntityId* entities;
   const String*      ids;
-} DebugFinderResult;
+} DevFinderResult;
 
 ecs_comp_extern(DevFinderComp);
 
-void              dev_finder_query(DevFinderComp*, DebugFinderCategory, bool refresh);
-DebugFinderResult dev_finder_get(DevFinderComp*, DebugFinderCategory);
+void            dev_finder_query(DevFinderComp*, DevFinderCategory, bool refresh);
+DevFinderResult dev_finder_get(DevFinderComp*, DevFinderCategory);

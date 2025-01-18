@@ -7,33 +7,33 @@
 #include "ecs_view.h"
 #include "ecs_world.h"
 
-static const String g_queryPatterns[DebugFinderCategory_Count] = {
-    [DebugFinder_Decal]   = string_static("vfx/*.decal"),
-    [DebugFinder_Graphic] = string_static("graphics/*.graphic"),
-    [DebugFinder_Level]   = string_static("levels/*.level"),
-    [DebugFinder_Sound]   = string_static("external/sound/*.wav"),
-    [DebugFinder_Terrain] = string_static("terrains/*.terrain"),
-    [DebugFinder_Vfx]     = string_static("vfx/*.vfx"),
+static const String g_queryPatterns[DevFinderCategory_Count] = {
+    [DevFinder_Decal]   = string_static("vfx/*.decal"),
+    [DevFinder_Graphic] = string_static("graphics/*.graphic"),
+    [DevFinder_Level]   = string_static("levels/*.level"),
+    [DevFinder_Sound]   = string_static("external/sound/*.wav"),
+    [DevFinder_Terrain] = string_static("terrains/*.terrain"),
+    [DevFinder_Vfx]     = string_static("vfx/*.vfx"),
 };
 
 const String g_debugFinderCategoryNames[] = {
-    [DebugFinder_Decal]   = string_static("Decal"),
-    [DebugFinder_Graphic] = string_static("Graphic"),
-    [DebugFinder_Level]   = string_static("Level"),
-    [DebugFinder_Sound]   = string_static("Sound"),
-    [DebugFinder_Terrain] = string_static("Terrain"),
-    [DebugFinder_Vfx]     = string_static("Vfx"),
+    [DevFinder_Decal]   = string_static("Decal"),
+    [DevFinder_Graphic] = string_static("Graphic"),
+    [DevFinder_Level]   = string_static("Level"),
+    [DevFinder_Sound]   = string_static("Sound"),
+    [DevFinder_Terrain] = string_static("Terrain"),
+    [DevFinder_Vfx]     = string_static("Vfx"),
 };
-ASSERT(array_elems(g_debugFinderCategoryNames) == DebugFinderCategory_Count, "Missing names");
+ASSERT(array_elems(g_debugFinderCategoryNames) == DevFinderCategory_Count, "Missing names");
 
 typedef struct {
-  DebugFinderStatus status;
-  bool              executedQuery;
-  DynArray          entities; // EcsEntityId[].
-  DynArray          ids;      // Strings[].
-} DebugFinderState;
+  DevFinderStatus status;
+  bool            executedQuery;
+  DynArray        entities; // EcsEntityId[].
+  DynArray        ids;      // Strings[].
+} DevFinderState;
 
-ecs_comp_define(DevFinderComp) { DebugFinderState* states; };
+ecs_comp_define(DevFinderComp) { DevFinderState* states; };
 
 ecs_view_define(GlobalView) {
   ecs_access_write(AssetManagerComp);
@@ -44,18 +44,18 @@ ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 
 static void ecs_destruct_finder(void* data) {
   DevFinderComp* comp = data;
-  for (DebugFinderCategory cat = 0; cat != DebugFinderCategory_Count; ++cat) {
+  for (DevFinderCategory cat = 0; cat != DevFinderCategory_Count; ++cat) {
     dynarray_destroy(&comp->states[cat].entities);
     dynarray_destroy(&comp->states[cat].ids);
   }
-  alloc_free_array_t(g_allocHeap, comp->states, DebugFinderCategory_Count);
+  alloc_free_array_t(g_allocHeap, comp->states, DevFinderCategory_Count);
 }
 
 static DevFinderComp* finder_init(EcsWorld* world, const EcsEntityId entity) {
   DevFinderComp* finder = ecs_world_add_t(world, entity, DevFinderComp);
-  finder->states        = alloc_array_t(g_allocHeap, DebugFinderState, DebugFinderCategory_Count);
-  for (DebugFinderCategory cat = 0; cat != DebugFinderCategory_Count; ++cat) {
-    finder->states[cat] = (DebugFinderState){
+  finder->states        = alloc_array_t(g_allocHeap, DevFinderState, DevFinderCategory_Count);
+  for (DevFinderCategory cat = 0; cat != DevFinderCategory_Count; ++cat) {
+    finder->states[cat] = (DevFinderState){
         .entities = dynarray_create_t(g_allocHeap, EcsEntityId, 0),
         .ids      = dynarray_create_t(g_allocHeap, String, 0),
     };
@@ -63,7 +63,7 @@ static DevFinderComp* finder_init(EcsWorld* world, const EcsEntityId entity) {
   return finder;
 }
 
-ecs_system_define(DebugFinderUpdateSys) {
+ecs_system_define(DevFinderUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -80,9 +80,9 @@ ecs_system_define(DebugFinderUpdateSys) {
 
   EcsEntityId assetBuffer[asset_query_max_results];
 
-  for (DebugFinderCategory cat = 0; cat != DebugFinderCategory_Count; ++cat) {
-    DebugFinderState* state = &finder->states[cat];
-    if (state->status != DebugFinderStatus_Loading) {
+  for (DevFinderCategory cat = 0; cat != DevFinderCategory_Count; ++cat) {
+    DevFinderState* state = &finder->states[cat];
+    if (state->status != DevFinderStatus_Loading) {
       continue; // No need to refresh.
     }
 
@@ -105,7 +105,7 @@ ecs_system_define(DebugFinderUpdateSys) {
     }
 
     // Ready.
-    state->status        = DebugFinderStatus_Ready;
+    state->status        = DevFinderStatus_Ready;
     state->executedQuery = false;
   }
 }
@@ -116,36 +116,36 @@ ecs_module_init(dev_finder_module) {
   ecs_register_view(GlobalView);
   ecs_register_view(AssetView);
 
-  ecs_register_system(DebugFinderUpdateSys, ecs_view_id(GlobalView), ecs_view_id(AssetView));
+  ecs_register_system(DevFinderUpdateSys, ecs_view_id(GlobalView), ecs_view_id(AssetView));
 }
 
-void dev_finder_query(DevFinderComp* finder, const DebugFinderCategory cat, const bool refresh) {
-  diag_assert(cat < DebugFinderCategory_Count);
+void dev_finder_query(DevFinderComp* finder, const DevFinderCategory cat, const bool refresh) {
+  diag_assert(cat < DevFinderCategory_Count);
 
-  DebugFinderState* state = &finder->states[cat];
+  DevFinderState* state = &finder->states[cat];
   switch (state->status) {
-  case DebugFinderStatus_Idle:
-    state->status = DebugFinderStatus_Loading;
+  case DevFinderStatus_Idle:
+    state->status = DevFinderStatus_Loading;
     break;
-  case DebugFinderStatus_Loading:
+  case DevFinderStatus_Loading:
     break;
-  case DebugFinderStatus_Ready:
+  case DevFinderStatus_Ready:
     if (refresh) {
-      state->status = DebugFinderStatus_Loading;
+      state->status = DevFinderStatus_Loading;
     }
     break;
   }
 }
 
-DebugFinderResult dev_finder_get(DevFinderComp* finder, const DebugFinderCategory cat) {
-  diag_assert(cat < DebugFinderCategory_Count);
+DevFinderResult dev_finder_get(DevFinderComp* finder, const DevFinderCategory cat) {
+  diag_assert(cat < DevFinderCategory_Count);
 
-  DebugFinderState* state = &finder->states[cat];
-  if (state->status != DebugFinderStatus_Ready) {
-    return (DebugFinderResult){.status = state->status};
+  DevFinderState* state = &finder->states[cat];
+  if (state->status != DevFinderStatus_Ready) {
+    return (DevFinderResult){.status = state->status};
   }
-  return (DebugFinderResult){
-      .status   = DebugFinderStatus_Ready,
+  return (DevFinderResult){
+      .status   = DevFinderStatus_Ready,
       .count    = (u32)state->entities.size,
       .entities = dynarray_begin_t(&state->entities, EcsEntityId),
       .ids      = dynarray_begin_t(&state->ids, String),

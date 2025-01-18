@@ -536,7 +536,7 @@ ecs_system_define(AppUpdateSys) {
     switch (app->mode) {
     case AppMode_Normal:
       if (debugLogViewer)         { dev_log_viewer_set_mask(debugLogViewer, LogMask_Warn | LogMask_Error); }
-      if (stats)                  { dev_stats_show_set(stats, DebugStatShow_Minimal); }
+      if (stats)                  { dev_stats_show_set(stats, DevStatShow_Minimal); }
       app_debug_hide(world, true);
       input_layer_disable(input, string_hash_lit("Debug"));
       input_layer_enable(input, string_hash_lit("Game"));
@@ -545,7 +545,7 @@ ecs_system_define(AppUpdateSys) {
     case AppMode_Debug:
       if (!appWindow->debugMenu)  { appWindow->debugMenu = dev_menu_create(world, windowEntity); }
       if (debugLogViewer)         { dev_log_viewer_set_mask(debugLogViewer, LogMask_All); }
-      if (stats)                  { dev_stats_show_set(stats, DebugStatShow_Full); }
+      if (stats)                  { dev_stats_show_set(stats, DevStatShow_Full); }
       app_debug_hide(world, false);
       input_layer_enable(input, string_hash_lit("Debug"));
       input_layer_disable(input, string_hash_lit("Game"));

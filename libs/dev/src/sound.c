@@ -23,17 +23,17 @@
 static const String g_tooltipMixerGain = string_static("Mixer output gain.");
 
 typedef enum {
-  DebugSoundTab_Mixer,
-  DebugSoundTab_Objects,
+  DevSoundTab_Mixer,
+  DevSoundTab_Objects,
 
-  DebugSoundTab_Count,
-} DebugSoundTab;
+  DevSoundTab_Count,
+} DevSoundTab;
 
 static const String g_soundTabNames[] = {
     string_static("\uE429 Mixer"),
     string_static("\uE574 Objects"),
 };
-ASSERT(array_elems(g_soundTabNames) == DebugSoundTab_Count, "Incorrect number of names");
+ASSERT(array_elems(g_soundTabNames) == DevSoundTab_Count, "Incorrect number of names");
 
 ecs_comp_define(DevSoundPanelComp) {
   UiPanel      panel;
@@ -463,14 +463,14 @@ static void sound_panel_draw(UiCanvasComp* c, DevSoundPanelComp* panelComp, SndM
       &panelComp->panel,
       .title       = title,
       .tabNames    = g_soundTabNames,
-      .tabCount    = DebugSoundTab_Count,
+      .tabCount    = DevSoundTab_Count,
       .topBarColor = ui_color(100, 0, 0, 192));
 
   switch (panelComp->panel.activeTab) {
-  case DebugSoundTab_Mixer:
+  case DevSoundTab_Mixer:
     sound_mixer_draw(c, m);
     break;
-  case DebugSoundTab_Objects:
+  case DevSoundTab_Objects:
     sound_objects_draw(c, panelComp, m);
     break;
   }
@@ -478,7 +478,7 @@ static void sound_panel_draw(UiCanvasComp* c, DevSoundPanelComp* panelComp, SndM
   ui_panel_end(c, &panelComp->panel);
 }
 
-ecs_system_define(DebugSoundUpdatePanelSys) {
+ecs_system_define(DevSoundUpdatePanelSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -515,7 +515,7 @@ ecs_module_init(dev_sound_module) {
   ecs_register_view(PanelUpdateView);
 
   ecs_register_system(
-      DebugSoundUpdatePanelSys, ecs_view_id(GlobalView), ecs_view_id(PanelUpdateView));
+      DevSoundUpdatePanelSys, ecs_view_id(GlobalView), ecs_view_id(PanelUpdateView));
 }
 
 EcsEntityId

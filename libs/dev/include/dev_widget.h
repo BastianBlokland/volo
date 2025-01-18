@@ -20,6 +20,6 @@ bool dev_widget_quat(UiCanvasComp*, GeoQuat* val, UiWidgetFlags);
 bool dev_widget_color(UiCanvasComp*, GeoColor* val, UiWidgetFlags);
 bool dev_widget_faction(UiCanvasComp*, SceneFaction*, UiWidgetFlags);
 bool dev_widget_prefab(UiCanvasComp*, const AssetPrefabMapComp*, StringHash*, UiWidgetFlags);
-bool dev_widget_asset(UiCanvasComp*, DevFinderComp*, DebugFinderCategory, EcsEntityId*, UiWidgetFlags);
+bool dev_widget_asset(UiCanvasComp*, DevFinderComp*, DevFinderCategory, EcsEntityId*, UiWidgetFlags);
 
 // clang-format on

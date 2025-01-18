@@ -2,16 +2,16 @@
 #include "ecs_def.h"
 
 enum {
-  DebugOrder_TraceQuery          = -1000,
-  DebugOrder_GizmoUpdate         = -500,
-  DebugOrder_InspectorToolUpdate = -400,
-  DebugOrder_RendUpdate          = -400,
-  DebugOrder_CameraDebugDraw     = 50,
-  DebugOrder_SkeletonDebugDraw   = 700,
-  DebugOrder_InspectorDebugDraw  = 740,
-  DebugOrder_GizmoRender         = 750,
-  DebugOrder_TextRender          = 750,
-  DebugOrder_ShapeRender         = 850,
+  DevOrder_TraceQuery          = -1000,
+  DevOrder_GizmoUpdate         = -500,
+  DevOrder_InspectorToolUpdate = -400,
+  DevOrder_RendUpdate          = -400,
+  DevOrder_CameraDevDraw       = 50,
+  DevOrder_SkeletonDevDraw     = 700,
+  DevOrder_InspectorDevDraw    = 740,
+  DevOrder_GizmoRender         = 750,
+  DevOrder_TextRender          = 750,
+  DevOrder_ShapeRender         = 850,
 };
 
 /**

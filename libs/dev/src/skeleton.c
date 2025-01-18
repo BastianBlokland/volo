@@ -24,15 +24,15 @@
 #include "ui_widget.h"
 
 typedef enum {
-  DebugSkelFlags_DrawSkeleton        = 1 << 0,
-  DebugSkelFlags_DrawJointTransforms = 1 << 1,
-  DebugSkelFlags_DrawJointNames      = 1 << 2,
-  DebugSkelFlags_DrawSkinCounts      = 1 << 3,
-  DebugSkelFlags_DrawBounds          = 1 << 4,
-  DebugSkelFlags_DrawAny             = bit_range_32(0, 5),
+  DevSkelFlags_DrawSkeleton        = 1 << 0,
+  DevSkelFlags_DrawJointTransforms = 1 << 1,
+  DevSkelFlags_DrawJointNames      = 1 << 2,
+  DevSkelFlags_DrawSkinCounts      = 1 << 3,
+  DevSkelFlags_DrawBounds          = 1 << 4,
+  DevSkelFlags_DrawAny             = bit_range_32(0, 5),
 
-  DebugSkelFlags_Default = 0,
-} DebugSkelFlags;
+  DevSkelFlags_Default = 0,
+} DevSkelFlags;
 
 static const String g_skeletonFlagNames[] = {
     string_static("Skeleton"),
@@ -42,7 +42,7 @@ static const String g_skeletonFlagNames[] = {
     string_static("Bounds"),
 };
 
-ecs_comp_define(DevSkelSettingsComp) { DebugSkelFlags flags; };
+ecs_comp_define(DevSkelSettingsComp) { DevSkelFlags flags; };
 
 ecs_comp_define(DevSkelPanelComp) {
   UiPanel      panel;
@@ -69,24 +69,24 @@ typedef struct {
   SceneAnimationComp*           animation;
   const SceneSkeletonComp*      skeleton;
   const SceneSkeletonTemplComp* skeletonTemplate;
-} DebugSkelSubject;
+} DevSkelSubject;
 
-static DebugSkelSubject dev_skel_subject(EcsWorld* world, const EcsEntityId entity) {
+static DevSkelSubject dev_skel_subject(EcsWorld* world, const EcsEntityId entity) {
   EcsView* subjectView   = ecs_world_view_t(world, SubjectView);
   EcsView* skelTemplView = ecs_world_view_t(world, SkeletonTemplView);
 
   EcsIterator* subjectItr = ecs_view_maybe_at(subjectView, entity);
   if (!subjectItr) {
-    return (DebugSkelSubject){0};
+    return (DevSkelSubject){0};
   }
   const EcsEntityId graphic      = ecs_view_read_t(subjectItr, SceneRenderableComp)->graphic;
   EcsIterator*      skelTemplItr = ecs_view_maybe_at(skelTemplView, graphic);
   if (!skelTemplItr) {
-    return (DebugSkelSubject){0};
+    return (DevSkelSubject){0};
   }
   const SceneTransformComp* transComp = ecs_view_read_t(subjectItr, SceneTransformComp);
   const SceneScaleComp*     scaleComp = ecs_view_read_t(subjectItr, SceneScaleComp);
-  return (DebugSkelSubject){
+  return (DevSkelSubject){
       .valid            = true,
       .worldScale       = scaleComp ? scaleComp->scale : 1.0f,
       .worldMat         = scene_matrix_world(transComp, scaleComp),
@@ -281,7 +281,7 @@ static void skel_panel_drag_flags(UiCanvasComp* canvas, SceneAnimLayer* layer) {
 static void skel_panel_options_draw(UiCanvasComp* canvas, DevSkelSettingsComp* settings) {
   ui_layout_push(canvas);
 
-  static const DebugSkelFlags g_drawAny = DebugSkelFlags_DrawAny;
+  static const DevSkelFlags g_drawAny = DevSkelFlags_DrawAny;
 
   UiTable table = ui_table(.spacing = ui_vector(5, 5), .rowHeight = 20);
   ui_table_add_column(&table, UiTableColumn_Fixed, 75);
@@ -306,10 +306,10 @@ static void skel_panel_options_draw(UiCanvasComp* canvas, DevSkelSettingsComp* s
 }
 
 static void skel_panel_draw(
-    UiCanvasComp*          canvas,
-    DevSkelPanelComp*      panelComp,
-    DevSkelSettingsComp*   settings,
-    const DebugSkelSubject subject) {
+    UiCanvasComp*        canvas,
+    DevSkelPanelComp*    panelComp,
+    DevSkelSettingsComp* settings,
+    const DevSkelSubject subject) {
   const String title = fmt_write_scratch("{} Skeleton Panel", fmt_ui_shape(Body));
   ui_panel_begin(
       canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
@@ -407,7 +407,7 @@ static DevSkelSettingsComp* skel_settings_get_or_create(EcsWorld* world) {
     return ecs_view_write_t(itr, DevSkelSettingsComp);
   }
   return ecs_world_add_t(
-      world, ecs_world_global(world), DevSkelSettingsComp, .flags = DebugSkelFlags_Default);
+      world, ecs_world_global(world), DevSkelSettingsComp, .flags = DevSkelFlags_Default);
 }
 
 ecs_view_define(PanelUpdateGlobalView) { ecs_access_read(SceneSetEnvComp); }
@@ -420,7 +420,7 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
-ecs_system_define(DebugSkeletonUpdatePanelSys) {
+ecs_system_define(DevSkeletonUpdatePanelSys) {
   EcsView*     globalView = ecs_world_view_t(world, PanelUpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -430,7 +430,7 @@ ecs_system_define(DebugSkeletonUpdatePanelSys) {
 
   const SceneSetEnvComp* setEnv      = ecs_view_read_t(globalItr, SceneSetEnvComp);
   const StringHash       selectedSet = g_sceneSetSelected;
-  const DebugSkelSubject subject     = dev_skel_subject(world, scene_set_main(setEnv, selectedSet));
+  const DevSkelSubject   subject     = dev_skel_subject(world, scene_set_main(setEnv, selectedSet));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -530,8 +530,8 @@ static void dev_draw_bounds(
     const f32 radius       = scene_skeleton_joint_bounding_radius(skeletonTemplate, i);
     const f32 radiusScaled = radius * worldScale;
 
-    dev_sphere(shape, jointPos, radiusScaled, geo_color(0, 1, 0, 0.1f), DebugShape_Fill);
-    dev_sphere(shape, jointPos, radiusScaled, geo_color(0, 1, 0, 0.5f), DebugShape_Wire);
+    dev_sphere(shape, jointPos, radiusScaled, geo_color(0, 1, 0, 0.1f), DevShape_Fill);
+    dev_sphere(shape, jointPos, radiusScaled, geo_color(0, 1, 0, 0.5f), DevShape_Wire);
   }
 }
 
@@ -542,7 +542,7 @@ ecs_view_define(GlobalDrawView) {
   ecs_access_write(DevTextComp);
 }
 
-ecs_system_define(DebugSkeletonDrawSys) {
+ecs_system_define(DevSkeletonDrawSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalDrawView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -553,7 +553,7 @@ ecs_system_define(DebugSkeletonDrawSys) {
   DevShapeComp*              shape  = ecs_view_write_t(globalItr, DevShapeComp);
   DevTextComp*               text   = ecs_view_write_t(globalItr, DevTextComp);
 
-  if (!(set->flags & DebugSkelFlags_DrawAny)) {
+  if (!(set->flags & DevSkelFlags_DrawAny)) {
     return; // Nothing requested to be drawn.
   }
 
@@ -561,7 +561,7 @@ ecs_system_define(DebugSkeletonDrawSys) {
 
   const StringHash s = g_sceneSetSelected;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
-    const DebugSkelSubject subject = dev_skel_subject(world, *e);
+    const DevSkelSubject subject = dev_skel_subject(world, *e);
     if (!subject.valid) {
       continue;
     }
@@ -570,22 +570,22 @@ ecs_system_define(DebugSkeletonDrawSys) {
       jointMatrices[i] = geo_matrix_mul(&subject.worldMat, &subject.skeleton->jointTransforms[i]);
     }
 
-    if (set->flags & DebugSkelFlags_DrawSkeleton) {
+    if (set->flags & DevSkelFlags_DrawSkeleton) {
       dev_draw_skeleton(
           shape, subject.skeletonTemplate, subject.skeleton->jointCount, jointMatrices);
     }
-    if (set->flags & DebugSkelFlags_DrawJointTransforms) {
+    if (set->flags & DevSkelFlags_DrawJointTransforms) {
       dev_draw_joint_transforms(shape, subject.skeleton->jointCount, jointMatrices);
     }
-    if (set->flags & DebugSkelFlags_DrawJointNames) {
+    if (set->flags & DevSkelFlags_DrawJointNames) {
       dev_draw_joint_names(
           text, subject.skeletonTemplate, subject.skeleton->jointCount, jointMatrices);
     }
-    if (set->flags & DebugSkelFlags_DrawSkinCounts) {
+    if (set->flags & DevSkelFlags_DrawSkinCounts) {
       dev_draw_skin_counts(
           text, subject.skeletonTemplate, subject.skeleton->jointCount, jointMatrices);
     }
-    if (set->flags & DebugSkelFlags_DrawBounds) {
+    if (set->flags & DevSkelFlags_DrawBounds) {
       dev_draw_bounds(
           shape,
           subject.skeletonTemplate,
@@ -608,7 +608,7 @@ ecs_module_init(dev_skeleton_module) {
   ecs_register_view(GlobalDrawView);
 
   ecs_register_system(
-      DebugSkeletonUpdatePanelSys,
+      DevSkeletonUpdatePanelSys,
       ecs_view_id(SettingsWriteView),
       ecs_view_id(PanelUpdateGlobalView),
       ecs_view_id(PanelUpdateView),
@@ -616,12 +616,12 @@ ecs_module_init(dev_skeleton_module) {
       ecs_view_id(SkeletonTemplView));
 
   ecs_register_system(
-      DebugSkeletonDrawSys,
+      DevSkeletonDrawSys,
       ecs_view_id(GlobalDrawView),
       ecs_view_id(SubjectView),
       ecs_view_id(SkeletonTemplView));
 
-  ecs_order(DebugSkeletonDrawSys, DebugOrder_SkeletonDebugDraw);
+  ecs_order(DevSkeletonDrawSys, DevOrder_SkeletonDevDraw);
 }
 
 EcsEntityId

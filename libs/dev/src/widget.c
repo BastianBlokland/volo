@@ -199,18 +199,18 @@ bool dev_widget_prefab(
 }
 
 bool dev_widget_asset(
-    UiCanvasComp*             c,
-    DevFinderComp*            finder,
-    const DebugFinderCategory cat,
-    EcsEntityId*              val,
-    const UiWidgetFlags       flags) {
+    UiCanvasComp*           c,
+    DevFinderComp*          finder,
+    const DevFinderCategory cat,
+    EcsEntityId*            val,
+    const UiWidgetFlags     flags) {
 
-  const DebugFinderResult entries = dev_finder_get(finder, cat);
+  const DevFinderResult entries = dev_finder_get(finder, cat);
   ui_layout_push(c);
   ui_layout_grow(c, UiAlign_MiddleLeft, ui_vector(-30, 0), UiBase_Absolute, Ui_X);
 
   bool changed = false;
-  if (entries.status != DebugFinderStatus_Ready) {
+  if (entries.status != DevFinderStatus_Ready) {
     ui_label(c, string_lit("Loading..."));
   } else {
     i32 index = -1;

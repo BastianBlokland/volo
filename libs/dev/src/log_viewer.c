@@ -23,9 +23,9 @@
 #define log_tracker_max_age time_seconds(10)
 
 typedef enum {
-  DebugLogFlags_Combine = 1 << 0,
-  DebugLogFlags_Default = DebugLogFlags_Combine,
-} DebugLogFlags;
+  DevLogFlags_Combine = 1 << 0,
+  DevLogFlags_Default = DevLogFlags_Combine,
+} DevLogFlags;
 
 /**
  * Log entries are stored (sorted on timestamp) in a circular buffer. The range of active entries is
@@ -34,35 +34,35 @@ typedef enum {
  * which indicates that the next entry is at the beginning of the buffer.
  *
  * Entry memory layout:
- * base:              DebugLogEntry (24 bytes)
- * message-meta:      DebugLogStr   (1 byte)
- * message-data       byte[]        (n bytes)
+ * base:              DevLogEntry (24 bytes)
+ * message-meta:      DevLogStr   (1 byte)
+ * message-data       byte[]      (n bytes)
  *
  * Followed n log parameters:
- * param-name-meta:   DebugLogStr   (1 byte)
- * param-name-data:   byte[]        (n bytes)
- * param-value-meta:  DebugLogStr   (1 byte)
- * param-value-data:  byte[]        (n bytes)
+ * param-name-meta:   DevLogStr   (1 byte)
+ * param-name-data:   byte[]      (n bytes)
+ * param-value-meta:  DevLogStr   (1 byte)
+ * param-value-data:  byte[]      (n bytes)
  */
 
-typedef struct sDebugLogEntry DebugLogEntry;
+typedef struct sDevLogEntry DevLogEntry;
 
-struct sDebugLogEntry {
-  TimeReal      timestamp;
-  LogLevel      lvl : 8;
-  DebugLogFlags flags : 8;
-  u8            paramCount;
-  u16           line;
-  u16           fileNameLen;
-  const u8*     fileNamePtr;
+struct sDevLogEntry {
+  TimeReal    timestamp;
+  LogLevel    lvl : 8;
+  DevLogFlags flags : 8;
+  u8          paramCount;
+  u16         line;
+  u16         fileNameLen;
+  const u8*   fileNamePtr;
 };
 
 typedef struct {
   u8 length;
   u8 data[];
-} DebugLogStr;
+} DevLogStr;
 
-ASSERT(alignof(DebugLogStr) == 1, "Log strings should not require padding");
+ASSERT(alignof(DevLogStr) == 1, "Log strings should not require padding");
 
 /**
  * Sink that will receive log messages.
@@ -76,44 +76,44 @@ typedef struct {
   ThreadSpinLock bufferLock;
   u8*            buffer;    // Circular buffer of (dynamically sized) entries.
   u8*            bufferPos; // Current write position.
-  DebugLogEntry *entryHead, *entryTail, *entryWrapPoint;
-} DebugLogSink;
+  DevLogEntry *  entryHead, *entryTail, *entryWrapPoint;
+} DevLogSink;
 
-static DebugLogStr* dev_log_str_next(DebugLogStr* str) {
-  return bits_ptr_offset(str, sizeof(DebugLogStr) + str->length);
+static DevLogStr* dev_log_str_next(DevLogStr* str) {
+  return bits_ptr_offset(str, sizeof(DevLogStr) + str->length);
 }
 
-static String dev_log_text(const DebugLogStr* str) { return mem_create(str->data, str->length); }
+static String dev_log_text(const DevLogStr* str) { return mem_create(str->data, str->length); }
 
-static bool dev_log_str_eq(DebugLogStr* a, DebugLogStr* b) {
+static bool dev_log_str_eq(DevLogStr* a, DevLogStr* b) {
   return a->length == b->length && mem_eq(dev_log_text(a), dev_log_text(b));
 }
 
-static DebugLogStr* dev_log_msg(const DebugLogEntry* entry) {
-  return bits_ptr_offset(entry, sizeof(DebugLogEntry));
+static DevLogStr* dev_log_msg(const DevLogEntry* entry) {
+  return bits_ptr_offset(entry, sizeof(DevLogEntry));
 }
 
-static bool dev_log_is_dup(const DebugLogEntry* a, const DebugLogEntry* b) {
+static bool dev_log_is_dup(const DevLogEntry* a, const DevLogEntry* b) {
   return dev_log_str_eq(dev_log_msg(a), dev_log_msg(b));
 }
 
-static DebugLogEntry* dev_log_next(DebugLogSink* s, DebugLogEntry* entry) {
+static DevLogEntry* dev_log_next(DevLogSink* s, DevLogEntry* entry) {
   if (entry == s->entryTail) {
     return null;
   }
   if (entry == s->entryWrapPoint) {
-    return (DebugLogEntry*)s->buffer; // Next entry is the beginning of the buffer.
+    return (DevLogEntry*)s->buffer; // Next entry is the beginning of the buffer.
   }
-  DebugLogStr* strItr = dev_log_msg(entry);
+  DevLogStr* strItr = dev_log_msg(entry);
   for (u32 i = 0; i != entry->paramCount; ++i) {
     strItr = dev_log_str_next(strItr); // Param name.
     strItr = dev_log_str_next(strItr); // Param value.
   }
   strItr = dev_log_str_next(strItr); // Skip over the last string.
-  return bits_align_ptr(strItr, alignof(DebugLogEntry));
+  return bits_align_ptr(strItr, alignof(DevLogEntry));
 }
 
-static Mem dev_log_buffer_remaining(DebugLogSink* s) {
+static Mem dev_log_buffer_remaining(DevLogSink* s) {
   // Check if the bufferPos is before or after the range of active entries in the buffer.
   if (!s->entryHead || s->bufferPos > (const u8*)s->entryHead) {
     return mem_from_to(s->bufferPos, s->buffer + log_tracker_buffer_size);
@@ -122,16 +122,16 @@ static Mem dev_log_buffer_remaining(DebugLogSink* s) {
 }
 
 static void dev_log_write_text(DynString* out, const String text) {
-  DebugLogStr* ptr = dynstring_push(out, sizeof(DebugLogStr)).ptr;
-  diag_assert(bits_aligned_ptr(ptr, alignof(DebugLogStr)));
+  DevLogStr* ptr = dynstring_push(out, sizeof(DevLogStr)).ptr;
+  diag_assert(bits_aligned_ptr(ptr, alignof(DevLogStr)));
 
   ptr->length = (u8)math_min(u8_max, text.size);
   dynstring_append(out, string_slice(text, 0, ptr->length));
 }
 
 static void dev_log_write_arg(DynString* out, const FormatArg* arg) {
-  DebugLogStr* ptr = dynstring_push(out, sizeof(DebugLogStr)).ptr;
-  diag_assert(bits_aligned_ptr(ptr, alignof(DebugLogStr)));
+  DevLogStr* ptr = dynstring_push(out, sizeof(DevLogStr)).ptr;
+  diag_assert(bits_aligned_ptr(ptr, alignof(DevLogStr)));
 
   const usize sizeStart = out->size;
   format_write_arg(out, arg);
@@ -146,13 +146,13 @@ static void dev_log_write_entry(
     const TimeReal  timestamp,
     const String    msg,
     const LogParam* params) {
-  DebugLogEntry* ptr = dynstring_push(out, sizeof(DebugLogEntry)).ptr;
-  diag_assert(bits_aligned_ptr(ptr, alignof(DebugLogEntry)));
+  DevLogEntry* ptr = dynstring_push(out, sizeof(DevLogEntry)).ptr;
+  diag_assert(bits_aligned_ptr(ptr, alignof(DevLogEntry)));
 
-  *ptr = (DebugLogEntry){
+  *ptr = (DevLogEntry){
       .timestamp   = timestamp,
       .lvl         = lvl,
-      .flags       = DebugLogFlags_Default,
+      .flags       = DevLogFlags_Default,
       .line        = (u16)math_min(srcLoc.line, u16_max),
       .fileNameLen = (u16)math_min(srcLoc.file.size, u16_max),
       .fileNamePtr = srcLoc.file.ptr,
@@ -167,7 +167,7 @@ static void dev_log_write_entry(
   }
 }
 
-static void dev_log_prune_older(DebugLogSink* s, const TimeReal timestamp) {
+static void dev_log_prune_older(DevLogSink* s, const TimeReal timestamp) {
   thread_spinlock_lock(&s->bufferLock);
   if (s->entryHead) {
     for (; s->entryHead->timestamp < timestamp;) {
@@ -175,7 +175,7 @@ static void dev_log_prune_older(DebugLogSink* s, const TimeReal timestamp) {
         s->entryHead = s->entryTail = s->entryWrapPoint = null; // Whole buffer became empty.
         break;
       }
-      DebugLogEntry* next = dev_log_next(s, s->entryHead);
+      DevLogEntry* next = dev_log_next(s, s->entryHead);
       if (s->entryHead == s->entryWrapPoint) {
         s->entryWrapPoint = null; // Entry head has wrapped around.
       }
@@ -192,7 +192,7 @@ static void dev_log_sink_write(
     const TimeReal  timestamp,
     const String    msg,
     const LogParam* params) {
-  DebugLogSink* s = (DebugLogSink*)sink;
+  DevLogSink* s = (DevLogSink*)sink;
   if ((log_tracker_mask & (1 << lvl)) == 0) {
     return;
   }
@@ -206,7 +206,7 @@ static void dev_log_sink_write(
       s->bufferPos = s->buffer; // Buffer is empty; start at the beginning.
     } else {
       // Start from the beginning of the last entry (with padding to satisfy alignment).
-      s->bufferPos = bits_align_ptr(s->bufferPos, alignof(DebugLogEntry));
+      s->bufferPos = bits_align_ptr(s->bufferPos, alignof(DevLogEntry));
     }
 
   Write:;
@@ -215,7 +215,7 @@ static void dev_log_sink_write(
       mem_cpy(buffer, dynstring_view(&scratchStr));
       s->bufferPos += scratchStr.size;
 
-      DebugLogEntry* entry = (DebugLogEntry*)buffer.ptr;
+      DevLogEntry* entry = (DevLogEntry*)buffer.ptr;
       if (!s->entryHead) {
         s->entryHead = entry;
       }
@@ -233,36 +233,36 @@ static void dev_log_sink_write(
 }
 
 static void dev_log_sink_destroy(LogSink* sink) {
-  DebugLogSink* debugSink = (DebugLogSink*)sink;
+  DevLogSink* debugSink = (DevLogSink*)sink;
   if (thread_atomic_sub_i32(&debugSink->refCounter, 1) == 1) {
     alloc_free(g_allocHeap, mem_create(debugSink->buffer, log_tracker_buffer_size));
     alloc_free_t(g_allocHeap, debugSink);
   }
 }
 
-DebugLogSink* dev_log_sink_create(void) {
-  DebugLogSink* sink = alloc_alloc_t(g_allocHeap, DebugLogSink);
+DevLogSink* dev_log_sink_create(void) {
+  DevLogSink* sink = alloc_alloc_t(g_allocHeap, DevLogSink);
 
-  *sink = (DebugLogSink){
+  *sink = (DevLogSink){
       .api    = {.write = dev_log_sink_write, .destroy = dev_log_sink_destroy},
-      .buffer = alloc_alloc(g_allocHeap, log_tracker_buffer_size, alignof(DebugLogEntry)).ptr,
+      .buffer = alloc_alloc(g_allocHeap, log_tracker_buffer_size, alignof(DevLogEntry)).ptr,
   };
 
   return sink;
 }
 
 ecs_comp_define(DevLogTrackerComp) {
-  bool          freeze;
-  TimeDuration  freezeTime;
-  DebugLogSink* sink;
+  bool         freeze;
+  TimeDuration freezeTime;
+  DevLogSink*  sink;
 };
 
 ecs_comp_define(DevLogViewerComp) {
-  LogMask        mask;
-  TimeZone       timezone;
-  DebugLogEntry* inspectEntry;
-  UiPanel        inspectPanel;
-  UiScrollview   inspectScrollView;
+  LogMask      mask;
+  TimeZone     timezone;
+  DevLogEntry* inspectEntry;
+  UiPanel      inspectPanel;
+  UiScrollview inspectScrollView;
 };
 
 static void ecs_destruct_log_tracker(void* data) {
@@ -284,7 +284,7 @@ ecs_view_define(LogViewerView) {
 
 static DevLogTrackerComp*
 dev_log_tracker_create(EcsWorld* world, const EcsEntityId entity, Logger* logger) {
-  DebugLogSink* sink = dev_log_sink_create();
+  DevLogSink* sink = dev_log_sink_create();
   thread_atomic_store_i32(&sink->refCounter, 2); // Referenced by the logger and the viewer.
   log_add_sink(logger, (LogSink*)sink);
   return ecs_world_add_t(world, entity, DevLogTrackerComp, .sink = sink);
@@ -293,7 +293,7 @@ dev_log_tracker_create(EcsWorld* world, const EcsEntityId entity, Logger* logger
 static String dev_log_inspect_title(const LogLevel lvl) {
   switch (lvl) {
   case LogLevel_Debug:
-    return fmt_write_scratch("{} Debug", fmt_ui_shape(Article));
+    return fmt_write_scratch("{} Dev", fmt_ui_shape(Article));
   case LogLevel_Info:
     return fmt_write_scratch("{} Info", fmt_ui_shape(Article));
   case LogLevel_Warn:
@@ -330,12 +330,12 @@ static void dev_log_inspect_param(UiCanvasComp* c, UiTable* t, const String k, c
   ui_label(c, v, .selectable = true);
 }
 
-static f32 dev_log_inspect_desired_height(const DebugLogEntry* entry) {
+static f32 dev_log_inspect_desired_height(const DevLogEntry* entry) {
   UiTable table = ui_table(); // Dummy table.
   return ui_table_height(&table, 3 /* builtin params */ + entry->paramCount);
 }
 
-static void dev_log_inspect_open(DevLogViewerComp* viewer, DebugLogEntry* entry) {
+static void dev_log_inspect_open(DevLogViewerComp* viewer, DevLogEntry* entry) {
   const f32 heightDesired = dev_log_inspect_desired_height(entry);
   const f32 heightMax     = 600.0f;
   const f32 height        = math_min(heightDesired, heightMax);
@@ -348,7 +348,7 @@ static void dev_log_inspect_open(DevLogViewerComp* viewer, DebugLogEntry* entry)
 static void dev_log_inspect_close(DevLogViewerComp* viewer) { viewer->inspectEntry = null; }
 
 static void dev_log_inspect_draw(UiCanvasComp* c, DevLogViewerComp* viewer) {
-  const DebugLogEntry* entry = viewer->inspectEntry;
+  const DevLogEntry* entry = viewer->inspectEntry;
 
   ui_panel_begin(
       c,
@@ -364,12 +364,12 @@ static void dev_log_inspect_draw(UiCanvasComp* c, DevLogViewerComp* viewer) {
   const f32 totalHeight = ui_table_height(&table, 3 /* builtin params */ + entry->paramCount);
   ui_scrollview_begin(c, &viewer->inspectScrollView, UiLayer_Normal, totalHeight);
 
-  DebugLogStr* strItr = dev_log_msg(entry);
+  DevLogStr* strItr = dev_log_msg(entry);
   dev_log_inspect_param(c, &table, string_lit("message"), dev_log_text(strItr));
 
   for (u32 paramIdx = 0; paramIdx != entry->paramCount; ++paramIdx) {
-    DebugLogStr* paramName = dev_log_str_next(strItr);
-    DebugLogStr* paramVal  = dev_log_str_next(paramName);
+    DevLogStr* paramName = dev_log_str_next(strItr);
+    DevLogStr* paramVal  = dev_log_str_next(paramName);
     dev_log_inspect_param(c, &table, dev_log_text(paramName), dev_log_text(paramVal));
     strItr = paramVal;
   }
@@ -395,16 +395,16 @@ static void dev_log_inspect_draw(UiCanvasComp* c, DevLogViewerComp* viewer) {
 }
 
 static void dev_log_notif_tooltip(
-    UiCanvasComp* c, const UiId id, const DevLogViewerComp* viewer, const DebugLogEntry* entry) {
+    UiCanvasComp* c, const UiId id, const DevLogViewerComp* viewer, const DevLogEntry* entry) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  DebugLogStr* strItr = dev_log_msg(entry);
+  DevLogStr* strItr = dev_log_msg(entry);
   fmt_write(&buffer, "\a.bmessage\ar: {}\n", fmt_text(dev_log_text(strItr)));
 
   for (u32 paramIdx = 0; paramIdx != entry->paramCount; ++paramIdx) {
-    DebugLogStr* paramName = dev_log_str_next(strItr);
-    DebugLogStr* paramVal  = dev_log_str_next(paramName);
+    DevLogStr* paramName = dev_log_str_next(strItr);
+    DevLogStr* paramVal  = dev_log_str_next(paramName);
     fmt_write(
         &buffer,
         "\a.b{}\ar: {}\n",
@@ -442,8 +442,8 @@ static UiColor dev_log_notif_bg_color(const LogLevel lvl) {
 }
 
 static void dev_log_notif_draw_entry(
-    UiCanvasComp* c, DevLogViewerComp* viewer, DebugLogEntry* entry, const u32 repeat) {
-  DebugLogStr* msg = dev_log_msg(entry);
+    UiCanvasComp* c, DevLogViewerComp* viewer, DevLogEntry* entry, const u32 repeat) {
+  DevLogStr* msg = dev_log_msg(entry);
 
   ui_style_push(c);
   ui_style_color(c, dev_log_notif_bg_color(entry->lvl));
@@ -465,7 +465,7 @@ static void dev_log_notif_draw_entry(
   const UiStatus status = ui_canvas_elem_status(c, bgId);
   if (status == UiStatus_Activated) {
     if (repeat) {
-      entry->flags &= ~DebugLogFlags_Combine;
+      entry->flags &= ~DevLogFlags_Combine;
     } else {
       dev_log_inspect_open(viewer, entry);
     }
@@ -493,21 +493,21 @@ dev_log_notif_draw(UiCanvasComp* c, const DevLogTrackerComp* tracker, DevLogView
    * iterate up to the last fully written one.
    */
   thread_atomic_fence_acquire();
-  DebugLogEntry* first = tracker->sink->entryHead;
-  DebugLogEntry* last  = tracker->sink->entryTail;
+  DevLogEntry* first = tracker->sink->entryHead;
+  DevLogEntry* last  = tracker->sink->entryTail;
   if (!first) {
     goto End; // Buffer is emtpy.
   }
-  for (DebugLogEntry* itr = first;; itr = dev_log_next(tracker->sink, itr)) {
+  for (DevLogEntry* itr = first;; itr = dev_log_next(tracker->sink, itr)) {
     if (viewer->mask & (1 << itr->lvl)) {
-      DebugLogEntry* entry  = itr;
-      u32            repeat = 0;
-      if (entry->flags & DebugLogFlags_Combine) {
+      DevLogEntry* entry  = itr;
+      u32          repeat = 0;
+      if (entry->flags & DevLogFlags_Combine) {
         for (;;) {
           if (itr == last) {
             break;
           }
-          DebugLogEntry* next = dev_log_next(tracker->sink, itr);
+          DevLogEntry* next = dev_log_next(tracker->sink, itr);
           if (dev_log_is_dup(entry, next)) {
             itr = next;
             ++repeat;
@@ -527,7 +527,7 @@ End:
   ui_style_pop(c);
 }
 
-ecs_system_define(DebugLogUpdateSys) {
+ecs_system_define(DevLogUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, LogGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -574,7 +574,7 @@ ecs_module_init(dev_log_viewer_module) {
   ecs_register_view(LogGlobalView);
   ecs_register_view(LogViewerView);
 
-  ecs_register_system(DebugLogUpdateSys, ecs_view_id(LogGlobalView), ecs_view_id(LogViewerView));
+  ecs_register_system(DevLogUpdateSys, ecs_view_id(LogGlobalView), ecs_view_id(LogViewerView));
 }
 
 void dev_log_tracker_init(EcsWorld* world, Logger* logger) {

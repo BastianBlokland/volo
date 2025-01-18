@@ -19,101 +19,101 @@
 #include "scene_tag.h"
 
 typedef enum {
-  DebugShapeType_Box,
-  DebugShapeType_BoxFill    = DebugShapeType_Box + DebugShape_Fill,
-  DebugShapeType_BoxWire    = DebugShapeType_Box + DebugShape_Wire,
-  DebugShapeType_BoxOverlay = DebugShapeType_Box + DebugShape_Overlay,
+  DevShapeType_Box,
+  DevShapeType_BoxFill    = DevShapeType_Box + DevShape_Fill,
+  DevShapeType_BoxWire    = DevShapeType_Box + DevShape_Wire,
+  DevShapeType_BoxOverlay = DevShapeType_Box + DevShape_Overlay,
 
-  DebugShapeType_Quad,
-  DebugShapeType_QuadFill    = DebugShapeType_Quad + DebugShape_Fill,
-  DebugShapeType_QuadWire    = DebugShapeType_Quad + DebugShape_Wire,
-  DebugShapeType_QuadOverlay = DebugShapeType_Quad + DebugShape_Overlay,
+  DevShapeType_Quad,
+  DevShapeType_QuadFill    = DevShapeType_Quad + DevShape_Fill,
+  DevShapeType_QuadWire    = DevShapeType_Quad + DevShape_Wire,
+  DevShapeType_QuadOverlay = DevShapeType_Quad + DevShape_Overlay,
 
-  DebugShapeType_Sphere,
-  DebugShapeType_SphereFill    = DebugShapeType_Sphere + DebugShape_Fill,
-  DebugShapeType_SphereWire    = DebugShapeType_Sphere + DebugShape_Wire,
-  DebugShapeType_SphereOverlay = DebugShapeType_Sphere + DebugShape_Overlay,
+  DevShapeType_Sphere,
+  DevShapeType_SphereFill    = DevShapeType_Sphere + DevShape_Fill,
+  DevShapeType_SphereWire    = DevShapeType_Sphere + DevShape_Wire,
+  DevShapeType_SphereOverlay = DevShapeType_Sphere + DevShape_Overlay,
 
-  DebugShapeType_HemisphereUncapped,
-  DebugShapeType_HemisphereUncappedFill    = DebugShapeType_HemisphereUncapped + DebugShape_Fill,
-  DebugShapeType_HemisphereUncappedWire    = DebugShapeType_HemisphereUncapped + DebugShape_Wire,
-  DebugShapeType_HemisphereUncappedOverlay = DebugShapeType_HemisphereUncapped + DebugShape_Overlay,
+  DevShapeType_HemisphereUncapped,
+  DevShapeType_HemisphereUncappedFill    = DevShapeType_HemisphereUncapped + DevShape_Fill,
+  DevShapeType_HemisphereUncappedWire    = DevShapeType_HemisphereUncapped + DevShape_Wire,
+  DevShapeType_HemisphereUncappedOverlay = DevShapeType_HemisphereUncapped + DevShape_Overlay,
 
-  DebugShapeType_Cylinder,
-  DebugShapeType_CylinderFill    = DebugShapeType_Cylinder + DebugShape_Fill,
-  DebugShapeType_CylinderWire    = DebugShapeType_Cylinder + DebugShape_Wire,
-  DebugShapeType_CylinderOverlay = DebugShapeType_Cylinder + DebugShape_Overlay,
+  DevShapeType_Cylinder,
+  DevShapeType_CylinderFill    = DevShapeType_Cylinder + DevShape_Fill,
+  DevShapeType_CylinderWire    = DevShapeType_Cylinder + DevShape_Wire,
+  DevShapeType_CylinderOverlay = DevShapeType_Cylinder + DevShape_Overlay,
 
-  DebugShapeType_CylinderUncapped,
-  DebugShapeType_CylinderUncappedFill    = DebugShapeType_CylinderUncapped + DebugShape_Fill,
-  DebugShapeType_CylinderUncappedWire    = DebugShapeType_CylinderUncapped + DebugShape_Wire,
-  DebugShapeType_CylinderUncappedOverlay = DebugShapeType_CylinderUncapped + DebugShape_Overlay,
+  DevShapeType_CylinderUncapped,
+  DevShapeType_CylinderUncappedFill    = DevShapeType_CylinderUncapped + DevShape_Fill,
+  DevShapeType_CylinderUncappedWire    = DevShapeType_CylinderUncapped + DevShape_Wire,
+  DevShapeType_CylinderUncappedOverlay = DevShapeType_CylinderUncapped + DevShape_Overlay,
 
-  DebugShapeType_Cone,
-  DebugShapeType_ConeFill    = DebugShapeType_Cone + DebugShape_Fill,
-  DebugShapeType_ConeWire    = DebugShapeType_Cone + DebugShape_Wire,
-  DebugShapeType_ConeOverlay = DebugShapeType_Cone + DebugShape_Overlay,
+  DevShapeType_Cone,
+  DevShapeType_ConeFill    = DevShapeType_Cone + DevShape_Fill,
+  DevShapeType_ConeWire    = DevShapeType_Cone + DevShape_Wire,
+  DevShapeType_ConeOverlay = DevShapeType_Cone + DevShape_Overlay,
 
-  DebugShapeType_Line,
-  DebugShapeType_LineOverlay = DebugShapeType_Line + DebugShape_Overlay,
+  DevShapeType_Line,
+  DevShapeType_LineOverlay = DevShapeType_Line + DevShape_Overlay,
 
-  DebugShapeType_Count,
-} DebugShapeType;
+  DevShapeType_Count,
+} DevShapeType;
 
 typedef struct {
   GeoVector pos;
   GeoQuat   rot;
   GeoVector size;
   GeoColor  color;
-} DebugShapeBox;
+} DevShapeBox;
 
 typedef struct {
   GeoVector pos;
   GeoQuat   rot;
   f32       sizeX, sizeY;
   GeoColor  color;
-} DebugShapeQuad;
+} DevShapeQuad;
 
 typedef struct {
   GeoVector pos;
   GeoQuat   rot;
   f32       radius;
   GeoColor  color;
-} DebugShapeSphere;
+} DevShapeSphere;
 
 typedef struct {
   GeoVector bottom, top;
   f32       radius;
   GeoColor  color;
-} DebugShapeCylinder;
+} DevShapeCylinder;
 
 typedef struct {
   GeoVector bottom, top;
   f32       radius;
   GeoColor  color;
-} DebugShapeCone;
+} DevShapeCone;
 
 typedef struct {
   GeoVector start, end;
   GeoColor  color;
-} DebugShapeLine;
+} DevShapeLine;
 
 typedef struct {
-  DebugShapeType type;
+  DevShapeType type;
   union {
-    DebugShapeBox      data_box;
-    DebugShapeQuad     data_quad;
-    DebugShapeSphere   data_sphere;
-    DebugShapeCylinder data_cylinder;
-    DebugShapeCone     data_cone;
-    DebugShapeLine     data_line;
+    DevShapeBox      data_box;
+    DevShapeQuad     data_quad;
+    DevShapeSphere   data_sphere;
+    DevShapeCylinder data_cylinder;
+    DevShapeCone     data_cone;
+    DevShapeLine     data_line;
   };
-} DebugShape;
+} DevShape;
 
 // clang-format off
-#define shape_graphic(_SHAPE_, _GRAPHIC_) [DebugShapeType_##_SHAPE_] = string_static(_GRAPHIC_)
+#define shape_graphic(_SHAPE_, _GRAPHIC_) [DevShapeType_##_SHAPE_] = string_static(_GRAPHIC_)
 
-static const String g_debugGraphics[DebugShapeType_Count] = {
+static const String g_debugGraphics[DevShapeType_Count] = {
     shape_graphic(BoxFill,                    "graphics/debug/shape_box_fill.graphic"),
     shape_graphic(BoxWire,                    "graphics/debug/shape_box_wire.graphic"),
     shape_graphic(BoxOverlay,                 "graphics/debug/shape_box_overlay.graphic"),
@@ -141,10 +141,10 @@ static const String g_debugGraphics[DebugShapeType_Count] = {
 #undef shape_graphic
 // clang-format on
 
-ecs_comp_define(DevShapeRendererComp) { EcsEntityId rendObjEntities[DebugShapeType_Count]; };
+ecs_comp_define(DevShapeRendererComp) { EcsEntityId rendObjEntities[DevShapeType_Count]; };
 
 ecs_comp_define(DevShapeComp) {
-  DynArray entries; // DebugShape[]
+  DynArray entries; // DevShape[]
 };
 
 static void ecs_destruct_shape(void* data) {
@@ -174,7 +174,7 @@ static DevShapeRendererComp* dev_shape_renderer(EcsWorld* world) {
 }
 
 static EcsEntityId
-dev_shape_rend_obj_create(EcsWorld* world, AssetManagerComp* assets, const DebugShapeType shape) {
+dev_shape_rend_obj_create(EcsWorld* world, AssetManagerComp* assets, const DevShapeType shape) {
   if (string_is_empty(g_debugGraphics[shape])) {
     return 0;
   }
@@ -196,16 +196,16 @@ static void dev_shape_renderer_create(EcsWorld* world, AssetManagerComp* assets)
   DevShapeRendererComp* renderer =
       ecs_world_add_t(world, ecs_world_global(world), DevShapeRendererComp);
 
-  for (DebugShapeType shape = 0; shape != DebugShapeType_Count; ++shape) {
+  for (DevShapeType shape = 0; shape != DevShapeType_Count; ++shape) {
     renderer->rendObjEntities[shape] = dev_shape_rend_obj_create(world, assets, shape);
   }
 }
 
-INLINE_HINT static void dev_shape_add(DevShapeComp* comp, const DebugShape shape) {
-  *((DebugShape*)dynarray_push(&comp->entries, 1).ptr) = shape;
+INLINE_HINT static void dev_shape_add(DevShapeComp* comp, const DevShape shape) {
+  *((DevShape*)dynarray_push(&comp->entries, 1).ptr) = shape;
 }
 
-ecs_system_define(DebugShapeInitSys) {
+ecs_system_define(DevShapeInitSys) {
   DevShapeRendererComp* renderer = dev_shape_renderer(world);
   if (LIKELY(renderer)) {
     return; // Already initialized.
@@ -218,7 +218,7 @@ ecs_system_define(DebugShapeInitSys) {
   }
 }
 
-ecs_system_define(DebugShapeRenderSys) {
+ecs_system_define(DevShapeRenderSys) {
   DevShapeRendererComp* renderer = dev_shape_renderer(world);
   if (UNLIKELY(!renderer)) {
     return; // Renderer not yet initialized.
@@ -229,7 +229,7 @@ ecs_system_define(DebugShapeRenderSys) {
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ShapeView)); ecs_view_walk(itr);) {
     DevShapeComp* shape = ecs_view_write_t(itr, DevShapeComp);
-    dynarray_for_t(&shape->entries, DebugShape, entry) {
+    dynarray_for_t(&shape->entries, DevShape, entry) {
       ecs_view_jump(rendObjItr, renderer->rendObjEntities[entry->type]);
       RendObjectComp* rendObj = ecs_view_write_t(rendObjItr, RendObjectComp);
 
@@ -252,9 +252,9 @@ ecs_system_define(DebugShapeRenderSys) {
       ASSERT(alignof(DrawLineData) == 16, "Alignment needs to match the glsl alignment");
 
       switch (entry->type) {
-      case DebugShapeType_BoxFill:
-      case DebugShapeType_BoxWire:
-      case DebugShapeType_BoxOverlay: {
+      case DevShapeType_BoxFill:
+      case DevShapeType_BoxWire:
+      case DevShapeType_BoxOverlay: {
         const GeoBox boundsLocal = (GeoBox){
             .min = geo_vector_mul(entry->data_box.size, -0.5f),
             .max = geo_vector_mul(entry->data_box.size, 0.5f),
@@ -270,9 +270,9 @@ ecs_system_define(DebugShapeRenderSys) {
         };
         continue;
       }
-      case DebugShapeType_QuadFill:
-      case DebugShapeType_QuadWire:
-      case DebugShapeType_QuadOverlay: {
+      case DevShapeType_QuadFill:
+      case DevShapeType_QuadWire:
+      case DevShapeType_QuadOverlay: {
         const SceneTags tags   = SceneTags_Debug;
         const GeoBox    bounds = geo_box_from_quad(
             entry->data_quad.pos,
@@ -287,12 +287,12 @@ ecs_system_define(DebugShapeRenderSys) {
         };
         continue;
       }
-      case DebugShapeType_SphereFill:
-      case DebugShapeType_SphereWire:
-      case DebugShapeType_SphereOverlay:
-      case DebugShapeType_HemisphereUncappedFill:
-      case DebugShapeType_HemisphereUncappedWire:
-      case DebugShapeType_HemisphereUncappedOverlay: {
+      case DevShapeType_SphereFill:
+      case DevShapeType_SphereWire:
+      case DevShapeType_SphereOverlay:
+      case DevShapeType_HemisphereUncappedFill:
+      case DevShapeType_HemisphereUncappedWire:
+      case DevShapeType_HemisphereUncappedOverlay: {
         const GeoVector pos    = entry->data_sphere.pos;
         const f32       radius = entry->data_sphere.radius;
         if (UNLIKELY(radius < f32_epsilon)) {
@@ -308,12 +308,12 @@ ecs_system_define(DebugShapeRenderSys) {
         };
         continue;
       }
-      case DebugShapeType_CylinderFill:
-      case DebugShapeType_CylinderWire:
-      case DebugShapeType_CylinderOverlay:
-      case DebugShapeType_CylinderUncappedFill:
-      case DebugShapeType_CylinderUncappedWire:
-      case DebugShapeType_CylinderUncappedOverlay: {
+      case DevShapeType_CylinderFill:
+      case DevShapeType_CylinderWire:
+      case DevShapeType_CylinderOverlay:
+      case DevShapeType_CylinderUncappedFill:
+      case DevShapeType_CylinderUncappedWire:
+      case DevShapeType_CylinderUncappedOverlay: {
         const GeoVector bottom = entry->data_cylinder.bottom;
         const GeoVector top    = entry->data_cylinder.top;
         const GeoVector toTop  = geo_vector_sub(top, bottom);
@@ -331,9 +331,9 @@ ecs_system_define(DebugShapeRenderSys) {
         };
         continue;
       }
-      case DebugShapeType_ConeFill:
-      case DebugShapeType_ConeWire:
-      case DebugShapeType_ConeOverlay: {
+      case DevShapeType_ConeFill:
+      case DevShapeType_ConeWire:
+      case DevShapeType_ConeOverlay: {
         const GeoVector bottom = entry->data_cone.bottom;
         const GeoVector top    = entry->data_cone.top;
         const GeoVector toTop  = geo_vector_sub(top, bottom);
@@ -351,8 +351,8 @@ ecs_system_define(DebugShapeRenderSys) {
         };
         continue;
       }
-      case DebugShapeType_Line:
-      case DebugShapeType_LineOverlay: {
+      case DevShapeType_Line:
+      case DevShapeType_LineOverlay: {
         const SceneTags tags   = SceneTags_Debug;
         const GeoBox    bounds = geo_box_from_line(entry->data_line.start, entry->data_line.end);
         *rend_object_add_instance_t(rendObj, DrawLineData, tags, bounds) = (DrawLineData){
@@ -362,7 +362,7 @@ ecs_system_define(DebugShapeRenderSys) {
         };
         continue;
       }
-      case DebugShapeType_Count:
+      case DevShapeType_Count:
         break;
       }
       diag_crash();
@@ -381,89 +381,89 @@ ecs_module_init(dev_shape_module) {
   ecs_register_view(RendObjView);
 
   ecs_register_system(
-      DebugShapeInitSys, ecs_view_id(AssetManagerView), ecs_view_id(ShapeRendererView));
+      DevShapeInitSys, ecs_view_id(AssetManagerView), ecs_view_id(ShapeRendererView));
 
   ecs_register_system(
-      DebugShapeRenderSys,
+      DevShapeRenderSys,
       ecs_view_id(ShapeRendererView),
       ecs_view_id(ShapeView),
       ecs_view_id(RendObjView));
 
-  ecs_order(DebugShapeRenderSys, DebugOrder_ShapeRender);
+  ecs_order(DevShapeRenderSys, DevOrder_ShapeRender);
 }
 
 DevShapeComp* dev_shape_create(EcsWorld* world, const EcsEntityId entity) {
   return ecs_world_add_t(
-      world, entity, DevShapeComp, .entries = dynarray_create_t(g_allocHeap, DebugShape, 64));
+      world, entity, DevShapeComp, .entries = dynarray_create_t(g_allocHeap, DevShape, 64));
 }
 
 void dev_box(
-    DevShapeComp*        comp,
-    const GeoVector      pos,
-    const GeoQuat        rot,
-    const GeoVector      size,
-    const GeoColor       color,
-    const DebugShapeMode mode) {
+    DevShapeComp*      comp,
+    const GeoVector    pos,
+    const GeoQuat      rot,
+    const GeoVector    size,
+    const GeoColor     color,
+    const DevShapeMode mode) {
   dev_shape_add(
       comp,
-      (DebugShape){
-          .type     = DebugShapeType_Box + mode,
+      (DevShape){
+          .type     = DevShapeType_Box + mode,
           .data_box = {.pos = pos, .rot = rot, .size = size, .color = color},
       });
 }
 
 void dev_quad(
-    DevShapeComp*        comp,
-    const GeoVector      pos,
-    const GeoQuat        rot,
-    const f32            sizeX,
-    const f32            sizeY,
-    const GeoColor       color,
-    const DebugShapeMode mode) {
+    DevShapeComp*      comp,
+    const GeoVector    pos,
+    const GeoQuat      rot,
+    const f32          sizeX,
+    const f32          sizeY,
+    const GeoColor     color,
+    const DevShapeMode mode) {
   dev_shape_add(
       comp,
-      (DebugShape){
-          .type      = DebugShapeType_Quad + mode,
+      (DevShape){
+          .type      = DevShapeType_Quad + mode,
           .data_quad = {.pos = pos, .rot = rot, .sizeX = sizeX, .sizeY = sizeY, .color = color},
       });
 }
 
 void dev_sphere(
-    DevShapeComp*        comp,
-    const GeoVector      pos,
-    const f32            radius,
-    const GeoColor       color,
-    const DebugShapeMode mode) {
+    DevShapeComp*      comp,
+    const GeoVector    pos,
+    const f32          radius,
+    const GeoColor     color,
+    const DevShapeMode mode) {
   dev_shape_add(
       comp,
-      (DebugShape){
-          .type        = DebugShapeType_Sphere + mode,
+      (DevShape){
+          .type        = DevShapeType_Sphere + mode,
           .data_sphere = {.pos = pos, .radius = radius, .color = color},
       });
 }
 
 void dev_cylinder(
-    DevShapeComp*        comp,
-    const GeoVector      bottom,
-    const GeoVector      top,
-    const f32            radius,
-    const GeoColor       color,
-    const DebugShapeMode mode) {
+    DevShapeComp*      comp,
+    const GeoVector    bottom,
+    const GeoVector    top,
+    const f32          radius,
+    const GeoColor     color,
+    const DevShapeMode mode) {
   dev_shape_add(
       comp,
-      (DebugShape){
-          .type          = DebugShapeType_Cylinder + mode,
+      (DevShape){
+          .type          = DevShapeType_Cylinder + mode,
           .data_cylinder = {.bottom = bottom, .top = top, .radius = radius, .color = color},
       });
 }
 
 void dev_capsule(
-    DevShapeComp*        comp,
-    const GeoVector      bottom,
-    const GeoVector      top,
-    const f32            radius,
-    const GeoColor       color,
-    const DebugShapeMode mode) {
+    DevShapeComp*      comp,
+    const GeoVector    bottom,
+    const GeoVector    top,
+    const f32          radius,
+    const GeoColor     color,
+    const DevShapeMode mode) {
   GeoVector toTop = geo_vector_sub(top, bottom);
   if (geo_vector_mag_sqr(toTop) < 1e-6f) {
     toTop = geo_up;
@@ -472,15 +472,15 @@ void dev_capsule(
 
   dev_shape_add(
       comp,
-      (DebugShape){
-          .type          = DebugShapeType_CylinderUncapped + mode,
+      (DevShape){
+          .type          = DevShapeType_CylinderUncapped + mode,
           .data_cylinder = {.bottom = bottom, .top = top, .radius = radius, .color = color},
       });
 
   dev_shape_add(
       comp,
-      (DebugShape){
-          .type = DebugShapeType_HemisphereUncapped + mode,
+      (DevShape){
+          .type = DevShapeType_HemisphereUncapped + mode,
           .data_sphere =
               {.pos    = top,
                .rot    = geo_quat_look(toTop, geo_forward),
@@ -490,8 +490,8 @@ void dev_capsule(
 
   dev_shape_add(
       comp,
-      (DebugShape){
-          .type = DebugShapeType_HemisphereUncapped + mode,
+      (DevShape){
+          .type = DevShapeType_HemisphereUncapped + mode,
           .data_sphere =
               {.pos    = bottom,
                .rot    = geo_quat_look(toBottom, geo_forward),
@@ -501,16 +501,16 @@ void dev_capsule(
 }
 
 void dev_cone(
-    DevShapeComp*        comp,
-    const GeoVector      bottom,
-    const GeoVector      top,
-    const f32            radius,
-    const GeoColor       color,
-    const DebugShapeMode mode) {
+    DevShapeComp*      comp,
+    const GeoVector    bottom,
+    const GeoVector    top,
+    const f32          radius,
+    const GeoColor     color,
+    const DevShapeMode mode) {
   dev_shape_add(
       comp,
-      (DebugShape){
-          .type      = DebugShapeType_Cone + mode,
+      (DevShape){
+          .type      = DevShapeType_Cone + mode,
           .data_cone = {.bottom = bottom, .top = top, .radius = radius, .color = color},
       });
 }
@@ -519,8 +519,8 @@ void dev_line(
     DevShapeComp* comp, const GeoVector start, const GeoVector end, const GeoColor color) {
   dev_shape_add(
       comp,
-      (DebugShape){
-          .type      = DebugShapeType_Line + DebugShape_Overlay,
+      (DevShape){
+          .type      = DevShapeType_Line + DevShape_Overlay,
           .data_line = {.start = start, .end = end, .color = color},
       });
 }
@@ -559,11 +559,11 @@ void dev_arrow(
 
   const f32       tipLength = radius * g_tipLengthMult;
   const GeoVector tipStart  = geo_vector_sub(end, geo_vector_mul(dir, tipLength));
-  dev_cone(comp, tipStart, end, radius, color, DebugShape_Overlay);
+  dev_cone(comp, tipStart, end, radius, color, DevShape_Overlay);
 
   const f32 baseLength = dist - tipLength;
   if (baseLength > f32_epsilon) {
-    dev_cylinder(comp, begin, tipStart, radius * g_baseRadiusMult, color, DebugShape_Overlay);
+    dev_cylinder(comp, begin, tipStart, radius * g_baseRadiusMult, color, DevShape_Overlay);
   }
 }
 
@@ -591,7 +591,7 @@ void dev_orientation(DevShapeComp* comp, const GeoVector pos, const GeoQuat rot,
 
 void dev_plane(DevShapeComp* comp, const GeoVector pos, const GeoQuat rot, const GeoColor color) {
   const f32 quadSize = 1.0f;
-  dev_quad(comp, pos, rot, quadSize, quadSize, color, DebugShape_Overlay);
+  dev_quad(comp, pos, rot, quadSize, quadSize, color, DevShape_Overlay);
 
   const f32       arrowLength = 1.0f;
   const f32       arrowRadius = 0.1f;
@@ -648,8 +648,8 @@ void dev_world_box(DevShapeComp* shape, const GeoBox* b, const GeoColor color) {
   const GeoVector center      = geo_box_center(b);
   const GeoVector size        = geo_box_size(b);
 
-  dev_box(shape, center, geo_quat_ident, size, colorDimmed, DebugShape_Fill);
-  dev_box(shape, center, geo_quat_ident, size, color, DebugShape_Wire);
+  dev_box(shape, center, geo_quat_ident, size, colorDimmed, DevShape_Fill);
+  dev_box(shape, center, geo_quat_ident, size, color, DevShape_Wire);
 }
 
 void dev_world_box_rotated(DevShapeComp* shape, const GeoBoxRotated* b, const GeoColor color) {
@@ -658,20 +658,20 @@ void dev_world_box_rotated(DevShapeComp* shape, const GeoBoxRotated* b, const Ge
   const GeoVector size        = geo_box_size(&b->box);
   const GeoQuat   rotation    = b->rotation;
 
-  dev_box(shape, center, rotation, size, colorDimmed, DebugShape_Fill);
-  dev_box(shape, center, rotation, size, color, DebugShape_Wire);
+  dev_box(shape, center, rotation, size, colorDimmed, DevShape_Fill);
+  dev_box(shape, center, rotation, size, color, DevShape_Wire);
 }
 
 void dev_world_sphere(DevShapeComp* shape, const GeoSphere* s, const GeoColor color) {
   const GeoColor colorDimmed = geo_color_mul_comps(color, geo_color(0.75f, 0.75f, 0.75f, 0.4f));
 
-  dev_sphere(shape, s->point, s->radius, colorDimmed, DebugShape_Fill);
-  dev_sphere(shape, s->point, s->radius, color, DebugShape_Wire);
+  dev_sphere(shape, s->point, s->radius, colorDimmed, DevShape_Fill);
+  dev_sphere(shape, s->point, s->radius, color, DevShape_Wire);
 }
 
 void dev_world_capsule(DevShapeComp* shape, const GeoCapsule* c, const GeoColor color) {
   const GeoColor colorDimmed = geo_color_mul_comps(color, geo_color(0.75f, 0.75f, 0.75f, 0.4f));
 
-  dev_capsule(shape, c->line.a, c->line.b, c->radius, colorDimmed, DebugShape_Fill);
-  dev_capsule(shape, c->line.a, c->line.b, c->radius, color, DebugShape_Wire);
+  dev_capsule(shape, c->line.a, c->line.b, c->radius, colorDimmed, DevShape_Fill);
+  dev_capsule(shape, c->line.a, c->line.b, c->radius, color, DevShape_Wire);
 }

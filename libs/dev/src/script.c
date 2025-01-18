@@ -43,13 +43,13 @@ static const String g_tooltipOpenScript   = string_static("Open script in extern
 static const String g_tooltipSelectEntity = string_static("Select the entity.");
 
 typedef enum {
-  DebugScriptTab_Info,
-  DebugScriptTab_Memory,
-  DebugScriptTab_Output,
-  DebugScriptTab_Global,
+  DevScriptTab_Info,
+  DevScriptTab_Memory,
+  DevScriptTab_Output,
+  DevScriptTab_Global,
 
-  DebugScriptTab_Count,
-} DebugScriptTab;
+  DevScriptTab_Count,
+} DevScriptTab;
 
 static const String g_scriptTabNames[] = {
     string_static("Info"),
@@ -57,46 +57,46 @@ static const String g_scriptTabNames[] = {
     string_static("Output"),
     string_static("Global"),
 };
-ASSERT(array_elems(g_scriptTabNames) == DebugScriptTab_Count, "Incorrect number of names");
+ASSERT(array_elems(g_scriptTabNames) == DevScriptTab_Count, "Incorrect number of names");
 
 typedef struct {
   StringHash key;
   String     name;
-} DebugMemoryEntry;
+} DevMemoryEntry;
 
 typedef enum {
-  DebugScriptOutputMode_All,
-  DebugScriptOutputMode_Self,
+  DevScriptOutputMode_All,
+  DevScriptOutputMode_Self,
 
-  DebugScriptOutputMode_Count
-} DebugScriptOutputMode;
+  DevScriptOutputMode_Count
+} DevScriptOutputMode;
 
 static const String g_outputModeNames[] = {
     string_static("All"),
     string_static("Self"),
 };
-ASSERT(array_elems(g_outputModeNames) == DebugScriptOutputMode_Count, "Incorrect number of names");
+ASSERT(array_elems(g_outputModeNames) == DevScriptOutputMode_Count, "Incorrect number of names");
 
 typedef enum {
-  DebugScriptOutputType_Trace,
-  DebugScriptOutputType_Panic,
-} DebugScriptOutputType;
+  DevScriptOutputType_Trace,
+  DevScriptOutputType_Panic,
+} DevScriptOutputType;
 
 typedef struct {
-  DebugScriptOutputType type : 8;
-  u8                    msgLength;
-  SceneScriptSlot       slot;
-  TimeReal              timestamp;
-  EcsEntityId           entity;
-  String                scriptId; // NOTE: Has to be persistently allocated.
-  ScriptRangeLineCol    range;
-  u8                    msgData[output_max_message_size];
-} DebugScriptOutput;
+  DevScriptOutputType type : 8;
+  u8                  msgLength;
+  SceneScriptSlot     slot;
+  TimeReal            timestamp;
+  EcsEntityId         entity;
+  String              scriptId; // NOTE: Has to be persistently allocated.
+  ScriptRangeLineCol  range;
+  u8                  msgData[output_max_message_size];
+} DevScriptOutput;
 
 typedef struct {
   String           scriptId; // NOTE: Has to be persistently allocated.
   ScriptPosLineCol pos;
-} DebugEditorRequest;
+} DevEditorRequest;
 
 typedef struct {
   String       id;
@@ -104,24 +104,24 @@ typedef struct {
   u32          totalEntities;
   u32          totalOperations;
   TimeDuration totalDuration;
-} DebugScriptAsset;
+} DevScriptAsset;
 
 ecs_comp_define(DevScriptTrackerComp) {
-  DynArray outputEntries; // DebugScriptOutput[]
-  DynArray assetEntries;  // DebugScriptAsset[]
+  DynArray outputEntries; // DevScriptOutput[]
+  DynArray assetEntries;  // DevScriptAsset[]
   bool     freezeAssets;
   bool     autoOpenOnPanic;
 };
 
 ecs_comp_define(DevScriptPanelComp) {
-  UiPanel               panel;
-  bool                  outputOnly;
-  bool                  hideNullMemory;
-  DebugScriptOutputMode outputMode;
-  UiScrollview          scrollview;
-  u32                   lastRowCount;
-  DebugEditorRequest    editorReq;
-  Process*              editorLaunch;
+  UiPanel             panel;
+  bool                outputOnly;
+  bool                hideNullMemory;
+  DevScriptOutputMode outputMode;
+  UiScrollview        scrollview;
+  u32                 lastRowCount;
+  DevEditorRequest    editorReq;
+  Process*            editorLaunch;
 };
 
 static void ecs_destruct_script_tracker(void* data) {
@@ -184,7 +184,7 @@ static void info_panel_tab_script_draw(
   ui_layout_push(c);
   ui_layout_inner(c, UiBase_Current, UiAlign_MiddleRight, ui_vector(25, 25), UiBase_Absolute);
   if (ui_button(c, .label = ui_shape_scratch(UiShape_OpenInNew), .tooltip = g_tooltipOpenScript)) {
-    panelComp->editorReq = (DebugEditorRequest){.scriptId = scriptId};
+    panelComp->editorReq = (DevEditorRequest){.scriptId = scriptId};
   }
   ui_layout_pop(c);
 
@@ -382,7 +382,7 @@ static void memory_options_draw(UiCanvasComp* c, DevScriptPanelComp* panelComp) 
 }
 
 static i8 memory_compare_entry_name(const void* a, const void* b) {
-  return compare_string(field_ptr(a, DebugMemoryEntry, name), field_ptr(b, DebugMemoryEntry, name));
+  return compare_string(field_ptr(a, DevMemoryEntry, name), field_ptr(b, DevMemoryEntry, name));
 }
 
 static void memory_panel_tab_draw(
@@ -413,14 +413,14 @@ static void memory_panel_tab_draw(
           {string_lit("Value"), string_lit("Memory value.")},
       });
 
-  DynArray entries = dynarray_create_t(g_allocScratch, DebugMemoryEntry, 256);
+  DynArray entries = dynarray_create_t(g_allocScratch, DevMemoryEntry, 256);
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     if (panelComp->hideNullMemory && !script_non_null(script_mem_load(memory, itr.key))) {
       continue;
     }
     const String name = stringtable_lookup(g_stringtable, itr.key);
 
-    *dynarray_push_t(&entries, DebugMemoryEntry) = (DebugMemoryEntry){
+    *dynarray_push_t(&entries, DevMemoryEntry) = (DevMemoryEntry){
         .key  = itr.key,
         .name = string_is_empty(name) ? string_lit("< unnamed >") : name,
     };
@@ -432,7 +432,7 @@ static void memory_panel_tab_draw(
   ui_scrollview_begin(c, &panelComp->scrollview, UiLayer_Normal, totalHeight);
 
   if (entries.size) {
-    dynarray_for_t(&entries, DebugMemoryEntry, entry) {
+    dynarray_for_t(&entries, DevMemoryEntry, entry) {
       ScriptVal value = script_mem_load(memory, entry->key);
 
       ui_table_next_row(c, &table);
@@ -463,19 +463,19 @@ static DevScriptTrackerComp* tracker_create(EcsWorld* world) {
       world,
       ecs_world_global(world),
       DevScriptTrackerComp,
-      .outputEntries   = dynarray_create_t(g_allocHeap, DebugScriptOutput, 64),
-      .assetEntries    = dynarray_create_t(g_allocHeap, DebugScriptAsset, 32),
+      .outputEntries   = dynarray_create_t(g_allocHeap, DevScriptOutput, 64),
+      .assetEntries    = dynarray_create_t(g_allocHeap, DevScriptAsset, 32),
       .autoOpenOnPanic = true);
 }
 
 static i8 tracker_compare_asset(const void* a, const void* b) {
   return ecs_compare_entity(
-      field_ptr(a, DebugScriptAsset, entity), field_ptr(b, DebugScriptAsset, entity));
+      field_ptr(a, DevScriptAsset, entity), field_ptr(b, DevScriptAsset, entity));
 }
 
 static bool tracker_has_panic(const DevScriptTrackerComp* tracker) {
-  dynarray_for_t(&tracker->outputEntries, DebugScriptOutput, entry) {
-    if (entry->type == DebugScriptOutputType_Panic) {
+  dynarray_for_t(&tracker->outputEntries, DevScriptOutput, entry) {
+    if (entry->type == DevScriptOutputType_Panic) {
       return true;
     }
   }
@@ -488,25 +488,25 @@ static void tracker_output_clear(DevScriptTrackerComp* tracker) {
 
 static void tracker_prune_older(DevScriptTrackerComp* tracker, const TimeReal timestamp) {
   for (usize i = tracker->outputEntries.size; i-- != 0;) {
-    if (dynarray_at_t(&tracker->outputEntries, i, DebugScriptOutput)->timestamp < timestamp) {
+    if (dynarray_at_t(&tracker->outputEntries, i, DevScriptOutput)->timestamp < timestamp) {
       dynarray_remove_unordered(&tracker->outputEntries, i, 1);
     }
   }
 }
 
 static void tracker_output_add(
-    DevScriptTrackerComp*       tracker,
-    const DebugScriptOutputType type,
-    const EcsEntityId           entity,
-    const TimeReal              time,
-    const SceneScriptSlot       slot,
-    const String                scriptId,
-    const String                msg,
-    const ScriptRangeLineCol    range) {
-  DebugScriptOutput* entry = null;
+    DevScriptTrackerComp*     tracker,
+    const DevScriptOutputType type,
+    const EcsEntityId         entity,
+    const TimeReal            time,
+    const SceneScriptSlot     slot,
+    const String              scriptId,
+    const String              msg,
+    const ScriptRangeLineCol  range) {
+  DevScriptOutput* entry = null;
   // Find an existing entry of the same type for the same entity.
   for (usize i = 0; i != tracker->outputEntries.size; ++i) {
-    DebugScriptOutput* other = dynarray_at_t(&tracker->outputEntries, i, DebugScriptOutput);
+    DevScriptOutput* other = dynarray_at_t(&tracker->outputEntries, i, DevScriptOutput);
     if (other->type == type && other->entity == entity && other->slot == slot) {
       entry = other;
       break;
@@ -514,7 +514,7 @@ static void tracker_output_add(
   }
   if (!entry) {
     // No existing entry found; add a new one.
-    entry = dynarray_push_t(&tracker->outputEntries, DebugScriptOutput);
+    entry = dynarray_push_t(&tracker->outputEntries, DevScriptOutput);
   }
   entry->type      = type;
   entry->slot      = slot;
@@ -531,8 +531,8 @@ static void tracker_asset_add(
     const EcsEntityId       entity,
     const String            id,
     const SceneScriptStats* stats) {
-  const DebugScriptAsset compareTarget = {.entity = entity};
-  DebugScriptAsset*      entry =
+  const DevScriptAsset compareTarget = {.entity = entity};
+  DevScriptAsset*      entry =
       dynarray_find_or_insert_sorted(&tracker->assetEntries, tracker_compare_asset, &compareTarget);
 
   entry->id     = id;
@@ -589,9 +589,9 @@ static void tracker_query(
       // Output panics.
       const ScriptPanic* panic = scene_script_panic(scriptInstance, slot);
       if (panic) {
-        const String                scriptId = asset_id(assetComps[slot]);
-        const String                msg  = script_panic_scratch(panic, ScriptPanicOutput_Default);
-        const DebugScriptOutputType type = DebugScriptOutputType_Panic;
+        const String              scriptId = asset_id(assetComps[slot]);
+        const String              msg      = script_panic_scratch(panic, ScriptPanicOutput_Default);
+        const DevScriptOutputType type     = DevScriptOutputType_Panic;
         tracker_output_add(tracker, type, entity, now, slot, scriptId, msg, panic->range);
       }
     }
@@ -601,11 +601,11 @@ static void tracker_query(
       const SceneDebug* debugData = scene_debug_data(debug);
       for (usize i = 0; i != debugCount; ++i) {
         if (debugData[i].type == SceneDebugType_Trace) {
-          const SceneScriptSlot       scriptSlot = debugData[i].src.scriptSlot;
-          const String                scriptId   = asset_id(assetComps[scriptSlot]);
-          const String                msg        = debugData[i].data_trace.text;
-          const ScriptRangeLineCol    range      = debugData[i].src.scriptPos;
-          const DebugScriptOutputType type       = DebugScriptOutputType_Trace;
+          const SceneScriptSlot     scriptSlot = debugData[i].src.scriptSlot;
+          const String              scriptId   = asset_id(assetComps[scriptSlot]);
+          const String              msg        = debugData[i].data_trace.text;
+          const ScriptRangeLineCol  range      = debugData[i].src.scriptPos;
+          const DevScriptOutputType type       = DevScriptOutputType_Trace;
           tracker_output_add(tracker, type, entity, now, scriptSlot, scriptId, msg, range);
         }
       }
@@ -613,11 +613,11 @@ static void tracker_query(
   }
 }
 
-static UiColor output_entry_bg_color(const DebugScriptOutput* entry) {
+static UiColor output_entry_bg_color(const DevScriptOutput* entry) {
   switch (entry->type) {
-  case DebugScriptOutputType_Trace:
+  case DevScriptOutputType_Trace:
     return ui_color(16, 64, 16, 192);
-  case DebugScriptOutputType_Panic:
+  case DevScriptOutputType_Panic:
     return ui_color(64, 16, 16, 192);
   }
   diag_assert_fail("Invalid script output type");
@@ -636,7 +636,7 @@ output_options_draw(UiCanvasComp* c, DevScriptPanelComp* panelComp, DevScriptTra
   ui_table_next_row(c, &table);
   ui_label(c, string_lit("Mode:"));
   ui_table_next_column(c, &table);
-  ui_select(c, (i32*)&panelComp->outputMode, g_outputModeNames, DebugScriptOutputMode_Count);
+  ui_select(c, (i32*)&panelComp->outputMode, g_outputModeNames, DevScriptOutputMode_Count);
 
   ui_table_next_column(c, &table);
   if (ui_button(c, .label = string_lit("Clear"))) {
@@ -679,15 +679,15 @@ static void output_panel_tab_draw(
   }
 
   panelComp->lastRowCount = 0;
-  dynarray_for_t(&tracker->outputEntries, DebugScriptOutput, entry) {
+  dynarray_for_t(&tracker->outputEntries, DevScriptOutput, entry) {
     switch (panelComp->outputMode) {
-    case DebugScriptOutputMode_All:
+    case DevScriptOutputMode_All:
       break;
-    case DebugScriptOutputMode_Self:
+    case DevScriptOutputMode_Self:
       if (!subjectItr || ecs_view_entity(subjectItr) != entry->entity) {
         continue; // Entry does not belong to the subject.
       }
-    case DebugScriptOutputMode_Count:
+    case DevScriptOutputMode_Count:
       break;
     }
 
@@ -732,7 +732,7 @@ static void output_panel_tab_draw(
     ui_table_next_column(c, &table);
     if (ui_button(c, .label = locText, .noFrame = true, .tooltip = locTooltip)) {
       panelComp->editorReq =
-          (DebugEditorRequest){.scriptId = entry->scriptId, .pos = entry->range.start};
+          (DevEditorRequest){.scriptId = entry->scriptId, .pos = entry->range.start};
     }
     ++panelComp->lastRowCount;
   }
@@ -789,7 +789,7 @@ static void global_panel_tab_draw(
     ui_label(c, string_lit("No active scripts."), .align = UiAlign_MiddleCenter);
   }
 
-  dynarray_for_t(&tracker->assetEntries, DebugScriptAsset, entry) {
+  dynarray_for_t(&tracker->assetEntries, DevScriptAsset, entry) {
     ui_table_next_row(c, &table);
     ui_table_draw_row_bg(c, &table, ui_color(48, 48, 48, 192));
 
@@ -798,7 +798,7 @@ static void global_panel_tab_draw(
     ui_layout_resize(c, UiAlign_MiddleLeft, ui_vector(25, 0), UiBase_Absolute, Ui_X);
     if (ui_button(
             c, .label = ui_shape_scratch(UiShape_OpenInNew), .tooltip = g_tooltipOpenScript)) {
-      panelComp->editorReq = (DebugEditorRequest){.scriptId = entry->id};
+      panelComp->editorReq = (DevEditorRequest){.scriptId = entry->id};
     }
     ui_table_next_column(c, &table);
     ui_label(c, fmt_write_scratch("{}", fmt_int(entry->totalEntities)));
@@ -828,28 +828,28 @@ static void script_panel_draw(
       &panelComp->panel,
       .title       = title,
       .tabNames    = g_scriptTabNames,
-      .tabCount    = DebugScriptTab_Count,
+      .tabCount    = DevScriptTab_Count,
       .topBarColor = ui_color(100, 0, 0, 192));
 
   switch (panelComp->panel.activeTab) {
-  case DebugScriptTab_Info:
+  case DevScriptTab_Info:
     if (subjectItr) {
       info_panel_tab_draw(world, c, panelComp, assetItr, subjectItr);
     } else {
       ui_label(c, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
     }
     break;
-  case DebugScriptTab_Memory:
+  case DevScriptTab_Memory:
     if (subjectItr) {
       memory_panel_tab_draw(c, panelComp, entityRefItr, subjectItr);
     } else {
       ui_label(c, string_lit("Select a scripted entity."), .align = UiAlign_MiddleCenter);
     }
     break;
-  case DebugScriptTab_Output:
+  case DevScriptTab_Output:
     output_panel_tab_draw(c, panelComp, tracker, setEnv, subjectItr);
     break;
-  case DebugScriptTab_Global:
+  case DevScriptTab_Global:
     global_panel_tab_draw(c, panelComp, tracker);
     break;
   }
@@ -896,8 +896,8 @@ static void dev_editor_update(DevScriptPanelComp* panelComp, const AssetManagerC
   }
 
   if (!panelComp->editorLaunch && !string_is_empty(panelComp->editorReq.scriptId)) {
-    DebugEditorRequest* req     = &panelComp->editorReq;
-    DynString           pathStr = dynstring_create(g_allocScratch, usize_kibibyte);
+    DevEditorRequest* req     = &panelComp->editorReq;
+    DynString         pathStr = dynstring_create(g_allocScratch, usize_kibibyte);
     if (asset_path_by_id(assets, req->scriptId, &pathStr)) {
       const String path = dynstring_view(&pathStr);
 
@@ -916,7 +916,7 @@ static void dev_editor_update(DevScriptPanelComp* panelComp, const AssetManagerC
       panelComp->editorLaunch = p;
     }
     dynstring_destroy(&pathStr);
-    *req = (DebugEditorRequest){0};
+    *req = (DevEditorRequest){0};
   }
 }
 
@@ -927,14 +927,14 @@ static bool dev_panel_needs_asset_query(EcsView* panelView) {
     if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       continue;
     }
-    if (panelComp->panel.activeTab == DebugScriptTab_Global) {
+    if (panelComp->panel.activeTab == DevScriptTab_Global) {
       return true;
     }
   }
   return true;
 }
 
-ecs_system_define(DebugScriptUpdatePanelSys) {
+ecs_system_define(DevScriptUpdatePanelSys) {
   EcsView*     globalView = ecs_world_view_t(world, PanelUpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -1010,7 +1010,7 @@ ecs_view_define(RayUpdateWindowView) {
   ecs_access_maybe_read(SceneTransformComp);
 }
 
-ecs_system_define(DebugScriptUpdateRaySys) {
+ecs_system_define(DevScriptUpdateRaySys) {
   EcsView*     globalView = ecs_world_view_t(world, RayUpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -1045,7 +1045,7 @@ ecs_module_init(dev_script_module) {
   ecs_register_view(WindowView);
 
   ecs_register_system(
-      DebugScriptUpdatePanelSys,
+      DevScriptUpdatePanelSys,
       ecs_register_view(PanelUpdateGlobalView),
       ecs_register_view(PanelUpdateView),
       ecs_view_id(SubjectView),
@@ -1054,11 +1054,11 @@ ecs_module_init(dev_script_module) {
       ecs_view_id(WindowView));
 
   ecs_register_system(
-      DebugScriptUpdateRaySys,
+      DevScriptUpdateRaySys,
       ecs_register_view(RayUpdateGlobalView),
       ecs_register_view(RayUpdateWindowView));
 
-  ecs_order(DebugScriptUpdateRaySys, SceneOrder_ScriptUpdate - 1);
+  ecs_order(DevScriptUpdateRaySys, SceneOrder_ScriptUpdate - 1);
 }
 
 EcsEntityId

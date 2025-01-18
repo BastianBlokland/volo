@@ -49,7 +49,7 @@ typedef struct {
   StringHash  nameHash;
   EcsEntityId entity;
   i32         stats[VfxStat_Count];
-} DebugVfxInfo;
+} DevVfxInfo;
 
 ecs_comp_define(DevVfxPanelComp) {
   UiPanel      panel;
@@ -57,7 +57,7 @@ ecs_comp_define(DevVfxPanelComp) {
   bool         freeze;
   VfxSortMode  sortMode;
   DynString    filter;
-  DynArray     objects; // DebugVfxInfo[]
+  DynArray     objects; // DevVfxInfo[]
 };
 
 static void ecs_destruct_vfx_panel(void* data) {
@@ -85,14 +85,14 @@ ecs_view_define(PanelUpdateView) {
 }
 
 static i8 vfx_compare_info_entity(const void* a, const void* b) {
-  const u32 serialA = ecs_entity_id_serial(((const DebugVfxInfo*)a)->entity);
-  const u32 serialB = ecs_entity_id_serial(((const DebugVfxInfo*)b)->entity);
+  const u32 serialA = ecs_entity_id_serial(((const DevVfxInfo*)a)->entity);
+  const u32 serialB = ecs_entity_id_serial(((const DevVfxInfo*)b)->entity);
   return compare_u32(&serialA, &serialB);
 }
 
 static i8 comp_compare_info_stat(const void* a, const void* b, const VfxStat stat) {
-  const u32 statValA = ((const DebugVfxInfo*)a)->stats[stat];
-  const u32 statValB = ((const DebugVfxInfo*)b)->stats[stat];
+  const u32 statValA = ((const DevVfxInfo*)a)->stats[stat];
+  const u32 statValB = ((const DevVfxInfo*)b)->stats[stat];
   const i8  res      = compare_u32_reverse(&statValA, &statValB);
   return res ? res : vfx_compare_info_entity(a, b);
 }
@@ -123,7 +123,7 @@ static String vfx_entity_name(const StringHash nameHash) {
   return string_is_empty(name) ? string_lit("<unnamed>") : name;
 }
 
-static void vfx_info_stats_add(DebugVfxInfo* info, const VfxStatSet* set) {
+static void vfx_info_stats_add(DevVfxInfo* info, const VfxStatSet* set) {
   for (VfxStat stat = 0; stat != VfxStat_Count; ++stat) {
     info->stats[stat] += set->valuesLast[stat];
   }
@@ -141,9 +141,9 @@ static void vfx_info_query(DevVfxPanelComp* panelComp, EcsWorld* world) {
       if (!vfx_panel_filter(panelComp, vfx_entity_name(nameComp->name), entity)) {
         continue;
       }
-      DebugVfxInfo* info = dynarray_push_t(&panelComp->objects, DebugVfxInfo);
-      info->entity       = entity;
-      info->nameHash     = nameComp->name;
+      DevVfxInfo* info = dynarray_push_t(&panelComp->objects, DevVfxInfo);
+      info->entity     = entity;
+      info->nameHash   = nameComp->name;
       mem_set(mem_var(info->stats), 0);
 
       const VfxSystemStatsComp* systemStats = ecs_view_read_t(itr, VfxSystemStatsComp);
@@ -250,7 +250,7 @@ vfx_panel_draw(UiCanvasComp* canvas, DevVfxPanelComp* panelComp, SceneSetEnvComp
   ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of objects on its own id block.
-  dynarray_for_t(&panelComp->objects, DebugVfxInfo, info) {
+  dynarray_for_t(&panelComp->objects, DevVfxInfo, info) {
     ui_table_next_row(canvas, &table);
     ui_table_draw_row_bg(canvas, &table, ui_color(48, 48, 48, 192));
 
@@ -287,7 +287,7 @@ vfx_panel_draw(UiCanvasComp* canvas, DevVfxPanelComp* panelComp, SceneSetEnvComp
   ui_panel_end(canvas, &panelComp->panel);
 }
 
-ecs_system_define(DebugVfxUpdatePanelSys) {
+ecs_system_define(DevVfxUpdatePanelSys) {
   EcsView*     globalView = ecs_world_view_t(world, PanelUpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -326,7 +326,7 @@ ecs_module_init(dev_vfx_module) {
   ecs_register_view(PanelUpdateView);
 
   ecs_register_system(
-      DebugVfxUpdatePanelSys,
+      DevVfxUpdatePanelSys,
       ecs_view_id(VfxObjView),
       ecs_view_id(PanelUpdateGlobalView),
       ecs_view_id(PanelUpdateView));
@@ -341,7 +341,7 @@ EcsEntityId dev_vfx_panel_open(EcsWorld* world, const EcsEntityId window, const 
       .panel      = ui_panel(.size = ui_vector(850, 500)),
       .scrollview = ui_scrollview(),
       .filter     = dynstring_create(g_allocHeap, 32),
-      .objects    = dynarray_create_t(g_allocHeap, DebugVfxInfo, 128));
+      .objects    = dynarray_create_t(g_allocHeap, DevVfxInfo, 128));
 
   if (type == DevPanelType_Detached) {
     ui_panel_maximize(&vfxPanel->panel);

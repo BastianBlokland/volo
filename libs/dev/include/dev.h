@@ -17,7 +17,7 @@ ecs_comp_extern(DevStatsComp);
 ecs_comp_extern(DevStatsGlobalComp);
 ecs_comp_extern(DevTextComp);
 
-typedef enum eDebugFinderCategory DebugFinderCategory;
-typedef enum eDevPanelType        DevPanelType;
-typedef enum eDebugShapeMode      DebugShapeMode;
-typedef u64                       DebugGizmoId;
+typedef enum eDevFinderCategory DevFinderCategory;
+typedef enum eDevPanelType      DevPanelType;
+typedef enum eDevShapeMode      DevShapeMode;
+typedef u64                     DevGizmoId;

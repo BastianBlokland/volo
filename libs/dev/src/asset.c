@@ -25,30 +25,30 @@ static const String g_tooltipReload = string_static("Request the asset to be rel
 // clang-format on
 
 typedef enum {
-  DebugAssetStatus_Idle,
-  DebugAssetStatus_Changed,
-  DebugAssetStatus_LoadedUnreferenced,
-  DebugAssetStatus_LoadedReferenced,
-  DebugAssetStatus_Loading,
-  DebugAssetStatus_Failed,
+  DevAssetStatus_Idle,
+  DevAssetStatus_Changed,
+  DevAssetStatus_LoadedUnreferenced,
+  DevAssetStatus_LoadedReferenced,
+  DevAssetStatus_Loading,
+  DevAssetStatus_Failed,
 
-  DebugAssetStatus_Count,
-} DebugAssetStatus;
+  DevAssetStatus_Count,
+} DevAssetStatus;
 
 typedef enum {
-  DebugAssetSortMode_Id,
-  DebugAssetSortMode_Status,
+  DevAssetSortMode_Id,
+  DevAssetSortMode_Status,
 
-  DebugAssetSortMode_Count,
-} DebugAssetSortMode;
+  DevAssetSortMode_Count,
+} DevAssetSortMode;
 
 typedef struct {
-  String           id;
-  EcsEntityId      entity;
-  DebugAssetStatus status;
-  bool             dirty;
-  u32              refCount, loadCount, ticksUntilUnload;
-} DebugAssetInfo;
+  String         id;
+  EcsEntityId    entity;
+  DevAssetStatus status;
+  bool           dirty;
+  u32            refCount, loadCount, ticksUntilUnload;
+} DevAssetInfo;
 
 static const String g_statusNames[] = {
     string_static("Idle"),
@@ -58,21 +58,21 @@ static const String g_statusNames[] = {
     string_static("Loading"),
     string_static("Failed"),
 };
-ASSERT(array_elems(g_statusNames) == DebugAssetStatus_Count, "Incorrect number of names");
+ASSERT(array_elems(g_statusNames) == DevAssetStatus_Count, "Incorrect number of names");
 
 static const String g_sortModeNames[] = {
     string_static("Id"),
     string_static("Status"),
 };
-ASSERT(array_elems(g_sortModeNames) == DebugAssetSortMode_Count, "Incorrect number of names");
+ASSERT(array_elems(g_sortModeNames) == DevAssetSortMode_Count, "Incorrect number of names");
 
 ecs_comp_define(DevAssetPanelComp) {
-  UiPanel            panel;
-  UiScrollview       scrollview;
-  DynString          idFilter;
-  DebugAssetSortMode sortMode;
-  u32                countLoaded;
-  DynArray           assets; // DebugAssetInfo[]
+  UiPanel          panel;
+  UiScrollview     scrollview;
+  DynString        idFilter;
+  DevAssetSortMode sortMode;
+  u32              countLoaded;
+  DynArray         assets; // DevAssetInfo[]
 };
 
 static void ecs_destruct_asset_panel(void* data) {
@@ -82,15 +82,15 @@ static void ecs_destruct_asset_panel(void* data) {
 }
 
 static i8 compare_asset_info_id(const void* a, const void* b) {
-  const DebugAssetInfo* assetA = a;
-  const DebugAssetInfo* assetB = b;
+  const DevAssetInfo* assetA = a;
+  const DevAssetInfo* assetB = b;
 
   return compare_string(&assetA->id, &assetB->id);
 }
 
 static i8 compare_asset_info_status(const void* a, const void* b) {
-  const DebugAssetInfo* assetA = a;
-  const DebugAssetInfo* assetB = b;
+  const DevAssetInfo* assetA = a;
+  const DevAssetInfo* assetB = b;
 
   i8 statusOrder = compare_u32_reverse(&assetA->status, &assetB->status);
   if (!statusOrder) {
@@ -136,22 +136,22 @@ static void asset_info_query(DevAssetPanelComp* panelComp, EcsWorld* world) {
       continue;
     }
 
-    DebugAssetStatus status;
+    DevAssetStatus status;
     if (ecs_world_has_t(world, entity, AssetFailedComp)) {
-      status = DebugAssetStatus_Failed;
+      status = DevAssetStatus_Failed;
     } else if (asset_is_loading(assetComp)) {
-      status = DebugAssetStatus_Loading;
+      status = DevAssetStatus_Loading;
     } else if (ecs_world_has_t(world, entity, AssetChangedComp)) {
-      status = DebugAssetStatus_Changed;
+      status = DevAssetStatus_Changed;
     } else if (ecs_world_has_t(world, entity, AssetLoadedComp)) {
       ++panelComp->countLoaded;
-      status = asset_ref_count(assetComp) ? DebugAssetStatus_LoadedReferenced
-                                          : DebugAssetStatus_LoadedUnreferenced;
+      status = asset_ref_count(assetComp) ? DevAssetStatus_LoadedReferenced
+                                          : DevAssetStatus_LoadedUnreferenced;
     } else {
-      status = DebugAssetStatus_Idle;
+      status = DevAssetStatus_Idle;
     }
 
-    *dynarray_push_t(&panelComp->assets, DebugAssetInfo) = (DebugAssetInfo){
+    *dynarray_push_t(&panelComp->assets, DevAssetInfo) = (DevAssetInfo){
         .id               = asset_id(assetComp),
         .entity           = entity,
         .status           = status,
@@ -163,32 +163,32 @@ static void asset_info_query(DevAssetPanelComp* panelComp, EcsWorld* world) {
   }
 
   switch (panelComp->sortMode) {
-  case DebugAssetSortMode_Id:
+  case DevAssetSortMode_Id:
     dynarray_sort(&panelComp->assets, compare_asset_info_id);
     break;
-  case DebugAssetSortMode_Status:
+  case DevAssetSortMode_Status:
     dynarray_sort(&panelComp->assets, compare_asset_info_status);
     break;
-  case DebugAssetSortMode_Count:
+  case DevAssetSortMode_Count:
     break;
   }
 }
 
-static UiColor asset_info_bg_color(const DebugAssetInfo* asset) {
+static UiColor asset_info_bg_color(const DevAssetInfo* asset) {
   switch (asset->status) {
-  case DebugAssetStatus_Idle:
+  case DevAssetStatus_Idle:
     return ui_color(48, 48, 48, 192);
-  case DebugAssetStatus_Changed:
+  case DevAssetStatus_Changed:
     return ui_color(48, 48, 16, 192);
-  case DebugAssetStatus_LoadedReferenced:
+  case DevAssetStatus_LoadedReferenced:
     return ui_color(16, 64, 16, 192);
-  case DebugAssetStatus_LoadedUnreferenced:
+  case DevAssetStatus_LoadedUnreferenced:
     return ui_color(16, 16, 64, 192);
-  case DebugAssetStatus_Loading:
+  case DevAssetStatus_Loading:
     return ui_color(16, 64, 64, 192);
-  case DebugAssetStatus_Failed:
+  case DevAssetStatus_Failed:
     return ui_color(64, 16, 16, 192);
-  case DebugAssetStatus_Count:
+  case DevAssetStatus_Count:
     break;
   }
   diag_crash();
@@ -213,7 +213,7 @@ static void asset_options_draw(UiCanvasComp* canvas, DevAssetPanelComp* panelCom
   ui_table_next_column(canvas, &table);
   ui_label(canvas, string_lit("Sort:"));
   ui_table_next_column(canvas, &table);
-  ui_select(canvas, (i32*)&panelComp->sortMode, g_sortModeNames, DebugAssetSortMode_Count);
+  ui_select(canvas, (i32*)&panelComp->sortMode, g_sortModeNames, DevAssetSortMode_Count);
 
   const String stats = fmt_write_scratch(
       "Count: {}, Loaded: {}",
@@ -229,7 +229,7 @@ static void asset_options_draw(UiCanvasComp* canvas, DevAssetPanelComp* panelCom
 }
 
 static void
-asset_panel_draw_reload(UiCanvasComp* canvas, const DebugAssetInfo* asset, EcsWorld* world) {
+asset_panel_draw_reload(UiCanvasComp* canvas, const DevAssetInfo* asset, EcsWorld* world) {
   ui_layout_push(canvas);
   ui_layout_move_to(canvas, UiBase_Current, UiAlign_BottomRight, Ui_X);
   ui_layout_resize(canvas, UiAlign_BottomRight, ui_vector(25, 0), UiBase_Absolute, Ui_X);
@@ -278,7 +278,7 @@ static void asset_panel_draw(UiCanvasComp* canvas, DevAssetPanelComp* panelComp,
   ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of assets on its own id block.
-  dynarray_for_t(&panelComp->assets, DebugAssetInfo, asset) {
+  dynarray_for_t(&panelComp->assets, DevAssetInfo, asset) {
     ui_table_next_row(canvas, &table);
     ui_table_draw_row_bg(canvas, &table, asset_info_bg_color(asset));
 
@@ -300,7 +300,7 @@ static void asset_panel_draw(UiCanvasComp* canvas, DevAssetPanelComp* panelComp,
     ui_table_next_column(canvas, &table);
     ui_label(canvas, fmt_write_scratch("{}", fmt_int(asset->loadCount)));
     ui_table_next_column(canvas, &table);
-    if (asset->status == DebugAssetStatus_LoadedUnreferenced) {
+    if (asset->status == DevAssetStatus_LoadedUnreferenced) {
       ui_label(canvas, fmt_write_scratch("{}", fmt_int(asset->ticksUntilUnload)));
     }
   }
@@ -311,7 +311,7 @@ static void asset_panel_draw(UiCanvasComp* canvas, DevAssetPanelComp* panelComp,
   ui_panel_end(canvas, &panelComp->panel);
 }
 
-ecs_system_define(DebugAssetUpdatePanelSys) {
+ecs_system_define(DevAssetUpdatePanelSys) {
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     const EcsEntityId  entity    = ecs_view_entity(itr);
@@ -341,8 +341,7 @@ ecs_module_init(dev_asset_module) {
   ecs_register_view(PanelUpdateView);
   ecs_register_view(AssetView);
 
-  ecs_register_system(
-      DebugAssetUpdatePanelSys, ecs_view_id(PanelUpdateView), ecs_view_id(AssetView));
+  ecs_register_system(DevAssetUpdatePanelSys, ecs_view_id(PanelUpdateView), ecs_view_id(AssetView));
 }
 
 EcsEntityId
@@ -355,8 +354,8 @@ dev_asset_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelTy
       .panel      = ui_panel(.size = ui_vector(950, 500)),
       .scrollview = ui_scrollview(),
       .idFilter   = dynstring_create(g_allocHeap, 32),
-      .sortMode   = DebugAssetSortMode_Status,
-      .assets     = dynarray_create_t(g_allocHeap, DebugAssetInfo, 256));
+      .sortMode   = DevAssetSortMode_Status,
+      .assets     = dynarray_create_t(g_allocHeap, DevAssetInfo, 256));
 
   if (type == DevPanelType_Detached) {
     ui_panel_maximize(&assetPanel->panel);

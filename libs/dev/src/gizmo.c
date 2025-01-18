@@ -99,71 +99,71 @@ static const struct {
 };
 
 typedef enum {
-  DebugGizmoType_Translation,
-  DebugGizmoType_Rotation,
-  DebugGizmoType_ScaleUniform,
+  DevGizmoType_Translation,
+  DevGizmoType_Rotation,
+  DevGizmoType_ScaleUniform,
 
-  DebugGizmoType_Count,
-} DebugGizmoType;
+  DevGizmoType_Count,
+} DevGizmoType;
 
 typedef struct {
-  DebugGizmoType type;
-  DebugGizmoId   id;
-  GeoVector      pos;
-  GeoQuat        rot;
-  f32            scale;
-} DebugGizmoEntry;
+  DevGizmoType type;
+  DevGizmoId   id;
+  GeoVector    pos;
+  GeoQuat      rot;
+  f32          scale;
+} DevGizmoEntry;
 
 typedef enum {
-  DebugGizmoStatus_None,
-  DebugGizmoStatus_Hovering,
-  DebugGizmoStatus_Interacting,
-} DebugGizmoStatus;
+  DevGizmoStatus_None,
+  DevGizmoStatus_Hovering,
+  DevGizmoStatus_Interacting,
+} DevGizmoStatus;
 
 typedef enum {
-  DebugGizmoSection_X,
-  DebugGizmoSection_Y,
-  DebugGizmoSection_Z,
+  DevGizmoSection_X,
+  DevGizmoSection_Y,
+  DevGizmoSection_Z,
 
-  DebugGizmoSection_Count,
-} DebugGizmoSection;
+  DevGizmoSection_Count,
+} DevGizmoSection;
 
 typedef struct {
   GeoVector basePos;
   GeoQuat   baseRot;
   GeoVector startPos; // Position where the interaction started.
   GeoVector result;
-} DebugGizmoEditorTranslation;
+} DevGizmoEditorTranslation;
 
 typedef struct {
   GeoVector basePos;
   GeoQuat   baseRot;
   GeoVector startDelta; // From gizmo center to where the interaction started.
   GeoQuat   result;
-} DebugGizmoEditorRotation;
+} DevGizmoEditorRotation;
 
 typedef struct {
   GeoVector basePos;
   f32       baseScale;
   f32       startHeight; // Y position where the interaction started.
   f32       result, resultDelta;
-} DebugGizmoEditorScaleUniform;
+} DevGizmoEditorScaleUniform;
 
 ecs_comp_define(DevGizmoComp) {
-  DynArray     entries; // DebugGizmoEntry[]
+  DynArray     entries; // DevGizmoEntry[]
   GeoQueryEnv* queryEnv;
   f32          size;
 
-  DebugGizmoId      activeId;
-  DebugGizmoStatus  status : 8;
-  DebugGizmoType    activeType : 8;
-  DebugGizmoSection activeSection : 8;
-  bool              requestReset;
-  u32               interactingTicks;
+  DevGizmoId      activeId;
+  DevGizmoStatus  status : 8;
+  DevGizmoType    activeType : 8;
+  DevGizmoSection activeSection : 8;
+  bool            requestReset;
+  u32             interactingTicks;
   union {
-    DebugGizmoEditorTranslation  translation;
-    DebugGizmoEditorRotation     rotation;
-    DebugGizmoEditorScaleUniform scaleUniform;
+    DevGizmoEditorTranslation  translation;
+    DevGizmoEditorRotation     rotation;
+    DevGizmoEditorScaleUniform scaleUniform;
   } editor;
 };
 
@@ -174,27 +174,27 @@ static void ecs_destruct_gizmo(void* data) {
 }
 
 static const String g_gizmoSectionNames[] = {
-    [DebugGizmoSection_X] = string_static("x"),
-    [DebugGizmoSection_Y] = string_static("y"),
-    [DebugGizmoSection_Z] = string_static("z"),
+    [DevGizmoSection_X] = string_static("x"),
+    [DevGizmoSection_Y] = string_static("y"),
+    [DevGizmoSection_Z] = string_static("z"),
 };
-ASSERT(array_elems(g_gizmoSectionNames) == DebugGizmoSection_Count, "Missing section name");
+ASSERT(array_elems(g_gizmoSectionNames) == DevGizmoSection_Count, "Missing section name");
 
-static bool gizmo_is_hovered(const DevGizmoComp* comp, const DebugGizmoId id) {
-  return comp->status >= DebugGizmoStatus_Hovering && comp->activeId == id;
+static bool gizmo_is_hovered(const DevGizmoComp* comp, const DevGizmoId id) {
+  return comp->status >= DevGizmoStatus_Hovering && comp->activeId == id;
 }
 
 static bool gizmo_is_hovered_section(
-    const DevGizmoComp* comp, const DebugGizmoId id, const DebugGizmoSection section) {
+    const DevGizmoComp* comp, const DevGizmoId id, const DevGizmoSection section) {
   return gizmo_is_hovered(comp, id) && comp->activeSection == section;
 }
 
-static bool gizmo_is_interacting(const DevGizmoComp* comp, const DebugGizmoId id) {
-  return comp->status >= DebugGizmoStatus_Interacting && comp->activeId == id;
+static bool gizmo_is_interacting(const DevGizmoComp* comp, const DevGizmoId id) {
+  return comp->status >= DevGizmoStatus_Interacting && comp->activeId == id;
 }
 
-static bool gizmo_is_interacting_type(
-    const DevGizmoComp* comp, const DebugGizmoId id, const DebugGizmoType type) {
+static bool
+gizmo_is_interacting_type(const DevGizmoComp* comp, const DevGizmoId id, const DevGizmoType type) {
   return gizmo_is_interacting(comp, id) && comp->activeType == type;
 }
 
@@ -220,18 +220,16 @@ ecs_view_define(CameraView) {
  * The shape-id encodes both the index of the gizmo as well as the section of the gizmo.
  * For example the x-arrow of a specific translation gizmo.
  */
-static u64 gizmo_shape_id(const u32 i, const DebugGizmoSection s) { return i | ((u64)s << 32u); }
+static u64 gizmo_shape_id(const u32 i, const DevGizmoSection s) { return i | ((u64)s << 32u); }
 static u32 gizmo_shape_index(const u64 id) { return (u32)id; }
-static DebugGizmoSection gizmo_shape_section(const u64 id) {
-  return (DebugGizmoSection)(id >> 32u);
+static DevGizmoSection gizmo_shape_section(const u64 id) { return (DevGizmoSection)(id >> 32u); }
+
+static const DevGizmoEntry* gizmo_entry(const DevGizmoComp* comp, const u32 index) {
+  return dynarray_at_t(&comp->entries, index, DevGizmoEntry);
 }
 
-static const DebugGizmoEntry* gizmo_entry(const DevGizmoComp* comp, const u32 index) {
-  return dynarray_at_t(&comp->entries, index, DebugGizmoEntry);
-}
-
-static u32 gizmo_entry_index(const DevGizmoComp* comp, const DebugGizmoEntry* entry) {
-  return (u32)(entry - dynarray_begin_t(&comp->entries, DebugGizmoEntry));
+static u32 gizmo_entry_index(const DevGizmoComp* comp, const DevGizmoEntry* entry) {
+  return (u32)(entry - dynarray_begin_t(&comp->entries, DevGizmoEntry));
 }
 
 static void gizmo_ring_points(
@@ -262,8 +260,8 @@ static void gizmo_ring_capsules(
   }
 }
 
-static void gizmo_register_translation(DevGizmoComp* comp, const DebugGizmoEntry* entry) {
-  diag_assert(entry->type == DebugGizmoType_Translation);
+static void gizmo_register_translation(DevGizmoComp* comp, const DevGizmoEntry* entry) {
+  diag_assert(entry->type == DevGizmoType_Translation);
 
   // Register collision shapes for the translation arrows.
   for (u32 i = 0; i != array_elems(g_gizmoTranslationArrows); ++i) {
@@ -272,7 +270,7 @@ static void gizmo_register_translation(DevGizmoComp* comp, const DebugGizmoEntry
     const GeoVector lineStart = entry->pos;
     const GeoVector lineEnd   = geo_vector_add(lineStart, geo_vector_mul(dir, length));
 
-    const u64 shapeId = gizmo_shape_id(gizmo_entry_index(comp, entry), (DebugGizmoSection)i);
+    const u64 shapeId = gizmo_shape_id(gizmo_entry_index(comp, entry), (DevGizmoSection)i);
     geo_query_insert_capsule(
         comp->queryEnv,
         (GeoCapsule){
@@ -284,8 +282,8 @@ static void gizmo_register_translation(DevGizmoComp* comp, const DebugGizmoEntry
   }
 }
 
-static void gizmo_register_rotation(DevGizmoComp* comp, const DebugGizmoEntry* entry) {
-  diag_assert(entry->type == DebugGizmoType_Rotation);
+static void gizmo_register_rotation(DevGizmoComp* comp, const DevGizmoEntry* entry) {
+  diag_assert(entry->type == DevGizmoType_Rotation);
 
   // Register collision shapes for the rotation rings.
   GeoCapsule capsules[gizmo_ring_segments];
@@ -295,7 +293,7 @@ static void gizmo_register_rotation(DevGizmoComp* comp, const DebugGizmoEntry* e
     const GeoQuat   ringRot = geo_quat_mul(entry->rot, geo_quat_look(normal, tangent));
     const f32       radius  = g_gizmoRotationRings[i].radius * comp->size;
     const f32 thickness = g_gizmoRotationRings[i].thickness * comp->size * g_gizmoCollisionScale;
-    const u64 shapeId   = gizmo_shape_id(gizmo_entry_index(comp, entry), (DebugGizmoSection)i);
+    const u64 shapeId   = gizmo_shape_id(gizmo_entry_index(comp, entry), (DevGizmoSection)i);
 
     gizmo_ring_capsules(entry->pos, ringRot, radius, thickness, capsules);
     for (u32 segment = 0; segment != gizmo_ring_segments; ++segment) {
@@ -304,11 +302,11 @@ static void gizmo_register_rotation(DevGizmoComp* comp, const DebugGizmoEntry* e
   }
 }
 
-static void gizmo_register_scale_uniform(DevGizmoComp* comp, const DebugGizmoEntry* entry) {
-  diag_assert(entry->type == DebugGizmoType_ScaleUniform);
+static void gizmo_register_scale_uniform(DevGizmoComp* comp, const DevGizmoEntry* entry) {
+  diag_assert(entry->type == DevGizmoType_ScaleUniform);
 
   // Register collision shapes for the handle.
-  const u64       shapeId     = gizmo_shape_id(gizmo_entry_index(comp, entry), DebugGizmoSection_X);
+  const u64       shapeId     = gizmo_shape_id(gizmo_entry_index(comp, entry), DevGizmoSection_X);
   const f32       length      = g_gizmoScaleUniformHandle.length * comp->size;
   const GeoVector handleDelta = geo_vector_mul(geo_up, length);
   geo_query_insert_capsule(
@@ -321,33 +319,33 @@ static void gizmo_register_scale_uniform(DevGizmoComp* comp, const DebugGizmoEnt
       g_gizmoLayer);
 }
 
-static void gizmo_register(DevGizmoComp* comp, const DebugGizmoEntry* entry) {
+static void gizmo_register(DevGizmoComp* comp, const DevGizmoEntry* entry) {
   switch (entry->type) {
-  case DebugGizmoType_Translation:
+  case DevGizmoType_Translation:
     gizmo_register_translation(comp, entry);
     break;
-  case DebugGizmoType_Rotation:
+  case DevGizmoType_Rotation:
     gizmo_register_rotation(comp, entry);
     break;
-  case DebugGizmoType_ScaleUniform:
+  case DevGizmoType_ScaleUniform:
     gizmo_register_scale_uniform(comp, entry);
     break;
-  case DebugGizmoType_Count:
+  case DevGizmoType_Count:
     UNREACHABLE
   }
 }
 
 static void gizmo_interaction_hover(
-    DevGizmoComp* comp, const DebugGizmoEntry* entry, const DebugGizmoSection section) {
-  comp->status        = DebugGizmoStatus_Hovering;
+    DevGizmoComp* comp, const DevGizmoEntry* entry, const DevGizmoSection section) {
+  comp->status        = DevGizmoStatus_Hovering;
   comp->activeType    = entry->type;
   comp->activeId      = entry->id;
   comp->activeSection = section;
 }
 
 static void gizmo_interaction_start(
-    DevGizmoComp* comp, const DebugGizmoEntry* entry, const DebugGizmoSection section) {
-  comp->status           = DebugGizmoStatus_Interacting;
+    DevGizmoComp* comp, const DevGizmoEntry* entry, const DevGizmoSection section) {
+  comp->status           = DevGizmoStatus_Interacting;
   comp->activeType       = entry->type;
   comp->activeId         = entry->id;
   comp->activeSection    = section;
@@ -355,34 +353,34 @@ static void gizmo_interaction_start(
   comp->requestReset     = false;
 
   switch (entry->type) {
-  case DebugGizmoType_Translation:
-    comp->editor.translation = (DebugGizmoEditorTranslation){
+  case DevGizmoType_Translation:
+    comp->editor.translation = (DevGizmoEditorTranslation){
         .basePos = entry->pos,
         .baseRot = entry->rot,
         .result  = entry->pos,
     };
     break;
-  case DebugGizmoType_Rotation:
-    comp->editor.rotation = (DebugGizmoEditorRotation){
+  case DevGizmoType_Rotation:
+    comp->editor.rotation = (DevGizmoEditorRotation){
         .basePos = entry->pos,
         .baseRot = entry->rot,
         .result  = entry->rot,
     };
     break;
-  case DebugGizmoType_ScaleUniform:
-    comp->editor.scaleUniform = (DebugGizmoEditorScaleUniform){
+  case DevGizmoType_ScaleUniform:
+    comp->editor.scaleUniform = (DevGizmoEditorScaleUniform){
         .basePos     = entry->pos,
         .baseScale   = entry->scale,
         .result      = entry->scale,
         .resultDelta = 1.0f,
     };
     break;
-  case DebugGizmoType_Count:
+  case DevGizmoType_Count:
     UNREACHABLE;
   }
 }
 
-static void gizmo_interaction_cancel(DevGizmoComp* comp) { comp->status = DebugGizmoStatus_None; }
+static void gizmo_interaction_cancel(DevGizmoComp* comp) { comp->status = DevGizmoStatus_None; }
 
 static bool gizmo_interaction_is_blocked(const InputManagerComp* input) {
   /**
@@ -395,17 +393,17 @@ static bool gizmo_interaction_is_blocked(const InputManagerComp* input) {
  * Pick an interaction plane based on the desired editing section (axis) and input ray.
  */
 static GeoPlane gizmo_translation_plane(
-    const GeoVector         basePos,
-    const GeoQuat           baseRot,
-    const DebugGizmoSection section,
-    const GeoRay*           ray) {
-  diag_assert(section >= DebugGizmoSection_X && section <= DebugGizmoSection_Z);
+    const GeoVector       basePos,
+    const GeoQuat         baseRot,
+    const DevGizmoSection section,
+    const GeoRay*         ray) {
+  diag_assert(section >= DevGizmoSection_X && section <= DevGizmoSection_Z);
 
   // Pick the best normal based on the camera direction.
   static const GeoVector g_normals[][2] = {
-      [DebugGizmoSection_X] = {{0, 1, 0}, {0, 0, 1}},
-      [DebugGizmoSection_Y] = {{0, 0, 1}, {1, 0, 0}},
-      [DebugGizmoSection_Z] = {{0, 1, 0}, {1, 0, 0}},
+      [DevGizmoSection_X] = {{0, 1, 0}, {0, 0, 1}},
+      [DevGizmoSection_Y] = {{0, 0, 1}, {1, 0, 0}},
+      [DevGizmoSection_Z] = {{0, 1, 0}, {1, 0, 0}},
   };
   const GeoVector nrmA = geo_quat_rotate(baseRot, g_normals[section][0]);
   const GeoVector nrmB = geo_quat_rotate(baseRot, g_normals[section][1]);
@@ -423,11 +421,11 @@ static bool gizmo_update_interaction_translation(
     DevGridComp*         grid,
     const GapWindowComp* window,
     const GeoRay*        ray) {
-  DebugGizmoEditorTranslation* data    = &comp->editor.translation;
-  const DebugGizmoSection      section = comp->activeSection;
+  DevGizmoEditorTranslation* data    = &comp->editor.translation;
+  const DevGizmoSection      section = comp->activeSection;
 
-  diag_assert(comp->activeType == DebugGizmoType_Translation);
-  diag_assert(section >= DebugGizmoSection_X && section <= DebugGizmoSection_Z);
+  diag_assert(comp->activeType == DevGizmoType_Translation);
+  diag_assert(section >= DevGizmoSection_X && section <= DevGizmoSection_Z);
 
   const GeoPlane plane   = gizmo_translation_plane(data->basePos, data->baseRot, section, ray);
   const f32      hitDist = geo_plane_intersect_ray(&plane, ray);
@@ -467,11 +465,11 @@ static f32 gizmo_vector_angle(const GeoVector from, const GeoVector to, const Ge
 
 static bool gizmo_update_interaction_rotation(
     DevGizmoComp* comp, DevStatsGlobalComp* stats, const GapWindowComp* window, const GeoRay* ray) {
-  DebugGizmoEditorRotation* data    = &comp->editor.rotation;
-  const DebugGizmoSection   section = comp->activeSection;
+  DevGizmoEditorRotation* data    = &comp->editor.rotation;
+  const DevGizmoSection   section = comp->activeSection;
 
-  diag_assert(comp->activeType == DebugGizmoType_Rotation);
-  diag_assert(section >= DebugGizmoSection_X && section <= DebugGizmoSection_Z);
+  diag_assert(comp->activeType == DevGizmoType_Rotation);
+  diag_assert(section >= DevGizmoSection_X && section <= DevGizmoSection_Z);
 
   GeoVector axis = geo_quat_rotate(data->baseRot, g_gizmoRotationRings[section].normal);
   if (geo_vector_dot(ray->dir, axis) > 0) {
@@ -505,10 +503,10 @@ static bool gizmo_update_interaction_rotation(
 
 static bool gizmo_update_interaction_scale_uniform(
     DevGizmoComp* comp, DevStatsGlobalComp* stats, const GeoRay* ray) {
-  DebugGizmoEditorScaleUniform* data = &comp->editor.scaleUniform;
+  DevGizmoEditorScaleUniform* data = &comp->editor.scaleUniform;
 
-  diag_assert(comp->activeType == DebugGizmoType_ScaleUniform);
-  diag_assert(comp->activeSection == DebugGizmoSection_X);
+  diag_assert(comp->activeType == DevGizmoType_ScaleUniform);
+  diag_assert(comp->activeSection == DevGizmoSection_X);
 
   // Pick an interaction plane (either the z or the x axis).
   const f32 dotForward = geo_vector_dot(ray->dir, geo_forward);
@@ -554,23 +552,23 @@ static void gizmo_update_interaction(
   const GeoRay    inputRay     = scene_camera_ray(camera, cameraTrans, inputAspect, inputNormPos);
   const bool      isBlocked    = gizmo_interaction_is_blocked(input);
 
-  const DebugGizmoEntry* hoverEntry   = null;
-  DebugGizmoSection      hoverSection = 0;
-  GeoQueryRayHit         hit;
-  const GeoQueryFilter   filter  = {.layerMask = g_gizmoLayer};
-  const f32              maxDist = 1e3f;
+  const DevGizmoEntry* hoverEntry   = null;
+  DevGizmoSection      hoverSection = 0;
+  GeoQueryRayHit       hit;
+  const GeoQueryFilter filter  = {.layerMask = g_gizmoLayer};
+  const f32            maxDist = 1e3f;
   if (!isBlocked && geo_query_ray(comp->queryEnv, &inputRay, maxDist, &filter, &hit)) {
     hoverEntry   = gizmo_entry(comp, gizmo_shape_index(hit.userId));
     hoverSection = gizmo_shape_section(hit.userId);
   }
 
-  if (comp->status == DebugGizmoStatus_None && hoverEntry) {
+  if (comp->status == DevGizmoStatus_None && hoverEntry) {
     gizmo_interaction_hover(comp, hoverEntry, hoverSection);
     return;
   }
 
-  const bool isHovering    = comp->status == DebugGizmoStatus_Hovering;
-  const bool isInteracting = comp->status == DebugGizmoStatus_Interacting;
+  const bool isHovering    = comp->status == DevGizmoStatus_Hovering;
+  const bool isInteracting = comp->status == DevGizmoStatus_Interacting;
 
   if ((isHovering && !hoverEntry) || (isInteracting && !inputDown)) {
     gizmo_interaction_cancel(comp);
@@ -590,16 +588,16 @@ static void gizmo_update_interaction(
   if (isInteracting) {
     bool active;
     switch (comp->activeType) {
-    case DebugGizmoType_Translation:
+    case DevGizmoType_Translation:
       active = gizmo_update_interaction_translation(comp, stats, grid, window, &inputRay);
       break;
-    case DebugGizmoType_Rotation:
+    case DevGizmoType_Rotation:
       active = gizmo_update_interaction_rotation(comp, stats, window, &inputRay);
       break;
-    case DebugGizmoType_ScaleUniform:
+    case DevGizmoType_ScaleUniform:
       active = gizmo_update_interaction_scale_uniform(comp, stats, &inputRay);
       break;
-    case DebugGizmoType_Count:
+    case DevGizmoType_Count:
       UNREACHABLE
     }
     if (active) {
@@ -619,11 +617,11 @@ static void dev_gizmo_create(EcsWorld* world, const EcsEntityId entity) {
       entity,
       DevGizmoComp,
       .size     = 1.0f,
-      .entries  = dynarray_create_t(g_allocHeap, DebugGizmoEntry, 16),
+      .entries  = dynarray_create_t(g_allocHeap, DevGizmoEntry, 16),
       .queryEnv = geo_query_env_create(g_allocHeap));
 }
 
-ecs_system_define(DebugGizmoUpdateSys) {
+ecs_system_define(DevGizmoUpdateSys) {
   // Initialize the global gizmo component.
   const EcsEntityId globalEntity = ecs_world_global(world);
   if (!ecs_world_has_t(world, globalEntity, DevGizmoComp)) {
@@ -644,7 +642,7 @@ ecs_system_define(DebugGizmoUpdateSys) {
   GeoVector center;
   geo_query_env_clear(gizmo->queryEnv);
   for (u32 i = 0; i != gizmo->entries.size; ++i) {
-    const DebugGizmoEntry* entry = gizmo_entry(gizmo, i);
+    const DevGizmoEntry* entry = gizmo_entry(gizmo, i);
     gizmo_register(gizmo, entry);
     center = i ? geo_vector_add(center, entry->pos) : entry->pos;
   }
@@ -670,48 +668,48 @@ ecs_system_define(DebugGizmoUpdateSys) {
   }
 
   // Update input blockers.
-  input_blocker_update(input, InputBlocker_HoveringGizmo, gizmo->status > DebugGizmoStatus_None);
+  input_blocker_update(input, InputBlocker_HoveringGizmo, gizmo->status > DevGizmoStatus_None);
 
   // Clear last frame's entries.
   dynarray_clear(&gizmo->entries);
 }
 
 static GeoColor
-gizmo_translation_arrow_color(const DevGizmoComp* comp, const DebugGizmoId id, const u32 index) {
+gizmo_translation_arrow_color(const DevGizmoComp* comp, const DevGizmoId id, const u32 index) {
   diag_assert(index < 3);
 
-  if (gizmo_is_hovered_section(comp, id, (DebugGizmoSection)index)) {
+  if (gizmo_is_hovered_section(comp, id, (DevGizmoSection)index)) {
     return g_gizmoTranslationArrows[index].colorHovered;
   }
-  if (comp->status >= DebugGizmoStatus_Interacting) {
+  if (comp->status >= DevGizmoStatus_Interacting) {
     return geo_color_gray; // Another gizmo (or section) is being interacted with.
   }
   return g_gizmoTranslationArrows[index].colorNormal;
 }
 
 static f32
-gizmo_translation_arrow_radius(const DevGizmoComp* comp, const DebugGizmoId id, const u32 index) {
+gizmo_translation_arrow_radius(const DevGizmoComp* comp, const DevGizmoId id, const u32 index) {
   diag_assert(index < 3);
 
   const f32 base = g_gizmoTranslationArrows[index].radius * comp->size;
-  if (gizmo_is_hovered_section(comp, id, (DebugGizmoSection)index)) {
+  if (gizmo_is_hovered_section(comp, id, (DevGizmoSection)index)) {
     return base * 1.1f;
   }
-  if (comp->status >= DebugGizmoStatus_Interacting) {
+  if (comp->status >= DevGizmoStatus_Interacting) {
     return base * 0.75f; // Another gizmo (or section) is being interacted with.
   }
   return base;
 }
 
-static void gizmo_draw_translation(
-    const DevGizmoComp* comp, DevShapeComp* shape, const DebugGizmoEntry* entry) {
-  diag_assert(entry->type == DebugGizmoType_Translation);
+static void
+gizmo_draw_translation(const DevGizmoComp* comp, DevShapeComp* shape, const DevGizmoEntry* entry) {
+  diag_assert(entry->type == DevGizmoType_Translation);
 
   const bool      isInteracting = gizmo_is_interacting_type(comp, entry->id, entry->type);
   const GeoVector pos           = isInteracting ? comp->editor.translation.result : entry->pos;
 
   // Draw center point.
-  dev_sphere(shape, pos, 0.025f * comp->size, geo_color_white, DebugShape_Overlay);
+  dev_sphere(shape, pos, 0.025f * comp->size, geo_color_white, DevShape_Overlay);
 
   // Draw arrows.
   for (u32 i = 0; i != array_elems(g_gizmoTranslationArrows); ++i) {
@@ -726,41 +724,41 @@ static void gizmo_draw_translation(
 }
 
 static GeoColor
-gizmo_rotation_ring_color(const DevGizmoComp* comp, const DebugGizmoId id, const u32 index) {
+gizmo_rotation_ring_color(const DevGizmoComp* comp, const DevGizmoId id, const u32 index) {
   diag_assert(index < 3);
 
-  if (gizmo_is_hovered_section(comp, id, (DebugGizmoSection)index)) {
+  if (gizmo_is_hovered_section(comp, id, (DevGizmoSection)index)) {
     return g_gizmoRotationRings[index].colorHovered;
   }
-  if (comp->status >= DebugGizmoStatus_Interacting) {
+  if (comp->status >= DevGizmoStatus_Interacting) {
     return geo_color_gray; // Another gizmo (or section) is being interacted with.
   }
   return g_gizmoRotationRings[index].colorNormal;
 }
 
 static f32
-gizmo_rotation_ring_thickness(const DevGizmoComp* comp, const DebugGizmoId id, const u32 index) {
+gizmo_rotation_ring_thickness(const DevGizmoComp* comp, const DevGizmoId id, const u32 index) {
   diag_assert(index < 3);
 
   const f32 base = g_gizmoRotationRings[index].thickness * comp->size;
-  if (gizmo_is_hovered_section(comp, id, (DebugGizmoSection)index)) {
+  if (gizmo_is_hovered_section(comp, id, (DevGizmoSection)index)) {
     return base * 1.1f;
   }
-  if (comp->status >= DebugGizmoStatus_Interacting) {
+  if (comp->status >= DevGizmoStatus_Interacting) {
     return base * 0.5f; // Another gizmo (or section) is being interacted with.
   }
   return base;
 }
 
 static void
-gizmo_draw_rotation(const DevGizmoComp* comp, DevShapeComp* shape, const DebugGizmoEntry* entry) {
-  diag_assert(entry->type == DebugGizmoType_Rotation);
+gizmo_draw_rotation(const DevGizmoComp* comp, DevShapeComp* shape, const DevGizmoEntry* entry) {
+  diag_assert(entry->type == DevGizmoType_Rotation);
 
   const bool    isInteracting = gizmo_is_interacting_type(comp, entry->id, entry->type);
   const GeoQuat rot           = isInteracting ? comp->editor.rotation.result : entry->rot;
 
   // Draw center point.
-  dev_sphere(shape, entry->pos, 0.025f * comp->size, geo_color_white, DebugShape_Overlay);
+  dev_sphere(shape, entry->pos, 0.025f * comp->size, geo_color_white, DevShape_Overlay);
 
   // Draw rings.
   GeoCapsule capsules[gizmo_ring_segments];
@@ -773,45 +771,45 @@ gizmo_draw_rotation(const DevGizmoComp* comp, DevShapeComp* shape, const DebugGi
 
     gizmo_ring_capsules(entry->pos, ringRot, radius, thickness, capsules);
     for (u32 segment = 0; segment != gizmo_ring_segments; ++segment) {
-      const GeoCapsule*    capsule = &capsules[segment];
-      const GeoColor       color   = gizmo_rotation_ring_color(comp, entry->id, i);
-      const DebugShapeMode mode    = DebugShape_Overlay;
+      const GeoCapsule*  capsule = &capsules[segment];
+      const GeoColor     color   = gizmo_rotation_ring_color(comp, entry->id, i);
+      const DevShapeMode mode    = DevShape_Overlay;
       dev_cylinder(shape, capsule->line.a, capsule->line.b, capsule->radius, color, mode);
     }
   }
 }
 
-static GeoColor gizmo_scale_uniform_color(const DevGizmoComp* comp, const DebugGizmoId id) {
-  if (gizmo_is_hovered_section(comp, id, DebugGizmoSection_X)) {
+static GeoColor gizmo_scale_uniform_color(const DevGizmoComp* comp, const DevGizmoId id) {
+  if (gizmo_is_hovered_section(comp, id, DevGizmoSection_X)) {
     return g_gizmoScaleUniformHandle.colorHovered;
   }
-  if (comp->status >= DebugGizmoStatus_Interacting) {
+  if (comp->status >= DevGizmoStatus_Interacting) {
     return geo_color_gray; // Another gizmo is being interacted with.
   }
   return g_gizmoScaleUniformHandle.colorNormal;
 }
 
-static f32 gizmo_scale_uniform_radius(const DevGizmoComp* comp, const DebugGizmoId id) {
+static f32 gizmo_scale_uniform_radius(const DevGizmoComp* comp, const DevGizmoId id) {
   const f32 base = g_gizmoScaleUniformHandle.radius * comp->size;
-  if (gizmo_is_hovered_section(comp, id, DebugGizmoSection_X)) {
+  if (gizmo_is_hovered_section(comp, id, DevGizmoSection_X)) {
     return base * 1.1f;
   }
-  if (comp->status >= DebugGizmoStatus_Interacting) {
+  if (comp->status >= DevGizmoStatus_Interacting) {
     return base * 0.75f; // Another gizmo (or section) is being interacted with.
   }
   return base;
 }
 
 static void gizmo_draw_scale_uniform(
-    const DevGizmoComp* comp, DevShapeComp* shape, const DebugGizmoEntry* entry) {
-  diag_assert(entry->type == DebugGizmoType_ScaleUniform);
+    const DevGizmoComp* comp, DevShapeComp* shape, const DevGizmoEntry* entry) {
+  diag_assert(entry->type == DevGizmoType_ScaleUniform);
 
-  const DebugGizmoId id    = entry->id;
-  const bool isInteracting = gizmo_is_interacting_type(comp, id, DebugGizmoType_ScaleUniform);
-  const f32  scaleDelta    = isInteracting ? comp->editor.scaleUniform.resultDelta : 1.0f;
+  const DevGizmoId id            = entry->id;
+  const bool       isInteracting = gizmo_is_interacting_type(comp, id, DevGizmoType_ScaleUniform);
+  const f32        scaleDelta    = isInteracting ? comp->editor.scaleUniform.resultDelta : 1.0f;
 
   // Draw center point.
-  dev_sphere(shape, entry->pos, 0.025f * comp->size, geo_color_white, DebugShape_Overlay);
+  dev_sphere(shape, entry->pos, 0.025f * comp->size, geo_color_white, DevShape_Overlay);
 
   // Draw scale handle.
   const f32       handleLength = g_gizmoScaleUniformHandle.length * comp->size * scaleDelta;
@@ -821,7 +819,7 @@ static void gizmo_draw_scale_uniform(
   dev_arrow(shape, entry->pos, handleEnd, gizmo_scale_uniform_radius(comp, id), handleColor);
 }
 
-ecs_system_define(DebugGizmoRenderSys) {
+ecs_system_define(DevGizmoRenderSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalRenderView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -830,18 +828,18 @@ ecs_system_define(DebugGizmoRenderSys) {
   const DevGizmoComp* gizmo = ecs_view_read_t(globalItr, DevGizmoComp);
   DevShapeComp*       shape = ecs_view_write_t(globalItr, DevShapeComp);
 
-  dynarray_for_t(&gizmo->entries, DebugGizmoEntry, entry) {
+  dynarray_for_t(&gizmo->entries, DevGizmoEntry, entry) {
     switch (entry->type) {
-    case DebugGizmoType_Translation:
+    case DevGizmoType_Translation:
       gizmo_draw_translation(gizmo, shape, entry);
       break;
-    case DebugGizmoType_Rotation:
+    case DevGizmoType_Rotation:
       gizmo_draw_rotation(gizmo, shape, entry);
       break;
-    case DebugGizmoType_ScaleUniform:
+    case DevGizmoType_ScaleUniform:
       gizmo_draw_scale_uniform(gizmo, shape, entry);
       break;
-    case DebugGizmoType_Count:
+    case DevGizmoType_Count:
       UNREACHABLE
     }
   }
@@ -854,29 +852,29 @@ ecs_module_init(dev_gizmo_module) {
   ecs_register_view(GlobalRenderView);
   ecs_register_view(CameraView);
 
-  ecs_register_system(DebugGizmoUpdateSys, ecs_view_id(GlobalUpdateView), ecs_view_id(CameraView));
-  ecs_order(DebugGizmoUpdateSys, DebugOrder_GizmoUpdate);
+  ecs_register_system(DevGizmoUpdateSys, ecs_view_id(GlobalUpdateView), ecs_view_id(CameraView));
+  ecs_order(DevGizmoUpdateSys, DevOrder_GizmoUpdate);
 
-  ecs_register_system(DebugGizmoRenderSys, ecs_view_id(GlobalRenderView));
-  ecs_order(DebugGizmoRenderSys, DebugOrder_GizmoRender);
+  ecs_register_system(DevGizmoRenderSys, ecs_view_id(GlobalRenderView));
+  ecs_order(DevGizmoRenderSys, DevOrder_GizmoRender);
 }
 
-bool dev_gizmo_interacting(const DevGizmoComp* comp, const DebugGizmoId id) {
+bool dev_gizmo_interacting(const DevGizmoComp* comp, const DevGizmoId id) {
   return gizmo_is_interacting(comp, id);
 }
 
 bool dev_gizmo_translation(
-    DevGizmoComp* comp, const DebugGizmoId id, GeoVector* translation, const GeoQuat rotation) {
+    DevGizmoComp* comp, const DevGizmoId id, GeoVector* translation, const GeoQuat rotation) {
 
-  *dynarray_push_t(&comp->entries, DebugGizmoEntry) = (DebugGizmoEntry){
-      .type  = DebugGizmoType_Translation,
+  *dynarray_push_t(&comp->entries, DevGizmoEntry) = (DevGizmoEntry){
+      .type  = DevGizmoType_Translation,
       .id    = id,
       .pos   = *translation,
       .rot   = rotation,
       .scale = 1.0f,
   };
 
-  const bool isInteracting = gizmo_is_interacting_type(comp, id, DebugGizmoType_Translation);
+  const bool isInteracting = gizmo_is_interacting_type(comp, id, DevGizmoType_Translation);
   if (isInteracting) {
     if (comp->requestReset) {
       *translation = comp->editor.translation.basePos;
@@ -889,17 +887,17 @@ bool dev_gizmo_translation(
 }
 
 bool dev_gizmo_rotation(
-    DevGizmoComp* comp, const DebugGizmoId id, const GeoVector translation, GeoQuat* rotation) {
+    DevGizmoComp* comp, const DevGizmoId id, const GeoVector translation, GeoQuat* rotation) {
 
-  *dynarray_push_t(&comp->entries, DebugGizmoEntry) = (DebugGizmoEntry){
-      .type  = DebugGizmoType_Rotation,
+  *dynarray_push_t(&comp->entries, DevGizmoEntry) = (DevGizmoEntry){
+      .type  = DevGizmoType_Rotation,
       .id    = id,
       .pos   = translation,
       .rot   = *rotation,
       .scale = 1.0f,
   };
 
-  const bool isInteracting = gizmo_is_interacting_type(comp, id, DebugGizmoType_Rotation);
+  const bool isInteracting = gizmo_is_interacting_type(comp, id, DevGizmoType_Rotation);
   if (isInteracting) {
     if (comp->requestReset) {
       *rotation = comp->editor.rotation.baseRot;
@@ -912,17 +910,17 @@ bool dev_gizmo_rotation(
 }
 
 bool dev_gizmo_scale_uniform(
-    DevGizmoComp* comp, const DebugGizmoId id, const GeoVector translation, f32* scale) {
+    DevGizmoComp* comp, const DevGizmoId id, const GeoVector translation, f32* scale) {
 
-  *dynarray_push_t(&comp->entries, DebugGizmoEntry) = (DebugGizmoEntry){
-      .type  = DebugGizmoType_ScaleUniform,
+  *dynarray_push_t(&comp->entries, DevGizmoEntry) = (DevGizmoEntry){
+      .type  = DevGizmoType_ScaleUniform,
       .id    = id,
       .pos   = translation,
       .rot   = geo_quat_ident,
       .scale = *scale,
   };
 
-  const bool isInteracting = gizmo_is_interacting_type(comp, id, DebugGizmoType_ScaleUniform);
+  const bool isInteracting = gizmo_is_interacting_type(comp, id, DevGizmoType_ScaleUniform);
   if (isInteracting) {
     if (comp->requestReset) {
       *scale = comp->editor.scaleUniform.baseScale;

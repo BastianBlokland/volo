@@ -198,7 +198,7 @@ static void camera_panel_draw(
   ui_panel_end(canvas, &panelComp->panel);
 }
 
-ecs_system_define(DebugCameraUpdatePanelSys) {
+ecs_system_define(DevCameraUpdatePanelSys) {
   EcsIterator* cameraItr = ecs_view_itr(ecs_world_view_t(world, CameraView));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
@@ -295,7 +295,7 @@ static void dev_camera_draw_input_ray(
   }
 
   if (scene_query_ray(collisionEnv, &ray, maxDist, &filter, &hit) && hit.time < terrainHitT) {
-    dev_sphere(shape, hit.position, 0.04f, geo_color_lime, DebugShape_Overlay);
+    dev_sphere(shape, hit.position, 0.04f, geo_color_lime, DevShape_Overlay);
     const GeoVector lineEnd = geo_vector_add(hit.position, geo_vector_mul(hit.normal, 0.5f));
     dev_arrow(shape, hit.position, lineEnd, 0.04f, geo_color_green);
 
@@ -309,7 +309,7 @@ static void dev_camera_draw_input_ray(
     const GeoVector terrainHitPos = geo_ray_position(&ray, terrainHitT);
     const GeoVector terrainNormal = scene_terrain_normal(terrain, terrainHitPos);
 
-    dev_sphere(shape, terrainHitPos, 0.04f, geo_color_lime, DebugShape_Overlay);
+    dev_sphere(shape, terrainHitPos, 0.04f, geo_color_lime, DevShape_Overlay);
     const GeoVector lineEnd = geo_vector_add(terrainHitPos, geo_vector_mul(terrainNormal, 0.5f));
     dev_arrow(shape, terrainHitPos, lineEnd, 0.04f, geo_color_green);
 
@@ -318,7 +318,7 @@ static void dev_camera_draw_input_ray(
   }
 }
 
-ecs_system_define(DebugCameraDrawSys) {
+ecs_system_define(DevCameraDrawSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalDrawView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -347,11 +347,11 @@ ecs_system_define(DebugCameraDrawSys) {
     const GeoVector inputPos  = {cursorPos.x / (f32)winSize.x, cursorPos.y / (f32)winSize.y};
 
     if (trans && cam->flags & SceneCameraFlags_DebugGizmoTranslation) {
-      const DebugGizmoId gizmoId = (DebugGizmoId)ecs_view_entity(itr);
+      const DevGizmoId gizmoId = (DevGizmoId)ecs_view_entity(itr);
       dev_gizmo_translation(gizmo, gizmoId, &trans->position, trans->rotation);
     }
     if (trans && cam->flags & SceneCameraFlags_DebugGizmoRotation) {
-      const DebugGizmoId gizmoId = (DebugGizmoId)ecs_view_entity(itr);
+      const DevGizmoId gizmoId = (DevGizmoId)ecs_view_entity(itr);
       dev_gizmo_rotation(gizmo, gizmoId, trans->position, &trans->rotation);
     }
     if (cam->flags & SceneCameraFlags_DebugFrustum) {
@@ -374,15 +374,12 @@ ecs_module_init(dev_camera_module) {
   ecs_register_view(NameView);
 
   ecs_register_system(
-      DebugCameraUpdatePanelSys, ecs_view_id(PanelUpdateView), ecs_view_id(CameraView));
+      DevCameraUpdatePanelSys, ecs_view_id(PanelUpdateView), ecs_view_id(CameraView));
 
   ecs_register_system(
-      DebugCameraDrawSys,
-      ecs_view_id(GlobalDrawView),
-      ecs_view_id(DrawView),
-      ecs_view_id(NameView));
+      DevCameraDrawSys, ecs_view_id(GlobalDrawView), ecs_view_id(DrawView), ecs_view_id(NameView));
 
-  ecs_order(DebugCameraDrawSys, DebugOrder_CameraDebugDraw);
+  ecs_order(DevCameraDrawSys, DevOrder_CameraDevDraw);
 }
 
 EcsEntityId

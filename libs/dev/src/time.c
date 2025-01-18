@@ -133,7 +133,7 @@ static void time_panel_draw(
   ui_panel_end(canvas, &panelComp->panel);
 }
 
-ecs_system_define(DebugTimeUpdateSys) {
+ecs_system_define(DevTimeUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -144,7 +144,7 @@ ecs_system_define(DebugTimeUpdateSys) {
   const SceneTimeComp*    time         = ecs_view_read_t(globalItr, SceneTimeComp);
   SceneTimeSettingsComp*  timeSettings = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
 
-  if (input_triggered_lit(input, "DebugTimePauseToggle")) {
+  if (input_triggered_lit(input, "DevTimePauseToggle")) {
     timeSettings->flags ^= SceneTimeFlags_Paused;
     if (timeSettings->flags & SceneTimeFlags_Paused) {
       dev_time_notify_pause(stats, true);
@@ -152,15 +152,15 @@ ecs_system_define(DebugTimeUpdateSys) {
       dev_time_notify_pause(stats, false);
     }
   }
-  if (input_triggered_lit(input, "DebugTimeScaleUp")) {
+  if (input_triggered_lit(input, "DevTimeScaleUp")) {
     timeSettings->scale += 0.1f;
     dev_time_notify_scale(stats, timeSettings->scale);
   }
-  if (input_triggered_lit(input, "DebugTimeScaleDown")) {
+  if (input_triggered_lit(input, "DevTimeScaleDown")) {
     timeSettings->scale = math_max(0.0f, timeSettings->scale - 0.1f);
     dev_time_notify_scale(stats, timeSettings->scale);
   }
-  if (input_triggered_lit(input, "DebugTimeStep")) {
+  if (input_triggered_lit(input, "DevTimeStep")) {
     timeSettings->flags |= SceneTimeFlags_Step;
   }
 
@@ -191,7 +191,7 @@ ecs_module_init(dev_time_module) {
   ecs_register_view(GlobalView);
   ecs_register_view(PanelUpdateView);
 
-  ecs_register_system(DebugTimeUpdateSys, ecs_view_id(PanelUpdateView), ecs_view_id(GlobalView));
+  ecs_register_system(DevTimeUpdateSys, ecs_view_id(PanelUpdateView), ecs_view_id(GlobalView));
 }
 
 EcsEntityId

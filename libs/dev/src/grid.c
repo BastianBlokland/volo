@@ -35,13 +35,13 @@ static const f32    g_gridDefaultHeight = 0.0f;
 // clang-format on
 
 typedef enum {
-  DebugGridFlags_None       = 0,
-  DebugGridFlags_Draw       = 1 << 0,
-  DebugGridFlags_Show       = 1 << 1,
-  DebugGridFlags_HeightAuto = 1 << 2,
+  DevGridFlags_None       = 0,
+  DevGridFlags_Draw       = 1 << 0,
+  DevGridFlags_Show       = 1 << 1,
+  DevGridFlags_HeightAuto = 1 << 2,
 
-  DebugGridFlags_Default = DebugGridFlags_Show | DebugGridFlags_HeightAuto,
-} DebugGridFlags;
+  DevGridFlags_Default = DevGridFlags_Show | DevGridFlags_HeightAuto,
+} DevGridFlags;
 
 typedef struct {
   ALIGNAS(16)
@@ -50,17 +50,17 @@ typedef struct {
   u32 cellCount;
   u32 highlightInterval;
   f32 padding;
-} DebugGridData;
+} DevGridData;
 
-ASSERT(sizeof(DebugGridData) == 16, "Size needs to match the size defined in glsl");
-ASSERT(alignof(DebugGridData) == 16, "Alignment needs to match the glsl alignment");
+ASSERT(sizeof(DevGridData) == 16, "Size needs to match the size defined in glsl");
+ASSERT(alignof(DevGridData) == 16, "Alignment needs to match the glsl alignment");
 
 ecs_comp_define(DevGridComp) {
-  EcsEntityId    rendObjEntity;
-  DebugGridFlags flags;
-  f32            cellSize;
-  f32            height;
-  f32            highlightInterval;
+  EcsEntityId  rendObjEntity;
+  DevGridFlags flags;
+  f32          cellSize;
+  f32          height;
+  f32          highlightInterval;
 };
 
 ecs_comp_define(DevGridPanelComp) {
@@ -121,14 +121,14 @@ static void dev_grid_create(EcsWorld* world, const EcsEntityId entity, AssetMana
       world,
       entity,
       DevGridComp,
-      .flags             = DebugGridFlags_Default,
+      .flags             = DevGridFlags_Default,
       .rendObjEntity     = rendObjEntity,
       .height            = g_gridDefaultHeight,
       .cellSize          = 0.5f,
       .highlightInterval = 5);
 }
 
-ecs_system_define(DebugGridCreateSys) {
+ecs_system_define(DevGridCreateSys) {
   AssetManagerComp* assets = dev_grid_asset_manager(world);
   if (!assets) {
     return;
@@ -140,7 +140,7 @@ ecs_system_define(DebugGridCreateSys) {
   }
 }
 
-ecs_system_define(DebugGridDrawSys) {
+ecs_system_define(DevGridDrawSys) {
   EcsView*     globalView = ecs_world_view_t(world, DrawGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -154,7 +154,7 @@ ecs_system_define(DebugGridDrawSys) {
   EcsView* gridView = ecs_world_view_t(world, GridReadView);
   for (EcsIterator* itr = ecs_view_itr(gridView); ecs_view_walk(itr);) {
     const DevGridComp* grid = ecs_view_read_t(itr, DevGridComp);
-    if (!(grid->flags & DebugGridFlags_Draw)) {
+    if (!(grid->flags & DevGridFlags_Draw)) {
       continue;
     }
 
@@ -166,8 +166,8 @@ ecs_system_define(DebugGridDrawSys) {
     const u32 segmentCount = cellCount + 1; // +1 for the lines to 'close' the last row and column.
 
     rend_object_set_vertex_count(obj, segmentCount * 4);
-    *rend_object_add_instance_t(obj, DebugGridData, SceneTags_Debug, geo_box_inverted3()) =
-        (DebugGridData){
+    *rend_object_add_instance_t(obj, DevGridData, SceneTags_Debug, geo_box_inverted3()) =
+        (DevGridData){
             .cellSize          = float_f32_to_f16(grid->cellSize),
             .height            = float_f32_to_f16(grid->height),
             .cellCount         = cellCount,
@@ -210,8 +210,8 @@ static void grid_panel_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Show"));
   ui_table_next_column(canvas, &table);
-  if (ui_toggle_flag(canvas, (u32*)&grid->flags, DebugGridFlags_Show, .tooltip = g_tooltipShow)) {
-    const bool show = (grid->flags & DebugGridFlags_Show) != 0;
+  if (ui_toggle_flag(canvas, (u32*)&grid->flags, DevGridFlags_Show, .tooltip = g_tooltipShow)) {
+    const bool show = (grid->flags & DevGridFlags_Show) != 0;
     dev_stats_notify(
         stats, string_lit("Grid show"), show ? string_lit("true") : string_lit("false"));
   }
@@ -233,7 +233,7 @@ static void grid_panel_draw(
   ui_label(canvas, string_lit("Height Auto"));
   ui_table_next_column(canvas, &table);
   ui_toggle_flag(
-      canvas, (u32*)&grid->flags, DebugGridFlags_HeightAuto, .tooltip = g_tooltipHeightAuto);
+      canvas, (u32*)&grid->flags, DevGridFlags_HeightAuto, .tooltip = g_tooltipHeightAuto);
 
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Height"));
@@ -273,7 +273,7 @@ static f32 dev_selection_height(const SceneSetEnvComp* setEnv, EcsView* transfor
   return entryCount ? (averageHeight / entryCount) : g_gridDefaultHeight;
 }
 
-ecs_system_define(DebugGridUpdateSys) {
+ecs_system_define(DevGridUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, UpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -288,21 +288,21 @@ ecs_system_define(DebugGridUpdateSys) {
   EcsIterator* gridItr = ecs_view_itr(ecs_world_view_t(world, GridWriteView));
   if (ecs_view_maybe_jump(gridItr, input_active_window(input))) {
     DevGridComp* grid = ecs_view_write_t(gridItr, DevGridComp);
-    if (grid->flags & DebugGridFlags_HeightAuto) {
+    if (grid->flags & DevGridFlags_HeightAuto) {
       grid->height = dev_selection_height(setEnv, transformView);
     }
-    if (input_triggered_lit(input, "DebugGridShow")) {
-      grid->flags ^= DebugGridFlags_Show;
-      grid_notify_show(stats, (grid->flags & DebugGridFlags_Show) != 0);
+    if (input_triggered_lit(input, "DevGridShow")) {
+      grid->flags ^= DevGridFlags_Show;
+      grid_notify_show(stats, (grid->flags & DevGridFlags_Show) != 0);
     }
-    if (input_triggered_lit(input, "DebugGridScaleUp")) {
+    if (input_triggered_lit(input, "DevGridScaleUp")) {
       grid->cellSize = math_min(grid->cellSize * 2.0f, g_gridCellSizeMax);
-      grid->flags |= DebugGridFlags_Show;
+      grid->flags |= DevGridFlags_Show;
       grid_notify_cell_size(stats, grid->cellSize);
     }
-    if (input_triggered_lit(input, "DebugGridScaleDown")) {
+    if (input_triggered_lit(input, "DevGridScaleDown")) {
       grid->cellSize = math_max(grid->cellSize * 0.5f, g_gridCellSizeMin);
-      grid->flags |= DebugGridFlags_Show;
+      grid->flags |= DevGridFlags_Show;
       grid_notify_cell_size(stats, grid->cellSize);
     }
   }
@@ -310,10 +310,10 @@ ecs_system_define(DebugGridUpdateSys) {
   // NOTE: Enable grid draw when requested and when in debug mode.
   for (EcsIterator* itr = ecs_view_itr_reset(gridItr); ecs_view_walk(itr);) {
     DevGridComp* grid = ecs_view_write_t(itr, DevGridComp);
-    if (grid->flags & DebugGridFlags_Show && input_layer_active(input, string_hash_lit("Debug"))) {
-      grid->flags |= DebugGridFlags_Draw;
+    if (grid->flags & DevGridFlags_Show && input_layer_active(input, string_hash_lit("Dev"))) {
+      grid->flags |= DevGridFlags_Draw;
     } else {
-      grid->flags &= ~DebugGridFlags_Draw;
+      grid->flags &= ~DevGridFlags_Draw;
     }
   }
 
@@ -360,17 +360,16 @@ ecs_module_init(dev_grid_module) {
   ecs_register_view(UpdateGlobalView);
   ecs_register_view(UpdateView);
 
-  ecs_register_system(
-      DebugGridCreateSys, ecs_view_id(GlobalAssetsView), ecs_view_id(GridCreateView));
+  ecs_register_system(DevGridCreateSys, ecs_view_id(GlobalAssetsView), ecs_view_id(GridCreateView));
 
   ecs_register_system(
-      DebugGridDrawSys,
+      DevGridDrawSys,
       ecs_view_id(DrawGlobalView),
       ecs_view_id(GridReadView),
       ecs_view_id(DrawRendObjView));
 
   ecs_register_system(
-      DebugGridUpdateSys,
+      DevGridUpdateSys,
       ecs_view_id(UpdateGlobalView),
       ecs_view_id(UpdateView),
       ecs_view_id(GridWriteView),
@@ -378,7 +377,7 @@ ecs_module_init(dev_grid_module) {
 }
 
 void dev_grid_show(DevGridComp* comp, const f32 height) {
-  comp->flags |= DebugGridFlags_Show;
+  comp->flags |= DevGridFlags_Show;
   comp->height = height;
 }
 

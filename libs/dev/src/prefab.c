@@ -323,11 +323,11 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
   EcsView*     cameraView = ecs_world_view_t(ctx->world, CameraView);
   EcsIterator* cameraItr  = ecs_view_maybe_at(cameraView, input_active_window(ctx->input));
 
-  if (!input_layer_active(ctx->input, string_hash_lit("Debug"))) {
-    prefab_create_cancel(ctx); // Debug input no longer active.
+  if (!input_layer_active(ctx->input, string_hash_lit("Dev"))) {
+    prefab_create_cancel(ctx); // Dev input no longer active.
     return;
   }
-  if (input_triggered_lit(ctx->input, "DebugPrefabCreateCancel")) {
+  if (input_triggered_lit(ctx->input, "DevPrefabCreateCancel")) {
     prefab_create_cancel(ctx); // Cancel requested.
     return;
   }
@@ -348,7 +348,7 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
   }
 
   prefab_create_preview(ctx, pos);
-  dev_sphere(ctx->shape, pos, 0.25f, geo_color_green, DebugShape_Overlay);
+  dev_sphere(ctx->shape, pos, 0.25f, geo_color_green, DevShape_Overlay);
 
   dev_stats_notify(
       ctx->globalStats,
@@ -358,7 +358,7 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
           fmt_float(pos.x, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0),
           fmt_float(pos.z, .minDecDigits = 1, .maxDecDigits = 1, .expThresholdNeg = 0)));
 
-  if (input_triggered_lit(ctx->input, "DebugPrefabCreate")) {
+  if (input_triggered_lit(ctx->input, "DevPrefabCreate")) {
     prefab_create_accept(ctx, pos);
   }
 }
@@ -371,7 +371,7 @@ static bool prefab_allow_create(const PrefabPanelContext* ctx) {
      */
     return false;
   }
-  if (!input_layer_active(ctx->input, string_hash_lit("Debug"))) {
+  if (!input_layer_active(ctx->input, string_hash_lit("Dev"))) {
     /**
      * NOTE: Disable creating when debug input is not active, reason is placing prefabs uses debug
      * input to detect place accept / cancel. This can happen when pinning the window.
@@ -595,7 +595,7 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
-ecs_system_define(DebugPrefabUpdatePanelSys) {
+ecs_system_define(DevPrefabUpdatePanelSys) {
   EcsView*     globalView = ecs_world_view_t(world, PanelUpdateGlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -678,7 +678,7 @@ ecs_module_init(dev_prefab_module) {
   ecs_register_view(PanelUpdateView);
 
   ecs_register_system(
-      DebugPrefabUpdatePanelSys,
+      DevPrefabUpdatePanelSys,
       ecs_view_id(PrefabMapView),
       ecs_view_id(PrefabInstanceView),
       ecs_view_id(PrefabPreviewView),

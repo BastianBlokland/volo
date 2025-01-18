@@ -68,151 +68,151 @@
 #include "ui_widget.h"
 
 typedef enum {
-  DebugInspectorSpace_Local,
-  DebugInspectorSpace_World,
+  DevInspectorSpace_Local,
+  DevInspectorSpace_World,
 
-  DebugInspectorSpace_Count,
-} DebugInspectorSpace;
-
-typedef enum {
-  DebugInspectorTool_None,
-  DebugInspectorTool_Translation,
-  DebugInspectorTool_Rotation,
-  DebugInspectorTool_Scale,
-  DebugInspectorTool_Picker,
-
-  DebugInspectorTool_Count,
-} DebugInspectorTool;
+  DevInspectorSpace_Count,
+} DevInspectorSpace;
 
 typedef enum {
-  DebugInspectorVis_Icon,
-  DebugInspectorVis_Explicit,
-  DebugInspectorVis_Origin,
-  DebugInspectorVis_Name,
-  DebugInspectorVis_Locomotion,
-  DebugInspectorVis_Collision,
-  DebugInspectorVis_CollisionBounds,
-  DebugInspectorVis_BoundsLocal,
-  DebugInspectorVis_BoundsGlobal,
-  DebugInspectorVis_NavigationPath,
-  DebugInspectorVis_NavigationGrid,
-  DebugInspectorVis_Light,
-  DebugInspectorVis_Health,
-  DebugInspectorVis_Attack,
-  DebugInspectorVis_Target,
-  DebugInspectorVis_Vision,
-  DebugInspectorVis_Location,
+  DevInspectorTool_None,
+  DevInspectorTool_Translation,
+  DevInspectorTool_Rotation,
+  DevInspectorTool_Scale,
+  DevInspectorTool_Picker,
 
-  DebugInspectorVis_Count,
-} DebugInspectorVis;
+  DevInspectorTool_Count,
+} DevInspectorTool;
 
 typedef enum {
-  DebugInspectorVisMode_SelectedOnly,
-  DebugInspectorVisMode_All,
+  DevInspectorVis_Icon,
+  DevInspectorVis_Explicit,
+  DevInspectorVis_Origin,
+  DevInspectorVis_Name,
+  DevInspectorVis_Locomotion,
+  DevInspectorVis_Collision,
+  DevInspectorVis_CollisionBounds,
+  DevInspectorVis_BoundsLocal,
+  DevInspectorVis_BoundsGlobal,
+  DevInspectorVis_NavigationPath,
+  DevInspectorVis_NavigationGrid,
+  DevInspectorVis_Light,
+  DevInspectorVis_Health,
+  DevInspectorVis_Attack,
+  DevInspectorVis_Target,
+  DevInspectorVis_Vision,
+  DevInspectorVis_Location,
 
-  DebugInspectorVisMode_Count,
-  DebugInspectorVisMode_Default = DebugInspectorVisMode_SelectedOnly,
-} DebugInspectorVisMode;
+  DevInspectorVis_Count,
+} DevInspectorVis;
 
 typedef enum {
-  DebugPropType_Num,
-  DebugPropType_Bool,
-  DebugPropType_Vec3,
-  DebugPropType_Quat,
-  DebugPropType_Color,
-  DebugPropType_Str,
-  DebugPropType_LevelEntity,
-  DebugPropType_Decal,
-  DebugPropType_Graphic,
-  DebugPropType_Sound,
-  DebugPropType_Vfx,
+  DevInspectorVisMode_SelectedOnly,
+  DevInspectorVisMode_All,
 
-  DebugPropType_Count,
-} DebugPropType;
+  DevInspectorVisMode_Count,
+  DevInspectorVisMode_Default = DevInspectorVisMode_SelectedOnly,
+} DevInspectorVisMode;
+
+typedef enum {
+  DevPropType_Num,
+  DevPropType_Bool,
+  DevPropType_Vec3,
+  DevPropType_Quat,
+  DevPropType_Color,
+  DevPropType_Str,
+  DevPropType_LevelEntity,
+  DevPropType_Decal,
+  DevPropType_Graphic,
+  DevPropType_Sound,
+  DevPropType_Vfx,
+
+  DevPropType_Count,
+} DevPropType;
 
 typedef struct {
   String     name;
   StringHash key;
   ScriptVal  val;
-} DebugPropEntry;
+} DevPropEntry;
 
 static const String g_spaceNames[] = {
-    [DebugInspectorSpace_Local] = string_static("Local"),
-    [DebugInspectorSpace_World] = string_static("World"),
+    [DevInspectorSpace_Local] = string_static("Local"),
+    [DevInspectorSpace_World] = string_static("World"),
 };
-ASSERT(array_elems(g_spaceNames) == DebugInspectorSpace_Count, "Missing space name");
+ASSERT(array_elems(g_spaceNames) == DevInspectorSpace_Count, "Missing space name");
 
 static const String g_toolNames[] = {
-    [DebugInspectorTool_None]        = string_static("None"),
-    [DebugInspectorTool_Translation] = string_static("Translation"),
-    [DebugInspectorTool_Rotation]    = string_static("Rotation"),
-    [DebugInspectorTool_Scale]       = string_static("Scale"),
-    [DebugInspectorTool_Picker]      = string_static("Picker"),
+    [DevInspectorTool_None]        = string_static("None"),
+    [DevInspectorTool_Translation] = string_static("Translation"),
+    [DevInspectorTool_Rotation]    = string_static("Rotation"),
+    [DevInspectorTool_Scale]       = string_static("Scale"),
+    [DevInspectorTool_Picker]      = string_static("Picker"),
 };
-ASSERT(array_elems(g_toolNames) == DebugInspectorTool_Count, "Missing tool name");
+ASSERT(array_elems(g_toolNames) == DevInspectorTool_Count, "Missing tool name");
 
 static const String g_visNames[] = {
-    [DebugInspectorVis_Icon]            = string_static("Icon"),
-    [DebugInspectorVis_Explicit]        = string_static("Explicit"),
-    [DebugInspectorVis_Origin]          = string_static("Origin"),
-    [DebugInspectorVis_Name]            = string_static("Name"),
-    [DebugInspectorVis_Locomotion]      = string_static("Locomotion"),
-    [DebugInspectorVis_Collision]       = string_static("Collision"),
-    [DebugInspectorVis_CollisionBounds] = string_static("CollisionBounds"),
-    [DebugInspectorVis_BoundsLocal]     = string_static("BoundsLocal"),
-    [DebugInspectorVis_BoundsGlobal]    = string_static("BoundsGlobal"),
-    [DebugInspectorVis_NavigationPath]  = string_static("NavigationPath"),
-    [DebugInspectorVis_NavigationGrid]  = string_static("NavigationGrid"),
-    [DebugInspectorVis_Light]           = string_static("Light"),
-    [DebugInspectorVis_Health]          = string_static("Health"),
-    [DebugInspectorVis_Attack]          = string_static("Attack"),
-    [DebugInspectorVis_Target]          = string_static("Target"),
-    [DebugInspectorVis_Vision]          = string_static("Vision"),
-    [DebugInspectorVis_Location]        = string_static("Location"),
+    [DevInspectorVis_Icon]            = string_static("Icon"),
+    [DevInspectorVis_Explicit]        = string_static("Explicit"),
+    [DevInspectorVis_Origin]          = string_static("Origin"),
+    [DevInspectorVis_Name]            = string_static("Name"),
+    [DevInspectorVis_Locomotion]      = string_static("Locomotion"),
+    [DevInspectorVis_Collision]       = string_static("Collision"),
+    [DevInspectorVis_CollisionBounds] = string_static("CollisionBounds"),
+    [DevInspectorVis_BoundsLocal]     = string_static("BoundsLocal"),
+    [DevInspectorVis_BoundsGlobal]    = string_static("BoundsGlobal"),
+    [DevInspectorVis_NavigationPath]  = string_static("NavigationPath"),
+    [DevInspectorVis_NavigationGrid]  = string_static("NavigationGrid"),
+    [DevInspectorVis_Light]           = string_static("Light"),
+    [DevInspectorVis_Health]          = string_static("Health"),
+    [DevInspectorVis_Attack]          = string_static("Attack"),
+    [DevInspectorVis_Target]          = string_static("Target"),
+    [DevInspectorVis_Vision]          = string_static("Vision"),
+    [DevInspectorVis_Location]        = string_static("Location"),
 };
-ASSERT(array_elems(g_visNames) == DebugInspectorVis_Count, "Missing vis name");
+ASSERT(array_elems(g_visNames) == DevInspectorVis_Count, "Missing vis name");
 
 static const String g_visModeNames[] = {
-    [DebugInspectorVisMode_SelectedOnly] = string_static("SelectedOnly"),
-    [DebugInspectorVisMode_All]          = string_static("All"),
+    [DevInspectorVisMode_SelectedOnly] = string_static("SelectedOnly"),
+    [DevInspectorVisMode_All]          = string_static("All"),
 };
-ASSERT(array_elems(g_visModeNames) == DebugInspectorVisMode_Count, "Missing vis mode name");
+ASSERT(array_elems(g_visModeNames) == DevInspectorVisMode_Count, "Missing vis mode name");
 
 static const String g_propTypeNames[] = {
-    [DebugPropType_Num]         = string_static("Num"),
-    [DebugPropType_Bool]        = string_static("Bool"),
-    [DebugPropType_Vec3]        = string_static("Vec3"),
-    [DebugPropType_Quat]        = string_static("Quat"),
-    [DebugPropType_Color]       = string_static("Color"),
-    [DebugPropType_Str]         = string_static("Str"),
-    [DebugPropType_LevelEntity] = string_static("LevelEntity"),
-    [DebugPropType_Decal]       = string_static("Decal"),
-    [DebugPropType_Graphic]     = string_static("Graphic"),
-    [DebugPropType_Sound]       = string_static("Sound"),
-    [DebugPropType_Vfx]         = string_static("Vfx"),
+    [DevPropType_Num]         = string_static("Num"),
+    [DevPropType_Bool]        = string_static("Bool"),
+    [DevPropType_Vec3]        = string_static("Vec3"),
+    [DevPropType_Quat]        = string_static("Quat"),
+    [DevPropType_Color]       = string_static("Color"),
+    [DevPropType_Str]         = string_static("Str"),
+    [DevPropType_LevelEntity] = string_static("LevelEntity"),
+    [DevPropType_Decal]       = string_static("Decal"),
+    [DevPropType_Graphic]     = string_static("Graphic"),
+    [DevPropType_Sound]       = string_static("Sound"),
+    [DevPropType_Vfx]         = string_static("Vfx"),
 };
-ASSERT(array_elems(g_propTypeNames) == DebugPropType_Count, "Missing type name");
+ASSERT(array_elems(g_propTypeNames) == DevPropType_Count, "Missing type name");
 
 ecs_comp_define(DevInspectorSettingsComp) {
-  DebugInspectorSpace   space;
-  DebugInspectorTool    tool;
-  DebugInspectorVisMode visMode;
-  SceneNavLayer         visNavLayer;
-  u32                   visFlags;
-  bool                  drawVisInGame;
-  DebugInspectorTool    toolPickerPrevTool;
-  EcsEntityId           toolPickerResult;
-  GeoQuat               toolRotation; // Cached rotation to support world-space rotation tools.
+  DevInspectorSpace   space;
+  DevInspectorTool    tool;
+  DevInspectorVisMode visMode;
+  SceneNavLayer       visNavLayer;
+  u32                 visFlags;
+  bool                drawVisInGame;
+  DevInspectorTool    toolPickerPrevTool;
+  EcsEntityId         toolPickerResult;
+  GeoQuat             toolRotation; // Cached rotation to support world-space rotation tools.
 };
 
 ecs_comp_define(DevInspectorPanelComp) {
-  UiPanel       panel;
-  UiScrollview  scrollview;
-  u32           totalRows;
-  DebugPropType newPropType;
-  ScriptVal     newPropVal;
-  DynString     newSetBuffer, newPropBuffer;
-  GeoVector transformRotEulerDeg; // Local copy of rotation as euler angles to use while editing.
+  UiPanel      panel;
+  UiScrollview scrollview;
+  u32          totalRows;
+  DevPropType  newPropType;
+  ScriptVal    newPropVal;
+  DynString    newSetBuffer, newPropBuffer;
+  GeoVector    transformRotEulerDeg; // Local copy of rotation as euler angles to use while editing.
 };
 
 static void ecs_destruct_panel_comp(void* data) {
@@ -222,7 +222,7 @@ static void ecs_destruct_panel_comp(void* data) {
 }
 
 static i8 dev_prop_compare_entry(const void* a, const void* b) {
-  return compare_string(field_ptr(a, DebugPropEntry, name), field_ptr(b, DebugPropEntry, name));
+  return compare_string(field_ptr(a, DevPropEntry, name), field_ptr(b, DevPropEntry, name));
 }
 
 ecs_view_define(SettingsWriteView) { ecs_access_write(DevInspectorSettingsComp); }
@@ -327,7 +327,7 @@ ecs_view_define(CameraView) {
 ecs_view_define(PrefabMapView) { ecs_access_read(AssetPrefabMapComp); }
 
 static void inspector_notify_vis(
-    DevInspectorSettingsComp* set, DevStatsGlobalComp* stats, const DebugInspectorVis vis) {
+    DevInspectorSettingsComp* set, DevStatsGlobalComp* stats, const DevInspectorVis vis) {
   dev_stats_notify(
       stats,
       fmt_write_scratch("Visualize {}", fmt_text(g_visNames[vis])),
@@ -335,7 +335,7 @@ static void inspector_notify_vis(
 }
 
 static void
-inspector_notify_vis_mode(DevStatsGlobalComp* stats, const DebugInspectorVisMode visMode) {
+inspector_notify_vis_mode(DevStatsGlobalComp* stats, const DevInspectorVisMode visMode) {
   dev_stats_notify(stats, string_lit("Visualize"), g_visModeNames[visMode]);
 }
 
@@ -461,7 +461,7 @@ static void inspector_prop_find_inputs(
 }
 
 static void
-inspector_prop_collect(EcsIterator* subject, DynArray* outEntries /* DebugPropEntry[] */) {
+inspector_prop_collect(EcsIterator* subject, DynArray* outEntries /* DevPropEntry[] */) {
   const ScenePropertyComp* propComp = ecs_view_read_t(subject, ScenePropertyComp);
   if (!propComp) {
     return;
@@ -470,8 +470,8 @@ inspector_prop_collect(EcsIterator* subject, DynArray* outEntries /* DebugPropEn
   for (ScriptMemItr itr = script_mem_begin(memory); itr.key; itr = script_mem_next(memory, itr)) {
     const ScriptVal val = script_mem_load(memory, itr.key);
     if (script_type(val) != ScriptType_Null) {
-      const String keyStr                          = stringtable_lookup(g_stringtable, itr.key);
-      *dynarray_push_t(outEntries, DebugPropEntry) = (DebugPropEntry){
+      const String keyStr                        = stringtable_lookup(g_stringtable, itr.key);
+      *dynarray_push_t(outEntries, DevPropEntry) = (DevPropEntry){
           .name = string_is_empty(keyStr) ? string_lit("< unnamed >") : keyStr,
           .key  = itr.key,
           .val  = val,
@@ -701,19 +701,19 @@ static void inspector_panel_draw_transform(InspectorContext* ctx, UiTable* table
   }
 }
 
-static ScriptVal inspector_panel_prop_default(const DebugPropType type) {
+static ScriptVal inspector_panel_prop_default(const DevPropType type) {
   switch (type) {
-  case DebugPropType_Num:
+  case DevPropType_Num:
     return script_num(0);
-  case DebugPropType_Bool:
+  case DevPropType_Bool:
     return script_bool(false);
-  case DebugPropType_Vec3:
+  case DevPropType_Vec3:
     return script_vec3_lit(0, 0, 0);
-  case DebugPropType_Quat:
+  case DevPropType_Quat:
     return script_quat(geo_quat_ident);
-  case DebugPropType_Color:
+  case DevPropType_Color:
     return script_color(geo_color_white);
-  case DebugPropType_Str:
+  case DevPropType_Str:
     return script_str_empty();
   default:
     return script_null();
@@ -804,7 +804,7 @@ static bool inspector_panel_prop_edit_level_entity(InspectorContext* ctx, Script
     }
   }
   bool changed = false;
-  if (ctx->settings->tool == DebugInspectorTool_Picker) {
+  if (ctx->settings->tool == DevInspectorTool_Picker) {
     if (ui_button(ctx->canvas, .label = string_lit("Cancel picking"))) {
       ctx->settings->tool = ctx->settings->toolPickerPrevTool;
       dev_stats_notify(ctx->stats, string_lit("Tool"), g_toolNames[ctx->settings->tool]);
@@ -816,15 +816,15 @@ static bool inspector_panel_prop_edit_level_entity(InspectorContext* ctx, Script
   } else {
     if (ui_button(ctx->canvas, .label = fmt_write_scratch("Pick ({})", fmt_text(entityName)))) {
       ctx->settings->toolPickerPrevTool = ctx->settings->tool;
-      ctx->settings->tool               = DebugInspectorTool_Picker;
-      dev_stats_notify(ctx->stats, string_lit("Tool"), g_toolNames[DebugInspectorTool_Picker]);
+      ctx->settings->tool               = DevInspectorTool_Picker;
+      dev_stats_notify(ctx->stats, string_lit("Tool"), g_toolNames[DevInspectorTool_Picker]);
     }
   }
   return changed;
 }
 
 static bool inspector_panel_prop_edit_asset(
-    InspectorContext* ctx, ScriptVal* val, const DebugFinderCategory assetCat) {
+    InspectorContext* ctx, ScriptVal* val, const DevFinderCategory assetCat) {
   EcsEntityId entity = script_get_entity(*val, 0);
   if (dev_widget_asset(ctx->canvas, ctx->finder, assetCat, &entity, UiWidget_Default)) {
     *val = script_entity_or_null(entity);
@@ -833,7 +833,7 @@ static bool inspector_panel_prop_edit_asset(
   return false;
 }
 
-static String inspector_panel_prop_tooltip_scratch(const DebugPropEntry* entry) {
+static String inspector_panel_prop_tooltip_scratch(const DevPropEntry* entry) {
   return fmt_write_scratch(
       "Key name:\a>15{}\n"
       "Key hash:\a>15{}\n"
@@ -872,13 +872,13 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   if (!inspector_panel_section(ctx, string_lit("Properties"), false /* readonly */)) {
     return;
   }
-  DynArray entries = dynarray_create_t(g_allocScratch, DebugPropEntry, 128);
+  DynArray entries = dynarray_create_t(g_allocScratch, DevPropEntry, 128);
   inspector_prop_collect(ctx->subject, &entries);
 
   DynArray inputKeys = dynarray_create_t(g_allocScratch, String, 128);
   inspector_prop_find_inputs(ctx->subject, ctx->scriptAssetItr, &inputKeys);
 
-  dynarray_for_t(&entries, DebugPropEntry, entry) {
+  dynarray_for_t(&entries, DevPropEntry, entry) {
     inspector_panel_next(ctx, table);
 
     const String tooltip = inspector_panel_prop_tooltip_scratch(entry);
@@ -957,20 +957,20 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   ui_table_next_column(ctx->canvas, table);
   ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
   switch (ctx->panel->newPropType) {
-  case DebugPropType_LevelEntity:
+  case DevPropType_LevelEntity:
     inspector_panel_prop_edit_level_entity(ctx, &ctx->panel->newPropVal);
     break;
-  case DebugPropType_Decal:
-    inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DebugFinder_Decal);
+  case DevPropType_Decal:
+    inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DevFinder_Decal);
     break;
-  case DebugPropType_Graphic:
-    inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DebugFinder_Graphic);
+  case DevPropType_Graphic:
+    inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DevFinder_Graphic);
     break;
-  case DebugPropType_Sound:
-    inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DebugFinder_Sound);
+  case DevPropType_Sound:
+    inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DevFinder_Sound);
     break;
-  case DebugPropType_Vfx:
-    inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DebugFinder_Vfx);
+  case DevPropType_Vfx:
+    inspector_panel_prop_edit_asset(ctx, &ctx->panel->newPropVal, DevFinder_Vfx);
     break;
   default:
     inspector_panel_prop_edit(ctx, &ctx->panel->newPropVal);
@@ -1526,7 +1526,7 @@ static void inspector_panel_draw_settings(InspectorContext* ctx, UiTable* table)
     ui_select(
         ctx->canvas, (i32*)&ctx->settings->visMode, g_visModeNames, array_elems(g_visModeNames));
 
-    for (DebugInspectorVis vis = 0; vis != DebugInspectorVis_Count; ++vis) {
+    for (DevInspectorVis vis = 0; vis != DevInspectorVis_Count; ++vis) {
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, fmt_write_scratch("Visualize {}", fmt_text(g_visNames[vis])));
       ui_table_next_column(ctx->canvas, table);
@@ -1630,21 +1630,21 @@ static DevInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* w) {
     return ecs_view_write_t(itr, DevInspectorSettingsComp);
   }
   u32 defaultVisFlags = 0;
-  defaultVisFlags |= 1 << DebugInspectorVis_Icon;
-  defaultVisFlags |= 1 << DebugInspectorVis_Explicit;
-  defaultVisFlags |= 1 << DebugInspectorVis_Light;
-  defaultVisFlags |= 1 << DebugInspectorVis_Collision;
-  defaultVisFlags |= 1 << DebugInspectorVis_Locomotion;
-  defaultVisFlags |= 1 << DebugInspectorVis_NavigationPath;
-  defaultVisFlags |= 1 << DebugInspectorVis_NavigationGrid;
+  defaultVisFlags |= 1 << DevInspectorVis_Icon;
+  defaultVisFlags |= 1 << DevInspectorVis_Explicit;
+  defaultVisFlags |= 1 << DevInspectorVis_Light;
+  defaultVisFlags |= 1 << DevInspectorVis_Collision;
+  defaultVisFlags |= 1 << DevInspectorVis_Locomotion;
+  defaultVisFlags |= 1 << DevInspectorVis_NavigationPath;
+  defaultVisFlags |= 1 << DevInspectorVis_NavigationGrid;
 
   return ecs_world_add_t(
       w,
       global,
       DevInspectorSettingsComp,
       .visFlags     = defaultVisFlags,
-      .visMode      = DebugInspectorVisMode_Default,
-      .tool         = DebugInspectorTool_Translation,
+      .visMode      = DevInspectorVisMode_Default,
+      .tool         = DevInspectorTool_Translation,
       .toolRotation = geo_quat_ident);
 }
 
@@ -1654,7 +1654,7 @@ static const AssetPrefabMapComp* inspector_prefab_map(EcsWorld* w, const ScenePr
   return mapItr ? ecs_view_read_t(mapItr, AssetPrefabMapComp) : null;
 }
 
-ecs_system_define(DebugInspectorUpdatePanelSys) {
+ecs_system_define(DevInspectorUpdatePanelSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalPanelUpdateView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -1713,11 +1713,11 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   }
 }
 
-static void inspector_tool_toggle(DevInspectorSettingsComp* set, const DebugInspectorTool tool) {
+static void inspector_tool_toggle(DevInspectorSettingsComp* set, const DevInspectorTool tool) {
   if (set->tool != tool) {
     set->tool = tool;
   } else {
-    set->tool = DebugInspectorTool_None;
+    set->tool = DevInspectorTool_None;
   }
 }
 
@@ -1812,24 +1812,24 @@ static void inspector_tool_group_update(
   const GeoVector pos   = inspector_tool_pivot(w, setEnv);
   const f32       scale = mainScale ? mainScale->scale : 1.0f;
 
-  if (set->space == DebugInspectorSpace_Local) {
+  if (set->space == DevInspectorSpace_Local) {
     set->toolRotation = mainTrans->rotation;
   }
 
-  static const DebugGizmoId g_groupGizmoId = 1234567890;
+  static const DevGizmoId g_groupGizmoId = 1234567890;
 
   GeoVector posEdit   = pos;
   GeoQuat   rotEdit   = set->toolRotation;
   f32       scaleEdit = scale;
   bool      posDirty = false, rotDirty = false, scaleDirty = false;
   switch (set->tool) {
-  case DebugInspectorTool_Translation:
+  case DevInspectorTool_Translation:
     posDirty |= dev_gizmo_translation(gizmo, g_groupGizmoId, &posEdit, set->toolRotation);
     break;
-  case DebugInspectorTool_Rotation:
+  case DevInspectorTool_Rotation:
     rotDirty |= dev_gizmo_rotation(gizmo, g_groupGizmoId, pos, &rotEdit);
     break;
-  case DebugInspectorTool_Scale:
+  case DevInspectorTool_Scale:
     /**
      * Disable scaling if the main selected entity has no scale, reason is in that case we have no
      * reference for the delta computation and the editing won't be stable across frames.
@@ -1878,12 +1878,12 @@ static void inspector_tool_individual_update(
   bool rotActive = false;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     if (ecs_view_maybe_jump(itr, *e)) {
-      const DebugGizmoId  gizmoId   = (DebugGizmoId)ecs_view_entity(itr);
+      const DevGizmoId    gizmoId   = (DevGizmoId)ecs_view_entity(itr);
       SceneTransformComp* trans     = ecs_view_write_t(itr, SceneTransformComp);
       SceneScaleComp*     scaleComp = ecs_view_write_t(itr, SceneScaleComp);
 
       GeoQuat rotRef;
-      if (set->space == DebugInspectorSpace_Local) {
+      if (set->space == DevInspectorSpace_Local) {
         rotRef = trans->rotation;
       } else if (dev_gizmo_interacting(gizmo, gizmoId)) {
         rotRef = set->toolRotation;
@@ -1893,10 +1893,10 @@ static void inspector_tool_individual_update(
       GeoQuat rotEdit = rotRef;
 
       switch (set->tool) {
-      case DebugInspectorTool_Translation:
+      case DevInspectorTool_Translation:
         dev_gizmo_translation(gizmo, gizmoId, &trans->position, rotRef);
         break;
-      case DebugInspectorTool_Rotation:
+      case DevInspectorTool_Rotation:
         if (dev_gizmo_rotation(gizmo, gizmoId, trans->position, &rotEdit)) {
           const GeoQuat rotDelta = geo_quat_from_to(rotRef, rotEdit);
           scene_transform_rotate_around(trans, trans->position, rotDelta);
@@ -1904,7 +1904,7 @@ static void inspector_tool_individual_update(
           rotActive         = true;
         }
         break;
-      case DebugInspectorTool_Scale:
+      case DevInspectorTool_Scale:
         if (scaleComp) {
           dev_gizmo_scale_uniform(gizmo, gizmoId, trans->position, &scaleComp->scale);
         }
@@ -1951,7 +1951,7 @@ static void inspector_tool_picker_update(
 
   bool shouldClose = false;
   shouldClose |= cameraItr == null;
-  shouldClose |= input_triggered_lit(input, "DebugInspectorPickerClose");
+  shouldClose |= input_triggered_lit(input, "DevInspectorPickerClose");
 
   if (shouldClose) {
     set->tool = set->toolPickerPrevTool;
@@ -1995,9 +1995,9 @@ static void inspector_tool_picker_update(
         const GeoVector     center = geo_box_center(&b.box);
         const GeoVector     size   = geo_box_size(&b.box);
         const GeoVector     sizeDilated = geo_vector_add(size, geo_vector(0.1f, 0.1f, 0.1f));
-        dev_box(shape, center, b.rotation, sizeDilated, shapeColor, DebugShape_Fill);
+        dev_box(shape, center, b.rotation, sizeDilated, shapeColor, DevShape_Fill);
       } else if (transComp) {
-        dev_sphere(shape, transComp->position, 1.0f /* radius */, shapeColor, DebugShape_Fill);
+        dev_sphere(shape, transComp->position, 1.0f /* radius */, shapeColor, DevShape_Fill);
       }
     } else {
       set->toolPickerResult = ecs_entity_invalid;
@@ -2008,7 +2008,7 @@ static void inspector_tool_picker_update(
   dev_stats_notify(stats, string_lit("Picker entity"), hitName);
 }
 
-ecs_system_define(DebugInspectorToolUpdateSys) {
+ecs_system_define(DevInspectorToolUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalToolUpdateView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -2024,70 +2024,70 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   DevInspectorSettingsComp*    set          = ecs_view_write_t(globalItr, DevInspectorSettingsComp);
   DevStatsGlobalComp*          stats        = ecs_view_write_t(globalItr, DevStatsGlobalComp);
 
-  if (!input_layer_active(input, string_hash_lit("Debug"))) {
-    if (set->tool == DebugInspectorTool_Picker) {
+  if (!input_layer_active(input, string_hash_lit("Dev"))) {
+    if (set->tool == DevInspectorTool_Picker) {
       set->tool = set->toolPickerPrevTool;
       input_blocker_update(input, InputBlocker_EntityPicker, false);
     }
     return; // Tools are only active in debug mode.
   }
-  if (input_triggered_lit(input, "DebugInspectorToolTranslation")) {
-    inspector_tool_toggle(set, DebugInspectorTool_Translation);
+  if (input_triggered_lit(input, "DevInspectorToolTranslation")) {
+    inspector_tool_toggle(set, DevInspectorTool_Translation);
     dev_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
-  if (input_triggered_lit(input, "DebugInspectorToolRotation")) {
-    inspector_tool_toggle(set, DebugInspectorTool_Rotation);
+  if (input_triggered_lit(input, "DevInspectorToolRotation")) {
+    inspector_tool_toggle(set, DevInspectorTool_Rotation);
     dev_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
-  if (input_triggered_lit(input, "DebugInspectorToolScale")) {
-    inspector_tool_toggle(set, DebugInspectorTool_Scale);
+  if (input_triggered_lit(input, "DevInspectorToolScale")) {
+    inspector_tool_toggle(set, DevInspectorTool_Scale);
     dev_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
-  if (input_triggered_lit(input, "DebugInspectorToggleSpace")) {
-    set->space = (set->space + 1) % DebugInspectorSpace_Count;
+  if (input_triggered_lit(input, "DevInspectorToggleSpace")) {
+    set->space = (set->space + 1) % DevInspectorSpace_Count;
     dev_stats_notify(stats, string_lit("Space"), g_spaceNames[set->space]);
   }
-  if (input_triggered_lit(input, "DebugInspectorToggleNavLayer")) {
+  if (input_triggered_lit(input, "DevInspectorToggleNavLayer")) {
     set->visNavLayer = (set->visNavLayer + 1) % SceneNavLayer_Count;
     dev_stats_notify(stats, string_lit("Space"), g_sceneNavLayerNames[set->visNavLayer]);
   }
-  if (input_triggered_lit(input, "DebugInspectorDestroy")) {
+  if (input_triggered_lit(input, "DevInspectorDestroy")) {
     inspector_tool_destroy(world, setEnv);
     dev_stats_notify(stats, string_lit("Tool"), string_lit("Destroy"));
   }
-  if (input_triggered_lit(input, "DebugInspectorDrop")) {
+  if (input_triggered_lit(input, "DevInspectorDrop")) {
     inspector_tool_drop(world, setEnv, terrain);
     dev_stats_notify(stats, string_lit("Tool"), string_lit("Drop"));
   }
-  if (input_triggered_lit(input, "DebugInspectorDuplicate")) {
+  if (input_triggered_lit(input, "DevInspectorDuplicate")) {
     inspector_tool_duplicate(world, setEnv);
     dev_stats_notify(stats, string_lit("Tool"), string_lit("Duplicate"));
   }
-  if (input_triggered_lit(input, "DebugInspectorSelectAll")) {
+  if (input_triggered_lit(input, "DevInspectorSelectAll")) {
     inspector_tool_select_all(world, setEnv);
     dev_stats_notify(stats, string_lit("Tool"), string_lit("Select all"));
   }
 
-  input_blocker_update(input, InputBlocker_EntityPicker, set->tool == DebugInspectorTool_Picker);
+  input_blocker_update(input, InputBlocker_EntityPicker, set->tool == DevInspectorTool_Picker);
 
   EcsView*     cameraView   = ecs_world_view_t(world, CameraView);
   EcsIterator* cameraItr    = ecs_view_maybe_at(cameraView, input_active_window(input));
   EcsIterator* entityRefItr = ecs_view_itr(ecs_world_view_t(world, EntityRefView));
 
   switch (set->tool) {
-  case DebugInspectorTool_None:
-  case DebugInspectorTool_Count:
+  case DevInspectorTool_None:
+  case DevInspectorTool_Count:
     break;
-  case DebugInspectorTool_Translation:
-  case DebugInspectorTool_Rotation:
-  case DebugInspectorTool_Scale:
+  case DevInspectorTool_Translation:
+  case DevInspectorTool_Rotation:
+  case DevInspectorTool_Scale:
     if (input_modifiers(input) & InputModifier_Control) {
       inspector_tool_individual_update(world, set, setEnv, gizmo);
     } else {
       inspector_tool_group_update(world, set, setEnv, gizmo);
     }
     break;
-  case DebugInspectorTool_Picker:
+  case DevInspectorTool_Picker:
     inspector_tool_picker_update(
         world, set, stats, shape, text, input, collisionEnv, cameraItr, entityRefItr);
     break;
@@ -2110,7 +2110,7 @@ static void inspector_vis_draw_locomotion(
 
   if (loco->flags & SceneLocomotion_Moving) {
     dev_line(shape, pos, loco->targetPos, geo_color_yellow);
-    dev_sphere(shape, loco->targetPos, 0.1f, geo_color_green, DebugShape_Overlay);
+    dev_sphere(shape, loco->targetPos, 0.1f, geo_color_green, DevShape_Overlay);
   }
   if (geo_vector_mag_sqr(loco->targetDir) > f32_epsilon) {
     dev_arrow(shape, pos, geo_vector_add(pos, loco->targetDir), 0.1f, geo_color_teal);
@@ -2174,7 +2174,7 @@ static void inspector_vis_draw_navigation_path(
     dev_line(shape, posA, posB, geo_color_white);
   }
   if (agent->flags & SceneNavAgent_Traveling) {
-    dev_sphere(shape, agent->targetPos, 0.1f, geo_color_blue, DebugShape_Overlay);
+    dev_sphere(shape, agent->targetPos, 0.1f, geo_color_blue, DevShape_Overlay);
 
     const f32 channelRadius = geo_nav_channel_radius(grid);
     dev_circle(shape, transform->position, geo_quat_up_to_forward, channelRadius, geo_color_blue);
@@ -2188,7 +2188,7 @@ static void inspector_vis_draw_light_point(
     const SceneScaleComp*      scaleComp) {
   const GeoVector pos    = transform ? transform->position : geo_vector(0);
   const f32       radius = scaleComp ? lightPoint->radius * scaleComp->scale : lightPoint->radius;
-  dev_sphere(shape, pos, radius, geo_color(1, 1, 1, 0.25f), DebugShape_Wire);
+  dev_sphere(shape, pos, radius, geo_color(1, 1, 1, 0.25f), DevShape_Wire);
 }
 
 static void inspector_vis_draw_light_dir(
@@ -2231,7 +2231,7 @@ static void inspector_vis_draw_attack(
     } break;
     case SceneAttackEventType_DmgSphere: {
       const SceneAttackEventDmgSphere* evt = &itr->data_dmgSphere;
-      dev_sphere(shape, evt->pos, evt->radius, geo_color_blue, DebugShape_Wire);
+      dev_sphere(shape, evt->pos, evt->radius, geo_color_blue, DevShape_Wire);
     } break;
     case SceneAttackEventType_DmgFrustum: {
       const SceneAttackEventDmgFrustum* evt = &itr->data_dmgFrustum;
@@ -2298,8 +2298,8 @@ static void inspector_vis_draw_location(
     const GeoVector     center = geo_box_center(&volume.box);
     const GeoVector     size   = geo_box_size(&volume.box);
     const GeoColor      color  = geo_color_for(type);
-    dev_box(shape, center, volume.rotation, size, color, DebugShape_Wire);
-    dev_sphere(shape, center, 0.1f, color, DebugShape_Overlay);
+    dev_box(shape, center, volume.rotation, size, color, DevShape_Wire);
+    dev_sphere(shape, center, 0.1f, color, DevShape_Overlay);
   }
 }
 
@@ -2315,11 +2315,11 @@ inspector_vis_draw_explicit(DevShapeComp* shape, DevTextComp* text, const SceneD
     } break;
     case SceneDebugType_Sphere: {
       const SceneDebugSphere* data = &debugData[i].data_sphere;
-      dev_sphere(shape, data->pos, data->radius, data->color, DebugShape_Overlay);
+      dev_sphere(shape, data->pos, data->radius, data->color, DevShape_Overlay);
     } break;
     case SceneDebugType_Box: {
       const SceneDebugBox* data = &debugData[i].data_box;
-      dev_box(shape, data->pos, data->rot, data->size, data->color, DebugShape_Overlay);
+      dev_box(shape, data->pos, data->rot, data->size, data->color, DevShape_Overlay);
     } break;
     case SceneDebugType_Arrow: {
       const SceneDebugArrow* data = &debugData[i].data_arrow;
@@ -2362,8 +2362,8 @@ static void inspector_vis_draw_subject(
   const SceneVisionComp*      visionComp      = ecs_view_read_t(subject, SceneVisionComp);
   SceneAttackComp*            attackComp      = ecs_view_write_t(subject, SceneAttackComp);
 
-  if (transformComp && set->visFlags & (1 << DebugInspectorVis_Origin)) {
-    dev_sphere(shape, transformComp->position, 0.05f, geo_color_fuchsia, DebugShape_Overlay);
+  if (transformComp && set->visFlags & (1 << DevInspectorVis_Origin)) {
+    dev_sphere(shape, transformComp->position, 0.05f, geo_color_fuchsia, DevShape_Overlay);
     dev_orientation(shape, transformComp->position, transformComp->rotation, 0.25f);
 
     if (veloComp && geo_vector_mag(veloComp->velocityAvg) > 1e-3f) {
@@ -2371,47 +2371,47 @@ static void inspector_vis_draw_subject(
       dev_arrow(shape, transformComp->position, posOneSecAway, 0.15f, geo_color_green);
     }
   }
-  if (nameComp && set->visFlags & (1 << DebugInspectorVis_Name)) {
+  if (nameComp && set->visFlags & (1 << DevInspectorVis_Name)) {
     const String    name = stringtable_lookup(g_stringtable, nameComp->name);
     const GeoVector pos  = geo_vector_add(transformComp->position, geo_vector_mul(geo_up, 0.1f));
     dev_text(text, pos, name);
   }
-  if (locoComp && set->visFlags & (1 << DebugInspectorVis_Locomotion)) {
+  if (locoComp && set->visFlags & (1 << DevInspectorVis_Locomotion)) {
     inspector_vis_draw_locomotion(shape, locoComp, transformComp, scaleComp);
   }
-  if (collisionComp && set->visFlags & (1 << DebugInspectorVis_Collision)) {
+  if (collisionComp && set->visFlags & (1 << DevInspectorVis_Collision)) {
     inspector_vis_draw_collision(shape, collisionComp, transformComp, scaleComp);
   }
   if (boundsComp && !geo_box_is_inverted3(&boundsComp->local)) {
-    if (set->visFlags & (1 << DebugInspectorVis_BoundsLocal)) {
+    if (set->visFlags & (1 << DevInspectorVis_BoundsLocal)) {
       inspector_vis_draw_bounds_local(shape, boundsComp, transformComp, scaleComp);
     }
-    if (set->visFlags & (1 << DebugInspectorVis_BoundsGlobal)) {
+    if (set->visFlags & (1 << DevInspectorVis_BoundsGlobal)) {
       inspector_vis_draw_bounds_global(shape, boundsComp, transformComp, scaleComp);
     }
   }
-  if (navAgentComp && navPathComp && set->visFlags & (1 << DebugInspectorVis_NavigationPath)) {
+  if (navAgentComp && navPathComp && set->visFlags & (1 << DevInspectorVis_NavigationPath)) {
     inspector_vis_draw_navigation_path(shape, nav, navAgentComp, navPathComp, transformComp);
   }
-  if (lightPointComp && set->visFlags & (1 << DebugInspectorVis_Light)) {
+  if (lightPointComp && set->visFlags & (1 << DevInspectorVis_Light)) {
     inspector_vis_draw_light_point(shape, lightPointComp, transformComp, scaleComp);
   }
-  if (lightDirComp && set->visFlags & (1 << DebugInspectorVis_Light)) {
+  if (lightDirComp && set->visFlags & (1 << DevInspectorVis_Light)) {
     inspector_vis_draw_light_dir(shape, lightDirComp, transformComp);
   }
-  if (healthComp && set->visFlags & (1 << DebugInspectorVis_Health)) {
+  if (healthComp && set->visFlags & (1 << DevInspectorVis_Health)) {
     inspector_vis_draw_health(text, healthComp, transformComp);
   }
-  if (attackComp && set->visFlags & (1 << DebugInspectorVis_Attack)) {
+  if (attackComp && set->visFlags & (1 << DevInspectorVis_Attack)) {
     attackComp->flags |= SceneAttackFlags_Trace; // Enable diagnostic tracing for this entity.
     if (attackTraceComp) {
       inspector_vis_draw_attack(shape, text, attackComp, attackTraceComp, transformComp);
     }
   }
-  if (visionComp && transformComp && set->visFlags & (1 << DebugInspectorVis_Vision)) {
+  if (visionComp && transformComp && set->visFlags & (1 << DevInspectorVis_Vision)) {
     inspector_vis_draw_vision(shape, visionComp, transformComp);
   }
-  if (locationComp && transformComp && set->visFlags & (1 << DebugInspectorVis_Location)) {
+  if (locationComp && transformComp && set->visFlags & (1 << DevInspectorVis_Location)) {
     inspector_vis_draw_location(shape, locationComp, transformComp, scaleComp);
   }
 }
@@ -2462,7 +2462,7 @@ static void inspector_vis_draw_navigation_grid(
   const f32          cellSize = geo_nav_cell_size(grid);
   const GeoNavRegion region   = inspector_nav_visible_region(grid, cameraView);
 
-  const DebugShapeMode shapeMode = DebugShape_Overlay;
+  const DevShapeMode shapeMode = DevShape_Overlay;
   for (u32 y = region.min.y; y != region.max.y; ++y) {
     for (u32 x = region.min.x; x != region.max.x; ++x) {
       const GeoNavCell   cell     = {.x = x, .y = y};
@@ -2506,7 +2506,7 @@ static void inspector_vis_draw_collision_bounds(DevShapeComp* shape, const GeoQu
     const u32       depth  = geo_query_node_depth(env, nodeIdx);
     const GeoVector center = geo_box_center(bounds);
     const GeoVector size   = geo_box_size(bounds);
-    dev_box(shape, center, geo_quat_ident, size, geo_color_for(depth), DebugShape_Wire);
+    dev_box(shape, center, geo_quat_ident, size, geo_color_for(depth), DevShape_Wire);
   }
 }
 
@@ -2570,7 +2570,7 @@ static void inspector_vis_draw_icon(EcsWorld* w, DevTextComp* text, EcsIterator*
   }
 }
 
-ecs_system_define(DebugInspectorVisDrawSys) {
+ecs_system_define(DevInspectorVisDrawSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalVisDrawView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -2580,24 +2580,24 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   DevInspectorSettingsComp* set   = ecs_view_write_t(globalItr, DevInspectorSettingsComp);
   DevStatsGlobalComp*       stats = ecs_view_write_t(globalItr, DevStatsGlobalComp);
 
-  if (!set->drawVisInGame && !input_layer_active(input, string_hash_lit("Debug"))) {
+  if (!set->drawVisInGame && !input_layer_active(input, string_hash_lit("Dev"))) {
     return;
   }
 
-  static const String g_drawHotkeys[DebugInspectorVis_Count] = {
-      [DebugInspectorVis_Icon]           = string_static("DebugInspectorVisIcon"),
-      [DebugInspectorVis_Name]           = string_static("DebugInspectorVisName"),
-      [DebugInspectorVis_Collision]      = string_static("DebugInspectorVisCollision"),
-      [DebugInspectorVis_Locomotion]     = string_static("DebugInspectorVisLocomotion"),
-      [DebugInspectorVis_NavigationPath] = string_static("DebugInspectorVisNavigationPath"),
-      [DebugInspectorVis_NavigationGrid] = string_static("DebugInspectorVisNavigationGrid"),
-      [DebugInspectorVis_Light]          = string_static("DebugInspectorVisLight"),
-      [DebugInspectorVis_Vision]         = string_static("DebugInspectorVisVision"),
-      [DebugInspectorVis_Health]         = string_static("DebugInspectorVisHealth"),
-      [DebugInspectorVis_Attack]         = string_static("DebugInspectorVisAttack"),
-      [DebugInspectorVis_Target]         = string_static("DebugInspectorVisTarget"),
+  static const String g_drawHotkeys[DevInspectorVis_Count] = {
+      [DevInspectorVis_Icon]           = string_static("DevInspectorVisIcon"),
+      [DevInspectorVis_Name]           = string_static("DevInspectorVisName"),
+      [DevInspectorVis_Collision]      = string_static("DevInspectorVisCollision"),
+      [DevInspectorVis_Locomotion]     = string_static("DevInspectorVisLocomotion"),
+      [DevInspectorVis_NavigationPath] = string_static("DevInspectorVisNavigationPath"),
+      [DevInspectorVis_NavigationGrid] = string_static("DevInspectorVisNavigationGrid"),
+      [DevInspectorVis_Light]          = string_static("DevInspectorVisLight"),
+      [DevInspectorVis_Vision]         = string_static("DevInspectorVisVision"),
+      [DevInspectorVis_Health]         = string_static("DevInspectorVisHealth"),
+      [DevInspectorVis_Attack]         = string_static("DevInspectorVisAttack"),
+      [DevInspectorVis_Target]         = string_static("DevInspectorVisTarget"),
   };
-  for (DebugInspectorVis vis = 0; vis != DebugInspectorVis_Count; ++vis) {
+  for (DevInspectorVis vis = 0; vis != DevInspectorVis_Count; ++vis) {
     const u32 hotKeyHash = string_hash(g_drawHotkeys[vis]);
     if (hotKeyHash && input_triggered_hash(input, hotKeyHash)) {
       set->visFlags ^= (1 << vis);
@@ -2605,8 +2605,8 @@ ecs_system_define(DebugInspectorVisDrawSys) {
     }
   }
 
-  if (input_triggered_hash(input, string_hash_lit("DebugInspectorVisMode"))) {
-    set->visMode = (set->visMode + 1) % DebugInspectorVisMode_Count;
+  if (input_triggered_hash(input, string_hash_lit("DevInspectorVisMode"))) {
+    set->visMode = (set->visMode + 1) % DevInspectorVisMode_Count;
     inspector_notify_vis_mode(stats, set->visMode);
   }
 
@@ -2624,25 +2624,25 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   EcsView*     cameraView    = ecs_world_view_t(world, CameraView);
   EcsIterator* subjectItr    = ecs_view_itr(subjectView);
 
-  if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
+  if (set->visFlags & (1 << DevInspectorVis_NavigationGrid)) {
     trace_begin("dev_vis_grid", TraceColor_Red);
     const GeoNavGrid* grid = scene_nav_grid(navEnv, set->visNavLayer);
     inspector_vis_draw_navigation_grid(shape, text, grid, cameraView);
     trace_end();
   }
-  if (set->visFlags & (1 << DebugInspectorVis_CollisionBounds)) {
+  if (set->visFlags & (1 << DevInspectorVis_CollisionBounds)) {
     trace_begin("dev_vis_collision_bounds", TraceColor_Red);
     inspector_vis_draw_collision_bounds(shape, scene_collision_query_env(collisionEnv));
     trace_end();
   }
-  if (set->visFlags & (1 << DebugInspectorVis_Icon)) {
+  if (set->visFlags & (1 << DevInspectorVis_Icon)) {
     trace_begin("dev_vis_icon", TraceColor_Red);
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
       inspector_vis_draw_icon(world, text, itr);
     }
     trace_end();
   }
-  if (set->visFlags & (1 << DebugInspectorVis_Explicit)) {
+  if (set->visFlags & (1 << DevInspectorVis_Explicit)) {
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
       const SceneDebugComp* debugComp = ecs_view_read_t(itr, SceneDebugComp);
       if (debugComp) {
@@ -2651,7 +2651,7 @@ ecs_system_define(DebugInspectorVisDrawSys) {
     }
   }
   switch (set->visMode) {
-  case DebugInspectorVisMode_SelectedOnly: {
+  case DevInspectorVisMode_SelectedOnly: {
     const StringHash s = g_sceneSetSelected;
     for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
       if (ecs_view_maybe_jump(subjectItr, *e)) {
@@ -2659,15 +2659,15 @@ ecs_system_define(DebugInspectorVisDrawSys) {
       }
     }
   } break;
-  case DebugInspectorVisMode_All: {
+  case DevInspectorVisMode_All: {
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
       inspector_vis_draw_subject(shape, text, set, navEnv, itr);
     }
   } break;
-  case DebugInspectorVisMode_Count:
+  case DevInspectorVisMode_Count:
     UNREACHABLE
   }
-  if (set->visFlags & (1 << DebugInspectorVis_Target)) {
+  if (set->visFlags & (1 << DevInspectorVis_Target)) {
     if (ecs_view_maybe_jump(subjectItr, scene_set_main(setEnv, g_sceneSetSelected))) {
       SceneTargetFinderComp* tgtFinder = ecs_view_write_t(subjectItr, SceneTargetFinderComp);
       if (tgtFinder) {
@@ -2699,7 +2699,7 @@ ecs_module_init(dev_inspector_module) {
   ecs_register_view(PrefabMapView);
 
   ecs_register_system(
-      DebugInspectorUpdatePanelSys,
+      DevInspectorUpdatePanelSys,
       ecs_view_id(GlobalPanelUpdateView),
       ecs_view_id(SettingsWriteView),
       ecs_view_id(PanelUpdateView),
@@ -2709,21 +2709,21 @@ ecs_module_init(dev_inspector_module) {
       ecs_view_id(PrefabMapView));
 
   ecs_register_system(
-      DebugInspectorToolUpdateSys,
+      DevInspectorToolUpdateSys,
       ecs_view_id(GlobalToolUpdateView),
       ecs_view_id(SubjectView),
       ecs_view_id(CameraView),
       ecs_view_id(EntityRefView));
 
   ecs_register_system(
-      DebugInspectorVisDrawSys,
+      DevInspectorVisDrawSys,
       ecs_view_id(GlobalVisDrawView),
       ecs_view_id(SubjectView),
       ecs_view_id(TransformView),
       ecs_view_id(CameraView));
 
-  ecs_order(DebugInspectorToolUpdateSys, DebugOrder_InspectorToolUpdate);
-  ecs_order(DebugInspectorVisDrawSys, DebugOrder_InspectorDebugDraw);
+  ecs_order(DevInspectorToolUpdateSys, DevOrder_InspectorToolUpdate);
+  ecs_order(DevInspectorVisDrawSys, DevOrder_InspectorDevDraw);
 }
 
 EcsEntityId

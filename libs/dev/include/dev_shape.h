@@ -3,11 +3,11 @@
 #include "geo.h"
 #include "geo_vector.h"
 
-typedef enum eDebugShapeMode {
-  DebugShape_Fill,
-  DebugShape_Wire,
-  DebugShape_Overlay,
-} DebugShapeMode;
+typedef enum eDevShapeMode {
+  DevShape_Fill,
+  DevShape_Wire,
+  DevShape_Overlay,
+} DevShapeMode;
 
 ecs_comp_extern(DevShapeComp);
 
@@ -21,12 +21,12 @@ DevShapeComp* dev_shape_create(EcsWorld*, EcsEntityId entity);
 /**
  * Draw primitives.
  */
-void dev_box(DevShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor, DebugShapeMode);
-void dev_quad(DevShapeComp*, GeoVector pos, GeoQuat, f32 sizeX, f32 sizeY, GeoColor, DebugShapeMode);
-void dev_sphere(DevShapeComp*, GeoVector pos, f32 radius, GeoColor, DebugShapeMode);
-void dev_cylinder(DevShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DebugShapeMode);
-void dev_capsule(DevShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DebugShapeMode);
-void dev_cone(DevShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DebugShapeMode);
+void dev_box(DevShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor, DevShapeMode);
+void dev_quad(DevShapeComp*, GeoVector pos, GeoQuat, f32 sizeX, f32 sizeY, GeoColor, DevShapeMode);
+void dev_sphere(DevShapeComp*, GeoVector pos, f32 radius, GeoColor, DevShapeMode);
+void dev_cylinder(DevShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DevShapeMode);
+void dev_capsule(DevShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DevShapeMode);
+void dev_cone(DevShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DevShapeMode);
 void dev_line(DevShapeComp*, GeoVector start, GeoVector end, GeoColor);
 void dev_circle(DevShapeComp*, GeoVector pos, GeoQuat, f32 radius, GeoColor);
 void dev_arrow(DevShapeComp*, GeoVector begin, GeoVector end, f32 radius, GeoColor);

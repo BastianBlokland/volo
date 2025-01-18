@@ -144,7 +144,7 @@ static void interface_panel_draw(
   ui_panel_end(canvas, &panelComp->panel);
 }
 
-ecs_system_define(DebugInterfaceUpdatePanelSys) {
+ecs_system_define(DevInterfaceUpdatePanelSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -187,7 +187,7 @@ ecs_module_init(dev_interface_module) {
   ecs_register_view(PanelUpdateView);
 
   ecs_register_system(
-      DebugInterfaceUpdatePanelSys, ecs_view_id(GlobalView), ecs_view_id(PanelUpdateView));
+      DevInterfaceUpdatePanelSys, ecs_view_id(GlobalView), ecs_view_id(PanelUpdateView));
 }
 
 EcsEntityId

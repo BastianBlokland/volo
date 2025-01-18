@@ -13,16 +13,16 @@ DevTextComp* dev_text_create(EcsWorld*, EcsEntityId entity);
 typedef struct {
   GeoColor color;
   u16      fontSize;
-} DebugTextOpts;
+} DevTextOpts;
 
 // clang-format off
 
 #define dev_text(_COMP_, _POS_, _STR_, ...) dev_text_with_opts((_COMP_), (_POS_), (_STR_),         \
-      &((DebugTextOpts){                                                                           \
+      &((DevTextOpts){                                                                             \
           .color      = geo_color_white,                                                           \
           .fontSize   = 14,                                                                        \
           __VA_ARGS__}))
 
 // clang-format on
 
-void dev_text_with_opts(DevTextComp*, GeoVector pos, String, const DebugTextOpts*);
+void dev_text_with_opts(DevTextComp*, GeoVector pos, String, const DevTextOpts*);

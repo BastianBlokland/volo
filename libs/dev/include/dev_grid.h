@@ -3,7 +3,7 @@
 #include "geo_vector.h"
 
 /**
- * Debug grid.
+ * Development grid.
  * NOTE: Initialized on each window entity.
  */
 ecs_comp_extern(DevGridComp);

@@ -23,10 +23,10 @@ typedef struct {
   GeoColor  color;
   String    text;
   u16       fontSize;
-} DebugText3D;
+} DevText3D;
 
 ecs_comp_define(DevTextComp) {
-  DynArray   entries; // DebugText3D[]
+  DynArray   entries; // DevText3D[]
   Allocator* allocTransient;
 };
 
@@ -80,7 +80,7 @@ static UiColor dev_text_to_ui_color(const GeoColor c) {
       (u8)(math_min(c.a, 1.0f) * 255));
 }
 
-ecs_system_define(DebugTextInitSys) {
+ecs_system_define(DevTextInitSys) {
   // Create a global text component for convenience.
   if (!ecs_world_has_t(world, ecs_world_global(world), DevTextComp)) {
     dev_text_create(world, ecs_world_global(world));
@@ -98,7 +98,7 @@ ecs_system_define(DebugTextInitSys) {
   }
 }
 
-ecs_system_define(DebugTextRenderSys) {
+ecs_system_define(DevTextRenderSys) {
   EcsIterator* textItr     = ecs_view_itr(ecs_world_view_t(world, TextView));
   EcsIterator* rendererItr = ecs_view_itr(ecs_world_view_t(world, RendererView));
 
@@ -120,7 +120,7 @@ ecs_system_define(DebugTextRenderSys) {
 
     for (ecs_view_itr_reset(textItr); ecs_view_walk(textItr);) {
       DevTextComp* textComp = ecs_view_write_t(textItr, DevTextComp);
-      dynarray_for_t(&textComp->entries, DebugText3D, entry) {
+      dynarray_for_t(&textComp->entries, DevText3D, entry) {
         const GeoVector canvasPos = dev_text_canvas_pos(&viewProj, entry->pos);
         if (canvasPos.z <= 0) {
           continue; // Text is behind the camera.
@@ -155,15 +155,12 @@ ecs_module_init(dev_text_module) {
   ecs_register_view(RendererView);
   ecs_register_view(CanvasView);
 
-  ecs_register_system(DebugTextInitSys, ecs_view_id(RendererCreateView));
+  ecs_register_system(DevTextInitSys, ecs_view_id(RendererCreateView));
 
   ecs_register_system(
-      DebugTextRenderSys,
-      ecs_view_id(TextView),
-      ecs_view_id(RendererView),
-      ecs_view_id(CanvasView));
+      DevTextRenderSys, ecs_view_id(TextView), ecs_view_id(RendererView), ecs_view_id(CanvasView));
 
-  ecs_order(DebugTextRenderSys, DebugOrder_TextRender);
+  ecs_order(DevTextRenderSys, DevOrder_TextRender);
 }
 
 DevTextComp* dev_text_create(EcsWorld* world, const EcsEntityId entity) {
@@ -171,16 +168,16 @@ DevTextComp* dev_text_create(EcsWorld* world, const EcsEntityId entity) {
       world,
       entity,
       DevTextComp,
-      .entries = dynarray_create_t(g_allocHeap, DebugText3D, 64),
+      .entries = dynarray_create_t(g_allocHeap, DevText3D, 64),
       .allocTransient =
           alloc_chunked_create(g_allocHeap, alloc_bump_create, dev_text_transient_chunk_size));
 }
 
 void dev_text_with_opts(
-    DevTextComp* comp, const GeoVector pos, const String text, const DebugTextOpts* opts) {
+    DevTextComp* comp, const GeoVector pos, const String text, const DevTextOpts* opts) {
   if (UNLIKELY(text.size > dev_text_transient_max)) {
     log_e(
-        "Debug text size exceeds maximum",
+        "Dev text size exceeds maximum",
         log_param("size", fmt_size(text.size)),
         log_param("limit", fmt_size(dev_text_transient_max)));
     return;
@@ -189,7 +186,7 @@ void dev_text_with_opts(
     return;
   }
   // TODO: Report error when the transient allocator runs out of space.
-  *((DebugText3D*)dynarray_push(&comp->entries, 1).ptr) = (DebugText3D){
+  *((DevText3D*)dynarray_push(&comp->entries, 1).ptr) = (DevText3D){
       .pos      = pos,
       .text     = string_dup(comp->allocTransient, text),
       .fontSize = opts->fontSize,
