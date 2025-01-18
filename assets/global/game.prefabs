@@ -6,7 +6,7 @@
         { "$type": "AssetPrefabTrait_Name", "name": "Assault Ranger" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/infantry_rifle.graphic" },
-        { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 999 },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 4,
@@ -31,8 +31,8 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weapon": "Rifle",
-          "targetRangeMax": 25,
-          "targetExcludeObscured": true
+          "targetRangeMax": 999,
+          "targetExcludeObscured": false
         },
         {
           "$type": "AssetPrefabTrait_Collision",
@@ -53,6 +53,13 @@
           ]
         },
         {
+          "$type": "AssetPrefabTrait_Property",
+          "properties": [
+            { "$type": "AssetProperty_Num", "$name": "cfgAttackRange", "$data": 12.5 },
+            { "$type": "AssetProperty_Bool", "$name": "cfgAllowAutoMove", "$data": true }
+          ]
+        },
+        {
           "$type": "AssetPrefabTrait_Bark", "priority": 2,
           "barkDeathPrefab": "BarkDeathInfantryRifle",
           "barkConfirmPrefab": "BarkConfirmInfantryRifle"
@@ -67,7 +74,7 @@
         { "$type": "AssetPrefabTrait_Name", "name": "Rocket Ranger" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/infantry_rocket.graphic" },
-        { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 999 },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 3.5,
@@ -92,7 +99,7 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weapon": "RocketLauncher",
-          "targetRangeMax": 30,
+          "targetRangeMax": 999,
           "targetExcludeObscured": true
         },
         {
@@ -114,6 +121,13 @@
           ]
         },
         {
+          "$type": "AssetPrefabTrait_Property",
+          "properties": [
+            { "$type": "AssetProperty_Num", "$name": "cfgAttackRange", "$data": 12.5 },
+            { "$type": "AssetProperty_Bool", "$name": "cfgAllowAutoMove", "$data": true }
+          ]
+        },
+        {
           "$type": "AssetPrefabTrait_Bark", "priority": 2,
           "barkDeathPrefab": "BarkDeathInfantryRifle",
           "barkConfirmPrefab": "BarkConfirmInfantryRifle"
@@ -128,7 +142,7 @@
         { "$type": "AssetPrefabTrait_Name", "name": "Flame Ranger" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/infantry_flame.graphic" },
-        { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 999 },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 3.5,
@@ -153,7 +167,7 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weapon": "FlameThrower",
-          "targetRangeMax": 12.5,
+          "targetRangeMax": 999,
           "targetExcludeObscured": true
         },
         {
@@ -178,6 +192,8 @@
         {
           "$type": "AssetPrefabTrait_Property",
           "properties": [
+            { "$type": "AssetProperty_Num", "$name": "cfgAttackRange", "$data": 12.5 },
+            { "$type": "AssetProperty_Bool", "$name": "cfgAllowAutoMove", "$data": true },
             { "$name": "assetSndBurning", "$type": "AssetProperty_Asset", "$data": "external/sound/burning-02.wav" },
             { "$name": "assetVfxFire", "$type": "AssetProperty_Asset", "$data": "vfx/game/fire_force.vfx" }
           ]
@@ -197,7 +213,7 @@
         { "$type": "AssetPrefabTrait_Name", "name": "V'ato Soldier" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/infantry_monster.graphic" },
-        { "$type": "AssetPrefabTrait_Vision", "radius": 10 },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 999 },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 4.5,
@@ -222,7 +238,7 @@
         {
           "$type": "AssetPrefabTrait_Attack",
           "weapon": "Melee",
-          "targetRangeMax": 150,
+          "targetRangeMax": 999,
           "targetExcludeUnreachable": true
         },
         {
@@ -265,7 +281,7 @@
         { "$type": "AssetPrefabTrait_Name", "name": "Test Infantry" },
         { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "infantry" ] },
         { "$type": "AssetPrefabTrait_Renderable", "graphic": "graphics/game/infantry_rifle.graphic" },
-        { "$type": "AssetPrefabTrait_Vision", "radius": 25 },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 999 },
         {
           "$type": "AssetPrefabTrait_Movement",
           "speed": 4,

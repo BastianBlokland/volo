@@ -1,0 +1,8 @@
+/**
+ * Unit texture import rules.
+ */
+
+if (asset_id_match("external/swat/*")) {
+  texture_trans_gray()
+  texture_trans_mul(color(2, 2, 2, 1))
+}
