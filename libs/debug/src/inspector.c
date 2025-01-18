@@ -338,6 +338,14 @@ inspector_notify_vis_mode(DebugStatsGlobalComp* stats, const DebugInspectorVisMo
   debug_stats_notify(stats, string_lit("Visualize"), g_visModeNames[visMode]);
 }
 
+static bool inspector_is_edit_variant(EcsIterator* subject) {
+  if (!subject) {
+    return false;
+  }
+  const ScenePrefabInstanceComp* prefabInstComp = ecs_view_read_t(subject, ScenePrefabInstanceComp);
+  return prefabInstComp && prefabInstComp->variant == ScenePrefabVariant_Edit;
+}
+
 static void inspector_extract_props(const ScenePropertyComp* comp, ScenePrefabSpec* out) {
   enum { MaxResults = 128 };
 
@@ -487,9 +495,13 @@ typedef struct {
   EcsIterator*                entityRefItr;
   EcsIterator*                subject;
   EcsEntityId                 subjectEntity;
+  bool                        isEditMode;
 } InspectorContext;
 
-static bool inspector_panel_section(InspectorContext* ctx, const String label) {
+static bool inspector_panel_section(InspectorContext* ctx, String title, const bool readonly) {
+  if (readonly) {
+    title = fmt_write_scratch("{} (Readonly)", fmt_text(title));
+  }
   bool open;
   ui_layout_push(ctx->canvas);
   {
@@ -505,7 +517,7 @@ static bool inspector_panel_section(InspectorContext* ctx, const String label) {
     ui_style_pop(ctx->canvas);
 
     ui_layout_grow(ctx->canvas, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
-    open = ui_section(ctx->canvas, .label = label);
+    open = ui_section(ctx->canvas, .label = title);
   }
   ui_layout_pop(ctx->canvas);
   return open;
@@ -638,7 +650,7 @@ static void inspector_panel_draw_transform(InspectorContext* ctx, UiTable* table
     return;
   }
   inspector_panel_next(ctx, table);
-  if (!inspector_panel_section(ctx, string_lit("Transform"))) {
+  if (!inspector_panel_section(ctx, string_lit("Transform"), false /* readonly */)) {
     return;
   }
   if (transform) {
@@ -651,7 +663,7 @@ static void inspector_panel_draw_transform(InspectorContext* ctx, UiTable* table
     }
 
     inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Rotation"));
+    ui_label(ctx->canvas, string_lit("Rotation (Euler degrees)"));
     ui_table_next_column(ctx->canvas, table);
     if (debug_widget_vec3_resettable(
             ctx->canvas, &ctx->panel->transformRotEulerDeg, UiWidget_DirtyWhileEditing)) {
@@ -841,7 +853,7 @@ static void inspector_panel_draw_properties(InspectorContext* ctx, UiTable* tabl
   ScriptMem* memory = scene_prop_memory_mut(propComp);
 
   inspector_panel_next(ctx, table);
-  if (!inspector_panel_section(ctx, string_lit("Properties"))) {
+  if (!inspector_panel_section(ctx, string_lit("Properties"), false /* readonly */)) {
     return;
   }
   DynArray entries = dynarray_create_t(g_allocScratch, DebugPropEntry, 128);
@@ -959,7 +971,7 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
   const String title = fmt_write_scratch("Sets ({} / {})", fmt_int(setCount), fmt_int(setCountMax));
 
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, title)) {
+  if (inspector_panel_section(ctx, title, false /* readonly */)) {
     for (u32 i = 0; i != setCount; ++i) {
       inspector_panel_next(ctx, table);
       const String setName = stringtable_lookup(g_stringtable, sets[i]);
@@ -1014,7 +1026,7 @@ static void inspector_panel_draw_faction(InspectorContext* ctx, UiTable* table) 
     return;
   }
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Faction"))) {
+  if (inspector_panel_section(ctx, string_lit("Faction"), false /* readonly */)) {
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Id"));
     ui_table_next_column(ctx->canvas, table);
@@ -1028,7 +1040,9 @@ static void inspector_panel_draw_renderable(InspectorContext* ctx, UiTable* tabl
     return;
   }
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Renderable"))) {
+  if (inspector_panel_section(ctx, string_lit("Renderable"), ctx->isEditMode /* readonly */)) {
+    const UiWidgetFlags flags = ctx->isEditMode ? UiWidget_Disabled : UiWidget_Default;
+
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Graphic"));
     ui_table_next_column(ctx->canvas, table);
@@ -1037,12 +1051,12 @@ static void inspector_panel_draw_renderable(InspectorContext* ctx, UiTable* tabl
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Color"));
     ui_table_next_column(ctx->canvas, table);
-    debug_widget_color(ctx->canvas, &renderable->color, UiWidget_Default);
+    debug_widget_color(ctx->canvas, &renderable->color, flags);
 
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Emissive"));
     ui_table_next_column(ctx->canvas, table);
-    ui_slider(ctx->canvas, &renderable->emissive);
+    ui_slider(ctx->canvas, &renderable->emissive, .flags = flags);
   }
 }
 
@@ -1053,7 +1067,7 @@ static void inspector_panel_draw_lifetime(InspectorContext* ctx, UiTable* table)
     return;
   }
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Lifetime"))) {
+  if (inspector_panel_section(ctx, string_lit("Lifetime"), ctx->isEditMode /* readonly */)) {
     if (owner) {
       for (u32 i = 0; i != array_elems(owner->owners); ++i) {
         inspector_panel_next(ctx, table);
@@ -1077,7 +1091,9 @@ static void inspector_panel_draw_attachment(InspectorContext* ctx, UiTable* tabl
     return;
   }
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Attachment"))) {
+  if (inspector_panel_section(ctx, string_lit("Attachment"), ctx->isEditMode /* readonly */)) {
+    const UiWidgetFlags flags = ctx->isEditMode ? UiWidget_Disabled : UiWidget_Default;
+
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Target"));
     ui_table_next_column(ctx->canvas, table);
@@ -1091,7 +1107,8 @@ static void inspector_panel_draw_attachment(InspectorContext* ctx, UiTable* tabl
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Joint"));
     ui_table_next_column(ctx->canvas, table);
-    if (ui_textbox(ctx->canvas, &jointName, .maxTextLength = 64, .type = UiTextbox_Word)) {
+    if (ui_textbox(
+            ctx->canvas, &jointName, .maxTextLength = 64, .type = UiTextbox_Word, .flags = flags)) {
       attach->jointIndex = sentinel_u32;
       attach->jointName  = string_maybe_hash(dynstring_view(&jointName));
     }
@@ -1099,7 +1116,7 @@ static void inspector_panel_draw_attachment(InspectorContext* ctx, UiTable* tabl
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Offset"));
     ui_table_next_column(ctx->canvas, table);
-    debug_widget_vec3(ctx->canvas, &attach->offset, UiWidget_Default);
+    debug_widget_vec3(ctx->canvas, &attach->offset, flags);
   }
 }
 
@@ -1109,7 +1126,7 @@ static void inspector_panel_draw_script(InspectorContext* ctx, UiTable* table) {
     return;
   }
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Script"))) {
+  if (inspector_panel_section(ctx, string_lit("Script"), ctx->isEditMode /* readonly */)) {
     u32 scriptCount = scene_script_count(script);
     for (SceneScriptSlot slot = 0; slot != scriptCount; ++slot) {
       const EcsEntityId asset = scene_script_asset(script, slot);
@@ -1129,17 +1146,18 @@ static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
     return;
   }
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Light"))) {
+  if (inspector_panel_section(ctx, string_lit("Light"), ctx->isEditMode /* readonly */)) {
+    const UiWidgetFlags flags = ctx->isEditMode ? UiWidget_Disabled : UiWidget_Default;
     if (point) {
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Radiance"));
       ui_table_next_column(ctx->canvas, table);
-      debug_widget_color(ctx->canvas, &point->radiance, UiWidget_Default);
+      debug_widget_color(ctx->canvas, &point->radiance, flags);
 
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Radius"));
       ui_table_next_column(ctx->canvas, table);
-      if (debug_widget_f32(ctx->canvas, &point->radius, UiWidget_Default)) {
+      if (debug_widget_f32(ctx->canvas, &point->radius, flags)) {
         // Clamp the radius to a sane value.
         point->radius = math_clamp_f32(point->radius, 1e-3f, 1e3f);
       }
@@ -1148,23 +1166,23 @@ static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Radiance"));
       ui_table_next_column(ctx->canvas, table);
-      debug_widget_color(ctx->canvas, &dir->radiance, UiWidget_Default);
+      debug_widget_color(ctx->canvas, &dir->radiance, flags);
 
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Shadows"));
       ui_table_next_column(ctx->canvas, table);
-      ui_toggle(ctx->canvas, &dir->shadows);
+      ui_toggle(ctx->canvas, &dir->shadows, .flags = flags);
 
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Coverage"));
       ui_table_next_column(ctx->canvas, table);
-      ui_toggle(ctx->canvas, &dir->coverage);
+      ui_toggle(ctx->canvas, &dir->coverage, .flags = flags);
     }
     if (amb) {
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Ambient"));
       ui_table_next_column(ctx->canvas, table);
-      if (debug_widget_f32(ctx->canvas, &amb->intensity, UiWidget_Default)) {
+      if (debug_widget_f32(ctx->canvas, &amb->intensity, flags)) {
         // Clamp the ambient intensity to a sane value.
         amb->intensity = math_clamp_f32(amb->intensity, 0.0f, 10.0f);
       }
@@ -1178,16 +1196,18 @@ static void inspector_panel_draw_health(InspectorContext* ctx, UiTable* table) {
     return;
   }
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Health"))) {
+  if (inspector_panel_section(ctx, string_lit("Health"), ctx->isEditMode /* readonly */)) {
+    const UiWidgetFlags flags = ctx->isEditMode ? UiWidget_Disabled : UiWidget_Default;
+
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Amount"));
     ui_table_next_column(ctx->canvas, table);
-    ui_slider(ctx->canvas, &health->norm);
+    ui_slider(ctx->canvas, &health->norm, .flags = flags);
 
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Max"));
     ui_table_next_column(ctx->canvas, table);
-    debug_widget_f32(ctx->canvas, &health->max, UiWidget_Default);
+    debug_widget_f32(ctx->canvas, &health->max, flags);
   }
 }
 
@@ -1197,14 +1217,16 @@ static void inspector_panel_draw_status(InspectorContext* ctx, UiTable* table) {
     return;
   }
   inspector_panel_next(ctx, table);
-  const u32 activeCount = bits_popcnt((u32)status->active);
-  if (inspector_panel_section(ctx, fmt_write_scratch("Status ({})", fmt_int(activeCount)))) {
+  const u32    activeCount = bits_popcnt((u32)status->active);
+  const String title       = fmt_write_scratch("Status ({})", fmt_int(activeCount));
+  if (inspector_panel_section(ctx, title, ctx->isEditMode /* readonly */)) {
+    const UiWidgetFlags flags = ctx->isEditMode ? UiWidget_Disabled : UiWidget_Default;
     for (SceneStatusType type = 0; type != SceneStatusType_Count; ++type) {
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, scene_status_name(type));
       ui_table_next_column(ctx->canvas, table);
       bool active = scene_status_active(status, type);
-      if (ui_toggle(ctx->canvas, &active)) {
+      if (ui_toggle(ctx->canvas, &active, .flags = flags)) {
         if (active) {
           const EcsEntityId instigator = 0;
           scene_status_add(ctx->world, ctx->subjectEntity, type, instigator);
@@ -1222,7 +1244,7 @@ static void inspector_panel_draw_target(InspectorContext* ctx, UiTable* table) {
     return;
   }
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Target"))) {
+  if (inspector_panel_section(ctx, string_lit("Target"), ctx->isEditMode /* readonly */)) {
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Entity"));
     ui_table_next_column(ctx->canvas, table);
@@ -1242,11 +1264,17 @@ static void inspector_panel_draw_nav_agent(InspectorContext* ctx, UiTable* table
     return;
   }
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Navigation Agent"))) {
+  const String title = string_lit("Navigation Agent");
+  if (inspector_panel_section(ctx, title, ctx->isEditMode /* readonly */)) {
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Layer"));
     ui_table_next_column(ctx->canvas, table);
-    ui_select(ctx->canvas, (i32*)&agent->layer, g_sceneNavLayerNames, SceneNavLayer_Count);
+    ui_select(
+        ctx->canvas,
+        (i32*)&agent->layer,
+        g_sceneNavLayerNames,
+        SceneNavLayer_Count,
+        .flags = UiWidget_Disabled);
   }
 }
 
@@ -1256,11 +1284,12 @@ static void inspector_panel_draw_decal(InspectorContext* ctx, UiTable* table) {
     return;
   }
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Decal"))) {
+  if (inspector_panel_section(ctx, string_lit("Decal"), ctx->isEditMode /* readonly */)) {
+    const UiWidgetFlags flags = ctx->isEditMode ? UiWidget_Disabled : UiWidget_Default;
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Alpha"));
     ui_table_next_column(ctx->canvas, table);
-    ui_slider(ctx->canvas, &decal->alpha);
+    ui_slider(ctx->canvas, &decal->alpha, .flags = flags);
   }
 }
 
@@ -1270,7 +1299,8 @@ static void inspector_panel_draw_collision(InspectorContext* ctx, UiTable* table
     return;
   }
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Collision"))) {
+  if (inspector_panel_section(ctx, string_lit("Collision"), ctx->isEditMode /* readonly */)) {
+    const UiWidgetFlags flags = ctx->isEditMode ? UiWidget_Disabled : UiWidget_Default;
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Layer"));
     ui_table_next_column(ctx->canvas, table);
@@ -1298,39 +1328,39 @@ static void inspector_panel_draw_collision(InspectorContext* ctx, UiTable* table
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tOffset"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_vec3(ctx->canvas, &shape->sphere.point, UiWidget_Default);
+        debug_widget_vec3(ctx->canvas, &shape->sphere.point, flags);
 
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tRadius"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_f32(ctx->canvas, &shape->sphere.radius, UiWidget_Default);
+        debug_widget_f32(ctx->canvas, &shape->sphere.radius, flags);
       } break;
       case SceneCollisionType_Capsule: {
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tA"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_vec3(ctx->canvas, &shape->capsule.line.a, UiWidget_Default);
+        debug_widget_vec3(ctx->canvas, &shape->capsule.line.a, flags);
 
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tB"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_vec3(ctx->canvas, &shape->capsule.line.b, UiWidget_Default);
+        debug_widget_vec3(ctx->canvas, &shape->capsule.line.b, flags);
 
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tRadius"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_f32(ctx->canvas, &shape->capsule.radius, UiWidget_Default);
+        debug_widget_f32(ctx->canvas, &shape->capsule.radius, flags);
       } break;
       case SceneCollisionType_Box: {
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tMin"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_vec3(ctx->canvas, &shape->box.box.min, UiWidget_Default);
+        debug_widget_vec3(ctx->canvas, &shape->box.box.min, flags);
 
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tMax"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_vec3(ctx->canvas, &shape->box.box.max, UiWidget_Default);
+        debug_widget_vec3(ctx->canvas, &shape->box.box.max, flags);
       } break;
       case SceneCollisionType_Count:
         UNREACHABLE
@@ -1345,19 +1375,20 @@ static void inspector_panel_draw_location(InspectorContext* ctx, UiTable* table)
     return;
   }
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Location"))) {
+  if (inspector_panel_section(ctx, string_lit("Location"), ctx->isEditMode /* readonly */)) {
+    const UiWidgetFlags flags = ctx->isEditMode ? UiWidget_Disabled : UiWidget_Default;
     for (SceneLocationType type = 0; type != SceneLocationType_Count; ++type) {
       const String typeName = scene_location_type_name(type);
 
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, fmt_write_scratch("{} Min", fmt_text(typeName)));
       ui_table_next_column(ctx->canvas, table);
-      debug_widget_vec3(ctx->canvas, &location->volumes[type].min, UiWidget_Default);
+      debug_widget_vec3(ctx->canvas, &location->volumes[type].min, flags);
 
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, fmt_write_scratch("{} Max", fmt_text(typeName)));
       ui_table_next_column(ctx->canvas, table);
-      debug_widget_vec3(ctx->canvas, &location->volumes[type].max, UiWidget_Default);
+      debug_widget_vec3(ctx->canvas, &location->volumes[type].max, flags);
     }
   }
 }
@@ -1368,20 +1399,21 @@ static void inspector_panel_draw_bounds(InspectorContext* ctx, UiTable* table) {
     return;
   }
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Bounds"))) {
-    GeoVector center = geo_box_center(&boundsComp->local);
-    GeoVector size   = geo_box_size(&boundsComp->local);
-    bool      dirty  = false;
+  if (inspector_panel_section(ctx, string_lit("Bounds"), ctx->isEditMode /* readonly */)) {
+    const UiWidgetFlags flags  = ctx->isEditMode ? UiWidget_Disabled : UiWidget_Default;
+    GeoVector           center = geo_box_center(&boundsComp->local);
+    GeoVector           size   = geo_box_size(&boundsComp->local);
+    bool                dirty  = false;
 
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Center"));
     ui_table_next_column(ctx->canvas, table);
-    dirty |= debug_widget_vec3(ctx->canvas, &center, UiWidget_Default);
+    dirty |= debug_widget_vec3(ctx->canvas, &center, flags);
 
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Size"));
     ui_table_next_column(ctx->canvas, table);
-    dirty |= debug_widget_vec3(ctx->canvas, &size, UiWidget_Default);
+    dirty |= debug_widget_vec3(ctx->canvas, &size, flags);
 
     if (dirty) {
       boundsComp->local = geo_box_from_center(center, size);
@@ -1395,7 +1427,7 @@ static void inspector_panel_draw_archetype(InspectorContext* ctx, UiTable* table
   const String         title     = fmt_write_scratch("Archetype (id: {})", fmt_int(archetype));
 
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, title)) {
+  if (inspector_panel_section(ctx, title, ctx->isEditMode /* readonly */)) {
     const EcsDef* def = ecs_world_def(ctx->world);
     bitset_for(compMask, compId) {
       const String compName = ecs_def_comp_name(def, (EcsCompId)compId);
@@ -1414,22 +1446,24 @@ static void inspector_panel_draw_tags(InspectorContext* ctx, UiTable* table) {
   if (!tagComp) {
     return;
   }
-  const u32 tagCount = bits_popcnt((u32)tagComp->tags);
+  const u32    tagCount = bits_popcnt((u32)tagComp->tags);
+  const String title    = fmt_write_scratch("Tags ({})", fmt_int(tagCount));
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, fmt_write_scratch("Tags ({})", fmt_int(tagCount)))) {
+  if (inspector_panel_section(ctx, title, ctx->isEditMode /* readonly */)) {
+    const UiWidgetFlags flags = ctx->isEditMode ? UiWidget_Disabled : UiWidget_Default;
     for (u32 i = 0; i != SceneTags_Count; ++i) {
       const SceneTags tag = 1 << i;
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, scene_tag_name(tag));
       ui_table_next_column(ctx->canvas, table);
-      ui_toggle_flag(ctx->canvas, (u32*)&tagComp->tags, tag);
+      ui_toggle_flag(ctx->canvas, (u32*)&tagComp->tags, tag, .flags = flags);
     }
   }
 }
 
 static void inspector_panel_draw_settings(InspectorContext* ctx, UiTable* table) {
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Settings"))) {
+  if (inspector_panel_section(ctx, string_lit("Settings"), false /* readonly */)) {
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Space"));
     ui_table_next_column(ctx->canvas, table);
@@ -1643,6 +1677,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
         .entityRefItr   = ecs_view_itr(ecs_world_view_t(world, EntityRefView)),
         .subject        = subjectItr,
         .subjectEntity  = subjectItr ? ecs_view_entity(subjectItr) : 0,
+        .isEditMode     = inspector_is_edit_variant(subjectItr),
     };
     inspector_panel_draw(&ctx);
 
