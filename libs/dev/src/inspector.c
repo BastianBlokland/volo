@@ -2727,7 +2727,7 @@ ecs_module_init(debug_inspector_module) {
 }
 
 EcsEntityId
-debug_inspector_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_inspector_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
   const EcsEntityId        panelEntity    = debug_panel_create(world, window, type);
   DebugInspectorPanelComp* inspectorPanel = ecs_world_add_t(
       world,

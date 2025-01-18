@@ -633,7 +633,7 @@ ecs_module_init(debug_trace_module) {
 }
 
 EcsEntityId
-debug_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
   const u32 panelHeight = math_min(100 + 20 * debug_trace_default_depth * g_jobsWorkerCount, 675);
 
   const EcsEntityId    panelEntity = debug_panel_create(world, window, type);

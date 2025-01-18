@@ -967,7 +967,7 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
   if (tracker->autoOpenOnPanic && tracker_has_panic(tracker)) {
     EcsIterator* windowItr = ecs_view_first(ecs_world_view_t(world, WindowView));
     if (windowItr) {
-      debug_script_panel_open_output(world, ecs_view_entity(windowItr));
+      dev_script_panel_open_output(world, ecs_view_entity(windowItr));
       tracker->autoOpenOnPanic = false;
     }
   }
@@ -1062,7 +1062,7 @@ ecs_module_init(debug_script_module) {
 }
 
 EcsEntityId
-debug_script_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_script_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
   const EcsEntityId     panelEntity = debug_panel_create(world, window, type);
   DebugScriptPanelComp* scriptPanel = ecs_world_add_t(
       world, panelEntity, DebugScriptPanelComp, .panel = ui_panel(.size = ui_vector(800, 600)));
@@ -1074,7 +1074,7 @@ debug_script_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPa
   return panelEntity;
 }
 
-EcsEntityId debug_script_panel_open_output(EcsWorld* world, const EcsEntityId window) {
+EcsEntityId dev_script_panel_open_output(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId     panelEntity = debug_panel_create(world, window, DebugPanelType_Normal);
   DebugScriptPanelComp* scriptPanel = ecs_world_add_t(
       world,

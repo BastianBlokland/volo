@@ -625,7 +625,7 @@ ecs_module_init(debug_skeleton_module) {
 }
 
 EcsEntityId
-debug_skeleton_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_skeleton_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
   const EcsEntityId   panelEntity   = debug_panel_create(world, window, type);
   DebugSkelPanelComp* skeletonPanel = ecs_world_add_t(
       world, panelEntity, DebugSkelPanelComp, .panel = ui_panel(.size = ui_vector(950, 350)));

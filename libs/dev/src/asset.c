@@ -347,7 +347,7 @@ ecs_module_init(debug_asset_module) {
 }
 
 EcsEntityId
-debug_asset_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_asset_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
   const EcsEntityId    panelEntity = debug_panel_create(world, window, type);
   DebugAssetPanelComp* assetPanel  = ecs_world_add_t(
       world,

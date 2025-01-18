@@ -394,7 +394,7 @@ void debug_grid_snap_axis(const DebugGridComp* comp, GeoVector* position, const 
 }
 
 EcsEntityId
-debug_grid_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_grid_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
   const EcsEntityId   panelEntity = debug_panel_create(world, window, type);
   DebugGridPanelComp* gridPanel   = ecs_world_add_t(
       world,

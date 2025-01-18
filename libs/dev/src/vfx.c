@@ -333,7 +333,7 @@ ecs_module_init(debug_vfx_module) {
 }
 
 EcsEntityId
-debug_vfx_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_vfx_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
   const EcsEntityId  panelEntity = debug_panel_create(world, window, type);
   DebugVfxPanelComp* vfxPanel    = ecs_world_add_t(
       world,

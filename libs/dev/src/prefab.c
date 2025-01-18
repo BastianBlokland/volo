@@ -688,7 +688,7 @@ ecs_module_init(debug_prefab_module) {
 }
 
 EcsEntityId
-debug_prefab_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_prefab_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
   const EcsEntityId     panelEntity = debug_panel_create(world, window, type);
   DebugPrefabPanelComp* prefabPanel = ecs_world_add_t(
       world,

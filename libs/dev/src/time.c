@@ -195,7 +195,7 @@ ecs_module_init(debug_time_module) {
 }
 
 EcsEntityId
-debug_time_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_time_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
   const EcsEntityId   panelEntity = debug_panel_create(world, window, type);
   DebugTimePanelComp* timePanel   = ecs_world_add_t(
       world,

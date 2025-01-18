@@ -412,7 +412,7 @@ ecs_module_init(debug_level_module) {
 }
 
 EcsEntityId
-debug_level_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_level_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
   const EcsEntityId    panelEntity = debug_panel_create(world, window, type);
   DebugLevelPanelComp* levelPanel  = ecs_world_add_t(
       world,

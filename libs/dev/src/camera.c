@@ -386,7 +386,7 @@ ecs_module_init(debug_camera_module) {
 }
 
 EcsEntityId
-debug_camera_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_camera_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
   const EcsEntityId     panelEntity = debug_panel_create(world, window, type);
   DebugCameraPanelComp* cameraPanel = ecs_world_add_t(
       world,
