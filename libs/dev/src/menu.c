@@ -197,7 +197,7 @@ ecs_view_define(WindowView) { ecs_access_read(GapWindowComp); }
 
 static void
 menu_notify_child_state(DevStatsGlobalComp* statsGlobal, const u32 childIndex, const String state) {
-  debug_stats_notify(
+  dev_stats_notify(
       statsGlobal,
       fmt_write_scratch("Panel {}", fmt_text(g_menuChildConfig[childIndex].name)),
       state);

@@ -79,41 +79,41 @@ typedef struct {
   DebugLogEntry *entryHead, *entryTail, *entryWrapPoint;
 } DebugLogSink;
 
-static DebugLogStr* debug_log_str_next(DebugLogStr* str) {
+static DebugLogStr* dev_log_str_next(DebugLogStr* str) {
   return bits_ptr_offset(str, sizeof(DebugLogStr) + str->length);
 }
 
-static String debug_log_text(const DebugLogStr* str) { return mem_create(str->data, str->length); }
+static String dev_log_text(const DebugLogStr* str) { return mem_create(str->data, str->length); }
 
-static bool debug_log_str_eq(DebugLogStr* a, DebugLogStr* b) {
-  return a->length == b->length && mem_eq(debug_log_text(a), debug_log_text(b));
+static bool dev_log_str_eq(DebugLogStr* a, DebugLogStr* b) {
+  return a->length == b->length && mem_eq(dev_log_text(a), dev_log_text(b));
 }
 
-static DebugLogStr* debug_log_msg(const DebugLogEntry* entry) {
+static DebugLogStr* dev_log_msg(const DebugLogEntry* entry) {
   return bits_ptr_offset(entry, sizeof(DebugLogEntry));
 }
 
-static bool debug_log_is_dup(const DebugLogEntry* a, const DebugLogEntry* b) {
-  return debug_log_str_eq(debug_log_msg(a), debug_log_msg(b));
+static bool dev_log_is_dup(const DebugLogEntry* a, const DebugLogEntry* b) {
+  return dev_log_str_eq(dev_log_msg(a), dev_log_msg(b));
 }
 
-static DebugLogEntry* debug_log_next(DebugLogSink* s, DebugLogEntry* entry) {
+static DebugLogEntry* dev_log_next(DebugLogSink* s, DebugLogEntry* entry) {
   if (entry == s->entryTail) {
     return null;
   }
   if (entry == s->entryWrapPoint) {
     return (DebugLogEntry*)s->buffer; // Next entry is the beginning of the buffer.
   }
-  DebugLogStr* strItr = debug_log_msg(entry);
+  DebugLogStr* strItr = dev_log_msg(entry);
   for (u32 i = 0; i != entry->paramCount; ++i) {
-    strItr = debug_log_str_next(strItr); // Param name.
-    strItr = debug_log_str_next(strItr); // Param value.
+    strItr = dev_log_str_next(strItr); // Param name.
+    strItr = dev_log_str_next(strItr); // Param value.
   }
-  strItr = debug_log_str_next(strItr); // Skip over the last string.
+  strItr = dev_log_str_next(strItr); // Skip over the last string.
   return bits_align_ptr(strItr, alignof(DebugLogEntry));
 }
 
-static Mem debug_log_buffer_remaining(DebugLogSink* s) {
+static Mem dev_log_buffer_remaining(DebugLogSink* s) {
   // Check if the bufferPos is before or after the range of active entries in the buffer.
   if (!s->entryHead || s->bufferPos > (const u8*)s->entryHead) {
     return mem_from_to(s->bufferPos, s->buffer + log_tracker_buffer_size);
@@ -121,7 +121,7 @@ static Mem debug_log_buffer_remaining(DebugLogSink* s) {
   return mem_from_to(s->bufferPos, s->entryHead);
 }
 
-static void debug_log_write_text(DynString* out, const String text) {
+static void dev_log_write_text(DynString* out, const String text) {
   DebugLogStr* ptr = dynstring_push(out, sizeof(DebugLogStr)).ptr;
   diag_assert(bits_aligned_ptr(ptr, alignof(DebugLogStr)));
 
@@ -129,7 +129,7 @@ static void debug_log_write_text(DynString* out, const String text) {
   dynstring_append(out, string_slice(text, 0, ptr->length));
 }
 
-static void debug_log_write_arg(DynString* out, const FormatArg* arg) {
+static void dev_log_write_arg(DynString* out, const FormatArg* arg) {
   DebugLogStr* ptr = dynstring_push(out, sizeof(DebugLogStr)).ptr;
   diag_assert(bits_aligned_ptr(ptr, alignof(DebugLogStr)));
 
@@ -139,7 +139,7 @@ static void debug_log_write_arg(DynString* out, const FormatArg* arg) {
   out->size   = sizeStart + ptr->length; // Erase the part that did not fit.
 }
 
-static void debug_log_write_entry(
+static void dev_log_write_entry(
     DynString*      out,
     const LogLevel  lvl,
     const SourceLoc srcLoc,
@@ -158,16 +158,16 @@ static void debug_log_write_entry(
       .fileNamePtr = srcLoc.file.ptr,
   };
 
-  debug_log_write_text(out, msg);
+  dev_log_write_text(out, msg);
 
   for (const LogParam* itr = params; itr->arg.type; ++itr) {
-    debug_log_write_text(out, itr->name);
-    debug_log_write_arg(out, &itr->arg);
+    dev_log_write_text(out, itr->name);
+    dev_log_write_arg(out, &itr->arg);
     ++ptr->paramCount;
   }
 }
 
-static void debug_log_prune_older(DebugLogSink* s, const TimeReal timestamp) {
+static void dev_log_prune_older(DebugLogSink* s, const TimeReal timestamp) {
   thread_spinlock_lock(&s->bufferLock);
   if (s->entryHead) {
     for (; s->entryHead->timestamp < timestamp;) {
@@ -175,7 +175,7 @@ static void debug_log_prune_older(DebugLogSink* s, const TimeReal timestamp) {
         s->entryHead = s->entryTail = s->entryWrapPoint = null; // Whole buffer became empty.
         break;
       }
-      DebugLogEntry* next = debug_log_next(s, s->entryHead);
+      DebugLogEntry* next = dev_log_next(s, s->entryHead);
       if (s->entryHead == s->entryWrapPoint) {
         s->entryWrapPoint = null; // Entry head has wrapped around.
       }
@@ -185,7 +185,7 @@ static void debug_log_prune_older(DebugLogSink* s, const TimeReal timestamp) {
   thread_spinlock_unlock(&s->bufferLock);
 }
 
-static void debug_log_sink_write(
+static void dev_log_sink_write(
     LogSink*        sink,
     const LogLevel  lvl,
     const SourceLoc srcLoc,
@@ -198,7 +198,7 @@ static void debug_log_sink_write(
   }
   const Mem scratchMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
   DynString scratchStr = dynstring_create_over(scratchMem);
-  debug_log_write_entry(&scratchStr, lvl, srcLoc, timestamp, msg, params);
+  dev_log_write_entry(&scratchStr, lvl, srcLoc, timestamp, msg, params);
 
   thread_spinlock_lock(&s->bufferLock);
   {
@@ -210,7 +210,7 @@ static void debug_log_sink_write(
     }
 
   Write:;
-    const Mem buffer = debug_log_buffer_remaining(s);
+    const Mem buffer = dev_log_buffer_remaining(s);
     if (LIKELY(buffer.size >= scratchStr.size)) {
       mem_cpy(buffer, dynstring_view(&scratchStr));
       s->bufferPos += scratchStr.size;
@@ -232,7 +232,7 @@ static void debug_log_sink_write(
   thread_spinlock_unlock(&s->bufferLock);
 }
 
-static void debug_log_sink_destroy(LogSink* sink) {
+static void dev_log_sink_destroy(LogSink* sink) {
   DebugLogSink* debugSink = (DebugLogSink*)sink;
   if (thread_atomic_sub_i32(&debugSink->refCounter, 1) == 1) {
     alloc_free(g_allocHeap, mem_create(debugSink->buffer, log_tracker_buffer_size));
@@ -240,11 +240,11 @@ static void debug_log_sink_destroy(LogSink* sink) {
   }
 }
 
-DebugLogSink* debug_log_sink_create(void) {
+DebugLogSink* dev_log_sink_create(void) {
   DebugLogSink* sink = alloc_alloc_t(g_allocHeap, DebugLogSink);
 
   *sink = (DebugLogSink){
-      .api    = {.write = debug_log_sink_write, .destroy = debug_log_sink_destroy},
+      .api    = {.write = dev_log_sink_write, .destroy = dev_log_sink_destroy},
       .buffer = alloc_alloc(g_allocHeap, log_tracker_buffer_size, alignof(DebugLogEntry)).ptr,
   };
 
@@ -267,7 +267,7 @@ ecs_comp_define(DevLogViewerComp) {
 
 static void ecs_destruct_log_tracker(void* data) {
   DevLogTrackerComp* comp = data;
-  debug_log_sink_destroy((LogSink*)comp->sink);
+  dev_log_sink_destroy((LogSink*)comp->sink);
 }
 
 ecs_view_define(LogGlobalView) {
@@ -283,14 +283,14 @@ ecs_view_define(LogViewerView) {
 }
 
 static DevLogTrackerComp*
-debug_log_tracker_create(EcsWorld* world, const EcsEntityId entity, Logger* logger) {
-  DebugLogSink* sink = debug_log_sink_create();
+dev_log_tracker_create(EcsWorld* world, const EcsEntityId entity, Logger* logger) {
+  DebugLogSink* sink = dev_log_sink_create();
   thread_atomic_store_i32(&sink->refCounter, 2); // Referenced by the logger and the viewer.
   log_add_sink(logger, (LogSink*)sink);
   return ecs_world_add_t(world, entity, DevLogTrackerComp, .sink = sink);
 }
 
-static String debug_log_inspect_title(const LogLevel lvl) {
+static String dev_log_inspect_title(const LogLevel lvl) {
   switch (lvl) {
   case LogLevel_Debug:
     return fmt_write_scratch("{} Debug", fmt_ui_shape(Article));
@@ -306,7 +306,7 @@ static String debug_log_inspect_title(const LogLevel lvl) {
   diag_crash();
 }
 
-static UiColor debug_log_inspect_title_color(const LogLevel lvl) {
+static UiColor dev_log_inspect_title_color(const LogLevel lvl) {
   switch (lvl) {
   case LogLevel_Debug:
     return ui_color(0, 0, 100, 192);
@@ -322,7 +322,7 @@ static UiColor debug_log_inspect_title_color(const LogLevel lvl) {
   diag_crash();
 }
 
-static void debug_log_inspect_param(UiCanvasComp* c, UiTable* t, const String k, const String v) {
+static void dev_log_inspect_param(UiCanvasComp* c, UiTable* t, const String k, const String v) {
   ui_table_next_row(c, t);
   ui_table_draw_row_bg(c, t, ui_color(48, 48, 48, 192));
   ui_label(c, k);
@@ -330,13 +330,13 @@ static void debug_log_inspect_param(UiCanvasComp* c, UiTable* t, const String k,
   ui_label(c, v, .selectable = true);
 }
 
-static f32 debug_log_inspect_desired_height(const DebugLogEntry* entry) {
+static f32 dev_log_inspect_desired_height(const DebugLogEntry* entry) {
   UiTable table = ui_table(); // Dummy table.
   return ui_table_height(&table, 3 /* builtin params */ + entry->paramCount);
 }
 
-static void debug_log_inspect_open(DevLogViewerComp* viewer, DebugLogEntry* entry) {
-  const f32 heightDesired = debug_log_inspect_desired_height(entry);
+static void dev_log_inspect_open(DevLogViewerComp* viewer, DebugLogEntry* entry) {
+  const f32 heightDesired = dev_log_inspect_desired_height(entry);
   const f32 heightMax     = 600.0f;
   const f32 height        = math_min(heightDesired, heightMax);
 
@@ -345,16 +345,16 @@ static void debug_log_inspect_open(DevLogViewerComp* viewer, DebugLogEntry* entr
   viewer->inspectScrollView = ui_scrollview();
 }
 
-static void debug_log_inspect_close(DevLogViewerComp* viewer) { viewer->inspectEntry = null; }
+static void dev_log_inspect_close(DevLogViewerComp* viewer) { viewer->inspectEntry = null; }
 
-static void debug_log_inspect_draw(UiCanvasComp* c, DevLogViewerComp* viewer) {
+static void dev_log_inspect_draw(UiCanvasComp* c, DevLogViewerComp* viewer) {
   const DebugLogEntry* entry = viewer->inspectEntry;
 
   ui_panel_begin(
       c,
       &viewer->inspectPanel,
-      .title       = debug_log_inspect_title(entry->lvl),
-      .topBarColor = debug_log_inspect_title_color(entry->lvl),
+      .title       = dev_log_inspect_title(entry->lvl),
+      .topBarColor = dev_log_inspect_title_color(entry->lvl),
       .pinnable    = false);
 
   UiTable table = ui_table();
@@ -364,52 +364,52 @@ static void debug_log_inspect_draw(UiCanvasComp* c, DevLogViewerComp* viewer) {
   const f32 totalHeight = ui_table_height(&table, 3 /* builtin params */ + entry->paramCount);
   ui_scrollview_begin(c, &viewer->inspectScrollView, UiLayer_Normal, totalHeight);
 
-  DebugLogStr* strItr = debug_log_msg(entry);
-  debug_log_inspect_param(c, &table, string_lit("message"), debug_log_text(strItr));
+  DebugLogStr* strItr = dev_log_msg(entry);
+  dev_log_inspect_param(c, &table, string_lit("message"), dev_log_text(strItr));
 
   for (u32 paramIdx = 0; paramIdx != entry->paramCount; ++paramIdx) {
-    DebugLogStr* paramName = debug_log_str_next(strItr);
-    DebugLogStr* paramVal  = debug_log_str_next(paramName);
-    debug_log_inspect_param(c, &table, debug_log_text(paramName), debug_log_text(paramVal));
+    DebugLogStr* paramName = dev_log_str_next(strItr);
+    DebugLogStr* paramVal  = dev_log_str_next(paramName);
+    dev_log_inspect_param(c, &table, dev_log_text(paramName), dev_log_text(paramVal));
     strItr = paramVal;
   }
 
   const FormatTimeTerms timeTerms = FormatTimeTerms_Time | FormatTimeTerms_Milliseconds;
   const String          timeVal   = fmt_write_scratch(
       "{}", fmt_time(entry->timestamp, .terms = timeTerms, .timezone = viewer->timezone));
-  debug_log_inspect_param(c, &table, string_lit("time"), timeVal);
+  dev_log_inspect_param(c, &table, string_lit("time"), timeVal);
 
   const String fileName  = mem_create(entry->fileNamePtr, entry->fileNameLen);
   const String sourceVal = fmt_write_scratch("{}:{}", fmt_path(fileName), fmt_int(entry->line));
-  debug_log_inspect_param(c, &table, string_lit("source"), sourceVal);
+  dev_log_inspect_param(c, &table, string_lit("source"), sourceVal);
 
   ui_scrollview_end(c, &viewer->inspectScrollView);
   ui_panel_end(c, &viewer->inspectPanel);
 
   if (ui_panel_closed(&viewer->inspectPanel)) {
-    debug_log_inspect_close(viewer); // Close when requested.
+    dev_log_inspect_close(viewer); // Close when requested.
   }
   if (ui_canvas_input_any(c) && ui_canvas_status(c) == UiStatus_Idle) {
-    debug_log_inspect_close(viewer); // Close when clicking outside the panel.
+    dev_log_inspect_close(viewer); // Close when clicking outside the panel.
   }
 }
 
-static void debug_log_notif_tooltip(
+static void dev_log_notif_tooltip(
     UiCanvasComp* c, const UiId id, const DevLogViewerComp* viewer, const DebugLogEntry* entry) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
-  DebugLogStr* strItr = debug_log_msg(entry);
-  fmt_write(&buffer, "\a.bmessage\ar: {}\n", fmt_text(debug_log_text(strItr)));
+  DebugLogStr* strItr = dev_log_msg(entry);
+  fmt_write(&buffer, "\a.bmessage\ar: {}\n", fmt_text(dev_log_text(strItr)));
 
   for (u32 paramIdx = 0; paramIdx != entry->paramCount; ++paramIdx) {
-    DebugLogStr* paramName = debug_log_str_next(strItr);
-    DebugLogStr* paramVal  = debug_log_str_next(paramName);
+    DebugLogStr* paramName = dev_log_str_next(strItr);
+    DebugLogStr* paramVal  = dev_log_str_next(paramName);
     fmt_write(
         &buffer,
         "\a.b{}\ar: {}\n",
-        fmt_text(debug_log_text(paramName)),
-        fmt_text(debug_log_text(paramVal)));
+        fmt_text(dev_log_text(paramName)),
+        fmt_text(dev_log_text(paramVal)));
     strItr = paramVal;
   }
 
@@ -425,7 +425,7 @@ static void debug_log_notif_tooltip(
   ui_tooltip(c, id, dynstring_view(&buffer), .maxSize = ui_vector(750, 750));
 }
 
-static UiColor debug_log_notif_bg_color(const LogLevel lvl) {
+static UiColor dev_log_notif_bg_color(const LogLevel lvl) {
   switch (lvl) {
   case LogLevel_Debug:
     return ui_color(0, 0, 48, 230);
@@ -441,12 +441,12 @@ static UiColor debug_log_notif_bg_color(const LogLevel lvl) {
   diag_crash();
 }
 
-static void debug_log_notif_draw_entry(
+static void dev_log_notif_draw_entry(
     UiCanvasComp* c, DevLogViewerComp* viewer, DebugLogEntry* entry, const u32 repeat) {
-  DebugLogStr* msg = debug_log_msg(entry);
+  DebugLogStr* msg = dev_log_msg(entry);
 
   ui_style_push(c);
-  ui_style_color(c, debug_log_notif_bg_color(entry->lvl));
+  ui_style_color(c, dev_log_notif_bg_color(entry->lvl));
   const UiId bgId = ui_canvas_draw_glyph(c, UiShape_Square, 10, UiFlags_Interactable);
   ui_style_pop(c);
 
@@ -455,9 +455,9 @@ static void debug_log_notif_draw_entry(
 
   String text;
   if (repeat) {
-    text = fmt_write_scratch("x{} {}", fmt_int(repeat + 1), fmt_text(debug_log_text(msg)));
+    text = fmt_write_scratch("x{} {}", fmt_int(repeat + 1), fmt_text(dev_log_text(msg)));
   } else {
-    text = debug_log_text(msg);
+    text = dev_log_text(msg);
   }
   ui_canvas_draw_text(c, text, 15, UiAlign_MiddleLeft, UiFlags_None);
   ui_layout_pop(c);
@@ -467,19 +467,19 @@ static void debug_log_notif_draw_entry(
     if (repeat) {
       entry->flags &= ~DebugLogFlags_Combine;
     } else {
-      debug_log_inspect_open(viewer, entry);
+      dev_log_inspect_open(viewer, entry);
     }
     ui_canvas_sound(c, UiSoundType_Click);
   }
   if (status >= UiStatus_Hovered) {
-    debug_log_notif_tooltip(c, bgId, viewer, entry);
+    dev_log_notif_tooltip(c, bgId, viewer, entry);
   } else {
     ui_canvas_id_skip(c, 2); // NOTE: Tooltips consume two ids.
   }
 }
 
 static void
-debug_log_notif_draw(UiCanvasComp* c, const DevLogTrackerComp* tracker, DevLogViewerComp* viewer) {
+dev_log_notif_draw(UiCanvasComp* c, const DevLogTrackerComp* tracker, DevLogViewerComp* viewer) {
   ui_layout_move_to(c, UiBase_Container, UiAlign_TopRight, Ui_XY);
   ui_layout_resize(c, UiAlign_TopRight, ui_vector(400, 0), UiBase_Absolute, Ui_X);
   ui_layout_resize(c, UiAlign_TopLeft, ui_vector(0, 20), UiBase_Absolute, Ui_Y);
@@ -488,8 +488,8 @@ debug_log_notif_draw(UiCanvasComp* c, const DevLogTrackerComp* tracker, DevLogVi
   ui_style_outline(c, 0);
 
   /**
-   * Because 'debug_log_sink_write' only adds new entries (but never removes) and this is never
-   * called in parallel with 'debug_log_prune_older' we can avoid taking the spinlock and instead
+   * Because 'dev_log_sink_write' only adds new entries (but never removes) and this is never
+   * called in parallel with 'dev_log_prune_older' we can avoid taking the spinlock and instead
    * iterate up to the last fully written one.
    */
   thread_atomic_fence_acquire();
@@ -498,7 +498,7 @@ debug_log_notif_draw(UiCanvasComp* c, const DevLogTrackerComp* tracker, DevLogVi
   if (!first) {
     goto End; // Buffer is emtpy.
   }
-  for (DebugLogEntry* itr = first;; itr = debug_log_next(tracker->sink, itr)) {
+  for (DebugLogEntry* itr = first;; itr = dev_log_next(tracker->sink, itr)) {
     if (viewer->mask & (1 << itr->lvl)) {
       DebugLogEntry* entry  = itr;
       u32            repeat = 0;
@@ -507,8 +507,8 @@ debug_log_notif_draw(UiCanvasComp* c, const DevLogTrackerComp* tracker, DevLogVi
           if (itr == last) {
             break;
           }
-          DebugLogEntry* next = debug_log_next(tracker->sink, itr);
-          if (debug_log_is_dup(entry, next)) {
+          DebugLogEntry* next = dev_log_next(tracker->sink, itr);
+          if (dev_log_is_dup(entry, next)) {
             itr = next;
             ++repeat;
           } else {
@@ -516,11 +516,11 @@ debug_log_notif_draw(UiCanvasComp* c, const DevLogTrackerComp* tracker, DevLogVi
           }
         }
       }
-      debug_log_notif_draw_entry(c, viewer, entry, repeat);
+      dev_log_notif_draw_entry(c, viewer, entry, repeat);
       ui_layout_next(c, Ui_Down, 0);
     }
     if (itr == last) {
-      break; // Reached the last written one when we synchronized with debug_log_sink_write.
+      break; // Reached the last written one when we synchronized with dev_log_sink_write.
     }
   }
 End:
@@ -540,7 +540,7 @@ ecs_system_define(DebugLogUpdateSys) {
   }
   const TimeReal now          = time_real_clock();
   const TimeReal oldestToKeep = time_real_offset(now, -(tracker->freezeTime + log_tracker_max_age));
-  debug_log_prune_older(tracker->sink, oldestToKeep);
+  dev_log_prune_older(tracker->sink, oldestToKeep);
 
   tracker->freeze   = false;
   EcsView* drawView = ecs_world_view_t(world, LogViewerView);
@@ -553,7 +553,7 @@ ecs_system_define(DebugLogUpdateSys) {
 
     // Draw notifications (new log entries).
     const UiId notifIdFirst = ui_canvas_id_peek(canvas);
-    debug_log_notif_draw(canvas, tracker, viewer);
+    dev_log_notif_draw(canvas, tracker, viewer);
     const UiId notifIdLast = ui_canvas_id_peek(canvas) - 1;
     if (ui_canvas_group_status(canvas, notifIdFirst, notifIdLast) >= UiStatus_Hovered) {
       tracker->freeze = true; // Don't remove entries while hovering any of the notifications.
@@ -562,12 +562,12 @@ ecs_system_define(DebugLogUpdateSys) {
     // Draw inspector.
     if (viewer->inspectEntry) {
       tracker->freeze = true; // Don't remove entries while inspecting.
-      debug_log_inspect_draw(canvas, viewer);
+      dev_log_inspect_draw(canvas, viewer);
     }
   }
 }
 
-ecs_module_init(debug_log_viewer_module) {
+ecs_module_init(dev_log_viewer_module) {
   ecs_register_comp(DevLogTrackerComp, .destructor = ecs_destruct_log_tracker);
   ecs_register_comp(DevLogViewerComp);
 
@@ -577,17 +577,15 @@ ecs_module_init(debug_log_viewer_module) {
   ecs_register_system(DebugLogUpdateSys, ecs_view_id(LogGlobalView), ecs_view_id(LogViewerView));
 }
 
-void debug_log_tracker_init(EcsWorld* world, Logger* logger) {
-  debug_log_tracker_create(world, ecs_world_global(world), logger);
+void dev_log_tracker_init(EcsWorld* world, Logger* logger) {
+  dev_log_tracker_create(world, ecs_world_global(world), logger);
 }
 
-EcsEntityId debug_log_viewer_create(EcsWorld* world, const EcsEntityId window, const LogMask mask) {
+EcsEntityId dev_log_viewer_create(EcsWorld* world, const EcsEntityId window, const LogMask mask) {
   const EcsEntityId viewerEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
       world, viewerEntity, DevLogViewerComp, .mask = mask, .timezone = time_zone_current());
   return viewerEntity;
 }
 
-void debug_log_viewer_set_mask(DevLogViewerComp* viewer, const LogMask mask) {
-  viewer->mask = mask;
-}
+void dev_log_viewer_set_mask(DevLogViewerComp* viewer, const LogMask mask) { viewer->mask = mask; }

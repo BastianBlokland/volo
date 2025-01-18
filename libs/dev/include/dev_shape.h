@@ -14,30 +14,30 @@ ecs_comp_extern(DevShapeComp);
 /**
  * Add a new debug-shape component to the given entity.
  */
-DevShapeComp* debug_shape_create(EcsWorld*, EcsEntityId entity);
+DevShapeComp* dev_shape_create(EcsWorld*, EcsEntityId entity);
 
 // clang-format off
 
 /**
  * Draw primitives.
  */
-void debug_box(DevShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor, DebugShapeMode);
-void debug_quad(DevShapeComp*, GeoVector pos, GeoQuat, f32 sizeX, f32 sizeY, GeoColor, DebugShapeMode);
-void debug_sphere(DevShapeComp*, GeoVector pos, f32 radius, GeoColor, DebugShapeMode);
-void debug_cylinder(DevShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DebugShapeMode);
-void debug_capsule(DevShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DebugShapeMode);
-void debug_cone(DevShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DebugShapeMode);
-void debug_line(DevShapeComp*, GeoVector start, GeoVector end, GeoColor);
-void debug_circle(DevShapeComp*, GeoVector pos, GeoQuat, f32 radius, GeoColor);
-void debug_arrow(DevShapeComp*, GeoVector begin, GeoVector end, f32 radius, GeoColor);
-void debug_orientation(DevShapeComp*, GeoVector pos, GeoQuat, f32 size);
-void debug_plane(DevShapeComp*, GeoVector pos, GeoQuat, GeoColor);
-void debug_frustum_points(DevShapeComp*, const GeoVector points[PARAM_ARRAY_SIZE(8)], GeoColor);
-void debug_frustum_matrix(DevShapeComp*, const GeoMatrix* viewProj, GeoColor);
+void dev_box(DevShapeComp*, GeoVector pos, GeoQuat, GeoVector size, GeoColor, DebugShapeMode);
+void dev_quad(DevShapeComp*, GeoVector pos, GeoQuat, f32 sizeX, f32 sizeY, GeoColor, DebugShapeMode);
+void dev_sphere(DevShapeComp*, GeoVector pos, f32 radius, GeoColor, DebugShapeMode);
+void dev_cylinder(DevShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DebugShapeMode);
+void dev_capsule(DevShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DebugShapeMode);
+void dev_cone(DevShapeComp*, GeoVector bottom, GeoVector top, f32 radius, GeoColor, DebugShapeMode);
+void dev_line(DevShapeComp*, GeoVector start, GeoVector end, GeoColor);
+void dev_circle(DevShapeComp*, GeoVector pos, GeoQuat, f32 radius, GeoColor);
+void dev_arrow(DevShapeComp*, GeoVector begin, GeoVector end, f32 radius, GeoColor);
+void dev_orientation(DevShapeComp*, GeoVector pos, GeoQuat, f32 size);
+void dev_plane(DevShapeComp*, GeoVector pos, GeoQuat, GeoColor);
+void dev_frustum_points(DevShapeComp*, const GeoVector points[PARAM_ARRAY_SIZE(8)], GeoColor);
+void dev_frustum_matrix(DevShapeComp*, const GeoMatrix* viewProj, GeoColor);
 
-void debug_world_box(DevShapeComp*, const GeoBox*, GeoColor);
-void debug_world_box_rotated(DevShapeComp*, const GeoBoxRotated*, GeoColor);
-void debug_world_sphere(DevShapeComp*, const GeoSphere*, GeoColor);
-void debug_world_capsule(DevShapeComp*, const GeoCapsule*, GeoColor);
+void dev_world_box(DevShapeComp*, const GeoBox*, GeoColor);
+void dev_world_box_rotated(DevShapeComp*, const GeoBoxRotated*, GeoColor);
+void dev_world_sphere(DevShapeComp*, const GeoSphere*, GeoColor);
+void dev_world_capsule(DevShapeComp*, const GeoCapsule*, GeoColor);
 
 // clang-format on

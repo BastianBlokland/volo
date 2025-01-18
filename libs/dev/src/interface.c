@@ -180,7 +180,7 @@ ecs_system_define(DebugInterfaceUpdatePanelSys) {
   }
 }
 
-ecs_module_init(debug_interface_module) {
+ecs_module_init(dev_interface_module) {
   ecs_register_comp(DevInterfacePanelComp);
 
   ecs_register_view(GlobalView);

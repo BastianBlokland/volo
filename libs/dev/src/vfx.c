@@ -318,7 +318,7 @@ ecs_system_define(DebugVfxUpdatePanelSys) {
   }
 }
 
-ecs_module_init(debug_vfx_module) {
+ecs_module_init(dev_vfx_module) {
   ecs_register_comp(DevVfxPanelComp, .destructor = ecs_destruct_vfx_panel);
 
   ecs_register_view(VfxObjView);

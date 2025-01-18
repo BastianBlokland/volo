@@ -443,12 +443,12 @@ static bool gizmo_update_interaction_translation(
   data->result          = geo_vector_add(data->basePos, delta);
 
   if (grid && gap_window_key_down(window, GapKey_Shift)) {
-    debug_grid_snap(grid, &data->result);
+    dev_grid_snap(grid, &data->result);
   }
 
   const f32 statDeltaMag = geo_vector_mag(geo_vector_sub(data->result, data->basePos));
-  debug_stats_notify(stats, string_lit("Gizmo axis"), g_gizmoSectionNames[section]);
-  debug_stats_notify(
+  dev_stats_notify(stats, string_lit("Gizmo axis"), g_gizmoSectionNames[section]);
+  dev_stats_notify(
       stats,
       string_lit("Gizmo delta"),
       fmt_write_scratch("{}", fmt_float(statDeltaMag, .minDecDigits = 4, .maxDecDigits = 4)));
@@ -493,8 +493,8 @@ static bool gizmo_update_interaction_rotation(
   }
   data->result = geo_quat_mul(geo_quat_angle_axis(angle, axis), data->baseRot);
 
-  debug_stats_notify(stats, string_lit("Gizmo axis"), g_gizmoSectionNames[section]);
-  debug_stats_notify(
+  dev_stats_notify(stats, string_lit("Gizmo axis"), g_gizmoSectionNames[section]);
+  dev_stats_notify(
       stats,
       string_lit("Gizmo delta"),
       fmt_write_scratch(
@@ -529,7 +529,7 @@ static bool gizmo_update_interaction_scale_uniform(
   data->resultDelta = 1.0f + height - data->startHeight;
   data->result = math_max(data->baseScale * data->resultDelta, g_gizmoScaleUniformHandle.minScale);
 
-  debug_stats_notify(
+  dev_stats_notify(
       stats,
       string_lit("Gizmo delta"),
       fmt_write_scratch(
@@ -613,7 +613,7 @@ static void gizmo_update_interaction(
   }
 }
 
-static void debug_gizmo_create(EcsWorld* world, const EcsEntityId entity) {
+static void dev_gizmo_create(EcsWorld* world, const EcsEntityId entity) {
   ecs_world_add_t(
       world,
       entity,
@@ -627,7 +627,7 @@ ecs_system_define(DebugGizmoUpdateSys) {
   // Initialize the global gizmo component.
   const EcsEntityId globalEntity = ecs_world_global(world);
   if (!ecs_world_has_t(world, globalEntity, DevGizmoComp)) {
-    debug_gizmo_create(world, globalEntity);
+    dev_gizmo_create(world, globalEntity);
     return;
   }
 
@@ -711,7 +711,7 @@ static void gizmo_draw_translation(
   const GeoVector pos           = isInteracting ? comp->editor.translation.result : entry->pos;
 
   // Draw center point.
-  debug_sphere(shape, pos, 0.025f * comp->size, geo_color_white, DebugShape_Overlay);
+  dev_sphere(shape, pos, 0.025f * comp->size, geo_color_white, DebugShape_Overlay);
 
   // Draw arrows.
   for (u32 i = 0; i != array_elems(g_gizmoTranslationArrows); ++i) {
@@ -721,7 +721,7 @@ static void gizmo_draw_translation(
     const GeoVector lineEnd = geo_vector_add(pos, geo_vector_mul(dir, length));
     const GeoColor  color   = gizmo_translation_arrow_color(comp, entry->id, i);
 
-    debug_arrow(shape, pos, lineEnd, radius, color);
+    dev_arrow(shape, pos, lineEnd, radius, color);
   }
 }
 
@@ -760,7 +760,7 @@ gizmo_draw_rotation(const DevGizmoComp* comp, DevShapeComp* shape, const DebugGi
   const GeoQuat rot           = isInteracting ? comp->editor.rotation.result : entry->rot;
 
   // Draw center point.
-  debug_sphere(shape, entry->pos, 0.025f * comp->size, geo_color_white, DebugShape_Overlay);
+  dev_sphere(shape, entry->pos, 0.025f * comp->size, geo_color_white, DebugShape_Overlay);
 
   // Draw rings.
   GeoCapsule capsules[gizmo_ring_segments];
@@ -776,7 +776,7 @@ gizmo_draw_rotation(const DevGizmoComp* comp, DevShapeComp* shape, const DebugGi
       const GeoCapsule*    capsule = &capsules[segment];
       const GeoColor       color   = gizmo_rotation_ring_color(comp, entry->id, i);
       const DebugShapeMode mode    = DebugShape_Overlay;
-      debug_cylinder(shape, capsule->line.a, capsule->line.b, capsule->radius, color, mode);
+      dev_cylinder(shape, capsule->line.a, capsule->line.b, capsule->radius, color, mode);
     }
   }
 }
@@ -811,14 +811,14 @@ static void gizmo_draw_scale_uniform(
   const f32  scaleDelta    = isInteracting ? comp->editor.scaleUniform.resultDelta : 1.0f;
 
   // Draw center point.
-  debug_sphere(shape, entry->pos, 0.025f * comp->size, geo_color_white, DebugShape_Overlay);
+  dev_sphere(shape, entry->pos, 0.025f * comp->size, geo_color_white, DebugShape_Overlay);
 
   // Draw scale handle.
   const f32       handleLength = g_gizmoScaleUniformHandle.length * comp->size * scaleDelta;
   const GeoVector handleDelta  = geo_vector_mul(geo_up, handleLength);
   const GeoVector handleEnd    = geo_vector_add(entry->pos, handleDelta);
   const GeoColor  handleColor  = gizmo_scale_uniform_color(comp, entry->id);
-  debug_arrow(shape, entry->pos, handleEnd, gizmo_scale_uniform_radius(comp, id), handleColor);
+  dev_arrow(shape, entry->pos, handleEnd, gizmo_scale_uniform_radius(comp, id), handleColor);
 }
 
 ecs_system_define(DebugGizmoRenderSys) {
@@ -847,7 +847,7 @@ ecs_system_define(DebugGizmoRenderSys) {
   }
 }
 
-ecs_module_init(debug_gizmo_module) {
+ecs_module_init(dev_gizmo_module) {
   ecs_register_comp(DevGizmoComp, .destructor = ecs_destruct_gizmo);
 
   ecs_register_view(GlobalUpdateView);
@@ -861,11 +861,11 @@ ecs_module_init(debug_gizmo_module) {
   ecs_order(DebugGizmoRenderSys, DebugOrder_GizmoRender);
 }
 
-bool debug_gizmo_interacting(const DevGizmoComp* comp, const DebugGizmoId id) {
+bool dev_gizmo_interacting(const DevGizmoComp* comp, const DebugGizmoId id) {
   return gizmo_is_interacting(comp, id);
 }
 
-bool debug_gizmo_translation(
+bool dev_gizmo_translation(
     DevGizmoComp* comp, const DebugGizmoId id, GeoVector* translation, const GeoQuat rotation) {
 
   *dynarray_push_t(&comp->entries, DebugGizmoEntry) = (DebugGizmoEntry){
@@ -888,7 +888,7 @@ bool debug_gizmo_translation(
   return isInteracting;
 }
 
-bool debug_gizmo_rotation(
+bool dev_gizmo_rotation(
     DevGizmoComp* comp, const DebugGizmoId id, const GeoVector translation, GeoQuat* rotation) {
 
   *dynarray_push_t(&comp->entries, DebugGizmoEntry) = (DebugGizmoEntry){
@@ -911,7 +911,7 @@ bool debug_gizmo_rotation(
   return isInteracting;
 }
 
-bool debug_gizmo_scale_uniform(
+bool dev_gizmo_scale_uniform(
     DevGizmoComp* comp, const DebugGizmoId id, const GeoVector translation, f32* scale) {
 
   *dynarray_push_t(&comp->entries, DebugGizmoEntry) = (DebugGizmoEntry){

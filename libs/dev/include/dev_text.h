@@ -8,7 +8,7 @@ ecs_comp_extern(DevTextComp);
 /**
  * Add a new debug-text component to the given entity.
  */
-DevTextComp* debug_text_create(EcsWorld*, EcsEntityId entity);
+DevTextComp* dev_text_create(EcsWorld*, EcsEntityId entity);
 
 typedef struct {
   GeoColor color;
@@ -17,7 +17,7 @@ typedef struct {
 
 // clang-format off
 
-#define debug_text(_COMP_, _POS_, _STR_, ...) debug_text_with_opts((_COMP_), (_POS_), (_STR_),     \
+#define dev_text(_COMP_, _POS_, _STR_, ...) dev_text_with_opts((_COMP_), (_POS_), (_STR_),         \
       &((DebugTextOpts){                                                                           \
           .color      = geo_color_white,                                                           \
           .fontSize   = 14,                                                                        \
@@ -25,4 +25,4 @@ typedef struct {
 
 // clang-format on
 
-void debug_text_with_opts(DevTextComp*, GeoVector pos, String, const DebugTextOpts*);
+void dev_text_with_opts(DevTextComp*, GeoVector pos, String, const DebugTextOpts*);

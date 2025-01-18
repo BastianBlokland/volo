@@ -152,7 +152,7 @@ ecs_view_define(EntityRefView) {
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 ecs_view_define(WindowView) { ecs_access_with(GapWindowComp); }
 
-static bool debug_script_is_readonly(EcsIterator* subjectItr) {
+static bool dev_script_is_readonly(EcsIterator* subjectItr) {
   const ScenePrefabInstanceComp* prefabInst = ecs_view_read_t(subjectItr, ScenePrefabInstanceComp);
   return prefabInst && prefabInst->variant != ScenePrefabVariant_Normal;
 }
@@ -240,7 +240,7 @@ static void info_panel_tab_draw(
   ui_table_add_column(&table, UiTableColumn_Fixed, 125);
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
-  if (!debug_script_is_readonly(subjectItr)) {
+  if (!dev_script_is_readonly(subjectItr)) {
     ui_table_next_row(c, &table);
     bool enabled = (scene_script_flags(scriptInstance) & SceneScriptFlags_Enabled) != 0;
     ui_label(c, string_lit("Enabled"));
@@ -276,7 +276,7 @@ static bool memory_draw_num(UiCanvasComp* c, ScriptVal* value) {
 
 static bool memory_draw_vec3(UiCanvasComp* c, ScriptVal* value) {
   GeoVector vec3 = script_get_vec3(*value, geo_vector(0));
-  if (debug_widget_vec3(c, &vec3, UiWidget_Default)) {
+  if (dev_widget_vec3(c, &vec3, UiWidget_Default)) {
     *value = script_vec3(vec3);
     return true;
   }
@@ -285,7 +285,7 @@ static bool memory_draw_vec3(UiCanvasComp* c, ScriptVal* value) {
 
 static bool memory_draw_quat(UiCanvasComp* c, ScriptVal* value) {
   GeoQuat quat = script_get_quat(*value, geo_quat_ident);
-  if (debug_widget_quat(c, &quat, UiWidget_Default)) {
+  if (dev_widget_quat(c, &quat, UiWidget_Default)) {
     *value = script_quat(quat);
     return true;
   }
@@ -294,7 +294,7 @@ static bool memory_draw_quat(UiCanvasComp* c, ScriptVal* value) {
 
 static bool memory_draw_color(UiCanvasComp* c, ScriptVal* value) {
   GeoColor col = script_get_color(*value, geo_color_clear);
-  if (debug_widget_color(c, &col, UiWidget_Default)) {
+  if (dev_widget_color(c, &col, UiWidget_Default)) {
     *value = script_color(col);
     return true;
   }
@@ -885,7 +885,7 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
-static void debug_editor_update(DevScriptPanelComp* panelComp, const AssetManagerComp* assets) {
+static void dev_editor_update(DevScriptPanelComp* panelComp, const AssetManagerComp* assets) {
   if (panelComp->editorLaunch && !process_poll(panelComp->editorLaunch)) {
     const ProcessExitCode exitCode = process_block(panelComp->editorLaunch);
     if (exitCode != 0) {
@@ -976,7 +976,7 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
     DevScriptPanelComp* panelComp = ecs_view_write_t(itr, DevScriptPanelComp);
     UiCanvasComp*       canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
-    debug_editor_update(panelComp, assetManager);
+    dev_editor_update(panelComp, assetManager);
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
@@ -1035,7 +1035,7 @@ ecs_system_define(DebugScriptUpdateRaySys) {
   scene_debug_ray_update(debugEnv, inputRay);
 }
 
-ecs_module_init(debug_script_module) {
+ecs_module_init(dev_script_module) {
   ecs_register_comp(DevScriptTrackerComp, .destructor = ecs_destruct_script_tracker);
   ecs_register_comp(DevScriptPanelComp, .destructor = ecs_destroy_script_panel);
 

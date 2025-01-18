@@ -32,15 +32,15 @@ ecs_view_define(PanelUpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
-static void debug_time_notify_scale(DevStatsGlobalComp* stats, const f32 timeScale) {
-  debug_stats_notify(
+static void dev_time_notify_scale(DevStatsGlobalComp* stats, const f32 timeScale) {
+  dev_stats_notify(
       stats,
       string_lit("Time scale"),
       fmt_write_scratch("{}", fmt_float(timeScale, .maxDecDigits = 2, .expThresholdNeg = 0)));
 }
 
-static void debug_time_notify_pause(DevStatsGlobalComp* stats, const bool pause) {
-  debug_stats_notify(stats, string_lit("Time pause"), fmt_write_scratch("{}", fmt_bool(pause)));
+static void dev_time_notify_pause(DevStatsGlobalComp* stats, const bool pause) {
+  dev_stats_notify(stats, string_lit("Time pause"), fmt_write_scratch("{}", fmt_bool(pause)));
 }
 
 static void
@@ -86,7 +86,7 @@ static void time_panel_draw(
   ui_label(canvas, string_lit("Paused"));
   ui_table_next_column(canvas, &table);
   if (ui_toggle_flag(canvas, (u32*)&timeSettings->flags, SceneTimeFlags_Paused)) {
-    debug_time_notify_pause(stats, (timeSettings->flags & SceneTimeFlags_Paused) != 0);
+    dev_time_notify_pause(stats, (timeSettings->flags & SceneTimeFlags_Paused) != 0);
   }
   if (isPaused) {
     ui_layout_push(canvas);
@@ -103,7 +103,7 @@ static void time_panel_draw(
   ui_table_next_column(canvas, &table);
   if (ui_slider(
           canvas, &timeSettings->scale, .max = 4, .flags = isPaused ? UiWidget_Disabled : 0)) {
-    debug_time_notify_scale(stats, timeSettings->scale);
+    dev_time_notify_scale(stats, timeSettings->scale);
   }
 
   ui_table_next_row(canvas, &table);
@@ -126,8 +126,8 @@ static void time_panel_draw(
   if (ui_button(canvas, .label = string_lit("Defaults"))) {
     timeSettings->flags = SceneTimeFlags_None;
     timeSettings->scale = 1.0f;
-    debug_time_notify_scale(stats, 1.0f);
-    debug_time_notify_pause(stats, false);
+    dev_time_notify_scale(stats, 1.0f);
+    dev_time_notify_pause(stats, false);
   }
 
   ui_panel_end(canvas, &panelComp->panel);
@@ -147,18 +147,18 @@ ecs_system_define(DebugTimeUpdateSys) {
   if (input_triggered_lit(input, "DebugTimePauseToggle")) {
     timeSettings->flags ^= SceneTimeFlags_Paused;
     if (timeSettings->flags & SceneTimeFlags_Paused) {
-      debug_time_notify_pause(stats, true);
+      dev_time_notify_pause(stats, true);
     } else {
-      debug_time_notify_pause(stats, false);
+      dev_time_notify_pause(stats, false);
     }
   }
   if (input_triggered_lit(input, "DebugTimeScaleUp")) {
     timeSettings->scale += 0.1f;
-    debug_time_notify_scale(stats, timeSettings->scale);
+    dev_time_notify_scale(stats, timeSettings->scale);
   }
   if (input_triggered_lit(input, "DebugTimeScaleDown")) {
     timeSettings->scale = math_max(0.0f, timeSettings->scale - 0.1f);
-    debug_time_notify_scale(stats, timeSettings->scale);
+    dev_time_notify_scale(stats, timeSettings->scale);
   }
   if (input_triggered_lit(input, "DebugTimeStep")) {
     timeSettings->flags |= SceneTimeFlags_Step;
@@ -185,7 +185,7 @@ ecs_system_define(DebugTimeUpdateSys) {
   }
 }
 
-ecs_module_init(debug_time_module) {
+ecs_module_init(dev_time_module) {
   ecs_register_comp(DevTimePanelComp);
 
   ecs_register_view(GlobalView);

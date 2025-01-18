@@ -13,7 +13,7 @@ ecs_comp_extern(DevGizmoComp);
 /**
  * Check if the given gizmo is being interacted with.
  */
-bool debug_gizmo_interacting(const DevGizmoComp*, DebugGizmoId);
+bool dev_gizmo_interacting(const DevGizmoComp*, DebugGizmoId);
 
 // clang-format off
 
@@ -23,7 +23,7 @@ bool debug_gizmo_interacting(const DevGizmoComp*, DebugGizmoId);
  * Returns true if the gizmo is currently being used.
  * NOTE: Pass a stable GizmoId to track edits across frames.
  */
-bool debug_gizmo_translation(DevGizmoComp*, DebugGizmoId, GeoVector* translation, GeoQuat rotation);
+bool dev_gizmo_translation(DevGizmoComp*, DebugGizmoId, GeoVector* translation, GeoQuat rotation);
 
 /**
  * Draw a rotation gizmo.
@@ -31,7 +31,7 @@ bool debug_gizmo_translation(DevGizmoComp*, DebugGizmoId, GeoVector* translation
  * Returns true if the gizmo is currently being used.
  * NOTE: Pass a stable GizmoId to track edits across frames.
  */
-bool debug_gizmo_rotation(DevGizmoComp*, DebugGizmoId, GeoVector translation, GeoQuat* rotation);
+bool dev_gizmo_rotation(DevGizmoComp*, DebugGizmoId, GeoVector translation, GeoQuat* rotation);
 
 /**
  * Draw a uniform scale gizmo.
@@ -39,6 +39,6 @@ bool debug_gizmo_rotation(DevGizmoComp*, DebugGizmoId, GeoVector translation, Ge
  * Returns true if the gizmo is currently being used.
  * NOTE: Pass a stable GizmoId to track edits across frames.
  */
-bool debug_gizmo_scale_uniform(DevGizmoComp*, DebugGizmoId, GeoVector translation, f32* scale);
+bool dev_gizmo_scale_uniform(DevGizmoComp*, DebugGizmoId, GeoVector translation, f32* scale);
 
 // clang-format on

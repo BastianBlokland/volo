@@ -508,7 +508,7 @@ ecs_system_define(DebugSoundUpdatePanelSys) {
   }
 }
 
-ecs_module_init(debug_sound_module) {
+ecs_module_init(dev_sound_module) {
   ecs_register_comp(DevSoundPanelComp, .destructor = ecs_destruct_sound_panel);
 
   ecs_register_view(GlobalView);

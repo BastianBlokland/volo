@@ -71,7 +71,7 @@ typedef struct {
   const SceneSkeletonTemplComp* skeletonTemplate;
 } DebugSkelSubject;
 
-static DebugSkelSubject debug_skel_subject(EcsWorld* world, const EcsEntityId entity) {
+static DebugSkelSubject dev_skel_subject(EcsWorld* world, const EcsEntityId entity) {
   EcsView* subjectView   = ecs_world_view_t(world, SubjectView);
   EcsView* skelTemplView = ecs_world_view_t(world, SkeletonTemplView);
 
@@ -430,7 +430,7 @@ ecs_system_define(DebugSkeletonUpdatePanelSys) {
 
   const SceneSetEnvComp* setEnv      = ecs_view_read_t(globalItr, SceneSetEnvComp);
   const StringHash       selectedSet = g_sceneSetSelected;
-  const DebugSkelSubject subject = debug_skel_subject(world, scene_set_main(setEnv, selectedSet));
+  const DebugSkelSubject subject     = dev_skel_subject(world, scene_set_main(setEnv, selectedSet));
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
@@ -453,7 +453,7 @@ ecs_system_define(DebugSkeletonUpdatePanelSys) {
   }
 }
 
-static void debug_draw_skeleton(
+static void dev_draw_skeleton(
     DevShapeComp*                 shape,
     const SceneSkeletonTemplComp* skeletonTemplate,
     const u32                     jointCount,
@@ -463,11 +463,11 @@ static void debug_draw_skeleton(
     const u32       parentIndex = scene_skeleton_joint_parent(skeletonTemplate, i);
     const GeoVector jointPos    = geo_matrix_to_translation(&jointMatrices[i]);
     const GeoVector parentPos   = geo_matrix_to_translation(&jointMatrices[parentIndex]);
-    debug_line(shape, jointPos, parentPos, geo_color_purple);
+    dev_line(shape, jointPos, parentPos, geo_color_purple);
   }
 }
 
-static void debug_draw_joint_transforms(
+static void dev_draw_joint_transforms(
     DevShapeComp* shapes, const u32 jointCount, const GeoMatrix* jointMatrices) {
   static const f32 g_arrowLength = 0.075f;
   static const f32 g_arrowSize   = 0.0075f;
@@ -484,13 +484,13 @@ static void debug_draw_joint_transforms(
     const GeoVector jointRefZ = geo_matrix_transform3(&jointMatrices[i], geo_forward);
     const GeoVector jointZ    = geo_vector_mul(geo_vector_norm(jointRefZ), g_arrowLength);
 
-    debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointX), g_arrowSize, geo_color_red);
-    debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointY), g_arrowSize, geo_color_green);
-    debug_arrow(shapes, jointPos, geo_vector_add(jointPos, jointZ), g_arrowSize, geo_color_blue);
+    dev_arrow(shapes, jointPos, geo_vector_add(jointPos, jointX), g_arrowSize, geo_color_red);
+    dev_arrow(shapes, jointPos, geo_vector_add(jointPos, jointY), g_arrowSize, geo_color_green);
+    dev_arrow(shapes, jointPos, geo_vector_add(jointPos, jointZ), g_arrowSize, geo_color_blue);
   }
 }
 
-static void debug_draw_joint_names(
+static void dev_draw_joint_names(
     DevTextComp*                  text,
     const SceneSkeletonTemplComp* skeletonTemplate,
     const u32                     jointCount,
@@ -499,11 +499,11 @@ static void debug_draw_joint_names(
   for (u32 i = 0; i != jointCount; ++i) {
     const GeoVector  jointPos  = geo_matrix_to_translation(&jointMatrices[i]);
     const StringHash jointName = scene_skeleton_joint_name(skeletonTemplate, i);
-    debug_text(text, jointPos, stringtable_lookup(g_stringtable, jointName));
+    dev_text(text, jointPos, stringtable_lookup(g_stringtable, jointName));
   }
 }
 
-static void debug_draw_skin_counts(
+static void dev_draw_skin_counts(
     DevTextComp*                  text,
     const SceneSkeletonTemplComp* skeletonTemplate,
     const u32                     jointCount,
@@ -513,11 +513,11 @@ static void debug_draw_skin_counts(
     const GeoVector jointPos  = geo_matrix_to_translation(&jointMatrices[i]);
     const u32       skinCount = scene_skeleton_joint_skin_count(skeletonTemplate, i);
     const GeoColor  color     = skinCount ? geo_color_white : geo_color_red;
-    debug_text(text, jointPos, fmt_write_scratch("{}", fmt_int(skinCount)), .color = color);
+    dev_text(text, jointPos, fmt_write_scratch("{}", fmt_int(skinCount)), .color = color);
   }
 }
 
-static void debug_draw_bounds(
+static void dev_draw_bounds(
     DevShapeComp*                 shape,
     const SceneSkeletonTemplComp* skeletonTemplate,
     const f32                     worldScale,
@@ -530,8 +530,8 @@ static void debug_draw_bounds(
     const f32 radius       = scene_skeleton_joint_bounding_radius(skeletonTemplate, i);
     const f32 radiusScaled = radius * worldScale;
 
-    debug_sphere(shape, jointPos, radiusScaled, geo_color(0, 1, 0, 0.1f), DebugShape_Fill);
-    debug_sphere(shape, jointPos, radiusScaled, geo_color(0, 1, 0, 0.5f), DebugShape_Wire);
+    dev_sphere(shape, jointPos, radiusScaled, geo_color(0, 1, 0, 0.1f), DebugShape_Fill);
+    dev_sphere(shape, jointPos, radiusScaled, geo_color(0, 1, 0, 0.5f), DebugShape_Wire);
   }
 }
 
@@ -561,7 +561,7 @@ ecs_system_define(DebugSkeletonDrawSys) {
 
   const StringHash s = g_sceneSetSelected;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
-    const DebugSkelSubject subject = debug_skel_subject(world, *e);
+    const DebugSkelSubject subject = dev_skel_subject(world, *e);
     if (!subject.valid) {
       continue;
     }
@@ -571,22 +571,22 @@ ecs_system_define(DebugSkeletonDrawSys) {
     }
 
     if (set->flags & DebugSkelFlags_DrawSkeleton) {
-      debug_draw_skeleton(
+      dev_draw_skeleton(
           shape, subject.skeletonTemplate, subject.skeleton->jointCount, jointMatrices);
     }
     if (set->flags & DebugSkelFlags_DrawJointTransforms) {
-      debug_draw_joint_transforms(shape, subject.skeleton->jointCount, jointMatrices);
+      dev_draw_joint_transforms(shape, subject.skeleton->jointCount, jointMatrices);
     }
     if (set->flags & DebugSkelFlags_DrawJointNames) {
-      debug_draw_joint_names(
+      dev_draw_joint_names(
           text, subject.skeletonTemplate, subject.skeleton->jointCount, jointMatrices);
     }
     if (set->flags & DebugSkelFlags_DrawSkinCounts) {
-      debug_draw_skin_counts(
+      dev_draw_skin_counts(
           text, subject.skeletonTemplate, subject.skeleton->jointCount, jointMatrices);
     }
     if (set->flags & DebugSkelFlags_DrawBounds) {
-      debug_draw_bounds(
+      dev_draw_bounds(
           shape,
           subject.skeletonTemplate,
           subject.worldScale,
@@ -596,7 +596,7 @@ ecs_system_define(DebugSkeletonDrawSys) {
   }
 }
 
-ecs_module_init(debug_skeleton_module) {
+ecs_module_init(dev_skeleton_module) {
   ecs_register_comp(DevSkelSettingsComp);
   ecs_register_comp(DevSkelPanelComp);
 

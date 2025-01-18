@@ -65,7 +65,7 @@ ecs_comp_define(AppComp) {
 ecs_comp_define(AppMainWindowComp) {
   EcsEntityId uiCanvas;
   EcsEntityId debugMenu;
-  EcsEntityId debugLogViewer;
+  EcsEntityId devLogViewer;
 };
 
 static EcsEntityId app_main_window_create(
@@ -83,11 +83,10 @@ static EcsEntityId app_main_window_create(
   const String        title  = string_empty; // Use default title.
   const EcsEntityId   window = gap_window_create(world, mode, flags, size, icon, title);
 
-  const EcsEntityId uiCanvas       = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
-  const EcsEntityId debugLogViewer = debug_log_viewer_create(world, window, LogMask_None);
+  const EcsEntityId uiCanvas = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
+  const EcsEntityId logView  = dev_log_viewer_create(world, window, LogMask_None);
 
-  ecs_world_add_t(
-      world, window, AppMainWindowComp, .uiCanvas = uiCanvas, .debugLogViewer = debugLogViewer);
+  ecs_world_add_t(world, window, AppMainWindowComp, .uiCanvas = uiCanvas, .devLogViewer = logView);
 
   ecs_world_add_t(
       world,
@@ -183,7 +182,7 @@ typedef struct {
 
 static void app_action_notify(const AppActionContext* ctx, const String action) {
   if (ctx->debugStats) {
-    debug_stats_notify(ctx->debugStats, string_lit("Action"), action);
+    dev_stats_notify(ctx->debugStats, string_lit("Action"), action);
   }
 }
 
@@ -529,15 +528,15 @@ ecs_system_define(AppUpdateSys) {
     }
 
     DevLogViewerComp* debugLogViewer = null;
-    if (ecs_view_maybe_jump(debugLogViewerItr, appWindow->debugLogViewer)) {
+    if (ecs_view_maybe_jump(debugLogViewerItr, appWindow->devLogViewer)) {
       debugLogViewer = ecs_view_write_t(debugLogViewerItr, DevLogViewerComp);
     }
 
     // clang-format off
     switch (app->mode) {
     case AppMode_Normal:
-      if (debugLogViewer)         { debug_log_viewer_set_mask(debugLogViewer, LogMask_Warn | LogMask_Error); }
-      if (stats)                  { debug_stats_show_set(stats, DebugStatShow_Minimal); }
+      if (debugLogViewer)         { dev_log_viewer_set_mask(debugLogViewer, LogMask_Warn | LogMask_Error); }
+      if (stats)                  { dev_stats_show_set(stats, DebugStatShow_Minimal); }
       app_debug_hide(world, true);
       input_layer_disable(input, string_hash_lit("Debug"));
       input_layer_enable(input, string_hash_lit("Game"));
@@ -545,8 +544,8 @@ ecs_system_define(AppUpdateSys) {
       break;
     case AppMode_Debug:
       if (!appWindow->debugMenu)  { appWindow->debugMenu = dev_menu_create(world, windowEntity); }
-      if (debugLogViewer)         { debug_log_viewer_set_mask(debugLogViewer, LogMask_All); }
-      if (stats)                  { debug_stats_show_set(stats, DebugStatShow_Full); }
+      if (debugLogViewer)         { dev_log_viewer_set_mask(debugLogViewer, LogMask_All); }
+      if (stats)                  { dev_stats_show_set(stats, DebugStatShow_Full); }
       app_debug_hide(world, false);
       input_layer_enable(input, string_hash_lit("Debug"));
       input_layer_disable(input, string_hash_lit("Game"));
@@ -614,7 +613,7 @@ bool app_ecs_validate(const CliApp* app, const CliInvocation* invoc) {
 
 void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
   asset_register(def);
-  debug_register(def);
+  dev_register(def);
   gap_register(def);
   input_register(def);
   rend_register(def);
@@ -631,7 +630,7 @@ void app_ecs_register(EcsDef* def, MAYBE_UNUSED const CliInvocation* invoc) {
 }
 
 void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
-  debug_log_tracker_init(world, g_logger);
+  dev_log_tracker_init(world, g_logger);
 
   const String assetPath = cli_read_string(invoc, g_optAssets, string_lit("assets"));
   if (file_stat_path_sync(assetPath).type != FileType_Directory) {

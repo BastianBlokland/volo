@@ -335,7 +335,7 @@ ecs_system_define(DebugAssetUpdatePanelSys) {
   }
 }
 
-ecs_module_init(debug_asset_module) {
+ecs_module_init(dev_asset_module) {
   ecs_register_comp(DevAssetPanelComp, .destructor = ecs_destruct_asset_panel);
 
   ecs_register_view(PanelUpdateView);

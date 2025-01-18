@@ -99,13 +99,13 @@ ecs_view_define(UpdateView) {
   ecs_access_write(UiCanvasComp);
 }
 
-static AssetManagerComp* debug_grid_asset_manager(EcsWorld* world) {
+static AssetManagerComp* dev_grid_asset_manager(EcsWorld* world) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalAssetsView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   return globalItr ? ecs_view_write_t(globalItr, AssetManagerComp) : null;
 }
 
-static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetManagerComp* assets) {
+static void dev_grid_create(EcsWorld* world, const EcsEntityId entity, AssetManagerComp* assets) {
   static const String g_graphic = string_static("graphics/debug/grid.graphic");
 
   const EcsEntityId rendObjEntity = ecs_world_entity_create(world);
@@ -129,14 +129,14 @@ static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetMa
 }
 
 ecs_system_define(DebugGridCreateSys) {
-  AssetManagerComp* assets = debug_grid_asset_manager(world);
+  AssetManagerComp* assets = dev_grid_asset_manager(world);
   if (!assets) {
     return;
   }
   EcsView* createView = ecs_world_view_t(world, GridCreateView);
   for (EcsIterator* itr = ecs_view_itr(createView); ecs_view_walk(itr);) {
     const EcsEntityId windowEntity = ecs_view_entity(itr);
-    debug_grid_create(world, windowEntity, assets);
+    dev_grid_create(world, windowEntity, assets);
   }
 }
 
@@ -177,18 +177,18 @@ ecs_system_define(DebugGridDrawSys) {
 }
 
 static void grid_notify_show(DevStatsGlobalComp* stats, const bool show) {
-  debug_stats_notify(stats, string_lit("Grid show"), fmt_write_scratch("{}", fmt_bool(show)));
+  dev_stats_notify(stats, string_lit("Grid show"), fmt_write_scratch("{}", fmt_bool(show)));
 }
 
 static void grid_notify_cell_size(DevStatsGlobalComp* stats, const f32 cellSize) {
-  debug_stats_notify(
+  dev_stats_notify(
       stats,
       string_lit("Grid size"),
       fmt_write_scratch("{}", fmt_float(cellSize, .maxDecDigits = 4, .expThresholdNeg = 0)));
 }
 
 static void grid_notify_height(DevStatsGlobalComp* stats, const f32 height) {
-  debug_stats_notify(
+  dev_stats_notify(
       stats,
       string_lit("Grid height"),
       fmt_write_scratch("{}", fmt_float(height, .maxDecDigits = 4, .expThresholdNeg = 0)));
@@ -212,7 +212,7 @@ static void grid_panel_draw(
   ui_table_next_column(canvas, &table);
   if (ui_toggle_flag(canvas, (u32*)&grid->flags, DebugGridFlags_Show, .tooltip = g_tooltipShow)) {
     const bool show = (grid->flags & DebugGridFlags_Show) != 0;
-    debug_stats_notify(
+    dev_stats_notify(
         stats, string_lit("Grid show"), show ? string_lit("true") : string_lit("false"));
   }
 
@@ -258,7 +258,7 @@ static void grid_panel_draw(
   ui_panel_end(canvas, &panelComp->panel);
 }
 
-static f32 debug_selection_height(const SceneSetEnvComp* setEnv, EcsView* transformView) {
+static f32 dev_selection_height(const SceneSetEnvComp* setEnv, EcsView* transformView) {
   const StringHash set = g_sceneSetSelected;
 
   EcsIterator* transformItr  = ecs_view_itr(transformView);
@@ -289,7 +289,7 @@ ecs_system_define(DebugGridUpdateSys) {
   if (ecs_view_maybe_jump(gridItr, input_active_window(input))) {
     DevGridComp* grid = ecs_view_write_t(gridItr, DevGridComp);
     if (grid->flags & DebugGridFlags_HeightAuto) {
-      grid->height = debug_selection_height(setEnv, transformView);
+      grid->height = dev_selection_height(setEnv, transformView);
     }
     if (input_triggered_lit(input, "DebugGridShow")) {
       grid->flags ^= DebugGridFlags_Show;
@@ -346,7 +346,7 @@ ecs_system_define(DebugGridUpdateSys) {
   }
 }
 
-ecs_module_init(debug_grid_module) {
+ecs_module_init(dev_grid_module) {
   ecs_register_comp(DevGridComp);
   ecs_register_comp(DevGridPanelComp);
 
@@ -377,17 +377,17 @@ ecs_module_init(debug_grid_module) {
       ecs_view_id(TransformReadView));
 }
 
-void debug_grid_show(DevGridComp* comp, const f32 height) {
+void dev_grid_show(DevGridComp* comp, const f32 height) {
   comp->flags |= DebugGridFlags_Show;
   comp->height = height;
 }
 
-void debug_grid_snap(const DevGridComp* comp, GeoVector* position) {
-  debug_grid_snap_axis(comp, position, 0 /* X */);
-  debug_grid_snap_axis(comp, position, 2 /* Z */);
+void dev_grid_snap(const DevGridComp* comp, GeoVector* position) {
+  dev_grid_snap_axis(comp, position, 0 /* X */);
+  dev_grid_snap_axis(comp, position, 2 /* Z */);
 }
 
-void debug_grid_snap_axis(const DevGridComp* comp, GeoVector* position, const u8 axis) {
+void dev_grid_snap_axis(const DevGridComp* comp, GeoVector* position, const u8 axis) {
   diag_assert(axis < 3);
   const f32 round = math_round_nearest_f32(position->comps[axis] / comp->cellSize) * comp->cellSize;
   position->comps[axis] = round;

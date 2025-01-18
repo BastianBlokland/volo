@@ -335,7 +335,7 @@ static bool rend_panel_filter(DevRendPanelComp* panelComp, const String name) {
   return string_match_glob(name, filter, StringMatchFlags_IgnoreCase);
 }
 
-static bool debug_overlay_blocker(UiCanvasComp* canvas) {
+static bool dev_overlay_blocker(UiCanvasComp* canvas) {
   const UiId id = ui_canvas_id_peek(canvas);
   ui_layout_push(canvas);
   ui_style_push(canvas);
@@ -357,7 +357,7 @@ static bool debug_overlay_blocker(UiCanvasComp* canvas) {
   return status == UiStatus_Activated;
 }
 
-static void debug_overlay_bg(UiCanvasComp* c) {
+static void dev_overlay_bg(UiCanvasComp* c) {
   ui_style_push(c);
   ui_style_color(c, ui_color(0, 0, 0, 175));
   ui_style_outline(c, 3);
@@ -365,35 +365,35 @@ static void debug_overlay_bg(UiCanvasComp* c) {
   ui_style_pop(c);
 }
 
-static void debug_overlay_str(UiCanvasComp* c, UiTable* t, const String label, const String v) {
+static void dev_overlay_str(UiCanvasComp* c, UiTable* t, const String label, const String v) {
   ui_table_next_row(c, t);
   ui_label(c, label, .fontSize = 14);
   ui_table_next_column(c, t);
   ui_label(c, v, .fontSize = 14, .selectable = true);
 }
 
-static void debug_overlay_int(UiCanvasComp* c, UiTable* t, const String label, const i64 v) {
-  debug_overlay_str(c, t, label, fmt_write_scratch("{}", fmt_int(v)));
+static void dev_overlay_int(UiCanvasComp* c, UiTable* t, const String label, const i64 v) {
+  dev_overlay_str(c, t, label, fmt_write_scratch("{}", fmt_int(v)));
 }
 
-static void debug_overlay_size(UiCanvasComp* c, UiTable* t, const String label, const usize v) {
-  debug_overlay_str(c, t, label, fmt_write_scratch("{}", fmt_size(v)));
+static void dev_overlay_size(UiCanvasComp* c, UiTable* t, const String label, const usize v) {
+  dev_overlay_str(c, t, label, fmt_write_scratch("{}", fmt_size(v)));
 }
 
 static void
-debug_overlay_entity(UiCanvasComp* c, UiTable* t, const String label, const EcsEntityId v) {
-  debug_overlay_str(c, t, label, fmt_write_scratch("{}", ecs_entity_fmt(v)));
+dev_overlay_entity(UiCanvasComp* c, UiTable* t, const String label, const EcsEntityId v) {
+  dev_overlay_str(c, t, label, fmt_write_scratch("{}", ecs_entity_fmt(v)));
 }
 
-static void debug_overlay_vec3(UiCanvasComp* c, UiTable* t, const String label, const GeoVector v) {
-  debug_overlay_str(
+static void dev_overlay_vec3(UiCanvasComp* c, UiTable* t, const String label, const GeoVector v) {
+  dev_overlay_str(
       c,
       t,
       label,
       fmt_write_scratch("{}", fmt_list_lit(fmt_float(v.x), fmt_float(v.y), fmt_float(v.z))));
 }
 
-static void debug_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsView* resView) {
+static void dev_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsView* resView) {
   EcsIterator* resourceItr = ecs_view_maybe_at(resView, set->debugViewerResource);
   if (!resourceItr) {
     return;
@@ -416,7 +416,7 @@ static void debug_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsVi
 
   f32 lodMax = 0.0f;
 
-  debug_overlay_bg(c);
+  dev_overlay_bg(c);
   ui_layout_grow(c, UiAlign_MiddleCenter, g_inset, UiBase_Absolute, Ui_XY);
   ui_layout_resize(c, UiAlign_BottomLeft, ui_vector(0.5f, 0), UiBase_Current, Ui_X);
   ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
@@ -426,29 +426,29 @@ static void debug_overlay_resource(UiCanvasComp* c, RendSettingsComp* set, EcsVi
   ui_table_add_column(&table, UiTableColumn_Flexible, 0);
 
   // Info section (left side of panel).
-  debug_overlay_str(c, &table, string_lit("Name"), asset_id(assetComp));
-  debug_overlay_entity(c, &table, string_lit("Entity"), entity);
-  debug_overlay_int(c, &table, string_lit("Dependents"), rend_res_dependents(resComp));
+  dev_overlay_str(c, &table, string_lit("Name"), asset_id(assetComp));
+  dev_overlay_entity(c, &table, string_lit("Entity"), entity);
+  dev_overlay_int(c, &table, string_lit("Dependents"), rend_res_dependents(resComp));
   const RendResTextureComp* texture = ecs_view_read_t(resourceItr, RendResTextureComp);
   if (texture) {
     lodMax = (f32)(rend_res_texture_mip_levels(texture) - 1);
-    debug_overlay_size(c, &table, string_lit("Memory"), rend_res_texture_memory(texture));
+    dev_overlay_size(c, &table, string_lit("Memory"), rend_res_texture_memory(texture));
     const u16    width   = rend_res_texture_width(texture);
     const u16    height  = rend_res_texture_height(texture);
     const String sizeStr = fmt_write_scratch("{} x {}", fmt_int(width), fmt_int(height));
-    debug_overlay_str(c, &table, string_lit("Size"), sizeStr);
-    debug_overlay_str(c, &table, string_lit("Format"), rend_res_texture_format_str(texture));
-    debug_overlay_int(c, &table, string_lit("Mips"), rend_res_texture_mip_levels(texture));
-    debug_overlay_int(c, &table, string_lit("Layers"), rend_res_texture_layers(texture));
+    dev_overlay_str(c, &table, string_lit("Size"), sizeStr);
+    dev_overlay_str(c, &table, string_lit("Format"), rend_res_texture_format_str(texture));
+    dev_overlay_int(c, &table, string_lit("Mips"), rend_res_texture_mip_levels(texture));
+    dev_overlay_int(c, &table, string_lit("Layers"), rend_res_texture_layers(texture));
   }
   const RendResMeshComp* mesh = ecs_view_read_t(resourceItr, RendResMeshComp);
   if (mesh) {
     const GeoBox bounds = rend_res_mesh_bounds(mesh);
-    debug_overlay_size(c, &table, string_lit("Memory"), rend_res_mesh_memory(mesh));
-    debug_overlay_int(c, &table, string_lit("Vertices"), rend_res_mesh_vertices(mesh));
-    debug_overlay_int(c, &table, string_lit("Indices"), rend_res_mesh_indices(mesh));
-    debug_overlay_int(c, &table, string_lit("Triangles"), rend_res_mesh_indices(mesh) / 3);
-    debug_overlay_vec3(c, &table, string_lit("Bounds"), geo_box_size(&bounds));
+    dev_overlay_size(c, &table, string_lit("Memory"), rend_res_mesh_memory(mesh));
+    dev_overlay_int(c, &table, string_lit("Vertices"), rend_res_mesh_vertices(mesh));
+    dev_overlay_int(c, &table, string_lit("Indices"), rend_res_mesh_indices(mesh));
+    dev_overlay_int(c, &table, string_lit("Triangles"), rend_res_mesh_indices(mesh) / 3);
+    dev_overlay_vec3(c, &table, string_lit("Bounds"), geo_box_size(&bounds));
   }
   ui_layout_set(c, ui_rect(ui_vector(0, 0), ui_vector(1, 1)), UiBase_Container);
   ui_layout_container_pop(c);
@@ -962,7 +962,7 @@ static void rend_light_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Shadow resolution"));
   ui_table_next_column(canvas, &table);
-  if (debug_widget_u16(canvas, &settings->shadowResolution, UiWidget_Default)) {
+  if (dev_widget_u16(canvas, &settings->shadowResolution, UiWidget_Default)) {
     if (settings->shadowResolution == 0) {
       settings->shadowResolution = 512;
     } else if (settings->shadowResolution > 16384) {
@@ -1140,7 +1140,7 @@ static void rend_post_tab_draw(
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Fog resolution"));
   ui_table_next_column(canvas, &table);
-  if (debug_widget_u16(canvas, &settings->fogResolution, UiWidget_Default)) {
+  if (dev_widget_u16(canvas, &settings->fogResolution, UiWidget_Default)) {
     if (settings->fogResolution == 0) {
       settings->fogResolution = 128;
     } else if (settings->fogResolution > 16384) {
@@ -1239,11 +1239,11 @@ ecs_system_define(DebugRendUpdatePanelSys) {
     const bool overlayActive = ecs_entity_valid(settings->debugViewerResource) ||
                                (settings->flags & RendFlags_DebugOverlay) != 0;
     if (overlayActive) {
-      if (debug_overlay_blocker(canvas)) {
+      if (dev_overlay_blocker(canvas)) {
         settings->debugViewerResource = 0;
         settings->flags &= ~RendFlags_DebugOverlay;
       } else {
-        debug_overlay_resource(canvas, settings, ecs_world_view_t(world, ResourceView));
+        dev_overlay_resource(canvas, settings, ecs_world_view_t(world, ResourceView));
       }
     }
 
@@ -1268,7 +1268,7 @@ ecs_system_define(DebugRendUpdatePanelSys) {
   }
 }
 
-ecs_module_init(debug_rend_module) {
+ecs_module_init(dev_rend_module) {
   ecs_register_comp(DevRendPanelComp, .destructor = ecs_destruct_rend_panel);
 
   ecs_register_view(RendObjView);

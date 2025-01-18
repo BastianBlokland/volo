@@ -29,5 +29,5 @@ typedef struct {
 
 ecs_comp_extern(DevFinderComp);
 
-void              debug_finder_query(DevFinderComp*, DebugFinderCategory, bool refresh);
-DebugFinderResult debug_finder_get(DevFinderComp*, DebugFinderCategory);
+void              dev_finder_query(DevFinderComp*, DebugFinderCategory, bool refresh);
+DebugFinderResult dev_finder_get(DevFinderComp*, DebugFinderCategory);

@@ -13,7 +13,7 @@ typedef enum {
 /**
  * Notify the user about a statistics change.
  */
-void debug_stats_notify(DevStatsGlobalComp*, String key, String Value);
+void dev_stats_notify(DevStatsGlobalComp*, String key, String Value);
 
-DebugStatShow debug_stats_show(const DevStatsComp*);
-void          debug_stats_show_set(DevStatsComp*, DebugStatShow);
+DebugStatShow dev_stats_show(const DevStatsComp*);
+void          dev_stats_show_set(DevStatsComp*, DebugStatShow);

@@ -15,6 +15,6 @@ enum {
 };
 
 /**
- * Register the ecs modules for the Debug library.
+ * Register the ecs modules for the Development library.
  */
-void debug_register(EcsDef*);
+void dev_register(EcsDef*);

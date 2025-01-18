@@ -119,7 +119,7 @@ static bool prefab_filter(const PrefabPanelContext* ctx, const String prefabName
 }
 
 static void prefab_instance_counts(const PrefabPanelContext* ctx, u32 out[], const u32 maxCount) {
-  trace_begin("debug_prefab_counts", TraceColor_Red);
+  trace_begin("dev_prefab_counts", TraceColor_Red);
 
   mem_set(mem_from_to(out, out + math_min(maxCount, ctx->prefabMap->prefabCount)), 0);
 
@@ -141,7 +141,7 @@ static void prefab_instance_counts(const PrefabPanelContext* ctx, u32 out[], con
 }
 
 static void prefab_destroy_all(const PrefabPanelContext* ctx, const StringHash prefabId) {
-  debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Destroy all"));
+  dev_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Destroy all"));
 
   EcsView* prefabInstanceView = ecs_world_view_t(ctx->world, PrefabInstanceView);
   for (EcsIterator* itr = ecs_view_itr(prefabInstanceView); ecs_view_walk(itr);) {
@@ -154,7 +154,7 @@ static void prefab_destroy_all(const PrefabPanelContext* ctx, const StringHash p
 }
 
 static void prefab_select_all(const PrefabPanelContext* ctx, const StringHash prefabId) {
-  debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Select all"));
+  dev_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Select all"));
 
   if (!(input_modifiers(ctx->input) & InputModifier_Control)) {
     scene_set_clear(ctx->setEnv, g_sceneSetSelected);
@@ -216,7 +216,7 @@ static void prefab_create_preview_stop(const PrefabPanelContext* ctx) {
 }
 
 static void prefab_create_start(const PrefabPanelContext* ctx, const StringHash prefabId) {
-  debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Create start"));
+  dev_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Create start"));
 
   ctx->panelComp->mode           = PrefabPanelMode_Create;
   ctx->panelComp->createPrefabId = prefabId;
@@ -224,7 +224,7 @@ static void prefab_create_start(const PrefabPanelContext* ctx, const StringHash 
 }
 
 static void prefab_create_cancel(const PrefabPanelContext* ctx) {
-  debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Create cancel"));
+  dev_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Create cancel"));
 
   ctx->panelComp->mode = PrefabPanelMode_Normal;
   prefab_create_preview_stop(ctx);
@@ -243,7 +243,7 @@ static ScenePrefabVariant prefab_create_variant(const PrefabPanelContext* ctx) {
 }
 
 static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector pos) {
-  debug_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Create accept"));
+  dev_stats_notify(ctx->globalStats, string_lit("Prefab action"), string_lit("Create accept"));
 
   ScenePrefabFlags prefabFlags = 0;
   if (ctx->panelComp->createFlags & PrefabCreateFlags_Volatile) {
@@ -310,7 +310,7 @@ static bool prefab_create_pos(const PrefabPanelContext* ctx, EcsIterator* camItr
   *out = geo_ray_position(&inputRay, rayT);
 
   if (debugGrid && snapGrid) {
-    debug_grid_snap(debugGrid, out);
+    dev_grid_snap(debugGrid, out);
   }
 
   return true;
@@ -348,9 +348,9 @@ static void prefab_create_update(const PrefabPanelContext* ctx) {
   }
 
   prefab_create_preview(ctx, pos);
-  debug_sphere(ctx->shape, pos, 0.25f, geo_color_green, DebugShape_Overlay);
+  dev_sphere(ctx->shape, pos, 0.25f, geo_color_green, DebugShape_Overlay);
 
-  debug_stats_notify(
+  dev_stats_notify(
       ctx->globalStats,
       string_lit("Prefab location"),
       fmt_write_scratch(
@@ -514,7 +514,7 @@ static void prefab_panel_create_draw(UiCanvasComp* canvas, const PrefabPanelCont
   ui_table_next_row(canvas, &table);
   ui_label(canvas, string_lit("Faction"));
   ui_table_next_column(canvas, &table);
-  debug_widget_faction(canvas, &ctx->panelComp->createFaction, UiWidget_Default);
+  dev_widget_faction(canvas, &ctx->panelComp->createFaction, UiWidget_Default);
 
   if (asset_prefab_trait(ctx->prefabMap, prefab, AssetPrefabTrait_Scalable)) {
     ui_table_next_row(canvas, &table);
@@ -666,7 +666,7 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
   input_blocker_update(input, InputBlocker_PrefabCreate, creatingPrefab);
 }
 
-ecs_module_init(debug_prefab_module) {
+ecs_module_init(dev_prefab_module) {
   ecs_register_comp(DevPrefabPanelComp, .destructor = ecs_destruct_prefab_panel);
   ecs_register_comp_empty(DevPrefabPreviewComp);
 

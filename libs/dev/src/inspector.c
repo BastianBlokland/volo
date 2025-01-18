@@ -221,7 +221,7 @@ static void ecs_destruct_panel_comp(void* data) {
   dynstring_destroy(&panel->newPropBuffer);
 }
 
-static i8 debug_prop_compare_entry(const void* a, const void* b) {
+static i8 dev_prop_compare_entry(const void* a, const void* b) {
   return compare_string(field_ptr(a, DebugPropEntry, name), field_ptr(b, DebugPropEntry, name));
 }
 
@@ -328,7 +328,7 @@ ecs_view_define(PrefabMapView) { ecs_access_read(AssetPrefabMapComp); }
 
 static void inspector_notify_vis(
     DevInspectorSettingsComp* set, DevStatsGlobalComp* stats, const DebugInspectorVis vis) {
-  debug_stats_notify(
+  dev_stats_notify(
       stats,
       fmt_write_scratch("Visualize {}", fmt_text(g_visNames[vis])),
       (set->visFlags & (1 << vis)) ? string_lit("enabled") : string_lit("disabled"));
@@ -336,7 +336,7 @@ static void inspector_notify_vis(
 
 static void
 inspector_notify_vis_mode(DevStatsGlobalComp* stats, const DebugInspectorVisMode visMode) {
-  debug_stats_notify(stats, string_lit("Visualize"), g_visModeNames[visMode]);
+  dev_stats_notify(stats, string_lit("Visualize"), g_visModeNames[visMode]);
 }
 
 static bool inspector_is_edit_variant(EcsIterator* subject) {
@@ -478,7 +478,7 @@ inspector_prop_collect(EcsIterator* subject, DynArray* outEntries /* DebugPropEn
       };
     }
   }
-  dynarray_sort(outEntries, debug_prop_compare_entry);
+  dynarray_sort(outEntries, dev_prop_compare_entry);
 }
 
 typedef struct {
@@ -638,7 +638,7 @@ static void inspector_panel_draw_general(InspectorContext* ctx, UiTable* table) 
     if (prefabInst->variant != ScenePrefabVariant_Edit) {
       flags |= UiWidget_Disabled;
     }
-    if (debug_widget_prefab(ctx->canvas, ctx->prefabMap, &prefabInst->prefabId, flags)) {
+    if (dev_widget_prefab(ctx->canvas, ctx->prefabMap, &prefabInst->prefabId, flags)) {
       inspector_prefab_replace(ctx->prefabEnv, ctx->subject, prefabInst->prefabId);
     }
   } else {
@@ -653,7 +653,7 @@ static void inspector_panel_draw_general(InspectorContext* ctx, UiTable* table) 
     factionComp = ecs_view_write_t(ctx->subject, SceneFactionComp);
   }
   if (factionComp) {
-    debug_widget_faction(ctx->canvas, &factionComp->id, UiWidget_Default);
+    dev_widget_faction(ctx->canvas, &factionComp->id, UiWidget_Default);
   } else {
     inspector_panel_draw_none(ctx);
   }
@@ -673,7 +673,7 @@ static void inspector_panel_draw_transform(InspectorContext* ctx, UiTable* table
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Position"));
     ui_table_next_column(ctx->canvas, table);
-    if (debug_widget_vec3_resettable(ctx->canvas, &transform->position, UiWidget_Default)) {
+    if (dev_widget_vec3_resettable(ctx->canvas, &transform->position, UiWidget_Default)) {
       // Clamp the position to a sane value.
       transform->position = geo_vector_clamp(transform->position, 1e3f);
     }
@@ -681,7 +681,7 @@ static void inspector_panel_draw_transform(InspectorContext* ctx, UiTable* table
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Rotation (Euler degrees)"));
     ui_table_next_column(ctx->canvas, table);
-    if (debug_widget_vec3_resettable(
+    if (dev_widget_vec3_resettable(
             ctx->canvas, &ctx->panel->transformRotEulerDeg, UiWidget_DirtyWhileEditing)) {
       const GeoVector eulerRad = geo_vector_mul(ctx->panel->transformRotEulerDeg, math_deg_to_rad);
       transform->rotation      = geo_quat_from_euler(eulerRad);
@@ -694,7 +694,7 @@ static void inspector_panel_draw_transform(InspectorContext* ctx, UiTable* table
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Scale"));
     ui_table_next_column(ctx->canvas, table);
-    if (debug_widget_f32(ctx->canvas, &scale->scale, UiWidget_Default)) {
+    if (dev_widget_f32(ctx->canvas, &scale->scale, UiWidget_Default)) {
       // Clamp the scale to a sane value.
       scale->scale = math_clamp_f32(scale->scale, 1e-2f, 1e2f);
     }
@@ -740,7 +740,7 @@ static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
   }
   case ScriptType_Vec3: {
     GeoVector valVec3 = script_get_vec3(*val, geo_vector(0));
-    if (debug_widget_vec3(ctx->canvas, &valVec3, UiWidget_Default)) {
+    if (dev_widget_vec3(ctx->canvas, &valVec3, UiWidget_Default)) {
       *val = script_vec3(valVec3);
       return true;
     }
@@ -748,7 +748,7 @@ static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
   }
   case ScriptType_Quat: {
     GeoQuat valQuat = script_get_quat(*val, geo_quat_ident);
-    if (debug_widget_quat(ctx->canvas, &valQuat, UiWidget_Default)) {
+    if (dev_widget_quat(ctx->canvas, &valQuat, UiWidget_Default)) {
       *val = script_quat(valQuat);
       return true;
     }
@@ -756,7 +756,7 @@ static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
   }
   case ScriptType_Color: {
     GeoColor valColor = script_get_color(*val, geo_color_white);
-    if (debug_widget_color(ctx->canvas, &valColor, UiWidget_Default)) {
+    if (dev_widget_color(ctx->canvas, &valColor, UiWidget_Default)) {
       *val = script_color(valColor);
       return true;
     }
@@ -807,7 +807,7 @@ static bool inspector_panel_prop_edit_level_entity(InspectorContext* ctx, Script
   if (ctx->settings->tool == DebugInspectorTool_Picker) {
     if (ui_button(ctx->canvas, .label = string_lit("Cancel picking"))) {
       ctx->settings->tool = ctx->settings->toolPickerPrevTool;
-      debug_stats_notify(ctx->stats, string_lit("Tool"), g_toolNames[ctx->settings->tool]);
+      dev_stats_notify(ctx->stats, string_lit("Tool"), g_toolNames[ctx->settings->tool]);
     }
     if (entity != ctx->settings->toolPickerResult) {
       *val    = script_entity_or_null(ctx->settings->toolPickerResult);
@@ -817,7 +817,7 @@ static bool inspector_panel_prop_edit_level_entity(InspectorContext* ctx, Script
     if (ui_button(ctx->canvas, .label = fmt_write_scratch("Pick ({})", fmt_text(entityName)))) {
       ctx->settings->toolPickerPrevTool = ctx->settings->tool;
       ctx->settings->tool               = DebugInspectorTool_Picker;
-      debug_stats_notify(ctx->stats, string_lit("Tool"), g_toolNames[DebugInspectorTool_Picker]);
+      dev_stats_notify(ctx->stats, string_lit("Tool"), g_toolNames[DebugInspectorTool_Picker]);
     }
   }
   return changed;
@@ -826,7 +826,7 @@ static bool inspector_panel_prop_edit_level_entity(InspectorContext* ctx, Script
 static bool inspector_panel_prop_edit_asset(
     InspectorContext* ctx, ScriptVal* val, const DebugFinderCategory assetCat) {
   EcsEntityId entity = script_get_entity(*val, 0);
-  if (debug_widget_asset(ctx->canvas, ctx->finder, assetCat, &entity, UiWidget_Default)) {
+  if (dev_widget_asset(ctx->canvas, ctx->finder, assetCat, &entity, UiWidget_Default)) {
     *val = script_entity_or_null(entity);
     return true;
   }
@@ -1053,7 +1053,7 @@ static void inspector_panel_draw_renderable(InspectorContext* ctx, UiTable* tabl
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Color"));
     ui_table_next_column(ctx->canvas, table);
-    debug_widget_color(ctx->canvas, &renderable->color, flags);
+    dev_widget_color(ctx->canvas, &renderable->color, flags);
 
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Emissive"));
@@ -1118,7 +1118,7 @@ static void inspector_panel_draw_attachment(InspectorContext* ctx, UiTable* tabl
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Offset"));
     ui_table_next_column(ctx->canvas, table);
-    debug_widget_vec3(ctx->canvas, &attach->offset, flags);
+    dev_widget_vec3(ctx->canvas, &attach->offset, flags);
   }
 }
 
@@ -1154,12 +1154,12 @@ static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Radiance"));
       ui_table_next_column(ctx->canvas, table);
-      debug_widget_color(ctx->canvas, &point->radiance, flags);
+      dev_widget_color(ctx->canvas, &point->radiance, flags);
 
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Radius"));
       ui_table_next_column(ctx->canvas, table);
-      if (debug_widget_f32(ctx->canvas, &point->radius, flags)) {
+      if (dev_widget_f32(ctx->canvas, &point->radius, flags)) {
         // Clamp the radius to a sane value.
         point->radius = math_clamp_f32(point->radius, 1e-3f, 1e3f);
       }
@@ -1168,7 +1168,7 @@ static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Radiance"));
       ui_table_next_column(ctx->canvas, table);
-      debug_widget_color(ctx->canvas, &dir->radiance, flags);
+      dev_widget_color(ctx->canvas, &dir->radiance, flags);
 
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Shadows"));
@@ -1184,7 +1184,7 @@ static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, string_lit("Ambient"));
       ui_table_next_column(ctx->canvas, table);
-      if (debug_widget_f32(ctx->canvas, &amb->intensity, flags)) {
+      if (dev_widget_f32(ctx->canvas, &amb->intensity, flags)) {
         // Clamp the ambient intensity to a sane value.
         amb->intensity = math_clamp_f32(amb->intensity, 0.0f, 10.0f);
       }
@@ -1209,7 +1209,7 @@ static void inspector_panel_draw_health(InspectorContext* ctx, UiTable* table) {
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Max"));
     ui_table_next_column(ctx->canvas, table);
-    debug_widget_f32(ctx->canvas, &health->max, flags);
+    dev_widget_f32(ctx->canvas, &health->max, flags);
   }
 }
 
@@ -1354,39 +1354,39 @@ static void inspector_panel_draw_collision(InspectorContext* ctx, UiTable* table
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tOffset"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_vec3(ctx->canvas, &shape->sphere.point, flags);
+        dev_widget_vec3(ctx->canvas, &shape->sphere.point, flags);
 
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tRadius"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_f32(ctx->canvas, &shape->sphere.radius, flags);
+        dev_widget_f32(ctx->canvas, &shape->sphere.radius, flags);
       } break;
       case SceneCollisionType_Capsule: {
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tA"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_vec3(ctx->canvas, &shape->capsule.line.a, flags);
+        dev_widget_vec3(ctx->canvas, &shape->capsule.line.a, flags);
 
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tB"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_vec3(ctx->canvas, &shape->capsule.line.b, flags);
+        dev_widget_vec3(ctx->canvas, &shape->capsule.line.b, flags);
 
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tRadius"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_f32(ctx->canvas, &shape->capsule.radius, flags);
+        dev_widget_f32(ctx->canvas, &shape->capsule.radius, flags);
       } break;
       case SceneCollisionType_Box: {
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tMin"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_vec3(ctx->canvas, &shape->box.box.min, flags);
+        dev_widget_vec3(ctx->canvas, &shape->box.box.min, flags);
 
         inspector_panel_next(ctx, table);
         ui_label(ctx->canvas, string_lit("\tMax"));
         ui_table_next_column(ctx->canvas, table);
-        debug_widget_vec3(ctx->canvas, &shape->box.box.max, flags);
+        dev_widget_vec3(ctx->canvas, &shape->box.box.max, flags);
       } break;
       case SceneCollisionType_Count:
         UNREACHABLE
@@ -1409,12 +1409,12 @@ static void inspector_panel_draw_location(InspectorContext* ctx, UiTable* table)
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, fmt_write_scratch("{} Min", fmt_text(typeName)));
       ui_table_next_column(ctx->canvas, table);
-      debug_widget_vec3(ctx->canvas, &location->volumes[type].min, flags);
+      dev_widget_vec3(ctx->canvas, &location->volumes[type].min, flags);
 
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, fmt_write_scratch("{} Max", fmt_text(typeName)));
       ui_table_next_column(ctx->canvas, table);
-      debug_widget_vec3(ctx->canvas, &location->volumes[type].max, flags);
+      dev_widget_vec3(ctx->canvas, &location->volumes[type].max, flags);
     }
   }
 }
@@ -1434,12 +1434,12 @@ static void inspector_panel_draw_bounds(InspectorContext* ctx, UiTable* table) {
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Center"));
     ui_table_next_column(ctx->canvas, table);
-    dirty |= debug_widget_vec3(ctx->canvas, &center, flags);
+    dirty |= dev_widget_vec3(ctx->canvas, &center, flags);
 
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Size"));
     ui_table_next_column(ctx->canvas, table);
-    dirty |= debug_widget_vec3(ctx->canvas, &size, flags);
+    dirty |= dev_widget_vec3(ctx->canvas, &size, flags);
 
     if (dirty) {
       boundsComp->local = geo_box_from_center(center, size);
@@ -1495,14 +1495,14 @@ static void inspector_panel_draw_settings(InspectorContext* ctx, UiTable* table)
     ui_table_next_column(ctx->canvas, table);
     if (ui_select(
             ctx->canvas, (i32*)&ctx->settings->space, g_spaceNames, array_elems(g_spaceNames))) {
-      debug_stats_notify(ctx->stats, string_lit("Space"), g_spaceNames[ctx->settings->space]);
+      dev_stats_notify(ctx->stats, string_lit("Space"), g_spaceNames[ctx->settings->space]);
     }
 
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Tool"));
     ui_table_next_column(ctx->canvas, table);
     if (ui_select(ctx->canvas, (i32*)&ctx->settings->tool, g_toolNames, array_elems(g_toolNames))) {
-      debug_stats_notify(ctx->stats, string_lit("Tool"), g_toolNames[ctx->settings->tool]);
+      dev_stats_notify(ctx->stats, string_lit("Tool"), g_toolNames[ctx->settings->tool]);
     }
 
     inspector_panel_next(ctx, table);
@@ -1516,7 +1516,7 @@ static void inspector_panel_draw_settings(InspectorContext* ctx, UiTable* table)
     const String* layerNames = g_sceneNavLayerNames;
     if (ui_select(
             ctx->canvas, (i32*)&ctx->settings->visNavLayer, layerNames, SceneNavLayer_Count)) {
-      debug_stats_notify(
+      dev_stats_notify(
           ctx->stats, string_lit("Navigation Layer"), layerNames[ctx->settings->visNavLayer]);
     }
 
@@ -1824,10 +1824,10 @@ static void inspector_tool_group_update(
   bool      posDirty = false, rotDirty = false, scaleDirty = false;
   switch (set->tool) {
   case DebugInspectorTool_Translation:
-    posDirty |= debug_gizmo_translation(gizmo, g_groupGizmoId, &posEdit, set->toolRotation);
+    posDirty |= dev_gizmo_translation(gizmo, g_groupGizmoId, &posEdit, set->toolRotation);
     break;
   case DebugInspectorTool_Rotation:
-    rotDirty |= debug_gizmo_rotation(gizmo, g_groupGizmoId, pos, &rotEdit);
+    rotDirty |= dev_gizmo_rotation(gizmo, g_groupGizmoId, pos, &rotEdit);
     break;
   case DebugInspectorTool_Scale:
     /**
@@ -1835,7 +1835,7 @@ static void inspector_tool_group_update(
      * reference for the delta computation and the editing won't be stable across frames.
      */
     if (mainScale) {
-      scaleDirty |= debug_gizmo_scale_uniform(gizmo, g_groupGizmoId, pos, &scaleEdit);
+      scaleDirty |= dev_gizmo_scale_uniform(gizmo, g_groupGizmoId, pos, &scaleEdit);
     }
     break;
   default:
@@ -1885,7 +1885,7 @@ static void inspector_tool_individual_update(
       GeoQuat rotRef;
       if (set->space == DebugInspectorSpace_Local) {
         rotRef = trans->rotation;
-      } else if (debug_gizmo_interacting(gizmo, gizmoId)) {
+      } else if (dev_gizmo_interacting(gizmo, gizmoId)) {
         rotRef = set->toolRotation;
       } else {
         rotRef = geo_quat_ident;
@@ -1894,10 +1894,10 @@ static void inspector_tool_individual_update(
 
       switch (set->tool) {
       case DebugInspectorTool_Translation:
-        debug_gizmo_translation(gizmo, gizmoId, &trans->position, rotRef);
+        dev_gizmo_translation(gizmo, gizmoId, &trans->position, rotRef);
         break;
       case DebugInspectorTool_Rotation:
-        if (debug_gizmo_rotation(gizmo, gizmoId, trans->position, &rotEdit)) {
+        if (dev_gizmo_rotation(gizmo, gizmoId, trans->position, &rotEdit)) {
           const GeoQuat rotDelta = geo_quat_from_to(rotRef, rotEdit);
           scene_transform_rotate_around(trans, trans->position, rotDelta);
           set->toolRotation = rotEdit;
@@ -1906,7 +1906,7 @@ static void inspector_tool_individual_update(
         break;
       case DebugInspectorTool_Scale:
         if (scaleComp) {
-          debug_gizmo_scale_uniform(gizmo, gizmoId, trans->position, &scaleComp->scale);
+          dev_gizmo_scale_uniform(gizmo, gizmoId, trans->position, &scaleComp->scale);
         }
         break;
       default:
@@ -1955,7 +1955,7 @@ static void inspector_tool_picker_update(
 
   if (shouldClose) {
     set->tool = set->toolPickerPrevTool;
-    debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
+    dev_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
     return;
   }
 
@@ -1986,7 +1986,7 @@ static void inspector_tool_picker_update(
       if (nameComp) {
         hitName = stringtable_lookup(g_stringtable, nameComp->name);
         if (transComp) {
-          debug_text(text, transComp->position, hitName, .fontSize = 16);
+          dev_text(text, transComp->position, hitName, .fontSize = 16);
         }
       }
       const GeoColor shapeColor = geo_color(0, 0.5f, 0, 0.6f);
@@ -1995,9 +1995,9 @@ static void inspector_tool_picker_update(
         const GeoVector     center = geo_box_center(&b.box);
         const GeoVector     size   = geo_box_size(&b.box);
         const GeoVector     sizeDilated = geo_vector_add(size, geo_vector(0.1f, 0.1f, 0.1f));
-        debug_box(shape, center, b.rotation, sizeDilated, shapeColor, DebugShape_Fill);
+        dev_box(shape, center, b.rotation, sizeDilated, shapeColor, DebugShape_Fill);
       } else if (transComp) {
-        debug_sphere(shape, transComp->position, 1.0f /* radius */, shapeColor, DebugShape_Fill);
+        dev_sphere(shape, transComp->position, 1.0f /* radius */, shapeColor, DebugShape_Fill);
       }
     } else {
       set->toolPickerResult = ecs_entity_invalid;
@@ -2005,7 +2005,7 @@ static void inspector_tool_picker_update(
   } else {
     set->toolPickerResult = ecs_entity_invalid;
   }
-  debug_stats_notify(stats, string_lit("Picker entity"), hitName);
+  dev_stats_notify(stats, string_lit("Picker entity"), hitName);
 }
 
 ecs_system_define(DebugInspectorToolUpdateSys) {
@@ -2033,39 +2033,39 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   }
   if (input_triggered_lit(input, "DebugInspectorToolTranslation")) {
     inspector_tool_toggle(set, DebugInspectorTool_Translation);
-    debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
+    dev_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
   if (input_triggered_lit(input, "DebugInspectorToolRotation")) {
     inspector_tool_toggle(set, DebugInspectorTool_Rotation);
-    debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
+    dev_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
   if (input_triggered_lit(input, "DebugInspectorToolScale")) {
     inspector_tool_toggle(set, DebugInspectorTool_Scale);
-    debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
+    dev_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
   if (input_triggered_lit(input, "DebugInspectorToggleSpace")) {
     set->space = (set->space + 1) % DebugInspectorSpace_Count;
-    debug_stats_notify(stats, string_lit("Space"), g_spaceNames[set->space]);
+    dev_stats_notify(stats, string_lit("Space"), g_spaceNames[set->space]);
   }
   if (input_triggered_lit(input, "DebugInspectorToggleNavLayer")) {
     set->visNavLayer = (set->visNavLayer + 1) % SceneNavLayer_Count;
-    debug_stats_notify(stats, string_lit("Space"), g_sceneNavLayerNames[set->visNavLayer]);
+    dev_stats_notify(stats, string_lit("Space"), g_sceneNavLayerNames[set->visNavLayer]);
   }
   if (input_triggered_lit(input, "DebugInspectorDestroy")) {
     inspector_tool_destroy(world, setEnv);
-    debug_stats_notify(stats, string_lit("Tool"), string_lit("Destroy"));
+    dev_stats_notify(stats, string_lit("Tool"), string_lit("Destroy"));
   }
   if (input_triggered_lit(input, "DebugInspectorDrop")) {
     inspector_tool_drop(world, setEnv, terrain);
-    debug_stats_notify(stats, string_lit("Tool"), string_lit("Drop"));
+    dev_stats_notify(stats, string_lit("Tool"), string_lit("Drop"));
   }
   if (input_triggered_lit(input, "DebugInspectorDuplicate")) {
     inspector_tool_duplicate(world, setEnv);
-    debug_stats_notify(stats, string_lit("Tool"), string_lit("Duplicate"));
+    dev_stats_notify(stats, string_lit("Tool"), string_lit("Duplicate"));
   }
   if (input_triggered_lit(input, "DebugInspectorSelectAll")) {
     inspector_tool_select_all(world, setEnv);
-    debug_stats_notify(stats, string_lit("Tool"), string_lit("Select all"));
+    dev_stats_notify(stats, string_lit("Tool"), string_lit("Select all"));
   }
 
   input_blocker_update(input, InputBlocker_EntityPicker, set->tool == DebugInspectorTool_Picker);
@@ -2106,14 +2106,14 @@ static void inspector_vis_draw_locomotion(
   const f32      sepFrac      = math_min(math_sqrt_f32(loco->lastSepMagSqr) / sepThreshold, 1.0f);
   const GeoColor sepColor     = geo_color_lerp(geo_color_white, geo_color_red, sepFrac);
 
-  debug_circle(shape, pos, geo_quat_up_to_forward, loco->radius * scaleVal, sepColor);
+  dev_circle(shape, pos, geo_quat_up_to_forward, loco->radius * scaleVal, sepColor);
 
   if (loco->flags & SceneLocomotion_Moving) {
-    debug_line(shape, pos, loco->targetPos, geo_color_yellow);
-    debug_sphere(shape, loco->targetPos, 0.1f, geo_color_green, DebugShape_Overlay);
+    dev_line(shape, pos, loco->targetPos, geo_color_yellow);
+    dev_sphere(shape, loco->targetPos, 0.1f, geo_color_green, DebugShape_Overlay);
   }
   if (geo_vector_mag_sqr(loco->targetDir) > f32_epsilon) {
-    debug_arrow(shape, pos, geo_vector_add(pos, loco->targetDir), 0.1f, geo_color_teal);
+    dev_arrow(shape, pos, geo_vector_add(pos, loco->targetDir), 0.1f, geo_color_teal);
   }
 }
 
@@ -2129,13 +2129,13 @@ static void inspector_vis_draw_collision(
 
     switch (world.type) {
     case SceneCollisionType_Sphere:
-      debug_world_sphere(shape, &world.sphere, geo_color(1, 0, 0, 0.75f));
+      dev_world_sphere(shape, &world.sphere, geo_color(1, 0, 0, 0.75f));
       break;
     case SceneCollisionType_Capsule:
-      debug_world_capsule(shape, &world.capsule, geo_color(1, 0, 0, 0.75f));
+      dev_world_capsule(shape, &world.capsule, geo_color(1, 0, 0, 0.75f));
       break;
     case SceneCollisionType_Box:
-      debug_world_box_rotated(shape, &world.box, geo_color(1, 0, 0, 0.75f));
+      dev_world_box_rotated(shape, &world.box, geo_color(1, 0, 0, 0.75f));
       break;
     case SceneCollisionType_Count:
       UNREACHABLE
@@ -2149,7 +2149,7 @@ static void inspector_vis_draw_bounds_local(
     const SceneTransformComp* transform,
     const SceneScaleComp*     scale) {
   const GeoBoxRotated b = scene_bounds_world_rotated(bounds, transform, scale);
-  debug_world_box_rotated(shape, &b, geo_color(0, 1, 0, 1.0f));
+  dev_world_box_rotated(shape, &b, geo_color(0, 1, 0, 1.0f));
 }
 
 static void inspector_vis_draw_bounds_global(
@@ -2158,7 +2158,7 @@ static void inspector_vis_draw_bounds_global(
     const SceneTransformComp* transform,
     const SceneScaleComp*     scale) {
   const GeoBox b = scene_bounds_world(bounds, transform, scale);
-  debug_world_box(shape, &b, geo_color(0, 0, 1, 1.0f));
+  dev_world_box(shape, &b, geo_color(0, 0, 1, 1.0f));
 }
 
 static void inspector_vis_draw_navigation_path(
@@ -2171,13 +2171,13 @@ static void inspector_vis_draw_navigation_path(
   for (u32 i = 1; i < path->cellCount; ++i) {
     const GeoVector posA = geo_nav_position(grid, path->cells[i - 1]);
     const GeoVector posB = geo_nav_position(grid, path->cells[i]);
-    debug_line(shape, posA, posB, geo_color_white);
+    dev_line(shape, posA, posB, geo_color_white);
   }
   if (agent->flags & SceneNavAgent_Traveling) {
-    debug_sphere(shape, agent->targetPos, 0.1f, geo_color_blue, DebugShape_Overlay);
+    dev_sphere(shape, agent->targetPos, 0.1f, geo_color_blue, DebugShape_Overlay);
 
     const f32 channelRadius = geo_nav_channel_radius(grid);
-    debug_circle(shape, transform->position, geo_quat_up_to_forward, channelRadius, geo_color_blue);
+    dev_circle(shape, transform->position, geo_quat_up_to_forward, channelRadius, geo_color_blue);
   }
 }
 
@@ -2188,7 +2188,7 @@ static void inspector_vis_draw_light_point(
     const SceneScaleComp*      scaleComp) {
   const GeoVector pos    = transform ? transform->position : geo_vector(0);
   const f32       radius = scaleComp ? lightPoint->radius * scaleComp->scale : lightPoint->radius;
-  debug_sphere(shape, pos, radius, geo_color(1, 1, 1, 0.25f), DebugShape_Wire);
+  dev_sphere(shape, pos, radius, geo_color(1, 1, 1, 0.25f), DebugShape_Wire);
 }
 
 static void inspector_vis_draw_light_dir(
@@ -2198,7 +2198,7 @@ static void inspector_vis_draw_light_dir(
   const GeoQuat   rot      = transform ? transform->rotation : geo_quat_ident;
   const GeoVector dir      = geo_quat_rotate(rot, geo_forward);
   const GeoVector arrowEnd = geo_vector_add(pos, geo_vector_mul(dir, 5));
-  debug_arrow(shape, pos, arrowEnd, 0.75f, geo_color(1, 1, 1, 0.5f));
+  dev_arrow(shape, pos, arrowEnd, 0.75f, geo_color(1, 1, 1, 0.5f));
 }
 
 static void inspector_vis_draw_health(
@@ -2207,7 +2207,7 @@ static void inspector_vis_draw_health(
   const f32       healthPoints = scene_health_points(health);
   const GeoColor  color        = geo_color_lerp(geo_color_red, geo_color_lime, health->norm);
   const String    str = fmt_write_scratch("{}", fmt_float(healthPoints, .maxDecDigits = 0));
-  debug_text(text, pos, str, .color = color, .fontSize = 16);
+  dev_text(text, pos, str, .color = color, .fontSize = 16);
 }
 
 static void inspector_vis_draw_attack(
@@ -2218,7 +2218,7 @@ static void inspector_vis_draw_attack(
     const SceneTransformComp*   transform) {
 
   const f32 readyPct = math_round_nearest_f32(attack->readyNorm * 100.0f);
-  debug_text(text, transform->position, fmt_write_scratch("Ready: {}%", fmt_float(readyPct)));
+  dev_text(text, transform->position, fmt_write_scratch("Ready: {}%", fmt_float(readyPct)));
 
   const SceneAttackEvent* eventsBegin = scene_attack_trace_begin(trace);
   const SceneAttackEvent* eventsEnd   = scene_attack_trace_end(trace);
@@ -2227,15 +2227,15 @@ static void inspector_vis_draw_attack(
     switch (itr->type) {
     case SceneAttackEventType_Proj: {
       const SceneAttackEventProj* evt = &itr->data_proj;
-      debug_line(shape, evt->pos, evt->target, geo_color_blue);
+      dev_line(shape, evt->pos, evt->target, geo_color_blue);
     } break;
     case SceneAttackEventType_DmgSphere: {
       const SceneAttackEventDmgSphere* evt = &itr->data_dmgSphere;
-      debug_sphere(shape, evt->pos, evt->radius, geo_color_blue, DebugShape_Wire);
+      dev_sphere(shape, evt->pos, evt->radius, geo_color_blue, DebugShape_Wire);
     } break;
     case SceneAttackEventType_DmgFrustum: {
       const SceneAttackEventDmgFrustum* evt = &itr->data_dmgFrustum;
-      debug_frustum_points(shape, evt->corners, geo_color_blue);
+      dev_frustum_points(shape, evt->corners, geo_color_blue);
     } break;
     }
   }
@@ -2273,14 +2273,14 @@ static void inspector_vis_draw_target(
       dynstring_clear(&textBuffer);
       format_write_f64(&textBuffer, itr->value, &formatOptsFloat);
 
-      debug_text(text, pos, dynstring_view(&textBuffer), .color = color);
+      dev_text(text, pos, dynstring_view(&textBuffer), .color = color);
     }
   }
 }
 
 static void inspector_vis_draw_vision(
     DevShapeComp* shape, const SceneVisionComp* vision, const SceneTransformComp* transform) {
-  debug_circle(
+  dev_circle(
       shape,
       transform->position,
       geo_quat_forward_to_up,
@@ -2298,8 +2298,8 @@ static void inspector_vis_draw_location(
     const GeoVector     center = geo_box_center(&volume.box);
     const GeoVector     size   = geo_box_size(&volume.box);
     const GeoColor      color  = geo_color_for(type);
-    debug_box(shape, center, volume.rotation, size, color, DebugShape_Wire);
-    debug_sphere(shape, center, 0.1f, color, DebugShape_Overlay);
+    dev_box(shape, center, volume.rotation, size, color, DebugShape_Wire);
+    dev_sphere(shape, center, 0.1f, color, DebugShape_Overlay);
   }
 }
 
@@ -2311,27 +2311,27 @@ inspector_vis_draw_explicit(DevShapeComp* shape, DevTextComp* text, const SceneD
     switch (debugData[i].type) {
     case SceneDebugType_Line: {
       const SceneDebugLine* data = &debugData[i].data_line;
-      debug_line(shape, data->start, data->end, data->color);
+      dev_line(shape, data->start, data->end, data->color);
     } break;
     case SceneDebugType_Sphere: {
       const SceneDebugSphere* data = &debugData[i].data_sphere;
-      debug_sphere(shape, data->pos, data->radius, data->color, DebugShape_Overlay);
+      dev_sphere(shape, data->pos, data->radius, data->color, DebugShape_Overlay);
     } break;
     case SceneDebugType_Box: {
       const SceneDebugBox* data = &debugData[i].data_box;
-      debug_box(shape, data->pos, data->rot, data->size, data->color, DebugShape_Overlay);
+      dev_box(shape, data->pos, data->rot, data->size, data->color, DebugShape_Overlay);
     } break;
     case SceneDebugType_Arrow: {
       const SceneDebugArrow* data = &debugData[i].data_arrow;
-      debug_arrow(shape, data->start, data->end, data->radius, data->color);
+      dev_arrow(shape, data->start, data->end, data->radius, data->color);
     } break;
     case SceneDebugType_Orientation: {
       const SceneDebugOrientation* data = &debugData[i].data_orientation;
-      debug_orientation(shape, data->pos, data->rot, data->size);
+      dev_orientation(shape, data->pos, data->rot, data->size);
     } break;
     case SceneDebugType_Text: {
       const SceneDebugText* data = &debugData[i].data_text;
-      debug_text(text, data->pos, data->text, .color = data->color, .fontSize = data->fontSize);
+      dev_text(text, data->pos, data->text, .color = data->color, .fontSize = data->fontSize);
     } break;
     case SceneDebugType_Trace:
       break;
@@ -2363,18 +2363,18 @@ static void inspector_vis_draw_subject(
   SceneAttackComp*            attackComp      = ecs_view_write_t(subject, SceneAttackComp);
 
   if (transformComp && set->visFlags & (1 << DebugInspectorVis_Origin)) {
-    debug_sphere(shape, transformComp->position, 0.05f, geo_color_fuchsia, DebugShape_Overlay);
-    debug_orientation(shape, transformComp->position, transformComp->rotation, 0.25f);
+    dev_sphere(shape, transformComp->position, 0.05f, geo_color_fuchsia, DebugShape_Overlay);
+    dev_orientation(shape, transformComp->position, transformComp->rotation, 0.25f);
 
     if (veloComp && geo_vector_mag(veloComp->velocityAvg) > 1e-3f) {
       const GeoVector posOneSecAway = scene_position_predict(transformComp, veloComp, time_second);
-      debug_arrow(shape, transformComp->position, posOneSecAway, 0.15f, geo_color_green);
+      dev_arrow(shape, transformComp->position, posOneSecAway, 0.15f, geo_color_green);
     }
   }
   if (nameComp && set->visFlags & (1 << DebugInspectorVis_Name)) {
     const String    name = stringtable_lookup(g_stringtable, nameComp->name);
     const GeoVector pos  = geo_vector_add(transformComp->position, geo_vector_mul(geo_up, 0.1f));
-    debug_text(text, pos, name);
+    dev_text(text, pos, name);
   }
   if (locoComp && set->visFlags & (1 << DebugInspectorVis_Locomotion)) {
     inspector_vis_draw_locomotion(shape, locoComp, transformComp, scaleComp);
@@ -2488,12 +2488,12 @@ static void inspector_vis_draw_navigation_grid(
         color = geo_color(0, 1, 0, highlight ? 0.075f : 0.05f);
       }
       const GeoVector pos = geo_nav_position(grid, cell);
-      debug_quad(shape, pos, geo_quat_up_to_forward, cellSize, cellSize, color, shapeMode);
+      dev_quad(shape, pos, geo_quat_up_to_forward, cellSize, cellSize, color, shapeMode);
 
       if (!blocked) {
         dynstring_clear(&textBuffer);
         format_write_u64(&textBuffer, island, &format_opts_int());
-        debug_text(text, pos, dynstring_view(&textBuffer));
+        dev_text(text, pos, dynstring_view(&textBuffer));
       }
     }
   }
@@ -2506,7 +2506,7 @@ static void inspector_vis_draw_collision_bounds(DevShapeComp* shape, const GeoQu
     const u32       depth  = geo_query_node_depth(env, nodeIdx);
     const GeoVector center = geo_box_center(bounds);
     const GeoVector size   = geo_box_size(bounds);
-    debug_box(shape, center, geo_quat_ident, size, geo_color_for(depth), DebugShape_Wire);
+    dev_box(shape, center, geo_quat_ident, size, geo_color_for(depth), DebugShape_Wire);
   }
 }
 
@@ -2566,7 +2566,7 @@ static void inspector_vis_draw_icon(EcsWorld* w, DevTextComp* text, EcsIterator*
     u8           textBuffer[4];
     const String str = {.ptr = textBuffer, .size = utf8_cp_write(textBuffer, icon)};
 
-    debug_text(text, transformComp->position, str, .fontSize = size, .color = color);
+    dev_text(text, transformComp->position, str, .fontSize = size, .color = color);
   }
 }
 
@@ -2625,18 +2625,18 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   EcsIterator* subjectItr    = ecs_view_itr(subjectView);
 
   if (set->visFlags & (1 << DebugInspectorVis_NavigationGrid)) {
-    trace_begin("debug_vis_grid", TraceColor_Red);
+    trace_begin("dev_vis_grid", TraceColor_Red);
     const GeoNavGrid* grid = scene_nav_grid(navEnv, set->visNavLayer);
     inspector_vis_draw_navigation_grid(shape, text, grid, cameraView);
     trace_end();
   }
   if (set->visFlags & (1 << DebugInspectorVis_CollisionBounds)) {
-    trace_begin("debug_vis_collision_bounds", TraceColor_Red);
+    trace_begin("dev_vis_collision_bounds", TraceColor_Red);
     inspector_vis_draw_collision_bounds(shape, scene_collision_query_env(collisionEnv));
     trace_end();
   }
   if (set->visFlags & (1 << DebugInspectorVis_Icon)) {
-    trace_begin("debug_vis_icon", TraceColor_Red);
+    trace_begin("dev_vis_icon", TraceColor_Red);
     for (EcsIterator* itr = ecs_view_itr(subjectView); ecs_view_walk(itr);) {
       inspector_vis_draw_icon(world, text, itr);
     }
@@ -2682,7 +2682,7 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   }
 }
 
-ecs_module_init(debug_inspector_module) {
+ecs_module_init(dev_inspector_module) {
   ecs_register_comp(DevInspectorSettingsComp);
   ecs_register_comp(DevInspectorPanelComp, .destructor = ecs_destruct_panel_comp);
 

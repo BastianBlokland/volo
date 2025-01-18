@@ -189,7 +189,7 @@ static void manage_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   ui_scrollview_begin(c, &ctx->panelComp->scrollview, UiLayer_Normal, totalHeight);
   ctx->panelComp->totalRows = 0;
 
-  const DebugFinderResult levels = debug_finder_get(ctx->finder, DebugFinder_Level);
+  const DebugFinderResult levels = dev_finder_get(ctx->finder, DebugFinder_Level);
   for (u32 i = 0; i != levels.count; ++i) {
     const EcsEntityId asset  = levels.entities[i];
     const String      id     = levels.ids[i];
@@ -242,7 +242,7 @@ static void settings_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   ui_table_next_column(c, &table);
 
   EcsEntityId terrain = scene_level_terrain(ctx->levelManager);
-  if (debug_widget_asset(c, ctx->finder, DebugFinder_Terrain, &terrain, UiWidget_Default)) {
+  if (dev_widget_asset(c, ctx->finder, DebugFinder_Terrain, &terrain, UiWidget_Default)) {
     scene_level_terrain_update(ctx->levelManager, terrain);
   }
 
@@ -259,7 +259,7 @@ static void settings_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
   ui_table_next_column(c, &table);
 
   GeoVector startpoint = scene_level_startpoint(ctx->levelManager);
-  if (debug_widget_vec3_resettable(c, &startpoint, UiWidget_Default)) {
+  if (dev_widget_vec3_resettable(c, &startpoint, UiWidget_Default)) {
     scene_level_startpoint_update(ctx->levelManager, startpoint);
   }
 
@@ -394,10 +394,10 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
     }
   }
 
-  debug_finder_query(finder, DebugFinder_Level, refreshLevels);
+  dev_finder_query(finder, DebugFinder_Level, refreshLevels);
 }
 
-ecs_module_init(debug_level_module) {
+ecs_module_init(dev_level_module) {
   ecs_register_comp(DevLevelPanelComp, .destructor = ecs_destruct_level_panel);
 
   ecs_register_view(CameraView);

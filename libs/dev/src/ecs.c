@@ -846,7 +846,7 @@ ecs_system_define(DebugEcsUpdatePanelSys) {
   }
 }
 
-ecs_module_init(debug_ecs_module) {
+ecs_module_init(dev_ecs_module) {
   ecs_register_comp(DevEcsPanelComp, .destructor = ecs_destruct_ecs_panel);
 
   ecs_register_view(PanelUpdateView);

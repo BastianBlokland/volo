@@ -119,7 +119,7 @@ static void ecs_destruct_stats_global(void* data) {
   alloc_free_t(g_allocHeap, comp->ecsFlushDurPlot);
 }
 
-static DebugStatsNotification* debug_notify_get(DevStatsGlobalComp* comp, const String key) {
+static DebugStatsNotification* dev_notify_get(DevStatsGlobalComp* comp, const String key) {
   // Find an existing notification with the same key.
   dynarray_for_t(&comp->notifications, DebugStatsNotification, notif) {
     if (string_eq(mem_create(notif->key, notif->keyLength), key)) {
@@ -134,7 +134,7 @@ static DebugStatsNotification* debug_notify_get(DevStatsGlobalComp* comp, const 
   return notif;
 }
 
-static void debug_notify_prune_older(DevStatsGlobalComp* comp, const TimeReal timestamp) {
+static void dev_notify_prune_older(DevStatsGlobalComp* comp, const TimeReal timestamp) {
   for (usize i = comp->notifications.size; i--;) {
     DebugStatsNotification* notif = dynarray_at_t(&comp->notifications, i, DebugStatsNotification);
     if (notif->timestamp < timestamp) {
@@ -143,13 +143,13 @@ static void debug_notify_prune_older(DevStatsGlobalComp* comp, const TimeReal ti
   }
 }
 
-static DebugStatPlot* debug_plot_alloc(Allocator* alloc) {
+static DebugStatPlot* dev_plot_alloc(Allocator* alloc) {
   DebugStatPlot* plot = alloc_alloc_t(alloc, DebugStatPlot);
   mem_set(mem_create(plot, sizeof(DebugStatPlot)), 0);
   return plot;
 }
 
-static void debug_plot_set(DebugStatPlot* plot, const f32 value) {
+static void dev_plot_set(DebugStatPlot* plot, const f32 value) {
 #ifdef VOLO_SIMD
   ASSERT((stats_plot_size % 4) == 0, "Only multiple of 4 plot sizes are supported");
   const SimdVec valueVec = simd_vec_broadcast(value);
@@ -163,25 +163,25 @@ static void debug_plot_set(DebugStatPlot* plot, const f32 value) {
 #endif
 }
 
-static void debug_plot_add(DebugStatPlot* plot, const f32 value) {
+static void dev_plot_add(DebugStatPlot* plot, const f32 value) {
   if (UNLIKELY(!plot->initialized)) {
-    debug_plot_set(plot, value);
+    dev_plot_set(plot, value);
     plot->initialized = true;
   }
   plot->values[plot->cur] = value;
   plot->cur               = (plot->cur + 1) % stats_plot_size;
 }
 
-static void debug_plot_add_dur(DebugStatPlot* plot, const TimeDuration value) {
-  debug_plot_add(plot, (f32)(value / (f64)time_microsecond));
+static void dev_plot_add_dur(DebugStatPlot* plot, const TimeDuration value) {
+  dev_plot_add(plot, (f32)(value / (f64)time_microsecond));
 }
 
-static f32 debug_plot_newest(const DebugStatPlot* plot) {
+static f32 dev_plot_newest(const DebugStatPlot* plot) {
   const u32 newestIndex = (plot->cur + stats_plot_size - 1) % stats_plot_size;
   return plot->values[newestIndex];
 }
 
-static f32 debug_plot_min(const DebugStatPlot* plot) {
+static f32 dev_plot_min(const DebugStatPlot* plot) {
 #ifdef VOLO_SIMD
   ASSERT((stats_plot_size % 4) == 0, "Only multiple of 4 plot sizes are supported");
   SimdVec min = simd_vec_broadcast(plot->values[0]);
@@ -200,7 +200,7 @@ static f32 debug_plot_min(const DebugStatPlot* plot) {
 #endif
 }
 
-static f32 debug_plot_max(const DebugStatPlot* plot) {
+static f32 dev_plot_max(const DebugStatPlot* plot) {
 #ifdef VOLO_SIMD
   ASSERT((stats_plot_size % 4) == 0, "Only multiple of 4 plot sizes are supported");
   SimdVec max = simd_vec_broadcast(plot->values[0]);
@@ -219,11 +219,11 @@ static f32 debug_plot_max(const DebugStatPlot* plot) {
 #endif
 }
 
-static f32 debug_plot_var(const DebugStatPlot* plot) {
-  return debug_plot_max(plot) - debug_plot_min(plot);
+static f32 dev_plot_var(const DebugStatPlot* plot) {
+  return dev_plot_max(plot) - dev_plot_min(plot);
 }
 
-static f32 debug_plot_sum(const DebugStatPlot* plot) {
+static f32 dev_plot_sum(const DebugStatPlot* plot) {
 #ifdef VOLO_SIMD
   ASSERT((stats_plot_size % 4) == 0, "Only multiple of 4 plot sizes are supported");
   SimdVec accum = simd_vec_zero();
@@ -240,27 +240,27 @@ static f32 debug_plot_sum(const DebugStatPlot* plot) {
 #endif
 }
 
-static f32 debug_plot_avg(const DebugStatPlot* plot) {
-  return debug_plot_sum(plot) / (f32)stats_plot_size;
+static f32 dev_plot_avg(const DebugStatPlot* plot) {
+  return dev_plot_sum(plot) / (f32)stats_plot_size;
 }
 
-static TimeDuration debug_plot_max_dur(const DebugStatPlot* plot) {
-  return (TimeDuration)(debug_plot_max(plot) * (f64)time_microsecond);
+static TimeDuration dev_plot_max_dur(const DebugStatPlot* plot) {
+  return (TimeDuration)(dev_plot_max(plot) * (f64)time_microsecond);
 }
 
-static TimeDuration debug_plot_var_dur(const DebugStatPlot* plot) {
-  return (TimeDuration)(debug_plot_var(plot) * (f64)time_microsecond);
+static TimeDuration dev_plot_var_dur(const DebugStatPlot* plot) {
+  return (TimeDuration)(dev_plot_var(plot) * (f64)time_microsecond);
 }
 
-static TimeDuration debug_plot_avg_dur(const DebugStatPlot* plot) {
-  return (TimeDuration)(debug_plot_avg(plot) * (f64)time_microsecond);
+static TimeDuration dev_plot_avg_dur(const DebugStatPlot* plot) {
+  return (TimeDuration)(dev_plot_avg(plot) * (f64)time_microsecond);
 }
 
-static void debug_avg_f32(f32* value, const f32 new) {
+static void dev_avg_f32(f32* value, const f32 new) {
   *value += (new - *value) * g_statsInvAverageWindow;
 }
 
-static f32 debug_frame_frac(const TimeDuration whole, const TimeDuration part) {
+static f32 dev_frame_frac(const TimeDuration whole, const TimeDuration part) {
   return math_clamp_f32(part / (f32)whole, 0, 1);
 }
 
@@ -347,11 +347,11 @@ static void stats_draw_plot_tooltip(
   } while (false)
 
   if (plot->initialized) {
-    APPEND_PLOT_VAL("Newest", debug_plot_newest);
-    APPEND_PLOT_VAL("Average", debug_plot_avg);
-    APPEND_PLOT_VAL("Min", debug_plot_min);
-    APPEND_PLOT_VAL("Max", debug_plot_max);
-    APPEND_PLOT_VAL("Variance", debug_plot_var);
+    APPEND_PLOT_VAL("Newest", dev_plot_newest);
+    APPEND_PLOT_VAL("Average", dev_plot_avg);
+    APPEND_PLOT_VAL("Min", dev_plot_min);
+    APPEND_PLOT_VAL("Max", dev_plot_max);
+    APPEND_PLOT_VAL("Variance", dev_plot_var);
   }
 
   const UiId id = ui_canvas_id_peek(c);
@@ -430,8 +430,8 @@ static void stats_draw_frametime(UiCanvasComp* c, const DevStatsComp* stats) {
   const f64 g_errorThreshold = 1.25;
   const f64 g_warnThreshold  = 1.025;
 
-  const TimeDuration durAvg      = debug_plot_avg_dur(stats->frameDurPlot);
-  const TimeDuration durVariance = debug_plot_var_dur(stats->frameDurPlot);
+  const TimeDuration durAvg      = dev_plot_avg_dur(stats->frameDurPlot);
+  const TimeDuration durVariance = dev_plot_var_dur(stats->frameDurPlot);
 
   String colorText = string_empty;
   if (durAvg > stats->frameDurDesired * g_errorThreshold) {
@@ -655,7 +655,7 @@ static void stats_draw_notifications(UiCanvasComp* c, const DevStatsGlobalComp* 
   }
 }
 
-static void debug_stats_draw_interface(
+static void dev_stats_draw_interface(
     UiCanvasComp*                  c,
     const GapWindowComp*           window,
     const DevStatsGlobalComp*      statsGlobal,
@@ -692,7 +692,7 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("Dpi"), fmt_write_scratch("{}", fmt_int(gap_window_dpi(window))));
   }
   if(stats_draw_section(c, string_lit("Renderer"))) {
-    const TimeDuration gpuExecDurAvg = debug_plot_avg_dur(stats->gpuExecDurPlot);
+    const TimeDuration gpuExecDurAvg = dev_plot_avg_dur(stats->gpuExecDurPlot);
 
     stats_draw_val_entry(c, string_lit("Gpu"), fmt_write_scratch("{}", fmt_text(rendStats->gpuName)));
     stats_draw_val_entry(c, string_lit("Gpu exec duration"), fmt_write_scratch("{<9} frac: {}", fmt_duration(gpuExecDurAvg), fmt_float(stats->gpuExecFrac, .minDecDigits = 2, .maxDecDigits = 2)));
@@ -708,9 +708,9 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("Texture resources"), fmt_write_scratch("{}", fmt_int(rendStats->resources[RendStatsRes_Texture])));
 
     stats_draw_renderer_pass_dropdown(c, stats, rendStats);
-    const TimeDuration   frameDurAvg = debug_plot_avg_dur(stats->frameDurPlot);
+    const TimeDuration   frameDurAvg = dev_plot_avg_dur(stats->frameDurPlot);
     const RendStatsPass* passStats   = &rendStats->passes[stats->inspectPassIndex];
-    const f32            passDurFrac = debug_frame_frac(frameDurAvg, passStats->gpuExecDur);
+    const f32            passDurFrac = dev_frame_frac(frameDurAvg, passStats->gpuExecDur);
     stats_draw_val_entry(c, string_lit("Pass resolution max"), fmt_write_scratch("{}x{}", fmt_int(passStats->sizeMax[0]), fmt_int(passStats->sizeMax[1])));
     stats_draw_val_entry(c, string_lit("Pass exec duration"), fmt_write_scratch("{<10} frac: {}", fmt_duration(passStats->gpuExecDur), fmt_float(passDurFrac, .minDecDigits = 2, .maxDecDigits = 2)));
     stats_draw_val_entry(c, string_lit("Pass invocations"), fmt_write_scratch("{}", fmt_int(passStats->invocations)));
@@ -749,8 +749,8 @@ static void debug_stats_draw_interface(
     stats_draw_val_entry(c, string_lit("Data"), fmt_write_scratch("types: {}", fmt_int(data_type_count(g_dataReg))));
   }
   if(stats_draw_section(c, string_lit("ECS"))) {
-    const TimeDuration flushDurAvg = debug_plot_avg_dur(statsGlobal->ecsFlushDurPlot);
-    const TimeDuration flushDurMax = debug_plot_max_dur(statsGlobal->ecsFlushDurPlot);
+    const TimeDuration flushDurAvg = dev_plot_avg_dur(statsGlobal->ecsFlushDurPlot);
+    const TimeDuration flushDurMax = dev_plot_max_dur(statsGlobal->ecsFlushDurPlot);
 
     stats_draw_val_entry(c, string_lit("Components"), fmt_write_scratch("{}", fmt_int(ecs_def_comp_count(ecsDef))));
     stats_draw_val_entry(c, string_lit("Views"), fmt_write_scratch("{}", fmt_int(ecs_def_view_count(ecsDef))));
@@ -807,7 +807,7 @@ static void debug_stats_draw_interface(
   // clang-format on
 }
 
-static void debug_stats_update(
+static void dev_stats_update(
     DevStatsComp*                 stats,
     const GapWindowComp*          window,
     const RendStatsComp*          rendStats,
@@ -815,7 +815,7 @@ static void debug_stats_update(
     const SceneTimeComp*          time) {
 
   const TimeDuration frameDur = time->realDelta;
-  debug_plot_add_dur(stats->frameDurPlot, frameDur);
+  dev_plot_add_dur(stats->frameDurPlot, frameDur);
 
   if (rendGlobalSettings->limiterFreq) {
     stats->frameDurDesired = time_second / rendGlobalSettings->limiterFreq;
@@ -823,33 +823,33 @@ static void debug_stats_update(
     stats->frameDurDesired = (TimeDuration)((f64)time_second / gap_window_refresh_rate(window));
   }
 
-  debug_plot_add_dur(stats->gpuExecDurPlot, rendStats->gpuExecDur);
+  dev_plot_add_dur(stats->gpuExecDurPlot, rendStats->gpuExecDur);
 
-  debug_avg_f32(&stats->rendWaitForGpuFrac, debug_frame_frac(frameDur, rendStats->waitForGpuDur));
-  debug_avg_f32(&stats->rendPresAcqFrac, debug_frame_frac(frameDur, rendStats->presentAcquireDur));
-  debug_avg_f32(&stats->rendPresEnqFrac, debug_frame_frac(frameDur, rendStats->presentEnqueueDur));
-  debug_avg_f32(&stats->rendPresWaitFrac, debug_frame_frac(frameDur, rendStats->presentWaitDur));
-  debug_avg_f32(&stats->rendLimiterFrac, debug_frame_frac(frameDur, rendStats->limiterDur));
-  debug_avg_f32(&stats->gpuWaitFrac, debug_frame_frac(frameDur, rendStats->gpuWaitDur));
-  debug_avg_f32(&stats->gpuExecFrac, debug_frame_frac(frameDur, rendStats->gpuExecDur));
+  dev_avg_f32(&stats->rendWaitForGpuFrac, dev_frame_frac(frameDur, rendStats->waitForGpuDur));
+  dev_avg_f32(&stats->rendPresAcqFrac, dev_frame_frac(frameDur, rendStats->presentAcquireDur));
+  dev_avg_f32(&stats->rendPresEnqFrac, dev_frame_frac(frameDur, rendStats->presentEnqueueDur));
+  dev_avg_f32(&stats->rendPresWaitFrac, dev_frame_frac(frameDur, rendStats->presentWaitDur));
+  dev_avg_f32(&stats->rendLimiterFrac, dev_frame_frac(frameDur, rendStats->limiterDur));
+  dev_avg_f32(&stats->gpuWaitFrac, dev_frame_frac(frameDur, rendStats->gpuWaitDur));
+  dev_avg_f32(&stats->gpuExecFrac, dev_frame_frac(frameDur, rendStats->gpuExecDur));
   for (u32 pass = 0; pass != rendStats->passCount; ++pass) {
-    const f32 passFrac = debug_frame_frac(frameDur, rendStats->passes[pass].gpuExecDur);
-    debug_avg_f32(&stats->gpuPassFrac[pass], passFrac);
+    const f32 passFrac = dev_frame_frac(frameDur, rendStats->passes[pass].gpuExecDur);
+    dev_avg_f32(&stats->gpuPassFrac[pass], passFrac);
   }
 }
 
 static void
-debug_stats_global_update(DevStatsGlobalComp* statsGlobal, const EcsRunnerStats* ecsRunnerStats) {
+dev_stats_global_update(DevStatsGlobalComp* statsGlobal, const EcsRunnerStats* ecsRunnerStats) {
 
   const TimeReal oldestNotifToKeep = time_real_offset(time_real_clock(), -stats_notify_max_age);
-  debug_notify_prune_older(statsGlobal, oldestNotifToKeep);
+  dev_notify_prune_older(statsGlobal, oldestNotifToKeep);
 
   statsGlobal->fileCount         = file_count();
   statsGlobal->fileMappingSize   = file_mapping_size();
   statsGlobal->dynlibCount       = dynlib_count();
   statsGlobal->globalStringCount = stringtable_count(g_stringtable);
 
-  debug_plot_add(
+  dev_plot_add(
       statsGlobal->ecsFlushDurPlot, (f32)(ecsRunnerStats->flushDurLast / (f64)time_microsecond));
 }
 
@@ -888,7 +888,7 @@ ecs_system_define(DebugStatsCreateSys) {
         ecs_world_global(world),
         DevStatsGlobalComp,
         .notifications   = dynarray_create_t(g_allocHeap, DebugStatsNotification, 8),
-        .ecsFlushDurPlot = debug_plot_alloc(g_allocHeap));
+        .ecsFlushDurPlot = dev_plot_alloc(g_allocHeap));
   }
 
   // Create a stats component for each window with 3d content (so with a camera).
@@ -898,8 +898,8 @@ ecs_system_define(DebugStatsCreateSys) {
         world,
         ecs_view_entity(itr),
         DevStatsComp,
-        .frameDurPlot   = debug_plot_alloc(g_allocHeap),
-        .gpuExecDurPlot = debug_plot_alloc(g_allocHeap));
+        .frameDurPlot   = dev_plot_alloc(g_allocHeap),
+        .gpuExecDurPlot = dev_plot_alloc(g_allocHeap));
   }
 }
 
@@ -919,7 +919,7 @@ ecs_system_define(DebugStatsUpdateSys) {
   const AllocStats     allocStats     = alloc_stats_query();
   const EcsWorldStats  ecsWorldStats  = ecs_world_stats_query(world);
   const EcsRunnerStats ecsRunnerStats = ecs_runner_stats_query(g_ecsRunningRunner);
-  debug_stats_global_update(statsGlobal, &ecsRunnerStats);
+  dev_stats_global_update(statsGlobal, &ecsRunnerStats);
 
   EcsIterator* canvasItr = ecs_view_itr(ecs_world_view_t(world, CanvasWriteView));
 
@@ -932,7 +932,7 @@ ecs_system_define(DebugStatsUpdateSys) {
     const EcsDef*        ecsDef    = ecs_world_def(world);
 
     // Update statistics.
-    debug_stats_update(stats, window, rendStats, rendGlobalSet, time);
+    dev_stats_update(stats, window, rendStats, rendGlobalSet, time);
 
     // Create or destroy the interface canvas as needed.
     if (stats->show != DebugStatShow_None && !stats->canvas) {
@@ -946,7 +946,7 @@ ecs_system_define(DebugStatsUpdateSys) {
     if (stats->canvas && ecs_view_maybe_jump(canvasItr, stats->canvas)) {
       UiCanvasComp* c = ecs_view_write_t(canvasItr, UiCanvasComp);
       ui_canvas_reset(c);
-      debug_stats_draw_interface(
+      dev_stats_draw_interface(
           c,
           window,
           statsGlobal,
@@ -968,7 +968,7 @@ ecs_system_define(DebugStatsUpdateSys) {
   statsGlobal->allocPrevPersistCounter = allocStats.persistCounter;
 }
 
-ecs_module_init(debug_stats_module) {
+ecs_module_init(dev_stats_module) {
   ecs_register_comp(DevStatsComp, .destructor = ecs_destruct_stats);
   ecs_register_comp(DevStatsGlobalComp, .destructor = ecs_destruct_stats_global);
 
@@ -985,13 +985,13 @@ ecs_module_init(debug_stats_module) {
       ecs_view_id(CanvasWriteView));
 }
 
-void debug_stats_notify(DevStatsGlobalComp* comp, const String key, const String value) {
-  DebugStatsNotification* notif = debug_notify_get(comp, key);
+void dev_stats_notify(DevStatsGlobalComp* comp, const String key, const String value) {
+  DebugStatsNotification* notif = dev_notify_get(comp, key);
   notif->timestamp              = time_real_clock();
   notif->valueLength            = math_min((u8)value.size, stats_notify_max_value_size);
   mem_cpy(mem_create(notif->value, notif->valueLength), string_slice(value, 0, notif->valueLength));
 }
 
-DebugStatShow debug_stats_show(const DevStatsComp* comp) { return comp->show; }
+DebugStatShow dev_stats_show(const DevStatsComp* comp) { return comp->show; }
 
-void debug_stats_show_set(DevStatsComp* comp, const DebugStatShow show) { comp->show = show; }
+void dev_stats_show_set(DevStatsComp* comp, const DebugStatShow show) { comp->show = show; }

@@ -15,8 +15,8 @@
 #include "ui_layout.h"
 #include "ui_style.h"
 
-#define debug_text_transient_chunk_size (64 * usize_kibibyte)
-#define debug_text_transient_max 512
+#define dev_text_transient_chunk_size (64 * usize_kibibyte)
+#define dev_text_transient_max 512
 
 typedef struct {
   GeoVector pos;
@@ -56,13 +56,13 @@ ecs_view_define(CanvasView) {
   ecs_access_write(UiCanvasComp);
 }
 
-static GeoMatrix debug_text_view_proj(
+static GeoMatrix dev_text_view_proj(
     const SceneCameraComp* cam, const SceneTransformComp* trans, const UiVector res) {
   const f32 aspect = res.width / res.height;
   return scene_camera_view_proj(cam, trans, aspect);
 }
 
-static GeoVector debug_text_canvas_pos(const GeoMatrix* viewProj, const GeoVector pos) {
+static GeoVector dev_text_canvas_pos(const GeoMatrix* viewProj, const GeoVector pos) {
   const GeoVector ndcPos = geo_matrix_transform(viewProj, geo_vector(pos.x, pos.y, pos.z, 1));
   if (UNLIKELY(ndcPos.w == 0)) {
     return geo_vector(-1, -1, -1, -1); // Not a valid position on screen.
@@ -72,7 +72,7 @@ static GeoVector debug_text_canvas_pos(const GeoMatrix* viewProj, const GeoVecto
   return geo_vector(normPos.x, 1.0f - normPos.y, persDivPos.z);
 }
 
-static UiColor debug_text_to_ui_color(const GeoColor c) {
+static UiColor dev_text_to_ui_color(const GeoColor c) {
   return ui_color(
       (u8)(math_min(c.r, 1.0f) * 255),
       (u8)(math_min(c.g, 1.0f) * 255),
@@ -83,7 +83,7 @@ static UiColor debug_text_to_ui_color(const GeoColor c) {
 ecs_system_define(DebugTextInitSys) {
   // Create a global text component for convenience.
   if (!ecs_world_has_t(world, ecs_world_global(world), DevTextComp)) {
-    debug_text_create(world, ecs_world_global(world));
+    dev_text_create(world, ecs_world_global(world));
   }
 
   // Create a renderer for each camera.
@@ -116,12 +116,12 @@ ecs_system_define(DebugTextRenderSys) {
     if (UNLIKELY(res.width < f32_epsilon || res.height < f32_epsilon)) {
       continue;
     }
-    const GeoMatrix viewProj = debug_text_view_proj(camera, transform, res);
+    const GeoMatrix viewProj = dev_text_view_proj(camera, transform, res);
 
     for (ecs_view_itr_reset(textItr); ecs_view_walk(textItr);) {
       DevTextComp* textComp = ecs_view_write_t(textItr, DevTextComp);
       dynarray_for_t(&textComp->entries, DebugText3D, entry) {
-        const GeoVector canvasPos = debug_text_canvas_pos(&viewProj, entry->pos);
+        const GeoVector canvasPos = dev_text_canvas_pos(&viewProj, entry->pos);
         if (canvasPos.z <= 0) {
           continue; // Text is behind the camera.
         }
@@ -130,7 +130,7 @@ ecs_system_define(DebugTextRenderSys) {
             ui_vector(canvasPos.x - canvasSize.x * 0.5f, canvasPos.y - canvasSize.y * 0.5f),
             canvasSize,
         };
-        ui_style_color(canvas, debug_text_to_ui_color(entry->color));
+        ui_style_color(canvas, dev_text_to_ui_color(entry->color));
         ui_layout_set(canvas, canvasRect, UiBase_Canvas);
         ui_canvas_draw_text(
             canvas, entry->text, entry->fontSize, UiAlign_MiddleCenter, UiFlags_None);
@@ -146,7 +146,7 @@ ecs_system_define(DebugTextRenderSys) {
   }
 }
 
-ecs_module_init(debug_text_module) {
+ecs_module_init(dev_text_module) {
   ecs_register_comp(DevTextComp, .destructor = ecs_destruct_text);
   ecs_register_comp(DevTextRendererComp);
 
@@ -166,23 +166,23 @@ ecs_module_init(debug_text_module) {
   ecs_order(DebugTextRenderSys, DebugOrder_TextRender);
 }
 
-DevTextComp* debug_text_create(EcsWorld* world, const EcsEntityId entity) {
+DevTextComp* dev_text_create(EcsWorld* world, const EcsEntityId entity) {
   return ecs_world_add_t(
       world,
       entity,
       DevTextComp,
       .entries = dynarray_create_t(g_allocHeap, DebugText3D, 64),
       .allocTransient =
-          alloc_chunked_create(g_allocHeap, alloc_bump_create, debug_text_transient_chunk_size));
+          alloc_chunked_create(g_allocHeap, alloc_bump_create, dev_text_transient_chunk_size));
 }
 
-void debug_text_with_opts(
+void dev_text_with_opts(
     DevTextComp* comp, const GeoVector pos, const String text, const DebugTextOpts* opts) {
-  if (UNLIKELY(text.size > debug_text_transient_max)) {
+  if (UNLIKELY(text.size > dev_text_transient_max)) {
     log_e(
         "Debug text size exceeds maximum",
         log_param("size", fmt_size(text.size)),
-        log_param("limit", fmt_size(debug_text_transient_max)));
+        log_param("limit", fmt_size(dev_text_transient_max)));
     return;
   }
   if (UNLIKELY(!text.size)) {

@@ -248,7 +248,7 @@ ecs_view_define(DrawView) {
 
 ecs_view_define(NameView) { ecs_access_read(SceneNameComp); }
 
-static void debug_camera_draw_frustum(
+static void dev_camera_draw_frustum(
     DevShapeComp*             shape,
     const SceneCameraComp*    cam,
     const SceneTransformComp* trans,
@@ -257,7 +257,7 @@ static void debug_camera_draw_frustum(
   const GeoVector camPos   = trans ? trans->position : geo_vector(0);
   const GeoVector camFwd   = trans ? geo_quat_rotate(trans->rotation, geo_forward) : geo_forward;
 
-  debug_frustum_matrix(shape, &viewProj, geo_color_white);
+  dev_frustum_matrix(shape, &viewProj, geo_color_white);
 
   GeoPlane frustumPlanes[4];
   geo_matrix_frustum4(&viewProj, frustumPlanes);
@@ -266,11 +266,11 @@ static void debug_camera_draw_frustum(
   array_for_t(frustumPlanes, GeoPlane, p) {
     const GeoVector pos = geo_plane_closest_point(p, planeRefPos);
     const GeoQuat   rot = geo_quat_look(p->normal, camFwd);
-    debug_plane(shape, pos, rot, geo_color(1, 1, 0, 0.25f));
+    dev_plane(shape, pos, rot, geo_color(1, 1, 0, 0.25f));
   }
 }
 
-static void debug_camera_draw_input_ray(
+static void dev_camera_draw_input_ray(
     DevShapeComp*                shape,
     DevTextComp*                 text,
     const SceneTerrainComp*      terrain,
@@ -283,7 +283,7 @@ static void debug_camera_draw_input_ray(
   const GeoRay    ray   = scene_camera_ray(cam, trans, aspect, inputPos);
   const GeoVector start = ray.point;
   const GeoVector end   = geo_vector_add(start, geo_vector_mul(ray.dir, 1e10f));
-  debug_line(shape, start, end, geo_color_fuchsia);
+  dev_line(shape, start, end, geo_color_fuchsia);
 
   SceneRayHit            hit;
   const SceneQueryFilter filter  = {.layerMask = SceneLayer_AllNonDebug};
@@ -295,26 +295,26 @@ static void debug_camera_draw_input_ray(
   }
 
   if (scene_query_ray(collisionEnv, &ray, maxDist, &filter, &hit) && hit.time < terrainHitT) {
-    debug_sphere(shape, hit.position, 0.04f, geo_color_lime, DebugShape_Overlay);
+    dev_sphere(shape, hit.position, 0.04f, geo_color_lime, DebugShape_Overlay);
     const GeoVector lineEnd = geo_vector_add(hit.position, geo_vector_mul(hit.normal, 0.5f));
-    debug_arrow(shape, hit.position, lineEnd, 0.04f, geo_color_green);
+    dev_arrow(shape, hit.position, lineEnd, 0.04f, geo_color_green);
 
     EcsIterator* nameItr = ecs_view_itr(nameView);
     if (ecs_view_maybe_jump(nameItr, hit.entity)) {
       const SceneNameComp* nameComp = ecs_view_read_t(nameItr, SceneNameComp);
       const GeoVector      pos      = geo_vector_add(hit.position, geo_vector_mul(geo_up, 0.1f));
-      debug_text(text, pos, stringtable_lookup(g_stringtable, nameComp->name));
+      dev_text(text, pos, stringtable_lookup(g_stringtable, nameComp->name));
     }
   } else if (terrainHitT < maxDist) {
     const GeoVector terrainHitPos = geo_ray_position(&ray, terrainHitT);
     const GeoVector terrainNormal = scene_terrain_normal(terrain, terrainHitPos);
 
-    debug_sphere(shape, terrainHitPos, 0.04f, geo_color_lime, DebugShape_Overlay);
+    dev_sphere(shape, terrainHitPos, 0.04f, geo_color_lime, DebugShape_Overlay);
     const GeoVector lineEnd = geo_vector_add(terrainHitPos, geo_vector_mul(terrainNormal, 0.5f));
-    debug_arrow(shape, terrainHitPos, lineEnd, 0.04f, geo_color_green);
+    dev_arrow(shape, terrainHitPos, lineEnd, 0.04f, geo_color_green);
 
     const GeoVector textPos = geo_vector_add(terrainHitPos, geo_vector_mul(geo_up, 0.1f));
-    debug_text(text, textPos, string_lit("terrain"));
+    dev_text(text, textPos, string_lit("terrain"));
   }
 }
 
@@ -348,23 +348,23 @@ ecs_system_define(DebugCameraDrawSys) {
 
     if (trans && cam->flags & SceneCameraFlags_DebugGizmoTranslation) {
       const DebugGizmoId gizmoId = (DebugGizmoId)ecs_view_entity(itr);
-      debug_gizmo_translation(gizmo, gizmoId, &trans->position, trans->rotation);
+      dev_gizmo_translation(gizmo, gizmoId, &trans->position, trans->rotation);
     }
     if (trans && cam->flags & SceneCameraFlags_DebugGizmoRotation) {
       const DebugGizmoId gizmoId = (DebugGizmoId)ecs_view_entity(itr);
-      debug_gizmo_rotation(gizmo, gizmoId, trans->position, &trans->rotation);
+      dev_gizmo_rotation(gizmo, gizmoId, trans->position, &trans->rotation);
     }
     if (cam->flags & SceneCameraFlags_DebugFrustum) {
-      debug_camera_draw_frustum(shape, cam, trans, winAspect->ratio);
+      dev_camera_draw_frustum(shape, cam, trans, winAspect->ratio);
     }
     if (cam->flags & SceneCameraFlags_DebugInputRay) {
-      debug_camera_draw_input_ray(
+      dev_camera_draw_input_ray(
           shape, text, terrain, collisionEnv, nameView, cam, trans, winAspect->ratio, inputPos);
     }
   }
 }
 
-ecs_module_init(debug_camera_module) {
+ecs_module_init(dev_camera_module) {
   ecs_register_comp(DevCameraPanelComp);
 
   ecs_register_view(PanelUpdateView);

@@ -131,28 +131,28 @@ static EcsEntityId input_query_ray(
 static void input_report_command(DevStatsGlobalComp* debugStats, const String command) {
   if (debugStats) {
     const String label = string_lit("Command");
-    debug_stats_notify(debugStats, label, command);
+    dev_stats_notify(debugStats, label, command);
   }
 }
 
 static void input_report_selection_count(DevStatsGlobalComp* debugStats, const u32 selCount) {
   if (debugStats) {
     const String label = string_lit("Selected");
-    debug_stats_notify(debugStats, label, fmt_write_scratch("{}", fmt_int(selCount)));
+    dev_stats_notify(debugStats, label, fmt_write_scratch("{}", fmt_int(selCount)));
   }
 }
 
 static void input_report_group_assign(DevStatsGlobalComp* debugStats, const u32 groupIndex) {
   if (debugStats) {
     const String label = string_lit("Group assign");
-    debug_stats_notify(debugStats, label, fmt_write_scratch("{}", fmt_int(groupIndex + 1)));
+    dev_stats_notify(debugStats, label, fmt_write_scratch("{}", fmt_int(groupIndex + 1)));
   }
 }
 
 static void input_report_group_select(DevStatsGlobalComp* debugStats, const u32 groupIndex) {
   if (debugStats) {
     const String label = string_lit("Group select");
-    debug_stats_notify(debugStats, label, fmt_write_scratch("{}", fmt_int(groupIndex + 1)));
+    dev_stats_notify(debugStats, label, fmt_write_scratch("{}", fmt_int(groupIndex + 1)));
   }
 }
 
