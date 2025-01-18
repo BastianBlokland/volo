@@ -2,10 +2,10 @@
   "pass": "Forward",
   "passOrder": 154,
   "shaders": [
-    { "program": "shaders/debug/shape_mesh.vert" },
-    { "program": "shaders/debug/shape.frag" }
+    { "program": "shaders/dev/shape_mesh.vert" },
+    { "program": "shaders/dev/shape.frag" }
   ],
-  "mesh": "meshes/debug/shape_sphere.procmesh",
+  "mesh": "meshes/dev/shape_sphere.procmesh",
   "rasterizer": "Lines",
   "lineWidth": 1,
   "blend": "Alpha",

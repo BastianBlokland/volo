@@ -12,7 +12,7 @@
 // clang-format off
 
 static const f32    g_terrainPatchTargetSize = 25.0f;
-static const String g_terrainDebugWireframe  = string_static("graphics/debug/wireframe_terrain.graphic");
+static const String g_terrainDebugWireframe  = string_static("graphics/dev/wireframe_terrain.graphic");
 
 // clang-format on
 

@@ -2,8 +2,8 @@
   "pass": "Forward",
   "passOrder": 163,
   "shaders": [
-    { "program": "shaders/debug/shape_line.vert" },
-    { "program": "shaders/debug/shape.frag" }
+    { "program": "shaders/dev/shape_line.vert" },
+    { "program": "shaders/dev/shape.frag" }
   ],
   "vertexCount": 2,
   "lineWidth": 2,

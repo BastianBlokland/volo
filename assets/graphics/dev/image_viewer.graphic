@@ -2,8 +2,8 @@
   "pass": "Post",
   "passOrder": 1,
   "shaders": [
-    { "program": "shaders/debug/dyn_image_viewer.vert" },
-    { "program": "shaders/debug/dyn_image_viewer.frag" }
+    { "program": "shaders/dev/dyn_image_viewer.vert" },
+    { "program": "shaders/dev/dyn_image_viewer.frag" }
   ],
   "vertexCount": 4,
   "topology": "TriangleFan",
