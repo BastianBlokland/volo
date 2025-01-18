@@ -176,7 +176,7 @@ menu_child_tooltip_scratch(const u32 childIndex, const bool open, const bool all
   return dynstring_view(&str);
 }
 
-ecs_comp_define(DebugMenuComp) {
+ecs_comp_define(DevMenuComp) {
   EcsEntityId window;
   EcsEntityId childEntities[array_elems(g_menuChildConfig)];
 };
@@ -186,10 +186,10 @@ ecs_view_define(GlobalView) {
   ecs_access_write(DebugStatsGlobalComp);
 }
 ecs_view_define(PanelUpdateView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // DebugMenuComp's are exclusively managed here.
+  ecs_view_flags(EcsViewFlags_Exclusive); // DevMenuComp's are exclusively managed here.
 
   ecs_access_read(DevPanelComp);
-  ecs_access_write(DebugMenuComp);
+  ecs_access_write(DevMenuComp);
   ecs_access_write(UiCanvasComp);
 }
 ecs_view_define(CanvasView) { ecs_access_read(UiCanvasComp); }
@@ -203,13 +203,13 @@ static void menu_notify_child_state(
       state);
 }
 
-static bool menu_child_is_open(EcsWorld* world, const DebugMenuComp* menu, const u32 childIndex) {
+static bool menu_child_is_open(EcsWorld* world, const DevMenuComp* menu, const u32 childIndex) {
   const EcsEntityId childEntity = menu->childEntities[childIndex];
   return childEntity && ecs_world_exists(world, childEntity);
 }
 
 static void menu_child_open(
-    EcsWorld* world, DebugMenuComp* menu, const EcsEntityId menuEntity, const u32 childIndex) {
+    EcsWorld* world, DevMenuComp* menu, const EcsEntityId menuEntity, const u32 childIndex) {
   const DevPanelType type  = DevPanelType_Normal;
   const EcsEntityId  panel = g_menuChildConfig[childIndex].openFunc(world, menu->window, type);
   ecs_world_add_t(world, panel, SceneLifetimeOwnerComp, .owners[0] = menuEntity);
@@ -219,7 +219,7 @@ static void menu_child_open(
 static void menu_child_open_detached(
     EcsWorld*         world,
     UiCanvasComp*     canvas,
-    DebugMenuComp*    menu,
+    DevMenuComp*      menu,
     const EcsEntityId menuEntity,
     const u32         childIndex) {
   const f32 scale = ui_canvas_scale(canvas);
@@ -251,7 +251,7 @@ static void menu_child_open_detached(
   menu->childEntities[childIndex] = panel;
 }
 
-static EcsEntityId menu_child_topmost(EcsWorld* world, const DebugMenuComp* menu) {
+static EcsEntityId menu_child_topmost(EcsWorld* world, const DevMenuComp* menu) {
   EcsEntityId topmost      = 0;
   i32         topmostOrder = i32_min;
   for (u32 childIndex = 0; childIndex != array_elems(menu->childEntities); ++childIndex) {
@@ -280,7 +280,7 @@ static void menu_action_bar_draw(
     const EcsEntityId       menuEntity,
     UiCanvasComp*           canvas,
     const InputManagerComp* input,
-    DebugMenuComp*          menu,
+    DevMenuComp*            menu,
     DebugStatsGlobalComp*   statsGlobal,
     const EcsEntityId       winEntity,
     const GapWindowComp*    win) {
@@ -325,7 +325,7 @@ static void menu_action_bar_draw(
   }
 }
 
-ecs_system_define(DebugMenuUpdateSys) {
+ecs_system_define(DevMenuUpdateSys) {
   EcsView*     globalView = ecs_world_view_t(world, GlobalView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
   if (!globalItr) {
@@ -340,7 +340,7 @@ ecs_system_define(DebugMenuUpdateSys) {
   EcsView* menuView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(menuView); ecs_view_walk(itr);) {
     const EcsEntityId panelEntity = ecs_view_entity(itr);
-    DebugMenuComp*    menu        = ecs_view_write_t(itr, DebugMenuComp);
+    DevMenuComp*      menu        = ecs_view_write_t(itr, DevMenuComp);
     UiCanvasComp*     canvas      = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
@@ -365,7 +365,7 @@ ecs_system_define(DebugMenuUpdateSys) {
 }
 
 ecs_module_init(debug_menu_module) {
-  ecs_register_comp(DebugMenuComp);
+  ecs_register_comp(DevMenuComp);
 
   ecs_register_view(GlobalView);
   ecs_register_view(PanelUpdateView);
@@ -373,7 +373,7 @@ ecs_module_init(debug_menu_module) {
   ecs_register_view(WindowView);
 
   ecs_register_system(
-      DebugMenuUpdateSys,
+      DevMenuUpdateSys,
       ecs_view_id(GlobalView),
       ecs_view_id(PanelUpdateView),
       ecs_view_id(CanvasView),
@@ -382,7 +382,7 @@ ecs_module_init(debug_menu_module) {
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId menuEntity = dev_panel_create(world, window, DevPanelType_Normal);
-  DebugMenuComp*    menu = ecs_world_add_t(world, menuEntity, DebugMenuComp, .window = window);
+  DevMenuComp*      menu       = ecs_world_add_t(world, menuEntity, DevMenuComp, .window = window);
 
   for (u32 childIndex = 0; childIndex != array_elems(menu->childEntities); ++childIndex) {
     if (g_menuChildConfig[childIndex].autoOpen) {
