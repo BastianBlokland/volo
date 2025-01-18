@@ -303,7 +303,7 @@ ecs_system_define(DebugVfxUpdatePanelSys) {
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
-    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       continue;
     }
     vfx_info_query(panelComp, world);
@@ -334,7 +334,7 @@ ecs_module_init(debug_vfx_module) {
 
 EcsEntityId
 dev_vfx_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
-  const EcsEntityId  panelEntity = debug_panel_create(world, window, type);
+  const EcsEntityId  panelEntity = dev_panel_create(world, window, type);
   DebugVfxPanelComp* vfxPanel    = ecs_world_add_t(
       world,
       panelEntity,

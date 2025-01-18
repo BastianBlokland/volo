@@ -164,7 +164,7 @@ ecs_system_define(DebugInterfaceUpdatePanelSys) {
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
-    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       settings->flags &= ~UiSettingGlobal_DebugShading;
       settings->inspectorMode = UiInspectorMode_None;
       continue;
@@ -192,7 +192,7 @@ ecs_module_init(debug_interface_module) {
 
 EcsEntityId
 dev_interface_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
-  const EcsEntityId        panelEntity    = debug_panel_create(world, window, type);
+  const EcsEntityId        panelEntity    = dev_panel_create(world, window, type);
   DebugInterfacePanelComp* interfacePanel = ecs_world_add_t(
       world,
       panelEntity,

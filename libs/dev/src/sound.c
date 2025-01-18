@@ -494,7 +494,7 @@ ecs_system_define(DebugSoundUpdatePanelSys) {
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
-    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       continue;
     }
     sound_panel_draw(canvas, panelComp, mixer);
@@ -520,7 +520,7 @@ ecs_module_init(debug_sound_module) {
 
 EcsEntityId
 dev_sound_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
-  const EcsEntityId    panelEntity = debug_panel_create(world, window, type);
+  const EcsEntityId    panelEntity = dev_panel_create(world, window, type);
   DebugSoundPanelComp* soundPanel  = ecs_world_add_t(
       world,
       panelEntity,

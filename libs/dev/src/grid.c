@@ -332,7 +332,7 @@ ecs_system_define(DebugGridUpdateSys) {
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
-    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       continue;
     }
     grid_panel_draw(canvas, stats, panelComp, grid);
@@ -395,7 +395,7 @@ void debug_grid_snap_axis(const DebugGridComp* comp, GeoVector* position, const 
 
 EcsEntityId
 dev_grid_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
-  const EcsEntityId   panelEntity = debug_panel_create(world, window, type);
+  const EcsEntityId   panelEntity = dev_panel_create(world, window, type);
   DebugGridPanelComp* gridPanel   = ecs_world_add_t(
       world,
       panelEntity,

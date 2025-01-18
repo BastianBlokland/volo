@@ -637,7 +637,7 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
     ui_canvas_reset(canvas);
 
     const bool pinned = ui_panel_pinned(&panelComp->panel);
-    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       if (panelComp->mode == PrefabPanelMode_Create) {
         prefab_create_cancel(&ctx);
       }
@@ -689,7 +689,7 @@ ecs_module_init(debug_prefab_module) {
 
 EcsEntityId
 dev_prefab_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
-  const EcsEntityId     panelEntity = debug_panel_create(world, window, type);
+  const EcsEntityId     panelEntity = dev_panel_create(world, window, type);
   DebugPrefabPanelComp* prefabPanel = ecs_world_add_t(
       world,
       panelEntity,

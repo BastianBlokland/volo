@@ -571,7 +571,7 @@ ecs_system_define(DebugTracePanelQuerySys) {
     DebugTracePanelComp* panel = ecs_view_write_t(itr, DebugTracePanelComp);
 
     const bool pinned = ui_panel_pinned(&panel->panel);
-    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       continue; // No need to query data for hidden panels.
     }
 
@@ -603,7 +603,7 @@ ecs_system_define(DebugTracePanelDrawSys) {
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panel->panel);
-    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
       panel->hoverAny = panel->panAny = false;
       panel->trigger.picking = panel->trigger.enabled = false;
       continue;
@@ -636,7 +636,7 @@ EcsEntityId
 dev_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
   const u32 panelHeight = math_min(100 + 20 * debug_trace_default_depth * g_jobsWorkerCount, 675);
 
-  const EcsEntityId    panelEntity = debug_panel_create(world, window, type);
+  const EcsEntityId    panelEntity = dev_panel_create(world, window, type);
   DebugTracePanelComp* tracePanel  = ecs_world_add_t(
       world,
       panelEntity,

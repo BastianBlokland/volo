@@ -464,8 +464,8 @@ static void app_debug_hide(EcsWorld* world, const bool hidden) {
   EcsView* debugPanelView = ecs_world_view_t(world, DebugPanelView);
   for (EcsIterator* itr = ecs_view_itr(debugPanelView); ecs_view_walk(itr);) {
     DebugPanelComp* panel = ecs_view_write_t(itr, DebugPanelComp);
-    if (debug_panel_type(panel) != DebugPanelType_Detached) {
-      debug_panel_hide(panel, hidden);
+    if (dev_panel_type(panel) != DebugPanelType_Detached) {
+      dev_panel_hide(panel, hidden);
     }
   }
 }

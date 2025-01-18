@@ -344,7 +344,7 @@ ecs_system_define(DebugMenuUpdateSys) {
     UiCanvasComp*     canvas      = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    if (debug_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
       continue;
     }
     if (!ecs_view_maybe_jump(windowItr, menu->window)) {
@@ -381,7 +381,7 @@ ecs_module_init(debug_menu_module) {
 }
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId menuEntity = debug_panel_create(world, window, DebugPanelType_Normal);
+  const EcsEntityId menuEntity = dev_panel_create(world, window, DebugPanelType_Normal);
   DebugMenuComp*    menu = ecs_world_add_t(world, menuEntity, DebugMenuComp, .window = window);
 
   for (u32 childIndex = 0; childIndex != array_elems(menu->childEntities); ++childIndex) {
