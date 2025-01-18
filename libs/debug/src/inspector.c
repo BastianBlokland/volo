@@ -1288,6 +1288,11 @@ static void inspector_panel_draw_decal(InspectorContext* ctx, UiTable* table) {
   if (inspector_panel_section(ctx, string_lit("Decal"), ctx->isEditMode /* readonly */)) {
     const UiWidgetFlags flags = ctx->isEditMode ? UiWidget_Disabled : UiWidget_Default;
     inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Asset"));
+    ui_table_next_column(ctx->canvas, table);
+    inspector_panel_draw_entity(ctx, decal->asset);
+
+    inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Alpha"));
     ui_table_next_column(ctx->canvas, table);
     ui_slider(ctx->canvas, &decal->alpha, .flags = flags);
