@@ -691,8 +691,12 @@ bool ui_section_with_opts(UiCanvasComp* canvas, const UiSectionOpts* opts) {
   if (status == UiStatus_Activated) {
     ui_canvas_sound(canvas, UiSoundType_Click);
   }
-
   ui_style_pop(canvas);
+
+  if (!string_is_empty(opts->tooltip)) {
+    ui_tooltip(canvas, iconId, opts->tooltip);
+    ui_tooltip(canvas, textId, opts->tooltip);
+  }
   return isOpen;
 }
 

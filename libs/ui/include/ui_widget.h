@@ -72,6 +72,7 @@ typedef struct {
 
 typedef struct {
   String label;
+  String tooltip;
   u16    fontSize;
 } UiSectionOpts;
 
