@@ -12,7 +12,7 @@ typedef enum eDevShapeMode {
 ecs_comp_extern(DevShapeComp);
 
 /**
- * Add a new debug-shape component to the given entity.
+ * Add a new dev-shape component to the given entity.
  */
 DevShapeComp* dev_shape_create(EcsWorld*, EcsEntityId entity);
 

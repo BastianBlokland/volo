@@ -6,7 +6,7 @@
 ecs_comp_extern(DevTextComp);
 
 /**
- * Add a new debug-text component to the given entity.
+ * Add a new dev-text component to the given entity.
  */
 DevTextComp* dev_text_create(EcsWorld*, EcsEntityId entity);
 
