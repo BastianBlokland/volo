@@ -499,8 +499,10 @@ typedef struct {
 } InspectorContext;
 
 static bool inspector_panel_section(InspectorContext* ctx, String title, const bool readonly) {
+  String tooltip = string_empty;
   if (readonly) {
-    title = fmt_write_scratch("{} \uE897", fmt_text(title));
+    title   = fmt_write_scratch("{} \uE897", fmt_text(title));
+    tooltip = string_lit("Readonly section.");
   }
   bool open;
   ui_layout_push(ctx->canvas);
@@ -517,7 +519,7 @@ static bool inspector_panel_section(InspectorContext* ctx, String title, const b
     ui_style_pop(ctx->canvas);
 
     ui_layout_grow(ctx->canvas, UiAlign_MiddleCenter, ui_vector(-10, 0), UiBase_Absolute, Ui_X);
-    open = ui_section(ctx->canvas, .label = title);
+    open = ui_section(ctx->canvas, .label = title, .tooltip = tooltip);
   }
   ui_layout_pop(ctx->canvas);
   return open;
