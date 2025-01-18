@@ -1099,6 +1099,24 @@ static void inspector_panel_draw_attachment(InspectorContext* ctx, UiTable* tabl
   }
 }
 
+static void inspector_panel_draw_script(InspectorContext* ctx, UiTable* table) {
+  const SceneScriptComp* script = ecs_view_read_t(ctx->subject, SceneScriptComp);
+  if (!script) {
+    return;
+  }
+  inspector_panel_next(ctx, table);
+  if (inspector_panel_section(ctx, string_lit("Script"))) {
+    u32 scriptCount = scene_script_count(script);
+    for (SceneScriptSlot slot = 0; slot != scriptCount; ++slot) {
+      const EcsEntityId asset = scene_script_asset(script, slot);
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, fmt_write_scratch("Asset {}", fmt_int(slot)));
+      ui_table_next_column(ctx->canvas, table);
+      inspector_panel_draw_entity(ctx, asset);
+    }
+  }
+}
+
 static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
   SceneLightPointComp*   point = ecs_view_write_t(ctx->subject, SceneLightPointComp);
   SceneLightDirComp*     dir   = ecs_view_write_t(ctx->subject, SceneLightDirComp);
@@ -1496,6 +1514,9 @@ static void inspector_panel_draw(InspectorContext* ctx) {
     ui_canvas_id_block_next(ctx->canvas);
 
     inspector_panel_draw_attachment(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
+
+    inspector_panel_draw_script(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
 
     inspector_panel_draw_light(ctx, &table);
