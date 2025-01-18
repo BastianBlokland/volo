@@ -1599,8 +1599,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   }
 }
 
-static void
-debug_inspector_tool_toggle(DebugInspectorSettingsComp* set, const DebugInspectorTool tool) {
+static void inspector_tool_toggle(DebugInspectorSettingsComp* set, const DebugInspectorTool tool) {
   if (set->tool != tool) {
     set->tool = tool;
   } else {
@@ -1608,7 +1607,7 @@ debug_inspector_tool_toggle(DebugInspectorSettingsComp* set, const DebugInspecto
   }
 }
 
-static void debug_inspector_tool_destroy(EcsWorld* w, const SceneSetEnvComp* setEnv) {
+static void inspector_tool_destroy(EcsWorld* w, const SceneSetEnvComp* setEnv) {
   const StringHash s = g_sceneSetSelected;
   for (const EcsEntityId* e = scene_set_begin(setEnv, s); e != scene_set_end(setEnv, s); ++e) {
     if (ecs_world_exists(w, *e)) {
@@ -1617,8 +1616,8 @@ static void debug_inspector_tool_destroy(EcsWorld* w, const SceneSetEnvComp* set
   }
 }
 
-static void debug_inspector_tool_drop(
-    EcsWorld* w, const SceneSetEnvComp* setEnv, const SceneTerrainComp* terrain) {
+static void
+inspector_tool_drop(EcsWorld* w, const SceneSetEnvComp* setEnv, const SceneTerrainComp* terrain) {
   if (!scene_terrain_loaded(terrain)) {
     return;
   }
@@ -1632,7 +1631,7 @@ static void debug_inspector_tool_drop(
   }
 }
 
-static void debug_inspector_tool_duplicate(EcsWorld* w, SceneSetEnvComp* setEnv) {
+static void inspector_tool_duplicate(EcsWorld* w, SceneSetEnvComp* setEnv) {
   EcsIterator* itr = ecs_view_itr(ecs_world_view_t(w, SubjectView));
 
   const StringHash s = g_sceneSetSelected;
@@ -1648,7 +1647,7 @@ static void debug_inspector_tool_duplicate(EcsWorld* w, SceneSetEnvComp* setEnv)
   scene_set_clear(setEnv, s);
 }
 
-static void debug_inspector_tool_select_all(EcsWorld* w, SceneSetEnvComp* setEnv) {
+static void inspector_tool_select_all(EcsWorld* w, SceneSetEnvComp* setEnv) {
   const u32    compCount       = ecs_def_comp_count(ecs_world_def(w));
   const BitSet ignoredCompMask = mem_stack(bits_to_bytes(compCount) + 1);
 
@@ -1669,7 +1668,7 @@ static void debug_inspector_tool_select_all(EcsWorld* w, SceneSetEnvComp* setEnv
   }
 }
 
-static GeoVector debug_inspector_tool_pivot(EcsWorld* w, const SceneSetEnvComp* setEnv) {
+static GeoVector inspector_tool_pivot(EcsWorld* w, const SceneSetEnvComp* setEnv) {
   EcsIterator*     itr = ecs_view_itr(ecs_world_view_t(w, SubjectView));
   GeoVector        pivot;
   u32              count = 0;
@@ -1684,7 +1683,7 @@ static GeoVector debug_inspector_tool_pivot(EcsWorld* w, const SceneSetEnvComp* 
   return count ? geo_vector_div(pivot, count) : geo_vector(0);
 }
 
-static void debug_inspector_tool_group_update(
+static void inspector_tool_group_update(
     EcsWorld*                   w,
     DebugInspectorSettingsComp* set,
     const SceneSetEnvComp*      setEnv,
@@ -1696,7 +1695,7 @@ static void debug_inspector_tool_group_update(
   const SceneTransformComp* mainTrans = ecs_view_read_t(itr, SceneTransformComp);
   const SceneScaleComp*     mainScale = ecs_view_read_t(itr, SceneScaleComp);
 
-  const GeoVector pos   = debug_inspector_tool_pivot(w, setEnv);
+  const GeoVector pos   = inspector_tool_pivot(w, setEnv);
   const f32       scale = mainScale ? mainScale->scale : 1.0f;
 
   if (set->space == DebugInspectorSpace_Local) {
@@ -1754,7 +1753,7 @@ static void debug_inspector_tool_group_update(
   }
 }
 
-static void debug_inspector_tool_individual_update(
+static void inspector_tool_individual_update(
     EcsWorld*                   w,
     DebugInspectorSettingsComp* set,
     const SceneSetEnvComp*      setEnv,
@@ -1825,7 +1824,7 @@ static bool tool_picker_query_filter(const void* ctx, const EcsEntityId entity, 
   return true;
 }
 
-static void debug_inspector_tool_picker_update(
+static void inspector_tool_picker_update(
     EcsWorld*                    world,
     DebugInspectorSettingsComp*  set,
     DebugStatsGlobalComp*        stats,
@@ -1919,15 +1918,15 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     return; // Tools are only active in debug mode.
   }
   if (input_triggered_lit(input, "DebugInspectorToolTranslation")) {
-    debug_inspector_tool_toggle(set, DebugInspectorTool_Translation);
+    inspector_tool_toggle(set, DebugInspectorTool_Translation);
     debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
   if (input_triggered_lit(input, "DebugInspectorToolRotation")) {
-    debug_inspector_tool_toggle(set, DebugInspectorTool_Rotation);
+    inspector_tool_toggle(set, DebugInspectorTool_Rotation);
     debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
   if (input_triggered_lit(input, "DebugInspectorToolScale")) {
-    debug_inspector_tool_toggle(set, DebugInspectorTool_Scale);
+    inspector_tool_toggle(set, DebugInspectorTool_Scale);
     debug_stats_notify(stats, string_lit("Tool"), g_toolNames[set->tool]);
   }
   if (input_triggered_lit(input, "DebugInspectorToggleSpace")) {
@@ -1939,19 +1938,19 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
     debug_stats_notify(stats, string_lit("Space"), g_sceneNavLayerNames[set->visNavLayer]);
   }
   if (input_triggered_lit(input, "DebugInspectorDestroy")) {
-    debug_inspector_tool_destroy(world, setEnv);
+    inspector_tool_destroy(world, setEnv);
     debug_stats_notify(stats, string_lit("Tool"), string_lit("Destroy"));
   }
   if (input_triggered_lit(input, "DebugInspectorDrop")) {
-    debug_inspector_tool_drop(world, setEnv, terrain);
+    inspector_tool_drop(world, setEnv, terrain);
     debug_stats_notify(stats, string_lit("Tool"), string_lit("Drop"));
   }
   if (input_triggered_lit(input, "DebugInspectorDuplicate")) {
-    debug_inspector_tool_duplicate(world, setEnv);
+    inspector_tool_duplicate(world, setEnv);
     debug_stats_notify(stats, string_lit("Tool"), string_lit("Duplicate"));
   }
   if (input_triggered_lit(input, "DebugInspectorSelectAll")) {
-    debug_inspector_tool_select_all(world, setEnv);
+    inspector_tool_select_all(world, setEnv);
     debug_stats_notify(stats, string_lit("Tool"), string_lit("Select all"));
   }
 
@@ -1969,13 +1968,13 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   case DebugInspectorTool_Rotation:
   case DebugInspectorTool_Scale:
     if (input_modifiers(input) & InputModifier_Control) {
-      debug_inspector_tool_individual_update(world, set, setEnv, gizmo);
+      inspector_tool_individual_update(world, set, setEnv, gizmo);
     } else {
-      debug_inspector_tool_group_update(world, set, setEnv, gizmo);
+      inspector_tool_group_update(world, set, setEnv, gizmo);
     }
     break;
   case DebugInspectorTool_Picker:
-    debug_inspector_tool_picker_update(
+    inspector_tool_picker_update(
         world, set, stats, shape, text, input, collisionEnv, cameraItr, entityRefItr);
     break;
   }
