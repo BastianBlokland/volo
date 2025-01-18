@@ -599,7 +599,7 @@ static void inspector_panel_draw_none(InspectorContext* ctx) {
   ui_style_pop(ctx->canvas);
 }
 
-static void inspector_panel_draw_entity_info(InspectorContext* ctx, UiTable* table) {
+static void inspector_panel_draw_general(InspectorContext* ctx, UiTable* table) {
   inspector_panel_next(ctx, table);
   ui_label(ctx->canvas, string_lit("Entity identifier"));
   ui_table_next_column(ctx->canvas, table);
@@ -640,6 +640,19 @@ static void inspector_panel_draw_entity_info(InspectorContext* ctx, UiTable* tab
     if (debug_widget_prefab(ctx->canvas, ctx->prefabMap, &prefabInst->prefabId, flags)) {
       inspector_prefab_replace(ctx->prefabEnv, ctx->subject, prefabInst->prefabId);
     }
+  } else {
+    inspector_panel_draw_none(ctx);
+  }
+
+  inspector_panel_next(ctx, table);
+  ui_label(ctx->canvas, string_lit("Entity faction"));
+  ui_table_next_column(ctx->canvas, table);
+  SceneFactionComp* factionComp = null;
+  if (ctx->subject) {
+    factionComp = ecs_view_write_t(ctx->subject, SceneFactionComp);
+  }
+  if (factionComp) {
+    debug_widget_faction(ctx->canvas, &factionComp->id, UiWidget_Default);
   } else {
     inspector_panel_draw_none(ctx);
   }
@@ -1019,20 +1032,6 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
         dynstring_clear(&ctx->panel->newSetBuffer);
       }
     }
-  }
-}
-
-static void inspector_panel_draw_faction(InspectorContext* ctx, UiTable* table) {
-  SceneFactionComp* faction = ecs_view_write_t(ctx->subject, SceneFactionComp);
-  if (!faction) {
-    return;
-  }
-  inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Faction"), false /* readonly */)) {
-    inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Id"));
-    ui_table_next_column(ctx->canvas, table);
-    debug_widget_faction(ctx->canvas, &faction->id, UiWidget_Default);
   }
 }
 
@@ -1531,7 +1530,7 @@ static void inspector_panel_draw(InspectorContext* ctx) {
    * afterwards to keep consistent ids.
    */
 
-  inspector_panel_draw_entity_info(ctx, &table);
+  inspector_panel_draw_general(ctx, &table);
   ui_canvas_id_block_next(ctx->canvas);
 
   if (ctx->subject) {
@@ -1542,9 +1541,6 @@ static void inspector_panel_draw(InspectorContext* ctx) {
     ui_canvas_id_block_next(ctx->canvas);
 
     inspector_panel_draw_sets(ctx, &table);
-    ui_canvas_id_block_next(ctx->canvas);
-
-    inspector_panel_draw_faction(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
 
     inspector_panel_draw_renderable(ctx, &table);
