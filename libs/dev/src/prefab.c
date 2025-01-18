@@ -280,7 +280,7 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
 static bool prefab_create_pos(const PrefabPanelContext* ctx, EcsIterator* camItr, GeoVector* out) {
   const SceneCameraComp*    camera      = ecs_view_read_t(camItr, SceneCameraComp);
   const SceneTransformComp* cameraTrans = ecs_view_read_t(camItr, SceneTransformComp);
-  const DevGridComp*        debugGrid   = ecs_view_read_t(camItr, DevGridComp);
+  const DevGridComp*        devGrid     = ecs_view_read_t(camItr, DevGridComp);
 
   const GeoVector inputNormPos = geo_vector(input_cursor_x(ctx->input), input_cursor_y(ctx->input));
   const f32       inputAspect  = input_cursor_aspect(ctx->input);
@@ -309,8 +309,8 @@ static bool prefab_create_pos(const PrefabPanelContext* ctx, EcsIterator* camItr
   }
   *out = geo_ray_position(&inputRay, rayT);
 
-  if (debugGrid && snapGrid) {
-    dev_grid_snap(debugGrid, out);
+  if (devGrid && snapGrid) {
+    dev_grid_snap(devGrid, out);
   }
 
   return true;
@@ -373,8 +373,8 @@ static bool prefab_allow_create(const PrefabPanelContext* ctx) {
   }
   if (!input_layer_active(ctx->input, string_hash_lit("Dev"))) {
     /**
-     * NOTE: Disable creating when debug input is not active, reason is placing prefabs uses debug
-     * input to detect place accept / cancel. This can happen when pinning the window.
+     * NOTE: Disable creating when dev input is not active, reason is placing prefabs uses dev input
+     * to detect place accept / cancel. This can happen when pinning the window.
      */
     return false;
   }

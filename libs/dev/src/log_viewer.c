@@ -233,10 +233,10 @@ static void dev_log_sink_write(
 }
 
 static void dev_log_sink_destroy(LogSink* sink) {
-  DevLogSink* debugSink = (DevLogSink*)sink;
-  if (thread_atomic_sub_i32(&debugSink->refCounter, 1) == 1) {
-    alloc_free(g_allocHeap, mem_create(debugSink->buffer, log_tracker_buffer_size));
-    alloc_free_t(g_allocHeap, debugSink);
+  DevLogSink* devSink = (DevLogSink*)sink;
+  if (thread_atomic_sub_i32(&devSink->refCounter, 1) == 1) {
+    alloc_free(g_allocHeap, mem_create(devSink->buffer, log_tracker_buffer_size));
+    alloc_free_t(g_allocHeap, devSink);
   }
 }
 

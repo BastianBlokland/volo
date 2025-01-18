@@ -2029,7 +2029,7 @@ ecs_system_define(DevInspectorToolUpdateSys) {
       set->tool = set->toolPickerPrevTool;
       input_blocker_update(input, InputBlocker_EntityPicker, false);
     }
-    return; // Tools are only active in debug mode.
+    return; // Tools are only active in development mode.
   }
   if (input_triggered_lit(input, "DevInspectorToolTranslation")) {
     inspector_tool_toggle(set, DevInspectorTool_Translation);

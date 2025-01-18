@@ -140,7 +140,7 @@ static void trace_data_visitor(
   (void)sink;
   DevTracePanelComp* panel = userCtx;
   if (UNLIKELY(bufferIdx >= dev_trace_max_threads)) {
-    diag_crash_msg("debug: Trace threads exceeds maximum");
+    diag_crash_msg("dev: Trace threads exceeds maximum");
   }
   DevTraceData* threadData = &panel->threads[bufferIdx];
   if (!threadData->tid) {

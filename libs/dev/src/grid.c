@@ -307,7 +307,7 @@ ecs_system_define(DevGridUpdateSys) {
     }
   }
 
-  // NOTE: Enable grid draw when requested and when in debug mode.
+  // NOTE: Enable grid draw when requested and when in dev mode.
   for (EcsIterator* itr = ecs_view_itr_reset(gridItr); ecs_view_walk(itr);) {
     DevGridComp* grid = ecs_view_write_t(itr, DevGridComp);
     if (grid->flags & DevGridFlags_Show && input_layer_active(input, string_hash_lit("Dev"))) {

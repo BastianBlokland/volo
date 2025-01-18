@@ -172,13 +172,14 @@ static void sound_draw_time_stats(UiCanvasComp* c, const SndBufferView buf, cons
   ui_label(c, fmt_write_scratch("{}", fmt_duration(duration / 2)), .align = UiAlign_BottomCenter);
 
   // Signal level labels.
-  const f32    peakDb       = sound_magnitude_to_db(snd_buffer_magnitude_peak(buf, chan));
-  const f32    peakFraction = sound_db_to_fraction(peakDb);
-  const f32    rmsDb        = sound_magnitude_to_db(snd_buffer_magnitude_rms(buf, chan));
-  const f32    rmsFraction  = sound_db_to_fraction(rmsDb);
-  const String levelText    = fmt_write_scratch(
+  const f32 peakDb       = sound_magnitude_to_db(snd_buffer_magnitude_peak(buf, chan));
+  const f32 peakFraction = sound_db_to_fraction(peakDb);
+  const f32 rmsDb        = sound_magnitude_to_db(snd_buffer_magnitude_rms(buf, chan));
+  const f32 rmsFraction  = sound_db_to_fraction(rmsDb);
+
+  const String levelText = fmt_write_scratch(
       "Level: \a|02\ab{}{<5}\ar Peak\n"
-         "Level: \a|02\ab{}{<5}\ar  RMS",
+      "Level: \a|02\ab{}{<5}\ar  RMS",
       fmt_ui_color(sound_color_from_fraction(peakFraction)),
       fmt_float(peakDb, .plusSign = true, .minIntDigits = 2, .minDecDigits = 1, .maxDecDigits = 1),
       fmt_ui_color(sound_color_from_fraction(rmsFraction)),
