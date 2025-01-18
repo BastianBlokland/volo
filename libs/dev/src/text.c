@@ -25,28 +25,28 @@ typedef struct {
   u16       fontSize;
 } DebugText3D;
 
-ecs_comp_define(DebugTextComp) {
+ecs_comp_define(DevTextComp) {
   DynArray   entries; // DebugText3D[]
   Allocator* allocTransient;
 };
 
-ecs_comp_define(DebugTextRendererComp) { EcsEntityId canvas; };
+ecs_comp_define(DevTextRendererComp) { EcsEntityId canvas; };
 
 static void ecs_destruct_text(void* data) {
-  DebugTextComp* comp = data;
+  DevTextComp* comp = data;
   dynarray_destroy(&comp->entries);
   alloc_chunked_destroy(comp->allocTransient);
 }
 
 ecs_view_define(RendererCreateView) {
   ecs_access_with(SceneCameraComp);
-  ecs_access_without(DebugTextRendererComp);
+  ecs_access_without(DevTextRendererComp);
 }
 
-ecs_view_define(TextView) { ecs_access_write(DebugTextComp); }
+ecs_view_define(TextView) { ecs_access_write(DevTextComp); }
 
 ecs_view_define(RendererView) {
-  ecs_access_read(DebugTextRendererComp);
+  ecs_access_read(DevTextRendererComp);
   ecs_access_read(SceneCameraComp);
   ecs_access_maybe_read(SceneTransformComp);
 }
@@ -82,7 +82,7 @@ static UiColor debug_text_to_ui_color(const GeoColor c) {
 
 ecs_system_define(DebugTextInitSys) {
   // Create a global text component for convenience.
-  if (!ecs_world_has_t(world, ecs_world_global(world), DebugTextComp)) {
+  if (!ecs_world_has_t(world, ecs_world_global(world), DevTextComp)) {
     debug_text_create(world, ecs_world_global(world));
   }
 
@@ -93,7 +93,7 @@ ecs_system_define(DebugTextInitSys) {
     ecs_world_add_t(
         world,
         cameraEntity,
-        DebugTextRendererComp,
+        DevTextRendererComp,
         .canvas = ui_canvas_create(world, cameraEntity, UiCanvasCreateFlags_None));
   }
 }
@@ -104,9 +104,9 @@ ecs_system_define(DebugTextRenderSys) {
 
   // Draw all requests for all renderers.
   for (ecs_view_itr_reset(rendererItr); ecs_view_walk(rendererItr);) {
-    const DebugTextRendererComp* renderer  = ecs_view_read_t(rendererItr, DebugTextRendererComp);
-    const SceneCameraComp*       camera    = ecs_view_read_t(rendererItr, SceneCameraComp);
-    const SceneTransformComp*    transform = ecs_view_read_t(rendererItr, SceneTransformComp);
+    const DevTextRendererComp* renderer  = ecs_view_read_t(rendererItr, DevTextRendererComp);
+    const SceneCameraComp*     camera    = ecs_view_read_t(rendererItr, SceneCameraComp);
+    const SceneTransformComp*  transform = ecs_view_read_t(rendererItr, SceneTransformComp);
 
     UiCanvasComp* canvas = ecs_utils_write_t(world, CanvasView, renderer->canvas, UiCanvasComp);
     ui_canvas_reset(canvas);
@@ -119,7 +119,7 @@ ecs_system_define(DebugTextRenderSys) {
     const GeoMatrix viewProj = debug_text_view_proj(camera, transform, res);
 
     for (ecs_view_itr_reset(textItr); ecs_view_walk(textItr);) {
-      DebugTextComp* textComp = ecs_view_write_t(textItr, DebugTextComp);
+      DevTextComp* textComp = ecs_view_write_t(textItr, DevTextComp);
       dynarray_for_t(&textComp->entries, DebugText3D, entry) {
         const GeoVector canvasPos = debug_text_canvas_pos(&viewProj, entry->pos);
         if (canvasPos.z <= 0) {
@@ -140,15 +140,15 @@ ecs_system_define(DebugTextRenderSys) {
 
   // Clear the draw requests.
   for (ecs_view_itr_reset(textItr); ecs_view_walk(textItr);) {
-    DebugTextComp* textComp = ecs_view_write_t(textItr, DebugTextComp);
+    DevTextComp* textComp = ecs_view_write_t(textItr, DevTextComp);
     dynarray_clear(&textComp->entries);
     alloc_reset(textComp->allocTransient);
   }
 }
 
 ecs_module_init(debug_text_module) {
-  ecs_register_comp(DebugTextComp, .destructor = ecs_destruct_text);
-  ecs_register_comp(DebugTextRendererComp);
+  ecs_register_comp(DevTextComp, .destructor = ecs_destruct_text);
+  ecs_register_comp(DevTextRendererComp);
 
   ecs_register_view(RendererCreateView);
   ecs_register_view(TextView);
@@ -166,18 +166,18 @@ ecs_module_init(debug_text_module) {
   ecs_order(DebugTextRenderSys, DebugOrder_TextRender);
 }
 
-DebugTextComp* debug_text_create(EcsWorld* world, const EcsEntityId entity) {
+DevTextComp* debug_text_create(EcsWorld* world, const EcsEntityId entity) {
   return ecs_world_add_t(
       world,
       entity,
-      DebugTextComp,
+      DevTextComp,
       .entries = dynarray_create_t(g_allocHeap, DebugText3D, 64),
       .allocTransient =
           alloc_chunked_create(g_allocHeap, alloc_bump_create, debug_text_transient_chunk_size));
 }
 
 void debug_text_with_opts(
-    DebugTextComp* comp, const GeoVector pos, const String text, const DebugTextOpts* opts) {
+    DevTextComp* comp, const GeoVector pos, const String text, const DebugTextOpts* opts) {
   if (UNLIKELY(text.size > debug_text_transient_max)) {
     log_e(
         "Debug text size exceeds maximum",

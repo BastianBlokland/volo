@@ -42,15 +42,15 @@ static const String g_skeletonFlagNames[] = {
     string_static("Bounds"),
 };
 
-ecs_comp_define(DebugSkelSettingsComp) { DebugSkelFlags flags; };
+ecs_comp_define(DevSkelSettingsComp) { DebugSkelFlags flags; };
 
-ecs_comp_define(DebugSkelPanelComp) {
+ecs_comp_define(DevSkelPanelComp) {
   UiPanel      panel;
   UiScrollview scrollview;
   u32          totalRows;
 };
 
-ecs_view_define(SettingsWriteView) { ecs_access_write(DebugSkelSettingsComp); }
+ecs_view_define(SettingsWriteView) { ecs_access_write(DevSkelSettingsComp); }
 
 ecs_view_define(SubjectView) {
   ecs_access_read(SceneRenderableComp);
@@ -278,7 +278,7 @@ static void skel_panel_drag_flags(UiCanvasComp* canvas, SceneAnimLayer* layer) {
   }
 }
 
-static void skel_panel_options_draw(UiCanvasComp* canvas, DebugSkelSettingsComp* settings) {
+static void skel_panel_options_draw(UiCanvasComp* canvas, DevSkelSettingsComp* settings) {
   ui_layout_push(canvas);
 
   static const DebugSkelFlags g_drawAny = DebugSkelFlags_DrawAny;
@@ -307,8 +307,8 @@ static void skel_panel_options_draw(UiCanvasComp* canvas, DebugSkelSettingsComp*
 
 static void skel_panel_draw(
     UiCanvasComp*          canvas,
-    DebugSkelPanelComp*    panelComp,
-    DebugSkelSettingsComp* settings,
+    DevSkelPanelComp*      panelComp,
+    DevSkelSettingsComp*   settings,
     const DebugSkelSubject subject) {
   const String title = fmt_write_scratch("{} Skeleton Panel", fmt_ui_shape(Body));
   ui_panel_begin(
@@ -400,23 +400,23 @@ static void skel_panel_draw(
   ui_panel_end(canvas, &panelComp->panel);
 }
 
-static DebugSkelSettingsComp* skel_settings_get_or_create(EcsWorld* world) {
+static DevSkelSettingsComp* skel_settings_get_or_create(EcsWorld* world) {
   EcsView*     view = ecs_world_view_t(world, SettingsWriteView);
   EcsIterator* itr  = ecs_view_maybe_at(view, ecs_world_global(world));
   if (itr) {
-    return ecs_view_write_t(itr, DebugSkelSettingsComp);
+    return ecs_view_write_t(itr, DevSkelSettingsComp);
   }
   return ecs_world_add_t(
-      world, ecs_world_global(world), DebugSkelSettingsComp, .flags = DebugSkelFlags_Default);
+      world, ecs_world_global(world), DevSkelSettingsComp, .flags = DebugSkelFlags_Default);
 }
 
 ecs_view_define(PanelUpdateGlobalView) { ecs_access_read(SceneSetEnvComp); }
 
 ecs_view_define(PanelUpdateView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // DebugSkelPanelComp's are exclusively managed here.
+  ecs_view_flags(EcsViewFlags_Exclusive); // DevSkelPanelComp's are exclusively managed here.
 
   ecs_access_read(DevPanelComp);
-  ecs_access_write(DebugSkelPanelComp);
+  ecs_access_write(DevSkelPanelComp);
   ecs_access_write(UiCanvasComp);
 }
 
@@ -426,7 +426,7 @@ ecs_system_define(DebugSkeletonUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  DebugSkelSettingsComp* settings = skel_settings_get_or_create(world);
+  DevSkelSettingsComp* settings = skel_settings_get_or_create(world);
 
   const SceneSetEnvComp* setEnv      = ecs_view_read_t(globalItr, SceneSetEnvComp);
   const StringHash       selectedSet = g_sceneSetSelected;
@@ -434,8 +434,8 @@ ecs_system_define(DebugSkeletonUpdatePanelSys) {
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    DebugSkelPanelComp* panelComp = ecs_view_write_t(itr, DebugSkelPanelComp);
-    UiCanvasComp*       canvas    = ecs_view_write_t(itr, UiCanvasComp);
+    DevSkelPanelComp* panelComp = ecs_view_write_t(itr, DevSkelPanelComp);
+    UiCanvasComp*     canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
@@ -454,7 +454,7 @@ ecs_system_define(DebugSkeletonUpdatePanelSys) {
 }
 
 static void debug_draw_skeleton(
-    DebugShapeComp*               shape,
+    DevShapeComp*                 shape,
     const SceneSkeletonTemplComp* skeletonTemplate,
     const u32                     jointCount,
     const GeoMatrix*              jointMatrices) {
@@ -468,7 +468,7 @@ static void debug_draw_skeleton(
 }
 
 static void debug_draw_joint_transforms(
-    DebugShapeComp* shapes, const u32 jointCount, const GeoMatrix* jointMatrices) {
+    DevShapeComp* shapes, const u32 jointCount, const GeoMatrix* jointMatrices) {
   static const f32 g_arrowLength = 0.075f;
   static const f32 g_arrowSize   = 0.0075f;
 
@@ -491,7 +491,7 @@ static void debug_draw_joint_transforms(
 }
 
 static void debug_draw_joint_names(
-    DebugTextComp*                text,
+    DevTextComp*                  text,
     const SceneSkeletonTemplComp* skeletonTemplate,
     const u32                     jointCount,
     const GeoMatrix*              jointMatrices) {
@@ -504,7 +504,7 @@ static void debug_draw_joint_names(
 }
 
 static void debug_draw_skin_counts(
-    DebugTextComp*                text,
+    DevTextComp*                  text,
     const SceneSkeletonTemplComp* skeletonTemplate,
     const u32                     jointCount,
     const GeoMatrix*              jointMatrices) {
@@ -518,7 +518,7 @@ static void debug_draw_skin_counts(
 }
 
 static void debug_draw_bounds(
-    DebugShapeComp*               shape,
+    DevShapeComp*                 shape,
     const SceneSkeletonTemplComp* skeletonTemplate,
     const f32                     worldScale,
     const u32                     jointCount,
@@ -536,10 +536,10 @@ static void debug_draw_bounds(
 }
 
 ecs_view_define(GlobalDrawView) {
-  ecs_access_read(DebugSkelSettingsComp);
+  ecs_access_read(DevSkelSettingsComp);
   ecs_access_read(SceneSetEnvComp);
-  ecs_access_write(DebugShapeComp);
-  ecs_access_write(DebugTextComp);
+  ecs_access_write(DevShapeComp);
+  ecs_access_write(DevTextComp);
 }
 
 ecs_system_define(DebugSkeletonDrawSys) {
@@ -548,10 +548,10 @@ ecs_system_define(DebugSkeletonDrawSys) {
   if (!globalItr) {
     return;
   }
-  const SceneSetEnvComp*       setEnv = ecs_view_read_t(globalItr, SceneSetEnvComp);
-  const DebugSkelSettingsComp* set    = ecs_view_read_t(globalItr, DebugSkelSettingsComp);
-  DebugShapeComp*              shape  = ecs_view_write_t(globalItr, DebugShapeComp);
-  DebugTextComp*               text   = ecs_view_write_t(globalItr, DebugTextComp);
+  const SceneSetEnvComp*     setEnv = ecs_view_read_t(globalItr, SceneSetEnvComp);
+  const DevSkelSettingsComp* set    = ecs_view_read_t(globalItr, DevSkelSettingsComp);
+  DevShapeComp*              shape  = ecs_view_write_t(globalItr, DevShapeComp);
+  DevTextComp*               text   = ecs_view_write_t(globalItr, DevTextComp);
 
   if (!(set->flags & DebugSkelFlags_DrawAny)) {
     return; // Nothing requested to be drawn.
@@ -597,8 +597,8 @@ ecs_system_define(DebugSkeletonDrawSys) {
 }
 
 ecs_module_init(debug_skeleton_module) {
-  ecs_register_comp(DebugSkelSettingsComp);
-  ecs_register_comp(DebugSkelPanelComp);
+  ecs_register_comp(DevSkelSettingsComp);
+  ecs_register_comp(DevSkelPanelComp);
 
   ecs_register_view(SettingsWriteView);
   ecs_register_view(PanelUpdateGlobalView);
@@ -626,9 +626,9 @@ ecs_module_init(debug_skeleton_module) {
 
 EcsEntityId
 dev_skeleton_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
-  const EcsEntityId   panelEntity   = dev_panel_create(world, window, type);
-  DebugSkelPanelComp* skeletonPanel = ecs_world_add_t(
-      world, panelEntity, DebugSkelPanelComp, .panel = ui_panel(.size = ui_vector(950, 350)));
+  const EcsEntityId panelEntity   = dev_panel_create(world, window, type);
+  DevSkelPanelComp* skeletonPanel = ecs_world_add_t(
+      world, panelEntity, DevSkelPanelComp, .panel = ui_panel(.size = ui_vector(950, 350)));
 
   if (type == DevPanelType_Detached) {
     ui_panel_maximize(&skeletonPanel->panel);

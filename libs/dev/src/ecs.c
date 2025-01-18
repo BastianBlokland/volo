@@ -34,7 +34,7 @@ typedef struct {
   String    name;
   u32       size, align;
   u32       numArchetypes, numEntities;
-} DebugEcsCompInfo;
+} DevEcsCompInfo;
 
 typedef struct {
   EcsViewId id;
@@ -63,7 +63,7 @@ typedef struct {
 } DebugEcsSysInfo;
 
 typedef enum {
-  DebugEcsTab_Components,
+  DevEcsTab_Components,
   DebugEcsTab_Views,
   DebugEcsTab_Archetypes,
   DebugEcsTab_Systems,
@@ -102,7 +102,7 @@ ASSERT(array_elems(g_compSortModeNames) == DebugCompSortMode_Count, "Incorrect n
 
 typedef enum {
   DebugArchSortMode_Id,
-  DebugArchSortMode_ComponentCount,
+  DevArchSortMode_ComponentCount,
   DebugArchSortMode_EntityCount,
   DebugArchSortMode_ChunkCount,
 
@@ -134,7 +134,7 @@ static const String g_sysSortModeNames[] = {
 };
 ASSERT(array_elems(g_sysSortModeNames) == DebugSysSortMode_Count, "Incorrect number of names");
 
-ecs_comp_define(DebugEcsPanelComp) {
+ecs_comp_define(DevEcsPanelComp) {
   UiPanel           panel;
   UiScrollview      scrollview;
   DynString         nameFilter;
@@ -142,14 +142,14 @@ ecs_comp_define(DebugEcsPanelComp) {
   DebugArchSortMode archSortMode;
   DebugSysSortMode  sysSortMode;
   bool              freeze, hideEmptyArchetypes;
-  DynArray          components; // DebugEcsCompInfo[]
+  DynArray          components; // DevEcsCompInfo[]
   DynArray          views;      // DebugEcsViewInfo[]
   DynArray          archetypes; // DebugEcsArchetypeInfo[]
   DynArray          systems;    // DebugEcsSysInfo[]
 };
 
 static void ecs_destruct_ecs_panel(void* data) {
-  DebugEcsPanelComp* comp = data;
+  DevEcsPanelComp* comp = data;
   dynstring_destroy(&comp->nameFilter);
   dynarray_destroy(&comp->components);
   dynarray_destroy(&comp->views);
@@ -158,17 +158,17 @@ static void ecs_destruct_ecs_panel(void* data) {
 }
 
 static i8 comp_compare_info_name(const void* a, const void* b) {
-  return compare_string(field_ptr(a, DebugEcsCompInfo, name), field_ptr(b, DebugEcsCompInfo, name));
+  return compare_string(field_ptr(a, DevEcsCompInfo, name), field_ptr(b, DevEcsCompInfo, name));
 }
 
 static i8 comp_compare_info_size(const void* a, const void* b) {
   return compare_u32_reverse(
-      field_ptr(a, DebugEcsCompInfo, size), field_ptr(b, DebugEcsCompInfo, size));
+      field_ptr(a, DevEcsCompInfo, size), field_ptr(b, DevEcsCompInfo, size));
 }
 
 static i8 comp_compare_info_size_total(const void* a, const void* b) {
-  const DebugEcsCompInfo* aInfo = a;
-  const DebugEcsCompInfo* bInfo = b;
+  const DevEcsCompInfo* aInfo = a;
+  const DevEcsCompInfo* bInfo = b;
 
   const usize totalA = aInfo->numEntities * aInfo->size;
   const usize totalB = bInfo->numEntities * bInfo->size;
@@ -177,12 +177,12 @@ static i8 comp_compare_info_size_total(const void* a, const void* b) {
 
 static i8 comp_compare_info_archetypes(const void* a, const void* b) {
   return compare_u32_reverse(
-      field_ptr(a, DebugEcsCompInfo, numArchetypes), field_ptr(b, DebugEcsCompInfo, numArchetypes));
+      field_ptr(a, DevEcsCompInfo, numArchetypes), field_ptr(b, DevEcsCompInfo, numArchetypes));
 }
 
 static i8 comp_compare_info_entities(const void* a, const void* b) {
   return compare_u32_reverse(
-      field_ptr(a, DebugEcsCompInfo, numEntities), field_ptr(b, DebugEcsCompInfo, numEntities));
+      field_ptr(a, DevEcsCompInfo, numEntities), field_ptr(b, DevEcsCompInfo, numEntities));
 }
 
 static i8 arch_compare_info_components(const void* a, const void* b) {
@@ -245,7 +245,7 @@ static void ecs_dump_graph(const JobGraph* graph) {
   }
 }
 
-static bool ecs_panel_filter(DebugEcsPanelComp* panelComp, const String name) {
+static bool ecs_panel_filter(DevEcsPanelComp* panelComp, const String name) {
   if (string_is_empty(panelComp->nameFilter)) {
     return true;
   }
@@ -254,7 +254,7 @@ static bool ecs_panel_filter(DebugEcsPanelComp* panelComp, const String name) {
   return string_match_glob(name, filter, StringMatchFlags_IgnoreCase);
 }
 
-static void comp_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
+static void comp_info_query(DevEcsPanelComp* panelComp, EcsWorld* world) {
   dynarray_clear(&panelComp->components);
 
   const EcsDef* def = ecs_world_def(world);
@@ -263,7 +263,7 @@ static void comp_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
       continue;
     }
 
-    *dynarray_push_t(&panelComp->components, DebugEcsCompInfo) = (DebugEcsCompInfo){
+    *dynarray_push_t(&panelComp->components, DevEcsCompInfo) = (DevEcsCompInfo){
         .id            = id,
         .name          = ecs_def_comp_name(def, id),
         .size          = (u32)ecs_def_comp_size(def, id),
@@ -295,11 +295,11 @@ static void comp_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
   }
 }
 
-static UiColor comp_info_bg_color(const DebugEcsCompInfo* compInfo) {
+static UiColor comp_info_bg_color(const DevEcsCompInfo* compInfo) {
   return compInfo->numEntities ? ui_color(16, 64, 16, 192) : ui_color(48, 48, 48, 192);
 }
 
-static void comp_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
+static void comp_options_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp) {
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
@@ -321,7 +321,7 @@ static void comp_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp
   ui_layout_pop(canvas);
 }
 
-static void comp_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
+static void comp_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp) {
   comp_options_draw(canvas, panelComp);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
@@ -353,7 +353,7 @@ static void comp_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCo
   ui_scrollview_begin(canvas, &panelComp->scrollview, UiLayer_Normal, height);
 
   ui_canvas_id_block_next(canvas); // Start the list of components on its own id block.
-  dynarray_for_t(&panelComp->components, DebugEcsCompInfo, compInfo) {
+  dynarray_for_t(&panelComp->components, DevEcsCompInfo, compInfo) {
     ui_table_next_row(canvas, &table);
     ui_table_draw_row_bg(canvas, &table, comp_info_bg_color(compInfo));
 
@@ -379,7 +379,7 @@ static void comp_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCo
   ui_layout_container_pop(canvas);
 }
 
-static void view_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
+static void view_info_query(DevEcsPanelComp* panelComp, EcsWorld* world) {
   if (!panelComp->freeze) {
     dynarray_clear(&panelComp->views);
 
@@ -400,7 +400,7 @@ static void view_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
   }
 }
 
-static void view_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
+static void view_options_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp) {
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
@@ -422,7 +422,7 @@ static void view_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp
   ui_layout_pop(canvas);
 }
 
-static void view_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
+static void view_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp) {
   view_options_draw(canvas, panelComp);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
@@ -472,7 +472,7 @@ static void view_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelCo
   ui_layout_container_pop(canvas);
 }
 
-static void arch_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
+static void arch_info_query(DevEcsPanelComp* panelComp, EcsWorld* world) {
   if (!panelComp->freeze) {
     dynarray_clear(&panelComp->archetypes);
     for (EcsArchetypeId id = 0; id != ecs_world_archetype_count(world); ++id) {
@@ -493,7 +493,7 @@ static void arch_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
   }
 
   switch (panelComp->archSortMode) {
-  case DebugArchSortMode_ComponentCount:
+  case DevArchSortMode_ComponentCount:
     dynarray_sort(&panelComp->archetypes, arch_compare_info_components);
     break;
   case DebugArchSortMode_EntityCount:
@@ -508,7 +508,7 @@ static void arch_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
   }
 }
 
-static void arch_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
+static void arch_options_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp) {
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
@@ -547,7 +547,7 @@ static String arch_comp_mask_tooltip_scratch(const EcsDef* ecsDef, const BitSet 
 }
 
 static void
-arch_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const EcsDef* ecsDef) {
+arch_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp, const EcsDef* ecsDef) {
   arch_options_draw(canvas, panelComp);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
@@ -605,7 +605,7 @@ arch_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ec
   ui_layout_container_pop(canvas);
 }
 
-static void sys_info_query(DebugEcsPanelComp* panelComp, EcsWorld* world) {
+static void sys_info_query(DevEcsPanelComp* panelComp, EcsWorld* world) {
   if (!panelComp->freeze) {
     dynarray_clear(&panelComp->systems);
 
@@ -657,7 +657,7 @@ static UiColor sys_info_bg_color(const DebugEcsSysInfo* compInfo) {
   return ui_color(48, 48, 48, 192);
 }
 
-static void sys_options_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp) {
+static void sys_options_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp) {
   ui_layout_push(canvas);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
@@ -712,7 +712,7 @@ static UiColor sys_defined_order_color(const DebugEcsSysInfo* sysInfo) {
 }
 
 static void
-sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const EcsDef* ecsDef) {
+sys_panel_tab_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp, const EcsDef* ecsDef) {
   sys_options_draw(canvas, panelComp);
   ui_layout_grow(canvas, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(canvas, UiClip_None, UiLayer_Normal);
@@ -783,7 +783,7 @@ sys_panel_tab_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, const Ecs
   ui_layout_container_pop(canvas);
 }
 
-static void ecs_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, EcsWorld* world) {
+static void ecs_panel_draw(UiCanvasComp* canvas, DevEcsPanelComp* panelComp, EcsWorld* world) {
   const String title = fmt_write_scratch("{} Ecs Panel", fmt_ui_shape(Extension));
   ui_panel_begin(
       canvas,
@@ -794,7 +794,7 @@ static void ecs_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, E
       .topBarColor = ui_color(100, 0, 0, 192));
 
   switch (panelComp->panel.activeTab) {
-  case DebugEcsTab_Components:
+  case DevEcsTab_Components:
     comp_info_query(panelComp, world);
     comp_panel_tab_draw(canvas, panelComp);
     break;
@@ -816,19 +816,19 @@ static void ecs_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, E
 }
 
 ecs_view_define(PanelUpdateView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // DebugEcsPanelComp's are exclusively managed here.
+  ecs_view_flags(EcsViewFlags_Exclusive); // DevEcsPanelComp's are exclusively managed here.
 
   ecs_access_read(DevPanelComp);
-  ecs_access_write(DebugEcsPanelComp);
+  ecs_access_write(DevEcsPanelComp);
   ecs_access_write(UiCanvasComp);
 }
 
 ecs_system_define(DebugEcsUpdatePanelSys) {
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    const EcsEntityId  entity    = ecs_view_entity(itr);
-    DebugEcsPanelComp* panelComp = ecs_view_write_t(itr, DebugEcsPanelComp);
-    UiCanvasComp*      canvas    = ecs_view_write_t(itr, UiCanvasComp);
+    const EcsEntityId entity    = ecs_view_entity(itr);
+    DevEcsPanelComp*  panelComp = ecs_view_write_t(itr, DevEcsPanelComp);
+    UiCanvasComp*     canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
@@ -847,7 +847,7 @@ ecs_system_define(DebugEcsUpdatePanelSys) {
 }
 
 ecs_module_init(debug_ecs_module) {
-  ecs_register_comp(DebugEcsPanelComp, .destructor = ecs_destruct_ecs_panel);
+  ecs_register_comp(DevEcsPanelComp, .destructor = ecs_destruct_ecs_panel);
 
   ecs_register_view(PanelUpdateView);
 
@@ -855,18 +855,18 @@ ecs_module_init(debug_ecs_module) {
 }
 
 EcsEntityId dev_ecs_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
-  const EcsEntityId  panelEntity = dev_panel_create(world, window, type);
-  DebugEcsPanelComp* ecsPanel    = ecs_world_add_t(
+  const EcsEntityId panelEntity = dev_panel_create(world, window, type);
+  DevEcsPanelComp*  ecsPanel    = ecs_world_add_t(
       world,
       panelEntity,
-      DebugEcsPanelComp,
+      DevEcsPanelComp,
       .panel        = ui_panel(.size = ui_vector(800, 500)),
       .scrollview   = ui_scrollview(),
       .nameFilter   = dynstring_create(g_allocHeap, 32),
       .compSortMode = DebugCompSortMode_Archetypes,
       .archSortMode = DebugArchSortMode_ChunkCount,
       .sysSortMode  = DebugSysSortMode_Duration,
-      .components   = dynarray_create_t(g_allocHeap, DebugEcsCompInfo, 256),
+      .components   = dynarray_create_t(g_allocHeap, DevEcsCompInfo, 256),
       .views        = dynarray_create_t(g_allocHeap, DebugEcsViewInfo, 256),
       .archetypes   = dynarray_create_t(g_allocHeap, DebugEcsArchetypeInfo, 256),
       .systems      = dynarray_create_t(g_allocHeap, DebugEcsSysInfo, 256));

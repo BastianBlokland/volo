@@ -200,7 +200,7 @@ bool debug_widget_prefab(
 
 bool debug_widget_asset(
     UiCanvasComp*             c,
-    DebugFinderComp*          finder,
+    DevFinderComp*            finder,
     const DebugFinderCategory cat,
     EcsEntityId*              val,
     const UiWidgetFlags       flags) {

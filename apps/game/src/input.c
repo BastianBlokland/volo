@@ -128,28 +128,28 @@ static EcsEntityId input_query_ray(
   return 0;
 }
 
-static void input_report_command(DebugStatsGlobalComp* debugStats, const String command) {
+static void input_report_command(DevStatsGlobalComp* debugStats, const String command) {
   if (debugStats) {
     const String label = string_lit("Command");
     debug_stats_notify(debugStats, label, command);
   }
 }
 
-static void input_report_selection_count(DebugStatsGlobalComp* debugStats, const u32 selCount) {
+static void input_report_selection_count(DevStatsGlobalComp* debugStats, const u32 selCount) {
   if (debugStats) {
     const String label = string_lit("Selected");
     debug_stats_notify(debugStats, label, fmt_write_scratch("{}", fmt_int(selCount)));
   }
 }
 
-static void input_report_group_assign(DebugStatsGlobalComp* debugStats, const u32 groupIndex) {
+static void input_report_group_assign(DevStatsGlobalComp* debugStats, const u32 groupIndex) {
   if (debugStats) {
     const String label = string_lit("Group assign");
     debug_stats_notify(debugStats, label, fmt_write_scratch("{}", fmt_int(groupIndex + 1)));
   }
 }
 
-static void input_report_group_select(DebugStatsGlobalComp* debugStats, const u32 groupIndex) {
+static void input_report_group_select(DevStatsGlobalComp* debugStats, const u32 groupIndex) {
   if (debugStats) {
     const String label = string_lit("Group select");
     debug_stats_notify(debugStats, label, fmt_write_scratch("{}", fmt_int(groupIndex + 1)));
@@ -193,7 +193,7 @@ static void update_group_input(
     InputManagerComp*      input,
     const SceneSetEnvComp* setEnv,
     const SceneTimeComp*   time,
-    DebugStatsGlobalComp*  debugStats) {
+    DevStatsGlobalComp*    debugStats) {
   for (u32 i = 0; i != cmd_group_count; ++i) {
     if (!input_triggered_hash(input, g_inputGroupActions[i])) {
       continue;
@@ -455,7 +455,7 @@ static void input_order_attack(
     EcsWorld*              world,
     CmdControllerComp*     cmdController,
     const SceneSetEnvComp* setEnv,
-    DebugStatsGlobalComp*  debugStats,
+    DevStatsGlobalComp*    debugStats,
     const EcsEntityId      target) {
 
   // Report the attack.
@@ -474,7 +474,7 @@ static void input_order_move(
     CmdControllerComp*     cmdController,
     const SceneSetEnvComp* setEnv,
     const SceneNavEnvComp* nav,
-    DebugStatsGlobalComp*  debugStats,
+    DevStatsGlobalComp*    debugStats,
     const GeoVector        targetPos) {
 
   // Report the move.
@@ -515,7 +515,7 @@ static void input_order_move(
 static void input_order_stop(
     CmdControllerComp*     cmdController,
     const SceneSetEnvComp* setEnv,
-    DebugStatsGlobalComp*  debugStats) {
+    DevStatsGlobalComp*    debugStats) {
 
   // Report the stop.
   input_report_command(debugStats, string_lit("Stop"));
@@ -534,7 +534,7 @@ static void input_order(
     const SceneSetEnvComp*  setEnv,
     const SceneTerrainComp* terrain,
     const SceneNavEnvComp*  nav,
-    DebugStatsGlobalComp*   debugStats,
+    DevStatsGlobalComp*     debugStats,
     const GeoRay*           inputRay) {
   /**
    * Order an attack when clicking an opponent unit or a destructible.
@@ -609,7 +609,7 @@ static void update_camera_interact(
     const SceneNavEnvComp*       nav,
     const SceneCameraComp*       camera,
     const SceneTransformComp*    cameraTrans,
-    DebugStatsGlobalComp*        debugStats,
+    DevStatsGlobalComp*          debugStats,
     EcsView*                     productionView) {
   const GeoVector inputNormPos = geo_vector(input_cursor_x(input), input_cursor_y(input));
   const f32       inputAspect  = input_cursor_aspect(input);
@@ -698,7 +698,7 @@ static void input_state_init(EcsWorld* world, const EcsEntityId windowEntity) {
 }
 
 ecs_view_define(GlobalUpdateView) {
-  ecs_access_maybe_write(DebugStatsGlobalComp);
+  ecs_access_maybe_write(DevStatsGlobalComp);
   ecs_access_read(SceneLevelManagerComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneSetEnvComp);
@@ -729,7 +729,7 @@ ecs_system_define(InputUpdateSys) {
   const SceneSetEnvComp*       setEnv        = ecs_view_read_t(globalItr, SceneSetEnvComp);
   const SceneTerrainComp*      terrain       = ecs_view_read_t(globalItr, SceneTerrainComp);
   const SceneTimeComp*         time          = ecs_view_read_t(globalItr, SceneTimeComp);
-  DebugStatsGlobalComp*        debugStats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  DevStatsGlobalComp*          debugStats    = ecs_view_write_t(globalItr, DevStatsGlobalComp);
   InputManagerComp*            input         = ecs_view_write_t(globalItr, InputManagerComp);
   SceneCollisionEnvComp*       colEnv        = ecs_view_write_t(globalItr, SceneCollisionEnvComp);
 

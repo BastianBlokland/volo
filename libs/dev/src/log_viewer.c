@@ -251,13 +251,13 @@ DebugLogSink* debug_log_sink_create(void) {
   return sink;
 }
 
-ecs_comp_define(DebugLogTrackerComp) {
+ecs_comp_define(DevLogTrackerComp) {
   bool          freeze;
   TimeDuration  freezeTime;
   DebugLogSink* sink;
 };
 
-ecs_comp_define(DebugLogViewerComp) {
+ecs_comp_define(DevLogViewerComp) {
   LogMask        mask;
   TimeZone       timezone;
   DebugLogEntry* inspectEntry;
@@ -266,28 +266,28 @@ ecs_comp_define(DebugLogViewerComp) {
 };
 
 static void ecs_destruct_log_tracker(void* data) {
-  DebugLogTrackerComp* comp = data;
+  DevLogTrackerComp* comp = data;
   debug_log_sink_destroy((LogSink*)comp->sink);
 }
 
 ecs_view_define(LogGlobalView) {
   ecs_access_read(SceneTimeComp);
-  ecs_access_write(DebugLogTrackerComp);
+  ecs_access_write(DevLogTrackerComp);
 }
 
 ecs_view_define(LogViewerView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // DebugLogViewerComp's are exclusively managed here.
+  ecs_view_flags(EcsViewFlags_Exclusive); // DevLogViewerComp's are exclusively managed here.
 
-  ecs_access_write(DebugLogViewerComp);
+  ecs_access_write(DevLogViewerComp);
   ecs_access_write(UiCanvasComp);
 }
 
-static DebugLogTrackerComp*
+static DevLogTrackerComp*
 debug_log_tracker_create(EcsWorld* world, const EcsEntityId entity, Logger* logger) {
   DebugLogSink* sink = debug_log_sink_create();
   thread_atomic_store_i32(&sink->refCounter, 2); // Referenced by the logger and the viewer.
   log_add_sink(logger, (LogSink*)sink);
-  return ecs_world_add_t(world, entity, DebugLogTrackerComp, .sink = sink);
+  return ecs_world_add_t(world, entity, DevLogTrackerComp, .sink = sink);
 }
 
 static String debug_log_inspect_title(const LogLevel lvl) {
@@ -335,7 +335,7 @@ static f32 debug_log_inspect_desired_height(const DebugLogEntry* entry) {
   return ui_table_height(&table, 3 /* builtin params */ + entry->paramCount);
 }
 
-static void debug_log_inspect_open(DebugLogViewerComp* viewer, DebugLogEntry* entry) {
+static void debug_log_inspect_open(DevLogViewerComp* viewer, DebugLogEntry* entry) {
   const f32 heightDesired = debug_log_inspect_desired_height(entry);
   const f32 heightMax     = 600.0f;
   const f32 height        = math_min(heightDesired, heightMax);
@@ -345,9 +345,9 @@ static void debug_log_inspect_open(DebugLogViewerComp* viewer, DebugLogEntry* en
   viewer->inspectScrollView = ui_scrollview();
 }
 
-static void debug_log_inspect_close(DebugLogViewerComp* viewer) { viewer->inspectEntry = null; }
+static void debug_log_inspect_close(DevLogViewerComp* viewer) { viewer->inspectEntry = null; }
 
-static void debug_log_inspect_draw(UiCanvasComp* c, DebugLogViewerComp* viewer) {
+static void debug_log_inspect_draw(UiCanvasComp* c, DevLogViewerComp* viewer) {
   const DebugLogEntry* entry = viewer->inspectEntry;
 
   ui_panel_begin(
@@ -395,7 +395,7 @@ static void debug_log_inspect_draw(UiCanvasComp* c, DebugLogViewerComp* viewer) 
 }
 
 static void debug_log_notif_tooltip(
-    UiCanvasComp* c, const UiId id, const DebugLogViewerComp* viewer, const DebugLogEntry* entry) {
+    UiCanvasComp* c, const UiId id, const DevLogViewerComp* viewer, const DebugLogEntry* entry) {
   Mem       bufferMem = alloc_alloc(g_allocScratch, 4 * usize_kibibyte, 1);
   DynString buffer    = dynstring_create_over(bufferMem);
 
@@ -442,7 +442,7 @@ static UiColor debug_log_notif_bg_color(const LogLevel lvl) {
 }
 
 static void debug_log_notif_draw_entry(
-    UiCanvasComp* c, DebugLogViewerComp* viewer, DebugLogEntry* entry, const u32 repeat) {
+    UiCanvasComp* c, DevLogViewerComp* viewer, DebugLogEntry* entry, const u32 repeat) {
   DebugLogStr* msg = debug_log_msg(entry);
 
   ui_style_push(c);
@@ -478,8 +478,8 @@ static void debug_log_notif_draw_entry(
   }
 }
 
-static void debug_log_notif_draw(
-    UiCanvasComp* c, const DebugLogTrackerComp* tracker, DebugLogViewerComp* viewer) {
+static void
+debug_log_notif_draw(UiCanvasComp* c, const DevLogTrackerComp* tracker, DevLogViewerComp* viewer) {
   ui_layout_move_to(c, UiBase_Container, UiAlign_TopRight, Ui_XY);
   ui_layout_resize(c, UiAlign_TopRight, ui_vector(400, 0), UiBase_Absolute, Ui_X);
   ui_layout_resize(c, UiAlign_TopLeft, ui_vector(0, 20), UiBase_Absolute, Ui_Y);
@@ -533,7 +533,7 @@ ecs_system_define(DebugLogUpdateSys) {
   if (!globalItr) {
     return; // Global dependencies not ready.
   }
-  DebugLogTrackerComp* tracker = ecs_view_write_t(globalItr, DebugLogTrackerComp);
+  DevLogTrackerComp*   tracker = ecs_view_write_t(globalItr, DevLogTrackerComp);
   const SceneTimeComp* time    = ecs_view_read_t(globalItr, SceneTimeComp);
   if (tracker->freeze) {
     tracker->freezeTime += time->realDelta;
@@ -545,8 +545,8 @@ ecs_system_define(DebugLogUpdateSys) {
   tracker->freeze   = false;
   EcsView* drawView = ecs_world_view_t(world, LogViewerView);
   for (EcsIterator* itr = ecs_view_itr(drawView); ecs_view_walk(itr);) {
-    DebugLogViewerComp* viewer = ecs_view_write_t(itr, DebugLogViewerComp);
-    UiCanvasComp*       canvas = ecs_view_write_t(itr, UiCanvasComp);
+    DevLogViewerComp* viewer = ecs_view_write_t(itr, DevLogViewerComp);
+    UiCanvasComp*     canvas = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
     ui_canvas_to_front(canvas); // Always draw logs on-top.
@@ -568,8 +568,8 @@ ecs_system_define(DebugLogUpdateSys) {
 }
 
 ecs_module_init(debug_log_viewer_module) {
-  ecs_register_comp(DebugLogTrackerComp, .destructor = ecs_destruct_log_tracker);
-  ecs_register_comp(DebugLogViewerComp);
+  ecs_register_comp(DevLogTrackerComp, .destructor = ecs_destruct_log_tracker);
+  ecs_register_comp(DevLogViewerComp);
 
   ecs_register_view(LogGlobalView);
   ecs_register_view(LogViewerView);
@@ -584,10 +584,10 @@ void debug_log_tracker_init(EcsWorld* world, Logger* logger) {
 EcsEntityId debug_log_viewer_create(EcsWorld* world, const EcsEntityId window, const LogMask mask) {
   const EcsEntityId viewerEntity = ui_canvas_create(world, window, UiCanvasCreateFlags_ToFront);
   ecs_world_add_t(
-      world, viewerEntity, DebugLogViewerComp, .mask = mask, .timezone = time_zone_current());
+      world, viewerEntity, DevLogViewerComp, .mask = mask, .timezone = time_zone_current());
   return viewerEntity;
 }
 
-void debug_log_viewer_set_mask(DebugLogViewerComp* viewer, const LogMask mask) {
+void debug_log_viewer_set_mask(DevLogViewerComp* viewer, const LogMask mask) {
   viewer->mask = mask;
 }

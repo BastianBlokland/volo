@@ -106,14 +106,14 @@ typedef struct {
   TimeDuration totalDuration;
 } DebugScriptAsset;
 
-ecs_comp_define(DebugScriptTrackerComp) {
+ecs_comp_define(DevScriptTrackerComp) {
   DynArray outputEntries; // DebugScriptOutput[]
   DynArray assetEntries;  // DebugScriptAsset[]
   bool     freezeAssets;
   bool     autoOpenOnPanic;
 };
 
-ecs_comp_define(DebugScriptPanelComp) {
+ecs_comp_define(DevScriptPanelComp) {
   UiPanel               panel;
   bool                  outputOnly;
   bool                  hideNullMemory;
@@ -125,13 +125,13 @@ ecs_comp_define(DebugScriptPanelComp) {
 };
 
 static void ecs_destruct_script_tracker(void* data) {
-  DebugScriptTrackerComp* comp = data;
+  DevScriptTrackerComp* comp = data;
   dynarray_destroy(&comp->outputEntries);
   dynarray_destroy(&comp->assetEntries);
 }
 
 static void ecs_destroy_script_panel(void* data) {
-  DebugScriptPanelComp* comp = data;
+  DevScriptPanelComp* comp = data;
   if (comp->editorLaunch) {
     process_destroy(comp->editorLaunch);
   }
@@ -160,7 +160,7 @@ static bool debug_script_is_readonly(EcsIterator* subjectItr) {
 static void info_panel_tab_script_draw(
     EcsWorld*             world,
     UiCanvasComp*         c,
-    DebugScriptPanelComp* panelComp,
+    DevScriptPanelComp*   panelComp,
     UiTable*              table,
     EcsIterator*          assetItr,
     SceneScriptComp*      scriptInstance,
@@ -224,11 +224,11 @@ static void info_panel_tab_script_draw(
 }
 
 static void info_panel_tab_draw(
-    EcsWorld*             world,
-    UiCanvasComp*         c,
-    DebugScriptPanelComp* panelComp,
-    EcsIterator*          assetItr,
-    EcsIterator*          subjectItr) {
+    EcsWorld*           world,
+    UiCanvasComp*       c,
+    DevScriptPanelComp* panelComp,
+    EcsIterator*        assetItr,
+    EcsIterator*        subjectItr) {
   diag_assert(subjectItr);
 
   SceneScriptComp* scriptInstance = ecs_view_write_t(subjectItr, SceneScriptComp);
@@ -366,7 +366,7 @@ static bool memory_draw_val(UiCanvasComp* c, EcsIterator* entityRefItr, ScriptVa
   return false;
 }
 
-static void memory_options_draw(UiCanvasComp* c, DebugScriptPanelComp* panelComp) {
+static void memory_options_draw(UiCanvasComp* c, DevScriptPanelComp* panelComp) {
   ui_layout_push(c);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
@@ -386,10 +386,10 @@ static i8 memory_compare_entry_name(const void* a, const void* b) {
 }
 
 static void memory_panel_tab_draw(
-    UiCanvasComp*         c,
-    DebugScriptPanelComp* panelComp,
-    EcsIterator*          entityRefItr,
-    EcsIterator*          subject) {
+    UiCanvasComp*       c,
+    DevScriptPanelComp* panelComp,
+    EcsIterator*        entityRefItr,
+    EcsIterator*        subject) {
   diag_assert(subject);
 
   ScenePropertyComp* propComp = ecs_view_write_t(subject, ScenePropertyComp);
@@ -458,11 +458,11 @@ static void memory_panel_tab_draw(
   ui_layout_container_pop(c);
 }
 
-static DebugScriptTrackerComp* tracker_create(EcsWorld* world) {
+static DevScriptTrackerComp* tracker_create(EcsWorld* world) {
   return ecs_world_add_t(
       world,
       ecs_world_global(world),
-      DebugScriptTrackerComp,
+      DevScriptTrackerComp,
       .outputEntries   = dynarray_create_t(g_allocHeap, DebugScriptOutput, 64),
       .assetEntries    = dynarray_create_t(g_allocHeap, DebugScriptAsset, 32),
       .autoOpenOnPanic = true);
@@ -473,7 +473,7 @@ static i8 tracker_compare_asset(const void* a, const void* b) {
       field_ptr(a, DebugScriptAsset, entity), field_ptr(b, DebugScriptAsset, entity));
 }
 
-static bool tracker_has_panic(const DebugScriptTrackerComp* tracker) {
+static bool tracker_has_panic(const DevScriptTrackerComp* tracker) {
   dynarray_for_t(&tracker->outputEntries, DebugScriptOutput, entry) {
     if (entry->type == DebugScriptOutputType_Panic) {
       return true;
@@ -482,11 +482,11 @@ static bool tracker_has_panic(const DebugScriptTrackerComp* tracker) {
   return false;
 }
 
-static void tracker_output_clear(DebugScriptTrackerComp* tracker) {
+static void tracker_output_clear(DevScriptTrackerComp* tracker) {
   dynarray_clear(&tracker->outputEntries);
 }
 
-static void tracker_prune_older(DebugScriptTrackerComp* tracker, const TimeReal timestamp) {
+static void tracker_prune_older(DevScriptTrackerComp* tracker, const TimeReal timestamp) {
   for (usize i = tracker->outputEntries.size; i-- != 0;) {
     if (dynarray_at_t(&tracker->outputEntries, i, DebugScriptOutput)->timestamp < timestamp) {
       dynarray_remove_unordered(&tracker->outputEntries, i, 1);
@@ -495,7 +495,7 @@ static void tracker_prune_older(DebugScriptTrackerComp* tracker, const TimeReal 
 }
 
 static void tracker_output_add(
-    DebugScriptTrackerComp*     tracker,
+    DevScriptTrackerComp*       tracker,
     const DebugScriptOutputType type,
     const EcsEntityId           entity,
     const TimeReal              time,
@@ -527,7 +527,7 @@ static void tracker_output_add(
 }
 
 static void tracker_asset_add(
-    DebugScriptTrackerComp* tracker,
+    DevScriptTrackerComp*   tracker,
     const EcsEntityId       entity,
     const String            id,
     const SceneScriptStats* stats) {
@@ -547,7 +547,7 @@ typedef enum {
 } TrackerQueryFlags;
 
 static void tracker_query(
-    DebugScriptTrackerComp* tracker,
+    DevScriptTrackerComp*   tracker,
     EcsIterator*            assetItr,
     EcsView*                subjectView,
     const TrackerQueryFlags flags) {
@@ -624,8 +624,8 @@ static UiColor output_entry_bg_color(const DebugScriptOutput* entry) {
   UNREACHABLE
 }
 
-static void output_options_draw(
-    UiCanvasComp* c, DebugScriptPanelComp* panelComp, DebugScriptTrackerComp* tracker) {
+static void
+output_options_draw(UiCanvasComp* c, DevScriptPanelComp* panelComp, DevScriptTrackerComp* tracker) {
   ui_layout_push(c);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
@@ -647,11 +647,11 @@ static void output_options_draw(
 }
 
 static void output_panel_tab_draw(
-    UiCanvasComp*           c,
-    DebugScriptPanelComp*   panelComp,
-    DebugScriptTrackerComp* tracker,
-    SceneSetEnvComp*        setEnv,
-    EcsIterator*            subjectItr) {
+    UiCanvasComp*         c,
+    DevScriptPanelComp*   panelComp,
+    DevScriptTrackerComp* tracker,
+    SceneSetEnvComp*      setEnv,
+    EcsIterator*          subjectItr) {
   output_options_draw(c, panelComp, tracker);
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
@@ -742,7 +742,7 @@ static void output_panel_tab_draw(
   ui_layout_container_pop(c);
 }
 
-static void global_options_draw(UiCanvasComp* c, DebugScriptTrackerComp* tracker) {
+static void global_options_draw(UiCanvasComp* c, DevScriptTrackerComp* tracker) {
   ui_layout_push(c);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
@@ -758,7 +758,7 @@ static void global_options_draw(UiCanvasComp* c, DebugScriptTrackerComp* tracker
 }
 
 static void global_panel_tab_draw(
-    UiCanvasComp* c, DebugScriptPanelComp* panelComp, DebugScriptTrackerComp* tracker) {
+    UiCanvasComp* c, DevScriptPanelComp* panelComp, DevScriptTrackerComp* tracker) {
   global_options_draw(c, tracker);
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
@@ -814,14 +814,14 @@ static void global_panel_tab_draw(
 }
 
 static void script_panel_draw(
-    EcsWorld*               world,
-    UiCanvasComp*           c,
-    DebugScriptPanelComp*   panelComp,
-    DebugScriptTrackerComp* tracker,
-    SceneSetEnvComp*        setEnv,
-    EcsIterator*            entityRefItr,
-    EcsIterator*            assetItr,
-    EcsIterator*            subjectItr) {
+    EcsWorld*             world,
+    UiCanvasComp*         c,
+    DevScriptPanelComp*   panelComp,
+    DevScriptTrackerComp* tracker,
+    SceneSetEnvComp*      setEnv,
+    EcsIterator*          entityRefItr,
+    EcsIterator*          assetItr,
+    EcsIterator*          subjectItr) {
   const String title = fmt_write_scratch("{} Script Panel", fmt_ui_shape(Description));
   ui_panel_begin(
       c,
@@ -858,11 +858,11 @@ static void script_panel_draw(
 }
 
 static void script_panel_draw_output_only(
-    UiCanvasComp*           c,
-    DebugScriptPanelComp*   panelComp,
-    DebugScriptTrackerComp* tracker,
-    SceneSetEnvComp*        setEnv,
-    EcsIterator*            subjectItr) {
+    UiCanvasComp*         c,
+    DevScriptPanelComp*   panelComp,
+    DevScriptTrackerComp* tracker,
+    SceneSetEnvComp*      setEnv,
+    EcsIterator*          subjectItr) {
   const String title = fmt_write_scratch("{} Script Output", fmt_ui_shape(Description));
   ui_panel_begin(c, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
@@ -872,20 +872,20 @@ static void script_panel_draw_output_only(
 }
 
 ecs_view_define(PanelUpdateGlobalView) {
-  ecs_access_maybe_write(DebugScriptTrackerComp);
+  ecs_access_maybe_write(DevScriptTrackerComp);
   ecs_access_read(AssetManagerComp);
   ecs_access_write(SceneSetEnvComp);
 }
 
 ecs_view_define(PanelUpdateView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // DebugScriptPanelComp's are exclusively managed here.
+  ecs_view_flags(EcsViewFlags_Exclusive); // DevScriptPanelComp's are exclusively managed here.
 
   ecs_access_read(DevPanelComp);
-  ecs_access_write(DebugScriptPanelComp);
+  ecs_access_write(DevScriptPanelComp);
   ecs_access_write(UiCanvasComp);
 }
 
-static void debug_editor_update(DebugScriptPanelComp* panelComp, const AssetManagerComp* assets) {
+static void debug_editor_update(DevScriptPanelComp* panelComp, const AssetManagerComp* assets) {
   if (panelComp->editorLaunch && !process_poll(panelComp->editorLaunch)) {
     const ProcessExitCode exitCode = process_block(panelComp->editorLaunch);
     if (exitCode != 0) {
@@ -922,8 +922,8 @@ static void debug_editor_update(DebugScriptPanelComp* panelComp, const AssetMana
 
 static bool dev_panel_needs_asset_query(EcsView* panelView) {
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    DebugScriptPanelComp* panelComp = ecs_view_write_t(itr, DebugScriptPanelComp);
-    const bool            pinned    = ui_panel_pinned(&panelComp->panel);
+    DevScriptPanelComp* panelComp = ecs_view_write_t(itr, DevScriptPanelComp);
+    const bool          pinned    = ui_panel_pinned(&panelComp->panel);
     if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       continue;
     }
@@ -940,7 +940,7 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  DebugScriptTrackerComp* tracker = ecs_view_write_t(globalItr, DebugScriptTrackerComp);
+  DevScriptTrackerComp* tracker = ecs_view_write_t(globalItr, DevScriptTrackerComp);
   if (!tracker) {
     tracker = tracker_create(world);
   }
@@ -973,8 +973,8 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
   }
 
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    DebugScriptPanelComp* panelComp = ecs_view_write_t(itr, DebugScriptPanelComp);
-    UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
+    DevScriptPanelComp* panelComp = ecs_view_write_t(itr, DevScriptPanelComp);
+    UiCanvasComp*       canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     debug_editor_update(panelComp, assetManager);
 
@@ -1036,8 +1036,8 @@ ecs_system_define(DebugScriptUpdateRaySys) {
 }
 
 ecs_module_init(debug_script_module) {
-  ecs_register_comp(DebugScriptTrackerComp, .destructor = ecs_destruct_script_tracker);
-  ecs_register_comp(DebugScriptPanelComp, .destructor = ecs_destroy_script_panel);
+  ecs_register_comp(DevScriptTrackerComp, .destructor = ecs_destruct_script_tracker);
+  ecs_register_comp(DevScriptPanelComp, .destructor = ecs_destroy_script_panel);
 
   ecs_register_view(SubjectView);
   ecs_register_view(EntityRefView);
@@ -1063,9 +1063,9 @@ ecs_module_init(debug_script_module) {
 
 EcsEntityId
 dev_script_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
-  const EcsEntityId     panelEntity = dev_panel_create(world, window, type);
-  DebugScriptPanelComp* scriptPanel = ecs_world_add_t(
-      world, panelEntity, DebugScriptPanelComp, .panel = ui_panel(.size = ui_vector(800, 600)));
+  const EcsEntityId   panelEntity = dev_panel_create(world, window, type);
+  DevScriptPanelComp* scriptPanel = ecs_world_add_t(
+      world, panelEntity, DevScriptPanelComp, .panel = ui_panel(.size = ui_vector(800, 600)));
 
   if (type == DevPanelType_Detached) {
     ui_panel_maximize(&scriptPanel->panel);
@@ -1075,11 +1075,11 @@ dev_script_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelT
 }
 
 EcsEntityId dev_script_panel_open_output(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId     panelEntity = dev_panel_create(world, window, DevPanelType_Normal);
-  DebugScriptPanelComp* scriptPanel = ecs_world_add_t(
+  const EcsEntityId   panelEntity = dev_panel_create(world, window, DevPanelType_Normal);
+  DevScriptPanelComp* scriptPanel = ecs_world_add_t(
       world,
       panelEntity,
-      DebugScriptPanelComp,
+      DevScriptPanelComp,
       .panel      = ui_panel(.size = ui_vector(800, 600)),
       .outputOnly = true);
 

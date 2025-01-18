@@ -178,7 +178,7 @@ typedef struct {
   GapWindowComp*          win;
   RendSettingsGlobalComp* rendSetGlobal;
   RendSettingsComp*       rendSetWin;
-  DebugStatsGlobalComp*   debugStats;
+  DevStatsGlobalComp*     debugStats;
 } AppActionContext;
 
 static void app_action_notify(const AppActionContext* ctx, const String action) {
@@ -442,11 +442,11 @@ ecs_view_define(AppUpdateGlobalView) {
   ecs_access_write(SceneTimeSettingsComp);
   ecs_access_write(SndMixerComp);
   ecs_access_write(SceneVisibilityEnvComp);
-  ecs_access_maybe_write(DebugStatsGlobalComp);
+  ecs_access_maybe_write(DevStatsGlobalComp);
 }
 
 ecs_view_define(MainWindowView) {
-  ecs_access_maybe_write(DebugStatsComp);
+  ecs_access_maybe_write(DevStatsComp);
   ecs_access_maybe_write(RendSettingsComp);
   ecs_access_write(AppMainWindowComp);
   ecs_access_write(GapWindowComp);
@@ -458,7 +458,7 @@ ecs_view_define(UiCanvasView) {
 }
 
 ecs_view_define(DevPanelView) { ecs_access_write(DevPanelComp); }
-ecs_view_define(DebugLogViewerView) { ecs_access_write(DebugLogViewerComp); }
+ecs_view_define(DebugLogViewerView) { ecs_access_write(DevLogViewerComp); }
 
 static void app_debug_hide(EcsWorld* world, const bool hidden) {
   EcsView* debugPanelView = ecs_world_view_t(world, DevPanelView);
@@ -484,7 +484,7 @@ ecs_system_define(AppUpdateSys) {
   SceneTimeSettingsComp*  timeSet       = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
   InputManagerComp*       input         = ecs_view_write_t(globalItr, InputManagerComp);
   SceneVisibilityEnvComp* visibilityEnv = ecs_view_write_t(globalItr, SceneVisibilityEnvComp);
-  DebugStatsGlobalComp*   debugStats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  DevStatsGlobalComp*     debugStats    = ecs_view_write_t(globalItr, DevStatsGlobalComp);
 
   EcsIterator* canvasItr         = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
   EcsIterator* debugLogViewerItr = ecs_view_itr(ecs_world_view_t(world, DebugLogViewerView));
@@ -495,7 +495,7 @@ ecs_system_define(AppUpdateSys) {
     const EcsEntityId  windowEntity = ecs_view_entity(mainWinItr);
     AppMainWindowComp* appWindow    = ecs_view_write_t(mainWinItr, AppMainWindowComp);
     GapWindowComp*     win          = ecs_view_write_t(mainWinItr, GapWindowComp);
-    DebugStatsComp*    stats        = ecs_view_write_t(mainWinItr, DebugStatsComp);
+    DevStatsComp*      stats        = ecs_view_write_t(mainWinItr, DevStatsComp);
     RendSettingsComp*  rendSetWin   = ecs_view_write_t(mainWinItr, RendSettingsComp);
 
     // Save last window size.
@@ -528,9 +528,9 @@ ecs_system_define(AppUpdateSys) {
           });
     }
 
-    DebugLogViewerComp* debugLogViewer = null;
+    DevLogViewerComp* debugLogViewer = null;
     if (ecs_view_maybe_jump(debugLogViewerItr, appWindow->debugLogViewer)) {
-      debugLogViewer = ecs_view_write_t(debugLogViewerItr, DebugLogViewerComp);
+      debugLogViewer = ecs_view_write_t(debugLogViewerItr, DevLogViewerComp);
     }
 
     // clang-format off

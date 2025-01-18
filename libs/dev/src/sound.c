@@ -35,7 +35,7 @@ static const String g_soundTabNames[] = {
 };
 ASSERT(array_elems(g_soundTabNames) == DebugSoundTab_Count, "Incorrect number of names");
 
-ecs_comp_define(DebugSoundPanelComp) {
+ecs_comp_define(DevSoundPanelComp) {
   UiPanel      panel;
   UiScrollview scrollview;
   DynString    nameFilter;
@@ -45,19 +45,19 @@ ecs_comp_define(DebugSoundPanelComp) {
 ecs_view_define(GlobalView) { ecs_access_write(SndMixerComp); }
 
 ecs_view_define(PanelUpdateView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // DebugSoundPanelComp's are exclusively managed here.
+  ecs_view_flags(EcsViewFlags_Exclusive); // DevSoundPanelComp's are exclusively managed here.
 
   ecs_access_read(DevPanelComp);
-  ecs_access_write(DebugSoundPanelComp);
+  ecs_access_write(DevSoundPanelComp);
   ecs_access_write(UiCanvasComp);
 }
 
 static void ecs_destruct_sound_panel(void* data) {
-  DebugSoundPanelComp* comp = data;
+  DevSoundPanelComp* comp = data;
   dynstring_destroy(&comp->nameFilter);
 }
 
-static bool sound_panel_filter(DebugSoundPanelComp* panelComp, const String name) {
+static bool sound_panel_filter(DevSoundPanelComp* panelComp, const String name) {
   if (string_is_empty(panelComp->nameFilter)) {
     return true;
   }
@@ -345,7 +345,7 @@ static void sound_mixer_draw(UiCanvasComp* c, SndMixerComp* m) {
   }
 }
 
-static void sound_objects_options_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp) {
+static void sound_objects_options_draw(UiCanvasComp* c, DevSoundPanelComp* panelComp) {
   ui_layout_push(c);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
@@ -360,7 +360,7 @@ static void sound_objects_options_draw(UiCanvasComp* c, DebugSoundPanelComp* pan
   ui_layout_pop(c);
 }
 
-static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, SndMixerComp* m) {
+static void sound_objects_draw(UiCanvasComp* c, DevSoundPanelComp* panelComp, SndMixerComp* m) {
   sound_objects_options_draw(c, panelComp);
   ui_layout_grow(c, UiAlign_BottomCenter, ui_vector(0, -35), UiBase_Absolute, Ui_Y);
   ui_layout_container_push(c, UiClip_None, UiLayer_Normal);
@@ -456,7 +456,7 @@ static void sound_objects_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, 
   ui_layout_container_pop(c);
 }
 
-static void sound_panel_draw(UiCanvasComp* c, DebugSoundPanelComp* panelComp, SndMixerComp* m) {
+static void sound_panel_draw(UiCanvasComp* c, DevSoundPanelComp* panelComp, SndMixerComp* m) {
   const String title = fmt_write_scratch("{} Sound Panel", fmt_ui_shape(MusicNote));
   ui_panel_begin(
       c,
@@ -488,9 +488,9 @@ ecs_system_define(DebugSoundUpdatePanelSys) {
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    const EcsEntityId    entity    = ecs_view_entity(itr);
-    DebugSoundPanelComp* panelComp = ecs_view_write_t(itr, DebugSoundPanelComp);
-    UiCanvasComp*        canvas    = ecs_view_write_t(itr, UiCanvasComp);
+    const EcsEntityId  entity    = ecs_view_entity(itr);
+    DevSoundPanelComp* panelComp = ecs_view_write_t(itr, DevSoundPanelComp);
+    UiCanvasComp*      canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
@@ -509,7 +509,7 @@ ecs_system_define(DebugSoundUpdatePanelSys) {
 }
 
 ecs_module_init(debug_sound_module) {
-  ecs_register_comp(DebugSoundPanelComp, .destructor = ecs_destruct_sound_panel);
+  ecs_register_comp(DevSoundPanelComp, .destructor = ecs_destruct_sound_panel);
 
   ecs_register_view(GlobalView);
   ecs_register_view(PanelUpdateView);
@@ -520,11 +520,11 @@ ecs_module_init(debug_sound_module) {
 
 EcsEntityId
 dev_sound_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
-  const EcsEntityId    panelEntity = dev_panel_create(world, window, type);
-  DebugSoundPanelComp* soundPanel  = ecs_world_add_t(
+  const EcsEntityId  panelEntity = dev_panel_create(world, window, type);
+  DevSoundPanelComp* soundPanel  = ecs_world_add_t(
       world,
       panelEntity,
-      DebugSoundPanelComp,
+      DevSoundPanelComp,
       .panel      = ui_panel(.size = ui_vector(800, 685)),
       .scrollview = ui_scrollview(),
       .nameFilter = dynstring_create(g_allocHeap, 32));

@@ -33,17 +33,17 @@ typedef struct {
   DynArray          ids;      // Strings[].
 } DebugFinderState;
 
-ecs_comp_define(DebugFinderComp) { DebugFinderState* states; };
+ecs_comp_define(DevFinderComp) { DebugFinderState* states; };
 
 ecs_view_define(GlobalView) {
   ecs_access_write(AssetManagerComp);
-  ecs_access_maybe_write(DebugFinderComp);
+  ecs_access_maybe_write(DevFinderComp);
 }
 
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 
 static void ecs_destruct_finder(void* data) {
-  DebugFinderComp* comp = data;
+  DevFinderComp* comp = data;
   for (DebugFinderCategory cat = 0; cat != DebugFinderCategory_Count; ++cat) {
     dynarray_destroy(&comp->states[cat].entities);
     dynarray_destroy(&comp->states[cat].ids);
@@ -51,9 +51,9 @@ static void ecs_destruct_finder(void* data) {
   alloc_free_array_t(g_allocHeap, comp->states, DebugFinderCategory_Count);
 }
 
-static DebugFinderComp* finder_init(EcsWorld* world, const EcsEntityId entity) {
-  DebugFinderComp* finder = ecs_world_add_t(world, entity, DebugFinderComp);
-  finder->states          = alloc_array_t(g_allocHeap, DebugFinderState, DebugFinderCategory_Count);
+static DevFinderComp* finder_init(EcsWorld* world, const EcsEntityId entity) {
+  DevFinderComp* finder = ecs_world_add_t(world, entity, DevFinderComp);
+  finder->states        = alloc_array_t(g_allocHeap, DebugFinderState, DebugFinderCategory_Count);
   for (DebugFinderCategory cat = 0; cat != DebugFinderCategory_Count; ++cat) {
     finder->states[cat] = (DebugFinderState){
         .entities = dynarray_create_t(g_allocHeap, EcsEntityId, 0),
@@ -70,7 +70,7 @@ ecs_system_define(DebugFinderUpdateSys) {
     return; // Global dependencies not ready.
   }
   AssetManagerComp* assets = ecs_view_write_t(globalItr, AssetManagerComp);
-  DebugFinderComp*  finder = ecs_view_write_t(globalItr, DebugFinderComp);
+  DevFinderComp*    finder = ecs_view_write_t(globalItr, DevFinderComp);
   if (!finder) {
     finder = finder_init(world, ecs_world_global(world));
   }
@@ -111,7 +111,7 @@ ecs_system_define(DebugFinderUpdateSys) {
 }
 
 ecs_module_init(debug_finder_module) {
-  ecs_register_comp(DebugFinderComp, .destructor = ecs_destruct_finder);
+  ecs_register_comp(DevFinderComp, .destructor = ecs_destruct_finder);
 
   ecs_register_view(GlobalView);
   ecs_register_view(AssetView);
@@ -119,8 +119,7 @@ ecs_module_init(debug_finder_module) {
   ecs_register_system(DebugFinderUpdateSys, ecs_view_id(GlobalView), ecs_view_id(AssetView));
 }
 
-void debug_finder_query(
-    DebugFinderComp* finder, const DebugFinderCategory cat, const bool refresh) {
+void debug_finder_query(DevFinderComp* finder, const DebugFinderCategory cat, const bool refresh) {
   diag_assert(cat < DebugFinderCategory_Count);
 
   DebugFinderState* state = &finder->states[cat];
@@ -138,7 +137,7 @@ void debug_finder_query(
   }
 }
 
-DebugFinderResult debug_finder_get(DebugFinderComp* finder, const DebugFinderCategory cat) {
+DebugFinderResult debug_finder_get(DevFinderComp* finder, const DebugFinderCategory cat) {
   diag_assert(cat < DebugFinderCategory_Count);
 
   DebugFinderState* state = &finder->states[cat];

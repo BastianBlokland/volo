@@ -15,31 +15,31 @@
 #include "ui_table.h"
 #include "ui_widget.h"
 
-ecs_comp_define(DebugTimePanelComp) { UiPanel panel; };
+ecs_comp_define(DevTimePanelComp) { UiPanel panel; };
 
 ecs_view_define(GlobalView) {
   ecs_access_read(InputManagerComp);
   ecs_access_read(SceneTimeComp);
-  ecs_access_write(DebugStatsGlobalComp);
+  ecs_access_write(DevStatsGlobalComp);
   ecs_access_write(SceneTimeSettingsComp);
 }
 
 ecs_view_define(PanelUpdateView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // DebugTimePanelComp's are exclusively managed here.
+  ecs_view_flags(EcsViewFlags_Exclusive); // DevTimePanelComp's are exclusively managed here.
 
   ecs_access_read(DevPanelComp);
-  ecs_access_write(DebugTimePanelComp);
+  ecs_access_write(DevTimePanelComp);
   ecs_access_write(UiCanvasComp);
 }
 
-static void debug_time_notify_scale(DebugStatsGlobalComp* stats, const f32 timeScale) {
+static void debug_time_notify_scale(DevStatsGlobalComp* stats, const f32 timeScale) {
   debug_stats_notify(
       stats,
       string_lit("Time scale"),
       fmt_write_scratch("{}", fmt_float(timeScale, .maxDecDigits = 2, .expThresholdNeg = 0)));
 }
 
-static void debug_time_notify_pause(DebugStatsGlobalComp* stats, const bool pause) {
+static void debug_time_notify_pause(DevStatsGlobalComp* stats, const bool pause) {
   debug_stats_notify(stats, string_lit("Time pause"), fmt_write_scratch("{}", fmt_bool(pause)));
 }
 
@@ -68,8 +68,8 @@ static void time_panel_stat_dur(
 
 static void time_panel_draw(
     UiCanvasComp*          canvas,
-    DebugStatsGlobalComp*  stats,
-    DebugTimePanelComp*    panelComp,
+    DevStatsGlobalComp*    stats,
+    DevTimePanelComp*      panelComp,
     const SceneTimeComp*   time,
     SceneTimeSettingsComp* timeSettings) {
   const String title = fmt_write_scratch("{} Time Panel", fmt_ui_shape(Timer));
@@ -139,7 +139,7 @@ ecs_system_define(DebugTimeUpdateSys) {
   if (!globalItr) {
     return;
   }
-  DebugStatsGlobalComp*   stats        = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  DevStatsGlobalComp*     stats        = ecs_view_write_t(globalItr, DevStatsGlobalComp);
   const InputManagerComp* input        = ecs_view_read_t(globalItr, InputManagerComp);
   const SceneTimeComp*    time         = ecs_view_read_t(globalItr, SceneTimeComp);
   SceneTimeSettingsComp*  timeSettings = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
@@ -166,8 +166,8 @@ ecs_system_define(DebugTimeUpdateSys) {
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    DebugTimePanelComp* panelComp = ecs_view_write_t(itr, DebugTimePanelComp);
-    UiCanvasComp*       canvas    = ecs_view_write_t(itr, UiCanvasComp);
+    DevTimePanelComp* panelComp = ecs_view_write_t(itr, DevTimePanelComp);
+    UiCanvasComp*     canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
@@ -186,7 +186,7 @@ ecs_system_define(DebugTimeUpdateSys) {
 }
 
 ecs_module_init(debug_time_module) {
-  ecs_register_comp(DebugTimePanelComp);
+  ecs_register_comp(DevTimePanelComp);
 
   ecs_register_view(GlobalView);
   ecs_register_view(PanelUpdateView);
@@ -196,11 +196,11 @@ ecs_module_init(debug_time_module) {
 
 EcsEntityId
 dev_time_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
-  const EcsEntityId   panelEntity = dev_panel_create(world, window, type);
-  DebugTimePanelComp* timePanel   = ecs_world_add_t(
+  const EcsEntityId panelEntity = dev_panel_create(world, window, type);
+  DevTimePanelComp* timePanel   = ecs_world_add_t(
       world,
       panelEntity,
-      DebugTimePanelComp,
+      DevTimePanelComp,
       .panel = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 250)));
 
   if (type == DevPanelType_Detached) {

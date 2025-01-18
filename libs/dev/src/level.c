@@ -65,7 +65,7 @@ static const String g_levelFogNames[] = {
 };
 ASSERT(array_elems(g_levelFogNames) == AssetLevelFog_Count, "Incorrect number of names");
 
-ecs_comp_define(DebugLevelPanelComp) {
+ecs_comp_define(DevLevelPanelComp) {
   DebugLevelFlags flags;
   EcsEntityId     window;
   DynString       idFilter;
@@ -76,7 +76,7 @@ ecs_comp_define(DebugLevelPanelComp) {
 };
 
 static void ecs_destruct_level_panel(void* data) {
-  DebugLevelPanelComp* comp = data;
+  DevLevelPanelComp* comp = data;
   dynstring_destroy(&comp->idFilter);
   dynstring_destroy(&comp->nameBuffer);
 }
@@ -88,9 +88,9 @@ ecs_view_define(CameraView) {
 
 typedef struct {
   EcsWorld*                 world;
-  DebugLevelPanelComp*      panelComp;
+  DevLevelPanelComp*        panelComp;
   SceneLevelManagerComp*    levelManager;
-  DebugFinderComp*          finder;
+  DevFinderComp*            finder;
   const SceneTransformComp* cameraTrans;
 } DebugLevelContext;
 
@@ -311,15 +311,15 @@ static void level_panel_draw(UiCanvasComp* c, DebugLevelContext* ctx) {
 
 ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_read(InputManagerComp);
-  ecs_access_write(DebugFinderComp);
+  ecs_access_write(DevFinderComp);
   ecs_access_write(SceneLevelManagerComp);
 }
 
 ecs_view_define(PanelUpdateView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // DebugLevelPanelComp's are exclusively managed here.
+  ecs_view_flags(EcsViewFlags_Exclusive); // DevLevelPanelComp's are exclusively managed here.
 
   ecs_access_read(DevPanelComp);
-  ecs_access_write(DebugLevelPanelComp);
+  ecs_access_write(DevLevelPanelComp);
   ecs_access_write(UiCanvasComp);
 }
 
@@ -330,7 +330,7 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
     return;
   }
   SceneLevelManagerComp*  levelManager = ecs_view_write_t(globalItr, SceneLevelManagerComp);
-  DebugFinderComp*        finder       = ecs_view_write_t(globalItr, DebugFinderComp);
+  DevFinderComp*          finder       = ecs_view_write_t(globalItr, DevFinderComp);
   const InputManagerComp* input        = ecs_view_read_t(globalItr, InputManagerComp);
 
   EcsView* cameraView = ecs_world_view_t(world, CameraView);
@@ -347,8 +347,8 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
 
   EcsIterator* cameraItr = ecs_view_itr(cameraView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    DebugLevelPanelComp* panelComp = ecs_view_write_t(itr, DebugLevelPanelComp);
-    UiCanvasComp*        canvas    = ecs_view_write_t(itr, UiCanvasComp);
+    DevLevelPanelComp* panelComp = ecs_view_write_t(itr, DevLevelPanelComp);
+    UiCanvasComp*      canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     DebugLevelContext ctx = {
         .world        = world,
@@ -398,7 +398,7 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
 }
 
 ecs_module_init(debug_level_module) {
-  ecs_register_comp(DebugLevelPanelComp, .destructor = ecs_destruct_level_panel);
+  ecs_register_comp(DevLevelPanelComp, .destructor = ecs_destruct_level_panel);
 
   ecs_register_view(CameraView);
   ecs_register_view(PanelUpdateGlobalView);
@@ -413,11 +413,11 @@ ecs_module_init(debug_level_module) {
 
 EcsEntityId
 dev_level_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
-  const EcsEntityId    panelEntity = dev_panel_create(world, window, type);
-  DebugLevelPanelComp* levelPanel  = ecs_world_add_t(
+  const EcsEntityId  panelEntity = dev_panel_create(world, window, type);
+  DevLevelPanelComp* levelPanel  = ecs_world_add_t(
       world,
       panelEntity,
-      DebugLevelPanelComp,
+      DevLevelPanelComp,
       .flags      = DebugLevelFlags_Default,
       .window     = window,
       .idFilter   = dynstring_create(g_allocHeap, 32),

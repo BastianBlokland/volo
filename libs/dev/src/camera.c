@@ -42,16 +42,16 @@ static const String g_projectionNames[] = {
     string_static("Orthographic"),
 };
 
-ecs_comp_define(DebugCameraPanelComp) {
+ecs_comp_define(DevCameraPanelComp) {
   UiPanel     panel;
   EcsEntityId window;
 };
 
 ecs_view_define(PanelUpdateView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // DebugCameraPanelComp's are exclusively managed here.
+  ecs_view_flags(EcsViewFlags_Exclusive); // DevCameraPanelComp's are exclusively managed here.
 
   ecs_access_read(DevPanelComp);
-  ecs_access_write(DebugCameraPanelComp);
+  ecs_access_write(DevCameraPanelComp);
   ecs_access_write(UiCanvasComp);
 }
 
@@ -133,10 +133,10 @@ camera_panel_draw_filters(UiCanvasComp* canvas, UiTable* table, SceneCameraComp*
 }
 
 static void camera_panel_draw(
-    UiCanvasComp*         canvas,
-    DebugCameraPanelComp* panelComp,
-    SceneCameraComp*      camera,
-    SceneTransformComp*   transform) {
+    UiCanvasComp*       canvas,
+    DevCameraPanelComp* panelComp,
+    SceneCameraComp*    camera,
+    SceneTransformComp* transform) {
   const String title = fmt_write_scratch("{} Camera Panel", fmt_ui_shape(PhotoCamera));
   ui_panel_begin(
       canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
@@ -203,8 +203,8 @@ ecs_system_define(DebugCameraUpdatePanelSys) {
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    DebugCameraPanelComp* panelComp = ecs_view_write_t(itr, DebugCameraPanelComp);
-    UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
+    DevCameraPanelComp* panelComp = ecs_view_write_t(itr, DevCameraPanelComp);
+    UiCanvasComp*       canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ecs_view_itr_reset(cameraItr);
 
@@ -234,9 +234,9 @@ ecs_system_define(DebugCameraUpdatePanelSys) {
 ecs_view_define(GlobalDrawView) {
   ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneTerrainComp);
-  ecs_access_write(DebugGizmoComp);
-  ecs_access_write(DebugShapeComp);
-  ecs_access_write(DebugTextComp);
+  ecs_access_write(DevGizmoComp);
+  ecs_access_write(DevShapeComp);
+  ecs_access_write(DevTextComp);
 }
 
 ecs_view_define(DrawView) {
@@ -249,7 +249,7 @@ ecs_view_define(DrawView) {
 ecs_view_define(NameView) { ecs_access_read(SceneNameComp); }
 
 static void debug_camera_draw_frustum(
-    DebugShapeComp*           shape,
+    DevShapeComp*             shape,
     const SceneCameraComp*    cam,
     const SceneTransformComp* trans,
     const f32                 aspect) {
@@ -271,8 +271,8 @@ static void debug_camera_draw_frustum(
 }
 
 static void debug_camera_draw_input_ray(
-    DebugShapeComp*              shape,
-    DebugTextComp*               text,
+    DevShapeComp*                shape,
+    DevTextComp*                 text,
     const SceneTerrainComp*      terrain,
     const SceneCollisionEnvComp* collisionEnv,
     EcsView*                     nameView,
@@ -326,9 +326,9 @@ ecs_system_define(DebugCameraDrawSys) {
   }
   const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
   const SceneTerrainComp*      terrain      = ecs_view_read_t(globalItr, SceneTerrainComp);
-  DebugShapeComp*              shape        = ecs_view_write_t(globalItr, DebugShapeComp);
-  DebugTextComp*               text         = ecs_view_write_t(globalItr, DebugTextComp);
-  DebugGizmoComp*              gizmo        = ecs_view_write_t(globalItr, DebugGizmoComp);
+  DevShapeComp*                shape        = ecs_view_write_t(globalItr, DevShapeComp);
+  DevTextComp*                 text         = ecs_view_write_t(globalItr, DevTextComp);
+  DevGizmoComp*                gizmo        = ecs_view_write_t(globalItr, DevGizmoComp);
 
   EcsView* nameView = ecs_world_view_t(world, NameView);
   EcsView* drawView = ecs_world_view_t(world, DrawView);
@@ -365,7 +365,7 @@ ecs_system_define(DebugCameraDrawSys) {
 }
 
 ecs_module_init(debug_camera_module) {
-  ecs_register_comp(DebugCameraPanelComp);
+  ecs_register_comp(DevCameraPanelComp);
 
   ecs_register_view(PanelUpdateView);
   ecs_register_view(CameraView);
@@ -387,11 +387,11 @@ ecs_module_init(debug_camera_module) {
 
 EcsEntityId
 dev_camera_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
-  const EcsEntityId     panelEntity = dev_panel_create(world, window, type);
-  DebugCameraPanelComp* cameraPanel = ecs_world_add_t(
+  const EcsEntityId   panelEntity = dev_panel_create(world, window, type);
+  DevCameraPanelComp* cameraPanel = ecs_world_add_t(
       world,
       panelEntity,
-      DebugCameraPanelComp,
+      DevCameraPanelComp,
       .panel  = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 400)),
       .window = window);
 

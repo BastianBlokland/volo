@@ -51,7 +51,7 @@ typedef struct {
   i32         stats[VfxStat_Count];
 } DebugVfxInfo;
 
-ecs_comp_define(DebugVfxPanelComp) {
+ecs_comp_define(DevVfxPanelComp) {
   UiPanel      panel;
   UiScrollview scrollview;
   bool         freeze;
@@ -61,7 +61,7 @@ ecs_comp_define(DebugVfxPanelComp) {
 };
 
 static void ecs_destruct_vfx_panel(void* data) {
-  DebugVfxPanelComp* comp = data;
+  DevVfxPanelComp* comp = data;
   dynstring_destroy(&comp->filter);
   dynarray_destroy(&comp->objects);
 }
@@ -77,10 +77,10 @@ ecs_view_define(VfxObjView) {
 ecs_view_define(PanelUpdateGlobalView) { ecs_access_write(SceneSetEnvComp); }
 
 ecs_view_define(PanelUpdateView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // DebugVfxPanelComp's are exclusively managed here.
+  ecs_view_flags(EcsViewFlags_Exclusive); // DevVfxPanelComp's are exclusively managed here.
 
   ecs_access_read(DevPanelComp);
-  ecs_access_write(DebugVfxPanelComp);
+  ecs_access_write(DevVfxPanelComp);
   ecs_access_write(UiCanvasComp);
 }
 
@@ -105,7 +105,7 @@ static i8 comp_compare_info_stamps(const void* a, const void* b) {
   return comp_compare_info_stat(a, b, VfxStat_StampCount);
 }
 
-static bool vfx_panel_filter(DebugVfxPanelComp* panelComp, const String name, const EcsEntityId e) {
+static bool vfx_panel_filter(DevVfxPanelComp* panelComp, const String name, const EcsEntityId e) {
   if (string_is_empty(panelComp->filter)) {
     return true;
   }
@@ -129,7 +129,7 @@ static void vfx_info_stats_add(DebugVfxInfo* info, const VfxStatSet* set) {
   }
 }
 
-static void vfx_info_query(DebugVfxPanelComp* panelComp, EcsWorld* world) {
+static void vfx_info_query(DevVfxPanelComp* panelComp, EcsWorld* world) {
   if (!panelComp->freeze) {
     dynarray_clear(&panelComp->objects);
 
@@ -176,7 +176,7 @@ static void vfx_info_query(DebugVfxPanelComp* panelComp, EcsWorld* world) {
   }
 }
 
-static void vfx_options_draw(UiCanvasComp* canvas, DebugVfxPanelComp* panelComp) {
+static void vfx_options_draw(UiCanvasComp* canvas, DevVfxPanelComp* panelComp) {
   ui_layout_push(canvas);
   ui_style_push(canvas);
 
@@ -215,7 +215,7 @@ static void vfx_options_draw(UiCanvasComp* canvas, DebugVfxPanelComp* panelComp)
 }
 
 static void
-vfx_panel_draw(UiCanvasComp* canvas, DebugVfxPanelComp* panelComp, SceneSetEnvComp* setEnv) {
+vfx_panel_draw(UiCanvasComp* canvas, DevVfxPanelComp* panelComp, SceneSetEnvComp* setEnv) {
   const String title = fmt_write_scratch("{} Vfx Panel", fmt_ui_shape(Diamond));
   ui_panel_begin(
       canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
@@ -297,9 +297,9 @@ ecs_system_define(DebugVfxUpdatePanelSys) {
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    const EcsEntityId  entity    = ecs_view_entity(itr);
-    DebugVfxPanelComp* panelComp = ecs_view_write_t(itr, DebugVfxPanelComp);
-    UiCanvasComp*      canvas    = ecs_view_write_t(itr, UiCanvasComp);
+    const EcsEntityId entity    = ecs_view_entity(itr);
+    DevVfxPanelComp*  panelComp = ecs_view_write_t(itr, DevVfxPanelComp);
+    UiCanvasComp*     canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
@@ -319,7 +319,7 @@ ecs_system_define(DebugVfxUpdatePanelSys) {
 }
 
 ecs_module_init(debug_vfx_module) {
-  ecs_register_comp(DebugVfxPanelComp, .destructor = ecs_destruct_vfx_panel);
+  ecs_register_comp(DevVfxPanelComp, .destructor = ecs_destruct_vfx_panel);
 
   ecs_register_view(VfxObjView);
   ecs_register_view(PanelUpdateGlobalView);
@@ -333,11 +333,11 @@ ecs_module_init(debug_vfx_module) {
 }
 
 EcsEntityId dev_vfx_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
-  const EcsEntityId  panelEntity = dev_panel_create(world, window, type);
-  DebugVfxPanelComp* vfxPanel    = ecs_world_add_t(
+  const EcsEntityId panelEntity = dev_panel_create(world, window, type);
+  DevVfxPanelComp*  vfxPanel    = ecs_world_add_t(
       world,
       panelEntity,
-      DebugVfxPanelComp,
+      DevVfxPanelComp,
       .panel      = ui_panel(.size = ui_vector(850, 500)),
       .scrollview = ui_scrollview(),
       .filter     = dynstring_create(g_allocHeap, 32),

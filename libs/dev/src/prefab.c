@@ -61,9 +61,9 @@ typedef enum {
       PrefabCreateFlags_AutoSelect | PrefabCreateFlags_SnapTerrain | PrefabCreateFlags_SnapGeo
 } PrefabCreateFlags;
 
-ecs_comp_define(DebugPrefabPreviewComp);
+ecs_comp_define(DevPrefabPreviewComp);
 
-ecs_comp_define(DebugPrefabPanelComp) {
+ecs_comp_define(DevPrefabPanelComp) {
   PrefabPanelMode   mode;
   PrefabCreateFlags createFlags;
   StringHash        createPrefabId;
@@ -78,7 +78,7 @@ ecs_comp_define(DebugPrefabPanelComp) {
 };
 
 static void ecs_destruct_prefab_panel(void* data) {
-  DebugPrefabPanelComp* comp = data;
+  DevPrefabPanelComp* comp = data;
   dynstring_destroy(&comp->idFilter);
 }
 
@@ -88,10 +88,10 @@ typedef struct {
   const SceneLevelManagerComp* levelManager;
   const SceneCollisionEnvComp* collision;
   const SceneTerrainComp*      terrain;
-  DebugPrefabPanelComp*        panelComp;
+  DevPrefabPanelComp*          panelComp;
   const InputManagerComp*      input;
-  DebugShapeComp*              shape;
-  DebugStatsGlobalComp*        globalStats;
+  DevShapeComp*                shape;
+  DevStatsGlobalComp*          globalStats;
   SceneSetEnvComp*             setEnv;
 } PrefabPanelContext;
 
@@ -106,7 +106,7 @@ ecs_view_define(PrefabPreviewView) {
 ecs_view_define(CameraView) {
   ecs_access_read(SceneCameraComp);
   ecs_access_read(SceneTransformComp);
-  ecs_access_maybe_read(DebugGridComp);
+  ecs_access_maybe_read(DevGridComp);
 }
 
 static bool prefab_filter(const PrefabPanelContext* ctx, const String prefabName) {
@@ -205,7 +205,7 @@ static void prefab_create_preview(const PrefabPanelContext* ctx, const GeoVector
           .scale    = ctx->panelComp->createScale,
       });
 
-  ecs_world_add_empty_t(ctx->world, ctx->panelComp->createPreview, DebugPrefabPreviewComp);
+  ecs_world_add_empty_t(ctx->world, ctx->panelComp->createPreview, DevPrefabPreviewComp);
 }
 
 static void prefab_create_preview_stop(const PrefabPanelContext* ctx) {
@@ -280,7 +280,7 @@ static void prefab_create_accept(const PrefabPanelContext* ctx, const GeoVector 
 static bool prefab_create_pos(const PrefabPanelContext* ctx, EcsIterator* camItr, GeoVector* out) {
   const SceneCameraComp*    camera      = ecs_view_read_t(camItr, SceneCameraComp);
   const SceneTransformComp* cameraTrans = ecs_view_read_t(camItr, SceneTransformComp);
-  const DebugGridComp*      debugGrid   = ecs_view_read_t(camItr, DebugGridComp);
+  const DevGridComp*        debugGrid   = ecs_view_read_t(camItr, DevGridComp);
 
   const GeoVector inputNormPos = geo_vector(input_cursor_x(ctx->input), input_cursor_y(ctx->input));
   const f32       inputAspect  = input_cursor_aspect(ctx->input);
@@ -581,17 +581,17 @@ ecs_view_define(PanelUpdateGlobalView) {
   ecs_access_read(SceneLevelManagerComp);
   ecs_access_read(ScenePrefabEnvComp);
   ecs_access_read(SceneTerrainComp);
-  ecs_access_write(DebugShapeComp);
-  ecs_access_write(DebugStatsGlobalComp);
+  ecs_access_write(DevShapeComp);
+  ecs_access_write(DevStatsGlobalComp);
   ecs_access_write(InputManagerComp);
   ecs_access_write(SceneSetEnvComp);
 }
 
 ecs_view_define(PanelUpdateView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // DebugPrefabPanelComp's are exclusively managed here.
+  ecs_view_flags(EcsViewFlags_Exclusive); // DevPrefabPanelComp's are exclusively managed here.
 
   ecs_access_read(DevPanelComp);
-  ecs_access_write(DebugPrefabPanelComp);
+  ecs_access_write(DevPrefabPanelComp);
   ecs_access_write(UiCanvasComp);
 }
 
@@ -618,8 +618,8 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    DebugPrefabPanelComp* panelComp = ecs_view_write_t(itr, DebugPrefabPanelComp);
-    UiCanvasComp*         canvas    = ecs_view_write_t(itr, UiCanvasComp);
+    DevPrefabPanelComp* panelComp = ecs_view_write_t(itr, DevPrefabPanelComp);
+    UiCanvasComp*       canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     const PrefabPanelContext ctx = {
         .world        = world,
@@ -629,8 +629,8 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
         .terrain      = terrain,
         .panelComp    = panelComp,
         .input        = input,
-        .shape        = ecs_view_write_t(globalItr, DebugShapeComp),
-        .globalStats  = ecs_view_write_t(globalItr, DebugStatsGlobalComp),
+        .shape        = ecs_view_write_t(globalItr, DevShapeComp),
+        .globalStats  = ecs_view_write_t(globalItr, DevStatsGlobalComp),
         .setEnv       = ecs_view_write_t(globalItr, SceneSetEnvComp),
     };
 
@@ -667,8 +667,8 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
 }
 
 ecs_module_init(debug_prefab_module) {
-  ecs_register_comp(DebugPrefabPanelComp, .destructor = ecs_destruct_prefab_panel);
-  ecs_register_comp_empty(DebugPrefabPreviewComp);
+  ecs_register_comp(DevPrefabPanelComp, .destructor = ecs_destruct_prefab_panel);
+  ecs_register_comp_empty(DevPrefabPreviewComp);
 
   ecs_register_view(PrefabMapView);
   ecs_register_view(PrefabInstanceView);
@@ -689,11 +689,11 @@ ecs_module_init(debug_prefab_module) {
 
 EcsEntityId
 dev_prefab_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
-  const EcsEntityId     panelEntity = dev_panel_create(world, window, type);
-  DebugPrefabPanelComp* prefabPanel = ecs_world_add_t(
+  const EcsEntityId   panelEntity = dev_panel_create(world, window, type);
+  DevPrefabPanelComp* prefabPanel = ecs_world_add_t(
       world,
       panelEntity,
-      DebugPrefabPanelComp,
+      DevPrefabPanelComp,
       .mode          = PrefabPanelMode_Normal,
       .createFlags   = PrefabCreateFlags_Default,
       .createFaction = SceneFaction_A,

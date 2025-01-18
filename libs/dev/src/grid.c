@@ -55,7 +55,7 @@ typedef struct {
 ASSERT(sizeof(DebugGridData) == 16, "Size needs to match the size defined in glsl");
 ASSERT(alignof(DebugGridData) == 16, "Alignment needs to match the glsl alignment");
 
-ecs_comp_define(DebugGridComp) {
+ecs_comp_define(DevGridComp) {
   EcsEntityId    rendObjEntity;
   DebugGridFlags flags;
   f32            cellSize;
@@ -63,7 +63,7 @@ ecs_comp_define(DebugGridComp) {
   f32            highlightInterval;
 };
 
-ecs_comp_define(DebugGridPanelComp) {
+ecs_comp_define(DevGridPanelComp) {
   UiPanel     panel;
   EcsEntityId window;
 };
@@ -73,11 +73,11 @@ ecs_view_define(GlobalAssetsView) { ecs_access_write(AssetManagerComp); }
 ecs_view_define(GridCreateView) {
   ecs_access_with(GapWindowComp);
   ecs_access_with(SceneCameraComp);
-  ecs_access_without(DebugGridComp);
+  ecs_access_without(DevGridComp);
 }
 
-ecs_view_define(GridReadView) { ecs_access_read(DebugGridComp); }
-ecs_view_define(GridWriteView) { ecs_access_write(DebugGridComp); }
+ecs_view_define(GridReadView) { ecs_access_read(DevGridComp); }
+ecs_view_define(GridWriteView) { ecs_access_write(DevGridComp); }
 ecs_view_define(DrawGlobalView) { ecs_access_read(SceneTerrainComp); }
 ecs_view_define(DrawRendObjView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // Only access the render objects we create.
@@ -88,14 +88,14 @@ ecs_view_define(TransformReadView) { ecs_access_read(SceneTransformComp); }
 ecs_view_define(UpdateGlobalView) {
   ecs_access_read(InputManagerComp);
   ecs_access_read(SceneSetEnvComp);
-  ecs_access_write(DebugStatsGlobalComp);
+  ecs_access_write(DevStatsGlobalComp);
 }
 
 ecs_view_define(UpdateView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // DebugGridPanelComp's are exclusively managed here.
+  ecs_view_flags(EcsViewFlags_Exclusive); // DevGridPanelComp's are exclusively managed here.
 
   ecs_access_read(DevPanelComp);
-  ecs_access_write(DebugGridPanelComp);
+  ecs_access_write(DevGridPanelComp);
   ecs_access_write(UiCanvasComp);
 }
 
@@ -120,7 +120,7 @@ static void debug_grid_create(EcsWorld* world, const EcsEntityId entity, AssetMa
   ecs_world_add_t(
       world,
       entity,
-      DebugGridComp,
+      DevGridComp,
       .flags             = DebugGridFlags_Default,
       .rendObjEntity     = rendObjEntity,
       .height            = g_gridDefaultHeight,
@@ -153,7 +153,7 @@ ecs_system_define(DebugGridDrawSys) {
 
   EcsView* gridView = ecs_world_view_t(world, GridReadView);
   for (EcsIterator* itr = ecs_view_itr(gridView); ecs_view_walk(itr);) {
-    const DebugGridComp* grid = ecs_view_read_t(itr, DebugGridComp);
+    const DevGridComp* grid = ecs_view_read_t(itr, DevGridComp);
     if (!(grid->flags & DebugGridFlags_Draw)) {
       continue;
     }
@@ -176,18 +176,18 @@ ecs_system_define(DebugGridDrawSys) {
   }
 }
 
-static void grid_notify_show(DebugStatsGlobalComp* stats, const bool show) {
+static void grid_notify_show(DevStatsGlobalComp* stats, const bool show) {
   debug_stats_notify(stats, string_lit("Grid show"), fmt_write_scratch("{}", fmt_bool(show)));
 }
 
-static void grid_notify_cell_size(DebugStatsGlobalComp* stats, const f32 cellSize) {
+static void grid_notify_cell_size(DevStatsGlobalComp* stats, const f32 cellSize) {
   debug_stats_notify(
       stats,
       string_lit("Grid size"),
       fmt_write_scratch("{}", fmt_float(cellSize, .maxDecDigits = 4, .expThresholdNeg = 0)));
 }
 
-static void grid_notify_height(DebugStatsGlobalComp* stats, const f32 height) {
+static void grid_notify_height(DevStatsGlobalComp* stats, const f32 height) {
   debug_stats_notify(
       stats,
       string_lit("Grid height"),
@@ -195,10 +195,10 @@ static void grid_notify_height(DebugStatsGlobalComp* stats, const f32 height) {
 }
 
 static void grid_panel_draw(
-    UiCanvasComp*         canvas,
-    DebugStatsGlobalComp* stats,
-    DebugGridPanelComp*   panelComp,
-    DebugGridComp*        grid) {
+    UiCanvasComp*       canvas,
+    DevStatsGlobalComp* stats,
+    DevGridPanelComp*   panelComp,
+    DevGridComp*        grid) {
   const String title = fmt_write_scratch("{} Grid Panel", fmt_ui_shape(Grid4x4));
   ui_panel_begin(
       canvas, &panelComp->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
@@ -279,7 +279,7 @@ ecs_system_define(DebugGridUpdateSys) {
   if (!globalItr) {
     return;
   }
-  DebugStatsGlobalComp*   stats  = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  DevStatsGlobalComp*     stats  = ecs_view_write_t(globalItr, DevStatsGlobalComp);
   const InputManagerComp* input  = ecs_view_read_t(globalItr, InputManagerComp);
   const SceneSetEnvComp*  setEnv = ecs_view_read_t(globalItr, SceneSetEnvComp);
 
@@ -287,7 +287,7 @@ ecs_system_define(DebugGridUpdateSys) {
 
   EcsIterator* gridItr = ecs_view_itr(ecs_world_view_t(world, GridWriteView));
   if (ecs_view_maybe_jump(gridItr, input_active_window(input))) {
-    DebugGridComp* grid = ecs_view_write_t(gridItr, DebugGridComp);
+    DevGridComp* grid = ecs_view_write_t(gridItr, DevGridComp);
     if (grid->flags & DebugGridFlags_HeightAuto) {
       grid->height = debug_selection_height(setEnv, transformView);
     }
@@ -309,7 +309,7 @@ ecs_system_define(DebugGridUpdateSys) {
 
   // NOTE: Enable grid draw when requested and when in debug mode.
   for (EcsIterator* itr = ecs_view_itr_reset(gridItr); ecs_view_walk(itr);) {
-    DebugGridComp* grid = ecs_view_write_t(itr, DebugGridComp);
+    DevGridComp* grid = ecs_view_write_t(itr, DevGridComp);
     if (grid->flags & DebugGridFlags_Show && input_layer_active(input, string_hash_lit("Debug"))) {
       grid->flags |= DebugGridFlags_Draw;
     } else {
@@ -319,8 +319,8 @@ ecs_system_define(DebugGridUpdateSys) {
 
   EcsView* panelView = ecs_world_view_t(world, UpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    DebugGridPanelComp* panelComp = ecs_view_write_t(itr, DebugGridPanelComp);
-    UiCanvasComp*       canvas    = ecs_view_write_t(itr, UiCanvasComp);
+    DevGridPanelComp* panelComp = ecs_view_write_t(itr, DevGridPanelComp);
+    UiCanvasComp*     canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ecs_view_itr_reset(gridItr);
 
@@ -328,7 +328,7 @@ ecs_system_define(DebugGridUpdateSys) {
     if (!ecs_view_maybe_jump(gridItr, panelComp->window) && !ecs_view_walk(gridItr)) {
       continue; // No grid found.
     }
-    DebugGridComp* grid = ecs_view_write_t(gridItr, DebugGridComp);
+    DevGridComp* grid = ecs_view_write_t(gridItr, DevGridComp);
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
@@ -347,8 +347,8 @@ ecs_system_define(DebugGridUpdateSys) {
 }
 
 ecs_module_init(debug_grid_module) {
-  ecs_register_comp(DebugGridComp);
-  ecs_register_comp(DebugGridPanelComp);
+  ecs_register_comp(DevGridComp);
+  ecs_register_comp(DevGridPanelComp);
 
   ecs_register_view(GlobalAssetsView);
   ecs_register_view(GridCreateView);
@@ -377,17 +377,17 @@ ecs_module_init(debug_grid_module) {
       ecs_view_id(TransformReadView));
 }
 
-void debug_grid_show(DebugGridComp* comp, const f32 height) {
+void debug_grid_show(DevGridComp* comp, const f32 height) {
   comp->flags |= DebugGridFlags_Show;
   comp->height = height;
 }
 
-void debug_grid_snap(const DebugGridComp* comp, GeoVector* position) {
+void debug_grid_snap(const DevGridComp* comp, GeoVector* position) {
   debug_grid_snap_axis(comp, position, 0 /* X */);
   debug_grid_snap_axis(comp, position, 2 /* Z */);
 }
 
-void debug_grid_snap_axis(const DebugGridComp* comp, GeoVector* position, const u8 axis) {
+void debug_grid_snap_axis(const DevGridComp* comp, GeoVector* position, const u8 axis) {
   diag_assert(axis < 3);
   const f32 round = math_round_nearest_f32(position->comps[axis] / comp->cellSize) * comp->cellSize;
   position->comps[axis] = round;
@@ -395,11 +395,11 @@ void debug_grid_snap_axis(const DebugGridComp* comp, GeoVector* position, const 
 
 EcsEntityId
 dev_grid_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
-  const EcsEntityId   panelEntity = dev_panel_create(world, window, type);
-  DebugGridPanelComp* gridPanel   = ecs_world_add_t(
+  const EcsEntityId panelEntity = dev_panel_create(world, window, type);
+  DevGridPanelComp* gridPanel   = ecs_world_add_t(
       world,
       panelEntity,
-      DebugGridPanelComp,
+      DevGridPanelComp,
       .panel  = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 220)),
       .window = window);
 

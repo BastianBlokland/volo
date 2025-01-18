@@ -77,7 +77,7 @@ typedef struct {
   u8       value[stats_notify_max_value_size];
 } DebugStatsNotification;
 
-ecs_comp_define(DebugStatsComp) {
+ecs_comp_define(DevStatsComp) {
   DebugStatShow show;
   EcsEntityId   canvas;
 
@@ -96,7 +96,7 @@ ecs_comp_define(DebugStatsComp) {
   f32 gpuPassFrac[rend_stats_max_passes];
 };
 
-ecs_comp_define(DebugStatsGlobalComp) {
+ecs_comp_define(DevStatsGlobalComp) {
   DynArray notifications; // DebugStatsNotification[].
 
   u64   allocPrevPageCounter, allocPrevHeapCounter, allocPrevPersistCounter;
@@ -108,18 +108,18 @@ ecs_comp_define(DebugStatsGlobalComp) {
 };
 
 static void ecs_destruct_stats(void* data) {
-  DebugStatsComp* comp = data;
+  DevStatsComp* comp = data;
   alloc_free_t(g_allocHeap, comp->frameDurPlot);
   alloc_free_t(g_allocHeap, comp->gpuExecDurPlot);
 }
 
 static void ecs_destruct_stats_global(void* data) {
-  DebugStatsGlobalComp* comp = data;
+  DevStatsGlobalComp* comp = data;
   dynarray_destroy(&comp->notifications);
   alloc_free_t(g_allocHeap, comp->ecsFlushDurPlot);
 }
 
-static DebugStatsNotification* debug_notify_get(DebugStatsGlobalComp* comp, const String key) {
+static DebugStatsNotification* debug_notify_get(DevStatsGlobalComp* comp, const String key) {
   // Find an existing notification with the same key.
   dynarray_for_t(&comp->notifications, DebugStatsNotification, notif) {
     if (string_eq(mem_create(notif->key, notif->keyLength), key)) {
@@ -134,7 +134,7 @@ static DebugStatsNotification* debug_notify_get(DebugStatsGlobalComp* comp, cons
   return notif;
 }
 
-static void debug_notify_prune_older(DebugStatsGlobalComp* comp, const TimeReal timestamp) {
+static void debug_notify_prune_older(DevStatsGlobalComp* comp, const TimeReal timestamp) {
   for (usize i = comp->notifications.size; i--;) {
     DebugStatsNotification* notif = dynarray_at_t(&comp->notifications, i, DebugStatsNotification);
     if (notif->timestamp < timestamp) {
@@ -426,7 +426,7 @@ static void stats_draw_plot_dur(
   stats_draw_plot(c, plot, minUs, maxUs, stats_dur_val_writer);
 }
 
-static void stats_draw_frametime(UiCanvasComp* c, const DebugStatsComp* stats) {
+static void stats_draw_frametime(UiCanvasComp* c, const DevStatsComp* stats) {
   const f64 g_errorThreshold = 1.25;
   const f64 g_warnThreshold  = 1.025;
 
@@ -491,7 +491,7 @@ static void stats_draw_chart(
 }
 
 static void
-stats_draw_cpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsComp* rendSt) {
+stats_draw_cpu_chart(UiCanvasComp* c, const DevStatsComp* st, const RendStatsComp* rendSt) {
   stats_draw_bg(c, DebugBgFlags_None);
   stats_draw_label(c, string_lit("CPU"));
 
@@ -538,7 +538,7 @@ stats_draw_cpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsC
 }
 
 static void
-stats_draw_gpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsComp* rendSt) {
+stats_draw_gpu_chart(UiCanvasComp* c, const DevStatsComp* st, const RendStatsComp* rendSt) {
   stats_draw_bg(c, DebugBgFlags_None);
   stats_draw_label(c, string_lit("GPU"));
 
@@ -595,7 +595,7 @@ stats_draw_gpu_chart(UiCanvasComp* c, const DebugStatsComp* st, const RendStatsC
 }
 
 static void stats_draw_renderer_pass_dropdown(
-    UiCanvasComp* c, DebugStatsComp* stats, const RendStatsComp* rendStats) {
+    UiCanvasComp* c, DevStatsComp* stats, const RendStatsComp* rendStats) {
   stats_draw_bg(c, DebugBgFlags_None);
   stats_draw_label(c, string_lit("Pass select"));
   {
@@ -624,7 +624,7 @@ static void stats_draw_renderer_pass_dropdown(
   ui_layout_next(c, Ui_Down, 0);
 }
 
-static void stats_draw_nav_layer_dropdown(UiCanvasComp* c, const DebugStatsComp* stats) {
+static void stats_draw_nav_layer_dropdown(UiCanvasComp* c, const DevStatsComp* stats) {
   stats_draw_bg(c, DebugBgFlags_None);
   stats_draw_label(c, string_lit("Layer"));
   {
@@ -647,7 +647,7 @@ static void stats_draw_nav_layer_dropdown(UiCanvasComp* c, const DebugStatsComp*
   ui_layout_next(c, Ui_Down, 0);
 }
 
-static void stats_draw_notifications(UiCanvasComp* c, const DebugStatsGlobalComp* statsGlobal) {
+static void stats_draw_notifications(UiCanvasComp* c, const DevStatsGlobalComp* statsGlobal) {
   dynarray_for_t(&statsGlobal->notifications, DebugStatsNotification, notif) {
     const String key   = mem_create(notif->key, notif->keyLength);
     const String value = mem_create(notif->value, notif->valueLength);
@@ -658,8 +658,8 @@ static void stats_draw_notifications(UiCanvasComp* c, const DebugStatsGlobalComp
 static void debug_stats_draw_interface(
     UiCanvasComp*                  c,
     const GapWindowComp*           window,
-    const DebugStatsGlobalComp*    statsGlobal,
-    DebugStatsComp*                stats,
+    const DevStatsGlobalComp*      statsGlobal,
+    DevStatsComp*                  stats,
     const RendStatsComp*           rendStats,
     const AllocStats*              allocStats,
     const EcsDef*                  ecsDef,
@@ -808,7 +808,7 @@ static void debug_stats_draw_interface(
 }
 
 static void debug_stats_update(
-    DebugStatsComp*               stats,
+    DevStatsComp*                 stats,
     const GapWindowComp*          window,
     const RendStatsComp*          rendStats,
     const RendSettingsGlobalComp* rendGlobalSettings,
@@ -839,7 +839,7 @@ static void debug_stats_update(
 }
 
 static void
-debug_stats_global_update(DebugStatsGlobalComp* statsGlobal, const EcsRunnerStats* ecsRunnerStats) {
+debug_stats_global_update(DevStatsGlobalComp* statsGlobal, const EcsRunnerStats* ecsRunnerStats) {
 
   const TimeReal oldestNotifToKeep = time_real_offset(time_real_clock(), -stats_notify_max_age);
   debug_notify_prune_older(statsGlobal, oldestNotifToKeep);
@@ -859,20 +859,20 @@ ecs_view_define(GlobalView) {
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneTimeComp);
   ecs_access_read(VfxStatsGlobalComp);
-  ecs_access_write(DebugStatsGlobalComp);
+  ecs_access_write(DevStatsGlobalComp);
 }
 
 ecs_view_define(StatsCreateView) {
   ecs_access_with(GapWindowComp);
   ecs_access_with(SceneCameraComp); // Only track stats for windows with 3d content.
-  ecs_access_without(DebugStatsComp);
+  ecs_access_without(DevStatsComp);
 }
 
 ecs_view_define(StatsUpdateView) {
   ecs_access_read(GapWindowComp);
   ecs_access_read(RendStatsComp);
   ecs_access_read(UiStatsComp);
-  ecs_access_write(DebugStatsComp);
+  ecs_access_write(DevStatsComp);
 }
 
 ecs_view_define(CanvasWriteView) {
@@ -882,11 +882,11 @@ ecs_view_define(CanvasWriteView) {
 
 ecs_system_define(DebugStatsCreateSys) {
   // Create a single global stats component.
-  if (!ecs_world_has_t(world, ecs_world_global(world), DebugStatsGlobalComp)) {
+  if (!ecs_world_has_t(world, ecs_world_global(world), DevStatsGlobalComp)) {
     ecs_world_add_t(
         world,
         ecs_world_global(world),
-        DebugStatsGlobalComp,
+        DevStatsGlobalComp,
         .notifications   = dynarray_create_t(g_allocHeap, DebugStatsNotification, 8),
         .ecsFlushDurPlot = debug_plot_alloc(g_allocHeap));
   }
@@ -897,7 +897,7 @@ ecs_system_define(DebugStatsCreateSys) {
     ecs_world_add_t(
         world,
         ecs_view_entity(itr),
-        DebugStatsComp,
+        DevStatsComp,
         .frameDurPlot   = debug_plot_alloc(g_allocHeap),
         .gpuExecDurPlot = debug_plot_alloc(g_allocHeap));
   }
@@ -909,7 +909,7 @@ ecs_system_define(DebugStatsUpdateSys) {
   if (!globalItr) {
     return;
   }
-  DebugStatsGlobalComp*          statsGlobal = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  DevStatsGlobalComp*            statsGlobal = ecs_view_write_t(globalItr, DevStatsGlobalComp);
   const SceneTimeComp*           time        = ecs_view_read_t(globalItr, SceneTimeComp);
   const SceneCollisionStatsComp* colStats    = ecs_view_read_t(globalItr, SceneCollisionStatsComp);
   const VfxStatsGlobalComp*      vfxStats    = ecs_view_read_t(globalItr, VfxStatsGlobalComp);
@@ -925,7 +925,7 @@ ecs_system_define(DebugStatsUpdateSys) {
 
   EcsView* statsView = ecs_world_view_t(world, StatsUpdateView);
   for (EcsIterator* itr = ecs_view_itr(statsView); ecs_view_walk(itr);) {
-    DebugStatsComp*      stats     = ecs_view_write_t(itr, DebugStatsComp);
+    DevStatsComp*        stats     = ecs_view_write_t(itr, DevStatsComp);
     const GapWindowComp* window    = ecs_view_read_t(itr, GapWindowComp);
     const RendStatsComp* rendStats = ecs_view_read_t(itr, RendStatsComp);
     const UiStatsComp*   uiStats   = ecs_view_read_t(itr, UiStatsComp);
@@ -969,8 +969,8 @@ ecs_system_define(DebugStatsUpdateSys) {
 }
 
 ecs_module_init(debug_stats_module) {
-  ecs_register_comp(DebugStatsComp, .destructor = ecs_destruct_stats);
-  ecs_register_comp(DebugStatsGlobalComp, .destructor = ecs_destruct_stats_global);
+  ecs_register_comp(DevStatsComp, .destructor = ecs_destruct_stats);
+  ecs_register_comp(DevStatsGlobalComp, .destructor = ecs_destruct_stats_global);
 
   ecs_register_view(GlobalView);
   ecs_register_view(StatsCreateView);
@@ -985,13 +985,13 @@ ecs_module_init(debug_stats_module) {
       ecs_view_id(CanvasWriteView));
 }
 
-void debug_stats_notify(DebugStatsGlobalComp* comp, const String key, const String value) {
+void debug_stats_notify(DevStatsGlobalComp* comp, const String key, const String value) {
   DebugStatsNotification* notif = debug_notify_get(comp, key);
   notif->timestamp              = time_real_clock();
   notif->valueLength            = math_min((u8)value.size, stats_notify_max_value_size);
   mem_cpy(mem_create(notif->value, notif->valueLength), string_slice(value, 0, notif->valueLength));
 }
 
-DebugStatShow debug_stats_show(const DebugStatsComp* comp) { return comp->show; }
+DebugStatShow debug_stats_show(const DevStatsComp* comp) { return comp->show; }
 
-void debug_stats_show_set(DebugStatsComp* comp, const DebugStatShow show) { comp->show = show; }
+void debug_stats_show_set(DevStatsComp* comp, const DebugStatShow show) { comp->show = show; }

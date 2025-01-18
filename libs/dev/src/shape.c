@@ -141,20 +141,20 @@ static const String g_debugGraphics[DebugShapeType_Count] = {
 #undef shape_graphic
 // clang-format on
 
-ecs_comp_define(DebugShapeRendererComp) { EcsEntityId rendObjEntities[DebugShapeType_Count]; };
+ecs_comp_define(DevShapeRendererComp) { EcsEntityId rendObjEntities[DebugShapeType_Count]; };
 
-ecs_comp_define(DebugShapeComp) {
+ecs_comp_define(DevShapeComp) {
   DynArray entries; // DebugShape[]
 };
 
 static void ecs_destruct_shape(void* data) {
-  DebugShapeComp* comp = data;
+  DevShapeComp* comp = data;
   dynarray_destroy(&comp->entries);
 }
 
 ecs_view_define(AssetManagerView) { ecs_access_write(AssetManagerComp); }
-ecs_view_define(ShapeRendererView) { ecs_access_write(DebugShapeRendererComp); }
-ecs_view_define(ShapeView) { ecs_access_write(DebugShapeComp); }
+ecs_view_define(ShapeRendererView) { ecs_access_write(DevShapeRendererComp); }
+ecs_view_define(ShapeView) { ecs_access_write(DevShapeComp); }
 
 ecs_view_define(RendObjView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // Only access the render objects we create.
@@ -167,10 +167,10 @@ static AssetManagerComp* debug_asset_manager(EcsWorld* world) {
   return globalItr ? ecs_view_write_t(globalItr, AssetManagerComp) : null;
 }
 
-static DebugShapeRendererComp* debug_shape_renderer(EcsWorld* world) {
+static DevShapeRendererComp* debug_shape_renderer(EcsWorld* world) {
   EcsView*     globalView = ecs_world_view_t(world, ShapeRendererView);
   EcsIterator* globalItr  = ecs_view_maybe_at(globalView, ecs_world_global(world));
-  return globalItr ? ecs_view_write_t(globalItr, DebugShapeRendererComp) : null;
+  return globalItr ? ecs_view_write_t(globalItr, DevShapeRendererComp) : null;
 }
 
 static EcsEntityId
@@ -193,20 +193,20 @@ debug_shape_rend_obj_create(EcsWorld* world, AssetManagerComp* assets, const Deb
 }
 
 static void debug_shape_renderer_create(EcsWorld* world, AssetManagerComp* assets) {
-  DebugShapeRendererComp* renderer =
-      ecs_world_add_t(world, ecs_world_global(world), DebugShapeRendererComp);
+  DevShapeRendererComp* renderer =
+      ecs_world_add_t(world, ecs_world_global(world), DevShapeRendererComp);
 
   for (DebugShapeType shape = 0; shape != DebugShapeType_Count; ++shape) {
     renderer->rendObjEntities[shape] = debug_shape_rend_obj_create(world, assets, shape);
   }
 }
 
-INLINE_HINT static void debug_shape_add(DebugShapeComp* comp, const DebugShape shape) {
+INLINE_HINT static void debug_shape_add(DevShapeComp* comp, const DebugShape shape) {
   *((DebugShape*)dynarray_push(&comp->entries, 1).ptr) = shape;
 }
 
 ecs_system_define(DebugShapeInitSys) {
-  DebugShapeRendererComp* renderer = debug_shape_renderer(world);
+  DevShapeRendererComp* renderer = debug_shape_renderer(world);
   if (LIKELY(renderer)) {
     return; // Already initialized.
   }
@@ -219,7 +219,7 @@ ecs_system_define(DebugShapeInitSys) {
 }
 
 ecs_system_define(DebugShapeRenderSys) {
-  DebugShapeRendererComp* renderer = debug_shape_renderer(world);
+  DevShapeRendererComp* renderer = debug_shape_renderer(world);
   if (UNLIKELY(!renderer)) {
     return; // Renderer not yet initialized.
   }
@@ -228,7 +228,7 @@ ecs_system_define(DebugShapeRenderSys) {
   EcsIterator* rendObjItr  = ecs_view_itr(rendObjView);
 
   for (EcsIterator* itr = ecs_view_itr(ecs_world_view_t(world, ShapeView)); ecs_view_walk(itr);) {
-    DebugShapeComp* shape = ecs_view_write_t(itr, DebugShapeComp);
+    DevShapeComp* shape = ecs_view_write_t(itr, DevShapeComp);
     dynarray_for_t(&shape->entries, DebugShape, entry) {
       ecs_view_jump(rendObjItr, renderer->rendObjEntities[entry->type]);
       RendObjectComp* rendObj = ecs_view_write_t(rendObjItr, RendObjectComp);
@@ -372,8 +372,8 @@ ecs_system_define(DebugShapeRenderSys) {
 }
 
 ecs_module_init(debug_shape_module) {
-  ecs_register_comp(DebugShapeRendererComp);
-  ecs_register_comp(DebugShapeComp, .destructor = ecs_destruct_shape);
+  ecs_register_comp(DevShapeRendererComp);
+  ecs_register_comp(DevShapeComp, .destructor = ecs_destruct_shape);
 
   ecs_register_view(AssetManagerView);
   ecs_register_view(ShapeRendererView);
@@ -392,13 +392,13 @@ ecs_module_init(debug_shape_module) {
   ecs_order(DebugShapeRenderSys, DebugOrder_ShapeRender);
 }
 
-DebugShapeComp* debug_shape_create(EcsWorld* world, const EcsEntityId entity) {
+DevShapeComp* debug_shape_create(EcsWorld* world, const EcsEntityId entity) {
   return ecs_world_add_t(
-      world, entity, DebugShapeComp, .entries = dynarray_create_t(g_allocHeap, DebugShape, 64));
+      world, entity, DevShapeComp, .entries = dynarray_create_t(g_allocHeap, DebugShape, 64));
 }
 
 void debug_box(
-    DebugShapeComp*      comp,
+    DevShapeComp*        comp,
     const GeoVector      pos,
     const GeoQuat        rot,
     const GeoVector      size,
@@ -413,7 +413,7 @@ void debug_box(
 }
 
 void debug_quad(
-    DebugShapeComp*      comp,
+    DevShapeComp*        comp,
     const GeoVector      pos,
     const GeoQuat        rot,
     const f32            sizeX,
@@ -429,7 +429,7 @@ void debug_quad(
 }
 
 void debug_sphere(
-    DebugShapeComp*      comp,
+    DevShapeComp*        comp,
     const GeoVector      pos,
     const f32            radius,
     const GeoColor       color,
@@ -443,7 +443,7 @@ void debug_sphere(
 }
 
 void debug_cylinder(
-    DebugShapeComp*      comp,
+    DevShapeComp*        comp,
     const GeoVector      bottom,
     const GeoVector      top,
     const f32            radius,
@@ -458,7 +458,7 @@ void debug_cylinder(
 }
 
 void debug_capsule(
-    DebugShapeComp*      comp,
+    DevShapeComp*        comp,
     const GeoVector      bottom,
     const GeoVector      top,
     const f32            radius,
@@ -501,7 +501,7 @@ void debug_capsule(
 }
 
 void debug_cone(
-    DebugShapeComp*      comp,
+    DevShapeComp*        comp,
     const GeoVector      bottom,
     const GeoVector      top,
     const f32            radius,
@@ -516,7 +516,7 @@ void debug_cone(
 }
 
 void debug_line(
-    DebugShapeComp* comp, const GeoVector start, const GeoVector end, const GeoColor color) {
+    DevShapeComp* comp, const GeoVector start, const GeoVector end, const GeoColor color) {
   debug_shape_add(
       comp,
       (DebugShape){
@@ -526,7 +526,7 @@ void debug_line(
 }
 
 void debug_circle(
-    DebugShapeComp* comp,
+    DevShapeComp*   comp,
     const GeoVector pos,
     const GeoQuat   rot,
     const f32       radius,
@@ -545,7 +545,7 @@ void debug_circle(
 }
 
 void debug_arrow(
-    DebugShapeComp* comp,
+    DevShapeComp*   comp,
     const GeoVector begin,
     const GeoVector end,
     const f32       radius,
@@ -567,8 +567,7 @@ void debug_arrow(
   }
 }
 
-void debug_orientation(
-    DebugShapeComp* comp, const GeoVector pos, const GeoQuat rot, const f32 size) {
+void debug_orientation(DevShapeComp* comp, const GeoVector pos, const GeoQuat rot, const f32 size) {
   static const f32 g_startOffsetMult = 0.05f;
   static const f32 g_radiusMult      = 0.1f;
 
@@ -590,8 +589,7 @@ void debug_orientation(
   debug_arrow(comp, startForward, endForward, radius, geo_color_blue);
 }
 
-void debug_plane(
-    DebugShapeComp* comp, const GeoVector pos, const GeoQuat rot, const GeoColor color) {
+void debug_plane(DevShapeComp* comp, const GeoVector pos, const GeoQuat rot, const GeoColor color) {
   const f32 quadSize = 1.0f;
   debug_quad(comp, pos, rot, quadSize, quadSize, color, DebugShape_Overlay);
 
@@ -603,7 +601,7 @@ void debug_plane(
 }
 
 void debug_frustum_points(
-    DebugShapeComp* comp, const GeoVector points[PARAM_ARRAY_SIZE(8)], const GeoColor color) {
+    DevShapeComp* comp, const GeoVector points[PARAM_ARRAY_SIZE(8)], const GeoColor color) {
   // Near plane.
   debug_line(comp, points[0], points[1], color);
   debug_line(comp, points[1], points[2], color);
@@ -623,7 +621,7 @@ void debug_frustum_points(
   debug_line(comp, points[3], points[7], color);
 }
 
-void debug_frustum_matrix(DebugShapeComp* comp, const GeoMatrix* viewProj, const GeoColor color) {
+void debug_frustum_matrix(DevShapeComp* comp, const GeoMatrix* viewProj, const GeoColor color) {
   const GeoMatrix invViewProj = geo_matrix_inverse(viewProj);
   const f32       nearNdc     = 1.0f;
   const f32       farNdc      = 1e-8f; // NOTE: Using reverse-z with infinite far-plane.
@@ -645,7 +643,7 @@ void debug_frustum_matrix(DebugShapeComp* comp, const GeoMatrix* viewProj, const
   debug_frustum_points(comp, points, color);
 }
 
-void debug_world_box(DebugShapeComp* shape, const GeoBox* b, const GeoColor color) {
+void debug_world_box(DevShapeComp* shape, const GeoBox* b, const GeoColor color) {
   const GeoColor  colorDimmed = geo_color_mul_comps(color, geo_color(0.75f, 0.75f, 0.75f, 0.4f));
   const GeoVector center      = geo_box_center(b);
   const GeoVector size        = geo_box_size(b);
@@ -654,7 +652,7 @@ void debug_world_box(DebugShapeComp* shape, const GeoBox* b, const GeoColor colo
   debug_box(shape, center, geo_quat_ident, size, color, DebugShape_Wire);
 }
 
-void debug_world_box_rotated(DebugShapeComp* shape, const GeoBoxRotated* b, const GeoColor color) {
+void debug_world_box_rotated(DevShapeComp* shape, const GeoBoxRotated* b, const GeoColor color) {
   const GeoColor  colorDimmed = geo_color_mul_comps(color, geo_color(0.75f, 0.75f, 0.75f, 0.4f));
   const GeoVector center      = geo_box_center(&b->box);
   const GeoVector size        = geo_box_size(&b->box);
@@ -664,14 +662,14 @@ void debug_world_box_rotated(DebugShapeComp* shape, const GeoBoxRotated* b, cons
   debug_box(shape, center, rotation, size, color, DebugShape_Wire);
 }
 
-void debug_world_sphere(DebugShapeComp* shape, const GeoSphere* s, const GeoColor color) {
+void debug_world_sphere(DevShapeComp* shape, const GeoSphere* s, const GeoColor color) {
   const GeoColor colorDimmed = geo_color_mul_comps(color, geo_color(0.75f, 0.75f, 0.75f, 0.4f));
 
   debug_sphere(shape, s->point, s->radius, colorDimmed, DebugShape_Fill);
   debug_sphere(shape, s->point, s->radius, color, DebugShape_Wire);
 }
 
-void debug_world_capsule(DebugShapeComp* shape, const GeoCapsule* c, const GeoColor color) {
+void debug_world_capsule(DevShapeComp* shape, const GeoCapsule* c, const GeoColor color) {
   const GeoColor colorDimmed = geo_color_mul_comps(color, geo_color(0.75f, 0.75f, 0.75f, 0.4f));
 
   debug_capsule(shape, c->line.a, c->line.b, c->radius, colorDimmed, DebugShape_Fill);

@@ -183,7 +183,7 @@ ecs_comp_define(DevMenuComp) {
 
 ecs_view_define(GlobalView) {
   ecs_access_read(InputManagerComp);
-  ecs_access_write(DebugStatsGlobalComp);
+  ecs_access_write(DevStatsGlobalComp);
 }
 ecs_view_define(PanelUpdateView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // DevMenuComp's are exclusively managed here.
@@ -195,8 +195,8 @@ ecs_view_define(PanelUpdateView) {
 ecs_view_define(CanvasView) { ecs_access_read(UiCanvasComp); }
 ecs_view_define(WindowView) { ecs_access_read(GapWindowComp); }
 
-static void menu_notify_child_state(
-    DebugStatsGlobalComp* statsGlobal, const u32 childIndex, const String state) {
+static void
+menu_notify_child_state(DevStatsGlobalComp* statsGlobal, const u32 childIndex, const String state) {
   debug_stats_notify(
       statsGlobal,
       fmt_write_scratch("Panel {}", fmt_text(g_menuChildConfig[childIndex].name)),
@@ -281,7 +281,7 @@ static void menu_action_bar_draw(
     UiCanvasComp*           canvas,
     const InputManagerComp* input,
     DevMenuComp*            menu,
-    DebugStatsGlobalComp*   statsGlobal,
+    DevStatsGlobalComp*     statsGlobal,
     const EcsEntityId       winEntity,
     const GapWindowComp*    win) {
 
@@ -332,7 +332,7 @@ ecs_system_define(DevMenuUpdateSys) {
     return; // Global dependencies not initialized yet.
   }
   const InputManagerComp* input       = ecs_view_read_t(globalItr, InputManagerComp);
-  DebugStatsGlobalComp*   statsGlobal = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  DevStatsGlobalComp*     statsGlobal = ecs_view_write_t(globalItr, DevStatsGlobalComp);
 
   EcsView*     windowView = ecs_world_view_t(world, WindowView);
   EcsIterator* windowItr  = ecs_view_itr(windowView);

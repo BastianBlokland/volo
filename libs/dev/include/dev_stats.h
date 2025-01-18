@@ -1,8 +1,8 @@
 #pragma once
 #include "dev.h"
 
-ecs_comp_extern(DebugStatsComp);
-ecs_comp_extern(DebugStatsGlobalComp);
+ecs_comp_extern(DevStatsComp);
+ecs_comp_extern(DevStatsGlobalComp);
 
 typedef enum {
   DebugStatShow_None,
@@ -13,7 +13,7 @@ typedef enum {
 /**
  * Notify the user about a statistics change.
  */
-void debug_stats_notify(DebugStatsGlobalComp*, String key, String Value);
+void debug_stats_notify(DevStatsGlobalComp*, String key, String Value);
 
-DebugStatShow debug_stats_show(const DebugStatsComp*);
-void          debug_stats_show_set(DebugStatsComp*, DebugStatShow);
+DebugStatShow debug_stats_show(const DevStatsComp*);
+void          debug_stats_show_set(DevStatsComp*, DebugStatShow);

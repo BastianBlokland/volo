@@ -52,7 +52,7 @@ typedef struct {
   TimeDuration threshold;
 } DebugTraceTrigger;
 
-ecs_comp_define(DebugTracePanelComp) {
+ecs_comp_define(DevTracePanelComp) {
   UiPanel           panel;
   UiScrollview      scrollview;
   bool              freeze, refresh;
@@ -65,7 +65,7 @@ ecs_comp_define(DebugTracePanelComp) {
 };
 
 static void ecs_destruct_trace_panel(void* data) {
-  DebugTracePanelComp* comp = data;
+  DevTracePanelComp* comp = data;
   dynstring_destroy(&comp->trigger.msgFilter);
 
   for (u32 threadIdx = 0; threadIdx != debug_trace_max_threads; ++threadIdx) {
@@ -115,7 +115,7 @@ static UiColor trace_event_color(const TraceColor col) {
   diag_crash_msg("Unsupported trace color");
 }
 
-static void trace_data_clear(DebugTracePanelComp* panel) {
+static void trace_data_clear(DevTracePanelComp* panel) {
   for (u32 threadIdx = 0; threadIdx != debug_trace_max_threads; ++threadIdx) {
     DebugTraceData* threadData = &panel->threads[threadIdx];
     threadData->tid            = 0;
@@ -124,7 +124,7 @@ static void trace_data_clear(DebugTracePanelComp* panel) {
   }
 }
 
-static void trace_data_focus(DebugTracePanelComp* panel, const TraceStoreEvent* evt) {
+static void trace_data_focus(DevTracePanelComp* panel, const TraceStoreEvent* evt) {
   panel->timeHead   = evt->timeStart + evt->timeDur;
   panel->timeWindow = math_clamp_i64(evt->timeDur, time_microsecond, time_milliseconds(500));
   panel->freeze     = true;
@@ -138,7 +138,7 @@ static void trace_data_visitor(
     const String           threadName,
     const TraceStoreEvent* evt) {
   (void)sink;
-  DebugTracePanelComp* panel = userCtx;
+  DevTracePanelComp* panel = userCtx;
   if (UNLIKELY(bufferIdx >= debug_trace_max_threads)) {
     diag_crash_msg("debug: Trace threads exceeds maximum");
   }
@@ -165,8 +165,8 @@ static UiColor trace_trigger_button_color(const DebugTraceTrigger* t) {
   return color;
 }
 
-static void trace_options_trigger_draw(
-    UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* sinkStore) {
+static void
+trace_options_trigger_draw(UiCanvasComp* c, DevTracePanelComp* panel, const TraceSink* sinkStore) {
   static const UiVector g_popupSize = {.x = 255.0f, .y = 130.0f};
 
   DebugTraceTrigger*      t           = &panel->trigger;
@@ -268,7 +268,7 @@ static void trace_options_trigger_draw(
 }
 
 static void
-trace_options_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* sinkStore) {
+trace_options_draw(UiCanvasComp* c, DevTracePanelComp* panel, const TraceSink* sinkStore) {
   ui_layout_push(c);
 
   UiTable table = ui_table(.spacing = ui_vector(10, 5), .rowHeight = 20);
@@ -325,7 +325,7 @@ trace_options_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink*
   ui_layout_pop(c);
 }
 
-static void trace_data_input_zoom(UiCanvasComp* c, DebugTracePanelComp* panel, const UiRect rect) {
+static void trace_data_input_zoom(UiCanvasComp* c, DevTracePanelComp* panel, const UiRect rect) {
   const f64 zoomSpeed = 0.1;
   const f64 zoomFrac  = 1.0 - ui_canvas_input_scroll(c).y * zoomSpeed;
 
@@ -342,7 +342,7 @@ static void trace_data_input_zoom(UiCanvasComp* c, DebugTracePanelComp* panel, c
   panel->timeWindow = new;
 }
 
-static void trace_data_input_pan(UiCanvasComp* c, DebugTracePanelComp* panel, const UiRect rect) {
+static void trace_data_input_pan(UiCanvasComp* c, DevTracePanelComp* panel, const UiRect rect) {
   if (rect.width > f32_epsilon) {
     const f64 inputFrac = ui_canvas_input_delta(c).x / rect.width;
     panel->timeHead -= (TimeDuration)((f64)panel->timeWindow * inputFrac);
@@ -376,7 +376,7 @@ static void trace_data_ruler_draw(UiCanvasComp* c, const f32 x, const UiRect bgR
 
 static void trace_data_events_draw(
     UiCanvasComp*         c,
-    DebugTracePanelComp*  panel,
+    DevTracePanelComp*    panel,
     const DebugTraceData* data,
     const TraceSink*      sinkStore) {
   ui_layout_push(c);
@@ -483,7 +483,7 @@ static void trace_data_events_draw(
 }
 
 static void
-trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* sinkStore) {
+trace_panel_draw(UiCanvasComp* c, DevTracePanelComp* panel, const TraceSink* sinkStore) {
   const String title = fmt_write_scratch("{} Trace Panel", fmt_ui_shape(QueryStats));
   ui_panel_begin(c, &panel->panel, .title = title, .topBarColor = ui_color(100, 0, 0, 192));
 
@@ -556,7 +556,7 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* s
 }
 
 ecs_view_define(PanelQueryView) {
-  ecs_access_write(DebugTracePanelComp);
+  ecs_access_write(DevTracePanelComp);
   ecs_access_read(DevPanelComp);
 }
 
@@ -568,7 +568,7 @@ ecs_system_define(DebugTracePanelQuerySys) {
 
   EcsView* panelView = ecs_world_view_t(world, PanelQueryView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    DebugTracePanelComp* panel = ecs_view_write_t(itr, DebugTracePanelComp);
+    DevTracePanelComp* panel = ecs_view_write_t(itr, DevTracePanelComp);
 
     const bool pinned = ui_panel_pinned(&panel->panel);
     if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
@@ -585,10 +585,10 @@ ecs_system_define(DebugTracePanelQuerySys) {
 }
 
 ecs_view_define(PanelDrawView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // DebugTracePanelComp's are exclusively managed here.
+  ecs_view_flags(EcsViewFlags_Exclusive); // DevTracePanelComp's are exclusively managed here.
 
   ecs_access_read(DevPanelComp);
-  ecs_access_write(DebugTracePanelComp);
+  ecs_access_write(DevTracePanelComp);
   ecs_access_write(UiCanvasComp);
 }
 
@@ -597,9 +597,9 @@ ecs_system_define(DebugTracePanelDrawSys) {
 
   EcsView* panelView = ecs_world_view_t(world, PanelDrawView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    const EcsEntityId    entity = ecs_view_entity(itr);
-    DebugTracePanelComp* panel  = ecs_view_write_t(itr, DebugTracePanelComp);
-    UiCanvasComp*        canvas = ecs_view_write_t(itr, UiCanvasComp);
+    const EcsEntityId  entity = ecs_view_entity(itr);
+    DevTracePanelComp* panel  = ecs_view_write_t(itr, DevTracePanelComp);
+    UiCanvasComp*      canvas = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panel->panel);
@@ -621,7 +621,7 @@ ecs_system_define(DebugTracePanelDrawSys) {
 }
 
 ecs_module_init(debug_trace_module) {
-  ecs_register_comp(DebugTracePanelComp, .destructor = ecs_destruct_trace_panel);
+  ecs_register_comp(DevTracePanelComp, .destructor = ecs_destruct_trace_panel);
 
   ecs_register_view(PanelQueryView);
   ecs_register_view(PanelDrawView);
@@ -636,11 +636,11 @@ EcsEntityId
 dev_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
   const u32 panelHeight = math_min(100 + 20 * debug_trace_default_depth * g_jobsWorkerCount, 675);
 
-  const EcsEntityId    panelEntity = dev_panel_create(world, window, type);
-  DebugTracePanelComp* tracePanel  = ecs_world_add_t(
+  const EcsEntityId  panelEntity = dev_panel_create(world, window, type);
+  DevTracePanelComp* tracePanel  = ecs_world_add_t(
       world,
       panelEntity,
-      DebugTracePanelComp,
+      DevTracePanelComp,
       .panel             = ui_panel(.size = ui_vector(800, panelHeight)),
       .scrollview        = ui_scrollview(),
       .eventDepth        = debug_trace_default_depth,

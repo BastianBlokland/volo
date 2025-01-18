@@ -66,7 +66,7 @@ static const String g_sortModeNames[] = {
 };
 ASSERT(array_elems(g_sortModeNames) == DebugAssetSortMode_Count, "Incorrect number of names");
 
-ecs_comp_define(DebugAssetPanelComp) {
+ecs_comp_define(DevAssetPanelComp) {
   UiPanel            panel;
   UiScrollview       scrollview;
   DynString          idFilter;
@@ -76,7 +76,7 @@ ecs_comp_define(DebugAssetPanelComp) {
 };
 
 static void ecs_destruct_asset_panel(void* data) {
-  DebugAssetPanelComp* comp = data;
+  DevAssetPanelComp* comp = data;
   dynstring_destroy(&comp->idFilter);
   dynarray_destroy(&comp->assets);
 }
@@ -102,14 +102,14 @@ static i8 compare_asset_info_status(const void* a, const void* b) {
 ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 
 ecs_view_define(PanelUpdateView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // DebugAssetPanelComp's are exclusively managed here.
+  ecs_view_flags(EcsViewFlags_Exclusive); // DevAssetPanelComp's are exclusively managed here.
 
   ecs_access_read(DevPanelComp);
-  ecs_access_write(DebugAssetPanelComp);
+  ecs_access_write(DevAssetPanelComp);
   ecs_access_write(UiCanvasComp);
 }
 
-static bool asset_filter(DebugAssetPanelComp* panel, const AssetComp* asset, const EcsEntityId e) {
+static bool asset_filter(DevAssetPanelComp* panel, const AssetComp* asset, const EcsEntityId e) {
   if (!panel->idFilter.size) {
     return true;
   }
@@ -123,7 +123,7 @@ static bool asset_filter(DebugAssetPanelComp* panel, const AssetComp* asset, con
   return string_match_glob(fmt_write_scratch("{}", ecs_entity_fmt(e)), filter, flags);
 }
 
-static void asset_info_query(DebugAssetPanelComp* panelComp, EcsWorld* world) {
+static void asset_info_query(DevAssetPanelComp* panelComp, EcsWorld* world) {
   dynarray_clear(&panelComp->assets);
   panelComp->countLoaded = 0;
 
@@ -194,7 +194,7 @@ static UiColor asset_info_bg_color(const DebugAssetInfo* asset) {
   diag_crash();
 }
 
-static void asset_options_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelComp) {
+static void asset_options_draw(UiCanvasComp* canvas, DevAssetPanelComp* panelComp) {
   ui_layout_push(canvas);
   ui_style_push(canvas);
 
@@ -239,8 +239,7 @@ asset_panel_draw_reload(UiCanvasComp* canvas, const DebugAssetInfo* asset, EcsWo
   ui_layout_pop(canvas);
 }
 
-static void
-asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelComp, EcsWorld* world) {
+static void asset_panel_draw(UiCanvasComp* canvas, DevAssetPanelComp* panelComp, EcsWorld* world) {
 
   const String title = fmt_write_scratch("{} Asset Panel", fmt_ui_shape(Storage));
   ui_panel_begin(
@@ -315,9 +314,9 @@ asset_panel_draw(UiCanvasComp* canvas, DebugAssetPanelComp* panelComp, EcsWorld*
 ecs_system_define(DebugAssetUpdatePanelSys) {
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    const EcsEntityId    entity    = ecs_view_entity(itr);
-    DebugAssetPanelComp* panelComp = ecs_view_write_t(itr, DebugAssetPanelComp);
-    UiCanvasComp*        canvas    = ecs_view_write_t(itr, UiCanvasComp);
+    const EcsEntityId  entity    = ecs_view_entity(itr);
+    DevAssetPanelComp* panelComp = ecs_view_write_t(itr, DevAssetPanelComp);
+    UiCanvasComp*      canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
@@ -337,7 +336,7 @@ ecs_system_define(DebugAssetUpdatePanelSys) {
 }
 
 ecs_module_init(debug_asset_module) {
-  ecs_register_comp(DebugAssetPanelComp, .destructor = ecs_destruct_asset_panel);
+  ecs_register_comp(DevAssetPanelComp, .destructor = ecs_destruct_asset_panel);
 
   ecs_register_view(PanelUpdateView);
   ecs_register_view(AssetView);
@@ -348,11 +347,11 @@ ecs_module_init(debug_asset_module) {
 
 EcsEntityId
 dev_asset_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
-  const EcsEntityId    panelEntity = dev_panel_create(world, window, type);
-  DebugAssetPanelComp* assetPanel  = ecs_world_add_t(
+  const EcsEntityId  panelEntity = dev_panel_create(world, window, type);
+  DevAssetPanelComp* assetPanel  = ecs_world_add_t(
       world,
       panelEntity,
-      DebugAssetPanelComp,
+      DevAssetPanelComp,
       .panel      = ui_panel(.size = ui_vector(950, 500)),
       .scrollview = ui_scrollview(),
       .idFilter   = dynstring_create(g_allocHeap, 32),

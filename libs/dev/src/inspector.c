@@ -193,7 +193,7 @@ static const String g_propTypeNames[] = {
 };
 ASSERT(array_elems(g_propTypeNames) == DebugPropType_Count, "Missing type name");
 
-ecs_comp_define(DebugInspectorSettingsComp) {
+ecs_comp_define(DevInspectorSettingsComp) {
   DebugInspectorSpace   space;
   DebugInspectorTool    tool;
   DebugInspectorVisMode visMode;
@@ -205,7 +205,7 @@ ecs_comp_define(DebugInspectorSettingsComp) {
   GeoQuat               toolRotation; // Cached rotation to support world-space rotation tools.
 };
 
-ecs_comp_define(DebugInspectorPanelComp) {
+ecs_comp_define(DevInspectorPanelComp) {
   UiPanel       panel;
   UiScrollview  scrollview;
   u32           totalRows;
@@ -216,7 +216,7 @@ ecs_comp_define(DebugInspectorPanelComp) {
 };
 
 static void ecs_destruct_panel_comp(void* data) {
-  DebugInspectorPanelComp* panel = data;
+  DevInspectorPanelComp* panel = data;
   dynstring_destroy(&panel->newSetBuffer);
   dynstring_destroy(&panel->newPropBuffer);
 }
@@ -225,32 +225,32 @@ static i8 debug_prop_compare_entry(const void* a, const void* b) {
   return compare_string(field_ptr(a, DebugPropEntry, name), field_ptr(b, DebugPropEntry, name));
 }
 
-ecs_view_define(SettingsWriteView) { ecs_access_write(DebugInspectorSettingsComp); }
+ecs_view_define(SettingsWriteView) { ecs_access_write(DevInspectorSettingsComp); }
 
 ecs_view_define(GlobalPanelUpdateView) {
   ecs_access_read(SceneTimeComp);
-  ecs_access_write(DebugFinderComp);
-  ecs_access_write(DebugStatsGlobalComp);
+  ecs_access_write(DevFinderComp);
+  ecs_access_write(DevStatsGlobalComp);
   ecs_access_write(ScenePrefabEnvComp);
   ecs_access_write(SceneSetEnvComp);
 }
 
 ecs_view_define(PanelUpdateView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // DebugInspectorPanelComp's are exclusively managed here.
+  ecs_view_flags(EcsViewFlags_Exclusive); // DevInspectorPanelComp's are exclusively managed here.
 
   ecs_access_read(DevPanelComp);
-  ecs_access_write(DebugInspectorPanelComp);
+  ecs_access_write(DevInspectorPanelComp);
   ecs_access_write(UiCanvasComp);
 }
 
 ecs_view_define(GlobalToolUpdateView) {
   ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneTerrainComp);
-  ecs_access_write(DebugGizmoComp);
-  ecs_access_write(DebugInspectorSettingsComp);
-  ecs_access_write(DebugShapeComp);
-  ecs_access_write(DebugStatsGlobalComp);
-  ecs_access_write(DebugTextComp);
+  ecs_access_write(DevGizmoComp);
+  ecs_access_write(DevInspectorSettingsComp);
+  ecs_access_write(DevShapeComp);
+  ecs_access_write(DevStatsGlobalComp);
+  ecs_access_write(DevTextComp);
   ecs_access_write(InputManagerComp);
   ecs_access_write(SceneSetEnvComp);
 }
@@ -260,10 +260,10 @@ ecs_view_define(GlobalVisDrawView) {
   ecs_access_read(SceneCollisionEnvComp);
   ecs_access_read(SceneNavEnvComp);
   ecs_access_read(SceneSetEnvComp);
-  ecs_access_write(DebugInspectorSettingsComp);
-  ecs_access_write(DebugShapeComp);
-  ecs_access_write(DebugStatsGlobalComp);
-  ecs_access_write(DebugTextComp);
+  ecs_access_write(DevInspectorSettingsComp);
+  ecs_access_write(DevShapeComp);
+  ecs_access_write(DevStatsGlobalComp);
+  ecs_access_write(DevTextComp);
 }
 
 ecs_view_define(SubjectView) {
@@ -327,7 +327,7 @@ ecs_view_define(CameraView) {
 ecs_view_define(PrefabMapView) { ecs_access_read(AssetPrefabMapComp); }
 
 static void inspector_notify_vis(
-    DebugInspectorSettingsComp* set, DebugStatsGlobalComp* stats, const DebugInspectorVis vis) {
+    DevInspectorSettingsComp* set, DevStatsGlobalComp* stats, const DebugInspectorVis vis) {
   debug_stats_notify(
       stats,
       fmt_write_scratch("Visualize {}", fmt_text(g_visNames[vis])),
@@ -335,7 +335,7 @@ static void inspector_notify_vis(
 }
 
 static void
-inspector_notify_vis_mode(DebugStatsGlobalComp* stats, const DebugInspectorVisMode visMode) {
+inspector_notify_vis_mode(DevStatsGlobalComp* stats, const DebugInspectorVisMode visMode) {
   debug_stats_notify(stats, string_lit("Visualize"), g_visModeNames[visMode]);
 }
 
@@ -482,21 +482,21 @@ inspector_prop_collect(EcsIterator* subject, DynArray* outEntries /* DebugPropEn
 }
 
 typedef struct {
-  EcsWorld*                   world;
-  UiCanvasComp*               canvas;
-  DebugInspectorPanelComp*    panel;
-  const SceneTimeComp*        time;
-  ScenePrefabEnvComp*         prefabEnv;
-  const AssetPrefabMapComp*   prefabMap;
-  SceneSetEnvComp*            setEnv;
-  DebugStatsGlobalComp*       stats;
-  DebugInspectorSettingsComp* settings;
-  DebugFinderComp*            finder;
-  EcsIterator*                scriptAssetItr;
-  EcsIterator*                entityRefItr;
-  EcsIterator*                subject;
-  EcsEntityId                 subjectEntity;
-  bool                        isEditMode;
+  EcsWorld*                 world;
+  UiCanvasComp*             canvas;
+  DevInspectorPanelComp*    panel;
+  const SceneTimeComp*      time;
+  ScenePrefabEnvComp*       prefabEnv;
+  const AssetPrefabMapComp* prefabMap;
+  SceneSetEnvComp*          setEnv;
+  DevStatsGlobalComp*       stats;
+  DevInspectorSettingsComp* settings;
+  DevFinderComp*            finder;
+  EcsIterator*              scriptAssetItr;
+  EcsIterator*              entityRefItr;
+  EcsIterator*              subject;
+  EcsEntityId               subjectEntity;
+  bool                      isEditMode;
 } InspectorContext;
 
 static bool inspector_panel_section(InspectorContext* ctx, String title, const bool readonly) {
@@ -1622,12 +1622,12 @@ static void inspector_panel_draw(InspectorContext* ctx) {
   ui_panel_end(ctx->canvas, &ctx->panel->panel);
 }
 
-static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* w) {
+static DevInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* w) {
   const EcsEntityId global = ecs_world_global(w);
   EcsView*          view   = ecs_world_view_t(w, SettingsWriteView);
   EcsIterator*      itr    = ecs_view_maybe_at(view, global);
   if (itr) {
-    return ecs_view_write_t(itr, DebugInspectorSettingsComp);
+    return ecs_view_write_t(itr, DevInspectorSettingsComp);
   }
   u32 defaultVisFlags = 0;
   defaultVisFlags |= 1 << DebugInspectorVis_Icon;
@@ -1641,7 +1641,7 @@ static DebugInspectorSettingsComp* inspector_settings_get_or_create(EcsWorld* w)
   return ecs_world_add_t(
       w,
       global,
-      DebugInspectorSettingsComp,
+      DevInspectorSettingsComp,
       .visFlags     = defaultVisFlags,
       .visMode      = DebugInspectorVisMode_Default,
       .tool         = DebugInspectorTool_Translation,
@@ -1660,11 +1660,11 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   if (!globalItr) {
     return;
   }
-  const SceneTimeComp*        time     = ecs_view_read_t(globalItr, SceneTimeComp);
-  SceneSetEnvComp*            setEnv   = ecs_view_write_t(globalItr, SceneSetEnvComp);
-  DebugInspectorSettingsComp* settings = inspector_settings_get_or_create(world);
-  DebugStatsGlobalComp*       stats    = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
-  DebugFinderComp*            finder   = ecs_view_write_t(globalItr, DebugFinderComp);
+  const SceneTimeComp*      time     = ecs_view_read_t(globalItr, SceneTimeComp);
+  SceneSetEnvComp*          setEnv   = ecs_view_write_t(globalItr, SceneSetEnvComp);
+  DevInspectorSettingsComp* settings = inspector_settings_get_or_create(world);
+  DevStatsGlobalComp*       stats    = ecs_view_write_t(globalItr, DevStatsGlobalComp);
+  DevFinderComp*            finder   = ecs_view_write_t(globalItr, DevFinderComp);
 
   ScenePrefabEnvComp*       prefabEnv = ecs_view_write_t(globalItr, ScenePrefabEnvComp);
   const AssetPrefabMapComp* prefabMap = inspector_prefab_map(world, prefabEnv);
@@ -1676,9 +1676,9 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    const EcsEntityId        entity    = ecs_view_entity(itr);
-    DebugInspectorPanelComp* panelComp = ecs_view_write_t(itr, DebugInspectorPanelComp);
-    UiCanvasComp*            canvas    = ecs_view_write_t(itr, UiCanvasComp);
+    const EcsEntityId      entity    = ecs_view_entity(itr);
+    DevInspectorPanelComp* panelComp = ecs_view_write_t(itr, DevInspectorPanelComp);
+    UiCanvasComp*          canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
@@ -1713,7 +1713,7 @@ ecs_system_define(DebugInspectorUpdatePanelSys) {
   }
 }
 
-static void inspector_tool_toggle(DebugInspectorSettingsComp* set, const DebugInspectorTool tool) {
+static void inspector_tool_toggle(DevInspectorSettingsComp* set, const DebugInspectorTool tool) {
   if (set->tool != tool) {
     set->tool = tool;
   } else {
@@ -1798,10 +1798,10 @@ static GeoVector inspector_tool_pivot(EcsWorld* w, const SceneSetEnvComp* setEnv
 }
 
 static void inspector_tool_group_update(
-    EcsWorld*                   w,
-    DebugInspectorSettingsComp* set,
-    const SceneSetEnvComp*      setEnv,
-    DebugGizmoComp*             gizmo) {
+    EcsWorld*                 w,
+    DevInspectorSettingsComp* set,
+    const SceneSetEnvComp*    setEnv,
+    DevGizmoComp*             gizmo) {
   EcsIterator* itr = ecs_view_itr(ecs_world_view_t(w, SubjectView));
   if (!ecs_view_maybe_jump(itr, scene_set_main(setEnv, g_sceneSetSelected))) {
     return; // No main selected entity or its missing required components.
@@ -1868,10 +1868,10 @@ static void inspector_tool_group_update(
 }
 
 static void inspector_tool_individual_update(
-    EcsWorld*                   w,
-    DebugInspectorSettingsComp* set,
-    const SceneSetEnvComp*      setEnv,
-    DebugGizmoComp*             gizmo) {
+    EcsWorld*                 w,
+    DevInspectorSettingsComp* set,
+    const SceneSetEnvComp*    setEnv,
+    DevGizmoComp*             gizmo) {
   EcsIterator*     itr = ecs_view_itr(ecs_world_view_t(w, SubjectView));
   const StringHash s   = g_sceneSetSelected;
 
@@ -1940,10 +1940,10 @@ static bool tool_picker_query_filter(const void* ctx, const EcsEntityId entity, 
 
 static void inspector_tool_picker_update(
     EcsWorld*                    world,
-    DebugInspectorSettingsComp*  set,
-    DebugStatsGlobalComp*        stats,
-    DebugShapeComp*              shape,
-    DebugTextComp*               text,
+    DevInspectorSettingsComp*    set,
+    DevStatsGlobalComp*          stats,
+    DevShapeComp*                shape,
+    DevTextComp*                 text,
     const InputManagerComp*      input,
     const SceneCollisionEnvComp* collisionEnv,
     EcsIterator*                 cameraItr,
@@ -2018,11 +2018,11 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
   const SceneTerrainComp*      terrain      = ecs_view_read_t(globalItr, SceneTerrainComp);
   const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
   SceneSetEnvComp*             setEnv       = ecs_view_write_t(globalItr, SceneSetEnvComp);
-  DebugShapeComp*              shape        = ecs_view_write_t(globalItr, DebugShapeComp);
-  DebugTextComp*               text         = ecs_view_write_t(globalItr, DebugTextComp);
-  DebugGizmoComp*              gizmo        = ecs_view_write_t(globalItr, DebugGizmoComp);
-  DebugInspectorSettingsComp*  set   = ecs_view_write_t(globalItr, DebugInspectorSettingsComp);
-  DebugStatsGlobalComp*        stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  DevShapeComp*                shape        = ecs_view_write_t(globalItr, DevShapeComp);
+  DevTextComp*                 text         = ecs_view_write_t(globalItr, DevTextComp);
+  DevGizmoComp*                gizmo        = ecs_view_write_t(globalItr, DevGizmoComp);
+  DevInspectorSettingsComp*    set          = ecs_view_write_t(globalItr, DevInspectorSettingsComp);
+  DevStatsGlobalComp*          stats        = ecs_view_write_t(globalItr, DevStatsGlobalComp);
 
   if (!input_layer_active(input, string_hash_lit("Debug"))) {
     if (set->tool == DebugInspectorTool_Picker) {
@@ -2095,7 +2095,7 @@ ecs_system_define(DebugInspectorToolUpdateSys) {
 }
 
 static void inspector_vis_draw_locomotion(
-    DebugShapeComp*            shape,
+    DevShapeComp*              shape,
     const SceneLocomotionComp* loco,
     const SceneTransformComp*  transform,
     const SceneScaleComp*      scale) {
@@ -2118,7 +2118,7 @@ static void inspector_vis_draw_locomotion(
 }
 
 static void inspector_vis_draw_collision(
-    DebugShapeComp*           shape,
+    DevShapeComp*             shape,
     const SceneCollisionComp* collision,
     const SceneTransformComp* transform,
     const SceneScaleComp*     scale) {
@@ -2144,7 +2144,7 @@ static void inspector_vis_draw_collision(
 }
 
 static void inspector_vis_draw_bounds_local(
-    DebugShapeComp*           shape,
+    DevShapeComp*             shape,
     const SceneBoundsComp*    bounds,
     const SceneTransformComp* transform,
     const SceneScaleComp*     scale) {
@@ -2153,7 +2153,7 @@ static void inspector_vis_draw_bounds_local(
 }
 
 static void inspector_vis_draw_bounds_global(
-    DebugShapeComp*           shape,
+    DevShapeComp*             shape,
     const SceneBoundsComp*    bounds,
     const SceneTransformComp* transform,
     const SceneScaleComp*     scale) {
@@ -2162,7 +2162,7 @@ static void inspector_vis_draw_bounds_global(
 }
 
 static void inspector_vis_draw_navigation_path(
-    DebugShapeComp*           shape,
+    DevShapeComp*             shape,
     const SceneNavEnvComp*    nav,
     const SceneNavAgentComp*  agent,
     const SceneNavPathComp*   path,
@@ -2182,7 +2182,7 @@ static void inspector_vis_draw_navigation_path(
 }
 
 static void inspector_vis_draw_light_point(
-    DebugShapeComp*            shape,
+    DevShapeComp*              shape,
     const SceneLightPointComp* lightPoint,
     const SceneTransformComp*  transform,
     const SceneScaleComp*      scaleComp) {
@@ -2192,7 +2192,7 @@ static void inspector_vis_draw_light_point(
 }
 
 static void inspector_vis_draw_light_dir(
-    DebugShapeComp* shape, const SceneLightDirComp* lightDir, const SceneTransformComp* transform) {
+    DevShapeComp* shape, const SceneLightDirComp* lightDir, const SceneTransformComp* transform) {
   (void)lightDir;
   const GeoVector pos      = transform ? transform->position : geo_vector(0);
   const GeoQuat   rot      = transform ? transform->rotation : geo_quat_ident;
@@ -2202,7 +2202,7 @@ static void inspector_vis_draw_light_dir(
 }
 
 static void inspector_vis_draw_health(
-    DebugTextComp* text, const SceneHealthComp* health, const SceneTransformComp* transform) {
+    DevTextComp* text, const SceneHealthComp* health, const SceneTransformComp* transform) {
   const GeoVector pos          = transform ? transform->position : geo_vector(0);
   const f32       healthPoints = scene_health_points(health);
   const GeoColor  color        = geo_color_lerp(geo_color_red, geo_color_lime, health->norm);
@@ -2211,8 +2211,8 @@ static void inspector_vis_draw_health(
 }
 
 static void inspector_vis_draw_attack(
-    DebugShapeComp*             shape,
-    DebugTextComp*              text,
+    DevShapeComp*               shape,
+    DevTextComp*                text,
     const SceneAttackComp*      attack,
     const SceneAttackTraceComp* trace,
     const SceneTransformComp*   transform) {
@@ -2242,7 +2242,7 @@ static void inspector_vis_draw_attack(
 }
 
 static void inspector_vis_draw_target(
-    DebugTextComp*               text,
+    DevTextComp*                 text,
     const SceneTargetFinderComp* tgtFinder,
     const SceneTargetTraceComp*  tgtTrace,
     EcsView*                     transformView) {
@@ -2279,7 +2279,7 @@ static void inspector_vis_draw_target(
 }
 
 static void inspector_vis_draw_vision(
-    DebugShapeComp* shape, const SceneVisionComp* vision, const SceneTransformComp* transform) {
+    DevShapeComp* shape, const SceneVisionComp* vision, const SceneTransformComp* transform) {
   debug_circle(
       shape,
       transform->position,
@@ -2289,7 +2289,7 @@ static void inspector_vis_draw_vision(
 }
 
 static void inspector_vis_draw_location(
-    DebugShapeComp*           shape,
+    DevShapeComp*             shape,
     const SceneLocationComp*  location,
     const SceneTransformComp* transform,
     const SceneScaleComp*     scale) {
@@ -2303,8 +2303,8 @@ static void inspector_vis_draw_location(
   }
 }
 
-static void inspector_vis_draw_explicit(
-    DebugShapeComp* shape, DebugTextComp* text, const SceneDebugComp* comp) {
+static void
+inspector_vis_draw_explicit(DevShapeComp* shape, DevTextComp* text, const SceneDebugComp* comp) {
   const SceneDebug* debugData  = scene_debug_data(comp);
   const usize       debugCount = scene_debug_count(comp);
   for (usize i = 0; i != debugCount; ++i) {
@@ -2340,11 +2340,11 @@ static void inspector_vis_draw_explicit(
 }
 
 static void inspector_vis_draw_subject(
-    DebugShapeComp*                   shape,
-    DebugTextComp*                    text,
-    const DebugInspectorSettingsComp* set,
-    const SceneNavEnvComp*            nav,
-    EcsIterator*                      subject) {
+    DevShapeComp*                   shape,
+    DevTextComp*                    text,
+    const DevInspectorSettingsComp* set,
+    const SceneNavEnvComp*          nav,
+    EcsIterator*                    subject) {
   const SceneAttackTraceComp* attackTraceComp = ecs_view_read_t(subject, SceneAttackTraceComp);
   const SceneBoundsComp*      boundsComp      = ecs_view_read_t(subject, SceneBoundsComp);
   const SceneCollisionComp*   collisionComp   = ecs_view_read_t(subject, SceneCollisionComp);
@@ -2455,7 +2455,7 @@ static GeoNavRegion inspector_nav_visible_region(const GeoNavGrid* grid, EcsView
 }
 
 static void inspector_vis_draw_navigation_grid(
-    DebugShapeComp* shape, DebugTextComp* text, const GeoNavGrid* grid, EcsView* cameraView) {
+    DevShapeComp* shape, DevTextComp* text, const GeoNavGrid* grid, EcsView* cameraView) {
 
   DynString textBuffer = dynstring_create_over(mem_stack(32));
 
@@ -2499,7 +2499,7 @@ static void inspector_vis_draw_navigation_grid(
   }
 }
 
-static void inspector_vis_draw_collision_bounds(DebugShapeComp* shape, const GeoQueryEnv* env) {
+static void inspector_vis_draw_collision_bounds(DevShapeComp* shape, const GeoQueryEnv* env) {
   const u32 nodeCount = geo_query_node_count(env);
   for (u32 nodeIdx = 0; nodeIdx != nodeCount; ++nodeIdx) {
     const GeoBox*   bounds = geo_query_node_bounds(env, nodeIdx);
@@ -2510,7 +2510,7 @@ static void inspector_vis_draw_collision_bounds(DebugShapeComp* shape, const Geo
   }
 }
 
-static void inspector_vis_draw_icon(EcsWorld* w, DebugTextComp* text, EcsIterator* subject) {
+static void inspector_vis_draw_icon(EcsWorld* w, DevTextComp* text, EcsIterator* subject) {
   const SceneTransformComp* transformComp = ecs_view_read_t(subject, SceneTransformComp);
   const SceneSetMemberComp* setMember     = ecs_view_read_t(subject, SceneSetMemberComp);
   const SceneScriptComp*    scriptComp    = ecs_view_read_t(subject, SceneScriptComp);
@@ -2527,7 +2527,7 @@ static void inspector_vis_draw_icon(EcsWorld* w, DebugTextComp* text, EcsIterato
   } else {
     if (scriptComp || ecs_world_has_t(w, e, ScenePropertyComp)) {
       icon = UiShape_Description;
-    } else if (ecs_world_has_t(w, e, DebugPrefabPreviewComp)) {
+    } else if (ecs_world_has_t(w, e, DevPrefabPreviewComp)) {
       icon = 0; // No icon for previews.
     } else if (ecs_world_has_t(w, e, SceneVfxDecalComp)) {
       icon = UiShape_Image;
@@ -2576,9 +2576,9 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   if (!globalItr) {
     return;
   }
-  const InputManagerComp*     input = ecs_view_read_t(globalItr, InputManagerComp);
-  DebugInspectorSettingsComp* set   = ecs_view_write_t(globalItr, DebugInspectorSettingsComp);
-  DebugStatsGlobalComp*       stats = ecs_view_write_t(globalItr, DebugStatsGlobalComp);
+  const InputManagerComp*   input = ecs_view_read_t(globalItr, InputManagerComp);
+  DevInspectorSettingsComp* set   = ecs_view_write_t(globalItr, DevInspectorSettingsComp);
+  DevStatsGlobalComp*       stats = ecs_view_write_t(globalItr, DevStatsGlobalComp);
 
   if (!set->drawVisInGame && !input_layer_active(input, string_hash_lit("Debug"))) {
     return;
@@ -2616,8 +2616,8 @@ ecs_system_define(DebugInspectorVisDrawSys) {
   const SceneNavEnvComp*       navEnv       = ecs_view_read_t(globalItr, SceneNavEnvComp);
   const SceneSetEnvComp*       setEnv       = ecs_view_read_t(globalItr, SceneSetEnvComp);
   const SceneCollisionEnvComp* collisionEnv = ecs_view_read_t(globalItr, SceneCollisionEnvComp);
-  DebugShapeComp*              shape        = ecs_view_write_t(globalItr, DebugShapeComp);
-  DebugTextComp*               text         = ecs_view_write_t(globalItr, DebugTextComp);
+  DevShapeComp*                shape        = ecs_view_write_t(globalItr, DevShapeComp);
+  DevTextComp*                 text         = ecs_view_write_t(globalItr, DevTextComp);
 
   EcsView*     transformView = ecs_world_view_t(world, TransformView);
   EcsView*     subjectView   = ecs_world_view_t(world, SubjectView);
@@ -2683,8 +2683,8 @@ ecs_system_define(DebugInspectorVisDrawSys) {
 }
 
 ecs_module_init(debug_inspector_module) {
-  ecs_register_comp(DebugInspectorSettingsComp);
-  ecs_register_comp(DebugInspectorPanelComp, .destructor = ecs_destruct_panel_comp);
+  ecs_register_comp(DevInspectorSettingsComp);
+  ecs_register_comp(DevInspectorPanelComp, .destructor = ecs_destruct_panel_comp);
 
   ecs_register_view(SettingsWriteView);
   ecs_register_view(GlobalPanelUpdateView);
@@ -2728,11 +2728,11 @@ ecs_module_init(debug_inspector_module) {
 
 EcsEntityId
 dev_inspector_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
-  const EcsEntityId        panelEntity    = dev_panel_create(world, window, type);
-  DebugInspectorPanelComp* inspectorPanel = ecs_world_add_t(
+  const EcsEntityId      panelEntity    = dev_panel_create(world, window, type);
+  DevInspectorPanelComp* inspectorPanel = ecs_world_add_t(
       world,
       panelEntity,
-      DebugInspectorPanelComp,
+      DevInspectorPanelComp,
       .panel         = ui_panel(.position = ui_vector(0.0f, 0.0f), .size = ui_vector(500, 500)),
       .newSetBuffer  = dynstring_create(g_allocHeap, 0),
       .newPropBuffer = dynstring_create(g_allocHeap, 0));

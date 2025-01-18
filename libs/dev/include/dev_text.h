@@ -3,12 +3,12 @@
 #include "geo_color.h"
 #include "geo_vector.h"
 
-ecs_comp_extern(DebugTextComp);
+ecs_comp_extern(DevTextComp);
 
 /**
  * Add a new debug-text component to the given entity.
  */
-DebugTextComp* debug_text_create(EcsWorld*, EcsEntityId entity);
+DevTextComp* debug_text_create(EcsWorld*, EcsEntityId entity);
 
 typedef struct {
   GeoColor color;
@@ -25,4 +25,4 @@ typedef struct {
 
 // clang-format on
 
-void debug_text_with_opts(DebugTextComp*, GeoVector pos, String, const DebugTextOpts*);
+void debug_text_with_opts(DevTextComp*, GeoVector pos, String, const DebugTextOpts*);

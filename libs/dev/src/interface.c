@@ -54,7 +54,7 @@ static const String g_inspectorModeNames[] = {
 };
 ASSERT(array_elems(g_inspectorModeNames) == UiInspectorMode_Count, "Missing inspector names");
 
-ecs_comp_define(DebugInterfacePanelComp) {
+ecs_comp_define(DevInterfacePanelComp) {
   UiPanel     panel;
   EcsEntityId window;
   f32         newScale;
@@ -64,15 +64,15 @@ ecs_comp_define(DebugInterfacePanelComp) {
 ecs_view_define(GlobalView) { ecs_access_write(UiSettingsGlobalComp); }
 
 ecs_view_define(PanelUpdateView) {
-  ecs_view_flags(EcsViewFlags_Exclusive); // DebugInterfacePanelComp's are exclusively managed here.
+  ecs_view_flags(EcsViewFlags_Exclusive); // DevInterfacePanelComp's are exclusively managed here.
 
   ecs_access_read(DevPanelComp);
-  ecs_access_write(DebugInterfacePanelComp);
+  ecs_access_write(DevInterfacePanelComp);
   ecs_access_write(UiCanvasComp);
 }
 
 static void interface_panel_draw(
-    UiCanvasComp* canvas, DebugInterfacePanelComp* panelComp, UiSettingsGlobalComp* settings) {
+    UiCanvasComp* canvas, DevInterfacePanelComp* panelComp, UiSettingsGlobalComp* settings) {
 
   const String title = fmt_write_scratch("{} Interface Panel", fmt_ui_shape(FormatShapes));
   ui_panel_begin(
@@ -154,9 +154,9 @@ ecs_system_define(DebugInterfaceUpdatePanelSys) {
 
   EcsView* panelView = ecs_world_view_t(world, PanelUpdateView);
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
-    const EcsEntityId        entity    = ecs_view_entity(itr);
-    DebugInterfacePanelComp* panelComp = ecs_view_write_t(itr, DebugInterfacePanelComp);
-    UiCanvasComp*            canvas    = ecs_view_write_t(itr, UiCanvasComp);
+    const EcsEntityId      entity    = ecs_view_entity(itr);
+    DevInterfacePanelComp* panelComp = ecs_view_write_t(itr, DevInterfacePanelComp);
+    UiCanvasComp*          canvas    = ecs_view_write_t(itr, UiCanvasComp);
 
     if (panelComp->newScale == 0) {
       panelComp->newScale = settings->scale;
@@ -181,7 +181,7 @@ ecs_system_define(DebugInterfaceUpdatePanelSys) {
 }
 
 ecs_module_init(debug_interface_module) {
-  ecs_register_comp(DebugInterfacePanelComp);
+  ecs_register_comp(DevInterfacePanelComp);
 
   ecs_register_view(GlobalView);
   ecs_register_view(PanelUpdateView);
@@ -192,11 +192,11 @@ ecs_module_init(debug_interface_module) {
 
 EcsEntityId
 dev_interface_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
-  const EcsEntityId        panelEntity    = dev_panel_create(world, window, type);
-  DebugInterfacePanelComp* interfacePanel = ecs_world_add_t(
+  const EcsEntityId      panelEntity    = dev_panel_create(world, window, type);
+  DevInterfacePanelComp* interfacePanel = ecs_world_add_t(
       world,
       panelEntity,
-      DebugInterfacePanelComp,
+      DevInterfacePanelComp,
       .panel  = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 190)),
       .window = window);
 
