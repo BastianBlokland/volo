@@ -64,7 +64,7 @@ ecs_comp_define(AppComp) {
 
 ecs_comp_define(AppMainWindowComp) {
   EcsEntityId uiCanvas;
-  EcsEntityId debugMenu;
+  EcsEntityId devMenu;
   EcsEntityId devLogViewer;
 };
 
@@ -177,12 +177,12 @@ typedef struct {
   GapWindowComp*          win;
   RendSettingsGlobalComp* rendSetGlobal;
   RendSettingsComp*       rendSetWin;
-  DevStatsGlobalComp*     debugStats;
+  DevStatsGlobalComp*     devStats;
 } AppActionContext;
 
 static void app_action_notify(const AppActionContext* ctx, const String action) {
-  if (ctx->debugStats) {
-    dev_stats_notify(ctx->debugStats, string_lit("Action"), action);
+  if (ctx->devStats) {
+    dev_stats_notify(ctx->devStats, string_lit("Action"), action);
   }
 }
 
@@ -457,11 +457,11 @@ ecs_view_define(UiCanvasView) {
 }
 
 ecs_view_define(DevPanelView) { ecs_access_write(DevPanelComp); }
-ecs_view_define(DebugLogViewerView) { ecs_access_write(DevLogViewerComp); }
+ecs_view_define(DevLogViewerView) { ecs_access_write(DevLogViewerComp); }
 
-static void app_debug_hide(EcsWorld* world, const bool hidden) {
-  EcsView* debugPanelView = ecs_world_view_t(world, DevPanelView);
-  for (EcsIterator* itr = ecs_view_itr(debugPanelView); ecs_view_walk(itr);) {
+static void app_dev_hide(EcsWorld* world, const bool hidden) {
+  EcsView* devPanelView = ecs_world_view_t(world, DevPanelView);
+  for (EcsIterator* itr = ecs_view_itr(devPanelView); ecs_view_walk(itr);) {
     DevPanelComp* panel = ecs_view_write_t(itr, DevPanelComp);
     if (dev_panel_type(panel) != DevPanelType_Detached) {
       dev_panel_hide(panel, hidden);
@@ -483,10 +483,10 @@ ecs_system_define(AppUpdateSys) {
   SceneTimeSettingsComp*  timeSet       = ecs_view_write_t(globalItr, SceneTimeSettingsComp);
   InputManagerComp*       input         = ecs_view_write_t(globalItr, InputManagerComp);
   SceneVisibilityEnvComp* visibilityEnv = ecs_view_write_t(globalItr, SceneVisibilityEnvComp);
-  DevStatsGlobalComp*     debugStats    = ecs_view_write_t(globalItr, DevStatsGlobalComp);
+  DevStatsGlobalComp*     devStats      = ecs_view_write_t(globalItr, DevStatsGlobalComp);
 
-  EcsIterator* canvasItr         = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
-  EcsIterator* debugLogViewerItr = ecs_view_itr(ecs_world_view_t(world, DebugLogViewerView));
+  EcsIterator* canvasItr       = ecs_view_itr(ecs_world_view_t(world, UiCanvasView));
+  EcsIterator* devLogViewerItr = ecs_view_itr(ecs_world_view_t(world, DevLogViewerView));
 
   EcsView*     mainWinView = ecs_world_view_t(world, MainWindowView);
   EcsIterator* mainWinItr  = ecs_view_maybe_at(mainWinView, app->mainWindow);
@@ -523,31 +523,31 @@ ecs_system_define(AppUpdateSys) {
               .win           = win,
               .rendSetGlobal = rendSetGlobal,
               .rendSetWin    = rendSetWin,
-              .debugStats    = debugStats,
+              .devStats      = devStats,
           });
     }
 
-    DevLogViewerComp* debugLogViewer = null;
-    if (ecs_view_maybe_jump(debugLogViewerItr, appWindow->devLogViewer)) {
-      debugLogViewer = ecs_view_write_t(debugLogViewerItr, DevLogViewerComp);
+    DevLogViewerComp* devLogViewer = null;
+    if (ecs_view_maybe_jump(devLogViewerItr, appWindow->devLogViewer)) {
+      devLogViewer = ecs_view_write_t(devLogViewerItr, DevLogViewerComp);
     }
 
     // clang-format off
     switch (app->mode) {
     case AppMode_Normal:
-      if (debugLogViewer)         { dev_log_viewer_set_mask(debugLogViewer, LogMask_Warn | LogMask_Error); }
+      if (devLogViewer)           { dev_log_viewer_set_mask(devLogViewer, LogMask_Warn | LogMask_Error); }
       if (stats)                  { dev_stats_show_set(stats, DevStatShow_Minimal); }
-      app_debug_hide(world, true);
-      input_layer_disable(input, string_hash_lit("Debug"));
+      app_dev_hide(world, true);
+      input_layer_disable(input, string_hash_lit("Dev"));
       input_layer_enable(input, string_hash_lit("Game"));
       scene_visibility_flags_clear(visibilityEnv, SceneVisibilityFlags_ForceRender);
       break;
     case AppMode_Debug:
-      if (!appWindow->debugMenu)  { appWindow->debugMenu = dev_menu_create(world, windowEntity); }
-      if (debugLogViewer)         { dev_log_viewer_set_mask(debugLogViewer, LogMask_All); }
+      if (!appWindow->devMenu)    { appWindow->devMenu = dev_menu_create(world, windowEntity); }
+      if (devLogViewer)           { dev_log_viewer_set_mask(devLogViewer, LogMask_All); }
       if (stats)                  { dev_stats_show_set(stats, DevStatShow_Full); }
-      app_debug_hide(world, false);
-      input_layer_enable(input, string_hash_lit("Debug"));
+      app_dev_hide(world, false);
+      input_layer_enable(input, string_hash_lit("Dev"));
       input_layer_disable(input, string_hash_lit("Game"));
       scene_visibility_flags_set(visibilityEnv, SceneVisibilityFlags_ForceRender);
       break;
@@ -564,7 +564,7 @@ ecs_module_init(game_app_module) {
   ecs_register_view(MainWindowView);
   ecs_register_view(UiCanvasView);
   ecs_register_view(DevPanelView);
-  ecs_register_view(DebugLogViewerView);
+  ecs_register_view(DevLogViewerView);
 
   ecs_register_system(
       AppUpdateSys,
@@ -572,7 +572,7 @@ ecs_module_init(game_app_module) {
       ecs_view_id(MainWindowView),
       ecs_view_id(UiCanvasView),
       ecs_view_id(DevPanelView),
-      ecs_view_id(DebugLogViewerView));
+      ecs_view_id(DevLogViewerView));
 }
 
 static CliId g_optAssets, g_optWindow, g_optWidth, g_optHeight, g_optHelp;
@@ -661,7 +661,7 @@ void app_ecs_init(EcsWorld* world, const CliInvocation* invoc) {
   InputResourceComp* inputResource = input_resource_init(world);
   input_resource_load_map(inputResource, string_lit("global/app.inputs"));
   input_resource_load_map(inputResource, string_lit("global/game.inputs"));
-  input_resource_load_map(inputResource, string_lit("global/debug.inputs"));
+  input_resource_load_map(inputResource, string_lit("global/dev.inputs"));
 
   scene_level_load(world, SceneLevelMode_Play, asset_lookup(world, assets, g_appLevel));
   scene_prefab_init(world, string_lit("global/game.prefabs"));
