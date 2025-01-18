@@ -4,6 +4,7 @@
 #include "core_format.h"
 #include "core_stringtable.h"
 #include "debug_finder.h"
+#include "debug_widget.h"
 #include "ecs_entity.h"
 #include "geo_vector.h"
 #include "scene_faction.h"
@@ -12,8 +13,6 @@
 #include "ui_shape.h"
 #include "ui_style.h"
 #include "ui_widget.h"
-
-#include "widget_internal.h"
 
 static const String g_tooltipReset        = string_static("Reset the value to default.");
 static const String g_tooltipAssetRefresh = string_static("Refresh the asset query.");

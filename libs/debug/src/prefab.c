@@ -10,6 +10,7 @@
 #include "debug_prefab.h"
 #include "debug_shape.h"
 #include "debug_stats.h"
+#include "debug_widget.h"
 #include "ecs_module.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
@@ -29,8 +30,6 @@
 #include "ui_shape.h"
 #include "ui_table.h"
 #include "ui_widget.h"
-
-#include "widget_internal.h"
 
 // clang-format off
 

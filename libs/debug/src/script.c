@@ -9,6 +9,7 @@
 #include "core_stringtable.h"
 #include "debug_panel.h"
 #include "debug_script.h"
+#include "debug_widget.h"
 #include "ecs_entity.h"
 #include "ecs_utils.h"
 #include "ecs_view.h"
@@ -32,8 +33,6 @@
 #include "ui_style.h"
 #include "ui_table.h"
 #include "ui_widget.h"
-
-#include "widget_internal.h"
 
 #define output_max_age time_seconds(60)
 #define output_max_message_size 64
