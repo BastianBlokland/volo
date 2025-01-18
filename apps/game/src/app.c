@@ -544,7 +544,7 @@ ecs_system_define(AppUpdateSys) {
       scene_visibility_flags_clear(visibilityEnv, SceneVisibilityFlags_ForceRender);
       break;
     case AppMode_Debug:
-      if (!appWindow->debugMenu)  { appWindow->debugMenu = debug_menu_create(world, windowEntity); }
+      if (!appWindow->debugMenu)  { appWindow->debugMenu = dev_menu_create(world, windowEntity); }
       if (debugLogViewer)         { debug_log_viewer_set_mask(debugLogViewer, LogMask_All); }
       if (stats)                  { debug_stats_show_set(stats, DebugStatShow_Full); }
       app_debug_hide(world, false);

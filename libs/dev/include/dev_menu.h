@@ -3,4 +3,4 @@
 
 ecs_comp_extern(DevMenuComp);
 
-EcsEntityId debug_menu_create(EcsWorld*, EcsEntityId window);
+EcsEntityId dev_menu_create(EcsWorld*, EcsEntityId window);

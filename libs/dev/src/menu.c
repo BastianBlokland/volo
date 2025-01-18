@@ -364,7 +364,7 @@ ecs_system_define(DevMenuUpdateSys) {
   }
 }
 
-ecs_module_init(debug_menu_module) {
+ecs_module_init(dev_menu_module) {
   ecs_register_comp(DevMenuComp);
 
   ecs_register_view(GlobalView);
@@ -380,7 +380,7 @@ ecs_module_init(debug_menu_module) {
       ecs_view_id(WindowView));
 }
 
-EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
+EcsEntityId dev_menu_create(EcsWorld* world, const EcsEntityId window) {
   const EcsEntityId menuEntity = dev_panel_create(world, window, DevPanelType_Normal);
   DevMenuComp*      menu       = ecs_world_add_t(world, menuEntity, DevMenuComp, .window = window);
 
