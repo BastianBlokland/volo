@@ -525,6 +525,8 @@ static void inspector_panel_draw_string(InspectorContext* ctx, const String valu
 }
 
 static void inspector_panel_draw_entity(InspectorContext* ctx, const EcsEntityId value) {
+  DynString tooltipBuffer = dynstring_create(g_allocScratch, usize_kibibyte);
+
   String label      = fmt_write_scratch("{}", ecs_entity_fmt(value));
   bool   selectable = false, monospace = true;
   if (!ecs_entity_valid(value)) {
@@ -535,14 +537,17 @@ static void inspector_panel_draw_entity(InspectorContext* ctx, const EcsEntityId
     const SceneNameComp* nameComp  = ecs_view_read_t(ctx->entityRefItr, SceneNameComp);
     if (assetComp) {
       label = asset_id(assetComp);
+      fmt_write(&tooltipBuffer, "Asset:\a>0C{}\n", fmt_text(label));
     } else if (nameComp) {
       const String name = stringtable_lookup(g_stringtable, nameComp->name);
       label             = string_is_empty(name) ? string_lit("< Unnamed >") : name;
       selectable        = true;
+      fmt_write(&tooltipBuffer, "Name:\a>0C{}\n", fmt_text(label));
     }
   }
 
-  const String tooltip = fmt_write_scratch(
+  fmt_write(
+      &tooltipBuffer,
       "Entity:\a>0C{}\n"
       "Index:\a>0C{}\n"
       "Serial:\a>0C{}\n",
@@ -556,7 +561,7 @@ static void inspector_panel_draw_entity(InspectorContext* ctx, const EcsEntityId
   if (selectable) {
     ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
   }
-  ui_label(ctx->canvas, label, .selectable = true, .tooltip = tooltip);
+  ui_label(ctx->canvas, label, .selectable = true, .tooltip = dynstring_view(&tooltipBuffer));
   if (selectable) {
     ui_layout_next(ctx->canvas, Ui_Right, 10);
     ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
