@@ -1,4 +1,4 @@
 #pragma once
-#include "debug.h"
+#include "dev.h"
 
 EcsEntityId debug_vfx_panel_open(EcsWorld*, EcsEntityId window, DebugPanelType);

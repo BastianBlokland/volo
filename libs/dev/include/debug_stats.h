@@ -1,5 +1,5 @@
 #pragma once
-#include "debug.h"
+#include "dev.h"
 
 ecs_comp_extern(DebugStatsComp);
 ecs_comp_extern(DebugStatsGlobalComp);

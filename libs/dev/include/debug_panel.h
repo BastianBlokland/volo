@@ -1,5 +1,5 @@
 #pragma once
-#include "debug.h"
+#include "dev.h"
 
 typedef enum eDebugPanelType {
   DebugPanelType_Normal,

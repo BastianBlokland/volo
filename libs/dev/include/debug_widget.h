@@ -1,6 +1,6 @@
 #pragma once
 #include "asset.h"
-#include "debug.h"
+#include "dev.h"
 #include "geo.h"
 #include "scene.h"
 #include "ui.h"
