@@ -3,7 +3,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynarray.h"
-#include "debug_finder.h"
+#include "dev_finder.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
 

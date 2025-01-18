@@ -1,4 +1,4 @@
-#include "debug_panel.h"
+#include "dev_panel.h"
 #include "ecs_world.h"
 #include "ui_canvas.h"
 

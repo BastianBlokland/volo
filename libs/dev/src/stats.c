@@ -8,7 +8,7 @@
 #include "core_math.h"
 #include "core_stringtable.h"
 #include "data_registry.h"
-#include "debug_stats.h"
+#include "dev_stats.h"
 #include "ecs_def.h"
 #include "ecs_runner.h"
 #include "ecs_view.h"
