@@ -669,187 +669,6 @@ static void inspector_panel_draw_transform(InspectorContext* ctx, UiTable* table
   }
 }
 
-static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
-  SceneLightPointComp*   point = ecs_view_write_t(ctx->subject, SceneLightPointComp);
-  SceneLightDirComp*     dir   = ecs_view_write_t(ctx->subject, SceneLightDirComp);
-  SceneLightAmbientComp* amb   = ecs_view_write_t(ctx->subject, SceneLightAmbientComp);
-  if (!point && !dir && !amb) {
-    return;
-  }
-  inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Light"))) {
-    if (point) {
-      inspector_panel_next(ctx, table);
-      ui_label(ctx->canvas, string_lit("Radiance"));
-      ui_table_next_column(ctx->canvas, table);
-      debug_widget_color(ctx->canvas, &point->radiance, UiWidget_Default);
-
-      inspector_panel_next(ctx, table);
-      ui_label(ctx->canvas, string_lit("Radius"));
-      ui_table_next_column(ctx->canvas, table);
-      if (debug_widget_f32(ctx->canvas, &point->radius, UiWidget_Default)) {
-        // Clamp the radius to a sane value.
-        point->radius = math_clamp_f32(point->radius, 1e-3f, 1e3f);
-      }
-    }
-    if (dir) {
-      inspector_panel_next(ctx, table);
-      ui_label(ctx->canvas, string_lit("Radiance"));
-      ui_table_next_column(ctx->canvas, table);
-      debug_widget_color(ctx->canvas, &dir->radiance, UiWidget_Default);
-
-      inspector_panel_next(ctx, table);
-      ui_label(ctx->canvas, string_lit("Shadows"));
-      ui_table_next_column(ctx->canvas, table);
-      ui_toggle(ctx->canvas, &dir->shadows);
-
-      inspector_panel_next(ctx, table);
-      ui_label(ctx->canvas, string_lit("Coverage"));
-      ui_table_next_column(ctx->canvas, table);
-      ui_toggle(ctx->canvas, &dir->coverage);
-    }
-    if (amb) {
-      inspector_panel_next(ctx, table);
-      ui_label(ctx->canvas, string_lit("Ambient"));
-      ui_table_next_column(ctx->canvas, table);
-      if (debug_widget_f32(ctx->canvas, &amb->intensity, UiWidget_Default)) {
-        // Clamp the ambient intensity to a sane value.
-        amb->intensity = math_clamp_f32(amb->intensity, 0.0f, 10.0f);
-      }
-    }
-  }
-}
-
-static void inspector_panel_draw_health(InspectorContext* ctx, UiTable* table) {
-  SceneHealthComp* health = ecs_view_write_t(ctx->subject, SceneHealthComp);
-  if (!health) {
-    return;
-  }
-  inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Health"))) {
-    inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Amount"));
-    ui_table_next_column(ctx->canvas, table);
-    ui_slider(ctx->canvas, &health->norm);
-
-    inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Max"));
-    ui_table_next_column(ctx->canvas, table);
-    debug_widget_f32(ctx->canvas, &health->max, UiWidget_Default);
-  }
-}
-
-static void inspector_panel_draw_status(InspectorContext* ctx, UiTable* table) {
-  const SceneStatusComp* status = ecs_view_read_t(ctx->subject, SceneStatusComp);
-  if (!status) {
-    return;
-  }
-  inspector_panel_next(ctx, table);
-  const u32 activeCount = bits_popcnt((u32)status->active);
-  if (inspector_panel_section(ctx, fmt_write_scratch("Status ({})", fmt_int(activeCount)))) {
-    for (SceneStatusType type = 0; type != SceneStatusType_Count; ++type) {
-      inspector_panel_next(ctx, table);
-      ui_label(ctx->canvas, scene_status_name(type));
-      ui_table_next_column(ctx->canvas, table);
-      bool active = scene_status_active(status, type);
-      if (ui_toggle(ctx->canvas, &active)) {
-        if (active) {
-          const EcsEntityId instigator = 0;
-          scene_status_add(ctx->world, ctx->subjectEntity, type, instigator);
-        } else {
-          scene_status_remove(ctx->world, ctx->subjectEntity, type);
-        }
-      }
-    }
-  }
-}
-
-static void inspector_panel_draw_faction(InspectorContext* ctx, UiTable* table) {
-  SceneFactionComp* faction = ecs_view_write_t(ctx->subject, SceneFactionComp);
-  if (!faction) {
-    return;
-  }
-  inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Faction"))) {
-    inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Id"));
-    ui_table_next_column(ctx->canvas, table);
-    debug_widget_faction(ctx->canvas, &faction->id, UiWidget_Default);
-  }
-}
-
-static void inspector_panel_draw_target(InspectorContext* ctx, UiTable* table) {
-  const SceneTargetFinderComp* finder = ecs_view_read_t(ctx->subject, SceneTargetFinderComp);
-  if (!finder) {
-    return;
-  }
-  inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Target"))) {
-    inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Entity"));
-    ui_table_next_column(ctx->canvas, table);
-    inspector_panel_draw_entity(ctx, scene_target_primary(finder));
-
-    inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Time until refresh"));
-    ui_table_next_column(ctx->canvas, table);
-    const TimeDuration untilRefresh = finder->nextRefreshTime - ctx->time->time;
-    ui_label(ctx->canvas, fmt_write_scratch("{}", fmt_duration(untilRefresh)));
-  }
-}
-
-static void inspector_panel_draw_nav_agent(InspectorContext* ctx, UiTable* table) {
-  const SceneNavAgentComp* agent = ecs_view_read_t(ctx->subject, SceneNavAgentComp);
-  if (!agent) {
-    return;
-  }
-  inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Navigation Agent"))) {
-    inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Layer"));
-    ui_table_next_column(ctx->canvas, table);
-    ui_select(ctx->canvas, (i32*)&agent->layer, g_sceneNavLayerNames, SceneNavLayer_Count);
-  }
-}
-
-static void inspector_panel_draw_renderable(InspectorContext* ctx, UiTable* table) {
-  SceneRenderableComp* renderable = ecs_view_write_t(ctx->subject, SceneRenderableComp);
-  if (!renderable) {
-    return;
-  }
-  inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Renderable"))) {
-    inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Graphic"));
-    ui_table_next_column(ctx->canvas, table);
-    inspector_panel_draw_entity(ctx, renderable->graphic);
-
-    inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Color"));
-    ui_table_next_column(ctx->canvas, table);
-    debug_widget_color(ctx->canvas, &renderable->color, UiWidget_Default);
-
-    inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Emissive"));
-    ui_table_next_column(ctx->canvas, table);
-    ui_slider(ctx->canvas, &renderable->emissive);
-  }
-}
-
-static void inspector_panel_draw_decal(InspectorContext* ctx, UiTable* table) {
-  SceneVfxDecalComp* decal = ecs_view_write_t(ctx->subject, SceneVfxDecalComp);
-  if (!decal) {
-    return;
-  }
-  inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Decal"))) {
-    inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Alpha"));
-    ui_table_next_column(ctx->canvas, table);
-    ui_slider(ctx->canvas, &decal->alpha);
-  }
-}
-
 static ScriptVal inspector_panel_prop_default(const DebugPropType type) {
   switch (type) {
   case DebugPropType_Num:
@@ -1185,21 +1004,241 @@ static void inspector_panel_draw_sets(InspectorContext* ctx, UiTable* table) {
   }
 }
 
-static void inspector_panel_draw_tags(InspectorContext* ctx, UiTable* table) {
-  SceneTagComp* tagComp = ecs_view_write_t(ctx->subject, SceneTagComp);
-  if (!tagComp) {
+static void inspector_panel_draw_faction(InspectorContext* ctx, UiTable* table) {
+  SceneFactionComp* faction = ecs_view_write_t(ctx->subject, SceneFactionComp);
+  if (!faction) {
     return;
   }
-  const u32 tagCount = bits_popcnt((u32)tagComp->tags);
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, fmt_write_scratch("Tags ({})", fmt_int(tagCount)))) {
-    for (u32 i = 0; i != SceneTags_Count; ++i) {
-      const SceneTags tag = 1 << i;
-      inspector_panel_next(ctx, table);
-      ui_label(ctx->canvas, scene_tag_name(tag));
-      ui_table_next_column(ctx->canvas, table);
-      ui_toggle_flag(ctx->canvas, (u32*)&tagComp->tags, tag);
+  if (inspector_panel_section(ctx, string_lit("Faction"))) {
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Id"));
+    ui_table_next_column(ctx->canvas, table);
+    debug_widget_faction(ctx->canvas, &faction->id, UiWidget_Default);
+  }
+}
+
+static void inspector_panel_draw_renderable(InspectorContext* ctx, UiTable* table) {
+  SceneRenderableComp* renderable = ecs_view_write_t(ctx->subject, SceneRenderableComp);
+  if (!renderable) {
+    return;
+  }
+  inspector_panel_next(ctx, table);
+  if (inspector_panel_section(ctx, string_lit("Renderable"))) {
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Graphic"));
+    ui_table_next_column(ctx->canvas, table);
+    inspector_panel_draw_entity(ctx, renderable->graphic);
+
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Color"));
+    ui_table_next_column(ctx->canvas, table);
+    debug_widget_color(ctx->canvas, &renderable->color, UiWidget_Default);
+
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Emissive"));
+    ui_table_next_column(ctx->canvas, table);
+    ui_slider(ctx->canvas, &renderable->emissive);
+  }
+}
+
+static void inspector_panel_draw_lifetime(InspectorContext* ctx, UiTable* table) {
+  const SceneLifetimeOwnerComp*    owner = ecs_view_read_t(ctx->subject, SceneLifetimeOwnerComp);
+  const SceneLifetimeDurationComp* dur   = ecs_view_read_t(ctx->subject, SceneLifetimeDurationComp);
+  if (!owner && !dur) {
+    return;
+  }
+  inspector_panel_next(ctx, table);
+  if (inspector_panel_section(ctx, string_lit("Lifetime"))) {
+    if (owner) {
+      for (u32 i = 0; i != array_elems(owner->owners); ++i) {
+        inspector_panel_next(ctx, table);
+        ui_label(ctx->canvas, fmt_write_scratch("Owner {}", fmt_int(i)));
+        ui_table_next_column(ctx->canvas, table);
+        inspector_panel_draw_entity(ctx, owner->owners[i]);
+      }
     }
+    if (dur) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Time remaining"));
+      ui_table_next_column(ctx->canvas, table);
+      ui_label(ctx->canvas, fmt_write_scratch("{}", fmt_duration(dur->duration)));
+    }
+  }
+}
+
+static void inspector_panel_draw_attachment(InspectorContext* ctx, UiTable* table) {
+  SceneAttachmentComp* attach = ecs_view_write_t(ctx->subject, SceneAttachmentComp);
+  if (!attach) {
+    return;
+  }
+  inspector_panel_next(ctx, table);
+  if (inspector_panel_section(ctx, string_lit("Attachment"))) {
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Target"));
+    ui_table_next_column(ctx->canvas, table);
+    inspector_panel_draw_entity(ctx, attach->target);
+
+    DynString jointName = dynstring_create(g_allocScratch, 64);
+    if (attach->jointName) {
+      dynstring_append(&jointName, stringtable_lookup(g_stringtable, attach->jointName));
+    }
+
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Joint"));
+    ui_table_next_column(ctx->canvas, table);
+    if (ui_textbox(ctx->canvas, &jointName, .maxTextLength = 64, .type = UiTextbox_Word)) {
+      attach->jointIndex = sentinel_u32;
+      attach->jointName  = string_maybe_hash(dynstring_view(&jointName));
+    }
+
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Offset"));
+    ui_table_next_column(ctx->canvas, table);
+    debug_widget_vec3(ctx->canvas, &attach->offset, UiWidget_Default);
+  }
+}
+
+static void inspector_panel_draw_light(InspectorContext* ctx, UiTable* table) {
+  SceneLightPointComp*   point = ecs_view_write_t(ctx->subject, SceneLightPointComp);
+  SceneLightDirComp*     dir   = ecs_view_write_t(ctx->subject, SceneLightDirComp);
+  SceneLightAmbientComp* amb   = ecs_view_write_t(ctx->subject, SceneLightAmbientComp);
+  if (!point && !dir && !amb) {
+    return;
+  }
+  inspector_panel_next(ctx, table);
+  if (inspector_panel_section(ctx, string_lit("Light"))) {
+    if (point) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Radiance"));
+      ui_table_next_column(ctx->canvas, table);
+      debug_widget_color(ctx->canvas, &point->radiance, UiWidget_Default);
+
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Radius"));
+      ui_table_next_column(ctx->canvas, table);
+      if (debug_widget_f32(ctx->canvas, &point->radius, UiWidget_Default)) {
+        // Clamp the radius to a sane value.
+        point->radius = math_clamp_f32(point->radius, 1e-3f, 1e3f);
+      }
+    }
+    if (dir) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Radiance"));
+      ui_table_next_column(ctx->canvas, table);
+      debug_widget_color(ctx->canvas, &dir->radiance, UiWidget_Default);
+
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Shadows"));
+      ui_table_next_column(ctx->canvas, table);
+      ui_toggle(ctx->canvas, &dir->shadows);
+
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Coverage"));
+      ui_table_next_column(ctx->canvas, table);
+      ui_toggle(ctx->canvas, &dir->coverage);
+    }
+    if (amb) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Ambient"));
+      ui_table_next_column(ctx->canvas, table);
+      if (debug_widget_f32(ctx->canvas, &amb->intensity, UiWidget_Default)) {
+        // Clamp the ambient intensity to a sane value.
+        amb->intensity = math_clamp_f32(amb->intensity, 0.0f, 10.0f);
+      }
+    }
+  }
+}
+
+static void inspector_panel_draw_health(InspectorContext* ctx, UiTable* table) {
+  SceneHealthComp* health = ecs_view_write_t(ctx->subject, SceneHealthComp);
+  if (!health) {
+    return;
+  }
+  inspector_panel_next(ctx, table);
+  if (inspector_panel_section(ctx, string_lit("Health"))) {
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Amount"));
+    ui_table_next_column(ctx->canvas, table);
+    ui_slider(ctx->canvas, &health->norm);
+
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Max"));
+    ui_table_next_column(ctx->canvas, table);
+    debug_widget_f32(ctx->canvas, &health->max, UiWidget_Default);
+  }
+}
+
+static void inspector_panel_draw_status(InspectorContext* ctx, UiTable* table) {
+  const SceneStatusComp* status = ecs_view_read_t(ctx->subject, SceneStatusComp);
+  if (!status) {
+    return;
+  }
+  inspector_panel_next(ctx, table);
+  const u32 activeCount = bits_popcnt((u32)status->active);
+  if (inspector_panel_section(ctx, fmt_write_scratch("Status ({})", fmt_int(activeCount)))) {
+    for (SceneStatusType type = 0; type != SceneStatusType_Count; ++type) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, scene_status_name(type));
+      ui_table_next_column(ctx->canvas, table);
+      bool active = scene_status_active(status, type);
+      if (ui_toggle(ctx->canvas, &active)) {
+        if (active) {
+          const EcsEntityId instigator = 0;
+          scene_status_add(ctx->world, ctx->subjectEntity, type, instigator);
+        } else {
+          scene_status_remove(ctx->world, ctx->subjectEntity, type);
+        }
+      }
+    }
+  }
+}
+
+static void inspector_panel_draw_target(InspectorContext* ctx, UiTable* table) {
+  const SceneTargetFinderComp* finder = ecs_view_read_t(ctx->subject, SceneTargetFinderComp);
+  if (!finder) {
+    return;
+  }
+  inspector_panel_next(ctx, table);
+  if (inspector_panel_section(ctx, string_lit("Target"))) {
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Entity"));
+    ui_table_next_column(ctx->canvas, table);
+    inspector_panel_draw_entity(ctx, scene_target_primary(finder));
+
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Time until refresh"));
+    ui_table_next_column(ctx->canvas, table);
+    const TimeDuration untilRefresh = finder->nextRefreshTime - ctx->time->time;
+    ui_label(ctx->canvas, fmt_write_scratch("{}", fmt_duration(untilRefresh)));
+  }
+}
+
+static void inspector_panel_draw_nav_agent(InspectorContext* ctx, UiTable* table) {
+  const SceneNavAgentComp* agent = ecs_view_read_t(ctx->subject, SceneNavAgentComp);
+  if (!agent) {
+    return;
+  }
+  inspector_panel_next(ctx, table);
+  if (inspector_panel_section(ctx, string_lit("Navigation Agent"))) {
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Layer"));
+    ui_table_next_column(ctx->canvas, table);
+    ui_select(ctx->canvas, (i32*)&agent->layer, g_sceneNavLayerNames, SceneNavLayer_Count);
+  }
+}
+
+static void inspector_panel_draw_decal(InspectorContext* ctx, UiTable* table) {
+  SceneVfxDecalComp* decal = ecs_view_write_t(ctx->subject, SceneVfxDecalComp);
+  if (!decal) {
+    return;
+  }
+  inspector_panel_next(ctx, table);
+  if (inspector_panel_section(ctx, string_lit("Decal"))) {
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Alpha"));
+    ui_table_next_column(ctx->canvas, table);
+    ui_slider(ctx->canvas, &decal->alpha);
   }
 }
 
@@ -1278,6 +1317,29 @@ static void inspector_panel_draw_collision(InspectorContext* ctx, UiTable* table
   }
 }
 
+static void inspector_panel_draw_location(InspectorContext* ctx, UiTable* table) {
+  SceneLocationComp* location = ecs_view_write_t(ctx->subject, SceneLocationComp);
+  if (!location) {
+    return;
+  }
+  inspector_panel_next(ctx, table);
+  if (inspector_panel_section(ctx, string_lit("Location"))) {
+    for (SceneLocationType type = 0; type != SceneLocationType_Count; ++type) {
+      const String typeName = scene_location_type_name(type);
+
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, fmt_write_scratch("{} Min", fmt_text(typeName)));
+      ui_table_next_column(ctx->canvas, table);
+      debug_widget_vec3(ctx->canvas, &location->volumes[type].min, UiWidget_Default);
+
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, fmt_write_scratch("{} Max", fmt_text(typeName)));
+      ui_table_next_column(ctx->canvas, table);
+      debug_widget_vec3(ctx->canvas, &location->volumes[type].max, UiWidget_Default);
+    }
+  }
+}
+
 static void inspector_panel_draw_bounds(InspectorContext* ctx, UiTable* table) {
   SceneBoundsComp* boundsComp = ecs_view_write_t(ctx->subject, SceneBoundsComp);
   if (!boundsComp) {
@@ -1305,86 +1367,6 @@ static void inspector_panel_draw_bounds(InspectorContext* ctx, UiTable* table) {
   }
 }
 
-static void inspector_panel_draw_location(InspectorContext* ctx, UiTable* table) {
-  SceneLocationComp* location = ecs_view_write_t(ctx->subject, SceneLocationComp);
-  if (!location) {
-    return;
-  }
-  inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Location"))) {
-    for (SceneLocationType type = 0; type != SceneLocationType_Count; ++type) {
-      const String typeName = scene_location_type_name(type);
-
-      inspector_panel_next(ctx, table);
-      ui_label(ctx->canvas, fmt_write_scratch("{} Min", fmt_text(typeName)));
-      ui_table_next_column(ctx->canvas, table);
-      debug_widget_vec3(ctx->canvas, &location->volumes[type].min, UiWidget_Default);
-
-      inspector_panel_next(ctx, table);
-      ui_label(ctx->canvas, fmt_write_scratch("{} Max", fmt_text(typeName)));
-      ui_table_next_column(ctx->canvas, table);
-      debug_widget_vec3(ctx->canvas, &location->volumes[type].max, UiWidget_Default);
-    }
-  }
-}
-
-static void inspector_panel_draw_lifetime(InspectorContext* ctx, UiTable* table) {
-  const SceneLifetimeOwnerComp*    owner = ecs_view_read_t(ctx->subject, SceneLifetimeOwnerComp);
-  const SceneLifetimeDurationComp* dur   = ecs_view_read_t(ctx->subject, SceneLifetimeDurationComp);
-  if (!owner && !dur) {
-    return;
-  }
-  inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Lifetime"))) {
-    if (owner) {
-      for (u32 i = 0; i != array_elems(owner->owners); ++i) {
-        inspector_panel_next(ctx, table);
-        ui_label(ctx->canvas, fmt_write_scratch("Owner {}", fmt_int(i)));
-        ui_table_next_column(ctx->canvas, table);
-        inspector_panel_draw_entity(ctx, owner->owners[i]);
-      }
-    }
-    if (dur) {
-      inspector_panel_next(ctx, table);
-      ui_label(ctx->canvas, string_lit("Time remaining"));
-      ui_table_next_column(ctx->canvas, table);
-      ui_label(ctx->canvas, fmt_write_scratch("{}", fmt_duration(dur->duration)));
-    }
-  }
-}
-
-static void inspector_panel_draw_attachment(InspectorContext* ctx, UiTable* table) {
-  SceneAttachmentComp* attach = ecs_view_write_t(ctx->subject, SceneAttachmentComp);
-  if (!attach) {
-    return;
-  }
-  inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Attachment"))) {
-    inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Target"));
-    ui_table_next_column(ctx->canvas, table);
-    inspector_panel_draw_entity(ctx, attach->target);
-
-    DynString jointName = dynstring_create(g_allocScratch, 64);
-    if (attach->jointName) {
-      dynstring_append(&jointName, stringtable_lookup(g_stringtable, attach->jointName));
-    }
-
-    inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Joint"));
-    ui_table_next_column(ctx->canvas, table);
-    if (ui_textbox(ctx->canvas, &jointName, .maxTextLength = 64, .type = UiTextbox_Word)) {
-      attach->jointIndex = sentinel_u32;
-      attach->jointName  = string_maybe_hash(dynstring_view(&jointName));
-    }
-
-    inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Offset"));
-    ui_table_next_column(ctx->canvas, table);
-    debug_widget_vec3(ctx->canvas, &attach->offset, UiWidget_Default);
-  }
-}
-
 static void inspector_panel_draw_archetype(InspectorContext* ctx, UiTable* table) {
   const EcsArchetypeId archetype = ecs_world_entity_archetype(ctx->world, ctx->subjectEntity);
   const BitSet         compMask  = ecs_world_component_mask(ctx->world, archetype);
@@ -1401,6 +1383,24 @@ static void inspector_panel_draw_archetype(InspectorContext* ctx, UiTable* table
       ui_table_next_column(ctx->canvas, table);
       inspector_panel_draw_string(
           ctx, fmt_write_scratch("id: {<3} size: {}", fmt_int(compId), fmt_size(compSize)));
+    }
+  }
+}
+
+static void inspector_panel_draw_tags(InspectorContext* ctx, UiTable* table) {
+  SceneTagComp* tagComp = ecs_view_write_t(ctx->subject, SceneTagComp);
+  if (!tagComp) {
+    return;
+  }
+  const u32 tagCount = bits_popcnt((u32)tagComp->tags);
+  inspector_panel_next(ctx, table);
+  if (inspector_panel_section(ctx, fmt_write_scratch("Tags ({})", fmt_int(tagCount)))) {
+    for (u32 i = 0; i != SceneTags_Count; ++i) {
+      const SceneTags tag = 1 << i;
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, scene_tag_name(tag));
+      ui_table_next_column(ctx->canvas, table);
+      ui_toggle_flag(ctx->canvas, (u32*)&tagComp->tags, tag);
     }
   }
 }
@@ -1480,6 +1480,24 @@ static void inspector_panel_draw(InspectorContext* ctx) {
     inspector_panel_draw_transform(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
 
+    inspector_panel_draw_properties(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
+
+    inspector_panel_draw_sets(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
+
+    inspector_panel_draw_faction(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
+
+    inspector_panel_draw_renderable(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
+
+    inspector_panel_draw_lifetime(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
+
+    inspector_panel_draw_attachment(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
+
     inspector_panel_draw_light(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
 
@@ -1489,28 +1507,13 @@ static void inspector_panel_draw(InspectorContext* ctx) {
     inspector_panel_draw_status(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
 
-    inspector_panel_draw_faction(ctx, &table);
-    ui_canvas_id_block_next(ctx->canvas);
-
     inspector_panel_draw_target(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
 
     inspector_panel_draw_nav_agent(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
 
-    inspector_panel_draw_renderable(ctx, &table);
-    ui_canvas_id_block_next(ctx->canvas);
-
     inspector_panel_draw_decal(ctx, &table);
-    ui_canvas_id_block_next(ctx->canvas);
-
-    inspector_panel_draw_properties(ctx, &table);
-    ui_canvas_id_block_next(ctx->canvas);
-
-    inspector_panel_draw_sets(ctx, &table);
-    ui_canvas_id_block_next(ctx->canvas);
-
-    inspector_panel_draw_tags(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
 
     inspector_panel_draw_collision(ctx, &table);
@@ -1519,16 +1522,13 @@ static void inspector_panel_draw(InspectorContext* ctx) {
     inspector_panel_draw_location(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
 
-    inspector_panel_draw_lifetime(ctx, &table);
-    ui_canvas_id_block_next(ctx->canvas);
-
-    inspector_panel_draw_attachment(ctx, &table);
-    ui_canvas_id_block_next(ctx->canvas);
-
     inspector_panel_draw_bounds(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
 
     inspector_panel_draw_archetype(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
+
+    inspector_panel_draw_tags(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
   }
   ui_canvas_id_block_next(ctx->canvas);
