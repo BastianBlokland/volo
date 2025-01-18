@@ -3,7 +3,7 @@
 #include "ecs_module.h"
 
 /**
- * Forward header for the debug library.
+ * Forward header for the development library.
  */
 
 ecs_comp_extern(DebugFinderComp);
