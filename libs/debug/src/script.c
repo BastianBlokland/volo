@@ -347,7 +347,7 @@ static bool memory_draw_str(UiCanvasComp* c, ScriptVal* value) {
 static bool memory_draw_val(UiCanvasComp* c, EcsIterator* entityRefItr, ScriptVal* value) {
   switch (script_type(*value)) {
   case ScriptType_Null:
-    ui_label(c, string_lit("< null >"));
+    ui_label(c, string_lit("< Null >"));
     return false;
   case ScriptType_Num:
     return memory_draw_num(c, value);
