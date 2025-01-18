@@ -298,6 +298,7 @@ ecs_view_define(SubjectView) {
   ecs_access_maybe_write(SceneTagComp);
   ecs_access_maybe_write(SceneTargetFinderComp);
   ecs_access_maybe_write(SceneVfxDecalComp);
+  ecs_access_maybe_write(SceneVfxSystemComp);
   ecs_access_write(SceneTransformComp);
 }
 
@@ -1279,23 +1280,42 @@ static void inspector_panel_draw_nav_agent(InspectorContext* ctx, UiTable* table
   }
 }
 
-static void inspector_panel_draw_decal(InspectorContext* ctx, UiTable* table) {
-  SceneVfxDecalComp* decal = ecs_view_write_t(ctx->subject, SceneVfxDecalComp);
-  if (!decal) {
+static void inspector_panel_draw_vfx(InspectorContext* ctx, UiTable* table) {
+  SceneVfxSystemComp* sys   = ecs_view_write_t(ctx->subject, SceneVfxSystemComp);
+  SceneVfxDecalComp*  decal = ecs_view_write_t(ctx->subject, SceneVfxDecalComp);
+  if (!sys && !decal) {
     return;
   }
   inspector_panel_next(ctx, table);
-  if (inspector_panel_section(ctx, string_lit("Decal"), ctx->isEditMode /* readonly */)) {
+  if (inspector_panel_section(ctx, string_lit("Vfx"), ctx->isEditMode /* readonly */)) {
     const UiWidgetFlags flags = ctx->isEditMode ? UiWidget_Disabled : UiWidget_Default;
-    inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Asset"));
-    ui_table_next_column(ctx->canvas, table);
-    inspector_panel_draw_entity(ctx, decal->asset);
+    if (sys) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("System asset"));
+      ui_table_next_column(ctx->canvas, table);
+      inspector_panel_draw_entity(ctx, sys->asset);
 
-    inspector_panel_next(ctx, table);
-    ui_label(ctx->canvas, string_lit("Alpha"));
-    ui_table_next_column(ctx->canvas, table);
-    ui_slider(ctx->canvas, &decal->alpha, .flags = flags);
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("System alpha"));
+      ui_table_next_column(ctx->canvas, table);
+      ui_slider(ctx->canvas, &sys->alpha, .flags = flags);
+
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("System emit"));
+      ui_table_next_column(ctx->canvas, table);
+      ui_slider(ctx->canvas, &sys->emitMultiplier, .max = 10.0f, .flags = flags);
+    }
+    if (decal) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Decal asset"));
+      ui_table_next_column(ctx->canvas, table);
+      inspector_panel_draw_entity(ctx, decal->asset);
+
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Decal alpha"));
+      ui_table_next_column(ctx->canvas, table);
+      ui_slider(ctx->canvas, &decal->alpha, .flags = flags);
+    }
   }
 }
 
@@ -1575,7 +1595,7 @@ static void inspector_panel_draw(InspectorContext* ctx) {
     inspector_panel_draw_nav_agent(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
 
-    inspector_panel_draw_decal(ctx, &table);
+    inspector_panel_draw_vfx(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
 
     inspector_panel_draw_collision(ctx, &table);
