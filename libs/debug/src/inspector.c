@@ -36,6 +36,7 @@
 #include "scene_debug.h"
 #include "scene_faction.h"
 #include "scene_health.h"
+#include "scene_lifetime.h"
 #include "scene_light.h"
 #include "scene_location.h"
 #include "scene_locomotion.h"
@@ -269,6 +270,8 @@ ecs_view_define(GlobalVisDrawView) {
 ecs_view_define(SubjectView) {
   ecs_access_maybe_read(SceneAttackTraceComp);
   ecs_access_maybe_read(SceneDebugComp);
+  ecs_access_maybe_read(SceneLifetimeDurationComp);
+  ecs_access_maybe_read(SceneLifetimeOwnerComp);
   ecs_access_maybe_read(SceneLocomotionComp);
   ecs_access_maybe_read(SceneNameComp);
   ecs_access_maybe_read(SceneNavAgentComp);
@@ -1325,6 +1328,31 @@ static void inspector_panel_draw_location(InspectorContext* ctx, UiTable* table)
   }
 }
 
+static void inspector_panel_draw_lifetime(InspectorContext* ctx, UiTable* table) {
+  const SceneLifetimeOwnerComp*    owner = ecs_view_read_t(ctx->subject, SceneLifetimeOwnerComp);
+  const SceneLifetimeDurationComp* dur   = ecs_view_read_t(ctx->subject, SceneLifetimeDurationComp);
+  if (!owner && !dur) {
+    return;
+  }
+  inspector_panel_next(ctx, table);
+  if (inspector_panel_section(ctx, string_lit("Lifetime"))) {
+    if (owner) {
+      for (u32 i = 0; i != array_elems(owner->owners); ++i) {
+        inspector_panel_next(ctx, table);
+        ui_label(ctx->canvas, fmt_write_scratch("Owner {}", fmt_int(i)));
+        ui_table_next_column(ctx->canvas, table);
+        inspector_panel_draw_entity(ctx, owner->owners[i]);
+      }
+    }
+    if (dur) {
+      inspector_panel_next(ctx, table);
+      ui_label(ctx->canvas, string_lit("Time remaining"));
+      ui_table_next_column(ctx->canvas, table);
+      ui_label(ctx->canvas, fmt_write_scratch("{}", fmt_duration(dur->duration)));
+    }
+  }
+}
+
 static void inspector_panel_draw_attachment(InspectorContext* ctx, UiTable* table) {
   SceneAttachmentComp* attach = ecs_view_write_t(ctx->subject, SceneAttachmentComp);
   if (!attach) {
@@ -1489,6 +1517,9 @@ static void inspector_panel_draw(InspectorContext* ctx) {
     ui_canvas_id_block_next(ctx->canvas);
 
     inspector_panel_draw_location(ctx, &table);
+    ui_canvas_id_block_next(ctx->canvas);
+
+    inspector_panel_draw_lifetime(ctx, &table);
     ui_canvas_id_block_next(ctx->canvas);
 
     inspector_panel_draw_attachment(ctx, &table);
