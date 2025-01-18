@@ -43,7 +43,7 @@ static const UiColor g_menuChildFrameColorOpen    = {96, 96, 96, 255};
 
 // clang-format on
 
-typedef EcsEntityId (*ChildOpenFunc)(EcsWorld*, EcsEntityId, DebugPanelType);
+typedef EcsEntityId (*ChildOpenFunc)(EcsWorld*, EcsEntityId, DevPanelType);
 
 static const struct {
   String        name;
@@ -58,7 +58,7 @@ static const struct {
         .iconShape    = UiShape_ViewInAr,
         .detachedSize = {.x = 500, .y = 500},
         .openFunc     = dev_inspector_panel_open,
-        .hotkeyName   = string_static("DebugPanelInspector"),
+        .hotkeyName   = string_static("DevPanelInspector"),
         .autoOpen     = true,
     },
     {
@@ -66,7 +66,7 @@ static const struct {
         .iconShape    = UiShape_Construction,
         .detachedSize = {.x = 500, .y = 350},
         .openFunc     = dev_prefab_panel_open,
-        .hotkeyName   = string_static("DebugPanelPrefab"),
+        .hotkeyName   = string_static("DevPanelPrefab"),
         .autoOpen     = true,
     },
     {
@@ -74,56 +74,56 @@ static const struct {
         .iconShape    = UiShape_Globe,
         .detachedSize = {.x = 500, .y = 300},
         .openFunc     = dev_level_panel_open,
-        .hotkeyName   = string_static("DebugPanelLevel"),
+        .hotkeyName   = string_static("DevPanelLevel"),
     },
     {
         .name         = string_static("Sound"),
         .iconShape    = UiShape_MusicNote,
         .detachedSize = {.x = 800, .y = 685},
         .openFunc     = dev_sound_panel_open,
-        .hotkeyName   = string_static("DebugPanelSound"),
+        .hotkeyName   = string_static("DevPanelSound"),
     },
     {
         .name         = string_static("Time"),
         .iconShape    = UiShape_Timer,
         .detachedSize = {.x = 500, .y = 250},
         .openFunc     = dev_time_panel_open,
-        .hotkeyName   = string_static("DebugPanelTime"),
+        .hotkeyName   = string_static("DevPanelTime"),
     },
     {
         .name         = string_static("Skeleton"),
         .iconShape    = UiShape_Body,
         .detachedSize = {.x = 950, .y = 350},
         .openFunc     = dev_skeleton_panel_open,
-        .hotkeyName   = string_static("DebugPanelSkeleton"),
+        .hotkeyName   = string_static("DevPanelSkeleton"),
     },
     {
         .name         = string_static("Script"),
         .iconShape    = UiShape_Description,
         .detachedSize = {.x = 800, .y = 600},
         .openFunc     = dev_script_panel_open,
-        .hotkeyName   = string_static("DebugPanelScript"),
+        .hotkeyName   = string_static("DevPanelScript"),
     },
     {
         .name         = string_static("Asset"),
         .iconShape    = UiShape_Storage,
         .detachedSize = {.x = 950, .y = 500},
         .openFunc     = dev_asset_panel_open,
-        .hotkeyName   = string_static("DebugPanelAsset"),
+        .hotkeyName   = string_static("DevPanelAsset"),
     },
     {
         .name         = string_static("Ecs"),
         .iconShape    = UiShape_Extension,
         .detachedSize = {.x = 800, .y = 500},
         .openFunc     = dev_ecs_panel_open,
-        .hotkeyName   = string_static("DebugPanelEcs"),
+        .hotkeyName   = string_static("DevPanelEcs"),
     },
     {
         .name         = string_static("Trace"),
         .iconShape    = UiShape_QueryStats,
         .detachedSize = {.x = 800, .y = 500},
         .openFunc     = dev_trace_panel_open,
-        .hotkeyName   = string_static("DebugPanelTrace"),
+        .hotkeyName   = string_static("DevPanelTrace"),
     },
     {
         .name         = string_static("Camera"),
@@ -142,7 +142,7 @@ static const struct {
         .iconShape    = UiShape_Brush,
         .detachedSize = {.x = 800, .y = 520},
         .openFunc     = dev_rend_panel_open,
-        .hotkeyName   = string_static("DebugPanelRenderer"),
+        .hotkeyName   = string_static("DevPanelRenderer"),
     },
     {
         .name         = string_static("Vfx"),
@@ -188,7 +188,7 @@ ecs_view_define(GlobalView) {
 ecs_view_define(PanelUpdateView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // DebugMenuComp's are exclusively managed here.
 
-  ecs_access_read(DebugPanelComp);
+  ecs_access_read(DevPanelComp);
   ecs_access_write(DebugMenuComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -210,8 +210,8 @@ static bool menu_child_is_open(EcsWorld* world, const DebugMenuComp* menu, const
 
 static void menu_child_open(
     EcsWorld* world, DebugMenuComp* menu, const EcsEntityId menuEntity, const u32 childIndex) {
-  const DebugPanelType type  = DebugPanelType_Normal;
-  const EcsEntityId    panel = g_menuChildConfig[childIndex].openFunc(world, menu->window, type);
+  const DevPanelType type  = DevPanelType_Normal;
+  const EcsEntityId  panel = g_menuChildConfig[childIndex].openFunc(world, menu->window, type);
   ecs_world_add_t(world, panel, SceneLifetimeOwnerComp, .owners[0] = menuEntity);
   menu->childEntities[childIndex] = panel;
 }
@@ -242,8 +242,8 @@ static void menu_child_open_detached(
   rendSettings->flags       = 0;
   rendSettings->presentMode = RendPresentMode_Immediate;
 
-  const DebugPanelType type  = DebugPanelType_Detached;
-  const EcsEntityId    panel = g_menuChildConfig[childIndex].openFunc(world, detachedWindow, type);
+  const DevPanelType type  = DevPanelType_Detached;
+  const EcsEntityId  panel = g_menuChildConfig[childIndex].openFunc(world, detachedWindow, type);
 
   ecs_world_add_t(world, detachedWindow, SceneLifetimeOwnerComp, .owners[0] = panel);
   ecs_world_add_t(world, panel, SceneLifetimeOwnerComp, .owners[0] = menuEntity);
@@ -344,7 +344,7 @@ ecs_system_define(DebugMenuUpdateSys) {
     UiCanvasComp*     canvas      = ecs_view_write_t(itr, UiCanvasComp);
 
     ui_canvas_reset(canvas);
-    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp))) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp))) {
       continue;
     }
     if (!ecs_view_maybe_jump(windowItr, menu->window)) {
@@ -354,7 +354,7 @@ ecs_system_define(DebugMenuUpdateSys) {
 
     menu_action_bar_draw(world, panelEntity, canvas, input, menu, statsGlobal, menu->window, win);
 
-    if (input_triggered_lit(input, "DebugPanelClose")) {
+    if (input_triggered_lit(input, "DevPanelClose")) {
       const EcsEntityId topmostChild = menu_child_topmost(world, menu);
       if (topmostChild) {
         ui_canvas_sound(canvas, UiSoundType_ClickAlt);
@@ -381,7 +381,7 @@ ecs_module_init(debug_menu_module) {
 }
 
 EcsEntityId debug_menu_create(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId menuEntity = dev_panel_create(world, window, DebugPanelType_Normal);
+  const EcsEntityId menuEntity = dev_panel_create(world, window, DevPanelType_Normal);
   DebugMenuComp*    menu = ecs_world_add_t(world, menuEntity, DebugMenuComp, .window = window);
 
   for (u32 childIndex = 0; childIndex != array_elems(menu->childEntities); ++childIndex) {

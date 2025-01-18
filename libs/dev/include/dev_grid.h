@@ -17,4 +17,4 @@ void debug_grid_show(DebugGridComp*, f32 height);
 void debug_grid_snap(const DebugGridComp*, GeoVector* position);
 void debug_grid_snap_axis(const DebugGridComp*, GeoVector* position, u8 axis);
 
-EcsEntityId dev_grid_panel_open(EcsWorld*, EcsEntityId window, DebugPanelType);
+EcsEntityId dev_grid_panel_open(EcsWorld*, EcsEntityId window, DevPanelType);

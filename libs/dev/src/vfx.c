@@ -79,7 +79,7 @@ ecs_view_define(PanelUpdateGlobalView) { ecs_access_write(SceneSetEnvComp); }
 ecs_view_define(PanelUpdateView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // DebugVfxPanelComp's are exclusively managed here.
 
-  ecs_access_read(DebugPanelComp);
+  ecs_access_read(DevPanelComp);
   ecs_access_write(DebugVfxPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -303,7 +303,7 @@ ecs_system_define(DebugVfxUpdatePanelSys) {
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
-    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       continue;
     }
     vfx_info_query(panelComp, world);
@@ -332,8 +332,7 @@ ecs_module_init(debug_vfx_module) {
       ecs_view_id(PanelUpdateView));
 }
 
-EcsEntityId
-dev_vfx_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+EcsEntityId dev_vfx_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
   const EcsEntityId  panelEntity = dev_panel_create(world, window, type);
   DebugVfxPanelComp* vfxPanel    = ecs_world_add_t(
       world,
@@ -344,7 +343,7 @@ dev_vfx_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelTy
       .filter     = dynstring_create(g_allocHeap, 32),
       .objects    = dynarray_create_t(g_allocHeap, DebugVfxInfo, 128));
 
-  if (type == DebugPanelType_Detached) {
+  if (type == DevPanelType_Detached) {
     ui_panel_maximize(&vfxPanel->panel);
   }
 

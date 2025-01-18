@@ -880,7 +880,7 @@ ecs_view_define(PanelUpdateGlobalView) {
 ecs_view_define(PanelUpdateView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // DebugScriptPanelComp's are exclusively managed here.
 
-  ecs_access_read(DebugPanelComp);
+  ecs_access_read(DevPanelComp);
   ecs_access_write(DebugScriptPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -924,7 +924,7 @@ static bool dev_panel_needs_asset_query(EcsView* panelView) {
   for (EcsIterator* itr = ecs_view_itr(panelView); ecs_view_walk(itr);) {
     DebugScriptPanelComp* panelComp = ecs_view_write_t(itr, DebugScriptPanelComp);
     const bool            pinned    = ui_panel_pinned(&panelComp->panel);
-    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       continue;
     }
     if (panelComp->panel.activeTab == DebugScriptTab_Global) {
@@ -980,7 +980,7 @@ ecs_system_define(DebugScriptUpdatePanelSys) {
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
-    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       continue;
     }
     if (panelComp->outputOnly) {
@@ -1062,12 +1062,12 @@ ecs_module_init(debug_script_module) {
 }
 
 EcsEntityId
-dev_script_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_script_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
   const EcsEntityId     panelEntity = dev_panel_create(world, window, type);
   DebugScriptPanelComp* scriptPanel = ecs_world_add_t(
       world, panelEntity, DebugScriptPanelComp, .panel = ui_panel(.size = ui_vector(800, 600)));
 
-  if (type == DebugPanelType_Detached) {
+  if (type == DevPanelType_Detached) {
     ui_panel_maximize(&scriptPanel->panel);
   }
 
@@ -1075,7 +1075,7 @@ dev_script_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPane
 }
 
 EcsEntityId dev_script_panel_open_output(EcsWorld* world, const EcsEntityId window) {
-  const EcsEntityId     panelEntity = dev_panel_create(world, window, DebugPanelType_Normal);
+  const EcsEntityId     panelEntity = dev_panel_create(world, window, DevPanelType_Normal);
   DebugScriptPanelComp* scriptPanel = ecs_world_add_t(
       world,
       panelEntity,

@@ -590,7 +590,7 @@ ecs_view_define(PanelUpdateGlobalView) {
 ecs_view_define(PanelUpdateView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // DebugPrefabPanelComp's are exclusively managed here.
 
-  ecs_access_read(DebugPanelComp);
+  ecs_access_read(DevPanelComp);
   ecs_access_write(DebugPrefabPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -637,7 +637,7 @@ ecs_system_define(DebugPrefabUpdatePanelSys) {
     ui_canvas_reset(canvas);
 
     const bool pinned = ui_panel_pinned(&panelComp->panel);
-    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       if (panelComp->mode == PrefabPanelMode_Create) {
         prefab_create_cancel(&ctx);
       }
@@ -688,7 +688,7 @@ ecs_module_init(debug_prefab_module) {
 }
 
 EcsEntityId
-dev_prefab_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_prefab_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
   const EcsEntityId     panelEntity = dev_panel_create(world, window, type);
   DebugPrefabPanelComp* prefabPanel = ecs_world_add_t(
       world,
@@ -702,7 +702,7 @@ dev_prefab_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPane
       .scrollview    = ui_scrollview(),
       .panel         = ui_panel(.position = ui_vector(1.0f, 0.0f), .size = ui_vector(500, 350)));
 
-  if (type == DebugPanelType_Detached) {
+  if (type == DevPanelType_Detached) {
     ui_panel_maximize(&prefabPanel->panel);
   }
 

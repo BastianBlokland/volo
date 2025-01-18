@@ -318,7 +318,7 @@ ecs_view_define(PanelUpdateGlobalView) {
 ecs_view_define(PanelUpdateView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // DebugLevelPanelComp's are exclusively managed here.
 
-  ecs_access_read(DebugPanelComp);
+  ecs_access_read(DevPanelComp);
   ecs_access_write(DebugLevelPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -381,7 +381,7 @@ ecs_system_define(DebugLevelUpdatePanelSys) {
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
-    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       continue;
     }
     level_panel_draw(canvas, &ctx);
@@ -412,7 +412,7 @@ ecs_module_init(debug_level_module) {
 }
 
 EcsEntityId
-dev_level_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_level_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
   const EcsEntityId    panelEntity = dev_panel_create(world, window, type);
   DebugLevelPanelComp* levelPanel  = ecs_world_add_t(
       world,
@@ -424,7 +424,7 @@ dev_level_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanel
       .nameBuffer = dynstring_create(g_allocHeap, 32),
       .panel      = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 300)));
 
-  if (type == DebugPanelType_Detached) {
+  if (type == DevPanelType_Detached) {
     ui_panel_maximize(&levelPanel->panel);
   }
 

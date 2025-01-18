@@ -818,7 +818,7 @@ static void ecs_panel_draw(UiCanvasComp* canvas, DebugEcsPanelComp* panelComp, E
 ecs_view_define(PanelUpdateView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // DebugEcsPanelComp's are exclusively managed here.
 
-  ecs_access_read(DebugPanelComp);
+  ecs_access_read(DevPanelComp);
   ecs_access_write(DebugEcsPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -832,7 +832,7 @@ ecs_system_define(DebugEcsUpdatePanelSys) {
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
-    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       continue;
     }
     ecs_panel_draw(canvas, panelComp, world);
@@ -854,8 +854,7 @@ ecs_module_init(debug_ecs_module) {
   ecs_register_system(DebugEcsUpdatePanelSys, ecs_view_id(PanelUpdateView));
 }
 
-EcsEntityId
-dev_ecs_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+EcsEntityId dev_ecs_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
   const EcsEntityId  panelEntity = dev_panel_create(world, window, type);
   DebugEcsPanelComp* ecsPanel    = ecs_world_add_t(
       world,
@@ -872,7 +871,7 @@ dev_ecs_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelTy
       .archetypes   = dynarray_create_t(g_allocHeap, DebugEcsArchetypeInfo, 256),
       .systems      = dynarray_create_t(g_allocHeap, DebugEcsSysInfo, 256));
 
-  if (type == DebugPanelType_Detached) {
+  if (type == DevPanelType_Detached) {
     ui_panel_maximize(&ecsPanel->panel);
   }
 

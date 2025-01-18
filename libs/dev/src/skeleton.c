@@ -415,7 +415,7 @@ ecs_view_define(PanelUpdateGlobalView) { ecs_access_read(SceneSetEnvComp); }
 ecs_view_define(PanelUpdateView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // DebugSkelPanelComp's are exclusively managed here.
 
-  ecs_access_read(DebugPanelComp);
+  ecs_access_read(DevPanelComp);
   ecs_access_write(DebugSkelPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -439,7 +439,7 @@ ecs_system_define(DebugSkeletonUpdatePanelSys) {
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
-    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       continue;
     }
     skel_panel_draw(canvas, panelComp, settings, subject);
@@ -625,12 +625,12 @@ ecs_module_init(debug_skeleton_module) {
 }
 
 EcsEntityId
-dev_skeleton_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_skeleton_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
   const EcsEntityId   panelEntity   = dev_panel_create(world, window, type);
   DebugSkelPanelComp* skeletonPanel = ecs_world_add_t(
       world, panelEntity, DebugSkelPanelComp, .panel = ui_panel(.size = ui_vector(950, 350)));
 
-  if (type == DebugPanelType_Detached) {
+  if (type == DevPanelType_Detached) {
     ui_panel_maximize(&skeletonPanel->panel);
   }
 

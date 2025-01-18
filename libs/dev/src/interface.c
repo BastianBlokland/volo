@@ -66,7 +66,7 @@ ecs_view_define(GlobalView) { ecs_access_write(UiSettingsGlobalComp); }
 ecs_view_define(PanelUpdateView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // DebugInterfacePanelComp's are exclusively managed here.
 
-  ecs_access_read(DebugPanelComp);
+  ecs_access_read(DevPanelComp);
   ecs_access_write(DebugInterfacePanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -164,7 +164,7 @@ ecs_system_define(DebugInterfaceUpdatePanelSys) {
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
-    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       settings->flags &= ~UiSettingGlobal_DebugShading;
       settings->inspectorMode = UiInspectorMode_None;
       continue;
@@ -191,7 +191,7 @@ ecs_module_init(debug_interface_module) {
 }
 
 EcsEntityId
-dev_interface_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_interface_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
   const EcsEntityId        panelEntity    = dev_panel_create(world, window, type);
   DebugInterfacePanelComp* interfacePanel = ecs_world_add_t(
       world,
@@ -200,7 +200,7 @@ dev_interface_panel_open(EcsWorld* world, const EcsEntityId window, const DebugP
       .panel  = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 190)),
       .window = window);
 
-  if (type == DebugPanelType_Detached) {
+  if (type == DevPanelType_Detached) {
     ui_panel_maximize(&interfacePanel->panel);
   }
 

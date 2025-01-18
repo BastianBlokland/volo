@@ -457,14 +457,14 @@ ecs_view_define(UiCanvasView) {
   ecs_access_write(UiCanvasComp);
 }
 
-ecs_view_define(DebugPanelView) { ecs_access_write(DebugPanelComp); }
+ecs_view_define(DevPanelView) { ecs_access_write(DevPanelComp); }
 ecs_view_define(DebugLogViewerView) { ecs_access_write(DebugLogViewerComp); }
 
 static void app_debug_hide(EcsWorld* world, const bool hidden) {
-  EcsView* debugPanelView = ecs_world_view_t(world, DebugPanelView);
+  EcsView* debugPanelView = ecs_world_view_t(world, DevPanelView);
   for (EcsIterator* itr = ecs_view_itr(debugPanelView); ecs_view_walk(itr);) {
-    DebugPanelComp* panel = ecs_view_write_t(itr, DebugPanelComp);
-    if (dev_panel_type(panel) != DebugPanelType_Detached) {
+    DevPanelComp* panel = ecs_view_write_t(itr, DevPanelComp);
+    if (dev_panel_type(panel) != DevPanelType_Detached) {
       dev_panel_hide(panel, hidden);
     }
   }
@@ -564,7 +564,7 @@ ecs_module_init(game_app_module) {
   ecs_register_view(AppUpdateGlobalView);
   ecs_register_view(MainWindowView);
   ecs_register_view(UiCanvasView);
-  ecs_register_view(DebugPanelView);
+  ecs_register_view(DevPanelView);
   ecs_register_view(DebugLogViewerView);
 
   ecs_register_system(
@@ -572,7 +572,7 @@ ecs_module_init(game_app_module) {
       ecs_view_id(AppUpdateGlobalView),
       ecs_view_id(MainWindowView),
       ecs_view_id(UiCanvasView),
-      ecs_view_id(DebugPanelView),
+      ecs_view_id(DevPanelView),
       ecs_view_id(DebugLogViewerView));
 }
 

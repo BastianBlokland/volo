@@ -1198,7 +1198,7 @@ ecs_view_define(PainterView) {
 ecs_view_define(PanelUpdateView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // DebugRendPanelComp's are exclusively managed here.
 
-  ecs_access_read(DebugPanelComp);
+  ecs_access_read(DevPanelComp);
   ecs_access_write(DebugRendPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -1228,7 +1228,7 @@ ecs_system_define(DebugRendUpdatePanelSys) {
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
-    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       settings->debugViewerResource = 0;
       settings->flags &= ~RendFlags_DebugOverlay;
       continue;
@@ -1293,7 +1293,7 @@ ecs_module_init(debug_rend_module) {
 }
 
 EcsEntityId
-dev_rend_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_rend_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
   const EcsEntityId   panelEntity = dev_panel_create(world, window, type);
   DebugRendPanelComp* rendPanel   = ecs_world_add_t(
       world,
@@ -1309,7 +1309,7 @@ dev_rend_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelT
       .resources        = dynarray_create_t(g_allocHeap, DebugResourceInfo, 256),
       .hideEmptyObjects = true);
 
-  if (type == DebugPanelType_Detached) {
+  if (type == DevPanelType_Detached) {
     ui_panel_maximize(&rendPanel->panel);
   }
 

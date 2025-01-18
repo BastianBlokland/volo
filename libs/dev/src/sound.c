@@ -47,7 +47,7 @@ ecs_view_define(GlobalView) { ecs_access_write(SndMixerComp); }
 ecs_view_define(PanelUpdateView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // DebugSoundPanelComp's are exclusively managed here.
 
-  ecs_access_read(DebugPanelComp);
+  ecs_access_read(DevPanelComp);
   ecs_access_write(DebugSoundPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -494,7 +494,7 @@ ecs_system_define(DebugSoundUpdatePanelSys) {
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
-    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       continue;
     }
     sound_panel_draw(canvas, panelComp, mixer);
@@ -519,7 +519,7 @@ ecs_module_init(debug_sound_module) {
 }
 
 EcsEntityId
-dev_sound_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_sound_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
   const EcsEntityId    panelEntity = dev_panel_create(world, window, type);
   DebugSoundPanelComp* soundPanel  = ecs_world_add_t(
       world,
@@ -529,7 +529,7 @@ dev_sound_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanel
       .scrollview = ui_scrollview(),
       .nameFilter = dynstring_create(g_allocHeap, 32));
 
-  if (type == DebugPanelType_Detached) {
+  if (type == DevPanelType_Detached) {
     ui_panel_maximize(&soundPanel->panel);
   }
 

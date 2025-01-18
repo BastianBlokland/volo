@@ -120,84 +120,84 @@
       ]
     },
     {
-      "name": "DebugPanelInspector",
+      "name": "DevPanelInspector",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F1" }
       ]
     },
     {
-      "name": "DebugPanelPrefab",
+      "name": "DevPanelPrefab",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F2" }
       ]
     },
     {
-      "name": "DebugPanelLevel",
+      "name": "DevPanelLevel",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F3" }
       ]
     },
     {
-      "name": "DebugPanelSound",
+      "name": "DevPanelSound",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F4" }
       ]
     },
     {
-      "name": "DebugPanelTime",
+      "name": "DevPanelTime",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F5" }
       ]
     },
     {
-      "name": "DebugPanelSkeleton",
+      "name": "DevPanelSkeleton",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F6" }
       ]
     },
     {
-      "name": "DebugPanelScript",
+      "name": "DevPanelScript",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F7" }
       ]
     },
     {
-      "name": "DebugPanelAsset",
+      "name": "DevPanelAsset",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F8" }
       ]
     },
     {
-      "name": "DebugPanelEcs",
+      "name": "DevPanelEcs",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F9" }
       ]
     },
     {
-      "name": "DebugPanelTrace",
+      "name": "DevPanelTrace",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F10" }
       ]
     },
     {
-      "name": "DebugPanelRenderer",
+      "name": "DevPanelRenderer",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F11" }
       ]
     },
     {
-      "name": "DebugPanelClose",
+      "name": "DevPanelClose",
       "blockers": [ "TextInput", "HoveringGizmo" ],
       "bindings": [
         { "type": "Pressed", "key": "Escape" }

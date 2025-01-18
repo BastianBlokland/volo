@@ -27,7 +27,7 @@ ecs_view_define(GlobalView) {
 ecs_view_define(PanelUpdateView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // DebugTimePanelComp's are exclusively managed here.
 
-  ecs_access_read(DebugPanelComp);
+  ecs_access_read(DevPanelComp);
   ecs_access_write(DebugTimePanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -171,7 +171,7 @@ ecs_system_define(DebugTimeUpdateSys) {
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
-    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       continue;
     }
     time_panel_draw(canvas, stats, panelComp, time, timeSettings);
@@ -195,7 +195,7 @@ ecs_module_init(debug_time_module) {
 }
 
 EcsEntityId
-dev_time_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_time_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
   const EcsEntityId   panelEntity = dev_panel_create(world, window, type);
   DebugTimePanelComp* timePanel   = ecs_world_add_t(
       world,
@@ -203,7 +203,7 @@ dev_time_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelT
       DebugTimePanelComp,
       .panel = ui_panel(.position = ui_vector(0.5f, 0.5f), .size = ui_vector(500, 250)));
 
-  if (type == DebugPanelType_Detached) {
+  if (type == DevPanelType_Detached) {
     ui_panel_maximize(&timePanel->panel);
   }
 

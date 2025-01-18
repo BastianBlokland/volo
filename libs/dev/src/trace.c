@@ -557,7 +557,7 @@ trace_panel_draw(UiCanvasComp* c, DebugTracePanelComp* panel, const TraceSink* s
 
 ecs_view_define(PanelQueryView) {
   ecs_access_write(DebugTracePanelComp);
-  ecs_access_read(DebugPanelComp);
+  ecs_access_read(DevPanelComp);
 }
 
 ecs_system_define(DebugTracePanelQuerySys) {
@@ -571,7 +571,7 @@ ecs_system_define(DebugTracePanelQuerySys) {
     DebugTracePanelComp* panel = ecs_view_write_t(itr, DebugTracePanelComp);
 
     const bool pinned = ui_panel_pinned(&panel->panel);
-    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       continue; // No need to query data for hidden panels.
     }
 
@@ -587,7 +587,7 @@ ecs_system_define(DebugTracePanelQuerySys) {
 ecs_view_define(PanelDrawView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // DebugTracePanelComp's are exclusively managed here.
 
-  ecs_access_read(DebugPanelComp);
+  ecs_access_read(DevPanelComp);
   ecs_access_write(DebugTracePanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -603,7 +603,7 @@ ecs_system_define(DebugTracePanelDrawSys) {
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panel->panel);
-    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       panel->hoverAny = panel->panAny = false;
       panel->trigger.picking = panel->trigger.enabled = false;
       continue;
@@ -633,7 +633,7 @@ ecs_module_init(debug_trace_module) {
 }
 
 EcsEntityId
-dev_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
   const u32 panelHeight = math_min(100 + 20 * debug_trace_default_depth * g_jobsWorkerCount, 675);
 
   const EcsEntityId    panelEntity = dev_panel_create(world, window, type);
@@ -656,7 +656,7 @@ dev_trace_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanel
     threadData->events         = dynarray_create_t(g_allocHeap, TraceStoreEvent, 0);
   }
 
-  if (type == DebugPanelType_Detached) {
+  if (type == DevPanelType_Detached) {
     ui_panel_maximize(&tracePanel->panel);
   }
 

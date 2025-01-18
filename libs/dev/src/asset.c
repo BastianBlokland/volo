@@ -104,7 +104,7 @@ ecs_view_define(AssetView) { ecs_access_read(AssetComp); }
 ecs_view_define(PanelUpdateView) {
   ecs_view_flags(EcsViewFlags_Exclusive); // DebugAssetPanelComp's are exclusively managed here.
 
-  ecs_access_read(DebugPanelComp);
+  ecs_access_read(DevPanelComp);
   ecs_access_write(DebugAssetPanelComp);
   ecs_access_write(UiCanvasComp);
 }
@@ -321,7 +321,7 @@ ecs_system_define(DebugAssetUpdatePanelSys) {
 
     ui_canvas_reset(canvas);
     const bool pinned = ui_panel_pinned(&panelComp->panel);
-    if (dev_panel_hidden(ecs_view_read_t(itr, DebugPanelComp)) && !pinned) {
+    if (dev_panel_hidden(ecs_view_read_t(itr, DevPanelComp)) && !pinned) {
       continue;
     }
     asset_info_query(panelComp, world);
@@ -347,7 +347,7 @@ ecs_module_init(debug_asset_module) {
 }
 
 EcsEntityId
-dev_asset_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanelType type) {
+dev_asset_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelType type) {
   const EcsEntityId    panelEntity = dev_panel_create(world, window, type);
   DebugAssetPanelComp* assetPanel  = ecs_world_add_t(
       world,
@@ -359,7 +359,7 @@ dev_asset_panel_open(EcsWorld* world, const EcsEntityId window, const DebugPanel
       .sortMode   = DebugAssetSortMode_Status,
       .assets     = dynarray_create_t(g_allocHeap, DebugAssetInfo, 256));
 
-  if (type == DebugPanelType_Detached) {
+  if (type == DevPanelType_Detached) {
     ui_panel_maximize(&assetPanel->panel);
   }
 
