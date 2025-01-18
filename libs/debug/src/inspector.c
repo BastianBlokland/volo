@@ -500,7 +500,7 @@ typedef struct {
 
 static bool inspector_panel_section(InspectorContext* ctx, String title, const bool readonly) {
   if (readonly) {
-    title = fmt_write_scratch("{} (Readonly)", fmt_text(title));
+    title = fmt_write_scratch("{} \uE897", fmt_text(title));
   }
   bool open;
   ui_layout_push(ctx->canvas);
