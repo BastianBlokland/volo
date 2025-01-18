@@ -44,6 +44,7 @@
   X(0xE873, Description)                                                                           \
   X(0xE87B, Extension)                                                                             \
   X(0xE890, Input)                                                                                 \
+  X(0xE897, Lock)                                                                                  \
   X(0xE89E, OpenInNew)                                                                             \
   X(0xE8B8, Settings)                                                                              \
   X(0xE8F4, Visibility)                                                                            \

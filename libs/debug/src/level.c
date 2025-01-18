@@ -6,6 +6,7 @@
 #include "debug_finder.h"
 #include "debug_level.h"
 #include "debug_panel.h"
+#include "debug_widget.h"
 #include "ecs_entity.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
@@ -21,8 +22,6 @@
 #include "ui_style.h"
 #include "ui_table.h"
 #include "ui_widget.h"
-
-#include "widget_internal.h"
 
 // clang-format off
 
