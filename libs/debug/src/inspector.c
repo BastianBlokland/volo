@@ -514,24 +514,67 @@ static void inspector_panel_next(InspectorContext* ctx, UiTable* table) {
   ++ctx->panel->totalRows;
 }
 
-static void inspector_panel_draw_value_string(InspectorContext* ctx, const String value) {
+static void inspector_panel_draw_string(InspectorContext* ctx, const String value) {
   ui_style_push(ctx->canvas);
   ui_style_variation(ctx->canvas, UiVariation_Monospace);
   ui_label(ctx->canvas, value, .selectable = true);
   ui_style_pop(ctx->canvas);
 }
 
-static void inspector_panel_draw_value_entity(InspectorContext* ctx, const EcsEntityId value) {
+static void inspector_panel_draw_entity(InspectorContext* ctx, const EcsEntityId value) {
+  String label      = fmt_write_scratch("{}", ecs_entity_fmt(value));
+  bool   selectable = false, monospace = true;
+  if (!ecs_entity_valid(value)) {
+    label     = string_lit("< None >");
+    monospace = false;
+  } else if (ecs_view_maybe_jump(ctx->entityRefItr, value)) {
+    const AssetComp*     assetComp = ecs_view_read_t(ctx->entityRefItr, AssetComp);
+    const SceneNameComp* nameComp  = ecs_view_read_t(ctx->entityRefItr, SceneNameComp);
+    if (assetComp) {
+      label = asset_id(assetComp);
+    } else if (nameComp) {
+      const String name = stringtable_lookup(g_stringtable, nameComp->name);
+      label             = string_is_empty(name) ? string_lit("< Unnamed >") : name;
+      selectable        = true;
+    }
+  }
+
+  const String tooltip = fmt_write_scratch(
+      "Entity:\a>0C{}\n"
+      "Index:\a>0C{}\n"
+      "Serial:\a>0C{}\n",
+      ecs_entity_fmt(value),
+      fmt_int(ecs_entity_id_index(value)),
+      fmt_int(ecs_entity_id_serial(value)));
+
+  ui_layout_push(ctx->canvas);
   ui_style_push(ctx->canvas);
-  ui_style_variation(ctx->canvas, UiVariation_Monospace);
-  ui_label_entity(ctx->canvas, value);
+  ui_style_variation(ctx->canvas, monospace ? UiVariation_Monospace : UiVariation_Normal);
+  if (selectable) {
+    ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
+  }
+  ui_label(ctx->canvas, label, .selectable = true, .tooltip = tooltip);
+  if (selectable) {
+    ui_layout_next(ctx->canvas, Ui_Right, 10);
+    ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
+    if (ui_button(
+            ctx->canvas,
+            .label      = ui_shape_scratch(UiShape_SelectAll),
+            .fontSize   = 18,
+            .frameColor = ui_color(0, 16, 255, 192),
+            .tooltip    = string_lit("Select entity."))) {
+      scene_set_clear(ctx->setEnv, g_sceneSetSelected);
+      scene_set_add(ctx->setEnv, g_sceneSetSelected, value, SceneSetFlags_None);
+    }
+  }
   ui_style_pop(ctx->canvas);
+  ui_layout_pop(ctx->canvas);
 }
 
-static void inspector_panel_draw_value_none(InspectorContext* ctx) {
+static void inspector_panel_draw_none(InspectorContext* ctx) {
   ui_style_push(ctx->canvas);
   ui_style_color_mult(ctx->canvas, 0.75f);
-  inspector_panel_draw_value_string(ctx, string_lit("< None >"));
+  inspector_panel_draw_string(ctx, string_lit("< None >"));
   ui_style_pop(ctx->canvas);
 }
 
@@ -540,9 +583,12 @@ static void inspector_panel_draw_entity_info(InspectorContext* ctx, UiTable* tab
   ui_label(ctx->canvas, string_lit("Entity identifier"));
   ui_table_next_column(ctx->canvas, table);
   if (ctx->subject) {
-    inspector_panel_draw_value_entity(ctx, ctx->subjectEntity);
+    ui_style_push(ctx->canvas);
+    ui_style_variation(ctx->canvas, UiVariation_Monospace);
+    ui_label_entity(ctx->canvas, ctx->subjectEntity);
+    ui_style_pop(ctx->canvas);
   } else {
-    inspector_panel_draw_value_none(ctx);
+    inspector_panel_draw_none(ctx);
   }
 
   inspector_panel_next(ctx, table);
@@ -552,10 +598,10 @@ static void inspector_panel_draw_entity_info(InspectorContext* ctx, UiTable* tab
     const SceneNameComp* nameComp = ecs_view_read_t(ctx->subject, SceneNameComp);
     if (nameComp) {
       const String name = stringtable_lookup(g_stringtable, nameComp->name);
-      inspector_panel_draw_value_string(ctx, name);
+      inspector_panel_draw_string(ctx, name);
     }
   } else {
-    inspector_panel_draw_value_none(ctx);
+    inspector_panel_draw_none(ctx);
   }
 
   inspector_panel_next(ctx, table);
@@ -574,7 +620,7 @@ static void inspector_panel_draw_entity_info(InspectorContext* ctx, UiTable* tab
       inspector_prefab_replace(ctx->prefabEnv, ctx->subject, prefabInst->prefabId);
     }
   } else {
-    inspector_panel_draw_value_none(ctx);
+    inspector_panel_draw_none(ctx);
   }
 }
 
@@ -739,14 +785,13 @@ static void inspector_panel_draw_target(InspectorContext* ctx, UiTable* table) {
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Entity"));
     ui_table_next_column(ctx->canvas, table);
-    inspector_panel_draw_value_entity(ctx, scene_target_primary(finder));
+    inspector_panel_draw_entity(ctx, scene_target_primary(finder));
 
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Time until refresh"));
     ui_table_next_column(ctx->canvas, table);
-    ui_label(
-        ctx->canvas,
-        fmt_write_scratch("{}", fmt_duration(finder->nextRefreshTime - ctx->time->time)));
+    const TimeDuration untilRefresh = finder->nextRefreshTime - ctx->time->time;
+    ui_label(ctx->canvas, fmt_write_scratch("{}", fmt_duration(untilRefresh)));
   }
 }
 
@@ -774,7 +819,7 @@ static void inspector_panel_draw_renderable(InspectorContext* ctx, UiTable* tabl
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Graphic"));
     ui_table_next_column(ctx->canvas, table);
-    inspector_panel_draw_value_entity(ctx, renderable->graphic);
+    inspector_panel_draw_entity(ctx, renderable->graphic);
 
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Color"));
@@ -879,55 +924,12 @@ static bool inspector_panel_prop_edit(InspectorContext* ctx, ScriptVal* val) {
     return false;
   }
   case ScriptType_Entity: {
-    const EcsEntityId entity     = script_get_entity(*val, 0);
-    String            label      = fmt_write_scratch("{}", ecs_entity_fmt(entity));
-    bool              selectable = false;
-    if (ecs_view_maybe_jump(ctx->entityRefItr, entity)) {
-      const AssetComp*     assetComp = ecs_view_read_t(ctx->entityRefItr, AssetComp);
-      const SceneNameComp* nameComp  = ecs_view_read_t(ctx->entityRefItr, SceneNameComp);
-      if (assetComp) {
-        label = asset_id(assetComp);
-      } else if (nameComp) {
-        const String name = stringtable_lookup(g_stringtable, nameComp->name);
-        label             = string_is_empty(name) ? string_lit("< Unnamed >") : name;
-        selectable        = true;
-      }
-    }
-
-    const String tooltip = fmt_write_scratch(
-        "Entity:\a>0C{}\n"
-        "Index:\a>0C{}\n"
-        "Serial:\a>0C{}\n",
-        ecs_entity_fmt(entity),
-        fmt_int(ecs_entity_id_index(entity)),
-        fmt_int(ecs_entity_id_serial(entity)));
-
-    ui_layout_push(ctx->canvas);
-    ui_style_push(ctx->canvas);
-    ui_style_variation(ctx->canvas, UiVariation_Monospace);
-    if (selectable) {
-      ui_layout_grow(ctx->canvas, UiAlign_BottomLeft, ui_vector(-35, 0), UiBase_Absolute, Ui_X);
-    }
-    ui_label(ctx->canvas, label, .selectable = true, .tooltip = tooltip);
-    if (selectable) {
-      ui_layout_next(ctx->canvas, Ui_Right, 10);
-      ui_layout_resize(ctx->canvas, UiAlign_BottomLeft, ui_vector(25, 22), UiBase_Absolute, Ui_XY);
-      if (ui_button(
-              ctx->canvas,
-              .label      = ui_shape_scratch(UiShape_SelectAll),
-              .fontSize   = 18,
-              .frameColor = ui_color(0, 16, 255, 192),
-              .tooltip    = string_lit("Select entity."))) {
-        scene_set_clear(ctx->setEnv, g_sceneSetSelected);
-        scene_set_add(ctx->setEnv, g_sceneSetSelected, entity, SceneSetFlags_None);
-      }
-    }
-    ui_style_pop(ctx->canvas);
-    ui_layout_pop(ctx->canvas);
+    const EcsEntityId entity = script_get_entity(*val, 0);
+    inspector_panel_draw_entity(ctx, entity);
     return false;
   }
   case ScriptType_Null:
-    ui_label(ctx->canvas, string_lit("< null >"));
+    ui_label(ctx->canvas, string_lit("< Null >"));
     return false;
   case ScriptType_Count:
     break;
@@ -1209,15 +1211,15 @@ static void inspector_panel_draw_collision(InspectorContext* ctx, UiTable* table
     ui_label(ctx->canvas, string_lit("Layer"));
     ui_table_next_column(ctx->canvas, table);
     if (bits_popcnt((u32)col->layer) == 1) {
-      inspector_panel_draw_value_string(ctx, scene_layer_name(col->layer));
+      inspector_panel_draw_string(ctx, scene_layer_name(col->layer));
     } else {
-      inspector_panel_draw_value_string(ctx, string_lit("< Multiple >"));
+      inspector_panel_draw_string(ctx, string_lit("< Multiple >"));
     }
 
     inspector_panel_next(ctx, table);
     ui_label(ctx->canvas, string_lit("Shapes"));
     ui_table_next_column(ctx->canvas, table);
-    inspector_panel_draw_value_string(ctx, fmt_write_scratch("{}", fmt_int(col->shapeCount)));
+    inspector_panel_draw_string(ctx, fmt_write_scratch("{}", fmt_int(col->shapeCount)));
 
     for (u32 i = 0; i != col->shapeCount; ++i) {
       SceneCollisionShape* shape = &col->shapes[i];
@@ -1225,7 +1227,7 @@ static void inspector_panel_draw_collision(InspectorContext* ctx, UiTable* table
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, fmt_write_scratch("[{}]\tType", fmt_int(i)));
       ui_table_next_column(ctx->canvas, table);
-      inspector_panel_draw_value_string(ctx, scene_collision_type_name(shape->type));
+      inspector_panel_draw_string(ctx, scene_collision_type_name(shape->type));
 
       switch (shape->type) {
       case SceneCollisionType_Sphere: {
@@ -1330,6 +1332,11 @@ static void inspector_panel_draw_attachment(InspectorContext* ctx, UiTable* tabl
   }
   inspector_panel_next(ctx, table);
   if (inspector_panel_section(ctx, string_lit("Attachment"))) {
+    inspector_panel_next(ctx, table);
+    ui_label(ctx->canvas, string_lit("Target"));
+    ui_table_next_column(ctx->canvas, table);
+    inspector_panel_draw_entity(ctx, attach->target);
+
     DynString jointName = dynstring_create(g_allocScratch, 64);
     if (attach->jointName) {
       dynstring_append(&jointName, stringtable_lookup(g_stringtable, attach->jointName));
@@ -1364,7 +1371,7 @@ static void inspector_panel_draw_archetype(InspectorContext* ctx, UiTable* table
       inspector_panel_next(ctx, table);
       ui_label(ctx->canvas, compName);
       ui_table_next_column(ctx->canvas, table);
-      inspector_panel_draw_value_string(
+      inspector_panel_draw_string(
           ctx, fmt_write_scratch("id: {<3} size: {}", fmt_int(compId), fmt_size(compSize)));
     }
   }
