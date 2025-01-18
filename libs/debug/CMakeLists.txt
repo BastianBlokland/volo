@@ -1,10 +1,10 @@
 # --------------------------------------------------------------------------------------------------
-# Debug library cmake file.
+# Development library cmake file.
 # --------------------------------------------------------------------------------------------------
 
-message(STATUS "> library: debug")
+message(STATUS "> library: dev")
 
-add_library(lib_debug STATIC
+add_library(lib_dev STATIC
   src/asset.c
   src/camera.c
   src/ecs.c
@@ -31,6 +31,6 @@ add_library(lib_debug STATIC
   src/vfx.c
   src/widget.c
   )
-target_include_directories(lib_debug PUBLIC include)
-target_link_libraries(lib_debug PUBLIC lib_core lib_ecs lib_scene lib_log)
-target_link_libraries(lib_debug PRIVATE lib_gap lib_rend lib_input lib_ui lib_snd lib_trace lib_vfx)
+target_include_directories(lib_dev PUBLIC include)
+target_link_libraries(lib_dev PUBLIC lib_core lib_ecs lib_scene lib_log)
+target_link_libraries(lib_dev PRIVATE lib_gap lib_rend lib_input lib_ui lib_snd lib_trace lib_vfx)

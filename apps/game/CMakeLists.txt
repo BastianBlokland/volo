@@ -16,7 +16,7 @@ target_link_libraries(app_game PRIVATE
   lib_app_ecs
   lib_asset
   lib_data
-  lib_debug
+  lib_dev
   lib_gap
   lib_input
   lib_rend
