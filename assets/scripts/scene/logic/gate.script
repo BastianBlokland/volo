@@ -17,6 +17,7 @@ if (!$colGate) {
 
   var colEntity = collision_box_spawn(colPos, colSize, colRot, colLayer, true)
   attach(colEntity, me, "barrier")
+  destroy_after(colEntity, me)
 
   $colGate = colEntity
 }
