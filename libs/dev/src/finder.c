@@ -16,7 +16,7 @@ static const String g_queryPatterns[DevFinderCategory_Count] = {
     [DevFinder_Vfx]     = string_static("vfx/*.vfx"),
 };
 
-const String g_debugFinderCategoryNames[] = {
+const String g_devFinderCategoryNames[] = {
     [DevFinder_Decal]   = string_static("Decal"),
     [DevFinder_Graphic] = string_static("Graphic"),
     [DevFinder_Level]   = string_static("Level"),
@@ -24,7 +24,7 @@ const String g_debugFinderCategoryNames[] = {
     [DevFinder_Terrain] = string_static("Terrain"),
     [DevFinder_Vfx]     = string_static("Vfx"),
 };
-ASSERT(array_elems(g_debugFinderCategoryNames) == DevFinderCategory_Count, "Missing names");
+ASSERT(array_elems(g_devFinderCategoryNames) == DevFinderCategory_Count, "Missing names");
 
 typedef struct {
   DevFinderStatus status;

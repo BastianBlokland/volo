@@ -113,7 +113,7 @@ typedef struct {
 // clang-format off
 #define shape_graphic(_SHAPE_, _GRAPHIC_) [DevShapeType_##_SHAPE_] = string_static(_GRAPHIC_)
 
-static const String g_debugGraphics[DevShapeType_Count] = {
+static const String g_devGraphics[DevShapeType_Count] = {
     shape_graphic(BoxFill,                    "graphics/debug/shape_box_fill.graphic"),
     shape_graphic(BoxWire,                    "graphics/debug/shape_box_wire.graphic"),
     shape_graphic(BoxOverlay,                 "graphics/debug/shape_box_overlay.graphic"),
@@ -175,7 +175,7 @@ static DevShapeRendererComp* dev_shape_renderer(EcsWorld* world) {
 
 static EcsEntityId
 dev_shape_rend_obj_create(EcsWorld* world, AssetManagerComp* assets, const DevShapeType shape) {
-  if (string_is_empty(g_debugGraphics[shape])) {
+  if (string_is_empty(g_devGraphics[shape])) {
     return 0;
   }
   const EcsEntityId entity = ecs_world_entity_create(world);
@@ -187,7 +187,7 @@ dev_shape_rend_obj_create(EcsWorld* world, AssetManagerComp* assets, const DevSh
    */
   const RendObjectFlags objFlags      = RendObjectFlags_SortBackToFront;
   RendObjectComp*       obj           = rend_object_create(world, entity, objFlags);
-  const EcsEntityId     graphicEntity = asset_lookup(world, assets, g_debugGraphics[shape]);
+  const EcsEntityId     graphicEntity = asset_lookup(world, assets, g_devGraphics[shape]);
   rend_object_set_resource(obj, RendObjectRes_Graphic, graphicEntity);
   return entity;
 }

@@ -12,7 +12,7 @@ typedef enum eDevFinderCategory {
   DevFinderCategory_Count,
 } DevFinderCategory;
 
-extern const String g_debugFinderCategoryNames[DevFinderCategory_Count];
+extern const String g_devFinderCategoryNames[DevFinderCategory_Count];
 
 typedef enum {
   DevFinderStatus_Idle,
