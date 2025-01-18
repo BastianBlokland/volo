@@ -295,8 +295,7 @@ static void menu_action_bar_draw(
   ui_table_draw_bg(canvas, &table, rows, ui_color(178, 0, 0, 192));
 
   ui_table_next_row(canvas, &table);
-  ui_canvas_draw_glyph(
-      canvas, UiShape_Construction, 0, UiFlags_Interactable | UiFlags_SquareAspect);
+  ui_canvas_draw_glyph(canvas, UiShape_Wire, 0, UiFlags_Interactable | UiFlags_SquareAspect);
 
   // Panel open / close.
   for (u32 childIndex = 0; childIndex != array_elems(g_menuChildConfig); ++childIndex) {
