@@ -15,11 +15,12 @@
 typedef struct {
   DynLib* lib;
   // clang-format off
-  int  (SYS_DECL* WSAStartup)(WORD versionRequested, WSADATA* out);
-  int  (SYS_DECL* WSACleanup)(void);
-  int  (SYS_DECL* WSAGetLastError)(void);
-  int  (SYS_DECL* GetAddrInfoW)(const wchar_t* nodeName, const wchar_t* serviceName, const ADDRINFOW* hints, ADDRINFOW** out);
-  void (SYS_DECL* FreeAddrInfoW)(ADDRINFOW*);
+  int    (SYS_DECL* WSAStartup)(WORD versionRequested, WSADATA* out);
+  int    (SYS_DECL* WSACleanup)(void);
+  int    (SYS_DECL* WSAGetLastError)(void);
+  SOCKET (SYS_DECL* socket)(int af, int type, int protocol);
+  int    (SYS_DECL* GetAddrInfoW)(const wchar_t* nodeName, const wchar_t* serviceName, const ADDRINFOW* hints, ADDRINFOW** out);
+  void   (SYS_DECL* FreeAddrInfoW)(ADDRINFOW*);
   // clang-format on
 } NetWinSockLib;
 
@@ -43,6 +44,7 @@ static bool net_ws_init(NetWinSockLib* ws, Allocator* alloc) {
   WS_LOAD_SYM(WSAStartup);
   WS_LOAD_SYM(WSACleanup);
   WS_LOAD_SYM(WSAGetLastError);
+  WS_LOAD_SYM(socket);
   WS_LOAD_SYM(GetAddrInfoW);
   WS_LOAD_SYM(FreeAddrInfoW);
 
@@ -93,6 +95,37 @@ void net_pal_teardown(void) {
   g_netWsReady = false;
 }
 
+static int net_pal_socket_domain(const NetIpType ipType) {
+  switch (ipType) {
+  case NetIpType_V4:
+    return AF_INET;
+  case NetIpType_V6:
+    return AF_INET6;
+  case NetIpType_Count:
+    break;
+  }
+  diag_crash_msg("Unsupported ip-type");
+}
+
+static NetResult net_pal_socket_error(void) {
+  if (!g_netWsReady) {
+    return NetResult_SystemFailure;
+  }
+  const int wsaErr = g_netWsLib.WSAGetLastError();
+  switch (wsaErr) {
+  case WSANOTINITIALISED:
+  case WSAENETDOWN:
+  case WSAEPROVIDERFAILEDINIT:
+    return NetResult_SystemFailure;
+  case WSAEAFNOSUPPORT:
+  case WSAEPROTONOSUPPORT:
+  case WSAESOCKTNOSUPPORT:
+    return NetResult_Unsupported;
+  default:
+    return NetResult_UnknownError;
+  }
+}
+
 static NetResult net_pal_resolve_error(void) {
   if (!g_netWsReady) {
     return NetResult_SystemFailure;
@@ -116,12 +149,23 @@ static NetResult net_pal_resolve_error(void) {
 typedef struct sNetSocket {
   Allocator* alloc;
   NetResult  status;
+  SOCKET     handle;
 } NetSocket;
 
 NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
   NetSocket* s = alloc_alloc_t(alloc, NetSocket);
 
   *s = (NetSocket){.alloc = alloc};
+  if (UNLIKELY(!g_netWsReady)) {
+    s->status = NetResult_SystemFailure;
+    return s;
+  }
+
+  s->handle = g_netWsLib.socket(net_pal_socket_domain(addr.ip.type), SOCK_STREAM, IPPROTO_TCP);
+  if (s->handle == INVALID_SOCKET) {
+    s->status = net_pal_socket_error();
+    return s;
+  }
 
   return s;
 }
