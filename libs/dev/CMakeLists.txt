@@ -11,6 +11,7 @@ add_library(lib_dev STATIC
   src/finder.c
   src/gizmo.c
   src/grid.c
+  src/hierarchy.c
   src/inspector.c
   src/interface.c
   src/level.c
