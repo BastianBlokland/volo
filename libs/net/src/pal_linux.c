@@ -2,6 +2,7 @@
 #include "core_string.h"
 #include "net_addr.h"
 #include "net_result.h"
+#include "net_socket.h"
 
 #include "pal_internal.h"
 
@@ -35,6 +36,42 @@ static NetResult net_pal_resolve_error(const int err) {
   default:
     return NetResult_UnknownError;
   }
+}
+
+typedef struct sNetSocket {
+  Allocator*     alloc;
+  NetSocketState state;
+  int            handle;
+} NetSocket;
+
+NetSocket* net_socket_create(Allocator* alloc) {
+  NetSocket* socket = alloc_alloc_t(alloc, NetSocket);
+
+  *socket = (NetSocket){.alloc = alloc};
+
+  return socket;
+}
+
+void net_socket_destroy(NetSocket* socket) { alloc_free_t(socket->alloc, socket); }
+
+NetSocketState net_socket_state(const NetSocket* socket) { return socket->state; }
+
+NetResult net_socket_connect_sync(NetSocket* socket, const NetAddr addr) {
+  (void)socket;
+  (void)addr;
+  return NetResult_UnknownError;
+}
+
+NetResult net_socket_write_sync(NetSocket* socket, const String data) {
+  (void)socket;
+  (void)data;
+  return NetResult_UnknownError;
+}
+
+NetResult net_socket_read_sync(NetSocket* socket, DynString* out) {
+  (void)socket;
+  (void)out;
+  return NetResult_UnknownError;
 }
 
 NetResult net_resolve_sync(const String host, NetIp* out) {

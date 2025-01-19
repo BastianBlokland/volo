@@ -5,6 +5,7 @@
  * Forward header for the net library.
  */
 
-typedef enum eNetResult NetResult;
-typedef struct sNetAddr NetAddr;
-typedef struct sNetIp   NetIp;
+typedef enum eNetResult   NetResult;
+typedef struct sNetAddr   NetAddr;
+typedef struct sNetIp     NetIp;
+typedef struct sNetSocket NetSocket;
