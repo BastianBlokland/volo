@@ -25,6 +25,18 @@ static const char* to_null_term_scratch(const String str) {
   return scratchMem.ptr;
 }
 
+static int net_pal_socket_domain(const NetIpType ipType) {
+  switch (ipType) {
+  case NetIpType_V4:
+    return AF_INET;
+  case NetIpType_V6:
+    return AF_INET6;
+  case NetIpType_Count:
+    break;
+  }
+  diag_crash_msg("Unsupported ip-type");
+}
+
 static NetResult net_pal_socket_error(const int err) {
   switch (err) {
   case EAFNOSUPPORT:
@@ -69,18 +81,6 @@ static NetResult net_pal_resolve_error(const int err) {
   }
 }
 
-static int net_pal_socket_domain(const NetIpType ipType) {
-  switch (ipType) {
-  case NetIpType_V4:
-    return AF_INET;
-  case NetIpType_V6:
-    return AF_INET6;
-  case NetIpType_Count:
-    break;
-  }
-  diag_crash_msg("Unsupported ip-type");
-}
-
 typedef struct sNetSocket {
   Allocator* alloc;
   NetResult  status;
@@ -92,7 +92,7 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
 
   *s = (NetSocket){.alloc = alloc};
 
-  s->handle = socket(net_pal_socket_domain(addr.ip.type), SOCK_STREAM /* TCP */, 0);
+  s->handle = socket(net_pal_socket_domain(addr.ip.type), SOCK_STREAM, IPPROTO_TCP);
   if (s->handle < 0) {
     s->status = net_pal_socket_error(errno);
     return s;
