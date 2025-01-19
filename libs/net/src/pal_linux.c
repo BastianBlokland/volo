@@ -81,7 +81,7 @@ static int net_pal_socket_domain(const NetIpType ipType) {
 
 typedef struct sNetSocket {
   Allocator* alloc;
-  NetResult  state;
+  NetResult  status;
   int        handle;
 } NetSocket;
 
@@ -92,7 +92,7 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
 
   s->handle = socket(net_pal_socket_domain(addr.ip.type), SOCK_STREAM /* TCP */, 0);
   if (s->handle < 0) {
-    s->state = net_pal_socket_error(errno);
+    s->status = net_pal_socket_error(errno);
     return s;
   }
   for (;;) {
@@ -106,7 +106,7 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
         if (errno == EINTR) {
           continue; // Interrupted during connect; retry.
         }
-        s->state = net_pal_socket_error(errno);
+        s->status = net_pal_socket_error(errno);
       }
       return s;
     }
@@ -120,7 +120,7 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
         if (errno == EINTR) {
           continue; // Interrupted during connect; retry.
         }
-        s->state = net_pal_socket_error(errno);
+        s->status = net_pal_socket_error(errno);
       }
       return s;
     }
@@ -131,7 +131,7 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
 }
 
 void net_socket_destroy(NetSocket* s) {
-  if (s->state == NetResult_Success) {
+  if (s->status == NetResult_Success) {
     diag_assert(s->handle >= 0);
     const int shutdownRet = shutdown(s->handle, SHUT_RDWR);
     (void)shutdownRet;
@@ -145,11 +145,11 @@ void net_socket_destroy(NetSocket* s) {
   alloc_free_t(s->alloc, s);
 }
 
-NetResult net_socket_state(const NetSocket* s) { return s->state; }
+NetResult net_socket_status(const NetSocket* s) { return s->status; }
 
 NetResult net_socket_write_sync(NetSocket* s, const String data) {
-  if (s->state != NetResult_Success) {
-    return s->state;
+  if (s->status != NetResult_Success) {
+    return s->status;
   }
   diag_assert(s->handle >= 0);
   for (u8* itr = mem_begin(data); itr != mem_end(data);) {
@@ -168,8 +168,8 @@ NetResult net_socket_write_sync(NetSocket* s, const String data) {
 }
 
 NetResult net_socket_read_sync(NetSocket* s, DynString* out) {
-  if (s->state != NetResult_Success) {
-    return s->state;
+  if (s->status != NetResult_Success) {
+    return s->status;
   }
   diag_assert(s->handle >= 0);
 
