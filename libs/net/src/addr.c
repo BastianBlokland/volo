@@ -19,6 +19,8 @@ NetIp net_ip_loopback(const NetIpType type) {
         .v6   = {
               .groups = {0, 0, 0, 0, 0, 0, 0, 1},
         }};
+  case NetIpType_Count:
+    break;
   }
   diag_crash_msg("Unsupported ip-type");
 }
@@ -66,6 +68,8 @@ void net_ip_str(const NetIp* ip, DynString* out) {
   case NetIpType_V6:
     net_ip6_str(&ip->v6, out);
     return;
+  case NetIpType_Count:
+    break;
   }
   diag_crash_msg("Unsupported ip type");
 }

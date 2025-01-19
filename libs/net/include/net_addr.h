@@ -4,6 +4,8 @@
 typedef enum {
   NetIpType_V4,
   NetIpType_V6,
+
+  NetIpType_Count,
 } NetIpType;
 
 typedef struct {

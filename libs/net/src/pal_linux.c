@@ -75,6 +75,8 @@ static int net_pal_socket_domain(const NetIpType ipType) {
     return AF_INET;
   case NetIpType_V6:
     return AF_INET6;
+  case NetIpType_Count:
+    break;
   }
   diag_crash_msg("Unsupported ip-type");
 }
@@ -124,6 +126,8 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
       }
       return s;
     }
+    case NetIpType_Count:
+      break;
     }
     diag_crash_msg("Unsupported ip-type");
   }
