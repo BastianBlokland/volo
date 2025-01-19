@@ -12,6 +12,7 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <unistd.h>
 
 void net_pal_init(void) {}
 void net_pal_teardown(void) {}
@@ -126,7 +127,20 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
   UNREACHABLE
 }
 
-void net_socket_destroy(NetSocket* s) { alloc_free_t(s->alloc, s); }
+void net_socket_destroy(NetSocket* s) {
+  if (s->state == NetResult_Success) {
+    diag_assert(s->handle >= 0);
+    const int shutdownRet = shutdown(s->handle, SHUT_RDWR);
+    (void)shutdownRet;
+    diag_assert_msg(!shutdownRet, "Socket shutdown failed (errno: {})", fmt_int(errno));
+  }
+  if (s->handle >= 0) {
+    const int closeRet = close(s->handle);
+    (void)closeRet;
+    diag_assert_msg(!closeRet, "Socket close failed (errno: {})", fmt_int(errno));
+  }
+  alloc_free_t(s->alloc, s);
+}
 
 NetResult net_socket_state(const NetSocket* s) { return s->state; }
 
