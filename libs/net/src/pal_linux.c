@@ -90,7 +90,7 @@ typedef struct sNetSocket {
 NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
   NetSocket* s = alloc_alloc_t(alloc, NetSocket);
 
-  *s = (NetSocket){.alloc = alloc};
+  *s = (NetSocket){.alloc = alloc, .handle = -1};
 
   s->handle = socket(net_pal_socket_domain(addr.ip.type), SOCK_STREAM, IPPROTO_TCP);
   if (s->handle < 0) {
