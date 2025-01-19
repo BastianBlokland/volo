@@ -4,6 +4,8 @@
 typedef enum {
   NetIpType_V4,
   NetIpType_V6,
+
+  NetIpType_Count,
 } NetIpType;
 
 typedef struct {
@@ -36,6 +38,11 @@ typedef struct sNetAddr {
  * Return the loopback address.
  */
 NetIp net_ip_loopback(NetIpType);
+
+/**
+ * Synchonously resolve a host-name to an ip-address.
+ */
+NetResult net_resolve_sync(String host, NetIp* out);
 
 /**
  * Write the textual representation of the given ip.
