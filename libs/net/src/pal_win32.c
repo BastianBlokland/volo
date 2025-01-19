@@ -20,6 +20,7 @@ typedef struct {
   int    (SYS_DECL* WSAGetLastError)(void);
   SOCKET (SYS_DECL* socket)(int af, int type, int protocol);
   int    (SYS_DECL* closesocket)(SOCKET);
+  int    (SYS_DECL* connect)(SOCKET, const void* addr, int addrLen);
   int    (SYS_DECL* shutdown)(SOCKET, int how);
   int    (SYS_DECL* GetAddrInfoW)(const wchar_t* nodeName, const wchar_t* serviceName, const ADDRINFOW* hints, ADDRINFOW** out);
   void   (SYS_DECL* FreeAddrInfoW)(ADDRINFOW*);
@@ -48,6 +49,7 @@ static bool net_ws_init(NetWinSockLib* ws, Allocator* alloc) {
   WS_LOAD_SYM(WSAGetLastError);
   WS_LOAD_SYM(socket);
   WS_LOAD_SYM(closesocket);
+  WS_LOAD_SYM(connect);
   WS_LOAD_SYM(shutdown);
   WS_LOAD_SYM(GetAddrInfoW);
   WS_LOAD_SYM(FreeAddrInfoW);
@@ -120,11 +122,18 @@ static NetResult net_pal_socket_error(void) {
   case WSANOTINITIALISED:
   case WSAENETDOWN:
   case WSAEPROVIDERFAILEDINIT:
+  case WSAENOBUFS:
     return NetResult_SystemFailure;
   case WSAEAFNOSUPPORT:
   case WSAEPROTONOSUPPORT:
   case WSAESOCKTNOSUPPORT:
     return NetResult_Unsupported;
+  case WSAECONNREFUSED:
+    return NetResult_Refused;
+  case WSAENETUNREACH:
+  case WSAEHOSTUNREACH:
+  case WSAETIMEDOUT:
+    return NetResult_Unreachable;
   default:
     return NetResult_UnknownError;
   }
@@ -171,7 +180,32 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
     return s;
   }
 
-  return s;
+  switch (addr.ip.type) {
+  case NetIpType_V4: {
+    struct sockaddr_in sockAddr = {.sin_family = AF_INET};
+    mem_write_be_u16(mem_var(sockAddr.sin_port), addr.port);
+    mem_cpy(mem_var(sockAddr.sin_addr), mem_var(addr.ip.v4.data));
+
+    if (g_netWsLib.connect(s->handle, &sockAddr, sizeof(struct sockaddr_in)) == SOCKET_ERROR) {
+      s->status = net_pal_socket_error();
+    }
+    return s;
+  }
+  case NetIpType_V6: {
+    struct sockaddr_in6 sockAddr = {.sin6_family = AF_INET6};
+    mem_write_be_u16(mem_var(sockAddr.sin6_port), addr.port);
+    for (u32 i = 0; i != array_elems(addr.ip.v6.groups); ++i) {
+      mem_write_be_u16(mem_var(sockAddr.sin6_addr.u.Word[i]), addr.ip.v6.groups[i]);
+    }
+    if (g_netWsLib.connect(s->handle, &sockAddr, sizeof(struct sockaddr_in6)) == SOCKET_ERROR) {
+      s->status = net_pal_socket_error();
+    }
+    return s;
+  }
+  case NetIpType_Count:
+    break;
+  }
+  diag_crash_msg("Unsupported ip-type");
 }
 
 void net_socket_destroy(NetSocket* s) {
