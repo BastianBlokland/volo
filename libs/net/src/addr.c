@@ -5,6 +5,23 @@
 #include "core_format.h"
 #include "net_addr.h"
 
+NetIp net_ip_loopback(const NetIpType type) {
+  switch (type) {
+  case NetIpType_V4:
+    return (NetIp){
+        .type = NetIpType_V4,
+        .v4   = {
+              .data = {127, 0, 0, 1},
+        }};
+  case NetIpType_V6:
+    return (NetIp){
+        .type = NetIpType_V6,
+        .v6   = {
+              .groups = {0, 0, 0, 0, 0, 0, 0, 1},
+        }};
+  }
+}
+
 static void net_ip4_str(const NetIp4* ip, DynString* out) {
   fmt_write(
       out,

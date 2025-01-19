@@ -33,6 +33,11 @@ typedef struct sNetAddr {
 } NetAddr;
 
 /**
+ * Return the loopback address.
+ */
+NetIp net_ip_loopback(NetIpType);
+
+/**
  * Write the textual representation of the given ip.
  */
 void   net_ip_str(const NetIp*, DynString* out);
