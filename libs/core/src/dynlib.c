@@ -2,6 +2,7 @@
 #include "core_diag.h"
 #include "core_thread.h"
 
+#include "alloc_internal.h"
 #include "dynlib_internal.h"
 
 static bool g_dynlibInitialized;
@@ -14,7 +15,7 @@ void dynlib_init(void) {
 
 void dynlib_leak_detect(void) {
   if (UNLIKELY(thread_atomic_load_i64(&g_dynlibCount) != 0)) {
-    diag_crash_msg("dynlib: {} libary(s) leaked", fmt_int(g_dynlibCount));
+    alloc_crash_with_msg("dynlib: {} libary(s) leaked", fmt_int(g_dynlibCount));
   }
 }
 
