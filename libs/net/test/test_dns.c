@@ -22,4 +22,11 @@ spec(dns) {
         net_dns_resolve_sync(string_lit("127.0.0.1"), NetDnsService_Http, &addr);
     check_eq_int(res, NetDnsResult_Success);
   }
+
+  skip_it("can resolve google.com") {
+    NetAddr            addr;
+    const NetDnsResult res =
+        net_dns_resolve_sync(string_lit("www.google.com"), NetDnsService_Https, &addr);
+    check_eq_int(res, NetDnsResult_Success);
+  }
 }
