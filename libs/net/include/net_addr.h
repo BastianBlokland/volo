@@ -12,8 +12,9 @@ typedef struct {
 
 ASSERT(sizeof(NetIp4) == 4, "Incorrect Ip-v4 size");
 
-typedef struct {
-  u8 data[16];
+typedef union {
+  u16 groups[8];
+  u8  data[16];
 } NetIp6;
 
 ASSERT(sizeof(NetIp6) == 16, "Incorrect Ip-v6 size");
@@ -30,3 +31,15 @@ typedef struct sNetAddr {
   NetIp ip;
   u16   port;
 } NetAddr;
+
+/**
+ * Write the textual representation of the given ip.
+ */
+void   net_ip_str(const NetIp*, DynString* out);
+String net_ip_str_scratch(const NetIp*);
+
+/**
+ * Write the textual representation of the given address.
+ */
+void   net_addr_str(const NetAddr*, DynString* out);
+String net_addr_str_scratch(const NetAddr*);

@@ -5,6 +5,7 @@
 message(STATUS "> library: net")
 
 add_library(lib_net STATIC
+  src/addr.c
   src/dns.c
   src/init.c
   src/pal.c
