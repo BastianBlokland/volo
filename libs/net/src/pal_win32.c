@@ -25,7 +25,7 @@ static bool net_ws_init(NetWinSockLib* ws, Allocator* alloc) {
 
   (void)ws;
   (void)alloc;
-  return false;
+  return true;
 }
 
 static NetWinSockLib g_netWsLib;
