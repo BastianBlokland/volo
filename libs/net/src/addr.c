@@ -61,9 +61,11 @@ static void net_ip6_str(const NetIp6* ip, DynString* out) {
 void net_ip_str(const NetIp* ip, DynString* out) {
   switch (ip->type) {
   case NetIpType_V4:
-    return net_ip4_str(&ip->v4, out);
+    net_ip4_str(&ip->v4, out);
+    return;
   case NetIpType_V6:
-    return net_ip6_str(&ip->v6, out);
+    net_ip6_str(&ip->v6, out);
+    return;
   }
   diag_crash_msg("Unsupported ip type");
 }
