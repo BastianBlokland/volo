@@ -1,13 +1,6 @@
 #pragma once
 #include "net.h"
 
-typedef enum {
-  NetSocketState_Idle,
-  NetSocketState_Open,
-  NetSocketState_Closed,
-  NetSocketState_Error,
-} NetSocketState;
-
 /**
  * Network socket.
  * NOTE: Only TCP client sockets are supported.
@@ -15,10 +8,10 @@ typedef enum {
 typedef struct sNetSocket NetSocket;
 
 /**
- * Create a new socket.
+ * Synchonously open a Tcp connection to the given address..
  * Should be cleaned up using 'net_socket_destroy()'.
  */
-NetSocket* net_socket_create(Allocator*);
+NetSocket* net_socket_connect_sync(Allocator*, NetAddr);
 
 /**
  * Destroy the given socket.
@@ -26,14 +19,9 @@ NetSocket* net_socket_create(Allocator*);
 void net_socket_destroy(NetSocket*);
 
 /**
- * Query the state of the given socket.
+ * Query the status of the given socket.
  */
-NetSocketState net_socket_state(const NetSocket*);
-
-/**
- * Synchonously connect to a server at the given address.
- */
-NetResult net_socket_connect_sync(NetSocket*, NetAddr);
+NetResult net_socket_status(const NetSocket*);
 
 /**
  * Synchronously write to the socket.

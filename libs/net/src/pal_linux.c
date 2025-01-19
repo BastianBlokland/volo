@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_diag.h"
 #include "core_string.h"
 #include "net_addr.h"
 #include "net_result.h"
@@ -7,8 +8,10 @@
 
 #include "pal_internal.h"
 
+#include <errno.h>
 #include <netdb.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 
 void net_pal_init(void) {}
 void net_pal_teardown(void) {}
@@ -20,6 +23,29 @@ static const char* to_null_term_scratch(const String str) {
   return scratchMem.ptr;
 }
 
+static NetResult net_pal_socket_error(const int err) {
+  switch (err) {
+  case EAFNOSUPPORT:
+  case EINVAL:
+  case EPROTONOSUPPORT:
+    return NetResult_Unsupported;
+  case EAGAIN:
+    return NetResult_TryAgain;
+  case ECONNREFUSED:
+    return NetResult_Refused;
+  case ENETUNREACH:
+  case ETIMEDOUT:
+    return NetResult_Unreachable;
+  case EMFILE:
+  case ENFILE:
+  case ENOBUFS:
+  case ENOMEM:
+    return NetResult_SystemFailure;
+  default:
+    return NetResult_UnknownError;
+  }
+}
+
 static NetResult net_pal_resolve_error(const int err) {
   switch (err) {
   case EAI_NODATA:
@@ -27,7 +53,7 @@ static NetResult net_pal_resolve_error(const int err) {
   case EAI_SERVICE:
   case EAI_ADDRFAMILY:
   case EAI_SOCKTYPE:
-    return NetResult_UnsupportedService;
+    return NetResult_Unsupported;
   case EAI_NONAME:
     return NetResult_HostNotFound;
   case EAI_AGAIN:
@@ -39,38 +65,78 @@ static NetResult net_pal_resolve_error(const int err) {
   }
 }
 
+static int net_pal_socket_domain(const NetIpType ipType) {
+  switch (ipType) {
+  case NetIpType_V4:
+    return AF_INET;
+  case NetIpType_V6:
+    return AF_INET6;
+  }
+  diag_crash_msg("Unsupported ip-type");
+}
+
 typedef struct sNetSocket {
-  Allocator*     alloc;
-  NetSocketState state;
-  int            handle;
+  Allocator* alloc;
+  NetResult  state;
+  int        handle;
 } NetSocket;
 
-NetSocket* net_socket_create(Allocator* alloc) {
-  NetSocket* socket = alloc_alloc_t(alloc, NetSocket);
+NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
+  NetSocket* s = alloc_alloc_t(alloc, NetSocket);
 
-  *socket = (NetSocket){.alloc = alloc};
+  *s = (NetSocket){.alloc = alloc};
 
-  return socket;
+  s->handle = socket(net_pal_socket_domain(addr.ip.type), SOCK_STREAM /* TCP */, 0);
+  if (s->handle < 0) {
+    s->state = net_pal_socket_error(errno);
+    return s;
+  }
+  switch (addr.ip.type) {
+  case NetIpType_V4: {
+    struct sockaddr_in sockAddr = {.sin_family = AF_INET};
+    mem_write_be_u16(mem_var(sockAddr.sin_port), addr.port);
+    mem_cpy(mem_var(sockAddr.sin_addr), mem_var(addr.ip.v4.data));
+
+    if (connect(s->handle, &sockAddr, sizeof(struct sockaddr_in))) {
+      s->state = net_pal_socket_error(errno);
+      return s;
+    }
+  } break;
+  case NetIpType_V6: {
+    struct sockaddr_in6 sockAddr = {.sin6_family = AF_INET};
+    mem_write_be_u16(mem_var(sockAddr.sin6_port), addr.port);
+    for (u32 i = 0; i != array_elems(addr.ip.v6.groups); ++i) {
+      mem_write_be_u16(mem_var(sockAddr.sin6_addr.s6_addr16[i]), addr.ip.v6.groups[i]);
+    }
+    if (connect(s->handle, &sockAddr, sizeof(struct sockaddr_in6))) {
+      s->state = net_pal_socket_error(errno);
+      return s;
+    }
+  } break;
+  default:
+    diag_crash_msg("Unsupported ip-type");
+  }
+  return s;
 }
 
-void net_socket_destroy(NetSocket* socket) { alloc_free_t(socket->alloc, socket); }
+void net_socket_destroy(NetSocket* s) { alloc_free_t(s->alloc, s); }
 
-NetSocketState net_socket_state(const NetSocket* socket) { return socket->state; }
+NetResult net_socket_state(const NetSocket* s) { return s->state; }
 
-NetResult net_socket_connect_sync(NetSocket* socket, const NetAddr addr) {
-  (void)socket;
-  (void)addr;
-  return NetResult_UnknownError;
-}
-
-NetResult net_socket_write_sync(NetSocket* socket, const String data) {
-  (void)socket;
+NetResult net_socket_write_sync(NetSocket* s, const String data) {
+  if (s->state != NetResult_Success) {
+    return s->state;
+  }
+  (void)s;
   (void)data;
   return NetResult_UnknownError;
 }
 
-NetResult net_socket_read_sync(NetSocket* socket, DynString* out) {
-  (void)socket;
+NetResult net_socket_read_sync(NetSocket* s, DynString* out) {
+  if (s->state != NetResult_Success) {
+    return s->state;
+  }
+  (void)s;
   (void)out;
   return NetResult_UnknownError;
 }

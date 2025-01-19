@@ -103,7 +103,7 @@ static NetResult net_pal_resolve_error(void) {
     return NetResult_SystemFailure;
   case WSAEAFNOSUPPORT:
   case WSAESOCKTNOSUPPORT:
-    return NetResult_UnsupportedService;
+    return NetResult_Unsupported;
   case WSAHOST_NOT_FOUND:
     return NetResult_HostNotFound;
   case WSATRY_AGAIN:

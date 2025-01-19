@@ -4,7 +4,9 @@
 typedef enum eNetResult {
   NetResult_Success = 0,
   NetResult_SystemFailure,
-  NetResult_UnsupportedService,
+  NetResult_Unsupported,
+  NetResult_Refused,
+  NetResult_Unreachable,
   NetResult_NoEntry,
   NetResult_InvalidHost,
   NetResult_HostNotFound,
