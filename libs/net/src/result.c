@@ -15,6 +15,7 @@ static const String g_netResultStrs[] = {
     [NetResult_InvalidHost]      = string_static("InvalidHost"),
     [NetResult_HostNotFound]     = string_static("HostNotFound"),
     [NetResult_TryAgain]         = string_static("TryAgain"),
+    [NetResult_TooMuchData]      = string_static("TooMuchData"),
     [NetResult_UnknownError]     = string_static("UnknownError"),
 };
 

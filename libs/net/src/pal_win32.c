@@ -21,6 +21,8 @@ typedef struct {
   SOCKET (SYS_DECL* socket)(int af, int type, int protocol);
   int    (SYS_DECL* closesocket)(SOCKET);
   int    (SYS_DECL* connect)(SOCKET, const void* addr, int addrLen);
+  int    (SYS_DECL* send)(SOCKET, const void* buf, int len, int flags);
+  int    (SYS_DECL* recv)(SOCKET, void* buf, int len, int flags);
   int    (SYS_DECL* shutdown)(SOCKET, int how);
   int    (SYS_DECL* GetAddrInfoW)(const wchar_t* nodeName, const wchar_t* serviceName, const ADDRINFOW* hints, ADDRINFOW** out);
   void   (SYS_DECL* FreeAddrInfoW)(ADDRINFOW*);
@@ -50,6 +52,8 @@ static bool net_ws_init(NetWinSockLib* ws, Allocator* alloc) {
   WS_LOAD_SYM(socket);
   WS_LOAD_SYM(closesocket);
   WS_LOAD_SYM(connect);
+  WS_LOAD_SYM(send);
+  WS_LOAD_SYM(recv);
   WS_LOAD_SYM(shutdown);
   WS_LOAD_SYM(GetAddrInfoW);
   WS_LOAD_SYM(FreeAddrInfoW);
@@ -130,6 +134,12 @@ static NetResult net_pal_socket_error(void) {
     return NetResult_Unsupported;
   case WSAECONNREFUSED:
     return NetResult_Refused;
+  case WSAENETRESET:
+  case WSAECONNABORTED:
+  case WSAECONNRESET:
+    return NetResult_ConnectionLost;
+  case WSAESHUTDOWN:
+    return NetResult_ConnectionClosed;
   case WSAENETUNREACH:
   case WSAEHOSTUNREACH:
   case WSAETIMEDOUT:
@@ -235,8 +245,19 @@ NetResult net_socket_write_sync(NetSocket* s, const String data) {
   if (s->status != NetResult_Success) {
     return s->status;
   }
-  (void)data;
-  return NetResult_UnknownError;
+  if (data.size > i32_max) {
+    return NetResult_TooMuchData;
+  }
+  diag_assert(s->handle != INVALID_SOCKET);
+  for (u8* itr = mem_begin(data); itr != mem_end(data);) {
+    const int res = g_netWsLib.send(s->handle, itr, (int)(mem_end(data) - itr), 0 /* flags */);
+    if (res > 0) {
+      itr += res;
+      continue;
+    }
+    return s->status = net_pal_socket_error();
+  }
+  return NetResult_Success;
 }
 
 NetResult net_socket_read_sync(NetSocket* s, DynString* out) {

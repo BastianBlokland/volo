@@ -155,6 +155,9 @@ NetResult net_socket_write_sync(NetSocket* s, const String data) {
   if (s->status != NetResult_Success) {
     return s->status;
   }
+  if (data.size > i32_max) {
+    return NetResult_TooMuchData;
+  }
   diag_assert(s->handle >= 0);
   for (u8* itr = mem_begin(data); itr != mem_end(data);) {
     const ssize_t res = send(s->handle, itr, mem_end(data) - itr, MSG_NOSIGNAL);
