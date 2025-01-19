@@ -19,6 +19,7 @@ typedef struct {
   int    (SYS_DECL* WSACleanup)(void);
   int    (SYS_DECL* WSAGetLastError)(void);
   SOCKET (SYS_DECL* socket)(int af, int type, int protocol);
+  int    (SYS_DECL* closesocket)(SOCKET);
   int    (SYS_DECL* GetAddrInfoW)(const wchar_t* nodeName, const wchar_t* serviceName, const ADDRINFOW* hints, ADDRINFOW** out);
   void   (SYS_DECL* FreeAddrInfoW)(ADDRINFOW*);
   // clang-format on
@@ -45,6 +46,7 @@ static bool net_ws_init(NetWinSockLib* ws, Allocator* alloc) {
   WS_LOAD_SYM(WSACleanup);
   WS_LOAD_SYM(WSAGetLastError);
   WS_LOAD_SYM(socket);
+  WS_LOAD_SYM(closesocket);
   WS_LOAD_SYM(GetAddrInfoW);
   WS_LOAD_SYM(FreeAddrInfoW);
 
@@ -155,7 +157,7 @@ typedef struct sNetSocket {
 NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
   NetSocket* s = alloc_alloc_t(alloc, NetSocket);
 
-  *s = (NetSocket){.alloc = alloc};
+  *s = (NetSocket){.alloc = alloc, .handle = INVALID_SOCKET};
   if (UNLIKELY(!g_netWsReady)) {
     s->status = NetResult_SystemFailure;
     return s;
@@ -170,7 +172,17 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
   return s;
 }
 
-void net_socket_destroy(NetSocket* s) { alloc_free_t(s->alloc, s); }
+void net_socket_destroy(NetSocket* s) {
+  if (g_netWsReady && s->handle != INVALID_SOCKET) {
+    const int closeRet = g_netWsLib.closesocket(s->handle);
+    (void)closeRet;
+    diag_assert_msg(
+        !closeRet,
+        "Socket close failed (WSAGetLastError: {})",
+        fmt_int(g_netWsLib.WSAGetLastError()));
+  }
+  alloc_free_t(s->alloc, s);
+}
 
 NetResult net_socket_status(const NetSocket* s) { return s->status; }
 
