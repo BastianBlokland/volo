@@ -62,4 +62,31 @@ spec(addr) {
       check_eq_string(net_ip_str_scratch(&g_testData[i].ip), g_testData[i].expected);
     }
   }
+
+  it("can format addresses") {
+    static const struct {
+      NetAddr addr;
+      String  expected;
+    } g_testData[] = {
+        {
+            .addr =
+                {
+                    .ip   = {.type = NetIpType_V4, .v4 = {.data = {0, 0, 0, 1}}},
+                    .port = 42,
+                },
+            .expected = string_lit("0.0.0.1:42"),
+        },
+        {
+            .addr =
+                {
+                    .ip   = {.type = NetIpType_V6, .v6 = {.groups = {0, 0, 0, 0, 0, 0, 0, 1}}},
+                    .port = 42,
+                },
+            .expected = string_lit("[::1]:42"),
+        },
+    };
+    for (u32 i = 0; i != array_elems(g_testData); ++i) {
+      check_eq_string(net_addr_str_scratch(&g_testData[i].addr), g_testData[i].expected);
+    }
+  }
 }
