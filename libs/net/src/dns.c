@@ -2,8 +2,6 @@
 #include "core_diag.h"
 #include "net_dns.h"
 
-#include "pal_internal.h"
-
 static const String g_dnsResultStrs[] = {
     [NetDnsResult_Success]            = string_static("Success"),
     [NetDnsResult_SystemFailure]      = string_static("SystemFailure"),
@@ -30,8 +28,4 @@ String net_dns_service_name(const NetDnsService service) {
     return string_lit("https");
   }
   diag_crash_msg("Unknown dns service");
-}
-
-NetDnsResult net_dns_resolve_sync(const String host, const NetDnsService service, NetAddr* out) {
-  return net_pal_dns_resolve_sync(host, service, out);
 }

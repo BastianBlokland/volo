@@ -38,7 +38,7 @@ static NetDnsResult net_pal_to_dns_error(const int err) {
   }
 }
 
-NetDnsResult net_pal_dns_resolve_sync(const String host, const NetDnsService srv, NetAddr* out) {
+NetDnsResult net_dns_resolve_sync(const String host, const NetDnsService srv, NetAddr* out) {
   if (UNLIKELY(string_is_empty(host))) {
     return NetDnsResult_InvalidHost;
   }

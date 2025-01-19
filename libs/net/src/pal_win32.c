@@ -111,7 +111,7 @@ static NetDnsResult net_pal_dns_error(void) {
   }
 }
 
-NetDnsResult net_pal_dns_resolve_sync(const String host, const NetDnsService srv, NetAddr* out) {
+NetDnsResult net_dns_resolve_sync(const String host, const NetDnsService srv, NetAddr* out) {
   if (UNLIKELY(!g_netWsReady)) {
     return NetDnsResult_SystemFailure;
   }
