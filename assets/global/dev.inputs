@@ -127,73 +127,80 @@
       ]
     },
     {
-      "name": "DevPanelPrefab",
+      "name": "DevPanelHierarchy",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F2" }
       ]
     },
     {
-      "name": "DevPanelLevel",
+      "name": "DevPanelPrefab",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F3" }
       ]
     },
     {
-      "name": "DevPanelSound",
+      "name": "DevPanelLevel",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F4" }
       ]
     },
     {
-      "name": "DevPanelTime",
+      "name": "DevPanelSound",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F5" }
       ]
     },
     {
-      "name": "DevPanelSkeleton",
+      "name": "DevPanelTime",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F6" }
       ]
     },
     {
-      "name": "DevPanelScript",
+      "name": "DevPanelSkeleton",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F7" }
       ]
     },
     {
-      "name": "DevPanelAsset",
+      "name": "DevPanelScript",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F8" }
       ]
     },
     {
-      "name": "DevPanelEcs",
+      "name": "DevPanelAsset",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F9" }
       ]
     },
     {
-      "name": "DevPanelTrace",
+      "name": "DevPanelEcs",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F10" }
       ]
     },
     {
-      "name": "DevPanelRenderer",
+      "name": "DevPanelTrace",
       "blockers": [ "TextInput" ],
       "bindings": [
         { "type": "Pressed", "key": "F11" }
+      ]
+    },
+    {
+      "name": "DevPanelRenderer",
+      "blockers": [ "TextInput" ],
+      "bindings": [
+        { "type": "Pressed", "key": "F12" }
       ]
     },
     {

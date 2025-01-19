@@ -706,7 +706,7 @@ dev_prefab_panel_open(EcsWorld* world, const EcsEntityId window, const DevPanelT
       .createScale   = 1.0f,
       .idFilter      = dynstring_create(g_allocHeap, 32),
       .scrollview    = ui_scrollview(),
-      .panel         = ui_panel(.position = ui_vector(1.0f, 0.0f), .size = ui_vector(500, 350)));
+      .panel         = ui_panel(.size = ui_vector(500, 350)));
 
   if (type == DevPanelType_Detached) {
     ui_panel_maximize(&prefabPanel->panel);
