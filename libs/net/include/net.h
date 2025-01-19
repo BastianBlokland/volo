@@ -4,3 +4,5 @@
 /**
  * Forward header for the net library.
  */
+
+typedef struct sNetIp NetIp;

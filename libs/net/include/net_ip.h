@@ -18,7 +18,7 @@ typedef struct {
 
 ASSERT(sizeof(NetIp6) == 16, "Incorrect Ip-v6 size");
 
-typedef struct {
+typedef struct sNetIp {
   NetIpType type;
   union {
     NetIp4 v4;
