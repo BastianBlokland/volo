@@ -23,6 +23,6 @@ typedef enum {
 String net_dns_service_name(NetDnsService);
 
 /**
- * Synchonously resolve a host-name to an ip-address for the given service.
+ * Synchonously resolve a host-name to an address for the given service.
  */
-NetDnsResult net_dns_resolve_sync(String host, NetDnsService, NetIp* out);
+NetDnsResult net_dns_resolve_sync(String host, NetDnsService, NetAddr* out);

@@ -13,6 +13,6 @@ String net_dns_service_name(const NetDnsService service) {
   diag_crash_msg("Unknown dns service");
 }
 
-NetDnsResult net_dns_resolve_sync(const String host, const NetDnsService service, NetIp* out) {
+NetDnsResult net_dns_resolve_sync(const String host, const NetDnsService service, NetAddr* out) {
   return net_pal_dns_resolve_sync(host, service, out);
 }

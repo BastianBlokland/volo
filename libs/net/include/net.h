@@ -5,4 +5,5 @@
  * Forward header for the net library.
  */
 
-typedef struct sNetIp NetIp;
+typedef struct sNetAddr NetAddr;
+typedef struct sNetIp   NetIp;

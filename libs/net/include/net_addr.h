@@ -25,3 +25,8 @@ typedef struct sNetIp {
     NetIp6 v6;
   };
 } NetIp;
+
+typedef struct sNetAddr {
+  NetIp ip;
+  u16   port;
+} NetAddr;

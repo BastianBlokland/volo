@@ -3,7 +3,7 @@
 #include "core_dynlib.h"
 #include "core_winutils.h"
 #include "log_logger.h"
-#include "net_ip.h"
+#include "net_addr.h"
 
 #include "pal_internal.h"
 
@@ -76,7 +76,7 @@ static NetDnsResult net_pal_dns_error(void) {
   }
 }
 
-NetDnsResult net_pal_dns_resolve_sync(const String host, const NetDnsService service, NetIp* out) {
+NetDnsResult net_pal_dns_resolve_sync(const String host, const NetDnsService srv, NetAddr* out) {
   if (UNLIKELY(!g_netWsReady)) {
     return NetDnsResult_NoLibrary;
   }
@@ -84,7 +84,7 @@ NetDnsResult net_pal_dns_resolve_sync(const String host, const NetDnsService ser
     return NetDnsResult_InvalidHost;
   }
   const wchar_t* hostStrScratch    = winutils_to_widestr_scratch(host).ptr;
-  const wchar_t* serviceStrScratch = winutils_to_widestr_scratch(net_dns_service_name(service)).ptr;
+  const wchar_t* serviceStrScratch = winutils_to_widestr_scratch(net_dns_service_name(srv)).ptr;
 
   const ADDRINFOW hints = {
       .ai_family   = AF_UNSPEC,
@@ -107,16 +107,22 @@ NetDnsResult net_pal_dns_resolve_sync(const String host, const NetDnsService ser
     case AF_INET: {
       const struct sockaddr_in* addr = (struct sockaddr_in*)a->ai_addr;
 
-      out->type = NetIpType_V4;
-      mem_cpy(mem_var(out->v4.data), mem_var(addr->sin_addr));
+      out->ip.type = NetIpType_V4;
+      mem_cpy(mem_var(out->ip.v4.data), mem_var(addr->sin_addr));
+
+      out->port = (u16)addr->sin_port;
+
       result = NetDnsResult_Success;
       goto Ret;
     }
     case AF_INET6: {
       const struct sockaddr_in6* addr = (struct sockaddr_in6*)a->ai_addr;
 
-      out->type = NetIpType_V6;
-      mem_cpy(mem_var(out->v6.data), mem_var(addr->sin6_addr));
+      out->ip.type = NetIpType_V6;
+      mem_cpy(mem_var(out->ip.v6.data), mem_var(addr->sin6_addr));
+
+      out->port = (u16)addr->sin6_port;
+
       result = NetDnsResult_Success;
       goto Ret;
     }
