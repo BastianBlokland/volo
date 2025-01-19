@@ -55,7 +55,6 @@ static void hierarchy_panel_draw(UiCanvasComp* canvas, DevHierarchyPanelComp* pa
   ui_canvas_id_block_next(canvas);
 
   ui_scrollview_end(canvas, &panelComp->scrollview);
-  ui_layout_container_pop(canvas);
   ui_panel_end(canvas, &panelComp->panel);
 }
 
