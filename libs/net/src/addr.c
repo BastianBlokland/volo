@@ -20,6 +20,7 @@ NetIp net_ip_loopback(const NetIpType type) {
               .groups = {0, 0, 0, 0, 0, 0, 0, 1},
         }};
   }
+  diag_crash_msg("Unsupported ip-type");
 }
 
 static void net_ip4_str(const NetIp4* ip, DynString* out) {
