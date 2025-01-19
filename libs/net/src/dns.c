@@ -19,13 +19,3 @@ String net_dns_result_str(const NetDnsResult result) {
   diag_assert(result < NetDnsResult_Count);
   return g_dnsResultStrs[result];
 }
-
-String net_dns_service_name(const NetDnsService service) {
-  switch (service) {
-  case NetDnsService_Http:
-    return string_lit("http");
-  case NetDnsService_Https:
-    return string_lit("https");
-  }
-  diag_crash_msg("Unknown dns service");
-}

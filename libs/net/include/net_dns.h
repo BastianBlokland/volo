@@ -1,11 +1,6 @@
 #pragma once
 #include "net.h"
 
-typedef enum eNetDnsService {
-  NetDnsService_Http,
-  NetDnsService_Https, // Http over TLS/SSL.
-} NetDnsService;
-
 typedef enum eNetDnsResult {
   NetDnsResult_Success = 0,
   NetDnsResult_SystemFailure,
@@ -25,11 +20,6 @@ typedef enum eNetDnsResult {
 String net_dns_result_str(NetDnsResult);
 
 /**
- * Get the textual name of a Dns service.
+ * Synchonously resolve a host-name to an ip-address.
  */
-String net_dns_service_name(NetDnsService);
-
-/**
- * Synchonously resolve a host-name to an address for the given service.
- */
-NetDnsResult net_dns_resolve_sync(String host, NetDnsService, NetAddr* out);
+NetDnsResult net_dns_resolve_sync(String host, NetIp* out);

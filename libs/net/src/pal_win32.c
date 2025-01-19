@@ -111,15 +111,14 @@ static NetDnsResult net_pal_dns_error(void) {
   }
 }
 
-NetDnsResult net_dns_resolve_sync(const String host, const NetDnsService srv, NetAddr* out) {
+NetDnsResult net_dns_resolve_sync(const String host, NetIp* out) {
   if (UNLIKELY(!g_netWsReady)) {
     return NetDnsResult_SystemFailure;
   }
   if (UNLIKELY(string_is_empty(host))) {
     return NetDnsResult_InvalidHost;
   }
-  const wchar_t* hostStrScratch    = winutils_to_widestr_scratch(host).ptr;
-  const wchar_t* serviceStrScratch = winutils_to_widestr_scratch(net_dns_service_name(srv)).ptr;
+  const wchar_t* hostStrScratch = winutils_to_widestr_scratch(host).ptr;
 
   const ADDRINFOW hints = {
       .ai_family   = AF_UNSPEC,
@@ -128,7 +127,7 @@ NetDnsResult net_dns_resolve_sync(const String host, const NetDnsService srv, Ne
   };
 
   ADDRINFOW* addresses = null;
-  const int  err = g_netWsLib.GetAddrInfoW(hostStrScratch, serviceStrScratch, &hints, &addresses);
+  const int  err       = g_netWsLib.GetAddrInfoW(hostStrScratch, null, &hints, &addresses);
   if (err) {
     return net_pal_dns_error();
   }
@@ -142,10 +141,8 @@ NetDnsResult net_dns_resolve_sync(const String host, const NetDnsService srv, Ne
     case AF_INET: {
       const struct sockaddr_in* addr = (struct sockaddr_in*)a->ai_addr;
 
-      out->ip.type = NetIpType_V4;
-      mem_cpy(mem_var(out->ip.v4.data), mem_var(addr->sin_addr));
-
-      out->port = (u16)addr->sin_port;
+      out->type = NetIpType_V4;
+      mem_cpy(mem_var(out->v4.data), mem_var(addr->sin_addr));
 
       result = NetDnsResult_Success;
       goto Ret;
@@ -153,10 +150,8 @@ NetDnsResult net_dns_resolve_sync(const String host, const NetDnsService srv, Ne
     case AF_INET6: {
       const struct sockaddr_in6* addr = (struct sockaddr_in6*)a->ai_addr;
 
-      out->ip.type = NetIpType_V6;
-      mem_cpy(mem_var(out->ip.v6.data), mem_var(addr->sin6_addr));
-
-      out->port = (u16)addr->sin6_port;
+      out->type = NetIpType_V6;
+      mem_cpy(mem_var(out->v6.data), mem_var(addr->sin6_addr));
 
       result = NetDnsResult_Success;
       goto Ret;

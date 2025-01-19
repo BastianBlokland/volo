@@ -7,7 +7,6 @@
 
 #include <netdb.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 
 void net_pal_init(void) {}
 void net_pal_teardown(void) {}
@@ -38,12 +37,10 @@ static NetDnsResult net_pal_to_dns_error(const int err) {
   }
 }
 
-NetDnsResult net_dns_resolve_sync(const String host, const NetDnsService srv, NetAddr* out) {
+NetDnsResult net_dns_resolve_sync(const String host, NetIp* out) {
   if (UNLIKELY(string_is_empty(host))) {
     return NetDnsResult_InvalidHost;
   }
-  const char* hostNullTerm = to_null_term_scratch(host);
-  const char* srvNullTerm  = to_null_term_scratch(net_dns_service_name(srv));
 
   const struct addrinfo hints = {
       .ai_family   = AF_UNSPEC,
@@ -51,7 +48,7 @@ NetDnsResult net_dns_resolve_sync(const String host, const NetDnsService srv, Ne
       .ai_protocol = IPPROTO_TCP,
   };
   struct addrinfo* addresses = null;
-  const int        err       = getaddrinfo(hostNullTerm, srvNullTerm, &hints, &addresses);
+  const int        err       = getaddrinfo(to_null_term_scratch(host), null, &hints, &addresses);
   if (err) {
     return net_pal_to_dns_error(err);
   }
@@ -65,10 +62,8 @@ NetDnsResult net_dns_resolve_sync(const String host, const NetDnsService srv, Ne
     case AF_INET: {
       const struct sockaddr_in* addr = (struct sockaddr_in*)a->ai_addr;
 
-      out->ip.type = NetIpType_V4;
-      mem_cpy(mem_var(out->ip.v4.data), mem_var(addr->sin_addr));
-
-      out->port = (u16)addr->sin_port;
+      out->type = NetIpType_V4;
+      mem_cpy(mem_var(out->v4.data), mem_var(addr->sin_addr));
 
       result = NetDnsResult_Success;
       goto Ret;
@@ -76,10 +71,8 @@ NetDnsResult net_dns_resolve_sync(const String host, const NetDnsService srv, Ne
     case AF_INET6: {
       const struct sockaddr_in6* addr = (struct sockaddr_in6*)a->ai_addr;
 
-      out->ip.type = NetIpType_V6;
-      mem_cpy(mem_var(out->ip.v6.data), mem_var(addr->sin6_addr));
-
-      out->port = (u16)addr->sin6_port;
+      out->type = NetIpType_V6;
+      mem_cpy(mem_var(out->v6.data), mem_var(addr->sin6_addr));
 
       result = NetDnsResult_Success;
       goto Ret;

@@ -4,29 +4,26 @@
 
 spec(dns) {
   it("fails to resolve an empty host") {
-    NetAddr            addr;
-    const NetDnsResult res = net_dns_resolve_sync(string_empty, NetDnsService_Http, &addr);
+    NetIp              ip;
+    const NetDnsResult res = net_dns_resolve_sync(string_empty, &ip);
     check_eq_int(res, NetDnsResult_InvalidHost);
   }
 
   it("can resolve localhost") {
-    NetAddr            addr;
-    const NetDnsResult res =
-        net_dns_resolve_sync(string_lit("localhost"), NetDnsService_Http, &addr);
+    NetIp              ip;
+    const NetDnsResult res = net_dns_resolve_sync(string_lit("localhost"), &ip);
     check_eq_int(res, NetDnsResult_Success);
   }
 
   it("can resolve loopback") {
-    NetAddr            addr;
-    const NetDnsResult res =
-        net_dns_resolve_sync(string_lit("127.0.0.1"), NetDnsService_Http, &addr);
+    NetIp              ip;
+    const NetDnsResult res = net_dns_resolve_sync(string_lit("127.0.0.1"), &ip);
     check_eq_int(res, NetDnsResult_Success);
   }
 
   skip_it("can resolve google.com") {
-    NetAddr            addr;
-    const NetDnsResult res =
-        net_dns_resolve_sync(string_lit("www.google.com"), NetDnsService_Https, &addr);
+    NetIp              ip;
+    const NetDnsResult res = net_dns_resolve_sync(string_lit("www.google.com"), &ip);
     check_eq_int(res, NetDnsResult_Success);
   }
 }
