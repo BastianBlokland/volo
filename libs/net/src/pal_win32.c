@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_dynlib.h"
+#include "core_dynstring.h"
 #include "core_winutils.h"
 #include "log_logger.h"
 #include "net_addr.h"
@@ -264,8 +265,23 @@ NetResult net_socket_read_sync(NetSocket* s, DynString* out) {
   if (s->status != NetResult_Success) {
     return s->status;
   }
-  (void)out;
-  return NetResult_UnknownError;
+  diag_assert(s->handle != INVALID_SOCKET);
+
+  /**
+   * TODO: Consider reserving space in the output DynString and directly receiving into that to
+   * avoid the copy. Downside is for small reads we would grow the DynString unnecessarily.
+   */
+
+  Mem       readBuffer = mem_stack(usize_kibibyte);
+  const int res = g_netWsLib.recv(s->handle, readBuffer.ptr, (int)readBuffer.size, 0 /* flags */);
+  if (res > 0) {
+    dynstring_append(out, mem_slice(readBuffer, 0, res));
+    return NetResult_Success;
+  }
+  if (res == 0) {
+    return s->status = NetResult_ConnectionClosed;
+  }
+  return s->status = net_pal_socket_error();
 }
 
 NetResult net_resolve_sync(const String host, NetIp* out) {
