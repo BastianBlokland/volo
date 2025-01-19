@@ -52,6 +52,7 @@
   X(0xE8F4, Visibility)                                                                            \
   X(0xE92B, Delete)                                                                                \
   X(0xE92C, Body)                                                                                  \
+  X(0xE97A, Tree)                                                                                  \
   X(0xE9BA, Logout)                                                                                \
   X(0xE9FE, ViewInAr)                                                                              \
   X(0xEA3C, Construction)                                                                          \
