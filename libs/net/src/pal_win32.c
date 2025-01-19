@@ -113,6 +113,39 @@ static NetResult net_pal_resolve_error(void) {
   }
 }
 
+typedef struct sNetSocket {
+  Allocator* alloc;
+  NetResult  status;
+} NetSocket;
+
+NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
+  NetSocket* s = alloc_alloc_t(alloc, NetSocket);
+
+  *s = (NetSocket){.alloc = alloc};
+
+  return s;
+}
+
+void net_socket_destroy(NetSocket* s) { alloc_free_t(s->alloc, s); }
+
+NetResult net_socket_status(const NetSocket* s) { return s->status; }
+
+NetResult net_socket_write_sync(NetSocket* s, const String data) {
+  if (s->status != NetResult_Success) {
+    return s->status;
+  }
+  (void)data;
+  return NetResult_UnknownError;
+}
+
+NetResult net_socket_read_sync(NetSocket* s, DynString* out) {
+  if (s->status != NetResult_Success) {
+    return s->status;
+  }
+  (void)out;
+  return NetResult_UnknownError;
+}
+
 NetResult net_resolve_sync(const String host, NetIp* out) {
   if (UNLIKELY(!g_netWsReady)) {
     return NetResult_SystemFailure;
