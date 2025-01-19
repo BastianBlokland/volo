@@ -8,7 +8,7 @@
 typedef struct sNetSocket NetSocket;
 
 /**
- * Synchonously open a Tcp connection to the given address..
+ * Synchonously open a Tcp connection to the given address.
  * Should be cleaned up using 'net_socket_destroy()'.
  */
 NetSocket* net_socket_connect_sync(Allocator*, NetAddr);
