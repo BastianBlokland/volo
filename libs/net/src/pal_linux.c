@@ -162,7 +162,7 @@ NetResult net_socket_write_sync(NetSocket* s, const String data) {
     case EINTR:
       continue; // Retry on interrupt.
     }
-    return net_pal_socket_error(errno);
+    return s->status = net_pal_socket_error(errno);
   }
   return NetResult_Success;
 }
@@ -186,13 +186,13 @@ NetResult net_socket_read_sync(NetSocket* s, DynString* out) {
       return NetResult_Success;
     }
     if (res == 0) {
-      return NetResult_ConnectionClosed;
+      return s->status = NetResult_ConnectionClosed;
     }
     switch (errno) {
     case EINTR:
       continue; // Retry on interrupt.
     }
-    return net_pal_socket_error(errno);
+    return s->status = net_pal_socket_error(errno);
   }
 }
 
