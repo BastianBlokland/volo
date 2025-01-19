@@ -111,7 +111,7 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
       return s;
     }
     case NetIpType_V6: {
-      struct sockaddr_in6 sockAddr = {.sin6_family = AF_INET};
+      struct sockaddr_in6 sockAddr = {.sin6_family = AF_INET6};
       mem_write_be_u16(mem_var(sockAddr.sin6_port), addr.port);
       for (u32 i = 0; i != array_elems(addr.ip.v6.groups); ++i) {
         mem_write_be_u16(mem_var(sockAddr.sin6_addr.s6_addr16[i]), addr.ip.v6.groups[i]);
