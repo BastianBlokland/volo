@@ -1,6 +1,6 @@
 #include "app_check.h"
 
-void app_check_configure(CheckDef* check) {
+void app_check_init(CheckDef* check) {
   register_spec(check, affinity);
   register_spec(check, combinator);
   register_spec(check, def);
@@ -13,3 +13,5 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, view);
   register_spec(check, world);
 }
+
+void app_check_teardown(void) {}

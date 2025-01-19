@@ -1,6 +1,6 @@
 #include "app_check.h"
 
-void app_check_configure(CheckDef* check) {
+void app_check_init(CheckDef* check) {
   register_spec(check, alloc_block);
   register_spec(check, alloc_bump);
   register_spec(check, alloc_chunked);
@@ -49,3 +49,5 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, simd);
 #endif
 }
+
+void app_check_teardown(void) {}

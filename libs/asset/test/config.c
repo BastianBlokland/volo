@@ -1,6 +1,6 @@
 #include "app_check.h"
 
-void app_check_configure(CheckDef* check) {
+void app_check_init(CheckDef* check) {
   register_spec(check, loader_font_ttf);
   register_spec(check, loader_graphic);
   register_spec(check, loader_inputmap);
@@ -21,3 +21,5 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, loader_weapon);
   register_spec(check, manager);
 }
+
+void app_check_teardown(void) {}
