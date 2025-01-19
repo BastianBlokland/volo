@@ -154,7 +154,7 @@ NetResult net_resolve_sync(const String host, NetIp* out) {
 
       out->type = NetIpType_V6;
       for (u32 i = 0; i != array_elems(out->v6.groups); ++i) {
-        mem_consume_be_u16(mem_var(addr->sin6_addr.s6_addr16[i]), &out->v6.groups[i]);
+        mem_consume_be_u16(mem_var(addr->sin6_addr.u.Word[i]), &out->v6.groups[i]);
       }
 
       result = NetResult_Success;
