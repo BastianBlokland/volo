@@ -91,32 +91,39 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
     s->state = net_pal_socket_error(errno);
     return s;
   }
-  switch (addr.ip.type) {
-  case NetIpType_V4: {
-    struct sockaddr_in sockAddr = {.sin_family = AF_INET};
-    mem_write_be_u16(mem_var(sockAddr.sin_port), addr.port);
-    mem_cpy(mem_var(sockAddr.sin_addr), mem_var(addr.ip.v4.data));
+  for (;;) {
+    switch (addr.ip.type) {
+    case NetIpType_V4: {
+      struct sockaddr_in sockAddr = {.sin_family = AF_INET};
+      mem_write_be_u16(mem_var(sockAddr.sin_port), addr.port);
+      mem_cpy(mem_var(sockAddr.sin_addr), mem_var(addr.ip.v4.data));
 
-    if (connect(s->handle, &sockAddr, sizeof(struct sockaddr_in))) {
-      s->state = net_pal_socket_error(errno);
+      if (connect(s->handle, &sockAddr, sizeof(struct sockaddr_in))) {
+        if (errno == EINTR) {
+          continue; // Interrupted during connect; retry.
+        }
+        s->state = net_pal_socket_error(errno);
+      }
       return s;
     }
-  } break;
-  case NetIpType_V6: {
-    struct sockaddr_in6 sockAddr = {.sin6_family = AF_INET};
-    mem_write_be_u16(mem_var(sockAddr.sin6_port), addr.port);
-    for (u32 i = 0; i != array_elems(addr.ip.v6.groups); ++i) {
-      mem_write_be_u16(mem_var(sockAddr.sin6_addr.s6_addr16[i]), addr.ip.v6.groups[i]);
-    }
-    if (connect(s->handle, &sockAddr, sizeof(struct sockaddr_in6))) {
-      s->state = net_pal_socket_error(errno);
+    case NetIpType_V6: {
+      struct sockaddr_in6 sockAddr = {.sin6_family = AF_INET};
+      mem_write_be_u16(mem_var(sockAddr.sin6_port), addr.port);
+      for (u32 i = 0; i != array_elems(addr.ip.v6.groups); ++i) {
+        mem_write_be_u16(mem_var(sockAddr.sin6_addr.s6_addr16[i]), addr.ip.v6.groups[i]);
+      }
+      if (connect(s->handle, &sockAddr, sizeof(struct sockaddr_in6))) {
+        if (errno == EINTR) {
+          continue; // Interrupted during connect; retry.
+        }
+        s->state = net_pal_socket_error(errno);
+      }
       return s;
     }
-  } break;
-  default:
+    }
     diag_crash_msg("Unsupported ip-type");
   }
-  return s;
+  UNREACHABLE
 }
 
 void net_socket_destroy(NetSocket* s) { alloc_free_t(s->alloc, s); }
