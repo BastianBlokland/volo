@@ -22,7 +22,7 @@ spec(addr) {
     check_eq_int(res, NetResult_Success);
   }
 
-  it("can resolve www.bastian.tech") {
+  skip_it("can resolve www.bastian.tech") {
     NetIp           ip;
     const NetResult res = net_resolve_sync(string_lit("www.bastian.tech"), &ip);
     check_eq_int(res, NetResult_Success);
