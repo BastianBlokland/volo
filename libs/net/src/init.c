@@ -2,6 +2,8 @@
 #include "core_thread.h"
 #include "net_init.h"
 
+#include "pal_internal.h"
+
 static bool g_initalized;
 
 void net_init(void) {
@@ -10,7 +12,7 @@ void net_init(void) {
   if (!g_initalized) {
     g_initalized = true;
 
-    // TODO: Perform initialization.
+    net_pal_init();
   }
 }
 
@@ -20,6 +22,6 @@ void net_teardown(void) {
   if (g_initalized) {
     g_initalized = false;
 
-    // TODO: Perform teardown.
+    net_pal_teardown();
   }
 }
