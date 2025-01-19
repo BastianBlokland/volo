@@ -22,9 +22,9 @@ spec(addr) {
     check_eq_int(res, NetResult_Success);
   }
 
-  skip_it("can resolve google.com") {
+  it("can resolve www.bastian.tech") {
     NetIp           ip;
-    const NetResult res = net_resolve_sync(string_lit("www.google.com"), &ip);
+    const NetResult res = net_resolve_sync(string_lit("www.bastian.tech"), &ip);
     check_eq_int(res, NetResult_Success);
   }
 

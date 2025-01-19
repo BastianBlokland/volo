@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_string.h"
 #include "net_addr.h"
 #include "net_result.h"
@@ -109,7 +110,9 @@ NetResult net_resolve_sync(const String host, NetIp* out) {
       const struct sockaddr_in6* addr = (struct sockaddr_in6*)a->ai_addr;
 
       out->type = NetIpType_V6;
-      mem_cpy(mem_var(out->v6.data), mem_var(addr->sin6_addr));
+      for (u32 i = 0; i != array_elems(out->v6.groups); ++i) {
+        mem_consume_be_u16(mem_var(addr->sin6_addr.s6_addr16[i]), &out->v6.groups[i]);
+      }
 
       result = NetResult_Success;
       goto Ret;
