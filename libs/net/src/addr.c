@@ -50,8 +50,7 @@ static void net_ip6_str(const NetIp6* ip, DynString* out) {
     }
     if (val && emptyBlockActive) {
       emptyBlockActive = false; // End of empty block.
-    }
-    if (i) {
+    } else if (i != 0) {
       dynstring_append_char(out, ':');
     }
     format_write_u64(out, ip->groups[i], &fmtIntOpts);
