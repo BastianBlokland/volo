@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_dynstring.h"
 #include "core_string.h"
 #include "net_addr.h"
 #include "net_result.h"
@@ -37,6 +38,8 @@ static NetResult net_pal_socket_error(const int err) {
   case ENETUNREACH:
   case ETIMEDOUT:
     return NetResult_Unreachable;
+  case ECONNRESET:
+    return NetResult_ConnectionLost;
   case EMFILE:
   case ENFILE:
   case ENOBUFS:
@@ -148,18 +151,49 @@ NetResult net_socket_write_sync(NetSocket* s, const String data) {
   if (s->state != NetResult_Success) {
     return s->state;
   }
-  (void)s;
-  (void)data;
-  return NetResult_UnknownError;
+  diag_assert(s->handle >= 0);
+  for (u8* itr = mem_begin(data); itr != mem_end(data);) {
+    const ssize_t res = send(s->handle, itr, mem_end(data) - itr, MSG_NOSIGNAL);
+    if (res > 0) {
+      itr += res;
+      continue;
+    }
+    switch (errno) {
+    case EINTR:
+      continue; // Retry on interrupt.
+    }
+    return net_pal_socket_error(errno);
+  }
+  return NetResult_Success;
 }
 
 NetResult net_socket_read_sync(NetSocket* s, DynString* out) {
   if (s->state != NetResult_Success) {
     return s->state;
   }
-  (void)s;
-  (void)out;
-  return NetResult_UnknownError;
+  diag_assert(s->handle >= 0);
+
+  /**
+   * TODO: Consider reserving space in the output DynString and directly receiving into that to
+   * avoid the copy. Downside is for small reads we would grow the DynString unnecessarily.
+   */
+
+  Mem readBuffer = mem_stack(usize_kibibyte);
+  while (true) {
+    const ssize_t res = recv(s->handle, readBuffer.ptr, readBuffer.size, 0 /* flags */);
+    if (res > 0) {
+      dynstring_append(out, mem_slice(readBuffer, 0, res));
+      return NetResult_Success;
+    }
+    if (res == 0) {
+      return NetResult_ConnectionClosed;
+    }
+    switch (errno) {
+    case EINTR:
+      continue; // Retry on interrupt.
+    }
+    return net_pal_socket_error(errno);
+  }
 }
 
 NetResult net_resolve_sync(const String host, NetIp* out) {

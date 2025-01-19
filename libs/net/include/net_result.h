@@ -7,6 +7,8 @@ typedef enum eNetResult {
   NetResult_Unsupported,
   NetResult_Refused,
   NetResult_Unreachable,
+  NetResult_ConnectionClosed,
+  NetResult_ConnectionLost,
   NetResult_NoEntry,
   NetResult_InvalidHost,
   NetResult_HostNotFound,
