@@ -4,6 +4,7 @@
 #include "core_winutils.h"
 #include "log_logger.h"
 #include "net_addr.h"
+#include "net_dns.h"
 
 #include "pal_internal.h"
 
