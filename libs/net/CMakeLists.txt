@@ -11,3 +11,4 @@ add_library(lib_net STATIC
   )
 target_include_directories(lib_net PUBLIC include)
 target_link_libraries(lib_net PUBLIC lib_core)
+target_link_libraries(lib_net PRIVATE lib_log)

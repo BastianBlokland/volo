@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_dynlib.h"
+#include "log_logger.h"
 
 #include "pal_internal.h"
 
@@ -13,8 +14,16 @@ typedef struct {
   // clang-format on
 } NetWinSockLib;
 
-static bool net_ws_init(NetWinSockLib* lib, Allocator* alloc) {
-  (void)lib;
+static bool net_ws_init(NetWinSockLib* ws, Allocator* alloc) {
+  const DynLibResult loadRes = dynlib_load(alloc, string_lit("Ws2_32.dll"), &ws->lib);
+  if (UNLIKELY(loadRes != DynLibResult_Success)) {
+    const String err = dynlib_result_str(loadRes);
+    log_w("Failed to load WinSock library ('Ws2_32.dll')", log_param("err", fmt_text(err)));
+    return false;
+  }
+  log_i("WinSock library loaded", log_param("path", fmt_path(dynlib_path(ws->lib))));
+
+  (void)ws;
   (void)alloc;
   return false;
 }
