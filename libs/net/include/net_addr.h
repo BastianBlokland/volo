@@ -38,6 +38,11 @@ typedef struct sNetAddr {
 NetIp net_ip_loopback(NetIpType);
 
 /**
+ * Synchonously resolve a host-name to an ip-address.
+ */
+NetResult net_resolve_sync(String host, NetIp* out);
+
+/**
  * Write the textual representation of the given ip.
  */
 void   net_ip_str(const NetIp*, DynString* out);

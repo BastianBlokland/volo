@@ -1,7 +1,7 @@
 #include "core_alloc.h"
 #include "core_string.h"
 #include "net_addr.h"
-#include "net_dns.h"
+#include "net_result.h"
 
 #include "pal_internal.h"
 
@@ -18,28 +18,28 @@ static const char* to_null_term_scratch(const String str) {
   return scratchMem.ptr;
 }
 
-static NetDnsResult net_pal_to_dns_error(const int err) {
+static NetResult net_pal_resolve_error(const int err) {
   switch (err) {
   case EAI_NODATA:
-    return NetDnsResult_NoEntry;
+    return NetResult_NoEntry;
   case EAI_SERVICE:
   case EAI_ADDRFAMILY:
   case EAI_SOCKTYPE:
-    return NetDnsResult_UnsupportedService;
+    return NetResult_UnsupportedService;
   case EAI_NONAME:
-    return NetDnsResult_HostNotFound;
+    return NetResult_HostNotFound;
   case EAI_AGAIN:
-    return NetDnsResult_TryAgain;
+    return NetResult_TryAgain;
   case EAI_SYSTEM:
-    return NetDnsResult_SystemFailure;
+    return NetResult_SystemFailure;
   default:
-    return NetDnsResult_UnknownError;
+    return NetResult_UnknownError;
   }
 }
 
-NetDnsResult net_dns_resolve_sync(const String host, NetIp* out) {
+NetResult net_resolve_sync(const String host, NetIp* out) {
   if (UNLIKELY(string_is_empty(host))) {
-    return NetDnsResult_InvalidHost;
+    return NetResult_InvalidHost;
   }
 
   const struct addrinfo hints = {
@@ -50,10 +50,10 @@ NetDnsResult net_dns_resolve_sync(const String host, NetIp* out) {
   struct addrinfo* addresses = null;
   const int        err       = getaddrinfo(to_null_term_scratch(host), null, &hints, &addresses);
   if (err) {
-    return net_pal_to_dns_error(err);
+    return net_pal_resolve_error(err);
   }
 
-  NetDnsResult result = NetDnsResult_NoEntry;
+  NetResult result = NetResult_NoEntry;
   for (struct addrinfo* a = addresses; a; a = a->ai_next) {
     if (a->ai_socktype != SOCK_STREAM || a->ai_protocol != IPPROTO_TCP) {
       continue; // Only TCP sockets are supported at the moment.
@@ -65,7 +65,7 @@ NetDnsResult net_dns_resolve_sync(const String host, NetIp* out) {
       out->type = NetIpType_V4;
       mem_cpy(mem_var(out->v4.data), mem_var(addr->sin_addr));
 
-      result = NetDnsResult_Success;
+      result = NetResult_Success;
       goto Ret;
     }
     case AF_INET6: {
@@ -74,7 +74,7 @@ NetDnsResult net_dns_resolve_sync(const String host, NetIp* out) {
       out->type = NetIpType_V6;
       mem_cpy(mem_var(out->v6.data), mem_var(addr->sin6_addr));
 
-      result = NetDnsResult_Success;
+      result = NetResult_Success;
       goto Ret;
     }
     default:

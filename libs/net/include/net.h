@@ -5,7 +5,6 @@
  * Forward header for the net library.
  */
 
-typedef enum eNetDnsResult  NetDnsResult;
-typedef enum eNetDnsService NetDnsService;
-typedef struct sNetAddr     NetAddr;
-typedef struct sNetIp       NetIp;
+typedef enum eNetResult NetResult;
+typedef struct sNetAddr NetAddr;
+typedef struct sNetIp   NetIp;

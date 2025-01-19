@@ -1,8 +1,33 @@
 #include "check_spec.h"
 #include "core_array.h"
 #include "net_addr.h"
+#include "net_result.h"
 
 spec(addr) {
+  it("fails to resolve an empty host") {
+    NetIp           ip;
+    const NetResult res = net_resolve_sync(string_empty, &ip);
+    check_eq_int(res, NetResult_InvalidHost);
+  }
+
+  it("can resolve localhost") {
+    NetIp           ip;
+    const NetResult res = net_resolve_sync(string_lit("localhost"), &ip);
+    check_eq_int(res, NetResult_Success);
+  }
+
+  it("can resolve loopback") {
+    NetIp           ip;
+    const NetResult res = net_resolve_sync(string_lit("127.0.0.1"), &ip);
+    check_eq_int(res, NetResult_Success);
+  }
+
+  skip_it("can resolve google.com") {
+    NetIp           ip;
+    const NetResult res = net_resolve_sync(string_lit("www.google.com"), &ip);
+    check_eq_int(res, NetResult_Success);
+  }
+
   it("can format ip's") {
     static const struct {
       NetIp  ip;

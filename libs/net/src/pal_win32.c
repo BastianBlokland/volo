@@ -4,7 +4,7 @@
 #include "core_winutils.h"
 #include "log_logger.h"
 #include "net_addr.h"
-#include "net_dns.h"
+#include "net_result.h"
 
 #include "pal_internal.h"
 
@@ -92,32 +92,32 @@ void net_pal_teardown(void) {
   g_netWsReady = false;
 }
 
-static NetDnsResult net_pal_dns_error(void) {
+static NetResult net_pal_resolve_error(void) {
   if (!g_netWsReady) {
-    return NetDnsResult_SystemFailure;
+    return NetResult_SystemFailure;
   }
   const int wsaErr = g_netWsLib.WSAGetLastError();
   switch (wsaErr) {
   case WSANOTINITIALISED:
-    return NetDnsResult_SystemFailure;
+    return NetResult_SystemFailure;
   case WSAEAFNOSUPPORT:
   case WSAESOCKTNOSUPPORT:
-    return NetDnsResult_UnsupportedService;
+    return NetResult_UnsupportedService;
   case WSAHOST_NOT_FOUND:
-    return NetDnsResult_HostNotFound;
+    return NetResult_HostNotFound;
   case WSATRY_AGAIN:
-    return NetDnsResult_TryAgain;
+    return NetResult_TryAgain;
   default:
-    return NetDnsResult_UnknownError;
+    return NetResult_UnknownError;
   }
 }
 
-NetDnsResult net_dns_resolve_sync(const String host, NetIp* out) {
+NetResult net_resolve_sync(const String host, NetIp* out) {
   if (UNLIKELY(!g_netWsReady)) {
-    return NetDnsResult_SystemFailure;
+    return NetResult_SystemFailure;
   }
   if (UNLIKELY(string_is_empty(host))) {
-    return NetDnsResult_InvalidHost;
+    return NetResult_InvalidHost;
   }
   const wchar_t* hostStrScratch = winutils_to_widestr_scratch(host).ptr;
 
@@ -130,10 +130,10 @@ NetDnsResult net_dns_resolve_sync(const String host, NetIp* out) {
   ADDRINFOW* addresses = null;
   const int  err       = g_netWsLib.GetAddrInfoW(hostStrScratch, null, &hints, &addresses);
   if (err) {
-    return net_pal_dns_error();
+    return net_pal_resolve_error();
   }
 
-  NetDnsResult result = NetDnsResult_NoEntry;
+  NetResult result = NetResult_NoEntry;
   for (ADDRINFOW* a = addresses; a; a = a->ai_next) {
     if (a->ai_socktype != SOCK_STREAM || a->ai_protocol != IPPROTO_TCP) {
       continue; // Only TCP sockets are supported at the moment.
@@ -145,7 +145,7 @@ NetDnsResult net_dns_resolve_sync(const String host, NetIp* out) {
       out->type = NetIpType_V4;
       mem_cpy(mem_var(out->v4.data), mem_var(addr->sin_addr));
 
-      result = NetDnsResult_Success;
+      result = NetResult_Success;
       goto Ret;
     }
     case AF_INET6: {
@@ -154,7 +154,7 @@ NetDnsResult net_dns_resolve_sync(const String host, NetIp* out) {
       out->type = NetIpType_V6;
       mem_cpy(mem_var(out->v6.data), mem_var(addr->sin6_addr));
 
-      result = NetDnsResult_Success;
+      result = NetResult_Success;
       goto Ret;
     }
     default:
