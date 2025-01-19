@@ -8,7 +8,7 @@ typedef enum {
 
 typedef enum {
   NetDnsResult_Success = 0,
-  NetDnsResult_NoLibrary,
+  NetDnsResult_SystemFailure,
   NetDnsResult_UnsupportedService,
   NetDnsResult_NoEntry,
   NetDnsResult_InvalidHost,

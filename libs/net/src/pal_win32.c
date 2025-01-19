@@ -93,12 +93,12 @@ void net_pal_teardown(void) {
 
 static NetDnsResult net_pal_dns_error(void) {
   if (!g_netWsReady) {
-    return NetDnsResult_NoLibrary;
+    return NetDnsResult_SystemFailure;
   }
   const int wsaErr = g_netWsLib.WSAGetLastError();
   switch (wsaErr) {
   case WSANOTINITIALISED:
-    return NetDnsResult_NoLibrary;
+    return NetDnsResult_SystemFailure;
   case WSAEAFNOSUPPORT:
   case WSAESOCKTNOSUPPORT:
     return NetDnsResult_UnsupportedService;
@@ -113,7 +113,7 @@ static NetDnsResult net_pal_dns_error(void) {
 
 NetDnsResult net_pal_dns_resolve_sync(const String host, const NetDnsService srv, NetAddr* out) {
   if (UNLIKELY(!g_netWsReady)) {
-    return NetDnsResult_NoLibrary;
+    return NetDnsResult_SystemFailure;
   }
   if (UNLIKELY(string_is_empty(host))) {
     return NetDnsResult_InvalidHost;
