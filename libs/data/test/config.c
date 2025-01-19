@@ -1,6 +1,6 @@
 #include "app_check.h"
 
-void app_check_configure(CheckDef* check) {
+void app_check_init(CheckDef* check) {
   register_spec(check, bin);
   register_spec(check, jsonschema);
   register_spec(check, read_json);
@@ -12,3 +12,5 @@ void app_check_configure(CheckDef* check) {
   register_spec(check, utils_visit);
   register_spec(check, write_json);
 }
+
+void app_check_teardown(void) {}

@@ -52,12 +52,13 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   jobs_init(&jobsConfig);
 
   CheckDef* check = check_create(g_allocHeap);
-  app_check_configure(check);
+  app_check_init(check);
 
   if (check_run(check, app_check_runflags(invoc))) {
     exitCode = 1; // Tests failed.
   }
 
+  app_check_teardown();
   check_destroy(check);
 
 Exit:
