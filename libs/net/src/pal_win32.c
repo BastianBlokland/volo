@@ -13,6 +13,8 @@
 typedef struct {
   DynLib* lib;
   // clang-format off
+  int  (SYS_DECL* WSAStartup)(WORD versionRequested, WSADATA* out);
+  int  (SYS_DECL* WSACleanup)(void);
   int  (SYS_DECL* WSAGetLastError)(void);
   int  (SYS_DECL* GetAddrInfoW)(const wchar_t* nodeName, const wchar_t* serviceName, const ADDRINFOW* hints, ADDRINFOW** out);
   void (SYS_DECL* FreeAddrInfoW)(ADDRINFOW*);
@@ -26,7 +28,6 @@ static bool net_ws_init(NetWinSockLib* ws, Allocator* alloc) {
     log_w("Failed to load WinSock library ('Ws2_32.dll')", log_param("err", fmt_text(err)));
     return false;
   }
-  log_i("WinSock library loaded", log_param("path", fmt_path(dynlib_path(ws->lib))));
 
 #define WS_LOAD_SYM(_NAME_)                                                                        \
   do {                                                                                             \
@@ -37,9 +38,31 @@ static bool net_ws_init(NetWinSockLib* ws, Allocator* alloc) {
     }                                                                                              \
   } while (false)
 
+  WS_LOAD_SYM(WSAStartup);
+  WS_LOAD_SYM(WSACleanup);
   WS_LOAD_SYM(WSAGetLastError);
   WS_LOAD_SYM(GetAddrInfoW);
   WS_LOAD_SYM(FreeAddrInfoW);
+
+  const DWORD requestedVersion = MAKEWORD(2, 2);
+  WSADATA     startupData;
+  const int   startupErr = ws->WSAStartup(requestedVersion, &startupData);
+  if (startupErr) {
+    log_e("WinSock library startup failed", log_param("err", fmt_int(startupErr)));
+    ws->WSACleanup();
+    return false;
+  }
+  if (LOBYTE(startupData.wVersion) != 2 || HIBYTE(startupData.wVersion) != 2) {
+    log_e("WinSock library unsupported");
+    ws->WSACleanup();
+    return false;
+  }
+
+  log_i(
+      "WinSock library loaded",
+      log_param("path", fmt_path(dynlib_path(ws->lib))),
+      log_param("version-major", fmt_int(LOBYTE(startupData.wVersion))),
+      log_param("version-minor", fmt_int(HIBYTE(startupData.wVersion))));
 
 #undef WS_LOAD_SYM
   return true;
@@ -54,16 +77,28 @@ void net_pal_init(void) {
 }
 
 void net_pal_teardown(void) {
+  if (g_netWsReady) {
+    const int cleanupErr = g_netWsLib.WSACleanup();
+    if (cleanupErr) {
+      log_e("Failed to cleanup WinSock library", log_param("err", fmt_int(cleanupErr)));
+    }
+  }
   if (g_netWsLib.lib) {
     dynlib_destroy(g_netWsLib.lib);
   }
+
+  g_netWsLib   = (NetWinSockLib){0};
+  g_netWsReady = false;
 }
 
 static NetDnsResult net_pal_dns_error(void) {
   if (!g_netWsReady) {
     return NetDnsResult_NoLibrary;
   }
-  switch (g_netWsLib.WSAGetLastError()) {
+  const int wsaErr = g_netWsLib.WSAGetLastError();
+  switch (wsaErr) {
+  case WSANOTINITIALISED:
+    return NetDnsResult_NoLibrary;
   case WSAEAFNOSUPPORT:
   case WSAESOCKTNOSUPPORT:
     return NetDnsResult_UnsupportedService;
