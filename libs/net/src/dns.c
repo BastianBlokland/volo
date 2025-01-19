@@ -1,5 +1,7 @@
-#include "core_string.h"
+#include "core_diag.h"
 #include "net_dns.h"
+
+#include "pal_internal.h"
 
 String net_dns_service_name(const NetDnsService service) {
   switch (service) {
