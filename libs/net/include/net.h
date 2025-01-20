@@ -9,3 +9,4 @@ typedef enum eNetResult   NetResult;
 typedef struct sNetAddr   NetAddr;
 typedef struct sNetIp     NetIp;
 typedef struct sNetSocket NetSocket;
+typedef struct sNetTls    NetTls;
