@@ -31,10 +31,14 @@ typedef struct {
   void              (SYS_DECL* SSL_set_bio)(SSL*, BIO* readBio, BIO* writeBio);
   int               (SYS_DECL* SSL_do_handshake)(SSL*);
   int               (SYS_DECL* SSL_is_init_finished)(const SSL*);
+  int               (SYS_DECL* SSL_read_ex)(SSL*, void *buf, size_t num, size_t *readBytes);
+  int               (SYS_DECL* SSL_write_ex)(SSL*, const void *buf, size_t num, size_t *written);
   BIO_METHOD*       (SYS_DECL* BIO_s_mem)(void);
   BIO*              (SYS_DECL* BIO_new)(const BIO_METHOD*);
   void              (SYS_DECL* BIO_free_all)(BIO*);
   void              (SYS_DECL* BIO_set_mem_eof_return)(BIO*, int v);
+  int               (SYS_DECL* BIO_read_ex)(BIO*, void *data, size_t dlen, size_t *readbytes);
+  int               (SYS_DECL* BIO_write_ex)(BIO*, const void *data, size_t dlen, size_t *written);
   // clang-format on
 
   SSL_CTX* clientContext;
@@ -95,10 +99,14 @@ static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
   OPENSSL_LOAD_SYM(SSL_set_bio);
   OPENSSL_LOAD_SYM(SSL_do_handshake);
   OPENSSL_LOAD_SYM(SSL_is_init_finished);
+  OPENSSL_LOAD_SYM(SSL_read_ex);
+  OPENSSL_LOAD_SYM(SSL_write_ex);
   OPENSSL_LOAD_SYM(BIO_s_mem);
   OPENSSL_LOAD_SYM(BIO_new);
   OPENSSL_LOAD_SYM(BIO_free_all);
   OPENSSL_LOAD_SYM(BIO_set_mem_eof_return);
+  OPENSSL_LOAD_SYM(BIO_read_ex);
+  OPENSSL_LOAD_SYM(BIO_write_ex);
 
   if (!ssl->OPENSSL_init_ssl(0 /* options */, null /* settings */)) {
     net_openssl_log_errors(ssl);
