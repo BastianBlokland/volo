@@ -9,6 +9,9 @@
 
 typedef struct {
   DynLib* lib;
+  // clang-format off
+  int (SYS_DECL* OPENSSL_init_ssl)(u64 opts, const void* settings);
+  // clang-format on
 } NetOpenSsl;
 
 static String net_openssl_search_path(void) {
@@ -39,6 +42,13 @@ static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
       return false;                                                                                \
     }                                                                                              \
   } while (false)
+
+  OPENSSL_LOAD_SYM(OPENSSL_init_ssl);
+
+  if (!ssl->OPENSSL_init_ssl(0 /* options */, null /* settings */)) {
+    log_e("OpenSSL init failed");
+    return false;
+  }
 
   log_i("OpenSSL library loaded", log_param("path", fmt_path(dynlib_path(ssl->lib))));
 
