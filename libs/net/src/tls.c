@@ -8,6 +8,7 @@
 #include "tls_internal.h"
 
 #define SSL_VERIFY_PEER 0x01
+#define SSL_CTRL_MODE 33
 #define SSL_MODE_ENABLE_PARTIAL_WRITE 0x00000001U
 #define SSL_ERROR_WANT_READ 2
 #define SSL_ERROR_WANT_WRITE 3
@@ -28,7 +29,7 @@ typedef struct {
   SSL_CTX*          (SYS_DECL* SSL_CTX_new)(const SSL_METHOD*);
   void              (SYS_DECL* SSL_CTX_free)(SSL_CTX*);
   void              (SYS_DECL* SSL_CTX_set_verify)(SSL_CTX*, int mode, const void* callback);
-  long              (SYS_DECL* SSL_CTX_set_mode)(SSL_CTX*, long mode);
+  long              (SYS_DECL* SSL_CTX_ctrl)(SSL_CTX*, int cmd, long larg, void *parg);
   SSL*              (SYS_DECL* SSL_new)(SSL_CTX*);
   void              (SYS_DECL* SSL_free)(SSL*);
   void              (SYS_DECL* SSL_set_connect_state)(SSL*);
@@ -89,11 +90,6 @@ static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
     }                                                                                              \
   } while (false)
 
-#define OPENSSL_LOAD_SYM_OPT(_NAME_)                                                               \
-  do {                                                                                             \
-    ssl->_NAME_ = dynlib_symbol(ssl->lib, string_lit(#_NAME_));                                    \
-  } while (false)
-
   OPENSSL_LOAD_SYM(OPENSSL_init_ssl);
   OPENSSL_LOAD_SYM(ERR_get_error);
   OPENSSL_LOAD_SYM(ERR_error_string_n);
@@ -101,7 +97,7 @@ static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
   OPENSSL_LOAD_SYM(SSL_CTX_new);
   OPENSSL_LOAD_SYM(SSL_CTX_free);
   OPENSSL_LOAD_SYM(SSL_CTX_set_verify);
-  OPENSSL_LOAD_SYM_OPT(SSL_CTX_set_mode);
+  OPENSSL_LOAD_SYM(SSL_CTX_ctrl);
   OPENSSL_LOAD_SYM(SSL_new);
   OPENSSL_LOAD_SYM(SSL_free);
   OPENSSL_LOAD_SYM(SSL_set_connect_state);
@@ -125,9 +121,7 @@ static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
     return false;
   }
   ssl->SSL_CTX_set_verify(ssl->clientContext, SSL_VERIFY_PEER, null /* callback */);
-  if (ssl->SSL_CTX_set_mode) {
-    ssl->SSL_CTX_set_mode(ssl->clientContext, SSL_MODE_ENABLE_PARTIAL_WRITE);
-  }
+  ssl->SSL_CTX_ctrl(ssl->clientContext, SSL_CTRL_MODE, SSL_MODE_ENABLE_PARTIAL_WRITE, null);
 
   log_i("OpenSSL library loaded", log_param("path", fmt_path(dynlib_path(ssl->lib))));
 
