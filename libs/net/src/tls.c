@@ -9,8 +9,9 @@
 
 #define SSL_VERIFY_PEER 0x01
 
-typedef struct sSSL_METHOD SSL_METHOD;
+typedef struct sSSL        SSL;
 typedef struct sSSL_CTX    SSL_CTX;
+typedef struct sSSL_METHOD SSL_METHOD;
 
 typedef struct {
   DynLib* lib;
@@ -22,6 +23,8 @@ typedef struct {
   SSL_CTX*          (SYS_DECL* SSL_CTX_new)(const SSL_METHOD*);
   void              (SYS_DECL* SSL_CTX_free)(SSL_CTX*);
   void              (SYS_DECL* SSL_CTX_set_verify)(SSL_CTX*, int mode, const void* callback);
+  SSL*              (SYS_DECL* SSL_new)(SSL_CTX*);
+  void              (SYS_DECL* SSL_free)(SSL*);
   // clang-format on
 
   SSL_CTX* clientContext;
@@ -76,6 +79,8 @@ static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
   OPENSSL_LOAD_SYM(SSL_CTX_new);
   OPENSSL_LOAD_SYM(SSL_CTX_free);
   OPENSSL_LOAD_SYM(SSL_CTX_set_verify);
+  OPENSSL_LOAD_SYM(SSL_new);
+  OPENSSL_LOAD_SYM(SSL_free);
 
   if (!ssl->OPENSSL_init_ssl(0 /* options */, null /* settings */)) {
     net_openssl_log_errors(ssl);
@@ -116,6 +121,7 @@ typedef struct sNetTls {
   Allocator* alloc;
   NetSocket* socket;
   NetResult  status;
+  SSL*       session;
 } NetTls;
 
 NetTls* net_tls_connect_sync(Allocator* alloc, NetSocket* socket) {
@@ -128,11 +134,21 @@ NetTls* net_tls_connect_sync(Allocator* alloc, NetSocket* socket) {
     tls->status = NetResult_TlsUnavailable;
     return tls;
   }
+  if (!(tls->session = g_netOpenSslLib.SSL_new(g_netOpenSslLib.clientContext))) {
+    net_openssl_log_errors(&g_netOpenSslLib);
+    tls->status = NetResult_TlsUnavailable;
+    return tls;
+  }
 
   return tls;
 }
 
-void net_tls_destroy(NetTls* tls) { alloc_free_t(tls->alloc, tls); }
+void net_tls_destroy(NetTls* tls) {
+  if (tls->session) {
+    g_netOpenSslLib.SSL_free(tls->session);
+  }
+  alloc_free_t(tls->alloc, tls);
+}
 
 NetResult net_tls_status(const NetTls* tls) { return tls->status; }
 
