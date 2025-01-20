@@ -30,6 +30,7 @@ typedef struct {
   void              (SYS_DECL* SSL_set_connect_state)(SSL*);
   void              (SYS_DECL* SSL_set_bio)(SSL*, BIO* readBio, BIO* writeBio);
   int               (SYS_DECL* SSL_do_handshake)(SSL*);
+  int               (SYS_DECL* SSL_is_init_finished)(const SSL*);
   BIO_METHOD*       (SYS_DECL* BIO_s_mem)(void);
   BIO*              (SYS_DECL* BIO_new)(const BIO_METHOD*);
   void              (SYS_DECL* BIO_free_all)(BIO*);
@@ -93,6 +94,7 @@ static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
   OPENSSL_LOAD_SYM(SSL_set_connect_state);
   OPENSSL_LOAD_SYM(SSL_set_bio);
   OPENSSL_LOAD_SYM(SSL_do_handshake);
+  OPENSSL_LOAD_SYM(SSL_is_init_finished);
   OPENSSL_LOAD_SYM(BIO_s_mem);
   OPENSSL_LOAD_SYM(BIO_new);
   OPENSSL_LOAD_SYM(BIO_free_all);
