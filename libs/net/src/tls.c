@@ -1,8 +1,10 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_dynlib.h"
+#include "core_dynstring.h"
 #include "log_logger.h"
 #include "net_result.h"
+#include "net_socket.h"
 #include "net_tls.h"
 
 #include "tls_internal.h"
@@ -29,7 +31,7 @@ typedef struct {
   SSL_CTX*          (SYS_DECL* SSL_CTX_new)(const SSL_METHOD*);
   void              (SYS_DECL* SSL_CTX_free)(SSL_CTX*);
   void              (SYS_DECL* SSL_CTX_set_verify)(SSL_CTX*, int mode, const void* callback);
-  long              (SYS_DECL* SSL_CTX_ctrl)(SSL_CTX*, int cmd, long larg, void *parg);
+  long              (SYS_DECL* SSL_CTX_ctrl)(SSL_CTX*, int cmd, long larg, void* parg);
   SSL*              (SYS_DECL* SSL_new)(SSL_CTX*);
   void              (SYS_DECL* SSL_free)(SSL*);
   void              (SYS_DECL* SSL_set_connect_state)(SSL*);
@@ -157,14 +159,32 @@ typedef struct sNetTls {
   BIO*       output;
 } NetTls;
 
-static NetResult net_tls_data_read_sync(NetTls* tls) {
-  (void)tls;
-  return NetResult_UnknownError;
+static NetResult net_tls_data_read_sync(NetTls* tls, NetSocket* socket) {
+  DynString       readBuffer   = dynstring_create(g_allocScratch, usize_kibibyte * 16);
+  const NetResult socketResult = net_socket_read_sync(socket, &readBuffer);
+  if (socketResult != NetResult_Success) {
+    return socketResult;
+  }
+  const String data = dynstring_view(&readBuffer);
+  size_t       bytesWritten;
+  if (g_netOpenSslLib.BIO_write_ex(tls->input, data.ptr, data.size, &bytesWritten)) {
+    return bytesWritten == data.size ? NetResult_Success : NetResult_TlsBufferExhausted;
+  }
+  return NetResult_TlsBufferExhausted;
 }
 
-static NetResult net_tls_data_write_sync(NetTls* tls) {
-  (void)tls;
-  return NetResult_UnknownError;
+static NetResult net_tls_data_write_sync(NetTls* tls, NetSocket* socket) {
+  Mem   buffer = mem_stack(usize_kibibyte * 16);
+  usize bytesToWrite;
+  for (;;) {
+    if (!g_netOpenSslLib.BIO_read_ex(tls->output, buffer.ptr, buffer.size, &bytesToWrite)) {
+      return NetResult_Success; // Nothing to write.
+    }
+    if (!bytesToWrite) {
+      return NetResult_Success; // Nothing to write.
+    }
+    return net_socket_write_sync(socket, mem_slice(buffer, 0, bytesToWrite));
+  }
 }
 
 NetTls* net_tls_create(Allocator* alloc, NetSocket* socket) {
@@ -227,13 +247,13 @@ NetResult net_tls_write_sync(NetTls* tls, const String data) {
     }
     switch (g_netOpenSslLib.ERR_get_error()) {
     case SSL_ERROR_WANT_READ:
-      tls->status = net_tls_data_read_sync(tls);
+      tls->status = net_tls_data_read_sync(tls, tls->socket);
       if (tls->status != NetResult_Success) {
         return tls->status;
       }
       continue; // Retry.
     case SSL_ERROR_WANT_WRITE:
-      tls->status = net_tls_data_write_sync(tls);
+      tls->status = net_tls_data_write_sync(tls, tls->socket);
       if (tls->status != NetResult_Success) {
         return tls->status;
       }
@@ -244,8 +264,8 @@ NetResult net_tls_write_sync(NetTls* tls, const String data) {
     }
   }
 
-  (void)data;
-  return NetResult_UnknownError;
+  // Write the encrypted data to the socket.
+  return net_tls_data_write_sync(tls, tls->socket);
 }
 
 NetResult net_tls_read_sync(NetTls* tls, DynString* out) {
