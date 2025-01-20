@@ -10,8 +10,10 @@
 #define SSL_VERIFY_PEER 0x01
 
 typedef struct sSSL        SSL;
-typedef struct sSSL_CTX    SSL_CTX;
 typedef struct sSSL_METHOD SSL_METHOD;
+typedef struct sSSL_CTX    SSL_CTX;
+typedef struct sBIO        BIO;
+typedef struct sBIO_METHOD BIO_METHOD;
 
 typedef struct {
   DynLib* lib;
@@ -26,6 +28,11 @@ typedef struct {
   SSL*              (SYS_DECL* SSL_new)(SSL_CTX*);
   void              (SYS_DECL* SSL_free)(SSL*);
   void              (SYS_DECL* SSL_set_connect_state)(SSL*);
+  void              (SYS_DECL* SSL_set_bio)(SSL*, BIO* readBio, BIO* writeBio);
+  BIO_METHOD*       (SYS_DECL* BIO_s_mem)(void);
+  BIO*              (SYS_DECL* BIO_new)(const BIO_METHOD*);
+  void              (SYS_DECL* BIO_free_all)(BIO*);
+  void              (SYS_DECL* BIO_set_mem_eof_return)(BIO*, int v);
   // clang-format on
 
   SSL_CTX* clientContext;
@@ -83,6 +90,11 @@ static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
   OPENSSL_LOAD_SYM(SSL_new);
   OPENSSL_LOAD_SYM(SSL_free);
   OPENSSL_LOAD_SYM(SSL_set_connect_state);
+  OPENSSL_LOAD_SYM(SSL_set_bio);
+  OPENSSL_LOAD_SYM(BIO_s_mem);
+  OPENSSL_LOAD_SYM(BIO_new);
+  OPENSSL_LOAD_SYM(BIO_free_all);
+  OPENSSL_LOAD_SYM(BIO_set_mem_eof_return);
 
   if (!ssl->OPENSSL_init_ssl(0 /* options */, null /* settings */)) {
     net_openssl_log_errors(ssl);
@@ -124,6 +136,8 @@ typedef struct sNetTls {
   NetSocket* socket;
   NetResult  status;
   SSL*       session;
+  BIO*       input;
+  BIO*       output;
 } NetTls;
 
 NetTls* net_tls_connect_sync(Allocator* alloc, NetSocket* socket) {
@@ -136,12 +150,32 @@ NetTls* net_tls_connect_sync(Allocator* alloc, NetSocket* socket) {
     tls->status = NetResult_TlsUnavailable;
     return tls;
   }
-  if (!(tls->session = g_netOpenSslLib.SSL_new(g_netOpenSslLib.clientContext))) {
+
+  // Create OpenSSL session.
+  if (UNLIKELY(!(tls->session = g_netOpenSslLib.SSL_new(g_netOpenSslLib.clientContext)))) {
     net_openssl_log_errors(&g_netOpenSslLib);
     tls->status = NetResult_TlsUnavailable;
     return tls;
   }
   g_netOpenSslLib.SSL_set_connect_state(tls->session); // Client mode.
+
+  // Setup memory bio's.
+  tls->input  = g_netOpenSslLib.BIO_new(g_netOpenSslLib.BIO_s_mem());
+  tls->output = g_netOpenSslLib.BIO_new(g_netOpenSslLib.BIO_s_mem());
+  if (UNLIKELY(!tls->input || !tls->output)) {
+    if (tls->input) {
+      g_netOpenSslLib.BIO_free_all(tls->input);
+    }
+    if (tls->output) {
+      g_netOpenSslLib.BIO_free_all(tls->output);
+    }
+    net_openssl_log_errors(&g_netOpenSslLib);
+    tls->status = NetResult_TlsUnavailable;
+    return tls;
+  }
+  g_netOpenSslLib.BIO_set_mem_eof_return(tls->input, -1);
+  g_netOpenSslLib.BIO_set_mem_eof_return(tls->output, -1);
+  g_netOpenSslLib.SSL_set_bio(tls->session, tls->input, tls->output);
 
   return tls;
 }
