@@ -8,6 +8,7 @@ typedef struct sNetTls NetTls;
 
 /**
  * TODO:
+ * NOTE: Tls object represents a single session and cannot be reused.
  * Should be cleaned up using 'net_tls_destroy()'.
  */
 NetTls* net_tls_create(Allocator*);
