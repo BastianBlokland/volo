@@ -172,7 +172,7 @@ FileResult file_read_sync(File* file, DynString* dynstr) {
    * the copy. Downside is for small reads we would grow the DynString unnecessarily.
    */
 
-  Mem readBuffer = mem_stack(usize_kibibyte);
+  Mem readBuffer = mem_stack(usize_kibibyte * 16);
   while (true) {
     const ssize_t res = read(file->handle, readBuffer.ptr, readBuffer.size);
     if (res > 0) {

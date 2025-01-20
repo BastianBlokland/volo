@@ -272,7 +272,7 @@ NetResult net_socket_read_sync(NetSocket* s, DynString* out) {
    * avoid the copy. Downside is for small reads we would grow the DynString unnecessarily.
    */
 
-  Mem       readBuffer = mem_stack(usize_kibibyte);
+  Mem       readBuffer = mem_stack(usize_kibibyte * 16);
   const int res = g_netWsLib.recv(s->handle, readBuffer.ptr, (int)readBuffer.size, 0 /* flags */);
   if (res > 0) {
     dynstring_append(out, mem_slice(readBuffer, 0, res));
