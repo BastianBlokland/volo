@@ -16,6 +16,8 @@ typedef struct {
   DynLib* lib;
   // clang-format off
   int               (SYS_DECL* OPENSSL_init_ssl)(u64 opts, const void* settings);
+  unsigned long     (SYS_DECL* ERR_get_error)(void);
+  void              (SYS_DECL* ERR_error_string_n)(unsigned long e, char *buf, size_t len);
   const SSL_METHOD* (SYS_DECL* TLS_client_method)(void);
   SSL_CTX*          (SYS_DECL* SSL_CTX_new)(const SSL_METHOD*);
   void              (SYS_DECL* SSL_CTX_free)(SSL_CTX*);
@@ -31,6 +33,19 @@ static String net_openssl_search_path(void) {
 #else
   return string_lit("libssl.so");
 #endif
+}
+
+static void net_openssl_log_errors(NetOpenSsl* ssl) {
+  char buffer[256];
+  for (;;) {
+    const unsigned long err = ssl->ERR_get_error();
+    if (!err) {
+      break;
+    }
+    ssl->ERR_error_string_n(err, buffer, sizeof(buffer));
+    const String msg = string_from_null_term(buffer);
+    log_e("OpenSSL {}", log_param("msg", fmt_text(msg)), log_param("code", fmt_int(err)));
+  }
 }
 
 static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
@@ -55,17 +70,19 @@ static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
   } while (false)
 
   OPENSSL_LOAD_SYM(OPENSSL_init_ssl);
+  OPENSSL_LOAD_SYM(ERR_get_error);
+  OPENSSL_LOAD_SYM(ERR_error_string_n);
   OPENSSL_LOAD_SYM(TLS_client_method);
   OPENSSL_LOAD_SYM(SSL_CTX_new);
   OPENSSL_LOAD_SYM(SSL_CTX_free);
   OPENSSL_LOAD_SYM(SSL_CTX_set_verify);
 
   if (!ssl->OPENSSL_init_ssl(0 /* options */, null /* settings */)) {
-    log_e("OpenSSL init failed");
+    net_openssl_log_errors(ssl);
     return false;
   }
   if (!(ssl->clientContext = ssl->SSL_CTX_new(ssl->TLS_client_method()))) {
-    log_e("OpenSSL failed to create client-context");
+    net_openssl_log_errors(ssl);
     return false;
   }
   ssl->SSL_CTX_set_verify(ssl->clientContext, SSL_VERIFY_PEER /* mode */, null /* callback */);
