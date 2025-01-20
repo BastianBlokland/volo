@@ -152,7 +152,6 @@ void net_tls_teardown(void) {
 
 typedef struct sNetTls {
   Allocator* alloc;
-  NetSocket* socket;
   NetResult  status;
   SSL*       session;
   BIO*       input;
@@ -191,14 +190,10 @@ static NetResult net_tls_data_write_sync(NetTls* tls, NetSocket* socket) {
   }
 }
 
-NetTls* net_tls_create(Allocator* alloc, NetSocket* socket) {
+NetTls* net_tls_create(Allocator* alloc) {
   NetTls* tls = alloc_alloc_t(alloc, NetTls);
 
-  *tls = (NetTls){
-      .alloc      = alloc,
-      .socket     = socket,
-      .readBuffer = dynstring_create(g_allocHeap, usize_kibibyte * 16),
-  };
+  *tls = (NetTls){.alloc = alloc, .readBuffer = dynstring_create(g_allocHeap, usize_kibibyte * 16)};
   if (UNLIKELY(!g_netOpenSslReady)) {
     tls->status = NetResult_TlsUnavailable;
     return tls;
@@ -241,7 +236,7 @@ void net_tls_destroy(NetTls* tls) {
 
 NetResult net_tls_status(const NetTls* tls) { return tls->status; }
 
-NetResult net_tls_write_sync(NetTls* tls, const String data) {
+NetResult net_tls_write_sync(NetTls* tls, NetSocket* socket, const String data) {
   if (tls->status != NetResult_Success) {
     return tls->status;
   }
@@ -256,13 +251,13 @@ NetResult net_tls_write_sync(NetTls* tls, const String data) {
     }
     switch (g_netOpenSslLib.ERR_get_error()) {
     case SSL_ERROR_WANT_READ:
-      tls->status = net_tls_data_read_sync(tls, tls->socket);
+      tls->status = net_tls_data_read_sync(tls, socket);
       if (tls->status != NetResult_Success) {
         return tls->status;
       }
       continue; // Retry.
     case SSL_ERROR_WANT_WRITE:
-      tls->status = net_tls_data_write_sync(tls, tls->socket);
+      tls->status = net_tls_data_write_sync(tls, socket);
       if (tls->status != NetResult_Success) {
         return tls->status;
       }
@@ -274,10 +269,10 @@ NetResult net_tls_write_sync(NetTls* tls, const String data) {
   }
 
   // Write the encrypted data to the socket.
-  return net_tls_data_write_sync(tls, tls->socket);
+  return net_tls_data_write_sync(tls, socket);
 }
 
-NetResult net_tls_read_sync(NetTls* tls, DynString* out) {
+NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
   if (tls->status != NetResult_Success) {
     return tls->status;
   }
@@ -299,13 +294,13 @@ NetResult net_tls_read_sync(NetTls* tls, DynString* out) {
       if (totalBytesRead) {
         return NetResult_Success; // We've successfully read all the available data.
       }
-      tls->status = net_tls_data_read_sync(tls, tls->socket);
+      tls->status = net_tls_data_read_sync(tls, socket);
       if (tls->status != NetResult_Success) {
         return tls->status;
       }
       continue; // Retry.
     case SSL_ERROR_WANT_WRITE:
-      tls->status = net_tls_data_write_sync(tls, tls->socket);
+      tls->status = net_tls_data_write_sync(tls, socket);
       if (tls->status != NetResult_Success) {
         return tls->status;
       }

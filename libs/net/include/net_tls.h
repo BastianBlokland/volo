@@ -8,10 +8,9 @@ typedef struct sNetTls NetTls;
 
 /**
  * TODO:
- * NOTE: Lifetime of the socket has to be longer then the Tls object.
  * Should be cleaned up using 'net_tls_destroy()'.
  */
-NetTls* net_tls_create(Allocator*, NetSocket*);
+NetTls* net_tls_create(Allocator*);
 
 /**
  * Destroy the given Tls object.
@@ -26,9 +25,9 @@ NetResult net_tls_status(const NetTls*);
 /**
  * Synchronously write to the tls-object.
  */
-NetResult net_tls_write_sync(NetTls*, String);
+NetResult net_tls_write_sync(NetTls*, NetSocket*, String);
 
 /**
  * Synchronously read a block of available data in the dynamic-string.
  */
-NetResult net_tls_read_sync(NetTls*, DynString*);
+NetResult net_tls_read_sync(NetTls*, NetSocket*, DynString*);
