@@ -25,6 +25,7 @@ typedef struct {
   void              (SYS_DECL* SSL_CTX_set_verify)(SSL_CTX*, int mode, const void* callback);
   SSL*              (SYS_DECL* SSL_new)(SSL_CTX*);
   void              (SYS_DECL* SSL_free)(SSL*);
+  void              (SYS_DECL* SSL_set_connect_state)(SSL*);
   // clang-format on
 
   SSL_CTX* clientContext;
@@ -81,6 +82,7 @@ static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
   OPENSSL_LOAD_SYM(SSL_CTX_set_verify);
   OPENSSL_LOAD_SYM(SSL_new);
   OPENSSL_LOAD_SYM(SSL_free);
+  OPENSSL_LOAD_SYM(SSL_set_connect_state);
 
   if (!ssl->OPENSSL_init_ssl(0 /* options */, null /* settings */)) {
     net_openssl_log_errors(ssl);
@@ -139,6 +141,7 @@ NetTls* net_tls_connect_sync(Allocator* alloc, NetSocket* socket) {
     tls->status = NetResult_TlsUnavailable;
     return tls;
   }
+  g_netOpenSslLib.SSL_set_connect_state(tls->session); // Client mode.
 
   return tls;
 }
