@@ -36,7 +36,6 @@ typedef struct {
   BIO_METHOD*       (SYS_DECL* BIO_s_mem)(void);
   BIO*              (SYS_DECL* BIO_new)(const BIO_METHOD*);
   void              (SYS_DECL* BIO_free_all)(BIO*);
-  void              (SYS_DECL* BIO_set_mem_eof_return)(BIO*, int v);
   int               (SYS_DECL* BIO_read_ex)(BIO*, void *data, size_t dlen, size_t *readbytes);
   int               (SYS_DECL* BIO_write_ex)(BIO*, const void *data, size_t dlen, size_t *written);
   // clang-format on
@@ -104,7 +103,6 @@ static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
   OPENSSL_LOAD_SYM(BIO_s_mem);
   OPENSSL_LOAD_SYM(BIO_new);
   OPENSSL_LOAD_SYM(BIO_free_all);
-  OPENSSL_LOAD_SYM(BIO_set_mem_eof_return);
   OPENSSL_LOAD_SYM(BIO_read_ex);
   OPENSSL_LOAD_SYM(BIO_write_ex);
 
@@ -185,8 +183,6 @@ NetTls* net_tls_connect_sync(Allocator* alloc, NetSocket* socket) {
     tls->status = NetResult_TlsUnavailable;
     return tls;
   }
-  g_netOpenSslLib.BIO_set_mem_eof_return(tls->input, -1);
-  g_netOpenSslLib.BIO_set_mem_eof_return(tls->output, -1);
   g_netOpenSslLib.SSL_set_bio(tls->session, tls->input, tls->output);
 
   // Start the TLS handshake.
