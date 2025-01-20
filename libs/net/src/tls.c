@@ -2,11 +2,17 @@
 #include "net_result.h"
 #include "net_tls.h"
 
+#include "tls_internal.h"
+
 typedef struct sNetTls {
   Allocator* alloc;
   NetSocket* socket;
   NetResult  status;
 } NetTls;
+
+void net_tls_init(void) {}
+
+void net_tls_teardown(void) {}
 
 NetTls* net_tls_connect_sync(Allocator* alloc, NetSocket* socket) {
   (void)socket;
