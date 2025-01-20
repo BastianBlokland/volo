@@ -163,6 +163,16 @@ typedef struct sNetTls {
   BIO*       output;
 } NetTls;
 
+static NetResult net_tls_data_read_sync(NetTls* tls) {
+  (void)tls;
+  return NetResult_UnknownError;
+}
+
+static NetResult net_tls_data_write_sync(NetTls* tls) {
+  (void)tls;
+  return NetResult_UnknownError;
+}
+
 NetTls* net_tls_create(Allocator* alloc, NetSocket* socket) {
   NetTls* tls = alloc_alloc_t(alloc, NetTls);
 
@@ -223,9 +233,17 @@ NetResult net_tls_write_sync(NetTls* tls, const String data) {
     }
     switch (g_netOpenSslLib.ERR_get_error()) {
     case SSL_ERROR_WANT_READ:
-      break; // TODO:
+      tls->status = net_tls_data_read_sync(tls);
+      if (tls->status != NetResult_Success) {
+        return tls->status;
+      }
+      continue; // Retry.
     case SSL_ERROR_WANT_WRITE:
-      break; // TODO:
+      tls->status = net_tls_data_write_sync(tls);
+      if (tls->status != NetResult_Success) {
+        return tls->status;
+      }
+      continue; // Retry.
     default:
       net_openssl_log_errors(&g_netOpenSslLib);
       return tls->status = NetResult_TlsFailed;
