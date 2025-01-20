@@ -157,20 +157,21 @@ typedef struct sNetTls {
   SSL*       session;
   BIO*       input;
   BIO*       output;
+  DynString  readBuffer;
 } NetTls;
 
 static NetResult net_tls_data_read_sync(NetTls* tls, NetSocket* socket) {
-  DynString       readBuffer   = dynstring_create(g_allocScratch, usize_kibibyte * 16);
-  const NetResult socketResult = net_socket_read_sync(socket, &readBuffer);
+  const NetResult socketResult = net_socket_read_sync(socket, &tls->readBuffer);
   if (socketResult != NetResult_Success) {
     return socketResult;
   }
-  const String data = dynstring_view(&readBuffer);
-  size_t       bytesWritten;
-  if (g_netOpenSslLib.BIO_write_ex(tls->input, data.ptr, data.size, &bytesWritten)) {
-    return bytesWritten == data.size ? NetResult_Success : NetResult_TlsBufferExhausted;
-  }
-  return NetResult_TlsBufferExhausted;
+  const String data = dynstring_view(&tls->readBuffer);
+
+  size_t    bytesWritten;
+  const int res = g_netOpenSslLib.BIO_write_ex(tls->input, data.ptr, data.size, &bytesWritten);
+
+  dynstring_clear(&tls->readBuffer);
+  return (res && bytesWritten == data.size) ? NetResult_Success : NetResult_TlsBufferExhausted;
 }
 
 static NetResult net_tls_data_write_sync(NetTls* tls, NetSocket* socket) {
@@ -190,7 +191,11 @@ static NetResult net_tls_data_write_sync(NetTls* tls, NetSocket* socket) {
 NetTls* net_tls_create(Allocator* alloc, NetSocket* socket) {
   NetTls* tls = alloc_alloc_t(alloc, NetTls);
 
-  *tls = (NetTls){.alloc = alloc, .socket = socket};
+  *tls = (NetTls){
+      .alloc      = alloc,
+      .socket     = socket,
+      .readBuffer = dynstring_create(g_allocHeap, usize_kibibyte * 16),
+  };
   if (UNLIKELY(!g_netOpenSslReady)) {
     tls->status = NetResult_TlsUnavailable;
     return tls;
@@ -227,6 +232,7 @@ void net_tls_destroy(NetTls* tls) {
   if (tls->session) {
     g_netOpenSslLib.SSL_free(tls->session);
   }
+  dynstring_destroy(&tls->readBuffer);
   alloc_free_t(tls->alloc, tls);
 }
 
