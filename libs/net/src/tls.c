@@ -175,16 +175,19 @@ static NetResult net_tls_data_read_sync(NetTls* tls, NetSocket* socket) {
 }
 
 static NetResult net_tls_data_write_sync(NetTls* tls, NetSocket* socket) {
-  Mem   buffer = mem_stack(usize_kibibyte * 16);
-  usize bytesToWrite;
+  Mem buffer = mem_stack(usize_kibibyte * 16);
   for (;;) {
-    if (!g_netOpenSslLib.BIO_read_ex(tls->output, buffer.ptr, buffer.size, &bytesToWrite)) {
+    usize bytesRead;
+    if (!g_netOpenSslLib.BIO_read_ex(tls->output, buffer.ptr, buffer.size, &bytesRead)) {
       return NetResult_Success; // Nothing to write.
     }
-    if (!bytesToWrite) {
+    if (!bytesRead) {
       return NetResult_Success; // Nothing to write.
     }
-    return net_socket_write_sync(socket, mem_slice(buffer, 0, bytesToWrite));
+    const NetResult socketRes = net_socket_write_sync(socket, mem_slice(buffer, 0, bytesRead));
+    if (socketRes != NetResult_Success) {
+      return socketRes;
+    }
   }
 }
 
