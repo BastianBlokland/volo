@@ -11,7 +11,7 @@ typedef struct sNetTls NetTls;
  * NOTE: Lifetime of the socket has to be longer then the Tls object.
  * Should be cleaned up using 'net_tls_destroy()'.
  */
-NetTls* net_tls_connect_sync(Allocator*, NetSocket*, NetAddr);
+NetTls* net_tls_connect_sync(Allocator*, NetSocket*);
 
 /**
  * Destroy the given Tls object.
