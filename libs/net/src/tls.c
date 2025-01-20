@@ -150,9 +150,7 @@ typedef struct sNetTls {
   BIO*       output;
 } NetTls;
 
-NetTls* net_tls_connect_sync(Allocator* alloc, NetSocket* socket) {
-  (void)socket;
-
+NetTls* net_tls_create(Allocator* alloc, NetSocket* socket) {
   NetTls* tls = alloc_alloc_t(alloc, NetTls);
 
   *tls = (NetTls){.alloc = alloc, .socket = socket};
@@ -161,7 +159,7 @@ NetTls* net_tls_connect_sync(Allocator* alloc, NetSocket* socket) {
     return tls;
   }
 
-  // Create OpenSSL session.
+  // Create a session.
   if (UNLIKELY(!(tls->session = g_netOpenSslLib.SSL_new(g_netOpenSslLib.clientContext)))) {
     net_openssl_log_errors(&g_netOpenSslLib);
     tls->status = NetResult_TlsUnavailable;
@@ -184,14 +182,6 @@ NetTls* net_tls_connect_sync(Allocator* alloc, NetSocket* socket) {
     return tls;
   }
   g_netOpenSslLib.SSL_set_bio(tls->session, tls->input, tls->output);
-
-  // Start the TLS handshake.
-  const int handshakeRet = g_netOpenSslLib.SSL_do_handshake(tls->session);
-  if (handshakeRet != 1) {
-    net_openssl_log_errors(&g_netOpenSslLib);
-    tls->status = NetResult_TlsHandshakeFailed;
-    return tls;
-  }
 
   return tls;
 }
