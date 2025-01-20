@@ -283,6 +283,36 @@ NetResult net_tls_read_sync(NetTls* tls, DynString* out) {
   }
   diag_assert(g_netOpenSslReady && tls->session);
 
-  (void)out;
-  return NetResult_UnknownError;
+  // Ask OpenSSL to decrypt data from the socket and write it to the output.
+  Mem   buffer         = mem_stack(usize_kibibyte * 16);
+  usize totalBytesRead = 0;
+  for (;;) {
+    size_t bytesRead;
+    if (g_netOpenSslLib.SSL_read_ex(tls->session, buffer.ptr, buffer.size, &bytesRead) > 0) {
+      diag_assert(bytesRead);
+      totalBytesRead += bytesRead;
+      dynstring_append(out, string_slice(buffer, 0, bytesRead));
+      continue;
+    }
+    switch (g_netOpenSslLib.ERR_get_error()) {
+    case SSL_ERROR_WANT_READ:
+      if (totalBytesRead) {
+        return NetResult_Success; // We've successfully read all the available data.
+      }
+      tls->status = net_tls_data_read_sync(tls, tls->socket);
+      if (tls->status != NetResult_Success) {
+        return tls->status;
+      }
+      continue; // Retry.
+    case SSL_ERROR_WANT_WRITE:
+      tls->status = net_tls_data_write_sync(tls, tls->socket);
+      if (tls->status != NetResult_Success) {
+        return tls->status;
+      }
+      continue; // Retry.
+    default:
+      net_openssl_log_errors(&g_netOpenSslLib);
+      return tls->status = NetResult_TlsFailed;
+    }
+  }
 }
