@@ -14,6 +14,7 @@ typedef enum eNetResult {
   NetResult_HostNotFound,
   NetResult_TryAgain,
   NetResult_TooMuchData,
+  NetResult_TlsUnavailable,
   NetResult_UnknownError,
 
   NetResult_Count,
