@@ -66,7 +66,7 @@ static void net_openssl_handle_system_errors(NetOpenSsl* ssl) {
     }
     ssl->ERR_error_string_n(err, buffer, sizeof(buffer));
     const String msg = string_from_null_term(buffer);
-    log_e("OpenSSL {}", log_param("msg", fmt_text(msg)), log_param("code", fmt_int(err)));
+    log_e("OpenSSL {}", log_param("msg", fmt_text(msg)), log_param("code", fmt_int((u64)err)));
   }
 }
 
