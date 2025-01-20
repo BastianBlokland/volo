@@ -9,6 +9,8 @@
 
 #define SSL_VERIFY_PEER 0x01
 #define SSL_MODE_ENABLE_PARTIAL_WRITE 0x00000001U
+#define SSL_ERROR_WANT_READ 2
+#define SSL_ERROR_WANT_WRITE 3
 
 typedef struct sSSL        SSL;
 typedef struct sSSL_METHOD SSL_METHOD;
@@ -210,14 +212,36 @@ NetResult net_tls_write_sync(NetTls* tls, const String data) {
   if (tls->status != NetResult_Success) {
     return tls->status;
   }
+  diag_assert(g_netOpenSslReady && tls->session);
+
+  // Write the raw data to OpenSSL to be encrypted.
+  for (u8* itr = mem_begin(data); itr != mem_end(data);) {
+    size_t bytesWritten = 0;
+    if (g_netOpenSslLib.SSL_write_ex(tls->session, data.ptr, data.size, &bytesWritten) > 0) {
+      itr += bytesWritten;
+      continue;
+    }
+    switch (g_netOpenSslLib.ERR_get_error()) {
+    case SSL_ERROR_WANT_READ:
+      break; // TODO:
+    case SSL_ERROR_WANT_WRITE:
+      break; // TODO:
+    default:
+      net_openssl_log_errors(&g_netOpenSslLib);
+      return tls->status = NetResult_TlsFailed;
+    }
+  }
+
   (void)data;
   return NetResult_UnknownError;
 }
 
-NetResult net_tls_read_sync(NetTls* s, DynString* out) {
-  if (s->status != NetResult_Success) {
-    return s->status;
+NetResult net_tls_read_sync(NetTls* tls, DynString* out) {
+  if (tls->status != NetResult_Success) {
+    return tls->status;
   }
+  diag_assert(g_netOpenSslReady && tls->session);
+
   (void)out;
   return NetResult_UnknownError;
 }
