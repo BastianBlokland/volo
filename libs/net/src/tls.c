@@ -7,11 +7,19 @@
 
 #include "tls_internal.h"
 
+typedef struct sSSL_METHOD SSL_METHOD;
+typedef struct sSSL_CTX    SSL_CTX;
+
 typedef struct {
   DynLib* lib;
   // clang-format off
-  int (SYS_DECL* OPENSSL_init_ssl)(u64 opts, const void* settings);
+  int               (SYS_DECL* OPENSSL_init_ssl)(u64 opts, const void* settings);
+  const SSL_METHOD* (SYS_DECL* TLS_client_method)(void);
+  SSL_CTX*          (SYS_DECL* SSL_CTX_new)(const SSL_METHOD*);
+  void              (SYS_DECL* SSL_CTX_free)(SSL_CTX*);
   // clang-format on
+
+  SSL_CTX* clientContext;
 } NetOpenSsl;
 
 static String net_openssl_search_path(void) {
@@ -44,9 +52,17 @@ static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
   } while (false)
 
   OPENSSL_LOAD_SYM(OPENSSL_init_ssl);
+  OPENSSL_LOAD_SYM(TLS_client_method);
+  OPENSSL_LOAD_SYM(SSL_CTX_new);
+  OPENSSL_LOAD_SYM(SSL_CTX_free);
 
   if (!ssl->OPENSSL_init_ssl(0 /* options */, null /* settings */)) {
     log_e("OpenSSL init failed");
+    return false;
+  }
+
+  if (!(ssl->clientContext = ssl->SSL_CTX_new(ssl->TLS_client_method()))) {
+    log_e("OpenSSL failed to create client-context");
     return false;
   }
 
@@ -65,10 +81,12 @@ void net_tls_init(void) {
 }
 
 void net_tls_teardown(void) {
+  if (g_netOpenSslLib.clientContext) {
+    g_netOpenSslLib.SSL_CTX_free(g_netOpenSslLib.clientContext);
+  }
   if (g_netOpenSslLib.lib) {
     dynlib_destroy(g_netOpenSslLib.lib);
   }
-
   g_netOpenSslLib   = (NetOpenSsl){0};
   g_netOpenSslReady = false;
 }
