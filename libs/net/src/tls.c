@@ -154,7 +154,13 @@ typedef struct sNetTls {
   SSL*       session;
   BIO*       input;
   BIO*       output;
-  DynString  readBuffer;
+
+  /**
+   * TODO: Replace this with a scratch buffer. Currently it has to be stored on the heap because
+   * theoretically there is no limit to the amount of data in the socket buffer. To fix this we need
+   * to add a new parameter to 'net_socket_read_sync' that specifies the maximum amount to read.
+   */
+  DynString readBuffer;
 } NetTls;
 
 static NetResult net_tls_read_input_sync(NetTls* tls, NetSocket* socket) {
