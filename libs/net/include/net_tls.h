@@ -1,6 +1,11 @@
 #pragma once
 #include "net.h"
 
+typedef enum {
+  NetTlsFlags_None,
+  NetTlsFlags_NoVerify = 1 << 0, // Do not verify certificates.
+} NetTlsFlags;
+
 /**
  * TODO:
  */
@@ -11,7 +16,7 @@ typedef struct sNetTls NetTls;
  * NOTE: Tls object represents a single session and cannot be reused.
  * Should be cleaned up using 'net_tls_destroy()'.
  */
-NetTls* net_tls_create(Allocator*);
+NetTls* net_tls_create(Allocator*, NetTlsFlags);
 
 /**
  * Destroy the given Tls object.

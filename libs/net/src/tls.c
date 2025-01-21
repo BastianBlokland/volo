@@ -9,6 +9,7 @@
 
 #include "tls_internal.h"
 
+#define SSL_VERIFY_NONE 0x00
 #define SSL_VERIFY_PEER 0x01
 #define SSL_CTRL_MODE 33
 #define SSL_MODE_ENABLE_PARTIAL_WRITE 0x00000001U
@@ -30,10 +31,10 @@ typedef struct {
   const SSL_METHOD* (SYS_DECL* TLS_client_method)(void);
   SSL_CTX*          (SYS_DECL* SSL_CTX_new)(const SSL_METHOD*);
   void              (SYS_DECL* SSL_CTX_free)(SSL_CTX*);
-  void              (SYS_DECL* SSL_CTX_set_verify)(SSL_CTX*, int mode, const void* callback);
   long              (SYS_DECL* SSL_CTX_ctrl)(SSL_CTX*, int cmd, long larg, void* parg);
   SSL*              (SYS_DECL* SSL_new)(SSL_CTX*);
   void              (SYS_DECL* SSL_free)(SSL*);
+  void              (SYS_DECL* SSL_set_verify)(SSL*, int mode, const void* callback);
   void              (SYS_DECL* SSL_set_connect_state)(SSL*);
   void              (SYS_DECL* SSL_set_bio)(SSL*, BIO* readBio, BIO* writeBio);
   int               (SYS_DECL* SSL_read_ex)(SSL*, void *buf, size_t num, size_t *readBytes);
@@ -97,10 +98,10 @@ static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
   OPENSSL_LOAD_SYM(TLS_client_method);
   OPENSSL_LOAD_SYM(SSL_CTX_new);
   OPENSSL_LOAD_SYM(SSL_CTX_free);
-  OPENSSL_LOAD_SYM(SSL_CTX_set_verify);
   OPENSSL_LOAD_SYM(SSL_CTX_ctrl);
   OPENSSL_LOAD_SYM(SSL_new);
   OPENSSL_LOAD_SYM(SSL_free);
+  OPENSSL_LOAD_SYM(SSL_set_verify);
   OPENSSL_LOAD_SYM(SSL_set_connect_state);
   OPENSSL_LOAD_SYM(SSL_set_bio);
   OPENSSL_LOAD_SYM(SSL_read_ex);
@@ -120,7 +121,6 @@ static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
     net_openssl_handle_errors(ssl);
     return false;
   }
-  ssl->SSL_CTX_set_verify(ssl->clientContext, SSL_VERIFY_PEER, null /* callback */);
   ssl->SSL_CTX_ctrl(ssl->clientContext, SSL_CTRL_MODE, SSL_MODE_ENABLE_PARTIAL_WRITE, null);
 
   log_i("OpenSSL library loaded", log_param("path", fmt_path(dynlib_path(ssl->lib))));
@@ -188,7 +188,7 @@ static NetResult net_tls_write_ouput_sync(NetTls* tls, NetSocket* socket) {
   }
 }
 
-NetTls* net_tls_create(Allocator* alloc) {
+NetTls* net_tls_create(Allocator* alloc, const NetTlsFlags flags) {
   NetTls* tls = alloc_alloc_t(alloc, NetTls);
 
   *tls = (NetTls){.alloc = alloc, .readBuffer = dynstring_create(g_allocHeap, usize_kibibyte * 16)};
@@ -204,6 +204,11 @@ NetTls* net_tls_create(Allocator* alloc) {
     return tls;
   }
   g_netOpenSslLib.SSL_set_connect_state(tls->session); // Client mode.
+  if (flags & NetTlsFlags_NoVerify) {
+    g_netOpenSslLib.SSL_set_verify(tls->session, SSL_VERIFY_NONE, null /* callback */);
+  } else {
+    g_netOpenSslLib.SSL_set_verify(tls->session, SSL_VERIFY_PEER, null /* callback */);
+  }
 
   // Setup memory bio's.
   tls->input  = g_netOpenSslLib.BIO_new(g_netOpenSslLib.BIO_s_mem());
