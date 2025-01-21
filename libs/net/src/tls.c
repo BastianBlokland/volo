@@ -240,15 +240,23 @@ NetResult net_tls_write_sync(NetTls* tls, NetSocket* socket, const String data) 
   }
   diag_assert(g_netOpenSslReady && tls->session);
 
-  // Write the raw data to OpenSSL to be encrypted.
-  // NOTE: Can cause socket reads if the handshake hasn't completed.
   for (u8* itr = mem_begin(data); itr != mem_end(data);) {
+    // Write the raw data to OpenSSL to be encrypted.
     size_t    bytesWritten = 0;
     const int ret = g_netOpenSslLib.SSL_write_ex(tls->session, data.ptr, data.size, &bytesWritten);
+
+    // Write the encrypted data to the socket.
+    tls->status = net_tls_write_ouput_sync(tls, socket);
+    if (tls->status != NetResult_Success) {
+      return tls->status;
+    }
     if (ret > 0) {
+      // Chunk of payload has been written to the socket; continue to the next chunk.
       itr += bytesWritten;
       continue;
     }
+    // No payload was written, either an error occurred or OpenSSL wants to read data (for example
+    // for a handshake) from the socket.
     const int err = g_netOpenSslLib.SSL_get_error(tls->session, ret);
     switch (err) {
     case SSL_ERROR_WANT_READ:
@@ -256,21 +264,16 @@ NetResult net_tls_write_sync(NetTls* tls, NetSocket* socket, const String data) 
       if (tls->status != NetResult_Success) {
         return tls->status;
       }
-      continue; // Retry.
+      continue; // New input was read; retry the OpenSSL write.
     case SSL_ERROR_WANT_WRITE:
-      tls->status = net_tls_write_ouput_sync(tls, socket);
-      if (tls->status != NetResult_Success) {
-        return tls->status;
-      }
-      continue; // Retry.
+      continue; // Output was already written to the socket; retry the OpenSSL write.
     default:
+      // Unrecoverable error.
       net_openssl_handle_errors(&g_netOpenSslLib);
       return tls->status = NetResult_TlsFailed;
     }
   }
-
-  // Write the encrypted data to the socket.
-  return net_tls_write_ouput_sync(tls, socket);
+  return NetResult_Success;
 }
 
 NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
@@ -279,19 +282,28 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
   }
   diag_assert(g_netOpenSslReady && tls->session);
 
-  // Ask OpenSSL to decrypt data from the socket and write it to the output.
-  // NOTE: Can cause socket writes if the handshake hasn't completed.
   Mem   buffer         = mem_stack(usize_kibibyte * 16);
   usize totalBytesRead = 0;
   for (;;) {
+    // Ask OpenSSL to decrypt data buffered append it to the output.
     size_t    bytesRead;
     const int ret = g_netOpenSslLib.SSL_read_ex(tls->session, buffer.ptr, buffer.size, &bytesRead);
+
+    // Write any control data to the socket, can happen if OpenSSL is performing the handshake.
+    tls->status = net_tls_write_ouput_sync(tls, socket);
+    if (tls->status != NetResult_Success) {
+      return tls->status;
+    }
+
     if (ret > 0) {
+      // Chunk of payload has been decrypted; append it to the output.
       diag_assert(bytesRead);
       totalBytesRead += bytesRead;
       dynstring_append(out, string_slice(buffer, 0, bytesRead));
       continue;
     }
+
+    // No payload could be decrypted, either an error ocurred or we need more data from the socket.
     const int err = g_netOpenSslLib.SSL_get_error(tls->session, ret);
     switch (err) {
     case SSL_ERROR_WANT_READ:
@@ -302,13 +314,9 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
       if (tls->status != NetResult_Success) {
         return tls->status;
       }
-      continue; // Retry.
+      continue; // New input was read; retry the OpenSSL write.
     case SSL_ERROR_WANT_WRITE:
-      tls->status = net_tls_write_ouput_sync(tls, socket);
-      if (tls->status != NetResult_Success) {
-        return tls->status;
-      }
-      continue; // Retry.
+      continue; // Output was already written to the socket; retry the OpenSSL read.
     default:
       net_openssl_handle_errors(&g_netOpenSslLib);
       return tls->status = NetResult_TlsFailed;
