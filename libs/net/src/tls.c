@@ -15,6 +15,7 @@
 #define SSL_MODE_ENABLE_PARTIAL_WRITE 0x00000001U
 #define SSL_ERROR_WANT_READ 2
 #define SSL_ERROR_WANT_WRITE 3
+#define SSL_ERROR_ZERO_RETURN 6
 
 typedef struct sSSL        SSL;
 typedef struct sSSL_METHOD SSL_METHOD;
@@ -278,8 +279,9 @@ NetResult net_tls_write_sync(NetTls* tls, NetSocket* socket, const String data) 
       continue; // New input was read; retry the OpenSSL write.
     case SSL_ERROR_WANT_WRITE:
       continue; // Output was already written to the socket; retry the OpenSSL write.
+    case SSL_ERROR_ZERO_RETURN:
+      return tls->status = NetResult_TlsClosed;
     default:
-      // Unrecoverable error.
       net_openssl_handle_errors(&g_netOpenSslLib);
       return tls->status = NetResult_TlsFailed;
     }
@@ -328,6 +330,8 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
       continue; // New input was read; retry the OpenSSL write.
     case SSL_ERROR_WANT_WRITE:
       continue; // Output was already written to the socket; retry the OpenSSL read.
+    case SSL_ERROR_ZERO_RETURN:
+      return tls->status = NetResult_TlsClosed;
     default:
       net_openssl_handle_errors(&g_netOpenSslLib);
       return tls->status = NetResult_TlsFailed;
