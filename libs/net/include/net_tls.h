@@ -25,9 +25,8 @@ NetTls* net_tls_create(Allocator*, NetTlsFlags);
 
 /**
  * Destroy the given Tls object.
- * NOTE: Optionally provide a socket to perform proper Tls shutdown (will notify the remote).
  */
-void net_tls_destroy(NetTls*, NetSocket*);
+void net_tls_destroy(NetTls*);
 
 /**
  * Query the status of the given Tls object.
@@ -43,3 +42,8 @@ NetResult net_tls_write_sync(NetTls*, NetSocket*, String);
  * Synchronously read a block of available data in the dynamic-string.
  */
 NetResult net_tls_read_sync(NetTls*, NetSocket*, DynString*);
+
+/**
+ * Synchonously shutdown the Tls session.
+ */
+NetResult net_tls_shutdown_sync(NetTls*, NetSocket*);

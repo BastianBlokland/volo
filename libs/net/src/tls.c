@@ -238,43 +238,8 @@ NetTls* net_tls_create(Allocator* alloc, const NetTlsFlags flags) {
   return tls;
 }
 
-static bool net_tls_shutdown(NetTls* tls, NetSocket* socket) {
-  diag_assert(g_netOpenSslReady && tls->session);
-
-  // Ask OpenSSL to shutdown the connection.
-  g_netOpenSslLib.SSL_shutdown(tls->session);
-
-  for (;;) {
-    const int ret = g_netOpenSslLib.SSL_read_ex(tls->session, null, 0, 0);
-    const int err = g_netOpenSslLib.SSL_get_error(tls->session, ret);
-
-    // Write any output to the socket (OpenSSL needs to send the close_notify alert message).
-    if (net_tls_write_ouput_sync(tls, socket) != NetResult_Success) {
-      return false; // Shutdown failed.
-    }
-
-    switch (err) {
-    case SSL_ERROR_WANT_READ:
-      if (net_tls_read_input_sync(tls, socket) != NetResult_Success) {
-        return false; // Shutdown failed.
-      }
-      continue; // New input was read; retry the OpenSSL shutdown.
-    case SSL_ERROR_WANT_WRITE:
-      continue; // Output was already written to the socket; retry the OpenSSL shutdown.
-    case SSL_ERROR_ZERO_RETURN:
-      return true; // Shutdown successful.
-    default:
-      net_openssl_handle_errors(&g_netOpenSslLib);
-      return false;
-    }
-  }
-}
-
-void net_tls_destroy(NetTls* tls, NetSocket* socket) {
+void net_tls_destroy(NetTls* tls) {
   if (tls->session) {
-    if ((tls->status == NetResult_Success || tls->status == NetResult_TlsClosed) && socket) {
-      net_tls_shutdown(tls, socket);
-    }
     g_netOpenSslLib.SSL_free(tls->session);
   }
   dynstring_destroy(&tls->readBuffer);
@@ -369,6 +334,44 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
       continue; // Output was already written to the socket; retry the OpenSSL read.
     case SSL_ERROR_ZERO_RETURN:
       return tls->status = NetResult_TlsClosed;
+    default:
+      net_openssl_handle_errors(&g_netOpenSslLib);
+      return tls->status = NetResult_TlsFailed;
+    }
+  }
+}
+
+NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
+  if (tls->status != NetResult_Success && tls->status != NetResult_TlsClosed) {
+    return tls->status;
+  }
+  diag_assert(g_netOpenSslReady && tls->session);
+
+  // Ask OpenSSL to shutdown the connection.
+  g_netOpenSslLib.SSL_shutdown(tls->session);
+
+  for (;;) {
+    const int ret = g_netOpenSslLib.SSL_read_ex(tls->session, null, 0, 0);
+    const int err = g_netOpenSslLib.SSL_get_error(tls->session, ret);
+
+    // Write any output to the socket (OpenSSL needs to send the close_notify alert message).
+    tls->status = net_tls_write_ouput_sync(tls, socket);
+    if (tls->status != NetResult_Success) {
+      return tls->status; // Shutdown failed.
+    }
+
+    switch (err) {
+    case SSL_ERROR_WANT_READ:
+      tls->status = net_tls_read_input_sync(tls, socket);
+      if (tls->status != NetResult_Success) {
+        return tls->status; // Shutdown failed.
+      }
+      continue; // New input was read; retry the OpenSSL shutdown.
+    case SSL_ERROR_WANT_WRITE:
+      continue; // Output was already written to the socket; retry the OpenSSL shutdown.
+    case SSL_ERROR_ZERO_RETURN:
+      tls->status = NetResult_TlsClosed;
+      return NetResult_Success; // Shutdown successful.
     default:
       net_openssl_handle_errors(&g_netOpenSslLib);
       return tls->status = NetResult_TlsFailed;
