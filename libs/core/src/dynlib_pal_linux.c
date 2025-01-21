@@ -8,6 +8,7 @@
 #include <limits.h>
 
 #define dynlib_max_symbol_name 128
+#define dynlib_crash_on_error false
 
 void dynlib_pal_init(void) {}
 
@@ -17,7 +18,10 @@ struct sDynLib {
   Allocator* alloc;
 };
 
-static String dynlib_err_msg(void) { return string_from_null_term(dlerror()); }
+static String dynlib_err_msg(void) {
+  const char* msg = dlerror();
+  return msg ? string_from_null_term(msg) : string_lit("Unknown error");
+}
 
 static String dynlib_path_query(void* handle, const String name, Allocator* alloc) {
   char dirBuffer[PATH_MAX + 1]; /* +1 for null-terminator */
@@ -43,6 +47,9 @@ DynLibResult dynlib_pal_load(Allocator* alloc, const String name, DynLib** out) 
 
   void* handle = dlopen(name.ptr, RTLD_NOW | RTLD_LOCAL);
   if (!handle) {
+#if dynlib_crash_on_error
+    diag_crash_msg("dynlib_load('{}'): {}", fmt_text(name), fmt_text(dynlib_err_msg()));
+#endif
     return DynLibResult_LibraryNotFound;
   }
 
@@ -74,5 +81,11 @@ Symbol dynlib_pal_symbol(const DynLib* lib, const String name) {
   mem_cpy(nameBuffer, name);
   *mem_at_u8(nameBuffer, name.size) = '\0';
 
-  return (Symbol)dlsym(lib->handle, nameBuffer.ptr);
+  Symbol sym = (Symbol)dlsym(lib->handle, nameBuffer.ptr);
+#if dynlib_crash_on_error
+  if (UNLIKELY(!sym)) {
+    diag_crash_msg("dynlib_symbol('{}'): {}", fmt_text(name), fmt_text(dynlib_err_msg()));
+  }
+#endif
+  return sym;
 }
