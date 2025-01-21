@@ -1,20 +1,25 @@
 #pragma once
 #include "net.h"
 
+/**
+ * Tls (Transport Layer Security) aka Ssl (Secure Sockets Layer).
+ * Provides a secure connection channel on top of an underlying transport.
+ */
+
 typedef enum {
   NetTlsFlags_None,
   NetTlsFlags_NoVerify = 1 << 0, // Do not verify certificates.
 } NetTlsFlags;
 
 /**
- * TODO:
+ * Tls session to a remote peer.
+ * NOTE: Session cannot be reused (nether with different or with the same peer).
  */
 typedef struct sNetTls NetTls;
 
 /**
- * TODO:
- * NOTE: Tls object represents a single session and cannot be reused.
- * Should be cleaned up using 'net_tls_destroy()'.
+ * Create a new Tls session.
+ * NOTE: Tls handshake is transparently performed on the first read / write.
  */
 NetTls* net_tls_create(Allocator*, NetTlsFlags);
 
