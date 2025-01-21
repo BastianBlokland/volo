@@ -8,6 +8,14 @@
 static bool g_dynlibInitialized;
 static i64  g_dynlibCount;
 
+NO_INLINE_HINT static void dynlib_crash_not_initialized(void) {
+  alloc_crash_with_msg("dynlib: Not initialized");
+}
+
+NO_INLINE_HINT static void dynlib_crash_double_destroy(void) {
+  alloc_crash_with_msg("dynlib: Double destroy of dynlib");
+}
+
 void dynlib_init(void) {
   dynlib_pal_init();
   g_dynlibInitialized = true;
@@ -35,7 +43,7 @@ String dynlib_result_str(const DynLibResult result) {
 
 DynLibResult dynlib_load(Allocator* alloc, const String name, DynLib** out) {
   if (UNLIKELY(!g_dynlibInitialized)) {
-    diag_crash_msg("dynlib: Not initialized");
+    dynlib_crash_not_initialized();
   }
   const DynLibResult res = dynlib_pal_load(alloc, name, out);
   if (res == DynLibResult_Success) {
@@ -47,7 +55,7 @@ DynLibResult dynlib_load(Allocator* alloc, const String name, DynLib** out) {
 DynLibResult
 dynlib_load_first(Allocator* alloc, const String names[], const u32 nameCount, DynLib** out) {
   if (UNLIKELY(!g_dynlibInitialized)) {
-    diag_crash_msg("dynlib: Not initialized");
+    dynlib_crash_not_initialized();
   }
   for (u32 i = 0; i != nameCount; ++i) {
     const DynLibResult res = dynlib_pal_load(alloc, names[i], out);
@@ -67,7 +75,7 @@ dynlib_load_first(Allocator* alloc, const String names[], const u32 nameCount, D
 void dynlib_destroy(DynLib* lib) {
   dynlib_pal_destroy(lib);
   if (UNLIKELY(thread_atomic_sub_i64(&g_dynlibCount, 1) <= 0)) {
-    diag_crash_msg("dynlib: Double destroy of dynlib");
+    dynlib_crash_double_destroy();
   }
 }
 
