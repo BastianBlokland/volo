@@ -172,7 +172,7 @@ static NetResult net_tls_read_input_sync(NetTls* tls, NetSocket* socket) {
 }
 
 static NetResult net_tls_write_ouput_sync(NetTls* tls, NetSocket* socket) {
-  Mem buffer = mem_stack(usize_kibibyte * 16);
+  Mem buffer = alloc_alloc(g_allocScratch, usize_kibibyte * 32, 1);
   for (;;) {
     usize bytesRead;
     if (!g_netOpenSslLib.BIO_read_ex(tls->output, buffer.ptr, buffer.size, &bytesRead)) {
@@ -287,7 +287,7 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
   }
   diag_assert(g_netOpenSslReady && tls->session);
 
-  Mem   buffer         = mem_stack(usize_kibibyte * 16);
+  Mem   buffer         = alloc_alloc(g_allocScratch, usize_kibibyte * 32, 1);
   usize totalBytesRead = 0;
   for (;;) {
     // Ask OpenSSL to decrypt data buffered append it to the output.
