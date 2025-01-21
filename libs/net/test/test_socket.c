@@ -54,7 +54,7 @@ spec(socket) {
 
       check_eq_string(dynstring_view(&readBuffer), msg);
 
-      net_tls_destroy(tls);
+      net_tls_destroy(tls, socket);
       net_socket_destroy(socket);
     }
   }

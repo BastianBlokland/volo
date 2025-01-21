@@ -35,6 +35,7 @@ typedef struct {
   long              (SYS_DECL* SSL_CTX_ctrl)(SSL_CTX*, int cmd, long larg, void* parg);
   SSL*              (SYS_DECL* SSL_new)(SSL_CTX*);
   void              (SYS_DECL* SSL_free)(SSL*);
+  int               (SYS_DECL* SSL_shutdown)(SSL*);
   void              (SYS_DECL* SSL_set_verify)(SSL*, int mode, const void* callback);
   void              (SYS_DECL* SSL_set_connect_state)(SSL*);
   void              (SYS_DECL* SSL_set_bio)(SSL*, BIO* readBio, BIO* writeBio);
@@ -102,6 +103,7 @@ static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
   OPENSSL_LOAD_SYM(SSL_CTX_ctrl);
   OPENSSL_LOAD_SYM(SSL_new);
   OPENSSL_LOAD_SYM(SSL_free);
+  OPENSSL_LOAD_SYM(SSL_shutdown);
   OPENSSL_LOAD_SYM(SSL_set_verify);
   OPENSSL_LOAD_SYM(SSL_set_connect_state);
   OPENSSL_LOAD_SYM(SSL_set_bio);
@@ -236,8 +238,43 @@ NetTls* net_tls_create(Allocator* alloc, const NetTlsFlags flags) {
   return tls;
 }
 
-void net_tls_destroy(NetTls* tls) {
+static bool net_tls_shutdown(NetTls* tls, NetSocket* socket) {
+  diag_assert(g_netOpenSslReady && tls->session);
+
+  // Ask OpenSSL to shutdown the connection.
+  g_netOpenSslLib.SSL_shutdown(tls->session);
+
+  for (;;) {
+    const int ret = g_netOpenSslLib.SSL_read_ex(tls->session, null, 0, 0);
+    const int err = g_netOpenSslLib.SSL_get_error(tls->session, ret);
+
+    // Write any output to the socket (OpenSSL needs to send the close_notify alert message).
+    if (net_tls_write_ouput_sync(tls, socket) != NetResult_Success) {
+      return false; // Shutdown failed.
+    }
+
+    switch (err) {
+    case SSL_ERROR_WANT_READ:
+      if (net_tls_read_input_sync(tls, socket) != NetResult_Success) {
+        return false; // Shutdown failed.
+      }
+      continue; // New input was read; retry the OpenSSL shutdown.
+    case SSL_ERROR_WANT_WRITE:
+      continue; // Output was already written to the socket; retry the OpenSSL shutdown.
+    case SSL_ERROR_ZERO_RETURN:
+      return true; // Shutdown successful.
+    default:
+      net_openssl_handle_errors(&g_netOpenSslLib);
+      return false;
+    }
+  }
+}
+
+void net_tls_destroy(NetTls* tls, NetSocket* socket) {
   if (tls->session) {
+    if ((tls->status == NetResult_Success || tls->status == NetResult_TlsClosed) && socket) {
+      net_tls_shutdown(tls, socket);
+    }
     g_netOpenSslLib.SSL_free(tls->session);
   }
   dynstring_destroy(&tls->readBuffer);
@@ -256,6 +293,7 @@ NetResult net_tls_write_sync(NetTls* tls, NetSocket* socket, const String data) 
     // Write the raw data to OpenSSL to be encrypted.
     size_t    bytesWritten = 0;
     const int ret = g_netOpenSslLib.SSL_write_ex(tls->session, data.ptr, data.size, &bytesWritten);
+    const int err = g_netOpenSslLib.SSL_get_error(tls->session, ret);
 
     // Write the encrypted data to the socket.
     tls->status = net_tls_write_ouput_sync(tls, socket);
@@ -269,7 +307,6 @@ NetResult net_tls_write_sync(NetTls* tls, NetSocket* socket, const String data) 
     }
     // No payload was written, either an error occurred or OpenSSL wants to read data (for example
     // for a handshake) from the socket.
-    const int err = g_netOpenSslLib.SSL_get_error(tls->session, ret);
     switch (err) {
     case SSL_ERROR_WANT_READ:
       tls->status = net_tls_read_input_sync(tls, socket);
@@ -301,6 +338,7 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
     // Ask OpenSSL to decrypt data buffered append it to the output.
     size_t    bytesRead;
     const int ret = g_netOpenSslLib.SSL_read_ex(tls->session, buffer.ptr, buffer.size, &bytesRead);
+    const int err = g_netOpenSslLib.SSL_get_error(tls->session, ret);
 
     // Write any control data to the socket, can happen if OpenSSL is performing the handshake.
     tls->status = net_tls_write_ouput_sync(tls, socket);
@@ -317,7 +355,6 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
     }
 
     // No payload could be decrypted, either an error ocurred or we need more data from the socket.
-    const int err = g_netOpenSslLib.SSL_get_error(tls->session, ret);
     switch (err) {
     case SSL_ERROR_WANT_READ:
       if (totalBytesRead) {

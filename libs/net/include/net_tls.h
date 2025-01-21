@@ -20,8 +20,9 @@ NetTls* net_tls_create(Allocator*, NetTlsFlags);
 
 /**
  * Destroy the given Tls object.
+ * NOTE: Optionally provide a socket to perform proper Tls shutdown (will notify the remote).
  */
-void net_tls_destroy(NetTls*);
+void net_tls_destroy(NetTls*, NetSocket*);
 
 /**
  * Query the status of the given Tls object.
