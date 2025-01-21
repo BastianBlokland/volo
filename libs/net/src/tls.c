@@ -17,6 +17,8 @@
  * Simple synchonous implementation that uses memory-bio's to read / write data from / to OpenSSL.
  */
 
+#define net_tls_openssl_names_max 4
+
 #define SSL_VERIFY_NONE 0x00
 #define SSL_VERIFY_PEER 0x01
 #define SSL_CTRL_MODE 33
@@ -60,12 +62,15 @@ typedef struct {
   SSL_CTX* clientContext;
 } NetOpenSsl;
 
-static String net_openssl_search_path(void) {
+static u32 net_openssl_lib_names(String outPaths[PARAM_ARRAY_SIZE(net_tls_openssl_names_max)]) {
+  u32 count = 0;
 #if defined(VOLO_WIN32)
-  return string_lit("libssl.dll");
+  outPaths[count++] = string_lit("libssl.dll");
 #else
-  return string_lit("libssl.so");
+  outPaths[count++] = string_lit("libssl.so.3");
+  outPaths[count++] = string_lit("libssl.so");
 #endif
+  return count;
 }
 
 static void net_openssl_handle_errors(NetOpenSsl* ssl) {
@@ -82,14 +87,13 @@ static void net_openssl_handle_errors(NetOpenSsl* ssl) {
 }
 
 static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
-  const String       searchPath = net_openssl_search_path();
-  const DynLibResult loadRes    = dynlib_load(alloc, searchPath, &ssl->lib);
+  String    libNames[net_tls_openssl_names_max];
+  const u32 libNameCount = net_openssl_lib_names(libNames);
+
+  const DynLibResult loadRes = dynlib_load_first(alloc, libNames, libNameCount, &ssl->lib);
   if (UNLIKELY(loadRes != DynLibResult_Success)) {
     const String err = dynlib_result_str(loadRes);
-    log_w(
-        "Failed to load OpenSSL library ({})",
-        log_param("path", fmt_text(searchPath)),
-        log_param("err", fmt_text(err)));
+    log_w("Failed to load OpenSSL library", log_param("err", fmt_text(err)));
     return false;
   }
 
