@@ -24,17 +24,18 @@ typedef struct sNetTls NetTls;
 NetTls* net_tls_create(Allocator*, NetTlsFlags);
 
 /**
- * Destroy the given Tls object.
+ * Destroy the given Tls session.
+ * NOTE: For gracefully ended sessions call 'net_tls_shutdown_sync()' before destroying the session.
  */
 void net_tls_destroy(NetTls*);
 
 /**
- * Query the status of the given Tls object.
+ * Query the status of the given Tls session.
  */
 NetResult net_tls_status(const NetTls*);
 
 /**
- * Synchronously write to the tls-object.
+ * Synchronously write to the Tls session.
  */
 NetResult net_tls_write_sync(NetTls*, NetSocket*, String);
 

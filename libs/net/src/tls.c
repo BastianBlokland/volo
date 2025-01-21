@@ -9,6 +9,14 @@
 
 #include "tls_internal.h"
 
+/**
+ * Tls client implementation using the OpenSSL (libssl) library.
+ * Website: https://www.openssl.org/
+ * Documentation: https://docs.openssl.org/3.0/man3/
+ *
+ * Simple synchonous implementation that uses memory-bio's to read / write data from / to OpenSSL.
+ */
+
 #define SSL_VERIFY_NONE 0x00
 #define SSL_VERIFY_PEER 0x01
 #define SSL_CTRL_MODE 33
