@@ -65,7 +65,8 @@ typedef struct {
 static u32 net_openssl_lib_names(String outPaths[PARAM_ARRAY_SIZE(net_tls_openssl_names_max)]) {
   u32 count = 0;
 #if defined(VOLO_WIN32)
-  outPaths[count++] = string_lit("libssl.dll");
+  outPaths[count++] = string_lit("libssl-3-x64.dll");
+  outPaths[count++] = string_lit("libssl-1_1-x64.dll");
 #else
   outPaths[count++] = string_lit("libssl.so.3");
   outPaths[count++] = string_lit("libssl.so");
