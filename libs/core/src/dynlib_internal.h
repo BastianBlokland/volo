@@ -2,6 +2,7 @@
 #include "core_dynlib.h"
 
 void         dynlib_pal_init(void);
+void         dynlib_pal_teardown(void);
 DynLibResult dynlib_pal_load(Allocator*, String name, DynLib** out);
 void         dynlib_pal_destroy(DynLib*);
 String       dynlib_pal_path(const DynLib*);

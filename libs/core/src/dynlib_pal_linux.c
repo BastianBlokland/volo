@@ -11,6 +11,7 @@
 #define dynlib_crash_on_error false
 
 void dynlib_pal_init(void) {}
+void dynlib_pal_teardown(void) {}
 
 struct sDynLib {
   void*      handle;

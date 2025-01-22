@@ -58,6 +58,7 @@ void core_teardown(void) {
     thread_teardown();
 
     dynlib_leak_detect(); // Leak-detect late as the thread module owns some dynamic-libraries.
+    dynlib_teardown();
 
     symbol_teardown();
     alloc_teardown();

@@ -41,8 +41,9 @@ void file_leak_detect(void);
  * Fired once when the core library is torn down.
  */
 void alloc_teardown(void);
+void dynlib_teardown(void);
 void stringtable_teardown(void);
-void symbol_teardown();
+void symbol_teardown(void);
 void thread_teardown(void);
 void tty_teardown(void);
 
