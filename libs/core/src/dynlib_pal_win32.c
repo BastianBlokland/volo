@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_thread.h"
 #include "core_winutils.h"
 
 #include "dynlib_internal.h"
@@ -8,14 +9,18 @@
 
 #define dynlib_max_symbol_name 128
 
+static ThreadMutex g_dynlibLoadMutex;
+
 void dynlib_pal_init(void) {
   /**
    * Disable Windows ui error popups that could be shown as a result of calling 'LoadLibrary'.
    */
   SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX | SEM_NOGPFAULTERRORBOX);
+
+  g_dynlibLoadMutex = thread_mutex_create(g_allocHeap);
 }
 
-void dynlib_pal_teardown(void) {}
+void dynlib_pal_teardown(void) { thread_mutex_destroy(g_dynlibLoadMutex); }
 
 struct sDynLib {
   HMODULE    handle;
