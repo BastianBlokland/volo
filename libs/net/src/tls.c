@@ -2,6 +2,8 @@
 #include "core_diag.h"
 #include "core_dynlib.h"
 #include "core_dynstring.h"
+#include "core_env.h"
+#include "core_path.h"
 #include "log_logger.h"
 #include "net_result.h"
 #include "net_socket.h"
@@ -63,13 +65,23 @@ typedef struct {
 } NetOpenSsl;
 
 static u32 net_openssl_lib_names(String outPaths[PARAM_ARRAY_SIZE(net_tls_openssl_names_max)]) {
+  const String openSslPath = env_var_scratch(string_lit("OPENSSL_BIN"));
+
   u32 count = 0;
 #if defined(VOLO_WIN32)
   outPaths[count++] = string_lit("libssl-3-x64.dll");
+  if (!string_is_empty(openSslPath)) {
+    outPaths[count++] = path_build_scratch(openSslPath, string_lit("libssl-3-x64.dll"));
+  }
   outPaths[count++] = string_lit("libssl-1_1-x64.dll");
+  if (!string_is_empty(openSslPath)) {
+    outPaths[count++] = path_build_scratch(openSslPath, string_lit("libssl-1_1-x64.dll"));
+  }
 #else
-  outPaths[count++] = string_lit("libssl.so.3");
   outPaths[count++] = string_lit("libssl.so");
+  if (!string_is_empty(openSslPath)) {
+    outPaths[count++] = path_build_scratch(openSslPath, string_lit("libssl.so"));
+  }
 #endif
   return count;
 }
