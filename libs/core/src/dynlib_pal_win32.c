@@ -73,7 +73,7 @@ static void dynlib_info_update(HANDLE parent) {
     const String        errMsg  = winutils_error_msg_scratch(errCode);
     diag_crash_msg("EnumProcessModules() failed: {} {}", fmt_int((u64)errCode), fmt_text(errMsg));
   }
-  g_dynlibInfoSequence++; // Invalidate all modules.
+  MAYBE_UNUSED const u64 prevSequence = g_dynlibInfoSequence++; // Invalidate all modules.
 
   const u32 moduleCount = neededBytes / sizeof(HMODULE);
   for (u32 i = 0; i != moduleCount; ++i) {
@@ -91,6 +91,14 @@ static void dynlib_info_update(HANDLE parent) {
 #endif
     }
   }
+
+#if dynlib_debug
+  dynarray_for_t(&g_dynlibInfo, LibInfo, libInfo) {
+    if (libInfo->sequence == prevSequence) {
+      diag_print_raw(string_lit("DynLib: Unloaded module\n"));
+    }
+  }
+#endif
 }
 
 DynLibResult dynlib_pal_load(Allocator* alloc, const String name, DynLib** out) {
@@ -127,13 +135,18 @@ DynLibResult dynlib_pal_load(Allocator* alloc, const String name, DynLib** out) 
 }
 
 void dynlib_pal_destroy(DynLib* lib) {
-  if (UNLIKELY(FreeLibrary(lib->handle) == 0)) {
-    const DWORD err = GetLastError();
-    diag_crash_msg(
-        "FreeLibrary() failed: {}, {}",
-        fmt_int((u64)err),
-        fmt_text(winutils_error_msg_scratch(err)));
+  thread_mutex_lock(g_dynlibLoadMutex);
+  {
+    if (UNLIKELY(FreeLibrary(lib->handle) == 0)) {
+      const DWORD err = GetLastError();
+      diag_crash_msg(
+          "FreeLibrary() failed: {}, {}",
+          fmt_int((u64)err),
+          fmt_text(winutils_error_msg_scratch(err)));
+    }
+    dynlib_info_update(g_dynlibRootModule); // Attribute any externally loaded modules to the root.
   }
+  thread_mutex_unlock(g_dynlibLoadMutex);
   string_maybe_free(lib->alloc, lib->path);
   alloc_free_t(lib->alloc, lib);
 }
