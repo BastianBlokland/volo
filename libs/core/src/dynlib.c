@@ -21,6 +21,11 @@ void dynlib_init(void) {
   g_dynlibInitialized = true;
 }
 
+void dynlib_teardown(void) {
+  dynlib_pal_teardown();
+  g_dynlibInitialized = false;
+}
+
 void dynlib_leak_detect(void) {
   if (UNLIKELY(thread_atomic_load_i64(&g_dynlibCount) != 0)) {
     alloc_crash_with_msg("dynlib: {} libary(s) leaked", fmt_int(g_dynlibCount));
@@ -73,6 +78,9 @@ dynlib_load_first(Allocator* alloc, const String names[], const u32 nameCount, D
 }
 
 void dynlib_destroy(DynLib* lib) {
+  if (UNLIKELY(!g_dynlibInitialized)) {
+    dynlib_crash_not_initialized();
+  }
   dynlib_pal_destroy(lib);
   if (UNLIKELY(thread_atomic_sub_i64(&g_dynlibCount, 1) <= 0)) {
     dynlib_crash_double_destroy();

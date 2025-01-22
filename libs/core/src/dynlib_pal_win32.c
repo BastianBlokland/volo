@@ -15,6 +15,8 @@ void dynlib_pal_init(void) {
   SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX | SEM_NOGPFAULTERRORBOX);
 }
 
+void dynlib_pal_teardown(void) {}
+
 struct sDynLib {
   HMODULE    handle;
   String     path;
