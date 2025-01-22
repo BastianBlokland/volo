@@ -13,6 +13,15 @@
 #define dynlib_max_symbol_name 128
 #define dynlib_debug false
 
+/**
+ * Win32 dynamic library loading.
+ *
+ * NOTE: This emulates the unix dlopen / dlsym behavior where dlsym can also find symbols in the
+ * dependencies of a library. On Windows this is awkward to implement and requires tracking
+ * dependencies using EnumProcessModules before and after a LoadLibrary, but it makes the api usage
+ * much nicer.
+ */
+
 typedef struct {
   HMODULE handle;
   HMODULE parent;
@@ -25,14 +34,14 @@ static u64         g_dynlibInfoSequence;
 static DynArray    g_dynlibInfo; // LibInfo[], sorted on 'handle'.
 
 void dynlib_pal_init(void) {
+  g_dynlibLoadMutex  = thread_mutex_create(g_allocPersist);
+  g_dynlibRootModule = GetModuleHandle(null);
+  g_dynlibInfo       = dynarray_create_t(g_allocPersist, LibInfo, 64);
+
   /**
    * Disable Windows ui error popups that could be shown as a result of calling 'LoadLibrary'.
    */
   SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX | SEM_NOGPFAULTERRORBOX);
-
-  g_dynlibLoadMutex  = thread_mutex_create(g_allocPersist);
-  g_dynlibRootModule = GetModuleHandle(null);
-  g_dynlibInfo       = dynarray_create_t(g_allocPersist, LibInfo, 1024);
 }
 
 void dynlib_pal_teardown(void) {
@@ -151,6 +160,7 @@ void dynlib_pal_destroy(DynLib* lib) {
     dynlib_info_update(g_dynlibRootModule); // Attribute any externally loaded modules to the root.
   }
   thread_mutex_unlock(g_dynlibLoadMutex);
+
   string_maybe_free(lib->alloc, lib->path);
   alloc_free_t(lib->alloc, lib);
 }
@@ -171,7 +181,7 @@ Symbol dynlib_pal_symbol(const DynLib* lib, const String name) {
     return res; // Symbol was found in the module itself.
   }
 
-  // Attempt the find the symbol in any of the child modules.
+  // Attempt to find the symbol in any of the child modules.
   thread_mutex_lock(g_dynlibLoadMutex);
   {
     dynarray_for_t(&g_dynlibInfo, LibInfo, libInfo) {
