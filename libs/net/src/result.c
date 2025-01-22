@@ -4,19 +4,23 @@
 #include "net_result.h"
 
 static const String g_netResultStrs[] = {
-    [NetResult_Success]          = string_static("Success"),
-    [NetResult_SystemFailure]    = string_static("SystemFailure"),
-    [NetResult_Unsupported]      = string_static("Unsupported"),
-    [NetResult_Refused]          = string_static("Refused"),
-    [NetResult_Unreachable]      = string_static("Unreachable"),
-    [NetResult_ConnectionClosed] = string_static("ConnectionClosed"),
-    [NetResult_ConnectionLost]   = string_static("ConnectionLost"),
-    [NetResult_NoEntry]          = string_static("NoEntry"),
-    [NetResult_InvalidHost]      = string_static("InvalidHost"),
-    [NetResult_HostNotFound]     = string_static("HostNotFound"),
-    [NetResult_TryAgain]         = string_static("TryAgain"),
-    [NetResult_TooMuchData]      = string_static("TooMuchData"),
-    [NetResult_UnknownError]     = string_static("UnknownError"),
+    [NetResult_Success]            = string_static("NetSuccess"),
+    [NetResult_SystemFailure]      = string_static("NetSystemFailure"),
+    [NetResult_Unsupported]        = string_static("NetUnsupported"),
+    [NetResult_Refused]            = string_static("NetRefused"),
+    [NetResult_Unreachable]        = string_static("NetUnreachable"),
+    [NetResult_ConnectionClosed]   = string_static("NetConnectionClosed"),
+    [NetResult_ConnectionLost]     = string_static("NetConnectionLost"),
+    [NetResult_NoEntry]            = string_static("NetNoEntry"),
+    [NetResult_InvalidHost]        = string_static("NetInvalidHost"),
+    [NetResult_HostNotFound]       = string_static("NetHostNotFound"),
+    [NetResult_TryAgain]           = string_static("NetTryAgain"),
+    [NetResult_TooMuchData]        = string_static("NetTooMuchData"),
+    [NetResult_TlsUnavailable]     = string_static("NetTlsUnavailable"),
+    [NetResult_TlsFailed]          = string_static("NetTlsFailed"),
+    [NetResult_TlsClosed]          = string_static("NetTlsClosed"),
+    [NetResult_TlsBufferExhausted] = string_static("NetTlsBufferExhausted"),
+    [NetResult_UnknownError]       = string_static("NetUnknownError"),
 };
 
 ASSERT(array_elems(g_netResultStrs) == NetResult_Count, "Incorrect number of result strings");

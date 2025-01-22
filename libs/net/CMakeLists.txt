@@ -9,6 +9,7 @@ add_library(lib_net STATIC
   src/init.c
   src/pal.c
   src/result.c
+  src/tls.c
   )
 target_include_directories(lib_net PUBLIC include)
 target_link_libraries(lib_net PUBLIC lib_core)

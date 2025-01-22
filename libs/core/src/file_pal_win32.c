@@ -208,7 +208,7 @@ FileResult file_read_sync(File* file, DynString* dynstr) {
    * the copy. Downside is for small reads we would grow the DynString unnecessarily.
    */
 
-  Mem   readBuffer = mem_stack(usize_kibibyte);
+  Mem   readBuffer = mem_stack(usize_kibibyte * 16);
   DWORD bytesRead;
   BOOL  success = ReadFile(file->handle, readBuffer.ptr, (DWORD)readBuffer.size, &bytesRead, null);
   if (success && bytesRead) {

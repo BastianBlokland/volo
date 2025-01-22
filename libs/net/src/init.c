@@ -3,6 +3,7 @@
 #include "net_init.h"
 
 #include "pal_internal.h"
+#include "tls_internal.h"
 
 static bool g_initalized;
 
@@ -13,6 +14,7 @@ void net_init(void) {
     g_initalized = true;
 
     net_pal_init();
+    net_tls_init();
   }
 }
 
@@ -23,5 +25,6 @@ void net_teardown(void) {
     g_initalized = false;
 
     net_pal_teardown();
+    net_tls_teardown();
   }
 }
