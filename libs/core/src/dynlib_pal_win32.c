@@ -1,15 +1,28 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_diag.h"
+#include "core_dynarray.h"
 #include "core_thread.h"
 #include "core_winutils.h"
 
 #include "dynlib_internal.h"
 
 #include <Windows.h>
+#include <psapi.h>
 
 #define dynlib_max_symbol_name 128
+#define dynlib_debug false
+
+typedef struct {
+  HMODULE handle;
+  HMODULE parent;
+  u64     sequence; // Module is currently loaded if sequence equals 'g_dynlibInfoSequence'.
+} LibInfo;
 
 static ThreadMutex g_dynlibLoadMutex;
+static HMODULE     g_dynlibRootModule;
+static u64         g_dynlibInfoSequence;
+static DynArray    g_dynlibInfo; // LibInfo[], sorted on 'handle'.
 
 void dynlib_pal_init(void) {
   /**
@@ -17,10 +30,15 @@ void dynlib_pal_init(void) {
    */
   SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOOPENFILEERRORBOX | SEM_NOGPFAULTERRORBOX);
 
-  g_dynlibLoadMutex = thread_mutex_create(g_allocHeap);
+  g_dynlibLoadMutex  = thread_mutex_create(g_allocPersist);
+  g_dynlibRootModule = GetModuleHandle(null);
+  g_dynlibInfo       = dynarray_create_t(g_allocPersist, LibInfo, 1024);
 }
 
-void dynlib_pal_teardown(void) { thread_mutex_destroy(g_dynlibLoadMutex); }
+void dynlib_pal_teardown(void) {
+  dynarray_destroy(&g_dynlibInfo);
+  thread_mutex_destroy(g_dynlibLoadMutex);
+}
 
 struct sDynLib {
   HMODULE    handle;
@@ -28,9 +46,9 @@ struct sDynLib {
   Allocator* alloc;
 };
 
-static String dynlib_path_query(HMODULE handle, Allocator* alloc) {
+static String dynlib_module_path_scratch(HMODULE module) {
   Mem widePathBuffer       = mem_stack((MAX_PATH + 1) * sizeof(wchar_t)); // +1 for null-terminator.
-  const usize widePathSize = GetModuleFileName(handle, widePathBuffer.ptr, MAX_PATH);
+  const usize widePathSize = GetModuleFileName(module, widePathBuffer.ptr, MAX_PATH);
   if (!widePathSize) {
     const DWORD err = GetLastError();
     diag_crash_msg(
@@ -38,8 +56,41 @@ static String dynlib_path_query(HMODULE handle, Allocator* alloc) {
         fmt_int((u64)err),
         fmt_text(winutils_error_msg_scratch(err)));
   }
-  const String str = winutils_from_widestr_scratch(widePathBuffer.ptr, widePathSize);
-  return string_dup(alloc, str);
+  return winutils_from_widestr_scratch(widePathBuffer.ptr, widePathSize);
+}
+
+static i8 dynlib_info_compare(const void* a, const void* b) {
+  return compare_uptr(field_ptr(a, LibInfo, handle), field_ptr(b, LibInfo, handle));
+}
+
+static void dynlib_info_update(HANDLE parent) {
+  HANDLE  process = GetCurrentProcess();
+  HMODULE modules[1024];
+
+  DWORD neededBytes;
+  if (!K32EnumProcessModules(process, modules, sizeof(modules), &neededBytes)) {
+    const unsigned long errCode = GetLastError();
+    const String        errMsg  = winutils_error_msg_scratch(errCode);
+    diag_crash_msg("EnumProcessModules() failed: {} {}", fmt_int((u64)errCode), fmt_text(errMsg));
+  }
+  g_dynlibInfoSequence++; // Invalidate all modules.
+
+  const u32 moduleCount = neededBytes / sizeof(HMODULE);
+  for (u32 i = 0; i != moduleCount; ++i) {
+    LibInfo* info = dynarray_find_or_insert_sorted(&g_dynlibInfo, dynlib_info_compare, &modules[i]);
+    if (info->handle) {
+      // Module was already loaded; update its sequence number to track that its still loaded.
+      info->sequence = g_dynlibInfoSequence;
+    } else {
+      info->handle   = modules[i];
+      info->parent   = parent;
+      info->sequence = g_dynlibInfoSequence;
+
+#if dynlib_debug
+      diag_print("DynLib: Loaded module: {}\n", fmt_text(dynlib_module_path_scratch(modules[i])));
+#endif
+    }
+  }
 }
 
 DynLibResult dynlib_pal_load(Allocator* alloc, const String name, DynLib** out) {
@@ -51,7 +102,17 @@ DynLibResult dynlib_pal_load(Allocator* alloc, const String name, DynLib** out) 
   Mem pathBufferMem = mem_stack(pathBufferSize);
   winutils_to_widestr(pathBufferMem, name);
 
-  HMODULE handle = LoadLibraryEx(pathBufferMem.ptr, null, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+  HMODULE handle;
+  thread_mutex_lock(g_dynlibLoadMutex);
+  {
+    dynlib_info_update(g_dynlibRootModule); // Attribute any externally loaded modules to the root.
+    handle = LoadLibraryEx(pathBufferMem.ptr, null, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+    if (handle) {
+      dynlib_info_update(handle); // Attribute any newly loaded modules to the new handle.
+    }
+  }
+  thread_mutex_unlock(g_dynlibLoadMutex);
+
   if (!handle) {
     return DynLibResult_LibraryNotFound;
   }
@@ -59,7 +120,7 @@ DynLibResult dynlib_pal_load(Allocator* alloc, const String name, DynLib** out) 
   *out  = alloc_alloc_t(alloc, DynLib);
   **out = (DynLib){
       .handle = handle,
-      .path   = dynlib_path_query(handle, alloc),
+      .path   = alloc_dup(alloc, dynlib_module_path_scratch(handle), 1),
       .alloc  = alloc,
   };
   return DynLibResult_Success;
