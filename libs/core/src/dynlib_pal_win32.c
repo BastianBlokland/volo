@@ -59,6 +59,10 @@ static String dynlib_module_path_scratch(HMODULE module) {
   return winutils_from_widestr_scratch(widePathBuffer.ptr, widePathSize);
 }
 
+static bool dynlib_info_loaded(const LibInfo* libInfo) {
+  return libInfo->sequence == g_dynlibInfoSequence;
+}
+
 static i8 dynlib_info_compare(const void* a, const void* b) {
   return compare_uptr(field_ptr(a, LibInfo, handle), field_ptr(b, LibInfo, handle));
 }
@@ -162,5 +166,30 @@ Symbol dynlib_pal_symbol(const DynLib* lib, const String name) {
   mem_cpy(nameBuffer, name);
   *mem_at_u8(nameBuffer, name.size) = '\0';
 
-  return (Symbol)GetProcAddress(lib->handle, nameBuffer.ptr);
+  Symbol res = (Symbol)GetProcAddress(lib->handle, nameBuffer.ptr);
+  if (res) {
+    return res; // Symbol was found in the module itself.
+  }
+
+  // Attempt the find the symbol in any of the child modules.
+  thread_mutex_lock(g_dynlibLoadMutex);
+  {
+    dynarray_for_t(&g_dynlibInfo, LibInfo, libInfo) {
+      if (!dynlib_info_loaded(libInfo)) {
+        continue; // Module has been unloaded.
+      }
+      if (libInfo->parent != lib->handle) {
+        continue; // Not a child of the specified module.
+      }
+      if (libInfo->handle == lib->handle) {
+        continue; // We've already checked the module itself.
+      }
+      res = (Symbol)GetProcAddress(libInfo->handle, nameBuffer.ptr);
+      if (res) {
+        break; // Symbol found.
+      }
+    }
+  }
+  thread_mutex_unlock(g_dynlibLoadMutex);
+  return res;
 }
