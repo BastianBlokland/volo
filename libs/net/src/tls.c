@@ -368,7 +368,7 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
 
 NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
   if (tls->status != NetResult_Success && tls->status != NetResult_TlsClosed) {
-    return tls->status;
+    return NetResult_Success; // Session failed, no need to shutdown.
   }
   diag_assert(g_netOpenSslReady && tls->session);
 
