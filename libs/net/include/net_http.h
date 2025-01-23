@@ -29,7 +29,7 @@ NetResult net_http_status(const NetHttp*);
 /**
  * TODO:
  */
-NetResult net_http_get_sync(NetHttp*, String resource, DynString* out);
+NetResult net_http_get_sync(NetHttp*, String uri, DynString* out);
 
 /**
  * TODO:
