@@ -42,7 +42,7 @@ NetResult net_tls_write_sync(NetTls*, NetSocket*, String);
 /**
  * Synchronously read a block of available data in the dynamic-string.
  */
-NetResult net_tls_read_sync(NetTls*, NetSocket*, DynString*);
+NetResult net_tls_read_sync(NetTls*, NetSocket*, DynString* out);
 
 /**
  * Synchonously shutdown the Tls session.
