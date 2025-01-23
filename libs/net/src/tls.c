@@ -389,6 +389,9 @@ NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
     switch (err) {
     case SSL_ERROR_WANT_READ:
       tls->status = net_tls_read_input_sync(tls, socket);
+      if (tls->status == NetResult_ConnectionClosed) {
+        return NetResult_Success; // Shutdown successful. Remote closed the socket.
+      }
       if (tls->status != NetResult_Success) {
         return tls->status; // Shutdown failed.
       }
