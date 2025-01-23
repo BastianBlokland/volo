@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
+#include "log_logger.h"
 #include "net_addr.h"
 #include "net_http.h"
 #include "net_result.h"
@@ -16,13 +17,14 @@
  */
 
 typedef struct sNetHttp {
-  Allocator* alloc;
-  NetSocket* socket;
-  NetTls*    tls;  // Only valid when using Https.
-  String     host; // Hostname of the target server.
-  NetResult  status;
-  DynString  readBuffer;
-  usize      readCursor;
+  Allocator*   alloc;
+  NetSocket*   socket;
+  NetTls*      tls;  // Only valid when using Https.
+  String       host; // Hostname of the target server.
+  NetHttpFlags flags;
+  NetResult    status;
+  DynString    readBuffer;
+  usize        readCursor;
 } NetHttp;
 
 static u16 http_port(const NetHttpFlags flags) {
@@ -85,18 +87,40 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
       .alloc      = alloc,
       .host       = string_maybe_dup(alloc, host),
       .readBuffer = dynstring_create(alloc, 16 * usize_kibibyte),
+      .flags      = flags,
   };
+
+  if (flags & NetHttpFlags_Logging) {
+    log_d("Http: Resolving host", log_param("host", fmt_text(host)));
+  }
 
   NetIp hostIp;
   http->status = net_resolve_sync(host, &hostIp);
   if (http->status != NetResult_Success) {
+    if (flags & NetHttpFlags_Logging) {
+      log_w(
+          "Http: Failed to resolve host",
+          log_param("error", fmt_text(net_result_str(http->status))),
+          log_param("host", fmt_text(host)));
+    }
     return http;
   }
   const NetAddr hostAddr = {.ip = hostIp, .port = http_port(flags)};
 
+  if (flags & NetHttpFlags_Logging) {
+    const String hostAddrStr = net_addr_str_scratch(&hostAddr);
+    log_d("Http: Connecting to host", log_param("address", fmt_text(hostAddrStr)));
+  }
+
   http->socket = net_socket_connect_sync(alloc, hostAddr);
   http->status = net_socket_status(http->socket);
   if (http->status != NetResult_Success) {
+    if (flags & NetHttpFlags_Logging) {
+      log_w(
+          "Http: Failed to connect to host",
+          log_param("error", fmt_text(net_result_str(http->status))),
+          log_param("address", fmt_text(net_addr_str_scratch(&hostAddr))));
+    }
     return http;
   }
 
@@ -104,6 +128,11 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
     http->tls    = net_tls_create(alloc, http_tls_flags(flags));
     http->status = net_tls_status(http->tls);
     if (http->status != NetResult_Success) {
+      if (flags & NetHttpFlags_Logging) {
+        log_w(
+            "Http: Failed to create Tls session",
+            log_param("error", fmt_text(net_result_str(http->status))));
+      }
       return http;
     }
   }
@@ -160,13 +189,24 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
 }
 
 NetResult net_http_shutdown_sync(NetHttp* http) {
+  if (http->flags & NetHttpFlags_Logging) {
+    log_d("Http: Shutdown");
+  }
   NetResult tlsRes = NetResult_Success;
   if (http->tls) {
     tlsRes = net_tls_shutdown_sync(http->tls, http->socket);
   }
-  NetResult socketRes = NetResult_Success;
-  if (http->socket) {
-    socketRes = net_socket_shutdown(http->socket, NetDir_Both);
+  if (tlsRes != NetResult_Success && http->flags & NetHttpFlags_Logging) {
+    log_w(
+        "Http: Failed to shutdown Tls session",
+        log_param("error", fmt_text(net_result_str(tlsRes))));
   }
-  return tlsRes != NetResult_Success ? tlsRes : socketRes;
+  NetResult sockRes = NetResult_Success;
+  if (http->socket) {
+    sockRes = net_socket_shutdown(http->socket, NetDir_Both);
+  }
+  if (sockRes != NetResult_Success && http->flags & NetHttpFlags_Logging) {
+    log_w("Http: Failed to shutdown socket", log_param("error", fmt_text(net_result_str(sockRes))));
+  }
+  return tlsRes != NetResult_Success ? tlsRes : sockRes;
 }
