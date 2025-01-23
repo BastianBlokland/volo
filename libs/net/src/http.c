@@ -1,5 +1,4 @@
 #include "core_alloc.h"
-#include "core_diag.h"
 #include "net_addr.h"
 #include "net_http.h"
 #include "net_result.h"
@@ -14,20 +13,21 @@ typedef struct sNetHttp {
   NetResult  status;
 } NetHttp;
 
-static u16 http_port(const NetHttpProtocol proto) {
-  switch (proto) {
-  case NetHttpProtocol_Http:
-    return 80;
-  case NetHttpProtocol_Https:
+static u16 http_port(const NetHttpFlags flags) {
+  if (flags & NetHttpFlags_Tls) {
     return 443;
   }
-  diag_crash_msg("Unsupported protocol");
+  return 80;
 }
 
-/**
- * TODO:
- */
-NetHttp* net_http_connect_sync(Allocator* alloc, const NetHttpProtocol proto, const String host) {
+static NetTlsFlags http_tls_flags(const NetHttpFlags flags) {
+  if (flags & NetHttpFlags_TlsNoVerify) {
+    return NetTlsFlags_NoVerify;
+  }
+  return NetTlsFlags_None;
+}
+
+NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHttpFlags flags) {
   NetHttp* http = alloc_alloc_t(alloc, NetHttp);
   *http         = (NetHttp){.alloc = alloc};
 
@@ -36,7 +36,7 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const NetHttpProtocol proto, co
   if (http->status != NetResult_Success) {
     return http;
   }
-  const NetAddr hostAddr = {.ip = hostIp, .port = http_port(proto)};
+  const NetAddr hostAddr = {.ip = hostIp, .port = http_port(flags)};
 
   http->socket = net_socket_connect_sync(alloc, hostAddr);
   http->status = net_socket_status(http->socket);
@@ -44,8 +44,8 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const NetHttpProtocol proto, co
     return http;
   }
 
-  if (proto == NetHttpProtocol_Https) {
-    http->tls    = net_tls_create(alloc, NetTlsFlags_None);
+  if (flags & NetHttpFlags_Tls) {
+    http->tls    = net_tls_create(alloc, http_tls_flags(flags));
     http->status = net_tls_status(http->tls);
     if (http->status != NetResult_Success) {
       return http;

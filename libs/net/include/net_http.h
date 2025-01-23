@@ -2,9 +2,9 @@
 #include "net.h"
 
 typedef enum {
-  NetHttpProtocol_Http,
-  NetHttpProtocol_Https,
-} NetHttpProtocol;
+  NetHttpFlags_Tls,         // Https.
+  NetHttpFlags_TlsNoVerify, // Disable Tls certificate verification.
+} NetHttpFlags;
 
 /**
  * TODO:
@@ -14,7 +14,7 @@ typedef struct sNetHttp NetHttp;
 /**
  * TODO:
  */
-NetHttp* net_http_connect_sync(Allocator*, NetHttpProtocol, String host);
+NetHttp* net_http_connect_sync(Allocator*, String host, NetHttpFlags);
 
 /**
  * TODO:
