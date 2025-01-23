@@ -4,11 +4,13 @@
 #include "net_http.h"
 #include "net_result.h"
 #include "net_socket.h"
+#include "net_tls.h"
 #include "net_types.h"
 
 typedef struct sNetHttp {
   Allocator* alloc;
   NetSocket* socket;
+  NetTls*    tls; // Only valid when using Https.
   NetResult  status;
 } NetHttp;
 
@@ -37,14 +39,26 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const NetHttpProtocol proto, co
   const NetAddr hostAddr = {.ip = hostIp, .port = http_port(proto)};
 
   http->socket = net_socket_connect_sync(alloc, hostAddr);
-  if (net_socket_status(http->socket) != NetResult_Success) {
+  http->status = net_socket_status(http->socket);
+  if (http->status != NetResult_Success) {
     return http;
+  }
+
+  if (proto == NetHttpProtocol_Https) {
+    http->tls    = net_tls_create(alloc, NetTlsFlags_None);
+    http->status = net_tls_status(http->tls);
+    if (http->status != NetResult_Success) {
+      return http;
+    }
   }
 
   return http;
 }
 
 void net_http_destroy(NetHttp* http) {
+  if (http->tls) {
+    net_tls_destroy(http->tls);
+  }
   if (http->socket) {
     net_socket_destroy(http->socket);
   }
@@ -64,8 +78,13 @@ NetResult net_http_get_sync(NetHttp* http, const String resource, DynString* out
 }
 
 NetResult net_http_shutdown_sync(NetHttp* http) {
-  if (http->socket) {
-    return net_socket_shutdown(http->socket, NetDir_Both);
+  NetResult tlsRes = NetResult_Success;
+  if (http->tls) {
+    tlsRes = net_tls_shutdown_sync(http->tls, http->socket);
   }
-  return NetResult_Success;
+  NetResult socketRes = NetResult_Success;
+  if (http->socket) {
+    socketRes = net_socket_shutdown(http->socket, NetDir_Both);
+  }
+  return tlsRes != NetResult_Success ? tlsRes : socketRes;
 }
