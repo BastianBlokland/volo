@@ -372,18 +372,25 @@ NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
   }
   diag_assert(g_netOpenSslReady && tls->session);
 
+  Mem buffer = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
+
   // Ask OpenSSL to shutdown the connection.
   g_netOpenSslLib.SSL_shutdown(tls->session);
 
   // Wait for the connection to be closed.
   for (;;) {
-    const int ret = g_netOpenSslLib.SSL_read_ex(tls->session, null, 0, 0);
+    size_t    bytesRead;
+    const int ret = g_netOpenSslLib.SSL_read_ex(tls->session, buffer.ptr, buffer.size, &bytesRead);
     const int err = g_netOpenSslLib.SSL_get_error(tls->session, ret);
 
     // Write any output to the socket (OpenSSL needs to send the close_notify alert message).
     tls->status = net_tls_write_ouput_sync(tls, socket);
     if (tls->status != NetResult_Success) {
       return tls->status; // Shutdown failed.
+    }
+
+    if (ret > 0) {
+      continue; // Input data was left in the buffer; discard it.
     }
 
     switch (err) {
