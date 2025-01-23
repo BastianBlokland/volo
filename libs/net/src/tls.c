@@ -83,6 +83,7 @@ static u32 net_openssl_lib_names(String outPaths[PARAM_ARRAY_SIZE(net_tls_openss
     outPaths[count++] = path_build_scratch(openSslPath, string_lit("libssl.so"));
   }
 #endif
+  diag_assert(count <= net_tls_openssl_names_max);
   return count;
 }
 
