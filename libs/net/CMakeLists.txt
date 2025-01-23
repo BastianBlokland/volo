@@ -19,6 +19,7 @@ target_link_libraries(lib_net PRIVATE lib_log)
 add_executable(test_lib_net
   test/config.c
   test/test_addr.c
+  test/test_http.c
   test/test_socket.c
   )
 target_link_libraries(test_lib_net PRIVATE lib_app_check lib_net)
