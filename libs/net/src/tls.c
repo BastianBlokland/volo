@@ -375,6 +375,7 @@ NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
   // Ask OpenSSL to shutdown the connection.
   g_netOpenSslLib.SSL_shutdown(tls->session);
 
+  // Wait for the connection to be closed.
   for (;;) {
     const int ret = g_netOpenSslLib.SSL_read_ex(tls->session, null, 0, 0);
     const int err = g_netOpenSslLib.SSL_get_error(tls->session, ret);

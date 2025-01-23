@@ -46,5 +46,6 @@ NetResult net_tls_read_sync(NetTls*, NetSocket*, DynString*);
 
 /**
  * Synchonously shutdown the Tls session.
+ * NOTE: Does not shutdown the socket.
  */
 NetResult net_tls_shutdown_sync(NetTls*, NetSocket*);
