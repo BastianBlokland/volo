@@ -21,6 +21,8 @@ typedef struct sNetHttp {
   NetTls*    tls;  // Only valid when using Https.
   String     host; // Hostname of the target server.
   NetResult  status;
+  DynString  readBuffer;
+  usize      readCursor;
 } NetHttp;
 
 static u16 http_port(const NetHttpFlags flags) {
@@ -37,7 +39,7 @@ static NetTlsFlags http_tls_flags(const NetHttpFlags flags) {
   return NetTlsFlags_None;
 }
 
-static NetResult http_send_sync(NetHttp* http, const String data) {
+static NetResult http_write_sync(NetHttp* http, const String data) {
   diag_assert(http->status == NetResult_Success);
   if (http->tls) {
     return net_tls_write_sync(http->tls, http->socket, data);
@@ -45,9 +47,45 @@ static NetResult http_send_sync(NetHttp* http, const String data) {
   return net_socket_write_sync(http->socket, data);
 }
 
+static NetResult http_read_sync(NetHttp* http) {
+  diag_assert(http->status == NetResult_Success);
+  if (http->tls) {
+    return net_tls_read_sync(http->tls, http->socket, &http->readBuffer);
+  }
+  return net_socket_read_sync(http->socket, &http->readBuffer);
+}
+
+static void http_read_clear(NetHttp* http) {
+  dynstring_clear(&http->readBuffer);
+  http->readCursor = 0;
+}
+
+static String http_read_remaining(NetHttp* http) {
+  const String full = dynstring_view(&http->readBuffer);
+  return string_slice(full, http->readCursor, full.size - http->readCursor);
+}
+
+static String http_read_until(NetHttp* http, const String pattern) {
+  while (http->status == NetResult_Success) {
+    const String text = http_read_remaining(http);
+    const usize  pos  = string_find_first(text, pattern);
+    if (!sentinel_check(pos)) {
+      http->readCursor += pos + pattern.size;
+      return string_slice(text, 0, pos + pattern.size);
+    }
+    http->status = http_read_sync(http);
+  }
+  return string_empty;
+}
+
 NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHttpFlags flags) {
   NetHttp* http = alloc_alloc_t(alloc, NetHttp);
-  *http         = (NetHttp){.alloc = alloc, .host = string_maybe_dup(alloc, host)};
+
+  *http = (NetHttp){
+      .alloc      = alloc,
+      .host       = string_maybe_dup(alloc, host),
+      .readBuffer = dynstring_create(alloc, 16 * usize_kibibyte),
+  };
 
   NetIp hostIp;
   http->status = net_resolve_sync(host, &hostIp);
@@ -81,6 +119,7 @@ void net_http_destroy(NetHttp* http) {
     net_socket_destroy(http->socket);
   }
   string_maybe_free(http->alloc, http->host);
+  dynstring_destroy(&http->readBuffer);
   alloc_free_t(http->alloc, http);
 }
 
@@ -100,13 +139,23 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
   fmt_write(&headerBuffer, "User-Agent: Volo\r\n");
   fmt_write(&headerBuffer, "\r\n");
 
-  http->status = http_send_sync(http, dynstring_view(&headerBuffer));
+  http->status = http_write_sync(http, dynstring_view(&headerBuffer));
+  if (http->status != NetResult_Success) {
+    return http->status;
+  }
+
+  const String headerData = http_read_until(http, string_lit("\r\n\r\n"));
   if (http->status != NetResult_Success) {
     return http->status;
   }
 
   // TODO: Read response.
+  (void)headerData;
   (void)out;
+
+  // TODO: Check if the server send us unexpected data.
+  http_read_clear(http);
+
   return NetResult_Success;
 }
 
