@@ -14,12 +14,17 @@ typedef struct sNetHttp NetHttp;
 /**
  * TODO:
  */
-NetHttp* net_http_connect_sync(NetHttpProtocol, String host);
+NetHttp* net_http_connect_sync(Allocator*, NetHttpProtocol, String host);
 
 /**
  * TODO:
  */
 void net_http_destroy(NetHttp*);
+
+/**
+ * TODO:
+ */
+NetResult net_http_status(const NetHttp*);
 
 /**
  * TODO:
