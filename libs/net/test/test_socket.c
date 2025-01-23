@@ -5,6 +5,7 @@
 #include "net_result.h"
 #include "net_socket.h"
 #include "net_tls.h"
+#include "net_types.h"
 
 spec(socket) {
   skip_it("can open an Ipv4 / Ipv6 Tcp connection") {
@@ -26,6 +27,11 @@ spec(socket) {
       check_eq_int(net_socket_read_sync(socket, &readBuffer), NetResult_Success);
 
       check_eq_string(dynstring_view(&readBuffer), msg);
+
+      check_eq_int(net_socket_shutdown(socket, NetDir_Both), NetResult_Success);
+      check_eq_int(net_socket_status(socket), NetResult_ConnectionClosed);
+      check_eq_int(net_socket_read_sync(socket, &readBuffer), NetResult_ConnectionClosed);
+      check_eq_int(net_socket_write_sync(socket, msg), NetResult_ConnectionClosed);
 
       net_socket_destroy(socket);
     }
@@ -56,8 +62,11 @@ spec(socket) {
 
       check_eq_int(net_tls_shutdown_sync(tls, socket), NetResult_Success);
       check_eq_int(net_tls_status(tls), NetResult_TlsClosed);
+      check_eq_int(net_tls_read_sync(tls, socket, &readBuffer), NetResult_TlsClosed);
+      check_eq_int(net_tls_write_sync(tls, socket, msg), NetResult_TlsClosed);
 
       net_tls_destroy(tls);
+      check_eq_int(net_socket_shutdown(socket, NetDir_Both), NetResult_Success);
       net_socket_destroy(socket);
     }
   }

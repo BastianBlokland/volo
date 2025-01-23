@@ -6,6 +6,7 @@
 #include "net_addr.h"
 #include "net_result.h"
 #include "net_socket.h"
+#include "net_types.h"
 
 #include "pal_internal.h"
 
@@ -85,6 +86,7 @@ typedef struct sNetSocket {
   Allocator* alloc;
   NetResult  status;
   int        handle;
+  NetDir     closedMask;
 } NetSocket;
 
 NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
@@ -135,12 +137,6 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
 }
 
 void net_socket_destroy(NetSocket* s) {
-  if (s->status == NetResult_Success) {
-    diag_assert(s->handle >= 0);
-    const int shutdownRet = shutdown(s->handle, SHUT_RDWR);
-    (void)shutdownRet;
-    diag_assert_msg(!shutdownRet, "Socket shutdown failed (errno: {})", fmt_int(errno));
-  }
   if (s->handle >= 0) {
     const int closeRet = close(s->handle);
     (void)closeRet;
@@ -149,7 +145,12 @@ void net_socket_destroy(NetSocket* s) {
   alloc_free_t(s->alloc, s);
 }
 
-NetResult net_socket_status(const NetSocket* s) { return s->status; }
+NetResult net_socket_status(const NetSocket* s) {
+  if ((s->closedMask & NetDir_Both) == NetDir_Both) {
+    return NetResult_ConnectionClosed;
+  }
+  return s->status;
+}
 
 NetResult net_socket_write_sync(NetSocket* s, const String data) {
   if (s->status != NetResult_Success) {
@@ -157,6 +158,9 @@ NetResult net_socket_write_sync(NetSocket* s, const String data) {
   }
   if (data.size > i32_max) {
     return NetResult_TooMuchData;
+  }
+  if (s->closedMask & NetDir_Out) {
+    return NetResult_ConnectionClosed;
   }
   diag_assert(s->handle >= 0);
   for (u8* itr = mem_begin(data); itr != mem_end(data);) {
@@ -177,6 +181,9 @@ NetResult net_socket_write_sync(NetSocket* s, const String data) {
 NetResult net_socket_read_sync(NetSocket* s, DynString* out) {
   if (s->status != NetResult_Success) {
     return s->status;
+  }
+  if (s->closedMask & NetDir_In) {
+    return NetResult_ConnectionClosed;
   }
   diag_assert(s->handle >= 0);
 
@@ -201,6 +208,32 @@ NetResult net_socket_read_sync(NetSocket* s, DynString* out) {
     }
     return s->status = net_pal_socket_error(errno);
   }
+}
+
+NetResult net_socket_shutdown(NetSocket* s, const NetDir dir) {
+  if (s->status != NetResult_Success) {
+    return s->status;
+  }
+  if ((s->closedMask & dir) == dir) {
+    return s->status; // Already closed.
+  }
+  diag_assert(s->handle >= 0);
+
+  int how;
+  if ((dir & NetDir_Both) == NetDir_Both) {
+    how = SHUT_RDWR;
+  } else if (dir & NetDir_In) {
+    how = SHUT_RD;
+  } else {
+    how = SHUT_WR;
+  }
+
+  if (shutdown(s->handle, how)) {
+    return s->status = net_pal_socket_error(errno);
+  }
+
+  s->closedMask |= dir;
+  return NetResult_Success;
 }
 
 NetResult net_resolve_sync(const String host, NetIp* out) {

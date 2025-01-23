@@ -32,3 +32,9 @@ NetResult net_socket_write_sync(NetSocket*, String);
  * Synchronously read a block of available data in the dynamic-string.
  */
 NetResult net_socket_read_sync(NetSocket*, DynString*);
+
+/**
+ * Shutdown the socket traffic in the specified direction.
+ * NOTE: Can be called multiple times to shutdown different directions.
+ */
+NetResult net_socket_shutdown(NetSocket*, NetDir);
