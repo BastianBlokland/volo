@@ -7,6 +7,7 @@
 #include "log_logger.h"
 #include "net_addr.h"
 #include "net_result.h"
+#include "net_types.h"
 
 #include "pal_internal.h"
 
@@ -174,6 +175,7 @@ typedef struct sNetSocket {
   Allocator* alloc;
   NetResult  status;
   SOCKET     handle;
+  NetDir     closedMask;
 } NetSocket;
 
 NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
@@ -220,15 +222,6 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
 }
 
 void net_socket_destroy(NetSocket* s) {
-  if (g_netWsReady && s->status == NetResult_Success) {
-    diag_assert(s->handle != INVALID_SOCKET);
-    const int shutdownRet = g_netWsLib.shutdown(s->handle, SD_BOTH);
-    (void)shutdownRet;
-    diag_assert_msg(
-        !shutdownRet,
-        "Socket shutdown failed (WSAGetLastError: {})",
-        fmt_int(g_netWsLib.WSAGetLastError()));
-  }
   if (g_netWsReady && s->handle != INVALID_SOCKET) {
     const int closeRet = g_netWsLib.closesocket(s->handle);
     (void)closeRet;
@@ -240,7 +233,12 @@ void net_socket_destroy(NetSocket* s) {
   alloc_free_t(s->alloc, s);
 }
 
-NetResult net_socket_status(const NetSocket* s) { return s->status; }
+NetResult net_socket_status(const NetSocket* s) {
+  if ((s->closedMask & NetDir_Both) == NetDir_Both) {
+    return NetResult_ConnectionClosed;
+  }
+  return s->status;
+}
 
 NetResult net_socket_write_sync(NetSocket* s, const String data) {
   if (s->status != NetResult_Success) {
@@ -248,6 +246,9 @@ NetResult net_socket_write_sync(NetSocket* s, const String data) {
   }
   if (data.size > i32_max) {
     return NetResult_TooMuchData;
+  }
+  if (s->closedMask & NetDir_Out) {
+    return NetResult_ConnectionClosed;
   }
   diag_assert(s->handle != INVALID_SOCKET);
   for (u8* itr = mem_begin(data); itr != mem_end(data);) {
@@ -264,6 +265,9 @@ NetResult net_socket_write_sync(NetSocket* s, const String data) {
 NetResult net_socket_read_sync(NetSocket* s, DynString* out) {
   if (s->status != NetResult_Success) {
     return s->status;
+  }
+  if (s->closedMask & NetDir_In) {
+    return NetResult_ConnectionClosed;
   }
   diag_assert(s->handle != INVALID_SOCKET);
 
@@ -282,6 +286,32 @@ NetResult net_socket_read_sync(NetSocket* s, DynString* out) {
     return s->status = NetResult_ConnectionClosed;
   }
   return s->status = net_pal_socket_error();
+}
+
+NetResult net_socket_shutdown(NetSocket* s, const NetDir dir) {
+  if (s->status != NetResult_Success) {
+    return s->status;
+  }
+  if ((s->closedMask & dir) == dir) {
+    return s->status; // Already closed.
+  }
+  diag_assert(s->handle != INVALID_SOCKET);
+
+  int how;
+  if ((dir & NetDir_Both) == NetDir_Both) {
+    how = SD_BOTH;
+  } else if (dir & NetDir_In) {
+    how = SD_RECEIVE;
+  } else {
+    how = SD_SEND;
+  }
+
+  if (g_netWsLib.shutdown(s->handle, how)) {
+    return s->status = net_pal_socket_error();
+  }
+
+  s->closedMask |= dir;
+  return NetResult_Success;
 }
 
 NetResult net_resolve_sync(const String host, NetIp* out) {
