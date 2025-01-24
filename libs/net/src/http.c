@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_ascii.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
 #include "log_logger.h"
@@ -41,20 +42,64 @@ static NetTlsFlags http_tls_flags(const NetHttpFlags flags) {
   return NetTlsFlags_None;
 }
 
-static NetResult http_write_sync(NetHttp* http, const String data) {
+static void http_write_sync(NetHttp* http, const String data) {
   diag_assert(http->status == NetResult_Success);
   if (http->tls) {
-    return net_tls_write_sync(http->tls, http->socket, data);
+    http->status = net_tls_write_sync(http->tls, http->socket, data);
+  } else {
+    http->status = net_socket_write_sync(http->socket, data);
   }
-  return net_socket_write_sync(http->socket, data);
 }
 
-static NetResult http_read_sync(NetHttp* http) {
+static void http_read_sync(NetHttp* http) {
   diag_assert(http->status == NetResult_Success);
   if (http->tls) {
-    return net_tls_read_sync(http->tls, http->socket, &http->readBuffer);
+    http->status = net_tls_read_sync(http->tls, http->socket, &http->readBuffer);
+  } else {
+    http->status = net_socket_read_sync(http->socket, &http->readBuffer);
   }
-  return net_socket_read_sync(http->socket, &http->readBuffer);
+}
+
+static bool http_read_match(NetHttp* http, const String ref) {
+  while (http->status == NetResult_Success) {
+    const String data = string_consume(dynstring_view(&http->readBuffer), http->readCursor);
+    if (data.size >= ref.size) {
+      if (string_starts_with(data, ref)) {
+        http->readCursor += ref.size;
+        return true;
+      }
+      return false; // No match.
+    }
+    http_read_sync(http);
+  }
+  return false; // Error ocurred.
+}
+
+static u64 http_read_integer(NetHttp* http) {
+  while (http->status == NetResult_Success) {
+    const String data       = string_consume(dynstring_view(&http->readBuffer), http->readCursor);
+    usize        digitCount = 0;
+    u64          result     = 0;
+    for (;;) {
+      if (digitCount == data.size) {
+        goto NeedData;
+      }
+      const u8 ch = *string_at(data, digitCount);
+      if (ascii_is_digit(ch)) {
+        result = result * 10 + ascii_to_integer(ch);
+        ++digitCount;
+        continue;
+      }
+      if (digitCount) {
+        http->readCursor += digitCount;
+        return result;
+      }
+      return sentinel_u64; // Not an integer.
+    }
+  NeedData:
+    http_read_sync(http);
+  }
+  return sentinel_u64; // Error ocurred.
 }
 
 static void http_read_clear(NetHttp* http) {
@@ -62,20 +107,15 @@ static void http_read_clear(NetHttp* http) {
   http->readCursor = 0;
 }
 
-static String http_read_remaining(NetHttp* http) {
-  const String full = dynstring_view(&http->readBuffer);
-  return string_slice(full, http->readCursor, full.size - http->readCursor);
-}
-
 static String http_read_until(NetHttp* http, const String pattern) {
   while (http->status == NetResult_Success) {
-    const String text = http_read_remaining(http);
+    const String text = string_consume(dynstring_view(&http->readBuffer), http->readCursor);
     const usize  pos  = string_find_first(text, pattern);
     if (!sentinel_check(pos)) {
       http->readCursor += pos + pattern.size;
       return string_slice(text, 0, pos + pattern.size);
     }
-    http->status = http_read_sync(http);
+    http_read_sync(http);
   }
   return string_empty;
 }
@@ -147,6 +187,9 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
   if (http->status != NetResult_Success) {
     return http->status;
   }
+  /**
+   * Send request.
+   */
   DynString headerBuffer = dynstring_create(g_allocScratch, 4 * usize_kibibyte);
   fmt_write(&headerBuffer, "GET {} HTTP/1.1\r\n", fmt_text(uri));
   fmt_write(&headerBuffer, "Host: {}\r\n", fmt_text(http->host));
@@ -157,9 +200,26 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
   fmt_write(&headerBuffer, "User-Agent: Volo\r\n");
   fmt_write(&headerBuffer, "\r\n");
 
-  http->status = http_write_sync(http, dynstring_view(&headerBuffer));
+  http_write_sync(http, dynstring_view(&headerBuffer));
   if (http->status != NetResult_Success) {
     return http->status;
+  }
+
+  /**
+   * Handle response.
+   */
+  if (!http_read_match(http, string_lit("HTTP"))) {
+    return http->status ? http->status : NetResult_HttpUnsupportedProtocol;
+  }
+  if (!http_read_match(http, string_lit("/1.1"))) {
+    return http->status ? http->status : NetResult_HttpUnsupportedVersion;
+  }
+  if (!http_read_match(http, string_lit(" "))) {
+    return http->status ? http->status : NetResult_HttpMalformedHeader;
+  }
+  const u64 status = http_read_integer(http);
+  if (sentinel_check(status)) {
+    return http->status ? http->status : NetResult_HttpMalformedHeader;
   }
 
   const String headerData = http_read_until(http, string_lit("\r\n\r\n"));
