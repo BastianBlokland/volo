@@ -75,6 +75,19 @@ static bool http_read_match(NetHttp* http, const String ref) {
   return false; // Error ocurred.
 }
 
+static String http_read_until(NetHttp* http, const String pattern) {
+  while (http->status == NetResult_Success) {
+    const String text = string_consume(dynstring_view(&http->readBuffer), http->readCursor);
+    const usize  pos  = string_find_first(text, pattern);
+    if (!sentinel_check(pos)) {
+      http->readCursor += pos + pattern.size;
+      return string_slice(text, 0, pos + pattern.size);
+    }
+    http_read_sync(http);
+  }
+  return string_empty;
+}
+
 static u64 http_read_integer(NetHttp* http) {
   while (http->status == NetResult_Success) {
     const String data       = string_consume(dynstring_view(&http->readBuffer), http->readCursor);
@@ -105,19 +118,6 @@ static u64 http_read_integer(NetHttp* http) {
 static void http_read_clear(NetHttp* http) {
   dynstring_clear(&http->readBuffer);
   http->readCursor = 0;
-}
-
-static String http_read_until(NetHttp* http, const String pattern) {
-  while (http->status == NetResult_Success) {
-    const String text = string_consume(dynstring_view(&http->readBuffer), http->readCursor);
-    const usize  pos  = string_find_first(text, pattern);
-    if (!sentinel_check(pos)) {
-      http->readCursor += pos + pattern.size;
-      return string_slice(text, 0, pos + pattern.size);
-    }
-    http_read_sync(http);
-  }
-  return string_empty;
 }
 
 NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHttpFlags flags) {
@@ -187,18 +187,23 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
   if (http->status != NetResult_Success) {
     return http->status;
   }
+  const String uriOrRoot = string_is_empty(uri) ? string_lit("/") : uri;
+
   /**
    * Send request.
    */
   DynString headerBuffer = dynstring_create(g_allocScratch, 4 * usize_kibibyte);
-  fmt_write(&headerBuffer, "GET {} HTTP/1.1\r\n", fmt_text(uri));
+  fmt_write(&headerBuffer, "GET {} HTTP/1.1\r\n", fmt_text(uriOrRoot));
   fmt_write(&headerBuffer, "Host: {}\r\n", fmt_text(http->host));
   fmt_write(&headerBuffer, "Connection: keep-alive\r\n");
-  // fmt_write(&headerBuffer, "Accept-Encoding: gzip, deflate, identity\r\n");
   fmt_write(&headerBuffer, "Accept-Language: en-US\r\n");
   fmt_write(&headerBuffer, "Accept-Charset: utf-8\r\n");
-  fmt_write(&headerBuffer, "User-Agent: Volo\r\n");
   fmt_write(&headerBuffer, "\r\n");
+
+  log_d(
+      "Http: Sending GET",
+      log_param("host", fmt_text(http->host)),
+      log_param("uri", fmt_text(uriOrRoot)));
 
   http_write_sync(http, dynstring_view(&headerBuffer));
   if (http->status != NetResult_Success) {
@@ -221,14 +226,21 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
   if (sentinel_check(status)) {
     return http->status ? http->status : NetResult_HttpMalformedHeader;
   }
-
-  const String headerData = http_read_until(http, string_lit("\r\n\r\n"));
+  if (!http_read_match(http, string_lit(" "))) {
+    return http->status ? http->status : NetResult_HttpMalformedHeader;
+  }
+  const String reason = http_read_until(http, string_lit("\r\n"));
   if (http->status != NetResult_Success) {
     return http->status;
   }
 
+  log_d(
+      "Http: Received response",
+      log_param("status", fmt_int(status)),
+      log_param("reason", fmt_text(reason)));
+
   // TODO: Read response.
-  (void)headerData;
+  (void)reason;
   (void)out;
 
   // TODO: Check if the server send us unexpected data.
