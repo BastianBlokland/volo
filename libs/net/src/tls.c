@@ -261,6 +261,17 @@ NetTls* net_tls_create(Allocator* alloc, const String host, const NetTlsFlags fl
   if (flags & NetTlsFlags_NoVerify) {
     g_netOpenSslLib.SSL_set_verify(tls->session, SSL_VERIFY_NONE, null /* callback */);
   } else {
+    /**
+     * TODO: Currently we don't load any root certificates so the verification will always fail.
+     *
+     * Steps to get proper general verification:
+     * - Load the systems root certificates (SSL_CTX_load_verify_locations).
+     * - Verify the certificate subject matches the expected host (X509_check_host).
+     * - Check if the certificate was expired using CRL or OCSP.
+     *
+     * Steps to get verification for a known server:
+     * - Verify the certificate matches a known PKI.
+     */
     g_netOpenSslLib.SSL_set_verify(tls->session, SSL_VERIFY_PEER, null /* callback */);
   }
 
