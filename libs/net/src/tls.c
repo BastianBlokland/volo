@@ -24,6 +24,7 @@
 #define SSL_VERIFY_NONE 0x00
 #define SSL_VERIFY_PEER 0x01
 #define SSL_CTRL_MODE 33
+#define SSL_CTRL_SET_TLSEXT_HOSTNAME 55
 #define SSL_MODE_ENABLE_PARTIAL_WRITE 0x00000001U
 #define SSL_ERROR_WANT_READ 2
 #define SSL_ERROR_WANT_WRITE 3
@@ -48,6 +49,7 @@ typedef struct {
   SSL*              (SYS_DECL* SSL_new)(SSL_CTX*);
   void              (SYS_DECL* SSL_free)(SSL*);
   int               (SYS_DECL* SSL_shutdown)(SSL*);
+  long              (SYS_DECL* SSL_ctrl)(SSL*, int cmd, long lArg, void* pArg);
   void              (SYS_DECL* SSL_set_verify)(SSL*, int mode, const void* callback);
   void              (SYS_DECL* SSL_set_connect_state)(SSL*);
   void              (SYS_DECL* SSL_set_bio)(SSL*, BIO* readBio, BIO* writeBio);
@@ -63,6 +65,13 @@ typedef struct {
 
   SSL_CTX* clientContext;
 } NetOpenSsl;
+
+static const char* to_null_term_scratch(const String str) {
+  const Mem scratchMem = alloc_alloc(g_allocScratch, str.size + 1, 1);
+  mem_cpy(scratchMem, str);
+  *mem_at_u8(scratchMem, str.size) = '\0';
+  return scratchMem.ptr;
+}
 
 static u32 net_openssl_lib_names(String outPaths[PARAM_ARRAY_SIZE(net_tls_openssl_names_max)]) {
   const String openSslPath = env_var_scratch(string_lit("OPENSSL_BIN"));
@@ -130,6 +139,7 @@ static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
   OPENSSL_LOAD_SYM(SSL_new);
   OPENSSL_LOAD_SYM(SSL_free);
   OPENSSL_LOAD_SYM(SSL_shutdown);
+  OPENSSL_LOAD_SYM(SSL_ctrl);
   OPENSSL_LOAD_SYM(SSL_set_verify);
   OPENSSL_LOAD_SYM(SSL_set_connect_state);
   OPENSSL_LOAD_SYM(SSL_set_bio);
@@ -223,7 +233,7 @@ static NetResult net_tls_write_ouput_sync(NetTls* tls, NetSocket* socket) {
   }
 }
 
-NetTls* net_tls_create(Allocator* alloc, const NetTlsFlags flags) {
+NetTls* net_tls_create(Allocator* alloc, const String host, const NetTlsFlags flags) {
   NetTls* tls = alloc_alloc_t(alloc, NetTls);
 
   *tls = (NetTls){.alloc = alloc, .readBuffer = dynstring_create(g_allocHeap, usize_kibibyte * 16)};
@@ -239,6 +249,15 @@ NetTls* net_tls_create(Allocator* alloc, const NetTlsFlags flags) {
     return tls;
   }
   g_netOpenSslLib.SSL_set_connect_state(tls->session); // Client mode.
+
+  // SNI (Server Name Indication) host-name.
+  if (!string_is_empty(host)) {
+    const char* hostStr  = to_null_term_scratch(host);
+    const long  nameType = 0; // See RFC3546
+    g_netOpenSslLib.SSL_ctrl(tls->session, SSL_CTRL_SET_TLSEXT_HOSTNAME, nameType, (void*)hostStr);
+  }
+
+  // Configure certificate verification.
   if (flags & NetTlsFlags_NoVerify) {
     g_netOpenSslLib.SSL_set_verify(tls->session, SSL_VERIFY_NONE, null /* callback */);
   } else {
