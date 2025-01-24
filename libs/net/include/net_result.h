@@ -18,6 +18,9 @@ typedef enum eNetResult {
   NetResult_TlsFailed,
   NetResult_TlsClosed,
   NetResult_TlsBufferExhausted,
+  NetResult_HttpUnsupportedProtocol,
+  NetResult_HttpUnsupportedVersion,
+  NetResult_HttpMalformedHeader,
   NetResult_UnknownError,
 
   NetResult_Count,
