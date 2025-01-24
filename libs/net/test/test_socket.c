@@ -50,7 +50,7 @@ spec(socket) {
       NetSocket*    socket = net_socket_connect_sync(g_allocHeap, addr);
       check_eq_int(net_socket_status(socket), NetResult_Success);
 
-      NetTls* tls = net_tls_create(g_allocHeap, NetTlsFlags_NoVerify);
+      NetTls* tls = net_tls_create(g_allocHeap, string_empty /* host */, NetTlsFlags_NoVerify);
       check_eq_int(net_tls_status(tls), NetResult_Success);
 
       check_eq_int(net_tls_write_sync(tls, socket, msg), NetResult_Success);

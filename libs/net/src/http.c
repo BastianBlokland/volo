@@ -184,13 +184,17 @@ NetResult net_http_shutdown_sync(NetHttp* http) {
   if (http->tls) {
     tlsRes = net_tls_shutdown_sync(http->tls, http->socket);
   }
-  log_w("Http: Failed to shutdown Tls", log_param("error", fmt_text(net_result_str(tlsRes))));
+  if (tlsRes != NetResult_Success) {
+    log_w("Http: Failed to shutdown Tls", log_param("error", fmt_text(net_result_str(tlsRes))));
+  }
 
   NetResult sockRes = NetResult_Success;
   if (http->socket) {
     sockRes = net_socket_shutdown(http->socket, NetDir_Both);
   }
-  log_w("Http: Failed to shutdown socket", log_param("error", fmt_text(net_result_str(sockRes))));
+  if (sockRes != NetResult_Success) {
+    log_w("Http: Failed to shutdown socket", log_param("error", fmt_text(net_result_str(sockRes))));
+  }
 
   return tlsRes != NetResult_Success ? tlsRes : sockRes;
 }
