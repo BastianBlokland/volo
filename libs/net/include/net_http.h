@@ -5,7 +5,6 @@ typedef enum {
   NetHttpFlags_None        = 0,
   NetHttpFlags_Tls         = 1 << 0, // Https.
   NetHttpFlags_TlsNoVerify = 1 << 1, // Disable Tls certificate verification.
-  NetHttpFlags_Logging     = 1 << 2,
 } NetHttpFlags;
 
 /**
