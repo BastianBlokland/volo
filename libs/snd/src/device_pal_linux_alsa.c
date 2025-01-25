@@ -443,10 +443,7 @@ void snd_device_destroy(SndDevice* dev) {
 }
 
 String snd_device_id(const SndDevice* dev) {
-  if (string_is_empty(dev->id)) {
-    return dev->state == SndDeviceState_Error ? string_lit("<error>") : string_lit("<unknown>");
-  }
-  return dev->id;
+  return string_is_empty(dev->id) ? string_lit("unknown") : dev->id;
 }
 
 String snd_device_backend(const SndDevice* dev) {
