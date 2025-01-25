@@ -602,16 +602,18 @@ static bool rend_canvas_paint_2d(
   rend_builder_phase_output(b); // Acquire swapchain image.
 
   RvkImage* swapchainImage = rend_builder_img_swapchain(b);
-  rend_builder_img_clear_color(b, swapchainImage, geo_color_black);
+  if (!swapchainImage) {
+    rend_builder_img_clear_color(b, swapchainImage, geo_color_black);
 
-  rend_builder_pass_push(b, platform->passes[AssetGraphicPass_Post]);
-  {
-    const RendView   mainView = painter_view_2d_create(camEntity);
-    RendPaintContext ctx      = painter_context(b, set, time, mainView);
-    rend_builder_attach_color(b, swapchainImage, 0);
-    painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Post);
+    rend_builder_pass_push(b, platform->passes[AssetGraphicPass_Post]);
+    {
+      const RendView   mainView = painter_view_2d_create(camEntity);
+      RendPaintContext ctx      = painter_context(b, set, time, mainView);
+      rend_builder_attach_color(b, swapchainImage, 0);
+      painter_push_objects_simple(&ctx, objView, resView, AssetGraphicPass_Post);
+    }
+    rend_builder_pass_flush(b);
   }
-  rend_builder_pass_flush(b);
 
   rend_builder_canvas_flush(b);
   return true;
@@ -923,8 +925,8 @@ static bool rend_canvas_paint_3d(
   rend_builder_phase_output(b); // Acquire swapchain image.
 
   // Post pass.
-  {
-    RvkImage* swapchainImage = rend_builder_img_swapchain(b);
+  RvkImage* swapchainImage = rend_builder_img_swapchain(b);
+  if (swapchainImage) {
     rend_builder_pass_push(b, platform->passes[AssetGraphicPass_Post]);
 
     RendPaintContext ctx = painter_context(b, set, time, mainView);
