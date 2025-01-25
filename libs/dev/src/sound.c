@@ -327,6 +327,10 @@ static void sound_mixer_draw(UiCanvasComp* c, SndMixerComp* m) {
   sound_draw_mixer_controls(c, m);
 
   const SndBufferView history = snd_mixer_history(m);
+  if (!history.frameCount) {
+    return;
+  }
+
   for (SndChannel chan = 0; chan != SndChannel_Count; ++chan) {
     const String header = fmt_write_scratch("Channel {}", fmt_text(snd_channel_str(chan)));
     sound_draw_table_header(c, &table, header);
