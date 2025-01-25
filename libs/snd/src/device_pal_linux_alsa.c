@@ -184,7 +184,7 @@ static void alsa_error_handler(
 
   String errName = string_lit("<unknown>");
   thread_spinlock_lock(&g_sndErrorHandlerLock);
-  if (g_sndErrorHandlerDev) {
+  if (err && g_sndErrorHandlerDev) {
     errName = alsa_error_str(g_sndErrorHandlerDev, err);
   }
   thread_spinlock_unlock(&g_sndErrorHandlerLock);
@@ -200,6 +200,7 @@ static void alsa_error_handler(
       "Alsa error: {}",
       log_param("msg", fmt_text(msg)),
       log_param("err", fmt_text(errName)),
+      log_param("err-code", fmt_int(err)),
       log_param("file", fmt_text(string_from_null_term(file))),
       log_param("line", fmt_int(line)),
       log_param("func", fmt_text(string_from_null_term(func))));
