@@ -103,7 +103,7 @@ static void rvk_job_submit(
 
   const VkSubmitInfo submitInfo = {
       .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-      .waitSemaphoreCount   = 1,
+      .waitSemaphoreCount   = waitForTarget ? 1 : 0,
       .pWaitSemaphores      = &waitForTarget,
       .pWaitDstStageMask    = &waitForTargetStageMask,
       .commandBufferCount   = 1,
