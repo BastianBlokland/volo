@@ -548,6 +548,25 @@ ecs_system_define(SndMixerRenderBeginSys) {
     --m->warmupTicks;
     return;
   }
+  if (snd_device_state(m->device) == SndDeviceState_Error) {
+    /**
+     * The sound device is in an error state, skip the sounds forward so that they are not too far
+     * behind when the device potentially recovers in the future and starts playing again.
+     */
+    const TimeSteady   now   = time_steady_clock();
+    const TimeDuration delta = time_steady_duration(m->deviceTimeHead, now);
+    for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
+      SndObject* obj = &m->objects[i];
+      if (obj->phase == SndObjectPhase_Playing) {
+        if ((obj->flags & SndObjectFlags_Stop) || !snd_object_skip(obj, delta)) {
+          ++obj->phase; // Object has stopped or finished playing after the skip duration.
+        }
+      }
+    }
+    m->deviceRequestedFrames = 0;
+    m->deviceTimeHead        = now;
+    return;
+  }
   if (!snd_device_begin(m->device)) {
     m->deviceRequestedFrames = 0;
     return;
@@ -564,8 +583,10 @@ ecs_system_define(SndMixerRenderBeginSys) {
     const TimeDuration skipDur = devicePeriod.timeBegin - m->deviceTimeHead;
     for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
       SndObject* obj = &m->objects[i];
-      if (obj->phase == SndObjectPhase_Playing && !snd_object_skip(obj, skipDur)) {
-        ++obj->phase; // Object is finished playing after the skip duration.
+      if (obj->phase == SndObjectPhase_Playing) {
+        if ((obj->flags & SndObjectFlags_Stop) || !snd_object_skip(obj, skipDur)) {
+          ++obj->phase; // Object has stopped or finished playing after the skip duration.
+        }
       }
     }
   }
