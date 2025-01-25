@@ -583,8 +583,10 @@ ecs_system_define(SndMixerRenderBeginSys) {
     const TimeDuration skipDur = devicePeriod.timeBegin - m->deviceTimeHead;
     for (u32 i = 0; i != snd_mixer_objects_max; ++i) {
       SndObject* obj = &m->objects[i];
-      if (obj->phase == SndObjectPhase_Playing && !snd_object_skip(obj, skipDur)) {
-        ++obj->phase; // Object is finished playing after the skip duration.
+      if (obj->phase == SndObjectPhase_Playing) {
+        if ((obj->flags & SndObjectFlags_Stop) || !snd_object_skip(obj, skipDur)) {
+          ++obj->phase; // Object has stopped or finished playing after the skip duration.
+        }
       }
     }
   }
