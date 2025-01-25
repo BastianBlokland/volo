@@ -273,29 +273,34 @@ void rvk_canvas_end(RvkCanvas* canvas) {
     rvk_pass_frame_end(frame->passes[passIdx], frame->passFrames[passIdx]);
   }
 
-  RvkImage* swapchainImage = rvk_swapchain_image(canvas->swapchain, frame->swapchainIdx);
-  // If using a swapchain-fallback copy the final content into the swapchain.
-  if (frame->swapchainFallback) {
-    rvk_job_img_blit(frame->job, frame->swapchainFallback, swapchainImage);
-    rvk_attach_release(canvas->attachPool, frame->swapchainFallback);
-    frame->swapchainFallback = null;
+  const bool hasSwapchain = !sentinel_check(frame->swapchainIdx);
+  if (hasSwapchain) {
+    RvkImage* swapchainImage = rvk_swapchain_image(canvas->swapchain, frame->swapchainIdx);
+    // If using a swapchain-fallback copy the final content into the swapchain.
+    if (frame->swapchainFallback) {
+      rvk_job_img_blit(frame->job, frame->swapchainFallback, swapchainImage);
+      rvk_attach_release(canvas->attachPool, frame->swapchainFallback);
+      frame->swapchainFallback = null;
+    }
+    // Transition the swapchain-image to the present phase.
+    rvk_job_img_transition(frame->job, swapchainImage, RvkImagePhase_Present);
   }
-  // Transition the swapchain-image to the present phase.
-  rvk_job_img_transition(frame->job, swapchainImage, RvkImagePhase_Present);
 
   trace_begin("rend_submit", TraceColor_White);
-  {
+  if (hasSwapchain) {
     const VkSemaphore waitSignal   = frame->swapchainAvailable;
     const VkSemaphore endSignals[] = {frame->swapchainPresent /* Trigger the present. */};
     rvk_job_end(frame->job, waitSignal, endSignals, array_elems(endSignals));
+  } else {
+    rvk_job_end(frame->job, null, null, 0);
   }
   trace_end();
 
-  trace_begin("rend_present_enqueue", TraceColor_White);
-  {
+  if (hasSwapchain) {
+    trace_begin("rend_present_enqueue", TraceColor_White);
     rvk_swapchain_enqueue_present(canvas->swapchain, frame->swapchainPresent, frame->swapchainIdx);
+    trace_end();
   }
-  trace_end();
 
   rvk_attach_pool_flush(canvas->attachPool);
 
