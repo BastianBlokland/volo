@@ -28,7 +28,7 @@ typedef enum {
 typedef struct {
   RvkJob*         job;
   VkSemaphore     swapchainAvailable, swapchainPresent;
-  RvkSwapchainIdx swapchainIdx;
+  RvkSwapchainIdx swapchainIdx;      // sentinel_u32 when not acquired yet or failed to acquire.
   RvkImage*       swapchainFallback; // Only used when the preferred format is not available.
   RvkPass*        passes[rvk_canvas_max_passes];
   RvkPassHandle   passFrames[rvk_canvas_max_passes];
@@ -242,6 +242,10 @@ RvkImage* rvk_canvas_swapchain_image(RvkCanvas* canvas) {
   diag_assert_msg(
       rvk_job_phase(frame->job) == RvkJobPhase_Output,
       "Swapchain image can only be acquired in the output phase");
+
+  if (sentinel_check(frame->swapchainIdx)) {
+    return null; // Failed to acquire a swapchain image.
+  }
 
   if (rvk_swapchain_format(canvas->swapchain) == canvas->dev->preferredSwapchainFormat) {
     return rvk_swapchain_image(canvas->swapchain, frame->swapchainIdx);
