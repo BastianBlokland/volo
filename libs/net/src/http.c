@@ -398,8 +398,29 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
       log_param("age", fmt_int(response.age)),
       log_param("body-size", fmt_size(response.body.size)));
 
-  dynstring_append(out, response.body);
-  return NetResult_Success;
+  if (response.status >= 500) {
+    return NetResult_HttpServerError;
+  }
+  if (response.status >= 400) {
+    switch (response.status) {
+    case 401:
+      return NetResult_HttpUnauthorized;
+    case 403:
+      return NetResult_HttpForbidden;
+    case 404:
+      return NetResult_HttpNotFound;
+    default:
+      return NetResult_HttpClientError;
+    }
+  }
+  if (response.status >= 300) {
+    return NetResult_HttpRedirected;
+  }
+  if (response.status >= 200) {
+    dynstring_append(out, response.body);
+    return NetResult_Success;
+  }
+  return NetResult_HttpServerError;
 }
 
 NetResult net_http_shutdown_sync(NetHttp* http) {
