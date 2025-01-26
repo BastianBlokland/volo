@@ -21,6 +21,7 @@ typedef struct sNetTls NetTls;
  * Create a new Tls session.
  * Optionally provide a host-name to support SNI (Server Name Indication).
  * NOTE: Tls handshake is transparently performed on the first read / write.
+ * Should be cleaned up using 'net_tls_destroy()'.
  */
 NetTls* net_tls_create(Allocator*, String host, NetTlsFlags);
 
