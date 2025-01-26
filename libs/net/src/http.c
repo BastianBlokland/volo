@@ -35,13 +35,6 @@ typedef struct {
   String body;
 } NetHttpResponse;
 
-static u16 http_port(const NetHttpFlags flags) {
-  if (flags & NetHttpFlags_Tls) {
-    return 443;
-  }
-  return 80;
-}
-
 static NetTlsFlags http_tls_flags(const NetHttpFlags flags) {
   if (flags & NetHttpFlags_TlsNoVerify) {
     return NetTlsFlags_NoVerify;
@@ -216,7 +209,7 @@ static NetHttpResponse http_read_response(NetHttp* http) {
 
 static void http_read_end(NetHttp* http) {
   if (http->readBuffer.size != http->readCursor) {
-    http->status = NetResult_HttpUnexpectedData;
+    http_set_err(http, NetResult_HttpUnexpectedData);
   }
   dynstring_clear(&http->readBuffer);
   http->readCursor = 0;
@@ -243,7 +236,7 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
         log_param("host", fmt_text(host)));
     return http;
   }
-  http->hostAddr = (NetAddr){.ip = hostIp, .port = http_port(flags)};
+  http->hostAddr = (NetAddr){.ip = hostIp, .port = flags & NetHttpFlags_Tls ? 443 : 80};
 
   log_d(
       "Http: Connecting to host",
@@ -285,8 +278,7 @@ void net_http_destroy(NetHttp* http) {
   alloc_free_t(http->alloc, http);
 }
 
-NetResult net_http_status(const NetHttp* http) { return http->status; }
-
+NetResult      net_http_status(const NetHttp* http) { return http->status; }
 const NetAddr* net_http_remote(const NetHttp* http) { return &http->hostAddr; }
 String         net_http_remote_name(const NetHttp* http) { return http->host; }
 
