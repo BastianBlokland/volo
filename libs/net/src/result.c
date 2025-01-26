@@ -23,6 +23,7 @@ static const String g_netResultStrs[] = {
     [NetResult_HttpUnsupportedProtocol] = string_static("HttpUnsupportedProtocol"),
     [NetResult_HttpUnsupportedVersion]  = string_static("HttpUnsupportedVersion"),
     [NetResult_HttpMalformedHeader]     = string_static("HttpMalformedHeader"),
+    [NetResult_HttpUnexpectedData]      = string_static("HttpUnexpectedData"),
     [NetResult_UnknownError]            = string_static("NetUnknownError"),
 };
 
