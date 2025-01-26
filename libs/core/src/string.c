@@ -63,6 +63,25 @@ i8 string_cmp(const String a, const String b) { return mem_cmp(a, b); }
 
 bool string_eq(const String a, const String b) { return mem_eq(a, b); }
 
+bool string_eq_no_case(const String a, const String b) {
+  if (a.size != b.size) {
+    return false;
+  }
+  for (usize i = 0; i != a.size; ++i) {
+    u8 chA = *string_at(a, i);
+    u8 chB = *string_at(b, i);
+
+    // To lower-case.
+    chA ^= chA >= 'A' && chA <= 'Z' ? 0x20 : 0;
+    chB ^= chB >= 'A' && chB <= 'Z' ? 0x20 : 0;
+
+    if (chA != chB) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool string_starts_with(const String str, const String start) {
   return str.size >= start.size && string_eq(string_slice(str, 0, start.size), start);
 }
