@@ -32,6 +32,7 @@ typedef struct sNetHttp {
 typedef struct {
   u64    status;
   String reason;
+  String contentType;
   String body;
 } NetHttpResponse;
 
@@ -40,6 +41,21 @@ static NetTlsFlags http_tls_flags(const NetHttpFlags flags) {
     return NetTlsFlags_NoVerify;
   }
   return NetTlsFlags_None;
+}
+
+static bool http_is_word_char(const u8 ch) {
+  if (ascii_is_letter(ch) || ascii_is_digit(ch)) {
+    return true;
+  }
+  switch (ch) {
+  case '-':
+  case '+':
+  case '/':
+  case '.':
+    return true;
+  default:
+    return false;
+  }
 }
 
 static void http_set_err(NetHttp* http, const NetResult err) {
@@ -131,7 +147,24 @@ static String http_read_sized(NetHttp* http, const usize size) {
     }
     http_read_sync(http);
   }
-  return string_empty;
+  return string_empty; // Error occurred.
+}
+
+static String http_read_word(NetHttp* http) {
+  while (http->status == NetResult_Success) {
+    const String data = string_consume(dynstring_view(&http->readBuffer), http->readCursor);
+    if (!string_is_empty(data)) {
+      usize pos = 0;
+      for (; pos != data.size && http_is_word_char(*string_at(data, pos)); ++pos)
+        ;
+      if (pos && pos != data.size) {
+        http->readCursor += pos;
+        return string_slice(data, 0, pos);
+      }
+    }
+    http_read_sync(http);
+  }
+  return string_empty; // Error occurred.
 }
 
 static u64 http_read_integer(NetHttp* http) {
@@ -195,6 +228,10 @@ static NetHttpResponse http_read_response(NetHttp* http) {
     if (string_eq(fieldName, string_lit("Content-Length"))) {
       // Read the field value.
       if (sentinel_check((contentLength = (usize)http_read_integer(http)))) {
+        return http_set_err(http, NetResult_HttpMalformedHeader), res;
+      }
+    } else if (string_eq(fieldName, string_lit("Content-Type"))) {
+      if (!(res.contentType = http_read_word(http)).size) {
         return http_set_err(http, NetResult_HttpMalformedHeader), res;
       }
     }
@@ -317,6 +354,7 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
       "Http: Received response",
       log_param("status", fmt_int(response.status)),
       log_param("reason", fmt_text(response.reason)),
+      log_param("content-type", fmt_text(response.contentType)),
       log_param("body-size", fmt_size(response.body.size)));
 
   dynstring_append(out, response.body);
