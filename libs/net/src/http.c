@@ -150,6 +150,15 @@ static void http_read_end(NetHttp* http) {
   http->readCursor = 0;
 }
 
+static void http_request_get_header(const NetHttp* http, const String uri, DynString* out) {
+  fmt_write(out, "GET {} HTTP/1.1\r\n", fmt_text(uri));
+  fmt_write(out, "Host: {}\r\n", fmt_text(http->host));
+  fmt_write(out, "Connection: keep-alive\r\n");
+  fmt_write(out, "Accept-Language: en-US\r\n");
+  fmt_write(out, "Accept-Charset: utf-8\r\n");
+  fmt_write(out, "\r\n");
+}
+
 NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHttpFlags flags) {
   NetHttp* http = alloc_alloc_t(alloc, NetHttp);
 
@@ -228,12 +237,7 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
    * Send request.
    */
   DynString headerBuffer = dynstring_create(g_allocScratch, 4 * usize_kibibyte);
-  fmt_write(&headerBuffer, "GET {} HTTP/1.1\r\n", fmt_text(uriOrRoot));
-  fmt_write(&headerBuffer, "Host: {}\r\n", fmt_text(http->host));
-  fmt_write(&headerBuffer, "Connection: keep-alive\r\n");
-  fmt_write(&headerBuffer, "Accept-Language: en-US\r\n");
-  fmt_write(&headerBuffer, "Accept-Charset: utf-8\r\n");
-  fmt_write(&headerBuffer, "\r\n");
+  http_request_get_header(http, uriOrRoot, &headerBuffer);
 
   log_d(
       "Http: Sending GET",
