@@ -273,6 +273,9 @@ static NetHttpResponse http_read_response(NetHttp* http) {
       return res;
     }
   }
+  if (!string_eq(res.transferEncoding, string_lit("identity"))) {
+    return http_set_err(http, NetResult_HttpMalformedHeader), res;
+  }
   res.body = http_read_sized(http, contentLength);
   return res;
 }
