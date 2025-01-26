@@ -22,6 +22,7 @@ typedef struct sNetHttp {
   NetSocket*   socket;
   NetTls*      tls;  // Only valid when using Https.
   String       host; // Hostname of the target server.
+  NetAddr      hostAddr;
   NetHttpFlags flags;
   NetResult    status;
   DynString    readBuffer;
@@ -170,17 +171,19 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
         log_param("host", fmt_text(host)));
     return http;
   }
-  const NetAddr hostAddr = {.ip = hostIp, .port = http_port(flags)};
+  http->hostAddr = (NetAddr){.ip = hostIp, .port = http_port(flags)};
 
-  log_d("Http: Connecting to host", log_param("addr", fmt_text(net_addr_str_scratch(&hostAddr))));
+  log_d(
+      "Http: Connecting to host",
+      log_param("addr", fmt_text(net_addr_str_scratch(&http->hostAddr))));
 
-  http->socket = net_socket_connect_sync(alloc, hostAddr);
+  http->socket = net_socket_connect_sync(alloc, http->hostAddr);
   http->status = net_socket_status(http->socket);
   if (http->status != NetResult_Success) {
     log_w(
         "Http: Failed to connect to host",
         log_param("error", fmt_text(net_result_str(http->status))),
-        log_param("address", fmt_text(net_addr_str_scratch(&hostAddr))));
+        log_param("address", fmt_text(net_addr_str_scratch(&http->hostAddr))));
     return http;
   }
 
@@ -211,6 +214,9 @@ void net_http_destroy(NetHttp* http) {
 }
 
 NetResult net_http_status(const NetHttp* http) { return http->status; }
+
+const NetAddr* net_http_remote(const NetHttp* http) { return &http->hostAddr; }
+String         net_http_remote_name(const NetHttp* http) { return http->host; }
 
 NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
   if (http->status != NetResult_Success) {
