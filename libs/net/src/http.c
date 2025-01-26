@@ -61,6 +61,31 @@ static bool http_is_word_char(const u8 ch) {
   }
 }
 
+static NetResult http_status_result(const u64 status) {
+  if (status >= 500) {
+    return NetResult_HttpServerError;
+  }
+  if (status >= 400) {
+    switch (status) {
+    case 401:
+      return NetResult_HttpUnauthorized;
+    case 403:
+      return NetResult_HttpForbidden;
+    case 404:
+      return NetResult_HttpNotFound;
+    default:
+      return NetResult_HttpClientError;
+    }
+  }
+  if (status >= 300) {
+    return NetResult_HttpRedirected;
+  }
+  if (status >= 200) {
+    return NetResult_Success;
+  }
+  return NetResult_HttpServerError;
+}
+
 static void http_set_err(NetHttp* http, const NetResult err) {
   // NOTE: Don't override a previous error.
   if (http->status == NetResult_Success) {
@@ -398,29 +423,11 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
       log_param("age", fmt_int(response.age)),
       log_param("body-size", fmt_size(response.body.size)));
 
-  if (response.status >= 500) {
-    return NetResult_HttpServerError;
-  }
-  if (response.status >= 400) {
-    switch (response.status) {
-    case 401:
-      return NetResult_HttpUnauthorized;
-    case 403:
-      return NetResult_HttpForbidden;
-    case 404:
-      return NetResult_HttpNotFound;
-    default:
-      return NetResult_HttpClientError;
-    }
-  }
-  if (response.status >= 300) {
-    return NetResult_HttpRedirected;
-  }
-  if (response.status >= 200) {
+  const NetResult result = http_status_result(response.status);
+  if (result == NetResult_Success) {
     dynstring_append(out, response.body);
-    return NetResult_Success;
   }
-  return NetResult_HttpServerError;
+  return result;
 }
 
 NetResult net_http_shutdown_sync(NetHttp* http) {
