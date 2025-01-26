@@ -24,6 +24,7 @@
 #define SSL_VERIFY_NONE 0x00
 #define SSL_VERIFY_PEER 0x01
 #define SSL_CTRL_MODE 33
+#define SSL_CTRL_SET_TLSEXT_HOSTNAME 55
 #define SSL_MODE_ENABLE_PARTIAL_WRITE 0x00000001U
 #define SSL_ERROR_WANT_READ 2
 #define SSL_ERROR_WANT_WRITE 3
@@ -48,6 +49,7 @@ typedef struct {
   SSL*              (SYS_DECL* SSL_new)(SSL_CTX*);
   void              (SYS_DECL* SSL_free)(SSL*);
   int               (SYS_DECL* SSL_shutdown)(SSL*);
+  long              (SYS_DECL* SSL_ctrl)(SSL*, int cmd, long lArg, void* pArg);
   void              (SYS_DECL* SSL_set_verify)(SSL*, int mode, const void* callback);
   void              (SYS_DECL* SSL_set_connect_state)(SSL*);
   void              (SYS_DECL* SSL_set_bio)(SSL*, BIO* readBio, BIO* writeBio);
@@ -63,6 +65,13 @@ typedef struct {
 
   SSL_CTX* clientContext;
 } NetOpenSsl;
+
+static const char* to_null_term_scratch(const String str) {
+  const Mem scratchMem = alloc_alloc(g_allocScratch, str.size + 1, 1);
+  mem_cpy(scratchMem, str);
+  *mem_at_u8(scratchMem, str.size) = '\0';
+  return scratchMem.ptr;
+}
 
 static u32 net_openssl_lib_names(String outPaths[PARAM_ARRAY_SIZE(net_tls_openssl_names_max)]) {
   const String openSslPath = env_var_scratch(string_lit("OPENSSL_BIN"));
@@ -83,6 +92,7 @@ static u32 net_openssl_lib_names(String outPaths[PARAM_ARRAY_SIZE(net_tls_openss
     outPaths[count++] = path_build_scratch(openSslPath, string_lit("libssl.so"));
   }
 #endif
+  diag_assert(count <= net_tls_openssl_names_max);
   return count;
 }
 
@@ -95,7 +105,7 @@ static void net_openssl_handle_errors(NetOpenSsl* ssl) {
     }
     ssl->ERR_error_string_n(err, buffer, sizeof(buffer));
     const String msg = string_from_null_term(buffer);
-    log_e("OpenSSL {}", log_param("msg", fmt_text(msg)), log_param("code", fmt_int((u64)err)));
+    log_e("OpenSSL error", log_param("msg", fmt_text(msg)), log_param("code", fmt_int((u64)err)));
   }
 }
 
@@ -129,6 +139,7 @@ static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
   OPENSSL_LOAD_SYM(SSL_new);
   OPENSSL_LOAD_SYM(SSL_free);
   OPENSSL_LOAD_SYM(SSL_shutdown);
+  OPENSSL_LOAD_SYM(SSL_ctrl);
   OPENSSL_LOAD_SYM(SSL_set_verify);
   OPENSSL_LOAD_SYM(SSL_set_connect_state);
   OPENSSL_LOAD_SYM(SSL_set_bio);
@@ -222,7 +233,7 @@ static NetResult net_tls_write_ouput_sync(NetTls* tls, NetSocket* socket) {
   }
 }
 
-NetTls* net_tls_create(Allocator* alloc, const NetTlsFlags flags) {
+NetTls* net_tls_create(Allocator* alloc, const String host, const NetTlsFlags flags) {
   NetTls* tls = alloc_alloc_t(alloc, NetTls);
 
   *tls = (NetTls){.alloc = alloc, .readBuffer = dynstring_create(g_allocHeap, usize_kibibyte * 16)};
@@ -238,9 +249,29 @@ NetTls* net_tls_create(Allocator* alloc, const NetTlsFlags flags) {
     return tls;
   }
   g_netOpenSslLib.SSL_set_connect_state(tls->session); // Client mode.
+
+  // SNI (Server Name Indication) host-name.
+  if (!string_is_empty(host)) {
+    const char* hostStr  = to_null_term_scratch(host);
+    const long  nameType = 0; // See RFC3546
+    g_netOpenSslLib.SSL_ctrl(tls->session, SSL_CTRL_SET_TLSEXT_HOSTNAME, nameType, (void*)hostStr);
+  }
+
+  // Configure certificate verification.
   if (flags & NetTlsFlags_NoVerify) {
     g_netOpenSslLib.SSL_set_verify(tls->session, SSL_VERIFY_NONE, null /* callback */);
   } else {
+    /**
+     * TODO: Currently we don't load any root certificates so the verification will always fail.
+     *
+     * Steps to get proper general verification:
+     * - Load the systems root certificates (SSL_CTX_load_verify_locations).
+     * - Verify the certificate subject matches the expected host (X509_check_host).
+     * - Check if the certificate was expired using CRL or OCSP.
+     *
+     * Steps to get verification for a known server:
+     * - Verify the certificate matches a known PKI.
+     */
     g_netOpenSslLib.SSL_set_verify(tls->session, SSL_VERIFY_PEER, null /* callback */);
   }
 
@@ -368,16 +399,19 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
 
 NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
   if (tls->status != NetResult_Success && tls->status != NetResult_TlsClosed) {
-    return tls->status;
+    return NetResult_Success; // Session failed, no need to shutdown.
   }
   diag_assert(g_netOpenSslReady && tls->session);
+
+  Mem buffer = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
 
   // Ask OpenSSL to shutdown the connection.
   g_netOpenSslLib.SSL_shutdown(tls->session);
 
   // Wait for the connection to be closed.
   for (;;) {
-    const int ret = g_netOpenSslLib.SSL_read_ex(tls->session, null, 0, 0);
+    size_t    bytesRead;
+    const int ret = g_netOpenSslLib.SSL_read_ex(tls->session, buffer.ptr, buffer.size, &bytesRead);
     const int err = g_netOpenSslLib.SSL_get_error(tls->session, ret);
 
     // Write any output to the socket (OpenSSL needs to send the close_notify alert message).
@@ -386,9 +420,16 @@ NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
       return tls->status; // Shutdown failed.
     }
 
+    if (ret > 0) {
+      continue; // Input data was left in the buffer; discard it.
+    }
+
     switch (err) {
     case SSL_ERROR_WANT_READ:
       tls->status = net_tls_read_input_sync(tls, socket);
+      if (tls->status == NetResult_ConnectionClosed) {
+        return NetResult_Success; // Shutdown successful. Remote closed the socket.
+      }
       if (tls->status != NetResult_Success) {
         return tls->status; // Shutdown failed.
       }

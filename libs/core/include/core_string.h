@@ -130,6 +130,7 @@ i8 string_cmp(String a, String b);
  * Check if strings a and b are equal.
  */
 bool string_eq(String a, String b);
+bool string_eq_no_case(String a, String b);
 
 /**
  * Check if a string starts with a specific sub-string.

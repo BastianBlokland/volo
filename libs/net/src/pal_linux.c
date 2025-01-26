@@ -211,13 +211,12 @@ NetResult net_socket_read_sync(NetSocket* s, DynString* out) {
 }
 
 NetResult net_socket_shutdown(NetSocket* s, const NetDir dir) {
-  if (s->status != NetResult_Success) {
-    return s->status;
-  }
   if ((s->closedMask & dir) == dir) {
-    return s->status; // Already closed.
+    return NetResult_Success; // Already closed.
   }
-  diag_assert(s->handle >= 0);
+  if (s->handle < 0) {
+    return NetResult_Success; // Socket was never opened.
+  }
 
   int how;
   if ((dir & NetDir_Both) == NetDir_Both) {

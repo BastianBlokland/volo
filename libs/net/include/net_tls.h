@@ -19,9 +19,11 @@ typedef struct sNetTls NetTls;
 
 /**
  * Create a new Tls session.
+ * Optionally provide a host-name to support SNI (Server Name Indication).
  * NOTE: Tls handshake is transparently performed on the first read / write.
+ * Should be cleaned up using 'net_tls_destroy()'.
  */
-NetTls* net_tls_create(Allocator*, NetTlsFlags);
+NetTls* net_tls_create(Allocator*, String host, NetTlsFlags);
 
 /**
  * Destroy the given Tls session.
@@ -42,7 +44,7 @@ NetResult net_tls_write_sync(NetTls*, NetSocket*, String);
 /**
  * Synchronously read a block of available data in the dynamic-string.
  */
-NetResult net_tls_read_sync(NetTls*, NetSocket*, DynString*);
+NetResult net_tls_read_sync(NetTls*, NetSocket*, DynString* out);
 
 /**
  * Synchonously shutdown the Tls session.
