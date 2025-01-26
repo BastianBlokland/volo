@@ -77,11 +77,37 @@ static bool http_read_match(NetHttp* http, const String ref) {
 
 static String http_read_until(NetHttp* http, const String pattern) {
   while (http->status == NetResult_Success) {
-    const String text = string_consume(dynstring_view(&http->readBuffer), http->readCursor);
-    const usize  pos  = string_find_first(text, pattern);
+    const String data = string_consume(dynstring_view(&http->readBuffer), http->readCursor);
+    const usize  pos  = string_find_first(data, pattern);
     if (!sentinel_check(pos)) {
       http->readCursor += pos + pattern.size;
-      return string_slice(text, 0, pos + pattern.size);
+      return string_slice(data, 0, pos);
+    }
+    http_read_sync(http);
+  }
+  return string_empty;
+}
+
+static void http_read_skip_any(NetHttp* http, const String chars) {
+  while (http->status == NetResult_Success) {
+    const String data = string_consume(dynstring_view(&http->readBuffer), http->readCursor);
+    if (!string_is_empty(data)) {
+      usize pos = 0;
+      for (; pos != data.size && mem_contains(chars, *string_at(data, pos)); ++pos)
+        ;
+      http->readCursor += pos;
+      break;
+    }
+    http_read_sync(http);
+  }
+}
+
+static String http_read_sized(NetHttp* http, const usize size) {
+  while (http->status == NetResult_Success) {
+    const String data = string_consume(dynstring_view(&http->readBuffer), http->readCursor);
+    if (data.size >= size) {
+      http->readCursor += size;
+      return string_slice(data, 0, size);
     }
     http_read_sync(http);
   }
@@ -115,7 +141,10 @@ static u64 http_read_integer(NetHttp* http) {
   return sentinel_u64; // Error ocurred.
 }
 
-static void http_read_clear(NetHttp* http) {
+static void http_read_end(NetHttp* http) {
+  if (http->readBuffer.size != http->readCursor) {
+    http->status = NetResult_HttpUnexpectedData;
+  }
   dynstring_clear(&http->readBuffer);
   http->readCursor = 0;
 }
@@ -223,13 +252,39 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
     return http->status ? http->status : NetResult_HttpMalformedHeader;
   }
   const u64 status = http_read_integer(http);
-  if (sentinel_check(status)) {
-    return http->status ? http->status : NetResult_HttpMalformedHeader;
-  }
   if (!http_read_match(http, string_lit(" "))) {
     return http->status ? http->status : NetResult_HttpMalformedHeader;
   }
   const String reason = http_read_until(http, string_lit("\r\n"));
+  if (http->status != NetResult_Success) {
+    return http->status;
+  }
+  usize contentLength = 0;
+  for (;;) {
+    if (http_read_match(http, string_lit("\r\n"))) {
+      break; // End of header.
+    }
+    const String fieldName = http_read_until(http, string_lit(":"));
+    if (http->status != NetResult_Success) {
+      return http->status ? http->status : NetResult_HttpMalformedHeader;
+    }
+    http_read_skip_any(http, string_lit(" \t"));
+    if (string_eq(fieldName, string_lit("Content-Length"))) {
+      contentLength = (usize)http_read_integer(http);
+    }
+    http_read_until(http, string_lit("\r\n"));
+    if (http->status != NetResult_Success) {
+      return http->status;
+    }
+  }
+
+  if (sentinel_check(contentLength)) {
+    return NetResult_HttpMalformedHeader;
+  }
+  const String body = http_read_sized(http, contentLength);
+  dynstring_append(out, body);
+
+  http_read_end(http);
   if (http->status != NetResult_Success) {
     return http->status;
   }
@@ -238,13 +293,6 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
       "Http: Received response",
       log_param("status", fmt_int(status)),
       log_param("reason", fmt_text(reason)));
-
-  // TODO: Read response.
-  (void)reason;
-  (void)out;
-
-  // TODO: Check if the server send us unexpected data.
-  http_read_clear(http);
 
   return NetResult_Success;
 }
