@@ -32,7 +32,10 @@ typedef struct sNetHttp {
 typedef struct {
   u64    status;
   String reason;
-  String contentType;
+  String server, via;
+  String contentType, contentEncoding, contentMd5;
+  String transferEncoding;
+  u64    age;
   String body;
 } NetHttpResponse;
 
@@ -195,7 +198,14 @@ static u64 http_read_integer(NetHttp* http) {
 }
 
 static NetHttpResponse http_read_response(NetHttp* http) {
-  NetHttpResponse res = {0};
+  NetHttpResponse res = {
+      .reason           = string_lit("unknown"),
+      .server           = string_lit("unknown"),
+      .via              = string_lit("unknown"),
+      .contentType      = string_lit("text/plain"),
+      .contentEncoding  = string_lit("identity"),
+      .transferEncoding = string_lit("identity"),
+  };
   if (!http_read_match(http, string_lit("HTTP"))) {
     return http_set_err(http, NetResult_HttpUnsupportedProtocol), res;
   }
@@ -225,13 +235,36 @@ static NetHttpResponse http_read_response(NetHttp* http) {
       return http_set_err(http, NetResult_HttpMalformedHeader), res;
     }
     http_read_skip_any(http, string_lit(" \t"));
-    if (string_eq(fieldName, string_lit("Content-Length"))) {
-      // Read the field value.
+    if (string_eq(fieldName, string_lit("Server"))) {
+      if (!(res.server = http_read_until(http, string_lit("\r\n"))).size) {
+        return http_set_err(http, NetResult_HttpMalformedHeader), res;
+      }
+    } else if (string_eq(fieldName, string_lit("Via"))) {
+      if (!(res.via = http_read_until(http, string_lit("\r\n"))).size) {
+        return http_set_err(http, NetResult_HttpMalformedHeader), res;
+      }
+    } else if (string_eq(fieldName, string_lit("Content-Length"))) {
       if (sentinel_check((contentLength = (usize)http_read_integer(http)))) {
         return http_set_err(http, NetResult_HttpMalformedHeader), res;
       }
     } else if (string_eq(fieldName, string_lit("Content-Type"))) {
       if (!(res.contentType = http_read_word(http)).size) {
+        return http_set_err(http, NetResult_HttpMalformedHeader), res;
+      }
+    } else if (string_eq(fieldName, string_lit("Content-Encoding"))) {
+      if (!(res.contentEncoding = http_read_word(http)).size) {
+        return http_set_err(http, NetResult_HttpMalformedHeader), res;
+      }
+    } else if (string_eq(fieldName, string_lit("Content-MD5"))) {
+      if (!(res.contentMd5 = http_read_word(http)).size) {
+        return http_set_err(http, NetResult_HttpMalformedHeader), res;
+      }
+    } else if (string_eq(fieldName, string_lit("Transfer-Encoding"))) {
+      if (!(res.transferEncoding = http_read_word(http)).size) {
+        return http_set_err(http, NetResult_HttpMalformedHeader), res;
+      }
+    } else if (string_eq(fieldName, string_lit("Age"))) {
+      if (sentinel_check((res.age = (usize)http_read_integer(http)))) {
         return http_set_err(http, NetResult_HttpMalformedHeader), res;
       }
     }
@@ -354,7 +387,12 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
       "Http: Received response",
       log_param("status", fmt_int(response.status)),
       log_param("reason", fmt_text(response.reason)),
+      log_param("server", fmt_text(response.server)),
+      log_param("via", fmt_text(response.via)),
       log_param("content-type", fmt_text(response.contentType)),
+      log_param("content-encoding", fmt_text(response.contentEncoding)),
+      log_param("transfer-encoding", fmt_text(response.transferEncoding)),
+      log_param("age", fmt_int(response.age)),
       log_param("body-size", fmt_size(response.body.size)));
 
   dynstring_append(out, response.body);
