@@ -235,35 +235,35 @@ static NetHttpResponse http_read_response(NetHttp* http) {
       return http_set_err(http, NetResult_HttpMalformedHeader), res;
     }
     http_read_skip_any(http, string_lit(" \t"));
-    if (string_eq(fieldName, string_lit("Server"))) {
+    if (string_eq_no_case(fieldName, string_lit("Server"))) {
       if (!(res.server = http_read_until(http, string_lit("\r\n"))).size) {
         return http_set_err(http, NetResult_HttpMalformedHeader), res;
       }
-    } else if (string_eq(fieldName, string_lit("Via"))) {
+    } else if (string_eq_no_case(fieldName, string_lit("Via"))) {
       if (!(res.via = http_read_until(http, string_lit("\r\n"))).size) {
         return http_set_err(http, NetResult_HttpMalformedHeader), res;
       }
-    } else if (string_eq(fieldName, string_lit("Content-Length"))) {
+    } else if (string_eq_no_case(fieldName, string_lit("Content-Length"))) {
       if (sentinel_check((contentLength = (usize)http_read_integer(http)))) {
         return http_set_err(http, NetResult_HttpMalformedHeader), res;
       }
-    } else if (string_eq(fieldName, string_lit("Content-Type"))) {
+    } else if (string_eq_no_case(fieldName, string_lit("Content-Type"))) {
       if (!(res.contentType = http_read_word(http)).size) {
         return http_set_err(http, NetResult_HttpMalformedHeader), res;
       }
-    } else if (string_eq(fieldName, string_lit("Content-Encoding"))) {
+    } else if (string_eq_no_case(fieldName, string_lit("Content-Encoding"))) {
       if (!(res.contentEncoding = http_read_word(http)).size) {
         return http_set_err(http, NetResult_HttpMalformedHeader), res;
       }
-    } else if (string_eq(fieldName, string_lit("Content-MD5"))) {
+    } else if (string_eq_no_case(fieldName, string_lit("Content-MD5"))) {
       if (!(res.contentMd5 = http_read_word(http)).size) {
         return http_set_err(http, NetResult_HttpMalformedHeader), res;
       }
-    } else if (string_eq(fieldName, string_lit("Transfer-Encoding"))) {
+    } else if (string_eq_no_case(fieldName, string_lit("Transfer-Encoding"))) {
       if (!(res.transferEncoding = http_read_word(http)).size) {
         return http_set_err(http, NetResult_HttpMalformedHeader), res;
       }
-    } else if (string_eq(fieldName, string_lit("Age"))) {
+    } else if (string_eq_no_case(fieldName, string_lit("Age"))) {
       if (sentinel_check((res.age = (usize)http_read_integer(http)))) {
         return http_set_err(http, NetResult_HttpMalformedHeader), res;
       }
@@ -273,7 +273,7 @@ static NetHttpResponse http_read_response(NetHttp* http) {
       return res;
     }
   }
-  if (!string_eq(res.transferEncoding, string_lit("identity"))) {
+  if (!string_eq_no_case(res.transferEncoding, string_lit("identity"))) {
     return http_set_err(http, NetResult_HttpMalformedHeader), res;
   }
   res.body = http_read_sized(http, contentLength);
