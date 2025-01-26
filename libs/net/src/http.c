@@ -29,6 +29,12 @@ typedef struct sNetHttp {
   usize        readCursor;
 } NetHttp;
 
+typedef struct {
+  u64    status;
+  String reason;
+  String body;
+} NetHttpResponse;
+
 static u16 http_port(const NetHttpFlags flags) {
   if (flags & NetHttpFlags_Tls) {
     return 443;
@@ -41,6 +47,22 @@ static NetTlsFlags http_tls_flags(const NetHttpFlags flags) {
     return NetTlsFlags_NoVerify;
   }
   return NetTlsFlags_None;
+}
+
+static void http_set_err(NetHttp* http, const NetResult err) {
+  // NOTE: Don't override a previous error.
+  if (http->status == NetResult_Success) {
+    http->status = err;
+  }
+}
+
+static void http_request_get_header(const NetHttp* http, const String uri, DynString* out) {
+  fmt_write(out, "GET {} HTTP/1.1\r\n", fmt_text(uri));
+  fmt_write(out, "Host: {}\r\n", fmt_text(http->host));
+  fmt_write(out, "Connection: keep-alive\r\n");
+  fmt_write(out, "Accept-Language: en-US\r\n");
+  fmt_write(out, "Accept-Charset: utf-8\r\n");
+  fmt_write(out, "\r\n");
 }
 
 static void http_write_sync(NetHttp* http, const String data) {
@@ -104,6 +126,10 @@ static void http_read_skip_any(NetHttp* http, const String chars) {
 }
 
 static String http_read_sized(NetHttp* http, const usize size) {
+  diag_assert(!sentinel_check(size));
+  if (!size) {
+    return string_empty;
+  }
   while (http->status == NetResult_Success) {
     const String data = string_consume(dynstring_view(&http->readBuffer), http->readCursor);
     if (data.size >= size) {
@@ -142,21 +168,58 @@ static u64 http_read_integer(NetHttp* http) {
   return sentinel_u64; // Error ocurred.
 }
 
+static NetHttpResponse http_read_response(NetHttp* http) {
+  NetHttpResponse res = {0};
+  if (!http_read_match(http, string_lit("HTTP"))) {
+    return http_set_err(http, NetResult_HttpUnsupportedProtocol), res;
+  }
+  if (!http_read_match(http, string_lit("/1.1"))) {
+    return http_set_err(http, NetResult_HttpUnsupportedVersion), res;
+  }
+  if (!http_read_match(http, string_lit(" "))) {
+    return http_set_err(http, NetResult_HttpMalformedHeader), res;
+  }
+  if (sentinel_check((res.status = http_read_integer(http)))) {
+    return http_set_err(http, NetResult_HttpMalformedHeader), res;
+  }
+  if (!http_read_match(http, string_lit(" "))) {
+    return http_set_err(http, NetResult_HttpMalformedHeader), res;
+  }
+  res.reason = http_read_until(http, string_lit("\r\n"));
+  if (http->status != NetResult_Success) {
+    return res;
+  }
+  usize contentLength = 0;
+  for (;;) {
+    if (http_read_match(http, string_lit("\r\n"))) {
+      break; // End of header.
+    }
+    const String fieldName = http_read_until(http, string_lit(":"));
+    if (http->status != NetResult_Success || string_is_empty(fieldName)) {
+      return http_set_err(http, NetResult_HttpMalformedHeader), res;
+    }
+    http_read_skip_any(http, string_lit(" \t"));
+    if (string_eq(fieldName, string_lit("Content-Length"))) {
+      // Read the field value.
+      if (sentinel_check((contentLength = (usize)http_read_integer(http)))) {
+        return http_set_err(http, NetResult_HttpMalformedHeader), res;
+      }
+    }
+    http_read_until(http, string_lit("\r\n")); // Ignore the rest of the field value.
+    if (http->status != NetResult_Success) {
+      return res;
+    }
+  }
+  res.body = http_read_sized(http, contentLength);
+  return res;
+}
+
 static void http_read_end(NetHttp* http) {
   if (http->readBuffer.size != http->readCursor) {
     http->status = NetResult_HttpUnexpectedData;
   }
   dynstring_clear(&http->readBuffer);
   http->readCursor = 0;
-}
-
-static void http_request_get_header(const NetHttp* http, const String uri, DynString* out) {
-  fmt_write(out, "GET {} HTTP/1.1\r\n", fmt_text(uri));
-  fmt_write(out, "Host: {}\r\n", fmt_text(http->host));
-  fmt_write(out, "Connection: keep-alive\r\n");
-  fmt_write(out, "Accept-Language: en-US\r\n");
-  fmt_write(out, "Accept-Charset: utf-8\r\n");
-  fmt_write(out, "\r\n");
 }
 
 NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHttpFlags flags) {
@@ -252,48 +315,7 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
   /**
    * Handle response.
    */
-  if (!http_read_match(http, string_lit("HTTP"))) {
-    return http->status ? http->status : NetResult_HttpUnsupportedProtocol;
-  }
-  if (!http_read_match(http, string_lit("/1.1"))) {
-    return http->status ? http->status : NetResult_HttpUnsupportedVersion;
-  }
-  if (!http_read_match(http, string_lit(" "))) {
-    return http->status ? http->status : NetResult_HttpMalformedHeader;
-  }
-  const u64 status = http_read_integer(http);
-  if (!http_read_match(http, string_lit(" "))) {
-    return http->status ? http->status : NetResult_HttpMalformedHeader;
-  }
-  const String reason = http_read_until(http, string_lit("\r\n"));
-  if (http->status != NetResult_Success) {
-    return http->status;
-  }
-  usize contentLength = 0;
-  for (;;) {
-    if (http_read_match(http, string_lit("\r\n"))) {
-      break; // End of header.
-    }
-    const String fieldName = http_read_until(http, string_lit(":"));
-    if (http->status != NetResult_Success) {
-      return http->status ? http->status : NetResult_HttpMalformedHeader;
-    }
-    http_read_skip_any(http, string_lit(" \t"));
-    if (string_eq(fieldName, string_lit("Content-Length"))) {
-      contentLength = (usize)http_read_integer(http);
-    }
-    http_read_until(http, string_lit("\r\n"));
-    if (http->status != NetResult_Success) {
-      return http->status;
-    }
-  }
-
-  if (sentinel_check(contentLength)) {
-    return NetResult_HttpMalformedHeader;
-  }
-  const String body = http_read_sized(http, contentLength);
-  dynstring_append(out, body);
-
+  NetHttpResponse response = http_read_response(http);
   http_read_end(http);
   if (http->status != NetResult_Success) {
     return http->status;
@@ -301,9 +323,11 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
 
   log_d(
       "Http: Received response",
-      log_param("status", fmt_int(status)),
-      log_param("reason", fmt_text(reason)));
+      log_param("status", fmt_int(response.status)),
+      log_param("reason", fmt_text(response.reason)),
+      log_param("body-size", fmt_size(response.body.size)));
 
+  dynstring_append(out, response.body);
   return NetResult_Success;
 }
 
