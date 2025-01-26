@@ -412,7 +412,7 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
   }
 
   log_d(
-      "Http: Received response",
+      "Http: Received GET response",
       log_param("status", fmt_int(response.status)),
       log_param("reason", fmt_text(response.reason)),
       log_param("server", fmt_text(response.server)),
