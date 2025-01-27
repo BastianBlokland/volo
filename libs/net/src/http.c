@@ -1,7 +1,9 @@
 #include "core_alloc.h"
 #include "core_ascii.h"
+#include "core_deflate.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
+#include "core_gzip.h"
 #include "log_logger.h"
 #include "net_addr.h"
 #include "net_http.h"
@@ -111,6 +113,7 @@ static void http_request_get_header(const NetHttp* http, const String uri, DynSt
   fmt_write(out, "Connection: keep-alive\r\n");
   fmt_write(out, "Accept-Language: en-US\r\n");
   fmt_write(out, "Accept-Charset: utf-8\r\n");
+  fmt_write(out, "Accept-Encoding: gzip, deflate\r\n");
   fmt_write(out, "\r\n");
 }
 
@@ -288,6 +291,52 @@ static NetHttpView http_read_body(NetHttp* http, const NetHttpResponse* resp) {
   return http_set_err(http, NetResult_HttpUnsupportedTransferEncoding), http_view_empty();
 }
 
+static void http_read_decode_body(
+    NetHttp* http, const NetHttpResponse* resp, const NetHttpView body, DynString* out) {
+
+  const String bodyRaw = http_view_str(http, body);
+  if (!resp->contentEncoding.size /* no content encoding specified */) {
+    dynstring_append(out, bodyRaw);
+    return; // Success.
+  }
+  if (http_view_eq_loose(http, resp->contentEncoding, string_lit("identity"))) {
+    dynstring_append(out, bodyRaw);
+    return; // Success.
+  }
+  if (http_view_eq_loose(http, resp->contentEncoding, string_lit("gzip"))) {
+    GzipError    gzipErr;
+    const String rem = gzip_decode(bodyRaw, null /* outMeta */, out, &gzipErr);
+    if (!string_is_empty(rem)) {
+      http_set_err(http, NetResult_HttpUnexpectedData);
+      return;
+    }
+    if (gzipErr) {
+      log_w(
+          "Http: Gzip error",
+          log_param("error", fmt_text(gzip_error_str(gzipErr))),
+          log_param("error-code", fmt_int(gzipErr)));
+      http_set_err(http, NetResult_HttpMalformedCompression);
+      return;
+    }
+    return; // Success.
+  }
+  if (http_view_eq_loose(http, resp->contentEncoding, string_lit("deflate"))) {
+    DeflateError deflateErr;
+    const String rem = deflate_decode(bodyRaw, out, &deflateErr);
+    if (!string_is_empty(rem)) {
+      http_set_err(http, NetResult_HttpUnexpectedData);
+      return;
+    }
+    if (deflateErr) {
+      log_w("Http: Deflate error", log_param("error-code", fmt_int(deflateErr)));
+      http_set_err(http, NetResult_HttpMalformedCompression);
+      return;
+    }
+    return; // Success.
+  }
+  http_set_err(http, NetResult_HttpUnsupportedContentEncoding);
+}
+
 static void http_read_end(NetHttp* http) {
   if (http->readBuffer.size != http->readCursor) {
     http_set_err(http, NetResult_HttpUnexpectedData);
@@ -405,7 +454,7 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
 
   if (http->status == NetResult_Success) {
     log_d("Http: Received GET body", log_param("size", fmt_size(body.size)));
-    dynstring_append(out, http_view_str(http, body));
+    http_read_decode_body(http, &resp, body, out);
   }
 
   http_read_end(http); // Releases reading resources, do not access response data after this.
