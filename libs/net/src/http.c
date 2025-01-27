@@ -364,6 +364,11 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
         http_set_err(http, NetResult_HttpMalformedChunk);
         break;
       }
+      if (!chunkSize) {
+        // Skip over chunk comment and potentially trailing headers.
+        http_read_until(http, string_lit("\r\n\r\n"));
+        break; // End of chunked data.
+      }
       http_read_until(http, string_lit("\r\n")); // Skip over chunk comment.
       if (http->status != NetResult_Success) {
         http_set_err(http, NetResult_HttpMalformedChunk);
@@ -372,9 +377,6 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
       dynstring_append(out, http_read_sized(http, chunkSize));
       if (!http_read_match(http, string_lit("\r\n"))) {
         http_set_err(http, NetResult_HttpMalformedChunk);
-      }
-      if (!chunkSize) {
-        break; // End of chunked data.
       }
       bodySize += chunkSize;
     }
