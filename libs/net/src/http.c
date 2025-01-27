@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_ascii.h"
+#include "core_deflate.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
 #include "log_logger.h"
@@ -111,6 +112,7 @@ static void http_request_get_header(const NetHttp* http, const String uri, DynSt
   fmt_write(out, "Connection: keep-alive\r\n");
   fmt_write(out, "Accept-Language: en-US\r\n");
   fmt_write(out, "Accept-Charset: utf-8\r\n");
+  fmt_write(out, "Accept-Encoding: deflate\r\n");
   fmt_write(out, "\r\n");
 }
 
@@ -290,15 +292,31 @@ static NetHttpView http_read_body(NetHttp* http, const NetHttpResponse* resp) {
 
 static void http_read_decode_body(
     NetHttp* http, const NetHttpResponse* resp, const NetHttpView body, DynString* out) {
+
+  const String bodyRaw = http_view_str(http, body);
   if (!resp->contentEncoding.size /* no content encoding specified */) {
-    dynstring_append(out, http_view_str(http, body));
-    return;
+    dynstring_append(out, bodyRaw);
+    return; // Success.
   }
   if (http_view_eq_loose(http, resp->contentEncoding, string_lit("identity"))) {
-    dynstring_append(out, http_view_str(http, body));
-    return;
+    dynstring_append(out, bodyRaw);
+    return; // Success.
   }
-  http_set_err(http, NetResult_HttpUnsupportedContentEncoding), http_view_empty();
+  if (http_view_eq_loose(http, resp->contentEncoding, string_lit("deflate"))) {
+    DeflateError deflateErr;
+    const String rem = deflate_decode(bodyRaw, out, &deflateErr);
+    if (!string_is_empty(rem)) {
+      http_set_err(http, NetResult_HttpUnexpectedData);
+      return;
+    }
+    if (deflateErr) {
+      log_w("Http: Deflate error", log_param("error-code", fmt_int(deflateErr)));
+      http_set_err(http, NetResult_HttpMalformedCompression);
+      return;
+    }
+    return; // Success.
+  }
+  http_set_err(http, NetResult_HttpUnsupportedContentEncoding);
 }
 
 static void http_read_end(NetHttp* http) {
