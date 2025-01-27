@@ -29,15 +29,42 @@ typedef struct sNetHttp {
   usize        readCursor;
 } NetHttp;
 
+/**
+ * View into the http read-buffer.
+ * NOTE: Stored as offsets from the start of the buffer to support re-allocating the buffer.
+ */
 typedef struct {
-  u64    status;
-  String reason;
-  String server, via;
-  String contentType, contentEncoding, contentMd5;
-  u64    contentLength;
-  String transferEncoding;
-  u64    age;
+  usize offset, size;
+} NetHttpView;
+
+typedef struct {
+  u64         status;
+  NetHttpView reason;
+  NetHttpView contentEncoding;
+  u64         contentLength;
+  NetHttpView transferEncoding;
 } NetHttpResponse;
+
+static String http_view_str(const NetHttp* http, const NetHttpView view) {
+  return string_slice(dynstring_view(&http->readBuffer), view.offset, view.size);
+}
+
+static String http_view_str_trim(const NetHttp* http, const NetHttpView view) {
+  return string_trim_whitespace(http_view_str(http, view));
+}
+
+static bool http_view_eq_loose(const NetHttp* http, const NetHttpView view, const String str) {
+  return string_eq_no_case(http_view_str_trim(http, view), str);
+}
+
+static NetHttpView http_view_empty(void) { return (NetHttpView){0}; }
+
+static NetHttpView http_view_remaining(const NetHttp* http) {
+  return (NetHttpView){
+      .offset = http->readCursor,
+      .size   = http->readBuffer.size - http->readCursor,
+  };
+}
 
 static NetTlsFlags http_tls_flags(const NetHttpFlags flags) {
   if (flags & NetHttpFlags_TlsNoVerify) {
@@ -107,9 +134,9 @@ static void http_read_sync(NetHttp* http) {
 
 static bool http_read_match(NetHttp* http, const String ref) {
   while (http->status == NetResult_Success) {
-    const String data = string_consume(dynstring_view(&http->readBuffer), http->readCursor);
+    const NetHttpView data = http_view_remaining(http);
     if (data.size >= ref.size) {
-      if (string_starts_with(data, ref)) {
+      if (string_starts_with(http_view_str(http, data), ref)) {
         http->readCursor += ref.size;
         return true;
       }
@@ -120,45 +147,45 @@ static bool http_read_match(NetHttp* http, const String ref) {
   return false; // Error ocurred.
 }
 
-static String http_read_until(NetHttp* http, const String pattern) {
+static NetHttpView http_read_until(NetHttp* http, const String pattern) {
   while (http->status == NetResult_Success) {
-    const String data = string_consume(dynstring_view(&http->readBuffer), http->readCursor);
-    const usize  pos  = string_find_first(data, pattern);
+    const NetHttpView data = http_view_remaining(http);
+    const usize       pos  = string_find_first(http_view_str(http, data), pattern);
     if (!sentinel_check(pos)) {
       http->readCursor += pos + pattern.size;
-      return string_slice(data, 0, pos);
+      return (NetHttpView){.offset = data.offset, .size = pos};
     }
     http_read_sync(http);
   }
-  return string_empty;
+  return http_view_empty(); // Error occurred.
 }
 
-static String http_read_sized(NetHttp* http, const usize size) {
+static NetHttpView http_read_sized(NetHttp* http, const usize size) {
   diag_assert(!sentinel_check(size));
   if (!size) {
-    return string_empty;
+    return http_view_empty();
   }
   while (http->status == NetResult_Success) {
-    const String data = string_consume(dynstring_view(&http->readBuffer), http->readCursor);
+    const NetHttpView data = http_view_remaining(http);
     if (data.size >= size) {
       http->readCursor += size;
-      return string_slice(data, 0, size);
+      return (NetHttpView){.offset = data.offset, .size = size};
     }
     http_read_sync(http);
   }
-  return string_empty; // Error occurred.
+  return http_view_empty(); // Error occurred.
 }
 
 static u64 http_read_integer(NetHttp* http, const u8 base) {
   while (http->status == NetResult_Success) {
-    const String data       = string_consume(dynstring_view(&http->readBuffer), http->readCursor);
-    usize        digitCount = 0;
-    u64          result     = 0;
+    const NetHttpView data       = http_view_remaining(http);
+    usize             digitCount = 0;
+    u64               result     = 0;
     for (;;) {
       if (digitCount == data.size) {
         goto NeedData;
       }
-      const u8 ch    = *string_at(data, digitCount);
+      const u8 ch    = *string_at(http_view_str(http, data), digitCount);
       const u8 digit = ascii_to_integer(ch);
       if (digit < base) {
         result = result * base + digit;
@@ -178,84 +205,70 @@ static u64 http_read_integer(NetHttp* http, const u8 base) {
 }
 
 static NetHttpResponse http_read_response(NetHttp* http) {
-  NetHttpResponse res = {
-      .reason           = string_lit("unknown"),
-      .server           = string_lit("unknown"),
-      .via              = string_lit("unknown"),
-      .contentType      = string_lit("text/plain"),
-      .contentEncoding  = string_lit("identity"),
-      .transferEncoding = string_lit("identity"),
-  };
+  NetHttpResponse resp = {0};
   if (!http_read_match(http, string_lit("HTTP"))) {
-    return http_set_err(http, NetResult_HttpUnsupportedProtocol), res;
+    return http_set_err(http, NetResult_HttpUnsupportedProtocol), resp;
   }
   if (!http_read_match(http, string_lit("/1.1"))) {
-    return http_set_err(http, NetResult_HttpUnsupportedVersion), res;
+    return http_set_err(http, NetResult_HttpUnsupportedVersion), resp;
   }
   if (!http_read_match(http, string_lit(" "))) {
-    return http_set_err(http, NetResult_HttpMalformedHeader), res;
+    return http_set_err(http, NetResult_HttpMalformedHeader), resp;
   }
-  if (sentinel_check((res.status = http_read_integer(http, 10 /* base */)))) {
-    return http_set_err(http, NetResult_HttpMalformedHeader), res;
+  if (sentinel_check((resp.status = http_read_integer(http, 10 /* base */)))) {
+    return http_set_err(http, NetResult_HttpMalformedHeader), resp;
   }
-  res.reason = string_trim_whitespace(http_read_until(http, string_lit("\r\n")));
+  resp.reason = http_read_until(http, string_lit("\r\n"));
   if (http->status != NetResult_Success) {
-    return res;
+    return resp;
   }
   for (;;) {
     if (http_read_match(http, string_lit("\r\n"))) {
       break; // End of header.
     }
-    const String fieldName = string_trim_whitespace(http_read_until(http, string_lit(":")));
+    const NetHttpView fieldName = http_read_until(http, string_lit(":"));
     if (http->status != NetResult_Success || string_is_empty(fieldName)) {
-      return http_set_err(http, NetResult_HttpMalformedHeader), res;
+      return http_set_err(http, NetResult_HttpMalformedHeader), resp;
     }
-    const String fieldValue = string_trim_whitespace(http_read_until(http, string_lit("\r\n")));
+    const NetHttpView fieldValue = http_read_until(http, string_lit("\r\n"));
     if (http->status != NetResult_Success) {
-      return http_set_err(http, NetResult_HttpMalformedHeader), res;
+      return http_set_err(http, NetResult_HttpMalformedHeader), resp;
     }
     if (0) {
-    } else if (string_eq_no_case(fieldName, string_lit("Server"))) {
-      res.server = fieldValue;
-    } else if (string_eq_no_case(fieldName, string_lit("Via"))) {
-      res.via = fieldValue;
-    } else if (string_eq_no_case(fieldName, string_lit("Content-Length"))) {
-      format_read_u64(fieldValue, &res.contentLength, 10 /* base */);
-    } else if (string_eq_no_case(fieldName, string_lit("Content-Type"))) {
-      res.contentType = fieldValue;
-    } else if (string_eq_no_case(fieldName, string_lit("Content-Encoding"))) {
-      res.contentEncoding = fieldValue;
-    } else if (string_eq_no_case(fieldName, string_lit("Content-MD5"))) {
-      res.contentMd5 = fieldValue;
-    } else if (string_eq_no_case(fieldName, string_lit("Transfer-Encoding"))) {
-      res.transferEncoding = fieldValue;
-    } else if (string_eq_no_case(fieldName, string_lit("Age"))) {
-      format_read_u64(fieldValue, &res.age, 10 /* base */);
+    } else if (http_view_eq_loose(http, fieldName, string_lit("Content-Length"))) {
+      format_read_u64(http_view_str_trim(http, fieldValue), &resp.contentLength, 10 /* base */);
+    } else if (http_view_eq_loose(http, fieldName, string_lit("Content-Encoding"))) {
+      resp.contentEncoding = fieldValue;
+    } else if (http_view_eq_loose(http, fieldName, string_lit("Transfer-Encoding"))) {
+      resp.transferEncoding = fieldValue;
     }
   }
-  return res;
+  return resp;
 }
 
-static String http_read_body(NetHttp* http, const NetHttpResponse* response) {
-  if (string_eq_no_case(response->transferEncoding, string_lit("identity"))) {
-    return http_read_sized(http, response->contentLength);
+static NetHttpView http_read_body(NetHttp* http, const NetHttpResponse* resp) {
+  if (!resp->transferEncoding.size /* no transfer-encoding specified */) {
+    return http_read_sized(http, resp->contentLength);
   }
-  if (string_eq_no_case(response->transferEncoding, string_lit("chunked"))) {
+  if (http_view_eq_loose(http, resp->transferEncoding, string_lit("identity"))) {
+    return http_read_sized(http, resp->contentLength);
+  }
+  if (http_view_eq_loose(http, resp->transferEncoding, string_lit("chunked"))) {
     const usize dataStart = http->readCursor;
     usize       dataSize  = 0;
     for (;;) {
       const u64 chunkSize = http_read_integer(http, 16 /* base */);
       if (sentinel_check(chunkSize)) {
-        return http_set_err(http, NetResult_HttpMalformedChunk), string_empty;
+        return http_set_err(http, NetResult_HttpMalformedChunk), http_view_empty();
       }
       if (!chunkSize) {
         // End of chunked data; skip over chunk comment and potentially trailing headers.
         http_read_until(http, string_lit("\r\n\r\n"));
-        return string_slice(dynstring_view(&http->readBuffer), dataStart, dataSize);
+        return (NetHttpView){.offset = dataStart, .size = dataSize};
       }
       http_read_until(http, string_lit("\r\n")); // Skip over chunk comment.
       if (http->status != NetResult_Success) {
-        return http_set_err(http, NetResult_HttpMalformedChunk), string_empty;
+        return http_set_err(http, NetResult_HttpMalformedChunk), http_view_empty();
       }
 
       // Erase the chunk-metadata from the read-buffer to make sure the result is contiguous.
@@ -266,13 +279,13 @@ static String http_read_body(NetHttp* http, const NetHttpResponse* response) {
 
       http_read_sized(http, chunkSize);
       if (!http_read_match(http, string_lit("\r\n"))) {
-        return http_set_err(http, NetResult_HttpMalformedChunk), string_empty;
+        return http_set_err(http, NetResult_HttpMalformedChunk), http_view_empty();
       }
       dataSize += chunkSize;
     }
+    UNREACHABLE
   }
-  http_set_err(http, NetResult_HttpUnsupportedTransferEncoding);
-  return string_empty;
+  return http_set_err(http, NetResult_HttpUnsupportedTransferEncoding), http_view_empty();
 }
 
 static void http_read_end(NetHttp* http) {
@@ -375,34 +388,28 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
   /**
    * Handle response.
    */
-  NetHttpResponse response = http_read_response(http);
+  const NetHttpResponse resp = http_read_response(http);
   if (http->status != NetResult_Success) {
     return http->status;
   }
 
   log_d(
       "Http: Received GET response",
-      log_param("status", fmt_int(response.status)),
-      log_param("reason", fmt_text(response.reason)),
-      log_param("server", fmt_text(response.server)),
-      log_param("via", fmt_text(response.via)),
-      log_param("content-type", fmt_text(response.contentType)),
-      log_param("content-encoding", fmt_text(response.contentEncoding)),
-      log_param("transfer-encoding", fmt_text(response.transferEncoding)),
-      log_param("age", fmt_int(response.age)));
+      log_param("status", fmt_int(resp.status)),
+      log_param("reason", fmt_text(http_view_str_trim(http, resp.reason))));
 
-  const String body = http_read_body(http, &response);
+  const NetHttpView body = http_read_body(http, &resp);
   if (http->status != NetResult_Success) {
     return http->status;
   }
 
   if (http->status == NetResult_Success) {
     log_d("Http: Received GET body", log_param("size", fmt_size(body.size)));
-    dynstring_append(out, body);
+    dynstring_append(out, http_view_str(http, body));
   }
 
   http_read_end(http); // Releases reading resources, do not access response data after this.
-  return http->status ? http->status : http_status_result(response.status);
+  return http->status ? http->status : http_status_result(resp.status);
 }
 
 NetResult net_http_shutdown_sync(NetHttp* http) {
