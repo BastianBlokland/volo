@@ -406,7 +406,6 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
    * Handle response.
    */
   NetHttpResponse response = http_read_response(http);
-  http_read_end(http);
   if (http->status != NetResult_Success) {
     return http->status;
   }
@@ -427,7 +426,9 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
   if (result == NetResult_Success) {
     dynstring_append(out, response.body);
   }
-  return result;
+
+  http_read_end(http); // Releases reading resources, do not access response data after this.
+  return http->status ? http->status : result;
 }
 
 NetResult net_http_shutdown_sync(NetHttp* http) {
