@@ -3,6 +3,7 @@
 #include "core_deflate.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
+#include "core_gzip.h"
 #include "log_logger.h"
 #include "net_addr.h"
 #include "net_http.h"
@@ -112,7 +113,7 @@ static void http_request_get_header(const NetHttp* http, const String uri, DynSt
   fmt_write(out, "Connection: keep-alive\r\n");
   fmt_write(out, "Accept-Language: en-US\r\n");
   fmt_write(out, "Accept-Charset: utf-8\r\n");
-  fmt_write(out, "Accept-Encoding: deflate\r\n");
+  fmt_write(out, "Accept-Encoding: gzip, deflate\r\n");
   fmt_write(out, "\r\n");
 }
 
@@ -300,6 +301,23 @@ static void http_read_decode_body(
   }
   if (http_view_eq_loose(http, resp->contentEncoding, string_lit("identity"))) {
     dynstring_append(out, bodyRaw);
+    return; // Success.
+  }
+  if (http_view_eq_loose(http, resp->contentEncoding, string_lit("gzip"))) {
+    GzipError    gzipErr;
+    const String rem = gzip_decode(bodyRaw, null /* outMeta */, out, &gzipErr);
+    if (!string_is_empty(rem)) {
+      http_set_err(http, NetResult_HttpUnexpectedData);
+      return;
+    }
+    if (gzipErr) {
+      log_w(
+          "Http: Gzip error",
+          log_param("error", fmt_text(gzip_error_str(gzipErr))),
+          log_param("error-code", fmt_int(gzipErr)));
+      http_set_err(http, NetResult_HttpMalformedCompression);
+      return;
+    }
     return; // Success.
   }
   if (http_view_eq_loose(http, resp->contentEncoding, string_lit("deflate"))) {
