@@ -46,21 +46,6 @@ static NetTlsFlags http_tls_flags(const NetHttpFlags flags) {
   return NetTlsFlags_None;
 }
 
-static bool http_is_word_char(const u8 ch) {
-  if (ascii_is_letter(ch) || ascii_is_digit(ch)) {
-    return true;
-  }
-  switch (ch) {
-  case '-':
-  case '+':
-  case '/':
-  case '.':
-    return true;
-  default:
-    return false;
-  }
-}
-
 static NetResult http_status_result(const u64 status) {
   if (status >= 500) {
     return NetResult_HttpServerError;
@@ -148,20 +133,6 @@ static String http_read_until(NetHttp* http, const String pattern) {
   return string_empty;
 }
 
-static void http_read_skip_any(NetHttp* http, const String chars) {
-  while (http->status == NetResult_Success) {
-    const String data = string_consume(dynstring_view(&http->readBuffer), http->readCursor);
-    if (!string_is_empty(data)) {
-      usize pos = 0;
-      for (; pos != data.size && mem_contains(chars, *string_at(data, pos)); ++pos)
-        ;
-      http->readCursor += pos;
-      break;
-    }
-    http_read_sync(http);
-  }
-}
-
 static String http_read_sized(NetHttp* http, const usize size) {
   diag_assert(!sentinel_check(size));
   if (!size) {
@@ -172,23 +143,6 @@ static String http_read_sized(NetHttp* http, const usize size) {
     if (data.size >= size) {
       http->readCursor += size;
       return string_slice(data, 0, size);
-    }
-    http_read_sync(http);
-  }
-  return string_empty; // Error occurred.
-}
-
-static String http_read_word(NetHttp* http) {
-  while (http->status == NetResult_Success) {
-    const String data = string_consume(dynstring_view(&http->readBuffer), http->readCursor);
-    if (!string_is_empty(data)) {
-      usize pos = 0;
-      for (; pos != data.size && http_is_word_char(*string_at(data, pos)); ++pos)
-        ;
-      if (pos && pos != data.size) {
-        http->readCursor += pos;
-        return string_slice(data, 0, pos);
-      }
     }
     http_read_sync(http);
   }
@@ -243,59 +197,40 @@ static NetHttpResponse http_read_response(NetHttp* http) {
   if (sentinel_check((res.status = http_read_integer(http)))) {
     return http_set_err(http, NetResult_HttpMalformedHeader), res;
   }
-  if (!http_read_match(http, string_lit(" "))) {
-    return http_set_err(http, NetResult_HttpMalformedHeader), res;
-  }
-  res.reason = http_read_until(http, string_lit("\r\n"));
+  res.reason = string_trim_whitespace(http_read_until(http, string_lit("\r\n")));
   if (http->status != NetResult_Success) {
     return res;
   }
-  usize contentLength = 0;
+  u64 contentLength = 0;
   for (;;) {
     if (http_read_match(http, string_lit("\r\n"))) {
       break; // End of header.
     }
-    const String fieldName = http_read_until(http, string_lit(":"));
+    const String fieldName = string_trim_whitespace(http_read_until(http, string_lit(":")));
     if (http->status != NetResult_Success || string_is_empty(fieldName)) {
       return http_set_err(http, NetResult_HttpMalformedHeader), res;
     }
-    http_read_skip_any(http, string_lit(" \t"));
-    if (string_eq_no_case(fieldName, string_lit("Server"))) {
-      if (!(res.server = http_read_until(http, string_lit("\r\n"))).size) {
-        return http_set_err(http, NetResult_HttpMalformedHeader), res;
-      }
-    } else if (string_eq_no_case(fieldName, string_lit("Via"))) {
-      if (!(res.via = http_read_until(http, string_lit("\r\n"))).size) {
-        return http_set_err(http, NetResult_HttpMalformedHeader), res;
-      }
-    } else if (string_eq_no_case(fieldName, string_lit("Content-Length"))) {
-      if (sentinel_check((contentLength = (usize)http_read_integer(http)))) {
-        return http_set_err(http, NetResult_HttpMalformedHeader), res;
-      }
-    } else if (string_eq_no_case(fieldName, string_lit("Content-Type"))) {
-      if (!(res.contentType = http_read_word(http)).size) {
-        return http_set_err(http, NetResult_HttpMalformedHeader), res;
-      }
-    } else if (string_eq_no_case(fieldName, string_lit("Content-Encoding"))) {
-      if (!(res.contentEncoding = http_read_word(http)).size) {
-        return http_set_err(http, NetResult_HttpMalformedHeader), res;
-      }
-    } else if (string_eq_no_case(fieldName, string_lit("Content-MD5"))) {
-      if (!(res.contentMd5 = http_read_word(http)).size) {
-        return http_set_err(http, NetResult_HttpMalformedHeader), res;
-      }
-    } else if (string_eq_no_case(fieldName, string_lit("Transfer-Encoding"))) {
-      if (!(res.transferEncoding = http_read_word(http)).size) {
-        return http_set_err(http, NetResult_HttpMalformedHeader), res;
-      }
-    } else if (string_eq_no_case(fieldName, string_lit("Age"))) {
-      if (sentinel_check((res.age = (usize)http_read_integer(http)))) {
-        return http_set_err(http, NetResult_HttpMalformedHeader), res;
-      }
-    }
-    http_read_until(http, string_lit("\r\n")); // Ignore the rest of the field value.
+    const String fieldValue = string_trim_whitespace(http_read_until(http, string_lit("\r\n")));
     if (http->status != NetResult_Success) {
-      return res;
+      return http_set_err(http, NetResult_HttpMalformedHeader), res;
+    }
+    if (0) {
+    } else if (string_eq_no_case(fieldName, string_lit("Server"))) {
+      res.server = fieldValue;
+    } else if (string_eq_no_case(fieldName, string_lit("Via"))) {
+      res.via = fieldValue;
+    } else if (string_eq_no_case(fieldName, string_lit("Content-Length"))) {
+      format_read_u64(fieldValue, &contentLength, 10 /* base */);
+    } else if (string_eq_no_case(fieldName, string_lit("Content-Type"))) {
+      res.contentType = fieldValue;
+    } else if (string_eq_no_case(fieldName, string_lit("Content-Encoding"))) {
+      res.contentEncoding = fieldValue;
+    } else if (string_eq_no_case(fieldName, string_lit("Content-MD5"))) {
+      res.contentMd5 = fieldValue;
+    } else if (string_eq_no_case(fieldName, string_lit("Transfer-Encoding"))) {
+      res.transferEncoding = fieldValue;
+    } else if (string_eq_no_case(fieldName, string_lit("Age"))) {
+      format_read_u64(fieldValue, &res.age, 10 /* base */);
     }
   }
   if (!string_eq_no_case(res.transferEncoding, string_lit("identity"))) {
@@ -406,7 +341,6 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
    * Handle response.
    */
   NetHttpResponse response = http_read_response(http);
-  http_read_end(http);
   if (http->status != NetResult_Success) {
     return http->status;
   }
@@ -427,7 +361,9 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
   if (result == NetResult_Success) {
     dynstring_append(out, response.body);
   }
-  return result;
+
+  http_read_end(http); // Releases reading resources, do not access response data after this.
+  return http->status ? http->status : result;
 }
 
 NetResult net_http_shutdown_sync(NetHttp* http) {
