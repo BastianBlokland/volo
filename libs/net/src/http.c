@@ -236,6 +236,45 @@ static NetHttpResponse http_read_response(NetHttp* http) {
   return res;
 }
 
+static String http_read_body(NetHttp* http, const NetHttpResponse* response) {
+  if (string_eq_no_case(response->transferEncoding, string_lit("identity"))) {
+    return http_read_sized(http, response->contentLength);
+  }
+  if (string_eq_no_case(response->transferEncoding, string_lit("chunked"))) {
+    const usize dataStart = http->readCursor;
+    usize       dataSize  = 0;
+    for (;;) {
+      const u64 chunkSize = http_read_integer(http, 16 /* base */);
+      if (sentinel_check(chunkSize)) {
+        return http_set_err(http, NetResult_HttpMalformedChunk), string_empty;
+      }
+      if (!chunkSize) {
+        // End of chunked data; skip over chunk comment and potentially trailing headers.
+        http_read_until(http, string_lit("\r\n\r\n"));
+        return string_slice(dynstring_view(&http->readBuffer), dataStart, dataSize);
+      }
+      http_read_until(http, string_lit("\r\n")); // Skip over chunk comment.
+      if (http->status != NetResult_Success) {
+        return http_set_err(http, NetResult_HttpMalformedChunk), string_empty;
+      }
+
+      // Erase the chunk-metadata from the read-buffer to make sure the result is contiguous.
+      const usize dataEnd = dataStart + dataSize;
+      diag_assert(http->readCursor > dataEnd);
+      dynstring_erase_chars(&http->readBuffer, dataEnd, http->readCursor - dataEnd);
+      http->readCursor = dataEnd;
+
+      http_read_sized(http, chunkSize);
+      if (!http_read_match(http, string_lit("\r\n"))) {
+        return http_set_err(http, NetResult_HttpMalformedChunk), string_empty;
+      }
+      dataSize += chunkSize;
+    }
+  }
+  http_set_err(http, NetResult_HttpUnsupportedTransferEncoding);
+  return string_empty;
+}
+
 static void http_read_end(NetHttp* http) {
   if (http->readBuffer.size != http->readCursor) {
     http_set_err(http, NetResult_HttpUnexpectedData);
@@ -352,40 +391,14 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
       log_param("transfer-encoding", fmt_text(response.transferEncoding)),
       log_param("age", fmt_int(response.age)));
 
-  usize bodySize = 0;
-  if (0) {
-  } else if (string_eq_no_case(response.transferEncoding, string_lit("identity"))) {
-    dynstring_append(out, http_read_sized(http, response.contentLength));
-    bodySize += response.contentLength;
-  } else if (string_eq_no_case(response.transferEncoding, string_lit("chunked"))) {
-    for (;;) {
-      const u64 chunkSize = http_read_integer(http, 16 /* base */);
-      if (sentinel_check(chunkSize)) {
-        http_set_err(http, NetResult_HttpMalformedChunk);
-        break;
-      }
-      if (!chunkSize) {
-        // Skip over chunk comment and potentially trailing headers.
-        http_read_until(http, string_lit("\r\n\r\n"));
-        break; // End of chunked data.
-      }
-      http_read_until(http, string_lit("\r\n")); // Skip over chunk comment.
-      if (http->status != NetResult_Success) {
-        http_set_err(http, NetResult_HttpMalformedChunk);
-        break;
-      }
-      dynstring_append(out, http_read_sized(http, chunkSize));
-      if (!http_read_match(http, string_lit("\r\n"))) {
-        http_set_err(http, NetResult_HttpMalformedChunk);
-      }
-      bodySize += chunkSize;
-    }
-  } else {
-    http_set_err(http, NetResult_HttpUnsupportedTransferEncoding);
+  const String body = http_read_body(http, &response);
+  if (http->status != NetResult_Success) {
+    return http->status;
   }
 
   if (http->status == NetResult_Success) {
-    log_d("Http: Received GET body", log_param("size", fmt_size(bodySize)));
+    log_d("Http: Received GET body", log_param("size", fmt_size(body.size)));
+    dynstring_append(out, body);
   }
 
   http_read_end(http); // Releases reading resources, do not access response data after this.
