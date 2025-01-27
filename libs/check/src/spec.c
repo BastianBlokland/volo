@@ -142,6 +142,11 @@ void check_eq_f64_raw(
   }
 }
 
+static String check_str_limit(const String str) {
+  const usize maxSize = usize_kibibyte;
+  return str.size <= maxSize ? str : string_slice(str, 0, maxSize);
+}
+
 void check_eq_string_raw(
     CheckTestContext* ctx, const String a, const String b, const SourceLoc source) {
   if (UNLIKELY(!string_eq(a, b))) {
@@ -149,8 +154,8 @@ void check_eq_string_raw(
         ctx,
         fmt_write_scratch(
             "'{}' == '{}'",
-            fmt_text(a, .flags = FormatTextFlags_EscapeNonPrintAscii),
-            fmt_text(b, .flags = FormatTextFlags_EscapeNonPrintAscii)),
+            fmt_text(check_str_limit(a), .flags = FormatTextFlags_EscapeNonPrintAscii),
+            fmt_text(check_str_limit(b), .flags = FormatTextFlags_EscapeNonPrintAscii)),
         source);
   }
 }

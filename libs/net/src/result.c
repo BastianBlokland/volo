@@ -30,6 +30,7 @@ static const String g_netResultStrs[] = {
     [NetResult_HttpUnsupportedVersion]          = string_static("HttpUnsupportedVersion"),
     [NetResult_HttpUnsupportedTransferEncoding] = string_static("HttpUnsupportedTransferEncoding"),
     [NetResult_HttpMalformedHeader]             = string_static("HttpMalformedHeader"),
+    [NetResult_HttpMalformedChunk]              = string_static("HttpMalformedChunk"),
     [NetResult_HttpUnexpectedData]              = string_static("HttpUnexpectedData"),
     [NetResult_UnknownError]                    = string_static("NetUnknownError"),
 };

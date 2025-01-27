@@ -70,12 +70,7 @@ bool string_eq_no_case(const String a, const String b) {
   for (usize i = 0; i != a.size; ++i) {
     u8 chA = *string_at(a, i);
     u8 chB = *string_at(b, i);
-
-    // To lower-case.
-    chA ^= chA >= 'A' && chA <= 'Z' ? 0x20 : 0;
-    chB ^= chB >= 'A' && chB <= 'Z' ? 0x20 : 0;
-
-    if (chA != chB) {
+    if (chA != chB && (chA ^ 0x20) != chB) {
       return false;
     }
   }
