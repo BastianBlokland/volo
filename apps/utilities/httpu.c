@@ -14,6 +14,11 @@
  * HttpUtility - Utility to test the http client.
  */
 
+static i32 httpu_get(const String host, const String uri) {
+  i32 res = 0;
+  return res;
+}
+
 static CliId g_optVerbose, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
