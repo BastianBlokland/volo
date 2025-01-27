@@ -288,6 +288,19 @@ static NetHttpView http_read_body(NetHttp* http, const NetHttpResponse* resp) {
   return http_set_err(http, NetResult_HttpUnsupportedTransferEncoding), http_view_empty();
 }
 
+static void http_read_decode_body(
+    NetHttp* http, const NetHttpResponse* resp, const NetHttpView body, DynString* out) {
+  if (!resp->contentEncoding.size /* no content encoding specified */) {
+    dynstring_append(out, http_view_str(http, body));
+    return;
+  }
+  if (http_view_eq_loose(http, resp->contentEncoding, string_lit("identity"))) {
+    dynstring_append(out, http_view_str(http, body));
+    return;
+  }
+  http_set_err(http, NetResult_HttpUnsupportedContentEncoding), http_view_empty();
+}
+
 static void http_read_end(NetHttp* http) {
   if (http->readBuffer.size != http->readCursor) {
     http_set_err(http, NetResult_HttpUnexpectedData);
@@ -405,7 +418,7 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
 
   if (http->status == NetResult_Success) {
     log_d("Http: Received GET body", log_param("size", fmt_size(body.size)));
-    dynstring_append(out, http_view_str(http, body));
+    http_read_decode_body(http, &resp, body, out);
   }
 
   http_read_end(http); // Releases reading resources, do not access response data after this.
