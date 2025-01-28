@@ -55,6 +55,10 @@ static String http_view_str_trim(const NetHttp* http, const NetHttpView view) {
   return string_trim_whitespace(http_view_str(http, view));
 }
 
+static String http_view_str_trim_or(const NetHttp* http, const NetHttpView view, const String def) {
+  return view.size ? http_view_str_trim(http, view) : def;
+}
+
 static bool http_view_eq_loose(const NetHttp* http, const NetHttpView view, const String str) {
   return string_eq_no_case(http_view_str_trim(http, view), str);
 }
@@ -442,10 +446,19 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
     return http->status;
   }
 
-  log_d(
-      "Http: Received GET response",
-      log_param("status", fmt_int(resp.status)),
-      log_param("reason", fmt_text(http_view_str_trim(http, resp.reason))));
+#ifndef VOLO_FAST
+  {
+    const String reason = http_view_str_trim_or(http, resp.reason, string_lit("unknown"));
+    const String enc    = http_view_str_trim_or(http, resp.contentEncoding, string_lit("identity"));
+    const String trans = http_view_str_trim_or(http, resp.transferEncoding, string_lit("identity"));
+    log_d(
+        "Http: Received GET response",
+        log_param("status", fmt_int(resp.status)),
+        log_param("reason", fmt_text(reason)),
+        log_param("content-encoding", fmt_text(enc)),
+        log_param("transfer-encoding", fmt_text(trans)));
+  }
+#endif
 
   const NetHttpView body = http_read_body(http, &resp);
   if (http->status != NetResult_Success) {
