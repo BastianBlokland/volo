@@ -115,9 +115,9 @@ static void http_request_get_header(const NetHttp* http, const String uri, DynSt
   fmt_write(out, "GET {} HTTP/1.1\r\n", fmt_text(uri));
   fmt_write(out, "Host: {}\r\n", fmt_text(http->host));
   fmt_write(out, "Connection: keep-alive\r\n");
-  fmt_write(out, "Accept-Language: en-US\r\n");
-  fmt_write(out, "Accept-Charset: utf-8\r\n");
+  fmt_write(out, "Accept: */*\r\n");
   fmt_write(out, "Accept-Encoding: gzip, deflate\r\n");
+  fmt_write(out, "User-Agent: volo/1.0.0\r\n");
   fmt_write(out, "\r\n");
 }
 
