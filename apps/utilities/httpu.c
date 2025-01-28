@@ -40,6 +40,7 @@ static i32 httpu_get(const AppContext* ctx) {
 
   if (string_is_empty(ctx->outputPath)) {
     file_write_sync(g_fileStdOut, dynstring_view(&buffer));
+    file_write_sync(g_fileStdOut, string_lit("\n"));
   } else {
     file_write_to_path_sync(ctx->outputPath, dynstring_view(&buffer));
   }
