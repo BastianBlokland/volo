@@ -617,7 +617,8 @@ static void inflate_block_compressed(
     // Copy section from output.
     for (u32 i = 0; i != runLength; ++i) {
       const String history                 = mem_create(ctx->out->data.ptr, ctx->out->size);
-      *(u8*)dynarray_push(ctx->out, 1).ptr = *(mem_end(history) - runDistance);
+      const u8     historySymbol           = *(mem_end(history) - runDistance);
+      *(u8*)dynarray_push(ctx->out, 1).ptr = historySymbol;
     }
   }
 }
