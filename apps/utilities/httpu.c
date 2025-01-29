@@ -197,6 +197,8 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   case HttpuMethod_Get:
     retCode = httpu_get(&ctx);
     break;
+  case HttpuMethod_Count:
+    break;
   }
   net_teardown();
 
