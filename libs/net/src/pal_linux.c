@@ -16,8 +16,10 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-void net_pal_init(void) {}
-void net_pal_teardown(void) {}
+static bool g_netInitialized;
+
+void net_pal_init(void) { g_netInitialized = true; }
+void net_pal_teardown(void) { g_netInitialized = false; }
 
 static const char* to_null_term_scratch(const String str) {
   const Mem scratchMem = alloc_alloc(g_allocScratch, str.size + 1, 1);
@@ -90,6 +92,9 @@ typedef struct sNetSocket {
 } NetSocket;
 
 NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
+  if (UNLIKELY(!g_netInitialized)) {
+    diag_crash_msg("Network subsystem not initialized");
+  }
   NetSocket* s = alloc_alloc_t(alloc, NetSocket);
 
   *s = (NetSocket){.alloc = alloc, .handle = -1};
@@ -236,6 +241,9 @@ NetResult net_socket_shutdown(NetSocket* s, const NetDir dir) {
 }
 
 NetResult net_resolve_sync(const String host, NetIp* out) {
+  if (UNLIKELY(!g_netInitialized)) {
+    diag_crash_msg("Network subsystem not initialized");
+  }
   if (UNLIKELY(string_is_empty(host))) {
     return NetResult_InvalidHost;
   }

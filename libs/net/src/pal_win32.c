@@ -86,10 +86,12 @@ static bool net_ws_init(NetWinSock* ws, Allocator* alloc) {
 
 static NetWinSock g_netWsLib;
 static bool       g_netWsReady;
+static bool       g_netInitialized;
 
 void net_pal_init(void) {
   diag_assert(!g_netWsReady);
-  g_netWsReady = net_ws_init(&g_netWsLib, g_allocPersist);
+  g_netWsReady     = net_ws_init(&g_netWsLib, g_allocPersist);
+  g_netInitialized = true;
 }
 
 void net_pal_teardown(void) {
@@ -103,8 +105,9 @@ void net_pal_teardown(void) {
     dynlib_destroy(g_netWsLib.lib);
   }
 
-  g_netWsLib   = (NetWinSock){0};
-  g_netWsReady = false;
+  g_netWsLib       = (NetWinSock){0};
+  g_netWsReady     = false;
+  g_netInitialized = false;
 }
 
 static int net_pal_socket_domain(const NetIpType ipType) {
@@ -179,6 +182,9 @@ typedef struct sNetSocket {
 } NetSocket;
 
 NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
+  if (UNLIKELY(!g_netInitialized)) {
+    diag_crash_msg("Network subsystem not initialized");
+  }
   NetSocket* s = alloc_alloc_t(alloc, NetSocket);
 
   *s = (NetSocket){.alloc = alloc, .handle = INVALID_SOCKET};
@@ -314,6 +320,9 @@ NetResult net_socket_shutdown(NetSocket* s, const NetDir dir) {
 }
 
 NetResult net_resolve_sync(const String host, NetIp* out) {
+  if (UNLIKELY(!g_netInitialized)) {
+    diag_crash_msg("Network subsystem not initialized");
+  }
   if (UNLIKELY(!g_netWsReady)) {
     return NetResult_SystemFailure;
   }
