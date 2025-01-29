@@ -65,3 +65,9 @@ message(STATUS "> application: zipu")
 add_executable(app_zipu zipu.c)
 target_link_libraries(app_zipu PRIVATE lib_app_cli lib_log)
 configure_debuggable(app_zipu)
+
+message(STATUS "> application: httpu")
+
+add_executable(app_httpu httpu.c)
+target_link_libraries(app_httpu PRIVATE lib_app_cli lib_net lib_log)
+configure_debuggable(app_httpu)
