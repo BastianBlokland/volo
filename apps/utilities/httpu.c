@@ -126,7 +126,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     return 0;
   }
 
-  log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, LogMask_All));
+  if (tty_isatty(g_fileStdOut)) {
+    log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, LogMask_All));
+  }
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
   HttpuContext ctx = {
