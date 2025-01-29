@@ -187,7 +187,7 @@ static bool net_socket_configure(NetSocket* s) {
   // clang-format off
 
   int optValTrue = true;
-  if (g_netWsLib.setsockopt(s->handle, IPPROTO_TCP, TCP_NODELAY, (char*)&optValTrue, sizeof(optValTrue)) != SOCKET_ERROR) {
+  if (g_netWsLib.setsockopt(s->handle, IPPROTO_TCP, TCP_NODELAY, (char*)&optValTrue, sizeof(optValTrue)) == SOCKET_ERROR) {
     return false;
   }
 

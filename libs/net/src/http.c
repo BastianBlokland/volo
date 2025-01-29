@@ -113,8 +113,9 @@ static void http_set_err(NetHttp* http, const NetResult err) {
   }
 }
 
-static void http_request_get_header(const NetHttp* http, const String uri, DynString* out) {
-  fmt_write(out, "GET {} HTTP/1.1\r\n", fmt_text(uri));
+static void
+http_request_header(const NetHttp* http, const String method, const String uri, DynString* out) {
+  fmt_write(out, "{} {} HTTP/1.1\r\n", fmt_text(method), fmt_text(uri));
   fmt_write(out, "Host: {}\r\n", fmt_text(http->host));
   fmt_write(out, "Connection: keep-alive\r\n");
   fmt_write(out, "Accept: */*\r\n");
@@ -438,6 +439,56 @@ NetResult      net_http_status(const NetHttp* http) { return http->status; }
 const NetAddr* net_http_remote(const NetHttp* http) { return &http->hostAddr; }
 String         net_http_remote_name(const NetHttp* http) { return http->host; }
 
+NetResult net_http_head_sync(NetHttp* http, const String uri) {
+  if (http->status != NetResult_Success) {
+    return http->status;
+  }
+  const TimeSteady startTime = time_steady_clock();
+  const String     uriOrRoot = string_is_empty(uri) ? string_lit("/") : uri;
+
+  DynString headerBuffer = dynstring_create(g_allocScratch, 4 * usize_kibibyte);
+  http_request_header(http, string_lit("HEAD"), uriOrRoot, &headerBuffer);
+
+  log_d(
+      "Http: Sending HEAD",
+      log_param("host", fmt_text(http->host)),
+      log_param("uri", fmt_text(uriOrRoot)));
+
+  http_write_sync(http, dynstring_view(&headerBuffer));
+  if (http->status != NetResult_Success) {
+    return http->status;
+  }
+
+  const NetHttpResponse resp    = http_read_response(http);
+  const TimeDuration    respDur = time_steady_duration(startTime, time_steady_clock());
+  if (http->status != NetResult_Success) {
+    return http->status;
+  }
+
+#ifndef VOLO_FAST
+  {
+    const String reason = http_view_str_trim_or(http, resp.reason, string_lit("unknown"));
+    const String type   = http_view_str_trim_or(http, resp.contentType, string_lit("unknown"));
+    const String server = http_view_str_trim_or(http, resp.server, string_lit("unknown"));
+    const String via    = http_view_str_trim_or(http, resp.via, string_lit("unknown"));
+    log_d(
+        "Http: Received HEAD response",
+        log_param("status", fmt_int(resp.status)),
+        log_param("reason", fmt_text(reason)),
+        log_param("duration", fmt_duration(respDur)),
+        log_param("content-type", fmt_text(type)),
+        log_param("server", fmt_text(server)),
+        log_param("via", fmt_text(via)));
+  }
+#else
+  (void)respDur;
+  (void)http_view_str_trim_or;
+#endif
+
+  http_read_end(http); // Releases reading resources, do not access response data after this.
+  return http->status ? http->status : http_status_result(resp.status);
+}
+
 NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
   if (http->status != NetResult_Success) {
     return http->status;
@@ -445,11 +496,8 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
   const TimeSteady startTime = time_steady_clock();
   const String     uriOrRoot = string_is_empty(uri) ? string_lit("/") : uri;
 
-  /**
-   * Send request.
-   */
   DynString headerBuffer = dynstring_create(g_allocScratch, 4 * usize_kibibyte);
-  http_request_get_header(http, uriOrRoot, &headerBuffer);
+  http_request_header(http, string_lit("GET"), uriOrRoot, &headerBuffer);
 
   log_d(
       "Http: Sending GET",
@@ -461,9 +509,6 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
     return http->status;
   }
 
-  /**
-   * Handle response.
-   */
   const NetHttpResponse resp    = http_read_response(http);
   const TimeDuration    respDur = time_steady_duration(startTime, time_steady_clock());
   if (http->status != NetResult_Success) {
