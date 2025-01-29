@@ -22,6 +22,7 @@ typedef struct {
   int    (SYS_DECL* WSAGetLastError)(void);
   SOCKET (SYS_DECL* socket)(int af, int type, int protocol);
   int    (SYS_DECL* closesocket)(SOCKET);
+  int    (SYS_DECL* setsockopt)(SOCKET, int level, int optName, const char* optVal, int optLen);
   int    (SYS_DECL* connect)(SOCKET, const void* addr, int addrLen);
   int    (SYS_DECL* send)(SOCKET, const void* buf, int len, int flags);
   int    (SYS_DECL* recv)(SOCKET, void* buf, int len, int flags);
@@ -53,6 +54,7 @@ static bool net_ws_init(NetWinSock* ws, Allocator* alloc) {
   WS_LOAD_SYM(WSAGetLastError);
   WS_LOAD_SYM(socket);
   WS_LOAD_SYM(closesocket);
+  WS_LOAD_SYM(setsockopt);
   WS_LOAD_SYM(connect);
   WS_LOAD_SYM(send);
   WS_LOAD_SYM(recv);
@@ -181,6 +183,18 @@ typedef struct sNetSocket {
   NetDir     closedMask;
 } NetSocket;
 
+static bool net_socket_configure(NetSocket* s) {
+  // clang-format off
+
+  int optValTrue = true;
+  if (g_netWsLib.setsockopt(s->handle, IPPROTO_TCP, TCP_NODELAY, (char*)&optValTrue, sizeof(optValTrue)) != SOCKET_ERROR) {
+    return false;
+  }
+
+  // clang-format on
+  return true;
+}
+
 NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
   if (UNLIKELY(!g_netInitialized)) {
     diag_crash_msg("Network subsystem not initialized");
@@ -196,6 +210,10 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
   s->handle = g_netWsLib.socket(net_pal_socket_domain(addr.ip.type), SOCK_STREAM, IPPROTO_TCP);
   if (s->handle == INVALID_SOCKET) {
     s->status = net_pal_socket_error();
+    return s;
+  }
+  if (!net_socket_configure(s)) {
+    s->status = NetResult_SystemFailure;
     return s;
   }
 
