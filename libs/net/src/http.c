@@ -458,6 +458,8 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
         log_param("content-encoding", fmt_text(enc)),
         log_param("transfer-encoding", fmt_text(trans)));
   }
+#else
+  (void)http_view_str_trim_or;
 #endif
 
   const NetHttpView body = http_read_body(http, &resp);
