@@ -12,6 +12,7 @@
 
 #include <errno.h>
 #include <netdb.h>
+#include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
@@ -91,6 +92,14 @@ typedef struct sNetSocket {
   NetDir     closedMask;
 } NetSocket;
 
+static bool net_socket_configure(NetSocket* s) {
+  int optValTrue = true;
+  if (setsockopt(s->handle, IPPROTO_TCP, TCP_NODELAY, (char*)&optValTrue, sizeof(optValTrue)) < 0) {
+    return false;
+  }
+  return true;
+}
+
 NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
   if (UNLIKELY(!g_netInitialized)) {
     diag_crash_msg("Network subsystem not initialized");
@@ -102,6 +111,10 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
   s->handle = socket(net_pal_socket_domain(addr.ip.type), SOCK_STREAM, IPPROTO_TCP);
   if (s->handle < 0) {
     s->status = net_pal_socket_error(errno);
+    return s;
+  }
+  if (!net_socket_configure(s)) {
+    s->status = NetResult_SystemFailure;
     return s;
   }
   for (;;) {

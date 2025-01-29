@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_dynstring.h"
 #include "core_gzip.h"
+#include "core_time.h"
 #include "log_logger.h"
 #include "net_addr.h"
 #include "net_http.h"
@@ -42,9 +43,10 @@ typedef struct {
 typedef struct {
   u64         status;
   NetHttpView reason;
-  NetHttpView contentEncoding;
+  NetHttpView contentType, contentEncoding;
   u64         contentLength;
   NetHttpView transferEncoding;
+  NetHttpView server, via;
 } NetHttpResponse;
 
 static String http_view_str(const NetHttp* http, const NetHttpView view) {
@@ -244,10 +246,16 @@ static NetHttpResponse http_read_response(NetHttp* http) {
     if (0) {
     } else if (http_view_eq_loose(http, fieldName, string_lit("Content-Length"))) {
       format_read_u64(http_view_str_trim(http, fieldValue), &resp.contentLength, 10 /* base */);
+    } else if (http_view_eq_loose(http, fieldName, string_lit("Content-Type"))) {
+      resp.contentType = fieldValue;
     } else if (http_view_eq_loose(http, fieldName, string_lit("Content-Encoding"))) {
       resp.contentEncoding = fieldValue;
     } else if (http_view_eq_loose(http, fieldName, string_lit("Transfer-Encoding"))) {
       resp.transferEncoding = fieldValue;
+    } else if (http_view_eq_loose(http, fieldName, string_lit("Server"))) {
+      resp.server = fieldValue;
+    } else if (http_view_eq_loose(http, fieldName, string_lit("Via"))) {
+      resp.via = fieldValue;
     }
   }
   return resp;
@@ -359,7 +367,7 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
       .flags      = flags,
   };
 
-  log_d("Http: Resolving host", log_param("host", fmt_text(host)));
+  const TimeSteady startTime = time_steady_clock();
 
   NetIp hostIp;
   http->status = net_resolve_sync(host, &hostIp);
@@ -372,9 +380,14 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
   }
   http->hostAddr = (NetAddr){.ip = hostIp, .port = flags & NetHttpFlags_Tls ? 443 : 80};
 
+  const TimeDuration resolveDur = time_steady_duration(startTime, time_steady_clock());
+  (void)resolveDur;
+
   log_d(
-      "Http: Connecting to host",
-      log_param("addr", fmt_text(net_addr_str_scratch(&http->hostAddr))));
+      "Http: Host resolved",
+      log_param("host", fmt_text(host)),
+      log_param("addr", fmt_text(net_addr_str_scratch(&http->hostAddr))),
+      log_param("duration", fmt_duration(resolveDur)));
 
   http->socket = net_socket_connect_sync(alloc, http->hostAddr);
   http->status = net_socket_status(http->socket);
@@ -396,6 +409,15 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
       return http;
     }
   }
+
+  const TimeDuration connectDur = time_steady_duration(startTime, time_steady_clock());
+  (void)connectDur;
+
+  log_d(
+      "Http: Host connected",
+      log_param("host", fmt_text(host)),
+      log_param("addr", fmt_text(net_addr_str_scratch(&http->hostAddr))),
+      log_param("duration", fmt_duration(connectDur)));
 
   return http;
 }
@@ -420,7 +442,8 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
   if (http->status != NetResult_Success) {
     return http->status;
   }
-  const String uriOrRoot = string_is_empty(uri) ? string_lit("/") : uri;
+  const TimeSteady startTime = time_steady_clock();
+  const String     uriOrRoot = string_is_empty(uri) ? string_lit("/") : uri;
 
   /**
    * Send request.
@@ -441,7 +464,8 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
   /**
    * Handle response.
    */
-  const NetHttpResponse resp = http_read_response(http);
+  const NetHttpResponse resp    = http_read_response(http);
+  const TimeDuration    respDur = time_steady_duration(startTime, time_steady_clock());
   if (http->status != NetResult_Success) {
     return http->status;
   }
@@ -449,26 +473,39 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
 #ifndef VOLO_FAST
   {
     const String reason = http_view_str_trim_or(http, resp.reason, string_lit("unknown"));
+    const String type   = http_view_str_trim_or(http, resp.contentType, string_lit("unknown"));
     const String enc    = http_view_str_trim_or(http, resp.contentEncoding, string_lit("identity"));
     const String trans = http_view_str_trim_or(http, resp.transferEncoding, string_lit("identity"));
+    const String server = http_view_str_trim_or(http, resp.server, string_lit("unknown"));
+    const String via    = http_view_str_trim_or(http, resp.via, string_lit("unknown"));
     log_d(
         "Http: Received GET response",
         log_param("status", fmt_int(resp.status)),
         log_param("reason", fmt_text(reason)),
+        log_param("duration", fmt_duration(respDur)),
+        log_param("content-type", fmt_text(type)),
         log_param("content-encoding", fmt_text(enc)),
-        log_param("transfer-encoding", fmt_text(trans)));
+        log_param("transfer-encoding", fmt_text(trans)),
+        log_param("server", fmt_text(server)),
+        log_param("via", fmt_text(via)));
   }
 #else
+  (void)respDur;
   (void)http_view_str_trim_or;
 #endif
 
-  const NetHttpView body = http_read_body(http, &resp);
+  const NetHttpView  body    = http_read_body(http, &resp);
+  const TimeDuration bodyDur = time_steady_duration(startTime, time_steady_clock());
   if (http->status != NetResult_Success) {
     return http->status;
   }
 
   if (http->status == NetResult_Success) {
-    log_d("Http: Received GET body", log_param("size", fmt_size(body.size)));
+    (void)bodyDur;
+    log_d(
+        "Http: Received GET body",
+        log_param("size", fmt_size(body.size)),
+        log_param("duration", fmt_duration(bodyDur)));
     http_read_decode_body(http, &resp, body, out);
   }
 
