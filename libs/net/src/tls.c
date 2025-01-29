@@ -389,7 +389,8 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
     case SSL_ERROR_WANT_WRITE:
       continue; // Output was already written to the socket; retry the OpenSSL read.
     case SSL_ERROR_ZERO_RETURN:
-      return tls->status = NetResult_TlsClosed;
+      tls->status = NetResult_TlsClosed;
+      return totalBytesRead ? NetResult_Success : NetResult_TlsClosed;
     default:
       net_openssl_handle_errors(&g_netOpenSslLib);
       return tls->status = NetResult_TlsFailed;
