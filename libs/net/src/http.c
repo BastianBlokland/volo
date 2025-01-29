@@ -46,6 +46,7 @@ typedef struct {
   NetHttpView contentEncoding;
   u64         contentLength;
   NetHttpView transferEncoding;
+  NetHttpView server, via;
 } NetHttpResponse;
 
 static String http_view_str(const NetHttp* http, const NetHttpView view) {
@@ -249,6 +250,10 @@ static NetHttpResponse http_read_response(NetHttp* http) {
       resp.contentEncoding = fieldValue;
     } else if (http_view_eq_loose(http, fieldName, string_lit("Transfer-Encoding"))) {
       resp.transferEncoding = fieldValue;
+    } else if (http_view_eq_loose(http, fieldName, string_lit("Server"))) {
+      resp.server = fieldValue;
+    } else if (http_view_eq_loose(http, fieldName, string_lit("Via"))) {
+      resp.via = fieldValue;
     }
   }
   return resp;
@@ -468,13 +473,17 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
     const String reason = http_view_str_trim_or(http, resp.reason, string_lit("unknown"));
     const String enc    = http_view_str_trim_or(http, resp.contentEncoding, string_lit("identity"));
     const String trans = http_view_str_trim_or(http, resp.transferEncoding, string_lit("identity"));
+    const String server = http_view_str_trim_or(http, resp.server, string_lit("unknown"));
+    const String via    = http_view_str_trim_or(http, resp.via, string_lit("unknown"));
     log_d(
         "Http: Received GET response",
         log_param("status", fmt_int(resp.status)),
         log_param("reason", fmt_text(reason)),
         log_param("duration", fmt_duration(respDur)),
         log_param("content-encoding", fmt_text(enc)),
-        log_param("transfer-encoding", fmt_text(trans)));
+        log_param("transfer-encoding", fmt_text(trans)),
+        log_param("server", fmt_text(server)),
+        log_param("via", fmt_text(via)));
   }
 #else
   (void)respDur;
