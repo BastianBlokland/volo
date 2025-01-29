@@ -43,7 +43,7 @@ typedef struct {
 typedef struct {
   u64         status;
   NetHttpView reason;
-  NetHttpView contentEncoding;
+  NetHttpView contentType, contentEncoding;
   u64         contentLength;
   NetHttpView transferEncoding;
   NetHttpView server, via;
@@ -246,6 +246,8 @@ static NetHttpResponse http_read_response(NetHttp* http) {
     if (0) {
     } else if (http_view_eq_loose(http, fieldName, string_lit("Content-Length"))) {
       format_read_u64(http_view_str_trim(http, fieldValue), &resp.contentLength, 10 /* base */);
+    } else if (http_view_eq_loose(http, fieldName, string_lit("Content-Type"))) {
+      resp.contentType = fieldValue;
     } else if (http_view_eq_loose(http, fieldName, string_lit("Content-Encoding"))) {
       resp.contentEncoding = fieldValue;
     } else if (http_view_eq_loose(http, fieldName, string_lit("Transfer-Encoding"))) {
@@ -471,6 +473,7 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
 #ifndef VOLO_FAST
   {
     const String reason = http_view_str_trim_or(http, resp.reason, string_lit("unknown"));
+    const String type   = http_view_str_trim_or(http, resp.contentType, string_lit("unknown"));
     const String enc    = http_view_str_trim_or(http, resp.contentEncoding, string_lit("identity"));
     const String trans = http_view_str_trim_or(http, resp.transferEncoding, string_lit("identity"));
     const String server = http_view_str_trim_or(http, resp.server, string_lit("unknown"));
@@ -480,6 +483,7 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
         log_param("status", fmt_int(resp.status)),
         log_param("reason", fmt_text(reason)),
         log_param("duration", fmt_duration(respDur)),
+        log_param("content-type", fmt_text(type)),
         log_param("content-encoding", fmt_text(enc)),
         log_param("transfer-encoding", fmt_text(trans)),
         log_param("server", fmt_text(server)),
