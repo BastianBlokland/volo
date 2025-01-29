@@ -360,7 +360,7 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
       .flags      = flags,
   };
 
-  log_d("Http: Resolving host", log_param("host", fmt_text(host)));
+  const TimeSteady startTime = time_steady_clock();
 
   NetIp hostIp;
   http->status = net_resolve_sync(host, &hostIp);
@@ -373,9 +373,14 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
   }
   http->hostAddr = (NetAddr){.ip = hostIp, .port = flags & NetHttpFlags_Tls ? 443 : 80};
 
+  const TimeDuration resolveDur = time_steady_duration(startTime, time_steady_clock());
+  (void)resolveDur;
+
   log_d(
-      "Http: Connecting to host",
-      log_param("addr", fmt_text(net_addr_str_scratch(&http->hostAddr))));
+      "Http: Host resolved",
+      log_param("host", fmt_text(host)),
+      log_param("addr", fmt_text(net_addr_str_scratch(&http->hostAddr))),
+      log_param("duration", fmt_duration(resolveDur)));
 
   http->socket = net_socket_connect_sync(alloc, http->hostAddr);
   http->status = net_socket_status(http->socket);
@@ -397,6 +402,15 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
       return http;
     }
   }
+
+  const TimeDuration connectDur = time_steady_duration(startTime, time_steady_clock());
+  (void)connectDur;
+
+  log_d(
+      "Http: Host connected",
+      log_param("host", fmt_text(host)),
+      log_param("addr", fmt_text(net_addr_str_scratch(&http->hostAddr))),
+      log_param("duration", fmt_duration(connectDur)));
 
   return http;
 }
