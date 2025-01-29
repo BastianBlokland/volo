@@ -40,8 +40,31 @@ static bool httpu_validate_protocol(const String input) {
   return false;
 }
 
+typedef enum {
+  HttpuMethod_Head,
+  HttpuMethod_Get,
+
+  HttpuMethod_Count,
+} HttpuMethod;
+
+static const String g_methodStrs[] = {
+    string_static("head"),
+    string_static("get"),
+};
+ASSERT(array_elems(g_methodStrs) == HttpuMethod_Count, "Incorrect number of method strings");
+
+static bool httpu_validate_method(const String input) {
+  array_for_t(g_methodStrs, String, method) {
+    if (string_eq(*method, input)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 typedef struct {
   HttpuProtocol protocol;
+  HttpuMethod   method;
   String        host;
   String        uri;        // Optional.
   String        outputPath; // Optional.
@@ -63,6 +86,25 @@ static NetHttpFlags httpu_flags(const HttpuContext* ctx) {
     break;
   }
   diag_crash_msg("Unsupported protocol");
+}
+
+static i32 httpu_head(const HttpuContext* ctx) {
+  i32      res    = 0;
+  NetHttp* client = net_http_connect_sync(g_allocHeap, ctx->host, httpu_flags(ctx));
+
+  if (net_http_status(client) != NetResult_Success) {
+    res = 1;
+    goto Done;
+  }
+  if (net_http_head_sync(client, ctx->uri) != NetResult_Success) {
+    res = 1;
+    goto Done;
+  }
+
+Done:
+  net_http_shutdown_sync(client);
+  net_http_destroy(client);
+  return res;
 }
 
 static i32 httpu_get(const HttpuContext* ctx) {
@@ -95,7 +137,7 @@ Done:
   return res;
 }
 
-static CliId g_optHost, g_optUri, g_optOutput, g_optProtocol, g_optHelp;
+static CliId g_optHost, g_optUri, g_optOutput, g_optProtocol, g_optMethod, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Http Utility."));
@@ -113,11 +155,17 @@ void app_cli_configure(CliApp* app) {
   cli_register_desc_choice_array(app, g_optProtocol, string_empty, g_protocolStrs, 1 /* https */);
   cli_register_validator(app, g_optProtocol, httpu_validate_protocol);
 
+  g_optMethod = cli_register_flag(app, 'm', string_lit("method"), CliOptionFlags_Value);
+  cli_register_desc_choice_array(app, g_optMethod, string_empty, g_methodStrs, 1 /* get */);
+  cli_register_validator(app, g_optMethod, httpu_validate_method);
+
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
   cli_register_exclusions(app, g_optHelp, g_optHost);
   cli_register_exclusions(app, g_optHelp, g_optUri);
   cli_register_exclusions(app, g_optHelp, g_optOutput);
+  cli_register_exclusions(app, g_optHelp, g_optProtocol);
+  cli_register_exclusions(app, g_optHelp, g_optMethod);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
@@ -133,15 +181,23 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   HttpuContext ctx = {
       .protocol   = (HttpuProtocol)cli_read_choice_array(invoc, g_optProtocol, g_protocolStrs, 1),
+      .method     = (HttpuMethod)cli_read_choice_array(invoc, g_optMethod, g_methodStrs, 1),
       .host       = cli_read_string(invoc, g_optHost, string_empty),
       .uri        = cli_read_string(invoc, g_optUri, string_empty),
       .outputPath = cli_read_string(invoc, g_optOutput, string_empty),
   };
 
+  i32 retCode = 1;
+
   net_init();
-
-  const i32 retCode = httpu_get(&ctx);
-
+  switch (ctx.method) {
+  case HttpuMethod_Head:
+    retCode = httpu_head(&ctx);
+    break;
+  case HttpuMethod_Get:
+    retCode = httpu_get(&ctx);
+    break;
+  }
   net_teardown();
 
   return retCode;
