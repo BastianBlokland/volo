@@ -37,6 +37,11 @@ const NetAddr* net_http_remote(const NetHttp*);
 String         net_http_remote_name(const NetHttp*);
 
 /**
+ * Synchonously perform a 'HEAD' request for the given resource.
+ */
+NetResult net_http_head_sync(NetHttp*, String uri);
+
+/**
  * Synchonously perform a 'GET' request for the given resource.
  * NOTE: Response body is written to the output DynString.
  */
