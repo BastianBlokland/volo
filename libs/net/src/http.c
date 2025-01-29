@@ -4,6 +4,7 @@
 #include "core_diag.h"
 #include "core_dynstring.h"
 #include "core_gzip.h"
+#include "core_time.h"
 #include "log_logger.h"
 #include "net_addr.h"
 #include "net_http.h"
@@ -420,7 +421,8 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
   if (http->status != NetResult_Success) {
     return http->status;
   }
-  const String uriOrRoot = string_is_empty(uri) ? string_lit("/") : uri;
+  const TimeSteady startTime = time_steady_clock();
+  const String     uriOrRoot = string_is_empty(uri) ? string_lit("/") : uri;
 
   /**
    * Send request.
@@ -441,7 +443,8 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
   /**
    * Handle response.
    */
-  const NetHttpResponse resp = http_read_response(http);
+  const NetHttpResponse resp    = http_read_response(http);
+  const TimeDuration    respDur = time_steady_duration(startTime, time_steady_clock());
   if (http->status != NetResult_Success) {
     return http->status;
   }
@@ -455,20 +458,27 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
         "Http: Received GET response",
         log_param("status", fmt_int(resp.status)),
         log_param("reason", fmt_text(reason)),
+        log_param("duration", fmt_duration(respDur)),
         log_param("content-encoding", fmt_text(enc)),
         log_param("transfer-encoding", fmt_text(trans)));
   }
 #else
+  (void)respDur;
   (void)http_view_str_trim_or;
 #endif
 
-  const NetHttpView body = http_read_body(http, &resp);
+  const NetHttpView  body    = http_read_body(http, &resp);
+  const TimeDuration bodyDur = time_steady_duration(startTime, time_steady_clock());
   if (http->status != NetResult_Success) {
     return http->status;
   }
 
   if (http->status == NetResult_Success) {
-    log_d("Http: Received GET body", log_param("size", fmt_size(body.size)));
+    (void)bodyDur;
+    log_d(
+        "Http: Received GET body",
+        log_param("size", fmt_size(body.size)),
+        log_param("duration", fmt_duration(bodyDur)));
     http_read_decode_body(http, &resp, body, out);
   }
 
