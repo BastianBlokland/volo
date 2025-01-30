@@ -134,6 +134,7 @@ static void http_request_header(
     const String       method,
     const String       uri,
     const NetHttpAuth* auth,
+    const NetHttpEtag* etag,
     DynString*         out) {
 
   fmt_write(out, "{} {} HTTP/1.1\r\n", fmt_text(method), fmt_text(uri));
@@ -142,6 +143,9 @@ static void http_request_header(
     fmt_write(out, "Authorization: ");
     http_auth_write(auth, out);
     fmt_write(out, "\r\n");
+  }
+  if (etag && etag->length) {
+    fmt_write(out, "If-None-Match: \"{}\"\r\n", fmt_text(mem_create(etag->data, etag->length)));
   }
   fmt_write(out, "Connection: keep-alive\r\n");
   fmt_write(out, "Accept: */*\r\n");
@@ -502,7 +506,7 @@ net_http_head_sync(NetHttp* http, const String uri, const NetHttpAuth* auth, Net
   const String     uriOrRoot = string_is_empty(uri) ? string_lit("/") : uri;
 
   DynString headerBuffer = dynstring_create(g_allocScratch, 4 * usize_kibibyte);
-  http_request_header(http, string_lit("HEAD"), uriOrRoot, auth, &headerBuffer);
+  http_request_header(http, string_lit("HEAD"), uriOrRoot, auth, etag, &headerBuffer);
 
   log_d(
       "Http: Sending HEAD",
@@ -559,7 +563,7 @@ NetResult net_http_get_sync(
   const String     uriOrRoot = string_is_empty(uri) ? string_lit("/") : uri;
 
   DynString headerBuffer = dynstring_create(g_allocScratch, 4 * usize_kibibyte);
-  http_request_header(http, string_lit("GET"), uriOrRoot, auth, &headerBuffer);
+  http_request_header(http, string_lit("GET"), uriOrRoot, auth, etag, &headerBuffer);
 
   log_d(
       "Http: Sending GET",
