@@ -20,6 +20,7 @@ static const String g_netResultStrs[] = {
     [NetResult_TlsFailed]                       = string_static("NetTlsFailed"),
     [NetResult_TlsClosed]                       = string_static("NetTlsClosed"),
     [NetResult_TlsBufferExhausted]              = string_static("NetTlsBufferExhausted"),
+    [NetResult_HttpNotModified]                 = string_static("HttpNotModified"),
     [NetResult_HttpNotFound]                    = string_static("HttpNotFound"),
     [NetResult_HttpUnauthorized]                = string_static("HttpUnauthorized"),
     [NetResult_HttpForbidden]                   = string_static("HttpForbidden"),

@@ -102,7 +102,12 @@ static NetResult http_status_result(const u64 status) {
     }
   }
   if (status >= 300) {
-    return NetResult_HttpRedirected;
+    switch (status) {
+    case 304:
+      return NetResult_HttpNotModified;
+    default:
+      return NetResult_HttpRedirected;
+    }
   }
   if (status >= 200) {
     return NetResult_Success;
