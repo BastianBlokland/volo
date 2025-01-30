@@ -68,6 +68,7 @@ typedef struct {
   String        host;
   String        uri;        // Optional.
   String        outputPath; // Optional.
+  NetHttpAuth   auth;
 } HttpuContext;
 
 static NetHttpFlags httpu_flags(const HttpuContext* ctx) {
@@ -96,7 +97,7 @@ static i32 httpu_head(const HttpuContext* ctx) {
     res = 1;
     goto Done;
   }
-  if (net_http_head_sync(client, ctx->uri, null /* auth */) != NetResult_Success) {
+  if (net_http_head_sync(client, ctx->uri, &ctx->auth) != NetResult_Success) {
     res = 1;
     goto Done;
   }
@@ -117,7 +118,7 @@ static i32 httpu_get(const HttpuContext* ctx) {
     goto Done;
   }
 
-  const NetResult getResult = net_http_get_sync(client, ctx->uri, null /* auth */, &buffer);
+  const NetResult getResult = net_http_get_sync(client, ctx->uri, &ctx->auth, &buffer);
   if (getResult != NetResult_Success) {
     res = 1;
     goto Done;
@@ -137,7 +138,9 @@ Done:
   return res;
 }
 
-static CliId g_optHost, g_optUri, g_optOutput, g_optProtocol, g_optMethod, g_optHelp;
+static CliId g_optHost, g_optUri, g_optOutput, g_optProtocol, g_optMethod;
+static CliId g_optUser, g_optPassword;
+static CliId g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Http Utility."));
@@ -159,6 +162,12 @@ void app_cli_configure(CliApp* app) {
   cli_register_desc_choice_array(app, g_optMethod, string_empty, g_methodStrs, 1 /* get */);
   cli_register_validator(app, g_optMethod, httpu_validate_method);
 
+  g_optUser = cli_register_flag(app, 'U', string_lit("user"), CliOptionFlags_Value);
+  cli_register_desc(app, g_optUser, string_lit("Http basic auth user."));
+
+  g_optPassword = cli_register_flag(app, 'P', string_lit("password"), CliOptionFlags_Value);
+  cli_register_desc(app, g_optPassword, string_lit("Http basic auth password."));
+
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
   cli_register_exclusions(app, g_optHelp, g_optHost);
@@ -166,6 +175,8 @@ void app_cli_configure(CliApp* app) {
   cli_register_exclusions(app, g_optHelp, g_optOutput);
   cli_register_exclusions(app, g_optHelp, g_optProtocol);
   cli_register_exclusions(app, g_optHelp, g_optMethod);
+  cli_register_exclusions(app, g_optHelp, g_optUser);
+  cli_register_exclusions(app, g_optHelp, g_optPassword);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
@@ -186,6 +197,12 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .uri        = cli_read_string(invoc, g_optUri, string_empty),
       .outputPath = cli_read_string(invoc, g_optOutput, string_empty),
   };
+
+  if (cli_parse_provided(invoc, g_optUser)) {
+    ctx.auth.type = NetHttpAuthType_Basic;
+    ctx.auth.user = cli_read_string(invoc, g_optUser, string_empty);
+    ctx.auth.pw   = cli_read_string(invoc, g_optPassword, string_empty);
+  }
 
   i32 retCode = 1;
 
