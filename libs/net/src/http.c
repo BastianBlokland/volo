@@ -6,6 +6,7 @@
 #include "core_diag.h"
 #include "core_dynstring.h"
 #include "core_gzip.h"
+#include "core_math.h"
 #include "core_time.h"
 #include "log_logger.h"
 #include "net_addr.h"
@@ -145,7 +146,9 @@ static void http_request_header(
     fmt_write(out, "\r\n");
   }
   if (etag && etag->length) {
-    fmt_write(out, "If-None-Match: \"{}\"\r\n", fmt_text(mem_create(etag->data, etag->length)));
+    diag_assert(etag->length <= array_elems(etag->data));
+    const u8 lengthClamp = math_min(etag->length, array_elems(etag->data));
+    fmt_write(out, "If-None-Match: \"{}\"\r\n", fmt_text(mem_create(etag->data, lengthClamp)));
   }
   fmt_write(out, "Connection: keep-alive\r\n");
   fmt_write(out, "Accept: */*\r\n");
