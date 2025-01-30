@@ -494,20 +494,20 @@ NetResult net_http_head_sync(NetHttp* http, const String uri, const NetHttpAuth*
 
 #ifndef VOLO_FAST
   {
-    const String reason = http_view_str_trim_or(http, resp.reason, string_lit("unknown"));
-    const String type   = http_view_str_trim_or(http, resp.contentType, string_lit("unknown"));
-    const String server = http_view_str_trim_or(http, resp.server, string_lit("unknown"));
-    const String via    = http_view_str_trim_or(http, resp.via, string_lit("unknown"));
-    const String etag   = http_view_str_trim_or(http, resp.etag, string_lit("none"));
+    const String lReason = http_view_str_trim_or(http, resp.reason, string_lit("unknown"));
+    const String lType   = http_view_str_trim_or(http, resp.contentType, string_lit("unknown"));
+    const String lServer = http_view_str_trim_or(http, resp.server, string_lit("unknown"));
+    const String lVia    = http_view_str_trim_or(http, resp.via, string_lit("unknown"));
+    const String lEtag   = http_view_str_trim_or(http, resp.etag, string_lit("none"));
     log_d(
         "Http: Received HEAD response",
         log_param("status", fmt_int(resp.status)),
-        log_param("reason", fmt_text(reason)),
+        log_param("reason", fmt_text(lReason)),
         log_param("duration", fmt_duration(respDur)),
-        log_param("content-type", fmt_text(type)),
-        log_param("server", fmt_text(server)),
-        log_param("via", fmt_text(via)),
-        log_param("etag", fmt_text(etag)));
+        log_param("content-type", fmt_text(lType)),
+        log_param("server", fmt_text(lServer)),
+        log_param("via", fmt_text(lVia)),
+        log_param("etag", fmt_text(lEtag)));
   }
 #else
   (void)respDur;
@@ -547,24 +547,24 @@ net_http_get_sync(NetHttp* http, const String uri, const NetHttpAuth* auth, DynS
 
 #ifndef VOLO_FAST
   {
-    const String reason = http_view_str_trim_or(http, resp.reason, string_lit("unknown"));
-    const String type   = http_view_str_trim_or(http, resp.contentType, string_lit("unknown"));
-    const String enc    = http_view_str_trim_or(http, resp.contentEncoding, string_lit("identity"));
-    const String trans = http_view_str_trim_or(http, resp.transferEncoding, string_lit("identity"));
-    const String server = http_view_str_trim_or(http, resp.server, string_lit("unknown"));
-    const String via    = http_view_str_trim_or(http, resp.via, string_lit("unknown"));
-    const String etag   = http_view_str_trim_or(http, resp.etag, string_lit("none"));
+    const String lReason = http_view_str_trim_or(http, resp.reason, string_lit("unknown"));
+    const String lType   = http_view_str_trim_or(http, resp.contentType, string_lit("unknown"));
+    const String lEnc  = http_view_str_trim_or(http, resp.contentEncoding, string_lit("identity"));
+    const String lTran = http_view_str_trim_or(http, resp.transferEncoding, string_lit("identity"));
+    const String lServer = http_view_str_trim_or(http, resp.server, string_lit("unknown"));
+    const String lVia    = http_view_str_trim_or(http, resp.via, string_lit("unknown"));
+    const String lEtag   = http_view_str_trim_or(http, resp.etag, string_lit("none"));
     log_d(
         "Http: Received GET response",
         log_param("status", fmt_int(resp.status)),
-        log_param("reason", fmt_text(reason)),
+        log_param("reason", fmt_text(lReason)),
         log_param("duration", fmt_duration(respDur)),
-        log_param("content-type", fmt_text(type)),
-        log_param("content-encoding", fmt_text(enc)),
-        log_param("transfer-encoding", fmt_text(trans)),
-        log_param("server", fmt_text(server)),
-        log_param("via", fmt_text(via)),
-        log_param("etag", fmt_text(etag)));
+        log_param("content-type", fmt_text(lType)),
+        log_param("content-encoding", fmt_text(lEnc)),
+        log_param("transfer-encoding", fmt_text(lTran)),
+        log_param("server", fmt_text(lServer)),
+        log_param("via", fmt_text(lVia)),
+        log_param("etag", fmt_text(lEtag)));
   }
 #else
   (void)respDur;
