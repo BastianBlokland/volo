@@ -48,6 +48,7 @@ typedef struct {
   u64         contentLength;
   NetHttpView transferEncoding;
   NetHttpView server, via;
+  NetHttpView etag;
 } NetHttpResponse;
 
 static String http_view_str(const NetHttp* http, const NetHttpView view) {
@@ -281,6 +282,8 @@ static NetHttpResponse http_read_response(NetHttp* http) {
       resp.server = fieldValue;
     } else if (http_view_eq_loose(http, fieldName, string_lit("Via"))) {
       resp.via = fieldValue;
+    } else if (http_view_eq_loose(http, fieldName, string_lit("ETag"))) {
+      resp.etag = fieldValue;
     }
   }
   return resp;
@@ -495,6 +498,7 @@ NetResult net_http_head_sync(NetHttp* http, const String uri, const NetHttpAuth*
     const String type   = http_view_str_trim_or(http, resp.contentType, string_lit("unknown"));
     const String server = http_view_str_trim_or(http, resp.server, string_lit("unknown"));
     const String via    = http_view_str_trim_or(http, resp.via, string_lit("unknown"));
+    const String etag   = http_view_str_trim_or(http, resp.etag, string_lit("none"));
     log_d(
         "Http: Received HEAD response",
         log_param("status", fmt_int(resp.status)),
@@ -502,7 +506,8 @@ NetResult net_http_head_sync(NetHttp* http, const String uri, const NetHttpAuth*
         log_param("duration", fmt_duration(respDur)),
         log_param("content-type", fmt_text(type)),
         log_param("server", fmt_text(server)),
-        log_param("via", fmt_text(via)));
+        log_param("via", fmt_text(via)),
+        log_param("etag", fmt_text(etag)));
   }
 #else
   (void)respDur;
@@ -548,6 +553,7 @@ net_http_get_sync(NetHttp* http, const String uri, const NetHttpAuth* auth, DynS
     const String trans = http_view_str_trim_or(http, resp.transferEncoding, string_lit("identity"));
     const String server = http_view_str_trim_or(http, resp.server, string_lit("unknown"));
     const String via    = http_view_str_trim_or(http, resp.via, string_lit("unknown"));
+    const String etag   = http_view_str_trim_or(http, resp.etag, string_lit("none"));
     log_d(
         "Http: Received GET response",
         log_param("status", fmt_int(resp.status)),
@@ -557,7 +563,8 @@ net_http_get_sync(NetHttp* http, const String uri, const NetHttpAuth* auth, DynS
         log_param("content-encoding", fmt_text(enc)),
         log_param("transfer-encoding", fmt_text(trans)),
         log_param("server", fmt_text(server)),
-        log_param("via", fmt_text(via)));
+        log_param("via", fmt_text(via)),
+        log_param("etag", fmt_text(etag)));
   }
 #else
   (void)respDur;
