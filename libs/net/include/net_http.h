@@ -18,6 +18,11 @@ typedef struct {
   String          user, pw;
 } NetHttpAuth;
 
+typedef struct {
+  u8 length;
+  u8 data[63];
+} NetHttpEtag;
+
 /**
  * Http (Hypertext Transfer Protocol) connection.
  */
@@ -50,13 +55,13 @@ String         net_http_remote_name(const NetHttp*);
 /**
  * Synchonously perform a 'HEAD' request for the given resource.
  */
-NetResult net_http_head_sync(NetHttp*, String uri, const NetHttpAuth*);
+NetResult net_http_head_sync(NetHttp*, String uri, const NetHttpAuth*, NetHttpEtag*);
 
 /**
  * Synchonously perform a 'GET' request for the given resource.
  * NOTE: Response body is written to the output DynString.
  */
-NetResult net_http_get_sync(NetHttp*, String uri, const NetHttpAuth*, DynString* out);
+NetResult net_http_get_sync(NetHttp*, String uri, const NetHttpAuth*, NetHttpEtag*, DynString* out);
 
 /**
  * Synchonously shutdown the Http connection.

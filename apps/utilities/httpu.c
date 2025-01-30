@@ -69,6 +69,7 @@ typedef struct {
   String        uri;        // Optional.
   String        outputPath; // Optional.
   NetHttpAuth   auth;
+  NetHttpEtag   etag;
 } HttpuContext;
 
 static NetHttpFlags httpu_flags(const HttpuContext* ctx) {
@@ -89,7 +90,7 @@ static NetHttpFlags httpu_flags(const HttpuContext* ctx) {
   diag_crash_msg("Unsupported protocol");
 }
 
-static i32 httpu_head(const HttpuContext* ctx) {
+static i32 httpu_head(HttpuContext* ctx) {
   i32      res    = 0;
   NetHttp* client = net_http_connect_sync(g_allocHeap, ctx->host, httpu_flags(ctx));
 
@@ -97,7 +98,7 @@ static i32 httpu_head(const HttpuContext* ctx) {
     res = 1;
     goto Done;
   }
-  if (net_http_head_sync(client, ctx->uri, &ctx->auth) != NetResult_Success) {
+  if (net_http_head_sync(client, ctx->uri, &ctx->auth, &ctx->etag) != NetResult_Success) {
     res = 1;
     goto Done;
   }
@@ -108,7 +109,7 @@ Done:
   return res;
 }
 
-static i32 httpu_get(const HttpuContext* ctx) {
+static i32 httpu_get(HttpuContext* ctx) {
   i32       res    = 0;
   NetHttp*  client = net_http_connect_sync(g_allocHeap, ctx->host, httpu_flags(ctx));
   DynString buffer = dynstring_create(g_allocHeap, 16 * usize_kibibyte);
@@ -117,8 +118,7 @@ static i32 httpu_get(const HttpuContext* ctx) {
     res = 1;
     goto Done;
   }
-
-  const NetResult getResult = net_http_get_sync(client, ctx->uri, &ctx->auth, &buffer);
+  const NetResult getResult = net_http_get_sync(client, ctx->uri, &ctx->auth, &ctx->etag, &buffer);
   if (getResult != NetResult_Success) {
     res = 1;
     goto Done;
@@ -138,7 +138,7 @@ Done:
   return res;
 }
 
-static CliId g_optHost, g_optUri, g_optOutput, g_optProtocol, g_optMethod;
+static CliId g_optHost, g_optUri, g_optOutput, g_optProtocol, g_optMethod, g_optEtag;
 static CliId g_optUser, g_optPassword;
 static CliId g_optHelp;
 
@@ -162,6 +162,9 @@ void app_cli_configure(CliApp* app) {
   cli_register_desc_choice_array(app, g_optMethod, string_empty, g_methodStrs, 1 /* get */);
   cli_register_validator(app, g_optMethod, httpu_validate_method);
 
+  g_optEtag = cli_register_flag(app, 'e', string_lit("etag"), CliOptionFlags_Value);
+  cli_register_desc(app, g_optEtag, string_lit("Entity tag."));
+
   g_optUser = cli_register_flag(app, 'U', string_lit("user"), CliOptionFlags_Value);
   cli_register_desc(app, g_optUser, string_lit("Http basic auth user."));
 
@@ -175,6 +178,7 @@ void app_cli_configure(CliApp* app) {
   cli_register_exclusions(app, g_optHelp, g_optOutput);
   cli_register_exclusions(app, g_optHelp, g_optProtocol);
   cli_register_exclusions(app, g_optHelp, g_optMethod);
+  cli_register_exclusions(app, g_optHelp, g_optEtag);
   cli_register_exclusions(app, g_optHelp, g_optUser);
   cli_register_exclusions(app, g_optHelp, g_optPassword);
 }
@@ -190,6 +194,8 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   }
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
+  i32 retCode = 1;
+
   HttpuContext ctx = {
       .protocol   = (HttpuProtocol)cli_read_choice_array(invoc, g_optProtocol, g_protocolStrs, 1),
       .method     = (HttpuMethod)cli_read_choice_array(invoc, g_optMethod, g_methodStrs, 1),
@@ -198,13 +204,21 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .outputPath = cli_read_string(invoc, g_optOutput, string_empty),
   };
 
+  const String etagStr = cli_read_string(invoc, g_optEtag, string_empty);
+  if (!string_is_empty(etagStr)) {
+    if (etagStr.size > array_elems(ctx.etag.data)) {
+      file_write_sync(g_fileStdErr, string_lit("Etag too long.\n"));
+      goto Exit;
+    }
+    ctx.etag.length = (u8)etagStr.size;
+    mem_cpy(array_mem(ctx.etag.data), etagStr);
+  }
+
   if (cli_parse_provided(invoc, g_optUser)) {
     ctx.auth.type = NetHttpAuthType_Basic;
     ctx.auth.user = cli_read_string(invoc, g_optUser, string_empty);
     ctx.auth.pw   = cli_read_string(invoc, g_optPassword, string_empty);
   }
-
-  i32 retCode = 1;
 
   net_init();
   switch (ctx.method) {
@@ -219,5 +233,6 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   }
   net_teardown();
 
+Exit:
   return retCode;
 }

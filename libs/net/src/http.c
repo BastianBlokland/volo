@@ -1,10 +1,12 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_ascii.h"
 #include "core_base64.h"
 #include "core_deflate.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
 #include "core_gzip.h"
+#include "core_math.h"
 #include "core_time.h"
 #include "log_logger.h"
 #include "net_addr.h"
@@ -48,6 +50,7 @@ typedef struct {
   u64         contentLength;
   NetHttpView transferEncoding;
   NetHttpView server, via;
+  NetHttpView etag;
 } NetHttpResponse;
 
 static String http_view_str(const NetHttp* http, const NetHttpView view) {
@@ -99,7 +102,12 @@ static NetResult http_status_result(const u64 status) {
     }
   }
   if (status >= 300) {
-    return NetResult_HttpRedirected;
+    switch (status) {
+    case 304:
+      return NetResult_HttpNotModified;
+    default:
+      return NetResult_HttpRedirected;
+    }
   }
   if (status >= 200) {
     return NetResult_Success;
@@ -132,6 +140,7 @@ static void http_request_header(
     const String       method,
     const String       uri,
     const NetHttpAuth* auth,
+    const NetHttpEtag* etag,
     DynString*         out) {
 
   fmt_write(out, "{} {} HTTP/1.1\r\n", fmt_text(method), fmt_text(uri));
@@ -140,6 +149,11 @@ static void http_request_header(
     fmt_write(out, "Authorization: ");
     http_auth_write(auth, out);
     fmt_write(out, "\r\n");
+  }
+  if (etag && etag->length) {
+    diag_assert(etag->length <= array_elems(etag->data));
+    const u8 lengthClamp = math_min(etag->length, array_elems(etag->data));
+    fmt_write(out, "If-None-Match: \"{}\"\r\n", fmt_text(mem_create(etag->data, lengthClamp)));
   }
   fmt_write(out, "Connection: keep-alive\r\n");
   fmt_write(out, "Accept: */*\r\n");
@@ -281,6 +295,8 @@ static NetHttpResponse http_read_response(NetHttp* http) {
       resp.server = fieldValue;
     } else if (http_view_eq_loose(http, fieldName, string_lit("Via"))) {
       resp.via = fieldValue;
+    } else if (http_view_eq_loose(http, fieldName, string_lit("ETag"))) {
+      resp.etag = fieldValue;
     }
   }
   return resp;
@@ -374,6 +390,32 @@ static void http_read_decode_body(
   http_set_err(http, NetResult_HttpUnsupportedContentEncoding);
 }
 
+static void http_read_decode_etag(NetHttp* http, const NetHttpResponse* resp, NetHttpEtag* out) {
+  String etagVal = http_view_str_trim(http, resp->etag);
+  if (!etagVal.size) {
+    goto Clear; // Etag not provided by server.
+  }
+  if (string_starts_with(etagVal, string_lit("W/"))) {
+    // Etag is weak. TODO: Consider if we want to expose this.
+    etagVal = string_consume(etagVal, 2); // Trim the 'W/'.
+  }
+  if (etagVal.size < 2 || *string_begin(etagVal) != '"' || *string_last(etagVal) != '"') {
+    goto Clear; // Invalid etag (not quoted).
+  }
+  etagVal = string_slice(etagVal, 1, etagVal.size - 2); // Trim the quotes.
+  if (etagVal.size > array_elems(out->data)) {
+    goto Clear; // Etag too large.
+  }
+
+  out->length = (u8)etagVal.size;
+  mem_cpy(array_mem(out->data), etagVal);
+  return; // Successfully decoded etag.
+
+Clear:
+  out->length = 0;
+  mem_set(array_mem(out->data), 0);
+}
+
 static void http_read_end(NetHttp* http) {
   if (http->readBuffer.size != http->readCursor) {
     http_set_err(http, NetResult_HttpUnexpectedData);
@@ -463,7 +505,8 @@ NetResult      net_http_status(const NetHttp* http) { return http->status; }
 const NetAddr* net_http_remote(const NetHttp* http) { return &http->hostAddr; }
 String         net_http_remote_name(const NetHttp* http) { return http->host; }
 
-NetResult net_http_head_sync(NetHttp* http, const String uri, const NetHttpAuth* auth) {
+NetResult
+net_http_head_sync(NetHttp* http, const String uri, const NetHttpAuth* auth, NetHttpEtag* etag) {
   if (http->status != NetResult_Success) {
     return http->status;
   }
@@ -471,7 +514,7 @@ NetResult net_http_head_sync(NetHttp* http, const String uri, const NetHttpAuth*
   const String     uriOrRoot = string_is_empty(uri) ? string_lit("/") : uri;
 
   DynString headerBuffer = dynstring_create(g_allocScratch, 4 * usize_kibibyte);
-  http_request_header(http, string_lit("HEAD"), uriOrRoot, auth, &headerBuffer);
+  http_request_header(http, string_lit("HEAD"), uriOrRoot, auth, etag, &headerBuffer);
 
   log_d(
       "Http: Sending HEAD",
@@ -489,20 +532,26 @@ NetResult net_http_head_sync(NetHttp* http, const String uri, const NetHttpAuth*
     return http->status;
   }
 
+  if (etag) {
+    http_read_decode_etag(http, &resp, etag);
+  }
+
 #ifndef VOLO_FAST
   {
-    const String reason = http_view_str_trim_or(http, resp.reason, string_lit("unknown"));
-    const String type   = http_view_str_trim_or(http, resp.contentType, string_lit("unknown"));
-    const String server = http_view_str_trim_or(http, resp.server, string_lit("unknown"));
-    const String via    = http_view_str_trim_or(http, resp.via, string_lit("unknown"));
+    const String lReason = http_view_str_trim_or(http, resp.reason, string_lit("unknown"));
+    const String lType   = http_view_str_trim_or(http, resp.contentType, string_lit("unknown"));
+    const String lServer = http_view_str_trim_or(http, resp.server, string_lit("unknown"));
+    const String lVia    = http_view_str_trim_or(http, resp.via, string_lit("unknown"));
+    const String lEtag   = http_view_str_trim_or(http, resp.etag, string_lit("none"));
     log_d(
         "Http: Received HEAD response",
         log_param("status", fmt_int(resp.status)),
-        log_param("reason", fmt_text(reason)),
+        log_param("reason", fmt_text(lReason)),
         log_param("duration", fmt_duration(respDur)),
-        log_param("content-type", fmt_text(type)),
-        log_param("server", fmt_text(server)),
-        log_param("via", fmt_text(via)));
+        log_param("content-type", fmt_text(lType)),
+        log_param("server", fmt_text(lServer)),
+        log_param("via", fmt_text(lVia)),
+        log_param("etag", fmt_text(lEtag)));
   }
 #else
   (void)respDur;
@@ -513,8 +562,8 @@ NetResult net_http_head_sync(NetHttp* http, const String uri, const NetHttpAuth*
   return http->status ? http->status : http_status_result(resp.status);
 }
 
-NetResult
-net_http_get_sync(NetHttp* http, const String uri, const NetHttpAuth* auth, DynString* out) {
+NetResult net_http_get_sync(
+    NetHttp* http, const String uri, const NetHttpAuth* auth, NetHttpEtag* etag, DynString* out) {
   if (http->status != NetResult_Success) {
     return http->status;
   }
@@ -522,7 +571,7 @@ net_http_get_sync(NetHttp* http, const String uri, const NetHttpAuth* auth, DynS
   const String     uriOrRoot = string_is_empty(uri) ? string_lit("/") : uri;
 
   DynString headerBuffer = dynstring_create(g_allocScratch, 4 * usize_kibibyte);
-  http_request_header(http, string_lit("GET"), uriOrRoot, auth, &headerBuffer);
+  http_request_header(http, string_lit("GET"), uriOrRoot, auth, etag, &headerBuffer);
 
   log_d(
       "Http: Sending GET",
@@ -542,27 +591,33 @@ net_http_get_sync(NetHttp* http, const String uri, const NetHttpAuth* auth, DynS
 
 #ifndef VOLO_FAST
   {
-    const String reason = http_view_str_trim_or(http, resp.reason, string_lit("unknown"));
-    const String type   = http_view_str_trim_or(http, resp.contentType, string_lit("unknown"));
-    const String enc    = http_view_str_trim_or(http, resp.contentEncoding, string_lit("identity"));
-    const String trans = http_view_str_trim_or(http, resp.transferEncoding, string_lit("identity"));
-    const String server = http_view_str_trim_or(http, resp.server, string_lit("unknown"));
-    const String via    = http_view_str_trim_or(http, resp.via, string_lit("unknown"));
+    const String lReason = http_view_str_trim_or(http, resp.reason, string_lit("unknown"));
+    const String lType   = http_view_str_trim_or(http, resp.contentType, string_lit("unknown"));
+    const String lEnc  = http_view_str_trim_or(http, resp.contentEncoding, string_lit("identity"));
+    const String lTran = http_view_str_trim_or(http, resp.transferEncoding, string_lit("identity"));
+    const String lServer = http_view_str_trim_or(http, resp.server, string_lit("unknown"));
+    const String lVia    = http_view_str_trim_or(http, resp.via, string_lit("unknown"));
+    const String lEtag   = http_view_str_trim_or(http, resp.etag, string_lit("none"));
     log_d(
         "Http: Received GET response",
         log_param("status", fmt_int(resp.status)),
-        log_param("reason", fmt_text(reason)),
+        log_param("reason", fmt_text(lReason)),
         log_param("duration", fmt_duration(respDur)),
-        log_param("content-type", fmt_text(type)),
-        log_param("content-encoding", fmt_text(enc)),
-        log_param("transfer-encoding", fmt_text(trans)),
-        log_param("server", fmt_text(server)),
-        log_param("via", fmt_text(via)));
+        log_param("content-type", fmt_text(lType)),
+        log_param("content-encoding", fmt_text(lEnc)),
+        log_param("transfer-encoding", fmt_text(lTran)),
+        log_param("server", fmt_text(lServer)),
+        log_param("via", fmt_text(lVia)),
+        log_param("etag", fmt_text(lEtag)));
   }
 #else
   (void)respDur;
   (void)http_view_str_trim_or;
 #endif
+
+  if (etag) {
+    http_read_decode_etag(http, &resp, etag);
+  }
 
   const NetHttpView  body    = http_read_body(http, &resp);
   const TimeDuration bodyDur = time_steady_duration(startTime, time_steady_clock());

@@ -13,7 +13,7 @@ spec(http) {
     check_eq_int(net_http_status(http), NetResult_Success);
 
     DynString data = dynstring_create(g_allocHeap, usize_kibibyte);
-    check_eq_int(net_http_get_sync(http, uri, null /* auth */, &data), NetResult_Success);
+    check_eq_int(net_http_get_sync(http, uri, null, null, &data), NetResult_Success);
     check_eq_string(dynstring_view(&data), string_lit("Hello World!\n"));
     dynstring_destroy(&data);
 
@@ -35,7 +35,7 @@ spec(http) {
     check_eq_int(net_http_status(http), NetResult_Success);
 
     DynString data = dynstring_create(g_allocHeap, usize_kibibyte);
-    check_eq_int(net_http_get_sync(http, uri, &auth, &data), NetResult_Success);
+    check_eq_int(net_http_get_sync(http, uri, &auth, null, &data), NetResult_Success);
     check_eq_string(dynstring_view(&data), string_lit("Secret Hello World!\n"));
     dynstring_destroy(&data);
 
