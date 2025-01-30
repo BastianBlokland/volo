@@ -97,7 +97,8 @@ static i32 httpu_head(const HttpuContext* ctx) {
     res = 1;
     goto Done;
   }
-  if (net_http_head_sync(client, ctx->uri, &ctx->auth) != NetResult_Success) {
+  NetHttpEtag etag = {0};
+  if (net_http_head_sync(client, ctx->uri, &ctx->auth, &etag) != NetResult_Success) {
     res = 1;
     goto Done;
   }
@@ -117,8 +118,8 @@ static i32 httpu_get(const HttpuContext* ctx) {
     res = 1;
     goto Done;
   }
-
-  const NetResult getResult = net_http_get_sync(client, ctx->uri, &ctx->auth, &buffer);
+  NetHttpEtag     etag      = {0};
+  const NetResult getResult = net_http_get_sync(client, ctx->uri, &ctx->auth, &etag, &buffer);
   if (getResult != NetResult_Success) {
     res = 1;
     goto Done;
