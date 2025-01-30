@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_ascii.h"
+#include "core_base64.h"
 #include "core_deflate.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
@@ -113,10 +114,33 @@ static void http_set_err(NetHttp* http, const NetResult err) {
   }
 }
 
-static void
-http_request_header(const NetHttp* http, const String method, const String uri, DynString* out) {
+static void http_auth_write(const NetHttpAuth* auth, DynString* out) {
+  switch (auth->type) {
+  case NetHttpAuthType_None:
+    break;
+  case NetHttpAuthType_Basic: {
+    const String creds = fmt_write_scratch("{}:{}", fmt_text(auth->user), fmt_text(auth->pw));
+    fmt_write(out, "Basic {}", fmt_text(base64_encode_scratch(creds)));
+    return;
+  }
+  }
+  diag_crash_msg("Unsupported auth type");
+}
+
+static void http_request_header(
+    const NetHttp*     http,
+    const String       method,
+    const String       uri,
+    const NetHttpAuth* auth,
+    DynString*         out) {
+
   fmt_write(out, "{} {} HTTP/1.1\r\n", fmt_text(method), fmt_text(uri));
   fmt_write(out, "Host: {}\r\n", fmt_text(http->host));
+  if (auth && auth->type != NetHttpAuthType_None) {
+    fmt_write(out, "Authorization: ");
+    http_auth_write(auth, out);
+    fmt_write(out, "\r\n");
+  }
   fmt_write(out, "Connection: keep-alive\r\n");
   fmt_write(out, "Accept: */*\r\n");
   fmt_write(out, "Accept-Encoding: gzip, deflate\r\n");
@@ -439,7 +463,7 @@ NetResult      net_http_status(const NetHttp* http) { return http->status; }
 const NetAddr* net_http_remote(const NetHttp* http) { return &http->hostAddr; }
 String         net_http_remote_name(const NetHttp* http) { return http->host; }
 
-NetResult net_http_head_sync(NetHttp* http, const String uri) {
+NetResult net_http_head_sync(NetHttp* http, const String uri, const NetHttpAuth* auth) {
   if (http->status != NetResult_Success) {
     return http->status;
   }
@@ -447,7 +471,7 @@ NetResult net_http_head_sync(NetHttp* http, const String uri) {
   const String     uriOrRoot = string_is_empty(uri) ? string_lit("/") : uri;
 
   DynString headerBuffer = dynstring_create(g_allocScratch, 4 * usize_kibibyte);
-  http_request_header(http, string_lit("HEAD"), uriOrRoot, &headerBuffer);
+  http_request_header(http, string_lit("HEAD"), uriOrRoot, auth, &headerBuffer);
 
   log_d(
       "Http: Sending HEAD",
@@ -489,7 +513,8 @@ NetResult net_http_head_sync(NetHttp* http, const String uri) {
   return http->status ? http->status : http_status_result(resp.status);
 }
 
-NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
+NetResult
+net_http_get_sync(NetHttp* http, const String uri, const NetHttpAuth* auth, DynString* out) {
   if (http->status != NetResult_Success) {
     return http->status;
   }
@@ -497,7 +522,7 @@ NetResult net_http_get_sync(NetHttp* http, const String uri, DynString* out) {
   const String     uriOrRoot = string_is_empty(uri) ? string_lit("/") : uri;
 
   DynString headerBuffer = dynstring_create(g_allocScratch, 4 * usize_kibibyte);
-  http_request_header(http, string_lit("GET"), uriOrRoot, &headerBuffer);
+  http_request_header(http, string_lit("GET"), uriOrRoot, auth, &headerBuffer);
 
   log_d(
       "Http: Sending GET",

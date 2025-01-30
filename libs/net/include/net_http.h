@@ -1,4 +1,5 @@
 #pragma once
+#include "core_string.h"
 #include "net.h"
 
 typedef enum {
@@ -6,6 +7,16 @@ typedef enum {
   NetHttpFlags_Tls         = 1 << 0,                    // Https.
   NetHttpFlags_TlsNoVerify = NetHttpFlags_Tls | 1 << 1, // Https without Tls cert verification.
 } NetHttpFlags;
+
+typedef enum {
+  NetHttpAuthType_None,
+  NetHttpAuthType_Basic,
+} NetHttpAuthType;
+
+typedef struct {
+  NetHttpAuthType type;
+  String          user, pw;
+} NetHttpAuth;
 
 /**
  * Http (Hypertext Transfer Protocol) connection.
@@ -39,13 +50,13 @@ String         net_http_remote_name(const NetHttp*);
 /**
  * Synchonously perform a 'HEAD' request for the given resource.
  */
-NetResult net_http_head_sync(NetHttp*, String uri);
+NetResult net_http_head_sync(NetHttp*, String uri, const NetHttpAuth*);
 
 /**
  * Synchonously perform a 'GET' request for the given resource.
  * NOTE: Response body is written to the output DynString.
  */
-NetResult net_http_get_sync(NetHttp*, String uri, DynString* out);
+NetResult net_http_get_sync(NetHttp*, String uri, const NetHttpAuth*, DynString* out);
 
 /**
  * Synchonously shutdown the Http connection.
