@@ -9,6 +9,7 @@ typedef enum {
 } NetHttpFlags;
 
 typedef enum {
+  NetHttpAuthType_None,
   NetHttpAuthType_Basic,
 } NetHttpAuthType;
 

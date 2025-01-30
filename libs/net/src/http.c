@@ -116,6 +116,8 @@ static void http_set_err(NetHttp* http, const NetResult err) {
 
 static void http_auth_write(const NetHttpAuth* auth, DynString* out) {
   switch (auth->type) {
+  case NetHttpAuthType_None:
+    break;
   case NetHttpAuthType_Basic: {
     const String creds = fmt_write_scratch("{}:{}", fmt_text(auth->user), fmt_text(auth->pw));
     fmt_write(out, "Basic {}", fmt_text(base64_encode_scratch(creds)));
@@ -134,7 +136,7 @@ static void http_request_header(
 
   fmt_write(out, "{} {} HTTP/1.1\r\n", fmt_text(method), fmt_text(uri));
   fmt_write(out, "Host: {}\r\n", fmt_text(http->host));
-  if (auth) {
+  if (auth && auth->type != NetHttpAuthType_None) {
     fmt_write(out, "Authorization: ");
     http_auth_write(auth, out);
     fmt_write(out, "\r\n");

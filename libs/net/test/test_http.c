@@ -25,7 +25,11 @@ spec(http) {
   skip_it("can get an authorized resource") {
     const String      host = string_lit("bastian.tech");
     const String      uri  = string_lit("/test-auth/hello-world-secure.txt");
-    const NetHttpAuth auth = {.user = string_lit("test"), .pw = string_lit("helloworld")};
+    const NetHttpAuth auth = {
+        .type = NetHttpAuthType_Basic,
+        .user = string_lit("test"),
+        .pw   = string_lit("helloworld"),
+    };
 
     NetHttp* http = net_http_connect_sync(g_allocHeap, host, NetHttpFlags_TlsNoVerify);
     check_eq_int(net_http_status(http), NetResult_Success);
