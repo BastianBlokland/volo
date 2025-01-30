@@ -1,4 +1,5 @@
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_ascii.h"
 #include "core_base64.h"
 #include "core_deflate.h"
@@ -377,6 +378,32 @@ static void http_read_decode_body(
   http_set_err(http, NetResult_HttpUnsupportedContentEncoding);
 }
 
+static void http_read_decode_etag(NetHttp* http, const NetHttpResponse* resp, NetHttpEtag* out) {
+  String etagVal = http_view_str_trim(http, resp->etag);
+  if (!etagVal.size) {
+    goto Clear; // Etag not provided by server.
+  }
+  if (string_starts_with(etagVal, string_lit("W/"))) {
+    // Etag is weak. TODO: Consider if we want to expose this.
+    etagVal = string_consume(etagVal, 2); // Trim the 'W/'.
+  }
+  if (etagVal.size < 2 || *string_begin(etagVal) != '"' || *string_last(etagVal) != '"') {
+    goto Clear; // Invalid etag (not quoted).
+  }
+  etagVal = string_slice(etagVal, 1, etagVal.size - 2); // Trim the quotes.
+  if (etagVal.size > array_elems(out->data)) {
+    goto Clear; // Etag too large.
+  }
+
+  out->length = (u8)etagVal.size;
+  mem_cpy(array_mem(out->data), etagVal);
+  return; // Successfully decoded etag.
+
+Clear:
+  out->length = 0;
+  mem_set(array_mem(out->data), 0);
+}
+
 static void http_read_end(NetHttp* http) {
   if (http->readBuffer.size != http->readCursor) {
     http_set_err(http, NetResult_HttpUnexpectedData);
@@ -466,7 +493,8 @@ NetResult      net_http_status(const NetHttp* http) { return http->status; }
 const NetAddr* net_http_remote(const NetHttp* http) { return &http->hostAddr; }
 String         net_http_remote_name(const NetHttp* http) { return http->host; }
 
-NetResult net_http_head_sync(NetHttp* http, const String uri, const NetHttpAuth* auth) {
+NetResult
+net_http_head_sync(NetHttp* http, const String uri, const NetHttpAuth* auth, NetHttpEtag* etag) {
   if (http->status != NetResult_Success) {
     return http->status;
   }
@@ -490,6 +518,10 @@ NetResult net_http_head_sync(NetHttp* http, const String uri, const NetHttpAuth*
   const TimeDuration    respDur = time_steady_duration(startTime, time_steady_clock());
   if (http->status != NetResult_Success) {
     return http->status;
+  }
+
+  if (etag) {
+    http_read_decode_etag(http, &resp, etag);
   }
 
 #ifndef VOLO_FAST
@@ -518,8 +550,8 @@ NetResult net_http_head_sync(NetHttp* http, const String uri, const NetHttpAuth*
   return http->status ? http->status : http_status_result(resp.status);
 }
 
-NetResult
-net_http_get_sync(NetHttp* http, const String uri, const NetHttpAuth* auth, DynString* out) {
+NetResult net_http_get_sync(
+    NetHttp* http, const String uri, const NetHttpAuth* auth, NetHttpEtag* etag, DynString* out) {
   if (http->status != NetResult_Success) {
     return http->status;
   }
@@ -570,6 +602,10 @@ net_http_get_sync(NetHttp* http, const String uri, const NetHttpAuth* auth, DynS
   (void)respDur;
   (void)http_view_str_trim_or;
 #endif
+
+  if (etag) {
+    http_read_decode_etag(http, &resp, etag);
+  }
 
   const NetHttpView  body    = http_read_body(http, &resp);
   const TimeDuration bodyDur = time_steady_duration(startTime, time_steady_clock());
