@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
+#include "core_winutils.h"
 #include "log_logger.h"
 #include "net_result.h"
 #include "net_socket.h"
@@ -65,9 +66,20 @@ void net_tls_teardown(void) {
   g_netSchannelReady = false;
 }
 
+static SECURITY_STRING to_sec_string_scratch(const String str) {
+  const wchar_t* charBuffer = winutils_to_widestr_scratch(str).ptr;
+  const usize    charCount  = wcslen(charBuffer);
+  return (SECURITY_STRING){
+      .Buffer        = charBuffer,
+      .Length        = charCount,
+      .MaximumLength = charCount,
+  };
+}
+
 typedef struct sNetTls {
   Allocator* alloc;
   NetResult  status;
+  CtxtHandle context;
 } NetTls;
 
 NetTls* net_tls_create_sync(Allocator* alloc, const String host, const NetTlsFlags flags) {
@@ -77,6 +89,40 @@ NetTls* net_tls_create_sync(Allocator* alloc, const String host, const NetTlsFla
   if (UNLIKELY(!g_netSchannelReady)) {
     tls->status = NetResult_TlsUnavailable;
     return tls;
+  }
+
+  SECURITY_STRING hostSecStr = to_sec_string_scratch(host);
+  DWORD flags = ISC_REQ_USE_SUPPLIED_CREDS | ISC_REQ_ALLOCATE_MEMORY | ISC_REQ_CONFIDENTIALITY |
+                ISC_REQ_REPLAY_DETECT | ISC_REQ_SEQUENCE_DETECT | ISC_REQ_STREAM;
+
+  CtxtHandle* ctx = null;
+  for (;;) {
+    SecBuffer buffersIn[] = {
+        {.BufferType = SECBUFFER_TOKEN, .pvBuffer = null, .cbBuffer = null},
+        {.BufferType = SECBUFFER_EMPTY},
+    };
+    SecBufferDesc descIn = {SECBUFFER_VERSION, array_elems(buffersIn), buffersIn};
+
+    SecBuffer buffersOut[] = {
+        {.BufferType = SECBUFFER_TOKEN},
+    };
+    SecBufferDesc descOut = {SECBUFFER_VERSION, array_elems(buffersOut), buffersOut};
+
+    const SECURITY_STATUS initRes = InitializeSecurityContext(
+        &g_netSchannel.credHandle,
+        ctx,
+        ctx ? null : &hostSecStr,
+        flags,
+        0,
+        0,
+        ctx ? &descIn : null,
+        0,
+        ctx ? null : &tls->context,
+        &descOut,
+        &flags,
+        null);
+
+    ctx = &tls->context;
   }
 
   // TODO: Implement.
