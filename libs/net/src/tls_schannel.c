@@ -8,6 +8,11 @@
 
 #include "tls_internal.h"
 
+#define SECURITY_WIN32
+#include <schannel.h>
+#include <security.h>
+#include <shlwapi.h> // TODO: Verify if needed.
+
 /**
  * TODO:
  */
