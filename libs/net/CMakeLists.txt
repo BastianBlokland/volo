@@ -9,6 +9,7 @@ add_library(lib_net STATIC
   src/http.c
   src/init.c
   src/pal.c
+  src/rest.c
   src/result.c
   src/tls.c
   )

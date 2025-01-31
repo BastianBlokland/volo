@@ -12,7 +12,7 @@ typedef struct sNetRest NetRest;
  * Create a rest session.
  * Should be cleaned up using 'net_rest_destroy()'.
  */
-NetRest* net_rest_create(Allocator*, u32 workers);
+NetRest* net_rest_create(Allocator*, u32 workerCount);
 
 /**
  * Destroy the given rest session.
