@@ -8,6 +8,8 @@
 
 #include "tls_internal.h"
 
+#include <windows.h>
+
 #define SECURITY_WIN32
 #include <schannel.h>
 #include <security.h>
@@ -21,12 +23,32 @@
 #pragma comment(lib, "shlwapi.lib")
 
 typedef struct {
-  u32 dummy;
+  CredHandle credHandle;
 } NetSchannel;
 
 static bool net_schannel_init(NetSchannel* schannel, Allocator* alloc) {
-  (void)schannel;
   (void)alloc;
+
+  SCHANNEL_CRED credCfg = {
+      .dwVersion             = SCHANNEL_CRED_VERSION,
+      .grbitEnabledProtocols = SP_PROT_TLS1_2,
+      .dwFlags               = SCH_USE_STRONG_CRYPTO | SCH_CRED_NO_DEFAULT_CREDS,
+  };
+  if (AcquireCredentialsHandle(
+          null,
+          UNISP_NAME,
+          SECPKG_CRED_OUTBOUND,
+          null,
+          &credCfg,
+          null,
+          null,
+          &schannel->credHandle,
+          null) != SEC_E_OK) {
+    log_w("Tls: Schannel failed to acquire credentials");
+    return false;
+  }
+
+  log_i("Tls: Schannel initialized");
   return true;
 }
 
