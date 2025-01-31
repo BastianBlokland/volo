@@ -467,7 +467,7 @@ NetHttp* net_http_connect_sync(Allocator* alloc, const String host, const NetHtt
   }
 
   if (flags & NetHttpFlags_Tls) {
-    http->tls    = net_tls_create(alloc, host, http_tls_flags(flags));
+    http->tls    = net_tls_create_sync(alloc, host, http_tls_flags(flags));
     http->status = net_tls_status(http->tls);
     if (http->status != NetResult_Success) {
       log_w(

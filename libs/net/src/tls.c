@@ -233,7 +233,7 @@ static NetResult net_tls_write_ouput_sync(NetTls* tls, NetSocket* socket) {
   }
 }
 
-NetTls* net_tls_create(Allocator* alloc, const String host, const NetTlsFlags flags) {
+NetTls* net_tls_create_sync(Allocator* alloc, const String host, const NetTlsFlags flags) {
   NetTls* tls = alloc_alloc_t(alloc, NetTls);
 
   *tls = (NetTls){.alloc = alloc, .readBuffer = dynstring_create(g_allocHeap, usize_kibibyte * 16)};
