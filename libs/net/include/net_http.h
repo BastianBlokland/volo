@@ -13,12 +13,12 @@ typedef enum {
   NetHttpAuthType_Basic,
 } NetHttpAuthType;
 
-typedef struct {
+typedef struct sNetHttpAuth {
   NetHttpAuthType type;
   String          user, pw;
 } NetHttpAuth;
 
-typedef struct {
+typedef struct sNetHttpEtag {
   u8 length;
   u8 data[63];
 } NetHttpEtag;
