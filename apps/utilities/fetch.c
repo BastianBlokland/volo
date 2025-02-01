@@ -138,8 +138,52 @@ static NetHttpFlags fetch_http_flags(void) {
   return NetHttpFlags_TlsNoVerify;
 }
 
+static i32 fetch_run_origin(NetRest* rest, const String targetPath, const FetchOrigin* origin) {
+  i32 retCode = 0;
+
+  NetRestId* requests = alloc_array_t(g_allocHeap, NetRestId, origin->assets.count);
+
+  // Start a GET request for all assets.
+  for (u32 i = 0; i != origin->assets.count; ++i) {
+    const String uri = fetch_config_uri_scratch(origin, origin->assets.values[i]);
+    requests[i]      = net_rest_get(rest, origin->host, uri, null, null);
+  }
+
+  // Save the results.
+  for (u32 i = 0; i != origin->assets.count; ++i) {
+    const NetRestId request = requests[i];
+    const String    asset   = origin->assets.values[i];
+
+    // Wait for the request to be done.
+    while (!net_rest_done(rest, request)) {
+      thread_sleep(time_milliseconds(500));
+    }
+    const NetResult result = net_rest_result(rest, request);
+    if (result == NetResult_Success) {
+      const String data = net_rest_data(rest, request);
+      file_write_to_path_atomic(path_build_scratch(targetPath, asset), data);
+
+      log_i(
+          "Asset fetched: '{}'",
+          log_param("asset", fmt_text(asset)),
+          log_param("size", fmt_size(data.size)));
+    } else {
+      log_e(
+          "Asset fetch failed: '{}'",
+          log_param("asset", fmt_text(asset)),
+          log_param("error", fmt_text(net_result_str(result))));
+      retCode = 1;
+    }
+    net_rest_release(rest, request);
+  }
+
+  alloc_free_array_t(g_allocHeap, requests, origin->assets.count);
+  return retCode;
+}
+
 static i32 fetch_run(FetchContext* ctx) {
-  NetRest*    rest = null;
+  i32         retCode = 0;
+  NetRest*    rest    = null;
   FetchConfig cfg;
   if (!fetch_config_load(ctx->configPath, &cfg)) {
     return 1;
@@ -159,43 +203,8 @@ static i32 fetch_run(FetchContext* ctx) {
   rest = net_rest_create(g_allocHeap, fetch_worker_count, maxOriginAssetCount, fetch_http_flags());
 
   heap_array_for_t(cfg.origins, FetchOrigin, origin) {
-    NetRestId* requests = alloc_array_t(g_allocHeap, NetRestId, origin->assets.count);
-
-    // Start a GET request for all assets.
-    for (u32 i = 0; i != origin->assets.count; ++i) {
-      const String uri = fetch_config_uri_scratch(origin, origin->assets.values[i]);
-      requests[i]      = net_rest_get(rest, origin->host, uri, null, null);
-    }
-
-    // Save the results.
-    for (u32 i = 0; i != origin->assets.count; ++i) {
-      const NetRestId request = requests[i];
-      const String    asset   = origin->assets.values[i];
-
-      // Wait for the request to be done.
-      while (!net_rest_done(rest, request)) {
-        thread_sleep(time_milliseconds(500));
-      }
-      const NetResult result = net_rest_result(rest, request);
-      if (result == NetResult_Success) {
-        const String path = path_build_scratch(dynstring_view(&targetPath), asset);
-        const String data = net_rest_data(rest, request);
-        file_write_to_path_atomic(path, data);
-
-        log_i(
-            "Asset fetched: '{}'",
-            log_param("asset", fmt_text(asset)),
-            log_param("size", fmt_size(data.size)));
-      } else {
-        log_e(
-            "Asset fetch failed: '{}'",
-            log_param("asset", fmt_text(asset)),
-            log_param("error", fmt_text(net_result_str(result))));
-      }
-      net_rest_release(rest, request);
-    }
-
-    alloc_free_array_t(g_allocHeap, requests, origin->assets.count);
+    const i32 originRet = fetch_run_origin(rest, dynstring_view(&targetPath), origin);
+    retCode             = math_max(retCode, originRet);
   }
 
 Done:
