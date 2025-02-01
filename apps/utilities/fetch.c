@@ -141,12 +141,21 @@ static NetHttpFlags fetch_http_flags(void) {
 static i32 fetch_run_origin(NetRest* rest, const String targetPath, const FetchOrigin* origin) {
   i32 retCode = 0;
 
+  NetHttpAuth auth = {0};
+  if (!string_is_empty(origin->authUser)) {
+    auth = (NetHttpAuth){
+        .type = NetHttpAuthType_Basic,
+        .user = origin->authUser,
+        .pw   = origin->authPass,
+    };
+  }
+
   NetRestId* requests = alloc_array_t(g_allocHeap, NetRestId, origin->assets.count);
 
   // Start a GET request for all assets.
   for (u32 i = 0; i != origin->assets.count; ++i) {
     const String uri = fetch_config_uri_scratch(origin, origin->assets.values[i]);
-    requests[i]      = net_rest_get(rest, origin->host, uri, null, null);
+    requests[i]      = net_rest_get(rest, origin->host, uri, &auth, null);
   }
 
   // Save the results.
