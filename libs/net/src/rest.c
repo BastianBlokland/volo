@@ -4,6 +4,7 @@
 #include "core_format.h"
 #include "core_math.h"
 #include "core_thread.h"
+#include "core_time.h"
 #include "net_http.h"
 #include "net_rest.h"
 #include "net_result.h"
@@ -120,20 +121,48 @@ static NetRestRequest* rest_worker_take_for_host(NetRest* rest, const String hos
   return null; // No work found.
 }
 
+static bool rest_worker_should_retry(const NetResult result) {
+  switch (result) {
+  // Valid results.
+  case NetResult_Success:
+  case NetResult_HttpNotModified:
+  case NetResult_HttpNotFound:
+  case NetResult_HttpUnauthorized:
+  case NetResult_HttpForbidden:
+  case NetResult_HttpRedirected:
+    return false;
+
+  // Unsupported features.
+  case NetResult_Unsupported:
+  case NetResult_HttpUnsupportedProtocol:
+  case NetResult_HttpUnsupportedVersion:
+  case NetResult_HttpUnsupportedTransferEncoding:
+  case NetResult_HttpUnsupportedContentEncoding:
+    return false;
+
+    // Unrecoverable system errors.
+  case NetResult_SystemFailure:
+  case NetResult_TlsUnavailable:
+    return false;
+
+  default:
+    return true; // Maybe retried.
+  }
+}
+
 static void rest_worker_thread(void* data) {
   NetRest* rest = data;
   NetHttp* con  = null;
 
-  while (!rest->workerShutdown) {
-    // Close the connection if its not longer good.
-    if (con && net_http_status(con) != NetResult_Success) {
-      net_http_shutdown_sync(con);
-      net_http_destroy(con);
-      con = null;
-    }
+  enum { MaxTries = 3 };
+  const TimeDuration retrySleep[MaxTries] = {
+      [1] = time_milliseconds(500),
+      [2] = time_second,
+  };
 
-    // Take a new request (prefer requests for the host we already have a connection to).
-    NetRestRequest* req = null;
+  while (!rest->workerShutdown) {
+    NetRestRequest* req         = null;
+    u32             reqTryIndex = 0;
     if (con) {
       req = rest_worker_take_for_host(rest, net_http_remote_name(con));
     }
@@ -144,18 +173,30 @@ static void rest_worker_thread(void* data) {
       goto Sleep;
     }
 
-    // Establish the connection.
+  Retry:
+    if (con && net_http_status(con) != NetResult_Success) {
+      net_http_shutdown_sync(con);
+      net_http_destroy(con);
+      con = null;
+    }
     if (con && !string_eq(net_http_remote_name(con), req->host)) {
       net_http_shutdown_sync(con);
       net_http_destroy(con);
       con = null;
     }
+    if (retrySleep[reqTryIndex]) {
+      // TODO: Instead of sleeping the worker we should put the request back and process it after
+      // the retry time has expired. That way other requests are not blocked.
+      thread_sleep(retrySleep[reqTryIndex]);
+    }
     if (!con) {
       con = net_http_connect_sync(g_allocHeap, req->host, rest->httpFlags);
     }
-
-    // Execute the request.
     req->result = net_http_get_sync(con, req->uri, &req->auth, &req->etag, &req->buffer);
+    if (rest_worker_should_retry(req->result) && reqTryIndex < MaxTries) {
+      ++reqTryIndex;
+      goto Retry;
+    }
     rest_request_state_store(req, NetRestState_Finished);
     continue; // Process the next request.
 
