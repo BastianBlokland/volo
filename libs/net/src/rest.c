@@ -97,17 +97,56 @@ static NetRestId rest_request_acquire(NetRest* rest) {
   return rest_id_invalid();
 }
 
+static NetRestRequest* rest_worker_take(NetRest* rest) {
+  for (u16 i = 0; i != rest->requestCount; ++i) {
+    NetRestRequest* req = &rest->requests[i];
+    if (rest_request_state_transition(req, NetRestState_Ready, NetRestState_Busy)) {
+      return req;
+    }
+  }
+  return null; // No work found.
+}
+
 static void rest_worker_thread(void* data) {
   NetRest* rest = data;
+  NetHttp* con  = null;
 
-  bool shutdown = false;
-  while (!shutdown) {
-    thread_mutex_lock(rest->workerMutex);
-    {
-      thread_cond_wait(rest->workerWakeCondition, rest->workerMutex);
-      shutdown = rest->workerShutdown;
+  while (!rest->workerShutdown) {
+    NetRestRequest* req = rest_worker_take(rest);
+    if (!req) {
+      goto Sleep;
     }
+    // Close connection if its no longer good.
+    if (con && net_http_status(con) != NetResult_Success) {
+      net_http_shutdown_sync(con);
+      net_http_destroy(con);
+      con = null;
+    }
+    // Close connection if its for the wrong host.
+    if (con && !string_eq(net_http_remote_name(con), req->host)) {
+      net_http_shutdown_sync(con);
+      net_http_destroy(con);
+      con = null;
+    }
+    // Establish a new connection.
+    if (!con) {
+      con = net_http_connect_sync(g_allocHeap, req->host, rest->httpFlags);
+    }
+    // Execute the request.
+    req->result = net_http_get_sync(con, req->uri, &req->auth, &req->etag, &req->buffer);
+    rest_request_state_store(req, NetRestState_Finished);
+    continue; // Process the next request.
+
+  Sleep:
+    thread_mutex_lock(rest->workerMutex);
+    thread_cond_wait(rest->workerWakeCondition, rest->workerMutex);
     thread_mutex_unlock(rest->workerMutex);
+  }
+
+  // Shutdown.
+  if (con) {
+    net_http_shutdown_sync(con);
+    net_http_destroy(con);
   }
 }
 
