@@ -8,6 +8,7 @@
 #include "core_array.h"
 #include "core_file.h"
 #include "data_read.h"
+#include "data_utils.h"
 #include "log_logger.h"
 #include "log_sink_json.h"
 #include "log_sink_pretty.h"
@@ -51,12 +52,55 @@ static void fetch_data_init(void) {
   g_fetchConfigMeta = data_meta_t(t_FetchConfig);
 }
 
+static bool fetch_config_load(const String path, FetchConfig* out) {
+  // Open the file handle.
+  bool       success = false;
+  File*      file    = null;
+  FileResult fileRes;
+  if ((fileRes = file_create(g_allocScratch, path, FileMode_Open, FileAccess_Read, &file))) {
+    log_e("Failed to open config file", log_param("err", fmt_text(file_result_str(fileRes))));
+    goto Ret;
+  }
+
+  // Map the file data.
+  String fileData;
+  if (UNLIKELY(fileRes = file_map(file, &fileData, FileHints_Prefetch))) {
+    log_e("Failed to map config file", log_param("err", fmt_text(file_result_str(fileRes))));
+    goto Ret;
+  }
+
+  // Parse the json.
+  DataReadResult result;
+  const Mem      outMem = mem_create(out, sizeof(FetchConfig));
+  data_read_json(g_dataReg, fileData, g_allocHeap, g_fetchConfigMeta, outMem, &result);
+  if (UNLIKELY(result.error)) {
+    log_e("Failed to parse config file", log_param("err", fmt_text(result.errorMsg)));
+    goto Ret;
+  }
+  success = true;
+
+Ret:
+  if (file) {
+    file_destroy(file);
+  }
+  return success;
+}
+
+static void fetch_config_destroy(FetchConfig* cfg) {
+  data_destroy(g_dataReg, g_allocHeap, g_fetchConfigMeta, mem_create(cfg, sizeof(FetchConfig)));
+}
+
 typedef struct {
   String configPath;
 } FetchContext;
 
 static i32 fetch_run(FetchContext* ctx) {
-  (void)ctx;
+  FetchConfig cfg;
+  if (!fetch_config_load(ctx->configPath, &cfg)) {
+    return 1;
+  }
+
+  fetch_config_destroy(&cfg);
   return 0;
 }
 
