@@ -32,7 +32,7 @@ add_custom_target(run.schemasetup COMMAND app_schemasetup "--out"
 message(STATUS "> application: fetch")
 
 add_executable(app_fetch fetch.c)
-target_link_libraries(app_fetch PRIVATE lib_app_cli lib_net lib_log)
+target_link_libraries(app_fetch PRIVATE lib_app_cli lib_net lib_log lib_data)
 configure_debuggable(app_fetch)
 
 message(STATUS "> application: dbgsetup")

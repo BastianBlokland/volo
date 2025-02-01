@@ -5,7 +5,9 @@
 #include "cli_read.h"
 #include "cli_validate.h"
 #include "core_alloc.h"
+#include "core_array.h"
 #include "core_file.h"
+#include "data_read.h"
 #include "log_logger.h"
 #include "log_sink_json.h"
 #include "log_sink_pretty.h"
@@ -17,6 +19,37 @@
 /**
  * Fetch - Utility to download external assets.
  */
+
+typedef struct {
+  String host;
+  String rootUri;
+  String authUser, authPass;
+  HeapArray_t(String) assets;
+} FetchOrigin;
+
+typedef struct {
+  String targetPath;
+  HeapArray_t(FetchOrigin) origins;
+} FetchConfig;
+
+static DataMeta g_fetchConfigMeta;
+
+static void fetch_data_init(void) {
+  // clang-format off
+  data_reg_struct_t(g_dataReg, FetchOrigin);
+  data_reg_field_t(g_dataReg, FetchOrigin, host, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, FetchOrigin, rootUri, data_prim_t(String));
+  data_reg_field_t(g_dataReg, FetchOrigin, authUser, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, FetchOrigin, authPass, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, FetchOrigin, assets, data_prim_t(String), .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
+
+  data_reg_struct_t(g_dataReg, FetchConfig);
+  data_reg_field_t(g_dataReg, FetchConfig, targetPath, data_prim_t(String));
+  data_reg_field_t(g_dataReg, FetchConfig, origins, t_FetchOrigin, .container = DataContainer_HeapArray);
+  // clang-format on
+
+  g_fetchConfigMeta = data_meta_t(t_FetchConfig);
+}
 
 typedef struct {
   String configPath;
@@ -42,9 +75,10 @@ void app_cli_configure(CliApp* app) {
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
+  i32 retCode = 0;
   if (cli_parse_provided(invoc, g_optHelp)) {
     cli_help_write_file(app, g_fileStdOut);
-    return 0;
+    return retCode;
   }
 
   log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, LogMask_All));
@@ -54,9 +88,11 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .configPath = cli_read_string(invoc, g_optConfigPath, string_empty),
   };
 
-  i32 retCode;
+  fetch_data_init();
   net_init();
+
   retCode = fetch_run(&ctx);
+
   net_teardown();
   return retCode;
 }
