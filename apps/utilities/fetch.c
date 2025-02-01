@@ -26,7 +26,7 @@
  * Fetch - Utility to download external assets.
  */
 
-#define fetch_worker_count 4
+#define fetch_worker_count 2
 
 typedef struct {
   String host;
@@ -231,7 +231,7 @@ Done:
   return 0;
 }
 
-static CliId g_optConfigPath, g_optHelp;
+static CliId g_optConfigPath, g_optVerbose, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Fetch utility."));
@@ -240,9 +240,12 @@ void app_cli_configure(CliApp* app) {
   cli_register_desc(app, g_optConfigPath, string_lit("Path to a fetch config file."));
   cli_register_validator(app, g_optConfigPath, cli_validate_file_regular);
 
+  g_optVerbose = cli_register_flag(app, 'v', string_lit("verbose"), CliOptionFlags_None);
+
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
   cli_register_exclusions(app, g_optHelp, g_optConfigPath);
+  cli_register_exclusions(app, g_optHelp, g_optVerbose);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
@@ -252,7 +255,8 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     return retCode;
   }
 
-  log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, LogMask_All));
+  const LogMask logMask = cli_parse_provided(invoc, g_optVerbose) ? LogMask_All : ~LogMask_Debug;
+  log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, logMask));
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
   FetchContext ctx = {
