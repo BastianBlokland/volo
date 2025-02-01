@@ -167,6 +167,7 @@ static i32 fetch_run_origin(NetRest* rest, const String targetPath, const FetchO
         log_e(
             "Asset save failed: '{}'",
             log_param("asset", fmt_text(asset)),
+            log_param("path", fmt_path(path)),
             log_param("error", fmt_text(file_result_str(saveRes))));
         retCode = 2;
       } else {
@@ -197,10 +198,10 @@ static i32 fetch_run(FetchContext* ctx) {
     return 1;
   }
   DynString targetPath = dynstring_create(g_allocHeap, 128);
-  path_build(&targetPath, ctx->configPath, cfg.targetPath);
+  path_build(&targetPath, path_parent(ctx->configPath), cfg.targetPath);
 
-  if (!file_create_dir_sync(dynstring_view(&targetPath))) {
-    log_e("Failed to create output path");
+  if (file_create_dir_sync(dynstring_view(&targetPath)) != FileResult_Success) {
+    log_e("Failed to create output path", log_param("path", fmt_path(dynstring_view(&targetPath))));
     goto Done;
   }
 
