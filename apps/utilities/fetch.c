@@ -134,30 +134,26 @@ static NetHttpFlags fetch_http_flags(void) {
   return NetHttpFlags_TlsNoVerify;
 }
 
-static i32 fetch_run_origin(NetRest* rest, const String targetPath, const FetchOrigin* origin) {
+static i32 fetch_run_origin(NetRest* rest, const String targetPath, const FetchOrigin* org) {
   i32 retCode = 0;
 
   NetHttpAuth auth = {0};
-  if (!string_is_empty(origin->authUser)) {
-    auth = (NetHttpAuth){
-        .type = NetHttpAuthType_Basic,
-        .user = origin->authUser,
-        .pw   = origin->authPass,
-    };
+  if (!string_is_empty(org->authUser)) {
+    auth = (NetHttpAuth){.type = NetHttpAuthType_Basic, .user = org->authUser, .pw = org->authPass};
   }
 
-  NetRestId* requests = alloc_array_t(g_allocHeap, NetRestId, origin->assets.count);
+  NetRestId* requests = alloc_array_t(g_allocHeap, NetRestId, org->assets.count);
 
   // Start a GET request for all assets.
-  for (u32 i = 0; i != origin->assets.count; ++i) {
-    const String uri = fetch_config_uri_scratch(origin, origin->assets.values[i]);
-    requests[i]      = net_rest_get(rest, origin->host, uri, &auth, null);
+  for (u32 i = 0; i != org->assets.count; ++i) {
+    const String uri = fetch_config_uri_scratch(org, org->assets.values[i]);
+    requests[i]      = net_rest_get(rest, org->host, uri, &auth, null);
   }
 
   // Save the results.
-  for (u32 i = 0; i != origin->assets.count; ++i) {
+  for (u32 i = 0; i != org->assets.count; ++i) {
     const NetRestId request = requests[i];
-    const String    asset   = origin->assets.values[i];
+    const String    asset   = org->assets.values[i];
 
     // Wait for the request to be done.
     while (!net_rest_done(rest, request)) {
@@ -197,31 +193,27 @@ static i32 fetch_run_origin(NetRest* rest, const String targetPath, const FetchO
     net_rest_release(rest, request);
   }
 
-  alloc_free_array_t(g_allocHeap, requests, origin->assets.count);
+  alloc_free_array_t(g_allocHeap, requests, org->assets.count);
   return retCode;
 }
 
-static i32 fetch_run(FetchConfig* config, const String configPath) {
+static i32 fetch_run(FetchConfig* config, const String targetPath) {
+  i32              retCode   = 0;
+  NetRest*         rest      = null;
   const TimeSteady timeStart = time_steady_clock();
 
-  i32      retCode = 0;
-  NetRest* rest    = null;
+  const u32 maxRequests = fetch_config_max_origin_assets(config);
+  if (maxRequests) {
+    rest = net_rest_create(g_allocHeap, fetch_worker_count, maxRequests, fetch_http_flags());
 
-  DynString targetPath = dynstring_create(g_allocHeap, 128);
-  path_build(&targetPath, path_parent(configPath), config->targetPath);
-
-  const u32 maxOriginAssetCount = fetch_config_max_origin_assets(config);
-  if (!maxOriginAssetCount) {
-    goto Done;
+    heap_array_for_t(config->origins, FetchOrigin, origin) {
+      i32 originRet = 0;
+      if (origin->assets.count) {
+        originRet = fetch_run_origin(rest, targetPath, origin);
+      }
+      retCode = math_max(retCode, originRet);
+    }
   }
-  rest = net_rest_create(g_allocHeap, fetch_worker_count, maxOriginAssetCount, fetch_http_flags());
-
-  heap_array_for_t(config->origins, FetchOrigin, origin) {
-    const i32 originRet = fetch_run_origin(rest, dynstring_view(&targetPath), origin);
-    retCode             = math_max(retCode, originRet);
-  }
-
-Done:;
   const TimeDuration duration = time_steady_duration(timeStart, time_steady_clock());
   if (!retCode) {
     log_i("Fetch finished", log_param("duration", fmt_duration(duration)));
@@ -231,7 +223,6 @@ Done:;
   if (rest) {
     net_rest_destroy(rest);
   }
-  dynstring_destroy(&targetPath);
   return retCode;
 }
 
@@ -265,16 +256,21 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   const String configPath = cli_read_string(invoc, g_optConfigPath, string_empty);
 
-  FetchConfig config;
   fetch_data_init();
+
+  FetchConfig config;
   if (!fetch_config_load(configPath, &config)) {
     return 1;
   }
 
+  DynString targetPath = dynstring_create(g_allocHeap, 128);
+  path_build(&targetPath, path_parent(configPath), config.targetPath);
+
   net_init();
-  retCode = fetch_run(&config, configPath);
+  retCode = fetch_run(&config, dynstring_view(&targetPath));
   net_teardown();
 
+  dynstring_destroy(&targetPath);
   fetch_config_destroy(&config);
   return retCode;
 }
