@@ -158,11 +158,17 @@ static i32 fetch_run_origin(NetRest* rest, const String targetPath, const FetchO
     while (!net_rest_done(rest, request)) {
       thread_sleep(time_milliseconds(500));
     }
+
+    // Save the asset to disk.
     const NetResult result = net_rest_result(rest, request);
     if (result == NetResult_Success) {
-      const String     path    = path_build_scratch(targetPath, asset);
-      const String     data    = net_rest_data(rest, request);
-      const FileResult saveRes = file_write_to_path_atomic(path, data);
+      const String path = path_build_scratch(targetPath, asset);
+      const String data = net_rest_data(rest, request);
+
+      FileResult saveRes = file_create_dir_sync(path_parent(path));
+      if (saveRes == FileResult_Success) {
+        saveRes = file_write_to_path_atomic(path, data);
+      }
       if (saveRes != FileResult_Success) {
         log_e(
             "Asset save failed: '{}'",
@@ -199,11 +205,6 @@ static i32 fetch_run(FetchContext* ctx) {
   }
   DynString targetPath = dynstring_create(g_allocHeap, 128);
   path_build(&targetPath, path_parent(ctx->configPath), cfg.targetPath);
-
-  if (file_create_dir_sync(dynstring_view(&targetPath)) != FileResult_Success) {
-    log_e("Failed to create output path", log_param("path", fmt_path(dynstring_view(&targetPath))));
-    goto Done;
-  }
 
   const TimeSteady timeStart = time_steady_clock();
 
