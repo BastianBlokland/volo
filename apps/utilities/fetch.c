@@ -197,16 +197,17 @@ static i32 fetch_run_origin(NetRest* rest, const String targetPath, const FetchO
 }
 
 static i32 fetch_run(FetchContext* ctx) {
+  const TimeSteady timeStart = time_steady_clock();
+
   i32         retCode = 0;
   NetRest*    rest    = null;
   FetchConfig cfg;
   if (!fetch_config_load(ctx->configPath, &cfg)) {
     return 1;
   }
+
   DynString targetPath = dynstring_create(g_allocHeap, 128);
   path_build(&targetPath, path_parent(ctx->configPath), cfg.targetPath);
-
-  const TimeSteady timeStart = time_steady_clock();
 
   const u32 maxOriginAssetCount = fetch_config_max_origin_assets(&cfg);
   if (!maxOriginAssetCount) {
@@ -219,16 +220,19 @@ static i32 fetch_run(FetchContext* ctx) {
     retCode             = math_max(retCode, originRet);
   }
 
+Done:;
   const TimeDuration duration = time_steady_duration(timeStart, time_steady_clock());
-  log_i("Fetch finished", log_param("duration", fmt_duration(duration)));
-
-Done:
+  if (!retCode) {
+    log_i("Fetch finished", log_param("duration", fmt_duration(duration)));
+  } else {
+    log_e("Fetch failed", log_param("duration", fmt_duration(duration)));
+  }
   if (rest) {
     net_rest_destroy(rest);
   }
   fetch_config_destroy(&cfg);
   dynstring_destroy(&targetPath);
-  return 0;
+  return retCode;
 }
 
 static CliId g_optConfigPath, g_optVerbose, g_optHelp;
