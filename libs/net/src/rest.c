@@ -293,7 +293,7 @@ void net_rest_destroy(NetRest* rest) {
 
   // Cleanup worker data.
   thread_mutex_destroy(rest->workerMutex);
-  thread_mutex_destroy(rest->workerWakeCondition);
+  thread_cond_destroy(rest->workerWakeCondition);
   alloc_free_array_t(rest->alloc, rest->workerThreads, rest->workerCount);
 
   // Cleanup requests.
