@@ -1,4 +1,13 @@
 {
   "targetPath": "external",
-  "origins": [ ]
+  "origins": [
+    {
+      "host": "bastian.tech",
+      "license": "/assets/license.txt",
+      "rootUri": "/assets/",
+      "assets": [
+        "alarm/alarm_color_rough.tga"
+      ]
+    }
+  ]
 }
