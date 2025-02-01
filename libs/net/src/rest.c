@@ -299,11 +299,20 @@ bool net_rest_release(NetRest* rest, const NetRestId id) {
     return false; // TODO: Support aborting requests.
   }
 
+  // Free resources.
   string_maybe_free(g_allocHeap, req->host);
   string_maybe_free(g_allocHeap, req->uri);
   net_http_auth_free(&req->auth, g_allocHeap);
   dynstring_clear(&req->buffer);
 
+  // Cleanup (not needed for correctness but makes debugging easier).
+  req->result = NetResult_Success;
+  req->host   = string_empty;
+  req->uri    = string_empty;
+  req->auth   = (NetHttpAuth){0};
+  req->etag   = (NetHttpEtag){0};
+
+  // Mark the request as available for reuse.
   rest_request_state_store(req, NetRestState_Idle);
   return true;
 }
