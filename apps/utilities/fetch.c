@@ -201,26 +201,22 @@ static i32 fetch_run_origin(NetRest* rest, const String targetPath, const FetchO
   return retCode;
 }
 
-static i32 fetch_run(const String configPath) {
+static i32 fetch_run(FetchConfig* config, const String configPath) {
   const TimeSteady timeStart = time_steady_clock();
 
-  i32         retCode = 0;
-  NetRest*    rest    = null;
-  FetchConfig cfg;
-  if (!fetch_config_load(configPath, &cfg)) {
-    return 1;
-  }
+  i32      retCode = 0;
+  NetRest* rest    = null;
 
   DynString targetPath = dynstring_create(g_allocHeap, 128);
-  path_build(&targetPath, path_parent(configPath), cfg.targetPath);
+  path_build(&targetPath, path_parent(configPath), config->targetPath);
 
-  const u32 maxOriginAssetCount = fetch_config_max_origin_assets(&cfg);
+  const u32 maxOriginAssetCount = fetch_config_max_origin_assets(config);
   if (!maxOriginAssetCount) {
     goto Done;
   }
   rest = net_rest_create(g_allocHeap, fetch_worker_count, maxOriginAssetCount, fetch_http_flags());
 
-  heap_array_for_t(cfg.origins, FetchOrigin, origin) {
+  heap_array_for_t(config->origins, FetchOrigin, origin) {
     const i32 originRet = fetch_run_origin(rest, dynstring_view(&targetPath), origin);
     retCode             = math_max(retCode, originRet);
   }
@@ -235,7 +231,6 @@ Done:;
   if (rest) {
     net_rest_destroy(rest);
   }
-  fetch_config_destroy(&cfg);
   dynstring_destroy(&targetPath);
   return retCode;
 }
@@ -268,12 +263,18 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, logMask));
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
-  fetch_data_init();
-  net_init();
-
   const String configPath = cli_read_string(invoc, g_optConfigPath, string_empty);
-  retCode                 = fetch_run(configPath);
 
+  FetchConfig config;
+  fetch_data_init();
+  if (!fetch_config_load(configPath, &config)) {
+    return 1;
+  }
+
+  net_init();
+  retCode = fetch_run(&config, configPath);
   net_teardown();
+
+  fetch_config_destroy(&config);
   return retCode;
 }
