@@ -2,6 +2,7 @@
 #include "core.h"
 #include "core_bitset.h"
 #include "core_macro.h"
+#include "core_string.h"
 #include "core_tty.h"
 
 typedef enum {

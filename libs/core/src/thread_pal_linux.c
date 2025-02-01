@@ -291,7 +291,7 @@ ThreadMutex thread_mutex_create(Allocator* alloc) {
   return (ThreadMutex)data;
 }
 
-void thread_mutex_destroy(ThreadMutex handle) {
+void thread_mutex_destroy(const ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
   const int res = pthread_mutex_destroy(&data->impl);
@@ -301,7 +301,7 @@ void thread_mutex_destroy(ThreadMutex handle) {
   alloc_free_t(data->alloc, data);
 }
 
-void thread_mutex_lock(ThreadMutex handle) {
+void thread_mutex_lock(const ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
   const int res = pthread_mutex_lock(&data->impl);
@@ -310,7 +310,7 @@ void thread_mutex_lock(ThreadMutex handle) {
   }
 }
 
-bool thread_mutex_trylock(ThreadMutex handle) {
+bool thread_mutex_trylock(const ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
   const int res = pthread_mutex_trylock(&data->impl);
@@ -320,7 +320,7 @@ bool thread_mutex_trylock(ThreadMutex handle) {
   return res == 0;
 }
 
-void thread_mutex_unlock(ThreadMutex handle) {
+void thread_mutex_unlock(const ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
   const int res = pthread_mutex_unlock(&data->impl);
@@ -345,7 +345,7 @@ ThreadCondition thread_cond_create(Allocator* alloc) {
   return (ThreadCondition)data;
 }
 
-void thread_cond_destroy(ThreadCondition handle) {
+void thread_cond_destroy(const ThreadCondition handle) {
   ThreadConditionData* data = (ThreadConditionData*)handle;
 
   const int res = pthread_cond_destroy(&data->impl);
@@ -355,7 +355,7 @@ void thread_cond_destroy(ThreadCondition handle) {
   alloc_free_t(data->alloc, data);
 }
 
-void thread_cond_wait(ThreadCondition condHandle, ThreadMutex mutexHandle) {
+void thread_cond_wait(const ThreadCondition condHandle, const ThreadMutex mutexHandle) {
   ThreadConditionData* condData  = (ThreadConditionData*)condHandle;
   ThreadMutexData*     mutexData = (ThreadMutexData*)mutexHandle;
 
@@ -365,7 +365,32 @@ void thread_cond_wait(ThreadCondition condHandle, ThreadMutex mutexHandle) {
   }
 }
 
-void thread_cond_signal(ThreadCondition handle) {
+void thread_cond_wait_timeout(
+    const ThreadCondition condHandle, const ThreadMutex mutexHandle, const TimeDuration timeout) {
+  ThreadConditionData* condData  = (ThreadConditionData*)condHandle;
+  ThreadMutexData*     mutexData = (ThreadMutexData*)mutexHandle;
+
+  int             res;
+  struct timespec ts;
+
+  res = clock_gettime(CLOCK_MONOTONIC, &ts);
+  if (UNLIKELY(res != 0)) {
+    diag_crash_msg("clock_gettime(CLOCK_MONOTONIC) failed: {}", fmt_int(res));
+  }
+
+  const u64 seconds     = timeout / time_second;
+  const u64 nanoSeconds = (timeout - time_seconds(seconds)) / time_nanosecond;
+
+  ts.tv_sec += seconds;
+  ts.tv_nsec += nanoSeconds;
+
+  res = pthread_cond_clockwait(&condData->impl, &mutexData->impl, CLOCK_MONOTONIC, &ts);
+  if (UNLIKELY(res != 0)) {
+    diag_crash_msg("pthread_cond_clockwait() failed: {}", fmt_int(res));
+  }
+}
+
+void thread_cond_signal(const ThreadCondition handle) {
   ThreadConditionData* data = (ThreadConditionData*)handle;
 
   const int res = pthread_cond_signal(&data->impl);
@@ -374,7 +399,7 @@ void thread_cond_signal(ThreadCondition handle) {
   }
 }
 
-void thread_cond_broadcast(ThreadCondition handle) {
+void thread_cond_broadcast(const ThreadCondition handle) {
   ThreadConditionData* data = (ThreadConditionData*)handle;
 
   const int res = pthread_cond_broadcast(&data->impl);

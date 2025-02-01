@@ -247,7 +247,7 @@ ThreadHandle thread_pal_start(thread_pal_rettype(SYS_DECL* routine)(void*), void
   return (ThreadHandle)handle;
 }
 
-void thread_pal_join(ThreadHandle thread) {
+void thread_pal_join(const ThreadHandle thread) {
   DWORD waitRes = WaitForSingleObject((HANDLE)thread, INFINITE);
   if (UNLIKELY(waitRes == WAIT_FAILED)) {
     diag_crash_msg("WaitForSingleObject() failed");
@@ -303,7 +303,7 @@ ThreadMutex thread_mutex_create(Allocator* alloc) {
   return (ThreadMutex)data;
 }
 
-void thread_mutex_destroy(ThreadMutex handle) {
+void thread_mutex_destroy(const ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
   DeleteCriticalSection(&data->impl);
@@ -311,19 +311,19 @@ void thread_mutex_destroy(ThreadMutex handle) {
   alloc_free_t(data->alloc, data);
 }
 
-void thread_mutex_lock(ThreadMutex handle) {
+void thread_mutex_lock(const ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
   EnterCriticalSection(&data->impl);
 }
 
-bool thread_mutex_trylock(ThreadMutex handle) {
+bool thread_mutex_trylock(const ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
   return TryEnterCriticalSection(&data->impl);
 }
 
-void thread_mutex_unlock(ThreadMutex handle) {
+void thread_mutex_unlock(const ThreadMutex handle) {
   ThreadMutexData* data = (ThreadMutexData*)handle;
 
   LeaveCriticalSection(&data->impl);
@@ -342,7 +342,7 @@ ThreadCondition thread_cond_create(Allocator* alloc) {
   return (ThreadMutex)data;
 }
 
-void thread_cond_destroy(ThreadCondition handle) {
+void thread_cond_destroy(const ThreadCondition handle) {
   ThreadConditionData* data = (ThreadConditionData*)handle;
 
   // win32 'CONDITION_VARIABLE' objects do not need to be deleted.
@@ -350,7 +350,7 @@ void thread_cond_destroy(ThreadCondition handle) {
   alloc_free_t(data->alloc, data);
 }
 
-void thread_cond_wait(ThreadCondition condHandle, ThreadMutex mutexHandle) {
+void thread_cond_wait(const ThreadCondition condHandle, const ThreadMutex mutexHandle) {
   ThreadConditionData* condData  = (ThreadConditionData*)condHandle;
   ThreadMutexData*     mutexData = (ThreadMutexData*)mutexHandle;
 
@@ -360,13 +360,26 @@ void thread_cond_wait(ThreadCondition condHandle, ThreadMutex mutexHandle) {
   }
 }
 
-void thread_cond_signal(ThreadCondition handle) {
+void thread_cond_wait_timeout(
+    const ThreadCondition condHandle, const ThreadMutex mutexHandle, TimeDuration timeout) {
+  ThreadConditionData* condData  = (ThreadConditionData*)condHandle;
+  ThreadMutexData*     mutexData = (ThreadMutexData*)mutexHandle;
+
+  DWORD milliseconds = (DWORD)(timeout / time_millisecond);
+
+  const BOOL sleepRes = SleepConditionVariableCS(&condData->impl, &mutexData->impl, milliseconds);
+  if (UNLIKELY(!sleepRes)) {
+    diag_crash_msg("SleepConditionVariableCS() failed");
+  }
+}
+
+void thread_cond_signal(const ThreadCondition handle) {
   ThreadConditionData* data = (ThreadConditionData*)handle;
 
   WakeConditionVariable(&data->impl);
 }
 
-void thread_cond_broadcast(ThreadCondition handle) {
+void thread_cond_broadcast(const ThreadCondition handle) {
   ThreadConditionData* data = (ThreadConditionData*)handle;
 
   WakeAllConditionVariable(&data->impl);

@@ -2,7 +2,7 @@
 #include "core_string.h"
 #include "net.h"
 
-typedef enum {
+typedef enum eNetHttpFlags {
   NetHttpFlags_None        = 0,
   NetHttpFlags_Tls         = 1 << 0,                    // Https.
   NetHttpFlags_TlsNoVerify = NetHttpFlags_Tls | 1 << 1, // Https without Tls cert verification.
@@ -13,12 +13,15 @@ typedef enum {
   NetHttpAuthType_Basic,
 } NetHttpAuthType;
 
-typedef struct {
+typedef struct sNetHttpAuth {
   NetHttpAuthType type;
   String          user, pw;
 } NetHttpAuth;
 
-typedef struct {
+NetHttpAuth net_http_auth_clone(const NetHttpAuth*, Allocator*);
+void        net_http_auth_free(NetHttpAuth*, Allocator*);
+
+typedef struct sNetHttpEtag {
   u8 length;
   u8 data[63];
 } NetHttpEtag;

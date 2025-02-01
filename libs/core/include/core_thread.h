@@ -239,6 +239,7 @@ void thread_cond_destroy(ThreadCondition);
  * Pre-condition: This thread is currently holding the mutex.
  */
 void thread_cond_wait(ThreadCondition, ThreadMutex);
+void thread_cond_wait_timeout(ThreadCondition, ThreadMutex, TimeDuration timeout);
 
 /**
  * Unblock atleast one thread waiting for the given condition.
