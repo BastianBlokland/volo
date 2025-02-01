@@ -14,6 +14,7 @@
 #include "core_time.h"
 #include "data_read.h"
 #include "data_utils.h"
+#include "data_write.h"
 #include "log_logger.h"
 #include "log_sink_json.h"
 #include "log_sink_pretty.h"
@@ -141,6 +142,25 @@ static String fetch_config_uri_scratch(const FetchOrigin* origin, const String a
     dynstring_append(&result, asset);
   }
   return dynstring_view(&result);
+}
+
+static bool fetch_registry_save(const FetchRegistry* reg, const String outputPath) {
+  // Serialize the registry.
+  DynString dataBuffer = dynstring_create(g_allocHeap, 4 * usize_kibibyte);
+  const Mem regMem     = mem_create(reg, sizeof(FetchRegistry));
+  data_write_bin(g_dataReg, &dataBuffer, g_fetchRegistryMeta, regMem);
+
+  // Save the data to disk.
+  const String     filePath = path_build_scratch(outputPath, string_lit("registry.blob"));
+  const FileResult fileRes  = file_write_to_path_atomic(filePath, dynstring_view(&dataBuffer));
+  if (fileRes != FileResult_Success) {
+    log_e(
+        "Failed to write registry file",
+        log_param("path", fmt_path(filePath)),
+        log_param("err", fmt_text(file_result_str(fileRes))));
+    return false;
+  }
+  return true;
 }
 
 static NetHttpFlags fetch_http_flags(void) {
