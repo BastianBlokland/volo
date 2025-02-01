@@ -33,6 +33,8 @@ typedef enum eNetResult {
   NetResult_HttpMalformedChunk,
   NetResult_HttpMalformedCompression,
   NetResult_HttpUnexpectedData,
+  NetResult_RestIdInvalid,
+  NetResult_RestBusy,
   NetResult_UnknownError,
 
   NetResult_Count,
