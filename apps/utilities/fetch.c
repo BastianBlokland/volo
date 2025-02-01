@@ -124,10 +124,6 @@ static String fetch_config_uri_scratch(const FetchOrigin* origin, const String a
   return dynstring_view(&result);
 }
 
-typedef struct {
-  String configPath;
-} FetchContext;
-
 static NetHttpFlags fetch_http_flags(void) {
   /**
    * Enable Tls transport but do not enable certificate validation.
@@ -205,18 +201,18 @@ static i32 fetch_run_origin(NetRest* rest, const String targetPath, const FetchO
   return retCode;
 }
 
-static i32 fetch_run(FetchContext* ctx) {
+static i32 fetch_run(const String configPath) {
   const TimeSteady timeStart = time_steady_clock();
 
   i32         retCode = 0;
   NetRest*    rest    = null;
   FetchConfig cfg;
-  if (!fetch_config_load(ctx->configPath, &cfg)) {
+  if (!fetch_config_load(configPath, &cfg)) {
     return 1;
   }
 
   DynString targetPath = dynstring_create(g_allocHeap, 128);
-  path_build(&targetPath, path_parent(ctx->configPath), cfg.targetPath);
+  path_build(&targetPath, path_parent(configPath), cfg.targetPath);
 
   const u32 maxOriginAssetCount = fetch_config_max_origin_assets(&cfg);
   if (!maxOriginAssetCount) {
@@ -272,14 +268,11 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, logMask));
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
-  FetchContext ctx = {
-      .configPath = cli_read_string(invoc, g_optConfigPath, string_empty),
-  };
-
   fetch_data_init();
   net_init();
 
-  retCode = fetch_run(&ctx);
+  const String configPath = cli_read_string(invoc, g_optConfigPath, string_empty);
+  retCode                 = fetch_run(configPath);
 
   net_teardown();
   return retCode;
