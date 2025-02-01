@@ -7,6 +7,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_file.h"
+#include "core_path.h"
 #include "data_read.h"
 #include "data_utils.h"
 #include "log_logger.h"
@@ -99,6 +100,8 @@ static i32 fetch_run(FetchContext* ctx) {
   if (!fetch_config_load(ctx->configPath, &cfg)) {
     return 1;
   }
+  const String targetPath = path_build_scratch(ctx->configPath, cfg.targetPath);
+  (void)targetPath;
 
   fetch_config_destroy(&cfg);
   return 0;
