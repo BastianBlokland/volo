@@ -19,6 +19,7 @@ NetRest* net_rest_create(Allocator*, u32 workerCount, u32 requestCount, NetHttpF
  */
 void net_rest_destroy(NetRest*);
 
+NetRestId net_rest_head(NetRest*, String host, String uri, const NetHttpAuth*, const NetHttpEtag*);
 NetRestId net_rest_get(NetRest*, String host, String uri, const NetHttpAuth*, const NetHttpEtag*);
 
 bool               net_rest_done(NetRest*, NetRestId);

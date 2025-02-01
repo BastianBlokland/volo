@@ -17,8 +17,14 @@ typedef enum {
   NetRestState_Finished,
 } NetRestState;
 
+typedef enum {
+  NetRestType_Head, // Http HEAD request.
+  NetRestType_Get,  // Http GET request.
+} NetRestType;
+
 typedef struct {
   NetRestState state;
+  NetRestType  type;
   NetResult    result;
   u16          generation;
   String       host, uri;
@@ -196,7 +202,15 @@ static void rest_worker_thread(void* data) {
     }
     conLastReqTime = time_steady_clock();
 
-    req->result = net_http_get_sync(con, req->uri, &req->auth, &req->etag, &req->buffer);
+    switch (req->type) {
+    case NetRestType_Head:
+      req->result = net_http_head_sync(con, req->uri, &req->auth, &req->etag);
+      break;
+    case NetRestType_Get:
+      req->result = net_http_get_sync(con, req->uri, &req->auth, &req->etag, &req->buffer);
+      break;
+    }
+
     if (rest_worker_should_retry(req->result) && reqTryIndex < MaxTries) {
       ++reqTryIndex;
       goto Retry;
@@ -292,6 +306,33 @@ void net_rest_destroy(NetRest* rest) {
   alloc_free_t(rest->alloc, rest);
 }
 
+NetRestId net_rest_head(
+    NetRest*           rest,
+    const String       host,
+    const String       uri,
+    const NetHttpAuth* auth,
+    const NetHttpEtag* etag) {
+  diag_assert(!string_is_empty(host));
+
+  const NetRestId id = rest_request_acquire(rest);
+  if (!rest_id_valid(id)) {
+    return id; // No free request slots.
+  }
+  NetRestRequest* req = rest_request_get(rest, id);
+  diag_assert(req);
+
+  req->type = NetRestType_Head;
+  req->host = string_maybe_dup(g_allocHeap, host);
+  req->uri  = string_maybe_dup(g_allocHeap, uri);
+  req->auth = auth ? net_http_auth_clone(auth, g_allocHeap) : (NetHttpAuth){0};
+  req->etag = etag ? *etag : (NetHttpEtag){0};
+
+  rest_request_state_store(req, NetRestState_Ready);
+  rest_wake_worker_single(rest);
+
+  return id;
+}
+
 NetRestId net_rest_get(
     NetRest*           rest,
     const String       host,
@@ -307,18 +348,11 @@ NetRestId net_rest_get(
   NetRestRequest* req = rest_request_get(rest, id);
   diag_assert(req);
 
+  req->type = NetRestType_Get;
   req->host = string_maybe_dup(g_allocHeap, host);
   req->uri  = string_maybe_dup(g_allocHeap, uri);
-  if (auth) {
-    req->auth = net_http_auth_clone(auth, g_allocHeap);
-  } else {
-    req->auth = (NetHttpAuth){0};
-  }
-  if (etag) {
-    req->etag = *etag;
-  } else {
-    req->etag = (NetHttpEtag){0};
-  }
+  req->auth = auth ? net_http_auth_clone(auth, g_allocHeap) : (NetHttpAuth){0};
+  req->etag = etag ? *etag : (NetHttpEtag){0};
 
   rest_request_state_store(req, NetRestState_Ready);
   rest_wake_worker_single(rest);
