@@ -97,11 +97,24 @@ static NetRestId rest_request_acquire(NetRest* rest) {
   return rest_id_invalid();
 }
 
-static NetRestRequest* rest_worker_take(NetRest* rest) {
+static NetRestRequest* rest_worker_take_any(NetRest* rest) {
   for (u16 i = 0; i != rest->requestCount; ++i) {
     NetRestRequest* req = &rest->requests[i];
     if (rest_request_state_transition(req, NetRestState_Ready, NetRestState_Busy)) {
       return req;
+    }
+  }
+  return null; // No work found.
+}
+
+static NetRestRequest* rest_worker_take_for_host(NetRest* rest, const String host) {
+  for (u16 i = 0; i != rest->requestCount; ++i) {
+    NetRestRequest* req = &rest->requests[i];
+    if (rest_request_state_transition(req, NetRestState_Ready, NetRestState_Busy)) {
+      if (string_eq(req->host, host)) {
+        return req;
+      }
+      rest_request_state_store(req, NetRestState_Ready);
     }
   }
   return null; // No work found.
@@ -112,26 +125,35 @@ static void rest_worker_thread(void* data) {
   NetHttp* con  = null;
 
   while (!rest->workerShutdown) {
-    NetRestRequest* req = rest_worker_take(rest);
-    if (!req) {
-      goto Sleep;
-    }
-    // Close connection if its no longer good.
+    // Close the connection if its not longer good.
     if (con && net_http_status(con) != NetResult_Success) {
       net_http_shutdown_sync(con);
       net_http_destroy(con);
       con = null;
     }
-    // Close connection if its for the wrong host.
+
+    // Take a new request (prefer requests for the host we already have a connection to).
+    NetRestRequest* req = null;
+    if (con) {
+      req = rest_worker_take_for_host(rest, net_http_remote_name(con));
+    }
+    if (!req) {
+      req = rest_worker_take_any(rest);
+    }
+    if (!req) {
+      goto Sleep;
+    }
+
+    // Establish the connection.
     if (con && !string_eq(net_http_remote_name(con), req->host)) {
       net_http_shutdown_sync(con);
       net_http_destroy(con);
       con = null;
     }
-    // Establish a new connection.
     if (!con) {
       con = net_http_connect_sync(g_allocHeap, req->host, rest->httpFlags);
     }
+
     // Execute the request.
     req->result = net_http_get_sync(con, req->uri, &req->auth, &req->etag, &req->buffer);
     rest_request_state_store(req, NetRestState_Finished);
