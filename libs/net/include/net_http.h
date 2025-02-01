@@ -18,6 +18,9 @@ typedef struct sNetHttpAuth {
   String          user, pw;
 } NetHttpAuth;
 
+NetHttpAuth net_http_auth_clone(const NetHttpAuth*, Allocator*);
+void        net_http_auth_free(NetHttpAuth*, Allocator*);
+
 typedef struct sNetHttpEtag {
   u8 length;
   u8 data[63];

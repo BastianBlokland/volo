@@ -53,6 +53,19 @@ typedef struct {
   NetHttpView etag;
 } NetHttpResponse;
 
+NetHttpAuth net_http_auth_clone(const NetHttpAuth* auth, Allocator* alloc) {
+  return (NetHttpAuth){
+      .type = auth->type,
+      .user = string_maybe_dup(alloc, auth->user),
+      .pw   = string_maybe_dup(alloc, auth->pw),
+  };
+}
+
+void net_http_auth_free(NetHttpAuth* auth, Allocator* alloc) {
+  string_maybe_free(alloc, auth->user);
+  string_maybe_free(alloc, auth->pw);
+}
+
 static String http_view_str(const NetHttp* http, const NetHttpView view) {
   return string_slice(dynstring_view(&http->readBuffer), view.offset, view.size);
 }
