@@ -2,7 +2,7 @@
 #include "core_string.h"
 #include "net.h"
 
-typedef enum {
+typedef enum eNetHttpFlags {
   NetHttpFlags_None        = 0,
   NetHttpFlags_Tls         = 1 << 0,                    // Https.
   NetHttpFlags_TlsNoVerify = NetHttpFlags_Tls | 1 << 1, // Https without Tls cert verification.

@@ -27,7 +27,8 @@ typedef struct {
 } NetRestRequest;
 
 typedef struct sNetRest {
-  Allocator* alloc;
+  Allocator*   alloc;
+  NetHttpFlags httpFlags;
 
   ThreadMutex     workerMutex;
   ThreadCondition workerWakeCondition;
@@ -110,14 +111,16 @@ static void rest_worker_thread(void* data) {
   }
 }
 
-NetRest* net_rest_create(Allocator* alloc, u32 workerCount, u32 requestCount) {
+NetRest*
+net_rest_create(Allocator* alloc, u32 workerCount, u32 requestCount, const NetHttpFlags httpFlags) {
   workerCount  = math_max(1, workerCount);
   requestCount = math_max(workerCount, requestCount);
 
   NetRest* rest = alloc_alloc_t(alloc, NetRest);
 
   *rest = (NetRest){
-      .alloc = alloc,
+      .alloc     = alloc,
+      .httpFlags = httpFlags,
 
       .workerMutex         = thread_mutex_create(g_allocHeap),
       .workerWakeCondition = thread_cond_create(g_allocHeap),

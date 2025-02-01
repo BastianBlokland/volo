@@ -6,6 +6,7 @@
  */
 
 typedef enum eNetDir        NetDir;
+typedef enum eNetHttpFlags  NetHttpFlags;
 typedef enum eNetResult     NetResult;
 typedef struct sNetAddr     NetAddr;
 typedef struct sNetHttp     NetHttp;
