@@ -37,7 +37,7 @@ typedef struct {
 } FetchOrigin;
 
 typedef struct {
-  String targetPath;
+  String outputPath;
   HeapArray_t(FetchOrigin) origins;
 } FetchConfig;
 
@@ -63,7 +63,7 @@ static void fetch_data_init(void) {
   data_reg_field_t(g_dataReg, FetchOrigin, assets, data_prim_t(String), .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, FetchConfig);
-  data_reg_field_t(g_dataReg, FetchConfig, targetPath, data_prim_t(String));
+  data_reg_field_t(g_dataReg, FetchConfig, outputPath, data_prim_t(String));
   data_reg_field_t(g_dataReg, FetchConfig, origins, t_FetchOrigin, .container = DataContainer_HeapArray);
 
   data_reg_opaque_t(g_dataReg, NetHttpEtag);
@@ -153,7 +153,7 @@ static NetHttpFlags fetch_http_flags(void) {
   return NetHttpFlags_TlsNoVerify;
 }
 
-static i32 fetch_run_origin(NetRest* rest, const String targetPath, const FetchOrigin* org) {
+static i32 fetch_run_origin(NetRest* rest, const String outputPath, const FetchOrigin* org) {
   i32 retCode = 0;
 
   NetHttpAuth auth = {0};
@@ -182,7 +182,7 @@ static i32 fetch_run_origin(NetRest* rest, const String targetPath, const FetchO
     // Save the asset to disk.
     const NetResult result = net_rest_result(rest, request);
     if (result == NetResult_Success) {
-      const String path = path_build_scratch(targetPath, asset);
+      const String path = path_build_scratch(outputPath, asset);
       const String data = net_rest_data(rest, request);
 
       FileResult saveRes = file_create_dir_sync(path_parent(path));
@@ -216,7 +216,7 @@ static i32 fetch_run_origin(NetRest* rest, const String targetPath, const FetchO
   return retCode;
 }
 
-static i32 fetch_run(FetchConfig* config, const String targetPath) {
+static i32 fetch_run(FetchConfig* config, const String outputPath) {
   i32              retCode   = 0;
   NetRest*         rest      = null;
   const TimeSteady timeStart = time_steady_clock();
@@ -228,7 +228,7 @@ static i32 fetch_run(FetchConfig* config, const String targetPath) {
     heap_array_for_t(config->origins, FetchOrigin, origin) {
       i32 originRet = 0;
       if (origin->assets.count) {
-        originRet = fetch_run_origin(rest, targetPath, origin);
+        originRet = fetch_run_origin(rest, outputPath, origin);
       }
       retCode = math_max(retCode, originRet);
     }
@@ -282,14 +282,14 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     return 1;
   }
 
-  DynString targetPath = dynstring_create(g_allocHeap, 128);
-  path_build(&targetPath, path_parent(configPath), config.targetPath);
+  DynString outputPath = dynstring_create(g_allocHeap, 128);
+  path_build(&outputPath, path_parent(configPath), config.outputPath);
 
   net_init();
-  retCode = fetch_run(&config, dynstring_view(&targetPath));
+  retCode = fetch_run(&config, dynstring_view(&outputPath));
   net_teardown();
 
-  dynstring_destroy(&targetPath);
+  dynstring_destroy(&outputPath);
   fetch_config_destroy(&config);
   return retCode;
 }

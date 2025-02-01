@@ -1,5 +1,5 @@
 {
-  "targetPath": "external",
+  "outputPath": "external",
   "origins": [
     {
       "host": "bastian.tech",
