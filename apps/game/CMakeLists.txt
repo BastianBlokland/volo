@@ -26,8 +26,7 @@ target_link_libraries(app_game PRIVATE
   lib_ui
   lib_vfx
   )
-add_dependencies(app_game volo_assets)
 configure_debuggable(app_game)
 
 add_custom_target(run.game COMMAND app_game
-  "-w" "--assets" "$<TARGET_PROPERTY:volo_assets,path>" VERBATIM USES_TERMINAL)
+  "-w" "--assets" "${CMAKE_SOURCE_DIR}/assets" VERBATIM USES_TERMINAL)

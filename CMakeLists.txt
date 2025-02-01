@@ -11,11 +11,10 @@ endif()
 project(Volo VERSION 0.1.0 LANGUAGES C)
 
 # Custom options.
-set(FAST            "Off" CACHE BOOL "Fast mode, disables various runtime validations")
-set(TRACE           "On"  CACHE BOOL "Trace mode, enables runtime performance tracing")
-set(LTO             "Off" CACHE BOOL "Link time optimization")
-set(SANITIZE        "Off" CACHE BOOL "Should santiser instrumentation be enabled")
-set(EXTERNAL_ASSETS "On"  CACHE BOOL "Should external assets be downloaded")
+set(FAST     "Off" CACHE BOOL "Fast mode, disables various runtime validations")
+set(TRACE    "On"  CACHE BOOL "Trace mode, enables runtime performance tracing")
+set(LTO      "Off" CACHE BOOL "Link time optimization")
+set(SANITIZE "Off" CACHE BOOL "Should santiser instrumentation be enabled")
 
 # Diagnostic information.
 message(STATUS "Configuring Volo")
@@ -30,12 +29,10 @@ message(STATUS "* Fast: ${FAST}")
 message(STATUS "* Trace: ${TRACE}")
 message(STATUS "* Lto: ${LTO}")
 message(STATUS "* Sanitize: ${SANITIZE}")
-message(STATUS "* External assets: ${EXTERNAL_ASSETS}")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules")
 include(cmake/compiler.cmake)
 include(cmake/debug.cmake)
-include(cmake/download.cmake)
 include(cmake/findpkg.cmake)
 include(cmake/platform.cmake)
 include(cmake/test.cmake)
@@ -57,9 +54,6 @@ add_subdirectory(libs)
 
 message(STATUS "Configuring applications")
 add_subdirectory(apps)
-
-message(STATUS "Configuring assets")
-add_subdirectory(assets)
 
 message(STATUS "Configuring utility targets")
 configure_test_target()

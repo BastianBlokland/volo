@@ -9,25 +9,34 @@ target_link_libraries(app_schemasetup PRIVATE lib_app_cli lib_asset lib_log)
 configure_debuggable(app_schemasetup)
 
 add_custom_target(run.schemasetup COMMAND app_schemasetup "--out"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/arraytex.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/atlas.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/decal.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/fonttex.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/graphic.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/icon.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/inputs.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/level.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/prefabs.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/procmesh.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/proctex.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/products.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/script_import_mesh_binder.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/script_import_texture_binder.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/script_scene_binder.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/terrain.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/vfx.schema.json"
-  "$<TARGET_PROPERTY:volo_assets,path>/schemas/weapons.schema.json"
+  "${CMAKE_SOURCE_DIR}/assets/schemas/arraytex.schema.json"
+  "${CMAKE_SOURCE_DIR}/assets/schemas/atlas.schema.json"
+  "${CMAKE_SOURCE_DIR}/assets/schemas/decal.schema.json"
+  "${CMAKE_SOURCE_DIR}/assets/schemas/fonttex.schema.json"
+  "${CMAKE_SOURCE_DIR}/assets/schemas/graphic.schema.json"
+  "${CMAKE_SOURCE_DIR}/assets/schemas/icon.schema.json"
+  "${CMAKE_SOURCE_DIR}/assets/schemas/inputs.schema.json"
+  "${CMAKE_SOURCE_DIR}/assets/schemas/level.schema.json"
+  "${CMAKE_SOURCE_DIR}/assets/schemas/prefabs.schema.json"
+  "${CMAKE_SOURCE_DIR}/assets/schemas/procmesh.schema.json"
+  "${CMAKE_SOURCE_DIR}/assets/schemas/proctex.schema.json"
+  "${CMAKE_SOURCE_DIR}/assets/schemas/products.schema.json"
+  "${CMAKE_SOURCE_DIR}/assets/schemas/script_import_mesh_binder.json"
+  "${CMAKE_SOURCE_DIR}/assets/schemas/script_import_texture_binder.json"
+  "${CMAKE_SOURCE_DIR}/assets/schemas/script_scene_binder.json"
+  "${CMAKE_SOURCE_DIR}/assets/schemas/terrain.schema.json"
+  "${CMAKE_SOURCE_DIR}/assets/schemas/vfx.schema.json"
+  "${CMAKE_SOURCE_DIR}/assets/schemas/weapons.schema.json"
   VERBATIM USES_TERMINAL)
+
+message(STATUS "> application: fetch")
+
+add_executable(app_fetch fetch.c)
+target_link_libraries(app_fetch PRIVATE lib_app_cli lib_net lib_log lib_data)
+configure_debuggable(app_fetch)
+
+add_custom_target(run.fetch COMMAND app_fetch
+  "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL)
 
 message(STATUS "> application: dbgsetup")
 
