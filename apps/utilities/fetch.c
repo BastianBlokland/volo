@@ -91,6 +91,12 @@ static void fetch_config_destroy(FetchConfig* cfg) {
   data_destroy(g_dataReg, g_allocHeap, g_fetchConfigMeta, mem_create(cfg, sizeof(FetchConfig)));
 }
 
+static u32 fetch_config_asset_count(FetchConfig* cfg) {
+  u32 res = 0;
+  heap_array_for_t(cfg->origins, FetchOrigin, origin) { res += (u32)origin->assets.count; }
+  return res;
+}
+
 typedef struct {
   String configPath;
 } FetchContext;
@@ -100,9 +106,14 @@ static i32 fetch_run(FetchContext* ctx) {
   if (!fetch_config_load(ctx->configPath, &cfg)) {
     return 1;
   }
+  const u32 assetCount = fetch_config_asset_count(&cfg);
+  if (!assetCount) {
+    goto Done;
+  }
   const String targetPath = path_build_scratch(ctx->configPath, cfg.targetPath);
   (void)targetPath;
 
+Done:
   fetch_config_destroy(&cfg);
   return 0;
 }
