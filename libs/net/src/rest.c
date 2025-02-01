@@ -152,13 +152,15 @@ static bool rest_worker_should_retry(const NetResult result) {
 
 static void rest_worker_thread(void* data) {
   NetRest* rest = data;
-  NetHttp* con  = null;
 
   enum { MaxTries = 3 };
   const TimeDuration retrySleep[MaxTries] = {
       [1] = time_milliseconds(500),
       [2] = time_second,
   };
+
+  NetHttp*     con            = null;
+  TimeDuration conLastReqTime = 0;
 
   while (!rest->workerShutdown) {
     NetRestRequest* req         = null;
@@ -192,6 +194,8 @@ static void rest_worker_thread(void* data) {
     if (!con) {
       con = net_http_connect_sync(g_allocHeap, req->host, rest->httpFlags);
     }
+    conLastReqTime = time_steady_clock();
+
     req->result = net_http_get_sync(con, req->uri, &req->auth, &req->etag, &req->buffer);
     if (rest_worker_should_retry(req->result) && reqTryIndex < MaxTries) {
       ++reqTryIndex;
@@ -201,8 +205,18 @@ static void rest_worker_thread(void* data) {
     continue; // Process the next request.
 
   Sleep:
+    if (con && time_steady_duration(conLastReqTime, time_steady_clock()) > time_seconds(30)) {
+      // Connection has been inactive for a while; close it.
+      net_http_shutdown_sync(con);
+      net_http_destroy(con);
+      con = null;
+    }
     thread_mutex_lock(rest->workerMutex);
-    thread_cond_wait(rest->workerWakeCondition, rest->workerMutex);
+    if (con) {
+      thread_cond_wait_timeout(rest->workerWakeCondition, rest->workerMutex, time_seconds(10));
+    } else {
+      thread_cond_wait(rest->workerWakeCondition, rest->workerMutex);
+    }
     thread_mutex_unlock(rest->workerMutex);
   }
 
