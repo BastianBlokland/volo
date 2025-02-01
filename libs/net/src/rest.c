@@ -182,6 +182,9 @@ static void rest_worker_thread(void* data) {
     }
 
   Retry:
+    if (rest->workerShutdown) {
+      break;
+    }
     if (con && net_http_status(con) != NetResult_Success) {
       net_http_shutdown_sync(con);
       net_http_destroy(con);
