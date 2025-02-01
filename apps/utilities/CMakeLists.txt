@@ -35,6 +35,9 @@ add_executable(app_fetch fetch.c)
 target_link_libraries(app_fetch PRIVATE lib_app_cli lib_net lib_log lib_data)
 configure_debuggable(app_fetch)
 
+add_custom_target(run.fetch COMMAND app_fetch
+  "$<TARGET_PROPERTY:volo_assets,path>/fetch.json" VERBATIM USES_TERMINAL)
+
 message(STATUS "> application: dbgsetup")
 
 add_executable(app_dbgsetup dbgsetup.c)
