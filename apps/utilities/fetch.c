@@ -160,13 +160,21 @@ static i32 fetch_run_origin(NetRest* rest, const String targetPath, const FetchO
     }
     const NetResult result = net_rest_result(rest, request);
     if (result == NetResult_Success) {
-      const String data = net_rest_data(rest, request);
-      file_write_to_path_atomic(path_build_scratch(targetPath, asset), data);
-
-      log_i(
-          "Asset fetched: '{}'",
-          log_param("asset", fmt_text(asset)),
-          log_param("size", fmt_size(data.size)));
+      const String     path    = path_build_scratch(targetPath, asset);
+      const String     data    = net_rest_data(rest, request);
+      const FileResult saveRes = file_write_to_path_atomic(path, data);
+      if (saveRes != FileResult_Success) {
+        log_e(
+            "Asset save failed: '{}'",
+            log_param("asset", fmt_text(asset)),
+            log_param("error", fmt_text(file_result_str(saveRes))));
+        retCode = 2;
+      } else {
+        log_i(
+            "Asset fetched: '{}'",
+            log_param("asset", fmt_text(asset)),
+            log_param("size", fmt_size(data.size)));
+      }
     } else {
       log_e(
           "Asset fetch failed: '{}'",
