@@ -73,11 +73,22 @@ static NetRestRequest* rest_request_get(NetRest* rest, const NetRestId id) {
   return req;
 }
 
+static NetRestState rest_request_state_load(NetRestRequest* req) {
+  return (NetRestState)thread_atomic_load_i32((i32*)&req->state);
+}
+
+static void rest_request_state_store(NetRestRequest* req, const NetRestState state) {
+  thread_atomic_store_i32((i32*)&req->state, state);
+}
+
+static bool rest_request_state_transition(NetRestRequest* req, NetRestState from, NetRestState to) {
+  return thread_atomic_compare_exchange_i32((i32*)&req->state, (i32*)&from, to);
+}
+
 static NetRestId rest_request_acquire(NetRest* rest) {
   for (u16 i = 0; i != rest->requestCount; ++i) {
-    NetRestRequest* req      = &rest->requests[i];
-    i32             expected = NetRestState_Idle;
-    if (thread_atomic_compare_exchange_i32((i32*)&req->state, &expected, NetRestState_Acquired)) {
+    NetRestRequest* req = &rest->requests[i];
+    if (rest_request_state_transition(req, NetRestState_Idle, NetRestState_Acquired)) {
       ++req->generation; // NOTE: Allowed to wrap.
       return rest_id_create(i, req->generation);
     }
@@ -190,7 +201,7 @@ NetRestId net_rest_get(
     req->etag = (NetHttpEtag){0};
   }
 
-  thread_atomic_store_i32((i32*)&req->state, NetRestState_Ready);
+  rest_request_state_store(req, NetRestState_Ready);
   rest_wake_worker_single(rest);
 
   return id;
@@ -201,7 +212,7 @@ bool net_rest_done(NetRest* rest, const NetRestId id) {
   if (!req) {
     return true;
   }
-  return thread_atomic_load_i32((i32*)&req->state) == NetRestState_Finished;
+  return rest_request_state_load(req) == NetRestState_Finished;
 }
 
 NetResult net_rest_result(NetRest* rest, const NetRestId id) {
@@ -209,7 +220,7 @@ NetResult net_rest_result(NetRest* rest, const NetRestId id) {
   if (!req) {
     return NetResult_RestIdInvalid;
   }
-  if (thread_atomic_load_i32((i32*)&req->state) != NetRestState_Finished) {
+  if (rest_request_state_load(req) != NetRestState_Finished) {
     return NetResult_RestBusy;
   }
   return req->result;
@@ -220,7 +231,7 @@ String net_rest_data(NetRest* rest, const NetRestId id) {
   if (!req) {
     return string_empty;
   }
-  if (thread_atomic_load_i32((i32*)&req->state) != NetRestState_Finished) {
+  if (rest_request_state_load(req) != NetRestState_Finished) {
     return string_empty;
   }
   return dynstring_view(&req->buffer);
@@ -231,7 +242,7 @@ const NetHttpEtag* net_rest_etag(NetRest* rest, const NetRestId id) {
   if (!req) {
     return null;
   }
-  if (thread_atomic_load_i32((i32*)&req->state) != NetRestState_Finished) {
+  if (rest_request_state_load(req) != NetRestState_Finished) {
     return null;
   }
   return &req->etag;
@@ -242,8 +253,8 @@ bool net_rest_release(NetRest* rest, const NetRestId id) {
   if (!req) {
     return false;
   }
-  if (thread_atomic_load_i32((i32*)&req->state) != NetRestState_Finished) {
-    return false; // TODO: Should we support aborting requests?
+  if (rest_request_state_load(req) != NetRestState_Finished) {
+    return false; // TODO: Support aborting requests.
   }
 
   string_maybe_free(g_allocHeap, req->host);
@@ -251,8 +262,6 @@ bool net_rest_release(NetRest* rest, const NetRestId id) {
   net_http_auth_free(&req->auth, g_allocHeap);
   dynstring_clear(&req->buffer);
 
-  // Mark it as available for acquiring.
-  thread_atomic_store_i32((i32*)&req->state, NetRestState_Idle);
-
+  rest_request_state_store(req, NetRestState_Idle);
   return true;
 }
