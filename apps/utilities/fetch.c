@@ -263,10 +263,9 @@ void app_cli_configure(CliApp* app) {
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
-  i32 retCode = 0;
   if (cli_parse_provided(invoc, g_optHelp)) {
     cli_help_write_file(app, g_fileStdOut);
-    return retCode;
+    return 0;
   }
 
   const LogMask logMask = cli_parse_provided(invoc, g_optVerbose) ? LogMask_All : ~LogMask_Debug;
@@ -282,14 +281,24 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     return 1;
   }
 
-  DynString outputPath = dynstring_create(g_allocHeap, 128);
-  path_build(&outputPath, path_parent(configPath), config.outputPath);
+  DynString outputPathBuffer = dynstring_create(g_allocHeap, 128);
+  path_build(&outputPathBuffer, path_parent(configPath), config.outputPath);
+
+  const String outputPath = dynstring_view(&outputPathBuffer);
+
+  i32 retCode = 0;
+  if (file_create_dir_sync(outputPath) != FileResult_Success) {
+    log_e("Failed to create output directory", log_param("path", fmt_path(outputPath)));
+    retCode = 1;
+    goto Done;
+  }
 
   net_init();
-  retCode = fetch_run(&config, dynstring_view(&outputPath));
+  retCode = fetch_run(&config, outputPath);
   net_teardown();
 
-  dynstring_destroy(&outputPath);
+Done:
+  dynstring_destroy(&outputPathBuffer);
   fetch_config_destroy(&config);
   return retCode;
 }
