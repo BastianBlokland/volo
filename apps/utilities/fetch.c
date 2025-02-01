@@ -6,8 +6,12 @@
 #include "cli_validate.h"
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_dynstring.h"
 #include "core_file.h"
+#include "core_math.h"
 #include "core_path.h"
+#include "core_thread.h"
+#include "core_time.h"
 #include "data_read.h"
 #include "data_utils.h"
 #include "log_logger.h"
@@ -95,10 +99,29 @@ static void fetch_config_destroy(FetchConfig* cfg) {
   data_destroy(g_dataReg, g_allocHeap, g_fetchConfigMeta, mem_create(cfg, sizeof(FetchConfig)));
 }
 
-static u32 fetch_config_asset_count(FetchConfig* cfg) {
+static u32 fetch_config_max_origin_assets(FetchConfig* cfg) {
   u32 res = 0;
-  heap_array_for_t(cfg->origins, FetchOrigin, origin) { res += (u32)origin->assets.count; }
+  heap_array_for_t(cfg->origins, FetchOrigin, origin) {
+    res = math_max(res, (u32)origin->assets.count);
+  }
   return res;
+}
+
+static String fetch_config_uri_scratch(const FetchOrigin* origin, const String asset) {
+  DynString result = dynstring_create(g_allocScratch, 256);
+  if (!string_starts_with(origin->rootUri, string_lit("/"))) {
+    dynstring_append_char(&result, '/');
+  }
+  dynstring_append(&result, origin->rootUri);
+  if (!string_ends_with(dynstring_view(&result), string_lit("/"))) {
+    dynstring_append_char(&result, '/');
+  }
+  if (string_starts_with(asset, string_lit("/"))) {
+    dynstring_append(&result, string_consume(asset, 1));
+  } else {
+    dynstring_append(&result, asset);
+  }
+  return dynstring_view(&result);
 }
 
 typedef struct {
@@ -121,20 +144,66 @@ static i32 fetch_run(FetchContext* ctx) {
   if (!fetch_config_load(ctx->configPath, &cfg)) {
     return 1;
   }
-  const u32 assetCount = fetch_config_asset_count(&cfg);
-  if (!assetCount) {
+  DynString targetPath = dynstring_create(g_allocHeap, 128);
+  path_build(&targetPath, ctx->configPath, cfg.targetPath);
+
+  if (!file_create_dir_sync(dynstring_view(&targetPath))) {
+    log_e("Failed to create output path");
     goto Done;
   }
-  rest = net_rest_create(g_allocHeap, fetch_worker_count, assetCount, fetch_http_flags());
 
-  const String targetPath = path_build_scratch(ctx->configPath, cfg.targetPath);
-  (void)targetPath;
+  const u32 maxOriginAssetCount = fetch_config_max_origin_assets(&cfg);
+  if (!maxOriginAssetCount) {
+    goto Done;
+  }
+  rest = net_rest_create(g_allocHeap, fetch_worker_count, maxOriginAssetCount, fetch_http_flags());
+
+  heap_array_for_t(cfg.origins, FetchOrigin, origin) {
+    NetRestId* requests = alloc_array_t(g_allocHeap, NetRestId, origin->assets.count);
+
+    // Start a GET request for all assets.
+    for (u32 i = 0; i != origin->assets.count; ++i) {
+      const String uri = fetch_config_uri_scratch(origin, origin->assets.values[i]);
+      requests[i]      = net_rest_get(rest, origin->host, uri, null, null);
+    }
+
+    // Save the results.
+    for (u32 i = 0; i != origin->assets.count; ++i) {
+      const NetRestId request = requests[i];
+      const String    asset   = origin->assets.values[i];
+
+      // Wait for the request to be done.
+      while (!net_rest_done(rest, request)) {
+        thread_sleep(time_milliseconds(500));
+      }
+      const NetResult result = net_rest_result(rest, request);
+      if (result == NetResult_Success) {
+        const String path = path_build_scratch(dynstring_view(&targetPath), asset);
+        const String data = net_rest_data(rest, request);
+        file_write_to_path_atomic(path, data);
+
+        log_i(
+            "Asset fetched: '{}'",
+            log_param("asset", fmt_text(asset)),
+            log_param("size", fmt_size(data.size)));
+      } else {
+        log_e(
+            "Asset fetch failed: '{}'",
+            log_param("asset", fmt_text(asset)),
+            log_param("error", fmt_text(net_result_str(result))));
+      }
+      net_rest_release(rest, request);
+    }
+
+    alloc_free_array_t(g_allocHeap, requests, origin->assets.count);
+  }
 
 Done:
   if (rest) {
     net_rest_destroy(rest);
   }
   fetch_config_destroy(&cfg);
+  dynstring_destroy(&targetPath);
   return 0;
 }
 
