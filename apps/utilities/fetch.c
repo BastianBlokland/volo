@@ -165,7 +165,7 @@ static i32 fetch_run_origin(NetRest* rest, const String targetPath, const FetchO
 
     // Wait for the request to be done.
     while (!net_rest_done(rest, request)) {
-      thread_sleep(time_milliseconds(500));
+      thread_sleep(time_milliseconds(100));
     }
 
     // Save the asset to disk.
