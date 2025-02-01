@@ -41,7 +41,16 @@ typedef struct {
   HeapArray_t(FetchOrigin) origins;
 } FetchConfig;
 
-static DataMeta g_fetchConfigMeta;
+typedef struct {
+  StringHash  pathHash;
+  NetHttpEtag etag;
+} FetchRegistryEntry;
+
+typedef struct {
+  DynArray entries; // FetchRegistryEntry[], sorted on pathHash.
+} FetchRegistry;
+
+static DataMeta g_fetchConfigMeta, g_fetchRegistryMeta;
 
 static void fetch_data_init(void) {
   // clang-format off
@@ -56,9 +65,19 @@ static void fetch_data_init(void) {
   data_reg_struct_t(g_dataReg, FetchConfig);
   data_reg_field_t(g_dataReg, FetchConfig, targetPath, data_prim_t(String));
   data_reg_field_t(g_dataReg, FetchConfig, origins, t_FetchOrigin, .container = DataContainer_HeapArray);
+
+  data_reg_opaque_t(g_dataReg, NetHttpEtag);
+
+  data_reg_struct_t(g_dataReg, FetchRegistryEntry);
+  data_reg_field_t(g_dataReg, FetchRegistryEntry, pathHash, data_prim_t(u32));
+  data_reg_field_t(g_dataReg, FetchRegistryEntry, etag, t_NetHttpEtag);
+
+  data_reg_struct_t(g_dataReg, FetchRegistry);
+  data_reg_field_t(g_dataReg, FetchRegistry, entries, t_FetchRegistryEntry, .container = DataContainer_DynArray);
   // clang-format on
 
-  g_fetchConfigMeta = data_meta_t(t_FetchConfig);
+  g_fetchConfigMeta   = data_meta_t(t_FetchConfig);
+  g_fetchRegistryMeta = data_meta_t(t_FetchRegistry);
 }
 
 static bool fetch_config_load(const String path, FetchConfig* out) {
