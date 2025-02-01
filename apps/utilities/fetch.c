@@ -26,6 +26,7 @@
 
 typedef struct {
   String host;
+  String license;
   String rootUri;
   String authUser, authPass;
   HeapArray_t(String) assets;
@@ -42,6 +43,7 @@ static void fetch_data_init(void) {
   // clang-format off
   data_reg_struct_t(g_dataReg, FetchOrigin);
   data_reg_field_t(g_dataReg, FetchOrigin, host, data_prim_t(String), .flags = DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, FetchOrigin, license, data_prim_t(String), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, FetchOrigin, rootUri, data_prim_t(String));
   data_reg_field_t(g_dataReg, FetchOrigin, authUser, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, FetchOrigin, authPass, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
