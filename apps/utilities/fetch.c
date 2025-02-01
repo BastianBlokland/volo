@@ -22,6 +22,8 @@
  * Fetch - Utility to download external assets.
  */
 
+#define fetch_worker_count 4
+
 typedef struct {
   String host;
   String rootUri;
@@ -101,7 +103,18 @@ typedef struct {
   String configPath;
 } FetchContext;
 
+static NetHttpFlags fetch_http_flags(void) {
+  /**
+   * Enable Tls transport but do not enable certificate validation.
+   * This means traffic is encrypted and people cannot eavesdrop, however its trivial for someone
+   * to man-in-the-middle as we do not verify the server's authenticity.
+   * Please do not use this for security sensitive applications!
+   */
+  return NetHttpFlags_TlsNoVerify;
+}
+
 static i32 fetch_run(FetchContext* ctx) {
+  NetRest*    rest = null;
   FetchConfig cfg;
   if (!fetch_config_load(ctx->configPath, &cfg)) {
     return 1;
@@ -110,10 +123,15 @@ static i32 fetch_run(FetchContext* ctx) {
   if (!assetCount) {
     goto Done;
   }
+  rest = net_rest_create(g_allocHeap, fetch_worker_count, assetCount, fetch_http_flags());
+
   const String targetPath = path_build_scratch(ctx->configPath, cfg.targetPath);
   (void)targetPath;
 
 Done:
+  if (rest) {
+    net_rest_destroy(rest);
+  }
   fetch_config_destroy(&cfg);
   return 0;
 }
