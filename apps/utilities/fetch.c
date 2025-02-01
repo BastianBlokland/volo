@@ -204,6 +204,8 @@ static i32 fetch_run(FetchContext* ctx) {
     goto Done;
   }
 
+  const TimeSteady timeStart = time_steady_clock();
+
   const u32 maxOriginAssetCount = fetch_config_max_origin_assets(&cfg);
   if (!maxOriginAssetCount) {
     goto Done;
@@ -214,6 +216,9 @@ static i32 fetch_run(FetchContext* ctx) {
     const i32 originRet = fetch_run_origin(rest, dynstring_view(&targetPath), origin);
     retCode             = math_max(retCode, originRet);
   }
+
+  const TimeDuration duration = time_steady_duration(timeStart, time_steady_clock());
+  log_i("Fetch finished", log_param("duration", fmt_duration(duration)));
 
 Done:
   if (rest) {
