@@ -39,6 +39,18 @@ typedef struct sNetRest {
   u32             requestCount;
 } NetRest;
 
+static void rest_wake_worker_all(NetRest* rest) {
+  thread_mutex_lock(rest->workerMutex);
+  thread_cond_broadcast(rest->workerWakeCondition);
+  thread_mutex_unlock(rest->workerMutex);
+}
+
+static void rest_wake_worker_single(NetRest* rest) {
+  thread_mutex_lock(rest->workerMutex);
+  thread_cond_signal(rest->workerWakeCondition);
+  thread_mutex_unlock(rest->workerMutex);
+}
+
 static u16 rest_id_index(const NetRestId id) { return (u16)id; }
 static u16 rest_id_generation(const NetRestId id) { return (u16)(id >> 16); }
 
@@ -63,11 +75,8 @@ static NetRestRequest* rest_request_get(NetRest* rest, const NetRestId id) {
 
 static NetRestId rest_request_acquire(NetRest* rest) {
   for (u16 i = 0; i != rest->requestCount; ++i) {
-    NetRestRequest* req = &rest->requests[i];
-    if (req->state != NetRestState_Idle) {
-      continue;
-    }
-    i32 expected = NetRestState_Idle;
+    NetRestRequest* req      = &rest->requests[i];
+    i32             expected = NetRestState_Idle;
     if (thread_atomic_compare_exchange_i32((i32*)&req->state, &expected, NetRestState_Acquired)) {
       ++req->generation; // NOTE: Allowed to wrap.
       return rest_id_create(i, req->generation);
@@ -127,12 +136,8 @@ NetRest* net_rest_create(Allocator* alloc, u32 workerCount, u32 requestCount) {
 
 void net_rest_destroy(NetRest* rest) {
   // Signal workers to shutdown.
-  thread_mutex_lock(rest->workerMutex);
-  {
-    rest->workerShutdown = true;
-    thread_cond_broadcast(rest->workerWakeCondition);
-  }
-  thread_mutex_unlock(rest->workerMutex);
+  rest->workerShutdown = true;
+  rest_wake_worker_all(rest);
 
   // Wait for workers to shutdown.
   for (u32 i = 0; i != rest->workerCount; ++i) {
@@ -185,8 +190,8 @@ NetRestId net_rest_get(
     req->etag = (NetHttpEtag){0};
   }
 
-  // Mark it as ready to be executed by the workers.
   thread_atomic_store_i32((i32*)&req->state, NetRestState_Ready);
+  rest_wake_worker_single(rest);
 
   return id;
 }
