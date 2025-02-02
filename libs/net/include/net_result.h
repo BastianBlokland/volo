@@ -15,6 +15,7 @@ typedef enum eNetResult {
   NetResult_TryAgain,
   NetResult_TooMuchData,
   NetResult_TlsUnavailable,
+  NetResult_TlsCredentialsRequired,
   NetResult_TlsFailed,
   NetResult_TlsClosed,
   NetResult_TlsBufferExhausted,

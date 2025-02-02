@@ -17,6 +17,7 @@ static const String g_netResultStrs[] = {
     [NetResult_TryAgain]                        = string_static("NetTryAgain"),
     [NetResult_TooMuchData]                     = string_static("NetTooMuchData"),
     [NetResult_TlsUnavailable]                  = string_static("NetTlsUnavailable"),
+    [NetResult_TlsCredentialsRequired]          = string_static("NetTlsCredentialsRequired"),
     [NetResult_TlsFailed]                       = string_static("NetTlsFailed"),
     [NetResult_TlsClosed]                       = string_static("NetTlsClosed"),
     [NetResult_TlsBufferExhausted]              = string_static("NetTlsBufferExhausted"),
