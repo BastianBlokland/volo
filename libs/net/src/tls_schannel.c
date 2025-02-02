@@ -20,7 +20,11 @@
 #include <security.h>
 
 /**
- * TODO:
+ * Tls (Transport Layer Security) client implementation using the 'Secure Channel' Windows api.
+ * 'Secure Channel' is part of the SSPI 'Security Support Provider Interface' Windows component.
+ * Documentation: https://learn.microsoft.com/en-us/windows/win32/secauthn/secure-channel
+ *
+ * NOTE: Renegotiations are not supported at this time.
  */
 
 typedef struct {
