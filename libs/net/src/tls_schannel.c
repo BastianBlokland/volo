@@ -408,7 +408,7 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
         return NetResult_Success; // We've successfully read all the available data.
       }
       tls->status = net_socket_read_sync(socket, &tls->readBuffer);
-      if (!tls->status == NetResult_Success) {
+      if (tls->status != NetResult_Success) {
         return tls->status;
       }
       continue; // More data available; retry.
