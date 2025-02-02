@@ -129,6 +129,7 @@ void dynarray_reserve(DynArray*, usize capacity);
  * Resizes the dynamic-array to be 0 length.
  */
 void dynarray_clear(DynArray*);
+void dynarray_release(DynArray*); // Also frees the underlying allocation.
 
 /**
  * Retrieve a memory view over the 'count' elements at index 'idx'

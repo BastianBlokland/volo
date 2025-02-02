@@ -81,6 +81,14 @@ void dynarray_reserve(DynArray* a, const usize capacity) {
 
 void dynarray_clear(DynArray* a) { a->size = 0; }
 
+void dynarray_release(DynArray* a) {
+  a->size = 0;
+  if (mem_valid(a->data)) {
+    alloc_free(a->alloc, a->data);
+    a->data = mem_empty;
+  }
+}
+
 Mem dynarray_at(const DynArray* a, const usize idx, const usize count) {
   diag_assert(idx + count <= a->size);
   return dynarray_at_internal(a, idx, count);

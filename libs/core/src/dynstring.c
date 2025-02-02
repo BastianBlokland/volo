@@ -16,6 +16,7 @@ String dynstring_view(const DynString* dynstring) {
 }
 
 void dynstring_clear(DynString* dynstring) { dynstring->size = 0; }
+void dynstring_release(DynString* dynstring) { dynarray_release(dynstring); }
 
 void dynstring_resize(DynString* dynstring, const usize size) { dynarray_resize(dynstring, size); }
 
