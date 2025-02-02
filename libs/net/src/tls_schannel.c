@@ -295,10 +295,62 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
     tls->connected = true;
   }
 
-  // TODO: Implement.
-  (void)socket;
-  (void)out;
-  return NetResult_TlsUnavailable;
+  usize totalBytesRead = 0;
+  for (;;) {
+    const String        dataIn     = dynstring_view(&tls->readBuffer);
+    const unsigned long dataInSize = (unsigned long)dataIn.size;
+    SecBuffer           buffers[]  = {
+        [0] = {.BufferType = SECBUFFER_DATA, .pvBuffer = dataIn.ptr, .cbBuffer = dataInSize},
+        [1] = {.BufferType = SECBUFFER_EMPTY},
+        [2] = {.BufferType = SECBUFFER_EMPTY},
+        [3] = {.BufferType = SECBUFFER_EMPTY},
+    };
+    diag_assert(array_elems(buffers) == tls->sizes.cBuffers);
+
+    SecBufferDesc   bufferDesc    = {SECBUFFER_VERSION, array_elems(buffers), buffers};
+    SECURITY_STATUS decryptStatus = DecryptMessage(&tls->context, &bufferDesc, 0, null);
+    switch (decryptStatus) {
+    case SEC_E_OK:
+      diag_assert(buffers[0].BufferType == SECBUFFER_STREAM_HEADER);
+      diag_assert(buffers[1].BufferType == SECBUFFER_DATA);
+      diag_assert(buffers[2].BufferType == SECBUFFER_STREAM_TRAILER);
+
+      // Write decrypted output.
+      dynstring_append(out, mem_create(buffers[1].pvBuffer, buffers[1].cbBuffer));
+      totalBytesRead += buffers[1].cbBuffer;
+
+      // Consume data from the input buffer.
+      if (buffers[3].BufferType == SECBUFFER_EXTRA) {
+        diag_assert(tls->readBuffer.size >= buffers[3].cbBuffer);
+        dynstring_erase_chars(&tls->readBuffer, 0, tls->readBuffer.size - buffers[3].cbBuffer);
+        diag_assert(tls->readBuffer.size == buffers[3].cbBuffer);
+      } else if (buffers[3].BufferType != SECBUFFER_MISSING) {
+        dynstring_clear(&tls->readBuffer); // Schannel consumed all the data.
+      }
+      break;
+    case SEC_I_CONTEXT_EXPIRED:
+      tls->status = NetResult_TlsClosed;
+      return totalBytesRead ? NetResult_Success : NetResult_TlsClosed;
+    case SEC_I_RENEGOTIATE:
+      log_e("SChannel renegotiation required");
+      return tls->status = NetResult_TlsFailed;
+    case SEC_E_INCOMPLETE_MESSAGE:
+      if (totalBytesRead) {
+        return NetResult_Success; // We've successfully read all the available data.
+      }
+      tls->status = net_socket_read_sync(socket, &tls->readBuffer);
+      if (!tls->status == NetResult_Success) {
+        return tls->status;
+      }
+      continue; // More data available; retry.
+    default:
+      log_e(
+          "SChannel decrypt failed",
+          log_param("msg", fmt_text(net_tls_schannel_error_msg(decryptStatus))),
+          log_param("code", fmt_int((u32)decryptStatus)));
+      return tls->status = NetResult_TlsFailed;
+    }
+  }
 }
 
 NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
