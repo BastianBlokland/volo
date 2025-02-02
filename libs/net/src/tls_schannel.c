@@ -122,6 +122,7 @@ void net_tls_teardown(void) {
 typedef struct sNetTls {
   Allocator*                alloc;
   String                    host;
+  NetTlsFlags               flags;
   NetResult                 status;
   bool                      connected;
   bool                      contextCreated;
@@ -241,6 +242,7 @@ NetTls* net_tls_create(Allocator* alloc, const String host, const NetTlsFlags fl
   *tls = (NetTls){
       .alloc      = alloc,
       .host       = string_maybe_dup(alloc, host),
+      .flags      = flags,
       .readBuffer = dynstring_create(g_allocHeap, usize_kibibyte * 16),
   };
   if (UNLIKELY(!g_netSChannelReady)) {
