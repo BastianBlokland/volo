@@ -51,7 +51,7 @@ static SEC_WCHAR* to_sec_null_term_scratch(const String str) {
 }
 
 static bool net_schannel_create_cred(NetSChannel* schannel, const bool noVerify, CredHandle* out) {
-  DWORD flags = SCH_USE_STRONG_CRYPTO | SCH_CRED_NO_DEFAULT_CREDS;
+  DWORD flags = SCH_CRED_NO_DEFAULT_CREDS;
   if (noVerify) {
     flags |= SCH_CRED_MANUAL_CRED_VALIDATION;
   }
