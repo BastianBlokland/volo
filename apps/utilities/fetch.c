@@ -298,19 +298,23 @@ static i32 fetch_run_origin(
     const FetchOrigin* origin, FetchRegistry* reg, const String outPath, NetRest* rest) {
   i32 retCode = 0;
 
-  const TimeReal     timeRealNow = time_real_clock();
-  const NetHttpAuth  auth        = fetch_origin_auth(origin);
-  const TimeDuration cacheDur    = fetch_origin_cache_dur(origin);
+  const TimeReal     now      = time_real_clock();
+  const NetHttpAuth  auth     = fetch_origin_auth(origin);
+  const TimeDuration cacheDur = fetch_origin_cache_dur(origin);
 
   DynArray requests = dynarray_create_t(g_allocHeap, FetchRequest, 64);
 
   // Submit GET requests.
   heap_array_for_t(origin->assets, String, asset) {
-    FetchRegistryEntry* regEntry = fetch_registry_get(reg, *asset);
-    if (regEntry && time_real_duration(regEntry->lastSyncTime, timeRealNow) < cacheDur) {
-      continue; // Cache entry still valid.
+    const FileInfo      cachedFileInfo = file_stat_path_sync(path_build_scratch(outPath, *asset));
+    FetchRegistryEntry* regEntry       = fetch_registry_get(reg, *asset);
+
+    const bool expired = !regEntry || time_real_duration(regEntry->lastSyncTime, now) > cacheDur;
+    const bool invalid = cachedFileInfo.type != FileType_Regular;
+    if (!expired && !invalid) {
+      continue; // Cache entry still valid; do nothing.
     }
-    const NetHttpEtag* etag                   = regEntry ? &regEntry->etag : null;
+    const NetHttpEtag* etag                   = (regEntry && !invalid) ? &regEntry->etag : null;
     const String       uri                    = fetch_origin_uri_scratch(origin, *asset);
     *dynarray_push_t(&requests, FetchRequest) = (FetchRequest){
         .id    = net_rest_get(rest, origin->host, uri, &auth, etag),
