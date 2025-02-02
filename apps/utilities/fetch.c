@@ -81,8 +81,13 @@ static void fetch_data_init(void) {
   g_fetchRegistryMeta = data_meta_t(t_FetchRegistry);
 }
 
+static i8 fetch_compare_registry_entry(const void* a, const void* b) {
+  const FetchRegistryEntry* entryA = a;
+  const FetchRegistryEntry* entryB = b;
+  return compare_u32(&entryA->pathHash, &entryB->pathHash);
+}
+
 static bool fetch_config_load(const String path, FetchConfig* out) {
-  // Open the file handle.
   bool       success = false;
   File*      file    = null;
   FileResult fileRes;
@@ -90,19 +95,15 @@ static bool fetch_config_load(const String path, FetchConfig* out) {
     log_e("Failed to open config file", log_param("err", fmt_text(file_result_str(fileRes))));
     goto Ret;
   }
-
-  // Map the file data.
-  String fileData;
-  if (UNLIKELY(fileRes = file_map(file, &fileData, FileHints_Prefetch))) {
+  String data;
+  if ((fileRes = file_map(file, &data, FileHints_Prefetch))) {
     log_e("Failed to map config file", log_param("err", fmt_text(file_result_str(fileRes))));
     goto Ret;
   }
-
-  // Parse the json.
   DataReadResult result;
   const Mem      outMem = mem_create(out, sizeof(FetchConfig));
-  data_read_json(g_dataReg, fileData, g_allocHeap, g_fetchConfigMeta, outMem, &result);
-  if (UNLIKELY(result.error)) {
+  data_read_json(g_dataReg, data, g_allocHeap, g_fetchConfigMeta, outMem, &result);
+  if (result.error) {
     log_e("Failed to parse config file", log_param("err", fmt_text(result.errorMsg)));
     goto Ret;
   }
@@ -127,40 +128,115 @@ static u32 fetch_config_max_origin_assets(FetchConfig* cfg) {
   return res;
 }
 
-static String fetch_config_uri_scratch(const FetchOrigin* origin, const String asset) {
-  DynString result = dynstring_create(g_allocScratch, 256);
-  if (!string_starts_with(origin->rootUri, string_lit("/"))) {
-    dynstring_append_char(&result, '/');
-  }
-  dynstring_append(&result, origin->rootUri);
-  if (!string_ends_with(dynstring_view(&result), string_lit("/"))) {
-    dynstring_append_char(&result, '/');
-  }
-  if (string_starts_with(asset, string_lit("/"))) {
-    dynstring_append(&result, string_consume(asset, 1));
-  } else {
-    dynstring_append(&result, asset);
-  }
-  return dynstring_view(&result);
+static String fetch_config_out_path_scratch(const FetchConfig* cfg, const String cfgPath) {
+  return path_build_scratch(path_parent(cfgPath), cfg->outputPath);
 }
 
-static bool fetch_registry_save(const FetchRegistry* reg, const String outputPath) {
-  // Serialize the registry.
-  DynString dataBuffer = dynstring_create(g_allocHeap, 4 * usize_kibibyte);
-  const Mem regMem     = mem_create(reg, sizeof(FetchRegistry));
-  data_write_bin(g_dataReg, &dataBuffer, g_fetchRegistryMeta, regMem);
+static NetHttpAuth fetch_origin_auth(const FetchOrigin* origin) {
+  if (string_is_empty(origin->authUser)) {
+    return (NetHttpAuth){0};
+  }
+  return (NetHttpAuth){
+      .type = NetHttpAuthType_Basic,
+      .user = origin->authUser,
+      .pw   = origin->authPass,
+  };
+}
 
-  // Save the data to disk.
-  const String     filePath = path_build_scratch(outputPath, string_lit("registry.blob"));
-  const FileResult fileRes  = file_write_to_path_atomic(filePath, dynstring_view(&dataBuffer));
+static String fetch_origin_uri_scratch(const FetchOrigin* origin, const String asset) {
+  static const String g_separator = string_static("/");
+
+  DynString res = dynstring_create(g_allocScratch, 256);
+  if (!string_starts_with(origin->rootUri, g_separator)) {
+    dynstring_append(&res, g_separator);
+  }
+  dynstring_append(&res, origin->rootUri);
+  if (!string_ends_with(dynstring_view(&res), g_separator)) {
+    dynstring_append(&res, g_separator);
+  }
+  if (string_starts_with(asset, g_separator)) {
+    dynstring_append(&res, string_consume(asset, g_separator.size));
+  } else {
+    dynstring_append(&res, asset);
+  }
+  return dynstring_view(&res);
+}
+
+static String fetch_registry_path_scratch(const String outputPath) {
+  return path_build_scratch(outputPath, string_lit("registry.blob"));
+}
+
+static void fetch_registry_load_or_default(const String outputPath, FetchRegistry* out) {
+  const String path = fetch_registry_path_scratch(outputPath);
+  File*        file = null;
+  FileResult   fileRes;
+  if ((fileRes = file_create(g_allocScratch, path, FileMode_Open, FileAccess_Read, &file))) {
+    goto Default;
+  }
+  String data;
+  if ((fileRes = file_map(file, &data, FileHints_Prefetch))) {
+    goto Default;
+  }
+  DataReadResult readRes;
+  const Mem      regMem = mem_create(out, sizeof(FetchRegistry));
+  data_read_bin(g_dataReg, data, g_allocHeap, g_fetchRegistryMeta, regMem, &readRes);
+  if (readRes.error) {
+    log_w(
+        "Failed to read fetch registry registry",
+        log_param("path", fmt_path(path)),
+        log_param("error", fmt_text(readRes.errorMsg)));
+    goto Default;
+  }
+  goto Ret;
+
+Default:
+  *out = (FetchRegistry){
+      .entries = dynarray_create_t(g_allocHeap, FetchRegistryEntry, 64),
+  };
+
+Ret:
+  if (file) {
+    file_destroy(file);
+  }
+}
+
+static void fetch_registry_save(const FetchRegistry* reg, const String outputPath) {
+  const String path = fetch_registry_path_scratch(outputPath);
+
+  DynString buffer = dynstring_create(g_allocHeap, 4 * usize_kibibyte);
+  const Mem regMem = mem_create(reg, sizeof(FetchRegistry));
+  data_write_bin(g_dataReg, &buffer, g_fetchRegistryMeta, regMem);
+
+  const FileResult fileRes = file_write_to_path_atomic(path, dynstring_view(&buffer));
   if (fileRes != FileResult_Success) {
     log_e(
         "Failed to write registry file",
-        log_param("path", fmt_path(filePath)),
+        log_param("path", fmt_path(path)),
         log_param("err", fmt_text(file_result_str(fileRes))));
-    return false;
   }
-  return true;
+
+  dynstring_destroy(&buffer);
+}
+
+static void fetch_registry_destroy(FetchRegistry* reg) {
+  data_destroy(g_dataReg, g_allocHeap, g_fetchRegistryMeta, mem_create(reg, sizeof(FetchRegistry)));
+}
+
+static FetchRegistryEntry* fetch_registry_get(FetchRegistry* reg, const String asset) {
+  const FetchRegistryEntry key = {.pathHash = string_hash(asset)};
+  return dynarray_search_binary(&reg->entries, fetch_compare_registry_entry, &key);
+}
+
+static void fetch_registry_add(FetchRegistry* reg, const String asset, const NetHttpEtag* etag) {
+  const FetchRegistryEntry key = {.pathHash = string_hash(asset)};
+
+  FetchRegistryEntry* entry =
+      dynarray_find_or_insert_sorted(&reg->entries, fetch_compare_registry_entry, &key);
+
+  *entry = (FetchRegistryEntry){
+      .pathHash = key.pathHash,
+      .etag     = etag ? *etag : (NetHttpEtag){0},
+  };
 }
 
 static NetHttpFlags fetch_http_flags(void) {
@@ -173,26 +249,58 @@ static NetHttpFlags fetch_http_flags(void) {
   return NetHttpFlags_TlsNoVerify;
 }
 
-static i32 fetch_run_origin(NetRest* rest, const String outputPath, const FetchOrigin* org) {
-  i32 retCode = 0;
+static bool fetch_asset_save(
+    FetchRegistry*  reg,
+    const String    outPath,
+    const String    asset,
+    NetRest*        rest,
+    const NetRestId request) {
+  const String path = path_build_scratch(outPath, asset);
+  const String data = net_rest_data(rest, request);
 
-  NetHttpAuth auth = {0};
-  if (!string_is_empty(org->authUser)) {
-    auth = (NetHttpAuth){.type = NetHttpAuthType_Basic, .user = org->authUser, .pw = org->authPass};
+  FileResult saveRes = file_create_dir_sync(path_parent(path));
+  if (saveRes == FileResult_Success) {
+    saveRes = file_write_to_path_atomic(path, data);
+  }
+  if (saveRes != FileResult_Success) {
+    log_e(
+        "Asset save failed: '{}'",
+        log_param("asset", fmt_text(asset)),
+        log_param("path", fmt_path(path)),
+        log_param("error", fmt_text(file_result_str(saveRes))));
+    return false;
   }
 
-  NetRestId* requests = alloc_array_t(g_allocHeap, NetRestId, org->assets.count);
+  fetch_registry_add(reg, asset, net_rest_etag(rest, request));
+
+  log_i(
+      "Asset fetched: '{}'",
+      log_param("asset", fmt_text(asset)),
+      log_param("size", fmt_size(data.size)));
+  return true;
+}
+
+static i32 fetch_run_origin(
+    const FetchOrigin* origin, FetchRegistry* reg, const String outPath, NetRest* rest) {
+  i32 retCode = 0;
+
+  const NetHttpAuth auth       = fetch_origin_auth(origin);
+  const u32         assetCount = (u32)origin->assets.count;
+  NetRestId*        requests   = alloc_array_t(g_allocHeap, NetRestId, assetCount);
 
   // Start a GET request for all assets.
-  for (u32 i = 0; i != org->assets.count; ++i) {
-    const String uri = fetch_config_uri_scratch(org, org->assets.values[i]);
-    requests[i]      = net_rest_get(rest, org->host, uri, &auth, null);
+  for (u32 i = 0; i != assetCount; ++i) {
+    const String        asset    = origin->assets.values[i];
+    FetchRegistryEntry* regEntry = fetch_registry_get(reg, asset);
+    const NetHttpEtag*  etag     = regEntry ? &regEntry->etag : null;
+    const String        uri      = fetch_origin_uri_scratch(origin, asset);
+    requests[i]                  = net_rest_get(rest, origin->host, uri, &auth, etag);
   }
 
   // Save the results.
-  for (u32 i = 0; i != org->assets.count; ++i) {
+  for (u32 i = 0; i != assetCount; ++i) {
     const NetRestId request = requests[i];
-    const String    asset   = org->assets.values[i];
+    const String    asset   = origin->assets.values[i];
 
     // Wait for the request to be done.
     while (!net_rest_done(rest, request)) {
@@ -201,54 +309,42 @@ static i32 fetch_run_origin(NetRest* rest, const String outputPath, const FetchO
 
     // Save the asset to disk.
     const NetResult result = net_rest_result(rest, request);
-    if (result == NetResult_Success) {
-      const String path = path_build_scratch(outputPath, asset);
-      const String data = net_rest_data(rest, request);
-
-      FileResult saveRes = file_create_dir_sync(path_parent(path));
-      if (saveRes == FileResult_Success) {
-        saveRes = file_write_to_path_atomic(path, data);
-      }
-      if (saveRes != FileResult_Success) {
-        log_e(
-            "Asset save failed: '{}'",
-            log_param("asset", fmt_text(asset)),
-            log_param("path", fmt_path(path)),
-            log_param("error", fmt_text(file_result_str(saveRes))));
+    switch (result) {
+    case NetResult_HttpNotModified:
+      break;
+    case NetResult_Success:
+      if (!fetch_asset_save(reg, outPath, asset, rest, request)) {
         retCode = 2;
-      } else {
-        log_i(
-            "Asset fetched: '{}'",
-            log_param("asset", fmt_text(asset)),
-            log_param("size", fmt_size(data.size)));
       }
-    } else {
+      break;
+    default:
       log_e(
           "Asset fetch failed: '{}'",
           log_param("asset", fmt_text(asset)),
           log_param("error", fmt_text(net_result_str(result))));
       retCode = 1;
+      break;
     }
     net_rest_release(rest, request);
   }
 
-  alloc_free_array_t(g_allocHeap, requests, org->assets.count);
+  alloc_free_array_t(g_allocHeap, requests, assetCount);
   return retCode;
 }
 
-static i32 fetch_run(FetchConfig* config, const String outputPath) {
+static i32 fetch_run(FetchConfig* cfg, FetchRegistry* reg, const String outPath) {
   i32              retCode   = 0;
   NetRest*         rest      = null;
   const TimeSteady timeStart = time_steady_clock();
 
-  const u32 maxRequests = fetch_config_max_origin_assets(config);
+  const u32 maxRequests = fetch_config_max_origin_assets(cfg);
   if (maxRequests) {
     rest = net_rest_create(g_allocHeap, fetch_worker_count, maxRequests, fetch_http_flags());
 
-    heap_array_for_t(config->origins, FetchOrigin, origin) {
+    heap_array_for_t(cfg->origins, FetchOrigin, origin) {
       i32 originRet = 0;
       if (origin->assets.count) {
-        originRet = fetch_run_origin(rest, outputPath, origin);
+        originRet = fetch_run_origin(origin, reg, outPath, rest);
       }
       retCode = math_max(retCode, originRet);
     }
@@ -292,33 +388,34 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, logMask));
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
-  const String configPath = cli_read_string(invoc, g_optConfigPath, string_empty);
-
   fetch_data_init();
 
-  FetchConfig config;
-  if (!fetch_config_load(configPath, &config)) {
+  const String cfgPath = cli_read_string(invoc, g_optConfigPath, string_empty);
+  FetchConfig  cfg;
+  if (!fetch_config_load(cfgPath, &cfg)) {
     return 1;
   }
+  const String outPath = string_dup(g_allocHeap, fetch_config_out_path_scratch(&cfg, cfgPath));
 
-  DynString outputPathBuffer = dynstring_create(g_allocHeap, 128);
-  path_build(&outputPathBuffer, path_parent(configPath), config.outputPath);
-
-  const String outputPath = dynstring_view(&outputPathBuffer);
+  FetchRegistry reg;
+  fetch_registry_load_or_default(outPath, &reg);
 
   i32 retCode = 0;
-  if (file_create_dir_sync(outputPath) != FileResult_Success) {
-    log_e("Failed to create output directory", log_param("path", fmt_path(outputPath)));
+  if (file_create_dir_sync(outPath) != FileResult_Success) {
+    log_e("Failed to create output directory", log_param("path", fmt_path(outPath)));
     retCode = 1;
     goto Done;
   }
 
   net_init();
-  retCode = fetch_run(&config, outputPath);
+  retCode = fetch_run(&cfg, &reg, outPath);
   net_teardown();
 
+  fetch_registry_save(&reg, outPath);
+
 Done:
-  dynstring_destroy(&outputPathBuffer);
-  fetch_config_destroy(&config);
+  string_free(g_allocHeap, outPath);
+  fetch_registry_destroy(&reg);
+  fetch_config_destroy(&cfg);
   return retCode;
 }
