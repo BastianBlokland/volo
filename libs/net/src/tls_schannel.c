@@ -52,6 +52,9 @@ static SEC_WCHAR* to_sec_null_term_scratch(const String str) {
 
 static bool net_schannel_create_cred(NetSChannel* schannel, const bool noVerify, CredHandle* out) {
   DWORD flags = SCH_CRED_NO_DEFAULT_CREDS;
+#ifdef SCH_USE_STRONG_CRYPTO
+  flags |= SCH_USE_STRONG_CRYPTO;
+#endif
   if (noVerify) {
     flags |= SCH_CRED_MANUAL_CRED_VALIDATION;
   }
@@ -159,7 +162,9 @@ static String net_tls_schannel_error_msg(const LONG err) {
   case SEC_E_NO_CREDENTIALS:                return string_lit("NO_CREDENTIALS");
   case SEC_E_TARGET_UNKNOWN:                return string_lit("TARGET_UNKNOWN");
   case SEC_E_WRONG_PRINCIPAL:               return string_lit("WRONG_PRINCIPAL");
+#ifdef SEC_E_APPLICATION_PROTOCOL_MISMATCH
   case SEC_E_APPLICATION_PROTOCOL_MISMATCH: return string_lit("APPLICATION_PROTOCOL_MISMATCH");
+#endif
   case SEC_E_CERT_UNKNOWN:                  return string_lit("CERT_UNKNOWN");
   case SEC_E_CERT_EXPIRED:                  return string_lit("CERT_EXPIRED");
   case SEC_E_UNTRUSTED_ROOT:                return string_lit("UNTRUSTED_ROOT");
