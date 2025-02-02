@@ -44,6 +44,7 @@ String dynstring_view(const DynString*);
  * Resizes the dynstring to be 0 length.
  */
 void dynstring_clear(DynString*);
+void dynstring_release(DynString*); // Also frees the underlying allocation.
 
 /**
  * Change the size of the dynamic-string, will allocate when size is bigger then the capacity.
