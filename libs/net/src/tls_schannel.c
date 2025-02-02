@@ -78,13 +78,14 @@ void net_tls_teardown(void) {
 }
 
 typedef struct sNetTls {
-  Allocator* alloc;
-  NetResult  status;
-  String     host;
-  bool       connected;
-  CtxtHandle context;
-  bool       contextCreated;
-  DynString  readBuffer;
+  Allocator*                alloc;
+  NetResult                 status;
+  String                    host;
+  bool                      connected;
+  CtxtHandle                context;
+  bool                      contextCreated;
+  SecPkgContext_StreamSizes sizes;
+  DynString                 readBuffer;
 } NetTls;
 
 static NetResult net_tls_write_buffer_sync(const SecBuffer buffer, NetSocket* socket) {
@@ -166,7 +167,7 @@ static void net_tls_connect_sync(NetTls* tls, NetSocket* socket) {
 
     switch (initStatus) {
     case SEC_E_OK:
-      return; // Connection established.
+      goto Success; // Connection established.
     case SEC_I_INCOMPLETE_CREDENTIALS:
       tls->status = NetResult_TlsCredentialsRequired; // Client certification is not supported.
       return;
@@ -187,6 +188,9 @@ static void net_tls_connect_sync(NetTls* tls, NetSocket* socket) {
       return;
     }
   }
+
+Success:
+  QueryContextAttributes(&tls->context, SECPKG_ATTR_STREAM_SIZES, &tls->sizes);
 }
 
 NetTls* net_tls_create(Allocator* alloc, const String host, const NetTlsFlags flags) {
