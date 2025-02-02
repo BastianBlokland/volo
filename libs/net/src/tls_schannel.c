@@ -149,6 +149,9 @@ static String net_tls_schannel_error_msg(const LONG err) {
   case SEC_E_TARGET_UNKNOWN:                return string_lit("TARGET_UNKNOWN");
   case SEC_E_WRONG_PRINCIPAL:               return string_lit("WRONG_PRINCIPAL");
   case SEC_E_APPLICATION_PROTOCOL_MISMATCH: return string_lit("APPLICATION_PROTOCOL_MISMATCH");
+  case SEC_E_CERT_UNKNOWN:                  return string_lit("CERT_UNKNOWN");
+  case SEC_E_CERT_EXPIRED:                  return string_lit("CERT_EXPIRED");
+  case SEC_E_UNTRUSTED_ROOT:                return string_lit("UNTRUSTED_ROOT");
   default:                                  return string_lit("UNKNOWN");
   }
   // clang-format on
