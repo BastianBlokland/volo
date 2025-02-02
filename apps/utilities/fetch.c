@@ -235,17 +235,15 @@ static FetchRegistryEntry* fetch_registry_get(FetchRegistry* reg, const String a
   return dynarray_search_binary(&reg->entries, fetch_compare_registry_entry, &key);
 }
 
-static void fetch_registry_set(FetchRegistry* reg, const String asset, const NetHttpEtag* etag) {
+static FetchRegistryEntry* fetch_registry_update(FetchRegistry* reg, const String asset) {
   const FetchRegistryEntry key = {.pathHash = string_hash(asset)};
 
   FetchRegistryEntry* entry =
       dynarray_find_or_insert_sorted(&reg->entries, fetch_compare_registry_entry, &key);
 
-  *entry = (FetchRegistryEntry){
-      .pathHash     = key.pathHash,
-      .etag         = etag ? *etag : (NetHttpEtag){0},
-      .lastSyncTime = time_real_clock(),
-  };
+  entry->pathHash     = key.pathHash;
+  entry->lastSyncTime = time_real_clock();
+  return entry;
 }
 
 static NetHttpFlags fetch_http_flags(void) {
@@ -280,7 +278,8 @@ static bool fetch_asset_save(
     return false;
   }
 
-  fetch_registry_set(reg, asset, net_rest_etag(rest, request));
+  FetchRegistryEntry* regEntry = fetch_registry_update(reg, asset);
+  regEntry->etag               = *net_rest_etag(rest, request);
 
   log_i(
       "Asset fetched: '{}'",
@@ -334,6 +333,7 @@ static i32 fetch_run_origin(
       const NetResult result = net_rest_result(rest, req->id);
       switch (result) {
       case NetResult_HttpNotModified:
+        fetch_registry_update(reg, req->asset); // Update the lastSyncTime in the registry.
         break;
       case NetResult_Success:
         if (!fetch_asset_save(reg, outPath, req->asset, rest, req->id)) {
