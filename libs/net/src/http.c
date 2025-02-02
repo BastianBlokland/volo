@@ -92,7 +92,7 @@ static NetHttpView http_view_remaining(const NetHttp* http) {
 }
 
 static NetTlsFlags http_tls_flags(const NetHttpFlags flags) {
-  if (flags & NetHttpFlags_TlsNoVerify) {
+  if ((flags & NetHttpFlags_TlsNoVerify) == NetHttpFlags_TlsNoVerify) {
     return NetTlsFlags_NoVerify;
   }
   return NetTlsFlags_None;
