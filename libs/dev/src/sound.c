@@ -101,7 +101,7 @@ static void sound_draw_table_header(UiCanvasComp* c, UiTable* table, const Strin
 
 /**
  * Convert the given magnitude to decibel (logarithmic scale).
- * Ouput range: <0: attenuated, 0: maximum ouput without clipping, >0: boosted.
+ * Output range: <0: attenuated, 0: maximum output without clipping, >0: boosted.
  */
 static f32 sound_magnitude_to_db(const f32 magnitude) {
   static const f32 g_dbMin = -50.0f;

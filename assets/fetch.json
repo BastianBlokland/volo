@@ -1,10 +1,11 @@
 {
-  "targetPath": "external",
+  "outputPath": "external",
   "origins": [
     {
       "host": "bastian.tech",
       "license": "/assets/license.txt",
       "rootUri": "/assets/",
+      "cacheTime": 86400,
       "assets": [
         "alarm/alarm_color_rough.tga",
         "alarm/alarm_normal_emissive.tga",

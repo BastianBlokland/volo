@@ -28,5 +28,7 @@ target_link_libraries(app_game PRIVATE
   )
 configure_debuggable(app_game)
 
-add_custom_target(run.game COMMAND app_game
-  "-w" "--assets" "${CMAKE_SOURCE_DIR}/assets" VERBATIM USES_TERMINAL)
+add_custom_target(run.game
+  COMMAND app_fetch "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL
+  COMMAND app_game "-w" "--assets" "${CMAKE_SOURCE_DIR}/assets" VERBATIM USES_TERMINAL
+)

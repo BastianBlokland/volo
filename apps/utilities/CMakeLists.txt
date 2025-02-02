@@ -38,6 +38,9 @@ configure_debuggable(app_fetch)
 add_custom_target(run.fetch COMMAND app_fetch
   "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL)
 
+add_custom_target(run.fetch.force COMMAND app_fetch --force
+  "${CMAKE_SOURCE_DIR}/assets/fetch.json" VERBATIM USES_TERMINAL)
+
 message(STATUS "> application: dbgsetup")
 
 add_executable(app_dbgsetup dbgsetup.c)
