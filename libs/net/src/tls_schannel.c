@@ -2,6 +2,7 @@
 #include "core_array.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_dynlib.h"
 #include "core_dynstring.h"
 #include "core_math.h"
 #include "core_winutils.h"
@@ -22,9 +23,19 @@
  * TODO:
  */
 
-#pragma comment(lib, "secur32.lib")
-
 typedef struct {
+  DynLib* lib;
+
+  ACQUIRE_CREDENTIALS_HANDLE_FN_W  AcquireCredentialsHandleW;
+  FREE_CREDENTIALS_HANDLE_FN       FreeCredentialsHandle;
+  INITIALIZE_SECURITY_CONTEXT_FN_W InitializeSecurityContextW;
+  DELETE_SECURITY_CONTEXT_FN       DeleteSecurityContext;
+  APPLY_CONTROL_TOKEN_FN           ApplyControlToken;
+  QUERY_CONTEXT_ATTRIBUTES_FN_W    QueryContextAttributesW;
+  FREE_CONTEXT_BUFFER_FN           FreeContextBuffer;
+  ENCRYPT_MESSAGE_FN               EncryptMessage;
+  DECRYPT_MESSAGE_FN               DecryptMessage;
+
   CredHandle credHandle;
 } NetSchannel;
 
@@ -36,14 +47,38 @@ static SEC_WCHAR* to_sec_null_term_scratch(const String str) {
 }
 
 static bool net_schannel_init(NetSchannel* schannel, Allocator* alloc) {
-  (void)alloc;
+  const DynLibResult loadRes = dynlib_load(alloc, string_lit("secur32.dll"), &schannel->lib);
+  if (UNLIKELY(loadRes != DynLibResult_Success)) {
+    const String err = dynlib_result_str(loadRes);
+    log_w("Failed to load Secur32 library ('secur32.dll')", log_param("err", fmt_text(err)));
+    return false;
+  }
+
+#define SECUR_LOAD_SYM(_NAME_)                                                                     \
+  do {                                                                                             \
+    schannel->_NAME_ = dynlib_symbol(schannel->lib, string_lit(#_NAME_));                          \
+    if (!schannel->_NAME_) {                                                                       \
+      log_w("Secur32 symbol '{}' missing", log_param("sym", fmt_text(string_lit(#_NAME_))));       \
+      return false;                                                                                \
+    }                                                                                              \
+  } while (false)
+
+  SECUR_LOAD_SYM(AcquireCredentialsHandleW);
+  SECUR_LOAD_SYM(FreeCredentialsHandle);
+  SECUR_LOAD_SYM(InitializeSecurityContextW);
+  SECUR_LOAD_SYM(DeleteSecurityContext);
+  SECUR_LOAD_SYM(ApplyControlToken);
+  SECUR_LOAD_SYM(QueryContextAttributesW);
+  SECUR_LOAD_SYM(FreeContextBuffer);
+  SECUR_LOAD_SYM(EncryptMessage);
+  SECUR_LOAD_SYM(DecryptMessage);
 
   SCHANNEL_CRED credCfg = {
       .dwVersion             = SCHANNEL_CRED_VERSION,
       .grbitEnabledProtocols = 0, // Let the system decide.
       .dwFlags               = SCH_USE_STRONG_CRYPTO | SCH_CRED_NO_DEFAULT_CREDS,
   };
-  if (AcquireCredentialsHandle(
+  if (schannel->AcquireCredentialsHandleW(
           null,
           UNISP_NAME,
           SECPKG_CRED_OUTBOUND,
@@ -57,7 +92,7 @@ static bool net_schannel_init(NetSchannel* schannel, Allocator* alloc) {
     return false;
   }
 
-  log_i("Tls: Schannel initialized");
+  log_i("Tls: Schannel initialized", log_param("path", fmt_path(dynlib_path(schannel->lib))));
   return true;
 }
 
@@ -71,7 +106,10 @@ void net_tls_init(void) {
 
 void net_tls_teardown(void) {
   if (g_netSchannelReady) {
-    FreeCredentialsHandle(&g_netSchannel.credHandle);
+    g_netSchannel.FreeCredentialsHandle(&g_netSchannel.credHandle);
+  }
+  if (g_netSchannel.lib) {
+    dynlib_destroy(g_netSchannel.lib);
   }
   g_netSchannel      = (NetSchannel){0};
   g_netSchannelReady = false;
@@ -129,7 +167,7 @@ static void net_tls_connect_sync(NetTls* tls, NetSocket* socket) {
     DWORD initFlags = ISC_REQ_ALLOCATE_MEMORY | ISC_REQ_CONFIDENTIALITY | ISC_REQ_REPLAY_DETECT |
                       ISC_REQ_SEQUENCE_DETECT | ISC_REQ_STREAM | ISC_REQ_USE_SUPPLIED_CREDS;
 
-    const SECURITY_STATUS initStatus = InitializeSecurityContext(
+    const SECURITY_STATUS initStatus = g_netSchannel.InitializeSecurityContextW(
         &g_netSchannel.credHandle,
         currentCtx,
         currentCtx ? null : to_sec_null_term_scratch(tls->host),
@@ -159,7 +197,7 @@ static void net_tls_connect_sync(NetTls* tls, NetSocket* socket) {
     // Send data to remote.
     if (buffersOut[0].pvBuffer) {
       tls->status = net_tls_write_buffer_sync(buffersOut[0], socket);
-      FreeContextBuffer(buffersOut[0].pvBuffer);
+      g_netSchannel.FreeContextBuffer(buffersOut[0].pvBuffer);
       if (tls->status != NetResult_Success) {
         return;
       }
@@ -190,7 +228,7 @@ static void net_tls_connect_sync(NetTls* tls, NetSocket* socket) {
   }
 
 Success:
-  QueryContextAttributes(&tls->context, SECPKG_ATTR_STREAM_SIZES, &tls->sizes);
+  g_netSchannel.QueryContextAttributesW(&tls->context, SECPKG_ATTR_STREAM_SIZES, &tls->sizes);
 }
 
 NetTls* net_tls_create(Allocator* alloc, const String host, const NetTlsFlags flags) {
@@ -211,7 +249,7 @@ NetTls* net_tls_create(Allocator* alloc, const String host, const NetTlsFlags fl
 
 void net_tls_destroy(NetTls* tls) {
   if (tls->contextCreated) {
-    DeleteSecurityContext(&tls->context);
+    g_netSchannel.DeleteSecurityContext(&tls->context);
   }
   string_maybe_free(tls->alloc, tls->host);
   dynstring_destroy(&tls->readBuffer);
@@ -260,7 +298,9 @@ NetResult net_tls_write_sync(NetTls* tls, NetSocket* socket, String data) {
     SecBufferDesc bufferDesc = {SECBUFFER_VERSION, array_elems(buffers), buffers};
     // clang-format on
 
-    const SECURITY_STATUS encryptStatus = EncryptMessage(&tls->context, 0, &bufferDesc, 0);
+    const SECURITY_STATUS encryptStatus =
+        g_netSchannel.EncryptMessage(&tls->context, 0, &bufferDesc, 0);
+
     if (encryptStatus != SEC_E_OK) {
       log_e(
           "SChannel encrypt failed",
@@ -305,8 +345,11 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
     };
     diag_assert(array_elems(buffers) == tls->sizes.cBuffers);
 
-    SecBufferDesc   bufferDesc    = {SECBUFFER_VERSION, array_elems(buffers), buffers};
-    SECURITY_STATUS decryptStatus = DecryptMessage(&tls->context, &bufferDesc, 0, null);
+    SecBufferDesc bufferDesc = {SECBUFFER_VERSION, array_elems(buffers), buffers};
+
+    SECURITY_STATUS decryptStatus =
+        g_netSchannel.DecryptMessage(&tls->context, &bufferDesc, 0, null);
+
     switch (decryptStatus) {
     case SEC_E_OK:
       diag_assert(buffers[0].BufferType == SECBUFFER_STREAM_HEADER);
@@ -363,7 +406,7 @@ NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
       [0] = {.BufferType = SECBUFFER_TOKEN, .pvBuffer = &type, .cbBuffer = sizeof(type)},
   };
   SecBufferDesc descIn = {SECBUFFER_VERSION, array_elems(buffersIn), buffersIn};
-  ApplyControlToken(&tls->context, &descIn);
+  g_netSchannel.ApplyControlToken(&tls->context, &descIn);
 
   SecBuffer buffersOut[] = {
       [0] = {.BufferType = SECBUFFER_TOKEN},
@@ -373,7 +416,7 @@ NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
   DWORD flags = ISC_REQ_ALLOCATE_MEMORY | ISC_REQ_CONFIDENTIALITY | ISC_REQ_REPLAY_DETECT |
                 ISC_REQ_SEQUENCE_DETECT | ISC_REQ_STREAM;
 
-  const SECURITY_STATUS shutdownStatus = InitializeSecurityContext(
+  const SECURITY_STATUS shutdownStatus = g_netSchannel.InitializeSecurityContextW(
       &g_netSchannel.credHandle,
       &tls->context,
       null,
@@ -390,7 +433,7 @@ NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
   // Send data to remote.
   if (buffersOut[0].pvBuffer) {
     tls->status = net_tls_write_buffer_sync(buffersOut[0], socket);
-    FreeContextBuffer(buffersOut[0].pvBuffer);
+    g_netSchannel.FreeContextBuffer(buffersOut[0].pvBuffer);
     if (tls->status != NetResult_Success) {
       return tls->status; // Shutdown failed.
     }
