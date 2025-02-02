@@ -5,8 +5,8 @@
  * Global network statistics.
  */
 typedef struct sNetStats {
-  u64 totalBytesRead;
-  u64 totalBytesWrite;
+  u64 totalResolves, totalConnects;
+  u64 totalBytesRead, totalBytesWrite;
 } NetStats;
 
 NetStats net_stats_query(void);

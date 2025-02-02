@@ -406,12 +406,16 @@ static i32 fetch_run(
     log_i(
         "Fetch finished",
         log_param("duration", fmt_duration(duration)),
+        log_param("resolves", fmt_int(netStats.totalResolves)),
+        log_param("connects", fmt_int(netStats.totalConnects)),
         log_param("bytes-in", fmt_size(netStats.totalBytesRead)),
         log_param("bytes-out", fmt_size(netStats.totalBytesWrite)));
   } else {
     log_e(
         "Fetch failed",
         log_param("duration", fmt_duration(duration)),
+        log_param("resolves", fmt_int(netStats.totalResolves)),
+        log_param("connects", fmt_int(netStats.totalConnects)),
         log_param("bytes-in", fmt_size(netStats.totalBytesRead)),
         log_param("bytes-out", fmt_size(netStats.totalBytesWrite)));
   }

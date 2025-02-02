@@ -90,6 +90,7 @@ static bool net_ws_init(NetWinSock* ws, Allocator* alloc) {
 static NetWinSock g_netWsLib;
 static bool       g_netWsReady;
 static bool       g_netInitialized;
+static i64        g_netTotalResolves, g_netTotalConnects;
 static i64        g_netTotalBytesRead, g_netTotalBytesWrite;
 
 void net_pal_init(void) {
@@ -114,6 +115,8 @@ void net_pal_teardown(void) {
   g_netInitialized = false;
 }
 
+u64 net_pal_total_resolves(void) { return (u64)thread_atomic_load_i64(&g_netTotalResolves); }
+u64 net_pal_total_connects(void) { return (u64)thread_atomic_load_i64(&g_netTotalConnects); }
 u64 net_pal_total_bytes_read(void) { return (u64)thread_atomic_load_i64(&g_netTotalBytesRead); }
 u64 net_pal_total_bytes_write(void) { return (u64)thread_atomic_load_i64(&g_netTotalBytesWrite); }
 
@@ -211,6 +214,8 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
     s->status = NetResult_SystemFailure;
     return s;
   }
+
+  thread_atomic_add_i64(&g_netTotalConnects, 1);
 
   s->handle = g_netWsLib.socket(net_pal_socket_domain(addr.ip.type), SOCK_STREAM, IPPROTO_TCP);
   if (s->handle == INVALID_SOCKET) {
@@ -355,6 +360,8 @@ NetResult net_resolve_sync(const String host, NetIp* out) {
     return NetResult_InvalidHost;
   }
   const wchar_t* hostStrScratch = winutils_to_widestr_scratch(host).ptr;
+
+  thread_atomic_add_i64(&g_netTotalResolves, 1);
 
   const ADDRINFOW hints = {
       .ai_family   = AF_UNSPEC,
