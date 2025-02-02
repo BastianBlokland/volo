@@ -129,7 +129,7 @@ static void fetch_config_destroy(FetchConfig* cfg) {
   data_destroy(g_dataReg, g_allocHeap, g_fetchConfigMeta, mem_create(cfg, sizeof(FetchConfig)));
 }
 
-static u32 fetch_config_max_origin_assets(FetchConfig* cfg) {
+static u32 fetch_config_max_origin_assets(const FetchConfig* cfg) {
   u32 res = 0;
   heap_array_for_t(cfg->origins, FetchOrigin, origin) {
     res = math_max(res, (u32)origin->assets.count);
@@ -371,11 +371,16 @@ static i32 fetch_run_origin(
   return retCode;
 }
 
-static i32
-fetch_run(FetchConfig* cfg, FetchRegistry* reg, const FetchFlags flags, const String outPath) {
+static i32 fetch_run(
+    const FetchConfig* cfg, FetchRegistry* reg, const FetchFlags flags, const String outPath) {
   i32              retCode   = 0;
   NetRest*         rest      = null;
   const TimeSteady timeStart = time_steady_clock();
+
+  log_i(
+      "Fetching assets",
+      log_param("origins", fmt_int(cfg->origins.count)),
+      log_param("output-path", fmt_path(outPath)));
 
   const u32 maxRequests = fetch_config_max_origin_assets(cfg);
   if (maxRequests) {
