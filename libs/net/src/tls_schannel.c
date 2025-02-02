@@ -23,7 +23,6 @@
  */
 
 #pragma comment(lib, "secur32.lib")
-#pragma comment(lib, "shlwapi.lib")
 
 typedef struct {
   CredHandle credHandle;
