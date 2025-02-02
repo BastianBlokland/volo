@@ -284,7 +284,7 @@ NetResult net_socket_write_sync(NetSocket* s, const String data) {
     const int res = g_netWsLib.send(s->handle, itr, (int)(mem_end(data) - itr), 0 /* flags */);
     if (res > 0) {
       itr += res;
-      thread_atomic_add_i64(&g_netTotalBytesRead, res);
+      thread_atomic_add_i64(&g_netTotalBytesWrite, res);
       continue;
     }
     return s->status = net_pal_socket_error();
@@ -310,7 +310,7 @@ NetResult net_socket_read_sync(NetSocket* s, DynString* out) {
   const int res = g_netWsLib.recv(s->handle, readBuffer.ptr, (int)readBuffer.size, 0 /* flags */);
   if (res > 0) {
     dynstring_append(out, mem_slice(readBuffer, 0, res));
-    thread_atomic_add_i64(&g_netTotalBytesWrite, res);
+    thread_atomic_add_i64(&g_netTotalBytesRead, res);
     return NetResult_Success;
   }
   if (res == 0) {
