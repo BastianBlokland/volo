@@ -37,7 +37,7 @@ typedef struct {
   DECRYPT_MESSAGE_FN               DecryptMessage;
 
   CredHandle credHandle;
-} NetSchannel;
+} NetSChannel;
 
 static SEC_WCHAR* to_sec_null_term_scratch(const String str) {
   if (string_is_empty(str)) {
@@ -46,7 +46,7 @@ static SEC_WCHAR* to_sec_null_term_scratch(const String str) {
   return (SEC_WCHAR*)winutils_to_widestr_scratch(str).ptr;
 }
 
-static bool net_schannel_init(NetSchannel* schannel, Allocator* alloc) {
+static bool net_schannel_init(NetSChannel* schannel, Allocator* alloc) {
   const DynLibResult loadRes = dynlib_load(alloc, string_lit("secur32.dll"), &schannel->lib);
   if (UNLIKELY(loadRes != DynLibResult_Success)) {
     const String err = dynlib_result_str(loadRes);
@@ -88,31 +88,31 @@ static bool net_schannel_init(NetSchannel* schannel, Allocator* alloc) {
           null,
           &schannel->credHandle,
           null) != SEC_E_OK) {
-    log_w("Tls: Schannel failed to acquire credentials");
+    log_w("SChannel failed to acquire credentials");
     return false;
   }
 
-  log_i("Tls: Schannel initialized", log_param("path", fmt_path(dynlib_path(schannel->lib))));
+  log_i("SChannel initialized", log_param("path", fmt_path(dynlib_path(schannel->lib))));
   return true;
 }
 
-static NetSchannel g_netSchannel;
-static bool        g_netSchannelReady;
+static NetSChannel g_netSChannel;
+static bool        g_netSChannelReady;
 
 void net_tls_init(void) {
-  diag_assert(!g_netSchannelReady);
-  g_netSchannelReady = net_schannel_init(&g_netSchannel, g_allocPersist);
+  diag_assert(!g_netSChannelReady);
+  g_netSChannelReady = net_schannel_init(&g_netSChannel, g_allocPersist);
 }
 
 void net_tls_teardown(void) {
-  if (g_netSchannelReady) {
-    g_netSchannel.FreeCredentialsHandle(&g_netSchannel.credHandle);
+  if (g_netSChannelReady) {
+    g_netSChannel.FreeCredentialsHandle(&g_netSChannel.credHandle);
   }
-  if (g_netSchannel.lib) {
-    dynlib_destroy(g_netSchannel.lib);
+  if (g_netSChannel.lib) {
+    dynlib_destroy(g_netSChannel.lib);
   }
-  g_netSchannel      = (NetSchannel){0};
-  g_netSchannelReady = false;
+  g_netSChannel      = (NetSChannel){0};
+  g_netSChannelReady = false;
 }
 
 typedef struct sNetTls {
@@ -167,8 +167,8 @@ static void net_tls_connect_sync(NetTls* tls, NetSocket* socket) {
     DWORD initFlags = ISC_REQ_ALLOCATE_MEMORY | ISC_REQ_CONFIDENTIALITY | ISC_REQ_REPLAY_DETECT |
                       ISC_REQ_SEQUENCE_DETECT | ISC_REQ_STREAM | ISC_REQ_USE_SUPPLIED_CREDS;
 
-    const SECURITY_STATUS initStatus = g_netSchannel.InitializeSecurityContextW(
-        &g_netSchannel.credHandle,
+    const SECURITY_STATUS initStatus = g_netSChannel.InitializeSecurityContextW(
+        &g_netSChannel.credHandle,
         currentCtx,
         currentCtx ? null : to_sec_null_term_scratch(tls->host),
         initFlags,
@@ -191,13 +191,13 @@ static void net_tls_connect_sync(NetTls* tls, NetSocket* socket) {
       dynstring_erase_chars(&tls->readBuffer, 0, tls->readBuffer.size - buffersIn[1].cbBuffer);
       diag_assert(tls->readBuffer.size == buffersIn[1].cbBuffer);
     } else if (buffersIn[1].BufferType != SECBUFFER_MISSING) {
-      dynstring_clear(&tls->readBuffer); // Schannel consumed all the data.
+      dynstring_clear(&tls->readBuffer); // SChannel consumed all the data.
     }
 
     // Send data to remote.
     if (buffersOut[0].pvBuffer) {
       tls->status = net_tls_write_buffer_sync(buffersOut[0], socket);
-      g_netSchannel.FreeContextBuffer(buffersOut[0].pvBuffer);
+      g_netSChannel.FreeContextBuffer(buffersOut[0].pvBuffer);
       if (tls->status != NetResult_Success) {
         return;
       }
@@ -228,7 +228,7 @@ static void net_tls_connect_sync(NetTls* tls, NetSocket* socket) {
   }
 
 Success:
-  g_netSchannel.QueryContextAttributesW(&tls->context, SECPKG_ATTR_STREAM_SIZES, &tls->sizes);
+  g_netSChannel.QueryContextAttributesW(&tls->context, SECPKG_ATTR_STREAM_SIZES, &tls->sizes);
 }
 
 NetTls* net_tls_create(Allocator* alloc, const String host, const NetTlsFlags flags) {
@@ -239,7 +239,7 @@ NetTls* net_tls_create(Allocator* alloc, const String host, const NetTlsFlags fl
       .host       = string_maybe_dup(alloc, host),
       .readBuffer = dynstring_create(g_allocHeap, usize_kibibyte * 16),
   };
-  if (UNLIKELY(!g_netSchannelReady)) {
+  if (UNLIKELY(!g_netSChannelReady)) {
     tls->status = NetResult_TlsUnavailable;
     return tls;
   }
@@ -249,7 +249,7 @@ NetTls* net_tls_create(Allocator* alloc, const String host, const NetTlsFlags fl
 
 void net_tls_destroy(NetTls* tls) {
   if (tls->contextCreated) {
-    g_netSchannel.DeleteSecurityContext(&tls->context);
+    g_netSChannel.DeleteSecurityContext(&tls->context);
   }
   string_maybe_free(tls->alloc, tls->host);
   dynstring_destroy(&tls->readBuffer);
@@ -262,7 +262,7 @@ NetResult net_tls_write_sync(NetTls* tls, NetSocket* socket, String data) {
   if (tls->status != NetResult_Success) {
     return tls->status;
   }
-  diag_assert(g_netSchannelReady);
+  diag_assert(g_netSChannelReady);
 
   if (!tls->connected) {
     net_tls_connect_sync(tls, socket);
@@ -299,7 +299,7 @@ NetResult net_tls_write_sync(NetTls* tls, NetSocket* socket, String data) {
     // clang-format on
 
     const SECURITY_STATUS encryptStatus =
-        g_netSchannel.EncryptMessage(&tls->context, 0, &bufferDesc, 0);
+        g_netSChannel.EncryptMessage(&tls->context, 0, &bufferDesc, 0);
 
     if (encryptStatus != SEC_E_OK) {
       log_e(
@@ -323,7 +323,7 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
   if (tls->status != NetResult_Success) {
     return tls->status;
   }
-  diag_assert(g_netSchannelReady);
+  diag_assert(g_netSChannelReady);
 
   if (!tls->connected) {
     net_tls_connect_sync(tls, socket);
@@ -348,7 +348,7 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
     SecBufferDesc bufferDesc = {SECBUFFER_VERSION, array_elems(buffers), buffers};
 
     SECURITY_STATUS decryptStatus =
-        g_netSchannel.DecryptMessage(&tls->context, &bufferDesc, 0, null);
+        g_netSChannel.DecryptMessage(&tls->context, &bufferDesc, 0, null);
 
     switch (decryptStatus) {
     case SEC_E_OK:
@@ -366,7 +366,7 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
         dynstring_erase_chars(&tls->readBuffer, 0, tls->readBuffer.size - buffers[3].cbBuffer);
         diag_assert(tls->readBuffer.size == buffers[3].cbBuffer);
       } else if (buffers[3].BufferType != SECBUFFER_MISSING) {
-        dynstring_clear(&tls->readBuffer); // Schannel consumed all the data.
+        dynstring_clear(&tls->readBuffer); // SChannel consumed all the data.
       }
       break;
     case SEC_I_CONTEXT_EXPIRED:
@@ -398,7 +398,7 @@ NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
   if (!tls->connected || tls->status == NetResult_TlsClosed) {
     return NetResult_Success; // Session already closed, no need to shutdown.
   }
-  diag_assert(g_netSchannelReady);
+  diag_assert(g_netSChannelReady);
 
   DWORD type = SCHANNEL_SHUTDOWN;
 
@@ -406,7 +406,7 @@ NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
       [0] = {.BufferType = SECBUFFER_TOKEN, .pvBuffer = &type, .cbBuffer = sizeof(type)},
   };
   SecBufferDesc descIn = {SECBUFFER_VERSION, array_elems(buffersIn), buffersIn};
-  g_netSchannel.ApplyControlToken(&tls->context, &descIn);
+  g_netSChannel.ApplyControlToken(&tls->context, &descIn);
 
   SecBuffer buffersOut[] = {
       [0] = {.BufferType = SECBUFFER_TOKEN},
@@ -416,8 +416,8 @@ NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
   DWORD flags = ISC_REQ_ALLOCATE_MEMORY | ISC_REQ_CONFIDENTIALITY | ISC_REQ_REPLAY_DETECT |
                 ISC_REQ_SEQUENCE_DETECT | ISC_REQ_STREAM;
 
-  const SECURITY_STATUS shutdownStatus = g_netSchannel.InitializeSecurityContextW(
-      &g_netSchannel.credHandle,
+  const SECURITY_STATUS shutdownStatus = g_netSChannel.InitializeSecurityContextW(
+      &g_netSChannel.credHandle,
       &tls->context,
       null,
       flags,
@@ -433,7 +433,7 @@ NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
   // Send data to remote.
   if (buffersOut[0].pvBuffer) {
     tls->status = net_tls_write_buffer_sync(buffersOut[0], socket);
-    g_netSchannel.FreeContextBuffer(buffersOut[0].pvBuffer);
+    g_netSChannel.FreeContextBuffer(buffersOut[0].pvBuffer);
     if (tls->status != NetResult_Success) {
       return tls->status; // Shutdown failed.
     }
