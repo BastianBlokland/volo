@@ -14,4 +14,5 @@ typedef struct sNetHttpAuth NetHttpAuth;
 typedef struct sNetHttpEtag NetHttpEtag;
 typedef struct sNetIp       NetIp;
 typedef struct sNetSocket   NetSocket;
+typedef struct sNetStats    NetStats;
 typedef struct sNetTls      NetTls;
