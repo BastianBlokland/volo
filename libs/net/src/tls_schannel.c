@@ -121,11 +121,11 @@ void net_tls_teardown(void) {
 
 typedef struct sNetTls {
   Allocator*                alloc;
-  NetResult                 status;
   String                    host;
+  NetResult                 status;
   bool                      connected;
-  CtxtHandle                context;
   bool                      contextCreated;
+  CtxtHandle                context;
   SecPkgContext_StreamSizes sizes;
   DynString                 readBuffer;
 } NetTls;
