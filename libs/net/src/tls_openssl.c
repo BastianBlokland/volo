@@ -12,7 +12,7 @@
 #include "tls_internal.h"
 
 /**
- * Tls client implementation using the OpenSSL (libssl) library.
+ * Tls (Transport Layer Security) client implementation using the OpenSSL (libssl) library.
  * Website: https://www.openssl.org/
  * Documentation: https://docs.openssl.org/3.0/man3/
  *
@@ -168,22 +168,22 @@ static bool net_openssl_init(NetOpenSsl* ssl, Allocator* alloc) {
   return true;
 }
 
-static NetOpenSsl g_netOpenSslLib;
+static NetOpenSsl g_netOpenSsl;
 static bool       g_netOpenSslReady;
 
 void net_tls_init(void) {
   diag_assert(!g_netOpenSslReady);
-  g_netOpenSslReady = net_openssl_init(&g_netOpenSslLib, g_allocPersist);
+  g_netOpenSslReady = net_openssl_init(&g_netOpenSsl, g_allocPersist);
 }
 
 void net_tls_teardown(void) {
-  if (g_netOpenSslLib.clientContext) {
-    g_netOpenSslLib.SSL_CTX_free(g_netOpenSslLib.clientContext);
+  if (g_netOpenSsl.clientContext) {
+    g_netOpenSsl.SSL_CTX_free(g_netOpenSsl.clientContext);
   }
-  if (g_netOpenSslLib.lib) {
-    dynlib_destroy(g_netOpenSslLib.lib);
+  if (g_netOpenSsl.lib) {
+    dynlib_destroy(g_netOpenSsl.lib);
   }
-  g_netOpenSslLib   = (NetOpenSsl){0};
+  g_netOpenSsl      = (NetOpenSsl){0};
   g_netOpenSslReady = false;
 }
 
@@ -210,7 +210,7 @@ static NetResult net_tls_read_input_sync(NetTls* tls, NetSocket* socket) {
   const String data = dynstring_view(&tls->readBuffer);
 
   size_t    bytesWritten;
-  const int res = g_netOpenSslLib.BIO_write_ex(tls->input, data.ptr, data.size, &bytesWritten);
+  const int res = g_netOpenSsl.BIO_write_ex(tls->input, data.ptr, data.size, &bytesWritten);
 
   dynstring_clear(&tls->readBuffer);
   return (res && bytesWritten == data.size) ? NetResult_Success : NetResult_TlsBufferExhausted;
@@ -220,7 +220,7 @@ static NetResult net_tls_write_output_sync(NetTls* tls, NetSocket* socket) {
   Mem buffer = alloc_alloc(g_allocScratch, usize_kibibyte * 32, 1);
   for (;;) {
     usize bytesRead;
-    if (!g_netOpenSslLib.BIO_read_ex(tls->output, buffer.ptr, buffer.size, &bytesRead)) {
+    if (!g_netOpenSsl.BIO_read_ex(tls->output, buffer.ptr, buffer.size, &bytesRead)) {
       return NetResult_Success; // Nothing to write.
     }
     if (!bytesRead) {
@@ -243,23 +243,23 @@ NetTls* net_tls_create(Allocator* alloc, const String host, const NetTlsFlags fl
   }
 
   // Create a session.
-  if (UNLIKELY(!(tls->session = g_netOpenSslLib.SSL_new(g_netOpenSslLib.clientContext)))) {
-    net_openssl_handle_errors(&g_netOpenSslLib);
+  if (UNLIKELY(!(tls->session = g_netOpenSsl.SSL_new(g_netOpenSsl.clientContext)))) {
+    net_openssl_handle_errors(&g_netOpenSsl);
     tls->status = NetResult_TlsUnavailable;
     return tls;
   }
-  g_netOpenSslLib.SSL_set_connect_state(tls->session); // Client mode.
+  g_netOpenSsl.SSL_set_connect_state(tls->session); // Client mode.
 
   // SNI (Server Name Indication) host-name.
   if (!string_is_empty(host)) {
     const char* hostStr  = to_null_term_scratch(host);
     const long  nameType = 0; // See RFC3546
-    g_netOpenSslLib.SSL_ctrl(tls->session, SSL_CTRL_SET_TLSEXT_HOSTNAME, nameType, (void*)hostStr);
+    g_netOpenSsl.SSL_ctrl(tls->session, SSL_CTRL_SET_TLSEXT_HOSTNAME, nameType, (void*)hostStr);
   }
 
   // Configure certificate verification.
   if (flags & NetTlsFlags_NoVerify) {
-    g_netOpenSslLib.SSL_set_verify(tls->session, SSL_VERIFY_NONE, null /* callback */);
+    g_netOpenSsl.SSL_set_verify(tls->session, SSL_VERIFY_NONE, null /* callback */);
   } else {
     /**
      * TODO: Currently we don't load any root certificates so the verification will always fail.
@@ -272,31 +272,31 @@ NetTls* net_tls_create(Allocator* alloc, const String host, const NetTlsFlags fl
      * Steps to get verification for a known server:
      * - Verify the certificate matches a known PKI.
      */
-    g_netOpenSslLib.SSL_set_verify(tls->session, SSL_VERIFY_PEER, null /* callback */);
+    g_netOpenSsl.SSL_set_verify(tls->session, SSL_VERIFY_PEER, null /* callback */);
   }
 
   // Setup memory bio's.
-  tls->input  = g_netOpenSslLib.BIO_new(g_netOpenSslLib.BIO_s_mem());
-  tls->output = g_netOpenSslLib.BIO_new(g_netOpenSslLib.BIO_s_mem());
+  tls->input  = g_netOpenSsl.BIO_new(g_netOpenSsl.BIO_s_mem());
+  tls->output = g_netOpenSsl.BIO_new(g_netOpenSsl.BIO_s_mem());
   if (UNLIKELY(!tls->input || !tls->output)) {
-    net_openssl_handle_errors(&g_netOpenSslLib);
+    net_openssl_handle_errors(&g_netOpenSsl);
     if (tls->input) {
-      g_netOpenSslLib.BIO_free_all(tls->input);
+      g_netOpenSsl.BIO_free_all(tls->input);
     }
     if (tls->output) {
-      g_netOpenSslLib.BIO_free_all(tls->output);
+      g_netOpenSsl.BIO_free_all(tls->output);
     }
     tls->status = NetResult_TlsUnavailable;
     return tls;
   }
-  g_netOpenSslLib.SSL_set_bio(tls->session, tls->input, tls->output);
+  g_netOpenSsl.SSL_set_bio(tls->session, tls->input, tls->output);
 
   return tls;
 }
 
 void net_tls_destroy(NetTls* tls) {
   if (tls->session) {
-    g_netOpenSslLib.SSL_free(tls->session);
+    g_netOpenSsl.SSL_free(tls->session);
   }
   dynstring_destroy(&tls->readBuffer);
   alloc_free_t(tls->alloc, tls);
@@ -313,8 +313,8 @@ NetResult net_tls_write_sync(NetTls* tls, NetSocket* socket, const String data) 
   for (u8* itr = mem_begin(data); itr != mem_end(data);) {
     // Write the raw data to OpenSSL to be encrypted.
     size_t    bytesWritten = 0;
-    const int ret = g_netOpenSslLib.SSL_write_ex(tls->session, data.ptr, data.size, &bytesWritten);
-    const int err = g_netOpenSslLib.SSL_get_error(tls->session, ret);
+    const int ret = g_netOpenSsl.SSL_write_ex(tls->session, data.ptr, data.size, &bytesWritten);
+    const int err = g_netOpenSsl.SSL_get_error(tls->session, ret);
 
     // Write the encrypted data to the socket.
     tls->status = net_tls_write_output_sync(tls, socket);
@@ -340,7 +340,7 @@ NetResult net_tls_write_sync(NetTls* tls, NetSocket* socket, const String data) 
     case SSL_ERROR_ZERO_RETURN:
       return tls->status = NetResult_TlsClosed;
     default:
-      net_openssl_handle_errors(&g_netOpenSslLib);
+      net_openssl_handle_errors(&g_netOpenSsl);
       return tls->status = NetResult_TlsFailed;
     }
   }
@@ -358,8 +358,8 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
   for (;;) {
     // Ask OpenSSL to decrypt data buffered append it to the output.
     size_t    bytesRead;
-    const int ret = g_netOpenSslLib.SSL_read_ex(tls->session, buffer.ptr, buffer.size, &bytesRead);
-    const int err = g_netOpenSslLib.SSL_get_error(tls->session, ret);
+    const int ret = g_netOpenSsl.SSL_read_ex(tls->session, buffer.ptr, buffer.size, &bytesRead);
+    const int err = g_netOpenSsl.SSL_get_error(tls->session, ret);
 
     // Write any control data to the socket, can happen if OpenSSL is performing the handshake.
     tls->status = net_tls_write_output_sync(tls, socket);
@@ -392,7 +392,7 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
       tls->status = NetResult_TlsClosed;
       return totalBytesRead ? NetResult_Success : NetResult_TlsClosed;
     default:
-      net_openssl_handle_errors(&g_netOpenSslLib);
+      net_openssl_handle_errors(&g_netOpenSsl);
       return tls->status = NetResult_TlsFailed;
     }
   }
@@ -407,13 +407,13 @@ NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
   Mem buffer = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
 
   // Ask OpenSSL to shutdown the connection.
-  g_netOpenSslLib.SSL_shutdown(tls->session);
+  g_netOpenSsl.SSL_shutdown(tls->session);
 
   // Wait for the connection to be closed.
   for (;;) {
     size_t    bytesRead;
-    const int ret = g_netOpenSslLib.SSL_read_ex(tls->session, buffer.ptr, buffer.size, &bytesRead);
-    const int err = g_netOpenSslLib.SSL_get_error(tls->session, ret);
+    const int ret = g_netOpenSsl.SSL_read_ex(tls->session, buffer.ptr, buffer.size, &bytesRead);
+    const int err = g_netOpenSsl.SSL_get_error(tls->session, ret);
 
     // Write any output to the socket (OpenSSL needs to send the close_notify alert message).
     tls->status = net_tls_write_output_sync(tls, socket);
@@ -441,7 +441,7 @@ NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
       tls->status = NetResult_TlsClosed;
       return NetResult_Success; // Shutdown successful.
     default:
-      net_openssl_handle_errors(&g_netOpenSslLib);
+      net_openssl_handle_errors(&g_netOpenSsl);
       return tls->status = NetResult_TlsFailed;
     }
   }
