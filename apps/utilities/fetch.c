@@ -10,6 +10,7 @@
 #include "core_file.h"
 #include "core_math.h"
 #include "core_path.h"
+#include "core_signal.h"
 #include "core_thread.h"
 #include "core_time.h"
 #include "data_read.h"
@@ -325,6 +326,11 @@ static i32 fetch_run_origin(
   while (requests.size) {
     thread_sleep(time_milliseconds(100));
 
+    if (signal_is_received(Signal_Interrupt) || signal_is_received(Signal_Terminate)) {
+      retCode = 3;
+      break;
+    }
+
     for (usize i = requests.size; i-- != 0;) {
       const FetchRequest* req = dynarray_at_t(&requests, i, FetchRequest);
       if (!net_rest_done(rest, req->id)) {
@@ -372,6 +378,11 @@ static i32 fetch_run(FetchConfig* cfg, FetchRegistry* reg, const String outPath)
         originRet = fetch_run_origin(origin, reg, outPath, rest);
       }
       retCode = math_max(retCode, originRet);
+
+      if (signal_is_received(Signal_Interrupt) || signal_is_received(Signal_Terminate)) {
+        retCode = 3;
+        break;
+      }
     }
   }
   const TimeDuration duration = time_steady_duration(timeStart, time_steady_clock());
@@ -431,6 +442,8 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     retCode = 1;
     goto Done;
   }
+
+  signal_intercept_enable(); // Custom interrupt handling.
 
   net_init();
   retCode = fetch_run(&cfg, &reg, outPath);
