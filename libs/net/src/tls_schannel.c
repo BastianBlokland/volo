@@ -1,7 +1,9 @@
 #include "core_alloc.h"
 #include "core_array.h"
+#include "core_bits.h"
 #include "core_diag.h"
 #include "core_dynstring.h"
+#include "core_math.h"
 #include "core_winutils.h"
 #include "log_logger.h"
 #include "net_result.h"
@@ -220,7 +222,7 @@ void net_tls_destroy(NetTls* tls) {
 
 NetResult net_tls_status(const NetTls* tls) { return tls->status; }
 
-NetResult net_tls_write_sync(NetTls* tls, NetSocket* socket, const String data) {
+NetResult net_tls_write_sync(NetTls* tls, NetSocket* socket, String data) {
   if (tls->status != NetResult_Success) {
     return tls->status;
   }
@@ -234,10 +236,49 @@ NetResult net_tls_write_sync(NetTls* tls, NetSocket* socket, const String data) 
     tls->connected = true;
   }
 
-  // TODO: Implement.
-  (void)socket;
-  (void)data;
-  return NetResult_TlsUnavailable;
+  while (!string_is_empty(data)) {
+    const usize  messageSize = math_min(data.size, (usize)tls->sizes.cbMaximumMessage);
+    const String message     = string_slice(data, 0, messageSize);
+
+    const usize writeBufferSize = messageSize + tls->sizes.cbHeader + tls->sizes.cbTrailer;
+    const Mem   writeBuffer     = alloc_alloc(g_allocScratch, writeBufferSize, 1);
+
+    mem_cpy(mem_consume(writeBuffer, tls->sizes.cbHeader), message);
+
+    // clang-format off
+    SecBuffer buffers[] = {
+      [0] = { .BufferType = SECBUFFER_STREAM_HEADER,
+              .pvBuffer   = writeBuffer.ptr,
+              .cbBuffer   = tls->sizes.cbHeader },
+      [1] = {
+              .BufferType = SECBUFFER_DATA,
+              .pvBuffer   = bits_ptr_offset(writeBuffer.ptr, tls->sizes.cbHeader),
+              .cbBuffer   = (unsigned long)messageSize },
+      [2] = {
+              .BufferType = SECBUFFER_STREAM_TRAILER,
+              .pvBuffer   = bits_ptr_offset(writeBuffer.ptr, tls->sizes.cbHeader + messageSize),
+              .cbBuffer   = tls->sizes.cbTrailer },
+    };
+    SecBufferDesc bufferDesc = {SECBUFFER_VERSION, array_elems(buffers), buffers};
+    // clang-format on
+
+    const SECURITY_STATUS encryptStatus = EncryptMessage(&tls->context, 0, &bufferDesc, 0);
+    if (encryptStatus != SEC_E_OK) {
+      log_e(
+          "SChannel encrypt failed",
+          log_param("msg", fmt_text(net_tls_schannel_error_msg(encryptStatus))),
+          log_param("code", fmt_int((u32)encryptStatus)));
+      return tls->status = NetResult_TlsFailed;
+    }
+
+    const usize writeSize = buffers[0].cbBuffer + buffers[1].cbBuffer + buffers[2].cbBuffer;
+    tls->status           = net_socket_write_sync(socket, mem_slice(writeBuffer, 0, writeSize));
+    if (tls->status != NetResult_Success) {
+      return tls->status;
+    }
+    data = string_consume(data, messageSize);
+  }
+  return NetResult_Success;
 }
 
 NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
