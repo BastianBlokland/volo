@@ -30,6 +30,10 @@
 
 #define fetch_worker_count 2
 
+typedef enum {
+  FetchFlags_Force = 1 << 0,
+} FetchFlags;
+
 typedef struct {
   String       host;
   String       license;
@@ -295,7 +299,11 @@ typedef struct {
 } FetchRequest;
 
 static i32 fetch_run_origin(
-    const FetchOrigin* origin, FetchRegistry* reg, const String outPath, NetRest* rest) {
+    const FetchOrigin* origin,
+    FetchRegistry*     reg,
+    const FetchFlags   flags,
+    const String       outPath,
+    NetRest*           rest) {
   i32 retCode = 0;
 
   const TimeReal     now      = time_real_clock();
@@ -311,7 +319,7 @@ static i32 fetch_run_origin(
 
     const bool expired = !regEntry || time_real_duration(regEntry->lastSyncTime, now) > cacheDur;
     const bool invalid = fileInfo.type != FileType_Regular;
-    if (!expired && !invalid) {
+    if (!expired && !invalid && !(flags & FetchFlags_Force)) {
       continue; // Cache entry still valid; do nothing.
     }
     const NetHttpEtag* etag                   = (regEntry && !invalid) ? &regEntry->etag : null;
@@ -363,7 +371,8 @@ static i32 fetch_run_origin(
   return retCode;
 }
 
-static i32 fetch_run(FetchConfig* cfg, FetchRegistry* reg, const String outPath) {
+static i32
+fetch_run(FetchConfig* cfg, FetchRegistry* reg, const FetchFlags flags, const String outPath) {
   i32              retCode   = 0;
   NetRest*         rest      = null;
   const TimeSteady timeStart = time_steady_clock();
@@ -375,7 +384,7 @@ static i32 fetch_run(FetchConfig* cfg, FetchRegistry* reg, const String outPath)
     heap_array_for_t(cfg->origins, FetchOrigin, origin) {
       i32 originRet = 0;
       if (origin->assets.count) {
-        originRet = fetch_run_origin(origin, reg, outPath, rest);
+        originRet = fetch_run_origin(origin, reg, flags, outPath, rest);
       }
       retCode = math_max(retCode, originRet);
 
@@ -397,7 +406,7 @@ static i32 fetch_run(FetchConfig* cfg, FetchRegistry* reg, const String outPath)
   return retCode;
 }
 
-static CliId g_optConfigPath, g_optVerbose, g_optHelp;
+static CliId g_optConfigPath, g_optVerbose, g_optForce, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("Fetch utility."));
@@ -407,11 +416,13 @@ void app_cli_configure(CliApp* app) {
   cli_register_validator(app, g_optConfigPath, cli_validate_file_regular);
 
   g_optVerbose = cli_register_flag(app, 'v', string_lit("verbose"), CliOptionFlags_None);
+  g_optForce   = cli_register_flag(app, 'f', string_lit("force"), CliOptionFlags_None);
 
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
   cli_register_exclusions(app, g_optHelp, g_optConfigPath);
   cli_register_exclusions(app, g_optHelp, g_optVerbose);
+  cli_register_exclusions(app, g_optHelp, g_optForce);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
@@ -425,6 +436,11 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
   fetch_data_init();
+
+  FetchFlags flags = 0;
+  if (cli_parse_provided(invoc, g_optForce)) {
+    flags |= FetchFlags_Force;
+  }
 
   const String cfgPath = cli_read_string(invoc, g_optConfigPath, string_empty);
   FetchConfig  cfg;
@@ -446,7 +462,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   signal_intercept_enable(); // Custom interrupt handling.
 
   net_init();
-  retCode = fetch_run(&cfg, &reg, outPath);
+  retCode = fetch_run(&cfg, &reg, flags, outPath);
   net_teardown();
 
   fetch_registry_save(&reg, outPath);
