@@ -30,10 +30,11 @@
 #define fetch_worker_count 2
 
 typedef struct {
-  String host;
-  String license;
-  String rootUri;
-  String authUser, authPass;
+  String       host;
+  String       license;
+  String       rootUri;
+  TimeDuration cacheTime;
+  String       authUser, authPass;
   HeapArray_t(String) assets;
 } FetchOrigin;
 
@@ -45,6 +46,7 @@ typedef struct {
 typedef struct {
   StringHash  pathHash;
   NetHttpEtag etag;
+  TimeReal    lastSyncTime;
 } FetchRegistryEntry;
 
 typedef struct {
@@ -61,6 +63,7 @@ static void fetch_data_init(void) {
   data_reg_field_t(g_dataReg, FetchOrigin, rootUri, data_prim_t(String));
   data_reg_field_t(g_dataReg, FetchOrigin, authUser, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
   data_reg_field_t(g_dataReg, FetchOrigin, authPass, data_prim_t(String), .flags = DataFlags_Opt | DataFlags_NotEmpty);
+  data_reg_field_t(g_dataReg, FetchOrigin, cacheTime, data_prim_t(TimeDuration), .flags = DataFlags_Opt);
   data_reg_field_t(g_dataReg, FetchOrigin, assets, data_prim_t(String), .container = DataContainer_HeapArray, .flags = DataFlags_NotEmpty);
 
   data_reg_struct_t(g_dataReg, FetchConfig);
@@ -72,6 +75,7 @@ static void fetch_data_init(void) {
   data_reg_struct_t(g_dataReg, FetchRegistryEntry);
   data_reg_field_t(g_dataReg, FetchRegistryEntry, pathHash, data_prim_t(u32));
   data_reg_field_t(g_dataReg, FetchRegistryEntry, etag, t_NetHttpEtag);
+  data_reg_field_t(g_dataReg, FetchRegistryEntry, lastSyncTime, data_prim_t(i64));
 
   data_reg_struct_t(g_dataReg, FetchRegistry);
   data_reg_field_t(g_dataReg, FetchRegistry, entries, t_FetchRegistryEntry, .container = DataContainer_DynArray);
@@ -130,6 +134,10 @@ static u32 fetch_config_max_origin_assets(FetchConfig* cfg) {
 
 static String fetch_config_out_path_scratch(const FetchConfig* cfg, const String cfgPath) {
   return path_build_scratch(path_parent(cfgPath), cfg->outputPath);
+}
+
+static TimeDuration fetch_origin_cache_dur(const FetchOrigin* origin) {
+  return origin->cacheTime ? origin->cacheTime : time_day;
 }
 
 static NetHttpAuth fetch_origin_auth(const FetchOrigin* origin) {
@@ -227,15 +235,16 @@ static FetchRegistryEntry* fetch_registry_get(FetchRegistry* reg, const String a
   return dynarray_search_binary(&reg->entries, fetch_compare_registry_entry, &key);
 }
 
-static void fetch_registry_add(FetchRegistry* reg, const String asset, const NetHttpEtag* etag) {
+static void fetch_registry_set(FetchRegistry* reg, const String asset, const NetHttpEtag* etag) {
   const FetchRegistryEntry key = {.pathHash = string_hash(asset)};
 
   FetchRegistryEntry* entry =
       dynarray_find_or_insert_sorted(&reg->entries, fetch_compare_registry_entry, &key);
 
   *entry = (FetchRegistryEntry){
-      .pathHash = key.pathHash,
-      .etag     = etag ? *etag : (NetHttpEtag){0},
+      .pathHash     = key.pathHash,
+      .etag         = etag ? *etag : (NetHttpEtag){0},
+      .lastSyncTime = time_real_clock(),
   };
 }
 
@@ -271,7 +280,7 @@ static bool fetch_asset_save(
     return false;
   }
 
-  fetch_registry_add(reg, asset, net_rest_etag(rest, request));
+  fetch_registry_set(reg, asset, net_rest_etag(rest, request));
 
   log_i(
       "Asset fetched: '{}'",
