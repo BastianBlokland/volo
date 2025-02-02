@@ -638,7 +638,7 @@ NetResult net_http_get_sync(
     return http->status;
   }
 
-  if (http->status == NetResult_Success) {
+  if (body.size && http->status == NetResult_Success) {
     (void)bodyDur;
     log_d(
         "Http: Received GET body",
