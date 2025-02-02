@@ -214,7 +214,7 @@ static void rest_worker_thread(void* data) {
       break;
     }
 
-    if (rest_worker_should_retry(req->result) && reqTryIndex < MaxTries) {
+    if (rest_worker_should_retry(req->result) && reqTryIndex < (MaxTries - 1)) {
       ++reqTryIndex;
       goto Retry;
     }
