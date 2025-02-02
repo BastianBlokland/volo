@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_dynlib.h"
 #include "core_dynstring.h"
+#include "core_thread.h"
 #include "core_winutils.h"
 #include "log_logger.h"
 #include "net_addr.h"
@@ -89,6 +90,7 @@ static bool net_ws_init(NetWinSock* ws, Allocator* alloc) {
 static NetWinSock g_netWsLib;
 static bool       g_netWsReady;
 static bool       g_netInitialized;
+static i64        g_netTotalBytesRead, g_netTotalBytesWrite;
 
 void net_pal_init(void) {
   diag_assert(!g_netWsReady);
@@ -111,6 +113,9 @@ void net_pal_teardown(void) {
   g_netWsReady     = false;
   g_netInitialized = false;
 }
+
+u64 net_pal_total_bytes_read(void) { return (u64)thread_atomic_load_i64(&g_netTotalBytesRead); }
+u64 net_pal_total_bytes_write(void) { return (u64)thread_atomic_load_i64(&g_netTotalBytesWrite); }
 
 static int net_pal_socket_domain(const NetIpType ipType) {
   switch (ipType) {
@@ -279,6 +284,7 @@ NetResult net_socket_write_sync(NetSocket* s, const String data) {
     const int res = g_netWsLib.send(s->handle, itr, (int)(mem_end(data) - itr), 0 /* flags */);
     if (res > 0) {
       itr += res;
+      thread_atomic_add_i64(&g_netTotalBytesRead, res);
       continue;
     }
     return s->status = net_pal_socket_error();
@@ -304,6 +310,7 @@ NetResult net_socket_read_sync(NetSocket* s, DynString* out) {
   const int res = g_netWsLib.recv(s->handle, readBuffer.ptr, (int)readBuffer.size, 0 /* flags */);
   if (res > 0) {
     dynstring_append(out, mem_slice(readBuffer, 0, res));
+    thread_atomic_add_i64(&g_netTotalBytesWrite, res);
     return NetResult_Success;
   }
   if (res == 0) {

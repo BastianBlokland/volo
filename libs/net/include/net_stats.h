@@ -6,7 +6,7 @@
  */
 typedef struct sNetStats {
   u64 totalBytesRead;
-  u64 totalBytesWritten;
+  u64 totalBytesWrite;
 } NetStats;
 
 NetStats net_stats_query(void);
