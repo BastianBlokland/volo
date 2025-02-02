@@ -289,55 +289,67 @@ static bool fetch_asset_save(
   return true;
 }
 
+typedef struct {
+  NetRestId id;
+  String    asset;
+} FetchRequest;
+
 static i32 fetch_run_origin(
     const FetchOrigin* origin, FetchRegistry* reg, const String outPath, NetRest* rest) {
   i32 retCode = 0;
 
-  const NetHttpAuth auth       = fetch_origin_auth(origin);
-  const u32         assetCount = (u32)origin->assets.count;
-  NetRestId*        requests   = alloc_array_t(g_allocHeap, NetRestId, assetCount);
+  const TimeReal     timeRealNow = time_real_clock();
+  const NetHttpAuth  auth        = fetch_origin_auth(origin);
+  const TimeDuration cacheDur    = fetch_origin_cache_dur(origin);
 
-  // Start a GET request for all assets.
-  for (u32 i = 0; i != assetCount; ++i) {
-    const String        asset    = origin->assets.values[i];
-    FetchRegistryEntry* regEntry = fetch_registry_get(reg, asset);
-    const NetHttpEtag*  etag     = regEntry ? &regEntry->etag : null;
-    const String        uri      = fetch_origin_uri_scratch(origin, asset);
-    requests[i]                  = net_rest_get(rest, origin->host, uri, &auth, etag);
+  DynArray requests = dynarray_create_t(g_allocHeap, FetchRequest, 64);
+
+  // Submit GET requests.
+  heap_array_for_t(origin->assets, String, asset) {
+    FetchRegistryEntry* regEntry = fetch_registry_get(reg, *asset);
+    if (regEntry && time_real_duration(regEntry->lastSyncTime, timeRealNow) < cacheDur) {
+      continue; // Cache entry still valid.
+    }
+    const NetHttpEtag* etag                   = regEntry ? &regEntry->etag : null;
+    const String       uri                    = fetch_origin_uri_scratch(origin, *asset);
+    *dynarray_push_t(&requests, FetchRequest) = (FetchRequest){
+        .id    = net_rest_get(rest, origin->host, uri, &auth, etag),
+        .asset = *asset,
+    };
   }
 
-  // Save the results.
-  for (u32 i = 0; i != assetCount; ++i) {
-    const NetRestId request = requests[i];
-    const String    asset   = origin->assets.values[i];
+  // Process the results.
+  while (requests.size) {
+    thread_sleep(time_milliseconds(100));
 
-    // Wait for the request to be done.
-    while (!net_rest_done(rest, request)) {
-      thread_sleep(time_milliseconds(100));
-    }
-
-    // Save the asset to disk.
-    const NetResult result = net_rest_result(rest, request);
-    switch (result) {
-    case NetResult_HttpNotModified:
-      break;
-    case NetResult_Success:
-      if (!fetch_asset_save(reg, outPath, asset, rest, request)) {
-        retCode = 2;
+    for (usize i = requests.size; i-- != 0;) {
+      const FetchRequest* req = dynarray_at_t(&requests, i, FetchRequest);
+      if (!net_rest_done(rest, req->id)) {
+        continue;
       }
-      break;
-    default:
-      log_e(
-          "Asset fetch failed: '{}'",
-          log_param("asset", fmt_text(asset)),
-          log_param("error", fmt_text(net_result_str(result))));
-      retCode = 1;
-      break;
+      const NetResult result = net_rest_result(rest, req->id);
+      switch (result) {
+      case NetResult_HttpNotModified:
+        break;
+      case NetResult_Success:
+        if (!fetch_asset_save(reg, outPath, req->asset, rest, req->id)) {
+          retCode = 2;
+        }
+        break;
+      default:
+        log_e(
+            "Asset fetch failed: '{}'",
+            log_param("asset", fmt_text(req->asset)),
+            log_param("error", fmt_text(net_result_str(result))));
+        retCode = 1;
+        break;
+      }
+      net_rest_release(rest, req->id);
+      dynarray_remove_unordered(&requests, i, 1);
     }
-    net_rest_release(rest, request);
   }
 
-  alloc_free_array_t(g_allocHeap, requests, assetCount);
+  dynarray_destroy(&requests);
   return retCode;
 }
 
