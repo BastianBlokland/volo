@@ -92,7 +92,7 @@ static NetHttpView http_view_remaining(const NetHttp* http) {
 }
 
 static NetTlsFlags http_tls_flags(const NetHttpFlags flags) {
-  if (flags & NetHttpFlags_TlsNoVerify) {
+  if ((flags & NetHttpFlags_TlsNoVerify) == NetHttpFlags_TlsNoVerify) {
     return NetTlsFlags_NoVerify;
   }
   return NetTlsFlags_None;
@@ -638,7 +638,7 @@ NetResult net_http_get_sync(
     return http->status;
   }
 
-  if (http->status == NetResult_Success) {
+  if (body.size && http->status == NetResult_Success) {
     (void)bodyDur;
     log_d(
         "Http: Received GET body",
