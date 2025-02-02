@@ -40,7 +40,7 @@ typedef struct {
   ENCRYPT_MESSAGE_FN               EncryptMessage;
   DECRYPT_MESSAGE_FN               DecryptMessage;
 
-  CredHandle credHandle;
+  CredHandle creds, credsNoVerify;
 } NetSChannel;
 
 static SEC_WCHAR* to_sec_null_term_scratch(const String str) {
@@ -48,6 +48,28 @@ static SEC_WCHAR* to_sec_null_term_scratch(const String str) {
     return null;
   }
   return (SEC_WCHAR*)winutils_to_widestr_scratch(str).ptr;
+}
+
+static bool net_schannel_create_cred(NetSChannel* schannel, const bool noVerify, CredHandle* out) {
+  DWORD flags = SCH_USE_STRONG_CRYPTO | SCH_CRED_NO_DEFAULT_CREDS;
+  if (noVerify) {
+    flags |= SCH_CRED_MANUAL_CRED_VALIDATION;
+  }
+
+  SCHANNEL_CRED credCfg = {
+      .dwVersion             = SCHANNEL_CRED_VERSION,
+      .grbitEnabledProtocols = 0, // Let the system decide.
+      .dwFlags               = flags,
+  };
+
+  const SECURITY_STATUS credStatus = schannel->AcquireCredentialsHandleW(
+      null, UNISP_NAME, SECPKG_CRED_OUTBOUND, null, &credCfg, null, null, out, null);
+
+  if (credStatus != SEC_E_OK) {
+    log_w("SChannel failed to acquire credentials");
+    return false;
+  }
+  return true;
 }
 
 static bool net_schannel_init(NetSChannel* schannel, Allocator* alloc) {
@@ -77,22 +99,10 @@ static bool net_schannel_init(NetSChannel* schannel, Allocator* alloc) {
   SECUR_LOAD_SYM(EncryptMessage);
   SECUR_LOAD_SYM(DecryptMessage);
 
-  SCHANNEL_CRED credCfg = {
-      .dwVersion             = SCHANNEL_CRED_VERSION,
-      .grbitEnabledProtocols = 0, // Let the system decide.
-      .dwFlags               = SCH_USE_STRONG_CRYPTO | SCH_CRED_NO_DEFAULT_CREDS,
-  };
-  if (schannel->AcquireCredentialsHandleW(
-          null,
-          UNISP_NAME,
-          SECPKG_CRED_OUTBOUND,
-          null,
-          &credCfg,
-          null,
-          null,
-          &schannel->credHandle,
-          null) != SEC_E_OK) {
-    log_w("SChannel failed to acquire credentials");
+  if (!net_schannel_create_cred(schannel, false /* noVerify */, &schannel->creds)) {
+    return false;
+  }
+  if (!net_schannel_create_cred(schannel, true /* noVerify */, &schannel->credsNoVerify)) {
     return false;
   }
 
@@ -110,7 +120,8 @@ void net_tls_init(void) {
 
 void net_tls_teardown(void) {
   if (g_netSChannelReady) {
-    g_netSChannel.FreeCredentialsHandle(&g_netSChannel.credHandle);
+    g_netSChannel.FreeCredentialsHandle(&g_netSChannel.creds);
+    g_netSChannel.FreeCredentialsHandle(&g_netSChannel.credsNoVerify);
   }
   if (g_netSChannel.lib) {
     dynlib_destroy(g_netSChannel.lib);
@@ -157,6 +168,14 @@ static String net_tls_schannel_error_msg(const LONG err) {
   // clang-format on
 }
 
+static CredHandle* net_tls_creds(NetTls* tls) {
+  diag_assert(g_netSChannelReady);
+  if (tls->flags & NetTlsFlags_NoVerify) {
+    return &g_netSChannel.credsNoVerify;
+  }
+  return &g_netSChannel.creds;
+}
+
 static void net_tls_connect_sync(NetTls* tls, NetSocket* socket) {
   CtxtHandle* currentCtx = null;
   for (;;) {
@@ -176,7 +195,7 @@ static void net_tls_connect_sync(NetTls* tls, NetSocket* socket) {
                       ISC_REQ_SEQUENCE_DETECT | ISC_REQ_STREAM | ISC_REQ_USE_SUPPLIED_CREDS;
 
     const SECURITY_STATUS initStatus = g_netSChannel.InitializeSecurityContextW(
-        &g_netSChannel.credHandle,
+        net_tls_creds(tls),
         currentCtx,
         currentCtx ? null : to_sec_null_term_scratch(tls->host),
         initFlags,
@@ -426,7 +445,7 @@ NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
                 ISC_REQ_SEQUENCE_DETECT | ISC_REQ_STREAM;
 
   const SECURITY_STATUS shutdownStatus = g_netSChannel.InitializeSecurityContextW(
-      &g_netSChannel.credHandle,
+      net_tls_creds(tls),
       &tls->context,
       null,
       flags,
