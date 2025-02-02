@@ -417,7 +417,7 @@ bool net_rest_release(NetRest* rest, const NetRestId id) {
   string_maybe_free(g_allocHeap, req->host);
   string_maybe_free(g_allocHeap, req->uri);
   net_http_auth_free(&req->auth, g_allocHeap);
-  dynstring_clear(&req->buffer);
+  dynstring_release(&req->buffer); // NOTE: Its debatable if we should clear or release here.
 
   // Cleanup (not needed for correctness but makes debugging easier).
   req->result = NetResult_Success;
