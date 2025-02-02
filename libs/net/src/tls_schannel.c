@@ -354,12 +354,59 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
 }
 
 NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
-  if (tls->status != NetResult_Success && tls->status != NetResult_TlsClosed) {
-    return NetResult_Success; // Session failed, no need to shutdown.
+  if (!tls->connected || tls->status == NetResult_TlsClosed) {
+    return NetResult_Success; // Session already closed, no need to shutdown.
   }
   diag_assert(g_netSchannelReady);
 
-  // TODO: Implement.
-  (void)socket;
-  return NetResult_TlsUnavailable;
+  DWORD type = SCHANNEL_SHUTDOWN;
+
+  SecBuffer buffersIn[] = {
+      [0] = {.BufferType = SECBUFFER_TOKEN, .pvBuffer = &type, .cbBuffer = sizeof(type)},
+  };
+  SecBufferDesc descIn = {SECBUFFER_VERSION, array_elems(buffersIn), buffersIn};
+  ApplyControlToken(&tls->context, &descIn);
+
+  SecBuffer buffersOut[] = {
+      [0] = {.BufferType = SECBUFFER_TOKEN},
+  };
+  SecBufferDesc descOut = {SECBUFFER_VERSION, array_elems(buffersOut), buffersOut};
+
+  DWORD flags = ISC_REQ_ALLOCATE_MEMORY | ISC_REQ_CONFIDENTIALITY | ISC_REQ_REPLAY_DETECT |
+                ISC_REQ_SEQUENCE_DETECT | ISC_REQ_STREAM;
+
+  const SECURITY_STATUS shutdownStatus = InitializeSecurityContext(
+      &g_netSchannel.credHandle,
+      &tls->context,
+      null,
+      flags,
+      0,
+      0,
+      &descOut,
+      0,
+      null,
+      &descOut,
+      &flags,
+      null);
+
+  // Send data to remote.
+  if (buffersOut[0].pvBuffer) {
+    tls->status = net_tls_write_buffer_sync(buffersOut[0], socket);
+    FreeContextBuffer(buffersOut[0].pvBuffer);
+    if (tls->status != NetResult_Success) {
+      return tls->status; // Shutdown failed.
+    }
+  }
+
+  if (shutdownStatus == SEC_E_OK) {
+    dynstring_clear(&tls->readBuffer); // Discard any remaining input.
+    tls->status = NetResult_TlsClosed;
+    return NetResult_Success; // Shutdown successful.
+  }
+
+  log_e(
+      "SChannel shutdown failed",
+      log_param("msg", fmt_text(net_tls_schannel_error_msg(NetResult_TlsClosed))),
+      log_param("code", fmt_int((u32)NetResult_TlsClosed)));
+  return tls->status = NetResult_TlsFailed;
 }
