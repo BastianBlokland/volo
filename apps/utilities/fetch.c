@@ -95,7 +95,7 @@ static bool fetch_config_load(const String path, FetchConfig* out) {
   bool       success = false;
   File*      file    = null;
   FileResult fileRes;
-  if ((fileRes = file_create(g_allocScratch, path, FileMode_Open, FileAccess_Read, &file))) {
+  if ((fileRes = file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &file))) {
     log_e("Failed to open config file", log_param("err", fmt_text(file_result_str(fileRes))));
     goto Ret;
   }
@@ -178,7 +178,7 @@ static void fetch_registry_load_or_default(const String outputPath, FetchRegistr
   const String path = fetch_registry_path_scratch(outputPath);
   File*        file = null;
   FileResult   fileRes;
-  if ((fileRes = file_create(g_allocScratch, path, FileMode_Open, FileAccess_Read, &file))) {
+  if ((fileRes = file_create(g_allocHeap, path, FileMode_Open, FileAccess_Read, &file))) {
     goto Default;
   }
   String data;
@@ -190,7 +190,7 @@ static void fetch_registry_load_or_default(const String outputPath, FetchRegistr
   data_read_bin(g_dataReg, data, g_allocHeap, g_fetchRegistryMeta, regMem, &readRes);
   if (readRes.error) {
     log_w(
-        "Failed to read fetch registry registry",
+        "Failed to read fetch registry",
         log_param("path", fmt_path(path)),
         log_param("error", fmt_text(readRes.errorMsg)));
     goto Default;
@@ -305,11 +305,11 @@ static i32 fetch_run_origin(
 
   // Submit GET requests.
   heap_array_for_t(origin->assets, String, asset) {
-    const FileInfo      cachedFileInfo = file_stat_path_sync(path_build_scratch(outPath, *asset));
-    FetchRegistryEntry* regEntry       = fetch_registry_get(reg, *asset);
+    const FileInfo      fileInfo = file_stat_path_sync(path_build_scratch(outPath, *asset));
+    FetchRegistryEntry* regEntry = fetch_registry_get(reg, *asset);
 
     const bool expired = !regEntry || time_real_duration(regEntry->lastSyncTime, now) > cacheDur;
-    const bool invalid = cachedFileInfo.type != FileType_Regular;
+    const bool invalid = fileInfo.type != FileType_Regular;
     if (!expired && !invalid) {
       continue; // Cache entry still valid; do nothing.
     }
