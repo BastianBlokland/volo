@@ -216,7 +216,7 @@ static NetResult net_tls_read_input_sync(NetTls* tls, NetSocket* socket) {
   return (res && bytesWritten == data.size) ? NetResult_Success : NetResult_TlsBufferExhausted;
 }
 
-static NetResult net_tls_write_ouput_sync(NetTls* tls, NetSocket* socket) {
+static NetResult net_tls_write_output_sync(NetTls* tls, NetSocket* socket) {
   Mem buffer = alloc_alloc(g_allocScratch, usize_kibibyte * 32, 1);
   for (;;) {
     usize bytesRead;
@@ -317,7 +317,7 @@ NetResult net_tls_write_sync(NetTls* tls, NetSocket* socket, const String data) 
     const int err = g_netOpenSslLib.SSL_get_error(tls->session, ret);
 
     // Write the encrypted data to the socket.
-    tls->status = net_tls_write_ouput_sync(tls, socket);
+    tls->status = net_tls_write_output_sync(tls, socket);
     if (tls->status != NetResult_Success) {
       return tls->status;
     }
@@ -362,7 +362,7 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
     const int err = g_netOpenSslLib.SSL_get_error(tls->session, ret);
 
     // Write any control data to the socket, can happen if OpenSSL is performing the handshake.
-    tls->status = net_tls_write_ouput_sync(tls, socket);
+    tls->status = net_tls_write_output_sync(tls, socket);
     if (tls->status != NetResult_Success) {
       return tls->status;
     }
@@ -416,7 +416,7 @@ NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
     const int err = g_netOpenSslLib.SSL_get_error(tls->session, ret);
 
     // Write any output to the socket (OpenSSL needs to send the close_notify alert message).
-    tls->status = net_tls_write_ouput_sync(tls, socket);
+    tls->status = net_tls_write_output_sync(tls, socket);
     if (tls->status != NetResult_Success) {
       return tls->status; // Shutdown failed.
     }
