@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_dynstring.h"
 #include "core_string.h"
+#include "core_thread.h"
 #include "net_addr.h"
 #include "net_result.h"
 #include "net_socket.h"
@@ -18,9 +19,16 @@
 #include <unistd.h>
 
 static bool g_netInitialized;
+static i64  g_netTotalResolves, g_netTotalConnects;
+static i64  g_netTotalBytesRead, g_netTotalBytesWrite;
 
 void net_pal_init(void) { g_netInitialized = true; }
 void net_pal_teardown(void) { g_netInitialized = false; }
+
+u64 net_pal_total_resolves(void) { return (u64)thread_atomic_load_i64(&g_netTotalResolves); }
+u64 net_pal_total_connects(void) { return (u64)thread_atomic_load_i64(&g_netTotalConnects); }
+u64 net_pal_total_bytes_read(void) { return (u64)thread_atomic_load_i64(&g_netTotalBytesRead); }
+u64 net_pal_total_bytes_write(void) { return (u64)thread_atomic_load_i64(&g_netTotalBytesWrite); }
 
 static const char* to_null_term_scratch(const String str) {
   const Mem scratchMem = alloc_alloc(g_allocScratch, str.size + 1, 1);
@@ -108,6 +116,8 @@ NetSocket* net_socket_connect_sync(Allocator* alloc, const NetAddr addr) {
 
   *s = (NetSocket){.alloc = alloc, .handle = -1};
 
+  thread_atomic_add_i64(&g_netTotalConnects, 1);
+
   s->handle = socket(net_pal_socket_domain(addr.ip.type), SOCK_STREAM, IPPROTO_TCP);
   if (s->handle < 0) {
     s->status = net_pal_socket_error(errno);
@@ -185,6 +195,7 @@ NetResult net_socket_write_sync(NetSocket* s, const String data) {
     const ssize_t res = send(s->handle, itr, mem_end(data) - itr, MSG_NOSIGNAL);
     if (res > 0) {
       itr += res;
+      thread_atomic_add_i64(&g_netTotalBytesWrite, res);
       continue;
     }
     switch (errno) {
@@ -215,6 +226,7 @@ NetResult net_socket_read_sync(NetSocket* s, DynString* out) {
     const ssize_t res = recv(s->handle, readBuffer.ptr, readBuffer.size, 0 /* flags */);
     if (res > 0) {
       dynstring_append(out, mem_slice(readBuffer, 0, res));
+      thread_atomic_add_i64(&g_netTotalBytesRead, res);
       return NetResult_Success;
     }
     if (res == 0) {
@@ -260,6 +272,8 @@ NetResult net_resolve_sync(const String host, NetIp* out) {
   if (UNLIKELY(string_is_empty(host))) {
     return NetResult_InvalidHost;
   }
+
+  thread_atomic_add_i64(&g_netTotalResolves, 1);
 
   const struct addrinfo hints = {
       .ai_family   = AF_UNSPEC,

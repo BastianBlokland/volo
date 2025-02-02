@@ -11,6 +11,7 @@ add_library(lib_net STATIC
   src/pal.c
   src/rest.c
   src/result.c
+  src/stats.c
   src/tls.c
   )
 target_include_directories(lib_net PUBLIC include)
