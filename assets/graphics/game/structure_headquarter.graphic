@@ -1,0 +1,18 @@
+{
+  "pass": "Geometry",
+  "shaders": [
+    { "program": "shaders/standard.vert" },
+    {
+      "program": "shaders/standard.frag",
+      "overrides": [
+        { "name": "normalMap", "binding": 0, "value": 1 },
+        { "name": "emissiveMap", "binding": 2, "value": 1 }
+      ]
+    }
+  ],
+  "samplers": [
+    { "texture": "external/headquarter/headquarter_color_rough.png", "anisotropy": "x2" },
+    { "texture": "external/headquarter/headquarter_normal_emissive.png", "anisotropy": "x2" }
+  ],
+  "mesh": "external/headquarter/headquarter.glb"
+}

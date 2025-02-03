@@ -1,0 +1,7 @@
+/**
+ * Mesh scale import rules.
+ */
+
+if (asset_id_match("external/headquarter/*")) {
+  vertex_scale(0.05)
+}
