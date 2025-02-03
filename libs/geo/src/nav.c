@@ -1400,8 +1400,10 @@ static void geo_nav_block_box(
     for (u16 x = region.min.x; x != region.max.x; ++x, ++cellIndex) {
       const f32 cellY = grid->cellY[cellIndex];
       if (box->max.y > cellY && box->min.y < (cellY + grid->cellHeight)) {
-        nav_cell_block(grid, cellIndex);
-        nav_bit_set(regionBits, indexInRegion);
+        if (!nav_bit_test(regionBits, indexInRegion)) {
+          nav_cell_block(grid, cellIndex);
+          nav_bit_set(regionBits, indexInRegion);
+        }
       }
       ++indexInRegion;
     }
@@ -1417,8 +1419,10 @@ static void geo_nav_block_box_rotated(
       const GeoNavCell cell    = {.x = x, .y = y};
       const GeoBox     cellBox = nav_cell_box(grid, cell);
       if (geo_box_rotated_overlap_box(box, &cellBox)) {
-        nav_cell_block(grid, cellIndex);
-        nav_bit_set(regionBits, indexInRegion);
+        if (!nav_bit_test(regionBits, indexInRegion)) {
+          nav_cell_block(grid, cellIndex);
+          nav_bit_set(regionBits, indexInRegion);
+        }
       }
       ++indexInRegion;
     }
@@ -1434,8 +1438,10 @@ static void geo_nav_block_sphere(
       const GeoNavCell cell    = {.x = x, .y = y};
       const GeoBox     cellBox = nav_cell_box(grid, cell);
       if (geo_sphere_overlap_box(sphere, &cellBox)) {
-        nav_cell_block(grid, cellIndex);
-        nav_bit_set(regionBits, indexInRegion);
+        if (!nav_bit_test(regionBits, indexInRegion)) {
+          nav_cell_block(grid, cellIndex);
+          nav_bit_set(regionBits, indexInRegion);
+        }
       }
       ++indexInRegion;
     }
