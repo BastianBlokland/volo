@@ -46,4 +46,6 @@ To run all the tests there's an overarching `test` target.
 Assets under `assets/external/` are not distributed as part of this repository and thus not covered by the license.
 Instead they are downloaded as part of the build process, all credits go to the original creators.
 
-Licenses for the individual assets can be found at: [Asset License](https://www.bastian.tech/assets/license.txt).
+License information:
+[Asset Licenses 1](https://bastian.tech/assets/license.txt)
+[Asset Licenses 2](https://bastian.tech/assets-auth/license.txt).
