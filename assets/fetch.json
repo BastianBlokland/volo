@@ -242,6 +242,15 @@
         "water_tower/water_tower_2_normal.tga",
         "water_tower/water_tower.obj"
       ]
+    },
+    {
+      "host": "bastian.tech",
+      "license": "/assets-auth/license.txt",
+      "rootUri": "/assets-auth/",
+      "authUser": "volo",
+      "authPass": "kqT6YwEgxfN7rmSv",
+      "cacheTime": 86400,
+      "assets": [ ]
     }
   ]
 }
