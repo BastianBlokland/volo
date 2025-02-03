@@ -418,7 +418,12 @@ static void setup_renderable(PrefabSetupContext* ctx, const AssetPrefabTraitRend
     color = geo_color_white;
   }
   ecs_world_add_t(
-      ctx->world, ctx->entity, SceneRenderableComp, .graphic = t->graphic.entity, .color = color);
+      ctx->world,
+      ctx->entity,
+      SceneRenderableComp,
+      .graphic  = t->graphic.entity,
+      .emissive = t->emissive,
+      .color    = color);
 }
 
 static void setup_vfx_system(PrefabSetupContext* ctx, const AssetPrefabTraitVfx* t) {
