@@ -16,7 +16,7 @@
 #define geo_nav_occupants_max 4096
 #define geo_nav_occupants_per_cell 3
 #define geo_nav_blockers_max 2048
-#define geo_nav_blocker_max_cells 256
+#define geo_nav_blocker_max_cells 512
 #define geo_nav_island_max (u8_max - 1)
 #define geo_nav_island_blocked u8_max
 #define geo_nav_island_itr_per_tick 10000
