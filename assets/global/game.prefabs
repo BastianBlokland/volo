@@ -555,6 +555,48 @@
       ]
     },
     {
+      "name": "StructureHeadquarter",
+      "traits": [
+        { "$type": "AssetPrefabTrait_Name", "name": "Headquarter" },
+        { "$type": "AssetPrefabTrait_SetMember", "sets": [ "destructible", "unit", "minimap", "structure" ] },
+        {
+          "$type": "AssetPrefabTrait_Renderable",
+          "graphic": "graphics/game/structure_headquarter.graphic",
+          "emissive": 0.2
+        },
+        { "$type": "AssetPrefabTrait_Vision", "radius": 35 },
+        {
+          "$type": "AssetPrefabTrait_Health",
+          "amount": 10000,
+          "deathDestroyDelay": 0.8,
+          "deathEffectPrefab": "DeathStructure"
+        },
+        {
+          "$type": "AssetPrefabTrait_Collision",
+          "navBlocker": true,
+          "shapes": [
+            {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -4.0, "y": 0, "z": -3.3 },
+              "max": { "x": 4.0, "y": 11.5, "z": 5.0 }
+            },
+            {
+              "$type": "AssetPrefabShape_Box",
+              "min": { "x": -10.0, "y": 0, "z": -11 },
+              "max": { "x": 10.0, "y": 2, "z": 11.0 }
+            }
+          ]
+        },
+        {
+          "$type": "AssetPrefabTrait_Location", "aimTarget": {
+            "min": { "x": -9, "y": 0.5, "z": -10 },
+            "max": { "x": 9, "y": 2, "z": 10 }
+          }
+        },
+        { "$type": "AssetPrefabTrait_Status", "supportedStatus": [ "Burning" ] }
+      ]
+    },
+    {
       "name": "StructureHospital",
       "traits": [
         { "$type": "AssetPrefabTrait_Name", "name": "Medic Tent" },

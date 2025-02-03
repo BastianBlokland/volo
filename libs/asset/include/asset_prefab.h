@@ -60,6 +60,7 @@ typedef struct {
 
 typedef struct {
   AssetRef graphic;
+  f32      emissive; // Normalized.
 } AssetPrefabTraitRenderable;
 
 typedef struct {

@@ -539,6 +539,7 @@ void asset_data_init_prefab(void) {
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitRenderable);
   data_reg_field_t(g_dataReg, AssetPrefabTraitRenderable, graphic, g_assetRefType);
+  data_reg_field_t(g_dataReg, AssetPrefabTraitRenderable, emissive, data_prim_t(f32), .flags = DataFlags_Opt);
 
   data_reg_struct_t(g_dataReg, AssetPrefabTraitVfx);
   data_reg_field_t(g_dataReg, AssetPrefabTraitVfx, asset, g_assetRefType);

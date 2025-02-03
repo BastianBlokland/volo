@@ -78,7 +78,8 @@
           "additionalProperties": false,
           "properties": {
             "$type": { "const": "AssetPrefabTrait_Renderable" },
-            "graphic": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" }
+            "graphic": { "title": "AssetRef", "description": "Asset reference", "$ref": "#/$defs/AssetRef" },
+            "emissive": { "title": "f32", "type": "number" }
           },
           "required": [ "$type", "graphic" ]
         },

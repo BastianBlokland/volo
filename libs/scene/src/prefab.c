@@ -59,6 +59,7 @@ static const u64 g_prefabVariantTraitMask[ScenePrefabVariant_Count] = {
                                    (u64_lit(1) << AssetPrefabTrait_Property)     |
                                    (u64_lit(1) << AssetPrefabTrait_Decal)        |
                                    (u64_lit(1) << AssetPrefabTrait_LightPoint)   |
+                                   (u64_lit(1) << AssetPrefabTrait_Location)     |
                                    (u64_lit(1) << AssetPrefabTrait_LightDir)     |
                                    (u64_lit(1) << AssetPrefabTrait_LightAmbient) |
                                    (u64_lit(1) << AssetPrefabTrait_Collision)    |
@@ -418,7 +419,12 @@ static void setup_renderable(PrefabSetupContext* ctx, const AssetPrefabTraitRend
     color = geo_color_white;
   }
   ecs_world_add_t(
-      ctx->world, ctx->entity, SceneRenderableComp, .graphic = t->graphic.entity, .color = color);
+      ctx->world,
+      ctx->entity,
+      SceneRenderableComp,
+      .graphic  = t->graphic.entity,
+      .emissive = t->emissive,
+      .color    = color);
 }
 
 static void setup_vfx_system(PrefabSetupContext* ctx, const AssetPrefabTraitVfx* t) {
