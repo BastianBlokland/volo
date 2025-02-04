@@ -50,8 +50,9 @@ typedef struct {
 
 typedef enum {
   GapPalXcbExtFlags_Xkb    = 1 << 0,
-  GapPalXcbExtFlags_Randr  = 1 << 1,
-  GapPalXcbExtFlags_Render = 1 << 2,
+  GapPalXcbExtFlags_XFixes = 1 << 1,
+  GapPalXcbExtFlags_Randr  = 1 << 2,
+  GapPalXcbExtFlags_Render = 1 << 3,
 } GapPalXcbExtFlags;
 
 typedef enum {
@@ -656,7 +657,9 @@ static void pal_init_extensions(GapPal* pal) {
   if (pal_xkb_init(pal)) {
     pal->extensions |= GapPalXcbExtFlags_Xkb;
   }
-  pal_xfixes_init(pal, &pal->xfixes);
+  if (pal_xfixes_init(pal, &pal->xfixes)) {
+    pal->extensions |= GapPalXcbExtFlags_XFixes;
+  }
   if (pal_randr_init(pal, &pal->randrFirstEvent)) {
     pal->extensions |= GapPalXcbExtFlags_Randr;
   }
@@ -1644,7 +1647,7 @@ void gap_pal_window_resize(
 }
 
 void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const bool hidden) {
-  if (!pal->xfixes.hide_cursor || !pal->xfixes.show_cursor) {
+  if (!(pal->extensions & GapPalXcbExtFlags_XFixes)) {
     log_w("Failed to update cursor visibility: XFixes extension not available");
     return;
   }
