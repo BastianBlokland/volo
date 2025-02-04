@@ -11,7 +11,6 @@
 #include <xcb/randr.h>
 #include <xcb/render.h>
 #include <xcb/xcb.h>
-#include <xcb/xfixes.h>
 #include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon-x11.h>
 
@@ -36,13 +35,15 @@
 
 #define pal_xcb_call_void(_CON_, _FUNC_, _ERR_) _FUNC_##_reply((_CON_), _FUNC_(_CON_), (_ERR_))
 
+typedef unsigned int XcbCookie;
+
 typedef struct {
   DynLib* lib;
   // clang-format off
-  xcb_xfixes_query_version_cookie_t (SYS_DECL* query_version)(xcb_connection_t*, uint32_t majorVersion, uint32_t minorVersion);
-  xcb_xfixes_query_version_reply_t* (SYS_DECL* query_version_reply)(xcb_connection_t*, xcb_xfixes_query_version_cookie_t, xcb_generic_error_t**);
-  xcb_void_cookie_t                 (SYS_DECL* show_cursor)(xcb_connection_t*, xcb_window_t);
-  xcb_void_cookie_t                 (SYS_DECL* hide_cursor)(xcb_connection_t*, xcb_window_t);
+  XcbCookie (SYS_DECL* query_version)(xcb_connection_t*, uint32_t majorVersion, uint32_t minorVersion);
+  void*     (SYS_DECL* query_version_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  XcbCookie (SYS_DECL* show_cursor)(xcb_connection_t*, xcb_window_t);
+  XcbCookie (SYS_DECL* hide_cursor)(xcb_connection_t*, xcb_window_t);
   // clang-format on
 } XcbXFixes;
 
@@ -530,9 +531,8 @@ static bool pal_xfixes_init(GapPal* pal, XcbXFixes* out) {
 
 #undef XFIXES_LOAD_SYM
 
-  xcb_generic_error_t*              err   = null;
-  xcb_xfixes_query_version_reply_t* reply = pal_xcb_call(
-      pal->xcbCon, out->query_version, &err, XCB_XFIXES_MAJOR_VERSION, XCB_XFIXES_MINOR_VERSION);
+  xcb_generic_error_t* err   = null;
+  void*                reply = pal_xcb_call(pal->xcbCon, out->query_version, &err, 5, 0);
   free(reply);
 
   if (UNLIKELY(err)) {
