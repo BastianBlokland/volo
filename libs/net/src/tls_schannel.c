@@ -102,6 +102,8 @@ static bool net_schannel_init(NetSChannel* schannel, Allocator* alloc) {
   SECUR_LOAD_SYM(EncryptMessage);
   SECUR_LOAD_SYM(DecryptMessage);
 
+#undef SECUR_LOAD_SYM
+
   if (!net_schannel_create_cred(schannel, false /* noVerify */, &schannel->creds)) {
     return false;
   }
