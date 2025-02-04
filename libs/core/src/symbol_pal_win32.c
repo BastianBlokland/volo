@@ -78,6 +78,8 @@ static bool sym_dbg_lib_load(SymDbg* dbg, Allocator* alloc) {
   DBG_LOAD_SYM(SymLoadModuleEx);
   DBG_LOAD_SYM(SymEnumSymbolsEx);
 
+#undef DBG_LOAD_SYM
+
   return true;
 }
 

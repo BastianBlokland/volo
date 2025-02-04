@@ -1,18 +1,19 @@
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_dynlib.h"
 #include "core_dynstring.h"
 #include "core_math.h"
 #include "log_logger.h"
 
 #include "pal_internal.h"
 
-#include <stdlib.h>
 #include <xcb/randr.h>
 #include <xcb/render.h>
 #include <xcb/xcb.h>
-#include <xcb/xfixes.h>
 #include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon-x11.h>
+
+void SYS_DECL free(void*); // free from stdlib, xcb allocates various structures for us to free.
 
 /**
  * X11 client implementation using the xcb library.
@@ -35,11 +36,22 @@
 
 #define pal_xcb_call_void(_CON_, _FUNC_, _ERR_) _FUNC_##_reply((_CON_), _FUNC_(_CON_), (_ERR_))
 
+typedef unsigned int XcbCookie;
+
+typedef struct {
+  DynLib* lib;
+  // clang-format off
+  XcbCookie (SYS_DECL* query_version)(xcb_connection_t*, uint32_t majorVersion, uint32_t minorVersion);
+  void*     (SYS_DECL* query_version_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  XcbCookie (SYS_DECL* show_cursor)(xcb_connection_t*, xcb_window_t);
+  XcbCookie (SYS_DECL* hide_cursor)(xcb_connection_t*, xcb_window_t);
+  // clang-format on
+} XcbXFixes;
+
 typedef enum {
   GapPalXcbExtFlags_Xkb    = 1 << 0,
-  GapPalXcbExtFlags_XFixes = 1 << 1,
-  GapPalXcbExtFlags_Randr  = 1 << 2,
-  GapPalXcbExtFlags_Render = 1 << 3,
+  GapPalXcbExtFlags_Randr  = 1 << 1,
+  GapPalXcbExtFlags_Render = 1 << 2,
 } GapPalXcbExtFlags;
 
 typedef enum {
@@ -81,6 +93,8 @@ struct sGapPal {
   usize             maxRequestLength;
   u8                randrFirstEvent;
   GapPalFlags       flags;
+
+  XcbXFixes xfixes;
 
   struct xkb_context* xkbContext;
   i32                 xkbDeviceId;
@@ -493,29 +507,41 @@ static bool pal_xkb_init(GapPal* pal) {
 /**
  * Initialize xfixes extension, contains various utilities.
  */
-static bool pal_xfixes_init(GapPal* pal) {
-  xcb_generic_error_t*              err   = null;
-  xcb_xfixes_query_version_reply_t* reply = pal_xcb_call(
-      pal->xcbCon,
-      xcb_xfixes_query_version,
-      &err,
-      XCB_XFIXES_MAJOR_VERSION,
-      XCB_XFIXES_MINOR_VERSION);
-
-  if (UNLIKELY(err)) {
-    log_w("Xcb failed to initialize the xfixes ext", log_param("error", fmt_int(err->error_code)));
-    free(reply);
+static bool pal_xfixes_init(GapPal* pal, XcbXFixes* out) {
+  DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxcb-xfixes.so"), &out->lib);
+  if (loadRes != DynLibResult_Success) {
+    const String err = dynlib_result_str(loadRes);
+    log_w("Failed to load xfixes library ('libxcb-xfixes.so')", log_param("err", fmt_text(err)));
     return false;
   }
 
-  MAYBE_UNUSED const u16 versionMajor = reply->major_version;
-  MAYBE_UNUSED const u16 versionMinor = reply->minor_version;
+#define XFIXES_LOAD_SYM(_NAME_)                                                                    \
+  do {                                                                                             \
+    const String symName = string_lit("xcb_xfixes_" #_NAME_);                                      \
+    out->_NAME_          = dynlib_symbol(out->lib, symName);                                       \
+    if (!out->_NAME_) {                                                                            \
+      log_w("XFixes symbol '{}' missing", log_param("sym", fmt_text(symName)));                    \
+      return false;                                                                                \
+    }                                                                                              \
+  } while (false)
+
+  XFIXES_LOAD_SYM(query_version);
+  XFIXES_LOAD_SYM(query_version_reply);
+  XFIXES_LOAD_SYM(show_cursor);
+  XFIXES_LOAD_SYM(hide_cursor);
+
+#undef XFIXES_LOAD_SYM
+
+  xcb_generic_error_t* err   = null;
+  void*                reply = pal_xcb_call(pal->xcbCon, out->query_version, &err, 5, 0);
   free(reply);
 
-  log_i(
-      "Xcb initialized the xfixes extension",
-      log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))));
+  if (UNLIKELY(err)) {
+    log_w("Failed to initialize Xcb xfixes", log_param("error", fmt_int(err->error_code)));
+    return false;
+  }
 
+  log_i("Initialized Xcb xfixes", log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
@@ -630,9 +656,7 @@ static void pal_init_extensions(GapPal* pal) {
   if (pal_xkb_init(pal)) {
     pal->extensions |= GapPalXcbExtFlags_Xkb;
   }
-  if (pal_xfixes_init(pal)) {
-    pal->extensions |= GapPalXcbExtFlags_XFixes;
-  }
+  pal_xfixes_init(pal, &pal->xfixes);
   if (pal_randr_init(pal, &pal->randrFirstEvent)) {
     pal->extensions |= GapPalXcbExtFlags_Randr;
   }
@@ -1091,6 +1115,10 @@ void gap_pal_destroy(GapPal* pal) {
     gap_pal_window_destroy(pal, dynarray_at_t(&pal->windows, 0, GapPalWindow)->id);
   }
   dynarray_for_t(&pal->displays, GapPalDisplay, d) { string_maybe_free(g_allocHeap, d->name); }
+
+  if (pal->xfixes.lib) {
+    dynlib_destroy(pal->xfixes.lib);
+  }
 
   if (pal->xkbContext) {
     xkb_context_unref(pal->xkbContext);
@@ -1616,17 +1644,17 @@ void gap_pal_window_resize(
 }
 
 void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const bool hidden) {
-  if (!(pal->extensions & GapPalXcbExtFlags_XFixes)) {
+  if (!pal->xfixes.hide_cursor || !pal->xfixes.show_cursor) {
     log_w("Failed to update cursor visibility: XFixes extension not available");
     return;
   }
 
   if (hidden && !(pal->flags & GapPalFlags_CursorHidden)) {
-    xcb_xfixes_hide_cursor(pal->xcbCon, (xcb_window_t)windowId);
+    pal->xfixes.hide_cursor(pal->xcbCon, (xcb_window_t)windowId);
     pal->flags |= GapPalFlags_CursorHidden;
 
   } else if (!hidden && pal->flags & GapPalFlags_CursorHidden) {
-    xcb_xfixes_show_cursor(pal->xcbCon, (xcb_window_t)windowId);
+    pal->xfixes.show_cursor(pal->xcbCon, (xcb_window_t)windowId);
     pal->flags &= ~GapPalFlags_CursorHidden;
   }
 }
