@@ -588,7 +588,7 @@ static bool pal_xfixes_init(GapPal* pal, XcbXFixes* out) {
     return false;
   }
 
-  log_i("Initialized Xcb xfixes", log_param("path", fmt_path(dynlib_path(out->lib))));
+  log_i("Xcb initialized xfixes extension", log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
@@ -710,7 +710,7 @@ static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
     return false;
   }
 
-  log_i("Initialized Xcb render", log_param("path", fmt_path(dynlib_path(out->lib))));
+  log_i("Xcb initialized xrender extension", log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
