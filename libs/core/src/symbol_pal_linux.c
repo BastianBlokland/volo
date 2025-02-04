@@ -92,6 +92,8 @@ static bool sym_dbg_dw_load(SymDbg* dbg, Allocator* alloc) {
   DW_LOAD_SYM(elf_getphdrnum);
   DW_LOAD_SYM(gelf_getphdr);
 
+#undef DW_LOAD_SYM
+
   return true;
 }
 

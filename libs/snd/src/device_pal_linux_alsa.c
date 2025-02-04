@@ -168,7 +168,7 @@ static bool alsa_lib_init(AlsaLib* lib, Allocator* alloc) {
   ALSA_LOAD_SYM(pcm_hw_params_set_periods_near);
   ALSA_LOAD_SYM(pcm_hw_params_set_period_size_near);
 
-#undef ALSA_LIB_SYM
+#undef ALSA_LOAD_SYM
   return true;
 }
 
