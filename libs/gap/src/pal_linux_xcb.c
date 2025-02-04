@@ -8,7 +8,6 @@
 #include "pal_internal.h"
 
 #include <xcb/randr.h>
-#include <xcb/render.h>
 #include <xcb/xcb.h>
 #include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon-x11.h>
@@ -36,22 +35,69 @@ void SYS_DECL free(void*); // free from stdlib, xcb allocates various structures
 
 #define pal_xcb_call_void(_CON_, _FUNC_, _ERR_) _FUNC_##_reply((_CON_), _FUNC_(_CON_), (_ERR_))
 
-typedef unsigned int XcbCookie;
+typedef unsigned int           XcbCookie;
+typedef struct sXcbPictFormats XcbPictFormats;
+typedef u32                    XcbCursor;
+typedef u32                    XcbDrawable;
+typedef u32                    XcbPictFormat;
+typedef u32                    XcbPicture;
+
+typedef struct {
+  u16 redShift;
+  u16 redMask;
+  u16 greenShift;
+  u16 greenMask;
+  u16 blueShift;
+  u16 blueMask;
+  u16 alphaShift;
+  u16 alphaMask;
+} XcbDirectFormat;
+
+typedef struct {
+  XcbPictFormat   id;
+  u8              type;
+  u8              depth;
+  u8              pad0[2];
+  XcbDirectFormat direct;
+  u32             colormap;
+} XcbPictFormatInfo;
+
+typedef struct {
+  XcbPictFormatInfo* data;
+  int                rem, index;
+} XcbPictFormatInfoItr;
 
 typedef struct {
   DynLib* lib;
   // clang-format off
-  XcbCookie (SYS_DECL* query_version)(xcb_connection_t*, uint32_t majorVersion, uint32_t minorVersion);
+  XcbCookie (SYS_DECL* query_version)(xcb_connection_t*, u32 majorVersion, u32 minorVersion);
   void*     (SYS_DECL* query_version_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
   XcbCookie (SYS_DECL* show_cursor)(xcb_connection_t*, xcb_window_t);
   XcbCookie (SYS_DECL* hide_cursor)(xcb_connection_t*, xcb_window_t);
   // clang-format on
 } XcbXFixes;
 
+typedef struct {
+  DynLib*          lib;
+  xcb_extension_t* id;
+  // clang-format off
+  XcbCookie            (SYS_DECL* query_version)(xcb_connection_t*, u32 majorVersion, u32 minorVersion);
+  void*                (SYS_DECL* query_version_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  XcbCookie            (SYS_DECL* query_pict_formats)(xcb_connection_t*);
+  XcbPictFormats*      (SYS_DECL* query_pict_formats_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  XcbPictFormatInfoItr (SYS_DECL* query_pict_formats_formats_iterator)(const XcbPictFormats*);
+  void                 (SYS_DECL* pictforminfo_next)(XcbPictFormatInfoItr*);
+  XcbCookie            (SYS_DECL* create_picture)(xcb_connection_t*, XcbPicture, XcbDrawable, XcbPictFormat, u32 valueMask, const void* valueList);
+  XcbCookie            (SYS_DECL* create_cursor)(xcb_connection_t*, XcbCursor, XcbPicture, u16 x, u16 y);
+  XcbCookie            (SYS_DECL* free_picture)(xcb_connection_t*, XcbPicture);
+  // clang-format on
+} XcbRender;
+
 typedef enum {
   GapPalXcbExtFlags_Xkb    = 1 << 0,
-  GapPalXcbExtFlags_Randr  = 1 << 1,
-  GapPalXcbExtFlags_Render = 1 << 2,
+  GapPalXcbExtFlags_XFixes = 1 << 1,
+  GapPalXcbExtFlags_Randr  = 1 << 2,
+  GapPalXcbExtFlags_Render = 1 << 3,
 } GapPalXcbExtFlags;
 
 typedef enum {
@@ -95,13 +141,14 @@ struct sGapPal {
   GapPalFlags       flags;
 
   XcbXFixes xfixes;
+  XcbRender xrender;
 
   struct xkb_context* xkbContext;
   i32                 xkbDeviceId;
   struct xkb_keymap*  xkbKeymap;
   struct xkb_state*   xkbState;
 
-  xcb_render_pictformat_t formatArgb32;
+  XcbPictFormat formatArgb32;
 
   Mem          icons[GapIcon_Count];
   xcb_cursor_t cursors[GapCursor_Count];
@@ -541,7 +588,7 @@ static bool pal_xfixes_init(GapPal* pal, XcbXFixes* out) {
     return false;
   }
 
-  log_i("Initialized Xcb xfixes", log_param("path", fmt_path(dynlib_path(out->lib))));
+  log_i("Xcb initialized xfixes extension", log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
@@ -578,33 +625,32 @@ static bool pal_randr_init(GapPal* pal, u8* firstEventOut) {
   return true;
 }
 
-static bool pal_render_find_formats(GapPal* pal) {
-  xcb_generic_error_t*                   err = null;
-  xcb_render_query_pict_formats_reply_t* formats =
-      pal_xcb_call_void(pal->xcbCon, xcb_render_query_pict_formats, &err);
+static bool pal_xrender_find_formats(GapPal* pal) {
+  xcb_generic_error_t* err = null;
+  XcbPictFormats* formats  = pal_xcb_call_void(pal->xcbCon, pal->xrender.query_pict_formats, &err);
 
   if (UNLIKELY(err)) {
     return false;
   }
 
-  xcb_render_pictforminfo_iterator_t itr = xcb_render_query_pict_formats_formats_iterator(formats);
-  for (; itr.rem; xcb_render_pictforminfo_next(&itr)) {
+  XcbPictFormatInfoItr itr = pal->xrender.query_pict_formats_formats_iterator(formats);
+  for (; itr.rem; pal->xrender.pictforminfo_next(&itr)) {
     if (itr.data->depth != 32) {
       continue;
     }
-    if (itr.data->type != XCB_RENDER_PICT_TYPE_DIRECT) {
+    if (itr.data->type != 1 /* XCB_RENDER_PICT_TYPE_DIRECT */) {
       continue;
     }
-    if (itr.data->direct.alpha_shift != 0 || itr.data->direct.alpha_mask != 0xFF) {
+    if (itr.data->direct.alphaShift != 0 || itr.data->direct.alphaMask != 0xFF) {
       continue;
     }
-    if (itr.data->direct.red_shift != 8 || itr.data->direct.red_mask != 0xFF) {
+    if (itr.data->direct.redShift != 8 || itr.data->direct.redMask != 0xFF) {
       continue;
     }
-    if (itr.data->direct.green_shift != 16 || itr.data->direct.green_mask != 0xFF) {
+    if (itr.data->direct.greenShift != 16 || itr.data->direct.greenMask != 0xFF) {
       continue;
     }
-    if (itr.data->direct.blue_shift != 24 || itr.data->direct.blue_mask != 0xFF) {
+    if (itr.data->direct.blueShift != 24 || itr.data->direct.blueMask != 0xFF) {
       continue;
     }
     pal->formatArgb32 = itr.data->id;
@@ -615,40 +661,56 @@ static bool pal_render_find_formats(GapPal* pal) {
   return false; // Argb32 not found.
 }
 
-static bool pal_render_init(GapPal* pal) {
-  const xcb_query_extension_reply_t* data = xcb_get_extension_data(pal->xcbCon, &xcb_render_id);
+static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
+  DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxcb-render.so"), &out->lib);
+  if (loadRes != DynLibResult_Success) {
+    const String err = dynlib_result_str(loadRes);
+    log_w("Failed to load xrender library ('libxcb-render.so')", log_param("err", fmt_text(err)));
+    return false;
+  }
+
+#define XRENDER_LOAD_SYM(_NAME_)                                                                   \
+  do {                                                                                             \
+    const String symName = string_lit("xcb_render_" #_NAME_);                                      \
+    out->_NAME_          = dynlib_symbol(out->lib, symName);                                       \
+    if (!out->_NAME_) {                                                                            \
+      log_w("Xcb-render symbol '{}' missing", log_param("sym", fmt_text(symName)));                \
+      return false;                                                                                \
+    }                                                                                              \
+  } while (false)
+
+  XRENDER_LOAD_SYM(id);
+  XRENDER_LOAD_SYM(query_version);
+  XRENDER_LOAD_SYM(query_version_reply);
+  XRENDER_LOAD_SYM(query_pict_formats);
+  XRENDER_LOAD_SYM(query_pict_formats_reply);
+  XRENDER_LOAD_SYM(query_pict_formats_formats_iterator);
+  XRENDER_LOAD_SYM(pictforminfo_next);
+  XRENDER_LOAD_SYM(create_picture);
+  XRENDER_LOAD_SYM(create_cursor);
+  XRENDER_LOAD_SYM(free_picture);
+
+#undef XRENDER_LOAD_SYM
+
+  const xcb_query_extension_reply_t* data = xcb_get_extension_data(pal->xcbCon, out->id);
   if (!data || !data->present) {
     log_w("Xcb render extention not present");
     return false;
   }
-  xcb_generic_error_t*              err     = null;
-  xcb_render_query_version_reply_t* version = pal_xcb_call(
-      pal->xcbCon,
-      xcb_render_query_version,
-      &err,
-      XCB_RENDER_MAJOR_VERSION,
-      XCB_RENDER_MINOR_VERSION);
-
-  if (UNLIKELY(err)) {
-    log_w(
-        "Xcb failed to initialize the render extension",
-        log_param("error", fmt_int(err->error_code)));
-    free(version);
-    return false;
-  }
-  MAYBE_UNUSED const u16 versionMajor = version->major_version;
-  MAYBE_UNUSED const u16 versionMinor = version->minor_version;
+  xcb_generic_error_t* err     = null;
+  void*                version = pal_xcb_call(pal->xcbCon, out->query_version, &err, 0, 11);
   free(version);
 
-  if (!pal_render_find_formats(pal)) {
+  if (UNLIKELY(err)) {
+    log_w("Failed to initialize Xcb render extension", log_param("err", fmt_int(err->error_code)));
+    return false;
+  }
+  if (!pal_xrender_find_formats(pal)) {
     log_w("Xcb failed to find required render formats");
     return false;
   }
 
-  log_i(
-      "Xcb initialized the render extension",
-      log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))));
-
+  log_i("Xcb initialized xrender extension", log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
@@ -656,11 +718,13 @@ static void pal_init_extensions(GapPal* pal) {
   if (pal_xkb_init(pal)) {
     pal->extensions |= GapPalXcbExtFlags_Xkb;
   }
-  pal_xfixes_init(pal, &pal->xfixes);
+  if (pal_xfixes_init(pal, &pal->xfixes)) {
+    pal->extensions |= GapPalXcbExtFlags_XFixes;
+  }
   if (pal_randr_init(pal, &pal->randrFirstEvent)) {
     pal->extensions |= GapPalXcbExtFlags_Randr;
   }
-  if (pal_render_init(pal)) {
+  if (pal_xrender_init(pal, &pal->xrender)) {
     pal->extensions |= GapPalXcbExtFlags_Render;
   }
 }
@@ -1119,6 +1183,9 @@ void gap_pal_destroy(GapPal* pal) {
   if (pal->xfixes.lib) {
     dynlib_destroy(pal->xfixes.lib);
   }
+  if (pal->xrender.lib) {
+    dynlib_destroy(pal->xrender.lib);
+  }
 
   if (pal->xkbContext) {
     xkb_context_unref(pal->xkbContext);
@@ -1420,8 +1487,8 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
   xcb_pixmap_t pixmap = xcb_generate_id(pal->xcbCon);
   xcb_create_pixmap(pal->xcbCon, 32, pixmap, pal->xcbScreen->root, asset->width, asset->height);
 
-  xcb_render_picture_t picture = xcb_generate_id(pal->xcbCon);
-  xcb_render_create_picture(pal->xcbCon, picture, pixmap, pal->formatArgb32, 0, null);
+  XcbPicture picture = xcb_generate_id(pal->xcbCon);
+  pal->xrender.create_picture(pal->xcbCon, picture, pixmap, pal->formatArgb32, 0, null);
 
   xcb_gcontext_t graphicsContext = xcb_generate_id(pal->xcbCon);
   xcb_create_gc(pal->xcbCon, graphicsContext, pixmap, 0, null);
@@ -1446,10 +1513,10 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
   xcb_free_gc(pal->xcbCon, graphicsContext);
 
   xcb_cursor_t cursor = xcb_generate_id(pal->xcbCon);
-  xcb_render_create_cursor(
+  pal->xrender.create_cursor(
       pal->xcbCon, cursor, picture, asset->hotspotX, asset->height - asset->hotspotY);
 
-  xcb_render_free_picture(pal->xcbCon, picture);
+  pal->xrender.free_picture(pal->xcbCon, picture);
   xcb_free_pixmap(pal->xcbCon, pixmap);
 
   if (pal->cursors[id] != XCB_NONE) {
@@ -1644,7 +1711,7 @@ void gap_pal_window_resize(
 }
 
 void gap_pal_window_cursor_hide(GapPal* pal, const GapWindowId windowId, const bool hidden) {
-  if (!pal->xfixes.hide_cursor || !pal->xfixes.show_cursor) {
+  if (!(pal->extensions & GapPalXcbExtFlags_XFixes)) {
     log_w("Failed to update cursor visibility: XFixes extension not available");
     return;
   }
