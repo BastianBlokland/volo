@@ -7,12 +7,13 @@
 
 #include "pal_internal.h"
 
-#include <stdlib.h>
 #include <xcb/randr.h>
 #include <xcb/render.h>
 #include <xcb/xcb.h>
 #include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon-x11.h>
+
+void SYS_DECL free(void*); // free from stdlib, xcb allocates various structures for us to free.
 
 /**
  * X11 client implementation using the xcb library.
