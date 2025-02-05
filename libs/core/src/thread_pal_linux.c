@@ -76,20 +76,17 @@ u16 thread_pal_core_count(void) {
 }
 
 uptr thread_pal_stack_top(void) {
-  /**
-   * NOTE: Called during early startup so cannot allocate memory.
-   */
   pthread_attr_t attr;
   if (pthread_getattr_np(pthread_self(), &attr)) {
-    thread_crash_early_init(string_lit("pthread_getattr_np() failed\n"));
+    diag_crash_msg("pthread_getattr_np() failed");
   }
   void*  stackPtr;
   size_t stackSize;
   if (pthread_attr_getstack(&attr, &stackPtr, &stackSize)) {
-    thread_crash_early_init(string_lit("pthread_attr_getstack() failed\n"));
+    diag_crash_msg("pthread_attr_getstack() failed");
   }
   if (pthread_attr_destroy(&attr)) {
-    thread_crash_early_init(string_lit("pthread_attr_destroy() failed\n"));
+    diag_crash_msg("pthread_attr_destroy() failed");
   }
   return (uptr)stackPtr + (uptr)stackSize;
 }
