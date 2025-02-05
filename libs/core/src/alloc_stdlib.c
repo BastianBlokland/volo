@@ -127,3 +127,14 @@ void* SYS_DECL memalign(const usize align, const usize size) { return stdlib_all
 void* SYS_DECL pvalloc(const usize size) { return stdlib_alloc(size, alloc_page_size()); }
 
 usize SYS_DECL malloc_usable_size(void* ptr) { return stdlib_payload(ptr).size; }
+
+void SYS_DECL free_sized(void* ptr, const usize size) {
+  (void)size;
+  free(ptr);
+}
+
+void SYS_DECL free_aligned_sized(void* ptr, const usize align, const usize size) {
+  (void)align;
+  (void)size;
+  free(ptr);
+}
