@@ -34,9 +34,6 @@ static AllocTrackerSlot* tracker_slots_alloc(const usize slotCount) {
 
 static AllocTrackerSlot* tracker_slot(
     AllocTrackerSlot* slots, const usize slotCount, const Mem mem, const bool includeEmpty) {
-  if (UNLIKELY(!mem_valid(mem))) {
-    alloc_crash_with_msg("Invalid memory");
-  }
   const u64 hash   = bits_hash_64_val((u64)mem.ptr);
   usize     bucket = (usize)(hash & (slotCount - 1));
   for (usize i = 0; i != slotCount; ++i) {
@@ -91,6 +88,18 @@ void alloc_tracker_destroy(AllocTracker* tracker) {
 }
 
 void alloc_tracker_add(AllocTracker* tracker, const Mem mem, const SymbolStack stack) {
+  if (UNLIKELY(!mem_valid(mem))) {
+    alloc_crash_with_msg("Invalid memory");
+  }
+
+  /**
+   * NOTE: Delay crashing until we've released the spinlock, this avoids deadlocking when the
+   * process of crashing requires us to allocate more memory.
+   */
+  enum { ErrNone, ErrDupAlloc };
+  u32   err     = ErrNone;
+  usize oldSize = 0;
+
   thread_spinlock_lock(&tracker->slotsLock);
   {
     AllocTrackerSlot* slot = tracker_slot(tracker->slots, tracker->slotCount, mem, true);
@@ -103,38 +112,67 @@ void alloc_tracker_add(AllocTracker* tracker, const Mem mem, const SymbolStack s
         tracker_grow(tracker);
       }
     } else {
-      diag_crash_msg(
-          "Duplicate allocation (addr: {}, prev-size: {}, new-size: {}) in AllocationTracker",
-          fmt_int((uptr)mem.ptr, .base = 16, .minDigits = 16),
-          fmt_int(slot->mem.size),
-          fmt_int(mem.size));
+      err     = ErrDupAlloc;
+      oldSize = slot->mem.size;
     }
   }
   thread_spinlock_unlock(&tracker->slotsLock);
+
+  switch (err) {
+  case ErrDupAlloc:
+    diag_crash_msg(
+        "Duplicate allocation (addr: {}, prev-size: {}, new-size: {}) in AllocationTracker",
+        fmt_int((uptr)mem.ptr, .base = 16, .minDigits = 16),
+        fmt_int(oldSize),
+        fmt_int(mem.size));
+    break;
+  }
 }
 
 void alloc_tracker_remove(AllocTracker* tracker, const Mem mem) {
+  if (UNLIKELY(!mem_valid(mem))) {
+    alloc_crash_with_msg("Invalid memory");
+  }
+
+  /**
+   * NOTE: Delay crashing until we've released the spinlock, this avoids deadlocking when the
+   * process of crashing requires us to allocate more memory.
+   */
+  enum { ErrNone, ErrMissing, ErrWrongSize };
+  u32   err     = ErrNone;
+  usize oldSize = 0;
+
   thread_spinlock_lock(&tracker->slotsLock);
   {
     AllocTrackerSlot* slot = tracker_slot(tracker->slots, tracker->slotCount, mem, false);
     if (UNLIKELY(!slot)) {
-      diag_crash_msg(
-          "Allocation (addr: {}, size: {}) not found in AllocationTracker",
-          fmt_int((uptr)mem.ptr, .base = 16, .minDigits = 16),
-          fmt_int(mem.size));
+      err = ErrMissing;
+    } else if (UNLIKELY(slot->mem.size != mem.size)) {
+      err     = ErrWrongSize;
+      oldSize = slot->mem.size;
+    } else {
+      slot->mem = mem_empty; // Mark the slot as empty.
+      tracker->slotCountUsed -= 1;
+      tracker->slotSizeUsed -= mem.size;
     }
-    if (UNLIKELY(slot->mem.size != mem.size)) {
-      diag_crash_msg(
-          "Allocation (addr: {}) known with a different size ({} vs {}) in AllocationTracker",
-          fmt_int((uptr)mem.ptr, .base = 16, .minDigits = 16),
-          fmt_int(slot->mem.size),
-          fmt_int(mem.size));
-    }
-    slot->mem = mem_empty; // Mark the slot as empty.
-    tracker->slotCountUsed -= 1;
-    tracker->slotSizeUsed -= mem.size;
   }
   thread_spinlock_unlock(&tracker->slotsLock);
+
+  switch (err) {
+  case ErrMissing:
+    diag_crash_msg(
+        "Allocation (addr: {}, size: {}) not found in AllocationTracker",
+        fmt_int((uptr)mem.ptr, .base = 16, .minDigits = 16),
+        fmt_int(mem.size));
+    break;
+  case ErrWrongSize:
+    diag_crash_msg(
+        "Allocation (addr: {}) known with a different size ({} vs {}) in AllocationTracker",
+        fmt_int((uptr)mem.ptr, .base = 16, .minDigits = 16),
+        fmt_int(oldSize),
+        fmt_int(mem.size));
+    break;
+  }
 }
 
 usize alloc_tracker_count(AllocTracker* tracker) { return tracker->slotCountUsed; }
