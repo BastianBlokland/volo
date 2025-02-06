@@ -56,7 +56,11 @@ static void stdlib_free(void* ptr) {
   const usize totalSize = hdr->padding + sizeof(AllocStdHeader) + hdr->size;
   const Mem   mem       = mem_create(bits_ptr_offset(hdr, -(iptr)hdr->padding), totalSize);
 
+  const int errnoPrev = errno; // Preserve errno to match the GNU-C library behavior.
+
   alloc_free(g_allocHeap, mem);
+
+  errno = errnoPrev;
 }
 
 static Mem stdlib_payload(void* ptr) {
@@ -78,13 +82,9 @@ void* SYS_DECL calloc(const usize num, const usize size) {
   return res;
 }
 
-void SYS_DECL free(void* ptr) {
-  const int errnoPrev = errno; // Preserve errno to match the GNU-C library behavior.
-  stdlib_free(ptr);
-  errno = errnoPrev;
-}
+void SYS_DECL free(void* ptr) { stdlib_free(ptr); }
 
-void SYS_DECL cfree(void* ptr) { free(ptr); }
+void SYS_DECL cfree(void* ptr) { stdlib_free(ptr); }
 
 void* SYS_DECL realloc(void* ptr, const usize newSize) {
   void* newPtr = stdlib_alloc(newSize, alloc_std_default_align);
@@ -130,11 +130,11 @@ usize SYS_DECL malloc_usable_size(void* ptr) { return stdlib_payload(ptr).size; 
 
 void SYS_DECL free_sized(void* ptr, const usize size) {
   (void)size;
-  free(ptr);
+  stdlib_free(ptr);
 }
 
 void SYS_DECL free_aligned_sized(void* ptr, const usize align, const usize size) {
   (void)align;
   (void)size;
-  free(ptr);
+  stdlib_free(ptr);
 }
