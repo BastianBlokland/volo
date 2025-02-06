@@ -20,6 +20,7 @@ void core_init(void) {
   }
   if (!g_initializedThread) {
     alloc_init_thread();
+    thread_init_thread_late();
   }
   if (!g_initalized) {
     bits_init();

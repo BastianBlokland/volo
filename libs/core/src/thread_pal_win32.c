@@ -122,9 +122,6 @@ u16 thread_pal_core_count(void) {
 }
 
 uptr thread_pal_stack_top(void) {
-  /**
-   * NOTE: Called during early startup so cannot allocate memory.
-   */
   ULONG_PTR low, high;
   GetCurrentThreadStackLimits(&low, &high);
   return (uptr)high;

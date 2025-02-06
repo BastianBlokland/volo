@@ -27,6 +27,7 @@ void alloc_init_thread(void);
 void float_init_thread(void);
 void rng_init_thread(void);
 void thread_init_thread(void);
+void thread_init_thread_late(void);
 
 /**
  * Global leak-detect routines.

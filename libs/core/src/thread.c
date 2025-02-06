@@ -58,7 +58,7 @@ u16                   g_threadCoreCount;
 
 void thread_init(void) {
   /**
-   * Early thread initialization.
+   * Early main-thread initialization.
    * NOTE: Returns before memory allocators have been setup so cannot allocate any memory.
    */
   thread_pal_init();
@@ -71,7 +71,7 @@ void thread_init(void) {
 
 void thread_init_late(void) {
   /**
-   * Late thread initialization.
+   * Late main-thread initialization.
    * NOTE: Memory can now be allocated.
    */
   thread_pal_init_late();
@@ -83,9 +83,17 @@ void thread_teardown(void) { thread_pal_teardown(); }
 
 void thread_init_thread(void) {
   /**
+   * Early thread initialization (not just the main-thread like 'thread_init()').
    * NOTE: Called during early startup so cannot allocate memory.
    */
-  g_threadTid      = thread_pal_tid();
+  g_threadTid = thread_pal_tid();
+}
+
+void thread_init_thread_late(void) {
+  /**
+   * Late thread initialization (not just the main-thread like 'thread_init_late()').
+   * NOTE: Memory can now be allocated.
+   */
   g_threadStackTop = thread_pal_stack_top();
 }
 
