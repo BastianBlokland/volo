@@ -1,3 +1,8 @@
+#include "core_bits.h"
+#include "core_math.h"
+
+#include "alloc_internal.h"
+
 #ifdef VOLO_WIN32
 /**
  * DISABLED: Overriding malloc on Win32 can't be done (as far as i know) directly from the
@@ -14,11 +19,6 @@
 #endif
 
 #if alloc_std_malloc_override
-
-#include "core_bits.h"
-#include "core_math.h"
-
-#include "alloc_internal.h"
 
 #include <errno.h>
 #include <stdlib.h>
