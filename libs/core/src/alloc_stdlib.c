@@ -1,3 +1,20 @@
+#ifdef VOLO_WIN32
+/**
+ * DISABLED: Overriding malloc on Win32 can't be done (as far as i know) directly from the
+ * executable as dynamic libraries won't link to symbols from the executable.
+ */
+#define alloc_std_malloc_override 0
+#else
+/**
+ * DISABLED: Our memory allocators do leak detection at shutdown, however allot of third party
+ * dependencies don't free all their allocations. To avoid allot of false positives we need to
+ * support suppressing leak detection for external allocations.
+ */
+#define alloc_std_malloc_override 0
+#endif
+
+#if alloc_std_malloc_override
+
 #include "core_bits.h"
 #include "core_math.h"
 
@@ -158,3 +175,5 @@ void SYS_DECL free_aligned_sized(void* ptr, const usize align, const usize size)
   (void)size;
   stdlib_free(ptr);
 }
+
+#endif
