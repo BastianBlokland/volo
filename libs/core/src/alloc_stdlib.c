@@ -25,17 +25,31 @@ typedef struct {
   usize size, padding;
 } AllocStdHeader;
 
+NO_INLINE_HINT MAYBE_UNUSED static void stdlib_verify_size(const usize size, const usize align) {
+  diag_assert_msg(
+      bits_ispow2(align), "alloc_stdlib: Alignment '{}' is not a power-of-two", fmt_int(align));
+  diag_assert_msg(
+      size <= alloc_max_alloc_size,
+      "alloc_stdlib: Size '{}' is bigger then the maximum of '{}'",
+      fmt_size(size),
+      fmt_size(alloc_max_alloc_size));
+}
+
 INLINE_HINT static void* stdlib_alloc(usize size, usize align) {
   if (!size) {
     return null;
   }
+#ifndef VOLO_FAST
+  stdlib_verify_size(size, align);
+#endif
+
   align = math_max(align, alignof(AllocStdHeader));
   size  = bits_align(size, align);
 
   const usize padding   = bits_padding(sizeof(AllocStdHeader), align);
   const usize totalSize = padding + sizeof(AllocStdHeader) + size;
 
-  Mem mem = alloc_alloc(g_allocHeap, totalSize, align);
+  const Mem mem = g_allocHeap->alloc(g_allocHeap, totalSize, align);
   if (UNLIKELY(!mem_valid(mem))) {
     return null;
   }
@@ -44,7 +58,13 @@ INLINE_HINT static void* stdlib_alloc(usize size, usize align) {
   hdr->size           = size;
   hdr->padding        = padding;
 
-  return bits_ptr_offset(hdr, sizeof(AllocStdHeader));
+  void* res = bits_ptr_offset(hdr, sizeof(AllocStdHeader));
+
+#ifndef VOLO_FAST
+  alloc_tag_new(mem_create(res, size));
+#endif
+
+  return res;
 }
 
 INLINE_HINT static void stdlib_free(void* ptr) {
@@ -58,7 +78,7 @@ INLINE_HINT static void stdlib_free(void* ptr) {
 
   const int errnoPrev = errno; // Preserve errno to match the GNU-C library behavior.
 
-  alloc_free(g_allocHeap, mem);
+  g_allocHeap->free(g_allocHeap, mem);
 
   errno = errnoPrev;
 }
