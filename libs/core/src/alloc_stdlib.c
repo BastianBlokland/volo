@@ -25,7 +25,7 @@ typedef struct {
   usize size, padding;
 } AllocStdHeader;
 
-static void* stdlib_alloc(usize size, usize align) {
+INLINE_HINT static void* stdlib_alloc(usize size, usize align) {
   if (!size) {
     return null;
   }
@@ -47,7 +47,7 @@ static void* stdlib_alloc(usize size, usize align) {
   return bits_ptr_offset(hdr, sizeof(AllocStdHeader));
 }
 
-static void stdlib_free(void* ptr) {
+INLINE_HINT static void stdlib_free(void* ptr) {
   if (!ptr) {
     return;
   }
