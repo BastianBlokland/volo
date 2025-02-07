@@ -25,10 +25,12 @@ typedef u32 XmlNode;
 
 /**
  * Create a new Xml document.
+ * NOTE: 'nodeCapacity' is only the initial capacity, more space is automatically allocated when
+ * required. Capacity of 0 is legal and will allocate memory when the first node is added.
  *
  * Should be destroyed using 'xml_destroy()'.
  */
-XmlDoc* xml_create(Allocator*);
+XmlDoc* xml_create(Allocator*, usize nodeCapacity);
 
 /**
  * Destroy a Xml document.
