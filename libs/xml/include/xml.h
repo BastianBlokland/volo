@@ -5,4 +5,5 @@
  * Forward header for the xml library.
  */
 
-typedef struct sXmlDoc XmlDoc;
+typedef struct sXmlAttribute XmlAttribute;
+typedef struct sXmlDoc       XmlDoc;
