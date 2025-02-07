@@ -8,9 +8,20 @@
  */
 typedef struct sXmlDoc XmlDoc;
 
-typedef struct sXmlAttribute {
-  String key, value;
-} XmlAttribute;
+typedef enum eXmlType {
+  XmlType_Attribute,
+  XmlType_Element,
+  XmlType_Text,
+  XmlType_Comment,
+
+  XmlType_Count,
+} XmlType;
+
+/**
+ * Handle to a Xml node.
+ * 'sentinel_u32' used as a sentinel.
+ */
+typedef u32 XmlNode;
 
 /**
  * Create a new Xml document.
@@ -23,3 +34,18 @@ XmlDoc* xml_create(Allocator*);
  * Destroy a Xml document.
  */
 void xml_destroy(XmlDoc*);
+
+/**
+ * TODO:
+ */
+XmlNode xml_add_attr(XmlDoc*, XmlNode parent, String name, String value);
+
+/**
+ * TODO:
+ */
+XmlNode xml_add_elem(XmlDoc*, XmlNode parent, String name);
+
+/**
+ * TODO:
+ */
+XmlNode xml_add_text(XmlDoc*, XmlNode parent, String text);
