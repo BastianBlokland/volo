@@ -34,3 +34,14 @@ typedef struct sXmlResult {
     XmlError error;
   };
 } XmlResult;
+
+/**
+ * Read a Xml node.
+ * Supports a subset of Xml 1.0 (https://www.w3.org/TR/2008/REC-xml-20081126/).
+ *
+ * Returns the remaining input.
+ * The result is written to the output pointer.
+ *
+ * Pre-condition: res != null.
+ */
+String xml_read(XmlDoc*, String, XmlResult* res);
