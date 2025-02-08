@@ -8,6 +8,7 @@ typedef enum {
   XmlTokenType_TagClose,
   XmlTokenType_TagEndClose,
   XmlTokenType_Equal,
+  XmlTokenType_String,
   XmlTokenType_Error,
   XmlTokenType_End,
 } XmlTokenType;
@@ -16,6 +17,7 @@ typedef struct {
   XmlTokenType type;
   union {
     String   val_tag;
+    String   val_string;
     XmlError val_error;
   };
 } XmlToken;
