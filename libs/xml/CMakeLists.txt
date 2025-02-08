@@ -17,6 +17,7 @@ add_executable(test_lib_xml
   test/config.c
   test/test_doc.c
   test/test_eq.c
+  test/test_read.c
   )
 target_link_libraries(test_lib_xml PRIVATE lib_app_check lib_xml)
 
