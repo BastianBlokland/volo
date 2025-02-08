@@ -48,7 +48,19 @@ static bool xml_is_name(const u8 ch) {
   }
 }
 
-static bool xml_is_string_end(const u8 c) {
+static bool xml_is_string_single_end(const u8 c) {
+  switch (c) {
+  case '\0':
+  case '\n':
+  case '\r':
+  case '\'':
+    return true;
+  default:
+    return false;
+  }
+}
+
+static bool xml_is_string_double_end(const u8 c) {
   switch (c) {
   case '\0':
   case '\n':
@@ -77,9 +89,16 @@ static u32 xml_scan_name_end(const String str) {
   return end;
 }
 
-static u32 xml_scan_string_end(const String str) {
+static u32 xml_scan_string_single_end(const String str) {
   u32 end = 0;
-  for (; end != str.size && !xml_is_string_end(*string_at(str, end)); ++end)
+  for (; end != str.size && !xml_is_string_single_end(*string_at(str, end)); ++end)
+    ;
+  return end;
+}
+
+static u32 xml_scan_string_double_end(const String str) {
+  u32 end = 0;
+  for (; end != str.size && !xml_is_string_double_end(*string_at(str, end)); ++end)
     ;
   return end;
 }
@@ -160,11 +179,12 @@ static String xml_lex_tag_end(String str, XmlToken* out) {
 }
 
 static String xml_lex_string(String str, XmlToken* out) {
-  diag_assert(string_begin(str)[0] == '"');
-  str = xml_consume_chars(str, 1); // Skip the leading '"'.
+  const u8 term = string_begin(str)[0];
+  diag_assert(term == '"' || term == '\'');
+  str = xml_consume_chars(str, 1); // Skip the leading '"' or '\''.
 
-  const u32 end = xml_scan_string_end(str);
-  if (xml_peek(str, end) != '=') {
+  const u32 end = term == '\'' ? xml_scan_string_single_end(str) : xml_scan_string_double_end(str);
+  if (xml_peek(str, end) != term) {
     return *out = xml_token_err(XmlError_UnterminatedString), str;
   }
 
@@ -176,7 +196,7 @@ static String xml_lex_string(String str, XmlToken* out) {
   out->type       = XmlTokenType_String;
   out->val_string = string_slice(str, 0, end);
 
-  return xml_consume_chars(str, end + 1); // + 1 for the closing '"'.
+  return xml_consume_chars(str, end + 1); // + 1 for the closing '"' or '\''.
 }
 
 static String xml_lex_name(const String str, XmlToken* out) {
@@ -256,6 +276,7 @@ PhaseMarkup:
       return out->type = XmlTokenType_TagClose, xml_consume_chars(str, 1);
     case '=':
       return out->type = XmlTokenType_Equal, xml_consume_chars(str, 1);
+    case '\'':
     case '"':
       return xml_lex_string(str, out);
     case ' ':
