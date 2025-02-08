@@ -28,6 +28,32 @@ static XmlResult xml_success(const XmlNode node) {
   return (XmlResult){.type = XmlResultType_Success, .node = node};
 }
 
+static const String g_errorStrs[] = {
+    [XmlError_InvalidDeclStart]         = string_static("InvalidDeclStart"),
+    [XmlError_InvalidTagStart]          = string_static("InvalidTagStart"),
+    [XmlError_InvalidTagEnd]            = string_static("InvalidTagEnd"),
+    [XmlError_InvalidChar]              = string_static("InvalidChar"),
+    [XmlError_InvalidCharInContent]     = string_static("InvalidCharInContent"),
+    [XmlError_InvalidUtf8]              = string_static("InvalidUtf8"),
+    [XmlError_InvalidCommentTerminator] = string_static("InvalidCommentTerminator"),
+    [XmlError_InvalidReference]         = string_static("InvalidReference"),
+    [XmlError_InvalidDecl]              = string_static("InvalidDecl"),
+    [XmlError_InvalidAttribute]         = string_static("InvalidAttribute"),
+    [XmlError_UnterminatedString]       = string_static("UnterminatedString"),
+    [XmlError_UnterminatedComment]      = string_static("UnterminatedComment"),
+    [XmlError_ContentTooLong]           = string_static("ContentTooLong"),
+    [XmlError_MissingToken]             = string_static("MissingToken"),
+    [XmlError_UnexpectedToken]          = string_static("UnexpectedToken"),
+    [XmlError_MismatchedEndTag]         = string_static("MismatchedEndTag"),
+};
+
+ASSERT(array_elems(g_errorStrs) == XmlError_Count, "Incorrect number of XmlError strings");
+
+String xml_error_str(const XmlError error) {
+  diag_assert(error < XmlError_Count);
+  return g_errorStrs[error];
+}
+
 static XmlToken read_consume(XmlReadContext* ctx, const XmlPhase phase) {
   XmlToken token;
   ctx->input = xml_lex(ctx->input, phase, &token);

@@ -41,6 +41,11 @@ typedef struct sXmlResult {
 } XmlResult;
 
 /**
+ * Return a textual representation of the given XmlError.
+ */
+String xml_error_str(JsonError);
+
+/**
  * Read a Xml node.
  * Supports a subset of Xml 1.0 (https://www.w3.org/TR/2008/REC-xml-20081126/).
  *
