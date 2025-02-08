@@ -133,6 +133,21 @@ static String xml_lex_string(String str, XmlToken* out) {
   return xml_consume_chars(str, end + 1); // + 1 for the closing '"'.
 }
 
+static String xml_lex_name(const String str, XmlToken* out) {
+  const u32 end = xml_scan_name_end(str);
+  diag_assert(end);
+
+  const String id = string_slice(str, 0, end);
+  if (UNLIKELY(!utf8_validate(id))) {
+    return *out = xml_token_err(XmlError_InvalidUtf8), str;
+  }
+
+  out->type     = XmlTokenType_Name;
+  out->val_name = string_slice(str, 0, end);
+
+  return xml_consume_chars(str, end);
+}
+
 String xml_lex_markup(String str, XmlToken* out) {
   while (!string_is_empty(str)) {
     const u8 c = string_begin(str)[0];
@@ -153,6 +168,9 @@ String xml_lex_markup(String str, XmlToken* out) {
         return out->type = XmlTokenType_TagEndClose, xml_consume_chars(str, 1);
       }
     default:
+      if (xml_is_name_start(c)) {
+        return xml_lex_name(str, out);
+      }
       return *out = xml_token_err(XmlError_InvalidChar), xml_consume_chars(str, 1);
     }
   }
