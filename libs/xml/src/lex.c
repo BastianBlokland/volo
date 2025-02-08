@@ -85,6 +85,24 @@ static u32 xml_scan_comment_end(const String str) {
   return end;
 }
 
+static String xml_lex_decl_start(String str, XmlToken* out) {
+  diag_assert(string_begin(str)[0] == '<');
+  diag_assert(string_begin(str)[1] == '?');
+  str = xml_consume_chars(str, 2); // Skip the leading '<?'.
+
+  if (string_is_empty(str) || !xml_is_name(string_begin(str)[0])) {
+    return *out = xml_token_err(XmlError_InvalidDeclStart), str;
+  }
+
+  const u32 nameEnd = xml_scan_name_end(str);
+  diag_assert(nameEnd != 0);
+
+  out->type     = XmlTokenType_DeclStart;
+  out->val_decl = string_slice(str, 0, nameEnd);
+
+  return xml_consume_chars(str, nameEnd);
+}
+
 static String xml_lex_tag_start(String str, XmlToken* out) {
   diag_assert(string_begin(str)[0] == '<');
   str = xml_consume_chars(str, 1); // Skip the leading '<'.
@@ -190,6 +208,9 @@ String xml_lex_markup(String str, XmlToken* out) {
     const u8 c = string_begin(str)[0];
     switch (c) {
     case '<':
+      if (xml_peek(str, 1) == '?') {
+        return xml_lex_decl_start(str, out);
+      }
       if (xml_peek(str, 1) == '/') {
         return xml_lex_tag_end(str, out);
       }
@@ -208,15 +229,21 @@ String xml_lex_markup(String str, XmlToken* out) {
     case '\t':
       str = xml_consume_chars(str, 1); // Skip whitespace.
       continue;
+    case '?':
+      if (xml_peek(str, 1) == '>') {
+        return out->type = XmlTokenType_DeclClose, xml_consume_chars(str, 2);
+      }
+      goto InvalidChar;
     case '/':
       if (xml_peek(str, 1) == '>') {
-        return out->type = XmlTokenType_TagEndClose, xml_consume_chars(str, 1);
+        return out->type = XmlTokenType_TagEndClose, xml_consume_chars(str, 2);
       }
-      // Fallthrough.
+      goto InvalidChar;
     default:
       if (xml_is_name_start(c)) {
         return xml_lex_name(str, out);
       }
+    InvalidChar:
       return *out = xml_token_err(XmlError_InvalidChar), xml_consume_chars(str, 1);
     }
   }

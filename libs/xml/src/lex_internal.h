@@ -3,6 +3,8 @@
 #include "xml_read.h"
 
 typedef enum {
+  XmlTokenType_DeclStart,
+  XmlTokenType_DeclClose,
   XmlTokenType_TagStart,
   XmlTokenType_TagEnd,
   XmlTokenType_TagClose,
@@ -18,6 +20,7 @@ typedef enum {
 typedef struct {
   XmlTokenType type;
   union {
+    String   val_decl;
     String   val_tag;
     String   val_string;
     String   val_name;

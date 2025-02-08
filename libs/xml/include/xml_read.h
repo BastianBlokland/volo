@@ -2,6 +2,7 @@
 #include "xml.h"
 
 typedef enum eXmlError {
+  XmlError_InvalidDeclStart,
   XmlError_InvalidTagStart,
   XmlError_InvalidTagEnd,
   XmlError_InvalidChar,
