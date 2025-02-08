@@ -2,7 +2,7 @@
 #include "xml.h"
 
 typedef enum eXmlError {
-  XmlError_Truncated,
+  XmlError_InvalidChar,
 
   XmlError_Count,
 } XmlError;
