@@ -1,3 +1,5 @@
+#include "core_array.h"
+#include "core_diag.h"
 #include "core_sentinel.h"
 #include "core_string.h"
 #include "xml_doc.h"
@@ -72,7 +74,7 @@ static void read_attribute(
     return;
   }
   XmlToken valueToken = read_consume(ctx, XmlPhase_Markup);
-  if (UNLIKLEY(equalToken.type != XmlTokenType_String)) {
+  if (UNLIKELY(equalToken.type != XmlTokenType_String)) {
     *res = xml_error_from_token(valueToken);
     return;
   }

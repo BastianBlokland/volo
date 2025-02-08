@@ -15,8 +15,8 @@ static bool xml_eq_elem(XmlDoc* doc, const XmlNode x, const XmlNode y) {
     if (!xml_eq(doc, attrX, attrY)) {
       return false;
     }
-    attrX = xml_elem_next(doc, attrX);
-    attrY = xml_elem_next(doc, attrY);
+    attrX = xml_next(doc, attrX);
+    attrY = xml_next(doc, attrY);
   } while (!sentinel_check(attrX) && !sentinel_check(attrY));
 
   // Verify children.
@@ -26,8 +26,8 @@ static bool xml_eq_elem(XmlDoc* doc, const XmlNode x, const XmlNode y) {
     if (!xml_eq(doc, childX, childY)) {
       return false;
     }
-    childX = xml_elem_next(doc, childX);
-    childY = xml_elem_next(doc, childY);
+    childX = xml_next(doc, childX);
+    childY = xml_next(doc, childY);
   } while (!sentinel_check(childX) && !sentinel_check(childY));
 
   return true;
