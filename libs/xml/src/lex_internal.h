@@ -21,11 +21,11 @@ typedef struct {
 } XmlToken;
 
 /**
- * Read a single xml token.
+ * Read a single xml markup token.
  * Returns the remaining input.
  * The token is written to the output pointer.
  *
  * NOTE: String tokens are allocated in the original input or scratch memory, the caller is
  * responsible for copying them if they wish to persist them.
  */
-String xml_lex(String, XmlToken*);
+String xml_lex_markup(String, XmlToken*);

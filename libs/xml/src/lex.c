@@ -93,7 +93,7 @@ static String xml_lex_tag_end(String str, XmlToken* out) {
   return xml_consume_chars(str, nameEnd + 1);
 }
 
-String xml_lex(String str, XmlToken* out) {
+String xml_lex_markup(String str, XmlToken* out) {
   while (!string_is_empty(str)) {
     const u8 c = string_begin(str)[0];
     switch (c) {
