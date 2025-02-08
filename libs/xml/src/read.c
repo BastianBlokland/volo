@@ -25,20 +25,14 @@ static XmlResult xml_success(const XmlNode node) {
   return (XmlResult){.type = XmlResultType_Success, .node = node};
 }
 
-static XmlToken read_peek(XmlReadContext* ctx, const XmlPhase phase) {
-  XmlToken token;
-  xml_lex(ctx->input, phase, &token);
-  return token;
-}
-
 static XmlToken read_consume(XmlReadContext* ctx, const XmlPhase phase) {
   XmlToken token;
   ctx->input = xml_lex(ctx->input, phase, &token);
   return token;
 }
 
-static void read_attribute(XmlReadContext* ctx, const XmlNode parent, XmlResult* res) {
-  XmlToken nameToken = read_consume(ctx, XmlPhase_Markup);
+static void read_attribute(
+    XmlReadContext* ctx, const XmlToken nameToken, const XmlNode parent, XmlResult* res) {
   if (nameToken.type != XmlTokenType_Name) {
     *res = xml_error_from_token(nameToken);
     return;
@@ -61,8 +55,7 @@ static void read_attribute(XmlReadContext* ctx, const XmlNode parent, XmlResult*
   }
 }
 
-static void read_decl(XmlReadContext* ctx, XmlResult* res) {
-  XmlToken startToken = read_consume(ctx, XmlPhase_Markup);
+static void read_decl(XmlReadContext* ctx, const XmlToken startToken, XmlResult* res) {
   if (startToken.type != XmlTokenType_DeclStart) {
     *res = xml_error_from_token(startToken);
     return;
@@ -73,20 +66,20 @@ static void read_decl(XmlReadContext* ctx, XmlResult* res) {
   }
   const XmlNode node = xml_add_elem(ctx->doc, sentinel_u32 /* parent */, startToken.val_decl);
   for (;;) {
-    const XmlToken nextToken = read_peek(ctx, XmlPhase_Markup);
-    if (nextToken.type == XmlTokenType_DeclClose) {
+    const XmlToken token = read_consume(ctx, XmlPhase_Markup);
+    if (token.type == XmlTokenType_DeclClose) {
       *res = xml_success(node);
       return;
     }
-    read_attribute(ctx, node, res);
+    read_attribute(ctx, token, node, res);
     if (res->type == XmlResultType_Fail) {
       return;
     }
   }
 }
 
-static void read_elem(XmlReadContext* ctx, const XmlNode parent, XmlResult* res) {
-  XmlToken startToken = read_consume(ctx, XmlPhase_Markup);
+static void
+read_elem(XmlReadContext* ctx, const XmlToken startToken, const XmlNode parent, XmlResult* res) {
   if (startToken.type != XmlTokenType_TagStart) {
     *res = xml_error_from_token(startToken);
     return;
@@ -95,17 +88,15 @@ static void read_elem(XmlReadContext* ctx, const XmlNode parent, XmlResult* res)
 
   // Read attributes.
   for (;;) {
-    const XmlToken nextToken = read_peek(ctx, XmlPhase_Markup);
-    if (nextToken.type == XmlTokenType_TagEndClose) {
-      read_consume(ctx, XmlPhase_Markup);
+    const XmlToken token = read_consume(ctx, XmlPhase_Markup);
+    if (token.type == XmlTokenType_TagEndClose) {
       *res = xml_success(node);
       return;
     }
-    if (nextToken.type == XmlTokenType_TagClose) {
-      read_consume(ctx, XmlPhase_Markup);
+    if (token.type == XmlTokenType_TagClose) {
       break;
     }
-    read_attribute(ctx, node, res);
+    read_attribute(ctx, token, node, res);
     if (res->type == XmlResultType_Fail) {
       return;
     }
@@ -113,33 +104,30 @@ static void read_elem(XmlReadContext* ctx, const XmlNode parent, XmlResult* res)
 
   // Read content.
   for (;;) {
-    const XmlToken nextToken = read_peek(ctx, XmlPhase_Content);
-    if (nextToken.type == XmlTokenType_Content) {
-      read_consume(ctx, XmlPhase_Content); // TODO: Avoid lexing this twice.
-      xml_add_text(ctx->doc, node, nextToken.val_content);
+    const XmlToken token = read_consume(ctx, XmlPhase_Content);
+    if (token.type == XmlTokenType_Content) {
+      xml_add_text(ctx->doc, node, token.val_content);
       continue;
     }
-    if (nextToken.type == XmlTokenType_Comment) {
-      read_consume(ctx, XmlPhase_Content); // TODO: Avoid lexing this twice.
-      xml_add_comment(ctx->doc, node, nextToken.val_content);
+    if (token.type == XmlTokenType_Comment) {
+      xml_add_comment(ctx->doc, node, token.val_content);
       continue;
     }
-    if (nextToken.type == XmlTokenType_TagStart) {
-      read_elem(ctx, node, res);
+    if (token.type == XmlTokenType_TagStart) {
+      read_elem(ctx, token, node, res);
       if (res->type == XmlResultType_Fail) {
         return;
       }
       continue;
     }
-    if (nextToken.type != XmlTokenType_TagEnd) {
+    if (token.type != XmlTokenType_TagEnd) {
       *res = xml_error_from_token(startToken);
       return;
     }
-    if (!string_eq(nextToken.val_tag, startToken.val_tag)) {
+    if (!string_eq(token.val_tag, startToken.val_tag)) {
       *res = xml_err(XmlError_MismatchedEndTag);
       return;
     }
-    read_consume(ctx, XmlPhase_Content); // Avoid lexing this twice.
     *res = xml_success(node);
     return;
   }
@@ -151,16 +139,18 @@ String xml_read(XmlDoc* doc, const String input, XmlResult* res) {
       .input = input,
   };
 
+  const XmlToken startToken = read_consume(&ctx, XmlPhase_Markup);
+
   // Optionally read an xml declaration.
-  if (read_peek(&ctx, XmlPhase_Markup).type == XmlTokenType_DeclStart) {
-    read_decl(&ctx, res);
+  if (startToken.type == XmlTokenType_DeclStart) {
+    read_decl(&ctx, startToken, res);
     if (res->type == XmlResultType_Fail) {
       return ctx.input;
     }
   }
 
   // Read the root element.
-  read_elem(&ctx, sentinel_u32 /* parent */, res);
+  read_elem(&ctx, startToken, sentinel_u32 /* parent */, res);
 
   return ctx.input;
 }
