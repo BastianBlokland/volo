@@ -163,10 +163,16 @@ String xml_lex_markup(String str, XmlToken* out) {
       return out->type = XmlTokenType_Equal, xml_consume_chars(str, 1);
     case '"':
       return xml_lex_string(str, out);
+    case ' ':
+    case '\r':
+    case '\t':
+      str = xml_consume_chars(str, 1); // Skip whitespace.
+      continue;
     case '/':
       if (xml_peek(str, 1) == '>') {
         return out->type = XmlTokenType_TagEndClose, xml_consume_chars(str, 1);
       }
+      // Fallthrough.
     default:
       if (xml_is_name_start(c)) {
         return xml_lex_name(str, out);
