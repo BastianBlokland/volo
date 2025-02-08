@@ -20,6 +20,7 @@ typedef enum eXmlError {
   XmlError_UnterminatedString,
   XmlError_UnterminatedComment,
   XmlError_ContentTooLong,
+  XmlError_MissingToken,
   XmlError_UnexpectedToken,
   XmlError_MismatchedEndTag,
 

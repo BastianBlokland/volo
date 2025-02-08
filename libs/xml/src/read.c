@@ -18,6 +18,9 @@ static XmlResult xml_error_from_token(const XmlToken token) {
   if (token.type == XmlTokenType_Error) {
     return xml_err(token.val_error);
   }
+  if (token.type == XmlTokenType_End) {
+    return xml_err(XmlError_MissingToken);
+  }
   return xml_err(XmlError_UnexpectedToken);
 }
 
