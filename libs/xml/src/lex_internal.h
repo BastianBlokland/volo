@@ -41,6 +41,7 @@ typedef enum {
  * Returns the remaining input.
  * The token is written to the output pointer.
  *
+ * NOTE: This lexer supports a subset of Xml 1.0 (https://www.w3.org/TR/2008/REC-xml-20081126/).
  * NOTE: String tokens are allocated in the original input or scratch memory, the caller is
  * responsible for copying them if they wish to persist them.
  */
