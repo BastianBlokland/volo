@@ -6,6 +6,7 @@ typedef enum {
   XmlTokenType_TagStart,
   XmlTokenType_TagEnd,
   XmlTokenType_TagClose,
+  XmlTokenType_TagEndClose,
   XmlTokenType_Error,
   XmlTokenType_End,
 } XmlTokenType;

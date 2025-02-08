@@ -104,6 +104,10 @@ String xml_lex(String str, XmlToken* out) {
       return xml_lex_tag_start(str, out);
     case '>':
       return out->type = XmlTokenType_TagClose, xml_consume_chars(str, 1);
+    case '/':
+      if (xml_peek(str, 1) == '>') {
+        return out->type = XmlTokenType_TagEndClose, xml_consume_chars(str, 1);
+      }
     default:
       return *out = xml_token_err(XmlError_InvalidChar), xml_consume_chars(str, 1);
     }
