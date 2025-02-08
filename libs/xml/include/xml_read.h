@@ -16,9 +16,12 @@ typedef enum eXmlError {
   XmlError_InvalidCommentTerminator,
   XmlError_InvalidReference,
   XmlError_InvalidDecl,
+  XmlError_InvalidAttribute,
   XmlError_UnterminatedString,
   XmlError_UnterminatedComment,
   XmlError_ContentTooLong,
+  XmlError_UnexpectedToken,
+  XmlError_MismatchedEndTag,
 
   XmlError_Count,
 } XmlError;
