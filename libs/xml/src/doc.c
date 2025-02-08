@@ -71,11 +71,11 @@ static void xml_node_link_child(XmlDoc* doc, const XmlNode elem, const XmlNode c
 
   // Add the child to the end of the element's children linked-list.
   if (sentinel_check(elemData->data_elem.childTail)) {
-    elemData->data_elem.childHead = elem;
-    elemData->data_elem.childTail = elem;
+    elemData->data_elem.childHead = child;
+    elemData->data_elem.childTail = child;
   } else {
-    xml_node_data(doc, elemData->data_elem.childTail)->next = elem;
-    elemData->data_elem.childTail                           = elem;
+    xml_node_data(doc, elemData->data_elem.childTail)->next = child;
+    elemData->data_elem.childTail                           = child;
   }
 }
 
