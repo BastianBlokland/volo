@@ -6,5 +6,8 @@
  */
 
 typedef enum eXmlError       XmlError;
+typedef enum eXmlResultType  XmlResultType;
 typedef struct sXmlAttribute XmlAttribute;
 typedef struct sXmlDoc       XmlDoc;
+typedef struct sXmlResult    XmlResult;
+typedef u32                  XmlNode;
