@@ -10,6 +10,7 @@ typedef enum {
   XmlTokenType_Equal,
   XmlTokenType_String,
   XmlTokenType_Name,
+  XmlTokenType_Comment,
   XmlTokenType_Error,
   XmlTokenType_End,
 } XmlTokenType;
@@ -20,6 +21,7 @@ typedef struct {
     String   val_tag;
     String   val_string;
     String   val_name;
+    String   val_comment;
     XmlError val_error;
   };
 } XmlToken;

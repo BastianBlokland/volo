@@ -74,6 +74,17 @@ static u32 xml_scan_string_end(const String str) {
   return end;
 }
 
+static u32 xml_scan_comment_end(const String str) {
+  u32 end = 0;
+  while (end != str.size) {
+    if (*string_at(str, end) == '-' && xml_peek(str, end + 1) == '-') {
+      break;
+    }
+    ++end;
+  }
+  return end;
+}
+
 static String xml_lex_tag_start(String str, XmlToken* out) {
   diag_assert(string_begin(str)[0] == '<');
   str = xml_consume_chars(str, 1); // Skip the leading '<'.
@@ -148,6 +159,32 @@ static String xml_lex_name(const String str, XmlToken* out) {
   return xml_consume_chars(str, end);
 }
 
+static String xml_lex_comment(String str, XmlToken* out) {
+  diag_assert(string_begin(str)[0] == '<');
+  diag_assert(string_begin(str)[1] == '!');
+  diag_assert(string_begin(str)[2] == '-');
+  diag_assert(string_begin(str)[3] == '-');
+  str = xml_consume_chars(str, 4); // Skip the leading '<!--'.
+
+  const u32 end = xml_scan_comment_end(str);
+  if (xml_peek(str, end) != '-' || xml_peek(str, end + 1) != '-') {
+    return *out = xml_token_err(XmlError_UnterminatedComment), str;
+  }
+  if (xml_peek(str, end + 2) != '>') {
+    return *out = xml_token_err(XmlError_InvalidCommentTerminator), str;
+  }
+
+  const String comment = string_slice(str, 0, end);
+  if (UNLIKELY(!utf8_validate(comment))) {
+    return *out = xml_token_err(XmlError_InvalidUtf8), str;
+  }
+
+  out->type        = XmlTokenType_Comment;
+  out->val_comment = string_slice(str, 0, end);
+
+  return xml_consume_chars(str, end + 3); // + 3 for the closing '-->'.
+}
+
 String xml_lex_markup(String str, XmlToken* out) {
   while (!string_is_empty(str)) {
     const u8 c = string_begin(str)[0];
@@ -155,6 +192,9 @@ String xml_lex_markup(String str, XmlToken* out) {
     case '<':
       if (xml_peek(str, 1) == '/') {
         return xml_lex_tag_end(str, out);
+      }
+      if (xml_peek(str, 1) == '!' && xml_peek(str, 2) == '-' && xml_peek(str, 3) == '-') {
+        return xml_lex_comment(str, out);
       }
       return xml_lex_tag_start(str, out);
     case '>':
