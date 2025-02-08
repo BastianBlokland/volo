@@ -1,5 +1,8 @@
+#include "core_alloc.h"
+#include "core_ascii.h"
 #include "core_bits.h"
 #include "core_diag.h"
+#include "core_dynstring.h"
 #include "core_utf8.h"
 
 #include "lex_internal.h"
@@ -240,6 +243,65 @@ static String xml_lex_comment(String str, XmlToken* out) {
   return xml_consume_chars(str, end + 3); // + 3 for the closing '-->'.
 }
 
+static void xml_process_content(String content, XmlToken* out) {
+  Mem       resultBuffer = alloc_alloc(g_allocScratch, alloc_max_size(g_allocScratch), 1);
+  DynString result       = dynstring_create_over(resultBuffer);
+
+  while (true) {
+    if (UNLIKELY(result.size == resultBuffer.size)) {
+      *out = xml_token_err(XmlError_ContentTooLong);
+      break;
+    }
+    if (string_is_empty(content)) {
+      out->type        = XmlTokenType_Content;
+      out->val_content = dynstring_view(&result);
+      break;
+    }
+    const u8 ch = string_begin(content)[0];
+    if (ch == '&') {
+      content = xml_consume_chars(content, 1);
+      if (0) {
+      } else if (string_starts_with(content, string_lit("lt;"))) {
+        dynstring_append_char(&result, '<');
+      } else if (string_starts_with(content, string_lit("gt;"))) {
+        dynstring_append_char(&result, '>');
+      } else if (string_starts_with(content, string_lit("amp;"))) {
+        dynstring_append_char(&result, '&');
+      } else if (string_starts_with(content, string_lit("apos;"))) {
+        dynstring_append_char(&result, '\'');
+      } else if (string_starts_with(content, string_lit("quot;"))) {
+        dynstring_append_char(&result, '"');
+      } else {
+        *out = xml_token_err(XmlError_InvalidReference);
+        break;
+      }
+      continue;
+    }
+
+    static const u8 g_utf8Start = 0xC0;
+    if (ch >= g_utf8Start) {
+      Unicode cp;
+      content = utf8_cp_read(content, &cp);
+      if (UNLIKELY(!cp)) {
+        *out = xml_token_err(XmlError_InvalidUtf8);
+        break;
+      }
+      if (UNLIKELY(result.size + utf8_cp_bytes(cp) >= resultBuffer.size)) {
+        *out = xml_token_err(XmlError_ContentTooLong);
+        break;
+      }
+      utf8_cp_write_to(&result, cp);
+    } else {
+      content = xml_consume_chars(content, 1);
+      if (UNLIKELY(!ascii_is_printable(ch))) {
+        *out = xml_token_err(XmlError_InvalidCharInContent);
+        break;
+      }
+      dynstring_append_char(&result, ch);
+    }
+  }
+}
+
 String xml_lex(String str, const XmlPhase phase, XmlToken* out) {
   if (phase == XmlPhase_Content) {
     const u32    contentEnd = xml_scan_content_end(str);
@@ -247,13 +309,7 @@ String xml_lex(String str, const XmlPhase phase, XmlToken* out) {
     if (string_is_empty(content)) {
       goto PhaseMarkup;
     }
-    if (UNLIKELY(!utf8_validate(content))) {
-      return *out = xml_token_err(XmlError_InvalidUtf8), xml_consume_chars(str, contentEnd);
-    }
-
-    out->type        = XmlTokenType_Content;
-    out->val_content = string_slice(str, 0, contentEnd);
-
+    xml_process_content(content, out);
     return xml_consume_chars(str, contentEnd);
   }
 
