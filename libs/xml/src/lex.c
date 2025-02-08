@@ -260,29 +260,50 @@ static void xml_process_content(String content, XmlToken* out) {
     const u8 ch = string_begin(content)[0];
     if (ch == '&') {
       content = xml_consume_chars(content, 1);
+      if (xml_peek(content, 1) == '#') {
+        content = xml_consume_chars(content, 1); // Consume the '#'.
+        u8 base = 10;
+        if (xml_peek(content, 1) == 'x') {
+          content = xml_consume_chars(content, 1); // Consume the 'x'.
+          base    = 16;
+        }
+        u64 unicode;
+        content = format_read_u64(content, &unicode, base);
+        if (UNLIKELY(result.size + utf8_cp_bytes((Unicode)unicode) >= resultBuffer.size)) {
+          *out = xml_token_err(XmlError_ContentTooLong);
+          break;
+        }
+        if (unicode == 0 || xml_peek(content, 1) != ';') {
+          *out = xml_token_err(XmlError_InvalidReference);
+          break;
+        }
+        content = xml_consume_chars(content, 1); // Consume the ';'.
+        utf8_cp_write_to(&result, (Unicode)unicode);
+        continue;
+      }
       if (string_starts_with(content, string_lit("lt;"))) {
         dynstring_append_char(&result, '<');
-        content = xml_consume_chars(content, 3);
+        content = xml_consume_chars(content, 3); // Consume the 'lt;'.
         continue;
       }
       if (string_starts_with(content, string_lit("gt;"))) {
         dynstring_append_char(&result, '>');
-        content = xml_consume_chars(content, 3);
+        content = xml_consume_chars(content, 3); // Consume the 'gt;'.
         continue;
       }
       if (string_starts_with(content, string_lit("amp;"))) {
         dynstring_append_char(&result, '&');
-        content = xml_consume_chars(content, 4);
+        content = xml_consume_chars(content, 4); // Consume the 'amp;'.
         continue;
       }
       if (string_starts_with(content, string_lit("apos;"))) {
         dynstring_append_char(&result, '\'');
-        content = xml_consume_chars(content, 5);
+        content = xml_consume_chars(content, 5); // Consume the 'apos;'.
         continue;
       }
       if (string_starts_with(content, string_lit("quot;"))) {
         dynstring_append_char(&result, '"');
-        content = xml_consume_chars(content, 5);
+        content = xml_consume_chars(content, 5); // Consume the 'quot;'.
         continue;
       }
       *out = xml_token_err(XmlError_InvalidReference);
