@@ -54,40 +54,40 @@ static u32 xml_scan_name_end(const String str) {
   return end;
 }
 
-static String xml_lex_start_tag(String str, XmlToken* out) {
+static String xml_lex_tag_start(String str, XmlToken* out) {
   diag_assert(string_begin(str)[0] == '<');
   str = xml_consume_chars(str, 1); // Skip the leading '<'.
 
   if (string_is_empty(str) || !xml_is_name_char(string_begin(str)[0])) {
-    return *out = xml_token_err(XmlError_InvalidStartTag), str;
+    return *out = xml_token_err(XmlError_InvalidTagStart), str;
   }
 
   const u32 nameEnd = xml_scan_name_end(str);
   diag_assert(nameEnd != 0);
 
-  out->type    = XmlTokenType_StartTag;
+  out->type    = XmlTokenType_TagStart;
   out->val_tag = string_slice(str, 0, nameEnd);
 
   return xml_consume_chars(str, nameEnd);
 }
 
-static String xml_lex_end_tag(String str, XmlToken* out) {
+static String xml_lex_tag_end(String str, XmlToken* out) {
   diag_assert(string_begin(str)[0] == '<');
   diag_assert(string_begin(str)[1] == '/');
   str = xml_consume_chars(str, 2); // Skip the leading '</'.
 
   if (string_is_empty(str) || !xml_is_name_char(string_begin(str)[0])) {
-    return *out = xml_token_err(XmlError_InvalidEndTag), str;
+    return *out = xml_token_err(XmlError_InvalidTagEnd), str;
   }
 
   const u32 nameEnd = xml_scan_name_end(str);
   diag_assert(nameEnd != 0);
 
   if (xml_peek(str, nameEnd) != '>') {
-    return *out = xml_token_err(XmlError_InvalidEndTag), str;
+    return *out = xml_token_err(XmlError_InvalidTagEnd), str;
   }
 
-  out->type    = XmlTokenType_EndTag;
+  out->type    = XmlTokenType_TagEnd;
   out->val_tag = string_slice(str, 0, nameEnd);
 
   return xml_consume_chars(str, nameEnd + 1);
@@ -99,9 +99,11 @@ String xml_lex(String str, XmlToken* out) {
     switch (c) {
     case '<':
       if (xml_peek(str, 1) == '/') {
-        return xml_lex_end_tag(str, out);
+        return xml_lex_tag_end(str, out);
       }
-      return xml_lex_start_tag(str, out);
+      return xml_lex_tag_start(str, out);
+    case '>':
+      return out->type = XmlTokenType_TagClose, xml_consume_chars(str, 1);
     default:
       return *out = xml_token_err(XmlError_InvalidChar), xml_consume_chars(str, 1);
     }

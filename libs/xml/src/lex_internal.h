@@ -3,8 +3,9 @@
 #include "xml_read.h"
 
 typedef enum {
-  XmlTokenType_StartTag,
-  XmlTokenType_EndTag,
+  XmlTokenType_TagStart,
+  XmlTokenType_TagEnd,
+  XmlTokenType_TagClose,
   XmlTokenType_Error,
   XmlTokenType_End,
 } XmlTokenType;
