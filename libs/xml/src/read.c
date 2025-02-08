@@ -6,7 +6,8 @@
 
 typedef struct {
   XmlDoc* doc;
-} XmlReadState;
+  String  input;
+} XmlReadContext;
 
 #define xml_err(_ERR_)                                                                             \
   (XmlResult) { .type = XmlResultType_Fail, .error = (_ERR_) }
@@ -14,48 +15,60 @@ typedef struct {
 #define xml_success(_VAL_)                                                                         \
   (XmlResult) { .type = XmlResultType_Success, .val = (_VAL_) }
 
-static String xml_read_decl(XmlReadState* state, String input, XmlResult* res) {
-  (void)state;
+static XmlToken read_peek(XmlReadContext* ctx, const XmlPhase phase) {
   XmlToken token;
-  input = xml_lex(input, XmlPhase_Markup, &token);
-  if (token.type == XmlTokenType_Error) {
-    return *res = xml_err(token.val_error), input;
-  }
-  if (token.type != XmlTokenType_DeclStart || !string_eq(token.val_decl, string_lit("xml"))) {
-    goto InvalidDecl;
-  }
+  xml_lex(ctx->input, phase, &token);
+  return token;
+}
 
+static XmlToken read_consume(XmlReadContext* ctx, const XmlPhase phase) {
+  XmlToken token;
+  ctx->input = xml_lex(ctx->input, phase, &token);
+  return token;
+}
+
+static void read_decl(XmlReadContext* ctx, XmlResult* res) {
+  XmlToken token = read_consume(ctx, XmlPhase_Markup);
+  if (token.type != XmlTokenType_DeclStart || !string_eq(token.val_decl, string_lit("xml"))) {
+    *res = xml_err(XmlError_InvalidDecl);
+    return;
+  }
   for (;;) {
-    input = xml_lex(input, XmlPhase_Markup, &token);
+    token = read_consume(ctx, XmlPhase_Markup);
     switch (token.type) {
     case XmlTokenType_Error:
-      return *res = xml_err(token.val_error), input;
+      *res = xml_err(token.val_error);
+      return;
     case XmlTokenType_DeclClose:
-      return input;
+      return;
     case XmlTokenType_Name:
       break; // Attribute start.
     default:
-      goto InvalidDecl;
+      *res = xml_err(XmlError_InvalidDecl);
+      return;
     }
-    input = xml_lex(input, XmlPhase_Markup, &token);
+    token = read_consume(ctx, XmlPhase_Markup);
     if (token.type != XmlTokenType_Equal) {
-      goto InvalidDecl;
+      *res = xml_err(XmlError_InvalidDecl);
+      return;
     }
-    input = xml_lex(input, XmlPhase_Markup, &token);
+    token = read_consume(ctx, XmlPhase_Markup);
     if (token.type != XmlTokenType_String) {
-      goto InvalidDecl;
+      *res = xml_err(XmlError_InvalidDecl);
+      return;
     }
-    continue;
   }
-
-InvalidDecl:
-  return *res = xml_err(XmlError_InvalidDecl), input;
 }
 
-String xml_read(XmlDoc* doc, String input, XmlResult* res) {
-  XmlReadState state = {
-      .doc = doc,
+String xml_read(XmlDoc* doc, const String input, XmlResult* res) {
+  XmlReadContext ctx = {
+      .doc   = doc,
+      .input = input,
   };
-  input = xml_read_decl(&state, input, res);
-  return input;
+
+  if (read_peek(&ctx, XmlPhase_Markup).type == XmlTokenType_DeclStart) {
+    read_decl(&ctx, res);
+  }
+
+  return ctx.input;
 }
