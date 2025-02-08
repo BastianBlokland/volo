@@ -60,6 +60,16 @@ static bool xml_is_string_end(const u8 c) {
   }
 }
 
+static bool xml_is_content_end(const u8 c) {
+  switch (c) {
+  case '\0':
+  case '<':
+    return true;
+  default:
+    return false;
+  }
+}
+
 static u32 xml_scan_name_end(const String str) {
   u32 end = 0;
   for (; end != str.size && !xml_is_name(*string_at(str, end)); ++end)
@@ -82,6 +92,13 @@ static u32 xml_scan_comment_end(const String str) {
     }
     ++end;
   }
+  return end;
+}
+
+static u32 xml_scan_content_end(const String str) {
+  u32 end = 0;
+  for (; end != str.size && !xml_is_content_end(*string_at(str, end)); ++end)
+    ;
   return end;
 }
 
@@ -133,7 +150,7 @@ static String xml_lex_tag_end(String str, XmlToken* out) {
   diag_assert(nameEnd != 0);
 
   if (xml_peek(str, nameEnd) != '>') {
-    return *out = xml_token_err(XmlError_InvalidTagEnd), str;
+    return *out = xml_token_err(XmlError_InvalidTagEnd), xml_consume_chars(str, nameEnd);
   }
 
   out->type    = XmlTokenType_TagEnd;
@@ -153,7 +170,7 @@ static String xml_lex_string(String str, XmlToken* out) {
 
   const String val = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(val))) {
-    return *out = xml_token_err(XmlError_InvalidUtf8), str;
+    return *out = xml_token_err(XmlError_InvalidUtf8), xml_consume_chars(str, end);
   }
 
   out->type       = XmlTokenType_String;
@@ -168,7 +185,7 @@ static String xml_lex_name(const String str, XmlToken* out) {
 
   const String id = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(id))) {
-    return *out = xml_token_err(XmlError_InvalidUtf8), str;
+    return *out = xml_token_err(XmlError_InvalidUtf8), xml_consume_chars(str, end);
   }
 
   out->type     = XmlTokenType_Name;
@@ -194,7 +211,7 @@ static String xml_lex_comment(String str, XmlToken* out) {
 
   const String comment = string_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(comment))) {
-    return *out = xml_token_err(XmlError_InvalidUtf8), str;
+    return *out = xml_token_err(XmlError_InvalidUtf8), xml_consume_chars(str, end);
   }
 
   out->type        = XmlTokenType_Comment;
@@ -203,7 +220,24 @@ static String xml_lex_comment(String str, XmlToken* out) {
   return xml_consume_chars(str, end + 3); // + 3 for the closing '-->'.
 }
 
-String xml_lex_markup(String str, XmlToken* out) {
+String xml_lex(String str, const XmlPhase phase, XmlToken* out) {
+  if (phase == XmlPhase_Content) {
+    const u32    contentEnd = xml_scan_content_end(str);
+    const String content    = string_trim_whitespace(string_slice(str, 0, contentEnd));
+    if (string_is_empty(content)) {
+      goto PhaseMarkup;
+    }
+    if (UNLIKELY(!utf8_validate(content))) {
+      return *out = xml_token_err(XmlError_InvalidUtf8), xml_consume_chars(str, contentEnd);
+    }
+
+    out->type        = XmlTokenType_Content;
+    out->val_content = string_slice(str, 0, contentEnd);
+
+    return xml_consume_chars(str, contentEnd);
+  }
+
+PhaseMarkup:
   while (!string_is_empty(str)) {
     const u8 c = string_begin(str)[0];
     switch (c) {
