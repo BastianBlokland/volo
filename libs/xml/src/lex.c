@@ -129,7 +129,7 @@ static String xml_lex_decl_start(String str, XmlToken* out) {
   diag_assert(string_begin(str)[1] == '?');
   str = xml_consume_chars(str, 2); // Skip the leading '<?'.
 
-  if (string_is_empty(str) || !xml_is_name(string_begin(str)[0])) {
+  if (UNLIKELY(string_is_empty(str) || !xml_is_name(string_begin(str)[0]))) {
     return *out = xml_token_err(XmlError_InvalidDeclStart), str;
   }
 
@@ -146,7 +146,7 @@ static String xml_lex_tag_start(String str, XmlToken* out) {
   diag_assert(string_begin(str)[0] == '<');
   str = xml_consume_chars(str, 1); // Skip the leading '<'.
 
-  if (string_is_empty(str) || !xml_is_name(string_begin(str)[0])) {
+  if (UNLIKELY(string_is_empty(str) || !xml_is_name(string_begin(str)[0]))) {
     return *out = xml_token_err(XmlError_InvalidTagStart), str;
   }
 
@@ -164,14 +164,14 @@ static String xml_lex_tag_end(String str, XmlToken* out) {
   diag_assert(string_begin(str)[1] == '/');
   str = xml_consume_chars(str, 2); // Skip the leading '</'.
 
-  if (string_is_empty(str) || !xml_is_name(string_begin(str)[0])) {
+  if (UNLIKELY(string_is_empty(str) || !xml_is_name(string_begin(str)[0]))) {
     return *out = xml_token_err(XmlError_InvalidTagEnd), str;
   }
 
   const u32 nameEnd = xml_scan_name_end(str);
   diag_assert(nameEnd != 0);
 
-  if (xml_peek(str, nameEnd) != '>') {
+  if (UNLIKELY(xml_peek(str, nameEnd) != '>')) {
     return *out = xml_token_err(XmlError_InvalidTagEnd), xml_consume_chars(str, nameEnd);
   }
 
@@ -187,7 +187,7 @@ static String xml_lex_string(String str, XmlToken* out) {
   str = xml_consume_chars(str, 1); // Skip the leading '"' or '\''.
 
   const u32 end = term == '\'' ? xml_scan_string_single_end(str) : xml_scan_string_double_end(str);
-  if (xml_peek(str, end) != term) {
+  if (UNLIKELY(xml_peek(str, end) != term)) {
     return *out = xml_token_err(XmlError_UnterminatedString), str;
   }
 
@@ -225,10 +225,10 @@ static String xml_lex_comment(String str, XmlToken* out) {
   str = xml_consume_chars(str, 4); // Skip the leading '<!--'.
 
   const u32 end = xml_scan_comment_end(str);
-  if (xml_peek(str, end) != '-' || xml_peek(str, end + 1) != '-') {
+  if (UNLIKELY(xml_peek(str, end) != '-' || xml_peek(str, end + 1) != '-')) {
     return *out = xml_token_err(XmlError_UnterminatedComment), str;
   }
-  if (xml_peek(str, end + 2) != '>') {
+  if (UNLIKELY(xml_peek(str, end + 2) != '>')) {
     return *out = xml_token_err(XmlError_InvalidCommentTerminator), str;
   }
 
@@ -273,7 +273,7 @@ static void xml_process_content(String content, XmlToken* out) {
           *out = xml_token_err(XmlError_ContentTooLong);
           break;
         }
-        if (unicode == 0 || xml_peek(content, 1) != ';') {
+        if (UNLIKELY(unicode == 0 || xml_peek(content, 1) != ';')) {
           *out = xml_token_err(XmlError_InvalidReference);
           break;
         }
