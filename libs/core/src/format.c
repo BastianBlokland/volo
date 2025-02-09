@@ -11,7 +11,8 @@
 #include "core_path.h"
 #include "core_time.h"
 
-#define fmt_txt_len_max (8 * usize_kibibyte)
+#define fmt_txt_len_max (4 * usize_kibibyte)
+#define fmt_txt_scratch_alloc (16 * usize_kibibyte)
 
 typedef enum {
   FormatReplOptKind_None = 0,
@@ -156,7 +157,7 @@ void format_write_formatted(DynString* str, String format, const FormatArg* argH
 }
 
 String format_write_formatted_scratch(String format, const FormatArg* args) {
-  Mem       scratchMem = alloc_alloc(g_allocScratch, fmt_txt_len_max, 1);
+  Mem       scratchMem = alloc_alloc(g_allocScratch, fmt_txt_scratch_alloc, 1);
   DynString str        = dynstring_create_over(scratchMem);
 
   format_write_formatted(&str, format, args);
