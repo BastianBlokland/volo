@@ -260,10 +260,10 @@ static void xml_process_content(String content, XmlToken* out) {
     const u8 ch = string_begin(content)[0];
     if (ch == '&') {
       content = xml_consume_chars(content, 1);
-      if (xml_peek(content, 1) == '#') {
+      if (xml_peek(content, 0) == '#') {
         content = xml_consume_chars(content, 1); // Consume the '#'.
         u8 base = 10;
-        if (xml_peek(content, 1) == 'x') {
+        if (xml_peek(content, 0) == 'x') {
           content = xml_consume_chars(content, 1); // Consume the 'x'.
           base    = 16;
         }
@@ -273,7 +273,7 @@ static void xml_process_content(String content, XmlToken* out) {
           *out = xml_token_err(XmlError_ContentTooLong);
           break;
         }
-        if (UNLIKELY(unicode == 0 || xml_peek(content, 1) != ';')) {
+        if (UNLIKELY(unicode == 0 || xml_peek(content, 0) != ';')) {
           *out = xml_token_err(XmlError_InvalidReference);
           break;
         }
