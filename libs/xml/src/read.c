@@ -19,7 +19,7 @@ static XmlResult xml_err(const XmlError err) {
   return (XmlResult){.type = XmlResultType_Fail, .error = err};
 }
 
-static XmlResult xml_error_from_token(const XmlToken token) {
+static XmlResult xml_err_from_token(const XmlToken token) {
   if (token.type == XmlTokenType_Error) {
     return xml_err(token.val_error);
   }
@@ -69,17 +69,17 @@ static XmlToken read_consume(XmlReadContext* ctx, const XmlPhase phase) {
 static void read_attribute(
     XmlReadContext* ctx, const XmlToken nameToken, const XmlNode parent, XmlResult* res) {
   if (UNLIKELY(nameToken.type != XmlTokenType_Name)) {
-    *res = xml_error_from_token(nameToken);
+    *res = xml_err_from_token(nameToken);
     return;
   }
   XmlToken equalToken = read_consume(ctx, XmlPhase_Markup);
   if (UNLIKELY(equalToken.type != XmlTokenType_Equal)) {
-    *res = xml_error_from_token(equalToken);
+    *res = xml_err_from_token(equalToken);
     return;
   }
   XmlToken valueToken = read_consume(ctx, XmlPhase_Markup);
   if (UNLIKELY(valueToken.type != XmlTokenType_String)) {
-    *res = xml_error_from_token(valueToken);
+    *res = xml_err_from_token(valueToken);
     return;
   }
   const XmlNode node = xml_add_attr(ctx->doc, parent, nameToken.val_name, valueToken.val_string);
@@ -92,11 +92,11 @@ static void read_attribute(
 
 static void read_decl(XmlReadContext* ctx, const XmlToken startToken, XmlResult* res) {
   if (UNLIKELY(startToken.type != XmlTokenType_DeclStart)) {
-    *res = xml_error_from_token(startToken);
+    *res = xml_err_from_token(startToken);
     return;
   }
   if (UNLIKELY(!string_eq(startToken.val_decl, string_lit("xml")))) {
-    *res = xml_error_from_token(startToken);
+    *res = xml_err(XmlError_InvalidDecl);
     return;
   }
   const XmlNode node = xml_add_elem(ctx->doc, sentinel_u32 /* parent */, startToken.val_decl);
@@ -116,7 +116,7 @@ static void read_decl(XmlReadContext* ctx, const XmlToken startToken, XmlResult*
 static void
 read_elem(XmlReadContext* ctx, const XmlToken startToken, const XmlNode parent, XmlResult* res) {
   if (UNLIKELY(startToken.type != XmlTokenType_TagStart)) {
-    *res = xml_error_from_token(startToken);
+    *res = xml_err_from_token(startToken);
     return;
   }
 
@@ -162,7 +162,7 @@ read_elem(XmlReadContext* ctx, const XmlToken startToken, const XmlNode parent, 
       continue;
     }
     if (UNLIKELY(token.type != XmlTokenType_TagEnd)) {
-      *res = xml_error_from_token(token);
+      *res = xml_err_from_token(token);
       goto Ret;
     }
     if (UNLIKELY(!string_eq(token.val_tag, startToken.val_tag))) {
