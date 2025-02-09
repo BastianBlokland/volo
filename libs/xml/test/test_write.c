@@ -123,6 +123,36 @@ spec(write) {
                    "</test>"));
   }
 
+  it("escapes text") {
+    struct {
+      String raw;
+      String escaped;
+    } const data[] = {
+        {string_lit("Hello"), string_lit("Hello")},
+        {string_lit("<"), string_lit("&lt;")},
+        {string_lit(">"), string_lit("&gt;")},
+        {string_lit("&"), string_lit("&amp;")},
+        {string_lit("'"), string_lit("&apos;")},
+        {string_lit("\""), string_lit("&quot;")},
+        {string_lit("\t"), string_lit("&#9;")},
+        {string_lit("\t"), string_lit("&#x9;")},
+        {string_lit("$"), string_lit("&#36;")},
+        {string_lit("$"), string_lit("&#x24;")},
+        {string_lit("Λ"), string_lit("&#x039B;")},
+    };
+
+    for (u32 i = 0; i != array_elems(data); ++i) {
+      const XmlNode node = xml_add_elem(doc, sentinel_u32, string_lit("test"));
+      xml_add_text(doc, node, data[i].raw);
+
+      dynstring_clear(&buffer);
+      xml_write(&buffer, doc, node, &xml_write_opts(.flags = XmlWriteFlags_SkipDeclaration));
+
+      check_eq_string(
+          dynstring_view(&buffer), fmt_write_scratch("<test>{}</test>", fmt_text(data[i].escaped)));
+    }
+  }
+
   teardown() {
     xml_destroy(doc);
     dynstring_destroy(&buffer);
