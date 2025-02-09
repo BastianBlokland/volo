@@ -272,6 +272,8 @@ static String xml_lex_comment(String str, XmlToken* out) {
 }
 
 static bool xml_is_simple_content(const String content) {
+  static const u8 g_utf8Start = 0xC0;
+
   usize pos = 0;
   for (; pos < content.size; ++pos) {
     const u8 ch = *string_at(content, pos);
@@ -280,7 +282,6 @@ static bool xml_is_simple_content(const String content) {
     case '\r':
       return false; // Needs processing.
     default:
-      static const u8 g_utf8Start = 0xC0;
       if (ch >= g_utf8Start) {
         return false; // Non-ascii.
       }
