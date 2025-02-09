@@ -11,6 +11,7 @@
 typedef struct {
   JsonDoc*      doc;
   JsonReadFlags flags;
+  u32           depth;
 } JsonReadState;
 
 #define json_err(_ERR_)                                                                            \
@@ -163,10 +164,9 @@ Success:
 static String json_read_with_start_token(
     JsonReadState* state, String input, JsonToken startToken, JsonResult* res) {
 
-  static THREAD_LOCAL u32 depth;
-  if (++depth > json_depth_max) {
+  if (++state->depth > json_depth_max) {
     *res = json_err(JsonError_MaximumDepthExceeded);
-    --depth;
+    --state->depth;
     return input;
   }
 
@@ -206,7 +206,7 @@ static String json_read_with_start_token(
     break;
   }
 
-  --depth;
+  --state->depth;
   return input;
 }
 
