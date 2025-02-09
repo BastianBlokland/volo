@@ -83,8 +83,29 @@ static void xml_write_node_attr(XmlWriteState* s, const XmlNode node) {
 }
 
 static void xml_write_node_text(XmlWriteState* s, const XmlNode node) {
-  // TODO: Escape content.
-  dynstring_append(s->out, xml_value(s->doc, node));
+  const String text = xml_value(s->doc, node);
+  mem_for_u8(text, itr) {
+    switch (*itr) {
+    case '<':
+      dynstring_append(s->out, string_lit("&lt;"));
+      break;
+    case '>':
+      dynstring_append(s->out, string_lit("&gt;"));
+      break;
+    case '&':
+      dynstring_append(s->out, string_lit("&amp;"));
+      break;
+    case '\'':
+      dynstring_append(s->out, string_lit("&apos;"));
+      break;
+    case '"':
+      dynstring_append(s->out, string_lit("&quot;"));
+      break;
+    default:
+      dynstring_append_char(s->out, *itr);
+      break;
+    }
+  }
 }
 
 static void xml_write_node_comment(XmlWriteState* s, const XmlNode node) {

@@ -134,11 +134,6 @@ spec(write) {
         {string_lit("&"), string_lit("&amp;")},
         {string_lit("'"), string_lit("&apos;")},
         {string_lit("\""), string_lit("&quot;")},
-        {string_lit("\t"), string_lit("&#9;")},
-        {string_lit("\t"), string_lit("&#x9;")},
-        {string_lit("$"), string_lit("&#36;")},
-        {string_lit("$"), string_lit("&#x24;")},
-        {string_lit("Λ"), string_lit("&#x039B;")},
     };
 
     for (u32 i = 0; i != array_elems(data); ++i) {
