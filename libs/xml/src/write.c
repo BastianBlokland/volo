@@ -12,6 +12,7 @@ typedef struct {
 
 static void xml_write_node(XmlWriteState*, XmlNode);
 static void xml_write_node_attr(XmlWriteState*, XmlNode);
+static void xml_write_node_text(XmlWriteState*, XmlNode);
 
 static void xml_write_separator(XmlWriteState* s) {
   dynstring_append(s->out, s->opts->newline);
@@ -51,14 +52,19 @@ static void xml_write_node_elem(XmlWriteState* s, const XmlNode node) {
     return;
   }
 
-  xml_write_indent(s);
+  dynstring_append_char(s->out, '>');
 
-  for (; !sentinel_check(child); child = xml_next(s->doc, child)) {
-    xml_write_separator(s);
-    xml_write_node(s, child);
+  const bool singleChild = sentinel_check(xml_next(s->doc, child));
+  if (singleChild && xml_type(s->doc, child) == XmlType_Text) {
+    xml_write_node_text(s, child);
+  } else {
+    xml_write_indent(s);
+    for (; !sentinel_check(child); child = xml_next(s->doc, child)) {
+      xml_write_separator(s);
+      xml_write_node(s, child);
+    }
+    xml_write_outdent(s);
   }
-
-  xml_write_outdent(s);
 
   dynstring_append(s->out, string_lit("</"));
   dynstring_append(s->out, xml_name(s->doc, node));
