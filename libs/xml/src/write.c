@@ -75,12 +75,12 @@ static void xml_write_node_attr(XmlWriteState* s, const XmlNode node) {
 
 static void xml_write_node_text(XmlWriteState* s, const XmlNode node) {
   // TODO: Escape content.
-  dynstring_append(s->doc, xml_value(s->doc, node));
+  dynstring_append(s->out, xml_value(s->doc, node));
 }
 
 static void xml_write_node_comment(XmlWriteState* s, const XmlNode node) {
   dynstring_append(s->out, string_lit("<!-- "));
-  dynstring_append(s->doc, xml_value(s->doc, node));
+  dynstring_append(s->out, xml_value(s->doc, node));
   dynstring_append(s->out, string_lit(" -->"));
 }
 
@@ -108,6 +108,7 @@ void xml_write(DynString* str, const XmlDoc* doc, const XmlNode node, const XmlW
   XmlWriteState state = {
       .doc    = doc,
       .opts   = opts,
+      .out    = str,
       .indent = 0,
   };
   if (!(opts->flags & XmlWriteFlags_SkipDeclaration)) {
