@@ -24,7 +24,7 @@ static XmlResult xml_error_from_token(const XmlToken token) {
     return xml_err(token.val_error);
   }
   if (token.type == XmlTokenType_End) {
-    return xml_err(XmlError_MissingToken);
+    return xml_err(XmlError_Truncated);
   }
   return xml_err(XmlError_UnexpectedToken);
 }
@@ -47,7 +47,7 @@ static const String g_errorStrs[] = {
     [XmlError_UnterminatedString]       = string_static("UnterminatedString"),
     [XmlError_UnterminatedComment]      = string_static("UnterminatedComment"),
     [XmlError_ContentTooLong]           = string_static("ContentTooLong"),
-    [XmlError_MissingToken]             = string_static("MissingToken"),
+    [XmlError_Truncated]                = string_static("Truncated"),
     [XmlError_UnexpectedToken]          = string_static("UnexpectedToken"),
     [XmlError_MismatchedEndTag]         = string_static("MismatchedEndTag"),
     [XmlError_MaximumDepthExceeded]     = string_static("MaximumDepthExceeded"),
