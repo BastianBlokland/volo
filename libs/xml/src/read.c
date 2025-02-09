@@ -19,14 +19,18 @@ static XmlResult xml_err(const XmlError err) {
   return (XmlResult){.type = XmlResultType_Fail, .error = err};
 }
 
-static XmlResult xml_err_from_token(const XmlToken token) {
+static XmlResult xml_err_from_token_custom(const XmlToken token, const XmlError custom) {
   if (token.type == XmlTokenType_Error) {
     return xml_err(token.val_error);
   }
   if (token.type == XmlTokenType_End) {
     return xml_err(XmlError_Truncated);
   }
-  return xml_err(XmlError_UnexpectedToken);
+  return xml_err(custom);
+}
+
+static XmlResult xml_err_from_token(const XmlToken token) {
+  return xml_err_from_token_custom(token, XmlError_UnexpectedToken);
 }
 
 static XmlResult xml_success(const XmlNode node) {
@@ -44,6 +48,7 @@ static const String g_errorStrs[] = {
     [XmlError_InvalidReference]         = string_static("InvalidReference"),
     [XmlError_InvalidDecl]              = string_static("InvalidDecl"),
     [XmlError_InvalidAttribute]         = string_static("InvalidAttribute"),
+    [XmlError_InvalidAttributeValue]    = string_static("InvalidAttributeValue"),
     [XmlError_UnterminatedString]       = string_static("UnterminatedString"),
     [XmlError_UnterminatedComment]      = string_static("UnterminatedComment"),
     [XmlError_ContentTooLong]           = string_static("ContentTooLong"),
@@ -79,7 +84,7 @@ static void read_attribute(
   }
   XmlToken valueToken = read_consume(ctx, XmlPhase_Markup);
   if (UNLIKELY(valueToken.type != XmlTokenType_String)) {
-    *res = xml_err_from_token(valueToken);
+    *res = xml_err_from_token_custom(valueToken, XmlError_InvalidAttributeValue);
     return;
   }
   const XmlNode node = xml_add_attr(ctx->doc, parent, nameToken.val_name, valueToken.val_string);

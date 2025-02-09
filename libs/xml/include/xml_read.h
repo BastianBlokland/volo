@@ -17,6 +17,7 @@ typedef enum eXmlError {
   XmlError_InvalidReference,
   XmlError_InvalidDecl,
   XmlError_InvalidAttribute,
+  XmlError_InvalidAttributeValue,
   XmlError_UnterminatedString,
   XmlError_UnterminatedComment,
   XmlError_ContentTooLong,
