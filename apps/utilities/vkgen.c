@@ -4,10 +4,12 @@
 #include "cli_parse.h"
 #include "cli_read.h"
 #include "core_alloc.h"
+#include "core_dynstring.h"
 #include "core_file.h"
 #include "log_logger.h"
 #include "log_sink_json.h"
 #include "log_sink_pretty.h"
+#include "xml_doc.h"
 
 /**
  * VulkanGen - Utility to generate a Vulkan api header.
@@ -34,6 +36,14 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   const LogMask logMask = cli_parse_provided(invoc, g_optVerbose) ? LogMask_All : ~LogMask_Debug;
   log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, logMask));
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
+
+  i32 exitCode = 0;
+
+  XmlDoc*   xmlDoc       = xml_create(g_allocHeap, 1024);
+  DynString outputBuffer = dynstring_create(g_allocHeap, usize_kibibyte * 16);
+
+  dynstring_destroy(&outputBuffer);
+  xml_destroy(xmlDoc);
 
   return 0;
 }
