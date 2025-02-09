@@ -23,6 +23,7 @@ typedef enum eXmlError {
   XmlError_MissingToken,
   XmlError_UnexpectedToken,
   XmlError_MismatchedEndTag,
+  XmlError_MaximumDepthExceeded,
 
   XmlError_Count,
 } XmlError;

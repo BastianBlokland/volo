@@ -7,9 +7,12 @@
 
 #include "lex_internal.h"
 
+#define xml_depth_max 100
+
 typedef struct {
   XmlDoc* doc;
   String  input;
+  u32     depth;
 } XmlReadContext;
 
 static XmlResult xml_err(const XmlError err) {
@@ -47,6 +50,7 @@ static const String g_errorStrs[] = {
     [XmlError_MissingToken]             = string_static("MissingToken"),
     [XmlError_UnexpectedToken]          = string_static("UnexpectedToken"),
     [XmlError_MismatchedEndTag]         = string_static("MismatchedEndTag"),
+    [XmlError_MaximumDepthExceeded]     = string_static("MaximumDepthExceeded"),
 };
 
 ASSERT(array_elems(g_errorStrs) == XmlError_Count, "Incorrect number of XmlError strings");
@@ -115,6 +119,12 @@ read_elem(XmlReadContext* ctx, const XmlToken startToken, const XmlNode parent, 
     *res = xml_error_from_token(startToken);
     return;
   }
+
+  if (++ctx->depth > xml_depth_max) {
+    *res = xml_err(XmlError_MaximumDepthExceeded);
+    goto Ret;
+  }
+
   const XmlNode node = xml_add_elem(ctx->doc, parent, startToken.val_tag);
 
   // Read attributes.
@@ -122,14 +132,14 @@ read_elem(XmlReadContext* ctx, const XmlToken startToken, const XmlNode parent, 
     const XmlToken token = read_consume(ctx, XmlPhase_Markup);
     if (token.type == XmlTokenType_TagEndClose) {
       *res = xml_success(node);
-      return;
+      goto Ret;
     }
     if (token.type == XmlTokenType_TagClose) {
       break;
     }
     read_attribute(ctx, token, node, res);
     if (UNLIKELY(res->type == XmlResultType_Fail)) {
-      return;
+      goto Ret;
     }
   }
 
@@ -147,21 +157,24 @@ read_elem(XmlReadContext* ctx, const XmlToken startToken, const XmlNode parent, 
     if (token.type == XmlTokenType_TagStart) {
       read_elem(ctx, token, node, res);
       if (UNLIKELY(res->type == XmlResultType_Fail)) {
-        return;
+        goto Ret;
       }
       continue;
     }
     if (UNLIKELY(token.type != XmlTokenType_TagEnd)) {
       *res = xml_error_from_token(startToken);
-      return;
+      goto Ret;
     }
     if (UNLIKELY(!string_eq(token.val_tag, startToken.val_tag))) {
       *res = xml_err(XmlError_MismatchedEndTag);
-      return;
+      goto Ret;
     }
     *res = xml_success(node);
-    return;
+    goto Ret;
   }
+
+Ret:
+  --ctx->depth;
 }
 
 String xml_read(XmlDoc* doc, const String input, XmlResult* res) {
