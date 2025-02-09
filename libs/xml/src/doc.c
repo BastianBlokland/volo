@@ -4,7 +4,7 @@
 #include "core_sentinel.h"
 #include "xml_doc.h"
 
-#define xml_str_chunk_size (16 * usize_kibibyte)
+#define xml_str_chunk_size (32 * usize_kibibyte)
 
 typedef struct {
   String  name;
