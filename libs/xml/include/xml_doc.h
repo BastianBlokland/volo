@@ -68,6 +68,7 @@ XmlNode xml_add_comment(XmlDoc*, XmlNode parent, String value);
 /**
  * Query node data.
  */
+bool    xml_is(const XmlDoc*, XmlNode, XmlType);
 XmlType xml_type(const XmlDoc*, XmlNode);
 String  xml_name(const XmlDoc*, XmlNode);
 String  xml_value(const XmlDoc*, XmlNode);
