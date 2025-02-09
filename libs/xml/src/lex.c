@@ -370,6 +370,7 @@ PhaseMarkup:
     case ' ':
     case '\r':
     case '\t':
+    case '\n':
       str = xml_consume_chars(str, 1); // Skip whitespace.
       continue;
     case '?':
