@@ -87,7 +87,7 @@ static bool xml_is_content_end(const u8 c) {
 
 static u32 xml_scan_name_end(const String str) {
   u32 end = 0;
-  for (; end != str.size && !xml_is_name(*string_at(str, end)); ++end)
+  for (; end != str.size && xml_is_name(*string_at(str, end)); ++end)
     ;
   return end;
 }
