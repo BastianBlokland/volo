@@ -48,6 +48,17 @@ Ret:
   return node;
 }
 
+typedef struct {
+  XmlDoc*    schemaDoc;
+  XmlNode    schemaRoot;
+  DynString* output;
+} VkGenContext;
+
+static bool vkgen_generate(VkGenContext* ctx) {
+  (void)ctx;
+  return false;
+}
+
 // clang-format off
 static const String g_schemaDefaultHost = string_static("raw.githubusercontent.com");
 static const String g_schemaDefaultUri  = string_static("/KhronosGroup/Vulkan-Docs/refs/tags/v1.4.308/xml/vk.xml");
@@ -100,6 +111,15 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   const XmlNode schemaRoot = vkgen_schema_get(xmlDoc, host, uri);
   if (sentinel_check(schemaRoot)) {
     goto Exit;
+  }
+
+  VkGenContext ctx = {
+      .schemaDoc  = xmlDoc,
+      .schemaRoot = schemaRoot,
+      .output     = &outputBuffer,
+  };
+  if (vkgen_generate(&ctx)) {
+    success = true;
   }
 
 Exit:
