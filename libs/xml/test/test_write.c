@@ -132,8 +132,6 @@ spec(write) {
         {string_lit("<"), string_lit("&lt;")},
         {string_lit(">"), string_lit("&gt;")},
         {string_lit("&"), string_lit("&amp;")},
-        {string_lit("'"), string_lit("&apos;")},
-        {string_lit("\""), string_lit("&quot;")},
     };
 
     for (u32 i = 0; i != array_elems(data); ++i) {

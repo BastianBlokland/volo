@@ -95,12 +95,6 @@ static void xml_write_node_text(XmlWriteState* s, const XmlNode node) {
     case '&':
       dynstring_append(s->out, string_lit("&amp;"));
       break;
-    case '\'':
-      dynstring_append(s->out, string_lit("&apos;"));
-      break;
-    case '"':
-      dynstring_append(s->out, string_lit("&quot;"));
-      break;
     default:
       dynstring_append_char(s->out, *itr);
       break;
