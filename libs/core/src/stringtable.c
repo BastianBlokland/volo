@@ -103,6 +103,13 @@ void stringtable_destroy(StringTable* table) {
   alloc_free_t(table->alloc, table);
 }
 
+void stringtable_reset(StringTable* table) {
+  mem_set(mem_create(table->slots, sizeof(StringTableSlot) * table->slotCount), 0);
+  table->slotCountUsed = 0;
+
+  alloc_reset(table->dataAlloc);
+}
+
 u32 stringtable_count(const StringTable* table) {
   StringTable* tableMutable = (StringTable*)table;
   u32          res;

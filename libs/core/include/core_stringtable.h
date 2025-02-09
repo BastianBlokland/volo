@@ -23,6 +23,7 @@ StringTable* stringtable_create(Allocator*);
  * Destroy a StringTable instance.
  */
 void stringtable_destroy(StringTable*);
+void stringtable_reset(StringTable*);
 
 /**
  * Lookup the amount of strings in the given StringTable.
