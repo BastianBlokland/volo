@@ -146,7 +146,7 @@ static String xml_lex_tag_start(String str, XmlToken* out) {
   diag_assert(string_begin(str)[0] == '<');
   str = xml_consume_chars(str, 1); // Skip the leading '<'.
 
-  if (UNLIKELY(string_is_empty(str) || !xml_is_name(string_begin(str)[0]))) {
+  if (UNLIKELY(string_is_empty(str) || !xml_is_name_start(string_begin(str)[0]))) {
     return *out = xml_token_err(XmlError_InvalidTagStart), str;
   }
 
