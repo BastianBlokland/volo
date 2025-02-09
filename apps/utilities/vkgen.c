@@ -48,16 +48,29 @@ Ret:
   return node;
 }
 
-static CliId g_optVerbose, g_optHelp;
+// clang-format off
+static const String g_schemaDefaultHost = string_static("raw.githubusercontent.com");
+static const String g_schemaDefaultUri  = string_static("/KhronosGroup/Vulkan-Docs/refs/tags/v1.4.308/xml/vk.xml");
+// clang-format on
+
+static CliId g_optSchemaHost, g_optSchemaUri, g_optVerbose, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
   cli_app_register_desc(app, string_lit("VulkanGen - Utility to generate a Vulkan api header."));
 
   g_optVerbose = cli_register_flag(app, 'v', string_lit("verbose"), CliOptionFlags_None);
 
+  g_optSchemaHost = cli_register_flag(app, '\0', string_lit("schema-host"), CliOptionFlags_Value);
+  cli_register_desc(app, g_optSchemaHost, string_lit("Host of the Vulkan schema."));
+
+  g_optSchemaUri = cli_register_flag(app, '\0', string_lit("schema-uri"), CliOptionFlags_Value);
+  cli_register_desc(app, g_optSchemaUri, string_lit("Uri of the Vulkan schema."));
+
   g_optHelp = cli_register_flag(app, 'h', string_lit("help"), CliOptionFlags_None);
   cli_register_desc(app, g_optHelp, string_lit("Display this help page."));
   cli_register_exclusions(app, g_optHelp, g_optVerbose);
+  cli_register_exclusions(app, g_optHelp, g_optSchemaHost);
+  cli_register_exclusions(app, g_optHelp, g_optSchemaUri);
 }
 
 i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
@@ -67,21 +80,20 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   }
   net_init();
 
-  i32 exitCode = 0;
+  bool success = false;
 
   const LogMask logMask = cli_parse_provided(invoc, g_optVerbose) ? LogMask_All : ~LogMask_Debug;
   log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, logMask));
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
-  const String host = string_lit("raw.githubusercontent.com");
-  const String uri  = string_lit("KhronosGroup/Vulkan-Docs/refs/tags/v1.4.308/xml/vk.xml");
+  const String host = cli_read_string(invoc, g_optSchemaHost, g_schemaDefaultHost);
+  const String uri  = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri);
 
   XmlDoc*   xmlDoc       = xml_create(g_allocHeap, 1024);
   DynString outputBuffer = dynstring_create(g_allocHeap, usize_kibibyte * 16);
 
   const XmlNode schemaRoot = vkgen_schema_get(xmlDoc, host, uri);
   if (sentinel_check(schemaRoot)) {
-    exitCode = 1;
     goto Exit;
   }
 
@@ -90,5 +102,5 @@ Exit:
   xml_destroy(xmlDoc);
 
   net_teardown();
-  return 0;
+  return success ? 0 : 1;
 }
