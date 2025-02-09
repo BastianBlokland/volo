@@ -9,11 +9,44 @@
 #include "log_logger.h"
 #include "log_sink_json.h"
 #include "log_sink_pretty.h"
+#include "net_http.h"
+#include "net_init.h"
+#include "net_result.h"
 #include "xml_doc.h"
+#include "xml_read.h"
 
 /**
  * VulkanGen - Utility to generate a Vulkan api header.
  */
+
+static XmlNode vkgen_schema_get(XmlDoc* xmlDoc, const String host, const String uri) {
+  XmlNode node = sentinel_u32;
+
+  NetHttp*  http   = net_http_connect_sync(g_allocHeap, host, NetHttpFlags_TlsNoVerify);
+  DynString buffer = dynstring_create(g_allocHeap, usize_mebibyte * 4);
+
+  const NetResult netRes = net_http_get_sync(http, uri, null /* auth */, null /* etag */, &buffer);
+  if (netRes != NetResult_Success) {
+    const String errMsg = net_result_str(netRes);
+    log_e("Failed to download Vulkan schema", log_param("error", fmt_text(errMsg)));
+    goto Ret;
+  }
+  XmlResult xmlRes;
+  xml_read(xmlDoc, dynstring_view(&buffer), &xmlRes);
+  if (xmlRes.type != XmlResultType_Success) {
+    const String errMsg = xml_error_str(xmlRes.error);
+    log_e("Failed to parse Vulkan schema", log_param("error", fmt_text(errMsg)));
+    goto Ret;
+  }
+  node = xmlRes.node;
+
+  dynstring_destroy(&buffer);
+  net_http_shutdown_sync(http);
+  net_http_destroy(http);
+
+Ret:
+  return node;
+}
 
 static CliId g_optVerbose, g_optHelp;
 
@@ -32,18 +65,30 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     cli_help_write_file(app, g_fileStdOut);
     return 0;
   }
+  net_init();
+
+  i32 exitCode = 0;
 
   const LogMask logMask = cli_parse_provided(invoc, g_optVerbose) ? LogMask_All : ~LogMask_Debug;
   log_add_sink(g_logger, log_sink_pretty_default(g_allocHeap, logMask));
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
-  i32 exitCode = 0;
+  const String host = string_lit("raw.githubusercontent.com");
+  const String uri  = string_lit("KhronosGroup/Vulkan-Docs/refs/tags/v1.4.308/xml/vk.xml");
 
   XmlDoc*   xmlDoc       = xml_create(g_allocHeap, 1024);
   DynString outputBuffer = dynstring_create(g_allocHeap, usize_kibibyte * 16);
 
+  const XmlNode schemaRoot = vkgen_schema_get(xmlDoc, host, uri);
+  if (sentinel_check(schemaRoot)) {
+    exitCode = 1;
+    goto Exit;
+  }
+
+Exit:
   dynstring_destroy(&outputBuffer);
   xml_destroy(xmlDoc);
 
+  net_teardown();
   return 0;
 }
