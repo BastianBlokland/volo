@@ -74,7 +74,7 @@ static void read_attribute(
     return;
   }
   XmlToken valueToken = read_consume(ctx, XmlPhase_Markup);
-  if (UNLIKELY(equalToken.type != XmlTokenType_String)) {
+  if (UNLIKELY(valueToken.type != XmlTokenType_String)) {
     *res = xml_error_from_token(valueToken);
     return;
   }
@@ -170,7 +170,7 @@ String xml_read(XmlDoc* doc, const String input, XmlResult* res) {
       .input = input,
   };
 
-  const XmlToken startToken = read_consume(&ctx, XmlPhase_Markup);
+  XmlToken startToken = read_consume(&ctx, XmlPhase_Markup);
 
   // Optionally read an xml declaration.
   if (startToken.type == XmlTokenType_DeclStart) {
@@ -178,6 +178,7 @@ String xml_read(XmlDoc* doc, const String input, XmlResult* res) {
     if (res->type == XmlResultType_Fail) {
       return ctx.input;
     }
+    startToken = read_consume(&ctx, XmlPhase_Markup);
   }
 
   // Read the root element.
