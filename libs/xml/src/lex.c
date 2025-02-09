@@ -129,7 +129,7 @@ static String xml_lex_decl_start(String str, XmlToken* out) {
   diag_assert(string_begin(str)[1] == '?');
   str = xml_consume_chars(str, 2); // Skip the leading '<?'.
 
-  if (UNLIKELY(string_is_empty(str) || !xml_is_name(string_begin(str)[0]))) {
+  if (UNLIKELY(string_is_empty(str) || !xml_is_name_start(string_begin(str)[0]))) {
     return *out = xml_token_err(XmlError_InvalidDeclStart), str;
   }
 
@@ -164,7 +164,7 @@ static String xml_lex_tag_end(String str, XmlToken* out) {
   diag_assert(string_begin(str)[1] == '/');
   str = xml_consume_chars(str, 2); // Skip the leading '</'.
 
-  if (UNLIKELY(string_is_empty(str) || !xml_is_name(string_begin(str)[0]))) {
+  if (UNLIKELY(string_is_empty(str) || !xml_is_name_start(string_begin(str)[0]))) {
     return *out = xml_token_err(XmlError_InvalidTagEnd), str;
   }
 
