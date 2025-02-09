@@ -211,6 +211,10 @@ XmlNode xml_add_comment(XmlDoc* doc, const XmlNode parent, const String value) {
   return node;
 }
 
+bool xml_is(const XmlDoc* doc, const XmlNode node, const XmlType type) {
+  return !sentinel_check(node) && xml_node_data(doc, node)->type == type;
+}
+
 XmlType xml_type(const XmlDoc* doc, const XmlNode node) { return xml_node_data(doc, node)->type; }
 
 String xml_name(const XmlDoc* doc, const XmlNode node) {
