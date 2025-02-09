@@ -323,14 +323,27 @@ static void xml_process_content(String content, XmlToken* out) {
         break;
       }
       utf8_cp_write_to(&result, cp);
-    } else {
-      content = xml_consume_chars(content, 1);
-      if (UNLIKELY(!ascii_is_printable(ch))) {
-        *out = xml_token_err(XmlError_InvalidCharInContent);
-        break;
-      }
-      dynstring_append_char(&result, ch);
+      continue;
     }
+
+    content = xml_consume_chars(content, 1);
+    switch (ch) {
+    case '\r':
+      continue;
+    case '\n':
+      dynstring_append_char(&result, '\n');
+      continue;
+    case '\t':
+      dynstring_append_char(&result, '\t');
+      continue;
+    default:
+      break;
+    }
+    if (UNLIKELY(!ascii_is_printable(ch))) {
+      *out = xml_token_err(XmlError_InvalidCharInContent);
+      break;
+    }
+    dynstring_append_char(&result, ch);
   }
 }
 
