@@ -17,6 +17,10 @@ static String xml_consume_chars(const String str, const usize amount) {
   };
 }
 
+static String xml_slice(const String str, const usize offset, const usize size) {
+  return mem_create(bits_ptr_offset(str.ptr, offset), size);
+}
+
 static u8 xml_peek(const String str, const u32 ahead) {
   return UNLIKELY(str.size <= ahead) ? '\0' : *string_at(str, ahead);
 }
@@ -85,6 +89,20 @@ static bool xml_is_content_end(const u8 c) {
   }
 }
 
+static bool xml_is_whitespace(const u8 c) {
+  switch (c) {
+  case ' ':
+  case '\t':
+  case '\r':
+  case '\n':
+  case '\v':
+  case '\f':
+    return true;
+  default:
+    return false;
+  }
+}
+
 static u32 xml_scan_name_end(const String str) {
   u32 end = 0;
   for (; end != str.size && xml_is_name(*string_at(str, end)); ++end)
@@ -124,6 +142,16 @@ static u32 xml_scan_content_end(const String str) {
   return end;
 }
 
+static String xml_trim_whitespace(const String value) {
+  usize offset = 0;
+  for (; offset != value.size && xml_is_whitespace(*string_at(value, offset)); ++offset)
+    ;
+  usize size = value.size;
+  for (; size && xml_is_whitespace(*string_at(value, size - 1)); --size)
+    ;
+  return offset >= size ? string_empty : xml_slice(value, offset, size - offset);
+}
+
 static String xml_lex_decl_start(String str, XmlToken* out) {
   diag_assert(string_begin(str)[0] == '<');
   diag_assert(string_begin(str)[1] == '?');
@@ -137,7 +165,7 @@ static String xml_lex_decl_start(String str, XmlToken* out) {
   diag_assert(nameEnd != 0);
 
   out->type     = XmlTokenType_DeclStart;
-  out->val_decl = string_slice(str, 0, nameEnd);
+  out->val_decl = xml_slice(str, 0, nameEnd);
 
   return xml_consume_chars(str, nameEnd);
 }
@@ -154,7 +182,7 @@ static String xml_lex_tag_start(String str, XmlToken* out) {
   diag_assert(nameEnd != 0);
 
   out->type    = XmlTokenType_TagStart;
-  out->val_tag = string_slice(str, 0, nameEnd);
+  out->val_tag = xml_slice(str, 0, nameEnd);
 
   return xml_consume_chars(str, nameEnd);
 }
@@ -176,7 +204,7 @@ static String xml_lex_tag_end(String str, XmlToken* out) {
   }
 
   out->type    = XmlTokenType_TagEnd;
-  out->val_tag = string_slice(str, 0, nameEnd);
+  out->val_tag = xml_slice(str, 0, nameEnd);
 
   return xml_consume_chars(str, nameEnd + 1); // + 1 for the closing '>'.
 }
@@ -191,13 +219,13 @@ static String xml_lex_string(String str, XmlToken* out) {
     return *out = xml_token_err(XmlError_UnterminatedString), str;
   }
 
-  const String val = string_slice(str, 0, end);
+  const String val = xml_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(val))) {
     return *out = xml_token_err(XmlError_InvalidUtf8), xml_consume_chars(str, end);
   }
 
   out->type       = XmlTokenType_String;
-  out->val_string = string_slice(str, 0, end);
+  out->val_string = xml_slice(str, 0, end);
 
   return xml_consume_chars(str, end + 1); // + 1 for the closing '"' or '\''.
 }
@@ -206,13 +234,13 @@ static String xml_lex_name(const String str, XmlToken* out) {
   const u32 end = xml_scan_name_end(str);
   diag_assert(end);
 
-  const String id = string_slice(str, 0, end);
+  const String id = xml_slice(str, 0, end);
   if (UNLIKELY(!utf8_validate(id))) {
     return *out = xml_token_err(XmlError_InvalidUtf8), xml_consume_chars(str, end);
   }
 
   out->type     = XmlTokenType_Name;
-  out->val_name = string_slice(str, 0, end);
+  out->val_name = xml_slice(str, 0, end);
 
   return xml_consume_chars(str, end);
 }
@@ -232,7 +260,7 @@ static String xml_lex_comment(String str, XmlToken* out) {
     return *out = xml_token_err(XmlError_InvalidCommentTerminator), str;
   }
 
-  const String comment = string_trim_whitespace(string_slice(str, 0, end));
+  const String comment = xml_trim_whitespace(xml_slice(str, 0, end));
   if (UNLIKELY(!utf8_validate(comment))) {
     return *out = xml_token_err(XmlError_InvalidUtf8), xml_consume_chars(str, end);
   }
@@ -243,7 +271,31 @@ static String xml_lex_comment(String str, XmlToken* out) {
   return xml_consume_chars(str, end + 3); // + 3 for the closing '-->'.
 }
 
+static bool xml_is_simple_content(const String content) {
+  usize pos = 0;
+  for (; pos < content.size; ++pos) {
+    const u8 ch = *string_at(content, pos);
+    switch (ch) {
+    case '&':
+    case '\r':
+      return false; // Needs processing.
+    default:
+      static const u8 g_utf8Start = 0xC0;
+      if (ch >= g_utf8Start) {
+        return false; // Non-ascii.
+      }
+    }
+  }
+  return true;
+}
+
 static void xml_process_content(String content, XmlToken* out) {
+  if (xml_is_simple_content(content)) {
+    out->type        = XmlTokenType_Content;
+    out->val_content = content;
+    return;
+  }
+
   Mem       resultBuffer = alloc_alloc(g_allocScratch, alloc_max_size(g_allocScratch), 1);
   DynString result       = dynstring_create_over(resultBuffer);
 
@@ -350,7 +402,7 @@ static void xml_process_content(String content, XmlToken* out) {
 String xml_lex(String str, const XmlPhase phase, XmlToken* out) {
   if (phase == XmlPhase_Content) {
     const u32    contentEnd = xml_scan_content_end(str);
-    const String content    = string_trim_whitespace(string_slice(str, 0, contentEnd));
+    const String content    = xml_trim_whitespace(xml_slice(str, 0, contentEnd));
     if (string_is_empty(content)) {
       goto PhaseMarkup;
     }
