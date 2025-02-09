@@ -59,8 +59,11 @@ static void xml_write_node_elem(XmlWriteState* s, const XmlNode node) {
     xml_write_node_text(s, child);
   } else {
     xml_write_indent(s);
-    for (; !sentinel_check(child); child = xml_next(s->doc, child)) {
-      xml_write_separator(s);
+    bool first = true;
+    for (; !sentinel_check(child); child = xml_next(s->doc, child), first = false) {
+      if (!first) {
+        xml_write_separator(s);
+      }
       xml_write_node(s, child);
     }
     xml_write_outdent(s);

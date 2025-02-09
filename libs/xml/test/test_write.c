@@ -51,12 +51,24 @@ spec(write) {
         dynstring_view(&buffer), string_lit("<test foo=\"bar\" hello=\"world\" test=\"world\"/>"));
   }
 
-  it("can write a basic node with content") {
+  it("can write a basic node with text") {
     const XmlNode node = xml_add_elem(doc, sentinel_u32, string_lit("test"));
     xml_add_text(doc, node, string_lit("Hello World!"));
 
     xml_write(&buffer, doc, node, &xml_write_opts(.flags = XmlWriteFlags_SkipDeclaration));
     check_eq_string(dynstring_view(&buffer), string_lit("<test>Hello World!</test>"));
+  }
+
+  it("can write a basic node with a child node") {
+    const XmlNode node = xml_add_elem(doc, sentinel_u32, string_lit("test"));
+    xml_add_elem(doc, node, string_lit("foo"));
+
+    xml_write(&buffer, doc, node, &xml_write_opts(.flags = XmlWriteFlags_SkipDeclaration));
+    check_eq_string(
+        dynstring_view(&buffer),
+        string_lit("<test>\n"
+                   "  <foo/>\n"
+                   "</test>"));
   }
 
   teardown() {
