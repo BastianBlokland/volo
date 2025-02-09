@@ -88,6 +88,35 @@ spec(read) {
     check_eq_int(xml_type(doc, *dynarray_at_t(&nodes, 3, XmlNode)), XmlType_Element);
   }
 
+  it("resolves escapes in content") {
+    struct {
+      String input;
+      String textResult;
+    } const data[] = {
+        {string_lit("Hello"), string_lit("Hello")},
+        {string_lit("&lt;"), string_lit("<")},
+        {string_lit("&gt;"), string_lit(">")},
+        {string_lit("&amp;"), string_lit("&")},
+        {string_lit("&apos;"), string_lit("'")},
+        {string_lit("&quot;"), string_lit("\"")},
+        {string_lit("&#9;"), string_lit("\t")},
+        {string_lit("&#x9;"), string_lit("\t")},
+        {string_lit("&#36;"), string_lit("$")},
+        {string_lit("&#x24;"), string_lit("$")},
+        {string_lit("&#x039B;"), string_lit("Λ")},
+    };
+
+    XmlResult res;
+    for (usize i = 0; i != array_elems(data); ++i) {
+      xml_read(doc, fmt_write_scratch("<a>{}</a>", fmt_text(data[i].input)), &res);
+      check_require(res.type == XmlResultType_Success);
+
+      const XmlNode textNode = xml_first_child(doc, res.node);
+      check_eq_int(xml_type(doc, textNode), XmlType_Text);
+      check_eq_string(xml_value(doc, textNode), data[i].textResult);
+    }
+  }
+
   it("fails on invalid input") {
     struct {
       String input;
