@@ -2,6 +2,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_sentinel.h"
+#include "core_stringtable.h"
 #include "xml_doc.h"
 
 #define xml_str_chunk_size (32 * usize_kibibyte)
@@ -36,9 +37,10 @@ typedef struct {
 } XmlNodeData;
 
 struct sXmlDoc {
-  Allocator* alloc;
-  Allocator* allocStr; // (chunked) bump allocator for string data.
-  DynArray   nodes;    // XmlNodeData[]
+  Allocator*   alloc;
+  Allocator*   allocStr; // (chunked) bump allocator for string data.
+  StringTable* keyTable; // Table for storing string keys (expected to contain many duplicates).
+  DynArray     nodes;    // XmlNodeData[]
 };
 
 static String xml_string_store(XmlDoc* doc, const String str) {
@@ -106,6 +108,7 @@ XmlDoc* xml_create(Allocator* alloc, const usize nodeCapacity) {
   *doc = (XmlDoc){
       .alloc    = alloc,
       .allocStr = alloc_chunked_create(alloc, alloc_bump_create, xml_str_chunk_size),
+      .keyTable = stringtable_create(alloc),
       .nodes    = dynarray_create_t(alloc, XmlNodeData, nodeCapacity),
   };
 
@@ -115,11 +118,13 @@ XmlDoc* xml_create(Allocator* alloc, const usize nodeCapacity) {
 void xml_destroy(XmlDoc* doc) {
   dynarray_destroy(&doc->nodes);
   alloc_chunked_destroy(doc->allocStr); // Free all string data.
+  stringtable_destroy(doc->keyTable);
   alloc_free_t(doc->alloc, doc);
 }
 
 void xml_clear(XmlDoc* doc) {
   alloc_reset(doc->allocStr); // Clear all string data.
+  stringtable_reset(doc->keyTable);
   dynarray_clear(&doc->nodes);
 }
 
@@ -135,7 +140,7 @@ XmlNode xml_add_elem(XmlDoc* doc, const XmlNode parent, const String name) {
           .next = sentinel_u32,
           .data_elem =
               {
-                  .name      = xml_string_store(doc, name),
+                  .name      = stringtable_intern(doc->keyTable, name),
                   .attrHead  = sentinel_u32,
                   .childHead = sentinel_u32,
                   .childTail = sentinel_u32,
@@ -156,9 +161,13 @@ XmlNode xml_add_attr(XmlDoc* doc, const XmlNode parent, const String name, const
   const XmlNode node = xml_node_add(
       doc,
       (XmlNodeData){
-          .type      = XmlType_Attribute,
-          .next      = sentinel_u32,
-          .data_attr = {.name = xml_string_store(doc, name), .value = xml_string_store(doc, value)},
+          .type = XmlType_Attribute,
+          .next = sentinel_u32,
+          .data_attr =
+              {
+                  .name  = stringtable_intern(doc->keyTable, name),
+                  .value = xml_string_store(doc, value),
+              },
       });
 
   if (xml_node_link_attr(doc, parent, node)) {
