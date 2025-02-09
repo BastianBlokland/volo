@@ -232,13 +232,13 @@ static String xml_lex_comment(String str, XmlToken* out) {
     return *out = xml_token_err(XmlError_InvalidCommentTerminator), str;
   }
 
-  const String comment = string_slice(str, 0, end);
+  const String comment = string_trim_whitespace(string_slice(str, 0, end));
   if (UNLIKELY(!utf8_validate(comment))) {
     return *out = xml_token_err(XmlError_InvalidUtf8), xml_consume_chars(str, end);
   }
 
   out->type        = XmlTokenType_Comment;
-  out->val_comment = string_slice(str, 0, end);
+  out->val_comment = comment;
 
   return xml_consume_chars(str, end + 3); // + 3 for the closing '-->'.
 }
