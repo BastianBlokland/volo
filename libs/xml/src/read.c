@@ -162,7 +162,7 @@ read_elem(XmlReadContext* ctx, const XmlToken startToken, const XmlNode parent, 
       continue;
     }
     if (UNLIKELY(token.type != XmlTokenType_TagEnd)) {
-      *res = xml_error_from_token(startToken);
+      *res = xml_error_from_token(token);
       goto Ret;
     }
     if (UNLIKELY(!string_eq(token.val_tag, startToken.val_tag))) {
