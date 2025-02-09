@@ -4,6 +4,7 @@
 #include "core_dynarray.h"
 #include "core_dynstring.h"
 #include "xml_doc.h"
+#include "xml_eq.h"
 #include "xml_read.h"
 
 spec(read) {
@@ -66,6 +67,62 @@ spec(read) {
     const XmlNode textNode = xml_first_child(doc, res.node);
     check_eq_int(xml_type(doc, textNode), XmlType_Comment);
     check_eq_string(xml_value(doc, textNode), string_lit("Hello World!"));
+  }
+
+  it("can read complex elements") {
+    // clang-format off
+    XmlNode tmpNodeA, tmpNodeB, tmpNodeC, tmpNodeD, tmpNodeE;
+    struct {
+      String  input;
+      XmlNode expected;
+    } const data[] = {
+        {string_lit("<a/>"), xml_add_elem(doc, sentinel_u32, string_lit("a"))},
+        {string_lit("<a></a>"), xml_add_elem(doc, sentinel_u32, string_lit("a"))},
+        {string_lit("<a>Hello</a>"), (
+          tmpNodeA = xml_add_elem(doc, sentinel_u32, string_lit("a")),
+            xml_add_text(doc, tmpNodeA, string_lit("Hello")),
+          tmpNodeA
+        ) },
+        {string_lit("<a>Hello<b/></a>"), (
+          tmpNodeB = xml_add_elem(doc, sentinel_u32, string_lit("a")),
+            xml_add_text(doc, tmpNodeB, string_lit("Hello")),
+            xml_add_elem(doc, tmpNodeB, string_lit("b")),
+          tmpNodeB
+        )},
+        {string_lit("<a>Hello<b/>World</a>"), (
+          tmpNodeC = xml_add_elem(doc, sentinel_u32, string_lit("a")),
+            xml_add_text(doc, tmpNodeC, string_lit("Hello")),
+            xml_add_elem(doc, tmpNodeC, string_lit("b")),
+            xml_add_text(doc, tmpNodeC, string_lit("World")),
+          tmpNodeC
+        )},
+        {string_lit("<a><b/>Hello<c/>World<d/></a>"), (
+          tmpNodeD = xml_add_elem(doc, sentinel_u32, string_lit("a")),
+            xml_add_elem(doc, tmpNodeD, string_lit("b")),
+            xml_add_text(doc, tmpNodeD, string_lit("Hello")),
+            xml_add_elem(doc, tmpNodeD, string_lit("c")),
+            xml_add_text(doc, tmpNodeD, string_lit("World")),
+            xml_add_elem(doc, tmpNodeD, string_lit("d")),
+          tmpNodeD
+        )},
+        {string_lit("<a>Hello<!-- Foo -->World</a>"), (
+          tmpNodeE = xml_add_elem(doc, sentinel_u32, string_lit("a")),
+            xml_add_text(doc, tmpNodeE, string_lit("Hello")),
+            xml_add_comment(doc, tmpNodeE, string_lit("Foo")),
+            xml_add_text(doc, tmpNodeE, string_lit("World")),
+          tmpNodeE
+        )},
+    };
+    // clang-format on
+
+    XmlResult res;
+    for (usize i = 0; i != array_elems(data); ++i) {
+      const String rem = xml_read(doc, data[i].input, &res);
+
+      check(string_is_empty(rem));
+      check_require(res.type == XmlResultType_Success);
+      check(xml_eq(doc, res.node, data[i].expected));
+    }
   }
 
   it("can read sequences of multiple nodes") {
