@@ -230,6 +230,18 @@ String xml_name(const XmlDoc* doc, const XmlNode node) {
   }
 }
 
+StringHash xml_name_hash(const XmlDoc* doc, const XmlNode node) {
+  XmlNodeData* nodeData = xml_node_data(doc, node);
+  switch (nodeData->type) {
+  case XmlType_Element:
+    return nodeData->data_elem.nameHash;
+  case XmlType_Attribute:
+    return nodeData->data_attr.nameHash;
+  default:
+    return 0;
+  }
+}
+
 String xml_value(const XmlDoc* doc, const XmlNode node) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
   switch (nodeData->type) {
