@@ -77,14 +77,16 @@ static void vkgen_prolog(VkGenContext* ctx) {
     vkgen_comment_elem(ctx, copyrightElem);
   }
 
-  fmt_write(ctx->output, "\n");
+  fmt_write(ctx->output, "// clang-format off\n\n");
   fmt_write(ctx->output, "#include \"core.h\"\n");
 }
+
+static void vkgen_epilog(VkGenContext* ctx) { fmt_write(ctx->output, "// clang-format on\n"); }
 
 static bool vkgen_generate(VkGenContext* ctx) {
   vkgen_prolog(ctx);
   fmt_write(ctx->output, "\n");
-
+  vkgen_epilog(ctx);
   return true;
 }
 
