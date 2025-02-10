@@ -116,7 +116,7 @@ static void vkgen_enum(VkGenContext* ctx, const XmlNode enumNode) {
     return; // Empty enum.
   }
   if (typeHash == g_hash_enum || typeHash == g_hash_bitmask) {
-    fmt_write(ctx->out, "typedef enum {} {\n", fmt_text(enumName));
+    fmt_write(ctx->out, "typedef enum {\n", fmt_text(enumName));
     xml_for_children(ctx->schemaDoc, enumNode, entry) {
       if (xml_name_hash(ctx->schemaDoc, entry) != g_hash_enum) {
         continue; // Not an enum entry.
