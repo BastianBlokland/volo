@@ -14,7 +14,8 @@ typedef struct {
 } XmlElemData;
 
 typedef struct {
-  String name, value;
+  StringHash nameHash;
+  String     value;
 } XmlAttrData;
 
 typedef struct {
@@ -92,7 +93,7 @@ static bool xml_node_link_attr(XmlDoc* doc, const XmlNode elem, const XmlNode at
   XmlNode* link = &elemData->data_elem.attrHead;
   while (!sentinel_check(*link)) {
     XmlNodeData* linkAttrData = xml_node_data(doc, *link);
-    if (string_eq(attrData->data_attr.name, linkAttrData->data_attr.name)) {
+    if (attrData->data_attr.nameHash == linkAttrData->data_attr.nameHash) {
       return false; // Existing attribute found with the same name.
     }
     link = &linkAttrData->next;
@@ -165,8 +166,8 @@ XmlNode xml_add_attr(XmlDoc* doc, const XmlNode parent, const String name, const
           .next = sentinel_u32,
           .data_attr =
               {
-                  .name  = stringtable_intern(doc->keyTable, name),
-                  .value = xml_string_store(doc, value),
+                  .nameHash = stringtable_add(doc->keyTable, name),
+                  .value    = xml_string_store(doc, value),
               },
       });
 
@@ -223,7 +224,7 @@ String xml_name(const XmlDoc* doc, const XmlNode node) {
   case XmlType_Element:
     return nodeData->data_elem.name;
   case XmlType_Attribute:
-    return nodeData->data_attr.name;
+    return stringtable_lookup(doc->keyTable, nodeData->data_attr.nameHash);
   default:
     return string_empty;
   }
@@ -249,10 +250,12 @@ bool xml_attr_has(const XmlDoc* doc, const XmlNode node, const String name) {
     return false;
   }
 
+  const StringHash nameHash = string_hash(name);
+
   // Walk the linked-list of attributes.
   const XmlNode attrHead = nodeData->data_elem.attrHead;
   for (XmlNode attr = attrHead; !sentinel_check(attr); attr = xml_node_data(doc, attr)->next) {
-    if (string_eq(xml_node_data(doc, attr)->data_attr.name, name)) {
+    if (xml_node_data(doc, attr)->data_attr.nameHash == nameHash) {
       return true;
     }
   }
@@ -266,11 +269,13 @@ String xml_attr_get(const XmlDoc* doc, const XmlNode node, const String name) {
     return string_empty;
   }
 
+  const StringHash nameHash = string_hash(name);
+
   // Walk the linked-list of attributes.
   const XmlNode attrHead = nodeData->data_elem.attrHead;
   for (XmlNode attr = attrHead; !sentinel_check(attr); attr = xml_node_data(doc, attr)->next) {
     const XmlNodeData* attrData = xml_node_data(doc, attr);
-    if (string_eq(attrData->data_attr.name, name)) {
+    if (attrData->data_attr.nameHash == nameHash) {
       return attrData->data_attr.value;
     }
   }
