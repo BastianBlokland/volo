@@ -8,9 +8,9 @@
 #define xml_str_chunk_size (32 * usize_kibibyte)
 
 typedef struct {
-  String  name;
-  XmlNode attrHead;
-  XmlNode childHead, childTail;
+  StringHash nameHash;
+  XmlNode    attrHead;
+  XmlNode    childHead, childTail;
 } XmlElemData;
 
 typedef struct {
@@ -141,7 +141,7 @@ XmlNode xml_add_elem(XmlDoc* doc, const XmlNode parent, const String name) {
           .next = sentinel_u32,
           .data_elem =
               {
-                  .name      = stringtable_intern(doc->keyTable, name),
+                  .nameHash  = stringtable_add(doc->keyTable, name),
                   .attrHead  = sentinel_u32,
                   .childHead = sentinel_u32,
                   .childTail = sentinel_u32,
@@ -222,7 +222,7 @@ String xml_name(const XmlDoc* doc, const XmlNode node) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
   switch (nodeData->type) {
   case XmlType_Element:
-    return nodeData->data_elem.name;
+    return stringtable_lookup(doc->keyTable, nodeData->data_elem.nameHash);
   case XmlType_Attribute:
     return stringtable_lookup(doc->keyTable, nodeData->data_attr.nameHash);
   default:
