@@ -107,8 +107,7 @@ static void vkgen_epilog(VkGenContext* ctx) { fmt_write(ctx->out, "// clang-form
 
 static void vkgen_enum(VkGenContext* ctx, const XmlNode enumNode) {
   const String     enumName = xml_attr_get(ctx->schemaDoc, enumNode, g_hash_name);
-  const String     type     = xml_attr_get(ctx->schemaDoc, enumNode, g_hash_type);
-  const StringHash typeHash = string_hash(type);
+  const StringHash typeHash = xml_attr_get_hash(ctx->schemaDoc, enumNode, g_hash_type);
   if (sentinel_check(xml_first_child(ctx->schemaDoc, enumNode))) {
     return; // Empty enum.
   }
