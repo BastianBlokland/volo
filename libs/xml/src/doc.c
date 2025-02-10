@@ -56,6 +56,9 @@ static String xml_string_store(XmlDoc* doc, const String str) {
 }
 
 INLINE_HINT static XmlNodeData* xml_node_data(const XmlDoc* doc, const XmlNode node) {
+  if (sentinel_check(node)) {
+    return null;
+  }
   diag_assert_msg(node < doc->nodes.size, "Out of bounds XmlNode");
   return &dynarray_begin_t(&doc->nodes, XmlNodeData)[node];
 }
@@ -213,13 +216,17 @@ XmlNode xml_add_comment(XmlDoc* doc, const XmlNode parent, const String value) {
 }
 
 bool xml_is(const XmlDoc* doc, const XmlNode node, const XmlType type) {
-  return !sentinel_check(node) && xml_node_data(doc, node)->type == type;
+  const XmlNodeData* data = xml_node_data(doc, node);
+  return data && data->type == type;
 }
 
 XmlType xml_type(const XmlDoc* doc, const XmlNode node) { return xml_node_data(doc, node)->type; }
 
 String xml_name(const XmlDoc* doc, const XmlNode node) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
+  if (!nodeData) {
+    return string_empty;
+  }
   switch (nodeData->type) {
   case XmlType_Element:
     return stringtable_lookup(doc->keyTable, nodeData->data_elem.nameHash);
@@ -232,6 +239,9 @@ String xml_name(const XmlDoc* doc, const XmlNode node) {
 
 StringHash xml_name_hash(const XmlDoc* doc, const XmlNode node) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
+  if (!nodeData) {
+    return 0;
+  }
   switch (nodeData->type) {
   case XmlType_Element:
     return nodeData->data_elem.nameHash;
@@ -244,6 +254,9 @@ StringHash xml_name_hash(const XmlDoc* doc, const XmlNode node) {
 
 String xml_value(const XmlDoc* doc, const XmlNode node) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
+  if (!nodeData) {
+    return string_empty;
+  }
   switch (nodeData->type) {
   case XmlType_Attribute:
     return nodeData->data_attr.value;
@@ -258,7 +271,7 @@ String xml_value(const XmlDoc* doc, const XmlNode node) {
 
 bool xml_attr_has(const XmlDoc* doc, const XmlNode node, const StringHash nameHash) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
-  if (nodeData->type != XmlType_Element) {
+  if (!nodeData || nodeData->type != XmlType_Element) {
     return false;
   }
 
@@ -275,7 +288,7 @@ bool xml_attr_has(const XmlDoc* doc, const XmlNode node, const StringHash nameHa
 
 String xml_attr_get(const XmlDoc* doc, const XmlNode node, const StringHash nameHash) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
-  if (nodeData->type != XmlType_Element) {
+  if (!nodeData || nodeData->type != XmlType_Element) {
     return string_empty;
   }
 
@@ -293,7 +306,7 @@ String xml_attr_get(const XmlDoc* doc, const XmlNode node, const StringHash name
 
 XmlNode xml_first_child(const XmlDoc* doc, const XmlNode node) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
-  if (nodeData->type != XmlType_Element) {
+  if (!nodeData || nodeData->type != XmlType_Element) {
     return sentinel_u32;
   }
   return nodeData->data_elem.childHead;
@@ -301,15 +314,13 @@ XmlNode xml_first_child(const XmlDoc* doc, const XmlNode node) {
 
 XmlNode xml_first_attr(const XmlDoc* doc, const XmlNode node) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
-  if (nodeData->type != XmlType_Element) {
+  if (!nodeData || nodeData->type != XmlType_Element) {
     return sentinel_u32;
   }
   return nodeData->data_elem.attrHead;
 }
 
 XmlNode xml_next(const XmlDoc* doc, const XmlNode node) {
-  if (sentinel_check(node)) {
-    return sentinel_u32;
-  }
-  return xml_node_data(doc, node)->next;
+  const XmlNodeData* data = xml_node_data(doc, node);
+  return data ? data->next : sentinel_u32;
 }
