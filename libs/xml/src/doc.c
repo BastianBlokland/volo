@@ -244,13 +244,11 @@ String xml_value(const XmlDoc* doc, const XmlNode node) {
   }
 }
 
-bool xml_attr_has(const XmlDoc* doc, const XmlNode node, const String name) {
+bool xml_attr_has(const XmlDoc* doc, const XmlNode node, const StringHash nameHash) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
   if (nodeData->type != XmlType_Element) {
     return false;
   }
-
-  const StringHash nameHash = string_hash(name);
 
   // Walk the linked-list of attributes.
   const XmlNode attrHead = nodeData->data_elem.attrHead;
@@ -263,13 +261,11 @@ bool xml_attr_has(const XmlDoc* doc, const XmlNode node, const String name) {
   return false;
 }
 
-String xml_attr_get(const XmlDoc* doc, const XmlNode node, const String name) {
+String xml_attr_get(const XmlDoc* doc, const XmlNode node, const StringHash nameHash) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
   if (nodeData->type != XmlType_Element) {
     return string_empty;
   }
-
-  const StringHash nameHash = string_hash(name);
 
   // Walk the linked-list of attributes.
   const XmlNode attrHead = nodeData->data_elem.attrHead;
