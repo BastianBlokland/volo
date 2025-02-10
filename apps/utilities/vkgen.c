@@ -23,13 +23,17 @@
 #define VKGEN_VISIT_HASHES                                                                         \
   VKGEN_HASH(bitmask)                                                                              \
   VKGEN_HASH(bitpos)                                                                               \
+  VKGEN_HASH(category)                                                                             \
   VKGEN_HASH(comment)                                                                              \
   VKGEN_HASH(constants)                                                                            \
   VKGEN_HASH(deprecated)                                                                           \
   VKGEN_HASH(enum)                                                                                 \
   VKGEN_HASH(enums)                                                                                \
+  VKGEN_HASH(member)                                                                               \
   VKGEN_HASH(name)                                                                                 \
+  VKGEN_HASH(struct)                                                                               \
   VKGEN_HASH(type)                                                                                 \
+  VKGEN_HASH(types)                                                                                \
   VKGEN_HASH(value)
 
 #define VKGEN_HASH(_NAME_) static StringHash g_hash_##_NAME_;
@@ -153,6 +157,39 @@ static void vkgen_enum(VkGenContext* ctx, const XmlNode enumNode) {
   }
 }
 
+static void vkgen_type(VkGenContext* ctx, const XmlNode typeNode) {
+  const String     structName   = xml_attr_get(ctx->schemaDoc, typeNode, g_hash_name);
+  const StringHash categoryHash = xml_attr_get_hash(ctx->schemaDoc, typeNode, g_hash_category);
+  if (categoryHash == g_hash_struct) {
+    fmt_write(ctx->out, "typedef struct {} {\n", fmt_text(structName));
+    xml_for_children(ctx->schemaDoc, typeNode, entry) {
+      if (xml_name_hash(ctx->schemaDoc, entry) != g_hash_member) {
+        continue; // Not a struct member.
+      }
+      fmt_write(ctx->out, "  ");
+      bool first = true;
+      xml_for_children(ctx->schemaDoc, entry, part) {
+        if (!first) {
+          fmt_write(ctx->out, " ");
+        }
+        first = false;
+        switch (xml_type(ctx->schemaDoc, part)) {
+        case XmlType_Element:
+          fmt_write(ctx->out, "{}", fmt_text(xml_child_text(ctx->schemaDoc, part)));
+          break;
+        case XmlType_Text:
+          fmt_write(ctx->out, "{}", fmt_text(xml_value(ctx->schemaDoc, part)));
+          break;
+        default:
+          break;
+        }
+      }
+      fmt_write(ctx->out, ";\n");
+    }
+    fmt_write(ctx->out, "} {};\n\n", fmt_text(structName));
+  }
+}
+
 static bool vkgen_generate(VkGenContext* ctx) {
   vkgen_prolog(ctx);
   fmt_write(ctx->out, "\n");
@@ -161,6 +198,14 @@ static bool vkgen_generate(VkGenContext* ctx) {
   xml_for_children(ctx->schemaDoc, ctx->schemaRoot, child) {
     if (xml_name_hash(ctx->schemaDoc, child) == g_hash_enums) {
       vkgen_enum(ctx, child);
+    }
+  }
+
+  // Generate types.
+  const XmlNode types = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_types);
+  xml_for_children(ctx->schemaDoc, types, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) == g_hash_type) {
+      vkgen_type(ctx, child);
     }
   }
 
