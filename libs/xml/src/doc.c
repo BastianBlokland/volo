@@ -304,6 +304,25 @@ String xml_attr_get(const XmlDoc* doc, const XmlNode node, const StringHash name
   return string_empty;
 }
 
+XmlNode xml_child_get(const XmlDoc* doc, const XmlNode node, const StringHash nameHash) {
+  XmlNodeData* nodeData = xml_node_data(doc, node);
+  if (!nodeData || nodeData->type != XmlType_Element) {
+    return sentinel_u32;
+  }
+
+  // Walk the linked-list of children.
+  const XmlNode childHead = nodeData->data_elem.childHead;
+  for (XmlNode child = childHead; !sentinel_check(child);) {
+    const XmlNodeData* childData = xml_node_data(doc, child);
+    if (childData->type == XmlType_Element && childData->data_elem.nameHash == nameHash) {
+      return child;
+    }
+    child = childData->next;
+  }
+
+  return sentinel_u32;
+}
+
 XmlNode xml_first_child(const XmlDoc* doc, const XmlNode node) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
   if (!nodeData || nodeData->type != XmlType_Element) {
