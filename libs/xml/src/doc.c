@@ -304,6 +304,24 @@ String xml_attr_get(const XmlDoc* doc, const XmlNode node, const StringHash name
   return string_empty;
 }
 
+StringHash xml_attr_get_hash(const XmlDoc* doc, const XmlNode node, const StringHash nameHash) {
+  XmlNodeData* nodeData = xml_node_data(doc, node);
+  if (!nodeData || nodeData->type != XmlType_Element) {
+    return 0;
+  }
+
+  // Walk the linked-list of attributes.
+  const XmlNode attrHead = nodeData->data_elem.attrHead;
+  for (XmlNode attr = attrHead; !sentinel_check(attr); attr = xml_node_data(doc, attr)->next) {
+    const XmlNodeData* attrData = xml_node_data(doc, attr);
+    if (attrData->data_attr.nameHash == nameHash) {
+      return string_hash(attrData->data_attr.value);
+    }
+  }
+
+  return 0;
+}
+
 XmlNode xml_child_get(const XmlDoc* doc, const XmlNode node, const StringHash nameHash) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
   if (!nodeData || nodeData->type != XmlType_Element) {
