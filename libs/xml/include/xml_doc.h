@@ -23,6 +23,24 @@ typedef enum eXmlType {
  */
 typedef u32 XmlNode;
 
+// clang-format off
+
+/**
+ * Iterate over all children of the given node.
+ */
+#define xml_for_children(_DOC_, _NODE_, _VAR_)                                                     \
+  for (XmlNode _VAR_ = xml_first_child((_DOC_), (_NODE_)); !sentinel_check(_VAR_);                 \
+               _VAR_ = xml_next((_DOC_), _VAR_))
+
+/**
+ * Iterate over all attributes of the given node.
+ */
+#define xml_for_attributes(_DOC_, _NODE_, _VAR_)                                                   \
+  for (XmlNode _VAR_ = xml_first_attr((_DOC_), (_NODE_)); !sentinel_check(_VAR_);                  \
+               _VAR_ = xml_next((_DOC_), _VAR_))
+
+// clang-format on
+
 /**
  * Create a new Xml document.
  * NOTE: 'nodeCapacity' is only the initial capacity, more space is automatically allocated when
