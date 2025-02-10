@@ -21,6 +21,8 @@
  */
 
 #define VKGEN_VISIT_HASHES                                                                         \
+  VKGEN_HASH(bitmask)                                                                              \
+  VKGEN_HASH(bitpos)                                                                               \
   VKGEN_HASH(comment)                                                                              \
   VKGEN_HASH(deprecated)                                                                           \
   VKGEN_HASH(enum)                                                                                 \
@@ -106,26 +108,40 @@ static void vkgen_enum(VkGenContext* ctx, const XmlNode enumNode) {
   const String     enumName = xml_attr_get(ctx->schemaDoc, enumNode, g_hash_name);
   const String     type     = xml_attr_get(ctx->schemaDoc, enumNode, g_hash_type);
   const StringHash typeHash = string_hash(type);
-  if (typeHash == g_hash_enum) {
-    fmt_write(ctx->out, "typedef enum {\n");
-    xml_for_children(ctx->schemaDoc, enumNode, entry) {
-      if (xml_name_hash(ctx->schemaDoc, entry) != g_hash_enum) {
-        continue;
-      }
-      if (!string_is_empty(xml_attr_get(ctx->schemaDoc, entry, g_hash_deprecated))) {
-        continue;
-      }
-      const String name    = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
-      const String val     = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
-      const String comment = xml_attr_get(ctx->schemaDoc, entry, g_hash_comment);
-      if (!string_is_empty(comment)) {
-        fmt_write(ctx->out, "  {} = {}, // {}\n", fmt_text(name), fmt_text(val), fmt_text(comment));
-      } else {
-        fmt_write(ctx->out, "  {} = {},\n", fmt_text(name), fmt_text(val));
-      }
-    }
-    fmt_write(ctx->out, "} {};\n\n", fmt_text(enumName));
+  if (typeHash != g_hash_enum && typeHash != g_hash_bitmask) {
+    return; // Not a supported enum type.
   }
+  if (sentinel_check(xml_first_child(ctx->schemaDoc, enumNode))) {
+    return; // Empty enum.
+  }
+  fmt_write(ctx->out, "typedef enum {\n");
+  xml_for_children(ctx->schemaDoc, enumNode, entry) {
+    if (xml_name_hash(ctx->schemaDoc, entry) != g_hash_enum) {
+      continue; // Not an enum entry.
+    }
+    if (!string_is_empty(xml_attr_get(ctx->schemaDoc, entry, g_hash_deprecated))) {
+      continue; // Is deprecated.
+    }
+    const String name = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
+    fmt_write(ctx->out, "  {}", fmt_text(name));
+
+    const String val    = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
+    const String bitPos = xml_attr_get(ctx->schemaDoc, entry, g_hash_bitpos);
+    if (!string_is_empty(val)) {
+      fmt_write(ctx->out, " = {}", fmt_text(val));
+    } else if (!string_is_empty(bitPos)) {
+      fmt_write(ctx->out, " = 1 << {}", fmt_text(bitPos));
+    }
+    fmt_write(ctx->out, ",");
+
+    const String comment = xml_attr_get(ctx->schemaDoc, entry, g_hash_comment);
+    if (!string_is_empty(comment)) {
+      fmt_write(ctx->out, " // {}", fmt_text(comment));
+    }
+
+    fmt_write(ctx->out, "\n");
+  }
+  fmt_write(ctx->out, "} {};\n\n", fmt_text(enumName));
 }
 
 static bool vkgen_generate(VkGenContext* ctx) {
