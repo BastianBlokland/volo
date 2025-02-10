@@ -72,8 +72,8 @@ bool    xml_is(const XmlDoc*, XmlNode, XmlType);
 XmlType xml_type(const XmlDoc*, XmlNode);
 String  xml_name(const XmlDoc*, XmlNode);
 String  xml_value(const XmlDoc*, XmlNode);
-bool    xml_attr_has(const XmlDoc*, XmlNode node, String name);
-String  xml_attr_get(const XmlDoc*, XmlNode node, String name);
+bool    xml_attr_has(const XmlDoc*, XmlNode node, StringHash nameHash);
+String  xml_attr_get(const XmlDoc*, XmlNode node, StringHash nameHash);
 XmlNode xml_first_child(const XmlDoc*, XmlNode);
 XmlNode xml_first_attr(const XmlDoc*, XmlNode);
 

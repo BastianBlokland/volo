@@ -28,9 +28,9 @@ spec(doc) {
 
     check(xml_first_attr(doc, elem) == attr);
 
-    check(xml_attr_has(doc, elem, string_lit("a")));
-    check(!xml_attr_has(doc, elem, string_lit("b")));
-    check_eq_string(xml_attr_get(doc, elem, string_lit("a")), string_lit("valA"));
+    check(xml_attr_has(doc, elem, string_hash_lit("a")));
+    check(!xml_attr_has(doc, elem, string_hash_lit("b")));
+    check_eq_string(xml_attr_get(doc, elem, string_hash_lit("a")), string_lit("valA"));
   }
 
   it("can add multiple attributes to an element") {
@@ -51,13 +51,15 @@ spec(doc) {
       check_eq_string(xml_name(doc, attr), g_testAttrs[i].name);
       check_eq_string(xml_value(doc, attr), g_testAttrs[i].value);
 
-      check(xml_attr_has(doc, elem, g_testAttrs[i].name));
-      check_eq_string(xml_attr_get(doc, elem, g_testAttrs[i].name), g_testAttrs[i].value);
+      const StringHash nameHash = string_hash(g_testAttrs[i].name);
+      check(xml_attr_has(doc, elem, nameHash));
+      check_eq_string(xml_attr_get(doc, elem, nameHash), g_testAttrs[i].value);
     }
 
     for (u32 i = 0; i != array_elems(g_testAttrs); ++i) {
-      check(xml_attr_has(doc, elem, g_testAttrs[i].name));
-      check_eq_string(xml_attr_get(doc, elem, g_testAttrs[i].name), g_testAttrs[i].value);
+      const StringHash nameHash = string_hash(g_testAttrs[i].name);
+      check(xml_attr_has(doc, elem, nameHash));
+      check_eq_string(xml_attr_get(doc, elem, nameHash), g_testAttrs[i].value);
     }
   }
 
@@ -67,7 +69,7 @@ spec(doc) {
     xml_add_attr(doc, elem, string_lit("a"), string_lit("valA"));
 
     check(sentinel_check(xml_add_attr(doc, elem, string_lit("a"), string_lit("valB"))));
-    check_eq_string(xml_attr_get(doc, elem, string_lit("a")), string_lit("valA"));
+    check_eq_string(xml_attr_get(doc, elem, string_hash_lit("a")), string_lit("valA"));
   }
 
   it("can add a child element to an element") {
