@@ -24,6 +24,8 @@
   VKGEN_HASH(bitmask)                                                                              \
   VKGEN_HASH(bitpos)                                                                               \
   VKGEN_HASH(category)                                                                             \
+  VKGEN_HASH(command)                                                                              \
+  VKGEN_HASH(commands)                                                                             \
   VKGEN_HASH(comment)                                                                              \
   VKGEN_HASH(constants)                                                                            \
   VKGEN_HASH(deprecated)                                                                           \
@@ -84,39 +86,54 @@ Ret:
 typedef struct {
   StringHash nameHash;
   XmlNode    schemaNode;
-} VkGenType;
+} VkGenEntry;
 
 typedef struct {
   XmlDoc*   schemaDoc;
   XmlNode   schemaRoot;
   String    schemaHost, schemaUri;
-  DynArray  types; // VkGenType[]
+  DynArray  types;    // VkGenType[]
+  DynArray  commands; // VkGenType[]
   DynString out;
 } VkGenContext;
 
-static i8 vkgen_compare_type(const void* a, const void* b) {
-  return compare_stringhash(field_ptr(a, VkGenType, nameHash), field_ptr(b, VkGenType, nameHash));
+static i8 vkgen_compare_entry(const void* a, const void* b) {
+  return compare_stringhash(field_ptr(a, VkGenEntry, nameHash), field_ptr(b, VkGenEntry, nameHash));
+}
+
+static void vkgen_entry_push(DynArray* arr, const StringHash nameHash, const XmlNode node) {
+  *dynarray_push_t(arr, VkGenEntry) = (VkGenEntry){
+      .nameHash   = nameHash,
+      .schemaNode = node,
+  };
 }
 
 static void vkgen_collect(VkGenContext* ctx) {
   // Collect types.
-  const XmlNode types = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_types);
-  xml_for_children(ctx->schemaDoc, types, child) {
-    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_type) {
-      continue; // Not a type.
+  const XmlNode typesNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_types);
+  xml_for_children(ctx->schemaDoc, typesNode, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) == g_hash_type) {
+      const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
+      if (nameHash) {
+        vkgen_entry_push(&ctx->types, nameHash, child);
+      }
     }
-    const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
-    if (!nameHash) {
-      continue; // Name missing. TODO: Should this be an error?
-    }
-    *dynarray_push_t(&ctx->types, VkGenType) = (VkGenType){
-        .nameHash   = nameHash,
-        .schemaNode = child,
-    };
   }
-  dynarray_sort(&ctx->types, vkgen_compare_type);
-
+  dynarray_sort(&ctx->types, vkgen_compare_entry);
   log_i("Collected types", log_param("count", fmt_int(ctx->types.size)));
+
+  // Collect commands.
+  const XmlNode commandsNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_commands);
+  xml_for_children(ctx->schemaDoc, commandsNode, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) == g_hash_command) {
+      const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
+      if (nameHash) {
+        vkgen_entry_push(&ctx->commands, nameHash, child);
+      }
+    }
+  }
+  dynarray_sort(&ctx->commands, vkgen_compare_entry);
+  log_i("Collected commands", log_param("count", fmt_int(ctx->commands.size)));
 }
 
 static void vkgen_comment_elem(VkGenContext* ctx, const XmlNode comment) {
@@ -299,7 +316,8 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .schemaDoc  = xml_create(g_allocHeap, 128 * 1024),
       .schemaHost = cli_read_string(invoc, g_optSchemaHost, g_schemaDefaultHost),
       .schemaUri  = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
-      .types      = dynarray_create_t(g_allocHeap, VkGenType, 2048),
+      .types      = dynarray_create_t(g_allocHeap, VkGenEntry, 2048),
+      .commands   = dynarray_create_t(g_allocHeap, VkGenEntry, 128),
       .out        = dynstring_create(g_allocHeap, usize_kibibyte * 16),
   };
 
@@ -321,6 +339,7 @@ Exit:;
   }
   xml_destroy(ctx.schemaDoc);
   dynarray_destroy(&ctx.types);
+  dynarray_destroy(&ctx.commands);
   dynstring_destroy(&ctx.out);
 
   net_teardown();
