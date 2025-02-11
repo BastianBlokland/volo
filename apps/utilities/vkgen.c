@@ -85,7 +85,7 @@ Ret:
 }
 
 typedef struct {
-  StringHash nameHash;
+  StringHash key;
   XmlNode    schemaNode;
 } VkGenEntry;
 
@@ -100,12 +100,12 @@ typedef struct {
 } VkGenContext;
 
 static i8 vkgen_compare_entry(const void* a, const void* b) {
-  return compare_stringhash(field_ptr(a, VkGenEntry, nameHash), field_ptr(b, VkGenEntry, nameHash));
+  return compare_stringhash(field_ptr(a, VkGenEntry, key), field_ptr(b, VkGenEntry, key));
 }
 
-static void vkgen_entry_push(DynArray* arr, const StringHash nameHash, const XmlNode node) {
+static void vkgen_entry_push(DynArray* arr, const StringHash key, const XmlNode node) {
   *dynarray_push_t(arr, VkGenEntry) = (VkGenEntry){
-      .nameHash   = nameHash,
+      .key        = key,
       .schemaNode = node,
   };
 }
