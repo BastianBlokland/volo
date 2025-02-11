@@ -199,12 +199,13 @@ static void vkgen_write_prolog(VkGenContext* ctx) {
 
 static void vkgen_write_epilog(VkGenContext* ctx) { fmt_write(&ctx->out, "// clang-format on\n"); }
 
-static bool vkgen_write_constants(VkGenContext* ctx) {
-  const XmlNode apiConstants = vkgen_entry_find(&ctx->enums, string_hash_lit("API Constants"));
-  if (sentinel_check(apiConstants)) {
+static bool vkgen_write_constants(VkGenContext* ctx, const StringHash key) {
+  const XmlNode    node     = vkgen_entry_find(&ctx->enums, key);
+  const StringHash typeHash = xml_attr_get_hash(ctx->schemaDoc, node, g_hash_type);
+  if (typeHash != g_hash_constants) {
     return false;
   }
-  xml_for_children(ctx->schemaDoc, apiConstants, entry) {
+  xml_for_children(ctx->schemaDoc, node, entry) {
     if (xml_name_hash(ctx->schemaDoc, entry) == g_hash_enum) {
       const String name = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
       const String val  = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
@@ -215,11 +216,22 @@ static bool vkgen_write_constants(VkGenContext* ctx) {
   return true;
 }
 
+static bool vkgen_write_feature(VkGenContext* ctx, const StringHash key) {
+  const XmlNode node = vkgen_entry_find(&ctx->features, key);
+  if (sentinel_check(node)) {
+    return false;
+  }
+  return true;
+}
+
 static bool vkgen_write_header(VkGenContext* ctx) {
   vkgen_write_prolog(ctx);
   fmt_write(&ctx->out, "\n");
 
-  if (!vkgen_write_constants(ctx)) {
+  if (!vkgen_write_constants(ctx, string_hash_lit("API Constants"))) {
+    return false;
+  }
+  if (!vkgen_write_feature(ctx, string_hash_lit("VK_VERSION_1_0"))) {
     return false;
   }
 
