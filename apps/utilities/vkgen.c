@@ -165,7 +165,7 @@ static void vkgen_collect_features(VkGenContext* ctx) {
   log_i("Collected features", log_param("count", fmt_int(ctx->features.size)));
 }
 
-static void vkgen_comment_elem(VkGenContext* ctx, const XmlNode comment) {
+static void vkgen_write_comment_elem(VkGenContext* ctx, const XmlNode comment) {
   const XmlNode text = xml_first_child(ctx->schemaDoc, comment);
   if (xml_is(ctx->schemaDoc, text, XmlType_Text)) {
     const String str = xml_value(ctx->schemaDoc, text);
@@ -173,7 +173,7 @@ static void vkgen_comment_elem(VkGenContext* ctx, const XmlNode comment) {
   }
 }
 
-static void vkgen_prolog(VkGenContext* ctx) {
+static void vkgen_write_prolog(VkGenContext* ctx) {
   fmt_write(&ctx->out, "#pragma once\n");
   fmt_write(
       &ctx->out,
@@ -183,16 +183,16 @@ static void vkgen_prolog(VkGenContext* ctx) {
 
   const XmlNode copyrightElem = xml_first_child(ctx->schemaDoc, ctx->schemaRoot);
   if (xml_is(ctx->schemaDoc, copyrightElem, XmlType_Element)) {
-    vkgen_comment_elem(ctx, copyrightElem);
+    vkgen_write_comment_elem(ctx, copyrightElem);
   }
 
   fmt_write(&ctx->out, "// clang-format off\n\n");
   fmt_write(&ctx->out, "#include \"core.h\"\n");
 }
 
-static void vkgen_epilog(VkGenContext* ctx) { fmt_write(&ctx->out, "// clang-format on\n"); }
+static void vkgen_write_epilog(VkGenContext* ctx) { fmt_write(&ctx->out, "// clang-format on\n"); }
 
-static void vkgen_enum(VkGenContext* ctx, const XmlNode enumNode) {
+static void vkgen_write_enum(VkGenContext* ctx, const XmlNode enumNode) {
   const String     enumName = xml_attr_get(ctx->schemaDoc, enumNode, g_hash_name);
   const StringHash typeHash = xml_attr_get_hash(ctx->schemaDoc, enumNode, g_hash_type);
   if (sentinel_check(xml_first_child(ctx->schemaDoc, enumNode))) {
@@ -240,7 +240,7 @@ static void vkgen_enum(VkGenContext* ctx, const XmlNode enumNode) {
   }
 }
 
-static void vkgen_type(VkGenContext* ctx, const XmlNode typeNode) {
+static void vkgen_write_type(VkGenContext* ctx, const XmlNode typeNode) {
   const String     structName   = xml_attr_get(ctx->schemaDoc, typeNode, g_hash_name);
   const StringHash categoryHash = xml_attr_get_hash(ctx->schemaDoc, typeNode, g_hash_category);
   if (categoryHash == g_hash_struct) {
@@ -273,14 +273,14 @@ static void vkgen_type(VkGenContext* ctx, const XmlNode typeNode) {
   }
 }
 
-static bool vkgen_generate(VkGenContext* ctx) {
-  vkgen_prolog(ctx);
+static bool vkgen_write_header(VkGenContext* ctx) {
+  vkgen_write_prolog(ctx);
   fmt_write(&ctx->out, "\n");
 
   // Generate enums.
   xml_for_children(ctx->schemaDoc, ctx->schemaRoot, child) {
     if (xml_name_hash(ctx->schemaDoc, child) == g_hash_enums) {
-      vkgen_enum(ctx, child);
+      vkgen_write_enum(ctx, child);
     }
   }
 
@@ -288,11 +288,11 @@ static bool vkgen_generate(VkGenContext* ctx) {
   const XmlNode types = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_types);
   xml_for_children(ctx->schemaDoc, types, child) {
     if (xml_name_hash(ctx->schemaDoc, child) == g_hash_type) {
-      vkgen_type(ctx, child);
+      vkgen_write_type(ctx, child);
     }
   }
 
-  vkgen_epilog(ctx);
+  vkgen_write_epilog(ctx);
   return true;
 }
 
@@ -360,7 +360,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   vkgen_collect_commands(&ctx);
   vkgen_collect_features(&ctx);
 
-  if (vkgen_generate(&ctx)) {
+  if (vkgen_write_header(&ctx)) {
     success = true;
   }
 
