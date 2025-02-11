@@ -94,6 +94,7 @@ typedef struct {
   XmlNode   schemaRoot;
   String    schemaHost, schemaUri;
   DynArray  types;    // VkGenType[]
+  DynArray  enums;    // VkGenType[]
   DynArray  commands; // VkGenType[]
   DynArray  features; // VkGenType[]
   DynString out;
@@ -122,6 +123,19 @@ static void vkgen_collect_types(VkGenContext* ctx) {
   }
   dynarray_sort(&ctx->types, vkgen_compare_entry);
   log_i("Collected types", log_param("count", fmt_int(ctx->types.size)));
+}
+
+static void vkgen_collect_enums(VkGenContext* ctx) {
+  xml_for_children(ctx->schemaDoc, ctx->schemaRoot, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) == g_hash_enums) {
+      const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
+      if (nameHash) {
+        vkgen_entry_push(&ctx->enums, nameHash, child);
+      }
+    }
+  }
+  dynarray_sort(&ctx->enums, vkgen_compare_entry);
+  log_i("Collected enums", log_param("count", fmt_int(ctx->enums.size)));
 }
 
 static void vkgen_collect_commands(VkGenContext* ctx) {
@@ -330,6 +344,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .schemaHost = cli_read_string(invoc, g_optSchemaHost, g_schemaDefaultHost),
       .schemaUri  = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
       .types      = dynarray_create_t(g_allocHeap, VkGenEntry, 2048),
+      .enums      = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
       .commands   = dynarray_create_t(g_allocHeap, VkGenEntry, 128),
       .features   = dynarray_create_t(g_allocHeap, VkGenEntry, 16),
       .out        = dynstring_create(g_allocHeap, usize_kibibyte * 16),
@@ -341,6 +356,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   }
 
   vkgen_collect_types(&ctx);
+  vkgen_collect_enums(&ctx);
   vkgen_collect_commands(&ctx);
   vkgen_collect_features(&ctx);
 
@@ -357,6 +373,7 @@ Exit:;
   }
   xml_destroy(ctx.schemaDoc);
   dynarray_destroy(&ctx.types);
+  dynarray_destroy(&ctx.enums);
   dynarray_destroy(&ctx.commands);
   dynarray_destroy(&ctx.features);
   dynstring_destroy(&ctx.out);
