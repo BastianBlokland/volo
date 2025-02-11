@@ -31,6 +31,7 @@
   VKGEN_HASH(deprecated)                                                                           \
   VKGEN_HASH(enum)                                                                                 \
   VKGEN_HASH(enums)                                                                                \
+  VKGEN_HASH(feature)                                                                              \
   VKGEN_HASH(member)                                                                               \
   VKGEN_HASH(name)                                                                                 \
   VKGEN_HASH(struct)                                                                               \
@@ -94,6 +95,7 @@ typedef struct {
   String    schemaHost, schemaUri;
   DynArray  types;    // VkGenType[]
   DynArray  commands; // VkGenType[]
+  DynArray  features; // VkGenType[]
   DynString out;
 } VkGenContext;
 
@@ -108,8 +110,7 @@ static void vkgen_entry_push(DynArray* arr, const StringHash nameHash, const Xml
   };
 }
 
-static void vkgen_collect(VkGenContext* ctx) {
-  // Collect types.
+static void vkgen_collect_types(VkGenContext* ctx) {
   const XmlNode typesNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_types);
   xml_for_children(ctx->schemaDoc, typesNode, child) {
     if (xml_name_hash(ctx->schemaDoc, child) == g_hash_type) {
@@ -121,8 +122,9 @@ static void vkgen_collect(VkGenContext* ctx) {
   }
   dynarray_sort(&ctx->types, vkgen_compare_entry);
   log_i("Collected types", log_param("count", fmt_int(ctx->types.size)));
+}
 
-  // Collect commands.
+static void vkgen_collect_commands(VkGenContext* ctx) {
   const XmlNode commandsNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_commands);
   xml_for_children(ctx->schemaDoc, commandsNode, child) {
     if (xml_name_hash(ctx->schemaDoc, child) == g_hash_command) {
@@ -134,6 +136,19 @@ static void vkgen_collect(VkGenContext* ctx) {
   }
   dynarray_sort(&ctx->commands, vkgen_compare_entry);
   log_i("Collected commands", log_param("count", fmt_int(ctx->commands.size)));
+}
+
+static void vkgen_collect_features(VkGenContext* ctx) {
+  xml_for_children(ctx->schemaDoc, ctx->schemaRoot, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) == g_hash_feature) {
+      const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
+      if (nameHash) {
+        vkgen_entry_push(&ctx->features, nameHash, child);
+      }
+    }
+  }
+  dynarray_sort(&ctx->features, vkgen_compare_entry);
+  log_i("Collected features", log_param("count", fmt_int(ctx->features.size)));
 }
 
 static void vkgen_comment_elem(VkGenContext* ctx, const XmlNode comment) {
@@ -245,8 +260,6 @@ static void vkgen_type(VkGenContext* ctx, const XmlNode typeNode) {
 }
 
 static bool vkgen_generate(VkGenContext* ctx) {
-  vkgen_collect(ctx);
-
   vkgen_prolog(ctx);
   fmt_write(&ctx->out, "\n");
 
@@ -318,6 +331,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .schemaUri  = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
       .types      = dynarray_create_t(g_allocHeap, VkGenEntry, 2048),
       .commands   = dynarray_create_t(g_allocHeap, VkGenEntry, 128),
+      .features   = dynarray_create_t(g_allocHeap, VkGenEntry, 16),
       .out        = dynstring_create(g_allocHeap, usize_kibibyte * 16),
   };
 
@@ -325,6 +339,10 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   if (sentinel_check(ctx.schemaRoot)) {
     goto Exit;
   }
+
+  vkgen_collect_types(&ctx);
+  vkgen_collect_commands(&ctx);
+  vkgen_collect_features(&ctx);
 
   if (vkgen_generate(&ctx)) {
     success = true;
@@ -340,6 +358,7 @@ Exit:;
   xml_destroy(ctx.schemaDoc);
   dynarray_destroy(&ctx.types);
   dynarray_destroy(&ctx.commands);
+  dynarray_destroy(&ctx.features);
   dynstring_destroy(&ctx.out);
 
   net_teardown();
