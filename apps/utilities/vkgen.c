@@ -34,6 +34,7 @@
   VKGEN_HASH(feature)                                                                              \
   VKGEN_HASH(member)                                                                               \
   VKGEN_HASH(name)                                                                                 \
+  VKGEN_HASH(proto)                                                                                \
   VKGEN_HASH(require)                                                                              \
   VKGEN_HASH(struct)                                                                               \
   VKGEN_HASH(type)                                                                                 \
@@ -148,11 +149,20 @@ static void vkgen_collect_enums(VkGenContext* ctx) {
 static void vkgen_collect_commands(VkGenContext* ctx) {
   const XmlNode commandsNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_commands);
   xml_for_children(ctx->schemaDoc, commandsNode, child) {
-    if (xml_name_hash(ctx->schemaDoc, child) == g_hash_command) {
-      const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
-      if (nameHash) {
-        vkgen_entry_push(&ctx->commands, nameHash, child);
-      }
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_command) {
+      continue; // Not a command element.
+    }
+    const XmlNode protoNode = xml_child_get(ctx->schemaDoc, child, g_hash_proto);
+    if (sentinel_check(protoNode)) {
+      continue; // Command without a proto (could be an alias).
+    }
+    const XmlNode protoNameNode = xml_child_get(ctx->schemaDoc, protoNode, g_hash_name);
+    if (sentinel_check(protoNameNode)) {
+      continue; // Name missing.
+    }
+    const String name = xml_child_text(ctx->schemaDoc, protoNameNode);
+    if (!string_is_empty(name)) {
+      vkgen_entry_push(&ctx->commands, string_hash(name), child);
     }
   }
   dynarray_sort(&ctx->commands, vkgen_compare_entry);
@@ -311,7 +321,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .schemaUri  = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
       .types      = dynarray_create_t(g_allocHeap, VkGenEntry, 2048),
       .enums      = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
-      .commands   = dynarray_create_t(g_allocHeap, VkGenEntry, 128),
+      .commands   = dynarray_create_t(g_allocHeap, VkGenEntry, 1024),
       .features   = dynarray_create_t(g_allocHeap, VkGenEntry, 16),
       .out        = dynstring_create(g_allocHeap, usize_kibibyte * 16),
   };
