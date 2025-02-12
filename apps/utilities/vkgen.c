@@ -97,7 +97,8 @@ typedef struct {
   XmlDoc*   schemaDoc;
   XmlNode   schemaRoot;
   String    schemaHost, schemaUri;
-  DynArray  types;    // VkGenType[]
+  DynArray  types; // VkGenType[]
+  DynBitSet typesWritten;
   DynArray  enums;    // VkGenType[]
   DynArray  commands; // VkGenType[]
   DynBitSet commandsWritten;
@@ -236,6 +237,20 @@ static bool vkgen_write_constants(VkGenContext* ctx, const StringHash key) {
   return true;
 }
 
+static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
+  const u32 typeIndex = vkgen_entry_index(&ctx->types, key);
+  if (sentinel_check(typeIndex)) {
+    // Unknown type (could be a primitive type).
+    return true; // TODO: Validate primitive types.
+  }
+  if (dynbitset_test(&ctx->typesWritten, typeIndex)) {
+    return true; // Already written.
+  }
+  dynbitset_set(&ctx->typesWritten, typeIndex);
+
+  return true;
+}
+
 static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
   const u32 commandIndex = vkgen_entry_index(&ctx->commands, key);
   if (sentinel_check(commandIndex)) {
@@ -255,6 +270,10 @@ static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
     const XmlNode typeNode = xml_first_child(ctx->schemaDoc, child);
     if (sentinel_check(typeNode)) {
       continue; // Missing type.
+    }
+    const String typeStr = xml_child_text(ctx->schemaDoc, typeNode);
+    if (!string_is_empty(typeStr)) {
+      vkgen_write_type(ctx, string_hash(typeStr));
     }
   }
 
@@ -346,6 +365,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .schemaHost      = cli_read_string(invoc, g_optSchemaHost, g_schemaDefaultHost),
       .schemaUri       = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
       .types           = dynarray_create_t(g_allocHeap, VkGenEntry, 2048),
+      .typesWritten    = dynbitset_create(g_allocHeap, 2048),
       .enums           = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
       .commands        = dynarray_create_t(g_allocHeap, VkGenEntry, 1024),
       .commandsWritten = dynbitset_create(g_allocHeap, 1024),
@@ -378,6 +398,7 @@ Exit:;
   }
   xml_destroy(ctx.schemaDoc);
   dynarray_destroy(&ctx.types);
+  dynbitset_destroy(&ctx.typesWritten);
   dynarray_destroy(&ctx.enums);
   dynarray_destroy(&ctx.commands);
   dynbitset_destroy(&ctx.commandsWritten);
