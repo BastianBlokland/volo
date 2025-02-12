@@ -4,6 +4,7 @@
 #include "cli_parse.h"
 #include "cli_read.h"
 #include "core_alloc.h"
+#include "core_dynbitset.h"
 #include "core_dynstring.h"
 #include "core_file.h"
 #include "core_path.h"
@@ -98,6 +99,7 @@ typedef struct {
   DynArray  types;    // VkGenType[]
   DynArray  enums;    // VkGenType[]
   DynArray  commands; // VkGenType[]
+  DynBitSet commandsWritten;
   DynArray  features; // VkGenType[]
   DynString out;
 } VkGenContext;
@@ -117,6 +119,12 @@ static XmlNode vkgen_entry_find(DynArray* arr, const StringHash key) {
   const VkGenEntry tgt = {.key = key};
   VkGenEntry*      res = dynarray_search_binary(arr, vkgen_compare_entry, &tgt);
   return res ? res->schemaNode : sentinel_u32;
+}
+
+static u32 vkgen_entry_index(DynArray* arr, const StringHash key) {
+  const VkGenEntry tgt = {.key = key};
+  VkGenEntry*      res = dynarray_search_binary(arr, vkgen_compare_entry, &tgt);
+  return res ? (u32)(res - dynarray_begin_t(arr, VkGenEntry)) : sentinel_u32;
 }
 
 static void vkgen_collect_types(VkGenContext* ctx) {
@@ -228,10 +236,18 @@ static bool vkgen_write_constants(VkGenContext* ctx, const StringHash key) {
 }
 
 static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
-  const XmlNode node = vkgen_entry_find(&ctx->commands, key);
-  if (sentinel_check(node)) {
+  const u32 commandIndex = vkgen_entry_index(&ctx->commands, key);
+  if (sentinel_check(commandIndex)) {
     return false;
   }
+  if (dynbitset_test(&ctx->commandsWritten, commandIndex)) {
+    return true; // Already written.
+  }
+  dynbitset_set(&ctx->commandsWritten, commandIndex);
+
+  const XmlNode node = vkgen_entry_find(&ctx->commands, key);
+  (void)node;
+
   return true;
 }
 
@@ -316,14 +332,15 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
   VkGenContext ctx = {
-      .schemaDoc  = xml_create(g_allocHeap, 128 * 1024),
-      .schemaHost = cli_read_string(invoc, g_optSchemaHost, g_schemaDefaultHost),
-      .schemaUri  = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
-      .types      = dynarray_create_t(g_allocHeap, VkGenEntry, 2048),
-      .enums      = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
-      .commands   = dynarray_create_t(g_allocHeap, VkGenEntry, 1024),
-      .features   = dynarray_create_t(g_allocHeap, VkGenEntry, 16),
-      .out        = dynstring_create(g_allocHeap, usize_kibibyte * 16),
+      .schemaDoc       = xml_create(g_allocHeap, 128 * 1024),
+      .schemaHost      = cli_read_string(invoc, g_optSchemaHost, g_schemaDefaultHost),
+      .schemaUri       = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
+      .types           = dynarray_create_t(g_allocHeap, VkGenEntry, 2048),
+      .enums           = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
+      .commands        = dynarray_create_t(g_allocHeap, VkGenEntry, 1024),
+      .commandsWritten = dynbitset_create(g_allocHeap, 1024),
+      .features        = dynarray_create_t(g_allocHeap, VkGenEntry, 16),
+      .out             = dynstring_create(g_allocHeap, usize_kibibyte * 16),
   };
 
   ctx.schemaRoot = vkgen_schema_get(ctx.schemaDoc, ctx.schemaHost, ctx.schemaUri);
@@ -353,6 +370,7 @@ Exit:;
   dynarray_destroy(&ctx.types);
   dynarray_destroy(&ctx.enums);
   dynarray_destroy(&ctx.commands);
+  dynbitset_destroy(&ctx.commandsWritten);
   dynarray_destroy(&ctx.features);
   dynstring_destroy(&ctx.out);
 
