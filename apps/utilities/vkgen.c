@@ -35,6 +35,7 @@
   VKGEN_HASH(feature)                                                                              \
   VKGEN_HASH(member)                                                                               \
   VKGEN_HASH(name)                                                                                 \
+  VKGEN_HASH(param)                                                                                \
   VKGEN_HASH(proto)                                                                                \
   VKGEN_HASH(require)                                                                              \
   VKGEN_HASH(struct)                                                                               \
@@ -245,8 +246,17 @@ static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
   }
   dynbitset_set(&ctx->commandsWritten, commandIndex);
 
+  // Generate parameter types.
   const XmlNode node = vkgen_entry_find(&ctx->commands, key);
-  (void)node;
+  xml_for_children(ctx->schemaDoc, node, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_param) {
+      continue; // Not a parameter.
+    }
+    const XmlNode typeNode = xml_first_child(ctx->schemaDoc, child);
+    if (sentinel_check(typeNode)) {
+      continue; // Missing type.
+    }
+  }
 
   return true;
 }
