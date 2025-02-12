@@ -34,6 +34,7 @@
   VKGEN_HASH(feature)                                                                              \
   VKGEN_HASH(member)                                                                               \
   VKGEN_HASH(name)                                                                                 \
+  VKGEN_HASH(require)                                                                              \
   VKGEN_HASH(struct)                                                                               \
   VKGEN_HASH(type)                                                                                 \
   VKGEN_HASH(types)                                                                                \
@@ -216,12 +217,34 @@ static bool vkgen_write_constants(VkGenContext* ctx, const StringHash key) {
   return true;
 }
 
+static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
+  const XmlNode node = vkgen_entry_find(&ctx->commands, key);
+  if (sentinel_check(node)) {
+    return false;
+  }
+  return true;
+}
+
 static bool vkgen_write_feature(VkGenContext* ctx, const StringHash key) {
   const XmlNode node = vkgen_entry_find(&ctx->features, key);
   if (sentinel_check(node)) {
     return false;
   }
-  return true;
+  bool success = true;
+  xml_for_children(ctx->schemaDoc, node, set) {
+    if (xml_name_hash(ctx->schemaDoc, set) != g_hash_require) {
+      continue; // Not a require element.
+    }
+    xml_for_children(ctx->schemaDoc, set, entry) {
+      const StringHash entryNameHash = xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name);
+
+      // Write commands.
+      if (xml_name_hash(ctx->schemaDoc, entry) == g_hash_command) {
+        success &= vkgen_write_command(ctx, entryNameHash);
+      }
+    }
+  }
+  return success;
 }
 
 static bool vkgen_write_header(VkGenContext* ctx) {
@@ -305,6 +328,8 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
   if (vkgen_write_header(&ctx)) {
     success = true;
+  } else {
+    log_e("Failed to write header");
   }
 
 Exit:;
