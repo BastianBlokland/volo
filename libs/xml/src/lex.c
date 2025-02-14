@@ -103,6 +103,15 @@ static bool xml_is_whitespace(const u8 c) {
   }
 }
 
+static bool xml_is_all_whitespace(const String str) {
+  mem_for_u8(str, itr) {
+    if (!xml_is_whitespace(*itr)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 static u32 xml_scan_name_end(const String str) {
   u32 end = 0;
   for (; end != str.size && xml_is_name(*string_at(str, end)); ++end)
@@ -403,8 +412,8 @@ static void xml_process_content(String content, XmlToken* out) {
 String xml_lex(String str, const XmlPhase phase, XmlToken* out) {
   if (phase == XmlPhase_Content) {
     const u32    contentEnd = xml_scan_content_end(str);
-    const String content    = xml_trim_whitespace(xml_slice(str, 0, contentEnd));
-    if (string_is_empty(content)) {
+    const String content    = xml_slice(str, 0, contentEnd);
+    if (xml_is_all_whitespace(content)) {
       goto PhaseMarkup;
     }
     xml_process_content(content, out);

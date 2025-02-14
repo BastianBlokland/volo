@@ -51,7 +51,7 @@ spec(read) {
 
     const XmlNode textNode = xml_first_child(doc, res.node);
     check_eq_int(xml_type(doc, textNode), XmlType_Text);
-    check_eq_string(xml_value(doc, textNode), string_lit("Hello World!"));
+    check_eq_string(xml_value(doc, textNode), string_lit(" Hello World! "));
   }
 
   it("can read an element with a comment") {
