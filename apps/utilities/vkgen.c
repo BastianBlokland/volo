@@ -22,6 +22,7 @@
  */
 
 #define VKGEN_VISIT_HASHES                                                                         \
+  VKGEN_HASH(basetype)                                                                             \
   VKGEN_HASH(bitmask)                                                                              \
   VKGEN_HASH(bitpos)                                                                               \
   VKGEN_HASH(category)                                                                             \
@@ -135,12 +136,17 @@ static void vkgen_collect_types(VkGenContext* ctx) {
     if (xml_name_hash(ctx->schemaDoc, child) == g_hash_type) {
       const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
       if (nameHash) {
+        log_i("Collect hash", log_param("hash", fmt_int(nameHash)));
         vkgen_entry_push(&ctx->types, nameHash, child);
         continue;
       }
       const XmlNode nameNode = xml_child_get(ctx->schemaDoc, child, g_hash_name);
       if (!sentinel_check(nameNode)) {
         const String nameText = xml_child_text(ctx->schemaDoc, nameNode);
+        log_i(
+            "Collect {}",
+            log_param("text", fmt_text(nameText)),
+            log_param("hash", fmt_int(string_hash(nameText))));
         vkgen_entry_push(&ctx->types, string_hash(nameText), child);
         continue;
       }
@@ -202,7 +208,7 @@ static void vkgen_collect_features(VkGenContext* ctx) {
 static void vkgen_write_comment_elem(VkGenContext* ctx, const XmlNode comment) {
   const XmlNode text = xml_first_child(ctx->schemaDoc, comment);
   if (xml_is(ctx->schemaDoc, text, XmlType_Text)) {
-    const String str = xml_value(ctx->schemaDoc, text);
+    const String str = string_trim_whitespace(xml_value(ctx->schemaDoc, text));
     fmt_write(&ctx->out, "// {}.\n", fmt_text(str, .flags = FormatTextFlags_SingleLine));
   }
 }
@@ -244,18 +250,99 @@ static bool vkgen_write_constants(VkGenContext* ctx, const StringHash key) {
   return true;
 }
 
+static bool vkgen_write_type_line(VkGenContext* ctx, const XmlNode typeNode) {
+  bool lastIsElement = false;
+  xml_for_children(ctx->schemaDoc, typeNode, part) {
+    switch (xml_type(ctx->schemaDoc, part)) {
+    case XmlType_Element: {
+      if (xml_name_hash(ctx->schemaDoc, part) == g_hash_comment) {
+        continue;
+      }
+      if (lastIsElement) {
+        dynstring_append_char(&ctx->out, ' ');
+      }
+      lastIsElement = true;
+      dynstring_append(&ctx->out, xml_child_text(ctx->schemaDoc, part));
+    } break;
+    case XmlType_Text:
+      dynstring_append(&ctx->out, xml_value(ctx->schemaDoc, part));
+      lastIsElement = false;
+      break;
+    default:
+      break;
+    }
+  }
+  return true;
+}
+
+static bool vkgen_write_type_struct(VkGenContext* ctx, const XmlNode typeNode) {
+  bool success = true;
+
+  // Write struct definition.
+  const String typeName = xml_attr_get(ctx->schemaDoc, typeNode, g_hash_name);
+  fmt_write(&ctx->out, "typedef struct {} {\n", fmt_text(typeName));
+
+  xml_for_children(ctx->schemaDoc, typeNode, entry) {
+    if (xml_name_hash(ctx->schemaDoc, entry) != g_hash_member) {
+      continue; // Not a struct member.
+    }
+    dynstring_append_chars(&ctx->out, ' ', 2);
+    vkgen_write_type_line(ctx, entry);
+    dynstring_append(&ctx->out, string_lit(";\n"));
+  }
+  fmt_write(&ctx->out, "} {};\n\n", fmt_text(typeName));
+  return success;
+}
+
+static bool vkgen_write_type(VkGenContext*, StringHash key);
+
+static bool vkgen_write_type_dependencies(VkGenContext* ctx, const XmlNode typeNode) {
+  bool success = true;
+  xml_for_children(ctx->schemaDoc, typeNode, entry) {
+    if (xml_type(ctx->schemaDoc, entry) != XmlType_Element) {
+      continue; // Not an element.
+    }
+    if (xml_name_hash(ctx->schemaDoc, entry) == g_hash_type) {
+      const String innerText = xml_child_text(ctx->schemaDoc, entry);
+      success &= vkgen_write_type(ctx, string_hash(innerText));
+      continue;
+    }
+    success &= vkgen_write_type_dependencies(ctx, entry);
+  }
+  return success;
+}
+
 static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
   const u32 typeIndex = vkgen_entry_index(&ctx->types, key);
   if (sentinel_check(typeIndex)) {
-    // Unknown type (could be a primitive type).
-    return true; // TODO: Validate primitive types.
+    return false; // Unknown type.
   }
   if (dynbitset_test(&ctx->typesWritten, typeIndex)) {
     return true; // Already written.
   }
   dynbitset_set(&ctx->typesWritten, typeIndex);
 
-  return true;
+  const XmlNode typeNode = vkgen_entry_find(&ctx->types, key);
+  if (!vkgen_write_type_dependencies(ctx, typeNode)) {
+    log_i("Dep missing", log_param("write", fmt_int(key)));
+
+    return false;
+  }
+  log_i("Write", log_param("write", fmt_int(key)));
+
+  const StringHash categoryHash = xml_attr_get_hash(ctx->schemaDoc, typeNode, g_hash_category);
+  if (!categoryHash) {
+    return true; // Primitive type.
+  }
+  if (categoryHash == g_hash_basetype) {
+    const bool success = vkgen_write_type_line(ctx, typeNode);
+    dynstring_append(&ctx->out, string_lit("\n\n"));
+    return success;
+  }
+  if (categoryHash == g_hash_struct) {
+    return vkgen_write_type_struct(ctx, typeNode);
+  }
+  return false;
 }
 
 static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
