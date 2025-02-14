@@ -136,6 +136,13 @@ static void vkgen_collect_types(VkGenContext* ctx) {
       const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
       if (nameHash) {
         vkgen_entry_push(&ctx->types, nameHash, child);
+        continue;
+      }
+      const XmlNode nameNode = xml_child_get(ctx->schemaDoc, child, g_hash_name);
+      if (!sentinel_check(nameNode)) {
+        const String nameText = xml_child_text(ctx->schemaDoc, nameNode);
+        vkgen_entry_push(&ctx->types, string_hash(nameText), child);
+        continue;
       }
     }
   }
@@ -364,8 +371,8 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .schemaDoc       = xml_create(g_allocHeap, 128 * 1024),
       .schemaHost      = cli_read_string(invoc, g_optSchemaHost, g_schemaDefaultHost),
       .schemaUri       = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
-      .types           = dynarray_create_t(g_allocHeap, VkGenEntry, 2048),
-      .typesWritten    = dynbitset_create(g_allocHeap, 2048),
+      .types           = dynarray_create_t(g_allocHeap, VkGenEntry, 4096),
+      .typesWritten    = dynbitset_create(g_allocHeap, 4096),
       .enums           = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
       .commands        = dynarray_create_t(g_allocHeap, VkGenEntry, 1024),
       .commandsWritten = dynbitset_create(g_allocHeap, 1024),
