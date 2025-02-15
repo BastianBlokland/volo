@@ -35,6 +35,7 @@
   VKGEN_HASH(deprecated)                                                                           \
   VKGEN_HASH(enum)                                                                                 \
   VKGEN_HASH(enums)                                                                                \
+  VKGEN_HASH(extends)                                                                              \
   VKGEN_HASH(extension)                                                                            \
   VKGEN_HASH(extensions)                                                                           \
   VKGEN_HASH(feature)                                                                              \
@@ -105,13 +106,19 @@ typedef struct {
 } VkGenEntry;
 
 typedef struct {
+  StringHash key;
+  i64        value;
+} VkGenAddition;
+
+typedef struct {
   XmlDoc*   schemaDoc;
   XmlNode   schemaRoot;
   String    schemaHost, schemaUri;
   DynArray  types; // VkGenType[]
   DynBitSet typesWritten;
-  DynArray  enums;    // VkGenType[]
-  DynArray  commands; // VkGenType[]
+  DynArray  enums;     // VkGenType[]
+  DynArray  additions; // VkGenAddition[]
+  DynArray  commands;  // VkGenType[]
   DynBitSet commandsWritten;
   DynArray  extensions; // VkGenType[]
   DynBitSet extensionsWritten;
@@ -122,6 +129,10 @@ typedef struct {
 
 static i8 vkgen_compare_entry(const void* a, const void* b) {
   return compare_stringhash(field_ptr(a, VkGenEntry, key), field_ptr(b, VkGenEntry, key));
+}
+
+static i8 vkgen_compare_addition(const void* a, const void* b) {
+  return compare_stringhash(field_ptr(a, VkGenAddition, key), field_ptr(b, VkGenAddition, key));
 }
 
 static void vkgen_entry_push(DynArray* arr, const StringHash key, const XmlNode node) {
@@ -141,6 +152,33 @@ static u32 vkgen_entry_index(DynArray* arr, const StringHash key) {
   const VkGenEntry tgt = {.key = key};
   VkGenEntry*      res = dynarray_search_binary(arr, vkgen_compare_entry, &tgt);
   return res ? (u32)(res - dynarray_begin_t(arr, VkGenEntry)) : sentinel_u32;
+}
+
+static void vkgen_addition_push(VkGenContext* ctx, const StringHash key, const i64 value) {
+  *dynarray_push_t(&ctx->additions, VkGenAddition) = (VkGenAddition){
+      .key   = key,
+      .value = value,
+  };
+}
+
+static void vkgen_addition_collect(VkGenContext* ctx, const XmlNode node) {
+  xml_for_children(ctx->schemaDoc, node, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_require) {
+      continue; // Not a require element.
+    }
+    xml_for_children(ctx->schemaDoc, child, entry) {
+      const StringHash entryNameHash = xml_name_hash(ctx->schemaDoc, entry);
+      if (entryNameHash == g_hash_enum) {
+        const StringHash key      = xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_extends);
+        const String     valueStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
+        if (key && !string_is_empty(valueStr)) {
+          i64 value;
+          format_read_i64(valueStr, &value, 10 /* base */);
+          vkgen_addition_push(ctx, key, value);
+        }
+      }
+    }
+  }
 }
 
 static bool vkgen_contains(String str, const String other) {
@@ -250,6 +288,7 @@ static void vkgen_collect_extensions(VkGenContext* ctx) {
     const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
     if (nameHash) {
       vkgen_entry_push(&ctx->extensions, nameHash, child);
+      vkgen_addition_collect(ctx, child); // TODO: Only collect additions for enabled extensions.
     }
   }
   dynarray_sort(&ctx->extensions, vkgen_compare_entry);
@@ -265,11 +304,18 @@ static void vkgen_collect_features(VkGenContext* ctx) {
       const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
       if (nameHash) {
         vkgen_entry_push(&ctx->features, nameHash, child);
+        vkgen_addition_collect(ctx, child); // TODO: Only collect additions for enabled features.
       }
     }
   }
   dynarray_sort(&ctx->features, vkgen_compare_entry);
   log_i("Collected features", log_param("count", fmt_int(ctx->features.size)));
+}
+
+static void vkgen_collect_additions(VkGenContext* ctx) {
+  // NOTE: Additions are pushed during the other collection phases.
+  dynarray_sort(&ctx->additions, vkgen_compare_addition);
+  log_i("Collected additions", log_param("count", fmt_int(ctx->additions.size)));
 }
 
 static void vkgen_write_comment_elem(VkGenContext* ctx, const XmlNode comment) {
@@ -637,6 +683,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .types             = dynarray_create_t(g_allocHeap, VkGenEntry, 4096),
       .typesWritten      = dynbitset_create(g_allocHeap, 4096),
       .enums             = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
+      .additions         = dynarray_create_t(g_allocHeap, VkGenAddition, 2048),
       .commands          = dynarray_create_t(g_allocHeap, VkGenEntry, 1024),
       .commandsWritten   = dynbitset_create(g_allocHeap, 1024),
       .extensions        = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
@@ -656,6 +703,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   vkgen_collect_commands(&ctx);
   vkgen_collect_extensions(&ctx);
   vkgen_collect_features(&ctx);
+  vkgen_collect_additions(&ctx);
 
   if (vkgen_write_header(&ctx)) {
     success = true;
@@ -674,6 +722,7 @@ Exit:;
   dynarray_destroy(&ctx.types);
   dynbitset_destroy(&ctx.typesWritten);
   dynarray_destroy(&ctx.enums);
+  dynarray_destroy(&ctx.additions);
   dynarray_destroy(&ctx.commands);
   dynbitset_destroy(&ctx.commandsWritten);
   dynarray_destroy(&ctx.extensions);
