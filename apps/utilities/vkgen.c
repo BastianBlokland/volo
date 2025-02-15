@@ -456,7 +456,7 @@ static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
   if (!anyParam) {
     fmt_write(&ctx->out, "void");
   }
-  fmt_write(&ctx->out, ");\n");
+  fmt_write(&ctx->out, ");\n\n");
   return true;
 }
 
