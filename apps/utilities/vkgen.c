@@ -35,6 +35,8 @@
   VKGEN_HASH(deprecated)                                                                           \
   VKGEN_HASH(enum)                                                                                 \
   VKGEN_HASH(enums)                                                                                \
+  VKGEN_HASH(extension)                                                                            \
+  VKGEN_HASH(extensions)                                                                           \
   VKGEN_HASH(feature)                                                                              \
   VKGEN_HASH(funcpointer)                                                                          \
   VKGEN_HASH(handle)                                                                               \
@@ -45,6 +47,7 @@
   VKGEN_HASH(proto)                                                                                \
   VKGEN_HASH(require)                                                                              \
   VKGEN_HASH(struct)                                                                               \
+  VKGEN_HASH(supported)                                                                            \
   VKGEN_HASH(type)                                                                                 \
   VKGEN_HASH(types)                                                                                \
   VKGEN_HASH(union)                                                                                \
@@ -110,6 +113,8 @@ typedef struct {
   DynArray  enums;    // VkGenType[]
   DynArray  commands; // VkGenType[]
   DynBitSet commandsWritten;
+  DynArray  extensions; // VkGenType[]
+  DynBitSet extensionsWritten;
   DynArray  features; // VkGenType[]
   DynString out;
 } VkGenContext;
@@ -137,23 +142,29 @@ static u32 vkgen_entry_index(DynArray* arr, const StringHash key) {
   return res ? (u32)(res - dynarray_begin_t(arr, VkGenEntry)) : sentinel_u32;
 }
 
-static bool vkgen_is_supported_api(VkGenContext* ctx, const XmlNode node) {
-  String apis = xml_attr_get(ctx->schemaDoc, node, g_hash_api);
-  if (string_is_empty(apis)) {
-    return true;
-  }
-  while (!string_is_empty(apis)) {
-    usize len = string_find_first_char(apis, ',');
+static bool vkgen_contains(String str, const String other) {
+  while (!string_is_empty(str)) {
+    usize len = string_find_first_char(str, ',');
     if (sentinel_check(len)) {
-      len = apis.size;
+      len = str.size;
     }
-    const String api = string_slice(apis, 0, len);
-    if (string_eq(api, string_lit("vulkan"))) {
+    const String api = string_slice(str, 0, len);
+    if (string_eq(api, other)) {
       return true;
     }
-    apis = string_consume(apis, len);
+    str = string_consume(str, len);
   }
   return false;
+}
+
+static bool vkgen_is_supported(VkGenContext* ctx, const XmlNode node) {
+  const String apis = xml_attr_get(ctx->schemaDoc, node, g_hash_supported);
+  return string_is_empty(apis) || vkgen_contains(apis, string_lit("vulkan"));
+}
+
+static bool vkgen_is_supported_api(VkGenContext* ctx, const XmlNode node) {
+  const String apis = xml_attr_get(ctx->schemaDoc, node, g_hash_api);
+  return string_is_empty(apis) || vkgen_contains(apis, string_lit("vulkan"));
 }
 
 static bool vkgen_is_deprecated(VkGenContext* ctx, const XmlNode node) {
@@ -224,6 +235,24 @@ static void vkgen_collect_commands(VkGenContext* ctx) {
   }
   dynarray_sort(&ctx->commands, vkgen_compare_entry);
   log_i("Collected commands", log_param("count", fmt_int(ctx->commands.size)));
+}
+
+static void vkgen_collect_extensions(VkGenContext* ctx) {
+  const XmlNode extensionsNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_extensions);
+  xml_for_children(ctx->schemaDoc, extensionsNode, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_extension) {
+      continue; // Not an extension element.
+    }
+    if (!vkgen_is_supported(ctx, child)) {
+      continue;
+    }
+    const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
+    if (nameHash) {
+      vkgen_entry_push(&ctx->extensions, nameHash, child);
+    }
+  }
+  dynarray_sort(&ctx->extensions, vkgen_compare_entry);
+  log_i("Collected extensions", log_param("count", fmt_int(ctx->extensions.size)));
 }
 
 static void vkgen_collect_features(VkGenContext* ctx) {
@@ -566,16 +595,18 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
   VkGenContext ctx = {
-      .schemaDoc       = xml_create(g_allocHeap, 128 * 1024),
-      .schemaHost      = cli_read_string(invoc, g_optSchemaHost, g_schemaDefaultHost),
-      .schemaUri       = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
-      .types           = dynarray_create_t(g_allocHeap, VkGenEntry, 4096),
-      .typesWritten    = dynbitset_create(g_allocHeap, 4096),
-      .enums           = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
-      .commands        = dynarray_create_t(g_allocHeap, VkGenEntry, 1024),
-      .commandsWritten = dynbitset_create(g_allocHeap, 1024),
-      .features        = dynarray_create_t(g_allocHeap, VkGenEntry, 16),
-      .out             = dynstring_create(g_allocHeap, usize_kibibyte * 16),
+      .schemaDoc         = xml_create(g_allocHeap, 128 * 1024),
+      .schemaHost        = cli_read_string(invoc, g_optSchemaHost, g_schemaDefaultHost),
+      .schemaUri         = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
+      .types             = dynarray_create_t(g_allocHeap, VkGenEntry, 4096),
+      .typesWritten      = dynbitset_create(g_allocHeap, 4096),
+      .enums             = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
+      .commands          = dynarray_create_t(g_allocHeap, VkGenEntry, 1024),
+      .commandsWritten   = dynbitset_create(g_allocHeap, 1024),
+      .extensions        = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
+      .extensionsWritten = dynbitset_create(g_allocHeap, 512),
+      .features          = dynarray_create_t(g_allocHeap, VkGenEntry, 16),
+      .out               = dynstring_create(g_allocHeap, usize_kibibyte * 16),
   };
 
   ctx.schemaRoot = vkgen_schema_get(ctx.schemaDoc, ctx.schemaHost, ctx.schemaUri);
@@ -586,6 +617,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   vkgen_collect_types(&ctx);
   vkgen_collect_enums(&ctx);
   vkgen_collect_commands(&ctx);
+  vkgen_collect_extensions(&ctx);
   vkgen_collect_features(&ctx);
 
   if (vkgen_write_header(&ctx)) {
@@ -607,6 +639,8 @@ Exit:;
   dynarray_destroy(&ctx.enums);
   dynarray_destroy(&ctx.commands);
   dynbitset_destroy(&ctx.commandsWritten);
+  dynarray_destroy(&ctx.extensions);
+  dynbitset_destroy(&ctx.extensionsWritten);
   dynarray_destroy(&ctx.features);
   dynstring_destroy(&ctx.out);
 
