@@ -41,7 +41,7 @@ typedef struct {
   // clang-format off
   int               (SYS_DECL* OPENSSL_init_ssl)(u64 opts, const void* settings);
   unsigned long     (SYS_DECL* ERR_get_error)(void);
-  void              (SYS_DECL* ERR_error_string_n)(unsigned long e, char *buf, size_t len);
+  void              (SYS_DECL* ERR_error_string_n)(unsigned long e, char *buf, usize len);
   const SSL_METHOD* (SYS_DECL* TLS_client_method)(void);
   SSL_CTX*          (SYS_DECL* SSL_CTX_new)(const SSL_METHOD*);
   void              (SYS_DECL* SSL_CTX_free)(SSL_CTX*);
@@ -53,14 +53,14 @@ typedef struct {
   void              (SYS_DECL* SSL_set_verify)(SSL*, int mode, const void* callback);
   void              (SYS_DECL* SSL_set_connect_state)(SSL*);
   void              (SYS_DECL* SSL_set_bio)(SSL*, BIO* readBio, BIO* writeBio);
-  int               (SYS_DECL* SSL_read_ex)(SSL*, void *buf, size_t num, size_t *readBytes);
-  int               (SYS_DECL* SSL_write_ex)(SSL*, const void *buf, size_t num, size_t *written);
+  int               (SYS_DECL* SSL_read_ex)(SSL*, void *buf, usize num, usize *readBytes);
+  int               (SYS_DECL* SSL_write_ex)(SSL*, const void *buf, usize num, usize *written);
   int               (SYS_DECL* SSL_get_error)(const SSL*, int ret);
   BIO_METHOD*       (SYS_DECL* BIO_s_mem)(void);
   BIO*              (SYS_DECL* BIO_new)(const BIO_METHOD*);
   void              (SYS_DECL* BIO_free_all)(BIO*);
-  int               (SYS_DECL* BIO_read_ex)(BIO*, void *data, size_t dlen, size_t *readbytes);
-  int               (SYS_DECL* BIO_write_ex)(BIO*, const void *data, size_t dlen, size_t *written);
+  int               (SYS_DECL* BIO_read_ex)(BIO*, void *data, usize dlen, usize *readbytes);
+  int               (SYS_DECL* BIO_write_ex)(BIO*, const void *data, usize dlen, usize *written);
   // clang-format on
 
   SSL_CTX* clientContext;
@@ -209,7 +209,7 @@ static NetResult net_tls_read_input_sync(NetTls* tls, NetSocket* socket) {
   }
   const String data = dynstring_view(&tls->readBuffer);
 
-  size_t    bytesWritten;
+  usize     bytesWritten;
   const int res = g_netOpenSsl.BIO_write_ex(tls->input, data.ptr, data.size, &bytesWritten);
 
   dynstring_clear(&tls->readBuffer);
@@ -312,7 +312,7 @@ NetResult net_tls_write_sync(NetTls* tls, NetSocket* socket, const String data) 
 
   for (u8* itr = mem_begin(data); itr != mem_end(data);) {
     // Write the raw data to OpenSSL to be encrypted.
-    size_t    bytesWritten = 0;
+    usize     bytesWritten = 0;
     const int ret = g_netOpenSsl.SSL_write_ex(tls->session, data.ptr, data.size, &bytesWritten);
     const int err = g_netOpenSsl.SSL_get_error(tls->session, ret);
 
@@ -357,7 +357,7 @@ NetResult net_tls_read_sync(NetTls* tls, NetSocket* socket, DynString* out) {
   usize totalBytesRead = 0;
   for (;;) {
     // Ask OpenSSL to decrypt data buffered append it to the output.
-    size_t    bytesRead;
+    usize     bytesRead;
     const int ret = g_netOpenSsl.SSL_read_ex(tls->session, buffer.ptr, buffer.size, &bytesRead);
     const int err = g_netOpenSsl.SSL_get_error(tls->session, ret);
 
@@ -411,7 +411,7 @@ NetResult net_tls_shutdown_sync(NetTls* tls, NetSocket* socket) {
 
   // Wait for the connection to be closed.
   for (;;) {
-    size_t    bytesRead;
+    usize     bytesRead;
     const int ret = g_netOpenSsl.SSL_read_ex(tls->session, buffer.ptr, buffer.size, &bytesRead);
     const int err = g_netOpenSsl.SSL_get_error(tls->session, ret);
 
