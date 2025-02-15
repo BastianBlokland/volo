@@ -426,11 +426,37 @@ static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
   }
   dynbitset_set(&ctx->commandsWritten, commandIndex);
 
-  const XmlNode commandNode = vkgen_entry_find(&ctx->types, key);
+  const XmlNode commandNode = vkgen_entry_find(&ctx->commands, key);
   if (!vkgen_write_type_dependencies(ctx, commandNode)) {
     return false;
   }
-
+  const XmlNode protoNode = xml_child_get(ctx->schemaDoc, commandNode, g_hash_proto);
+  if (sentinel_check(protoNode)) {
+    return false; // Proto node missing (could be an alias).
+  }
+  const XmlNode protoTypeNode = xml_child_get(ctx->schemaDoc, protoNode, g_hash_type);
+  const XmlNode protoNameNode = xml_child_get(ctx->schemaDoc, protoNode, g_hash_name);
+  if (sentinel_check(protoTypeNode) || sentinel_check(protoNameNode)) {
+    return false; // Name or type missing.
+  }
+  const String typeStr = xml_child_text(ctx->schemaDoc, protoTypeNode);
+  const String nameStr = xml_child_text(ctx->schemaDoc, protoNameNode);
+  fmt_write(&ctx->out, "{} SYS_DECL {}(", fmt_text(typeStr), fmt_text(nameStr));
+  bool anyParam = false;
+  xml_for_children(ctx->schemaDoc, commandNode, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_param) {
+      continue; // Not a parameter.
+    }
+    if (anyParam) {
+      fmt_write(&ctx->out, ", ");
+    }
+    vkgen_write_node(ctx, child);
+    anyParam = true;
+  }
+  if (!anyParam) {
+    fmt_write(&ctx->out, "void");
+  }
+  fmt_write(&ctx->out, ");\n");
   return true;
 }
 
