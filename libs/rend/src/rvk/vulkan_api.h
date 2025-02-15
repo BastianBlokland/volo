@@ -3261,4 +3261,105 @@ typedef struct VkValidationFeaturesEXT {
   const VkValidationFeatureDisableEXT* pDisabledValidationFeatures;
 } VkValidationFeaturesEXT;
 
+typedef enum {
+  VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT = 1 << 0,
+  VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT = 1 << 4,
+  VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT = 1 << 8,
+  VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT = 1 << 12,
+} VkDebugUtilsMessageSeverityFlagBitsEXT;
+
+typedef VkFlags VkDebugUtilsMessageTypeFlagsEXT;
+
+typedef VkFlags VkDebugUtilsMessengerCallbackDataFlagsEXT;
+
+typedef struct VkDebugUtilsLabelEXT {
+  VkStructureType sType;
+  const void*                            pNext;
+  const char*      pLabelName;
+  float color[4];
+} VkDebugUtilsLabelEXT;
+
+typedef struct VkDebugUtilsObjectNameInfoEXT {
+  VkStructureType sType;
+  const void*                                            pNext;
+  VkObjectType objectType;
+  uint64_t objectHandle;
+  const char*      pObjectName;
+} VkDebugUtilsObjectNameInfoEXT;
+
+typedef struct VkDebugUtilsMessengerCallbackDataEXT {
+  VkStructureType sType;
+  const void*                                                        pNext;
+  VkDebugUtilsMessengerCallbackDataFlagsEXT flags;
+  const char*                                  pMessageIdName;
+  int32_t messageIdNumber;
+  const char*                                  pMessage;
+  uint32_t queueLabelCount;
+  const VkDebugUtilsLabelEXT*                  pQueueLabels;
+  uint32_t cmdBufLabelCount;
+  const VkDebugUtilsLabelEXT*                 pCmdBufLabels;
+  uint32_t objectCount;
+  const VkDebugUtilsObjectNameInfoEXT*             pObjects;
+} VkDebugUtilsMessengerCallbackDataEXT;
+
+typedef VkBool32 (VKAPI_PTR *PFN_vkDebugUtilsMessengerCallbackEXT)(
+    VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT                  messageTypes,
+    const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
+    void*                                            pUserData);
+
+typedef VkFlags VkDebugUtilsMessageSeverityFlagsEXT;
+
+typedef enum {
+  VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT = 1 << 0,
+  VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT = 1 << 1,
+  VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT = 1 << 2,
+} VkDebugUtilsMessageTypeFlagBitsEXT;
+
+typedef VkFlags VkDebugUtilsMessengerCreateFlagsEXT;
+
+typedef struct VkDebugUtilsMessengerCreateInfoEXT {
+  VkStructureType sType;
+  const void*                                          pNext;
+  VkDebugUtilsMessengerCreateFlagsEXT flags;
+  VkDebugUtilsMessageSeverityFlagsEXT messageSeverity;
+  VkDebugUtilsMessageTypeFlagsEXT messageType;
+  PFN_vkDebugUtilsMessengerCallbackEXT pfnUserCallback;
+  void*                                pUserData;
+} VkDebugUtilsMessengerCreateInfoEXT;
+
+VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkDebugUtilsMessengerEXT)
+
+typedef struct VkDebugUtilsObjectTagInfoEXT {
+  VkStructureType sType;
+  const void*                            pNext;
+  VkObjectType objectType;
+  uint64_t objectHandle;
+  uint64_t tagName;
+  size_t tagSize;
+  const void*              pTag;
+} VkDebugUtilsObjectTagInfoEXT;
+
+VkResult SYS_DECL vkSetDebugUtilsObjectNameEXT(VkDevice device, const VkDebugUtilsObjectNameInfoEXT* pNameInfo);
+
+VkResult SYS_DECL vkSetDebugUtilsObjectTagEXT(VkDevice device, const VkDebugUtilsObjectTagInfoEXT* pTagInfo);
+
+void SYS_DECL vkQueueBeginDebugUtilsLabelEXT(VkQueue queue, const VkDebugUtilsLabelEXT* pLabelInfo);
+
+void SYS_DECL vkQueueEndDebugUtilsLabelEXT(VkQueue queue);
+
+void SYS_DECL vkQueueInsertDebugUtilsLabelEXT(VkQueue queue, const VkDebugUtilsLabelEXT* pLabelInfo);
+
+void SYS_DECL vkCmdBeginDebugUtilsLabelEXT(VkCommandBuffer commandBuffer, const VkDebugUtilsLabelEXT* pLabelInfo);
+
+void SYS_DECL vkCmdEndDebugUtilsLabelEXT(VkCommandBuffer commandBuffer);
+
+void SYS_DECL vkCmdInsertDebugUtilsLabelEXT(VkCommandBuffer commandBuffer, const VkDebugUtilsLabelEXT* pLabelInfo);
+
+VkResult SYS_DECL vkCreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pMessenger);
+
+void SYS_DECL vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT messenger, const VkAllocationCallbacks* pAllocator);
+
+void SYS_DECL vkSubmitDebugUtilsMessageEXT(VkInstance instance, VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData);
+
 // clang-format on
