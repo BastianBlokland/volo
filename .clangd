@@ -1,0 +1,7 @@
+# --------------------------------------------------------------------------------------------------
+# ClangD (llvm c language server) configuration.
+# Documentation: https://clangd.llvm.org/config.html
+# --------------------------------------------------------------------------------------------------
+
+Index:
+  StandardLibrary: No
