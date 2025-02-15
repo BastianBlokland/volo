@@ -22,6 +22,8 @@
  */
 
 #define VKGEN_VISIT_HASHES                                                                         \
+  VKGEN_HASH(api)                                                                                  \
+  VKGEN_HASH(basetype)                                                                             \
   VKGEN_HASH(bitmask)                                                                              \
   VKGEN_HASH(bitpos)                                                                               \
   VKGEN_HASH(category)                                                                             \
@@ -29,10 +31,14 @@
   VKGEN_HASH(commands)                                                                             \
   VKGEN_HASH(comment)                                                                              \
   VKGEN_HASH(constants)                                                                            \
+  VKGEN_HASH(define)                                                                               \
   VKGEN_HASH(deprecated)                                                                           \
   VKGEN_HASH(enum)                                                                                 \
   VKGEN_HASH(enums)                                                                                \
   VKGEN_HASH(feature)                                                                              \
+  VKGEN_HASH(funcpointer)                                                                          \
+  VKGEN_HASH(handle)                                                                               \
+  VKGEN_HASH(include)                                                                              \
   VKGEN_HASH(member)                                                                               \
   VKGEN_HASH(name)                                                                                 \
   VKGEN_HASH(param)                                                                                \
@@ -41,7 +47,9 @@
   VKGEN_HASH(struct)                                                                               \
   VKGEN_HASH(type)                                                                                 \
   VKGEN_HASH(types)                                                                                \
-  VKGEN_HASH(value)
+  VKGEN_HASH(union)                                                                                \
+  VKGEN_HASH(value)                                                                                \
+  VKGEN_HASH(vk_platform)
 
 #define VKGEN_HASH(_NAME_) static StringHash g_hash_##_NAME_;
 VKGEN_VISIT_HASHES
@@ -129,10 +137,36 @@ static u32 vkgen_entry_index(DynArray* arr, const StringHash key) {
   return res ? (u32)(res - dynarray_begin_t(arr, VkGenEntry)) : sentinel_u32;
 }
 
+static bool vkgen_is_supported_api(VkGenContext* ctx, const XmlNode node) {
+  String apis = xml_attr_get(ctx->schemaDoc, node, g_hash_api);
+  if (string_is_empty(apis)) {
+    return true;
+  }
+  while (!string_is_empty(apis)) {
+    usize len = string_find_first_char(apis, ',');
+    if (sentinel_check(len)) {
+      len = apis.size;
+    }
+    const String api = string_slice(apis, 0, len);
+    if (string_eq(api, string_lit("vulkan"))) {
+      return true;
+    }
+    apis = string_consume(apis, len);
+  }
+  return false;
+}
+
+static bool vkgen_is_deprecated(VkGenContext* ctx, const XmlNode node) {
+  return !string_is_empty(xml_attr_get(ctx->schemaDoc, node, g_hash_deprecated));
+}
+
 static void vkgen_collect_types(VkGenContext* ctx) {
   const XmlNode typesNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_types);
   xml_for_children(ctx->schemaDoc, typesNode, child) {
     if (xml_name_hash(ctx->schemaDoc, child) == g_hash_type) {
+      if (!vkgen_is_supported_api(ctx, child)) {
+        continue;
+      }
       const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
       if (nameHash) {
         vkgen_entry_push(&ctx->types, nameHash, child);
@@ -153,6 +187,9 @@ static void vkgen_collect_types(VkGenContext* ctx) {
 static void vkgen_collect_enums(VkGenContext* ctx) {
   xml_for_children(ctx->schemaDoc, ctx->schemaRoot, child) {
     if (xml_name_hash(ctx->schemaDoc, child) == g_hash_enums) {
+      if (!vkgen_is_supported_api(ctx, child)) {
+        continue;
+      }
       const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
       if (nameHash) {
         vkgen_entry_push(&ctx->enums, nameHash, child);
@@ -168,6 +205,9 @@ static void vkgen_collect_commands(VkGenContext* ctx) {
   xml_for_children(ctx->schemaDoc, commandsNode, child) {
     if (xml_name_hash(ctx->schemaDoc, child) != g_hash_command) {
       continue; // Not a command element.
+    }
+    if (!vkgen_is_supported_api(ctx, child)) {
+      continue;
     }
     const XmlNode protoNode = xml_child_get(ctx->schemaDoc, child, g_hash_proto);
     if (sentinel_check(protoNode)) {
@@ -189,6 +229,9 @@ static void vkgen_collect_commands(VkGenContext* ctx) {
 static void vkgen_collect_features(VkGenContext* ctx) {
   xml_for_children(ctx->schemaDoc, ctx->schemaRoot, child) {
     if (xml_name_hash(ctx->schemaDoc, child) == g_hash_feature) {
+      if (!vkgen_is_supported_api(ctx, child)) {
+        continue;
+      }
       const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
       if (nameHash) {
         vkgen_entry_push(&ctx->features, nameHash, child);
@@ -202,86 +245,190 @@ static void vkgen_collect_features(VkGenContext* ctx) {
 static void vkgen_write_comment_elem(VkGenContext* ctx, const XmlNode comment) {
   const XmlNode text = xml_first_child(ctx->schemaDoc, comment);
   if (xml_is(ctx->schemaDoc, text, XmlType_Text)) {
-    const String str = xml_value(ctx->schemaDoc, text);
+    const String str = string_trim_whitespace(xml_value(ctx->schemaDoc, text));
     fmt_write(&ctx->out, "// {}.\n", fmt_text(str, .flags = FormatTextFlags_SingleLine));
   }
 }
 
-static void vkgen_write_prolog(VkGenContext* ctx) {
-  fmt_write(&ctx->out, "#pragma once\n");
-  fmt_write(
-      &ctx->out,
-      "// Generated by '{}' from '{}{}'.\n",
-      fmt_text(path_stem(g_pathExecutable)),
-      fmt_text(ctx->schemaHost),
-      fmt_text(ctx->schemaUri));
-
-  const XmlNode copyrightElem = xml_first_child(ctx->schemaDoc, ctx->schemaRoot);
-  if (xml_is(ctx->schemaDoc, copyrightElem, XmlType_Element)) {
-    vkgen_write_comment_elem(ctx, copyrightElem);
+static bool vkgen_write_enum(VkGenContext* ctx, const StringHash key) {
+  const XmlNode node = vkgen_entry_find(&ctx->enums, key);
+  if (sentinel_check(xml_first_child(ctx->schemaDoc, node))) {
+    return true; // Empty enum.
   }
+  const StringHash typeHash = xml_attr_get_hash(ctx->schemaDoc, node, g_hash_type);
+  if (typeHash == g_hash_enum || typeHash == g_hash_bitmask) {
+    fmt_write(&ctx->out, "typedef enum {\n");
+    xml_for_children(ctx->schemaDoc, node, entry) {
+      if (xml_name_hash(ctx->schemaDoc, entry) != g_hash_enum || vkgen_is_deprecated(ctx, entry)) {
+        continue; // Not an enum entry or a deprecated entry.
+      }
+      const String name = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
+      fmt_write(&ctx->out, "  {}", fmt_text(name));
 
-  fmt_write(&ctx->out, "// clang-format off\n\n");
-  fmt_write(&ctx->out, "#include \"core.h\"\n");
+      const String val    = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
+      const String bitPos = xml_attr_get(ctx->schemaDoc, entry, g_hash_bitpos);
+      if (!string_is_empty(val)) {
+        fmt_write(&ctx->out, " = {}", fmt_text(val));
+      } else if (!string_is_empty(bitPos)) {
+        fmt_write(&ctx->out, " = 1 << {}", fmt_text(bitPos));
+      }
+      fmt_write(&ctx->out, ",");
+      fmt_write(&ctx->out, "\n");
+    }
+    fmt_write(&ctx->out, "} {};\n\n", fmt_text(xml_attr_get(ctx->schemaDoc, node, g_hash_name)));
+    return true;
+  }
+  if (typeHash == g_hash_constants) {
+    xml_for_children(ctx->schemaDoc, node, entry) {
+      if (xml_name_hash(ctx->schemaDoc, entry) == g_hash_enum) {
+        const String name = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
+        const String val  = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
+        fmt_write(&ctx->out, "#define {} {}\n", fmt_text(name), fmt_text(val));
+      }
+    }
+    fmt_write(&ctx->out, "\n");
+    return true;
+  }
+  return false; // Unsupported enum type.
 }
 
-static void vkgen_write_epilog(VkGenContext* ctx) { fmt_write(&ctx->out, "// clang-format on\n"); }
-
-static bool vkgen_write_constants(VkGenContext* ctx, const StringHash key) {
-  const XmlNode    node     = vkgen_entry_find(&ctx->enums, key);
-  const StringHash typeHash = xml_attr_get_hash(ctx->schemaDoc, node, g_hash_type);
-  if (typeHash != g_hash_constants) {
-    return false;
-  }
-  xml_for_children(ctx->schemaDoc, node, entry) {
-    if (xml_name_hash(ctx->schemaDoc, entry) == g_hash_enum) {
-      const String name = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
-      const String val  = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
-      fmt_write(&ctx->out, "#define {} {}\n", fmt_text(name), fmt_text(val));
+static void vkgen_write_node(VkGenContext* ctx, const XmlNode node) {
+  bool lastIsElement = false;
+  xml_for_children(ctx->schemaDoc, node, part) {
+    switch (xml_type(ctx->schemaDoc, part)) {
+    case XmlType_Element: {
+      if (xml_name_hash(ctx->schemaDoc, part) == g_hash_comment) {
+        continue;
+      }
+      if (lastIsElement) {
+        fmt_write(&ctx->out, " ");
+      }
+      lastIsElement = true;
+      fmt_write(&ctx->out, "{}", fmt_text(xml_child_text(ctx->schemaDoc, part)));
+    } break;
+    case XmlType_Text:
+      fmt_write(&ctx->out, "{}", fmt_text(xml_value(ctx->schemaDoc, part)));
+      lastIsElement = false;
+      break;
+    default:
+      break;
     }
   }
-  fmt_write(&ctx->out, "\n");
-  return true;
+}
+
+static void vkgen_write_type_struct(VkGenContext* ctx, const XmlNode typeNode) {
+  const String typeName = xml_attr_get(ctx->schemaDoc, typeNode, g_hash_name);
+  fmt_write(&ctx->out, "typedef struct {} {\n", fmt_text(typeName));
+
+  xml_for_children(ctx->schemaDoc, typeNode, entry) {
+    const StringHash nameHash = xml_name_hash(ctx->schemaDoc, entry);
+    if (nameHash != g_hash_member || !vkgen_is_supported_api(ctx, entry)) {
+      continue; // Not a struct member or not a supported member.
+    }
+    fmt_write(&ctx->out, "  ");
+    vkgen_write_node(ctx, entry);
+    fmt_write(&ctx->out, ";\n");
+  }
+  fmt_write(&ctx->out, "} {};\n\n", fmt_text(typeName));
+}
+
+static void vkgen_write_type_union(VkGenContext* ctx, const XmlNode typeNode) {
+  const String typeName = xml_attr_get(ctx->schemaDoc, typeNode, g_hash_name);
+  fmt_write(&ctx->out, "typedef union {} {\n", fmt_text(typeName));
+
+  xml_for_children(ctx->schemaDoc, typeNode, entry) {
+    const StringHash nameHash = xml_name_hash(ctx->schemaDoc, entry);
+    if (nameHash != g_hash_member || !vkgen_is_supported_api(ctx, entry)) {
+      continue; // Not a union member or not a supported member.
+    }
+    fmt_write(&ctx->out, "  ");
+    vkgen_write_node(ctx, entry);
+    fmt_write(&ctx->out, ";\n");
+  }
+  fmt_write(&ctx->out, "} {};\n\n", fmt_text(typeName));
+}
+
+static bool vkgen_write_type(VkGenContext*, StringHash key);
+
+static bool vkgen_write_type_dependencies(VkGenContext* ctx, const XmlNode typeNode) {
+  bool success = true;
+  xml_for_children(ctx->schemaDoc, typeNode, entry) {
+    if (xml_type(ctx->schemaDoc, entry) != XmlType_Element) {
+      continue; // Not an element.
+    }
+    if (xml_name_hash(ctx->schemaDoc, entry) == g_hash_type) {
+      const String innerText = xml_child_text(ctx->schemaDoc, entry);
+      success &= vkgen_write_type(ctx, string_hash(innerText));
+      continue;
+    }
+    success &= vkgen_write_type_dependencies(ctx, entry);
+  }
+  return success;
+}
+
+static bool vkgen_write_include(VkGenContext* ctx, const StringHash key) {
+  if (key == g_hash_vk_platform) {
+    fmt_write(&ctx->out, "#define VKAPI_ATTR\n");
+    fmt_write(&ctx->out, "#define VKAPI_CALL SYS_DECL\n");
+    fmt_write(&ctx->out, "#define VKAPI_PTR SYS_DECL\n");
+    fmt_write(&ctx->out, "\n");
+    return true;
+  }
+  return false;
 }
 
 static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
   const u32 typeIndex = vkgen_entry_index(&ctx->types, key);
   if (sentinel_check(typeIndex)) {
-    // Unknown type (could be a primitive type).
-    return true; // TODO: Validate primitive types.
+    return false; // Unknown type.
   }
   if (dynbitset_test(&ctx->typesWritten, typeIndex)) {
     return true; // Already written.
   }
   dynbitset_set(&ctx->typesWritten, typeIndex);
 
-  return true;
+  const XmlNode typeNode = vkgen_entry_find(&ctx->types, key);
+  if (!vkgen_write_type_dependencies(ctx, typeNode)) {
+    return false;
+  }
+  const StringHash catHash = xml_attr_get_hash(ctx->schemaDoc, typeNode, g_hash_category);
+  if (!catHash) {
+    return true; // Primitive type.
+  }
+  if (catHash == g_hash_basetype || catHash == g_hash_bitmask || catHash == g_hash_funcpointer ||
+      catHash == g_hash_define || catHash == g_hash_handle) {
+    vkgen_write_node(ctx, typeNode);
+    fmt_write(&ctx->out, "\n\n");
+    return true;
+  }
+  if (catHash == g_hash_include) {
+    return vkgen_write_include(ctx, key);
+  }
+  if (catHash == g_hash_enum) {
+    return vkgen_write_enum(ctx, xml_attr_get_hash(ctx->schemaDoc, typeNode, g_hash_name));
+  }
+  if (catHash == g_hash_struct) {
+    return vkgen_write_type_struct(ctx, typeNode), true;
+  }
+  if (catHash == g_hash_union) {
+    return vkgen_write_type_union(ctx, typeNode), true;
+  }
+  return false;
 }
 
 static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
   const u32 commandIndex = vkgen_entry_index(&ctx->commands, key);
   if (sentinel_check(commandIndex)) {
-    return false;
+    return false; // Unknown command.
   }
   if (dynbitset_test(&ctx->commandsWritten, commandIndex)) {
     return true; // Already written.
   }
   dynbitset_set(&ctx->commandsWritten, commandIndex);
 
-  // Generate parameter types.
-  const XmlNode node = vkgen_entry_find(&ctx->commands, key);
-  xml_for_children(ctx->schemaDoc, node, child) {
-    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_param) {
-      continue; // Not a parameter.
-    }
-    const XmlNode typeNode = xml_first_child(ctx->schemaDoc, child);
-    if (sentinel_check(typeNode)) {
-      continue; // Missing type.
-    }
-    const String typeStr = xml_child_text(ctx->schemaDoc, typeNode);
-    if (!string_is_empty(typeStr)) {
-      vkgen_write_type(ctx, string_hash(typeStr));
-    }
+  const XmlNode commandNode = vkgen_entry_find(&ctx->types, key);
+  if (!vkgen_write_type_dependencies(ctx, commandNode)) {
+    return false;
   }
 
   return true;
@@ -298,29 +445,54 @@ static bool vkgen_write_feature(VkGenContext* ctx, const StringHash key) {
       continue; // Not a require element.
     }
     xml_for_children(ctx->schemaDoc, set, entry) {
-      const StringHash entryNameHash = xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name);
-
-      // Write commands.
-      if (xml_name_hash(ctx->schemaDoc, entry) == g_hash_command) {
-        success &= vkgen_write_command(ctx, entryNameHash);
+      const StringHash entryNameHash = xml_name_hash(ctx->schemaDoc, entry);
+      if (entryNameHash == g_hash_type) {
+        if (!vkgen_write_type(ctx, xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name))) {
+          const String typeNameStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
+          log_e("Failed to write type", log_param("name", fmt_text(typeNameStr)));
+          success = false;
+        }
+        continue;
       }
+      if (entryNameHash == g_hash_command) {
+        if (!vkgen_write_command(ctx, xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name))) {
+          const String commandNameStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
+          log_e("Failed to write command", log_param("name", fmt_text(commandNameStr)));
+          success = false;
+        }
+        continue;
+      }
+      // log_e("Unsupported feature requirement");
     }
   }
   return success;
 }
 
 static bool vkgen_write_header(VkGenContext* ctx) {
-  vkgen_write_prolog(ctx);
-  fmt_write(&ctx->out, "\n");
+  fmt_write(&ctx->out, "#pragma once\n");
+  fmt_write(
+      &ctx->out,
+      "// Generated by '{}' from '{}{}'.\n",
+      fmt_text(path_stem(g_pathExecutable)),
+      fmt_text(ctx->schemaHost),
+      fmt_text(ctx->schemaUri));
 
-  if (!vkgen_write_constants(ctx, string_hash_lit("API Constants"))) {
+  const XmlNode copyrightElem = xml_first_child(ctx->schemaDoc, ctx->schemaRoot);
+  if (xml_is(ctx->schemaDoc, copyrightElem, XmlType_Element)) {
+    vkgen_write_comment_elem(ctx, copyrightElem);
+  }
+
+  fmt_write(&ctx->out, "// clang-format off\n\n");
+  fmt_write(&ctx->out, "#include \"core.h\"\n\n");
+
+  if (!vkgen_write_enum(ctx, string_hash_lit("API Constants"))) {
     return false;
   }
   if (!vkgen_write_feature(ctx, string_hash_lit("VK_VERSION_1_0"))) {
     return false;
   }
 
-  vkgen_write_epilog(ctx);
+  fmt_write(&ctx->out, "// clang-format on\n");
   return true;
 }
 
