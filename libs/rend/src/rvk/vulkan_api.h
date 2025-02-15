@@ -2486,4 +2486,68 @@ void SYS_DECL vkCmdEndRenderPass(VkCommandBuffer commandBuffer);
 
 void SYS_DECL vkCmdExecuteCommands(VkCommandBuffer commandBuffer, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers);
 
+VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkSurfaceKHR)
+
+typedef enum {
+  VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR = 1 << 0,
+  VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR = 1 << 1,
+  VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR = 1 << 2,
+  VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR = 1 << 3,
+  VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_BIT_KHR = 1 << 4,
+  VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_90_BIT_KHR = 1 << 5,
+  VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_180_BIT_KHR = 1 << 6,
+  VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_270_BIT_KHR = 1 << 7,
+  VK_SURFACE_TRANSFORM_INHERIT_BIT_KHR = 1 << 8,
+} VkSurfaceTransformFlagBitsKHR;
+
+typedef enum {
+  VK_PRESENT_MODE_IMMEDIATE_KHR = 0,
+  VK_PRESENT_MODE_MAILBOX_KHR = 1,
+  VK_PRESENT_MODE_FIFO_KHR = 2,
+  VK_PRESENT_MODE_FIFO_RELAXED_KHR = 3,
+} VkPresentModeKHR;
+
+typedef enum {
+  VK_COLOR_SPACE_SRGB_NONLINEAR_KHR = 0,
+} VkColorSpaceKHR;
+
+typedef enum {
+  VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR = 1 << 0,
+  VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR = 1 << 1,
+  VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR = 1 << 2,
+  VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR = 1 << 3,
+} VkCompositeAlphaFlagBitsKHR;
+
+typedef VkFlags VkCompositeAlphaFlagsKHR;
+
+typedef VkFlags VkSurfaceTransformFlagsKHR;
+
+typedef struct VkSurfaceCapabilitiesKHR {
+  uint32_t minImageCount;
+  uint32_t maxImageCount;
+  VkExtent2D currentExtent;
+  VkExtent2D minImageExtent;
+  VkExtent2D maxImageExtent;
+  uint32_t maxImageArrayLayers;
+  VkSurfaceTransformFlagsKHR supportedTransforms;
+  VkSurfaceTransformFlagBitsKHR currentTransform;
+  VkCompositeAlphaFlagsKHR supportedCompositeAlpha;
+  VkImageUsageFlags supportedUsageFlags;
+} VkSurfaceCapabilitiesKHR;
+
+typedef struct VkSurfaceFormatKHR {
+  VkFormat format;
+  VkColorSpaceKHR colorSpace;
+} VkSurfaceFormatKHR;
+
+void SYS_DECL vkDestroySurfaceKHR(VkInstance instance, VkSurfaceKHR surface, const VkAllocationCallbacks* pAllocator);
+
+VkResult SYS_DECL vkGetPhysicalDeviceSurfaceSupportKHR(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, VkSurfaceKHR surface, VkBool32* pSupported);
+
+VkResult SYS_DECL vkGetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSurfaceCapabilitiesKHR* pSurfaceCapabilities);
+
+VkResult SYS_DECL vkGetPhysicalDeviceSurfaceFormatsKHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t* pSurfaceFormatCount, VkSurfaceFormatKHR* pSurfaceFormats);
+
+VkResult SYS_DECL vkGetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t* pPresentModeCount, VkPresentModeKHR* pPresentModes);
+
 // clang-format on
