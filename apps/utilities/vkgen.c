@@ -490,18 +490,8 @@ static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
   return true;
 }
 
-static bool vkgen_write_feature(VkGenContext* ctx, const StringHash key) {
-  const u32 featureIndex = vkgen_entry_index(&ctx->features, key);
-  if (sentinel_check(featureIndex)) {
-    return false; // Unknown feature.
-  }
-  if (dynbitset_test(&ctx->featuresWritten, featureIndex)) {
-    return true; // Already written.
-  }
-  dynbitset_set(&ctx->featuresWritten, featureIndex);
-
-  const XmlNode node    = vkgen_entry_find(&ctx->features, key);
-  bool          success = true;
+static bool vkgen_write_requirements(VkGenContext* ctx, const XmlNode node) {
+  bool success = true;
   xml_for_children(ctx->schemaDoc, node, set) {
     if (xml_name_hash(ctx->schemaDoc, set) != g_hash_require) {
       continue; // Not a require element.
@@ -529,6 +519,34 @@ static bool vkgen_write_feature(VkGenContext* ctx, const StringHash key) {
   return success;
 }
 
+static bool vkgen_write_extension(VkGenContext* ctx, const StringHash key) {
+  const u32 extensionIndex = vkgen_entry_index(&ctx->extensions, key);
+  if (sentinel_check(extensionIndex)) {
+    return false; // Unknown extension.
+  }
+  if (dynbitset_test(&ctx->extensionsWritten, extensionIndex)) {
+    return true; // Already written.
+  }
+  dynbitset_set(&ctx->extensionsWritten, extensionIndex);
+
+  const XmlNode node = vkgen_entry_find(&ctx->extensions, key);
+  return vkgen_write_requirements(ctx, node);
+}
+
+static bool vkgen_write_feature(VkGenContext* ctx, const StringHash key) {
+  const u32 featureIndex = vkgen_entry_index(&ctx->features, key);
+  if (sentinel_check(featureIndex)) {
+    return false; // Unknown feature.
+  }
+  if (dynbitset_test(&ctx->featuresWritten, featureIndex)) {
+    return true; // Already written.
+  }
+  dynbitset_set(&ctx->featuresWritten, featureIndex);
+
+  const XmlNode node = vkgen_entry_find(&ctx->features, key);
+  return vkgen_write_requirements(ctx, node);
+}
+
 static bool vkgen_write_header(VkGenContext* ctx) {
   fmt_write(&ctx->out, "#pragma once\n");
   fmt_write(
@@ -550,6 +568,9 @@ static bool vkgen_write_header(VkGenContext* ctx) {
     return false;
   }
   if (!vkgen_write_feature(ctx, string_hash_lit("VK_VERSION_1_0"))) {
+    return false;
+  }
+  if (!vkgen_write_extension(ctx, string_hash_lit("VK_KHR_surface"))) {
     return false;
   }
 
