@@ -7,8 +7,6 @@
 #include "device_internal.h"
 #include "image_internal.h"
 
-#include <vulkan/vulkan_core.h>
-
 static VkClearColorValue rvk_rend_clear_color(const GeoColor color) {
   VkClearColorValue result;
   mem_cpy(mem_var(result), mem_var(color));

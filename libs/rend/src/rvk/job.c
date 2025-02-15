@@ -13,8 +13,6 @@
 #include "stopwatch_internal.h"
 #include "uniform_internal.h"
 
-#include <vulkan/vulkan_core.h>
-
 typedef enum {
   RvkJob_Active = 1 << 0,
 } RvkJobFlags;
