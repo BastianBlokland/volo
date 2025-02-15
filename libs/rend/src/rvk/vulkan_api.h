@@ -3233,4 +3233,32 @@ VkResult SYS_DECL vkGetPhysicalDeviceSurfaceFormatsKHR(VkPhysicalDevice physical
 
 VkResult SYS_DECL vkGetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t* pPresentModeCount, VkPresentModeKHR* pPresentModes);
 
+typedef enum {
+  VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT = 0,
+  VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT = 1,
+  VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT = 2,
+  VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT = 3,
+  VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT = 4,
+} VkValidationFeatureEnableEXT;
+
+typedef enum {
+  VK_VALIDATION_FEATURE_DISABLE_ALL_EXT = 0,
+  VK_VALIDATION_FEATURE_DISABLE_SHADERS_EXT = 1,
+  VK_VALIDATION_FEATURE_DISABLE_THREAD_SAFETY_EXT = 2,
+  VK_VALIDATION_FEATURE_DISABLE_API_PARAMETERS_EXT = 3,
+  VK_VALIDATION_FEATURE_DISABLE_OBJECT_LIFETIMES_EXT = 4,
+  VK_VALIDATION_FEATURE_DISABLE_CORE_CHECKS_EXT = 5,
+  VK_VALIDATION_FEATURE_DISABLE_UNIQUE_HANDLES_EXT = 6,
+  VK_VALIDATION_FEATURE_DISABLE_SHADER_VALIDATION_CACHE_EXT = 7,
+} VkValidationFeatureDisableEXT;
+
+typedef struct VkValidationFeaturesEXT {
+  VkStructureType sType;
+  const void*                      pNext;
+  uint32_t enabledValidationFeatureCount;
+  const VkValidationFeatureEnableEXT* pEnabledValidationFeatures;
+  uint32_t disabledValidationFeatureCount;
+  const VkValidationFeatureDisableEXT* pDisabledValidationFeatures;
+} VkValidationFeaturesEXT;
+
 // clang-format on
