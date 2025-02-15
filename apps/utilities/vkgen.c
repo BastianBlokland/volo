@@ -116,6 +116,7 @@ typedef struct {
   DynArray  extensions; // VkGenType[]
   DynBitSet extensionsWritten;
   DynArray  features; // VkGenType[]
+  DynBitSet featuresWritten;
   DynString out;
 } VkGenContext;
 
@@ -490,11 +491,17 @@ static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
 }
 
 static bool vkgen_write_feature(VkGenContext* ctx, const StringHash key) {
-  const XmlNode node = vkgen_entry_find(&ctx->features, key);
-  if (sentinel_check(node)) {
-    return false;
+  const u32 featureIndex = vkgen_entry_index(&ctx->features, key);
+  if (sentinel_check(featureIndex)) {
+    return false; // Unknown feature.
   }
-  bool success = true;
+  if (dynbitset_test(&ctx->featuresWritten, featureIndex)) {
+    return true; // Already written.
+  }
+  dynbitset_set(&ctx->featuresWritten, featureIndex);
+
+  const XmlNode node    = vkgen_entry_find(&ctx->features, key);
+  bool          success = true;
   xml_for_children(ctx->schemaDoc, node, set) {
     if (xml_name_hash(ctx->schemaDoc, set) != g_hash_require) {
       continue; // Not a require element.
@@ -517,7 +524,6 @@ static bool vkgen_write_feature(VkGenContext* ctx, const StringHash key) {
         }
         continue;
       }
-      // log_e("Unsupported feature requirement");
     }
   }
   return success;
@@ -606,6 +612,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .extensions        = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
       .extensionsWritten = dynbitset_create(g_allocHeap, 512),
       .features          = dynarray_create_t(g_allocHeap, VkGenEntry, 16),
+      .featuresWritten   = dynbitset_create(g_allocHeap, 16),
       .out               = dynstring_create(g_allocHeap, usize_kibibyte * 16),
   };
 
@@ -642,6 +649,7 @@ Exit:;
   dynarray_destroy(&ctx.extensions);
   dynbitset_destroy(&ctx.extensionsWritten);
   dynarray_destroy(&ctx.features);
+  dynbitset_destroy(&ctx.featuresWritten);
   dynstring_destroy(&ctx.out);
 
   net_teardown();
