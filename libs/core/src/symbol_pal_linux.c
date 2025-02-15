@@ -132,9 +132,9 @@ static bool sym_dbg_query(SymDbg* dbg, const SymbolAddr addrBase, SymbolReg* reg
    * Find all the (non-inlined) function symbols in all the compilation units.
    * NOTE: Doesn't depend on 'aranges' dwarf info as that is optional and clang does not emit it.
    */
-  u64    cuOffset = 0;
-  u64    cuOffsetNext;
-  size_t cuSize;
+  u64   cuOffset = 0;
+  u64   cuOffsetNext;
+  usize cuSize;
   // Iterate over all compilation units.
   while (!dbg->dwarf_nextcu(dbg->dwSession, cuOffset, &cuOffsetNext, &cuSize, 0, 0, 0)) {
     DwarfDie cu;
