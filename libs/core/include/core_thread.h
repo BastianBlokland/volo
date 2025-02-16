@@ -20,6 +20,11 @@ extern ThreadId g_threadPid;
 extern ThreadId g_threadMainTid;
 
 /**
+ * Is the current thread managed (non-external).
+ */
+extern THREAD_LOCAL bool g_threadManaged;
+
+/**
  * Thread identifier of the current thread.
  */
 extern THREAD_LOCAL ThreadId g_threadTid;
@@ -149,6 +154,12 @@ typedef enum {
  * Pre-condition: threadName.size <= 15
  */
 ThreadHandle thread_start(ThreadRoutine, void* data, String threadName, ThreadPriority);
+
+/**
+ * Initialize a thread.
+ * NOTE: Managed threads don't need to be initialized.
+ */
+void thread_ensure_init(void);
 
 /**
  * Set the priority of the current thread.

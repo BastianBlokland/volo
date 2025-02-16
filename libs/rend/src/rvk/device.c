@@ -16,7 +16,6 @@
 
 static const String g_validationLayer = string_static("VK_LAYER_KHRONOS_validation");
 static const VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
-    VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
 #if VK_EXT_VALIDATION_FEATURES_SPEC_VERSION >= 4
     VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
 #endif

@@ -1,5 +1,6 @@
 #include "core_alloc.h"
 #include "core_diag.h"
+#include "core_thread.h"
 #include "geo_color.h"
 #include "log_logger.h"
 
@@ -89,6 +90,8 @@ static VkBool32 SYS_DECL rvk_message_func(
     const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
     void*                                       userData) {
   RvkDebug* dbg = userData;
+
+  thread_ensure_init();
 
   const LogLevel logLevel  = rvk_msg_log_level(msgSeverity);
   const String   typeLabel = rvk_msg_type_label(msgType);
