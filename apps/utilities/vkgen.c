@@ -35,6 +35,7 @@
   VKGEN_HASH(constants)                                                                            \
   VKGEN_HASH(define)                                                                               \
   VKGEN_HASH(deprecated)                                                                           \
+  VKGEN_HASH(dir)                                                                                  \
   VKGEN_HASH(enum)                                                                                 \
   VKGEN_HASH(enums)                                                                                \
   VKGEN_HASH(extends)                                                                              \
@@ -96,11 +97,10 @@ static XmlNode vkgen_schema_get(XmlDoc* xmlDoc, const String host, const String 
 
   log_i("Parsed schema");
 
+Ret:
   dynstring_destroy(&buffer);
   net_http_shutdown_sync(http);
   net_http_destroy(http);
-
-Ret:
   return node;
 }
 
@@ -139,6 +139,12 @@ static i8 vkgen_compare_entry(const void* a, const void* b) {
 static i8 vkgen_compare_addition(const void* a, const void* b) {
   return compare_stringhash(
       field_ptr(a, VkGenAddition, enumKey), field_ptr(b, VkGenAddition, enumKey));
+}
+
+static i64 vkgen_to_int(const String str) {
+  i64 value;
+  format_read_i64(str, &value, 10 /* base */);
+  return value;
 }
 
 static void vkgen_entry_push(DynArray* arr, const StringHash key, const XmlNode node) {
@@ -182,22 +188,19 @@ static void vkgen_addition_collect(VkGenContext* ctx, const XmlNode node) {
         if (!enumKey || string_is_empty(name)) {
           continue; // Enum or name missing.
         }
+        const bool   invert   = xml_attr_has(ctx->schemaDoc, entry, g_hash_dir);
         const String valueStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
         if (!string_is_empty(valueStr)) {
-          i64 value;
-          format_read_i64(valueStr, &value, 10 /* base */);
-          vkgen_addition_push(ctx, enumKey, name, value);
+          i64 value = vkgen_to_int(valueStr);
+          vkgen_addition_push(ctx, enumKey, name, invert ? -value : value);
           continue;
         }
-        const String offsetStr    = xml_attr_get(ctx->schemaDoc, entry, g_hash_offset);
-        const String extnumberStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_extnumber);
-        if (!string_is_empty(offsetStr) && !string_is_empty(extnumberStr)) {
-          i64 offset;
-          format_read_i64(offsetStr, &offset, 10 /* base */);
-          i64 extnumber;
-          format_read_i64(extnumberStr, &extnumber, 10 /* base */);
-          const i64 value = 1000000000 + (extnumber - 1) * 1000 + offset;
-          vkgen_addition_push(ctx, enumKey, name, value);
+        const String offsetStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_offset);
+        const String extnumStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_extnumber);
+        if (!string_is_empty(offsetStr) && !string_is_empty(extnumStr)) {
+          i64 value = 1000000000 + (vkgen_to_int(extnumStr) - 1) * 1000 + vkgen_to_int(offsetStr);
+          vkgen_addition_push(ctx, enumKey, name, invert ? -value : value);
+          continue;
         }
       }
     }
