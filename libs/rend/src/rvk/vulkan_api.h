@@ -5052,15 +5052,15 @@ typedef struct VkXcbSurfaceCreateInfoKHR {
   VkStructureType sType;
   const void*                      pNext;
   VkXcbSurfaceCreateFlagsKHR flags;
-  xcb_connection_t*                connection;
-  xcb_window_t window;
+  uptr connection;
+  uptr window;
 } VkXcbSurfaceCreateInfoKHR;
 
 typedef VkResult (SYS_DECL *PFN_vkCreateXcbSurfaceKHR)(VkInstance instance, const VkXcbSurfaceCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface);
 VkResult SYS_DECL vkCreateXcbSurfaceKHR(VkInstance instance, const VkXcbSurfaceCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface);
 
-typedef VkBool32 (SYS_DECL *PFN_vkGetPhysicalDeviceXcbPresentationSupportKHR)(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, xcb_connection_t* connection, xcb_visualid_t visual_id);
-VkBool32 SYS_DECL vkGetPhysicalDeviceXcbPresentationSupportKHR(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, xcb_connection_t* connection, xcb_visualid_t visual_id);
+typedef VkBool32 (SYS_DECL *PFN_vkGetPhysicalDeviceXcbPresentationSupportKHR)(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, uptr connection, xcb_visualid_t visual_id);
+VkBool32 SYS_DECL vkGetPhysicalDeviceXcbPresentationSupportKHR(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, uptr connection, xcb_visualid_t visual_id);
 
 typedef VkFlags VkWin32SurfaceCreateFlagsKHR;
 
@@ -5068,8 +5068,8 @@ typedef struct VkWin32SurfaceCreateInfoKHR {
   VkStructureType sType;
   const void*                      pNext;
   VkWin32SurfaceCreateFlagsKHR flags;
-  HINSTANCE hinstance;
-  HWND hwnd;
+  uptr hinstance;
+  uptr hwnd;
 } VkWin32SurfaceCreateInfoKHR;
 
 typedef VkResult (SYS_DECL *PFN_vkCreateWin32SurfaceKHR)(VkInstance instance, const VkWin32SurfaceCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface);
