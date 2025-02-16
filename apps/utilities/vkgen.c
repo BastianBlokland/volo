@@ -141,6 +141,13 @@ static i8 vkgen_compare_addition(const void* a, const void* b) {
       field_ptr(a, VkGenAddition, enumKey), field_ptr(b, VkGenAddition, enumKey));
 }
 
+static i8 vkgen_compare_addition_incl_value(const void* a, const void* b) {
+  const VkGenAddition* addA  = a;
+  const VkGenAddition* addB  = b;
+  const i8             order = compare_stringhash(&addA->enumKey, &addB->enumKey);
+  return order ? order : compare_i64(&addA->value, &addB->value);
+}
+
 static i64 vkgen_to_int(const String str) {
   i64 value;
   format_read_i64(str, &value, 10 /* base */);
@@ -367,7 +374,7 @@ static void vkgen_collect_features(VkGenContext* ctx) {
 
 static void vkgen_collect_additions(VkGenContext* ctx) {
   // NOTE: Additions are pushed during the other collection phases.
-  dynarray_sort(&ctx->additions, vkgen_compare_addition);
+  dynarray_sort(&ctx->additions, vkgen_compare_addition_incl_value);
   log_i("Collected additions", log_param("count", fmt_int(ctx->additions.size)));
 }
 
