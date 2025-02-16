@@ -769,13 +769,16 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   if (!vkgen_write_feature(ctx, string_hash_lit("VK_VERSION_1_1"))) {
     return false;
   }
-  if (!vkgen_write_extension(ctx, string_hash_lit("VK_KHR_surface"))) {
-    return false;
-  }
   if (!vkgen_write_extension(ctx, string_hash_lit("VK_EXT_validation_features"))) {
     return false;
   }
   if (!vkgen_write_extension(ctx, string_hash_lit("VK_EXT_debug_utils"))) {
+    return false;
+  }
+  if (!vkgen_write_extension(ctx, string_hash_lit("VK_KHR_swapchain"))) {
+    return false;
+  }
+  if (!vkgen_write_extension(ctx, string_hash_lit("VK_KHR_surface"))) {
     return false;
   }
   if (!vkgen_write_extension(ctx, string_hash_lit("VK_KHR_xcb_surface"))) {
