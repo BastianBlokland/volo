@@ -48,6 +48,7 @@
   VKGEN_HASH(include)                                                                              \
   VKGEN_HASH(member)                                                                               \
   VKGEN_HASH(name)                                                                                 \
+  VKGEN_HASH(number)                                                                               \
   VKGEN_HASH(offset)                                                                               \
   VKGEN_HASH(param)                                                                                \
   VKGEN_HASH(proto)                                                                                \
@@ -193,7 +194,7 @@ static void vkgen_addition_push_bit(
   };
 }
 
-static void vkgen_addition_collect(VkGenContext* ctx, const XmlNode node) {
+static void vkgen_addition_collect(VkGenContext* ctx, const XmlNode node, i64 extNumber) {
   xml_for_children(ctx->schemaDoc, node, child) {
     if (xml_name_hash(ctx->schemaDoc, child) != g_hash_require) {
       continue; // Not a require element.
@@ -219,9 +220,16 @@ static void vkgen_addition_collect(VkGenContext* ctx, const XmlNode node) {
           continue;
         }
         const String offsetStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_offset);
-        const String extnumStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_extnumber);
-        if (!string_is_empty(offsetStr) && !string_is_empty(extnumStr)) {
-          i64 value = 1000000000 + (vkgen_to_int(extnumStr) - 1) * 1000 + vkgen_to_int(offsetStr);
+        if (!string_is_empty(offsetStr)) {
+          const String extnumStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_extnumber);
+          if (!string_is_empty(extnumStr)) {
+            extNumber = vkgen_to_int(extnumStr);
+          }
+          if (extNumber < 0) {
+            log_w("Missing extension number");
+            continue;
+          }
+          const i64 value = 1000000000 + (extNumber - 1) * 1000 + vkgen_to_int(offsetStr);
           vkgen_addition_push(ctx, enumKey, name, invert ? -value : value);
           continue;
         }
@@ -361,10 +369,16 @@ static void vkgen_collect_extensions(VkGenContext* ctx) {
     if (!vkgen_is_supported(ctx, child)) {
       continue;
     }
-    const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
+    const String numberStr = xml_attr_get(ctx->schemaDoc, child, g_hash_number);
+    if (string_is_empty(numberStr)) {
+      continue;
+    }
+    const i64        extNumber = vkgen_to_int(numberStr);
+    const StringHash nameHash  = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
     if (nameHash) {
       vkgen_entry_push(&ctx->extensions, nameHash, child);
-      vkgen_addition_collect(ctx, child); // TODO: Only collect additions for enabled extensions.
+      vkgen_addition_collect(
+          ctx, child, extNumber); // TODO: Only collect additions for enabled extensions.
     }
   }
   dynarray_sort(&ctx->extensions, vkgen_compare_entry);
@@ -380,7 +394,8 @@ static void vkgen_collect_features(VkGenContext* ctx) {
       const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
       if (nameHash) {
         vkgen_entry_push(&ctx->features, nameHash, child);
-        vkgen_addition_collect(ctx, child); // TODO: Only collect additions for enabled features.
+        vkgen_addition_collect(
+            ctx, child, -1); // TODO: Only collect additions for enabled features.
       }
     }
   }
