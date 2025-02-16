@@ -40,12 +40,14 @@
   VKGEN_HASH(extends)                                                                              \
   VKGEN_HASH(extension)                                                                            \
   VKGEN_HASH(extensions)                                                                           \
+  VKGEN_HASH(extnumber)                                                                            \
   VKGEN_HASH(feature)                                                                              \
   VKGEN_HASH(funcpointer)                                                                          \
   VKGEN_HASH(handle)                                                                               \
   VKGEN_HASH(include)                                                                              \
   VKGEN_HASH(member)                                                                               \
   VKGEN_HASH(name)                                                                                 \
+  VKGEN_HASH(offset)                                                                               \
   VKGEN_HASH(param)                                                                                \
   VKGEN_HASH(proto)                                                                                \
   VKGEN_HASH(require)                                                                              \
@@ -175,13 +177,27 @@ static void vkgen_addition_collect(VkGenContext* ctx, const XmlNode node) {
     xml_for_children(ctx->schemaDoc, child, entry) {
       const StringHash entryNameHash = xml_name_hash(ctx->schemaDoc, entry);
       if (entryNameHash == g_hash_enum) {
-        const StringHash key      = xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_extends);
-        const String     name     = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
-        const String     valueStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
-        if (key && !string_is_empty(valueStr)) {
+        const StringHash enumKey = xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_extends);
+        const String     name    = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
+        if (!enumKey || string_is_empty(name)) {
+          continue; // Enum or name missing.
+        }
+        const String valueStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
+        if (!string_is_empty(valueStr)) {
           i64 value;
           format_read_i64(valueStr, &value, 10 /* base */);
-          vkgen_addition_push(ctx, key, name, value);
+          vkgen_addition_push(ctx, enumKey, name, value);
+          continue;
+        }
+        const String offsetStr    = xml_attr_get(ctx->schemaDoc, entry, g_hash_offset);
+        const String extnumberStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_extnumber);
+        if (!string_is_empty(offsetStr) && !string_is_empty(extnumberStr)) {
+          i64 offset;
+          format_read_i64(offsetStr, &offset, 10 /* base */);
+          i64 extnumber;
+          format_read_i64(extnumberStr, &extnumber, 10 /* base */);
+          const i64 value = 1000000000 + (extnumber - 1) * 1000 + offset;
+          vkgen_addition_push(ctx, enumKey, name, value);
         }
       }
     }
