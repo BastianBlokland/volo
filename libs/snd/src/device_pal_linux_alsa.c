@@ -54,7 +54,7 @@ typedef int                     AlsaPcmType;
 typedef unsigned long           AlsaUFrames;
 typedef long                    AlsaSFrames;
 
-typedef void (*AlsaErrorHandler)(
+typedef void(SYS_DECL* AlsaErrorHandler)(
     const char* file, int line, const char* function, int err, const char* fmt, ...);
 
 typedef struct {
@@ -179,8 +179,10 @@ static String alsa_error_str(const SndDevice* dev, const int err) {
 static const SndDevice* g_sndErrorHandlerDev;
 static ThreadSpinLock   g_sndErrorHandlerLock;
 
-static void alsa_error_handler(
+static void SYS_DECL alsa_error_handler(
     const char* file, const i32 line, const char* func, const i32 err, const char* fmt, ...) {
+
+  thread_ensure_init();
 
   String errName = string_lit("<unknown>");
   thread_spinlock_lock(&g_sndErrorHandlerLock);

@@ -52,6 +52,7 @@ static thread_pal_rettype SYS_DECL thread_runner(void* data) {
 
 ThreadId              g_threadPid;
 ThreadId              g_threadMainTid;
+THREAD_LOCAL bool     g_threadManaged;
 THREAD_LOCAL ThreadId g_threadTid;
 THREAD_LOCAL String   g_threadName;
 THREAD_LOCAL uptr     g_threadStackTop;
@@ -128,6 +129,20 @@ ThreadHandle thread_start(
   threadRunData->userRoutine    = routine;
   threadRunData->userData       = data;
   return thread_pal_start(thread_runner, threadRunData);
+}
+
+void thread_ensure_init(void) {
+  if (g_threadManaged) {
+    return; // Managed threads don't need to be initialized.
+  }
+  static THREAD_LOCAL bool g_threadExternInit;
+  if (!g_threadExternInit) {
+    core_init(); // Initialize the core library for this external thread.
+    // TODO: Teardown at thread exit.
+
+    g_threadName       = string_lit("volo_extern");
+    g_threadExternInit = true;
+  }
 }
 
 bool thread_prioritize(const ThreadPriority prio) { return thread_pal_set_priority(prio); }
