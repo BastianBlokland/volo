@@ -585,6 +585,23 @@ static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
   return false;
 }
 
+static void vkgen_write_command_params(VkGenContext* ctx, const XmlNode commandNode) {
+  bool anyParam = false;
+  xml_for_children(ctx->schemaDoc, commandNode, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_param) {
+      continue; // Not a parameter.
+    }
+    if (anyParam) {
+      fmt_write(&ctx->out, ", ");
+    }
+    vkgen_write_node(ctx, child);
+    anyParam = true;
+  }
+  if (!anyParam) {
+    fmt_write(&ctx->out, "void");
+  }
+}
+
 static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
   const u32 commandIndex = vkgen_entry_index(&ctx->commands, key);
   if (sentinel_check(commandIndex)) {
@@ -610,21 +627,13 @@ static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
   }
   const String typeStr = xml_child_text(ctx->schemaDoc, protoTypeNode);
   const String nameStr = xml_child_text(ctx->schemaDoc, protoNameNode);
+
+  fmt_write(&ctx->out, "typedef {} (SYS_DECL *PFN_{})(", fmt_text(typeStr), fmt_text(nameStr));
+  vkgen_write_command_params(ctx, commandNode);
+  fmt_write(&ctx->out, ");\n");
+
   fmt_write(&ctx->out, "{} SYS_DECL {}(", fmt_text(typeStr), fmt_text(nameStr));
-  bool anyParam = false;
-  xml_for_children(ctx->schemaDoc, commandNode, child) {
-    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_param) {
-      continue; // Not a parameter.
-    }
-    if (anyParam) {
-      fmt_write(&ctx->out, ", ");
-    }
-    vkgen_write_node(ctx, child);
-    anyParam = true;
-  }
-  if (!anyParam) {
-    fmt_write(&ctx->out, "void");
-  }
+  vkgen_write_command_params(ctx, commandNode);
   fmt_write(&ctx->out, ");\n\n");
   return true;
 }
