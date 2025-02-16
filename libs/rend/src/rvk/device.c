@@ -115,7 +115,7 @@ static u32 rvk_instance_required_layers(const char** output, const RvkDeviceFlag
  */
 static u32 rvk_instance_required_extensions(const char** output, const RvkDeviceFlags flags) {
   u32 i       = 0;
-  output[i++] = VK_KHR_SURFACE_EXTENSION_NAME;
+  output[i++] = "VK_KHR_surface";
   switch (gap_native_wm()) {
   case GapNativeWm_Xcb:
     output[i++] = "VK_KHR_xcb_surface";
@@ -360,7 +360,7 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
 #endif
 
   VkPhysicalDevice16BitStorageFeatures float16IStorageFeatures = {
-      .sType                    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR,
+      .sType                    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,
       .pNext                    = nextOptFeature, // Enable all supported optional features.
       .storageBuffer16BitAccess = true,
       .uniformAndStorageBuffer16BitAccess = true,
