@@ -476,19 +476,49 @@ static bool vkgen_write_enum(VkGenContext* ctx, const StringHash key) {
   return false; // Unsupported enum type.
 }
 
+static String vkgen_type_resolve(VkGenContext* ctx, XmlNode* node) {
+  const String text = xml_child_text(ctx->schemaDoc, *node);
+
+  const XmlNode next      = xml_next(ctx->schemaDoc, *node);
+  const String  nextText  = string_trim_whitespace(xml_value(ctx->schemaDoc, next));
+  const bool    isPointer = string_eq(nextText, string_lit("*"));
+
+  if (string_eq(text, string_lit("HINSTANCE"))) {
+    return string_lit("uptr");
+  }
+  if (string_eq(text, string_lit("HWND"))) {
+    return string_lit("uptr");
+  }
+  if (string_eq(text, string_lit("xcb_window_t"))) {
+    return string_lit("uptr");
+  }
+  if (string_eq(text, string_lit("xcb_connection_t")) && isPointer) {
+    *node = next; // Skip the pointer.
+    return string_lit("uptr");
+  }
+  return text;
+}
+
 static void vkgen_write_node(VkGenContext* ctx, const XmlNode node) {
   bool lastIsElement = false;
   xml_for_children(ctx->schemaDoc, node, part) {
     switch (xml_type(ctx->schemaDoc, part)) {
     case XmlType_Element: {
-      if (xml_name_hash(ctx->schemaDoc, part) == g_hash_comment) {
+      const StringHash nameHash = xml_name_hash(ctx->schemaDoc, part);
+      if (nameHash == g_hash_comment) {
         continue;
+      }
+      String text;
+      if (nameHash == g_hash_type) {
+        text = vkgen_type_resolve(ctx, &part);
+      } else {
+        text = xml_child_text(ctx->schemaDoc, part);
       }
       if (lastIsElement) {
         fmt_write(&ctx->out, " ");
       }
       lastIsElement = true;
-      fmt_write(&ctx->out, "{}", fmt_text(xml_child_text(ctx->schemaDoc, part)));
+      fmt_write(&ctx->out, "{}", fmt_text(text));
     } break;
     case XmlType_Text:
       fmt_write(&ctx->out, "{}", fmt_text(xml_value(ctx->schemaDoc, part)));
