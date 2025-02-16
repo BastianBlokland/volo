@@ -110,8 +110,9 @@ typedef struct {
 } VkGenEntry;
 
 typedef struct {
-  StringHash enumKey;
   String     name; // Allocated in the schema document.
+  StringHash enumKey;
+  bool       bitValue;
   i64        value;
 } VkGenAddition;
 
@@ -176,9 +177,19 @@ static u32 vkgen_entry_index(DynArray* arr, const StringHash key) {
 static void vkgen_addition_push(
     VkGenContext* ctx, const StringHash enumKey, const String name, const i64 value) {
   *dynarray_push_t(&ctx->additions, VkGenAddition) = (VkGenAddition){
-      .enumKey = enumKey,
       .name    = name,
+      .enumKey = enumKey,
       .value   = value,
+  };
+}
+
+static void vkgen_addition_push_bit(
+    VkGenContext* ctx, const StringHash enumKey, const String name, const i64 value) {
+  *dynarray_push_t(&ctx->additions, VkGenAddition) = (VkGenAddition){
+      .name     = name,
+      .enumKey  = enumKey,
+      .bitValue = true,
+      .value    = value,
   };
 }
 
@@ -195,10 +206,15 @@ static void vkgen_addition_collect(VkGenContext* ctx, const XmlNode node) {
         if (!enumKey || string_is_empty(name)) {
           continue; // Enum or name missing.
         }
+        const String bitPosStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_bitpos);
+        if (!string_is_empty(bitPosStr)) {
+          vkgen_addition_push_bit(ctx, enumKey, name, vkgen_to_int(bitPosStr));
+          continue;
+        }
         const bool   invert   = xml_attr_has(ctx->schemaDoc, entry, g_hash_dir);
         const String valueStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
         if (!string_is_empty(valueStr)) {
-          i64 value = vkgen_to_int(valueStr);
+          const i64 value = vkgen_to_int(valueStr);
           vkgen_addition_push(ctx, enumKey, name, invert ? -value : value);
           continue;
         }
@@ -422,7 +438,11 @@ static bool vkgen_write_enum(VkGenContext* ctx, const StringHash key) {
         continue; // Duplicate name.
       }
       *dynarray_insert_sorted_t(&writtenNames, StringHash, compare_stringhash, &nameHs) = nameHs;
-      fmt_write(&ctx->out, "  {} = {},\n", fmt_text(itr->name), fmt_int(itr->value));
+      if (itr->bitValue) {
+        fmt_write(&ctx->out, "  {} = 1 << {},\n", fmt_text(itr->name), fmt_int(itr->value));
+      } else {
+        fmt_write(&ctx->out, "  {} = {},\n", fmt_text(itr->name), fmt_int(itr->value));
+      }
     }
     fmt_write(&ctx->out, "} {};\n\n", fmt_text(xml_attr_get(ctx->schemaDoc, node, g_hash_name)));
     return true;
