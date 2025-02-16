@@ -3,6 +3,7 @@
 #include "core_dynlib.h"
 #include "core_math.h"
 #include "core_thread.h"
+#include "core_thread.h"
 #include "log_logger.h"
 #include "snd_channel.h"
 
@@ -181,6 +182,10 @@ static ThreadSpinLock   g_sndErrorHandlerLock;
 
 static void alsa_error_handler(
     const char* file, const i32 line, const char* func, const i32 err, const char* fmt, ...) {
+
+  if (!g_threadManaged) {
+    return;
+  }
 
   String errName = string_lit("<unknown>");
   thread_spinlock_lock(&g_sndErrorHandlerLock);

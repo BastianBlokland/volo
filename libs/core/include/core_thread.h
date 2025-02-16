@@ -156,6 +156,12 @@ typedef enum {
 ThreadHandle thread_start(ThreadRoutine, void* data, String threadName, ThreadPriority);
 
 /**
+ * Initialize a thread.
+ * NOTE: Managed threads don't need to be initialized.
+ */
+void thread_ensure_init(void);
+
+/**
  * Set the priority of the current thread.
  * Returns true if successful otherwise false.
  * NOTE: Can fail if the user has insufficent permissions.

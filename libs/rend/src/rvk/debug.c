@@ -90,6 +90,10 @@ static VkBool32 SYS_DECL rvk_message_func(
     void*                                       userData) {
   RvkDebug* dbg = userData;
 
+  if (!g_threadManaged) {
+    return;
+  }
+
   const LogLevel logLevel  = rvk_msg_log_level(msgSeverity);
   const String   typeLabel = rvk_msg_type_label(msgType);
   const String   message   = string_from_null_term(callbackData->pMessage);

@@ -130,6 +130,13 @@ ThreadHandle thread_start(
   return thread_pal_start(thread_runner, threadRunData);
 }
 
+void thread_ensure_init(void) {
+  if (g_threadManaged) {
+    return; // Managed threads don't need to be initialized.
+  }
+  core_init(); // Initialize the core library for this thread.
+}
+
 bool thread_prioritize(const ThreadPriority prio) { return thread_pal_set_priority(prio); }
 
 void thread_join(const ThreadHandle thread) { thread_pal_join(thread); }
