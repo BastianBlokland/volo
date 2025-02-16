@@ -4,10 +4,12 @@
 #include "cli_parse.h"
 #include "cli_read.h"
 #include "core_alloc.h"
+#include "core_compare.h"
 #include "core_dynbitset.h"
 #include "core_dynstring.h"
 #include "core_file.h"
 #include "core_path.h"
+#include "core_search.h"
 #include "log_logger.h"
 #include "log_sink_json.h"
 #include "log_sink_pretty.h"
@@ -106,7 +108,8 @@ typedef struct {
 } VkGenEntry;
 
 typedef struct {
-  StringHash key;
+  StringHash enumKey;
+  String     name; // Allocated in the schema document.
   i64        value;
 } VkGenAddition;
 
@@ -132,7 +135,8 @@ static i8 vkgen_compare_entry(const void* a, const void* b) {
 }
 
 static i8 vkgen_compare_addition(const void* a, const void* b) {
-  return compare_stringhash(field_ptr(a, VkGenAddition, key), field_ptr(b, VkGenAddition, key));
+  return compare_stringhash(
+      field_ptr(a, VkGenAddition, enumKey), field_ptr(b, VkGenAddition, enumKey));
 }
 
 static void vkgen_entry_push(DynArray* arr, const StringHash key, const XmlNode node) {
@@ -154,10 +158,12 @@ static u32 vkgen_entry_index(DynArray* arr, const StringHash key) {
   return res ? (u32)(res - dynarray_begin_t(arr, VkGenEntry)) : sentinel_u32;
 }
 
-static void vkgen_addition_push(VkGenContext* ctx, const StringHash key, const i64 value) {
+static void vkgen_addition_push(
+    VkGenContext* ctx, const StringHash enumKey, const String name, const i64 value) {
   *dynarray_push_t(&ctx->additions, VkGenAddition) = (VkGenAddition){
-      .key   = key,
-      .value = value,
+      .enumKey = enumKey,
+      .name    = name,
+      .value   = value,
   };
 }
 
@@ -170,15 +176,43 @@ static void vkgen_addition_collect(VkGenContext* ctx, const XmlNode node) {
       const StringHash entryNameHash = xml_name_hash(ctx->schemaDoc, entry);
       if (entryNameHash == g_hash_enum) {
         const StringHash key      = xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_extends);
+        const String     name     = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
         const String     valueStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
         if (key && !string_is_empty(valueStr)) {
           i64 value;
           format_read_i64(valueStr, &value, 10 /* base */);
-          vkgen_addition_push(ctx, key, value);
+          vkgen_addition_push(ctx, key, name, value);
         }
       }
     }
   }
+}
+
+typedef struct {
+  const VkGenAddition* begin;
+  const VkGenAddition* end;
+} VkGenAdditionSet;
+
+static VkGenAdditionSet vkgen_addition_find(VkGenContext* ctx, const StringHash enumKey) {
+  const VkGenAddition* addBegin = dynarray_begin_t(&ctx->additions, VkGenAddition);
+  const VkGenAddition* addEnd   = dynarray_end_t(&ctx->additions, VkGenAddition);
+  if (addBegin == addEnd) {
+    return (VkGenAdditionSet){0};
+  }
+  VkGenAddition        tgt = {.enumKey = enumKey};
+  const VkGenAddition* greater =
+      search_binary_greater_t(addBegin, addEnd, VkGenAddition, vkgen_compare_addition, &tgt);
+
+  VkGenAdditionSet res = {
+      .begin = greater ? greater : addEnd,
+      .end   = greater ? greater : addEnd,
+  };
+  if (res.begin == addBegin) {
+    return (VkGenAdditionSet){0};
+  }
+  for (; res.begin != addBegin && (res.begin - 1)->enumKey == enumKey; --res.begin)
+    ;
+  return res;
 }
 
 static bool vkgen_contains(String str, const String other) {
@@ -327,10 +361,13 @@ static void vkgen_write_comment_elem(VkGenContext* ctx, const XmlNode comment) {
 }
 
 static bool vkgen_write_enum(VkGenContext* ctx, const StringHash key) {
-  const XmlNode node = vkgen_entry_find(&ctx->enums, key);
-  if (sentinel_check(xml_first_child(ctx->schemaDoc, node))) {
+  const XmlNode    node      = vkgen_entry_find(&ctx->enums, key);
+  VkGenAdditionSet additions = vkgen_addition_find(ctx, key);
+  if (sentinel_check(xml_first_child(ctx->schemaDoc, node)) && additions.begin == additions.end) {
     return true; // Empty enum.
   }
+  DynArray writtenNames = dynarray_create_t(g_allocScratch, StringHash, 512);
+
   const StringHash typeHash = xml_attr_get_hash(ctx->schemaDoc, node, g_hash_type);
   if (typeHash == g_hash_enum || typeHash == g_hash_bitmask) {
     fmt_write(&ctx->out, "typedef enum {\n");
@@ -338,7 +375,10 @@ static bool vkgen_write_enum(VkGenContext* ctx, const StringHash key) {
       if (xml_name_hash(ctx->schemaDoc, entry) != g_hash_enum || vkgen_is_deprecated(ctx, entry)) {
         continue; // Not an enum entry or a deprecated entry.
       }
-      const String name = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
+      const String     name   = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
+      const StringHash nameHs = string_hash(name);
+      *dynarray_insert_sorted_t(&writtenNames, StringHash, compare_stringhash, &nameHs) = nameHs;
+
       fmt_write(&ctx->out, "  {}", fmt_text(name));
 
       const String val    = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
@@ -348,8 +388,15 @@ static bool vkgen_write_enum(VkGenContext* ctx, const StringHash key) {
       } else if (!string_is_empty(bitPos)) {
         fmt_write(&ctx->out, " = 1 << {}", fmt_text(bitPos));
       }
-      fmt_write(&ctx->out, ",");
-      fmt_write(&ctx->out, "\n");
+      fmt_write(&ctx->out, ",\n");
+    }
+    for (const VkGenAddition* itr = additions.begin; itr != additions.end; ++itr) {
+      const StringHash nameHs = string_hash(itr->name);
+      if (dynarray_search_binary(&writtenNames, compare_stringhash, &nameHs)) {
+        continue; // Duplicate name.
+      }
+      *dynarray_insert_sorted_t(&writtenNames, StringHash, compare_stringhash, &nameHs) = nameHs;
+      fmt_write(&ctx->out, "  {} = {},\n", fmt_text(itr->name), fmt_int(itr->value));
     }
     fmt_write(&ctx->out, "} {};\n\n", fmt_text(xml_attr_get(ctx->schemaDoc, node, g_hash_name)));
     return true;
