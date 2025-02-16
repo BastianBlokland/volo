@@ -445,9 +445,9 @@ static void rvk_pass_bind_global(
 }
 
 static void rvk_pass_bind_draw(
-    RvkPass*           pass,
-    RvkPassFrame*      frame,
-    RvkPassInvoc*      invoc,
+    RvkPass*                         pass,
+    RvkPassFrame*                    frame,
+    RvkPassInvoc*                    invoc,
     MAYBE_UNUSED const RvkPassSetup* setup,
     const RvkGraphic*                gra,
     const RvkUniformHandle           data,
@@ -814,12 +814,6 @@ void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
   rvk_pass_assert_image_contents(pass, setup);
 #endif
 
-  invoc->statsRecord = rvk_statrecorder_start(frame->statrecorder, invoc->vkCmdBuf);
-
-  invoc->timeRecBegin = rvk_stopwatch_mark(frame->stopwatch, invoc->vkCmdBuf);
-  rvk_debug_label_begin(
-      pass->dev->debug, invoc->vkCmdBuf, geo_color_blue, "pass_{}", fmt_text(pass->config->name));
-
   /**
    * Execute image transitions:
    * - Attachment images to color/depth-attachment-optimal.
@@ -864,6 +858,12 @@ void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
   }
 
   rvk_pass_vkrenderpass_begin(pass, invoc, setup);
+
+  invoc->statsRecord = rvk_statrecorder_start(frame->statrecorder, invoc->vkCmdBuf);
+
+  invoc->timeRecBegin = rvk_stopwatch_mark(frame->stopwatch, invoc->vkCmdBuf);
+  rvk_debug_label_begin(
+      pass->dev->debug, invoc->vkCmdBuf, geo_color_blue, "pass_{}", fmt_text(pass->config->name));
 
   rvk_pass_viewport_set(invoc->vkCmdBuf, invoc->size);
   rvk_pass_scissor_set(invoc->vkCmdBuf, invoc->size);
@@ -980,10 +980,11 @@ void rvk_pass_end(RvkPass* pass, const RvkPassSetup* setup) {
   pass->flags &= ~RvkPassFlags_Active;
 
   rvk_statrecorder_stop(frame->statrecorder, invoc->statsRecord, invoc->vkCmdBuf);
-  vkCmdEndRenderPass(invoc->vkCmdBuf);
 
   rvk_debug_label_end(pass->dev->debug, invoc->vkCmdBuf);
   invoc->timeRecEnd = rvk_stopwatch_mark(frame->stopwatch, invoc->vkCmdBuf);
+
+  vkCmdEndRenderPass(invoc->vkCmdBuf);
 
   if (setup->attachDepth && pass->config->attachDepth != RvkPassDepth_Stored) {
     // When we're not storing the depth, the image's contents become undefined.
