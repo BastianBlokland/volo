@@ -639,6 +639,9 @@ static void vkgen_write_command_params(VkGenContext* ctx, const XmlNode commandN
     if (xml_name_hash(ctx->schemaDoc, child) != g_hash_param) {
       continue; // Not a parameter.
     }
+    if (!vkgen_is_supported_api(ctx, child)) {
+      continue;
+    }
     if (anyParam) {
       fmt_write(&ctx->out, ", ");
     }
