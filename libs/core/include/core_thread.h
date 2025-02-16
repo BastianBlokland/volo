@@ -20,6 +20,11 @@ extern ThreadId g_threadPid;
 extern ThreadId g_threadMainTid;
 
 /**
+ * Is the current thread managed (non-external).
+ */
+extern THREAD_LOCAL bool g_threadManaged;
+
+/**
  * Thread identifier of the current thread.
  */
 extern THREAD_LOCAL ThreadId g_threadTid;

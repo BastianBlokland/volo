@@ -23,6 +23,7 @@ static thread_pal_rettype SYS_DECL thread_runner(void* data) {
   ThreadRunData* runData = (ThreadRunData*)data;
 
   core_init(); // Initialize the core library for this thread.
+  g_threadManaged = true;
 
   jmp_buf exceptAnchor;
   diag_except_enable(&exceptAnchor, setjmp(exceptAnchor));
