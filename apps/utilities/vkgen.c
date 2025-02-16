@@ -489,6 +489,9 @@ static String vkgen_type_resolve(VkGenContext* ctx, XmlNode* node) {
   if (string_eq(text, string_lit("HWND"))) {
     return string_lit("uptr");
   }
+  if (string_eq(text, string_lit("xcb_visualid_t"))) {
+    return string_lit("u32");
+  }
   if (string_eq(text, string_lit("xcb_window_t"))) {
     return string_lit("uptr");
   }
