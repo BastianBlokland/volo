@@ -5059,8 +5059,8 @@ typedef struct VkXcbSurfaceCreateInfoKHR {
 typedef VkResult (SYS_DECL *PFN_vkCreateXcbSurfaceKHR)(VkInstance instance, const VkXcbSurfaceCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface);
 VkResult SYS_DECL vkCreateXcbSurfaceKHR(VkInstance instance, const VkXcbSurfaceCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface);
 
-typedef VkBool32 (SYS_DECL *PFN_vkGetPhysicalDeviceXcbPresentationSupportKHR)(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, uptr connection, xcb_visualid_t visual_id);
-VkBool32 SYS_DECL vkGetPhysicalDeviceXcbPresentationSupportKHR(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, uptr connection, xcb_visualid_t visual_id);
+typedef VkBool32 (SYS_DECL *PFN_vkGetPhysicalDeviceXcbPresentationSupportKHR)(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, uptr connection, u32 visual_id);
+VkBool32 SYS_DECL vkGetPhysicalDeviceXcbPresentationSupportKHR(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, uptr connection, u32 visual_id);
 
 typedef VkFlags VkWin32SurfaceCreateFlagsKHR;
 
