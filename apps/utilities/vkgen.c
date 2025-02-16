@@ -85,6 +85,24 @@ static const String g_vkgenExtensions[] = {
     string_static("VK_KHR_win32_surface"),
 };
 
+static bool vkgen_feat_is_enabled(const StringHash featHash) {
+  array_for_t(g_vkgenFeatures, String, feat) {
+    if (string_hash(*feat) == featHash) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static bool vkgen_ext_is_enabled(const StringHash extHash) {
+  array_for_t(g_vkgenExtensions, String, ext) {
+    if (string_hash(*ext) == extHash) {
+      return true;
+    }
+  }
+  return false;
+}
+
 static XmlNode vkgen_schema_get(XmlDoc* xmlDoc, const String host, const String uri) {
   XmlNode node = sentinel_u32;
 
@@ -383,12 +401,15 @@ static void vkgen_collect_extensions(VkGenContext* ctx) {
     if (!vkgen_is_supported(ctx, child)) {
       continue;
     }
+    const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
+    if (!vkgen_ext_is_enabled(nameHash)) {
+      continue;
+    }
     const String numberStr = xml_attr_get(ctx->schemaDoc, child, g_hash_number);
     if (string_is_empty(numberStr)) {
       continue;
     }
-    const i64        extNumber = vkgen_to_int(numberStr);
-    const StringHash nameHash  = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
+    const i64 extNumber = vkgen_to_int(numberStr);
     if (nameHash) {
       vkgen_entry_push(&ctx->extensions, nameHash, child);
       vkgen_addition_collect(
@@ -406,6 +427,9 @@ static void vkgen_collect_features(VkGenContext* ctx) {
         continue;
       }
       const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
+      if (!vkgen_feat_is_enabled(nameHash)) {
+        continue;
+      }
       if (nameHash) {
         vkgen_entry_push(&ctx->features, nameHash, child);
         vkgen_addition_collect(
@@ -845,7 +869,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .types             = dynarray_create_t(g_allocHeap, VkGenEntry, 4096),
       .typesWritten      = dynbitset_create(g_allocHeap, 4096),
       .enums             = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
-      .additions         = dynarray_create_t(g_allocHeap, VkGenAddition, 2048),
+      .additions         = dynarray_create_t(g_allocHeap, VkGenAddition, 512),
       .commands          = dynarray_create_t(g_allocHeap, VkGenEntry, 1024),
       .commandsWritten   = dynbitset_create(g_allocHeap, 1024),
       .extensions        = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
