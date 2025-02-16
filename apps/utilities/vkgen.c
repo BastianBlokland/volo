@@ -521,6 +521,30 @@ static String vkgen_type_resolve(VkGenContext* ctx, XmlNode* node) {
   const String  nextText  = string_trim_whitespace(xml_value(ctx->schemaDoc, next));
   const bool    isPointer = string_eq(nextText, string_lit("*"));
 
+  if (string_eq(text, string_lit("uint8_t"))) {
+    return string_lit("u8");
+  }
+  if (string_eq(text, string_lit("int32_t"))) {
+    return string_lit("i32");
+  }
+  if (string_eq(text, string_lit("uint32_t"))) {
+    return string_lit("u32");
+  }
+  if (string_eq(text, string_lit("int64_t"))) {
+    return string_lit("i64");
+  }
+  if (string_eq(text, string_lit("uint64_t"))) {
+    return string_lit("u64");
+  }
+  if (string_eq(text, string_lit("size_t"))) {
+    return string_lit("usize");
+  }
+  if (string_eq(text, string_lit("float"))) {
+    return string_lit("f32");
+  }
+  if (string_eq(text, string_lit("double"))) {
+    return string_lit("f64");
+  }
   if (string_eq(text, string_lit("HINSTANCE"))) {
     return string_lit("uptr");
   }
