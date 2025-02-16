@@ -71,6 +71,20 @@ static void vkgen_init_hashes(void) {
 #undef VKGEN_HASH
 }
 
+static const String g_vkgenFeatures[] = {
+    string_static("VK_VERSION_1_0"),
+    string_static("VK_VERSION_1_1"),
+};
+
+static const String g_vkgenExtensions[] = {
+    string_static("VK_EXT_validation_features"),
+    string_static("VK_EXT_debug_utils"),
+    string_static("VK_KHR_swapchain"),
+    string_static("VK_KHR_surface"),
+    string_static("VK_KHR_xcb_surface"),
+    string_static("VK_KHR_win32_surface"),
+};
+
 static XmlNode vkgen_schema_get(XmlDoc* xmlDoc, const String host, const String uri) {
   XmlNode node = sentinel_u32;
 
@@ -766,29 +780,15 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   if (!vkgen_write_enum(ctx, string_hash_lit("API Constants"))) {
     return false;
   }
-  if (!vkgen_write_feature(ctx, string_hash_lit("VK_VERSION_1_0"))) {
-    return false;
+  array_for_t(g_vkgenFeatures, String, feature) {
+    if (!vkgen_write_feature(ctx, string_hash(*feature))) {
+      return false;
+    }
   }
-  if (!vkgen_write_feature(ctx, string_hash_lit("VK_VERSION_1_1"))) {
-    return false;
-  }
-  if (!vkgen_write_extension(ctx, string_hash_lit("VK_EXT_validation_features"))) {
-    return false;
-  }
-  if (!vkgen_write_extension(ctx, string_hash_lit("VK_EXT_debug_utils"))) {
-    return false;
-  }
-  if (!vkgen_write_extension(ctx, string_hash_lit("VK_KHR_swapchain"))) {
-    return false;
-  }
-  if (!vkgen_write_extension(ctx, string_hash_lit("VK_KHR_surface"))) {
-    return false;
-  }
-  if (!vkgen_write_extension(ctx, string_hash_lit("VK_KHR_xcb_surface"))) {
-    return false;
-  }
-  if (!vkgen_write_extension(ctx, string_hash_lit("VK_KHR_win32_surface"))) {
-    return false;
+  array_for_t(g_vkgenExtensions, String, extension) {
+    if (!vkgen_write_extension(ctx, string_hash(*extension))) {
+      return false;
+    }
   }
 
   fmt_write(&ctx->out, "// clang-format on\n");
