@@ -4818,93 +4818,6 @@ typedef struct VkPhysicalDeviceShaderDrawParametersFeatures {
   VkBool32 shaderDrawParameters;
 } VkPhysicalDeviceShaderDrawParametersFeatures;
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkSurfaceKHR)
-
-typedef enum {
-  VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR = 1 << 0,
-  VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR = 1 << 1,
-  VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR = 1 << 2,
-  VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR = 1 << 3,
-  VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_BIT_KHR = 1 << 4,
-  VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_90_BIT_KHR = 1 << 5,
-  VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_180_BIT_KHR = 1 << 6,
-  VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_270_BIT_KHR = 1 << 7,
-  VK_SURFACE_TRANSFORM_INHERIT_BIT_KHR = 1 << 8,
-} VkSurfaceTransformFlagBitsKHR;
-
-typedef enum {
-  VK_PRESENT_MODE_IMMEDIATE_KHR = 0,
-  VK_PRESENT_MODE_MAILBOX_KHR = 1,
-  VK_PRESENT_MODE_FIFO_KHR = 2,
-  VK_PRESENT_MODE_FIFO_RELAXED_KHR = 3,
-  VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR = 1000111000,
-  VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR = 1000111001,
-  VK_PRESENT_MODE_FIFO_LATEST_READY_EXT = 1000361000,
-} VkPresentModeKHR;
-
-typedef enum {
-  VK_COLOR_SPACE_SRGB_NONLINEAR_KHR = 0,
-  VK_COLOR_SPACE_DISPLAY_P3_NONLINEAR_EXT = 1000104001,
-  VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT = 1000104002,
-  VK_COLOR_SPACE_DISPLAY_P3_LINEAR_EXT = 1000104003,
-  VK_COLOR_SPACE_DCI_P3_NONLINEAR_EXT = 1000104004,
-  VK_COLOR_SPACE_BT709_LINEAR_EXT = 1000104005,
-  VK_COLOR_SPACE_BT709_NONLINEAR_EXT = 1000104006,
-  VK_COLOR_SPACE_BT2020_LINEAR_EXT = 1000104007,
-  VK_COLOR_SPACE_HDR10_ST2084_EXT = 1000104008,
-  VK_COLOR_SPACE_DOLBYVISION_EXT = 1000104009,
-  VK_COLOR_SPACE_HDR10_HLG_EXT = 1000104010,
-  VK_COLOR_SPACE_ADOBERGB_LINEAR_EXT = 1000104011,
-  VK_COLOR_SPACE_ADOBERGB_NONLINEAR_EXT = 1000104012,
-  VK_COLOR_SPACE_PASS_THROUGH_EXT = 1000104013,
-  VK_COLOR_SPACE_EXTENDED_SRGB_NONLINEAR_EXT = 1000104014,
-  VK_COLOR_SPACE_DISPLAY_NATIVE_AMD = 1000213000,
-} VkColorSpaceKHR;
-
-typedef enum {
-  VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR = 1 << 0,
-  VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR = 1 << 1,
-  VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR = 1 << 2,
-  VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR = 1 << 3,
-} VkCompositeAlphaFlagBitsKHR;
-
-typedef VkFlags VkCompositeAlphaFlagsKHR;
-
-typedef VkFlags VkSurfaceTransformFlagsKHR;
-
-typedef struct VkSurfaceCapabilitiesKHR {
-  uint32_t minImageCount;
-  uint32_t maxImageCount;
-  VkExtent2D currentExtent;
-  VkExtent2D minImageExtent;
-  VkExtent2D maxImageExtent;
-  uint32_t maxImageArrayLayers;
-  VkSurfaceTransformFlagsKHR supportedTransforms;
-  VkSurfaceTransformFlagBitsKHR currentTransform;
-  VkCompositeAlphaFlagsKHR supportedCompositeAlpha;
-  VkImageUsageFlags supportedUsageFlags;
-} VkSurfaceCapabilitiesKHR;
-
-typedef struct VkSurfaceFormatKHR {
-  VkFormat format;
-  VkColorSpaceKHR colorSpace;
-} VkSurfaceFormatKHR;
-
-typedef void (SYS_DECL *PFN_vkDestroySurfaceKHR)(VkInstance instance, VkSurfaceKHR surface, const VkAllocationCallbacks* pAllocator);
-void SYS_DECL vkDestroySurfaceKHR(VkInstance instance, VkSurfaceKHR surface, const VkAllocationCallbacks* pAllocator);
-
-typedef VkResult (SYS_DECL *PFN_vkGetPhysicalDeviceSurfaceSupportKHR)(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, VkSurfaceKHR surface, VkBool32* pSupported);
-VkResult SYS_DECL vkGetPhysicalDeviceSurfaceSupportKHR(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, VkSurfaceKHR surface, VkBool32* pSupported);
-
-typedef VkResult (SYS_DECL *PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSurfaceCapabilitiesKHR* pSurfaceCapabilities);
-VkResult SYS_DECL vkGetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSurfaceCapabilitiesKHR* pSurfaceCapabilities);
-
-typedef VkResult (SYS_DECL *PFN_vkGetPhysicalDeviceSurfaceFormatsKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t* pSurfaceFormatCount, VkSurfaceFormatKHR* pSurfaceFormats);
-VkResult SYS_DECL vkGetPhysicalDeviceSurfaceFormatsKHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t* pSurfaceFormatCount, VkSurfaceFormatKHR* pSurfaceFormats);
-
-typedef VkResult (SYS_DECL *PFN_vkGetPhysicalDeviceSurfacePresentModesKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t* pPresentModeCount, VkPresentModeKHR* pPresentModes);
-VkResult SYS_DECL vkGetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t* pPresentModeCount, VkPresentModeKHR* pPresentModes);
-
 typedef enum {
   VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT = 0,
   VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT = 1,
@@ -5045,6 +4958,216 @@ void SYS_DECL vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsM
 
 typedef void (SYS_DECL *PFN_vkSubmitDebugUtilsMessageEXT)(VkInstance instance, VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData);
 void SYS_DECL vkSubmitDebugUtilsMessageEXT(VkInstance instance, VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData);
+
+typedef enum {
+  VK_SWAPCHAIN_CREATE_SPLIT_INSTANCE_BIND_REGIONS_BIT_KHR = 1 << 0,
+  VK_SWAPCHAIN_CREATE_PROTECTED_BIT_KHR = 1 << 1,
+  VK_SWAPCHAIN_CREATE_MUTABLE_FORMAT_BIT_KHR = 1 << 2,
+  VK_SWAPCHAIN_CREATE_DEFERRED_MEMORY_ALLOCATION_BIT_EXT = 1 << 3,
+} VkSwapchainCreateFlagBitsKHR;
+
+typedef VkFlags VkSwapchainCreateFlagsKHR;
+
+VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkSurfaceKHR)
+
+typedef enum {
+  VK_COLOR_SPACE_SRGB_NONLINEAR_KHR = 0,
+  VK_COLOR_SPACE_DISPLAY_P3_NONLINEAR_EXT = 1000104001,
+  VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT = 1000104002,
+  VK_COLOR_SPACE_DISPLAY_P3_LINEAR_EXT = 1000104003,
+  VK_COLOR_SPACE_DCI_P3_NONLINEAR_EXT = 1000104004,
+  VK_COLOR_SPACE_BT709_LINEAR_EXT = 1000104005,
+  VK_COLOR_SPACE_BT709_NONLINEAR_EXT = 1000104006,
+  VK_COLOR_SPACE_BT2020_LINEAR_EXT = 1000104007,
+  VK_COLOR_SPACE_HDR10_ST2084_EXT = 1000104008,
+  VK_COLOR_SPACE_DOLBYVISION_EXT = 1000104009,
+  VK_COLOR_SPACE_HDR10_HLG_EXT = 1000104010,
+  VK_COLOR_SPACE_ADOBERGB_LINEAR_EXT = 1000104011,
+  VK_COLOR_SPACE_ADOBERGB_NONLINEAR_EXT = 1000104012,
+  VK_COLOR_SPACE_PASS_THROUGH_EXT = 1000104013,
+  VK_COLOR_SPACE_EXTENDED_SRGB_NONLINEAR_EXT = 1000104014,
+  VK_COLOR_SPACE_DISPLAY_NATIVE_AMD = 1000213000,
+} VkColorSpaceKHR;
+
+typedef enum {
+  VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR = 1 << 0,
+  VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR = 1 << 1,
+  VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR = 1 << 2,
+  VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR = 1 << 3,
+  VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_BIT_KHR = 1 << 4,
+  VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_90_BIT_KHR = 1 << 5,
+  VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_180_BIT_KHR = 1 << 6,
+  VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_270_BIT_KHR = 1 << 7,
+  VK_SURFACE_TRANSFORM_INHERIT_BIT_KHR = 1 << 8,
+} VkSurfaceTransformFlagBitsKHR;
+
+typedef enum {
+  VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR = 1 << 0,
+  VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR = 1 << 1,
+  VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR = 1 << 2,
+  VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR = 1 << 3,
+} VkCompositeAlphaFlagBitsKHR;
+
+typedef enum {
+  VK_PRESENT_MODE_IMMEDIATE_KHR = 0,
+  VK_PRESENT_MODE_MAILBOX_KHR = 1,
+  VK_PRESENT_MODE_FIFO_KHR = 2,
+  VK_PRESENT_MODE_FIFO_RELAXED_KHR = 3,
+  VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR = 1000111000,
+  VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR = 1000111001,
+  VK_PRESENT_MODE_FIFO_LATEST_READY_EXT = 1000361000,
+} VkPresentModeKHR;
+
+VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkSwapchainKHR)
+
+typedef struct VkSwapchainCreateInfoKHR {
+  VkStructureType sType;
+  const void*                      pNext;
+  VkSwapchainCreateFlagsKHR flags;
+  VkSurfaceKHR surface;
+  uint32_t minImageCount;
+  VkFormat imageFormat;
+  VkColorSpaceKHR imageColorSpace;
+  VkExtent2D imageExtent;
+  uint32_t imageArrayLayers;
+  VkImageUsageFlags imageUsage;
+  VkSharingMode imageSharingMode;
+  uint32_t queueFamilyIndexCount;
+  const uint32_t*                  pQueueFamilyIndices;
+  VkSurfaceTransformFlagBitsKHR preTransform;
+  VkCompositeAlphaFlagBitsKHR compositeAlpha;
+  VkPresentModeKHR presentMode;
+  VkBool32 clipped;
+  VkSwapchainKHR oldSwapchain;
+} VkSwapchainCreateInfoKHR;
+
+typedef struct VkPresentInfoKHR {
+  VkStructureType sType;
+  const void*  pNext;
+  uint32_t waitSemaphoreCount;
+  const VkSemaphore* pWaitSemaphores;
+  uint32_t swapchainCount;
+  const VkSwapchainKHR* pSwapchains;
+  const uint32_t* pImageIndices;
+  VkResult* pResults;
+} VkPresentInfoKHR;
+
+typedef VkResult (SYS_DECL *PFN_vkCreateSwapchainKHR)(VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo, const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain);
+VkResult SYS_DECL vkCreateSwapchainKHR(VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo, const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain);
+
+typedef void (SYS_DECL *PFN_vkDestroySwapchainKHR)(VkDevice device, VkSwapchainKHR swapchain, const VkAllocationCallbacks* pAllocator);
+void SYS_DECL vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR swapchain, const VkAllocationCallbacks* pAllocator);
+
+typedef VkResult (SYS_DECL *PFN_vkGetSwapchainImagesKHR)(VkDevice device, VkSwapchainKHR swapchain, uint32_t* pSwapchainImageCount, VkImage* pSwapchainImages);
+VkResult SYS_DECL vkGetSwapchainImagesKHR(VkDevice device, VkSwapchainKHR swapchain, uint32_t* pSwapchainImageCount, VkImage* pSwapchainImages);
+
+typedef VkResult (SYS_DECL *PFN_vkAcquireNextImageKHR)(VkDevice device, VkSwapchainKHR swapchain, uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t* pImageIndex);
+VkResult SYS_DECL vkAcquireNextImageKHR(VkDevice device, VkSwapchainKHR swapchain, uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t* pImageIndex);
+
+typedef VkResult (SYS_DECL *PFN_vkQueuePresentKHR)(VkQueue queue, const VkPresentInfoKHR* pPresentInfo);
+VkResult SYS_DECL vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR* pPresentInfo);
+
+typedef struct VkImageSwapchainCreateInfoKHR {
+  VkStructureType sType;
+  const void*                      pNext;
+  VkSwapchainKHR swapchain;
+} VkImageSwapchainCreateInfoKHR;
+
+typedef struct VkBindImageMemorySwapchainInfoKHR {
+  VkStructureType sType;
+  const void*                      pNext;
+  VkSwapchainKHR swapchain;
+  uint32_t imageIndex;
+} VkBindImageMemorySwapchainInfoKHR;
+
+typedef struct VkAcquireNextImageInfoKHR {
+  VkStructureType sType;
+  const void*                      pNext;
+  VkSwapchainKHR swapchain;
+  uint64_t timeout;
+  VkSemaphore semaphore;
+  VkFence fence;
+  uint32_t deviceMask;
+} VkAcquireNextImageInfoKHR;
+
+typedef enum {
+  VK_DEVICE_GROUP_PRESENT_MODE_LOCAL_BIT_KHR = 1 << 0,
+  VK_DEVICE_GROUP_PRESENT_MODE_REMOTE_BIT_KHR = 1 << 1,
+  VK_DEVICE_GROUP_PRESENT_MODE_SUM_BIT_KHR = 1 << 2,
+  VK_DEVICE_GROUP_PRESENT_MODE_LOCAL_MULTI_DEVICE_BIT_KHR = 1 << 3,
+} VkDeviceGroupPresentModeFlagBitsKHR;
+
+typedef VkFlags VkDeviceGroupPresentModeFlagsKHR;
+
+typedef struct VkDeviceGroupPresentCapabilitiesKHR {
+  VkStructureType sType;
+  void*            pNext;
+  uint32_t presentMask[VK_MAX_DEVICE_GROUP_SIZE];
+  VkDeviceGroupPresentModeFlagsKHR modes;
+} VkDeviceGroupPresentCapabilitiesKHR;
+
+typedef struct VkDeviceGroupPresentInfoKHR {
+  VkStructureType sType;
+  const void*                      pNext;
+  uint32_t swapchainCount;
+  const uint32_t* pDeviceMasks;
+  VkDeviceGroupPresentModeFlagBitsKHR mode;
+} VkDeviceGroupPresentInfoKHR;
+
+typedef struct VkDeviceGroupSwapchainCreateInfoKHR {
+  VkStructureType sType;
+  const void*                      pNext;
+  VkDeviceGroupPresentModeFlagsKHR modes;
+} VkDeviceGroupSwapchainCreateInfoKHR;
+
+typedef VkResult (SYS_DECL *PFN_vkGetDeviceGroupPresentCapabilitiesKHR)(VkDevice device, VkDeviceGroupPresentCapabilitiesKHR* pDeviceGroupPresentCapabilities);
+VkResult SYS_DECL vkGetDeviceGroupPresentCapabilitiesKHR(VkDevice device, VkDeviceGroupPresentCapabilitiesKHR* pDeviceGroupPresentCapabilities);
+
+typedef VkResult (SYS_DECL *PFN_vkGetDeviceGroupSurfacePresentModesKHR)(VkDevice device, VkSurfaceKHR surface, VkDeviceGroupPresentModeFlagsKHR* pModes);
+VkResult SYS_DECL vkGetDeviceGroupSurfacePresentModesKHR(VkDevice device, VkSurfaceKHR surface, VkDeviceGroupPresentModeFlagsKHR* pModes);
+
+typedef VkResult (SYS_DECL *PFN_vkGetPhysicalDevicePresentRectanglesKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t* pRectCount, VkRect2D* pRects);
+VkResult SYS_DECL vkGetPhysicalDevicePresentRectanglesKHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t* pRectCount, VkRect2D* pRects);
+
+typedef VkResult (SYS_DECL *PFN_vkAcquireNextImage2KHR)(VkDevice device, const VkAcquireNextImageInfoKHR* pAcquireInfo, uint32_t* pImageIndex);
+VkResult SYS_DECL vkAcquireNextImage2KHR(VkDevice device, const VkAcquireNextImageInfoKHR* pAcquireInfo, uint32_t* pImageIndex);
+
+typedef VkFlags VkCompositeAlphaFlagsKHR;
+
+typedef VkFlags VkSurfaceTransformFlagsKHR;
+
+typedef struct VkSurfaceCapabilitiesKHR {
+  uint32_t minImageCount;
+  uint32_t maxImageCount;
+  VkExtent2D currentExtent;
+  VkExtent2D minImageExtent;
+  VkExtent2D maxImageExtent;
+  uint32_t maxImageArrayLayers;
+  VkSurfaceTransformFlagsKHR supportedTransforms;
+  VkSurfaceTransformFlagBitsKHR currentTransform;
+  VkCompositeAlphaFlagsKHR supportedCompositeAlpha;
+  VkImageUsageFlags supportedUsageFlags;
+} VkSurfaceCapabilitiesKHR;
+
+typedef struct VkSurfaceFormatKHR {
+  VkFormat format;
+  VkColorSpaceKHR colorSpace;
+} VkSurfaceFormatKHR;
+
+typedef void (SYS_DECL *PFN_vkDestroySurfaceKHR)(VkInstance instance, VkSurfaceKHR surface, const VkAllocationCallbacks* pAllocator);
+void SYS_DECL vkDestroySurfaceKHR(VkInstance instance, VkSurfaceKHR surface, const VkAllocationCallbacks* pAllocator);
+
+typedef VkResult (SYS_DECL *PFN_vkGetPhysicalDeviceSurfaceSupportKHR)(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, VkSurfaceKHR surface, VkBool32* pSupported);
+VkResult SYS_DECL vkGetPhysicalDeviceSurfaceSupportKHR(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex, VkSurfaceKHR surface, VkBool32* pSupported);
+
+typedef VkResult (SYS_DECL *PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSurfaceCapabilitiesKHR* pSurfaceCapabilities);
+VkResult SYS_DECL vkGetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSurfaceCapabilitiesKHR* pSurfaceCapabilities);
+
+typedef VkResult (SYS_DECL *PFN_vkGetPhysicalDeviceSurfaceFormatsKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t* pSurfaceFormatCount, VkSurfaceFormatKHR* pSurfaceFormats);
+VkResult SYS_DECL vkGetPhysicalDeviceSurfaceFormatsKHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t* pSurfaceFormatCount, VkSurfaceFormatKHR* pSurfaceFormats);
+
+typedef VkResult (SYS_DECL *PFN_vkGetPhysicalDeviceSurfacePresentModesKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t* pPresentModeCount, VkPresentModeKHR* pPresentModes);
+VkResult SYS_DECL vkGetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t* pPresentModeCount, VkPresentModeKHR* pPresentModes);
 
 typedef VkFlags VkXcbSurfaceCreateFlagsKHR;
 
