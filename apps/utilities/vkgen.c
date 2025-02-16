@@ -745,6 +745,12 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   if (!vkgen_write_extension(ctx, string_hash_lit("VK_EXT_debug_utils"))) {
     return false;
   }
+  if (!vkgen_write_extension(ctx, string_hash_lit("VK_KHR_xcb_surface"))) {
+    return false;
+  }
+  if (!vkgen_write_extension(ctx, string_hash_lit("VK_KHR_win32_surface"))) {
+    return false;
+  }
 
   fmt_write(&ctx->out, "// clang-format on\n");
   return true;
