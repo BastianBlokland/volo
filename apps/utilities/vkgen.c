@@ -204,6 +204,13 @@ static void vkgen_collapse_whitespace(DynString* str) {
   }
 }
 
+static String vkgen_collapse_whitespace_scratch(const String text) {
+  DynString buffer = dynstring_create(g_allocScratch, text.size);
+  dynstring_append(&buffer, text);
+  vkgen_collapse_whitespace(&buffer);
+  return dynstring_view(&buffer);
+}
+
 static void vkgen_entry_push(DynArray* arr, const StringHash key, const XmlNode node) {
   *dynarray_push_t(arr, VkGenEntry) = (VkGenEntry){
       .key        = key,
@@ -466,8 +473,8 @@ static void vkgen_collect_additions(VkGenContext* ctx) {
 static void vkgen_write_comment_elem(VkGenContext* ctx, const XmlNode comment) {
   const XmlNode text = xml_first_child(ctx->schemaDoc, comment);
   if (xml_is(ctx->schemaDoc, text, XmlType_Text)) {
-    const String str = string_trim_whitespace(xml_value(ctx->schemaDoc, text));
-    fmt_write(&ctx->out, "// {}.\n", fmt_text(str, .flags = FormatTextFlags_SingleLine));
+    const String str = vkgen_collapse_whitespace_scratch(xml_value(ctx->schemaDoc, text));
+    fmt_write(&ctx->out, "//{}.\n", fmt_text(str, .flags = FormatTextFlags_SingleLine));
   }
 }
 
@@ -941,13 +948,13 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .types             = dynarray_create_t(g_allocHeap, VkGenEntry, 4096),
       .typesWritten      = dynbitset_create(g_allocHeap, 4096),
       .enums             = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
-      .additions         = dynarray_create_t(g_allocHeap, VkGenAddition, 512),
+      .additions         = dynarray_create_t(g_allocHeap, VkGenAddition, 256),
       .commands          = dynarray_create_t(g_allocHeap, VkGenEntry, 1024),
       .commandsWritten   = dynbitset_create(g_allocHeap, 1024),
-      .extensions        = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
-      .extensionsWritten = dynbitset_create(g_allocHeap, 512),
-      .features          = dynarray_create_t(g_allocHeap, VkGenEntry, 16),
-      .featuresWritten   = dynbitset_create(g_allocHeap, 16),
+      .extensions        = dynarray_create_t(g_allocHeap, VkGenEntry, 16),
+      .extensionsWritten = dynbitset_create(g_allocHeap, 16),
+      .features          = dynarray_create_t(g_allocHeap, VkGenEntry, 8),
+      .featuresWritten   = dynbitset_create(g_allocHeap, 8),
       .out               = dynstring_create(g_allocHeap, usize_kibibyte * 16),
   };
 
