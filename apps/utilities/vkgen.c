@@ -4,6 +4,7 @@
 #include "cli_parse.h"
 #include "cli_read.h"
 #include "core_alloc.h"
+#include "core_ascii.h"
 #include "core_compare.h"
 #include "core_dynbitset.h"
 #include "core_dynstring.h"
@@ -186,6 +187,21 @@ static i64 vkgen_to_int(const String str) {
   i64 value;
   format_read_i64(str, &value, 10 /* base */);
   return value;
+}
+
+static void vkgen_collapse_whitespace(DynString* str) {
+  bool inWhitespace = false;
+  for (usize i = 0; i != str->size; ++i) {
+    const u8 ch = *string_at(dynstring_view(str), i);
+    if (ascii_is_whitespace(ch)) {
+      if (inWhitespace) {
+        dynstring_erase_chars(str, i--, 1);
+      }
+      inWhitespace = true;
+    } else {
+      inWhitespace = false;
+    }
+  }
 }
 
 static void vkgen_entry_push(DynArray* arr, const StringHash key, const XmlNode node) {
@@ -568,6 +584,7 @@ static String vkgen_text_resolve_scratch(VkGenContext* ctx, const String text) {
   (void)ctx;
   DynString buffer = dynstring_create(g_allocScratch, text.size);
   dynstring_append(&buffer, text);
+  vkgen_collapse_whitespace(&buffer);
   dynstring_replace(&buffer, string_lit("VKAPI_PTR"), string_lit("SYS_DECL"));
   return dynstring_view(&buffer);
 }
