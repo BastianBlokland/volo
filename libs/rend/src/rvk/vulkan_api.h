@@ -35,10 +35,6 @@
 #define VK_SHADER_INDEX_UNUSED_AMDX (~0U)
 #define VK_PARTITIONED_ACCELERATION_STRUCTURE_PARTITION_INDEX_GLOBAL_NV (~0U)
 
-#define VKAPI_ATTR
-#define VKAPI_CALL SYS_DECL
-#define VKAPI_PTR SYS_DECL
-
 
 #define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
 
@@ -467,13 +463,13 @@ typedef enum {
   VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE = 4,
 } VkSystemAllocationScope;
 
-typedef void* (VKAPI_PTR *PFN_vkAllocationFunction)(
+typedef void* (SYS_DECL *PFN_vkAllocationFunction)(
     void*                                       pUserData,
     usize                                      size,
     usize                                      alignment,
     VkSystemAllocationScope                     allocationScope);
 
-typedef void (VKAPI_PTR *PFN_vkFreeFunction)(
+typedef void (SYS_DECL *PFN_vkFreeFunction)(
     void*                                       pUserData,
     void*                                       pMemory);
 
@@ -481,26 +477,26 @@ typedef enum {
   VK_INTERNAL_ALLOCATION_TYPE_EXECUTABLE = 0,
 } VkInternalAllocationType;
 
-typedef void (VKAPI_PTR *PFN_vkInternalAllocationNotification)(
+typedef void (SYS_DECL *PFN_vkInternalAllocationNotification)(
     void*                                       pUserData,
     usize                                      size,
     VkInternalAllocationType                    allocationType,
     VkSystemAllocationScope                     allocationScope);
 
-typedef void (VKAPI_PTR *PFN_vkInternalFreeNotification)(
+typedef void (SYS_DECL *PFN_vkInternalFreeNotification)(
     void*                                       pUserData,
     usize                                      size,
     VkInternalAllocationType                    allocationType,
     VkSystemAllocationScope                     allocationScope);
 
-typedef void* (VKAPI_PTR *PFN_vkReallocationFunction)(
+typedef void* (SYS_DECL *PFN_vkReallocationFunction)(
     void*                                       pUserData,
     void*                                       pOriginal,
     usize                                      size,
     usize                                      alignment,
     VkSystemAllocationScope                     allocationScope);
 
-typedef void (VKAPI_PTR *PFN_vkVoidFunction)(void);
+typedef void (SYS_DECL *PFN_vkVoidFunction)(void);
 
 typedef struct VkAllocationCallbacks {
   void*           pUserData;
@@ -3564,7 +3560,7 @@ typedef struct VkDebugUtilsMessengerCallbackDataEXT {
   const VkDebugUtilsObjectNameInfoEXT*             pObjects;
 } VkDebugUtilsMessengerCallbackDataEXT;
 
-typedef VkBool32 (VKAPI_PTR *PFN_vkDebugUtilsMessengerCallbackEXT)(
+typedef VkBool32 (SYS_DECL *PFN_vkDebugUtilsMessengerCallbackEXT)(
     VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT                  messageTypes,
     const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,

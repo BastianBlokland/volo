@@ -564,6 +564,14 @@ static String vkgen_type_resolve(VkGenContext* ctx, XmlNode* node) {
   return text;
 }
 
+static String vkgen_text_resolve_scratch(VkGenContext* ctx, const String text) {
+  (void)ctx;
+  DynString buffer = dynstring_create(g_allocScratch, text.size);
+  dynstring_append(&buffer, text);
+  dynstring_replace(&buffer, string_lit("VKAPI_PTR"), string_lit("SYS_DECL"));
+  return dynstring_view(&buffer);
+}
+
 static void vkgen_write_node(VkGenContext* ctx, const XmlNode node) {
   bool lastIsElement = false;
   xml_for_children(ctx->schemaDoc, node, part) {
@@ -585,10 +593,11 @@ static void vkgen_write_node(VkGenContext* ctx, const XmlNode node) {
       lastIsElement = true;
       fmt_write(&ctx->out, "{}", fmt_text(text));
     } break;
-    case XmlType_Text:
-      fmt_write(&ctx->out, "{}", fmt_text(xml_value(ctx->schemaDoc, part)));
+    case XmlType_Text: {
+      const String str = vkgen_text_resolve_scratch(ctx, xml_value(ctx->schemaDoc, part));
+      fmt_write(&ctx->out, "{}", fmt_text(str));
       lastIsElement = false;
-      break;
+    } break;
     default:
       break;
     }
@@ -646,14 +655,11 @@ static bool vkgen_write_type_dependencies(VkGenContext* ctx, const XmlNode typeN
 }
 
 static bool vkgen_write_include(VkGenContext* ctx, const StringHash key) {
+  (void)ctx;
   if (key == g_hash_vk_platform) {
-    fmt_write(&ctx->out, "#define VKAPI_ATTR\n");
-    fmt_write(&ctx->out, "#define VKAPI_CALL SYS_DECL\n");
-    fmt_write(&ctx->out, "#define VKAPI_PTR SYS_DECL\n");
-    fmt_write(&ctx->out, "\n");
-    return true;
+    return true; // Platform defines are handled by our core header include.
   }
-  return false;
+  return false; // Unsupported include.
 }
 
 static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
