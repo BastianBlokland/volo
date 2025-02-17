@@ -3066,9 +3066,6 @@ typedef struct VkPhysicalDeviceMultiviewProperties {
   u32 maxMultiviewInstanceIndex;
 } VkPhysicalDeviceMultiviewProperties;
 
-typedef struct VkPhysicalDeviceVariablePointerFeatures {
-} VkPhysicalDeviceVariablePointerFeatures;
-
 typedef struct VkPhysicalDeviceVariablePointersFeatures {
   VkStructureType sType;
   void* pNext;
@@ -3407,9 +3404,6 @@ typedef struct VkDescriptorSetLayoutSupport {
 
 typedef void (SYS_DECL *PFN_vkGetDescriptorSetLayoutSupport)(VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, VkDescriptorSetLayoutSupport* pSupport);
 void SYS_DECL vkGetDescriptorSetLayoutSupport(VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, VkDescriptorSetLayoutSupport* pSupport);
-
-typedef struct VkPhysicalDeviceShaderDrawParameterFeatures {
-} VkPhysicalDeviceShaderDrawParameterFeatures;
 
 typedef struct VkPhysicalDeviceShaderDrawParametersFeatures {
   VkStructureType sType;

@@ -635,6 +635,9 @@ static bool vkgen_write_type_handle(VkGenContext* ctx, const XmlNode typeNode) {
 }
 
 static void vkgen_write_type_struct(VkGenContext* ctx, const XmlNode typeNode) {
+  if (sentinel_check(xml_first_child(ctx->schemaDoc, typeNode))) {
+    return; // Empty struct.
+  }
   const String typeName = xml_attr_get(ctx->schemaDoc, typeNode, g_hash_name);
   fmt_write(&ctx->out, "typedef struct {} {\n", fmt_text(typeName));
 
