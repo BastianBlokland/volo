@@ -88,7 +88,12 @@ void dynstring_insert_chars(DynString*, u8, usize idx, usize amount);
 void dynstring_erase_chars(DynString*, usize idx, usize amount);
 
 /**
- * .Append 'amount' empty space at the end of the dynamic-string.
+ * Append 'amount' empty space at the end of the dynamic-string.
  * NOTE: the new space is NOT initialized and its up to the caller to write to it.
  */
 String dynstring_push(DynString*, usize amount);
+
+/**
+ * Replace any occurrence of 'text' with 'replacement'.
+ */
+void dynstring_replace(DynString*, String text, String replacement);
