@@ -250,7 +250,7 @@ typedef struct VkBaseOutStructure {
 
 typedef VkFlags VkAccessFlags;
 
-VK_DEFINE_HANDLE(VkBuffer)
+typedef struct VkBuffer_T* VkBuffer;
 
 typedef struct VkBufferMemoryBarrier {
   VkStructureType sType;
@@ -300,7 +300,7 @@ typedef enum {
   VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL = 1000117001,
 } VkImageLayout;
 
-VK_DEFINE_HANDLE(VkImage)
+typedef struct VkImage_T* VkImage;
 
 typedef VkFlags VkImageAspectFlags;
 
@@ -789,7 +789,7 @@ typedef enum {
 
 typedef VkFlags VkImageUsageFlags;
 
-VK_DEFINE_HANDLE(VkInstance)
+typedef struct VkInstance_T* VkInstance;
 
 typedef VkFlags VkInstanceCreateFlags;
 
@@ -832,7 +832,7 @@ typedef struct VkMemoryType {
   u32 heapIndex;
 } VkMemoryType;
 
-VK_DEFINE_HANDLE(VkPhysicalDevice)
+typedef struct VkPhysicalDevice_T* VkPhysicalDevice;
 
 typedef struct VkPhysicalDeviceFeatures {
   VkBool32 robustBufferAccess;
@@ -1093,7 +1093,7 @@ void SYS_DECL vkGetPhysicalDeviceMemoryProperties(VkPhysicalDevice physicalDevic
 typedef PFN_vkVoidFunction (SYS_DECL *PFN_vkGetInstanceProcAddr)(VkInstance instance, const char* pName);
 PFN_vkVoidFunction SYS_DECL vkGetInstanceProcAddr(VkInstance instance, const char* pName);
 
-VK_DEFINE_HANDLE(VkDevice)
+typedef struct VkDevice_T* VkDevice;
 
 typedef PFN_vkVoidFunction (SYS_DECL *PFN_vkGetDeviceProcAddr)(VkDevice device, const char* pName);
 PFN_vkVoidFunction SYS_DECL vkGetDeviceProcAddr(VkDevice device, const char* pName);
@@ -1176,11 +1176,11 @@ typedef enum {
 
 typedef VkFlags VkPipelineStageFlags;
 
-VK_DEFINE_HANDLE(VkQueue)
+typedef struct VkQueue_T* VkQueue;
 
-VK_DEFINE_HANDLE(VkSemaphore)
+typedef struct VkSemaphore_T* VkSemaphore;
 
-VK_DEFINE_HANDLE(VkCommandBuffer)
+typedef struct VkCommandBuffer_T* VkCommandBuffer;
 
 typedef struct VkSubmitInfo {
   VkStructureType sType;
@@ -1197,7 +1197,7 @@ typedef struct VkSubmitInfo {
 typedef void (SYS_DECL *PFN_vkGetDeviceQueue)(VkDevice device, u32 queueFamilyIndex, u32 queueIndex, VkQueue* pQueue);
 void SYS_DECL vkGetDeviceQueue(VkDevice device, u32 queueFamilyIndex, u32 queueIndex, VkQueue* pQueue);
 
-VK_DEFINE_HANDLE(VkFence)
+typedef struct VkFence_T* VkFence;
 
 typedef VkResult (SYS_DECL *PFN_vkQueueSubmit)(VkQueue queue, u32 submitCount, const VkSubmitInfo* pSubmits, VkFence fence);
 VkResult SYS_DECL vkQueueSubmit(VkQueue queue, u32 submitCount, const VkSubmitInfo* pSubmits, VkFence fence);
@@ -1208,7 +1208,7 @@ VkResult SYS_DECL vkQueueWaitIdle(VkQueue queue);
 typedef VkResult (SYS_DECL *PFN_vkDeviceWaitIdle)(VkDevice device);
 VkResult SYS_DECL vkDeviceWaitIdle(VkDevice device);
 
-VK_DEFINE_HANDLE(VkDeviceMemory)
+typedef struct VkDeviceMemory_T* VkDeviceMemory;
 
 typedef struct VkMappedMemoryRange {
   VkStructureType sType;
@@ -1410,7 +1410,7 @@ VkResult SYS_DECL vkCreateSemaphore(VkDevice device, const VkSemaphoreCreateInfo
 typedef void (SYS_DECL *PFN_vkDestroySemaphore)(VkDevice device, VkSemaphore semaphore, const VkAllocationCallbacks* pAllocator);
 void SYS_DECL vkDestroySemaphore(VkDevice device, VkSemaphore semaphore, const VkAllocationCallbacks* pAllocator);
 
-VK_DEFINE_HANDLE(VkEvent)
+typedef struct VkEvent_T* VkEvent;
 
 typedef VkFlags VkEventCreateFlags;
 
@@ -1451,7 +1451,7 @@ typedef enum {
 
 typedef VkFlags VkQueryPipelineStatisticFlags;
 
-VK_DEFINE_HANDLE(VkQueryPool)
+typedef struct VkQueryPool_T* VkQueryPool;
 
 typedef VkFlags VkQueryPoolCreateFlags;
 
@@ -1533,7 +1533,7 @@ VkResult SYS_DECL vkCreateBuffer(VkDevice device, const VkBufferCreateInfo* pCre
 typedef void (SYS_DECL *PFN_vkDestroyBuffer)(VkDevice device, VkBuffer buffer, const VkAllocationCallbacks* pAllocator);
 void SYS_DECL vkDestroyBuffer(VkDevice device, VkBuffer buffer, const VkAllocationCallbacks* pAllocator);
 
-VK_DEFINE_HANDLE(VkBufferView)
+typedef struct VkBufferView_T* VkBufferView;
 
 typedef VkFlags VkBufferViewCreateFlags;
 
@@ -1605,7 +1605,7 @@ typedef struct VkComponentMapping {
   VkComponentSwizzle a;
 } VkComponentMapping;
 
-VK_DEFINE_HANDLE(VkImageView)
+typedef struct VkImageView_T* VkImageView;
 
 typedef VkFlags VkImageViewCreateFlags;
 
@@ -1636,7 +1636,7 @@ VkResult SYS_DECL vkCreateImageView(VkDevice device, const VkImageViewCreateInfo
 typedef void (SYS_DECL *PFN_vkDestroyImageView)(VkDevice device, VkImageView imageView, const VkAllocationCallbacks* pAllocator);
 void SYS_DECL vkDestroyImageView(VkDevice device, VkImageView imageView, const VkAllocationCallbacks* pAllocator);
 
-VK_DEFINE_HANDLE(VkShaderModule)
+typedef struct VkShaderModule_T* VkShaderModule;
 
 typedef VkFlags VkShaderModuleCreateFlags;
 
@@ -1654,7 +1654,7 @@ VkResult SYS_DECL vkCreateShaderModule(VkDevice device, const VkShaderModuleCrea
 typedef void (SYS_DECL *PFN_vkDestroyShaderModule)(VkDevice device, VkShaderModule shaderModule, const VkAllocationCallbacks* pAllocator);
 void SYS_DECL vkDestroyShaderModule(VkDevice device, VkShaderModule shaderModule, const VkAllocationCallbacks* pAllocator);
 
-VK_DEFINE_HANDLE(VkPipelineCache)
+typedef struct VkPipelineCache_T* VkPipelineCache;
 
 typedef VkFlags VkPipelineCacheCreateFlags;
 
@@ -1766,9 +1766,9 @@ typedef struct VkPipelineShaderStageCreateInfo {
   const VkSpecializationInfo* pSpecializationInfo;
 } VkPipelineShaderStageCreateInfo;
 
-VK_DEFINE_HANDLE(VkPipelineLayout)
+typedef struct VkPipelineLayout_T* VkPipelineLayout;
 
-VK_DEFINE_HANDLE(VkPipeline)
+typedef struct VkPipeline_T* VkPipeline;
 
 typedef struct VkComputePipelineCreateInfo {
   VkStructureType sType;
@@ -2021,7 +2021,7 @@ typedef struct VkPipelineDynamicStateCreateInfo {
   const VkDynamicState* pDynamicStates;
 } VkPipelineDynamicStateCreateInfo;
 
-VK_DEFINE_HANDLE(VkRenderPass)
+typedef struct VkRenderPass_T* VkRenderPass;
 
 typedef struct VkGraphicsPipelineCreateInfo {
   VkStructureType sType;
@@ -2066,7 +2066,7 @@ VkResult SYS_DECL vkCreateComputePipelines(VkDevice device, VkPipelineCache pipe
 typedef void (SYS_DECL *PFN_vkDestroyPipeline)(VkDevice device, VkPipeline pipeline, const VkAllocationCallbacks* pAllocator);
 void SYS_DECL vkDestroyPipeline(VkDevice device, VkPipeline pipeline, const VkAllocationCallbacks* pAllocator);
 
-VK_DEFINE_HANDLE(VkDescriptorSetLayout)
+typedef struct VkDescriptorSetLayout_T* VkDescriptorSetLayout;
 
 typedef struct VkPushConstantRange {
   VkShaderStageFlags stageFlags;
@@ -2104,7 +2104,7 @@ typedef enum {
   VK_FILTER_LINEAR = 1,
 } VkFilter;
 
-VK_DEFINE_HANDLE(VkSampler)
+typedef struct VkSampler_T* VkSampler;
 
 typedef enum {
   VK_SAMPLER_ADDRESS_MODE_REPEAT = 0,
@@ -2147,7 +2147,7 @@ VkResult SYS_DECL vkCreateSampler(VkDevice device, const VkSamplerCreateInfo* pC
 typedef void (SYS_DECL *PFN_vkDestroySampler)(VkDevice device, VkSampler sampler, const VkAllocationCallbacks* pAllocator);
 void SYS_DECL vkDestroySampler(VkDevice device, VkSampler sampler, const VkAllocationCallbacks* pAllocator);
 
-VK_DEFINE_HANDLE(VkDescriptorSet)
+typedef struct VkDescriptorSet_T* VkDescriptorSet;
 
 typedef struct VkCopyDescriptorSet {
   VkStructureType sType;
@@ -2173,7 +2173,7 @@ typedef struct VkDescriptorImageInfo {
   VkImageLayout imageLayout;
 } VkDescriptorImageInfo;
 
-VK_DEFINE_HANDLE(VkDescriptorPool)
+typedef struct VkDescriptorPool_T* VkDescriptorPool;
 
 typedef enum {
   VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT = 1 << 0,
@@ -2336,7 +2336,7 @@ typedef enum {
 
 typedef VkFlags VkDependencyFlags;
 
-VK_DEFINE_HANDLE(VkFramebuffer)
+typedef struct VkFramebuffer_T* VkFramebuffer;
 
 typedef VkFlags VkFramebufferCreateFlags;
 
@@ -2411,7 +2411,7 @@ void SYS_DECL vkDestroyRenderPass(VkDevice device, VkRenderPass renderPass, cons
 typedef void (SYS_DECL *PFN_vkGetRenderAreaGranularity)(VkDevice device, VkRenderPass renderPass, VkExtent2D* pGranularity);
 void SYS_DECL vkGetRenderAreaGranularity(VkDevice device, VkRenderPass renderPass, VkExtent2D* pGranularity);
 
-VK_DEFINE_HANDLE(VkCommandPool)
+typedef struct VkCommandPool_T* VkCommandPool;
 
 typedef enum {
   VK_COMMAND_POOL_CREATE_TRANSIENT_BIT = 1 << 0,
@@ -3180,7 +3180,7 @@ typedef struct VkSamplerYcbcrConversionCreateInfo {
   VkBool32 forceExplicitReconstruction;
 } VkSamplerYcbcrConversionCreateInfo;
 
-VK_DEFINE_HANDLE(VkSamplerYcbcrConversion)
+typedef struct VkSamplerYcbcrConversion_T* VkSamplerYcbcrConversion;
 
 typedef struct VkSamplerYcbcrConversionInfo {
   VkStructureType sType;
@@ -3246,7 +3246,7 @@ typedef struct VkDescriptorUpdateTemplateCreateInfo {
   u32 set;
 } VkDescriptorUpdateTemplateCreateInfo;
 
-VK_DEFINE_HANDLE(VkDescriptorUpdateTemplate)
+typedef struct VkDescriptorUpdateTemplate_T* VkDescriptorUpdateTemplate;
 
 typedef VkResult (SYS_DECL *PFN_vkCreateDescriptorUpdateTemplate)(VkDevice device, const VkDescriptorUpdateTemplateCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorUpdateTemplate* pDescriptorUpdateTemplate);
 VkResult SYS_DECL vkCreateDescriptorUpdateTemplate(VkDevice device, const VkDescriptorUpdateTemplateCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorUpdateTemplate* pDescriptorUpdateTemplate);
@@ -3552,7 +3552,7 @@ typedef struct VkDebugUtilsMessengerCreateInfoEXT {
   void* pUserData;
 } VkDebugUtilsMessengerCreateInfoEXT;
 
-VK_DEFINE_HANDLE(VkDebugUtilsMessengerEXT)
+typedef struct VkDebugUtilsMessengerEXT_T* VkDebugUtilsMessengerEXT;
 
 typedef struct VkDebugUtilsObjectTagInfoEXT {
   VkStructureType sType;
@@ -3604,7 +3604,7 @@ typedef enum {
 
 typedef VkFlags VkSwapchainCreateFlagsKHR;
 
-VK_DEFINE_HANDLE(VkSurfaceKHR)
+typedef struct VkSurfaceKHR_T* VkSurfaceKHR;
 
 typedef enum {
   VK_COLOR_SPACE_SRGB_NONLINEAR_KHR = 0,
@@ -3636,7 +3636,7 @@ typedef enum {
   VK_PRESENT_MODE_FIFO_RELAXED_KHR = 3,
 } VkPresentModeKHR;
 
-VK_DEFINE_HANDLE(VkSwapchainKHR)
+typedef struct VkSwapchainKHR_T* VkSwapchainKHR;
 
 typedef struct VkSwapchainCreateInfoKHR {
   VkStructureType sType;

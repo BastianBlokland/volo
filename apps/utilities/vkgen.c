@@ -624,6 +624,16 @@ static void vkgen_write_node(VkGenContext* ctx, const XmlNode node) {
   }
 }
 
+static bool vkgen_write_type_handle(VkGenContext* ctx, const XmlNode typeNode) {
+  const XmlNode nameNode = xml_child_get(ctx->schemaDoc, typeNode, g_hash_name);
+  const String  name     = xml_child_text(ctx->schemaDoc, nameNode);
+  if (string_is_empty(name)) {
+    return false; // Missing name.
+  }
+  fmt_write(&ctx->out, "typedef struct {}_T* {};\n\n", fmt_text(name), fmt_text(name));
+  return true;
+}
+
 static void vkgen_write_type_struct(VkGenContext* ctx, const XmlNode typeNode) {
   const String typeName = xml_attr_get(ctx->schemaDoc, typeNode, g_hash_name);
   fmt_write(&ctx->out, "typedef struct {} {\n", fmt_text(typeName));
@@ -711,13 +721,17 @@ static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
     return true; // Primitive type.
   }
   if (catHash == g_hash_basetype || catHash == g_hash_bitmask || catHash == g_hash_funcpointer ||
-      catHash == g_hash_define || catHash == g_hash_handle) {
+      catHash == g_hash_define) {
     vkgen_write_node(ctx, typeNode);
     fmt_write(&ctx->out, "\n\n");
     return true;
   }
   if (catHash == g_hash_include) {
     return vkgen_write_include(ctx, key);
+  }
+  if (catHash == g_hash_handle) {
+    vkgen_write_type_handle(ctx, typeNode);
+    return true;
   }
   if (catHash == g_hash_enum) {
     return vkgen_write_enum(ctx, xml_attr_get_hash(ctx->schemaDoc, typeNode, g_hash_name));
