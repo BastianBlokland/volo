@@ -5,6 +5,8 @@
 
 #include "core.h"
 
+#define VK_MAKE_API_VERSION(variant, major, minor, patch) ((((u32)(variant)) << 29) | (((u32)(major)) << 22) | (((u32)(minor)) << 12) | ((u32)(patch)))
+
 #define VK_MAX_PHYSICAL_DEVICE_NAME_SIZE 256
 #define VK_UUID_SIZE 16
 #define VK_LUID_SIZE 8
@@ -34,9 +36,6 @@
 #define VK_MAX_VIDEO_AV1_REFERENCES_PER_FRAME_KHR 7
 #define VK_SHADER_INDEX_UNUSED_AMDX (~0U)
 #define VK_PARTITIONED_ACCELERATION_STRUCTURE_PARTITION_INDEX_GLOBAL_NV (~0U)
-
-
-#define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
 
 typedef u32 VkBool32;
 
@@ -384,42 +383,6 @@ typedef enum {
   VK_VENDOR_ID_POCL = 0x10006,
   VK_VENDOR_ID_MOBILEYE = 0x10007,
 } VkVendorId;
-
-#define VK_MAKE_API_VERSION(variant, major, minor, patch) \
-((((uint32_t)(variant)) << 29U) | (((uint32_t)(major)) << 22U) | (((uint32_t)(minor)) << 12U) | ((uint32_t)(patch)))
-
-// DEPRECATED: This define has been removed. Specific version defines (e.g. VK_API_VERSION_1_0), or the VK_MAKE_VERSION macro, should be used instead.
-//#define VK_API_VERSION VK_MAKE_API_VERSION(0, 1, 0, 0) // Patch version should always be set to 0
-
-// Vulkan 1.0 version number
-#define VK_API_VERSION_1_0 VK_MAKE_API_VERSION(0, 1, 0, 0)// Patch version should always be set to 0
-
-// Version of this file
-#define VK_HEADER_VERSION 308
-
-// Complete version of this file
-#define VK_HEADER_VERSION_COMPLETE VK_MAKE_API_VERSION(0, 1, 4, VK_HEADER_VERSION)
-
-// DEPRECATED: This define is deprecated. VK_MAKE_API_VERSION should be used instead.
-#define VK_MAKE_VERSION(major, minor, patch) \
-((((uint32_t)(major)) << 22U) | (((uint32_t)(minor)) << 12U) | ((uint32_t)(patch)))
-
-// DEPRECATED: This define is deprecated. VK_API_VERSION_MAJOR should be used instead.
-#define VK_VERSION_MAJOR(version) ((uint32_t)(version) >> 22U)
-
-// DEPRECATED: This define is deprecated. VK_API_VERSION_MINOR should be used instead.
-#define VK_VERSION_MINOR(version) (((uint32_t)(version) >> 12U) & 0x3FFU)
-
-// DEPRECATED: This define is deprecated. VK_API_VERSION_PATCH should be used instead.
-#define VK_VERSION_PATCH(version) ((uint32_t)(version) & 0xFFFU)
-
-#define VK_API_VERSION_VARIANT(version) ((uint32_t)(version) >> 29U)
-
-#define VK_API_VERSION_MAJOR(version) (((uint32_t)(version) >> 22U) & 0x7FU)
-
-#define VK_API_VERSION_MINOR(version) (((uint32_t)(version) >> 12U) & 0x3FFU)
-
-#define VK_API_VERSION_PATCH(version) ((uint32_t)(version) & 0xFFFU)
 
 typedef enum {
   VK_SYSTEM_ALLOCATION_SCOPE_COMMAND = 0,
@@ -2741,9 +2704,6 @@ void SYS_DECL vkCmdEndRenderPass(VkCommandBuffer commandBuffer);
 
 typedef void (SYS_DECL *PFN_vkCmdExecuteCommands)(VkCommandBuffer commandBuffer, u32 commandBufferCount, const VkCommandBuffer* pCommandBuffers);
 void SYS_DECL vkCmdExecuteCommands(VkCommandBuffer commandBuffer, u32 commandBufferCount, const VkCommandBuffer* pCommandBuffers);
-
-// Vulkan 1.1 version number
-#define VK_API_VERSION_1_1 VK_MAKE_API_VERSION(0, 1, 1, 0)// Patch version should always be set to 0
 
 typedef VkResult (SYS_DECL *PFN_vkEnumerateInstanceVersion)(u32* pApiVersion);
 VkResult SYS_DECL vkEnumerateInstanceVersion(u32* pApiVersion);

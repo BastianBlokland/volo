@@ -706,22 +706,14 @@ static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
   if (!vkgen_write_type_dependencies(ctx, typeNode)) {
     return false;
   }
-  const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, typeNode, g_hash_name);
-  if (nameHash == string_hash_lit("VK_NULL_HANDLE")) {
-    return true; // Skipped type.
-  }
-  if (nameHash == string_hash_lit("VK_USE_64_BIT_PTR_DEFINES")) {
-    return true; // Skipped type.
-  }
-  if (nameHash == string_hash_lit("VK_DEFINE_NON_DISPATCHABLE_HANDLE")) {
-    return true; // Skipped type.
-  }
   const StringHash catHash = xml_attr_get_hash(ctx->schemaDoc, typeNode, g_hash_category);
   if (!catHash) {
     return true; // Primitive type.
   }
-  if (catHash == g_hash_basetype || catHash == g_hash_bitmask || catHash == g_hash_funcpointer ||
-      catHash == g_hash_define) {
+  if (catHash == g_hash_define) {
+    return true; // Skip the macros (we define a couple of custom macros that Volo better).
+  }
+  if (catHash == g_hash_basetype || catHash == g_hash_bitmask || catHash == g_hash_funcpointer) {
     vkgen_write_node(ctx, typeNode);
     fmt_write(&ctx->out, "\n\n");
     return true;
@@ -874,6 +866,9 @@ static bool vkgen_write_header(VkGenContext* ctx) {
 
   fmt_write(&ctx->out, "// clang-format off\n\n");
   fmt_write(&ctx->out, "#include \"core.h\"\n\n");
+  // clang-format off
+  fmt_write(&ctx->out, "#define VK_MAKE_API_VERSION(variant, major, minor, patch) ((((u32)(variant)) << 29) | (((u32)(major)) << 22) | (((u32)(minor)) << 12) | ((u32)(patch)))\n\n");
+  // clang-format on
 
   if (!vkgen_write_enum(ctx, string_hash_lit("API Constants"))) {
     return false;
