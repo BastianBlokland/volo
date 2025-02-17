@@ -573,6 +573,9 @@ static String vkgen_type_resolve(VkGenContext* ctx, XmlNode* node) {
   if (string_eq(text, string_lit("xcb_window_t"))) {
     return string_lit("uptr");
   }
+  if (string_eq(text, string_lit("VK_DEFINE_NON_DISPATCHABLE_HANDLE"))) {
+    return string_lit("VK_DEFINE_HANDLE");
+  }
   if (string_eq(text, string_lit("xcb_connection_t")) && isPointer) {
     *node = next; // Skip the pointer.
     return string_lit("uptr");
@@ -692,6 +695,16 @@ static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
   const XmlNode typeNode = vkgen_entry_find(&ctx->types, key);
   if (!vkgen_write_type_dependencies(ctx, typeNode)) {
     return false;
+  }
+  const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, typeNode, g_hash_name);
+  if (nameHash == string_hash_lit("VK_NULL_HANDLE")) {
+    return true; // Skipped type.
+  }
+  if (nameHash == string_hash_lit("VK_USE_64_BIT_PTR_DEFINES")) {
+    return true; // Skipped type.
+  }
+  if (nameHash == string_hash_lit("VK_DEFINE_NON_DISPATCHABLE_HANDLE")) {
+    return true; // Skipped type.
   }
   const StringHash catHash = xml_attr_get_hash(ctx->schemaDoc, typeNode, g_hash_category);
   if (!catHash) {

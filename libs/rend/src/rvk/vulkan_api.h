@@ -38,40 +38,6 @@
 
 #define VK_DEFINE_HANDLE(object) typedef struct object##_T* object;
 
-
-#ifndef VK_USE_64_BIT_PTR_DEFINES
-#if defined(__LP64__) || defined(_WIN64) || (defined(__x86_64__) && !defined(__ILP32__) ) || defined(_M_X64) || defined(__ia64) || defined (_M_IA64) || defined(__aarch64__) || defined(__powerpc64__) || (defined(__riscv) && __riscv_xlen == 64)
-#define VK_USE_64_BIT_PTR_DEFINES 1
-#else
-#define VK_USE_64_BIT_PTR_DEFINES 0
-#endif
-#endif
-
-
-#ifndef VK_DEFINE_NON_DISPATCHABLE_HANDLE
-#if (VK_USE_64_BIT_PTR_DEFINES==1)
-#define VK_DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef struct object##_T *object;
-#else
-#define VK_DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef uint64_t object;
-#endif
-#endif
-
-
-#ifndef VK_DEFINE_NON_DISPATCHABLE_HANDLE
-#if (VK_USE_64_BIT_PTR_DEFINES==1)
-#if (defined(__cplusplus) && (__cplusplus >= 201103L)) || (defined(_MSVC_LANG) && (_MSVC_LANG >= 201103L))
-#define VK_NULL_HANDLE nullptr
-#else
-#define VK_NULL_HANDLE ((void*)0)
-#endif
-#else
-#define VK_NULL_HANDLE 0ULL
-#endif
-#endif
-#ifndef VK_NULL_HANDLE
-#define VK_NULL_HANDLE 0
-#endif
-
 typedef u32 VkBool32;
 
 typedef u64 VkDeviceAddress;
@@ -284,7 +250,7 @@ typedef struct VkBaseOutStructure {
 
 typedef VkFlags VkAccessFlags;
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkBuffer)
+VK_DEFINE_HANDLE(VkBuffer)
 
 typedef struct VkBufferMemoryBarrier {
   VkStructureType sType;
@@ -334,7 +300,7 @@ typedef enum {
   VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL = 1000117001,
 } VkImageLayout;
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkImage)
+VK_DEFINE_HANDLE(VkImage)
 
 typedef VkFlags VkImageAspectFlags;
 
@@ -1212,7 +1178,7 @@ typedef VkFlags VkPipelineStageFlags;
 
 VK_DEFINE_HANDLE(VkQueue)
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkSemaphore)
+VK_DEFINE_HANDLE(VkSemaphore)
 
 VK_DEFINE_HANDLE(VkCommandBuffer)
 
@@ -1231,7 +1197,7 @@ typedef struct VkSubmitInfo {
 typedef void (SYS_DECL *PFN_vkGetDeviceQueue)(VkDevice device, u32 queueFamilyIndex, u32 queueIndex, VkQueue* pQueue);
 void SYS_DECL vkGetDeviceQueue(VkDevice device, u32 queueFamilyIndex, u32 queueIndex, VkQueue* pQueue);
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkFence)
+VK_DEFINE_HANDLE(VkFence)
 
 typedef VkResult (SYS_DECL *PFN_vkQueueSubmit)(VkQueue queue, u32 submitCount, const VkSubmitInfo* pSubmits, VkFence fence);
 VkResult SYS_DECL vkQueueSubmit(VkQueue queue, u32 submitCount, const VkSubmitInfo* pSubmits, VkFence fence);
@@ -1242,7 +1208,7 @@ VkResult SYS_DECL vkQueueWaitIdle(VkQueue queue);
 typedef VkResult (SYS_DECL *PFN_vkDeviceWaitIdle)(VkDevice device);
 VkResult SYS_DECL vkDeviceWaitIdle(VkDevice device);
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkDeviceMemory)
+VK_DEFINE_HANDLE(VkDeviceMemory)
 
 typedef struct VkMappedMemoryRange {
   VkStructureType sType;
@@ -1444,7 +1410,7 @@ VkResult SYS_DECL vkCreateSemaphore(VkDevice device, const VkSemaphoreCreateInfo
 typedef void (SYS_DECL *PFN_vkDestroySemaphore)(VkDevice device, VkSemaphore semaphore, const VkAllocationCallbacks* pAllocator);
 void SYS_DECL vkDestroySemaphore(VkDevice device, VkSemaphore semaphore, const VkAllocationCallbacks* pAllocator);
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkEvent)
+VK_DEFINE_HANDLE(VkEvent)
 
 typedef VkFlags VkEventCreateFlags;
 
@@ -1485,7 +1451,7 @@ typedef enum {
 
 typedef VkFlags VkQueryPipelineStatisticFlags;
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkQueryPool)
+VK_DEFINE_HANDLE(VkQueryPool)
 
 typedef VkFlags VkQueryPoolCreateFlags;
 
@@ -1567,7 +1533,7 @@ VkResult SYS_DECL vkCreateBuffer(VkDevice device, const VkBufferCreateInfo* pCre
 typedef void (SYS_DECL *PFN_vkDestroyBuffer)(VkDevice device, VkBuffer buffer, const VkAllocationCallbacks* pAllocator);
 void SYS_DECL vkDestroyBuffer(VkDevice device, VkBuffer buffer, const VkAllocationCallbacks* pAllocator);
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkBufferView)
+VK_DEFINE_HANDLE(VkBufferView)
 
 typedef VkFlags VkBufferViewCreateFlags;
 
@@ -1639,7 +1605,7 @@ typedef struct VkComponentMapping {
   VkComponentSwizzle a;
 } VkComponentMapping;
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkImageView)
+VK_DEFINE_HANDLE(VkImageView)
 
 typedef VkFlags VkImageViewCreateFlags;
 
@@ -1670,7 +1636,7 @@ VkResult SYS_DECL vkCreateImageView(VkDevice device, const VkImageViewCreateInfo
 typedef void (SYS_DECL *PFN_vkDestroyImageView)(VkDevice device, VkImageView imageView, const VkAllocationCallbacks* pAllocator);
 void SYS_DECL vkDestroyImageView(VkDevice device, VkImageView imageView, const VkAllocationCallbacks* pAllocator);
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkShaderModule)
+VK_DEFINE_HANDLE(VkShaderModule)
 
 typedef VkFlags VkShaderModuleCreateFlags;
 
@@ -1688,7 +1654,7 @@ VkResult SYS_DECL vkCreateShaderModule(VkDevice device, const VkShaderModuleCrea
 typedef void (SYS_DECL *PFN_vkDestroyShaderModule)(VkDevice device, VkShaderModule shaderModule, const VkAllocationCallbacks* pAllocator);
 void SYS_DECL vkDestroyShaderModule(VkDevice device, VkShaderModule shaderModule, const VkAllocationCallbacks* pAllocator);
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkPipelineCache)
+VK_DEFINE_HANDLE(VkPipelineCache)
 
 typedef VkFlags VkPipelineCacheCreateFlags;
 
@@ -1800,9 +1766,9 @@ typedef struct VkPipelineShaderStageCreateInfo {
   const VkSpecializationInfo* pSpecializationInfo;
 } VkPipelineShaderStageCreateInfo;
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkPipelineLayout)
+VK_DEFINE_HANDLE(VkPipelineLayout)
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkPipeline)
+VK_DEFINE_HANDLE(VkPipeline)
 
 typedef struct VkComputePipelineCreateInfo {
   VkStructureType sType;
@@ -2055,7 +2021,7 @@ typedef struct VkPipelineDynamicStateCreateInfo {
   const VkDynamicState* pDynamicStates;
 } VkPipelineDynamicStateCreateInfo;
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkRenderPass)
+VK_DEFINE_HANDLE(VkRenderPass)
 
 typedef struct VkGraphicsPipelineCreateInfo {
   VkStructureType sType;
@@ -2100,7 +2066,7 @@ VkResult SYS_DECL vkCreateComputePipelines(VkDevice device, VkPipelineCache pipe
 typedef void (SYS_DECL *PFN_vkDestroyPipeline)(VkDevice device, VkPipeline pipeline, const VkAllocationCallbacks* pAllocator);
 void SYS_DECL vkDestroyPipeline(VkDevice device, VkPipeline pipeline, const VkAllocationCallbacks* pAllocator);
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkDescriptorSetLayout)
+VK_DEFINE_HANDLE(VkDescriptorSetLayout)
 
 typedef struct VkPushConstantRange {
   VkShaderStageFlags stageFlags;
@@ -2138,7 +2104,7 @@ typedef enum {
   VK_FILTER_LINEAR = 1,
 } VkFilter;
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkSampler)
+VK_DEFINE_HANDLE(VkSampler)
 
 typedef enum {
   VK_SAMPLER_ADDRESS_MODE_REPEAT = 0,
@@ -2181,7 +2147,7 @@ VkResult SYS_DECL vkCreateSampler(VkDevice device, const VkSamplerCreateInfo* pC
 typedef void (SYS_DECL *PFN_vkDestroySampler)(VkDevice device, VkSampler sampler, const VkAllocationCallbacks* pAllocator);
 void SYS_DECL vkDestroySampler(VkDevice device, VkSampler sampler, const VkAllocationCallbacks* pAllocator);
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkDescriptorSet)
+VK_DEFINE_HANDLE(VkDescriptorSet)
 
 typedef struct VkCopyDescriptorSet {
   VkStructureType sType;
@@ -2207,7 +2173,7 @@ typedef struct VkDescriptorImageInfo {
   VkImageLayout imageLayout;
 } VkDescriptorImageInfo;
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkDescriptorPool)
+VK_DEFINE_HANDLE(VkDescriptorPool)
 
 typedef enum {
   VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT = 1 << 0,
@@ -2370,7 +2336,7 @@ typedef enum {
 
 typedef VkFlags VkDependencyFlags;
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkFramebuffer)
+VK_DEFINE_HANDLE(VkFramebuffer)
 
 typedef VkFlags VkFramebufferCreateFlags;
 
@@ -2445,7 +2411,7 @@ void SYS_DECL vkDestroyRenderPass(VkDevice device, VkRenderPass renderPass, cons
 typedef void (SYS_DECL *PFN_vkGetRenderAreaGranularity)(VkDevice device, VkRenderPass renderPass, VkExtent2D* pGranularity);
 void SYS_DECL vkGetRenderAreaGranularity(VkDevice device, VkRenderPass renderPass, VkExtent2D* pGranularity);
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkCommandPool)
+VK_DEFINE_HANDLE(VkCommandPool)
 
 typedef enum {
   VK_COMMAND_POOL_CREATE_TRANSIENT_BIT = 1 << 0,
@@ -3214,7 +3180,7 @@ typedef struct VkSamplerYcbcrConversionCreateInfo {
   VkBool32 forceExplicitReconstruction;
 } VkSamplerYcbcrConversionCreateInfo;
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkSamplerYcbcrConversion)
+VK_DEFINE_HANDLE(VkSamplerYcbcrConversion)
 
 typedef struct VkSamplerYcbcrConversionInfo {
   VkStructureType sType;
@@ -3280,7 +3246,7 @@ typedef struct VkDescriptorUpdateTemplateCreateInfo {
   u32 set;
 } VkDescriptorUpdateTemplateCreateInfo;
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkDescriptorUpdateTemplate)
+VK_DEFINE_HANDLE(VkDescriptorUpdateTemplate)
 
 typedef VkResult (SYS_DECL *PFN_vkCreateDescriptorUpdateTemplate)(VkDevice device, const VkDescriptorUpdateTemplateCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorUpdateTemplate* pDescriptorUpdateTemplate);
 VkResult SYS_DECL vkCreateDescriptorUpdateTemplate(VkDevice device, const VkDescriptorUpdateTemplateCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorUpdateTemplate* pDescriptorUpdateTemplate);
@@ -3586,7 +3552,7 @@ typedef struct VkDebugUtilsMessengerCreateInfoEXT {
   void* pUserData;
 } VkDebugUtilsMessengerCreateInfoEXT;
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkDebugUtilsMessengerEXT)
+VK_DEFINE_HANDLE(VkDebugUtilsMessengerEXT)
 
 typedef struct VkDebugUtilsObjectTagInfoEXT {
   VkStructureType sType;
@@ -3638,7 +3604,7 @@ typedef enum {
 
 typedef VkFlags VkSwapchainCreateFlagsKHR;
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkSurfaceKHR)
+VK_DEFINE_HANDLE(VkSurfaceKHR)
 
 typedef enum {
   VK_COLOR_SPACE_SRGB_NONLINEAR_KHR = 0,
@@ -3670,7 +3636,7 @@ typedef enum {
   VK_PRESENT_MODE_FIFO_RELAXED_KHR = 3,
 } VkPresentModeKHR;
 
-VK_DEFINE_NON_DISPATCHABLE_HANDLE(VkSwapchainKHR)
+VK_DEFINE_HANDLE(VkSwapchainKHR)
 
 typedef struct VkSwapchainCreateInfoKHR {
   VkStructureType sType;
