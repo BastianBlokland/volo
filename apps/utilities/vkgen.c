@@ -618,11 +618,11 @@ static void vkgen_write_node(VkGenContext* ctx, const XmlNode node) {
         fmt_write(&ctx->out, " ");
       }
       lastIsElement = true;
-      fmt_write(&ctx->out, "{}", fmt_text(text));
+      fmt_write(&ctx->out, "{}", fmt_text(text, .flags = FormatTextFlags_SingleLine));
     } break;
     case XmlType_Text: {
       const String str = vkgen_text_resolve_scratch(ctx, xml_value(ctx->schemaDoc, part));
-      fmt_write(&ctx->out, "{}", fmt_text(str));
+      fmt_write(&ctx->out, "{}", fmt_text(str, .flags = FormatTextFlags_SingleLine));
       lastIsElement = false;
     } break;
     default:
