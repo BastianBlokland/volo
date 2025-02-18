@@ -139,6 +139,10 @@ Ret:
 }
 
 typedef struct {
+  String name, value; // Allocated in the schema document.
+} VkGenConstant;
+
+typedef struct {
   StringHash key;
   XmlNode    schemaNode;
 } VkGenEntry;
@@ -156,6 +160,7 @@ typedef struct {
   String    schemaHost, schemaUri;
   DynArray  types; // VkGenType[]
   DynBitSet typesWritten;
+  DynArray  constants; // VkGenConstant[]
   DynArray  enums;     // VkGenType[]
   DynArray  additions; // VkGenAddition[]
   DynArray  commands;  // VkGenType[]
@@ -373,6 +378,29 @@ static void vkgen_collect_types(VkGenContext* ctx) {
   log_i("Collected types", log_param("count", fmt_int(ctx->types.size)));
 }
 
+static void vkgen_collect_constants(VkGenContext* ctx) {
+  xml_for_children(ctx->schemaDoc, ctx->schemaRoot, enumNode) {
+    if (xml_name_hash(ctx->schemaDoc, enumNode) != g_hash_enums) {
+      continue; // Not an enum.
+    }
+    if (xml_attr_get_hash(ctx->schemaDoc, enumNode, g_hash_type) != g_hash_constants) {
+      continue; // Not constants.
+    }
+    if (!vkgen_is_supported_api(ctx, enumNode)) {
+      continue; // Not supported.
+    }
+    xml_for_children(ctx->schemaDoc, enumNode, entryNode) {
+      if (xml_name_hash(ctx->schemaDoc, entryNode) == g_hash_enum) {
+        *dynarray_push_t(&ctx->constants, VkGenConstant) = (VkGenConstant){
+            .name  = xml_attr_get(ctx->schemaDoc, entryNode, g_hash_name),
+            .value = xml_attr_get(ctx->schemaDoc, entryNode, g_hash_value),
+        };
+      }
+    }
+  }
+  log_i("Collected constants", log_param("count", fmt_int(ctx->constants.size)));
+}
+
 static void vkgen_collect_enums(VkGenContext* ctx) {
   xml_for_children(ctx->schemaDoc, ctx->schemaRoot, child) {
     if (xml_name_hash(ctx->schemaDoc, child) == g_hash_enums) {
@@ -521,17 +549,6 @@ static bool vkgen_write_enum(VkGenContext* ctx, const StringHash key) {
       }
     }
     fmt_write(&ctx->out, "} {};\n\n", fmt_text(xml_attr_get(ctx->schemaDoc, node, g_hash_name)));
-    return true;
-  }
-  if (typeHash == g_hash_constants) {
-    xml_for_children(ctx->schemaDoc, node, entry) {
-      if (xml_name_hash(ctx->schemaDoc, entry) == g_hash_enum) {
-        const String name = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
-        const String val  = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
-        fmt_write(&ctx->out, "#define {} {}\n", fmt_text(name), fmt_text(val));
-      }
-    }
-    fmt_write(&ctx->out, "\n");
     return true;
   }
   return false; // Unsupported enum type.
@@ -874,15 +891,16 @@ static bool vkgen_write_header(VkGenContext* ctx) {
     vkgen_write_comment_elem(ctx, copyrightElem);
   }
 
+  // clang-format off
   fmt_write(&ctx->out, "// clang-format off\n\n");
   fmt_write(&ctx->out, "#include \"core.h\"\n\n");
-  // clang-format off
   fmt_write(&ctx->out, "#define VK_MAKE_API_VERSION(variant, major, minor, patch) ((((u32)(variant)) << 29) | (((u32)(major)) << 22) | (((u32)(minor)) << 12) | ((u32)(patch)))\n\n");
+  dynarray_for_t(&ctx->constants, VkGenConstant, constant) {
+    fmt_write(&ctx->out, "#define {} {}\n", fmt_text(constant->name), fmt_text(constant->value));
+  }
+  fmt_write(&ctx->out, "\n");
   // clang-format on
 
-  if (!vkgen_write_enum(ctx, string_hash_lit("API Constants"))) {
-    return false;
-  }
   array_for_t(g_vkgenFeatures, String, feature) {
     if (!vkgen_write_feature(ctx, string_hash(*feature))) {
       return false;
@@ -947,6 +965,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .schemaUri         = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
       .types             = dynarray_create_t(g_allocHeap, VkGenEntry, 4096),
       .typesWritten      = dynbitset_create(g_allocHeap, 4096),
+      .constants         = dynarray_create_t(g_allocHeap, VkGenConstant, 64),
       .enums             = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
       .additions         = dynarray_create_t(g_allocHeap, VkGenAddition, 256),
       .commands          = dynarray_create_t(g_allocHeap, VkGenEntry, 1024),
@@ -964,6 +983,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   }
 
   vkgen_collect_types(&ctx);
+  vkgen_collect_constants(&ctx);
   vkgen_collect_enums(&ctx);
   vkgen_collect_commands(&ctx);
   vkgen_collect_extensions(&ctx);
@@ -986,6 +1006,7 @@ Exit:;
   xml_destroy(ctx.schemaDoc);
   dynarray_destroy(&ctx.types);
   dynbitset_destroy(&ctx.typesWritten);
+  dynarray_destroy(&ctx.constants);
   dynarray_destroy(&ctx.enums);
   dynarray_destroy(&ctx.additions);
   dynarray_destroy(&ctx.commands);
