@@ -25,6 +25,7 @@
  */
 
 #define VKGEN_VISIT_HASHES                                                                         \
+  VKGEN_HASH(alias)                                                                                \
   VKGEN_HASH(api)                                                                                  \
   VKGEN_HASH(basetype)                                                                             \
   VKGEN_HASH(bitmask)                                                                              \
@@ -143,6 +144,12 @@ typedef struct {
 } VkGenConstant;
 
 typedef struct {
+  StringHash key;  // Enum this entry is part of.
+  String     name; // Allocated in the schema document.
+  i64        value;
+} VkGenEnumEntry;
+
+typedef struct {
   StringHash key;
   XmlNode    schemaNode;
 } VkGenEntry;
@@ -160,10 +167,11 @@ typedef struct {
   String    schemaHost, schemaUri;
   DynArray  types; // VkGenType[]
   DynBitSet typesWritten;
-  DynArray  constants; // VkGenConstant[]
-  DynArray  enums;     // VkGenType[]
-  DynArray  additions; // VkGenAddition[]
-  DynArray  commands;  // VkGenType[]
+  DynArray  constants;   // VkGenConstant[]
+  DynArray  enums;       // VkGenType[]
+  DynArray  enumEntries; // VkGenEnumEntry[]
+  DynArray  additions;   // VkGenAddition[]
+  DynArray  commands;    // VkGenType[]
   DynBitSet commandsWritten;
   DynArray  extensions; // VkGenType[]
   DynBitSet extensionsWritten;
@@ -174,6 +182,17 @@ typedef struct {
 
 static i8 vkgen_compare_entry(const void* a, const void* b) {
   return compare_stringhash(field_ptr(a, VkGenEntry, key), field_ptr(b, VkGenEntry, key));
+}
+
+static i8 vkgen_compare_enum_entry(const void* a, const void* b) {
+  const VkGenEnumEntry* entryA = a;
+  const VkGenEnumEntry* entryB = b;
+  const i8              order  = compare_stringhash(&entryA->key, &entryB->key);
+  return order ? order : compare_i64(&entryA->value, &entryB->value);
+}
+
+static i8 vkgen_compare_enum_entry_no_value(const void* a, const void* b) {
+  return compare_stringhash(field_ptr(a, VkGenEnumEntry, key), field_ptr(b, VkGenEnumEntry, key));
 }
 
 static i8 vkgen_compare_addition(const void* a, const void* b) {
@@ -188,9 +207,14 @@ static i8 vkgen_compare_addition_incl_value(const void* a, const void* b) {
   return order ? order : compare_i64(&addA->value, &addB->value);
 }
 
-static i64 vkgen_to_int(const String str) {
+static i64 vkgen_to_int(String str) {
+  u8 base = 10;
+  if (string_starts_with(str, string_lit("0x"))) {
+    str  = string_consume(str, 2);
+    base = 16;
+  }
   i64 value;
-  format_read_i64(str, &value, 10 /* base */);
+  format_read_i64(str, &value, base);
   return value;
 }
 
@@ -233,6 +257,42 @@ static u32 vkgen_entry_index(DynArray* arr, const StringHash key) {
   const VkGenEntry tgt = {.key = key};
   VkGenEntry*      res = dynarray_search_binary(arr, vkgen_compare_entry, &tgt);
   return res ? (u32)(res - dynarray_begin_t(arr, VkGenEntry)) : sentinel_u32;
+}
+
+static bool vkgen_enum_entry_push(VkGenContext* ctx, const VkGenEnumEntry enumEntry) {
+  VkGenEnumEntry* stored =
+      dynarray_find_or_insert_sorted(&ctx->enumEntries, vkgen_compare_enum_entry, &enumEntry);
+
+  if (stored->key) {
+    return false; // Duplicate.
+  }
+  *stored = enumEntry;
+  return true;
+}
+
+typedef struct {
+  const VkGenEnumEntry* begin;
+  const VkGenEnumEntry* end;
+} VkGenEnumEntries;
+
+static VkGenEnumEntries vkgen_enum_entries_find(VkGenContext* ctx, const StringHash enumKey) {
+  const VkGenEnumEntry* entriesBegin = dynarray_begin_t(&ctx->enumEntries, VkGenEnumEntry);
+  const VkGenEnumEntry* entriesEnd   = dynarray_end_t(&ctx->enumEntries, VkGenEnumEntry);
+
+  VkGenEnumEntry        tgt = {.key = enumKey};
+  const VkGenEnumEntry* gt  = search_binary_greater_t(
+      entriesBegin, entriesEnd, VkGenEnumEntry, vkgen_compare_enum_entry_no_value, &tgt);
+
+  VkGenEnumEntries res = {.begin = gt ? gt : entriesEnd, .end = gt ? gt : entriesEnd};
+  if (res.begin == entriesBegin) {
+    return (VkGenEnumEntries){0};
+  }
+
+  // Find the beginning of the entries for this enum.
+  for (; res.begin != entriesBegin && (res.begin - 1)->key == enumKey; --res.begin)
+    ;
+
+  return res;
 }
 
 static void vkgen_addition_push(
@@ -383,34 +443,66 @@ static void vkgen_collect_constants(VkGenContext* ctx) {
     if (xml_name_hash(ctx->schemaDoc, enumNode) != g_hash_enums) {
       continue; // Not an enum.
     }
-    if (xml_attr_get_hash(ctx->schemaDoc, enumNode, g_hash_type) != g_hash_constants) {
+    const StringHash typeHash = xml_attr_get_hash(ctx->schemaDoc, enumNode, g_hash_type);
+    if (typeHash != g_hash_constants) {
       continue; // Not constants.
     }
     if (!vkgen_is_supported_api(ctx, enumNode)) {
       continue; // Not supported.
     }
     xml_for_children(ctx->schemaDoc, enumNode, entryNode) {
-      if (xml_name_hash(ctx->schemaDoc, entryNode) == g_hash_enum) {
-        *dynarray_push_t(&ctx->constants, VkGenConstant) = (VkGenConstant){
-            .name  = xml_attr_get(ctx->schemaDoc, entryNode, g_hash_name),
-            .value = xml_attr_get(ctx->schemaDoc, entryNode, g_hash_value),
-        };
+      if (xml_name_hash(ctx->schemaDoc, entryNode) != g_hash_enum) {
+        continue; // Not an enum entry.
       }
+      if (vkgen_is_deprecated(ctx, entryNode)) {
+        continue; // Is deprecated.
+      }
+      *dynarray_push_t(&ctx->constants, VkGenConstant) = (VkGenConstant){
+          .name  = xml_attr_get(ctx->schemaDoc, entryNode, g_hash_name),
+          .value = xml_attr_get(ctx->schemaDoc, entryNode, g_hash_value),
+      };
     }
   }
   log_i("Collected constants", log_param("count", fmt_int(ctx->constants.size)));
 }
 
 static void vkgen_collect_enums(VkGenContext* ctx) {
-  xml_for_children(ctx->schemaDoc, ctx->schemaRoot, child) {
-    if (xml_name_hash(ctx->schemaDoc, child) == g_hash_enums) {
-      if (!vkgen_is_supported_api(ctx, child)) {
-        continue;
+  xml_for_children(ctx->schemaDoc, ctx->schemaRoot, enumNode) {
+    if (xml_name_hash(ctx->schemaDoc, enumNode) != g_hash_enums) {
+      continue; // Not an enum.
+    }
+    const StringHash typeHash = xml_attr_get_hash(ctx->schemaDoc, enumNode, g_hash_type);
+    if (typeHash != g_hash_enum && typeHash != g_hash_bitmask) {
+      continue; // Not an absolute / bitmask enum (could be constants).
+    }
+    if (!vkgen_is_supported_api(ctx, enumNode)) {
+      continue; // Not supported.
+    }
+    const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, enumNode, g_hash_name);
+    if (nameHash) {
+      vkgen_entry_push(&ctx->enums, nameHash, enumNode);
+    }
+    xml_for_children(ctx->schemaDoc, enumNode, entryNode) {
+      if (xml_name_hash(ctx->schemaDoc, entryNode) != g_hash_enum) {
+        continue; // Not an enum entry.
       }
-      const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
-      if (nameHash) {
-        vkgen_entry_push(&ctx->enums, nameHash, child);
+      if (vkgen_is_deprecated(ctx, entryNode)) {
+        continue; // Is deprecated.
       }
+      if (xml_attr_has(ctx->schemaDoc, entryNode, g_hash_alias)) {
+        continue; // Aliases are not supported.
+      }
+      VkGenEnumEntry entryRes;
+      entryRes.key  = nameHash;
+      entryRes.name = xml_attr_get(ctx->schemaDoc, entryNode, g_hash_name);
+
+      const String bitPos = xml_attr_get(ctx->schemaDoc, entryNode, g_hash_bitpos);
+      if (!string_is_empty(bitPos)) {
+        entryRes.value = u64_lit(1) << vkgen_to_int(bitPos);
+      } else {
+        entryRes.value = vkgen_to_int(xml_attr_get(ctx->schemaDoc, entryNode, g_hash_value));
+      }
+      vkgen_enum_entry_push(ctx, entryRes);
     }
   }
   dynarray_sort(&ctx->enums, vkgen_compare_entry);
@@ -508,8 +600,9 @@ static void vkgen_write_comment_elem(VkGenContext* ctx, const XmlNode comment) {
 
 static bool vkgen_write_enum(VkGenContext* ctx, const StringHash key) {
   const XmlNode    node      = vkgen_entry_find(&ctx->enums, key);
+  VkGenEnumEntries entries   = vkgen_enum_entries_find(ctx, key);
   VkGenAdditionSet additions = vkgen_addition_find(ctx, key);
-  if (sentinel_check(xml_first_child(ctx->schemaDoc, node)) && additions.begin == additions.end) {
+  if (entries.begin == entries.end && additions.begin == additions.end) {
     return true; // Empty enum.
   }
   DynArray writtenNames = dynarray_create_t(g_allocScratch, StringHash, 512);
@@ -517,24 +610,11 @@ static bool vkgen_write_enum(VkGenContext* ctx, const StringHash key) {
   const StringHash typeHash = xml_attr_get_hash(ctx->schemaDoc, node, g_hash_type);
   if (typeHash == g_hash_enum || typeHash == g_hash_bitmask) {
     fmt_write(&ctx->out, "typedef enum {\n");
-    xml_for_children(ctx->schemaDoc, node, entry) {
-      if (xml_name_hash(ctx->schemaDoc, entry) != g_hash_enum || vkgen_is_deprecated(ctx, entry)) {
-        continue; // Not an enum entry or a deprecated entry.
-      }
-      const String     name   = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
-      const StringHash nameHs = string_hash(name);
+    for (const VkGenEnumEntry* itr = entries.begin; itr != entries.end; ++itr) {
+      const StringHash nameHs = string_hash(itr->name);
       *dynarray_insert_sorted_t(&writtenNames, StringHash, compare_stringhash, &nameHs) = nameHs;
 
-      fmt_write(&ctx->out, "  {}", fmt_text(name));
-
-      const String val    = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
-      const String bitPos = xml_attr_get(ctx->schemaDoc, entry, g_hash_bitpos);
-      if (!string_is_empty(val)) {
-        fmt_write(&ctx->out, " = {}", fmt_text(val));
-      } else if (!string_is_empty(bitPos)) {
-        fmt_write(&ctx->out, " = 1 << {}", fmt_text(bitPos));
-      }
-      fmt_write(&ctx->out, ",\n");
+      fmt_write(&ctx->out, "  {} = {},\n", fmt_text(itr->name), fmt_int(itr->value));
     }
     for (const VkGenAddition* itr = additions.begin; itr != additions.end; ++itr) {
       const StringHash nameHs = string_hash(itr->name);
@@ -891,15 +971,19 @@ static bool vkgen_write_header(VkGenContext* ctx) {
     vkgen_write_comment_elem(ctx, copyrightElem);
   }
 
-  // clang-format off
   fmt_write(&ctx->out, "// clang-format off\n\n");
   fmt_write(&ctx->out, "#include \"core.h\"\n\n");
-  fmt_write(&ctx->out, "#define VK_MAKE_API_VERSION(variant, major, minor, patch) ((((u32)(variant)) << 29) | (((u32)(major)) << 22) | (((u32)(minor)) << 12) | ((u32)(patch)))\n\n");
+  fmt_write(
+      &ctx->out,
+      "#define VK_MAKE_API_VERSION(variant, major, minor, patch)"
+      " ((((u32)(variant)) << 29) |"
+      " (((u32)(major)) << 22) |"
+      " (((u32)(minor)) << 12) |"
+      " ((u32)(patch)))\n\n");
   dynarray_for_t(&ctx->constants, VkGenConstant, constant) {
     fmt_write(&ctx->out, "#define {} {}\n", fmt_text(constant->name), fmt_text(constant->value));
   }
   fmt_write(&ctx->out, "\n");
-  // clang-format on
 
   array_for_t(g_vkgenFeatures, String, feature) {
     if (!vkgen_write_feature(ctx, string_hash(*feature))) {
@@ -967,6 +1051,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .typesWritten      = dynbitset_create(g_allocHeap, 4096),
       .constants         = dynarray_create_t(g_allocHeap, VkGenConstant, 64),
       .enums             = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
+      .enumEntries       = dynarray_create_t(g_allocHeap, VkGenEnumEntry, 2048),
       .additions         = dynarray_create_t(g_allocHeap, VkGenAddition, 256),
       .commands          = dynarray_create_t(g_allocHeap, VkGenEntry, 1024),
       .commandsWritten   = dynbitset_create(g_allocHeap, 1024),
@@ -1008,6 +1093,7 @@ Exit:;
   dynbitset_destroy(&ctx.typesWritten);
   dynarray_destroy(&ctx.constants);
   dynarray_destroy(&ctx.enums);
+  dynarray_destroy(&ctx.enumEntries);
   dynarray_destroy(&ctx.additions);
   dynarray_destroy(&ctx.commands);
   dynbitset_destroy(&ctx.commandsWritten);
