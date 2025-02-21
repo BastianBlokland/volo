@@ -143,6 +143,16 @@ typedef struct {
   String name, value; // Allocated in the schema document.
 } VkGenConstant;
 
+typedef enum {
+  VkGenTypeKind_Misc,
+} VkGenTypeKind;
+
+typedef struct {
+  VkGenTypeKind kind;
+  StringHash    key;
+  XmlNode       schemaNode;
+} VkGenType;
+
 typedef struct {
   StringHash key;  // Enum this entry is part of.
   String     name; // Allocated in the schema document.
@@ -161,17 +171,21 @@ typedef struct {
   DynArray  types; // VkGenType[]
   DynBitSet typesWritten;
   DynArray  constants;   // VkGenConstant[]
-  DynArray  enums;       // VkGenType[]
+  DynArray  enums;       // VkGenEntry[]
   DynArray  enumEntries; // VkGenEnumEntry[]
-  DynArray  commands;    // VkGenType[]
+  DynArray  commands;    // VkGenEntry[]
   DynBitSet commandsWritten;
-  DynArray  extensions; // VkGenType[]
-  DynArray  features;   // VkGenType[]
+  DynArray  extensions; // VkGenEntry[]
+  DynArray  features;   // VkGenEntry[]
   DynString out;
 } VkGenContext;
 
 static i8 vkgen_compare_entry(const void* a, const void* b) {
   return compare_stringhash(field_ptr(a, VkGenEntry, key), field_ptr(b, VkGenEntry, key));
+}
+
+static i8 vkgen_compare_type(const void* a, const void* b) {
+  return compare_stringhash(field_ptr(a, VkGenType, key), field_ptr(b, VkGenType, key));
 }
 
 static i8 vkgen_compare_enum_entry(const void* a, const void* b) {
@@ -222,6 +236,25 @@ static void vkgen_entry_push(DynArray* arr, const StringHash key, const XmlNode 
   *dynarray_push_t(arr, VkGenEntry) = (VkGenEntry){
       .key        = key,
       .schemaNode = node,
+  };
+}
+
+static u32 vkgen_type_find(VkGenContext* ctx, const StringHash key) {
+  const VkGenType tgt = {.key = key};
+  VkGenType*      res = dynarray_search_binary(&ctx->types, vkgen_compare_type, &tgt);
+  return res ? (u32)(res - dynarray_begin_t(&ctx->types, VkGenType)) : sentinel_u32;
+}
+
+static const VkGenType* vkgen_type_get(VkGenContext* ctx, const u32 index) {
+  return dynarray_at_t(&ctx->types, index, VkGenType);
+}
+
+static void vkgen_type_push(
+    VkGenContext* ctx, const VkGenTypeKind kind, const StringHash key, const XmlNode schemaNode) {
+  *dynarray_push_t(&ctx->types, VkGenType) = (VkGenType){
+      .kind       = kind,
+      .key        = key,
+      .schemaNode = schemaNode,
   };
 }
 
@@ -361,18 +394,18 @@ static void vkgen_collect_types(VkGenContext* ctx) {
       }
       const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
       if (nameHash) {
-        vkgen_entry_push(&ctx->types, nameHash, child);
+        vkgen_type_push(ctx, VkGenTypeKind_Misc, nameHash, child);
         continue;
       }
       const XmlNode nameNode = xml_child_get(ctx->schemaDoc, child, g_hash_name);
       if (!sentinel_check(nameNode)) {
         const String nameText = xml_child_text(ctx->schemaDoc, nameNode);
-        vkgen_entry_push(&ctx->types, string_hash(nameText), child);
+        vkgen_type_push(ctx, VkGenTypeKind_Misc, string_hash(nameText), child);
         continue;
       }
     }
   }
-  dynarray_sort(&ctx->types, vkgen_compare_entry);
+  dynarray_sort(&ctx->types, vkgen_compare_type);
   log_i("Collected types", log_param("count", fmt_int(ctx->types.size)));
 }
 
@@ -712,7 +745,7 @@ static bool vkgen_write_include(VkGenContext* ctx, const StringHash key) {
 }
 
 static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
-  const u32 typeIndex = vkgen_entry_index(&ctx->types, key);
+  const u32 typeIndex = vkgen_type_find(ctx, key);
   if (sentinel_check(typeIndex)) {
     return false; // Unknown type.
   }
@@ -721,7 +754,7 @@ static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
   }
   dynbitset_set(&ctx->typesWritten, typeIndex);
 
-  const XmlNode typeNode = vkgen_entry_find(&ctx->types, key);
+  const XmlNode typeNode = vkgen_type_get(ctx, typeIndex)->schemaNode;
   if (!vkgen_write_type_dependencies(ctx, typeNode)) {
     return false;
   }
@@ -949,7 +982,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .schemaDoc       = xml_create(g_allocHeap, 128 * 1024),
       .schemaHost      = cli_read_string(invoc, g_optSchemaHost, g_schemaDefaultHost),
       .schemaUri       = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
-      .types           = dynarray_create_t(g_allocHeap, VkGenEntry, 4096),
+      .types           = dynarray_create_t(g_allocHeap, VkGenType, 4096),
       .typesWritten    = dynbitset_create(g_allocHeap, 4096),
       .constants       = dynarray_create_t(g_allocHeap, VkGenConstant, 64),
       .enums           = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
