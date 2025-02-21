@@ -495,8 +495,7 @@ static void vkgen_collect_extensions(VkGenContext* ctx) {
     const i64 extNumber = vkgen_to_int(numberStr);
     if (nameHash) {
       vkgen_entry_push(&ctx->extensions, nameHash, child);
-      vkgen_addition_collect(
-          ctx, child, extNumber); // TODO: Only collect additions for enabled extensions.
+      vkgen_addition_collect(ctx, child, extNumber);
     }
   }
   dynarray_sort(&ctx->extensions, vkgen_compare_entry);
@@ -515,8 +514,7 @@ static void vkgen_collect_features(VkGenContext* ctx) {
       }
       if (nameHash) {
         vkgen_entry_push(&ctx->features, nameHash, child);
-        vkgen_addition_collect(
-            ctx, child, -1); // TODO: Only collect additions for enabled features.
+        vkgen_addition_collect(ctx, child, -1);
       }
     }
   }
