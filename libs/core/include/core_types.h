@@ -10,12 +10,12 @@ typedef signed short int   i16;
 typedef unsigned short int u16;
 typedef signed int         i32;
 typedef unsigned int       u32;
-#if VOLO_MSVC
+#if VOLO_WIN32
 typedef signed long long   i64;
 typedef unsigned long long u64;
 #else
-typedef signed long int    i64;
-typedef unsigned long int  u64;
+typedef signed long int   i64;
+typedef unsigned long int u64;
 #endif
 
 #ifdef VOLO_32_BIT
@@ -23,7 +23,7 @@ typedef unsigned int usize;
 typedef signed int   iptr;
 typedef unsigned int uptr;
 #else
-#if VOLO_MSVC
+#if VOLO_WIN32
 typedef unsigned long long usize;
 typedef signed long long   iptr;
 typedef unsigned long long uptr;
@@ -50,7 +50,7 @@ typedef unsigned char bool;
 #define i16_lit(_LITERAL_) _LITERAL_
 #define u32_lit(_LITERAL_) _LITERAL_##U
 #define i32_lit(_LITERAL_) _LITERAL_
-#if VOLO_MSVC
+#if VOLO_WIN32
 #define u64_lit(_LITERAL_) _LITERAL_##ULL
 #define i64_lit(_LITERAL_) _LITERAL_##LL
 #else
