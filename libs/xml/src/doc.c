@@ -8,13 +8,14 @@
 #define xml_str_chunk_size (32 * usize_kibibyte)
 
 typedef struct {
-  String  name;
-  XmlNode attrHead;
-  XmlNode childHead, childTail;
+  StringHash nameHash;
+  XmlNode    attrHead;
+  XmlNode    childHead, childTail;
 } XmlElemData;
 
 typedef struct {
-  String name, value;
+  StringHash nameHash;
+  String     value;
 } XmlAttrData;
 
 typedef struct {
@@ -55,6 +56,9 @@ static String xml_string_store(XmlDoc* doc, const String str) {
 }
 
 INLINE_HINT static XmlNodeData* xml_node_data(const XmlDoc* doc, const XmlNode node) {
+  if (sentinel_check(node)) {
+    return null;
+  }
   diag_assert_msg(node < doc->nodes.size, "Out of bounds XmlNode");
   return &dynarray_begin_t(&doc->nodes, XmlNodeData)[node];
 }
@@ -92,7 +96,7 @@ static bool xml_node_link_attr(XmlDoc* doc, const XmlNode elem, const XmlNode at
   XmlNode* link = &elemData->data_elem.attrHead;
   while (!sentinel_check(*link)) {
     XmlNodeData* linkAttrData = xml_node_data(doc, *link);
-    if (string_eq(attrData->data_attr.name, linkAttrData->data_attr.name)) {
+    if (attrData->data_attr.nameHash == linkAttrData->data_attr.nameHash) {
       return false; // Existing attribute found with the same name.
     }
     link = &linkAttrData->next;
@@ -140,7 +144,7 @@ XmlNode xml_add_elem(XmlDoc* doc, const XmlNode parent, const String name) {
           .next = sentinel_u32,
           .data_elem =
               {
-                  .name      = stringtable_intern(doc->keyTable, name),
+                  .nameHash  = stringtable_add(doc->keyTable, name),
                   .attrHead  = sentinel_u32,
                   .childHead = sentinel_u32,
                   .childTail = sentinel_u32,
@@ -165,8 +169,8 @@ XmlNode xml_add_attr(XmlDoc* doc, const XmlNode parent, const String name, const
           .next = sentinel_u32,
           .data_attr =
               {
-                  .name  = stringtable_intern(doc->keyTable, name),
-                  .value = xml_string_store(doc, value),
+                  .nameHash = stringtable_add(doc->keyTable, name),
+                  .value    = xml_string_store(doc, value),
               },
       });
 
@@ -211,23 +215,60 @@ XmlNode xml_add_comment(XmlDoc* doc, const XmlNode parent, const String value) {
   return node;
 }
 
+bool xml_is(const XmlDoc* doc, const XmlNode node, const XmlType type) {
+  const XmlNodeData* data = xml_node_data(doc, node);
+  return data && data->type == type;
+}
+
 XmlType xml_type(const XmlDoc* doc, const XmlNode node) { return xml_node_data(doc, node)->type; }
 
 String xml_name(const XmlDoc* doc, const XmlNode node) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
+  if (!nodeData) {
+    return string_empty;
+  }
   switch (nodeData->type) {
   case XmlType_Element:
-    return nodeData->data_elem.name;
+    return stringtable_lookup(doc->keyTable, nodeData->data_elem.nameHash);
   case XmlType_Attribute:
-    return nodeData->data_attr.name;
+    return stringtable_lookup(doc->keyTable, nodeData->data_attr.nameHash);
   default:
     return string_empty;
   }
 }
 
+StringHash xml_name_hash(const XmlDoc* doc, const XmlNode node) {
+  XmlNodeData* nodeData = xml_node_data(doc, node);
+  if (!nodeData) {
+    return 0;
+  }
+  switch (nodeData->type) {
+  case XmlType_Element:
+    return nodeData->data_elem.nameHash;
+  case XmlType_Attribute:
+    return nodeData->data_attr.nameHash;
+  default:
+    return 0;
+  }
+}
+
 String xml_value(const XmlDoc* doc, const XmlNode node) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
+  if (!nodeData) {
+    return string_empty;
+  }
   switch (nodeData->type) {
+  case XmlType_Element: {
+    const XmlNode childHead = nodeData->data_elem.childHead;
+    for (XmlNode child = childHead; !sentinel_check(child);) {
+      const XmlNodeData* childData = xml_node_data(doc, child);
+      if (childData->type == XmlType_Text) {
+        return childData->data_text.value;
+      }
+      child = childData->next;
+    }
+    return string_empty;
+  }
   case XmlType_Attribute:
     return nodeData->data_attr.value;
   case XmlType_Text:
@@ -239,16 +280,16 @@ String xml_value(const XmlDoc* doc, const XmlNode node) {
   }
 }
 
-bool xml_attr_has(const XmlDoc* doc, const XmlNode node, const String name) {
+bool xml_attr_has(const XmlDoc* doc, const XmlNode node, const StringHash nameHash) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
-  if (nodeData->type != XmlType_Element) {
+  if (!nodeData || nodeData->type != XmlType_Element) {
     return false;
   }
 
   // Walk the linked-list of attributes.
   const XmlNode attrHead = nodeData->data_elem.attrHead;
   for (XmlNode attr = attrHead; !sentinel_check(attr); attr = xml_node_data(doc, attr)->next) {
-    if (string_eq(xml_node_data(doc, attr)->data_attr.name, name)) {
+    if (xml_node_data(doc, attr)->data_attr.nameHash == nameHash) {
       return true;
     }
   }
@@ -256,9 +297,9 @@ bool xml_attr_has(const XmlDoc* doc, const XmlNode node, const String name) {
   return false;
 }
 
-String xml_attr_get(const XmlDoc* doc, const XmlNode node, const String name) {
+String xml_attr_get(const XmlDoc* doc, const XmlNode node, const StringHash nameHash) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
-  if (nodeData->type != XmlType_Element) {
+  if (!nodeData || nodeData->type != XmlType_Element) {
     return string_empty;
   }
 
@@ -266,7 +307,7 @@ String xml_attr_get(const XmlDoc* doc, const XmlNode node, const String name) {
   const XmlNode attrHead = nodeData->data_elem.attrHead;
   for (XmlNode attr = attrHead; !sentinel_check(attr); attr = xml_node_data(doc, attr)->next) {
     const XmlNodeData* attrData = xml_node_data(doc, attr);
-    if (string_eq(attrData->data_attr.name, name)) {
+    if (attrData->data_attr.nameHash == nameHash) {
       return attrData->data_attr.value;
     }
   }
@@ -274,9 +315,46 @@ String xml_attr_get(const XmlDoc* doc, const XmlNode node, const String name) {
   return string_empty;
 }
 
+StringHash xml_attr_get_hash(const XmlDoc* doc, const XmlNode node, const StringHash nameHash) {
+  XmlNodeData* nodeData = xml_node_data(doc, node);
+  if (!nodeData || nodeData->type != XmlType_Element) {
+    return 0;
+  }
+
+  // Walk the linked-list of attributes.
+  const XmlNode attrHead = nodeData->data_elem.attrHead;
+  for (XmlNode attr = attrHead; !sentinel_check(attr); attr = xml_node_data(doc, attr)->next) {
+    const XmlNodeData* attrData = xml_node_data(doc, attr);
+    if (attrData->data_attr.nameHash == nameHash) {
+      return string_hash(attrData->data_attr.value);
+    }
+  }
+
+  return 0;
+}
+
+XmlNode xml_child_get(const XmlDoc* doc, const XmlNode node, const StringHash nameHash) {
+  XmlNodeData* nodeData = xml_node_data(doc, node);
+  if (!nodeData || nodeData->type != XmlType_Element) {
+    return sentinel_u32;
+  }
+
+  // Walk the linked-list of children.
+  const XmlNode childHead = nodeData->data_elem.childHead;
+  for (XmlNode child = childHead; !sentinel_check(child);) {
+    const XmlNodeData* childData = xml_node_data(doc, child);
+    if (childData->type == XmlType_Element && childData->data_elem.nameHash == nameHash) {
+      return child;
+    }
+    child = childData->next;
+  }
+
+  return sentinel_u32;
+}
+
 XmlNode xml_first_child(const XmlDoc* doc, const XmlNode node) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
-  if (nodeData->type != XmlType_Element) {
+  if (!nodeData || nodeData->type != XmlType_Element) {
     return sentinel_u32;
   }
   return nodeData->data_elem.childHead;
@@ -284,15 +362,13 @@ XmlNode xml_first_child(const XmlDoc* doc, const XmlNode node) {
 
 XmlNode xml_first_attr(const XmlDoc* doc, const XmlNode node) {
   XmlNodeData* nodeData = xml_node_data(doc, node);
-  if (nodeData->type != XmlType_Element) {
+  if (!nodeData || nodeData->type != XmlType_Element) {
     return sentinel_u32;
   }
   return nodeData->data_elem.attrHead;
 }
 
 XmlNode xml_next(const XmlDoc* doc, const XmlNode node) {
-  if (sentinel_check(node)) {
-    return sentinel_u32;
-  }
-  return xml_node_data(doc, node)->next;
+  const XmlNodeData* data = xml_node_data(doc, node);
+  return data ? data->next : sentinel_u32;
 }

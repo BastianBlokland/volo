@@ -1,5 +1,7 @@
 #include "core.h"
 #include "core_dynstring.h"
+#include "core_sentinel.h"
+#include "core_string.h"
 
 DynString dynstring_create(Allocator* alloc, usize capacity) {
   return dynarray_create(alloc, 1, 1, capacity);
@@ -51,4 +53,19 @@ void dynstring_erase_chars(DynString* dynstring, const usize idx, const usize am
 
 String dynstring_push(DynString* dynstring, const usize amount) {
   return dynarray_push(dynstring, amount);
+}
+
+void dynstring_replace(DynString* dynstring, const String text, const String replacement) {
+  usize offset = 0;
+  for (;;) {
+    const String remText = string_consume(dynstring_view(dynstring), offset);
+    const usize  remLoc  = string_find_first(remText, text);
+    if (sentinel_check(remLoc)) {
+      break; // Text not found.
+    }
+    offset += remLoc;
+    dynstring_erase_chars(dynstring, offset, text.size);
+    dynstring_insert(dynstring, replacement, offset);
+    offset += replacement.size;
+  }
 }

@@ -10,20 +10,6 @@
 #include "image_internal.h"
 #include "swapchain_internal.h"
 
-#if defined(VOLO_LINUX)
-#include <xcb/xcb.h>
-#elif defined(VOLO_WIN32)
-#include <Windows.h>
-#endif
-
-#if defined(VOLO_LINUX)
-#include <vulkan/vulkan_xcb.h>
-#elif defined(VOLO_WIN32)
-#include <vulkan/vulkan_win32.h>
-#else
-#error Unsupported platform
-#endif
-
 #define swapchain_images_max 5
 
 typedef enum {
@@ -70,15 +56,15 @@ static VkSurfaceKHR rvk_surface_create(RvkDevice* dev, const GapWindowComp* wind
 #if defined(VOLO_LINUX)
   const VkXcbSurfaceCreateInfoKHR createInfo = {
       .sType      = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR,
-      .connection = (xcb_connection_t*)gap_native_app_handle(window),
-      .window     = (xcb_window_t)gap_native_window_handle(window),
+      .connection = gap_native_app_handle(window),
+      .window     = gap_native_window_handle(window),
   };
   rvk_call(vkCreateXcbSurfaceKHR, dev->vkInst, &createInfo, &dev->vkAlloc, &result);
 #elif defined(VOLO_WIN32)
   const VkWin32SurfaceCreateInfoKHR createInfo = {
       .sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
-      .hinstance = (HINSTANCE)gap_native_app_handle(window),
-      .hwnd      = (HWND)gap_native_window_handle(window),
+      .hinstance = gap_native_app_handle(window),
+      .hwnd      = gap_native_window_handle(window),
   };
   rvk_call(vkCreateWin32SurfaceKHR, dev->vkInst, &createInfo, &dev->vkAlloc, &result);
 #endif

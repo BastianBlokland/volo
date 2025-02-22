@@ -215,7 +215,7 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
     if (text.size > fmt_txt_len_max) {
       text = string_slice(text, 0, fmt_txt_len_max);
     }
-    if (textOpts->flags & FormatTextFlags_Escape) {
+    if (textOpts->flags & FormatTextFlags_NeedsProcess) {
       format_write_text(str, text, arg->settings);
     } else {
       dynstring_append(str, text); // Fast path for raw text.
@@ -433,7 +433,7 @@ void format_write_mem(DynString* str, const Mem val) {
 
 void format_write_time_duration_pretty(
     DynString* str, const TimeDuration val, const FormatOptsFloat* opts) {
-  static struct {
+  static const struct {
     TimeDuration val;
     String       str;
   } g_units[] = {
@@ -533,7 +533,7 @@ void format_write_size_pretty(DynString* str, const usize val) {
 
 void format_write_text(DynString* str, String val, const FormatOptsText* opts) {
   diag_assert_msg(val.size <= usize_gibibyte, "Text too big: '{}'", fmt_size(val.size));
-  if (opts->flags & FormatTextFlags_Escape) {
+  if (opts->flags & FormatTextFlags_NeedsProcess) {
     mem_for_u8(val, itr) { format_write_char(str, *itr, opts); }
   } else {
     dynstring_append(str, val); // Fast path for raw text.
@@ -599,7 +599,7 @@ void format_write_text_wrapped(
 }
 
 void format_write_char(DynString* str, const u8 val, const FormatOptsText* opts) {
-  static struct {
+  static const struct {
     u8     byte;
     String escapeSeq;
   } g_escapes[] = {
@@ -612,6 +612,11 @@ void format_write_char(DynString* str, const u8 val, const FormatOptsText* opts)
       {'\f', string_static("\\f")},
       {'\0', string_static("\\0")},
   };
+
+  if (opts->flags & FormatTextFlags_SingleLine && ascii_is_newline(val)) {
+    dynstring_append_char(str, ' ');
+    return;
+  }
 
   if (opts->flags & FormatTextFlags_EscapeNonPrintAscii && !ascii_is_printable(val)) {
     // If we have a well-known sequence for this byte we apply it.
@@ -762,7 +767,7 @@ String format_read_f64(String input, f64* output) {
 }
 
 String format_read_time_duration(String input, TimeDuration* output) {
-  static struct {
+  static const struct {
     String       str;
     TimeDuration base;
   } g_units[] = {

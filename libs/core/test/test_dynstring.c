@@ -87,4 +87,35 @@ spec(dynstring) {
 
     dynstring_destroy(&string);
   }
+
+  it("can replace sub-strings") {
+    DynString string = dynstring_create_over(mem_stack(128));
+    dynstring_append(&string, string_lit("Hello World"));
+
+    dynstring_replace(&string, string_lit("o"), string_lit("a"));
+    check_eq_string(dynstring_view(&string), string_lit("Hella Warld"));
+
+    dynstring_replace(&string, string_lit("o"), string_lit("b"));
+    check_eq_string(dynstring_view(&string), string_lit("Hella Warld"));
+
+    dynstring_replace(&string, string_lit("a"), string_lit("###"));
+    check_eq_string(dynstring_view(&string), string_lit("Hell### W###rld"));
+
+    dynstring_replace(&string, string_lit("l"), string_lit(""));
+    check_eq_string(dynstring_view(&string), string_lit("He### W###rd"));
+
+    dynstring_replace(&string, string_lit("d"), string_lit("!"));
+    check_eq_string(dynstring_view(&string), string_lit("He### W###r!"));
+
+    dynstring_replace(&string, string_lit("###"), string_lit("!!"));
+    check_eq_string(dynstring_view(&string), string_lit("He!! W!!r!"));
+
+    dynstring_replace(&string, string_lit("r"), string_lit("!"));
+    check_eq_string(dynstring_view(&string), string_lit("He!! W!!!!"));
+
+    dynstring_replace(&string, string_lit("!!!"), string_lit("="));
+    check_eq_string(dynstring_view(&string), string_lit("He!! W=!"));
+
+    dynstring_destroy(&string);
+  }
 }

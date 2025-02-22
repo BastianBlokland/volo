@@ -83,3 +83,11 @@ message(STATUS "> application: httpu")
 add_executable(app_httpu httpu.c)
 target_link_libraries(app_httpu PRIVATE lib_app_cli lib_net lib_log)
 configure_debuggable(app_httpu)
+
+message(STATUS "> application: vkgen")
+
+add_executable(app_vkgen vkgen.c)
+target_link_libraries(app_vkgen PRIVATE lib_app_cli lib_net lib_xml lib_log)
+configure_debuggable(app_vkgen)
+
+add_custom_target(run.vkgen COMMAND app_vkgen "${CMAKE_SOURCE_DIR}/libs/rend/src/rvk/vulkan_api.h" VERBATIM USES_TERMINAL)

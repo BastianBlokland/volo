@@ -1,7 +1,6 @@
 #pragma once
 #include "core_string.h"
-
-#include <vulkan/vulkan.h>
+#include "vulkan_api.h"
 
 /**
  * Load a Vulkan instance api by name.

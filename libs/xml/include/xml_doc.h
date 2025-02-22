@@ -23,6 +23,24 @@ typedef enum eXmlType {
  */
 typedef u32 XmlNode;
 
+// clang-format off
+
+/**
+ * Iterate over all children of the given node.
+ */
+#define xml_for_children(_DOC_, _NODE_, _VAR_)                                                     \
+  for (XmlNode _VAR_ = xml_first_child((_DOC_), (_NODE_)); !sentinel_check(_VAR_);                 \
+               _VAR_ = xml_next((_DOC_), _VAR_))
+
+/**
+ * Iterate over all attributes of the given node.
+ */
+#define xml_for_attributes(_DOC_, _NODE_, _VAR_)                                                   \
+  for (XmlNode _VAR_ = xml_first_attr((_DOC_), (_NODE_)); !sentinel_check(_VAR_);                  \
+               _VAR_ = xml_next((_DOC_), _VAR_))
+
+// clang-format on
+
 /**
  * Create a new Xml document.
  * NOTE: 'nodeCapacity' is only the initial capacity, more space is automatically allocated when
@@ -68,13 +86,17 @@ XmlNode xml_add_comment(XmlDoc*, XmlNode parent, String value);
 /**
  * Query node data.
  */
-XmlType xml_type(const XmlDoc*, XmlNode);
-String  xml_name(const XmlDoc*, XmlNode);
-String  xml_value(const XmlDoc*, XmlNode);
-bool    xml_attr_has(const XmlDoc*, XmlNode node, String name);
-String  xml_attr_get(const XmlDoc*, XmlNode node, String name);
-XmlNode xml_first_child(const XmlDoc*, XmlNode);
-XmlNode xml_first_attr(const XmlDoc*, XmlNode);
+bool       xml_is(const XmlDoc*, XmlNode, XmlType);
+XmlType    xml_type(const XmlDoc*, XmlNode);
+String     xml_name(const XmlDoc*, XmlNode);
+StringHash xml_name_hash(const XmlDoc*, XmlNode);
+String     xml_value(const XmlDoc*, XmlNode);
+bool       xml_attr_has(const XmlDoc*, XmlNode node, StringHash nameHash);
+String     xml_attr_get(const XmlDoc*, XmlNode node, StringHash nameHash);
+StringHash xml_attr_get_hash(const XmlDoc*, XmlNode node, StringHash nameHash);
+XmlNode    xml_child_get(const XmlDoc*, XmlNode node, StringHash nameHash);
+XmlNode    xml_first_child(const XmlDoc*, XmlNode);
+XmlNode    xml_first_attr(const XmlDoc*, XmlNode);
 
 /**
  * Retrieve the next (sibling) node.
