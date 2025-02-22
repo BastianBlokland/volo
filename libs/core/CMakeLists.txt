@@ -120,6 +120,7 @@ add_executable(test_lib_core
   test/test_symbol.c
   test/test_thread.c
   test/test_time.c
+  test/test_types.c
   test/test_unicode.c
   test/test_utf8.c
   test/test_winutils.c
