@@ -259,9 +259,13 @@ String xml_value(const XmlDoc* doc, const XmlNode node) {
   }
   switch (nodeData->type) {
   case XmlType_Element: {
-    XmlNodeData* childData = xml_node_data(doc, nodeData->data_elem.childHead);
-    if (childData && childData->type == XmlType_Text) {
-      return childData->data_text.value;
+    const XmlNode childHead = nodeData->data_elem.childHead;
+    for (XmlNode child = childHead; !sentinel_check(child);) {
+      const XmlNodeData* childData = xml_node_data(doc, child);
+      if (childData->type == XmlType_Text) {
+        return childData->data_text.value;
+      }
+      child = childData->next;
     }
     return string_empty;
   }
@@ -346,24 +350,6 @@ XmlNode xml_child_get(const XmlDoc* doc, const XmlNode node, const StringHash na
   }
 
   return sentinel_u32;
-}
-
-String xml_child_text(const XmlDoc* doc, const XmlNode node) {
-  XmlNodeData* nodeData = xml_node_data(doc, node);
-  if (!nodeData || nodeData->type != XmlType_Element) {
-    return string_empty;
-  }
-
-  const XmlNode childHead = nodeData->data_elem.childHead;
-  for (XmlNode child = childHead; !sentinel_check(child);) {
-    const XmlNodeData* childData = xml_node_data(doc, child);
-    if (childData->type == XmlType_Text) {
-      return childData->data_text.value;
-    }
-    child = childData->next;
-  }
-
-  return string_empty;
 }
 
 XmlNode xml_first_child(const XmlDoc* doc, const XmlNode node) {
