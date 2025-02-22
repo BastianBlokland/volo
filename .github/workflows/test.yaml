@@ -17,7 +17,7 @@ jobs:
         config:
         - {
             name: linux-gcc,
-            image: ubuntu-20.04,
+            image: ubuntu-22.04,
             os: linux,
             toolchain: unix,
             cc: gcc-9,
@@ -26,10 +26,10 @@ jobs:
           }
         - {
             name: linux-clang,
-            image: ubuntu-20.04,
+            image: ubuntu-22.04,
             os: linux,
             toolchain: unix,
-            cc: clang-10,
+            cc: clang-13,
             fast: Off,
             lto: Off,
           }
@@ -62,10 +62,10 @@ jobs:
           }
         - {
             name: linux-clang-release,
-            image: ubuntu-20.04,
+            image: ubuntu-22.04,
             os: linux,
             toolchain: unix,
-            cc: clang-10,
+            cc: clang-13,
             fast: On,
             lto: On,
           }
@@ -92,7 +92,7 @@ jobs:
       uses: ./.github/actions/prepare-ubuntu
       id: prepare-ubuntu
       with:
-        dist: focal
+        dist: jammy
 
     - name: prepare-windows
       if: matrix.config.os == 'windows'
