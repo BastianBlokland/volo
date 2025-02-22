@@ -92,7 +92,7 @@ jobs:
       uses: ./.github/actions/prepare-ubuntu
       id: prepare-ubuntu
       with:
-        dist: focal
+        dist: jammy
 
     - name: prepare-windows
       if: matrix.config.os == 'windows'
