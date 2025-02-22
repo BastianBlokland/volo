@@ -60,8 +60,7 @@
   VKGEN_HASH(type)                                                                                 \
   VKGEN_HASH(types)                                                                                \
   VKGEN_HASH(union)                                                                                \
-  VKGEN_HASH(value)                                                                                \
-  VKGEN_HASH(vk_platform)
+  VKGEN_HASH(value)
 
 #define VKGEN_HASH(_NAME_) static StringHash g_hash_##_NAME_;
 VKGEN_VISIT_HASHES
