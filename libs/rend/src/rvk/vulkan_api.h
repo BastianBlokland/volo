@@ -392,21 +392,21 @@ typedef enum {
   VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE = 4,
 } VkSystemAllocationScope;
 
-typedef void* (SYS_DECL *PFN_vkAllocationFunction)( void* pUserData, usize size, usize alignment, VkSystemAllocationScope allocationScope);
+typedef void* (SYS_DECL * PFN_vkAllocationFunction)( void* pUserData, usize size, usize alignment, VkSystemAllocationScope allocationScope);
 
-typedef void (SYS_DECL *PFN_vkFreeFunction)( void* pUserData, void* pMemory);
+typedef void (SYS_DECL * PFN_vkFreeFunction)( void* pUserData, void* pMemory);
 
 typedef enum {
   VK_INTERNAL_ALLOCATION_TYPE_EXECUTABLE = 0,
 } VkInternalAllocationType;
 
-typedef void (SYS_DECL *PFN_vkInternalAllocationNotification)( void* pUserData, usize size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope);
+typedef void (SYS_DECL * PFN_vkInternalAllocationNotification)( void* pUserData, usize size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope);
 
-typedef void (SYS_DECL *PFN_vkInternalFreeNotification)( void* pUserData, usize size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope);
+typedef void (SYS_DECL * PFN_vkInternalFreeNotification)( void* pUserData, usize size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope);
 
-typedef void* (SYS_DECL *PFN_vkReallocationFunction)( void* pUserData, void* pOriginal, usize size, usize alignment, VkSystemAllocationScope allocationScope);
+typedef void* (SYS_DECL * PFN_vkReallocationFunction)( void* pUserData, void* pOriginal, usize size, usize alignment, VkSystemAllocationScope allocationScope);
 
-typedef void (SYS_DECL *PFN_vkVoidFunction)(void);
+typedef void (SYS_DECL * PFN_vkVoidFunction)(void);
 
 typedef struct VkAllocationCallbacks {
   void* pUserData;
@@ -3460,7 +3460,7 @@ typedef struct VkDebugUtilsMessengerCallbackDataEXT {
   const VkDebugUtilsObjectNameInfoEXT* pObjects;
 } VkDebugUtilsMessengerCallbackDataEXT;
 
-typedef VkBool32 (SYS_DECL *PFN_vkDebugUtilsMessengerCallbackEXT)( VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
+typedef VkBool32 (SYS_DECL * PFN_vkDebugUtilsMessengerCallbackEXT)( VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
 
 typedef VkFlags VkDebugUtilsMessageSeverityFlagsEXT;
 

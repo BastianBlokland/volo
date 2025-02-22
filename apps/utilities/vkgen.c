@@ -86,6 +86,41 @@ static const String g_vkgenExtensions[] = {
     string_static("VK_KHR_win32_surface"),
 };
 
+typedef enum {
+  VkGenRef_Const   = 1 << 0,
+  VkGenRef_Pointer = 1 << 1,
+} VkGenRefFlags;
+
+typedef struct {
+  String        name;
+  VkGenRefFlags flags;
+} VkGenRef;
+
+typedef struct {
+  String original, replacement;
+  bool   stripPointer;
+} VkGenRefAlias;
+
+// clang-format off
+static const VkGenRefAlias g_vkgenRefAliases[] = {
+  {string_static("uint8_t"),                           string_static("u8")                         },
+  {string_static("int32_t"),                           string_static("i32")                        },
+  {string_static("uint32_t"),                          string_static("u32")                        },
+  {string_static("int64_t"),                           string_static("i64")                        },
+  {string_static("uint64_t"),                          string_static("u64")                        },
+  {string_static("size_t"),                            string_static("usize")                      },
+  {string_static("float"),                             string_static("f32")                        },
+  {string_static("double"),                            string_static("f64")                        },
+  {string_static("HINSTANCE"),                         string_static("uptr")                       },
+  {string_static("HWND"),                              string_static("uptr")                       },
+  {string_static("HINSTANCE"),                         string_static("uptr")                       },
+  {string_static("xcb_visualid_t"),                    string_static("u32")                        },
+  {string_static("xcb_window_t"),                      string_static("uptr")                       },
+  {string_static("xcb_connection_t"),                  string_static("uptr"), .stripPointer = true },
+  {string_static("VK_DEFINE_NON_DISPATCHABLE_HANDLE"), string_static("VK_DEFINE_HANDLE")           },
+};
+// clang-format on
+
 static u32 vkgen_feat_find(const StringHash featHash) {
   for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
     if (string_hash(g_vkgenFeatures[i]) == featHash) {
@@ -135,6 +170,11 @@ static String vkgen_collapse_whitespace_scratch(const String text) {
   dynstring_append(&buffer, text);
   vkgen_collapse_whitespace(&buffer);
   return dynstring_view(&buffer);
+}
+
+static bool vkgen_node_value_match(XmlDoc* doc, const XmlNode node, const String text) {
+  const String nodeText = xml_value(doc, node);
+  return string_eq(string_trim_whitespace(nodeText), text);
 }
 
 static bool vkgen_str_list_contains(String str, const String other) {
@@ -232,6 +272,16 @@ typedef struct {
   XmlNode   extensionNodes[array_elems(g_vkgenExtensions)];
   DynString out;
 } VkGenContext;
+
+static u8 vkgen_out_last_char(VkGenContext* ctx) {
+  const String text = dynstring_view(&ctx->out);
+  return string_is_empty(text) ? '\0' : *string_last(text);
+}
+
+static bool vkgen_out_last_is_separator(VkGenContext* ctx) {
+  const u8 lastChar = vkgen_out_last_char(ctx);
+  return ascii_is_whitespace(lastChar);
+}
 
 static i8 vkgen_compare_command(const void* a, const void* b) {
   return compare_stringhash(field_ptr(a, VkGenCommand, key), field_ptr(b, VkGenCommand, key));
@@ -592,57 +642,51 @@ static void vkgen_collect_extensions(VkGenContext* ctx) {
   log_i("Collected extensions");
 }
 
-static String vkgen_type_resolve(VkGenContext* ctx, XmlNode* node) {
-  const String text = xml_value(ctx->schemaDoc, *node);
+static String vkgen_ref_scratch(const VkGenRef* ref) {
+  Mem       scratchMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
+  DynString str        = dynstring_create_over(scratchMem);
+  if (ref->flags & VkGenRef_Const) {
+    fmt_write(&str, "const ");
+  }
+  fmt_write(&str, "{}", fmt_text(ref->name));
+  if (ref->flags & VkGenRef_Pointer) {
+    fmt_write(&str, "*");
+  }
+  return dynstring_view(&str);
+}
 
-  const XmlNode next      = xml_next(ctx->schemaDoc, *node);
-  const String  nextText  = string_trim_whitespace(xml_value(ctx->schemaDoc, next));
-  const bool    isPointer = string_eq(nextText, string_lit("*"));
+static void vkgen_ref_resolve_alias(VkGenRef* ref) {
+  for (u32 i = 0; i != array_elems(g_vkgenRefAliases); ++i) {
+    const String org = g_vkgenRefAliases[i].original;
+    if (string_eq(org, ref->name)) {
+      ref->name = g_vkgenRefAliases[i].replacement;
+      if (g_vkgenRefAliases[i].stripPointer) {
+        ref->flags &= ~(VkGenRef_Const | VkGenRef_Pointer);
+      }
+      break;
+    }
+  }
+}
 
-  if (string_eq(text, string_lit("uint8_t"))) {
-    return string_lit("u8");
+static bool vkgen_ref_read(VkGenContext* ctx, XmlNode* node, VkGenRef* out) {
+  const bool    isConst  = vkgen_node_value_match(ctx->schemaDoc, *node, string_lit("const"));
+  const XmlNode typeNode = isConst ? xml_next(ctx->schemaDoc, *node) : *node;
+
+  if (xml_name_hash(ctx->schemaDoc, typeNode) != g_hash_type) {
+    return false; // Not a type.
   }
-  if (string_eq(text, string_lit("int32_t"))) {
-    return string_lit("i32");
+  *out = (VkGenRef){
+      .flags = isConst ? VkGenRef_Const : 0,
+      .name  = string_trim_whitespace(xml_value(ctx->schemaDoc, typeNode)),
+  };
+  if (vkgen_node_value_match(ctx->schemaDoc, xml_next(ctx->schemaDoc, typeNode), string_lit("*"))) {
+    out->flags |= VkGenRef_Pointer;
+    *node = xml_next(ctx->schemaDoc, typeNode);
+  } else {
+    *node = typeNode;
   }
-  if (string_eq(text, string_lit("uint32_t"))) {
-    return string_lit("u32");
-  }
-  if (string_eq(text, string_lit("int64_t"))) {
-    return string_lit("i64");
-  }
-  if (string_eq(text, string_lit("uint64_t"))) {
-    return string_lit("u64");
-  }
-  if (string_eq(text, string_lit("size_t"))) {
-    return string_lit("usize");
-  }
-  if (string_eq(text, string_lit("float"))) {
-    return string_lit("f32");
-  }
-  if (string_eq(text, string_lit("double"))) {
-    return string_lit("f64");
-  }
-  if (string_eq(text, string_lit("HINSTANCE"))) {
-    return string_lit("uptr");
-  }
-  if (string_eq(text, string_lit("HWND"))) {
-    return string_lit("uptr");
-  }
-  if (string_eq(text, string_lit("xcb_visualid_t"))) {
-    return string_lit("u32");
-  }
-  if (string_eq(text, string_lit("xcb_window_t"))) {
-    return string_lit("uptr");
-  }
-  if (string_eq(text, string_lit("VK_DEFINE_NON_DISPATCHABLE_HANDLE"))) {
-    return string_lit("VK_DEFINE_HANDLE");
-  }
-  if (string_eq(text, string_lit("xcb_connection_t")) && isPointer) {
-    *node = next; // Skip the pointer.
-    return string_lit("uptr");
-  }
-  return text;
+  vkgen_ref_resolve_alias(out);
+  return true;
 }
 
 static String vkgen_text_resolve_scratch(VkGenContext* ctx, const String text) {
@@ -655,34 +699,26 @@ static String vkgen_text_resolve_scratch(VkGenContext* ctx, const String text) {
 }
 
 static void vkgen_write_node(VkGenContext* ctx, const XmlNode node) {
-  bool lastIsElement = false;
   xml_for_children(ctx->schemaDoc, node, part) {
-    switch (xml_type(ctx->schemaDoc, part)) {
-    case XmlType_Element: {
-      const StringHash nameHash = xml_name_hash(ctx->schemaDoc, part);
-      if (nameHash == g_hash_comment) {
-        continue;
-      }
-      String text;
-      if (nameHash == g_hash_type) {
-        text = vkgen_type_resolve(ctx, &part);
-      } else {
-        text = xml_value(ctx->schemaDoc, part);
-      }
-      if (lastIsElement) {
-        fmt_write(&ctx->out, " ");
-      }
-      lastIsElement = true;
-      fmt_write(&ctx->out, "{}", fmt_text(text, .flags = FormatTextFlags_SingleLine));
-    } break;
-    case XmlType_Text: {
-      const String str = vkgen_text_resolve_scratch(ctx, xml_value(ctx->schemaDoc, part));
-      fmt_write(&ctx->out, "{}", fmt_text(str, .flags = FormatTextFlags_SingleLine));
-      lastIsElement = false;
-    } break;
-    default:
-      break;
+    if (xml_name_hash(ctx->schemaDoc, part) == g_hash_comment) {
+      continue; // Skip comments.
     }
+    VkGenRef ref;
+    String   text;
+    bool     needSeparator = false;
+    if (vkgen_ref_read(ctx, &part, &ref)) {
+      text          = vkgen_ref_scratch(&ref);
+      needSeparator = true;
+    } else if (xml_name_hash(ctx->schemaDoc, part) == g_hash_name) {
+      text          = xml_value(ctx->schemaDoc, part);
+      needSeparator = true;
+    } else {
+      text = vkgen_text_resolve_scratch(ctx, xml_value(ctx->schemaDoc, part));
+    }
+    if (needSeparator && !vkgen_out_last_is_separator(ctx)) {
+      fmt_write(&ctx->out, " ");
+    }
+    fmt_write(&ctx->out, "{}", fmt_text(text, .flags = FormatTextFlags_SingleLine));
   }
 }
 
