@@ -689,15 +689,6 @@ static bool vkgen_ref_read(VkGenContext* ctx, XmlNode* node, VkGenRef* out) {
   return true;
 }
 
-static String vkgen_text_resolve_scratch(VkGenContext* ctx, const String text) {
-  (void)ctx;
-  DynString buffer = dynstring_create(g_allocScratch, text.size);
-  dynstring_append(&buffer, text);
-  vkgen_collapse_whitespace(&buffer);
-  dynstring_replace(&buffer, string_lit("VKAPI_PTR"), string_lit("SYS_DECL"));
-  return dynstring_view(&buffer);
-}
-
 static void vkgen_write_node(VkGenContext* ctx, const XmlNode node) {
   xml_for_children(ctx->schemaDoc, node, part) {
     if (xml_name_hash(ctx->schemaDoc, part) == g_hash_comment) {
@@ -713,7 +704,11 @@ static void vkgen_write_node(VkGenContext* ctx, const XmlNode node) {
       text          = xml_value(ctx->schemaDoc, part);
       needSeparator = true;
     } else {
-      text = vkgen_text_resolve_scratch(ctx, xml_value(ctx->schemaDoc, part));
+      DynString buffer = dynstring_create(g_allocScratch, text.size);
+      dynstring_append(&buffer, text);
+      vkgen_collapse_whitespace(&buffer);
+      dynstring_replace(&buffer, string_lit("VKAPI_PTR"), string_lit("SYS_DECL"));
+      text = dynstring_view(&buffer);
     }
     if (needSeparator && !vkgen_out_last_is_separator(ctx)) {
       fmt_write(&ctx->out, " ");
