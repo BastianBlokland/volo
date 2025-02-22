@@ -95,13 +95,13 @@ static bool vkgen_feat_is_enabled(const StringHash featHash) {
   return false;
 }
 
-static bool vkgen_ext_is_enabled(const StringHash extHash) {
-  array_for_t(g_vkgenExtensions, String, ext) {
-    if (string_hash(*ext) == extHash) {
-      return true;
+static u32 vkgen_ext_find(const StringHash extHash) {
+  for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
+    if (string_hash(g_vkgenExtensions[i]) == extHash) {
+      return i;
     }
   }
-  return false;
+  return sentinel_u32;
 }
 
 static XmlNode vkgen_schema_get(XmlDoc* xmlDoc, const String host, const String uri) {
@@ -178,8 +178,8 @@ typedef struct {
   DynArray  enumEntries; // VkGenEnumEntry[]
   DynArray  commands;    // VkGenEntry[]
   DynBitSet commandsWritten;
-  DynArray  extensions; // VkGenEntry[]
-  DynArray  features;   // VkGenEntry[]
+  XmlNode   extensionNodes[array_elems(g_vkgenExtensions)];
+  DynArray  features; // VkGenEntry[]
   DynString out;
 } VkGenContext;
 
@@ -534,6 +534,8 @@ static void vkgen_collect_commands(VkGenContext* ctx) {
 }
 
 static void vkgen_collect_extensions(VkGenContext* ctx) {
+  mem_set(array_mem(ctx->extensionNodes), 0xFF);
+
   const XmlNode extensionsNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_extensions);
   xml_for_children(ctx->schemaDoc, extensionsNode, child) {
     if (xml_name_hash(ctx->schemaDoc, child) != g_hash_extension) {
@@ -543,21 +545,18 @@ static void vkgen_collect_extensions(VkGenContext* ctx) {
       continue;
     }
     const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
-    if (!vkgen_ext_is_enabled(nameHash)) {
-      continue;
+    const u32        extIndex = vkgen_ext_find(nameHash);
+    if (sentinel_check(extIndex)) {
+      continue; // Not an supported extension.
     }
     const String numberStr = xml_attr_get(ctx->schemaDoc, child, g_hash_number);
     if (string_is_empty(numberStr)) {
       continue;
     }
-    const i64 extNumber = vkgen_to_int(numberStr);
-    if (nameHash) {
-      vkgen_entry_push(&ctx->extensions, nameHash, child);
-      vkgen_addition_collect(ctx, child, extNumber);
-    }
+    vkgen_addition_collect(ctx, child, vkgen_to_int(numberStr));
+    ctx->extensionNodes[extIndex] = child;
   }
-  dynarray_sort(&ctx->extensions, vkgen_compare_entry);
-  log_i("Collected extensions", log_param("count", fmt_int(ctx->extensions.size)));
+  log_i("Collected extensions");
 }
 
 static void vkgen_collect_features(VkGenContext* ctx) {
@@ -877,15 +876,6 @@ static bool vkgen_write_requirements(VkGenContext* ctx, const XmlNode node) {
   return success;
 }
 
-static bool vkgen_write_extension(VkGenContext* ctx, const StringHash key) {
-  const u32 extensionIndex = vkgen_entry_index(&ctx->extensions, key);
-  if (sentinel_check(extensionIndex)) {
-    return false; // Unknown extension.
-  }
-  const XmlNode node = vkgen_entry_find(&ctx->extensions, key);
-  return vkgen_write_requirements(ctx, node);
-}
-
 static bool vkgen_write_feature(VkGenContext* ctx, const StringHash key) {
   const u32 featureIndex = vkgen_entry_index(&ctx->features, key);
   if (sentinel_check(featureIndex)) {
@@ -928,9 +918,12 @@ static bool vkgen_write_header(VkGenContext* ctx) {
       return false;
     }
   }
-  array_for_t(g_vkgenExtensions, String, extension) {
-    if (!vkgen_write_extension(ctx, string_hash(*extension))) {
-      return false;
+  for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
+    if (sentinel_check(ctx->extensionNodes[i])) {
+      return false; // Extension not found.
+    }
+    if (!vkgen_write_requirements(ctx, ctx->extensionNodes[i])) {
+      return false; // Extension requirement missing.
     }
   }
 
@@ -991,7 +984,6 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .enumEntries     = dynarray_create_t(g_allocHeap, VkGenEnumEntry, 2048),
       .commands        = dynarray_create_t(g_allocHeap, VkGenEntry, 1024),
       .commandsWritten = dynbitset_create(g_allocHeap, 1024),
-      .extensions      = dynarray_create_t(g_allocHeap, VkGenEntry, 16),
       .features        = dynarray_create_t(g_allocHeap, VkGenEntry, 8),
       .out             = dynstring_create(g_allocHeap, usize_kibibyte * 16),
   };
@@ -1028,7 +1020,6 @@ Exit:;
   dynarray_destroy(&ctx.enumEntries);
   dynarray_destroy(&ctx.commands);
   dynbitset_destroy(&ctx.commandsWritten);
-  dynarray_destroy(&ctx.extensions);
   dynarray_destroy(&ctx.features);
   dynstring_destroy(&ctx.out);
 
