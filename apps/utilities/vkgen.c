@@ -86,13 +86,13 @@ static const String g_vkgenExtensions[] = {
     string_static("VK_KHR_win32_surface"),
 };
 
-static bool vkgen_feat_is_enabled(const StringHash featHash) {
-  array_for_t(g_vkgenFeatures, String, feat) {
-    if (string_hash(*feat) == featHash) {
-      return true;
+static u32 vkgen_feat_find(const StringHash featHash) {
+  for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
+    if (string_hash(g_vkgenFeatures[i]) == featHash) {
+      return i;
     }
   }
-  return false;
+  return sentinel_u32;
 }
 
 static u32 vkgen_ext_find(const StringHash extHash) {
@@ -178,8 +178,8 @@ typedef struct {
   DynArray  enumEntries; // VkGenEnumEntry[]
   DynArray  commands;    // VkGenEntry[]
   DynBitSet commandsWritten;
+  XmlNode   featureNodes[array_elems(g_vkgenFeatures)];
   XmlNode   extensionNodes[array_elems(g_vkgenExtensions)];
-  DynArray  features; // VkGenEntry[]
   DynString out;
 } VkGenContext;
 
@@ -533,6 +533,26 @@ static void vkgen_collect_commands(VkGenContext* ctx) {
   log_i("Collected commands", log_param("count", fmt_int(ctx->commands.size)));
 }
 
+static void vkgen_collect_features(VkGenContext* ctx) {
+  mem_set(array_mem(ctx->featureNodes), 0xFF);
+
+  xml_for_children(ctx->schemaDoc, ctx->schemaRoot, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) == g_hash_feature) {
+      if (!vkgen_is_supported_api(ctx, child)) {
+        continue;
+      }
+      const StringHash nameHash  = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
+      const u32        featIndex = vkgen_feat_find(nameHash);
+      if (sentinel_check(featIndex)) {
+        continue; // Not an supported extension.
+      }
+      vkgen_addition_collect(ctx, child, -1);
+      ctx->featureNodes[featIndex] = child;
+    }
+  }
+  log_i("Collected features");
+}
+
 static void vkgen_collect_extensions(VkGenContext* ctx) {
   mem_set(array_mem(ctx->extensionNodes), 0xFF);
 
@@ -557,26 +577,6 @@ static void vkgen_collect_extensions(VkGenContext* ctx) {
     ctx->extensionNodes[extIndex] = child;
   }
   log_i("Collected extensions");
-}
-
-static void vkgen_collect_features(VkGenContext* ctx) {
-  xml_for_children(ctx->schemaDoc, ctx->schemaRoot, child) {
-    if (xml_name_hash(ctx->schemaDoc, child) == g_hash_feature) {
-      if (!vkgen_is_supported_api(ctx, child)) {
-        continue;
-      }
-      const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
-      if (!vkgen_feat_is_enabled(nameHash)) {
-        continue;
-      }
-      if (nameHash) {
-        vkgen_entry_push(&ctx->features, nameHash, child);
-        vkgen_addition_collect(ctx, child, -1);
-      }
-    }
-  }
-  dynarray_sort(&ctx->features, vkgen_compare_entry);
-  log_i("Collected features", log_param("count", fmt_int(ctx->features.size)));
 }
 
 static void vkgen_write_comment_elem(VkGenContext* ctx, const XmlNode comment) {
@@ -876,15 +876,6 @@ static bool vkgen_write_requirements(VkGenContext* ctx, const XmlNode node) {
   return success;
 }
 
-static bool vkgen_write_feature(VkGenContext* ctx, const StringHash key) {
-  const u32 featureIndex = vkgen_entry_index(&ctx->features, key);
-  if (sentinel_check(featureIndex)) {
-    return false; // Unknown feature.
-  }
-  const XmlNode node = vkgen_entry_find(&ctx->features, key);
-  return vkgen_write_requirements(ctx, node);
-}
-
 static bool vkgen_write_header(VkGenContext* ctx) {
   fmt_write(&ctx->out, "#pragma once\n");
   fmt_write(
@@ -913,9 +904,12 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   }
   fmt_write(&ctx->out, "\n");
 
-  array_for_t(g_vkgenFeatures, String, feature) {
-    if (!vkgen_write_feature(ctx, string_hash(*feature))) {
-      return false;
+  for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
+    if (sentinel_check(ctx->featureNodes[i])) {
+      return false; // Feature not found.
+    }
+    if (!vkgen_write_requirements(ctx, ctx->featureNodes[i])) {
+      return false; // Feature requirement missing.
     }
   }
   for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
@@ -984,7 +978,6 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .enumEntries     = dynarray_create_t(g_allocHeap, VkGenEnumEntry, 2048),
       .commands        = dynarray_create_t(g_allocHeap, VkGenEntry, 1024),
       .commandsWritten = dynbitset_create(g_allocHeap, 1024),
-      .features        = dynarray_create_t(g_allocHeap, VkGenEntry, 8),
       .out             = dynstring_create(g_allocHeap, usize_kibibyte * 16),
   };
 
@@ -1020,7 +1013,6 @@ Exit:;
   dynarray_destroy(&ctx.enumEntries);
   dynarray_destroy(&ctx.commands);
   dynbitset_destroy(&ctx.commandsWritten);
-  dynarray_destroy(&ctx.features);
   dynstring_destroy(&ctx.out);
 
   net_teardown();
