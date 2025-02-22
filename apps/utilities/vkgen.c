@@ -213,6 +213,7 @@ typedef struct {
 
 typedef struct {
   StringHash key;
+  String     name, type; // Allocated in the schema document.
   XmlNode    schemaNode;
 } VkGenCommand;
 
@@ -315,9 +316,12 @@ static const VkGenCommand* vkgen_command_get(VkGenContext* ctx, const u32 index)
   return dynarray_at_t(&ctx->commands, index, VkGenCommand);
 }
 
-static void vkgen_command_push(VkGenContext* ctx, const StringHash key, const XmlNode node) {
+static void
+vkgen_command_push(VkGenContext* ctx, const String name, const String type, const XmlNode node) {
   *dynarray_push_t(&ctx->commands, VkGenCommand) = (VkGenCommand){
-      .key        = key,
+      .key        = string_hash(name),
+      .name       = name,
+      .type       = type,
       .schemaNode = node,
   };
 }
@@ -529,10 +533,12 @@ static void vkgen_collect_commands(VkGenContext* ctx) {
       continue; // Command without a proto (we don't support aliases).
     }
     const XmlNode protoNameNode = xml_child_get(ctx->schemaDoc, protoNode, g_hash_name);
-    const String  name          = xml_value(ctx->schemaDoc, protoNameNode);
-    if (!string_is_empty(name)) {
-      vkgen_command_push(ctx, string_hash(name), child);
-    }
+    const XmlNode protoTypeNode = xml_child_get(ctx->schemaDoc, protoNode, g_hash_type);
+    vkgen_command_push(
+        ctx,
+        xml_value(ctx->schemaDoc, protoNameNode),
+        xml_value(ctx->schemaDoc, protoTypeNode),
+        child);
   }
   dynarray_sort(&ctx->commands, vkgen_compare_command);
   log_i("Collected commands", log_param("count", fmt_int(ctx->commands.size)));
@@ -712,7 +718,7 @@ static void vkgen_write_type_struct(VkGenContext* ctx, const XmlNode typeNode) {
   xml_for_children(ctx->schemaDoc, typeNode, entry) {
     const StringHash nameHash = xml_name_hash(ctx->schemaDoc, entry);
     if (nameHash != g_hash_member || !vkgen_is_supported_api(ctx, entry)) {
-      continue; // Not a struct member or not a supported member.
+      continue; // Not a (supported) struct member.
     }
     fmt_write(&ctx->out, "  ");
     vkgen_write_node(ctx, entry);
@@ -728,7 +734,7 @@ static void vkgen_write_type_union(VkGenContext* ctx, const XmlNode typeNode) {
   xml_for_children(ctx->schemaDoc, typeNode, entry) {
     const StringHash nameHash = xml_name_hash(ctx->schemaDoc, entry);
     if (nameHash != g_hash_member || !vkgen_is_supported_api(ctx, entry)) {
-      continue; // Not a union member or not a supported member.
+      continue; // Not a (supported) union member.
     }
     fmt_write(&ctx->out, "  ");
     vkgen_write_node(ctx, entry);
@@ -739,18 +745,18 @@ static void vkgen_write_type_union(VkGenContext* ctx, const XmlNode typeNode) {
 
 static bool vkgen_write_type(VkGenContext*, StringHash key);
 
-static bool vkgen_write_type_dependencies(VkGenContext* ctx, const XmlNode typeNode) {
+static bool vkgen_write_dependencies(VkGenContext* ctx, const XmlNode typeNode) {
   bool success = true;
   xml_for_children(ctx->schemaDoc, typeNode, entry) {
     if (xml_type(ctx->schemaDoc, entry) != XmlType_Element) {
       continue; // Not an element.
     }
     if (xml_name_hash(ctx->schemaDoc, entry) == g_hash_type) {
-      const String innerText = xml_value(ctx->schemaDoc, entry);
-      success &= vkgen_write_type(ctx, string_hash(innerText));
+      const String type = xml_value(ctx->schemaDoc, entry);
+      success &= vkgen_write_type(ctx, string_hash(type));
       continue;
     }
-    success &= vkgen_write_type_dependencies(ctx, entry);
+    success &= vkgen_write_dependencies(ctx, entry);
   }
   return success;
 }
@@ -765,38 +771,44 @@ static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
   }
   dynbitset_set(&ctx->typesWritten, typeIndex);
 
+  // Write types we depend on.
   const VkGenType* typeInfo = vkgen_type_get(ctx, typeIndex);
-  if (!vkgen_write_type_dependencies(ctx, typeInfo->schemaNode)) {
+  if (!vkgen_write_dependencies(ctx, typeInfo->schemaNode)) {
     return false;
   }
 
+  // Write type definition.
   switch (typeInfo->kind) {
   case VkGenTypeKind_None:
-    return true;
+    break;
   case VkGenTypeKind_Simple:
     vkgen_write_node(ctx, typeInfo->schemaNode);
     fmt_write(&ctx->out, "\n\n");
-    return true;
+    break;
   case VkGenTypeKind_Handle:
-    return vkgen_write_type_handle(ctx, typeInfo->schemaNode), true;
+    vkgen_write_type_handle(ctx, typeInfo->schemaNode);
+    break;
   case VkGenTypeKind_Enum:
-    return vkgen_write_type_enum(ctx, typeInfo->schemaNode), true;
+    vkgen_write_type_enum(ctx, typeInfo->schemaNode);
+    break;
   case VkGenTypeKind_Struct:
-    return vkgen_write_type_struct(ctx, typeInfo->schemaNode), true;
+    vkgen_write_type_struct(ctx, typeInfo->schemaNode);
+    break;
   case VkGenTypeKind_Union:
-    return vkgen_write_type_union(ctx, typeInfo->schemaNode), true;
+    vkgen_write_type_union(ctx, typeInfo->schemaNode);
+    break;
   }
-  return false;
+  return true;
 }
 
-static void vkgen_write_command_params(VkGenContext* ctx, const XmlNode commandNode) {
+static void vkgen_write_command_params(VkGenContext* ctx, const XmlNode cmdNode) {
   bool anyParam = false;
-  xml_for_children(ctx->schemaDoc, commandNode, child) {
+  xml_for_children(ctx->schemaDoc, cmdNode, child) {
     if (xml_name_hash(ctx->schemaDoc, child) != g_hash_param) {
       continue; // Not a parameter.
     }
     if (!vkgen_is_supported_api(ctx, child)) {
-      continue;
+      continue; // Not supported.
     }
     if (anyParam) {
       fmt_write(&ctx->out, ", ");
@@ -810,38 +822,31 @@ static void vkgen_write_command_params(VkGenContext* ctx, const XmlNode commandN
 }
 
 static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
-  const u32 commandIndex = vkgen_command_find(ctx, key);
-  if (sentinel_check(commandIndex)) {
+  const u32 cmdIndex = vkgen_command_find(ctx, key);
+  if (sentinel_check(cmdIndex)) {
     return false; // Unknown command.
   }
-  if (dynbitset_test(&ctx->commandsWritten, commandIndex)) {
+  if (dynbitset_test(&ctx->commandsWritten, cmdIndex)) {
     return true; // Already written.
   }
-  dynbitset_set(&ctx->commandsWritten, commandIndex);
+  dynbitset_set(&ctx->commandsWritten, cmdIndex);
 
-  const VkGenCommand* commandInfo = vkgen_command_get(ctx, commandIndex);
-  if (!vkgen_write_type_dependencies(ctx, commandInfo->schemaNode)) {
+  // Write types this command depends on.
+  const VkGenCommand* cmd = vkgen_command_get(ctx, cmdIndex);
+  if (!vkgen_write_dependencies(ctx, cmd->schemaNode)) {
     return false;
   }
-  const XmlNode protoNode = xml_child_get(ctx->schemaDoc, commandInfo->schemaNode, g_hash_proto);
-  if (sentinel_check(protoNode)) {
-    return false; // Proto node missing (could be an alias).
-  }
-  const XmlNode protoTypeNode = xml_child_get(ctx->schemaDoc, protoNode, g_hash_type);
-  const XmlNode protoNameNode = xml_child_get(ctx->schemaDoc, protoNode, g_hash_name);
-  if (sentinel_check(protoTypeNode) || sentinel_check(protoNameNode)) {
-    return false; // Name or type missing.
-  }
-  const String typeStr = xml_value(ctx->schemaDoc, protoTypeNode);
-  const String nameStr = xml_value(ctx->schemaDoc, protoNameNode);
 
-  fmt_write(&ctx->out, "typedef {} (SYS_DECL *PFN_{})(", fmt_text(typeStr), fmt_text(nameStr));
-  vkgen_write_command_params(ctx, commandInfo->schemaNode);
+  // Write function pointer type-def.
+  fmt_write(&ctx->out, "typedef {} (SYS_DECL *PFN_{})(", fmt_text(cmd->type), fmt_text(cmd->name));
+  vkgen_write_command_params(ctx, cmd->schemaNode);
   fmt_write(&ctx->out, ");\n");
 
-  fmt_write(&ctx->out, "{} SYS_DECL {}(", fmt_text(typeStr), fmt_text(nameStr));
-  vkgen_write_command_params(ctx, commandInfo->schemaNode);
+  // Write function declaration.
+  fmt_write(&ctx->out, "{} SYS_DECL {}(", fmt_text(cmd->type), fmt_text(cmd->name));
+  vkgen_write_command_params(ctx, cmd->schemaNode);
   fmt_write(&ctx->out, ");\n\n");
+
   return true;
 }
 
@@ -899,11 +904,14 @@ static bool vkgen_write_header(VkGenContext* ctx) {
       " (((u32)(major)) << 22) |"
       " (((u32)(minor)) << 12) |"
       " ((u32)(patch)))\n\n");
+
+  // Write constants.
   dynarray_for_t(&ctx->constants, VkGenConstant, constant) {
     fmt_write(&ctx->out, "#define {} {}\n", fmt_text(constant->name), fmt_text(constant->value));
   }
   fmt_write(&ctx->out, "\n");
 
+  // Write feature requirements (types and commands).
   for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
     if (sentinel_check(ctx->featureNodes[i])) {
       return false; // Feature not found.
@@ -912,6 +920,8 @@ static bool vkgen_write_header(VkGenContext* ctx) {
       return false; // Feature requirement missing.
     }
   }
+
+  // Write extension requirements (types and commands).
   for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
     if (sentinel_check(ctx->extensionNodes[i])) {
       return false; // Extension not found.
