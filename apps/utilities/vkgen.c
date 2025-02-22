@@ -492,22 +492,23 @@ static void vkgen_collect_enum_extensions(VkGenContext* ctx, const XmlNode node,
 static void vkgen_collect_types(VkGenContext* ctx) {
   const XmlNode typesNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_types);
   xml_for_children(ctx->schemaDoc, typesNode, child) {
-    if (xml_name_hash(ctx->schemaDoc, child) == g_hash_type) {
-      if (!vkgen_is_supported_api(ctx, child)) {
-        continue;
-      }
-      const VkGenTypeKind kind     = vkgen_categorize_type(ctx, child);
-      const StringHash    nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
-      if (nameHash) {
-        vkgen_type_push(ctx, kind, nameHash, child);
-        continue;
-      }
-      const XmlNode nameNode = xml_child_get(ctx->schemaDoc, child, g_hash_name);
-      if (!sentinel_check(nameNode)) {
-        const String nameText = xml_child_text(ctx->schemaDoc, nameNode);
-        vkgen_type_push(ctx, kind, string_hash(nameText), child);
-        continue;
-      }
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_type) {
+      continue; // Not a type.
+    }
+    if (!vkgen_is_supported_api(ctx, child)) {
+      continue; // Not supported.
+    }
+    const VkGenTypeKind kind     = vkgen_categorize_type(ctx, child);
+    const StringHash    nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
+    if (nameHash) {
+      vkgen_type_push(ctx, kind, nameHash, child);
+      continue;
+    }
+    const XmlNode nameNode = xml_child_get(ctx->schemaDoc, child, g_hash_name);
+    if (!sentinel_check(nameNode)) {
+      const String nameText = xml_child_text(ctx->schemaDoc, nameNode);
+      vkgen_type_push(ctx, kind, string_hash(nameText), child);
+      continue;
     }
   }
   dynarray_sort(&ctx->types, vkgen_compare_type);
@@ -518,20 +519,17 @@ static void vkgen_collect_commands(VkGenContext* ctx) {
   const XmlNode commandsNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_commands);
   xml_for_children(ctx->schemaDoc, commandsNode, child) {
     if (xml_name_hash(ctx->schemaDoc, child) != g_hash_command) {
-      continue; // Not a command element.
+      continue; // Not a command.
     }
     if (!vkgen_is_supported_api(ctx, child)) {
-      continue;
+      continue; // Not supported.
     }
     const XmlNode protoNode = xml_child_get(ctx->schemaDoc, child, g_hash_proto);
     if (sentinel_check(protoNode)) {
-      continue; // Command without a proto (could be an alias).
+      continue; // Command without a proto (we don't support aliases).
     }
     const XmlNode protoNameNode = xml_child_get(ctx->schemaDoc, protoNode, g_hash_name);
-    if (sentinel_check(protoNameNode)) {
-      continue; // Name missing.
-    }
-    const String name = xml_child_text(ctx->schemaDoc, protoNameNode);
+    const String  name          = xml_child_text(ctx->schemaDoc, protoNameNode);
     if (!string_is_empty(name)) {
       vkgen_command_push(ctx, string_hash(name), child);
     }
@@ -544,18 +542,19 @@ static void vkgen_collect_features(VkGenContext* ctx) {
   mem_set(array_mem(ctx->featureNodes), 0xFF);
 
   xml_for_children(ctx->schemaDoc, ctx->schemaRoot, child) {
-    if (xml_name_hash(ctx->schemaDoc, child) == g_hash_feature) {
-      if (!vkgen_is_supported_api(ctx, child)) {
-        continue;
-      }
-      const StringHash nameHash  = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
-      const u32        featIndex = vkgen_feat_find(nameHash);
-      if (sentinel_check(featIndex)) {
-        continue; // Not an supported extension.
-      }
-      vkgen_collect_enum_extensions(ctx, child, -1);
-      ctx->featureNodes[featIndex] = child;
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_feature) {
+      continue; // Not a feature.
     }
+    if (!vkgen_is_supported_api(ctx, child)) {
+      continue; // Not supported.
+    }
+    const StringHash nameHash  = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
+    const u32        featIndex = vkgen_feat_find(nameHash);
+    if (sentinel_check(featIndex)) {
+      continue; // Not an supported extension.
+    }
+    vkgen_collect_enum_extensions(ctx, child, -1);
+    ctx->featureNodes[featIndex] = child;
   }
   log_i("Collected features");
 }
@@ -566,10 +565,10 @@ static void vkgen_collect_extensions(VkGenContext* ctx) {
   const XmlNode extensionsNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_extensions);
   xml_for_children(ctx->schemaDoc, extensionsNode, child) {
     if (xml_name_hash(ctx->schemaDoc, child) != g_hash_extension) {
-      continue; // Not an extension element.
+      continue; // Not an extension.
     }
     if (!vkgen_is_supported(ctx, child)) {
-      continue;
+      continue; // Not supported.
     }
     const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
     const u32        extIndex = vkgen_ext_find(nameHash);
@@ -584,14 +583,6 @@ static void vkgen_collect_extensions(VkGenContext* ctx) {
     ctx->extensionNodes[extIndex] = child;
   }
   log_i("Collected extensions");
-}
-
-static void vkgen_write_comment_elem(VkGenContext* ctx, const XmlNode comment) {
-  const XmlNode text = xml_first_child(ctx->schemaDoc, comment);
-  if (xml_is(ctx->schemaDoc, text, XmlType_Text)) {
-    const String str = vkgen_collapse_whitespace_scratch(xml_value(ctx->schemaDoc, text));
-    fmt_write(&ctx->out, "//{}.\n", fmt_text(str, .flags = FormatTextFlags_SingleLine));
-  }
 }
 
 static String vkgen_type_resolve(VkGenContext* ctx, XmlNode* node) {
@@ -881,6 +872,14 @@ static bool vkgen_write_requirements(VkGenContext* ctx, const XmlNode node) {
     }
   }
   return success;
+}
+
+static void vkgen_write_comment_elem(VkGenContext* ctx, const XmlNode comment) {
+  const XmlNode text = xml_first_child(ctx->schemaDoc, comment);
+  if (xml_is(ctx->schemaDoc, text, XmlType_Text)) {
+    const String str = vkgen_collapse_whitespace_scratch(xml_value(ctx->schemaDoc, text));
+    fmt_write(&ctx->out, "//{}.\n", fmt_text(str, .flags = FormatTextFlags_SingleLine));
+  }
 }
 
 static bool vkgen_write_header(VkGenContext* ctx) {
