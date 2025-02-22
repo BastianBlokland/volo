@@ -104,6 +104,54 @@ static u32 vkgen_ext_find(const StringHash extHash) {
   return sentinel_u32;
 }
 
+static i64 vkgen_to_int(String str) {
+  u8 base = 10;
+  if (string_starts_with(str, string_lit("0x"))) {
+    str  = string_consume(str, 2);
+    base = 16;
+  }
+  i64 value;
+  format_read_i64(str, &value, base);
+  return value;
+}
+
+static void vkgen_collapse_whitespace(DynString* str) {
+  bool inWhitespace = false;
+  for (usize i = 0; i != str->size; ++i) {
+    const u8 ch = *string_at(dynstring_view(str), i);
+    if (ascii_is_whitespace(ch)) {
+      if (inWhitespace) {
+        dynstring_erase_chars(str, i--, 1);
+      }
+      inWhitespace = true;
+    } else {
+      inWhitespace = false;
+    }
+  }
+}
+
+static String vkgen_collapse_whitespace_scratch(const String text) {
+  DynString buffer = dynstring_create(g_allocScratch, text.size);
+  dynstring_append(&buffer, text);
+  vkgen_collapse_whitespace(&buffer);
+  return dynstring_view(&buffer);
+}
+
+static bool vkgen_str_list_contains(String str, const String other) {
+  while (!string_is_empty(str)) {
+    usize len = string_find_first_char(str, ',');
+    if (sentinel_check(len)) {
+      len = str.size;
+    }
+    const String elem = string_slice(str, 0, len);
+    if (string_eq(elem, other)) {
+      return true;
+    }
+    str = string_consume(str, len);
+  }
+  return false;
+}
+
 static XmlNode vkgen_schema_get(XmlDoc* xmlDoc, const String host, const String uri) {
   XmlNode node = sentinel_u32;
 
@@ -202,56 +250,6 @@ static i8 vkgen_compare_enum_entry_no_value(const void* a, const void* b) {
   return compare_stringhash(field_ptr(a, VkGenEnumEntry, key), field_ptr(b, VkGenEnumEntry, key));
 }
 
-static i64 vkgen_to_int(String str) {
-  u8 base = 10;
-  if (string_starts_with(str, string_lit("0x"))) {
-    str  = string_consume(str, 2);
-    base = 16;
-  }
-  i64 value;
-  format_read_i64(str, &value, base);
-  return value;
-}
-
-static void vkgen_collapse_whitespace(DynString* str) {
-  bool inWhitespace = false;
-  for (usize i = 0; i != str->size; ++i) {
-    const u8 ch = *string_at(dynstring_view(str), i);
-    if (ascii_is_whitespace(ch)) {
-      if (inWhitespace) {
-        dynstring_erase_chars(str, i--, 1);
-      }
-      inWhitespace = true;
-    } else {
-      inWhitespace = false;
-    }
-  }
-}
-
-static String vkgen_collapse_whitespace_scratch(const String text) {
-  DynString buffer = dynstring_create(g_allocScratch, text.size);
-  dynstring_append(&buffer, text);
-  vkgen_collapse_whitespace(&buffer);
-  return dynstring_view(&buffer);
-}
-
-static u32 vkgen_command_find(VkGenContext* ctx, const StringHash key) {
-  const VkGenType tgt = {.key = key};
-  VkGenCommand*   res = dynarray_search_binary(&ctx->commands, vkgen_compare_command, &tgt);
-  return res ? (u32)(res - dynarray_begin_t(&ctx->commands, VkGenCommand)) : sentinel_u32;
-}
-
-static const VkGenCommand* vkgen_command_get(VkGenContext* ctx, const u32 index) {
-  return dynarray_at_t(&ctx->commands, index, VkGenCommand);
-}
-
-static void vkgen_command_push(VkGenContext* ctx, const StringHash key, const XmlNode node) {
-  *dynarray_push_t(&ctx->commands, VkGenCommand) = (VkGenCommand){
-      .key        = key,
-      .schemaNode = node,
-  };
-}
-
 static u32 vkgen_type_find(VkGenContext* ctx, const StringHash key) {
   const VkGenType tgt = {.key = key};
   VkGenType*      res = dynarray_search_binary(&ctx->types, vkgen_compare_type, &tgt);
@@ -307,79 +305,31 @@ static VkGenEnumEntries vkgen_enum_entries_find(VkGenContext* ctx, const StringH
   return res;
 }
 
-static void vkgen_addition_collect(VkGenContext* ctx, const XmlNode node, i64 extNumber) {
-  xml_for_children(ctx->schemaDoc, node, child) {
-    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_require) {
-      continue; // Not a require element.
-    }
-    xml_for_children(ctx->schemaDoc, child, entry) {
-      const StringHash entryNameHash = xml_name_hash(ctx->schemaDoc, entry);
-      if (entryNameHash == g_hash_enum) {
-        const StringHash enumKey = xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_extends);
-        const String     name    = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
-        if (!enumKey || string_is_empty(name)) {
-          continue; // Enum or name missing.
-        }
-        VkGenEnumEntry entryRes;
-        entryRes.key  = enumKey;
-        entryRes.name = name;
-
-        const String bitPosStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_bitpos);
-        if (!string_is_empty(bitPosStr)) {
-          entryRes.value = u64_lit(1) << vkgen_to_int(bitPosStr);
-          vkgen_enum_entry_push(ctx, entryRes);
-          continue;
-        }
-        const bool   invert   = xml_attr_has(ctx->schemaDoc, entry, g_hash_dir);
-        const String valueStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
-        if (!string_is_empty(valueStr)) {
-          entryRes.value = vkgen_to_int(valueStr) * (invert ? -1 : 1);
-          vkgen_enum_entry_push(ctx, entryRes);
-          continue;
-        }
-        const String offsetStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_offset);
-        if (!string_is_empty(offsetStr)) {
-          const String extnumStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_extnumber);
-          if (!string_is_empty(extnumStr)) {
-            extNumber = vkgen_to_int(extnumStr);
-          }
-          if (extNumber < 0) {
-            log_w("Missing extension number");
-            continue;
-          }
-          const i64 valueRaw = 1000000000 + (extNumber - 1) * 1000 + vkgen_to_int(offsetStr);
-          entryRes.value     = valueRaw * (invert ? -1 : 1);
-          vkgen_enum_entry_push(ctx, entryRes);
-          continue;
-        }
-      }
-    }
-  }
+static u32 vkgen_command_find(VkGenContext* ctx, const StringHash key) {
+  const VkGenType tgt = {.key = key};
+  VkGenCommand*   res = dynarray_search_binary(&ctx->commands, vkgen_compare_command, &tgt);
+  return res ? (u32)(res - dynarray_begin_t(&ctx->commands, VkGenCommand)) : sentinel_u32;
 }
 
-static bool vkgen_contains(String str, const String other) {
-  while (!string_is_empty(str)) {
-    usize len = string_find_first_char(str, ',');
-    if (sentinel_check(len)) {
-      len = str.size;
-    }
-    const String api = string_slice(str, 0, len);
-    if (string_eq(api, other)) {
-      return true;
-    }
-    str = string_consume(str, len);
-  }
-  return false;
+static const VkGenCommand* vkgen_command_get(VkGenContext* ctx, const u32 index) {
+  return dynarray_at_t(&ctx->commands, index, VkGenCommand);
+}
+
+static void vkgen_command_push(VkGenContext* ctx, const StringHash key, const XmlNode node) {
+  *dynarray_push_t(&ctx->commands, VkGenCommand) = (VkGenCommand){
+      .key        = key,
+      .schemaNode = node,
+  };
 }
 
 static bool vkgen_is_supported(VkGenContext* ctx, const XmlNode node) {
   const String apis = xml_attr_get(ctx->schemaDoc, node, g_hash_supported);
-  return string_is_empty(apis) || vkgen_contains(apis, string_lit("vulkan"));
+  return string_is_empty(apis) || vkgen_str_list_contains(apis, string_lit("vulkan"));
 }
 
 static bool vkgen_is_supported_api(VkGenContext* ctx, const XmlNode node) {
   const String apis = xml_attr_get(ctx->schemaDoc, node, g_hash_api);
-  return string_is_empty(apis) || vkgen_contains(apis, string_lit("vulkan"));
+  return string_is_empty(apis) || vkgen_str_list_contains(apis, string_lit("vulkan"));
 }
 
 static bool vkgen_is_deprecated(VkGenContext* ctx, const XmlNode node) {
@@ -480,6 +430,65 @@ static void vkgen_collect_enums(VkGenContext* ctx) {
       log_param("entries", fmt_int(ctx->enumEntries.size)));
 }
 
+static void vkgen_collect_enum_extensions(VkGenContext* ctx, const XmlNode node, i64 extNumber) {
+  xml_for_children(ctx->schemaDoc, node, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_require) {
+      continue; // Not a require element.
+    }
+    xml_for_children(ctx->schemaDoc, child, entry) {
+      const StringHash entryNameHash = xml_name_hash(ctx->schemaDoc, entry);
+      if (entryNameHash != g_hash_enum) {
+        continue; // Not an enum.
+      }
+      const StringHash enumKey = xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_extends);
+      const String     name    = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
+      if (!enumKey || string_is_empty(name)) {
+        continue; // Enum or name missing.
+      }
+      const String bitPosStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_bitpos);
+      if (!string_is_empty(bitPosStr)) {
+        const VkGenEnumEntry entryRes = {
+            .key   = enumKey,
+            .name  = name,
+            .value = u64_lit(1) << vkgen_to_int(bitPosStr),
+        };
+        vkgen_enum_entry_push(ctx, entryRes);
+        continue;
+      }
+      const bool   invert   = xml_attr_has(ctx->schemaDoc, entry, g_hash_dir);
+      const String valueStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_value);
+      if (!string_is_empty(valueStr)) {
+        const VkGenEnumEntry entryRes = {
+            .key   = enumKey,
+            .name  = name,
+            .value = vkgen_to_int(valueStr) * (invert ? -1 : 1),
+        };
+        vkgen_enum_entry_push(ctx, entryRes);
+        continue;
+      }
+      const String offsetStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_offset);
+      if (!string_is_empty(offsetStr)) {
+        const String extnumStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_extnumber);
+        if (!string_is_empty(extnumStr)) {
+          extNumber = vkgen_to_int(extnumStr);
+        }
+        if (extNumber < 0) {
+          log_w("Missing extension number");
+          continue;
+        }
+        const i64            value = 1000000000 + (extNumber - 1) * 1000 + vkgen_to_int(offsetStr);
+        const VkGenEnumEntry entryRes = {
+            .key   = enumKey,
+            .name  = name,
+            .value = value * (invert ? -1 : 1),
+        };
+        vkgen_enum_entry_push(ctx, entryRes);
+        continue;
+      }
+    }
+  }
+}
+
 static void vkgen_collect_types(VkGenContext* ctx) {
   const XmlNode typesNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_types);
   xml_for_children(ctx->schemaDoc, typesNode, child) {
@@ -544,7 +553,7 @@ static void vkgen_collect_features(VkGenContext* ctx) {
       if (sentinel_check(featIndex)) {
         continue; // Not an supported extension.
       }
-      vkgen_addition_collect(ctx, child, -1);
+      vkgen_collect_enum_extensions(ctx, child, -1);
       ctx->featureNodes[featIndex] = child;
     }
   }
@@ -571,7 +580,7 @@ static void vkgen_collect_extensions(VkGenContext* ctx) {
     if (string_is_empty(numberStr)) {
       continue;
     }
-    vkgen_addition_collect(ctx, child, vkgen_to_int(numberStr));
+    vkgen_collect_enum_extensions(ctx, child, vkgen_to_int(numberStr));
     ctx->extensionNodes[extIndex] = child;
   }
   log_i("Collected extensions");
