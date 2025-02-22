@@ -21,7 +21,7 @@
 #include "xml_read.h"
 
 /**
- * VulkanGen - Utility to generate a Vulkan api header.
+ * VulkanGen - Utility to generate a Vulkan api header and utility c file.
  */
 
 #define VKGEN_VISIT_HASHES                                                                         \
@@ -994,6 +994,7 @@ static bool vkgen_write_header(VkGenContext* ctx) {
 }
 
 // clang-format off
+static const String g_appDesc = string_static("VulkanGen - Utility to generate a Vulkan api header and utility c file.");
 static const String g_schemaDefaultHost = string_static("raw.githubusercontent.com");
 static const String g_schemaDefaultUri  = string_static("/KhronosGroup/Vulkan-Docs/refs/tags/v1.4.308/xml/vk.xml");
 // clang-format on
@@ -1001,12 +1002,15 @@ static const String g_schemaDefaultUri  = string_static("/KhronosGroup/Vulkan-Do
 static CliId g_optVerbose, g_optOutputPath, g_optSchemaHost, g_optSchemaUri, g_optHelp;
 
 void app_cli_configure(CliApp* app) {
-  cli_app_register_desc(app, string_lit("VulkanGen - Utility to generate a Vulkan api header."));
+  cli_app_register_desc(app, g_appDesc);
 
   g_optVerbose = cli_register_flag(app, 'v', string_lit("verbose"), CliOptionFlags_None);
 
   g_optOutputPath = cli_register_arg(app, string_lit("output-path"), CliOptionFlags_Required);
-  cli_register_desc(app, g_optOutputPath, string_lit("Path where to write the header to."));
+  cli_register_desc(
+      app,
+      g_optOutputPath,
+      string_lit("Path for the header and c file (.h and .c is automatically appended)."));
 
   g_optSchemaHost = cli_register_flag(app, '\0', string_lit("schema-host"), CliOptionFlags_Value);
   cli_register_desc(app, g_optSchemaHost, string_lit("Host of the Vulkan schema."));
@@ -1070,8 +1074,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 Exit:;
   const String outputPath = cli_read_string(invoc, g_optOutputPath, string_empty);
   if (success && !string_is_empty(outputPath)) {
-    if (file_write_to_path_sync(outputPath, dynstring_view(&ctx.out)) == FileResult_Success) {
-      log_i("Generated header", log_param("path", fmt_path(outputPath)));
+    const String headerPath = fmt_write_scratch("{}.h", fmt_text(outputPath));
+    if (file_write_to_path_sync(headerPath, dynstring_view(&ctx.out)) == FileResult_Success) {
+      log_i("Generated header", log_param("path", fmt_path(headerPath)));
     }
   }
   xml_destroy(ctx.schemaDoc);
