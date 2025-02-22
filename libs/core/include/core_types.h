@@ -88,7 +88,7 @@ typedef unsigned char bool;
 /**
  * Retrieve the offset (in bytes) of the given member in the type.
  */
-#define offsetof(_TYPE_, __MEMBER__) __builtin_offsetof(_TYPE_, __MEMBER__)
+#define offsetof(_TYPE_, _MEMBER_) ((usize) & (((_TYPE_*)0)->_MEMBER_))
 
 /**
  * Return the alignment required for the given type.
