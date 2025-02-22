@@ -144,7 +144,12 @@ typedef struct {
 } VkGenConstant;
 
 typedef enum {
-  VkGenTypeKind_Misc,
+  VkGenTypeKind_None, // Skipped type.
+  VkGenTypeKind_Simple,
+  VkGenTypeKind_Handle,
+  VkGenTypeKind_Enum,
+  VkGenTypeKind_Struct,
+  VkGenTypeKind_Union,
 } VkGenTypeKind;
 
 typedef struct {
@@ -385,6 +390,26 @@ static bool vkgen_is_deprecated(VkGenContext* ctx, const XmlNode node) {
   return !string_is_empty(xml_attr_get(ctx->schemaDoc, node, g_hash_deprecated));
 }
 
+static VkGenTypeKind vkgen_categorize_type(VkGenContext* ctx, const XmlNode typeNode) {
+  const StringHash catHash = xml_attr_get_hash(ctx->schemaDoc, typeNode, g_hash_category);
+  if (catHash == g_hash_basetype || catHash == g_hash_bitmask || catHash == g_hash_funcpointer) {
+    return VkGenTypeKind_Simple;
+  }
+  if (catHash == g_hash_handle) {
+    return VkGenTypeKind_Handle;
+  }
+  if (catHash == g_hash_enum) {
+    return VkGenTypeKind_Enum;
+  }
+  if (catHash == g_hash_struct) {
+    return VkGenTypeKind_Struct;
+  }
+  if (catHash == g_hash_union) {
+    return VkGenTypeKind_Union;
+  }
+  return VkGenTypeKind_None;
+}
+
 static void vkgen_collect_types(VkGenContext* ctx) {
   const XmlNode typesNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_types);
   xml_for_children(ctx->schemaDoc, typesNode, child) {
@@ -392,15 +417,16 @@ static void vkgen_collect_types(VkGenContext* ctx) {
       if (!vkgen_is_supported_api(ctx, child)) {
         continue;
       }
-      const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
+      const VkGenTypeKind kind     = vkgen_categorize_type(ctx, child);
+      const StringHash    nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
       if (nameHash) {
-        vkgen_type_push(ctx, VkGenTypeKind_Misc, nameHash, child);
+        vkgen_type_push(ctx, kind, nameHash, child);
         continue;
       }
       const XmlNode nameNode = xml_child_get(ctx->schemaDoc, child, g_hash_name);
       if (!sentinel_check(nameNode)) {
         const String nameText = xml_child_text(ctx->schemaDoc, nameNode);
-        vkgen_type_push(ctx, VkGenTypeKind_Misc, string_hash(nameText), child);
+        vkgen_type_push(ctx, kind, string_hash(nameText), child);
         continue;
       }
     }
@@ -736,14 +762,6 @@ static bool vkgen_write_type_dependencies(VkGenContext* ctx, const XmlNode typeN
   return success;
 }
 
-static bool vkgen_write_include(VkGenContext* ctx, const StringHash key) {
-  (void)ctx;
-  if (key == g_hash_vk_platform) {
-    return true; // Platform defines are handled by our core header include.
-  }
-  return false; // Unsupported include.
-}
-
 static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
   const u32 typeIndex = vkgen_type_find(ctx, key);
   if (sentinel_check(typeIndex)) {
@@ -754,37 +772,30 @@ static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
   }
   dynbitset_set(&ctx->typesWritten, typeIndex);
 
-  const XmlNode typeNode = vkgen_type_get(ctx, typeIndex)->schemaNode;
-  if (!vkgen_write_type_dependencies(ctx, typeNode)) {
+  const VkGenType* typeInfo = vkgen_type_get(ctx, typeIndex);
+  if (!vkgen_write_type_dependencies(ctx, typeInfo->schemaNode)) {
     return false;
   }
-  const StringHash catHash = xml_attr_get_hash(ctx->schemaDoc, typeNode, g_hash_category);
-  if (!catHash) {
-    return true; // Primitive type.
-  }
-  if (catHash == g_hash_define) {
-    return true; // Skip the macros (we define a couple of custom macros that Volo better).
-  }
-  if (catHash == g_hash_basetype || catHash == g_hash_bitmask || catHash == g_hash_funcpointer) {
-    vkgen_write_node(ctx, typeNode);
+
+  switch (typeInfo->kind) {
+  case VkGenTypeKind_None:
+    return true;
+  case VkGenTypeKind_Simple:
+    vkgen_write_node(ctx, typeInfo->schemaNode);
     fmt_write(&ctx->out, "\n\n");
     return true;
-  }
-  if (catHash == g_hash_include) {
-    return vkgen_write_include(ctx, key);
-  }
-  if (catHash == g_hash_handle) {
-    vkgen_write_type_handle(ctx, typeNode);
+  case VkGenTypeKind_Handle:
+    vkgen_write_type_handle(ctx, typeInfo->schemaNode);
     return true;
-  }
-  if (catHash == g_hash_enum) {
-    return vkgen_write_enum(ctx, xml_attr_get_hash(ctx->schemaDoc, typeNode, g_hash_name));
-  }
-  if (catHash == g_hash_struct) {
-    return vkgen_write_type_struct(ctx, typeNode), true;
-  }
-  if (catHash == g_hash_union) {
-    return vkgen_write_type_union(ctx, typeNode), true;
+  case VkGenTypeKind_Enum:
+    vkgen_write_enum(ctx, xml_attr_get_hash(ctx->schemaDoc, typeInfo->schemaNode, g_hash_name));
+    return true;
+  case VkGenTypeKind_Struct:
+    vkgen_write_type_struct(ctx, typeInfo->schemaNode);
+    return true;
+  case VkGenTypeKind_Union:
+    vkgen_write_type_union(ctx, typeInfo->schemaNode);
+    return true;
   }
   return false;
 }
