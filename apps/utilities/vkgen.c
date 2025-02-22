@@ -233,6 +233,7 @@ typedef struct {
 typedef enum {
   VkGenTypeKind_None, // Skipped type.
   VkGenTypeKind_Simple,
+  VkGenTypeKind_FuncPointer,
   VkGenTypeKind_Handle,
   VkGenTypeKind_Enum,
   VkGenTypeKind_Struct,
@@ -280,7 +281,7 @@ static u8 vkgen_out_last_char(VkGenContext* ctx) {
 
 static bool vkgen_out_last_is_separator(VkGenContext* ctx) {
   const u8 lastChar = vkgen_out_last_char(ctx);
-  return ascii_is_whitespace(lastChar);
+  return ascii_is_whitespace(lastChar) || lastChar == '(';
 }
 
 static i8 vkgen_compare_command(const void* a, const void* b) {
@@ -394,8 +395,11 @@ static bool vkgen_is_deprecated(VkGenContext* ctx, const XmlNode node) {
 
 static VkGenTypeKind vkgen_categorize_type(VkGenContext* ctx, const XmlNode typeNode) {
   const StringHash catHash = xml_attr_get_hash(ctx->schemaDoc, typeNode, g_hash_category);
-  if (catHash == g_hash_basetype || catHash == g_hash_bitmask || catHash == g_hash_funcpointer) {
+  if (catHash == g_hash_basetype || catHash == g_hash_bitmask) {
     return VkGenTypeKind_Simple;
+  }
+  if (catHash == g_hash_funcpointer) {
+    return VkGenTypeKind_FuncPointer;
   }
   if (catHash == g_hash_handle) {
     return VkGenTypeKind_Handle;
@@ -689,32 +693,67 @@ static bool vkgen_ref_read(VkGenContext* ctx, XmlNode* node, VkGenRef* out) {
   return true;
 }
 
-static void vkgen_write_node(VkGenContext* ctx, const XmlNode node) {
-  xml_for_children(ctx->schemaDoc, node, part) {
-    if (xml_name_hash(ctx->schemaDoc, part) == g_hash_comment) {
-      continue; // Skip comments.
-    }
-    VkGenRef ref;
-    String   text;
-    bool     needSeparator = false;
-    if (vkgen_ref_read(ctx, &part, &ref)) {
-      text          = vkgen_ref_scratch(&ref);
-      needSeparator = true;
-    } else if (xml_name_hash(ctx->schemaDoc, part) == g_hash_name) {
-      text          = xml_value(ctx->schemaDoc, part);
-      needSeparator = true;
-    } else {
-      DynString buffer = dynstring_create(g_allocScratch, text.size);
-      dynstring_append(&buffer, text);
-      vkgen_collapse_whitespace(&buffer);
-      dynstring_replace(&buffer, string_lit("VKAPI_PTR"), string_lit("SYS_DECL"));
-      text = dynstring_view(&buffer);
-    }
-    if (needSeparator && !vkgen_out_last_is_separator(ctx)) {
-      fmt_write(&ctx->out, " ");
-    }
-    fmt_write(&ctx->out, "{}", fmt_text(text, .flags = FormatTextFlags_SingleLine));
+static void vkgen_write_node_itr(VkGenContext* ctx, XmlNode* nodeItr) {
+  if (xml_name_hash(ctx->schemaDoc, *nodeItr) == g_hash_comment) {
+    return; // Skip comments.
   }
+  VkGenRef ref;
+  String   text;
+  bool     needSeparator = false;
+  if (vkgen_ref_read(ctx, nodeItr, &ref)) {
+    text          = vkgen_ref_scratch(&ref);
+    needSeparator = true;
+  } else if (xml_name_hash(ctx->schemaDoc, *nodeItr) == g_hash_name) {
+    text          = xml_value(ctx->schemaDoc, *nodeItr);
+    needSeparator = true;
+  } else {
+    text = vkgen_collapse_whitespace_scratch(xml_value(ctx->schemaDoc, *nodeItr));
+  }
+  if (needSeparator && !vkgen_out_last_is_separator(ctx)) {
+    fmt_write(&ctx->out, " ");
+  }
+  fmt_write(&ctx->out, "{}", fmt_text(text, .flags = FormatTextFlags_SingleLine));
+}
+
+static void vkgen_write_node_children(VkGenContext* ctx, const XmlNode node) {
+  xml_for_children(ctx->schemaDoc, node, child) { vkgen_write_node_itr(ctx, &child); }
+}
+
+static bool vkgen_write_type_func_pointer(VkGenContext* ctx, const VkGenType* type) {
+  XmlNode child = xml_first_child(ctx->schemaDoc, type->schemaNode);
+  String  text  = xml_value(ctx->schemaDoc, child);
+  if (!string_starts_with(text, string_lit("typedef "))) {
+    return false; // Malformed func pointer typedef.
+  }
+  text = string_consume(text, string_lit("typedef ").size);
+
+  const usize typeEnd = string_find_first(text, string_lit("("));
+  if (sentinel_check(typeEnd)) {
+    return false; // Malformed func pointer typedef.
+  }
+  const String retType = string_trim_whitespace(string_slice(text, 0, typeEnd));
+
+  child = xml_next(ctx->schemaDoc, child);
+  if (!vkgen_node_value_match(ctx->schemaDoc, child, type->name)) {
+    return false; // Unexpected type-def name.
+  }
+
+  fmt_write(&ctx->out, "typedef {} (SYS_DECL *{})(", fmt_text(retType), fmt_text(type->name));
+
+  child = xml_next(ctx->schemaDoc, child);
+  if (vkgen_node_value_match(ctx->schemaDoc, child, string_lit(")(void);"))) {
+    fmt_write(&ctx->out, "void);\n\n");
+    return true;
+  }
+  if (!vkgen_node_value_match(ctx->schemaDoc, child, string_lit(")("))) {
+    return false; // Malformed func pointer typedef.
+  }
+  child = xml_next(ctx->schemaDoc, child);
+  for (; !sentinel_check(child); child = xml_next(ctx->schemaDoc, child)) {
+    vkgen_write_node_itr(ctx, &child);
+  }
+  fmt_write(&ctx->out, "\n\n");
+  return true;
 }
 
 static void vkgen_write_type_enum(VkGenContext* ctx, const VkGenType* type) {
@@ -741,7 +780,7 @@ static void vkgen_write_type_struct(VkGenContext* ctx, const VkGenType* type) {
       continue; // Not a (supported) struct member.
     }
     fmt_write(&ctx->out, "  ");
-    vkgen_write_node(ctx, entry);
+    vkgen_write_node_children(ctx, entry);
     fmt_write(&ctx->out, ";\n");
   }
   fmt_write(&ctx->out, "} {};\n\n", fmt_text(type->name));
@@ -756,7 +795,7 @@ static void vkgen_write_type_union(VkGenContext* ctx, const VkGenType* type) {
       continue; // Not a (supported) union member.
     }
     fmt_write(&ctx->out, "  ");
-    vkgen_write_node(ctx, entry);
+    vkgen_write_node_children(ctx, entry);
     fmt_write(&ctx->out, ";\n");
   }
   fmt_write(&ctx->out, "} {};\n\n", fmt_text(type->name));
@@ -800,25 +839,24 @@ static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
   // Write type definition.
   switch (type->kind) {
   case VkGenTypeKind_None:
-    break;
+    return true; // No output needed.
   case VkGenTypeKind_Simple:
-    vkgen_write_node(ctx, type->schemaNode);
+    vkgen_write_node_children(ctx, type->schemaNode);
     fmt_write(&ctx->out, "\n\n");
-    break;
+    return true;
+  case VkGenTypeKind_FuncPointer:
+    return vkgen_write_type_func_pointer(ctx, type);
   case VkGenTypeKind_Handle:
     fmt_write(&ctx->out, "typedef struct {}_T* {};\n\n", fmt_text(name), fmt_text(name));
-    break;
+    return true;
   case VkGenTypeKind_Enum:
-    vkgen_write_type_enum(ctx, type);
-    break;
+    return vkgen_write_type_enum(ctx, type), true;
   case VkGenTypeKind_Struct:
-    vkgen_write_type_struct(ctx, type);
-    break;
+    return vkgen_write_type_struct(ctx, type), true;
   case VkGenTypeKind_Union:
-    vkgen_write_type_union(ctx, type);
-    break;
+    return vkgen_write_type_union(ctx, type), true;
   }
-  return true;
+  UNREACHABLE
 }
 
 static void vkgen_write_command_params(VkGenContext* ctx, const XmlNode cmdNode) {
@@ -833,7 +871,7 @@ static void vkgen_write_command_params(VkGenContext* ctx, const XmlNode cmdNode)
     if (anyParam) {
       fmt_write(&ctx->out, ", ");
     }
-    vkgen_write_node(ctx, child);
+    vkgen_write_node_children(ctx, child);
     anyParam = true;
   }
   if (!anyParam) {
