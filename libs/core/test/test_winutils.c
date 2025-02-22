@@ -2,6 +2,8 @@
 #include "core_utf8.h"
 #include "core_winutils.h"
 
+#include <stdint.h>
+
 spec(winutils) {
 
 #if defined(VOLO_WIN32)
