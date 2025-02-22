@@ -166,7 +166,7 @@ typedef struct {
 typedef struct {
   StringHash key;
   XmlNode    schemaNode;
-} VkGenEntry;
+} VkGenCommand;
 
 typedef struct {
   XmlDoc*   schemaDoc;
@@ -176,15 +176,15 @@ typedef struct {
   DynBitSet typesWritten;
   DynArray  constants;   // VkGenConstant[]
   DynArray  enumEntries; // VkGenEnumEntry[]
-  DynArray  commands;    // VkGenEntry[]
+  DynArray  commands;    // VkGenCommand[]
   DynBitSet commandsWritten;
   XmlNode   featureNodes[array_elems(g_vkgenFeatures)];
   XmlNode   extensionNodes[array_elems(g_vkgenExtensions)];
   DynString out;
 } VkGenContext;
 
-static i8 vkgen_compare_entry(const void* a, const void* b) {
-  return compare_stringhash(field_ptr(a, VkGenEntry, key), field_ptr(b, VkGenEntry, key));
+static i8 vkgen_compare_command(const void* a, const void* b) {
+  return compare_stringhash(field_ptr(a, VkGenCommand, key), field_ptr(b, VkGenCommand, key));
 }
 
 static i8 vkgen_compare_type(const void* a, const void* b) {
@@ -235,8 +235,18 @@ static String vkgen_collapse_whitespace_scratch(const String text) {
   return dynstring_view(&buffer);
 }
 
-static void vkgen_entry_push(DynArray* arr, const StringHash key, const XmlNode node) {
-  *dynarray_push_t(arr, VkGenEntry) = (VkGenEntry){
+static u32 vkgen_command_find(VkGenContext* ctx, const StringHash key) {
+  const VkGenType tgt = {.key = key};
+  VkGenCommand*   res = dynarray_search_binary(&ctx->commands, vkgen_compare_command, &tgt);
+  return res ? (u32)(res - dynarray_begin_t(&ctx->commands, VkGenCommand)) : sentinel_u32;
+}
+
+static const VkGenCommand* vkgen_command_get(VkGenContext* ctx, const u32 index) {
+  return dynarray_at_t(&ctx->commands, index, VkGenCommand);
+}
+
+static void vkgen_command_push(VkGenContext* ctx, const StringHash key, const XmlNode node) {
+  *dynarray_push_t(&ctx->commands, VkGenCommand) = (VkGenCommand){
       .key        = key,
       .schemaNode = node,
   };
@@ -259,18 +269,6 @@ static void vkgen_type_push(
       .key        = key,
       .schemaNode = schemaNode,
   };
-}
-
-static XmlNode vkgen_entry_find(DynArray* arr, const StringHash key) {
-  const VkGenEntry tgt = {.key = key};
-  VkGenEntry*      res = dynarray_search_binary(arr, vkgen_compare_entry, &tgt);
-  return res ? res->schemaNode : sentinel_u32;
-}
-
-static u32 vkgen_entry_index(DynArray* arr, const StringHash key) {
-  const VkGenEntry tgt = {.key = key};
-  VkGenEntry*      res = dynarray_search_binary(arr, vkgen_compare_entry, &tgt);
-  return res ? (u32)(res - dynarray_begin_t(arr, VkGenEntry)) : sentinel_u32;
 }
 
 static bool vkgen_enum_entry_push(VkGenContext* ctx, const VkGenEnumEntry enumEntry) {
@@ -526,10 +524,10 @@ static void vkgen_collect_commands(VkGenContext* ctx) {
     }
     const String name = xml_child_text(ctx->schemaDoc, protoNameNode);
     if (!string_is_empty(name)) {
-      vkgen_entry_push(&ctx->commands, string_hash(name), child);
+      vkgen_command_push(ctx, string_hash(name), child);
     }
   }
-  dynarray_sort(&ctx->commands, vkgen_compare_entry);
+  dynarray_sort(&ctx->commands, vkgen_compare_command);
   log_i("Collected commands", log_param("count", fmt_int(ctx->commands.size)));
 }
 
@@ -812,7 +810,7 @@ static void vkgen_write_command_params(VkGenContext* ctx, const XmlNode commandN
 }
 
 static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
-  const u32 commandIndex = vkgen_entry_index(&ctx->commands, key);
+  const u32 commandIndex = vkgen_command_find(ctx, key);
   if (sentinel_check(commandIndex)) {
     return false; // Unknown command.
   }
@@ -821,11 +819,11 @@ static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
   }
   dynbitset_set(&ctx->commandsWritten, commandIndex);
 
-  const XmlNode commandNode = vkgen_entry_find(&ctx->commands, key);
-  if (!vkgen_write_type_dependencies(ctx, commandNode)) {
+  const VkGenCommand* commandInfo = vkgen_command_get(ctx, commandIndex);
+  if (!vkgen_write_type_dependencies(ctx, commandInfo->schemaNode)) {
     return false;
   }
-  const XmlNode protoNode = xml_child_get(ctx->schemaDoc, commandNode, g_hash_proto);
+  const XmlNode protoNode = xml_child_get(ctx->schemaDoc, commandInfo->schemaNode, g_hash_proto);
   if (sentinel_check(protoNode)) {
     return false; // Proto node missing (could be an alias).
   }
@@ -838,11 +836,11 @@ static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
   const String nameStr = xml_child_text(ctx->schemaDoc, protoNameNode);
 
   fmt_write(&ctx->out, "typedef {} (SYS_DECL *PFN_{})(", fmt_text(typeStr), fmt_text(nameStr));
-  vkgen_write_command_params(ctx, commandNode);
+  vkgen_write_command_params(ctx, commandInfo->schemaNode);
   fmt_write(&ctx->out, ");\n");
 
   fmt_write(&ctx->out, "{} SYS_DECL {}(", fmt_text(typeStr), fmt_text(nameStr));
-  vkgen_write_command_params(ctx, commandNode);
+  vkgen_write_command_params(ctx, commandInfo->schemaNode);
   fmt_write(&ctx->out, ");\n\n");
   return true;
 }
@@ -976,7 +974,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .typesWritten    = dynbitset_create(g_allocHeap, 4096),
       .constants       = dynarray_create_t(g_allocHeap, VkGenConstant, 64),
       .enumEntries     = dynarray_create_t(g_allocHeap, VkGenEnumEntry, 2048),
-      .commands        = dynarray_create_t(g_allocHeap, VkGenEntry, 1024),
+      .commands        = dynarray_create_t(g_allocHeap, VkGenCommand, 1024),
       .commandsWritten = dynbitset_create(g_allocHeap, 1024),
       .out             = dynstring_create(g_allocHeap, usize_kibibyte * 16),
   };
