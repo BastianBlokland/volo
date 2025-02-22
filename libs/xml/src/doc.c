@@ -258,6 +258,13 @@ String xml_value(const XmlDoc* doc, const XmlNode node) {
     return string_empty;
   }
   switch (nodeData->type) {
+  case XmlType_Element: {
+    XmlNodeData* childData = xml_node_data(doc, nodeData->data_elem.childHead);
+    if (childData && childData->type == XmlType_Text) {
+      return childData->data_text.value;
+    }
+    return string_empty;
+  }
   case XmlType_Attribute:
     return nodeData->data_attr.value;
   case XmlType_Text:
