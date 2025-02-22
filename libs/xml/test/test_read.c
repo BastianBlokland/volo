@@ -47,7 +47,7 @@ spec(read) {
     check_require(res.type == XmlResultType_Success);
     check_eq_int(xml_type(doc, res.node), XmlType_Element);
     check_eq_string(xml_name(doc, res.node), string_lit("test"));
-    check_eq_string(xml_value(doc, res.node), string_empty);
+    check_eq_string(xml_value(doc, res.node), string_lit(" Hello World! "));
 
     const XmlNode textNode = xml_first_child(doc, res.node);
     check_eq_int(xml_type(doc, textNode), XmlType_Text);
