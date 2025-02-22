@@ -306,8 +306,8 @@ static VkGenEnumEntries vkgen_enum_entries_find(VkGenContext* ctx, const StringH
 }
 
 static u32 vkgen_command_find(VkGenContext* ctx, const StringHash key) {
-  const VkGenType tgt = {.key = key};
-  VkGenCommand*   res = dynarray_search_binary(&ctx->commands, vkgen_compare_command, &tgt);
+  const VkGenCommand tgt = {.key = key};
+  VkGenCommand*      res = dynarray_search_binary(&ctx->commands, vkgen_compare_command, &tgt);
   return res ? (u32)(res - dynarray_begin_t(&ctx->commands, VkGenCommand)) : sentinel_u32;
 }
 
@@ -506,7 +506,7 @@ static void vkgen_collect_types(VkGenContext* ctx) {
     }
     const XmlNode nameNode = xml_child_get(ctx->schemaDoc, child, g_hash_name);
     if (!sentinel_check(nameNode)) {
-      const String nameText = xml_child_text(ctx->schemaDoc, nameNode);
+      const String nameText = xml_value(ctx->schemaDoc, nameNode);
       vkgen_type_push(ctx, kind, string_hash(nameText), child);
       continue;
     }
@@ -529,7 +529,7 @@ static void vkgen_collect_commands(VkGenContext* ctx) {
       continue; // Command without a proto (we don't support aliases).
     }
     const XmlNode protoNameNode = xml_child_get(ctx->schemaDoc, protoNode, g_hash_name);
-    const String  name          = xml_child_text(ctx->schemaDoc, protoNameNode);
+    const String  name          = xml_value(ctx->schemaDoc, protoNameNode);
     if (!string_is_empty(name)) {
       vkgen_command_push(ctx, string_hash(name), child);
     }
@@ -586,7 +586,7 @@ static void vkgen_collect_extensions(VkGenContext* ctx) {
 }
 
 static String vkgen_type_resolve(VkGenContext* ctx, XmlNode* node) {
-  const String text = xml_child_text(ctx->schemaDoc, *node);
+  const String text = xml_value(ctx->schemaDoc, *node);
 
   const XmlNode next      = xml_next(ctx->schemaDoc, *node);
   const String  nextText  = string_trim_whitespace(xml_value(ctx->schemaDoc, next));
@@ -660,7 +660,7 @@ static void vkgen_write_node(VkGenContext* ctx, const XmlNode node) {
       if (nameHash == g_hash_type) {
         text = vkgen_type_resolve(ctx, &part);
       } else {
-        text = xml_child_text(ctx->schemaDoc, part);
+        text = xml_value(ctx->schemaDoc, part);
       }
       if (lastIsElement) {
         fmt_write(&ctx->out, " ");
@@ -681,7 +681,7 @@ static void vkgen_write_node(VkGenContext* ctx, const XmlNode node) {
 
 static bool vkgen_write_type_handle(VkGenContext* ctx, const XmlNode typeNode) {
   const XmlNode nameNode = xml_child_get(ctx->schemaDoc, typeNode, g_hash_name);
-  const String  name     = xml_child_text(ctx->schemaDoc, nameNode);
+  const String  name     = xml_value(ctx->schemaDoc, nameNode);
   if (string_is_empty(name)) {
     return false; // Missing name.
   }
@@ -746,7 +746,7 @@ static bool vkgen_write_type_dependencies(VkGenContext* ctx, const XmlNode typeN
       continue; // Not an element.
     }
     if (xml_name_hash(ctx->schemaDoc, entry) == g_hash_type) {
-      const String innerText = xml_child_text(ctx->schemaDoc, entry);
+      const String innerText = xml_value(ctx->schemaDoc, entry);
       success &= vkgen_write_type(ctx, string_hash(innerText));
       continue;
     }
@@ -832,8 +832,8 @@ static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
   if (sentinel_check(protoTypeNode) || sentinel_check(protoNameNode)) {
     return false; // Name or type missing.
   }
-  const String typeStr = xml_child_text(ctx->schemaDoc, protoTypeNode);
-  const String nameStr = xml_child_text(ctx->schemaDoc, protoNameNode);
+  const String typeStr = xml_value(ctx->schemaDoc, protoTypeNode);
+  const String nameStr = xml_value(ctx->schemaDoc, protoNameNode);
 
   fmt_write(&ctx->out, "typedef {} (SYS_DECL *PFN_{})(", fmt_text(typeStr), fmt_text(nameStr));
   vkgen_write_command_params(ctx, commandInfo->schemaNode);
@@ -874,14 +874,6 @@ static bool vkgen_write_requirements(VkGenContext* ctx, const XmlNode node) {
   return success;
 }
 
-static void vkgen_write_comment_elem(VkGenContext* ctx, const XmlNode comment) {
-  const XmlNode text = xml_first_child(ctx->schemaDoc, comment);
-  if (xml_is(ctx->schemaDoc, text, XmlType_Text)) {
-    const String str = vkgen_collapse_whitespace_scratch(xml_value(ctx->schemaDoc, text));
-    fmt_write(&ctx->out, "//{}.\n", fmt_text(str, .flags = FormatTextFlags_SingleLine));
-  }
-}
-
 static bool vkgen_write_header(VkGenContext* ctx) {
   fmt_write(&ctx->out, "#pragma once\n");
   fmt_write(
@@ -893,7 +885,9 @@ static bool vkgen_write_header(VkGenContext* ctx) {
 
   const XmlNode copyrightElem = xml_first_child(ctx->schemaDoc, ctx->schemaRoot);
   if (xml_is(ctx->schemaDoc, copyrightElem, XmlType_Element)) {
-    vkgen_write_comment_elem(ctx, copyrightElem);
+    const String copyrightText = xml_value(ctx->schemaDoc, copyrightElem);
+    const String textTrimmed   = vkgen_collapse_whitespace_scratch(copyrightText);
+    fmt_write(&ctx->out, "//{}.\n", fmt_text(textTrimmed, .flags = FormatTextFlags_SingleLine));
   }
 
   fmt_write(&ctx->out, "// clang-format off\n\n");
