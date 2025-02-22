@@ -202,6 +202,7 @@ typedef enum {
 typedef struct {
   VkGenTypeKind kind;
   StringHash    key;
+  String        name; // Allocated in the schema document.
   XmlNode       schemaNode;
 } VkGenType;
 
@@ -262,10 +263,11 @@ static const VkGenType* vkgen_type_get(VkGenContext* ctx, const u32 index) {
 }
 
 static void vkgen_type_push(
-    VkGenContext* ctx, const VkGenTypeKind kind, const StringHash key, const XmlNode schemaNode) {
+    VkGenContext* ctx, const VkGenTypeKind kind, const String name, const XmlNode schemaNode) {
   *dynarray_push_t(&ctx->types, VkGenType) = (VkGenType){
       .kind       = kind,
-      .key        = key,
+      .key        = string_hash(name),
+      .name       = name,
       .schemaNode = schemaNode,
   };
 }
@@ -401,8 +403,8 @@ static void vkgen_collect_enums(VkGenContext* ctx) {
     if (!vkgen_is_supported_api(ctx, enumNode)) {
       continue; // Not supported.
     }
-    const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, enumNode, g_hash_name);
-    vkgen_type_push(ctx, VkGenTypeKind_Enum, nameHash, enumNode);
+    const String name = xml_attr_get(ctx->schemaDoc, enumNode, g_hash_name);
+    vkgen_type_push(ctx, VkGenTypeKind_Enum, name, enumNode);
     ++enumCount;
 
     xml_for_children(ctx->schemaDoc, enumNode, entryNode) {
@@ -416,7 +418,7 @@ static void vkgen_collect_enums(VkGenContext* ctx) {
         continue; // Aliases are not supported.
       }
       VkGenEnumEntry entryRes;
-      entryRes.key  = nameHash;
+      entryRes.key  = string_hash(name);
       entryRes.name = xml_attr_get(ctx->schemaDoc, entryNode, g_hash_name);
 
       const String bitPos = xml_attr_get(ctx->schemaDoc, entryNode, g_hash_bitpos);
@@ -502,16 +504,15 @@ static void vkgen_collect_types(VkGenContext* ctx) {
     if (!vkgen_is_supported_api(ctx, child)) {
       continue; // Not supported.
     }
-    const VkGenTypeKind kind     = vkgen_categorize_type(ctx, child);
-    const StringHash    nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
-    if (nameHash) {
-      vkgen_type_push(ctx, kind, nameHash, child);
+    const VkGenTypeKind kind = vkgen_categorize_type(ctx, child);
+    const String        name = xml_attr_get(ctx->schemaDoc, child, g_hash_name);
+    if (!string_is_empty(name)) {
+      vkgen_type_push(ctx, kind, name, child);
       continue;
     }
     const XmlNode nameNode = xml_child_get(ctx->schemaDoc, child, g_hash_name);
     if (!sentinel_check(nameNode)) {
-      const String nameText = xml_value(ctx->schemaDoc, nameNode);
-      vkgen_type_push(ctx, kind, string_hash(nameText), child);
+      vkgen_type_push(ctx, kind, xml_value(ctx->schemaDoc, nameNode), child);
       continue;
     }
   }
@@ -685,19 +686,8 @@ static void vkgen_write_node(VkGenContext* ctx, const XmlNode node) {
   }
 }
 
-static bool vkgen_write_type_handle(VkGenContext* ctx, const XmlNode typeNode) {
-  const XmlNode nameNode = xml_child_get(ctx->schemaDoc, typeNode, g_hash_name);
-  const String  name     = xml_value(ctx->schemaDoc, nameNode);
-  if (string_is_empty(name)) {
-    return false; // Missing name.
-  }
-  fmt_write(&ctx->out, "typedef struct {}_T* {};\n\n", fmt_text(name), fmt_text(name));
-  return true;
-}
-
-static void vkgen_write_type_enum(VkGenContext* ctx, const XmlNode typeNode) {
-  const StringHash key     = xml_attr_get_hash(ctx->schemaDoc, typeNode, g_hash_name);
-  VkGenEnumEntries entries = vkgen_enum_entries_find(ctx, key);
+static void vkgen_write_type_enum(VkGenContext* ctx, const VkGenType* type) {
+  VkGenEnumEntries entries = vkgen_enum_entries_find(ctx, type->key);
   if (entries.begin == entries.end) {
     return; // Empty enum;
   }
@@ -705,17 +695,16 @@ static void vkgen_write_type_enum(VkGenContext* ctx, const XmlNode typeNode) {
   for (const VkGenEnumEntry* itr = entries.begin; itr != entries.end; ++itr) {
     fmt_write(&ctx->out, "  {} = {},\n", fmt_text(itr->name), fmt_int(itr->value));
   }
-  fmt_write(&ctx->out, "} {};\n\n", fmt_text(xml_attr_get(ctx->schemaDoc, typeNode, g_hash_name)));
+  fmt_write(&ctx->out, "} {};\n\n", fmt_text(type->name));
 }
 
-static void vkgen_write_type_struct(VkGenContext* ctx, const XmlNode typeNode) {
-  if (sentinel_check(xml_first_child(ctx->schemaDoc, typeNode))) {
+static void vkgen_write_type_struct(VkGenContext* ctx, const VkGenType* type) {
+  if (sentinel_check(xml_first_child(ctx->schemaDoc, type->schemaNode))) {
     return; // Empty struct.
   }
-  const String typeName = xml_attr_get(ctx->schemaDoc, typeNode, g_hash_name);
-  fmt_write(&ctx->out, "typedef struct {} {\n", fmt_text(typeName));
+  fmt_write(&ctx->out, "typedef struct {} {\n", fmt_text(type->name));
 
-  xml_for_children(ctx->schemaDoc, typeNode, entry) {
+  xml_for_children(ctx->schemaDoc, type->schemaNode, entry) {
     const StringHash nameHash = xml_name_hash(ctx->schemaDoc, entry);
     if (nameHash != g_hash_member || !vkgen_is_supported_api(ctx, entry)) {
       continue; // Not a (supported) struct member.
@@ -724,14 +713,13 @@ static void vkgen_write_type_struct(VkGenContext* ctx, const XmlNode typeNode) {
     vkgen_write_node(ctx, entry);
     fmt_write(&ctx->out, ";\n");
   }
-  fmt_write(&ctx->out, "} {};\n\n", fmt_text(typeName));
+  fmt_write(&ctx->out, "} {};\n\n", fmt_text(type->name));
 }
 
-static void vkgen_write_type_union(VkGenContext* ctx, const XmlNode typeNode) {
-  const String typeName = xml_attr_get(ctx->schemaDoc, typeNode, g_hash_name);
-  fmt_write(&ctx->out, "typedef union {} {\n", fmt_text(typeName));
+static void vkgen_write_type_union(VkGenContext* ctx, const VkGenType* type) {
+  fmt_write(&ctx->out, "typedef union {} {\n", fmt_text(type->name));
 
-  xml_for_children(ctx->schemaDoc, typeNode, entry) {
+  xml_for_children(ctx->schemaDoc, type->schemaNode, entry) {
     const StringHash nameHash = xml_name_hash(ctx->schemaDoc, entry);
     if (nameHash != g_hash_member || !vkgen_is_supported_api(ctx, entry)) {
       continue; // Not a (supported) union member.
@@ -740,7 +728,7 @@ static void vkgen_write_type_union(VkGenContext* ctx, const XmlNode typeNode) {
     vkgen_write_node(ctx, entry);
     fmt_write(&ctx->out, ";\n");
   }
-  fmt_write(&ctx->out, "} {};\n\n", fmt_text(typeName));
+  fmt_write(&ctx->out, "} {};\n\n", fmt_text(type->name));
 }
 
 static bool vkgen_write_type(VkGenContext*, StringHash key);
@@ -772,30 +760,31 @@ static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
   dynbitset_set(&ctx->typesWritten, typeIndex);
 
   // Write types we depend on.
-  const VkGenType* typeInfo = vkgen_type_get(ctx, typeIndex);
-  if (!vkgen_write_dependencies(ctx, typeInfo->schemaNode)) {
+  const VkGenType* type = vkgen_type_get(ctx, typeIndex);
+  if (!vkgen_write_dependencies(ctx, type->schemaNode)) {
     return false;
   }
+  const String name = type->name;
 
   // Write type definition.
-  switch (typeInfo->kind) {
+  switch (type->kind) {
   case VkGenTypeKind_None:
     break;
   case VkGenTypeKind_Simple:
-    vkgen_write_node(ctx, typeInfo->schemaNode);
+    vkgen_write_node(ctx, type->schemaNode);
     fmt_write(&ctx->out, "\n\n");
     break;
   case VkGenTypeKind_Handle:
-    vkgen_write_type_handle(ctx, typeInfo->schemaNode);
+    fmt_write(&ctx->out, "typedef struct {}_T* {};\n\n", fmt_text(name), fmt_text(name));
     break;
   case VkGenTypeKind_Enum:
-    vkgen_write_type_enum(ctx, typeInfo->schemaNode);
+    vkgen_write_type_enum(ctx, type);
     break;
   case VkGenTypeKind_Struct:
-    vkgen_write_type_struct(ctx, typeInfo->schemaNode);
+    vkgen_write_type_struct(ctx, type);
     break;
   case VkGenTypeKind_Union:
-    vkgen_write_type_union(ctx, typeInfo->schemaNode);
+    vkgen_write_type_union(ctx, type);
     break;
   }
   return true;
