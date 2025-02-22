@@ -176,7 +176,6 @@ typedef struct {
   DynArray  types; // VkGenType[]
   DynBitSet typesWritten;
   DynArray  constants;   // VkGenConstant[]
-  DynArray  enums;       // VkGenEntry[]
   DynArray  enumEntries; // VkGenEnumEntry[]
   DynArray  commands;    // VkGenEntry[]
   DynBitSet commandsWritten;
@@ -410,31 +409,6 @@ static VkGenTypeKind vkgen_categorize_type(VkGenContext* ctx, const XmlNode type
   return VkGenTypeKind_None;
 }
 
-static void vkgen_collect_types(VkGenContext* ctx) {
-  const XmlNode typesNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_types);
-  xml_for_children(ctx->schemaDoc, typesNode, child) {
-    if (xml_name_hash(ctx->schemaDoc, child) == g_hash_type) {
-      if (!vkgen_is_supported_api(ctx, child)) {
-        continue;
-      }
-      const VkGenTypeKind kind     = vkgen_categorize_type(ctx, child);
-      const StringHash    nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
-      if (nameHash) {
-        vkgen_type_push(ctx, kind, nameHash, child);
-        continue;
-      }
-      const XmlNode nameNode = xml_child_get(ctx->schemaDoc, child, g_hash_name);
-      if (!sentinel_check(nameNode)) {
-        const String nameText = xml_child_text(ctx->schemaDoc, nameNode);
-        vkgen_type_push(ctx, kind, string_hash(nameText), child);
-        continue;
-      }
-    }
-  }
-  dynarray_sort(&ctx->types, vkgen_compare_type);
-  log_i("Collected types", log_param("count", fmt_int(ctx->types.size)));
-}
-
 static void vkgen_collect_constants(VkGenContext* ctx) {
   xml_for_children(ctx->schemaDoc, ctx->schemaRoot, enumNode) {
     if (xml_name_hash(ctx->schemaDoc, enumNode) != g_hash_enums) {
@@ -464,6 +438,7 @@ static void vkgen_collect_constants(VkGenContext* ctx) {
 }
 
 static void vkgen_collect_enums(VkGenContext* ctx) {
+  u32 enumCount = 0;
   xml_for_children(ctx->schemaDoc, ctx->schemaRoot, enumNode) {
     if (xml_name_hash(ctx->schemaDoc, enumNode) != g_hash_enums) {
       continue; // Not an enum.
@@ -476,9 +451,9 @@ static void vkgen_collect_enums(VkGenContext* ctx) {
       continue; // Not supported.
     }
     const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, enumNode, g_hash_name);
-    if (nameHash) {
-      vkgen_entry_push(&ctx->enums, nameHash, enumNode);
-    }
+    vkgen_type_push(ctx, VkGenTypeKind_Enum, nameHash, enumNode);
+    ++enumCount;
+
     xml_for_children(ctx->schemaDoc, enumNode, entryNode) {
       if (xml_name_hash(ctx->schemaDoc, entryNode) != g_hash_enum) {
         continue; // Not an enum entry.
@@ -502,8 +477,35 @@ static void vkgen_collect_enums(VkGenContext* ctx) {
       vkgen_enum_entry_push(ctx, entryRes);
     }
   }
-  dynarray_sort(&ctx->enums, vkgen_compare_entry);
-  log_i("Collected enums", log_param("count", fmt_int(ctx->enums.size)));
+  log_i(
+      "Collected enums",
+      log_param("count", fmt_int(enumCount)),
+      log_param("entries", fmt_int(ctx->enumEntries.size)));
+}
+
+static void vkgen_collect_types(VkGenContext* ctx) {
+  const XmlNode typesNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_types);
+  xml_for_children(ctx->schemaDoc, typesNode, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) == g_hash_type) {
+      if (!vkgen_is_supported_api(ctx, child)) {
+        continue;
+      }
+      const VkGenTypeKind kind     = vkgen_categorize_type(ctx, child);
+      const StringHash    nameHash = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
+      if (nameHash) {
+        vkgen_type_push(ctx, kind, nameHash, child);
+        continue;
+      }
+      const XmlNode nameNode = xml_child_get(ctx->schemaDoc, child, g_hash_name);
+      if (!sentinel_check(nameNode)) {
+        const String nameText = xml_child_text(ctx->schemaDoc, nameNode);
+        vkgen_type_push(ctx, kind, string_hash(nameText), child);
+        continue;
+      }
+    }
+  }
+  dynarray_sort(&ctx->types, vkgen_compare_type);
+  log_i("Collected types", log_param("count", fmt_int(ctx->types.size)));
 }
 
 static void vkgen_collect_commands(VkGenContext* ctx) {
@@ -585,24 +587,6 @@ static void vkgen_write_comment_elem(VkGenContext* ctx, const XmlNode comment) {
     const String str = vkgen_collapse_whitespace_scratch(xml_value(ctx->schemaDoc, text));
     fmt_write(&ctx->out, "//{}.\n", fmt_text(str, .flags = FormatTextFlags_SingleLine));
   }
-}
-
-static bool vkgen_write_enum(VkGenContext* ctx, const StringHash key) {
-  const XmlNode    node    = vkgen_entry_find(&ctx->enums, key);
-  VkGenEnumEntries entries = vkgen_enum_entries_find(ctx, key);
-  if (entries.begin == entries.end) {
-    return true; // Empty enum.
-  }
-  const StringHash typeHash = xml_attr_get_hash(ctx->schemaDoc, node, g_hash_type);
-  if (typeHash == g_hash_enum || typeHash == g_hash_bitmask) {
-    fmt_write(&ctx->out, "typedef enum {\n");
-    for (const VkGenEnumEntry* itr = entries.begin; itr != entries.end; ++itr) {
-      fmt_write(&ctx->out, "  {} = {},\n", fmt_text(itr->name), fmt_int(itr->value));
-    }
-    fmt_write(&ctx->out, "} {};\n\n", fmt_text(xml_attr_get(ctx->schemaDoc, node, g_hash_name)));
-    return true;
-  }
-  return false; // Unsupported enum type.
 }
 
 static String vkgen_type_resolve(VkGenContext* ctx, XmlNode* node) {
@@ -709,6 +693,19 @@ static bool vkgen_write_type_handle(VkGenContext* ctx, const XmlNode typeNode) {
   return true;
 }
 
+static void vkgen_write_type_enum(VkGenContext* ctx, const XmlNode typeNode) {
+  const StringHash key     = xml_attr_get_hash(ctx->schemaDoc, typeNode, g_hash_name);
+  VkGenEnumEntries entries = vkgen_enum_entries_find(ctx, key);
+  if (entries.begin == entries.end) {
+    return; // Empty enum;
+  }
+  fmt_write(&ctx->out, "typedef enum {\n");
+  for (const VkGenEnumEntry* itr = entries.begin; itr != entries.end; ++itr) {
+    fmt_write(&ctx->out, "  {} = {},\n", fmt_text(itr->name), fmt_int(itr->value));
+  }
+  fmt_write(&ctx->out, "} {};\n\n", fmt_text(xml_attr_get(ctx->schemaDoc, typeNode, g_hash_name)));
+}
+
 static void vkgen_write_type_struct(VkGenContext* ctx, const XmlNode typeNode) {
   if (sentinel_check(xml_first_child(ctx->schemaDoc, typeNode))) {
     return; // Empty struct.
@@ -785,17 +782,13 @@ static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
     fmt_write(&ctx->out, "\n\n");
     return true;
   case VkGenTypeKind_Handle:
-    vkgen_write_type_handle(ctx, typeInfo->schemaNode);
-    return true;
+    return vkgen_write_type_handle(ctx, typeInfo->schemaNode), true;
   case VkGenTypeKind_Enum:
-    vkgen_write_enum(ctx, xml_attr_get_hash(ctx->schemaDoc, typeInfo->schemaNode, g_hash_name));
-    return true;
+    return vkgen_write_type_enum(ctx, typeInfo->schemaNode), true;
   case VkGenTypeKind_Struct:
-    vkgen_write_type_struct(ctx, typeInfo->schemaNode);
-    return true;
+    return vkgen_write_type_struct(ctx, typeInfo->schemaNode), true;
   case VkGenTypeKind_Union:
-    vkgen_write_type_union(ctx, typeInfo->schemaNode);
-    return true;
+    return vkgen_write_type_union(ctx, typeInfo->schemaNode), true;
   }
   return false;
 }
@@ -996,7 +989,6 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .types           = dynarray_create_t(g_allocHeap, VkGenType, 4096),
       .typesWritten    = dynbitset_create(g_allocHeap, 4096),
       .constants       = dynarray_create_t(g_allocHeap, VkGenConstant, 64),
-      .enums           = dynarray_create_t(g_allocHeap, VkGenEntry, 512),
       .enumEntries     = dynarray_create_t(g_allocHeap, VkGenEnumEntry, 2048),
       .commands        = dynarray_create_t(g_allocHeap, VkGenEntry, 1024),
       .commandsWritten = dynbitset_create(g_allocHeap, 1024),
@@ -1010,9 +1002,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     goto Exit;
   }
 
-  vkgen_collect_types(&ctx);
   vkgen_collect_constants(&ctx);
   vkgen_collect_enums(&ctx);
+  vkgen_collect_types(&ctx);
   vkgen_collect_commands(&ctx);
   vkgen_collect_extensions(&ctx);
   vkgen_collect_features(&ctx);
@@ -1034,7 +1026,6 @@ Exit:;
   dynarray_destroy(&ctx.types);
   dynbitset_destroy(&ctx.typesWritten);
   dynarray_destroy(&ctx.constants);
-  dynarray_destroy(&ctx.enums);
   dynarray_destroy(&ctx.enumEntries);
   dynarray_destroy(&ctx.commands);
   dynbitset_destroy(&ctx.commandsWritten);
