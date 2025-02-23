@@ -130,6 +130,7 @@ static const VkGenStringify g_vkgenStringify[] = {
     {string_static("VkPhysicalDeviceType"), string_static("VK_PHYSICAL_DEVICE_TYPE_")},
     {string_static("VkColorSpaceKHR"), string_static("VK_COLOR_SPACE_")},
     {string_static("VkPresentModeKHR"), string_static("VK_PRESENT_MODE_")},
+    {string_static("VkVendorId"), string_static("VK_VENDOR_ID_")},
 };
 
 static u32 vkgen_feat_find(const StringHash featHash) {
@@ -658,6 +659,29 @@ static void vkgen_collect_extensions(VkGenContext* ctx) {
   log_i("Collected extensions");
 }
 
+static void vkgen_collect_custom_extensions(VkGenContext* ctx) {
+  /**
+   * Common (but non Khronos) PCI vendor ids.
+   */
+  static const struct {
+    u32    vendorId;
+    String name;
+  } g_pciSigVendors[] = {
+      {0x1002, string_static("VK_VENDOR_ID_AMD")},
+      {0x1010, string_static("VK_VENDOR_ID_IMGTEC")},
+      {0x10DE, string_static("VK_VENDOR_ID_NVIDIA")},
+      {0x13B5, string_static("VK_VENDOR_ID_ARM")},
+      {0x5143, string_static("VK_VENDOR_ID_QUALCOMM")},
+      {0x8086, string_static("VK_VENDOR_ID_INTEL")},
+  };
+  VkGenEnumEntry enumEntry = {.key = string_hash_lit("VkVendorId")};
+  for (u32 i = 0; i != array_elems(g_pciSigVendors); ++i) {
+    enumEntry.name  = g_pciSigVendors[i].name;
+    enumEntry.value = g_pciSigVendors[i].vendorId;
+    vkgen_enum_entry_push(ctx, enumEntry);
+  }
+}
+
 static String vkgen_ref_scratch(const VkGenRef* ref) {
   Mem       scratchMem = alloc_alloc(g_allocScratch, usize_kibibyte, 1);
   DynString str        = dynstring_create_over(scratchMem);
@@ -1138,8 +1162,9 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   vkgen_collect_enums(&ctx);
   vkgen_collect_types(&ctx);
   vkgen_collect_commands(&ctx);
-  vkgen_collect_extensions(&ctx);
   vkgen_collect_features(&ctx);
+  vkgen_collect_extensions(&ctx);
+  vkgen_collect_custom_extensions(&ctx);
 
   if (vkgen_write_header(&ctx)) {
     const String headerPath = fmt_write_scratch("{}.h", fmt_text(outputPath));

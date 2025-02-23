@@ -374,6 +374,12 @@ typedef struct VkPipelineCacheHeaderVersionOne {
 } VkPipelineCacheHeaderVersionOne;
 
 typedef enum {
+  VK_VENDOR_ID_AMD = 4098,
+  VK_VENDOR_ID_IMGTEC = 4112,
+  VK_VENDOR_ID_NVIDIA = 4318,
+  VK_VENDOR_ID_ARM = 5045,
+  VK_VENDOR_ID_QUALCOMM = 20803,
+  VK_VENDOR_ID_INTEL = 32902,
   VK_VENDOR_ID_KHRONOS = 65536,
   VK_VENDOR_ID_VIV = 65537,
   VK_VENDOR_ID_VSI = 65538,
@@ -3753,5 +3759,6 @@ String vkResultStr(VkResult);
 String vkPhysicalDeviceTypeStr(VkPhysicalDeviceType);
 String vkColorSpaceKHRStr(VkColorSpaceKHR);
 String vkPresentModeKHRStr(VkPresentModeKHR);
+String vkVendorIdStr(VkVendorId);
 
 // clang-format on

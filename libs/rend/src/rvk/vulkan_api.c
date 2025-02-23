@@ -64,4 +64,24 @@ String vkPresentModeKHRStr(const VkPresentModeKHR v) {
   }
 }
 
+String vkVendorIdStr(const VkVendorId v) {
+  switch(v) {
+    case VK_VENDOR_ID_AMD: return string_lit("amd");
+    case VK_VENDOR_ID_IMGTEC: return string_lit("imgtec");
+    case VK_VENDOR_ID_NVIDIA: return string_lit("nvidia");
+    case VK_VENDOR_ID_ARM: return string_lit("arm");
+    case VK_VENDOR_ID_QUALCOMM: return string_lit("qualcomm");
+    case VK_VENDOR_ID_INTEL: return string_lit("intel");
+    case VK_VENDOR_ID_KHRONOS: return string_lit("khronos");
+    case VK_VENDOR_ID_VIV: return string_lit("viv");
+    case VK_VENDOR_ID_VSI: return string_lit("vsi");
+    case VK_VENDOR_ID_KAZAN: return string_lit("kazan");
+    case VK_VENDOR_ID_CODEPLAY: return string_lit("codeplay");
+    case VK_VENDOR_ID_MESA: return string_lit("mesa");
+    case VK_VENDOR_ID_POCL: return string_lit("pocl");
+    case VK_VENDOR_ID_MOBILEYE: return string_lit("mobileye");
+    default: return string_lit("unknown");
+  }
+}
+
 // clang-format on
