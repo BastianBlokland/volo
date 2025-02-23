@@ -52,7 +52,7 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   const u8       layers     = (u8)asset->layers;
   const u8       mipLevels  = (u8)asset->mipsMax;
   const VkFormat vkFormat   = rvk_texture_format(asset);
-  const bool     compressed = (rvk_format_info(vkFormat).flags & RvkFormat_Block4x4) != 0;
+  const bool     compressed = vkFormatCompressed4x4(vkFormat);
   (void)compressed;
 
   bool mipGenGpu = false;

@@ -317,14 +317,13 @@ RvkTransferId rvk_transfer_buffer(RvkTransferer* trans, RvkBuffer* dest, const M
 
 static u32 rvk_transfer_image_src_size_mip(const RvkImage* img, const u32 mipLevel) {
   diag_assert(mipLevel < img->mipLevels);
-  const u32           mipWidth   = math_max(img->size.width >> mipLevel, 1);
-  const u32           mipHeight  = math_max(img->size.height >> mipLevel, 1);
-  const RvkFormatInfo formatInfo = rvk_format_info(img->vkFormat);
-  if (formatInfo.flags & RvkFormat_Block4x4) {
+  const u32 mipWidth  = math_max(img->size.width >> mipLevel, 1);
+  const u32 mipHeight = math_max(img->size.height >> mipLevel, 1);
+  if (vkFormatCompressed4x4(img->vkFormat)) {
     const u32 blocks = math_max(mipWidth / 4, 1) * math_max(mipHeight / 4, 1);
-    return blocks * formatInfo.size * img->layers;
+    return blocks * vkFormatByteSize(img->vkFormat) * img->layers;
   }
-  return mipWidth * mipHeight * formatInfo.size * img->layers;
+  return mipWidth * mipHeight * vkFormatByteSize(img->vkFormat) * img->layers;
 }
 
 MAYBE_UNUSED static u32 rvk_transfer_image_src_size(const RvkImage* img, const u32 mipLevels) {
@@ -344,7 +343,7 @@ RvkTransferId rvk_transfer_image(
   thread_mutex_lock(trans->mutex);
 
   const u64 reqAlign = math_max(
-      rvk_format_info(dest->vkFormat).size,
+      vkFormatByteSize(dest->vkFormat),
       trans->dev->vkProperties.limits.optimalBufferCopyOffsetAlignment);
 
   RvkTransferBuffer* buffer = rvk_transfer_get(trans, data.size, reqAlign);
@@ -395,7 +394,7 @@ RvkTransferId rvk_transfer_image(
   }
 
   if (genMips) {
-    diag_assert(!(rvk_format_info(dest->vkFormat).flags & RvkFormat_Block4x4));
+    diag_assert(!vkFormatCompressed4x4(dest->vkFormat));
     diag_assert(mips == 1);
 
     rvk_image_generate_mipmaps(dest, buffer->vkCmdBufferGraphics);

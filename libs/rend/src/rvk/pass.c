@@ -119,8 +119,8 @@ static void rvk_pass_attach_assert_color(const RvkPass* pass, const u32 idx, con
       "Pass {} color attachment {} invalid: Invalid format (expected: {}, actual: {})",
       fmt_text(pass->config->name),
       fmt_int(idx),
-      fmt_text(rvk_format_info(spec.vkFormat).name),
-      fmt_text(rvk_format_info(img->vkFormat).name));
+      fmt_text(vkFormatStr(spec.vkFormat)),
+      fmt_text(vkFormatStr(img->vkFormat)));
 }
 
 static void rvk_pass_attach_assert_depth(const RvkPass* pass, const RvkImage* img) {
@@ -133,8 +133,8 @@ static void rvk_pass_attach_assert_depth(const RvkPass* pass, const RvkImage* im
       img->vkFormat == spec.vkFormat,
       "Pass {} depth attachment invalid: Invalid format (expected: {}, actual: {})",
       fmt_text(pass->config->name),
-      fmt_text(rvk_format_info(spec.vkFormat).name),
-      fmt_text(rvk_format_info(img->vkFormat).name));
+      fmt_text(vkFormatStr(spec.vkFormat)),
+      fmt_text(vkFormatStr(img->vkFormat)));
 }
 
 static void rvk_pass_assert_image_contents(const RvkPass* pass, const RvkPassSetup* setup) {

@@ -22,18 +22,3 @@
 void* rvk_func_load_instance_internal(VkInstance, String api);
 void* rvk_func_load_device_internal(VkDevice, String api);
 void  rvk_check(String api, VkResult);
-
-typedef enum {
-  RvkFormat_Block4x4 = 1 << 0,
-  RvkFormat_RGBA     = 1 << 1,
-  RvkFormat_BGRA     = 1 << 2,
-  RvkFormat_Srgb     = 1 << 3,
-} RvkFormatFlags;
-
-typedef struct {
-  String         name;
-  u32            size, channels;
-  RvkFormatFlags flags;
-} RvkFormatInfo;
-
-RvkFormatInfo rvk_format_info(VkFormat format);

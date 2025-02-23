@@ -462,7 +462,7 @@ RvkDevice* rvk_device_create(const RendSettingsGlobalComp* settingsGlobal) {
       log_param("device-name", fmt_text(string_from_null_term(dev->vkProperties.deviceName))),
       log_param("graphics-queue-idx", fmt_int(dev->graphicsQueueIndex)),
       log_param("transfer-queue-idx", fmt_int(dev->transferQueueIndex)),
-      log_param("depth-format", fmt_text(rvk_format_info(dev->depthFormat).name)),
+      log_param("depth-format", fmt_text(vkFormatStr(dev->depthFormat))),
       log_param("validation-enabled", fmt_bool(dev->flags & RvkDeviceFlags_Validation)),
       log_param("present-id-enabled", fmt_bool(dev->flags & RvkDeviceFlags_SupportPresentId)),
       log_param("present-wait-enabled", fmt_bool(dev->flags & RvkDeviceFlags_SupportPresentWait)));

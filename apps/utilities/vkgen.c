@@ -30,10 +30,13 @@
   VKGEN_HASH(basetype)                                                                             \
   VKGEN_HASH(bitmask)                                                                              \
   VKGEN_HASH(bitpos)                                                                               \
+  VKGEN_HASH(blockSize)                                                                            \
   VKGEN_HASH(category)                                                                             \
   VKGEN_HASH(command)                                                                              \
   VKGEN_HASH(commands)                                                                             \
   VKGEN_HASH(comment)                                                                              \
+  VKGEN_HASH(component)                                                                            \
+  VKGEN_HASH(compressed)                                                                           \
   VKGEN_HASH(constants)                                                                            \
   VKGEN_HASH(define)                                                                               \
   VKGEN_HASH(deprecated)                                                                           \
@@ -45,6 +48,8 @@
   VKGEN_HASH(extensions)                                                                           \
   VKGEN_HASH(extnumber)                                                                            \
   VKGEN_HASH(feature)                                                                              \
+  VKGEN_HASH(format)                                                                               \
+  VKGEN_HASH(formats)                                                                              \
   VKGEN_HASH(funcpointer)                                                                          \
   VKGEN_HASH(handle)                                                                               \
   VKGEN_HASH(include)                                                                              \
@@ -57,6 +62,7 @@
   VKGEN_HASH(require)                                                                              \
   VKGEN_HASH(struct)                                                                               \
   VKGEN_HASH(supported)                                                                            \
+  VKGEN_HASH(texelsPerBlock)                                                                       \
   VKGEN_HASH(type)                                                                                 \
   VKGEN_HASH(types)                                                                                \
   VKGEN_HASH(union)                                                                                \
@@ -131,6 +137,7 @@ static const VkGenStringify g_vkgenStringify[] = {
     {string_static("VkColorSpaceKHR"), string_static("VK_COLOR_SPACE_")},
     {string_static("VkPresentModeKHR"), string_static("VK_PRESENT_MODE_")},
     {string_static("VkVendorId"), string_static("VK_VENDOR_ID_")},
+    {string_static("VkFormat"), string_static("VK_FORMAT_")},
 };
 
 static u32 vkgen_feat_find(const StringHash featHash) {
@@ -272,6 +279,13 @@ typedef struct {
 } VkGenCommand;
 
 typedef struct {
+  StringHash nameHash;
+  u32        size;  // Size in bytes of a single pixel.
+  u32        comps; // Number of components.
+  bool       compressed4x4;
+} VkGenFormat;
+
+typedef struct {
   XmlDoc*   schemaDoc;
   XmlNode   schemaRoot;
   String    schemaHost, schemaUri;
@@ -283,6 +297,7 @@ typedef struct {
   DynBitSet commandsWritten;
   XmlNode   featureNodes[array_elems(g_vkgenFeatures)];
   XmlNode   extensionNodes[array_elems(g_vkgenExtensions)];
+  DynArray  formats; // VkGenFormat[]
   String    outName;
   DynString out;
 } VkGenContext;
@@ -314,6 +329,11 @@ static i8 vkgen_compare_enum_entry(const void* a, const void* b) {
 
 static i8 vkgen_compare_enum_entry_no_value(const void* a, const void* b) {
   return compare_stringhash(field_ptr(a, VkGenEnumEntry, key), field_ptr(b, VkGenEnumEntry, key));
+}
+
+static i8 vkgen_compare_format(const void* a, const void* b) {
+  return compare_stringhash(
+      field_ptr(a, VkGenFormat, nameHash), field_ptr(b, VkGenFormat, nameHash));
 }
 
 static u32 vkgen_type_find(VkGenContext* ctx, const StringHash key) {
@@ -390,6 +410,11 @@ vkgen_command_push(VkGenContext* ctx, const String name, const String type, cons
       .type       = type,
       .schemaNode = node,
   };
+}
+
+static const VkGenFormat* vkgen_format_find(VkGenContext* ctx, const StringHash nameHash) {
+  const VkGenFormat tgt = {.nameHash = nameHash};
+  return dynarray_search_binary(&ctx->formats, vkgen_compare_format, &tgt);
 }
 
 static bool vkgen_is_supported(VkGenContext* ctx, const XmlNode node) {
@@ -680,6 +705,48 @@ static void vkgen_collect_custom_extensions(VkGenContext* ctx) {
     enumEntry.value = g_pciSigVendors[i].vendorId;
     vkgen_enum_entry_push(ctx, enumEntry);
   }
+}
+
+static void vkgen_collect_formats(VkGenContext* ctx) {
+  const XmlNode formatsNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_formats);
+  xml_for_children(ctx->schemaDoc, formatsNode, node) {
+    if (xml_name_hash(ctx->schemaDoc, node) != g_hash_format) {
+      continue; // Not a format.
+    }
+    const String nameStr      = xml_attr_get(ctx->schemaDoc, node, g_hash_name);
+    const String blockSizeStr = xml_attr_get(ctx->schemaDoc, node, g_hash_blockSize);
+
+    u32 comps = 0;
+    xml_for_children(ctx->schemaDoc, node, child) {
+      if (xml_name_hash(ctx->schemaDoc, child) == g_hash_component) {
+        ++comps;
+      }
+    }
+    if (!comps) {
+      log_w("Format {} has no components", log_param("name", fmt_text(nameStr)));
+      continue;
+    }
+    u32 size = 0;
+    if (!string_is_empty(blockSizeStr)) {
+      size = (u32)vkgen_to_int(blockSizeStr);
+    }
+    if (!size) {
+      log_w("Format {} has an invalid size", log_param("name", fmt_text(nameStr)));
+      continue;
+    }
+
+    const bool   isCompressed      = xml_attr_has(ctx->schemaDoc, node, g_hash_compressed);
+    const String texelsPerBlockStr = xml_attr_get(ctx->schemaDoc, node, g_hash_texelsPerBlock);
+
+    *dynarray_push_t(&ctx->formats, VkGenFormat) = (VkGenFormat){
+        .nameHash      = string_hash(nameStr),
+        .comps         = comps,
+        .size          = size,
+        .compressed4x4 = isCompressed && vkgen_to_int(texelsPerBlockStr) == 16,
+    };
+  }
+  dynarray_sort(&ctx->formats, vkgen_compare_format);
+  log_i("Collected formats", log_param("count", fmt_int(ctx->formats.size)));
 }
 
 static String vkgen_ref_scratch(const VkGenRef* ref) {
@@ -1007,6 +1074,53 @@ static void vkgen_write_stringify_def(VkGenContext* ctx, const VkGenStringify* e
   fmt_write(&ctx->out, "  }\n}\n\n");
 }
 
+static bool vkgen_write_format_info_def(VkGenContext* ctx) {
+  VkGenEnumEntries enumEntries = vkgen_enum_entries_find(ctx, string_hash_lit("VkFormat"));
+  if (enumEntries.begin == enumEntries.end) {
+    log_e("Format enum missing");
+    return false; // Format enum missing.
+  }
+
+  // Write vkFormatByteSize definition.
+  fmt_write(&ctx->out, "u32 vkFormatByteSize(const VkFormat f) {\n");
+  fmt_write(&ctx->out, "  switch(f) {\n");
+  for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
+    const VkGenFormat* info = vkgen_format_find(ctx, string_hash(itr->name));
+    if (info) {
+      fmt_write(&ctx->out, "    case {}: return {};\n", fmt_text(itr->name), fmt_int(info->size));
+    }
+  }
+  fmt_write(&ctx->out, "    default: return sentinel_u32;\n");
+  fmt_write(&ctx->out, "  }\n}\n\n");
+
+  // Write vkFormatComponents definition.
+  fmt_write(&ctx->out, "u32 vkFormatComponents(const VkFormat f) {\n");
+  fmt_write(&ctx->out, "  switch(f) {\n");
+  for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
+    const VkGenFormat* info = vkgen_format_find(ctx, string_hash(itr->name));
+    if (info) {
+      fmt_write(&ctx->out, "    case {}: return {};\n", fmt_text(itr->name), fmt_int(info->comps));
+    }
+  }
+  fmt_write(&ctx->out, "    default: return sentinel_u32;\n");
+  fmt_write(&ctx->out, "  }\n}\n\n");
+
+  // Write vkFormatCompressed4x4 definition.
+  fmt_write(&ctx->out, "bool vkFormatCompressed4x4(const VkFormat f) {\n");
+  fmt_write(&ctx->out, "  switch(f) {\n");
+  for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
+    const VkGenFormat* info = vkgen_format_find(ctx, string_hash(itr->name));
+    if (info && info->compressed4x4) {
+      fmt_write(&ctx->out, "    case {}:\n", fmt_text(itr->name), fmt_int(info->comps));
+    }
+  }
+  fmt_write(&ctx->out, "      return true;\n");
+  fmt_write(&ctx->out, "    default:\n      return false;\n");
+  fmt_write(&ctx->out, "  }\n}\n\n");
+
+  return true;
+}
+
 static void vkgen_write_prolog(VkGenContext* ctx) {
   fmt_write(
       &ctx->out,
@@ -1066,6 +1180,11 @@ static bool vkgen_write_header(VkGenContext* ctx) {
 
   // Write stringify declarations.
   array_for_t(g_vkgenStringify, VkGenStringify, entry) { vkgen_write_stringify_decl(ctx, entry); }
+
+  // Write format-info declarations.
+  fmt_write(&ctx->out, "u32 vkFormatByteSize(VkFormat);\n");
+  fmt_write(&ctx->out, "u32 vkFormatComponents(VkFormat);\n");
+  fmt_write(&ctx->out, "bool vkFormatCompressed4x4(VkFormat);\n");
   fmt_write(&ctx->out, "\n");
 
   fmt_write(&ctx->out, "// clang-format on\n");
@@ -1077,10 +1196,16 @@ static bool vkgen_write_impl(VkGenContext* ctx) {
   vkgen_write_prolog(ctx);
 
   fmt_write(&ctx->out, "#include \"{}.h\"\n", fmt_text(ctx->outName));
+  fmt_write(&ctx->out, "#include \"core_sentinel.h\"\n\n");
   fmt_write(&ctx->out, "#include \"core_string.h\"\n\n");
 
   // Write stringify definitions.
   array_for_t(g_vkgenStringify, VkGenStringify, entry) { vkgen_write_stringify_def(ctx, entry); }
+
+  // Write format-info definitions.
+  if (!vkgen_write_format_info_def(ctx)) {
+    return false;
+  }
 
   fmt_write(&ctx->out, "// clang-format on\n");
   return true;
@@ -1149,6 +1274,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .enumEntries     = dynarray_create_t(g_allocHeap, VkGenEnumEntry, 2048),
       .commands        = dynarray_create_t(g_allocHeap, VkGenCommand, 1024),
       .commandsWritten = dynbitset_create(g_allocHeap, 1024),
+      .formats         = dynarray_create_t(g_allocHeap, VkGenFormat, 512),
       .outName         = path_stem(outputPath),
       .out             = dynstring_create(g_allocHeap, usize_kibibyte * 16),
   };
@@ -1165,6 +1291,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   vkgen_collect_features(&ctx);
   vkgen_collect_extensions(&ctx);
   vkgen_collect_custom_extensions(&ctx);
+  vkgen_collect_formats(&ctx);
 
   if (vkgen_write_header(&ctx)) {
     const String headerPath = fmt_write_scratch("{}.h", fmt_text(outputPath));
@@ -1196,6 +1323,7 @@ Exit:
   dynarray_destroy(&ctx.enumEntries);
   dynarray_destroy(&ctx.commands);
   dynbitset_destroy(&ctx.commandsWritten);
+  dynarray_destroy(&ctx.formats);
   dynstring_destroy(&ctx.out);
 
   net_teardown();

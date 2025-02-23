@@ -863,7 +863,7 @@ bool rend_res_texture_is_cube(const RendResTextureComp* comp) {
 }
 
 String rend_res_texture_format_str(const RendResTextureComp* comp) {
-  return rvk_format_info(comp->texture->image.vkFormat).name;
+  return vkFormatStr(comp->texture->image.vkFormat);
 }
 
 usize rend_res_texture_memory(const RendResTextureComp* comp) {
