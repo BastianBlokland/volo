@@ -104,7 +104,11 @@ typedef unsigned char bool;
 /**
  * Retrieve the offset (in bytes) of the given member in the type.
  */
+#if defined(VOLO_GCC) || defined(VOLO_CLANG)
+#define offsetof(_TYPE_, _MEMBER_) __builtin_offsetof(_TYPE_, _MEMBER_)
+#else
 #define offsetof(_TYPE_, _MEMBER_) ((usize) & (((_TYPE_*)0)->_MEMBER_))
+#endif
 
 /**
  * Return the alignment required for the given type.
