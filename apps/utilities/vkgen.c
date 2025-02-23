@@ -955,6 +955,17 @@ static void vkgen_write_stringify_decl(VkGenContext* ctx, const VkGenStringify* 
   fmt_write(&ctx->out, "String {}({});\n\n", fmt_text(funcName), fmt_text(entry->typeName));
 }
 
+static void vkgen_write_stringify_def(VkGenContext* ctx, const VkGenStringify* entry) {
+  const String funcName = fmt_write_scratch(
+      "{}{}Str",
+      fmt_char(ascii_to_lower(*string_begin(entry->typeName))),
+      fmt_text(string_consume(entry->typeName, 1)));
+
+  fmt_write(&ctx->out, "String {}(const {} v) {\n", fmt_text(funcName), fmt_text(entry->typeName));
+  fmt_write(&ctx->out, "  return string_lit(\"unknown\");\n");
+  fmt_write(&ctx->out, "}\n\n");
+}
+
 static void vkgen_write_prolog(VkGenContext* ctx) {
   fmt_write(
       &ctx->out,
@@ -969,13 +980,14 @@ static void vkgen_write_prolog(VkGenContext* ctx) {
     const String textTrimmed   = vkgen_collapse_whitespace_scratch(copyrightText);
     fmt_write(&ctx->out, "//{}.\n", fmt_text(textTrimmed, .flags = FormatTextFlags_SingleLine));
   }
+  fmt_write(&ctx->out, "\n");
 }
 
 static bool vkgen_write_header(VkGenContext* ctx) {
   fmt_write(&ctx->out, "#pragma once\n");
+  fmt_write(&ctx->out, "// clang-format off\n");
   vkgen_write_prolog(ctx);
 
-  fmt_write(&ctx->out, "// clang-format off\n\n");
   fmt_write(&ctx->out, "#include \"core.h\"\n\n");
   fmt_write(
       &ctx->out,
@@ -1019,10 +1031,15 @@ static bool vkgen_write_header(VkGenContext* ctx) {
 }
 
 static bool vkgen_write_impl(VkGenContext* ctx) {
-  fmt_write(&ctx->out, "#include \"{}.h\"\n", fmt_text(ctx->outName));
+  fmt_write(&ctx->out, "// clang-format off\n");
   vkgen_write_prolog(ctx);
 
-  fmt_write(&ctx->out, "// clang-format off\n\n");
+  fmt_write(&ctx->out, "#include \"{}.h\"\n", fmt_text(ctx->outName));
+  fmt_write(&ctx->out, "#include \"core_string.h\"\n\n");
+
+  // Write stringify definitions.
+  array_for_t(g_vkgenStringify, VkGenStringify, entry) { vkgen_write_stringify_def(ctx, entry); }
+
   fmt_write(&ctx->out, "// clang-format on\n");
   return true;
 }
