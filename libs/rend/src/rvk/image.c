@@ -408,7 +408,7 @@ RvkImage rvk_image_create_attach_depth(
     const VkFormat           vkFormat,
     const RvkSize            size,
     const RvkImageCapability extraCaps) {
-  diag_assert(vkFormatCompCount(vkFormat) == 1);
+  diag_assert(vkFormatComponents(vkFormat) == 1);
   diag_assert((extraCaps & (RvkImageCapability_AttachmentColor | RvkImageCapability_Present)) == 0);
 
   const RvkImageCapability caps      = RvkImageCapability_AttachmentDepth | extraCaps;

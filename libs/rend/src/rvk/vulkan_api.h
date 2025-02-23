@@ -3762,7 +3762,7 @@ String vkPresentModeKHRStr(VkPresentModeKHR);
 String vkVendorIdStr(VkVendorId);
 String vkFormatStr(VkFormat);
 u32 vkFormatByteSize(VkFormat);
-u32 vkFormatCompCount(VkFormat);
+u32 vkFormatComponents(VkFormat);
 bool vkFormatCompressed(VkFormat);
 
 // clang-format on

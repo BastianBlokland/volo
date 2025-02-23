@@ -1089,8 +1089,8 @@ static bool vkgen_write_format_info_def(VkGenContext* ctx) {
   fmt_write(&ctx->out, "    default: return sentinel_u32;\n");
   fmt_write(&ctx->out, "  }\n}\n\n");
 
-  // Write vkFormatCompCount definition.
-  fmt_write(&ctx->out, "u32 vkFormatCompCount(const VkFormat f) {\n");
+  // Write vkFormatComponents definition.
+  fmt_write(&ctx->out, "u32 vkFormatComponents(const VkFormat f) {\n");
   fmt_write(&ctx->out, "  switch(f) {\n");
   for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
     const VkGenFormat* info = vkgen_format_find(ctx, string_hash(itr->name));
@@ -1179,7 +1179,7 @@ static bool vkgen_write_header(VkGenContext* ctx) {
 
   // Write format-info declarations.
   fmt_write(&ctx->out, "u32 vkFormatByteSize(VkFormat);\n");
-  fmt_write(&ctx->out, "u32 vkFormatCompCount(VkFormat);\n");
+  fmt_write(&ctx->out, "u32 vkFormatComponents(VkFormat);\n");
   fmt_write(&ctx->out, "bool vkFormatCompressed(VkFormat);\n");
   fmt_write(&ctx->out, "\n");
 

@@ -535,7 +535,7 @@ u32 vkFormatByteSize(const VkFormat f) {
   }
 }
 
-u32 vkFormatCompCount(const VkFormat f) {
+u32 vkFormatComponents(const VkFormat f) {
   switch(f) {
     case VK_FORMAT_R4G4_UNORM_PACK8: return 2;
     case VK_FORMAT_R4G4B4A4_UNORM_PACK16: return 4;
