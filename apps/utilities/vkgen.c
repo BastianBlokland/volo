@@ -45,6 +45,8 @@
   VKGEN_HASH(extensions)                                                                           \
   VKGEN_HASH(extnumber)                                                                            \
   VKGEN_HASH(feature)                                                                              \
+  VKGEN_HASH(format)                                                                               \
+  VKGEN_HASH(formats)                                                                              \
   VKGEN_HASH(funcpointer)                                                                          \
   VKGEN_HASH(handle)                                                                               \
   VKGEN_HASH(include)                                                                              \
@@ -272,6 +274,10 @@ typedef struct {
 } VkGenCommand;
 
 typedef struct {
+  String name; // Allocated in the schema document.
+} VkGenFormat;
+
+typedef struct {
   XmlDoc*   schemaDoc;
   XmlNode   schemaRoot;
   String    schemaHost, schemaUri;
@@ -283,6 +289,7 @@ typedef struct {
   DynBitSet commandsWritten;
   XmlNode   featureNodes[array_elems(g_vkgenFeatures)];
   XmlNode   extensionNodes[array_elems(g_vkgenExtensions)];
+  DynArray  formats; // VkGenFormat[]
   String    outName;
   DynString out;
 } VkGenContext;
@@ -314,6 +321,10 @@ static i8 vkgen_compare_enum_entry(const void* a, const void* b) {
 
 static i8 vkgen_compare_enum_entry_no_value(const void* a, const void* b) {
   return compare_stringhash(field_ptr(a, VkGenEnumEntry, key), field_ptr(b, VkGenEnumEntry, key));
+}
+
+static i8 vkgen_compare_format(const void* a, const void* b) {
+  return compare_string(field_ptr(a, VkGenFormat, name), field_ptr(b, VkGenFormat, name));
 }
 
 static u32 vkgen_type_find(VkGenContext* ctx, const StringHash key) {
@@ -680,6 +691,17 @@ static void vkgen_collect_custom_extensions(VkGenContext* ctx) {
     enumEntry.value = g_pciSigVendors[i].vendorId;
     vkgen_enum_entry_push(ctx, enumEntry);
   }
+}
+
+static void vkgen_collect_formats(VkGenContext* ctx) {
+  const XmlNode formatsNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_formats);
+  xml_for_children(ctx->schemaDoc, formatsNode, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_format) {
+      continue; // Not a format.
+    }
+  }
+  dynarray_sort(&ctx->formats, vkgen_compare_format);
+  log_i("Collected formats", log_param("count", fmt_int(ctx->formats.size)));
 }
 
 static String vkgen_ref_scratch(const VkGenRef* ref) {
@@ -1165,6 +1187,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   vkgen_collect_features(&ctx);
   vkgen_collect_extensions(&ctx);
   vkgen_collect_custom_extensions(&ctx);
+  vkgen_collect_formats(&ctx);
 
   if (vkgen_write_header(&ctx)) {
     const String headerPath = fmt_write_scratch("{}.h", fmt_text(outputPath));
