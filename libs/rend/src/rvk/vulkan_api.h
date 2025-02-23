@@ -3763,6 +3763,6 @@ String vkVendorIdStr(VkVendorId);
 String vkFormatStr(VkFormat);
 u32 vkFormatByteSize(VkFormat);
 u32 vkFormatComponents(VkFormat);
-bool vkFormatCompressed(VkFormat);
+bool vkFormatCompressed4x4(VkFormat);
 
 // clang-format on

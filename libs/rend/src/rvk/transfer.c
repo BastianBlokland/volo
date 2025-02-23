@@ -319,7 +319,7 @@ static u32 rvk_transfer_image_src_size_mip(const RvkImage* img, const u32 mipLev
   diag_assert(mipLevel < img->mipLevels);
   const u32 mipWidth  = math_max(img->size.width >> mipLevel, 1);
   const u32 mipHeight = math_max(img->size.height >> mipLevel, 1);
-  if (vkFormatCompressed(img->vkFormat)) {
+  if (vkFormatCompressed4x4(img->vkFormat)) {
     const u32 blocks = math_max(mipWidth / 4, 1) * math_max(mipHeight / 4, 1);
     return blocks * vkFormatByteSize(img->vkFormat) * img->layers;
   }
@@ -394,7 +394,7 @@ RvkTransferId rvk_transfer_image(
   }
 
   if (genMips) {
-    diag_assert(!vkFormatCompressed(dest->vkFormat));
+    diag_assert(!vkFormatCompressed4x4(dest->vkFormat));
     diag_assert(mips == 1);
 
     rvk_image_generate_mipmaps(dest, buffer->vkCmdBufferGraphics);

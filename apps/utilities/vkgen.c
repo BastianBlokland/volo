@@ -62,6 +62,7 @@
   VKGEN_HASH(require)                                                                              \
   VKGEN_HASH(struct)                                                                               \
   VKGEN_HASH(supported)                                                                            \
+  VKGEN_HASH(texelsPerBlock)                                                                       \
   VKGEN_HASH(type)                                                                                 \
   VKGEN_HASH(types)                                                                                \
   VKGEN_HASH(union)                                                                                \
@@ -281,7 +282,7 @@ typedef struct {
   StringHash nameHash;
   u32        size;  // Size in bytes of a single pixel.
   u32        comps; // Number of components.
-  bool       compressed;
+  bool       compressed4x4;
 } VkGenFormat;
 
 typedef struct {
@@ -708,15 +709,15 @@ static void vkgen_collect_custom_extensions(VkGenContext* ctx) {
 
 static void vkgen_collect_formats(VkGenContext* ctx) {
   const XmlNode formatsNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_formats);
-  xml_for_children(ctx->schemaDoc, formatsNode, formatNode) {
-    if (xml_name_hash(ctx->schemaDoc, formatNode) != g_hash_format) {
+  xml_for_children(ctx->schemaDoc, formatsNode, node) {
+    if (xml_name_hash(ctx->schemaDoc, node) != g_hash_format) {
       continue; // Not a format.
     }
-    const String nameStr      = xml_attr_get(ctx->schemaDoc, formatNode, g_hash_name);
-    const String blockSizeStr = xml_attr_get(ctx->schemaDoc, formatNode, g_hash_blockSize);
+    const String nameStr      = xml_attr_get(ctx->schemaDoc, node, g_hash_name);
+    const String blockSizeStr = xml_attr_get(ctx->schemaDoc, node, g_hash_blockSize);
 
     u32 comps = 0;
-    xml_for_children(ctx->schemaDoc, formatNode, child) {
+    xml_for_children(ctx->schemaDoc, node, child) {
       if (xml_name_hash(ctx->schemaDoc, child) == g_hash_component) {
         ++comps;
       }
@@ -734,11 +735,14 @@ static void vkgen_collect_formats(VkGenContext* ctx) {
       continue;
     }
 
+    const bool   isCompressed      = xml_attr_has(ctx->schemaDoc, node, g_hash_compressed);
+    const String texelsPerBlockStr = xml_attr_get(ctx->schemaDoc, node, g_hash_texelsPerBlock);
+
     *dynarray_push_t(&ctx->formats, VkGenFormat) = (VkGenFormat){
-        .nameHash   = string_hash(nameStr),
-        .comps      = comps,
-        .size       = size,
-        .compressed = xml_attr_has(ctx->schemaDoc, formatNode, g_hash_compressed),
+        .nameHash      = string_hash(nameStr),
+        .comps         = comps,
+        .size          = size,
+        .compressed4x4 = isCompressed && vkgen_to_int(texelsPerBlockStr) == 16,
     };
   }
   dynarray_sort(&ctx->formats, vkgen_compare_format);
@@ -1101,12 +1105,12 @@ static bool vkgen_write_format_info_def(VkGenContext* ctx) {
   fmt_write(&ctx->out, "    default: return sentinel_u32;\n");
   fmt_write(&ctx->out, "  }\n}\n\n");
 
-  // Write vkFormatCompressed definition.
-  fmt_write(&ctx->out, "bool vkFormatCompressed(const VkFormat f) {\n");
+  // Write vkFormatCompressed4x4 definition.
+  fmt_write(&ctx->out, "bool vkFormatCompressed4x4(const VkFormat f) {\n");
   fmt_write(&ctx->out, "  switch(f) {\n");
   for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
     const VkGenFormat* info = vkgen_format_find(ctx, string_hash(itr->name));
-    if (info && info->compressed) {
+    if (info && info->compressed4x4) {
       fmt_write(&ctx->out, "    case {}:\n", fmt_text(itr->name), fmt_int(info->comps));
     }
   }
@@ -1180,7 +1184,7 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   // Write format-info declarations.
   fmt_write(&ctx->out, "u32 vkFormatByteSize(VkFormat);\n");
   fmt_write(&ctx->out, "u32 vkFormatComponents(VkFormat);\n");
-  fmt_write(&ctx->out, "bool vkFormatCompressed(VkFormat);\n");
+  fmt_write(&ctx->out, "bool vkFormatCompressed4x4(VkFormat);\n");
   fmt_write(&ctx->out, "\n");
 
   fmt_write(&ctx->out, "// clang-format on\n");
