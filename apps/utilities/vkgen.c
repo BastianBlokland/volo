@@ -276,8 +276,8 @@ typedef struct {
 } VkGenCommand;
 
 typedef struct {
-  String name; // Allocated in the schema document.
-  u32    channels;
+  StringHash nameHash;
+  u32        comps;
 } VkGenFormat;
 
 typedef struct {
@@ -327,7 +327,8 @@ static i8 vkgen_compare_enum_entry_no_value(const void* a, const void* b) {
 }
 
 static i8 vkgen_compare_format(const void* a, const void* b) {
-  return compare_string(field_ptr(a, VkGenFormat, name), field_ptr(b, VkGenFormat, name));
+  return compare_stringhash(
+      field_ptr(a, VkGenFormat, nameHash), field_ptr(b, VkGenFormat, nameHash));
 }
 
 static u32 vkgen_type_find(VkGenContext* ctx, const StringHash key) {
@@ -404,6 +405,11 @@ vkgen_command_push(VkGenContext* ctx, const String name, const String type, cons
       .type       = type,
       .schemaNode = node,
   };
+}
+
+static const VkGenFormat* vkgen_format_find(VkGenContext* ctx, const StringHash nameHash) {
+  const VkGenFormat tgt = {.nameHash = nameHash};
+  return dynarray_search_binary(&ctx->formats, vkgen_compare_format, &tgt);
 }
 
 static bool vkgen_is_supported(VkGenContext* ctx, const XmlNode node) {
@@ -702,7 +708,7 @@ static void vkgen_collect_formats(VkGenContext* ctx) {
     if (xml_name_hash(ctx->schemaDoc, formatNode) != g_hash_format) {
       continue; // Not a format.
     }
-    const String name = xml_attr_get(ctx->schemaDoc, formatNode, g_hash_name);
+    const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, formatNode, g_hash_name);
 
     u32 compCount = 0;
     xml_for_children(ctx->schemaDoc, formatNode, child) {
@@ -712,8 +718,8 @@ static void vkgen_collect_formats(VkGenContext* ctx) {
     }
 
     *dynarray_push_t(&ctx->formats, VkGenFormat) = (VkGenFormat){
-        .name     = name,
-        .channels = compCount,
+        .nameHash = nameHash,
+        .comps    = compCount,
     };
   }
   dynarray_sort(&ctx->formats, vkgen_compare_format);
@@ -1045,6 +1051,28 @@ static void vkgen_write_stringify_def(VkGenContext* ctx, const VkGenStringify* e
   fmt_write(&ctx->out, "  }\n}\n\n");
 }
 
+static bool vkgen_write_format_info_def(VkGenContext* ctx) {
+  VkGenEnumEntries enumEntries = vkgen_enum_entries_find(ctx, string_hash_lit("VkFormat"));
+  if (enumEntries.begin == enumEntries.end) {
+    log_e("Format enum missing");
+    return false; // Format enum missing.
+  }
+
+  fmt_write(&ctx->out, "u32 vkFormatCompCount(const VkFormat f) {\n");
+  fmt_write(&ctx->out, "  switch(f) {\n");
+  for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
+    const VkGenFormat* info = vkgen_format_find(ctx, string_hash(itr->name));
+    if (!info) {
+      continue;
+    }
+    fmt_write(&ctx->out, "  case {}: return {};\n", fmt_text(itr->name), fmt_int(info->comps));
+  }
+  fmt_write(&ctx->out, "  default: return sentinel_u32;\n");
+  fmt_write(&ctx->out, "  }\n}\n\n");
+
+  return true;
+}
+
 static void vkgen_write_prolog(VkGenContext* ctx) {
   fmt_write(
       &ctx->out,
@@ -1104,6 +1132,9 @@ static bool vkgen_write_header(VkGenContext* ctx) {
 
   // Write stringify declarations.
   array_for_t(g_vkgenStringify, VkGenStringify, entry) { vkgen_write_stringify_decl(ctx, entry); }
+
+  // Write format-info declarations.
+  fmt_write(&ctx->out, "u32 vkFormatCompCount(VkFormat);\n");
   fmt_write(&ctx->out, "\n");
 
   fmt_write(&ctx->out, "// clang-format on\n");
@@ -1115,10 +1146,16 @@ static bool vkgen_write_impl(VkGenContext* ctx) {
   vkgen_write_prolog(ctx);
 
   fmt_write(&ctx->out, "#include \"{}.h\"\n", fmt_text(ctx->outName));
+  fmt_write(&ctx->out, "#include \"core_sentinel.h\"\n\n");
   fmt_write(&ctx->out, "#include \"core_string.h\"\n\n");
 
   // Write stringify definitions.
   array_for_t(g_vkgenStringify, VkGenStringify, entry) { vkgen_write_stringify_def(ctx, entry); }
+
+  // Write format-info definitions.
+  if (!vkgen_write_format_info_def(ctx)) {
+    return false;
+  }
 
   fmt_write(&ctx->out, "// clang-format on\n");
   return true;
