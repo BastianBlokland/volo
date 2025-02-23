@@ -19,14 +19,9 @@
  */
 #define rvk_call(_API_, ...) rvk_check(string_lit(#_API_), _API_(__VA_ARGS__))
 
-void*  rvk_func_load_instance_internal(VkInstance, String api);
-void*  rvk_func_load_device_internal(VkDevice, String api);
-void   rvk_check(String api, VkResult);
-String rvk_result_str(VkResult);
-String rvk_devicetype_str(VkPhysicalDeviceType);
-String rvk_vendor_str(u32 vendorId);
-String rvk_colorspace_str(VkColorSpaceKHR);
-String rvk_presentmode_str(VkPresentModeKHR);
+void* rvk_func_load_instance_internal(VkInstance, String api);
+void* rvk_func_load_device_internal(VkDevice, String api);
+void  rvk_check(String api, VkResult);
 
 typedef enum {
   RvkFormat_Block4x4 = 1 << 0,

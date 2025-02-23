@@ -149,8 +149,8 @@ rvk_pick_presentmode(RvkDevice* dev, const RendSettingsComp* settings, const VkS
   }
   log_w(
       "Preferred present mode unavailable",
-      log_param("preferred", fmt_text(rvk_presentmode_str(preferred))),
-      log_param("fallback", fmt_text(rvk_presentmode_str(VK_PRESENT_MODE_FIFO_KHR))));
+      log_param("preferred", fmt_text(vkPresentModeKHRStr(preferred))),
+      log_param("fallback", fmt_text(vkPresentModeKHRStr(VK_PRESENT_MODE_FIFO_KHR))));
 
   return VK_PRESENT_MODE_FIFO_KHR; // FIFO is required by the spec to be always available.
 }
@@ -227,8 +227,8 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
       "Vulkan swapchain created",
       log_param("size", rvk_size_fmt(size)),
       log_param("format", fmt_text(rvk_format_info(format).name)),
-      log_param("color", fmt_text(rvk_colorspace_str(swapchain->vkSurfFormat.colorSpace))),
-      log_param("present-mode", fmt_text(rvk_presentmode_str(presentMode))),
+      log_param("color", fmt_text(vkColorSpaceKHRStr(swapchain->vkSurfFormat.colorSpace))),
+      log_param("present-mode", fmt_text(vkPresentModeKHRStr(presentMode))),
       log_param("image-count", fmt_int(swapchain->imageCount)));
 
   return true;

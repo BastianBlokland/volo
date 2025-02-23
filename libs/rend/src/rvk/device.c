@@ -243,8 +243,8 @@ static VkPhysicalDevice rvk_device_pick_physical_device(VkInstance vkInst) {
     log_d(
         "Vulkan physical device detected",
         log_param("device-name", fmt_text(string_from_null_term(properties.deviceName))),
-        log_param("device-type", fmt_text(rvk_devicetype_str(properties.deviceType))),
-        log_param("vendor", fmt_text(rvk_vendor_str(properties.vendorID))),
+        log_param("device-type", fmt_text(vkPhysicalDeviceTypeStr(properties.deviceType))),
+        log_param("vendor", fmt_text(vkVendorIdStr(properties.vendorID))),
         log_param("score", fmt_int(score)));
 
     if (score > bestScore || (score == bestScore && properties.apiVersion > bestApiVersion)) {

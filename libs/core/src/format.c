@@ -215,7 +215,7 @@ void format_write_arg(DynString* str, const FormatArg* arg) {
     if (text.size > fmt_txt_len_max) {
       text = string_slice(text, 0, fmt_txt_len_max);
     }
-    if (textOpts->flags & FormatTextFlags_NeedsProcess) {
+    if (textOpts->flags) {
       format_write_text(str, text, arg->settings);
     } else {
       dynstring_append(str, text); // Fast path for raw text.
@@ -533,7 +533,7 @@ void format_write_size_pretty(DynString* str, const usize val) {
 
 void format_write_text(DynString* str, String val, const FormatOptsText* opts) {
   diag_assert_msg(val.size <= usize_gibibyte, "Text too big: '{}'", fmt_size(val.size));
-  if (opts->flags & FormatTextFlags_NeedsProcess) {
+  if (opts->flags) {
     mem_for_u8(val, itr) { format_write_char(str, *itr, opts); }
   } else {
     dynstring_append(str, val); // Fast path for raw text.
@@ -598,7 +598,7 @@ void format_write_text_wrapped(
   }
 }
 
-void format_write_char(DynString* str, const u8 val, const FormatOptsText* opts) {
+void format_write_char(DynString* str, u8 val, const FormatOptsText* opts) {
   static const struct {
     u8     byte;
     String escapeSeq;
@@ -613,11 +613,13 @@ void format_write_char(DynString* str, const u8 val, const FormatOptsText* opts)
       {'\0', string_static("\\0")},
   };
 
+  if (opts->flags & FormatTextFlags_ToLower) {
+    val = ascii_to_lower(val);
+  }
   if (opts->flags & FormatTextFlags_SingleLine && ascii_is_newline(val)) {
     dynstring_append_char(str, ' ');
     return;
   }
-
   if (opts->flags & FormatTextFlags_EscapeNonPrintAscii && !ascii_is_printable(val)) {
     // If we have a well-known sequence for this byte we apply it.
     for (usize i = 0; i != array_elems(g_escapes); ++i) {

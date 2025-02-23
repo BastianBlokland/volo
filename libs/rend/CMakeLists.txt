@@ -40,6 +40,7 @@ add_library(lib_rend STATIC
   src/rvk/transfer.c
   src/rvk/types.c
   src/rvk/uniform.c
+  src/rvk/vulkan_api.c
   src/rvk/vulkan.c
   src/settings.c
   src/stats.c

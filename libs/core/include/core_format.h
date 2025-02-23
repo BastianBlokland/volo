@@ -300,10 +300,9 @@ typedef struct {
  */
 typedef enum {
   FormatTextFlags_None                = 0,
-  FormatTextFlags_SingleLine          = 1 << 0,
-  FormatTextFlags_EscapeNonPrintAscii = 1 << 1,
-
-  FormatTextFlags_NeedsProcess = FormatTextFlags_SingleLine | FormatTextFlags_EscapeNonPrintAscii,
+  FormatTextFlags_ToLower             = 1 << 0,
+  FormatTextFlags_SingleLine          = 1 << 1,
+  FormatTextFlags_EscapeNonPrintAscii = 1 << 2,
 } FormatTextFlags;
 
 /**

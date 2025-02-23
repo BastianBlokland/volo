@@ -95,7 +95,7 @@ VkPipelineCache rvk_pcache_load(RvkDevice* dev) {
       "Vulkan pipeline cache loaded",
       log_param("path", fmt_path(path)),
       log_param("size", fmt_size(data.size)),
-      log_param("vendor", fmt_text(rvk_vendor_str(header.vendorId))),
+      log_param("vendor", fmt_text(vkVendorIdStr(header.vendorId))),
       log_param("device", fmt_int(header.deviceId)));
 
 Done:
