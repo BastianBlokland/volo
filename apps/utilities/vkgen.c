@@ -30,6 +30,7 @@
   VKGEN_HASH(basetype)                                                                             \
   VKGEN_HASH(bitmask)                                                                              \
   VKGEN_HASH(bitpos)                                                                               \
+  VKGEN_HASH(blockSize)                                                                            \
   VKGEN_HASH(category)                                                                             \
   VKGEN_HASH(command)                                                                              \
   VKGEN_HASH(commands)                                                                             \
@@ -277,7 +278,8 @@ typedef struct {
 
 typedef struct {
   StringHash nameHash;
-  u32        comps;
+  u32        size;  // Size in bytes of a single pixel.
+  u32        comps; // Number of components.
 } VkGenFormat;
 
 typedef struct {
@@ -708,18 +710,32 @@ static void vkgen_collect_formats(VkGenContext* ctx) {
     if (xml_name_hash(ctx->schemaDoc, formatNode) != g_hash_format) {
       continue; // Not a format.
     }
-    const StringHash nameHash = xml_attr_get_hash(ctx->schemaDoc, formatNode, g_hash_name);
+    const String nameStr      = xml_attr_get(ctx->schemaDoc, formatNode, g_hash_name);
+    const String blockSizeStr = xml_attr_get(ctx->schemaDoc, formatNode, g_hash_blockSize);
 
-    u32 compCount = 0;
+    u32 comps = 0;
     xml_for_children(ctx->schemaDoc, formatNode, child) {
       if (xml_name_hash(ctx->schemaDoc, child) == g_hash_component) {
-        ++compCount;
+        ++comps;
       }
+    }
+    if (!comps) {
+      log_w("Format {} has no components", log_param("name", fmt_text(nameStr)));
+      continue;
+    }
+    u32 size = 0;
+    if (!string_is_empty(blockSizeStr)) {
+      size = vkgen_to_int(blockSizeStr);
+    }
+    if (!size) {
+      log_w("Format {} has an invalid size", log_param("name", fmt_text(nameStr)));
+      continue;
     }
 
     *dynarray_push_t(&ctx->formats, VkGenFormat) = (VkGenFormat){
-        .nameHash = nameHash,
-        .comps    = compCount,
+        .nameHash = string_hash(nameStr),
+        .comps    = comps,
+        .size     = size,
     };
   }
   dynarray_sort(&ctx->formats, vkgen_compare_format);
@@ -1058,16 +1074,28 @@ static bool vkgen_write_format_info_def(VkGenContext* ctx) {
     return false; // Format enum missing.
   }
 
+  // Write vkFormatByteSize definition.
+  fmt_write(&ctx->out, "u32 vkFormatByteSize(const VkFormat f) {\n");
+  fmt_write(&ctx->out, "  switch(f) {\n");
+  for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
+    const VkGenFormat* info = vkgen_format_find(ctx, string_hash(itr->name));
+    if (info) {
+      fmt_write(&ctx->out, "    case {}: return {};\n", fmt_text(itr->name), fmt_int(info->size));
+    }
+  }
+  fmt_write(&ctx->out, "    default: return sentinel_u32;\n");
+  fmt_write(&ctx->out, "  }\n}\n\n");
+
+  // Write vkFormatCompCount definition.
   fmt_write(&ctx->out, "u32 vkFormatCompCount(const VkFormat f) {\n");
   fmt_write(&ctx->out, "  switch(f) {\n");
   for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
     const VkGenFormat* info = vkgen_format_find(ctx, string_hash(itr->name));
-    if (!info) {
-      continue;
+    if (info) {
+      fmt_write(&ctx->out, "    case {}: return {};\n", fmt_text(itr->name), fmt_int(info->comps));
     }
-    fmt_write(&ctx->out, "  case {}: return {};\n", fmt_text(itr->name), fmt_int(info->comps));
   }
-  fmt_write(&ctx->out, "  default: return sentinel_u32;\n");
+  fmt_write(&ctx->out, "    default: return sentinel_u32;\n");
   fmt_write(&ctx->out, "  }\n}\n\n");
 
   return true;
@@ -1134,6 +1162,7 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   array_for_t(g_vkgenStringify, VkGenStringify, entry) { vkgen_write_stringify_decl(ctx, entry); }
 
   // Write format-info declarations.
+  fmt_write(&ctx->out, "u32 vkFormatByteSize(VkFormat);\n");
   fmt_write(&ctx->out, "u32 vkFormatCompCount(VkFormat);\n");
   fmt_write(&ctx->out, "\n");
 

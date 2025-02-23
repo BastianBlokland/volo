@@ -3761,6 +3761,7 @@ String vkColorSpaceKHRStr(VkColorSpaceKHR);
 String vkPresentModeKHRStr(VkPresentModeKHR);
 String vkVendorIdStr(VkVendorId);
 String vkFormatStr(VkFormat);
+u32 vkFormatByteSize(VkFormat);
 u32 vkFormatCompCount(VkFormat);
 
 // clang-format on
