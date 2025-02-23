@@ -89,7 +89,7 @@ static VkSurfaceFormatKHR rvk_pick_surface_format(RvkDevice* dev, VkSurfaceKHR v
 
   log_w(
       "Preferred swapchain format not available",
-      log_param("fallback", fmt_text(rvk_format_info(surfFormats[0].format).name)));
+      log_param("fallback", fmt_text(vkFormatStr(surfFormats[0].format))));
 
   return surfFormats[0];
 }
@@ -226,7 +226,7 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
   log_i(
       "Vulkan swapchain created",
       log_param("size", rvk_size_fmt(size)),
-      log_param("format", fmt_text(rvk_format_info(format).name)),
+      log_param("format", fmt_text(vkFormatStr(format))),
       log_param("color", fmt_text(vkColorSpaceKHRStr(swapchain->vkSurfFormat.colorSpace))),
       log_param("present-mode", fmt_text(vkPresentModeKHRStr(presentMode))),
       log_param("image-count", fmt_int(swapchain->imageCount)));

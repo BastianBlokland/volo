@@ -428,7 +428,7 @@ painter_push_debug_image_viewer(RendPaintContext* ctx, RvkImage* image, const f3
       f32 exposure;
       f32 aspect;
     } data = {
-        .imageChannels = rvk_format_info(image->vkFormat).channels,
+        .imageChannels = vkFormatCompCount(image->vkFormat),
         .lod           = float_f32_to_f16(ctx->settings->debugViewerLod),
         .flags         = flags,
         .exposure      = exposure,
