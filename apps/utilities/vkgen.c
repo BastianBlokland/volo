@@ -127,6 +127,9 @@ typedef struct {
 
 static const VkGenStringify g_vkgenStringify[] = {
     {string_static("VkResult"), string_static("VK_")},
+    {string_static("VkPhysicalDeviceType"), string_static("VK_PHYSICAL_DEVICE_TYPE_")},
+    {string_static("VkColorSpaceKHR"), string_static("VK_COLOR_SPACE_")},
+    {string_static("VkPresentModeKHR"), string_static("VK_PRESENT_MODE_")},
 };
 
 static u32 vkgen_feat_find(const StringHash featHash) {
@@ -952,7 +955,7 @@ static void vkgen_write_stringify_decl(VkGenContext* ctx, const VkGenStringify* 
       fmt_char(ascii_to_lower(*string_begin(entry->typeName))),
       fmt_text(string_consume(entry->typeName, 1)));
 
-  fmt_write(&ctx->out, "String {}({});\n\n", fmt_text(funcName), fmt_text(entry->typeName));
+  fmt_write(&ctx->out, "String {}({});\n", fmt_text(funcName), fmt_text(entry->typeName));
 }
 
 static void vkgen_write_stringify_def(VkGenContext* ctx, const VkGenStringify* entry) {
@@ -1039,6 +1042,7 @@ static bool vkgen_write_header(VkGenContext* ctx) {
 
   // Write stringify declarations.
   array_for_t(g_vkgenStringify, VkGenStringify, entry) { vkgen_write_stringify_decl(ctx, entry); }
+  fmt_write(&ctx->out, "\n");
 
   fmt_write(&ctx->out, "// clang-format on\n");
   return true;

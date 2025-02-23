@@ -36,4 +36,32 @@ String vkResultStr(const VkResult v) {
   }
 }
 
+String vkPhysicalDeviceTypeStr(const VkPhysicalDeviceType v) {
+  switch(v) {
+    case VK_PHYSICAL_DEVICE_TYPE_OTHER: return string_lit("other");
+    case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: return string_lit("integrated_gpu");
+    case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: return string_lit("discrete_gpu");
+    case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: return string_lit("virtual_gpu");
+    case VK_PHYSICAL_DEVICE_TYPE_CPU: return string_lit("cpu");
+    default: return string_lit("unknown");
+  }
+}
+
+String vkColorSpaceKHRStr(const VkColorSpaceKHR v) {
+  switch(v) {
+    case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR: return string_lit("srgb_nonlinear_khr");
+    default: return string_lit("unknown");
+  }
+}
+
+String vkPresentModeKHRStr(const VkPresentModeKHR v) {
+  switch(v) {
+    case VK_PRESENT_MODE_IMMEDIATE_KHR: return string_lit("immediate_khr");
+    case VK_PRESENT_MODE_MAILBOX_KHR: return string_lit("mailbox_khr");
+    case VK_PRESENT_MODE_FIFO_KHR: return string_lit("fifo_khr");
+    case VK_PRESENT_MODE_FIFO_RELAXED_KHR: return string_lit("fifo_relaxed_khr");
+    default: return string_lit("unknown");
+  }
+}
+
 // clang-format on

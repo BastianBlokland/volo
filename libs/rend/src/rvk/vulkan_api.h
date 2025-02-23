@@ -3750,5 +3750,8 @@ typedef VkBool32 (SYS_DECL *PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR)(
 VkBool32 SYS_DECL vkGetPhysicalDeviceWin32PresentationSupportKHR(VkPhysicalDevice physicalDevice, u32 queueFamilyIndex);
 
 String vkResultStr(VkResult);
+String vkPhysicalDeviceTypeStr(VkPhysicalDeviceType);
+String vkColorSpaceKHRStr(VkColorSpaceKHR);
+String vkPresentModeKHRStr(VkPresentModeKHR);
 
 // clang-format on
