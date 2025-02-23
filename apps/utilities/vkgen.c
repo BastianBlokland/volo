@@ -58,6 +58,7 @@
   VKGEN_HASH(number)                                                                               \
   VKGEN_HASH(offset)                                                                               \
   VKGEN_HASH(param)                                                                                \
+  VKGEN_HASH(parent)                                                                               \
   VKGEN_HASH(proto)                                                                                \
   VKGEN_HASH(require)                                                                              \
   VKGEN_HASH(struct)                                                                               \
@@ -262,8 +263,9 @@ typedef enum {
 typedef struct {
   VkGenTypeKind kind;
   StringHash    key;
-  String        name; // Allocated in the schema document.
+  StringHash    parent; // Optional, unset if 0.
   XmlNode       schemaNode;
+  String        name; // Allocated in the schema document.
 } VkGenType;
 
 typedef struct {
@@ -347,12 +349,17 @@ static const VkGenType* vkgen_type_get(VkGenContext* ctx, const u32 index) {
 }
 
 static void vkgen_type_push(
-    VkGenContext* ctx, const VkGenTypeKind kind, const String name, const XmlNode schemaNode) {
+    VkGenContext*       ctx,
+    const VkGenTypeKind kind,
+    const String        name,
+    const StringHash    parent,
+    const XmlNode       schemaNode) {
   *dynarray_push_t(&ctx->types, VkGenType) = (VkGenType){
       .kind       = kind,
       .key        = string_hash(name),
-      .name       = name,
+      .parent     = parent,
       .schemaNode = schemaNode,
+      .name       = name,
   };
 }
 
@@ -496,7 +503,7 @@ static void vkgen_collect_enums(VkGenContext* ctx) {
       continue; // Not supported.
     }
     const String name = xml_attr_get(ctx->schemaDoc, enumNode, g_hash_name);
-    vkgen_type_push(ctx, VkGenTypeKind_Enum, name, enumNode);
+    vkgen_type_push(ctx, VkGenTypeKind_Enum, name, 0 /* parent */, enumNode);
     ++enumCount;
 
     xml_for_children(ctx->schemaDoc, enumNode, entryNode) {
@@ -596,15 +603,16 @@ static void vkgen_collect_types(VkGenContext* ctx) {
     if (!vkgen_is_supported_api(ctx, child)) {
       continue; // Not supported.
     }
-    const VkGenTypeKind kind = vkgen_categorize_type(ctx, child);
-    const String        name = xml_attr_get(ctx->schemaDoc, child, g_hash_name);
+    const VkGenTypeKind kind   = vkgen_categorize_type(ctx, child);
+    const StringHash    parent = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_parent);
+    const String        name   = xml_attr_get(ctx->schemaDoc, child, g_hash_name);
     if (!string_is_empty(name)) {
-      vkgen_type_push(ctx, kind, name, child);
+      vkgen_type_push(ctx, kind, name, parent, child);
       continue;
     }
     const XmlNode nameNode = xml_child_get(ctx->schemaDoc, child, g_hash_name);
     if (!sentinel_check(nameNode)) {
-      vkgen_type_push(ctx, kind, xml_value(ctx->schemaDoc, nameNode), child);
+      vkgen_type_push(ctx, kind, xml_value(ctx->schemaDoc, nameNode), parent, child);
       continue;
     }
   }
