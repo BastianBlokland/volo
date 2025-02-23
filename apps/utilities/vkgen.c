@@ -134,6 +134,7 @@ static const VkGenStringify g_vkgenStringify[] = {
     {string_static("VkColorSpaceKHR"), string_static("VK_COLOR_SPACE_")},
     {string_static("VkPresentModeKHR"), string_static("VK_PRESENT_MODE_")},
     {string_static("VkVendorId"), string_static("VK_VENDOR_ID_")},
+    {string_static("VkFormat"), string_static("VK_FORMAT_")},
 };
 
 static u32 vkgen_feat_find(const StringHash featHash) {

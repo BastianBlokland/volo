@@ -3760,5 +3760,6 @@ String vkPhysicalDeviceTypeStr(VkPhysicalDeviceType);
 String vkColorSpaceKHRStr(VkColorSpaceKHR);
 String vkPresentModeKHRStr(VkPresentModeKHR);
 String vkVendorIdStr(VkVendorId);
+String vkFormatStr(VkFormat);
 
 // clang-format on
