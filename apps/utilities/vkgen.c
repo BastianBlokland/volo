@@ -728,7 +728,7 @@ static void vkgen_collect_formats(VkGenContext* ctx) {
     }
     u32 size = 0;
     if (!string_is_empty(blockSizeStr)) {
-      size = vkgen_to_int(blockSizeStr);
+      size = (u32)vkgen_to_int(blockSizeStr);
     }
     if (!size) {
       log_w("Format {} has an invalid size", log_param("name", fmt_text(nameStr)));
