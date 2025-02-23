@@ -1031,6 +1031,12 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     cli_help_write_file(app, g_fileStdOut);
     return 0;
   }
+  const String outputPath = cli_read_string(invoc, g_optOutputPath, string_empty);
+  if (string_is_empty(outputPath)) {
+    file_write_sync(g_fileStdErr, string_lit("Output path missing.\n"));
+    return 1;
+  }
+
   vkgen_init_hashes();
   net_init();
 
@@ -1066,19 +1072,16 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   vkgen_collect_features(&ctx);
 
   if (vkgen_write_header(&ctx)) {
-    success = true;
+    const String headerPath = fmt_write_scratch("{}.h", fmt_text(outputPath));
+    if (file_write_to_path_sync(headerPath, dynstring_view(&ctx.out)) == FileResult_Success) {
+      log_i("Generated header", log_param("path", fmt_path(headerPath)));
+      success = true;
+    }
   } else {
     log_e("Failed to write header");
   }
 
-Exit:;
-  const String outputPath = cli_read_string(invoc, g_optOutputPath, string_empty);
-  if (success && !string_is_empty(outputPath)) {
-    const String headerPath = fmt_write_scratch("{}.h", fmt_text(outputPath));
-    if (file_write_to_path_sync(headerPath, dynstring_view(&ctx.out)) == FileResult_Success) {
-      log_i("Generated header", log_param("path", fmt_path(headerPath)));
-    }
-  }
+Exit:
   xml_destroy(ctx.schemaDoc);
   dynarray_destroy(&ctx.types);
   dynbitset_destroy(&ctx.typesWritten);
