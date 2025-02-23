@@ -34,6 +34,7 @@
   VKGEN_HASH(command)                                                                              \
   VKGEN_HASH(commands)                                                                             \
   VKGEN_HASH(comment)                                                                              \
+  VKGEN_HASH(component)                                                                            \
   VKGEN_HASH(constants)                                                                            \
   VKGEN_HASH(define)                                                                               \
   VKGEN_HASH(deprecated)                                                                           \
@@ -275,6 +276,7 @@ typedef struct {
 
 typedef struct {
   String name; // Allocated in the schema document.
+  u32    channels;
 } VkGenFormat;
 
 typedef struct {
@@ -695,10 +697,23 @@ static void vkgen_collect_custom_extensions(VkGenContext* ctx) {
 
 static void vkgen_collect_formats(VkGenContext* ctx) {
   const XmlNode formatsNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_formats);
-  xml_for_children(ctx->schemaDoc, formatsNode, child) {
-    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_format) {
+  xml_for_children(ctx->schemaDoc, formatsNode, formatNode) {
+    if (xml_name_hash(ctx->schemaDoc, formatNode) != g_hash_format) {
       continue; // Not a format.
     }
+    const String name = xml_attr_get(ctx->schemaDoc, formatNode, g_hash_name);
+
+    u32 compCount = 0;
+    xml_for_children(ctx->schemaDoc, formatNode, child) {
+      if (xml_name_hash(ctx->schemaDoc, child) == g_hash_component) {
+        ++compCount;
+      }
+    }
+
+    *dynarray_push_t(&ctx->formats, VkGenFormat) = (VkGenFormat){
+        .name     = name,
+        .channels = compCount,
+    };
   }
   dynarray_sort(&ctx->formats, vkgen_compare_format);
   log_i("Collected formats", log_param("count", fmt_int(ctx->formats.size)));
@@ -1171,6 +1186,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .enumEntries     = dynarray_create_t(g_allocHeap, VkGenEnumEntry, 2048),
       .commands        = dynarray_create_t(g_allocHeap, VkGenCommand, 1024),
       .commandsWritten = dynbitset_create(g_allocHeap, 1024),
+      .formats         = dynarray_create_t(g_allocHeap, VkGenFormat, 512),
       .outName         = path_stem(outputPath),
       .out             = dynstring_create(g_allocHeap, usize_kibibyte * 16),
   };
@@ -1219,6 +1235,7 @@ Exit:
   dynarray_destroy(&ctx.enumEntries);
   dynarray_destroy(&ctx.commands);
   dynbitset_destroy(&ctx.commandsWritten);
+  dynarray_destroy(&ctx.formats);
   dynstring_destroy(&ctx.out);
 
   net_teardown();
