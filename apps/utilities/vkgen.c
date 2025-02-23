@@ -36,6 +36,7 @@
   VKGEN_HASH(commands)                                                                             \
   VKGEN_HASH(comment)                                                                              \
   VKGEN_HASH(component)                                                                            \
+  VKGEN_HASH(compressed)                                                                           \
   VKGEN_HASH(constants)                                                                            \
   VKGEN_HASH(define)                                                                               \
   VKGEN_HASH(deprecated)                                                                           \
@@ -280,6 +281,7 @@ typedef struct {
   StringHash nameHash;
   u32        size;  // Size in bytes of a single pixel.
   u32        comps; // Number of components.
+  bool       compressed;
 } VkGenFormat;
 
 typedef struct {
@@ -733,9 +735,10 @@ static void vkgen_collect_formats(VkGenContext* ctx) {
     }
 
     *dynarray_push_t(&ctx->formats, VkGenFormat) = (VkGenFormat){
-        .nameHash = string_hash(nameStr),
-        .comps    = comps,
-        .size     = size,
+        .nameHash   = string_hash(nameStr),
+        .comps      = comps,
+        .size       = size,
+        .compressed = xml_attr_has(ctx->schemaDoc, formatNode, g_hash_compressed),
     };
   }
   dynarray_sort(&ctx->formats, vkgen_compare_format);
@@ -1098,6 +1101,19 @@ static bool vkgen_write_format_info_def(VkGenContext* ctx) {
   fmt_write(&ctx->out, "    default: return sentinel_u32;\n");
   fmt_write(&ctx->out, "  }\n}\n\n");
 
+  // Write vkFormatCompressed definition.
+  fmt_write(&ctx->out, "bool vkFormatCompressed(const VkFormat f) {\n");
+  fmt_write(&ctx->out, "  switch(f) {\n");
+  for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
+    const VkGenFormat* info = vkgen_format_find(ctx, string_hash(itr->name));
+    if (info && info->compressed) {
+      fmt_write(&ctx->out, "    case {}:\n", fmt_text(itr->name), fmt_int(info->comps));
+    }
+  }
+  fmt_write(&ctx->out, "      return true;\n");
+  fmt_write(&ctx->out, "    default:\n      return false;\n");
+  fmt_write(&ctx->out, "  }\n}\n\n");
+
   return true;
 }
 
@@ -1164,6 +1180,7 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   // Write format-info declarations.
   fmt_write(&ctx->out, "u32 vkFormatByteSize(VkFormat);\n");
   fmt_write(&ctx->out, "u32 vkFormatCompCount(VkFormat);\n");
+  fmt_write(&ctx->out, "bool vkFormatCompressed(VkFormat);\n");
   fmt_write(&ctx->out, "\n");
 
   fmt_write(&ctx->out, "// clang-format on\n");
