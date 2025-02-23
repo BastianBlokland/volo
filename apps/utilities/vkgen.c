@@ -279,6 +279,7 @@ typedef struct {
   DynBitSet commandsWritten;
   XmlNode   featureNodes[array_elems(g_vkgenFeatures)];
   XmlNode   extensionNodes[array_elems(g_vkgenExtensions)];
+  String    outName;
   DynString out;
 } VkGenContext;
 
@@ -1017,6 +1018,15 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   return true;
 }
 
+static bool vkgen_write_impl(VkGenContext* ctx) {
+  fmt_write(&ctx->out, "#include \"{}.h\"\n", fmt_text(ctx->outName));
+  vkgen_write_prolog(ctx);
+
+  fmt_write(&ctx->out, "// clang-format off\n\n");
+  fmt_write(&ctx->out, "// clang-format on\n");
+  return true;
+}
+
 // clang-format off
 static const String g_appDesc = string_static("VulkanGen - Utility to generate a Vulkan api header and utility c file.");
 static const String g_schemaDefaultHost = string_static("raw.githubusercontent.com");
@@ -1080,6 +1090,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .enumEntries     = dynarray_create_t(g_allocHeap, VkGenEnumEntry, 2048),
       .commands        = dynarray_create_t(g_allocHeap, VkGenCommand, 1024),
       .commandsWritten = dynbitset_create(g_allocHeap, 1024),
+      .outName         = path_stem(outputPath),
       .out             = dynstring_create(g_allocHeap, usize_kibibyte * 16),
   };
 
@@ -1103,6 +1114,18 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
     }
   } else {
     log_e("Failed to write header");
+    goto Exit;
+  }
+  dynstring_clear(&ctx.out);
+  if (vkgen_write_impl(&ctx)) {
+    const String implPath = fmt_write_scratch("{}.c", fmt_text(outputPath));
+    if (file_write_to_path_sync(implPath, dynstring_view(&ctx.out)) == FileResult_Success) {
+      log_i("Generated implementation", log_param("path", fmt_path(implPath)));
+      success = true;
+    }
+  } else {
+    log_e("Failed to write implementation");
+    goto Exit;
   }
 
 Exit:
