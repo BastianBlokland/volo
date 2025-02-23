@@ -6,7 +6,34 @@
 #include "core_string.h"
 
 String vkResultStr(const VkResult v) {
-  return string_lit("unknown");
+  switch(v) {
+    case VK_ERROR_INVALID_EXTERNAL_HANDLE: return string_lit("error_invalid_external_handle");
+    case VK_ERROR_OUT_OF_POOL_MEMORY: return string_lit("error_out_of_pool_memory");
+    case VK_ERROR_OUT_OF_DATE_KHR: return string_lit("error_out_of_date_khr");
+    case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR: return string_lit("error_native_window_in_use_khr");
+    case VK_ERROR_SURFACE_LOST_KHR: return string_lit("error_surface_lost_khr");
+    case VK_ERROR_UNKNOWN: return string_lit("error_unknown");
+    case VK_ERROR_FRAGMENTED_POOL: return string_lit("error_fragmented_pool");
+    case VK_ERROR_FORMAT_NOT_SUPPORTED: return string_lit("error_format_not_supported");
+    case VK_ERROR_TOO_MANY_OBJECTS: return string_lit("error_too_many_objects");
+    case VK_ERROR_INCOMPATIBLE_DRIVER: return string_lit("error_incompatible_driver");
+    case VK_ERROR_FEATURE_NOT_PRESENT: return string_lit("error_feature_not_present");
+    case VK_ERROR_EXTENSION_NOT_PRESENT: return string_lit("error_extension_not_present");
+    case VK_ERROR_LAYER_NOT_PRESENT: return string_lit("error_layer_not_present");
+    case VK_ERROR_MEMORY_MAP_FAILED: return string_lit("error_memory_map_failed");
+    case VK_ERROR_DEVICE_LOST: return string_lit("error_device_lost");
+    case VK_ERROR_INITIALIZATION_FAILED: return string_lit("error_initialization_failed");
+    case VK_ERROR_OUT_OF_DEVICE_MEMORY: return string_lit("error_out_of_device_memory");
+    case VK_ERROR_OUT_OF_HOST_MEMORY: return string_lit("error_out_of_host_memory");
+    case VK_SUCCESS: return string_lit("success");
+    case VK_NOT_READY: return string_lit("not_ready");
+    case VK_TIMEOUT: return string_lit("timeout");
+    case VK_EVENT_SET: return string_lit("event_set");
+    case VK_EVENT_RESET: return string_lit("event_reset");
+    case VK_INCOMPLETE: return string_lit("incomplete");
+    case VK_SUBOPTIMAL_KHR: return string_lit("suboptimal_khr");
+    default: return string_lit("unknown");
+  }
 }
 
 // clang-format on

@@ -961,9 +961,23 @@ static void vkgen_write_stringify_def(VkGenContext* ctx, const VkGenStringify* e
       fmt_char(ascii_to_lower(*string_begin(entry->typeName))),
       fmt_text(string_consume(entry->typeName, 1)));
 
+  VkGenEnumEntries enumEntries = vkgen_enum_entries_find(ctx, string_hash(entry->typeName));
+
   fmt_write(&ctx->out, "String {}(const {} v) {\n", fmt_text(funcName), fmt_text(entry->typeName));
-  fmt_write(&ctx->out, "  return string_lit(\"unknown\");\n");
-  fmt_write(&ctx->out, "}\n\n");
+  fmt_write(&ctx->out, "  switch(v) {\n");
+  for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
+    String val = itr->name;
+    if (string_starts_with(val, entry->entryPrefix)) {
+      val = string_consume(val, entry->entryPrefix.size);
+    }
+    fmt_write(
+        &ctx->out,
+        "    case {}: return string_lit(\"{}\");\n",
+        fmt_text(itr->name),
+        fmt_text(val, .flags = FormatTextFlags_ToLower));
+  }
+  fmt_write(&ctx->out, "    default: return string_lit(\"unknown\");\n");
+  fmt_write(&ctx->out, "  }\n}\n\n");
 }
 
 static void vkgen_write_prolog(VkGenContext* ctx) {
