@@ -3749,4 +3749,6 @@ VkResult SYS_DECL vkCreateWin32SurfaceKHR(VkInstance instance, const VkWin32Surf
 typedef VkBool32 (SYS_DECL *PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR)(VkPhysicalDevice physicalDevice, u32 queueFamilyIndex);
 VkBool32 SYS_DECL vkGetPhysicalDeviceWin32PresentationSupportKHR(VkPhysicalDevice physicalDevice, u32 queueFamilyIndex);
 
+String vkResultStr(VkResult);
+
 // clang-format on

@@ -121,6 +121,14 @@ static const VkGenRefAlias g_vkgenRefAliases[] = {
 };
 // clang-format on
 
+typedef struct {
+  String typeName, entryPrefix;
+} VkGenStringify;
+
+static const VkGenStringify g_vkgenStringify[] = {
+    {string_static("VkResult"), string_static("VK_")},
+};
+
 static u32 vkgen_feat_find(const StringHash featHash) {
   for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
     if (string_hash(g_vkgenFeatures[i]) == featHash) {
@@ -937,6 +945,15 @@ static bool vkgen_write_requirements(VkGenContext* ctx, const XmlNode node) {
   return success;
 }
 
+static void vkgen_write_stringify_decl(VkGenContext* ctx, const VkGenStringify* entry) {
+  const String funcName = fmt_write_scratch(
+      "{}{}Str",
+      fmt_char(ascii_to_lower(*string_begin(entry->typeName))),
+      fmt_text(string_consume(entry->typeName, 1)));
+
+  fmt_write(&ctx->out, "String {}({});\n\n", fmt_text(funcName), fmt_text(entry->typeName));
+}
+
 static bool vkgen_write_header(VkGenContext* ctx) {
   fmt_write(&ctx->out, "#pragma once\n");
   fmt_write(
@@ -988,6 +1005,9 @@ static bool vkgen_write_header(VkGenContext* ctx) {
       return false; // Extension requirement missing.
     }
   }
+
+  // Write stringify declarations.
+  array_for_t(g_vkgenStringify, VkGenStringify, entry) { vkgen_write_stringify_decl(ctx, entry); }
 
   fmt_write(&ctx->out, "// clang-format on\n");
   return true;
