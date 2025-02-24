@@ -110,21 +110,20 @@ typedef struct {
 
 // clang-format off
 static const VkGenRefAlias g_vkgenRefAliases[] = {
-  {string_static("uint8_t"),                           string_static("u8")                         },
-  {string_static("int32_t"),                           string_static("i32")                        },
-  {string_static("uint32_t"),                          string_static("u32")                        },
-  {string_static("int64_t"),                           string_static("i64")                        },
-  {string_static("uint64_t"),                          string_static("u64")                        },
-  {string_static("size_t"),                            string_static("usize")                      },
-  {string_static("float"),                             string_static("f32")                        },
-  {string_static("double"),                            string_static("f64")                        },
-  {string_static("HINSTANCE"),                         string_static("uptr")                       },
-  {string_static("HWND"),                              string_static("uptr")                       },
-  {string_static("HINSTANCE"),                         string_static("uptr")                       },
-  {string_static("xcb_visualid_t"),                    string_static("u32")                        },
-  {string_static("xcb_window_t"),                      string_static("uptr")                       },
-  {string_static("xcb_connection_t"),                  string_static("uptr"), .stripPointer = true },
-  {string_static("VK_DEFINE_NON_DISPATCHABLE_HANDLE"), string_static("VK_DEFINE_HANDLE")           },
+  {string_static("uint8_t"),            string_static("u8")                         },
+  {string_static("int32_t"),            string_static("i32")                        },
+  {string_static("uint32_t"),           string_static("u32")                        },
+  {string_static("int64_t"),            string_static("i64")                        },
+  {string_static("uint64_t"),           string_static("u64")                        },
+  {string_static("size_t"),             string_static("usize")                      },
+  {string_static("float"),              string_static("f32")                        },
+  {string_static("double"),             string_static("f64")                        },
+  {string_static("HINSTANCE"),          string_static("uptr")                       },
+  {string_static("HWND"),               string_static("uptr")                       },
+  {string_static("HINSTANCE"),          string_static("uptr")                       },
+  {string_static("xcb_visualid_t"),     string_static("u32")                        },
+  {string_static("xcb_window_t"),       string_static("uptr")                       },
+  {string_static("xcb_connection_t"),   string_static("uptr"), .stripPointer = true },
 };
 // clang-format on
 
