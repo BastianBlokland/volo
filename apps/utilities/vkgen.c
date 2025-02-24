@@ -1004,6 +1004,22 @@ static bool vkgen_write_requirements(VkGenContext* ctx, const XmlNode node) {
   return success;
 }
 
+static bool vkgen_write_used_types(VkGenContext* ctx) {
+  // Write types required for features.
+  for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
+    if (!vkgen_write_requirements(ctx, ctx->featureNodes[i])) {
+      return false; // Feature requirement missing.
+    }
+  }
+  // Write types required for extensions.
+  for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
+    if (!vkgen_write_requirements(ctx, ctx->extensionNodes[i])) {
+      return false; // Extension requirement missing.
+    }
+  }
+  return true;
+}
+
 static void vkgen_write_stringify_decl(VkGenContext* ctx, const VkGenStringify* entry) {
   const String funcName = fmt_write_scratch(
       "{}{}Str",
@@ -1123,23 +1139,8 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   fmt_write(&ctx->out, "\n");
 
   // Write types required for features.
-  for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
-    if (sentinel_check(ctx->featureNodes[i])) {
-      return false; // Feature not found.
-    }
-    if (!vkgen_write_requirements(ctx, ctx->featureNodes[i])) {
-      return false; // Feature requirement missing.
-    }
-  }
-
-  // Write types required for extensions.
-  for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
-    if (sentinel_check(ctx->extensionNodes[i])) {
-      return false; // Extension not found.
-    }
-    if (!vkgen_write_requirements(ctx, ctx->extensionNodes[i])) {
-      return false; // Extension requirement missing.
-    }
+  if (!vkgen_write_used_types(ctx)) {
+    return false;
   }
 
   // Write stringify declarations.
@@ -1255,6 +1256,22 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   vkgen_collect_extensions(&ctx);
   vkgen_collect_custom_extensions(&ctx);
   vkgen_collect_formats(&ctx);
+
+  // Verify we found all needed features.
+  for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
+    if (sentinel_check(ctx.featureNodes[i])) {
+      log_e("Feature not found");
+      goto Exit;
+    }
+  }
+
+  // Verify we found all needed extensions.
+  for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
+    if (sentinel_check(ctx.extensionNodes[i])) {
+      log_e("Extension not found");
+      goto Exit;
+    }
+  }
 
   if (vkgen_write_header(&ctx)) {
     const String headerPath = fmt_write_scratch("{}.h", fmt_text(outputPath));
