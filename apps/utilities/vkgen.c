@@ -295,7 +295,6 @@ typedef struct {
   DynArray  constants;   // VkGenConstant[]
   DynArray  enumEntries; // VkGenEnumEntry[]
   DynArray  commands;    // VkGenCommand[]
-  DynBitSet commandsWritten;
   XmlNode   featureNodes[array_elems(g_vkgenFeatures)];
   XmlNode   extensionNodes[array_elems(g_vkgenExtensions)];
   DynArray  formats; // VkGenFormat[]
@@ -969,55 +968,6 @@ static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
   UNREACHABLE
 }
 
-static void vkgen_write_command_params(VkGenContext* ctx, const XmlNode cmdNode) {
-  bool anyParam = false;
-  xml_for_children(ctx->schemaDoc, cmdNode, child) {
-    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_param) {
-      continue; // Not a parameter.
-    }
-    if (!vkgen_is_supported_api(ctx, child)) {
-      continue; // Not supported.
-    }
-    if (anyParam) {
-      fmt_write(&ctx->out, ", ");
-    }
-    vkgen_write_node_children(ctx, child);
-    anyParam = true;
-  }
-  if (!anyParam) {
-    fmt_write(&ctx->out, "void");
-  }
-}
-
-static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
-  const u32 cmdIndex = vkgen_command_find(ctx, key);
-  if (sentinel_check(cmdIndex)) {
-    return false; // Unknown command.
-  }
-  if (dynbitset_test(&ctx->commandsWritten, cmdIndex)) {
-    return true; // Already written.
-  }
-  dynbitset_set(&ctx->commandsWritten, cmdIndex);
-
-  // Write types this command depends on.
-  const VkGenCommand* cmd = vkgen_command_get(ctx, cmdIndex);
-  if (!vkgen_write_dependencies(ctx, cmd->schemaNode)) {
-    return false;
-  }
-
-  // Write function pointer type-def.
-  fmt_write(&ctx->out, "typedef {} (SYS_DECL *PFN_{})(", fmt_text(cmd->type), fmt_text(cmd->name));
-  vkgen_write_command_params(ctx, cmd->schemaNode);
-  fmt_write(&ctx->out, ");\n");
-
-  // Write function declaration.
-  fmt_write(&ctx->out, "{} SYS_DECL {}(", fmt_text(cmd->type), fmt_text(cmd->name));
-  vkgen_write_command_params(ctx, cmd->schemaNode);
-  fmt_write(&ctx->out, ");\n\n");
-
-  return true;
-}
-
 static bool vkgen_write_requirements(VkGenContext* ctx, const XmlNode node) {
   bool success = true;
   xml_for_children(ctx->schemaDoc, node, set) {
@@ -1027,17 +977,24 @@ static bool vkgen_write_requirements(VkGenContext* ctx, const XmlNode node) {
     xml_for_children(ctx->schemaDoc, set, entry) {
       const StringHash entryNameHash = xml_name_hash(ctx->schemaDoc, entry);
       if (entryNameHash == g_hash_type) {
-        if (!vkgen_write_type(ctx, xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name))) {
-          const String typeNameStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
-          log_e("Failed to write type", log_param("name", fmt_text(typeNameStr)));
+        const String typeName = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
+        if (!vkgen_write_type(ctx, string_hash(typeName))) {
+          log_e("Failed to write type", log_param("name", fmt_text(typeName)));
           success = false;
         }
         continue;
       }
       if (entryNameHash == g_hash_command) {
-        if (!vkgen_write_command(ctx, xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name))) {
-          const String commandNameStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
-          log_e("Failed to write command", log_param("name", fmt_text(commandNameStr)));
+        const String cmdName  = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
+        const u32    cmdIndex = vkgen_command_find(ctx, string_hash(cmdName));
+        if (sentinel_check(cmdIndex)) {
+          log_e("Unkown command", log_param("name", fmt_text(cmdName)));
+          success = false;
+          continue;
+        }
+        const VkGenCommand* cmd = vkgen_command_get(ctx, cmdIndex);
+        if (!vkgen_write_dependencies(ctx, cmd->schemaNode)) {
+          log_e("Command dependencies missing", log_param("name", fmt_text(cmdName)));
           success = false;
         }
         continue;
@@ -1165,7 +1122,7 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   }
   fmt_write(&ctx->out, "\n");
 
-  // Write feature requirements (types and commands).
+  // Write types required for features.
   for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
     if (sentinel_check(ctx->featureNodes[i])) {
       return false; // Feature not found.
@@ -1175,7 +1132,7 @@ static bool vkgen_write_header(VkGenContext* ctx) {
     }
   }
 
-  // Write extension requirements (types and commands).
+  // Write types required for extensions.
   for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
     if (sentinel_check(ctx->extensionNodes[i])) {
       return false; // Extension not found.
@@ -1272,18 +1229,17 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
   VkGenContext ctx = {
-      .schemaDoc       = xml_create(g_allocHeap, 128 * 1024),
-      .schemaHost      = cli_read_string(invoc, g_optSchemaHost, g_schemaDefaultHost),
-      .schemaUri       = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
-      .types           = dynarray_create_t(g_allocHeap, VkGenType, 4096),
-      .typesWritten    = dynbitset_create(g_allocHeap, 4096),
-      .constants       = dynarray_create_t(g_allocHeap, VkGenConstant, 64),
-      .enumEntries     = dynarray_create_t(g_allocHeap, VkGenEnumEntry, 2048),
-      .commands        = dynarray_create_t(g_allocHeap, VkGenCommand, 1024),
-      .commandsWritten = dynbitset_create(g_allocHeap, 1024),
-      .formats         = dynarray_create_t(g_allocHeap, VkGenFormat, 512),
-      .outName         = path_stem(outputPath),
-      .out             = dynstring_create(g_allocHeap, usize_kibibyte * 16),
+      .schemaDoc    = xml_create(g_allocHeap, 128 * 1024),
+      .schemaHost   = cli_read_string(invoc, g_optSchemaHost, g_schemaDefaultHost),
+      .schemaUri    = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
+      .types        = dynarray_create_t(g_allocHeap, VkGenType, 4096),
+      .typesWritten = dynbitset_create(g_allocHeap, 4096),
+      .constants    = dynarray_create_t(g_allocHeap, VkGenConstant, 64),
+      .enumEntries  = dynarray_create_t(g_allocHeap, VkGenEnumEntry, 2048),
+      .commands     = dynarray_create_t(g_allocHeap, VkGenCommand, 1024),
+      .formats      = dynarray_create_t(g_allocHeap, VkGenFormat, 512),
+      .outName      = path_stem(outputPath),
+      .out          = dynstring_create(g_allocHeap, usize_kibibyte * 16),
   };
 
   ctx.schemaRoot = vkgen_schema_get(ctx.schemaDoc, ctx.schemaHost, ctx.schemaUri);
@@ -1329,7 +1285,6 @@ Exit:
   dynarray_destroy(&ctx.constants);
   dynarray_destroy(&ctx.enumEntries);
   dynarray_destroy(&ctx.commands);
-  dynbitset_destroy(&ctx.commandsWritten);
   dynarray_destroy(&ctx.formats);
   dynstring_destroy(&ctx.out);
 
