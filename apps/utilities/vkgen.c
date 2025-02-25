@@ -1166,7 +1166,30 @@ static bool vkgen_write_required_commands(VkGenContext* ctx, const XmlNode node)
   return true;
 }
 
-static bool vkgen_write_interface(VkGenContext* ctx, const String name) {
+typedef enum {
+  VkGenInterfaceType_loader,
+  VkGenInterfaceType_Instance,
+  VkGenInterfaceType_Device,
+
+  VkGenInterfaceType_Count,
+} VkGenInterfaceType;
+
+static String vkgen_interface_name(const VkGenInterfaceType type) {
+  switch (type) {
+  case VkGenInterfaceType_loader:
+    return string_lit("Loader");
+  case VkGenInterfaceType_Instance:
+    return string_lit("Instance");
+  case VkGenInterfaceType_Device:
+    return string_lit("Device");
+  case VkGenInterfaceType_Count:
+    break;
+  }
+  UNREACHABLE
+}
+
+static bool vkgen_write_interface(VkGenContext* ctx, const VkGenInterfaceType type) {
+  const String name = fmt_write_scratch("VkInterface{}", fmt_text(vkgen_interface_name(type)));
   fmt_write(&ctx->out, "typedef struct {} {\n", fmt_text(name));
 
   dynbitset_clear_all(&ctx->commandsWritten);
@@ -1234,14 +1257,10 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   fmt_write(&ctx->out, "\n");
 
   // Write interface declarations.
-  if (!vkgen_write_interface(ctx, string_lit("VkInterfaceLoader"))) {
-    return false;
-  }
-  if (!vkgen_write_interface(ctx, string_lit("VkInterfaceInstance"))) {
-    return false;
-  }
-  if (!vkgen_write_interface(ctx, string_lit("VkInterfaceDevice"))) {
-    return false;
+  for (VkGenInterfaceType type = 0; type != VkGenInterfaceType_Count; ++type) {
+    if (!vkgen_write_interface(ctx, type)) {
+      return false;
+    }
   }
 
   fmt_write(&ctx->out, "// clang-format on\n");
