@@ -1166,9 +1166,10 @@ static bool vkgen_write_required_commands(VkGenContext* ctx, const XmlNode node)
   return true;
 }
 
-static bool vkgen_write_interface(VkGenContext* ctx) {
-  const String name = string_lit("VkInterface");
+static bool vkgen_write_interface(VkGenContext* ctx, const String name) {
   fmt_write(&ctx->out, "typedef struct {} {\n", fmt_text(name));
+
+  dynbitset_clear_all(&ctx->commandsWritten);
 
   for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
     vkgen_write_required_commands(ctx, ctx->featureNodes[i]);
@@ -1232,8 +1233,14 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   fmt_write(&ctx->out, "bool vkFormatCompressed4x4(VkFormat);\n");
   fmt_write(&ctx->out, "\n");
 
-  // Write interface declaration.
-  if (!vkgen_write_interface(ctx)) {
+  // Write interface declarations.
+  if (!vkgen_write_interface(ctx, string_lit("VkInterfaceLoader"))) {
+    return false;
+  }
+  if (!vkgen_write_interface(ctx, string_lit("VkInterfaceInstance"))) {
+    return false;
+  }
+  if (!vkgen_write_interface(ctx, string_lit("VkInterfaceDevice"))) {
     return false;
   }
 
