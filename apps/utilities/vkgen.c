@@ -1122,7 +1122,14 @@ static void vkgen_write_command_params(VkGenContext* ctx, const XmlNode cmdNode)
 }
 
 static void vkgen_write_command(VkGenContext* ctx, const VkGenCommand* cmd) {
-  fmt_write(&ctx->out, "  {} (SYS_DECL* {})(", fmt_text(cmd->type), fmt_text(cmd->name));
+  String varName = cmd->name;
+  if (string_starts_with(varName, string_lit("vk")) && varName.size >= 3) {
+    varName = fmt_write_scratch(
+        "{}{}",
+        fmt_char(ascii_to_lower(*string_at(varName, 2))),
+        fmt_text(string_consume(varName, 3)));
+  }
+  fmt_write(&ctx->out, "  {} (SYS_DECL* {})(", fmt_text(cmd->type), fmt_text(varName));
   vkgen_write_command_params(ctx, cmd->schemaNode);
   fmt_write(&ctx->out, ");\n");
 }
