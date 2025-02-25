@@ -847,7 +847,7 @@ static bool vkgen_write_type_func_pointer(VkGenContext* ctx, const VkGenType* ty
     return false; // Unexpected type-def name.
   }
 
-  fmt_write(&ctx->out, "typedef {} (SYS_DECL *{})(", fmt_text(retType), fmt_text(type->name));
+  fmt_write(&ctx->out, "typedef {} (SYS_DECL* {})(", fmt_text(retType), fmt_text(type->name));
 
   child = xml_next(ctx->schemaDoc, child);
   if (vkgen_node_value_match(ctx->schemaDoc, child, string_lit(")(void);"))) {
@@ -968,7 +968,7 @@ static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
   UNREACHABLE
 }
 
-static bool vkgen_write_requirements(VkGenContext* ctx, const XmlNode node) {
+static bool vkgen_write_required_types(VkGenContext* ctx, const XmlNode node) {
   bool success = true;
   xml_for_children(ctx->schemaDoc, node, set) {
     if (xml_name_hash(ctx->schemaDoc, set) != g_hash_require) {
@@ -1007,13 +1007,13 @@ static bool vkgen_write_requirements(VkGenContext* ctx, const XmlNode node) {
 static bool vkgen_write_used_types(VkGenContext* ctx) {
   // Write types required for features.
   for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
-    if (!vkgen_write_requirements(ctx, ctx->featureNodes[i])) {
+    if (!vkgen_write_required_types(ctx, ctx->featureNodes[i])) {
       return false; // Feature requirement missing.
     }
   }
   // Write types required for extensions.
   for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
-    if (!vkgen_write_requirements(ctx, ctx->extensionNodes[i])) {
+    if (!vkgen_write_required_types(ctx, ctx->extensionNodes[i])) {
       return false; // Extension requirement missing.
     }
   }
@@ -1101,6 +1101,67 @@ static bool vkgen_write_format_info_def(VkGenContext* ctx) {
   return true;
 }
 
+static void vkgen_write_command_params(VkGenContext* ctx, const XmlNode cmdNode) {
+  bool anyParam = false;
+  xml_for_children(ctx->schemaDoc, cmdNode, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_param) {
+      continue; // Not a parameter.
+    }
+    if (!vkgen_is_supported_api(ctx, child)) {
+      continue; // Not supported.
+    }
+    if (anyParam) {
+      fmt_write(&ctx->out, ", ");
+    }
+    vkgen_write_node_children(ctx, child);
+    anyParam = true;
+  }
+  if (!anyParam) {
+    fmt_write(&ctx->out, "void");
+  }
+}
+
+static void vkgen_write_command(VkGenContext* ctx, const VkGenCommand* cmd) {
+  fmt_write(&ctx->out, "  {} (SYS_DECL* {})(", fmt_text(cmd->type), fmt_text(cmd->name));
+  vkgen_write_command_params(ctx, cmd->schemaNode);
+  fmt_write(&ctx->out, ");\n");
+}
+
+static bool vkgen_write_required_commands(VkGenContext* ctx, const XmlNode node) {
+  xml_for_children(ctx->schemaDoc, node, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_require) {
+      continue; // Not a require element.
+    }
+    xml_for_children(ctx->schemaDoc, child, entry) {
+      if (xml_name_hash(ctx->schemaDoc, entry) != g_hash_command) {
+        continue; // Not a command element.
+      }
+      const StringHash cmdKey   = xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name);
+      const u32        cmdIndex = vkgen_command_find(ctx, cmdKey);
+      if (sentinel_check(cmdIndex)) {
+        return false; // Unknown command.
+      }
+      vkgen_write_command(ctx, vkgen_command_get(ctx, cmdIndex));
+    }
+  }
+  return true;
+}
+
+static bool vkgen_write_interface(VkGenContext* ctx) {
+  const String name = string_lit("VkInterface");
+  fmt_write(&ctx->out, "typedef struct {} {\n", fmt_text(name));
+
+  for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
+    vkgen_write_required_commands(ctx, ctx->featureNodes[i]);
+  }
+  for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
+    vkgen_write_required_commands(ctx, ctx->extensionNodes[i]);
+  }
+
+  fmt_write(&ctx->out, "} {};\n\n", fmt_text(name));
+  return true;
+}
+
 static void vkgen_write_prolog(VkGenContext* ctx) {
   fmt_write(
       &ctx->out,
@@ -1151,6 +1212,11 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   fmt_write(&ctx->out, "u32 vkFormatComponents(VkFormat);\n");
   fmt_write(&ctx->out, "bool vkFormatCompressed4x4(VkFormat);\n");
   fmt_write(&ctx->out, "\n");
+
+  // Write interface declaration.
+  if (!vkgen_write_interface(ctx)) {
+    return false;
+  }
 
   fmt_write(&ctx->out, "// clang-format on\n");
   return true;
