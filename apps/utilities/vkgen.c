@@ -53,6 +53,7 @@
   VKGEN_HASH(funcpointer)                                                                          \
   VKGEN_HASH(handle)                                                                               \
   VKGEN_HASH(include)                                                                              \
+  VKGEN_HASH(instance)                                                                             \
   VKGEN_HASH(member)                                                                               \
   VKGEN_HASH(name)                                                                                 \
   VKGEN_HASH(number)                                                                               \
@@ -1189,8 +1190,8 @@ static String vkgen_interface_name(const VkGenInterfaceType type) {
 }
 
 static bool vkgen_write_interface(VkGenContext* ctx, const VkGenInterfaceType type) {
-  const String name = fmt_write_scratch("VkInterface{}", fmt_text(vkgen_interface_name(type)));
-  fmt_write(&ctx->out, "typedef struct {} {\n", fmt_text(name));
+  const String interfaceName = vkgen_interface_name(type);
+  fmt_write(&ctx->out, "typedef struct VkInterface{} {\n", fmt_text(interfaceName));
 
   dynbitset_clear_all(&ctx->commandsWritten);
 
@@ -1198,10 +1199,15 @@ static bool vkgen_write_interface(VkGenContext* ctx, const VkGenInterfaceType ty
     vkgen_write_required_commands(ctx, ctx->featureNodes[i]);
   }
   for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
-    vkgen_write_required_commands(ctx, ctx->extensionNodes[i]);
+    const XmlNode    extNode = ctx->extensionNodes[i];
+    const StringHash extType = xml_attr_get_hash(ctx->schemaDoc, extNode, g_hash_type);
+    if (extType == g_hash_instance && type == VkGenInterfaceType_Device) {
+      continue;
+    }
+    vkgen_write_required_commands(ctx, extNode);
   }
 
-  fmt_write(&ctx->out, "} {};\n\n", fmt_text(name));
+  fmt_write(&ctx->out, "} VkInterface{};\n\n", fmt_text(interfaceName));
   return true;
 }
 
