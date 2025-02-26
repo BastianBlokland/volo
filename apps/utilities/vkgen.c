@@ -119,7 +119,6 @@ static const VkGenRefAlias g_vkgenRefAliases[] = {
   {string_static("size_t"),             string_static("usize")                      },
   {string_static("float"),              string_static("f32")                        },
   {string_static("double"),             string_static("f64")                        },
-  {string_static("HINSTANCE"),          string_static("uptr")                       },
   {string_static("HWND"),               string_static("uptr")                       },
   {string_static("HINSTANCE"),          string_static("uptr")                       },
   {string_static("xcb_visualid_t"),     string_static("u32")                        },
@@ -283,7 +282,7 @@ typedef struct {
 typedef struct {
   StringHash nameHash;
   u32        size;  // Size in bytes of a single pixel.
-  u32        comps; // Number of components.
+  u32        comps; // Number of components (aka channels).
   bool       compressed4x4;
 } VkGenFormat;
 
@@ -1426,7 +1425,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   // Verify we found all needed features.
   for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
     if (sentinel_check(ctx.featureNodes[i])) {
-      log_e("Feature not found");
+      log_e("Feature not found", log_param("name", fmt_text(g_vkgenFeatures[i])));
       goto Exit;
     }
   }
@@ -1434,7 +1433,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   // Verify we found all needed extensions.
   for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
     if (sentinel_check(ctx.extensionNodes[i])) {
-      log_e("Extension not found");
+      log_e("Extension not found", log_param("name", fmt_text(g_vkgenExtensions[i])));
       goto Exit;
     }
   }
