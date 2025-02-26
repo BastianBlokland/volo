@@ -287,6 +287,19 @@ typedef struct {
   bool       compressed4x4;
 } VkGenFormat;
 
+typedef enum {
+  VkGenInterfaceCat_loader,
+  VkGenInterfaceCat_Instance,
+  VkGenInterfaceCat_Device,
+
+  VkGenInterfaceCat_Count,
+} VkGenInterfaceCat;
+
+typedef struct {
+  VkGenInterfaceCat cat;
+  u32               cmdIndex;
+} VkGenInterface;
+
 typedef struct {
   XmlDoc*   schemaDoc;
   XmlNode   schemaRoot;
@@ -296,10 +309,10 @@ typedef struct {
   DynArray  constants;   // VkGenConstant[]
   DynArray  enumEntries; // VkGenEnumEntry[]
   DynArray  commands;    // VkGenCommand[]
-  DynBitSet commandsWritten;
   XmlNode   featureNodes[array_elems(g_vkgenFeatures)];
   XmlNode   extensionNodes[array_elems(g_vkgenExtensions)];
-  DynArray  formats; // VkGenFormat[]
+  DynArray  interfaces; // VkGenInterface[]
+  DynArray  formats;    // VkGenFormat[]
   String    outName;
   DynString out;
 } VkGenContext;
@@ -727,6 +740,79 @@ static void vkgen_collect_custom_extensions(VkGenContext* ctx) {
   }
 }
 
+static void vkgen_collect_required_interfaces(
+    VkGenContext*    ctx,
+    DynBitSet*       markedCommands,
+    const StringHash extensionType,
+    const XmlNode    node) {
+  const StringHash devTypeHash         = string_hash_lit("VkDevice");
+  const StringHash devGetProcAddrHash  = string_hash_lit("vkGetDeviceProcAddr");
+  const StringHash instTypeHash        = string_hash_lit("VkInstance");
+  const StringHash instGetProcAddrHash = string_hash_lit("vkGetInstanceProcAddr");
+
+  xml_for_children(ctx->schemaDoc, node, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_require) {
+      continue; // Not a require element.
+    }
+    xml_for_children(ctx->schemaDoc, child, entry) {
+      if (xml_name_hash(ctx->schemaDoc, entry) != g_hash_command) {
+        continue; // Not a command element.
+      }
+      const StringHash cmdKey   = xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name);
+      const u32        cmdIndex = vkgen_command_find(ctx, cmdKey);
+      if (sentinel_check(cmdIndex)) {
+        continue; // Unknown command.
+      }
+      if (dynbitset_test(markedCommands, cmdIndex)) {
+        continue; // Already collected.
+      }
+      dynbitset_set(markedCommands, cmdIndex);
+
+      const VkGenCommand* cmd = vkgen_command_get(ctx, cmdIndex);
+      if (cmd->key == instGetProcAddrHash) {
+        continue; // 'vkGetInstanceProcAddr' needs to be loaded from the dynamic library manually.
+      }
+      const XmlNode    firstParam    = xml_child_get(ctx->schemaDoc, cmd->schemaNode, g_hash_param);
+      const XmlNode    firstTypeNode = xml_child_get(ctx->schemaDoc, firstParam, g_hash_type);
+      const StringHash firstType     = string_hash(xml_value(ctx->schemaDoc, firstTypeNode));
+
+      VkGenInterfaceCat cat;
+      if (cmd->key == devGetProcAddrHash) {
+        // 'vkGetDeviceProcAddr' is an exception that has to be handled by the instance.
+        cat = VkGenInterfaceCat_Instance;
+      } else if (vkgen_is_child(ctx, firstType, devTypeHash) && extensionType != g_hash_instance) {
+        cat = VkGenInterfaceCat_Device;
+      } else if (vkgen_is_child(ctx, firstType, instTypeHash)) {
+        cat = VkGenInterfaceCat_Instance;
+      } else {
+        cat = VkGenInterfaceCat_loader;
+      }
+
+      *dynarray_push_t(&ctx->interfaces, VkGenInterface) = (VkGenInterface){
+          .cat      = cat,
+          .cmdIndex = cmdIndex,
+      };
+    }
+  }
+}
+
+static void vkgen_collect_interfaces(VkGenContext* ctx) {
+  DynBitSet markedCommands = dynbitset_create(g_allocHeap, ctx->commands.size);
+
+  for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
+    const XmlNode featNode = ctx->featureNodes[i];
+    vkgen_collect_required_interfaces(ctx, &markedCommands, 0 /* extensionType */, featNode);
+  }
+  for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
+    const XmlNode    extNode = ctx->extensionNodes[i];
+    const StringHash extType = xml_attr_get_hash(ctx->schemaDoc, extNode, g_hash_type);
+    vkgen_collect_required_interfaces(ctx, &markedCommands, extType, extNode);
+  }
+
+  dynbitset_destroy(&markedCommands);
+  log_i("Collected interfaces", log_param("count", fmt_int(ctx->interfaces.size)));
+}
+
 static void vkgen_collect_formats(VkGenContext* ctx) {
   const XmlNode formatsNode = xml_child_get(ctx->schemaDoc, ctx->schemaRoot, g_hash_formats);
   xml_for_children(ctx->schemaDoc, formatsNode, node) {
@@ -1115,158 +1201,60 @@ static bool vkgen_write_format_info_def(VkGenContext* ctx) {
   return true;
 }
 
-static void vkgen_write_command_params(VkGenContext* ctx, const XmlNode cmdNode) {
-  bool anyParam = false;
-  xml_for_children(ctx->schemaDoc, cmdNode, child) {
-    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_param) {
-      continue; // Not a parameter.
-    }
-    if (!vkgen_is_supported_api(ctx, child)) {
-      continue; // Not supported.
-    }
-    if (anyParam) {
-      fmt_write(&ctx->out, ", ");
-    }
-    vkgen_write_node_children(ctx, child);
-    anyParam = true;
-  }
-  if (!anyParam) {
-    fmt_write(&ctx->out, "void");
-  }
-}
-
-static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
-  const u32 cmdIndex = vkgen_command_find(ctx, key);
-  if (sentinel_check(cmdIndex)) {
-    return false; // Unknown command.
-  }
-  if (dynbitset_test(&ctx->commandsWritten, cmdIndex)) {
-    return true; // Already written.
-  }
-  dynbitset_set(&ctx->commandsWritten, cmdIndex);
-
-  const VkGenCommand* cmd = vkgen_command_get(ctx, cmdIndex);
-
-  String varName = cmd->name;
-  if (string_starts_with(varName, string_lit("vk")) && varName.size >= 3) {
-    varName = fmt_write_scratch(
-        "{}{}",
-        fmt_char(ascii_to_lower(*string_at(varName, 2))),
-        fmt_text(string_consume(varName, 3)));
-  }
-
-  fmt_write(&ctx->out, "  {} (SYS_DECL* {})(", fmt_text(cmd->type), fmt_text(varName));
-  vkgen_write_command_params(ctx, cmd->schemaNode);
-  fmt_write(&ctx->out, ");\n");
-
-  return true;
-}
-
-typedef enum {
-  VkGenInterfaceType_loader,
-  VkGenInterfaceType_Instance,
-  VkGenInterfaceType_Device,
-
-  VkGenInterfaceType_Count,
-} VkGenInterfaceType;
-
-static String vkgen_interface_name(const VkGenInterfaceType type) {
-  switch (type) {
-  case VkGenInterfaceType_loader:
+static String vkgen_interface_cat_name(const VkGenInterfaceCat cat) {
+  switch (cat) {
+  case VkGenInterfaceCat_loader:
     return string_lit("Loader");
-  case VkGenInterfaceType_Instance:
+  case VkGenInterfaceCat_Instance:
     return string_lit("Instance");
-  case VkGenInterfaceType_Device:
+  case VkGenInterfaceCat_Device:
     return string_lit("Device");
-  case VkGenInterfaceType_Count:
+  case VkGenInterfaceCat_Count:
     break;
   }
   UNREACHABLE
 }
 
-static bool vkgen_write_required_commands(
-    VkGenContext* ctx, const XmlNode node, const VkGenInterfaceType interfaceType) {
+static bool vkgen_write_interface(VkGenContext* ctx, const VkGenInterfaceCat category) {
+  const String catName = vkgen_interface_cat_name(category);
+  fmt_write(&ctx->out, "typedef struct VkInterface{} {\n", fmt_text(catName));
 
-  const StringHash deviceTypeHash          = string_hash_lit("VkDevice");
-  const StringHash deviceProcAddrCmdHash   = string_hash_lit("vkGetDeviceProcAddr");
-  const StringHash instanceTypeHash        = string_hash_lit("VkInstance");
-  const StringHash instanceProcAddrCmdHash = string_hash_lit("vkGetInstanceProcAddr");
-
-  xml_for_children(ctx->schemaDoc, node, child) {
-    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_require) {
-      continue; // Not a require element.
-    }
-    xml_for_children(ctx->schemaDoc, child, entry) {
-      if (xml_name_hash(ctx->schemaDoc, entry) != g_hash_command) {
-        continue; // Not a command element.
-      }
-      const u32 cmdIndex =
-          vkgen_command_find(ctx, xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name));
-      if (sentinel_check(cmdIndex)) {
-        continue;
-      }
-      const VkGenCommand* cmd = vkgen_command_get(ctx, cmdIndex);
-      if (cmd->key == instanceProcAddrCmdHash) {
-        continue; // 'vkGetInstanceProcAddr' needs to be loaded from the dynamic library directly.
-      }
-      const XmlNode    firstParam    = xml_child_get(ctx->schemaDoc, cmd->schemaNode, g_hash_param);
-      const XmlNode    firstTypeNode = xml_child_get(ctx->schemaDoc, firstParam, g_hash_type);
-      const StringHash firstType     = string_hash(xml_value(ctx->schemaDoc, firstTypeNode));
-      switch (interfaceType) {
-      case VkGenInterfaceType_loader:
-        if (vkgen_is_child(ctx, firstType, instanceTypeHash)) {
-          continue;
-        }
-        if (vkgen_is_child(ctx, firstType, deviceTypeHash)) {
-          continue;
-        }
-        break;
-      case VkGenInterfaceType_Instance:
-        if (vkgen_is_child(ctx, firstType, deviceTypeHash) && cmd->key != deviceProcAddrCmdHash) {
-          continue;
-        }
-        if (!vkgen_is_child(ctx, firstType, instanceTypeHash)) {
-          continue;
-        }
-        break;
-      case VkGenInterfaceType_Device:
-        if (!vkgen_is_child(ctx, firstType, deviceTypeHash)) {
-          continue;
-        }
-        if (cmd->key == deviceProcAddrCmdHash) {
-          continue; // 'vkGetDeviceProcAddr' in an exception as its actually an instance func.
-        }
-        break;
-      case VkGenInterfaceType_Count:
-        break;
-      }
-      if (!vkgen_write_command(ctx, xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name))) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-static bool vkgen_write_interface(VkGenContext* ctx, const VkGenInterfaceType type) {
-  const String interfaceName = vkgen_interface_name(type);
-  fmt_write(&ctx->out, "typedef struct VkInterface{} {\n", fmt_text(interfaceName));
-
-  dynbitset_clear_all(&ctx->commandsWritten);
-
-  for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
-    vkgen_write_required_commands(ctx, ctx->featureNodes[i], type);
-  }
-  for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
-    const XmlNode    extNode = ctx->extensionNodes[i];
-    const StringHash extType = xml_attr_get_hash(ctx->schemaDoc, extNode, g_hash_type);
-    if (extType == g_hash_instance && type == VkGenInterfaceType_Device) {
+  dynarray_for_t(&ctx->interfaces, VkGenInterface, interface) {
+    if (interface->cat != category) {
       continue;
     }
-    vkgen_write_required_commands(ctx, extNode, type);
+    const VkGenCommand* cmd = vkgen_command_get(ctx, interface->cmdIndex);
+
+    String varName = cmd->name;
+    if (string_starts_with(varName, string_lit("vk")) && varName.size >= 3) {
+      varName = fmt_write_scratch(
+          "{}{}",
+          fmt_char(ascii_to_lower(*string_at(varName, 2))),
+          fmt_text(string_consume(varName, 3)));
+    }
+
+    fmt_write(&ctx->out, "  {} (SYS_DECL* {})(", fmt_text(cmd->type), fmt_text(varName));
+    bool anyParam = false;
+    xml_for_children(ctx->schemaDoc, cmd->schemaNode, child) {
+      if (xml_name_hash(ctx->schemaDoc, child) != g_hash_param) {
+        continue; // Not a parameter.
+      }
+      if (!vkgen_is_supported_api(ctx, child)) {
+        continue; // Not supported.
+      }
+      if (anyParam) {
+        fmt_write(&ctx->out, ", ");
+      }
+      vkgen_write_node_children(ctx, child);
+      anyParam = true;
+    }
+    if (!anyParam) {
+      fmt_write(&ctx->out, "void");
+    }
+    fmt_write(&ctx->out, ");\n");
   }
 
-  fmt_write(&ctx->out, "} VkInterface{};\n\n", fmt_text(interfaceName));
+  fmt_write(&ctx->out, "} VkInterface{};\n\n", fmt_text(catName));
   return true;
 }
 
@@ -1322,8 +1310,8 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   fmt_write(&ctx->out, "\n");
 
   // Write interface declarations.
-  for (VkGenInterfaceType type = 0; type != VkGenInterfaceType_Count; ++type) {
-    if (!vkgen_write_interface(ctx, type)) {
+  for (VkGenInterfaceCat cat = 0; cat != VkGenInterfaceCat_Count; ++cat) {
+    if (!vkgen_write_interface(ctx, cat)) {
       return false;
     }
   }
@@ -1406,18 +1394,18 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
   VkGenContext ctx = {
-      .schemaDoc       = xml_create(g_allocHeap, 128 * 1024),
-      .schemaHost      = cli_read_string(invoc, g_optSchemaHost, g_schemaDefaultHost),
-      .schemaUri       = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
-      .types           = dynarray_create_t(g_allocHeap, VkGenType, 4096),
-      .typesWritten    = dynbitset_create(g_allocHeap, 4096),
-      .constants       = dynarray_create_t(g_allocHeap, VkGenConstant, 64),
-      .enumEntries     = dynarray_create_t(g_allocHeap, VkGenEnumEntry, 2048),
-      .commands        = dynarray_create_t(g_allocHeap, VkGenCommand, 1024),
-      .commandsWritten = dynbitset_create(g_allocHeap, 1024),
-      .formats         = dynarray_create_t(g_allocHeap, VkGenFormat, 512),
-      .outName         = path_stem(outputPath),
-      .out             = dynstring_create(g_allocHeap, usize_kibibyte * 16),
+      .schemaDoc    = xml_create(g_allocHeap, 128 * 1024),
+      .schemaHost   = cli_read_string(invoc, g_optSchemaHost, g_schemaDefaultHost),
+      .schemaUri    = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
+      .types        = dynarray_create_t(g_allocHeap, VkGenType, 4096),
+      .typesWritten = dynbitset_create(g_allocHeap, 4096),
+      .constants    = dynarray_create_t(g_allocHeap, VkGenConstant, 64),
+      .enumEntries  = dynarray_create_t(g_allocHeap, VkGenEnumEntry, 2048),
+      .commands     = dynarray_create_t(g_allocHeap, VkGenCommand, 1024),
+      .interfaces   = dynarray_create_t(g_allocHeap, VkGenInterface, 512),
+      .formats      = dynarray_create_t(g_allocHeap, VkGenFormat, 512),
+      .outName      = path_stem(outputPath),
+      .out          = dynstring_create(g_allocHeap, usize_kibibyte * 16),
   };
 
   ctx.schemaRoot = vkgen_schema_get(ctx.schemaDoc, ctx.schemaHost, ctx.schemaUri);
@@ -1433,6 +1421,7 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   vkgen_collect_extensions(&ctx);
   vkgen_collect_custom_extensions(&ctx);
   vkgen_collect_formats(&ctx);
+  vkgen_collect_interfaces(&ctx);
 
   // Verify we found all needed features.
   for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
@@ -1479,7 +1468,7 @@ Exit:
   dynarray_destroy(&ctx.constants);
   dynarray_destroy(&ctx.enumEntries);
   dynarray_destroy(&ctx.commands);
-  dynbitset_destroy(&ctx.commandsWritten);
+  dynarray_destroy(&ctx.interfaces);
   dynarray_destroy(&ctx.formats);
   dynstring_destroy(&ctx.out);
 
