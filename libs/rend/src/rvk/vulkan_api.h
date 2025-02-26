@@ -3183,8 +3183,14 @@ u32 vkFormatByteSize(VkFormat);
 u32 vkFormatComponents(VkFormat);
 bool vkFormatCompressed4x4(VkFormat);
 
-typedef struct VkInterface {
+typedef struct VkInterfaceLoader {
   VkResult (SYS_DECL* createInstance)(const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance);
+  VkResult (SYS_DECL* enumerateInstanceExtensionProperties)(const char* pLayerName, u32* pPropertyCount, VkExtensionProperties* pProperties);
+  VkResult (SYS_DECL* enumerateInstanceLayerProperties)(u32* pPropertyCount, VkLayerProperties* pProperties);
+  VkResult (SYS_DECL* enumerateInstanceVersion)(u32* pApiVersion);
+} VkInterfaceLoader;
+
+typedef struct VkInterfaceInstance {
   void (SYS_DECL* destroyInstance)(VkInstance instance, const VkAllocationCallbacks* pAllocator);
   VkResult (SYS_DECL* enumeratePhysicalDevices)(VkInstance instance, u32* pPhysicalDeviceCount, VkPhysicalDevice* pPhysicalDevices);
   void (SYS_DECL* getPhysicalDeviceFeatures)(VkPhysicalDevice physicalDevice, VkPhysicalDeviceFeatures* pFeatures);
@@ -3193,14 +3199,39 @@ typedef struct VkInterface {
   void (SYS_DECL* getPhysicalDeviceProperties)(VkPhysicalDevice physicalDevice, VkPhysicalDeviceProperties* pProperties);
   void (SYS_DECL* getPhysicalDeviceQueueFamilyProperties)(VkPhysicalDevice physicalDevice, u32* pQueueFamilyPropertyCount, VkQueueFamilyProperties* pQueueFamilyProperties);
   void (SYS_DECL* getPhysicalDeviceMemoryProperties)(VkPhysicalDevice physicalDevice, VkPhysicalDeviceMemoryProperties* pMemoryProperties);
-  PFN_vkVoidFunction (SYS_DECL* getInstanceProcAddr)(VkInstance instance, const char* pName);
   PFN_vkVoidFunction (SYS_DECL* getDeviceProcAddr)(VkDevice device, const char* pName);
   VkResult (SYS_DECL* createDevice)(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice);
-  void (SYS_DECL* destroyDevice)(VkDevice device, const VkAllocationCallbacks* pAllocator);
-  VkResult (SYS_DECL* enumerateInstanceExtensionProperties)(const char* pLayerName, u32* pPropertyCount, VkExtensionProperties* pProperties);
   VkResult (SYS_DECL* enumerateDeviceExtensionProperties)(VkPhysicalDevice physicalDevice, const char* pLayerName, u32* pPropertyCount, VkExtensionProperties* pProperties);
-  VkResult (SYS_DECL* enumerateInstanceLayerProperties)(u32* pPropertyCount, VkLayerProperties* pProperties);
   VkResult (SYS_DECL* enumerateDeviceLayerProperties)(VkPhysicalDevice physicalDevice, u32* pPropertyCount, VkLayerProperties* pProperties);
+  void (SYS_DECL* getPhysicalDeviceSparseImageFormatProperties)(VkPhysicalDevice physicalDevice, VkFormat format, VkImageType type, VkSampleCountFlagBits samples, VkImageUsageFlags usage, VkImageTiling tiling, u32* pPropertyCount, VkSparseImageFormatProperties* pProperties);
+  VkResult (SYS_DECL* enumeratePhysicalDeviceGroups)(VkInstance instance, u32* pPhysicalDeviceGroupCount, VkPhysicalDeviceGroupProperties* pPhysicalDeviceGroupProperties);
+  void (SYS_DECL* getPhysicalDeviceFeatures2)(VkPhysicalDevice physicalDevice, VkPhysicalDeviceFeatures2* pFeatures);
+  void (SYS_DECL* getPhysicalDeviceProperties2)(VkPhysicalDevice physicalDevice, VkPhysicalDeviceProperties2* pProperties);
+  void (SYS_DECL* getPhysicalDeviceFormatProperties2)(VkPhysicalDevice physicalDevice, VkFormat format, VkFormatProperties2* pFormatProperties);
+  VkResult (SYS_DECL* getPhysicalDeviceImageFormatProperties2)(VkPhysicalDevice physicalDevice, const VkPhysicalDeviceImageFormatInfo2* pImageFormatInfo, VkImageFormatProperties2* pImageFormatProperties);
+  void (SYS_DECL* getPhysicalDeviceQueueFamilyProperties2)(VkPhysicalDevice physicalDevice, u32* pQueueFamilyPropertyCount, VkQueueFamilyProperties2* pQueueFamilyProperties);
+  void (SYS_DECL* getPhysicalDeviceMemoryProperties2)(VkPhysicalDevice physicalDevice, VkPhysicalDeviceMemoryProperties2* pMemoryProperties);
+  void (SYS_DECL* getPhysicalDeviceSparseImageFormatProperties2)(VkPhysicalDevice physicalDevice, const VkPhysicalDeviceSparseImageFormatInfo2* pFormatInfo, u32* pPropertyCount, VkSparseImageFormatProperties2* pProperties);
+  void (SYS_DECL* getPhysicalDeviceExternalBufferProperties)(VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalBufferInfo* pExternalBufferInfo, VkExternalBufferProperties* pExternalBufferProperties);
+  void (SYS_DECL* getPhysicalDeviceExternalFenceProperties)(VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalFenceInfo* pExternalFenceInfo, VkExternalFenceProperties* pExternalFenceProperties);
+  void (SYS_DECL* getPhysicalDeviceExternalSemaphoreProperties)(VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalSemaphoreInfo* pExternalSemaphoreInfo, VkExternalSemaphoreProperties* pExternalSemaphoreProperties);
+  VkResult (SYS_DECL* createDebugUtilsMessengerEXT)(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pMessenger);
+  void (SYS_DECL* destroyDebugUtilsMessengerEXT)(VkInstance instance, VkDebugUtilsMessengerEXT messenger, const VkAllocationCallbacks* pAllocator);
+  void (SYS_DECL* submitDebugUtilsMessageEXT)(VkInstance instance, VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData);
+  VkResult (SYS_DECL* getPhysicalDevicePresentRectanglesKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, u32* pRectCount, VkRect2D* pRects);
+  void (SYS_DECL* destroySurfaceKHR)(VkInstance instance, VkSurfaceKHR surface, const VkAllocationCallbacks* pAllocator);
+  VkResult (SYS_DECL* getPhysicalDeviceSurfaceSupportKHR)(VkPhysicalDevice physicalDevice, u32 queueFamilyIndex, VkSurfaceKHR surface, VkBool32* pSupported);
+  VkResult (SYS_DECL* getPhysicalDeviceSurfaceCapabilitiesKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSurfaceCapabilitiesKHR* pSurfaceCapabilities);
+  VkResult (SYS_DECL* getPhysicalDeviceSurfaceFormatsKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, u32* pSurfaceFormatCount, VkSurfaceFormatKHR* pSurfaceFormats);
+  VkResult (SYS_DECL* getPhysicalDeviceSurfacePresentModesKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, u32* pPresentModeCount, VkPresentModeKHR* pPresentModes);
+  VkResult (SYS_DECL* createXcbSurfaceKHR)(VkInstance instance, const VkXcbSurfaceCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface);
+  VkBool32 (SYS_DECL* getPhysicalDeviceXcbPresentationSupportKHR)(VkPhysicalDevice physicalDevice, u32 queueFamilyIndex, uptr connection, u32 visual_id);
+  VkResult (SYS_DECL* createWin32SurfaceKHR)(VkInstance instance, const VkWin32SurfaceCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface);
+  VkBool32 (SYS_DECL* getPhysicalDeviceWin32PresentationSupportKHR)(VkPhysicalDevice physicalDevice, u32 queueFamilyIndex);
+} VkInterfaceInstance;
+
+typedef struct VkInterfaceDevice {
+  void (SYS_DECL* destroyDevice)(VkDevice device, const VkAllocationCallbacks* pAllocator);
   void (SYS_DECL* getDeviceQueue)(VkDevice device, u32 queueFamilyIndex, u32 queueIndex, VkQueue* pQueue);
   VkResult (SYS_DECL* queueSubmit)(VkQueue queue, u32 submitCount, const VkSubmitInfo* pSubmits, VkFence fence);
   VkResult (SYS_DECL* queueWaitIdle)(VkQueue queue);
@@ -3217,7 +3248,6 @@ typedef struct VkInterface {
   void (SYS_DECL* getBufferMemoryRequirements)(VkDevice device, VkBuffer buffer, VkMemoryRequirements* pMemoryRequirements);
   void (SYS_DECL* getImageMemoryRequirements)(VkDevice device, VkImage image, VkMemoryRequirements* pMemoryRequirements);
   void (SYS_DECL* getImageSparseMemoryRequirements)(VkDevice device, VkImage image, u32* pSparseMemoryRequirementCount, VkSparseImageMemoryRequirements* pSparseMemoryRequirements);
-  void (SYS_DECL* getPhysicalDeviceSparseImageFormatProperties)(VkPhysicalDevice physicalDevice, VkFormat format, VkImageType type, VkSampleCountFlagBits samples, VkImageUsageFlags usage, VkImageTiling tiling, u32* pPropertyCount, VkSparseImageFormatProperties* pProperties);
   VkResult (SYS_DECL* queueBindSparse)(VkQueue queue, u32 bindInfoCount, const VkBindSparseInfo* pBindInfo, VkFence fence);
   VkResult (SYS_DECL* createFence)(VkDevice device, const VkFenceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkFence* pFence);
   void (SYS_DECL* destroyFence)(VkDevice device, VkFence fence, const VkAllocationCallbacks* pAllocator);
@@ -3321,23 +3351,14 @@ typedef struct VkInterface {
   void (SYS_DECL* cmdNextSubpass)(VkCommandBuffer commandBuffer, VkSubpassContents contents);
   void (SYS_DECL* cmdEndRenderPass)(VkCommandBuffer commandBuffer);
   void (SYS_DECL* cmdExecuteCommands)(VkCommandBuffer commandBuffer, u32 commandBufferCount, const VkCommandBuffer* pCommandBuffers);
-  VkResult (SYS_DECL* enumerateInstanceVersion)(u32* pApiVersion);
   VkResult (SYS_DECL* bindBufferMemory2)(VkDevice device, u32 bindInfoCount, const VkBindBufferMemoryInfo* pBindInfos);
   VkResult (SYS_DECL* bindImageMemory2)(VkDevice device, u32 bindInfoCount, const VkBindImageMemoryInfo* pBindInfos);
   void (SYS_DECL* getDeviceGroupPeerMemoryFeatures)(VkDevice device, u32 heapIndex, u32 localDeviceIndex, u32 remoteDeviceIndex, VkPeerMemoryFeatureFlags* pPeerMemoryFeatures);
   void (SYS_DECL* cmdSetDeviceMask)(VkCommandBuffer commandBuffer, u32 deviceMask);
   void (SYS_DECL* cmdDispatchBase)(VkCommandBuffer commandBuffer, u32 baseGroupX, u32 baseGroupY, u32 baseGroupZ, u32 groupCountX, u32 groupCountY, u32 groupCountZ);
-  VkResult (SYS_DECL* enumeratePhysicalDeviceGroups)(VkInstance instance, u32* pPhysicalDeviceGroupCount, VkPhysicalDeviceGroupProperties* pPhysicalDeviceGroupProperties);
   void (SYS_DECL* getImageMemoryRequirements2)(VkDevice device, const VkImageMemoryRequirementsInfo2* pInfo, VkMemoryRequirements2* pMemoryRequirements);
   void (SYS_DECL* getBufferMemoryRequirements2)(VkDevice device, const VkBufferMemoryRequirementsInfo2* pInfo, VkMemoryRequirements2* pMemoryRequirements);
   void (SYS_DECL* getImageSparseMemoryRequirements2)(VkDevice device, const VkImageSparseMemoryRequirementsInfo2* pInfo, u32* pSparseMemoryRequirementCount, VkSparseImageMemoryRequirements2* pSparseMemoryRequirements);
-  void (SYS_DECL* getPhysicalDeviceFeatures2)(VkPhysicalDevice physicalDevice, VkPhysicalDeviceFeatures2* pFeatures);
-  void (SYS_DECL* getPhysicalDeviceProperties2)(VkPhysicalDevice physicalDevice, VkPhysicalDeviceProperties2* pProperties);
-  void (SYS_DECL* getPhysicalDeviceFormatProperties2)(VkPhysicalDevice physicalDevice, VkFormat format, VkFormatProperties2* pFormatProperties);
-  VkResult (SYS_DECL* getPhysicalDeviceImageFormatProperties2)(VkPhysicalDevice physicalDevice, const VkPhysicalDeviceImageFormatInfo2* pImageFormatInfo, VkImageFormatProperties2* pImageFormatProperties);
-  void (SYS_DECL* getPhysicalDeviceQueueFamilyProperties2)(VkPhysicalDevice physicalDevice, u32* pQueueFamilyPropertyCount, VkQueueFamilyProperties2* pQueueFamilyProperties);
-  void (SYS_DECL* getPhysicalDeviceMemoryProperties2)(VkPhysicalDevice physicalDevice, VkPhysicalDeviceMemoryProperties2* pMemoryProperties);
-  void (SYS_DECL* getPhysicalDeviceSparseImageFormatProperties2)(VkPhysicalDevice physicalDevice, const VkPhysicalDeviceSparseImageFormatInfo2* pFormatInfo, u32* pPropertyCount, VkSparseImageFormatProperties2* pProperties);
   void (SYS_DECL* trimCommandPool)(VkDevice device, VkCommandPool commandPool, VkCommandPoolTrimFlags flags);
   void (SYS_DECL* getDeviceQueue2)(VkDevice device, const VkDeviceQueueInfo2* pQueueInfo, VkQueue* pQueue);
   VkResult (SYS_DECL* createSamplerYcbcrConversion)(VkDevice device, const VkSamplerYcbcrConversionCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSamplerYcbcrConversion* pYcbcrConversion);
@@ -3345,21 +3366,7 @@ typedef struct VkInterface {
   VkResult (SYS_DECL* createDescriptorUpdateTemplate)(VkDevice device, const VkDescriptorUpdateTemplateCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorUpdateTemplate* pDescriptorUpdateTemplate);
   void (SYS_DECL* destroyDescriptorUpdateTemplate)(VkDevice device, VkDescriptorUpdateTemplate descriptorUpdateTemplate, const VkAllocationCallbacks* pAllocator);
   void (SYS_DECL* updateDescriptorSetWithTemplate)(VkDevice device, VkDescriptorSet descriptorSet, VkDescriptorUpdateTemplate descriptorUpdateTemplate, const void* pData);
-  void (SYS_DECL* getPhysicalDeviceExternalBufferProperties)(VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalBufferInfo* pExternalBufferInfo, VkExternalBufferProperties* pExternalBufferProperties);
-  void (SYS_DECL* getPhysicalDeviceExternalFenceProperties)(VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalFenceInfo* pExternalFenceInfo, VkExternalFenceProperties* pExternalFenceProperties);
-  void (SYS_DECL* getPhysicalDeviceExternalSemaphoreProperties)(VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalSemaphoreInfo* pExternalSemaphoreInfo, VkExternalSemaphoreProperties* pExternalSemaphoreProperties);
   void (SYS_DECL* getDescriptorSetLayoutSupport)(VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, VkDescriptorSetLayoutSupport* pSupport);
-  VkResult (SYS_DECL* setDebugUtilsObjectNameEXT)(VkDevice device, const VkDebugUtilsObjectNameInfoEXT* pNameInfo);
-  VkResult (SYS_DECL* setDebugUtilsObjectTagEXT)(VkDevice device, const VkDebugUtilsObjectTagInfoEXT* pTagInfo);
-  void (SYS_DECL* queueBeginDebugUtilsLabelEXT)(VkQueue queue, const VkDebugUtilsLabelEXT* pLabelInfo);
-  void (SYS_DECL* queueEndDebugUtilsLabelEXT)(VkQueue queue);
-  void (SYS_DECL* queueInsertDebugUtilsLabelEXT)(VkQueue queue, const VkDebugUtilsLabelEXT* pLabelInfo);
-  void (SYS_DECL* cmdBeginDebugUtilsLabelEXT)(VkCommandBuffer commandBuffer, const VkDebugUtilsLabelEXT* pLabelInfo);
-  void (SYS_DECL* cmdEndDebugUtilsLabelEXT)(VkCommandBuffer commandBuffer);
-  void (SYS_DECL* cmdInsertDebugUtilsLabelEXT)(VkCommandBuffer commandBuffer, const VkDebugUtilsLabelEXT* pLabelInfo);
-  VkResult (SYS_DECL* createDebugUtilsMessengerEXT)(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pMessenger);
-  void (SYS_DECL* destroyDebugUtilsMessengerEXT)(VkInstance instance, VkDebugUtilsMessengerEXT messenger, const VkAllocationCallbacks* pAllocator);
-  void (SYS_DECL* submitDebugUtilsMessageEXT)(VkInstance instance, VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData);
   VkResult (SYS_DECL* createSwapchainKHR)(VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain);
   void (SYS_DECL* destroySwapchainKHR)(VkDevice device, VkSwapchainKHR swapchain, const VkAllocationCallbacks* pAllocator);
   VkResult (SYS_DECL* getSwapchainImagesKHR)(VkDevice device, VkSwapchainKHR swapchain, u32* pSwapchainImageCount, VkImage* pSwapchainImages);
@@ -3367,17 +3374,7 @@ typedef struct VkInterface {
   VkResult (SYS_DECL* queuePresentKHR)(VkQueue queue, const VkPresentInfoKHR* pPresentInfo);
   VkResult (SYS_DECL* getDeviceGroupPresentCapabilitiesKHR)(VkDevice device, VkDeviceGroupPresentCapabilitiesKHR* pDeviceGroupPresentCapabilities);
   VkResult (SYS_DECL* getDeviceGroupSurfacePresentModesKHR)(VkDevice device, VkSurfaceKHR surface, VkDeviceGroupPresentModeFlagsKHR* pModes);
-  VkResult (SYS_DECL* getPhysicalDevicePresentRectanglesKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, u32* pRectCount, VkRect2D* pRects);
   VkResult (SYS_DECL* acquireNextImage2KHR)(VkDevice device, const VkAcquireNextImageInfoKHR* pAcquireInfo, u32* pImageIndex);
-  void (SYS_DECL* destroySurfaceKHR)(VkInstance instance, VkSurfaceKHR surface, const VkAllocationCallbacks* pAllocator);
-  VkResult (SYS_DECL* getPhysicalDeviceSurfaceSupportKHR)(VkPhysicalDevice physicalDevice, u32 queueFamilyIndex, VkSurfaceKHR surface, VkBool32* pSupported);
-  VkResult (SYS_DECL* getPhysicalDeviceSurfaceCapabilitiesKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSurfaceCapabilitiesKHR* pSurfaceCapabilities);
-  VkResult (SYS_DECL* getPhysicalDeviceSurfaceFormatsKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, u32* pSurfaceFormatCount, VkSurfaceFormatKHR* pSurfaceFormats);
-  VkResult (SYS_DECL* getPhysicalDeviceSurfacePresentModesKHR)(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, u32* pPresentModeCount, VkPresentModeKHR* pPresentModes);
-  VkResult (SYS_DECL* createXcbSurfaceKHR)(VkInstance instance, const VkXcbSurfaceCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface);
-  VkBool32 (SYS_DECL* getPhysicalDeviceXcbPresentationSupportKHR)(VkPhysicalDevice physicalDevice, u32 queueFamilyIndex, uptr connection, u32 visual_id);
-  VkResult (SYS_DECL* createWin32SurfaceKHR)(VkInstance instance, const VkWin32SurfaceCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface);
-  VkBool32 (SYS_DECL* getPhysicalDeviceWin32PresentationSupportKHR)(VkPhysicalDevice physicalDevice, u32 queueFamilyIndex);
-} VkInterface;
+} VkInterfaceDevice;
 
 // clang-format on

@@ -363,6 +363,18 @@ static void vkgen_type_push(
   };
 }
 
+static bool vkgen_is_child(VkGenContext* ctx, const StringHash child, const StringHash parent) {
+  if (child == parent) {
+    return true;
+  }
+  const u32 childTypeIndex = vkgen_type_find(ctx, child);
+  if (sentinel_check(childTypeIndex)) {
+    return false;
+  }
+  const VkGenType* childType = vkgen_type_get(ctx, childTypeIndex);
+  return vkgen_is_child(ctx, childType->parent, parent);
+}
+
 static bool vkgen_enum_entry_push(VkGenContext* ctx, const VkGenEnumEntry enumEntry) {
   VkGenEnumEntry* stored =
       dynarray_find_or_insert_sorted(&ctx->enumEntries, vkgen_compare_enum_entry, &enumEntry);
@@ -1150,23 +1162,6 @@ static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
   return true;
 }
 
-static bool vkgen_write_required_commands(VkGenContext* ctx, const XmlNode node) {
-  xml_for_children(ctx->schemaDoc, node, child) {
-    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_require) {
-      continue; // Not a require element.
-    }
-    xml_for_children(ctx->schemaDoc, child, entry) {
-      if (xml_name_hash(ctx->schemaDoc, entry) != g_hash_command) {
-        continue; // Not a command element.
-      }
-      if (!vkgen_write_command(ctx, xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name))) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
 typedef enum {
   VkGenInterfaceType_loader,
   VkGenInterfaceType_Instance,
@@ -1189,6 +1184,70 @@ static String vkgen_interface_name(const VkGenInterfaceType type) {
   UNREACHABLE
 }
 
+static bool vkgen_write_required_commands(
+    VkGenContext* ctx, const XmlNode node, const VkGenInterfaceType interfaceType) {
+
+  const StringHash deviceTypeHash          = string_hash_lit("VkDevice");
+  const StringHash deviceProcAddrCmdHash   = string_hash_lit("vkGetDeviceProcAddr");
+  const StringHash instanceTypeHash        = string_hash_lit("VkInstance");
+  const StringHash instanceProcAddrCmdHash = string_hash_lit("vkGetInstanceProcAddr");
+
+  xml_for_children(ctx->schemaDoc, node, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_require) {
+      continue; // Not a require element.
+    }
+    xml_for_children(ctx->schemaDoc, child, entry) {
+      if (xml_name_hash(ctx->schemaDoc, entry) != g_hash_command) {
+        continue; // Not a command element.
+      }
+      const u32 cmdIndex =
+          vkgen_command_find(ctx, xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name));
+      if (sentinel_check(cmdIndex)) {
+        continue;
+      }
+      const VkGenCommand* cmd = vkgen_command_get(ctx, cmdIndex);
+      if (cmd->key == instanceProcAddrCmdHash) {
+        continue; // 'vkGetInstanceProcAddr' needs to be loaded from the dynamic library directly.
+      }
+      const XmlNode    firstParam    = xml_child_get(ctx->schemaDoc, cmd->schemaNode, g_hash_param);
+      const XmlNode    firstTypeNode = xml_child_get(ctx->schemaDoc, firstParam, g_hash_type);
+      const StringHash firstType     = string_hash(xml_value(ctx->schemaDoc, firstTypeNode));
+      switch (interfaceType) {
+      case VkGenInterfaceType_loader:
+        if (vkgen_is_child(ctx, firstType, instanceTypeHash)) {
+          continue;
+        }
+        if (vkgen_is_child(ctx, firstType, deviceTypeHash)) {
+          continue;
+        }
+        break;
+      case VkGenInterfaceType_Instance:
+        if (vkgen_is_child(ctx, firstType, deviceTypeHash) && cmd->key != deviceProcAddrCmdHash) {
+          continue;
+        }
+        if (!vkgen_is_child(ctx, firstType, instanceTypeHash)) {
+          continue;
+        }
+        break;
+      case VkGenInterfaceType_Device:
+        if (!vkgen_is_child(ctx, firstType, deviceTypeHash)) {
+          continue;
+        }
+        if (cmd->key == deviceProcAddrCmdHash) {
+          continue; // 'vkGetDeviceProcAddr' in an exception as its actually an instance func.
+        }
+        break;
+      case VkGenInterfaceType_Count:
+        break;
+      }
+      if (!vkgen_write_command(ctx, xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name))) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 static bool vkgen_write_interface(VkGenContext* ctx, const VkGenInterfaceType type) {
   const String interfaceName = vkgen_interface_name(type);
   fmt_write(&ctx->out, "typedef struct VkInterface{} {\n", fmt_text(interfaceName));
@@ -1196,7 +1255,7 @@ static bool vkgen_write_interface(VkGenContext* ctx, const VkGenInterfaceType ty
   dynbitset_clear_all(&ctx->commandsWritten);
 
   for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
-    vkgen_write_required_commands(ctx, ctx->featureNodes[i]);
+    vkgen_write_required_commands(ctx, ctx->featureNodes[i], type);
   }
   for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
     const XmlNode    extNode = ctx->extensionNodes[i];
@@ -1204,7 +1263,7 @@ static bool vkgen_write_interface(VkGenContext* ctx, const VkGenInterfaceType ty
     if (extType == g_hash_instance && type == VkGenInterfaceType_Device) {
       continue;
     }
-    vkgen_write_required_commands(ctx, extNode);
+    vkgen_write_required_commands(ctx, extNode, type);
   }
 
   fmt_write(&ctx->out, "} VkInterface{};\n\n", fmt_text(interfaceName));
