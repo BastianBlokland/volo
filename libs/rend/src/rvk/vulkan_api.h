@@ -3185,6 +3185,7 @@ bool vkFormatCompressed4x4(VkFormat);
 
 typedef struct VkInterfaceLoader {
   VkResult (SYS_DECL* createInstance)(const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance);
+  PFN_vkVoidFunction (SYS_DECL* getInstanceProcAddr)(VkInstance instance, const char* pName);
   VkResult (SYS_DECL* enumerateInstanceExtensionProperties)(const char* pLayerName, u32* pPropertyCount, VkExtensionProperties* pProperties);
   VkResult (SYS_DECL* enumerateInstanceLayerProperties)(u32* pPropertyCount, VkLayerProperties* pProperties);
   VkResult (SYS_DECL* enumerateInstanceVersion)(u32* pApiVersion);

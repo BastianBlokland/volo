@@ -767,16 +767,16 @@ static void vkgen_collect_required_interfaces(
       }
       dynbitset_set(markedCommands, cmdIndex);
 
-      const VkGenCommand* cmd = vkgen_command_get(ctx, cmdIndex);
-      if (cmd->key == instGetProcAddrHash) {
-        continue; // 'vkGetInstanceProcAddr' needs to be loaded from the dynamic library manually.
-      }
-      const XmlNode    firstParam    = xml_child_get(ctx->schemaDoc, cmd->schemaNode, g_hash_param);
-      const XmlNode    firstTypeNode = xml_child_get(ctx->schemaDoc, firstParam, g_hash_type);
-      const StringHash firstType     = string_hash(xml_value(ctx->schemaDoc, firstTypeNode));
+      const VkGenCommand* cmd        = vkgen_command_get(ctx, cmdIndex);
+      const XmlNode       firstParam = xml_child_get(ctx->schemaDoc, cmd->schemaNode, g_hash_param);
+      const XmlNode       firstTypeNode = xml_child_get(ctx->schemaDoc, firstParam, g_hash_type);
+      const StringHash    firstType     = string_hash(xml_value(ctx->schemaDoc, firstTypeNode));
 
       VkGenInterfaceCat cat;
-      if (cmd->key == devGetProcAddrHash) {
+      if (cmd->key == instGetProcAddrHash) {
+        // 'vkGetInstanceProcAddr' is an exception that has to be handled by the loader.
+        cat = VkGenInterfaceCat_Loader;
+      } else if (cmd->key == devGetProcAddrHash) {
         // 'vkGetDeviceProcAddr' is an exception that has to be handled by the instance.
         cat = VkGenInterfaceCat_Instance;
       } else if (vkgen_is_child(ctx, firstType, devTypeHash) && extensionType != g_hash_instance) {
