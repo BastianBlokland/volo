@@ -1214,12 +1214,12 @@ static String vkgen_interface_cat_name(const VkGenInterfaceCat cat) {
   UNREACHABLE
 }
 
-static bool vkgen_write_interface(VkGenContext* ctx, const VkGenInterfaceCat category) {
-  const String catName = vkgen_interface_cat_name(category);
+static bool vkgen_write_interface(VkGenContext* ctx, const VkGenInterfaceCat cat) {
+  const String catName = vkgen_interface_cat_name(cat);
   fmt_write(&ctx->out, "typedef struct VkInterface{} {\n", fmt_text(catName));
 
   dynarray_for_t(&ctx->interfaces, VkGenInterface, interface) {
-    if (interface->cat != category) {
+    if (interface->cat != cat) {
       continue;
     }
     const VkGenCommand* cmd = vkgen_command_get(ctx, interface->cmdIndex);
@@ -1255,6 +1255,25 @@ static bool vkgen_write_interface(VkGenContext* ctx, const VkGenInterfaceCat cat
 
   fmt_write(&ctx->out, "} VkInterface{};\n\n", fmt_text(catName));
   return true;
+}
+
+static void vkgen_write_interface_load_decl(VkGenContext* ctx, const VkGenInterfaceCat cat) {
+  const String catName = vkgen_interface_cat_name(cat);
+  fmt_write(&ctx->out, "VkResult vkLoad{}(", fmt_text(catName));
+  switch (cat) {
+  case VkGenInterfaceCat_Loader:
+    fmt_write(&ctx->out, "const DynLib*");
+    break;
+  case VkGenInterfaceCat_Instance:
+    fmt_write(&ctx->out, "VkInstance, const VkInterfaceLoader*");
+    break;
+  case VkGenInterfaceCat_Device:
+    fmt_write(&ctx->out, "VkDevice, const VkInterfaceInstance*");
+    break;
+  case VkGenInterfaceCat_Count:
+    break;
+  }
+  fmt_write(&ctx->out, ", VkInterface{}* out);\n\n", fmt_text(catName));
 }
 
 static void vkgen_write_prolog(VkGenContext* ctx) {
@@ -1309,24 +1328,12 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   fmt_write(&ctx->out, "\n");
 
   // Write interface declarations.
-  if (!vkgen_write_interface(ctx, VkGenInterfaceCat_Loader)) {
-    return false;
+  for (VkGenInterfaceCat cat = 0; cat != VkGenInterfaceCat_Count; ++cat) {
+    if (!vkgen_write_interface(ctx, cat)) {
+      return false;
+    }
+    vkgen_write_interface_load_decl(ctx, cat);
   }
-  fmt_write(&ctx->out, "VkResult vkLoadLoader(const DynLib*, VkInterfaceLoader* out);\n\n");
-  if (!vkgen_write_interface(ctx, VkGenInterfaceCat_Instance)) {
-    return false;
-  }
-  fmt_write(
-      &ctx->out,
-      "VkResult vkLoadInstance("
-      "VkInstance, const VkInterfaceLoader*, VkInterfaceInstance* out);\n\n");
-  if (!vkgen_write_interface(ctx, VkGenInterfaceCat_Device)) {
-    return false;
-  }
-  fmt_write(
-      &ctx->out,
-      "VkResult vkLoadDevice("
-      "VkDevice, const VkInterfaceInstance*, VkInterfaceDevice* out);\n\n");
 
   fmt_write(&ctx->out, "// clang-format on\n");
   return true;
