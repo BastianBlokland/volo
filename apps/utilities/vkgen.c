@@ -287,7 +287,7 @@ typedef struct {
 } VkGenFormat;
 
 typedef enum {
-  VkGenInterfaceCat_loader,
+  VkGenInterfaceCat_Loader,
   VkGenInterfaceCat_Instance,
   VkGenInterfaceCat_Device,
 
@@ -784,7 +784,7 @@ static void vkgen_collect_required_interfaces(
       } else if (vkgen_is_child(ctx, firstType, instTypeHash)) {
         cat = VkGenInterfaceCat_Instance;
       } else {
-        cat = VkGenInterfaceCat_loader;
+        cat = VkGenInterfaceCat_Loader;
       }
 
       *dynarray_push_t(&ctx->interfaces, VkGenInterface) = (VkGenInterface){
@@ -1202,7 +1202,7 @@ static bool vkgen_write_format_info_def(VkGenContext* ctx) {
 
 static String vkgen_interface_cat_name(const VkGenInterfaceCat cat) {
   switch (cat) {
-  case VkGenInterfaceCat_loader:
+  case VkGenInterfaceCat_Loader:
     return string_lit("Loader");
   case VkGenInterfaceCat_Instance:
     return string_lit("Instance");
@@ -1309,11 +1309,24 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   fmt_write(&ctx->out, "\n");
 
   // Write interface declarations.
-  for (VkGenInterfaceCat cat = 0; cat != VkGenInterfaceCat_Count; ++cat) {
-    if (!vkgen_write_interface(ctx, cat)) {
-      return false;
-    }
+  if (!vkgen_write_interface(ctx, VkGenInterfaceCat_Loader)) {
+    return false;
   }
+  fmt_write(&ctx->out, "VkResult vkLoadLoader(const DynLib*, VkInterfaceLoader* out);\n\n");
+  if (!vkgen_write_interface(ctx, VkGenInterfaceCat_Instance)) {
+    return false;
+  }
+  fmt_write(
+      &ctx->out,
+      "VkResult vkLoadInstance("
+      "VkInstance, const VkInterfaceLoader*, VkInterfaceInstance* out);\n\n");
+  if (!vkgen_write_interface(ctx, VkGenInterfaceCat_Device)) {
+    return false;
+  }
+  fmt_write(
+      &ctx->out,
+      "VkResult vkLoadDevice("
+      "VkDevice, const VkInterfaceInstance*, VkInterfaceDevice* out);\n\n");
 
   fmt_write(&ctx->out, "// clang-format on\n");
   return true;

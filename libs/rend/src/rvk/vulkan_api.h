@@ -3190,6 +3190,8 @@ typedef struct VkInterfaceLoader {
   VkResult (SYS_DECL* enumerateInstanceVersion)(u32* pApiVersion);
 } VkInterfaceLoader;
 
+VkResult vkLoadLoader(const DynLib*, VkInterfaceLoader* out);
+
 typedef struct VkInterfaceInstance {
   void (SYS_DECL* destroyInstance)(VkInstance instance, const VkAllocationCallbacks* pAllocator);
   VkResult (SYS_DECL* enumeratePhysicalDevices)(VkInstance instance, u32* pPhysicalDeviceCount, VkPhysicalDevice* pPhysicalDevices);
@@ -3237,6 +3239,8 @@ typedef struct VkInterfaceInstance {
   VkResult (SYS_DECL* createWin32SurfaceKHR)(VkInstance instance, const VkWin32SurfaceCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface);
   VkBool32 (SYS_DECL* getPhysicalDeviceWin32PresentationSupportKHR)(VkPhysicalDevice physicalDevice, u32 queueFamilyIndex);
 } VkInterfaceInstance;
+
+VkResult vkLoadInstance(VkInstance, const VkInterfaceLoader*, VkInterfaceInstance* out);
 
 typedef struct VkInterfaceDevice {
   void (SYS_DECL* destroyDevice)(VkDevice device, const VkAllocationCallbacks* pAllocator);
@@ -3384,5 +3388,7 @@ typedef struct VkInterfaceDevice {
   VkResult (SYS_DECL* getDeviceGroupSurfacePresentModesKHR)(VkDevice device, VkSurfaceKHR surface, VkDeviceGroupPresentModeFlagsKHR* pModes);
   VkResult (SYS_DECL* acquireNextImage2KHR)(VkDevice device, const VkAcquireNextImageInfoKHR* pAcquireInfo, u32* pImageIndex);
 } VkInterfaceDevice;
+
+VkResult vkLoadDevice(VkDevice, const VkInterfaceInstance*, VkInterfaceDevice* out);
 
 // clang-format on
