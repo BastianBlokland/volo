@@ -1137,7 +1137,7 @@ static void vkgen_write_stringify_def(VkGenContext* ctx, const VkGenStringify* e
   VkGenEnumEntries enumEntries = vkgen_enum_entries_find(ctx, string_hash(entry->typeName));
 
   fmt_write(&ctx->out, "String {}(const {} v) {\n", fmt_text(funcName), fmt_text(entry->typeName));
-  fmt_write(&ctx->out, "  switch(v) {\n");
+  fmt_write(&ctx->out, "  switch (v) {\n");
   for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
     String val = itr->name;
     if (string_starts_with(val, entry->entryPrefix)) {
@@ -1162,7 +1162,7 @@ static bool vkgen_write_format_info_def(VkGenContext* ctx) {
 
   // Write vkFormatByteSize definition.
   fmt_write(&ctx->out, "u32 vkFormatByteSize(const VkFormat f) {\n");
-  fmt_write(&ctx->out, "  switch(f) {\n");
+  fmt_write(&ctx->out, "  switch (f) {\n");
   for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
     const VkGenFormat* info = vkgen_format_find(ctx, string_hash(itr->name));
     if (info) {
@@ -1174,7 +1174,7 @@ static bool vkgen_write_format_info_def(VkGenContext* ctx) {
 
   // Write vkFormatComponents definition.
   fmt_write(&ctx->out, "u32 vkFormatComponents(const VkFormat f) {\n");
-  fmt_write(&ctx->out, "  switch(f) {\n");
+  fmt_write(&ctx->out, "  switch (f) {\n");
   for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
     const VkGenFormat* info = vkgen_format_find(ctx, string_hash(itr->name));
     if (info) {
@@ -1186,7 +1186,7 @@ static bool vkgen_write_format_info_def(VkGenContext* ctx) {
 
   // Write vkFormatCompressed4x4 definition.
   fmt_write(&ctx->out, "bool vkFormatCompressed4x4(const VkFormat f) {\n");
-  fmt_write(&ctx->out, "  switch(f) {\n");
+  fmt_write(&ctx->out, "  switch (f) {\n");
   for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
     const VkGenFormat* info = vkgen_format_find(ctx, string_hash(itr->name));
     if (info && info->compressed4x4) {
@@ -1276,6 +1276,80 @@ static void vkgen_write_interface_load_decl(VkGenContext* ctx, const VkGenInterf
   fmt_write(&ctx->out, ", VkInterface{}* out);\n\n", fmt_text(catName));
 }
 
+static void vkgen_write_interface_load_def(VkGenContext* ctx, const VkGenInterfaceCat cat) {
+  const String catName = vkgen_interface_cat_name(cat);
+  fmt_write(&ctx->out, "VkResult vkLoad{}(", fmt_text(catName));
+  switch (cat) {
+  case VkGenInterfaceCat_Loader:
+    fmt_write(&ctx->out, "const DynLib* lib");
+    break;
+  case VkGenInterfaceCat_Instance:
+    fmt_write(&ctx->out, "VkInstance inst, const VkInterfaceLoader* src");
+    break;
+  case VkGenInterfaceCat_Device:
+    fmt_write(&ctx->out, "VkDevice dev, const VkInterfaceInstance* src");
+    break;
+  case VkGenInterfaceCat_Count:
+    break;
+  }
+  fmt_write(&ctx->out, ", VkInterface{}* out) {\n", fmt_text(catName));
+
+  String loadFunc, dep;
+  switch (cat) {
+  case VkGenInterfaceCat_Loader:
+    loadFunc = string_lit("out->getInstanceProcAddr");
+    dep      = string_lit("null");
+    break;
+  case VkGenInterfaceCat_Instance:
+    loadFunc = string_lit("src->getInstanceProcAddr");
+    dep      = string_lit("inst");
+    break;
+  case VkGenInterfaceCat_Device:
+    loadFunc = string_lit("src->getDeviceProcAddr");
+    dep      = string_lit("dev");
+    break;
+  case VkGenInterfaceCat_Count:
+    break;
+  }
+
+  if (cat == VkGenInterfaceCat_Loader) {
+    fmt_write(
+        &ctx->out,
+        "  {} = dynlib_symbol(lib, string_lit(\"vkGetInstanceProcAddr\"));\n",
+        fmt_text(loadFunc));
+    fmt_write(&ctx->out, "  if (!{}) {\n", fmt_text(loadFunc));
+    fmt_write(&ctx->out, "    return VK_ERROR_INITIALIZATION_FAILED;\n");
+    fmt_write(&ctx->out, "  }\n");
+  }
+
+  const StringHash instGetProcAddrHash = string_hash_lit("vkGetInstanceProcAddr");
+  dynarray_for_t(&ctx->interfaces, VkGenInterface, interface) {
+    if (interface->cat != cat) {
+      continue;
+    }
+    const VkGenCommand* cmd = vkgen_command_get(ctx, interface->cmdIndex);
+    if (cmd->key == instGetProcAddrHash) {
+      continue; // Needs special handling to load directly from the library.
+    }
+    String varName = cmd->name;
+    if (string_starts_with(varName, string_lit("vk")) && varName.size >= 3) {
+      varName = fmt_write_scratch(
+          "{}{}",
+          fmt_char(ascii_to_lower(*string_at(varName, 2))),
+          fmt_text(string_consume(varName, 3)));
+    }
+    fmt_write(
+        &ctx->out,
+        "  out->{} = (Symbol){}({}, \"{}\");\n",
+        fmt_text(varName),
+        fmt_text(loadFunc),
+        fmt_text(dep),
+        fmt_text(cmd->name));
+  }
+
+  fmt_write(&ctx->out, "  return VK_SUCCESS;\n}\n\n", fmt_text(catName));
+}
+
 static void vkgen_write_prolog(VkGenContext* ctx) {
   fmt_write(
       &ctx->out,
@@ -1343,8 +1417,9 @@ static bool vkgen_write_impl(VkGenContext* ctx) {
   fmt_write(&ctx->out, "// clang-format off\n");
   vkgen_write_prolog(ctx);
 
-  fmt_write(&ctx->out, "#include \"{}.h\"\n", fmt_text(ctx->outName));
-  fmt_write(&ctx->out, "#include \"core_sentinel.h\"\n\n");
+  fmt_write(&ctx->out, "#include \"{}.h\"\n\n", fmt_text(ctx->outName));
+  fmt_write(&ctx->out, "#include \"core_dynlib.h\"\n");
+  fmt_write(&ctx->out, "#include \"core_sentinel.h\"\n");
   fmt_write(&ctx->out, "#include \"core_string.h\"\n\n");
 
   // Write stringify definitions.
@@ -1353,6 +1428,11 @@ static bool vkgen_write_impl(VkGenContext* ctx) {
   // Write format-info definitions.
   if (!vkgen_write_format_info_def(ctx)) {
     return false;
+  }
+
+  // Write interface definitions.
+  for (VkGenInterfaceCat cat = 0; cat != VkGenInterfaceCat_Count; ++cat) {
+    vkgen_write_interface_load_def(ctx, cat);
   }
 
   fmt_write(&ctx->out, "// clang-format on\n");
