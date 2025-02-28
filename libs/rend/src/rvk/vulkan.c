@@ -27,14 +27,14 @@ void* rvk_func_load_device_internal(VkDevice inst, const String api) {
   return (void*)res;
 }
 
-void rvk_check(const String api, const VkResult result) {
+void rvk_check(const String func, const VkResult result) {
   if (LIKELY(result == VK_SUCCESS)) {
     return;
   }
   if (result == VK_INCOMPLETE) {
-    log_w("Vulkan {}: Result incomplete", log_param("api", fmt_text(api)));
+    log_w("Vulkan {}: Result incomplete", log_param("func", fmt_text(func)));
     return;
   }
   diag_crash_msg(
-      "Vulkan {}: [{}] {}", fmt_text(api), fmt_int(result), fmt_text(vkResultStr(result)));
+      "Vulkan {}: [{}] {}", fmt_text(func), fmt_int(result), fmt_text(vkResultStr(result)));
 }
