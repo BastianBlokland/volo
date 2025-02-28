@@ -1,10 +1,14 @@
 #include "core_array.h"
+#include "core_diag.h"
+#include "core_dynlib.h"
 #include "core_path.h"
 #include "gap_native.h"
 #include "log_logger.h"
 
 #include "lib_internal.h"
 #include "mem_internal.h"
+
+#define rvk_lib_vulkan_names_max 4
 
 static const VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
     VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
@@ -95,6 +99,17 @@ static VkInstance rvk_instance_create(VkAllocationCallbacks* vkAlloc, const RvkL
   return result;
 }
 
+static u32 rvk_lib_names(String outPaths[PARAM_ARRAY_SIZE(rvk_lib_vulkan_names_max)]) {
+  u32 count = 0;
+#ifdef VOLO_WIN32
+  outPaths[count++] = string_lit("vulkan-1.dll");
+#elif VOLO_LINUX
+  outPaths[count++] = string_lit("libvulkan.so.1");
+  outPaths[count++] = string_lit("libvulkan.so");
+#endif
+  return count;
+}
+
 RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
   (void)set;
 
@@ -103,6 +118,15 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
   *lib = (RvkLib){
       .vkAlloc = rvk_mem_allocator(g_allocHeap),
   };
+
+  String    libNames[rvk_lib_vulkan_names_max];
+  const u32 libNameCount = rvk_lib_names(libNames);
+
+  DynLibResult loadRes = dynlib_load_first(g_allocHeap, libNames, libNameCount, &lib->vulkanLib);
+  if (loadRes != DynLibResult_Success) {
+    const String err = dynlib_result_str(loadRes);
+    diag_crash_msg("Failed to load Vulkan library: {}", fmt_text(err));
+  }
 
   const bool validationDesired = (set->flags & RendGlobalFlags_Validation) != 0;
   if (validationDesired && rvk_instance_layer_supported("VK_LAYER_KHRONOS_validation")) {
@@ -126,6 +150,8 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
 void rvk_lib_destroy(RvkLib* lib) {
 
   vkDestroyInstance(lib->vkInst, &lib->vkAlloc);
+
+  dynlib_destroy(lib->vulkanLib);
   alloc_free_t(g_allocHeap, lib);
 
   log_d("Vulkan library destroyed");
