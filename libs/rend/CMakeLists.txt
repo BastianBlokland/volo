@@ -25,6 +25,7 @@ add_library(lib_rend STATIC
   src/rvk/graphic.c
   src/rvk/image.c
   src/rvk/job.c
+  src/rvk/lib.c
   src/rvk/mem_alloc.c
   src/rvk/mem_pool.c
   src/rvk/mesh.c
