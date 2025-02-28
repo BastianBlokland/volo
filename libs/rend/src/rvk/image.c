@@ -90,11 +90,9 @@ static VkPipelineStageFlags rvk_image_vkpipelinestage(const RvkImagePhase phase)
   switch (phase) {
   case RvkImagePhase_Undefined:
     /**
-     * For images in an undefined phase we have to assume they are used in any part of the pipeline.
-     * TODO: Investigate the performance impact of this and consider adding additional bookkeeping
-     * to narrow this down.
+     * For images in an undefined phase we assume they are not used in this queue submit.
      */
-    return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+    return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
   case RvkImagePhase_TransferSource:
   case RvkImagePhase_TransferDest:
     return VK_PIPELINE_STAGE_TRANSFER_BIT;
