@@ -50,8 +50,8 @@ static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
   return result;
 }
 
-RvkCanvas* rvk_canvas_create(RvkDevice* dev, const GapWindowComp* window) {
-  RvkSwapchain*  swapchain  = rvk_swapchain_create(dev, window);
+RvkCanvas* rvk_canvas_create(RvkLib* lib, RvkDevice* dev, const GapWindowComp* window) {
+  RvkSwapchain*  swapchain  = rvk_swapchain_create(lib, dev, window);
   RvkAttachPool* attachPool = rvk_attach_pool_create(dev);
   RvkCanvas*     canvas     = alloc_alloc_t(g_allocHeap, RvkCanvas);
 

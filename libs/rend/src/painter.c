@@ -978,7 +978,8 @@ ecs_system_define(RendPainterCreateSys) {
     if (gap_window_events(win) & GapWindowEvents_Initializing) {
       continue;
     }
-    ecs_world_add_t(world, entity, RendPainterComp, .canvas = rvk_canvas_create(plat->device, win));
+    ecs_world_add_t(
+        world, entity, RendPainterComp, .canvas = rvk_canvas_create(plat->lib, plat->device, win));
 
     if (!ecs_world_has_t(world, entity, RendSettingsComp)) {
       RendSettingsComp* settings = ecs_world_add_t(world, entity, RendSettingsComp);

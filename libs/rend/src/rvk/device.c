@@ -1,26 +1,18 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
-#include "core_path.h"
-#include "gap_native.h"
 #include "log_logger.h"
 
 #include "debug_internal.h"
 #include "desc_internal.h"
 #include "device_internal.h"
+#include "lib_internal.h"
 #include "mem_internal.h"
 #include "pcache_internal.h"
 #include "repository_internal.h"
 #include "sampler_internal.h"
 #include "transfer_internal.h"
 
-static const String g_validationLayer = string_static("VK_LAYER_KHRONOS_validation");
-static const VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
-    VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
-#if VK_EXT_VALIDATION_FEATURES_SPEC_VERSION >= 4
-    VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
-#endif
-};
 static const String g_requiredExts[] = {
     string_static("VK_KHR_swapchain"),
     string_static("VK_KHR_16bit_storage"),
@@ -33,23 +25,9 @@ static const String g_optionalExts[] = {
      */
     string_static("VK_KHR_maintenance4"),
 };
-static const String g_debugExts[] = {
-    string_static("VK_EXT_debug_utils"),
-};
 
 MAYBE_UNUSED static const bool g_rend_enable_vk_present_id   = true;
 MAYBE_UNUSED static const bool g_rend_enable_vk_present_wait = true;
-
-static VkApplicationInfo rvk_instance_app_info(void) {
-  return (VkApplicationInfo){
-      .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-      .pApplicationName   = path_stem(g_pathExecutable).ptr,
-      .applicationVersion = VK_MAKE_API_VERSION(0, 0, 1, 0),
-      .pEngineName        = "volo",
-      .engineVersion      = VK_MAKE_API_VERSION(0, 0, 1, 0),
-      .apiVersion         = VK_MAKE_API_VERSION(0, 1, 1, 0),
-  };
-}
 
 typedef struct {
   VkExtensionProperties* values;
@@ -82,86 +60,6 @@ static bool rvk_device_has_ext(RendVkExts availableExts, String ext) {
     }
   }
   return false;
-}
-
-/**
- * Check if the given instance layer is supported.
- */
-static bool rvk_instance_layer_supported(const String layer) {
-  VkLayerProperties availableLayers[32];
-  u32               availableLayerCount = array_elems(availableLayers);
-  rvk_call(vkEnumerateInstanceLayerProperties, &availableLayerCount, availableLayers);
-
-  for (u32 i = 0; i != availableLayerCount; ++i) {
-    if (string_eq(layer, string_from_null_term(availableLayers[i].layerName))) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Retrieve a list of required instance layers.
- */
-static u32 rvk_instance_required_layers(const char** output, const RvkDeviceFlags flags) {
-  u32 i = 0;
-  if (flags & RvkDeviceFlags_Validation) {
-    output[i++] = g_validationLayer.ptr;
-  }
-  return i;
-}
-
-/**
- * Retrieve a list of required instance extensions.
- */
-static u32 rvk_instance_required_extensions(const char** output, const RvkDeviceFlags flags) {
-  u32 i       = 0;
-  output[i++] = "VK_KHR_surface";
-  switch (gap_native_wm()) {
-  case GapNativeWm_Xcb:
-    output[i++] = "VK_KHR_xcb_surface";
-    break;
-  case GapNativeWm_Win32:
-    output[i++] = "VK_KHR_win32_surface";
-    break;
-  }
-  if (flags & (RvkDeviceFlags_Validation | RvkDeviceFlags_Debug)) {
-    array_for_t(g_debugExts, String, ext) { output[i++] = ext->ptr; }
-  }
-  return i;
-}
-
-static VkInstance rvk_instance_create(VkAllocationCallbacks* vkAlloc, const RvkDeviceFlags flags) {
-  const VkApplicationInfo appInfo = rvk_instance_app_info();
-
-  const char* layerNames[16];
-  const u32   layerCount = rvk_instance_required_layers(layerNames, flags);
-
-  const char* extensionNames[16];
-  const u32   extensionCount = rvk_instance_required_extensions(extensionNames, flags);
-
-  VkInstanceCreateInfo createInfo = {
-      .sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-      .pApplicationInfo        = &appInfo,
-      .enabledExtensionCount   = extensionCount,
-      .ppEnabledExtensionNames = extensionNames,
-      .enabledLayerCount       = layerCount,
-      .ppEnabledLayerNames     = layerNames,
-  };
-
-  VkValidationFeaturesEXT validationFeatures;
-  if (flags & RvkDeviceFlags_Validation) {
-    validationFeatures = (VkValidationFeaturesEXT){
-        .sType                         = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
-        .pEnabledValidationFeatures    = g_validationEnabledFeatures,
-        .enabledValidationFeatureCount = array_elems(g_validationEnabledFeatures),
-    };
-    createInfo.pNext = &validationFeatures;
-  }
-
-  VkInstance result;
-  rvk_call(vkCreateInstance, &createInfo, vkAlloc, &result);
-  return result;
 }
 
 static i32 rvk_device_type_score_value(const VkPhysicalDeviceType vkDevType) {
@@ -400,28 +298,15 @@ static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
   diag_crash_msg("No suitable depth-format found");
 }
 
-RvkDevice* rvk_device_create(const RendSettingsGlobalComp* settingsGlobal) {
+RvkDevice* rvk_device_create(RvkLib* lib, const RendSettingsGlobalComp* settingsGlobal) {
   RvkDevice* dev = alloc_alloc_t(g_allocHeap, RvkDevice);
 
   *dev = (RvkDevice){
-      .vkAlloc          = rvk_mem_allocator(g_allocHeap),
+      .vkAlloc          = lib->vkAlloc,
       .queueSubmitMutex = thread_mutex_create(g_allocHeap),
   };
 
-  const bool validationDesired = (settingsGlobal->flags & RendGlobalFlags_Validation) != 0;
-  if (validationDesired && rvk_instance_layer_supported(g_validationLayer)) {
-    dev->flags |= RvkDeviceFlags_Validation;
-    dev->flags |= RvkDeviceFlags_Debug; // Validation will also enable debug features.
-  }
-  const bool debugDesired = (settingsGlobal->flags & RendGlobalFlags_DebugGpu) != 0;
-  if (debugDesired) {
-    // TODO: Support enabling this optionally based on instance support, at the moment creating the
-    // instance would fail if unsupported.
-    dev->flags |= RvkDeviceFlags_Debug;
-  }
-
-  dev->vkInst    = rvk_instance_create(&dev->vkAlloc, dev->flags);
-  dev->vkPhysDev = rvk_device_pick_physical_device(dev->vkInst);
+  dev->vkPhysDev = rvk_device_pick_physical_device(lib->vkInst);
 
   dev->graphicsQueueIndex = rvk_device_pick_graphics_queue(dev->vkPhysDev);
   dev->transferQueueIndex = rvk_device_pick_transfer_queue(dev->vkPhysDev);
@@ -438,10 +323,10 @@ RvkDevice* rvk_device_create(const RendSettingsGlobalComp* settingsGlobal) {
   dev->depthFormat              = rvk_device_pick_depthformat(dev);
   dev->preferredSwapchainFormat = VK_FORMAT_B8G8R8A8_SRGB;
 
-  if (dev->flags & RvkDeviceFlags_Debug) {
+  if (lib->flags & RvkLibFlags_Debug) {
     const bool          verbose    = (settingsGlobal->flags & RendGlobalFlags_Verbose) != 0;
     const RvkDebugFlags debugFlags = verbose ? RvkDebugFlags_Verbose : 0;
-    dev->debug = rvk_debug_create(dev->vkInst, dev->vkDev, &dev->vkAlloc, debugFlags);
+    dev->debug = rvk_debug_create(lib->vkInst, dev->vkDev, &dev->vkAlloc, debugFlags);
     if (dev->vkTransferQueue) {
       rvk_debug_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics");
       rvk_debug_name_queue(dev->debug, dev->vkTransferQueue, "transfer");
@@ -463,7 +348,6 @@ RvkDevice* rvk_device_create(const RendSettingsGlobalComp* settingsGlobal) {
       log_param("graphics-queue-idx", fmt_int(dev->graphicsQueueIndex)),
       log_param("transfer-queue-idx", fmt_int(dev->transferQueueIndex)),
       log_param("depth-format", fmt_text(vkFormatStr(dev->depthFormat))),
-      log_param("validation-enabled", fmt_bool(dev->flags & RvkDeviceFlags_Validation)),
       log_param("present-id-enabled", fmt_bool(dev->flags & RvkDeviceFlags_SupportPresentId)),
       log_param("present-wait-enabled", fmt_bool(dev->flags & RvkDeviceFlags_SupportPresentWait)));
 
@@ -488,7 +372,6 @@ void rvk_device_destroy(RvkDevice* dev) {
     rvk_debug_destroy(dev->debug);
   }
 
-  vkDestroyInstance(dev->vkInst, &dev->vkAlloc);
   thread_mutex_destroy(dev->queueSubmitMutex);
   alloc_free_t(g_allocHeap, dev);
 

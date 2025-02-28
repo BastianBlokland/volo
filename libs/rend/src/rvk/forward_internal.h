@@ -21,6 +21,7 @@ typedef struct sRvkDevice         RvkDevice;
 typedef struct sRvkGraphic        RvkGraphic;
 typedef struct sRvkImage          RvkImage;
 typedef struct sRvkJob            RvkJob;
+typedef struct sRvkLib            RvkLib;
 typedef struct sRvkMemPool        RvkMemPool;
 typedef struct sRvkMesh           RvkMesh;
 typedef struct sRvkPass           RvkPass;

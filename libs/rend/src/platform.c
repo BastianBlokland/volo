@@ -9,6 +9,7 @@
 #include "platform_internal.h"
 #include "reset_internal.h"
 #include "rvk/device_internal.h"
+#include "rvk/lib_internal.h"
 #include "rvk/pass_internal.h"
 
 // clang-format off
@@ -118,10 +119,11 @@ static void destruct_platform_comp(void* data) {
     rvk_pass_destroy(comp->passes[i]);
   }
   rvk_device_destroy(comp->device);
+  rvk_lib_destroy(comp->lib);
 }
 
 static void destruct_platform_intern_comp(void* data) {
-  RendPlatformComp* comp = data;
+  RendPlatformInternComp* comp = data;
   /**
    * To aid the in proper teardown 'RendPlatformInternComp' is ordered to be destroyed before
    * any other render resources. This gives us a convenient place to wait for the gpu to be finished
@@ -160,7 +162,8 @@ ecs_system_define(RendPlatformUpdateSys) {
 
     const RendSettingsGlobalComp* settings = rend_global_settings(world);
     RendPlatformComp*             plat     = ecs_world_add_t(world, global, RendPlatformComp);
-    plat->device                           = rvk_device_create(settings);
+    plat->lib                              = rvk_lib_create(settings);
+    plat->device                           = rvk_device_create(plat->lib, settings);
     plat->builderContainer                 = rend_builder_container_create(g_allocHeap);
 
     for (AssetGraphicPass i = 0; i != AssetGraphicPass_Count; ++i) {

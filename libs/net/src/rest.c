@@ -229,10 +229,12 @@ static void rest_worker_thread(void* data) {
       con = null;
     }
     thread_mutex_lock(rest->workerMutex);
-    if (con) {
-      thread_cond_wait_timeout(rest->workerWakeCondition, rest->workerMutex, time_seconds(10));
-    } else {
-      thread_cond_wait(rest->workerWakeCondition, rest->workerMutex);
+    if (!rest->workerShutdown) {
+      if (con) {
+        thread_cond_wait_timeout(rest->workerWakeCondition, rest->workerMutex, time_seconds(10));
+      } else {
+        thread_cond_wait(rest->workerWakeCondition, rest->workerMutex);
+      }
     }
     thread_mutex_unlock(rest->workerMutex);
   }
