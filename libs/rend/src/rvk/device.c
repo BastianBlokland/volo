@@ -306,13 +306,6 @@ RvkDevice* rvk_device_create(RvkLib* lib, const RendSettingsGlobalComp* settings
       .queueSubmitMutex = thread_mutex_create(g_allocHeap),
   };
 
-  if (lib->flags & RvkLibFlags_Validation) {
-    dev->flags |= RvkDeviceFlags_Validation;
-  }
-  if (lib->flags & RvkLibFlags_Debug) {
-    dev->flags |= RvkDeviceFlags_Debug;
-  }
-
   dev->vkInst    = lib->vkInst;
   dev->vkPhysDev = rvk_device_pick_physical_device(dev->vkInst);
 
@@ -331,7 +324,7 @@ RvkDevice* rvk_device_create(RvkLib* lib, const RendSettingsGlobalComp* settings
   dev->depthFormat              = rvk_device_pick_depthformat(dev);
   dev->preferredSwapchainFormat = VK_FORMAT_B8G8R8A8_SRGB;
 
-  if (dev->flags & RvkDeviceFlags_Debug) {
+  if (lib->flags & RvkLibFlags_Debug) {
     const bool          verbose    = (settingsGlobal->flags & RendGlobalFlags_Verbose) != 0;
     const RvkDebugFlags debugFlags = verbose ? RvkDebugFlags_Verbose : 0;
     dev->debug = rvk_debug_create(dev->vkInst, dev->vkDev, &dev->vkAlloc, debugFlags);
@@ -356,7 +349,6 @@ RvkDevice* rvk_device_create(RvkLib* lib, const RendSettingsGlobalComp* settings
       log_param("graphics-queue-idx", fmt_int(dev->graphicsQueueIndex)),
       log_param("transfer-queue-idx", fmt_int(dev->transferQueueIndex)),
       log_param("depth-format", fmt_text(vkFormatStr(dev->depthFormat))),
-      log_param("validation-enabled", fmt_bool(dev->flags & RvkDeviceFlags_Validation)),
       log_param("present-id-enabled", fmt_bool(dev->flags & RvkDeviceFlags_SupportPresentId)),
       log_param("present-wait-enabled", fmt_bool(dev->flags & RvkDeviceFlags_SupportPresentWait)));
 

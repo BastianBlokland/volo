@@ -115,7 +115,10 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
 
   lib->vkInst = rvk_instance_create(&lib->vkAlloc, lib->flags);
 
-  log_i("Vulkan library created");
+  log_i(
+      "Vulkan library created",
+      log_param("validation", fmt_bool(lib->flags & RvkLibFlags_Validation)),
+      log_param("debug", fmt_bool(lib->flags & RvkLibFlags_Debug)));
 
   return lib;
 }
