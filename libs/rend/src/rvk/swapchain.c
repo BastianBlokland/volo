@@ -8,6 +8,7 @@
 #include "debug_internal.h"
 #include "device_internal.h"
 #include "image_internal.h"
+#include "lib_internal.h"
 #include "swapchain_internal.h"
 
 #define swapchain_images_max 5
@@ -17,6 +18,7 @@ typedef enum {
 } RvkSwapchainFlags;
 
 struct sRvkSwapchain {
+  RvkLib*            lib;
   RvkDevice*         dev;
   VkSurfaceKHR       vkSurf;
   VkSurfaceFormatKHR vkSurfFormat;
@@ -51,7 +53,7 @@ static RvkSize rvk_surface_clamp_size(RvkSize size, const VkSurfaceCapabilitiesK
   return size;
 }
 
-static VkSurfaceKHR rvk_surface_create(RvkDevice* dev, const GapWindowComp* window) {
+static VkSurfaceKHR rvk_surface_create(RvkLib* lib, const GapWindowComp* window) {
   VkSurfaceKHR result;
 #if defined(VOLO_LINUX)
   const VkXcbSurfaceCreateInfoKHR createInfo = {
@@ -59,14 +61,14 @@ static VkSurfaceKHR rvk_surface_create(RvkDevice* dev, const GapWindowComp* wind
       .connection = gap_native_app_handle(window),
       .window     = gap_native_window_handle(window),
   };
-  rvk_call(vkCreateXcbSurfaceKHR, dev->vkInst, &createInfo, &dev->vkAlloc, &result);
+  rvk_call(vkCreateXcbSurfaceKHR, lib->vkInst, &createInfo, &lib->vkAlloc, &result);
 #elif defined(VOLO_WIN32)
   const VkWin32SurfaceCreateInfoKHR createInfo = {
       .sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
       .hinstance = gap_native_app_handle(window),
       .hwnd      = gap_native_window_handle(window),
   };
-  rvk_call(vkCreateWin32SurfaceKHR, dev->vkInst, &createInfo, &dev->vkAlloc, &result);
+  rvk_call(vkCreateWin32SurfaceKHR, lib->vkInst, &createInfo, &lib->vkAlloc, &result);
 #endif
   return result;
 }
@@ -234,11 +236,12 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
   return true;
 }
 
-RvkSwapchain* rvk_swapchain_create(RvkDevice* dev, const GapWindowComp* window) {
-  VkSurfaceKHR  vkSurf    = rvk_surface_create(dev, window);
+RvkSwapchain* rvk_swapchain_create(RvkLib* lib, RvkDevice* dev, const GapWindowComp* window) {
+  VkSurfaceKHR  vkSurf    = rvk_surface_create(lib, window);
   RvkSwapchain* swapchain = alloc_alloc_t(g_allocHeap, RvkSwapchain);
 
   *swapchain = (RvkSwapchain){
+      .lib          = lib,
       .dev          = dev,
       .vkSurf       = vkSurf,
       .vkSurfFormat = rvk_pick_surface_format(dev, vkSurf),
@@ -271,7 +274,7 @@ void rvk_swapchain_destroy(RvkSwapchain* swapchain) {
     vkDestroySwapchainKHR(swapchain->dev->vkDev, swapchain->vkSwapchain, &swapchain->dev->vkAlloc);
   }
 
-  vkDestroySurfaceKHR(swapchain->dev->vkInst, swapchain->vkSurf, &swapchain->dev->vkAlloc);
+  vkDestroySurfaceKHR(swapchain->lib->vkInst, swapchain->vkSurf, &swapchain->dev->vkAlloc);
   alloc_free_t(g_allocHeap, swapchain);
 }
 

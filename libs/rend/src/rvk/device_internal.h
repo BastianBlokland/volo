@@ -18,7 +18,6 @@ typedef enum {
 typedef struct sRvkDevice {
   RvkDeviceFlags                   flags;
   RvkDebug*                        debug;
-  VkInstance                       vkInst;
   VkAllocationCallbacks            vkAlloc;
   VkPhysicalDevice                 vkPhysDev;
   VkPhysicalDeviceProperties       vkProperties;
