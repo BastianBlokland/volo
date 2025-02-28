@@ -17,6 +17,7 @@ typedef enum {
 
 typedef struct sRvkDevice {
   RvkDeviceFlags                   flags;
+  VkInterfaceDevice                api;
   RvkDebug*                        debug;
   VkAllocationCallbacks            vkAlloc;
   VkPhysicalDevice                 vkPhysDev;
@@ -38,7 +39,8 @@ typedef struct sRvkDevice {
 
 RvkDevice* rvk_device_create(RvkLib*, const RendSettingsGlobalComp*);
 void       rvk_device_destroy(RvkDevice*);
-bool       rvk_device_format_supported(const RvkDevice*, VkFormat, VkFormatFeatureFlags);
-String     rvk_device_name(const RvkDevice*);
-void       rvk_device_update(RvkDevice*);
-void       rvk_device_wait_idle(const RvkDevice*);
+
+bool   rvk_device_format_supported(const RvkLib*, const RvkDevice*, VkFormat, VkFormatFeatureFlags);
+String rvk_device_name(const RvkDevice*);
+void   rvk_device_update(RvkDevice*);
+void   rvk_device_wait_idle(const RvkDevice*);
