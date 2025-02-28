@@ -17,7 +17,7 @@
 /**
  * Call a Vulkan api and check its result.
  */
-#define rvk_call(_API_, _FUNC_, ...) rvk_check(string_lit(#_FUNC_), (_API_)->_FUNC_(__VA_ARGS__))
+#define rvk_call(_API_, _FUNC_, ...) rvk_check(string_lit(#_FUNC_), (_API_)._FUNC_(__VA_ARGS__))
 
 void* rvk_func_load_instance_internal(VkInstance, String api);
 void* rvk_func_load_device_internal(VkDevice, String api);

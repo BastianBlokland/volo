@@ -28,7 +28,7 @@ static VkApplicationInfo rvk_inst_app_info(void) {
 static bool rvk_inst_layer_supported(VkInterfaceLoader* loaderApi, const char* layer) {
   VkLayerProperties layers[64];
   u32               layerCount = array_elems(layers);
-  rvk_call(loaderApi, enumerateInstanceLayerProperties, &layerCount, layers);
+  rvk_call(*loaderApi, enumerateInstanceLayerProperties, &layerCount, layers);
 
   for (u32 i = 0; i != layerCount; ++i) {
     if (string_eq(string_from_null_term(layers[i].layerName), string_from_null_term(layer))) {
@@ -41,7 +41,7 @@ static bool rvk_inst_layer_supported(VkInterfaceLoader* loaderApi, const char* l
 static bool rvk_inst_extension_supported(VkInterfaceLoader* loaderApi, const char* ext) {
   VkExtensionProperties exts[128];
   u32                   extCount = array_elems(exts);
-  rvk_call(loaderApi, enumerateInstanceExtensionProperties, null /* layerName */, &extCount, exts);
+  rvk_call(*loaderApi, enumerateInstanceExtensionProperties, null /* layerName */, &extCount, exts);
 
   for (u32 i = 0; i != extCount; ++i) {
     if (string_eq(string_from_null_term(exts[i].extensionName), string_from_null_term(ext))) {
@@ -96,7 +96,7 @@ static VkInstance rvk_inst_create(
   }
 
   VkInstance result;
-  rvk_call(loaderApi, createInstance, &createInfo, vkAlloc, &result);
+  rvk_call(*loaderApi, createInstance, &createInfo, vkAlloc, &result);
   return result;
 }
 
