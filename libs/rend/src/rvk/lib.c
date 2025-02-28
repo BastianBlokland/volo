@@ -14,7 +14,7 @@ static const VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
     VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
 };
 
-static VkApplicationInfo rvk_instance_app_info(void) {
+static VkApplicationInfo rvk_inst_app_info(void) {
   return (VkApplicationInfo){
       .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
       .pApplicationName   = path_stem(g_pathExecutable).ptr,
@@ -25,10 +25,10 @@ static VkApplicationInfo rvk_instance_app_info(void) {
   };
 }
 
-static bool rvk_instance_layer_supported(const char* layer) {
+static bool rvk_inst_layer_supported(VkInterfaceLoader* loaderApi, const char* layer) {
   VkLayerProperties layers[64];
   u32               layerCount = array_elems(layers);
-  rvk_call(vkEnumerateInstanceLayerProperties, &layerCount, layers);
+  rvk_call(loaderApi, enumerateInstanceLayerProperties, &layerCount, layers);
 
   for (u32 i = 0; i != layerCount; ++i) {
     if (string_eq(string_from_null_term(layers[i].layerName), string_from_null_term(layer))) {
@@ -38,10 +38,10 @@ static bool rvk_instance_layer_supported(const char* layer) {
   return false;
 }
 
-static bool rvk_instance_extension_supported(const char* ext) {
+static bool rvk_inst_extension_supported(VkInterfaceLoader* loaderApi, const char* ext) {
   VkExtensionProperties exts[128];
   u32                   extCount = array_elems(exts);
-  rvk_call(vkEnumerateInstanceExtensionProperties, null /* layerName */, &extCount, exts);
+  rvk_call(loaderApi, enumerateInstanceExtensionProperties, null /* layerName */, &extCount, exts);
 
   for (u32 i = 0; i != extCount; ++i) {
     if (string_eq(string_from_null_term(exts[i].extensionName), string_from_null_term(ext))) {
@@ -51,8 +51,9 @@ static bool rvk_instance_extension_supported(const char* ext) {
   return false;
 }
 
-static VkInstance rvk_instance_create(VkAllocationCallbacks* vkAlloc, const RvkLibFlags flags) {
-  const VkApplicationInfo appInfo = rvk_instance_app_info();
+static VkInstance rvk_inst_create(
+    VkInterfaceLoader* loaderApi, VkAllocationCallbacks* vkAlloc, const RvkLibFlags flags) {
+  const VkApplicationInfo appInfo = rvk_inst_app_info();
 
   const char* layerNames[16];
   u32         layerCount = 0;
@@ -95,7 +96,7 @@ static VkInstance rvk_instance_create(VkAllocationCallbacks* vkAlloc, const RvkL
   }
 
   VkInstance result;
-  rvk_call(vkCreateInstance, &createInfo, vkAlloc, &result);
+  rvk_call(loaderApi, createInstance, &createInfo, vkAlloc, &result);
   return result;
 }
 
@@ -131,15 +132,16 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
   rvk_check(string_lit("vkLoadLoader"), vkLoadLoader(lib->vulkanLib, &loaderApi));
 
   const bool validationDesired = (set->flags & RendGlobalFlags_Validation) != 0;
-  if (validationDesired && rvk_instance_layer_supported("VK_LAYER_KHRONOS_validation")) {
+  if (validationDesired && rvk_inst_layer_supported(&loaderApi, "VK_LAYER_KHRONOS_validation")) {
     lib->flags |= RvkLibFlags_Validation;
   }
   const bool debugDesired = validationDesired || (set->flags & RendGlobalFlags_DebugGpu) != 0;
-  if (debugDesired && rvk_instance_extension_supported("VK_EXT_debug_utils")) {
+  if (debugDesired && rvk_inst_extension_supported(&loaderApi, "VK_EXT_debug_utils")) {
     lib->flags |= RvkLibFlags_Debug;
   }
 
-  lib->vkInst = rvk_instance_create(&lib->vkAlloc, lib->flags);
+  lib->vkInst = rvk_inst_create(&loaderApi, &lib->vkAlloc, lib->flags);
+  rvk_check(string_lit("vkLoadInstance"), vkLoadInstance(lib->vkInst, &loaderApi, &lib->api));
 
   log_i(
       "Vulkan library created",
@@ -151,7 +153,7 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
 
 void rvk_lib_destroy(RvkLib* lib) {
 
-  vkDestroyInstance(lib->vkInst, &lib->vkAlloc);
+  lib->api.destroyInstance(lib->vkInst, &lib->vkAlloc);
 
   dynlib_destroy(lib->vulkanLib);
   alloc_free_t(g_allocHeap, lib);

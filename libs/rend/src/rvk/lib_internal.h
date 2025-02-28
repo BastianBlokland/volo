@@ -9,6 +9,7 @@ typedef enum {
 
 typedef struct sRvkLib {
   RvkLibFlags           flags;
+  VkInterfaceInstance   api;
   DynLib*               vulkanLib;
   VkInstance            vkInst;
   VkAllocationCallbacks vkAlloc;
