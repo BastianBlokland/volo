@@ -127,6 +127,8 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
     const String err = dynlib_result_str(loadRes);
     diag_crash_msg("Failed to load Vulkan library: {}", fmt_text(err));
   }
+  VkInterfaceLoader loaderApi;
+  rvk_check(string_lit("vkLoadLoader"), vkLoadLoader(lib->vulkanLib, &loaderApi));
 
   const bool validationDesired = (set->flags & RendGlobalFlags_Validation) != 0;
   if (validationDesired && rvk_instance_layer_supported("VK_LAYER_KHRONOS_validation")) {
