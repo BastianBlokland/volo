@@ -1,9 +1,9 @@
 #pragma once
 #include "core_thread.h"
 #include "rend_settings.h"
+#include "vulkan_api.h"
 
 #include "forward_internal.h"
-#include "vulkan_internal.h"
 
 typedef enum {
   RvkDeviceFlags_SupportPipelineStatQuery = 1 << 0,

@@ -1,8 +1,8 @@
 #pragma once
 #include "core_time.h"
+#include "vulkan_api.h"
 
 #include "forward_internal.h"
-#include "vulkan_internal.h"
 
 /**
  * Identifier for a timestamp record.

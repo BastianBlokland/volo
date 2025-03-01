@@ -1,6 +1,7 @@
 #pragma once
+#include "vulkan_api.h"
+
 #include "forward_internal.h"
-#include "vulkan_internal.h"
 
 typedef enum {
   RvkSamplerFlags_None           = 0,

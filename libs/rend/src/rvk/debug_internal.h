@@ -1,8 +1,8 @@
 #pragma once
 #include "geo.h"
+#include "vulkan_api.h"
 
 #include "forward_internal.h"
-#include "vulkan_internal.h"
 
 typedef enum {
   RvkDebugFlags_None    = 0,

@@ -1,9 +1,9 @@
 #pragma once
 #include "gap_window.h"
 #include "rend_settings.h"
+#include "vulkan_api.h"
 
 #include "forward_internal.h"
-#include "vulkan_internal.h"
 
 typedef u32 RvkSwapchainIdx;
 
