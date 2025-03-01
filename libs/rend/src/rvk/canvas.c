@@ -73,10 +73,8 @@ RvkCanvas* rvk_canvas_create(RvkLib* lib, RvkDevice* dev, const GapWindowComp* w
     };
     mem_set(array_mem(frame->passFrames), 0xFF);
 
-    rvk_debug_name_semaphore(
-        dev->debug, frame->swapchainAvailable, "swapchainAvailable_{}", fmt_int(i));
-    rvk_debug_name_semaphore(
-        dev->debug, frame->swapchainPresent, "swapchainPresent_{}", fmt_int(i));
+    rvk_debug_name_semaphore(dev, frame->swapchainAvailable, "swapchainAvailable_{}", fmt_int(i));
+    rvk_debug_name_semaphore(dev, frame->swapchainPresent, "swapchainPresent_{}", fmt_int(i));
   }
 
   log_d(

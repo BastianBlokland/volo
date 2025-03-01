@@ -142,7 +142,7 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
     log_e("Non-fragment shader uses kill", log_param("shader", fmt_text(dbgName)));
   }
 
-  rvk_debug_name_shader(dev->debug, shader->vkModule, "{}", fmt_text(dbgName));
+  rvk_debug_name_shader(dev, shader->vkModule, "{}", fmt_text(dbgName));
 
   // Copy the specialization bindings.
   if (asset->specs.count) {

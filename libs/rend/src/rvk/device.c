@@ -1,6 +1,7 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_thread.h"
 #include "log_logger.h"
 
 #include "debug_internal.h"
@@ -318,12 +319,11 @@ RvkDevice* rvk_device_create(RvkLib* lib) {
   dev->preferredSwapchainFormat = VK_FORMAT_B8G8R8A8_SRGB;
 
   if (lib->flags & RvkLibFlags_Debug) {
-    dev->debug = rvk_debug_create(lib, dev);
     if (dev->vkTransferQueue) {
-      rvk_debug_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics");
-      rvk_debug_name_queue(dev->debug, dev->vkTransferQueue, "transfer");
+      rvk_debug_name_queue(dev, dev->vkGraphicsQueue, "graphics");
+      rvk_debug_name_queue(dev, dev->vkTransferQueue, "transfer");
     } else {
-      rvk_debug_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics_and_transfer");
+      rvk_debug_name_queue(dev, dev->vkGraphicsQueue, "graphics_and_transfer");
     }
   }
 
@@ -359,10 +359,6 @@ void rvk_device_destroy(RvkDevice* dev) {
   rvk_desc_pool_destroy(dev->descPool);
   rvk_mem_pool_destroy(dev->memPool);
   rvk_call(dev, destroyDevice, dev->vkDev, &dev->vkAlloc);
-
-  if (dev->debug) {
-    rvk_debug_destroy(dev->debug);
-  }
 
   thread_mutex_destroy(dev->queueSubmitMutex);
   alloc_free_t(g_allocHeap, dev);

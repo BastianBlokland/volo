@@ -70,7 +70,7 @@ static VkCommandBuffer rvk_commandbuffer_create(RvkDevice* dev, VkCommandPool vk
 }
 
 static bool rvk_fence_signaled(RvkDevice* dev, VkFence fence) {
-  return dev->api.getFenceStatus(dev->vkDev, fence) == VK_SUCCESS;
+  return rvk_call(dev, getFenceStatus, dev->vkDev, fence) == VK_SUCCESS;
 }
 
 static VkFence rvk_fence_create(RvkDevice* dev, const bool initialState) {
@@ -160,11 +160,11 @@ static void rvk_transfer_begin(RvkTransferer* trans, RvkTransferBuffer* buffer) 
       .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
   };
   rvk_call_checked(dev, beginCommandBuffer, buffer->vkCmdBufferGraphics, &beginInfo);
-  rvk_debug_label_begin(dev->debug, buffer->vkCmdBufferGraphics, geo_color_olive, "transfer");
+  rvk_debug_label_begin(dev, buffer->vkCmdBufferGraphics, geo_color_olive, "transfer");
 
   if (buffer->vkCmdBufferTransfer) {
     rvk_call_checked(dev, beginCommandBuffer, buffer->vkCmdBufferTransfer, &beginInfo);
-    rvk_debug_label_begin(dev->debug, buffer->vkCmdBufferTransfer, geo_color_olive, "transfer");
+    rvk_debug_label_begin(dev, buffer->vkCmdBufferTransfer, geo_color_olive, "transfer");
   }
 }
 
@@ -173,12 +173,12 @@ static void rvk_transfer_submit(RvkTransferer* trans, RvkTransferBuffer* buffer)
 
   RvkDevice* dev = trans->dev;
 
-  rvk_debug_label_end(trans->dev->debug, buffer->vkCmdBufferGraphics);
-  dev->api.endCommandBuffer(buffer->vkCmdBufferGraphics);
+  rvk_debug_label_end(trans->dev, buffer->vkCmdBufferGraphics);
+  rvk_call(dev, endCommandBuffer, buffer->vkCmdBufferGraphics);
 
   if (buffer->vkCmdBufferTransfer) {
-    rvk_debug_label_end(trans->dev->debug, buffer->vkCmdBufferTransfer);
-    dev->api.endCommandBuffer(buffer->vkCmdBufferTransfer);
+    rvk_debug_label_end(trans->dev, buffer->vkCmdBufferTransfer);
+    rvk_call(dev, endCommandBuffer, buffer->vkCmdBufferTransfer);
   }
 
   buffer->state  = RvkTransferState_Busy;
@@ -238,11 +238,11 @@ RvkTransferer* rvk_transferer_create(RvkDevice* dev) {
       .vkCmdPoolGraphics = rvk_commandpool_create(dev, dev->graphicsQueueIndex),
       .buffers           = dynarray_create_t(g_allocHeap, RvkTransferBuffer, 8),
   };
-  rvk_debug_name_cmdpool(dev->debug, transferer->vkCmdPoolGraphics, "transferer_graphics");
+  rvk_debug_name_cmdpool(dev, transferer->vkCmdPoolGraphics, "transferer_graphics");
 
   if (dev->vkTransferQueue) {
     transferer->vkCmdPoolTransfer = rvk_commandpool_create(dev, dev->transferQueueIndex);
-    rvk_debug_name_cmdpool(dev->debug, transferer->vkCmdPoolTransfer, "transferer_transfer");
+    rvk_debug_name_cmdpool(dev, transferer->vkCmdPoolTransfer, "transferer_transfer");
   }
 
   return transferer;
@@ -252,13 +252,13 @@ void rvk_transferer_destroy(RvkTransferer* transferer) {
   RvkDevice* dev = transferer->dev;
   dynarray_for_t(&transferer->buffers, RvkTransferBuffer, buffer) {
     rvk_buffer_destroy(&buffer->hostBuffer, dev);
-    dev->api.destroySemaphore(dev->vkDev, buffer->releaseSemaphore, &dev->vkAlloc);
-    dev->api.destroyFence(dev->vkDev, buffer->finishedFence, &dev->vkAlloc);
+    rvk_call(dev, destroySemaphore, dev->vkDev, buffer->releaseSemaphore, &dev->vkAlloc);
+    rvk_call(dev, destroyFence, dev->vkDev, buffer->finishedFence, &dev->vkAlloc);
   }
 
-  dev->api.destroyCommandPool(dev->vkDev, transferer->vkCmdPoolGraphics, &dev->vkAlloc);
+  rvk_call(dev, destroyCommandPool, dev->vkDev, transferer->vkCmdPoolGraphics, &dev->vkAlloc);
   if (transferer->vkCmdPoolTransfer) {
-    dev->api.destroyCommandPool(dev->vkDev, transferer->vkCmdPoolTransfer, &dev->vkAlloc);
+    rvk_call(dev, destroyCommandPool, dev->vkDev, transferer->vkCmdPoolTransfer, &dev->vkAlloc);
   }
   thread_mutex_destroy(transferer->mutex);
   dynarray_destroy(&transferer->buffers);
@@ -287,7 +287,9 @@ RvkTransferId rvk_transfer_buffer(RvkTransferer* trans, RvkBuffer* dest, const M
           .size      = data.size,
       },
   };
-  trans->dev->api.cmdCopyBuffer(
+  rvk_call(
+      trans->dev,
+      cmdCopyBuffer,
       buffer->vkCmdBufferTransfer ? buffer->vkCmdBufferTransfer : buffer->vkCmdBufferGraphics,
       buffer->hostBuffer.vkBuffer,
       dest->vkBuffer,
@@ -381,7 +383,9 @@ RvkTransferId rvk_transfer_image(
   }
   diag_assert(srcBufferOffset == buffer->offset + data.size);
 
-  trans->dev->api.cmdCopyBufferToImage(
+  rvk_call(
+      trans->dev,
+      cmdCopyBufferToImage,
       buffer->vkCmdBufferTransfer ? buffer->vkCmdBufferTransfer : buffer->vkCmdBufferGraphics,
       buffer->hostBuffer.vkBuffer,
       dest->vkImage,

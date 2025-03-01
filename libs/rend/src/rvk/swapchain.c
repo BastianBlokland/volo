@@ -217,7 +217,7 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
   const VkFormat format = swap->vkSurfFormat.format;
   for (u32 i = 0; i != swap->imgCount; ++i) {
     swap->imgs[i] = rvk_image_create_swapchain(swap->dev, vkImgs[i], format, size);
-    rvk_debug_name_img(swap->dev->debug, vkImgs[i], "swapchain_{}", fmt_int(i));
+    rvk_debug_name_img(swap->dev, vkImgs[i], "swapchain_{}", fmt_int(i));
   }
 
   swap->flags &= ~RvkSwapchainFlags_OutOfDate;
@@ -269,7 +269,7 @@ void rvk_swapchain_destroy(RvkSwapchain* swap) {
     rvk_call(swap->dev, destroySwapchainKHR, swap->dev->vkDev, swap->vkSwap, &swap->dev->vkAlloc);
   }
 
-  swap->lib->api.destroySurfaceKHR(swap->lib->vkInst, swap->vkSurf, &swap->dev->vkAlloc);
+  rvk_call(swap->lib, destroySurfaceKHR, swap->lib->vkInst, swap->vkSurf, &swap->dev->vkAlloc);
   alloc_free_t(g_allocHeap, swap);
 }
 

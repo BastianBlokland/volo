@@ -145,7 +145,7 @@ static VkSampler rvk_sampler_get_locked(RvkSamplerPool* pool, const RvkSamplerSp
       VkSampler newSampler     = rvk_vksampler_create(pool->dev, spec);
       pool->specHashes[bucket] = specHash;
       pool->vkSamplers[bucket] = newSampler;
-      rvk_debug_name_sampler(pool->dev->debug, newSampler, "sampler_{}", fmt_int(bucket));
+      rvk_debug_name_sampler(pool->dev, newSampler, "sampler_{}", fmt_int(bucket));
 
 #if VOLO_RVK_SAMPLER_LOGGING
       log_d(

@@ -890,9 +890,8 @@ bool rvk_graphic_finalize(
   graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic, dev, pass);
   graphic->vkPipeline = rvk_pipeline_create(graphic, asset, dev, graphic->vkPipelineLayout, pass);
 
-  rvk_debug_name_pipeline_layout(
-      dev->debug, graphic->vkPipelineLayout, "{}", fmt_text(graphic->dbgName));
-  rvk_debug_name_pipeline(dev->debug, graphic->vkPipeline, "{}", fmt_text(graphic->dbgName));
+  rvk_debug_name_pipeline_layout(dev, graphic->vkPipelineLayout, "{}", fmt_text(graphic->dbgName));
+  rvk_debug_name_pipeline(dev, graphic->vkPipeline, "{}", fmt_text(graphic->dbgName));
   return true;
 }
 

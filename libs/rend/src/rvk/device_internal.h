@@ -1,6 +1,4 @@
 #pragma once
-#include "core_thread.h"
-#include "rend_settings.h"
 #include "vulkan_api.h"
 
 #include "forward_internal.h"
@@ -19,7 +17,6 @@ typedef struct sRvkDevice {
   RvkDeviceFlags                   flags;
   VkInterfaceDevice                api;
   RvkLib*                          lib;
-  RvkDebug*                        debug;
   VkAllocationCallbacks            vkAlloc;
   VkPhysicalDevice                 vkPhysDev;
   VkPhysicalDeviceProperties       vkProperties;

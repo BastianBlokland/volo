@@ -74,8 +74,8 @@ RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, St
   tex->pixelTransfer =
       rvk_transfer_image(dev->transferer, &tex->image, transferData, transferMips, mipGenGpu);
 
-  rvk_debug_name_img(dev->debug, tex->image.vkImage, "{}", fmt_text(dbgName));
-  rvk_debug_name_img_view(dev->debug, tex->image.vkImageView, "{}", fmt_text(dbgName));
+  rvk_debug_name_img(dev, tex->image.vkImage, "{}", fmt_text(dbgName));
+  rvk_debug_name_img_view(dev, tex->image.vkImageView, "{}", fmt_text(dbgName));
 
 #if VOLO_RVK_TEXTURE_LOGGING
   log_d(

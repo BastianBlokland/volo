@@ -642,7 +642,7 @@ RvkPass* rvk_pass_create(RvkDevice* dev, const RvkPassConfig* config) {
   };
 
   pass->vkRendPass = rvk_renderpass_create(pass);
-  rvk_debug_name_pass(dev->debug, pass->vkRendPass, "{}", fmt_text(config->name));
+  rvk_debug_name_pass(dev, pass->vkRendPass, "{}", fmt_text(config->name));
 
   pass->globalDescMeta       = rvk_global_desc_meta();
   pass->globalPipelineLayout = rvk_global_layout_create(dev, &pass->globalDescMeta);
@@ -877,7 +877,7 @@ void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
 
   invoc->timeRecBegin = rvk_stopwatch_mark(frame->stopwatch, invoc->vkCmdBuf);
   rvk_debug_label_begin(
-      pass->dev->debug, invoc->vkCmdBuf, geo_color_blue, "pass_{}", fmt_text(pass->config->name));
+      pass->dev, invoc->vkCmdBuf, geo_color_blue, "pass_{}", fmt_text(pass->config->name));
 
   rvk_pass_viewport_set(pass->dev, invoc->vkCmdBuf, invoc->size);
   rvk_pass_scissor_set(pass->dev, invoc->vkCmdBuf, invoc->size);
@@ -929,7 +929,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* 
 
   ++invoc->drawCount;
   rvk_debug_label_begin(
-      pass->dev->debug, invoc->vkCmdBuf, geo_color_green, "draw_{}", fmt_text(graphic->dbgName));
+      pass->dev, invoc->vkCmdBuf, geo_color_green, "draw_{}", fmt_text(graphic->dbgName));
 
   rvk_graphic_bind(graphic, pass->dev, pass, invoc->vkCmdBuf);
 
@@ -984,7 +984,7 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* 
     remInstCount -= instCount;
   }
 
-  rvk_debug_label_end(pass->dev->debug, invoc->vkCmdBuf);
+  rvk_debug_label_end(pass->dev, invoc->vkCmdBuf);
 }
 
 void rvk_pass_end(RvkPass* pass, const RvkPassSetup* setup) {
@@ -995,7 +995,7 @@ void rvk_pass_end(RvkPass* pass, const RvkPassSetup* setup) {
 
   rvk_statrecorder_stop(frame->statrecorder, invoc->statsRecord, invoc->vkCmdBuf);
 
-  rvk_debug_label_end(pass->dev->debug, invoc->vkCmdBuf);
+  rvk_debug_label_end(pass->dev, invoc->vkCmdBuf);
   invoc->timeRecEnd = rvk_stopwatch_mark(frame->stopwatch, invoc->vkCmdBuf);
 
   rvk_call(pass->dev, cmdEndRenderPass, invoc->vkCmdBuf);
