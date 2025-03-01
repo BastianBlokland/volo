@@ -33,7 +33,7 @@ static VkPipelineCache rvk_vkcache_create(RvkDevice* dev, String data) {
       .pInitialData    = data.ptr,
   };
   VkPipelineCache result;
-  rvk_call(vkCreatePipelineCache, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
+  rvk_call(dev->api, createPipelineCache, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -109,11 +109,11 @@ Done:
 
 void rvk_pcache_save(RvkDevice* dev, VkPipelineCache vkCache) {
   usize size;
-  vkGetPipelineCacheData(dev->vkDev, vkCache, &size, null);
+  dev->api.getPipelineCacheData(dev->vkDev, vkCache, &size, null);
   size = math_min(size, rvk_pcache_size_max); // Limit the maximum cache size.
 
   const Mem buffer = alloc_alloc(g_allocHeap, size, 1);
-  vkGetPipelineCacheData(dev->vkDev, vkCache, &size, buffer.ptr);
+  dev->api.getPipelineCacheData(dev->vkDev, vkCache, &size, buffer.ptr);
 
   const String     path = rvk_pcache_path_scratch();
   const FileResult res  = file_write_to_path_atomic(path, mem_create(buffer.ptr, size));

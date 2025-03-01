@@ -15,7 +15,7 @@
 ASSERT((rvk_samplers_max & (rvk_samplers_max - 1u)) == 0, "Max samplers has to be a power-of-two")
 
 struct sRvkSamplerPool {
-  RvkDevice*     device;
+  RvkDevice*     dev;
   ThreadSpinLock spinLock;
   u32            specHashes[rvk_samplers_max];
   VkSampler      vkSamplers[rvk_samplers_max];
@@ -123,7 +123,7 @@ static VkSampler rvk_vksampler_create(const RvkDevice* dev, const RvkSamplerSpec
   }
 
   VkSampler result;
-  rvk_call(vkCreateSampler, dev->vkDev, &samplerInfo, &dev->vkAlloc, &result);
+  rvk_call(dev->api, createSampler, dev->vkDev, &samplerInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -141,10 +141,10 @@ static VkSampler rvk_sampler_get_locked(RvkSamplerPool* pool, const RvkSamplerSp
     if (!slotHash) {
       // Slot is empty; create a new sampler.
       diag_assert(!pool->vkSamplers[bucket]);
-      VkSampler newSampler     = rvk_vksampler_create(pool->device, spec);
+      VkSampler newSampler     = rvk_vksampler_create(pool->dev, spec);
       pool->specHashes[bucket] = specHash;
       pool->vkSamplers[bucket] = newSampler;
-      rvk_debug_name_sampler(pool->device->debug, newSampler, "sampler_{}", fmt_int(bucket));
+      rvk_debug_name_sampler(pool->dev->debug, newSampler, "sampler_{}", fmt_int(bucket));
 
 #if VOLO_RVK_SAMPLER_LOGGING
       log_d(
@@ -164,14 +164,14 @@ static VkSampler rvk_sampler_get_locked(RvkSamplerPool* pool, const RvkSamplerSp
 
 RvkSamplerPool* rvk_sampler_pool_create(RvkDevice* dev) {
   RvkSamplerPool* pool = alloc_alloc_t(g_allocHeap, RvkSamplerPool);
-  *pool                = (RvkSamplerPool){.device = dev};
+  *pool                = (RvkSamplerPool){.dev = dev};
   return pool;
 }
 
 void rvk_sampler_pool_destroy(RvkSamplerPool* pool) {
   for (u32 i = 0; i != rvk_samplers_max; ++i) {
     if (pool->vkSamplers[i]) {
-      vkDestroySampler(pool->device->vkDev, pool->vkSamplers[i], &pool->device->vkAlloc);
+      pool->dev->api.destroySampler(pool->dev->vkDev, pool->vkSamplers[i], &pool->dev->vkAlloc);
     }
   }
   alloc_free_t(g_allocHeap, pool);
