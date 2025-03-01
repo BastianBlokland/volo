@@ -994,6 +994,9 @@ VkResult vkLoadDevice(VkDevice dev, const VkInterfaceInstance* src, VkInterfaceD
   out->destroyDescriptorUpdateTemplate = (Symbol)src->getDeviceProcAddr(dev, "vkDestroyDescriptorUpdateTemplate");
   out->updateDescriptorSetWithTemplate = (Symbol)src->getDeviceProcAddr(dev, "vkUpdateDescriptorSetWithTemplate");
   out->getDescriptorSetLayoutSupport = (Symbol)src->getDeviceProcAddr(dev, "vkGetDescriptorSetLayoutSupport");
+  out->getDeviceBufferMemoryRequirements = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceBufferMemoryRequirements");
+  out->getDeviceImageMemoryRequirements = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceImageMemoryRequirements");
+  out->getDeviceImageSparseMemoryRequirements = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceImageSparseMemoryRequirements");
   out->waitForPresentKHR = (Symbol)src->getDeviceProcAddr(dev, "vkWaitForPresentKHR");
   out->createSwapchainKHR = (Symbol)src->getDeviceProcAddr(dev, "vkCreateSwapchainKHR");
   out->destroySwapchainKHR = (Symbol)src->getDeviceProcAddr(dev, "vkDestroySwapchainKHR");

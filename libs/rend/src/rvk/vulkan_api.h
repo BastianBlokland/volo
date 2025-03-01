@@ -3008,6 +3008,19 @@ typedef struct VkValidationFeaturesEXT {
   const VkValidationFeatureDisableEXT* pDisabledValidationFeatures;
 } VkValidationFeaturesEXT;
 
+typedef struct VkDeviceBufferMemoryRequirements {
+  VkStructureType sType;
+  const void* pNext;
+  const VkBufferCreateInfo* pCreateInfo;
+} VkDeviceBufferMemoryRequirements;
+
+typedef struct VkDeviceImageMemoryRequirements {
+  VkStructureType sType;
+  const void* pNext;
+  const VkImageCreateInfo* pCreateInfo;
+  VkImageAspectFlagBits planeAspect;
+} VkDeviceImageMemoryRequirements;
+
 typedef struct VkPresentIdKHR {
   VkStructureType sType;
   const void* pNext;
@@ -3402,6 +3415,9 @@ typedef struct VkInterfaceDevice {
   void (SYS_DECL* destroyDescriptorUpdateTemplate)(VkDevice device, VkDescriptorUpdateTemplate descriptorUpdateTemplate, const VkAllocationCallbacks* pAllocator);
   void (SYS_DECL* updateDescriptorSetWithTemplate)(VkDevice device, VkDescriptorSet descriptorSet, VkDescriptorUpdateTemplate descriptorUpdateTemplate, const void* pData);
   void (SYS_DECL* getDescriptorSetLayoutSupport)(VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, VkDescriptorSetLayoutSupport* pSupport);
+  void (SYS_DECL* getDeviceBufferMemoryRequirements)(VkDevice device, const VkDeviceBufferMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements);
+  void (SYS_DECL* getDeviceImageMemoryRequirements)(VkDevice device, const VkDeviceImageMemoryRequirements* pInfo, VkMemoryRequirements2* pMemoryRequirements);
+  void (SYS_DECL* getDeviceImageSparseMemoryRequirements)(VkDevice device, const VkDeviceImageMemoryRequirements* pInfo, u32* pSparseMemoryRequirementCount, VkSparseImageMemoryRequirements2* pSparseMemoryRequirements);
   VkResult (SYS_DECL* waitForPresentKHR)(VkDevice device, VkSwapchainKHR swapchain, u64 presentId, u64 timeout);
   VkResult (SYS_DECL* createSwapchainKHR)(VkDevice device, const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain);
   void (SYS_DECL* destroySwapchainKHR)(VkDevice device, VkSwapchainKHR swapchain, const VkAllocationCallbacks* pAllocator);
