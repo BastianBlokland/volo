@@ -236,14 +236,14 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
 
   // Add required extensions.
   array_for_t(g_requiredExts, String, reqExt) {
-    extsToEnable[extsToEnableCount++] = reqExt->ptr; // TODO: Hacky as it assumes null-term.
+    extsToEnable[extsToEnableCount++] = rvk_to_null_term_scratch(*reqExt);
   }
 
   // Add optional extensions.
   const RendVkExts supportedExts = rvk_device_exts_query(lib, dev->vkPhysDev);
   array_for_t(g_optionalExts, String, optExt) {
     if (rvk_device_has_ext(supportedExts, *optExt)) {
-      extsToEnable[extsToEnableCount++] = optExt->ptr; // TODO: Hacky as it assumes null-term.
+      extsToEnable[extsToEnableCount++] = rvk_to_null_term_scratch(*optExt);
     }
   }
   rvk_vk_exts_free(supportedExts);
@@ -277,7 +277,7 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
     dev->flags |= RvkDeviceFlags_SupportPresentWait;
   }
 
-  VkPhysicalDevice16BitStorageFeatures float16IStorageFeatures = {
+  VkPhysicalDevice16BitStorageFeatures float16StorageFeatures = {
       .sType                    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,
       .pNext                    = nextOptFeature, // Enable all supported optional features.
       .storageBuffer16BitAccess = true,
@@ -285,7 +285,7 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   };
   const VkPhysicalDeviceFeatures2 featuresToEnable = {
       .sType    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-      .pNext    = &float16IStorageFeatures,
+      .pNext    = &float16StorageFeatures,
       .features = rvk_device_pick_features(dev, &supportedFeatures),
   };
   const VkDeviceCreateInfo createInfo = {
