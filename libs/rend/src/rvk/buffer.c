@@ -35,6 +35,7 @@ static VkBufferUsageFlags rvk_buffer_usage_flags(const RvkBufferType type) {
 }
 
 static void rvk_buffer_barrier(
+    RvkDevice*                 dev,
     VkCommandBuffer            vkCmdBuf,
     const RvkBuffer*           buffer,
     const u32                  srcQueueFamIdx,
@@ -54,7 +55,8 @@ static void rvk_buffer_barrier(
       .offset              = 0,
       .size                = buffer->size,
   };
-  vkCmdPipelineBarrier(vkCmdBuf, srcStageFlags, dstStageFlags, 0, 0, null, 1, &barrier, 0, null);
+  dev->api.cmdPipelineBarrier(
+      vkCmdBuf, srcStageFlags, dstStageFlags, 0, 0, null, 1, &barrier, 0, null);
 }
 
 RvkBuffer rvk_buffer_create(RvkDevice* dev, const u64 size, const RvkBufferType type) {
@@ -66,10 +68,10 @@ RvkBuffer rvk_buffer_create(RvkDevice* dev, const u64 size, const RvkBufferType 
       .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
   };
   VkBuffer vkBuffer;
-  rvk_call(vkCreateBuffer, dev->vkDev, &bufferInfo, &dev->vkAlloc, &vkBuffer);
+  rvk_call(dev->api, createBuffer, dev->vkDev, &bufferInfo, &dev->vkAlloc, &vkBuffer);
 
   VkMemoryRequirements memReqs;
-  vkGetBufferMemoryRequirements(dev->vkDev, vkBuffer, &memReqs);
+  dev->api.getBufferMemoryRequirements(dev->vkDev, vkBuffer, &memReqs);
 
   const RvkMemLoc memLoc = rvk_buffer_type_loc(type);
   const RvkMem    mem    = rvk_mem_alloc_req(dev->memPool, memLoc, RvkMemAccess_Linear, memReqs);
@@ -85,7 +87,7 @@ RvkBuffer rvk_buffer_create(RvkDevice* dev, const u64 size, const RvkBufferType 
 }
 
 void rvk_buffer_destroy(RvkBuffer* buffer, RvkDevice* dev) {
-  vkDestroyBuffer(dev->vkDev, buffer->vkBuffer, &dev->vkAlloc);
+  dev->api.destroyBuffer(dev->vkDev, buffer->vkBuffer, &dev->vkAlloc);
   rvk_mem_free(buffer->mem);
 }
 
@@ -141,6 +143,7 @@ void rvk_buffer_upload(RvkBuffer* buffer, const Mem data, const u64 offset) {
 }
 
 void rvk_buffer_transfer_ownership(
+    RvkDevice*       dev,
     const RvkBuffer* buffer,
     VkCommandBuffer  srcCmdBuf,
     VkCommandBuffer  dstCmdBuf,
@@ -152,6 +155,7 @@ void rvk_buffer_transfer_ownership(
 
   // Release the buffer on the source queue.
   rvk_buffer_barrier(
+      dev,
       srcCmdBuf,
       buffer,
       srcQueueFamIdx,
@@ -163,6 +167,7 @@ void rvk_buffer_transfer_ownership(
 
   // Acquire the buffer on the destination queue.
   rvk_buffer_barrier(
+      dev,
       dstCmdBuf,
       buffer,
       srcQueueFamIdx,
