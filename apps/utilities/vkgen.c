@@ -1421,6 +1421,13 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   }
   fmt_write(&ctx->out, "\n");
 
+  // Write extension strings.
+  for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
+    const String ext = g_vkgenExtensions[i];
+    fmt_write(&ctx->out, "#define {} \"{}\"\n", fmt_text(ext), fmt_text(ext));
+  }
+  fmt_write(&ctx->out, "\n");
+
   // Write types required for features.
   if (!vkgen_write_used_types(ctx)) {
     return false;

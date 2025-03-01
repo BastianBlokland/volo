@@ -37,6 +37,17 @@
 #define VK_SHADER_INDEX_UNUSED_AMDX (~0U)
 #define VK_PARTITIONED_ACCELERATION_STRUCTURE_PARTITION_INDEX_GLOBAL_NV (~0U)
 
+#define VK_EXT_debug_utils "VK_EXT_debug_utils"
+#define VK_EXT_validation_features "VK_EXT_validation_features"
+#define VK_KHR_16bit_storage "VK_KHR_16bit_storage"
+#define VK_KHR_maintenance4 "VK_KHR_maintenance4"
+#define VK_KHR_present_id "VK_KHR_present_id"
+#define VK_KHR_present_wait "VK_KHR_present_wait"
+#define VK_KHR_surface "VK_KHR_surface"
+#define VK_KHR_swapchain "VK_KHR_swapchain"
+#define VK_KHR_win32_surface "VK_KHR_win32_surface"
+#define VK_KHR_xcb_surface "VK_KHR_xcb_surface"
+
 typedef u32 VkBool32;
 
 typedef u64 VkDeviceAddress;
