@@ -2,6 +2,7 @@
 #include "core_diag.h"
 #include "core_dynlib.h"
 #include "core_path.h"
+#include "core_thread.h"
 #include "gap_native.h"
 #include "log_logger.h"
 
@@ -105,6 +106,94 @@ static VkInstance rvk_inst_create(
   return result;
 }
 
+static int rvk_messenger_severity_mask(const RvkLibFlags flags) {
+  int severity = 0;
+  if (flags & RvkLibFlags_DebugVerbose) {
+    severity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+    severity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+  }
+  severity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+  severity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+  return severity;
+}
+
+static int rvk_messenger_type_mask(const RvkLibFlags flags) {
+  int mask = 0;
+  mask |= VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
+  mask |= VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+  if (flags & RvkLibFlags_DebugVerbose) {
+    mask |= VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+  }
+  return mask;
+}
+
+static String rvk_msg_type_label(const VkDebugUtilsMessageTypeFlagsEXT msgType) {
+  if (msgType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) {
+    return string_lit("performance");
+  }
+  if (msgType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT) {
+    return string_lit("validation");
+  }
+  if (msgType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT) {
+    return string_lit("general");
+  }
+  return string_lit("unknown");
+}
+
+static LogLevel rvk_msg_log_level(const VkDebugUtilsMessageSeverityFlagBitsEXT msgSeverity) {
+  if (msgSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+    return LogLevel_Error;
+  }
+  if (msgSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+    return LogLevel_Warn;
+  }
+  if (msgSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
+    return LogLevel_Info;
+  }
+  return LogLevel_Debug;
+}
+
+static VkBool32 SYS_DECL rvk_message_func(
+    VkDebugUtilsMessageSeverityFlagBitsEXT      msgSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT             msgType,
+    const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
+    void*                                       userData) {
+  (void)userData;
+
+  thread_ensure_init();
+
+  const LogLevel logLevel  = rvk_msg_log_level(msgSeverity);
+  const String   typeLabel = rvk_msg_type_label(msgType);
+  const String   message   = string_from_null_term(callbackData->pMessage);
+
+  log(g_logger,
+      logLevel,
+      "Vulkan {} debug",
+      log_param("type", fmt_text(typeLabel)),
+      log_param("text", fmt_text(message)));
+
+  if (msgSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+    diag_break(); // Halt when running in a debugger.
+  }
+  return false;
+}
+
+static void rvk_messenger_create(RvkLib* lib) {
+  const VkDebugUtilsMessengerCreateInfoEXT info = {
+      .sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+      .messageSeverity = rvk_messenger_severity_mask(lib->flags),
+      .messageType     = rvk_messenger_type_mask(lib->flags),
+      .pfnUserCallback = rvk_message_func,
+      .pUserData       = null,
+  };
+  rvk_call(lib, createDebugUtilsMessengerEXT, lib->vkInst, &info, &lib->vkAlloc, &lib->vkMessenger);
+}
+
+static void rvk_messenger_destroy(RvkLib* lib) {
+  rvk_call(lib, destroyDebugUtilsMessengerEXT, lib->vkInst, lib->vkMessenger, &lib->vkAlloc);
+  lib->vkMessenger = null;
+}
+
 static u32 rvk_lib_names(String outPaths[PARAM_ARRAY_SIZE(rvk_lib_vulkan_names_max)]) {
   u32 count = 0;
 #ifdef VOLO_WIN32
@@ -143,6 +232,10 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
   const bool debugDesired = validationDesired || (set->flags & RendGlobalFlags_DebugGpu) != 0;
   if (debugDesired && rvk_inst_extension_supported(&loaderApi, "VK_EXT_debug_utils")) {
     lib->flags |= RvkLibFlags_Debug;
+    if (set->flags & RendGlobalFlags_Verbose) {
+      lib->flags |= RvkLibFlags_DebugVerbose;
+    }
+    rvk_messenger_create(lib);
   }
 
   lib->vkInst = rvk_inst_create(&loaderApi, &lib->vkAlloc, lib->flags);
@@ -157,7 +250,9 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
 }
 
 void rvk_lib_destroy(RvkLib* lib) {
-
+  if (lib->vkMessenger) {
+    rvk_messenger_destroy(lib);
+  }
   rvk_call(lib, destroyInstance, lib->vkInst, &lib->vkAlloc);
   dynlib_destroy(lib->vulkanLib);
   alloc_free_t(g_allocHeap, lib);

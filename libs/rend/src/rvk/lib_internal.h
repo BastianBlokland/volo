@@ -3,16 +3,18 @@
 #include "vulkan_api.h"
 
 typedef enum {
-  RvkLibFlags_Validation = 1 << 0,
-  RvkLibFlags_Debug      = 1 << 1,
+  RvkLibFlags_Validation   = 1 << 0,
+  RvkLibFlags_Debug        = 1 << 1,
+  RvkLibFlags_DebugVerbose = 1 << 1,
 } RvkLibFlags;
 
 typedef struct sRvkLib {
-  RvkLibFlags           flags;
-  VkInterfaceInstance   api;
-  DynLib*               vulkanLib;
-  VkInstance            vkInst;
-  VkAllocationCallbacks vkAlloc;
+  RvkLibFlags              flags;
+  VkInterfaceInstance      api;
+  DynLib*                  vulkanLib;
+  VkInstance               vkInst;
+  VkAllocationCallbacks    vkAlloc;
+  VkDebugUtilsMessengerEXT vkMessenger;
 } RvkLib;
 
 RvkLib* rvk_lib_create(const RendSettingsGlobalComp*);
