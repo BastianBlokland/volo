@@ -5,7 +5,7 @@
 typedef enum {
   RvkLibFlags_Validation   = 1 << 0,
   RvkLibFlags_Debug        = 1 << 1,
-  RvkLibFlags_DebugVerbose = 1 << 1,
+  RvkLibFlags_DebugVerbose = 1 << 2,
 } RvkLibFlags;
 
 typedef struct sRvkLib {

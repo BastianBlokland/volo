@@ -168,7 +168,7 @@ static VkBool32 SYS_DECL rvk_message_func(
 
   log(g_logger,
       logLevel,
-      "Vulkan {} debug",
+      "Vulkan {} message",
       log_param("type", fmt_text(typeLabel)),
       log_param("text", fmt_text(message)));
 
@@ -235,11 +235,14 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
     if (set->flags & RendGlobalFlags_Verbose) {
       lib->flags |= RvkLibFlags_DebugVerbose;
     }
-    rvk_messenger_create(lib);
   }
 
   lib->vkInst = rvk_inst_create(&loaderApi, &lib->vkAlloc, lib->flags);
   rvk_api_check(string_lit("loadInstance"), vkLoadInstance(lib->vkInst, &loaderApi, &lib->api));
+
+  if (lib->flags & RvkLibFlags_Debug) {
+    rvk_messenger_create(lib);
+  }
 
   log_i(
       "Vulkan library created",
