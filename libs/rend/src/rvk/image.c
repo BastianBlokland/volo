@@ -335,7 +335,7 @@ static RvkImage rvk_image_create_backed(
   const VkImage vkImage = rvk_vkimage_create(dev, type, size, vkFormat, vkUsage, layers, mipLevels);
 
   VkMemoryRequirements memReqs;
-  dev->api.getImageMemoryRequirements(dev->vkDev, vkImage, &memReqs);
+  rvk_call(dev, getImageMemoryRequirements, dev->vkDev, vkImage, &memReqs);
 
   const RvkMemLoc memLoc = RvkMemLoc_Dev;
   const RvkMem    mem    = rvk_mem_alloc_req(dev->memPool, memLoc, RvkMemAccess_NonLinear, memReqs);
@@ -451,9 +451,9 @@ rvk_image_create_swapchain(RvkDevice* dev, VkImage vkImage, VkFormat vkFormat, c
 
 void rvk_image_destroy(RvkImage* img, RvkDevice* dev) {
   if (img->type != RvkImageType_Swapchain) {
-    dev->api.destroyImage(dev->vkDev, img->vkImage, &dev->vkAlloc);
+    rvk_call(dev, destroyImage, dev->vkDev, img->vkImage, &dev->vkAlloc);
   }
-  dev->api.destroyImageView(dev->vkDev, img->vkImageView, &dev->vkAlloc);
+  rvk_call(dev, destroyImageView, dev->vkDev, img->vkImageView, &dev->vkAlloc);
   if (rvk_mem_valid(img->mem)) {
     rvk_mem_free(img->mem);
   }
@@ -515,8 +515,19 @@ void rvk_image_transition(
   const VkPipelineStageFlags dstStageFlags = rvk_image_vkpipelinestage(phase);
 
   img->phase = phase;
-  dev->api.cmdPipelineBarrier(
-      vkCmdBuf, srcStageFlags, dstStageFlags, 0, 0, null, 0, null, 1, &barrier);
+  rvk_call(
+      dev,
+      cmdPipelineBarrier,
+      vkCmdBuf,
+      srcStageFlags,
+      dstStageFlags,
+      0,
+      0,
+      null,
+      0,
+      null,
+      1,
+      &barrier);
 }
 
 void rvk_image_transition_batch(
@@ -551,8 +562,19 @@ void rvk_image_transition_batch(
   }
 
   if (barrierCount) {
-    dev->api.cmdPipelineBarrier(
-        vkCmdBuf, srcStageFlags, dstStageFlags, 0, 0, null, 0, null, barrierCount, barriers);
+    rvk_call(
+        dev,
+        cmdPipelineBarrier,
+        vkCmdBuf,
+        srcStageFlags,
+        dstStageFlags,
+        0,
+        0,
+        null,
+        0,
+        null,
+        barrierCount,
+        barriers);
   }
 }
 
@@ -595,7 +617,9 @@ void rvk_image_generate_mipmaps(RvkDevice* dev, RvkImage* img, VkCommandBuffer v
         rvk_image_barrier_from_to(
             img, img->phase, RvkImagePhase_TransferDest, 1, img->mipLevels - 1),
     };
-    dev->api.cmdPipelineBarrier(
+    rvk_call(
+        dev,
+        cmdPipelineBarrier,
         vkCmdBuf,
         rvk_image_vkpipelinestage(img->phase),
         VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -624,7 +648,9 @@ void rvk_image_generate_mipmaps(RvkDevice* dev, RvkImage* img, VkCommandBuffer v
         .dstOffsets[1].y           = math_max(img->size.height >> level, 1),
         .dstOffsets[1].z           = 1,
     };
-    dev->api.cmdBlitImage(
+    rvk_call(
+        dev,
+        cmdBlitImage,
         vkCmdBuf,
         img->vkImage,
         rvk_image_vklayout(img->type, RvkImagePhase_TransferSource),
@@ -637,7 +663,9 @@ void rvk_image_generate_mipmaps(RvkDevice* dev, RvkImage* img, VkCommandBuffer v
     {
       const VkImageMemoryBarrier barrier = rvk_image_barrier_from_to(
           img, RvkImagePhase_TransferDest, RvkImagePhase_TransferSource, level, 1);
-      dev->api.cmdPipelineBarrier(
+      rvk_call(
+          dev,
+          cmdPipelineBarrier,
           vkCmdBuf,
           VK_PIPELINE_STAGE_TRANSFER_BIT,
           VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -669,7 +697,9 @@ void rvk_image_clear_color(
             .layerCount     = img->layers,
       },
   };
-  dev->api.cmdClearColorImage(
+  rvk_call(
+      dev,
+      cmdClearColorImage,
       vkCmdBuf,
       img->vkImage,
       rvk_image_vklayout(img->type, img->phase),
@@ -694,7 +724,9 @@ void rvk_image_clear_depth(
              .layerCount     = img->layers,
       },
   };
-  dev->api.cmdClearDepthStencilImage(
+  rvk_call(
+      dev,
+      cmdClearDepthStencilImage,
       vkCmdBuf,
       img->vkImage,
       rvk_image_vklayout(img->type, img->phase),
@@ -724,7 +756,9 @@ void rvk_image_copy(RvkDevice* dev, const RvkImage* src, RvkImage* dest, VkComma
           .extent.depth              = 1,
       },
   };
-  dev->api.cmdCopyImage(
+  rvk_call(
+      dev,
+      cmdCopyImage,
       vkCmdBuf,
       src->vkImage,
       rvk_image_vklayout(src->type, src->phase),
@@ -759,7 +793,9 @@ void rvk_image_blit(RvkDevice* dev, const RvkImage* src, RvkImage* dest, VkComma
   };
 
   const bool srcIsDepth = src->type == RvkImageType_DepthAttachment;
-  dev->api.cmdBlitImage(
+  rvk_call(
+      dev,
+      cmdBlitImage,
       vkCmdBuf,
       src->vkImage,
       rvk_image_vklayout(src->type, src->phase),
@@ -794,8 +830,19 @@ void rvk_image_transfer_ownership(
       0,
       0,
       img->mipLevels);
-  dev->api.cmdPipelineBarrier(
-      srcCmdBuf, stageFlags, stageFlags, 0, 0, null, 0, null, 1, &releaseBarrier);
+  rvk_call(
+      dev,
+      cmdPipelineBarrier,
+      srcCmdBuf,
+      stageFlags,
+      stageFlags,
+      0,
+      0,
+      null,
+      0,
+      null,
+      1,
+      &releaseBarrier);
 
   // Acquire the image on the destination queue.
   const VkImageMemoryBarrier acquireBarrier = rvk_image_barrier(
@@ -808,6 +855,17 @@ void rvk_image_transfer_ownership(
       rvk_image_vkaccess_read(img->phase) | rvk_image_vkaccess_write(img->phase),
       0,
       img->mipLevels);
-  dev->api.cmdPipelineBarrier(
-      dstCmdBuf, stageFlags, stageFlags, 0, 0, null, 0, null, 1, &acquireBarrier);
+  rvk_call(
+      dev,
+      cmdPipelineBarrier,
+      dstCmdBuf,
+      stageFlags,
+      stageFlags,
+      0,
+      0,
+      null,
+      0,
+      null,
+      1,
+      &acquireBarrier);
 }

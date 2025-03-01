@@ -56,8 +56,19 @@ static void rvk_buffer_barrier(
       .offset              = 0,
       .size                = buffer->size,
   };
-  dev->api.cmdPipelineBarrier(
-      vkCmdBuf, srcStageFlags, dstStageFlags, 0, 0, null, 1, &barrier, 0, null);
+  rvk_call(
+      dev,
+      cmdPipelineBarrier,
+      vkCmdBuf,
+      srcStageFlags,
+      dstStageFlags,
+      0,
+      0,
+      null,
+      1,
+      &barrier,
+      0,
+      null);
 }
 
 RvkBuffer rvk_buffer_create(RvkDevice* dev, const u64 size, const RvkBufferType type) {
@@ -72,7 +83,7 @@ RvkBuffer rvk_buffer_create(RvkDevice* dev, const u64 size, const RvkBufferType 
   rvk_call_checked(dev, createBuffer, dev->vkDev, &bufferInfo, &dev->vkAlloc, &vkBuffer);
 
   VkMemoryRequirements memReqs;
-  dev->api.getBufferMemoryRequirements(dev->vkDev, vkBuffer, &memReqs);
+  rvk_call(dev, getBufferMemoryRequirements, dev->vkDev, vkBuffer, &memReqs);
 
   const RvkMemLoc memLoc = rvk_buffer_type_loc(type);
   const RvkMem    mem    = rvk_mem_alloc_req(dev->memPool, memLoc, RvkMemAccess_Linear, memReqs);
@@ -88,7 +99,7 @@ RvkBuffer rvk_buffer_create(RvkDevice* dev, const u64 size, const RvkBufferType 
 }
 
 void rvk_buffer_destroy(RvkBuffer* buffer, RvkDevice* dev) {
-  dev->api.destroyBuffer(dev->vkDev, buffer->vkBuffer, &dev->vkAlloc);
+  rvk_call(dev, destroyBuffer, dev->vkDev, buffer->vkBuffer, &dev->vkAlloc);
   rvk_mem_free(buffer->mem);
 }
 

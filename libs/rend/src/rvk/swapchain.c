@@ -203,7 +203,7 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
 
   rvk_call_checked(swap->dev, createSwapchainKHR, vkDev, &createInfo, vkAlloc, &swap->vkSwap);
   if (oldSwapchain) {
-    swap->dev->api.destroySwapchainKHR(vkDev, oldSwapchain, &swap->dev->vkAlloc);
+    rvk_call(swap->dev, destroySwapchainKHR, vkDev, oldSwapchain, &swap->dev->vkAlloc);
   }
 
   rvk_call_checked(swap->dev, getSwapchainImagesKHR, vkDev, swap->vkSwap, &swap->imgCount, null);
@@ -266,7 +266,7 @@ void rvk_swapchain_destroy(RvkSwapchain* swap) {
     rvk_image_destroy(&swap->imgs[i], swap->dev);
   }
   if (swap->vkSwap) {
-    swap->dev->api.destroySwapchainKHR(swap->dev->vkDev, swap->vkSwap, &swap->dev->vkAlloc);
+    rvk_call(swap->dev, destroySwapchainKHR, swap->dev->vkDev, swap->vkSwap, &swap->dev->vkAlloc);
   }
 
   swap->lib->api.destroySurfaceKHR(swap->lib->vkInst, swap->vkSurf, &swap->dev->vkAlloc);
@@ -324,8 +324,15 @@ RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain* swap, VkSemaphore available)
   const TimeSteady acquireStart = time_steady_clock();
 
   u32            index;
-  const VkResult result = swap->dev->api.acquireNextImageKHR(
-      swap->dev->vkDev, swap->vkSwap, u64_max, available, null, &index);
+  const VkResult result = rvk_call(
+      swap->dev,
+      acquireNextImageKHR,
+      swap->dev->vkDev,
+      swap->vkSwap,
+      u64_max,
+      available,
+      null,
+      &index);
 
   swap->lastAcquireDur = time_steady_duration(acquireStart, time_steady_clock());
 
@@ -373,7 +380,7 @@ bool rvk_swapchain_enqueue_present(
   };
 
   const TimeSteady startTime = time_steady_clock();
-  VkResult result = swap->dev->api.queuePresentKHR(swap->dev->vkGraphicsQueue, &presentInfo);
+  VkResult result = rvk_call(swap->dev, queuePresentKHR, swap->dev->vkGraphicsQueue, &presentInfo);
   swap->lastPresentEnqueueDur = time_steady_duration(startTime, time_steady_clock());
 
   switch (result) {
@@ -405,8 +412,13 @@ void rvk_swapchain_wait_for_present(const RvkSwapchain* swap, const u32 numBehin
     const TimeSteady startTime        = time_steady_clock();
 
     const TimeDuration timeout = time_second / 30;
-    VkResult           result  = swap->dev->api.waitForPresentKHR(
-        swap->dev->vkDev, swap->vkSwap, swap->curPresentId - numBehind, timeout);
+    VkResult           result  = rvk_call(
+        swap->dev,
+        waitForPresentKHR,
+        swap->dev->vkDev,
+        swap->vkSwap,
+        swap->curPresentId - numBehind,
+        timeout);
 
     mutableSwapchain->lastPresentWaitDur = time_steady_duration(startTime, time_steady_clock());
 

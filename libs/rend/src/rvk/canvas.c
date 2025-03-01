@@ -52,7 +52,7 @@ static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
 }
 
 static void rvk_semaphore_destroy(RvkDevice* dev, const VkSemaphore sema) {
-  dev->api.destroySemaphore(dev->vkDev, sema, &dev->vkAlloc);
+  rvk_call(dev, destroySemaphore, dev->vkDev, sema, &dev->vkAlloc);
 }
 
 RvkCanvas* rvk_canvas_create(RvkLib* lib, RvkDevice* dev, const GapWindowComp* window) {

@@ -180,7 +180,7 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
 }
 
 void rvk_shader_destroy(RvkShader* shader, RvkDevice* dev) {
-  dev->api.destroyShaderModule(dev->vkDev, shader->vkModule, &dev->vkAlloc);
+  rvk_call(dev, destroyShaderModule, dev->vkDev, shader->vkModule, &dev->vkAlloc);
   string_free(g_allocHeap, shader->entryPoint);
 
   if (shader->specs.values) {

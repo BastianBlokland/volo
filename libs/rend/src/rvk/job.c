@@ -184,15 +184,15 @@ void rvk_job_destroy(RvkJob* job) {
   rvk_statrecorder_destroy(job->statrecorder);
 
   RvkDevice* dev = job->dev;
-  dev->api.destroyCommandPool(dev->vkDev, job->vkCmdPool, &dev->vkAlloc);
-  dev->api.destroyFence(dev->vkDev, job->fenceJobDone, &dev->vkAlloc);
+  rvk_call(dev, destroyCommandPool, dev->vkDev, job->vkCmdPool, &dev->vkAlloc);
+  rvk_call(dev, destroyFence, dev->vkDev, job->fenceJobDone, &dev->vkAlloc);
 
   alloc_free_t(g_allocHeap, job);
 }
 
 bool rvk_job_is_done(const RvkJob* job) {
   RvkDevice*     dev         = job->dev;
-  const VkResult fenceStatus = dev->api.getFenceStatus(dev->vkDev, job->fenceJobDone);
+  const VkResult fenceStatus = rvk_call(dev, getFenceStatus, dev->vkDev, job->fenceJobDone);
   return fenceStatus == VK_SUCCESS;
 }
 
@@ -363,7 +363,8 @@ void rvk_job_barrier_full(RvkJob* job) {
   };
   const VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
   const VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-  job->dev->api.cmdPipelineBarrier(cmdBuf, srcStage, dstStage, 0, 1, &barrier, 0, null, 0, null);
+  rvk_call(
+      job->dev, cmdPipelineBarrier, cmdBuf, srcStage, dstStage, 0, 1, &barrier, 0, null, 0, null);
 }
 
 void rvk_job_end(

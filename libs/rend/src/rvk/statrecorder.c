@@ -49,7 +49,9 @@ static VkQueryPool rvk_querypool_create(RvkDevice* dev) {
 static void rvk_statrecorder_retrieve_results(RvkStatRecorder* sr) {
   thread_mutex_lock(sr->retrieveResultsMutex);
   if (!(sr->flags & RvkStatRecorder_HasResults)) {
-    const VkResult vkQueryRes = sr->dev->api.getQueryPoolResults(
+    const VkResult vkQueryRes = rvk_call(
+        sr->dev,
+        getQueryPoolResults,
         sr->dev->vkDev,
         sr->vkQueryPool,
         0,
@@ -86,8 +88,9 @@ RvkStatRecorder* rvk_statrecorder_create(RvkDevice* dev) {
 }
 
 void rvk_statrecorder_destroy(RvkStatRecorder* sr) {
+  RvkDevice* dev = sr->dev;
   if (sr->flags & RvkStatRecorder_Supported) {
-    sr->dev->api.destroyQueryPool(sr->dev->vkDev, sr->vkQueryPool, &sr->dev->vkAlloc);
+    rvk_call(dev, destroyQueryPool, dev->vkDev, sr->vkQueryPool, &dev->vkAlloc);
   }
   thread_mutex_destroy(sr->retrieveResultsMutex);
   alloc_free_t(g_allocHeap, sr);
@@ -98,8 +101,9 @@ bool rvk_statrecorder_is_supported(const RvkStatRecorder* sr) {
 }
 
 void rvk_statrecorder_reset(RvkStatRecorder* sr, VkCommandBuffer vkCmdBuf) {
+  RvkDevice* dev = sr->dev;
   if (LIKELY(sr->flags & RvkStatRecorder_Supported)) {
-    sr->dev->api.cmdResetQueryPool(vkCmdBuf, sr->vkQueryPool, 0, rvk_statrecorder_queries_max);
+    rvk_call(dev, cmdResetQueryPool, vkCmdBuf, sr->vkQueryPool, 0, rvk_statrecorder_queries_max);
   }
   sr->counter = 0;
   sr->flags &= ~RvkStatRecorder_HasResults;
@@ -134,7 +138,7 @@ RvkStatRecord rvk_statrecorder_start(RvkStatRecorder* sr, VkCommandBuffer vkCmdB
       fmt_int(rvk_statrecorder_queries_max));
 
   if (LIKELY(sr->flags & RvkStatRecorder_Supported)) {
-    sr->dev->api.cmdBeginQuery(vkCmdBuf, sr->vkQueryPool, sr->counter, 0);
+    rvk_call(sr->dev, cmdBeginQuery, vkCmdBuf, sr->vkQueryPool, sr->counter, 0);
   }
   sr->flags |= RvkStatRecorder_Capturing;
   return (RvkStatRecord)sr->counter++;
@@ -146,7 +150,7 @@ void rvk_statrecorder_stop(
   diag_assert(sr->flags & RvkStatRecorder_Capturing);
 
   if (LIKELY(sr->flags & RvkStatRecorder_Supported)) {
-    sr->dev->api.cmdEndQuery(vkCmdBuf, sr->vkQueryPool, record);
+    rvk_call(sr->dev, cmdEndQuery, vkCmdBuf, sr->vkQueryPool, record);
   }
   sr->flags &= ~RvkStatRecorder_Capturing;
   sr->flags |= RvkStatRecorder_HasCaptured;

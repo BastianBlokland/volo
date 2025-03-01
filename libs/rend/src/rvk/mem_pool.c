@@ -122,7 +122,7 @@ static VkDeviceMemory rvk_mem_alloc_vk(RvkMemPool* pool, const u32 size, const u
  * Free a continuous block of device memory to Vulkan.
  */
 static void rvk_mem_free_vk(RvkMemPool* pool, const VkDeviceMemory vkMem) {
-  pool->dev->api.freeMemory(pool->dev->vkDev, vkMem, &pool->vkAlloc);
+  rvk_call(pool->dev, freeMemory, pool->dev->vkDev, vkMem, &pool->vkAlloc);
 }
 
 /**

@@ -71,8 +71,9 @@ RvkStopwatch* rvk_stopwatch_create(RvkDevice* dev) {
 }
 
 void rvk_stopwatch_destroy(RvkStopwatch* sw) {
+  RvkDevice* dev = sw->dev;
   if (sw->flags & RvkStopwatch_Supported) {
-    sw->dev->api.destroyQueryPool(sw->dev->vkDev, sw->vkQueryPool, &sw->dev->vkAlloc);
+    rvk_call(dev, destroyQueryPool, dev->vkDev, sw->vkQueryPool, &dev->vkAlloc);
   }
   thread_mutex_destroy(sw->retrieveResultsMutex);
   alloc_free_t(g_allocHeap, sw);
@@ -83,8 +84,9 @@ bool rvk_stopwatch_is_supported(const RvkStopwatch* sw) {
 }
 
 void rvk_stopwatch_reset(RvkStopwatch* sw, VkCommandBuffer vkCmdBuf) {
+  RvkDevice* dev = sw->dev;
   if (LIKELY(sw->flags & RvkStopwatch_Supported)) {
-    sw->dev->api.cmdResetQueryPool(vkCmdBuf, sw->vkQueryPool, 0, rvk_stopwatch_timestamps_max);
+    rvk_call(dev, cmdResetQueryPool, vkCmdBuf, sw->vkQueryPool, 0, rvk_stopwatch_timestamps_max);
   }
   sw->counter = 0;
   sw->flags &= ~RvkStopwatch_HasResults;
@@ -113,8 +115,13 @@ RvkStopwatchRecord rvk_stopwatch_mark(RvkStopwatch* sw, VkCommandBuffer vkCmdBuf
 
   if (LIKELY(sw->flags & RvkStopwatch_Supported)) {
     // Record the timestamp after all commands have completely finished executing (bottom of pipe).
-    sw->dev->api.cmdWriteTimestamp(
-        vkCmdBuf, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, sw->vkQueryPool, sw->counter);
+    rvk_call(
+        sw->dev,
+        cmdWriteTimestamp,
+        vkCmdBuf,
+        VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+        sw->vkQueryPool,
+        sw->counter);
   }
   return (RvkStopwatchRecord)sw->counter++;
 }

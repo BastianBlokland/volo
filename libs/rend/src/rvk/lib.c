@@ -158,8 +158,7 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
 
 void rvk_lib_destroy(RvkLib* lib) {
 
-  lib->api.destroyInstance(lib->vkInst, &lib->vkAlloc);
-
+  rvk_call(lib, destroyInstance, lib->vkInst, &lib->vkAlloc);
   dynlib_destroy(lib->vulkanLib);
   alloc_free_t(g_allocHeap, lib);
 

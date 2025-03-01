@@ -3,6 +3,7 @@
 
 #include "debug_internal.h"
 #include "device_internal.h"
+#include "lib_internal.h"
 #include "mesh_internal.h"
 #include "transfer_internal.h"
 
@@ -77,5 +78,5 @@ void rvk_mesh_bind(const RvkMesh* mesh, const RvkDevice* dev, VkCommandBuffer vk
     indexType = VK_INDEX_TYPE_UINT32;
   }
 
-  dev->api.cmdBindIndexBuffer(vkCmdBuf, mesh->indexBuffer.vkBuffer, 0, indexType);
+  rvk_call(dev, cmdBindIndexBuffer, vkCmdBuf, mesh->indexBuffer.vkBuffer, 0, indexType);
 }

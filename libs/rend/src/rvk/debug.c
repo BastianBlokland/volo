@@ -108,20 +108,20 @@ static VkBool32 SYS_DECL rvk_message_func(
 }
 
 static void rvk_messenger_create(RvkDebug* dbg) {
-  const VkDebugUtilsMessengerCreateInfoEXT createInfo = {
+  const VkDebugUtilsMessengerCreateInfoEXT info = {
       .sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
       .messageSeverity = rvk_messenger_severity_mask(dbg->flags),
       .messageType     = rvk_messenger_type_mask(dbg->flags),
       .pfnUserCallback = rvk_message_func,
       .pUserData       = dbg,
   };
-  dbg->lib->api.createDebugUtilsMessengerEXT(
-      dbg->lib->vkInst, &createInfo, &dbg->lib->vkAlloc, &dbg->vkMessenger);
+  RvkLib* lib = dbg->lib;
+  rvk_call(lib, createDebugUtilsMessengerEXT, lib->vkInst, &info, &lib->vkAlloc, &dbg->vkMessenger);
 }
 
 static void rvk_messenger_destroy(RvkDebug* dbg) {
-  dbg->lib->api.destroyDebugUtilsMessengerEXT(
-      dbg->lib->vkInst, dbg->vkMessenger, &dbg->lib->vkAlloc);
+  RvkLib* lib = dbg->lib;
+  rvk_call(lib, destroyDebugUtilsMessengerEXT, lib->vkInst, dbg->vkMessenger, &lib->vkAlloc);
 }
 
 RvkDebug* rvk_debug_create(RvkLib* lib, RvkDevice* dev, const RvkDebugFlags flags) {
@@ -165,12 +165,12 @@ void rvk_debug_label_begin_raw(
         .pLabelName = rvk_to_null_term_scratch(name),
         .color      = {color.r, color.g, color.b, color.a},
     };
-    debug->lib->api.cmdBeginDebugUtilsLabelEXT(vkCmdBuffer, &label);
+    rvk_call(debug->lib, cmdBeginDebugUtilsLabelEXT, vkCmdBuffer, &label);
   }
 }
 
 void rvk_debug_label_end(RvkDebug* debug, VkCommandBuffer vkCmdBuffer) {
   if (debug) {
-    debug->lib->api.cmdEndDebugUtilsLabelEXT(vkCmdBuffer);
+    rvk_call(debug->lib, cmdEndDebugUtilsLabelEXT, vkCmdBuffer);
   }
 }

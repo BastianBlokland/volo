@@ -77,7 +77,7 @@ static i32 rvk_device_type_score_value(const VkPhysicalDeviceType vkDevType) {
 static u32 rvk_device_pick_graphics_queue(RvkLib* lib, VkPhysicalDevice vkPhysDev) {
   VkQueueFamilyProperties families[32] = {0};
   u32                     familyCount  = array_elems(families);
-  lib->api.getPhysicalDeviceQueueFamilyProperties(vkPhysDev, &familyCount, families);
+  rvk_call(lib, getPhysicalDeviceQueueFamilyProperties, vkPhysDev, &familyCount, families);
 
   for (u32 i = 0; i != familyCount; ++i) {
     if (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
@@ -90,7 +90,7 @@ static u32 rvk_device_pick_graphics_queue(RvkLib* lib, VkPhysicalDevice vkPhysDe
 static u32 rvk_device_pick_transfer_queue(RvkLib* lib, VkPhysicalDevice vkPhysDev) {
   VkQueueFamilyProperties families[32] = {0};
   u32                     familyCount  = array_elems(families);
-  lib->api.getPhysicalDeviceQueueFamilyProperties(vkPhysDev, &familyCount, families);
+  rvk_call(lib, getPhysicalDeviceQueueFamilyProperties, vkPhysDev, &familyCount, families);
 
   for (u32 i = 0; i != familyCount; ++i) {
     /**
@@ -128,7 +128,7 @@ static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
     }
 
     VkPhysicalDeviceProperties properties;
-    lib->api.getPhysicalDeviceProperties(vkPhysDevs[i], &properties);
+    rvk_call(lib, getPhysicalDeviceProperties, vkPhysDevs[i], &properties);
 
     score += rvk_device_type_score_value(properties.deviceType);
 
@@ -238,7 +238,7 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
       .pNext = nextOptFeature,
   };
-  lib->api.getPhysicalDeviceFeatures2(dev->vkPhysDev, &supportedFeatures);
+  rvk_call(lib, getPhysicalDeviceFeatures2, dev->vkPhysDev, &supportedFeatures);
 
   if (optFeaturePresentId.presentId) {
     extsToEnable[extsToEnableCount++] = "VK_KHR_present_id";
@@ -303,15 +303,15 @@ RvkDevice* rvk_device_create(RvkLib* lib, const RendSettingsGlobalComp* settings
   dev->graphicsQueueIndex = rvk_device_pick_graphics_queue(lib, dev->vkPhysDev);
   dev->transferQueueIndex = rvk_device_pick_transfer_queue(lib, dev->vkPhysDev);
 
-  lib->api.getPhysicalDeviceProperties(dev->vkPhysDev, &dev->vkProperties);
-  lib->api.getPhysicalDeviceMemoryProperties(dev->vkPhysDev, &dev->vkMemProperties);
+  rvk_call(lib, getPhysicalDeviceProperties, dev->vkPhysDev, &dev->vkProperties);
+  rvk_call(lib, getPhysicalDeviceMemoryProperties, dev->vkPhysDev, &dev->vkMemProperties);
 
   dev->vkDev = rvk_device_create_internal(lib, dev);
   rvk_api_check(string_lit("loadDevice"), vkLoadDevice(dev->vkDev, &lib->api, &dev->api));
 
-  dev->api.getDeviceQueue(dev->vkDev, dev->graphicsQueueIndex, 0, &dev->vkGraphicsQueue);
+  rvk_call(dev, getDeviceQueue, dev->vkDev, dev->graphicsQueueIndex, 0, &dev->vkGraphicsQueue);
   if (!sentinel_check(dev->transferQueueIndex)) {
-    dev->api.getDeviceQueue(dev->vkDev, dev->transferQueueIndex, 0, &dev->vkTransferQueue);
+    rvk_call(dev, getDeviceQueue, dev->vkDev, dev->transferQueueIndex, 0, &dev->vkTransferQueue);
   }
 
   dev->depthFormat              = rvk_device_pick_depthformat(dev);
@@ -353,14 +353,14 @@ void rvk_device_destroy(RvkDevice* dev) {
   rvk_device_wait_idle(dev);
 
   rvk_pcache_save(dev, dev->vkPipelineCache);
-  dev->api.destroyPipelineCache(dev->vkDev, dev->vkPipelineCache, &dev->vkAlloc);
+  rvk_call(dev, destroyPipelineCache, dev->vkDev, dev->vkPipelineCache, &dev->vkAlloc);
 
   rvk_repository_destroy(dev->repository);
   rvk_transferer_destroy(dev->transferer);
   rvk_sampler_pool_destroy(dev->samplerPool);
   rvk_desc_pool_destroy(dev->descPool);
   rvk_mem_pool_destroy(dev->memPool);
-  dev->api.destroyDevice(dev->vkDev, &dev->vkAlloc);
+  rvk_call(dev, destroyDevice, dev->vkDev, &dev->vkAlloc);
 
   if (dev->debug) {
     rvk_debug_destroy(dev->debug);
@@ -375,7 +375,7 @@ void rvk_device_destroy(RvkDevice* dev) {
 bool rvk_device_format_supported(
     const RvkDevice* dev, const VkFormat format, const VkFormatFeatureFlags requiredFeatures) {
   VkFormatProperties properties;
-  dev->lib->api.getPhysicalDeviceFormatProperties(dev->vkPhysDev, format, &properties);
+  rvk_call(dev->lib, getPhysicalDeviceFormatProperties, dev->vkPhysDev, format, &properties);
   return (properties.optimalTilingFeatures & requiredFeatures) == requiredFeatures;
 }
 

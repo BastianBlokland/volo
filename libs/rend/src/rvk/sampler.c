@@ -170,9 +170,10 @@ RvkSamplerPool* rvk_sampler_pool_create(RvkDevice* dev) {
 }
 
 void rvk_sampler_pool_destroy(RvkSamplerPool* pool) {
+  RvkDevice* dev = pool->dev;
   for (u32 i = 0; i != rvk_samplers_max; ++i) {
     if (pool->vkSamplers[i]) {
-      pool->dev->api.destroySampler(pool->dev->vkDev, pool->vkSamplers[i], &pool->dev->vkAlloc);
+      rvk_call(dev, destroySampler, dev->vkDev, pool->vkSamplers[i], &dev->vkAlloc);
     }
   }
   alloc_free_t(g_allocHeap, pool);

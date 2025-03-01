@@ -110,11 +110,11 @@ Done:
 
 void rvk_pcache_save(RvkDevice* dev, VkPipelineCache vkCache) {
   usize size;
-  dev->api.getPipelineCacheData(dev->vkDev, vkCache, &size, null);
+  rvk_call(dev, getPipelineCacheData, dev->vkDev, vkCache, &size, null);
   size = math_min(size, rvk_pcache_size_max); // Limit the maximum cache size.
 
   const Mem buffer = alloc_alloc(g_allocHeap, size, 1);
-  dev->api.getPipelineCacheData(dev->vkDev, vkCache, &size, buffer.ptr);
+  rvk_call(dev, getPipelineCacheData, dev->vkDev, vkCache, &size, buffer.ptr);
 
   const String     path = rvk_pcache_path_scratch();
   const FileResult res  = file_write_to_path_atomic(path, mem_create(buffer.ptr, size));

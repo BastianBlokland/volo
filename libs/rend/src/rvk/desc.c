@@ -193,7 +193,7 @@ static void rvk_desc_chunk_destroy(RvkDescChunk* chunk) {
       "Not all descriptor sets have been freed");
 
   RvkDevice* dev = chunk->pool->dev;
-  dev->api.destroyDescriptorPool(dev->vkDev, chunk->vkPool, &dev->vkAlloc);
+  rvk_call(dev, destroyDescriptorPool, dev->vkDev, chunk->vkPool, &dev->vkAlloc);
   alloc_free_t(g_allocHeap, chunk);
 
 #if defined(VOLO_RVK_DESC_LOGGING)
@@ -246,7 +246,7 @@ void rvk_desc_pool_destroy(RvkDescPool* pool) {
   RvkDevice* dev = pool->dev;
   thread_mutex_destroy(pool->layoutLock);
   dynarray_for_t(&pool->layouts, RvkDescLayout, layout) {
-    dev->api.destroyDescriptorSetLayout(dev->vkDev, layout->vkLayout, &dev->vkAlloc);
+    rvk_call(dev, destroyDescriptorSetLayout, dev->vkDev, layout->vkLayout, &dev->vkAlloc);
   }
   dynarray_destroy(&pool->layouts);
 
@@ -449,7 +449,7 @@ void rvk_desc_set_attach_buffer(
       .pBufferInfo     = &bufferInfo,
   };
   RvkDevice* dev = pool->dev;
-  dev->api.updateDescriptorSets(dev->vkDev, 1, &descriptorWrite, 0, null);
+  rvk_call(dev, updateDescriptorSets, dev->vkDev, 1, &descriptorWrite, 0, null);
 }
 
 void rvk_desc_set_attach_sampler(
@@ -490,5 +490,5 @@ void rvk_desc_set_attach_sampler(
       .pImageInfo      = &imgInfo,
   };
   RvkDevice* dev = pool->dev;
-  dev->api.updateDescriptorSets(dev->vkDev, 1, &descriptorWrite, 0, null);
+  rvk_call(dev, updateDescriptorSets, dev->vkDev, 1, &descriptorWrite, 0, null);
 }

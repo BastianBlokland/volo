@@ -717,10 +717,10 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
 
 void rvk_graphic_destroy(RvkGraphic* graphic, RvkDevice* dev) {
   if (graphic->vkPipeline) {
-    dev->api.destroyPipeline(dev->vkDev, graphic->vkPipeline, &dev->vkAlloc);
+    rvk_call(dev, destroyPipeline, dev->vkDev, graphic->vkPipeline, &dev->vkAlloc);
   }
   if (graphic->vkPipelineLayout) {
-    dev->api.destroyPipelineLayout(dev->vkDev, graphic->vkPipelineLayout, &dev->vkAlloc);
+    rvk_call(dev, destroyPipelineLayout, dev->vkDev, graphic->vkPipelineLayout, &dev->vkAlloc);
   }
   if (rvk_desc_valid(graphic->graphicDescSet)) {
     rvk_desc_free(graphic->graphicDescSet);
@@ -925,10 +925,12 @@ void rvk_graphic_bind(
 #endif
   diag_assert_msg(graphic->passId == rvk_pass_config(pass)->id, "Unsupported pass");
 
-  dev->api.cmdBindPipeline(vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
+  rvk_call(dev, cmdBindPipeline, vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
 
   const VkDescriptorSet vkGraphicDescSet = rvk_desc_set_vkset(graphic->graphicDescSet);
-  dev->api.cmdBindDescriptorSets(
+  rvk_call(
+      dev,
+      cmdBindDescriptorSets,
       vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
       graphic->vkPipelineLayout,

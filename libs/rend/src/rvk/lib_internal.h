@@ -18,8 +18,7 @@ typedef struct sRvkLib {
 RvkLib* rvk_lib_create(const RendSettingsGlobalComp*);
 void    rvk_lib_destroy(RvkLib*);
 
-#define rvk_call(_OBJ_, _FUNC_, ...)                                                               \
-  (_OBJ_)->api._FUNC_(__VA_ARGS__))
+#define rvk_call(_OBJ_, _FUNC_, ...) (_OBJ_)->api._FUNC_(__VA_ARGS__)
 
 #define rvk_call_checked(_OBJ_, _FUNC_, ...)                                                       \
   rvk_api_check(string_lit(#_FUNC_), (_OBJ_)->api._FUNC_(__VA_ARGS__))
