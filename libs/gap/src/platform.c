@@ -1,4 +1,5 @@
 #include "asset_manager.h"
+#include "core_diag.h"
 #include "ecs_entity.h"
 #include "ecs_view.h"
 #include "ecs_world.h"
@@ -27,7 +28,15 @@ ecs_comp_define_public(GapPlatformComp);
 
 static void ecs_destruct_platform_comp(void* data) {
   GapPlatformComp* comp = data;
+
+  diag_crash_handler(null, null); // Clear the crash handler.
+
   gap_pal_destroy(comp->pal);
+}
+
+static void gap_crash_handler(const String message, void* ctx) {
+  GapPal* pal = ctx;
+  gap_pal_modal_error(pal, message);
 }
 
 ecs_view_define(UpdateGlobalView) {
@@ -88,6 +97,8 @@ ecs_system_define(GapPlatformUpdateSys) {
   if (!platform) {
     platform      = ecs_world_add_t(world, ecs_world_global(world), GapPlatformComp);
     platform->pal = gap_pal_create(g_allocHeap);
+
+    diag_crash_handler(gap_crash_handler, platform->pal); // Register the crash-handler.
 
     for (GapIcon i = 0; i != GapIcon_Count; ++i) {
       gap_icon_load_begin(world, assetManager, &platform->icons[i], g_gapIconAssets[i]);
