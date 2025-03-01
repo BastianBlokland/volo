@@ -51,9 +51,3 @@ add_library(lib_rend STATIC
 target_include_directories(lib_rend PUBLIC include)
 target_link_libraries(lib_rend PUBLIC lib_core lib_ecs lib_scene)
 target_link_libraries(lib_rend PRIVATE lib_asset lib_gap lib_log lib_trace)
-
-find_package(Vulkan REQUIRED)
-message(STATUS ">> Vulkan lib: ${Vulkan_LIBRARIES}")
-message(STATUS ">> Vulkan headers: ${Vulkan_INCLUDE_DIRS}")
-target_link_libraries(lib_rend PRIVATE ${Vulkan_LIBRARIES})
-target_include_directories(lib_rend PRIVATE ${Vulkan_INCLUDE_DIRS})
