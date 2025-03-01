@@ -37,6 +37,8 @@
 #define VK_SHADER_INDEX_UNUSED_AMDX (~0U)
 #define VK_PARTITIONED_ACCELERATION_STRUCTURE_PARTITION_INDEX_GLOBAL_NV (~0U)
 
+#define VK_LAYER_KHRONOS_validation "VK_LAYER_KHRONOS_validation"
+
 #define VK_EXT_debug_utils "VK_EXT_debug_utils"
 #define VK_EXT_validation_features "VK_EXT_validation_features"
 #define VK_KHR_16bit_storage "VK_KHR_16bit_storage"

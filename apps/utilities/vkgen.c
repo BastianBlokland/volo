@@ -85,6 +85,10 @@ static const String g_vkgenFeatures[] = {
     string_static("VK_VERSION_1_1"),
 };
 
+static const String g_vkgenLayers[] = {
+    string_static("VK_LAYER_KHRONOS_validation"),
+};
+
 static const String g_vkgenExtensions[] = {
     string_static("VK_EXT_debug_utils"),
     string_static("VK_EXT_validation_features"),
@@ -1418,6 +1422,13 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   // Write constants.
   dynarray_for_t(&ctx->constants, VkGenConstant, constant) {
     fmt_write(&ctx->out, "#define {} {}\n", fmt_text(constant->name), fmt_text(constant->value));
+  }
+  fmt_write(&ctx->out, "\n");
+
+  // Write layer strings.
+  for (u32 i = 0; i != array_elems(g_vkgenLayers); ++i) {
+    const String layer = g_vkgenLayers[i];
+    fmt_write(&ctx->out, "#define {} \"{}\"\n", fmt_text(layer), fmt_text(layer));
   }
   fmt_write(&ctx->out, "\n");
 

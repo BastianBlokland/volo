@@ -63,7 +63,7 @@ static VkInstance rvk_inst_create(
   const char* layerNames[16];
   u32         layerCount = 0;
   if (flags & RvkLibFlags_Validation) {
-    layerNames[layerCount++] = "VK_LAYER_KHRONOS_validation";
+    layerNames[layerCount++] = VK_LAYER_KHRONOS_validation;
   }
 
   const char* extensionNames[16];
@@ -226,7 +226,7 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
   rvk_api_check(string_lit("loadLoader"), vkLoadLoader(lib->vulkanLib, &loaderApi));
 
   const bool validationDesired = (set->flags & RendGlobalFlags_Validation) != 0;
-  if (validationDesired && rvk_inst_layer_supported(&loaderApi, "VK_LAYER_KHRONOS_validation")) {
+  if (validationDesired && rvk_inst_layer_supported(&loaderApi, VK_LAYER_KHRONOS_validation)) {
     lib->flags |= RvkLibFlags_Validation;
   }
   const bool debugDesired = validationDesired || (set->flags & RendGlobalFlags_DebugGpu) != 0;
