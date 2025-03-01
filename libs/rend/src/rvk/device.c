@@ -330,11 +330,11 @@ RvkDevice* rvk_device_create(RvkLib* lib, const RendSettingsGlobalComp* settings
   }
 
   dev->vkPipelineCache = rvk_pcache_load(dev);
-  dev->memPool  = rvk_mem_pool_create(dev->vkDev, dev->vkMemProperties, dev->vkProperties.limits);
-  dev->descPool = rvk_desc_pool_create(dev);
-  dev->samplerPool = rvk_sampler_pool_create(dev);
-  dev->transferer  = rvk_transferer_create(dev);
-  dev->repository  = rvk_repository_create();
+  dev->memPool         = rvk_mem_pool_create(dev, dev->vkMemProperties, dev->vkProperties.limits);
+  dev->descPool        = rvk_desc_pool_create(dev);
+  dev->samplerPool     = rvk_sampler_pool_create(dev);
+  dev->transferer      = rvk_transferer_create(dev);
+  dev->repository      = rvk_repository_create();
 
   log_i(
       "Vulkan device created",

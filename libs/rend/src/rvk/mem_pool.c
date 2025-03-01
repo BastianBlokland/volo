@@ -5,6 +5,7 @@
 #include "core_dynarray.h"
 #include "core_thread.h"
 
+#include "device_internal.h"
 #include "mem_internal.h"
 
 /**
@@ -36,7 +37,7 @@ struct sRvkMemChunk {
 };
 
 struct sRvkMemPool {
-  VkDevice                         vkDev;
+  RvkDevice*                       dev;
   VkPhysicalDeviceMemoryProperties vkDevMemProps;
   VkPhysicalDeviceLimits           vkDevLimits;
   VkAllocationCallbacks            vkAlloc;
@@ -111,7 +112,7 @@ static VkDeviceMemory rvk_mem_alloc_vk(RvkMemPool* pool, const u32 size, const u
       .memoryTypeIndex = memType,
   };
   VkDeviceMemory result;
-  rvk_call(vkAllocateMemory, pool->vkDev, &allocInfo, &pool->vkAlloc, &result);
+  rvk_call(pool->dev->api, allocateMemory, pool->dev->vkDev, &allocInfo, &pool->vkAlloc, &result);
   return result;
 }
 
@@ -119,7 +120,7 @@ static VkDeviceMemory rvk_mem_alloc_vk(RvkMemPool* pool, const u32 size, const u
  * Free a continuous block of device memory to Vulkan.
  */
 static void rvk_mem_free_vk(RvkMemPool* pool, const VkDeviceMemory vkMem) {
-  vkFreeMemory(pool->vkDev, vkMem, &pool->vkAlloc);
+  pool->dev->api.freeMemory(pool->dev->vkDev, vkMem, &pool->vkAlloc);
 }
 
 /**
@@ -181,7 +182,8 @@ static RvkMemChunk* rvk_mem_chunk_create(
   };
 
   if (loc == RvkMemLoc_Host) {
-    rvk_call(vkMapMemory, pool->vkDev, chunk->vkMem, 0, VK_WHOLE_SIZE, 0, &chunk->map);
+    const VkDeviceSize mapSize = VK_WHOLE_SIZE;
+    rvk_call(pool->dev->api, mapMemory, pool->dev->vkDev, chunk->vkMem, 0, mapSize, 0, &chunk->map);
   }
 
   // Start with a single free block spanning the whole size.
@@ -354,13 +356,13 @@ MAYBE_UNUSED static RvkMemChunk* rvk_mem_pool_chunk_prev(RvkMemPool* pool, RvkMe
 }
 
 RvkMemPool* rvk_mem_pool_create(
-    const VkDevice                         vkDev,
+    RvkDevice*                             dev,
     const VkPhysicalDeviceMemoryProperties props,
     const VkPhysicalDeviceLimits           limits) {
   RvkMemPool* pool = alloc_alloc_t(g_allocHeap, RvkMemPool);
 
   *pool = (RvkMemPool){
-      .vkDev         = vkDev,
+      .dev           = dev,
       .vkDevMemProps = props,
       .vkDevLimits   = limits,
       .vkAlloc       = rvk_mem_allocator(g_allocHeap),
@@ -466,12 +468,14 @@ void rvk_mem_free(const RvkMem mem) {
 
 void rvk_mem_bind_buffer(const RvkMem mem, const VkBuffer vkBuffer) {
   diag_assert(rvk_mem_valid(mem));
-  rvk_call(vkBindBufferMemory, mem.chunk->pool->vkDev, vkBuffer, mem.chunk->vkMem, mem.offset);
+  RvkDevice* dev = mem.chunk->pool->dev;
+  rvk_call(dev->api, bindBufferMemory, dev->vkDev, vkBuffer, mem.chunk->vkMem, mem.offset);
 }
 
 void rvk_mem_bind_image(const RvkMem mem, const VkImage vkImage) {
   diag_assert(rvk_mem_valid(mem));
-  rvk_call(vkBindImageMemory, mem.chunk->pool->vkDev, vkImage, mem.chunk->vkMem, mem.offset);
+  RvkDevice* dev = mem.chunk->pool->dev;
+  rvk_call(dev->api, bindImageMemory, dev->vkDev, vkImage, mem.chunk->vkMem, mem.offset);
 }
 
 Mem rvk_mem_map(const RvkMem mem) {
@@ -523,7 +527,7 @@ void rvk_mem_flush_batch(const RvkMemFlush flushes[], const u32 count) {
         .size   = paddedSize,
     };
   }
-  rvk_call(vkFlushMappedMemoryRanges, pool->vkDev, count, ranges);
+  rvk_call(pool->dev->api, flushMappedMemoryRanges, pool->dev->vkDev, count, ranges);
 }
 
 u64 rvk_mem_occupied(const RvkMemPool* pool, const RvkMemLoc loc) {

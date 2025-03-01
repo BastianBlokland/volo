@@ -1,6 +1,7 @@
 #pragma once
 #include "core_alloc.h"
 
+#include "forward_internal.h"
 #include "vulkan_internal.h"
 
 typedef struct sRvkMemPool  RvkMemPool;
@@ -23,8 +24,12 @@ typedef struct {
 
 #define rvk_mem_valid(_MEM_) ((_MEM_).chunk != null)
 
-RvkMemPool* rvk_mem_pool_create(VkDevice, VkPhysicalDeviceMemoryProperties, VkPhysicalDeviceLimits);
+// clang-format off
+
+RvkMemPool* rvk_mem_pool_create(RvkDevice*, VkPhysicalDeviceMemoryProperties, VkPhysicalDeviceLimits);
 void        rvk_mem_pool_destroy(RvkMemPool*);
+
+// clang-format on
 
 RvkMem rvk_mem_alloc_req(RvkMemPool*, RvkMemLoc, RvkMemAccess, VkMemoryRequirements);
 RvkMem rvk_mem_alloc(RvkMemPool*, RvkMemLoc, RvkMemAccess, u32 size, u32 align, u32 mask);
