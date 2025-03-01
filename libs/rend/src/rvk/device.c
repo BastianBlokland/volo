@@ -15,8 +15,8 @@
 #include "transfer_internal.h"
 
 static const String g_requiredExts[] = {
-    string_static("VK_KHR_swapchain"),
-    string_static("VK_KHR_16bit_storage"),
+    string_static(VK_KHR_swapchain),
+    string_static(VK_KHR_16bit_storage),
 };
 static const String g_optionalExts[] = {
     /**
@@ -24,7 +24,7 @@ static const String g_optionalExts[] = {
      * For devices that do not support this we are technically violating the spec, however in
      * practice all tested drivers handle this as expected.
      */
-    string_static("VK_KHR_maintenance4"),
+    string_static(VK_KHR_maintenance4),
 };
 
 static const char* rvk_to_null_term_scratch(const String str) {
@@ -249,11 +249,11 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   rvk_call(lib, getPhysicalDeviceFeatures2, dev->vkPhysDev, &supportedFeatures);
 
   if (optFeaturePresentId.presentId) {
-    extsToEnable[extsToEnableCount++] = "VK_KHR_present_id";
+    extsToEnable[extsToEnableCount++] = VK_KHR_present_id;
     dev->flags |= RvkDeviceFlags_SupportPresentId;
   }
   if (optFeaturePresentWait.presentWait) {
-    extsToEnable[extsToEnableCount++] = "VK_KHR_present_wait";
+    extsToEnable[extsToEnableCount++] = VK_KHR_present_wait;
     dev->flags |= RvkDeviceFlags_SupportPresentWait;
   }
 

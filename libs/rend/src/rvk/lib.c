@@ -63,22 +63,22 @@ static VkInstance rvk_inst_create(
   const char* layerNames[16];
   u32         layerCount = 0;
   if (flags & RvkLibFlags_Validation) {
-    layerNames[layerCount++] = "VK_LAYER_KHRONOS_validation";
+    layerNames[layerCount++] = VK_LAYER_KHRONOS_validation;
   }
 
   const char* extensionNames[16];
   u32         extensionCount       = 0;
-  extensionNames[extensionCount++] = "VK_KHR_surface";
+  extensionNames[extensionCount++] = VK_KHR_surface;
   switch (gap_native_wm()) {
   case GapNativeWm_Xcb:
-    extensionNames[extensionCount++] = "VK_KHR_xcb_surface";
+    extensionNames[extensionCount++] = VK_KHR_xcb_surface;
     break;
   case GapNativeWm_Win32:
-    extensionNames[extensionCount++] = "VK_KHR_win32_surface";
+    extensionNames[extensionCount++] = VK_KHR_win32_surface;
     break;
   }
   if (flags & RvkLibFlags_Debug) {
-    extensionNames[extensionCount++] = "VK_EXT_debug_utils";
+    extensionNames[extensionCount++] = VK_EXT_debug_utils;
   }
 
   VkInstanceCreateInfo createInfo = {
@@ -226,11 +226,11 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
   rvk_api_check(string_lit("loadLoader"), vkLoadLoader(lib->vulkanLib, &loaderApi));
 
   const bool validationDesired = (set->flags & RendGlobalFlags_Validation) != 0;
-  if (validationDesired && rvk_inst_layer_supported(&loaderApi, "VK_LAYER_KHRONOS_validation")) {
+  if (validationDesired && rvk_inst_layer_supported(&loaderApi, VK_LAYER_KHRONOS_validation)) {
     lib->flags |= RvkLibFlags_Validation;
   }
   const bool debugDesired = validationDesired || (set->flags & RendGlobalFlags_DebugGpu) != 0;
-  if (debugDesired && rvk_inst_extension_supported(&loaderApi, "VK_EXT_debug_utils")) {
+  if (debugDesired && rvk_inst_extension_supported(&loaderApi, VK_EXT_debug_utils)) {
     lib->flags |= RvkLibFlags_Debug;
     if (set->flags & RendGlobalFlags_Verbose) {
       lib->flags |= RvkLibFlags_DebugVerbose;
