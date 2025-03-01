@@ -38,7 +38,7 @@ typedef struct sRvkDevice {
   RvkRepository*                   repository;
 } RvkDevice;
 
-RvkDevice* rvk_device_create(RvkLib*, const RendSettingsGlobalComp*);
+RvkDevice* rvk_device_create(RvkLib*);
 void       rvk_device_destroy(RvkDevice*);
 
 bool   rvk_device_format_supported(const RvkDevice*, VkFormat, VkFormatFeatureFlags);

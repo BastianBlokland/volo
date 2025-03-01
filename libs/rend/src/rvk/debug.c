@@ -10,7 +10,6 @@
 
 /**
  * Vulkan validation layer support.
- * - Logs output messages from the validation layers.
  * - Provide debug names for Vulkan objects.
  * - Inserting labels into command buffers.
  *
@@ -21,11 +20,8 @@
  */
 
 struct sRvkDebug {
-  RvkDebugFlags            flags;
-  RvkLib*                  lib;
-  RvkDevice*               dev;
-  Logger*                  logger;
-  VkDebugUtilsMessengerEXT vkMessenger;
+  RvkLib*    lib;
+  RvkDevice* dev;
 };
 
 static const char* rvk_to_null_term_scratch(const String str) {
@@ -35,114 +31,18 @@ static const char* rvk_to_null_term_scratch(const String str) {
   return scratchMem.ptr;
 }
 
-static int rvk_messenger_severity_mask(const RvkDebugFlags flags) {
-  int severity = 0;
-  if (flags & RvkDebugFlags_Verbose) {
-    severity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
-    severity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
-  }
-  severity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
-  severity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-  return severity;
-}
-
-static int rvk_messenger_type_mask(const RvkDebugFlags flags) {
-  int mask = 0;
-  mask |= VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
-  mask |= VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
-  if (flags & RvkDebugFlags_Verbose) {
-    mask |= VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-  }
-  return mask;
-}
-
-static String rvk_msg_type_label(const VkDebugUtilsMessageTypeFlagsEXT msgType) {
-  if (msgType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) {
-    return string_lit("performance");
-  }
-  if (msgType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT) {
-    return string_lit("validation");
-  }
-  if (msgType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT) {
-    return string_lit("general");
-  }
-  return string_lit("unknown");
-}
-
-static LogLevel rvk_msg_log_level(const VkDebugUtilsMessageSeverityFlagBitsEXT msgSeverity) {
-  if (msgSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-    return LogLevel_Error;
-  }
-  if (msgSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-    return LogLevel_Warn;
-  }
-  if (msgSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-    return LogLevel_Info;
-  }
-  return LogLevel_Debug;
-}
-
-static VkBool32 SYS_DECL rvk_message_func(
-    VkDebugUtilsMessageSeverityFlagBitsEXT      msgSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT             msgType,
-    const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
-    void*                                       userData) {
-  RvkDebug* dbg = userData;
-
-  thread_ensure_init();
-
-  const LogLevel logLevel  = rvk_msg_log_level(msgSeverity);
-  const String   typeLabel = rvk_msg_type_label(msgType);
-  const String   message   = string_from_null_term(callbackData->pMessage);
-
-  log(dbg->logger,
-      logLevel,
-      "Vulkan {} debug",
-      log_param("type", fmt_text(typeLabel)),
-      log_param("text", fmt_text(message)));
-
-  if (msgSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-    diag_break(); // Halt when running in a debugger.
-  }
-  return false;
-}
-
-static void rvk_messenger_create(RvkDebug* dbg) {
-  const VkDebugUtilsMessengerCreateInfoEXT info = {
-      .sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-      .messageSeverity = rvk_messenger_severity_mask(dbg->flags),
-      .messageType     = rvk_messenger_type_mask(dbg->flags),
-      .pfnUserCallback = rvk_message_func,
-      .pUserData       = dbg,
-  };
-  RvkLib* lib = dbg->lib;
-  rvk_call(lib, createDebugUtilsMessengerEXT, lib->vkInst, &info, &lib->vkAlloc, &dbg->vkMessenger);
-}
-
-static void rvk_messenger_destroy(RvkDebug* dbg) {
-  RvkLib* lib = dbg->lib;
-  rvk_call(lib, destroyDebugUtilsMessengerEXT, lib->vkInst, dbg->vkMessenger, &lib->vkAlloc);
-}
-
-RvkDebug* rvk_debug_create(RvkLib* lib, RvkDevice* dev, const RvkDebugFlags flags) {
+RvkDebug* rvk_debug_create(RvkLib* lib, RvkDevice* dev) {
   RvkDebug* debug = alloc_alloc_t(g_allocHeap, RvkDebug);
 
   *debug = (RvkDebug){
-      .flags  = flags,
-      .lib    = lib,
-      .dev    = dev,
-      .logger = g_logger,
+      .lib = lib,
+      .dev = dev,
   };
-
-  rvk_messenger_create(debug);
 
   return debug;
 }
 
-void rvk_debug_destroy(RvkDebug* debug) {
-  rvk_messenger_destroy(debug);
-  alloc_free_t(g_allocHeap, debug);
-}
+void rvk_debug_destroy(RvkDebug* debug) { alloc_free_t(g_allocHeap, debug); }
 
 void rvk_debug_name(
     RvkDebug* debug, const VkObjectType vkType, const u64 vkHandle, const String name) {

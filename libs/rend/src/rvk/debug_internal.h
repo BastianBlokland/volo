@@ -4,17 +4,12 @@
 
 #include "forward_internal.h"
 
-typedef enum {
-  RvkDebugFlags_None    = 0,
-  RvkDebugFlags_Verbose = 1 << 0,
-} RvkDebugFlags;
-
 /**
  * GPU debug helper.
  */
 typedef struct sRvkDebug RvkDebug;
 
-RvkDebug* rvk_debug_create(RvkLib*, RvkDevice*, RvkDebugFlags);
+RvkDebug* rvk_debug_create(RvkLib*, RvkDevice*);
 void      rvk_debug_destroy(RvkDebug*);
 void      rvk_debug_name(RvkDebug*, VkObjectType, u64 vkHandle, String name);
 void      rvk_debug_label_begin_raw(RvkDebug*, VkCommandBuffer, GeoColor, String name);

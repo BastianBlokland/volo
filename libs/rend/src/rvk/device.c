@@ -289,7 +289,7 @@ static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
   diag_crash_msg("No suitable depth-format found");
 }
 
-RvkDevice* rvk_device_create(RvkLib* lib, const RendSettingsGlobalComp* settingsGlobal) {
+RvkDevice* rvk_device_create(RvkLib* lib) {
   RvkDevice* dev = alloc_alloc_t(g_allocHeap, RvkDevice);
 
   *dev = (RvkDevice){
@@ -318,9 +318,7 @@ RvkDevice* rvk_device_create(RvkLib* lib, const RendSettingsGlobalComp* settings
   dev->preferredSwapchainFormat = VK_FORMAT_B8G8R8A8_SRGB;
 
   if (lib->flags & RvkLibFlags_Debug) {
-    const bool          verbose    = (settingsGlobal->flags & RendGlobalFlags_Verbose) != 0;
-    const RvkDebugFlags debugFlags = verbose ? RvkDebugFlags_Verbose : 0;
-    dev->debug                     = rvk_debug_create(lib, dev, debugFlags);
+    dev->debug = rvk_debug_create(lib, dev);
     if (dev->vkTransferQueue) {
       rvk_debug_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics");
       rvk_debug_name_queue(dev->debug, dev->vkTransferQueue, "transfer");
