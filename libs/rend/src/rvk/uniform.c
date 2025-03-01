@@ -220,7 +220,7 @@ void rvk_uniform_dynamic_bind(
   }
   const VkDescriptorSet descSets[]       = {rvk_desc_set_vkset(chunk->dynamicSet)};
   const u32             dynamicOffsets[] = {entry->offset};
-  vkCmdBindDescriptorSets(
+  uni->device->api.cmdBindDescriptorSets(
       vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
       vkPipelineLayout,
