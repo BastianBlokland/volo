@@ -17,7 +17,7 @@ static VkShaderModule rvk_shader_module_create(RvkDevice* dev, const AssetShader
       .pCode    = (const u32*)asset->data.ptr,
   };
   VkShaderModule result;
-  rvk_call(vkCreateShaderModule, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
+  rvk_call(dev->api, createShaderModule, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -179,7 +179,7 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
 }
 
 void rvk_shader_destroy(RvkShader* shader, RvkDevice* dev) {
-  vkDestroyShaderModule(dev->vkDev, shader->vkModule, &dev->vkAlloc);
+  dev->api.destroyShaderModule(dev->vkDev, shader->vkModule, &dev->vkAlloc);
   string_free(g_allocHeap, shader->entryPoint);
 
   if (shader->specs.values) {
