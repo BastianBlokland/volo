@@ -58,7 +58,7 @@ static void rvk_vk_exts_free(RendVkExts exts) {
 /**
  * Check if the given extension is contained in the list of available device extensions.
  */
-static bool rvk_device_has_ext(RendVkExts availableExts, String ext) {
+static bool rvk_device_has_ext(RendVkExts availableExts, const String ext) {
   heap_array_for_t(availableExts, VkExtensionProperties, props) {
     if (string_eq(ext, string_from_null_term(props->extensionName))) {
       return true;
@@ -115,6 +115,45 @@ static u32 rvk_device_pick_transfer_queue(RvkLib* lib, VkPhysicalDevice vkPhysDe
   return sentinel_u32;
 }
 
+static bool rvk_device_validate_features(const VkPhysicalDeviceFeatures2* supported) {
+  if (!supported->features.independentBlend) {
+    return false;
+  }
+  return true;
+}
+
+static VkPhysicalDeviceFeatures
+rvk_device_pick_features(RvkDevice* dev, const VkPhysicalDeviceFeatures2* supported) {
+  VkPhysicalDeviceFeatures result = {0};
+
+  // Required features.
+  result.independentBlend = true;
+
+  // Optional features.
+  if (supported->features.pipelineStatisticsQuery) {
+    result.pipelineStatisticsQuery = true;
+    dev->flags |= RvkDeviceFlags_SupportPipelineStatQuery;
+  }
+  if (supported->features.samplerAnisotropy) {
+    result.samplerAnisotropy = true;
+    dev->flags |= RvkDeviceFlags_SupportAnisotropy;
+  }
+  if (supported->features.fillModeNonSolid) {
+    result.fillModeNonSolid = true;
+    dev->flags |= RvkDeviceFlags_SupportFillNonSolid;
+  }
+  if (supported->features.wideLines) {
+    result.wideLines = true;
+    dev->flags |= RvkDeviceFlags_SupportWideLines;
+  }
+  if (supported->features.depthClamp) {
+    result.depthClamp = true;
+    dev->flags |= RvkDeviceFlags_SupportDepthClamp;
+  }
+
+  return result;
+}
+
 static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
   VkPhysicalDevice vkPhysDevs[32];
   u32              vkPhysDevsCount = array_elems(vkPhysDevs);
@@ -133,6 +172,16 @@ static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
         score = -1;
         goto detectionDone;
       }
+    }
+
+    VkPhysicalDeviceFeatures2 supportedFeatures = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+    };
+    rvk_call(lib, getPhysicalDeviceFeatures2, vkPhysDevs[i], &supportedFeatures);
+
+    if (!rvk_device_validate_features(&supportedFeatures)) {
+      score = -1;
+      goto detectionDone;
     }
 
     VkPhysicalDeviceProperties properties;
@@ -162,35 +211,6 @@ static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
   return bestVkPhysDev;
 }
 
-static VkPhysicalDeviceFeatures
-rvk_device_pick_features(RvkDevice* dev, const VkPhysicalDeviceFeatures2* supported) {
-  VkPhysicalDeviceFeatures result = {0};
-  if (supported->features.pipelineStatisticsQuery) {
-    result.pipelineStatisticsQuery = true;
-    dev->flags |= RvkDeviceFlags_SupportPipelineStatQuery;
-  }
-  if (supported->features.samplerAnisotropy) {
-    result.samplerAnisotropy = true;
-    dev->flags |= RvkDeviceFlags_SupportAnisotropy;
-  }
-  if (supported->features.fillModeNonSolid) {
-    result.fillModeNonSolid = true;
-    dev->flags |= RvkDeviceFlags_SupportFillNonSolid;
-  }
-  if (supported->features.wideLines) {
-    result.wideLines = true;
-    dev->flags |= RvkDeviceFlags_SupportWideLines;
-  }
-  if (supported->features.depthClamp) {
-    result.depthClamp = true;
-    dev->flags |= RvkDeviceFlags_SupportDepthClamp;
-  }
-  // TODO: Either support devices without the 'independentBlend' feature or disqualify devices
-  // without this feature during device selection.
-  result.independentBlend = true;
-  return result;
-}
-
 static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   const char* extsToEnable[64];
   u32         extsToEnableCount = 0;
@@ -216,14 +236,14 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
 
   // Add required extensions.
   array_for_t(g_requiredExts, String, reqExt) {
-    extsToEnable[extsToEnableCount++] = reqExt->ptr; // TODO: Hacky as it assumes null-term.
+    extsToEnable[extsToEnableCount++] = rvk_to_null_term_scratch(*reqExt);
   }
 
   // Add optional extensions.
   const RendVkExts supportedExts = rvk_device_exts_query(lib, dev->vkPhysDev);
   array_for_t(g_optionalExts, String, optExt) {
     if (rvk_device_has_ext(supportedExts, *optExt)) {
-      extsToEnable[extsToEnableCount++] = optExt->ptr; // TODO: Hacky as it assumes null-term.
+      extsToEnable[extsToEnableCount++] = rvk_to_null_term_scratch(*optExt);
     }
   }
   rvk_vk_exts_free(supportedExts);
@@ -257,7 +277,7 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
     dev->flags |= RvkDeviceFlags_SupportPresentWait;
   }
 
-  VkPhysicalDevice16BitStorageFeatures float16IStorageFeatures = {
+  VkPhysicalDevice16BitStorageFeatures float16StorageFeatures = {
       .sType                    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,
       .pNext                    = nextOptFeature, // Enable all supported optional features.
       .storageBuffer16BitAccess = true,
@@ -265,7 +285,7 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   };
   const VkPhysicalDeviceFeatures2 featuresToEnable = {
       .sType    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-      .pNext    = &float16IStorageFeatures,
+      .pNext    = &float16StorageFeatures,
       .features = rvk_device_pick_features(dev, &supportedFeatures),
   };
   const VkDeviceCreateInfo createInfo = {
