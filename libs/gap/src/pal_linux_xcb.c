@@ -1869,3 +1869,10 @@ bool gap_pal_require_thread_affinity(void) {
 GapNativeWm gap_pal_native_wm(void) { return GapNativeWm_Xcb; }
 
 uptr gap_pal_native_app_handle(const GapPal* pal) { return (uptr)pal->xcbCon; }
+
+void gap_pal_modal_error(GapPal* pal, const String message) {
+  (void)pal;
+  (void)message;
+
+  // TODO: Implement.
+}

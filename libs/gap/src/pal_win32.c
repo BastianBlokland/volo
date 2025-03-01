@@ -1371,3 +1371,22 @@ bool gap_pal_require_thread_affinity(void) {
 GapNativeWm gap_pal_native_wm(void) { return GapNativeWm_Win32; }
 
 uptr gap_pal_native_app_handle(const GapPal* pal) { return (uptr)pal->moduleInstance; }
+
+void gap_pal_modal_error(GapPal* pal, String message) {
+  (void)pal;
+
+  enum { MessageMaxSize = 1024 };
+
+  if (message.size > MessageMaxSize) {
+    message = string_slice(message, 0, MessageMaxSize);
+  }
+
+  u8          messageBuffer[MessageMaxSize * sizeof(wchar_t)];
+  const usize messageSize = winutils_to_widestr(array_mem(messageBuffer), message);
+  if (sentinel_check(messageSize)) {
+    return; // Invalid message.
+  }
+
+  UINT type = MB_OK | MB_ICONERROR | MB_TASKMODAL | MB_SETFOREGROUND | MB_TOPMOST;
+  MessageBox(null /* owner */, (const wchar_t*)messageBuffer, null /* caption */, type);
+}
