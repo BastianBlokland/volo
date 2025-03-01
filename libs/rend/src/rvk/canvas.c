@@ -9,6 +9,7 @@
 #include "debug_internal.h"
 #include "device_internal.h"
 #include "job_internal.h"
+#include "lib_internal.h"
 #include "pass_internal.h"
 #include "statrecorder_internal.h"
 #include "swapchain_internal.h"
@@ -46,7 +47,7 @@ struct sRvkCanvas {
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
   VkSemaphoreCreateInfo semaphoreInfo = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
   VkSemaphore           result;
-  rvk_call(dev->api, createSemaphore, dev->vkDev, &semaphoreInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createSemaphore, dev->vkDev, &semaphoreInfo, &dev->vkAlloc, &result);
   return result;
 }
 

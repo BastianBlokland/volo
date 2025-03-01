@@ -58,7 +58,7 @@ static VkSurfaceKHR rvk_surface_create(RvkLib* lib, const GapWindowComp* window)
         .connection = gap_native_app_handle(window),
         .window     = gap_native_window_handle(window),
     };
-    rvk_call(lib->api, createXcbSurfaceKHR, lib->vkInst, &createInfo, &lib->vkAlloc, &result);
+    rvk_call_checked(lib, createXcbSurfaceKHR, lib->vkInst, &createInfo, &lib->vkAlloc, &result);
   } break;
   case GapNativeWm_Win32: {
     const VkWin32SurfaceCreateInfoKHR createInfo = {
@@ -66,7 +66,7 @@ static VkSurfaceKHR rvk_surface_create(RvkLib* lib, const GapWindowComp* window)
         .hinstance = gap_native_app_handle(window),
         .hwnd      = gap_native_window_handle(window),
     };
-    rvk_call(lib->api, createWin32SurfaceKHR, lib->vkInst, &createInfo, &lib->vkAlloc, &result);
+    rvk_call_checked(lib, createWin32SurfaceKHR, lib->vkInst, &createInfo, &lib->vkAlloc, &result);
   } break;
   }
   return result;
@@ -74,12 +74,12 @@ static VkSurfaceKHR rvk_surface_create(RvkLib* lib, const GapWindowComp* window)
 
 static VkSurfaceFormatKHR rvk_pick_surface_format(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR surf) {
   u32 count;
-  rvk_call(lib->api, getPhysicalDeviceSurfaceFormatsKHR, dev->vkPhysDev, surf, &count, null);
+  rvk_call_checked(lib, getPhysicalDeviceSurfaceFormatsKHR, dev->vkPhysDev, surf, &count, null);
   if (!count) {
     diag_crash_msg("No Vulkan surface formats available");
   }
   VkSurfaceFormatKHR* formats = mem_stack(sizeof(VkSurfaceFormatKHR) * count).ptr;
-  rvk_call(lib->api, getPhysicalDeviceSurfaceFormatsKHR, dev->vkPhysDev, surf, &count, formats);
+  rvk_call_checked(lib, getPhysicalDeviceSurfaceFormatsKHR, dev->vkPhysDev, surf, &count, formats);
 
   // Check if the preferred swapchain format is available.
   for (u32 i = 0; i != count; ++i) {
@@ -135,8 +135,8 @@ static VkPresentModeKHR rvk_pick_presentmode(
     RvkLib* lib, RvkDevice* dev, const RendSettingsComp* settings, const VkSurfaceKHR surf) {
   VkPresentModeKHR available[32];
   u32              availableCount = array_elems(available);
-  rvk_call(
-      lib->api,
+  rvk_call_checked(
+      lib,
       getPhysicalDeviceSurfacePresentModesKHR,
       dev->vkPhysDev,
       surf,
@@ -159,7 +159,7 @@ static VkPresentModeKHR rvk_pick_presentmode(
 
 static VkSurfaceCapabilitiesKHR rvk_surface_caps(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR surf) {
   VkSurfaceCapabilitiesKHR result;
-  rvk_call(lib->api, getPhysicalDeviceSurfaceCapabilitiesKHR, dev->vkPhysDev, surf, &result);
+  rvk_call_checked(lib, getPhysicalDeviceSurfaceCapabilitiesKHR, dev->vkPhysDev, surf, &result);
   return result;
 }
 
@@ -201,18 +201,18 @@ static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* setti
       .oldSwapchain       = oldSwapchain,
   };
 
-  rvk_call(swap->dev->api, createSwapchainKHR, vkDev, &createInfo, vkAlloc, &swap->vkSwap);
+  rvk_call_checked(swap->dev, createSwapchainKHR, vkDev, &createInfo, vkAlloc, &swap->vkSwap);
   if (oldSwapchain) {
     swap->dev->api.destroySwapchainKHR(vkDev, oldSwapchain, &swap->dev->vkAlloc);
   }
 
-  rvk_call(swap->dev->api, getSwapchainImagesKHR, vkDev, swap->vkSwap, &swap->imgCount, null);
+  rvk_call_checked(swap->dev, getSwapchainImagesKHR, vkDev, swap->vkSwap, &swap->imgCount, null);
   if (UNLIKELY(swap->imgCount > swapchain_images_max)) {
     diag_crash_msg("Vulkan surface uses more swapchain images then are supported");
   }
 
   VkImage vkImgs[swapchain_images_max];
-  rvk_call(swap->dev->api, getSwapchainImagesKHR, vkDev, swap->vkSwap, &swap->imgCount, vkImgs);
+  rvk_call_checked(swap->dev, getSwapchainImagesKHR, vkDev, swap->vkSwap, &swap->imgCount, vkImgs);
 
   const VkFormat format = swap->vkSurfFormat.format;
   for (u32 i = 0; i != swap->imgCount; ++i) {
@@ -247,8 +247,8 @@ RvkSwapchain* rvk_swapchain_create(RvkLib* lib, RvkDevice* dev, const GapWindowC
   };
 
   VkBool32 supported;
-  rvk_call(
-      lib->api,
+  rvk_call_checked(
+      lib,
       getPhysicalDeviceSurfaceSupportKHR,
       dev->vkPhysDev,
       dev->graphicsQueueIndex,
@@ -338,7 +338,7 @@ RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain* swap, VkSemaphore available)
     swap->flags |= RvkSwapchainFlags_OutOfDate;
     return sentinel_u32;
   default:
-    rvk_check(string_lit("vkAcquireNextImageKHR"), result);
+    rvk_api_check(string_lit("acquireNextImageKHR"), result);
     return index;
   }
 }
@@ -387,7 +387,7 @@ bool rvk_swapchain_enqueue_present(
         log_param("id", fmt_int(swap->curPresentId)));
     return false; // Presenting will fail.
   default:
-    rvk_check(string_lit("vkQueuePresentKHR"), result);
+    rvk_api_check(string_lit("queuePresentKHR"), result);
     return true;
   }
 }
@@ -428,7 +428,7 @@ void rvk_swapchain_wait_for_present(const RvkSwapchain* swap, const u32 numBehin
           log_param("id", fmt_int(swap->curPresentId)));
       break;
     default:
-      rvk_check(string_lit("vkWaitForPresentKHR"), result);
+      rvk_api_check(string_lit("waitForPresentKHR"), result);
     }
   }
 }

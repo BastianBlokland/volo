@@ -6,6 +6,7 @@
 #include "log_logger.h"
 
 #include "device_internal.h"
+#include "lib_internal.h"
 #include "pcache_internal.h"
 
 #define rvk_pcache_size_max (32 * usize_mebibyte)
@@ -33,7 +34,7 @@ static VkPipelineCache rvk_vkcache_create(RvkDevice* dev, String data) {
       .pInitialData    = data.ptr,
   };
   VkPipelineCache result;
-  rvk_call(dev->api, createPipelineCache, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createPipelineCache, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
   return result;
 }
 

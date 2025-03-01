@@ -153,7 +153,7 @@ void rvk_debug_name(
         .objectHandle = vkHandle,
         .pObjectName  = rvk_to_null_term_scratch(name),
     };
-    rvk_call(debug->lib->api, setDebugUtilsObjectNameEXT, debug->dev->vkDev, &nameInfo);
+    rvk_call_checked(debug->lib, setDebugUtilsObjectNameEXT, debug->dev->vkDev, &nameInfo);
   }
 }
 

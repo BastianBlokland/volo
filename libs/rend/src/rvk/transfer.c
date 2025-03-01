@@ -12,6 +12,7 @@
 #include "debug_internal.h"
 #include "device_internal.h"
 #include "image_internal.h"
+#include "lib_internal.h"
 #include "transfer_internal.h"
 
 // #define VOLO_RVK_TRANSFER_LOGGING
@@ -52,7 +53,7 @@ static VkCommandPool rvk_commandpool_create(RvkDevice* dev, const u32 queueIndex
           VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
   };
   VkCommandPool result;
-  rvk_call(dev->api, createCommandPool, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createCommandPool, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -64,7 +65,7 @@ static VkCommandBuffer rvk_commandbuffer_create(RvkDevice* dev, VkCommandPool vk
       .commandBufferCount = 1,
   };
   VkCommandBuffer result;
-  rvk_call(dev->api, allocateCommandBuffers, dev->vkDev, &allocInfo, &result);
+  rvk_call_checked(dev, allocateCommandBuffers, dev->vkDev, &allocInfo, &result);
   return result;
 }
 
@@ -78,14 +79,14 @@ static VkFence rvk_fence_create(RvkDevice* dev, const bool initialState) {
       .flags = initialState ? VK_FENCE_CREATE_SIGNALED_BIT : 0,
   };
   VkFence result;
-  rvk_call(dev->api, createFence, dev->vkDev, &fenceInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createFence, dev->vkDev, &fenceInfo, &dev->vkAlloc, &result);
   return result;
 }
 
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
   VkSemaphoreCreateInfo semaphoreInfo = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
   VkSemaphore           result;
-  rvk_call(dev->api, createSemaphore, dev->vkDev, &semaphoreInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createSemaphore, dev->vkDev, &semaphoreInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -152,17 +153,17 @@ static void rvk_transfer_begin(RvkTransferer* trans, RvkTransferBuffer* buffer) 
 
   RvkDevice* dev = trans->dev;
 
-  rvk_call(dev->api, resetFences, dev->vkDev, 1, &buffer->finishedFence);
+  rvk_call_checked(dev, resetFences, dev->vkDev, 1, &buffer->finishedFence);
 
   const VkCommandBufferBeginInfo beginInfo = {
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
       .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
   };
-  rvk_call(dev->api, beginCommandBuffer, buffer->vkCmdBufferGraphics, &beginInfo);
+  rvk_call_checked(dev, beginCommandBuffer, buffer->vkCmdBufferGraphics, &beginInfo);
   rvk_debug_label_begin(dev->debug, buffer->vkCmdBufferGraphics, geo_color_olive, "transfer");
 
   if (buffer->vkCmdBufferTransfer) {
-    rvk_call(dev->api, beginCommandBuffer, buffer->vkCmdBufferTransfer, &beginInfo);
+    rvk_call_checked(dev, beginCommandBuffer, buffer->vkCmdBufferTransfer, &beginInfo);
     rvk_debug_label_begin(dev->debug, buffer->vkCmdBufferTransfer, geo_color_olive, "transfer");
   }
 }
@@ -198,8 +199,8 @@ static void rvk_transfer_submit(RvkTransferer* trans, RvkTransferBuffer* buffer)
             .pSignalSemaphores    = releaseSemaphores,
         },
     };
-    rvk_call(
-        dev->api,
+    rvk_call_checked(
+        dev,
         queueSubmit,
         trans->dev->vkTransferQueue,
         array_elems(transferSubmitInfos),
@@ -217,8 +218,8 @@ static void rvk_transfer_submit(RvkTransferer* trans, RvkTransferBuffer* buffer)
           .pWaitDstStageMask  = releaseWaitStages,
       },
   };
-  rvk_call(
-      dev->api,
+  rvk_call_checked(
+      dev,
       queueSubmit,
       trans->dev->vkGraphicsQueue,
       array_elems(graphicsSubmitInfos),

@@ -6,6 +6,7 @@
 
 #include "device_internal.h"
 #include "image_internal.h"
+#include "lib_internal.h"
 
 static VkClearColorValue rvk_rend_clear_color(const GeoColor color) {
   VkClearColorValue result;
@@ -280,7 +281,7 @@ static VkImage rvk_vkimage_create(
       .samples       = 1,
   };
   VkImage result;
-  rvk_call(dev->api, createImage, dev->vkDev, &imageInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createImage, dev->vkDev, &imageInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -305,7 +306,7 @@ static VkImageView rvk_vkimageview_create(
       .subresourceRange.layerCount     = layers,
   };
   VkImageView result;
-  rvk_call(dev->api, createImageView, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createImageView, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
   return result;
 }
 

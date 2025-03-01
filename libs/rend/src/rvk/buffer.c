@@ -3,6 +3,7 @@
 
 #include "buffer_internal.h"
 #include "device_internal.h"
+#include "lib_internal.h"
 
 static RvkMemLoc rvk_buffer_type_loc(const RvkBufferType type) {
   switch (type) {
@@ -68,7 +69,7 @@ RvkBuffer rvk_buffer_create(RvkDevice* dev, const u64 size, const RvkBufferType 
       .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
   };
   VkBuffer vkBuffer;
-  rvk_call(dev->api, createBuffer, dev->vkDev, &bufferInfo, &dev->vkAlloc, &vkBuffer);
+  rvk_call_checked(dev, createBuffer, dev->vkDev, &bufferInfo, &dev->vkAlloc, &vkBuffer);
 
   VkMemoryRequirements memReqs;
   dev->api.getBufferMemoryRequirements(dev->vkDev, vkBuffer, &memReqs);

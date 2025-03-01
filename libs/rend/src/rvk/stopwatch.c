@@ -4,6 +4,7 @@
 #include "log_logger.h"
 
 #include "device_internal.h"
+#include "lib_internal.h"
 #include "stopwatch_internal.h"
 
 #define rvk_stopwatch_timestamps_max 64
@@ -29,15 +30,15 @@ static VkQueryPool rvk_querypool_create(RvkDevice* dev) {
       .queryCount = rvk_stopwatch_timestamps_max,
   };
   VkQueryPool result;
-  rvk_call(dev->api, createQueryPool, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createQueryPool, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
   return result;
 }
 
 static void rvk_stopwatch_retrieve_results(RvkStopwatch* sw) {
   thread_mutex_lock(sw->retrieveResultsMutex);
   if (!(sw->flags & RvkStopwatch_HasResults) && sw->counter) {
-    rvk_call(
-        sw->dev->api,
+    rvk_call_checked(
+        sw->dev,
         getQueryPoolResults,
         sw->dev->vkDev,
         sw->vkQueryPool,

@@ -11,6 +11,7 @@
 #include "graphic_internal.h"
 #include "image_internal.h"
 #include "job_internal.h"
+#include "lib_internal.h"
 #include "mesh_internal.h"
 #include "pass_internal.h"
 #include "repository_internal.h"
@@ -257,7 +258,7 @@ static VkRenderPass rvk_renderpass_create(const RvkPass* pass) {
   };
   VkRenderPass result;
   RvkDevice*   dev = pass->dev;
-  rvk_call(dev->api, createRenderPass, dev->vkDev, &renderPassInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createRenderPass, dev->vkDev, &renderPassInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -286,7 +287,8 @@ static VkPipelineLayout rvk_global_layout_create(RvkDevice* dev, const RvkDescMe
       .pSetLayouts    = sets,
   };
   VkPipelineLayout result;
-  rvk_call(dev->api, createPipelineLayout, dev->vkDev, &pipelineLayoutInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(
+      dev, createPipelineLayout, dev->vkDev, &pipelineLayoutInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -328,7 +330,7 @@ rvk_framebuffer_create(RvkPass* pass, const RvkPassSetup* setup, const RvkSize s
   };
   VkFramebuffer result;
   RvkDevice*    dev = pass->dev;
-  rvk_call(dev->api, createFramebuffer, dev->vkDev, &framebufferInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createFramebuffer, dev->vkDev, &framebufferInfo, &dev->vkAlloc, &result);
   return result;
 }
 

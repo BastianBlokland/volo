@@ -7,6 +7,7 @@
 #include "log_logger.h"
 
 #include "device_internal.h"
+#include "lib_internal.h"
 #include "statrecorder_internal.h"
 
 #define rvk_statrecorder_queries_max 64
@@ -41,7 +42,7 @@ static VkQueryPool rvk_querypool_create(RvkDevice* dev) {
   diag_assert(bitset_count(bitset_from_var(createInfo.pipelineStatistics)) == RvkStat_Count);
 
   VkQueryPool result;
-  rvk_call(dev->api, createQueryPool, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createQueryPool, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -60,7 +61,7 @@ static void rvk_statrecorder_retrieve_results(RvkStatRecorder* sr) {
     if (vkQueryRes == VK_NOT_READY) {
       mem_set(array_mem(sr->results), 0);
     } else {
-      rvk_check(string_lit("vkGetQueryPoolResults"), vkQueryRes);
+      rvk_api_check(string_lit("getQueryPoolResults"), vkQueryRes);
     }
     sr->flags |= RvkStatRecorder_HasResults;
   }

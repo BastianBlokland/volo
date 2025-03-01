@@ -6,6 +6,7 @@
 
 #include "debug_internal.h"
 #include "device_internal.h"
+#include "lib_internal.h"
 #include "shader_internal.h"
 
 #define VOLO_RVK_SHADER_LOGGING 0
@@ -17,7 +18,7 @@ static VkShaderModule rvk_shader_module_create(RvkDevice* dev, const AssetShader
       .pCode    = (const u32*)asset->data.ptr,
   };
   VkShaderModule result;
-  rvk_call(dev->api, createShaderModule, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createShaderModule, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
   return result;
 }
 

@@ -28,7 +28,9 @@ static VkApplicationInfo rvk_inst_app_info(void) {
 static bool rvk_inst_layer_supported(VkInterfaceLoader* loaderApi, const char* layer) {
   VkLayerProperties layers[64];
   u32               layerCount = array_elems(layers);
-  rvk_call(*loaderApi, enumerateInstanceLayerProperties, &layerCount, layers);
+  rvk_api_check(
+      string_lit("enumerateInstanceLayerProperties"),
+      loaderApi->enumerateInstanceLayerProperties(&layerCount, layers));
 
   for (u32 i = 0; i != layerCount; ++i) {
     if (string_eq(string_from_null_term(layers[i].layerName), string_from_null_term(layer))) {
@@ -41,7 +43,9 @@ static bool rvk_inst_layer_supported(VkInterfaceLoader* loaderApi, const char* l
 static bool rvk_inst_extension_supported(VkInterfaceLoader* loaderApi, const char* ext) {
   VkExtensionProperties exts[128];
   u32                   extCount = array_elems(exts);
-  rvk_call(*loaderApi, enumerateInstanceExtensionProperties, null /* layerName */, &extCount, exts);
+  rvk_api_check(
+      string_lit("enumerateInstanceExtensionProperties"),
+      loaderApi->enumerateInstanceExtensionProperties(null /* layerName */, &extCount, exts));
 
   for (u32 i = 0; i != extCount; ++i) {
     if (string_eq(string_from_null_term(exts[i].extensionName), string_from_null_term(ext))) {
@@ -96,7 +100,8 @@ static VkInstance rvk_inst_create(
   }
 
   VkInstance result;
-  rvk_call(*loaderApi, createInstance, &createInfo, vkAlloc, &result);
+  rvk_api_check(
+      string_lit("createInstance"), loaderApi->createInstance(&createInfo, vkAlloc, &result));
   return result;
 }
 
@@ -129,7 +134,7 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
     diag_crash_msg("Failed to load Vulkan library: {}", fmt_text(err));
   }
   VkInterfaceLoader loaderApi;
-  rvk_check(string_lit("vkLoadLoader"), vkLoadLoader(lib->vulkanLib, &loaderApi));
+  rvk_api_check(string_lit("loadLoader"), vkLoadLoader(lib->vulkanLib, &loaderApi));
 
   const bool validationDesired = (set->flags & RendGlobalFlags_Validation) != 0;
   if (validationDesired && rvk_inst_layer_supported(&loaderApi, "VK_LAYER_KHRONOS_validation")) {
@@ -141,7 +146,7 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
   }
 
   lib->vkInst = rvk_inst_create(&loaderApi, &lib->vkAlloc, lib->flags);
-  rvk_check(string_lit("vkLoadInstance"), vkLoadInstance(lib->vkInst, &loaderApi, &lib->api));
+  rvk_api_check(string_lit("loadInstance"), vkLoadInstance(lib->vkInst, &loaderApi, &lib->api));
 
   log_i(
       "Vulkan library created",
@@ -159,4 +164,16 @@ void rvk_lib_destroy(RvkLib* lib) {
   alloc_free_t(g_allocHeap, lib);
 
   log_d("Vulkan library destroyed");
+}
+
+void rvk_api_check(const String func, const VkResult result) {
+  if (LIKELY(result == VK_SUCCESS)) {
+    return;
+  }
+  if (result == VK_INCOMPLETE) {
+    log_w("Vulkan {}: Result incomplete", log_param("func", fmt_text(func)));
+    return;
+  }
+  diag_crash_msg(
+      "Vulkan {}: [{}] {}", fmt_text(func), fmt_int(result), fmt_text(vkResultStr(result)));
 }

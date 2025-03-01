@@ -37,9 +37,9 @@ typedef struct {
  */
 static RendVkExts rvk_device_exts_query(RvkLib* lib, VkPhysicalDevice vkPhysDev) {
   u32 count;
-  rvk_call(lib->api, enumerateDeviceExtensionProperties, vkPhysDev, null, &count, null);
+  rvk_call_checked(lib, enumerateDeviceExtensionProperties, vkPhysDev, null, &count, null);
   VkExtensionProperties* props = alloc_array_t(g_allocHeap, VkExtensionProperties, count);
-  rvk_call(lib->api, enumerateDeviceExtensionProperties, vkPhysDev, null, &count, props);
+  rvk_call_checked(lib, enumerateDeviceExtensionProperties, vkPhysDev, null, &count, props);
   return (RendVkExts){.values = props, .count = count};
 }
 
@@ -110,7 +110,7 @@ static u32 rvk_device_pick_transfer_queue(RvkLib* lib, VkPhysicalDevice vkPhysDe
 static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
   VkPhysicalDevice vkPhysDevs[32];
   u32              vkPhysDevsCount = array_elems(vkPhysDevs);
-  rvk_call(lib->api, enumeratePhysicalDevices, lib->vkInst, &vkPhysDevsCount, vkPhysDevs);
+  rvk_call_checked(lib, enumeratePhysicalDevices, lib->vkInst, &vkPhysDevsCount, vkPhysDevs);
 
   VkPhysicalDevice bestVkPhysDev  = null;
   u32              bestApiVersion = 0;
@@ -270,7 +270,7 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   };
 
   VkDevice result;
-  rvk_call(lib->api, createDevice, dev->vkPhysDev, &createInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(lib, createDevice, dev->vkPhysDev, &createInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -307,7 +307,7 @@ RvkDevice* rvk_device_create(RvkLib* lib, const RendSettingsGlobalComp* settings
   lib->api.getPhysicalDeviceMemoryProperties(dev->vkPhysDev, &dev->vkMemProperties);
 
   dev->vkDev = rvk_device_create_internal(lib, dev);
-  rvk_check(string_lit("vkLoadDevice"), vkLoadDevice(dev->vkDev, &lib->api, &dev->api));
+  rvk_api_check(string_lit("loadDevice"), vkLoadDevice(dev->vkDev, &lib->api, &dev->api));
 
   dev->api.getDeviceQueue(dev->vkDev, dev->graphicsQueueIndex, 0, &dev->vkGraphicsQueue);
   if (!sentinel_check(dev->transferQueueIndex)) {
@@ -385,4 +385,6 @@ String rvk_device_name(const RvkDevice* dev) {
 
 void rvk_device_update(RvkDevice* dev) { rvk_transfer_flush(dev->transferer); }
 
-void rvk_device_wait_idle(const RvkDevice* dev) { rvk_call(dev->api, deviceWaitIdle, dev->vkDev); }
+void rvk_device_wait_idle(const RvkDevice* dev) {
+  rvk_call_checked(dev, deviceWaitIdle, dev->vkDev);
+}

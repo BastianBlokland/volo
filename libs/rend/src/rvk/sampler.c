@@ -7,6 +7,7 @@
 
 #include "debug_internal.h"
 #include "device_internal.h"
+#include "lib_internal.h"
 #include "sampler_internal.h"
 
 #define VOLO_RVK_SAMPLER_LOGGING 0
@@ -123,7 +124,7 @@ static VkSampler rvk_vksampler_create(const RvkDevice* dev, const RvkSamplerSpec
   }
 
   VkSampler result;
-  rvk_call(dev->api, createSampler, dev->vkDev, &samplerInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createSampler, dev->vkDev, &samplerInfo, &dev->vkAlloc, &result);
   return result;
 }
 

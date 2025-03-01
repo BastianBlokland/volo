@@ -10,6 +10,7 @@
 #include "desc_internal.h"
 #include "device_internal.h"
 #include "graphic_internal.h"
+#include "lib_internal.h"
 #include "mesh_internal.h"
 #include "pass_internal.h"
 #include "repository_internal.h"
@@ -182,7 +183,8 @@ rvk_pipeline_layout_create(const RvkGraphic* graphic, RvkDevice* dev, const RvkP
       .pSetLayouts    = descriptorLayouts,
   };
   VkPipelineLayout result;
-  rvk_call(dev->api, createPipelineLayout, dev->vkDev, &pipelineLayoutInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(
+      dev, createPipelineLayout, dev->vkDev, &pipelineLayoutInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -507,7 +509,8 @@ static VkPipeline rvk_pipeline_create(
   trace_begin("rend_pipeline_create", TraceColor_Blue);
   {
     VkPipelineCache psoc = dev->vkPipelineCache;
-    rvk_call(dev->api, createGraphicsPipelines, dev->vkDev, psoc, 1, &info, &dev->vkAlloc, &result);
+    rvk_call_checked(
+        dev, createGraphicsPipelines, dev->vkDev, psoc, 1, &info, &dev->vkAlloc, &result);
   }
   trace_end();
 

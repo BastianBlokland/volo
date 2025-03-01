@@ -8,6 +8,7 @@
 #include "desc_internal.h"
 #include "device_internal.h"
 #include "image_internal.h"
+#include "lib_internal.h"
 #include "sampler_internal.h"
 
 // #define VOLO_RVK_DESC_LOGGING
@@ -99,8 +100,8 @@ static VkDescriptorSetLayout rvk_desc_vklayout_create(RvkDescPool* pool, const R
       .pBindings    = bindings,
   };
   VkDescriptorSetLayout result;
-  rvk_call(
-      pool->dev->api,
+  rvk_call_checked(
+      pool->dev,
       createDescriptorSetLayout,
       pool->dev->vkDev,
       &layoutInfo,
@@ -144,13 +145,8 @@ static VkDescriptorPool rvk_desc_vkpool_create(RvkDescPool* pool, const RvkDescM
       .maxSets       = rvk_desc_sets_per_chunk,
   };
   VkDescriptorPool result;
-  rvk_call(
-      pool->dev->api,
-      createDescriptorPool,
-      pool->dev->vkDev,
-      &poolInfo,
-      &pool->dev->vkAlloc,
-      &result);
+  rvk_call_checked(
+      pool->dev, createDescriptorPool, pool->dev->vkDev, &poolInfo, &pool->dev->vkAlloc, &result);
   return result;
 }
 
@@ -179,7 +175,7 @@ static RvkDescChunk* rvk_desc_chunk_create(RvkDescPool* pool, const RvkDescMeta*
       .descriptorSetCount = rvk_desc_sets_per_chunk,
       .pSetLayouts        = layouts,
   };
-  rvk_call(pool->dev->api, allocateDescriptorSets, pool->dev->vkDev, &allocInfo, chunk->vkSets);
+  rvk_call_checked(pool->dev, allocateDescriptorSets, pool->dev->vkDev, &allocInfo, chunk->vkSets);
 
 #if defined(VOLO_RVK_DESC_LOGGING)
   log_d(

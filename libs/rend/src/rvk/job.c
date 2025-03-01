@@ -9,6 +9,7 @@
 #include "device_internal.h"
 #include "image_internal.h"
 #include "job_internal.h"
+#include "lib_internal.h"
 #include "statrecorder_internal.h"
 #include "stopwatch_internal.h"
 #include "uniform_internal.h"
@@ -49,7 +50,7 @@ static VkFence rvk_fence_create(RvkDevice* dev, const bool initialState) {
       .flags = initialState ? VK_FENCE_CREATE_SIGNALED_BIT : 0,
   };
   VkFence result;
-  rvk_call(dev->api, createFence, dev->vkDev, &fenceInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createFence, dev->vkDev, &fenceInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -60,7 +61,7 @@ static VkCommandPool rvk_commandpool_create(RvkDevice* dev, const u32 queueIndex
       .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
   };
   VkCommandPool result;
-  rvk_call(dev->api, createCommandPool, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createCommandPool, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -72,11 +73,11 @@ static void rvk_commandbuffer_create_batch(
       .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
       .commandBufferCount = count,
   };
-  rvk_call(dev->api, allocateCommandBuffers, dev->vkDev, &allocInfo, out);
+  rvk_call_checked(dev, allocateCommandBuffers, dev->vkDev, &allocInfo, out);
 }
 
 static void rvk_commandpool_reset(RvkDevice* dev, VkCommandPool vkCmdPool) {
-  rvk_call(dev->api, resetCommandPool, dev->vkDev, vkCmdPool, 0);
+  rvk_call_checked(dev, resetCommandPool, dev->vkDev, vkCmdPool, 0);
 }
 
 static void rvk_commandbuffer_begin(RvkDevice* dev, VkCommandBuffer vkCmdBuf) {
@@ -84,11 +85,11 @@ static void rvk_commandbuffer_begin(RvkDevice* dev, VkCommandBuffer vkCmdBuf) {
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
       .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
   };
-  rvk_call(dev->api, beginCommandBuffer, vkCmdBuf, &beginInfo);
+  rvk_call_checked(dev, beginCommandBuffer, vkCmdBuf, &beginInfo);
 }
 
 static void rvk_commandbuffer_end(RvkDevice* dev, VkCommandBuffer vkCmdBuf) {
-  rvk_call(dev->api, endCommandBuffer, vkCmdBuf);
+  rvk_call_checked(dev, endCommandBuffer, vkCmdBuf);
 }
 
 static void rvk_job_submit(
@@ -110,7 +111,7 @@ static void rvk_job_submit(
       .pSignalSemaphores    = signals,
   };
   thread_mutex_lock(job->dev->queueSubmitMutex);
-  rvk_call(job->dev->api, queueSubmit, job->dev->vkGraphicsQueue, 1, &info, job->fenceJobDone);
+  rvk_call_checked(job->dev, queueSubmit, job->dev->vkGraphicsQueue, 1, &info, job->fenceJobDone);
   thread_mutex_unlock(job->dev->queueSubmitMutex);
 }
 
@@ -139,7 +140,7 @@ static void rvk_job_phase_submit(RvkJob* job) {
       .pCommandBuffers    = &job->vkCmdBuffers[job->phase],
   };
   thread_mutex_lock(job->dev->queueSubmitMutex);
-  rvk_call(job->dev->api, queueSubmit, job->dev->vkGraphicsQueue, 1, &submitInfo, null);
+  rvk_call_checked(job->dev, queueSubmit, job->dev->vkGraphicsQueue, 1, &submitInfo, null);
   thread_mutex_unlock(job->dev->queueSubmitMutex);
 }
 
@@ -198,7 +199,7 @@ bool rvk_job_is_done(const RvkJob* job) {
 void rvk_job_wait_for_done(const RvkJob* job) {
   const TimeSteady waitStart = time_steady_clock();
 
-  rvk_call(job->dev->api, waitForFences, job->dev->vkDev, 1, &job->fenceJobDone, true, u64_max);
+  rvk_call_checked(job->dev, waitForFences, job->dev->vkDev, 1, &job->fenceJobDone, true, u64_max);
 
   ((RvkJob*)job)->cpuWaitDur += time_steady_duration(waitStart, time_steady_clock());
 }
@@ -375,7 +376,7 @@ void rvk_job_end(
   rvk_job_phase_end(job);
   rvk_uniform_flush(job->uniformPool);
 
-  rvk_call(job->dev->api, resetFences, job->dev->vkDev, 1, &job->fenceJobDone);
+  rvk_call_checked(job->dev, resetFences, job->dev->vkDev, 1, &job->fenceJobDone);
   rvk_job_submit(job, waitForTarget, signals, signalCount);
 
   job->flags &= ~RvkJob_Active;
