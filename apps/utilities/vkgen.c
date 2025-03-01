@@ -86,14 +86,15 @@ static const String g_vkgenFeatures[] = {
 };
 
 static const String g_vkgenExtensions[] = {
-    string_static("VK_EXT_validation_features"),
     string_static("VK_EXT_debug_utils"),
-    string_static("VK_KHR_swapchain"),
-    string_static("VK_KHR_surface"),
-    string_static("VK_KHR_xcb_surface"),
-    string_static("VK_KHR_win32_surface"),
+    string_static("VK_EXT_validation_features"),
+    string_static("VK_KHR_16bit_storage"),
     string_static("VK_KHR_present_id"),
     string_static("VK_KHR_present_wait"),
+    string_static("VK_KHR_surface"),
+    string_static("VK_KHR_swapchain"),
+    string_static("VK_KHR_win32_surface"),
+    string_static("VK_KHR_xcb_surface"),
 };
 
 typedef enum {
