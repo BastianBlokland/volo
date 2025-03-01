@@ -274,7 +274,7 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   return result;
 }
 
-static VkFormat rvk_device_pick_depthformat(RvkLib* lib, RvkDevice* dev) {
+static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
   static const VkFormat g_supportedFormats[] = {
       VK_FORMAT_D32_SFLOAT,
       VK_FORMAT_D16_UNORM,
@@ -282,7 +282,7 @@ static VkFormat rvk_device_pick_depthformat(RvkLib* lib, RvkDevice* dev) {
   static const VkFormatFeatureFlags g_features = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
   array_for_t(g_supportedFormats, VkFormat, format) {
-    if (rvk_device_format_supported(lib, dev, *format, g_features)) {
+    if (rvk_device_format_supported(dev, *format, g_features)) {
       return *format;
     }
   }
@@ -293,6 +293,7 @@ RvkDevice* rvk_device_create(RvkLib* lib, const RendSettingsGlobalComp* settings
   RvkDevice* dev = alloc_alloc_t(g_allocHeap, RvkDevice);
 
   *dev = (RvkDevice){
+      .lib              = lib,
       .vkAlloc          = lib->vkAlloc,
       .queueSubmitMutex = thread_mutex_create(g_allocHeap),
   };
@@ -313,7 +314,7 @@ RvkDevice* rvk_device_create(RvkLib* lib, const RendSettingsGlobalComp* settings
     dev->api.getDeviceQueue(dev->vkDev, dev->transferQueueIndex, 0, &dev->vkTransferQueue);
   }
 
-  dev->depthFormat              = rvk_device_pick_depthformat(lib, dev);
+  dev->depthFormat              = rvk_device_pick_depthformat(dev);
   dev->preferredSwapchainFormat = VK_FORMAT_B8G8R8A8_SRGB;
 
   if (lib->flags & RvkLibFlags_Debug) {
@@ -372,12 +373,9 @@ void rvk_device_destroy(RvkDevice* dev) {
 }
 
 bool rvk_device_format_supported(
-    const RvkLib*              lib,
-    const RvkDevice*           dev,
-    const VkFormat             format,
-    const VkFormatFeatureFlags requiredFeatures) {
+    const RvkDevice* dev, const VkFormat format, const VkFormatFeatureFlags requiredFeatures) {
   VkFormatProperties properties;
-  lib->api.getPhysicalDeviceFormatProperties(dev->vkPhysDev, format, &properties);
+  dev->lib->api.getPhysicalDeviceFormatProperties(dev->vkPhysDev, format, &properties);
   return (properties.optimalTilingFeatures & requiredFeatures) == requiredFeatures;
 }
 
