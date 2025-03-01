@@ -787,7 +787,8 @@ static void vkgen_collect_required_interfaces(
         continue; // Not a command element.
       }
       const StringHash cmdKey   = xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name);
-      const u32        cmdIndex = vkgen_command_find(ctx, cmdKey);
+      const StringHash cmdAlias = vkgen_alias_find(ctx, cmdKey);
+      const u32        cmdIndex = vkgen_command_find(ctx, cmdAlias ? cmdAlias : cmdKey);
       if (sentinel_check(cmdIndex)) {
         continue; // Unknown command.
       }
