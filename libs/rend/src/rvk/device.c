@@ -2,9 +2,9 @@
 #include "core_array.h"
 #include "core_diag.h"
 #include "core_thread.h"
+#include "geo_color.h"
 #include "log_logger.h"
 
-#include "debug_internal.h"
 #include "desc_internal.h"
 #include "device_internal.h"
 #include "lib_internal.h"
@@ -26,6 +26,13 @@ static const String g_optionalExts[] = {
      */
     string_static("VK_KHR_maintenance4"),
 };
+
+static const char* rvk_to_null_term_scratch(const String str) {
+  const Mem scratchMem = alloc_alloc(g_allocScratch, str.size + 1, 1);
+  mem_cpy(scratchMem, str);
+  *mem_at_u8(scratchMem, str.size) = '\0';
+  return scratchMem.ptr;
+}
 
 typedef struct {
   VkExtensionProperties* values;
@@ -381,4 +388,35 @@ void rvk_device_update(RvkDevice* dev) { rvk_transfer_flush(dev->transferer); }
 
 void rvk_device_wait_idle(const RvkDevice* dev) {
   rvk_call_checked(dev, deviceWaitIdle, dev->vkDev);
+}
+
+void rvk_debug_name(
+    RvkDevice* dev, const VkObjectType vkType, const u64 vkHandle, const String name) {
+  if (dev->lib->flags & RvkLibFlags_Debug) {
+    const VkDebugUtilsObjectNameInfoEXT nameInfo = {
+        .sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+        .objectType   = vkType,
+        .objectHandle = vkHandle,
+        .pObjectName  = rvk_to_null_term_scratch(name),
+    };
+    rvk_call_checked(dev->lib, setDebugUtilsObjectNameEXT, dev->vkDev, &nameInfo);
+  }
+}
+
+void rvk_debug_label_begin_raw(
+    RvkDevice* dev, VkCommandBuffer vkCmdBuffer, const GeoColor color, const String name) {
+  if (dev->lib->flags & RvkLibFlags_Debug) {
+    const VkDebugUtilsLabelEXT label = {
+        .sType      = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
+        .pLabelName = rvk_to_null_term_scratch(name),
+        .color      = {color.r, color.g, color.b, color.a},
+    };
+    rvk_call(dev->lib, cmdBeginDebugUtilsLabelEXT, vkCmdBuffer, &label);
+  }
+}
+
+void rvk_debug_label_end(RvkDevice* dev, VkCommandBuffer vkCmdBuffer) {
+  if (dev->lib->flags & RvkLibFlags_Debug) {
+    rvk_call(dev->lib, cmdEndDebugUtilsLabelEXT, vkCmdBuffer);
+  }
 }

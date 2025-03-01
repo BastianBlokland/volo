@@ -5,7 +5,6 @@
 #include "core_thread.h"
 #include "geo_color.h"
 
-#include "debug_internal.h"
 #include "device_internal.h"
 #include "image_internal.h"
 #include "job_internal.h"

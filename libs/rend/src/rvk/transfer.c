@@ -9,7 +9,6 @@
 #include "log_logger.h"
 
 #include "buffer_internal.h"
-#include "debug_internal.h"
 #include "device_internal.h"
 #include "image_internal.h"
 #include "lib_internal.h"
