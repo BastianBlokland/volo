@@ -844,16 +844,16 @@ VkResult vkLoadInstance(VkInstance inst, const VkInterfaceLoader* src, VkInterfa
   out->createDebugUtilsMessengerEXT = (Symbol)src->getInstanceProcAddr(inst, "vkCreateDebugUtilsMessengerEXT");
   out->destroyDebugUtilsMessengerEXT = (Symbol)src->getInstanceProcAddr(inst, "vkDestroyDebugUtilsMessengerEXT");
   out->submitDebugUtilsMessageEXT = (Symbol)src->getInstanceProcAddr(inst, "vkSubmitDebugUtilsMessageEXT");
-  out->getPhysicalDevicePresentRectanglesKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDevicePresentRectanglesKHR");
   out->destroySurfaceKHR = (Symbol)src->getInstanceProcAddr(inst, "vkDestroySurfaceKHR");
   out->getPhysicalDeviceSurfaceSupportKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDeviceSurfaceSupportKHR");
   out->getPhysicalDeviceSurfaceCapabilitiesKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
   out->getPhysicalDeviceSurfaceFormatsKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDeviceSurfaceFormatsKHR");
   out->getPhysicalDeviceSurfacePresentModesKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDeviceSurfacePresentModesKHR");
-  out->createXcbSurfaceKHR = (Symbol)src->getInstanceProcAddr(inst, "vkCreateXcbSurfaceKHR");
-  out->getPhysicalDeviceXcbPresentationSupportKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDeviceXcbPresentationSupportKHR");
+  out->getPhysicalDevicePresentRectanglesKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDevicePresentRectanglesKHR");
   out->createWin32SurfaceKHR = (Symbol)src->getInstanceProcAddr(inst, "vkCreateWin32SurfaceKHR");
   out->getPhysicalDeviceWin32PresentationSupportKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDeviceWin32PresentationSupportKHR");
+  out->createXcbSurfaceKHR = (Symbol)src->getInstanceProcAddr(inst, "vkCreateXcbSurfaceKHR");
+  out->getPhysicalDeviceXcbPresentationSupportKHR = (Symbol)src->getInstanceProcAddr(inst, "vkGetPhysicalDeviceXcbPresentationSupportKHR");
   return VK_SUCCESS;
 }
 
@@ -994,6 +994,10 @@ VkResult vkLoadDevice(VkDevice dev, const VkInterfaceInstance* src, VkInterfaceD
   out->destroyDescriptorUpdateTemplate = (Symbol)src->getDeviceProcAddr(dev, "vkDestroyDescriptorUpdateTemplate");
   out->updateDescriptorSetWithTemplate = (Symbol)src->getDeviceProcAddr(dev, "vkUpdateDescriptorSetWithTemplate");
   out->getDescriptorSetLayoutSupport = (Symbol)src->getDeviceProcAddr(dev, "vkGetDescriptorSetLayoutSupport");
+  out->getDeviceBufferMemoryRequirements = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceBufferMemoryRequirements");
+  out->getDeviceImageMemoryRequirements = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceImageMemoryRequirements");
+  out->getDeviceImageSparseMemoryRequirements = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceImageSparseMemoryRequirements");
+  out->waitForPresentKHR = (Symbol)src->getDeviceProcAddr(dev, "vkWaitForPresentKHR");
   out->createSwapchainKHR = (Symbol)src->getDeviceProcAddr(dev, "vkCreateSwapchainKHR");
   out->destroySwapchainKHR = (Symbol)src->getDeviceProcAddr(dev, "vkDestroySwapchainKHR");
   out->getSwapchainImagesKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetSwapchainImagesKHR");
@@ -1002,7 +1006,6 @@ VkResult vkLoadDevice(VkDevice dev, const VkInterfaceInstance* src, VkInterfaceD
   out->getDeviceGroupPresentCapabilitiesKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceGroupPresentCapabilitiesKHR");
   out->getDeviceGroupSurfacePresentModesKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceGroupSurfacePresentModesKHR");
   out->acquireNextImage2KHR = (Symbol)src->getDeviceProcAddr(dev, "vkAcquireNextImage2KHR");
-  out->waitForPresentKHR = (Symbol)src->getDeviceProcAddr(dev, "vkWaitForPresentKHR");
   return VK_SUCCESS;
 }
 

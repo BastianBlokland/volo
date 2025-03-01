@@ -89,6 +89,7 @@ static const String g_vkgenExtensions[] = {
     string_static("VK_EXT_debug_utils"),
     string_static("VK_EXT_validation_features"),
     string_static("VK_KHR_16bit_storage"),
+    string_static("VK_KHR_maintenance4"),
     string_static("VK_KHR_present_id"),
     string_static("VK_KHR_present_wait"),
     string_static("VK_KHR_surface"),
@@ -249,6 +250,10 @@ Ret:
 }
 
 typedef struct {
+  StringHash key, value;
+} VkGenAlias;
+
+typedef struct {
   String name, value; // Allocated in the schema document.
 } VkGenConstant;
 
@@ -306,9 +311,10 @@ typedef struct {
   XmlDoc*   schemaDoc;
   XmlNode   schemaRoot;
   String    schemaHost, schemaUri;
-  DynArray  types; // VkGenType[]
+  DynArray  aliases;   // VkGenAlias[]
+  DynArray  constants; // VkGenConstant[]
+  DynArray  types;     // VkGenType[]
   DynBitSet typesWritten;
-  DynArray  constants;   // VkGenConstant[]
   DynArray  enumEntries; // VkGenEnumEntry[]
   DynArray  commands;    // VkGenCommand[]
   XmlNode   featureNodes[array_elems(g_vkgenFeatures)];
@@ -329,8 +335,8 @@ static bool vkgen_out_last_is_separator(VkGenContext* ctx) {
   return ascii_is_whitespace(lastChar) || lastChar == '(';
 }
 
-static i8 vkgen_compare_command(const void* a, const void* b) {
-  return compare_stringhash(field_ptr(a, VkGenCommand, key), field_ptr(b, VkGenCommand, key));
+static i8 vkgen_compare_alias(const void* a, const void* b) {
+  return compare_stringhash(field_ptr(a, VkGenAlias, key), field_ptr(b, VkGenAlias, key));
 }
 
 static i8 vkgen_compare_type(const void* a, const void* b) {
@@ -348,9 +354,24 @@ static i8 vkgen_compare_enum_entry_no_value(const void* a, const void* b) {
   return compare_stringhash(field_ptr(a, VkGenEnumEntry, key), field_ptr(b, VkGenEnumEntry, key));
 }
 
+static i8 vkgen_compare_command(const void* a, const void* b) {
+  return compare_stringhash(field_ptr(a, VkGenCommand, key), field_ptr(b, VkGenCommand, key));
+}
+
 static i8 vkgen_compare_format(const void* a, const void* b) {
   return compare_stringhash(
       field_ptr(a, VkGenFormat, nameHash), field_ptr(b, VkGenFormat, nameHash));
+}
+
+static StringHash vkgen_alias_find(VkGenContext* ctx, const StringHash key) {
+  const VkGenAlias tgt = {.key = key};
+  VkGenAlias*      res = dynarray_search_binary(&ctx->aliases, vkgen_compare_alias, &tgt);
+  return res ? res->value : 0;
+}
+
+static void vkgen_alias_push(VkGenContext* ctx, const StringHash key, const StringHash value) {
+  const VkGenAlias tgt = {.key = key, .value = value};
+  *dynarray_insert_sorted_t(&ctx->aliases, VkGenAlias, vkgen_compare_alias, &tgt) = tgt;
 }
 
 static u32 vkgen_type_find(VkGenContext* ctx, const StringHash key) {
@@ -656,9 +677,15 @@ static void vkgen_collect_commands(VkGenContext* ctx) {
     if (!vkgen_is_supported_api(ctx, child)) {
       continue; // Not supported.
     }
+    const StringHash alias = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_alias);
+    if (alias) {
+      const StringHash key = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_name);
+      vkgen_alias_push(ctx, key, alias);
+      continue;
+    }
     const XmlNode protoNode = xml_child_get(ctx->schemaDoc, child, g_hash_proto);
     if (sentinel_check(protoNode)) {
-      continue; // Command without a proto (we don't support aliases).
+      continue; // Proto missing.
     }
     const XmlNode protoNameNode = xml_child_get(ctx->schemaDoc, protoNode, g_hash_name);
     const XmlNode protoTypeNode = xml_child_get(ctx->schemaDoc, protoNode, g_hash_type);
@@ -761,7 +788,8 @@ static void vkgen_collect_required_interfaces(
         continue; // Not a command element.
       }
       const StringHash cmdKey   = xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name);
-      const u32        cmdIndex = vkgen_command_find(ctx, cmdKey);
+      const StringHash cmdAlias = vkgen_alias_find(ctx, cmdKey);
+      const u32        cmdIndex = vkgen_command_find(ctx, cmdAlias ? cmdAlias : cmdKey);
       if (sentinel_check(cmdIndex)) {
         continue; // Unknown command.
       }
@@ -1087,8 +1115,11 @@ static bool vkgen_write_required_types(VkGenContext* ctx, const XmlNode node) {
         continue;
       }
       if (entryNameHash == g_hash_command) {
-        const String cmdName  = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
-        const u32    cmdIndex = vkgen_command_find(ctx, string_hash(cmdName));
+        const String     cmdName = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
+        const StringHash key     = string_hash(cmdName);
+        const StringHash alias   = vkgen_alias_find(ctx, key);
+
+        const u32 cmdIndex = vkgen_command_find(ctx, alias ? alias : key);
         if (sentinel_check(cmdIndex)) {
           log_e("Unkown command", log_param("name", fmt_text(cmdName)));
           success = false;
@@ -1499,9 +1530,10 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
       .schemaDoc    = xml_create(g_allocHeap, 128 * 1024),
       .schemaHost   = cli_read_string(invoc, g_optSchemaHost, g_schemaDefaultHost),
       .schemaUri    = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
+      .aliases      = dynarray_create_t(g_allocHeap, VkGenAlias, 1024),
+      .constants    = dynarray_create_t(g_allocHeap, VkGenConstant, 64),
       .types        = dynarray_create_t(g_allocHeap, VkGenType, 4096),
       .typesWritten = dynbitset_create(g_allocHeap, 4096),
-      .constants    = dynarray_create_t(g_allocHeap, VkGenConstant, 64),
       .enumEntries  = dynarray_create_t(g_allocHeap, VkGenEnumEntry, 2048),
       .commands     = dynarray_create_t(g_allocHeap, VkGenCommand, 1024),
       .interfaces   = dynarray_create_t(g_allocHeap, VkGenInterface, 512),
@@ -1565,9 +1597,10 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
 
 Exit:
   xml_destroy(ctx.schemaDoc);
+  dynarray_destroy(&ctx.aliases);
+  dynarray_destroy(&ctx.constants);
   dynarray_destroy(&ctx.types);
   dynbitset_destroy(&ctx.typesWritten);
-  dynarray_destroy(&ctx.constants);
   dynarray_destroy(&ctx.enumEntries);
   dynarray_destroy(&ctx.commands);
   dynarray_destroy(&ctx.interfaces);
