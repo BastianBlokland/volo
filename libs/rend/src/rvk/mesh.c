@@ -77,5 +77,5 @@ void rvk_mesh_bind(const RvkMesh* mesh, const RvkDevice* dev, VkCommandBuffer vk
     indexType = VK_INDEX_TYPE_UINT32;
   }
 
-  vkCmdBindIndexBuffer(vkCmdBuf, mesh->indexBuffer.vkBuffer, 0, indexType);
+  dev->api.cmdBindIndexBuffer(vkCmdBuf, mesh->indexBuffer.vkBuffer, 0, indexType);
 }

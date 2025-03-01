@@ -256,7 +256,8 @@ static VkRenderPass rvk_renderpass_create(const RvkPass* pass) {
       .pSubpasses      = &subpass,
   };
   VkRenderPass result;
-  rvk_call(vkCreateRenderPass, pass->dev->vkDev, &renderPassInfo, &pass->dev->vkAlloc, &result);
+  RvkDevice*   dev = pass->dev;
+  rvk_call(dev->api, createRenderPass, dev->vkDev, &renderPassInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -285,7 +286,7 @@ static VkPipelineLayout rvk_global_layout_create(RvkDevice* dev, const RvkDescMe
       .pSetLayouts    = sets,
   };
   VkPipelineLayout result;
-  rvk_call(vkCreatePipelineLayout, dev->vkDev, &pipelineLayoutInfo, &dev->vkAlloc, &result);
+  rvk_call(dev->api, createPipelineLayout, dev->vkDev, &pipelineLayoutInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -326,11 +327,12 @@ rvk_framebuffer_create(RvkPass* pass, const RvkPassSetup* setup, const RvkSize s
       .layers          = 1,
   };
   VkFramebuffer result;
-  rvk_call(vkCreateFramebuffer, pass->dev->vkDev, &framebufferInfo, &pass->dev->vkAlloc, &result);
+  RvkDevice*    dev = pass->dev;
+  rvk_call(dev->api, createFramebuffer, dev->vkDev, &framebufferInfo, &dev->vkAlloc, &result);
   return result;
 }
 
-static void rvk_pass_viewport_set(VkCommandBuffer vkCmdBuf, const RvkSize size) {
+static void rvk_pass_viewport_set(RvkDevice* dev, VkCommandBuffer vkCmdBuf, const RvkSize size) {
   const VkViewport viewport = {
       .x        = 0.0f,
       .y        = 0.0f,
@@ -339,16 +341,16 @@ static void rvk_pass_viewport_set(VkCommandBuffer vkCmdBuf, const RvkSize size) 
       .minDepth = 0.0f,
       .maxDepth = 1.0f,
   };
-  vkCmdSetViewport(vkCmdBuf, 0, 1, &viewport);
+  dev->api.cmdSetViewport(vkCmdBuf, 0, 1, &viewport);
 }
 
-static void rvk_pass_scissor_set(VkCommandBuffer vkCmdBuf, const RvkSize size) {
+static void rvk_pass_scissor_set(RvkDevice* dev, VkCommandBuffer vkCmdBuf, const RvkSize size) {
   const VkRect2D scissor = {
       .offset        = {0, 0},
       .extent.width  = size.width,
       .extent.height = size.height,
   };
-  vkCmdSetScissor(vkCmdBuf, 0, 1, &scissor);
+  dev->api.cmdSetScissor(vkCmdBuf, 0, 1, &scissor);
 }
 
 static void
@@ -377,7 +379,7 @@ rvk_pass_vkrenderpass_begin(RvkPass* pass, RvkPassInvoc* invoc, const RvkPassSet
       .clearValueCount          = clearValueCount,
       .pClearValues             = clearValues,
   };
-  vkCmdBeginRenderPass(invoc->vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+  pass->dev->api.cmdBeginRenderPass(invoc->vkCmdBuf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
 static RvkDescSet
@@ -432,7 +434,7 @@ static void rvk_pass_bind_global(
 
   if (invoc->globalBoundMask) {
     const VkDescriptorSet vkDescSets[] = {rvk_desc_set_vkset(globalDescSet)};
-    vkCmdBindDescriptorSets(
+    pass->dev->api.cmdBindDescriptorSets(
         invoc->vkCmdBuf,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         pass->globalPipelineLayout,
@@ -479,7 +481,7 @@ static void rvk_pass_bind_draw(
   }
 
   const VkDescriptorSet vkDescSets[] = {rvk_desc_set_vkset(descSet)};
-  vkCmdBindDescriptorSets(
+  pass->dev->api.cmdBindDescriptorSets(
       invoc->vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
       gra->vkPipelineLayout,
@@ -546,7 +548,7 @@ static void rvk_pass_frame_reset(RvkPass* pass, RvkPassFrame* frame) {
 
   // Cleanup invocations.
   dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
-    vkDestroyFramebuffer(pass->dev->vkDev, invoc->vkFrameBuffer, &pass->dev->vkAlloc);
+    pass->dev->api.destroyFramebuffer(pass->dev->vkDev, invoc->vkFrameBuffer, &pass->dev->vkAlloc);
   }
   dynarray_clear(&frame->invocations);
 
@@ -560,7 +562,7 @@ static void rvk_pass_frame_reset(RvkPass* pass, RvkPassFrame* frame) {
 static void rvk_pass_frame_destroy(RvkPass* pass, RvkPassFrame* frame) {
   // Cleanup invocations.
   dynarray_for_t(&frame->invocations, RvkPassInvoc, invoc) {
-    vkDestroyFramebuffer(pass->dev->vkDev, invoc->vkFrameBuffer, &pass->dev->vkAlloc);
+    pass->dev->api.destroyFramebuffer(pass->dev->vkDev, invoc->vkFrameBuffer, &pass->dev->vkAlloc);
   }
   dynarray_destroy(&frame->invocations);
 
@@ -651,8 +653,9 @@ void rvk_pass_destroy(RvkPass* pass) {
   dynarray_for_t(&pass->frames, RvkPassFrame, frame) { rvk_pass_frame_destroy(pass, frame); }
   dynarray_destroy(&pass->frames);
 
-  vkDestroyRenderPass(pass->dev->vkDev, pass->vkRendPass, &pass->dev->vkAlloc);
-  vkDestroyPipelineLayout(pass->dev->vkDev, pass->globalPipelineLayout, &pass->dev->vkAlloc);
+  RvkDevice* dev = pass->dev;
+  dev->api.destroyRenderPass(dev->vkDev, pass->vkRendPass, &dev->vkAlloc);
+  dev->api.destroyPipelineLayout(dev->vkDev, pass->globalPipelineLayout, &dev->vkAlloc);
 
   alloc_free_t(g_allocHeap, pass);
 }
@@ -854,7 +857,7 @@ void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
         };
       }
     }
-    rvk_image_transition_batch(transitions, transitionCount, invoc->vkCmdBuf);
+    rvk_image_transition_batch(pass->dev, transitions, transitionCount, invoc->vkCmdBuf);
   }
 
   rvk_pass_vkrenderpass_begin(pass, invoc, setup);
@@ -865,8 +868,8 @@ void rvk_pass_begin(RvkPass* pass, const RvkPassSetup* setup) {
   rvk_debug_label_begin(
       pass->dev->debug, invoc->vkCmdBuf, geo_color_blue, "pass_{}", fmt_text(pass->config->name));
 
-  rvk_pass_viewport_set(invoc->vkCmdBuf, invoc->size);
-  rvk_pass_scissor_set(invoc->vkCmdBuf, invoc->size);
+  rvk_pass_viewport_set(pass->dev, invoc->vkCmdBuf, invoc->size);
+  rvk_pass_scissor_set(pass->dev, invoc->vkCmdBuf, invoc->size);
 
   rvk_pass_bind_global(pass, frame, invoc, setup);
 }
@@ -957,12 +960,12 @@ void rvk_pass_draw(RvkPass* pass, const RvkPassSetup* setup, const RvkPassDraw* 
 
     if (draw->drawMesh || graphic->mesh) {
       const u32 idxCount = draw->drawMesh ? draw->drawMesh->indexCount : graphic->mesh->indexCount;
-      vkCmdDrawIndexed(invoc->vkCmdBuf, idxCount, instCount, 0, 0, 0);
+      pass->dev->api.cmdDrawIndexed(invoc->vkCmdBuf, idxCount, instCount, 0, 0, 0);
     } else {
       const u32 vertexCount =
           draw->vertexCountOverride ? draw->vertexCountOverride : graphic->vertexCount;
       if (LIKELY(vertexCount)) {
-        vkCmdDraw(invoc->vkCmdBuf, vertexCount, instCount, 0, 0);
+        pass->dev->api.cmdDraw(invoc->vkCmdBuf, vertexCount, instCount, 0, 0);
       }
     }
 
@@ -984,7 +987,7 @@ void rvk_pass_end(RvkPass* pass, const RvkPassSetup* setup) {
   rvk_debug_label_end(pass->dev->debug, invoc->vkCmdBuf);
   invoc->timeRecEnd = rvk_stopwatch_mark(frame->stopwatch, invoc->vkCmdBuf);
 
-  vkCmdEndRenderPass(invoc->vkCmdBuf);
+  pass->dev->api.cmdEndRenderPass(invoc->vkCmdBuf);
 
   if (setup->attachDepth && pass->config->attachDepth != RvkPassDepth_Stored) {
     // When we're not storing the depth, the image's contents become undefined.
