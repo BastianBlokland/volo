@@ -58,7 +58,7 @@ static void rvk_vk_exts_free(RendVkExts exts) {
 /**
  * Check if the given extension is contained in the list of available device extensions.
  */
-static bool rvk_device_has_ext(RendVkExts availableExts, String ext) {
+static bool rvk_device_has_ext(RendVkExts availableExts, const String ext) {
   heap_array_for_t(availableExts, VkExtensionProperties, props) {
     if (string_eq(ext, string_from_null_term(props->extensionName))) {
       return true;
@@ -115,6 +115,45 @@ static u32 rvk_device_pick_transfer_queue(RvkLib* lib, VkPhysicalDevice vkPhysDe
   return sentinel_u32;
 }
 
+static bool rvk_device_validate_features(const VkPhysicalDeviceFeatures2* supported) {
+  if (!supported->features.independentBlend) {
+    return false;
+  }
+  return true;
+}
+
+static VkPhysicalDeviceFeatures
+rvk_device_pick_features(RvkDevice* dev, const VkPhysicalDeviceFeatures2* supported) {
+  VkPhysicalDeviceFeatures result = {0};
+
+  // Required features.
+  result.independentBlend = true;
+
+  // Optional features.
+  if (supported->features.pipelineStatisticsQuery) {
+    result.pipelineStatisticsQuery = true;
+    dev->flags |= RvkDeviceFlags_SupportPipelineStatQuery;
+  }
+  if (supported->features.samplerAnisotropy) {
+    result.samplerAnisotropy = true;
+    dev->flags |= RvkDeviceFlags_SupportAnisotropy;
+  }
+  if (supported->features.fillModeNonSolid) {
+    result.fillModeNonSolid = true;
+    dev->flags |= RvkDeviceFlags_SupportFillNonSolid;
+  }
+  if (supported->features.wideLines) {
+    result.wideLines = true;
+    dev->flags |= RvkDeviceFlags_SupportWideLines;
+  }
+  if (supported->features.depthClamp) {
+    result.depthClamp = true;
+    dev->flags |= RvkDeviceFlags_SupportDepthClamp;
+  }
+
+  return result;
+}
+
 static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
   VkPhysicalDevice vkPhysDevs[32];
   u32              vkPhysDevsCount = array_elems(vkPhysDevs);
@@ -133,6 +172,16 @@ static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
         score = -1;
         goto detectionDone;
       }
+    }
+
+    VkPhysicalDeviceFeatures2 supportedFeatures = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+    };
+    rvk_call(lib, getPhysicalDeviceFeatures2, vkPhysDevs[i], &supportedFeatures);
+
+    if (!rvk_device_validate_features(&supportedFeatures)) {
+      score = -1;
+      goto detectionDone;
     }
 
     VkPhysicalDeviceProperties properties;
@@ -160,35 +209,6 @@ static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
     diag_crash_msg("No compatible Vulkan device found");
   }
   return bestVkPhysDev;
-}
-
-static VkPhysicalDeviceFeatures
-rvk_device_pick_features(RvkDevice* dev, const VkPhysicalDeviceFeatures2* supported) {
-  VkPhysicalDeviceFeatures result = {0};
-  if (supported->features.pipelineStatisticsQuery) {
-    result.pipelineStatisticsQuery = true;
-    dev->flags |= RvkDeviceFlags_SupportPipelineStatQuery;
-  }
-  if (supported->features.samplerAnisotropy) {
-    result.samplerAnisotropy = true;
-    dev->flags |= RvkDeviceFlags_SupportAnisotropy;
-  }
-  if (supported->features.fillModeNonSolid) {
-    result.fillModeNonSolid = true;
-    dev->flags |= RvkDeviceFlags_SupportFillNonSolid;
-  }
-  if (supported->features.wideLines) {
-    result.wideLines = true;
-    dev->flags |= RvkDeviceFlags_SupportWideLines;
-  }
-  if (supported->features.depthClamp) {
-    result.depthClamp = true;
-    dev->flags |= RvkDeviceFlags_SupportDepthClamp;
-  }
-  // TODO: Either support devices without the 'independentBlend' feature or disqualify devices
-  // without this feature during device selection.
-  result.independentBlend = true;
-  return result;
 }
 
 static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
