@@ -46,8 +46,12 @@ struct sRvkCanvas {
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
   VkSemaphoreCreateInfo semaphoreInfo = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
   VkSemaphore           result;
-  rvk_call(vkCreateSemaphore, dev->vkDev, &semaphoreInfo, &dev->vkAlloc, &result);
+  rvk_call(dev->api, createSemaphore, dev->vkDev, &semaphoreInfo, &dev->vkAlloc, &result);
   return result;
+}
+
+static void rvk_semaphore_destroy(RvkDevice* dev, const VkSemaphore sema) {
+  dev->api.destroySemaphore(dev->vkDev, sema, &dev->vkAlloc);
 }
 
 RvkCanvas* rvk_canvas_create(RvkLib* lib, RvkDevice* dev, const GapWindowComp* window) {
@@ -86,8 +90,8 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
 
   array_for_t(canvas->frames, RvkCanvasFrame, frame) {
     rvk_job_destroy(frame->job);
-    vkDestroySemaphore(canvas->dev->vkDev, frame->swapchainAvailable, &canvas->dev->vkAlloc);
-    vkDestroySemaphore(canvas->dev->vkDev, frame->swapchainPresent, &canvas->dev->vkAlloc);
+    rvk_semaphore_destroy(canvas->dev, frame->swapchainAvailable);
+    rvk_semaphore_destroy(canvas->dev, frame->swapchainPresent);
   }
 
   rvk_swapchain_destroy(canvas->swapchain);
