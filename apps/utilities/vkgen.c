@@ -92,6 +92,8 @@ static const String g_vkgenExtensions[] = {
     string_static("VK_KHR_surface"),
     string_static("VK_KHR_xcb_surface"),
     string_static("VK_KHR_win32_surface"),
+    string_static("VK_KHR_present_id"),
+    string_static("VK_KHR_present_wait"),
 };
 
 typedef enum {

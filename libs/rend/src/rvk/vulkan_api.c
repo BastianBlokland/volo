@@ -1002,6 +1002,7 @@ VkResult vkLoadDevice(VkDevice dev, const VkInterfaceInstance* src, VkInterfaceD
   out->getDeviceGroupPresentCapabilitiesKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceGroupPresentCapabilitiesKHR");
   out->getDeviceGroupSurfacePresentModesKHR = (Symbol)src->getDeviceProcAddr(dev, "vkGetDeviceGroupSurfacePresentModesKHR");
   out->acquireNextImage2KHR = (Symbol)src->getDeviceProcAddr(dev, "vkAcquireNextImage2KHR");
+  out->waitForPresentKHR = (Symbol)src->getDeviceProcAddr(dev, "vkWaitForPresentKHR");
   return VK_SUCCESS;
 }
 

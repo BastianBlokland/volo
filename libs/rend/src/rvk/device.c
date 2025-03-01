@@ -26,9 +26,6 @@ static const String g_optionalExts[] = {
     string_static("VK_KHR_maintenance4"),
 };
 
-MAYBE_UNUSED static const bool g_rend_enable_vk_present_id   = true;
-MAYBE_UNUSED static const bool g_rend_enable_vk_present_wait = true;
-
 typedef struct {
   VkExtensionProperties* values;
   u32                    count;
@@ -223,40 +220,34 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   }
   rvk_vk_exts_free(supportedExts);
 
-  // Add optional features..
-  void* nextOptFeature = null;
-#ifdef VK_KHR_present_id
+  // Add optional features.
+  void*                                nextOptFeature      = null;
   VkPhysicalDevicePresentIdFeaturesKHR optFeaturePresentId = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR,
       .pNext = nextOptFeature,
   };
   nextOptFeature = &optFeaturePresentId;
-#endif
-#ifdef VK_KHR_present_wait
+
   VkPhysicalDevicePresentWaitFeaturesKHR optFeaturePresentWait = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR,
       .pNext = nextOptFeature,
   };
   nextOptFeature = &optFeaturePresentWait;
-#endif
+
   VkPhysicalDeviceFeatures2 supportedFeatures = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
       .pNext = nextOptFeature,
   };
   lib->api.getPhysicalDeviceFeatures2(dev->vkPhysDev, &supportedFeatures);
 
-#ifdef VK_KHR_present_id
-  if (g_rend_enable_vk_present_id && optFeaturePresentId.presentId) {
+  if (optFeaturePresentId.presentId) {
     extsToEnable[extsToEnableCount++] = "VK_KHR_present_id";
     dev->flags |= RvkDeviceFlags_SupportPresentId;
   }
-#endif
-#ifdef VK_KHR_present_wait
-  if (g_rend_enable_vk_present_wait && optFeaturePresentWait.presentWait) {
+  if (optFeaturePresentWait.presentWait) {
     extsToEnable[extsToEnableCount++] = "VK_KHR_present_wait";
     dev->flags |= RvkDeviceFlags_SupportPresentWait;
   }
-#endif
 
   VkPhysicalDevice16BitStorageFeatures float16IStorageFeatures = {
       .sType                    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,

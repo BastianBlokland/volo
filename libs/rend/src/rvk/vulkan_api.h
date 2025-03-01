@@ -231,6 +231,9 @@ typedef enum {
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES = 1000168000,
   VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_SUPPORT = 1000168001,
   VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT = 1000247000,
+  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR = 1000248000,
+  VK_STRUCTURE_TYPE_PRESENT_ID_KHR = 1000294000,
+  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR = 1000294001,
 } VkStructureType;
 
 typedef enum {
@@ -3173,6 +3176,25 @@ typedef struct VkWin32SurfaceCreateInfoKHR {
   uptr hwnd;
 } VkWin32SurfaceCreateInfoKHR;
 
+typedef struct VkPresentIdKHR {
+  VkStructureType sType;
+  const void* pNext;
+  u32 swapchainCount;
+  const u64* pPresentIds;
+} VkPresentIdKHR;
+
+typedef struct VkPhysicalDevicePresentIdFeaturesKHR {
+  VkStructureType sType;
+  void* pNext;
+  VkBool32 presentId;
+} VkPhysicalDevicePresentIdFeaturesKHR;
+
+typedef struct VkPhysicalDevicePresentWaitFeaturesKHR {
+  VkStructureType sType;
+  void* pNext;
+  VkBool32 presentWait;
+} VkPhysicalDevicePresentWaitFeaturesKHR;
+
 String vkResultStr(VkResult);
 String vkPhysicalDeviceTypeStr(VkPhysicalDeviceType);
 String vkColorSpaceKHRStr(VkColorSpaceKHR);
@@ -3388,6 +3410,7 @@ typedef struct VkInterfaceDevice {
   VkResult (SYS_DECL* getDeviceGroupPresentCapabilitiesKHR)(VkDevice device, VkDeviceGroupPresentCapabilitiesKHR* pDeviceGroupPresentCapabilities);
   VkResult (SYS_DECL* getDeviceGroupSurfacePresentModesKHR)(VkDevice device, VkSurfaceKHR surface, VkDeviceGroupPresentModeFlagsKHR* pModes);
   VkResult (SYS_DECL* acquireNextImage2KHR)(VkDevice device, const VkAcquireNextImageInfoKHR* pAcquireInfo, u32* pImageIndex);
+  VkResult (SYS_DECL* waitForPresentKHR)(VkDevice device, VkSwapchainKHR swapchain, u64 presentId, u64 timeout);
 } VkInterfaceDevice;
 
 VkResult vkLoadDevice(VkDevice, const VkInterfaceInstance*, VkInterfaceDevice* out);
