@@ -1,6 +1,7 @@
 #pragma once
 #include "geo.h"
 
+#include "forward_internal.h"
 #include "vulkan_internal.h"
 
 typedef enum {
@@ -13,7 +14,7 @@ typedef enum {
  */
 typedef struct sRvkDebug RvkDebug;
 
-RvkDebug* rvk_debug_create(VkInstance, VkDevice, VkAllocationCallbacks*, RvkDebugFlags);
+RvkDebug* rvk_debug_create(RvkLib*, RvkDevice*, RvkDebugFlags);
 void      rvk_debug_destroy(RvkDebug*);
 void      rvk_debug_name(RvkDebug*, VkObjectType, u64 vkHandle, String name);
 void      rvk_debug_label_begin_raw(RvkDebug*, VkCommandBuffer, GeoColor, String name);

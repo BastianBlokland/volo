@@ -5,6 +5,8 @@
 #include "log_logger.h"
 
 #include "debug_internal.h"
+#include "device_internal.h"
+#include "lib_internal.h"
 
 /**
  * Vulkan validation layer support.
@@ -19,15 +21,11 @@
  */
 
 struct sRvkDebug {
-  RvkDebugFlags                    flags;
-  Logger*                          logger;
-  VkInstance                       vkInst;
-  VkDevice                         vkDev;
-  VkAllocationCallbacks*           vkAlloc;
-  VkDebugUtilsMessengerEXT         vkMessenger;
-  PFN_vkSetDebugUtilsObjectNameEXT vkObjectNameFunc;
-  PFN_vkCmdBeginDebugUtilsLabelEXT vkLabelBeginFunc;
-  PFN_vkCmdEndDebugUtilsLabelEXT   vkLabelEndFunc;
+  RvkDebugFlags            flags;
+  RvkLib*                  lib;
+  RvkDevice*               dev;
+  Logger*                  logger;
+  VkDebugUtilsMessengerEXT vkMessenger;
 };
 
 static const char* rvk_to_null_term_scratch(const String str) {
@@ -117,29 +115,25 @@ static void rvk_messenger_create(RvkDebug* dbg) {
       .pfnUserCallback = rvk_message_func,
       .pUserData       = dbg,
   };
-  rvk_func_load_instance(dbg->vkInst, vkCreateDebugUtilsMessengerEXT)(
-      dbg->vkInst, &createInfo, dbg->vkAlloc, &dbg->vkMessenger);
+  dbg->lib->api.createDebugUtilsMessengerEXT(
+      dbg->lib->vkInst, &createInfo, &dbg->lib->vkAlloc, &dbg->vkMessenger);
 }
 
 static void rvk_messenger_destroy(RvkDebug* dbg) {
-  rvk_func_load_instance(dbg->vkInst, vkDestroyDebugUtilsMessengerEXT)(
-      dbg->vkInst, dbg->vkMessenger, dbg->vkAlloc);
+  dbg->lib->api.destroyDebugUtilsMessengerEXT(
+      dbg->lib->vkInst, dbg->vkMessenger, &dbg->lib->vkAlloc);
 }
 
-RvkDebug* rvk_debug_create(
-    VkInstance vkInst, VkDevice vkDev, VkAllocationCallbacks* vkAlloc, const RvkDebugFlags flags) {
-
+RvkDebug* rvk_debug_create(RvkLib* lib, RvkDevice* dev, const RvkDebugFlags flags) {
   RvkDebug* debug = alloc_alloc_t(g_allocHeap, RvkDebug);
-  *debug          = (RvkDebug){
-               .flags            = flags,
-               .logger           = g_logger,
-               .vkInst           = vkInst,
-               .vkDev            = vkDev,
-               .vkAlloc          = vkAlloc,
-               .vkObjectNameFunc = rvk_func_load_instance(vkInst, vkSetDebugUtilsObjectNameEXT),
-               .vkLabelBeginFunc = rvk_func_load_instance(vkInst, vkCmdBeginDebugUtilsLabelEXT),
-               .vkLabelEndFunc   = rvk_func_load_instance(vkInst, vkCmdEndDebugUtilsLabelEXT),
+
+  *debug = (RvkDebug){
+      .flags  = flags,
+      .lib    = lib,
+      .dev    = dev,
+      .logger = g_logger,
   };
+
   rvk_messenger_create(debug);
 
   return debug;
@@ -159,8 +153,7 @@ void rvk_debug_name(
         .objectHandle = vkHandle,
         .pObjectName  = rvk_to_null_term_scratch(name),
     };
-    const VkResult result = debug->vkObjectNameFunc(debug->vkDev, &nameInfo);
-    rvk_check(string_lit("vkSetDebugUtilsObjectNameEXT"), result);
+    rvk_call(debug->lib->api, setDebugUtilsObjectNameEXT, debug->dev->vkDev, &nameInfo);
   }
 }
 
@@ -172,12 +165,12 @@ void rvk_debug_label_begin_raw(
         .pLabelName = rvk_to_null_term_scratch(name),
         .color      = {color.r, color.g, color.b, color.a},
     };
-    debug->vkLabelBeginFunc(vkCmdBuffer, &label);
+    debug->lib->api.cmdBeginDebugUtilsLabelEXT(vkCmdBuffer, &label);
   }
 }
 
 void rvk_debug_label_end(RvkDebug* debug, VkCommandBuffer vkCmdBuffer) {
   if (debug) {
-    debug->vkLabelEndFunc(vkCmdBuffer);
+    debug->lib->api.cmdEndDebugUtilsLabelEXT(vkCmdBuffer);
   }
 }

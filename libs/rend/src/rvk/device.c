@@ -319,7 +319,7 @@ RvkDevice* rvk_device_create(RvkLib* lib, const RendSettingsGlobalComp* settings
   if (lib->flags & RvkLibFlags_Debug) {
     const bool          verbose    = (settingsGlobal->flags & RendGlobalFlags_Verbose) != 0;
     const RvkDebugFlags debugFlags = verbose ? RvkDebugFlags_Verbose : 0;
-    dev->debug = rvk_debug_create(lib->vkInst, dev->vkDev, &dev->vkAlloc, debugFlags);
+    dev->debug                     = rvk_debug_create(lib, dev, debugFlags);
     if (dev->vkTransferQueue) {
       rvk_debug_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics");
       rvk_debug_name_queue(dev->debug, dev->vkTransferQueue, "transfer");
