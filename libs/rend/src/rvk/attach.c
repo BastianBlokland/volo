@@ -3,7 +3,6 @@
 #include "core_diag.h"
 
 #include "attach_internal.h"
-#include "debug_internal.h"
 #include "device_internal.h"
 #include "image_internal.h"
 
@@ -36,7 +35,7 @@ typedef enum {
 } RvkAttachState;
 
 struct sRvkAttachPool {
-  RvkDevice* device;
+  RvkDevice* dev;
   u8         emptyMask[bits_to_bytes(rvk_attach_max_images)];     // Bitmask of empty slots.
   u8         availableMask[bits_to_bytes(rvk_attach_max_images)]; // Bitmask of available slots.
   u8         states[rvk_attach_max_images]; // RvkAttachState[rvk_attach_max_images].
@@ -92,22 +91,22 @@ static RvkAttachIndex rvk_attach_create(
   case RvkImageType_ColorAttachment:
     typeName = string_lit("color");
     pool->images[slot] =
-        rvk_image_create_attach_color(pool->device, spec.vkFormat, size, capabilities);
+        rvk_image_create_attach_color(pool->dev, spec.vkFormat, size, capabilities);
     break;
   case RvkImageType_DepthAttachment:
     typeName = string_lit("depth");
     pool->images[slot] =
-        rvk_image_create_attach_depth(pool->device, spec.vkFormat, size, capabilities);
+        rvk_image_create_attach_depth(pool->dev, spec.vkFormat, size, capabilities);
     break;
   default:
     UNREACHABLE
   }
   pool->states[slot] = RvkAttachState_Pending;
 
-  RvkImage* img = &pool->images[slot];
-  RvkDebug* dbg = pool->device->debug;
-  rvk_debug_name_img(dbg, img->vkImage, "attach_{}_{}", fmt_int(slot), fmt_text(typeName));
-  rvk_debug_name_img_view(dbg, img->vkImageView, "attach_{}_{}", fmt_int(slot), fmt_text(typeName));
+  RvkImage*  img = &pool->images[slot];
+  RvkDevice* dev = pool->dev;
+  rvk_debug_name_img(dev, img->vkImage, "attach_{}_{}", fmt_int(slot), fmt_text(typeName));
+  rvk_debug_name_img_view(dev, img->vkImageView, "attach_{}_{}", fmt_int(slot), fmt_text(typeName));
 
 #if VOLO_RVK_ATTACH_LOGGING
   log_d(
@@ -137,7 +136,7 @@ RvkImage* rvk_attach_acquire(
 
 RvkAttachPool* rvk_attach_pool_create(RvkDevice* device) {
   RvkAttachPool* pool = alloc_alloc_t(g_allocHeap, RvkAttachPool);
-  *pool               = (RvkAttachPool){.device = device};
+  *pool               = (RvkAttachPool){.dev = device};
   bitset_set_all(bitset_from_array(pool->emptyMask), rvk_attach_max_images);
   return pool;
 }
@@ -145,7 +144,7 @@ RvkAttachPool* rvk_attach_pool_create(RvkDevice* device) {
 void rvk_attach_pool_destroy(RvkAttachPool* pool) {
   for (RvkAttachIndex slot = 0; slot != rvk_attach_max_images; ++slot) {
     if (pool->states[slot] != RvkAttachState_Empty) {
-      rvk_image_destroy(&pool->images[slot], pool->device);
+      rvk_image_destroy(&pool->images[slot], pool->dev);
     }
   }
   alloc_free_t(g_allocHeap, pool);
@@ -180,7 +179,7 @@ void rvk_attach_pool_flush(RvkAttachPool* pool) {
     if (--pool->states[slot] == RvkAttachState_Empty) {
       bitset_set(bitset_from_array(pool->emptyMask), slot);
       bitset_clear(bitset_from_array(pool->availableMask), slot);
-      rvk_image_destroy(&pool->images[slot], pool->device);
+      rvk_image_destroy(&pool->images[slot], pool->dev);
 
 #if VOLO_RVK_ATTACH_LOGGING
       log_d("Vulkan attachment image destroyed", log_param("slot", fmt_int(slot)));

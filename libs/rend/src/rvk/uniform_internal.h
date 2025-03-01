@@ -1,8 +1,8 @@
 #pragma once
 #include "core_memory.h"
+#include "vulkan_api.h"
 
 #include "forward_internal.h"
-#include "vulkan_internal.h"
 
 typedef struct sRvkUniformPool RvkUniformPool;
 

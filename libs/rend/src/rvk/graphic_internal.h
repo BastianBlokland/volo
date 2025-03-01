@@ -1,10 +1,10 @@
 #pragma once
 #include "asset_graphic.h"
+#include "vulkan_api.h"
 
 #include "desc_internal.h"
 #include "forward_internal.h"
 #include "sampler_internal.h"
-#include "vulkan_internal.h"
 
 enum {
   RvkGraphicSet_Global   = 0,

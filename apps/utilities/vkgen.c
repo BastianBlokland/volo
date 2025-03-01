@@ -53,11 +53,13 @@
   VKGEN_HASH(funcpointer)                                                                          \
   VKGEN_HASH(handle)                                                                               \
   VKGEN_HASH(include)                                                                              \
+  VKGEN_HASH(instance)                                                                             \
   VKGEN_HASH(member)                                                                               \
   VKGEN_HASH(name)                                                                                 \
   VKGEN_HASH(number)                                                                               \
   VKGEN_HASH(offset)                                                                               \
   VKGEN_HASH(param)                                                                                \
+  VKGEN_HASH(parent)                                                                               \
   VKGEN_HASH(proto)                                                                                \
   VKGEN_HASH(require)                                                                              \
   VKGEN_HASH(struct)                                                                               \
@@ -84,12 +86,15 @@ static const String g_vkgenFeatures[] = {
 };
 
 static const String g_vkgenExtensions[] = {
-    string_static("VK_EXT_validation_features"),
     string_static("VK_EXT_debug_utils"),
-    string_static("VK_KHR_swapchain"),
+    string_static("VK_EXT_validation_features"),
+    string_static("VK_KHR_16bit_storage"),
+    string_static("VK_KHR_present_id"),
+    string_static("VK_KHR_present_wait"),
     string_static("VK_KHR_surface"),
-    string_static("VK_KHR_xcb_surface"),
+    string_static("VK_KHR_swapchain"),
     string_static("VK_KHR_win32_surface"),
+    string_static("VK_KHR_xcb_surface"),
 };
 
 typedef enum {
@@ -109,21 +114,19 @@ typedef struct {
 
 // clang-format off
 static const VkGenRefAlias g_vkgenRefAliases[] = {
-  {string_static("uint8_t"),                           string_static("u8")                         },
-  {string_static("int32_t"),                           string_static("i32")                        },
-  {string_static("uint32_t"),                          string_static("u32")                        },
-  {string_static("int64_t"),                           string_static("i64")                        },
-  {string_static("uint64_t"),                          string_static("u64")                        },
-  {string_static("size_t"),                            string_static("usize")                      },
-  {string_static("float"),                             string_static("f32")                        },
-  {string_static("double"),                            string_static("f64")                        },
-  {string_static("HINSTANCE"),                         string_static("uptr")                       },
-  {string_static("HWND"),                              string_static("uptr")                       },
-  {string_static("HINSTANCE"),                         string_static("uptr")                       },
-  {string_static("xcb_visualid_t"),                    string_static("u32")                        },
-  {string_static("xcb_window_t"),                      string_static("uptr")                       },
-  {string_static("xcb_connection_t"),                  string_static("uptr"), .stripPointer = true },
-  {string_static("VK_DEFINE_NON_DISPATCHABLE_HANDLE"), string_static("VK_DEFINE_HANDLE")           },
+  {string_static("uint8_t"),            string_static("u8")                         },
+  {string_static("int32_t"),            string_static("i32")                        },
+  {string_static("uint32_t"),           string_static("u32")                        },
+  {string_static("int64_t"),            string_static("i64")                        },
+  {string_static("uint64_t"),           string_static("u64")                        },
+  {string_static("size_t"),             string_static("usize")                      },
+  {string_static("float"),              string_static("f32")                        },
+  {string_static("double"),             string_static("f64")                        },
+  {string_static("HWND"),               string_static("uptr")                       },
+  {string_static("HINSTANCE"),          string_static("uptr")                       },
+  {string_static("xcb_visualid_t"),     string_static("u32")                        },
+  {string_static("xcb_window_t"),       string_static("uptr")                       },
+  {string_static("xcb_connection_t"),   string_static("uptr"), .stripPointer = true },
 };
 // clang-format on
 
@@ -262,8 +265,9 @@ typedef enum {
 typedef struct {
   VkGenTypeKind kind;
   StringHash    key;
-  String        name; // Allocated in the schema document.
+  StringHash    parent; // Optional, unset if 0.
   XmlNode       schemaNode;
+  String        name; // Allocated in the schema document.
 } VkGenType;
 
 typedef struct {
@@ -281,9 +285,22 @@ typedef struct {
 typedef struct {
   StringHash nameHash;
   u32        size;  // Size in bytes of a single pixel.
-  u32        comps; // Number of components.
+  u32        comps; // Number of components (aka channels).
   bool       compressed4x4;
 } VkGenFormat;
+
+typedef enum {
+  VkGenInterfaceCat_Loader,
+  VkGenInterfaceCat_Instance,
+  VkGenInterfaceCat_Device,
+
+  VkGenInterfaceCat_Count,
+} VkGenInterfaceCat;
+
+typedef struct {
+  VkGenInterfaceCat cat;
+  u32               cmdIndex;
+} VkGenInterface;
 
 typedef struct {
   XmlDoc*   schemaDoc;
@@ -294,10 +311,10 @@ typedef struct {
   DynArray  constants;   // VkGenConstant[]
   DynArray  enumEntries; // VkGenEnumEntry[]
   DynArray  commands;    // VkGenCommand[]
-  DynBitSet commandsWritten;
   XmlNode   featureNodes[array_elems(g_vkgenFeatures)];
   XmlNode   extensionNodes[array_elems(g_vkgenExtensions)];
-  DynArray  formats; // VkGenFormat[]
+  DynArray  interfaces; // VkGenInterface[]
+  DynArray  formats;    // VkGenFormat[]
   String    outName;
   DynString out;
 } VkGenContext;
@@ -347,13 +364,30 @@ static const VkGenType* vkgen_type_get(VkGenContext* ctx, const u32 index) {
 }
 
 static void vkgen_type_push(
-    VkGenContext* ctx, const VkGenTypeKind kind, const String name, const XmlNode schemaNode) {
+    VkGenContext*       ctx,
+    const VkGenTypeKind kind,
+    const String        name,
+    const StringHash    parent,
+    const XmlNode       schemaNode) {
   *dynarray_push_t(&ctx->types, VkGenType) = (VkGenType){
       .kind       = kind,
       .key        = string_hash(name),
-      .name       = name,
+      .parent     = parent,
       .schemaNode = schemaNode,
+      .name       = name,
   };
+}
+
+static bool vkgen_is_child(VkGenContext* ctx, const StringHash child, const StringHash parent) {
+  if (child == parent) {
+    return true;
+  }
+  const u32 childTypeIndex = vkgen_type_find(ctx, child);
+  if (sentinel_check(childTypeIndex)) {
+    return false;
+  }
+  const VkGenType* childType = vkgen_type_get(ctx, childTypeIndex);
+  return vkgen_is_child(ctx, childType->parent, parent);
 }
 
 static bool vkgen_enum_entry_push(VkGenContext* ctx, const VkGenEnumEntry enumEntry) {
@@ -496,7 +530,7 @@ static void vkgen_collect_enums(VkGenContext* ctx) {
       continue; // Not supported.
     }
     const String name = xml_attr_get(ctx->schemaDoc, enumNode, g_hash_name);
-    vkgen_type_push(ctx, VkGenTypeKind_Enum, name, enumNode);
+    vkgen_type_push(ctx, VkGenTypeKind_Enum, name, 0 /* parent */, enumNode);
     ++enumCount;
 
     xml_for_children(ctx->schemaDoc, enumNode, entryNode) {
@@ -596,15 +630,16 @@ static void vkgen_collect_types(VkGenContext* ctx) {
     if (!vkgen_is_supported_api(ctx, child)) {
       continue; // Not supported.
     }
-    const VkGenTypeKind kind = vkgen_categorize_type(ctx, child);
-    const String        name = xml_attr_get(ctx->schemaDoc, child, g_hash_name);
+    const VkGenTypeKind kind   = vkgen_categorize_type(ctx, child);
+    const StringHash    parent = xml_attr_get_hash(ctx->schemaDoc, child, g_hash_parent);
+    const String        name   = xml_attr_get(ctx->schemaDoc, child, g_hash_name);
     if (!string_is_empty(name)) {
-      vkgen_type_push(ctx, kind, name, child);
+      vkgen_type_push(ctx, kind, name, parent, child);
       continue;
     }
     const XmlNode nameNode = xml_child_get(ctx->schemaDoc, child, g_hash_name);
     if (!sentinel_check(nameNode)) {
-      vkgen_type_push(ctx, kind, xml_value(ctx->schemaDoc, nameNode), child);
+      vkgen_type_push(ctx, kind, xml_value(ctx->schemaDoc, nameNode), parent, child);
       continue;
     }
   }
@@ -705,6 +740,79 @@ static void vkgen_collect_custom_extensions(VkGenContext* ctx) {
     enumEntry.value = g_pciSigVendors[i].vendorId;
     vkgen_enum_entry_push(ctx, enumEntry);
   }
+}
+
+static void vkgen_collect_required_interfaces(
+    VkGenContext*    ctx,
+    DynBitSet*       markedCommands,
+    const StringHash extensionType,
+    const XmlNode    node) {
+  const StringHash devTypeHash         = string_hash_lit("VkDevice");
+  const StringHash devGetProcAddrHash  = string_hash_lit("vkGetDeviceProcAddr");
+  const StringHash instTypeHash        = string_hash_lit("VkInstance");
+  const StringHash instGetProcAddrHash = string_hash_lit("vkGetInstanceProcAddr");
+
+  xml_for_children(ctx->schemaDoc, node, child) {
+    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_require) {
+      continue; // Not a require element.
+    }
+    xml_for_children(ctx->schemaDoc, child, entry) {
+      if (xml_name_hash(ctx->schemaDoc, entry) != g_hash_command) {
+        continue; // Not a command element.
+      }
+      const StringHash cmdKey   = xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name);
+      const u32        cmdIndex = vkgen_command_find(ctx, cmdKey);
+      if (sentinel_check(cmdIndex)) {
+        continue; // Unknown command.
+      }
+      if (dynbitset_test(markedCommands, cmdIndex)) {
+        continue; // Already collected.
+      }
+      dynbitset_set(markedCommands, cmdIndex);
+
+      const VkGenCommand* cmd        = vkgen_command_get(ctx, cmdIndex);
+      const XmlNode       firstParam = xml_child_get(ctx->schemaDoc, cmd->schemaNode, g_hash_param);
+      const XmlNode       firstTypeNode = xml_child_get(ctx->schemaDoc, firstParam, g_hash_type);
+      const StringHash    firstType     = string_hash(xml_value(ctx->schemaDoc, firstTypeNode));
+
+      VkGenInterfaceCat cat;
+      if (cmd->key == instGetProcAddrHash) {
+        // 'vkGetInstanceProcAddr' is an exception that has to be handled by the loader.
+        cat = VkGenInterfaceCat_Loader;
+      } else if (cmd->key == devGetProcAddrHash) {
+        // 'vkGetDeviceProcAddr' is an exception that has to be handled by the instance.
+        cat = VkGenInterfaceCat_Instance;
+      } else if (vkgen_is_child(ctx, firstType, devTypeHash) && extensionType != g_hash_instance) {
+        cat = VkGenInterfaceCat_Device;
+      } else if (vkgen_is_child(ctx, firstType, instTypeHash)) {
+        cat = VkGenInterfaceCat_Instance;
+      } else {
+        cat = VkGenInterfaceCat_Loader;
+      }
+
+      *dynarray_push_t(&ctx->interfaces, VkGenInterface) = (VkGenInterface){
+          .cat      = cat,
+          .cmdIndex = cmdIndex,
+      };
+    }
+  }
+}
+
+static void vkgen_collect_interfaces(VkGenContext* ctx) {
+  DynBitSet markedCommands = dynbitset_create(g_allocHeap, ctx->commands.size);
+
+  for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
+    const XmlNode featNode = ctx->featureNodes[i];
+    vkgen_collect_required_interfaces(ctx, &markedCommands, 0 /* extensionType */, featNode);
+  }
+  for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
+    const XmlNode    extNode = ctx->extensionNodes[i];
+    const StringHash extType = xml_attr_get_hash(ctx->schemaDoc, extNode, g_hash_type);
+    vkgen_collect_required_interfaces(ctx, &markedCommands, extType, extNode);
+  }
+
+  dynbitset_destroy(&markedCommands);
+  log_i("Collected interfaces", log_param("count", fmt_int(ctx->interfaces.size)));
 }
 
 static void vkgen_collect_formats(VkGenContext* ctx) {
@@ -841,7 +949,7 @@ static bool vkgen_write_type_func_pointer(VkGenContext* ctx, const VkGenType* ty
     return false; // Unexpected type-def name.
   }
 
-  fmt_write(&ctx->out, "typedef {} (SYS_DECL *{})(", fmt_text(retType), fmt_text(type->name));
+  fmt_write(&ctx->out, "typedef {} (SYS_DECL* {})(", fmt_text(retType), fmt_text(type->name));
 
   child = xml_next(ctx->schemaDoc, child);
   if (vkgen_node_value_match(ctx->schemaDoc, child, string_lit(")(void);"))) {
@@ -962,56 +1070,7 @@ static bool vkgen_write_type(VkGenContext* ctx, const StringHash key) {
   UNREACHABLE
 }
 
-static void vkgen_write_command_params(VkGenContext* ctx, const XmlNode cmdNode) {
-  bool anyParam = false;
-  xml_for_children(ctx->schemaDoc, cmdNode, child) {
-    if (xml_name_hash(ctx->schemaDoc, child) != g_hash_param) {
-      continue; // Not a parameter.
-    }
-    if (!vkgen_is_supported_api(ctx, child)) {
-      continue; // Not supported.
-    }
-    if (anyParam) {
-      fmt_write(&ctx->out, ", ");
-    }
-    vkgen_write_node_children(ctx, child);
-    anyParam = true;
-  }
-  if (!anyParam) {
-    fmt_write(&ctx->out, "void");
-  }
-}
-
-static bool vkgen_write_command(VkGenContext* ctx, const StringHash key) {
-  const u32 cmdIndex = vkgen_command_find(ctx, key);
-  if (sentinel_check(cmdIndex)) {
-    return false; // Unknown command.
-  }
-  if (dynbitset_test(&ctx->commandsWritten, cmdIndex)) {
-    return true; // Already written.
-  }
-  dynbitset_set(&ctx->commandsWritten, cmdIndex);
-
-  // Write types this command depends on.
-  const VkGenCommand* cmd = vkgen_command_get(ctx, cmdIndex);
-  if (!vkgen_write_dependencies(ctx, cmd->schemaNode)) {
-    return false;
-  }
-
-  // Write function pointer type-def.
-  fmt_write(&ctx->out, "typedef {} (SYS_DECL *PFN_{})(", fmt_text(cmd->type), fmt_text(cmd->name));
-  vkgen_write_command_params(ctx, cmd->schemaNode);
-  fmt_write(&ctx->out, ");\n");
-
-  // Write function declaration.
-  fmt_write(&ctx->out, "{} SYS_DECL {}(", fmt_text(cmd->type), fmt_text(cmd->name));
-  vkgen_write_command_params(ctx, cmd->schemaNode);
-  fmt_write(&ctx->out, ");\n\n");
-
-  return true;
-}
-
-static bool vkgen_write_requirements(VkGenContext* ctx, const XmlNode node) {
+static bool vkgen_write_required_types(VkGenContext* ctx, const XmlNode node) {
   bool success = true;
   xml_for_children(ctx->schemaDoc, node, set) {
     if (xml_name_hash(ctx->schemaDoc, set) != g_hash_require) {
@@ -1020,17 +1079,24 @@ static bool vkgen_write_requirements(VkGenContext* ctx, const XmlNode node) {
     xml_for_children(ctx->schemaDoc, set, entry) {
       const StringHash entryNameHash = xml_name_hash(ctx->schemaDoc, entry);
       if (entryNameHash == g_hash_type) {
-        if (!vkgen_write_type(ctx, xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name))) {
-          const String typeNameStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
-          log_e("Failed to write type", log_param("name", fmt_text(typeNameStr)));
+        const String typeName = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
+        if (!vkgen_write_type(ctx, string_hash(typeName))) {
+          log_e("Failed to write type", log_param("name", fmt_text(typeName)));
           success = false;
         }
         continue;
       }
       if (entryNameHash == g_hash_command) {
-        if (!vkgen_write_command(ctx, xml_attr_get_hash(ctx->schemaDoc, entry, g_hash_name))) {
-          const String commandNameStr = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
-          log_e("Failed to write command", log_param("name", fmt_text(commandNameStr)));
+        const String cmdName  = xml_attr_get(ctx->schemaDoc, entry, g_hash_name);
+        const u32    cmdIndex = vkgen_command_find(ctx, string_hash(cmdName));
+        if (sentinel_check(cmdIndex)) {
+          log_e("Unkown command", log_param("name", fmt_text(cmdName)));
+          success = false;
+          continue;
+        }
+        const VkGenCommand* cmd = vkgen_command_get(ctx, cmdIndex);
+        if (!vkgen_write_dependencies(ctx, cmd->schemaNode)) {
+          log_e("Command dependencies missing", log_param("name", fmt_text(cmdName)));
           success = false;
         }
         continue;
@@ -1038,6 +1104,22 @@ static bool vkgen_write_requirements(VkGenContext* ctx, const XmlNode node) {
     }
   }
   return success;
+}
+
+static bool vkgen_write_used_types(VkGenContext* ctx) {
+  // Write types required for features.
+  for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
+    if (!vkgen_write_required_types(ctx, ctx->featureNodes[i])) {
+      return false; // Feature requirement missing.
+    }
+  }
+  // Write types required for extensions.
+  for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
+    if (!vkgen_write_required_types(ctx, ctx->extensionNodes[i])) {
+      return false; // Extension requirement missing.
+    }
+  }
+  return true;
 }
 
 static void vkgen_write_stringify_decl(VkGenContext* ctx, const VkGenStringify* entry) {
@@ -1058,7 +1140,7 @@ static void vkgen_write_stringify_def(VkGenContext* ctx, const VkGenStringify* e
   VkGenEnumEntries enumEntries = vkgen_enum_entries_find(ctx, string_hash(entry->typeName));
 
   fmt_write(&ctx->out, "String {}(const {} v) {\n", fmt_text(funcName), fmt_text(entry->typeName));
-  fmt_write(&ctx->out, "  switch(v) {\n");
+  fmt_write(&ctx->out, "  switch (v) {\n");
   for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
     String val = itr->name;
     if (string_starts_with(val, entry->entryPrefix)) {
@@ -1083,7 +1165,7 @@ static bool vkgen_write_format_info_def(VkGenContext* ctx) {
 
   // Write vkFormatByteSize definition.
   fmt_write(&ctx->out, "u32 vkFormatByteSize(const VkFormat f) {\n");
-  fmt_write(&ctx->out, "  switch(f) {\n");
+  fmt_write(&ctx->out, "  switch (f) {\n");
   for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
     const VkGenFormat* info = vkgen_format_find(ctx, string_hash(itr->name));
     if (info) {
@@ -1095,7 +1177,7 @@ static bool vkgen_write_format_info_def(VkGenContext* ctx) {
 
   // Write vkFormatComponents definition.
   fmt_write(&ctx->out, "u32 vkFormatComponents(const VkFormat f) {\n");
-  fmt_write(&ctx->out, "  switch(f) {\n");
+  fmt_write(&ctx->out, "  switch (f) {\n");
   for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
     const VkGenFormat* info = vkgen_format_find(ctx, string_hash(itr->name));
     if (info) {
@@ -1107,7 +1189,7 @@ static bool vkgen_write_format_info_def(VkGenContext* ctx) {
 
   // Write vkFormatCompressed4x4 definition.
   fmt_write(&ctx->out, "bool vkFormatCompressed4x4(const VkFormat f) {\n");
-  fmt_write(&ctx->out, "  switch(f) {\n");
+  fmt_write(&ctx->out, "  switch (f) {\n");
   for (const VkGenEnumEntry* itr = enumEntries.begin; itr != enumEntries.end; ++itr) {
     const VkGenFormat* info = vkgen_format_find(ctx, string_hash(itr->name));
     if (info && info->compressed4x4) {
@@ -1121,10 +1203,160 @@ static bool vkgen_write_format_info_def(VkGenContext* ctx) {
   return true;
 }
 
+static String vkgen_interface_cat_name(const VkGenInterfaceCat cat) {
+  switch (cat) {
+  case VkGenInterfaceCat_Loader:
+    return string_lit("Loader");
+  case VkGenInterfaceCat_Instance:
+    return string_lit("Instance");
+  case VkGenInterfaceCat_Device:
+    return string_lit("Device");
+  case VkGenInterfaceCat_Count:
+    break;
+  }
+  UNREACHABLE
+}
+
+static bool vkgen_write_interface(VkGenContext* ctx, const VkGenInterfaceCat cat) {
+  const String catName = vkgen_interface_cat_name(cat);
+  fmt_write(&ctx->out, "typedef struct VkInterface{} {\n", fmt_text(catName));
+
+  dynarray_for_t(&ctx->interfaces, VkGenInterface, interface) {
+    if (interface->cat != cat) {
+      continue;
+    }
+    const VkGenCommand* cmd = vkgen_command_get(ctx, interface->cmdIndex);
+
+    String varName = cmd->name;
+    if (string_starts_with(varName, string_lit("vk")) && varName.size >= 3) {
+      varName = fmt_write_scratch(
+          "{}{}",
+          fmt_char(ascii_to_lower(*string_at(varName, 2))),
+          fmt_text(string_consume(varName, 3)));
+    }
+
+    fmt_write(&ctx->out, "  {} (SYS_DECL* {})(", fmt_text(cmd->type), fmt_text(varName));
+    bool anyParam = false;
+    xml_for_children(ctx->schemaDoc, cmd->schemaNode, child) {
+      if (xml_name_hash(ctx->schemaDoc, child) != g_hash_param) {
+        continue; // Not a parameter.
+      }
+      if (!vkgen_is_supported_api(ctx, child)) {
+        continue; // Not supported.
+      }
+      if (anyParam) {
+        fmt_write(&ctx->out, ", ");
+      }
+      vkgen_write_node_children(ctx, child);
+      anyParam = true;
+    }
+    if (!anyParam) {
+      fmt_write(&ctx->out, "void");
+    }
+    fmt_write(&ctx->out, ");\n");
+  }
+
+  fmt_write(&ctx->out, "} VkInterface{};\n\n", fmt_text(catName));
+  return true;
+}
+
+static void vkgen_write_interface_load_decl(VkGenContext* ctx, const VkGenInterfaceCat cat) {
+  const String catName = vkgen_interface_cat_name(cat);
+  fmt_write(&ctx->out, "VkResult vkLoad{}(", fmt_text(catName));
+  switch (cat) {
+  case VkGenInterfaceCat_Loader:
+    fmt_write(&ctx->out, "const DynLib*");
+    break;
+  case VkGenInterfaceCat_Instance:
+    fmt_write(&ctx->out, "VkInstance, const VkInterfaceLoader*");
+    break;
+  case VkGenInterfaceCat_Device:
+    fmt_write(&ctx->out, "VkDevice, const VkInterfaceInstance*");
+    break;
+  case VkGenInterfaceCat_Count:
+    break;
+  }
+  fmt_write(&ctx->out, ", VkInterface{}* out);\n\n", fmt_text(catName));
+}
+
+static void vkgen_write_interface_load_def(VkGenContext* ctx, const VkGenInterfaceCat cat) {
+  const String catName = vkgen_interface_cat_name(cat);
+  fmt_write(&ctx->out, "VkResult vkLoad{}(", fmt_text(catName));
+  switch (cat) {
+  case VkGenInterfaceCat_Loader:
+    fmt_write(&ctx->out, "const DynLib* lib");
+    break;
+  case VkGenInterfaceCat_Instance:
+    fmt_write(&ctx->out, "VkInstance inst, const VkInterfaceLoader* src");
+    break;
+  case VkGenInterfaceCat_Device:
+    fmt_write(&ctx->out, "VkDevice dev, const VkInterfaceInstance* src");
+    break;
+  case VkGenInterfaceCat_Count:
+    break;
+  }
+  fmt_write(&ctx->out, ", VkInterface{}* out) {\n", fmt_text(catName));
+
+  String loadFunc, dep;
+  switch (cat) {
+  case VkGenInterfaceCat_Loader:
+    loadFunc = string_lit("out->getInstanceProcAddr");
+    dep      = string_lit("null");
+    break;
+  case VkGenInterfaceCat_Instance:
+    loadFunc = string_lit("src->getInstanceProcAddr");
+    dep      = string_lit("inst");
+    break;
+  case VkGenInterfaceCat_Device:
+    loadFunc = string_lit("src->getDeviceProcAddr");
+    dep      = string_lit("dev");
+    break;
+  case VkGenInterfaceCat_Count:
+    break;
+  }
+
+  if (cat == VkGenInterfaceCat_Loader) {
+    fmt_write(
+        &ctx->out,
+        "  {} = dynlib_symbol(lib, string_lit(\"vkGetInstanceProcAddr\"));\n",
+        fmt_text(loadFunc));
+    fmt_write(&ctx->out, "  if (!{}) {\n", fmt_text(loadFunc));
+    fmt_write(&ctx->out, "    return VK_ERROR_INITIALIZATION_FAILED;\n");
+    fmt_write(&ctx->out, "  }\n");
+  }
+
+  const StringHash instGetProcAddrHash = string_hash_lit("vkGetInstanceProcAddr");
+  dynarray_for_t(&ctx->interfaces, VkGenInterface, interface) {
+    if (interface->cat != cat) {
+      continue;
+    }
+    const VkGenCommand* cmd = vkgen_command_get(ctx, interface->cmdIndex);
+    if (cmd->key == instGetProcAddrHash) {
+      continue; // Needs special handling to load directly from the library.
+    }
+    String varName = cmd->name;
+    if (string_starts_with(varName, string_lit("vk")) && varName.size >= 3) {
+      varName = fmt_write_scratch(
+          "{}{}",
+          fmt_char(ascii_to_lower(*string_at(varName, 2))),
+          fmt_text(string_consume(varName, 3)));
+    }
+    fmt_write(
+        &ctx->out,
+        "  out->{} = (Symbol){}({}, \"{}\");\n",
+        fmt_text(varName),
+        fmt_text(loadFunc),
+        fmt_text(dep),
+        fmt_text(cmd->name));
+  }
+
+  fmt_write(&ctx->out, "  return VK_SUCCESS;\n}\n\n", fmt_text(catName));
+}
+
 static void vkgen_write_prolog(VkGenContext* ctx) {
   fmt_write(
       &ctx->out,
-      "// Generated by '{}' from '{}{}'.\n",
+      "// Generated by '{}' with '{}{}'.\n",
       fmt_text(path_stem(g_pathExecutable)),
       fmt_text(ctx->schemaHost),
       fmt_text(ctx->schemaUri));
@@ -1158,24 +1390,9 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   }
   fmt_write(&ctx->out, "\n");
 
-  // Write feature requirements (types and commands).
-  for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
-    if (sentinel_check(ctx->featureNodes[i])) {
-      return false; // Feature not found.
-    }
-    if (!vkgen_write_requirements(ctx, ctx->featureNodes[i])) {
-      return false; // Feature requirement missing.
-    }
-  }
-
-  // Write extension requirements (types and commands).
-  for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
-    if (sentinel_check(ctx->extensionNodes[i])) {
-      return false; // Extension not found.
-    }
-    if (!vkgen_write_requirements(ctx, ctx->extensionNodes[i])) {
-      return false; // Extension requirement missing.
-    }
+  // Write types required for features.
+  if (!vkgen_write_used_types(ctx)) {
+    return false;
   }
 
   // Write stringify declarations.
@@ -1187,6 +1404,14 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   fmt_write(&ctx->out, "bool vkFormatCompressed4x4(VkFormat);\n");
   fmt_write(&ctx->out, "\n");
 
+  // Write interface declarations.
+  for (VkGenInterfaceCat cat = 0; cat != VkGenInterfaceCat_Count; ++cat) {
+    if (!vkgen_write_interface(ctx, cat)) {
+      return false;
+    }
+    vkgen_write_interface_load_decl(ctx, cat);
+  }
+
   fmt_write(&ctx->out, "// clang-format on\n");
   return true;
 }
@@ -1195,8 +1420,9 @@ static bool vkgen_write_impl(VkGenContext* ctx) {
   fmt_write(&ctx->out, "// clang-format off\n");
   vkgen_write_prolog(ctx);
 
-  fmt_write(&ctx->out, "#include \"{}.h\"\n", fmt_text(ctx->outName));
-  fmt_write(&ctx->out, "#include \"core_sentinel.h\"\n\n");
+  fmt_write(&ctx->out, "#include \"{}.h\"\n\n", fmt_text(ctx->outName));
+  fmt_write(&ctx->out, "#include \"core_dynlib.h\"\n");
+  fmt_write(&ctx->out, "#include \"core_sentinel.h\"\n");
   fmt_write(&ctx->out, "#include \"core_string.h\"\n\n");
 
   // Write stringify definitions.
@@ -1205,6 +1431,11 @@ static bool vkgen_write_impl(VkGenContext* ctx) {
   // Write format-info definitions.
   if (!vkgen_write_format_info_def(ctx)) {
     return false;
+  }
+
+  // Write interface definitions.
+  for (VkGenInterfaceCat cat = 0; cat != VkGenInterfaceCat_Count; ++cat) {
+    vkgen_write_interface_load_def(ctx, cat);
   }
 
   fmt_write(&ctx->out, "// clang-format on\n");
@@ -1265,18 +1496,18 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   log_add_sink(g_logger, log_sink_json_default(g_allocHeap, LogMask_All));
 
   VkGenContext ctx = {
-      .schemaDoc       = xml_create(g_allocHeap, 128 * 1024),
-      .schemaHost      = cli_read_string(invoc, g_optSchemaHost, g_schemaDefaultHost),
-      .schemaUri       = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
-      .types           = dynarray_create_t(g_allocHeap, VkGenType, 4096),
-      .typesWritten    = dynbitset_create(g_allocHeap, 4096),
-      .constants       = dynarray_create_t(g_allocHeap, VkGenConstant, 64),
-      .enumEntries     = dynarray_create_t(g_allocHeap, VkGenEnumEntry, 2048),
-      .commands        = dynarray_create_t(g_allocHeap, VkGenCommand, 1024),
-      .commandsWritten = dynbitset_create(g_allocHeap, 1024),
-      .formats         = dynarray_create_t(g_allocHeap, VkGenFormat, 512),
-      .outName         = path_stem(outputPath),
-      .out             = dynstring_create(g_allocHeap, usize_kibibyte * 16),
+      .schemaDoc    = xml_create(g_allocHeap, 128 * 1024),
+      .schemaHost   = cli_read_string(invoc, g_optSchemaHost, g_schemaDefaultHost),
+      .schemaUri    = cli_read_string(invoc, g_optSchemaUri, g_schemaDefaultUri),
+      .types        = dynarray_create_t(g_allocHeap, VkGenType, 4096),
+      .typesWritten = dynbitset_create(g_allocHeap, 4096),
+      .constants    = dynarray_create_t(g_allocHeap, VkGenConstant, 64),
+      .enumEntries  = dynarray_create_t(g_allocHeap, VkGenEnumEntry, 2048),
+      .commands     = dynarray_create_t(g_allocHeap, VkGenCommand, 1024),
+      .interfaces   = dynarray_create_t(g_allocHeap, VkGenInterface, 512),
+      .formats      = dynarray_create_t(g_allocHeap, VkGenFormat, 512),
+      .outName      = path_stem(outputPath),
+      .out          = dynstring_create(g_allocHeap, usize_kibibyte * 16),
   };
 
   ctx.schemaRoot = vkgen_schema_get(ctx.schemaDoc, ctx.schemaHost, ctx.schemaUri);
@@ -1292,6 +1523,23 @@ i32 app_cli_run(const CliApp* app, const CliInvocation* invoc) {
   vkgen_collect_extensions(&ctx);
   vkgen_collect_custom_extensions(&ctx);
   vkgen_collect_formats(&ctx);
+  vkgen_collect_interfaces(&ctx);
+
+  // Verify we found all needed features.
+  for (u32 i = 0; i != array_elems(g_vkgenFeatures); ++i) {
+    if (sentinel_check(ctx.featureNodes[i])) {
+      log_e("Feature not found", log_param("name", fmt_text(g_vkgenFeatures[i])));
+      goto Exit;
+    }
+  }
+
+  // Verify we found all needed extensions.
+  for (u32 i = 0; i != array_elems(g_vkgenExtensions); ++i) {
+    if (sentinel_check(ctx.extensionNodes[i])) {
+      log_e("Extension not found", log_param("name", fmt_text(g_vkgenExtensions[i])));
+      goto Exit;
+    }
+  }
 
   if (vkgen_write_header(&ctx)) {
     const String headerPath = fmt_write_scratch("{}.h", fmt_text(outputPath));
@@ -1322,7 +1570,7 @@ Exit:
   dynarray_destroy(&ctx.constants);
   dynarray_destroy(&ctx.enumEntries);
   dynarray_destroy(&ctx.commands);
-  dynbitset_destroy(&ctx.commandsWritten);
+  dynarray_destroy(&ctx.interfaces);
   dynarray_destroy(&ctx.formats);
   dynstring_destroy(&ctx.out);
 

@@ -1,9 +1,10 @@
 #include "core_alloc.h"
 #include "core_array.h"
 #include "core_diag.h"
+#include "core_thread.h"
+#include "geo_color.h"
 #include "log_logger.h"
 
-#include "debug_internal.h"
 #include "desc_internal.h"
 #include "device_internal.h"
 #include "lib_internal.h"
@@ -26,8 +27,12 @@ static const String g_optionalExts[] = {
     string_static("VK_KHR_maintenance4"),
 };
 
-MAYBE_UNUSED static const bool g_rend_enable_vk_present_id   = true;
-MAYBE_UNUSED static const bool g_rend_enable_vk_present_wait = true;
+static const char* rvk_to_null_term_scratch(const String str) {
+  const Mem scratchMem = alloc_alloc(g_allocScratch, str.size + 1, 1);
+  mem_cpy(scratchMem, str);
+  *mem_at_u8(scratchMem, str.size) = '\0';
+  return scratchMem.ptr;
+}
 
 typedef struct {
   VkExtensionProperties* values;
@@ -38,11 +43,11 @@ typedef struct {
  * Query a list of all supported device extensions.
  * NOTE: Free the list with 'rvk_device_exts_free()'
  */
-static RendVkExts rvk_device_exts_query(VkPhysicalDevice vkPhysDev) {
+static RendVkExts rvk_device_exts_query(RvkLib* lib, VkPhysicalDevice vkPhysDev) {
   u32 count;
-  rvk_call(vkEnumerateDeviceExtensionProperties, vkPhysDev, null, &count, null);
+  rvk_call_checked(lib, enumerateDeviceExtensionProperties, vkPhysDev, null, &count, null);
   VkExtensionProperties* props = alloc_array_t(g_allocHeap, VkExtensionProperties, count);
-  rvk_call(vkEnumerateDeviceExtensionProperties, vkPhysDev, null, &count, props);
+  rvk_call_checked(lib, enumerateDeviceExtensionProperties, vkPhysDev, null, &count, props);
   return (RendVkExts){.values = props, .count = count};
 }
 
@@ -77,10 +82,10 @@ static i32 rvk_device_type_score_value(const VkPhysicalDeviceType vkDevType) {
   }
 }
 
-static u32 rvk_device_pick_graphics_queue(VkPhysicalDevice vkPhysDev) {
+static u32 rvk_device_pick_graphics_queue(RvkLib* lib, VkPhysicalDevice vkPhysDev) {
   VkQueueFamilyProperties families[32] = {0};
   u32                     familyCount  = array_elems(families);
-  vkGetPhysicalDeviceQueueFamilyProperties(vkPhysDev, &familyCount, families);
+  rvk_call(lib, getPhysicalDeviceQueueFamilyProperties, vkPhysDev, &familyCount, families);
 
   for (u32 i = 0; i != familyCount; ++i) {
     if (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
@@ -90,10 +95,10 @@ static u32 rvk_device_pick_graphics_queue(VkPhysicalDevice vkPhysDev) {
   diag_crash_msg("No graphics queue found");
 }
 
-static u32 rvk_device_pick_transfer_queue(VkPhysicalDevice vkPhysDev) {
+static u32 rvk_device_pick_transfer_queue(RvkLib* lib, VkPhysicalDevice vkPhysDev) {
   VkQueueFamilyProperties families[32] = {0};
   u32                     familyCount  = array_elems(families);
-  vkGetPhysicalDeviceQueueFamilyProperties(vkPhysDev, &familyCount, families);
+  rvk_call(lib, getPhysicalDeviceQueueFamilyProperties, vkPhysDev, &familyCount, families);
 
   for (u32 i = 0; i != familyCount; ++i) {
     /**
@@ -110,17 +115,17 @@ static u32 rvk_device_pick_transfer_queue(VkPhysicalDevice vkPhysDev) {
   return sentinel_u32;
 }
 
-static VkPhysicalDevice rvk_device_pick_physical_device(VkInstance vkInst) {
+static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
   VkPhysicalDevice vkPhysDevs[32];
   u32              vkPhysDevsCount = array_elems(vkPhysDevs);
-  rvk_call(vkEnumeratePhysicalDevices, vkInst, &vkPhysDevsCount, vkPhysDevs);
+  rvk_call_checked(lib, enumeratePhysicalDevices, lib->vkInst, &vkPhysDevsCount, vkPhysDevs);
 
   VkPhysicalDevice bestVkPhysDev  = null;
   u32              bestApiVersion = 0;
   i32              bestScore      = -1;
 
   for (usize i = 0; i != vkPhysDevsCount; ++i) {
-    const RendVkExts exts = rvk_device_exts_query(vkPhysDevs[i]);
+    const RendVkExts exts = rvk_device_exts_query(lib, vkPhysDevs[i]);
 
     i32 score = 0;
     array_for_t(g_requiredExts, String, reqExt) {
@@ -131,7 +136,7 @@ static VkPhysicalDevice rvk_device_pick_physical_device(VkInstance vkInst) {
     }
 
     VkPhysicalDeviceProperties properties;
-    vkGetPhysicalDeviceProperties(vkPhysDevs[i], &properties);
+    rvk_call(lib, getPhysicalDeviceProperties, vkPhysDevs[i], &properties);
 
     score += rvk_device_type_score_value(properties.deviceType);
 
@@ -186,7 +191,7 @@ rvk_device_pick_features(RvkDevice* dev, const VkPhysicalDeviceFeatures2* suppor
   return result;
 }
 
-static VkDevice rvk_device_create_internal(RvkDevice* dev) {
+static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   const char* extsToEnable[64];
   u32         extsToEnableCount = 0;
 
@@ -215,7 +220,7 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
   }
 
   // Add optional extensions.
-  const RendVkExts supportedExts = rvk_device_exts_query(dev->vkPhysDev);
+  const RendVkExts supportedExts = rvk_device_exts_query(lib, dev->vkPhysDev);
   array_for_t(g_optionalExts, String, optExt) {
     if (rvk_device_has_ext(supportedExts, *optExt)) {
       extsToEnable[extsToEnableCount++] = optExt->ptr; // TODO: Hacky as it assumes null-term.
@@ -223,40 +228,34 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
   }
   rvk_vk_exts_free(supportedExts);
 
-  // Add optional features..
-  void* nextOptFeature = null;
-#ifdef VK_KHR_present_id
+  // Add optional features.
+  void*                                nextOptFeature      = null;
   VkPhysicalDevicePresentIdFeaturesKHR optFeaturePresentId = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR,
       .pNext = nextOptFeature,
   };
   nextOptFeature = &optFeaturePresentId;
-#endif
-#ifdef VK_KHR_present_wait
+
   VkPhysicalDevicePresentWaitFeaturesKHR optFeaturePresentWait = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR,
       .pNext = nextOptFeature,
   };
   nextOptFeature = &optFeaturePresentWait;
-#endif
+
   VkPhysicalDeviceFeatures2 supportedFeatures = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
       .pNext = nextOptFeature,
   };
-  vkGetPhysicalDeviceFeatures2(dev->vkPhysDev, &supportedFeatures);
+  rvk_call(lib, getPhysicalDeviceFeatures2, dev->vkPhysDev, &supportedFeatures);
 
-#ifdef VK_KHR_present_id
-  if (g_rend_enable_vk_present_id && optFeaturePresentId.presentId) {
+  if (optFeaturePresentId.presentId) {
     extsToEnable[extsToEnableCount++] = "VK_KHR_present_id";
     dev->flags |= RvkDeviceFlags_SupportPresentId;
   }
-#endif
-#ifdef VK_KHR_present_wait
-  if (g_rend_enable_vk_present_wait && optFeaturePresentWait.presentWait) {
+  if (optFeaturePresentWait.presentWait) {
     extsToEnable[extsToEnableCount++] = "VK_KHR_present_wait";
     dev->flags |= RvkDeviceFlags_SupportPresentWait;
   }
-#endif
 
   VkPhysicalDevice16BitStorageFeatures float16IStorageFeatures = {
       .sType                    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,
@@ -279,7 +278,7 @@ static VkDevice rvk_device_create_internal(RvkDevice* dev) {
   };
 
   VkDevice result;
-  rvk_call(vkCreateDevice, dev->vkPhysDev, &createInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(lib, createDevice, dev->vkPhysDev, &createInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -298,49 +297,49 @@ static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
   diag_crash_msg("No suitable depth-format found");
 }
 
-RvkDevice* rvk_device_create(RvkLib* lib, const RendSettingsGlobalComp* settingsGlobal) {
+RvkDevice* rvk_device_create(RvkLib* lib) {
   RvkDevice* dev = alloc_alloc_t(g_allocHeap, RvkDevice);
 
   *dev = (RvkDevice){
+      .lib              = lib,
       .vkAlloc          = lib->vkAlloc,
       .queueSubmitMutex = thread_mutex_create(g_allocHeap),
   };
 
-  dev->vkPhysDev = rvk_device_pick_physical_device(lib->vkInst);
+  dev->vkPhysDev = rvk_device_pick_physical_device(lib);
 
-  dev->graphicsQueueIndex = rvk_device_pick_graphics_queue(dev->vkPhysDev);
-  dev->transferQueueIndex = rvk_device_pick_transfer_queue(dev->vkPhysDev);
+  dev->graphicsQueueIndex = rvk_device_pick_graphics_queue(lib, dev->vkPhysDev);
+  dev->transferQueueIndex = rvk_device_pick_transfer_queue(lib, dev->vkPhysDev);
 
-  vkGetPhysicalDeviceProperties(dev->vkPhysDev, &dev->vkProperties);
-  vkGetPhysicalDeviceMemoryProperties(dev->vkPhysDev, &dev->vkMemProperties);
+  rvk_call(lib, getPhysicalDeviceProperties, dev->vkPhysDev, &dev->vkProperties);
+  rvk_call(lib, getPhysicalDeviceMemoryProperties, dev->vkPhysDev, &dev->vkMemProperties);
 
-  dev->vkDev = rvk_device_create_internal(dev);
-  vkGetDeviceQueue(dev->vkDev, dev->graphicsQueueIndex, 0, &dev->vkGraphicsQueue);
+  dev->vkDev = rvk_device_create_internal(lib, dev);
+  rvk_api_check(string_lit("loadDevice"), vkLoadDevice(dev->vkDev, &lib->api, &dev->api));
+
+  rvk_call(dev, getDeviceQueue, dev->vkDev, dev->graphicsQueueIndex, 0, &dev->vkGraphicsQueue);
   if (!sentinel_check(dev->transferQueueIndex)) {
-    vkGetDeviceQueue(dev->vkDev, dev->transferQueueIndex, 0, &dev->vkTransferQueue);
+    rvk_call(dev, getDeviceQueue, dev->vkDev, dev->transferQueueIndex, 0, &dev->vkTransferQueue);
   }
 
   dev->depthFormat              = rvk_device_pick_depthformat(dev);
   dev->preferredSwapchainFormat = VK_FORMAT_B8G8R8A8_SRGB;
 
   if (lib->flags & RvkLibFlags_Debug) {
-    const bool          verbose    = (settingsGlobal->flags & RendGlobalFlags_Verbose) != 0;
-    const RvkDebugFlags debugFlags = verbose ? RvkDebugFlags_Verbose : 0;
-    dev->debug = rvk_debug_create(lib->vkInst, dev->vkDev, &dev->vkAlloc, debugFlags);
     if (dev->vkTransferQueue) {
-      rvk_debug_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics");
-      rvk_debug_name_queue(dev->debug, dev->vkTransferQueue, "transfer");
+      rvk_debug_name_queue(dev, dev->vkGraphicsQueue, "graphics");
+      rvk_debug_name_queue(dev, dev->vkTransferQueue, "transfer");
     } else {
-      rvk_debug_name_queue(dev->debug, dev->vkGraphicsQueue, "graphics_and_transfer");
+      rvk_debug_name_queue(dev, dev->vkGraphicsQueue, "graphics_and_transfer");
     }
   }
 
   dev->vkPipelineCache = rvk_pcache_load(dev);
-  dev->memPool  = rvk_mem_pool_create(dev->vkDev, dev->vkMemProperties, dev->vkProperties.limits);
-  dev->descPool = rvk_desc_pool_create(dev);
-  dev->samplerPool = rvk_sampler_pool_create(dev);
-  dev->transferer  = rvk_transferer_create(dev);
-  dev->repository  = rvk_repository_create();
+  dev->memPool         = rvk_mem_pool_create(dev, dev->vkMemProperties, dev->vkProperties.limits);
+  dev->descPool        = rvk_desc_pool_create(dev);
+  dev->samplerPool     = rvk_sampler_pool_create(dev);
+  dev->transferer      = rvk_transferer_create(dev);
+  dev->repository      = rvk_repository_create();
 
   log_i(
       "Vulkan device created",
@@ -359,18 +358,14 @@ void rvk_device_destroy(RvkDevice* dev) {
   rvk_device_wait_idle(dev);
 
   rvk_pcache_save(dev, dev->vkPipelineCache);
-  vkDestroyPipelineCache(dev->vkDev, dev->vkPipelineCache, &dev->vkAlloc);
+  rvk_call(dev, destroyPipelineCache, dev->vkDev, dev->vkPipelineCache, &dev->vkAlloc);
 
   rvk_repository_destroy(dev->repository);
   rvk_transferer_destroy(dev->transferer);
   rvk_sampler_pool_destroy(dev->samplerPool);
   rvk_desc_pool_destroy(dev->descPool);
   rvk_mem_pool_destroy(dev->memPool);
-  vkDestroyDevice(dev->vkDev, &dev->vkAlloc);
-
-  if (dev->debug) {
-    rvk_debug_destroy(dev->debug);
-  }
+  rvk_call(dev, destroyDevice, dev->vkDev, &dev->vkAlloc);
 
   thread_mutex_destroy(dev->queueSubmitMutex);
   alloc_free_t(g_allocHeap, dev);
@@ -381,7 +376,7 @@ void rvk_device_destroy(RvkDevice* dev) {
 bool rvk_device_format_supported(
     const RvkDevice* dev, const VkFormat format, const VkFormatFeatureFlags requiredFeatures) {
   VkFormatProperties properties;
-  vkGetPhysicalDeviceFormatProperties(dev->vkPhysDev, format, &properties);
+  rvk_call(dev->lib, getPhysicalDeviceFormatProperties, dev->vkPhysDev, format, &properties);
   return (properties.optimalTilingFeatures & requiredFeatures) == requiredFeatures;
 }
 
@@ -391,4 +386,37 @@ String rvk_device_name(const RvkDevice* dev) {
 
 void rvk_device_update(RvkDevice* dev) { rvk_transfer_flush(dev->transferer); }
 
-void rvk_device_wait_idle(const RvkDevice* dev) { rvk_call(vkDeviceWaitIdle, dev->vkDev); }
+void rvk_device_wait_idle(const RvkDevice* dev) {
+  rvk_call_checked(dev, deviceWaitIdle, dev->vkDev);
+}
+
+void rvk_debug_name(
+    RvkDevice* dev, const VkObjectType vkType, const u64 vkHandle, const String name) {
+  if (dev->lib->flags & RvkLibFlags_Debug) {
+    const VkDebugUtilsObjectNameInfoEXT nameInfo = {
+        .sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+        .objectType   = vkType,
+        .objectHandle = vkHandle,
+        .pObjectName  = rvk_to_null_term_scratch(name),
+    };
+    rvk_call_checked(dev->lib, setDebugUtilsObjectNameEXT, dev->vkDev, &nameInfo);
+  }
+}
+
+void rvk_debug_label_begin_raw(
+    RvkDevice* dev, VkCommandBuffer vkCmdBuffer, const GeoColor color, const String name) {
+  if (dev->lib->flags & RvkLibFlags_Debug) {
+    const VkDebugUtilsLabelEXT label = {
+        .sType      = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
+        .pLabelName = rvk_to_null_term_scratch(name),
+        .color      = {color.r, color.g, color.b, color.a},
+    };
+    rvk_call(dev->lib, cmdBeginDebugUtilsLabelEXT, vkCmdBuffer, &label);
+  }
+}
+
+void rvk_debug_label_end(RvkDevice* dev, VkCommandBuffer vkCmdBuffer) {
+  if (dev->lib->flags & RvkLibFlags_Debug) {
+    rvk_call(dev->lib, cmdEndDebugUtilsLabelEXT, vkCmdBuffer);
+  }
+}

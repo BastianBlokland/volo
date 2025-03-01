@@ -6,6 +6,7 @@
 #include "log_logger.h"
 
 #include "device_internal.h"
+#include "lib_internal.h"
 #include "pcache_internal.h"
 
 #define rvk_pcache_size_max (32 * usize_mebibyte)
@@ -33,7 +34,7 @@ static VkPipelineCache rvk_vkcache_create(RvkDevice* dev, String data) {
       .pInitialData    = data.ptr,
   };
   VkPipelineCache result;
-  rvk_call(vkCreatePipelineCache, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createPipelineCache, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -109,11 +110,11 @@ Done:
 
 void rvk_pcache_save(RvkDevice* dev, VkPipelineCache vkCache) {
   usize size;
-  vkGetPipelineCacheData(dev->vkDev, vkCache, &size, null);
+  rvk_call(dev, getPipelineCacheData, dev->vkDev, vkCache, &size, null);
   size = math_min(size, rvk_pcache_size_max); // Limit the maximum cache size.
 
   const Mem buffer = alloc_alloc(g_allocHeap, size, 1);
-  vkGetPipelineCacheData(dev->vkDev, vkCache, &size, buffer.ptr);
+  rvk_call(dev, getPipelineCacheData, dev->vkDev, vkCache, &size, buffer.ptr);
 
   const String     path = rvk_pcache_path_scratch();
   const FileResult res  = file_write_to_path_atomic(path, mem_create(buffer.ptr, size));

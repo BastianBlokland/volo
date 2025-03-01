@@ -4,6 +4,7 @@
 #include "log_logger.h"
 
 #include "device_internal.h"
+#include "lib_internal.h"
 #include "stopwatch_internal.h"
 
 #define rvk_stopwatch_timestamps_max 64
@@ -29,15 +30,16 @@ static VkQueryPool rvk_querypool_create(RvkDevice* dev) {
       .queryCount = rvk_stopwatch_timestamps_max,
   };
   VkQueryPool result;
-  rvk_call(vkCreateQueryPool, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createQueryPool, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
   return result;
 }
 
 static void rvk_stopwatch_retrieve_results(RvkStopwatch* sw) {
   thread_mutex_lock(sw->retrieveResultsMutex);
   if (!(sw->flags & RvkStopwatch_HasResults) && sw->counter) {
-    rvk_call(
-        vkGetQueryPoolResults,
+    rvk_call_checked(
+        sw->dev,
+        getQueryPoolResults,
         sw->dev->vkDev,
         sw->vkQueryPool,
         0,
@@ -69,8 +71,9 @@ RvkStopwatch* rvk_stopwatch_create(RvkDevice* dev) {
 }
 
 void rvk_stopwatch_destroy(RvkStopwatch* sw) {
+  RvkDevice* dev = sw->dev;
   if (sw->flags & RvkStopwatch_Supported) {
-    vkDestroyQueryPool(sw->dev->vkDev, sw->vkQueryPool, &sw->dev->vkAlloc);
+    rvk_call(dev, destroyQueryPool, dev->vkDev, sw->vkQueryPool, &dev->vkAlloc);
   }
   thread_mutex_destroy(sw->retrieveResultsMutex);
   alloc_free_t(g_allocHeap, sw);
@@ -81,8 +84,9 @@ bool rvk_stopwatch_is_supported(const RvkStopwatch* sw) {
 }
 
 void rvk_stopwatch_reset(RvkStopwatch* sw, VkCommandBuffer vkCmdBuf) {
+  RvkDevice* dev = sw->dev;
   if (LIKELY(sw->flags & RvkStopwatch_Supported)) {
-    vkCmdResetQueryPool(vkCmdBuf, sw->vkQueryPool, 0, rvk_stopwatch_timestamps_max);
+    rvk_call(dev, cmdResetQueryPool, vkCmdBuf, sw->vkQueryPool, 0, rvk_stopwatch_timestamps_max);
   }
   sw->counter = 0;
   sw->flags &= ~RvkStopwatch_HasResults;
@@ -111,8 +115,13 @@ RvkStopwatchRecord rvk_stopwatch_mark(RvkStopwatch* sw, VkCommandBuffer vkCmdBuf
 
   if (LIKELY(sw->flags & RvkStopwatch_Supported)) {
     // Record the timestamp after all commands have completely finished executing (bottom of pipe).
-    vkCmdWriteTimestamp(
-        vkCmdBuf, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, sw->vkQueryPool, sw->counter);
+    rvk_call(
+        sw->dev,
+        cmdWriteTimestamp,
+        vkCmdBuf,
+        VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+        sw->vkQueryPool,
+        sw->counter);
   }
   return (RvkStopwatchRecord)sw->counter++;
 }

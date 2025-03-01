@@ -6,9 +6,9 @@
 
 #include "attach_internal.h"
 #include "canvas_internal.h"
-#include "debug_internal.h"
 #include "device_internal.h"
 #include "job_internal.h"
+#include "lib_internal.h"
 #include "pass_internal.h"
 #include "statrecorder_internal.h"
 #include "swapchain_internal.h"
@@ -46,8 +46,12 @@ struct sRvkCanvas {
 static VkSemaphore rvk_semaphore_create(RvkDevice* dev) {
   VkSemaphoreCreateInfo semaphoreInfo = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
   VkSemaphore           result;
-  rvk_call(vkCreateSemaphore, dev->vkDev, &semaphoreInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createSemaphore, dev->vkDev, &semaphoreInfo, &dev->vkAlloc, &result);
   return result;
+}
+
+static void rvk_semaphore_destroy(RvkDevice* dev, const VkSemaphore sema) {
+  rvk_call(dev, destroySemaphore, dev->vkDev, sema, &dev->vkAlloc);
 }
 
 RvkCanvas* rvk_canvas_create(RvkLib* lib, RvkDevice* dev, const GapWindowComp* window) {
@@ -68,10 +72,8 @@ RvkCanvas* rvk_canvas_create(RvkLib* lib, RvkDevice* dev, const GapWindowComp* w
     };
     mem_set(array_mem(frame->passFrames), 0xFF);
 
-    rvk_debug_name_semaphore(
-        dev->debug, frame->swapchainAvailable, "swapchainAvailable_{}", fmt_int(i));
-    rvk_debug_name_semaphore(
-        dev->debug, frame->swapchainPresent, "swapchainPresent_{}", fmt_int(i));
+    rvk_debug_name_semaphore(dev, frame->swapchainAvailable, "swapchainAvailable_{}", fmt_int(i));
+    rvk_debug_name_semaphore(dev, frame->swapchainPresent, "swapchainPresent_{}", fmt_int(i));
   }
 
   log_d(
@@ -86,8 +88,8 @@ void rvk_canvas_destroy(RvkCanvas* canvas) {
 
   array_for_t(canvas->frames, RvkCanvasFrame, frame) {
     rvk_job_destroy(frame->job);
-    vkDestroySemaphore(canvas->dev->vkDev, frame->swapchainAvailable, &canvas->dev->vkAlloc);
-    vkDestroySemaphore(canvas->dev->vkDev, frame->swapchainPresent, &canvas->dev->vkAlloc);
+    rvk_semaphore_destroy(canvas->dev, frame->swapchainAvailable);
+    rvk_semaphore_destroy(canvas->dev, frame->swapchainPresent);
   }
 
   rvk_swapchain_destroy(canvas->swapchain);

@@ -7,9 +7,9 @@
 #include "log_logger.h"
 
 #include "buffer_internal.h"
-#include "debug_internal.h"
 #include "desc_internal.h"
 #include "device_internal.h"
+#include "lib_internal.h"
 #include "uniform_internal.h"
 
 /**
@@ -35,7 +35,7 @@ typedef struct {
 } RvkUniformEntry;
 
 struct sRvkUniformPool {
-  RvkDevice* device;
+  RvkDevice* dev;
   u32        alignMin, dataSizeMax;
   DynArray   chunks;  // RvkUniformChunk[]
   DynArray   entries; // RvkUniformEntry[]
@@ -73,7 +73,7 @@ RvkUniformPool* rvk_uniform_pool_create(RvkDevice* dev) {
       (u32)math_min(dev->vkProperties.limits.maxUniformBufferRange, rvk_uniform_desired_size_max);
 
   *pool = (RvkUniformPool){
-      .device      = dev,
+      .dev         = dev,
       .alignMin    = alignMin,
       .dataSizeMax = dataSizeMax,
       .chunks      = dynarray_create_t(g_allocHeap, RvkUniformChunk, 16),
@@ -85,7 +85,7 @@ RvkUniformPool* rvk_uniform_pool_create(RvkDevice* dev) {
 
 void rvk_uniform_pool_destroy(RvkUniformPool* uni) {
   dynarray_for_t(&uni->chunks, RvkUniformChunk, chunk) {
-    rvk_buffer_destroy(&chunk->buffer, uni->device);
+    rvk_buffer_destroy(&chunk->buffer, uni->dev);
     if (rvk_desc_valid(chunk->dynamicSet)) {
       rvk_desc_free(chunk->dynamicSet);
     }
@@ -169,11 +169,11 @@ RvkUniformHandle rvk_uniform_push(RvkUniformPool* uni, const usize size) {
   RvkUniformChunk* newChunk    = dynarray_push_t(&uni->chunks, RvkUniformChunk);
 
   *newChunk = (RvkUniformChunk){
-      .buffer = rvk_buffer_create(uni->device, rvk_uniform_buffer_size, RvkBufferType_HostUniform),
+      .buffer = rvk_buffer_create(uni->dev, rvk_uniform_buffer_size, RvkBufferType_HostUniform),
       .offset = (u32)paddedSize,
   };
 
-  rvk_debug_name_buffer(uni->device->debug, newChunk->buffer.vkBuffer, "uniform");
+  rvk_debug_name_buffer(uni->dev, newChunk->buffer.vkBuffer, "uniform");
 
   log_d(
       "Vulkan uniform chunk created",
@@ -215,12 +215,14 @@ void rvk_uniform_dynamic_bind(
   RvkUniformChunk*       chunk = rvk_uniform_chunk(uni, entry->chunkIdx);
   if (UNLIKELY(!rvk_desc_valid(chunk->dynamicSet))) {
     const RvkDescMeta meta = (RvkDescMeta){.bindings[0] = RvkDescKind_UniformBufferDynamic};
-    chunk->dynamicSet      = rvk_desc_alloc(uni->device->descPool, &meta);
+    chunk->dynamicSet      = rvk_desc_alloc(uni->dev->descPool, &meta);
     rvk_desc_set_attach_buffer(chunk->dynamicSet, 0, &chunk->buffer, 0, uni->dataSizeMax);
   }
   const VkDescriptorSet descSets[]       = {rvk_desc_set_vkset(chunk->dynamicSet)};
   const u32             dynamicOffsets[] = {entry->offset};
-  vkCmdBindDescriptorSets(
+  rvk_call(
+      uni->dev,
+      cmdBindDescriptorSets,
       vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
       vkPipelineLayout,

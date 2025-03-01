@@ -163,7 +163,7 @@ ecs_system_define(RendPlatformUpdateSys) {
     const RendSettingsGlobalComp* settings = rend_global_settings(world);
     RendPlatformComp*             plat     = ecs_world_add_t(world, global, RendPlatformComp);
     plat->lib                              = rvk_lib_create(settings);
-    plat->device                           = rvk_device_create(plat->lib, settings);
+    plat->device                           = rvk_device_create(plat->lib);
     plat->builderContainer                 = rend_builder_container_create(g_allocHeap);
 
     for (AssetGraphicPass i = 0; i != AssetGraphicPass_Count; ++i) {

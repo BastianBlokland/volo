@@ -47,6 +47,7 @@ void rvk_buffer_flush_batch(const RvkBufferFlush[], u32 count);
 void rvk_buffer_upload(RvkBuffer*, Mem data, u64 offset);
 
 void rvk_buffer_transfer_ownership(
+    RvkDevice*,
     const RvkBuffer*,
     VkCommandBuffer srcCmdBuf,
     VkCommandBuffer dstCmdBuf,

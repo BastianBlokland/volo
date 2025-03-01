@@ -4,8 +4,8 @@
 #include "core_math.h"
 #include "log_logger.h"
 
-#include "debug_internal.h"
 #include "device_internal.h"
+#include "lib_internal.h"
 #include "shader_internal.h"
 
 #define VOLO_RVK_SHADER_LOGGING 0
@@ -17,7 +17,7 @@ static VkShaderModule rvk_shader_module_create(RvkDevice* dev, const AssetShader
       .pCode    = (const u32*)asset->data.ptr,
   };
   VkShaderModule result;
-  rvk_call(vkCreateShaderModule, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createShaderModule, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -141,7 +141,7 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
     log_e("Non-fragment shader uses kill", log_param("shader", fmt_text(dbgName)));
   }
 
-  rvk_debug_name_shader(dev->debug, shader->vkModule, "{}", fmt_text(dbgName));
+  rvk_debug_name_shader(dev, shader->vkModule, "{}", fmt_text(dbgName));
 
   // Copy the specialization bindings.
   if (asset->specs.count) {
@@ -179,7 +179,7 @@ RvkShader* rvk_shader_create(RvkDevice* dev, const AssetShaderComp* asset, const
 }
 
 void rvk_shader_destroy(RvkShader* shader, RvkDevice* dev) {
-  vkDestroyShaderModule(dev->vkDev, shader->vkModule, &dev->vkAlloc);
+  rvk_call(dev, destroyShaderModule, dev->vkDev, shader->vkModule, &dev->vkAlloc);
   string_free(g_allocHeap, shader->entryPoint);
 
   if (shader->specs.values) {

@@ -5,7 +5,6 @@
 #include "gap_native.h"
 #include "log_logger.h"
 
-#include "debug_internal.h"
 #include "device_internal.h"
 #include "image_internal.h"
 #include "lib_internal.h"
@@ -22,19 +21,15 @@ struct sRvkSwapchain {
   RvkDevice*         dev;
   VkSurfaceKHR       vkSurf;
   VkSurfaceFormatKHR vkSurfFormat;
-  VkSwapchainKHR     vkSwapchain;
+  VkSwapchainKHR     vkSwap;
   RendPresentMode    presentModeSetting;
   RvkSwapchainFlags  flags;
   RvkSize            size;
-  u32                imageCount;
-  RvkImage           images[swapchain_images_max];
+  u32                imgCount;
+  RvkImage           imgs[swapchain_images_max];
 
   TimeDuration lastAcquireDur, lastPresentEnqueueDur, lastPresentWaitDur;
   u64          curPresentId; // NOTE: Present-id zero is unused.
-
-#ifdef VK_KHR_present_wait
-  PFN_vkWaitForPresentKHR vkWaitForPresentFunc;
-#endif
 };
 
 static RvkSize rvk_surface_clamp_size(RvkSize size, const VkSurfaceCapabilitiesKHR* vkCaps) {
@@ -55,45 +50,48 @@ static RvkSize rvk_surface_clamp_size(RvkSize size, const VkSurfaceCapabilitiesK
 
 static VkSurfaceKHR rvk_surface_create(RvkLib* lib, const GapWindowComp* window) {
   VkSurfaceKHR result;
-#if defined(VOLO_LINUX)
-  const VkXcbSurfaceCreateInfoKHR createInfo = {
-      .sType      = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR,
-      .connection = gap_native_app_handle(window),
-      .window     = gap_native_window_handle(window),
-  };
-  rvk_call(vkCreateXcbSurfaceKHR, lib->vkInst, &createInfo, &lib->vkAlloc, &result);
-#elif defined(VOLO_WIN32)
-  const VkWin32SurfaceCreateInfoKHR createInfo = {
-      .sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
-      .hinstance = gap_native_app_handle(window),
-      .hwnd      = gap_native_window_handle(window),
-  };
-  rvk_call(vkCreateWin32SurfaceKHR, lib->vkInst, &createInfo, &lib->vkAlloc, &result);
-#endif
+  switch (gap_native_wm()) {
+  case GapNativeWm_Xcb: {
+    const VkXcbSurfaceCreateInfoKHR createInfo = {
+        .sType      = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR,
+        .connection = gap_native_app_handle(window),
+        .window     = gap_native_window_handle(window),
+    };
+    rvk_call_checked(lib, createXcbSurfaceKHR, lib->vkInst, &createInfo, &lib->vkAlloc, &result);
+  } break;
+  case GapNativeWm_Win32: {
+    const VkWin32SurfaceCreateInfoKHR createInfo = {
+        .sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
+        .hinstance = gap_native_app_handle(window),
+        .hwnd      = gap_native_window_handle(window),
+    };
+    rvk_call_checked(lib, createWin32SurfaceKHR, lib->vkInst, &createInfo, &lib->vkAlloc, &result);
+  } break;
+  }
   return result;
 }
 
-static VkSurfaceFormatKHR rvk_pick_surface_format(RvkDevice* dev, VkSurfaceKHR vkSurf) {
-  u32 formatCount;
-  rvk_call(vkGetPhysicalDeviceSurfaceFormatsKHR, dev->vkPhysDev, vkSurf, &formatCount, null);
-  if (!formatCount) {
+static VkSurfaceFormatKHR rvk_pick_surface_format(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR surf) {
+  u32 count;
+  rvk_call_checked(lib, getPhysicalDeviceSurfaceFormatsKHR, dev->vkPhysDev, surf, &count, null);
+  if (!count) {
     diag_crash_msg("No Vulkan surface formats available");
   }
-  VkSurfaceFormatKHR* surfFormats = mem_stack(sizeof(VkSurfaceFormatKHR) * formatCount).ptr;
-  rvk_call(vkGetPhysicalDeviceSurfaceFormatsKHR, dev->vkPhysDev, vkSurf, &formatCount, surfFormats);
+  VkSurfaceFormatKHR* formats = mem_stack(sizeof(VkSurfaceFormatKHR) * count).ptr;
+  rvk_call_checked(lib, getPhysicalDeviceSurfaceFormatsKHR, dev->vkPhysDev, surf, &count, formats);
 
   // Check if the preferred swapchain format is available.
-  for (u32 i = 0; i != formatCount; ++i) {
-    if (surfFormats[i].format == dev->preferredSwapchainFormat) {
-      return surfFormats[i];
+  for (u32 i = 0; i != count; ++i) {
+    if (formats[i].format == dev->preferredSwapchainFormat) {
+      return formats[i];
     }
   }
 
   log_w(
       "Preferred swapchain format not available",
-      log_param("fallback", fmt_text(vkFormatStr(surfFormats[0].format))));
+      log_param("fallback", fmt_text(vkFormatStr(formats[0].format))));
 
-  return surfFormats[0];
+  return formats[0];
 }
 
 static u32
@@ -132,14 +130,15 @@ static VkPresentModeKHR rvk_preferred_presentmode(const RendPresentMode setting)
   diag_crash();
 }
 
-static VkPresentModeKHR
-rvk_pick_presentmode(RvkDevice* dev, const RendSettingsComp* settings, const VkSurfaceKHR vkSurf) {
+static VkPresentModeKHR rvk_pick_presentmode(
+    RvkLib* lib, RvkDevice* dev, const RendSettingsComp* settings, const VkSurfaceKHR surf) {
   VkPresentModeKHR available[32];
   u32              availableCount = array_elems(available);
-  rvk_call(
-      vkGetPhysicalDeviceSurfacePresentModesKHR,
+  rvk_call_checked(
+      lib,
+      getPhysicalDeviceSurfacePresentModesKHR,
       dev->vkPhysDev,
-      vkSurf,
+      surf,
       &availableCount,
       available);
 
@@ -157,39 +156,38 @@ rvk_pick_presentmode(RvkDevice* dev, const RendSettingsComp* settings, const VkS
   return VK_PRESENT_MODE_FIFO_KHR; // FIFO is required by the spec to be always available.
 }
 
-static VkSurfaceCapabilitiesKHR rvk_surface_capabilities(RvkDevice* dev, VkSurfaceKHR vkSurf) {
+static VkSurfaceCapabilitiesKHR rvk_surface_caps(RvkLib* lib, RvkDevice* dev, VkSurfaceKHR surf) {
   VkSurfaceCapabilitiesKHR result;
-  rvk_call(vkGetPhysicalDeviceSurfaceCapabilitiesKHR, dev->vkPhysDev, vkSurf, &result);
+  rvk_call_checked(lib, getPhysicalDeviceSurfaceCapabilitiesKHR, dev->vkPhysDev, surf, &result);
   return result;
 }
 
-static bool
-rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, RvkSize size) {
+static bool rvk_swapchain_init(RvkSwapchain* swap, const RendSettingsComp* settings, RvkSize size) {
   if (!size.width || !size.height) {
-    swapchain->size = size;
+    swap->size = size;
     return false;
   }
 
-  for (u32 i = 0; i != swapchain->imageCount; ++i) {
-    rvk_image_destroy(&swapchain->images[i], swapchain->dev);
+  for (u32 i = 0; i != swap->imgCount; ++i) {
+    rvk_image_destroy(&swap->imgs[i], swap->dev);
   }
 
-  const VkDevice           vkDev   = swapchain->dev->vkDev;
-  VkAllocationCallbacks*   vkAlloc = &swapchain->dev->vkAlloc;
-  VkSurfaceCapabilitiesKHR vkCaps  = rvk_surface_capabilities(swapchain->dev, swapchain->vkSurf);
+  const VkDevice           vkDev   = swap->dev->vkDev;
+  VkAllocationCallbacks*   vkAlloc = &swap->dev->vkAlloc;
+  VkSurfaceCapabilitiesKHR vkCaps  = rvk_surface_caps(swap->lib, swap->dev, swap->vkSurf);
   size                             = rvk_surface_clamp_size(size, &vkCaps);
 
   const VkPresentModeKHR presentMode =
-      rvk_pick_presentmode(swapchain->dev, settings, swapchain->vkSurf);
+      rvk_pick_presentmode(swap->lib, swap->dev, settings, swap->vkSurf);
 
-  const VkSwapchainKHR oldSwapchain = swapchain->vkSwapchain;
+  const VkSwapchainKHR oldSwapchain = swap->vkSwap;
 
   const VkSwapchainCreateInfoKHR createInfo = {
       .sType              = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-      .surface            = swapchain->vkSurf,
+      .surface            = swap->vkSurf,
       .minImageCount      = rvk_pick_imagecount(&vkCaps, settings),
-      .imageFormat        = swapchain->vkSurfFormat.format,
-      .imageColorSpace    = swapchain->vkSurfFormat.colorSpace,
+      .imageFormat        = swap->vkSurfFormat.format,
+      .imageColorSpace    = swap->vkSurfFormat.colorSpace,
       .imageExtent.width  = size.width,
       .imageExtent.height = size.height,
       .imageArrayLayers   = 1,
@@ -202,54 +200,55 @@ rvk_swapchain_init(RvkSwapchain* swapchain, const RendSettingsComp* settings, Rv
       .oldSwapchain       = oldSwapchain,
   };
 
-  rvk_call(vkCreateSwapchainKHR, vkDev, &createInfo, vkAlloc, &swapchain->vkSwapchain);
+  rvk_call_checked(swap->dev, createSwapchainKHR, vkDev, &createInfo, vkAlloc, &swap->vkSwap);
   if (oldSwapchain) {
-    vkDestroySwapchainKHR(vkDev, oldSwapchain, &swapchain->dev->vkAlloc);
+    rvk_call(swap->dev, destroySwapchainKHR, vkDev, oldSwapchain, &swap->dev->vkAlloc);
   }
 
-  rvk_call(vkGetSwapchainImagesKHR, vkDev, swapchain->vkSwapchain, &swapchain->imageCount, null);
-  if (UNLIKELY(swapchain->imageCount > swapchain_images_max)) {
+  rvk_call_checked(swap->dev, getSwapchainImagesKHR, vkDev, swap->vkSwap, &swap->imgCount, null);
+  if (UNLIKELY(swap->imgCount > swapchain_images_max)) {
     diag_crash_msg("Vulkan surface uses more swapchain images then are supported");
   }
 
   VkImage vkImgs[swapchain_images_max];
-  rvk_call(vkGetSwapchainImagesKHR, vkDev, swapchain->vkSwapchain, &swapchain->imageCount, vkImgs);
+  rvk_call_checked(swap->dev, getSwapchainImagesKHR, vkDev, swap->vkSwap, &swap->imgCount, vkImgs);
 
-  const VkFormat format = swapchain->vkSurfFormat.format;
-  for (u32 i = 0; i != swapchain->imageCount; ++i) {
-    swapchain->images[i] = rvk_image_create_swapchain(swapchain->dev, vkImgs[i], format, size);
-    rvk_debug_name_img(swapchain->dev->debug, vkImgs[i], "swapchain_{}", fmt_int(i));
+  const VkFormat format = swap->vkSurfFormat.format;
+  for (u32 i = 0; i != swap->imgCount; ++i) {
+    swap->imgs[i] = rvk_image_create_swapchain(swap->dev, vkImgs[i], format, size);
+    rvk_debug_name_img(swap->dev, vkImgs[i], "swapchain_{}", fmt_int(i));
   }
 
-  swapchain->flags &= ~RvkSwapchainFlags_OutOfDate;
-  swapchain->presentModeSetting = settings->presentMode;
-  swapchain->size               = size;
+  swap->flags &= ~RvkSwapchainFlags_OutOfDate;
+  swap->presentModeSetting = settings->presentMode;
+  swap->size               = size;
 
   log_i(
       "Vulkan swapchain created",
       log_param("size", rvk_size_fmt(size)),
       log_param("format", fmt_text(vkFormatStr(format))),
-      log_param("color", fmt_text(vkColorSpaceKHRStr(swapchain->vkSurfFormat.colorSpace))),
+      log_param("color", fmt_text(vkColorSpaceKHRStr(swap->vkSurfFormat.colorSpace))),
       log_param("present-mode", fmt_text(vkPresentModeKHRStr(presentMode))),
-      log_param("image-count", fmt_int(swapchain->imageCount)));
+      log_param("image-count", fmt_int(swap->imgCount)));
 
   return true;
 }
 
 RvkSwapchain* rvk_swapchain_create(RvkLib* lib, RvkDevice* dev, const GapWindowComp* window) {
-  VkSurfaceKHR  vkSurf    = rvk_surface_create(lib, window);
-  RvkSwapchain* swapchain = alloc_alloc_t(g_allocHeap, RvkSwapchain);
+  VkSurfaceKHR  vkSurf = rvk_surface_create(lib, window);
+  RvkSwapchain* swap   = alloc_alloc_t(g_allocHeap, RvkSwapchain);
 
-  *swapchain = (RvkSwapchain){
+  *swap = (RvkSwapchain){
       .lib          = lib,
       .dev          = dev,
       .vkSurf       = vkSurf,
-      .vkSurfFormat = rvk_pick_surface_format(dev, vkSurf),
+      .vkSurfFormat = rvk_pick_surface_format(lib, dev, vkSurf),
   };
 
   VkBool32 supported;
-  rvk_call(
-      vkGetPhysicalDeviceSurfaceSupportKHR,
+  rvk_call_checked(
+      lib,
+      getPhysicalDeviceSurfaceSupportKHR,
       dev->vkPhysDev,
       dev->graphicsQueueIndex,
       vkSurf,
@@ -258,165 +257,166 @@ RvkSwapchain* rvk_swapchain_create(RvkLib* lib, RvkDevice* dev, const GapWindowC
     diag_crash_msg("Vulkan device does not support presenting to the given surface");
   }
 
-#ifdef VK_KHR_present_wait
-  if (dev->flags & RvkDeviceFlags_SupportPresentWait) {
-    swapchain->vkWaitForPresentFunc = rvk_func_load_instance(dev->vkInst, vkWaitForPresentKHR);
-  }
-#endif
-  return swapchain;
+  return swap;
 }
 
-void rvk_swapchain_destroy(RvkSwapchain* swapchain) {
-  for (u32 i = 0; i != swapchain->imageCount; ++i) {
-    rvk_image_destroy(&swapchain->images[i], swapchain->dev);
+void rvk_swapchain_destroy(RvkSwapchain* swap) {
+  for (u32 i = 0; i != swap->imgCount; ++i) {
+    rvk_image_destroy(&swap->imgs[i], swap->dev);
   }
-  if (swapchain->vkSwapchain) {
-    vkDestroySwapchainKHR(swapchain->dev->vkDev, swapchain->vkSwapchain, &swapchain->dev->vkAlloc);
+  if (swap->vkSwap) {
+    rvk_call(swap->dev, destroySwapchainKHR, swap->dev->vkDev, swap->vkSwap, &swap->dev->vkAlloc);
   }
 
-  vkDestroySurfaceKHR(swapchain->lib->vkInst, swapchain->vkSurf, &swapchain->dev->vkAlloc);
-  alloc_free_t(g_allocHeap, swapchain);
+  rvk_call(swap->lib, destroySurfaceKHR, swap->lib->vkInst, swap->vkSurf, &swap->dev->vkAlloc);
+  alloc_free_t(g_allocHeap, swap);
 }
 
-VkFormat rvk_swapchain_format(const RvkSwapchain* swapchain) {
-  return swapchain->vkSurfFormat.format;
+VkFormat rvk_swapchain_format(const RvkSwapchain* swap) { return swap->vkSurfFormat.format; }
+
+RvkSize rvk_swapchain_size(const RvkSwapchain* swap) { return swap->size; }
+
+void rvk_swapchain_stats(const RvkSwapchain* swap, RvkSwapchainStats* out) {
+  out->acquireDur        = swap->lastAcquireDur;
+  out->presentEnqueueDur = swap->lastPresentEnqueueDur;
+  out->presentWaitDur    = swap->lastPresentWaitDur;
+  out->presentId         = swap->curPresentId;
+  out->imageCount        = (u16)swap->imgCount;
 }
 
-RvkSize rvk_swapchain_size(const RvkSwapchain* swapchain) { return swapchain->size; }
+void rvk_swapchain_invalidate(RvkSwapchain* swap) { swap->flags |= RvkSwapchainFlags_OutOfDate; }
 
-void rvk_swapchain_stats(const RvkSwapchain* swapchain, RvkSwapchainStats* out) {
-  out->acquireDur        = swapchain->lastAcquireDur;
-  out->presentEnqueueDur = swapchain->lastPresentEnqueueDur;
-  out->presentWaitDur    = swapchain->lastPresentWaitDur;
-  out->presentId         = swapchain->curPresentId;
-  out->imageCount        = (u16)swapchain->imageCount;
-}
-
-void rvk_swapchain_invalidate(RvkSwapchain* swapchain) {
-  swapchain->flags |= RvkSwapchainFlags_OutOfDate;
-}
-
-RvkImage* rvk_swapchain_image(RvkSwapchain* swapchain, const RvkSwapchainIdx idx) {
-  diag_assert_msg(idx < swapchain->imageCount, "Swapchain index {} is out of bounds", fmt_int(idx));
-  return &swapchain->images[idx];
+RvkImage* rvk_swapchain_image(RvkSwapchain* swap, const RvkSwapchainIdx idx) {
+  diag_assert_msg(idx < swap->imgCount, "Swapchain index {} is out of bounds", fmt_int(idx));
+  return &swap->imgs[idx];
 }
 
 bool rvk_swapchain_prepare(
-    RvkSwapchain* swapchain, const RendSettingsComp* settings, const RvkSize size) {
+    RvkSwapchain* swap, const RendSettingsComp* settings, const RvkSize size) {
 
-  const bool outOfDate      = (swapchain->flags & RvkSwapchainFlags_OutOfDate) != 0;
-  const bool changedSize    = !rvk_size_equal(size, swapchain->size);
-  const bool changedPresent = swapchain->presentModeSetting != settings->presentMode;
+  const bool outOfDate      = (swap->flags & RvkSwapchainFlags_OutOfDate) != 0;
+  const bool changedSize    = !rvk_size_equal(size, swap->size);
+  const bool changedPresent = swap->presentModeSetting != settings->presentMode;
 
-  if (!swapchain->vkSwapchain || outOfDate || changedSize || changedPresent) {
+  if (!swap->vkSwap || outOfDate || changedSize || changedPresent) {
     /**
      * Synchronize swapchain (re)creation by waiting for all rendering to be done. This a very
      * crude way of synchronizing and causes stalls when resizing the window. In the future we can
      * consider keeping the old swapchain alive during recreation and only destroy it after all
      * rendering to it was finished.
      */
-    rvk_device_wait_idle(swapchain->dev);
+    rvk_device_wait_idle(swap->dev);
 
-    if (!rvk_swapchain_init(swapchain, settings, size)) {
+    if (!rvk_swapchain_init(swap, settings, size)) {
       return false;
     }
   }
 
-  if (!swapchain->size.width || !swapchain->size.height) {
+  if (!swap->size.width || !swap->size.height) {
     return false;
   }
 
   return true;
 }
 
-RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain* swapchain, VkSemaphore available) {
+RvkSwapchainIdx rvk_swapchain_acquire(RvkSwapchain* swap, VkSemaphore available) {
   const TimeSteady acquireStart = time_steady_clock();
-  u32              index;
-  const VkResult   result = vkAcquireNextImageKHR(
-      swapchain->dev->vkDev, swapchain->vkSwapchain, u64_max, available, null, &index);
-  swapchain->lastAcquireDur = time_steady_duration(acquireStart, time_steady_clock());
+
+  u32            index;
+  const VkResult result = rvk_call(
+      swap->dev,
+      acquireNextImageKHR,
+      swap->dev->vkDev,
+      swap->vkSwap,
+      u64_max,
+      available,
+      null,
+      &index);
+
+  swap->lastAcquireDur = time_steady_duration(acquireStart, time_steady_clock());
 
   switch (result) {
   case VK_SUBOPTIMAL_KHR:
-    swapchain->flags |= RvkSwapchainFlags_OutOfDate;
+    swap->flags |= RvkSwapchainFlags_OutOfDate;
     return index;
   case VK_ERROR_OUT_OF_DATE_KHR:
     log_d("Out-of-date swapchain detected during acquire");
-    swapchain->flags |= RvkSwapchainFlags_OutOfDate;
+    swap->flags |= RvkSwapchainFlags_OutOfDate;
     return sentinel_u32;
   default:
-    rvk_check(string_lit("vkAcquireNextImageKHR"), result);
+    rvk_api_check(string_lit("acquireNextImageKHR"), result);
     return index;
   }
 }
 
 bool rvk_swapchain_enqueue_present(
-    RvkSwapchain* swapchain, VkSemaphore ready, const RvkSwapchainIdx idx) {
-  RvkImage* image = rvk_swapchain_image(swapchain, idx);
+    RvkSwapchain* swap, VkSemaphore ready, const RvkSwapchainIdx idx) {
+  RvkImage* image = rvk_swapchain_image(swap, idx);
   rvk_image_assert_phase(image, RvkImagePhase_Present);
 
   const void* nextPresentData = null;
 
-  ++swapchain->curPresentId;
-#ifdef VK_KHR_present_id
+  ++swap->curPresentId;
+
   const VkPresentIdKHR presentIdData = {
       .sType          = VK_STRUCTURE_TYPE_PRESENT_ID_KHR,
       .pNext          = nextPresentData,
       .swapchainCount = 1,
-      .pPresentIds    = &swapchain->curPresentId,
+      .pPresentIds    = &swap->curPresentId,
   };
-  if (swapchain->dev->flags & RvkDeviceFlags_SupportPresentId) {
+  if (swap->dev->flags & RvkDeviceFlags_SupportPresentId) {
     nextPresentData = &presentIdData;
   }
-#endif
+
   const VkPresentInfoKHR presentInfo = {
       .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
       .pNext              = nextPresentData,
       .waitSemaphoreCount = 1,
       .pWaitSemaphores    = &ready,
       .swapchainCount     = 1,
-      .pSwapchains        = &swapchain->vkSwapchain,
+      .pSwapchains        = &swap->vkSwap,
       .pImageIndices      = &idx,
   };
 
   const TimeSteady startTime = time_steady_clock();
-  VkResult         result    = vkQueuePresentKHR(swapchain->dev->vkGraphicsQueue, &presentInfo);
-  swapchain->lastPresentEnqueueDur = time_steady_duration(startTime, time_steady_clock());
+  VkResult result = rvk_call(swap->dev, queuePresentKHR, swap->dev->vkGraphicsQueue, &presentInfo);
+  swap->lastPresentEnqueueDur = time_steady_duration(startTime, time_steady_clock());
 
   switch (result) {
   case VK_SUBOPTIMAL_KHR:
-    swapchain->flags |= RvkSwapchainFlags_OutOfDate;
+    swap->flags |= RvkSwapchainFlags_OutOfDate;
     return true; // Presenting will still succeed.
   case VK_ERROR_OUT_OF_DATE_KHR:
-    swapchain->flags |= RvkSwapchainFlags_OutOfDate;
+    swap->flags |= RvkSwapchainFlags_OutOfDate;
     log_d(
         "Out-of-date swapchain detected during present",
-        log_param("id", fmt_int(swapchain->curPresentId)));
+        log_param("id", fmt_int(swap->curPresentId)));
     return false; // Presenting will fail.
   default:
-    rvk_check(string_lit("vkQueuePresentKHR"), result);
+    rvk_api_check(string_lit("queuePresentKHR"), result);
     return true;
   }
 }
 
-void rvk_swapchain_wait_for_present(const RvkSwapchain* swapchain, const u32 numBehind) {
-  if (numBehind >= swapchain->curPresentId) {
+void rvk_swapchain_wait_for_present(const RvkSwapchain* swap, const u32 numBehind) {
+  if (numBehind >= swap->curPresentId) {
     /**
      * Out of bound presentation-ids are considered to be already presented.
      * This is convenient for the calling code as it doesn't need the special case the first frame.
      */
     return;
   }
-#ifdef VK_KHR_present_wait
-  if (swapchain->vkWaitForPresentFunc) {
-    RvkSwapchain*    mutableSwapchain = (RvkSwapchain*)swapchain;
+  if (swap->dev->api.waitForPresentKHR) {
+    RvkSwapchain*    mutableSwapchain = (RvkSwapchain*)swap;
     const TimeSteady startTime        = time_steady_clock();
 
     const TimeDuration timeout = time_second / 30;
-    VkResult           result  = swapchain->vkWaitForPresentFunc(
-        swapchain->dev->vkDev,
-        swapchain->vkSwapchain,
-        swapchain->curPresentId - numBehind,
+    VkResult           result  = rvk_call(
+        swap->dev,
+        waitForPresentKHR,
+        swap->dev->vkDev,
+        swap->vkSwap,
+        swap->curPresentId - numBehind,
         timeout);
 
     mutableSwapchain->lastPresentWaitDur = time_steady_duration(startTime, time_steady_clock());
@@ -436,11 +436,10 @@ void rvk_swapchain_wait_for_present(const RvkSwapchain* swapchain, const u32 num
       mutableSwapchain->flags |= RvkSwapchainFlags_OutOfDate;
       log_d(
           "Out-of-date swapchain detected during wait",
-          log_param("id", fmt_int(swapchain->curPresentId)));
+          log_param("id", fmt_int(swap->curPresentId)));
       break;
     default:
-      rvk_check(string_lit("vkWaitForPresentKHR"), result);
+      rvk_api_check(string_lit("waitForPresentKHR"), result);
     }
   }
-#endif
 }

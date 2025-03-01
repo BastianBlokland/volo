@@ -80,6 +80,8 @@ void dynbitset_clear(DynBitSet* dynbitset, const usize idx) {
   *mem_at_u8(dynbitset_view(dynbitset), bits_to_bytes(idx)) &= ~(1u << bit_in_byte(idx));
 }
 
+void dynbitset_clear_all(DynBitSet* dynbitset) { dynarray_clear(dynbitset); }
+
 void dynbitset_or(DynBitSet* dynbitset, const BitSet other) {
   dynbitset_ensure(dynbitset, bytes_to_bits(other.size));
   bitset_or(dynbitset_view(dynbitset), other);

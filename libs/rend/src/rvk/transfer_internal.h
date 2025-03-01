@@ -1,6 +1,7 @@
 #pragma once
+#include "vulkan_api.h"
+
 #include "forward_internal.h"
-#include "vulkan_internal.h"
 
 /**
  * Transferer for uploading data from the CPU to the GPU.

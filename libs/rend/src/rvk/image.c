@@ -6,6 +6,7 @@
 
 #include "device_internal.h"
 #include "image_internal.h"
+#include "lib_internal.h"
 
 static VkClearColorValue rvk_rend_clear_color(const GeoColor color) {
   VkClearColorValue result;
@@ -280,7 +281,7 @@ static VkImage rvk_vkimage_create(
       .samples       = 1,
   };
   VkImage result;
-  rvk_call(vkCreateImage, dev->vkDev, &imageInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createImage, dev->vkDev, &imageInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -305,7 +306,7 @@ static VkImageView rvk_vkimageview_create(
       .subresourceRange.layerCount     = layers,
   };
   VkImageView result;
-  rvk_call(vkCreateImageView, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(dev, createImageView, dev->vkDev, &createInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -334,7 +335,7 @@ static RvkImage rvk_image_create_backed(
   const VkImage vkImage = rvk_vkimage_create(dev, type, size, vkFormat, vkUsage, layers, mipLevels);
 
   VkMemoryRequirements memReqs;
-  vkGetImageMemoryRequirements(dev->vkDev, vkImage, &memReqs);
+  rvk_call(dev, getImageMemoryRequirements, dev->vkDev, vkImage, &memReqs);
 
   const RvkMemLoc memLoc = RvkMemLoc_Dev;
   const RvkMem    mem    = rvk_mem_alloc_req(dev->memPool, memLoc, RvkMemAccess_NonLinear, memReqs);
@@ -450,9 +451,9 @@ rvk_image_create_swapchain(RvkDevice* dev, VkImage vkImage, VkFormat vkFormat, c
 
 void rvk_image_destroy(RvkImage* img, RvkDevice* dev) {
   if (img->type != RvkImageType_Swapchain) {
-    vkDestroyImage(dev->vkDev, img->vkImage, &dev->vkAlloc);
+    rvk_call(dev, destroyImage, dev->vkDev, img->vkImage, &dev->vkAlloc);
   }
-  vkDestroyImageView(dev->vkDev, img->vkImageView, &dev->vkAlloc);
+  rvk_call(dev, destroyImageView, dev->vkDev, img->vkImageView, &dev->vkAlloc);
   if (rvk_mem_valid(img->mem)) {
     rvk_mem_free(img->mem);
   }
@@ -496,7 +497,8 @@ void rvk_image_assert_phase(const RvkImage* img, const RvkImagePhase phase) {
 
 void rvk_image_freeze(RvkImage* img) { img->frozen = true; }
 
-void rvk_image_transition(RvkImage* img, const RvkImagePhase phase, VkCommandBuffer vkCmdBuf) {
+void rvk_image_transition(
+    RvkDevice* dev, RvkImage* img, const RvkImagePhase phase, VkCommandBuffer vkCmdBuf) {
   if (img->phase == phase) {
     return;
   }
@@ -513,11 +515,26 @@ void rvk_image_transition(RvkImage* img, const RvkImagePhase phase, VkCommandBuf
   const VkPipelineStageFlags dstStageFlags = rvk_image_vkpipelinestage(phase);
 
   img->phase = phase;
-  vkCmdPipelineBarrier(vkCmdBuf, srcStageFlags, dstStageFlags, 0, 0, null, 0, null, 1, &barrier);
+  rvk_call(
+      dev,
+      cmdPipelineBarrier,
+      vkCmdBuf,
+      srcStageFlags,
+      dstStageFlags,
+      0,
+      0,
+      null,
+      0,
+      null,
+      1,
+      &barrier);
 }
 
 void rvk_image_transition_batch(
-    const RvkImageTransition* transitions, const u32 count, VkCommandBuffer vkCmdBuf) {
+    RvkDevice*                dev,
+    const RvkImageTransition* transitions,
+    const u32                 count,
+    VkCommandBuffer           vkCmdBuf) {
   VkImageMemoryBarrier barriers[16];
   u32                  barrierCount = 0;
   diag_assert(count <= array_elems(barriers));
@@ -545,8 +562,19 @@ void rvk_image_transition_batch(
   }
 
   if (barrierCount) {
-    vkCmdPipelineBarrier(
-        vkCmdBuf, srcStageFlags, dstStageFlags, 0, 0, null, 0, null, barrierCount, barriers);
+    rvk_call(
+        dev,
+        cmdPipelineBarrier,
+        vkCmdBuf,
+        srcStageFlags,
+        dstStageFlags,
+        0,
+        0,
+        null,
+        0,
+        null,
+        barrierCount,
+        barriers);
   }
 }
 
@@ -563,7 +591,7 @@ void rvk_image_transition_external(RvkImage* img, const RvkImagePhase phase) {
   img->phase = phase;
 }
 
-void rvk_image_generate_mipmaps(RvkImage* img, VkCommandBuffer vkCmdBuf) {
+void rvk_image_generate_mipmaps(RvkDevice* dev, RvkImage* img, VkCommandBuffer vkCmdBuf) {
   if (img->mipLevels <= 1) {
     return;
   }
@@ -589,7 +617,9 @@ void rvk_image_generate_mipmaps(RvkImage* img, VkCommandBuffer vkCmdBuf) {
         rvk_image_barrier_from_to(
             img, img->phase, RvkImagePhase_TransferDest, 1, img->mipLevels - 1),
     };
-    vkCmdPipelineBarrier(
+    rvk_call(
+        dev,
+        cmdPipelineBarrier,
         vkCmdBuf,
         rvk_image_vkpipelinestage(img->phase),
         VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -618,7 +648,9 @@ void rvk_image_generate_mipmaps(RvkImage* img, VkCommandBuffer vkCmdBuf) {
         .dstOffsets[1].y           = math_max(img->size.height >> level, 1),
         .dstOffsets[1].z           = 1,
     };
-    vkCmdBlitImage(
+    rvk_call(
+        dev,
+        cmdBlitImage,
         vkCmdBuf,
         img->vkImage,
         rvk_image_vklayout(img->type, RvkImagePhase_TransferSource),
@@ -631,7 +663,9 @@ void rvk_image_generate_mipmaps(RvkImage* img, VkCommandBuffer vkCmdBuf) {
     {
       const VkImageMemoryBarrier barrier = rvk_image_barrier_from_to(
           img, RvkImagePhase_TransferDest, RvkImagePhase_TransferSource, level, 1);
-      vkCmdPipelineBarrier(
+      rvk_call(
+          dev,
+          cmdPipelineBarrier,
           vkCmdBuf,
           VK_PIPELINE_STAGE_TRANSFER_BIT,
           VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -647,7 +681,8 @@ void rvk_image_generate_mipmaps(RvkImage* img, VkCommandBuffer vkCmdBuf) {
   img->phase = RvkImagePhase_TransferSource; // All mips are now at the TransferSource phase.
 }
 
-void rvk_image_clear_color(const RvkImage* img, const GeoColor color, VkCommandBuffer vkCmdBuf) {
+void rvk_image_clear_color(
+    RvkDevice* dev, const RvkImage* img, const GeoColor color, VkCommandBuffer vkCmdBuf) {
   diag_assert_msg(!img->frozen, "Image is frozen");
   rvk_image_assert_phase(img, RvkImagePhase_TransferDest);
   diag_assert(img->type != RvkImageType_DepthAttachment);
@@ -662,7 +697,9 @@ void rvk_image_clear_color(const RvkImage* img, const GeoColor color, VkCommandB
             .layerCount     = img->layers,
       },
   };
-  vkCmdClearColorImage(
+  rvk_call(
+      dev,
+      cmdClearColorImage,
       vkCmdBuf,
       img->vkImage,
       rvk_image_vklayout(img->type, img->phase),
@@ -671,7 +708,8 @@ void rvk_image_clear_color(const RvkImage* img, const GeoColor color, VkCommandB
       ranges);
 }
 
-void rvk_image_clear_depth(const RvkImage* img, const f32 depth, VkCommandBuffer vkCmdBuf) {
+void rvk_image_clear_depth(
+    RvkDevice* dev, const RvkImage* img, const f32 depth, VkCommandBuffer vkCmdBuf) {
   diag_assert_msg(!img->frozen, "Image is frozen");
   rvk_image_assert_phase(img, RvkImagePhase_TransferDest);
   diag_assert(img->type == RvkImageType_DepthAttachment);
@@ -686,7 +724,9 @@ void rvk_image_clear_depth(const RvkImage* img, const f32 depth, VkCommandBuffer
              .layerCount     = img->layers,
       },
   };
-  vkCmdClearDepthStencilImage(
+  rvk_call(
+      dev,
+      cmdClearDepthStencilImage,
       vkCmdBuf,
       img->vkImage,
       rvk_image_vklayout(img->type, img->phase),
@@ -695,7 +735,7 @@ void rvk_image_clear_depth(const RvkImage* img, const f32 depth, VkCommandBuffer
       ranges);
 }
 
-void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBuf) {
+void rvk_image_copy(RvkDevice* dev, const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBuf) {
   diag_assert_msg(!dest->frozen, "Destination image is frozen");
   rvk_image_assert_phase(src, RvkImagePhase_TransferSource);
   rvk_image_assert_phase(dest, RvkImagePhase_TransferDest);
@@ -716,7 +756,9 @@ void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
           .extent.depth              = 1,
       },
   };
-  vkCmdCopyImage(
+  rvk_call(
+      dev,
+      cmdCopyImage,
       vkCmdBuf,
       src->vkImage,
       rvk_image_vklayout(src->type, src->phase),
@@ -726,7 +768,7 @@ void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
       regions);
 }
 
-void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBuf) {
+void rvk_image_blit(RvkDevice* dev, const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBuf) {
   diag_assert_msg(!dest->frozen, "Destination image is frozen");
   rvk_image_assert_phase(src, RvkImagePhase_TransferSource);
   rvk_image_assert_phase(dest, RvkImagePhase_TransferDest);
@@ -751,7 +793,9 @@ void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
   };
 
   const bool srcIsDepth = src->type == RvkImageType_DepthAttachment;
-  vkCmdBlitImage(
+  rvk_call(
+      dev,
+      cmdBlitImage,
       vkCmdBuf,
       src->vkImage,
       rvk_image_vklayout(src->type, src->phase),
@@ -763,6 +807,7 @@ void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer vkCmdBu
 }
 
 void rvk_image_transfer_ownership(
+    RvkDevice*      dev,
     const RvkImage* img,
     VkCommandBuffer srcCmdBuf,
     VkCommandBuffer dstCmdBuf,
@@ -785,7 +830,19 @@ void rvk_image_transfer_ownership(
       0,
       0,
       img->mipLevels);
-  vkCmdPipelineBarrier(srcCmdBuf, stageFlags, stageFlags, 0, 0, null, 0, null, 1, &releaseBarrier);
+  rvk_call(
+      dev,
+      cmdPipelineBarrier,
+      srcCmdBuf,
+      stageFlags,
+      stageFlags,
+      0,
+      0,
+      null,
+      0,
+      null,
+      1,
+      &releaseBarrier);
 
   // Acquire the image on the destination queue.
   const VkImageMemoryBarrier acquireBarrier = rvk_image_barrier(
@@ -798,5 +855,17 @@ void rvk_image_transfer_ownership(
       rvk_image_vkaccess_read(img->phase) | rvk_image_vkaccess_write(img->phase),
       0,
       img->mipLevels);
-  vkCmdPipelineBarrier(dstCmdBuf, stageFlags, stageFlags, 0, 0, null, 0, null, 1, &acquireBarrier);
+  rvk_call(
+      dev,
+      cmdPipelineBarrier,
+      dstCmdBuf,
+      stageFlags,
+      stageFlags,
+      0,
+      0,
+      null,
+      0,
+      null,
+      1,
+      &acquireBarrier);
 }

@@ -75,17 +75,18 @@ typedef struct {
   RvkImagePhase phase;
 } RvkImageTransition;
 
-void rvk_image_transition(RvkImage*, RvkImagePhase, VkCommandBuffer);
-void rvk_image_transition_batch(const RvkImageTransition*, u32 count, VkCommandBuffer);
+void rvk_image_transition(RvkDevice*, RvkImage*, RvkImagePhase, VkCommandBuffer);
+void rvk_image_transition_batch(RvkDevice*, const RvkImageTransition*, u32 count, VkCommandBuffer);
 void rvk_image_transition_external(RvkImage*, RvkImagePhase);
 
-void rvk_image_generate_mipmaps(RvkImage*, VkCommandBuffer);
-void rvk_image_clear_color(const RvkImage*, GeoColor, VkCommandBuffer);
-void rvk_image_clear_depth(const RvkImage*, f32 depth, VkCommandBuffer);
-void rvk_image_copy(const RvkImage* src, RvkImage* dest, VkCommandBuffer);
-void rvk_image_blit(const RvkImage* src, RvkImage* dest, VkCommandBuffer);
+void rvk_image_generate_mipmaps(RvkDevice*, RvkImage*, VkCommandBuffer);
+void rvk_image_clear_color(RvkDevice*, const RvkImage*, GeoColor, VkCommandBuffer);
+void rvk_image_clear_depth(RvkDevice*, const RvkImage*, f32 depth, VkCommandBuffer);
+void rvk_image_copy(RvkDevice*, const RvkImage* src, RvkImage* dest, VkCommandBuffer);
+void rvk_image_blit(RvkDevice*, const RvkImage* src, RvkImage* dest, VkCommandBuffer);
 
 void rvk_image_transfer_ownership(
+    RvkDevice*,
     const RvkImage*,
     VkCommandBuffer srcCmdBuf,
     VkCommandBuffer dstCmdBuf,

@@ -1,6 +1,7 @@
 #pragma once
+#include "vulkan_api.h"
+
 #include "image_internal.h"
-#include "vulkan_internal.h"
 
 /**
  * Render attachment pool.

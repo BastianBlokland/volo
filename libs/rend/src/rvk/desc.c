@@ -8,6 +8,7 @@
 #include "desc_internal.h"
 #include "device_internal.h"
 #include "image_internal.h"
+#include "lib_internal.h"
 #include "sampler_internal.h"
 
 // #define VOLO_RVK_DESC_LOGGING
@@ -99,8 +100,13 @@ static VkDescriptorSetLayout rvk_desc_vklayout_create(RvkDescPool* pool, const R
       .pBindings    = bindings,
   };
   VkDescriptorSetLayout result;
-  rvk_call(
-      vkCreateDescriptorSetLayout, pool->dev->vkDev, &layoutInfo, &pool->dev->vkAlloc, &result);
+  rvk_call_checked(
+      pool->dev,
+      createDescriptorSetLayout,
+      pool->dev->vkDev,
+      &layoutInfo,
+      &pool->dev->vkAlloc,
+      &result);
   return result;
 }
 
@@ -139,7 +145,8 @@ static VkDescriptorPool rvk_desc_vkpool_create(RvkDescPool* pool, const RvkDescM
       .maxSets       = rvk_desc_sets_per_chunk,
   };
   VkDescriptorPool result;
-  rvk_call(vkCreateDescriptorPool, pool->dev->vkDev, &poolInfo, &pool->dev->vkAlloc, &result);
+  rvk_call_checked(
+      pool->dev, createDescriptorPool, pool->dev->vkDev, &poolInfo, &pool->dev->vkAlloc, &result);
   return result;
 }
 
@@ -168,7 +175,7 @@ static RvkDescChunk* rvk_desc_chunk_create(RvkDescPool* pool, const RvkDescMeta*
       .descriptorSetCount = rvk_desc_sets_per_chunk,
       .pSetLayouts        = layouts,
   };
-  rvk_call(vkAllocateDescriptorSets, pool->dev->vkDev, &allocInfo, chunk->vkSets);
+  rvk_call_checked(pool->dev, allocateDescriptorSets, pool->dev->vkDev, &allocInfo, chunk->vkSets);
 
 #if defined(VOLO_RVK_DESC_LOGGING)
   log_d(
@@ -185,7 +192,8 @@ static void rvk_desc_chunk_destroy(RvkDescChunk* chunk) {
       bitset_count(rvk_desc_chunk_mask(chunk)) == rvk_desc_sets_per_chunk,
       "Not all descriptor sets have been freed");
 
-  vkDestroyDescriptorPool(chunk->pool->dev->vkDev, chunk->vkPool, &chunk->pool->dev->vkAlloc);
+  RvkDevice* dev = chunk->pool->dev;
+  rvk_call(dev, destroyDescriptorPool, dev->vkDev, chunk->vkPool, &dev->vkAlloc);
   alloc_free_t(g_allocHeap, chunk);
 
 #if defined(VOLO_RVK_DESC_LOGGING)
@@ -235,9 +243,10 @@ void rvk_desc_pool_destroy(RvkDescPool* pool) {
   }
 
   // Destroy all layouts.
+  RvkDevice* dev = pool->dev;
   thread_mutex_destroy(pool->layoutLock);
   dynarray_for_t(&pool->layouts, RvkDescLayout, layout) {
-    vkDestroyDescriptorSetLayout(pool->dev->vkDev, layout->vkLayout, &pool->dev->vkAlloc);
+    rvk_call(dev, destroyDescriptorSetLayout, dev->vkDev, layout->vkLayout, &dev->vkAlloc);
   }
   dynarray_destroy(&pool->layouts);
 
@@ -439,7 +448,8 @@ void rvk_desc_set_attach_buffer(
       .descriptorCount = 1,
       .pBufferInfo     = &bufferInfo,
   };
-  vkUpdateDescriptorSets(pool->dev->vkDev, 1, &descriptorWrite, 0, null);
+  RvkDevice* dev = pool->dev;
+  rvk_call(dev, updateDescriptorSets, dev->vkDev, 1, &descriptorWrite, 0, null);
 }
 
 void rvk_desc_set_attach_sampler(
@@ -479,5 +489,6 @@ void rvk_desc_set_attach_sampler(
       .descriptorCount = 1,
       .pImageInfo      = &imgInfo,
   };
-  vkUpdateDescriptorSets(pool->dev->vkDev, 1, &descriptorWrite, 0, null);
+  RvkDevice* dev = pool->dev;
+  rvk_call(dev, updateDescriptorSets, dev->vkDev, 1, &descriptorWrite, 0, null);
 }

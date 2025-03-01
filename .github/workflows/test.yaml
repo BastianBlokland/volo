@@ -89,15 +89,8 @@ jobs:
 
     - name: prepare-ubuntu
       if: matrix.config.os == 'linux'
-      uses: ./.github/actions/prepare-ubuntu
-      id: prepare-ubuntu
-      with:
-        dist: jammy
-
-    - name: prepare-windows
-      if: matrix.config.os == 'windows'
-      uses: ./.github/actions/prepare-windows
-      id: prepare-windows
+      run: |
+        sudo apt install libxcb1-dev libxcb-xkb-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb-randr0-dev
 
     - name: test-unix
       if: matrix.config.toolchain == 'unix'

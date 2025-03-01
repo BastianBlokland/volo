@@ -6,10 +6,10 @@
 #include "log_logger.h"
 #include "trace_tracer.h"
 
-#include "debug_internal.h"
 #include "desc_internal.h"
 #include "device_internal.h"
 #include "graphic_internal.h"
+#include "lib_internal.h"
 #include "mesh_internal.h"
 #include "pass_internal.h"
 #include "repository_internal.h"
@@ -182,7 +182,8 @@ rvk_pipeline_layout_create(const RvkGraphic* graphic, RvkDevice* dev, const RvkP
       .pSetLayouts    = descriptorLayouts,
   };
   VkPipelineLayout result;
-  rvk_call(vkCreatePipelineLayout, dev->vkDev, &pipelineLayoutInfo, &dev->vkAlloc, &result);
+  rvk_call_checked(
+      dev, createPipelineLayout, dev->vkDev, &pipelineLayoutInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -487,7 +488,7 @@ static VkPipeline rvk_pipeline_create(
       .pDynamicStates    = dynamicStates,
   };
 
-  const VkGraphicsPipelineCreateInfo pipelineInfo = {
+  const VkGraphicsPipelineCreateInfo info = {
       .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
       .stageCount          = shaderStageCount,
       .pStages             = shaderStages,
@@ -507,7 +508,8 @@ static VkPipeline rvk_pipeline_create(
   trace_begin("rend_pipeline_create", TraceColor_Blue);
   {
     VkPipelineCache psoc = dev->vkPipelineCache;
-    rvk_call(vkCreateGraphicsPipelines, dev->vkDev, psoc, 1, &pipelineInfo, &dev->vkAlloc, &result);
+    rvk_call_checked(
+        dev, createGraphicsPipelines, dev->vkDev, psoc, 1, &info, &dev->vkAlloc, &result);
   }
   trace_end();
 
@@ -714,10 +716,10 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
 
 void rvk_graphic_destroy(RvkGraphic* graphic, RvkDevice* dev) {
   if (graphic->vkPipeline) {
-    vkDestroyPipeline(dev->vkDev, graphic->vkPipeline, &dev->vkAlloc);
+    rvk_call(dev, destroyPipeline, dev->vkDev, graphic->vkPipeline, &dev->vkAlloc);
   }
   if (graphic->vkPipelineLayout) {
-    vkDestroyPipelineLayout(dev->vkDev, graphic->vkPipelineLayout, &dev->vkAlloc);
+    rvk_call(dev, destroyPipelineLayout, dev->vkDev, graphic->vkPipelineLayout, &dev->vkAlloc);
   }
   if (rvk_desc_valid(graphic->graphicDescSet)) {
     rvk_desc_free(graphic->graphicDescSet);
@@ -887,9 +889,8 @@ bool rvk_graphic_finalize(
   graphic->vkPipelineLayout = rvk_pipeline_layout_create(graphic, dev, pass);
   graphic->vkPipeline = rvk_pipeline_create(graphic, asset, dev, graphic->vkPipelineLayout, pass);
 
-  rvk_debug_name_pipeline_layout(
-      dev->debug, graphic->vkPipelineLayout, "{}", fmt_text(graphic->dbgName));
-  rvk_debug_name_pipeline(dev->debug, graphic->vkPipeline, "{}", fmt_text(graphic->dbgName));
+  rvk_debug_name_pipeline_layout(dev, graphic->vkPipelineLayout, "{}", fmt_text(graphic->dbgName));
+  rvk_debug_name_pipeline(dev, graphic->vkPipeline, "{}", fmt_text(graphic->dbgName));
   return true;
 }
 
@@ -922,10 +923,12 @@ void rvk_graphic_bind(
 #endif
   diag_assert_msg(graphic->passId == rvk_pass_config(pass)->id, "Unsupported pass");
 
-  vkCmdBindPipeline(vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
+  rvk_call(dev, cmdBindPipeline, vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
 
   const VkDescriptorSet vkGraphicDescSet = rvk_desc_set_vkset(graphic->graphicDescSet);
-  vkCmdBindDescriptorSets(
+  rvk_call(
+      dev,
+      cmdBindDescriptorSets,
       vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
       graphic->vkPipelineLayout,

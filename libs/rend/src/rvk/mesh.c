@@ -1,8 +1,8 @@
 #include "core_diag.h"
 #include "log_logger.h"
 
-#include "debug_internal.h"
 #include "device_internal.h"
+#include "lib_internal.h"
 #include "mesh_internal.h"
 #include "transfer_internal.h"
 
@@ -24,8 +24,8 @@ RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const Strin
   mesh->vertexBuffer = rvk_buffer_create(dev, vertexMem.size, RvkBufferType_DeviceStorage);
   mesh->indexBuffer  = rvk_buffer_create(dev, indexMem.size, RvkBufferType_DeviceIndex);
 
-  rvk_debug_name_buffer(dev->debug, mesh->vertexBuffer.vkBuffer, "{}_vertex", fmt_text(dbgName));
-  rvk_debug_name_buffer(dev->debug, mesh->indexBuffer.vkBuffer, "{}_index", fmt_text(dbgName));
+  rvk_debug_name_buffer(dev, mesh->vertexBuffer.vkBuffer, "{}_vertex", fmt_text(dbgName));
+  rvk_debug_name_buffer(dev, mesh->indexBuffer.vkBuffer, "{}_index", fmt_text(dbgName));
 
   mesh->vertexTransfer = rvk_transfer_buffer(dev->transferer, &mesh->vertexBuffer, vertexMem);
   mesh->indexTransfer  = rvk_transfer_buffer(dev->transferer, &mesh->indexBuffer, indexMem);
@@ -77,5 +77,5 @@ void rvk_mesh_bind(const RvkMesh* mesh, const RvkDevice* dev, VkCommandBuffer vk
     indexType = VK_INDEX_TYPE_UINT32;
   }
 
-  vkCmdBindIndexBuffer(vkCmdBuf, mesh->indexBuffer.vkBuffer, 0, indexType);
+  rvk_call(dev, cmdBindIndexBuffer, vkCmdBuf, mesh->indexBuffer.vkBuffer, 0, indexType);
 }
