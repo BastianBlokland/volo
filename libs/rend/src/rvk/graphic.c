@@ -182,7 +182,7 @@ rvk_pipeline_layout_create(const RvkGraphic* graphic, RvkDevice* dev, const RvkP
       .pSetLayouts    = descriptorLayouts,
   };
   VkPipelineLayout result;
-  rvk_call(vkCreatePipelineLayout, dev->vkDev, &pipelineLayoutInfo, &dev->vkAlloc, &result);
+  rvk_call(dev->api, createPipelineLayout, dev->vkDev, &pipelineLayoutInfo, &dev->vkAlloc, &result);
   return result;
 }
 
@@ -487,7 +487,7 @@ static VkPipeline rvk_pipeline_create(
       .pDynamicStates    = dynamicStates,
   };
 
-  const VkGraphicsPipelineCreateInfo pipelineInfo = {
+  const VkGraphicsPipelineCreateInfo info = {
       .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
       .stageCount          = shaderStageCount,
       .pStages             = shaderStages,
@@ -507,7 +507,7 @@ static VkPipeline rvk_pipeline_create(
   trace_begin("rend_pipeline_create", TraceColor_Blue);
   {
     VkPipelineCache psoc = dev->vkPipelineCache;
-    rvk_call(vkCreateGraphicsPipelines, dev->vkDev, psoc, 1, &pipelineInfo, &dev->vkAlloc, &result);
+    rvk_call(dev->api, createGraphicsPipelines, dev->vkDev, psoc, 1, &info, &dev->vkAlloc, &result);
   }
   trace_end();
 
@@ -714,10 +714,10 @@ rvk_graphic_create(RvkDevice* dev, const AssetGraphicComp* asset, const String d
 
 void rvk_graphic_destroy(RvkGraphic* graphic, RvkDevice* dev) {
   if (graphic->vkPipeline) {
-    vkDestroyPipeline(dev->vkDev, graphic->vkPipeline, &dev->vkAlloc);
+    dev->api.destroyPipeline(dev->vkDev, graphic->vkPipeline, &dev->vkAlloc);
   }
   if (graphic->vkPipelineLayout) {
-    vkDestroyPipelineLayout(dev->vkDev, graphic->vkPipelineLayout, &dev->vkAlloc);
+    dev->api.destroyPipelineLayout(dev->vkDev, graphic->vkPipelineLayout, &dev->vkAlloc);
   }
   if (rvk_desc_valid(graphic->graphicDescSet)) {
     rvk_desc_free(graphic->graphicDescSet);
@@ -922,10 +922,10 @@ void rvk_graphic_bind(
 #endif
   diag_assert_msg(graphic->passId == rvk_pass_config(pass)->id, "Unsupported pass");
 
-  vkCmdBindPipeline(vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
+  dev->api.cmdBindPipeline(vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
 
   const VkDescriptorSet vkGraphicDescSet = rvk_desc_set_vkset(graphic->graphicDescSet);
-  vkCmdBindDescriptorSets(
+  dev->api.cmdBindDescriptorSets(
       vkCmdBuf,
       VK_PIPELINE_BIND_POINT_GRAPHICS,
       graphic->vkPipelineLayout,
