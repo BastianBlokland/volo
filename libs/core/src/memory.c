@@ -35,6 +35,7 @@ void mem_cpy(const Mem dst, const Mem src) {
   diag_assert(!src.size || mem_valid(dst));
   diag_assert(!src.size || mem_valid(src));
   diag_assert(dst.size >= src.size);
+  diag_assert(!mem_overlaps(dst, src));
 
   const u8* srcItr = mem_begin(src);
   const u8* srcEnd = mem_end(src);
@@ -50,6 +51,10 @@ void mem_move(const Mem dst, const Mem src) {
   diag_assert(mem_valid(src));
   diag_assert(dst.size >= src.size);
   memmove(dst.ptr, src.ptr, src.size);
+}
+
+bool mem_overlaps(const Mem a, const Mem b) {
+  return mem_end(a) > mem_begin(b) && mem_begin(a) < mem_end(b);
 }
 
 Mem mem_slice(const Mem mem, const usize offset, const usize size) {
