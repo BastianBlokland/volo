@@ -12,7 +12,7 @@
 
 #include "pal_internal.h"
 
-#include <windows.h>
+#include <Windows.h>
 
 #define pal_window_min_width 128
 #define pal_window_min_height 128
