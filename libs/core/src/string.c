@@ -3,16 +3,12 @@
 #include "core_sentinel.h"
 #include "core_string.h"
 
-#if defined(VOLO_MSVC)
-
-#include <string.h>
-#pragma intrinsic(strlen)
-
-#else
-
-#define strlen __builtin_strlen
-
-#endif
+static usize string_null_term_length(const char* str) {
+  const char* end = str;
+  for (; *end != '\0'; ++end)
+    ;
+  return end - str;
+}
 
 StringHash string_hash(const String str) { return bits_hash_32(str); }
 
@@ -21,7 +17,7 @@ StringHash string_maybe_hash(const String str) { return str.size ? bits_hash_32(
 String string_from_null_term(const char* ptr) {
   return (String){
       .ptr  = (void*)ptr,
-      .size = strlen(ptr),
+      .size = string_null_term_length(ptr),
   };
 }
 
