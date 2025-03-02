@@ -18,8 +18,10 @@ static const String g_requiredExts[] = {
     string_static(VK_KHR_swapchain),
 };
 static const String g_optionalExts[] = {
-    string_static(VK_EXT_robustness2),  // For nullDescriptor feature.
+    string_static(VK_EXT_robustness2),  // For nullDescriptor.
     string_static(VK_KHR_maintenance4), // For relaxed shader interface rules.
+    string_static(VK_KHR_present_id),
+    string_static(VK_KHR_present_wait),
 };
 
 static const char* rvk_to_null_term_scratch(const String str) {
@@ -263,7 +265,13 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   rvk_vk_exts_free(supportedExts);
 
   // Add optional features.
-  void*                                nextOptFeature      = null;
+  void*                                  nextOptFeature       = null;
+  VkPhysicalDeviceRobustness2FeaturesEXT optFeatureRobustness = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
+      .pNext = nextOptFeature,
+  };
+  nextOptFeature = &optFeatureRobustness;
+
   VkPhysicalDevicePresentIdFeaturesKHR optFeaturePresentId = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR,
       .pNext = nextOptFeature,
@@ -282,12 +290,15 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   };
   rvk_call(lib, getPhysicalDeviceFeatures2, dev->vkPhysDev, &supportedFeatures);
 
+  optFeatureRobustness.robustImageAccess2  = false;
+  optFeatureRobustness.robustBufferAccess2 = false;
+  if (optFeatureRobustness.nullDescriptor) {
+    dev->flags |= RvkDeviceFlags_SupportNullDescriptor;
+  }
   if (optFeaturePresentId.presentId) {
-    extsToEnable[extsToEnableCount++] = VK_KHR_present_id;
     dev->flags |= RvkDeviceFlags_SupportPresentId;
   }
   if (optFeaturePresentWait.presentWait) {
-    extsToEnable[extsToEnableCount++] = VK_KHR_present_wait;
     dev->flags |= RvkDeviceFlags_SupportPresentWait;
   }
 
