@@ -85,35 +85,46 @@ static i32 rvk_device_type_score_value(const VkPhysicalDeviceType vkDevType) {
 }
 
 static u32 rvk_device_pick_graphics_queue(RvkLib* lib, VkPhysicalDevice vkPhysDev) {
-  VkQueueFamilyProperties families[32] = {0};
-  u32                     familyCount  = array_elems(families);
-  rvk_call(lib, getPhysicalDeviceQueueFamilyProperties, vkPhysDev, &familyCount, families);
+  u32 count;
+  rvk_call(lib, getPhysicalDeviceQueueFamilyProperties, vkPhysDev, &count, null);
+  if (!count) {
+    goto NoGraphicsQueue;
+  }
+  VkQueueFamilyProperties* arr = alloc_array_t(g_allocScratch, VkQueueFamilyProperties, count);
+  rvk_call(lib, getPhysicalDeviceQueueFamilyProperties, vkPhysDev, &count, arr);
 
-  for (u32 i = 0; i != familyCount; ++i) {
-    if (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+  for (u32 i = 0; i != count; ++i) {
+    if (arr[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
       return i;
     }
   }
-  diag_crash_msg("No graphics queue found");
+NoGraphicsQueue:
+  diag_crash_msg("No Vulkan graphics queue found");
 }
 
 static u32 rvk_device_pick_transfer_queue(RvkLib* lib, VkPhysicalDevice vkPhysDev) {
-  VkQueueFamilyProperties families[32] = {0};
-  u32                     familyCount  = array_elems(families);
-  rvk_call(lib, getPhysicalDeviceQueueFamilyProperties, vkPhysDev, &familyCount, families);
+  u32 count;
+  rvk_call(lib, getPhysicalDeviceQueueFamilyProperties, vkPhysDev, &count, null);
+  if (!count) {
+    goto NoTransferQueue;
+  }
+  VkQueueFamilyProperties* arr = alloc_array_t(g_allocScratch, VkQueueFamilyProperties, count);
+  rvk_call(lib, getPhysicalDeviceQueueFamilyProperties, vkPhysDev, &count, arr);
 
-  for (u32 i = 0; i != familyCount; ++i) {
+  for (u32 i = 0; i != count; ++i) {
     /**
      * Graphics queues also support transfer operations, so we try to find a queue that exclusively
      * does transferring otherwise fall back to using the graphics queue for transfer.
      */
-    const bool hasTransfer = (families[i].queueFlags & VK_QUEUE_TRANSFER_BIT) != 0;
-    const bool hasGraphics = (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0;
-    const bool hasCompute  = (families[i].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0;
+    const bool hasTransfer = (arr[i].queueFlags & VK_QUEUE_TRANSFER_BIT) != 0;
+    const bool hasGraphics = (arr[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0;
+    const bool hasCompute  = (arr[i].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0;
     if (hasTransfer && !hasGraphics && !hasCompute) {
       return i;
     }
   }
+
+NoTransferQueue:
   return sentinel_u32;
 }
 
