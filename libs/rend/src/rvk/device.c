@@ -76,6 +76,16 @@ static i32 rvk_device_type_score_value(const VkPhysicalDeviceType vkDevType) {
   }
 }
 
+static bool rvk_validate_16bit_storage(const VkPhysicalDevice16BitStorageFeatures* f) {
+  if (!f->storageBuffer16BitAccess) {
+    return false;
+  }
+  if (!f->uniformAndStorageBuffer16BitAccess) {
+    return false;
+  }
+  return true;
+}
+
 static bool rvk_validate_features(const VkPhysicalDeviceFeatures* f) {
   if (!f->independentBlend) {
     return false;
@@ -199,12 +209,23 @@ static VkPhysicalDevice rvk_pick_physical_device(RvkLib* lib) {
       }
     }
 
+    void*                                nextFeature         = null;
+    VkPhysicalDevice16BitStorageFeatures feature16BitStorage = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,
+        .pNext = nextFeature,
+    };
+    nextFeature = &feature16BitStorage;
+
     VkPhysicalDeviceFeatures2 featureBase = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+        .pNext = nextFeature,
     };
     rvk_call(lib, getPhysicalDeviceFeatures2, vkPhysDevs[i], &featureBase);
 
-    // TODO: Validate 16bit storage features as they are required as well.
+    if (!rvk_validate_16bit_storage(&feature16BitStorage)) {
+      score = -1;
+      goto detectionDone;
+    }
     if (!rvk_validate_features(&featureBase.features)) {
       score = -1;
       goto detectionDone;
