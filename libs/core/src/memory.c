@@ -3,26 +3,13 @@
 #include "core_math.h"
 #include "core_memory.h"
 
-#if defined(VOLO_MSVC)
-
-#include <string.h>
-#pragma intrinsic(memset)
-#pragma intrinsic(memcpy)
-#pragma intrinsic(memmove)
-#pragma intrinsic(memcmp)
-
-#else
-
-#define memset __builtin_memset
-#define memcpy __builtin_memcpy
-#define memmove __builtin_memmove
-#define memcmp __builtin_memcmp
-
-#endif
-
 void mem_set(const Mem dst, const u8 val) {
   diag_assert(mem_valid(dst));
-  memset(dst.ptr, val, dst.size);
+
+  u8* end = mem_end(dst);
+  for (u8* itr = mem_begin(dst); itr != end; ++itr) {
+    *itr = val;
+  }
 }
 
 void mem_splat(Mem dst, const Mem val) {
@@ -37,14 +24,49 @@ void mem_cpy(const Mem dst, const Mem src) {
   diag_assert(!src.size || mem_valid(dst));
   diag_assert(!src.size || mem_valid(src));
   diag_assert(dst.size >= src.size);
-  memcpy(dst.ptr, src.ptr, src.size);
+  diag_assert(!mem_overlaps(dst, src));
+
+  u8*       dstItr = mem_begin(dst);
+  const u8* srcItr = mem_begin(src);
+  const u8* srcEnd = mem_end(src);
+
+  for (; srcItr != srcEnd; ++srcItr, ++dstItr) {
+    *dstItr = *srcItr;
+  }
 }
 
 void mem_move(const Mem dst, const Mem src) {
   diag_assert(mem_valid(dst));
   diag_assert(mem_valid(src));
   diag_assert(dst.size >= src.size);
-  memmove(dst.ptr, src.ptr, src.size);
+
+  if (dst.ptr == src.ptr) {
+    return; // Identical locations.
+  }
+  if (!mem_overlaps(dst, src)) {
+    mem_cpy(dst, src);
+    return;
+  }
+
+  u8*       dstItr = mem_begin(dst);
+  const u8* srcItr = mem_begin(src);
+  const u8* srcEnd = mem_end(src);
+
+  if (dstItr < srcItr) {
+    // Forward copy.
+    for (; srcItr != srcEnd;) {
+      *dstItr++ = *srcItr++;
+    }
+  } else {
+    // Backwards copy.
+    for (usize i = src.size; i--;) {
+      dstItr[i] = srcItr[i];
+    }
+  }
+}
+
+bool mem_overlaps(const Mem a, const Mem b) {
+  return mem_end(a) > mem_begin(b) && mem_begin(a) < mem_end(b);
 }
 
 Mem mem_slice(const Mem mem, const usize offset, const usize size) {
@@ -196,14 +218,35 @@ void* mem_as(const Mem mem, const usize size, const usize align) {
 i8 mem_cmp(const Mem a, const Mem b) {
   diag_assert(mem_valid(a));
   diag_assert(mem_valid(b));
-  const int cmp = memcmp(a.ptr, b.ptr, math_min(a.size, b.size));
-  return math_sign(cmp);
+
+  usize     rem  = math_min(a.size, b.size);
+  const u8* aItr = mem_begin(a);
+  const u8* bItr = mem_begin(b);
+
+  for (; rem && *aItr == *bItr; --rem, ++aItr, ++bItr)
+    ;
+
+  return rem ? math_sign(*aItr - *bItr) : 0;
 }
 
 bool mem_eq(const Mem a, const Mem b) {
   diag_assert(!a.size || mem_valid(a));
   diag_assert(!b.size || mem_valid(b));
-  return a.size == b.size && memcmp(a.ptr, b.ptr, a.size) == 0;
+
+  if (a.size != b.size) {
+    return false;
+  }
+  const u8* aItr = mem_begin(a);
+  const u8* aEnd = mem_end(a);
+  const u8* bItr = mem_begin(b);
+
+  for (; aItr != aEnd; ++aItr, ++bItr) {
+    if (*aItr != *bItr) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 bool mem_contains(const Mem mem, const u8 byte) {
@@ -236,7 +279,7 @@ void mem_swap_raw(void* a, void* b, const u16 size) {
   diag_assert(size <= 1024);
 
   Mem buffer = mem_stack(size);
-  memcpy(buffer.ptr, a, size);
-  memcpy(a, b, size);
-  memcpy(b, buffer.ptr, size);
+  mem_cpy(buffer, mem_create(a, size));
+  mem_cpy(mem_create(a, size), mem_create(b, size));
+  mem_cpy(mem_create(b, size), buffer);
 }

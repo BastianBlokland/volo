@@ -13,7 +13,7 @@
 
 #include "tls_internal.h"
 
-#include <windows.h>
+#include <Windows.h>
 
 #define SECURITY_WIN32
 #include <schannel.h>

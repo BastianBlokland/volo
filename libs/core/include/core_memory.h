@@ -132,6 +132,11 @@ void mem_cpy(Mem dst, Mem src);
 void mem_move(Mem dst, Mem src);
 
 /**
+ * Check if the given memory ranges overlap.
+ */
+bool mem_overlaps(Mem a, Mem b);
+
+/**
  * Create a view to a sub-section of this memory.
  * Pre-condition: mem.size >= offset + size
  */
