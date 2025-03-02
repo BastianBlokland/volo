@@ -17,6 +17,13 @@ static const VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
     VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
 };
 
+static const char* rvk_to_null_term_scratch(const String str) {
+  const Mem scratchMem = alloc_alloc(g_allocScratch, str.size + 1, 1);
+  mem_cpy(scratchMem, str);
+  *mem_at_u8(scratchMem, str.size) = '\0';
+  return scratchMem.ptr;
+}
+
 static u32 rvk_version(const u32 variant, const u32 major, const u32 minor, const u32 patch) {
   return (variant << 29) | (major << 22) | (minor << 12) | patch;
 }
@@ -37,7 +44,7 @@ static u32 rvk_loader_version(VkInterfaceLoader* loaderApi) {
 static VkApplicationInfo rvk_inst_app_info(void) {
   return (VkApplicationInfo){
       .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-      .pApplicationName   = path_stem(g_pathExecutable).ptr,
+      .pApplicationName   = rvk_to_null_term_scratch(path_stem(g_pathExecutable)),
       .applicationVersion = rvk_version(0, 0, 1, 0),
       .pEngineName        = "volo",
       .engineVersion      = rvk_version(0, 0, 1, 0),
