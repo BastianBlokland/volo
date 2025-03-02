@@ -3,17 +3,6 @@
 #include "core_math.h"
 #include "core_memory.h"
 
-#if defined(VOLO_MSVC)
-
-#include <string.h>
-#pragma intrinsic(memmove)
-
-#else
-
-#define memmove __builtin_memmove
-
-#endif
-
 void mem_set(const Mem dst, const u8 val) {
   diag_assert(mem_valid(dst));
 
@@ -37,9 +26,9 @@ void mem_cpy(const Mem dst, const Mem src) {
   diag_assert(dst.size >= src.size);
   diag_assert(!mem_overlaps(dst, src));
 
+  u8*       dstItr = mem_begin(dst);
   const u8* srcItr = mem_begin(src);
   const u8* srcEnd = mem_end(src);
-  u8*       dstItr = mem_begin(dst);
 
   for (; srcItr != srcEnd; ++srcItr, ++dstItr) {
     *dstItr = *srcItr;
@@ -50,7 +39,30 @@ void mem_move(const Mem dst, const Mem src) {
   diag_assert(mem_valid(dst));
   diag_assert(mem_valid(src));
   diag_assert(dst.size >= src.size);
-  memmove(dst.ptr, src.ptr, src.size);
+
+  if (dst.ptr == src.ptr) {
+    return; // Identical locations.
+  }
+  if (!mem_overlaps(dst, src)) {
+    mem_cpy(dst, src);
+    return;
+  }
+
+  u8*       dstItr = mem_begin(dst);
+  const u8* srcItr = mem_begin(src);
+  const u8* srcEnd = mem_end(src);
+
+  if (dstItr < srcItr) {
+    // Forward copy.
+    for (; srcItr != srcEnd;) {
+      *dstItr++ = *srcItr++;
+    }
+  } else {
+    // Backwards copy.
+    for (usize i = src.size; i--;) {
+      dstItr[i] = srcItr[i];
+    }
+  }
 }
 
 bool mem_overlaps(const Mem a, const Mem b) {
