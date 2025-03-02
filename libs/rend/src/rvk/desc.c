@@ -492,3 +492,13 @@ void rvk_desc_set_attach_sampler(
   RvkDevice* dev = pool->dev;
   rvk_call(dev, updateDescriptorSets, dev->vkDev, 1, &descriptorWrite, 0, null);
 }
+
+void rvk_desc_set_update_name(const RvkDescSet set, const String dbgName) {
+  RvkDevice* dev = set.chunk->pool->dev;
+  if (!(dev->lib->flags & RvkLibFlags_Debug)) {
+    return;
+  }
+  VkDescriptorSet vkSet = set.chunk->vkSets[set.idx];
+  rvk_debug_name_fmt(
+      dev, VK_OBJECT_TYPE_DESCRIPTOR_SET, vkSet, "descriptor_set_{}", fmt_text(dbgName));
+}
