@@ -1,7 +1,6 @@
 #include "core_float.h"
 
 #include <fenv.h>
-#include <float.h>
 #include <immintrin.h>
 
 #if !defined(VOLO_MSVC)
