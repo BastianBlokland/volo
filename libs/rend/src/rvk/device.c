@@ -18,12 +18,8 @@ static const String g_requiredExts[] = {
     string_static(VK_KHR_swapchain),
 };
 static const String g_optionalExts[] = {
-    /**
-     * 'VK_KHR_maintenance4' allows relaxed shader interface rules.
-     * For devices that do not support this we are technically violating the spec, however in
-     * practice all tested drivers handle this as expected.
-     */
-    string_static(VK_KHR_maintenance4),
+    string_static(VK_EXT_robustness2),  // For nullDescriptor feature.
+    string_static(VK_KHR_maintenance4), // For relaxed shader interface rules.
 };
 
 static const char* rvk_to_null_term_scratch(const String str) {
