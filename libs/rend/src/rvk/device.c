@@ -427,8 +427,9 @@ RvkDevice* rvk_device_create(RvkLib* lib) {
       log_param("graphics-queue-idx", fmt_int(dev->graphicsQueueIndex)),
       log_param("transfer-queue-idx", fmt_int(dev->transferQueueIndex)),
       log_param("depth-format", fmt_text(vkFormatStr(dev->depthFormat))),
-      log_param("present-id-enabled", fmt_bool(dev->flags & RvkDeviceFlags_SupportPresentId)),
-      log_param("present-wait-enabled", fmt_bool(dev->flags & RvkDeviceFlags_SupportPresentWait)));
+      log_param("null-descriptor", fmt_bool(dev->flags & RvkDeviceFlags_SupportNullDescriptor)),
+      log_param("present-id", fmt_bool(dev->flags & RvkDeviceFlags_SupportPresentId)),
+      log_param("present-wait", fmt_bool(dev->flags & RvkDeviceFlags_SupportPresentWait)));
 
   return dev;
 }
