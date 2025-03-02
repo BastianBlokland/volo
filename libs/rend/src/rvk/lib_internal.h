@@ -20,6 +20,8 @@ typedef struct sRvkLib {
 RvkLib* rvk_lib_create(const RendSettingsGlobalComp*);
 void    rvk_lib_destroy(RvkLib*);
 
+bool rvk_lib_api_version_supported(u32 version);
+
 #define rvk_call(_OBJ_, _FUNC_, ...) (_OBJ_)->api._FUNC_(__VA_ARGS__)
 
 #define rvk_call_checked(_OBJ_, _FUNC_, ...)                                                       \

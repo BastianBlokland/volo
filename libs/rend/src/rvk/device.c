@@ -189,8 +189,7 @@ static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
     VkPhysicalDeviceProperties properties;
     rvk_call(lib, getPhysicalDeviceProperties, vkPhysDevs[i], &properties);
 
-    const u32 apiVersion = properties.apiVersion;
-    if (rvk_version_minor(apiVersion) < 1 && rvk_version_major(apiVersion) <= 1) {
+    if (!rvk_lib_api_version_supported(properties.apiVersion)) {
       score = -1;
       goto detectionDone;
     }
@@ -202,8 +201,8 @@ static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
 
     log_d(
         "Vulkan physical device detected",
-        log_param("version-major", fmt_int(rvk_version_major(apiVersion))),
-        log_param("version-minor", fmt_int(rvk_version_minor(apiVersion))),
+        log_param("version-major", fmt_int(rvk_version_major(properties.apiVersion))),
+        log_param("version-minor", fmt_int(rvk_version_minor(properties.apiVersion))),
         log_param("device-name", fmt_text(string_from_null_term(properties.deviceName))),
         log_param("device-type", fmt_text(vkPhysicalDeviceTypeStr(properties.deviceType))),
         log_param("vendor", fmt_text(vkVendorIdStr(properties.vendorID))),
