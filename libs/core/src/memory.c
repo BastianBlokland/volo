@@ -6,14 +6,12 @@
 #if defined(VOLO_MSVC)
 
 #include <string.h>
-#pragma intrinsic(memset)
 #pragma intrinsic(memcpy)
 #pragma intrinsic(memmove)
 #pragma intrinsic(memcmp)
 
 #else
 
-#define memset __builtin_memset
 #define memcpy __builtin_memcpy
 #define memmove __builtin_memmove
 #define memcmp __builtin_memcmp
@@ -22,7 +20,11 @@
 
 void mem_set(const Mem dst, const u8 val) {
   diag_assert(mem_valid(dst));
-  memset(dst.ptr, val, dst.size);
+
+  u8* end = mem_end(dst);
+  for (u8* itr = mem_begin(dst); itr != end; ++itr) {
+    *itr = val;
+  }
 }
 
 void mem_splat(Mem dst, const Mem val) {
