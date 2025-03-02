@@ -10,19 +10,45 @@
 #include "mem_internal.h"
 
 #define rvk_lib_vulkan_names_max 4
+#define rvk_lib_vulkan_api_major 1
+#define rvk_lib_vulkan_api_minor 1
 
 static const VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
     VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
 };
 
+static const char* rvk_to_null_term_scratch(const String str) {
+  const Mem scratchMem = alloc_alloc(g_allocScratch, str.size + 1, 1);
+  mem_cpy(scratchMem, str);
+  *mem_at_u8(scratchMem, str.size) = '\0';
+  return scratchMem.ptr;
+}
+
+static u32 rvk_version(const u32 variant, const u32 major, const u32 minor, const u32 patch) {
+  return (variant << 29) | (major << 22) | (minor << 12) | patch;
+}
+
+static u32 rvk_version_major(const u32 version) { return (version >> 22) & 0x7FU; }
+static u32 rvk_version_minor(const u32 version) { return (version >> 12) & 0x3FFU; }
+
+static u32 rvk_loader_version(VkInterfaceLoader* loaderApi) {
+  if (!loaderApi->enumerateInstanceVersion) {
+    // NOTE: vkEnumerateInstanceVersion was added in 1.1.
+    return rvk_version(0, 1, 0, 0);
+  }
+  u32 res;
+  rvk_api_check(string_lit("enumerateInstanceVersion"), loaderApi->enumerateInstanceVersion(&res));
+  return res;
+}
+
 static VkApplicationInfo rvk_inst_app_info(void) {
   return (VkApplicationInfo){
       .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-      .pApplicationName   = path_stem(g_pathExecutable).ptr,
-      .applicationVersion = VK_MAKE_API_VERSION(0, 0, 1, 0),
+      .pApplicationName   = rvk_to_null_term_scratch(path_stem(g_pathExecutable)),
+      .applicationVersion = rvk_version(0, 0, 1, 0),
       .pEngineName        = "volo",
-      .engineVersion      = VK_MAKE_API_VERSION(0, 0, 1, 0),
-      .apiVersion         = VK_MAKE_API_VERSION(0, 1, 1, 0),
+      .engineVersion      = rvk_version(0, 0, 1, 0),
+      .apiVersion         = rvk_version(0, rvk_lib_vulkan_api_major, rvk_lib_vulkan_api_minor, 0),
   };
 }
 
@@ -225,6 +251,11 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
   VkInterfaceLoader loaderApi;
   rvk_api_check(string_lit("loadLoader"), vkLoadLoader(lib->vulkanLib, &loaderApi));
 
+  const u32 loaderVersion = rvk_loader_version(&loaderApi);
+  if (!rvk_lib_api_version_supported(loaderVersion)) {
+    diag_crash_msg("Vulkan loader is too old; Driver update is required");
+  }
+
   const bool validationDesired = (set->flags & RendGlobalFlags_Validation) != 0;
   if (validationDesired && rvk_inst_layer_supported(&loaderApi, VK_LAYER_KHRONOS_validation)) {
     lib->flags |= RvkLibFlags_Validation;
@@ -246,6 +277,8 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
 
   log_i(
       "Vulkan library created",
+      log_param("version-major", fmt_int(rvk_version_major(loaderVersion))),
+      log_param("version-minor", fmt_int(rvk_version_minor(loaderVersion))),
       log_param("validation", fmt_bool(lib->flags & RvkLibFlags_Validation)),
       log_param("debug", fmt_bool(lib->flags & RvkLibFlags_Debug)));
 
@@ -261,6 +294,13 @@ void rvk_lib_destroy(RvkLib* lib) {
   alloc_free_t(g_allocHeap, lib);
 
   log_d("Vulkan library destroyed");
+}
+
+bool rvk_lib_api_version_supported(const u32 version) {
+  if (rvk_version_major(version) > rvk_lib_vulkan_api_major) {
+    return true; // NOTE: This assumes major versions will be backwards compatible.
+  }
+  return rvk_version_minor(version) >= rvk_lib_vulkan_api_minor;
 }
 
 void rvk_api_check(const String func, const VkResult result) {

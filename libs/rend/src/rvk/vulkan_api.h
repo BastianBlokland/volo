@@ -5,8 +5,6 @@
 
 #include "core.h"
 
-#define VK_MAKE_API_VERSION(variant, major, minor, patch) ((((u32)(variant)) << 29) | (((u32)(major)) << 22) | (((u32)(minor)) << 12) | ((u32)(patch)))
-
 #define VK_MAX_PHYSICAL_DEVICE_NAME_SIZE 256
 #define VK_UUID_SIZE 16
 #define VK_LUID_SIZE 8

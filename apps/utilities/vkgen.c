@@ -1411,13 +1411,6 @@ static bool vkgen_write_header(VkGenContext* ctx) {
   vkgen_write_prolog(ctx);
 
   fmt_write(&ctx->out, "#include \"core.h\"\n\n");
-  fmt_write(
-      &ctx->out,
-      "#define VK_MAKE_API_VERSION(variant, major, minor, patch)"
-      " ((((u32)(variant)) << 29) |"
-      " (((u32)(major)) << 22) |"
-      " (((u32)(minor)) << 12) |"
-      " ((u32)(patch)))\n\n");
 
   // Write constants.
   dynarray_for_t(&ctx->constants, VkGenConstant, constant) {
