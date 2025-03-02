@@ -34,6 +34,9 @@ static const char* rvk_to_null_term_scratch(const String str) {
   return scratchMem.ptr;
 }
 
+static u32 rvk_version_major(const u32 version) { return (version >> 22) & 0x7FU; }
+static u32 rvk_version_minor(const u32 version) { return (version >> 12) & 0x3FFU; }
+
 typedef struct {
   VkExtensionProperties* values;
   u32                    count;
@@ -159,9 +162,8 @@ static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
   u32              vkPhysDevsCount = array_elems(vkPhysDevs);
   rvk_call_checked(lib, enumeratePhysicalDevices, lib->vkInst, &vkPhysDevsCount, vkPhysDevs);
 
-  VkPhysicalDevice bestVkPhysDev  = null;
-  u32              bestApiVersion = 0;
-  i32              bestScore      = -1;
+  VkPhysicalDevice bestVkPhysDev = null;
+  i32              bestScore     = -1;
 
   for (usize i = 0; i != vkPhysDevsCount; ++i) {
     const RendVkExts exts = rvk_device_exts_query(lib, vkPhysDevs[i]);
@@ -187,6 +189,12 @@ static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
     VkPhysicalDeviceProperties properties;
     rvk_call(lib, getPhysicalDeviceProperties, vkPhysDevs[i], &properties);
 
+    const u32 apiVersion = properties.apiVersion;
+    if (rvk_version_minor(apiVersion) < 1 && rvk_version_major(apiVersion) <= 1) {
+      score = -1;
+      goto detectionDone;
+    }
+
     score += rvk_device_type_score_value(properties.deviceType);
 
   detectionDone:
@@ -194,15 +202,16 @@ static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
 
     log_d(
         "Vulkan physical device detected",
+        log_param("version-major", fmt_int(rvk_version_major(apiVersion))),
+        log_param("version-minor", fmt_int(rvk_version_minor(apiVersion))),
         log_param("device-name", fmt_text(string_from_null_term(properties.deviceName))),
         log_param("device-type", fmt_text(vkPhysicalDeviceTypeStr(properties.deviceType))),
         log_param("vendor", fmt_text(vkVendorIdStr(properties.vendorID))),
         log_param("score", fmt_int(score)));
 
-    if (score > bestScore || (score == bestScore && properties.apiVersion > bestApiVersion)) {
-      bestVkPhysDev  = vkPhysDevs[i];
-      bestScore      = score;
-      bestApiVersion = properties.apiVersion;
+    if (score > bestScore) {
+      bestVkPhysDev = vkPhysDevs[i];
+      bestScore     = score;
     }
   }
   if (!bestVkPhysDev) {
