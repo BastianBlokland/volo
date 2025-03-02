@@ -243,7 +243,7 @@ void mem_swap_raw(void* a, void* b, const u16 size) {
   diag_assert(size <= 1024);
 
   Mem buffer = mem_stack(size);
-  memcpy(buffer.ptr, a, size);
-  memcpy(a, b, size);
-  memcpy(b, buffer.ptr, size);
+  mem_cpy(buffer, mem_create(a, size));
+  mem_cpy(mem_create(a, size), mem_create(b, size));
+  mem_cpy(mem_create(b, size), buffer);
 }
