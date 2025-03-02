@@ -16,7 +16,6 @@
 
 static const String g_requiredExts[] = {
     string_static(VK_KHR_swapchain),
-    string_static(VK_KHR_16bit_storage),
 };
 static const String g_optionalExts[] = {
     /**

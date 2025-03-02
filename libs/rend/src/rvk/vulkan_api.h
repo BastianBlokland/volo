@@ -39,7 +39,6 @@
 
 #define VK_EXT_debug_utils "VK_EXT_debug_utils"
 #define VK_EXT_validation_features "VK_EXT_validation_features"
-#define VK_KHR_16bit_storage "VK_KHR_16bit_storage"
 #define VK_KHR_maintenance4 "VK_KHR_maintenance4"
 #define VK_KHR_present_id "VK_KHR_present_id"
 #define VK_KHR_present_wait "VK_KHR_present_wait"
