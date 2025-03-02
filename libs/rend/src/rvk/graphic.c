@@ -829,6 +829,7 @@ bool rvk_graphic_finalize(
     graphic->flags |= RvkGraphicFlags_Invalid;
   }
   graphic->graphicDescSet = rvk_desc_alloc(dev->descPool, &graphicDescMeta);
+  rvk_desc_set_update_name(graphic->graphicDescSet, graphic->dbgName);
 
   // Attach mesh.
   if (graphicDescMeta.bindings[0] == RvkDescKind_StorageBuffer) {

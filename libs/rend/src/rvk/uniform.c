@@ -216,6 +216,7 @@ void rvk_uniform_dynamic_bind(
   if (UNLIKELY(!rvk_desc_valid(chunk->dynamicSet))) {
     const RvkDescMeta meta = (RvkDescMeta){.bindings[0] = RvkDescKind_UniformBufferDynamic};
     chunk->dynamicSet      = rvk_desc_alloc(uni->dev->descPool, &meta);
+    rvk_desc_set_update_name(chunk->dynamicSet, string_lit("dynamic_uniform"));
     rvk_desc_set_attach_buffer(chunk->dynamicSet, 0, &chunk->buffer, 0, uni->dataSizeMax);
   }
   const VkDescriptorSet descSets[]       = {rvk_desc_set_vkset(chunk->dynamicSet)};

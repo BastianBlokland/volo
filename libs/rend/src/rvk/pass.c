@@ -387,6 +387,7 @@ rvk_pass_vkrenderpass_begin(RvkPass* pass, RvkPassInvoc* invoc, const RvkPassSet
 static RvkDescSet
 rvk_pass_alloc_desc_volatile(RvkPass* pass, RvkPassFrame* frame, const RvkDescMeta* meta) {
   const RvkDescSet res = rvk_desc_alloc(pass->dev->descPool, meta);
+  rvk_desc_set_update_name(res, string_lit("pass_volatile"));
   *dynarray_push_t(&frame->descSetsVolatile, RvkDescSet) = res;
   return res;
 }
