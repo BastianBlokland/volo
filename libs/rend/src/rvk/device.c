@@ -34,8 +34,8 @@ static const char* rvk_to_null_term_scratch(const String str) {
   return scratchMem.ptr;
 }
 
-static u32 rvk_version_major(const u32 version) { return (version >> 22) & 0x7FU; }
-static u32 rvk_version_minor(const u32 version) { return (version >> 12) & 0x3FFU; }
+MAYBE_UNUSED static u32 rvk_version_major(const u32 version) { return (version >> 22) & 0x7FU; }
+MAYBE_UNUSED static u32 rvk_version_minor(const u32 version) { return (version >> 12) & 0x3FFU; }
 
 typedef struct {
   VkExtensionProperties* values;
