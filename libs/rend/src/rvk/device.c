@@ -37,7 +37,7 @@ typedef struct {
  * Query a list of all supported device extensions.
  * NOTE: Free the list with 'rvk_device_exts_free()'
  */
-static RendVkExts rvk_device_exts_query(RvkLib* lib, VkPhysicalDevice vkPhysDev) {
+static RendVkExts rvk_exts_query(RvkLib* lib, VkPhysicalDevice vkPhysDev) {
   u32 count;
   rvk_call_checked(lib, enumerateDeviceExtensionProperties, vkPhysDev, null, &count, null);
   VkExtensionProperties* props = alloc_array_t(g_allocHeap, VkExtensionProperties, count);
@@ -45,14 +45,14 @@ static RendVkExts rvk_device_exts_query(RvkLib* lib, VkPhysicalDevice vkPhysDev)
   return (RendVkExts){.values = props, .count = count};
 }
 
-static void rvk_vk_exts_free(RendVkExts exts) {
+static void rvk_exts_free(RendVkExts exts) {
   alloc_free_array_t(g_allocHeap, exts.values, exts.count);
 }
 
 /**
  * Check if the given extension is contained in the list of available device extensions.
  */
-static bool rvk_device_has_ext(RendVkExts availableExts, const String ext) {
+static bool rvk_has_ext(RendVkExts availableExts, const String ext) {
   heap_array_for_t(availableExts, VkExtensionProperties, props) {
     if (string_eq(ext, string_from_null_term(props->extensionName))) {
       return true;
@@ -76,7 +76,67 @@ static i32 rvk_device_type_score_value(const VkPhysicalDeviceType vkDevType) {
   }
 }
 
-static u32 rvk_device_pick_graphics_queue(RvkLib* lib, VkPhysicalDevice vkPhysDev) {
+static bool rvk_validate_features(const VkPhysicalDeviceFeatures* f) {
+  if (!f->independentBlend) {
+    return false;
+  }
+  return true;
+}
+
+static void rvk_config_robustness2(RvkDevice* d, VkPhysicalDeviceRobustness2FeaturesEXT* f) {
+  f->robustImageAccess2  = false; // Unused.
+  f->robustBufferAccess2 = false; // Unused.
+  if (f->nullDescriptor) {
+    d->flags |= RvkDeviceFlags_SupportNullDescriptor;
+  }
+}
+
+static void rvk_config_present_id(RvkDevice* d, VkPhysicalDevicePresentIdFeaturesKHR* f) {
+  if (f->presentId) {
+    d->flags |= RvkDeviceFlags_SupportPresentId;
+  }
+}
+
+static void rvk_config_present_wait(RvkDevice* d, VkPhysicalDevicePresentWaitFeaturesKHR* f) {
+  if (f->presentWait) {
+    d->flags |= RvkDeviceFlags_SupportPresentWait;
+  }
+}
+
+static void rvk_config_16bit_storage(RvkDevice* d, VkPhysicalDevice16BitStorageFeatures* f) {
+  (void)d;
+  f->storageBuffer16BitAccess           = true; // Required.
+  f->uniformAndStorageBuffer16BitAccess = true; // Required.
+}
+
+static void rvk_config_features(RvkDevice* d, VkPhysicalDeviceFeatures* f) {
+  VkPhysicalDeviceFeatures result = {
+      .independentBlend = true, // Required.
+  };
+  if (f->pipelineStatisticsQuery) {
+    result.pipelineStatisticsQuery = true;
+    d->flags |= RvkDeviceFlags_SupportPipelineStatQuery;
+  }
+  if (f->samplerAnisotropy) {
+    result.samplerAnisotropy = true;
+    d->flags |= RvkDeviceFlags_SupportAnisotropy;
+  }
+  if (f->fillModeNonSolid) {
+    result.fillModeNonSolid = true;
+    d->flags |= RvkDeviceFlags_SupportFillNonSolid;
+  }
+  if (f->wideLines) {
+    result.wideLines = true;
+    d->flags |= RvkDeviceFlags_SupportWideLines;
+  }
+  if (f->depthClamp) {
+    result.depthClamp = true;
+    d->flags |= RvkDeviceFlags_SupportDepthClamp;
+  }
+  *f = result;
+}
+
+static u32 rvk_pick_graphics_queue(RvkLib* lib, VkPhysicalDevice vkPhysDev) {
   u32 count;
   rvk_call(lib, getPhysicalDeviceQueueFamilyProperties, vkPhysDev, &count, null);
   if (!count) {
@@ -94,7 +154,7 @@ NoGraphicsQueue:
   diag_crash_msg("No Vulkan graphics queue found");
 }
 
-static u32 rvk_device_pick_transfer_queue(RvkLib* lib, VkPhysicalDevice vkPhysDev) {
+static u32 rvk_pick_transfer_queue(RvkLib* lib, VkPhysicalDevice vkPhysDev) {
   u32 count;
   rvk_call(lib, getPhysicalDeviceQueueFamilyProperties, vkPhysDev, &count, null);
   if (!count) {
@@ -120,46 +180,7 @@ NoTransferQueue:
   return sentinel_u32;
 }
 
-static bool rvk_device_validate_features(const VkPhysicalDeviceFeatures2* supported) {
-  if (!supported->features.independentBlend) {
-    return false;
-  }
-  return true;
-}
-
-static VkPhysicalDeviceFeatures
-rvk_device_pick_features(RvkDevice* dev, const VkPhysicalDeviceFeatures2* supported) {
-  VkPhysicalDeviceFeatures result = {0};
-
-  // Required features.
-  result.independentBlend = true;
-
-  // Optional features.
-  if (supported->features.pipelineStatisticsQuery) {
-    result.pipelineStatisticsQuery = true;
-    dev->flags |= RvkDeviceFlags_SupportPipelineStatQuery;
-  }
-  if (supported->features.samplerAnisotropy) {
-    result.samplerAnisotropy = true;
-    dev->flags |= RvkDeviceFlags_SupportAnisotropy;
-  }
-  if (supported->features.fillModeNonSolid) {
-    result.fillModeNonSolid = true;
-    dev->flags |= RvkDeviceFlags_SupportFillNonSolid;
-  }
-  if (supported->features.wideLines) {
-    result.wideLines = true;
-    dev->flags |= RvkDeviceFlags_SupportWideLines;
-  }
-  if (supported->features.depthClamp) {
-    result.depthClamp = true;
-    dev->flags |= RvkDeviceFlags_SupportDepthClamp;
-  }
-
-  return result;
-}
-
-static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
+static VkPhysicalDevice rvk_pick_physical_device(RvkLib* lib) {
   VkPhysicalDevice vkPhysDevs[32];
   u32              vkPhysDevsCount = array_elems(vkPhysDevs);
   rvk_call_checked(lib, enumeratePhysicalDevices, lib->vkInst, &vkPhysDevsCount, vkPhysDevs);
@@ -168,22 +189,23 @@ static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
   i32              bestScore     = -1;
 
   for (usize i = 0; i != vkPhysDevsCount; ++i) {
-    const RendVkExts exts = rvk_device_exts_query(lib, vkPhysDevs[i]);
+    const RendVkExts exts = rvk_exts_query(lib, vkPhysDevs[i]);
 
     i32 score = 0;
     array_for_t(g_requiredExts, String, reqExt) {
-      if (!rvk_device_has_ext(exts, *reqExt)) {
+      if (!rvk_has_ext(exts, *reqExt)) {
         score = -1;
         goto detectionDone;
       }
     }
 
-    VkPhysicalDeviceFeatures2 supportedFeatures = {
+    VkPhysicalDeviceFeatures2 featureBase = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
     };
-    rvk_call(lib, getPhysicalDeviceFeatures2, vkPhysDevs[i], &supportedFeatures);
+    rvk_call(lib, getPhysicalDeviceFeatures2, vkPhysDevs[i], &featureBase);
 
-    if (!rvk_device_validate_features(&supportedFeatures)) {
+    // TODO: Validate 16bit storage features as they are required as well.
+    if (!rvk_validate_features(&featureBase.features)) {
       score = -1;
       goto detectionDone;
     }
@@ -199,7 +221,7 @@ static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
     score += rvk_device_type_score_value(properties.deviceType);
 
   detectionDone:
-    rvk_vk_exts_free(exts);
+    rvk_exts_free(exts);
 
     log_d(
         "Vulkan physical device detected",
@@ -221,24 +243,19 @@ static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
   return bestVkPhysDev;
 }
 
-static void rvk_config_robustness2(RvkDevice* d, VkPhysicalDeviceRobustness2FeaturesEXT* f) {
-  f->robustImageAccess2  = false; // Unused.
-  f->robustBufferAccess2 = false; // Unused.
-  if (f->nullDescriptor) {
-    d->flags |= RvkDeviceFlags_SupportNullDescriptor;
-  }
-}
+static VkFormat rvk_pick_depthformat(RvkDevice* dev) {
+  static const VkFormat g_supportedFormats[] = {
+      VK_FORMAT_D32_SFLOAT,
+      VK_FORMAT_D16_UNORM,
+  };
+  static const VkFormatFeatureFlags g_features = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-static void rvk_config_present_id(RvkDevice* d, VkPhysicalDevicePresentIdFeaturesKHR* f) {
-  if (f->presentId) {
-    d->flags |= RvkDeviceFlags_SupportPresentId;
+  array_for_t(g_supportedFormats, VkFormat, format) {
+    if (rvk_device_format_supported(dev, *format, g_features)) {
+      return *format;
+    }
   }
-}
-
-static void rvk_config_present_wait(RvkDevice* d, VkPhysicalDevicePresentWaitFeaturesKHR* f) {
-  if (f->presentWait) {
-    d->flags |= RvkDeviceFlags_SupportPresentWait;
-  }
+  diag_crash_msg("No suitable depth-format found");
 }
 
 static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
@@ -264,95 +281,79 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
     };
   }
 
+  const RendVkExts supportedExts = rvk_exts_query(lib, dev->vkPhysDev);
+
   // Add required extensions.
   array_for_t(g_requiredExts, String, reqExt) {
     extsToEnable[extsToEnableCount++] = rvk_to_null_term_scratch(*reqExt);
   }
 
   // Add optional extensions and features.
-  void*            nextOptFeature = null;
-  const RendVkExts supportedExts  = rvk_device_exts_query(lib, dev->vkPhysDev);
-  if (rvk_device_has_ext(supportedExts, string_from_null_term(VK_KHR_maintenance4))) {
+  void* nextFeature = null;
+
+  if (rvk_has_ext(supportedExts, string_from_null_term(VK_KHR_maintenance4))) {
     extsToEnable[extsToEnableCount++] = VK_KHR_maintenance4; // For relaxed shader interface rules.
   }
 
   VkPhysicalDeviceRobustness2FeaturesEXT featureRobustness = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
-      .pNext = nextOptFeature,
+      .pNext = nextFeature,
   };
-  if (rvk_device_has_ext(supportedExts, string_from_null_term(VK_EXT_robustness2))) {
-    nextOptFeature                    = &featureRobustness;
+  if (rvk_has_ext(supportedExts, string_from_null_term(VK_EXT_robustness2))) {
+    nextFeature                       = &featureRobustness;
     extsToEnable[extsToEnableCount++] = VK_EXT_robustness2;
   }
 
   VkPhysicalDevicePresentIdFeaturesKHR featurePresentId = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR,
-      .pNext = nextOptFeature,
+      .pNext = nextFeature,
   };
-  if (rvk_device_has_ext(supportedExts, string_from_null_term(VK_KHR_present_id))) {
-    nextOptFeature                    = &featurePresentId;
+  if (rvk_has_ext(supportedExts, string_from_null_term(VK_KHR_present_id))) {
+    nextFeature                       = &featurePresentId;
     extsToEnable[extsToEnableCount++] = VK_KHR_present_id;
   }
 
   VkPhysicalDevicePresentWaitFeaturesKHR featurePresentWait = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR,
-      .pNext = nextOptFeature,
+      .pNext = nextFeature,
   };
-  if (rvk_device_has_ext(supportedExts, string_from_null_term(VK_KHR_present_wait))) {
-    nextOptFeature                    = &featurePresentWait;
+  if (rvk_has_ext(supportedExts, string_from_null_term(VK_KHR_present_wait))) {
+    nextFeature                       = &featurePresentWait;
     extsToEnable[extsToEnableCount++] = VK_KHR_present_wait;
   }
 
-  VkPhysicalDeviceFeatures2 supportedFeatures = {
-      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-      .pNext = nextOptFeature,
+  VkPhysicalDevice16BitStorageFeatures feature16BitStorage = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,
+      .pNext = nextFeature,
   };
-  rvk_call(lib, getPhysicalDeviceFeatures2, dev->vkPhysDev, &supportedFeatures);
+  nextFeature = &feature16BitStorage;
+
+  VkPhysicalDeviceFeatures2 featureBase = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+      .pNext = nextFeature,
+  };
+  rvk_call(lib, getPhysicalDeviceFeatures2, dev->vkPhysDev, &featureBase);
 
   rvk_config_robustness2(dev, &featureRobustness);
   rvk_config_present_id(dev, &featurePresentId);
   rvk_config_present_wait(dev, &featurePresentWait);
+  rvk_config_16bit_storage(dev, &feature16BitStorage);
+  rvk_config_features(dev, &featureBase.features);
 
-  VkPhysicalDevice16BitStorageFeatures float16StorageFeatures = {
-      .sType                    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,
-      .pNext                    = nextOptFeature, // Enable all supported optional features.
-      .storageBuffer16BitAccess = true,
-      .uniformAndStorageBuffer16BitAccess = true,
-  };
-  const VkPhysicalDeviceFeatures2 featuresToEnable = {
-      .sType    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-      .pNext    = &float16StorageFeatures,
-      .features = rvk_device_pick_features(dev, &supportedFeatures),
-  };
   const VkDeviceCreateInfo createInfo = {
       .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-      .pNext                   = &featuresToEnable,
+      .pNext                   = &featureBase,
       .pQueueCreateInfos       = queueCreateInfos,
       .queueCreateInfoCount    = queueCreateInfoCount,
       .enabledExtensionCount   = extsToEnableCount,
       .ppEnabledExtensionNames = extsToEnable,
   };
 
-  rvk_vk_exts_free(supportedExts);
+  rvk_exts_free(supportedExts);
 
   VkDevice result;
   rvk_call_checked(lib, createDevice, dev->vkPhysDev, &createInfo, &dev->vkAlloc, &result);
   return result;
-}
-
-static VkFormat rvk_device_pick_depthformat(RvkDevice* dev) {
-  static const VkFormat g_supportedFormats[] = {
-      VK_FORMAT_D32_SFLOAT,
-      VK_FORMAT_D16_UNORM,
-  };
-  static const VkFormatFeatureFlags g_features = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-  array_for_t(g_supportedFormats, VkFormat, format) {
-    if (rvk_device_format_supported(dev, *format, g_features)) {
-      return *format;
-    }
-  }
-  diag_crash_msg("No suitable depth-format found");
 }
 
 RvkDevice* rvk_device_create(RvkLib* lib) {
@@ -364,10 +365,10 @@ RvkDevice* rvk_device_create(RvkLib* lib) {
       .queueSubmitMutex = thread_mutex_create(g_allocHeap),
   };
 
-  dev->vkPhysDev = rvk_device_pick_physical_device(lib);
+  dev->vkPhysDev = rvk_pick_physical_device(lib);
 
-  dev->graphicsQueueIndex = rvk_device_pick_graphics_queue(lib, dev->vkPhysDev);
-  dev->transferQueueIndex = rvk_device_pick_transfer_queue(lib, dev->vkPhysDev);
+  dev->graphicsQueueIndex = rvk_pick_graphics_queue(lib, dev->vkPhysDev);
+  dev->transferQueueIndex = rvk_pick_transfer_queue(lib, dev->vkPhysDev);
 
   rvk_call(lib, getPhysicalDeviceProperties, dev->vkPhysDev, &dev->vkProperties);
   rvk_call(lib, getPhysicalDeviceMemoryProperties, dev->vkPhysDev, &dev->vkMemProperties);
@@ -380,7 +381,7 @@ RvkDevice* rvk_device_create(RvkLib* lib) {
     rvk_call(dev, getDeviceQueue, dev->vkDev, dev->transferQueueIndex, 0, &dev->vkTransferQueue);
   }
 
-  dev->depthFormat              = rvk_device_pick_depthformat(dev);
+  dev->depthFormat              = rvk_pick_depthformat(dev);
   dev->preferredSwapchainFormat = VK_FORMAT_B8G8R8A8_SRGB;
 
   if (lib->flags & RvkLibFlags_Debug) {
