@@ -6,13 +6,11 @@
 #if defined(VOLO_MSVC)
 
 #include <string.h>
-#pragma intrinsic(memcpy)
 #pragma intrinsic(memmove)
 #pragma intrinsic(memcmp)
 
 #else
 
-#define memcpy __builtin_memcpy
 #define memmove __builtin_memmove
 #define memcmp __builtin_memcmp
 
@@ -39,7 +37,14 @@ void mem_cpy(const Mem dst, const Mem src) {
   diag_assert(!src.size || mem_valid(dst));
   diag_assert(!src.size || mem_valid(src));
   diag_assert(dst.size >= src.size);
-  memcpy(dst.ptr, src.ptr, src.size);
+
+  const u8* srcItr = mem_begin(src);
+  const u8* srcEnd = mem_end(src);
+  u8*       dstItr = mem_begin(dst);
+
+  for (; srcItr != srcEnd; ++srcItr, ++dstItr) {
+    *dstItr = *srcItr;
+  }
 }
 
 void mem_move(const Mem dst, const Mem src) {
