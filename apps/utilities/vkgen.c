@@ -91,6 +91,7 @@ static const String g_vkgenLayers[] = {
 
 static const String g_vkgenExtensions[] = {
     string_static("VK_EXT_debug_utils"),
+    string_static("VK_EXT_robustness2"),
     string_static("VK_EXT_validation_features"),
     string_static("VK_KHR_maintenance4"),
     string_static("VK_KHR_present_id"),
