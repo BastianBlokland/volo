@@ -3,6 +3,7 @@
 #include "core_diag.h"
 #include "core_dynarray.h"
 #include "core_thread.h"
+#include "log_logger.h"
 
 #include "buffer_internal.h"
 #include "desc_internal.h"
@@ -37,6 +38,7 @@ struct sRvkDescPool {
   ThreadMutex   chunkLock;
   RvkDescChunk* chunkHead;
   RvkDescChunk* chunkTail;
+  bool          warnedForUnableToClear;
 };
 
 static u32 rvk_desc_meta_hash(const RvkDescMeta* meta) {
@@ -354,6 +356,8 @@ Done:
 void rvk_desc_free(RvkDescSet set) {
   diag_assert(rvk_desc_valid(set));
 
+  rvk_desc_set_clear(set);
+
   thread_mutex_lock(set.chunk->pool->chunkLock);
   rvk_desc_chunk_free(set.chunk, set);
   thread_mutex_unlock(set.chunk->pool->chunkLock);
@@ -422,6 +426,73 @@ RvkDescKind rvk_desc_set_kind(const RvkDescSet set, const u32 binding) {
   return result;
 }
 
+void rvk_desc_set_clear(const RvkDescSet set) {
+  RvkDescPool* pool = set.chunk->pool;
+  RvkDevice*   dev  = pool->dev;
+  if (!(pool->dev->flags & RvkDeviceFlags_SupportNullDescriptor)) {
+    /**
+     * If the device does not support a null-descriptor we have no way to clear it as there's no api
+     * for a descriptor-set to go back to the initial undefined state.
+     *
+     * One option would be to set all bindings to dummy (but valid) images and buffers. Another
+     * option is to just ignore this as in practice if you don't access the invalid bindings then
+     * drivers are fine with it, but the validator layers will raise it as an issue if you destroy a
+     * resource that is still referenced in a descriptor-set.
+     */
+    if (!pool->warnedForUnableToClear) {
+      log_w("Unable to clear descriptor set");
+      pool->warnedForUnableToClear = true;
+    }
+    return;
+  }
+
+  const RvkDescMeta meta = rvk_desc_set_meta(set);
+
+  VkDescriptorImageInfo nullImage = {
+      .imageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+      .imageView   = null,
+      .sampler     = rvk_sampler_get(dev->samplerPool, (RvkSamplerSpec){0}),
+  };
+  VkDescriptorBufferInfo nullBuffer = {
+      .buffer = null,
+      .offset = 0,
+      .range  = VK_WHOLE_SIZE,
+  };
+
+  VkWriteDescriptorSet writes[rvk_desc_bindings_max];
+  u32                  writesCount = 0;
+  for (u32 binding = 0; binding != array_elems(meta.bindings); ++binding) {
+    if (meta.bindings[binding] == RvkDescKind_None) {
+      continue; // Unused binding.
+    }
+    VkWriteDescriptorSet* write = &writes[writesCount++];
+
+    *write = (VkWriteDescriptorSet){
+        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .dstSet          = rvk_desc_set_vkset(set),
+        .dstBinding      = binding,
+        .dstArrayElement = 0,
+        .descriptorType  = rvk_desc_vktype(meta.bindings[binding]),
+        .descriptorCount = 1,
+    };
+
+    switch (meta.bindings[binding]) {
+    case RvkDescKind_CombinedImageSampler2D:
+    case RvkDescKind_CombinedImageSamplerCube:
+      write->pImageInfo = &nullImage;
+      continue;
+    case RvkDescKind_UniformBuffer:
+    case RvkDescKind_UniformBufferDynamic:
+    case RvkDescKind_StorageBuffer:
+      write->pBufferInfo = &nullBuffer;
+      continue;
+    }
+    diag_crash_msg("Unsupported binding");
+  }
+
+  rvk_call(dev, updateDescriptorSets, dev->vkDev, writesCount, writes, 0, null);
+}
+
 void rvk_desc_set_attach_buffer(
     const RvkDescSet set,
     const u32        binding,
@@ -429,6 +500,7 @@ void rvk_desc_set_attach_buffer(
     const u32        offset,
     const u32        size) {
   RvkDescPool*      pool = set.chunk->pool;
+  RvkDevice*        dev  = pool->dev;
   const RvkDescKind kind = rvk_desc_set_kind(set, binding);
 
   diag_assert(kind);
@@ -448,7 +520,6 @@ void rvk_desc_set_attach_buffer(
       .descriptorCount = 1,
       .pBufferInfo     = &bufferInfo,
   };
-  RvkDevice* dev = pool->dev;
   rvk_call(dev, updateDescriptorSets, dev->vkDev, 1, &descriptorWrite, 0, null);
 }
 
@@ -459,6 +530,7 @@ void rvk_desc_set_attach_sampler(
     const RvkSamplerSpec samplerSpec) {
   diag_assert(image->caps & RvkImageCapability_Sampled);
   RvkDescPool* pool = set.chunk->pool;
+  RvkDevice*   dev  = pool->dev;
 
   const RvkDescKind kind = rvk_desc_set_kind(set, binding);
   switch (kind) {
@@ -489,6 +561,15 @@ void rvk_desc_set_attach_sampler(
       .descriptorCount = 1,
       .pImageInfo      = &imgInfo,
   };
-  RvkDevice* dev = pool->dev;
   rvk_call(dev, updateDescriptorSets, dev->vkDev, 1, &descriptorWrite, 0, null);
+}
+
+void rvk_desc_set_update_name(const RvkDescSet set, const String dbgName) {
+  RvkDevice* dev = set.chunk->pool->dev;
+  if (!(dev->lib->flags & RvkLibFlags_Debug)) {
+    return;
+  }
+  VkDescriptorSet vkSet = set.chunk->vkSets[set.idx];
+  rvk_debug_name_fmt(
+      dev, VK_OBJECT_TYPE_DESCRIPTOR_SET, vkSet, "descriptor_set_{}", fmt_text(dbgName));
 }

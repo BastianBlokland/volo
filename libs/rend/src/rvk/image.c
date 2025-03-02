@@ -450,10 +450,10 @@ rvk_image_create_swapchain(RvkDevice* dev, VkImage vkImage, VkFormat vkFormat, c
 }
 
 void rvk_image_destroy(RvkImage* img, RvkDevice* dev) {
+  rvk_call(dev, destroyImageView, dev->vkDev, img->vkImageView, &dev->vkAlloc);
   if (img->type != RvkImageType_Swapchain) {
     rvk_call(dev, destroyImage, dev->vkDev, img->vkImage, &dev->vkAlloc);
   }
-  rvk_call(dev, destroyImageView, dev->vkDev, img->vkImageView, &dev->vkAlloc);
   if (rvk_mem_valid(img->mem)) {
     rvk_mem_free(img->mem);
   }

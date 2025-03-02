@@ -38,8 +38,8 @@
 #define VK_LAYER_KHRONOS_validation "VK_LAYER_KHRONOS_validation"
 
 #define VK_EXT_debug_utils "VK_EXT_debug_utils"
+#define VK_EXT_robustness2 "VK_EXT_robustness2"
 #define VK_EXT_validation_features "VK_EXT_validation_features"
-#define VK_KHR_16bit_storage "VK_KHR_16bit_storage"
 #define VK_KHR_maintenance4 "VK_KHR_maintenance4"
 #define VK_KHR_present_id "VK_KHR_present_id"
 #define VK_KHR_present_wait "VK_KHR_present_wait"
@@ -243,6 +243,8 @@ typedef enum {
   VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_SUPPORT = 1000168001,
   VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT = 1000247000,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR = 1000248000,
+  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT = 1000286000,
+  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_PROPERTIES_EXT = 1000286001,
   VK_STRUCTURE_TYPE_PRESENT_ID_KHR = 1000294000,
   VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR = 1000294001,
 } VkStructureType;
@@ -2990,6 +2992,21 @@ typedef struct VkDebugUtilsObjectTagInfoEXT {
   usize tagSize;
   const void* pTag;
 } VkDebugUtilsObjectTagInfoEXT;
+
+typedef struct VkPhysicalDeviceRobustness2FeaturesEXT {
+  VkStructureType sType;
+  void* pNext;
+  VkBool32 robustBufferAccess2;
+  VkBool32 robustImageAccess2;
+  VkBool32 nullDescriptor;
+} VkPhysicalDeviceRobustness2FeaturesEXT;
+
+typedef struct VkPhysicalDeviceRobustness2PropertiesEXT {
+  VkStructureType sType;
+  void* pNext;
+  VkDeviceSize robustStorageBufferAccessSizeAlignment;
+  VkDeviceSize robustUniformBufferAccessSizeAlignment;
+} VkPhysicalDeviceRobustness2PropertiesEXT;
 
 typedef enum {
   VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT = 0,
