@@ -7,12 +7,10 @@
 
 #include <string.h>
 #pragma intrinsic(memmove)
-#pragma intrinsic(memcmp)
 
 #else
 
 #define memmove __builtin_memmove
-#define memcmp __builtin_memcmp
 
 #endif
 
@@ -203,14 +201,35 @@ void* mem_as(const Mem mem, const usize size, const usize align) {
 i8 mem_cmp(const Mem a, const Mem b) {
   diag_assert(mem_valid(a));
   diag_assert(mem_valid(b));
-  const int cmp = memcmp(a.ptr, b.ptr, math_min(a.size, b.size));
-  return math_sign(cmp);
+
+  usize     rem  = math_min(a.size, b.size);
+  const u8* aItr = mem_begin(a);
+  const u8* bItr = mem_begin(b);
+
+  for (; rem && *aItr == *bItr; --rem, ++aItr, ++bItr)
+    ;
+
+  return rem ? math_sign(*aItr - *bItr) : 0;
 }
 
 bool mem_eq(const Mem a, const Mem b) {
   diag_assert(!a.size || mem_valid(a));
   diag_assert(!b.size || mem_valid(b));
-  return a.size == b.size && memcmp(a.ptr, b.ptr, a.size) == 0;
+
+  if (a.size != b.size) {
+    return false;
+  }
+  const u8* aItr = mem_begin(a);
+  const u8* aEnd = mem_end(a);
+  const u8* bItr = mem_begin(b);
+
+  for (; aItr != aEnd; ++aItr, ++bItr) {
+    if (*aItr != *bItr) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 bool mem_contains(const Mem mem, const u8 byte) {
