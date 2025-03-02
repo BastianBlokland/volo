@@ -17,12 +17,6 @@
 static const String g_requiredExts[] = {
     string_static(VK_KHR_swapchain),
 };
-static const String g_optionalExts[] = {
-    string_static(VK_EXT_robustness2),  // For nullDescriptor.
-    string_static(VK_KHR_maintenance4), // For relaxed shader interface rules.
-    string_static(VK_KHR_present_id),
-    string_static(VK_KHR_present_wait),
-};
 
 static const char* rvk_to_null_term_scratch(const String str) {
   const Mem scratchMem = alloc_alloc(g_allocScratch, str.size + 1, 1);
@@ -255,34 +249,39 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
     extsToEnable[extsToEnableCount++] = rvk_to_null_term_scratch(*reqExt);
   }
 
-  // Add optional extensions.
-  const RendVkExts supportedExts = rvk_device_exts_query(lib, dev->vkPhysDev);
-  array_for_t(g_optionalExts, String, optExt) {
-    if (rvk_device_has_ext(supportedExts, *optExt)) {
-      extsToEnable[extsToEnableCount++] = rvk_to_null_term_scratch(*optExt);
-    }
+  // Add optional extensions and features.
+  void*            nextOptFeature = null;
+  const RendVkExts supportedExts  = rvk_device_exts_query(lib, dev->vkPhysDev);
+  if (rvk_device_has_ext(supportedExts, string_from_null_term(VK_KHR_maintenance4))) {
+    extsToEnable[extsToEnableCount++] = VK_KHR_maintenance4; // For relaxed shader interface rules.
   }
-  rvk_vk_exts_free(supportedExts);
 
-  // Add optional features.
-  void*                                  nextOptFeature       = null;
   VkPhysicalDeviceRobustness2FeaturesEXT optFeatureRobustness = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
       .pNext = nextOptFeature,
   };
-  nextOptFeature = &optFeatureRobustness;
+  if (rvk_device_has_ext(supportedExts, string_from_null_term(VK_EXT_robustness2))) {
+    nextOptFeature                    = &optFeatureRobustness;
+    extsToEnable[extsToEnableCount++] = VK_EXT_robustness2;
+  }
 
   VkPhysicalDevicePresentIdFeaturesKHR optFeaturePresentId = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR,
       .pNext = nextOptFeature,
   };
-  nextOptFeature = &optFeaturePresentId;
+  if (rvk_device_has_ext(supportedExts, string_from_null_term(VK_KHR_present_id))) {
+    nextOptFeature                    = &optFeaturePresentId;
+    extsToEnable[extsToEnableCount++] = VK_KHR_present_id;
+  }
 
   VkPhysicalDevicePresentWaitFeaturesKHR optFeaturePresentWait = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR,
       .pNext = nextOptFeature,
   };
-  nextOptFeature = &optFeaturePresentWait;
+  if (rvk_device_has_ext(supportedExts, string_from_null_term(VK_KHR_present_wait))) {
+    nextOptFeature                    = &optFeaturePresentWait;
+    extsToEnable[extsToEnableCount++] = VK_KHR_present_wait;
+  }
 
   VkPhysicalDeviceFeatures2 supportedFeatures = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
@@ -321,6 +320,8 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
       .enabledExtensionCount   = extsToEnableCount,
       .ppEnabledExtensionNames = extsToEnable,
   };
+
+  rvk_vk_exts_free(supportedExts);
 
   VkDevice result;
   rvk_call_checked(lib, createDevice, dev->vkPhysDev, &createInfo, &dev->vkAlloc, &result);
