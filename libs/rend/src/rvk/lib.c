@@ -15,14 +15,31 @@ static const VkValidationFeatureEnableEXT g_validationEnabledFeatures[] = {
     VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
 };
 
+static u32 rvk_version(const u32 variant, const u32 major, const u32 minor, const u32 patch) {
+  return (variant << 29) | (major << 22) | (minor << 12) | patch;
+}
+
+static u32 rvk_version_major(const u32 version) { return (version >> 22) & 0x7FU; }
+static u32 rvk_version_minor(const u32 version) { return (version >> 12) & 0x3FFU; }
+
+static u32 rvk_loader_version(VkInterfaceLoader* loaderApi) {
+  if (!loaderApi->enumerateInstanceVersion) {
+    // NOTE: vkEnumerateInstanceVersion was added in 1.1.
+    return rvk_version(0, 1, 0, 0);
+  }
+  u32 res;
+  rvk_api_check(string_lit("enumerateInstanceVersion"), loaderApi->enumerateInstanceVersion(&res));
+  return res;
+}
+
 static VkApplicationInfo rvk_inst_app_info(void) {
   return (VkApplicationInfo){
       .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
       .pApplicationName   = path_stem(g_pathExecutable).ptr,
-      .applicationVersion = VK_MAKE_API_VERSION(0, 0, 1, 0),
+      .applicationVersion = rvk_version(0, 0, 1, 0),
       .pEngineName        = "volo",
-      .engineVersion      = VK_MAKE_API_VERSION(0, 0, 1, 0),
-      .apiVersion         = VK_MAKE_API_VERSION(0, 1, 1, 0),
+      .engineVersion      = rvk_version(0, 0, 1, 0),
+      .apiVersion         = rvk_version(0, 1, 1, 0),
   };
 }
 
@@ -225,6 +242,11 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
   VkInterfaceLoader loaderApi;
   rvk_api_check(string_lit("loadLoader"), vkLoadLoader(lib->vulkanLib, &loaderApi));
 
+  const u32 loaderVersion = rvk_loader_version(&loaderApi);
+  if (rvk_version_minor(loaderVersion) < 1 && rvk_version_major(loaderVersion) <= 1) {
+    diag_crash_msg("Vulkan loader is too old: 1.1 is required");
+  }
+
   const bool validationDesired = (set->flags & RendGlobalFlags_Validation) != 0;
   if (validationDesired && rvk_inst_layer_supported(&loaderApi, VK_LAYER_KHRONOS_validation)) {
     lib->flags |= RvkLibFlags_Validation;
@@ -246,6 +268,8 @@ RvkLib* rvk_lib_create(const RendSettingsGlobalComp* set) {
 
   log_i(
       "Vulkan library created",
+      log_param("version-major", fmt_int(rvk_version_major(loaderVersion))),
+      log_param("version-minor", fmt_int(rvk_version_minor(loaderVersion))),
       log_param("validation", fmt_bool(lib->flags & RvkLibFlags_Validation)),
       log_param("debug", fmt_bool(lib->flags & RvkLibFlags_Debug)));
 
