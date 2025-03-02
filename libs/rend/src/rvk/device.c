@@ -221,6 +221,26 @@ static VkPhysicalDevice rvk_device_pick_physical_device(RvkLib* lib) {
   return bestVkPhysDev;
 }
 
+static void rvk_config_robustness2(RvkDevice* d, VkPhysicalDeviceRobustness2FeaturesEXT* f) {
+  f->robustImageAccess2  = false; // Unused.
+  f->robustBufferAccess2 = false; // Unused.
+  if (f->nullDescriptor) {
+    d->flags |= RvkDeviceFlags_SupportNullDescriptor;
+  }
+}
+
+static void rvk_config_present_id(RvkDevice* d, VkPhysicalDevicePresentIdFeaturesKHR* f) {
+  if (f->presentId) {
+    d->flags |= RvkDeviceFlags_SupportPresentId;
+  }
+}
+
+static void rvk_config_present_wait(RvkDevice* d, VkPhysicalDevicePresentWaitFeaturesKHR* f) {
+  if (f->presentWait) {
+    d->flags |= RvkDeviceFlags_SupportPresentWait;
+  }
+}
+
 static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   const char* extsToEnable[64];
   u32         extsToEnableCount = 0;
@@ -256,30 +276,30 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
     extsToEnable[extsToEnableCount++] = VK_KHR_maintenance4; // For relaxed shader interface rules.
   }
 
-  VkPhysicalDeviceRobustness2FeaturesEXT optFeatureRobustness = {
+  VkPhysicalDeviceRobustness2FeaturesEXT featureRobustness = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
       .pNext = nextOptFeature,
   };
   if (rvk_device_has_ext(supportedExts, string_from_null_term(VK_EXT_robustness2))) {
-    nextOptFeature                    = &optFeatureRobustness;
+    nextOptFeature                    = &featureRobustness;
     extsToEnable[extsToEnableCount++] = VK_EXT_robustness2;
   }
 
-  VkPhysicalDevicePresentIdFeaturesKHR optFeaturePresentId = {
+  VkPhysicalDevicePresentIdFeaturesKHR featurePresentId = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR,
       .pNext = nextOptFeature,
   };
   if (rvk_device_has_ext(supportedExts, string_from_null_term(VK_KHR_present_id))) {
-    nextOptFeature                    = &optFeaturePresentId;
+    nextOptFeature                    = &featurePresentId;
     extsToEnable[extsToEnableCount++] = VK_KHR_present_id;
   }
 
-  VkPhysicalDevicePresentWaitFeaturesKHR optFeaturePresentWait = {
+  VkPhysicalDevicePresentWaitFeaturesKHR featurePresentWait = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR,
       .pNext = nextOptFeature,
   };
   if (rvk_device_has_ext(supportedExts, string_from_null_term(VK_KHR_present_wait))) {
-    nextOptFeature                    = &optFeaturePresentWait;
+    nextOptFeature                    = &featurePresentWait;
     extsToEnable[extsToEnableCount++] = VK_KHR_present_wait;
   }
 
@@ -289,17 +309,9 @@ static VkDevice rvk_device_create_internal(RvkLib* lib, RvkDevice* dev) {
   };
   rvk_call(lib, getPhysicalDeviceFeatures2, dev->vkPhysDev, &supportedFeatures);
 
-  optFeatureRobustness.robustImageAccess2  = false;
-  optFeatureRobustness.robustBufferAccess2 = false;
-  if (optFeatureRobustness.nullDescriptor) {
-    dev->flags |= RvkDeviceFlags_SupportNullDescriptor;
-  }
-  if (optFeaturePresentId.presentId) {
-    dev->flags |= RvkDeviceFlags_SupportPresentId;
-  }
-  if (optFeaturePresentWait.presentWait) {
-    dev->flags |= RvkDeviceFlags_SupportPresentWait;
-  }
+  rvk_config_robustness2(dev, &featureRobustness);
+  rvk_config_present_id(dev, &featurePresentId);
+  rvk_config_present_wait(dev, &featurePresentWait);
 
   VkPhysicalDevice16BitStorageFeatures float16StorageFeatures = {
       .sType                    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,
