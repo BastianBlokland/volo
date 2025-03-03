@@ -931,7 +931,7 @@ static bool dev_panel_needs_asset_query(EcsView* panelView) {
       return true;
     }
   }
-  return true;
+  return false;
 }
 
 ecs_system_define(DevScriptUpdatePanelSys) {
