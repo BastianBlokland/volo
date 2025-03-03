@@ -3,6 +3,10 @@
 #include "core_math.h"
 #include "core_memory.h"
 
+#ifdef VOLO_SIMD
+#include "core_simd.h"
+#endif
+
 void mem_set(const Mem dst, const u8 val) {
   diag_assert(mem_valid(dst));
 
@@ -29,6 +33,12 @@ void mem_cpy(const Mem dst, const Mem src) {
   u8*       dstItr = mem_begin(dst);
   const u8* srcItr = mem_begin(src);
   const u8* srcEnd = mem_end(src);
+
+#ifdef VOLO_SIMD
+  for (usize chunks = src.size >> 4; chunks != 0; --chunks, srcItr += 16, dstItr += 16) {
+    simd_copy_128(dstItr, srcItr);
+  }
+#endif
 
   for (; srcItr != srcEnd; ++srcItr, ++dstItr) {
     *dstItr = *srcItr;
