@@ -61,6 +61,13 @@ MAYBE_UNUSED INLINE_HINT static void simd_vec_store(const SimdVec vec, void* out
   _mm_store_ps(out, vec);
 }
 
+/**
+ * Store a Simd vector to memory.
+ */
+MAYBE_UNUSED INLINE_HINT static void simd_vec_store_unaligned(const SimdVec vec, void* out) {
+  _mm_storeu_ps(out, vec);
+}
+
 MAYBE_UNUSED INLINE_HINT static SimdVec simd_vec_zero(void) { return _mm_setzero_ps(); }
 
 MAYBE_UNUSED INLINE_HINT static f32 simd_vec_x(const SimdVec vec) { return _mm_cvtss_f32(vec); }
