@@ -40,6 +40,7 @@ bool                  rvk_desc_empty(const RvkDescMeta*);
 VkDescriptorSetLayout rvk_desc_vklayout(RvkDescPool*, const RvkDescMeta*);
 RvkDescSet            rvk_desc_alloc(RvkDescPool*, const RvkDescMeta*);
 void                  rvk_desc_free(RvkDescSet);
+void                  rvk_desc_free_batch(const RvkDescSet[], usize count); // NOTE: Same pool only.
 String                rvk_desc_kind_str(RvkDescKind);
 
 VkDescriptorSet       rvk_desc_set_vkset(RvkDescSet);
@@ -50,5 +51,7 @@ RvkDescKind           rvk_desc_set_kind(RvkDescSet, u32 binding);
 void rvk_desc_set_update_name(RvkDescSet, String dbgName);
 
 void rvk_desc_set_clear(RvkDescSet);
+void rvk_desc_set_clear_batch(const RvkDescSet[], usize count); // NOTE: Same pool only.
+
 void rvk_desc_set_attach_buffer(RvkDescSet, u32 binding, const RvkBuffer*, u32 offset, u32 size);
 void rvk_desc_set_attach_sampler(RvkDescSet, u32 binding, const RvkImage*, RvkSamplerSpec);
