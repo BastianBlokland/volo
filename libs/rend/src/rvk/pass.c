@@ -562,7 +562,8 @@ static void rvk_pass_frame_reset(RvkPass* pass, RvkPassFrame* frame) {
   dynarray_clear(&frame->invocations);
 
   // Cleanup volatile descriptor sets.
-  dynarray_for_t(&frame->descSetsVolatile, RvkDescSet, set) { rvk_desc_free(*set); }
+  const usize volatileSets = frame->descSetsVolatile.size;
+  rvk_desc_free_batch(dynarray_begin_t(&frame->descSetsVolatile, RvkDescSet), volatileSets);
   dynarray_clear(&frame->descSetsVolatile);
 
   frame->state = RvkPassFrameState_Available;
@@ -578,7 +579,8 @@ static void rvk_pass_frame_destroy(RvkPass* pass, RvkPassFrame* frame) {
   dynarray_destroy(&frame->invocations);
 
   // Cleanup volatile descriptor sets.
-  dynarray_for_t(&frame->descSetsVolatile, RvkDescSet, set) { rvk_desc_free(*set); }
+  const usize volatileSets = frame->descSetsVolatile.size;
+  rvk_desc_free_batch(dynarray_begin_t(&frame->descSetsVolatile, RvkDescSet), volatileSets);
   dynarray_destroy(&frame->descSetsVolatile);
 }
 
