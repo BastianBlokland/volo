@@ -360,9 +360,7 @@ void rvk_desc_free_batch(const RvkDescSet sets[], const usize count) {
     return;
   }
 
-  for (u32 i = 0; i != count; ++i) {
-    rvk_desc_set_clear(sets[i]);
-  }
+  rvk_desc_set_clear_batch(sets, count);
 
   RvkDescPool* pool = sets[0].chunk->pool;
   thread_mutex_lock(pool->chunkLock);
@@ -436,8 +434,13 @@ RvkDescKind rvk_desc_set_kind(const RvkDescSet set, const u32 binding) {
   return result;
 }
 
-void rvk_desc_set_clear(const RvkDescSet set) {
-  RvkDescPool* pool = set.chunk->pool;
+void rvk_desc_set_clear(const RvkDescSet set) { rvk_desc_set_clear_batch(&set, 1); }
+
+void rvk_desc_set_clear_batch(const RvkDescSet sets[], const usize count) {
+  if (!count) {
+    return;
+  }
+  RvkDescPool* pool = sets[0].chunk->pool;
   RvkDevice*   dev  = pool->dev;
   if (!(pool->dev->flags & RvkDeviceFlags_SupportNullDescriptor)) {
     /**
@@ -456,8 +459,6 @@ void rvk_desc_set_clear(const RvkDescSet set) {
     return;
   }
 
-  const RvkDescMeta meta = rvk_desc_set_meta(set);
-
   VkDescriptorImageInfo nullImage = {
       .imageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
       .imageView   = null,
@@ -469,35 +470,42 @@ void rvk_desc_set_clear(const RvkDescSet set) {
       .range  = VK_WHOLE_SIZE,
   };
 
-  VkWriteDescriptorSet writes[rvk_desc_bindings_max];
-  u32                  writesCount = 0;
-  for (u32 binding = 0; binding != array_elems(meta.bindings); ++binding) {
-    if (meta.bindings[binding] == RvkDescKind_None) {
-      continue; // Unused binding.
-    }
-    VkWriteDescriptorSet* write = &writes[writesCount++];
+  const u32             writesMax = (u32)count * rvk_desc_bindings_max;
+  VkWriteDescriptorSet* writes    = alloc_array_t(g_allocScratch, VkWriteDescriptorSet, writesMax);
+  u32                   writesCount = 0;
 
-    *write = (VkWriteDescriptorSet){
-        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        .dstSet          = rvk_desc_set_vkset(set),
-        .dstBinding      = binding,
-        .dstArrayElement = 0,
-        .descriptorType  = rvk_desc_vktype(meta.bindings[binding]),
-        .descriptorCount = 1,
-    };
+  for (usize i = 0; i != count; ++i) {
+    diag_assert(sets[i].chunk->pool == pool);
 
-    switch (meta.bindings[binding]) {
-    case RvkDescKind_CombinedImageSampler2D:
-    case RvkDescKind_CombinedImageSamplerCube:
-      write->pImageInfo = &nullImage;
-      continue;
-    case RvkDescKind_UniformBuffer:
-    case RvkDescKind_UniformBufferDynamic:
-    case RvkDescKind_StorageBuffer:
-      write->pBufferInfo = &nullBuffer;
-      continue;
+    const RvkDescMeta meta = rvk_desc_set_meta(sets[i]);
+    for (u32 binding = 0; binding != array_elems(meta.bindings); ++binding) {
+      if (meta.bindings[binding] == RvkDescKind_None) {
+        continue; // Unused binding.
+      }
+      VkWriteDescriptorSet* write = &writes[writesCount++];
+
+      *write = (VkWriteDescriptorSet){
+          .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+          .dstSet          = rvk_desc_set_vkset(sets[i]),
+          .dstBinding      = binding,
+          .dstArrayElement = 0,
+          .descriptorType  = rvk_desc_vktype(meta.bindings[binding]),
+          .descriptorCount = 1,
+      };
+
+      switch (meta.bindings[binding]) {
+      case RvkDescKind_CombinedImageSampler2D:
+      case RvkDescKind_CombinedImageSamplerCube:
+        write->pImageInfo = &nullImage;
+        continue;
+      case RvkDescKind_UniformBuffer:
+      case RvkDescKind_UniformBufferDynamic:
+      case RvkDescKind_StorageBuffer:
+        write->pBufferInfo = &nullBuffer;
+        continue;
+      }
+      diag_crash_msg("Unsupported binding");
     }
-    diag_crash_msg("Unsupported binding");
   }
 
   rvk_call(dev, updateDescriptorSets, dev->vkDev, writesCount, writes, 0, null);
