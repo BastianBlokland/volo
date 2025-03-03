@@ -353,14 +353,24 @@ Done:
   return result;
 }
 
-void rvk_desc_free(RvkDescSet set) {
-  diag_assert(rvk_desc_valid(set));
+void rvk_desc_free(RvkDescSet set) { rvk_desc_free_batch(&set, 1); }
 
-  rvk_desc_set_clear(set);
+void rvk_desc_free_batch(const RvkDescSet sets[], const usize count) {
+  if (!count) {
+    return;
+  }
 
-  thread_mutex_lock(set.chunk->pool->chunkLock);
-  rvk_desc_chunk_free(set.chunk, set);
-  thread_mutex_unlock(set.chunk->pool->chunkLock);
+  for (u32 i = 0; i != count; ++i) {
+    rvk_desc_set_clear(sets[i]);
+  }
+
+  RvkDescPool* pool = sets[0].chunk->pool;
+  thread_mutex_lock(pool->chunkLock);
+  for (u32 i = 0; i != count; ++i) {
+    diag_assert(sets[i].chunk->pool == pool);
+    rvk_desc_chunk_free(sets[i].chunk, sets[i]);
+  }
+  thread_mutex_unlock(pool->chunkLock);
 }
 
 String rvk_desc_kind_str(const RvkDescKind kind) {
