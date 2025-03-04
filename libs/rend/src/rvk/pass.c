@@ -430,7 +430,7 @@ static void rvk_pass_bind_global(
     }
 
     diag_assert_msg(img->caps & RvkImageCapability_Sampled, "Image does not support sampling");
-    rvk_desc_set_attach_sampler(globalDescSet, binding, img, setup->globalImageSamplers[i]);
+    rvk_desc_set_update_sampler(globalDescSet, binding, img, setup->globalImageSamplers[i]);
 
     invoc->globalBoundMask |= 1 << binding;
   }
@@ -471,7 +471,7 @@ static void rvk_pass_bind_draw(
     rvk_uniform_attach(frame->uniformPool, data, descSet, 0 /* binding */);
   }
   if (mesh && gra->drawDescMeta.bindings[1]) {
-    rvk_desc_set_attach_buffer(descSet, 1 /* binding */, &mesh->vertexBuffer, 0, 0);
+    rvk_desc_set_update_buffer(descSet, 1 /* binding */, &mesh->vertexBuffer, 0, 0);
   }
   if (img && gra->drawDescMeta.bindings[2]) {
     const bool reqCube = gra->drawDescMeta.bindings[2] == RvkDescKind_CombinedImageSamplerCube;
@@ -482,7 +482,7 @@ static void rvk_pass_bind_draw(
           reqCube ? RvkRepositoryId_MissingTextureCube : RvkRepositoryId_MissingTexture;
       img = (RvkImage*)&rvk_repository_texture_get(pass->dev->repository, missing)->image;
     }
-    rvk_desc_set_attach_sampler(descSet, 2, img, sampler);
+    rvk_desc_set_update_sampler(descSet, 2, img, sampler);
   }
 
   const VkDescriptorSet vkDescSets[] = {rvk_desc_set_vkset(descSet)};

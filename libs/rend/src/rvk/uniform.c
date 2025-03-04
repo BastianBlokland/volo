@@ -201,7 +201,7 @@ void rvk_uniform_attach(
 
   const RvkUniformEntry* entry  = rvk_uniform_entry(uni, handle);
   const RvkBuffer*       buffer = &rvk_uniform_chunk(uni, entry->chunkIdx)->buffer;
-  rvk_desc_set_attach_buffer(set, binding, buffer, entry->offset, entry->size);
+  rvk_desc_set_update_buffer(set, binding, buffer, entry->offset, entry->size);
 }
 
 void rvk_uniform_dynamic_bind(
@@ -217,7 +217,7 @@ void rvk_uniform_dynamic_bind(
     const RvkDescMeta meta = (RvkDescMeta){.bindings[0] = RvkDescKind_UniformBufferDynamic};
     chunk->dynamicSet      = rvk_desc_alloc(uni->dev->descPool, &meta);
     rvk_desc_set_update_name(chunk->dynamicSet, string_lit("dynamic_uniform"));
-    rvk_desc_set_attach_buffer(chunk->dynamicSet, 0, &chunk->buffer, 0, uni->dataSizeMax);
+    rvk_desc_set_update_buffer(chunk->dynamicSet, 0, &chunk->buffer, 0, uni->dataSizeMax);
   }
   const VkDescriptorSet descSets[]       = {rvk_desc_set_vkset(chunk->dynamicSet)};
   const u32             dynamicOffsets[] = {entry->offset};
