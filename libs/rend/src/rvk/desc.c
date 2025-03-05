@@ -384,6 +384,27 @@ String rvk_desc_kind_str(const RvkDescKind kind) {
   return g_names[kind];
 }
 
+bool rvk_desc_kind_is_buffer(const RvkDescKind kind) {
+  switch (kind) {
+  case RvkDescKind_UniformBuffer:
+  case RvkDescKind_UniformBufferDynamic:
+  case RvkDescKind_StorageBuffer:
+    return true;
+  default:
+    return false;
+  }
+}
+
+bool rvk_desc_kind_is_sampler(const RvkDescKind kind) {
+  switch (kind) {
+  case RvkDescKind_CombinedImageSampler2D:
+  case RvkDescKind_CombinedImageSamplerCube:
+    return true;
+  default:
+    return false;
+  }
+}
+
 VkDescriptorSet rvk_desc_set_vkset(const RvkDescSet set) {
   diag_assert(rvk_desc_valid(set));
   return set.chunk->vkSets[set.idx];
@@ -432,6 +453,19 @@ RvkDescKind rvk_desc_set_kind(const RvkDescSet set, const u32 binding) {
   const RvkDescKind result = layout->meta.bindings[binding];
   thread_mutex_unlock(set.chunk->pool->layoutLock);
   return result;
+}
+
+void rvk_desc_set_name(const RvkDescSet set, const String dbgName) {
+  RvkDevice* dev = set.chunk->pool->dev;
+  if (!(dev->lib->flags & RvkLibFlags_Debug)) {
+    return;
+  }
+  VkDescriptorSet vkSet = set.chunk->vkSets[set.idx];
+  (void)vkSet;
+  (void)dbgName;
+
+  rvk_debug_name_fmt(
+      dev, VK_OBJECT_TYPE_DESCRIPTOR_SET, vkSet, "descriptor_set_{}", fmt_text(dbgName));
 }
 
 void rvk_desc_set_clear(const RvkDescSet set) { rvk_desc_set_clear_batch(&set, 1); }
@@ -511,83 +545,125 @@ void rvk_desc_set_clear_batch(const RvkDescSet sets[], const usize count) {
   rvk_call(dev, updateDescriptorSets, dev->vkDev, writesCount, writes, 0, null);
 }
 
-void rvk_desc_set_attach_buffer(
-    const RvkDescSet set,
-    const u32        binding,
-    const RvkBuffer* buffer,
-    const u32        offset,
-    const u32        size) {
-  RvkDescPool*      pool = set.chunk->pool;
-  RvkDevice*        dev  = pool->dev;
-  const RvkDescKind kind = rvk_desc_set_kind(set, binding);
+void rvk_desc_update_buffer(
+    RvkDescUpdateBatch* batch,
+    const RvkDescSet    set,
+    const u32           binding,
+    const RvkBuffer*    buffer,
+    const u32           offset,
+    const u32           size) {
 
-  diag_assert(kind);
-  diag_assert((offset + size) <= buffer->size);
-
-  const VkDescriptorBufferInfo bufferInfo = {
-      .buffer = buffer->vkBuffer,
-      .offset = offset,
-      .range  = size ? size : (buffer->size - offset),
+  if (batch->count == array_elems(batch->buffer)) {
+    rvk_desc_update_flush(batch);
+  }
+  batch->buffer[batch->count++] = (RvkDescUpdate){
+      .set     = set,
+      .binding = binding,
+      .type    = RvkDescUpdateType_Buffer,
+      .buffer  = {.buffer = buffer, .offset = offset, .size = size},
   };
-  const VkWriteDescriptorSet descriptorWrite = {
-      .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-      .dstSet          = rvk_desc_set_vkset(set),
-      .dstBinding      = binding,
-      .dstArrayElement = 0,
-      .descriptorType  = rvk_desc_vktype(kind),
-      .descriptorCount = 1,
-      .pBufferInfo     = &bufferInfo,
-  };
-  rvk_call(dev, updateDescriptorSets, dev->vkDev, 1, &descriptorWrite, 0, null);
 }
 
-void rvk_desc_set_attach_sampler(
+void rvk_desc_update_sampler(
+    RvkDescUpdateBatch*  batch,
     const RvkDescSet     set,
     const u32            binding,
     const RvkImage*      image,
-    const RvkSamplerSpec samplerSpec) {
-  diag_assert(image->caps & RvkImageCapability_Sampled);
-  RvkDescPool* pool = set.chunk->pool;
-  RvkDevice*   dev  = pool->dev;
+    const RvkSamplerSpec spec) {
 
-  const RvkDescKind kind = rvk_desc_set_kind(set, binding);
-  switch (kind) {
-  case RvkDescKind_CombinedImageSampler2D:
-    break;
-  case RvkDescKind_CombinedImageSamplerCube:
-    diag_assert(image->type == RvkImageType_ColorSourceCube);
-    break;
-  default:
-    diag_assert_fail(
-        "Desc kind {} does not support attaching samplers", fmt_text(rvk_desc_kind_str(kind)));
-    break;
+  if (batch->count == array_elems(batch->buffer)) {
+    rvk_desc_update_flush(batch);
   }
-
-  VkDescriptorImageInfo imgInfo = {
-      .imageLayout = image->type == RvkImageType_DepthAttachment
-                         ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
-                         : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-      .imageView   = image->vkImageView,
-      .sampler     = rvk_sampler_get(pool->dev->samplerPool, samplerSpec),
+  batch->buffer[batch->count++] = (RvkDescUpdate){
+      .set     = set,
+      .binding = binding,
+      .type    = RvkDescUpdateType_Sampler,
+      .sampler = {.image = image, .spec = spec},
   };
-  VkWriteDescriptorSet descriptorWrite = {
-      .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-      .dstSet          = rvk_desc_set_vkset(set),
-      .dstBinding      = binding,
-      .dstArrayElement = 0,
-      .descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-      .descriptorCount = 1,
-      .pImageInfo      = &imgInfo,
-  };
-  rvk_call(dev, updateDescriptorSets, dev->vkDev, 1, &descriptorWrite, 0, null);
 }
 
-void rvk_desc_set_update_name(const RvkDescSet set, const String dbgName) {
-  RvkDevice* dev = set.chunk->pool->dev;
-  if (!(dev->lib->flags & RvkLibFlags_Debug)) {
+void rvk_desc_update_flush(RvkDescUpdateBatch* batch) {
+  if (!batch->count) {
     return;
   }
-  VkDescriptorSet vkSet = set.chunk->vkSets[set.idx];
-  rvk_debug_name_fmt(
-      dev, VK_OBJECT_TYPE_DESCRIPTOR_SET, vkSet, "descriptor_set_{}", fmt_text(dbgName));
+  RvkDescPool* pool = batch->buffer[0].set.chunk->pool;
+  RvkDevice*   dev  = pool->dev;
+
+  VkDescriptorBufferInfo buffInfos[array_elems(batch->buffer)];
+  u32                    buffCount = 0;
+
+  VkDescriptorImageInfo imageInfos[array_elems(batch->buffer)];
+  u32                   imageCount = 0;
+
+  VkWriteDescriptorSet writes[array_elems(batch->buffer)];
+  u32                  writesCount = 0;
+
+  for (usize i = 0; i != batch->count; ++i) {
+    const RvkDescUpdate* update = &batch->buffer[i];
+    diag_assert(update->set.chunk->pool == pool);
+
+    const RvkDescKind kind = rvk_desc_set_kind(update->set, update->binding);
+    if (UNLIKELY(!kind)) {
+      diag_assert_fail("Invalid descriptor binding");
+      continue;
+    }
+
+    VkWriteDescriptorSet* write = &writes[writesCount];
+
+    *write = (VkWriteDescriptorSet){
+        .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .dstSet          = rvk_desc_set_vkset(update->set),
+        .dstBinding      = update->binding,
+        .dstArrayElement = 0,
+        .descriptorType  = rvk_desc_vktype(kind),
+        .descriptorCount = 1,
+    };
+
+    switch (update->type) {
+    case RvkDescUpdateType_Buffer: {
+      if (UNLIKELY(!rvk_desc_kind_is_buffer(kind))) {
+        diag_assert_fail("Descriptor binding is not a buffer");
+        continue;
+      }
+      const RvkBuffer* buffer = update->buffer.buffer;
+      const u32        offset = update->buffer.offset;
+      const u32        size   = update->buffer.size;
+      diag_assert((offset + size) <= buffer->size);
+
+      buffInfos[buffCount] = (VkDescriptorBufferInfo){
+          .buffer = buffer->vkBuffer,
+          .offset = offset,
+          .range  = size ? size : (buffer->size - offset),
+      };
+      write->pBufferInfo = &buffInfos[buffCount++];
+    } break;
+    case RvkDescUpdateType_Sampler: {
+      if (UNLIKELY(!rvk_desc_kind_is_sampler(kind))) {
+        diag_assert_fail("Descriptor binding is not a sampler");
+        continue;
+      }
+      const RvkImage* image = update->sampler.image;
+      diag_assert(image->caps & RvkImageCapability_Sampled);
+
+      const RvkSamplerSpec spec         = update->sampler.spec;
+      const bool           needsCubeMap = kind == RvkDescKind_CombinedImageSamplerCube;
+      if (needsCubeMap && image->type != RvkImageType_ColorSourceCube) {
+        diag_assert_fail("Descriptor needs a cube-map image");
+        continue;
+      }
+      imageInfos[imageCount] = (VkDescriptorImageInfo){
+          .imageLayout = image->type == RvkImageType_DepthAttachment
+                             ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+                             : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+          .imageView   = image->vkImageView,
+          .sampler     = rvk_sampler_get(pool->dev->samplerPool, spec),
+      };
+      write->pImageInfo = &imageInfos[imageCount++];
+    } break;
+    }
+    ++writesCount; // Write locked in.
+  }
+
+  batch->count = 0;
+  rvk_call(dev, updateDescriptorSets, dev->vkDev, writesCount, writes, 0, null);
 }

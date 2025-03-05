@@ -105,6 +105,10 @@ static RvkAttachIndex rvk_attach_create(
 
   RvkImage*  img = &pool->images[slot];
   RvkDevice* dev = pool->dev;
+
+  (void)img;
+  (void)dev;
+
   rvk_debug_name_img(dev, img->vkImage, "attach_{}_{}", fmt_int(slot), fmt_text(typeName));
   rvk_debug_name_img_view(dev, img->vkImageView, "attach_{}_{}", fmt_int(slot), fmt_text(typeName));
 
