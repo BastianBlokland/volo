@@ -829,7 +829,7 @@ bool rvk_graphic_finalize(
     graphic->flags |= RvkGraphicFlags_Invalid;
   }
   graphic->graphicDescSet = rvk_desc_alloc(dev->descPool, &graphicDescMeta);
-  rvk_desc_set_update_name(graphic->graphicDescSet, graphic->dbgName);
+  rvk_desc_set_name(graphic->graphicDescSet, graphic->dbgName);
 
   // Attach mesh.
   if (graphicDescMeta.bindings[0] == RvkDescKind_StorageBuffer) {
@@ -842,7 +842,7 @@ bool rvk_graphic_finalize(
       log_e("Shader requires a mesh", log_param("graphic", fmt_text(graphic->dbgName)));
       graphic->flags |= RvkGraphicFlags_Invalid;
     }
-    rvk_desc_set_update_buffer(graphic->graphicDescSet, 0, &graphic->mesh->vertexBuffer, 0, 0);
+    rvk_desc_update_buffer(graphic->graphicDescSet, 0, &graphic->mesh->vertexBuffer, 0, 0);
   }
   if (UNLIKELY(graphic->mesh && graphic->drawDescMeta.bindings[1])) {
     log_e(
@@ -878,7 +878,7 @@ bool rvk_graphic_finalize(
       }
       const RvkImage*      image       = &graphic->samplerTextures[samplerIndex]->image;
       const RvkSamplerSpec samplerSpec = graphic->samplerSpecs[samplerIndex];
-      rvk_desc_set_update_sampler(graphic->graphicDescSet, i, image, samplerSpec);
+      rvk_desc_update_sampler(graphic->graphicDescSet, i, image, samplerSpec);
       ++samplerIndex;
     }
   }

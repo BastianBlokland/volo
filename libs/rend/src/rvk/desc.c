@@ -455,6 +455,16 @@ RvkDescKind rvk_desc_set_kind(const RvkDescSet set, const u32 binding) {
   return result;
 }
 
+void rvk_desc_set_name(const RvkDescSet set, const String dbgName) {
+  RvkDevice* dev = set.chunk->pool->dev;
+  if (!(dev->lib->flags & RvkLibFlags_Debug)) {
+    return;
+  }
+  VkDescriptorSet vkSet = set.chunk->vkSets[set.idx];
+  rvk_debug_name_fmt(
+      dev, VK_OBJECT_TYPE_DESCRIPTOR_SET, vkSet, "descriptor_set_{}", fmt_text(dbgName));
+}
+
 void rvk_desc_set_clear(const RvkDescSet set) { rvk_desc_set_clear_batch(&set, 1); }
 
 void rvk_desc_set_clear_batch(const RvkDescSet sets[], const usize count) {
@@ -532,7 +542,7 @@ void rvk_desc_set_clear_batch(const RvkDescSet sets[], const usize count) {
   rvk_call(dev, updateDescriptorSets, dev->vkDev, writesCount, writes, 0, null);
 }
 
-void rvk_desc_set_update_buffer(
+void rvk_desc_update_buffer(
     const RvkDescSet set,
     const u32        binding,
     const RvkBuffer* buffer,
@@ -542,7 +552,7 @@ void rvk_desc_set_update_buffer(
   RvkDescUpdateBatch batch;
   batch.count = 0;
 
-  rvk_desc_set_update_push(
+  rvk_desc_update_push(
       &batch,
       (RvkDescUpdate){
           .set     = set,
@@ -550,16 +560,16 @@ void rvk_desc_set_update_buffer(
           .type    = RvkDescUpdateType_Buffer,
           .buffer  = {.buffer = buffer, .offset = offset, .size = size},
       });
-  rvk_desc_set_update_flush(&batch);
+  rvk_desc_update_flush(&batch);
 }
 
-void rvk_desc_set_update_sampler(
+void rvk_desc_update_sampler(
     const RvkDescSet set, const u32 binding, const RvkImage* image, const RvkSamplerSpec spec) {
 
   RvkDescUpdateBatch batch;
   batch.count = 0;
 
-  rvk_desc_set_update_push(
+  rvk_desc_update_push(
       &batch,
       (RvkDescUpdate){
           .set     = set,
@@ -567,17 +577,17 @@ void rvk_desc_set_update_sampler(
           .type    = RvkDescUpdateType_Sampler,
           .sampler = {.image = image, .spec = spec},
       });
-  rvk_desc_set_update_flush(&batch);
+  rvk_desc_update_flush(&batch);
 }
 
-void rvk_desc_set_update_push(RvkDescUpdateBatch* batch, const RvkDescUpdate update) {
+void rvk_desc_update_push(RvkDescUpdateBatch* batch, const RvkDescUpdate update) {
   if (batch->count == array_elems(batch->buffer)) {
-    rvk_desc_set_update_flush(batch);
+    rvk_desc_update_flush(batch);
   }
   batch->buffer[batch->count++] = update;
 }
 
-void rvk_desc_set_update_flush(RvkDescUpdateBatch* batch) {
+void rvk_desc_update_flush(RvkDescUpdateBatch* batch) {
   if (!batch->count) {
     return;
   }
@@ -661,14 +671,4 @@ void rvk_desc_set_update_flush(RvkDescUpdateBatch* batch) {
 
   batch->count = 0;
   rvk_call(dev, updateDescriptorSets, dev->vkDev, writesCount, writes, 0, null);
-}
-
-void rvk_desc_set_update_name(const RvkDescSet set, const String dbgName) {
-  RvkDevice* dev = set.chunk->pool->dev;
-  if (!(dev->lib->flags & RvkLibFlags_Debug)) {
-    return;
-  }
-  VkDescriptorSet vkSet = set.chunk->vkSets[set.idx];
-  rvk_debug_name_fmt(
-      dev, VK_OBJECT_TYPE_DESCRIPTOR_SET, vkSet, "descriptor_set_{}", fmt_text(dbgName));
 }
