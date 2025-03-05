@@ -79,7 +79,15 @@ typedef struct {
   };
 } RvkDescUpdate;
 
+typedef struct {
+  RvkDescUpdate buffer[8]; // NOTE: Same pool only.
+  u32           count;
+} RvkDescUpdateBatch;
+
 void rvk_desc_set_update_buffer(RvkDescSet, u32 binding, const RvkBuffer*, u32 offset, u32 size);
 void rvk_desc_set_update_sampler(RvkDescSet, u32 binding, const RvkImage*, RvkSamplerSpec);
-void rvk_desc_set_update_batch(const RvkDescUpdate[], usize count); // NOTE: Same pool only.
+
+void rvk_desc_set_update_push(RvkDescUpdateBatch*, RvkDescUpdate);
+void rvk_desc_set_update_flush(RvkDescUpdateBatch*);
+
 void rvk_desc_set_update_name(RvkDescSet, String dbgName);

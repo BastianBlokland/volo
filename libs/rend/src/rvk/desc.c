@@ -538,46 +538,63 @@ void rvk_desc_set_update_buffer(
     const RvkBuffer* buffer,
     const u32        offset,
     const u32        size) {
-  rvk_desc_set_update_batch(
-      &(RvkDescUpdate){
+
+  RvkDescUpdateBatch batch;
+  batch.count = 0;
+
+  rvk_desc_set_update_push(
+      &batch,
+      (RvkDescUpdate){
           .set     = set,
           .binding = binding,
           .type    = RvkDescUpdateType_Buffer,
           .buffer  = {.buffer = buffer, .offset = offset, .size = size},
-      },
-      1);
+      });
+  rvk_desc_set_update_flush(&batch);
 }
 
 void rvk_desc_set_update_sampler(
     const RvkDescSet set, const u32 binding, const RvkImage* image, const RvkSamplerSpec spec) {
-  rvk_desc_set_update_batch(
-      &(RvkDescUpdate){
+
+  RvkDescUpdateBatch batch;
+  batch.count = 0;
+
+  rvk_desc_set_update_push(
+      &batch,
+      (RvkDescUpdate){
           .set     = set,
           .binding = binding,
           .type    = RvkDescUpdateType_Sampler,
           .sampler = {.image = image, .spec = spec},
-      },
-      1);
+      });
+  rvk_desc_set_update_flush(&batch);
 }
 
-void rvk_desc_set_update_batch(const RvkDescUpdate updates[], const usize count) {
-  if (!count) {
+void rvk_desc_set_update_push(RvkDescUpdateBatch* batch, const RvkDescUpdate update) {
+  if (batch->count == array_elems(batch->buffer)) {
+    rvk_desc_set_update_flush(batch);
+  }
+  batch->buffer[batch->count++] = update;
+}
+
+void rvk_desc_set_update_flush(RvkDescUpdateBatch* batch) {
+  if (!batch->count) {
     return;
   }
-  RvkDescPool* pool = updates[0].set.chunk->pool;
+  RvkDescPool* pool = batch->buffer[0].set.chunk->pool;
   RvkDevice*   dev  = pool->dev;
 
-  VkDescriptorBufferInfo* buffInfos = alloc_array_t(g_allocScratch, VkDescriptorBufferInfo, count);
-  u32                     buffCount = 0;
+  VkDescriptorBufferInfo buffInfos[array_elems(batch->buffer)];
+  u32                    buffCount = 0;
 
-  VkDescriptorImageInfo* imageInfos = alloc_array_t(g_allocScratch, VkDescriptorImageInfo, count);
-  u32                    imageCount = 0;
+  VkDescriptorImageInfo imageInfos[array_elems(batch->buffer)];
+  u32                   imageCount = 0;
 
-  VkWriteDescriptorSet* writes      = alloc_array_t(g_allocScratch, VkWriteDescriptorSet, count);
-  u32                   writesCount = 0;
+  VkWriteDescriptorSet writes[array_elems(batch->buffer)];
+  u32                  writesCount = 0;
 
-  for (usize i = 0; i != count; ++i) {
-    const RvkDescUpdate* update = &updates[i];
+  for (usize i = 0; i != batch->count; ++i) {
+    const RvkDescUpdate* update = &batch->buffer[i];
     diag_assert(update->set.chunk->pool == pool);
 
     const RvkDescKind kind = rvk_desc_set_kind(update->set, update->binding);
@@ -642,6 +659,7 @@ void rvk_desc_set_update_batch(const RvkDescUpdate updates[], const usize count)
     ++writesCount; // Write locked in.
   }
 
+  batch->count = 0;
   rvk_call(dev, updateDescriptorSets, dev->vkDev, writesCount, writes, 0, null);
 }
 
