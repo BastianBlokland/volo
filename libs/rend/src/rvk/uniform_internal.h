@@ -22,7 +22,8 @@ Mem              rvk_uniform_map(RvkUniformPool*, RvkUniformHandle);
 RvkUniformHandle rvk_uniform_push(RvkUniformPool*, usize size);
 RvkUniformHandle rvk_uniform_push_next(RvkUniformPool*, RvkUniformHandle head, usize size);
 
-void rvk_uniform_attach(RvkUniformPool*, RvkUniformHandle, RvkDescSet, const u32 binding);
+void rvk_uniform_attach(
+    RvkUniformPool*, RvkUniformHandle, RvkDescUpdateBatch*, RvkDescSet, u32 binding);
 
 /**
  * Dynamic binding is a fast-path where we can allocate persistent descriptor-sets (that only
