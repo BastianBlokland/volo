@@ -194,7 +194,7 @@ void rend_builder_pass_flush(RendBuilder* b) {
   dynarray_sort(&b->drawList, builder_draw_compare);
 
   const RvkPassDraw* draws     = dynarray_begin_t(&b->drawList, RvkPassDraw);
-  const u32          drawCount = b->drawList.size;
+  const u32          drawCount = (u32)b->drawList.size;
 
   rvk_pass_begin(b->pass, &b->passSetup);
   rvk_pass_draw(b->pass, &b->passSetup, draws, drawCount);
