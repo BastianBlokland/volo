@@ -42,6 +42,8 @@ static VkFormat rvk_texture_format(const AssetTextureComp* asset) {
 }
 
 RvkTexture* rvk_texture_create(RvkDevice* dev, const AssetTextureComp* asset, String dbgName) {
+  (void)dbgName;
+
   diag_assert_msg(asset->layers < u8_max, "Only {} texture layers are supported", fmt_int(u8_max));
   diag_assert_msg(asset->mipsMax < u8_max, "Only {} texture mips are supported", fmt_int(u8_max));
 

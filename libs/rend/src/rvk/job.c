@@ -115,6 +115,8 @@ static void rvk_job_submit(
 }
 
 static void rvk_job_phase_begin(RvkJob* job) {
+  (void)g_rvkJobPhaseNames;
+
   rvk_commandbuffer_begin(job->dev, job->vkCmdBuffers[job->phase]);
   rvk_debug_label_begin(
       job->dev,

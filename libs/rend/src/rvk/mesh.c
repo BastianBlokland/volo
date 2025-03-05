@@ -10,6 +10,8 @@
 #define VOLO_RVK_MESH_VALIDATE_BIND 0
 
 RvkMesh* rvk_mesh_create(RvkDevice* dev, const AssetMeshComp* asset, const String dbgName) {
+  (void)dbgName;
+
   RvkMesh* mesh = alloc_alloc_t(g_allocHeap, RvkMesh);
 
   *mesh = (RvkMesh){

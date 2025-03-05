@@ -461,6 +461,9 @@ void rvk_desc_set_name(const RvkDescSet set, const String dbgName) {
     return;
   }
   VkDescriptorSet vkSet = set.chunk->vkSets[set.idx];
+  (void)vkSet;
+  (void)dbgName;
+
   rvk_debug_name_fmt(
       dev, VK_OBJECT_TYPE_DESCRIPTOR_SET, vkSet, "descriptor_set_{}", fmt_text(dbgName));
 }
