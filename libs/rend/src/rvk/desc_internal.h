@@ -80,7 +80,7 @@ typedef struct {
   };
 } RvkDescUpdate;
 
-typedef struct {
+typedef struct sRvkDescUpdateBatch {
   RvkDescUpdate buffer[8]; // NOTE: Same pool only.
   u32           count;
 } RvkDescUpdateBatch;
