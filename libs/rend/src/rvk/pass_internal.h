@@ -106,5 +106,5 @@ u32 rvk_pass_batch_size(RvkPass*, u32 instanceDataSize);
  * NOTE: Pass-setup has to remain identical between begin and end.
  */
 void rvk_pass_begin(RvkPass*, const RvkPassSetup*);
-void rvk_pass_draw(RvkPass*, const RvkPassSetup*, const RvkPassDraw*);
+void rvk_pass_draw(RvkPass*, const RvkPassSetup*, const RvkPassDraw[], u32 count);
 void rvk_pass_end(RvkPass*, const RvkPassSetup*);

@@ -191,9 +191,13 @@ void rend_builder_pass_flush(RendBuilder* b) {
   diag_assert_msg(b->pass, "RendBuilder: Pass not active");
   diag_assert_msg(!b->draw, "RendBuilder: Draw still active");
 
-  rvk_pass_begin(b->pass, &b->passSetup);
   dynarray_sort(&b->drawList, builder_draw_compare);
-  dynarray_for_t(&b->drawList, RvkPassDraw, draw) { rvk_pass_draw(b->pass, &b->passSetup, draw); }
+
+  const RvkPassDraw* draws     = dynarray_begin_t(&b->drawList, RvkPassDraw);
+  const u32          drawCount = b->drawList.size;
+
+  rvk_pass_begin(b->pass, &b->passSetup);
+  rvk_pass_draw(b->pass, &b->passSetup, draws, drawCount);
   rvk_pass_end(b->pass, &b->passSetup);
 
   dynarray_clear(&b->drawList);
