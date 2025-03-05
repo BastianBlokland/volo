@@ -87,9 +87,8 @@ typedef struct {
 
 // clang-format off
 
-void rvk_desc_update_buffer(RvkDescSet, u32 binding, const RvkBuffer*, u32 offset, u32 size);
-void rvk_desc_update_sampler(RvkDescSet, u32 binding, const RvkImage*, RvkSamplerSpec);
-void rvk_desc_update_push(RvkDescUpdateBatch*, RvkDescUpdate);
+void rvk_desc_update_buffer(RvkDescUpdateBatch*, RvkDescSet, u32 binding, const RvkBuffer*, u32 offset, u32 size);
+void rvk_desc_update_sampler(RvkDescUpdateBatch*, RvkDescSet, u32 binding, const RvkImage*, RvkSamplerSpec);
 void rvk_desc_update_flush(RvkDescUpdateBatch*);
 
 // clang-format on

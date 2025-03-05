@@ -543,48 +543,40 @@ void rvk_desc_set_clear_batch(const RvkDescSet sets[], const usize count) {
 }
 
 void rvk_desc_update_buffer(
-    const RvkDescSet set,
-    const u32        binding,
-    const RvkBuffer* buffer,
-    const u32        offset,
-    const u32        size) {
+    RvkDescUpdateBatch* batch,
+    const RvkDescSet    set,
+    const u32           binding,
+    const RvkBuffer*    buffer,
+    const u32           offset,
+    const u32           size) {
 
-  RvkDescUpdateBatch batch;
-  batch.count = 0;
-
-  rvk_desc_update_push(
-      &batch,
-      (RvkDescUpdate){
-          .set     = set,
-          .binding = binding,
-          .type    = RvkDescUpdateType_Buffer,
-          .buffer  = {.buffer = buffer, .offset = offset, .size = size},
-      });
-  rvk_desc_update_flush(&batch);
-}
-
-void rvk_desc_update_sampler(
-    const RvkDescSet set, const u32 binding, const RvkImage* image, const RvkSamplerSpec spec) {
-
-  RvkDescUpdateBatch batch;
-  batch.count = 0;
-
-  rvk_desc_update_push(
-      &batch,
-      (RvkDescUpdate){
-          .set     = set,
-          .binding = binding,
-          .type    = RvkDescUpdateType_Sampler,
-          .sampler = {.image = image, .spec = spec},
-      });
-  rvk_desc_update_flush(&batch);
-}
-
-void rvk_desc_update_push(RvkDescUpdateBatch* batch, const RvkDescUpdate update) {
   if (batch->count == array_elems(batch->buffer)) {
     rvk_desc_update_flush(batch);
   }
-  batch->buffer[batch->count++] = update;
+  batch->buffer[batch->count++] = (RvkDescUpdate){
+      .set     = set,
+      .binding = binding,
+      .type    = RvkDescUpdateType_Buffer,
+      .buffer  = {.buffer = buffer, .offset = offset, .size = size},
+  };
+}
+
+void rvk_desc_update_sampler(
+    RvkDescUpdateBatch*  batch,
+    const RvkDescSet     set,
+    const u32            binding,
+    const RvkImage*      image,
+    const RvkSamplerSpec spec) {
+
+  if (batch->count == array_elems(batch->buffer)) {
+    rvk_desc_update_flush(batch);
+  }
+  batch->buffer[batch->count++] = (RvkDescUpdate){
+      .set     = set,
+      .binding = binding,
+      .type    = RvkDescUpdateType_Sampler,
+      .sampler = {.image = image, .spec = spec},
+  };
 }
 
 void rvk_desc_update_flush(RvkDescUpdateBatch* batch) {
