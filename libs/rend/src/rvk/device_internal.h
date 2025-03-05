@@ -49,11 +49,18 @@ void rvk_debug_name(RvkDevice*, VkObjectType, u64 vkHandle, String name);
 void rvk_debug_label_begin_raw(RvkDevice*, VkCommandBuffer, GeoColor, String name);
 void rvk_debug_label_end(RvkDevice*, VkCommandBuffer);
 
+#ifndef VOLO_FAST
+
 #define rvk_debug_label_begin(_DEV_, _CMD_BUF_, _COLOR_, _LIT_, ...)                               \
   rvk_debug_label_begin_raw((_DEV_), (_CMD_BUF_), (_COLOR_), fmt_write_scratch(_LIT_, __VA_ARGS__))
 
 #define rvk_debug_name_fmt(_DEV_, _OBJ_TYPE_, _OBJ_, _LIT_, ...)                                   \
   rvk_debug_name((_DEV_), (_OBJ_TYPE_), (u64)(_OBJ_), fmt_write_scratch(_LIT_, __VA_ARGS__))
+
+#else
+#define rvk_debug_label_begin(_DEV_, _CMD_BUF_, _COLOR_, _LIT_, ...)
+#define rvk_debug_name_fmt(_DEV_, _OBJ_TYPE_, _OBJ_, _LIT_, ...)
+#endif
 
 #define rvk_debug_name_queue(_DEV_, _OBJ_, _LIT_, ...)                                             \
   rvk_debug_name_fmt(_DEV_, VK_OBJECT_TYPE_QUEUE, _OBJ_, "queue_" _LIT_, __VA_ARGS__)
