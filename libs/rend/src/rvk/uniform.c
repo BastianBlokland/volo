@@ -234,17 +234,8 @@ void rvk_uniform_dynamic_bind(
   if (UNLIKELY(!rvk_desc_valid(chunk->dynamicSet))) {
     rvk_uniform_dynamic_init(uni, chunk);
   }
-  const VkDescriptorSet descSets[]       = {rvk_desc_set_vkset(chunk->dynamicSet)};
-  const u32             dynamicOffsets[] = {entry->offset};
-  rvk_call(
-      uni->dev,
-      cmdBindDescriptorSets,
-      vkCmdBuf,
-      VK_PIPELINE_BIND_POINT_GRAPHICS,
-      vkPipelineLayout,
-      set,
-      array_elems(descSets),
-      descSets,
-      array_elems(dynamicOffsets),
-      dynamicOffsets);
+
+  RvkDescGroup descGroup = {0};
+  rvk_desc_group_bind_dyn(&descGroup, set, chunk->dynamicSet, entry->offset);
+  rvk_desc_group_flush(&descGroup, vkCmdBuf, vkPipelineLayout);
 }
