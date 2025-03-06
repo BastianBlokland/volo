@@ -683,19 +683,50 @@ void rvk_desc_group_bind_dyn(
 
 void rvk_desc_group_flush(
     RvkDescGroup* group, const VkCommandBuffer vkCmdBuf, const VkPipelineLayout vkPipelineLayout) {
+
+  enum { MaxDescSets = array_elems(group->dirtySets) };
+
+  VkDescriptorSet vkDescSets[MaxDescSets];
+  u32             vkDescSetCount;
+
+  u32 dynOffsets[MaxDescSets];
+  u32 dynOffsetCount;
+
   RvkDescPool* pool = null;
-  for (u32 setIndex = 0; setIndex != array_elems(group->dirtySets); ++setIndex) {
-    RvkDescSet dirtySet = group->dirtySets[setIndex];
+  for (u32 setIndex = 0; setIndex != MaxDescSets;) {
+    const RvkDescSet dirtySet = group->dirtySets[setIndex];
     if (!rvk_desc_valid(dirtySet)) {
+      ++setIndex;
       continue;
     }
     diag_assert(!pool || pool == dirtySet.chunk->pool);
     pool = dirtySet.chunk->pool;
 
-    const bool hasDynOffset = (group->dynOffsetsMask & (1 << setIndex)) != 0;
-    const u32  dynOffset    = group->dynOffsets[setIndex];
+    vkDescSets[0]  = rvk_desc_set_vkset(dirtySet);
+    vkDescSetCount = 1;
 
-    const VkDescriptorSet vkDescSet = rvk_desc_set_vkset(dirtySet);
+    dynOffsetCount = 0;
+    if (group->dynOffsetsMask & (1 << setIndex)) {
+      dynOffsets[dynOffsetCount++] = group->dynOffsets[setIndex];
+    }
+
+    // Batch all consecutive dirty sets into a single bind.
+    for (;;) {
+      const u32 nextSetIndex = setIndex + vkDescSetCount;
+      if (nextSetIndex >= MaxDescSets) {
+        break;
+      }
+      const RvkDescSet nextDirtySet = group->dirtySets[nextSetIndex];
+      if (!rvk_desc_valid(nextDirtySet)) {
+        break;
+      }
+      vkDescSets[vkDescSetCount++] = rvk_desc_set_vkset(nextDirtySet);
+
+      if (group->dynOffsetsMask & (1 << nextSetIndex)) {
+        dynOffsets[dynOffsetCount++] = group->dynOffsets[nextSetIndex];
+      }
+    }
+
     rvk_call(
         pool->dev,
         cmdBindDescriptorSets,
@@ -703,10 +734,12 @@ void rvk_desc_group_flush(
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         vkPipelineLayout,
         setIndex,
-        1,
-        &vkDescSet,
-        hasDynOffset,
-        hasDynOffset ? &dynOffset : null);
+        vkDescSetCount,
+        vkDescSets,
+        dynOffsetCount,
+        dynOffsets);
+
+    setIndex += vkDescSetCount;
   }
 
   mem_set(array_mem(group->dirtySets), 0);
