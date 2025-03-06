@@ -69,7 +69,9 @@ struct sRvkPass {
   VkRenderPass         vkRendPass;
   RvkPassFlags         flags;
   RvkDescMeta          globalDescMeta;
-  VkPipelineLayout     globalPipelineLayout;
+
+  RvkDescUpdateBatch descUpdates;
+  RvkDescGroup       descGroup;
 
   DynArray frames; // RvkPassFrame[]
 };
@@ -273,24 +275,6 @@ static RvkDescMeta rvk_global_desc_meta(void) {
   return meta;
 }
 
-/**
- * Create a pipeline layout with a single global descriptor-set 0.
- * All pipeline layouts have to be compatible with this layout.
- * This allows us to share the global data binding between different pipelines.
- */
-static VkPipelineLayout rvk_global_layout_create(RvkDevice* dev, const RvkDescMeta* descMeta) {
-  const VkDescriptorSetLayout      sets[] = {rvk_desc_vklayout(dev->descPool, descMeta)};
-  const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
-      .sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      .setLayoutCount = array_elems(sets),
-      .pSetLayouts    = sets,
-  };
-  VkPipelineLayout result;
-  rvk_call_checked(
-      dev, createPipelineLayout, dev->vkDev, &pipelineLayoutInfo, &dev->vkAlloc, &result);
-  return result;
-}
-
 static VkFramebuffer
 rvk_framebuffer_create(RvkPass* pass, const RvkPassSetup* setup, const RvkSize size) {
   VkImageView attachments[pass_attachment_max];
@@ -399,9 +383,6 @@ static void rvk_pass_bind_global(
   RvkDescSet globalDescSet;
   u32        binding = 0;
 
-  RvkDescUpdateBatch descBatch;
-  descBatch.count = 0;
-
   // Attach global data.
   for (; binding != rvk_pass_global_data_max; ++binding) {
     const RvkUniformHandle data = setup->globalData[binding];
@@ -412,7 +393,7 @@ static void rvk_pass_bind_global(
       globalDescSet = rvk_pass_alloc_desc_volatile(pass, frame, &pass->globalDescMeta);
     }
     diag_assert(!rvk_uniform_next(frame->uniformPool, data));
-    rvk_uniform_attach(frame->uniformPool, data, &descBatch, globalDescSet, binding);
+    rvk_uniform_attach(frame->uniformPool, data, &pass->descUpdates, globalDescSet, binding);
     invoc->globalBoundMask |= 1 << binding;
   }
 
@@ -433,17 +414,14 @@ static void rvk_pass_bind_global(
     }
 
     diag_assert_msg(img->caps & RvkImageCapability_Sampled, "Image does not support sampling");
-    rvk_desc_update_sampler(&descBatch, globalDescSet, binding, img, setup->globalImageSamplers[i]);
+    const RvkSamplerSpec samplerSpec = setup->globalImageSamplers[i];
+    rvk_desc_update_sampler(&pass->descUpdates, globalDescSet, binding, img, samplerSpec);
 
     invoc->globalBoundMask |= 1 << binding;
   }
 
   if (invoc->globalBoundMask) {
-    rvk_desc_update_flush(&descBatch);
-
-    RvkDescGroup descGroup = {0};
-    rvk_desc_group_bind(&descGroup, RvkGraphicSet_Global, globalDescSet);
-    rvk_desc_group_flush(&descGroup, invoc->vkCmdBuf, pass->globalPipelineLayout);
+    rvk_desc_group_bind(&pass->descGroup, RvkGraphicSet_Global, globalDescSet);
   }
 }
 
@@ -452,7 +430,6 @@ static void rvk_pass_bind_draw(
     RvkPassFrame*                    frame,
     RvkPassInvoc*                    invoc,
     MAYBE_UNUSED const RvkPassSetup* setup,
-    RvkDescGroup*                    descGroup,
     const RvkGraphic*                gra,
     const RvkUniformHandle           data,
     const RvkMesh*                   mesh,
@@ -462,16 +439,13 @@ static void rvk_pass_bind_draw(
   diag_assert_msg(!img || img->phase != RvkImagePhase_Undefined, "Image has no content");
   diag_assert_msg(!img || img->caps & RvkImageCapability_Sampled, "Image doesn't support sampling");
 
-  RvkDescUpdateBatch descBatch;
-  descBatch.count = 0;
-
   const RvkDescSet descSet = rvk_pass_alloc_desc_volatile(pass, frame, &gra->drawDescMeta);
   if (data && gra->drawDescMeta.bindings[0]) {
     diag_assert(!rvk_uniform_next(frame->uniformPool, data));
-    rvk_uniform_attach(frame->uniformPool, data, &descBatch, descSet, 0 /* binding */);
+    rvk_uniform_attach(frame->uniformPool, data, &pass->descUpdates, descSet, 0 /* binding */);
   }
   if (mesh && gra->drawDescMeta.bindings[1]) {
-    rvk_desc_update_buffer(&descBatch, descSet, 1 /* binding */, &mesh->vertexBuffer, 0, 0);
+    rvk_desc_update_buffer(&pass->descUpdates, descSet, 1 /* binding */, &mesh->vertexBuffer, 0, 0);
   }
   if (img && gra->drawDescMeta.bindings[2]) {
     const bool reqCube = gra->drawDescMeta.bindings[2] == RvkDescKind_CombinedImageSamplerCube;
@@ -482,11 +456,10 @@ static void rvk_pass_bind_draw(
           reqCube ? RvkRepositoryId_MissingTextureCube : RvkRepositoryId_MissingTexture;
       img = (RvkImage*)&rvk_repository_texture_get(pass->dev->repository, missing)->image;
     }
-    rvk_desc_update_sampler(&descBatch, descSet, 2, img, sampler);
+    rvk_desc_update_sampler(&pass->descUpdates, descSet, 2, img, sampler);
   }
 
-  rvk_desc_update_flush(&descBatch);
-  rvk_desc_group_bind(descGroup, RvkGraphicSet_Draw, descSet);
+  rvk_desc_group_bind(&pass->descGroup, RvkGraphicSet_Draw, descSet);
 
   if (mesh) {
     rvk_mesh_bind(mesh, pass->dev, invoc->vkCmdBuf);
@@ -636,8 +609,7 @@ RvkPass* rvk_pass_create(RvkDevice* dev, const RvkPassConfig* config) {
   pass->vkRendPass = rvk_renderpass_create(pass);
   rvk_debug_name_pass(dev, pass->vkRendPass, "{}", fmt_text(config->name));
 
-  pass->globalDescMeta       = rvk_global_desc_meta();
-  pass->globalPipelineLayout = rvk_global_layout_create(dev, &pass->globalDescMeta);
+  pass->globalDescMeta = rvk_global_desc_meta();
 
   bool anyAttachmentNeedsClear = pass->config->attachDepthLoad == RvkPassLoad_Clear;
   array_for_t(pass->config->attachColorLoad, RvkPassLoad, load) {
@@ -658,7 +630,6 @@ void rvk_pass_destroy(RvkPass* pass) {
 
   RvkDevice* dev = pass->dev;
   rvk_call(dev, destroyRenderPass, dev->vkDev, pass->vkRendPass, &dev->vkAlloc);
-  rvk_call(dev, destroyPipelineLayout, dev->vkDev, pass->globalPipelineLayout, &dev->vkAlloc);
 
   alloc_free_t(g_allocHeap, pass);
 }
@@ -882,7 +853,6 @@ void rvk_pass_draw(
   RvkPassFrame* frame = rvk_pass_frame_require_active(pass);
   RvkPassInvoc* invoc = rvk_pass_invoc_require_active(pass);
 
-  RvkDescGroup descGroup = {0};
   for (u32 i = 0; i != count; ++i) {
     const RvkPassDraw* draw = &draws[i];
 
@@ -931,19 +901,10 @@ void rvk_pass_draw(
     if (gra->flags & RvkGraphicFlags_RequireDrawSet) {
       const RvkMesh* drawMesh = draw->drawMesh;
       rvk_pass_bind_draw(
-          pass,
-          frame,
-          invoc,
-          setup,
-          &descGroup,
-          gra,
-          draw->drawData,
-          drawMesh,
-          drawImg,
-          draw->drawSampler);
+          pass, frame, invoc, setup, gra, draw->drawData, drawMesh, drawImg, draw->drawSampler);
     }
 
-    rvk_graphic_bind(gra, pass->dev, pass, &descGroup, invoc->vkCmdBuf);
+    rvk_graphic_bind(gra, pass->dev, pass, &pass->descGroup, invoc->vkCmdBuf);
 
     const bool instReqData   = (gra->flags & RvkGraphicFlags_RequireInstanceSet) != 0;
     const u32  instBatchSize = rvk_pass_batch_size(pass, instReqData ? draw->instDataStride : 0);
@@ -967,12 +928,13 @@ void rvk_pass_draw(
         }
 #endif
         rvk_uniform_dynamic_bind(
-            frame->uniformPool, instBatchData, &descGroup, RvkGraphicSet_Instance);
+            frame->uniformPool, instBatchData, &pass->descGroup, RvkGraphicSet_Instance);
 
         instBatchData = rvk_uniform_next(frame->uniformPool, instBatchData);
       }
 
-      rvk_desc_group_flush(&descGroup, invoc->vkCmdBuf, gra->vkPipelineLayout);
+      rvk_desc_update_flush(&pass->descUpdates);
+      rvk_desc_group_flush(&pass->descGroup, invoc->vkCmdBuf, gra->vkPipelineLayout);
 
       if (draw->drawMesh || gra->mesh) {
         const u32 idxCount = draw->drawMesh ? draw->drawMesh->indexCount : gra->mesh->indexCount;
@@ -1010,4 +972,7 @@ void rvk_pass_end(RvkPass* pass, const RvkPassSetup* setup) {
     // When we're not storing the depth, the image's contents become undefined.
     rvk_image_transition_external(setup->attachDepth, RvkImagePhase_Undefined);
   }
+
+  rvk_desc_update_discard(&pass->descUpdates);
+  rvk_desc_group_discard(&pass->descGroup);
 }
