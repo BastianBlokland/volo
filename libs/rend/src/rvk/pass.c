@@ -883,7 +883,6 @@ void rvk_pass_draw(
   RvkPassInvoc* invoc = rvk_pass_invoc_require_active(pass);
 
   RvkDescGroup descGroup = {0};
-
   for (u32 i = 0; i != count; ++i) {
     const RvkPassDraw* draw = &draws[i];
 
@@ -929,9 +928,6 @@ void rvk_pass_draw(
     rvk_debug_label_begin(
         pass->dev, invoc->vkCmdBuf, geo_color_green, "draw_{}", fmt_text(gra->dbgName));
 
-    rvk_graphic_bind(gra, pass->dev, pass, &descGroup, invoc->vkCmdBuf);
-    rvk_desc_group_flush(&descGroup, invoc->vkCmdBuf, gra->vkPipelineLayout);
-
     if (gra->flags & RvkGraphicFlags_RequireDrawSet) {
       const RvkMesh* drawMesh = draw->drawMesh;
       rvk_pass_bind_draw(
@@ -945,8 +941,9 @@ void rvk_pass_draw(
           drawMesh,
           drawImg,
           draw->drawSampler);
-      rvk_desc_group_flush(&descGroup, invoc->vkCmdBuf, gra->vkPipelineLayout);
     }
+
+    rvk_graphic_bind(gra, pass->dev, pass, &descGroup, invoc->vkCmdBuf);
 
     const bool instReqData   = (gra->flags & RvkGraphicFlags_RequireInstanceSet) != 0;
     const u32  instBatchSize = rvk_pass_batch_size(pass, instReqData ? draw->instDataStride : 0);
@@ -971,10 +968,11 @@ void rvk_pass_draw(
 #endif
         rvk_uniform_dynamic_bind(
             frame->uniformPool, instBatchData, &descGroup, RvkGraphicSet_Instance);
-        rvk_desc_group_flush(&descGroup, invoc->vkCmdBuf, gra->vkPipelineLayout);
 
         instBatchData = rvk_uniform_next(frame->uniformPool, instBatchData);
       }
+
+      rvk_desc_group_flush(&descGroup, invoc->vkCmdBuf, gra->vkPipelineLayout);
 
       if (draw->drawMesh || gra->mesh) {
         const u32 idxCount = draw->drawMesh ? draw->drawMesh->indexCount : gra->mesh->indexCount;
