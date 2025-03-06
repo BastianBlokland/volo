@@ -8,8 +8,8 @@
 
 enum {
   RvkGraphicSet_Global   = 0,
-  RvkGraphicSet_Graphic  = 1,
-  RvkGraphicSet_Draw     = 2,
+  RvkGraphicSet_Draw     = 1,
+  RvkGraphicSet_Graphic  = 2,
   RvkGraphicSet_Instance = 3,
 };
 
