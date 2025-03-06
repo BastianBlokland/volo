@@ -921,6 +921,7 @@ void rvk_graphic_bind(
     const RvkGraphic* graphic,
     const RvkDevice*  dev,
     const RvkPass*    pass,
+    RvkDescGroup*     descGroup,
     VkCommandBuffer   vkCmdBuf) {
   (void)pass;
 #if VOLO_RVK_GRAPHIC_VALIDATE_BIND
@@ -931,9 +932,7 @@ void rvk_graphic_bind(
 
   rvk_call(dev, cmdBindPipeline, vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
 
-  RvkDescGroup descGroup = {0};
-  rvk_desc_group_bind(&descGroup, RvkGraphicSet_Graphic, graphic->graphicDescSet);
-  rvk_desc_group_flush(&descGroup, vkCmdBuf, graphic->vkPipelineLayout);
+  rvk_desc_group_bind(descGroup, RvkGraphicSet_Graphic, graphic->graphicDescSet);
 
   if (graphic->mesh) {
     rvk_mesh_bind(graphic->mesh, dev, vkCmdBuf);

@@ -53,4 +53,6 @@ void rvk_graphic_add_sampler(
 bool rvk_graphic_finalize(RvkGraphic*, const AssetGraphicComp*, RvkDevice*, const RvkPass*);
 
 bool rvk_graphic_is_ready(const RvkGraphic*, const RvkDevice*);
-void rvk_graphic_bind(const RvkGraphic*, const RvkDevice*, const RvkPass*, VkCommandBuffer);
+
+void rvk_graphic_bind(
+    const RvkGraphic*, const RvkDevice*, const RvkPass*, RvkDescGroup*, VkCommandBuffer);
