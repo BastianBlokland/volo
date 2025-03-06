@@ -94,8 +94,11 @@ void rvk_desc_update_flush(RvkDescUpdateBatch*);
 // clang-format on
 
 typedef struct sRvkDescGroup {
-  RvkDescSet dirtySets[4]; // NOTE: Same pool only.
+  RvkDescSet dirtySets[4];  // NOTE: Same pool only.
+  u32        dynOffsets[4]; // NOTE: Can be expanded to support multiple offsets per set if needed.
+  u8         dynOffsetsMask;
 } RvkDescGroup;
 
 void rvk_desc_group_bind(RvkDescGroup*, u32 setIndex, RvkDescSet);
+void rvk_desc_group_bind_dyn(RvkDescGroup*, u32 setIndex, RvkDescSet, u32 dynOffset);
 void rvk_desc_group_flush(RvkDescGroup*, VkCommandBuffer, VkPipelineLayout);

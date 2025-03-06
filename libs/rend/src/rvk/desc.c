@@ -672,6 +672,13 @@ void rvk_desc_group_bind(RvkDescGroup* group, const u32 setIndex, const RvkDescS
   group->dirtySets[setIndex] = set;
 }
 
+void rvk_desc_group_bind_dyn(
+    RvkDescGroup* group, const u32 setIndex, const RvkDescSet set, const u32 dynOffset) {
+  group->dirtySets[setIndex]  = set;
+  group->dynOffsets[setIndex] = dynOffset;
+  group->dynOffsetsMask |= 1 << setIndex;
+}
+
 void rvk_desc_group_flush(
     RvkDescGroup* group, const VkCommandBuffer vkCmdBuf, const VkPipelineLayout vkPipelineLayout) {
   RvkDescPool* pool = null;
@@ -683,6 +690,9 @@ void rvk_desc_group_flush(
     diag_assert(!pool || pool == dirtySet.chunk->pool);
     pool = dirtySet.chunk->pool;
 
+    const bool hasDynOffset = (group->dynOffsetsMask & (1 << setIndex)) != 0;
+    const u32  dynOffset    = group->dynOffsets[setIndex];
+
     const VkDescriptorSet vkDescSet = rvk_desc_set_vkset(dirtySet);
     rvk_call(
         pool->dev,
@@ -693,8 +703,10 @@ void rvk_desc_group_flush(
         setIndex,
         1,
         &vkDescSet,
-        0,
-        null);
+        hasDynOffset,
+        hasDynOffset ? &dynOffset : null);
   }
+
   mem_set(array_mem(group->dirtySets), 0);
+  group->dynOffsetsMask = 0;
 }
