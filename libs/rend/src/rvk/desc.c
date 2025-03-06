@@ -668,6 +668,8 @@ void rvk_desc_update_flush(RvkDescUpdateBatch* batch) {
   rvk_call(dev, updateDescriptorSets, dev->vkDev, writesCount, writes, 0, null);
 }
 
+void rvk_desc_update_discard(RvkDescUpdateBatch* batch) { batch->count = 0; }
+
 void rvk_desc_group_bind(RvkDescGroup* group, const u32 setIndex, const RvkDescSet set) {
   group->dirtySets[setIndex] = set;
 }
@@ -707,6 +709,11 @@ void rvk_desc_group_flush(
         hasDynOffset ? &dynOffset : null);
   }
 
+  mem_set(array_mem(group->dirtySets), 0);
+  group->dynOffsetsMask = 0;
+}
+
+void rvk_desc_group_discard(RvkDescGroup* group) {
   mem_set(array_mem(group->dirtySets), 0);
   group->dynOffsetsMask = 0;
 }

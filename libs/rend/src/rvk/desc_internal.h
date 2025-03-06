@@ -90,6 +90,7 @@ typedef struct sRvkDescUpdateBatch {
 void rvk_desc_update_buffer(RvkDescUpdateBatch*, RvkDescSet, u32 binding, const RvkBuffer*, u32 offset, u32 size);
 void rvk_desc_update_sampler(RvkDescUpdateBatch*, RvkDescSet, u32 binding, const RvkImage*, RvkSamplerSpec);
 void rvk_desc_update_flush(RvkDescUpdateBatch*);
+void rvk_desc_update_discard(RvkDescUpdateBatch*);
 
 // clang-format on
 
@@ -102,3 +103,4 @@ typedef struct sRvkDescGroup {
 void rvk_desc_group_bind(RvkDescGroup*, u32 setIndex, RvkDescSet);
 void rvk_desc_group_bind_dyn(RvkDescGroup*, u32 setIndex, RvkDescSet, u32 dynOffset);
 void rvk_desc_group_flush(RvkDescGroup*, VkCommandBuffer, VkPipelineLayout);
+void rvk_desc_group_discard(RvkDescGroup*);
