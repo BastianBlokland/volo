@@ -21,8 +21,8 @@
 
 static const u8 g_rendSupportedShaderSets[] = {
     RvkGraphicSet_Global,
-    RvkGraphicSet_Graphic,
     RvkGraphicSet_Draw,
+    RvkGraphicSet_Graphic,
     RvkGraphicSet_Instance,
 };
 
@@ -41,6 +41,12 @@ static const u32 g_rendSupportedGlobalBindings[rvk_desc_bindings_max] = {
     rend_image_sampler_2d_mask,
 };
 
+static const u32 g_rendSupportedDrawBindings[rvk_desc_bindings_max] = {
+    rend_uniform_buffer_mask,
+    rend_storage_buffer_mask,
+    rend_image_sampler_mask,
+};
+
 static const u32 g_rendSupportedGraphicBindings[rvk_desc_bindings_max] = {
     rend_storage_buffer_mask,
     rend_image_sampler_mask,
@@ -48,12 +54,6 @@ static const u32 g_rendSupportedGraphicBindings[rvk_desc_bindings_max] = {
     rend_image_sampler_mask,
     rend_image_sampler_mask,
     rend_image_sampler_mask,
-    rend_image_sampler_mask,
-};
-
-static const u32 g_rendSupportedDrawBindings[rvk_desc_bindings_max] = {
-    rend_uniform_buffer_mask,
-    rend_storage_buffer_mask,
     rend_image_sampler_mask,
 };
 
@@ -172,8 +172,8 @@ rvk_pipeline_layout_create(const RvkGraphic* graphic, RvkDevice* dev, const RvkP
   const RvkDescMeta           instanceDescMeta    = rvk_pass_meta_instance(pass);
   const VkDescriptorSetLayout descriptorLayouts[] = {
       rvk_desc_vklayout(dev->descPool, &globalDescMeta),
-      rvk_desc_set_vklayout(graphic->graphicDescSet),
       rvk_desc_vklayout(dev->descPool, &graphic->drawDescMeta),
+      rvk_desc_set_vklayout(graphic->graphicDescSet),
       rvk_desc_vklayout(dev->descPool, &instanceDescMeta),
   };
   const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
@@ -815,6 +815,15 @@ bool rvk_graphic_finalize(
   }
   gra->drawDescMeta = drawDescMeta;
 
+  // Finalize graphic set bindings.
+  const RvkDescMeta graphicDescMeta = rvk_graphic_desc_meta(gra, RvkGraphicSet_Graphic);
+  if (UNLIKELY(!rend_graphic_validate_set(
+          gra, RvkGraphicSet_Graphic, &graphicDescMeta, g_rendSupportedGraphicBindings))) {
+    gra->flags |= RvkGraphicFlags_Invalid;
+  }
+  gra->graphicDescSet = rvk_desc_alloc(dev->descPool, &graphicDescMeta);
+  rvk_desc_set_name(gra->graphicDescSet, gra->dbgName);
+
   // Finalize instance set bindings.
   const RvkDescMeta instanceDescMeta = rvk_graphic_desc_meta(gra, RvkGraphicSet_Instance);
   if (UNLIKELY(!rend_graphic_validate_set(
@@ -824,15 +833,6 @@ bool rvk_graphic_finalize(
   if (!rvk_desc_empty(&instanceDescMeta)) {
     gra->flags |= RvkGraphicFlags_RequireInstanceSet;
   }
-
-  // Finalize graphic set bindings.
-  const RvkDescMeta graphicDescMeta = rvk_graphic_desc_meta(gra, RvkGraphicSet_Graphic);
-  if (UNLIKELY(!rend_graphic_validate_set(
-          gra, RvkGraphicSet_Graphic, &graphicDescMeta, g_rendSupportedGraphicBindings))) {
-    gra->flags |= RvkGraphicFlags_Invalid;
-  }
-  gra->graphicDescSet = rvk_desc_alloc(dev->descPool, &graphicDescMeta);
-  rvk_desc_set_name(gra->graphicDescSet, gra->dbgName);
 
   // Attach mesh.
   if (graphicDescMeta.bindings[0] == RvkDescKind_StorageBuffer) {
@@ -921,6 +921,7 @@ void rvk_graphic_bind(
     const RvkGraphic* graphic,
     const RvkDevice*  dev,
     const RvkPass*    pass,
+    RvkDescGroup*     descGroup,
     VkCommandBuffer   vkCmdBuf) {
   (void)pass;
 #if VOLO_RVK_GRAPHIC_VALIDATE_BIND
@@ -931,18 +932,7 @@ void rvk_graphic_bind(
 
   rvk_call(dev, cmdBindPipeline, vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
 
-  const VkDescriptorSet vkGraphicDescSet = rvk_desc_set_vkset(graphic->graphicDescSet);
-  rvk_call(
-      dev,
-      cmdBindDescriptorSets,
-      vkCmdBuf,
-      VK_PIPELINE_BIND_POINT_GRAPHICS,
-      graphic->vkPipelineLayout,
-      RvkGraphicSet_Graphic,
-      1,
-      &vkGraphicDescSet,
-      0,
-      null);
+  rvk_desc_group_bind(descGroup, RvkGraphicSet_Graphic, graphic->graphicDescSet);
 
   if (graphic->mesh) {
     rvk_mesh_bind(graphic->mesh, dev, vkCmdBuf);

@@ -8,8 +8,8 @@
 
 enum {
   RvkGraphicSet_Global   = 0,
-  RvkGraphicSet_Graphic  = 1,
-  RvkGraphicSet_Draw     = 2,
+  RvkGraphicSet_Draw     = 1,
+  RvkGraphicSet_Graphic  = 2,
   RvkGraphicSet_Instance = 3,
 };
 
@@ -53,4 +53,6 @@ void rvk_graphic_add_sampler(
 bool rvk_graphic_finalize(RvkGraphic*, const AssetGraphicComp*, RvkDevice*, const RvkPass*);
 
 bool rvk_graphic_is_ready(const RvkGraphic*, const RvkDevice*);
-void rvk_graphic_bind(const RvkGraphic*, const RvkDevice*, const RvkPass*, VkCommandBuffer);
+
+void rvk_graphic_bind(
+    const RvkGraphic*, const RvkDevice*, const RvkPass*, RvkDescGroup*, VkCommandBuffer);

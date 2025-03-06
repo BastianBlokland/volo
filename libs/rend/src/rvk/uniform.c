@@ -65,18 +65,15 @@ static RvkUniformChunk* rvk_uniform_chunk(RvkUniformPool* uni, const u32 chunkId
   return dynarray_at_t(&uni->chunks, chunkIdx, RvkUniformChunk);
 }
 
-NO_INLINE_HINT static void rvk_uniform_dynamic_init(RvkUniformPool* uni, RvkUniformChunk* chunk) {
+NO_INLINE_HINT static void rvk_uniform_dynamic_init(
+    RvkUniformPool* uni, RvkUniformChunk* chunk, RvkDescUpdateBatch* descUpdates) {
   diag_assert(!rvk_desc_valid(chunk->dynamicSet));
 
   const RvkDescMeta meta = (RvkDescMeta){.bindings[0] = RvkDescKind_UniformBufferDynamic};
   chunk->dynamicSet      = rvk_desc_alloc(uni->dev->descPool, &meta);
   rvk_desc_set_name(chunk->dynamicSet, string_lit("dynamic_uniform"));
 
-  RvkDescUpdateBatch descBatch;
-  descBatch.count = 0;
-
-  rvk_desc_update_buffer(&descBatch, chunk->dynamicSet, 0, &chunk->buffer, 0, uni->dataSizeMax);
-  rvk_desc_update_flush(&descBatch);
+  rvk_desc_update_buffer(descUpdates, chunk->dynamicSet, 0, &chunk->buffer, 0, uni->dataSizeMax);
 }
 
 RvkUniformPool* rvk_uniform_pool_create(RvkDevice* dev) {
@@ -223,28 +220,16 @@ void rvk_uniform_attach(
 }
 
 void rvk_uniform_dynamic_bind(
-    RvkUniformPool*  uni,
-    RvkUniformHandle handle,
-    VkCommandBuffer  vkCmdBuf,
-    VkPipelineLayout vkPipelineLayout,
-    const u32        set) {
+    RvkUniformPool*     uni,
+    RvkUniformHandle    handle,
+    RvkDescUpdateBatch* descUpdates,
+    RvkDescGroup*       tgtGroup,
+    const u32           tgtSet) {
 
   const RvkUniformEntry* entry = rvk_uniform_entry(uni, handle);
   RvkUniformChunk*       chunk = rvk_uniform_chunk(uni, entry->chunkIdx);
   if (UNLIKELY(!rvk_desc_valid(chunk->dynamicSet))) {
-    rvk_uniform_dynamic_init(uni, chunk);
+    rvk_uniform_dynamic_init(uni, chunk, descUpdates);
   }
-  const VkDescriptorSet descSets[]       = {rvk_desc_set_vkset(chunk->dynamicSet)};
-  const u32             dynamicOffsets[] = {entry->offset};
-  rvk_call(
-      uni->dev,
-      cmdBindDescriptorSets,
-      vkCmdBuf,
-      VK_PIPELINE_BIND_POINT_GRAPHICS,
-      vkPipelineLayout,
-      set,
-      array_elems(descSets),
-      descSets,
-      array_elems(dynamicOffsets),
-      dynamicOffsets);
+  rvk_desc_group_bind_dyn(tgtGroup, tgtSet, chunk->dynamicSet, entry->offset);
 }

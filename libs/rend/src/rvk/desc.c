@@ -667,3 +667,86 @@ void rvk_desc_update_flush(RvkDescUpdateBatch* batch) {
   batch->count = 0;
   rvk_call(dev, updateDescriptorSets, dev->vkDev, writesCount, writes, 0, null);
 }
+
+void rvk_desc_update_discard(RvkDescUpdateBatch* batch) { batch->count = 0; }
+
+void rvk_desc_group_bind(RvkDescGroup* group, const u32 setIndex, const RvkDescSet set) {
+  group->dirtySets[setIndex] = set;
+}
+
+void rvk_desc_group_bind_dyn(
+    RvkDescGroup* group, const u32 setIndex, const RvkDescSet set, const u32 dynOffset) {
+  group->dirtySets[setIndex]  = set;
+  group->dynOffsets[setIndex] = dynOffset;
+  group->dynOffsetsMask |= 1 << setIndex;
+}
+
+void rvk_desc_group_flush(
+    RvkDescGroup* group, const VkCommandBuffer vkCmdBuf, const VkPipelineLayout vkPipelineLayout) {
+
+  enum { MaxDescSets = array_elems(group->dirtySets) };
+
+  VkDescriptorSet vkDescSets[MaxDescSets];
+  u32             vkDescSetCount;
+
+  u32 dynOffsets[MaxDescSets];
+  u32 dynOffsetCount;
+
+  RvkDescPool* pool = null;
+  for (u32 setIndex = 0; setIndex != MaxDescSets;) {
+    const RvkDescSet dirtySet = group->dirtySets[setIndex];
+    if (!rvk_desc_valid(dirtySet)) {
+      ++setIndex;
+      continue;
+    }
+    diag_assert(!pool || pool == dirtySet.chunk->pool);
+    pool = dirtySet.chunk->pool;
+
+    vkDescSets[0]  = rvk_desc_set_vkset(dirtySet);
+    vkDescSetCount = 1;
+
+    dynOffsetCount = 0;
+    if (group->dynOffsetsMask & (1 << setIndex)) {
+      dynOffsets[dynOffsetCount++] = group->dynOffsets[setIndex];
+    }
+
+    // Batch all consecutive dirty sets into a single bind.
+    for (;;) {
+      const u32 nextSetIndex = setIndex + vkDescSetCount;
+      if (nextSetIndex >= MaxDescSets) {
+        break;
+      }
+      const RvkDescSet nextDirtySet = group->dirtySets[nextSetIndex];
+      if (!rvk_desc_valid(nextDirtySet)) {
+        break;
+      }
+      vkDescSets[vkDescSetCount++] = rvk_desc_set_vkset(nextDirtySet);
+
+      if (group->dynOffsetsMask & (1 << nextSetIndex)) {
+        dynOffsets[dynOffsetCount++] = group->dynOffsets[nextSetIndex];
+      }
+    }
+
+    rvk_call(
+        pool->dev,
+        cmdBindDescriptorSets,
+        vkCmdBuf,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        vkPipelineLayout,
+        setIndex,
+        vkDescSetCount,
+        vkDescSets,
+        dynOffsetCount,
+        dynOffsets);
+
+    setIndex += vkDescSetCount;
+  }
+
+  mem_set(array_mem(group->dirtySets), 0);
+  group->dynOffsetsMask = 0;
+}
+
+void rvk_desc_group_discard(RvkDescGroup* group) {
+  mem_set(array_mem(group->dirtySets), 0);
+  group->dynOffsetsMask = 0;
+}
