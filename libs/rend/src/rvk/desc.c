@@ -667,3 +667,34 @@ void rvk_desc_update_flush(RvkDescUpdateBatch* batch) {
   batch->count = 0;
   rvk_call(dev, updateDescriptorSets, dev->vkDev, writesCount, writes, 0, null);
 }
+
+void rvk_desc_group_bind(RvkDescGroup* group, const u32 setIndex, const RvkDescSet set) {
+  group->dirtySets[setIndex] = set;
+}
+
+void rvk_desc_group_flush(
+    RvkDescGroup* group, const VkCommandBuffer vkCmdBuf, const VkPipelineLayout vkPipelineLayout) {
+  RvkDescPool* pool = null;
+  for (u32 setIndex = 0; setIndex != array_elems(group->dirtySets); ++setIndex) {
+    RvkDescSet dirtySet = group->dirtySets[setIndex];
+    if (!rvk_desc_valid(dirtySet)) {
+      continue;
+    }
+    diag_assert(!pool || pool == dirtySet.chunk->pool);
+    pool = dirtySet.chunk->pool;
+
+    const VkDescriptorSet vkDescSet = rvk_desc_set_vkset(dirtySet);
+    rvk_call(
+        pool->dev,
+        cmdBindDescriptorSets,
+        vkCmdBuf,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        vkPipelineLayout,
+        setIndex,
+        1,
+        &vkDescSet,
+        0,
+        null);
+  }
+  mem_set(array_mem(group->dirtySets), 0);
+}

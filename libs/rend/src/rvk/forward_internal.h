@@ -14,6 +14,7 @@ typedef struct sRvkAttachSpec      RvkAttachSpec;
 typedef struct sRvkBuffer          RvkBuffer;
 typedef struct sRvkCanvas          RvkCanvas;
 typedef struct sRvkDebug           RvkDebug;
+typedef struct sRvkDescGroup       RvkDescGroup;
 typedef struct sRvkDescMeta        RvkDescMeta;
 typedef struct sRvkDescPool        RvkDescPool;
 typedef struct sRvkDescSet         RvkDescSet;
