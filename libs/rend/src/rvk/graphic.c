@@ -17,7 +17,7 @@
 #include "shader_internal.h"
 #include "texture_internal.h"
 
-#define VOLO_RVK_GRAPHIC_VALIDATE_BIND 1
+#define VOLO_RVK_GRAPHIC_VALIDATE_BIND 0
 
 static const u8 g_rendSupportedShaderSets[] = {
     RvkGraphicSet_Global,
