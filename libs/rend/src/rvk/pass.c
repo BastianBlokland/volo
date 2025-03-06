@@ -441,18 +441,9 @@ static void rvk_pass_bind_global(
   if (invoc->globalBoundMask) {
     rvk_desc_update_flush(&descBatch);
 
-    const VkDescriptorSet vkDescSets[] = {rvk_desc_set_vkset(globalDescSet)};
-    rvk_call(
-        pass->dev,
-        cmdBindDescriptorSets,
-        invoc->vkCmdBuf,
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        pass->globalPipelineLayout,
-        RvkGraphicSet_Global,
-        array_elems(vkDescSets),
-        vkDescSets,
-        0,
-        null);
+    RvkDescGroup descGroup = {0};
+    rvk_desc_group_bind(&descGroup, RvkGraphicSet_Global, globalDescSet);
+    rvk_desc_group_flush(&descGroup, invoc->vkCmdBuf, pass->globalPipelineLayout);
   }
 }
 
@@ -495,18 +486,9 @@ static void rvk_pass_bind_draw(
 
   rvk_desc_update_flush(&descBatch);
 
-  const VkDescriptorSet vkDescSets[] = {rvk_desc_set_vkset(descSet)};
-  rvk_call(
-      pass->dev,
-      cmdBindDescriptorSets,
-      invoc->vkCmdBuf,
-      VK_PIPELINE_BIND_POINT_GRAPHICS,
-      gra->vkPipelineLayout,
-      RvkGraphicSet_Draw,
-      array_elems(vkDescSets),
-      vkDescSets,
-      0,
-      null);
+  RvkDescGroup descGroup = {0};
+  rvk_desc_group_bind(&descGroup, RvkGraphicSet_Draw, descSet);
+  rvk_desc_group_flush(&descGroup, invoc->vkCmdBuf, gra->vkPipelineLayout);
 
   if (mesh) {
     rvk_mesh_bind(mesh, pass->dev, invoc->vkCmdBuf);

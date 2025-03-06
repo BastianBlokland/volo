@@ -931,18 +931,9 @@ void rvk_graphic_bind(
 
   rvk_call(dev, cmdBindPipeline, vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, graphic->vkPipeline);
 
-  const VkDescriptorSet vkGraphicDescSet = rvk_desc_set_vkset(graphic->graphicDescSet);
-  rvk_call(
-      dev,
-      cmdBindDescriptorSets,
-      vkCmdBuf,
-      VK_PIPELINE_BIND_POINT_GRAPHICS,
-      graphic->vkPipelineLayout,
-      RvkGraphicSet_Graphic,
-      1,
-      &vkGraphicDescSet,
-      0,
-      null);
+  RvkDescGroup descGroup = {0};
+  rvk_desc_group_bind(&descGroup, RvkGraphicSet_Graphic, graphic->graphicDescSet);
+  rvk_desc_group_flush(&descGroup, vkCmdBuf, graphic->vkPipelineLayout);
 
   if (graphic->mesh) {
     rvk_mesh_bind(graphic->mesh, dev, vkCmdBuf);
