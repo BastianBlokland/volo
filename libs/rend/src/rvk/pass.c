@@ -958,12 +958,11 @@ void rvk_pass_draw(
               fmt_int(dataSizeActual));
         }
 #endif
+        RvkDescGroup descGroup = {0};
         rvk_uniform_dynamic_bind(
-            frame->uniformPool,
-            instBatchData,
-            invoc->vkCmdBuf,
-            gra->vkPipelineLayout,
-            RvkGraphicSet_Instance);
+            frame->uniformPool, instBatchData, &descGroup, RvkGraphicSet_Instance);
+        rvk_desc_group_flush(&descGroup, invoc->vkCmdBuf, gra->vkPipelineLayout);
+
         instBatchData = rvk_uniform_next(frame->uniformPool, instBatchData);
       }
 

@@ -223,19 +223,12 @@ void rvk_uniform_attach(
 }
 
 void rvk_uniform_dynamic_bind(
-    RvkUniformPool*  uni,
-    RvkUniformHandle handle,
-    VkCommandBuffer  vkCmdBuf,
-    VkPipelineLayout vkPipelineLayout,
-    const u32        set) {
+    RvkUniformPool* uni, RvkUniformHandle handle, RvkDescGroup* tgtGroup, const u32 tgtSet) {
 
   const RvkUniformEntry* entry = rvk_uniform_entry(uni, handle);
   RvkUniformChunk*       chunk = rvk_uniform_chunk(uni, entry->chunkIdx);
   if (UNLIKELY(!rvk_desc_valid(chunk->dynamicSet))) {
     rvk_uniform_dynamic_init(uni, chunk);
   }
-
-  RvkDescGroup descGroup = {0};
-  rvk_desc_group_bind_dyn(&descGroup, set, chunk->dynamicSet, entry->offset);
-  rvk_desc_group_flush(&descGroup, vkCmdBuf, vkPipelineLayout);
+  rvk_desc_group_bind_dyn(tgtGroup, tgtSet, chunk->dynamicSet, entry->offset);
 }
