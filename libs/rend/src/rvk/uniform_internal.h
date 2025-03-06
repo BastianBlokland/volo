@@ -31,4 +31,4 @@ void rvk_uniform_attach(
  * Pre-condition: Given set needs to only require a single 'UniformBufferDynamic' at binding 0.
  */
 void rvk_uniform_dynamic_bind(
-    RvkUniformPool*, RvkUniformHandle, RvkDescGroup* tgtGroup, u32 tgtSet);
+    RvkUniformPool*, RvkUniformHandle, RvkDescUpdateBatch*, RvkDescGroup* tgtGroup, u32 tgtSet);
