@@ -141,7 +141,7 @@ typedef struct {
 typedef struct {
   DynLib* lib;
   // clang-format off
-  int         (SYS_DECL* x11_setup_xkb_extension)(xcb_connection_t*, u16 xkbMajor, u16 xkbMinor, i32 flags, u16* xkbMajorOut, u16* xkbMinorOut, u8* baseEventOut, u8* baseErrorOut);
+  int         (SYS_DECL* setup_xkb_extension)(xcb_connection_t*, u16 xkbMajor, u16 xkbMinor, i32 flags, u16* xkbMajorOut, u16* xkbMinorOut, u8* baseEventOut, u8* baseErrorOut);
   XkbContext* (SYS_DECL* context_new)(i32 flags);
   void        (SYS_DECL* context_unref)(XkbContext*);
   XcbCookie   (SYS_DECL* per_client_flags_unchecked)(xcb_connection_t*, u16 deviceSpec, u32 change, u32 value, u32 ctrlsToChange, u32 autoCtrls, u32 autoCtrlsValues);
@@ -627,7 +627,7 @@ static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
     }                                                                                              \
   } while (false)
 
-  XKB_LOAD_SYM(xkb, x11_setup_xkb_extension);
+  XKB_LOAD_SYM(xkb_x11, setup_xkb_extension);
   XKB_LOAD_SYM(xkb, context_new);
   XKB_LOAD_SYM(xkb, context_unref);
   XKB_LOAD_SYM(xcb_xkb, per_client_flags_unchecked);
@@ -638,7 +638,7 @@ static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
 
   u16       versionMajor;
   u16       versionMinor;
-  const int setupRes = out->x11_setup_xkb_extension(
+  const int setupRes = out->setup_xkb_extension(
       pal->xcbCon, 1, 0, 0, &versionMajor, &versionMinor, &pal->xkbFirstEvent, &pal->xkbFirstError);
 
   if (UNLIKELY(!setupRes)) {
