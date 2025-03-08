@@ -30,25 +30,25 @@ void SYS_DECL free(void*); // free from stdlib, xcb allocates various structures
 
 #define xcb_call_void(_CON_, _FUNC_, _ERR_) _FUNC_##_reply((_CON_), _FUNC_(_CON_), (_ERR_))
 
-typedef unsigned int           XcbCookie;
+typedef struct sXcbConnection  XcbConnection;
 typedef struct sXcbPictFormats XcbPictFormats;
 typedef struct sXcbSetup       XcbSetup;
-typedef struct sXcbConnection  XcbConnection;
 typedef struct XcbExtension    XcbExtension;
+typedef u32                    XcbAtom;
+typedef u32                    XcbColormap;
 typedef u32                    XcbCursor;
 typedef u32                    XcbDrawable;
+typedef u32                    XcbDrawable;
+typedef u32                    XcbEventMask;
+typedef u32                    XcbGcContext;
 typedef u32                    XcbPictFormat;
 typedef u32                    XcbPicture;
-typedef u32                    XcbTimestamp;
-typedef u32                    XcbDrawable;
-typedef u32                    XcbWindow;
-typedef u32                    XcbAtom;
-typedef u32                    XcbGcContext;
 typedef u32                    XcbPixmap;
-typedef u32                    XcbColormap;
+typedef u32                    XcbTimestamp;
 typedef u32                    XcbVisualId;
-typedef u32                    XcbEventMask;
+typedef u32                    XcbWindow;
 typedef u8                     XcbButton;
+typedef unsigned int           XcbCookie;
 
 typedef struct sXkbContext XkbContext;
 typedef struct sXkbKeyMap  XkbKeyMap;
@@ -351,72 +351,72 @@ typedef struct {
 typedef struct {
   DynLib* lib;
   // clang-format off
-  XcbConnection*          (SYS_DECL* connect)(const char* displayName, int* screenOut);
-  void                    (SYS_DECL* disconnect)(XcbConnection*);
-  int                     (SYS_DECL* flush)(XcbConnection*);
-  u32                     (SYS_DECL* get_maximum_request_length)(XcbConnection*);
-  const XcbSetup*         (SYS_DECL* get_setup)(XcbConnection*);
-  XcbScreenItr            (SYS_DECL* setup_roots_iterator)(const XcbSetup*);
-  XcbCookie               (SYS_DECL* intern_atom)(XcbConnection*, u8 onlyIfExists, u16 nameLen, const char* name);
-  XcbAtomData*            (SYS_DECL* intern_atom_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
-  int                     (SYS_DECL* get_file_descriptor)(XcbConnection*);
-  int                     (SYS_DECL* connection_has_error)(XcbConnection*);
-  XcbGenericEvent*        (SYS_DECL* poll_for_event)(XcbConnection*);
   const XcbExtensionData* (SYS_DECL* get_extension_data)(XcbConnection*, XcbExtension*);
-  XcbCookie               (SYS_DECL* send_event)(XcbConnection*, u8 propagate, XcbWindow destination, u32 eventMask, const char* event);
-  XcbCookie               (SYS_DECL* convert_selection)(XcbConnection*, XcbWindow requestor, XcbAtom selection, XcbAtom target, XcbAtom property, XcbTimestamp time);
+  const XcbSetup*         (SYS_DECL* get_setup)(XcbConnection*);
+  int                     (SYS_DECL* connection_has_error)(XcbConnection*);
+  int                     (SYS_DECL* flush)(XcbConnection*);
+  int                     (SYS_DECL* get_file_descriptor)(XcbConnection*);
   u32                     (SYS_DECL* generate_id)(XcbConnection*);
+  u32                     (SYS_DECL* get_maximum_request_length)(XcbConnection*);
+  void                    (SYS_DECL* disconnect)(XcbConnection*);
+  void*                   (SYS_DECL* get_property_value)(const XcbPropertyData*);
+  XcbAtomData*            (SYS_DECL* intern_atom_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
+  XcbConnection*          (SYS_DECL* connect)(const char* displayName, int* screenOut);
+  XcbCookie               (SYS_DECL* change_property)(XcbConnection*, u8 mode, XcbWindow window, XcbAtom property, XcbAtom type, u8 format, u32 dataLen, const void* data);
+  XcbCookie               (SYS_DECL* change_window_attributes)(XcbConnection*, XcbWindow, u32 valueMask, const void* valueList);
+  XcbCookie               (SYS_DECL* configure_window)(XcbConnection*, XcbWindow, u16 valueMask, const void* valueList);
+  XcbCookie               (SYS_DECL* convert_selection)(XcbConnection*, XcbWindow requestor, XcbAtom selection, XcbAtom target, XcbAtom property, XcbTimestamp time);
+  XcbCookie               (SYS_DECL* create_gc)(XcbConnection*, XcbGcContext, XcbDrawable, u32 valueMask, const void* valueList);
+  XcbCookie               (SYS_DECL* create_pixmap)(XcbConnection*, u8 depth, XcbPixmap, XcbDrawable, u16 width, u16 height);
+  XcbCookie               (SYS_DECL* create_window)(XcbConnection*, u8 depth, XcbWindow wid, XcbWindow parent, i16 x, i16 y, u16 width, u16 height, u16 borderWidth, u16 class, XcbVisualId, u32 valueMask, const void* valueList);
   XcbCookie               (SYS_DECL* delete_property)(XcbConnection*, XcbWindow, XcbAtom property);
+  XcbCookie               (SYS_DECL* destroy_window)(XcbConnection*, XcbWindow);
   XcbCookie               (SYS_DECL* free_cursor)(XcbConnection*, XcbCursor);
   XcbCookie               (SYS_DECL* free_gc)(XcbConnection*, XcbGcContext);
   XcbCookie               (SYS_DECL* free_pixmap)(XcbConnection*, XcbPixmap);
-  XcbCookie               (SYS_DECL* put_image)(XcbConnection*, u8 format, XcbDrawable, XcbGcContext, u16 width, u16 height, i16 dstX, i16 dstY, u8 leftPad, u8 depth, u32 dataLen, const u8* data);
-  XcbCookie               (SYS_DECL* create_gc)(XcbConnection*, XcbGcContext, XcbDrawable, u32 valueMask, const void* valueList);
-  XcbCookie               (SYS_DECL* create_pixmap)(XcbConnection*, u8 depth, XcbPixmap, XcbDrawable, u16 width, u16 height);
-  XcbCookie               (SYS_DECL* query_pointer)(XcbConnection*, XcbWindow);
-  XcbPointerData*         (SYS_DECL* query_pointer_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
-  XcbCookie               (SYS_DECL* grab_pointer)(XcbConnection*, u8 ownerEvents, XcbWindow grabWindow, u16 eventMask, u8 pointerMode, u8 keyboardMode, XcbWindow confineTo, XcbCursor cursor, XcbTimestamp);
-  XcbCookie               (SYS_DECL* ungrab_pointer)(XcbConnection*, XcbTimestamp);
-  XcbCookie               (SYS_DECL* change_property)(XcbConnection*, u8 mode, XcbWindow window, XcbAtom property, XcbAtom type, u8 format, u32 dataLen, const void* data);
   XcbCookie               (SYS_DECL* get_property)(XcbConnection*, u8 del, XcbWindow window, XcbAtom property, XcbAtom type, u32 longOffset, u32 longLength);
-  XcbPropertyData*        (SYS_DECL* get_property_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
-  void*                   (SYS_DECL* get_property_value)(const XcbPropertyData*);
-  XcbCookie               (SYS_DECL* change_window_attributes)(XcbConnection*, XcbWindow, u32 valueMask, const void* valueList);
-  XcbCookie               (SYS_DECL* destroy_window)(XcbConnection*, XcbWindow);
-  XcbCookie               (SYS_DECL* configure_window)(XcbConnection*, XcbWindow, u16 valueMask, const void* valueList);
-  XcbCookie               (SYS_DECL* create_window)(XcbConnection*, u8 depth, XcbWindow wid, XcbWindow parent, i16 x, i16 y, u16 width, u16 height, u16 borderWidth, u16 class, XcbVisualId, u32 valueMask, const void* valueList);
+  XcbCookie               (SYS_DECL* grab_pointer)(XcbConnection*, u8 ownerEvents, XcbWindow grabWindow, u16 eventMask, u8 pointerMode, u8 keyboardMode, XcbWindow confineTo, XcbCursor cursor, XcbTimestamp);
+  XcbCookie               (SYS_DECL* intern_atom)(XcbConnection*, u8 onlyIfExists, u16 nameLen, const char* name);
   XcbCookie               (SYS_DECL* map_window)(XcbConnection*, XcbWindow);
-  XcbCookie               (SYS_DECL* warp_pointer)(XcbConnection*, XcbWindow srcWindow, XcbWindow dstWindow, i16 srcX, i16 srcY, u16 srcWidth, u16 srcHeight, i16 dstX, i16 dstY);
+  XcbCookie               (SYS_DECL* put_image)(XcbConnection*, u8 format, XcbDrawable, XcbGcContext, u16 width, u16 height, i16 dstX, i16 dstY, u8 leftPad, u8 depth, u32 dataLen, const u8* data);
+  XcbCookie               (SYS_DECL* query_pointer)(XcbConnection*, XcbWindow);
+  XcbCookie               (SYS_DECL* send_event)(XcbConnection*, u8 propagate, XcbWindow destination, u32 eventMask, const char* event);
   XcbCookie               (SYS_DECL* set_selection_owner)(XcbConnection*, XcbWindow owner, XcbAtom selection, XcbTimestamp);
+  XcbCookie               (SYS_DECL* ungrab_pointer)(XcbConnection*, XcbTimestamp);
+  XcbCookie               (SYS_DECL* warp_pointer)(XcbConnection*, XcbWindow srcWindow, XcbWindow dstWindow, i16 srcX, i16 srcY, u16 srcWidth, u16 srcHeight, i16 dstX, i16 dstY);
+  XcbGenericEvent*        (SYS_DECL* poll_for_event)(XcbConnection*);
+  XcbPointerData*         (SYS_DECL* query_pointer_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
+  XcbPropertyData*        (SYS_DECL* get_property_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
+  XcbScreenItr            (SYS_DECL* setup_roots_iterator)(const XcbSetup*);
   // clang-format on
 } Xcb;
 
 typedef struct {
   DynLib* lib;
   // clang-format off
-  int         (SYS_DECL* setup_xkb_extension)(XcbConnection*, u16 xkbMajor, u16 xkbMinor, i32 flags, u16* xkbMajorOut, u16* xkbMinorOut, u8* baseEventOut, u8* baseErrorOut);
-  XkbContext* (SYS_DECL* context_new)(i32 flags);
-  void        (SYS_DECL* context_unref)(XkbContext*);
-  XcbCookie   (SYS_DECL* per_client_flags_unchecked)(XcbConnection*, u16 deviceSpec, u32 change, u32 value, u32 ctrlsToChange, u32 autoCtrls, u32 autoCtrlsValues);
-  i32         (SYS_DECL* get_core_keyboard_device_id)(XcbConnection*);
-  XkbKeyMap*  (SYS_DECL* keymap_new_from_device)(XkbContext*, XcbConnection*, i32 deviceId, i32 flags);
-  void        (SYS_DECL* keymap_unref)(XkbKeyMap*);
-  u32         (SYS_DECL* keymap_num_layouts)(XkbKeyMap*);
   const char* (SYS_DECL* keymap_layout_get_name)(XkbKeyMap*, u32 index);
-  XkbState*   (SYS_DECL* state_new_from_device)(XkbKeyMap*, XcbConnection*, i32 deviceId);
-  void        (SYS_DECL* state_unref)(XkbState*);
+  i32         (SYS_DECL* get_core_keyboard_device_id)(XcbConnection*);
   i32         (SYS_DECL* state_key_get_utf8)(XkbState*, XkbKeycode, char* buffer, usize size);
   i32         (SYS_DECL* state_update_key)(XkbState*, XkbKeycode, XkbKeyDirection);
+  int         (SYS_DECL* setup_xkb_extension)(XcbConnection*, u16 xkbMajor, u16 xkbMinor, i32 flags, u16* xkbMajorOut, u16* xkbMinorOut, u8* baseEventOut, u8* baseErrorOut);
+  u32         (SYS_DECL* keymap_num_layouts)(XkbKeyMap*);
+  void        (SYS_DECL* context_unref)(XkbContext*);
+  void        (SYS_DECL* keymap_unref)(XkbKeyMap*);
+  void        (SYS_DECL* state_unref)(XkbState*);
+  XcbCookie   (SYS_DECL* per_client_flags_unchecked)(XcbConnection*, u16 deviceSpec, u32 change, u32 value, u32 ctrlsToChange, u32 autoCtrls, u32 autoCtrlsValues);
+  XkbContext* (SYS_DECL* context_new)(i32 flags);
+  XkbKeyMap*  (SYS_DECL* keymap_new_from_device)(XkbContext*, XcbConnection*, i32 deviceId, i32 flags);
+  XkbState*   (SYS_DECL* state_new_from_device)(XkbKeyMap*, XcbConnection*, i32 deviceId);
   // clang-format on
 } XcbXkbCommon;
 
 typedef struct {
   DynLib* lib;
   // clang-format off
-  XcbCookie (SYS_DECL* query_version)(XcbConnection*, u32 majorVersion, u32 minorVersion);
   void*     (SYS_DECL* query_version_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
-  XcbCookie (SYS_DECL* show_cursor)(XcbConnection*, XcbWindow);
   XcbCookie (SYS_DECL* hide_cursor)(XcbConnection*, XcbWindow);
+  XcbCookie (SYS_DECL* query_version)(XcbConnection*, u32 majorVersion, u32 minorVersion);
+  XcbCookie (SYS_DECL* show_cursor)(XcbConnection*, XcbWindow);
   // clang-format on
 } XcbXFixes;
 
@@ -424,21 +424,21 @@ typedef struct {
   DynLib*       lib;
   XcbExtension* id;
   // clang-format off
-  XcbCookie              (SYS_DECL* query_version)(XcbConnection*, u32 majorVersion, u32 minorVersion);
-  void*                  (SYS_DECL* query_version_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
-  XcbCookie              (SYS_DECL* get_screen_resources_current)(XcbConnection*, XcbWindow);
-  XRandrScreenResources* (SYS_DECL* get_screen_resources_current_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
-  XRandrOutput*          (SYS_DECL* get_screen_resources_current_outputs)(const XRandrScreenResources*);
-  int                    (SYS_DECL* get_screen_resources_current_outputs_length)(const XRandrScreenResources*);
-  XcbCookie              (SYS_DECL* get_output_info)(XcbConnection*, XRandrOutput, XcbTimestamp configTimestamp);
-  XRandrOutputInfo*      (SYS_DECL* get_output_info_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
-  u8*                    (SYS_DECL* get_output_info_name)(const XRandrOutputInfo*);
   int                    (SYS_DECL* get_output_info_name_length)(const XRandrOutputInfo*);
-  XRandrModeInfoIterator (SYS_DECL* get_screen_resources_current_modes_iterator)(const XRandrScreenResources*);
+  int                    (SYS_DECL* get_screen_resources_current_outputs_length)(const XRandrScreenResources*);
+  u8*                    (SYS_DECL* get_output_info_name)(const XRandrOutputInfo*);
   void                   (SYS_DECL* mode_info_next)(XRandrModeInfoIterator*);
+  void*                  (SYS_DECL* query_version_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
   XcbCookie              (SYS_DECL* get_crtc_info)(XcbConnection*, XRandrCrtc, XcbTimestamp configTimestamp);
-  XRandrCrtcInfo*        (SYS_DECL* get_crtc_info_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
+  XcbCookie              (SYS_DECL* get_output_info)(XcbConnection*, XRandrOutput, XcbTimestamp configTimestamp);
+  XcbCookie              (SYS_DECL* get_screen_resources_current)(XcbConnection*, XcbWindow);
+  XcbCookie              (SYS_DECL* query_version)(XcbConnection*, u32 majorVersion, u32 minorVersion);
   XcbCookie              (SYS_DECL* select_input)(XcbConnection*, XcbWindow, u16 enable);
+  XRandrCrtcInfo*        (SYS_DECL* get_crtc_info_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
+  XRandrModeInfoIterator (SYS_DECL* get_screen_resources_current_modes_iterator)(const XRandrScreenResources*);
+  XRandrOutput*          (SYS_DECL* get_screen_resources_current_outputs)(const XRandrScreenResources*);
+  XRandrOutputInfo*      (SYS_DECL* get_output_info_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
+  XRandrScreenResources* (SYS_DECL* get_screen_resources_current_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
   // clang-format on
 } XRandr;
 
@@ -446,15 +446,15 @@ typedef struct {
   DynLib*       lib;
   XcbExtension* id;
   // clang-format off
-  XcbCookie            (SYS_DECL* query_version)(XcbConnection*, u32 majorVersion, u32 minorVersion);
-  void*                (SYS_DECL* query_version_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
-  XcbCookie            (SYS_DECL* query_pict_formats)(XcbConnection*);
-  XcbPictFormats*      (SYS_DECL* query_pict_formats_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
-  XcbPictFormatInfoItr (SYS_DECL* query_pict_formats_formats_iterator)(const XcbPictFormats*);
   void                 (SYS_DECL* pictforminfo_next)(XcbPictFormatInfoItr*);
-  XcbCookie            (SYS_DECL* create_picture)(XcbConnection*, XcbPicture, XcbDrawable, XcbPictFormat, u32 valueMask, const void* valueList);
+  void*                (SYS_DECL* query_version_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
   XcbCookie            (SYS_DECL* create_cursor)(XcbConnection*, XcbCursor, XcbPicture, u16 x, u16 y);
+  XcbCookie            (SYS_DECL* create_picture)(XcbConnection*, XcbPicture, XcbDrawable, XcbPictFormat, u32 valueMask, const void* valueList);
   XcbCookie            (SYS_DECL* free_picture)(XcbConnection*, XcbPicture);
+  XcbCookie            (SYS_DECL* query_pict_formats)(XcbConnection*);
+  XcbCookie            (SYS_DECL* query_version)(XcbConnection*, u32 majorVersion, u32 minorVersion);
+  XcbPictFormatInfoItr (SYS_DECL* query_pict_formats_formats_iterator)(const XcbPictFormats*);
+  XcbPictFormats*      (SYS_DECL* query_pict_formats_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
   // clang-format on
 } XcbRender;
 
@@ -949,18 +949,18 @@ static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
     }                                                                                              \
   } while (false)
 
-  XKB_LOAD_SYM(xkb_x11, setup_xkb_extension);
-  XKB_LOAD_SYM(xkb, context_new);
-  XKB_LOAD_SYM(xkb, context_unref);
   XKB_LOAD_SYM(xcb_xkb, per_client_flags_unchecked);
   XKB_LOAD_SYM(xkb_x11, get_core_keyboard_device_id);
   XKB_LOAD_SYM(xkb_x11, keymap_new_from_device);
-  XKB_LOAD_SYM(xkb, keymap_unref);
-  XKB_LOAD_SYM(xkb, keymap_num_layouts);
-  XKB_LOAD_SYM(xkb, keymap_layout_get_name);
+  XKB_LOAD_SYM(xkb_x11, setup_xkb_extension);
   XKB_LOAD_SYM(xkb_x11, state_new_from_device);
-  XKB_LOAD_SYM(xkb, state_unref);
+  XKB_LOAD_SYM(xkb, context_new);
+  XKB_LOAD_SYM(xkb, context_unref);
+  XKB_LOAD_SYM(xkb, keymap_layout_get_name);
+  XKB_LOAD_SYM(xkb, keymap_num_layouts);
+  XKB_LOAD_SYM(xkb, keymap_unref);
   XKB_LOAD_SYM(xkb, state_key_get_utf8);
+  XKB_LOAD_SYM(xkb, state_unref);
   XKB_LOAD_SYM(xkb, state_update_key);
 
 #undef XKB_LOAD_SYM
@@ -1033,10 +1033,10 @@ static bool pal_xfixes_init(GapPal* pal, XcbXFixes* out) {
     }                                                                                              \
   } while (false)
 
-  XFIXES_LOAD_SYM(query_version);
-  XFIXES_LOAD_SYM(query_version_reply);
-  XFIXES_LOAD_SYM(show_cursor);
   XFIXES_LOAD_SYM(hide_cursor);
+  XFIXES_LOAD_SYM(query_version_reply);
+  XFIXES_LOAD_SYM(query_version);
+  XFIXES_LOAD_SYM(show_cursor);
 
 #undef XFIXES_LOAD_SYM
 
@@ -1075,21 +1075,21 @@ static bool pal_randr_init(GapPal* pal, XRandr* out, u8* firstEventOut) {
     }                                                                                              \
   } while (false)
 
-  XRANDR_LOAD_SYM(id);
-  XRANDR_LOAD_SYM(query_version);
-  XRANDR_LOAD_SYM(query_version_reply);
-  XRANDR_LOAD_SYM(get_screen_resources_current);
-  XRANDR_LOAD_SYM(get_screen_resources_current_reply);
-  XRANDR_LOAD_SYM(get_screen_resources_current_outputs);
-  XRANDR_LOAD_SYM(get_screen_resources_current_outputs_length);
-  XRANDR_LOAD_SYM(get_output_info);
-  XRANDR_LOAD_SYM(get_output_info_reply);
-  XRANDR_LOAD_SYM(get_output_info_name);
-  XRANDR_LOAD_SYM(get_output_info_name_length);
-  XRANDR_LOAD_SYM(get_screen_resources_current_modes_iterator);
-  XRANDR_LOAD_SYM(mode_info_next);
-  XRANDR_LOAD_SYM(get_crtc_info);
   XRANDR_LOAD_SYM(get_crtc_info_reply);
+  XRANDR_LOAD_SYM(get_crtc_info);
+  XRANDR_LOAD_SYM(get_output_info_name_length);
+  XRANDR_LOAD_SYM(get_output_info_name);
+  XRANDR_LOAD_SYM(get_output_info_reply);
+  XRANDR_LOAD_SYM(get_output_info);
+  XRANDR_LOAD_SYM(get_screen_resources_current_modes_iterator);
+  XRANDR_LOAD_SYM(get_screen_resources_current_outputs_length);
+  XRANDR_LOAD_SYM(get_screen_resources_current_outputs);
+  XRANDR_LOAD_SYM(get_screen_resources_current_reply);
+  XRANDR_LOAD_SYM(get_screen_resources_current);
+  XRANDR_LOAD_SYM(id);
+  XRANDR_LOAD_SYM(mode_info_next);
+  XRANDR_LOAD_SYM(query_version_reply);
+  XRANDR_LOAD_SYM(query_version);
   XRANDR_LOAD_SYM(select_input);
 
 #undef XRANDR_LOAD_SYM
@@ -1167,16 +1167,16 @@ static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
     }                                                                                              \
   } while (false)
 
-  XRENDER_LOAD_SYM(id);
-  XRENDER_LOAD_SYM(query_version);
-  XRENDER_LOAD_SYM(query_version_reply);
-  XRENDER_LOAD_SYM(query_pict_formats);
-  XRENDER_LOAD_SYM(query_pict_formats_reply);
-  XRENDER_LOAD_SYM(query_pict_formats_formats_iterator);
-  XRENDER_LOAD_SYM(pictforminfo_next);
-  XRENDER_LOAD_SYM(create_picture);
   XRENDER_LOAD_SYM(create_cursor);
+  XRENDER_LOAD_SYM(create_picture);
   XRENDER_LOAD_SYM(free_picture);
+  XRENDER_LOAD_SYM(id);
+  XRENDER_LOAD_SYM(pictforminfo_next);
+  XRENDER_LOAD_SYM(query_pict_formats_formats_iterator);
+  XRENDER_LOAD_SYM(query_pict_formats_reply);
+  XRENDER_LOAD_SYM(query_pict_formats);
+  XRENDER_LOAD_SYM(query_version_reply);
+  XRENDER_LOAD_SYM(query_version);
 
 #undef XRENDER_LOAD_SYM
 
