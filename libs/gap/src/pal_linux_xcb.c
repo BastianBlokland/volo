@@ -145,6 +145,12 @@ typedef struct {
 typedef struct {
   DynLib* lib;
   // clang-format off
+  // clang-format on
+} XcbXkbCommon;
+
+typedef struct {
+  DynLib* lib;
+  // clang-format off
   XcbCookie (SYS_DECL* query_version)(xcb_connection_t*, u32 majorVersion, u32 minorVersion);
   void*     (SYS_DECL* query_version_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
   XcbCookie (SYS_DECL* show_cursor)(xcb_connection_t*, xcb_window_t);
@@ -239,9 +245,10 @@ struct sGapPal {
 
   GapPalFlags flags;
 
-  XcbXFixes xfixes;
-  XcbRandr  xrandr;
-  XcbRender xrender;
+  XcbXkbCommon xkb;
+  XcbXFixes    xfixes;
+  XcbRandr     xrandr;
+  XcbRender    xrender;
 
   struct xkb_context* xkbContext;
   i32                 xkbDeviceId;
@@ -601,7 +608,14 @@ static void pal_xkb_enable_flag(GapPal* pal, const xcb_xkb_per_client_flag_t fla
  * Initialize the xkb extension, gives us additional control over keyboard input.
  * More info: https://en.wikipedia.org/wiki/X_keyboard_extension
  */
-static bool pal_xkb_init(GapPal* pal) {
+static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
+  DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxkbcommon-x11.so"), &out->lib);
+  if (loadRes != DynLibResult_Success) {
+    const String err = dynlib_result_str(loadRes);
+    log_w("Failed to load XkbCommon ('libxkbcommon-x11.so')", log_param("err", fmt_text(err)));
+    return false;
+  }
+
   xcb_generic_error_t* err = null;
 
   u16       versionMajor;
@@ -656,7 +670,7 @@ static bool pal_xfixes_init(GapPal* pal, XcbXFixes* out) {
   DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxcb-xfixes.so"), &out->lib);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
-    log_w("Failed to load xfixes library ('libxcb-xfixes.so')", log_param("err", fmt_text(err)));
+    log_w("Failed to load XFixes ('libxcb-xfixes.so')", log_param("err", fmt_text(err)));
     return false;
   }
 
@@ -698,7 +712,7 @@ static bool pal_randr_init(GapPal* pal, XcbRandr* out, u8* firstEventOut) {
   DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxcb-randr.so"), &out->lib);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
-    log_w("Failed to load XRandR library ('libxcb-randr.so')", log_param("err", fmt_text(err)));
+    log_w("Failed to load XRandR ('libxcb-randr.so')", log_param("err", fmt_text(err)));
     return false;
   }
 
@@ -790,7 +804,7 @@ static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
   DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxcb-render.so"), &out->lib);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
-    log_w("Failed to load xrender library ('libxcb-render.so')", log_param("err", fmt_text(err)));
+    log_w("Failed to load XRender ('libxcb-render.so')", log_param("err", fmt_text(err)));
     return false;
   }
 
@@ -840,7 +854,7 @@ static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
 }
 
 static void pal_init_extensions(GapPal* pal) {
-  if (pal_xkb_init(pal)) {
+  if (pal_xkb_init(pal, &pal->xkb)) {
     pal->extensions |= GapPalXcbExtFlags_Xkb;
   }
   if (pal_xfixes_init(pal, &pal->xfixes)) {
@@ -1305,6 +1319,9 @@ void gap_pal_destroy(GapPal* pal) {
   }
   dynarray_for_t(&pal->displays, GapPalDisplay, d) { string_maybe_free(g_allocHeap, d->name); }
 
+  if (pal->xkb.lib) {
+    dynlib_destroy(pal->xkb.lib);
+  }
   if (pal->xfixes.lib) {
     dynlib_destroy(pal->xfixes.lib);
   }
