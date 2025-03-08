@@ -602,7 +602,7 @@ static bool rend_canvas_paint_2d(
   rend_builder_phase_output(b); // Acquire swapchain image.
 
   RvkImage* swapchainImage = rend_builder_img_swapchain(b);
-  if (!swapchainImage) {
+  if (swapchainImage) {
     rend_builder_img_clear_color(b, swapchainImage, geo_color_black);
 
     rend_builder_pass_push(b, platform->passes[AssetGraphicPass_Post]);
