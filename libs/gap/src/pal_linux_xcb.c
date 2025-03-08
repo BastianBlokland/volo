@@ -148,6 +148,19 @@ typedef struct {
 typedef struct {
   DynLib* lib;
   // clang-format off
+  xcb_connection_t*         (SYS_DECL* connect)(const char* displayName, int* screenOut);
+  u32                       (SYS_DECL* get_maximum_request_length)(xcb_connection_t*);
+  const struct xcb_setup_t* (SYS_DECL* get_setup)(xcb_connection_t*);
+  xcb_screen_iterator_t     (SYS_DECL* setup_roots_iterator)(const struct xcb_setup_t*);
+  XcbCookie                 (SYS_DECL* intern_atom)(xcb_connection_t*, u8 onlyIfExists, u16 nameLen, const char* name);
+  xcb_intern_atom_reply_t*  (SYS_DECL* intern_atom_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  int                       (SYS_DECL* get_file_descriptor)(xcb_connection_t*);
+  // clang-format on
+} Xcb;
+
+typedef struct {
+  DynLib* lib;
+  // clang-format off
   int         (SYS_DECL* setup_xkb_extension)(xcb_connection_t*, u16 xkbMajor, u16 xkbMinor, i32 flags, u16* xkbMajorOut, u16* xkbMinorOut, u8* baseEventOut, u8* baseErrorOut);
   XkbContext* (SYS_DECL* context_new)(i32 flags);
   void        (SYS_DECL* context_unref)(XkbContext*);
@@ -261,6 +274,7 @@ struct sGapPal {
 
   GapPalFlags flags;
 
+  Xcb          xcb;
   XcbXkbCommon xkb;
   XcbXFixes    xfixes;
   XcbRandr     xrandr;
@@ -520,7 +534,7 @@ static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
 static xcb_atom_t pal_xcb_atom(GapPal* pal, const String name) {
   xcb_generic_error_t*     err = null;
   xcb_intern_atom_reply_t* reply =
-      pal_xcb_call(pal->xcbCon, xcb_intern_atom, &err, 0, name.size, name.ptr);
+      pal_xcb_call(pal->xcbCon, pal->xcb.intern_atom, &err, 0, name.size, name.ptr);
   if (UNLIKELY(err)) {
     diag_crash_msg(
         "Xcb failed to retrieve atom: {}, err: {}", fmt_text(name), fmt_int(err->error_code));
@@ -530,15 +544,40 @@ static xcb_atom_t pal_xcb_atom(GapPal* pal, const String name) {
   return result;
 }
 
-static void pal_xcb_connect(GapPal* pal) {
+static void pal_init_xcb(GapPal* pal, Xcb* out) {
+  DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxcb.so"), &out->lib);
+  if (loadRes != DynLibResult_Success) {
+    const String err = dynlib_result_str(loadRes);
+    diag_crash_msg("Failed to load Xcb ('libxcb.so'): {}", fmt_text(err));
+  }
+
+#define XCB_LOAD_SYM(_NAME_)                                                                       \
+  do {                                                                                             \
+    const String symName = string_lit("xcb_" #_NAME_);                                             \
+    out->_NAME_          = dynlib_symbol(out->lib, symName);                                       \
+    if (!out->_NAME_) {                                                                            \
+      diag_crash_msg("Xcb symbol '{}' missing", fmt_text(symName));                                \
+    }                                                                                              \
+  } while (false)
+
+  XCB_LOAD_SYM(connect);
+  XCB_LOAD_SYM(get_maximum_request_length);
+  XCB_LOAD_SYM(get_setup);
+  XCB_LOAD_SYM(setup_roots_iterator);
+  XCB_LOAD_SYM(intern_atom);
+  XCB_LOAD_SYM(intern_atom_reply);
+  XCB_LOAD_SYM(get_file_descriptor);
+
+#undef XCB_LOAD_SYM
+
   // Establish a connection with the x-server.
   int screen            = 0;
-  pal->xcbCon           = xcb_connect(null, &screen);
-  pal->maxRequestLength = xcb_get_maximum_request_length(pal->xcbCon) * 4;
+  pal->xcbCon           = out->connect(null, &screen);
+  pal->maxRequestLength = out->get_maximum_request_length(pal->xcbCon) * 4;
 
   // Find the screen for our connection.
-  const xcb_setup_t*    setup     = xcb_get_setup(pal->xcbCon);
-  xcb_screen_iterator_t screenItr = xcb_setup_roots_iterator(setup);
+  const xcb_setup_t*    setup     = out->get_setup(pal->xcbCon);
+  xcb_screen_iterator_t screenItr = out->setup_roots_iterator(setup);
   if (!screenItr.data) {
     diag_crash_msg("Xcb no screen found");
   }
@@ -562,7 +601,7 @@ static void pal_xcb_connect(GapPal* pal) {
 
   log_i(
       "Xcb connected",
-      log_param("fd", fmt_int(xcb_get_file_descriptor(pal->xcbCon))),
+      log_param("fd", fmt_int(out->get_file_descriptor(pal->xcbCon))),
       log_param("max-req-length", fmt_size(pal->maxRequestLength)),
       log_param("screen-num", fmt_int(screen)),
       log_param("screen-size", gap_vector_fmt(screenSize)));
@@ -1337,7 +1376,7 @@ GapPal* gap_pal_create(Allocator* alloc) {
       .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
   };
 
-  pal_xcb_connect(pal);
+  pal_init_xcb(pal, &pal->xcb);
   pal_init_extensions(pal);
 
   if (pal->extensions & GapPalXcbExtFlags_Xkb) {
@@ -1372,6 +1411,9 @@ void gap_pal_destroy(GapPal* pal) {
     pal->xkb.state_unref(pal->xkbState);
   }
 
+  if (pal->xcb.lib) {
+    dynlib_destroy(pal->xcb.lib);
+  }
   if (pal->xkb.lib) {
     dynlib_destroy(pal->xkb.lib);
   }
