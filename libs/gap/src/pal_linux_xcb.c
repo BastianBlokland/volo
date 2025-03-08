@@ -36,6 +36,7 @@ void SYS_DECL free(void*); // free from stdlib, xcb allocates various structures
 typedef unsigned int           XcbCookie;
 typedef struct sXcbPictFormats XcbPictFormats;
 typedef struct sXkbContext     XkbContext;
+typedef struct sXkbKeyMap      XkbKeyMap;
 typedef u32                    XcbCursor;
 typedef u32                    XcbDrawable;
 typedef u32                    XcbPictFormat;
@@ -145,6 +146,11 @@ typedef struct {
   XkbContext* (SYS_DECL* context_new)(i32 flags);
   void        (SYS_DECL* context_unref)(XkbContext*);
   XcbCookie   (SYS_DECL* per_client_flags_unchecked)(xcb_connection_t*, u16 deviceSpec, u32 change, u32 value, u32 ctrlsToChange, u32 autoCtrls, u32 autoCtrlsValues);
+  i32         (SYS_DECL* get_core_keyboard_device_id)(xcb_connection_t*);
+  XkbKeyMap*  (SYS_DECL* keymap_new_from_device)(XkbContext*, xcb_connection_t*, i32 deviceId, i32 flags);
+  void        (SYS_DECL* keymap_unref)(XkbKeyMap*);
+  u32         (SYS_DECL* keymap_num_layouts)(XkbKeyMap*);
+  const char* (SYS_DECL* keymap_layout_get_name)(XkbKeyMap*, u32 index);
   // clang-format on
 } XcbXkbCommon;
 
@@ -250,10 +256,10 @@ struct sGapPal {
   XcbRandr     xrandr;
   XcbRender    xrender;
 
-  XkbContext*        xkbContext;
-  i32                xkbDeviceId;
-  struct xkb_keymap* xkbKeymap;
-  struct xkb_state*  xkbState;
+  XkbContext*       xkbContext;
+  i32               xkbDeviceId;
+  XkbKeyMap*        xkbKeymap;
+  struct xkb_state* xkbState;
 
   XcbPictFormat formatArgb32;
 
@@ -631,6 +637,11 @@ static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
   XKB_LOAD_SYM(xkb, context_new);
   XKB_LOAD_SYM(xkb, context_unref);
   XKB_LOAD_SYM(xcb_xkb, per_client_flags_unchecked);
+  XKB_LOAD_SYM(xkb_x11, get_core_keyboard_device_id);
+  XKB_LOAD_SYM(xkb_x11, keymap_new_from_device);
+  XKB_LOAD_SYM(xkb, keymap_unref);
+  XKB_LOAD_SYM(xkb, keymap_num_layouts);
+  XKB_LOAD_SYM(xkb, keymap_layout_get_name);
 
 #undef XKB_LOAD_SYM
 
@@ -651,26 +662,26 @@ static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
     log_w("Xcb failed to create the xkb-common context");
     return false;
   }
-  pal->xkbDeviceId = xkb_x11_get_core_keyboard_device_id(pal->xcbCon);
+  pal->xkbDeviceId = out->get_core_keyboard_device_id(pal->xcbCon);
   if (UNLIKELY(pal->xkbDeviceId < 0)) {
     log_w("Xcb failed to retrieve the xkb keyboard device-id");
     return false;
   }
-  pal->xkbKeymap = xkb_x11_keymap_new_from_device(
-      (void*)pal->xkbContext, pal->xcbCon, pal->xkbDeviceId, XKB_KEYMAP_COMPILE_NO_FLAGS);
+  pal->xkbKeymap = out->keymap_new_from_device(pal->xkbContext, pal->xcbCon, pal->xkbDeviceId, 0);
   if (!pal->xkbKeymap) {
     log_w("Xcb failed to retrieve the xkb keyboard keymap");
     return false;
   }
-  pal->xkbState = xkb_x11_state_new_from_device(pal->xkbKeymap, pal->xcbCon, pal->xkbDeviceId);
+  pal->xkbState =
+      xkb_x11_state_new_from_device((void*)pal->xkbKeymap, pal->xcbCon, pal->xkbDeviceId);
   if (!pal->xkbKeymap) {
     log_w("Xcb failed to retrieve the xkb keyboard state");
     return false;
   }
 
-  const xkb_layout_index_t layoutCount   = xkb_keymap_num_layouts(pal->xkbKeymap);
-  const char*              layoutNameRaw = xkb_keymap_layout_get_name(pal->xkbKeymap, 0);
-  const String layoutName = layoutNameRaw ? string_from_null_term(layoutNameRaw) : string_empty;
+  const u32    layoutCount   = out->keymap_num_layouts(pal->xkbKeymap);
+  const char*  layoutNameRaw = out->keymap_layout_get_name(pal->xkbKeymap, 0);
+  const String layoutName    = layoutNameRaw ? string_from_null_term(layoutNameRaw) : string_empty;
 
   log_i(
       "Xcb initialized XkbCommon",
@@ -1355,7 +1366,7 @@ void gap_pal_destroy(GapPal* pal) {
     pal->xkb.context_unref(pal->xkbContext);
   }
   if (pal->xkbKeymap) {
-    xkb_keymap_unref(pal->xkbKeymap);
+    pal->xkb.keymap_unref(pal->xkbKeymap);
   }
   if (pal->xkbState) {
     xkb_state_unref(pal->xkbState);
