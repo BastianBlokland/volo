@@ -145,6 +145,7 @@ typedef struct {
 typedef struct {
   DynLib* lib;
   // clang-format off
+  int (SYS_DECL* x11_setup_xkb_extension)(xcb_connection_t*, u16 xkbMajor, u16 xkbMinor, i32 flags, u16* xkbMajorOut, u16* xkbMinorOut, u8* baseEventOut, u8* baseErrorOut);
   // clang-format on
 } XcbXkbCommon;
 
@@ -616,11 +617,25 @@ static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
     return false;
   }
 
+#define XKB_LOAD_SYM(_NAME_)                                                                       \
+  do {                                                                                             \
+    const String symName = string_lit("xkb_" #_NAME_);                                             \
+    out->_NAME_          = dynlib_symbol(out->lib, symName);                                       \
+    if (!out->_NAME_) {                                                                            \
+      log_w("XkbCommon symbol '{}' missing", log_param("sym", fmt_text(symName)));                 \
+      return false;                                                                                \
+    }                                                                                              \
+  } while (false)
+
+  XKB_LOAD_SYM(x11_setup_xkb_extension);
+
+#undef XKB_LOAD_SYM
+
   xcb_generic_error_t* err = null;
 
   u16       versionMajor;
   u16       versionMinor;
-  const int setupRes = xkb_x11_setup_xkb_extension(
+  const int setupRes = out->x11_setup_xkb_extension(
       pal->xcbCon, 1, 0, 0, &versionMajor, &versionMinor, &pal->xkbFirstEvent, &pal->xkbFirstError);
 
   if (UNLIKELY(!setupRes)) {
@@ -655,7 +670,8 @@ static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
   const String layoutName = layoutNameRaw ? string_from_null_term(layoutNameRaw) : string_empty;
 
   log_i(
-      "Xcb initialized the xkb keyboard extension",
+      "Xcb initialized XkbCommon",
+      log_param("path", fmt_path(dynlib_path(out->lib))),
       log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))),
       log_param("device-id", fmt_int(pal->xkbDeviceId)),
       log_param("layout-count", fmt_int(layoutCount)),
@@ -696,11 +712,11 @@ static bool pal_xfixes_init(GapPal* pal, XcbXFixes* out) {
   free(reply);
 
   if (UNLIKELY(err)) {
-    log_w("Failed to initialize Xcb xfixes", log_param("error", fmt_int(err->error_code)));
+    log_w("Failed to initialize XFixes", log_param("error", fmt_int(err->error_code)));
     return false;
   }
 
-  log_i("Xcb initialized xfixes extension", log_param("path", fmt_path(dynlib_path(out->lib))));
+  log_i("Xcb initialized XFixes", log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
@@ -755,12 +771,12 @@ static bool pal_randr_init(GapPal* pal, XcbRandr* out, u8* firstEventOut) {
   free(version);
 
   if (UNLIKELY(err)) {
-    log_w("Failed to initialize Xcb RandR extension", log_param("err", fmt_int(err->error_code)));
+    log_w("Failed to initialize XRandR", log_param("err", fmt_int(err->error_code)));
     return false;
   }
 
   *firstEventOut = data->first_event;
-  log_i("Xcb initialized RandR extension", log_param("path", fmt_path(dynlib_path(out->lib))));
+  log_i("Xcb initialized XRandR", log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
@@ -833,7 +849,7 @@ static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
 
   const xcb_query_extension_reply_t* data = xcb_get_extension_data(pal->xcbCon, out->id);
   if (!data || !data->present) {
-    log_w("Xcb render extention not present");
+    log_w("Xcb XRender extention not present");
     return false;
   }
   xcb_generic_error_t* err     = null;
@@ -841,7 +857,7 @@ static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
   free(version);
 
   if (UNLIKELY(err)) {
-    log_w("Failed to initialize Xcb render extension", log_param("err", fmt_int(err->error_code)));
+    log_w("Failed to initialize XRender extension", log_param("err", fmt_int(err->error_code)));
     return false;
   }
   if (!pal_xrender_find_formats(pal)) {
@@ -849,7 +865,7 @@ static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
     return false;
   }
 
-  log_i("Xcb initialized xrender extension", log_param("path", fmt_path(dynlib_path(out->lib))));
+  log_i("Xcb initialized XRender", log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
@@ -901,7 +917,7 @@ static void pal_randr_query_displays(GapPal* pal) {
   XcbRandrScreenResources* screen = pal_xcb_call(
       pal->xcbCon, pal->xrandr.get_screen_resources_current, &err, pal->xcbScreen->root);
   if (UNLIKELY(err)) {
-    diag_crash_msg("Xcb failed to retrieve randr screen-info, err: {}", fmt_int(err->error_code));
+    diag_crash_msg("Xcb failed to retrieve RandR screen-info, err: {}", fmt_int(err->error_code));
   }
 
   const XcbRandrOutput* outputs = pal->xrandr.get_screen_resources_current_outputs(screen);
@@ -910,7 +926,7 @@ static void pal_randr_query_displays(GapPal* pal) {
     XcbRandrOutputInfo* output =
         pal_xcb_call(pal->xcbCon, pal->xrandr.get_output_info, &err, outputs[i], 0);
     if (UNLIKELY(err)) {
-      diag_crash_msg("Xcb failed to retrieve randr output-info, err: {}", fmt_int(err->error_code));
+      diag_crash_msg("Xcb failed to retrieve RandR output-info, err: {}", fmt_int(err->error_code));
     }
     const String name = {
         .ptr  = pal->xrandr.get_output_info_name(output),
@@ -921,7 +937,7 @@ static void pal_randr_query_displays(GapPal* pal) {
       XcbRandrCrtcInfo* crtc =
           pal_xcb_call(pal->xcbCon, pal->xrandr.get_crtc_info, &err, output->crtc, 0);
       if (UNLIKELY(err)) {
-        diag_crash_msg("Xcb failed to retrieve randr crtc-info, err: {}", fmt_int(err->error_code));
+        diag_crash_msg("Xcb failed to retrieve RandR crtc-info, err: {}", fmt_int(err->error_code));
       }
       const GapVector position       = gap_vector(crtc->x, crtc->y);
       const GapVector size           = gap_vector(crtc->width, crtc->height);
