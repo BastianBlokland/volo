@@ -148,16 +148,28 @@ typedef struct {
 typedef struct {
   DynLib* lib;
   // clang-format off
-  xcb_connection_t*         (SYS_DECL* connect)(const char* displayName, int* screenOut);
-  void                      (SYS_DECL* disconnect)(xcb_connection_t*);
-  int                       (SYS_DECL* flush)(xcb_connection_t*);
-  u32                       (SYS_DECL* get_maximum_request_length)(xcb_connection_t*);
-  const struct xcb_setup_t* (SYS_DECL* get_setup)(xcb_connection_t*);
-  xcb_screen_iterator_t     (SYS_DECL* setup_roots_iterator)(const struct xcb_setup_t*);
-  XcbCookie                 (SYS_DECL* intern_atom)(xcb_connection_t*, u8 onlyIfExists, u16 nameLen, const char* name);
-  xcb_intern_atom_reply_t*  (SYS_DECL* intern_atom_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
-  int                       (SYS_DECL* get_file_descriptor)(xcb_connection_t*);
-  int                       (SYS_DECL* connection_has_error)(xcb_connection_t*);
+  xcb_connection_t*                         (SYS_DECL* connect)(const char* displayName, int* screenOut);
+  void                                      (SYS_DECL* disconnect)(xcb_connection_t*);
+  int                                       (SYS_DECL* flush)(xcb_connection_t*);
+  u32                                       (SYS_DECL* get_maximum_request_length)(xcb_connection_t*);
+  const struct xcb_setup_t*                 (SYS_DECL* get_setup)(xcb_connection_t*);
+  xcb_screen_iterator_t                     (SYS_DECL* setup_roots_iterator)(const struct xcb_setup_t*);
+  XcbCookie                                 (SYS_DECL* intern_atom)(xcb_connection_t*, u8 onlyIfExists, u16 nameLen, const char* name);
+  xcb_intern_atom_reply_t*                  (SYS_DECL* intern_atom_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  int                                       (SYS_DECL* get_file_descriptor)(xcb_connection_t*);
+  int                                       (SYS_DECL* connection_has_error)(xcb_connection_t*);
+  xcb_generic_event_t*                      (SYS_DECL* poll_for_event)(xcb_connection_t*);
+  const struct xcb_query_extension_reply_t* (SYS_DECL* get_extension_data)(xcb_connection_t*, xcb_extension_t*);
+  XcbCookie                                 (SYS_DECL* send_event)(xcb_connection_t*, u8 propagate, xcb_window_t destination, u32 eventMask, const char* event);
+  XcbCookie                                 (SYS_DECL* convert_selection)(xcb_connection_t*, xcb_window_t requestor, xcb_atom_t selection, xcb_atom_t target, xcb_atom_t property, xcb_timestamp_t time);
+  u32                                       (SYS_DECL* generate_id)(xcb_connection_t*);
+  XcbCookie                                 (SYS_DECL* delete_property)(xcb_connection_t*, xcb_window_t, xcb_atom_t property);
+  XcbCookie                                 (SYS_DECL* free_cursor)(xcb_connection_t*, xcb_cursor_t);
+  XcbCookie                                 (SYS_DECL* free_gc)(xcb_connection_t*, xcb_gcontext_t);
+  XcbCookie                                 (SYS_DECL* free_pixmap)(xcb_connection_t*, xcb_pixmap_t);
+  XcbCookie                                 (SYS_DECL* put_image)(xcb_connection_t*, u8 format, xcb_drawable_t, xcb_gcontext_t, u16 width, u16 height, i16 dstX, i16 dstY, u8 leftPad, u8 depth, u32 dataLen, const u8* data);
+  XcbCookie                                 (SYS_DECL* create_gc)(xcb_connection_t*, xcb_gcontext_t, xcb_drawable_t, u32 valueMask, const void* valueList);
+  XcbCookie                                 (SYS_DECL* create_pixmap)(xcb_connection_t*, uint8_t depth, xcb_pixmap_t, xcb_drawable_t, uint16_t width, uint16_t height);
   // clang-format on
 } Xcb;
 
@@ -573,6 +585,17 @@ static void pal_init_xcb(GapPal* pal, Xcb* out) {
   XCB_LOAD_SYM(intern_atom_reply);
   XCB_LOAD_SYM(get_file_descriptor);
   XCB_LOAD_SYM(connection_has_error);
+  XCB_LOAD_SYM(poll_for_event);
+  XCB_LOAD_SYM(get_extension_data);
+  XCB_LOAD_SYM(send_event);
+  XCB_LOAD_SYM(convert_selection);
+  XCB_LOAD_SYM(delete_property);
+  XCB_LOAD_SYM(free_cursor);
+  XCB_LOAD_SYM(free_gc);
+  XCB_LOAD_SYM(free_pixmap);
+  XCB_LOAD_SYM(put_image);
+  XCB_LOAD_SYM(create_gc);
+  XCB_LOAD_SYM(create_pixmap);
 
 #undef XCB_LOAD_SYM
 
@@ -623,7 +646,7 @@ static void pal_xcb_wm_state_update(
       .data.data32[0] = active ? 1 : 0,
       .data.data32[1] = stateAtom,
   };
-  xcb_send_event(
+  pal->xcb.send_event(
       pal->xcbCon,
       false,
       pal->xcbScreen->root,
@@ -833,7 +856,7 @@ static bool pal_randr_init(GapPal* pal, XcbRandr* out, u8* firstEventOut) {
 
 #undef XRANDR_LOAD_SYM
 
-  const xcb_query_extension_reply_t* data = xcb_get_extension_data(pal->xcbCon, out->id);
+  const xcb_query_extension_reply_t* data = pal->xcb.get_extension_data(pal->xcbCon, out->id);
   if (!data || !data->present) {
     log_w("Xcb RandR extention not present");
     return false;
@@ -919,7 +942,7 @@ static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
 
 #undef XRENDER_LOAD_SYM
 
-  const xcb_query_extension_reply_t* data = xcb_get_extension_data(pal->xcbCon, out->id);
+  const xcb_query_extension_reply_t* data = pal->xcb.get_extension_data(pal->xcbCon, out->id);
   if (!data || !data->present) {
     log_w("Xcb XRender extention not present");
     return false;
@@ -1336,7 +1359,7 @@ static void pal_event_clip_copy_request(
     }
   }
 
-  xcb_send_event(
+  pal->xcb.send_event(
       pal->xcbCon, 0, reqEvt->requestor, XCB_EVENT_MASK_PROPERTY_CHANGE, (char*)&notifyEvt);
 }
 
@@ -1370,7 +1393,7 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
   }
   free(reply);
 
-  xcb_delete_property(pal->xcbCon, (xcb_window_t)windowId, pal->atomVoloClipboard);
+  pal->xcb.delete_property(pal->xcbCon, (xcb_window_t)windowId, pal->atomVoloClipboard);
 }
 
 GapPal* gap_pal_create(Allocator* alloc) {
@@ -1434,7 +1457,7 @@ void gap_pal_destroy(GapPal* pal) {
   array_for_t(pal->icons, Mem, icon) { alloc_maybe_free(pal->alloc, *icon); }
   array_for_t(pal->cursors, xcb_cursor_t, cursor) {
     if (*cursor != XCB_NONE) {
-      xcb_free_cursor(pal->xcbCon, *cursor);
+      pal->xcb.free_cursor(pal->xcbCon, *cursor);
     }
   }
 
@@ -1451,7 +1474,7 @@ void gap_pal_update(GapPal* pal) {
   pal_clear_volatile(pal);
 
   // Handle all xcb events in the buffer.
-  for (xcb_generic_event_t* evt; (evt = xcb_poll_for_event(pal->xcbCon)); free(evt)) {
+  for (xcb_generic_event_t* evt; (evt = pal->xcb.poll_for_event(pal->xcbCon)); free(evt)) {
     switch (evt->response_type & ~0x80) {
 
     case 0: {
@@ -1719,19 +1742,20 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
     return; // The render extension is required for pix-map cursors.
   }
 
-  xcb_pixmap_t pixmap = xcb_generate_id(pal->xcbCon);
-  xcb_create_pixmap(pal->xcbCon, 32, pixmap, pal->xcbScreen->root, asset->width, asset->height);
+  xcb_pixmap_t pixmap = pal->xcb.generate_id(pal->xcbCon);
+  pal->xcb.create_pixmap(
+      pal->xcbCon, 32, pixmap, pal->xcbScreen->root, asset->width, asset->height);
 
-  XcbPicture picture = xcb_generate_id(pal->xcbCon);
+  XcbPicture picture = pal->xcb.generate_id(pal->xcbCon);
   pal->xrender.create_picture(pal->xcbCon, picture, pixmap, pal->formatArgb32, 0, null);
 
-  xcb_gcontext_t graphicsContext = xcb_generate_id(pal->xcbCon);
-  xcb_create_gc(pal->xcbCon, graphicsContext, pixmap, 0, null);
+  xcb_gcontext_t graphicsContext = pal->xcb.generate_id(pal->xcbCon);
+  pal->xcb.create_gc(pal->xcbCon, graphicsContext, pixmap, 0, null);
 
   Mem pixelBuffer = alloc_alloc(g_allocScratch, asset->width * asset->height * 4, 4);
   gap_pal_icon_to_argb_flipped(asset, pixelBuffer);
 
-  xcb_put_image(
+  pal->xcb.put_image(
       pal->xcbCon,
       XCB_IMAGE_FORMAT_Z_PIXMAP,
       pixmap,
@@ -1745,17 +1769,17 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
       (u32)pixelBuffer.size,
       pixelBuffer.ptr);
 
-  xcb_free_gc(pal->xcbCon, graphicsContext);
+  pal->xcb.free_gc(pal->xcbCon, graphicsContext);
 
-  xcb_cursor_t cursor = xcb_generate_id(pal->xcbCon);
+  xcb_cursor_t cursor = pal->xcb.generate_id(pal->xcbCon);
   pal->xrender.create_cursor(
       pal->xcbCon, cursor, picture, asset->hotspotX, asset->height - asset->hotspotY);
 
   pal->xrender.free_picture(pal->xcbCon, picture);
-  xcb_free_pixmap(pal->xcbCon, pixmap);
+  pal->xcb.free_pixmap(pal->xcbCon, pixmap);
 
   if (pal->cursors[id] != XCB_NONE) {
-    xcb_free_cursor(pal->xcbCon, pal->cursors[id]);
+    pal->xcb.free_cursor(pal->xcbCon, pal->cursors[id]);
   }
   pal->cursors[id] = cursor;
 
@@ -1769,7 +1793,7 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
 
 GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   xcb_connection_t* con = pal->xcbCon;
-  const GapWindowId id  = xcb_generate_id(con);
+  const GapWindowId id  = pal->xcb.generate_id(con);
 
   if (size.width <= 0) {
     size.width = pal->xcbScreen->width_in_pixels;
@@ -2007,7 +2031,7 @@ void gap_pal_window_icon_set(GapPal* pal, const GapWindowId windowId, const GapI
         (u32)(pal->icons[icon].size / sizeof(u32)),
         pal->icons[icon].ptr);
   } else {
-    xcb_delete_property(pal->xcbCon, (xcb_window_t)windowId, pal->atomWmIcon);
+    pal->xcb.delete_property(pal->xcbCon, (xcb_window_t)windowId, pal->atomWmIcon);
   }
 
   window->icon = icon;
@@ -2062,8 +2086,8 @@ void gap_pal_window_clip_copy(GapPal* pal, const GapWindowId windowId, const Str
 }
 
 void gap_pal_window_clip_paste(GapPal* pal, const GapWindowId windowId) {
-  xcb_delete_property(pal->xcbCon, (xcb_window_t)windowId, pal->atomVoloClipboard);
-  xcb_convert_selection(
+  pal->xcb.delete_property(pal->xcbCon, (xcb_window_t)windowId, pal->atomVoloClipboard);
+  pal->xcb.convert_selection(
       pal->xcbCon,
       (xcb_window_t)windowId,
       pal->atomClipboard,
