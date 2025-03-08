@@ -635,7 +635,7 @@ static bool rend_canvas_paint_3d(
     EcsView*                     resView) {
 
   const RvkSize winSize   = painter_win_size(win);
-  const f32     winAspect = (f32)winSize.width / (f32)winSize.height;
+  const f32     winAspect = winSize.height ? ((f32)winSize.width / (f32)winSize.height) : 1.0f;
 
   RendBuilder* b = rend_builder(platform->builderContainer);
   if (!rend_builder_canvas_push(b, painter->canvas, set, winSize)) {
