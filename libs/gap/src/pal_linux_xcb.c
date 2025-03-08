@@ -46,14 +46,10 @@ typedef u32                    XcbRandrMode;
 typedef u32                    XcbRandrOutput;
 
 typedef struct {
-  u16 redShift;
-  u16 redMask;
-  u16 greenShift;
-  u16 greenMask;
-  u16 blueShift;
-  u16 blueMask;
-  u16 alphaShift;
-  u16 alphaMask;
+  u16 redShift, redMask;
+  u16 greenShift, greenMask;
+  u16 blueShift, blueMask;
+  u16 alphaShift, alphaMask;
 } XcbDirectFormat;
 
 typedef struct {
