@@ -68,6 +68,20 @@ typedef struct {
 } XcbPictFormatInfoItr;
 
 typedef struct {
+  u8              responseType;
+  u8              pad0;
+  u16             sequence;
+  u32             length;
+  xcb_timestamp_t timestamp;
+  xcb_timestamp_t configTimestamp;
+  u16             numCrtcs;
+  u16             numOutputs;
+  u16             numModes;
+  u16             namesLen;
+  u8              pad1[8];
+} XcbRandrScreenResourcesCurrent;
+
+typedef struct {
   DynLib* lib;
   // clang-format off
   XcbCookie (SYS_DECL* query_version)(xcb_connection_t*, u32 majorVersion, u32 minorVersion);
@@ -81,8 +95,10 @@ typedef struct {
   DynLib*          lib;
   xcb_extension_t* id;
   // clang-format off
-  XcbCookie (SYS_DECL* query_version)(xcb_connection_t*, u32 majorVersion, u32 minorVersion);
-  void*     (SYS_DECL* query_version_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  XcbCookie                       (SYS_DECL* query_version)(xcb_connection_t*, u32 majorVersion, u32 minorVersion);
+  void*                           (SYS_DECL* query_version_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  XcbCookie                       (SYS_DECL* get_screen_resources_current)(xcb_connection_t*, xcb_window_t);
+  XcbRandrScreenResourcesCurrent* (SYS_DECL* get_screen_resources_current_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
   // clang-format on
 } XcbRandr;
 
@@ -753,8 +769,8 @@ static void pal_init_extensions(GapPal* pal) {
   }
 }
 
-static f32 pal_randr_refresh_rate(
-    xcb_randr_get_screen_resources_current_reply_t* screen, const xcb_randr_mode_t mode) {
+static f32
+pal_randr_refresh_rate(XcbRandrScreenResourcesCurrent* screen, const xcb_randr_mode_t mode) {
   xcb_randr_mode_info_iterator_t i = xcb_randr_get_screen_resources_current_modes_iterator(screen);
   for (; i.rem; xcb_randr_mode_info_next(&i)) {
     if (i.data->id != mode) {
@@ -782,9 +798,9 @@ static void pal_randr_query_displays(GapPal* pal) {
   dynarray_for_t(&pal->displays, GapPalDisplay, d) { string_maybe_free(g_allocHeap, d->name); }
   dynarray_clear(&pal->displays);
 
-  xcb_generic_error_t*                            err = null;
-  xcb_randr_get_screen_resources_current_reply_t* screen =
-      pal_xcb_call(pal->xcbCon, xcb_randr_get_screen_resources_current, &err, pal->xcbScreen->root);
+  xcb_generic_error_t*            err    = null;
+  XcbRandrScreenResourcesCurrent* screen = pal_xcb_call(
+      pal->xcbCon, pal->xrandr.get_screen_resources_current, &err, pal->xcbScreen->root);
   if (UNLIKELY(err)) {
     diag_crash_msg("Xcb failed to retrieve randr screen-info, err: {}", fmt_int(err->error_code));
   }
