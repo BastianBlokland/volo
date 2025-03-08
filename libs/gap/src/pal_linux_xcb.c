@@ -392,7 +392,13 @@ typedef struct {
 } Xcb;
 
 typedef struct {
-  DynLib* lib;
+  DynLib*     lib;
+  XkbContext* context;
+  i32         deviceId;
+  XkbKeyMap*  keymap;
+  XkbState*   state;
+  u8          firstEvent, firstError;
+
   // clang-format off
   const char* (SYS_DECL* keymap_layout_get_name)(XkbKeyMap*, u32 index);
   i32         (SYS_DECL* get_core_keyboard_device_id)(XcbConnection*);
@@ -502,7 +508,6 @@ struct sGapPal {
   XcbScreen*        xcbScreen;
   GapPalXcbExtFlags extensions;
   usize             maxRequestLen;
-  u8                xkbFirstEvent, xkbFirstError;
   u8                randrFirstEvent;
 
   GapPalFlags flags;
@@ -512,11 +517,6 @@ struct sGapPal {
   XcbXFixes    xfixes;
   XRandr       xrandr;
   XcbRender    xrender;
-
-  XkbContext* xkbContext;
-  i32         xkbDeviceId;
-  XkbKeyMap*  xkbKeymap;
-  XkbState*   xkbState;
 
   XcbPictFormat formatArgb32;
 
@@ -970,43 +970,43 @@ static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
   u16       versionMajor;
   u16       versionMinor;
   const int setupRes = out->setup_xkb_extension(
-      pal->xcbCon, 1, 0, 0, &versionMajor, &versionMinor, &pal->xkbFirstEvent, &pal->xkbFirstError);
+      pal->xcbCon, 1, 0, 0, &versionMajor, &versionMinor, &out->firstEvent, &out->firstError);
 
   if (UNLIKELY(!setupRes)) {
     log_w("Xcb failed to initialize xkb", log_param("error", fmt_int(err->errorCode)));
     return false;
   }
 
-  pal->xkbContext = out->context_new(0);
-  if (UNLIKELY(!pal->xkbContext)) {
+  out->context = out->context_new(0);
+  if (UNLIKELY(!out->context)) {
     log_w("Xcb failed to create the xkb-common context");
     return false;
   }
-  pal->xkbDeviceId = out->get_core_keyboard_device_id(pal->xcbCon);
-  if (UNLIKELY(pal->xkbDeviceId < 0)) {
+  out->deviceId = out->get_core_keyboard_device_id(pal->xcbCon);
+  if (UNLIKELY(out->deviceId < 0)) {
     log_w("Xcb failed to retrieve the xkb keyboard device-id");
     return false;
   }
-  pal->xkbKeymap = out->keymap_new_from_device(pal->xkbContext, pal->xcbCon, pal->xkbDeviceId, 0);
-  if (!pal->xkbKeymap) {
+  out->keymap = out->keymap_new_from_device(out->context, pal->xcbCon, out->deviceId, 0);
+  if (!out->keymap) {
     log_w("Xcb failed to retrieve the xkb keyboard keymap");
     return false;
   }
-  pal->xkbState = out->state_new_from_device(pal->xkbKeymap, pal->xcbCon, pal->xkbDeviceId);
-  if (!pal->xkbKeymap) {
+  out->state = out->state_new_from_device(out->keymap, pal->xcbCon, out->deviceId);
+  if (!out->keymap) {
     log_w("Xcb failed to retrieve the xkb keyboard state");
     return false;
   }
 
-  const u32    layoutCount   = out->keymap_num_layouts(pal->xkbKeymap);
-  const char*  layoutNameRaw = out->keymap_layout_get_name(pal->xkbKeymap, 0);
+  const u32    layoutCount   = out->keymap_num_layouts(out->keymap);
+  const char*  layoutNameRaw = out->keymap_layout_get_name(out->keymap, 0);
   const String layoutName    = layoutNameRaw ? string_from_null_term(layoutNameRaw) : string_empty;
 
   log_i(
       "Xcb initialized XkbCommon",
       log_param("path", fmt_path(dynlib_path(out->lib))),
       log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))),
-      log_param("device-id", fmt_int(pal->xkbDeviceId)),
+      log_param("device-id", fmt_int(out->deviceId)),
       log_param("layout-count", fmt_int(layoutCount)),
       log_param("main-layout-name", fmt_text(layoutName)));
   return true;
@@ -1507,7 +1507,7 @@ static void pal_event_text(GapPal* pal, const GapWindowId windowId, const XkbKey
   }
   if (pal->extensions & GapPalXcbExtFlags_Xkb) {
     char      buff[32];
-    const int textSize = pal->xkb.state_key_get_utf8(pal->xkbState, keyCode, buff, sizeof(buff));
+    const int textSize = pal->xkb.state_key_get_utf8(pal->xkb.state, keyCode, buff, sizeof(buff));
     dynstring_append(&window->inputText, mem_create(buff, textSize));
   } else {
     /**
@@ -1663,14 +1663,14 @@ void gap_pal_destroy(GapPal* pal) {
   }
   dynarray_for_t(&pal->displays, GapPalDisplay, d) { string_maybe_free(g_allocHeap, d->name); }
 
-  if (pal->xkbContext) {
-    pal->xkb.context_unref(pal->xkbContext);
+  if (pal->xkb.context) {
+    pal->xkb.context_unref(pal->xkb.context);
   }
-  if (pal->xkbKeymap) {
-    pal->xkb.keymap_unref(pal->xkbKeymap);
+  if (pal->xkb.keymap) {
+    pal->xkb.keymap_unref(pal->xkb.keymap);
   }
-  if (pal->xkbState) {
-    pal->xkb.state_unref(pal->xkbState);
+  if (pal->xkb.state) {
+    pal->xkb.state_unref(pal->xkb.state);
   }
 
   dynlib_destroy(pal->xcb.lib);
@@ -1849,7 +1849,7 @@ void gap_pal_update(GapPal* pal) {
       const XcbKeyEvent* pressMsg = (const void*)evt;
       pal_event_press(pal, pressMsg->event, pal_xcb_translate_key(pressMsg->detail));
       if (pal->extensions & GapPalXcbExtFlags_Xkb) {
-        pal->xkb.state_update_key(pal->xkbState, pressMsg->detail, XkbKeyDirection_Down);
+        pal->xkb.state_update_key(pal->xkb.state, pressMsg->detail, XkbKeyDirection_Down);
       }
       pal_event_text(pal, pressMsg->event, pressMsg->detail);
     } break;
@@ -1858,7 +1858,7 @@ void gap_pal_update(GapPal* pal) {
       const XcbKeyEvent* releaseMsg = (const void*)evt;
       pal_event_release(pal, releaseMsg->event, pal_xcb_translate_key(releaseMsg->detail));
       if (pal->extensions & GapPalXcbExtFlags_Xkb) {
-        pal->xkb.state_update_key(pal->xkbState, releaseMsg->detail, XkbKeyDirection_Up);
+        pal->xkb.state_update_key(pal->xkb.state, releaseMsg->detail, XkbKeyDirection_Up);
       }
     } break;
 
