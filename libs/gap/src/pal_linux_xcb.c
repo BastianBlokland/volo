@@ -7,7 +7,6 @@
 
 #include "pal_internal.h"
 
-#include <xcb/randr.h>
 #include <xcb/xcb.h>
 #include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon-x11.h>
@@ -41,6 +40,9 @@ typedef u32                    XcbCursor;
 typedef u32                    XcbDrawable;
 typedef u32                    XcbPictFormat;
 typedef u32                    XcbPicture;
+typedef u32                    XcbRandrCrtc;
+typedef u32                    XcbRandrMode;
+typedef u32                    XcbRandrOutput;
 
 typedef struct {
   u16 redShift;
@@ -79,7 +81,66 @@ typedef struct {
   u16             numModes;
   u16             namesLen;
   u8              pad1[8];
-} XcbRandrScreenResourcesCurrent;
+} XcbRandrScreenResources;
+
+typedef struct {
+  u8              responseType;
+  u8              status;
+  u16             sequence;
+  u32             length;
+  xcb_timestamp_t timestamp;
+  XcbRandrCrtc    crtc;
+  u32             mmWidth, mmHeight;
+  u8              connection;
+  u8              subpixelOrder;
+  u16             numCrtcs, numModes, numPreferred, numClones, nameLen;
+} XcbRandrOutputInfo;
+
+typedef struct {
+  u32 id;
+  u16 width, height;
+  u32 dotClock;
+  u16 hsyncStart, hsyncEnd;
+  u16 htotal;
+  u16 hskew;
+  u16 vsyncStart, vsyncEnd;
+  u16 vtotal;
+  u16 nameLen;
+  u32 modeFlags;
+} XcbRandrModeInfo;
+
+typedef struct {
+  XcbRandrModeInfo* data;
+  int               rem;
+  int               index;
+} XcbRandrModeInfoIterator;
+
+typedef struct {
+  u8              responseType;
+  u8              status;
+  u16             sequence;
+  u32             length;
+  xcb_timestamp_t timestamp;
+  i16             x, y;
+  u16             width, height;
+  XcbRandrMode    mode;
+  u16             rotation;
+  u16             rotations;
+  u16             numOutputs, numPossibleOutputs;
+} XcbRandrCrtcInfo;
+
+typedef struct {
+  u8              responseType;
+  u8              rotation;
+  u16             sequence;
+  xcb_timestamp_t timestamp;
+  xcb_timestamp_t configTimestamp;
+  xcb_window_t    root, requestWindow;
+  u16             sizeID;
+  u16             subpixelOrder;
+  u16             width, height;
+  u16             mwidth, mheight;
+} XcbRandrScreenChangeEvent;
 
 typedef struct {
   DynLib* lib;
@@ -95,10 +156,21 @@ typedef struct {
   DynLib*          lib;
   xcb_extension_t* id;
   // clang-format off
-  XcbCookie                       (SYS_DECL* query_version)(xcb_connection_t*, u32 majorVersion, u32 minorVersion);
-  void*                           (SYS_DECL* query_version_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
-  XcbCookie                       (SYS_DECL* get_screen_resources_current)(xcb_connection_t*, xcb_window_t);
-  XcbRandrScreenResourcesCurrent* (SYS_DECL* get_screen_resources_current_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  XcbCookie                (SYS_DECL* query_version)(xcb_connection_t*, u32 majorVersion, u32 minorVersion);
+  void*                    (SYS_DECL* query_version_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  XcbCookie                (SYS_DECL* get_screen_resources_current)(xcb_connection_t*, xcb_window_t);
+  XcbRandrScreenResources* (SYS_DECL* get_screen_resources_current_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  XcbRandrOutput*          (SYS_DECL* get_screen_resources_current_outputs)(const XcbRandrScreenResources*);
+  int                      (SYS_DECL* get_screen_resources_current_outputs_length)(const XcbRandrScreenResources*);
+  XcbCookie                (SYS_DECL* get_output_info)(xcb_connection_t*, XcbRandrOutput, xcb_timestamp_t configTimestamp);
+  XcbRandrOutputInfo*      (SYS_DECL* get_output_info_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  u8*                      (SYS_DECL* get_output_info_name)(const XcbRandrOutputInfo*);
+  int                      (SYS_DECL* get_output_info_name_length)(const XcbRandrOutputInfo*);
+  XcbRandrModeInfoIterator (SYS_DECL* get_screen_resources_current_modes_iterator)(const XcbRandrScreenResources*);
+  void                     (SYS_DECL* mode_info_next)(XcbRandrModeInfoIterator*);
+  XcbCookie                (SYS_DECL* get_crtc_info)(xcb_connection_t*, XcbRandrCrtc, xcb_timestamp_t configTimestamp);
+  XcbRandrCrtcInfo*        (SYS_DECL* get_crtc_info_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  XcbCookie                (SYS_DECL* select_input)(xcb_connection_t*, xcb_window_t, u16 enable);
   // clang-format on
 } XcbRandr;
 
@@ -643,6 +715,19 @@ static bool pal_randr_init(GapPal* pal, XcbRandr* out, u8* firstEventOut) {
   XRANDR_LOAD_SYM(id);
   XRANDR_LOAD_SYM(query_version);
   XRANDR_LOAD_SYM(query_version_reply);
+  XRANDR_LOAD_SYM(get_screen_resources_current);
+  XRANDR_LOAD_SYM(get_screen_resources_current_reply);
+  XRANDR_LOAD_SYM(get_screen_resources_current_outputs);
+  XRANDR_LOAD_SYM(get_screen_resources_current_outputs_length);
+  XRANDR_LOAD_SYM(get_output_info);
+  XRANDR_LOAD_SYM(get_output_info_reply);
+  XRANDR_LOAD_SYM(get_output_info_name);
+  XRANDR_LOAD_SYM(get_output_info_name_length);
+  XRANDR_LOAD_SYM(get_screen_resources_current_modes_iterator);
+  XRANDR_LOAD_SYM(mode_info_next);
+  XRANDR_LOAD_SYM(get_crtc_info);
+  XRANDR_LOAD_SYM(get_crtc_info_reply);
+  XRANDR_LOAD_SYM(select_input);
 
 #undef XRANDR_LOAD_SYM
 
@@ -770,21 +855,21 @@ static void pal_init_extensions(GapPal* pal) {
 }
 
 static f32
-pal_randr_refresh_rate(XcbRandrScreenResourcesCurrent* screen, const xcb_randr_mode_t mode) {
-  xcb_randr_mode_info_iterator_t i = xcb_randr_get_screen_resources_current_modes_iterator(screen);
-  for (; i.rem; xcb_randr_mode_info_next(&i)) {
+pal_randr_refresh_rate(GapPal* pal, XcbRandrScreenResources* screen, const XcbRandrMode mode) {
+  XcbRandrModeInfoIterator i = pal->xrandr.get_screen_resources_current_modes_iterator(screen);
+  for (; i.rem; pal->xrandr.mode_info_next(&i)) {
     if (i.data->id != mode) {
       continue;
     }
     f64 verticalLines = i.data->vtotal;
-    if (i.data->mode_flags & XCB_RANDR_MODE_FLAG_DOUBLE_SCAN) {
+    if (i.data->modeFlags & 32 /* XCB_RANDR_MODE_FLAG_DOUBLE_SCAN */) {
       verticalLines *= 2; // Double the number of lines.
     }
-    if (i.data->mode_flags & XCB_RANDR_MODE_FLAG_INTERLACE) {
+    if (i.data->modeFlags & 16 /* XCB_RANDR_MODE_FLAG_INTERLACE */) {
       verticalLines /= 2; // Interlace halves the number of lines.
     }
     if (i.data->htotal && verticalLines != 0.0) {
-      return (f32)(((100 * (i64)i.data->dot_clock) / (i.data->htotal * verticalLines)) / 100.0);
+      return (f32)(((100 * (i64)i.data->dotClock) / (i.data->htotal * verticalLines)) / 100.0);
     }
     return pal_window_default_refresh_rate;
   }
@@ -798,38 +883,38 @@ static void pal_randr_query_displays(GapPal* pal) {
   dynarray_for_t(&pal->displays, GapPalDisplay, d) { string_maybe_free(g_allocHeap, d->name); }
   dynarray_clear(&pal->displays);
 
-  xcb_generic_error_t*            err    = null;
-  XcbRandrScreenResourcesCurrent* screen = pal_xcb_call(
+  xcb_generic_error_t*     err    = null;
+  XcbRandrScreenResources* screen = pal_xcb_call(
       pal->xcbCon, pal->xrandr.get_screen_resources_current, &err, pal->xcbScreen->root);
   if (UNLIKELY(err)) {
     diag_crash_msg("Xcb failed to retrieve randr screen-info, err: {}", fmt_int(err->error_code));
   }
 
-  const xcb_randr_output_t* outputs = xcb_randr_get_screen_resources_current_outputs(screen);
-  const u32 numOutputs              = xcb_randr_get_screen_resources_current_outputs_length(screen);
-  for (u32 i = 0; i < numOutputs; ++i) {
-    xcb_randr_get_output_info_reply_t* output =
-        pal_xcb_call(pal->xcbCon, xcb_randr_get_output_info, &err, outputs[i], 0);
+  const XcbRandrOutput* outputs = pal->xrandr.get_screen_resources_current_outputs(screen);
+  const u32 numOutputs          = pal->xrandr.get_screen_resources_current_outputs_length(screen);
+  for (u32 i = 0; i != numOutputs; ++i) {
+    XcbRandrOutputInfo* output =
+        pal_xcb_call(pal->xcbCon, pal->xrandr.get_output_info, &err, outputs[i], 0);
     if (UNLIKELY(err)) {
       diag_crash_msg("Xcb failed to retrieve randr output-info, err: {}", fmt_int(err->error_code));
     }
     const String name = {
-        .ptr  = xcb_randr_get_output_info_name(output),
-        .size = xcb_randr_get_output_info_name_length(output),
+        .ptr  = pal->xrandr.get_output_info_name(output),
+        .size = pal->xrandr.get_output_info_name_length(output),
     };
 
     if (output->crtc) {
-      xcb_randr_get_crtc_info_reply_t* crtc =
-          pal_xcb_call(pal->xcbCon, xcb_randr_get_crtc_info, &err, output->crtc, 0);
+      XcbRandrCrtcInfo* crtc =
+          pal_xcb_call(pal->xcbCon, pal->xrandr.get_crtc_info, &err, output->crtc, 0);
       if (UNLIKELY(err)) {
         diag_crash_msg("Xcb failed to retrieve randr crtc-info, err: {}", fmt_int(err->error_code));
       }
       const GapVector position       = gap_vector(crtc->x, crtc->y);
       const GapVector size           = gap_vector(crtc->width, crtc->height);
-      const GapVector physicalSizeMm = gap_vector(output->mm_width, output->mm_height);
-      const f32       refreshRate    = pal_randr_refresh_rate(screen, crtc->mode);
+      const GapVector physicalSizeMm = gap_vector(output->mmWidth, output->mmHeight);
+      const f32       refreshRate    = pal_randr_refresh_rate(pal, screen, crtc->mode);
       u16             dpi            = pal_window_default_dpi;
-      if (output->mm_width) {
+      if (output->mmWidth) {
         dpi = (u16)math_round_nearest_f32(crtc->width * 25.4f / physicalSizeMm.width);
       }
 
@@ -1433,13 +1518,13 @@ void gap_pal_update(GapPal* pal) {
     default:
       if (pal->extensions & GapPalXcbExtFlags_Randr) {
         switch (evt->response_type - pal->randrFirstEvent) {
-        case XCB_RANDR_SCREEN_CHANGE_NOTIFY: {
-          const xcb_randr_screen_change_notify_event_t* screenChangeMsg = (const void*)evt;
+        case 0 /* XCB_RANDR_SCREEN_CHANGE_NOTIFY */: {
+          const XcbRandrScreenChangeEvent* screenChangeMsg = (const void*)evt;
 
           log_d("Display change detected");
           pal_randr_query_displays(pal);
 
-          const GapWindowId windowId = screenChangeMsg->request_window;
+          const GapWindowId windowId = screenChangeMsg->requestWindow;
           GapPalWindow*     window   = pal_maybe_window(pal, windowId);
           if (window) {
             const GapPalDisplay* display = pal_maybe_display(pal, window->centerPos);
@@ -1633,7 +1718,8 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   };
 
   if (pal->extensions & GapPalXcbExtFlags_Randr) {
-    xcb_randr_select_input(pal->xcbCon, (xcb_window_t)id, XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE);
+    const u16 mask = 1 /* XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE */;
+    pal->xrandr.select_input(pal->xcbCon, (xcb_window_t)id, mask);
   }
 
   gap_pal_window_icon_set(pal, id, GapIcon_Main);
