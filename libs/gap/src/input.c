@@ -28,7 +28,10 @@ static const Unicode g_keyChars[GapKey_Count] = {
 };
 
 Unicode gap_key_char(const GapKey key) {
-  diag_assert(key < GapKey_Count);
+  if (key == GapKey_None) {
+    return Unicode_Invalid;
+  }
+  diag_assert(key >= 0 && key < GapKey_Count);
   return g_keyChars[key];
 }
 
@@ -114,7 +117,10 @@ static const String g_keyStrs[] = {
 ASSERT(array_elems(g_keyStrs) == GapKey_Count, "Incorrect number of GapKey strings");
 
 String gap_key_str(const GapKey key) {
-  diag_assert(key < GapKey_Count);
+  if (key == GapKey_None) {
+    return string_empty;
+  }
+  diag_assert(key >= 0 && key < GapKey_Count);
   return g_keyStrs[key];
 }
 
@@ -130,20 +136,23 @@ static const String g_paramStrs[] = {
 ASSERT(array_elems(g_paramStrs) == GapParam_Count, "Incorrect number of GapParam strings");
 
 String gap_param_str(const GapParam param) {
-  diag_assert(param < GapParam_Count);
+  diag_assert(param >= 0 && param < GapParam_Count);
   return g_paramStrs[param];
 }
 
 void gap_keyset_clear(GapKeySet* set) { mem_set(array_mem(set->data), 0); }
 
 bool gap_keyset_test(const GapKeySet* set, const GapKey key) {
+  diag_assert(key >= 0 && key < GapKey_Count);
   return bitset_test(bitset_from_array(set->data), key);
 }
 
 void gap_keyset_set(GapKeySet* set, const GapKey key) {
+  diag_assert(key >= 0 && key < GapKey_Count);
   bitset_set(bitset_from_array(set->data), key);
 }
 
 void gap_keyset_unset(GapKeySet* set, const GapKey key) {
+  diag_assert(key >= 0 && key < GapKey_Count);
   bitset_clear(bitset_from_array(set->data), key);
 }
