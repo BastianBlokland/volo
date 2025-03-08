@@ -597,6 +597,27 @@ static void pal_init_xcb(GapPal* pal, Xcb* out) {
   XCB_LOAD_SYM(create_gc);
   XCB_LOAD_SYM(create_pixmap);
 
+  /*
+
+  xcb_query_pointer
+  xcb_query_pointer_reply
+  xcb_grab_pointer
+  xcb_ungrab_pointer
+  xcb_change_property
+  xcb_get_property
+  xcb_get_property_reply
+  xcb_delete_property
+  xcb_get_property_value
+  xcb_change_window_attributes
+  xcb_destroy_window
+  xcb_configure_window
+  xcb_create_window
+  xcb_map_window
+  xcb_warp_pointer
+  xcb_set_selection_owner
+
+  */
+
 #undef XCB_LOAD_SYM
 
   // Establish a connection with the x-server.
