@@ -25,10 +25,10 @@ void SYS_DECL free(void*); // free from stdlib, xcb allocates various structures
 /**
  * Utility to make synchronous xcb calls.
  */
-#define pal_xcb_call(_CON_, _FUNC_, _ERR_, ...)                                                    \
+#define xcb_call(_CON_, _FUNC_, _ERR_, ...)                                                        \
   _FUNC_##_reply((_CON_), _FUNC_((_CON_), __VA_ARGS__), (_ERR_))
 
-#define pal_xcb_call_void(_CON_, _FUNC_, _ERR_) _FUNC_##_reply((_CON_), _FUNC_(_CON_), (_ERR_))
+#define xcb_call_void(_CON_, _FUNC_, _ERR_) _FUNC_##_reply((_CON_), _FUNC_(_CON_), (_ERR_))
 
 typedef unsigned int           XcbCookie;
 typedef struct sXcbPictFormats XcbPictFormats;
@@ -770,8 +770,8 @@ static GapKey pal_xcb_translate_key(const XkbKeycode key) {
  * Xcb atoms are named tokens that are used in the x11 specification.
  */
 static XcbAtom pal_xcb_atom(GapPal* pal, const String name) {
-  XcbGenericError* err = null;
-  XcbAtomData* data = pal_xcb_call(pal->xcbCon, pal->xcb.intern_atom, &err, 0, name.size, name.ptr);
+  XcbGenericError* err  = null;
+  XcbAtomData*     data = xcb_call(pal->xcbCon, pal->xcb.intern_atom, &err, 0, name.size, name.ptr);
   if (UNLIKELY(err)) {
     diag_crash_msg(
         "Xcb failed to retrieve atom: {}, err: {}", fmt_text(name), fmt_int(err->errorCode));
@@ -1039,7 +1039,7 @@ static bool pal_xfixes_init(GapPal* pal, XcbXFixes* out) {
 #undef XFIXES_LOAD_SYM
 
   XcbGenericError* err   = null;
-  void*            reply = pal_xcb_call(pal->xcbCon, out->query_version, &err, 5, 0);
+  void*            reply = xcb_call(pal->xcbCon, out->query_version, &err, 5, 0);
   free(reply);
 
   if (UNLIKELY(err)) {
@@ -1098,7 +1098,7 @@ static bool pal_randr_init(GapPal* pal, XcbRandr* out, u8* firstEventOut) {
     return false;
   }
   XcbGenericError* err     = null;
-  void*            version = pal_xcb_call(pal->xcbCon, out->query_version, &err, 1, 6);
+  void*            version = xcb_call(pal->xcbCon, out->query_version, &err, 1, 6);
   free(version);
 
   if (UNLIKELY(err)) {
@@ -1113,7 +1113,7 @@ static bool pal_randr_init(GapPal* pal, XcbRandr* out, u8* firstEventOut) {
 
 static bool pal_xrender_find_formats(GapPal* pal) {
   XcbGenericError* err     = null;
-  XcbPictFormats*  formats = pal_xcb_call_void(pal->xcbCon, pal->xrender.query_pict_formats, &err);
+  XcbPictFormats*  formats = xcb_call_void(pal->xcbCon, pal->xrender.query_pict_formats, &err);
 
   if (UNLIKELY(err)) {
     return false;
@@ -1184,7 +1184,7 @@ static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
     return false;
   }
   XcbGenericError* err     = null;
-  void*            version = pal_xcb_call(pal->xcbCon, out->query_version, &err, 0, 11);
+  void*            version = xcb_call(pal->xcbCon, out->query_version, &err, 0, 11);
   free(version);
 
   if (UNLIKELY(err)) {
@@ -1244,9 +1244,9 @@ static void pal_randr_query_displays(GapPal* pal) {
   dynarray_for_t(&pal->displays, GapPalDisplay, d) { string_maybe_free(g_allocHeap, d->name); }
   dynarray_clear(&pal->displays);
 
-  XcbGenericError*         err    = null;
-  XcbRandrScreenResources* screen = pal_xcb_call(
-      pal->xcbCon, pal->xrandr.get_screen_resources_current, &err, pal->xcbScreen->root);
+  XcbGenericError*         err = null;
+  XcbRandrScreenResources* screen =
+      xcb_call(pal->xcbCon, pal->xrandr.get_screen_resources_current, &err, pal->xcbScreen->root);
   if (UNLIKELY(err)) {
     diag_crash_msg("Xcb failed to retrieve RandR screen-info, err: {}", fmt_int(err->errorCode));
   }
@@ -1255,7 +1255,7 @@ static void pal_randr_query_displays(GapPal* pal) {
   const u32 numOutputs          = pal->xrandr.get_screen_resources_current_outputs_length(screen);
   for (u32 i = 0; i != numOutputs; ++i) {
     XcbRandrOutputInfo* output =
-        pal_xcb_call(pal->xcbCon, pal->xrandr.get_output_info, &err, outputs[i], 0);
+        xcb_call(pal->xcbCon, pal->xrandr.get_output_info, &err, outputs[i], 0);
     if (UNLIKELY(err)) {
       diag_crash_msg("Xcb failed to retrieve RandR output-info, err: {}", fmt_int(err->errorCode));
     }
@@ -1266,7 +1266,7 @@ static void pal_randr_query_displays(GapPal* pal) {
 
     if (output->crtc) {
       XcbRandrCrtcInfo* crtc =
-          pal_xcb_call(pal->xcbCon, pal->xrandr.get_crtc_info, &err, output->crtc, 0);
+          xcb_call(pal->xcbCon, pal->xrandr.get_crtc_info, &err, output->crtc, 0);
       if (UNLIKELY(err)) {
         diag_crash_msg("Xcb failed to retrieve RandR crtc-info, err: {}", fmt_int(err->errorCode));
       }
@@ -1310,7 +1310,7 @@ static GapVector pal_query_cursor_pos(GapPal* pal, const GapWindowId winId) {
 
   GapVector        result = gap_vector(0, 0);
   XcbGenericError* err    = null;
-  XcbPointerData*  data = pal_xcb_call(pal->xcbCon, pal->xcb.query_pointer, &err, (XcbWindow)winId);
+  XcbPointerData*  data   = xcb_call(pal->xcbCon, pal->xcb.query_pointer, &err, (XcbWindow)winId);
 
   if (UNLIKELY(err)) {
     log_w(
@@ -1600,7 +1600,7 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
     return;
   }
   XcbGenericError* err   = null;
-  XcbPropertyData* reply = pal_xcb_call(
+  XcbPropertyData* reply = xcb_call(
       pal->xcbCon,
       pal->xcb.get_property,
       &err,
