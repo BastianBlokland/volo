@@ -8,7 +8,6 @@
 #include "pal_internal.h"
 
 #include <xcb/xcb.h>
-#include <xcb/xkb.h>
 #include <xkbcommon/xkbcommon-x11.h>
 
 void SYS_DECL free(void*); // free from stdlib, xcb allocates various structures for us to free.
@@ -145,6 +144,7 @@ typedef struct {
   int         (SYS_DECL* x11_setup_xkb_extension)(xcb_connection_t*, u16 xkbMajor, u16 xkbMinor, i32 flags, u16* xkbMajorOut, u16* xkbMinorOut, u8* baseEventOut, u8* baseErrorOut);
   XkbContext* (SYS_DECL* context_new)(i32 flags);
   void        (SYS_DECL* context_unref)(XkbContext*);
+  XcbCookie   (SYS_DECL* per_client_flags_unchecked)(xcb_connection_t*, u16 deviceSpec, u32 change, u32 value, u32 ctrlsToChange, u32 autoCtrls, u32 autoCtrlsValues);
   // clang-format on
 } XcbXkbCommon;
 
@@ -600,8 +600,9 @@ static void pal_xcb_cursor_grab_release(GapPal* pal) {
   xcb_ungrab_pointer(pal->xcbCon, XCB_CURRENT_TIME);
 }
 
-static void pal_xkb_enable_flag(GapPal* pal, const xcb_xkb_per_client_flag_t flag) {
-  xcb_xkb_per_client_flags_unchecked(pal->xcbCon, XCB_XKB_ID_USE_CORE_KBD, flag, flag, 0, 0, 0);
+static void pal_xkb_enable_flag(GapPal* pal, const i32 flag) {
+  enum { XCB_XKB_ID_USE_CORE_KBD = 256 };
+  pal->xkb.per_client_flags_unchecked(pal->xcbCon, XCB_XKB_ID_USE_CORE_KBD, flag, flag, 0, 0, 0);
 }
 
 /**
@@ -616,9 +617,9 @@ static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
     return false;
   }
 
-#define XKB_LOAD_SYM(_NAME_)                                                                       \
+#define XKB_LOAD_SYM(_PREFIX_, _NAME_)                                                             \
   do {                                                                                             \
-    const String symName = string_lit("xkb_" #_NAME_);                                             \
+    const String symName = string_lit(#_PREFIX_ "_" #_NAME_);                                      \
     out->_NAME_          = dynlib_symbol(out->lib, symName);                                       \
     if (!out->_NAME_) {                                                                            \
       log_w("XkbCommon symbol '{}' missing", log_param("sym", fmt_text(symName)));                 \
@@ -626,9 +627,10 @@ static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
     }                                                                                              \
   } while (false)
 
-  XKB_LOAD_SYM(x11_setup_xkb_extension);
-  XKB_LOAD_SYM(context_new);
-  XKB_LOAD_SYM(context_unref);
+  XKB_LOAD_SYM(xkb, x11_setup_xkb_extension);
+  XKB_LOAD_SYM(xkb, context_new);
+  XKB_LOAD_SYM(xkb, context_unref);
+  XKB_LOAD_SYM(xcb_xkb, per_client_flags_unchecked);
 
 #undef XKB_LOAD_SYM
 
