@@ -7,8 +7,6 @@
 
 #include "pal_internal.h"
 
-#include <xcb/xcb.h>
-
 void SYS_DECL free(void*); // free from stdlib, xcb allocates various structures for us to free.
 
 /**
@@ -595,17 +593,17 @@ static void pal_clear_volatile(GapPal* pal) {
 
 static String pal_xcb_err_str(const int xcbErrCode) {
   switch (xcbErrCode) {
-  case XCB_CONN_ERROR:
+  case 1 /* XCB_CONN_ERROR */:
     return string_lit("Connection error");
-  case XCB_CONN_CLOSED_EXT_NOTSUPPORTED:
+  case 2 /* XCB_CONN_CLOSED_EXT_NOTSUPPORTED */:
     return string_lit("Extension not supported");
-  case XCB_CONN_CLOSED_MEM_INSUFFICIENT:
+  case 3 /* XCB_CONN_CLOSED_MEM_INSUFFICIENT */:
     return string_lit("Insufficient memory available");
-  case XCB_CONN_CLOSED_REQ_LEN_EXCEED:
+  case 4 /* XCB_CONN_CLOSED_REQ_LEN_EXCEED */:
     return string_lit("Request length exceeded");
-  case XCB_CONN_CLOSED_PARSE_ERR:
+  case 5 /* XCB_CONN_CLOSED_PARSE_ERR */:
     return string_lit("Failed to parse display string");
-  case XCB_CONN_CLOSED_INVALID_SCREEN:
+  case 6 /* XCB_CONN_CLOSED_INVALID_SCREEN */:
     return string_lit("No valid screen available");
   default:
     return string_lit("Unknown error");
@@ -880,50 +878,47 @@ static void pal_init_xcb(GapPal* pal, Xcb* out) {
 static void pal_xcb_wm_state_update(
     GapPal* pal, const GapWindowId windowId, const XcbAtom stateAtom, const bool active) {
   const XcbClientMessageEvent evt = {
-      .responseType = XCB_CLIENT_MESSAGE,
+      .responseType = 33 /* XCB_CLIENT_MESSAGE */,
       .format       = sizeof(XcbAtom) * 8,
       .window       = (XcbWindow)windowId,
       .type         = pal->atomWmState,
       .data[0]      = active ? 1 : 0,
       .data[1]      = stateAtom,
   };
-  pal->xcb.send_event(
-      pal->xcbCon,
-      false,
-      pal->xcbScreen->root,
-      XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,
-      (const char*)&evt);
+  const u32 mask = 131072 /* XCB_EVENT_MASK_STRUCTURE_NOTIFY */ |
+                   1048576 /* XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT */;
+  pal->xcb.send_event(pal->xcbCon, false, pal->xcbScreen->root, mask, (const char*)&evt);
 }
 
 static void pal_xcb_bypass_compositor(GapPal* pal, const GapWindowId windowId, const bool active) {
   const u32 value = active ? 1 : 0;
   pal->xcb.change_property(
       pal->xcbCon,
-      XCB_PROP_MODE_REPLACE,
+      0 /* XCB_PROP_MODE_REPLACE */,
       (XcbWindow)windowId,
       pal->atomWmStateBypassCompositor,
-      XCB_ATOM_CARDINAL,
+      6 /* XCB_ATOM_CARDINAL */,
       sizeof(u32) * 8,
       1,
       (const char*)&value);
 }
 
 static void pal_xcb_cursor_grab(GapPal* pal, const GapWindowId windowId) {
+  const u16 mask = 4 /* XCB_EVENT_MASK_BUTTON_PRESS */ | 8 /* XCB_EVENT_MASK_BUTTON_RELEASE */ |
+                   64 /* XCB_EVENT_MASK_POINTER_MOTION */;
   pal->xcb.grab_pointer(
       pal->xcbCon,
       true,
       (XcbWindow)windowId,
-      XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION,
-      XCB_GRAB_MODE_ASYNC,
-      XCB_GRAB_MODE_ASYNC,
+      mask,
+      1 /* XCB_GRAB_MODE_ASYNC */,
+      1 /* XCB_GRAB_MODE_ASYNC */,
       (XcbWindow)windowId,
-      XCB_NONE,
-      XCB_CURRENT_TIME);
+      0,
+      0);
 }
 
-static void pal_xcb_cursor_grab_release(GapPal* pal) {
-  pal->xcb.ungrab_pointer(pal->xcbCon, XCB_CURRENT_TIME);
-}
+static void pal_xcb_cursor_grab_release(GapPal* pal) { pal->xcb.ungrab_pointer(pal->xcbCon, 0); }
 
 static void pal_xkb_enable_flag(GapPal* pal, const i32 flag) {
   enum { XCB_XKB_ID_USE_CORE_KBD = 256 };
@@ -1360,10 +1355,10 @@ pal_set_window_min_size(GapPal* pal, const GapWindowId windowId, const GapVector
 
   pal->xcb.change_property(
       pal->xcbCon,
-      XCB_PROP_MODE_REPLACE,
+      0 /* XCB_PROP_MODE_REPLACE */,
       (XcbWindow)windowId,
-      XCB_ATOM_WM_NORMAL_HINTS,
-      XCB_ATOM_WM_SIZE_HINTS,
+      40 /* XCB_ATOM_WM_NORMAL_HINTS */,
+      41 /* XCB_ATOM_WM_SIZE_HINTS */,
       32,
       bytes_to_words(sizeof(newHints)),
       &newHints);
@@ -1545,10 +1540,10 @@ static void pal_clip_send_targets(GapPal* pal, const XcbWindow requestor, const 
   };
   pal->xcb.change_property(
       pal->xcbCon,
-      XCB_PROP_MODE_REPLACE,
+      0 /* XCB_PROP_MODE_REPLACE */,
       requestor,
       property,
-      XCB_ATOM_ATOM,
+      4 /* XCB_ATOM_ATOM */,
       sizeof(XcbAtom) * 8,
       array_elems(targets),
       (const char*)targets);
@@ -1558,7 +1553,7 @@ static void pal_clip_send_utf8(
     GapPal* pal, const GapPalWindow* window, const XcbWindow requestor, const XcbAtom property) {
   pal->xcb.change_property(
       pal->xcbCon,
-      XCB_PROP_MODE_REPLACE,
+      0 /* XCB_PROP_MODE_REPLACE */,
       requestor,
       property,
       pal->atomUtf8String,
@@ -1571,8 +1566,8 @@ static void pal_event_clip_copy_request(
     GapPal* pal, const GapWindowId windowId, const XcbSelectionRequestEvent* reqEvt) {
 
   XcbSelectionNotifyEvent notifyEvt = {
-      .responseType = XCB_SELECTION_NOTIFY,
-      .time         = XCB_CURRENT_TIME,
+      .responseType = 31 /* XCB_SELECTION_NOTIFY */,
+      .time         = 0,
       .requestor    = reqEvt->requestor,
       .selection    = reqEvt->selection,
       .target       = reqEvt->target,
@@ -1595,8 +1590,8 @@ static void pal_event_clip_copy_request(
     }
   }
 
-  pal->xcb.send_event(
-      pal->xcbCon, 0, reqEvt->requestor, XCB_EVENT_MASK_PROPERTY_CHANGE, (char*)&notifyEvt);
+  const u32 mask = 4194304 /* XCB_EVENT_MASK_PROPERTY_CHANGE */;
+  pal->xcb.send_event(pal->xcbCon, 0, reqEvt->requestor, mask, (char*)&notifyEvt);
 }
 
 static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId) {
@@ -1612,7 +1607,7 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
       0,
       (XcbWindow)windowId,
       pal->atomVoloClipboard,
-      XCB_ATOM_ANY,
+      0,
       0,
       (u32)(pal->maxRequestLen / 4));
   if (UNLIKELY(err)) {
@@ -1692,7 +1687,7 @@ void gap_pal_destroy(GapPal* pal) {
 
   array_for_t(pal->icons, Mem, icon) { alloc_maybe_free(pal->alloc, *icon); }
   array_for_t(pal->cursors, XcbCursor, cursor) {
-    if (*cursor != XCB_NONE) {
+    if (*cursor) {
       pal->xcb.free_cursor(pal->xcbCon, *cursor);
     }
   }
@@ -1721,14 +1716,14 @@ void gap_pal_update(GapPal* pal) {
           log_param("msg", fmt_text(pal_xcb_err_str(errMsg->errorCode))));
     } break;
 
-    case XCB_CLIENT_MESSAGE: {
+    case 33 /* XCB_CLIENT_MESSAGE */: {
       const XcbClientMessageEvent* clientMsg = (const void*)evt;
       if (clientMsg->data[0] == pal->atomDeleteMsg) {
         pal_event_close(pal, clientMsg->window);
       }
     } break;
 
-    case XCB_FOCUS_IN: {
+    case 9 /* XCB_FOCUS_IN */: {
       const XcbFocusEvent* focusInMsg = (const void*)evt;
       pal_event_focus_gained(pal, focusInMsg->event);
 
@@ -1738,12 +1733,12 @@ void gap_pal_update(GapPal* pal) {
       }
     } break;
 
-    case XCB_FOCUS_OUT: {
+    case 10 /* XCB_FOCUS_OUT */: {
       const XcbFocusEvent* focusOutMsg = (const void*)evt;
       pal_event_focus_lost(pal, focusOutMsg->event);
     } break;
 
-    case XCB_CONFIGURE_NOTIFY: {
+    case 22 /* XCB_CONFIGURE_NOTIFY */: {
       const XcbConfigureNotifyEvent* configureMsg = (const void*)evt;
       const GapVector newSize   = gap_vector(configureMsg->width, configureMsg->height);
       const GapVector newPos    = {configureMsg->x, configureMsg->y};
@@ -1769,7 +1764,7 @@ void gap_pal_update(GapPal* pal) {
 
     } break;
 
-    case XCB_MOTION_NOTIFY: {
+    case 6 /* XCB_MOTION_NOTIFY */: {
       const XcbMotionNotifyEvent* motionMsg = (const void*)evt;
       GapPalWindow*               window    = pal_maybe_window(pal, motionMsg->event);
       if (window) {
@@ -1782,22 +1777,22 @@ void gap_pal_update(GapPal* pal) {
       }
     } break;
 
-    case XCB_BUTTON_PRESS: {
+    case 4 /* XCB_BUTTON_PRESS */: {
       const XcbButtonEvent* pressMsg = (const void*)evt;
       switch (pressMsg->detail) {
-      case XCB_BUTTON_INDEX_1:
+      case 1 /* XCB_BUTTON_INDEX_1 */:
         pal_event_press(pal, pressMsg->event, GapKey_MouseLeft);
         break;
-      case XCB_BUTTON_INDEX_2:
+      case 2 /* XCB_BUTTON_INDEX_2 */:
         pal_event_press(pal, pressMsg->event, GapKey_MouseMiddle);
         break;
-      case XCB_BUTTON_INDEX_3:
+      case 3 /* XCB_BUTTON_INDEX_3 */:
         pal_event_press(pal, pressMsg->event, GapKey_MouseRight);
         break;
-      case XCB_BUTTON_INDEX_4: // Mouse-wheel scroll up.
+      case 4 /* XCB_BUTTON_INDEX_4 */: // Mouse-wheel scroll up.
         pal_event_scroll(pal, pressMsg->event, gap_vector(0, 1));
         break;
-      case XCB_BUTTON_INDEX_5: // Mouse-wheel scroll down.
+      case 5 /* XCB_BUTTON_INDEX_5 */: // Mouse-wheel scroll down.
         pal_event_scroll(pal, pressMsg->event, gap_vector(0, -1));
         break;
       case 6: // XCB_BUTTON_INDEX_6 // Mouse-wheel scroll right.
@@ -1821,16 +1816,16 @@ void gap_pal_update(GapPal* pal) {
       }
     } break;
 
-    case XCB_BUTTON_RELEASE: {
+    case 5 /* XCB_BUTTON_RELEASE */: {
       const XcbButtonEvent* releaseMsg = (const void*)evt;
       switch (releaseMsg->detail) {
-      case XCB_BUTTON_INDEX_1:
+      case 1 /* XCB_BUTTON_INDEX_1 */:
         pal_event_release(pal, releaseMsg->event, GapKey_MouseLeft);
         break;
-      case XCB_BUTTON_INDEX_2:
+      case 2 /* XCB_BUTTON_INDEX_2 */:
         pal_event_release(pal, releaseMsg->event, GapKey_MouseMiddle);
         break;
-      case XCB_BUTTON_INDEX_3:
+      case 3 /* XCB_BUTTON_INDEX_3 */:
         pal_event_release(pal, releaseMsg->event, GapKey_MouseRight);
         break;
       case 8: // XCB_BUTTON_INDEX_8 // Extra mouse button (commonly the 'back' button).
@@ -1848,7 +1843,7 @@ void gap_pal_update(GapPal* pal) {
       }
     } break;
 
-    case XCB_KEY_PRESS: {
+    case 2 /* XCB_KEY_PRESS */: {
       const XcbKeyEvent* pressMsg = (const void*)evt;
       pal_event_press(pal, pressMsg->event, pal_xcb_translate_key(pressMsg->detail));
       if (pal->extensions & GapPalXcbExtFlags_Xkb) {
@@ -1857,7 +1852,7 @@ void gap_pal_update(GapPal* pal) {
       pal_event_text(pal, pressMsg->event, pressMsg->detail);
     } break;
 
-    case XCB_KEY_RELEASE: {
+    case 3 /* XCB_KEY_RELEASE */: {
       const XcbKeyEvent* releaseMsg = (const void*)evt;
       pal_event_release(pal, releaseMsg->event, pal_xcb_translate_key(releaseMsg->detail));
       if (pal->extensions & GapPalXcbExtFlags_Xkb) {
@@ -1865,17 +1860,17 @@ void gap_pal_update(GapPal* pal) {
       }
     } break;
 
-    case XCB_SELECTION_CLEAR: {
+    case 29 /* XCB_SELECTION_CLEAR */: {
       const XcbSelectionClearEvent* selectionClearMsg = (const void*)evt;
       pal_event_clip_copy_clear(pal, selectionClearMsg->owner);
     } break;
 
-    case XCB_SELECTION_REQUEST: {
+    case 30 /* XCB_SELECTION_REQUEST */: {
       const XcbSelectionRequestEvent* selectionRequestMsg = (const void*)evt;
       pal_event_clip_copy_request(pal, selectionRequestMsg->owner, selectionRequestMsg);
     } break;
 
-    case XCB_SELECTION_NOTIFY: {
+    case 31 /* XCB_SELECTION_NOTIFY */: {
       const XcbSelectionNotifyEvent* selectionNotifyMsg = (const void*)evt;
       if (selectionNotifyMsg->selection == pal->atomClipboard && selectionNotifyMsg->target) {
         pal_event_clip_paste_notify(pal, selectionNotifyMsg->requestor);
@@ -1993,7 +1988,7 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
 
   pal->xcb.put_image(
       pal->xcbCon,
-      XCB_IMAGE_FORMAT_Z_PIXMAP,
+      2 /* XCB_IMAGE_FORMAT_Z_PIXMAP */,
       pixmap,
       graphicsContext,
       asset->width,
@@ -2014,7 +2009,7 @@ void gap_pal_cursor_load(GapPal* pal, const GapCursor id, const AssetIconComp* a
   pal->xrender.free_picture(pal->xcbCon, picture);
   pal->xcb.free_pixmap(pal->xcbCon, pixmap);
 
-  if (pal->cursors[id] != XCB_NONE) {
+  if (pal->cursors[id]) {
     pal->xcb.free_cursor(pal->xcbCon, pal->cursors[id]);
   }
   pal->cursors[id] = cursor;
@@ -2042,7 +2037,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
     size.height = pal_window_min_height;
   }
 
-  const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
+  const u32 valuesMask = 2 /* XCB_CW_BACK_PIXEL */ | 2048 /* XCB_CW_EVENT_MASK */;
 
   const u32 values[2] = {
       pal->xcbScreen->blackPixel,
@@ -2051,7 +2046,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
 
   pal->xcb.create_window(
       con,
-      XCB_COPY_FROM_PARENT,
+      0 /* XCB_COPY_FROM_PARENT */,
       (XcbWindow)id,
       pal->xcbScreen->root,
       0,
@@ -2059,7 +2054,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       (u16)size.width,
       (u16)size.height,
       0,
-      XCB_WINDOW_CLASS_INPUT_OUTPUT,
+      1 /* XCB_WINDOW_CLASS_INPUT_OUTPUT */,
       pal->xcbScreen->rootVisual,
       valuesMask,
       values);
@@ -2067,10 +2062,10 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   // Register a custom delete message atom.
   pal->xcb.change_property(
       con,
-      XCB_PROP_MODE_REPLACE,
+      0 /* XCB_PROP_MODE_REPLACE */,
       (XcbWindow)id,
       pal->atomProtoMsg,
-      XCB_ATOM_ATOM,
+      4 /* XCB_ATOM_ATOM */,
       sizeof(XcbAtom) * 8,
       1,
       &pal->atomDeleteMsg);
@@ -2151,9 +2146,9 @@ String gap_pal_window_input_text(const GapPal* pal, const GapWindowId windowId) 
 void gap_pal_window_title_set(GapPal* pal, const GapWindowId windowId, const String title) {
   pal->xcb.change_property(
       pal->xcbCon,
-      XCB_PROP_MODE_REPLACE,
+      0 /* XCB_PROP_MODE_REPLACE */,
       (XcbWindow)windowId,
-      XCB_ATOM_WM_NAME,
+      39 /* XCB_ATOM_WM_NAME */,
       pal->atomUtf8String,
       sizeof(u8) * 8,
       (u32)title.size,
@@ -2197,12 +2192,9 @@ void gap_pal_window_resize(
     pal_xcb_wm_state_update(pal, windowId, pal->atomWmStateFullscreen, false);
     pal_xcb_bypass_compositor(pal, windowId, false);
 
+    const u16 valueMask = 4 /* XCB_CONFIG_WINDOW_WIDTH */ | 8 /* XCB_CONFIG_WINDOW_HEIGHT */;
     const u32 values[2] = {size.x, size.y};
-    pal->xcb.configure_window(
-        pal->xcbCon,
-        (XcbWindow)windowId,
-        XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-        values);
+    pal->xcb.configure_window(pal->xcbCon, (XcbWindow)windowId, valueMask, values);
   }
 }
 
@@ -2259,10 +2251,10 @@ void gap_pal_window_icon_set(GapPal* pal, const GapWindowId windowId, const GapI
   if (mem_valid(pal->icons[icon])) {
     pal->xcb.change_property(
         pal->xcbCon,
-        XCB_PROP_MODE_REPLACE,
+        0 /* XCB_PROP_MODE_REPLACE */,
         (XcbWindow)windowId,
         pal->atomWmIcon,
-        XCB_ATOM_CARDINAL,
+        6 /* XCB_ATOM_CARDINAL */,
         sizeof(u32) * 8,
         (u32)(pal->icons[icon].size / sizeof(u32)),
         pal->icons[icon].ptr);
@@ -2278,7 +2270,7 @@ void gap_pal_window_cursor_set(GapPal* pal, const GapWindowId windowId, const Ga
   diag_assert(window);
 
   pal->xcb.change_window_attributes(
-      pal->xcbCon, (XcbWindow)windowId, XCB_CW_CURSOR, &pal->cursors[cursor]);
+      pal->xcbCon, (XcbWindow)windowId, 16384 /* XCB_CW_CURSOR */, &pal->cursors[cursor]);
 
   window->cursor = cursor;
 }
@@ -2296,7 +2288,7 @@ void gap_pal_window_cursor_pos_set(
       .x = position.x,
       .y = window->params[GapParam_WindowSize].height - position.y,
   };
-  pal->xcb.warp_pointer(pal->xcbCon, XCB_NONE, (XcbWindow)windowId, 0, 0, 0, 0, xcbPos.x, xcbPos.y);
+  pal->xcb.warp_pointer(pal->xcbCon, 0, (XcbWindow)windowId, 0, 0, 0, 0, xcbPos.x, xcbPos.y);
 
   pal_window((GapPal*)pal, windowId)->params[GapParam_CursorPos] = position;
 }
@@ -2317,8 +2309,7 @@ void gap_pal_window_clip_copy(GapPal* pal, const GapWindowId windowId, const Str
 
   string_maybe_free(g_allocHeap, window->clipCopy);
   window->clipCopy = string_dup(g_allocHeap, value);
-  pal->xcb.set_selection_owner(
-      pal->xcbCon, (XcbWindow)windowId, pal->atomClipboard, XCB_CURRENT_TIME);
+  pal->xcb.set_selection_owner(pal->xcbCon, (XcbWindow)windowId, pal->atomClipboard, 0);
 }
 
 void gap_pal_window_clip_paste(GapPal* pal, const GapWindowId windowId) {
@@ -2329,7 +2320,7 @@ void gap_pal_window_clip_paste(GapPal* pal, const GapWindowId windowId) {
       pal->atomClipboard,
       pal->atomUtf8String,
       pal->atomVoloClipboard,
-      XCB_CURRENT_TIME);
+      0);
 }
 
 String gap_pal_window_clip_paste_result(GapPal* pal, const GapWindowId windowId) {
