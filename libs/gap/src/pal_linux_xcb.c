@@ -8,7 +8,6 @@
 #include "pal_internal.h"
 
 #include <xcb/xcb.h>
-#include <xkbcommon/xkbcommon-x11.h>
 
 void SYS_DECL free(void*); // free from stdlib, xcb allocates various structures for us to free.
 
@@ -45,6 +44,7 @@ typedef u32                    XcbPicture;
 typedef u32                    XcbRandrCrtc;
 typedef u32                    XcbRandrMode;
 typedef u32                    XcbRandrOutput;
+typedef u32                    XkbKeycode;
 
 typedef enum {
   XkbKeyDirection_Up,
@@ -159,8 +159,8 @@ typedef struct {
   const char* (SYS_DECL* keymap_layout_get_name)(XkbKeyMap*, u32 index);
   XkbState*   (SYS_DECL* state_new_from_device)(XkbKeyMap*, xcb_connection_t*, i32 deviceId);
   void        (SYS_DECL* state_unref)(XkbState*);
-  i32         (SYS_DECL* state_key_get_utf8)(XkbState*, xkb_keycode_t, char* buffer, usize size);
-  i32         (SYS_DECL* state_update_key)(XkbState*, xkb_keycode_t, XkbKeyDirection);
+  i32         (SYS_DECL* state_key_get_utf8)(XkbState*, XkbKeycode, char* buffer, usize size);
+  i32         (SYS_DECL* state_update_key)(XkbState*, XkbKeycode, XkbKeyDirection);
   // clang-format on
 } XcbXkbCommon;
 
@@ -671,7 +671,7 @@ static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
     return false;
   }
 
-  pal->xkbContext = out->context_new(XKB_CONTEXT_NO_FLAGS);
+  pal->xkbContext = out->context_new(0);
   if (UNLIKELY(!pal->xkbContext)) {
     log_w("Xcb failed to create the xkb-common context");
     return false;
