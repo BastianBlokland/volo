@@ -54,7 +54,24 @@ typedef u32                    XcbWindow;
 typedef u32                    XcbAtom;
 typedef u32                    XcbGcContext;
 typedef u32                    XcbPixmap;
+typedef u32                    XcbColormap;
 typedef u32                    XcbVisualId;
+typedef u32                    XcbEventMask;
+
+typedef struct {
+  XcbWindow   root;
+  XcbColormap defaultColormap;
+  u32         whitePixel, blackPixel;
+  u32         currentInputMasks;
+  u16         widthInPixels, heightInPixels;
+  u16         widthInMillimeters, heightInMillimeters;
+  u16         minInstalledMaps, maxInstalledMaps;
+  XcbVisualId rootVisual;
+  u8          backingStores;
+  u8          saveUnders;
+  u8          rootDepth;
+  u8          allowedDepthsLen;
+} XcbScreen;
 
 typedef struct {
   u8  responseType;
@@ -118,8 +135,8 @@ typedef struct {
 } XcbGenericError;
 
 typedef struct {
-  xcb_screen_t* data;
-  int           rem, index;
+  XcbScreen* data;
+  int        rem, index;
 } XcbScreenItr;
 
 typedef enum {
@@ -372,7 +389,7 @@ struct sGapPal {
   DynArray   displays; // GapPalDisplay[]
 
   XcbConnection*    xcbCon;
-  xcb_screen_t*     xcbScreen;
+  XcbScreen*        xcbScreen;
   GapPalXcbExtFlags extensions;
   usize             maxRequestLength;
   u8                xkbFirstEvent, xkbFirstError;
@@ -401,10 +418,17 @@ struct sGapPal {
       atomPlainUtf8;
 };
 
-static const xcb_event_mask_t g_xcbWindowEventMask =
-    XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
-    XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE |
-    XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_PROPERTY_CHANGE;
+// clang-format off
+static const XcbEventMask g_xcbWindowEventMask =
+  1       /* XCB_EVENT_MASK_KEY_PRESS */        |
+  2       /* XCB_EVENT_MASK_KEY_RELEASE */      |
+  4       /* XCB_EVENT_MASK_BUTTON_PRESS */     |
+  8       /* XCB_EVENT_MASK_BUTTON_RELEASE */   |
+  64      /* XCB_EVENT_MASK_POINTER_MOTION */   |
+  131072  /* XCB_EVENT_MASK_STRUCTURE_NOTIFY */ |
+  2097152 /* XCB_EVENT_MASK_FOCUS_CHANGE */     |
+  4194304 /* XCB_EVENT_MASK_PROPERTY_CHANGE */;
+// clang-format on
 
 static GapPalWindow* pal_maybe_window(GapPal* pal, const GapWindowId id) {
   dynarray_for_t(&pal->windows, GapPalWindow, window) {
@@ -478,7 +502,7 @@ static String pal_xcb_err_str(const int xcbErrCode) {
   }
 }
 
-static GapKey pal_xcb_translate_key(const xcb_keycode_t key) {
+static GapKey pal_xcb_translate_key(const XkbKeycode key) {
   switch (key) {
   case 0x32: // Left-shift.
   case 0x3E: // Right-shift.
@@ -733,7 +757,7 @@ static void pal_init_xcb(GapPal* pal, Xcb* out) {
   pal->atomPlainUtf8               = pal_xcb_atom(pal, string_lit("text/plain;charset=utf-8"));
 
   MAYBE_UNUSED const GapVector screenSize =
-      gap_vector(pal->xcbScreen->width_in_pixels, pal->xcbScreen->height_in_pixels);
+      gap_vector(pal->xcbScreen->widthInPixels, pal->xcbScreen->heightInPixels);
 
   log_i(
       "Xcb connected",
@@ -1898,12 +1922,12 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   const GapWindowId id  = pal->xcb.generate_id(con);
 
   if (size.width <= 0) {
-    size.width = pal->xcbScreen->width_in_pixels;
+    size.width = pal->xcbScreen->widthInPixels;
   } else if (size.width < pal_window_min_width) {
     size.width = pal_window_min_width;
   }
   if (size.height <= 0) {
-    size.height = pal->xcbScreen->height_in_pixels;
+    size.height = pal->xcbScreen->heightInPixels;
   } else if (size.height < pal_window_min_height) {
     size.height = pal_window_min_height;
   }
@@ -1911,7 +1935,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   const xcb_cw_t valuesMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
 
   const u32 values[2] = {
-      pal->xcbScreen->black_pixel,
+      pal->xcbScreen->blackPixel,
       g_xcbWindowEventMask,
   };
 
@@ -1926,7 +1950,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
       (u16)size.height,
       0,
       XCB_WINDOW_CLASS_INPUT_OUTPUT,
-      pal->xcbScreen->root_visual,
+      pal->xcbScreen->rootVisual,
       valuesMask,
       values);
 
@@ -2033,13 +2057,13 @@ void gap_pal_window_resize(
   diag_assert(window);
 
   if (size.width <= 0) {
-    size.width = pal->xcbScreen->width_in_pixels;
+    size.width = pal->xcbScreen->widthInPixels;
   } else if (size.width < pal_window_min_width) {
     size.width = pal_window_min_width;
   }
 
   if (size.height <= 0) {
-    size.height = pal->xcbScreen->height_in_pixels;
+    size.height = pal->xcbScreen->heightInPixels;
   } else if (size.width < pal_window_min_height) {
     size.width = pal_window_min_height;
   }
