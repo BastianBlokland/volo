@@ -149,12 +149,15 @@ typedef struct {
   DynLib* lib;
   // clang-format off
   xcb_connection_t*         (SYS_DECL* connect)(const char* displayName, int* screenOut);
+  void                      (SYS_DECL* disconnect)(xcb_connection_t*);
+  int                       (SYS_DECL* flush)(xcb_connection_t*);
   u32                       (SYS_DECL* get_maximum_request_length)(xcb_connection_t*);
   const struct xcb_setup_t* (SYS_DECL* get_setup)(xcb_connection_t*);
   xcb_screen_iterator_t     (SYS_DECL* setup_roots_iterator)(const struct xcb_setup_t*);
   XcbCookie                 (SYS_DECL* intern_atom)(xcb_connection_t*, u8 onlyIfExists, u16 nameLen, const char* name);
   xcb_intern_atom_reply_t*  (SYS_DECL* intern_atom_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
   int                       (SYS_DECL* get_file_descriptor)(xcb_connection_t*);
+  int                       (SYS_DECL* connection_has_error)(xcb_connection_t*);
   // clang-format on
 } Xcb;
 
@@ -561,12 +564,15 @@ static void pal_init_xcb(GapPal* pal, Xcb* out) {
   } while (false)
 
   XCB_LOAD_SYM(connect);
+  XCB_LOAD_SYM(disconnect);
+  XCB_LOAD_SYM(flush);
   XCB_LOAD_SYM(get_maximum_request_length);
   XCB_LOAD_SYM(get_setup);
   XCB_LOAD_SYM(setup_roots_iterator);
   XCB_LOAD_SYM(intern_atom);
   XCB_LOAD_SYM(intern_atom_reply);
   XCB_LOAD_SYM(get_file_descriptor);
+  XCB_LOAD_SYM(connection_has_error);
 
 #undef XCB_LOAD_SYM
 
@@ -1411,9 +1417,7 @@ void gap_pal_destroy(GapPal* pal) {
     pal->xkb.state_unref(pal->xkbState);
   }
 
-  if (pal->xcb.lib) {
-    dynlib_destroy(pal->xcb.lib);
-  }
+  dynlib_destroy(pal->xcb.lib);
   if (pal->xkb.lib) {
     dynlib_destroy(pal->xkb.lib);
   }
@@ -1434,7 +1438,7 @@ void gap_pal_destroy(GapPal* pal) {
     }
   }
 
-  xcb_disconnect(pal->xcbCon);
+  pal->xcb.disconnect(pal->xcbCon);
   log_i("Xcb disconnected");
 
   dynarray_destroy(&pal->windows);
@@ -1645,9 +1649,9 @@ void gap_pal_update(GapPal* pal) {
 }
 
 void gap_pal_flush(GapPal* pal) {
-  xcb_flush(pal->xcbCon);
+  pal->xcb.flush(pal->xcbCon);
 
-  const int error = xcb_connection_has_error(pal->xcbCon);
+  const int error = pal->xcb.connection_has_error(pal->xcbCon);
   if (UNLIKELY(error)) {
     diag_crash_msg(
         "Xcb error: code {}, msg: '{}'", fmt_int(error), fmt_text(pal_xcb_err_str(error)));
