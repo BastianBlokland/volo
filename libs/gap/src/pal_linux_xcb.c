@@ -57,6 +57,7 @@ typedef u32                    XcbPixmap;
 typedef u32                    XcbColormap;
 typedef u32                    XcbVisualId;
 typedef u32                    XcbEventMask;
+typedef u8                     XcbButton;
 
 typedef struct {
   XcbWindow   root;
@@ -138,6 +139,115 @@ typedef struct {
   XcbScreen* data;
   int        rem, index;
 } XcbScreenItr;
+
+typedef struct {
+  u8        responseType;
+  u8        format;
+  u16       sequence;
+  XcbWindow window;
+  XcbAtom   type;
+  u32       data[5];
+} XcbClientMessageEvent;
+
+typedef struct {
+  u8        responseType;
+  u8        detail;
+  u16       sequence;
+  XcbWindow event;
+  u8        mode;
+  u8        pad0[3];
+} XcbFocusEvent;
+
+typedef struct {
+  u8           responseType;
+  u8           pad0;
+  u16          sequence;
+  XcbTimestamp time;
+  XcbWindow    owner;
+  XcbWindow    requestor;
+  XcbAtom      selection;
+  XcbAtom      target;
+  XcbAtom      property;
+} XcbSelectionRequestEvent;
+
+typedef struct {
+  u8           responseType;
+  u8           pad0;
+  u16          sequence;
+  XcbTimestamp time;
+  XcbWindow    requestor;
+  XcbAtom      selection;
+  XcbAtom      target;
+  XcbAtom      property;
+} XcbSelectionNotifyEvent;
+
+typedef struct {
+  u8        responseType;
+  u8        pad0;
+  u16       sequence;
+  XcbWindow event;
+  XcbWindow window;
+  XcbWindow aboveSibling;
+  i16       x, y;
+  u16       width, height;
+  u16       borderWidth;
+  u8        overrideRedirect;
+  u8        pad1;
+} XcbConfigureNotifyEvent;
+
+typedef struct {
+  u8           responseType;
+  u8           detail;
+  u16          sequence;
+  XcbTimestamp time;
+  XcbWindow    root;
+  XcbWindow    event;
+  XcbWindow    child;
+  i16          rootX, rootY;
+  i16          eventX, eventY;
+  u16          state;
+  u8           sameScreen;
+  u8           pad0;
+} XcbMotionNotifyEvent;
+
+typedef struct {
+  u8           responseType;
+  XcbButton    detail;
+  u16          sequence;
+  XcbTimestamp time;
+  XcbWindow    root;
+  XcbWindow    event;
+  XcbWindow    child;
+  i16          rootX, rootY;
+  i16          eventX, eventY;
+  u16          state;
+  u8           sameScreen;
+  u8           pad0;
+} XcbButtonEvent;
+
+typedef struct {
+  u8           responseType;
+  u8           detail;
+  u16          sequence;
+  XcbTimestamp time;
+  XcbWindow    root;
+  XcbWindow    event;
+  XcbWindow    child;
+  i16          rootX, rootY;
+  i16          eventX, eventY;
+  u16          state;
+  u8           sameScreen;
+  u8           pad0;
+} XcbKeyEvent;
+
+typedef struct {
+  u8           responseType;
+  u8           pad0;
+  u16          sequence;
+  XcbTimestamp time;
+  XcbWindow    owner;
+  XcbAtom      selection;
+} XcbSelectionClearEvent;
 
 typedef enum {
   XkbKeyDirection_Up,
@@ -391,7 +501,7 @@ struct sGapPal {
   XcbConnection*    xcbCon;
   XcbScreen*        xcbScreen;
   GapPalXcbExtFlags extensions;
-  usize             maxRequestLength;
+  usize             maxRequestLen;
   u8                xkbFirstEvent, xkbFirstError;
   u8                randrFirstEvent;
 
@@ -731,9 +841,9 @@ static void pal_init_xcb(GapPal* pal, Xcb* out) {
 #undef XCB_LOAD_SYM
 
   // Establish a connection with the x-server.
-  int screen            = 0;
-  pal->xcbCon           = out->connect(null, &screen);
-  pal->maxRequestLength = out->get_maximum_request_length(pal->xcbCon) * 4;
+  int screen         = 0;
+  pal->xcbCon        = out->connect(null, &screen);
+  pal->maxRequestLen = out->get_maximum_request_length(pal->xcbCon) * 4;
 
   // Find the screen for our connection.
   const XcbSetup* setup     = out->get_setup(pal->xcbCon);
@@ -762,20 +872,20 @@ static void pal_init_xcb(GapPal* pal, Xcb* out) {
   log_i(
       "Xcb connected",
       log_param("fd", fmt_int(out->get_file_descriptor(pal->xcbCon))),
-      log_param("max-req-length", fmt_size(pal->maxRequestLength)),
+      log_param("max-req-length", fmt_size(pal->maxRequestLen)),
       log_param("screen-num", fmt_int(screen)),
       log_param("screen-size", gap_vector_fmt(screenSize)));
 }
 
 static void pal_xcb_wm_state_update(
     GapPal* pal, const GapWindowId windowId, const XcbAtom stateAtom, const bool active) {
-  const xcb_client_message_event_t evt = {
-      .response_type  = XCB_CLIENT_MESSAGE,
-      .format         = sizeof(XcbAtom) * 8,
-      .window         = (XcbWindow)windowId,
-      .type           = pal->atomWmState,
-      .data.data32[0] = active ? 1 : 0,
-      .data.data32[1] = stateAtom,
+  const XcbClientMessageEvent evt = {
+      .responseType = XCB_CLIENT_MESSAGE,
+      .format       = sizeof(XcbAtom) * 8,
+      .window       = (XcbWindow)windowId,
+      .type         = pal->atomWmState,
+      .data[0]      = active ? 1 : 0,
+      .data[1]      = stateAtom,
   };
   pal->xcb.send_event(
       pal->xcbCon,
@@ -1235,7 +1345,7 @@ pal_set_window_min_size(GapPal* pal, const GapWindowId windowId, const GapVector
     i32 width, height;
     i32 minWidth, minHeight;
     i32 maxWidth, maxHeight;
-    i32 width_inc, height_inc;
+    i32 widthInc, heightInc;
     i32 minAspectNum, minAspectDen;
     i32 maxAspectNum, maxAspectDen;
     i32 baseWidth, baseHeight;
@@ -1393,7 +1503,7 @@ static void pal_event_release(GapPal* pal, const GapWindowId windowId, const Gap
   }
 }
 
-static void pal_event_text(GapPal* pal, const GapWindowId windowId, const xcb_keycode_t keyCode) {
+static void pal_event_text(GapPal* pal, const GapWindowId windowId, const XkbKeycode keyCode) {
   GapPalWindow* window = pal_maybe_window(pal, windowId);
   if (UNLIKELY(!window)) {
     return;
@@ -1458,14 +1568,14 @@ static void pal_clip_send_utf8(
 }
 
 static void pal_event_clip_copy_request(
-    GapPal* pal, const GapWindowId windowId, const xcb_selection_request_event_t* reqEvt) {
+    GapPal* pal, const GapWindowId windowId, const XcbSelectionRequestEvent* reqEvt) {
 
-  xcb_selection_notify_event_t notifyEvt = {
-      .response_type = XCB_SELECTION_NOTIFY,
-      .time          = XCB_CURRENT_TIME,
-      .requestor     = reqEvt->requestor,
-      .selection     = reqEvt->selection,
-      .target        = reqEvt->target,
+  XcbSelectionNotifyEvent notifyEvt = {
+      .responseType = XCB_SELECTION_NOTIFY,
+      .time         = XCB_CURRENT_TIME,
+      .requestor    = reqEvt->requestor,
+      .selection    = reqEvt->selection,
+      .target       = reqEvt->target,
   };
 
   GapPalWindow* window = pal_maybe_window(pal, windowId);
@@ -1504,7 +1614,7 @@ static void pal_event_clip_paste_notify(GapPal* pal, const GapWindowId windowId)
       pal->atomVoloClipboard,
       XCB_ATOM_ANY,
       0,
-      (u32)(pal->maxRequestLength / 4));
+      (u32)(pal->maxRequestLen / 4));
   if (UNLIKELY(err)) {
     diag_crash_msg("Xcb failed to retrieve clipboard value, err: {}", fmt_int(err->errorCode));
   }
@@ -1612,14 +1722,14 @@ void gap_pal_update(GapPal* pal) {
     } break;
 
     case XCB_CLIENT_MESSAGE: {
-      const xcb_client_message_event_t* clientMsg = (const void*)evt;
-      if (clientMsg->data.data32[0] == pal->atomDeleteMsg) {
+      const XcbClientMessageEvent* clientMsg = (const void*)evt;
+      if (clientMsg->data[0] == pal->atomDeleteMsg) {
         pal_event_close(pal, clientMsg->window);
       }
     } break;
 
     case XCB_FOCUS_IN: {
-      const xcb_focus_in_event_t* focusInMsg = (const void*)evt;
+      const XcbFocusEvent* focusInMsg = (const void*)evt;
       pal_event_focus_gained(pal, focusInMsg->event);
 
       if (pal_maybe_window(pal, focusInMsg->event)) {
@@ -1629,12 +1739,12 @@ void gap_pal_update(GapPal* pal) {
     } break;
 
     case XCB_FOCUS_OUT: {
-      const xcb_focus_out_event_t* focusOutMsg = (const void*)evt;
+      const XcbFocusEvent* focusOutMsg = (const void*)evt;
       pal_event_focus_lost(pal, focusOutMsg->event);
     } break;
 
     case XCB_CONFIGURE_NOTIFY: {
-      const xcb_configure_notify_event_t* configureMsg = (const void*)evt;
+      const XcbConfigureNotifyEvent* configureMsg = (const void*)evt;
       const GapVector newSize   = gap_vector(configureMsg->width, configureMsg->height);
       const GapVector newPos    = {configureMsg->x, configureMsg->y};
       const GapVector newCenter = {
@@ -1660,20 +1770,20 @@ void gap_pal_update(GapPal* pal) {
     } break;
 
     case XCB_MOTION_NOTIFY: {
-      const xcb_motion_notify_event_t* motionMsg = (const void*)evt;
-      GapPalWindow*                    window    = pal_maybe_window(pal, motionMsg->event);
+      const XcbMotionNotifyEvent* motionMsg = (const void*)evt;
+      GapPalWindow*               window    = pal_maybe_window(pal, motionMsg->event);
       if (window) {
         // Xcb uses top-left as opposed to bottom-left, so we have to remap the y coordinate.
         const GapVector newPos = {
-            motionMsg->event_x,
-            window->params[GapParam_WindowSize].height - motionMsg->event_y,
+            motionMsg->eventX,
+            window->params[GapParam_WindowSize].height - motionMsg->eventY,
         };
         pal_event_cursor(pal, motionMsg->event, newPos);
       }
     } break;
 
     case XCB_BUTTON_PRESS: {
-      const xcb_button_press_event_t* pressMsg = (const void*)evt;
+      const XcbButtonEvent* pressMsg = (const void*)evt;
       switch (pressMsg->detail) {
       case XCB_BUTTON_INDEX_1:
         pal_event_press(pal, pressMsg->event, GapKey_MouseLeft);
@@ -1712,7 +1822,7 @@ void gap_pal_update(GapPal* pal) {
     } break;
 
     case XCB_BUTTON_RELEASE: {
-      const xcb_button_release_event_t* releaseMsg = (const void*)evt;
+      const XcbButtonEvent* releaseMsg = (const void*)evt;
       switch (releaseMsg->detail) {
       case XCB_BUTTON_INDEX_1:
         pal_event_release(pal, releaseMsg->event, GapKey_MouseLeft);
@@ -1739,7 +1849,7 @@ void gap_pal_update(GapPal* pal) {
     } break;
 
     case XCB_KEY_PRESS: {
-      const xcb_key_press_event_t* pressMsg = (const void*)evt;
+      const XcbKeyEvent* pressMsg = (const void*)evt;
       pal_event_press(pal, pressMsg->event, pal_xcb_translate_key(pressMsg->detail));
       if (pal->extensions & GapPalXcbExtFlags_Xkb) {
         pal->xkb.state_update_key(pal->xkbState, pressMsg->detail, XkbKeyDirection_Down);
@@ -1748,7 +1858,7 @@ void gap_pal_update(GapPal* pal) {
     } break;
 
     case XCB_KEY_RELEASE: {
-      const xcb_key_release_event_t* releaseMsg = (const void*)evt;
+      const XcbKeyEvent* releaseMsg = (const void*)evt;
       pal_event_release(pal, releaseMsg->event, pal_xcb_translate_key(releaseMsg->detail));
       if (pal->extensions & GapPalXcbExtFlags_Xkb) {
         pal->xkb.state_update_key(pal->xkbState, releaseMsg->detail, XkbKeyDirection_Up);
@@ -1756,17 +1866,17 @@ void gap_pal_update(GapPal* pal) {
     } break;
 
     case XCB_SELECTION_CLEAR: {
-      const xcb_selection_clear_event_t* selectionClearMsg = (const void*)evt;
+      const XcbSelectionClearEvent* selectionClearMsg = (const void*)evt;
       pal_event_clip_copy_clear(pal, selectionClearMsg->owner);
     } break;
 
     case XCB_SELECTION_REQUEST: {
-      const xcb_selection_request_event_t* selectionRequestMsg = (const void*)evt;
+      const XcbSelectionRequestEvent* selectionRequestMsg = (const void*)evt;
       pal_event_clip_copy_request(pal, selectionRequestMsg->owner, selectionRequestMsg);
     } break;
 
     case XCB_SELECTION_NOTIFY: {
-      const xcb_selection_notify_event_t* selectionNotifyMsg = (const void*)evt;
+      const XcbSelectionNotifyEvent* selectionNotifyMsg = (const void*)evt;
       if (selectionNotifyMsg->selection == pal->atomClipboard && selectionNotifyMsg->target) {
         pal_event_clip_paste_notify(pal, selectionNotifyMsg->requestor);
       }
@@ -2192,7 +2302,7 @@ void gap_pal_window_cursor_pos_set(
 }
 
 void gap_pal_window_clip_copy(GapPal* pal, const GapWindowId windowId, const String value) {
-  const usize maxClipReqLen = pal->maxRequestLength - sizeof(xcb_change_property_request_t);
+  const usize maxClipReqLen = pal->maxRequestLen - 24 /* sizeof(xcb_change_property_request_t) */;
   if (value.size > maxClipReqLen) {
     // NOTE: Exceeding this limit would require splitting the data into chunks.
     log_w(
