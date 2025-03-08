@@ -81,6 +81,15 @@ typedef struct {
   DynLib*          lib;
   xcb_extension_t* id;
   // clang-format off
+  XcbCookie (SYS_DECL* query_version)(xcb_connection_t*, u32 majorVersion, u32 minorVersion);
+  void*     (SYS_DECL* query_version_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
+  // clang-format on
+} XcbRandr;
+
+typedef struct {
+  DynLib*          lib;
+  xcb_extension_t* id;
+  // clang-format off
   XcbCookie            (SYS_DECL* query_version)(xcb_connection_t*, u32 majorVersion, u32 minorVersion);
   void*                (SYS_DECL* query_version_reply)(xcb_connection_t*, XcbCookie, xcb_generic_error_t**);
   XcbCookie            (SYS_DECL* query_pict_formats)(xcb_connection_t*);
@@ -141,6 +150,7 @@ struct sGapPal {
   GapPalFlags       flags;
 
   XcbXFixes xfixes;
+  XcbRandr  xrandr;
   XcbRender xrender;
 
   struct xkb_context* xkbContext;
@@ -596,32 +606,46 @@ static bool pal_xfixes_init(GapPal* pal, XcbXFixes* out) {
  * Initialize the RandR extension.
  * More info: https://xcb.freedesktop.org/manual/group__XCB__RandR__API.html
  */
-static bool pal_randr_init(GapPal* pal, u8* firstEventOut) {
-  const xcb_query_extension_reply_t* data = xcb_get_extension_data(pal->xcbCon, &xcb_randr_id);
-  if (UNLIKELY(!data->present)) {
-    log_w("Xcb RandR extension not present");
+static bool pal_randr_init(GapPal* pal, XcbRandr* out, u8* firstEventOut) {
+  DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxcb-randr.so"), &out->lib);
+  if (loadRes != DynLibResult_Success) {
+    const String err = dynlib_result_str(loadRes);
+    log_w("Failed to load XRandR library ('libxcb-randr.so')", log_param("err", fmt_text(err)));
     return false;
   }
 
-  xcb_generic_error_t*             err   = null;
-  xcb_randr_query_version_reply_t* reply = pal_xcb_call(
-      pal->xcbCon, xcb_randr_query_version, &err, XCB_RANDR_MAJOR_VERSION, XCB_RANDR_MINOR_VERSION);
+#define XRANDR_LOAD_SYM(_NAME_)                                                                    \
+  do {                                                                                             \
+    const String symName = string_lit("xcb_randr_" #_NAME_);                                       \
+    out->_NAME_          = dynlib_symbol(out->lib, symName);                                       \
+    if (!out->_NAME_) {                                                                            \
+      log_w("XRandR symbol '{}' missing", log_param("sym", fmt_text(symName)));                    \
+      return false;                                                                                \
+    }                                                                                              \
+  } while (false)
+
+  XRANDR_LOAD_SYM(id);
+  XRANDR_LOAD_SYM(query_version);
+  XRANDR_LOAD_SYM(query_version_reply);
+
+#undef XRANDR_LOAD_SYM
+
+  const xcb_query_extension_reply_t* data = xcb_get_extension_data(pal->xcbCon, out->id);
+  if (!data || !data->present) {
+    log_w("Xcb RandR extention not present");
+    return false;
+  }
+  xcb_generic_error_t* err     = null;
+  void*                version = pal_xcb_call(pal->xcbCon, out->query_version, &err, 1, 6);
+  free(version);
 
   if (UNLIKELY(err)) {
-    log_w("Xcb failed to initialize the RandR ext", log_param("error", fmt_int(err->error_code)));
-    free(reply);
+    log_w("Failed to initialize Xcb RandR extension", log_param("err", fmt_int(err->error_code)));
     return false;
   }
 
-  MAYBE_UNUSED const u16 versionMajor = reply->major_version;
-  MAYBE_UNUSED const u16 versionMinor = reply->minor_version;
-  free(reply);
-
-  log_i(
-      "Xcb initialized the RandR extension",
-      log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))));
-
   *firstEventOut = data->first_event;
+  log_i("Xcb initialized RandR extension", log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
@@ -721,7 +745,7 @@ static void pal_init_extensions(GapPal* pal) {
   if (pal_xfixes_init(pal, &pal->xfixes)) {
     pal->extensions |= GapPalXcbExtFlags_XFixes;
   }
-  if (pal_randr_init(pal, &pal->randrFirstEvent)) {
+  if (pal_randr_init(pal, &pal->xrandr, &pal->randrFirstEvent)) {
     pal->extensions |= GapPalXcbExtFlags_Randr;
   }
   if (pal_xrender_init(pal, &pal->xrender)) {
@@ -1182,6 +1206,9 @@ void gap_pal_destroy(GapPal* pal) {
 
   if (pal->xfixes.lib) {
     dynlib_destroy(pal->xfixes.lib);
+  }
+  if (pal->xrandr.lib) {
+    dynlib_destroy(pal->xrandr.lib);
   }
   if (pal->xrender.lib) {
     dynlib_destroy(pal->xrender.lib);
