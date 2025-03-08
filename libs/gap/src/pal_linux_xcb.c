@@ -37,6 +37,7 @@ typedef unsigned int           XcbCookie;
 typedef struct sXcbPictFormats XcbPictFormats;
 typedef struct sXkbContext     XkbContext;
 typedef struct sXkbKeyMap      XkbKeyMap;
+typedef struct sXkbState       XkbState;
 typedef u32                    XcbCursor;
 typedef u32                    XcbDrawable;
 typedef u32                    XcbPictFormat;
@@ -44,6 +45,11 @@ typedef u32                    XcbPicture;
 typedef u32                    XcbRandrCrtc;
 typedef u32                    XcbRandrMode;
 typedef u32                    XcbRandrOutput;
+
+typedef enum {
+  XkbKeyDirection_Up,
+  XkbKeyDirection_Down,
+} XkbKeyDirection;
 
 typedef struct {
   u16 redShift, redMask;
@@ -151,6 +157,10 @@ typedef struct {
   void        (SYS_DECL* keymap_unref)(XkbKeyMap*);
   u32         (SYS_DECL* keymap_num_layouts)(XkbKeyMap*);
   const char* (SYS_DECL* keymap_layout_get_name)(XkbKeyMap*, u32 index);
+  XkbState*   (SYS_DECL* state_new_from_device)(XkbKeyMap*, xcb_connection_t*, i32 deviceId);
+  void        (SYS_DECL* state_unref)(XkbState*);
+  i32         (SYS_DECL* state_key_get_utf8)(XkbState*, xkb_keycode_t, char* buffer, usize size);
+  i32         (SYS_DECL* state_update_key)(XkbState*, xkb_keycode_t, XkbKeyDirection);
   // clang-format on
 } XcbXkbCommon;
 
@@ -256,10 +266,10 @@ struct sGapPal {
   XcbRandr     xrandr;
   XcbRender    xrender;
 
-  XkbContext*       xkbContext;
-  i32               xkbDeviceId;
-  XkbKeyMap*        xkbKeymap;
-  struct xkb_state* xkbState;
+  XkbContext* xkbContext;
+  i32         xkbDeviceId;
+  XkbKeyMap*  xkbKeymap;
+  XkbState*   xkbState;
 
   XcbPictFormat formatArgb32;
 
@@ -642,6 +652,10 @@ static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
   XKB_LOAD_SYM(xkb, keymap_unref);
   XKB_LOAD_SYM(xkb, keymap_num_layouts);
   XKB_LOAD_SYM(xkb, keymap_layout_get_name);
+  XKB_LOAD_SYM(xkb_x11, state_new_from_device);
+  XKB_LOAD_SYM(xkb, state_unref);
+  XKB_LOAD_SYM(xkb, state_key_get_utf8);
+  XKB_LOAD_SYM(xkb, state_update_key);
 
 #undef XKB_LOAD_SYM
 
@@ -672,8 +686,7 @@ static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
     log_w("Xcb failed to retrieve the xkb keyboard keymap");
     return false;
   }
-  pal->xkbState =
-      xkb_x11_state_new_from_device((void*)pal->xkbKeymap, pal->xcbCon, pal->xkbDeviceId);
+  pal->xkbState = out->state_new_from_device(pal->xkbKeymap, pal->xcbCon, pal->xkbDeviceId);
   if (!pal->xkbKeymap) {
     log_w("Xcb failed to retrieve the xkb keyboard state");
     return false;
@@ -1188,9 +1201,9 @@ static void pal_event_text(GapPal* pal, const GapWindowId windowId, const xcb_ke
     return;
   }
   if (pal->extensions & GapPalXcbExtFlags_Xkb) {
-    char      buffer[32];
-    const int textSize = xkb_state_key_get_utf8(pal->xkbState, keyCode, buffer, sizeof(buffer));
-    dynstring_append(&window->inputText, mem_create(buffer, textSize));
+    char      buff[32];
+    const int textSize = pal->xkb.state_key_get_utf8(pal->xkbState, keyCode, buff, sizeof(buff));
+    dynstring_append(&window->inputText, mem_create(buff, textSize));
   } else {
     /**
      * Xkb is not supported on this platform.
@@ -1349,6 +1362,16 @@ void gap_pal_destroy(GapPal* pal) {
   }
   dynarray_for_t(&pal->displays, GapPalDisplay, d) { string_maybe_free(g_allocHeap, d->name); }
 
+  if (pal->xkbContext) {
+    pal->xkb.context_unref(pal->xkbContext);
+  }
+  if (pal->xkbKeymap) {
+    pal->xkb.keymap_unref(pal->xkbKeymap);
+  }
+  if (pal->xkbState) {
+    pal->xkb.state_unref(pal->xkbState);
+  }
+
   if (pal->xkb.lib) {
     dynlib_destroy(pal->xkb.lib);
   }
@@ -1362,15 +1385,6 @@ void gap_pal_destroy(GapPal* pal) {
     dynlib_destroy(pal->xrender.lib);
   }
 
-  if (pal->xkbContext) {
-    pal->xkb.context_unref(pal->xkbContext);
-  }
-  if (pal->xkbKeymap) {
-    pal->xkb.keymap_unref(pal->xkbKeymap);
-  }
-  if (pal->xkbState) {
-    xkb_state_unref(pal->xkbState);
-  }
   array_for_t(pal->icons, Mem, icon) { alloc_maybe_free(pal->alloc, *icon); }
   array_for_t(pal->cursors, xcb_cursor_t, cursor) {
     if (*cursor != XCB_NONE) {
@@ -1533,7 +1547,7 @@ void gap_pal_update(GapPal* pal) {
       const xcb_key_press_event_t* pressMsg = (const void*)evt;
       pal_event_press(pal, pressMsg->event, pal_xcb_translate_key(pressMsg->detail));
       if (pal->extensions & GapPalXcbExtFlags_Xkb) {
-        xkb_state_update_key(pal->xkbState, pressMsg->detail, XKB_KEY_DOWN);
+        pal->xkb.state_update_key(pal->xkbState, pressMsg->detail, XkbKeyDirection_Down);
       }
       pal_event_text(pal, pressMsg->event, pressMsg->detail);
     } break;
@@ -1542,7 +1556,7 @@ void gap_pal_update(GapPal* pal) {
       const xcb_key_release_event_t* releaseMsg = (const void*)evt;
       pal_event_release(pal, releaseMsg->event, pal_xcb_translate_key(releaseMsg->detail));
       if (pal->extensions & GapPalXcbExtFlags_Xkb) {
-        xkb_state_update_key(pal->xkbState, releaseMsg->detail, XKB_KEY_UP);
+        pal->xkb.state_update_key(pal->xkbState, releaseMsg->detail, XkbKeyDirection_Up);
       }
     } break;
 
