@@ -50,15 +50,6 @@ typedef u32                    XcbWindow;
 typedef u8                     XcbButton;
 typedef unsigned int           XcbCookie;
 
-typedef struct sXkbContext XkbContext;
-typedef struct sXkbKeyMap  XkbKeyMap;
-typedef struct sXkbState   XkbState;
-typedef u32                XkbKeycode;
-
-typedef u32 XRandrCrtc;
-typedef u32 XRandrMode;
-typedef u32 XRandrOutput;
-
 typedef struct {
   XcbWindow   root;
   XcbColormap defaultColormap;
@@ -75,8 +66,7 @@ typedef struct {
 } XcbScreen;
 
 typedef struct {
-  u8  responseType;
-  u8  pad0;
+  u8  responseType, pad0;
   u16 sequence;
   u32 length;
   u8  present;
@@ -85,8 +75,7 @@ typedef struct {
 } XcbExtensionData;
 
 typedef struct {
-  u8      responseType;
-  u8      pad0;
+  u8      responseType, pad0;
   u16     sequence;
   u32     length;
   XcbAtom atom;
@@ -116,8 +105,7 @@ typedef struct {
 } XcbPropertyData;
 
 typedef struct {
-  u8  responseType;
-  u8  pad0;
+  u8  responseType, pad0;
   u16 sequence;
   u32 pad[7];
   u32 fullSequence;
@@ -159,8 +147,7 @@ typedef struct {
 } XcbFocusEvent;
 
 typedef struct {
-  u8           responseType;
-  u8           pad0;
+  u8           responseType, pad0;
   u16          sequence;
   XcbTimestamp time;
   XcbWindow    owner;
@@ -171,8 +158,7 @@ typedef struct {
 } XcbSelectionRequestEvent;
 
 typedef struct {
-  u8           responseType;
-  u8           pad0;
+  u8           responseType, pad0;
   u16          sequence;
   XcbTimestamp time;
   XcbWindow    requestor;
@@ -182,8 +168,7 @@ typedef struct {
 } XcbSelectionNotifyEvent;
 
 typedef struct {
-  u8        responseType;
-  u8        pad0;
+  u8        responseType, pad0;
   u16       sequence;
   XcbWindow event;
   XcbWindow window;
@@ -191,8 +176,7 @@ typedef struct {
   i16       x, y;
   u16       width, height;
   u16       borderWidth;
-  u8        overrideRedirect;
-  u8        pad1;
+  u8        overrideRedirect, pad1;
 } XcbConfigureNotifyEvent;
 
 typedef struct {
@@ -200,14 +184,11 @@ typedef struct {
   u8           detail;
   u16          sequence;
   XcbTimestamp time;
-  XcbWindow    root;
-  XcbWindow    event;
-  XcbWindow    child;
+  XcbWindow    root, event, child;
   i16          rootX, rootY;
   i16          eventX, eventY;
   u16          state;
-  u8           sameScreen;
-  u8           pad0;
+  u8           sameScreen, pad0;
 } XcbMotionNotifyEvent;
 
 typedef struct {
@@ -215,14 +196,11 @@ typedef struct {
   XcbButton    detail;
   u16          sequence;
   XcbTimestamp time;
-  XcbWindow    root;
-  XcbWindow    event;
-  XcbWindow    child;
+  XcbWindow    root, event, child;
   i16          rootX, rootY;
   i16          eventX, eventY;
   u16          state;
-  u8           sameScreen;
-  u8           pad0;
+  u8           sameScreen, pad0;
 } XcbButtonEvent;
 
 typedef struct {
@@ -230,29 +208,20 @@ typedef struct {
   u8           detail;
   u16          sequence;
   XcbTimestamp time;
-  XcbWindow    root;
-  XcbWindow    event;
-  XcbWindow    child;
+  XcbWindow    root, event, child;
   i16          rootX, rootY;
   i16          eventX, eventY;
   u16          state;
-  u8           sameScreen;
-  u8           pad0;
+  u8           sameScreen, pad0;
 } XcbKeyEvent;
 
 typedef struct {
-  u8           responseType;
-  u8           pad0;
+  u8           responseType, pad0;
   u16          sequence;
   XcbTimestamp time;
   XcbWindow    owner;
   XcbAtom      selection;
 } XcbSelectionClearEvent;
-
-typedef enum {
-  XkbKeyDirection_Up,
-  XkbKeyDirection_Down,
-} XkbKeyDirection;
 
 typedef struct {
   u16 redShift, redMask;
@@ -263,9 +232,7 @@ typedef struct {
 
 typedef struct {
   XcbPictFormat   id;
-  u8              type;
-  u8              depth;
-  u8              pad0[2];
+  u8              type, depth, pad0[2];
   XcbDirectFormat direct;
   u32             colormap;
 } XcbPictFormatInfo;
@@ -275,13 +242,25 @@ typedef struct {
   int                rem, index;
 } XcbPictFormatInfoItr;
 
+typedef enum {
+  XkbKeyDirection_Up,
+  XkbKeyDirection_Down,
+} XkbKeyDirection;
+
+typedef struct sXkbContext XkbContext;
+typedef struct sXkbKeyMap  XkbKeyMap;
+typedef struct sXkbState   XkbState;
+typedef u32                XkbKeycode;
+
+typedef u32 XRandrCrtc;
+typedef u32 XRandrMode;
+typedef u32 XRandrOutput;
+
 typedef struct {
-  u8           responseType;
-  u8           pad0;
+  u8           responseType, pad0;
   u16          sequence;
   u32          length;
-  XcbTimestamp timestamp;
-  XcbTimestamp configTimestamp;
+  XcbTimestamp timestamp, configTimestamp;
   u16          numCrtcs;
   u16          numOutputs;
   u16          numModes;
@@ -339,8 +318,7 @@ typedef struct {
   u8           responseType;
   u8           rotation;
   u16          sequence;
-  XcbTimestamp timestamp;
-  XcbTimestamp configTimestamp;
+  XcbTimestamp timestamp, configTimestamp;
   XcbWindow    root, requestWindow;
   u16          sizeID;
   u16          subpixelOrder;
@@ -430,7 +408,7 @@ typedef struct {
   XkbKeyMap*  (SYS_DECL* keymap_new_from_device)(XkbContext*, XcbConnection*, i32 deviceId, i32 flags);
   XkbState*   (SYS_DECL* state_new_from_device)(XkbKeyMap*, XcbConnection*, i32 deviceId);
   // clang-format on
-} XcbXkbCommon;
+} XkbCommon;
 
 typedef struct {
   DynLib* lib;
@@ -440,7 +418,7 @@ typedef struct {
   XcbCookie (SYS_DECL* query_version)(XcbConnection*, u32 majorVersion, u32 minorVersion);
   XcbCookie (SYS_DECL* show_cursor)(XcbConnection*, XcbWindow);
   // clang-format on
-} XcbXFixes;
+} XFixes;
 
 typedef struct {
   DynLib*       lib;
@@ -482,7 +460,7 @@ typedef struct {
   XcbPictFormatInfoItr (SYS_DECL* query_pict_formats_formats_iterator)(const XcbPictFormats*);
   XcbPictFormats*      (SYS_DECL* query_pict_formats_reply)(XcbConnection*, XcbCookie, XcbGenericError**);
   // clang-format on
-} XcbRender;
+} XRender;
 
 typedef enum {
   GapPalXcbExtFlags_Xkb    = 1 << 0,
@@ -527,11 +505,11 @@ struct sGapPal {
   GapPalXcbExtFlags extensions;
   GapPalFlags       flags;
 
-  Xcb          xcb;
-  XcbXkbCommon xkb;
-  XcbXFixes    xfixes;
-  XRandr       xrandr;
-  XcbRender    xrender;
+  Xcb       xcb;
+  XkbCommon xkb;
+  XFixes    xfixes;
+  XRandr    xrandr;
+  XRender   xrender;
 
   Mem       icons[GapIcon_Count];
   XcbCursor cursors[GapCursor_Count];
@@ -785,7 +763,7 @@ static XcbAtom pal_xcb_atom(GapPal* pal, const String name) {
   XcbAtomData* data    = xcb_call(pal->xcb.con, pal->xcb.intern_atom, &err, 0, name.size, name.ptr);
   if (UNLIKELY(err)) {
     diag_crash_msg(
-        "Xcb failed to retrieve atom: {}, err: {}", fmt_text(name), fmt_int(err->errorCode));
+        "Failed to retrieve Xcb atom: {}, err: {}", fmt_text(name), fmt_int(err->errorCode));
   }
   const XcbAtom result = data->atom;
   free(data);
@@ -893,7 +871,7 @@ static void pal_xcb_wm_state_update(
       .format       = sizeof(XcbAtom) * 8,
       .window       = (XcbWindow)windowId,
       .type         = pal->xcb.atomWmState,
-      .data[0]      = active ? 1 : 0,
+      .data[0]      = active,
       .data[1]      = stateAtom,
   };
   const u32 mask = 131072 /* XCB_EVENT_MASK_STRUCTURE_NOTIFY */ |
@@ -902,7 +880,7 @@ static void pal_xcb_wm_state_update(
 }
 
 static void pal_xcb_bypass_compositor(GapPal* pal, const GapWindowId windowId, const bool active) {
-  const u32 value = active ? 1 : 0;
+  const u32 value = active;
   pal->xcb.change_property(
       pal->xcb.con,
       0 /* XCB_PROP_MODE_REPLACE */,
@@ -932,15 +910,15 @@ static void pal_xcb_cursor_grab(GapPal* pal, const GapWindowId windowId) {
 static void pal_xcb_cursor_grab_release(GapPal* pal) { pal->xcb.ungrab_pointer(pal->xcb.con, 0); }
 
 static void pal_xkb_enable_flag(GapPal* pal, const i32 flag) {
-  enum { XCB_XKB_ID_USE_CORE_KBD = 256 };
-  pal->xkb.per_client_flags_unchecked(pal->xcb.con, XCB_XKB_ID_USE_CORE_KBD, flag, flag, 0, 0, 0);
+  const u16 deviceSpec = 256 /* XCB_XKB_ID_USE_CORE_KBD */;
+  pal->xkb.per_client_flags_unchecked(pal->xcb.con, deviceSpec, flag, flag, 0, 0, 0);
 }
 
 /**
  * Initialize the xkb extension, gives us additional control over keyboard input.
  * More info: https://en.wikipedia.org/wiki/X_keyboard_extension
  */
-static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
+static bool pal_init_xkb(GapPal* pal, XkbCommon* out) {
   DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxkbcommon-x11.so"), &out->lib);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
@@ -982,28 +960,28 @@ static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
       pal->xcb.con, 1, 0, 0, &versionMajor, &versionMinor, &out->firstEvent, &out->firstError);
 
   if (UNLIKELY(!setupRes)) {
-    log_w("Xcb failed to initialize xkb", log_param("error", fmt_int(err->errorCode)));
+    log_w("Failed to initialize Xkb", log_param("error", fmt_int(err->errorCode)));
     return false;
   }
 
   out->context = out->context_new(0);
   if (UNLIKELY(!out->context)) {
-    log_w("Xcb failed to create the xkb-common context");
+    log_w("Failed to create the XkbCommon context");
     return false;
   }
   out->deviceId = out->get_core_keyboard_device_id(pal->xcb.con);
   if (UNLIKELY(out->deviceId < 0)) {
-    log_w("Xcb failed to retrieve the xkb keyboard device-id");
+    log_w("Failed to retrieve the Xkb keyboard device-id");
     return false;
   }
   out->keymap = out->keymap_new_from_device(out->context, pal->xcb.con, out->deviceId, 0);
   if (!out->keymap) {
-    log_w("Xcb failed to retrieve the xkb keyboard keymap");
+    log_w("Failed to retrieve the Xkb keyboard keymap");
     return false;
   }
   out->state = out->state_new_from_device(out->keymap, pal->xcb.con, out->deviceId);
   if (!out->keymap) {
-    log_w("Xcb failed to retrieve the xkb keyboard state");
+    log_w("Failed to retrieve the Xkb keyboard state");
     return false;
   }
 
@@ -1012,7 +990,7 @@ static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
   const String layoutName    = layoutNameRaw ? string_from_null_term(layoutNameRaw) : string_empty;
 
   log_i(
-      "Xcb initialized XkbCommon",
+      "Initialized XkbCommon",
       log_param("path", fmt_path(dynlib_path(out->lib))),
       log_param("version", fmt_list_lit(fmt_int(versionMajor), fmt_int(versionMinor))),
       log_param("device-id", fmt_int(out->deviceId)),
@@ -1024,7 +1002,7 @@ static bool pal_xkb_init(GapPal* pal, XcbXkbCommon* out) {
 /**
  * Initialize xfixes extension, contains various utilities.
  */
-static bool pal_xfixes_init(GapPal* pal, XcbXFixes* out) {
+static bool pal_init_xfixes(GapPal* pal, XFixes* out) {
   DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxcb-xfixes.so"), &out->lib);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
@@ -1058,7 +1036,7 @@ static bool pal_xfixes_init(GapPal* pal, XcbXFixes* out) {
     return false;
   }
 
-  log_i("Xcb initialized XFixes", log_param("path", fmt_path(dynlib_path(out->lib))));
+  log_i("Initialized XFixes", log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
@@ -1066,7 +1044,7 @@ static bool pal_xfixes_init(GapPal* pal, XcbXFixes* out) {
  * Initialize the RandR extension.
  * More info: https://xcb.freedesktop.org/manual/group__XCB__RandR__API.html
  */
-static bool pal_randr_init(GapPal* pal, XRandr* out) {
+static bool pal_init_randr(GapPal* pal, XRandr* out) {
   DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxcb-randr.so"), &out->lib);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
@@ -1105,7 +1083,7 @@ static bool pal_randr_init(GapPal* pal, XRandr* out) {
 
   const XcbExtensionData* data = pal->xcb.get_extension_data(pal->xcb.con, out->id);
   if (!data || !data->present) {
-    log_w("Xcb RandR extention not present");
+    log_w("XRandR extention not present");
     return false;
   }
   XcbGenericError* err     = null;
@@ -1118,7 +1096,7 @@ static bool pal_randr_init(GapPal* pal, XRandr* out) {
   }
 
   out->firstEvent = data->first_event;
-  log_i("Xcb initialized XRandR", log_param("path", fmt_path(dynlib_path(out->lib))));
+  log_i("Initialized XRandR", log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
@@ -1158,7 +1136,7 @@ static bool pal_xrender_find_formats(GapPal* pal) {
   return false; // Argb32 not found.
 }
 
-static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
+static bool pal_init_xrender(GapPal* pal, XRender* out) {
   DynLibResult loadRes = dynlib_load(pal->alloc, string_lit("libxcb-render.so"), &out->lib);
   if (loadRes != DynLibResult_Success) {
     const String err = dynlib_result_str(loadRes);
@@ -1171,7 +1149,7 @@ static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
     const String symName = string_lit("xcb_render_" #_NAME_);                                      \
     out->_NAME_          = dynlib_symbol(out->lib, symName);                                       \
     if (!out->_NAME_) {                                                                            \
-      log_w("Xcb-render symbol '{}' missing", log_param("sym", fmt_text(symName)));                \
+      log_w("XRender symbol '{}' missing", log_param("sym", fmt_text(symName)));                   \
       return false;                                                                                \
     }                                                                                              \
   } while (false)
@@ -1191,7 +1169,7 @@ static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
 
   const XcbExtensionData* data = pal->xcb.get_extension_data(pal->xcb.con, out->id);
   if (!data || !data->present) {
-    log_w("Xcb XRender extention not present");
+    log_w("XRender extention not present");
     return false;
   }
   XcbGenericError* err     = null;
@@ -1199,36 +1177,35 @@ static bool pal_xrender_init(GapPal* pal, XcbRender* out) {
   free(version);
 
   if (UNLIKELY(err)) {
-    log_w("Failed to initialize XRender extension", log_param("err", fmt_int(err->errorCode)));
+    log_w("Failed to initialize XRender", log_param("err", fmt_int(err->errorCode)));
     return false;
   }
   if (!pal_xrender_find_formats(pal)) {
-    log_w("Xcb failed to find required render formats");
+    log_w("XRenderfailed to find required render formats");
     return false;
   }
 
-  log_i("Xcb initialized XRender", log_param("path", fmt_path(dynlib_path(out->lib))));
+  log_i("Initialized XRender", log_param("path", fmt_path(dynlib_path(out->lib))));
   return true;
 }
 
 static void pal_init_extensions(GapPal* pal) {
-  if (pal_xkb_init(pal, &pal->xkb)) {
+  if (pal_init_xkb(pal, &pal->xkb)) {
     pal->extensions |= GapPalXcbExtFlags_Xkb;
   }
-  if (pal_xfixes_init(pal, &pal->xfixes)) {
+  if (pal_init_xfixes(pal, &pal->xfixes)) {
     pal->extensions |= GapPalXcbExtFlags_XFixes;
   }
-  if (pal_randr_init(pal, &pal->xrandr)) {
+  if (pal_init_randr(pal, &pal->xrandr)) {
     pal->extensions |= GapPalXcbExtFlags_Randr;
   }
-  if (pal_xrender_init(pal, &pal->xrender)) {
+  if (pal_init_xrender(pal, &pal->xrender)) {
     pal->extensions |= GapPalXcbExtFlags_Render;
   }
 }
 
-static f32
-pal_randr_refresh_rate(GapPal* pal, XRandrScreenResources* screen, const XRandrMode mode) {
-  XRandrModeInfoIterator i = pal->xrandr.get_screen_resources_current_modes_iterator(screen);
+static f32 pal_randr_refresh_rate(GapPal* pal, XRandrScreenResources* s, const XRandrMode mode) {
+  XRandrModeInfoIterator i = pal->xrandr.get_screen_resources_current_modes_iterator(s);
   for (; i.rem; pal->xrandr.mode_info_next(&i)) {
     if (i.data->id != mode) {
       continue;
@@ -1259,7 +1236,7 @@ static void pal_randr_query_displays(GapPal* pal) {
   XRandrScreenResources* screen =
       xcb_call(pal->xcb.con, pal->xrandr.get_screen_resources_current, &err, pal->xcb.screen->root);
   if (UNLIKELY(err)) {
-    diag_crash_msg("Xcb failed to retrieve RandR screen-info, err: {}", fmt_int(err->errorCode));
+    diag_crash_msg("Failed to retrieve XRandR screen-info, err: {}", fmt_int(err->errorCode));
   }
 
   const XRandrOutput* outputs    = pal->xrandr.get_screen_resources_current_outputs(screen);
@@ -1268,7 +1245,7 @@ static void pal_randr_query_displays(GapPal* pal) {
     XRandrOutputInfo* output =
         xcb_call(pal->xcb.con, pal->xrandr.get_output_info, &err, outputs[i], 0);
     if (UNLIKELY(err)) {
-      diag_crash_msg("Xcb failed to retrieve RandR output-info, err: {}", fmt_int(err->errorCode));
+      diag_crash_msg("Failed to retrieve XRandR output-info, err: {}", fmt_int(err->errorCode));
     }
     const String name = {
         .ptr  = pal->xrandr.get_output_info_name(output),
@@ -1279,7 +1256,7 @@ static void pal_randr_query_displays(GapPal* pal) {
       XRandrCrtcInfo* crtc =
           xcb_call(pal->xcb.con, pal->xrandr.get_crtc_info, &err, output->crtc, 0);
       if (UNLIKELY(err)) {
-        diag_crash_msg("Xcb failed to retrieve RandR crtc-info, err: {}", fmt_int(err->errorCode));
+        diag_crash_msg("Failed to retrieve XRandR crtc-info, err: {}", fmt_int(err->errorCode));
       }
       const GapVector position       = gap_vector(crtc->x, crtc->y);
       const GapVector size           = gap_vector(crtc->width, crtc->height);
@@ -1325,7 +1302,7 @@ static GapVector pal_query_cursor_pos(GapPal* pal, const GapWindowId winId) {
 
   if (UNLIKELY(err)) {
     log_w(
-        "Xcb failed to query the x11 cursor position",
+        "Failed to query the x11 cursor position",
         log_param("window-id", fmt_int(winId)),
         log_param("error", fmt_int(err->errorCode)));
     goto Return;
@@ -1342,8 +1319,7 @@ Return:
   return result;
 }
 
-static void
-pal_set_window_min_size(GapPal* pal, const GapWindowId windowId, const GapVector minSize) {
+static void pal_set_window_min_size(GapPal* pal, const GapWindowId windowId, const GapVector val) {
   // Needs to match 'WinXSizeHints' from the XServer.
   struct SizeHints {
     u32 flags;
@@ -1360,8 +1336,8 @@ pal_set_window_min_size(GapPal* pal, const GapWindowId windowId, const GapVector
 
   const struct SizeHints newHints = {
       .flags     = 1 << 4 /* PMinSize */,
-      .minWidth  = minSize.width,
-      .minHeight = minSize.height,
+      .minWidth  = val.width,
+      .minHeight = val.height,
   };
 
   pal->xcb.change_property(
@@ -1643,7 +1619,7 @@ GapPal* gap_pal_create(Allocator* alloc) {
 
   *pal = (GapPal){
       .alloc    = alloc,
-      .windows  = dynarray_create_t(alloc, GapPalWindow, 4),
+      .windows  = dynarray_create_t(alloc, GapPalWindow, 1),
       .displays = dynarray_create_t(alloc, GapPalDisplay, 4),
   };
 
@@ -2049,8 +2025,7 @@ GapWindowId gap_pal_window_create(GapPal* pal, GapVector size) {
   }
 
   const u32 valuesMask = 2 /* XCB_CW_BACK_PIXEL */ | 2048 /* XCB_CW_EVENT_MASK */;
-
-  const u32 values[2] = {
+  const u32 values[2]  = {
       pal->xcb.screen->blackPixel,
       g_xcbWindowEventMask,
   };
