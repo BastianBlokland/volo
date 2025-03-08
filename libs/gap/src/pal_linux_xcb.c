@@ -234,8 +234,10 @@ struct sGapPal {
   xcb_screen_t*     xcbScreen;
   GapPalXcbExtFlags extensions;
   usize             maxRequestLength;
+  u8                xkbFirstEvent, xkbFirstError;
   u8                randrFirstEvent;
-  GapPalFlags       flags;
+
+  GapPalFlags flags;
 
   XcbXFixes xfixes;
   XcbRandr  xrandr;
@@ -600,19 +602,17 @@ static void pal_xkb_enable_flag(GapPal* pal, const xcb_xkb_per_client_flag_t fla
  * More info: https://en.wikipedia.org/wiki/X_keyboard_extension
  */
 static bool pal_xkb_init(GapPal* pal) {
-  xcb_generic_error_t*           err   = null;
-  xcb_xkb_use_extension_reply_t* reply = pal_xcb_call(
-      pal->xcbCon, xcb_xkb_use_extension, &err, XCB_XKB_MAJOR_VERSION, XCB_XKB_MINOR_VERSION);
+  xcb_generic_error_t* err = null;
 
-  if (UNLIKELY(err)) {
-    log_w("Xcb failed to initialize the xkb ext", log_param("error", fmt_int(err->error_code)));
-    free(reply);
+  u16       versionMajor;
+  u16       versionMinor;
+  const int setupRes = xkb_x11_setup_xkb_extension(
+      pal->xcbCon, 1, 0, 0, &versionMajor, &versionMinor, &pal->xkbFirstEvent, &pal->xkbFirstError);
+
+  if (UNLIKELY(!setupRes)) {
+    log_w("Xcb failed to initialize xkb", log_param("error", fmt_int(err->error_code)));
     return false;
   }
-
-  MAYBE_UNUSED const u16 versionMajor = reply->serverMajor;
-  MAYBE_UNUSED const u16 versionMinor = reply->serverMinor;
-  free(reply);
 
   pal->xkbContext = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
   if (UNLIKELY(!pal->xkbContext)) {
