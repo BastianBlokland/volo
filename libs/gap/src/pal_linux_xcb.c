@@ -1320,7 +1320,7 @@ GapPal* gap_pal_create(Allocator* alloc) {
      * By default x-server will send repeated press and release when holding a key, making it
      * impossible to detect 'true' presses and releases. This flag disables that behavior.
      */
-    pal_xkb_enable_flag(pal, XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT);
+    pal_xkb_enable_flag(pal, 1 /* XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT */);
   }
 
   if (pal->extensions & GapPalXcbExtFlags_Randr) {
