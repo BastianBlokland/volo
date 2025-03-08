@@ -33,7 +33,6 @@ message(STATUS "* Sanitize: ${SANITIZE}")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules")
 include(cmake/compiler.cmake)
 include(cmake/debug.cmake)
-include(cmake/findpkg.cmake)
 include(cmake/platform.cmake)
 include(cmake/test.cmake)
 
